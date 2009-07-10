@@ -423,7 +423,7 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
   real(wp), dimension(n1i,n2i,n3i,npsir), intent(in) :: psir
   real(dp), dimension(n1i,n2i,nrhotot,nspinn), intent(inout) :: rho_p
   !local variables
-  integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e,j3,i3sg,id,tot
+  integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e,j3,i3sg,ithread,nthread
   real(gp) :: hfac2
   real(dp) :: psisq,p1,p2,p3,p4,r1,r2,r3,r4
   !sum different slices by taking into account the overlap
@@ -432,8 +432,8 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
 !$omp shared(n2i,npsir,hfac,psir,rho_p,n3i,i3sg)
   i3s=0
   hfac2=2.0_gp*hfac
-id=omp_get_thread_num()
-tot=omp_get_num_threads()
+!$  ithread=omp_get_thread_num()
+!$  nthread=omp_get_num_threads()
 
   !case without bounds
   i1s=1
@@ -462,7 +462,7 @@ tot=omp_get_num_threads()
         !j3=modulo(i3-1,n3i)+1 
         j3=i3
         i3s=i3s+1
-if(mod(i3s,tot) .eq. id) then
+!$  if(mod(i3s,nthread) .eq. ithread) then
 
         do i2=1,n2i
            if (npsir == 1) then
@@ -493,7 +493,7 @@ if(mod(i3s,tot) .eq. id) then
               end do
            end if
         end do
-end if
+!$  end if
 
 !$omp critical
         i3sg=max(i3sg,i3s)
@@ -527,7 +527,7 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
   real(dp), dimension(n1i,n2i,nrhotot,nspinn), intent(inout) :: rho_p
   integer, dimension(:,:,:),pointer :: ibyyzz_r 
   !local variables
-  integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e,j3,i3sg,id,tot
+  integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e,j3,i3sg,ithread,nthread
   real(gp) :: hfac2
   real(dp) :: psisq,p1,p2,p3,p4,r1,r2,r3,r4
   !sum different slices by taking into account the overlap
@@ -535,8 +535,8 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
 !$omp parallel default(private) shared(n1i,nproc,rsflag,nspinn,nscatterarr,spinsgn) &
 !$omp shared(n2i,npsir,hfac,psir,rho_p,n3i,i3sg,ibyyzz_r)
   i3s=0
-id=omp_get_thread_num()
-tot=omp_get_num_threads()
+!$   ithread=omp_get_thread_num()
+!$   nthread=omp_get_num_threads()
   hfac2=2.0_gp*hfac
 
   !case without bounds
@@ -566,7 +566,7 @@ tot=omp_get_num_threads()
         !j3=modulo(i3-1,n3i)+1 
         j3=i3
         i3s=i3s+1
-if(mod(i3s,tot) .eq. id) then
+!$    if(mod(i3s,nthread) .eq. ithread) then
 
         do i2=1,n2i
               i1s=ibyyzz_r(1,i2-15,j3-15)+1
@@ -599,7 +599,7 @@ if(mod(i3s,tot) .eq. id) then
               end do
            end if
         end do
-end if
+!$    end if
 
 !$omp critical
         i3sg=max(i3sg,i3s)

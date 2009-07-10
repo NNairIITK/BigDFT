@@ -1047,11 +1047,11 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
 
   call apply_potential(n1,n2,n3,0,0,0,0,nspinor,npot,psir,pot,epot)
 
-!!$  !$omp parallel default(private)&
-!!$  !$omp shared(pot,psir,n1,n2,n3,epot)
+!!$  !!$omp parallel default(private)&
+!!$  !!$omp shared(pot,psir,n1,n2,n3,epot)
 !!$
 !!$  epot_p=0._gp
-!!$  !$omp do
+!!$  !!$omp do
 !!$  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
 !!$     v=real(pot(i),gp)
 !!$     p=real(psir(i),gp)
@@ -1059,13 +1059,13 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
 !!$     epot_p=epot_p+p*v*p
 !!$     psir(i)=tt
 !!$  enddo
-!!$  !$omp end do
+!!$  !!$omp end do
 !!$
-!!$  !$omp critical
+!!$  !!$omp critical
 !!$  epot=epot+epot_p
-!!$  !$omp end critical
+!!$  !!$omp end critical
 !!$
-!!$  !$omp end parallel
+!!$  !!$omp end parallel
 
   do idx=1,nspinor
      call convolut_magic_t_per_self(2*n1+1,2*n2+1,2*n3+1,psir(1,idx),psi_out(1,idx))
@@ -1320,17 +1320,17 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
   !the Tail treatment is allowed only in the Free BC case
   if (nbuf /= 0 .and. nl1*nl2*nl3 == 0) stop 'NONSENSE: nbuf/=0 only for Free BC'
 
-  !case without bounds
-  i1s=-14*nl1
-  i1e=2*n1+1+15*nl1
 
   epot=0.0_wp
 
 
-  !$omp parallel default(private)&
-  !$omp shared(pot,psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
+  !!$omp parallel default(private)&
+  !!$omp shared(pot,psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
+  !case without bounds
+  i1s=-14*nl1
+  i1e=2*n1+1+15*nl1
   epot_p=0._gp
-  !$omp do
+  !!$omp do
   do i3=-14*nl3,2*n3+1+15*nl3
      if (i3 >= -14+2*nbuf .and. i3 <= 2*n3+16-2*nbuf) then !check for the nbuf case
         do i2=-14*nl2,2*n2+1+15*nl2
@@ -1429,13 +1429,13 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
         enddo
      endif
   enddo
-  !$omp end do
+  !!$omp end do
 
-  !$omp critical
+  !!$omp critical
   epot=epot+epot_p
-  !$omp end critical
+  !!$omp end critical
 
-  !$omp end parallel
+  !!$omp end parallel
 
 
 end subroutine apply_potential
