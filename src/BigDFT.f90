@@ -144,6 +144,8 @@ program BigDFT
         open(unit=16,file='geopt.mon',status='unknown')
         if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
         call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
+        filename='trim(relaxed_'//arr_posinp(iconfig))
+        call write_atomic_file(filename,etot,rxyz,atoms,' ')
      end if
 
 
@@ -167,8 +169,6 @@ program BigDFT
         end if
      endif
 
-     filename='relaxed_'//(arr_posinp(iconfig))
-     call write_atomic_file(filename,etot,rxyz,atoms,' ')
 
      !deallocations
      i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
