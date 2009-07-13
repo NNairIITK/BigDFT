@@ -29,6 +29,15 @@ module module_base
   include 'mpif.h'
   integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION,mpidtypd=MPI_DOUBLE_PRECISION
   integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
+#ifdef HAVE_MPI2
+  ! Flag to use in the code to switch between MPI1 and MPI2
+  logical, parameter :: have_mpi2 = .TRUE.
+#else
+  ! Fake MPI_IN_PLACE variable to allow compilation in sumrho.
+  integer, parameter :: MPI_IN_PLACE = 0
+  ! Flag to use in the code to switch between MPI1 and MPI2
+  logical, parameter :: have_mpi2 = .false.
+#endif
   !integer, parameter :: mpidtypw=MPI_REAL,mpidtypd=MPI_REAL !in case of single precision
 
   !Memory limit value in GB. It stops EVERYTHING if some process passes such limit

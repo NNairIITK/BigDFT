@@ -516,7 +516,8 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
               dx2=d2(i1,hx,n1,rx,perx)
               if (dx2+(dy2+dz2) <= rad_c**2) then
               mvctr=mvctr+1
-                 proj_c(mvctr)=proj_c(mvctr)+wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
+                 proj_c(mvctr)=proj_c(mvctr)+&
+                      wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
               endif
            enddo
         enddo
@@ -532,20 +533,20 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
               dx2=d2(i1,hx,n1,rx,perx)
               if (dx2+(dy2+dz2) <= rad_f**2) then
                  mvctr=mvctr+1
-                 proj_f(1,mvctr)=&
-                      proj_f(1,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
-                 proj_f(2,mvctr)=&
-                      proj_f(2,mvctr)+wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
-                 proj_f(3,mvctr)=&
-                      proj_f(3,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
-                 proj_f(4,mvctr)=&
-                      proj_f(4,mvctr)+wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
-                 proj_f(5,mvctr)=&
-                      proj_f(5,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
-                 proj_f(6,mvctr)=&
-                      proj_f(6,mvctr)+wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
-                 proj_f(7,mvctr)=&
-                      proj_f(7,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
+                 proj_f(1,mvctr)=proj_f(1,mvctr)+&
+                      wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
+                 proj_f(2,mvctr)=proj_f(2,mvctr)+&
+                      wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
+                 proj_f(3,mvctr)=proj_f(3,mvctr)+&
+                      wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
+                 proj_f(4,mvctr)=proj_f(4,mvctr)+&
+                      wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
+                 proj_f(5,mvctr)=proj_f(5,mvctr)+&
+                      wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
+                 proj_f(6,mvctr)=proj_f(6,mvctr)+&
+                      wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
+                 proj_f(7,mvctr)=proj_f(7,mvctr)+&
+                      wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
               endif
            enddo
         enddo
