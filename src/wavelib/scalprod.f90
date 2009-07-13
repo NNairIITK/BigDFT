@@ -156,7 +156,7 @@ subroutine wpdot(  &
   !local variables
   integer :: iaseg,ibseg,llc,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,llf,i,ithread,nthread
   real(dp) :: pac,paf1,paf2,paf3,paf4,paf5,paf6,paf7,pbc,pbf1,pbf2,pbf3,pbf4,pbf5,pbf6,pbf7
-  real(dp) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7
+  real(dp) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
   !  integer :: ncount0,ncount2,ncount_rate,ncount_max
   !  real(gp) :: tel
 
@@ -165,17 +165,17 @@ subroutine wpdot(  &
   !  open(unit=97,file='time_wpdot',status='unknown')
   !  call system_clock(ncount0,ncount_rate,ncount_max)
 
-  !scpr=0.0_dp
+  scpr=0.0_dp
 
   !dee
-!!$omp parallel default (private) &
-!!$omp shared (maseg_c,keyav_c,keyag_c,keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f)&
-!!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,mbseg_f,keybg_f,keyag_f,keyav_f)&
-!!$omp shared (apsi_f,scpr)
-!!$    ithread=omp_get_thread_num()
-!!$    nthread=omp_get_num_threads()
-    scpr=0.0_dp
-!!$  if (ithread .eq. 0) then
+!$omp parallel default (private) &
+!$omp shared (maseg_c,keyav_c,keyag_c,keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f)&
+!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,mbseg_f,keybg_f,keyag_f,keyav_f)&
+!$omp shared (apsi_f,scpr)
+!$    ithread=omp_get_thread_num()
+!$    nthread=omp_get_num_threads()
+    scpr0=0.0_dp
+!$  if (ithread .eq. 0) then
   llc=0
   !coarse part
   ibseg=1
@@ -212,14 +212,14 @@ subroutine wpdot(  &
            llc=llc+1
            pac=real(apsi_c(jaj+iaoff+i),dp)
            pbc=real(bpsi_c(jbj+iboff+i),dp)
-           scpr=scpr+pac*pbc
+           scpr0=scpr0+pac*pbc
         enddo
         ibseg=ibseg+1
         if (ibseg > mbseg_c) exit loop_jac !function b ended 
      end do loop_jbc
   enddo loop_jac
 
-!!$  endif
+!$  endif
   !print *,'nvctr_c',llc,mavctr_c,mbvctr_c
 
 
@@ -230,7 +230,7 @@ subroutine wpdot(  &
   scpr5=0.d0
   scpr6=0.d0
   scpr7=0.d0
-!!$  if (ithread .eq. 1  .or. nthread .eq. 1) then
+!$  if (ithread .eq. 1  .or. nthread .eq. 1) then
   llf=0
   ! fine part
   !add possibility of zero fine segments for the projectors
@@ -292,12 +292,12 @@ subroutine wpdot(  &
      enddo loop_jaf
   end if
 
-!!$  endif
+!$  endif
   !print *,'nvctr_f',llf,mavctr_f,mbvctr_f
-!!$omp critical 
-  scpr=scpr+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
-!!$omp end critical
-!!$omp end parallel
+!$omp critical 
+  scpr=scpr+scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
+!$omp end critical
+!$omp end parallel
   !        write(*,*) 'llc,llf',llc,llf
   !  call system_clock(ncount2,ncount_rate,ncount_max)
   !  tel=dble(ncount2-ncount0)/dble(ncount_rate)
