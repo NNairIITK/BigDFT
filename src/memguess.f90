@@ -123,7 +123,7 @@ program memguess
   call read_atomic_file('posinp',0,atoms,rxyz)
 
   if (convert) then
-     call read_input_variables(0,'input.dft',in)
+     call read_input_variables(0,'input.dat',in)
      write(*,'(a)',advance='NO')' Conversion of the input file...'
      call dft_input_converter(in)
      write(*,*)' ...done'

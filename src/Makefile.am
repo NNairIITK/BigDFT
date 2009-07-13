@@ -192,7 +192,6 @@ abinit = ABINIT-ewald/ewald.F90 \
 	ABINIT-geometry/ab6_symmetry_f90.f90 \
 	ABINIT-geometry/bldgrpaf.F90 \
 	ABINIT-geometry/bldgrp.F90 \
-	ABINIT-geometry/bonds_lgth_angles.F90 \
 	ABINIT-geometry/chkdilatmx.F90 \
 	ABINIT-geometry/chkgrp.F90 \
 	ABINIT-geometry/chkorthsy.F90 \

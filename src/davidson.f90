@@ -52,26 +52,24 @@
 !!
 !! SOURCE
 !!
-subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
-     orbs,orbsv,nvirt,gnrm_cv,nplot,lr,comms,&
-     hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,itermax,nlpspd,proj,  & 
-     pkernel,ixc,psi,v,ncong,nscatterarr,ngatherarr)
+subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
+     orbs,orbsv,nvirt,lr,comms,&
+     hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr)
   use module_base
   use module_types
   use module_interfaces, except_this_one => davidson
   implicit none
-  integer, intent(in) :: iproc,nproc,ixc,n1i,n2i,n3i
+  integer, intent(in) :: iproc,nproc,n1i,n2i,n3i
   integer, intent(in) :: i3xcsh
-  integer, intent(in) :: nvirt,ncong,n3p,itermax,nplot
+  integer, intent(in) :: nvirt,n3p
+  type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors), intent(in) :: lr 
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
-  real(dp), intent(in) :: gnrm_cv
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
-  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
@@ -83,7 +81,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
                         !v, that is psivirt, is transposed on input and direct on output
   !local variables
   character(len=*), parameter :: subname='davidson'
-  character(len=10) :: orbname,comment
+  character(len=10) :: comment
+  character(len=11) :: orbname
   logical :: msg !extended output
   integer :: n2virt,n2virtp,ierr,i_stat,i_all,iorb,jorb,iter,nwork,ind,i1,i2!<-last 3 for debug
   integer :: ise,ish,jnd
@@ -227,7 +226,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
   
 
   !itermax=... use the input variable instead
-  do iter=1,itermax
+  do iter=1,in%itermax
      if(iproc==0)write(*,'(1x,a,i3)')&
      "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter",iter
      if(msg) write(*,'(1x,a)')"squared norm of the (nvirt) gradients"
@@ -259,8 +258,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
      gnrm=dsqrt(gnrm/dble(orbsv%norb))
 
      if(iproc == 0)write(*,'(1x,a,2(1x,1pe12.5))')&
-          "|gradient|=gnrm and exit criterion ",gnrm,gnrm_cv
-     if(gnrm < gnrm_cv) then
+          "|gradient|=gnrm and exit criterion ",gnrm,in%gnrm_cv
+     if(gnrm < in%gnrm_cv) then
         i_all=-product(shape(g))*kind(g)
         deallocate(g,stat=i_stat)
         call memocc(i_stat,i_all,'g',subname)
@@ -318,7 +317,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
 
      !we use for preconditioning the eval from the lowest value of the KS wavefunctions
      orbsv%eval=>orbs%eval
-     call preconditionall(iproc,nproc,orbsv,lr,hx,hy,hz,ncong,g,gnrm_fake)
+     call preconditionall(iproc,nproc,orbsv,lr,hx,hy,hz,in%ncong,g,gnrm_fake)
 
      call timing(iproc,'Precondition  ','OF')
      if (iproc==0)write(*,'(1x,a)')'done.'
@@ -536,7 +535,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
      call timing(iproc,'Davidson      ','ON')
   end do! davidson iterations
 
-  if(iter>itermax)then
+  if(iter>in%itermax)then
      if(iproc==0)write(*,'(1x,a)')'No convergence within the allowed number of minimization steps'
   else
      if(iproc==0)write(*,'(1x,a,i3,a)')'Davidsons method: Convergence after ',iter-1,' iterations.'
@@ -611,30 +610,41 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
   !Occupied orbitals are only plotted when nplot>nvirt,
   !otherwise a comment is given in the out file.
   
-  if(nplot>orbs%norb+nvirt)then
+  if(abs(in%nplot)>orbs%norb+nvirt)then
      if(iproc==0)write(*,'(1x,A,i3)')&
           "WARNING: More plots requested than orbitals calculated." 
   end if
 
   do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals
-     if(iorb+orbsv%isorb > nplot)then
-        if(iproc == 0 .and. nplot > 0)write(*,'(A)')&
+     if(iorb+orbsv%isorb > abs(in%nplot))then
+        if(iproc == 0 .and. abs(in%nplot) > 0)write(*,'(A)')&
              'WARNING: No plots of occupied orbitals requested.'
         exit 
      end if
      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
      write(orbname,'(A,i3.3)')'virtual',iorb+orbsv%isorb
      write(comment,'(1pe10.6)')e(iorb+orbsv%isorb,1,1)
-     call plot_wf(orbname,lr,hx,hy,hz,rxyz(1,1),rxyz(2,1),rxyz(3,1),v(ind:),comment)
+     !choose the way of plotting the wavefunctions
+     if (in%nplot > 0) then
+        call plot_wf(orbname,lr,hx,hy,hz,rxyz(1,1),rxyz(2,1),rxyz(3,1),v(ind:),comment)
+     else if (in%nplot < 0) then
+        call plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+     end if
   end do
 
   do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
-     if(orbs%norb-iorb-orbs%isorb-1+nvirt > nplot)exit! we have written nplot pot files
-     !adress
+     if(orbs%norb-iorb-orbs%isorb-1+nvirt > abs(in%nplot))exit! we have written nplot pot files
+     !address
      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
      write(orbname,'(A,i3.3)')'orbital',iorb+orbs%isorb
      write(comment,'(1pe10.6)')orbs%eval(iorb+orbs%isorb)
-     call plot_wf(orbname,lr,hx,hy,hz,rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(ind:),comment)
+     !choose the way of plotting the wavefunctions
+     if (in%nplot > 0) then
+        call plot_wf(orbname,lr,hx,hy,hz,rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(ind:),comment)
+     else if (in%nplot < 0) then
+        call plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+     end if
+
   end do
   ! END OF PLOTTING
 

@@ -22,6 +22,9 @@ EXTRA_DIST = \
 	dynamicGPU/class_utils.h \
 	dynamicGPU/convolution_fct_call.h \
 	dynamicGPU/cudafct.h \
+	dynamicGPU/manage_cpu_affinity.h \
+	dynamicGPU/check_card/checker.h \
+	cpp_utils.h \
 	read_conf_exception.h \
 	trace_exec.h \
 	$(SOURCES_CONV_CHECK)

@@ -167,8 +167,8 @@ program BigDFT
         end if
      endif
 
-     filename='relaxed_'//(arr_posinp(iconfig))
-     call write_atomic_file(filename,etot,rxyz,atoms,' ')
+     filename='relaxed_'//arr_posinp(iconfig)
+     call write_atomic_file(trim(filename),etot,rxyz,atoms,' ')
 
      !deallocations
      i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)

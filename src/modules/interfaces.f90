@@ -485,25 +485,23 @@ module module_interfaces
        real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
      end subroutine reformatonewave
 
-     subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
-          orbs,orbsv,nvirt,gnrm_cv,nplot,lr,comms,&
-          hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,itermax,nlpspd,proj,  & 
-          pkernel,ixc,psi,v,ncong,nscatterarr,ngatherarr)
+     subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
+          orbs,orbsv,nvirt,lr,comms,&
+          hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,ixc,n1i,n2i,n3i
+       integer, intent(in) :: iproc,nproc,n1i,n2i,n3i
        integer, intent(in) :: i3xcsh
-       integer, intent(in) :: nvirt,ncong,n3p,itermax,nplot
+       integer, intent(in) :: nvirt,n3p
+       type(input_variables), intent(in) :: in
        type(atoms_data), intent(in) :: at
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
        type(locreg_descriptors), intent(in) :: lr 
        type(orbitals_data), intent(in) :: orbs
        type(communications_arrays), intent(in) :: comms
        real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
-       real(dp), intent(in) :: gnrm_cv
        real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
-       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr 
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
@@ -718,6 +716,19 @@ module module_interfaces
        real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
        type(GPU_pointers), intent(inout) , target :: GPU
      end subroutine lanczos
+
+     subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
+       use module_base
+       use module_types
+       implicit none
+       character(len=10) :: comment
+       character(len=11) :: orbname
+       type(atoms_data), intent(in) :: at
+       real(gp), intent(in) :: hx,hy,hz
+       real(gp), dimension(3,at%nat), intent(in) :: rxyz
+       type(locreg_descriptors), intent(in) :: lr
+       real(wp), dimension(*) :: psi
+     end subroutine plot_wf_cube
 
   end interface
 
