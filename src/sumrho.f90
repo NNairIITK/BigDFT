@@ -41,7 +41,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
 
   call timing(iproc,'Rho_comput    ','ON')
 
-  if (iproc==0) then
+  if (iproc==0 .and. verbose >= 1) then
      write(*,'(1x,a)',advance='no')&
           'Calculation of charge density...'
   end if
@@ -174,7 +174,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   endif
 
   !write the results
-  if (iproc == 0) then
+  if (iproc == 0 .and. verbose >= 1) then
      if(nspin==4) then
         charge=tmred(1,1)
         tt=sqrt(tmred(2,1)**2+tmred(3,1)**2+tmred(4,1)**2)
