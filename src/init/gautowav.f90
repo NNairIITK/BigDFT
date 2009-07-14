@@ -514,10 +514,10 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
         end do
         iexpo=iexpo+ng
      end do
-     if (iproc == 0 .and. verbose > 1) then
-        write(*,'(a)',advance='no') &
-             repeat('.',(iat*40)/G%nat-((iat-1)*40)/G%nat)
-     end if
+!     if (iproc == 0 .and. verbose > 1) then
+!        write(*,'(a)',advance='no') &
+!             repeat('.',(iat*40)/G%nat-((iat-1)*40)/G%nat)
+!     end if
   end do
 
   call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)

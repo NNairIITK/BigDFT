@@ -33,7 +33,7 @@ implicit none
 integer,intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1,n2,n3
 integer,intent(in)::ibxxyy(2,   0:2*n1+1,0:2*n2+1)
 real(wp), dimension(2,nfl3:nfu3,0:2*n1+1,0:2*n2+1), intent(in) :: x
-real(wp), dimension(            0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(out) :: y
+real(wp), dimension(            0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(inout) :: y
 !local variables
 integer :: l1,l2,i,t,l1_0,l1_1,ll1
 integer :: ii,ii1
@@ -278,7 +278,7 @@ include 'v_17.inc'
 call fill_mod_arr(modul,-8,n1+7,n1+1)
 
 !$omp parallel default(private)&
-!$omp shared (ndat,n1,modul,fil2,x)
+!$omp shared (ndat,n1,modul,fil2,x,y)
 !$omp do
 
 do l=0,ndat/8-1
@@ -422,7 +422,7 @@ integer::modul(lowfil2+2*nfl1:2*nfu1+lupfil2)
 include 'v.inc'
 call fill_mod_arr(modul,lowfil2+2*nfl1,2*nfu1+lupfil2,2*n1+2)
 !$omp parallel default(private)&
-!$omp shared (ndat,ib,fil2,modul,x)
+!$omp shared (ndat,ib,fil2,modul,x,y)
 !$omp do
 
 do j=1,ndat
@@ -463,7 +463,7 @@ integer::modul(lowfil2+2*nfl:2*nfu+lupfil2)
 include 'v.inc'
 call fill_mod_arr(modul,lowfil2+2*nfl,2*nfu+lupfil2,2*n1+2)
 !$omp parallel default(private)&
-!$omp shared (ndat,ib,fil2,modul,x)
+!$omp shared (ndat,ib,fil2,modul,x,y)
 !$omp do
 
 do j=1,ndat
@@ -512,7 +512,7 @@ include 'v.inc'
 call fill_mod_arr(modul,lowfil2+2*nfl,2*nfu+lupfil2,2*n1+2)
 
 !$omp parallel default(private)&
-!$omp shared (ndat,ib,fil2,modul,x)
+!$omp shared (ndat,ib,fil2,modul,x,y)
 !$omp do
 do j=1,ndat
 	do i=ib(1,j),ib(2,j)
@@ -566,7 +566,7 @@ integer::modul(lowfil2:2*n1+lupfil2)
 include 'v.inc'
 call fill_mod_arr(modul,lowfil2,2*n1+lupfil2,2*n1+2)
 !$omp parallel default(private)&
-!$omp shared (ndat,n1,modul,fil2,x)
+!$omp shared (ndat,n1,modul,fil2,x,y)
 !$omp do
 ! the convolution itself:
 do j=0,ndat/12-1
