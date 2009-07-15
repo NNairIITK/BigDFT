@@ -1,3 +1,19 @@
+!wrapper for simplifying the call
+subroutine wnrm_wrap(mvctr_c,mvctr_f,psi,scpr)
+  use module_base
+  implicit none
+  integer, intent(in) :: mvctr_c,mvctr_f
+  real(wp), dimension(mvctr_c+7*mvctr_f), intent(in) :: psi
+  real(dp), intent(out) :: scpr
+  !local variables
+  integer :: i_f
+
+  i_f=min(mvctr_f,1)
+ 
+  call wnrm(mvctr_c,mvctr_f,psi,psi(mvctr_c+i_f),scpr)
+  
+end subroutine wnrm_wrap
+
 ! calculates the norm SQUARED (scpr) of a wavefunction (in vector form)
 subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   use module_base
@@ -127,6 +143,41 @@ subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
   enddo
 
 end subroutine wzero
+
+
+!wrapper of wpdot to avoid boundary problems in absence of wavelets
+subroutine wpdot_wrap(mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi,  &
+     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,scpr)
+  use module_base
+  implicit none
+  integer, intent(in) :: mavctr_c,mavctr_f,maseg_c,maseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
+  integer, dimension(maseg_c+maseg_f), intent(in) :: keyav
+  integer, dimension(mbseg_c+mbseg_f), intent(in) :: keybv
+  integer, dimension(2,maseg_c+maseg_f), intent(in) :: keyag
+  integer, dimension(2,mbseg_c+mbseg_f), intent(in) :: keybg
+  real(wp), dimension(mavctr_c+7*mavctr_f), intent(in) :: apsi
+  real(wp), dimension(mbvctr_c+7*mbvctr_f), intent(in) :: bpsi
+  real(dp), intent(out) :: scpr
+  !local variables
+  integer :: ia_f,ib_f,iaseg_f,ibseg_f
+
+  ia_f=min(mavctr_f,1)
+  ib_f=min(mbvctr_f,1)
+
+  iaseg_f=min(maseg_f,1)
+  ibseg_f=min(mbseg_f,1)
+
+
+  call wpdot(mavctr_c,mavctr_f,maseg_c,maseg_f,&
+       keyav,keyav(maseg_c+iaseg_f),&
+       keyag,keyag(1,maseg_c+iaseg_f),&
+       apsi,apsi(mavctr_c+ia_f),  &
+       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+       keybv,keybv(mbseg_c+ibseg_f),&
+       keybg,keybg(1,mbseg_c+ibseg_f),&
+       bpsi,bpsi(mbvctr_c+ib_f),scpr)
+
+end subroutine wpdot_wrap
 
 !this function must be generalized for the linear scaling code
 ! calculates the dot product between a wavefunctions apsi and a projector bpsi (both in compressed form)
@@ -304,9 +355,40 @@ subroutine wpdot(  &
   !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'wpdot:',tel
   !  close(97)
 
+end subroutine wpdot
 
+subroutine waxpy_wrap(scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,&
+     mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi)
+  use module_base
+  implicit none
+  integer, intent(in) :: mavctr_c,mavctr_f,maseg_c,maseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
+  real(dp), intent(in) :: scpr
+  integer, dimension(maseg_c+maseg_f), intent(in) :: keyav
+  integer, dimension(mbseg_c+mbseg_f), intent(in) :: keybv
+  integer, dimension(2,maseg_c+maseg_f), intent(in) :: keyag
+  integer, dimension(2,mbseg_c+mbseg_f), intent(in) :: keybg
+  real(wp), dimension(mbvctr_c+7*mbvctr_f), intent(in) :: bpsi
+  real(wp), dimension(mavctr_c+7*mavctr_f), intent(inout) :: apsi
 
-END SUBROUTINE wpdot
+  !local variables
+  integer :: ia_f,ib_f,iaseg_f,ibseg_f
+
+  ia_f=min(mavctr_f,1)
+  ib_f=min(mbvctr_f,1)
+
+  iaseg_f=min(maseg_f,1)
+  ibseg_f=min(mbseg_f,1)
+
+  call waxpy(scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+       keybv,keybv(mbseg_c+ibseg_f),&
+       keybg,keybg(1,mbseg_c+ibseg_f),&
+       bpsi,bpsi(mbvctr_c+ib_f), & 
+       keyav,keyav(maseg_c+iaseg_f),&
+       keyag,keyag(1,maseg_c+iaseg_f),&
+       apsi,apsi(mavctr_c+ia_f))
+
+end subroutine waxpy_wrap
+
 
 ! rank 1 update of wavefunction a with wavefunction b: apsi=apsi+scpr*bpsi
 ! The update is only done in the localization region of apsi
@@ -441,7 +523,7 @@ subroutine waxpy(  &
   !  close(97)
 
 
-END SUBROUTINE waxpy
+end subroutine waxpy
 
 
 
