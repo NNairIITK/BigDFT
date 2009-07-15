@@ -85,7 +85,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   character(len=11) :: orbname
   logical :: msg !extended output
   integer :: n2virt,n2virtp,ierr,i_stat,i_all,iorb,jorb,iter,nwork,ind,i1,i2!<-last 3 for debug
-  integer :: ise,ish,jnd
+  integer :: ise,ish,jnd,j
   real(kind=8) :: tt,gnrm,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,gnrm_fake
   type(communications_arrays) :: commsv
   type(GPU_pointers) :: GPU !added for interface compatibility, not working here
@@ -453,7 +453,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      if(msg)then
      write(*,'(1x,a)')'    e(update)           e(not used)'
         do iorb=1,orbsv%norb
-          write(*,'(1x,i3,2(1pe21.14))')iorb, e(iorb,:,1)
+          write(*,'(1x,i3,2(1pe21.14))')iorb, (e(iorb,j,1),j=1,2)
         end do
         write(*,*)
         write(*,*)"and the eigenvectors are"
@@ -464,7 +464,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
         end do
      else
         do iorb=1,nvirt
-          if(iproc==0)write(*,'(1x,i3,2(1pe21.14))')iorb, e(iorb,:,1)
+          if(iproc==0)write(*,'(1x,i3,2(1pe21.14))')iorb,(e(iorb,j,1),j=1,2)
         end do
      end if
      if(iproc==0)write(*,'(1x,a)',advance="no")"Update v with eigenvectors..."
@@ -623,12 +623,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      end if
      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
      write(orbname,'(A,i3.3)')'virtual',iorb+orbsv%isorb
-     write(comment,'(1pe10.6)')e(iorb+orbsv%isorb,1,1)
+     write(comment,'(1pe10.3)')e(iorb+orbsv%isorb,1,1)
      !choose the way of plotting the wavefunctions
      if (in%nplot > 0) then
-        call plot_wf(orbname,lr,hx,hy,hz,rxyz(1,1),rxyz(2,1),rxyz(3,1),v(ind:),comment)
+        call plot_wf('POT',orbname,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
      else if (in%nplot < 0) then
-        call plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+        call plot_wf('CUBE',orbname,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
      end if
   end do
 
@@ -637,12 +637,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      !address
      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
      write(orbname,'(A,i3.3)')'orbital',iorb+orbs%isorb
-     write(comment,'(1pe10.6)')orbs%eval(iorb+orbs%isorb)
+     write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
      !choose the way of plotting the wavefunctions
      if (in%nplot > 0) then
-        call plot_wf(orbname,lr,hx,hy,hz,rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(ind:),comment)
+        call plot_wf('POT',orbname,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
      else if (in%nplot < 0) then
-        call plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+        call plot_wf('CUBE',orbname,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
      end if
 
   end do

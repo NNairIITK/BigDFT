@@ -56,7 +56,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
 
   !flag for toggling the REDUCE_SCATTER stategy
   rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
-       & (ixc < 0 .and. libxc_functionals_isgga())) .and. .not.have_mpi2
+       & (ixc < 0 .and. libxc_functionals_isgga())) .and. .not. have_mpi2
 
   !calculate dimensions of the complete array to be allocated before the reduction procedure
   if (rsflag) then
@@ -80,7 +80,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
      call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   else
      !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
-     call razero(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p)
+     !call razero(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p)
      call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p,nproc)
 
      !for each of the orbitals treated by the processor build the partial densities
@@ -201,7 +201,7 @@ end subroutine sumrho
 
 !here starts the routine for building partial density inside the localisation region
 !this routine should be treated as a building-block for the linear scaling code
-subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
+subroutine local_partial_density_old(iproc,nproc,rsflag,nscatterarr,&
      nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   use module_base
   use module_types
@@ -423,7 +423,100 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   deallocate(w2,stat=i_stat)
   call memocc(i_stat,i_all,'w2',subname)
 
+end subroutine local_partial_density_old
+
+!here starts the routine for building partial density inside the localisation region
+!this routine should be treated as a building-block for the linear scaling code
+subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
+     nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+  logical, intent(in) :: rsflag
+  integer, intent(in) :: iproc,nproc,nrhotot
+  integer, intent(in) :: nspin
+  real(gp), intent(in) :: hxh,hyh,hzh
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: lr
+  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+  real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,max(nspin,orbs%nspinor)), intent(inout) :: rho_p
+  !local variables
+  character(len=*), parameter :: subname='local_partial_density'
+  integer :: iorb,i_stat,i_all
+  integer :: oidx,sidx,nspinn,npsir,ncomplex
+  real(gp) :: hfac,spinval
+  type(workarr_sumrho) :: w
+  real(wp), dimension(:,:), allocatable :: psir
+
+  call initialize_work_arrays_sumrho(lr,w)
+
+  !components of wavefunction in real space which must be considered simultaneously
+  !and components of the charge density
+  if (orbs%nspinor ==4) then
+     npsir=4
+     nspinn=4
+     ncomplex=0
+  else
+     npsir=1
+     nspinn=nspin
+     ncomplex=orbs%nspinor-1
+  end if
+
+  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,npsir+ndebug),stat=i_stat)
+  call memocc(i_stat,psir,'psir',subname)
+  !initialisation
+  !print *,iproc,'there'
+  if (lr%geocode == 'F') then
+     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir)
+  end if
+
+  do iorb=1,orbs%norbp
+
+     !the factor requires the weigth for the k-point
+     hfac=orbs%kwgts(orbs%iokpt(iorb))*(orbs%occup(orbs%isorb+iorb)/(hxh*hyh*hzh))
+     spinval=orbs%spinsgn(orbs%isorb+iorb)
+
+     if (hfac /= 0.d0) then
+
+        !sum for complex function case, npsir=1 in that case
+        do oidx=0,ncomplex
+
+           do sidx=1,npsir
+              call daub_to_isf(lr,w,psi(1,oidx+sidx,iorb),psir(1,sidx))
+           end do
+
+           select case(lr%geocode)
+           case('F')
+
+              call partial_density_free(rsflag,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                   npsir,nspinn,nrhotot,&
+                   hfac,nscatterarr,spinval,psir,rho_p,lr%bounds%ibyyzz_r)
+
+           case('P')
+
+              call partial_density(rsflag,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,npsir,nspinn,nrhotot,&
+                   hfac,nscatterarr,spinval,psir,rho_p)
+
+           case('S')
+
+              call partial_density(rsflag,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,npsir,nspinn,nrhotot,&
+                   hfac,nscatterarr,spinval,psir,rho_p)
+           end select
+
+        end do
+     end if
+  enddo
+
+  i_all=-product(shape(psir))*kind(psir)
+  deallocate(psir,stat=i_stat)
+  call memocc(i_stat,i_all,'psir',subname)
+
+  call deallocate_work_arrays_sumrho(w)
+
 end subroutine local_partial_density
+
 
 
 subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&

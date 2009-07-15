@@ -1,17 +1,21 @@
-subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi,comment)
+subroutine plot_wf(kindplot,orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
   implicit none
-  character(len=10) :: orbname,comment 
-  real(gp), intent(in) :: hx,hy,hz,rx,ry,rz
+  character(len=*) :: kindplot
+  character(len=10) :: comment
+  character(len=11) :: orbname
+  type(atoms_data), intent(in) :: at
+  real(gp), intent(in) :: hx,hy,hz
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
   !local variables
   character(len=*), parameter :: subname='plot_wf'
-  integer :: nw1,nw2,i_stat,i_all,i,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
-  integer :: nxc,nxf,nl1,nl2,nl3,n1i,n2i,n3i
-  real(wp), dimension(0:3) :: scal
-  real(wp), dimension(:), allocatable :: psir,w1,w2,x_c_psifscf,x_f_psig
+  integer :: i_stat,i_all,i
+  integer :: nl1,nl2,nl3,n1i,n2i,n3i,n1,n2,n3
+  type(workarr_sumrho) :: w
+  real(wp), dimension(:), allocatable :: psir
 
   n1=lr%d%n1
   n2=lr%d%n2
@@ -19,108 +23,17 @@ subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi,comment)
   n1i=lr%d%n1i
   n2i=lr%d%n2i
   n3i=lr%d%n3i
-  nfl1=lr%d%nfl1
-  nfl2=lr%d%nfl2
-  nfl3=lr%d%nfl3
-  nfu1=lr%d%nfu1
-  nfu2=lr%d%nfu2
-  nfu3=lr%d%nfu3
 
-  do i=0,3
-     scal(i)=1.d0
-  enddo
-
-  select case(lr%geocode)
-  case('F')
-     !dimension of the work arrays
-     ! shrink convention: nw1>nw2
-     nw1=max((n3+1)*(2*n1+31)*(2*n2+31),& 
-          (n1+1)*(2*n2+31)*(2*n3+31),&
-          2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
-          2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
-     nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
-          4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
-          (n1+1)*(n2+1)*(2*n3+31),&
-          (2*n1+31)*(n2+1)*(n3+1))
-     nxc=(n1+1)*(n2+1)*(n3+1)!(2*n1+2)*(2*n2+2)*(2*n3+2)
-     nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
-  case('S')
-     !dimension of the work arrays
-     nw1=1
-     nw2=1
-     nxc=(2*n1+2)*(2*n2+31)*(2*n3+2)
-     nxf=1
-  case('P')
-     !dimension of the work arrays, fully periodic case
-     nw1=1
-     nw2=1
-     nxc=(2*n1+2)*(2*n2+2)*(2*n3+2)
-     nxf=1
-  end select
-  !work arrays
-  allocate(x_c_psifscf(nxc+ndebug),stat=i_stat)
-  call memocc(i_stat,x_c_psifscf,'x_c_psifscf',subname)
-  allocate(x_f_psig(nxf+ndebug),stat=i_stat)
-  call memocc(i_stat,x_f_psig,'x_f_psig',subname)
-  allocate(w1(nw1+ndebug),stat=i_stat)
-  call memocc(i_stat,w1,'w1',subname)
-  allocate(w2(nw2+ndebug),stat=i_stat)
-  call memocc(i_stat,w2,'w2',subname)
-
-  allocate(psir(n1i*n2i*n3i+ndebug),stat=i_stat)
+  call initialize_work_arrays_sumrho(lr,w)
+ 
+  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i+ndebug),stat=i_stat)
   call memocc(i_stat,psir,'psir',subname)
   !initialisation
   if (lr%geocode == 'F') then
-     call razero(nxc,x_c_psifscf)
-     call razero(nxf,x_f_psig)
-     call razero(n1i*n2i*n3i,psir)
+     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
   end if
-  select case(lr%geocode)
-  case('F')
-     call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-          lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),  & 
-          lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-          lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1), &
-          scal,psi(1),psi(lr%wfd%nvctr_c+1),x_c_psifscf,x_f_psig)
-
-     call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,&
-          x_c_psifscf,x_f_psig,  & 
-          psir(1),lr%bounds%kb%ibyz_c,lr%bounds%gb%ibzxx_c,lr%bounds%gb%ibxxyy_c,&
-          lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f,&
-          lr%bounds%ibyyzz_r)
-     
-  case('P')
-     call uncompress_per(n1,n2,n3,lr%wfd%nseg_c,&
-          lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
-          lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-          lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),&
-          psi(1),psi(lr%wfd%nvctr_c+1),x_c_psifscf,psir(1))
-
-     call convolut_magic_n_per_self(2*n1+1,2*n2+1,2*n3+1,&
-          x_c_psifscf,psir(1))
-     
-  case('S')
-     call uncompress_slab(n1,n2,n3,lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-          lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
-          lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg(1,lr%wfd%nseg_c+1),&
-          lr%wfd%keyv(lr%wfd%nseg_c+1),   &
-          psi(1),psi(lr%wfd%nvctr_c+1),x_c_psifscf,psir(1))
-
-     call convolut_magic_n_slab_self(2*n1+1,2*n2+15,2*n3+1,x_c_psifscf,psir(1))
-  end select
-
-  i_all=-product(shape(x_c_psifscf))*kind(x_c_psifscf)
-  deallocate(x_c_psifscf,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c_psifscf',subname)
-  i_all=-product(shape(x_f_psig))*kind(x_f_psig)
-  deallocate(x_f_psig,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f_psig',subname)
-  i_all=-product(shape(w1))*kind(w1)
-  deallocate(w1,stat=i_stat)
-  call memocc(i_stat,i_all,'w1',subname)
-  i_all=-product(shape(w2))*kind(w2)
-  deallocate(w2,stat=i_stat)
-  call memocc(i_stat,i_all,'w2',subname)
+ 
+  call daub_to_isf(lr,w,psi,psir)
 
   if (lr%geocode /= 'F') then
      nl1=1
@@ -136,14 +49,21 @@ subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi,comment)
      nl2=14
   end if
 
-
-  !call plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,psir)
-  call plot_pot_full(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
-       nl1,nl2,nl3,orbname,psir,comment)
-
+  if (trim(kindplot)=='POT') then
+     !call plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,psir)
+     call plot_pot_full(hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+          nl1,nl2,nl3,orbname,psir,comment)
+  else if (trim(kindplot)=='CUBE') then
+     call plot_cube_full(at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+          nl1,nl2,nl3,orbname,psir,comment)
+  else
+     stop 'ERROR: plotting format not recognized'
+  end if
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)
+
+  call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE plot_wf
 
@@ -356,13 +276,13 @@ subroutine plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,po
 
 end subroutine plot_pot
 
-subroutine plot_pot_full(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+subroutine plot_pot_full(hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
   use module_base
   implicit none
   character(len=10), intent(in) :: orbname,comment
   integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,n1i,n2i,n3i
-  real(gp), intent(in) :: rx,ry,rz,hx,hy,hz
+  real(gp), intent(in) :: hx,hy,hz
   real(dp), dimension(*), intent(in) :: pot
   !local variables
   integer :: i1,i2,i3,ind
@@ -374,7 +294,6 @@ subroutine plot_pot_full(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   hxh=.5_gp*hx
   hyh=.5_gp*hy
   hzh=.5_gp*hz
-
 !  write(orbname,'(i0)')iounit
 !  open(unit=22,file='psi'//orbname//'.pot',status='unknown')
   open(unit=22,file=orbname//'.pot',status='unknown')
