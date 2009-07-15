@@ -396,11 +396,10 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   character(len=*), parameter :: subname='crtproj'
   integer, parameter :: nw=32000
   logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
-  integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3,mvctr,i_all,i_stat,j1,j2,j3
+  integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3,mvctr,i_all,i_stat,j1,j2,j3,ithread,nthread
   real(gp) :: rad_c,rad_f,factor,err_norm,dz2,dy2,dx2,te,d2,cpmult_max,fpmult_max
   real(wp), dimension(0:nw,2) :: work
   real(wp), allocatable, dimension(:,:,:) :: wprojx,wprojy,wprojz
-
 
   allocate(wprojx(0:n1,2,nterm+ndebug),stat=i_stat)
   call memocc(i_stat,wprojx,'wprojx',subname)
@@ -457,7 +456,14 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   ! First term: coarse projector components
   !write(*,*) 'rad_c=',rad_c
   
-  mvctr=0
+!$omp parallel default(private) shared(nl3_c,nu3_c,hz,n3,rz,perz,nl2_c,nu2_c,hy,n2,ry,pery) &
+!$omp shared(nl1_c,nu1_c,hx,n1,rx,perx,rad_c,proj_c,wprojx,wprojy,wprojz,mvctr_c,nl3_f,nu3_f,nl2_f) &
+!$omp shared(nu2_f,nl1_f,nu1_f,rad_f,proj_f,nterm,mvctr_f)
+!$	ithread=omp_get_thread_num()
+!$	nthread=omp_get_num_threads()
+
+!$  if(ithread .eq. 0) then 
+ mvctr=0
 
   do i3=nl3_c,nu3_c
      dz2=d2(i3,hz,n3,rz,perz)
@@ -477,7 +483,9 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
      write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_c ',mvctr,mvctr_c
      stop
   end if
+!$  end if
 
+!$  if(ithread .eq. 1 .or. nthread .eq. 1) then
   ! First term: fine projector components
   mvctr=0
   do i3=nl3_f,nu3_f
@@ -503,9 +511,11 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
      write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_f ',mvctr,mvctr_f
      stop 
   end if
+!$  end if
 
-  do iterm=2,nterm
+if (nterm .ge. 2) then
 
+!$  if(ithread .eq. 0) then
      ! Other terms: coarse projector components
      mvctr=0
      do i3=nl3_c,nu3_c
@@ -516,13 +526,17 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
               dx2=d2(i1,hx,n1,rx,perx)
               if (dx2+(dy2+dz2) <= rad_c**2) then
               mvctr=mvctr+1
+  do iterm=2,nterm
                  proj_c(mvctr)=proj_c(mvctr)+&
                       wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
+  enddo
               endif
            enddo
         enddo
      enddo
+!$  end if
 
+!$  if(ithread .eq. 1 .or. nthread .eq. 0) then
      ! Other terms: fine projector components
      mvctr=0
      do i3=nl3_f,nu3_f
@@ -533,6 +547,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
               dx2=d2(i1,hx,n1,rx,perx)
               if (dx2+(dy2+dz2) <= rad_f**2) then
                  mvctr=mvctr+1
+  do iterm=2,nterm
                  proj_f(1,mvctr)=proj_f(1,mvctr)+&
                       wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
                  proj_f(2,mvctr)=proj_f(2,mvctr)+&
@@ -547,12 +562,14 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
                       wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
                  proj_f(7,mvctr)=proj_f(7,mvctr)+&
                       wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
+  enddo
               endif
            enddo
         enddo
      enddo
-
-  enddo
+!$  end if
+end if
+!$omp end parallel
 
   i_all=-product(shape(wprojx))*kind(wprojx)
   deallocate(wprojx,stat=i_stat)

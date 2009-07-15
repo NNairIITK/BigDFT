@@ -572,9 +572,8 @@ module module_interfaces
        real(wp), dimension(*) :: psi
      end subroutine plot_wf
 
-     subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
-          hfac,nscatterarr,spinsgn,psir,rho_p,&
-          ibyyzz_r) !optional argument
+     subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
+          hfac,nscatterarr,spinsgn,psir,rho_p,ibyyzz_r) !ex-optional argument
        use module_base
        implicit none
        logical, intent(in) :: rsflag
@@ -583,8 +582,8 @@ module module_interfaces
        integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
        real(wp), dimension(n1i,n2i,n3i,nspinn), intent(in) :: psir
        real(dp), dimension(n1i,n2i,nrhotot,nspinn), intent(inout) :: rho_p
-       integer, dimension(:,:,:), pointer, optional :: ibyyzz_r 
-     end subroutine partial_density
+       integer, dimension(:,:,:), pointer :: ibyyzz_r 
+     end subroutine partial_density_free
 
      subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,rxyz,&
           CP2K,wfn_cp2k)

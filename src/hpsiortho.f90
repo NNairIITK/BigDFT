@@ -1014,6 +1014,9 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
            vali=real(i+iscomp,wp)*1.d-5
            do ispinor=1,((2+orbs%nspinor)/4+1)
               psival=(-1)**(ispinor-1)*(valorb+vali)
+              if (psival .lt. 0.d0) then  !this is just to force the IEEE representation of psival
+              write(321,*) psival,psival**2
+              endif
               index=ispinor+(i-1)*((2+orbs%nspinor)/4+1)+&
                    (idsx-1)*((2+orbs%nspinor)/4+1)*comms%nvctr_par(iproc)+indorb
               maxdiff=max(abs(psi(index)-psival),maxdiff)

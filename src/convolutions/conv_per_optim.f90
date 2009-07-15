@@ -54,7 +54,7 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
   !       nflop=nt*len_2*2*m*4
   !       call system_clock(ncount1,ncount_rate,ncount_max)
 
-!$omp parallel default (private) shared(nt,len_2,ch,cg,mod_my,c)
+!$omp parallel default (private) shared(nt,len_2,ch,cg,mod_my,c,cd_1)
 
 
 !$omp do
@@ -198,7 +198,8 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
   !local variables
   character(len=*), parameter :: subname='syn_rot_per_old'
   integer, parameter :: m=8
-  integer :: i_all,i_stat,lenc,len_2,mod_left,mod_right,i,it,it0,i2,i_j,j,ji2,il2,m_2,i21,i_j2,j2,j21
+  integer, parameter :: m_2=4
+  integer :: i_all,i_stat,lenc,len_2,mod_left,mod_right,i,it,it0,i2,i_j,j,ji2,il2,i21,i_j2,j2,j21
   real(wp) :: ci2_0,ci2_1,ci2_2, ci2_3,ci2_4,ci2_5,ci2_6,ci2_7,ci2_8,ci2_9,ci2_10,ci2_11,ci2
   real(wp) :: ci21_0,ci21_1,ci21_2, ci21_3,ci21_4,ci21_5,ci21_6,ci21_7,ci21_8,ci21_9,ci21_10
   real(wp) :: ci21_11,ci21,cgj2,chj2,cgj21,chj21
@@ -224,7 +225,7 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
        0.031695087811525991431_wp, 0.00054213233180001068935_wp, &
        -0.0033824159510050025955_wp , 0.0_wp /
 
-  m_2=m/2
+!  m_2=m/2
   len_2=(right1+1)/2
 
   mod_left=-m_2
@@ -241,7 +242,7 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
   !       nflop=nt*len_2*(2*m_2+1)*8
   !       call system_clock(ncount1,ncount_rate,ncount_max)
 
-!$omp parallel default (private) shared(nt,len_2,m_2,ch,cg,mod_my,cd)
+!$omp parallel default (private) shared(nt,len_2,ch,cg,mod_my,cd,c1)
 
 
 !$omp do

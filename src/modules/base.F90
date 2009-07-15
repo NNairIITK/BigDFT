@@ -34,7 +34,7 @@ module module_base
   logical, parameter :: have_mpi2 = .TRUE.
 #else
   ! Fake MPI_IN_PLACE variable to allow compilation in sumrho.
-  integer, parameter :: MPI_IN_PLACE = 0
+  integer :: MPI_IN_PLACE = 0
   ! Flag to use in the code to switch between MPI1 and MPI2
   logical, parameter :: have_mpi2 = .false.
 #endif
