@@ -48,4 +48,4 @@ mpif.h:
 	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_STATUSES_IGNORE=0" >> mpif.h &&\
-	 echo "integer :: MPI_MIN, MPI_MAX, MPI_IN_PLACE,MPI_CHARACTER" >> mpif.h
+	 echo "integer :: MPI_MIN, MPI_MAX, MPI_CHARACTER" >> mpif.h
