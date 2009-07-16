@@ -36,8 +36,7 @@ subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
 
   nseg_c=wfd%nseg_c
   call make_logrid_f(n1,n2,n3, & 
-       wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
-       wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,nseg_c+1),wfd%keyv(nseg_c+1),  & 
+       wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,nseg_c+min(1,wfd%nseg_f)),wfd%keyv(nseg_c+min(1,wfd%nseg_f)),  & 
        logrid)
 
   call make_bounds(n1,n2,n3,logrid,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
@@ -197,16 +196,13 @@ subroutine ib_to_logrid_rot_per(ib,logrid,n,ndat)
 end subroutine ib_to_logrid_rot_per
 
 subroutine make_logrid_f(n1,n2,n3, & 
-     mseg_c,mvctr_c,keyg_c,keyv_c,  & 
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      logrid)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
-  integer, intent(in) :: mseg_c,mvctr_c,mseg_f,mvctr_f
-  integer, dimension(mseg_c), intent(in) :: keyv_c
+  integer, intent(in) :: mseg_f,mvctr_f
   integer, dimension(mseg_f), intent(in) :: keyv_f
-  integer, dimension(2,mseg_c), intent(in) :: keyg_c
   integer, dimension(2,mseg_f), intent(in) :: keyg_f
 
   logical,intent(out),dimension(0:n1,0:n2,0:n3)::logrid
@@ -225,7 +221,7 @@ subroutine make_logrid_f(n1,n2,n3, &
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
-		logrid(i,i2,i3)=.true. 
+        logrid(i,i2,i3)=.true. 
      enddo
   enddo
 

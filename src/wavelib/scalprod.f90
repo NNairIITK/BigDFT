@@ -67,6 +67,23 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
 
 end subroutine wnrm
 
+
+!wrapper for simplifying the call
+subroutine wscal_wrap(mvctr_c,mvctr_f,scal,psi)
+  use module_base
+  implicit none
+  integer, intent(in) :: mvctr_c,mvctr_f
+  real(wp), intent(in) :: scal
+  real(wp), dimension(mvctr_c+7*mvctr_f), intent(in) :: psi
+  !local variables
+  integer :: i_f
+
+  i_f=min(mvctr_f,1)
+ 
+  call wscal(mvctr_c,mvctr_f,scal,psi,psi(mvctr_c+i_f))
+  
+end subroutine wscal_wrap
+
 ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scalar (scal)
 subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   use module_base
@@ -92,6 +109,23 @@ subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   enddo
 
 end subroutine wscal
+
+!wrapper for simplifying the call
+subroutine wscalv_wrap(mvctr_c,mvctr_f,scal,psi)
+  use module_base
+  implicit none
+  integer, intent(in) :: mvctr_c,mvctr_f
+  real(wp), dimension(0:3), intent(in) :: scal
+  real(wp), dimension(mvctr_c+7*mvctr_f), intent(in) :: psi
+  !local variables
+  integer :: i_f
+
+  i_f=min(mvctr_f,1)
+ 
+  call wscalv(mvctr_c,mvctr_f,scal,psi,psi(mvctr_c+i_f))
+  
+end subroutine wscalv_wrap
+
 
 ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
 subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
@@ -274,13 +308,13 @@ subroutine wpdot(  &
   !print *,'nvctr_c',llc,mavctr_c,mbvctr_c
 
 
-  scpr1=0.d0
-  scpr2=0.d0
-  scpr3=0.d0
-  scpr4=0.d0
-  scpr5=0.d0
-  scpr6=0.d0
-  scpr7=0.d0
+  scpr1=0.0_dp
+  scpr2=0.0_dp
+  scpr3=0.0_dp
+  scpr4=0.0_dp
+  scpr5=0.0_dp
+  scpr6=0.0_dp
+  scpr7=0.0_dp
 !$  if (ithread .eq. 1  .or. nthread .eq. 1) then
   llf=0
   ! fine part
@@ -383,6 +417,7 @@ subroutine waxpy_wrap(scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,&
        keybv,keybv(mbseg_c+ibseg_f),&
        keybg,keybg(1,mbseg_c+ibseg_f),&
        bpsi,bpsi(mbvctr_c+ib_f), & 
+       mavctr_c,mavctr_f,maseg_c,maseg_f,&
        keyav,keyav(maseg_c+iaseg_f),&
        keyag,keyag(1,maseg_c+iaseg_f),&
        apsi,apsi(mavctr_c+ia_f))
