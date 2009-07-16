@@ -355,10 +355,11 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
               do i=1,3 !for GTH it will stop at i=2
                  if (at%psppar(l,i,ityp) /= 0.0_gp) then
                     call projector(at%geocode,at%atomnames(ityp),iproc,iat,idir,l,i,&
-                         at%psppar(l,0,ityp),rxyz(1,iat),&
-                         nlpspd%nboxp_c(1,1,iat),nlpspd%nboxp_f(1,1,iat),n1,n2,n3,&
+                         at%psppar(l,0,ityp),rxyz(1,iat),n1,n2,n3,&
                          hx,hy,hz,cpmult,fpmult,radii_cf(ityp,3),radii_cf(ityp,2),&
-                         mbvctr_c,mbvctr_f,proj(istart_c),nwarnings)
+                         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                         nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
+                         proj(istart_c),nwarnings)
                     istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)
                     if (istart_c > nlpspd%nprojel+1) stop 'istart_c > nprojel+1'
                  endif

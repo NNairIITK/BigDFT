@@ -180,7 +180,8 @@ low_level = init/projectors.f90  \
 	wavelib/i-o.f90 \
 	wavelib/un-compress.f90 \
 	wavelib/razero.f90 \
-	wavelib/gauss_to_daub.f90 
+	wavelib/gauss_to_daub.f90 \
+	wavelib/daubisf.f90
 
 if BUILD_LIB_ABINIT
 abinit = ABINIT-ewald/ewald.F90 \

@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 15/07/2009
+# Date: 16/07/2009
 #----------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -1065,7 +1065,7 @@ class Structure:
             self.lower = self.name.lower()
         self.parent = parent
         if parent:
-            #Add self in child parent
+            #Add self in child paren/t
             self.message = self.parent.message
             #Add to parent's children (if it exists)
             parent.children.append(self)
@@ -2134,7 +2134,7 @@ class Function(Routine):
         #Add the type of the function
         name = self.name.lower()
         if not self.Declaration.dict_vars.has_key(name):
-            self.Declaration.dict_vars[name] = Variable(self.name,type=self.function_type)
+            self.Declaration.dict_vars[name] = Variable(self.name,parent=self,type=self.function_type)
         #If in a module or a subroutine, add the type of the function in parent.dict_vars
         if isinstance(self.parent,Module):
             #Need to update dict_vars for dict_vars of the module and other functions
@@ -2660,7 +2660,7 @@ class Declaration(Code):
                 if dict_vars.has_key(name):
                     dict_vars[name].update(decl,truename=var)
                 else:
-                    dict_vars[name] = Variable(name,decl=decl,truename=var)
+                    dict_vars[name] = Variable(name,parent=self,decl=decl,truename=var)
         #Check if all variables have a type
         if not dict_implicit:
             #Implicit none
@@ -2713,26 +2713,6 @@ class Declaration(Code):
                         % (self.parent.dir,self.parent.file,self.parent.name,argument))
                 #Add in the dictionary of variables
                 self.dict_vars[argument_lower] = arg
-            #Add declaration + (yyy) and then remove spaces
-            if type_arg == "interface":
-                liste = list()
-            else:
-                string = type_arg + " " + arg.name
-                #Each non-alphanumeric character is converted into blank, split and remove keywords.
-                liste = self.re_noletter.sub(" ",string).split()
-            #Check if type_arg does not depend on a parameter or a module (ex: real(ddp) or type(bidon))
-            has_name = False
-            for name in liste:
-                if name in self.reserved:
-                    pass
-                elif not self.re_digits.match(name):
-                    has_name = True
-                    #Remove %xxx in order to keep the name of the type
-                    i = name.find("%")
-                    if i > -1:
-                        name = name[:i]
-                    names.add(name)
-            print argument,liste
             #Store as a scalar or an array
             if "dimension" in liste or argument_lower+"(" in arg.lower():
                 if has_name:
@@ -2982,15 +2962,26 @@ class Execution(Code):
 #Class for Fortran variables
 class Variable:
     "Class for Fortran variables (type, dimension, ...)"
-    def __init__(self,name,decl="",type=None,truename=""):
+    def __init__(self,name,parent=None,message=None,decl="",type=None,truename=""):
         "Initialization: decl=declaration (lower case), truename = exact name of the variable"
         self.name=name
         if truename:
             self.truename = truename
         else:
             self.truename = name
+        self.parent = parent
+        if parent:
+            self.message = self.parent.message
+        elif message:
+            self.message = message
+        else:
+            sys.stderr.write("Structure %s (%s) has no message class!\n" \
+                    % (str(self.__class__),self.name))
+            sys.exit(1)
+        #Proper values
         self.type=type
         self.dimension = ''
+        self.intent = ''
         self.private = False
         self.public = False
         self.analyze_decl(decl)
@@ -3006,14 +2997,37 @@ class Variable:
                     head[0:7] == "integer" or head == "logical" or \
                     head[0:4] == "real" or head == "type":
                 self.type = head
+            elif head == "intent":
+                self.intent = head[7:-2]
             elif head == "private":
                 self.private = True
             elif head == "public":
                 self.public = True
-            print self.name,head,all,self.type
+            else:
+                #Fatal error
+                if self.parent:
+                    message = "%s/%s: " % (self.parent.dir,self.parent.file)
+                else:
+                    message = ""
+                message += "[%s]\n--> Declaration error: %s [%s][%s]" % (self.name,decl,head,all)
+                self.message.fatal(message)
     #
     def dependencies(self):
         "Give a list of variables on which depends the variable"
+    #
+    def display_information(self):
+        "Display information about the variable"
+        message = "Variable %s(%s)" % (self.name,self.truename) \
+                + 3*" " + "type: %s" % self.type
+        if self.dimension:
+            message += 3*" " + "dimension %s" % self.dimension
+        if self.intent:
+            message += 3*" " + "intent(%s)" % self.intent
+        if self.public:
+            message += 3*" " + "is public"
+        elif self.private:
+            message += 3*" " + "is private"
+        self.message.write(message,verbose=-10)
     #
     def has_type(self):
         "True if has a type (self.type) of public or private"
@@ -3027,11 +3041,10 @@ class Variable:
     #
     def update(self,decl,truename=None):
         "Add information about the variable"
-        self.analyze_decl(decl)
-        #We add decl
-        self.decl = "%s, %s" % (self.decl,decl)
         if truename:
             self.truename = truename
+        self.analyze_decl(decl)
+        self.display_information()
 
 
 #Class to handle the type of Fortran datastructure

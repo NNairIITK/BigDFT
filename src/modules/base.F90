@@ -1,4 +1,4 @@
-!!****m* BigDFT/base
+!!****M* BigDFT/base
 !!
 !! DESCRIPTION
 !!  Modules which contains the low level definitions, as well as some profiling procedures
@@ -31,7 +31,7 @@ module module_base
   integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
 #ifdef HAVE_MPI2
   ! Flag to use in the code to switch between MPI1 and MPI2
-  logical, parameter :: have_mpi2 = .TRUE.
+  logical, parameter :: have_mpi2 = .true.
 #else
   ! Fake MPI_IN_PLACE variable to allow compilation in sumrho.
   integer :: MPI_IN_PLACE = 0
