@@ -23,16 +23,21 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   real(wp), dimension(7,mvctr_f), intent(in) :: psi_f
   real(dp), intent(out) :: scpr
   !local variables
-  integer :: i
+  integer :: i,ithread,nthread
   real(dp) :: pc,pf1,pf2,pf3,pf4,pf5,pf6,pf7
-  real(dp) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7
-
+  real(dp) :: scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7
   scpr=0.0_dp
+!$omp parallel default(private) shared(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
+!$    ithread=omp_get_thread_num()
+!$    nthread=omp_get_num_threads()
+    scpr0=0.0_dp
+!$  if (ithread .eq. 0) then
   do i=1,mvctr_c
      !scpr=scpr+psi_c(i)**2
      pc=real(psi_c(i),dp)
      scpr=scpr+pc**2
   enddo
+!$  endif
   scpr1=0.0_dp
   scpr2=0.0_dp
   scpr3=0.0_dp
@@ -40,6 +45,7 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   scpr5=0.0_dp
   scpr6=0.0_dp
   scpr7=0.0_dp
+!$  if (ithread .eq. 1  .or. nthread .eq. 1) then
   do i=1,mvctr_f
 !!$     scpr1=scpr1+psi_f(1,i)**2
 !!$     scpr2=scpr2+psi_f(2,i)**2
@@ -63,7 +69,11 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
      scpr6=scpr6+pf6**2
      scpr7=scpr7+pf7**2
   enddo
-  scpr=scpr+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
+!$  endif
+!$omp critical
+  scpr=scpr+scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
+!$omp end critical
+!$omp end parallel
 
 end subroutine wnrm
 
@@ -77,10 +87,13 @@ subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   real(wp), dimension(7,mvctr_f), intent(inout) :: psi_f
   !local variables
   integer :: i
-
+!$omp parallel default(private) shared(mvctr_c,mvctr_f,scal,psi_c,psi_f)
+!$omp do
   do i=1,mvctr_c
      psi_c(i)=psi_c(i)*scal
   enddo
+!$omp enddo
+!$omp do
   do i=1,mvctr_f
      psi_f(1,i)=psi_f(1,i)*scal
      psi_f(2,i)=psi_f(2,i)*scal
@@ -90,6 +103,8 @@ subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
      psi_f(6,i)=psi_f(6,i)*scal
      psi_f(7,i)=psi_f(7,i)*scal
   enddo
+!$omp enddo
+!$omp end parallel
 
 end subroutine wscal
 
@@ -103,10 +118,13 @@ subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   real(wp), dimension(7,mvctr_f), intent(inout) :: psi_f
   !local variables
   integer :: i
-
+!$omp parallel default(private) shared(mvctr_c,mvctr_f,scal,psi_c,psi_f)
+!$omp do
   do i=1,mvctr_c
      psi_c(i)=psi_c(i)*scal(0)           !  1 1 1
   enddo
+!$omp enddo
+!$omp do
   do i=1,mvctr_f
      psi_f(1,i)=psi_f(1,i)*scal(1)       !  2 1 1
      psi_f(2,i)=psi_f(2,i)*scal(1)       !  1 2 1
@@ -116,7 +134,8 @@ subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
      psi_f(6,i)=psi_f(6,i)*scal(2)       !  1 2 2
      psi_f(7,i)=psi_f(7,i)*scal(3)       !  2 2 2
   enddo
-
+!$omp enddo
+!$omp end parallel
 end subroutine wscalv
 
 ! initializes a wavefunction to zero
@@ -129,9 +148,14 @@ subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
   !local variables
   integer :: i
 
+write(*,*) ' i am in wzero'
+!$omp parallel default(private) shared(mvctr_c,mvctr_f,psi_c,psi_f)
+!$omp do
   do i=1,mvctr_c
      psi_c(i)=0.0_wp
   enddo
+!$omp enddo
+!$omp do
   do i=1,mvctr_f
      psi_f(1,i)=0.0_wp
      psi_f(2,i)=0.0_wp
@@ -141,7 +165,8 @@ subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
      psi_f(6,i)=0.0_wp
      psi_f(7,i)=0.0_wp
   enddo
-
+!$omp enddo
+!$omp end parallel
 end subroutine wzero
 
 
@@ -382,7 +407,8 @@ subroutine waxpy_wrap(scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,&
   call waxpy(scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
        keybv,keybv(mbseg_c+ibseg_f),&
        keybg,keybg(1,mbseg_c+ibseg_f),&
-       bpsi,bpsi(mbvctr_c+ib_f), & 
+       bpsi,bpsi(mbvctr_c+ib_f), &
+       mavctr_c,mavctr_f,maseg_c,maseg_f,& 
        keyav,keyav(maseg_c+iaseg_f),&
        keyag,keyag(1,maseg_c+iaseg_f),&
        apsi,apsi(mavctr_c+ia_f))
