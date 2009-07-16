@@ -79,6 +79,28 @@ private:
 
 
 
+class repartition_error: public std::exception
+{
+public:
+  repartition_error(std::string _msg) throw()
+    :msg(_msg)
+  {}
+ 
+  virtual const char* what() const throw()
+  {
+    return msg.c_str();
+  }
+     
+ 
+    
+    virtual ~repartition_error() throw()
+    {}
+ 
+private:
+  
+    std::string msg;       //Error description
+  
+};
 
 
 class other_error: public std::exception

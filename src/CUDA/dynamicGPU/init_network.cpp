@@ -24,15 +24,15 @@
 #include "message.h"
 #include "localqueu.h"
 
-#include "cudafct.h"
+
 
 #include "check_card/checker.h"
 
 
 
-void local_network::init(const manage_cpu_affinity& mca,int iproc) throw (inter_node_communication_error,check_calc_error)
+void local_network::init(const manage_cpu_affinity& mca,const set_repartition* set_r,int _iproc) throw (inter_node_communication_error,check_calc_error)
 {
-
+  iproc = _iproc;
   man_gpu = NULL;
   sem_unix_gpu_TRSF = NULL;
   sem_unix_gpu_CALC = NULL;
@@ -148,34 +148,7 @@ void local_network::init(const manage_cpu_affinity& mca,int iproc) throw (inter_
       strncpy(toaddr.sun_path, to_sock_path,SIZE_NAME);
       
 
-      //compute which card has each participant
-      std::vector<int> tab(NUM_PARTICIPANTS,0);
-    
-      {
-	const int div = NUM_PARTICIPANTS / NUM_GPU;
-
-	int numIt = div;
-	int itGPU = 0;
-	for(int i=0; i<NUM_PARTICIPANTS; ++i)
-	  {
-	    tab.at(i) = itGPU;
-
-	    if(iproc == 0)				
-	      std::cout << "Unix process (not MPI) " << i << " has GPU : " << itGPU << std::endl;
-
-	    if(i + 1 == numIt)
-	      {
-		numIt += div;
-		++itGPU;
-	      }
-	
-	  }
-
-	
-      }
-      currGPU = tab.at(getCurr());
-
-
+      ///set here !!TODOOO
       //create numGPU semaphore (only the process 0)
 
       if(currNum == 0)
@@ -210,6 +183,8 @@ void local_network::init(const manage_cpu_affinity& mca,int iproc) throw (inter_
 
 	  send_next(&msgSemRcv);
 	  }
+
+
       fclose(es);
       remove(nomfic);
 
@@ -222,7 +197,8 @@ void local_network::init(const manage_cpu_affinity& mca,int iproc) throw (inter_
       mca.set_affinity(currNum);
 
 
-      c_cuda_setdevice(currGPU);
+      //set repartition (static, shared...)
+      set_r->do_repartition(currNum);
 
 
       //check the card precision, in order to detect error
@@ -260,7 +236,6 @@ void local_network::init(const manage_cpu_affinity& mca,int iproc) throw (inter_
 
 
 }
-
 
 
 

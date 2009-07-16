@@ -22,11 +22,11 @@ EXTRA_DIST = \
 	dynamicGPU/class_utils.h \
 	dynamicGPU/convolution_fct_call.h \
 	dynamicGPU/cudafct.h \
+	dynamicGPU/read_conf_exception.h \
+	dynamicGPU/trace_exec.h \
 	dynamicGPU/manage_cpu_affinity.h \
 	dynamicGPU/check_card/checker.h \
 	cpp_utils.h \
-	read_conf_exception.h \
-	trace_exec.h \
 	$(SOURCES_CONV_CHECK)
 
 SOURCES_CONV = 	cudafct.cu \
@@ -48,9 +48,9 @@ SOURCES_SHARED = \
 	dynamicGPU/manage_cpu_affinity.cpp \
 	dynamicGPU/check_card/check_init.f90 \
 	dynamicGPU/check_card/checker.cpp \
-	trace_exec.cpp \
-	init_lib.cpp \
-	read_conf_file.cpp \
+	dynamicGPU/set_repartition.cpp \
+	dynamicGPU/trace_exec.cpp \
+	dynamicGPU/read_conf_file.cpp \
 	commonDef.cpp  \
 	fortran.c
 
