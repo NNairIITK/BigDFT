@@ -1,6 +1,6 @@
 EXTRA_DIST = \
 	Makefile.standalone \
-	read_conf_file.h \
+	dynamicGPU/read_conf_file.h \
 	GPUparameters.h \
 	kernels_compress.hcu \
 	kernels_locpot.hcu \
@@ -22,10 +22,12 @@ EXTRA_DIST = \
 	dynamicGPU/class_utils.h \
 	dynamicGPU/convolution_fct_call.h \
 	dynamicGPU/cudafct.h \
-	dynamicGPU/read_conf_exception.h \
+	read_conf_exception.h \
 	dynamicGPU/trace_exec.h \
 	dynamicGPU/manage_cpu_affinity.h \
 	dynamicGPU/check_card/checker.h \
+	dynamicGPU/set_repartition.h \
+	dynamicGPU/manage_global_var.h \
 	cpp_utils.h \
 	$(SOURCES_CONV_CHECK)
 
