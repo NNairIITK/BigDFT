@@ -15,7 +15,7 @@ dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
 AC_CONFIG_AUX_DIR(config)
 dnl Use a config.h file to store macro definitions
-AM_CONFIG_HEADER(config.h)
+dnl AM_CONFIG_HEADER(config.h)
 AC_CONFIG_MACRO_DIR([config/m4])
 
 dnl Init something, don't know exactly what...
@@ -29,10 +29,6 @@ if test -n "$F90FLAGS" ; then
   F90FLAGS=`echo $F90FLAGS | sed 's/-qsuffix=[[a-zA-Z:0-9=]]*//'`
 fi
 
-dnl Defining fortran language for tests.
-AC_LANG(Fortran)
-AC_FC_SRCEXT(f90)
-
 dnl We defined CC for the ABINIT part.
 AC_PROG_CC()
 AC_PROG_CXX()
@@ -41,9 +37,13 @@ dnl If FC environment variable is not already set, it
 dnl looks for a modern Fortran compiler, prefering newest
 dnl fortran available (e. g. Fortran95). Then FC variable
 dnl is set.
-AC_PROG_FC()
+AC_PROG_FC([], [Fortran 90])
 
 ABI_PROG_FC()
+
+dnl Defining fortran language for tests.
+AC_LANG(Fortran)
+AC_FC_SRCEXT(f90)
 
 dnl Set if the module name are capitalized or not with the FC compiler.
 AC_MSG_CHECKING([for module extension for compiler '$fc_type'])
@@ -89,42 +89,79 @@ if test "$ar" = ":" ; then
 fi
 
 dnl Enable or not MPI.
-AC_MSG_CHECKING([for builtin MPI capabilities])
 ac_use_mpi="yes"
 AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enable by default).]),
               ac_use_mpi=$enableval, ac_use_mpi="yes")
 if test "$ac_use_mpi" = "yes"; then
-  case "$FC" in
-    *mpi*)
-      dnl The compiler will pass everything needed
-      MPI_LIBS=
-      MPI_INCLUDE=
-      MPI_LDFLAGS=
-      ;;
-    *)
-      dnl We set all flags by hand
-      if test x"$MPI_NAME" = x ; then
-        MPI_NAME=mpi
-      fi
-      MPI_LIBS="-l$MPI_NAME -l${MPI_NAME}if"
-      if ! test x"$MPI_INCLUDE" = x ; then
-        MPI_INCLUDE=-I$MPI_INCLUDE
-      fi
-      if ! test x"$MPI_LDFLAGS" = x ; then
-        MPI_LDFLAGS=-L$MPI_LDFLAGS
-      fi
-      ;;
-  esac
-  AC_SUBST(PARALLEL_OPTION, ".true.")
-else
-  AC_SUBST(PARALLEL_OPTION, ".false.")
+  dnl We set all flags by hand
+  AC_ARG_WITH(mpi-include, AS_HELP_STRING([--with-mpi-include],
+              [specify INCLUDE for MPI in case of non-built-in library. Use the -I before the path(es).]),
+              ac_mpi_include=$withval, ac_mpi_include=$MPI_INCLUDE)
+  AC_ARG_WITH(mpi-ldflags, AS_HELP_STRING([--with-mpi-ldflags],
+              [specify LDFLAGS for MPI in case of non-built-in library. Use the -L before the path(es).]),
+              ac_mpi_ldflags=$withval, ac_mpi_ldflags=$MPI_LDFLAGS)
+  AC_ARG_WITH(mpi-libs, AS_HELP_STRING([--with-mpi-libs],
+              [specify the libraries for MPI in case of non-built-in library. Use the -l before the name(s).]),
+              ac_mpi_libs=$withval, ac_mpi_libs=$MPI_LIBS)
+
+  LIBS_OLD=$LIBS
+  LIBS="$LIBS $ac_mpi_libs"
+  LDFLAGS_OLD=$LDFLAGS
+  LDFLAGS="$LDFLAGS $ac_mpi_ldflags"
+  FCFLAGS_OLD=$FCFLAGS
+  FCFLAGS="$FCFLAGS $ac_mpi_include"
+
+  AC_MSG_CHECKING([for MPI capabilities])
+  AC_LINK_IFELSE([[program main
+  call MPI_INIT
+end]], withmpi=yes, withmpi=no)
+  AC_MSG_RESULT([$withmpi])
+
+  if test x"$withmpi" = x"yes" ; then
+    dnl The compiler will pass everything needed
+    MPI_LIBS=$ac_mpi_libs
+    MPI_INCLUDE=$ac_mpi_include
+    MPI_LDFLAGS=$ac_mpi_ldflags
+
+    dnl Test for MPI2.
+    AC_MSG_CHECKING([for MPI 2 capabilities])
+    AC_LINK_IFELSE([[
+program main
+implicit none
+
+integer :: ierr
+real :: rho(3)
+
+include "mpif.h"
+
+call MPI_ALLREDUCE(MPI_IN_PLACE,rho,3,&
+              MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+end
+]], withmpi2=yes, withmpi2=no)
+    AC_MSG_RESULT([$withmpi2])
+
+    if test x"$withmpi2" = x"yes" ; then
+      ac_with_mpi2="yes"
+      AC_DEFINE([HAVE_MPI2], [1], [use MPI2 capabilities.])
+    else
+      ac_with_mpi2="no"
+    fi
+
+  else
+    ac_use_mpi="no"
+    MPI_LIBS=
+    MPI_INCLUDE=
+    MPI_LDFLAGS=
+  fi
+
+  LIBS="$LIBS_OLD"
+  LDFLAGS="$LDFLAGS_OLD"
+  FCFLAGS="$FCFLAGS_OLD"
 fi
 AM_CONDITIONAL(USE_MPI, test "$ac_use_mpi" = "yes")
 AC_SUBST(MPI_LIBS)
 AC_SUBST(MPI_INCLUDE)
 AC_SUBST(MPI_LDFLAGS)
-AM_CONDITIONAL(USE_MPI, test "$ac_use_mpi" = "yes")
-AC_MSG_RESULT([$ac_use_mpi])
 
 
 dnl Use the simple or the optimised convolution code.
@@ -220,39 +257,34 @@ ac_build_bin_cluster="yes"
 
 dnl disable different build
 dnl The ABINIT common XC library
-AC_ARG_ENABLE(libabinit, AS_HELP_STRING([--enable-libabinit], [build the ABINIT library from ABINIT code (default = yes).]), ac_build_lib_ABINIT=$enableval, ac_build_lib_ABINIT="yes")
+AC_ARG_ENABLE(libabinit, AS_HELP_STRING([--disable-libabinit], [build the ABINIT library from ABINIT code (default = yes).]), ac_build_lib_ABINIT=$enableval, ac_build_lib_ABINIT="yes")
 AM_CONDITIONAL(BUILD_LIB_ABINIT, test "$ac_build_lib_ABINIT" = "yes")
 AC_MSG_CHECKING([for ABINIT library internal build])
 AC_MSG_RESULT([$ac_build_lib_ABINIT])
+if test x"$ac_build_lib_ABINIT" = x"yes" ; then
+  xc_path='$(top_builddir)/src/PSolver/ABINIT-common'
+else
+  dnl Required path for ABINIT module inclusion
+  AC_ARG_WITH(xc-module-path, AS_HELP_STRING([--with-xc-module-path],
+              [give the path to the module file defining XC (default = $(top_builddir)/src/PSolver/ABINIT-common).]),
+              xc_path=$withval, xc_path=)
+fi
+AC_SUBST(XC_INCLUDE, "-I"$xc_path)
 dnl The PSolver library
-AC_ARG_ENABLE(libpoissonsolver, AS_HELP_STRING([--enable-libpoissonsolver], [build the Poisson's solver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
+AC_ARG_ENABLE(libpoissonsolver, AS_HELP_STRING([--disable-libpoissonsolver], [build the Poisson's solver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
 AM_CONDITIONAL(BUILD_LIB_PSOLVER, test "$ac_build_lib_PSolver" = "yes")
 AC_MSG_CHECKING([for Poisson's solver internal build])
 AC_MSG_RESULT([$ac_build_lib_PSolver])
 dnl The BigDFT library
-AC_ARG_ENABLE(libbigdft, AS_HELP_STRING([--enable-libbigdft], [build the BigDFT library (default = yes).]), ac_build_lib_BigDFT=$enableval, ac_build_lib_BigDFT="yes")
+AC_ARG_ENABLE(libbigdft, AS_HELP_STRING([--disable-libbigdft], [build the BigDFT library (default = yes).]), ac_build_lib_BigDFT=$enableval, ac_build_lib_BigDFT="yes")
 AM_CONDITIONAL(BUILD_LIB_BIGDFT, test "$ac_build_lib_BigDFT" = "yes")
 AC_MSG_CHECKING([for BigDFT library build])
 AC_MSG_RESULT([$ac_build_lib_BigDFT])
 dnl The cluster executable
-AC_ARG_ENABLE(binaries, AS_HELP_STRING([--enable-binaries], [build the binaries (default = yes).]), ac_build_bin_cluster=$enableval, ac_build_bin_cluster="yes")
+AC_ARG_ENABLE(binaries, AS_HELP_STRING([--disable-binaries], [build the binaries (default = yes).]), ac_build_bin_cluster=$enableval, ac_build_bin_cluster="yes")
 AM_CONDITIONAL(BUILD_BINARIES, test "$ac_build_bin_cluster" = "yes")
 AC_MSG_CHECKING([for BigDFT binaries build])
 AC_MSG_RESULT([$ac_build_bin_cluster])
-
-dnl Required path for ABINIT module inclusion
-xc_path="ABINIT-commmon"
-AC_ARG_WITH(xc-module-path, AS_HELP_STRING([--with-xc-module-path], [give the path to the module file defining fortran type for XC (see ABINIT) (default = ABINIT-common).]), xc_path=$withval, xc_path="ABINIT-common")
-if test "$ac_build_lib_ABINIT_common" = "yes" ; then
-  xc_path="ABINIT-common"
-fi
-AC_SUBST(XC_INCLUDE, "-I"$xc_path)
-
-dnl Required path for PSolver module inclusion
-dnl xc_path="../PSolver"
-dnl AC_ARG_WITH(xc-module-path, AS_HELP_STRING([--with-xc-module-path], [give the path to the module file defining fortran type for XC (see ABINIT) (default = ABINIT-common).]), xc_path=$withval, xc_path="ABINIT-commmon")
-dnl AC_SUBST(XC_INCLUDE, $xc_path)
-
 
 
 dnl ---------------------------------------
@@ -330,6 +362,39 @@ if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
   AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation."])
 fi
 
+dnl Test the libXC library
+internallibxc="yes"
+AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), internallibxc=$enval, internallibxc="yes")
+AC_ARG_WITH(libxc-path, AS_HELP_STRING([--with-libxc-path], [Give the path for an external libXC library, lib and module files (default = None).]),
+            ac_libxc_dir=$withval, ac_libxc_dir=)
+ac_use_libxc="no"
+ac_build_libxc="no"
+if test "$internallibxc" = "yes" ; then
+  ac_build_libxc="yes"
+  ac_use_libxc="yes"
+  AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libXC/src)
+  LDFLAGS="$LDFLAGS -L\$(top_builddir)/libXC/src"
+else
+  if test -n "$ac_libxc_dir" ; then
+    LDFLAGS="$LDFLAGS -L$ac_libxc_dir/lib"
+    
+    dnl Test the given implementation of libXC.
+    AC_CHECK_LIB(xc, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+    AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$capitalize_module_ext, funcs="yes", funcs="no")
+    AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$capitalize_module_ext, lib="yes", lib="no")
+    AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$capitalize_module_ext, types="yes", types="no")
+    if test "$withlibxc" = "yes" -a "$funcs" = "yes" -a "$lib" = "yes" -a "$types" = "yes"; then
+      ac_use_libxc="yes"
+      AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
+    fi
+  fi
+fi
+AM_CONDITIONAL(BUILD_LIBXC, test x"$ac_build_libxc" = x"yes")
+if test x"$ac_use_libxc" = x"yes" ; then
+  AC_DEFINE([HAVE_LIBXC], [1], [compile the libXC section in the ABINIT code.])
+  LIBS="-lxc $LIBS"
+fi
+
 fi # End of the if library compilation
 
 
@@ -378,6 +443,11 @@ tests/NEB/Makefile
 tests/NEB/input
 tests/NEB/NEB_include.sh
 ])
+if test x"$ac_build_libxc" = x"yes" ; then
+  # Call libXC ./configure script recursively.
+  ac_configure_args=$ac_configure_args" --enable-fortran"
+  AC_CONFIG_SUBDIRS([libXC])
+fi
 AC_OUTPUT
 
 echo "
@@ -397,10 +467,10 @@ Build:
 
 Options:
   With MPI:                  $ac_use_mpi
-   | MPI implementation:     $MPI_NAME
-   | include dir.:           $MPI_INCLUDE
+   | Include dir.:           $MPI_INCLUDE
    | Linker flags:           $MPI_LDFLAGS
-   | linked libraries:       $MPI_LIBS
+   | Linked libraries:       $MPI_LIBS
+   | MPI2 support:           $ac_with_mpi2
   With optimised conv.:      $ac_use_opti_convolut
   With Cuda GPU conv.:       $ac_use_cuda_gpu
    | NVidia Cuda Compiler:   $NVCC
@@ -408,6 +478,9 @@ Options:
    | GCC41HACK (gcc path):   $GCC41HACK
    | ext. cutil library:     $ac_with_lib_cutils
    |      cutil path:        $LIB_CUTIL_PATH
+  With libXC:                $ac_use_libxc
+   | internal built:         $ac_build_libxc
+   | include dir.:           $LIBXC_INCLUDE
 
 Installation paths:
   Source code location:      ${srcdir}

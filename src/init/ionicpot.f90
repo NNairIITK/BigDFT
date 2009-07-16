@@ -928,6 +928,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      if (iproc == 0) write(*,'(1x,3(a,1pe10.2),a)') &
           'Constant electric field of',elecfield,&
           ' Ha*Bohr for:',ystart,' < y <',yend,' Bohr'
+!or         'Parabolic confining potential: rprb=',elecfield,&
+!           ';  v_conf(r)= 1/(2*rprb**4) * r**2'
 
      !write or not electric field in a separate file
      efwrite=.true.
@@ -942,6 +944,10 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
                     !x=real(i1-nbl1-1,gp)*hxh
                     ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
                     pot_ion(ind)=pot_ion(ind)+elecfield*(0.5_gp*(ystart-yend))
+!                    parabola: these two lines replace the above line 
+!                              comment out the if case and calculate x, z
+!                    r2=(x-rx)**2+(y-ry)**2+(z-rz)**2
+!                    pot_ion(ind)=pot_ion(ind)+0.5_gp/(elecfield**4)*r2
                  end do
               else if (y > yend) then
                  do i1=1,n1i

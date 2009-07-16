@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 07/07/2009
+# Date: 15/07/2009
 #----------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -2699,23 +2699,11 @@ class Declaration(Code):
             argument_lower = argument.lower()
             if self.dict_vars.has_key(argument_lower):
                 arg = self.dict_vars[argument_lower]
-                type_arg = arg.type
-                if type_arg == "interface":
-                    #Special case for interface
-                    arg = str(arg)
-                #Test if correct:
-                if type_arg.count("real") > 1 or \
-                   type_arg.count("integer") > 1 or type_arg.count("intent") > 1:
-                    self.message.fatal("[%s/%s:%s]:" \
-                        % (self.parent.dir,self.parent.file,self.parent.name) \
-                        + " Argument '%s' has a declaration which depends on preprocessing directives\n" % arg \
-                        + "Do not use preprocessing directives for argument\n")
             else:
-                type_arg = ""
-                arg = ""
-            if type_arg == "":
-                #We use the implicit
-                if dict_implicit == {}:
+                #We use the implicit dictionary
+                arg = Variable(argument_lower,truename=argument)
+                type_arg = arg.type_from_implicit(dict_implicit)
+                if type_arg == "":
                     text = "\nArguments of the routine '%s':" % self.parent.name
                     for arg in arguments_lower:
                         text += " '%s'" % arg
@@ -2723,19 +2711,13 @@ class Declaration(Code):
                     self.message.fatal( \
                         text + "[%s/%s:%s] Argument {%s} is not declared\n" \
                         % (self.parent.dir,self.parent.file,self.parent.name,argument))
-                else:
-                    #Use implicit dictionary
-                    type_arg = dict_implicit[argument_lower[0]]
-                    if arg == "":
-                        arg = argument
-                    #Add in the dictionary of variables
-                    self.dict_vars[argument_lower] = type_arg
+                #Add in the dictionary of variables
+                self.dict_vars[argument_lower] = arg
             #Add declaration + (yyy) and then remove spaces
             if type_arg == "interface":
                 liste = list()
             else:
-                i = len(argument_lower)
-                string = type_arg.lower().replace(" ","") + " " + arg.lower()[i:]
+                string = type_arg + " " + arg.name
                 #Each non-alphanumeric character is converted into blank, split and remove keywords.
                 liste = self.re_noletter.sub(" ",string).split()
             #Check if type_arg does not depend on a parameter or a module (ex: real(ddp) or type(bidon))
@@ -2750,6 +2732,7 @@ class Declaration(Code):
                     if i > -1:
                         name = name[:i]
                     names.add(name)
+            print argument,liste
             #Store as a scalar or an array
             if "dimension" in liste or argument_lower+"(" in arg.lower():
                 if has_name:
@@ -3029,13 +3012,18 @@ class Variable:
                 self.public = True
             print self.name,head,all,self.type
     #
+    def dependencies(self):
+        "Give a list of variables on which depends the variable"
+    #
     def has_type(self):
         "True if has a type (self.type) of public or private"
         return (self.type != None) or self.public or self.private
     #
     def type_from_implicit(self,dict_implicit):
         "Determine the type from the implicit dictionary"
-        self.type = dict_implicit[self.name[0]]
+        if dic_implicit != {}:
+            self.type = dict_implicit[self.name[0]]
+        return self.type
     #
     def update(self,decl,truename=None):
         "Add information about the variable"

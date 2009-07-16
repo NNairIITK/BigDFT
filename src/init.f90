@@ -179,7 +179,6 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
 end subroutine createWavefunctionsDescriptors
 !!***
 
-!pass to implicit none while inserting types on this routine
 subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,&
      radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   use module_base
@@ -280,7 +279,7 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
      Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj,& 
      pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin)
   use module_base
-  use module_interfaces, except_this_one => import_gaussians
+  use module_interfaces, except_this_one_A => import_gaussians
   use module_types
   use Poisson_Solver
   implicit none

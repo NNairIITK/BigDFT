@@ -77,55 +77,70 @@ AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@
 if USE_MPI
 mpi_source =
 mpi_include =
-LMPI = @MPI_LDFLAGS@
+LMPI = @MPI_LDFLAGS@ 
 else
 mpi_source = ../MPIfake.f90
 mpi_include = mpif.h
 LMPI = 
 endif
 
+if USE_CUDA_GPU
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas ../CUDA/libGPU.a @LIB_CUTIL_PATH@/libcutil.a
+else
+libs_cuda=
+endif
+
+
 libpoissonsolver_a_SOURCES = \
-	Poisson_Solver.f90 
+	Poisson_Solver.f90 \
+	../profiling/time.f90 
 
-libpoissonsolver_a_LIBADD = 
+libpoissonsolver_a_LIBADD = ../modules/libmodules.a
 
-PS_Check_SOURCES = PS_Check.f90 timing.f90 base.f90 $(mpi_source)
+PS_Check_SOURCES = PS_Check.f90 $(mpi_source)
 PS_Check_LDFLAGS =
-PS_Check_LDADD = libpoissonsolver.a \
+PS_Check_LDADD = 	libpoissonsolver.a \
+	../modules/libmodules.a \
+	../profiling/libprofiling.a \
 	ABINIT-common/libABINIT.a \
 	$(LMPI) \
-	@MPI_LIBS@
+	@MPI_LIBS@ \
+	$(libs_cuda)
 
-PS_Program_SOURCES = PS_Program.f90 timing.f90 base.f90 $(mpi_source)
+PS_Program_SOURCES = PS_Program.f90 $(mpi_source)
 PS_Program_LDFLAGS = 
-PS_Program_LDADD = libpoissonsolver.a \
+PS_Program_LDADD = 	libpoissonsolver.a \
+	../modules/libmodules.a \
+	../profiling/libprofiling.a \
 	ABINIT-common/libABINIT.a \
 	$(LMPI) \
-	@MPI_LIBS@
+	@MPI_LIBS@ \
+	$(libs_cuda) 
 
-PS_Exercise_SOURCES = PS_Exercise.f90 timing.f90 base.f90 $(mpi_source)
-PS_Exercise_LDADD = libpoissonsolver.a \
+PS_Exercise_SOURCES = PS_Exercise.f90 $(mpi_source)
+PS_Exercise_LDADD = 	libpoissonsolver.a \
+	../modules/libmodules.a \
+	../profiling/libprofiling.a \
 	ABINIT-common/libABINIT.a \
 	$(LMPI) \
-	@MPI_LIBS@
-
+	@MPI_LIBS@ \
+	$(libs_cuda)
 
 CLEANFILES = mpif.h malloc.prc time.par PS_Check.out \
-	POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@ \
-	module_base.@MODULE_EXT@
+	POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@
 
 #dependencies
 mpif.h:
 	touch mpif.h &&\
 	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
-	 echo "integer :: MPI_MIN, MPI_MAX, MPI_IN_PLACE, MPI_CHARACTER" >> mpif.h
+	 echo "integer :: MPI_MIN, MPI_MAX, MPI_CHARACTER" >> mpif.h
 
 poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 
-Poisson_Solver.o : base.o $(SOURCES_MOD)
+Poisson_Solver.o : ../modules/base.o $(SOURCES_MOD)
 
-base.o : $(mpi_include)
+#base.o : $(mpi_include)
 
 PS_Check.o: Poisson_Solver.o
 

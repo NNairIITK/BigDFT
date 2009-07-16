@@ -73,7 +73,8 @@ end subroutine system_properties
 !!   The pointer in atoms structure have to be associated or nullify.
 !! SOURCE
 !!
-subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,norb,norbu,norbd,iunit)
+subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
+     nelec,norb,norbu,norbd,iunit)
   use module_base
   use module_types
   implicit none
@@ -254,7 +255,11 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,norb,norbu,
      close(11)
 
      !correct the coarse and the fine radius for projectors
-     radii_cf(ityp,3)=min(in%crmult*radii_cf(ityp,1),15.0_gp*maxrad)/in%frmult
+     radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),15.0_gp*maxrad)/in%frmult,radii_cf(ityp,2))
+
+     if (maxrad == 0.0_gp) then
+        radii_cf(ityp,3)=0.0_gp
+     end if
 
      if (iproc==0) write(*,'(1x,a6,8x,i3,5x,i3,10x,3(1x,f8.5),a)')&
           trim(atoms%atomnames(ityp)),atoms%nelpsp(ityp),atoms%npspcode(ityp),&

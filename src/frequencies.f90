@@ -33,7 +33,8 @@ program frequencies
   type(restart_objects) :: rst
   character(len=20), dimension(:), allocatable :: atomnames
   ! atomic coordinates, forces
-  real(gp), dimension(:,:), allocatable :: rxyz,fxyz,rpos,fpos_m,fpos_p
+  real(gp), dimension(:,:), allocatable :: fxyz,rpos,fpos_m,fpos_p
+  real(gp), dimension(:,:), pointer :: rxyz
   ! hessian, eigenvectors
   real(gp), dimension(:,:), allocatable :: hessian,vector_l,vector_r
   real(gp), dimension(:), allocatable :: eigen_r,eigen_i
@@ -55,20 +56,12 @@ program frequencies
   !welcome screen
   if (iproc==0) call print_logo()
 
-  ! read number of atoms
-  open(unit=99,file='posinp',status='old')
-  read(99,*) atoms%nat,atoms%units
+  !read atomic file
+  call read_atomic_file('posinp',iproc,atoms,rxyz)
 
   ! allocations
-  allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz,'rxyz',subname)
   allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fxyz,'fxyz',subname)
-
-  ! read atomic positions
-  call read_atomic_positions(iproc,99,atoms,rxyz)
-
-  close(unit=99)
 
   ! read dft input variables
   call dft_input_variables(iproc,'input.dft',inputs)
@@ -139,6 +132,9 @@ program frequencies
   allocate(forces(2,3,atoms%nat,3*atoms%nat),stat=i_stat)
   call memocc(i_stat,forces,'forces',subname)
 
+  !initialise the moves to false
+  moves=.false.
+
 ! Move to alpha*h_grid
   alpha=1.d0/real(64,kind(1.d0))
 ! Initialize the hessian
@@ -159,6 +155,7 @@ program frequencies
   end if
 
   do iat=1,atoms%nat
+
      if (atoms%ifrztyp(iat) == 1) then
         if (iproc==0) write(*,"(1x,a,i0,a)") '=F:The atom ',iat,' is frozen.'
         cycle
@@ -226,7 +223,7 @@ program frequencies
               !end if
            end do
         end do
-        if (iproc == 0) write(u_hessian,'(i0,1x,i0,1x,100(1pe20.10)))') i,iat,hessian(:,3*(iat-1)+i)
+        if (iproc == 0) write(u_hessian,'(i0,1x,i0,1x,100(1pe20.10))') i,iat,hessian(:,3*(iat-1)+i)
      end do
   end do
 
@@ -277,7 +274,7 @@ program frequencies
          do iat=1,atoms%nat
             ity=atoms%iatype(iat)
             do j=1,3
-                write(10,'(1x,a,1x,100(1pe20.10))') &
+                write(15,'(1x,a,1x,100(1pe20.10))') &
                   atoms%atomnames(ity),vector_l(3*(iat-1)+j,i)
             end do
          end do

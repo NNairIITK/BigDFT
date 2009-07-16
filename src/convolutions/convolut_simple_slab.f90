@@ -134,7 +134,7 @@ subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
      call convrot_n_per(n3,ndat,x,y)
 
   else
-    stop 'the GPU part is not yet written'
+	  stop 'the GPU part is not yet written'
   end if
 end subroutine convolut_magic_n_slab_self
 
@@ -186,7 +186,7 @@ subroutine convolut_magic_n_slab(n1,n2,n3,x,y,ww)
      call convrot_n_per(n3,ndat,ww,y)
 
   else
-    stop 'the GPU part is not yet written'
+	  stop 'the GPU part is not yet written'
   end if
 end subroutine convolut_magic_n_slab
 
@@ -240,7 +240,7 @@ subroutine convolut_magic_t_slab_self(n1,n2,n3,x,y)
      call convrot_t_per(n3,ndat,x,y)
 
   else
-    stop 'the GPU part is not yet written'
+	  stop 'the GPU part is not yet written'
   end if
 
 end subroutine convolut_magic_t_slab_self
@@ -386,7 +386,7 @@ subroutine convolut_kinetic_slab_T(n1,n2,n3,hgrid,x,y,ekin)
               tt=tt+x(j   ,i2,i3)*fil(l,1)
            enddo
            y(i1,i2,i3)=y(i1,i2,i3)+tt
-      ekin=ekin+x(i1,i2,i3)*tt
+			ekin=ekin+x(i1,i2,i3)*tt
         enddo
      enddo
      
@@ -401,7 +401,7 @@ subroutine convolut_kinetic_slab_T(n1,n2,n3,hgrid,x,y,ekin)
               tt=tt+x(i1,i2+l ,i3)*fil(l,2)
            enddo
            y(i1,i2,i3)=y(i1,i2,i3)+tt
-      ekin=ekin+x(i1,i2,i3)*tt
+			ekin=ekin+x(i1,i2,i3)*tt
         enddo
      enddo
      
@@ -417,7 +417,7 @@ subroutine convolut_kinetic_slab_T(n1,n2,n3,hgrid,x,y,ekin)
               tt=tt+x(i1,i2,   j)*fil(l,3)
            enddo
            y(i1,i2,i3)=y(i1,i2,i3)+tt
-      ekin=ekin+x(i1,i2,i3)*tt
+			ekin=ekin+x(i1,i2,i3)*tt
         enddo
      enddo
   enddo

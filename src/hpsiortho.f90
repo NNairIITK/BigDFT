@@ -143,7 +143,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,GPU)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => hpsitopsi
+  use module_interfaces, except_this_one_A => hpsitopsi
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
   real(gp), intent(in) :: hx,hy,hz,energy,energy_old
@@ -436,7 +436,7 @@ END SUBROUTINE trans_address
 subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => first_orthon
+  use module_interfaces, except_this_one_B => first_orthon
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
@@ -503,7 +503,7 @@ END SUBROUTINE first_orthon
 subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => last_orthon
+  use module_interfaces, except_this_one_C => last_orthon
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(in) :: orbs
@@ -1014,6 +1014,9 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
            vali=real(i+iscomp,wp)*1.d-5
            do ispinor=1,((2+orbs%nspinor)/4+1)
               psival=(-1)**(ispinor-1)*(valorb+vali)
+              if (psival .lt. 0.d0) then  !this is just to force the IEEE representation of psival
+              write(321,*) psival,psival**2
+              endif
               index=ispinor+(i-1)*((2+orbs%nspinor)/4+1)+&
                    (idsx-1)*((2+orbs%nspinor)/4+1)*comms%nvctr_par(iproc)+indorb
               maxdiff=max(abs(psi(index)-psival),maxdiff)

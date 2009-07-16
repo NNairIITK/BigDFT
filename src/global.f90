@@ -1233,17 +1233,24 @@ subroutine velopt(at,rxyz,ekinetic,vxyz)
 end subroutine velopt
 
 subroutine randdist(nat,rxyz,vxyz)
-  implicit real*8 (a-h,o-z)
-  real tt
-  dimension vxyz(3*nat),rxyz(3*nat)
+  use module_base
+  implicit none
+  integer, intent(in) :: nat
+  real(gp), dimension(3*nat), intent(in) :: rxyz
+  real(gp), dimension(3*nat), intent(out) :: vxyz
+  !local variables
+  integer :: i,idum=0
+  real(kind=4) :: tt,builtin_rand
   ! create a random displacement vector without translational and angular moment
   do i=1,3*nat
-     call random_number(tt)
-     vxyz(i)=dble(tt-.5)*3.d-1
-  enddo
-  call  elim_moment(nat,vxyz)
-  call  elim_torque(nat,rxyz,vxyz)
-  return
+     !call random_number(tt)
+     !add built-in random number generator
+     tt=builtin_rand(idum)
+     vxyz(i)=real(tt-.5,gp)*3.e-1_gp
+  end do
+
+  call elim_moment(nat,vxyz)
+  call elim_torque(nat,rxyz,vxyz)
 end subroutine randdist
 
 

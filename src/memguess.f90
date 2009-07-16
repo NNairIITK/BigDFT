@@ -123,7 +123,7 @@ program memguess
   call read_atomic_file('posinp',0,atoms,rxyz)
 
   if (convert) then
-     call read_input_variables(0,'input.dft',in)
+     call read_input_variables(0,'input.dat',in)
      write(*,'(a)',advance='NO')' Conversion of the input file...'
      call dft_input_converter(in)
      write(*,*)' ...done'
@@ -705,6 +705,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   use module_types
   use module_interfaces
   use Poisson_Solver
+  use libxc_functionals
+
   implicit none
   integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
   real(gp), intent(in) :: hx,hy,hz
@@ -791,7 +793,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   end if
 
   !flag for toggling the REDUCE_SCATTER stategy
-  rsflag=.not. (ixc >= 11 .and. ixc <=16)
+  rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
+       & (ixc < 0 .and. libxc_functionals_isgga()))
 
   !calculate dimensions of the complete array to be allocated before the reduction procedure
   if (rsflag) then
