@@ -80,7 +80,7 @@ function builtin_rand(idum)
   real(kind=4) :: builtin_rand
   !local variables
   integer, parameter :: ia=16807,im=2147483647,iq=127773,ir=2836,ntab=32,ndiv=1+(im-1)/ntab
-  real(kind=4), parameter :: am=1.0_4/real(im,kind=4),eps=1.2e-7,rnmx=1.-eps
+  real(kind=4), parameter :: am=1.e0/real(im,kind=4),eps=1.2e-7,rnmx=1.-eps
   integer :: j,k
   integer , save :: iy
   integer , dimension(NTAB), save :: iv

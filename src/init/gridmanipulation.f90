@@ -297,32 +297,43 @@ subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
   integer, intent(out) :: mseg,mvctr
   !local variables
   logical :: plogrid
-  integer :: i1,i2,i3,nsrt,nend
-
+  integer :: i1,i2,i3,nsrt,nend,nsrti,nendi,mvctri
   mvctr=0
   nsrt=0
   nend=0
+!$omp parallel default(private) shared(nl3,nu3,nl2,nu2,nl1,nu1,logrid,mvctr,nsrt,nend)
+  mvctri=0
+  nsrti=0
+  nendi=0
+!$omp do  
   do i3=nl3,nu3 
      do i2=nl2,nu2
         plogrid=.false.
         do i1=nl1,nu1
            if (logrid(i1,i2,i3)) then
-              mvctr=mvctr+1
+              mvctri=mvctri+1
               if (plogrid .eqv. .false.) then
-                 nsrt=nsrt+1
+                 nsrti=nsrti+1
               endif
            else
               if (plogrid .eqv. .true.) then
-                 nend=nend+1
+                 nendi=nendi+1
               endif
            endif
            plogrid=logrid(i1,i2,i3)
         enddo
         if (plogrid .eqv. .true.) then
-           nend=nend+1
+           nendi=nendi+1
         endif
      enddo
   enddo
+!$omp enddo
+!$omp critical
+mvctr=mvctr+mvctri
+nsrt=nsrt+nsrti
+nend=nend+nendi
+!$omp end critical
+!$omp end parallel
   if (nend.ne.nsrt) then 
      write(*,*)' ERROR: nend <> nsrt',nend,nsrt
      stop 
@@ -448,6 +459,8 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
            if (mu3 > nu3) stop 'mu3 > nu3'
         end if
         !what follows works always provided the check before
+!$omp parallel default(shared) private(i3,dz2,j3,i2,dy2,j2,i1,j1,dx)
+!$omp do
         do i3=ml3,mu3
            dz2=(real(i3,gp)*hz-rxyz(3,iat))**2
            j3=modulo(i3,n3+1)
@@ -463,7 +476,9 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
               enddo
            enddo
         enddo
-     end if
+!$omp enddo
+!$omp end parallel
+  end if
   enddo
 
 END SUBROUTINE fill_logrid

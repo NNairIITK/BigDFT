@@ -1324,8 +1324,10 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
   call gauss_to_daub(hy,1.0_gp,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1),te,work,nw,pery)
   n_gau=lz(itp)
   call gauss_to_daub(hz,psiat(iterm),rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1),te,work,nw,perz)
-
+!$omp parallel default(private) shared(nl3_c,nu3_c,nl2_c,nu2_c,nl1_c,nu1_c,wprojx,wprojy,wprojz) &
+!$omp shared(nl3_f,nu3_f,nl2_f,nu2_f,nl1_f,nu1_f,psig_c,psig_f)
   ! First term: coarse projector components
+!$omp do
   do i3=nl3_c,nu3_c
      do i2=nl2_c,nu2_c
         do i1=nl1_c,nu1_c
@@ -1333,8 +1335,9 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
         enddo
      enddo
   enddo
-
+!$omp enddo
   ! First term: fine projector components
+!$omp do
   do i3=nl3_f,nu3_f
      do i2=nl2_f,nu2_f
         do i1=nl1_f,nu1_f
@@ -1348,7 +1351,8 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
         enddo
      enddo
   enddo
-
+!$omp enddo
+!$omp end parallel
   do iterm=2,nterm
      gau_a=xp(iterm)
      n_gau=lx(itp)
@@ -1358,7 +1362,10 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
      n_gau=lz(itp)
      call gauss_to_daub(hz,psiat(iterm),rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1),te,work,nw,perz)
 
-     ! First term: coarse projector components
+!$omp parallel default(private) shared(nl3_c,nu3_c,nl2_c,nu2_c,nl1_c,nu1_c,wprojx,wprojy,wprojz) &
+!$omp shared(nl3_f,nu3_f,nl2_f,nu2_f,nl1_f,nu1_f,psig_c,psig_f)
+  ! First term: coarse projector components
+!$omp do
      do i3=nl3_c,nu3_c
         do i2=nl2_c,nu2_c
            do i1=nl1_c,nu1_c
@@ -1366,8 +1373,10 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
            enddo
         enddo
      enddo
+!$omp enddo
 
      ! First term: fine projector components
+!$omp do
      do i3=nl3_f,nu3_f
         do i2=nl2_f,nu2_f
            do i1=nl1_f,nu1_f
@@ -1381,6 +1390,8 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
            enddo
         enddo
      enddo
+!$omp enddo
+!$omp end parallel
 
   end do
 
@@ -1397,7 +1408,10 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
         call gauss_to_daub(hz,psiat(iterm),rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1),te,work,nw,&
              perz)
 
-        ! First term: coarse projector components
+!$omp parallel default(private) shared(nl3_c,nu3_c,nl2_c,nu2_c,nl1_c,nu1_c,wprojx,wprojy,wprojz) &
+!$omp shared(nl3_f,nu3_f,nl2_f,nu2_f,nl1_f,nu1_f,psig_c,psig_f)
+  ! First term: coarse projector components
+!$omp do
         do i3=nl3_c,nu3_c
            do i2=nl2_c,nu2_c
               do i1=nl1_c,nu1_c
@@ -1405,8 +1419,9 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
               enddo
            enddo
         enddo
-
+!$omp enddo
         ! First term: fine projector components
+!$omp do
         do i3=nl3_f,nu3_f
            do i2=nl2_f,nu2_f
               do i1=nl1_f,nu1_f
@@ -1420,17 +1435,22 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
               enddo
            enddo
         enddo
-
+!$omp enddo
+!$omp end parallel
      end do
 
 
   end do
 
 
+!$omp parallel default(private) shared(nseg_c,keyv_c,keyg_c,n1,n2,psi_c,nseg_f,keyv_f,keyg_f) &
+!$omp shared(psi_f,psig_c,psig_f)
+
   !wavefunction compression
 
   !itp=0
   ! coarse part
+!$omp do
   do iseg=1,nseg_c
      jj=keyv_c(iseg)
      j0=keyg_c(1,iseg)
@@ -1446,11 +1466,12 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
         psi_c(i-i0+jj)=psig_c(i,i2,i3)
      enddo
   enddo
-
+!$omp enddo
   !print *,'nvctr_c',itp,mvctr_c
 
   !itp=0
   ! fine part
+!$omp do
   do iseg=1,nseg_f
      jj=keyv_f(iseg)
      j0=keyg_f(1,iseg)
@@ -1472,7 +1493,8 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
         psi_f(7,i-i0+jj)=psig_f(7,i,i2,i3)
      enddo
   enddo
-
+!$omp enddo
+!$omp end parallel
   !print *,'nvctr_f',itp,mvctr_f
 
   i_all=-product(shape(wprojx))*kind(wprojx)
