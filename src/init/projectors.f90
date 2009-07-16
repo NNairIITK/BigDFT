@@ -119,13 +119,13 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   totfullvol=0.0_gp
   do iat=1,at%nat
      ityp=at%iatype(iat)
-     maxrad=min(maxval(at%psppar(1:4,0,ityp)),cpmult/9.0_gp*radii_cf(ityp,3))
+     maxrad=min(maxval(at%psppar(1:4,0,ityp)),cpmult/15.0_gp*radii_cf(ityp,3))
      zerovol=0.0_gp
      fullvol=0.0_gp
      do l=1,4
         do i=1,3
            if (at%psppar(l,i,ityp) /= 0.0_gp) then
-              rad=min(at%psppar(l,0,ityp),cpmult/9.0_gp*radii_cf(ityp,3))
+              rad=min(at%psppar(l,0,ityp),cpmult/15.0_gp*radii_cf(ityp,3))
               zerovol=zerovol+(maxrad**3-rad**3)
               fullvol=fullvol+maxrad**3
            end if
@@ -527,7 +527,8 @@ if (nterm .ge. 2) then
               if (dx2+(dy2+dz2) <= rad_c**2) then
               mvctr=mvctr+1
   do iterm=2,nterm
-                 proj_c(mvctr)=proj_c(mvctr)+wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
+                 proj_c(mvctr)=proj_c(mvctr)+&
+                      wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
   enddo
               endif
            enddo
@@ -547,20 +548,20 @@ if (nterm .ge. 2) then
               if (dx2+(dy2+dz2) <= rad_f**2) then
                  mvctr=mvctr+1
   do iterm=2,nterm
-                 proj_f(1,mvctr)=&
-                      proj_f(1,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
-                 proj_f(2,mvctr)=&
-                      proj_f(2,mvctr)+wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
-                 proj_f(3,mvctr)=&
-                      proj_f(3,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
-                 proj_f(4,mvctr)=&
-                      proj_f(4,mvctr)+wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
-                 proj_f(5,mvctr)=&
-                      proj_f(5,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
-                 proj_f(6,mvctr)=&
-                      proj_f(6,mvctr)+wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
-                 proj_f(7,mvctr)=&
-                      proj_f(7,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
+                 proj_f(1,mvctr)=proj_f(1,mvctr)+&
+                      wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
+                 proj_f(2,mvctr)=proj_f(2,mvctr)+&
+                      wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
+                 proj_f(3,mvctr)=proj_f(3,mvctr)+&
+                      wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
+                 proj_f(4,mvctr)=proj_f(4,mvctr)+&
+                      wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
+                 proj_f(5,mvctr)=proj_f(5,mvctr)+&
+                      wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
+                 proj_f(6,mvctr)=proj_f(6,mvctr)+&
+                      wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
+                 proj_f(7,mvctr)=proj_f(7,mvctr)+&
+                      wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
   enddo
               endif
            enddo

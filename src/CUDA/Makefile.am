@@ -22,6 +22,9 @@ EXTRA_DIST = \
 	dynamicGPU/class_utils.h \
 	dynamicGPU/convolution_fct_call.h \
 	dynamicGPU/cudafct.h \
+	dynamicGPU/manage_cpu_affinity.h \
+	dynamicGPU/check_card/checker.h \
+	cpp_utils.h \
 	read_conf_exception.h \
 	trace_exec.h \
 	$(SOURCES_CONV_CHECK)
@@ -92,14 +95,14 @@ endif
 
 CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 
-AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ 
+AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir)
 
-conv_check_SOURCES = conv_check.f90  ../profiling/memory.f90 ../modules/base.f90 $(mpi_source)
+conv_check_SOURCES = conv_check.f90  ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
 conv_check_LDFLAGS =
 conv_check_LDADD = ../libbigdft.a \
 	$(libs_cuda)
 
-GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.f90 $(mpi_source)
+GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
 GPUham_LDFLAGS =
 GPUham_LDADD = ../libbigdft.a \
 	$(libs_cuda)

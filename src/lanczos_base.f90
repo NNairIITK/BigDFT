@@ -420,75 +420,75 @@ contains
        
        max0 = 0.0
 
-!!$       
-!!$       
-!!$       if( beta(i).ne.0.0) then
-!!$          do j=0,i
-!!$             omega(i+1,j) = eusn
-!!$
-!!$             if( j.lt.k) then
-!!$                
-!!$
-!!$
-!!$                add = 2 * eusn + abs( alpha(j)-alpha(i)) * abs(omega(i,j))
-!!$                
-!!$                if(i.ne.k) then
-!!$                   add = add+  beta(j)*abs(omega(i,k))
-!!$                endif
-!!$                if ( i.gt.0 .and. j.ne.(i-1)) then
-!!$                   add = add +  beta(i-1)*abs(omega(i-1,j) )
-!!$                endif
-!!$                omega(i+1,j) = omega(i+1,j)+ add / beta(i)
-!!$                
-!!$                
-!!$             else if (j.eq.k)  then                        
-!!$                add = 2 * eusn + abs(alpha(j)-alpha(i))* abs( omega(i,j) )
-!!$                do w=0,k-1 
-!!$                   add = add + beta(w)* abs( omega(i,w) )
-!!$                enddo
-!!$                if (i.ne.(k+1)) then
-!!$                   add  =  add +  beta(k)*abs( omega(i,k+1) )
-!!$                endif
-!!$                
-!!$                if(  i.gt.0 .and. i.ne.(k+1)) then
-!!$                   add = add +  beta(i-1)* abs(omega(i-1,k))
-!!$                endif
-!!$                
-!!$                omega(i+1,j)  = omega(i+1,j) + add / beta(i)
-!!$                
-!!$             else if( j.lt.i) then 
-!!$                
-!!$                add = 2 * eusn + abs(alpha(j)- alpha(i))  * abs(omega(i,j) )
-!!$                
-!!$                if( i.ne.(j+1)) then
-!!$                   add =  add +  beta(j) * abs( omega(i,j+1) ) 
-!!$                endif
-!!$                if (i.gt.0 .and. j.gt.0) then
-!!$                   add = add +  beta(j-1)*abs( omega(i-1,j-1))
-!!$                endif
-!!$                if(  i.gt.0 .and. i.ne.(j+1)) then
-!!$                   add = add +   beta(i-1)*abs(omega(i-1,j))
-!!$                endif
-!!$                omega(i+1,j)  = omega(i+1,j) +  add / beta(i)
-!!$                
-!!$             else
-!!$                
-!!$                add = eusn
-!!$                
-!!$                if (i.gt.0) then 
-!!$                   add = add +  beta(i-1)*abs( omega(i,i-1))
-!!$                endif
-!!$                
-!!$                omega(i+1,j)  = omega(i+1,j) +  add / beta(i)
-!!$             endif
-!!$             
-!!$
-!!$
-!!$             omega(j,i+1) = omega(i+1,j)
-!!$             
-!!$             max0 = max0+ omega(i+1,j)**2
-!!$          enddo
-!!$       endif
+       
+       
+       if( beta(i).ne.0.0) then
+          do j=0,i
+             omega(i+1,j) = eusn
+
+             if( j.lt.k) then
+                
+
+
+                add = 2 * eusn + abs( alpha(j)-alpha(i)) * abs(omega(i,j))
+                
+                if(i.ne.k) then
+                   add = add+  beta(j)*abs(omega(i,k))
+                endif
+                if ( i.gt.0 .and. j.ne.(i-1)) then
+                   add = add +  beta(i-1)*abs(omega(i-1,j) )
+                endif
+                omega(i+1,j) = omega(i+1,j)+ add / beta(i)
+                
+                
+             else if (j.eq.k)  then                        
+                add = 2 * eusn + abs(alpha(j)-alpha(i))* abs( omega(i,j) )
+                do w=0,k-1 
+                   add = add + beta(w)* abs( omega(i,w) )
+                enddo
+                if (i.ne.(k+1)) then
+                   add  =  add +  beta(k)*abs( omega(i,k+1) )
+                endif
+                
+                if(  i.gt.0 .and. i.ne.(k+1)) then
+                   add = add +  beta(i-1)* abs(omega(i-1,k))
+                endif
+                
+                omega(i+1,j)  = omega(i+1,j) + add / beta(i)
+                
+             else if( j.lt.i) then 
+                
+                add = 2 * eusn + abs(alpha(j)- alpha(i))  * abs(omega(i,j) )
+                
+                if( i.ne.(j+1)) then
+                   add =  add +  beta(j) * abs( omega(i,j+1) ) 
+                endif
+                if (i.gt.0 .and. j.gt.0) then
+                   add = add +  beta(j-1)*abs( omega(i-1,j-1))
+                endif
+                if(  i.gt.0 .and. i.ne.(j+1)) then
+                   add = add +   beta(i-1)*abs(omega(i-1,j))
+                endif
+                omega(i+1,j)  = omega(i+1,j) +  add / beta(i)
+                
+             else
+                
+                add = eusn
+                
+                if (i.gt.0) then 
+                   add = add +  beta(i-1)*abs( omega(i,i-1))
+                endif
+                
+                omega(i+1,j)  = omega(i+1,j) +  add / beta(i)
+             endif
+             
+
+
+             omega(j,i+1) = omega(i+1,j)
+             
+             max0 = max0+ omega(i+1,j)**2
+          enddo
+       endif
        
        
 

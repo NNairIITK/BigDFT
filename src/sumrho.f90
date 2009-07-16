@@ -1,9 +1,23 @@
+!!****f* BigDFT/sumrho
+!! FUNCTION
+!!    Calculate the electronic density (rho)
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,nspin,GPU)
   ! Calculates the charge density by summing the square of all orbitals
   ! Input: psi
   ! Output: rho
   use module_base!, only: gp,dp,wp,ndebug,memocc
   use module_types
+  use libxc_functionals
+
   implicit none
   integer, intent(in) :: iproc,nproc,nrho,nspin,ixc
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -27,7 +41,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
 
   call timing(iproc,'Rho_comput    ','ON')
 
-  if (iproc==0) then
+  if (iproc==0 .and. verbose >= 1) then
      write(*,'(1x,a)',advance='no')&
           'Calculation of charge density...'
   end if
@@ -41,7 +55,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
 
 
   !flag for toggling the REDUCE_SCATTER stategy
-  rsflag=.not. (ixc >= 11 .and. ixc <=16)
+  rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
+       & (ixc < 0 .and. libxc_functionals_isgga())) .and. .not.have_mpi2
 
   !calculate dimensions of the complete array to be allocated before the reduction procedure
   if (rsflag) then
@@ -159,7 +174,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   endif
 
   !write the results
-  if (iproc == 0) then
+  if (iproc == 0 .and. verbose >= 1) then
      if(nspin==4) then
         charge=tmred(1,1)
         tt=sqrt(tmred(2,1)**2+tmred(3,1)**2+tmred(4,1)**2)
