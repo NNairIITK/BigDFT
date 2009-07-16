@@ -562,12 +562,16 @@ module module_interfaces
        real(wp), intent(out), optional :: outadd
      end subroutine untranspose_v
 
-     subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi,comment)
+     subroutine plot_wf(kindplot,orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
        use module_base
        use module_types
        implicit none
-       character(len=10), intent(in) :: orbname,comment
-       real(gp), intent(in) :: hx,hy,hz,rx,ry,rz
+       character(len=*) :: kindplot
+       character(len=10) :: comment
+       character(len=11) :: orbname
+       type(atoms_data), intent(in) :: at
+       real(gp), intent(in) :: hx,hy,hz
+       real(gp), dimension(3,at%nat), intent(in) :: rxyz
        type(locreg_descriptors), intent(in) :: lr
        real(wp), dimension(*) :: psi
      end subroutine plot_wf

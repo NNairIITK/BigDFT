@@ -370,9 +370,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         !write(*,'(a,3i3,2f12.8)') 'applylocpotkinone finished',iproc,iorb,ipt,epot,ekin
 
         if (DistProjApply) then
-           !here the box do not change, only the projectors descriptors
-           call applyprojectorsonthefly(0,orbsb,at,n1,n2,n3,&
-                rxyz,hgrid,hgrid,hgrid,cpmult,fpmult,radii_cf,wfdb,nlpspd,proj,psib,hpsib,eproj)
+           call applyprojectorsonthefly(0,orbsb,at,nb1,nb2,nb3,&
+                txyz,hgrid,hgrid,hgrid,cpmult,fpmult,radii_cf,wfdb,nlpspd,proj,psib,hpsib,eproj)
            !only the wavefunction descriptors must change
         else
            call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &

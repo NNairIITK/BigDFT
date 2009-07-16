@@ -245,6 +245,20 @@ module module_types
 !!***
 
 
+!!****t* module_types/workarr_sumrho
+!! DESCRIPTION
+!! Contains the work arrays needed for expressing wavefunction in real space
+!!  with all the BC
+!!
+!! SOURCE
+!!
+  type, public :: workarr_sumrho
+     integer :: nw1,nw2,nxc,nxf
+     real(wp), dimension(:), pointer :: x_c,x_f,w1,w2
+  end type workarr_sumrho
+!!***
+
+
 !!****t* module_types/workarr_locham
 !! DESCRIPTION
 !! Contains the work arrays needed for hamiltonian application with all the BC
