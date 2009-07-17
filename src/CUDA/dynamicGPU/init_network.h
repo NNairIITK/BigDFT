@@ -32,7 +32,7 @@
 #include "localqueu.h"
 #include "manage_gpu.h"
 #include "manage_cpu_affinity.h"
-
+#include "set_repartition.h"
 
 //encapsulation of an unix semaphore
 class sem_unix
@@ -71,9 +71,9 @@ private:
 class local_network
 {
 public:
-  local_network(int num_local_mpi_node, int num_gpu,const manage_cpu_affinity& mca,int iproc) throw (inter_node_communication_error,check_calc_error)
+  local_network(int num_local_mpi_node, int num_gpu,const manage_cpu_affinity& mca,const set_repartition* set_r,int iproc) throw (inter_node_communication_error,check_calc_error)
     :NUM_PARTICIPANTS(num_local_mpi_node),NUM_GPU(num_gpu)
-    {init(mca,iproc);}  
+  {init(mca,set_r,iproc);}  
 
   ~local_network();
 
@@ -95,7 +95,7 @@ public:
   int recv_prev(message* msg) throw (inter_node_communication_error);
 
 private:
-  void init(const manage_cpu_affinity&,int iproc) throw (inter_node_communication_error,check_calc_error);
+  void init(const manage_cpu_affinity&,const set_repartition*,int iproc) throw (inter_node_communication_error,check_calc_error);
 
 
 
@@ -115,7 +115,8 @@ private:
   sem_unix *sem_unix_gpu_TRSF;
   sem_unix *sem_unix_gpu_CALC;
   enum op_thread {THREAD_CALC = 0, THREAD_TRSF};
- 
+
+   int iproc;
 };
 
 

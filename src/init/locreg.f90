@@ -217,7 +217,8 @@ subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
      !fine part
      call num_segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
           Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
-          Glr%wfd%keyg(1,Glr%wfd%nseg_c+1),Glr%wfd%keyv(Glr%wfd%nseg_c+1),&
+          Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+          Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
           Llr(ilr)%wfd%nseg_f,Llr(ilr)%wfd%nvctr_f)
 
      !allocate the wavefunction descriptors following the needs
@@ -232,10 +233,11 @@ subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
      !fine part
      call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
           Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
-          Glr%wfd%keyg(1,Glr%wfd%nseg_c+1),Glr%wfd%keyv(Glr%wfd%nseg_c+1),&
+          Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+          Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
           Llr(ilr)%wfd%nseg_f,Llr(ilr)%wfd%nvctr_f,&
-          Llr(ilr)%wfd%keyg(1,Llr(ilr)%wfd%nseg_c+1),&
-          Llr(ilr)%wfd%keyv(Llr(ilr)%wfd%nseg_c+1))
+          Llr(ilr)%wfd%keyg(1,Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
+          Llr(ilr)%wfd%keyv(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)))
 
      !if the localisation region is isolated build also the bounds
      if (Llr(ilr)%geocode=='F') then
@@ -504,7 +506,8 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocre
         !fine part
         call num_segkeys_loc(n1,n2,n3,lrlims(1,1,iloc),lrlims(2,1,iloc),&
              lrlims(1,2,iloc),lrlims(2,2,iloc),lrlims(1,3,iloc),lrlims(2,3,iloc),&
-             wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+1),wfdg%keyv(wfdg%nseg_c+1),&
+             wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+min(1,wfdg%nseg_f)),&
+             wfdg%keyv(wfdg%nseg_c+min(1,wfdg%nseg_f)),&
              nseg_f,nvctr_f)
         ncountlocreg(iloc)=nvctr_c+7*nvctr_f
         ndimkey=ndimkey+nseg_c+nseg_f
@@ -525,7 +528,8 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocre
 
   !fine part
   call num_segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
-       wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+1),wfdg%keyv(wfdg%nseg_c+1),&
+       wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+min(1,wfdg%nseg_f)),&
+       wfdg%keyv(wfdg%nseg_c+min(1,wfdg%nseg_f)),&
        wfdl%nseg_f,wfdl%nvctr_f)
 
   ncountlocreg(ilocreg)=wfdl%nvctr_c+7*wfdl%nvctr_f
@@ -545,8 +549,10 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocre
 
   !fine part
   call segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
-       wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+1),wfdg%keyv(wfdg%nseg_c+1),&
-       wfdl%nseg_f,wfdl%nvctr_f,wfdl%keyg(1,wfdl%nseg_c+1),wfdl%keyv(wfdl%nseg_c+1))!,&
+       wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+min(1,wfdg%nseg_f)),&
+       wfdg%keyv(wfdg%nseg_c+min(1,wfdg%nseg_f)),&
+       wfdl%nseg_f,wfdl%nvctr_f,wfdl%keyg(1,wfdl%nseg_c+min(1,wfdl%nseg_f)),&
+       wfdl%keyv(wfdl%nseg_c+min(1,wfdl%nseg_f)))!,&
        !keymask(wfdg%nseg_c+1))
 
   !a little check on the masking array

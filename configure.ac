@@ -113,6 +113,8 @@ if test "$ac_use_mpi" = "yes"; then
 
   AC_MSG_CHECKING([for MPI capabilities])
   AC_LINK_IFELSE([[program main
+  include "mpif.h"
+
   call MPI_INIT
 end]], withmpi=yes, withmpi=no)
   AC_MSG_RESULT([$withmpi])
@@ -148,7 +150,10 @@ end
     fi
 
   else
-    ac_use_mpi="no"
+    AC_WARN([MPI is not working and has been disabled.])
+    AC_WARN([  If you don't want to see this warning,])
+    AC_WARN([  set --disable-mpi in the configure line.])
+    ac_use_mpi="Warning"
     MPI_LIBS=
     MPI_INCLUDE=
     MPI_LDFLAGS=
@@ -490,3 +495,9 @@ Installation paths:
   Static libraries:          $libdir
   Fortran modules:           $moduledir
 "
+
+if test x"$ac_use_mpi" = x"Warning" ; then
+  echo "Warnings:
+  MPI:                       disabled by tests
+"
+fi

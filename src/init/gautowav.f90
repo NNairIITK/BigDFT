@@ -496,8 +496,9 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
                    0,grid%n1,0,grid%n2,0,grid%n3,&
                    grid%nfl1,grid%nfu1,grid%nfl2,grid%nfu2,grid%nfl3,grid%nfu3,  & 
                    wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,wfd%nseg_f,wfd%nvctr_f,&
-                   wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
-                   tpsi(1),tpsi(wfd%nvctr_c+1))
+                   wfd%keyg(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
+                   wfd%keyv(wfd%nseg_c+min(1,wfd%nseg_f)),&
+                   tpsi(1),tpsi(wfd%nvctr_c+min(1,wfd%nvctr_f)))
            end if
            !sum the result inside the orbital wavefunction
            !loop over the orbitals
@@ -531,12 +532,18 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
      if (orbs%isorb < iorb .and. iorb <= orbs%isorb+orbs%norbp) then
         jorb=iorb-orbs%isorb
         totnorm=0.0_dp
-        do ispinor=1,orbs%nspinor !to be verified in case of nspinor=4
-           call wnrm(wfd%nvctr_c,wfd%nvctr_f,psi(1,ispinor,jorb),psi(wfd%nvctr_c+1,ispinor,jorb),scpr) 
+       do ispinor=1,orbs%nspinor !to be verified in case of nspinor=4
+          call wnrm_wrap(wfd%nvctr_c,wfd%nvctr_f,psi(1,ispinor,jorb),scpr) 
+!!$           call wnrm(wfd%nvctr_c,wfd%nvctr_f,psi(1,ispinor,jorb),&
+!!$          psi(wfd%nvctr_c+1,ispinor,jorb),scpr) 
            totnorm=totnorm+scpr
         end do
         do ispinor=1,orbs%nspinor !to be verified in case of nspinor=4
-           call wscal(wfd%nvctr_c,wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),psi(1,ispinor,jorb),psi(wfd%nvctr_c+1,ispinor,jorb))
+           call wscal_wrap(wfd%nvctr_c,wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),&
+                psi(1,ispinor,jorb))
+
+!!$           call wscal(wfd%nvctr_c,wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),&
+!!$                psi(1,ispinor,jorb),psi(wfd%nvctr_c+1,ispinor,jorb))
         end do
         !write(*,'(1x,a,i5,1pe14.7)')'norm of orbital ',iorb,totnorm
         tt=max(tt,abs(1.0_dp-totnorm))

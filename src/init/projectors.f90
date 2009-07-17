@@ -358,7 +358,7 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
         !enddo
      end if
      !end testing
-     istart_c=istart_f+7*mbvctr_f
+     istart_c=istart_c+mbvctr_c+7*mbvctr_f
   enddo
 end subroutine projector
 
