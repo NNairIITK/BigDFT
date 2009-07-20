@@ -149,14 +149,16 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
 
   do iat=1,atoms%nat
      rad=radii_cf(atoms%iatype(iat),2)*frmult
-     nfl1=min(nfl1,ceiling((rxyz(1,iat)-rad)/hx - eps_mach))
-     nfu1=max(nfu1,floor((rxyz(1,iat)+rad)/hx + eps_mach))
-
-     nfl2=min(nfl2,ceiling((rxyz(2,iat)-rad)/hy - eps_mach))
-     nfu2=max(nfu2,floor((rxyz(2,iat)+rad)/hy + eps_mach))
-
-     nfl3=min(nfl3,ceiling((rxyz(3,iat)-rad)/hz - eps_mach)) 
-     nfu3=max(nfu3,floor((rxyz(3,iat)+rad)/hz + eps_mach))
+     if (rad > 0.0_gp) then
+        nfl1=min(nfl1,ceiling((rxyz(1,iat)-rad)/hx - eps_mach))
+        nfu1=max(nfu1,floor((rxyz(1,iat)+rad)/hx + eps_mach))
+        
+        nfl2=min(nfl2,ceiling((rxyz(2,iat)-rad)/hy - eps_mach))
+        nfu2=max(nfu2,floor((rxyz(2,iat)+rad)/hy + eps_mach))
+        
+        nfl3=min(nfl3,ceiling((rxyz(3,iat)-rad)/hz - eps_mach)) 
+        nfu3=max(nfu3,floor((rxyz(3,iat)+rad)/hz + eps_mach))
+     end if
   enddo
 
   !correct the values of the delimiter if they go outside the box
@@ -172,6 +174,21 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
      nfl3=0
      nfu3=n3
   end if
+
+  !correct the values of the delimiter if there are no wavelets
+  if (nfl1 == n1 .and. nfu1 == 0) then
+     nfl1=n1/2
+     nfu1=n1/2
+  end if
+  if (nfl2 == n2 .and. nfu2 == 0) then
+     nfl2=n2/2
+     nfu2=n2/2
+  end if
+  if (nfl3 == n3 .and. nfu3 == 0) then
+     nfl3=n3/2
+     nfu3=n3/2
+  end if
+
 
   if (iproc == 0) then
      write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
@@ -280,32 +297,43 @@ subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
   integer, intent(out) :: mseg,mvctr
   !local variables
   logical :: plogrid
-  integer :: i1,i2,i3,nsrt,nend
-
+  integer :: i1,i2,i3,nsrt,nend,nsrti,nendi,mvctri
   mvctr=0
   nsrt=0
   nend=0
+!$omp parallel default(private) shared(nl3,nu3,nl2,nu2,nl1,nu1,logrid,mvctr,nsrt,nend)
+  mvctri=0
+  nsrti=0
+  nendi=0
+!$omp do  
   do i3=nl3,nu3 
      do i2=nl2,nu2
         plogrid=.false.
         do i1=nl1,nu1
            if (logrid(i1,i2,i3)) then
-              mvctr=mvctr+1
+              mvctri=mvctri+1
               if (plogrid .eqv. .false.) then
-                 nsrt=nsrt+1
+                 nsrti=nsrti+1
               endif
            else
               if (plogrid .eqv. .true.) then
-                 nend=nend+1
+                 nendi=nendi+1
               endif
            endif
            plogrid=logrid(i1,i2,i3)
         enddo
         if (plogrid .eqv. .true.) then
-           nend=nend+1
+           nendi=nendi+1
         endif
      enddo
   enddo
+!$omp enddo
+!$omp critical
+mvctr=mvctr+mvctri
+nsrt=nsrt+nsrti
+nend=nend+nendi
+!$omp end critical
+!$omp end parallel
   if (nend.ne.nsrt) then 
      write(*,*)' ERROR: nend <> nsrt',nend,nsrt
      stop 
@@ -412,39 +440,45 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
 
   do iat=1,nat
      rad=radii(iatype(iat))*rmult+real(nbuf,gp)*hx
-     !        write(*,*) 'iat,nat,rad',iat,nat,rad
-     ml1=ceiling((rxyz(1,iat)-rad)/hx - eps_mach)  
-     ml2=ceiling((rxyz(2,iat)-rad)/hy - eps_mach)   
-     ml3=ceiling((rxyz(3,iat)-rad)/hz - eps_mach)   
-     mu1=floor((rxyz(1,iat)+rad)/hx + eps_mach)
-     mu2=floor((rxyz(2,iat)+rad)/hy + eps_mach)
-     mu3=floor((rxyz(3,iat)+rad)/hz + eps_mach)
-     !for Free BC, there must be no incoherences with the previously calculated delimiters
-     if (geocode == 'F') then
-        if (ml1 < nl1) stop 'ml1 < nl1'
-        if (ml2 < nl2) stop 'ml2 < nl2'
-        if (ml3 < nl3) stop 'ml3 < nl3'
+     if (rad /= 0.0_gp) then
+        !        write(*,*) 'iat,nat,rad',iat,nat,rad
+        ml1=ceiling((rxyz(1,iat)-rad)/hx - eps_mach)  
+        ml2=ceiling((rxyz(2,iat)-rad)/hy - eps_mach)   
+        ml3=ceiling((rxyz(3,iat)-rad)/hz - eps_mach)   
+        mu1=floor((rxyz(1,iat)+rad)/hx + eps_mach)
+        mu2=floor((rxyz(2,iat)+rad)/hy + eps_mach)
+        mu3=floor((rxyz(3,iat)+rad)/hz + eps_mach)
+        !for Free BC, there must be no incoherences with the previously calculated delimiters
+        if (geocode == 'F') then
+           if (ml1 < nl1) stop 'ml1 < nl1'
+           if (ml2 < nl2) stop 'ml2 < nl2'
+           if (ml3 < nl3) stop 'ml3 < nl3'
 
-        if (mu1 > nu1) stop 'mu1 > nu1'
-        if (mu2 > nu2) stop 'mu2 > nu2'
-        if (mu3 > nu3) stop 'mu3 > nu3'
-     end if
-     !what follows works always provided the check before
-     do i3=ml3,mu3
-        dz2=(real(i3,gp)*hz-rxyz(3,iat))**2
-        j3=modulo(i3,n3+1)
-        do i2=ml2,mu2
-           dy2=(real(i2,gp)*hy-rxyz(2,iat))**2
-           j2=modulo(i2,n2+1)
-           do i1=ml1,mu1
-              j1=modulo(i1,n1+1)
-              dx=real(i1,gp)*hx-rxyz(1,iat)
-              if (dx**2+(dy2+dz2) <= rad**2) then 
-                 logrid(j1,j2,j3)=.true.
-              endif
+           if (mu1 > nu1) stop 'mu1 > nu1'
+           if (mu2 > nu2) stop 'mu2 > nu2'
+           if (mu3 > nu3) stop 'mu3 > nu3'
+        end if
+        !what follows works always provided the check before
+!$omp parallel default(shared) private(i3,dz2,j3,i2,dy2,j2,i1,j1,dx)
+!$omp do
+        do i3=ml3,mu3
+           dz2=(real(i3,gp)*hz-rxyz(3,iat))**2
+           j3=modulo(i3,n3+1)
+           do i2=ml2,mu2
+              dy2=(real(i2,gp)*hy-rxyz(2,iat))**2
+              j2=modulo(i2,n2+1)
+              do i1=ml1,mu1
+                 j1=modulo(i1,n1+1)
+                 dx=real(i1,gp)*hx-rxyz(1,iat)
+                 if (dx**2+(dy2+dz2) <= rad**2) then 
+                    logrid(j1,j2,j3)=.true.
+                 endif
+              enddo
            enddo
         enddo
-     enddo
+!$omp enddo
+!$omp end parallel
+  end if
   enddo
 
 END SUBROUTINE fill_logrid

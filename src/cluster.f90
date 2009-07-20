@@ -195,7 +195,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   integer :: nelec,ndegree_ip,j,i
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i,i03,i04
-  integer :: i1,i2,i3,ind,iat,i_all,i_stat,iter,ierr,jproc,ispin,nplot
+  integer :: i1,i2,i3,ind,iat,i_all,i_stat,iter,ierr,jproc,ispin
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(kind=8) :: peakmem,energy_old,sumz
@@ -260,7 +260,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   nspin=in%nspin
 
   nvirt=in%nvirt
-  nplot=in%nplot
 
   hx=in%hx
   hy=in%hy
@@ -878,10 +877,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
        'Difference:evsum,energybs',evsum,energybs
  
   if (nvirt > 0 .and. in%inputPsiId == 0) then
-     call davidson(iproc,nproc,n1i,n2i,n3i,atoms,cpmult,fpmult,radii_cf,&
-          orbs,orbsv,nvirt,gnrm_cv,nplot,Glr,comms,&
-          hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,itermax,nlpspd,proj, &
-          pkernel,ixc,psi,psivirt,ncong,nscatterarr,ngatherarr)
+     call davidson(iproc,nproc,n1i,n2i,n3i,in,atoms,cpmult,fpmult,radii_cf,&
+          orbs,orbsv,nvirt,Glr,comms,&
+          hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj, &
+          pkernel,psi,psivirt,ngatherarr)
   end if
   
   !project the wavefunctions on a gaussian basis and keep in memory

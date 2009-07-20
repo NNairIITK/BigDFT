@@ -40,7 +40,7 @@ subroutine memory_occupation(istat,isize,array,routine)
   character(len=*), intent(in) :: array,routine
 
 ! Local variables
-  logical, parameter :: memdebug=.true.
+  logical, parameter :: memdebug=.false.
   type :: memstat
      character(len=36) :: routine,array
      integer(kind=8) :: memory,peak

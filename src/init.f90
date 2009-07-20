@@ -118,8 +118,10 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1))
 
   ! fine grid quantities
-  call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f,Glr%wfd%keyg(1,Glr%wfd%nseg_c+1), &
-       & Glr%wfd%keyv(Glr%wfd%nseg_c+1))
+  if (Glr%wfd%nseg_f > 0) then
+     call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f,Glr%wfd%keyg(1,Glr%wfd%nseg_c+1), &
+          & Glr%wfd%keyv(Glr%wfd%nseg_c+1))
+  end if
 
   i_all=-product(shape(logrid_c))*kind(logrid_c)
   deallocate(logrid_c,stat=i_stat)
@@ -179,7 +181,6 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
 end subroutine createWavefunctionsDescriptors
 !!***
 
-!pass to implicit none while inserting types on this routine
 subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,&
      radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   use module_base
@@ -257,9 +258,10 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,&
              at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
         iseg=nlpspd%nseg_p(2*iat-1)+1
         mseg=nlpspd%nseg_p(2*iat)-nlpspd%nseg_p(2*iat-1)
-        call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-             logrid,mseg,nlpspd%keyg_p(1,iseg),nlpspd%keyv_p(iseg))
-
+        if (mseg > 0) then
+           call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
+                logrid,mseg,nlpspd%keyg_p(1,iseg),nlpspd%keyv_p(iseg))
+        end if
      endif
   enddo
 

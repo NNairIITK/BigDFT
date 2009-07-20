@@ -112,17 +112,17 @@ subroutine dft_input_variables(iproc,filename,in)
    !  iconv = 0
    !  iblas = 0
      if (initerror == 1) then
-        write(*,'(1x,a)')'ERROR: GPU lib init failed, aborting...'
+        write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
         call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
      end if
 
      call MPI_BARRIER(MPI_COMM_WORLD,ierror)
     ! GPUshare=.true.
-     if (iconv == 0) then
+     if (iconv == 1) then
         !change the value of the GPU convolution flag defined in the module_base
         GPUconv=.true.
      end if
-     if (iblas == 0) then
+     if (iblas == 1) then
         !change the value of the GPU convolution flag defined in the module_base
         GPUblas=.true.
      end if
@@ -173,7 +173,8 @@ subroutine dft_input_variables(iproc,filename,in)
   if (in%nvirt > 0 .and. iproc ==0) then
      !read virtual orbital and plotting request
      write(*,'(1x,a,i0)')'Virtual orbitals ',in%nvirt
-     write(*,'(1x,a,i0,a)')'Output for density plots is requested for ',in%nplot,' orbitals'
+     write(*,'(1x,a,i0,a)')'Output for density plots is requested for ',abs(in%nplot),&
+          ' orbitals'
   end if
   if (in%nspin==4) then
      if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Non-collinear)'
@@ -556,7 +557,7 @@ subroutine read_input_variables(iproc,filename,in)
      if (in%nvirt > 0) then
         !read virtual orbital and plotting request
         write(*,'(1x,a,i0)')'Virtual orbitals ',in%nvirt
-        write(*,'(1x,a,i0,a)')'Output for density plots is requested for ',in%nplot,' orbitals'
+        write(*,'(1x,a,i0,a)')'Output for density plots is requested for ',abs(in%nplot),' orbitals'
      end if
   end if
 

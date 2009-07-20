@@ -80,7 +80,7 @@ LMPI = @MPI_LDFLAGS@
 else
 mpi_source = MPIfake.f90
 mpi_include = mpif.h
-lMPI =
+LMPI =
 endif
 
 if USE_OPTI_CONVOLUT
@@ -180,7 +180,8 @@ low_level = init/projectors.f90  \
 	wavelib/i-o.f90 \
 	wavelib/un-compress.f90 \
 	wavelib/razero.f90 \
-	wavelib/gauss_to_daub.f90 
+	wavelib/gauss_to_daub.f90 \
+	wavelib/daubisf.f90
 
 if BUILD_LIB_ABINIT
 abinit = ABINIT-ewald/ewald.F90 \
@@ -192,7 +193,6 @@ abinit = ABINIT-ewald/ewald.F90 \
 	ABINIT-geometry/ab6_symmetry_f90.f90 \
 	ABINIT-geometry/bldgrpaf.F90 \
 	ABINIT-geometry/bldgrp.F90 \
-	ABINIT-geometry/bonds_lgth_angles.F90 \
 	ABINIT-geometry/chkdilatmx.F90 \
 	ABINIT-geometry/chkgrp.F90 \
 	ABINIT-geometry/chkorthsy.F90 \
@@ -338,8 +338,8 @@ mpif.h:
 	touch mpif.h &&\
 	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
-	 echo "integer, parameter :: MPI_STATUSES_IGNORE=0" >> mpif.h &&\
-	 echo "integer :: MPI_MIN, MPI_MAX, MPI_CHARACTER" >> mpif.h
+	 echo "integer :: MPI_STATUSES_IGNORE" >> mpif.h &&\
+	 echo "integer :: MPI_MIN, MPI_MAX,MPI_CHARACTER" >> mpif.h
 
 test_forces.o: $(mod_bigdft)
 
