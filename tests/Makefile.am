@@ -13,6 +13,7 @@ SUBDIRS = \
 	  SiBulk \
 	  H2O-slab \
 	  Davidson-SiH4 \
+	  H2-freq \
 	  NEB
 
 
@@ -26,6 +27,23 @@ if USE_MINIMA_HOPPING
 SUBDIRS += MINHOP
 endif
 
+if USE_MPI
+mpirun_message=mpirun
+else
+mpirun_message=
+endif
+
+head_message:
+	@echo "=============================================="
+	@echo "Type 'make check' in the directory tests      "
+
+foot_message:
+	@echo "=============================================="
+
+mpirun:
+	@echo "     Use the environment variable run_parallel"
+	@echo "     ex: export run_parallel='ompirun -np 2'  "
+
 
 EXTRA_DIST = \
 	fldiff.py \
@@ -33,14 +51,9 @@ EXTRA_DIST = \
 	report.py \
 	Refs
 
-CLEANFILES =  
+CLEANFILES =
 
-all:
-	@echo "=============================================="
-	@echo "Type 'make check' in the directory tests      "
-	@echo "     Use the environment variable run_parallel"
-	@echo "     ex: export run_parallel='ompirun -np 2'  "
-	@echo "=============================================="
+all: head_message $(mpirun_message) foot_message
 
 check:
 	@python $(top_srcdir)/tests/report.py

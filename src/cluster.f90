@@ -50,6 +50,9 @@
      end subroutine cluster 
   end interface
 
+  !put a barrier for all the processes
+  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
   !assign the verbosity of the output
   !the verbose variables is defined in module_base
   verbose=in%verbosity
@@ -97,7 +100,7 @@
 
            call write_atomic_file("posfail",energy,rxyz,atoms,trim(comment))
 
-        end if
+        end if 
 
         i_all=-product(shape(rst%psi))*kind(rst%psi)
         deallocate(rst%psi,stat=i_stat)
@@ -121,6 +124,10 @@
 
   !preserve the previous value
   in%inputPsiId=inputPsiId_orig
+
+  !put a barrier for all the processes
+  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
 
 end subroutine call_bigdft
 
@@ -161,6 +168,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   use module_types
   use module_interfaces
   use Poisson_Solver
+  use libxc_functionals
   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces
   use ab6_symmetry ! TODO remove me after kpoint integration
   implicit none
@@ -181,13 +189,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !local variables
   character(len=*), parameter :: subname='cluster'
   character(len=3) :: PSquiet
-  logical :: endloop,potion_overwritten
+  logical :: endloop,potion_overwritten=.false.
   integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before
   integer :: nvirt,ndiis_sd_sw
   integer :: nelec,ndegree_ip,j,i
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i,i03,i04
-  integer :: i1,i2,i3,ind,iat,i_all,i_stat,iter,ierr,jproc,ispin,nplot
+  integer :: i1,i2,i3,ind,iat,i_all,i_stat,iter,ierr,jproc,ispin
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(kind=8) :: peakmem,energy_old,sumz
@@ -238,7 +246,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !Hence WARNING: these variables are copied, in case of an update the new value should be 
   !reassigned inside the structure
 
-
   crmult=in%crmult
   frmult=in%frmult
   cpmult=in%frmult
@@ -253,11 +260,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   nspin=in%nspin
 
   nvirt=in%nvirt
-  nplot=in%nplot
 
   hx=in%hx
   hy=in%hy
   hz=in%hz
+
+  if (ixc < 0) then
+     call libxc_functionals_init(ixc, nspin)
+  end if
 
   !character string for quieting the Poisson solver
   if (verbose >1) then
@@ -630,7 +640,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call GetExcitedOrbitalAsG(in%iat_absorber ,Gabsorber,&
           atoms,rxyz,nproc,iproc,1,Gabs_coeffs)
 
-     print *,'OK'
      call lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,Gabsorber,Gabs_coeffs,&
           cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
           rhopot(1,1,1+i3xcsh,1),ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
@@ -868,10 +877,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
        'Difference:evsum,energybs',evsum,energybs
  
   if (nvirt > 0 .and. in%inputPsiId == 0) then
-     call davidson(iproc,nproc,n1i,n2i,n3i,atoms,cpmult,fpmult,radii_cf,&
-          orbs,orbsv,nvirt,gnrm_cv,nplot,Glr,comms,&
-          hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,itermax,nlpspd,proj, &
-          pkernel,ixc,psi,psivirt,ncong,nscatterarr,ngatherarr)
+     call davidson(iproc,nproc,n1i,n2i,n3i,in,atoms,cpmult,fpmult,radii_cf,&
+          orbs,orbsv,nvirt,Glr,comms,&
+          hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj, &
+          pkernel,psi,psivirt,ngatherarr)
   end if
   
   !project the wavefunctions on a gaussian basis and keep in memory
@@ -1416,6 +1425,11 @@ contains
     i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
     deallocate(atoms%npspcode,stat=i_stat)
     call memocc(i_stat,i_all,'npspcode',subname)
+
+    ! Free the libXC stuff if necessary.
+    if (ixc < 0) then
+       call libxc_functionals_end()
+    end if
 
     !end of wavefunction minimisation
     call timing(iproc,'LAST','PR')

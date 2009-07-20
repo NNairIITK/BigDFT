@@ -13,7 +13,7 @@ CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* H-spin.out posout*
 			 fldiff.report
 
 #dependencies
-$(PPFILES):
+$(PPFILES): 
 	ln -fs $(top_srcdir)/utils/PSPfiles/HGH/$@
 
 H-spin.out: $(top_builddir)/src/cluster $(PPFILES)

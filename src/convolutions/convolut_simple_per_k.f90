@@ -215,7 +215,7 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
   enddo
 
 
-!$omp parallel default (private) shared(x,y,ener,fil,c)
+!$omp parallel default (private) shared(x,y,ener,fil,c,n1,n2,n3)
   ener=0._wp
 
 !$omp do
@@ -272,7 +272,7 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            enddo
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
-       ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+		   ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
   enddo

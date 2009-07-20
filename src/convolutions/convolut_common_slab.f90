@@ -183,7 +183,7 @@ subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
      call convrot_n_per(n3,ndat,x,y)
 
   else
-    stop 'the GPU part is not yet written'
+	  stop 'the GPU part is not yet written'
   end if
 end subroutine convolut_magic_n_slab_self
 
@@ -235,7 +235,7 @@ subroutine convolut_magic_n_slab(n1,n2,n3,x,y,ww)
      call convrot_n_per(n3,ndat,ww,y)
 
   else
-    stop 'the GPU part is not yet written'
+	  stop 'the GPU part is not yet written'
   end if
 end subroutine convolut_magic_n_slab
 
@@ -289,7 +289,7 @@ subroutine convolut_magic_t_slab_self(n1,n2,n3,x,y)
      call convrot_t_per(n3,ndat,x,y)
 
   else
-    stop 'the GPU part is not yet written'
+	  stop 'the GPU part is not yet written'
   end if
 
 end subroutine convolut_magic_t_slab_self
@@ -315,16 +315,17 @@ real(gp),intent(in)::b(lowfil:lupfil,3)
 real(gp),intent(in)::c(lowfil:lupfil,3)
 real(gp),intent(in)::e(lowfil:lupfil,3)
   
-  real(gp)::tel
-  integer::ncount0,ncount1,ncount2,ncount_rate,ncount_max
-  integer::mflop1,mflop3
-
+!  real(gp)::tel
+!  integer::ncount0,ncount1,ncount2,ncount_rate,ncount_max
+!  integer::mflop1,mflop3
   
   ! filter length:29
   ! 8: wavelets+scfunction
   ! 4: flops for one iteration
 !  mflop1=(n1+1)*(n2+1)*(n3+1)*29*8*4*2 ! convolution in the x and y direction
 !  mflop3=(n1+1)*(n2+1)*(n3+1)*29*8*4   ! convolution in the z       direction
+!dee
+!  open(unit=97,file='time_check',status='unknown')
 !  call system_clock(ncount0,ncount_rate,ncount_max)
   
 !dee
@@ -402,7 +403,6 @@ real(gp),intent(in)::e(lowfil:lupfil,3)
      
   enddo
 !$omp enddo
-
 !  call system_clock(ncount1,ncount_rate,ncount_max)
 !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
 !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'x,y:',tel,1.d-6*mflop1/tel
@@ -444,9 +444,9 @@ real(gp),intent(in)::e(lowfil:lupfil,3)
 !$omp enddo 
 !$omp end parallel
 !  call system_clock(ncount2,ncount_rate,ncount_max)
-!  tel=dble(ncount2-ncount1)/dble(ncount_rate)
+!  tel=dble(ncount2-ncount0)/dble(ncount_rate)
 !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'z:',tel,1.d-6*mflop3/tel
-  
+!  close(97)
 
 end subroutine convolut_kinetic_slab_sdc
 

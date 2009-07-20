@@ -689,16 +689,19 @@ end do hopping_loop
   !deallocations as in BigDFT
   i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
   deallocate(atoms%ifrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'ifrztyp',subname)
+  call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
   i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
   deallocate(atoms%iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'iatype',subname)
+  call memocc(i_stat,i_all,'atoms%iatype',subname)
   i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
   deallocate(atoms%natpol,stat=i_stat)
-  call memocc(i_stat,i_all,'natpol',subname)
+  call memocc(i_stat,i_all,'atoms%natpol',subname)
   i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
   deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atomnames',subname)
+  call memocc(i_stat,i_all,'atoms%atomnames',subname)
+  i_all=-product(shape(atoms%amu))*kind(atoms%amu)
+  deallocate(atoms%amu,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%amu',subname)
 
   call free_restart_objects(rst,subname)
 
@@ -731,16 +734,16 @@ end do hopping_loop
   if (iproc.eq.0) write(67,'(a,1x,3(1x,1pe10.3))') 'Out:ediff,ekinetic,dt',ediff,ekinetic,dt
   close(2) 
 
-  !  call deallocate_wfd(wfd,'BigDFT')
+  !  call deallocate_wfd(wfd,subname)
   !  i_all=-product(shape(psi))*kind(psi)
   !  deallocate(psi,stat=i_stat)
-  !  call memocc(i_stat,i_all,'psi','BigDFT')
+  !  call memocc(i_stat,i_all,'psi',subname)
   !  i_all=-product(shape(eval))*kind(eval)
   !  deallocate(eval,stat=i_stat)
-  !  call memocc(i_stat,i_all,'eval','BigDFT')
+  !  call memocc(i_stat,i_all,'eval',subname)
   !  i_all=-product(shape(rxyz_old))*kind(rxyz_old)
   !  deallocate(rxyz_old,stat=i_stat)
-  !  call memocc(i_stat,i_all,'rxyz_old','BigDFT')
+  !  call memocc(i_stat,i_all,'rxyz_old',subname)
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
@@ -1230,17 +1233,24 @@ subroutine velopt(at,rxyz,ekinetic,vxyz)
 end subroutine velopt
 
 subroutine randdist(nat,rxyz,vxyz)
-  implicit real*8 (a-h,o-z)
-  real tt
-  dimension vxyz(3*nat),rxyz(3*nat)
+  use module_base
+  implicit none
+  integer, intent(in) :: nat
+  real(gp), dimension(3*nat), intent(in) :: rxyz
+  real(gp), dimension(3*nat), intent(out) :: vxyz
+  !local variables
+  integer :: i,idum=0
+  real(kind=4) :: tt,builtin_rand
   ! create a random displacement vector without translational and angular moment
   do i=1,3*nat
-     call random_number(tt)
-     vxyz(i)=dble(tt-.5)*3.d-1
-  enddo
-  call  elim_moment(nat,vxyz)
-  call  elim_torque(nat,rxyz,vxyz)
-  return
+     !call random_number(tt)
+     !add built-in random number generator
+     tt=builtin_rand(idum)
+     vxyz(i)=real(tt-.5,gp)*3.e-1_gp
+  end do
+
+  call elim_moment(nat,vxyz)
+  call elim_torque(nat,rxyz,vxyz)
 end subroutine randdist
 
 
@@ -1718,9 +1728,9 @@ end subroutine wtbest
 
 subroutine wtmd(istep,nat,energy,pos,iatype,atomnames,natpol)
   implicit real*8 (a-h,o-z)
-  character(20) filename
-  character(20) atomnames(100)
-  character(4) fn
+  character(len=20) :: filename
+  character(len=20) :: atomnames(100)
+  character(len=4) :: fn
   dimension pos(3,nat),iatype(nat)
   integer, dimension(nat):: natpol
 
@@ -1742,9 +1752,9 @@ end subroutine wtmd
 
 subroutine wtlmin(nconjgr,nat,energy,fnrm,pos,iatype,atomnames,natpol)
   implicit real*8 (a-h,o-z)
-  character(20) filename
-  character(20) atomnames(100)
-  character(4) fn
+  character(len=20) :: filename
+  character(len=20) :: atomnames(100)
+  character(len=4) :: fn
   dimension pos(3,nat),iatype(nat)
   integer, dimension(nat):: natpol
 

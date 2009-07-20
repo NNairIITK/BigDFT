@@ -118,7 +118,7 @@ subroutine wrtout(unit,message,mode_paral)
   character(len=4),intent(in) :: mode_paral
   character(len=500),intent(inout) :: message
 
-  print *,message
+  print *,trim(message)
 end subroutine wrtout
 
 subroutine leave_new(mode_paral)

@@ -1,3 +1,16 @@
+!!****f* BigDFT/restart_from_gaussians
+!! FUNCTION
+!!  Restart from gaussian functions
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA (LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   use module_base
   use module_types
@@ -31,6 +44,7 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   nullify(G%rxyz)
 
 end subroutine restart_from_gaussians
+!!***
 
 subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   use module_base
@@ -674,8 +688,10 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   allocate(work(100+ndebug),stat=i_stat)
   call memocc(i_stat,work,'work',subname)
 
-  call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),G%ncoeff,&
-       work(1),-1,info)
+  if (norbp > 0) then
+     call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
+          G%ncoeff,work(1),-1,info)
+  end if
   nwork=work(1)
 
   i_all=-product(shape(work))*kind(work)
@@ -686,8 +702,10 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
 
   
   call gaussian_overlap(G,G,ovrlp)
-  call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),G%ncoeff,&
-       work,nwork,info)
+  if (norbp > 0) then
+     call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
+          G%ncoeff,work,nwork,info)
+  end if
 
   i_all=-product(shape(iwork))*kind(iwork)
   deallocate(iwork,stat=i_stat)

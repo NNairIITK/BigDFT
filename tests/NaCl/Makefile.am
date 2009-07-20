@@ -33,4 +33,4 @@ NaCl.out: $(top_builddir)/src/cluster $(PPFILES)
         fi
 
 check: NaCl.out
-	python $(top_srcdir)/tests/fldiff.py --bigdft NaCl.out $(top_srcdir)/tests/Refs/NaCl.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --bigdft --discrepancy=2.e-8 NaCl.out $(top_srcdir)/tests/Refs/NaCl.out.ref | tee fldiff.report
