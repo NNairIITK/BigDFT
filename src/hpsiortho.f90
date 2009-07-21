@@ -1035,7 +1035,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
         indorb=(iorb-1)*(comms%nvctr_par(iproc))*orbs%nspinor
         do idsx=1,(orbs%nspinor-1)/2+1
            do i=1,comms%nvctr_par(iproc)
-              vali=real(i+iscomp,wp)*1.d-5
+              vali=real(i+iscomp,wp)/512.d0  !*1.d-5
               do ispinor=1,((2+orbs%nspinor)/4+1)
                  psival=(-1)**(ispinor-1)*(valorb+vali)
                  index=ispinor+(i-1)*((2+orbs%nspinor)/4+1)+&
@@ -1064,7 +1064,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      do ispinor=1,orbs%nspinor
         indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
         do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           vali=real(i,wp)*1.d-5
+           vali=real(i,wp)/512.d0  !*1.d-5
            psival=(valorb+vali)*(-1)**(ispinor-1)
            maxdiff=max(abs(psi(i+indspin+indorb)-psival),maxdiff)
         end do
@@ -1084,7 +1084,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
         do ispinor=1,orbs%nspinor
            indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
            do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-              vali=real(i,wp)*1.d-5
+              vali=real(i,wp)/512.d0  !*1.d-5
               psival=(valorb+vali)*(-1)**(ispinor-1)
               maxdiff=abs(psi(i+indspin+indorb)-psival)
               write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i,iorb+orbs%isorb,psival,&

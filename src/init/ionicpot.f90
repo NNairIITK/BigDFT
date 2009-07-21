@@ -921,7 +921,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   if (elecfield /= 0.0_gp) then
      !constant electric field allowed only for free BC
      if (geocode == 'P') then
-     if (iproc == 0) write(*,'(1x,a)') &
+     !if (iproc == 0) 
+           write(*,'(1x,a)') &
           'The constant electric field is allowed only for Free and Surfaces BC'
      stop
      end if

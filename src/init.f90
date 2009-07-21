@@ -90,12 +90,12 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
         !stop
      end if
      if (GPUconv) then
-        if (iproc ==0)then
+!        if (iproc ==0)then
            write(*,*)&
                 '          The code should be stopped for a GPU calculation     '
            write(*,*)&
                 '          since density is not initialised to 10^-20               '
-        end if
+!        end if
         stop
      end if
   end if
@@ -316,12 +316,12 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
   end if
 
   if (nspin /= 1) then
-     if (iproc==0) then
+!     if (iproc==0) then
         write(*,'(1x,a)')&
              'Gaussian importing is possible only for non-spin polarised calculations'
         write(*,'(1x,a)')&
              'The writing rules of CP2K files for spin-polarised orbitals are not implemented'
-     end if
+!     end if
      stop
   end if
 

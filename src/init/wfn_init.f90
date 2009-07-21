@@ -305,7 +305,8 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
   !performs some check of the arguments
   if (present(orbse) .neqv. present(commse)) then
-     if (iproc ==0) write(*,'(1x,a)')&
+     !if (iproc ==0) 
+           write(*,'(1x,a)')&
           'ERROR (DiagHam): the variables orbse and commse must be present at the same time'
      stop
   else
