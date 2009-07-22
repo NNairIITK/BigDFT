@@ -1372,12 +1372,16 @@ subroutine lsh_rotation(l,theta,phi,coeffs)
 end subroutine lsh_rotation
 
 
-! calculate the scalar product between a sum of gaussians times polynomials and a wavefunction
-! \int dx dy dz 
-!           \sum_i=1..ntp fac_arr(i) {
-!                \sum_j=1..nterm psiat(j) [exp(-r^2/(2*(xp(j)^2)))] 
-!                    *((x-rx)^lx(i) *(y-ry)^ly(i) * (z-rz)^lz(i) ))} psi(x,y,z)
-! expressed in Daubechies Basis in the arrays psi_c, psi_f
+!!****f* BigDFT/wavetogau
+!! FUNCTION
+!!   Calculate the scalar product between a sum of gaussians times polynomials and a wavefunction
+!!   \int dx dy dz 
+!!             \sum_i=1..ntp fac_arr(i) {
+!!                  \sum_j=1..nterm psiat(j) [exp(-r^2/(2*(xp(j)^2)))] 
+!!                      *((x-rx)^lx(i) *(y-ry)^ly(i) * (z-rz)^lz(i) ))} psi(x,y,z)
+!!   Expressed in Daubechies Basis in the arrays psi_c, psi_f
+!! SOURCE
+!!
 subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hx,hy,hz, & 
      nseg_c,mvctr_c,keyg_c,keyv_c,nseg_f,mvctr_f,keyg_f,keyv_f,psi_c,psi_f,overlap)
   use module_base
@@ -1502,6 +1506,8 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
   call memocc(i_stat,i_all,'wprojz',subname)
 
 end subroutine wavetogau
+!!***
+
 
 !coefficients of the rotation matrix
 subroutine rotation_matrix(l,t,p,hrot)
