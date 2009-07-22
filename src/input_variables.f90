@@ -1178,6 +1178,8 @@ subroutine read_atomic_ascii(iproc,ifile,atoms,rxyz)
   call memocc(i_stat,atoms%ifrztyp,'atoms%ifrztyp',subname)
   allocate(atoms%natpol(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%natpol,'atoms%natpol',subname)
+  allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%natpol,'rxyz',subname)
 

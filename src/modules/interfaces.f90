@@ -484,6 +484,40 @@ module module_interfaces
        real(wp), dimension(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8), intent(out) :: psifscf
        real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
      end subroutine reformatonewave
+     subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
+          & hx,hy,hz,at,wfd,rxyz_old,rxyz,psi,eval,psifscf)
+       use module_base
+       use module_types
+       implicit none
+       logical, intent(in) :: useFormattedInput
+       integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3
+       type(wavefunctions_descriptors), intent(in) :: wfd
+       type(atoms_data), intent(in) :: at
+       real(gp), intent(in) :: hx,hy,hz
+       real(gp), dimension(3,at%nat), intent(in) :: rxyz
+       real(wp), intent(out) :: eval
+       real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+       real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
+       real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
+     end subroutine readonewave
+     subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
+          nseg_c,nvctr_c,keyg_c,keyv_c,  & 
+          nseg_f,nvctr_f,keyg_f,keyv_f, & 
+          psi_c,psi_f,norb,eval)
+       use module_base
+       implicit none
+       logical, intent(in) :: useFormattedOutput
+       integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f,norb
+       real(gp), intent(in) :: hx,hy,hz
+       integer, dimension(nseg_c), intent(in) :: keyv_c
+       integer, dimension(nseg_f), intent(in) :: keyv_f
+       integer, dimension(2,nseg_c), intent(in) :: keyg_c
+       integer, dimension(2,nseg_f), intent(in) :: keyg_f
+       real(wp), dimension(norb), intent(in) :: eval
+       real(wp), dimension(nvctr_c), intent(in) :: psi_c
+       real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
+       real(gp), dimension(3,nat), intent(in) :: rxyz
+     end subroutine writeonewave
 
      subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
           orbs,orbsv,nvirt,lr,comms,&
@@ -732,6 +766,16 @@ module module_interfaces
        type(locreg_descriptors), intent(in) :: lr
        real(wp), dimension(*) :: psi
      end subroutine plot_wf_cube
+
+     subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
+       implicit none
+       integer, intent(in) :: nzatom,nvalelec
+       character(len=2), intent(out) :: symbol
+       real(kind=8), intent(out) :: rcov,rprb,ehomo,amu
+       integer, parameter :: nmax=6,lmax=3
+       integer, intent(out) :: neleconf(nmax,0:lmax)
+       integer, intent(out) :: nsccode,mxpl,mxchg
+     end subroutine eleconf
 
   end interface
 
