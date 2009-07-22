@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets], [1.3.0], [Damien.Caliste@cea.fr], [bigdft])
+AC_INIT([BigDFT - DFT over wavelets], [1.3.0-dev], [Damien.Caliste@cea.fr], [bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -113,6 +113,8 @@ if test "$ac_use_mpi" = "yes"; then
 
   AC_MSG_CHECKING([for MPI capabilities])
   AC_LINK_IFELSE([[program main
+  include "mpif.h"
+
   call MPI_INIT
 end]], withmpi=yes, withmpi=no)
   AC_MSG_RESULT([$withmpi])
@@ -148,7 +150,10 @@ end
     fi
 
   else
-    ac_use_mpi="no"
+    AC_WARN([MPI is not working and has been disabled.])
+    AC_WARN([  If you don't want to see this warning,])
+    AC_WARN([  set --disable-mpi in the configure line.])
+    ac_use_mpi="Warning"
     MPI_LIBS=
     MPI_INCLUDE=
     MPI_LDFLAGS=
@@ -490,3 +495,9 @@ Installation paths:
   Static libraries:          $libdir
   Fortran modules:           $moduledir
 "
+
+if test x"$ac_use_mpi" = x"Warning" ; then
+  echo "Warnings:
+  MPI:                       disabled by tests
+"
+fi

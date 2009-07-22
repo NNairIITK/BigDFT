@@ -688,8 +688,10 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   allocate(work(100+ndebug),stat=i_stat)
   call memocc(i_stat,work,'work',subname)
 
-  call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),G%ncoeff,&
-       work(1),-1,info)
+  if (norbp > 0) then
+     call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
+          G%ncoeff,work(1),-1,info)
+  end if
   nwork=work(1)
 
   i_all=-product(shape(work))*kind(work)
@@ -700,8 +702,10 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
 
   
   call gaussian_overlap(G,G,ovrlp)
-  call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),G%ncoeff,&
-       work,nwork,info)
+  if (norbp > 0) then
+     call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
+          G%ncoeff,work,nwork,info)
+  end if
 
   i_all=-product(shape(iwork))*kind(iwork)
   deallocate(iwork,stat=i_stat)

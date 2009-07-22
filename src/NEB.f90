@@ -475,21 +475,21 @@ MODULE NEB_routines
 !! is started ( restart = .FALSE. ) 
       
       IF ( .NOT. restart ) THEN
-      
-        IF ( first_config == "" ) THEN
-        
-    WRITE(*,'(T2,"read_input: first_config not assigned ")') 
-    
-    STOP
-      
-  ELSE IF ( last_config == "" ) THEN       
-        
-    WRITE(*,'(T2,"read_input: last_config not assigned ")') 
-    
-    STOP
-   
-  END IF     
-      
+
+         IF ( first_config == "" ) THEN
+
+            WRITE(*,'(T2,"read_input: first_config not assigned ")') 
+
+            STOP
+
+         ELSE IF ( last_config == "" ) THEN       
+
+            WRITE(*,'(T2,"read_input: last_config not assigned ")') 
+
+            STOP
+
+         END IF
+
       END IF
  
 !!$      IF ( restart ) THEN
@@ -497,36 +497,36 @@ MODULE NEB_routines
 !!$      END IF
 
       IF ( minimization_scheme == "steepest_descent" ) THEN
-      
-        algorithm = 1
-      
+
+         algorithm = 1
+
       ELSE IF ( minimization_scheme == "fletcher-reeves" ) THEN
-  
-        algorithm = 2
-      
+
+         algorithm = 2
+
       ELSE IF ( minimization_scheme == "polak-ribiere" ) THEN
-    
-        algorithm = 3
-      
+
+         algorithm = 3
+
       ELSE IF ( minimization_scheme == "quick-min" ) THEN
-      
-        algorithm = 4
-      
+
+         algorithm = 4
+
       ELSE IF ( minimization_scheme == "damped-verlet" ) THEN
-      
-        algorithm = 5
-      
+
+         algorithm = 5
+
       ELSE IF ( minimization_scheme == "sim-annealing" ) THEN
-        
-  algorithm = 6
-      
+
+         algorithm = 6
+
       ELSE
-      
-        WRITE(*,'(T2,"read_input: minimization_scheme ", A20)') &
-                                                      minimization_scheme
-  WRITE(*,'(T2,"            does not exist")') 
-  STOP 
-      
+
+         WRITE(*,'(T2,"read_input: minimization_scheme ", A20)') &
+              minimization_scheme
+         WRITE(*,'(T2,"            does not exist")') 
+         STOP 
+
       END IF
 
       call read_atomic_file(trim(first_config), 0, at, rxyz)
@@ -567,19 +567,19 @@ MODULE NEB_routines
 
       IF ( minval(abs(acell2 - acell1)) /= 0.d0 ) THEN
       
-        WRITE(*,'(T2,"read_input: box size is not constant")')
-  WRITE(*,'(T2,"            Lx = ", F9.4, F9.4 )') acell1(1), acell2(1)
-  WRITE(*,'(T2,"            Ly = ", F9.4, F9.4 )') acell1(2), acell2(2)
-  WRITE(*,'(T2,"            Lz = ", F9.4, F9.4 )') acell1(3), acell2(3)
-        STOP  
+         WRITE(*,'(T2,"read_input: box size is not constant")')
+         WRITE(*,'(T2,"            Lx = ", F9.4, F9.4 )') acell1(1), acell2(1)
+         WRITE(*,'(T2,"            Ly = ", F9.4, F9.4 )') acell1(2), acell2(2)
+         WRITE(*,'(T2,"            Lz = ", F9.4, F9.4 )') acell1(3), acell2(3)
+         STOP  
 
       END IF
 
       IF ( n1 /= n2 ) THEN
       
-        WRITE(*,'(T2,"read_input: number of atoms is not constant")')
-  WRITE(*,'(T2,"            N = ", I8, I8 )') n1, n2
-        STOP  
+         WRITE(*,'(T2,"read_input: number of atoms is not constant")')
+         WRITE(*,'(T2,"            N = ", I8, I8 )') n1, n2
+         STOP  
 
       END IF
 
@@ -611,13 +611,13 @@ MODULE NEB_routines
 
       IF ( algorithm <= 3 ) THEN
 
-  delta_pos  = 0.D0
-  old_grad   = 0.D0
-  conj_dir_i = 0.D0
+         delta_pos  = 0.D0
+         old_grad   = 0.D0
+         conj_dir_i = 0.D0
 
       ELSE
- 
-  vel = 0.D0
+
+         vel = 0.D0
       
       END IF
 
@@ -659,7 +659,7 @@ MODULE NEB_routines
 
         CLOSE( UNIT = unit )
   
-  vel_file = TRIM( scratch_dir )//"/velocities_file"
+        vel_file = TRIM( scratch_dir )//"/velocities_file"
   
         IF ( ( algorithm >= 4 ) .AND. &
        ( file_exists( vel_file ) ) ) THEN
@@ -720,24 +720,24 @@ MODULE NEB_routines
 !!$        CLOSE( UNIT = unit )
         pos(:, num_of_images) = reshape(xcart2, (/ dim /))
   
-  d_R = ( pos(:,num_of_images) - pos(:,1) ) / &
-        DBLE( num_of_images - 1 )
+        d_R = ( pos(:,num_of_images) - pos(:,1) ) / &
+             DBLE( num_of_images - 1 )
 
-  fix_atom = 1
-  
-  WHERE ( ABS( d_R ) <=  tolerance ) fix_atom = 0
+        fix_atom = 1
+
+        WHERE ( ABS( d_R ) <=  tolerance ) fix_atom = 0
 
         DO i = 2, ( num_of_images - 1 )
 
-          pos(:,i) = pos(:,( i - 1 )) + d_R(:)
- 
+           pos(:,i) = pos(:,( i - 1 )) + d_R(:)
+
         END DO
 
         DEALLOCATE( d_R )
 
-      END IF
+     END IF
 
-    END SUBROUTINE read_input
+   END SUBROUTINE read_input
 
     
     SUBROUTINE dyn_allocation
@@ -791,175 +791,189 @@ MODULE NEB_routines
       INTEGER         :: N_in, N_fin
       LOGICAL         :: stat
 
-      
+
       open(unit = 456, file = trim(barrier_file), action = "WRITE")
       write(456, "(A)") "# NEB barrier file"
       close(unit = 456)
 
-      IF ( .NOT. restart ) THEN
+      IF ( .NOT. restart) THEN
 
-        CALL write_restart     
-  
-        CALL PES_IO(.TRUE.,stat)
-  
-   IF ( .NOT. stat ) THEN
-  
-!!DEBUG    WRITE(*,*) " FATAL: corruption in the gen_output_file"
-!!DEBUG    WRITE(*,*) " STOPPING ...                            "
-      
-          RETURN
-      
-  END IF
-  
-        CALL compute_tangent
-  
-        IF ( max_iterations == 1 ) THEN
+         CALL write_restart     
 
-          CALL write_restart    
-    
-          CALL compute_error(err)
+         CALL PES_IO(.TRUE.,stat)
 
-          CALL write_dat_files  
+         IF ( .NOT. stat ) THEN
 
-          open(unit = 456, file = trim(barrier_file), action = "WRITE", position = "APPEND")
+            !!DEBUG    WRITE(*,*) " FATAL: corruption in the gen_output_file"
+            !!DEBUG    WRITE(*,*) " STOPPING ...                            "
 
-          WRITE(456, fmt4) &
-          1, ( Emax - V(1) ) * E_zero, err * ( E_zero / a_zero ) 
-          WRITE(*, fmt4) &
-          1, ( Emax - V(1) ) * E_zero, err * ( E_zero / a_zero ) 
+            RETURN
 
-          close(unit = 456)
+         END IF
 
-          RETURN
+         CALL compute_tangent
 
-        END IF
-      
+         IF ( max_iterations == 1 ) THEN
+
+            CALL write_restart    
+
+            CALL compute_error(err)
+
+            CALL write_dat_files  
+
+            open(unit = 456, file = trim(barrier_file), action = "WRITE", position = "APPEND")
+
+            WRITE(456, fmt4) &
+                 1, ( Emax - V(1) ) * E_zero, err * ( E_zero / a_zero ) 
+            WRITE(*, fmt4) &
+                 1, ( Emax - V(1) ) * E_zero, err * ( E_zero / a_zero ) 
+
+            close(unit = 456)
+
+            RETURN
+
+         END IF
+
       ELSE
-      
-        CALL compute_tangent   
-      
-      END IF      
+
+         if (maxval(PES_gradient(:, 1)) == 0.d0 .OR. &
+              & maxval(PES_gradient(:, num_of_images)) == 0.d0) then
+            CALL PES_IO(.TRUE.,stat)
+
+            IF ( .NOT. stat ) THEN
+
+               !!DEBUG    WRITE(*,*) " FATAL: corruption in the gen_output_file"
+               !!DEBUG    WRITE(*,*) " STOPPING ...                            "
+
+               RETURN
+
+            END IF
+         end if
+
+         CALL compute_tangent   
+
+      END IF
 
       IF ( optimization ) THEN
-      
-        N_in  = 1
-  N_fin = num_of_images
-      
+
+         N_in  = 1
+         N_fin = num_of_images
+
       ELSE
-      
-        N_in  = 2
-  N_fin = num_of_images - 1
-      
+
+         N_in  = 2
+         N_fin = num_of_images - 1
+
       END IF
 
       iteration = 0
 
       minimization: DO
 
-        iteration = iteration + 1
+         iteration = iteration + 1
 
-        IF ( iteration > max_iterations ) THEN
-  
-    CALL write_restart
-  
-    EXIT minimization
-    
-  END IF  
+         IF ( iteration > max_iterations ) THEN
 
-        IF ( file_exists(exit_file) ) THEN
-  
-    CALL SYSTEM ("rm -f EXIT")
-    
-    WRITE(*,*) " WARNING :  soft exit required"
-    WRITE(*,*) " STOPPING ...                 "
-    
-    CALL write_restart    
-    
-    EXIT minimization
+            CALL write_restart
 
-        END IF
+            EXIT minimization
 
-        CALL gradient
+         END IF
 
-        first_minimization_loop: DO i = N_in, N_fin
+         IF ( file_exists(exit_file) ) THEN
 
-          IF ( algorithm == 1 ) THEN
+            CALL SYSTEM ("rm -f EXIT")
 
-            CALL steepest_descent(i)
+            WRITE(*,*) " WARNING :  soft exit required"
+            WRITE(*,*) " STOPPING ...                 "
 
-          ELSE IF ( algorithm == 2 ) THEN
+            CALL write_restart    
 
-            CALL fletcher_reeves(i)
+            EXIT minimization
 
-          ELSE IF ( algorithm == 3 ) THEN
+         END IF
 
-            CALL polak_ribiere(i)
+         CALL gradient
 
-          ELSE IF ( algorithm >= 4 ) THEN
-  
-      CALL velocity_Verlet_first_step(i)
- 
-          END IF
+         first_minimization_loop: DO i = N_in, N_fin
 
-        END DO first_minimization_loop
-  
-        CALL write_restart
+            IF ( algorithm == 1 ) THEN
 
-        CALL PES_IO(optimization,stat)
-  
-  IF ( .NOT. stat ) THEN
-  
-!!DEBUG    WRITE(*,*) " FATAL: corruption in the gen_output_file"
-!!DEBUG    WRITE(*,*) " STOPPING ...                            "
-      
-          EXIT minimization
-      
-  END IF
+               CALL steepest_descent(i)
 
-  CALL compute_tangent
+            ELSE IF ( algorithm == 2 ) THEN
 
-  IF ( algorithm >= 4 ) THEN
+               CALL fletcher_reeves(i)
 
-          CALL gradient
-                
-    second_minimization_loop: DO i = N_in, N_fin 
+            ELSE IF ( algorithm == 3 ) THEN
 
-            IF ( algorithm == 4 ) THEN
+               CALL polak_ribiere(i)
 
-              CALL quick_min_second_step(i)
- 
-            ELSE IF ( algorithm >= 5 ) THEN
-      
-        CALL velocity_Verlet_second_step(i)
- 
+            ELSE IF ( algorithm >= 4 ) THEN
+
+               CALL velocity_Verlet_first_step(i)
+
             END IF
- 
-          END DO second_minimization_loop
 
-          IF ( algorithm == 6 ) CALL termalization
+         END DO first_minimization_loop
 
-        END IF
+         CALL write_restart
 
-        CALL compute_error(err)
-  
-        CALL write_dat_files
+         CALL PES_IO(optimization,stat)
 
-        open(unit = 456, file = trim(barrier_file), action = "WRITE", position = "APPEND")
+         IF ( .NOT. stat ) THEN
 
-        WRITE(456, fmt4) &
-        iteration, ( Emax - V(1) ) * E_zero, err * ( E_zero / a_zero ) 
-        WRITE(*, fmt4) &
-        iteration, ( Emax - V(1) ) * E_zero, err * ( E_zero / a_zero ) 
+            !!DEBUG    WRITE(*,*) " FATAL: corruption in the gen_output_file"
+            !!DEBUG    WRITE(*,*) " STOPPING ...                            "
 
-        close(unit = 456)
+            EXIT minimization
 
-        IF ( ( err * E_zero / a_zero ) <= convergence )  THEN
-  
-    CALL write_restart
-  
-    EXIT minimization
-    
-  END IF
+         END IF
+
+         CALL compute_tangent
+
+         IF ( algorithm >= 4 ) THEN
+
+            CALL gradient
+
+            second_minimization_loop: DO i = N_in, N_fin 
+
+               IF ( algorithm == 4 ) THEN
+
+                  CALL quick_min_second_step(i)
+
+               ELSE IF ( algorithm >= 5 ) THEN
+
+                  CALL velocity_Verlet_second_step(i)
+
+               END IF
+
+            END DO second_minimization_loop
+
+            IF ( algorithm == 6 ) CALL termalization
+
+         END IF
+
+         CALL compute_error(err)
+
+         CALL write_dat_files
+
+         open(unit = 456, file = trim(barrier_file), action = "WRITE", position = "APPEND")
+
+         WRITE(456, fmt4) &
+              iteration, ( Emax - V(1) ) * E_zero, err * ( E_zero / a_zero ) 
+         WRITE(*, fmt4) &
+              iteration, ( Emax - V(1) ) * E_zero, err * ( E_zero / a_zero ) 
+
+         close(unit = 456)
+
+         IF ( ( err * E_zero / a_zero ) <= convergence )  THEN
+
+            CALL write_restart
+
+            EXIT minimization
+
+         END IF
 
       END DO minimization
 

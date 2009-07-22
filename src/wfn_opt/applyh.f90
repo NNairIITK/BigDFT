@@ -1079,11 +1079,16 @@ subroutine applyprojector(l,i,psppar,npspcode,&
   !start of the routine for projectors application
   do m=1,2*l-1
      istart_f=istart_c+mbvctr_c
-     call wpdot(  &
-          nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-          keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
-          mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
-          keyg_p(1,1),keyg_p(1,mbseg_c+1),proj(istart_c),proj(istart_f),scpr)
+
+     call wpdot_wrap(  &
+          nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,  &
+          mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_c),scpr)
+  
+!!$     call wpdot(  &
+!!$          nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+!!$          keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
+!!$          mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
+!!$          keyg_p(1,1),keyg_p(1,mbseg_c+1),proj(istart_c),proj(istart_f),scpr)
 
 !!$                 ! test (will sometimes give wrong result)
 !!$                 call wpdot(  &
@@ -1102,11 +1107,17 @@ subroutine applyprojector(l,i,psppar,npspcode,&
      scprp=scpr*real(psppar(l,i),dp)
      eproj=eproj+real(scprp,gp)*real(scpr,gp)
 
-     call waxpy(&
-          scprp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
-          keyg_p(1,1),keyg_p(1,mbseg_c+1),proj(istart_c),proj(istart_f),  &
-          nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-          keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
+     call waxpy_wrap(scprp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_c),&
+          nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
+
+
+     !print *,'scprp,m,l,i',scprp,m,l,i
+
+!!$     call waxpy(&
+!!$          scprp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
+!!$          keyg_p(1,1),keyg_p(1,mbseg_c+1),proj(istart_c),proj(istart_f),  &
+!!$          nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+!!$          keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
 
      istart_c=istart_f+7*mbvctr_f
   enddo
@@ -1142,19 +1153,26 @@ subroutine applyprojector(l,i,psppar,npspcode,&
            !starting addresses of the projectors
            istart_f_j=istart_c_j+mbvctr_c
            istart_f_i=istart_c_i+mbvctr_c
-           call wpdot(&
-                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
-                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
-                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
-                proj(istart_c_j),proj(istart_f_j),scpr_j)
+           call wpdot_wrap(nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,  &
+                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_c_j),scpr_j)
 
-           call wpdot(&
-                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
-                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
-                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
-                proj(istart_c_i),proj(istart_f_i),scpr_i)
+!!$           call wpdot(&
+!!$                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+!!$                keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
+!!$                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
+!!$                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
+!!$                proj(istart_c_j),proj(istart_f_j),scpr_j)
+
+           call wpdot_wrap(nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,  &
+                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_c_i),scpr_i)
+
+
+!!$           call wpdot(&
+!!$                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+!!$                keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
+!!$                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
+!!$                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
+!!$                proj(istart_c_i),proj(istart_f_i),scpr_i)
 
 
            scprp_j=scpr_j*real(offdiagcoeff*psppar(l,j),dp)
@@ -1164,21 +1182,30 @@ subroutine applyprojector(l,i,psppar,npspcode,&
                 offdiagcoeff*psppar(l,j)*real(scpr_i,gp)
 
            !|hpsi>=|hpsi>+h_ij (<p_i|psi>|p_j>+<p_j|psi>|p_i>)
-           call waxpy(&
-                scprp_j,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                keyv_p(1),keyv_p(mbseg_c+1),  &
-                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
-                proj(istart_c_i),proj(istart_f_i),  &
-                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
+           call waxpy_wrap(scprp_j,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,&
+                proj(istart_c_i),&
+                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
 
-           call waxpy(&
-                scprp_i,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                keyv_p(1),keyv_p(mbseg_c+1),  &
-                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
-                proj(istart_c_j),proj(istart_f_j),  &
-                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
+!!$           call waxpy(&
+!!$                scprp_j,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+!!$                keyv_p(1),keyv_p(mbseg_c+1),  &
+!!$                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
+!!$                proj(istart_c_i),proj(istart_f_i),  &
+!!$                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+!!$                keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
+
+           call waxpy_wrap(scprp_i,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                keyv_p,keyg_p,proj(istart_c_j),&
+                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
+
+
+!!$           call waxpy(&
+!!$                scprp_i,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+!!$                keyv_p(1),keyv_p(mbseg_c+1),  &
+!!$                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
+!!$                proj(istart_c_j),proj(istart_f_j),  &
+!!$                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+!!$                keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
 
            istart_c_j=istart_f_j+7*mbvctr_f
            istart_c_i=istart_f_i+7*mbvctr_f
@@ -1193,19 +1220,25 @@ subroutine applyprojector(l,i,psppar,npspcode,&
            !starting addresses of the projectors
            istart_f_j=istart_c_j+mbvctr_c
            istart_f_i=istart_c_i+mbvctr_c
-           call wpdot(&
-                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
-                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
-                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
-                proj(istart_c_j),proj(istart_f_j),scpr_j)
+           call wpdot_wrap(nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,&
+                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_c_j),scpr_j)
 
-           call wpdot(&
-                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
-                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
-                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
-                proj(istart_c_i),proj(istart_f_i),scpr_i)
+!!$           call wpdot(&
+!!$                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+!!$                keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
+!!$                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
+!!$                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
+!!$                proj(istart_c_j),proj(istart_f_j),scpr_j)
+
+           call wpdot_wrap(nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,&
+                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_c_i),scpr_i)
+
+!!$           call wpdot(&
+!!$                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+!!$                keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
+!!$                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
+!!$                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
+!!$                proj(istart_c_i),proj(istart_f_i),scpr_i)
 
            !scpr_i*h_ij*scpr_j+scpr_j*h_ij*scpr_i (with symmetric h_ij)
            eproj=eproj+2._gp*real(scpr_i,gp)*psppar(l,i+j+1)*real(scpr_j,gp)
@@ -1213,21 +1246,30 @@ subroutine applyprojector(l,i,psppar,npspcode,&
            scprp_i=scpr_i*real(psppar(l,i+j+1),dp)
 
            !|hpsi>=|hpsi>+h_ij (<p_i|psi>|p_j>+<p_j|psi>|p_i>)
-           call waxpy(&
-                scprp_j,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                keyv_p(1),keyv_p(mbseg_c+1),  &
-                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
-                proj(istart_c_i),proj(istart_f_i),  &
-                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
+           call waxpy_wrap(scprp_j,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,&
+                proj(istart_c_i),&
+                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
 
-           call waxpy(&
-                scprp_i,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                keyv_p(1),keyv_p(mbseg_c+1),  &
-                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
-                proj(istart_c_j),proj(istart_f_j),  &
-                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
+!!$           call waxpy(&
+!!$                scprp_j,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+!!$                keyv_p(1),keyv_p(mbseg_c+1),  &
+!!$                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
+!!$                proj(istart_c_i),proj(istart_f_i),  &
+!!$                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+!!$                keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
+
+           call waxpy_wrap(scprp_i,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,&
+                proj(istart_c_j),&
+                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
+
+
+!!$           call waxpy(&
+!!$                scprp_i,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+!!$                keyv_p(1),keyv_p(mbseg_c+1),  &
+!!$                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
+!!$                proj(istart_c_j),proj(istart_f_j),  &
+!!$                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+!!$                keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
 
            istart_c_j=istart_f_j+7*mbvctr_f
            istart_c_i=istart_f_i+7*mbvctr_f

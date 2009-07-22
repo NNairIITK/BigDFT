@@ -358,7 +358,7 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
         !enddo
      end if
      !end testing
-     istart_c=istart_f+7*mbvctr_f
+     istart_c=istart_c+mbvctr_c+7*mbvctr_f
   enddo
 end subroutine projector
 
@@ -467,9 +467,9 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
 
   end do
 
-  !$omp parallel default(private) shared(nl3_c,nu3_c,hz,n3,rz,perz,nl2_c,nu2_c,hy,n2,ry,pery) &
-  !$omp shared(nl1_c,nu1_c,hx,n1,rx,perx,rad_c,proj_c,wprojx,wprojy,wprojz,mvctr_c,nl3_f,nu3_f,nl2_f) &
-  !$omp shared(nu2_f,nl1_f,nu1_f,rad_f,proj_f,nterm,mvctr_f)
+  !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
+  !$omp shared(n1,proj_c,wprojx,wprojy,wprojz,mvctr_c) &
+  !$omp shared(proj_f,nterm,mvctr_f,mseg_f)
   !$	ithread=omp_get_thread_num()
   !$	nthread=omp_get_num_threads()
 

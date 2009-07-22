@@ -17,10 +17,17 @@
 #include "localqueu.h"
 #include "convolution_fct_call.h"
 #include "manage_cpu_affinity.h"
+#include "set_repartition.h"
+#include "trace_exec.h"
+#include "manage_global_var.h"
 
 extern short gpu_precision;
 unsigned int getPrecisionSize();
 
+
+
+
+global_gpu_attach *g_gpu_attach = NULL;
 
 local_network *l = NULL;
 localqueu *locq = NULL;
@@ -28,23 +35,34 @@ localqueu *locq = NULL;
 sem_unix *sem_gpu_CALC;
 sem_unix *sem_gpu_TRSF;
 
+trace_exec *tracer; //litle tracer
 
-
-
-void init_gpu_sharing(readConfFile &read_conf, int iproc, int *error)
+extern "C"
+void init_lib__(int *iproc,int *error, int *iconv, int *iblas, bool * GPUshare)
 {
   *error = 0;
+
   try
     {
+      g_gpu_attach = new global_gpu_attach();
+
+      const char *NAME_FILE = "GPU.config";
+      readConfFile read_conf(NAME_FILE);
+
 
       int mpi_tasks_per_node,num_GPU;
-     
+      int use_shared;
+
       //read file
-      // readConfFile read_conf(NAME_FILE);
+
       read_conf.get("MPI_TASKS_PER_NODE",&mpi_tasks_per_node);
       read_conf.get("NUM_GPU",&num_GPU);
-   
-      manage_cpu_affinity mca(iproc);
+      read_conf.get("USE_SHARED",&use_shared);
+      read_conf.get("USE_GPU_BLAS",iblas);
+      read_conf.get("USE_GPU_CONV",iconv);
+
+
+      manage_cpu_affinity mca(*iproc);
 
       for(int i=0;i<num_GPU;++i)
 	{
@@ -57,9 +75,35 @@ void init_gpu_sharing(readConfFile &read_conf, int iproc, int *error)
 
 	}
 
-      //init node
-      l = new local_network(mpi_tasks_per_node,num_GPU,mca,iproc);
 
+      set_repartition *set_r;
+      if(use_shared == 1)
+	{
+	  set_r = new set_repartition_shared(mpi_tasks_per_node,num_GPU,*iproc,g_gpu_attach);
+	  *GPUshare = true;
+	}
+      else
+	{
+	  set_r = new set_repartition_static(mpi_tasks_per_node,num_GPU,*iproc,g_gpu_attach);
+	  *GPUshare = false;
+
+
+	
+
+	}
+      //init node
+      l = new local_network(mpi_tasks_per_node,num_GPU,mca,set_r,*iproc);
+
+      //disable GPU for tasks that not need it
+      if(!g_gpu_attach->getIsAttached())
+	{
+	  std::cout << "GPU disabled for this process" << std::endl;
+	  *iconv = 0;
+	  *iblas = 0;
+
+	}
+
+      delete set_r; //ugly, to change...
       locq = new localqueu();
       sem_gpu_CALC = l->getSemCalc();
       sem_gpu_TRSF = l->getSemTrsf();
@@ -113,6 +157,17 @@ void init_gpu_sharing(readConfFile &read_conf, int iproc, int *error)
       *error = 1;
     }
  
+
+  catch(...)
+    {
+      std::cerr<< "** Unexpected exception "<< std::endl;
+      *error = 1;
+
+    }
+
+  std::ostringstream ostr;
+  ostr << "trace_" << *iproc;
+  tracer = new trace_exec(ostr.str(),false);
 }
 
 
@@ -120,6 +175,8 @@ extern "C"
 void stop_gpu_sharing__()
 {
   //  std::for_each(locq.begin(),locq.end(),deleter());
+
+  delete   g_gpu_attach;
   delete locq;
   delete l;
 }
@@ -348,7 +405,14 @@ unsigned int mem_size = (*nsize)*getPrecisionSize();
   
   }
 
-
+extern "C"
+void isAttached(int *isAttached)
+{
+  if(g_gpu_attach->getIsAttached())
+    *isAttached = 1;
+  else
+    *isAttached = 0;
+}
 
 /*extern "C" 
 void gpu_allocate_new__(int *nsize, //memory size

@@ -567,7 +567,7 @@ subroutine compress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   call analyse_per_self(n1,n2,n3,psifscf,psig)
 
   !$omp parallel default(private) &
-  !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f)
+  !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f,scal)
   
   ! coarse part
   !$omp do
@@ -635,7 +635,7 @@ subroutine uncompress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
   !$omp parallel default(private) &
-  !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f)
+  !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f,scal)
   
   call omp_razero(8*(n1+1)*(n2+1)*(n3+1),psig)
 
