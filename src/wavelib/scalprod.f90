@@ -26,18 +26,18 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   integer :: i,ithread,nthread
   real(dp) :: pc,pf1,pf2,pf3,pf4,pf5,pf6,pf7
   real(dp) :: scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7
-  scpr=0.0_dp
-!$omp parallel default(private) shared(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
-!$    ithread=omp_get_thread_num()
-!$    nthread=omp_get_num_threads()
+
+!!$omp parallel default(private) shared(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
+!!$    ithread=omp_get_thread_num()
+!!$    nthread=omp_get_num_threads()
     scpr0=0.0_dp
-!$  if (ithread .eq. 0) then
+!!$  if (ithread .eq. 0) then
   do i=1,mvctr_c
-     !scpr=scpr+psi_c(i)**2
+     !scpr0=scpr0+psi_c(i)**2
      pc=real(psi_c(i),dp)
-     scpr=scpr+pc**2
+     scpr0=scpr0+pc**2
   enddo
-!$  endif
+!!$  endif
   scpr1=0.0_dp
   scpr2=0.0_dp
   scpr3=0.0_dp
@@ -45,7 +45,7 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   scpr5=0.0_dp
   scpr6=0.0_dp
   scpr7=0.0_dp
-!$  if (ithread .eq. 1  .or. nthread .eq. 1) then
+!!$  if (ithread .eq. 1  .or. nthread .eq. 1) then
   do i=1,mvctr_f
 !!$     scpr1=scpr1+psi_f(1,i)**2
 !!$     scpr2=scpr2+psi_f(2,i)**2
@@ -69,11 +69,11 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
      scpr6=scpr6+pf6**2
      scpr7=scpr7+pf7**2
   enddo
-!$  endif
-!$omp critical
-  scpr=scpr+scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
-!$omp end critical
-!$omp end parallel
+!!$  endif
+!!$omp critical
+  scpr=scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
+!!$omp end critical
+!!$omp end parallel
 
 end subroutine wnrm
 
@@ -182,7 +182,8 @@ subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
   !local variables
   integer :: i
 
-write(*,*) ' i am in wzero'
+! seems to be never called
+!write(*,*) ' i am in wzero'
 !$omp parallel default(private) shared(mvctr_c,mvctr_f,psi_c,psi_f)
 !$omp do
   do i=1,mvctr_c
@@ -405,7 +406,7 @@ subroutine wpdot(  &
 !$  endif
   !print *,'nvctr_f',llf,mavctr_f,mbvctr_f
 !$omp critical 
-  scpr=scpr+scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
+  scpr=scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
 !$omp end critical
 !$omp end parallel
   !        write(*,*) 'llc,llf',llc,llf
