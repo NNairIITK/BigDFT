@@ -172,7 +172,7 @@ module module_types
 !! SOURCE
 !!
   type, public :: orbitals_data
-     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts
+     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts,nkpts_par
      integer, dimension(:), pointer :: norb_par,iokpt
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
@@ -329,11 +329,12 @@ contains
 !!   Allocate communications_arrays
 !! SOURCE
 !!
-  subroutine allocate_comms(nproc,comms,subname)
+  subroutine allocate_comms(nproc,orbs,comms,subname)
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
     integer, intent(in) :: nproc
+    type(orbitals_data), intent(in) :: orbs
     type(communications_arrays), intent(out) :: comms
     !local variables
     integer :: i_stat

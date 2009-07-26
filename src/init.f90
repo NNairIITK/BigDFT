@@ -481,7 +481,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
        orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
 
   !allocate communications arrays for inputguess orbitals
-  call allocate_comms(nproc,commse,subname)
+  call allocate_comms(nproc,orbse,commse,subname)
   call orbitals_communicators(iproc,nproc,Glr,orbse,commse)  
 
   i_all=-product(shape(orbse%norb_par))*kind(orbse%norb_par)

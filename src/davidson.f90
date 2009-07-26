@@ -138,7 +138,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   end if
 
   !allocate communications arrays for virtual orbitals
-  call allocate_comms(nproc,commsv,subname)
+  call allocate_comms(nproc,orbsv,commsv,subname)
   call orbitals_communicators(iproc,nproc,lr,orbsv,commsv)  
 
   i_all=-product(shape(orbsv%norb_par))*kind(orbsv%norb_par)

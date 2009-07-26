@@ -69,12 +69,12 @@ subroutine diisstp(norb,nproc,iproc,nspinor,  &
   !do i=1,min(idsx,ids)+1
   !  if(iproc==0)  write(6,'(i3,12(1x,e9.2))') iproc,(ads(i,j,2),j=1,min(idsx,ids)+1),rds(i)
   !enddo
-  if (ids.gt.1) then
+  if (ids > 1) then
      ! solve linear system:(LAPACK)
      call DSYSV('U',min(idsx,ids)+1,1,ads(1,1,2),idsx+1,  & 
           ipiv,rds,idsx+1,ads(1,1,3),(idsx+1)**2,info)
      
-     if (info.ne.0) then
+     if (info /= 0) then
         print*, 'diisstp: DSYSV',info
         stop
      end if

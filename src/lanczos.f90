@@ -61,8 +61,7 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,Gabsorber,Gabs_coeffs,&
 
   !allocate communications arrays for virtual orbitals
   !warning: here the aim is just to calculate npsidim, should be fixed
-  call allocate_comms(nproc,ha%comms,subname)
-
+  call allocate_comms(nproc,ha%orbs,ha%comms,subname)
 
   call orbitals_communicators(iproc,nproc,lr,ha%orbs,ha%comms)  
 

@@ -58,15 +58,13 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   type(communications_arrays), intent(out) :: comms
   !local variables
   integer :: jproc,i,nvctr_tot,j
-!!$  real(kind=8), parameter :: eps_mach=1.d-12
-!!$  real(kind=8) :: tt
 
   !calculate the number of elements to be sent to each process
   !and the array of displacements
   !cubic strategy: -the components are equally distributed among the wavefunctions
   !                -each processor has all the orbitals in transposed form
   !                -each wavefunction is equally distributed in its transposed form
-  !send buffer
+  !                -this holds for each k-point, which regroups different processors
 
   !check of allocation of important arrays
   if (.not. associated(orbs%norb_par)) then
