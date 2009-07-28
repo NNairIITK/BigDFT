@@ -5,7 +5,7 @@ SUBDIRS =
 EXTRA_DIST = \
 	input.dft \
 	input.geopt \
-	posinp.xyz 
+	posinp.ascii
 
 PPFILES = \
 	psppar.H \
@@ -21,13 +21,13 @@ $(PPFILES):
 SiH4.out: $(top_builddir)/src/cluster $(PPFILES)
 	if ! test x"$srcdir" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
-	  ln -fs $(srcdir)/posinp.xyz ; \
+	  ln -fs $(srcdir)/posinp.ascii ; \
 	  ln -fs $(srcdir)/input.geopt ; \
         fi
 	$(run_parallel) $(top_builddir)/src/cluster > $@
 	if ! test x"$srcdir" = x"." ; then \
 	  rm -f input.dft ; \
-	  rm -f posinp.xyz ; \
+	  rm -f posinp.ascii ; \
 	  rm -f input.geopt ; \
         fi
 
