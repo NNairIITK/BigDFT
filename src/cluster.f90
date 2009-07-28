@@ -668,9 +668,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !the allocation with npsidim is not necessary here since DIIS arrays
   !are always calculated in the transpsed form
   if (idsx > 0) then
-     allocate(psidst(comms%nvctr_par(iproc)*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
+     allocate(psidst(comms%nvctr_par(iproc,1)*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(comms%nvctr_par(iproc)*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
+     allocate(hpsidst(comms%nvctr_par(iproc,1)*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,hpsidst,'hpsidst',subname)
      allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
      call memocc(i_stat,ads,'ads',subname)

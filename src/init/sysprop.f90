@@ -525,8 +525,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   type(orbitals_data), intent(out) :: orbs
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,nkpts_par,ikpt_prev
-
+  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,nkptsp,ikpt_prev
 
   !assign the value of the k-points
   orbs%nkpts=1
@@ -583,14 +582,16 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   !assign the k-point to the given orbital, counting one orbital after each other
   jorb=0
   ikpt_prev=0
-  nkpts_par=0
+  nkptsp=0
   do ikpt=1,orbs%nkpts
      do iorb=1,orbs%norb
         jorb=jorb+1 !this runs over norb*nkpts values
+        !fix the starting k-point for a given processor
+        if (jorb == orbs%isorb+1) orbs%iskpt=ikpt-1
         if (jorb > orbs%isorb .and. jorb <= orbs%isorb+orbs%norbp) then
            orbs%iokpt(jorb-orbs%isorb)=ikpt
            if (ikpt /= ikpt_prev) then
-              nkpts_par=nkpts_par+1
+              nkptsp=nkptsp+1
               ikpt_prev=ikpt
            end if
         end if
@@ -602,7 +603,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
 !!$  call memocc(i_stat,orbs%nkpts_par,'orbs%nkpts_par',subname)
 
   !assign the number of k-points per processor
-  orbs%nkpts_par=nkpts_par
+  orbs%nkptsp=nkptsp
 
 end subroutine orbitals_descriptors
 !!***

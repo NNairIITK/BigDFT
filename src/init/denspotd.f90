@@ -73,8 +73,10 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   end if
 
   !initialise the array
-  do jproc=0,nproc-1
-     comms%nvctr_par(jproc)=0 !size 0 nproc-1
+  do ikpts=1,orbs%nkptsp
+     do jproc=0,nproc-1
+        comms%nvctr_par(jproc,ikpts)=0 !size 0 nproc-1
+     end do
   end do
 
   !balance the components between processors

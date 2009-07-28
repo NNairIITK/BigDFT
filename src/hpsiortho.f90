@@ -199,13 +199,13 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   end if
 
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
-  call orthoconstraint_p(iproc,nproc,orbs%norbu,orbs%occup,comms%nvctr_par(iproc),psit,hpsi,&
+  call orthoconstraint_p(iproc,nproc,orbs%norbu,orbs%occup,comms%nvctr_par(iproc,1),psit,hpsi,&
        scprsum,orbs%nspinor)
   scprpart=0.0_dp
   if(orbs%norbd > 0) then
      scprpart=scprsum 
-     call orthoconstraint_p(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),comms%nvctr_par(iproc),&
-          psit(1+comms%nvctr_par(iproc)*orbs%norbu),hpsi(1+comms%nvctr_par(iproc)*orbs%norbu),&
+     call orthoconstraint_p(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),comms%nvctr_par(iproc,1),&
+          psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),hpsi(1+comms%nvctr_par(iproc,1)*orbs%norbu),&
           scprsum,orbs%nspinor)
      scprsum=scprsum+scprpart
   end if
@@ -248,32 +248,24 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      !transpose the hpsi wavefunction into the diis array
      call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,comms,&
           hpsi,work=psi,&
-          outadd=hpsidst(1+comms%nvctr_par(iproc)*orbs%nspinor*orbs%norb*(mids-1)))
+          outadd=hpsidst(1+comms%nvctr_par(iproc,1)*orbs%nspinor*orbs%norb*(mids-1)))
 
      call timing(iproc,'Diis          ','ON')
 
      !psidst=psit
-     call dcopy(comms%nvctr_par(iproc)*orbs%norb*orbs%nspinor,&
+     call dcopy(comms%nvctr_par(iproc,1)*orbs%norb*orbs%nspinor,&
           psit(1),1,&
-          psidst(1+comms%nvctr_par(iproc)*orbs%nspinor*orbs%norb*(mids-1)),1) 
+          psidst(1+comms%nvctr_par(iproc,1)*orbs%nspinor*orbs%norb*(mids-1)),1) 
 
-     if (nproc > 1) then
-!!$        do i=1,nvctrp*orbs%norb*orbs%nspinor
-!!$           psidst(i+nvctrp*orbs%nspinor*orbs%norb*(mids-1))= psit(i)
-!!$        enddo
-     else
+     if (nproc == 1) then
         !hpsidst=hpsi
-        call dcopy(comms%nvctr_par(iproc)*orbs%norb*orbs%nspinor,&
+        call dcopy(comms%nvctr_par(iproc,1)*orbs%norb*orbs%nspinor,&
              hpsi(1),1,&
-             hpsidst(1+comms%nvctr_par(iproc)*orbs%nspinor*orbs%norb*(mids-1)),1) 
-!!$        do i=1,nvctrp*orbs%norb*orbs%nspinor
-!!$           psidst(i+nvctrp*orbs%nspinor*orbs%norb*(mids-1))= psit(i)
-!!$           hpsidst(i+nvctrp*orbs%nspinor*orbs%norb*(mids-1))=hpsi(i)
-!!$        enddo
+             hpsidst(1+comms%nvctr_par(iproc,1)*orbs%nspinor*orbs%norb*(mids-1)),1) 
      endif
 
      call diisstp(orbs%norb,nproc,iproc,orbs%nspinor,  &
-          ads,ids,mids,idsx_actual,comms%nvctr_par(iproc),&
+          ads,ids,mids,idsx_actual,comms%nvctr_par(iproc,1),&
           psit,psidst,hpsidst)
   else
      ! update all wavefunctions with the preconditioned gradient
@@ -290,11 +282,16 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
           hpsi,work=psi)
 
      call timing(iproc,'Diis          ','ON')
-     do iorb=1,orbs%norb*orbs%nspinor
-        call axpy(comms%nvctr_par(iproc),&
-             -alpha,hpsi(1+comms%nvctr_par(iproc)*(iorb-1)),1,&
-             psit(1+comms%nvctr_par(iproc)*(iorb-1)),1)
-     enddo
+
+!!$     do iorb=1,orbs%norb*orbs%nspinor
+!!$        call axpy(comms%nvctr_par(iproc),&
+!!$             -alpha,hpsi(1+comms%nvctr_par(iproc)*(iorb-1)),1,&
+!!$             psit(1+comms%nvctr_par(iproc)*(iorb-1)),1)
+!!$     enddo
+
+     call axpy(comms%nvctr_par(iproc,1)*orbs%norb*orbs%nspinor,&
+          -alpha,hpsi(1),1,psit(1),1)
+
   endif
 
   call timing(iproc,'Diis          ','OF')
@@ -304,20 +301,17 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
           'Orthogonalization...'
   end if
 
-!!$  if(nspin==1 .or. nspinor==4) then
-!!$     call orthon_p(iproc,nproc,norb,nvctrp,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psit,nspinor)
-!!$  else
-  call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
+  call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
        psit,orbs%nspinor)
   if(orbs%norbd > 0) then
-     call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
-          psit(1+comms%nvctr_par(iproc)*orbs%norbu),orbs%nspinor)
+     call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
+          psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),orbs%nspinor)
   end if
-!!$  end if
-    !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
+  !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
   
   call untranspose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,comms,&
        psit,work=hpsi,outadd=psi(1))
+
   if (nproc == 1) then
      nullify(psit)
   end if
@@ -387,9 +381,9 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      ids=0
      idiistol=0
 
-     allocate(psidst(comms%nvctr_par(iproc)*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
+     allocate(psidst(comms%nvctr_par(iproc,1)*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(comms%nvctr_par(iproc)*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
+     allocate(hpsidst(comms%nvctr_par(iproc,1)*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,hpsidst,'hpsidst',subname)
      allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
      call memocc(i_stat,ads,'ads',subname)
@@ -398,35 +392,6 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 
 END SUBROUTINE hpsitopsi
 !!***
-
-
-!!****f* BigDFT/trans_address
-!! FUNCTION
-!!   Calculate the address to start from for calculating the 
-!!   norm of the residue if hpsi is allocated in the transposed way
-!!   it can be eliminated when including all this procedure in a subroutine
-!!   in other terms, it takes the i1,i2 component of an array psi(nvctr,norbp) 
-!!   from an array of the form psi(nvctrp,norb)
-!!   for this routine norbp is not needed
-!! SOURCE
-!!
-subroutine trans_address(nvctrp,nvctr,i,iorb,i1,i2)
-  implicit none
-  integer, intent(in) :: nvctrp,nvctr,i,iorb
-  integer, intent(out) :: i1,i2
-  !local variables
-  integer :: ind
-!  if (nproc > 1) then
-     ind=i+nvctr*(iorb-1)
-     i1=mod(ind-1,nvctrp)+1
-     i2=(ind-i1)/nvctrp+1
-!!$  else
-!!$     i1=1
-!!$     i2=iorb
-!!$  end if
-END SUBROUTINE trans_address
-!!***
-
 
 !!****f* BigDFT/first_orthon
 !! FUNCTION
@@ -470,16 +435,12 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
   call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,wfd,comms,psi,&
        work=hpsi,outadd=psit(1))
 
-!!$  if(nspin==1 .or. nspinor==4) then
-!!$     call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,nspinor) 
-!!$  else
-  call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc),wfd%nvctr_c+7*wfd%nvctr_f,&
+  call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),wfd%nvctr_c+7*wfd%nvctr_f,&
        psit,orbs%nspinor) 
   if(orbs%norbd > 0) then
-     call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc),wfd%nvctr_c+7*wfd%nvctr_f,&
-          psit(1+comms%nvctr_par(iproc)*orbs%norbu),orbs%nspinor) 
+     call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),wfd%nvctr_c+7*wfd%nvctr_f,&
+          psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),orbs%nspinor) 
   end if
-!!$  end if
   !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
   call untranspose_v(iproc,nproc,orbs%norbp,orbs%nspinor,wfd,comms,psit,&
@@ -528,12 +489,12 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
 !!$  if(nspin==1.or.nspinor==4) then
 !!$     call KStrans_p(iproc,nproc,norb,nvctrp,occup,hpsi,psit,evsum,eval,nspinor)
 !!$  else
-  call KStrans_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc),orbs%occup,hpsi,psit,&
+  call KStrans_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),orbs%occup,hpsi,psit,&
        evsum,orbs%eval,orbs%nspinor)
   evpart=evsum
   if(orbs%norbd > 0) then
-     call KStrans_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc),orbs%occup(orbs%norbu+1),&
-          hpsi(1+comms%nvctr_par(iproc)*orbs%norbu),psit(1+comms%nvctr_par(iproc)*orbs%norbu),&
+     call KStrans_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),orbs%occup(orbs%norbu+1),&
+          hpsi(1+comms%nvctr_par(iproc,1)*orbs%norbu),psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),&
           evsum,orbs%eval(orbs%norbu+1),orbs%nspinor)
      evsum=evsum+evpart
   end if
@@ -603,37 +564,6 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
            end do
         end if
      end if
-!!$     if (nspin==1.or.orbs%nspinor==4) then
-!!$        if (orbs%nspinor ==4) then
-!!$           do iorb=1,orbs%norb
-!!$              dowrite =iorb <= 5 .or. iorb >= orbs%norb-5
-!!$              if (dowrite) & 
-!!$                   write(*,'(1x,a,i4,a,1x,1pe21.14,20x,(1x,3(0pf10.5)))') &
-!!$                   'eval(',iorb,')=',orbs%eval(iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
-!!$           end do
-!!$        else
-!!$           do iorb=1,orbs%norb
-!!$              dowrite =iorb <= 5 .or. iorb >= orbs%norb-5
-!!$              if (dowrite) & 
-!!$                   write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',orbs%eval(iorb)
-!!$           end do
-!!$        end if
-!!$     else
-!!$        do iorb=1,min(orbs%norbu,orbs%norbd)
-!!$           jorb=orbs%norbu+iorb
-!!$           write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-!!$                'eval(',iorb,',u)=',orbs%eval(iorb),'eval(',iorb,',d)=',orbs%eval(jorb)
-!!$        end do
-!!$        if (orbs%norbu > orbs%norbd) then
-!!$           do iorb=orbs%norbd+1,orbs%norbu
-!!$              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,',u)=',orbs%eval(iorb)
-!!$           end do
-!!$        else if (orbs%norbd > orbs%norbu) then
-!!$           do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
-!!$              write(*,'(50x,a,i4,a,1x,1pe21.14)') 'eval(',iorb-orbs%norbu,',d)=',orbs%eval(iorb)
-!!$           end do
-!!$        end if
-!!$     end if
   end if
 
   if (orbs%nspinor ==4) then
@@ -976,6 +906,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   real(wp) :: vali,valorb,psival,maxdiff,ierr
   real(wp), dimension(:), allocatable :: psi
   real(wp), dimension(:), pointer :: pwork
+  real(wp) :: epsilon
 
   !allocate the "wavefunction" amd fill it, and also the workspace
   allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
@@ -1001,16 +932,16 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   !calculate the starting point for the component distribution
   iscomp=0
   do jproc=0,iproc-1
-     iscomp=iscomp+comms%nvctr_par(jproc)
+     iscomp=iscomp+comms%nvctr_par(jproc,1)
   end do
 
   !check the results of the transposed wavefunction
   maxdiff=0.0_wp
   do iorb=1,orbs%norb
      valorb=real(iorb,wp)
-     indorb=(iorb-1)*(comms%nvctr_par(iproc))*orbs%nspinor
+     indorb=(iorb-1)*(comms%nvctr_par(iproc,1))*orbs%nspinor
      do idsx=1,(orbs%nspinor-1)/2+1
-        do i=1,comms%nvctr_par(iproc)
+        do i=1,comms%nvctr_par(iproc,1)
            vali=real(i+iscomp,wp)*1.d-5
            do ispinor=1,((2+orbs%nspinor)/4+1)
               psival=(-1)**(ispinor-1)*(valorb+vali)
@@ -1018,13 +949,13 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
               write(321,*) psival,psival**2
               endif
               index=ispinor+(i-1)*((2+orbs%nspinor)/4+1)+&
-                   (idsx-1)*((2+orbs%nspinor)/4+1)*comms%nvctr_par(iproc)+indorb
+                   (idsx-1)*((2+orbs%nspinor)/4+1)*comms%nvctr_par(iproc,1)+indorb
               maxdiff=max(abs(psi(index)-psival),maxdiff)
            end do
         end do
      end do
   end do
-  if (maxdiff /= 0.0_wp) then
+  if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
      write(*,*)'ERROR: process',iproc,'does not transpose wavefunctions correctly!'
      write(*,*)'       found an error of',maxdiff,'cannot continue.'
      write(*,*)'       data are written in the file transerror.log, exiting...'
@@ -1032,14 +963,14 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      open(unit=22,file='transerror.log',status='unknown')
      do iorb=1,orbs%norb
         valorb=real(iorb,wp)
-        indorb=(iorb-1)*(comms%nvctr_par(iproc))*orbs%nspinor
+        indorb=(iorb-1)*(comms%nvctr_par(iproc,1))*orbs%nspinor
         do idsx=1,(orbs%nspinor-1)/2+1
-           do i=1,comms%nvctr_par(iproc)
+           do i=1,comms%nvctr_par(iproc,1)
               vali=real(i+iscomp,wp)*1.d-5
               do ispinor=1,((2+orbs%nspinor)/4+1)
                  psival=(-1)**(ispinor-1)*(valorb+vali)
                  index=ispinor+(i-1)*((2+orbs%nspinor)/4+1)+&
-                      (idsx-1)*((2+orbs%nspinor)/4+1)*comms%nvctr_par(iproc)+indorb
+                      (idsx-1)*((2+orbs%nspinor)/4+1)*comms%nvctr_par(iproc,1)+indorb
                  maxdiff=abs(psi(index)-psival)
                  write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i+iscomp,iorb,psival,&
                       psi(index),maxdiff
@@ -1071,7 +1002,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      end do
   end do
 
-  if (maxdiff /= 0.0_wp) then
+  if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
      write(*,*)'ERROR: process',iproc,'does not untranspose wavefunctions correctly!'
      write(*,*)'       found an error of',maxdiff,'cannot continue.'
      write(*,*)'       data are written in the file transerror.log, exiting...'
