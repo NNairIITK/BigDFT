@@ -86,7 +86,7 @@ void manage_cpu_affinity::add_connexion(const gpu_cpus_connexion& gcc)
 
 
 
-void manage_cpu_affinity::set_affinity(int cpuID) const
+void manage_cpu_affinity::set_affinity(int cpuID) 
 {
   
   std::list<gpu_cpus_connexion>::const_iterator cit = connexions.begin() ;
@@ -103,8 +103,8 @@ void manage_cpu_affinity::set_affinity(int cpuID) const
       if( cpuID < (cur_cpu_id + cit->get_num_cpus())) //this id is on this block
 	{
 	  	  int test = cit->set_affinity(cpuID - cur_cpu_id);
-		  if(iproc ==0)
-		    std::cout << "Logic CPU : " << cpuID << " with " << test << std::endl;
+		  affinity_matrix.push_back(test);
+
 		  found = true;
 	}
       cur_cpu_id  += cit->get_num_cpus();
@@ -113,8 +113,18 @@ void manage_cpu_affinity::set_affinity(int cpuID) const
     }
   
   if(!found)
-    if(iproc ==0)
-      std::cout << "Affinity NOT FOUND " << std::endl;
+    affinity_matrix.push_back(-1);
 
   //connexions.at(gpu_to_atach).set_current_affinity();
+}
+
+void manage_cpu_affinity::print_affinity_matrix() const
+{
+  std::vector<int>::const_iterator cit = affinity_matrix.begin() ;
+  int i;
+  for(cit = affinity_matrix.begin(), i =0 ; cit != affinity_matrix.end() ; ++cit,++i)
+    {
+      std::cout << "Logic CPU : " << i << " with real CPU " << *cit << std::endl;
+    }
+
 }

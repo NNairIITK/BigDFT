@@ -141,8 +141,8 @@ subroutine check_init(errorFound)
               end do
            end do
 
-         !  write(*,'(a,i6,i6)')'CPU Convolutions, dimensions:',n1,ndat
 
+         !  write(*,'(a,i6,i6)')'CPU Convolutions, dimensions:',n1,ndat
            !take timings
            !call system_clock(it0,count_rate,count_max)
            call cpu_time(t0)
@@ -170,14 +170,20 @@ subroutine check_init(errorFound)
               end do
            end do
 
+          ! write(*,'(a,i6,i6)')'ALLOCATE GPU',0,0
            call GPU_allocate(n1*ndat,psi_GPU,i_stat)
            call GPU_allocate(n1*ndat,work_GPU,i_stat)
-
+if(i_stat == 1) then
+	errorFound = 1
+	write(*,*) 'Alloc error'
+	return
+	end if
            call GPU_send(n1*ndat,v_cuda,work_GPU,i_stat)
 
            !now the CUDA part
            !take timings
 
+          ! write(*,'(a,i6,i6)')'exec kernel',0,0
          !  write(*,'(a,i6,i6)')'GPU Convolutions, dimensions:',n1,ndat
 
            call cpu_time(t0)
@@ -187,6 +193,7 @@ subroutine check_init(errorFound)
            call cpu_time(t1)
            GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
 
+         ! write(*,'(a,i6,i6)')'FINISH KERNEL',0,0
       !     write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
      !           GPUtime*1.d3/real(ntimes,kind=8),&
      !           real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
@@ -204,7 +211,7 @@ subroutine check_init(errorFound)
               do i1=1,n1
                  !write(17,'(2(i6),2(1pe24.17))')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
                  !write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
-                 comp=abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8))
+                 comp=abs(psi_out(i,i1,1)-psi_cuda(i1,i,1))
                  !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
                  if (comp > maxdiff) then
                     maxdiff=comp

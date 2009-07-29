@@ -71,7 +71,7 @@ private:
 class local_network
 {
 public:
-  local_network(int num_local_mpi_node, int num_gpu,const manage_cpu_affinity& mca,const set_repartition* set_r,int iproc) throw (inter_node_communication_error,check_calc_error)
+  local_network(int num_local_mpi_node, int num_gpu,manage_cpu_affinity& mca,const set_repartition* set_r,int iproc) throw (inter_node_communication_error,check_calc_error)
     :NUM_PARTICIPANTS(num_local_mpi_node),NUM_GPU(num_gpu)
   {init(mca,set_r,iproc);}  
 
@@ -95,7 +95,7 @@ public:
   int recv_prev(message* msg) throw (inter_node_communication_error);
 
 private:
-  void init(const manage_cpu_affinity&,const set_repartition*,int iproc) throw (inter_node_communication_error,check_calc_error);
+  void init(manage_cpu_affinity&,const set_repartition*,int iproc) throw (inter_node_communication_error,check_calc_error);
 
 
 

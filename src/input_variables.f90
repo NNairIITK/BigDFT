@@ -116,10 +116,12 @@ subroutine dft_input_variables(iproc,filename,in)
         call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
      end if
 
-     call MPI_BARRIER(MPI_COMM_WORLD,ierror)
+   
     ! GPUshare=.true.
      if (iconv == 1) then
         !change the value of the GPU convolution flag defined in the module_base
+       
+
         GPUconv=.true.
      end if
      if (iblas == 1) then
@@ -415,22 +417,22 @@ subroutine read_input_variables(iproc,filename,in)
   read(line,*,iostat=ierrfrc) cudagpu
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
      call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-   !  iconv = 0
-   !  iblas = 0
      
-
-   !  call set_cpu_gpu_aff(iproc,iconv,iblas)
-   ! GPUshare=.false.
-  !   call init_gpu_sharing(initerror) !to fix the number of gpu and mpi tasks per node, we have to fil the inter_node.config file
      if (initerror == 1) then
-        stop
+
+        write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
+        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
+
+
+
+     
      end if
     ! GPUshare=.true.
-     if (iconv == 0) then
+     if (iconv == 1) then
         !change the value of the GPU convolution flag defined in the module_base
         GPUconv=.true.
      end if
-     if (iblas == 0) then
+     if (iblas == 1) then
         !change the value of the GPU convolution flag defined in the module_base
         GPUblas=.true.
      end if
