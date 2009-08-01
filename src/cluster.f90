@@ -459,6 +459,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !check the communication distribution
   call check_communications(iproc,nproc,orbs,Glr,comms)
 
+
   !avoid allocation of the eigenvalues array in case of restart
   if (in%inputPsiId /= 1 .and. in%inputPsiId /= 11) then
      allocate(orbs%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)

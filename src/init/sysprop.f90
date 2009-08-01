@@ -579,6 +579,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
 
   allocate(orbs%iokpt(orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
+
   !assign the k-point to the given orbital, counting one orbital after each other
   jorb=0
   ikpt_prev=0
@@ -587,7 +588,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
      do iorb=1,orbs%norb
         jorb=jorb+1 !this runs over norb*nkpts values
         !fix the starting k-point for a given processor
-        if (jorb == orbs%isorb+1) orbs%iskpt=ikpt-1
+        if (jorb == orbs%isorb+1) orbs%iskpts=ikpt-1
         if (jorb > orbs%isorb .and. jorb <= orbs%isorb+orbs%norbp) then
            orbs%iokpt(jorb-orbs%isorb)=ikpt
            if (ikpt /= ikpt_prev) then

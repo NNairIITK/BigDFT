@@ -39,7 +39,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal
   integer :: i,ndim_hamovr,i_all,i_stat,n2hamovr,nsthamovr,ierr,norbi_max,j
-  integer :: norbtot,norbtotp,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor
+  integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor
   real(gp) :: tolerance
   real(kind=8) :: tt
   integer, dimension(:,:), allocatable :: norbgrp
@@ -115,12 +115,10 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
 
   if(minimal) then
      norbtot=orbse%norb !beware that norbe is equal both for spin up and down
-     norbtotp=orbse%norbp !this is coherent with nspin*norbe
      npsidim=orbse%npsidim
      nspinor=orbse%nspinor
   else
      norbtot=orbs%norb
-     norbtotp=orbs%norbp
      npsidim=orbs%npsidim
      nspinor=orbs%nspinor
   end if
@@ -224,7 +222,7 @@ end subroutine Gaussian_DiagHam
 !!    Diagonalise the hamiltonian in a basis set of norbe orbitals and select the first
 !!    norb eigenvectors. Works also with the spin-polarisation case and perform also the 
 !!    treatment of semicore atoms. 
-!!    In the absence of norbe parameters, it simply diagonalize the hamiltonian in the given
+!!    In the absence of norbe parameters, it simply diagonalizes the hamiltonian in the given
 !!    orbital basis set.
 !! COPYRIGHT
 !!    Copyright (C) 2008 CEA Grenoble
@@ -282,11 +280,12 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   integer, intent(in) :: iproc,nproc,natsc,nspin
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(communications_arrays), target, intent(in) :: comms
-  type(orbitals_data), intent(inout) :: orbs
+  type(orbitals_data), target, intent(inout) :: orbs
   real(wp), dimension(:), pointer :: psi,hpsi,psit
   !optional arguments
   real(gp), optional, intent(in) :: etol
-  type(orbitals_data), optional, intent(in) :: orbse,orbsv
+  type(orbitals_data), optional, intent(in) :: orbsv
+  type(orbitals_data), optional, target, intent(in) :: orbse
   type(communications_arrays), optional, target, intent(in) :: commse
   integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
   real(wp), dimension(:), pointer, optional :: psivirt
@@ -295,9 +294,10 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal
   integer :: i,ndim_hamovr,i_all,i_stat,n2hamovr,nsthamovr,ierr,norbi_max,j,noncoll
-  integer :: norbtot,norbtotp,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor
+  integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor
   real(gp) :: tolerance
   real(kind=8) :: tt
+  type(orbitals_data), pointer :: orbsu
   type(communications_arrays), pointer :: commu
   integer, dimension(:,:), allocatable :: norbgrp
   real(wp), dimension(:,:), allocatable :: hamovr
@@ -388,14 +388,14 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
   if(minimal) then
      norbtot=orbse%norb !beware that norbe is equal both for spin up and down
-     norbtotp=orbse%norbp !this is coherent with nspin*norbe
      commu => commse
+     orbsu => orbse
      npsidim=orbse%npsidim
      nspinor=orbse%nspinor
   else
      norbtot=orbs%norb
-     norbtotp=orbs%norbp
      commu => comms
+     orbsu => orbs
      npsidim=orbs%npsidim
      nspinor=orbs%nspinor
   end if
@@ -408,8 +408,8 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
   !transpose all the wavefunctions for having a piece of all the orbitals 
   !for each processor
-  call transpose_v(iproc,nproc,norbtotp,nspinor,wfd,commu,psi,work=psiw)
-  call transpose_v(iproc,nproc,norbtotp,nspinor,wfd,commu,hpsi,work=psiw)
+  call transpose_v(iproc,nproc,orbsu,wfd,commu,psi,work=psiw)
+  call transpose_v(iproc,nproc,orbsu,wfd,commu,hpsi,work=psiw)
 
   if (nproc > 1) then
      i_all=-product(shape(psiw))*kind(psiw)
@@ -438,7 +438,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Overlap Matrix...'
 
-  call overlap_matrices(norbtot,commu%nvctr_par(iproc),natsceff,nspin,nspinor,ndim_hamovr,norbgrp,&
+  call overlap_matrices(norbtot,commu%nvctr_par(iproc,1),natsceff,nspin,nspinor,ndim_hamovr,norbgrp,&
        hamovr(1,nsthamovr),psi,hpsi)
 
   if (minimal) then
@@ -475,10 +475,10 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
   nvctr=wfd%nvctr_c+7*wfd%nvctr_f
   if (.not. present(orbsv)) then
-     call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,comms%nvctr_par(iproc),&
+     call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,comms%nvctr_par(iproc,1),&
           natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr,psi,psit)
   else
-     call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,comms%nvctr_par(iproc),&
+     call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,comms%nvctr_par(iproc,1),&
           natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr,psi,psit,orbsv%norb,psivirt)
   end if
   
@@ -509,12 +509,13 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
   !orthogonalise the orbitals in the case of semi-core atoms
   if (norbsc > 0) then
-     call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc),wfd%nvctr_c+7*wfd%nvctr_f,psit,&
-          orbs%nspinor) 
-     if(orbs%norbd > 0) then
-        call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc),wfd%nvctr_c+7*wfd%nvctr_f,&
-             psit(1+comms%nvctr_par(iproc)*orbs%norbu),orbs%nspinor) 
-     end if
+     call orthogonalize(iproc,nproc,orbs,comms,wfd,psit)
+!!$     call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),wfd%nvctr_c+7*wfd%nvctr_f,psit,&
+!!$          orbs%nspinor) 
+!!$     if(orbs%norbd > 0) then
+!!$        call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),wfd%nvctr_c+7*wfd%nvctr_f,&
+!!$             psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),orbs%nspinor) 
+!!$     end if
   end if
 
 
@@ -532,7 +533,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   end if
 
   !this untranspose also the wavefunctions 
-  call untranspose_v(iproc,nproc,orbs%norbp,orbs%nspinor,wfd,comms,&
+  call untranspose_v(iproc,nproc,orbs,wfd,comms,&
        psit,work=hpsi,outadd=psi(1))
 
   if (nproc == 1) then

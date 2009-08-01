@@ -129,7 +129,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   endif
 
   !transpose the wavefunction psi 
-  call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,comms,psi,work=psiw)
+  call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psi,work=psiw)
 
   if (nproc > 1) then
      i_all=-product(shape(psiw))*kind(psiw)
@@ -154,14 +154,16 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   !     nvirtep=orbsv%norbp
 
   !this is the same also in serial
-  call orthon_p(iproc,nproc,orbsv%norb,comms%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
+  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
+  !call orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
   call orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,v,msg)
   if(orbs%norbd > 0) then
      call orthoconvirt_p(iproc,nproc,orbs%norbd,&
        orbsv%norb,comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),v,msg)
   end if
   !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
-  call  orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
+  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
+  !call orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
 
   !retranspose v
   if(nproc > 1)then
@@ -170,7 +172,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      call memocc(i_stat,psiw,'psiw',subname)
   end if
 
-  call untranspose_v(iproc,nproc,orbsv%norbp,1,lr%wfd,commsv,v,work=psiw)
+  call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,v,work=psiw)
 
   ! 1st Hamilton application on psivirt
   if(iproc==0)write(*,'(1x,a)',advance="no")"done. first "
@@ -188,8 +190,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   call memocc(i_stat,e,'e',subname)
 
   !transpose  v and hv
-  call transpose_v(iproc,nproc,orbsv%norbp,1,lr%wfd,commsv,v,work=psiw)
-  call transpose_v(iproc,nproc,orbsv%norbp,1,lr%wfd,commsv,hv,work=psiw)
+  call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,v,work=psiw)
+  call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,hv,work=psiw)
 
   call timing(iproc,'Davidson      ','ON')
   !Timing excludes transposition, hamilton application and preconditioning
@@ -307,7 +309,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      call timing(iproc,'Davidson      ','OF')
 
      !retranspose the gradient g 
-     call untranspose_v(iproc,nproc,orbsv%norbp,1,lr%wfd,commsv,g,work=psiw)
+     call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
 
      ! Here the gradients norm could be calculated in the direct form instead,
      ! as it is done in hpsiortho before preconditioning. 
@@ -326,7 +328,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
                  "Orthogonality of preconditioned gradients to occupied psi..."
 
      !transpose  g 
-     call transpose_v(iproc,nproc,orbsv%norbp,1,lr%wfd,commsv,g,work=psiw)
+     call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
 
      !project g such that they are orthogonal to all occupied psi
      call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,g,msg)
@@ -335,7 +337,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
           comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),g,msg)
      end if
      !retranspose the gradient g
-     call untranspose_v(iproc,nproc,orbsv%norbp,1,lr%wfd,commsv,g,work=psiw)
+     call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
 
      if(iproc==0)write(*,'(1x,a)')"done."
 
@@ -347,8 +349,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
           rhopot(1+i3xcsh*n1i*n2i),g,hg,ekin_sum,epot_sum,eproj_sum,1,GPU)
 
      !transpose  g and hg
-     call transpose_v(iproc,nproc,orbsv%norbp,1,lr%wfd,commsv,g,work=psiw)
-     call transpose_v(iproc,nproc,orbsv%norbp,1,lr%wfd,commsv,hg,work=psiw)
+     call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
+     call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,hg,work=psiw)
 
      call timing(iproc,'Davidson      ','ON')
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
@@ -510,17 +512,19 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      call timing(iproc,'Davidson      ','OF')
 
      !these routines should work both in parallel or in serial
-     call  orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
+     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
+     !call  orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
      call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,v,msg)
      if(orbs%norbd > 0) then
         call orthoconvirt_p(iproc,nproc,orbs%norbd,orbsv%norb,&
           comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),v,msg)
      end if
      !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
-     call  orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
+     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
+     !call  orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
 
      !retranspose v
-     call untranspose_v(iproc,nproc,orbsv%norbp,1,lr%wfd,commsv,v,work=psiw)
+     call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,v,work=psiw)
  
      ! Hamilton application on v
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
@@ -530,8 +534,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
           rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,1,GPU)
 
      !transpose  v and hv
-     call transpose_v(iproc,nproc,orbsv%norbp,1,lr%wfd,commsv,v,work=psiw)
-     call transpose_v(iproc,nproc,orbsv%norbp,1,lr%wfd,commsv,hv,work=psiw)
+     call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,v,work=psiw)
+     call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,hv,work=psiw)
 
      if(iproc==0)write(*,'(1x,a)')"done. "
      call timing(iproc,'Davidson      ','ON')
@@ -561,7 +565,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   call timing(iproc,'Davidson      ','OF')
 
   !retranspose v and psi
-  call untranspose_v(iproc,nproc,orbsv%norbp,1,lr%wfd,commsv,v,work=psiw)
+  call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,v,work=psiw)
 
   !resize work array before final transposition
   if(nproc > 1)then
@@ -573,7 +577,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      call memocc(i_stat,psiw,'psiw',subname)
   end if
 
-  call untranspose_v(iproc,nproc,orbs%norbp,1,lr%wfd,comms,psi,work=psiw)
+  call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,psi,work=psiw)
 
   if(nproc > 1) then
      i_all=-product(shape(psiw))*kind(psiw)

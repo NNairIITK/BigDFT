@@ -11,9 +11,9 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
   real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(inout) :: psi
   !local variables
   character(len=*), parameter :: subname='orthogonalize'
-  integer :: i_stat,i_all,i_err,info
-  integer :: istart,ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi
-  integer, dimension(:), allocatable :: ndimovrlp
+  integer :: i_stat,i_all,ierr,info
+  integer :: istart,ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp
+  integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:,:), allocatable :: ovrlp
 
   !separate the orthogonalisation procedure for up and down orbitals 
@@ -101,10 +101,10 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
         end if
 
         if(orbs%nspinor==1) then
-           call syrk('L','T',norb,nvctrp,1.0_wp,psit(ispsi),max(1,nvctrp),&
+           call syrk('L','T',norb,nvctrp,1.0_wp,psi(ispsi),max(1,nvctrp),&
                 0.0_wp,ovrlp(ndimovrlp(ispin,ikpt-1)+1,istart),norb)
         else
-           call herk('L','C',norb,ncomp*nvctrp,1.0_wp,psit(ispsi),max(1,ncomp*nvctrp),&
+           call herk('L','C',norb,ncomp*nvctrp,1.0_wp,psi(ispsi),max(1,ncomp*nvctrp),&
                 0.0_wp,ovrlp(ndimovrlp(ispin,ikpt-1)+1,istart),norb)
         end if
         ispsi=ispsi+nvctrp*norb*orbs%nspinor
@@ -122,7 +122,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
 
   !now each processors knows all the overlap matrices for each k-point
   !even if it does not handle it.
-  !this is somehow redundant but it is the only way of reducing the number of communications
+  !this is somehow redundant but it is one way of reducing the number of communications
   !without defining group of processors
 
   !for each k-point now reorthogonalise wavefunctions
@@ -161,9 +161,9 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
 
            ! new vectors   
            call trmm('R','L','T','N',nvctrp,norb,1.0_wp,ovrlp(ndimovrlp(ispin,ikpt-1)+1,1),&
-                norb,psit(ispsi),max(1,nvctrp))
+                norb,psi(ispsi),max(1,nvctrp))
 
-        else
+        else if (nvctrp /= 0) then
 
            ! Cholesky factorization
            call c_potrf( 'L',norb,ovrlp(ndimovrlp(ispin,ikpt-1)+1,1),norb,info )
@@ -176,7 +176,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
            if (info /= 0) write(6,*) 'info L^-1',info
            ! new vectors   !!check if third argument should be transpose or conjugate
            call c_trmm('R','L','C','N',ncomp*nvctrp,norb,(1.0_wp,0.0_wp),&
-                ovrlp(ndimovrlp(ispin,ikpt-1)+1,1),norb,psit(ispsi),max(1,ncomp*nvctrp))
+                ovrlp(ndimovrlp(ispin,ikpt-1)+1,1),norb,psi(ispsi),max(1,ncomp*nvctrp))
 
         end if
         ispsi=ispsi+nvctrp*norb*orbs%nspinor
