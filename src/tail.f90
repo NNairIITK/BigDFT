@@ -325,12 +325,6 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   allocate(orbsb%norb_par(0:0+ndebug),stat=i_stat)
   call memocc(i_stat,orbsb%norb_par,'orbsb%norb_par',subname)
   call orbitals_descriptors(0,1,1,1,0,1,orbsb)
-  allocate(orbsb%occup(orbsb%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbsb%occup,'orbsb%occup',subname)
-  allocate(orbsb%spinsgn(orbsb%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbsb%spinsgn,'orbsb%spinsgn',subname)
-  orbsb%occup(1:orbsb%norb)=1.0_gp
-  orbsb%spinsgn(1:orbsb%norb)=1.0_gp
 
   i_all=-product(shape(orbsb%norb_par))*kind(orbsb%norb_par)
   deallocate(orbsb%norb_par,stat=i_stat)

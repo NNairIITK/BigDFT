@@ -116,7 +116,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   ncomp_res=(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
   do jproc=0,nproc-1
      loop_comps: do
-        print *,jproc,nvctr_par(jproc,0),ncomp_res 
+        !print *,jproc,nvctr_par(jproc,0),ncomp_res 
         if (nvctr_par(jproc,0) >= ncomp_res) then
            nvctr_par(jproc,ikpts)= ncomp_res
            ikpts=ikpts+1
@@ -222,7 +222,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   !there must be no overlap for the components
   !here we will print out the k-points components distribution, in the transposed and in the direct way
 
-  print *,'iproc,nvctr_par,norb_par',iproc,nvctr_par(:,:),norb_par(:,:)
+  !print *,'iproc,nvctr_par,norb_par',iproc,nvctr_par(:,:),norb_par(:,:)
 
   do jproc=0,nproc-1
      comms%ncntd(jproc)=0
@@ -248,7 +248,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      comms%ndsplt(jproc)=comms%ndsplt(jproc-1)+comms%ncntt(jproc-1)
   end do
 
-  print *,'iproc,comms',iproc,comms%ncntd,comms%ndspld,comms%ncntt,comms%ndsplt
+  !print *,'iproc,comms',iproc,comms%ncntd,comms%ndspld,comms%ncntt,comms%ndsplt
 
 !!$  do jproc=0,nproc-1
 !!$     comms%ncntd(jproc)=comms%nvctr_par(jproc)*orbs%norb_par(iproc)*orbs%nspinor

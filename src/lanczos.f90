@@ -37,27 +37,7 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,Gabsorber,Gabs_coeffs,&
   call memocc(i_stat,ha%orbs%norb_par,'ha%orbs%norb_par',subname)
   !davidson treatment for spin-pol case should be reworked
 
-
-
   call orbitals_descriptors(iproc,nproc,1,1,0,1,ha%orbs)
-  !allocate the arrays and fill them properly
-  allocate(ha%orbs%occup(ha%orbs%norb+ndebug),stat=i_stat)
-
-
-
-
-  call memocc(i_stat,ha%orbs%occup,'ha%orbs%occup',subname)
-  allocate(ha%orbs%spinsgn(ha%orbs%norb+ndebug),stat=i_stat)
-
-
-
-
-  call memocc(i_stat,ha%orbs%spinsgn,'ha%orbs%spinsgn',subname)
-  ha%orbs%occup(1:ha%orbs%norb)=1.0_gp
-  ha%orbs%spinsgn(1:ha%orbs%norb)=1.0_gp
-
-
-
 
   !allocate communications arrays for virtual orbitals
   !warning: here the aim is just to calculate npsidim, should be fixed

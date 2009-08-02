@@ -53,11 +53,6 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
   end if
 
-  allocate(orbs%occup(orbs%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%occup,'orbs%occup',subname)
-  allocate(orbs%spinsgn(orbs%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
-
   call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
        orbs%occup,orbs%spinsgn)
 
@@ -599,12 +594,18 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
      end do
   end do
 
-  !in principle it not necessary for this to be an array
-!!$  allocate(orbs%nkpts_par(0:nproc-1+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,orbs%nkpts_par,'orbs%nkpts_par',subname)
-
   !assign the number of k-points per processor
   orbs%nkptsp=nkptsp
+
+  !allocate occupation number and spinsign
+  !fill them in normal way
+  allocate(orbs%occup(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%occup,'orbs%occup',subname)
+  allocate(orbs%spinsgn(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
+  orbs%occup(1:orbs%norb*orbs%nkpts)=1.0_gp 
+  orbs%spinsgn(1:orbs%norb*orbs%nkpts)=1.0_gp
+
 
 end subroutine orbitals_descriptors
 !!***

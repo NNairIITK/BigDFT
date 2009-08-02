@@ -307,7 +307,7 @@ subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
              "ERROR: Unproper work array for transposing in parallel"
         stop
      end if
-     call switch_waves_v(nproc,orbs%norbp,orbs%nspinor,orbs%nkptsp,&
+     call switch_waves_v(nproc,orbs,&
           wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,psi,work)
      call timing(iproc,'Un-TransSwitch','OF')
      call timing(iproc,'Un-TransComm  ','ON')
@@ -362,10 +362,10 @@ subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
      call timing(iproc,'Un-TransComm  ','OF')
      call timing(iproc,'Un-TransSwitch','ON')
      if (present(outadd)) then
-        call unswitch_waves_v(nproc,orbs%norbp,orbs%nspinor,orbs%nkptsp,&
+        call unswitch_waves_v(nproc,orbs,&
              wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,work,outadd)
      else
-        call unswitch_waves_v(nproc,orbs%norbp,orbs%nspinor,orbs%nkptsp,&
+        call unswitch_waves_v(nproc,orbs,&
              wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,work,psi)
      end if
   else
@@ -378,151 +378,176 @@ subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
 end subroutine untranspose_v
 
 
-subroutine switch_waves_v(nproc,norbp,nspinor,nkptsp,nvctr,nvctr_par,psi,psiw)
+subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
   use module_base
+  use module_types
   implicit none
-  integer, intent(in) :: nproc,norbp,nvctr,nspinor,nkptsp
-  integer, dimension(nproc,nkptsp), intent(in) :: nvctr_par
-  real(wp), dimension(nvctr,nspinor,norbp), intent(in) :: psi
-  !real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(out) :: psiw
-  real(wp), dimension(nspinor*nvctr*norbp), intent(out) :: psiw
+  integer, intent(in) :: nproc,nvctr
+  type(orbitals_data), intent(in) :: orbs
+  integer, dimension(nproc,orbs%nkptsp), intent(in) :: nvctr_par
+  real(wp), dimension(nvctr,orbs%nspinor,orbs%norbp), intent(in) :: psi
+  real(wp), dimension(orbs%nspinor*nvctr*orbs%norbp), intent(out) :: psiw
   !local variables
   integer :: iorb,i,j,ij,ijproc,ind,it,it1,it2,it3,it4,ikptsp
+  integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt
 
-  do ikptsp=1,nkptsp
-     !TO BE COMPLETED EXTENSIVELY
-     if(nspinor==1) then
-        do iorb=1,norbp
+  isorb=orbs%isorb+1
+  isorbp=0
+  ikpt=orbs%iskpts+1
+  ispsi=0
+  do ikptsp=1,orbs%nkptsp
+     !calculate the number of orbitals belonging to k-point ikptstp
+     !calculate to which k-point it belongs
+     norbp_kpt=min(orbs%norb*ikpt,orbs%isorb+orbs%norbp)-isorb+1
+
+     if(orbs%nspinor==1) then
+        do iorb=1,norbp_kpt
            ij=1
            ijproc=0
            do j=1,nproc
-              ind=(iorb-1)*nspinor*nvctr_par(j,ikptsp)+ijproc*nspinor*norbp
+              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
+                   ispsi
               do i=1,nvctr_par(j,ikptsp)
                  it=ind+i
-                 psiw(it)=psi(ij,1,iorb)
-                 !psiw(i,iorb,j)=psi(ij,nspinor,iorb)
+                 psiw(it)=psi(ij,1,iorb+isorbp)
                  ij=ij+1
               enddo
               ijproc=ijproc+nvctr_par(j,ikptsp)
            enddo
         enddo
-     else if (nspinor == 2) then
-        do iorb=1,norbp
+     else if (orbs%nspinor == 2) then
+        do iorb=1,norbp_kpt
            ij=1
            ijproc=0
            do j=1,nproc
-              ind=(iorb-1)*nspinor*nvctr_par(j,ikptsp)+ijproc*nspinor*norbp
+              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
+                   ispsi
               do i=1,nvctr_par(j,ikptsp)
                  it1=ind+2*i-1
                  it2=ind+2*i
-                 psiw(it1)=psi(ij,1,iorb)
-                 psiw(it2)=psi(ij,2,iorb)
-!!$              psiw(2*i-1,iorb,j)=psi(ij,1,iorb)
-!!$              psiw(2*i,iorb,j)=psi(ij,2,iorb)
+                 psiw(it1)=psi(ij,1,iorb+isorbp)
+                 psiw(it2)=psi(ij,2,iorb+isorbp)
                  ij=ij+1
               enddo
               ijproc=ijproc+nvctr_par(j,ikptsp)
            enddo
         enddo
-     else if (nspinor == 4) then
-        do iorb=1,norbp
+     else if (orbs%nspinor == 4) then
+        do iorb=1,norbp_kpt
            ij=1
            ijproc=0
            do j=1,nproc
-              ind=(iorb-1)*nspinor*nvctr_par(j,ikptsp)+ijproc*nspinor*norbp
+              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
+                   ispsi
               do i=1,nvctr_par(j,ikptsp)
                  it1=ind+2*i-1
                  it2=ind+2*i
                  it3=ind+2*i+2*nvctr_par(j,ikptsp)-1
                  it4=ind+2*i+2*nvctr_par(j,ikptsp)
-                 psiw(it1)=psi(ij,1,iorb)
-                 psiw(it2)=psi(ij,2,iorb)
-                 psiw(it3)=psi(ij,3,iorb)
-                 psiw(it4)=psi(ij,4,iorb)
-!!$                 psiw(2*i-1,iorb,j)=psi(ij,1,iorb)
-!!$                 psiw(2*i,iorb,j)=psi(ij,2,iorb)
-!!$                 psiw(2*i+2*nvctrp-1,iorb,j)=psi(ij,3,iorb)
-!!$                 psiw(2*i+2*nvctrp,iorb,j)=psi(ij,4,iorb)
+                 psiw(it1)=psi(ij,1,iorb+isorbp)
+                 psiw(it2)=psi(ij,2,iorb+isorbp)
+                 psiw(it3)=psi(ij,3,iorb+isorbp)
+                 psiw(it4)=psi(ij,4,iorb+isorbp)
                  ij=ij+1
               enddo
               ijproc=ijproc+nvctr_par(j,ikptsp)
            enddo
         enddo
      end if
+     !update k-point
+     ikpt=ikpt+1
+     !update starting orbitals
+     isorb=isorb+norbp_kpt
+     isorbp=isorbp+norbp_kpt
+     !and starting point for psi
+     ispsi=ispsi+orbs%nspinor*nvctr*norbp_kpt
   end do
 end subroutine switch_waves_v
 
-subroutine unswitch_waves_v(nproc,norbp,nspinor,nkptsp,nvctr,nvctr_par,psiw,psi)
+subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
   use module_base
+  use module_types
   implicit none
-  integer, intent(in) :: nproc,norbp,nvctr,nspinor,nkptsp
-  integer, dimension(nproc,nkptsp), intent(in) :: nvctr_par
-  real(wp), dimension(nspinor*nvctr*norbp), intent(in) :: psiw
-  real(wp), dimension(nvctr,nspinor,norbp), intent(out) :: psi
+  integer, intent(in) :: nproc,nvctr
+  type(orbitals_data), intent(in) :: orbs
+  integer, dimension(nproc,orbs%nkptsp), intent(in) :: nvctr_par
+  real(wp), dimension(orbs%nspinor*nvctr*orbs%norbp), intent(in) :: psiw
+  real(wp), dimension(nvctr,orbs%nspinor,orbs%norbp), intent(out) :: psi
   !local variables
   integer :: iorb,i,j,ij,ijproc,ind,it,it1,it2,it3,it4,ikptsp
+  integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt
 
-  do ikptsp=1,nkptsp
-!!!TO BE COMPLETED EXTENSIVELY
-     if(nspinor==1) then
-        do iorb=1,norbp
+
+  isorb=orbs%isorb+1
+  isorbp=0
+  ikpt=orbs%iskpts+1
+  ispsi=0
+  do ikptsp=1,orbs%nkptsp
+     !calculate the number of orbitals belonging to k-point ikptstp
+     !calculate to which k-point it belongs
+     norbp_kpt=min(orbs%norb*ikpt,orbs%isorb+orbs%norbp)-isorb+1
+
+     if(orbs%nspinor==1) then
+        do iorb=1,norbp_kpt
            ij=1
            ijproc=0
            do j=1,nproc
-              ind=(iorb-1)*nspinor*nvctr_par(j,ikptsp)+ijproc*nspinor*norbp
+              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
+                   ispsi
               do i=1,nvctr_par(j,ikptsp)
                  it=ind+i
-                 psi(ij,nspinor,iorb)=psiw(it)
-                 !psi(ij,nspinor,iorb)=psiw(i,iorb,j)
+                 psi(ij,orbs%nspinor,iorb+isorbp)=psiw(it)
                  ij=ij+1
               end do
               ijproc=ijproc+nvctr_par(j,ikptsp)
            end do
         end do
-     else if (nspinor == 2) then
-        do iorb=1,norbp
+     else if (orbs%nspinor == 2) then
+        do iorb=1,norbp_kpt
            ij=1
            ijproc=0
            do j=1,nproc
-              ind=(iorb-1)*nspinor*nvctr_par(j,ikptsp)+ijproc*nspinor*norbp
+              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
+                   ispsi
               do i=1,nvctr_par(j,ikptsp)
                  it1=ind+2*i-1
                  it2=ind+2*i
-                 psi(ij,1,iorb)=psiw(it1)
-                 psi(ij,2,iorb)=psiw(it2)
-!!$              psi(ij,1,iorb)=psiw(2*i-1,iorb,j)
-!!$              psi(ij,2,iorb)=psiw(2*i,iorb,j)
+                 psi(ij,1,iorb+isorbp)=psiw(it1)
+                 psi(ij,2,iorb+isorbp)=psiw(it2)
                  ij=ij+1
               end do
               ijproc=ijproc+nvctr_par(j,ikptsp)
            end do
         end do
-     else if (nspinor == 4) then
-        do iorb=1,norbp
+     else if (orbs%nspinor == 4) then
+        do iorb=1,norbp_kpt
            ij=1
            ijproc=0
            do j=1,nproc
-              ind=(iorb-1)*nspinor*nvctr_par(j,ikptsp)+ijproc*nspinor*norbp
+              ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
+                   ispsi
               do i=1,nvctr_par(j,ikptsp)
                  it1=ind+2*i-1
                  it2=ind+2*i
                  it3=ind+2*i+2*nvctr_par(j,ikptsp)-1
                  it4=ind+2*i+2*nvctr_par(j,ikptsp)
-                 psi(ij,1,iorb)=psiw(it1)
-                 psi(ij,2,iorb)=psiw(it2)
-                 psi(ij,3,iorb)=psiw(it3)
-                 psi(ij,4,iorb)=psiw(it4)
-
-!!$              psi(ij,1,iorb)=psiw(2*i-1,iorb,j)
-!!$              psi(ij,2,iorb)=psiw(2*i,iorb,j)
-!!$              psi(ij,3,iorb)=psiw(2*i+2*nvctrp-1,iorb,j)
-!!$              psi(ij,4,iorb)=psiw(2*i+2*nvctrp,iorb,j)
+                 psi(ij,1,iorb+isorbp)=psiw(it1)
+                 psi(ij,2,iorb+isorbp)=psiw(it2)
+                 psi(ij,3,iorb+isorbp)=psiw(it3)
+                 psi(ij,4,iorb+isorbp)=psiw(it4)
                  ij=ij+1
               end do
               ijproc=ijproc+nvctr_par(j,ikptsp)
            end do
         end do
      end if
+     !update k-point
+     ikpt=ikpt+1
+     !update starting orbitals
+     isorb=isorb+norbp_kpt
+     isorbp=isorbp+norbp_kpt
+     !and starting point for psi
+     ispsi=ispsi+orbs%nspinor*nvctr*norbp_kpt
   end do
   
 end subroutine unswitch_waves_v

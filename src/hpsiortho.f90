@@ -199,20 +199,21 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   end if
 
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
-  call orthoconstraint_p(iproc,nproc,orbs%norbu,orbs%occup,comms%nvctr_par(iproc,1),psit,hpsi,&
-       scprsum,orbs%nspinor)
-  scprpart=0.0_dp
-  if(orbs%norbd > 0) then
-     scprpart=scprsum 
-     call orthoconstraint_p(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),comms%nvctr_par(iproc,1),&
-          psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),hpsi(1+comms%nvctr_par(iproc,1)*orbs%norbu),&
-          scprsum,orbs%nspinor)
-     scprsum=scprsum+scprpart
-  end if
+  call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,scprsum)
+
+!!$  call orthoconstraint_p(iproc,nproc,orbs%norbu,orbs%occup,comms%nvctr_par(iproc,1),psit,hpsi,&
+!!$       scprsum,orbs%nspinor)
+!!$  scprpart=0.0_dp
+!!$  if(orbs%norbd > 0) then
+!!$     scprpart=scprsum 
+!!$     call orthoconstraint_p(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),comms%nvctr_par(iproc,1),&
+!!$          psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),hpsi(1+comms%nvctr_par(iproc,1)*orbs%norbu),&
+!!$          scprsum,orbs%nspinor)
+!!$     scprsum=scprsum+scprpart
+!!$  end if
 
   !retranspose the hpsi wavefunction
-  call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,&
-       hpsi,work=psi)
+  call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
 
   call timing(iproc,'Precondition  ','ON')
   if (iproc==0 .and. verbose > 1) then
