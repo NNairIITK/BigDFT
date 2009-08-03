@@ -136,7 +136,7 @@ end subroutine call_bigdft
 !!
 !! FUNCTION
 !!  Main routine which does self-consistent loop.
-!!  Do not parse input file and no geometry optimization.
+!!  Does not parse input file and no geometry optimization.
 !!
 !! COPYRIGHT
 !! Copyright (C) 2005-2008 BigDFT group 
@@ -669,9 +669,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !the allocation with npsidim is not necessary here since DIIS arrays
   !are always calculated in the transpsed form
   if (idsx > 0) then
-     allocate(psidst(comms%nvctr_par(iproc,1)*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
+     allocate(psidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(comms%nvctr_par(iproc,1)*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
+     allocate(hpsidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,hpsidst,'hpsidst',subname)
      allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
      call memocc(i_stat,ads,'ads',subname)

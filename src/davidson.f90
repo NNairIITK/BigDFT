@@ -115,7 +115,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
 
   n2virt=2*orbsv%norb! the dimension of the subspace
 
-
   if (nproc == 1) then
    
   end if
