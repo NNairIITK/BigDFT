@@ -27,53 +27,57 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   real(dp) :: pc,pf1,pf2,pf3,pf4,pf5,pf6,pf7
   real(dp) :: scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7
 
-!!$omp parallel default(private) shared(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
-!!$    ithread=omp_get_thread_num()
-!!$    nthread=omp_get_num_threads()
-    scpr0=0.0_dp
-!!$  if (ithread .eq. 0) then
-  do i=1,mvctr_c
-     !scpr0=scpr0+psi_c(i)**2
-     pc=real(psi_c(i),dp)
-     scpr0=scpr0+pc**2
-  enddo
-!!$  endif
-  scpr1=0.0_dp
-  scpr2=0.0_dp
-  scpr3=0.0_dp
-  scpr4=0.0_dp
-  scpr5=0.0_dp
-  scpr6=0.0_dp
-  scpr7=0.0_dp
-!!$  if (ithread .eq. 1  .or. nthread .eq. 1) then
-  do i=1,mvctr_f
-!!$     scpr1=scpr1+psi_f(1,i)**2
-!!$     scpr2=scpr2+psi_f(2,i)**2
-!!$     scpr3=scpr3+psi_f(3,i)**2
-!!$     scpr4=scpr4+psi_f(4,i)**2
-!!$     scpr5=scpr5+psi_f(5,i)**2
-!!$     scpr6=scpr6+psi_f(6,i)**2
-!!$     scpr7=scpr7+psi_f(7,i)**2
-     pf1=real(psi_f(1,i),dp)
-     pf2=real(psi_f(2,i),dp)
-     pf3=real(psi_f(3,i),dp)
-     pf4=real(psi_f(4,i),dp)
-     pf5=real(psi_f(5,i),dp)
-     pf6=real(psi_f(6,i),dp)
-     pf7=real(psi_f(7,i),dp)
-     scpr1=scpr1+pf1**2
-     scpr2=scpr2+pf2**2
-     scpr3=scpr3+pf3**2
-     scpr4=scpr4+pf4**2
-     scpr5=scpr5+pf5**2
-     scpr6=scpr6+pf6**2
-     scpr7=scpr7+pf7**2
-  enddo
-!!$  endif
-!!$omp critical
-  scpr=scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
-!!$omp end critical
-!!$omp end parallel
+   scpr=0.0_dp
+!$omp parallel default(private) shared(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
+!$    ithread=omp_get_thread_num()
+!$    nthread=omp_get_num_threads()
+!$  if (ithread .eq. 0) then
+   scpr0=0.0_dp
+ do i=1,mvctr_c
+    !scpr0=scpr0+psi_c(i)**2
+    pc=real(psi_c(i),dp)
+    scpr0=scpr0+pc**2
+ enddo
+!$  endif
+!$  if (ithread .eq. 1  .or. nthread .eq. 1) then
+!$ scpr0=0.0_dp
+ scpr1=0.0_dp
+ scpr2=0.0_dp
+ scpr3=0.0_dp
+ scpr4=0.0_dp
+ scpr5=0.0_dp
+ scpr6=0.0_dp
+ scpr7=0.0_dp
+ do i=1,mvctr_f
+!$     scpr1=scpr1+psi_f(1,i)**2
+!$     scpr2=scpr2+psi_f(2,i)**2
+!$     scpr3=scpr3+psi_f(3,i)**2
+!$     scpr4=scpr4+psi_f(4,i)**2
+!$     scpr5=scpr5+psi_f(5,i)**2
+!$     scpr6=scpr6+psi_f(6,i)**2
+!$     scpr7=scpr7+psi_f(7,i)**2
+    pf1=real(psi_f(1,i),dp)
+    pf2=real(psi_f(2,i),dp)
+    pf3=real(psi_f(3,i),dp)
+    pf4=real(psi_f(4,i),dp)
+    pf5=real(psi_f(5,i),dp)
+    pf6=real(psi_f(6,i),dp)
+    pf7=real(psi_f(7,i),dp)
+    scpr1=scpr1+pf1**2
+    scpr2=scpr2+pf2**2
+    scpr3=scpr3+pf3**2
+    scpr4=scpr4+pf4**2
+    scpr5=scpr5+pf5**2
+    scpr6=scpr6+pf6**2
+    scpr7=scpr7+pf7**2
+ enddo
+ scpr0=scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
+!$  endif
+!$omp critical
+   scpr=scpr+scpr0
+!$omp end critical
+!$omp end parallel
+
 
 end subroutine wnrm
 
@@ -285,8 +289,8 @@ subroutine wpdot(  &
 !$omp shared (apsi_f,scpr)
 !$    ithread=omp_get_thread_num()
 !$    nthread=omp_get_num_threads()
-    scpr0=0.0_dp
 !$  if (ithread .eq. 0) then
+    scpr0=0.0_dp
   llc=0
   !coarse part
   ibseg=1
@@ -334,6 +338,8 @@ subroutine wpdot(  &
   !print *,'nvctr_c',llc,mavctr_c,mbvctr_c
 
 
+!$  if (ithread .eq. 1  .or. nthread .eq. 1) then
+!$  scpr0=0.0_dp
   scpr1=0.0_dp
   scpr2=0.0_dp
   scpr3=0.0_dp
@@ -341,7 +347,6 @@ subroutine wpdot(  &
   scpr5=0.0_dp
   scpr6=0.0_dp
   scpr7=0.0_dp
-!$  if (ithread .eq. 1  .or. nthread .eq. 1) then
   llf=0
   ! fine part
   !add possibility of zero fine segments for the projectors
@@ -402,12 +407,14 @@ subroutine wpdot(  &
         end do loop_jbf
      enddo loop_jaf
   end if
-
+ scpr0=scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
 !$  endif
   !print *,'nvctr_f',llf,mavctr_f,mbvctr_f
+
 !$omp critical 
-  scpr=scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
+   scpr=scpr+scpr0
 !$omp end critical
+
 !$omp end parallel
   !        write(*,*) 'llc,llf',llc,llf
   !  call system_clock(ncount2,ncount_rate,ncount_max)
