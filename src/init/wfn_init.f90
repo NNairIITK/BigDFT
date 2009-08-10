@@ -506,7 +506,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      ikpt=orbsu%iskpts+ikptp
      
      nvctrp=commu%nvctr_par(iproc,ikptp)
-     
+     print *,'iproc,ikpt:',iproc,ikpt,ispsie,ispsi,nvctrp
      if (.not. present(orbsv)) then
         call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
              natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,ikpt,1),psi(ispsie:),psit(ispsi:))
@@ -515,13 +515,15 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
              natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,ikpt,1),psi(ispsie:),psit(ispsi:),&
              orbsv%norb,psivirt(ispsiv:))
      end if
-
+     print *,'iproc,ikpt:',iproc,ikpt,ispsie,ispsi
      ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
      ispsie=ispsie+nvctrp*norbtot*orbs%nspinor
      ispsiv=ispsiv+nvctrp*orbsv%norb*orbs%nspinor
   end do
 
-  
+  call MPI_BARRIER(MPI_COMM_WORLD,i_stat)
+  print *,'iproc,end:',iproc
+  stop
   !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
      
   i_all=-product(shape(hamovr))*kind(hamovr)
@@ -907,6 +909,7 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
   !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
 
   !allocate the pointer for virtual orbitals
+  print *,i,ispin,'BBB'
   if(nspinor==1 .or. nspinor == 2 .or. nspinor == 4) then
      iorbst=1
      iorbst2=1
@@ -927,6 +930,7 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
            iorbst=iorbst+norbi
            iorbst2=iorbst2+norbi
            imatrst=imatrst+ncplx*norbi**2
+           print *,i,ispin,'AAA'
         end do
         norbi=norbsc_arr(natsc+1,ispin)
         if(ispin==1) norbj=norbu-norbsc
