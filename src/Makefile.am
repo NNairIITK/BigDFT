@@ -322,7 +322,7 @@ CLEANFILES = mpif.h \
 	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@
 
 #dependencies
-$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o : $(mpi_include)  $(modules_objects)
+$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
 
 cluster.o geometry.o: vdwcorrection.o
 

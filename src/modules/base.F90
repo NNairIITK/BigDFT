@@ -383,8 +383,13 @@ module module_base
       real(kind=8), intent(in) :: alpha
       real(kind=8), intent(in) :: a
       real(kind=8), intent(inout) :: b
-      !call to BLAS routine
-      call DTRMM(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
+      if (GPUblas) then
+         !call to CUBLAS routine
+         call cublas_DTRMM(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
+      else
+         !call to BLAS routine
+         call DTRMM(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
+      end if
     end subroutine trmm_double
 
     subroutine c_trmm_simple(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
@@ -487,9 +492,14 @@ module module_base
       real(kind=8), intent(in) :: dx,dy
       real(kind=8) :: dot_double
       !local variables
-      real(kind=8) :: ddot
-      !call to BLAS function
-      dot_double=ddot(n,dx,incx,dy,incy)
+      real(kind=8) :: cublas_ddot,ddot
+      if (GPUblas) then
+         !call to CUBLAS function
+         dot_double=cublas_ddot(n,dx,incx,dy,incy)
+      else
+         !call to BLAS function
+         dot_double=ddot(n,dx,incx,dy,incy)
+      end if
     end function dot_double
 
     !euclidean NoRM of a vector
@@ -515,9 +525,14 @@ module module_base
       real(kind=8), intent(in) :: x
       real(kind=8) :: nrm2_double
       !local variables
-      real(kind=8) :: dnrm2
-      !call to BLAS routine
-      nrm2_double=dnrm2(n,x,incx)
+      real(kind=8) :: cublas_dnrm2,dnrm2
+      if (GPUblas) then
+         !call to CUBLAS function
+         nrm2_double=cublas_dnrm2(n,x,incx)
+      else
+         !call to BLAS routine
+         nrm2_double=dnrm2(n,x,incx)
+      end if
     end function nrm2_double
 
     !GEneral Matrix-Matrix multiplication routines
@@ -570,6 +585,7 @@ module module_base
          call CGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
       end if
     end subroutine c_gemm_simple
+
     subroutine c_gemm_double(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
       implicit none
       character(len=1), intent(in) :: transa,transb

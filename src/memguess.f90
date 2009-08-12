@@ -307,19 +307,10 @@ program memguess
      nspinor=1
 
      call orbitals_descriptors(0,nproc,norb,norbu,norbd,nspinor,orbstst)
-     allocate(orbstst%occup(orbstst%norb+ndebug),stat=i_stat)
-     call memocc(i_stat,orbstst%occup,'orbstst%occup',subname)
-     allocate(orbstst%spinsgn(orbstst%norb+ndebug),stat=i_stat)
-     call memocc(i_stat,orbstst%spinsgn,'orbstst%spinsgn',subname)
      allocate(orbstst%eval(orbstst%norbp+ndebug),stat=i_stat)
      call memocc(i_stat,orbstst%eval,'orbstst%eval',subname)
      do iorb=1,orbstst%norbp
         orbstst%eval(iorb)=-0.5_gp
-     end do
-
-     do iorb=1,orbstst%norb
-        orbstst%occup(iorb)=1.0_gp
-        orbstst%spinsgn(iorb)=1.0_gp
      end do
 
      call createWavefunctionsDescriptors(0,hx,hy,hz,&
@@ -339,11 +330,9 @@ program memguess
      i_all=-product(shape(orbstst%occup))*kind(orbstst%occup)
      deallocate(orbstst%occup,stat=i_stat)
      call memocc(i_stat,i_all,'orbstst%occup',subname)
-
      i_all=-product(shape(orbstst%eval))*kind(orbstst%eval)
      deallocate(orbstst%eval,stat=i_stat)
      call memocc(i_stat,i_all,'orbstst%eval',subname)
-     i_all=-product(shape(orbstst%occup))*kind(orbstst%occup)
 
   end if
 

@@ -53,11 +53,6 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
   end if
 
-  allocate(orbs%occup(orbs%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%occup,'orbs%occup',subname)
-  allocate(orbs%spinsgn(orbs%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
-
   call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
        orbs%occup,orbs%spinsgn)
 
@@ -527,7 +522,6 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb
 
-
   !assign the value of the k-points
   orbs%nkpts=1
   !allocate vectors related to k-points
@@ -580,21 +574,27 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
 
   allocate(orbs%iokpt(orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
+
   !assign the k-point to the given orbital, counting one orbital after each other
   jorb=0
   do ikpt=1,orbs%nkpts
      do iorb=1,orbs%norb
-        jorb=jorb+1
+        jorb=jorb+1 !this runs over norb*nkpts values
         if (jorb > orbs%isorb .and. jorb <= orbs%isorb+orbs%norbp) then
            orbs%iokpt(jorb-orbs%isorb)=ikpt
         end if
      end do
   end do
 
-  !assign the number of k-points per processor
-  !the strategy for multiple k-points should be decided
-  !orbs%nkpts_par(:)=1
-  
+  !allocate occupation number and spinsign
+  !fill them in normal way
+  allocate(orbs%occup(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%occup,'orbs%occup',subname)
+  allocate(orbs%spinsgn(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
+  orbs%occup(1:orbs%norb*orbs%nkpts)=1.0_gp 
+  orbs%spinsgn(1:orbs%norb*orbs%nkpts)=1.0_gp
+
 
 end subroutine orbitals_descriptors
 !!***

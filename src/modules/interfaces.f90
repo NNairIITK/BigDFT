@@ -377,11 +377,12 @@ module module_interfaces
        integer, intent(in) :: iproc,nproc,natsc,nspin
        type(wavefunctions_descriptors), intent(in) :: wfd
        type(communications_arrays), target, intent(in) :: comms
-       type(orbitals_data), intent(inout) :: orbs
+       type(orbitals_data), target, intent(inout) :: orbs
        real(wp), dimension(:), pointer :: psi,hpsi,psit
        !optional arguments
        real(gp), optional, intent(in) :: etol
-       type(orbitals_data), optional, intent(in) :: orbse,orbsv
+       type(orbitals_data), optional, intent(in) :: orbsv
+       type(orbitals_data), optional, target, intent(in) :: orbse
        type(communications_arrays), optional, target, intent(in) :: commse
        integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
        real(wp), dimension(:), pointer, optional :: psivirt
@@ -521,7 +522,7 @@ module module_interfaces
        real(wp), dimension(nvctrp,norbe), intent(in) :: psi
        real(wp), dimension(nvctrp*nspinor,norb), intent(out) :: ppsit
        integer, intent(in), optional :: nvirte
-       real(wp), dimension(:), pointer, optional :: psivirt
+       real(wp), dimension(*), optional :: psivirt
      end subroutine build_eigenvectors
 
      subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
@@ -536,28 +537,30 @@ module module_interfaces
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp,orbs%nspinor), intent(inout) :: hpsi
      end subroutine preconditionall
 
-     subroutine transpose_v(iproc,nproc,norbp,nspinor,wfd,comms,psi,&
+     subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
           work,outadd) !optional
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,norbp,nspinor
+       integer, intent(in) :: iproc,nproc
+       type(orbitals_data), intent(in) :: orbs
        type(wavefunctions_descriptors), intent(in) :: wfd
        type(communications_arrays), intent(in) :: comms
-       real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
+       real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: psi
        real(wp), dimension(:), pointer, optional :: work
        real(wp), intent(out), optional :: outadd
      end subroutine transpose_v
 
-     subroutine untranspose_v(iproc,nproc,norbp,nspinor,wfd,comms,psi,&
+     subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
           work,outadd) !optional
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,norbp,nspinor
+       integer, intent(in) :: iproc,nproc
+       type(orbitals_data), intent(in) :: orbs
        type(wavefunctions_descriptors), intent(in) :: wfd
        type(communications_arrays), intent(in) :: comms
-       real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*nspinor*norbp), intent(inout) :: psi
+       real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: psi
        real(wp), dimension(:), pointer, optional :: work
        real(wp), intent(out), optional :: outadd
      end subroutine untranspose_v
@@ -732,6 +735,20 @@ module module_interfaces
        type(locreg_descriptors), intent(in) :: lr
        real(wp), dimension(*) :: psi
      end subroutine plot_wf_cube
+
+     subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alpha,&
+          hpsit,psidst,hpsidst,psit)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,nproc,ids,mids,idsx
+       real(gp), intent(in) :: energy,energy_old
+       type(orbitals_data), intent(in) :: orbs
+       type(communications_arrays), intent(in) :: comms
+       real(gp), intent(inout) :: alpha
+       real(wp), dimension(:), pointer :: psit,hpsit,psidst,hpsidst
+       real(wp), dimension(:,:,:), pointer :: ads
+     end subroutine psimix
 
   end interface
 

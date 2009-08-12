@@ -974,7 +974,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'Initial VSSD:fnrm= ',sqrt(fnrm)
            call  write_atomic_file('posout_'//fn4,etotold,wpos,at,trim(comment))
-           write(16,'(i5,1x,e12.5,1x,e21.14,a,e10.3)') itsd,sqrt(fnrm),etot,' GEOPT VSSD ',beta
+           write(16,'(1x,e12.5,1x,e21.14,a,e10.3)')sqrt(fnrm),etot,' GEOPT VSSD ',beta
            endif
 
         ncount_bigdft=ncount_bigdft+1
