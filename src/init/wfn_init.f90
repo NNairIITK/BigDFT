@@ -306,7 +306,8 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
   !performs some check of the arguments
   if (present(orbse) .neqv. present(commse)) then
-     if (iproc ==0) write(*,'(1x,a)')&
+     !if (iproc ==0) 
+           write(*,'(1x,a)')&
           'ERROR (DiagHam): the variables orbse and commse must be present at the same time'
      stop
   else
@@ -522,6 +523,12 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   end do
 
   !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
+
+  if(present(psivirt) .and. orbsv%norb == 0) then
+     i_all=-product(shape(psivirt))*kind(psivirt)
+     deallocate(psivirt,stat=i_stat)
+     call memocc(i_stat,i_all,'psivirt',subname)
+  end if
      
   i_all=-product(shape(hamovr))*kind(hamovr)
   deallocate(hamovr,stat=i_stat)

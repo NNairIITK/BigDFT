@@ -785,7 +785,8 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
               ipolres=ipolres-ipolorb
               !this check can be inserted also elsewhere
               if (ipolres < 0) then
-                 if(iproc==0) write(*,'(1x,4(a,i0))')&
+                 !if(iproc==0) 
+                       write(*,'(1x,4(a,i0))')&
                       'Too high polarisation for atom number= ',iat,&
                       ' Inserted=',modulo(at%natpol(iat),1000)-100,' Assigned=',ipolorb,&
                       ' the maximum is=',nint(shelloccup)
@@ -795,7 +796,8 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
            else
               !check for odd values of the occupation number
               if (mod(nint(shelloccup),2) /= 0) then
-                 if (iproc == 0) write(*,'(1x,a)')&
+                 !if (iproc == 0) 
+                       write(*,'(1x,a)')&
                       'The occupation number in the case of closed shells must be even'
                  stop
               end if

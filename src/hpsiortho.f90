@@ -452,18 +452,16 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
      call transpose_v(iproc,nproc,orbs,wfd,comms,psit)
   end if
 
-!!$  if(nspin==1.or.nspinor==4) then
-!!$     call KStrans_p(iproc,nproc,norb,nvctrp,occup,hpsi,psit,evsum,eval,nspinor)
-!!$  else
-  call KStrans_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),orbs%occup,hpsi,psit,&
-       evsum,orbs%eval,orbs%nspinor)
-  evpart=evsum
-  if(orbs%norbd > 0) then
-     call KStrans_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),orbs%occup(orbs%norbu+1),&
-          hpsi(1+comms%nvctr_par(iproc,1)*orbs%norbu),psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),&
-          evsum,orbs%eval(orbs%norbu+1),orbs%nspinor)
-     evsum=evsum+evpart
-  end if
+  call subspace_diagonalisation(iproc,nproc,orbs,comms,psit,hpsi,evsum)
+
+!!$  call KStrans_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),orbs%occup,hpsi,psit,&
+!!$       evsum,orbs%eval,orbs%nspinor)
+!!$  evpart=evsum
+!!$  if(orbs%norbd > 0) then
+!!$     call KStrans_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),orbs%occup(orbs%norbu+1),&
+!!$          hpsi(1+comms%nvctr_par(iproc,1)*orbs%norbu),psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),&
+!!$          evsum,orbs%eval(orbs%norbu+1),orbs%nspinor)
+!!$     evsum=evsum+evpart
 !!$  end if
 
   call untranspose_v(iproc,nproc,orbs,wfd,comms,&
@@ -886,7 +884,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      do ispinor=1,orbs%nspinor
         indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
         do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           vali=real(i,wp)*1.d-5
+           vali=real(i,wp)/512.d0  ! *1.d-5
            psi(i+indspin+indorb)=(valorb+vali)*(-1)**(ispinor-1)
         end do
      end do
@@ -908,12 +906,12 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
         indorb=(iorb-1)*(comms%nvctr_par(iproc,1))*orbs%nspinor
         do idsx=1,(orbs%nspinor-1)/2+1
            do i=1,comms%nvctr_par(iproc,1)
-              vali=real(i+iscomp,wp)*1.d-5
+           vali=real(i+iscomp,wp)/512.d0  ! *1.d-5
               do ispinor=1,((2+orbs%nspinor)/4+1)
                  psival=(-1)**(ispinor-1)*(valorb+vali)
-                 if (psival .lt. 0.d0) then  !this is just to force the IEEE representation of psival
-                    write(321,*) psival,psival**2
-                 endif
+!              if (psival .lt. 0.d0) then  !this is just to force the IEEE representation of psival
+!              write(321,*) psival,psival**2
+!              endif
                  index=ispinor+(i-1)*((2+orbs%nspinor)/4+1)+&
                       (idsx-1)*((2+orbs%nspinor)/4+1)*comms%nvctr_par(iproc,1)+indorb
                  maxdiff=max(abs(psi(index)-psival),maxdiff)
@@ -933,7 +931,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
         indorb=(iorb-1)*(comms%nvctr_par(iproc,1))*orbs%nspinor
         do idsx=1,(orbs%nspinor-1)/2+1
            do i=1,comms%nvctr_par(iproc,1)
-              vali=real(i+iscomp,wp)*1.d-5
+              vali=real(i+iscomp,wp)/512.d0  !*1.d-5
               do ispinor=1,((2+orbs%nspinor)/4+1)
                  psival=(-1)**(ispinor-1)*(valorb+vali)
                  index=ispinor+(i-1)*((2+orbs%nspinor)/4+1)+&
@@ -962,7 +960,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      do ispinor=1,orbs%nspinor
         indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
         do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           vali=real(i,wp)*1.d-5
+           vali=real(i,wp)/512.d0  !*1.d-5
            psival=(valorb+vali)*(-1)**(ispinor-1)
            maxdiff=max(abs(psi(i+indspin+indorb)-psival),maxdiff)
         end do
@@ -982,7 +980,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
         do ispinor=1,orbs%nspinor
            indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
            do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-              vali=real(i,wp)*1.d-5
+              vali=real(i,wp)/512.d0  !*1.d-5
               psival=(valorb+vali)*(-1)**(ispinor-1)
               maxdiff=abs(psi(i+indspin+indorb)-psival)
               write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i,iorb+orbs%isorb,psival,&

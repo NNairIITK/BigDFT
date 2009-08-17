@@ -51,7 +51,8 @@ subroutine transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
      !control check
      if (.not. present(work) .or. .not. associated(work) .or. &
           product(shape(work)) < nspinor*nvctrp*norbp*nproc) then
-        if(iproc == 0) write(*,'(1x,a)')&
+        !if(iproc == 0) 
+              write(*,'(1x,a)')&
              "ERROR: Unproper work array for transposing in parallel"
         stop
      end if
@@ -96,7 +97,8 @@ subroutine untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
      !control check
      if (.not. present(work) .or. .not. associated(work) .or. &
           product(shape(work)) < nspinor*nvctrp*norbp*nproc) then
-        if(iproc == 0) write(*,'(1x,a)')&
+        !if(iproc == 0) 
+              write(*,'(1x,a)')&
              "ERROR: Unproper work array for untransposing in parallel"
         stop
      end if
@@ -351,7 +353,8 @@ subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
   if (nproc > 1) then
      !control check
      if (.not. present(work) .or. .not. associated(work)) then
-        if(iproc == 0) write(*,'(1x,a)')&
+        !if(iproc == 0) 
+             write(*,'(1x,a)')&
              "ERROR: Unproper work array for untransposing in parallel"
         stop
      end if

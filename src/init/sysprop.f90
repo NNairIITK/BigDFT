@@ -118,7 +118,8 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
 
      inquire(file=filename,exist=exists)
      if (.not. exists) then
-        if (iproc == 0) write(*,'(1x,3a)')&
+        !if (iproc == 0) 
+            write(*,'(1x,3a)')&
              'ERROR: The pseudopotential parameter file "',trim(filename),&
              '" is lacking, exiting...'
         stop
@@ -171,10 +172,10 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
            end do
         end do prjloop
      else
-        if (iproc == 0) then
+        !if (iproc == 0) then
            write(*,'(1x,a,a)')trim(atoms%atomnames(ityp)),&
                 'unrecognized pspcode: only GTH, HGH & HGH-K pseudos (ABINIT format)'
-        end if
+        !end if
         stop
      end if
      !see whether the atom is semicore or not
@@ -192,14 +193,16 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
         if (atoms%iatype(iat) == ityp) then
            call charge_and_spol(atoms%natpol(iat),ichg,ispol)
            if (abs(ispol) > mxpl) then
-              if (iproc ==0) write(*,'(1x,a,i0,a,a,2(a,i0))')&
+              !if (iproc ==0) 
+                      write(*,'(1x,a,i0,a,a,2(a,i0))')&
                    'ERROR: Input polarisation of atom No.',iat,&
                    ' (',trim(atoms%atomnames(ityp)),') must be <=',mxpl,&
                    ', while found ',ispol
               stop
            end if
            if (abs(ichg) > mxchg) then
-              if (iproc ==0) write(*,'(1x,a,i0,a,a,2(a,i0))')&
+              !if (iproc ==0) 
+                   write(*,'(1x,a,i0,a,a,2(a,i0))')&
                    'ERROR: Input charge of atom No.',iat,&
                    ' (',trim(atoms%atomnames(ityp)),') must be <=',mxchg,&
                    ', while found ',ichg
@@ -403,24 +406,24 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
      end do
 
      if (in%nspin == 2 .and. ispinsum /= norbu-norbd) then
-        if (iproc==0) then 
+        !if (iproc==0) then 
            write(*,'(1x,a,i0,a)')&
                 'ERROR: Total input polarisation (found ',ispinsum,&
                 ') must be equal to norbu-norbd.'
            write(*,'(1x,3(a,i0))')&
                 'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
-        end if
+        !end if
         stop
      end if
 
      if (ichgsum /= in%ncharge .and. ichgsum /= 0) then
-        if (iproc==0) then 
+        !if (iproc==0) then 
            write(*,'(1x,a,i0,a)')&
                 'ERROR: Total input charge (found ',ichgsum,&
                 ') cannot be different than charge.'
            write(*,'(1x,2(a,i0))')&
                 'The charge is=',in%ncharge,' input charge=',ichgsum
-        end if
+        !end if
         stop
      end if
 
@@ -431,7 +434,8 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
         ispinsum=ispinsum+abs(ispol)
      end do
      if (ispinsum == 0 .and. in%nspin==2) then
-        if (iproc==0) write(*,'(1x,a)')&
+        !if (iproc==0) 
+            write(*,'(1x,a)')&
              'WARNING: Found no input polarisation, add it for a correct input guess'
         !stop
      end if
@@ -453,14 +457,16 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
         read(unit=iunit,fmt=*,iostat=ierror) ntu,ntd
      end if
      if (ierror /=0) then
-        if (iproc==0) write(*,'(1x,a)') &
+        !if (iproc==0) 
+          write(*,'(1x,a)') &
              'ERROR: reading the number of orbitals in the file "occup.dat"'
         stop
      end if
      !Check
      if (in%nspin==1) then
         if (nt<norb) then
-           if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
+           !if (iproc==0) 
+               write(*,'(1x,a,i0,a,i0)') &
                 'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
                 ' should be greater or equal than (nelec+1)/2=',norb
            stop
@@ -472,7 +478,8 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
      else
         nt=ntu+ntd
         if (nt<norb) then
-           if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
+           !if (iproc==0) 
+               write(*,'(1x,a,i0,a,i0)') &
                 'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
                 ' should be greater or equal than nelec=',norb
            stop
@@ -480,7 +487,8 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
            norb=nt
         end if
         if (ntu<norbu) then
-           if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
+           !if (iproc==0) 
+                write(*,'(1x,a,i0,a,i0)') &
                 'ERROR: In the file "occup.dat", the number of orbitals up norbu=',ntu,&
                 ' should be greater or equal than min(nelec/2+mpol,nelec)=',norbu
            stop
@@ -488,7 +496,8 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
            norbu=ntu
         end if
         if (ntd<norbd) then
-           if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
+           !if (iproc==0) 
+                  write(*,'(1x,a,i0,a,i0)') &
                 'ERROR: In the file "occup.dat", the number of orbitals down norbd=',ntd,&
                 ' should be greater or equal than min(nelec/2-mpol,0)=',norbd
            stop
@@ -661,16 +670,16 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
         else
            nt=nt+1
            if (iorb<0 .or. iorb>norb) then
-              if (iproc==0) then
+              !if (iproc==0) then
                  write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
                  write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
-              end if
+              !end if
               stop
            elseif (rocc<0._gp .or. rocc>2._gp) then
-              if (iproc==0) then
+              !if (iproc==0) then
                  write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
                  write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
-              end if
+              !end if
               stop
            else
               occup(iorb)=rocc
@@ -685,10 +694,10 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
      !Check if sum(occup)=nelec
      rocc=sum(occup)
      if (abs(rocc-real(nelec,gp))>1.e-6_gp) then
-        if (iproc==0) then
+        !if (iproc==0) then
            write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the total number of electrons ',rocc,&
                           ' is not equal to ',nelec
-        end if
+        !end if
         stop
      end if
      if (nspin/=1) then

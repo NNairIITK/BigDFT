@@ -115,7 +115,7 @@
 
         if (nproc > 1) call MPI_FINALIZE(ierr)
 
-        stop
+        stop 'normal end'
      else
         exit loop_cluster
      end if
@@ -608,10 +608,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      if (gbd%nat == atoms%nat) then
         gbd%rxyz=>rxyz
      else
-        if (iproc == 0) then
+!        if (iproc == 0) then
            write( *,*)&
                 ' ERROR: the atom number does not coincide with the number of gaussian centers'
-        end if
+!        end if
         stop
      end if
  
@@ -622,11 +622,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   else
 
-     if (iproc == 0) then
+!     if (iproc == 0) then
         write( *,'(1x,a)')'ERROR:values of inputPsiId must be integers from -2 to  2'
         write( *,'(1x,a)')'                                         or from 10 to 12'
         write( *,'(1x,a,i0)')'                               while we found',in%inputPsiId
-     end if
+!     end if
      stop
 
   end if
@@ -650,7 +650,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,i_all,'Gabs_coeffs',subname)
 
 
-     stop
+     stop  'absorber'
 
   endif
 
@@ -1312,9 +1312,9 @@ contains
     end if
     !deallocate wavefunction for virtual orbitals
     !if it is the case
-    if (in%nvirt > 0 .or. associated(psivirt)) then
+    if (in%nvirt > 0) then
        i_all=-product(shape(psivirt))*kind(psivirt)
-       deallocate(psivirt)
+       deallocate(psivirt,stat=i_stat)
        call memocc(i_stat,i_all,'psivirt',subname)
     end if
 

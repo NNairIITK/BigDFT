@@ -162,9 +162,9 @@ subroutine dft_input_variables(iproc,filename,in)
   !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
   !systems, while in principle it should work immediately
   if (in%nspin/=1 .and. in%nvirt/=0) then
-     if (iproc==0) then
+     !if (iproc==0) then
         write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
-     end if
+     !end if
      stop
   end if
  
@@ -183,7 +183,8 @@ subroutine dft_input_variables(iproc,filename,in)
   else if (in%nspin==1) then
      if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation:  NO '
   else
-     if (iproc == 0) write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
+     !if (iproc == 0) 
+     write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
      stop
   end if
 
@@ -192,7 +193,8 @@ contains
   subroutine check()
     iline=iline+1
     if (ierror/=0) then
-       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+       !if (iproc == 0) 
+             write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
@@ -275,7 +277,8 @@ contains
   subroutine check()
     iline=iline+1
     if (ierror/=0) then
-       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
@@ -423,7 +426,7 @@ subroutine read_input_variables(iproc,filename,in)
    ! GPUshare=.false.
   !   call init_gpu_sharing(initerror) !to fix the number of gpu and mpi tasks per node, we have to fil the inter_node.config file
      if (initerror == 1) then
-        stop
+        stop 'call init_gpu_sharing'
      end if
     ! GPUshare=.true.
      if (iconv == 0) then
@@ -538,9 +541,9 @@ subroutine read_input_variables(iproc,filename,in)
   !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
   !systems
   if (in%nspin/=1 .and. in%nvirt/=0) then
-     if (iproc==0) then
+     !if (iproc==0) then
         write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
-     end if
+     !end if
      stop
   end if
  
@@ -568,7 +571,8 @@ subroutine read_input_variables(iproc,filename,in)
      else if (in%nspin==1) then
         if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation:  NO '
      else
-        if (iproc == 0) write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
+        !if (iproc == 0) 
+        write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
         stop
      end if
 
@@ -577,7 +581,8 @@ contains
   subroutine check()
     iline=iline+1
     if (ierror/=0) then
-       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
@@ -970,7 +975,7 @@ subroutine check_atoms_positions(iproc,atoms,rxyz)
         write(*,'(1x,a)')' done.'
         write(*,'(1x,a)')' Replace ??? in the file heading with the actual atoms number'               
      end if
-     stop
+     stop 'check_atoms_positions'
   end if
 end subroutine check_atoms_positions
 !!***
@@ -1088,12 +1093,12 @@ subroutine parse_extra_info(iproc,iat,extra,atoms)
 contains
 
  subroutine error
-   if (iproc == 0) then
+   !if (iproc == 0) then
       print *,extra
       write(*,'(1x,a,i0,a)')&
            'ERROR in input file for atom number ',iat,&
            ': after 4th column you can put the input polarisation(s) or the frzchain: f,fxz,fy'
-   end if
+   !end if
    stop
  end subroutine error
   
@@ -1138,14 +1143,16 @@ subroutine read_atomic_ascii(iproc,ifile,atoms,rxyz)
      end if
      nlines = nlines + 1
      if (nlines > 5000) then
-        if (iproc==0) write(*,*) 'Atomic input file too long (> 5000 lines).'
+        !if (iproc==0) 
+        write(*,*) 'Atomic input file too long (> 5000 lines).'
         stop 
      end if
   end do
   nlines = nlines - 1
 
   if (nlines < 4) then
-     if (iproc==0) write(*,*) 'Error in ASCII file format, file has less than 4 lines.'
+     !if (iproc==0) 
+      write(*,*) 'Error in ASCII file format, file has less than 4 lines.'
      stop 
   end if
 
@@ -1204,7 +1211,8 @@ subroutine read_atomic_ascii(iproc,ifile,atoms,rxyz)
      read(lines(2),*) alat1d0,alat2d0,alat3d0
      read(lines(3),*) alat4d0,alat5d0,alat6d0
      if (alat2d0 /= 0.d0 .or. alat4d0 /= 0.d0 .or. alat5d0 /= 0.d0) then
-        if (iproc==0) write(*,*) 'Only orthorombic boxes are possible.'
+        !if (iproc==0) 
+        write(*,*) 'Only orthorombic boxes are possible.'
         stop 
      end if
      atoms%alat1 = real(alat1d0,gp)
@@ -1214,8 +1222,10 @@ subroutine read_atomic_ascii(iproc,ifile,atoms,rxyz)
      read(lines(2),*) alat1,alat2,alat3
      read(lines(3),*) alat4,alat5,alat6
      if (alat2 /= 0. .or. alat4 /= 0. .or. alat5 /= 0.) then
-        if (iproc==0) write(*,*) 'Only orthorombic boxes are possible.'
-        if (iproc==0) write(*,*) ' but alat2, alat4 and alat5 = ', alat2, alat4, alat5
+        !if (iproc==0) 
+           write(*,*) 'Only orthorombic boxes are possible.'
+        !if (iproc==0) 
+           write(*,*) ' but alat2, alat4 and alat5 = ', alat2, alat4, alat5
         stop 
      end if
      atoms%alat1 = real(alat1,gp)
