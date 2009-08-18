@@ -529,7 +529,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   type(orbitals_data), intent(out) :: orbs
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb
+  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all
+  logical, dimension(:), allocatable :: GPU_for_orbs
 
   !assign the value of the k-points
   orbs%nkpts=1
@@ -551,12 +552,33 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
      orbs%norb_par(jproc)=0 !size 0 nproc-1
   end do
 
+
+  !create an array which indicate which processor has a GPU associated 
+  !from the viewpoint of the BLAS routines
+  allocate(GPU_for_orbs(0:nproc-1+ndebug),stat=i_stat)
+  call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
+
+  if (nproc > 1) then
+     call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(iproc),1,MPI_LOGICAL,&
+          MPI_COMM_WORLD,ierr)
+  else
+     GPU_for_orbs(0)=GPUblas
+  end if
+
+  print *,'iproc,GPU_for_comp:',iproc,GPU_for_orbs,GPUconv
+
+
   !cubic-code strategy: balance the orbitals between processors
   !in the most symmetric way
   do iorb=1,norb*orbs%nkpts
      jproc=mod(iorb-1,nproc)
      orbs%norb_par(jproc)=orbs%norb_par(jproc)+1
   end do
+
+  i_all=-product(shape(GPU_for_orbs))*kind(GPU_for_orbs)
+  deallocate(GPU_for_orbs,stat=i_stat)
+  call memocc(i_stat,i_all,'GPU_for_orbs',subname)
+
 
   !check the distribution
   norb_tot=0

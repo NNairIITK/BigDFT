@@ -26,11 +26,11 @@
 
 
 
-#include "check_card/checker.h"
 
 
 
-void local_network::init(const manage_cpu_affinity& mca,const set_repartition* set_r,int _iproc) throw (inter_node_communication_error,check_calc_error)
+
+void local_network::init(manage_cpu_affinity& mca,const set_repartition* set_r,int _iproc) throw (inter_node_communication_error,check_calc_error)
 {
   iproc = _iproc;
   man_gpu = NULL;
@@ -147,8 +147,10 @@ void local_network::init(const manage_cpu_affinity& mca,const set_repartition* s
       toaddr.sun_family = AF_UNIX;
       strncpy(toaddr.sun_path, to_sock_path,SIZE_NAME);
       
+      //set repartition (static, shared...)
+      set_r->do_repartition(currNum,&currGPU);
 
-      ///set here !!TODOOO
+
       //create numGPU semaphore (only the process 0)
 
       if(currNum == 0)
@@ -196,17 +198,7 @@ void local_network::init(const manage_cpu_affinity& mca,const set_repartition* s
 
       mca.set_affinity(currNum);
 
-
-      //set repartition (static, shared...)
-      set_r->do_repartition(currNum);
-
-
-      //check the card precision, in order to detect error
-      //call a fortran function in check_card/check_init.f90
-      if(iproc == 0)
-	std::cout << "Check card on all nodes...." << std::endl;
-
-      checker::runTestOne();
+ 
       
     }
   catch(...)
@@ -657,6 +649,8 @@ void sem_unix::P() throw (synchronization_error)
   sempar.sem_flg = SEM_UNDO;
   if(semop (semid , &sempar , 1) < 0)
     {
+            perror("semop P()");
+            std::cerr << "sem-num " << currGPU << std::endl;
       throw synchronization_error("Semop P() error");
     }
 

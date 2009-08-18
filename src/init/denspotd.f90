@@ -59,7 +59,8 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   !local variables
   character(len=*), parameter :: subname='orbitals_communicators'
   integer :: jproc,i,nvctr_tot,j,ikpts,iorbp,iorb,jorb,norb_tot,ikpt,i_stat,i_all
-  integer :: ncomp_res,iskpts,nkptsp
+  integer :: ncomp_res,iskpts,nkptsp,ierr
+  logical, dimension(:), allocatable :: GPU_for_comp
   integer, dimension(:,:), allocatable :: nvctr_par,norb_par !for all the components and orbitals (with k-pts)
   
 
@@ -93,6 +94,21 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   !balance the components between processors
   !in the most symmetric way
   !here the components are taken into account for all the k-points
+
+  !create an array which indicate which processor has a GPU associated 
+  !from the viewpoint of the BLAS routines
+  allocate(GPU_for_comp(0:nproc-1+ndebug),stat=i_stat)
+  call memocc(i_stat,GPU_for_comp,'GPU_for_comp',subname)
+
+  if (nproc > 1) then
+     call MPI_ALLGATHER(GPUblas,1,MPI_LOGICAL,GPU_for_comp(iproc),1,MPI_LOGICAL,&
+          MPI_COMM_WORLD,ierr)
+  else
+     GPU_for_comp(0)=GPUblas
+  end if
+
+  print *,'iproc,GPU_for_comp:',iproc,GPU_for_comp,GPUblas
+
   i=1
   j=1
   loop_components: do 
@@ -104,6 +120,12 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      if (j > (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nkpts) exit loop_components
      i=i+1
   end do loop_components
+
+
+  i_all=-product(shape(GPU_for_comp))*kind(GPU_for_comp)
+  deallocate(GPU_for_comp,stat=i_stat)
+  call memocc(i_stat,i_all,'GPU_for_comp',subname)
+
 
   ikpts=1
   ncomp_res=(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
