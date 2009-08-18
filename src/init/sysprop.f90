@@ -559,13 +559,13 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
 
   if (nproc > 1) then
-     call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(iproc),1,MPI_LOGICAL,&
+     call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
           MPI_COMM_WORLD,ierr)
   else
      GPU_for_orbs(0)=GPUblas
   end if
 
-  print *,'iproc,GPU_for_comp:',iproc,GPU_for_orbs,GPUconv
+  print *,'iproc,GPU_for_orbs:',iproc,GPU_for_orbs,GPUconv
 
 
   !cubic-code strategy: balance the orbitals between processors

@@ -101,7 +101,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   call memocc(i_stat,GPU_for_comp,'GPU_for_comp',subname)
 
   if (nproc > 1) then
-     call MPI_ALLGATHER(GPUblas,1,MPI_LOGICAL,GPU_for_comp(iproc),1,MPI_LOGICAL,&
+     call MPI_ALLGATHER(GPUblas,1,MPI_LOGICAL,GPU_for_comp(0),1,MPI_LOGICAL,&
           MPI_COMM_WORLD,ierr)
   else
      GPU_for_comp(0)=GPUblas

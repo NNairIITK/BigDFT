@@ -56,14 +56,15 @@ void init_lib__(int *iproc,int *error, int *iconv, int *iblas, bool *GPUshare)
 
       int mpi_tasks_per_node,num_GPU;
       int use_shared;
+      int iconv_param,iblas_param;
 
       //read file
 
       read_conf.get("MPI_TASKS_PER_NODE",&mpi_tasks_per_node);
       read_conf.get("NUM_GPU",&num_GPU);
       read_conf.get("USE_SHARED",&use_shared);
-      read_conf.get("USE_GPU_BLAS",iblas);
-      read_conf.get("USE_GPU_CONV",iconv);
+      read_conf.get("USE_GPU_BLAS",&iblas_param);
+      read_conf.get("USE_GPU_CONV",&iconv_param);
 
 
       manage_cpu_affinity mca(*iproc);
@@ -112,16 +113,14 @@ void init_lib__(int *iproc,int *error, int *iconv, int *iblas, bool *GPUshare)
 	{
 	  //check the card precision, in order to detect error
 	  //call a fortran function in check_card/check_init.f90
-
-	
-
-	  
-	  checker::runTestOne(); //check only if the card has GPU...
+	  checker::runTestOne(); //check only if the card has one GPU...
 
 
-	  std::cout << "GPU enabled for this process " << *iproc << std::endl;
-	  *iconv = 1;
-	  *iblas = 1;
+	  if(iconv_param == 1)
+	    *iconv = 1;
+
+	  if(iblas_param == 1)
+	    *iblas = 1;
 
 	}
 
@@ -197,6 +196,14 @@ void init_lib__(int *iproc,int *error, int *iconv, int *iblas, bool *GPUshare)
   ostr << "trace_" << *iproc;
   tracer = new trace_exec(ostr.str(),false);
 }
+
+
+extern "C"
+void gpu_attached__(int *is_attached)
+{
+  *is_attached = g_gpu_attach->getIsAttached();
+}
+
 
 
 extern "C" 
