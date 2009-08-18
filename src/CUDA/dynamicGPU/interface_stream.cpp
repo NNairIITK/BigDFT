@@ -198,6 +198,14 @@ void init_lib__(int *iproc,int *error, int *iconv, int *iblas, bool *GPUshare)
 }
 
 
+extern "C"
+void gpu_attached__(int *is_attached)
+{
+  *is_attached = g_gpu_attach->getIsAttached();
+}
+
+
+
 extern "C" 
 void stop_gpu_sharing__()
 {
