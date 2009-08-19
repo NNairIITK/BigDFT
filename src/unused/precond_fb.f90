@@ -1,31 +1,28 @@
-
-        subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
                    hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,cprec,logrid_c,logrid_f,hpsi)
 ! Calls the preconditioner for each orbital treated by the processor
-        implicit real(kind=8) (a-h,o-z)
-        dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-        dimension hpsi(nvctr_c+7*nvctr_f,norbp)
+  implicit real(kind=8) (a-h,o-z)
+  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
+  dimension hpsi(nvctr_c+7*nvctr_f,norbp)
 
-       call cpu_time(tr0)
-       call system_clock(ncount1,ncount_rate,ncount_max)
+  call cpu_time(tr0)
+  call system_clock(ncount1,ncount_rate,ncount_max)
 
-     do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-      cr=-cprec
-      call precondition(cr,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,&
-                        nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
-                        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),&
-                        hpsi(1,iorb-iproc*norbp),hpsi(nvctr_c+1,iorb-iproc*norbp),IORB)
+  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+     cr=-cprec
+     call precondition(cr,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,&
+                   nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
+                   nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),&
+                   hpsi(1,iorb-iproc*norbp),hpsi(nvctr_c+1,iorb-iproc*norbp),IORB)
 
-      enddo
+  enddo
 
-       call cpu_time(tr1)
-       call system_clock(ncount2,ncount_rate,ncount_max)
-       tel=dble(ncount2-ncount1)/dble(ncount_rate)
-       write(77,'(a40,i4,2(1x,e10.3))') 'PRECONDITIONING TIME',iproc,tr1-tr0,tel
+  call cpu_time(tr1)
+  call system_clock(ncount2,ncount_rate,ncount_max)
+  tel=dble(ncount2-ncount1)/dble(ncount_rate)
+  write(77,'(a40,i4,2(1x,e10.3))') 'PRECONDITIONING TIME',iproc,tr1-tr0,tel
 
-
-      return
-      end
+end preconditionall
 
 
 

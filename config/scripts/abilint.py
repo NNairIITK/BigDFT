@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 17/07/2009
+# Date: 17/08/2009
 #--------------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -2924,6 +2924,9 @@ class Execution(Code):
             undeclared.sort()
             self.message.section("%s/%s:%s\nUndeclared variables: %s\n" % \
                 (self.parent.dir,self.parent.file,self.parent.name,undeclared))
+            for var in dict_vars.values():
+                var.display_information()
+            sys.exit(1)
             line = ""
             implicit = ""
             #Build the declaration
