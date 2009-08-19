@@ -65,7 +65,8 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   !read the information from a file
   inquire(file=filename,exist=exists)
   if (.not. exists) then
-     if (iproc == 0) write(*,'(1x,3a)')&
+     !if (iproc == 0) 
+           write(*,'(1x,3a)')&
           'ERROR: The gaussian wavefunctions file "',trim(filename),'" is lacking, exiting...'
      stop
   end if

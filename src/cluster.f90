@@ -115,7 +115,7 @@
 
         if (nproc > 1) call MPI_FINALIZE(ierr)
 
-        stop
+        stop 'normal end'
      else
         exit loop_cluster
      end if
@@ -136,7 +136,7 @@ end subroutine call_bigdft
 !!
 !! FUNCTION
 !!  Main routine which does self-consistent loop.
-!!  Do not parse input file and no geometry optimization.
+!!  Does not parse input file and no geometry optimization.
 !!
 !! COPYRIGHT
 !! Copyright (C) 2005-2008 BigDFT group 
@@ -402,7 +402,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
 
   !allocate communications arrays
-  call allocate_comms(nproc,comms,subname)
+  !call allocate_comms(nproc,orbs,comms,subname)
   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
   !these arrays should be included in the comms descriptor
@@ -458,6 +458,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !check the communication distribution
   call check_communications(iproc,nproc,orbs,Glr,comms)
+
 
   !avoid allocation of the eigenvalues array in case of restart
   if (in%inputPsiId /= 1 .and. in%inputPsiId /= 11) then
@@ -607,10 +608,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      if (gbd%nat == atoms%nat) then
         gbd%rxyz=>rxyz
      else
-        if (iproc == 0) then
+!        if (iproc == 0) then
            write( *,*)&
                 ' ERROR: the atom number does not coincide with the number of gaussian centers'
-        end if
+!        end if
         stop
      end if
  
@@ -621,11 +622,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   else
 
-     if (iproc == 0) then
+!     if (iproc == 0) then
         write( *,'(1x,a)')'ERROR:values of inputPsiId must be integers from -2 to  2'
         write( *,'(1x,a)')'                                         or from 10 to 12'
         write( *,'(1x,a,i0)')'                               while we found',in%inputPsiId
-     end if
+!     end if
      stop
 
   end if
@@ -649,7 +650,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,i_all,'Gabs_coeffs',subname)
 
 
-     stop
+     stop  'absorber'
 
   endif
 
@@ -668,9 +669,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !the allocation with npsidim is not necessary here since DIIS arrays
   !are always calculated in the transpsed form
   if (idsx > 0) then
-     allocate(psidst(comms%nvctr_par(iproc)*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
+     allocate(psidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(comms%nvctr_par(iproc)*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
+     allocate(hpsidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,hpsidst,'hpsidst',subname)
      allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
      call memocc(i_stat,ads,'ads',subname)
@@ -1310,9 +1311,10 @@ contains
 
     end if
     !deallocate wavefunction for virtual orbitals
+    !if it is the case
     if (in%nvirt > 0) then
        i_all=-product(shape(psivirt))*kind(psivirt)
-       deallocate(psivirt)
+       deallocate(psivirt,stat=i_stat)
        call memocc(i_stat,i_all,'psivirt',subname)
     end if
 

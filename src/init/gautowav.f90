@@ -324,7 +324,8 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
               jbas=1
               ishell=ishell+1
               if (ishell > nshell(iatype(iat))) then
-                 if (iproc==0) write(*,'(1x,a,i0,a)')&
+                 !if (iproc==0) 
+                    write(*,'(1x,a,i0,a)')&
                       'Problem in the gaucoeff.dat file, the number of shells of atom ',iat ,&
                       ' is incoherent'
                  stop
@@ -353,7 +354,8 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
            read(line,*)nst
            nend=nst+ipar-1
            if (jat/=nat) then
-              if (iproc==0)write(*,'(1x,a,i0,a)')&
+              !if (iproc==0)
+                    write(*,'(1x,a,i0,a)')&
                    'Problem in the gaucoeff.dat file, only ',iat ,' atoms processed'
               stop
            else
@@ -1014,7 +1016,8 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
               jbas=1
               ishell=ishell+1
               if (ishell > nshell(iatype(iat))) then
-                 if (iproc==0) write(*,'(1x,a,i0,a)')&
+                 !if (iproc==0) 
+                  write(*,'(1x,a,i0,a)')&
                       'Problem in the gaucoeff.dat file, the number of shells of atom ',iat ,&
                       ' is incoherent'
                  stop
@@ -1043,7 +1046,8 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
            read(line,*)nst
            nend=nst+ipar-1
            if (jat/=nat) then
-              if (iproc==0)write(*,'(1x,a,i0,a)')&
+              !if (iproc==0) 
+                   write(*,'(1x,a,i0,a)')&
                    'Problem in the gaucoeff.dat file, only ',iat ,' atoms processed'
               stop
            else

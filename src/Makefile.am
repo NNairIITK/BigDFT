@@ -322,7 +322,7 @@ CLEANFILES = mpif.h \
 	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@
 
 #dependencies
-$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o : $(mpi_include)  $(modules_objects)
+$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
 
 cluster.o geometry.o: vdwcorrection.o
 
@@ -337,7 +337,7 @@ lanczos.o : lanczos_base.o lanczos_interface.o
 mpif.h:
 	touch mpif.h &&\
 	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
-	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1, MPI_LOGICAL=1" >> mpif.h &&\
 	 echo "integer :: MPI_STATUSES_IGNORE" >> mpif.h &&\
 	 echo "integer :: MPI_MIN, MPI_MAX,MPI_CHARACTER" >> mpif.h
 

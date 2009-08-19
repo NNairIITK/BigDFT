@@ -12,9 +12,8 @@
 !!
 program MINHOP
 
-  use module_base
-  use module_types
-  use module_interfaces
+  !this will include also mpif.h
+  use BigDFT_API
 
   implicit real(kind=8) (a-h,o-z)
   real(kind=4) :: tts
@@ -375,7 +374,7 @@ program MINHOP
      !1000 continue
      irestart=0! we can restart from a local minimum
      rewind(111)
-     write(111,*)'*** process monitor file for nlmin',nlim
+     write(111,*)'*** process monitor file for nlmin',nlmin
      ! check whether other processes send local minima data
      if (nlmin >= nlminx) then 
         write(67,*)iproc,'has  nlminx collected',nlmin

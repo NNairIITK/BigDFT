@@ -10,8 +10,7 @@ public:
   set_repartition(int numActors,int numGPU,int iproc_,global_gpu_attach* gga_)
     :NUM_ACTORS(numActors),NUM_GPU(numGPU),iproc(iproc_),gga(gga_){}
 
-  virtual void do_repartition(int currNum) const = 0;
-
+  virtual void do_repartition(int currNum,int *connectedGPU) const = 0;
 protected:
 
   const int NUM_ACTORS;
@@ -28,7 +27,7 @@ public:
   set_repartition_shared(int numActors,int numGPU,int iproc,global_gpu_attach* gga_)
     :set_repartition(numActors,numGPU,iproc,gga_){}
 
-  virtual void do_repartition(int currNum) const;
+  virtual void do_repartition(int currNum,int *connectedGPU) const;
 };
 
 class set_repartition_static : public set_repartition
@@ -39,7 +38,7 @@ public:
     :set_repartition(numActors,numGPU,iproc,gga_)
   {}
 
-  virtual void do_repartition(int currNum) const;
+  virtual void do_repartition(int currNum,int *connectedGPU) const;
 
 
 };

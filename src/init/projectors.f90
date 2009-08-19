@@ -333,7 +333,7 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
              & proj(istart_f),scpr)
         if (abs(1.d0-scpr) > 1.d-2) then
            if (abs(1.d0-scpr) > 1.d-1) then
-              if (iproc == 0) then
+              !if (iproc == 0) then
                  write(*,'(1x,a)')'error found!'
                  write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
                       'The norm of the nonlocal PSP for atom n=',iat,&
@@ -341,7 +341,7 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
                       ') labeled by l=',l,' m=',m,' is ',scpr
                  write(*,'(1x,a)')&
                       'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
-              end if
+              !end if
               stop
            else
 !!$              write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&

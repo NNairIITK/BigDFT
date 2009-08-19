@@ -4,12 +4,12 @@
 #include "set_repartition.h"
 #include "cudafct.h"
 
-void set_repartition_shared::do_repartition(int currNum) const
+void set_repartition_shared::do_repartition(int currNum,int *connectedGPU) const
 {
 
   if(iproc == 0)
     std::cout << "shared repartition" << std::endl;
-  int currGPU;
+//  int currGPU;
 
   //compute which card has each participant
   std::vector<int> tab(NUM_ACTORS,0);
@@ -36,15 +36,15 @@ void set_repartition_shared::do_repartition(int currNum) const
   
 	
 
- currGPU = tab.at(currNum);
- c_cuda_setdevice(currGPU);
+  *connectedGPU = tab.at(currNum);
+  c_cuda_setdevice(*connectedGPU);
 
 
- gga->setIsAttached(true);
- //set GPU
+  gga->setIsAttached(true);
+  //set GPU
 
 }
-void set_repartition_static::do_repartition(int currNum) const
+void set_repartition_static::do_repartition(int currNum,int *connectedGPU) const 
 {
   if(iproc == 0)
     std::cout << "static repartition" << std::endl;
@@ -57,5 +57,6 @@ void set_repartition_static::do_repartition(int currNum) const
      c_cuda_setdevice(currNum);
 
      gga->setIsAttached(true);
+     *connectedGPU = currNum;
     }
 }

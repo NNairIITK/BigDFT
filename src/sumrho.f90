@@ -514,6 +514,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
 
               call partial_density(rsflag,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,npsir,nspinn,nrhotot,&
                    hfac,nscatterarr,spinval,psir,rho_p)
+
            end select
 
         end do
