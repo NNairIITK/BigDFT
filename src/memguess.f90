@@ -25,9 +25,9 @@ program memguess
   character(len=20) :: tatonam
   character(len=40) :: comment
   logical :: optimise,GPUtest,convert=.false.,exists
-  integer :: nelec,ntimes,nproc,i_stat,ierror,i_all,output_grid
+  integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
-  integer :: norbgpu,nspin_ig
+  integer :: norbgpu,nspin_ig,ierror
   real(kind=8) :: peakmem,hx,hy,hz
   type(input_variables) :: in
   type(atoms_data) :: atoms
@@ -44,10 +44,13 @@ program memguess
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
   real(kind=8), dimension(:), allocatable :: locrad
-
-! Get arguments
-  call getarg(1,tatonam)
   
+  !! By Ali
+  integer ::iline
+  character :: Dummy
+
+  call getarg(1,tatonam)
+
   optimise=.false.
   GPUtest=.false.
   if(trim(tatonam)=='') then
@@ -112,6 +115,31 @@ program memguess
         stop
      end if
   end if
+!!$
+!!$! Get arguments
+!!$open(unit=1,file='input.memguess',status='old')
+!!$ 
+!!$!line number, to control the input values
+!!$  iline=0
+!!$
+!!$  !number of MPI proccessors
+!!$  read(1,*) nproc
+!!$  write(*,*) 'Number of mpi processes is: ',nproc
+!!$
+!!$       read(1,*) optimise
+!!$       if (optimise) write(*,*) 'Molecule will be rotated to minimize simulation box size and workarrays in BigDFT'
+!!$
+!!$!    "T"  If the system grid is to be displayed in the "grid.xyz" file
+!!$       read(1,*) output_grid
+!!$        write(*,*)  'output_grid= ',output_grid
+!!$
+!!$!    "T"   'Perform the test with GPU, if present.'   
+!!$       read(1,*) GPUtest
+!!$           if (GPUtest) write(*,*) 'Perform the test with GPU'
+
+!!! END of By Ali
+
+
 
   !initialize memory counting
   call memocc(0,0,'count','start')
@@ -307,19 +335,10 @@ program memguess
      nspinor=1
 
      call orbitals_descriptors(0,nproc,norb,norbu,norbd,nspinor,orbstst)
-     allocate(orbstst%occup(orbstst%norb+ndebug),stat=i_stat)
-     call memocc(i_stat,orbstst%occup,'orbstst%occup',subname)
-     allocate(orbstst%spinsgn(orbstst%norb+ndebug),stat=i_stat)
-     call memocc(i_stat,orbstst%spinsgn,'orbstst%spinsgn',subname)
      allocate(orbstst%eval(orbstst%norbp+ndebug),stat=i_stat)
      call memocc(i_stat,orbstst%eval,'orbstst%eval',subname)
      do iorb=1,orbstst%norbp
         orbstst%eval(iorb)=-0.5_gp
-     end do
-
-     do iorb=1,orbstst%norb
-        orbstst%occup(iorb)=1.0_gp
-        orbstst%spinsgn(iorb)=1.0_gp
      end do
 
      call createWavefunctionsDescriptors(0,hx,hy,hz,&
@@ -339,11 +358,9 @@ program memguess
      i_all=-product(shape(orbstst%occup))*kind(orbstst%occup)
      deallocate(orbstst%occup,stat=i_stat)
      call memocc(i_stat,i_all,'orbstst%occup',subname)
-
      i_all=-product(shape(orbstst%eval))*kind(orbstst%eval)
      deallocate(orbstst%eval,stat=i_stat)
      call memocc(i_stat,i_all,'orbstst%eval',subname)
-     i_all=-product(shape(orbstst%occup))*kind(orbstst%occup)
 
   end if
 
@@ -428,10 +445,10 @@ program memguess
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
-  
+
 end program memguess
 !!***
-
+  
 
 !!****f* BigDFT/optimise_volume
 !! FUNCTION

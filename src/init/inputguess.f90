@@ -99,17 +99,10 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   call memocc(i_stat,orbsv%norb_par,'orbsv%norb_par',subname)
   !davidson treatment for spin-pol case should be reworked
   call orbitals_descriptors(iproc,nproc,nvirte,nvirte,0,1,orbsv)
-  !allocate the arrays and fill them properly
-  allocate(orbsv%occup(orbsv%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbsv%occup,'orbsv%occup',subname)
-  allocate(orbsv%spinsgn(orbsv%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbsv%spinsgn,'orbsv%spinsgn',subname)
-  orbsv%occup(1:orbsv%norb)=1.0_gp
-  orbsv%spinsgn(1:orbsv%norb)=1.0_gp
 
   !allocate communications arrays for virtual orbitals
   !warning: here the aim is just to calculate npsidim, should be fixed
-  call allocate_comms(nproc,commsv,subname)
+  !call allocate_comms(nproc,orbsv,commsv,subname)
   call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
   call deallocate_comms(commsv,subname)
 
@@ -132,11 +125,6 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   !nspin*noncoll is always <= 2
   call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe,&
        nspinorfororbse,orbse)
-  !allocate the arrays and fill them properly
-  allocate(orbse%occup(orbse%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbse%occup,'orbse%occup',subname)
-  allocate(orbse%spinsgn(orbse%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbse%spinsgn,'orbse%spinsgn',subname)
   ist=1
   do ispin=1,nspin
      orbse%spinsgn(ist:ist+norbe-1)=real(1-2*(ispin-1),gp)
@@ -797,7 +785,8 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
               ipolres=ipolres-ipolorb
               !this check can be inserted also elsewhere
               if (ipolres < 0) then
-                 if(iproc==0) write(*,'(1x,4(a,i0))')&
+                 !if(iproc==0) 
+                       write(*,'(1x,4(a,i0))')&
                       'Too high polarisation for atom number= ',iat,&
                       ' Inserted=',modulo(at%natpol(iat),1000)-100,' Assigned=',ipolorb,&
                       ' the maximum is=',nint(shelloccup)
@@ -807,7 +796,8 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
            else
               !check for odd values of the occupation number
               if (mod(nint(shelloccup),2) /= 0) then
-                 if (iproc == 0) write(*,'(1x,a)')&
+                 !if (iproc == 0) 
+                       write(*,'(1x,a)')&
                       'The occupation number in the case of closed shells must be even'
                  stop
               end if
