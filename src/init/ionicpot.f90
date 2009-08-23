@@ -25,7 +25,6 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
   !other arrays for the ewald treatment
   real(gp), dimension(:,:), allocatable :: fewald,xred,gion
-  real(gp) :: sx,sy,sz,ty,tz
 
   pi=4.d0*datan(1.d0)
 
@@ -431,20 +430,11 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   end if
 
 ! Add contribution from constant electric field to the forces
-        sx=0.d0 ; sy=0.d0 ; sz=0.d0
-        ry=0.d0 ; ty=0.d0 
         do iat=1,at%nat
         ityp=at%iatype(iat)
         charge=real(at%nelpsp(ityp),gp)
-        ty=ty+charge*elecfield
-        sx=sx+fion(1,iat)
-        sy=sy+fion(2,iat)
-        sz=sz+fion(3,iat)
         fion(2,iat)=fion(2,iat)+charge*elecfield
-        ry=ry+fion(2,iat)
         enddo
-write(500+iproc,*) 'sum of forces without ionic part ',sx,sy,sz
-write(500+iproc,*) 'additional, final y part ',ty,ry
 
   if (iproc == 0) then
      write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion

@@ -85,7 +85,7 @@ subroutine dft_input_variables(iproc,filename,in)
   call check()
   !charged system, electric field (intensity and start-end points)
   call check()
-  read(1,*,iostat=ierror) in%elecfield
+  read(1,*,iostat=ierror)  in%ncharge,in%elecfield
   call check()
   read(1,*,iostat=ierror) in%nspin,in%mpol
   call check()
