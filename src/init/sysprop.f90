@@ -53,11 +53,6 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
   end if
 
-  allocate(orbs%occup(orbs%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%occup,'orbs%occup',subname)
-  allocate(orbs%spinsgn(orbs%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
-
   call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
        orbs%occup,orbs%spinsgn)
 
@@ -534,8 +529,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   type(orbitals_data), intent(out) :: orbs
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb
-
+  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all
+  logical, dimension(:), allocatable :: GPU_for_orbs
 
   !assign the value of the k-points
   orbs%nkpts=1
@@ -557,12 +552,33 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
      orbs%norb_par(jproc)=0 !size 0 nproc-1
   end do
 
+
+  !create an array which indicate which processor has a GPU associated 
+  !from the viewpoint of the BLAS routines
+  allocate(GPU_for_orbs(0:nproc-1+ndebug),stat=i_stat)
+  call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
+
+  if (nproc > 1) then
+     call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
+          MPI_COMM_WORLD,ierr)
+  else
+     GPU_for_orbs(0)=GPUblas
+  end if
+
+  print *,'iproc,GPU_for_orbs:',iproc,GPU_for_orbs,GPUconv
+
+
   !cubic-code strategy: balance the orbitals between processors
   !in the most symmetric way
   do iorb=1,norb*orbs%nkpts
      jproc=mod(iorb-1,nproc)
      orbs%norb_par(jproc)=orbs%norb_par(jproc)+1
   end do
+
+  i_all=-product(shape(GPU_for_orbs))*kind(GPU_for_orbs)
+  deallocate(GPU_for_orbs,stat=i_stat)
+  call memocc(i_stat,i_all,'GPU_for_orbs',subname)
+
 
   !check the distribution
   norb_tot=0
@@ -589,21 +605,27 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
 
   allocate(orbs%iokpt(orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
+
   !assign the k-point to the given orbital, counting one orbital after each other
   jorb=0
   do ikpt=1,orbs%nkpts
      do iorb=1,orbs%norb
-        jorb=jorb+1
+        jorb=jorb+1 !this runs over norb*nkpts values
         if (jorb > orbs%isorb .and. jorb <= orbs%isorb+orbs%norbp) then
            orbs%iokpt(jorb-orbs%isorb)=ikpt
         end if
      end do
   end do
 
-  !assign the number of k-points per processor
-  !the strategy for multiple k-points should be decided
-  !orbs%nkpts_par(:)=1
-  
+  !allocate occupation number and spinsign
+  !fill them in normal way
+  allocate(orbs%occup(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%occup,'orbs%occup',subname)
+  allocate(orbs%spinsgn(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
+  orbs%occup(1:orbs%norb*orbs%nkpts)=1.0_gp 
+  orbs%spinsgn(1:orbs%norb*orbs%nkpts)=1.0_gp
+
 
 end subroutine orbitals_descriptors
 !!***

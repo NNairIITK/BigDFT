@@ -202,14 +202,14 @@ module module_interfaces
        integer, dimension(0:nproc-1,2), intent(out) :: ngatherarr
      end subroutine createDensPotDescriptors
 
-     subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,rxyz,eion,fion,psoffset,&
+     subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,rxyz,eion,fion,psoffset,&
           nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
        use module_base
        use module_types
        implicit none
        type(atoms_data), intent(in) :: at
        integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,nvacancy
-       real(kind=8), intent(in) :: hxh,hyh,hzh
+       real(kind=8), intent(in) :: hxh,hyh,hzh,elecfield
        real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
        real(kind=8), dimension(*), intent(in) :: pkernel
        real(kind=8), intent(out) :: eion,psoffset
@@ -218,7 +218,7 @@ module module_interfaces
      end subroutine IonicEnergyandForces
 
      subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
-          hxh,hyh,hzh,ef,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
+          hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
           correct_offset)
        use module_base
        use module_types
@@ -228,7 +228,7 @@ module module_interfaces
        integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,nvacancy
        real(gp), intent(in) :: hxh,hyh,hzh,psoffset
        type(atoms_data), intent(in) :: at
-       real(gp), dimension(3), intent(in) :: ef
+       real(gp), intent(in) :: elecfield
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(dp), dimension(*), intent(in) :: pkernel
        real(wp), dimension(*), intent(inout) :: pot_ion
@@ -377,11 +377,12 @@ module module_interfaces
        integer, intent(in) :: iproc,nproc,natsc,nspin
        type(wavefunctions_descriptors), intent(in) :: wfd
        type(communications_arrays), target, intent(in) :: comms
-       type(orbitals_data), intent(inout) :: orbs
+       type(orbitals_data), target, intent(inout) :: orbs
        real(wp), dimension(:), pointer :: psi,hpsi,psit
        !optional arguments
        real(gp), optional, intent(in) :: etol
-       type(orbitals_data), optional, intent(in) :: orbse,orbsv
+       type(orbitals_data), optional, intent(in) :: orbsv
+       type(orbitals_data), optional, target, intent(in) :: orbse
        type(communications_arrays), optional, target, intent(in) :: commse
        integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
        real(wp), dimension(:), pointer, optional :: psivirt
@@ -484,6 +485,40 @@ module module_interfaces
        real(wp), dimension(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8), intent(out) :: psifscf
        real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
      end subroutine reformatonewave
+     subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
+          & hx,hy,hz,at,wfd,rxyz_old,rxyz,psi,eval,psifscf)
+       use module_base
+       use module_types
+       implicit none
+       logical, intent(in) :: useFormattedInput
+       integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3
+       type(wavefunctions_descriptors), intent(in) :: wfd
+       type(atoms_data), intent(in) :: at
+       real(gp), intent(in) :: hx,hy,hz
+       real(gp), dimension(3,at%nat), intent(in) :: rxyz
+       real(wp), intent(out) :: eval
+       real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+       real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
+       real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
+     end subroutine readonewave
+     subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
+          nseg_c,nvctr_c,keyg_c,keyv_c,  & 
+          nseg_f,nvctr_f,keyg_f,keyv_f, & 
+          psi_c,psi_f,norb,eval)
+       use module_base
+       implicit none
+       logical, intent(in) :: useFormattedOutput
+       integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f,norb
+       real(gp), intent(in) :: hx,hy,hz
+       integer, dimension(nseg_c), intent(in) :: keyv_c
+       integer, dimension(nseg_f), intent(in) :: keyv_f
+       integer, dimension(2,nseg_c), intent(in) :: keyg_c
+       integer, dimension(2,nseg_f), intent(in) :: keyg_f
+       real(wp), dimension(norb), intent(in) :: eval
+       real(wp), dimension(nvctr_c), intent(in) :: psi_c
+       real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
+       real(gp), dimension(3,nat), intent(in) :: rxyz
+     end subroutine writeonewave
 
      subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
           orbs,orbsv,nvirt,lr,comms,&
@@ -521,7 +556,7 @@ module module_interfaces
        real(wp), dimension(nvctrp,norbe), intent(in) :: psi
        real(wp), dimension(nvctrp*nspinor,norb), intent(out) :: ppsit
        integer, intent(in), optional :: nvirte
-       real(wp), dimension(:), pointer, optional :: psivirt
+       real(wp), dimension(*), optional :: psivirt
      end subroutine build_eigenvectors
 
      subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
@@ -536,28 +571,30 @@ module module_interfaces
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp,orbs%nspinor), intent(inout) :: hpsi
      end subroutine preconditionall
 
-     subroutine transpose_v(iproc,nproc,norbp,nspinor,wfd,comms,psi,&
+     subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
           work,outadd) !optional
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,norbp,nspinor
+       integer, intent(in) :: iproc,nproc
+       type(orbitals_data), intent(in) :: orbs
        type(wavefunctions_descriptors), intent(in) :: wfd
        type(communications_arrays), intent(in) :: comms
-       real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
+       real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: psi
        real(wp), dimension(:), pointer, optional :: work
        real(wp), intent(out), optional :: outadd
      end subroutine transpose_v
 
-     subroutine untranspose_v(iproc,nproc,norbp,nspinor,wfd,comms,psi,&
+     subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
           work,outadd) !optional
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,norbp,nspinor
+       integer, intent(in) :: iproc,nproc
+       type(orbitals_data), intent(in) :: orbs
        type(wavefunctions_descriptors), intent(in) :: wfd
        type(communications_arrays), intent(in) :: comms
-       real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*nspinor*norbp), intent(inout) :: psi
+       real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: psi
        real(wp), dimension(:), pointer, optional :: work
        real(wp), intent(out), optional :: outadd
      end subroutine untranspose_v
@@ -733,6 +770,30 @@ module module_interfaces
        real(wp), dimension(*) :: psi
      end subroutine plot_wf_cube
 
+     subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
+       implicit none
+       integer, intent(in) :: nzatom,nvalelec
+       character(len=2), intent(out) :: symbol
+       real(kind=8), intent(out) :: rcov,rprb,ehomo,amu
+       integer, parameter :: nmax=6,lmax=3
+       integer, intent(out) :: neleconf(nmax,0:lmax)
+       integer, intent(out) :: nsccode,mxpl,mxchg
+     end subroutine eleconf
+     
+     subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alpha,&
+          hpsit,psidst,hpsidst,psit)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,nproc,ids,mids,idsx
+       real(gp), intent(in) :: energy,energy_old
+       type(orbitals_data), intent(in) :: orbs
+       type(communications_arrays), intent(in) :: comms
+       real(gp), intent(inout) :: alpha
+       real(wp), dimension(:), pointer :: psit,hpsit,psidst,hpsidst
+       real(wp), dimension(:,:,:), pointer :: ads
+     end subroutine psimix
+     
   end interface
 
 end module module_interfaces

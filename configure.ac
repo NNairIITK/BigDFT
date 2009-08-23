@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets], [1.3.0], [Damien.Caliste@cea.fr], [bigdft])
+AC_INIT([BigDFT - DFT over wavelets], [1.3.0-dev], [Damien.Caliste@cea.fr], [bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -367,6 +367,8 @@ if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
   AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation."])
 fi
 
+fi # End of the if library compilation
+
 dnl Test the libXC library
 internallibxc="yes"
 AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), internallibxc=$enval, internallibxc="yes")
@@ -399,9 +401,6 @@ if test x"$ac_use_libxc" = x"yes" ; then
   AC_DEFINE([HAVE_LIBXC], [1], [compile the libXC section in the ABINIT code.])
   LIBS="-lxc $LIBS"
 fi
-
-fi # End of the if library compilation
-
 
 dnl default installation directories
 AC_ARG_WITH(moduledir,

@@ -1,4 +1,4 @@
-subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
+subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      rxyz,eion,fion,psoffset,nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
   use module_base
   use module_types
@@ -6,7 +6,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
   implicit none
   type(atoms_data), intent(in) :: at
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,nvacancy
-  real(gp), intent(in) :: hxh,hyh,hzh
+  real(gp), intent(in) :: hxh,hyh,hzh,elecfield
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: pkernel
   real(gp), intent(out) :: eion,psoffset
@@ -25,6 +25,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
   real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
   !other arrays for the ewald treatment
   real(gp), dimension(:,:), allocatable :: fewald,xred,gion
+  real(gp) :: sx,sy,sz,ty,tz
 
   pi=4.d0*datan(1.d0)
 
@@ -429,6 +430,22 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
 
   end if
 
+! Add contribution from constant electric field to the forces
+        sx=0.d0 ; sy=0.d0 ; sz=0.d0
+        ry=0.d0 ; ty=0.d0 
+        do iat=1,at%nat
+        ityp=at%iatype(iat)
+        charge=real(at%nelpsp(ityp),gp)
+        ty=ty+charge*elecfield
+        sx=sx+fion(1,iat)
+        sy=sy+fion(2,iat)
+        sz=sz+fion(3,iat)
+        fion(2,iat)=fion(2,iat)+charge*elecfield
+        ry=ry+fion(2,iat)
+        enddo
+write(500+iproc,*) 'sum of forces without ionic part ',sx,sy,sz
+write(500+iproc,*) 'additional, final y part ',ty,ry
+
   if (iproc == 0) then
      write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
      if (nvacancy /= 0) then
@@ -441,7 +458,7 @@ end subroutine IonicEnergyandForces
 
 
 subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
-     hxh,hyh,hzh,ef,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
+     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
      correct_offset)
   use module_base
   use module_types
@@ -453,7 +470,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,nvacancy
   real(gp), intent(in) :: hxh,hyh,hzh,psoffset
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3), intent(in) :: ef
+  real(gp), intent(in) :: elecfield
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
@@ -465,7 +482,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   integer :: n3d_fake,n3p_fake,n3pi_fake,i3xcsh_fake,i3s_fake
   real(kind=8) :: hgridh,pi,rholeaked,dist,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,eself,potxyz,offset
-  real(gp) :: ehart,eexcu,vexcu,elecfield,ystart,yend
+  real(gp) :: ehart,eexcu,vexcu
   real(dp), dimension(4) :: charges_mpi
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(dp), dimension(:), allocatable :: potion_corr
@@ -912,11 +929,6 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 !!$  end do
 !!$  print *,'actual offset',tt_tot*hxh*hyh*hzh
 
-  elecfield=ef(1)
-  !correct ystart and yend to the whole simulation box 
-  ystart=max(ef(2),0.0_gp)
-  yend=min(ef(3),at%alat2)
-
   !use rhopot to calculate the potential from a constant electric field along y direction
   if (elecfield /= 0.0_gp) then
      !constant electric field allowed only for free BC
@@ -926,9 +938,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
           'The constant electric field is allowed only for Free and Surfaces BC'
      stop
      end if
-     if (iproc == 0) write(*,'(1x,3(a,1pe10.2),a)') &
-          'Constant electric field of',elecfield,&
-          ' Ha*Bohr for:',ystart,' < y <',yend,' Bohr'
+     if (iproc == 0) write(*,'(1x,3(a,1pe10.2))') &
+          'Constant electric field of',elecfield,' Ha/Bohr for:'
 !or         'Parabolic confining potential: rprb=',elecfield,&
 !           ';  v_conf(r)= 1/(2*rprb**4) * r**2'
 
@@ -940,29 +951,15 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
            !z=real(i3+i3s-1-nbl3-1,gp)*hzh
            do i2=1,n2i
               y=real(i2-nbl2-1,gp)*hyh
-              if (y < ystart) then
                  do i1=1,n1i
                     !x=real(i1-nbl1-1,gp)*hxh
                     ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                    pot_ion(ind)=pot_ion(ind)+elecfield*(0.5_gp*(ystart-yend))
+                    pot_ion(ind)=pot_ion(ind)+elecfield*y
 !                    parabola: these two lines replace the above line 
 !                              comment out the if case and calculate x, z
 !                    r2=(x-rx)**2+(y-ry)**2+(z-rz)**2
 !                    pot_ion(ind)=pot_ion(ind)+0.5_gp/(elecfield**4)*r2
                  end do
-              else if (y > yend) then
-                 do i1=1,n1i
-                    !x=real(i1-nbl1-1,gp)*hxh
-                    ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                    pot_ion(ind)=pot_ion(ind)-elecfield*(0.5_gp*(ystart-yend))
-                 end do
-              else
-                 do i1=1,n1i
-                    !x=real(i1-nbl1-1,gp)*hxh
-                    ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                    pot_ion(ind)=pot_ion(ind)+elecfield*(y-0.5_gp*(ystart+yend))
-                 end do
-              end if
            end do
         end do
 
@@ -970,13 +967,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
            open(unit=17,file='elecfield_y',status='unknown')
            do i2=nbl2+1,n2i-nbr2-1
               y=real(i2-nbl2-1,gp)*hyh
-              if (y < ystart) then
-                 write(17,*)i2,y,elecfield*(0.5_gp*(ystart-yend))
-              else if (y > yend) then
-                 write(17,*)i2,y,-elecfield*(0.5_gp*(ystart-yend))
-              else
-                 write(17,*)i2,y,elecfield*(y-0.5_gp*(ystart+yend))
-              end if
+                 write(17,*)i2,y,elecfield*y
            end do
            close(17)
         end if

@@ -33,7 +33,7 @@ module module_types
      real(gp) :: frac_fluct,randdis,betax,forcemax,gnrm_sw
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf
      integer :: iat_absorber,nvacancy,verbosity
-     real(gp), dimension(3) :: ef
+     real(gp) :: elecfield
   end type input_variables
 !!***
 
@@ -172,7 +172,7 @@ module module_types
 !! SOURCE
 !!
   type, public :: orbitals_data
-     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts
+     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
      integer, dimension(:), pointer :: norb_par,iokpt
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
@@ -222,7 +222,8 @@ module module_types
 !! SOURCE
 !!
   type, public :: communications_arrays
-     integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt,nvctr_par
+     integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
+     integer, dimension(:,:), pointer :: nvctr_par
   end type communications_arrays
 !!***
 
@@ -329,16 +330,17 @@ contains
 !!   Allocate communications_arrays
 !! SOURCE
 !!
-  subroutine allocate_comms(nproc,comms,subname)
+  subroutine allocate_comms(nproc,orbs,comms,subname)
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
     integer, intent(in) :: nproc
+    type(orbitals_data), intent(in) :: orbs
     type(communications_arrays), intent(out) :: comms
     !local variables
     integer :: i_stat
 
-    allocate(comms%nvctr_par(0:nproc-1+ndebug),stat=i_stat)
+    allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
     call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
     allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
     call memocc(i_stat,comms%ncntd,'ncntd',subname)

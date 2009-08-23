@@ -35,7 +35,7 @@ subroutine print_logo()
   write(*,'(23x,a)')' g        g     i         B    B    '  
   write(*,'(23x,a)')'          g     i        B     B    ' 
   write(*,'(23x,a)')'         g               B    B     '
-  write(*,'(23x,a)')'    ggggg       i         BBBB                     (Ver 1.3.0)'
+  write(*,'(23x,a)')'    ggggg       i         BBBB                     (Ver 1.3.0-dev)'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'
   write(*,'(1x,a)')&
@@ -84,14 +84,8 @@ subroutine dft_input_variables(iproc,filename,in)
   read(1,*,iostat=ierror) in%ixc
   call check()
   !charged system, electric field (intensity and start-end points)
-  read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%ncharge,in%ef(1)
-  if (ierror == 0 .and. in%ef(1) /= 0.0_gp) then
-     read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
-  else
-     in%ef(2)=0.0_gp
-     in%ef(3)=0.0_gp
-  end if
+  call check()
+  read(1,*,iostat=ierror) in%elecfield
   call check()
   read(1,*,iostat=ierror) in%nspin,in%mpol
   call check()
@@ -116,10 +110,12 @@ subroutine dft_input_variables(iproc,filename,in)
         call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
      end if
 
-     call MPI_BARRIER(MPI_COMM_WORLD,ierror)
+   
     ! GPUshare=.true.
      if (iconv == 1) then
         !change the value of the GPU convolution flag defined in the module_base
+       
+
         GPUconv=.true.
      end if
      if (iblas == 1) then
@@ -321,7 +317,7 @@ subroutine dft_input_converter(in)
 
   line=''
   line=' ncharge: charge of the system, Electric field'
-  write(1,'(i3,3(f6.3),a)') in%ncharge,in%ef(1),in%ef(2),in%ef(3),trim(line)
+  write(1,'(i3,3(f6.3),a)') in%ncharge,in%elecfield,trim(line)
 
   line=''
   line=' nspin=1 non-spin polarization, mpol=total magnetic moment'
@@ -418,22 +414,22 @@ subroutine read_input_variables(iproc,filename,in)
   read(line,*,iostat=ierrfrc) cudagpu
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
      call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-   !  iconv = 0
-   !  iblas = 0
      
-
-   !  call set_cpu_gpu_aff(iproc,iconv,iblas)
-   ! GPUshare=.false.
-  !   call init_gpu_sharing(initerror) !to fix the number of gpu and mpi tasks per node, we have to fil the inter_node.config file
      if (initerror == 1) then
-        stop 'call init_gpu_sharing'
+
+        write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
+        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
+
+
+
+     
      end if
     ! GPUshare=.true.
-     if (iconv == 0) then
+     if (iconv == 1) then
         !change the value of the GPU convolution flag defined in the module_base
         GPUconv=.true.
      end if
-     if (iblas == 0) then
+     if (iblas == 1) then
         !change the value of the GPU convolution flag defined in the module_base
         GPUblas=.true.
      end if
@@ -464,21 +460,14 @@ subroutine read_input_variables(iproc,filename,in)
 
   read(1,*,iostat=ierror) in%ixc
   call check()
-  read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%ncharge,in%ef(1)
-  if (ierror == 0 .and. in%ef(1) /= 0.0_gp) then
-     read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
-  else
-     in%ef(2)=0.0_gp
-     in%ef(3)=0.0_gp
-  end if
+  read(1,*,iostat=ierror) in%elecfield
   call check()
   read(1,*,iostat=ierror) in%gnrm_cv
   call check()
   read(1,'(a100)')line
   read(line,*,iostat=ierror) in%itermax,in%nrepmax
   if (ierror == 0) then
-     !read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
+     !read(line,*,iostat=ierror) in%ncharge,in%elecfield
   else
      read(line,*,iostat=ierror)in%itermax
      in%nrepmax=10
@@ -617,7 +606,7 @@ subroutine print_input_parameters(in,atoms)
        'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
        '|  CG Steps=',in%ncongt
   write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
-       ' elec. field=',in%ef(1),'|                   ','| DIIS Hist. N.=',in%idsx
+       ' elec. field=',in%elecfield,'|                   ','| DIIS Hist. N.=',in%idsx
   if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
           'Polarisation=',2*in%mpol, '|'
@@ -1185,6 +1174,8 @@ subroutine read_atomic_ascii(iproc,ifile,atoms,rxyz)
   call memocc(i_stat,atoms%ifrztyp,'atoms%ifrztyp',subname)
   allocate(atoms%natpol(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%natpol,'atoms%natpol',subname)
+  allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%natpol,'rxyz',subname)
 

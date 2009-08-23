@@ -53,7 +53,8 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
 
            !cases with no CG iterations, diagonal preconditioning
-           if (ncong == 0) then
+           !for Free BC it is incorporated in the standard procedure
+           if (ncong == 0 .and. lr%geocode /= 'F') then
               select case(lr%geocode)
               case('F')
               case('S')
