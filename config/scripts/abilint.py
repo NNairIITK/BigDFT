@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 17/08/2009
+# Date: 23/08/2009
 #--------------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -44,6 +44,7 @@
 # Call after a ';' is not detected.
 # Handle the preprocessing directives (?)
 # Unify the detection and the creation of the interfaces by means of the class Fortran_Interface
+# Improve the experimental edition
 
 
 #Description
@@ -100,6 +101,10 @@
 #
 # The class Variable is created to have all information for a given variable.
 # A structure has a 'dict_vars' dictionary.
+#
+#Edition of the files
+#--------------------
+# Vim is used to help the edition
 
 
 #Usage (and help)
@@ -111,7 +116,7 @@ abilint [options] <source> <dest>
       <source> is the directory that contains the bigdft project
       <dest>   is the directory of destination
     options:
-      --beautify  beautify the code (experimental, only add robodoc headers)
+      --beautify  beautify the code (experimental, use vim)
       --graph=<routine1,routine2,...> or --graph=all (experimental)
                   build the graph of calls for the <routine> in the file 'routine.dot'
       --graph=directories
@@ -124,7 +129,7 @@ abilint [options] <source> <dest>
     sys.exit(error)
 
 
-#Operating System (used for os.path)
+#Operating System (used for os.path and os.system)
 import os
 #filename match as Unix shell
 import fnmatch
@@ -319,7 +324,7 @@ def split_variables(string):
     return a
 
 
-#Functions to split the code (experimental but almost robust)
+#Functions to split the code (experimental but quite robust)
 def split_code(text):
     "Split a statement of code, do not keep floats and structure components"
     logical = [ "and", "eq", "eqv", "false", "ge", "gt", "le", "lt", "ne", "neqv", "not", "or", "true" ]
@@ -413,7 +418,7 @@ def split_code(text):
     return statements
 
 
-#indent the code
+#Indent the Fortran code
 def indent_code(text,n=0):
     "Indent a Fortran code"
     re_indented = re.compile("^[ \t]*(interface|function|subroutine)",re.IGNORECASE)
@@ -581,20 +586,20 @@ class Project:
         #Determine the list of functions
         self.set_functions()
     #
-    def analyze_execution(self):
+    def analyze_execution(self,edition=False):
         "Analyze the execution statements of all routines"
         self.message.section("Analyze the execution statements of routines...")
         for (name,routine) in self.routines.items():
             self.message.write("(%s)" % name)
-            routine.analyze_execution(self)
+            routine.analyze_execution(self,edition=edition)
         self.message.done()
     #
-    def analyze_comments(self,exclude="a"*40):
+    def analyze_comments(self,exclude="a"*40,edition=False):
         "Analyze the comments of all the files except the files which contain exclude"
         self.message.section("Analyze the comments...")
         for file in self.files.values():
             if isinstance(file,File_F90) and exclude not in file.name:
-                file.analyze_comments(self)
+                file.analyze_comments(self,edition=edition)
         self.message.done()
     #
     def analyze_directories(self):
@@ -1248,7 +1253,7 @@ class File_F90(File):
                         + "Analysis Error in %s/%s\n" % (self.dir,self.file))
         self.message.write("]\n",verbose=10)
     #
-    def analyze_comments(self,project):
+    def analyze_comments(self,project,edition=False):
         "Analyze comments to detect robodoc headers and footers"
         temp_structs = self.children
         self.children = []
@@ -1265,7 +1270,7 @@ class File_F90(File):
         #Finally, analyze comment
         for struct in self.children:
             if isinstance(struct,Comment):
-                struct.analyze_comment()
+                struct.analyze_comment(edition=edition)
     #
     def build_robodoc_structure(self):
         "Build the robodoc structure around each routine"
@@ -1516,7 +1521,7 @@ class Comment(Structure):
         self.file = self.parent.name
         self.dir = self.parent.dir
     #
-    def analyze_comment(self):
+    def analyze_comment(self,edition=False):
         "Analyze the comment"
         pass
     #
@@ -1551,7 +1556,7 @@ class Robodoc_Header(Comment):
         self.sections = dict()
         self.categories = []
     #
-    def analyze_comment(self):
+    def analyze_comment(self,edition=False):
         "Analyze the robodoc header"
         iter_code = iter(self.code.splitlines())
         #First line
@@ -1796,6 +1801,7 @@ class Routine(Module):
         self.private = False
         #Public
         self.public = False
+        self.from_implicit = False
         #Gestion of the cache
         #1 - Time stamp (done in Module class)
         #2 - The information of the cache is updated
@@ -1875,10 +1881,10 @@ class Routine(Module):
         self.Execution = Execution(parent=self)
         self.Execution.analyze(line,iter_code,project)
     #
-    def analyze_execution(self,project):
+    def analyze_execution(self,project,edition=False):
         "Analyze the execution statements of the routine"
         #Analyze the execution statements
-        self.Execution.analyze_execution(self.Declaration.dict_vars,self.Implicit.dict,project)
+        self.Execution.analyze_execution(self.Declaration.dict_vars,self.Implicit.dict,project,edition=edition)
     #
     def beautify(self):
         "Beautify the code of the routines (experimental)"
@@ -2071,7 +2077,7 @@ class Generic_Routine(Routine):
         "Do nothing"
         return
     #
-    def analyze_execution(self,project):
+    def analyze_execution(self,project,edition=False):
         "Do nothing"
         return
     #
@@ -2702,7 +2708,7 @@ class Declaration(Code):
                 arg = self.dict_vars[argument_lower]
             else:
                 #We use the implicit dictionary
-                arg = Variable(argument_lower,parent=self.parent,truename=argument)
+                arg = Variable(argument_lower,parent=self.parent,truename=argument,is_argument=True)
                 type_arg = arg.type_from_implicit(dict_implicit)
                 if type_arg == "":
                     print self.dict_vars
@@ -2859,8 +2865,8 @@ class Execution(Code):
                 self.message.fatal("\n%s\n--> No detected end of the routine!\n" % line\
                         + "Analysis Error in %s/%s\n" % (self.parent.dir,self.parent.file))
     #
-    def analyze_execution(self,dict_vars,dict_implicit,project):
-        "Analyze the execution statements (initialization, unused variables)"
+    def analyze_execution(self,dict_vars,dict_implicit,project,edition=False):
+        "Analyze the execution statements (initialization, undeclared variables)"
         if dict_vars == None:
             self.message.fatal("No dictionary of variables\n" \
                     + "Analysis Error in %s/%s\n" % (self.parent.dir,self.parent.file))
@@ -2909,7 +2915,6 @@ class Execution(Code):
                         #Add the variable
                         variables.add(word)
         declared_variables = set(dict_vars.keys())
-        #unused = declared_variables.difference(variables)
         #Add the variables from modules
         for module in self.parent.use_modules:
             if project.has_module(module):
@@ -2919,14 +2924,16 @@ class Execution(Code):
                 self.message.warning("[%s/%s:%s] The module '%s' is missing!" \
                     % (self.parent.dir,self.parent.file,self.parent.name,module))
         #Treat undeclared variables
-        undeclared = list(variables.difference(declared_variables))
+        undeclared = variables.difference(declared_variables)
+        #Add arguments or variables not typed inside dict_vars
+        for var in dict_vars.values():
+            if var.from_implicit:
+                undeclared.add(var.name)
         if undeclared:
+            undeclared = list(undeclared)
             undeclared.sort()
             self.message.section("%s/%s:%s\nUndeclared variables: %s\n" % \
                 (self.parent.dir,self.parent.file,self.parent.name,undeclared))
-            for var in dict_vars.values():
-                var.display_information()
-            sys.exit(1)
             line = ""
             implicit = ""
             #Build the declaration
@@ -2950,8 +2957,26 @@ class Execution(Code):
                 #self.message.write("Added declaration to the routine '%s':\n" % self.parent.name,verbose=-10)
             if declaration:
                 self.message.section(declaration)
-            #Add to the declaration of the routine
-            #self.parent.Declaration.code += declaration
+                #Edition using vim
+                if edition:
+                    for var in dict_vars.values():
+                        print var.display_information()
+                    #Edit inside vim the whole file: put in the register "a the declarations
+                    vim_message = "Register v = %s" % declaration \
+                            + "Register a = !Arguments\n" \
+                            + "Register l = !Local variables\n" \
+                            + "Edit the routine %s (use reg v, reg a or reg l)\n" % self.parent.name \
+                            + "Create a file EXIT to stop all editions"
+                    vim_commands = """-c 'let @a ="%s!Arguments\\n"'""" % indent \
+                            + """ -c 'let @l = "%s!Local variables\\n"'""" % indent \
+                            + """ -c 'let @v ="%s"'""" % declaration \
+                            + """ -c 'let @/ ="%s"'""" % self.parent.name \
+                            + """ -c 'echo "%s"'""" % vim_message\
+                    #subprocess.call(["vim", "%s/%s" % (self.parent.dir,self.parent.file)])
+                    os.system("vim %s %s/%s" % (vim_commands,self.parent.dir,self.parent.file))
+                    if os.path.exists("EXIT"):
+                        self.message.write("\nThe file 'EXIT' has been edited.\nSTOP EDITION and abilint.\n",verbose=-10)
+                        sys.exit(1)
             self.message.done()
 
 
@@ -2969,11 +2994,12 @@ class Variable:
     #Detect digits only (1.2d0 or 1.3e-4 etc.)
     re_digits = re.compile("^\d+[.]?\d*[de]?[+-]?[\d]*$")
     #
-    def __init__(self,name,parent=None,message=None,decl="",type="",truename=""):
+    def __init__(self,name,parent=None,message=None,decl="",type="",truename="",is_argument=False):
         "Initialization: decl=declaration (lower case), truename = exact name of the variable"
         self.name=name
         #Proper attributes
         self.type=type
+        self.is_argument = is_argument
         self.allocatable = False
         self.dimension = ''
         self.intent = ''
@@ -2987,6 +3013,10 @@ class Variable:
         self.target = False
         self.value = None
         self.parent = parent
+        if self.type:
+            self.from_implicit = None
+        else:
+            self.from_implicit = False
         if parent:
             self.message = self.parent.message
         elif message:
@@ -3068,8 +3098,15 @@ class Variable:
     #
     def display_information(self):
         "Display information about the variable"
-        message = "Variable %s [%s]\n" % (self.name,self.truename) \
-                + 3*" " + "type: %s\n" % self.type
+        if self.is_argument:
+            message = "Argument "
+        else:
+            message = "Variable "
+        message += "%s [%s]\n" % (self.name,self.truename) \
+                + 3*" " + "type: %s" % self.type
+        if self.from_implicit:
+            message += " (from the implicit statement)"
+        message += "\n"
         if self.dimension:
             message += 3*" " + "dimension %s\n" % self.dimension
         if self.parameter:
@@ -3080,17 +3117,17 @@ class Variable:
             message += 3*" " + "is public\n"
         elif self.private:
             message += 3*" " + "is private\n"
-        elif self.allocatable:
+        if self.allocatable:
             message += 3*" " + "is allocatable\n"
+        if self.optional:
+            message += 3*" " + "is optional\n"
         elif self.external:
             message += 3*" " + "is external\n"
-        elif self.optional:
-            message += 3*" " + "is optional\n"
-        elif self.pointer:
+        if self.pointer:
             message += 3*" " + "is a pointer\n"
-        elif self.save:
+        if self.save:
             message += 3*" " + "is saved\n"
-        elif self.target:
+        if self.target:
             message += 3*" " + "is a target\n"
         self.message.write(message,verbose=-10)
     #
@@ -3130,6 +3167,7 @@ class Variable:
         "Determine the type from the implicit dictionary"
         if dict_implicit != {}:
             self.type = dict_implicit[self.name[0]]
+            self.from_implicit = True
         return self.type
     #
     def update(self,decl,truename=None):
@@ -3180,6 +3218,7 @@ class Fortran_Type(Declaration):
         self.private = False
         #Public
         self.public = False
+        self.from_implicit = False
     #
     def analyze(self,line,iter_code,dict_implicit,project):
         "Analyze the type statements"
@@ -3221,6 +3260,10 @@ class Fortran_Type(Declaration):
         #We analyze all variables
         self.analyze_variables(dict_implicit,project)
     #
+    def display_information(self):
+        "Display information"
+        pass
+    #
     def has_type(self):
         return True
 
@@ -3236,6 +3279,7 @@ class Fortran_Interface(Fortran_Type):
         "__init__ function as Fortran_Type, only the type differs"
         Fortran_Type.__init__(self,parent,name)
         self.type = "interface"
+        self.from_implicit = False
     #
     def add_routine(self,routine):
         "Do nothing"
@@ -3613,10 +3657,12 @@ if __name__ == "__main__":
     lint = False
     dump_dtset = False
     dependencies = False
+    edition = False
     nocache = False
     for opt,arg in optlist:
         if   opt == "-b" or opt == "--beautify":
             beautify = True
+            edition = True
             #Complete analysis
             lint = True
         elif opt == "-d" or opt == "--dependencies":
@@ -3665,22 +3711,25 @@ if __name__ == "__main__":
         #Unused routines
         bigdft.unused_routines()
         #Analyze all the comments in order to detect the robodoc structure
-        bigdft.analyze_comments()
+        bigdft.analyze_comments(edition=edition)
         #Analyze the code (body)
-        bigdft.analyze_execution()
+        bigdft.analyze_execution(edition=edition)
     if NEW == OLD:
         #Backup before changing to optimize the minimal number of copies
         bigdft.backup()
     #Special modifications (to be done once).
     bigdft.special(special_modif)
     if beautify:
-        #Improve the appearance of the code
+        #Edit and improve the appearance of the code 
         bigdft.beautify()
     if graph:
         #Build in the file bigdft.dot some graph
         bigdft.graph(graph_arg,graph_excluded=graph_excluded)
-    #We copy everything
-    bigdft.copy_all(NEW,only_if_changed=(NEW == OLD))
+    if edition:
+        bigdft.message.write("The files have been edited: copy nothing.\n",verbose=-10)
+    else:
+        #We copy everything
+        bigdft.copy_all(NEW,only_if_changed=(NEW == OLD))
     #We copy a cache file
     bigdft.cache_save(NEW)
     #Display some statistics

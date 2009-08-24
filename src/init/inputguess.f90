@@ -1983,8 +1983,13 @@ END SUBROUTINE crtvh
 !!
 function wave(ng,ll,xp,psi,r)
   use module_base, only: gp
-  implicit real(gp) (a-h,o-z)
-  dimension psi(0:ng),xp(0:ng)
+  implicit none
+  !Arguments
+  integer, intent(in) :: ll,ng
+  real(gp) :: r,wave
+  real(gp) :: psi(0:ng),xp(0:ng)
+  !Local variables
+  integer :: i
 
   wave=0._gp
   do i=0,ng
