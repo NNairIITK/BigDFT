@@ -1397,7 +1397,7 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
-  open(unit=9,file=filename//'.xyz')
+  open(unit=9,file=trim(filename)//'.xyz')
   xmax=0.0_gp
   ymax=0.0_gp
   zmax=0.0_gp
