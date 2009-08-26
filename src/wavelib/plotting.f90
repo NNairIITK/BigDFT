@@ -2,7 +2,8 @@ subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi,comment)
   use module_base
   use module_types
   implicit none
-  character(len=10) :: orbname,comment 
+!!$  character(len=10) :: orbname,comment 
+  character(*) :: orbname,comment 
   real(gp), intent(in) :: hx,hy,hz,rx,ry,rz
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f

@@ -144,7 +144,7 @@ subroutine dft_input_variables(iproc,filename,in)
   call check()
 
   !x-adsorber treatment (in progress)
-  read(1,*,iostat=ierror)  in%iat_absorber
+  read(1,*,iostat=ierror)  in%iat_absorber, in%absorber_gnrm
   call check()
 
   !electrostatic treatment of the vacancy (experimental)

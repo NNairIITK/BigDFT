@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces memguess NEB frequencies $(minima_hopping_sources)
+binaries_sources = cluster test_forces memguess  provaesatto NEB frequencies $(minima_hopping_sources) 
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -145,7 +145,8 @@ high_level = cluster.f90 \
 	vdwcorrection.f90 \
 	lanczos_interface.f90 \
 	lanczos_base.f90 \
-	lanczos.f90 
+	lanczos.f90  \
+	esatto.f90
 
 #objects which can be compiled whithout any dependence
 low_level = init/projectors.f90  \
@@ -213,6 +214,16 @@ cluster_LDADD = libbigdft.a \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
+
+provaesatto_SOURCES = provaesatto.f90 
+provaesatto_LDFLAGS = 
+provaesatto_LDADD = libbigdft.a 
+
+
+
+
+
+
 test_forces_SOURCES = test_forces.f90
 test_forces_LDFLAGS = 
 test_forces_LDADD = libbigdft.a \
@@ -251,13 +262,14 @@ CLEANFILES = mpif.h \
 	module_base.@MODULE_EXT@ MODULE_BASE.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@ VDWCORRECTION.@MODULE_EXT@ \
 	lanczos_base.@MODULE_EXT@ LANCZOS_BASE.@MODULE_EXT@ \
+	esatto@MODULE_EXT@ ESATTO.@MODULE_EXT@ \
 	lanczos_interface.@MODULE_EXT@ LANCZOS_INTERFACE.@MODULE_EXT@ \
-	formats.@MODULE_EXT@ FORMATS.@MODULE_EXT@ \	
-	miscellany.@MODULE_EXT@ MISCELLANY.@MODULE_EXT@ \	
-	neb_routines.@MODULE_EXT@ NEB_ROUTINES.@MODULE_EXT@ \	
-	numeric.@MODULE_EXT@ NUMERIC.@MODULE_EXT@ \	
-	minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \	
-	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \	
+	formats.@MODULE_EXT@ FORMATS.@MODULE_EXT@ \
+	miscellany.@MODULE_EXT@ MISCELLANY.@MODULE_EXT@ \
+	neb_routines.@MODULE_EXT@ NEB_ROUTINES.@MODULE_EXT@ \
+	numeric.@MODULE_EXT@ NUMERIC.@MODULE_EXT@ \
+	minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
+	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
 	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@ 
 
 #dependencies
@@ -266,6 +278,8 @@ $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o : $(mpi_includ
 cluster.o geometry.o: vdwcorrection.o
 
 lanczos.o : lanczos_base.o lanczos_interface.o
+
+provaesatto.o : esatto.o
 
 #init.o : base.o interfaces.o
 

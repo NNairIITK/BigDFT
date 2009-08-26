@@ -25,9 +25,9 @@ module module_types
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,nvirt,nplot
      integer :: output_grid, dispersion
      real(gp) :: frac_fluct,randdis,betax,forcemax,gnrm_sw
-     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf
+     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf 
      integer :: iat_absorber,nvacancy,verbosity
-
+     real(gp):: absorber_gnrm
 
      real(gp), dimension(3) :: ef
   end type input_variables
