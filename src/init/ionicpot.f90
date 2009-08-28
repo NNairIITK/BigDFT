@@ -753,7 +753,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
 
 !!$     call plot_density(at%geocode,'gaupotion.pot',iproc,1,n1,n2,n3,n1i,n2i,n3i,n3i,&
-!!$          1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
+!!$          at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
 
 
 
@@ -770,7 +770,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
 
 !!$     call plot_density(at%geocode,'deltapotion.pot',iproc,1,n1,n2,n3,n1i,n2i,n3i,n3i,&
-!!$          1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
+!!$          at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
 
 
      iat=nvacancy
@@ -833,7 +833,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
 
      !call plot_density(at%geocode,'deltapotion_final.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3pi,&
-     !     1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
+     !     at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
 
      !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
      !add the periodic pot_ion
@@ -877,7 +877,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
      !here put nproc=1 
      call plot_density(at%geocode,'potion_corr.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3pi,&
-          1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr(ind))
+          at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr(ind))
 
 
 
@@ -901,7 +901,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 !!$     if (iproc==0) print *,'offset reread',offset
 !!$
 !!$     call plot_density(at%geocode,'potion_corr_2.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,&
-!!$          n3pi,1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
+!!$          n3pi,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
           
 
      i_all=-product(shape(ngatherarr))*kind(ngatherarr)

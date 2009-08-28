@@ -565,7 +565,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
      GPU_for_orbs(0)=GPUblas
   end if
 
-  print *,'iproc,GPU_for_orbs:',iproc,GPU_for_orbs,GPUconv
+ ! print *,'iproc,GPU_for_orbs:',iproc,GPU_for_orbs,GPUconv
 
 
   !cubic-code strategy: balance the orbitals between processors
