@@ -2,7 +2,7 @@
 !! FUNCTION
 !!    Display the logo of BigDFT 
 !! COPYRIGHT
-!!    Copyright (C) 2007-2008 BigDFT group 
+!!    Copyright (C) 2007-2009 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -225,6 +225,7 @@ subroutine geopt_input_variables_default(in)
   in%betax=2.0_gp
 
 end subroutine geopt_input_variables_default
+!!***
 
 
 !!****f* BigDFT/geopt_input_variables

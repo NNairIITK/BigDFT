@@ -657,7 +657,6 @@ end do hopping_loop
      close(11)
   endif
 
-
   call cpu_time(tcpu2)
   if (iproc.eq.0) then
      !C ratios from all the global counters
@@ -899,20 +898,24 @@ contains
     
   end subroutine mdescape
   
-  
 
   subroutine soften(ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
        nproc,iproc,atoms,rst,inputs_md)! &
     use module_base
     use module_types
     use module_interfaces
-    implicit real*8 (a-h,o-z)
+    implicit none
+    !Arguments
     type(atoms_data) :: atoms
-    dimension fxyz(3*atoms%nat),gg(3*atoms%nat),vxyz(3*atoms%nat),rxyz(3*atoms%nat),rxyz_old(3*atoms%nat)
+    real*8 :: count_md,dt,e_pos,ekinetic
+    integer :: iproc,nproc
+    real*8 :: fxyz(3*atoms%nat),gg(3*atoms%nat),vxyz(3*atoms%nat),rxyz(3*atoms%nat),rxyz_old(3*atoms%nat)
     type(input_variables) :: inputs_md
     type(restart_objects) :: rst
     !Local variables
-    dimension wpos(3*atoms%nat)
+    real*8 :: alpha,curv,curv0,eps_vxyz,etot,etot0,fd2
+    integer :: i,infocode,it,nit
+    real*8 :: res,sdf,svxyz
 
     nit=20
 !    eps_vxyz=1.d-1*atoms%nat
@@ -1706,13 +1709,13 @@ end subroutine wtioput
 
 subroutine wtbest(nat,energy,pos,iatype,atomnames,natpol)
   implicit real*8 (a-h,o-z)
-  character(41) filename
-  character(20) atomnames
-  character(3) fn
+  character(len=41) :: filename
+  character(len=20) :: atomnames
+  character(len=3) :: fn
   dimension pos(3,nat),iatype(nat),atomnames(100)
-  integer, dimension(nat):: natpol
+  integer, dimension(nat), intent(in) :: natpol
 
-  !C generate filename and open files
+  !Generate filename and open files
   filename = 'posbest.xyz'
   open(unit=9,file=filename,status='unknown')
   write(9,'(i4,2x,a,1pe24.17)') nat,'  atomic', energy
@@ -1721,8 +1724,7 @@ subroutine wtbest(nat,energy,pos,iatype,atomnames,natpol)
      write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)') atomnames(iatype(iat)),&
           pos(1,iat),pos(2,iat),pos(3,iat),natpol(iat)-100
   enddo
-  close(9)
-  return
+  close(unit=9)
 end subroutine wtbest
 
 subroutine wtmd(istep,nat,energy,pos,iatype,atomnames,natpol)

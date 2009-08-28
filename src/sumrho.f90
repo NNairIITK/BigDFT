@@ -7,7 +7,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
 !! SOURCE
 !!
 subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,nspin,GPU)
@@ -198,9 +197,15 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   call timing(iproc,'Rho_comput    ','OF')
 
 end subroutine sumrho
+!!***
 
-!here starts the routine for building partial density inside the localisation region
-!this routine should be treated as a building-block for the linear scaling code
+
+!!****f* BigDFT/local_partial_density_old
+!! FUNCTION
+!!   Here starts the routine for building partial density inside the localisation region
+!!   This routine should be treated as a building-block for the linear scaling code
+!! SOURCE
+!!
 subroutine local_partial_density_old(iproc,nproc,rsflag,nscatterarr,&
      nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   use module_base
@@ -424,9 +429,15 @@ subroutine local_partial_density_old(iproc,nproc,rsflag,nscatterarr,&
   call memocc(i_stat,i_all,'w2',subname)
 
 end subroutine local_partial_density_old
+!!***
 
-!here starts the routine for building partial density inside the localisation region
-!this routine should be treated as a building-block for the linear scaling code
+
+!!****f* BigDFT/local_partial_density
+!! FUNCTION
+!!   Here starts the routine for building partial density inside the localisation region
+!!   This routine should be treated as a building-block for the linear scaling code
+!! SOURCE
+!!
 subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
      nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   use module_base
@@ -517,7 +528,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   call deallocate_work_arrays_sumrho(w)
 
 end subroutine local_partial_density
-
+!!***
 
 
 subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&

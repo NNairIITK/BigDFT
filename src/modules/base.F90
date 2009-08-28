@@ -1,4 +1,4 @@
-!!****M* BigDFT/base
+!!****m* BigDFT/module_base
 !!
 !! DESCRIPTION
 !!  Modules which contains the low level definitions, as well as some profiling procedures

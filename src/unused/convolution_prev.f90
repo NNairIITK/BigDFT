@@ -671,9 +671,6 @@ enddo
 end subroutine comb_rot_grow_loc_3_prev
 
 
-
-
-
 subroutine Convolkinetic_prev(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_fc,x_f,y_c,y_f)
@@ -1056,22 +1053,30 @@ subroutine Convolkinetic_prev(n1,n2,n3, &
   return
 end subroutine Convolkinetic_prev
 
+
 subroutine ConvolkineticT_prev(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_fc,x_f,y_c,y_f,ekin)
   !   y = y+(kinetic energy operator)x 
   implicit real(kind=8) (a-h,o-z)
+  !Arguments
+  integer, intent(in) :: n1,n2,n3
+  integer, intent(in) :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
+  real(kind=8), intent(in) :: hgrid
+  real(kind=8), intent(out) :: ekin
+  real(kind=8) :: x_c(0:n1,0:n2,0:n3),y_c(0:n1,0:n2,0:n3)
+  real(kind=8) :: x_fc(0:n1,0:n2,0:n3,3),x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
+  real(kind=8) :: y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
+  integer ::  ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
+  integer ::  ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
+  !Local variables
   logical :: firstcall=.true. 
   integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-  dimension x_c(0:n1,0:n2,0:n3),y_c(0:n1,0:n2,0:n3)
-  dimension x_fc(0:n1,0:n2,0:n3,3),x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-  dimension y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-  dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
-  dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-
-
-  parameter(lowfil=-14,lupfil=14)
-  dimension a(lowfil:lupfil),b(lowfil:lupfil),c(lowfil:lupfil),e(lowfil:lupfil)
+  integer, parameter :: lowfil=-14,lupfil=14
+  real(kind=8) :: a(lowfil:lupfil),b(lowfil:lupfil),c(lowfil:lupfil),e(lowfil:lupfil)
+  integer :: i,i1,i2,i3,l,nb,ncount0
+  integer :: ncount1,ncount2,ncount3,ncount4,ncount5,ncount6,ncount_max,ncount_rate
+  real(kind=8) :: s111,t111,t112,t121,t122,t211,t212,t221,t222,tel
   scale=-.5d0/hgrid**2
   !---------------------------------------------------------------------------
   ! second derivative filters for Daubechies 16
