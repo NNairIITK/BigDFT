@@ -107,8 +107,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      GPU_for_comp(0)=GPUblas
   end if
 
-  print *,'iproc,GPU_for_comp:',iproc,GPU_for_comp,GPUblas
-
   i=1
   j=1
   loop_components: do 

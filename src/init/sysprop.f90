@@ -562,11 +562,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
      call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
           MPI_COMM_WORLD,ierr)
   else
-     GPU_for_orbs(0)=GPUblas
+     GPU_for_orbs(0)=GPUconv
   end if
-
-  print *,'iproc,GPU_for_orbs:',iproc,GPU_for_orbs,GPUconv
-
 
   !cubic-code strategy: balance the orbitals between processors
   !in the most symmetric way

@@ -1190,7 +1190,7 @@ subroutine read_atomic_ascii(iproc,ifile,atoms,rxyz)
   allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%amu,'atoms%amu',subname)
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%natpol,'rxyz',subname)
+  call memocc(i_stat,rxyz,'rxyz',subname)
 
   !controls if the positions are provided with machine precision
   if (index(atoms%units, 'd0') > 0) then
