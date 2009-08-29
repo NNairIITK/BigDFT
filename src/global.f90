@@ -964,7 +964,7 @@ contains
 !             end if
 !          end if
 !       end do
-      call atomic_axpy(atoms,rxyz,1.d0,vxyz,wpos)
+      call atomic_axpy(atoms,rxyz,1.0_gp,vxyz,wpos)
 
 
        call call_bigdft(nproc,iproc,atoms,wpos,inputs_md,etot,fxyz,rst,infocode)
@@ -1030,7 +1030,7 @@ contains
        call atomic_axpy_forces(atoms,wpos,alpha,fxyz,wpos)
 
        do i=1,3*atoms%nat
-          vxyz(i)=wpos(i)-rxyz(i)
+          vxyz(i)=wpos(mod(i-1,3)+1,(i-1)/3+1)-rxyz(i)
        end do
      write(comment,'(a,1pe10.3)')'curv= ',curv
      call wtxyz('posvxyz',0.d0,vxyz,atoms,trim(comment))

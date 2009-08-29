@@ -98,7 +98,11 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   allocate(orbsv%norb_par(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,orbsv%norb_par,'orbsv%norb_par',subname)
   !davidson treatment for spin-pol case should be reworked
-  call orbitals_descriptors(iproc,nproc,nvirte,nvirte,0,1,orbsv)
+  if (nspin == 1) then
+     call orbitals_descriptors(iproc,nproc,nvirte,nvirte,0,orbs%nspinor,orbsv)
+  else if (nspin == 2) then
+     call orbitals_descriptors(iproc,nproc,nvirte,nvirte,nvirte,orbs%nspinor,orbsv)
+  end if
 
   !allocate communications arrays for virtual orbitals
   !warning: here the aim is just to calculate npsidim, should be fixed

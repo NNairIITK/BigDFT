@@ -431,11 +431,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   allocate(fion(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fion,'fion',subname)
 
-  call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,rxyz,eion,fion,&
+  call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,&
        psoffset,in%nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
 
   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
-       in%ef,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,in%nvacancy,&
+       in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,in%nvacancy,&
        in%correct_offset)
         
   !this can be inserted inside the IonicEnergyandForces routine

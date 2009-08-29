@@ -33,7 +33,7 @@ module module_types
      real(gp) :: frac_fluct,randdis,betax,forcemax,gnrm_sw
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf
      integer :: iat_absorber,nvacancy,verbosity
-     real(gp), dimension(3) :: ef
+     real(gp) :: elecfield
   end type input_variables
 !!***
 

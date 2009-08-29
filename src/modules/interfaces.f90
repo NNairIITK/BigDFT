@@ -202,14 +202,14 @@ module module_interfaces
        integer, dimension(0:nproc-1,2), intent(out) :: ngatherarr
      end subroutine createDensPotDescriptors
 
-     subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,rxyz,eion,fion,psoffset,&
+     subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,rxyz,eion,fion,psoffset,&
           nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
        use module_base
        use module_types
        implicit none
        type(atoms_data), intent(in) :: at
        integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,nvacancy
-       real(kind=8), intent(in) :: hxh,hyh,hzh
+       real(kind=8), intent(in) :: hxh,hyh,hzh,elecfield
        real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
        real(kind=8), dimension(*), intent(in) :: pkernel
        real(kind=8), intent(out) :: eion,psoffset
@@ -218,7 +218,7 @@ module module_interfaces
      end subroutine IonicEnergyandForces
 
      subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
-          hxh,hyh,hzh,ef,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
+          hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
           correct_offset)
        use module_base
        use module_types
@@ -228,7 +228,7 @@ module module_interfaces
        integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,nvacancy
        real(gp), intent(in) :: hxh,hyh,hzh,psoffset
        type(atoms_data), intent(in) :: at
-       real(gp), dimension(3), intent(in) :: ef
+       real(gp), intent(in) :: elecfield
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(dp), dimension(*), intent(in) :: pkernel
        real(wp), dimension(*), intent(inout) :: pot_ion

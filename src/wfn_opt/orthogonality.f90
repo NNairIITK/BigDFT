@@ -114,6 +114,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
 
            ! Cholesky factorization
            call potrf( 'L',norb,ovrlp(ndimovrlp(ispin,ikpt-1)+1,1),norb,info)
+           !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
            if (info /= 0) then
               write(*,*) 'info Cholesky factorization',info
            end if
@@ -746,8 +747,9 @@ subroutine dimension_ovrlp(nspin,orbs,ndimovrlp)
 
   ndimovrlp(1,0)=0
   if (nspin == 2) then
-     norb=orbs%norbd
+     norb=orbs%norbu
 
+     !this is first k-point
      call complex_components(orbs%nspinor,norb,norbs,ncomp)
 
      ndimovrlp(2,0)=norbs*norb
@@ -756,17 +758,20 @@ subroutine dimension_ovrlp(nspin,orbs,ndimovrlp)
   do ikpt=1,orbs%nkpts
      !this part should be enhanced for real k-points
      norb=orbs%norbu
-
+     if (nspin == 2) norb = orbs%norbd
+     !this is ikpt k-point
      call complex_components(orbs%nspinor,norb,norbs,ncomp)
 
      ndimovrlp(1,ikpt)=ndimovrlp(nspin,ikpt-1)+norbs*norb
      if (orbs%norbd > 0) then
-
-        norb=orbs%norbd
-        
+        norb=orbs%norbu
+        !this is ikpt+1
         call complex_components(orbs%nspinor,norb,norbs,ncomp)
-
-        ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)+norbs*norb
+        if (ikpt == orbs%nkpts) then
+           ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)
+        else
+           ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)+norbs*norb
+        end if
      end if
   end do
 
@@ -784,8 +789,8 @@ subroutine dimension_ovrlp_virt(nspin,orbs,orbsv,ndimovrlp)
 
   ndimovrlp(1,0)=0
   if (nspin == 2) then
-     norb=orbs%norbd
-     norbv=orbsv%norbd
+     norb=orbs%norbu
+     norbv=orbsv%norbu
      call complex_components(orbs%nspinor,norb,norbs,ncomp)
 
      ndimovrlp(2,0)=norbs*norbv
@@ -794,19 +799,28 @@ subroutine dimension_ovrlp_virt(nspin,orbs,orbsv,ndimovrlp)
   do ikpt=1,orbs%nkpts
      !this part should be enhanced for real k-points
      norb=orbs%norbu
-     norbv=orbsv%norbu
+     norbv=orbsv%norbu 
+     if (nspin == 2) then
+        norb=orbs%norbd
+        norbv=orbsv%norbd
+     end if
+
 
      call complex_components(orbs%nspinor,norb,norbs,ncomp)
 
      ndimovrlp(1,ikpt)=ndimovrlp(nspin,ikpt-1)+norbs*norbv
      if (orbs%norbd > 0) then
 
-        norb=orbs%norbd
-        norbv=orbsv%norbd
+        norb=orbs%norbu
+        norbv=orbsv%norbu
         
         call complex_components(orbs%nspinor,norb,norbs,ncomp)
 
-        ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)+norbs*norbv
+        if (ikpt == orbs%nkpts) then
+           ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)
+        else
+           ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)+norbs*norbv
+        end if
      end if
   end do
 

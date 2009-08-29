@@ -84,14 +84,8 @@ subroutine dft_input_variables(iproc,filename,in)
   read(1,*,iostat=ierror) in%ixc
   call check()
   !charged system, electric field (intensity and start-end points)
-  read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%ncharge,in%ef(1)
-  if (ierror == 0 .and. in%ef(1) /= 0.0_gp) then
-     read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
-  else
-     in%ef(2)=0.0_gp
-     in%ef(3)=0.0_gp
-  end if
+  call check()
+  read(1,*,iostat=ierror)  in%ncharge,in%elecfield
   call check()
   read(1,*,iostat=ierror) in%nspin,in%mpol
   call check()
@@ -324,7 +318,7 @@ subroutine dft_input_converter(in)
 
   line=''
   line=' ncharge: charge of the system, Electric field'
-  write(1,'(i3,3(f6.3),a)') in%ncharge,in%ef(1),in%ef(2),in%ef(3),trim(line)
+  write(1,'(i3,3(f6.3),a)') in%ncharge,in%elecfield,trim(line)
 
   line=''
   line=' nspin=1 non-spin polarization, mpol=total magnetic moment'
@@ -467,21 +461,14 @@ subroutine read_input_variables(iproc,filename,in)
 
   read(1,*,iostat=ierror) in%ixc
   call check()
-  read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%ncharge,in%ef(1)
-  if (ierror == 0 .and. in%ef(1) /= 0.0_gp) then
-     read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
-  else
-     in%ef(2)=0.0_gp
-     in%ef(3)=0.0_gp
-  end if
+  read(1,*,iostat=ierror) in%elecfield
   call check()
   read(1,*,iostat=ierror) in%gnrm_cv
   call check()
   read(1,'(a100)')line
   read(line,*,iostat=ierror) in%itermax,in%nrepmax
   if (ierror == 0) then
-     !read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
+     !read(line,*,iostat=ierror) in%ncharge,in%elecfield
   else
      read(line,*,iostat=ierror)in%itermax
      in%nrepmax=10
@@ -620,7 +607,7 @@ subroutine print_input_parameters(in,atoms)
        'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
        '|  CG Steps=',in%ncongt
   write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
-       ' elec. field=',in%ef(1),'|                   ','| DIIS Hist. N.=',in%idsx
+       ' elec. field=',in%elecfield,'|                   ','| DIIS Hist. N.=',in%idsx
   if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
           'Polarisation=',2*in%mpol, '|'
@@ -1411,7 +1398,7 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
-  open(unit=9,file=filename//'.xyz')
+  open(unit=9,file=trim(filename)//'.xyz')
   xmax=0.0_gp
   ymax=0.0_gp
   zmax=0.0_gp
