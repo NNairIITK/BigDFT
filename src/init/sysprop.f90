@@ -558,7 +558,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   allocate(GPU_for_orbs(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
 
-  if (nproc > 1) then
+  if (nproc > 1 .and. .not. GPUshare) then
      call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
           MPI_COMM_WORLD,ierr)
   else

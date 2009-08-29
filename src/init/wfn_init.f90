@@ -965,11 +965,11 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
                    psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst+norbi*norbj),norbi,&
                    (0.0_wp,0.0_wp),psivirt(ispsiv),max(1,ncomp*nvctrp))
            end if
+           ispsiv=ispsiv+nvctrp*nvirte*nspinor
         end if
         iorbst=norbi+norbsc+1 !this is equal to norbe+1
         iorbst2=norbu+1
         imatrst=ndim_hamovr+1
-        ispsiv=ispsiv+nvctrp*nvirte*nspinor
      end do
   else !not used anymore
 
