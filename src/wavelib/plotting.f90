@@ -436,12 +436,12 @@ subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
 
 end subroutine plot_psifscf
 
-subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,nelec,rho)
+subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=*), intent(in) :: filename
-  integer, intent(in) :: n1i,n2i,n3i,n3d,n1,n2,n3,nelec,i3s
+  integer, intent(in) :: n1i,n2i,n3i,n3d,n1,n2,n3,i3s
   real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
   !local variables
   integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,j1,j2,j3
@@ -478,7 +478,7 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,nelec,rho)
            ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-i3s)*n1i*n2i
            read(22,*)value
            if (i3+nl3 >= i3s .and. i3+nl3 <= i3s+n3d-1) then
-              rho(ind)=value*real(nelec,dp)
+              rho(ind)=value
            end if
         end do
      end do
@@ -488,13 +488,13 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,nelec,rho)
 end subroutine read_potfile
 
 
-subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nelec,&
+subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
      alat1,alat2,alat3,ngatherarr,rho)
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nelec,nproc
+  integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nproc
   real(gp), intent(in) :: alat1,alat2,alat3
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(dp), dimension(n1i*n2i*n3p), target, intent(in) :: rho
@@ -547,7 +547,7 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ne
         do i2=0,2*n2+1
            do i1=0,2*n1+1
               ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-              write(22,*)pot_ion(ind)/real(nelec,dp)
+              write(22,*)pot_ion(ind)
            end do
         end do
      end do

@@ -711,7 +711,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      allocate(rhoref(n1i,n2i,max(n3d,1),in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,rhoref,'rhoref',subname)
 
-     call read_potfile(atoms%geocode,'density.pot',n1,n2,n3,n1i,n2i,n3i,n3d,i3s,1,rhoref)
+     call read_potfile(atoms%geocode,'density.pot',n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rhoref)
 
      potion_overwritten=.false.
 
@@ -754,7 +754,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
            if (.not. potion_overwritten) then
               !overwrite pot_ion with the potential previously created
               call read_potfile(atoms%geocode,'potion_corr.pot',n1,n2,n3,n1i,n2i,n3i,n3pi,&
-                   i3s+i3xcsh,1,pot_ion)
+                   i3s+i3xcsh,pot_ion)
 
               if (.not. in%correct_offset) then
                  !read the ionic energy from disk
@@ -952,11 +952,22 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
 
   !plot the ionic potential, if required by output_grid
-  if (in%output_grid==3) then
-     call plot_density(atoms%geocode,'pot_ion.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,1,&
-          atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,pot_ion)
-     call plot_density(atoms%geocode,'tutto.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,1,&
-          atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+  if (abs(in%output_grid)==2) then
+  if (in%output_grid==2) then
+     if (iproc.eq.0) write(*,*) 'writing ionic_potential.pot'
+     call plot_density(atoms%geocode,'ionic_potential.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+                       atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,pot_ion)
+     if (iproc.eq.0) write(*,*) 'writing local_potential.pot'
+     call plot_density(atoms%geocode,'local_potential.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+                       atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+  else
+     if (iproc.eq.0) write(*,*) 'writing ionic_potential.cube'
+     call plot_density_cube(atoms%geocode,'ionic_potential',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+                            in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot_ion)
+     if (iproc.eq.0) write(*,*) 'writing local_potential.cube'
+     call plot_density_cube(atoms%geocode,'local_potential',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+                            in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+  endif
   end if
 
   i_all=-product(shape(pot_ion))*kind(pot_ion)
@@ -996,18 +1007,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
        nscatterarr,in%nspin,GPU)
 
   !plot the density on the density.pot file
-  if (in%output_grid==1 .or. in%output_grid==3 .or. in%nvacancy /=0) then
+  if (abs(in%output_grid) .ge. 1 .or. in%nvacancy /=0) then
+  if (in%output_grid .ge. 0) then
      if (in%nspin == 2 ) then
-        if(iproc==0) write(*,*)&
-             'ERROR: density cannot be plotted in .pot format for a spin-polarised calculation'
+        if(iproc==0) write(*,*) 'ERROR: density cannot be plotted in .pot format for a spin-polarised calculation'
      else
-        call plot_density(atoms%geocode,'density.pot',iproc,nproc,&
-             n1,n2,n3,n1i,n2i,n3i,n3p,1,atoms%alat1,atoms%alat2,atoms%alat3,&
-             ngatherarr,rho)
+     if (iproc.eq.0) write(*,*) 'writing electronic_density.pot'
+        call plot_density(atoms%geocode,'electronic_density.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+                          atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rho)
      end if
-  else if(in%output_grid==2) then
-     call plot_density_cube(atoms%geocode,'density',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,&
-          n3p,in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+  else 
+     if (iproc.eq.0) write(*,*) 'writing electronic_density.cube'
+     call plot_density_cube(atoms%geocode,'electronic_density',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
+                            in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+  endif
   end if
   !calculate the total density in the case of nspin==2
   if (in%nspin==2) then
@@ -1035,10 +1048,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !here nspin=1 since ixc=0
 
   !plot also the electrostatic potential
-  if (in%output_grid == 3) then
-     call plot_density(atoms%geocode,'potential.pot',iproc,nproc,&
-          n1,n2,n3,n1i,n2i,n3i,n3p,1,&
-          atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,pot)
+  if (abs(in%output_grid) == 2) then
+  if (in%output_grid == 2) then
+     if (iproc.eq.0) write(*,*) 'writing hartree_potential.pot'
+     call plot_density(atoms%geocode,'hartree_potential.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+                       atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,pot)
+  else
+     if (iproc.eq.0) write(*,*) 'writing hartree_potential.cube'
+     call plot_density_cube(atoms%geocode,'hartree_potential',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+                       in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot)
+  end if
   end if
 
   i_all=-product(shape(pkernel))*kind(pkernel)

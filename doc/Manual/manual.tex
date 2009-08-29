@@ -190,7 +190,8 @@ This file contains all the parameters required for a single wavefunction calcula
       \item -101130  PBE from  libXC
       \item -116133 PBEsol from libXC
       \end{itemize}
-\item {\bf ncharge}, {\bf elecfield}: total charge of the system and constant electric field along the y direction in units of Ha/bohr
+\item {\bf ncharge}, {\bf elecfield}: total charge of the system and constant electric field along the y direction in units of Ha/bohr. 
+      A positive {\bf ncharge} means that electrons are taken away.
 \item {\bf nspin}, {\bf mpol}: nspin=1: closed shaell system without spin polarization, nspin=2: spin polarized 
       system, nspin=4: non-collinear magnetic system
 \item {\bf gnrm\_cv} convergence criterion for the wavefunction optimization (norm of the gradient).
@@ -238,8 +239,11 @@ in cases where one has near degenercy between the homo and lumo orbitals. 50 and
                                'wavefunction.*' files. Writing a  'wavefunction.*' file for each orbital can take a considerable 
                                amount of time and disk space. 
        \item {\bf output\_density} = 0, no output density is written
-       \item {\bf output\_density} = 1, output density is written in the .pot format of V\_sim into the file 'density.pot'
-       \item {\bf output\_density} = 2, output density is written in the .cube format into the file 'density.cube'
+       \item {\bf output\_density} = 1, output electronic density is written in the .pot format of V\_sim into the file 'electronic_density.pot'
+       \item {\bf output\_density} = -1, same as  {\bf output\_density} = 1, but using .cube format: electronic_density.cube
+       \item {\bf output\_density} = 2, in addition to the electronic charge density the following files are written:
+                                  'ionic_potential.pot', 'local_potential.pot', 'hartree_potential.pot'.
+       \item {\bf output\_density} = -2, same as {\bf output\_density} = 2, but all files are written in the .cube format
       \end{itemize}
 \item {\bf calc\_tail} , {\bf rbuf}, {\bf ncongt}:  Far reaching tails of the wavefunctions decaying into the vacuum are  
                                       added in a perturbative treatment if the variable {\bf calc\_tail} is set to .true.. 
