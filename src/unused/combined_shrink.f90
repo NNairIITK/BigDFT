@@ -6,27 +6,27 @@ subroutine comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,&
   ! The input array y is not overwritten
 
   implicit none
-  integer n1,n2,n3,i1,i2,i3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  real(kind=8) y( -14:2*n1+16,-14:2*n2+16,-14:2*n3+16) ! input
+  integer :: n1,n2,n3,i1,i2,i3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  real(kind=8) :: y( -14:2*n1+16,-14:2*n2+16,-14:2*n3+16) ! input
   !    real(kind=8) w1( 2,           -14:2*n2+16,-14:2*n3+16,0:n1)!  work 
   ! real(kind=8) w2( 4,                       -14:2*n3+16,0:n1,0:n2)
-  real(kind=8) w1(max(2*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31)*(nfu1-nfl1+1),&
+  real(kind=8) :: w1(max(2*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31)*(nfu1-nfl1+1),&
        (2*n2+31)*(2*n3+31)*(n1+1)))
-  real(kind=8) w2( max(4*(2*(nfu3-nfl3)+31)*(nfu1-nfl1+1)*(nfu2-nfl2+1),&
+  real(kind=8) :: w2( max(4*(2*(nfu3-nfl3)+31)*(nfu1-nfl1+1)*(nfu2-nfl2+1),&
        (2*n3+31)*(n1+1)*(n2+1)))
 
-  real(kind=8) xf(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),xc(0:n1,0:n2,0:n3)! work arrays
+  real(kind=8) :: xf(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),xc(0:n1,0:n2,0:n3)! work arrays
 
   ! boundary arrays
-  integer ibxy_c(2,0:n1,0:n2) 
-  integer ibzzx_c(2,-14:2*n3+16,0:n1) 
-  integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
+  integer :: ibxy_c(2,0:n1,0:n2) 
+  integer :: ibzzx_c(2,-14:2*n3+16,0:n1) 
+  integer :: ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
 
-  integer ibxy_f(2,nfl1:nfu1,nfl2:nfu2)
-  integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)
-  integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
+  integer :: ibxy_f(2,nfl1:nfu1,nfl2:nfu2)
+  integer :: ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)
+  integer :: ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
 
-  integer,dimension(2,0:n2,0:n3)::ibyz_c,ibyz_f
+  integer, dimension(2,0:n2,0:n3) :: ibyz_c,ibyz_f
 
   ! perform the combined transform 
   call comb_shrink_loc_c(0,n1,0,n2,0,n3,w1,w2,y,xc,1,1,1,&
@@ -82,15 +82,20 @@ subroutine comb_shrink_loc_c(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,x,l1,l2,l3,&
   ! The output is only the l1,l2,l3 wavelet component
   ! The size of the data is forced to shrink
   ! The input array y is not overwritten
-  implicit real(kind=8) (a-h,o-z)
-  real(kind=8) y(-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)!input
-  real(kind=8) w1(-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)!work
-  real(kind=8) w2(-14+2*nfl3:2*nfu3+16,nfl1:nfu1,nfl2:nfu2)
-  real(kind=8) x(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)!output
+  implicit none
+  !Arguments
+  integer, intent(in) :: l1,l2,l3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
+  real(kind=8) :: y(-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)!input
+  real(kind=8) :: w1(-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)!work
+  real(kind=8) :: w2(-14+2*nfl3:2*nfu3+16,nfl1:nfu1,nfl2:nfu2)
+  real(kind=8) :: x(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)!output
 
-  integer ibxy(2,nfl1:nfu1,nfl2:nfu2)
-  integer ibzzx(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)
-  integer ibyyzz(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
+  integer :: ibxy(2,nfl1:nfu1,nfl2:nfu2)
+  integer :: ibzzx(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)
+  integer :: ibyyzz(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
+
+  !Local variables
+  integer :: m1,m2,m3,nt
 
   m1=nfu1-nfl1
   m2=nfu2-nfl2

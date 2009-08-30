@@ -100,14 +100,12 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   allocate(GPU_for_comp(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,GPU_for_comp,'GPU_for_comp',subname)
 
-  if (nproc > 1) then
+  if (nproc > 1 .and. .not. GPUshare) then
      call MPI_ALLGATHER(GPUblas,1,MPI_LOGICAL,GPU_for_comp(0),1,MPI_LOGICAL,&
           MPI_COMM_WORLD,ierr)
   else
      GPU_for_comp(0)=GPUblas
   end if
-
-!  print *,'iproc,GPU_for_comp:',iproc,GPU_for_comp,GPUblas
 
   i=1
   j=1

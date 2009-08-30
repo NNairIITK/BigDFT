@@ -1,5 +1,17 @@
-!orthogonality routine, for all the orbitals
-!uses wavefunctions in their transposed form
+!!****f* BigDFT/orthogonalize
+!! FUNCTION
+!!    Orthogonality routine, for all the orbitals
+!!    Uses wavefunctions in their transposed form
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA, ESRF, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
   use module_base
   use module_types
@@ -47,7 +59,6 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
   !differentiate between real and complex wavefunctions
   !Lower triangle of overlap matrix using BLAS
   !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; lower triangle
-
 
   !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
   ispsi=1
@@ -103,6 +114,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
 
            ! Cholesky factorization
            call potrf( 'L',norb,ovrlp(ndimovrlp(ispin,ikpt-1)+1,1),norb,info)
+           !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
            if (info /= 0) then
               write(*,*) 'info Cholesky factorization',info
            end if
@@ -155,10 +167,16 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
 !!$       psi(1+comms%nvctr_par(iproc)*orbs%norbu),orbs%nspinor) 
 !!$end if
 
-end subroutine orthogonalize
+END SUBROUTINE orthogonalize
+!!***
 
-!orthogonality routine, for all the orbitals
-!uses wavefunctions in their transposed form
+
+!!****f* BigDFT/orthoconstraint
+!! FUNCTION
+!!   Orthogonality routine, for all the orbitals
+!!   Uses wavefunctions in their transposed form
+!! SOURCE
+!!
 subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   use module_base
   use module_types
@@ -294,11 +312,16 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
 
   call timing(iproc,'LagrM_comput  ','OF')
 
-end subroutine orthoconstraint
+END SUBROUTINE orthoconstraint
+!!***
 
 
-!found the linear combination of the wavefunctions which diagonalises
-!the overlap matrix
+!!****f* BigDFT/subspace_diagonalisation
+!! FUNCTION
+!!   Found the linear combination of the wavefunctions which diagonalises
+!!   the overlap matrix
+!! SOURCE
+!!
 subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   use module_base
   use module_types
@@ -495,7 +518,9 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   deallocate(ndimovrlp,stat=i_stat)
   call memocc(i_stat,i_all,'ndimovrlp',subname)
 
-end subroutine subspace_diagonalisation
+END SUBROUTINE subspace_diagonalisation
+!!***
+
 
 !!****f* BigDFT/orthon_virt_occup
 !! DESCRIPTION
@@ -670,9 +695,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
   call timing(iproc,'LagrM_comput  ','OF')
 
 end subroutine orthon_virt_occup
-
-
-
+!!***
 
 
 subroutine complex_components(nspinor,norb,norbs,ncomp)
@@ -724,8 +747,9 @@ subroutine dimension_ovrlp(nspin,orbs,ndimovrlp)
 
   ndimovrlp(1,0)=0
   if (nspin == 2) then
-     norb=orbs%norbd
+     norb=orbs%norbu
 
+     !this is first k-point
      call complex_components(orbs%nspinor,norb,norbs,ncomp)
 
      ndimovrlp(2,0)=norbs*norb
@@ -734,17 +758,20 @@ subroutine dimension_ovrlp(nspin,orbs,ndimovrlp)
   do ikpt=1,orbs%nkpts
      !this part should be enhanced for real k-points
      norb=orbs%norbu
-
+     if (nspin == 2) norb = orbs%norbd
+     !this is ikpt k-point
      call complex_components(orbs%nspinor,norb,norbs,ncomp)
 
      ndimovrlp(1,ikpt)=ndimovrlp(nspin,ikpt-1)+norbs*norb
      if (orbs%norbd > 0) then
-
-        norb=orbs%norbd
-        
+        norb=orbs%norbu
+        !this is ikpt+1
         call complex_components(orbs%nspinor,norb,norbs,ncomp)
-
-        ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)+norbs*norb
+        if (ikpt == orbs%nkpts) then
+           ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)
+        else
+           ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)+norbs*norb
+        end if
      end if
   end do
 
@@ -762,8 +789,8 @@ subroutine dimension_ovrlp_virt(nspin,orbs,orbsv,ndimovrlp)
 
   ndimovrlp(1,0)=0
   if (nspin == 2) then
-     norb=orbs%norbd
-     norbv=orbsv%norbd
+     norb=orbs%norbu
+     norbv=orbsv%norbu
      call complex_components(orbs%nspinor,norb,norbs,ncomp)
 
      ndimovrlp(2,0)=norbs*norbv
@@ -772,19 +799,28 @@ subroutine dimension_ovrlp_virt(nspin,orbs,orbsv,ndimovrlp)
   do ikpt=1,orbs%nkpts
      !this part should be enhanced for real k-points
      norb=orbs%norbu
-     norbv=orbsv%norbu
+     norbv=orbsv%norbu 
+     if (nspin == 2) then
+        norb=orbs%norbd
+        norbv=orbsv%norbd
+     end if
+
 
      call complex_components(orbs%nspinor,norb,norbs,ncomp)
 
      ndimovrlp(1,ikpt)=ndimovrlp(nspin,ikpt-1)+norbs*norbv
      if (orbs%norbd > 0) then
 
-        norb=orbs%norbd
-        norbv=orbsv%norbd
+        norb=orbs%norbu
+        norbv=orbsv%norbu
         
         call complex_components(orbs%nspinor,norb,norbs,ncomp)
 
-        ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)+norbs*norbv
+        if (ikpt == orbs%nkpts) then
+           ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)
+        else
+           ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)+norbs*norbv
+        end if
      end if
   end do
 

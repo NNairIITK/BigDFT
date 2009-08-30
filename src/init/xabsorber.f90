@@ -1,6 +1,14 @@
-
-
-
+!!****m* BigDFT/find_pfproj
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2009 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine find_pfproj( Nsol,Ngrid,rgrid,  psi1s, psigrid, real_start, psigrid_pseudo)
   use module_base
   implicit none
@@ -68,10 +76,10 @@ subroutine find_pfproj( Nsol,Ngrid,rgrid,  psi1s, psigrid, real_start, psigrid_p
 
   return
 end subroutine find_pfproj
-  
+!!***  
 
 
-subroutine     find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
+subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
   use module_base
   implicit none
  
@@ -134,11 +142,8 @@ subroutine     find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
      endif
   enddo
   
-
   return 
 end subroutine find_Scoeffs_grid
-
-
 
 
 subroutine   dump_1gauwf_on_radgrid(prefix, ng , expo,psi   ,lpow   )
@@ -564,11 +569,11 @@ end subroutine integrate
 
 function pow(x,n)
   use module_base, only: gp,wp
-  real(gp) x
+  implicit none
+  real(gp), intent(in) :: x
+  integer, intent(in) :: n
   real(gp) :: pow
-  integer n
   pow=x**n
-  return
 end function pow
 
 function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)

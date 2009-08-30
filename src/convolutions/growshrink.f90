@@ -1,4 +1,3 @@
-
 subroutine comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
      ,w2,w1,xc,xf,y,ibyz_c,ibzxx_c,ibxxyy_c,&
      ibyz_f,ibzxx_f,ibxxyy_f,ibyyzz_r)

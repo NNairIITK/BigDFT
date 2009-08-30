@@ -76,7 +76,7 @@ form the high resolution region. Default values for the 'size of the atom' and  
 are contained in the package. The user can however chose different values and these values can be specified by 
 adding a additional line at the end of the pseudopotentila parameter files which contains first the altenative 
 values of {\bf crmult} and then {\bf frmult}. The grid can be visualized by calling the 'memguess' program 
-with the the keywords {\bf output_grid}=1 in the input file. The output file 'grid.xyz' contains the atomic positions and in addition 
+with the the keywords {\bf output\_grid}=1 in the input file. The output file 'grid.xyz' contains the atomic positions and in addition 
 the grid points which denoted by 'g' if the are in the coarse region and by 'G' if they are in the fine region. 
 Whereas the total number of basis functions is nearly independent of the orientation of the molecule, the size of some 
 work arrays depends on the orientation. When the memguess routine is called with the option {\bf optimise} = .true., it will rotate 
@@ -139,19 +139,18 @@ This hydrogen atom has a spin up poarization
 
 This chlorine atom has an additional electron and no spin polarization
 \begin{verbatim}
-  Cl  1.2  3.4  5.6   0  -1.
+  Cl  1.2  3.4  5.6   0  -1
 \end{verbatim}
 
 Same as above, but also frozen
 \begin{verbatim}
-  Cl  1.2  3.4  5.6   0  -1.   f
+  Cl  1.2  3.4  5.6   0  -1   f
 \end{verbatim}
 
 \pagebreak
 \begin{center} \large
 { \bf The input file input.memguess}
 \end{center}
-\begin{itemize}
 Before running BigDFT it is recommended to run the memguess routine. If it runs correctly all input files are available 
 (this routine needs a posinp.xyz and does not accept a list\_posinp file). It then allows to estimate the required memory and to 
 find an optimal number of MPI processes for a parallel run. For good load balancing each MPI process should roughly treat the same number 
@@ -159,9 +158,11 @@ of orbitals. The memguess program prints out the number of orbitals and how many
 On a parallel machine with a high performance interconnect network on can choose the number of MPI processes {\bf nproc} equal 
 to the number of occupied orbitals, i.e. each MPI process treats one orbital. On machines with slower networks each MPI process should 
 have at least 2 to 4 orbitals. 
+The entries in the 'input.memguess; file are the following:
+\begin{itemize}
 \item {\bf nproc}: Number of MPI processes
 \item {\bf optimise}: if =.true. the molecule will be rotated such that the size of the workarrays is minimal
-\item {\bf output_grid}: if =1 the file grid.xyz will be generated, =0 otherwise
+\item {\bf output\_grid}: if =1 the file grid.xyz will be generated, =0 otherwise
 \item {\bf GPUtest}: if =.true. perform the test with GPU
 \end{itemize}
 
@@ -239,10 +240,10 @@ in cases where one has near degenercy between the homo and lumo orbitals. 50 and
                                'wavefunction.*' files. Writing a  'wavefunction.*' file for each orbital can take a considerable 
                                amount of time and disk space. 
        \item {\bf output\_density} = 0, no output density is written
-       \item {\bf output\_density} = 1, output electronic density is written in the .pot format of V\_sim into the file 'electronic_density.pot'
-       \item {\bf output\_density} = -1, same as  {\bf output\_density} = 1, but using .cube format: electronic_density.cube
+       \item {\bf output\_density} = 1, output electronic density is written in the .pot format of V\_sim into the file 'electronic\_density.pot'
+       \item {\bf output\_density} = -1, same as  {\bf output\_density} = 1, but using .cube format: electronic\_density.cube
        \item {\bf output\_density} = 2, in addition to the electronic charge density the following files are written:
-                                  'ionic_potential.pot', 'local_potential.pot', 'hartree_potential.pot'.
+                                  'ionic\_potential.pot', 'local\_potential.pot', 'hartree\_potential.pot'.
        \item {\bf output\_density} = -2, same as {\bf output\_density} = 2, but all files are written in the .cube format
       \end{itemize}
 \item {\bf calc\_tail} , {\bf rbuf}, {\bf ncongt}:  Far reaching tails of the wavefunctions decaying into the vacuum are  
@@ -313,7 +314,7 @@ cluster in our case.
 The treatment of each orbital can be speeded up by using the mixed MPI/OpenMP implementation 
 where each MPI processes uses several OpenMP threads to do the calculations for its orbitals faster. 
 The OpenMp is simply activated by compiling the program with an OpenMP flag and by specifying the number of OpenMP threats by
-export OMP_NUM_THREADS=4 if 4 threads are for instance desired.
+export OMP\_NUM\_THREADS=4 if 4 threads are for instance desired.
 
 \noindent
 The Bigdft program monitors during a run the memory utilization and the time spent in various subroutines. Detailed information 

@@ -2,7 +2,7 @@
 !! FUNCTION
 !!    Display the logo of BigDFT 
 !! COPYRIGHT
-!!    Copyright (C) 2007-2008 BigDFT group 
+!!    Copyright (C) 2007-2009 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -219,6 +219,7 @@ subroutine geopt_input_variables_default(in)
   in%betax=2.0_gp
 
 end subroutine geopt_input_variables_default
+!!***
 
 
 !!****f* BigDFT/geopt_input_variables
@@ -1177,7 +1178,7 @@ subroutine read_atomic_ascii(iproc,ifile,atoms,rxyz)
   allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%amu,'atoms%amu',subname)
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%natpol,'rxyz',subname)
+  call memocc(i_stat,rxyz,'rxyz',subname)
 
   !controls if the positions are provided with machine precision
   if (index(atoms%units, 'd0') > 0) then

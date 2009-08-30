@@ -1439,13 +1439,19 @@ subroutine init_lbfgs(at,n,m,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
   !stp1=2.d-2/gnorm  !original convention
   stp1=parmin%betax
 end subroutine init_lbfgs
-!*****************************************************************************************
+
+
+!!****f* BigDFT/lb1
+!! FUNCTION
+!!  This routine prints monitoring information. the frequency and
+!!  amount of output are controlled by iprint.
+!! SOURCE
+!!
 subroutine lb1(nfun,gnorm,n,m,x,f,g,a_t,finish,parmin)
-  use minimization, only:parameterminimization
-  type(parameterminimization)::parmin
-  !this routine prints monitoring information. the frequency and
-  !amount of output are controlled by iprint.
-  integer::nfun,n,m
+  use minimization, only: parameterminimization
+  implicit none
+  type(parameterminimization) :: parmin
+  integer::nfun,n,m,i
   real(8)::x(n),g(n),f,gnorm,a_t
   logical finish
   if(parmin%iter==0)then
@@ -1495,11 +1501,18 @@ subroutine lb1(nfun,gnorm,n,m,x,f,g,a_t,finish,parmin)
   endif
   return
 END SUBROUTINE lb1
-!*****************************************************************************************
-subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin) !line search routine mcsrch
+!!***
+
+!!****f* BigDFT/mcsrch
+!! FUNCTION
+!!  Line search routine
+!! SOURCE
+!!
+subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin)
   use module_base
   use module_types
-  use minimization, only:parameterminimization
+  use minimization, only: parameterminimization
+  implicit none
   type(atoms_data), intent(in) :: at
   type(parameterminimization)::parmin
   integer::n,info,nfev
@@ -1634,11 +1647,12 @@ subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin) !line search routine mcs
      yes=.true.
   enddo
 END SUBROUTINE mcsrch
+!!***
 
-!*****************************************************************************************
 subroutine mcstep(a_l,fx,dx,a_u,fy,dy,a_t,fp,dp,brackt,stpmin,stpmax,info) !,parmin)
   use minimization, only:parameterminimization
-!  type(parameterminimization)::parmin
+  implicit none
+!  type(parameterminimization) :: parmin
   integer::info
   real(8)::a_l,fx,dx,a_u,fy,dy,a_t,fp,dp,stpmin,stpmax
   logical::brackt,bound

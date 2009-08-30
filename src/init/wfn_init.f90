@@ -892,7 +892,7 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
   character(len=*), parameter :: subname='build_eigenvectors'
   integer, parameter :: iunit=1978
   integer :: ispin,iorbst,iorbst2,imatrst,norbsc,norbi,norbj,iorb,i_stat,i_all
-  integer :: ncplx,ncomp,i
+  integer :: ncplx,ncomp,i,ispsiv
   logical :: exists
   real(gp) :: mx,my,mz,mnorm,fac,ma,mb,mc,md
   real(wp), dimension(:,:), allocatable :: tpsi
@@ -917,6 +917,7 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
      iorbst=1
      iorbst2=1
      imatrst=1
+     ispsiv=1
      do ispin=1,nspin
         norbsc=0
         do i=1,natsc
@@ -954,16 +955,17 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
         !we take the rest of the orbitals which are not assigned
         !from the group of non-semicore orbitals
         !the results are orthogonal with each other by construction
-        !in the case of semicore atomes the orthogonality is not guaranteed
+        !in the case of semicore atoms the orthogonality is not guaranteed
         if (present(nvirte) .and. nvirte >0) then
            if (nspinor == 1) then
               call gemm('N','N',nvctrp,nvirte,norbi,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
-                   hamovr(imatrst+norbi*norbj),norbi,0.0_wp,psivirt(1),max(1,nvctrp))
+                   hamovr(imatrst+norbi*norbj),norbi,0.0_wp,psivirt(ispsiv),max(1,nvctrp))
            else
               call c_gemm('N','N',ncomp*nvctrp,nvirte,norbi,(1.0_wp,0.0_wp),&
                    psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst+norbi*norbj),norbi,&
-                   (0.0_wp,0.0_wp),psivirt(1),max(1,ncomp*nvctrp))
+                   (0.0_wp,0.0_wp),psivirt(ispsiv),max(1,ncomp*nvctrp))
            end if
+           ispsiv=ispsiv+nvctrp*nvirte*nspinor
         end if
         iorbst=norbi+norbsc+1 !this is equal to norbe+1
         iorbst2=norbu+1

@@ -44,32 +44,98 @@ program memguess
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
   real(kind=8), dimension(:), allocatable :: locrad
-
- !! By Ali
-integer ::iline
-character :: Dummy
+  !! By Ali
+  integer ::iline,ierror
+  character :: Dummy
 ! Get arguments
-open(unit=1,file='input.memguess',status='old')
- 
-!line number, to control the input values
-  iline=0
 
-  !number of MPI proccessors
-  read(1,*) nproc
-  write(*,*) 'Number of mpi processes is: ',nproc
+  call getarg(1,tatonam)
 
-       read(1,*) optimise
-       if (optimise) write(*,*) 'Molecule will be rotated to minimize simulation box size and workarrays in BigDFT'
+  optimise=.false.
+  GPUtest=.false.
+  if(trim(tatonam)=='') then
+     write(*,'(1x,a)')&
+          'Usage: ./memguess <nproc> [y]'
+     write(*,'(1x,a)')&
+          'Indicate the number of processes after the executable'
+     write(*,'(1x,a)')&
+          'You can put a "y" in the second argument (optional) if you want the '
+     write(*,'(1x,a)')&
+          '  grid to be plotted with V_Sim'
+     write(*,'(1x,a)')&
+          'You can also put an "o" if you want to rotate the molecule such that'
+     write(*,'(1x,a)')&
+          '  the volume of the simulation box is optimised'
+     write(*,'(1x,a)')&
+          'In the case of a CUDAGPU calculation you can put "GPUtest" after the'
+     write(*,'(1x,a)')&
+          '  number of processors, followed by the number of repeats'
+     write(*,'(1x,a)')&
+          'You can also put "convert" keyword for converting input file into 1.3 format'
+     stop
+  else
+     read(unit=tatonam,fmt=*) nproc
+     call getarg(2,tatonam)
+     if(trim(tatonam)=='') then
+        output_grid=0
+     else if (trim(tatonam)=='y') then
+        output_grid=1
+        write(*,'(1x,a)')&
+             'The system grid will be displayed in the "grid.xyz" file'
+     else if (trim(tatonam)=='o') then
+        optimise=.true.
+        output_grid=1
+        write(*,'(1x,a)')&
+             'The optimised system grid will be displayed in the "grid.xyz" file'
+     else if (trim(tatonam)=='GPUtest') then
+        GPUtest=.true.
+        write(*,'(1x,a)')&
+             'Perform the test with GPU, if present.'
+        call getarg(3,tatonam)
+        ntimes=1
+        norbgpu=0
+        read(tatonam,*,iostat=ierror)ntimes
+        if (ierror==0) then
+           write(*,'(1x,a,i0,a)')&
+                'Repeat each calculation ',ntimes,' times.'
+           call getarg(4,tatonam)
+           read(tatonam,*,iostat=ierror)norbgpu
+        end if
+     else if (trim(tatonam)=='convert') then
+        convert=.true.
+        write(*,'(1x,a)')&
+             'convert the input.dat file in the "input_convert.dft" (1.3 format)'
+     else
+        write(*,'(1x,a)')&
+             'Usage: ./memguess <nproc> [y]'
+        write(*,'(1x,a)')&
+             'Indicate the number of processes after the executable'
+        write(*,'(1x,a)')&
+             'ERROR: The only second argument which is accepted are "y", "o", "convert" or "GPUtest"'
+        stop
+     end if
+  end if
 
-!    "T"  If the system grid is to be displayed in the "grid.xyz" file
-       read(1,*) output_grid
-        write(*,*)  'output_grid= ',output_grid
-
-!    "T"   'Perform the test with GPU, if present.'   
-       read(1,*) GPUtest
-           if (GPUtest) write(*,*) 'Perform the test with GPU'
-
-!!! END of By Ali
+!!$  open(unit=1,file='input.memguess',status='old')
+!!$  
+!!$  !line number, to control the input values
+!!$  iline=0
+!!$  
+!!$  !number of MPI proccessors
+!!$  read(1,*) nproc
+!!$  write(*,*) 'Number of mpi processes is: ',nproc
+!!$  
+!!$  read(1,*) optimise
+!!$  if (optimise) write(*,*) 'Molecule will be rotated to minimize simulation box size and workarrays in BigDFT'
+!!$  
+!!$  !    "T"  If the system grid is to be displayed in the "grid.xyz" file
+!!$  read(1,*) output_grid
+!!$  write(*,*)  'output_grid= ',output_grid
+!!$  
+!!$  !    "T"   'Perform the test with GPU, if present.'   
+!!$  read(1,*) GPUtest
+!!$  if (GPUtest) write(*,*) 'Perform the test with GPU'
+!!$!!! END of By Ali
 
 
 

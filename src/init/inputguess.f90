@@ -98,7 +98,11 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   allocate(orbsv%norb_par(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,orbsv%norb_par,'orbsv%norb_par',subname)
   !davidson treatment for spin-pol case should be reworked
-  call orbitals_descriptors(iproc,nproc,nvirte,nvirte,0,1,orbsv)
+  if (nspin == 1) then
+     call orbitals_descriptors(iproc,nproc,nvirte,nvirte,0,orbs%nspinor,orbsv)
+  else if (nspin == 2) then
+     call orbitals_descriptors(iproc,nproc,nvirte,nvirte,nvirte,orbs%nspinor,orbsv)
+  end if
 
   !allocate communications arrays for virtual orbitals
   !warning: here the aim is just to calculate npsidim, should be fixed
@@ -1983,8 +1987,13 @@ END SUBROUTINE crtvh
 !!
 function wave(ng,ll,xp,psi,r)
   use module_base, only: gp
-  implicit real(gp) (a-h,o-z)
-  dimension psi(0:ng),xp(0:ng)
+  implicit none
+  !Arguments
+  integer, intent(in) :: ll,ng
+  real(gp) :: r,wave
+  real(gp) :: psi(0:ng),xp(0:ng)
+  !Local variables
+  integer :: i
 
   wave=0._gp
   do i=0,ng
@@ -1999,27 +2008,34 @@ end function wave
 
 !!****f* BigDFT/emuxc
 !! FUNCTION
-!!   
 !!
 !! SOURCE
 !!
 function emuxc(rho)
   use module_base, only: gp
-  implicit real(gp) (a-h,o-z)
-  parameter (a0p=.4581652932831429_gp,&
+  implicit none
+  real(gp), intent(in) :: rho
+  real(gp) :: emuxc
+  real(gp), parameter :: &
+       a0p=.4581652932831429_gp,&
        a1p=2.217058676663745_gp,&
        a2p=0.7405551735357053_gp,&
-       a3p=0.01968227878617998_gp)
-  parameter (b1p=1.0_gp,&
+       a3p=0.01968227878617998_gp
+  real(gp), parameter :: &
+       b1p=1.0_gp,&
        b2p=4.504130959426697_gp,&
        b3p=1.110667363742916_gp,&
-       b4p=0.02359291751427506_gp)
-  parameter (rsfac=.6203504908994000_gp,ot=1._gp/3._gp)
-  parameter (c1=4._gp*a0p*b1p/3.0_gp,  c2=5.0_gp*a0p*b2p/3.0_gp+a1p*b1p,&
+       b4p=0.02359291751427506_gp
+  real(gp), parameter :: rsfac=.6203504908994000_gp,ot=1._gp/3._gp
+  real(gp), parameter :: &
+       c1=4._gp*a0p*b1p/3.0_gp,  &
+       c2=5.0_gp*a0p*b2p/3.0_gp+a1p*b1p,&
        c3=2.0_gp*a0p*b3p+4.0_gp*a1p*b2p/3.0_gp+2.0_gp*a2p*b1p/3.0_gp,&
        c4=7.0_gp*a0p*b4p/3.0_gp+5.0_gp*a1p*b3p/3.0_gp+a2p*b2p+a3p*b1p/3.0_gp,&
        c5=2.0_gp*a1p*b4p+4.0_gp*a2p*b3p/3.0_gp+2.0_gp*a3p*b2p/3.0_gp,&
-       c6=5.0_gp*a2p*b4p/3.0_gp+a3p*b3p,c7=4.0_gp*a3p*b4p/3.0_gp)
+       c6=5.0_gp*a2p*b4p/3.0_gp+a3p*b3p,c7=4.0_gp*a3p*b4p/3.0_gp
+  real(gp) :: bot,rs,top
+
   if(rho.lt.1.e-24_gp) then
     emuxc=0._gp
   else

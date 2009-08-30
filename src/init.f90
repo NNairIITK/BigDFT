@@ -721,8 +721,9 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      write(*,'(1x,a)')'done.'
      !gaussian estimation valid only for Free BC
      if (at%geocode == 'F') then
+        write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
         write(*,'(1x,a,1pe9.2)') &
-          'expected accuracy in kinetic energy due to grid size',accurex
+          'expected accuracy in energy per orbital ',accurex/real(orbs%norb,kind=8)
         write(*,'(1x,a,1pe9.2)') &
              'suggested value for gnrm_cv ',accurex/real(orbs%norb,kind=8)
      end if
