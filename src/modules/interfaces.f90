@@ -702,7 +702,7 @@ module module_interfaces
 
      subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
           cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-          ekin_sum,epot_sum,eproj_sum,nspin,GPU, in_iat_absorber, doorthoocc, Occ_norb, Occ_psit, Occ_eval)
+          ekin_sum,epot_sum,eproj_sum,nspin,GPU, in_iat_absorber, doorthoocc, Occ_norb, Occ_psit, Occ_eval, in )
        use module_base
        use module_types
        implicit none
@@ -725,6 +725,7 @@ module module_interfaces
        real(wp), dimension(:), pointer :: Occ_psit
        real(wp), dimension(:), pointer :: Occ_eval
        
+       type(input_variables),intent(in) :: in
 
 
      end subroutine lanczos

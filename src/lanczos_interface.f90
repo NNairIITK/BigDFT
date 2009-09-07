@@ -361,7 +361,7 @@ contains
 
 !!$    if( associated(EP_Gabsorber) ) then
 !!$    if( ha%iproc == 0  ) then
-       print *, " inizializzo da Gabsorber " 
+       ! print *, " inizializzo da Gabsorber " 
 !!$        print *, EP_Gabsorber%rxyz(1,1)
        call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%lr%geocode,ha%orbs,ha%lr%d,&
             ha%hx,ha%hy,ha%hz,ha%lr%wfd,EP_Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
@@ -508,7 +508,7 @@ end subroutine EP_initialize_start
        print *, " inizio GramSchmidt ", n
     endif
 
-    do volta=1,4 
+    do volta=1,2
        call gemm('T','N', n , 1, EP_dim ,1.0_wp ,  Qvect(1,0)  , EP_dim ,Q(1) ,EP_dim , 0.0_wp , scals(0) ,  n )
        if(ha%nproc/=1) then
           call MPI_Allreduce(scals(0) ,scalstot(0) , n ,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
@@ -578,12 +578,12 @@ end subroutine EP_initialize_start
 
  
 
-    print *, "chiamo hamiltonian "
+    if(  ha%iproc ==0 ) print *, "chiamo hamiltonian "
     call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,ha%rxyz,ha%cpmult,ha%fpmult,ha%radii_cf,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
          ha%ndimpot, &
          ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,ha%epot_sum,ha%eproj_sum,1,ha%GPU)
-    print *, " done "
+    if(  ha%iproc ==0 ) print *, " done "
 
    if(ha%iproc.eq.0) then
       if(EP_shift /= 0 ) then

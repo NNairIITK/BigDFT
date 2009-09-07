@@ -161,6 +161,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   use module_interfaces
   use Poisson_Solver
   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces
+  use esatto
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -223,7 +224,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! per xabsorber
   logical in_refinement
   integer lpot_a, ix, iy, iz
-  real(gp) rpot_a, spot_a, hpot_a, espo, harmo, r, rx, ry, rz, minrx, maxrx,   minry, maxry,   minrz, maxrz  
+  real(gp) rpot_a, spot_a, hpot_a, espo, harmo, r, rx, ry, rz, minrx, maxrx,   minry, maxry,   minrz, maxrz, minr  
+  real(gp), pointer :: radpot(:,:)
+  integer radpotcount, igrid
   ! ----------------------------------
 
   !copying the input variables for readability
@@ -844,9 +847,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   if (abs(evsum-energybs) > 1.d-8 .and. iproc==0) write( *,'(1x,a,2(1x,1pe20.13))')&
        'Difference:evsum,energybs',evsum,energybs
  
-  print * , " davidson ?", nvirt,  in%inputPsiId
   if (nvirt > 0 .and. in%inputPsiId == 0) then
-     print * , " chiamo davidson "
      
      call davidson(iproc,nproc,n1i,n2i,n3i,atoms,cpmult,fpmult,radii_cf,&
           orbs,orbsv,nvirt,gnrm_cv,nplot,Glr,comms,&
@@ -1107,16 +1108,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
 
   
-  if (in%iat_absorber /= 0) then
-     
+  if (in%c_absorbtion ) then
 
+     if(iproc==0) print *, " goin to calculate spectra "
 
-
-     print *, " in cluster chiamo lanczos " , associated(psit)
-  
-
-
-     if(.true.) then
+     if(in%abscalc_alterpot) then
         ! ATTENZIONE alterazione del potenziale per 
         ! il caso risolvibile esattamente
         lpot_a=1
@@ -1124,6 +1120,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         spot_a = 1.0
         hpot_a = 3.0
         !! questa disposizione vale solo nel caso periodico ( si parte da 1, se no sarebbe 15 )
+!!$        allocate(radpot(n1i*n2i*n3p ,2 ))
+        radpotcount=0
+
+        allocate(radpot(30000 ,2 ))
+        radpotcount=30000
+        open(unit=22,file='pot.dat', status='old')
+        do igrid=1, radpotcount
+           read(22,*)  radpot(igrid ,1 ),  radpot(igrid , 2 )
+        enddo
+        close(unit=22)
+
+        minr=1000.0
         do ix=1,n1i
            do iy=1,n2i
               do iz = 1,n3p
@@ -1132,23 +1140,51 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                  rz = hz*(iz-1 +i3xcsh + i3s -1 )/2.0  -  rxyz(3,in%iat_absorber )
 
                  r  = sqrt( rx*rx+ry*ry+rz*rz)
-                 harmo = rz/r *sqrt(3.0/4.0/3.1415926535)
+
+                 if(r>2.5) then
+                    if( r>29) then
+                       rhopot(ix,iy,iz+i3xcsh,1)=0.0
+                    else
+                       igrid = binary_search( r, radpot(1,1), radpotcount )
+                       rhopot(ix,iy,iz+i3xcsh,1) = ( radpot(igrid,2)*(radpot(igrid+1,1)-R) + radpot(igrid+1,2)*(R-radpot(igrid,1)) )/&
+                            ( radpot(igrid+1,1) -radpot(igrid,1) )
+                    endif
+                 endif
+
+                 if(r<minr) minr=r
+
+!!$                 radpotcount=radpotcount+1
+!!$                 radpot(radpotcount,1)=r
+!!$                 radpot(radpotcount,2)=rhopot(ix,iy,iz+i3xcsh,1)
+
+                 if( r.ne.0.0) then
+                    harmo = rz/r *sqrt(3.0/4.0/3.1415926535)
+                 else
+                    harmo=0.0_gp
+                 endif
 
                  espo  = ((r-rpot_a)**2)/spot_a/spot_a/2.0
                  if(espo<100) then
                     rhopot(ix,iy,iz+i3xcsh,1) = rhopot(ix,iy,iz+i3xcsh,1) +  hpot_a * exp(-espo) *harmo
-
                  endif
               enddo
            enddo
         enddo
+!!$        open(unit=22,file='radpot.dat')
+!!$        do igrid=1, radpotcount
+!!$           write(22,'(200(f20.10,1x))')  radpot(igrid,1),  radpot(igrid,2)
+!!$        enddo
+!!$        close(unit=22)       
+
+
+
      endif
 
      
      call lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
           cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
           rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
-          , in%iat_absorber  , .false., orbs%norb,   psit , orbs%eval )
+          , in%iat_absorber  , .false., orbs%norb,   psit , orbs%eval , in )
     
      
 

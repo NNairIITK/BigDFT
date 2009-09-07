@@ -409,12 +409,15 @@ contains
        close(unit=22)
 
 
+ 
+
        call EP_Moltiplica(p, i )
+ 
        
        
        LB_alpha(i) = EP_scalare(p , i)
        
-       ! print *, LB_alpha(i)
+       print *, LB_alpha(i)
 
        
        if (i.eq.k) then
@@ -578,9 +581,9 @@ contains
        endif
 
        call EP_copy(i+1, p)
-!!$       ! emergenza
-       call EP_GramSchmidt(i+1,i+1)
-       call EP_normalizza(i+1)
+       ! emergenza
+!!$       call EP_GramSchmidt(i+1,i+1)
+!!$       call EP_normalizza(i+1)
 
 
        

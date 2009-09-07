@@ -92,6 +92,16 @@ program BigDFT
      call geopt_input_variables_default(inputs)
   end if
 
+  !read absorption-calculation input variables
+  !inquire for the needed file 
+  !if not present, set default ( no absorption calculation)
+  inquire(file="input.abscalc",exist=exists)
+  if (exists) then
+     call abscalc_input_variables(iproc,'input.abscalc',inputs)
+  else
+     call abscalc_input_variables_default(inputs)
+  end if
+
   do iat=1,atoms%nat
      if (atoms%ifrztyp(iat) == 0) then
         call random_number(tt)

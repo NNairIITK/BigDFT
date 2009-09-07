@@ -26,8 +26,11 @@ module module_types
      integer :: output_grid, dispersion
      real(gp) :: frac_fluct,randdis,betax,forcemax,gnrm_sw
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf 
-     integer :: iat_absorber,nvacancy,verbosity
+     integer :: nvacancy,verbosity
      real(gp):: absorber_gnrm
+     integer :: iat_absorber, L_absorber
+     real(gp), pointer:: Gabs_coeffs(:)
+     logical ::  c_absorbtion , abscalc_alterpot, abscalc_eqdiff 
 
      real(gp), dimension(3) :: ef
   end type input_variables

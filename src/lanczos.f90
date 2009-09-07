@@ -1,7 +1,8 @@
 
 subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-     ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber, doorthoocc, Occ_norb, Occ_psit, Occ_eval)! aggiunger a interface
+      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber, doorthoocc, Occ_norb, Occ_psit, Occ_eval,&
+  in  )! aggiunger a interface
   use module_base
   use module_types
   use lanczos_interface
@@ -30,6 +31,9 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   integer, intent(in)  :: Occ_norb
   real(wp), dimension(:), pointer :: Occ_psit
   real(wp), dimension(:), pointer :: Occ_eval
+
+  type(input_variables),intent(in) :: in
+
 
   !local variables
   character(len=*), parameter :: subname='lanczos'
@@ -83,7 +87,7 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 !!$
 
 
-  allocate(Gabs_coeffs(3+ndebug),stat=i_stat)
+  allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
 
 
@@ -104,19 +108,21 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
         Gabsorber%rxyz(:,1)=rxyz(:, in_iat_absorber )
 
-        Gabs_coeffs(1:3)=dum_coeffs(1:3,1)
+        Gabs_coeffs(:)=in%Gabs_coeffs(:)
 
      else
           
   
         call GetExcitedOrbitalAsG(in_iat_absorber ,Gabsorber,&
-             at,rxyz,nproc,iproc,1,Gabs_coeffs)
+             at,rxyz,nproc,iproc,1,    in%L_absorber ,  in%abscalc_eqdiff )
         print * , " uscito get "
 
-        allocate(dum_coeffs(3,1+ndebug),stat=i_stat)
+        allocate(dum_coeffs(2*in%L_absorber+1,1+ndebug),stat=i_stat)
         call memocc(i_stat,dum_coeffs,'dum_coeffs',subname)
 
-        dum_coeffs(1:3,1) = Gabs_coeffs(1:3)
+        dum_coeffs(:,1) = in%Gabs_coeffs(:)
+        
+        Gabs_coeffs(:)=in%Gabs_coeffs(:)
 
         print *, " chiamo write " 
         call write_gaussian_information( 0 ,1 ,ha%orbs,Gabsorber,dum_coeffs ,filename)
