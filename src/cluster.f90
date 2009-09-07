@@ -171,6 +171,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   use libxc_functionals
   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces
   use ab6_symmetry ! TODO remove me after kpoint integration
+  use esatto
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -228,8 +229,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! arrays for DIIS convergence accelerator
   real(kind=8), dimension(:,:,:), pointer :: ads
   
-  type(gaussian_basis) :: Gabsorber
-  real(wp), dimension(:), allocatable :: Gabs_coeffs
+  ! per xabsorber
+  logical in_refinement
+  integer lpot_a, ix, iy, iz
+  real(gp) rpot_a, spot_a, hpot_a, espo, harmo, r, rx, ry, rz, minrx, maxrx,   minry, maxry,   minrz, maxrz, minr  
+  real(gp), pointer :: radpot(:,:)
+  integer radpotcount, igrid
+  ! ----------------------------------
   
   ! TODO variables for fake k points
 !!$  integer :: symObj
@@ -247,6 +253,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !an array would have been copied, thus occupying more memory space
   !Hence WARNING: these variables are copied, in case of an update the new value should be 
   !reassigned inside the structure
+
+
 
   crmult=in%crmult
   frmult=in%frmult
@@ -280,8 +288,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   if (iproc == 0) then
      write( *,'(1x,a,1x,i0)') &
-       '===================== BigDFT Wavefunction Optimization =============== inputPsiId=',&
-       in%inputPsiId
+          '===================== BigDFT Wavefunction Optimization =============== inputPsiId=',&
+          in%inputPsiId
      call print_input_parameters(in,atoms)
   end if
   if (nproc > 1) then
@@ -308,7 +316,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           Glr%wfd,psi,n1_old,n2_old,n3_old,wfd_old,psi_old)
   else if (in%inputPsiId == 11) then
      !deallocate wavefunction and descriptors for placing the gaussians
-     
+
      call deallocate_wfd(Glr%wfd,subname)
 
      i_all=-product(shape(psi))*kind(psi)
@@ -439,11 +447,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
        in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,in%nvacancy,&
        in%correct_offset)
-        
+
   !this can be inserted inside the IonicEnergyandForces routine
   !(after insertion of the non-regression test)
   call vdwcorrection_calculate_energy(edisp,rxyz,atoms,in,iproc)
-  
+
   allocate(fdisp(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fdisp,'fdisp',subname)
   !this can be inserted inside the IonicEnergyandForces routine
@@ -515,7 +523,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
            call random_number(tt)
         end do
      end do
- 
+
      orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
@@ -535,7 +543,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,atoms,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,nscatterarr,ngatherarr,nspin)
- 
+
   case(1)
      !these parts should be reworked for the non-collinear spin case
 
@@ -608,14 +616,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         write( *,'(1x,a)')&
              '------------------------------------------- Reading Wavefunctions from gaussian file'
      end if
-     
+
      !allocate principal wavefunction
      !allocated in the transposed way such as 
      !it can also be used as a work array for transposition
-     
+
      allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
-     
+
      call read_gaussian_information(iproc,nproc,orbs,gbd,gaucoeffs,'wavefunctions.gau')
      !associate the new positions, provided that the atom number is good
      if (gbd%nat == atoms%nat) then
@@ -627,7 +635,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !        end if
         stop
      end if
- 
+
      call restart_from_gaussians(iproc,nproc,orbs,Glr,hx,hy,hz,psi,gbd,gaucoeffs)
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
@@ -645,27 +653,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end select
 
 
-  if (in%iat_absorber /= 0) then
-     
-     allocate(Gabs_coeffs(3+ndebug),stat=i_stat)
-     call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
-
-
-     call GetExcitedOrbitalAsG(in%iat_absorber ,Gabsorber,&
-          atoms,rxyz,nproc,iproc,1,Gabs_coeffs)
-
-     call lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,Gabsorber,Gabs_coeffs,&
-          cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
-          rhopot(1,1,1+i3xcsh,1),ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
-
-     i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
-     deallocate(Gabs_coeffs,stat=i_stat)
-     call memocc(i_stat,i_all,'Gabs_coeffs',subname)
-
-
-     stop  'absorber'
-
-  endif
 
   !save the new atomic positions in the rxyz_old array
   do iat=1,atoms%nat
@@ -693,8 +680,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !allocate arrays for the GPU if a card is present
   if (GPUconv) then
-       call prepare_gpu_for_locham(Glr%d%n1,Glr%d%n2,Glr%d%n3,in%nspin,&
-            hx,hy,hz,Glr%wfd,orbs,GPU)
+     call prepare_gpu_for_locham(Glr%d%n1,Glr%d%n2,Glr%d%n3,in%nspin,&
+          hx,hy,hz,Glr%wfd,orbs,GPU)
   end if
 
   alpha=2.d0
@@ -715,6 +702,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   idsx_actual_before=idsx_actual
 
   !control whether there is a reference density
+  potion_overwritten=.false.
   if (in%read_ref_den) then
 
      !allocate the kernel for the reference density case
@@ -734,15 +722,23 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call timing(iproc,'INIT','PR')
 
   ! loop for wavefunction minimization
+  in_refinement=.false.
   wfn_loop: do iter=1,itermax
      if (iproc == 0 .and. verbose > 0) then 
         write( *,'(1x,a,i0)')&
-           '---------------------------------------------------------------------------- iter= ',&
-           iter
+             '---------------------------------------------------------------------------- iter= ',&
+             iter
      endif
      !control whether the minimisation iterations ended
      endloop= gnrm <= gnrm_cv .or. iter == itermax
-
+     if(endloop .and. .not. in_refinement) then
+        if(in%iat_absorber>0) then
+           gnrm_cv = in%absorber_gnrm
+           in_refinement=.true.
+           endloop=.false.
+        end if
+     endif
+     
      !control how many times the DIIS has switched into SD
      if (idsx_actual /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
 
@@ -752,47 +748,49 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !stop the partial timing counter if necessary
      if (endloop) call timing(iproc,'WFN_OPT','PR')
 
-     ! Potential from electronic charge density
-     call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-          n1i*n2i*n3d,nscatterarr,in%nspin,GPU)
-     
-     if(orbs%nspinor==4) then
-        !this wrapper can be inserted inside the poisson solver 
-        call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
-             ixc,hxh,hyh,hzh,&
-             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
-     else
-  
-        if (in%read_ref_den .and. gnrm <= in%gnrm_sw .or. potion_overwritten) then
-           if (.not. potion_overwritten) then
-              !overwrite pot_ion with the potential previously created
-              call read_potfile(atoms%geocode,'potion_corr.pot',n1,n2,n3,n1i,n2i,n3i,n3pi,&
+     if(.not. in_refinement) then
+
+        ! Potential from electronic charge density
+        call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
+             n1i*n2i*n3d,nscatterarr,in%nspin,GPU)
+
+        if(orbs%nspinor==4) then
+           !this wrapper can be inserted inside the poisson solver 
+           call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
+                ixc,hxh,hyh,hzh,&
+                rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+        else
+
+           if (in%read_ref_den .and. gnrm <= in%gnrm_sw .or. potion_overwritten) then
+              if (.not. potion_overwritten) then
+                 !overwrite pot_ion with the potential previously created
+                 call read_potfile(atoms%geocode,'potion_corr.pot',n1,n2,n3,n1i,n2i,n3i,n3pi,&
                    i3s+i3xcsh,pot_ion)
 
-              if (.not. in%correct_offset) then
-                 !read the ionic energy from disk
-                 open(unit=22,file='eion_corr.tmp',status='unknown')
-                 read(22,*)eion,ehart_fake
-                 close(unit=22)
+                 if (.not. in%correct_offset) then
+                    !read the ionic energy from disk
+                    open(unit=22,file='eion_corr.tmp',status='unknown')
+                    read(22,*)eion,ehart_fake
+                    close(unit=22)
+                 end if
+                 potion_overwritten=.true.
               end if
-              potion_overwritten=.true.
-           end if
            call correct_hartree_potential(atoms,iproc,nproc,&
-                Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
-                n3p,n3pi,n3d,i3s,i3xcsh,hxh,hyh,hzh,pkernel,ngatherarr,&
-                rhoref,pkernel_ref,pot_ion,rhopot,ixc,in%nspin,ehart,eexcu,vexcu,PSquiet,&
-                in%correct_offset)
+                   Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
+                   n3p,n3pi,n3d,i3s,i3xcsh,hxh,hyh,hzh,pkernel,ngatherarr,&
+                   rhoref,pkernel_ref,pot_ion,rhopot,ixc,in%nspin,ehart,eexcu,vexcu,PSquiet,&
+                   in%correct_offset)
 
-        else
-           call PSolver(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
-                ixc,hxh,hyh,hzh,&
-                rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,in%nspin,&
-                quiet=PSquiet)
+           else
+              call PSolver(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
+                   ixc,hxh,hyh,hzh,&
+                   rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,in%nspin,&
+                   quiet=PSquiet)
+
+           end if
 
         end if
-        
-     end if
-
+     endif
      call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
           cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
           rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
@@ -824,6 +822,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !control the previous value of idsx_actual
      idsx_actual_before=idsx_actual
      
+
      call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
           iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
           alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,in%nspin,GPU)
@@ -883,9 +882,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,i_all,'ads',subname)
   end if
 
+
+
+
   ! transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
-  call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
-       comms,psi,hpsi,psit,evsum)
+  if (in%iat_absorber /= 0  .and. .false.) then
+     ! the last argument tells to the routine to keep psit
+     print *, " in cluster " , associated(psit)
+     call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
+          comms,psi,hpsi,psit,evsum, .true.)
+     print *, " in cluster , dopo " , associated(psit)
+  else
+     call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
+          comms,psi,hpsi,psit,evsum)
+  endif
 
   if (abs(evsum-energybs) > 1.d-8 .and. iproc==0) write( *,'(1x,a,2(1x,1pe20.13))')&
        'Difference:evsum,energybs',evsum,energybs
@@ -896,6 +906,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj, &
           pkernel,psi,psivirt,ngatherarr)
   end if
+
   
   !project the wavefunctions on a gaussian basis and keep in memory
   if (in%gaussian_help) then
@@ -1158,6 +1169,101 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
 
   call timing(iproc,'Forces        ','OF')
+
+
+
+  
+  if (in%c_absorbtion ) then
+
+     if(iproc==0) print *, " goin to calculate spectra "
+
+     if(in%abscalc_alterpot) then
+        ! ATTENZIONE alterazione del potenziale per 
+        ! il caso risolvibile esattamente
+        lpot_a=1
+        rpot_a = 6.0
+        spot_a = 1.0
+        hpot_a = 3.0
+        !! questa disposizione vale solo nel caso periodico ( si parte da 1, se no sarebbe 15 )
+!!$        allocate(radpot(n1i*n2i*n3p ,2 ))
+        radpotcount=0
+
+        allocate(radpot(30000 ,2 ))
+        radpotcount=30000
+        open(unit=22,file='pot.dat', status='old')
+        do igrid=1, radpotcount
+           read(22,*)  radpot(igrid ,1 ),  radpot(igrid , 2 )
+        enddo
+        close(unit=22)
+
+        minr=1000.0
+        do ix=1,n1i
+           do iy=1,n2i
+              do iz = 1,n3p
+                 rx = hx*(ix-1)           /2.0  -  rxyz(1,in%iat_absorber )
+                 ry = hy*(iy-1)           /2.0  -  rxyz(2,in%iat_absorber )
+                 rz = hz*(iz-1 +i3xcsh + i3s -1 )/2.0  -  rxyz(3,in%iat_absorber )
+
+                 r  = sqrt( rx*rx+ry*ry+rz*rz)
+
+                 if(r>2.5) then
+                    if( r>29) then
+                       rhopot(ix,iy,iz+i3xcsh,1)=0.0
+                    else
+                       igrid = binary_search( r, radpot, radpotcount )
+                       rhopot(ix,iy,iz+i3xcsh,1) = &
+                            ( radpot(igrid,2)*(radpot(igrid+1,1)-R) + radpot(igrid+1,2)*(R-radpot(igrid,1)) )/&
+                            ( radpot(igrid+1,1) -radpot(igrid,1) )
+                    endif
+                 endif
+
+                 if(r<minr) minr=r
+
+!!$                 radpotcount=radpotcount+1
+!!$                 radpot(radpotcount,1)=r
+!!$                 radpot(radpotcount,2)=rhopot(ix,iy,iz+i3xcsh,1)
+
+                 if( r.ne.0.0) then
+                    harmo = rz/r *sqrt(3.0/4.0/3.1415926535)
+                 else
+                    harmo=0.0_gp
+                 endif
+
+                 espo  = ((r-rpot_a)**2)/spot_a/spot_a/2.0
+                 if(espo<100) then
+                    rhopot(ix,iy,iz+i3xcsh,1) = rhopot(ix,iy,iz+i3xcsh,1) +  hpot_a * exp(-espo) *harmo
+                 endif
+              enddo
+           enddo
+        enddo
+!!$        open(unit=22,file='radpot.dat')
+!!$        do igrid=1, radpotcount
+!!$           write(22,'(200(f20.10,1x))')  radpot(igrid,1),  radpot(igrid,2)
+!!$        enddo
+!!$        close(unit=22)       
+
+
+
+     endif
+
+     
+     call lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
+          cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
+          rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
+          , in%iat_absorber  , .false., orbs%norb,   psit , orbs%eval , in )
+    
+     
+
+
+
+     if (nproc > 1) call MPI_FINALIZE(ierr)
+
+     stop
+
+  endif
+
+
+
 
   !------------------------------------------------------------------------
   if (in%calc_tail .and. atoms%geocode == 'F') then

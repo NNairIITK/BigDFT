@@ -427,7 +427,7 @@ END SUBROUTINE first_orthon
 !!   Transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
 !! SOURCE
 !!
-subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
+subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt_keeppsit)
   use module_base
   use module_types
   use module_interfaces, except_this_one_C => last_orthon
@@ -438,12 +438,27 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
   integer, intent(in) :: iproc,nproc,nspin
   real(wp), intent(out) :: evsum
   real(wp), dimension(:) , pointer :: psi,hpsi,psit
+  logical, optional :: opt_keeppsit
   !local variables
+
+  logical :: keeppsit
+
   character(len=*), parameter :: subname='last_orthon'
   logical :: dowrite !write the screen output
   integer :: i_all,i_stat,iorb,jorb,md
   real(wp) :: evpart
   real(wp), dimension(:,:,:), allocatable :: mom_vec
+
+
+  
+  if (present(opt_keeppsit)) then
+     keeppsit=opt_keeppsit
+  else
+     keeppsit=.false.
+  endif
+  
+        
+
 
   call transpose_v(iproc,nproc,orbs,wfd,comms,&
        hpsi,work=psi)
@@ -467,14 +482,15 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
   call untranspose_v(iproc,nproc,orbs,wfd,comms,&
        psit,work=hpsi,outadd=psi(1))
 
-  if (nproc > 1) then
-     i_all=-product(shape(psit))*kind(psit)
-     deallocate(psit,stat=i_stat)
-     call memocc(i_stat,i_all,'psit',subname)
-  else
-     nullify(psit)
-  end if
-
+  if(.not.  keeppsit) then
+     if (nproc > 1  ) then
+        i_all=-product(shape(psit))*kind(psit)
+        deallocate(psit,stat=i_stat)
+        call memocc(i_stat,i_all,'psit',subname)
+     else
+        nullify(psit)
+     end if
+  endif
   !for a non-collinear treatment,
   !we add the calculation of the moments for printing their value
   !close to the corresponding eigenvector

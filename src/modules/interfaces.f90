@@ -389,7 +389,7 @@ module module_interfaces
      end subroutine DiagHam
 
      subroutine last_orthon(iproc,nproc,orbs,wfd,&
-          nspin,comms,psi,hpsi,psit,evsum)
+          nspin,comms,psi,hpsi,psit,evsum, keeppsit)
        use module_base
        use module_types
        implicit none
@@ -399,6 +399,7 @@ module module_interfaces
        integer, intent(in) :: iproc,nproc,nspin
        real(wp), intent(out) :: evsum
        real(wp), dimension(:) , pointer :: psi,hpsi,psit
+       logical , optional :: keeppsit
      end subroutine last_orthon
 
      subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
@@ -640,7 +641,7 @@ module module_interfaces
        real(wp), dimension(:,:), pointer :: wfn_cp2k
      end subroutine parse_cp2k_files
 
-     subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
+     subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fillrxyz)
        use module_base
        use module_types
        implicit none
@@ -649,6 +650,7 @@ module module_interfaces
        type(orbitals_data), intent(in) :: orbs
        type(gaussian_basis), intent(out) :: G
        real(wp), dimension(:,:), pointer :: coeffs
+       logical, optional :: opt_fillrxyz
      end subroutine read_gaussian_information
 
      subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
@@ -735,9 +737,9 @@ module module_interfaces
        real(dp), dimension(:), pointer :: pkernel_ref,pkernel
      end subroutine correct_hartree_potential
 
-     subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,Gabsorber,Gabs_coeffs,&
+     subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
           cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-          ekin_sum,epot_sum,eproj_sum,nspin,GPU)
+          ekin_sum,epot_sum,eproj_sum,nspin,GPU, in_iat_absorber, doorthoocc, Occ_norb, Occ_psit, Occ_eval, in )
        use module_base
        use module_types
        implicit none
@@ -746,15 +748,23 @@ module module_interfaces
        type(atoms_data), intent(in), target :: at
        type(nonlocal_psp_descriptors), intent(in) , target :: nlpspd
        type(locreg_descriptors), intent(in) , target :: lr 
-       type(gaussian_basis), target :: Gabsorber
        integer, dimension(0:nproc-1,2), intent(in) , target :: ngatherarr 
        real(gp), dimension(3,at%nat), intent(in) , target :: rxyz
        real(gp), dimension(at%ntypes,3), intent(in) , target :: radii_cf  
        real(wp), dimension(nlpspd%nprojel), intent(in) , target :: proj
        real(wp), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
-       real(wp), dimension(3), target :: Gabs_coeffs
        real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
        type(GPU_pointers), intent(inout) , target :: GPU
+       integer, intent(in) :: in_iat_absorber
+
+       logical, intent(in) :: doorthoocc
+       integer, intent(in)  :: Occ_norb
+       real(wp), dimension(:), pointer :: Occ_psit
+       real(wp), dimension(:), pointer :: Occ_eval
+       
+       type(input_variables),intent(in) :: in
+
+
      end subroutine lanczos
 
      subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)

@@ -841,8 +841,10 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   integer :: i_stat,i_all,istart,iorb,jorb,ierr,norbs,i,j,ncomp
   real(dp) :: occ
   real(wp), dimension(:,:,:), allocatable :: alag
+  integer volta
 
   call timing(iproc,'LagrM_comput  ','ON')
+
   istart=2
   if (nproc == 1) istart=1
 
@@ -889,6 +891,8 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
 !          enddo
 !          endif
 
+
+
   scprsum=0.0_dp
   if(nspinor == 1) then
      do iorb=1,norb
@@ -903,6 +907,8 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
        scprsum=scprsum+occ*real(alag(2*iorb,iorb,1),dp)
      enddo
   end if
+
+
 !  if(iproc==0) print *,'ortho_p',scprsum
 
   ! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
@@ -913,9 +919,13 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
      call C_GEMM('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),psit(1,1),max(1,ncomp*nvctrp),&
           alag(1,1,1),norb,(1.0_wp,0.0_wp),hpsit(1,1),max(1,ncomp*nvctrp))
   end if
+
+
   i_all=-product(shape(alag))*kind(alag)
   deallocate(alag,stat=i_stat)
   call memocc(i_stat,i_all,'alag',subname)
+
+
 
   call timing(iproc,'LagrM_comput  ','OF')
 
@@ -932,8 +942,11 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
   integer :: info,i_all,i_stat,nvctr_eff,ierr,istart,i,j,norbs,iorb,jorb,ncomp
   real(wp) :: tt,ttLOC,ttr,tti
   real(wp), dimension(:,:,:), allocatable :: ovrlp
+  integer volta
 
   call timing(iproc,'GramS_comput  ','ON')
+
+  do volta=1,2
 
   if (norb == 1) then 
 
@@ -1087,6 +1100,8 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
      call memocc(i_stat,i_all,'ovrlp',subname)
 
   end if
+
+  enddo
 
   call timing(iproc,'GramS_comput  ','OF')
 

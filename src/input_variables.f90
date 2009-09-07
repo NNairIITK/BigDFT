@@ -67,6 +67,7 @@ subroutine dft_input_variables(iproc,filename,in)
   !local variables
   character(len=7) :: cudagpu
   character(len=100) :: line
+  logical :: exists
   integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
 
   ! Read the input variables.
@@ -142,9 +143,25 @@ subroutine dft_input_variables(iproc,filename,in)
   read(1,*,iostat=ierror) in%nvirt,in%nplot
   call check()
 
-  !x-adsorber treatment (in progress)
-  read(1,*,iostat=ierror)  in%iat_absorber
+  !x-absorber treatment
+  read(1,*,iostat=ierror) in%iat_absorber
   call check()
+
+
+  !read absorption-calculation input variables
+  !inquire for the needed file 
+  !if not present, set default ( no absorption calculation)
+  if (in%iat_absorber /= 0) then
+     inquire(file="input.abscalc",exist=exists)
+     if (.not. exists) then
+        if (iproc == 0) write(*,*)'ERROR: nedd file input.abscalc for x-ray absorber treatment.'
+        stop
+     end if
+     call abscalc_input_variables(iproc,'input.abscalc',in)
+  else
+     call abscalc_input_variables_default(in)
+  end if
+
 
   !electrostatic treatment of the vacancy (experimental)
   read(1,*,iostat=ierror)  in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
@@ -283,6 +300,113 @@ contains
 
 end subroutine geopt_input_variables
 !!***
+
+
+
+
+
+
+
+
+
+
+!!****f* BigDFT/abscalc_input_variables_default
+!! FUNCTION
+!!    Assign default values for ABSCALC variables
+!! SOURCE
+!!
+subroutine abscalc_input_variables_default(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(out) :: in
+
+  !put some fake values for the geometry optimsation case
+  in%c_absorbtion=.false.
+
+end subroutine abscalc_input_variables_default
+
+
+!!****f* BigDFT/abscalc_input_variables
+!! FUNCTION
+!!    Read the input variables needed for the ABSCALC
+!!    Every argument should be considered as mandatory
+!! SOURCE
+!!
+subroutine abscalc_input_variables(iproc,filename,in)
+  use module_base
+  use module_types
+  implicit none
+
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc
+  type(input_variables), intent(out) :: in
+
+
+  !local variables
+  integer :: ierror,iline, i
+
+  character(len=*), parameter :: subname='abscalc_input_variables'
+  integer :: i_stat
+
+
+  ! Read the input variables.
+  open(unit=111,file=filename,status='old')
+
+  !line number, to control the input values
+  iline=0
+
+
+  !x-adsorber treatment (in progress)
+
+  read(111,*,iostat=ierror)  in%iat_absorber, in%absorber_gnrm
+  call check()
+  read(111,*,iostat=ierror)  in%L_absorber
+  call check()
+
+  allocate(in%Gabs_coeffs(2*in%L_absorber +1),stat=i_stat)
+  call memocc(i_stat,in%Gabs_coeffs,'in%Gabs_coeff',subname)
+
+  read(111,*,iostat=ierror)  (in%Gabs_coeffs(i+ndebug), i=1,2*in%L_absorber +1 )
+  call check()
+  
+  read(111,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
+
+  if(ierror==0) then
+     
+  else
+     in%abscalc_alterpot=.false.
+     in%abscalc_eqdiff =.false.
+  endif
+
+
+  in%c_absorbtion=.true.
+
+  close(unit=111)
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  end subroutine check
+
+end subroutine abscalc_input_variables
+!!***
+
+
+
+
+
+
+
+
+
+
 
 !!****f* BigDFT/dft_input_converter
 !! FUNCTION
