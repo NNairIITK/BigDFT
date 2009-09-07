@@ -189,13 +189,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !local variables
   character(len=*), parameter :: subname='cluster'
   character(len=3) :: PSquiet
-  logical :: endloop,potion_overwritten=.false.
+  character(len=4) :: f4
+  character(len=50) :: filename
+  logical :: endloop,potion_overwritten=.false.,allfiles,onefile
   integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before
   integer :: nvirt,ndiis_sd_sw
-  integer :: nelec,ndegree_ip,j,i
+  integer :: nelec,ndegree_ip,j,i,iorb
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i,i03,i04
-  integer :: i1,i2,i3,ind,iat,i_all,i_stat,iter,ierr,jproc,ispin
+  integer :: i1,i2,i3,ind,iat,i_all,i_stat,iter,ierr,jproc,ispin,inputpsi
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(kind=8) :: peakmem,energy_old,sumz
@@ -466,8 +468,30 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,orbs%eval,'eval',subname)
   end if
 
+  inputpsi=in%inputPsiId
+
+  !for the inputPsiId==2 case, check 
+  !if the wavefunctions are all present
+  !otherwise switch to normal input guess
+  if (in%inputPsiId ==2) then
+     allfiles=.true.
+     do iorb=1,orbs%norb*orbs%nspinor
+        write(f4,'(i4.4)')  iorb
+        filename = 'wavefunction.'//f4
+        inquire(file=filename,exist=onefile)
+        allfiles=allfiles .and. onefile
+        if (.not. allfiles) then
+           if (iproc == 0) write(*,*)' WARNING: The wavefunction ',filename,&
+                'does not exist, switch to normal input guess'
+           inputpsi = 0
+           exit
+        end if
+     end do
+  end if
+
   ! INPUT WAVEFUNCTIONS, added also random input guess
-  if (in%inputPsiId == -2) then
+  select case(inputpsi)
+  case(-2)
 
      if (iproc == 0) then
         write( *,'(1x,a)')&
@@ -497,7 +521,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
 
-  else if (in%inputPsiId == -1) then
+  case(-1)
 
      !import gaussians form CP2K (data in files gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
@@ -505,25 +529,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj, &
           pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,in%nspin)
 
-  else if (in%inputPsiId == 0) then 
-     !temporary correction for non-collinear case in view of gaussian input guess
-     if (in%nspin == 4) then
-        nspin=4!not 2
-!!$        orbs%norbu=orbs%norb/2
-!!$        orbs%norbd=orbs%norb-orbs%norbu
-     else
-        nspin=in%nspin
-     end if
+  case(0)
+     nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,atoms,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,nscatterarr,ngatherarr,nspin)
-!!$     if (in%nspin == 4) then
-!!$        orbs%norbu=orbs%norb
-!!$        orbs%norbd=0
-!!$     end if
  
-  else if (in%inputPsiId == 1) then 
+  case(1)
      !these parts should be reworked for the non-collinear spin case
 
      !restart from previously calculated wavefunctions, in memory
@@ -551,7 +564,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
 
-  else if (in%inputPsiId == 2 ) then 
+  case(2)
      !restart from previously calculated wavefunctions, on disk
 
      !allocate principal wavefunction
@@ -571,7 +584,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
 
-  else if (in%inputPsiId == 11 ) then 
+  case(11)
      !restart from previously calculated gaussian coefficients
      if (iproc == 0) then
         write( *,'(1x,a)')&
@@ -589,7 +602,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
 
-  else if (in%inputPsiId == 12 ) then 
+  case(12)
      !reading wavefunctions from gaussian file
      if (iproc == 0) then
         write( *,'(1x,a)')&
@@ -620,7 +633,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
 
-  else
+  case default
 
 !     if (iproc == 0) then
         write( *,'(1x,a)')'ERROR:values of inputPsiId must be integers from -2 to  2'
@@ -629,7 +642,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !     end if
      stop
 
-  end if
+  end select
 
 
   if (in%iat_absorber /= 0) then

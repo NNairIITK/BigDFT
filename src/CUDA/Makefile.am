@@ -9,6 +9,7 @@ EXTRA_DIST = \
 	structDef_anasyn.h \
 	structDef_locpot.h \
 	structDef_kinetic.h \
+	check_cuda.h \
 	kinetic.h \
 	locpot.h \
 	commonDef.h \
