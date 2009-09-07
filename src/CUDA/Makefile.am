@@ -1,6 +1,6 @@
 EXTRA_DIST = \
 	Makefile.standalone \
-	read_conf_file.h \
+	dynamicGPU/read_conf_file.h \
 	GPUparameters.h \
 	kernels_compress.hcu \
 	kernels_locpot.hcu \
@@ -9,6 +9,7 @@ EXTRA_DIST = \
 	structDef_anasyn.h \
 	structDef_locpot.h \
 	structDef_kinetic.h \
+	check_cuda.h \
 	kinetic.h \
 	locpot.h \
 	commonDef.h \
@@ -23,7 +24,12 @@ EXTRA_DIST = \
 	dynamicGPU/convolution_fct_call.h \
 	dynamicGPU/cudafct.h \
 	read_conf_exception.h \
-	trace_exec.h \
+	dynamicGPU/trace_exec.h \
+	dynamicGPU/manage_cpu_affinity.h \
+	dynamicGPU/check_card/checker.h \
+	dynamicGPU/set_repartition.h \
+	dynamicGPU/manage_global_var.h \
+	cpp_utils.h \
 	$(SOURCES_CONV_CHECK)
 
 SOURCES_CONV = 	cudafct.cu \
@@ -42,9 +48,12 @@ SOURCES_SHARED = \
 	dynamicGPU/init_network.cpp \
 	dynamicGPU/convolution_fct_call.cpp \
 	dynamicGPU/localqueu.cpp \
-	trace_exec.cpp \
-	init_lib.cpp \
-	read_conf_file.cpp \
+	dynamicGPU/manage_cpu_affinity.cpp \
+	dynamicGPU/check_card/check_init.f90 \
+	dynamicGPU/check_card/checker.cpp \
+	dynamicGPU/set_repartition.cpp \
+	dynamicGPU/trace_exec.cpp \
+	dynamicGPU/read_conf_file.cpp \
 	commonDef.cpp  \
 	fortran.c
 
@@ -89,14 +98,14 @@ endif
 
 CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 
-AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ 
+AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir)
 
-conv_check_SOURCES = conv_check.f90  ../profiling/memory.f90 ../modules/base.f90 $(mpi_source)
+conv_check_SOURCES = conv_check.f90  ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
 conv_check_LDFLAGS =
 conv_check_LDADD = ../libbigdft.a \
 	$(libs_cuda)
 
-GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.f90 $(mpi_source)
+GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
 GPUham_LDFLAGS =
 GPUham_LDADD = ../libbigdft.a \
 	$(libs_cuda)

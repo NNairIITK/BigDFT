@@ -1,3 +1,5 @@
+#include "dynamicGPU/exceptions.h"  
+#include <iostream>
 #include <stdio.h>
 
 
@@ -45,12 +47,27 @@ void cpu_pinned_allocation__(int *nsize, //memory size
   unsigned int mem_size = (*nsize)*getPrecisionSize();
   *ierr=0;
 
-  if(cudaMallocHost(CPU_pointer, mem_size ) != cudaSuccess)
+  /* if(cudaMallocHost(CPU_pointer, mem_size ) != cudaSuccess)
     {
       printf("CPU pinned allocation error \n");
       *ierr=1;
       return;
+      }*/
+
+
+  try
+    {
+      check<cuda_error>(cudaMallocHost(CPU_pointer, mem_size ) != cudaSuccess,"CPU pinned allocation",__FILE__,__LINE__);
     }
+  
+  catch(std::exception &e)
+    {
+      
+      std::cerr << "*** CUDA ERROR DETECTED" << std::endl;
+      std::cerr << "ERROR MESSAGE : " << e.what() << std::endl;
+      *ierr = 1;
+    }
+
 
   // memoryPISum += mem_size;
   // printf("CurMem PI = %i \n",memoryPISum);
@@ -67,12 +84,27 @@ void cpu_pinned_deallocation__(void **CPU_pointer,
  
   *ierr=0;
 
-  if(cudaFreeHost(*CPU_pointer) != cudaSuccess)
+  /* if(cudaFreeHost(*CPU_pointer) != cudaSuccess)
     {
       printf("CPU pinned dealocation error \n");
       *ierr=1;
       return;
+      }*/
+
+
+  try
+    {
+      check<cuda_error>(cudaFreeHost(*CPU_pointer) != cudaSuccess,"cudaFreeHost",__FILE__,__LINE__);
     }
+  
+  catch(std::exception &e)
+    {
+      
+      std::cerr << "*** CUDA ERROR DETECTED" << std::endl;
+      std::cerr << "ERROR MESSAGE : " << e.what() << std::endl;
+      *ierr = 1;
+    }
+
 
   CUERR;
 }
@@ -95,14 +127,27 @@ void gpu_allocate__(int *nsize, //memory size
 
   //allocate memory on GPU, return error code in case of problems
   *ierr=0;
-  if(cudaMalloc( GPU_pointer, mem_size) != 0)
+  /*  if(cudaMalloc( GPU_pointer, mem_size) != 0)
     {
       CUERR
       printf("GPU allocation error \n");
       *ierr=1;
       return;
-    }
+      }*/
 
+
+ try
+    {
+      check<cuda_error>(cudaMalloc( GPU_pointer, mem_size) != 0,"GPU allocation",__FILE__,__LINE__);
+    }
+  
+ catch(std::exception &e)
+    {
+      
+      std::cerr << "*** CUDA ERROR DETECTED" << std::endl;
+      std::cerr << "ERROR MESSAGE : " << e.what() << std::endl;
+      *ierr = 1;
+    }
   // memoryGPUSum += mem_size;
   //  printf("CurMem PI = %i \n",memoryGPUSum);
 
@@ -122,12 +167,29 @@ void gpu_int_allocate__(int *nsize, //memory size
 
   //allocate memory on GPU, return error code in case of problems
   *ierr=0;
-  if(cudaMalloc( GPU_pointer, mem_size) != 0)
+
+
+ try
+    {
+      check<cuda_error>(cudaMalloc( GPU_pointer, mem_size) != 0,"GPU int  allocation",__FILE__,__LINE__);
+    }
+  
+  catch(std::exception &e)
+    {
+      
+      std::cerr << "*** CUDA ERROR DETECTED" << std::endl;
+      std::cerr << "ERROR MESSAGE : " << e.what() << std::endl;
+      *ierr = 1;
+    }
+
+
+
+ /* if(cudaMalloc( GPU_pointer, mem_size) != 0)
     {
       printf("GPU allocation error \n");
       *ierr=1;
       return;
-    }
+      }*/
 }
 
 
@@ -137,13 +199,30 @@ void gpu_deallocate__(void **GPU_pointer, // pointer indicating the GPU address
 {
   //deallocate memory on GPU, return error code in case of problems
   *ierr=0;
-  if(cudaFree(*GPU_pointer) != 0)
+  /*  if(cudaFree(*GPU_pointer) != 0)
     {
       CUERR
       printf("GPU deallocation error \n");
       *ierr=1;
       return;
+      }*/
+
+
+ try
+    {
+      check<cuda_error>(cudaFree(*GPU_pointer) != 0,"CUDA free",__FILE__,__LINE__);
     }
+  
+  catch(std::exception e)
+    {
+      
+      std::cerr << "*** CUDA ERROR DETECTED" << std::endl;
+      std::cerr << "ERROR MESSAGE : " << e.what() << std::endl;
+      *ierr = 1;
+    }
+
+
+
 }
 
 
@@ -161,11 +240,25 @@ void gpu_send__(int *nsize,
 
   //copy V to GPU
   *ierr=0;
-  if(cudaMemcpy(*GPU_pointer, CPU_pointer, mem_size, cudaMemcpyHostToDevice)  != 0)
+  /*  if(cudaMemcpy(*GPU_pointer, CPU_pointer, mem_size, cudaMemcpyHostToDevice)  != 0)
     {
       printf("HostToDevice Memcpy error \n");
       *ierr=1;
       return;
+      }*/
+
+
+ try
+    {
+      check<cuda_error>(cudaMemcpy(*GPU_pointer, CPU_pointer, mem_size, cudaMemcpyHostToDevice)  != 0,"copy host to device",__FILE__,__LINE__);
+    }
+  
+  catch(std::exception &e)
+    {
+      
+      std::cerr << "*** CUDA ERROR DETECTED" << std::endl;
+      std::cerr << "ERROR MESSAGE : " << e.what() << std::endl;
+      *ierr = 1;
     }
 
 }
@@ -181,11 +274,24 @@ void gpu_int_send__(int *nsize,
 
   //copy V to GPU
   *ierr=0;
-  if(cudaMemcpy(*GPU_pointer, CPU_pointer, mem_size, cudaMemcpyHostToDevice)  != 0)
+  /*  if(cudaMemcpy(*GPU_pointer, CPU_pointer, mem_size, cudaMemcpyHostToDevice)  != 0)
     {
       printf("HostToDevice Memcpy error \n");
       *ierr=1;
       return;
+      }*/
+
+try
+    {
+      check<cuda_error>(cudaMemcpy(*GPU_pointer, CPU_pointer, mem_size, cudaMemcpyHostToDevice),"copy host to device",__FILE__,__LINE__);
+    }
+  
+  catch(std::exception& e)
+    {
+      
+      std::cerr << "*** CUDA ERROR DETECTED" << std::endl;
+      std::cerr << "ERROR MESSAGE : " << e.what() << std::endl;
+      *ierr = 1;
     }
 
 }
@@ -202,14 +308,30 @@ void gpu_receive__(int *nsize,
 
  
   *ierr=0;
-  if(cudaMemcpy(CPU_pointer,*GPU_pointer, mem_size, cudaMemcpyDeviceToHost)  != 0)
+  /*  if(cudaMemcpy(CPU_pointer,*GPU_pointer, mem_size, cudaMemcpyDeviceToHost)  != 0)
     {
       CUERR;
       printf("DeviceToHost Memcpy error \n");
       printf(" %i \n",mem_size);
       *ierr=1;
       return;
+      }*/
+
+
+try
+    {
+      check<cuda_error>(cudaMemcpy(CPU_pointer,*GPU_pointer, mem_size, cudaMemcpyDeviceToHost),"copy device to host",__FILE__,__LINE__);
     }
+  
+  catch(std::exception& e)
+    {
+      
+      std::cerr << "*** CUDA ERROR DETECTED" << std::endl;
+      std::cerr << "ERROR MESSAGE : " << e.what() << std::endl;
+      *ierr = 1;
+    }
+
+
 
 }
 

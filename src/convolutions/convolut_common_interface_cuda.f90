@@ -175,7 +175,7 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
   call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%d,i_stat)
 
   
-  if(GPUshare) then
+  if(GPUshare .and. GPUconv) then
      !gpu sharing is enabled, we need pinned memory and set useDynamic on the GPU_pointer structure
      call cpu_pinned_allocation((2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor,GPU%pinned_in,i_stat)
      call cpu_pinned_allocation((2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor,GPU%pinned_out,i_stat)
@@ -457,11 +457,7 @@ subroutine local_partial_density_GPU(iproc,nproc,orbs,&
      
      call create_stream(stream_ptr) !only one stream, it could be good to optimize that
      !copy the wavefunctions on GPU
-
-    call  gpu_pack_unpack_stream(i_stat,stream_ptr)
      do iorb=1,orbs%norbp
-       
-
         call  mem_copy_f_to_c_stream((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
              GPU%pinned_in,&
              psi(1,(iorb-1)*orbs%nspinor+1),&
@@ -471,7 +467,7 @@ subroutine local_partial_density_GPU(iproc,nproc,orbs,&
              GPU%pinned_in,&
              GPU%psi(iorb),i_stat,stream_ptr)
      end do
-    call  gpu_pack_unpack_stream(i_stat,stream_ptr)
+     
        
      
      !calculate the density

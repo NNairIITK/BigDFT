@@ -53,7 +53,8 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
 
            !cases with no CG iterations, diagonal preconditioning
-           if (ncong == 0) then
+           !for Free BC it is incorporated in the standard procedure
+           if (ncong == 0 .and. lr%geocode /= 'F') then
               select case(lr%geocode)
               case('F')
               case('S')
@@ -77,312 +78,626 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
         end if
 
-!!$     select case(lr%geocode)
-!!$     case('F')
-!!$        !in this case the grid spacings are uniform
-!!$        cprecr=-eval(iorb)
-!!$        if(scpr /=0.0_dp) then
-!!$           call precong(iorb,lr%d%n1,lr%d%n2,lr%d%n3,&
-!!$                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
-!!$                lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-!!$                lr%wfd%keyg,lr%wfd%keyv,ncong,cprecr,hx,&
-!!$                lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
-!!$                lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
-!!$                hpsi(1,inds,iorb))
-!!$        end if
-!!$     case('P')
-!!$        cprecr=0.5_wp
-!!$        !           cprecr=abs(eval(iorb))
-!!$        !		   if (cprecr.lt..1_wp) cprecr=.5_wp
-!!$        if (ncong == 0) then
-!!$           call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
-!!$                lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-!!$                lr%wfd%keyg,lr%wfd%keyv, &
-!!$                cprecr,hx,hy,hz,hpsi(1,inds,iorb))
-!!$        else
-!!$           if (lr%hybrid_on) then
-!!$              call precong_per_hyb(lr%d%n1,lr%d%n2,lr%d%n3,&
-!!$                   lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
-!!$                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-!!$                   lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
-!!$                   ncong,cprecr,hx,hy,hz,hpsi(1,inds,iorb),&
-!!$                   lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f)
-!!$           else
-!!$
-!!$              call precong_per(lr%d%n1,lr%d%n2,lr%d%n3, &
-!!$                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-!!$                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-!!$                   lr%wfd%keyg,lr%wfd%keyv, &
-!!$                   ncong,cprecr,hx,hy,hz,hpsi(1,inds,iorb))
-!!$           endif
-!!$        endif
-!!$     case('S')
-!!$        cprecr=0.5_wp
-!!$        if (ncong == 0) then
-!!$           call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
-!!$                lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-!!$                lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
-!!$                cprecr,hx,hy,hz,hpsi(1,inds,iorb))
-!!$        else
-!!$           call precong_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
-!!$                lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-!!$                lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
-!!$                ncong,cprecr,hx,hy,hz,hpsi(1,inds,iorb))
-!!$        endif
-!!$     end select
      end do
   enddo
 
 end subroutine preconditionall
 
-subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
-     nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-     ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
-  ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-  ! hpsi is the right hand side on input and the solution on output
+!routine used for the k-points, eventually to be used for all cases
+subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
+     hx,hy,hz,kx,ky,kz,x)
   use module_base
+  use module_types
+  ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+  ! x is the right hand side on input and the solution on output
   implicit none
-  !implicit real(kind=8) (a-h,o-z)
-  integer, intent(in) :: iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f,ncong
-  real(gp), intent(in) :: hgrid
-  real(dp), intent(in) :: cprecr
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
-  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
-  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
-  real(wp), dimension(nvctr_c+7*nvctr_f), intent(inout) :: hpsi
+  integer, intent(in) :: ncong,ncplx
+  real(gp), intent(in) :: hx,hy,hz,cprecr,kx,ky,kz
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
+  ! local variables
+  character(len=*), parameter :: subname='precondition_residue'
+  real(gp), dimension(0:7) :: scal
+  real(wp) :: rmr_old,rmr_new,alpha,beta
+  integer :: i,i_stat,i_all,icong,idx
+  type(workarr_precond) :: w
+  real(wp), dimension(:), allocatable :: b,r,d
+
+  !arrays for the CG procedure
+  allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
+  call memocc(i_stat,b,'b',subname)
+  allocate(r(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
+  call memocc(i_stat,r,'r',subname)
+  allocate(d(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
+  call memocc(i_stat,d,'d',subname)
+
+  call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
+
+  call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
+
+  call precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal)
+
+!!$  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
+!!$  write(*,*)'debug1',rmr_new
+
+  r=b-d ! r=b-Ax
+
+  call calculate_rmr_new(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,r,d,rmr_new)
+  !stands for
+  !d=r
+  !rmr_new=dot_product(r,r)
+
+
+  do icong=1,ncong 
+     !write(*,*)icong,rmr_new
+
+     call precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal)! b:=Ad
+
+     !in the complex case these objects are to be supposed real
+     alpha=rmr_new/dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,b(1),1)
+
+     call axpy(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),alpha,d(1),1,x(1),1)
+     call axpy(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),-alpha,b(1),1,r(1),1)
+
+     if (icong==ncong) exit
+
+     rmr_old=rmr_new	
+
+     call calculate_rmr_new(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,r,b,rmr_new)
+
+     beta=rmr_new/rmr_old
+
+     d=b+beta*d
+    
+  enddo
+
+  call finalise_precond_residue(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,x)
+
+  i_all=-product(shape(b))*kind(b)
+  deallocate(b,stat=i_stat)
+  call memocc(i_stat,i_all,'b',subname)
+  i_all=-product(shape(r))*kind(r)
+  deallocate(r,stat=i_stat)
+  call memocc(i_stat,i_all,'r',subname)
+  i_all=-product(shape(d))*kind(d)
+  deallocate(d,stat=i_stat)
+  call memocc(i_stat,i_all,'d',subname)
+
+  call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
+
+end subroutine precondition_residue
+
+subroutine finalise_precond_residue(geocode,hybrid_on,ncplx,wfd,scal,x)
+  use module_base
+  use module_types
+  implicit none
+  character(len=1), intent(in) :: geocode
+  logical, intent(in) :: hybrid_on
+  integer, intent(in) :: ncplx
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  real(gp), dimension(0:7), intent(in) :: scal
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,ncplx), intent(inout) :: x
   !local variables
-  character(len=*), parameter :: subname='precong'
+  logical :: noscal
+  integer :: idx
+
+  if (geocode == 'F') then
+     do idx=1,ncplx
+        call wscalv_wrap(wfd%nvctr_c,wfd%nvctr_f,scal,x(1,idx))
+     end do
+  else if (geocode == 'P' .and. .not. hybrid_on) then
+     do idx=1,ncplx
+        ! x=D^{-1/2}x'
+        call wscal_per_self(wfd%nvctr_c,wfd%nvctr_f,scal,x(1,idx),&
+             x(wfd%nvctr_c+min(1,wfd%nvctr_f),idx))
+        !	write(30,*) x
+        !	stop
+     end do
+  else
+  end if
+end subroutine finalise_precond_residue
+
+
+subroutine calculate_rmr_new(geocode,hybrid_on,ncplx,wfd,scal,r,b,rmr_new)
+  use module_base
+  use module_types
+  implicit none
+  character(len=1), intent(in) :: geocode
+  logical, intent(in) :: hybrid_on
+  integer, intent(in) :: ncplx
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  real(gp), dimension(0:7), intent(in) :: scal
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,ncplx), intent(in) :: r
+  real(wp), intent(out) :: rmr_new
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,ncplx), intent(out) :: b
+  !local variables
+  logical :: noscal
+  integer :: idx
+
+  noscal = ((geocode == 'P' .and. .not. hybrid_on) .or. geocode == 'F')
+
+  if (noscal) then
+     call dcopy(ncplx*(wfd%nvctr_c+7*wfd%nvctr_f),r(1,1),1,b(1,1),1) 
+     rmr_new=dot(ncplx*(wfd%nvctr_c+7*wfd%nvctr_f),r(1,1),1,r(1,1),1)
+  else 
+     do idx=1,ncplx
+        call wscal_per(wfd%nvctr_c,wfd%nvctr_f,scal,r(1,idx),&
+             r(wfd%nvctr_c+min(1,wfd%nvctr_f),idx),&
+             b(1,idx),b(wfd%nvctr_c+min(1,wfd%nvctr_f),idx))
+     end do
+     rmr_new=dot(ncplx*(wfd%nvctr_c+7*wfd%nvctr_f),r(1,1),1,b(1,1),1)
+  end if
+
+end subroutine calculate_rmr_new
+
+
+subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ncplx
+  real(gp), intent(in) :: hx,hy,hz,cprecr
+  type(locreg_descriptors), intent(in) :: lr
+  type(workarr_precond), intent(inout) :: w
+  real(gp), dimension(0:7), intent(inout) :: scal
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(inout) ::  x
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(out) ::  b
+  !local variables
   logical, parameter :: inguess_on=.true.
   !       wavelet and scaling function second derivative filters
   real(wp), parameter :: b2=24.8758460293923314_wp, a2=3.55369228991319019_wp
-  integer :: i,icong,i_stat,i_all
-  real(wp) :: fac_h,h0,h1,h2,h3,tt,alpha1,alpha2,alpha,beta1,beta2,beta
-  real(wp), dimension(0:3) :: scal
-  real(wp), dimension(:), allocatable :: rpsi,ppsi,wpsi,spsi
-  real(wp), dimension(:,:,:,:), allocatable :: xpsig_f,ypsig_f
-  real(wp), dimension(:,:,:), allocatable :: xpsig_c,ypsig_c,x_f1,x_f2,x_f3
-
-
-  ! The input guess consists of diagonal preconditioning of the original gradient.
-  ! In contrast to older version, not only the wavelet part and the scfunction
-  ! part are multiplied by different factors, but the scfunction part is 
-  ! subjected to wavelet analysis with periodic boundaries. Then the wavelets
-  ! on different scales are multiplied by different factors and backward wavelet 
-  ! transformed to scaling functions.
-  !
-  ! The new input guess is turned on if the parameter INGUESS_ON
-  ! has value .TRUE.
-  ! 
+  integer :: nd1,nd2,nd3,idx,i
+  integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b 
+  real(gp) :: fac
+  real(wp) :: fac_h,h0,h1,h2,h3,alpha1
   
-  allocate(rpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-  call memocc(i_stat,rpsi,'rpsi',subname)
-  allocate(ppsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-  call memocc(i_stat,ppsi,'ppsi',subname)
-  allocate(wpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-  call memocc(i_stat,wpsi,'wpsi',subname)
+  if (lr%geocode == 'F') then
+     !using hx instead of hgrid for isolated bc
+     fac_h=1.0_wp/real(hx,wp)**2
+     h0=    1.5_wp*a2*fac_h
+     h1=(a2+b2*.5_wp)*fac_h
+     h2=(a2*.5_wp+b2)*fac_h
+     h3=    1.5_wp*b2*fac_h
 
-!!$  !array of initial wavefunction
-!!$  allocate(spsi(nvctr_c+7*nvctr_f),stat=i_stat)
-!!$  call memocc(i_stat,spsi,'spsi',subname)
-!!$  do i=1,nvctr_c+7*nvctr_f
-!!$     spsi(i)=hpsi(i)
-!!$  enddo
+     scal(0)=sqrt(1.0_wp/(h0+cprecr)) 
+     scal(1)=sqrt(1.0_wp/(h1+cprecr)) 
+     scal(2)=sqrt(1.0_wp/(h2+cprecr)) 
+     scal(3)=sqrt(1.0_wp/(h3+cprecr))
 
-  fac_h=1.0_wp/real(hgrid,wp)**2
-  h0=    1.5_wp*a2*fac_h
-  h1=(a2+b2*.5_wp)*fac_h
-  h2=(a2*.5_wp+b2)*fac_h
-  h3=    1.5_wp*b2*fac_h
+     do idx=1,ncplx
+        if (inguess_on) then
+           !the right hand side is temporarily stored in the rpsi array
+           !rpsi=hpsi           
+           call dcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
+           !          and preconditioned with d^{-1/2} as usual:
+           call wscalv_wrap(lr%wfd%nvctr_c,lr%wfd%nvctr_f,scal,b(1,idx))
+           !hpsi is now diagonally preconditioned with alexey's old preconditioner;
+           !inside the diagonal preconditioner a factor of d^{1/2} was added
+           !to make the overall factor d^{-1/2} again
 
-  scal(0)=sqrt(1.0_wp/(h0+cprecr)) 
-  scal(1)=sqrt(1.0_wp/(h1+cprecr)) 
-  scal(2)=sqrt(1.0_wp/(h2+cprecr)) 
-  scal(3)=sqrt(1.0_wp/(h3+cprecr))
+           call prec_diag(lr%d%n1,lr%d%n2,lr%d%n3,hx,lr%wfd%nseg_c,&
+                lr%wfd%nvctr_c,lr%wfd%nvctr_f,&
+                lr%wfd%keyg,lr%wfd%keyv,&
+                x(1,idx),x(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),cprecr,scal,a2,b2)
 
-  if (inguess_on) then
-     !          the right hand side is temporarily stored in the rpsi array
-     !rpsi=hpsi           
-     call dcopy(nvctr_c+7*nvctr_f,hpsi,1,rpsi,1) 
-     !          and preconditioned with d^{-1/2} as usual:
-     call  wscalv(nvctr_c,nvctr_f,scal,rpsi,rpsi(nvctr_c+1))
+        else
+           !assume as input guess x=y
+           !hpsi is preconditioned with d^{-1/2} as usual
+           call wscalv_wrap(lr%wfd%nvctr_c,lr%wfd%nvctr_f,scal,x(1,idx))
 
-     !          hpsi is now diagonally preconditioned with alexey's old preconditioner;
-     !          inside the diagonal preconditioner a factor of d^{1/2} was added
-     !          to make the overall factor d^{-1/2} again
-     call prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
-          keyg,keyv,hpsi,hpsi(nvctr_c+1),cprecr,scal,a2,b2)
-  else
-     !          assume as input guess x=y
-     !          hpsi is preconditioned with d^{-1/2} as usual
-     call  wscalv(nvctr_c,nvctr_f,scal,hpsi,hpsi(nvctr_c+1))
-  endif
-
-  !allocate work arrays
-  allocate(xpsig_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,xpsig_c,'xpsig_c',subname)
-  allocate(xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
-  call memocc(i_stat,xpsig_f,'xpsig_f',subname)
-  allocate(ypsig_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,ypsig_c,'ypsig_c',subname)
-  allocate(ypsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
-  call memocc(i_stat,ypsig_f,'ypsig_f',subname)
-
-  allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
-  call memocc(i_stat,x_f1,'x_f1',subname)
-  allocate(x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3+ndebug),stat=i_stat)
-  call memocc(i_stat,x_f2,'x_f2',subname)
-  allocate(x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2+ndebug),stat=i_stat)
-  call memocc(i_stat,x_f3,'x_f3',subname)
-  
-  !initalize to zero the work arrays, probably not needed
-  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f1)
-  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f2)
-  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f3)
-
-  call razero((n1+1)*(n2+1)*(n3+1),xpsig_c)
-  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),xpsig_f)
-
-  call razero((n1+1)*(n2+1)*(n3+1),ypsig_c)
-  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),ypsig_f)
-  
-  call calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
-       nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
-       scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi,&
-       hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
-       xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
-       x_f1,x_f2,x_f3)
-
-
-  IF (INGUESS_ON) THEN 
-     do i=1,nvctr_c+7*nvctr_f
-        tt=wpsi(i)-rpsi(i)  ! rpsi instead of hpsi: alexey
-        rpsi(i)=tt
-        ppsi(i)=tt
-     enddo
-
-  ELSE
-     do i=1,nvctr_c+7*nvctr_f
-        tt=wpsi(i)-hpsi(i)  ! normal
-        rpsi(i)=tt
-        ppsi(i)=tt
-     enddo
-  ENDIF
-
-  loop_precond: do icong=2,ncong
-
-     call calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
-          nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
-          scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,&
-          ibxy_f,ppsi,ppsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
-          xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
-          x_f1,x_f2,x_f3)
-
-     alpha1=0.0_wp 
-     alpha2=0.0_wp
-     do i=1,nvctr_c+7*nvctr_f
-        alpha1=alpha1+rpsi(i)*rpsi(i)
-        alpha2=alpha2+rpsi(i)*wpsi(i)
-     enddo
-     !write(*,*)icong,alpha1
-
-     !residues(icong)=alpha1
-     alpha=alpha1/alpha2        
-
-     !write(10+iorb,'(1x,i0,3(1x,1pe24.17))')icong,alpha1,alpha2,alpha
-
-     do i=1,nvctr_c+7*nvctr_f
-        hpsi(i)=hpsi(i)-alpha*ppsi(i)
-        rpsi(i)=rpsi(i)-alpha*wpsi(i)
+           !b=x
+           call dcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
+        endif
      end do
 
-     if (icong >= ncong) exit loop_precond
+     !initalize to zero the work arrays, probably not needed
+     call razero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
+          w%x_f1)
+     call razero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
+          w%x_f2)
+     call razero((lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),&
+          w%x_f3)
+     call razero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1),w%xpsig_c)
+     call razero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),w%xpsig_f)
 
-     beta1=0.0_wp 
-     beta2=0.0_wp
+     call razero((lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1),w%ypsig_c)
+     call razero(7*(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1),w%ypsig_f)
 
-     do i=1,nvctr_c+7*nvctr_f
-        beta1=beta1+rpsi(i)*wpsi(i)
-        beta2=beta2+ppsi(i)*wpsi(i)
-     enddo
+  else if (lr%geocode == 'P') then
 
-     beta=beta1/beta2        
+     call dimensions_fft(lr%d%n1,lr%d%n2,lr%d%n3,&
+          nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
 
-     do i=1,nvctr_c+7*nvctr_f
-        ppsi(i)=rpsi(i)-beta*ppsi(i)
+     if (ncplx /=2 .and. .not. lr%hybrid_on) then
+        call prepare_sdc(lr%d%n1,lr%d%n2,lr%d%n3,&
+          w%modul1,w%modul2,w%modul3,w%af,w%bf,w%cf,w%ef,hx,hy,hz)
+     end if
+     !	initializes the wavelet scaling coefficients	
+     call wscal_init_per(scal,hx,hy,hz,cprecr)
+
+
+     if (lr%hybrid_on) then
+        do idx=1,ncplx
+           !b=x
+           call dcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
+           
+           call prec_fft_fast(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                lr%wfd%keyg,lr%wfd%keyv, &
+                cprecr,hx,hy,hz,x(1,idx),&
+                w%kern_k1,w%kern_k2,w%kern_k3,w%z1,w%z3,w%x_c,&
+                nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b)
+        end do
+
+     else
+        ! Array sizes for the real-to-complex FFT: note that n1(there)=n1(here)+1
+        ! and the same for lr%d%n2,n3.
+
+        do idx=1,ncplx
+           !	scale the r.h.s. that is also the scaled input guess :
+           !	b'=D^{-1/2}b
+           call wscal_per_self(lr%wfd%nvctr_c,lr%wfd%nvctr_f,scal,&
+                x(1,idx),x(lr%wfd%nvctr_c+1,idx))
+           !b=x
+           call dcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
+
+           !if GPU is swithced on and there is no call to GPU preconditioner
+           !do not do the FFT preconditioning
+           if (.not. GPUconv) then
+              !	compute the input guess x via a Fourier transform in a cubic box.
+              !	Arrays psifscf and ww serve as work arrays for the Fourier
+              fac=1.0_gp/scal(0)**2
+
+              call prec_fft_c(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nseg_c,&
+                   lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                   cprecr,hx,hy,hz,x(1,idx),&
+                   w%psifscf(1),w%psifscf(lr%d%n1+2),&
+                   w%psifscf(lr%d%n1+lr%d%n2+3),w%ww(1),w%ww(nd1b*nd2*nd3*4+1),&
+                   w%ww(nd1b*nd2*nd3*4+nd1*nd2*nd3f*4+1),&
+                   nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,fac)
+           end if
+
+        end do
+     end if
+
+
+  else if (lr%geocode == 'S') then
+
+     if (ncplx == 1) then
+        call prepare_sdc_slab(lr%d%n1,lr%d%n2,lr%d%n3,w%modul1,w%modul3,&
+          w%af,w%bf,w%cf,w%ef,hx,hy,hz)
+     end if
+    
+     !	initializes the wavelet scaling coefficients	
+     call wscal_init_per(scal,hx,hy,hz,cprecr)
+    
+     do idx=1,ncplx
+        !b=x
+        call dcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
+        
+        !	compute the input guess x via a Fourier transform in a cubic box.
+        !	Arrays psifscf and ww serve as work arrays for the Fourier
+        call prec_fft_slab_fast(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+             lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+             cprecr,hx,hy,hz,x(1,idx),&
+             w%psifscf(1),w%psifscf(lr%d%n1+2),w%ww(1),&
+             w%ww(2*((lr%d%n1+1)/2+1)*(lr%d%n2+1)*(lr%d%n3+1)+1))
      end do
 
-  end do loop_precond
+  end if
+  
+end subroutine precondition_preconditioner
 
-  !  D^{-1/2} times solution
-  call wscalv(nvctr_c,nvctr_f,scal,hpsi,hpsi(nvctr_c+1))
-
-  !write(*,'(i4,(100(1x,e8.2)))') iorb,(residues(icong),icong=2,ncong)
-
-!!$  ! check final residue of original equation
-!!$  do i=0,3
-!!$     scal(i)=1.d0
-!!$  enddo
-!!$
-!!$  call CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
-!!$       nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
-!!$       scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,&
-!!$       ibxy_f,hpsi,hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
-!!$       xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
-!!$       x_f1,x_f2,x_f3)
-!!$     
-!!$  tt=0.d0
-!!$  do i=1,nvctr_c+7*nvctr_f
-!!$     tt=tt+(wpsi(i)-spsi(i))**2
-!!$  enddo
-!!$  !write(*,'(1x,a,1x,i0,1x,1pe13.6)') 'Precond, final residue',iorb,sqrt(tt)
-!!$  i_all=-product(shape(spsi))*kind(spsi)
-!!$  deallocate(spsi,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'spsi',subname)
-!!$  ! checkend
-
-  i_all=-product(shape(rpsi))*kind(rpsi)
-  deallocate(rpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'rpsi',subname)
-  i_all=-product(shape(ppsi))*kind(ppsi)
-  deallocate(ppsi,stat=i_stat)
-  call memocc(i_stat,i_all,'ppsi',subname)
-  i_all=-product(shape(wpsi))*kind(wpsi)
-  deallocate(wpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'wpsi',subname)
+subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
+  use module_base
+  use module_types
+  implicit none
+  character(len=1), intent(in) :: geocode
+  logical, intent(in) :: hybrid_on
+  integer, intent(in) :: ncplx
+  type(grid_dimensions), intent(in) :: d
+  type(workarr_precond), intent(out) :: w
+  !local variables
+  character(len=*), parameter :: subname='allocate_work_arrays'
+  integer, parameter :: lowfil=-14,lupfil=14
+  integer :: i_stat,i_all
+  integer :: nd1,nd2,nd3
+  integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b	
+  integer :: nf
 
 
-  i_all=-product(shape(xpsig_c))*kind(xpsig_c)
-  deallocate(xpsig_c,stat=i_stat)
-  call memocc(i_stat,i_all,'xpsig_c',subname)
+  if (geocode == 'F') then
 
-  i_all=-product(shape(ypsig_c))*kind(ypsig_c)
-  deallocate(ypsig_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ypsig_c',subname)
+     nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
+     !allocate work arrays
+     allocate(w%xpsig_c(0:d%n1,0:d%n2,0:d%n3+ndebug),stat=i_stat)
+     call memocc(i_stat,w%xpsig_c,'xpsig_c',subname)
+     allocate(w%xpsig_f(7,d%nfl1:d%nfu1,d%nfl2:d%nfu2,d%nfl3:d%nfu3+ndebug),stat=i_stat)
+     call memocc(i_stat,w%xpsig_f,'xpsig_f',subname)
+     allocate(w%ypsig_c(0:d%n1,0:d%n2,0:d%n3+ndebug),stat=i_stat)
+     call memocc(i_stat,w%ypsig_c,'ypsig_c',subname)
+     allocate(w%ypsig_f(7,d%nfl1:d%nfu1,d%nfl2:d%nfu2,d%nfl3:d%nfu3+ndebug),stat=i_stat)
+     call memocc(i_stat,w%ypsig_f,'ypsig_f',subname)
 
-  i_all=-product(shape(xpsig_f))*kind(xpsig_f)
-  deallocate(xpsig_f,stat=i_stat)
-  call memocc(i_stat,i_all,'xpsig_f',subname)
-
-  i_all=-product(shape(ypsig_f))*kind(ypsig_f)
-  deallocate(ypsig_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ypsig_f',subname)
-
-  i_all=-product(shape(x_f1))*kind(x_f1)
-  deallocate(x_f1,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f1',subname)
-
-  i_all=-product(shape(x_f2))*kind(x_f2)
-  deallocate(x_f2,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f2',subname)
-
-  i_all=-product(shape(x_f3))*kind(x_f3)
-  deallocate(x_f3,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f3',subname)
+     allocate(w%x_f1(nf+ndebug),stat=i_stat)
+     call memocc(i_stat,w%x_f1,'x_f1',subname)
+     allocate(w%x_f2(nf+ndebug),stat=i_stat)
+     call memocc(i_stat,w%x_f2,'x_f2',subname)
+     allocate(w%x_f3(nf+ndebug),stat=i_stat)
+     call memocc(i_stat,w%x_f3,'x_f3',subname)
+    
+  else if (geocode == 'P') then
      
-end subroutine precong
+     if (hybrid_on) then
+          
+        call dimensions_fft(d%n1,d%n2,d%n3,&
+             nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
+
+        nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
+
+        allocate(w%kern_k1(0:d%n1+ndebug),stat=i_stat)
+        call memocc(i_stat,w%kern_k1,'kern_k1',subname)
+        allocate(w%kern_k2(0:d%n2+ndebug),stat=i_stat)
+        call memocc(i_stat,w%kern_k2,'kern_k2',subname)
+        allocate(w%kern_k3(0:d%n3+ndebug),stat=i_stat)
+        call memocc(i_stat,w%kern_k3,'kern_k3',subname)
+        allocate(w%z1(2,nd1b,nd2,nd3,2+ndebug),stat=i_stat) ! work array for fft
+        call memocc(i_stat,w%z1,'z1',subname)
+        allocate(w%z3(2,nd1,nd2,nd3f,2+ndebug),stat=i_stat) ! work array for fft
+        call memocc(i_stat,w%z3,'z3',subname)
+        allocate(w%x_c(0:d%n1,0:d%n2,0:d%n3+ndebug),stat=i_stat)
+        call memocc(i_stat,w%x_c,'x_c',subname)
+
+        allocate(w%x_f(7,d%nfl1:d%nfu1,d%nfl2:d%nfu2,d%nfl3:d%nfu3+ndebug),stat=i_stat)
+        call memocc(i_stat,w%x_f,'x_f',subname)
+        allocate(w%x_f1(nf+ndebug),stat=i_stat)
+        call memocc(i_stat,w%x_f1,'x_f1',subname)
+        allocate(w%x_f2(nf+ndebug),stat=i_stat)
+        call memocc(i_stat,w%x_f2,'x_f2',subname)
+        allocate(w%x_f3(nf+ndebug),stat=i_stat)
+        call memocc(i_stat,w%x_f3,'x_f3',subname)
+        allocate(w%y_f(7,d%nfl1:d%nfu1,d%nfl2:d%nfu2,d%nfl3:d%nfu3+ndebug),stat=i_stat)
+        call memocc(i_stat,w%y_f,'y_f',subname)
+
+     else 
+
+        if (ncplx == 1) then
+           !periodic, not k-points
+           allocate(w%modul1(lowfil:d%n1+lupfil+ndebug),stat=i_stat)
+           call memocc(i_stat,w%modul1,'modul1',subname)
+           allocate(w%modul2(lowfil:d%n2+lupfil+ndebug),stat=i_stat)
+           call memocc(i_stat,w%modul2,'modul2',subname)
+           allocate(w%modul3(lowfil:d%n3+lupfil+ndebug),stat=i_stat)
+           call memocc(i_stat,w%modul3,'modul3',subname)
+           allocate(w%af(lowfil:lupfil,3+ndebug),stat=i_stat)
+           call memocc(i_stat,w%af,'af',subname)
+           allocate(w%bf(lowfil:lupfil,3+ndebug),stat=i_stat)
+           call memocc(i_stat,w%bf,'bf',subname)
+           allocate(w%cf(lowfil:lupfil,3+ndebug),stat=i_stat)
+           call memocc(i_stat,w%cf,'cf',subname)
+           allocate(w%ef(lowfil:lupfil,3+ndebug),stat=i_stat)
+           call memocc(i_stat,w%ef,'ef',subname)
+        end if
+
+        allocate(w%psifscf(ncplx*(2*d%n1+2)*(2*d%n2+2)*(2*d%n3+2)+ndebug),stat=i_stat )
+        call memocc(i_stat,w%psifscf,'psifscf',subname)
+        allocate(w%ww(ncplx*(2*d%n1+2)*(2*d%n2+2)*(2*d%n3+2)+ndebug),stat=i_stat)
+        call memocc(i_stat,w%ww,'ww',subname)
+
+     end if
+
+  else if (geocode == 'S') then
+
+     if (ncplx == 1) then
+        allocate(w%modul1(lowfil:d%n1+lupfil+ndebug),stat=i_stat)
+        call memocc(i_stat,w%modul1,'modul1',subname)
+        allocate(w%modul3(lowfil:d%n3+lupfil+ndebug),stat=i_stat)
+        call memocc(i_stat,w%modul3,'modul3',subname)
+        allocate(w%af(lowfil:lupfil,3+ndebug),stat=i_stat)
+        call memocc(i_stat,w%af,'af',subname)
+        allocate(w%bf(lowfil:lupfil,3+ndebug),stat=i_stat)
+        call memocc(i_stat,w%bf,'bf',subname)
+        allocate(w%cf(lowfil:lupfil,3+ndebug),stat=i_stat)
+        call memocc(i_stat,w%cf,'cf',subname)
+        allocate(w%ef(lowfil:lupfil,3+ndebug),stat=i_stat)
+        call memocc(i_stat,w%ef,'ef',subname)
+     end if
+        
+     allocate(w%psifscf(ncplx*(2*d%n1+2)*(2*d%n2+16)*(2*d%n3+2)+ndebug),stat=i_stat )
+     call memocc(i_stat,w%psifscf,'psifscf',subname)
+     allocate(w%ww(ncplx*(2*d%n1+2)*(2*d%n2+16)*(2*d%n3+2)+ndebug) ,stat=i_stat)
+     call memocc(i_stat,w%ww,'ww',subname)
+
+  end if
+
+end subroutine allocate_work_arrays
+
+subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
+  use module_base
+  use module_types
+  implicit none
+  character(len=1), intent(in) :: geocode
+  logical, intent(in) :: hybrid_on
+  integer, intent(in) :: ncplx
+  type(workarr_precond), intent(out) :: w
+  !local variables
+  character(len=*), parameter :: subname='deallocate_work_arrays'
+  integer :: i_stat,i_all
+
+  if (geocode == 'F') then
+
+     i_all=-product(shape(w%xpsig_c))*kind(w%xpsig_c)
+     deallocate(w%xpsig_c,stat=i_stat)
+     call memocc(i_stat,i_all,'xpsig_c',subname)
+     i_all=-product(shape(w%ypsig_c))*kind(w%ypsig_c)
+     deallocate(w%ypsig_c,stat=i_stat)
+     call memocc(i_stat,i_all,'ypsig_c',subname)
+     i_all=-product(shape(w%xpsig_f))*kind(w%xpsig_f)
+     deallocate(w%xpsig_f,stat=i_stat)
+     call memocc(i_stat,i_all,'xpsig_f',subname)
+     i_all=-product(shape(w%ypsig_f))*kind(w%ypsig_f)
+     deallocate(w%ypsig_f,stat=i_stat)
+     call memocc(i_stat,i_all,'ypsig_f',subname)
+     i_all=-product(shape(w%x_f1))*kind(w%x_f1)
+     deallocate(w%x_f1,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f1',subname)
+     i_all=-product(shape(w%x_f2))*kind(w%x_f2)
+     deallocate(w%x_f2,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f2',subname)
+     i_all=-product(shape(w%x_f3))*kind(w%x_f3)
+     deallocate(w%x_f3,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f3',subname)
+
+  else if ((geocode == 'P' .and. .not. hybrid_on) .or. geocode == 'S') then
+
+     if (ncplx == 1) then
+        i_all=-product(shape(w%modul1))*kind(w%modul1)
+        deallocate(w%modul1,stat=i_stat)
+        call memocc(i_stat,i_all,'modul1',subname)
+        if (geocode /= 'S') then
+           i_all=-product(shape(w%modul2))*kind(w%modul2)
+           deallocate(w%modul2,stat=i_stat)
+           call memocc(i_stat,i_all,'modul2',subname)
+        end if
+        i_all=-product(shape(w%modul3))*kind(w%modul3)
+        deallocate(w%modul3,stat=i_stat)
+        call memocc(i_stat,i_all,'modul3',subname)
+        i_all=-product(shape(w%af))*kind(w%af)
+        deallocate(w%af,stat=i_stat)
+        call memocc(i_stat,i_all,'af',subname)
+        i_all=-product(shape(w%bf))*kind(w%bf)
+        deallocate(w%bf,stat=i_stat)
+        call memocc(i_stat,i_all,'bf',subname)
+        i_all=-product(shape(w%cf))*kind(w%cf)
+        deallocate(w%cf,stat=i_stat)
+        call memocc(i_stat,i_all,'cf',subname)
+        i_all=-product(shape(w%ef))*kind(w%ef)
+        deallocate(w%ef,stat=i_stat)
+        call memocc(i_stat,i_all,'ef',subname)
+     end if
+
+     i_all=-product(shape(w%psifscf))*kind(w%psifscf)
+     deallocate(w%psifscf,stat=i_stat)
+     call memocc(i_stat,i_all,'psifscf',subname)
+     i_all=-product(shape(w%ww))*kind(w%ww)
+     deallocate(w%ww,stat=i_stat)
+     call memocc(i_stat,i_all,'ww',subname)
+
+  else if (geocode == 'P' .and. hybrid_on) then
+
+     i_all=-product(shape(w%z1))*kind(w%z1)
+     deallocate(w%z1,stat=i_stat)
+     call memocc(i_stat,i_all,'z1',subname)
+     i_all=-product(shape(w%z3))*kind(w%z3)
+     deallocate(w%z3,stat=i_stat)
+     call memocc(i_stat,i_all,'z3',subname)
+     i_all=-product(shape(w%kern_k1))*kind(w%kern_k1)
+     deallocate(w%kern_k1,stat=i_stat)
+     call memocc(i_stat,i_all,'kern_k1',subname)
+     i_all=-product(shape(w%kern_k2))*kind(w%kern_k2)
+     deallocate(w%kern_k2,stat=i_stat)
+     call memocc(i_stat,i_all,'kern_k2',subname)
+     i_all=-product(shape(w%kern_k3))*kind(w%kern_k3)
+     deallocate(w%kern_k3,stat=i_stat)
+     call memocc(i_stat,i_all,'kern_k3',subname)
+     i_all=-product(shape(w%x_c))*kind(w%x_c)
+     deallocate(w%x_c,stat=i_stat)
+     call memocc(i_stat,i_all,'x_c',subname)
+     i_all=-product(shape(w%x_f))*kind(w%x_f)
+     deallocate(w%x_f,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f',subname)
+     i_all=-product(shape(w%x_f1))*kind(w%x_f1)
+     deallocate(w%x_f1,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f1',subname)
+     i_all=-product(shape(w%x_f2))*kind(w%x_f2)
+     deallocate(w%x_f2,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f2',subname)
+     i_all=-product(shape(w%x_f3))*kind(w%x_f3)
+     deallocate(w%x_f3,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f3',subname)
+     i_all=-product(shape(w%y_f))*kind(w%y_f)
+     deallocate(w%y_f,stat=i_stat)
+     call memocc(i_stat,i_all,'y_f',subname)
+
+
+  end if
+
+end subroutine deallocate_work_arrays
+
+subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
+     cprecr,x,y,w,scal)! y:=Ax
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ncplx
+  real(gp), intent(in) :: hx,hy,hz,cprecr,kx,ky,kz
+  type(locreg_descriptors), intent(in) :: lr
+  real(gp), dimension(0:7), intent(in) :: scal
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(in) ::  x
+  type(workarr_precond), intent(inout) :: w
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(out) ::  y
+  !local variables
+  integer :: idx,nf
+
+  if (lr%geocode == 'F') then
+     do idx=1,ncplx
+        call calc_grad_reza(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
+             lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keyg,lr%wfd%keyv,&
+             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+             lr%wfd%keyg(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),&
+             lr%wfd%keyv(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+             scal,cprecr,hx,&
+             lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
+             lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
+             x(1,idx),x(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
+             y(1,idx),y(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
+             w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f,&
+             w%x_f1,w%x_f2,w%x_f3)
+     end do
+  else if (lr%geocode == 'P') then
+     if (lr%hybrid_on) then
+
+        nf=(lr%d%nfu1-lr%d%nfl1+1)*(lr%d%nfu2-lr%d%nfl2+1)*(lr%d%nfu3-lr%d%nfl3+1)
+        do idx=1,ncplx
+           call apply_hp_hyb(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                lr%wfd%keyg,lr%wfd%keyv, &
+                cprecr,hx,hy,hz,x(1,idx),y(1,idx),&
+                w%x_f,w%x_c,w%x_f1,w%x_f2,w%x_f3,w%y_f,w%z1,&
+                lr%d%nfl1,lr%d%nfl2,lr%d%nfl3,lr%d%nfu1,lr%d%nfu2,lr%d%nfu3,nf,&
+                lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f)
+        end do
+     else
+        if (ncplx == 1) then
+           call apply_hp_scal(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
+                lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                cprecr,hx,hy,hz,x,y,w%psifscf,w%ww,w%modul1,w%modul2,w%modul3,&
+                w%af,w%bf,w%cf,w%ef,scal) 
+        else
+           call apply_hp_per_k(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
+             lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+             cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww,scal) 
+        end if
+     end if
+  else if (lr%geocode == 'S') then
+     if (ncplx == 1) then
+        call apply_hp_slab_sd(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
+             lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+             cprecr,hx,hy,hz,x,y,w%psifscf,w%ww,w%modul1,w%modul3,&
+             w%af,w%bf,w%cf,w%ef)
+     else
+        call apply_hp_slab_k(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
+             lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+             cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww) 
+
+     end if
+   end if
+end subroutine precond_locham
 
 ! ypsi = (1/2) \Nabla^2 xpsi + cprecr xpsi
 subroutine calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
@@ -643,3 +958,251 @@ subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
 
 end subroutine precond_proper
 
+subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+     nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
+     ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
+  ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+  ! hpsi is the right hand side on input and the solution on output
+  use module_base
+  implicit none
+  !implicit real(kind=8) (a-h,o-z)
+  integer, intent(in) :: iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f,ncong
+  real(gp), intent(in) :: hgrid
+  real(dp), intent(in) :: cprecr
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+  real(wp), dimension(nvctr_c+7*nvctr_f), intent(inout) :: hpsi
+  !local variables
+  character(len=*), parameter :: subname='precong'
+  logical, parameter :: inguess_on=.true.
+  !       wavelet and scaling function second derivative filters
+  real(wp), parameter :: b2=24.8758460293923314_wp, a2=3.55369228991319019_wp
+  integer :: i,icong,i_stat,i_all
+  real(wp) :: fac_h,h0,h1,h2,h3,tt,alpha1,alpha2,alpha,beta1,beta2,beta
+  real(wp), dimension(0:3) :: scal
+  real(wp), dimension(:), allocatable :: rpsi,ppsi,wpsi,spsi
+  real(wp), dimension(:,:,:,:), allocatable :: xpsig_f,ypsig_f
+  real(wp), dimension(:,:,:), allocatable :: xpsig_c,ypsig_c,x_f1,x_f2,x_f3
+
+
+  ! The input guess consists of diagonal preconditioning of the original gradient.
+  ! In contrast to older version, not only the wavelet part and the scfunction
+  ! part are multiplied by different factors, but the scfunction part is 
+  ! subjected to wavelet analysis with periodic boundaries. Then the wavelets
+  ! on different scales are multiplied by different factors and backward wavelet 
+  ! transformed to scaling functions.
+  !
+  ! The new input guess is turned on if the parameter INGUESS_ON
+  ! has value .TRUE.
+  ! 
+  
+  allocate(rpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
+  call memocc(i_stat,rpsi,'rpsi',subname)
+  allocate(ppsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
+  call memocc(i_stat,ppsi,'ppsi',subname)
+  allocate(wpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
+  call memocc(i_stat,wpsi,'wpsi',subname)
+
+!!$  !array of initial wavefunction
+!!$  allocate(spsi(nvctr_c+7*nvctr_f),stat=i_stat)
+!!$  call memocc(i_stat,spsi,'spsi',subname)
+!!$  do i=1,nvctr_c+7*nvctr_f
+!!$     spsi(i)=hpsi(i)
+!!$  enddo
+
+  fac_h=1.0_wp/real(hgrid,wp)**2
+  h0=    1.5_wp*a2*fac_h
+  h1=(a2+b2*.5_wp)*fac_h
+  h2=(a2*.5_wp+b2)*fac_h
+  h3=    1.5_wp*b2*fac_h
+
+  scal(0)=sqrt(1.0_wp/(h0+cprecr)) 
+  scal(1)=sqrt(1.0_wp/(h1+cprecr)) 
+  scal(2)=sqrt(1.0_wp/(h2+cprecr)) 
+  scal(3)=sqrt(1.0_wp/(h3+cprecr))
+
+  if (inguess_on) then
+     !          the right hand side is temporarily stored in the rpsi array
+     !rpsi=hpsi           
+     call dcopy(nvctr_c+7*nvctr_f,hpsi,1,rpsi,1) 
+     !          and preconditioned with d^{-1/2} as usual:
+     call  wscalv(nvctr_c,nvctr_f,scal,rpsi,rpsi(nvctr_c+1))
+
+     !          hpsi is now diagonally preconditioned with alexey's old preconditioner;
+     !          inside the diagonal preconditioner a factor of d^{1/2} was added
+     !          to make the overall factor d^{-1/2} again
+     call prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
+          keyg,keyv,hpsi,hpsi(nvctr_c+1),cprecr,scal,a2,b2)
+  else
+     !          assume as input guess x=y
+     !          hpsi is preconditioned with d^{-1/2} as usual
+     call  wscalv(nvctr_c,nvctr_f,scal,hpsi,hpsi(nvctr_c+1))
+  endif
+
+  !allocate work arrays
+  allocate(xpsig_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,xpsig_c,'xpsig_c',subname)
+  allocate(xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,xpsig_f,'xpsig_f',subname)
+  allocate(ypsig_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,ypsig_c,'ypsig_c',subname)
+  allocate(ypsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,ypsig_f,'ypsig_f',subname)
+
+  allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,x_f1,'x_f1',subname)
+  allocate(x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,x_f2,'x_f2',subname)
+  allocate(x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2+ndebug),stat=i_stat)
+  call memocc(i_stat,x_f3,'x_f3',subname)
+  
+  !initalize to zero the work arrays, probably not needed
+  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f1)
+  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f2)
+  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f3)
+
+  call razero((n1+1)*(n2+1)*(n3+1),xpsig_c)
+  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),xpsig_f)
+
+  call razero((n1+1)*(n2+1)*(n3+1),ypsig_c)
+  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),ypsig_f)
+  
+  call calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+       nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
+       scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi,&
+       hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
+       xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
+       x_f1,x_f2,x_f3)
+
+
+  IF (INGUESS_ON) THEN 
+     do i=1,nvctr_c+7*nvctr_f
+        tt=wpsi(i)-rpsi(i)  ! rpsi instead of hpsi: alexey
+        rpsi(i)=tt
+        ppsi(i)=tt
+     enddo
+
+  ELSE
+     do i=1,nvctr_c+7*nvctr_f
+        tt=wpsi(i)-hpsi(i)  ! normal
+        rpsi(i)=tt
+        ppsi(i)=tt
+     enddo
+  ENDIF
+
+  loop_precond: do icong=2,ncong
+
+     call calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+          nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
+          scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,&
+          ibxy_f,ppsi,ppsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
+          xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
+          x_f1,x_f2,x_f3)
+
+     alpha1=0.0_wp 
+     alpha2=0.0_wp
+     do i=1,nvctr_c+7*nvctr_f
+        alpha1=alpha1+rpsi(i)*rpsi(i)
+        alpha2=alpha2+rpsi(i)*wpsi(i)
+     enddo
+     !write(*,*)icong,alpha1
+
+     !residues(icong)=alpha1
+     alpha=alpha1/alpha2        
+
+     !write(10+iorb,'(1x,i0,3(1x,1pe24.17))')icong,alpha1,alpha2,alpha
+
+     do i=1,nvctr_c+7*nvctr_f
+        hpsi(i)=hpsi(i)-alpha*ppsi(i)
+        rpsi(i)=rpsi(i)-alpha*wpsi(i)
+     end do
+
+     if (icong >= ncong) exit loop_precond
+
+     beta1=0.0_wp 
+     beta2=0.0_wp
+
+     do i=1,nvctr_c+7*nvctr_f
+        beta1=beta1+rpsi(i)*wpsi(i)
+        beta2=beta2+ppsi(i)*wpsi(i)
+     enddo
+
+     beta=beta1/beta2        
+
+     do i=1,nvctr_c+7*nvctr_f
+        ppsi(i)=rpsi(i)-beta*ppsi(i)
+     end do
+
+  end do loop_precond
+
+  !  D^{-1/2} times solution
+  call wscalv(nvctr_c,nvctr_f,scal,hpsi,hpsi(nvctr_c+1))
+
+  !write(*,'(i4,(100(1x,e8.2)))') iorb,(residues(icong),icong=2,ncong)
+
+!!$  ! check final residue of original equation
+!!$  do i=0,3
+!!$     scal(i)=1.d0
+!!$  enddo
+!!$
+!!$  call CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+!!$       nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
+!!$       scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,&
+!!$       ibxy_f,hpsi,hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
+!!$       xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
+!!$       x_f1,x_f2,x_f3)
+!!$     
+!!$  tt=0.d0
+!!$  do i=1,nvctr_c+7*nvctr_f
+!!$     tt=tt+(wpsi(i)-spsi(i))**2
+!!$  enddo
+!!$  !write(*,'(1x,a,1x,i0,1x,1pe13.6)') 'Precond, final residue',iorb,sqrt(tt)
+!!$  i_all=-product(shape(spsi))*kind(spsi)
+!!$  deallocate(spsi,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'spsi',subname)
+!!$  ! checkend
+
+  i_all=-product(shape(rpsi))*kind(rpsi)
+  deallocate(rpsi,stat=i_stat)
+  call memocc(i_stat,i_all,'rpsi',subname)
+  i_all=-product(shape(ppsi))*kind(ppsi)
+  deallocate(ppsi,stat=i_stat)
+  call memocc(i_stat,i_all,'ppsi',subname)
+  i_all=-product(shape(wpsi))*kind(wpsi)
+  deallocate(wpsi,stat=i_stat)
+  call memocc(i_stat,i_all,'wpsi',subname)
+
+
+  i_all=-product(shape(xpsig_c))*kind(xpsig_c)
+  deallocate(xpsig_c,stat=i_stat)
+  call memocc(i_stat,i_all,'xpsig_c',subname)
+
+  i_all=-product(shape(ypsig_c))*kind(ypsig_c)
+  deallocate(ypsig_c,stat=i_stat)
+  call memocc(i_stat,i_all,'ypsig_c',subname)
+
+  i_all=-product(shape(xpsig_f))*kind(xpsig_f)
+  deallocate(xpsig_f,stat=i_stat)
+  call memocc(i_stat,i_all,'xpsig_f',subname)
+
+  i_all=-product(shape(ypsig_f))*kind(ypsig_f)
+  deallocate(ypsig_f,stat=i_stat)
+  call memocc(i_stat,i_all,'ypsig_f',subname)
+
+  i_all=-product(shape(x_f1))*kind(x_f1)
+  deallocate(x_f1,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f1',subname)
+
+  i_all=-product(shape(x_f2))*kind(x_f2)
+  deallocate(x_f2,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f2',subname)
+
+  i_all=-product(shape(x_f3))*kind(x_f3)
+  deallocate(x_f3,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f3',subname)
+     
+end subroutine precong

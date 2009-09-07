@@ -30,6 +30,8 @@ subroutine ana_rot_shrink(n,ndat,x,y)
 
 	real(wp) :: ci1,ci2,ci3,ci4,ci5,ci6,ci7,ci8
 	real(wp) :: di1,di2,di3,di4,di5,di6,di7,di8
+!$omp parallel default (private) shared(ndat,n,ch,x,y,cg)
+!$omp do
   
   do j=0,ndat/8-1
      do i=0,n
@@ -91,7 +93,10 @@ subroutine ana_rot_shrink(n,ndat,x,y)
         y(j*8+8,n+1+i)=di8
      enddo
   enddo
-  
+!$omp enddo
+
+
+!$omp do  
   do j=(ndat/8)*8+1,ndat
      do i=0,n
         ci=0.e0_wp
@@ -105,6 +110,8 @@ subroutine ana_rot_shrink(n,ndat,x,y)
         y(j,n+1+i)=di
      enddo
   enddo
+!$omp enddo
+!$omp end parallel
 end subroutine ana_rot_shrink
 
 
@@ -151,7 +158,14 @@ subroutine syn_rot_grow(n,ndat,x,y)
 !	! 2: even and odd 
 !	mflop=ndat*(n+3)*8*4*2
 !	
+
+!dee
+!  open(unit=97,file='time_check',status='unknown')
 !  call system_clock(ncount1,ncount_rate,ncount_max)
+
+!$omp parallel default (private) shared(ndat,ch,x,cg,n,y)
+!$omp do
+
 
   do j=0,ndat/8-1
 	  
@@ -264,7 +278,9 @@ subroutine syn_rot_grow(n,ndat,x,y)
      y(j*8+8,2*n+8)=ch(8)*x(n,j*8+8)+cg(8)*x(2*n+1,j*8+8)
 	 
   enddo
+!$omp enddo
 
+!$omp do
 
   do j=(ndat/8)*8+1,ndat
 
@@ -285,10 +301,13 @@ subroutine syn_rot_grow(n,ndat,x,y)
 
      y(j,2*n+8)=ch(8)*x(n,j)+cg(8)*x(2*n+1,j)
   enddo
+!$omp enddo
+!$omp end parallel
 
 !  call system_clock(ncount2,ncount_rate,ncount_max)
 !  tel=dble(ncount2-ncount1)/dble(ncount_rate)
-!  write(97,'(a40,1x,e10.3,1x,f6.1)') 'syn_rot_grow:',tel,1.d-6*mflop/tel
+!  write(97,'(a40,1x,e10.3,1x,f6.1)') 'syn_rot_grow:',tel
+!  close(97)
 end subroutine syn_rot_grow
 
 
@@ -326,6 +345,9 @@ subroutine convrot_grow(n1,ndat,x,y)
 
 	integer i,j,l,k
 	real(wp) fill,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
+!$omp parallel default (private) shared(fil,ndat,x,y,n1)
+!$omp do
+
 
   do j=0,ndat/12-1
 	  
@@ -377,7 +399,9 @@ subroutine convrot_grow(n1,ndat,x,y)
 
      enddo
   enddo
+!$omp enddo
 
+!$omp do
   do j=(ndat/12)*12+1,ndat
      do i=-lupfil,n1-lowfil
         tt=0.e0_wp
@@ -389,6 +413,8 @@ subroutine convrot_grow(n1,ndat,x,y)
 
      enddo
   enddo
+!$omp enddo
+!$omp end parallel
 
 end subroutine convrot_grow
 
@@ -427,6 +453,9 @@ subroutine convrot_shrink(n1,ndat,x,y)
 	integer i,j,l,k
 	real(wp) fill,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12,tt
 	
+
+!$omp parallel default (private) shared(x,y,n1,ndat,fil)
+!$omp do
   do j=0,ndat/12-1
 	  
      do i=0,n1
@@ -479,6 +508,10 @@ subroutine convrot_shrink(n1,ndat,x,y)
      enddo
   enddo
 
+!$omp enddo
+
+!$omp do
+
   do j=(ndat/12)*12+1,ndat
      do i=0,n1
 
@@ -491,6 +524,8 @@ subroutine convrot_shrink(n1,ndat,x,y)
 
      enddo
   enddo
+!$omp enddo
+!$omp end parallel
 
   return
 end subroutine convrot_shrink
@@ -550,7 +585,7 @@ contains
 	subroutine conv_kin_y
 		implicit none
 		real(wp) tt0,tt1,tt2,tt3,tt4,tt5,tt6,tt7
-
+!$omp do
   		do i3=0,n3/8-1
 			do i1=0,n1
 			   do i2=0,n2
@@ -586,7 +621,9 @@ contains
 			   enddo
 			enddo
 		enddo
+!$omp enddo
 
+!$omp do
   		do i3=(n3/8)*8,n3
 			do i1=0,n1
 			   do i2=0,n2
@@ -599,6 +636,7 @@ contains
 			   enddo
 			enddo
 		enddo
+!$omp enddo
 	end subroutine conv_kin_y
 
 	
@@ -608,7 +646,7 @@ contains
 		real(wp),intent(in):: x(0:n1,ndat)
 		real(wp),intent(out)::y(0:n1,ndat)
 		real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
-
+!$omp do
   		do i=0,ndat/12-1
 	        do i1=0,n1
 	           tt1 =x(i1,i*12+1)*c
@@ -654,7 +692,8 @@ contains
 	           y(i1,i*12+12)=tt12
 	        enddo
 		enddo
-
+!$omp enddo
+!$omp do
   		do i=(ndat/12)*12+1,ndat
 	        do i1=0,n1
 	           tt=x(i1,i)*c
@@ -665,6 +704,7 @@ contains
 	           y(i1,i)=tt
 	        enddo
 		enddo
+!$omp enddo
 	end subroutine conv_kin_x
 	
 	subroutine conv_kin_z(x,y,ndat)
@@ -673,7 +713,7 @@ contains
 		real(wp),intent(in):: x(ndat,0:n1)
 		real(wp),intent(inout)::y(ndat,0:n1)
 		real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
-
+!$omp do
   		do i=0,ndat/12-1
 	        do i3=0,n3
 	           tt1=0.e0_wp
@@ -720,7 +760,8 @@ contains
 	           y(i*12+12,i3)=y(i*12+12,i3)+tt12
 	        enddo
 		enddo
-
+!$omp enddo
+!$omp do
   		do i=(ndat/12)*12+1,ndat
 	        do i3=0,n3
 	           tt=0.e0_wp
@@ -731,6 +772,7 @@ contains
 	           y(i,i3)=y(i,i3)+tt
 	        enddo
 		enddo
+!$omp enddo
 	end subroutine conv_kin_z
   
 end subroutine convolut_kinetic_slab_c
@@ -796,7 +838,7 @@ contains
 		real(wp),intent(in):: x(0:n1,ndat)
 		real(wp),intent(inout)::y(0:n1,ndat)
 		real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
-
+!$omp do
   		do i=0,ndat/12-1
 	        do i1=0,n1
 	           tt1=0.e0_wp
@@ -842,7 +884,8 @@ contains
 	           y(i1,i*12+12)=y(i1,i*12+12)+tt12;	 ekin=ekin+tt12*x(i1,i*12+12)
 	        enddo
 		enddo
-
+!$omp enddo
+!$omp do
   		do i=(ndat/12)*12+1,ndat
 	        do i1=0,n1
 	           tt=0.e0_wp
@@ -853,12 +896,13 @@ contains
 	           y(i1,i)=y(i1,i)+tt ; ekin=ekin+tt*x(i1,i)
 	        enddo
 		enddo
+!$omp enddo
 	end subroutine conv_kin_x
 	
 	subroutine conv_kin_y
 		implicit none
 		real(wp) tt0,tt1,tt2,tt3,tt4,tt5,tt6,tt7
-
+!$omp do
   		do i3=0,n3/8-1
 			do i1=0,n1
 			   do i2=0,n2
@@ -894,7 +938,8 @@ contains
 			   enddo                                 
 			enddo
 		enddo
-
+!$omp enddo
+!$omp do
   		do i3=(n3/8)*8,n3
 			do i1=0,n1
 			   do i2=0,n2
@@ -907,6 +952,7 @@ contains
 			   enddo
 			enddo
 		enddo
+!$omp enddo
 	end subroutine conv_kin_y
 
 	subroutine conv_kin_z(x,y,ndat)
@@ -915,7 +961,7 @@ contains
 		real(wp),intent(in):: x(ndat,0:n1)
 		real(wp),intent(inout)::y(ndat,0:n1)
 		real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
-
+!$omp do
   		do i=0,ndat/12-1
 	        do i3=0,n3
 	           tt1=0.e0_wp
@@ -962,7 +1008,8 @@ contains
 	           y(i*12+12,i3)=y(i*12+12,i3)+tt12;	 ekin=ekin+tt12*x(i*12+12,i3)
 	        enddo
 		enddo
-
+!$omp enddo
+!$omp do
   		do i=(ndat/12)*12+1,ndat
 	        do i3=0,n3
 	           tt=0.e0_wp
@@ -973,6 +1020,7 @@ contains
 	           y(i,i3)=y(i,i3)+tt; ekin=ekin+tt*x(i,i3)
 	        enddo
 		enddo
+!$omp enddo
 	end subroutine conv_kin_z
   
 end subroutine convolut_kinetic_slab_T

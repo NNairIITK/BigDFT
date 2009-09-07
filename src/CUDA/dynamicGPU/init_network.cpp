@@ -24,10 +24,15 @@
 #include "message.h"
 #include "localqueu.h"
 
-#include "cudafct.h"
-void local_network::init() throw (inter_node_communication_error)
-{
 
+
+
+
+
+
+void local_network::init(manage_cpu_affinity& mca,const set_repartition* set_r,int _iproc) throw (inter_node_communication_error,check_calc_error)
+{
+  iproc = _iproc;
   man_gpu = NULL;
   sem_unix_gpu_TRSF = NULL;
   sem_unix_gpu_CALC = NULL;
@@ -98,7 +103,7 @@ void local_network::init() throw (inter_node_communication_error)
 
     
 
-
+      std::cout << "Waiting for registration of all process..." << std::endl;
 
       //  printf( "%i\n", getpid());
       while(lu < NUM_PARTICIPANTS)
@@ -107,7 +112,6 @@ void local_network::init() throw (inter_node_communication_error)
       
 	  sleep(1);
 	  rewind(es);
-	  
 	  do
 	    {
 	      lectOK = fscanf(es, "%i", &n);
@@ -130,7 +134,7 @@ void local_network::init() throw (inter_node_communication_error)
 	  while (lectOK == 1 && fgetc(es) != EOF);
 	}
    
-      
+      //  std::cout << "Process  registration done !" << std::endl;
       
       voisin = (currNum + 1)%NUM_PARTICIPANTS;
       
@@ -143,30 +147,8 @@ void local_network::init() throw (inter_node_communication_error)
       toaddr.sun_family = AF_UNIX;
       strncpy(toaddr.sun_path, to_sock_path,SIZE_NAME);
       
-
-      //compute which card has each participant
-      std::vector<int> tab(NUM_PARTICIPANTS,0);
-    
-      {
-	const int div = NUM_PARTICIPANTS / NUM_GPU;
-
-	int numIt = div;
-	int itGPU = 0;
-	for(int i=0; i<NUM_PARTICIPANTS; ++i)
-	  {
-	    tab.at(i) = itGPU;
-	    std::cout << "Unix process (not MPI) " << i << " has GPU : " << itGPU << std::endl;
-	    if(i + 1 == numIt)
-	      {
-		numIt += div;
-		++itGPU;
-	      }
-	
-	  }
-
-	
-      }
-      currGPU = tab.at(getCurr());
+      //set repartition (static, shared...)
+      set_r->do_repartition(currNum,&currGPU);
 
 
       //create numGPU semaphore (only the process 0)
@@ -203,14 +185,26 @@ void local_network::init() throw (inter_node_communication_error)
 
 	  send_next(&msgSemRcv);
 	  }
+
+
       fclose(es);
       remove(nomfic);
 
-      c_cuda_setdevice(currGPU);
+      es=NULL;
 
+      //set affinity
+      //CPU
+
+
+      mca.set_affinity(currNum);
+
+ 
+      
     }
   catch(...)
     {
+
+     
       if(sock !=  0)
 	close(sock);
 
@@ -234,7 +228,6 @@ void local_network::init() throw (inter_node_communication_error)
 
 
 }
-
 
 
 
@@ -597,12 +590,18 @@ sem_unix::sem_unix(const char *nomfic, int numGPU,int currGPU_) throw (synchroni
    bzero(&arg_ctl,sizeof(semun));
 	  
   
-   semid = semget ( ftok (nomfic, semKEY), numGPU, IPC_CREAT | IPC_EXCL | 0666);
+   //  semid = semget ( ftok (nomfic, semKEY), numGPU, IPC_CREAT | IPC_EXCL | 0666);
+   semid = semget ( IPC_PRIVATE, numGPU, IPC_CREAT | IPC_EXCL | 0666);
    
    if(semid == -1) 
      {
+       perror("Error init sem");
+       const int ERR_SIZE = 1024;
+       char errorm[ERR_SIZE];
+       strerror_r(errno, errorm, ERR_SIZE);
+
        semctl (semid , 0 , IPC_RMID , 0) ;
-       throw synchronization_error("Semid ERROR");
+       throw synchronization_error(errorm);
      }
 
    arg_ctl.val = 1;
@@ -650,6 +649,8 @@ void sem_unix::P() throw (synchronization_error)
   sempar.sem_flg = SEM_UNDO;
   if(semop (semid , &sempar , 1) < 0)
     {
+            perror("semop P()");
+            std::cerr << "sem-num " << currGPU << std::endl;
       throw synchronization_error("Semop P() error");
     }
 

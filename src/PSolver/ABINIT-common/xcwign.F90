@@ -11,7 +11,7 @@
 !! rs = $(3/(4\pi))^{1/3}* \rho (r)^{-1/3}$.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2007 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2009 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -45,10 +45,10 @@ subroutine xcwign(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 
  use defs_basis
 
-!This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
-#ifdef HAVE_FORTRAN_INTERFACES
- use interfaces_01manage_mpi
-#endif
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+ use interfaces_14_hidewrite
+ use interfaces_16_hideleave
 !End of the abilint section
 
  implicit none
@@ -78,7 +78,7 @@ subroutine xcwign(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 &  ' xcwign : BUG -',ch10,&
 &  '  With Wigner xc functional, the only',ch10,&
 &  '  allowed values for order are 0, 1 or 2, while it is found to be',&
-&       order,'.'
+&  order,'.'
   call wrtout(6,message,'COLL')
   call leave_new('COLL')
  end if
@@ -88,7 +88,7 @@ subroutine xcwign(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 &  ' xcwign : BUG -',ch10,&
 &  '  The order chosen does not need the presence',ch10,&
 &  '  of the vector dvxc, that is needed only with order=2 , while we have',&
-&       order,'.'
+&  order,'.'
   call wrtout(6,message,'COLL')
   call leave_new('COLL')
  end if
@@ -102,35 +102,35 @@ subroutine xcwign(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 
 !separate cases with respect to order
  if (order==2) then
-    
-    !Loop over grid points
-    do ipt=1,npt
-       rs=rspts(ipt)
-       rsm1=1.0_dp/rs
-       rsc2m1=1.0_dp/(rs+c2)
-       ! compute energy density (hartree)
-       exc(ipt)=-c1*rsc2m1-efac*rsm1
-       vxcnum=-(c4_3*rs+c2)*c1
-       ! compute potential (hartree)
-       vxc(ipt)=vxcnum*rsc2m1**2-vfac*rsm1
-       ! compute d(vxc)/d(rho) (hartree*bohr^3)
-       dvxc(ipt)=-(c8_27*pi)*(c1*rs**4)*(rs+rs+c2)*rsc2m1**3-dfac*rs**2
-    end do
+  
+! Loop over grid points
+  do ipt=1,npt
+   rs=rspts(ipt)
+   rsm1=1.0_dp/rs
+   rsc2m1=1.0_dp/(rs+c2)
+!  compute energy density (hartree)
+   exc(ipt)=-c1*rsc2m1-efac*rsm1
+   vxcnum=-(c4_3*rs+c2)*c1
+!  compute potential (hartree)
+   vxc(ipt)=vxcnum*rsc2m1**2-vfac*rsm1
+!  compute d(vxc)/d(rho) (hartree*bohr^3)
+   dvxc(ipt)=-(c8_27*pi)*(c1*rs**4)*(rs+rs+c2)*rsc2m1**3-dfac*rs**2
+  end do
  else
-    
-    !Loop over grid points
-    do ipt=1,npt
-       rs=rspts(ipt)
-       rsm1=1.0_dp/rs
-       rsc2m1=1.0_dp/(rs+c2)
-       ! compute energy density (hartree)
-       exc(ipt)=-c1*rsc2m1-efac*rsm1
-       vxcnum=-(c4_3*rs+c2)*c1
-       ! compute potential (hartree)
-       vxc(ipt)=vxcnum*rsc2m1**2-vfac*rsm1
-    end do
-    
+  
+! Loop over grid points
+  do ipt=1,npt
+   rs=rspts(ipt)
+   rsm1=1.0_dp/rs
+   rsc2m1=1.0_dp/(rs+c2)
+!  compute energy density (hartree)
+   exc(ipt)=-c1*rsc2m1-efac*rsm1
+   vxcnum=-(c4_3*rs+c2)*c1
+!  compute potential (hartree)
+   vxc(ipt)=vxcnum*rsc2m1**2-vfac*rsm1
+  end do
+  
  end if
- !
+!
 end subroutine xcwign
 !!***

@@ -711,7 +711,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine vdwcorrection_calculate_forces(vdw_forces,rxyz,atoms,in,iproc) 
+  subroutine vdwcorrection_calculate_forces(vdw_forces,rxyz,atoms,in) 
 
     !==================================================================!
     ! This subroutine calculates the dispersion correction to the      !
@@ -731,7 +731,6 @@ contains
     real(GP), dimension(3,atoms%nat), intent(out) :: vdw_forces
     real(GP), dimension(3,atoms%nat), intent(in)  :: rxyz
     type(input_variables),            intent(in)  :: in
-    integer,                          intent(in)  :: iproc
 
     ! Internal variables
 

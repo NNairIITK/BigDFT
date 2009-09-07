@@ -5,22 +5,31 @@ SUBDIRS =
 EXTRA_DIST = \
 	input.dft \
 	input.geopt \
-	posinp.xyz 
+	posinp.ascii
 
 PPFILES = \
 	psppar.H \
 	psppar.Si
 
 CLEANFILES = $(PPFILES) SiH4.out geopt.mon posout* *.prc\
-			fldiff.report $(EXTRA_DIST) $(PPFILES)
+			fldiff.report
 
 #dependencies
 $(PPFILES):
-	cp $(top_srcdir)/utils/PSPfiles/HGH-K/$@ .
+	ln -fs $(top_srcdir)/utils/PSPfiles/HGH-K/$@
 
-check: $(PPFILES)
-	cp -f $(top_srcdir)/tests/SiH4/input.dft .
-	cp -f $(top_srcdir)/tests/SiH4/input.geopt .
-	cp -f $(top_srcdir)/tests/SiH4/posinp.xyz .
-	$(run_parallel) $(top_builddir)/src/cluster > SiH4.out
+SiH4.out: $(top_builddir)/src/cluster $(PPFILES)
+	if ! test x"$srcdir" = x"." ; then \
+	  ln -fs $(srcdir)/input.dft ; \
+	  ln -fs $(srcdir)/posinp.ascii ; \
+	  ln -fs $(srcdir)/input.geopt ; \
+        fi
+	$(run_parallel) $(top_builddir)/src/cluster > $@
+	if ! test x"$srcdir" = x"." ; then \
+	  rm -f input.dft ; \
+	  rm -f posinp.ascii ; \
+	  rm -f input.geopt ; \
+        fi
+
+check: SiH4.out
 	python $(top_srcdir)/tests/fldiff.py --bigdft SiH4.out $(top_srcdir)/tests/Refs/SiH4.out.ref | tee fldiff.report

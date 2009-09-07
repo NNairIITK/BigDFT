@@ -57,16 +57,19 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   type(orbitals_data), intent(inout) :: orbs
   type(communications_arrays), intent(out) :: comms
   !local variables
-  integer :: jproc,i,nvctr_tot,j
-!!$  real(kind=8), parameter :: eps_mach=1.d-12
-!!$  real(kind=8) :: tt
+  character(len=*), parameter :: subname='orbitals_communicators'
+  integer :: jproc,i,nvctr_tot,j,ikpts,iorbp,iorb,jorb,norb_tot,ikpt,i_stat,i_all
+  integer :: ncomp_res,iskpts,nkptsp,ierr
+  logical, dimension(:), allocatable :: GPU_for_comp
+  integer, dimension(:,:), allocatable :: nvctr_par,norb_par !for all the components and orbitals (with k-pts)
+  
 
   !calculate the number of elements to be sent to each process
   !and the array of displacements
   !cubic strategy: -the components are equally distributed among the wavefunctions
   !                -each processor has all the orbitals in transposed form
   !                -each wavefunction is equally distributed in its transposed form
-  !send buffer
+  !                -this holds for each k-point, which regroups different processors
 
   !check of allocation of important arrays
   if (.not. associated(orbs%norb_par)) then
@@ -74,52 +77,200 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      stop
   end if
 
-  !initialise the array
-  do jproc=0,nproc-1
-     comms%nvctr_par(jproc)=0 !size 0 nproc-1
+  allocate(nvctr_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,nvctr_par,'nvctr_par',subname)
+  allocate(norb_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,norb_par,'norb_par',subname)
+
+
+  !initialise the arrays
+  do ikpts=0,orbs%nkpts
+     do jproc=0,nproc-1
+        nvctr_par(jproc,ikpts)=0 
+        norb_par(jproc,ikpts)=0 
+     end do
   end do
 
   !balance the components between processors
   !in the most symmetric way
+  !here the components are taken into account for all the k-points
+
+  !create an array which indicate which processor has a GPU associated 
+  !from the viewpoint of the BLAS routines
+  allocate(GPU_for_comp(0:nproc-1+ndebug),stat=i_stat)
+  call memocc(i_stat,GPU_for_comp,'GPU_for_comp',subname)
+
+  if (nproc > 1 .and. .not. GPUshare) then
+     call MPI_ALLGATHER(GPUblas,1,MPI_LOGICAL,GPU_for_comp(0),1,MPI_LOGICAL,&
+          MPI_COMM_WORLD,ierr)
+  else
+     GPU_for_comp(0)=GPUblas
+  end if
+
   i=1
   j=1
   loop_components: do 
      jproc=mod(i-1,nproc)
      if (.true.) then !here there is the criterion for filling a processor
-        comms%nvctr_par(jproc)=comms%nvctr_par(jproc)+1
+        nvctr_par(jproc,0)=nvctr_par(jproc,0)+1
         j=j+1
      end if
-     if (j > lr%wfd%nvctr_c+7*lr%wfd%nvctr_f) exit loop_components
+     if (j > (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nkpts) exit loop_components
      i=i+1
   end do loop_components
 
-  !check the distribution
-  nvctr_tot=0
+
+  i_all=-product(shape(GPU_for_comp))*kind(GPU_for_comp)
+  deallocate(GPU_for_comp,stat=i_stat)
+  call memocc(i_stat,i_all,'GPU_for_comp',subname)
+
+
+  ikpts=1
+  ncomp_res=(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
   do jproc=0,nproc-1
-     nvctr_tot=nvctr_tot+comms%nvctr_par(jproc)
+     loop_comps: do
+        !print *,jproc,nvctr_par(jproc,0),ncomp_res 
+        if (nvctr_par(jproc,0) >= ncomp_res) then
+           nvctr_par(jproc,ikpts)= ncomp_res
+           ikpts=ikpts+1
+           ncomp_res=(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
+           nvctr_par(jproc,0)=nvctr_par(jproc,0)-ncomp_res
+        else
+           nvctr_par(jproc,ikpts)= nvctr_par(jproc,0)
+           ncomp_res=ncomp_res-nvctr_par(jproc,0)
+           nvctr_par(jproc,0)=0
+        end if
+        if (nvctr_par(jproc,0) == 0 ) then
+           ncomp_res=(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
+           exit loop_comps
+        end if
+     end do loop_comps
   end do
-  if(nvctr_tot /= lr%wfd%nvctr_c+7*lr%wfd%nvctr_f) then
-     write(*,*)'ERROR: partition of components incorrect'
-     stop
+
+  !some checks
+!!$  if (ikpts /= orbs%nkpts ) then
+!!$     write(*,*)' ERROR:ikpts not correct:',ikpts,orbs%nkpts
+!!$     stop
+!!$  end if
+  !check the distribution
+  do ikpts=1,orbs%nkpts
+     nvctr_tot=0
+     do jproc=0,nproc-1
+        nvctr_tot=nvctr_tot+nvctr_par(jproc,ikpts)
+     end do
+     if(nvctr_tot /= lr%wfd%nvctr_c+7*lr%wfd%nvctr_f) then
+        write(*,*)'ERROR: partition of components incorrect, kpoint:',ikpts
+        stop
+     end if
+  end do
+
+  !calculate the number of k-points treated by each processor in the component distribution
+  nkptsp=0
+  iskpts=0
+  do ikpts=1,orbs%nkpts
+     if (nvctr_par(iproc,ikpts) /= 0) then
+        nkptsp=nkptsp+1
+        if (iskpts == 0) then
+           iskpts=ikpts-1
+        end if
+     end if
+  end do
+
+  orbs%nkptsp=nkptsp
+  orbs%iskpts=iskpts
+
+
+  !calculate the same k-point distribution for the orbitals
+  !assign the k-point to the given orbital, counting one orbital after each other
+  jorb=1
+  ikpts=1
+  do jproc=0,nproc-1
+     do iorbp=1,orbs%norb_par(jproc)
+        norb_par(jproc,ikpts)=norb_par(jproc,ikpts)+1
+        if (jorb == orbs%norb) then
+           ikpts=ikpts+1
+        end if
+        jorb=jorb+1
+     end do
+  end do
+  !some checks
+  if (orbs%norb /= 0) then
+     if (ikpts /= orbs%nkpts+1 ) then
+        write(*,*)' ERROR:ikpts not correct, orbitals:',ikpts,orbs%nkpts
+        stop
+     end if
+     !check the distribution
+     do ikpts=1,orbs%nkpts
+        norb_tot=0
+        do jproc=0,nproc-1
+           norb_tot=norb_tot+norb_par(jproc,ikpts)
+        end do
+        if(norb_tot /= orbs%norb) then
+           write(*,*)'ERROR: partition of components incorrect, kpoint:',ikpts
+           stop
+        end if
+     end do
   end if
+
+!!$  !balance the components between processors
+!!$  !in the most symmetric way
+!!$  i=1
+!!$  j=1
+!!$  loop_components: do 
+!!$     jproc=mod(i-1,nproc)
+!!$     if (.true.) then !here there is the criterion for filling a processor
+!!$        comms%nvctr_par(jproc)=comms%nvctr_par(jproc)+1
+!!$        j=j+1
+!!$     end if
+!!$     if (j > lr%wfd%nvctr_c+7*lr%wfd%nvctr_f) exit loop_components
+!!$     i=i+1
+!!$  end do loop_components
+!!$
+!!$  !check the distribution
+!!$  nvctr_tot=0
+!!$  do jproc=0,nproc-1
+!!$     nvctr_tot=nvctr_tot+comms%nvctr_par(jproc)
+!!$  end do
+!!$  if(nvctr_tot /= lr%wfd%nvctr_c+7*lr%wfd%nvctr_f) then
+!!$     write(*,*)'ERROR: partition of components incorrect'
+!!$     stop
+!!$  end if
+
+  !allocate communication arrays
+  allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
+  call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
+  allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
+  call memocc(i_stat,comms%ncntd,'ncntd',subname)
+  allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
+  call memocc(i_stat,comms%ncntt,'ncntt',subname)
+  allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
+  call memocc(i_stat,comms%ndspld,'ndspld',subname)
+  allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
+  call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
 
 
   !if (iproc == 0) print *,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,'nvctrp',comms%nvctr_par(:)
 
-  !calculate the dimension of the wavefunction
-  !for the given processor
-  !take into account max one k-point per processor
-  orbs%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc),&
-       comms%nvctr_par(iproc)*orbs%norb)*orbs%nspinor
+  !assign the partition of the k-points to the communication array
+  do ikpts=1,orbs%nkptsp
+     ikpt=orbs%iskpts+ikpts
+     do jproc=0,nproc-1
+        comms%nvctr_par(jproc,ikpts)=nvctr_par(jproc,ikpt) 
+     end do
+  end do
 
-  if (iproc == 0) write(*,'(1x,a,i0)') &
-       'Wavefunctions memory occupation per processor (Bytes): ',&
-       orbs%npsidim*8
+  !with this distribution the orbitals and the components are ordered following k-points
+  !there must be no overlap for the components
+  !here we will print out the k-points components distribution, in the transposed and in the direct way
 
-  !here the k-points should be taken into account
+  !print *,'iproc,nvctr_par,norb_par',iproc,nvctr_par(:,:),norb_par(:,:)
 
   do jproc=0,nproc-1
-     comms%ncntd(jproc)=comms%nvctr_par(jproc)*orbs%norb_par(iproc)*orbs%nspinor
+     comms%ncntd(jproc)=0
+     do ikpts=1,orbs%nkpts
+        comms%ncntd(jproc)=comms%ncntd(jproc)+&
+             nvctr_par(jproc,ikpts)*norb_par(iproc,ikpts)*orbs%nspinor
+     end do
   end do
   comms%ndspld(0)=0
   do jproc=1,nproc-1
@@ -127,11 +278,52 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   end do
   !receive buffer
   do jproc=0,nproc-1
-     comms%ncntt(jproc)=comms%nvctr_par(iproc)*orbs%norb_par(jproc)*orbs%nspinor
+     comms%ncntt(jproc)=0
+     do ikpts=1,orbs%nkpts
+        comms%ncntt(jproc)=comms%ncntt(jproc)+&
+             nvctr_par(iproc,ikpts)*norb_par(jproc,ikpts)*orbs%nspinor
+     end do
   end do
   comms%ndsplt(0)=0
   do jproc=1,nproc-1
      comms%ndsplt(jproc)=comms%ndsplt(jproc-1)+comms%ncntt(jproc-1)
   end do
+
+  !print *,'iproc,comms',iproc,comms%ncntd,comms%ndspld,comms%ncntt,comms%ndsplt
+
+!!$  do jproc=0,nproc-1
+!!$     comms%ncntd(jproc)=comms%nvctr_par(jproc)*orbs%norb_par(iproc)*orbs%nspinor
+!!$  end do
+!!$  comms%ndspld(0)=0
+!!$  do jproc=1,nproc-1
+!!$     comms%ndspld(jproc)=comms%ndspld(jproc-1)+comms%ncntd(jproc-1)
+!!$  end do
+!!$  !receive buffer
+!!$  do jproc=0,nproc-1
+!!$     comms%ncntt(jproc)=comms%nvctr_par(iproc)*orbs%norb_par(jproc)*orbs%nspinor
+!!$  end do
+!!$  comms%ndsplt(0)=0
+!!$  do jproc=1,nproc-1
+!!$     comms%ndsplt(jproc)=comms%ndsplt(jproc-1)+comms%ncntt(jproc-1)
+!!$  end do
+
+  i_all=-product(shape(nvctr_par))*kind(nvctr_par)
+  deallocate(nvctr_par,stat=i_stat)
+  call memocc(i_stat,i_all,'nvctr_par',subname)
+  i_all=-product(shape(norb_par))*kind(norb_par)
+  deallocate(norb_par,stat=i_stat)
+  call memocc(i_stat,i_all,'norb_par',subname)
+
+  !calculate the dimension of the wavefunction
+  !for the given processor
+  !take into account max one k-point per processor
+  orbs%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc)*orbs%nspinor,&
+       sum(comms%ncntt(0:nproc-1)))
+
+  if (iproc == 0) write(*,'(1x,a,i0)') &
+       'Wavefunctions memory occupation for root processor (Bytes): ',&
+       orbs%npsidim*8
+
+
 
 end subroutine orbitals_communicators

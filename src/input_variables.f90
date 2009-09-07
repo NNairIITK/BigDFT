@@ -2,7 +2,7 @@
 !! FUNCTION
 !!    Display the logo of BigDFT 
 !! COPYRIGHT
-!!    Copyright (C) 2007-2008 BigDFT group 
+!!    Copyright (C) 2007-2009 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -35,7 +35,7 @@ subroutine print_logo()
   write(*,'(23x,a)')' g        g     i         B    B    '  
   write(*,'(23x,a)')'          g     i        B     B    ' 
   write(*,'(23x,a)')'         g               B    B     '
-  write(*,'(23x,a)')'    ggggg       i         BBBB                     (Ver 1.3.0)'
+  write(*,'(23x,a)')'    ggggg       i         BBBB                     (Ver 1.3.0-dev)'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'
   write(*,'(1x,a)')&
@@ -84,14 +84,8 @@ subroutine dft_input_variables(iproc,filename,in)
   read(1,*,iostat=ierror) in%ixc
   call check()
   !charged system, electric field (intensity and start-end points)
-  read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%ncharge,in%ef(1)
-  if (ierror == 0 .and. in%ef(1) /= 0.0_gp) then
-     read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
-  else
-     in%ef(2)=0.0_gp
-     in%ef(3)=0.0_gp
-  end if
+  call check()
+  read(1,*,iostat=ierror)  in%ncharge,in%elecfield
   call check()
   read(1,*,iostat=ierror) in%nspin,in%mpol
   call check()
@@ -112,14 +106,19 @@ subroutine dft_input_variables(iproc,filename,in)
    !  iconv = 0
    !  iblas = 0
      if (initerror == 1) then
-        stop
+        write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
+        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
      end if
+
+   
     ! GPUshare=.true.
-     if (iconv == 0) then
+     if (iconv == 1) then
         !change the value of the GPU convolution flag defined in the module_base
+       
+
         GPUconv=.true.
      end if
-     if (iblas == 0) then
+     if (iblas == 1) then
         !change the value of the GPU convolution flag defined in the module_base
         GPUblas=.true.
      end if
@@ -155,9 +154,9 @@ subroutine dft_input_variables(iproc,filename,in)
   !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
   !systems, while in principle it should work immediately
   if (in%nspin/=1 .and. in%nvirt/=0) then
-     if (iproc==0) then
+     !if (iproc==0) then
         write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
-     end if
+     !end if
      stop
   end if
  
@@ -166,7 +165,8 @@ subroutine dft_input_variables(iproc,filename,in)
   if (in%nvirt > 0 .and. iproc ==0) then
      !read virtual orbital and plotting request
      write(*,'(1x,a,i0)')'Virtual orbitals ',in%nvirt
-     write(*,'(1x,a,i0,a)')'Output for density plots is requested for ',in%nplot,' orbitals'
+     write(*,'(1x,a,i0,a)')'Output for density plots is requested for ',abs(in%nplot),&
+          ' orbitals'
   end if
   if (in%nspin==4) then
      if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Non-collinear)'
@@ -175,7 +175,8 @@ subroutine dft_input_variables(iproc,filename,in)
   else if (in%nspin==1) then
      if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation:  NO '
   else
-     if (iproc == 0) write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
+     !if (iproc == 0) 
+     write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
      stop
   end if
 
@@ -184,7 +185,8 @@ contains
   subroutine check()
     iline=iline+1
     if (ierror/=0) then
-       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+       !if (iproc == 0) 
+             write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
@@ -213,6 +215,7 @@ subroutine geopt_input_variables_default(in)
   in%betax=2.0_gp
 
 end subroutine geopt_input_variables_default
+!!***
 
 
 !!****f* BigDFT/geopt_input_variables
@@ -229,9 +232,7 @@ subroutine geopt_input_variables(iproc,filename,in)
   integer, intent(in) :: iproc
   type(input_variables), intent(out) :: in
   !local variables
-  character(len=7) :: cudagpu
-  character(len=100) :: line
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
+  integer :: ierror,ierrfrc,iline
 
   ! Read the input variables.
   open(unit=1,file=filename,status='old')
@@ -243,6 +244,7 @@ subroutine geopt_input_variables(iproc,filename,in)
   call check()
   read(1,*,iostat=ierror) in%ncount_cluster_x
   call check()
+  in%forcemax = 0.d0
   read(1,*,iostat=ierrfrc) in%frac_fluct,in%forcemax
   call check()
   read(1,*,iostat=ierror) in%randdis
@@ -268,7 +270,8 @@ contains
   subroutine check()
     iline=iline+1
     if (ierror/=0) then
-       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
@@ -395,9 +398,8 @@ subroutine dft_input_converter(in)
   implicit none
   type(input_variables), intent(in) :: in
   !local variables
-  character(len=7) :: cudagpu
   character(len=100) :: line
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
+  integer :: iline
 
   ! Read the input variables.
   open(unit=1,file='input_convert.dft',status='new')
@@ -419,7 +421,7 @@ subroutine dft_input_converter(in)
 
   line=''
   line=' ncharge: charge of the system, Electric field'
-  write(1,'(i3,3(f6.3),a)') in%ncharge,in%ef(1),in%ef(2),in%ef(3),trim(line)
+  write(1,'(i3,3(f6.3),a)') in%ncharge,in%elecfield,trim(line)
 
   line=''
   line=' nspin=1 non-spin polarization, mpol=total magnetic moment'
@@ -516,22 +518,22 @@ subroutine read_input_variables(iproc,filename,in)
   read(line,*,iostat=ierrfrc) cudagpu
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
      call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-   !  iconv = 0
-   !  iblas = 0
      
-
-   !  call set_cpu_gpu_aff(iproc,iconv,iblas)
-   ! GPUshare=.false.
-  !   call init_gpu_sharing(initerror) !to fix the number of gpu and mpi tasks per node, we have to fil the inter_node.config file
      if (initerror == 1) then
-        stop
+
+        write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
+        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
+
+
+
+     
      end if
     ! GPUshare=.true.
-     if (iconv == 0) then
+     if (iconv == 1) then
         !change the value of the GPU convolution flag defined in the module_base
         GPUconv=.true.
      end if
-     if (iblas == 0) then
+     if (iblas == 1) then
         !change the value of the GPU convolution flag defined in the module_base
         GPUblas=.true.
      end if
@@ -562,21 +564,14 @@ subroutine read_input_variables(iproc,filename,in)
 
   read(1,*,iostat=ierror) in%ixc
   call check()
-  read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%ncharge,in%ef(1)
-  if (ierror == 0 .and. in%ef(1) /= 0.0_gp) then
-     read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
-  else
-     in%ef(2)=0.0_gp
-     in%ef(3)=0.0_gp
-  end if
+  read(1,*,iostat=ierror) in%elecfield
   call check()
   read(1,*,iostat=ierror) in%gnrm_cv
   call check()
   read(1,'(a100)')line
   read(line,*,iostat=ierror) in%itermax,in%nrepmax
   if (ierror == 0) then
-     !read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
+     !read(line,*,iostat=ierror) in%ncharge,in%elecfield
   else
      read(line,*,iostat=ierror)in%itermax
      in%nrepmax=10
@@ -639,14 +634,11 @@ subroutine read_input_variables(iproc,filename,in)
   !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
   !systems
   if (in%nspin/=1 .and. in%nvirt/=0) then
-     if (iproc==0) then
+     !if (iproc==0) then
         write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
-     end if
+     !end if
      stop
   end if
-
-
-
  
   close(unit=1,iostat=ierror)
 
@@ -661,7 +653,7 @@ subroutine read_input_variables(iproc,filename,in)
      if (in%nvirt > 0) then
         !read virtual orbital and plotting request
         write(*,'(1x,a,i0)')'Virtual orbitals ',in%nvirt
-        write(*,'(1x,a,i0,a)')'Output for density plots is requested for ',in%nplot,' orbitals'
+        write(*,'(1x,a,i0,a)')'Output for density plots is requested for ',abs(in%nplot),' orbitals'
      end if
   end if
 
@@ -672,7 +664,8 @@ subroutine read_input_variables(iproc,filename,in)
      else if (in%nspin==1) then
         if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation:  NO '
      else
-        if (iproc == 0) write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
+        !if (iproc == 0) 
+        write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
         stop
      end if
 
@@ -681,7 +674,8 @@ contains
   subroutine check()
     iline=iline+1
     if (ierror/=0) then
-       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
@@ -716,7 +710,7 @@ subroutine print_input_parameters(in,atoms)
        'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
        '|  CG Steps=',in%ncongt
   write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
-       ' elec. field=',in%ef(1),'|                   ','| DIIS Hist. N.=',in%idsx
+       ' elec. field=',in%elecfield,'|                   ','| DIIS Hist. N.=',in%idsx
   if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
           'Polarisation=',2*in%mpol, '|'
@@ -735,18 +729,18 @@ end subroutine print_input_parameters
 !!    Read atomic file
 !! SOURCE
 !!
-subroutine read_atomic_file(file,iproc,at,rxyz)
+subroutine read_atomic_file(file,iproc,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_atomic_file
   implicit none
   character(len=*), intent(in) :: file
   integer, intent(in) :: iproc
-  type(atoms_data), intent(inout) :: at
+  type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_atomic_file'
-  integer :: i_stat
+  integer :: i_stat, l
   logical :: file_exists
   character(len = 128) :: filename
 
@@ -756,40 +750,49 @@ subroutine read_atomic_file(file,iproc,at,rxyz)
   if (.not. file_exists) then
      inquire(FILE = file//'.xyz', EXIST = file_exists)
      if (file_exists) write(filename, "(A)") file//'.xyz'!"posinp.xyz"
-     write(at%format, "(A)") "xyz"
+     write(atoms%format, "(A)") "xyz"
   end if
   ! Test posinp.ascii
   if (.not. file_exists) then
      inquire(FILE = file//'.ascii', EXIST = file_exists)
      if (file_exists) write(filename, "(A)") file//'.ascii'!"posinp.ascii"
-     write(at%format, "(A)") "ascii"
+     write(atoms%format, "(A)") "ascii"
   end if
-!!$  ! Fallback to old name
-!!$  if (.not. file_exists) then
-!!$     inquire(FILE = file, EXIST = file_exists)
-!!$     if (file_exists) write(filename, "(A)") file!"posinp"
-!!$     write(at%format, "(A)") "xyz"
-!!$  end if
+  ! Test the name directly
+  if (.not. file_exists) then
+     inquire(FILE = file, EXIST = file_exists)
+     if (file_exists) write(filename, "(A)") file
+     l = len(file)
+     if (file(l-3:l) == ".xyz") then
+        write(atoms%format, "(A)") "xyz"
+     else if (file(l-5:l) == ".ascii") then
+        write(atoms%format, "(A)") "ascii"
+     else
+        write(*,*) "Atomic input file format not recognised."
+        write(*,*) " File should be *.ascii or *.xyz."
+        stop
+     end if
+  end if
 
   if (.not. file_exists) then
      write(*,*) "Atomic input file not found."
-     write(*,*) " Files looked for are '"//file//"'.ascii and '"//file//".xyz'."
+     write(*,*) " Files looked for were '"//file//"'.ascii, '"//file//".xyz' and '"//file//"'."
      stop 
   end if
 
   open(unit=99,file=trim(filename),status='old')
 
-  if (at%format == "xyz") then
-     read(99,*) at%nat,at%units
+  if (atoms%format == "xyz") then
+     read(99,*) atoms%nat,atoms%units
  
-     allocate(rxyz(3,at%nat+ndebug),stat=i_stat)
+     allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,rxyz,'rxyz',subname)
 
      !read atomic positions
-     call read_atomic_positions(iproc,99,at,rxyz)
-  else if (at%format == "ascii") then
+     call read_atomic_positions(iproc,99,atoms,rxyz)
+  else if (atoms%format == "ascii") then
      !read atomic positions
-     call read_atomic_ascii(iproc,99,at,rxyz)
+     call read_atomic_ascii(iproc,99,atoms,rxyz)
   end if
 
   close(99)
@@ -801,13 +804,13 @@ end subroutine read_atomic_file
 !!    Read atomic positions
 !! SOURCE
 !!
-subroutine read_atomic_positions(iproc,ifile,at,rxyz)
+subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,ifile
-  type(atoms_data), intent(inout) :: at
-  real(gp), dimension(3,at%nat), intent(out) :: rxyz
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(3,atoms%nat), intent(out) :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_atomic_positions'
   real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
@@ -815,25 +818,27 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
-  logical :: lpsdbl,dowrite
-  integer :: nateq,iat,jat,ityp,i,ierror,ierrsfx,i_stat,j
+  logical :: lpsdbl
+  integer :: iat,ityp,i,ierrsfx,i_stat
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3
 ! case for which the atomic positions are given whithin general precision
   real(gp) :: rxd0,ryd0,rzd0,alat1d0,alat2d0,alat3d0
   character(len=20), dimension(100) :: atomnames
 
-  if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',at%nat
+  if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',atoms%nat
 
-  allocate(at%iatype(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,at%iatype,'at%iatype',subname)
-  allocate(at%ifrztyp(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,at%ifrztyp,'at%ifrztyp',subname)
-  allocate(at%natpol(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,at%natpol,'at%natpol',subname)
+  allocate(atoms%iatype(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%iatype,'atoms%iatype',subname)
+  allocate(atoms%ifrztyp(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%ifrztyp,'atoms%ifrztyp',subname)
+  allocate(atoms%natpol(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%natpol,'atoms%natpol',subname)
+  allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
 
   !controls if the positions are provided with machine precision
-  if (at%units == 'angstroemd0' .or. at%units== 'atomicd0' .or. at%units== 'bohrd0') then
+  if (atoms%units == 'angstroemd0' .or. atoms%units== 'atomicd0' .or. atoms%units== 'bohrd0') then
      lpsdbl=.true.
   else
      lpsdbl=.false.
@@ -841,11 +846,11 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
 
   !this array is useful for frozen atoms
   !no atom is frozen by default
-  at%ifrztyp(:)=0
+  atoms%ifrztyp(:)=0
   !also the spin polarisation and the charge are is fixed to zero by default
   !this corresponds to the value of 100
   !RULE natpol=charge*1000 + 100 + spinpol
-  at%natpol(:)=100
+  atoms%natpol(:)=100
 
   !read from positions of .xyz format, but accepts also the old .ascii format
   read(ifile,'(a150)')line
@@ -856,7 +861,7 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
 
 !!$  !in case of old format, put geocode to F and alat to 0.
 !!$  if (ierror == 0) then
-!!$     at%geocode='F'
+!!$     atoms%geocode='F'
 !!$     alat1d0=0.0_gp
 !!$     alat2d0=0.0_gp
 !!$     alat3d0=0.0_gp
@@ -868,15 +873,15 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
   end if
   if (ierrsfx == 0) then
      if (trim(tatonam)=='periodic') then
-        at%geocode='P'
+        atoms%geocode='P'
      else if (trim(tatonam)=='surface') then 
-        at%geocode='S'
-        at%alat2=0.0_gp
+        atoms%geocode='S'
+        atoms%alat2=0.0_gp
      else !otherwise free bc
-        at%geocode='F'
-        at%alat1=0.0_gp
-        at%alat2=0.0_gp
-        at%alat3=0.0_gp
+        atoms%geocode='F'
+        atoms%alat1=0.0_gp
+        atoms%alat2=0.0_gp
+        atoms%alat3=0.0_gp
      end if
      if (.not. lpsdbl) then
         alat1d0=real(alat1,gp)
@@ -884,7 +889,7 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
         alat3d0=real(alat3,gp)
      end if
   else
-     at%geocode='F'
+     atoms%geocode='F'
      alat1d0=0.0_gp
      alat2d0=0.0_gp
      alat3d0=0.0_gp
@@ -892,35 +897,35 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
 !!$  end if
 
   !reduced coordinates are possible only with periodic units
-  if (at%units == 'reduced' .and. at%geocode == 'F') then
+  if (atoms%units == 'reduced' .and. atoms%geocode == 'F') then
      if (iproc==0) write(*,'(1x,a)')&
           'ERROR: Reduced coordinates are not allowed with isolated BC'
   end if
 
   !convert the values of the cell sizes in bohr
-  if (at%units=='angstroem' .or. at%units=='angstroemd0') then
+  if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
-     at%alat1=alat1d0/bohr
-     at%alat2=alat2d0/bohr
-     at%alat3=alat3d0/bohr
-  else if  (at%units=='atomic' .or. at%units=='bohr'  .or.&
-       at%units== 'atomicd0' .or. at%units== 'bohrd0') then
-     at%alat1=alat1d0
-     at%alat2=alat2d0
-     at%alat3=alat3d0
-  else if (at%units == 'reduced') then
+     atoms%alat1=alat1d0/bohr
+     atoms%alat2=alat2d0/bohr
+     atoms%alat3=alat3d0/bohr
+  else if  (atoms%units=='atomic' .or. atoms%units=='bohr'  .or.&
+       atoms%units== 'atomicd0' .or. atoms%units== 'bohrd0') then
+     atoms%alat1=alat1d0
+     atoms%alat2=alat2d0
+     atoms%alat3=alat3d0
+  else if (atoms%units == 'reduced') then
      !assume that for reduced coordinates cell size is in bohr
-     at%alat1=real(alat1,gp)
-     at%alat2=real(alat2,gp)
-     at%alat3=real(alat3,gp)
+     atoms%alat1=real(alat1,gp)
+     atoms%alat2=real(alat2,gp)
+     atoms%alat3=real(alat3,gp)
   else
      write(*,*) 'length units in input file unrecognized'
      write(*,*) 'recognized units are angstroem or atomic = bohr'
      stop 
   endif
 
-  at%ntypes=0
-  do iat=1,at%nat
+  atoms%ntypes=0
+  do iat=1,atoms%nat
 !!$     if (ierror == 0) then
 !!$        !old case of ascii file, added for backward compatibility
 !!$        if (iat /= 1) read(ifile,*) rx,ry,rz,tatonam
@@ -934,7 +939,7 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
      end if
      !print *,line
      call find_extra_info(line,extra)
-     call parse_extra_info(iproc,iat,extra,at)
+     call parse_extra_info(iproc,iat,extra,atoms)
 
      tatonam=trim(symbol)
 !!$     end if
@@ -947,89 +952,94 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
         rxyz(2,iat)=real(ry,gp)
         rxyz(3,iat)=real(rz,gp)
      end if
-     if (at%units == 'reduced') then !add treatment for reduced coordinates
+     if (atoms%units == 'reduced') then !add treatment for reduced coordinates
         rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
-        if (at%geocode == 'P') rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
+        if (atoms%geocode == 'P') rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
         rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
-     else if (at%geocode == 'P') then
+     else if (atoms%geocode == 'P') then
         rxyz(1,iat)=modulo(rxyz(1,iat),alat1d0)
         rxyz(2,iat)=modulo(rxyz(2,iat),alat2d0)
         rxyz(3,iat)=modulo(rxyz(3,iat),alat3d0)
-     else if (at%geocode == 'S') then
+     else if (atoms%geocode == 'S') then
         rxyz(1,iat)=modulo(rxyz(1,iat),alat1d0)
         rxyz(3,iat)=modulo(rxyz(3,iat),alat3d0)
      end if
  
-     do ityp=1,at%ntypes
+     do ityp=1,atoms%ntypes
         if (tatonam == atomnames(ityp)) then
-           at%iatype(iat)=ityp
+           atoms%iatype(iat)=ityp
            goto 200
         endif
      enddo
-     at%ntypes=at%ntypes+1
-     if (at%ntypes > 100) stop 'more than 100 atomnames not permitted'
+     atoms%ntypes=atoms%ntypes+1
+     if (atoms%ntypes > 100) stop 'more than 100 atomnames not permitted'
      atomnames(ityp)=tatonam
-     at%iatype(iat)=at%ntypes
+     atoms%iatype(iat)=atoms%ntypes
 200  continue
 
-     if (at%units=='angstroem' .or. at%units=='angstroemd0') then
+     if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
         ! if Angstroem convert to Bohr
         do i=1,3 
            rxyz(i,iat)=rxyz(i,iat)/bohr
         enddo
-     else if (at%units == 'reduced') then 
-        rxyz(1,iat)=rxyz(1,iat)*at%alat1
-        if (at%geocode == 'P') rxyz(2,iat)=rxyz(2,iat)*at%alat2
-        rxyz(3,iat)=rxyz(3,iat)*at%alat3
+     else if (atoms%units == 'reduced') then 
+        rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
+        if (atoms%geocode == 'P') rxyz(2,iat)=rxyz(2,iat)*atoms%alat2
+        rxyz(3,iat)=rxyz(3,iat)*atoms%alat3
      endif
   enddo
 
-  !now that ntypes is determined allocate at%atomnames and copy the values
-  allocate(at%atomnames(at%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,at%atomnames,'at%atomnames',subname)
-  at%atomnames(1:at%ntypes)=atomnames(1:at%ntypes)
+  !now that ntypes is determined allocate atoms%atomnames and copy the values
+  allocate(atoms%atomnames(atoms%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%atomnames,'atoms%atomnames',subname)
+  atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
 
   !control atom positions
-  call check_atoms_positions(iproc,at,rxyz)
+  call check_atoms_positions(iproc,atoms,rxyz)
 
-  if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atom types= ',at%ntypes
+  if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atom types= ',atoms%ntypes
 
-  do ityp=1,at%ntypes
+  do ityp=1,atoms%ntypes
      if (iproc.eq.0) &
-          write(*,'(1x,a,i0,a,a)') 'Atoms of type ',ityp,' are ',trim(at%atomnames(ityp))
+          write(*,'(1x,a,i0,a,a)') 'Atoms of type ',ityp,' are ',trim(atoms%atomnames(ityp))
   enddo
 
-  do iat=1,at%nat
-     if (iproc.eq.0 .and. at%ifrztyp(iat)/=0) &
+  do iat=1,atoms%nat
+     if (iproc.eq.0 .and. atoms%ifrztyp(iat)/=0) &
           write(*,'(1x,a,i0,a,a,a,i3)') &
-          'FIXED Atom N.:',iat,', Name: ',trim(at%atomnames(at%iatype(iat))),&
-          ', ifrztyp= ',at%ifrztyp(iat)
+          'FIXED Atom N.:',iat,', Name: ',trim(atoms%atomnames(atoms%iatype(iat))),&
+          ', ifrztyp= ',atoms%ifrztyp(iat)
   enddo
 
 end subroutine read_atomic_positions
 !!***
 
 
-subroutine check_atoms_positions(iproc,at,rxyz)
+!!****f* BigDFT/check_atoms_positions
+!! FUNCTION
+!!    Check the position of atoms
+!! SOURCE
+!!
+subroutine check_atoms_positions(iproc,atoms,rxyz)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !local variables
   logical :: dowrite
   integer :: iat,nateq,jat,j
 
   nateq=0
-  do iat=1,at%nat
-     do jat=iat+1,at%nat
+  do iat=1,atoms%nat
+     do jat=iat+1,atoms%nat
         if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
              (rxyz(3,iat)-rxyz(3,jat))**2 ==0.0_gp) then
            nateq=nateq+1
            write(*,'(1x,a,2(i0,a,a6,a))')'ERROR: atoms ',iat,&
-                ' (',trim(at%atomnames(at%iatype(iat))),') and ',&
-                jat,' (',trim(at%atomnames(at%iatype(jat))),&
+                ' (',trim(atoms%atomnames(atoms%iatype(iat))),') and ',&
+                jat,' (',trim(atoms%atomnames(atoms%iatype(jat))),&
                 ') have the same positions'
         end if
      end do
@@ -1042,25 +1052,26 @@ subroutine check_atoms_positions(iproc,at,rxyz)
         open(unit=9,file='posinp_alt')
         write(9,'(1x,a)')' ??? atomicd0'
         write(9,*)
-        do iat=1,at%nat
+        do iat=1,atoms%nat
            dowrite=.true.
-           do jat=iat+1,at%nat
+           do jat=iat+1,atoms%nat
               if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
                    (rxyz(3,iat)-rxyz(3,jat))**2 ==0.0_gp) then
                  dowrite=.false.
               end if
            end do
            if (dowrite) & 
-                write(9,'(a2,4x,3(1x,1pe21.14))')trim(at%atomnames(at%iatype(iat))),&
+                write(9,'(a2,4x,3(1x,1pe21.14))')trim(atoms%atomnames(atoms%iatype(iat))),&
                 (rxyz(j,iat),j=1,3)
         end do
         close(9)
         write(*,'(1x,a)')' done.'
         write(*,'(1x,a)')' Replace ??? in the file heading with the actual atoms number'               
      end if
-     stop
+     stop 'check_atoms_positions'
   end if
 end subroutine check_atoms_positions
+!!***
 
 
 !!****f* BigDFT/find_extra_info
@@ -1107,12 +1118,12 @@ end subroutine find_extra_info
 !!
 !! SOURCE
 !!
-subroutine parse_extra_info(iproc,iat,extra,at)
+subroutine parse_extra_info(iproc,iat,extra,atoms)
   use module_types
   implicit none
   character(len=50), intent(in) :: extra
   integer, intent(in) :: iat,iproc
-  type(atoms_data), intent(out) :: at
+  type(atoms_data), intent(out) :: atoms
   !local variables
   character(len=4) :: suffix
   logical :: go
@@ -1160,27 +1171,27 @@ subroutine parse_extra_info(iproc,iat,extra,at)
   else
      nsgn=-1
   end if
-  at%natpol(iat)=1000*nchrg+nsgn*100+nspol
+  atoms%natpol(iat)=1000*nchrg+nsgn*100+nspol
 
-  !print *,'natpol atomic',iat,at%natpol(iat)
+  !print *,'natpol atomic',iat,atoms%natpol(iat)
 
   !convert the suffix into ifrztyp
-  call frozen_ftoi(suffix,at%ifrztyp(iat))
+  call frozen_ftoi(suffix,atoms%ifrztyp(iat))
 
 !!$  if (trim(suffix) == 'f') then
 !!$     !the atom is considered as blocked
-!!$     at%ifrztyp(iat)=1
+!!$     atoms%ifrztyp(iat)=1
 !!$  end if
 
 contains
 
  subroutine error
-   if (iproc == 0) then
+   !if (iproc == 0) then
       print *,extra
       write(*,'(1x,a,i0,a)')&
            'ERROR in input file for atom number ',iat,&
            ': after 4th column you can put the input polarisation(s) or the frzchain: f,fxz,fy'
-   end if
+   !end if
    stop
  end subroutine error
   
@@ -1192,12 +1203,12 @@ end subroutine parse_extra_info
 !!    Read atomic positions of ascii files.
 !! SOURCE
 !!
-subroutine read_atomic_ascii(iproc,ifile,at,rxyz)
+subroutine read_atomic_ascii(iproc,ifile,atoms,rxyz)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,ifile
-  type(atoms_data), intent(inout) :: at
+  type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_atomic_ascii'
@@ -1206,8 +1217,8 @@ subroutine read_atomic_ascii(iproc,ifile,at,rxyz)
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
-  logical :: lpsdbl,dowrite
-  integer :: nateq,iat,jat,ityp,i,i_stat,j,nlines
+  logical :: lpsdbl
+  integer :: iat,ityp,i,i_stat,j,nlines
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3,alat4,alat5,alat6
 ! case for which the atomic positions are given whithin general precision
@@ -1225,61 +1236,55 @@ subroutine read_atomic_ascii(iproc,ifile,at,rxyz)
      end if
      nlines = nlines + 1
      if (nlines > 5000) then
-        if (iproc==0) write(*,*) 'Atomic input file too long (> 5000 lines).'
+        !if (iproc==0) 
+        write(*,*) 'Atomic input file too long (> 5000 lines).'
         stop 
      end if
   end do
   nlines = nlines - 1
 
   if (nlines < 4) then
-     if (iproc==0) write(*,*) 'Error in ASCII file format, file has less than 4 lines.'
+     !if (iproc==0) 
+      write(*,*) 'Error in ASCII file format, file has less than 4 lines.'
      stop 
   end if
 
   ! Try to determine the number atoms and the keywords.
-  write(at%units, "(A)") "bohr"
-  at%geocode = 'P'
-  at%nat     = 0
+  write(atoms%units, "(A)") "bohr"
+  atoms%geocode = 'P'
+  atoms%nat     = 0
   do i = 4, nlines, 1
      write(line, "(a150)") adjustl(lines(i))
      if (line(1:1) /= '#' .and. line(1:1) /= '!' .and. len(trim(line)) /= 0) then
-        at%nat = at%nat + 1
+        atoms%nat = atoms%nat + 1
      else if (line(1:9) == "#keyword:" .or. line(1:9) == "!keyword:") then
-        if (index(line, 'bohr') > 0) then
-           write(at%units, "(A)") "bohr"
-        else if (index(line, 'bohrd0') > 0) then
-           write(at%units, "(A)") "bohrd0"
-        else if (index(line, 'atomic') > 0) then
-           write(at%units, "(A)") "atomicd0"
-        else if (index(line, 'angstroem') > 0) then
-           write(at%units, "(A)") "angstroem"
-        else if (index(line, 'angstroemd0') > 0) then
-           write(at%units, "(A)") "angstroemd0"
-        else if (index(line, 'reduced') > 0) then
-           write(at%units, "(A)") "reduced"
-        else if (index(line, 'periodic') > 0) then
-           at%geocode = 'P'
-        else if (index(line, 'surface') > 0) then
-           at%geocode = 'S'
-        else if (index(line, 'freeBC') > 0) then
-           at%geocode = 'F'
-        end if
+        if (index(line, 'bohr') > 0)        write(atoms%units, "(A)") "bohr"
+        if (index(line, 'bohrd0') > 0)      write(atoms%units, "(A)") "bohrd0"
+        if (index(line, 'atomic') > 0)      write(atoms%units, "(A)") "atomicd0"
+        if (index(line, 'angstroem') > 0)   write(atoms%units, "(A)") "angstroem"
+        if (index(line, 'angstroemd0') > 0) write(atoms%units, "(A)") "angstroemd0"
+        if (index(line, 'reduced') > 0)     write(atoms%units, "(A)") "reduced"
+        if (index(line, 'periodic') > 0) atoms%geocode = 'P'
+        if (index(line, 'surface') > 0)  atoms%geocode = 'S'
+        if (index(line, 'freeBC') > 0)   atoms%geocode = 'F'
      end if
   end do
   
-  if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',at%nat
+  if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',atoms%nat
 
-  allocate(at%iatype(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,at%iatype,'at%iatype',subname)
-  allocate(at%ifrztyp(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,at%ifrztyp,'at%ifrztyp',subname)
-  allocate(at%natpol(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,at%natpol,'at%natpol',subname)
-  allocate(rxyz(3,at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,at%natpol,'rxyz',subname)
+  allocate(atoms%iatype(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%iatype,'atoms%iatype',subname)
+  allocate(atoms%ifrztyp(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%ifrztyp,'atoms%ifrztyp',subname)
+  allocate(atoms%natpol(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%natpol,'atoms%natpol',subname)
+  allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
+  allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,rxyz,'rxyz',subname)
 
   !controls if the positions are provided with machine precision
-  if (index(at%units, 'd0') > 0) then
+  if (index(atoms%units, 'd0') > 0) then
      lpsdbl=.true.
   else
      lpsdbl=.false.
@@ -1287,61 +1292,64 @@ subroutine read_atomic_ascii(iproc,ifile,at,rxyz)
 
   !this array is useful for frozen atoms
   !no atom is frozen by default
-  at%ifrztyp(:)=0
+  atoms%ifrztyp(:)=0
   !also the spin polarisation and the charge are is fixed to zero by default
   !this corresponds to the value of 100
   !RULE natpol=charge*1000 + 100 + spinpol
-  at%natpol(:)=100
+  atoms%natpol(:)=100
 
   ! Read the box definition
-  at%alat1 = 0.0_gp
-  at%alat2 = 0.0_gp
-  at%alat3 = 0.0_gp
+  atoms%alat1 = 0.0_gp
+  atoms%alat2 = 0.0_gp
+  atoms%alat3 = 0.0_gp
   if (lpsdbl) then
      read(lines(2),*) alat1d0,alat2d0,alat3d0
      read(lines(3),*) alat4d0,alat5d0,alat6d0
      if (alat2d0 /= 0.d0 .or. alat4d0 /= 0.d0 .or. alat5d0 /= 0.d0) then
-        if (iproc==0) write(*,*) 'Only orthorombic boxes are possible.'
+        !if (iproc==0) 
+        write(*,*) 'Only orthorombic boxes are possible.'
         stop 
      end if
-     at%alat1 = real(alat1d0,gp)
-     at%alat2 = real(alat3d0,gp)
-     at%alat3 = real(alat6d0,gp)
+     atoms%alat1 = real(alat1d0,gp)
+     atoms%alat2 = real(alat3d0,gp)
+     atoms%alat3 = real(alat6d0,gp)
   else
      read(lines(2),*) alat1,alat2,alat3
      read(lines(3),*) alat4,alat5,alat6
      if (alat2 /= 0. .or. alat4 /= 0. .or. alat5 /= 0.) then
-        if (iproc==0) write(*,*) 'Only orthorombic boxes are possible.'
-        if (iproc==0) write(*,*) ' but alat2, alat4 and alat5 = ', alat2, alat4, alat5
+        !if (iproc==0) 
+           write(*,*) 'Only orthorombic boxes are possible.'
+        !if (iproc==0) 
+           write(*,*) ' but alat2, alat4 and alat5 = ', alat2, alat4, alat5
         stop 
      end if
-     at%alat1 = real(alat1,gp)
-     at%alat2 = real(alat3,gp)
-     at%alat3 = real(alat6,gp)
+     atoms%alat1 = real(alat1,gp)
+     atoms%alat2 = real(alat3,gp)
+     atoms%alat3 = real(alat6,gp)
   end if
-  if (at%geocode == 'S') then
-     at%alat2 = 0.0_gp
-  else if (at%geocode == 'F') then
-     at%alat1 = 0.0_gp
-     at%alat2 = 0.0_gp
-     at%alat3 = 0.0_gp
+  if (atoms%geocode == 'S') then
+     atoms%alat2 = 0.0_gp
+  else if (atoms%geocode == 'F') then
+     atoms%alat1 = 0.0_gp
+     atoms%alat2 = 0.0_gp
+     atoms%alat3 = 0.0_gp
   end if
   
   !reduced coordinates are possible only with periodic units
-  if (at%units == 'reduced' .and. at%geocode /= 'P') then
+  if (atoms%units == 'reduced' .and. atoms%geocode /= 'P') then
      if (iproc==0) write(*,'(1x,a)')&
           'ERROR: Reduced coordinates are only allowed with fully periodic BC'
   end if
 
   !convert the values of the cell sizes in bohr
-  if (at%units=='angstroem' .or. at%units=='angstroemd0') then
+  if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
-     at%alat1 = at%alat1 / bohr
-     at%alat2 = at%alat2 / bohr
-     at%alat3 = at%alat3 / bohr
+     atoms%alat1 = atoms%alat1 / bohr
+     atoms%alat2 = atoms%alat2 / bohr
+     atoms%alat3 = atoms%alat3 / bohr
   endif
 
-  at%ntypes=0
+  atoms%ntypes=0
   iat = 1
   do i = 4, nlines, 1
      write(line, "(a150)") adjustl(lines(i))
@@ -1355,7 +1363,7 @@ subroutine read_atomic_ascii(iproc,ifile,at,rxyz)
            if (i_stat /= 0) read(line,*) rx,ry,rz,symbol
         end if
         call find_extra_info(line,extra)
-        call parse_extra_info(iproc,iat,extra,at)
+        call parse_extra_info(iproc,iat,extra,atoms)
 
         tatonam=trim(symbol)
 
@@ -1369,67 +1377,68 @@ subroutine read_atomic_ascii(iproc,ifile,at,rxyz)
            rxyz(3,iat)=real(rz,gp)
         end if
 
-        if (at%units == 'reduced') then !add treatment for reduced coordinates
+    if (atoms%units == 'reduced') then !add treatment for reduced coordinates
            rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
            rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
            rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
-        else if (at%geocode == 'P') then
-           rxyz(1,iat)=modulo(rxyz(1,iat),at%alat1)
-           rxyz(2,iat)=modulo(rxyz(2,iat),at%alat2)
-           rxyz(3,iat)=modulo(rxyz(3,iat),at%alat3)
-        else if (at%geocode == 'S') then
-           rxyz(1,iat)=modulo(rxyz(1,iat),at%alat1)
-           rxyz(3,iat)=modulo(rxyz(3,iat),at%alat3)
+        else if (atoms%geocode == 'P') then
+           rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+           rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
+           rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+        else if (atoms%geocode == 'S') then
+           rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+           rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
         end if
  
-        do ityp=1,at%ntypes
+        do ityp=1,atoms%ntypes
            if (tatonam == atomnames(ityp)) then
-              at%iatype(iat)=ityp
+              atoms%iatype(iat)=ityp
               goto 200
            endif
         enddo
-        at%ntypes=at%ntypes+1
-        if (at%ntypes > 100) stop 'more than 100 atomnames not permitted'
+        atoms%ntypes=atoms%ntypes+1
+        if (atoms%ntypes > 100) stop 'more than 100 atomnames not permitted'
         atomnames(ityp)=tatonam
-        at%iatype(iat)=at%ntypes
+        atoms%iatype(iat)=atoms%ntypes
 200     continue
 
-        if (at%units=='angstroem' .or. at%units=='angstroemd0') then
+        if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
            ! if Angstroem convert to Bohr
            do j=1,3 
               rxyz(j,iat)=rxyz(j,iat)/bohr
            enddo
-        else if (at%units == 'reduced') then 
-           rxyz(1,iat)=rxyz(1,iat)*at%alat1
-           rxyz(2,iat)=rxyz(2,iat)*at%alat2
-           rxyz(3,iat)=rxyz(3,iat)*at%alat3
+        else if (atoms%units == 'reduced') then 
+           rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
+           rxyz(2,iat)=rxyz(2,iat)*atoms%alat2
+           rxyz(3,iat)=rxyz(3,iat)*atoms%alat3
         endif
         iat = iat + 1
      end if
   enddo
 
-  !now that ntypes is determined allocate at%atomnames and copy the values
-  allocate(at%atomnames(at%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,at%atomnames,'at%atomnames',subname)
-  at%atomnames(1:at%ntypes)=atomnames(1:at%ntypes)
+  !now that ntypes is determined allocate atoms%atomnames and copy the values
+  allocate(atoms%atomnames(atoms%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%atomnames,'atoms%atomnames',subname)
+  atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
 
   !control atom positions
-  call check_atoms_positions(iproc,at,rxyz)
+  call check_atoms_positions(iproc,atoms,rxyz)
 
-  if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atom types= ',at%ntypes
+  if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atom types= ',atoms%ntypes
 
-  do ityp=1,at%ntypes
+  do ityp=1,atoms%ntypes
      if (iproc.eq.0) &
-          write(*,'(1x,a,i0,a,a)') 'Atoms of type ',ityp,' are ',trim(at%atomnames(ityp))
+          write(*,'(1x,a,i0,a,a)') 'Atoms of type ',ityp,' are ',trim(atoms%atomnames(ityp))
   enddo
 
-  do iat=1,at%nat
-     if (iproc.eq.0 .and. at%ifrztyp(iat) /=0) &
-          write(*,'(1x,a,i0,a,a)') 'FIXED Atom N.:',iat,', Name: ',trim(at%atomnames(at%iatype(iat)))
+  do iat=1,atoms%nat
+     if (iproc.eq.0 .and. atoms%ifrztyp(iat) /=0) &
+          write(*,'(1x,a,i0,a,a)') 'FIXED Atom N.:',iat,', Name: ',trim(atoms%atomnames(atoms%iatype(iat)))
   enddo
 
 end subroutine read_atomic_ascii
 !!***
+
 
 !!****f* BigDFT/charge_and_spol
 !! FUNCTION
@@ -1489,10 +1498,10 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   character(len=10) :: name
   character(len=11) :: units
   character(len=50) :: extra
-  integer :: iat,j,ichg,ispol
+  integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
-  open(unit=9,file=filename//'.xyz')
+  open(unit=9,file=trim(filename)//'.xyz')
   xmax=0.0_gp
   ymax=0.0_gp
   zmax=0.0_gp
@@ -1554,7 +1563,7 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   character(len=2) :: symbol
   character(len=50) :: extra
   character(len=10) :: name
-  integer :: iat,j,ichg,ispol
+  integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
   open(unit=9,file=filename//'.ascii')
@@ -1648,6 +1657,7 @@ subroutine frozen_itof(ifrztyp,frzchain)
 end subroutine frozen_itof
 
 subroutine valid_frzchain(frzchain,go)
+  implicit none
   character(len=*), intent(in) :: frzchain
   logical, intent(out) :: go
 
@@ -1697,32 +1707,32 @@ end subroutine frozen_alpha
 !synopsis: rxyz=txyz+alpha*sxyz
 !all the shift are inserted into the box if there are periodic directions
 !if the atom are frozen they are not moved
-subroutine atomic_axpy(at,txyz,alpha,sxyz,rxyz)
+subroutine atomic_axpy(atoms,txyz,alpha,sxyz,rxyz)
   use module_base
   use module_types
   implicit none
   real(gp), intent(in) :: alpha
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: txyz,sxyz
-  real(gp), dimension(3,at%nat), intent(inout) :: rxyz
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%nat), intent(in) :: txyz,sxyz
+  real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
   !local variables
   integer :: iat
   real(gp) :: alphax,alphay,alphaz
 
-  do iat=1,at%nat
+  do iat=1,atoms%nat
      !adjust the moving of the atoms following the frozen direction
-     call frozen_alpha(at%ifrztyp(iat),1,alpha,alphax)
-     call frozen_alpha(at%ifrztyp(iat),2,alpha,alphay)
-     call frozen_alpha(at%ifrztyp(iat),3,alpha,alphaz)
+     call frozen_alpha(atoms%ifrztyp(iat),1,alpha,alphax)
+     call frozen_alpha(atoms%ifrztyp(iat),2,alpha,alphay)
+     call frozen_alpha(atoms%ifrztyp(iat),3,alpha,alphaz)
 
-     if (at%geocode == 'P') then
-        rxyz(1,iat)=modulo(txyz(1,iat)+alphax*sxyz(1,iat),at%alat1)
-        rxyz(2,iat)=modulo(txyz(2,iat)+alphay*sxyz(2,iat),at%alat2)
-        rxyz(3,iat)=modulo(txyz(3,iat)+alphaz*sxyz(3,iat),at%alat3)
-     else if (at%geocode == 'S') then
-        rxyz(1,iat)=modulo(txyz(1,iat)+alphax*sxyz(1,iat),at%alat1)
+     if (atoms%geocode == 'P') then
+        rxyz(1,iat)=modulo(txyz(1,iat)+alphax*sxyz(1,iat),atoms%alat1)
+        rxyz(2,iat)=modulo(txyz(2,iat)+alphay*sxyz(2,iat),atoms%alat2)
+        rxyz(3,iat)=modulo(txyz(3,iat)+alphaz*sxyz(3,iat),atoms%alat3)
+     else if (atoms%geocode == 'S') then
+        rxyz(1,iat)=modulo(txyz(1,iat)+alphax*sxyz(1,iat),atoms%alat1)
         rxyz(2,iat)=txyz(2,iat)+alphay*sxyz(2,iat)
-        rxyz(3,iat)=modulo(txyz(3,iat)+alphaz*sxyz(3,iat),at%alat3)
+        rxyz(3,iat)=modulo(txyz(3,iat)+alphaz*sxyz(3,iat),atoms%alat3)
      else
         rxyz(1,iat)=txyz(1,iat)+alphax*sxyz(1,iat)
         rxyz(2,iat)=txyz(2,iat)+alphay*sxyz(2,iat)
@@ -1737,23 +1747,23 @@ end subroutine atomic_axpy
 !synopsis: fxyz=txyz+alpha*sxyz
 !update the forces taking into account the frozen atoms
 !do not apply the modulo operation on forces
-subroutine atomic_axpy_forces(at,txyz,alpha,sxyz,fxyz)
+subroutine atomic_axpy_forces(atoms,txyz,alpha,sxyz,fxyz)
   use module_base
   use module_types
   implicit none
   real(gp), intent(in) :: alpha
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: txyz,sxyz
-  real(gp), dimension(3,at%nat), intent(inout) :: fxyz
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%nat), intent(in) :: txyz,sxyz
+  real(gp), dimension(3,atoms%nat), intent(inout) :: fxyz
   !local variables
   integer :: iat
   real(gp) :: alphax,alphay,alphaz
   
-  do iat=1,at%nat
+  do iat=1,atoms%nat
      !adjust the moving of the forces following the frozen direction
-     call frozen_alpha(at%ifrztyp(iat),1,alpha,alphax)
-     call frozen_alpha(at%ifrztyp(iat),2,alpha,alphay)
-     call frozen_alpha(at%ifrztyp(iat),3,alpha,alphaz)
+     call frozen_alpha(atoms%ifrztyp(iat),1,alpha,alphax)
+     call frozen_alpha(atoms%ifrztyp(iat),2,alpha,alphay)
+     call frozen_alpha(atoms%ifrztyp(iat),3,alpha,alphaz)
 
      fxyz(1,iat)=txyz(1,iat)+alphax*sxyz(1,iat)
      fxyz(2,iat)=txyz(2,iat)+alphay*sxyz(2,iat)
@@ -1765,12 +1775,12 @@ end subroutine atomic_axpy_forces
 
 !calculate the scalar product between atomic positions by considering
 !only non-blocked atoms
-subroutine atomic_dot(at,x,y,scpr)
+subroutine atomic_dot(atoms,x,y,scpr)
   use module_base
   use module_types
   implicit none
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: x,y
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%nat), intent(in) :: x,y
   real(gp), intent(out) :: scpr
   !local variables
   integer :: iat
@@ -1779,10 +1789,10 @@ subroutine atomic_dot(at,x,y,scpr)
 
   scpr=0.0_gp
 
-  do iat=1,at%nat
-     call frozen_alpha(at%ifrztyp(iat),1,1.0_gp,alphax)
-     call frozen_alpha(at%ifrztyp(iat),2,1.0_gp,alphay)
-     call frozen_alpha(at%ifrztyp(iat),3,1.0_gp,alphaz)
+  do iat=1,atoms%nat
+     call frozen_alpha(atoms%ifrztyp(iat),1,1.0_gp,alphax)
+     call frozen_alpha(atoms%ifrztyp(iat),2,1.0_gp,alphay)
+     call frozen_alpha(atoms%ifrztyp(iat),3,1.0_gp,alphaz)
      scpr1=alphax*x(1,iat)*y(1,iat)
      scpr2=alphay*x(2,iat)*y(2,iat)
      scpr3=alphaz*x(3,iat)*y(3,iat)
@@ -1792,16 +1802,16 @@ subroutine atomic_dot(at,x,y,scpr)
 end subroutine atomic_dot
 
 !z=alpha*A*x + beta* y
-subroutine atomic_gemv(at,m,alpha,A,x,beta,y,z)
+subroutine atomic_gemv(atoms,m,alpha,A,x,beta,y,z)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: m
   real(gp), intent(in) :: alpha,beta
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: x
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%nat), intent(in) :: x
   real(gp), dimension(m), intent(in) :: y
-  real(gp), dimension(m,3,at%nat), intent(in) :: A
+  real(gp), dimension(m,3,atoms%nat), intent(in) :: A
   real(gp), dimension(m), intent(out) :: z
   !local variables
   integer :: iat,i,j
@@ -1809,9 +1819,9 @@ subroutine atomic_gemv(at,m,alpha,A,x,beta,y,z)
   
   do i=1,m
      mv=0.0_gp
-     do iat=1,at%nat
+     do iat=1,atoms%nat
         do j=1,3
-           call frozen_alpha(at%ifrztyp(iat),j,A(i,j,iat),alphai)
+           call frozen_alpha(atoms%ifrztyp(iat),j,A(i,j,iat),alphai)
            mv=mv+alphai*x(j,iat)
         end do
      end do
@@ -1835,30 +1845,34 @@ function move_this_coordinate(ifrztyp,ixyz)
 end function move_this_coordinate
 
 !synopsis: rxyz=txyz+alpha*sxyz
-subroutine atomic_coordinate_axpy(at,ixyz,iat,t,alphas,r)
+subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: ixyz,iat
   real(gp), intent(in) :: t,alphas
-  type(atoms_data), intent(in) :: at
+  type(atoms_data), intent(in) :: atoms
   real(gp), intent(out) :: r
   !local variables
-  logical :: move_this_coordinate,periodize
+  logical :: periodize
   real(gp) :: alat,alphai
 
   if (ixyz == 1) then
-     alat=at%alat1
+     alat=atoms%alat1
   else if (ixyz == 2) then
-     alat=at%alat2
+     alat=atoms%alat2
   else if (ixyz == 3) then
-     alat=at%alat3
+     alat=atoms%alat3
+  else
+     alat = -1
+     write(0,*) "Internal error"
+     stop
   end if
   
-  periodize= at%geocode == 'P' .or. &
-       (at%geocode == 'S' .and. ixyz /= 2)
+  periodize= atoms%geocode == 'P' .or. &
+       (atoms%geocode == 'S' .and. ixyz /= 2)
 
-  call frozen_alpha(at%ifrztyp(iat),ixyz,alphas,alphai)
+  call frozen_alpha(atoms%ifrztyp(iat),ixyz,alphas,alphai)
 
   if (periodize) then
      r=modulo(t+alphai,alat)

@@ -21,7 +21,7 @@ mod_bigdft = module_base.@MODULE_EXT@ \
 endif
 module_DATA = $(mod_bigdft)
 
-modules_source = base.f90 \
+modules_source = base.F90 \
 	types.f90 \
 	interfaces.f90 \
 	$(GPUBLAS_INTERFACE)
@@ -47,5 +47,5 @@ mpif.h:
 	touch mpif.h &&\
 	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
-	 echo "integer, parameter :: MPI_STATUSES_IGNORE=0" >> mpif.h &&\
-	 echo "integer :: MPI_MIN, MPI_MAX, MPI_IN_PLACE,MPI_CHARACTER" >> mpif.h
+	 echo "integer :: MPI_STATUSES_IGNORE" >> mpif.h &&\
+	 echo "integer :: MPI_MIN, MPI_MAX,MPI_CHARACTER" >> mpif.h

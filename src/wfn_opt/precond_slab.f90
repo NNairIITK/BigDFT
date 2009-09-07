@@ -218,8 +218,8 @@ subroutine apply_hp_slab_sd(n1,n2,n3, &
   ! x: input
   ! psifscf: output
   call uncompress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-       x(1),x(nvctr_c+1),psifscf)
+       nseg_f,nvctr_f,keyg(1,nseg_c+min(1,nseg_f)),keyv(nseg_c+min(1,nseg_f)),   &
+       x(1),x(nvctr_c+min(1,nvctr_f)),psifscf)
 
   hgrid(1)=hx
   hgrid(2)=hy
@@ -231,8 +231,8 @@ subroutine apply_hp_slab_sd(n1,n2,n3, &
   ! ww:intput
   ! y:output
   call compress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),& 
-       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),& 
-       ww,y(1),y(nvctr_c+1))
+       nseg_f,nvctr_f,keyg(1,nseg_c+min(1,nseg_f)),keyv(nseg_c+min(1,nseg_f)),& 
+       ww,y(1),y(nvctr_c+min(1,nvctr_f)))
 end subroutine apply_hp_slab_sd
 
 
@@ -257,7 +257,9 @@ subroutine prec_fft_slab_fast(n1,n2,n3, &
   real(wp)::z(2,0:(n1+1)/2,0:n2,0:n3)! work array for FFT
 
   ! diagonally precondition the wavelet part  
-  call wscal_f(nvctr_f,hpsi(nvctr_c+1),hx,hy,hz,cprecr)
+  if (nvctr_f > 0) then
+     call wscal_f(nvctr_f,hpsi(nvctr_c+1),hx,hy,hz,cprecr)
+  end if
 
   call make_kernel(n1,hx,kern_k1)
   call make_kernel(n3,hz,kern_k3)
@@ -267,7 +269,7 @@ subroutine prec_fft_slab_fast(n1,n2,n3, &
   !	solve the helmholtz equation for the scfunction part  
   call hit_with_kernel_slab(x_c,z,kern_k1,kern_k3,n1,n2,n3,cprecr,hy)	
 
-  call   compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
+  call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
 end subroutine prec_fft_slab_fast
 

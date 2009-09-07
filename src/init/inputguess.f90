@@ -1,3 +1,16 @@
+!!****f* BigDFT/inputguess_gaussian_orbitals
+!! FUNCTION
+!!   Generate the input guess via the inguess_generator
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 (LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
      orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
   use module_base
@@ -85,18 +98,15 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   allocate(orbsv%norb_par(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,orbsv%norb_par,'orbsv%norb_par',subname)
   !davidson treatment for spin-pol case should be reworked
-  call orbitals_descriptors(iproc,nproc,nvirte,nvirte,0,1,orbsv)
-  !allocate the arrays and fill them properly
-  allocate(orbsv%occup(orbsv%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbsv%occup,'orbsv%occup',subname)
-  allocate(orbsv%spinsgn(orbsv%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbsv%spinsgn,'orbsv%spinsgn',subname)
-  orbsv%occup(1:orbsv%norb)=1.0_gp
-  orbsv%spinsgn(1:orbsv%norb)=1.0_gp
+  if (nspin == 1) then
+     call orbitals_descriptors(iproc,nproc,nvirte,nvirte,0,orbs%nspinor,orbsv)
+  else if (nspin == 2) then
+     call orbitals_descriptors(iproc,nproc,nvirte,nvirte,nvirte,orbs%nspinor,orbsv)
+  end if
 
   !allocate communications arrays for virtual orbitals
   !warning: here the aim is just to calculate npsidim, should be fixed
-  call allocate_comms(nproc,commsv,subname)
+  !call allocate_comms(nproc,orbsv,commsv,subname)
   call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
   call deallocate_comms(commsv,subname)
 
@@ -119,11 +129,6 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   !nspin*noncoll is always <= 2
   call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe,&
        nspinorfororbse,orbse)
-  !allocate the arrays and fill them properly
-  allocate(orbse%occup(orbse%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbse%occup,'orbse%occup',subname)
-  allocate(orbse%spinsgn(orbse%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbse%spinsgn,'orbse%spinsgn',subname)
   ist=1
   do ispin=1,nspin
      orbse%spinsgn(ist:ist+norbe-1)=real(1-2*(ispin-1),gp)
@@ -182,11 +187,16 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   deallocate(iorbtolr,stat=i_stat)
   call memocc(i_stat,i_all,'iorbtolr',subname)
 
+END SUBROUTINE inputguess_gaussian_orbitals
+!!***
 
-end subroutine inputguess_gaussian_orbitals
 
-
-
+!!****f* BigDFT/readAtomicOrbitals
+!! FUNCTION
+!!   Read atomic orbitals
+!!
+!! SOURCE
+!!
 subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,nspin,&
      & scorb,norbsc_arr,locrad)
   use module_base
@@ -257,7 +267,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,n
      nsccode=at%iasctype(ity)
      !calculate the localisation radius for the input orbitals 
      call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
-          neleconf,nsccode,mxpl,mxchg)
+          neleconf,nsccode,mxpl,mxchg,at%amu(ity))
      locrad(iat)=5._gp/sqrt(abs(2._gp*ehomo))
      call charge_and_spol(at%natpol(iat),ichg,ispol)
      !correct in the case of input charge positioning
@@ -290,7 +300,15 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,n
   if (nspin == 2) norbsc_arr(:,2)=norbsc_arr(:,1)
 
 END SUBROUTINE readAtomicOrbitals
+!!***
 
+
+!!****f* BigDFT/createAtomicOrbitals
+!! FUNCTION
+!!   Create atomic orbitals
+!!
+!! SOURCE
+!!
 subroutine createAtomicOrbitals(iproc,nproc,at,&
      rxyz,norbe,norbep,norbsc,occupe,occupat,ngx,xp,psiat,ng,nl,&
      wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,psi,eks,scorb)
@@ -368,7 +386,7 @@ subroutine createAtomicOrbitals(iproc,nproc,at,&
      nsccode=at%iasctype(ity)
      if (ichg /=0) then
         call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
-             neleconf,nsccode,mxpl,mxchg)
+             neleconf,nsccode,mxpl,mxchg,at%amu(ity))
         call correct_semicore(at%atomnames(ity),nlevmax,nlmax-1,ichg,neleconf,nsccode)
         !we should then correct the occupatat and the nlat arrays for this atom
         iocc=0
@@ -524,8 +542,16 @@ subroutine createAtomicOrbitals(iproc,nproc,at,&
      write(*,'(1x,a)')'done.'
   end if
 
-end subroutine createAtomicOrbitals
+END SUBROUTINE createAtomicOrbitals
+!!***
 
+
+!!****f* BigDFT/AtomicOrbitals
+!! FUNCTION
+!!   Generate atomic orbitals
+!!
+!! SOURCE
+!!
 subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
      ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,iorbtolr)
   use module_base
@@ -699,7 +725,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
      nsccode=at%iasctype(ity)
      if (ichg /=0) then
         call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
-             neleconf,nsccode,mxpl,mxchg)
+             neleconf,nsccode,mxpl,mxchg,at%amu(ity))
         call correct_semicore(at%atomnames(ity),nlevmax,nlmax-1,ichg,neleconf,nsccode)
         !we should then correct the occupatat and the nlat arrays for this atom
         iocc=0
@@ -763,7 +789,8 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
               ipolres=ipolres-ipolorb
               !this check can be inserted also elsewhere
               if (ipolres < 0) then
-                 if(iproc==0) write(*,'(1x,4(a,i0))')&
+                 !if(iproc==0) 
+                       write(*,'(1x,4(a,i0))')&
                       'Too high polarisation for atom number= ',iat,&
                       ' Inserted=',modulo(at%natpol(iat),1000)-100,' Assigned=',ipolorb,&
                       ' the maximum is=',nint(shelloccup)
@@ -773,7 +800,8 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
            else
               !check for odd values of the occupation number
               if (mod(nint(shelloccup),2) /= 0) then
-                 if (iproc == 0) write(*,'(1x,a)')&
+                 !if (iproc == 0) 
+                       write(*,'(1x,a)')&
                       'The occupation number in the case of closed shells must be even'
                  stop
               end if
@@ -1002,11 +1030,17 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
      write(*,'(1x,a)')'done.'
   end if
 
-end subroutine AtomicOrbitals
+END SUBROUTINE AtomicOrbitals
+!!***
 
 
-! calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
-! the output psiatn is a normalized version of psiat
+!!****f* BigDFT/atomkin
+!! FUNCTION
+!!   Calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
+!!   the output psiatn is a normalized version of psiat
+!!
+!! SOURCE
+!!
 subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
   use module_base
   implicit none
@@ -1068,8 +1102,14 @@ subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
   enddo
 
 end subroutine atomkin
+!!***
 
-
+!!****f* BigDFT/calc_coeff_inguess
+!! FUNCTION
+!!   
+!!
+!! SOURCE
+!!
 subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
   use module_base
   implicit none
@@ -1175,9 +1215,15 @@ subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
   endif
 
 END SUBROUTINE calc_coeff_inguess
+!!***
 
 
-
+!!****f* BigDFT/iguess_generator
+!! FUNCTION
+!!   
+!!
+!! SOURCE
+!!
 subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,occupat,expo,psiat)
   use module_base
   implicit none
@@ -1204,9 +1250,10 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   logical :: exists
   integer :: lpx,ncount,nsccode,mxpl,mxchg
   integer :: l,i,j,iocc,il,lwrite,i_all,i_stat
-  real(gp) :: alpz,alpl,rcov,rprb,zion,rij,a,a0,a0in,tt,ehomo
+  real(gp) :: alpz,alpl,amu,rcov,rprb,zion,rij,a,a0,a0in,tt,ehomo
 
   !filename = 'psppar.'//trim(atomname)
+
   lpx=0
   lpx_determination: do i=1,4
      if (psppar(i,0) == 0.0_gp) then
@@ -1281,7 +1328,7 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   end if
 
   !Now the treatment of the occupation number
-  call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
+  call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
 
   occup(:,:)=0.0_gp
    do l=0,lmax
@@ -1335,7 +1382,6 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   end do
 
   call crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
-
   call gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
        zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
        aeval,ng,psi,res,chrg)
@@ -1376,19 +1422,15 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   call memocc(i_stat,i_all,'alps',subname)
 
 END SUBROUTINE iguess_generator
+!!***
 
 
-
-
-
-
-
-
-
-
-
-
-
+!!****f* BigDFT/gatom
+!! FUNCTION
+!!   
+!!
+!! SOURCE
+!!
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg)
@@ -1407,7 +1449,6 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
        vh(0:ng,0:ng,4,0:ng,0:ng,4),&
        res(noccmax,lmax+1),xp(0:ng)
   if (nintp.ne.n_int) stop 'n_int><nintp'
-
 
   do l=0,lmax
      if (occup(1,l+1).gt.0._gp) lcx=l
@@ -1626,7 +1667,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
          exit big_loop
      end if
   end do big_loop
-! End of the big loop
+! End of the big loopq
 
   call resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,ng,res,&
              zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
@@ -1645,7 +1686,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
         do i=0,ng
            d=xp(i)+xp(j)
            sd=sqrt(d)
-           terf=derf(sd*rcov) 
+           call derf(terf, sd*rcov) 
            texp=exp(-d*rcov**2)
 
            tt=0.4431134627263791_gp*terf/sd**3 - 0.5_gp*rcov*texp/d
@@ -1673,16 +1714,6 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
         end do
      end do
   end do
-
-
-! ------------------------------------------------
-  
-
-
-! -----------------------------------------------
-
-
-
 
 ! writing lines suppressed
 !!$        write(66,*)  lmax+1
@@ -1750,9 +1781,15 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
   end if
 
 END SUBROUTINE gatom
+!!***
 
 
-
+!!****f* BigDFT/resid
+!! FUNCTION
+!!   
+!!
+!! SOURCE
+!!
 subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
                  ng,res,zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
                  potgrd,xcgrd,noproj)
@@ -1763,13 +1800,15 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
        gpot(3),pp1(0:ng,lmax+1),pp2(0:ng,lmax+1),pp3(0:ng,lmax+1),&
        alps(lmax+1),hsep(6,lmax+1),res(noccmax,lmax+1),xp(0:ng),&
        xcgrd(n_int),aeval(noccmax,lmax+1),potgrd(n_int)
+  real(gp) :: derf_val
   
 ! potential on grid 
   dr=fact*rprb/real(n_int,gp)
   do k=1,n_int
      r=(real(k,gp)-.5_gp)*dr
+     call derf(derf_val, r/(sqrt(2._gp)*alpz))
      potgrd(k)= .5_gp*(r/rprb**2)**2 - &
-          zion*derf(r/(sqrt(2._gp)*alpz))/r &
+          zion*derf_val/r &
           + exp(-.5_gp*(r/alpl)**2)*&
           ( gpot(1) + gpot(2)*(r/alpl)**2 + gpot(3)*(r/alpl)**4 )&
           + xcgrd(k)/r**2
@@ -1779,7 +1818,8 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
            d=xp(i)+xp(j)
            sd=sqrt(d)
            tx=exp(-d*r**2)
-           tt=spi*derf(sd*r)
+           call derf(tt, sd*r)
+           tt=spi*tt
            u_gp=tt/(4._gp*sd**3*r)
            potgrd(k)=potgrd(k)+u_gp*rho(i,j,1)
            ud1=-tx/(4._gp*d**2) + 3._gp*tt/(8._gp*sd**5*r)
@@ -1846,8 +1886,15 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
 !  end do
 
 END SUBROUTINE resid
+!!***
 
 
+!!****f* BigDFT/crtvh
+!! FUNCTION
+!!   
+!!
+!! SOURCE
+!!
 subroutine crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
   use module_base, only: gp
   implicit real(gp) (a-h,o-z)
@@ -1929,11 +1976,24 @@ subroutine crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
   end do loop_j
 
 END SUBROUTINE crtvh
+!!***
 
- function wave(ng,ll,xp,psi,r)
+
+!!****f* BigDFT/wave
+!! FUNCTION
+!!   
+!!
+!! SOURCE
+!!
+function wave(ng,ll,xp,psi,r)
   use module_base, only: gp
-  implicit real(gp) (a-h,o-z)
-  dimension psi(0:ng),xp(0:ng)
+  implicit none
+  !Arguments
+  integer, intent(in) :: ll,ng
+  real(gp) :: r,wave
+  real(gp) :: psi(0:ng),xp(0:ng)
+  !Local variables
+  integer :: i
 
   wave=0._gp
   do i=0,ng
@@ -1943,25 +2003,39 @@ END SUBROUTINE crtvh
      wave=wave*r**ll
   endif
 end function wave
+!!***
 
 
+!!****f* BigDFT/emuxc
+!! FUNCTION
+!!
+!! SOURCE
+!!
 function emuxc(rho)
   use module_base, only: gp
-  implicit real(gp) (a-h,o-z)
-  parameter (a0p=.4581652932831429_gp,&
+  implicit none
+  real(gp), intent(in) :: rho
+  real(gp) :: emuxc
+  real(gp), parameter :: &
+       a0p=.4581652932831429_gp,&
        a1p=2.217058676663745_gp,&
        a2p=0.7405551735357053_gp,&
-       a3p=0.01968227878617998_gp)
-  parameter (b1p=1.0_gp,&
+       a3p=0.01968227878617998_gp
+  real(gp), parameter :: &
+       b1p=1.0_gp,&
        b2p=4.504130959426697_gp,&
        b3p=1.110667363742916_gp,&
-       b4p=0.02359291751427506_gp)
-  parameter (rsfac=.6203504908994000_gp,ot=1._gp/3._gp)
-  parameter (c1=4._gp*a0p*b1p/3.0_gp,  c2=5.0_gp*a0p*b2p/3.0_gp+a1p*b1p,&
+       b4p=0.02359291751427506_gp
+  real(gp), parameter :: rsfac=.6203504908994000_gp,ot=1._gp/3._gp
+  real(gp), parameter :: &
+       c1=4._gp*a0p*b1p/3.0_gp,  &
+       c2=5.0_gp*a0p*b2p/3.0_gp+a1p*b1p,&
        c3=2.0_gp*a0p*b3p+4.0_gp*a1p*b2p/3.0_gp+2.0_gp*a2p*b1p/3.0_gp,&
        c4=7.0_gp*a0p*b4p/3.0_gp+5.0_gp*a1p*b3p/3.0_gp+a2p*b2p+a3p*b1p/3.0_gp,&
        c5=2.0_gp*a1p*b4p+4.0_gp*a2p*b3p/3.0_gp+2.0_gp*a3p*b2p/3.0_gp,&
-       c6=5.0_gp*a2p*b4p/3.0_gp+a3p*b3p,c7=4.0_gp*a3p*b4p/3.0_gp)
+       c6=5.0_gp*a2p*b4p/3.0_gp+a3p*b3p,c7=4.0_gp*a3p*b4p/3.0_gp
+  real(gp) :: bot,rs,top
+
   if(rho.lt.1.e-24_gp) then
     emuxc=0._gp
   else
@@ -1972,17 +2046,22 @@ function emuxc(rho)
     emuxc=top/(bot*bot)
   end if
 end function emuxc
+!!***
 
 
-! restricted version of the Gamma function
- function gamma(x)
+!!****f* BigDFT/gamma
+!! FUNCTION
+!!   Restricted version of the Gamma function
+!!
+!! SOURCE
+!!
+function gamma(x)
   use module_base, only: gp
   implicit real(gp) (a-h,o-z)
 
   if (x.le.0._gp) stop 'wrong argument for gamma'
   if (mod(x,1._gp).eq.0._gp) then
      ii=int(x)
-     gamma=1.0_gp
      do i=2,ii
         gamma=gamma*real(i-1,gp)
      end do
@@ -1997,7 +2076,15 @@ end function emuxc
      stop 'wrong argument for gamma'
   end if
 end function gamma
+!!***
 
+
+!!****f* BigDFT/psitospi0
+!! FUNCTION
+!!   
+!!
+!! SOURCE
+!!
 !  call psitospi(iproc,nproc,norbe,norbep,norbsc,nat,&
 !       wfd%nvctr_c,wfd%nvctr_f,at%iatype,at%ntypes,&
 !       at%iasctype,at%natsc,at%natpol,nspin,spinsgne,psi)

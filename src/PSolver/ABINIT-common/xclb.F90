@@ -17,7 +17,7 @@
 !! spin up and spin down.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2000-2007 ABINIT group (MF,LG)
+!! Copyright (C) 2000-2009 ABINIT group (MF,LG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -75,7 +75,7 @@ subroutine xclb(grho2_updn,npts,nspden,rho_updn,vxci)
 ! *************************************************************************
 
 !DEBUG
-! write(6,*) ' %xclb: enter'
+!write(6,*) ' %xclb: enter'
 !ENDDEBUG
 
 !scale the spin densities for evaluating spin up or down exchange
@@ -95,7 +95,7 @@ subroutine xclb(grho2_updn,npts,nspden,rho_updn,vxci)
    s_g_sq= scaled_gradient*scaled_gradient
 
    vx_lb= -beta*density_t13 * s_g_sq/ &
-&         (one+3.d0*beta* scaled_gradient*log(scaled_gradient+sqrt(one+s_g_sq*s_g_sq)))
+&   (one+3.d0*beta* scaled_gradient*log(scaled_gradient+sqrt(one+s_g_sq*s_g_sq)))
 
    vxci(ipts,ispden)=vxci(ipts,ispden)+vx_lb
   end do

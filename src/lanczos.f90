@@ -61,40 +61,23 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   !davidson treatment for spin-pol case should be reworked
 
   call orbitals_descriptors(iproc,nproc,1,1,0,1,ha%orbs)
-  !allocate the arrays and fill them properly
 
-  allocate(ha%orbs%occup(ha%orbs%norb+ndebug),stat=i_stat)
   call memocc(i_stat,ha%orbs%occup,'ha%orbs%occup',subname)
-
   allocate(ha%orbs%spinsgn(ha%orbs%norb+ndebug),stat=i_stat)
   call memocc(i_stat,ha%orbs%spinsgn,'ha%orbs%spinsgn',subname)
-
   allocate(ha%orbs%eval(ha%orbs%norb+ndebug),stat=i_stat)
   call memocc(i_stat,ha%orbs%eval,'ha%orbs%eval',subname)
-
   ha%orbs%occup(1:ha%orbs%norb)=1.0_gp
   ha%orbs%spinsgn(1:ha%orbs%norb)=1.0_gp
   ha%orbs%eval(1:ha%orbs%norb)=1.0_gp
-
-  !allocate communications arrays for virtual orbitals
-  !warning: here the aim is just to calculate npsidim, should be fixed
   call allocate_comms(nproc,ha%comms,subname)
-
   call orbitals_communicators(iproc,nproc,lr,ha%orbs,ha%comms)  
-
-
-    
-!!$
-
-
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
 
-
 !!$  
-  
+  !call allocate_comms(nproc,ha%orbs,ha%comms,subname)
   if( iproc.eq.0) then
-     
      write(filename,'(A,A,A)') "gproje_", at%atomnames(at%iatype(  in_iat_absorber )) , "_1s_dipole"
      
      inquire(FILE=filename,EXIST=projeexists)

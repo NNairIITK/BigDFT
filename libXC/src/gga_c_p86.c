@@ -1,0 +1,153 @@
+/*
+ Copyright (C) 2006-2007 M.A.L. Marques
+
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 3 of the License, or
+ (at your option) any later version.
+  
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+  
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+
+#include "util.h"
+
+#define XC_GGA_C_P86 132 /* Perdew 86 */
+
+/************************************************************************
+ Implements Perdew 86 Generalized Gradient Approximation
+ correlation functional.
+************************************************************************/
+
+/* TODO: convert to perdew functionals */
+
+static void
+gga_c_p86_init(void *p_)
+{
+  XC(gga_type) *p = (XC(gga_type) *)p_;
+
+  p->lda_aux = (XC(lda_type) *) malloc(sizeof(XC(lda_type)));
+  XC(lda_init)(p->lda_aux, XC_LDA_C_PZ, p->nspin);
+}
+
+static void
+gga_c_p86_end(void *p_)
+{
+  XC(gga_type) *p = (XC(gga_type) *)p_;
+
+  free(p->lda_aux);
+}
+
+static void 
+gga_c_p86(void *p_, FLOAT *rho, FLOAT *sigma,
+	  FLOAT *e, FLOAT *vrho, FLOAT *vsigma)
+{
+  XC(gga_type) *p = (XC(gga_type) *)p_;
+
+  FLOAT dens, zeta, dzdd[2], gdmt, ecunif, vcunif[2];
+  FLOAT rs, DD, dDDdzeta, CC, CCinf, dCCdd;
+  FLOAT Phi, dPhidd, dPhidgdmt;
+
+  XC(lda_vxc)(p->lda_aux, rho, &ecunif, vcunif);
+
+  XC(rho2dzeta)(p->nspin, rho, &dens, &zeta);
+  dzdd[0] =  (1.0 - zeta)/dens;
+  dzdd[1] = -(1.0 + zeta)/dens;
+    
+  rs = RS(dens);
+
+  /* get gdmt = |nabla n| */
+  gdmt = sigma[0];
+  if(p->nspin == XC_POLARIZED) gdmt += 2.0*sigma[1] + sigma[2];
+  gdmt = sqrt(gdmt);
+  if(gdmt < MIN_GRAD) gdmt = MIN_GRAD;
+
+
+  { /* Equation [1].(4) */ 
+    DD       = sqrt(POW(1.0 + zeta, 5.0/3.0) + POW(1.0 - zeta, 5.0/3.0))/M_SQRT2;
+    dDDdzeta = 5.0/(3.0*4.0*DD)*(POW(1.0 + zeta, 2.0/3.0) - POW(1.0 - zeta, 2.0/3.0));
+  }
+
+  { /* Equation (6) of [1] */
+    static const FLOAT alpha = 0.023266, beta = 7.389e-6, gamma = 8.723, delta = 0.472;
+    static const FLOAT aa = 0.001667, bb = 0.002568;
+
+    FLOAT rs2 = rs*rs, f1, f2, df1, df2, drsdd;
+
+    f1    = bb + alpha*rs + beta*rs2;
+    f2    = 1.0 + gamma*rs + delta*rs2 + 1.0e4*beta*rs*rs2;
+    CC    = aa + f1/f2;
+    CCinf = aa + bb;
+
+    df1   = alpha + 2.0*beta*rs;
+    df2   = gamma + 2.0*delta*rs + 3.0e4*beta*rs2;
+    drsdd = -rs/(3.0*dens);
+    dCCdd = (df1*f2 - f1*df2)/(f2*f2)*drsdd;
+  }
+
+  { /* Equation (9) of [1] */
+    static const FLOAT ftilde = 1.745*0.11;
+
+    FLOAT f1, f2, df1, df2;
+
+    f1  = ftilde*(CCinf/CC);
+    f2  = POW(dens, -7.0/6.0);
+    Phi = f1*gdmt*f2;
+
+    df1 = -f1/(CC)*dCCdd;
+    df2 = -7.0/6.0*POW(dens, -13.0/6.0);
+    dPhidd    = gdmt*(df1*f2 + f1*df2);
+    dPhidgdmt = f1*f2;
+  }
+
+  { /* Equation [1].(8) */
+    FLOAT gdmt2;
+    FLOAT f1, f2, f3, df1, df1dgdmt, df2, df3, df3dgdmt;
+
+    gdmt2 = gdmt*gdmt;
+
+    f1 = exp(-Phi);
+    f2 = POW(dens, -4.0/3.0);
+    f3 = f1*CC*gdmt2*f2;
+
+    df1      = -f1*dPhidd;
+    df1dgdmt = -f1*dPhidgdmt;
+    df2      = -4.0/3.0*POW(dens, -7.0/3.0);
+    df3      = gdmt2*(df1*CC*f2 + f1*dCCdd*f2 + f1*CC*df2);
+    df3dgdmt = CC*f2*(df1dgdmt*gdmt2 + f1*2.0*gdmt);
+
+    *e = ecunif + f3/(DD*dens);
+
+    vrho[0]   = vcunif[0] + (df3 - (f3/DD)*dDDdzeta*dzdd[0])/DD;
+    vsigma[0] = df3dgdmt/(DD*2.0*gdmt);
+
+    if(p->nspin == XC_POLARIZED){
+      vrho[1]   = vcunif[1] + (df3 - (f3/DD)*dDDdzeta*dzdd[1])/DD;
+      vsigma[1] = 2.0*vsigma[0];
+      vsigma[2] =     vsigma[0];
+    }
+  }
+}
+
+const XC(func_info_type) XC(func_info_gga_c_p86) = {
+  XC_GGA_C_P86,
+  XC_CORRELATION,
+  "Perdew 86",
+  XC_FAMILY_GGA,
+  "JP Perdew, Phys. Rev. B 33, 8822 (1986)",
+  XC_PROVIDES_EXC | XC_PROVIDES_VXC,
+  gga_c_p86_init,
+  gga_c_p86_end,   /* we can use the same as exchange here */
+  NULL,            /* this is not an LDA                   */
+  gga_c_p86
+};

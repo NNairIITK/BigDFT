@@ -1,5 +1,18 @@
-!*****************************************************************************************
+!!****m* BigDFT/minimization
+!! FUNCTION
+!!   Define the type parameterminimization
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 module minimization
+  implicit none
   type parameterminimization
      !general parameters for all methods
      character(10)::approach='unknown'
@@ -20,17 +33,23 @@ module minimization
      real(8)::gtol
      real(8)::stpmin
      real(8)::stpmax
-     real(8)::xtol=1.d-10  !epsilon(xtol)
+     real(8)::xtol=1.d-10  !epsilon(1.d0)
      real(8)::betax 
   end type parameterminimization
 end module minimization
-!*****************************************************************************************
+!!***
 
+
+!!****f* BigDFT/geopt
+!! FUNCTION
+!!   Geometry optimization
+!! SOURCE
+!!
 subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   use module_base
   use module_interfaces, except_this_one => geopt
   use module_types
-  use minimization, only:parameterminimization
+  use minimization, only: parameterminimization
   implicit none
   integer, intent(in) :: nproc,iproc
   type(atoms_data), intent(inout) :: at
@@ -41,10 +60,10 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   real(gp), dimension(3*at%nat), intent(inout) :: pos
   real(gp), dimension(3*at%nat), intent(out) :: fxyz
   !local variables
-  logical :: fail,exists
+  logical :: fail
 
   !-------------------------------------------
-  type(parameterminimization)::parmin
+  type(parameterminimization) :: parmin
   character*4 fn4
   character*40 comment
 
@@ -100,10 +119,15 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   endif
   if (iproc==0)   write(*,'(a,1x,a)') 'End of minimization using ',parmin%approach
 
-end subroutine geopt
+END SUBROUTINE geopt
+!!***
 
 
-
+!!****f* BigDFT/bfgs
+!! FUNCTION
+!!  Broyden-Fletcher-Goldfarb-Shanno method
+!! SOURCE
+!!
 subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
@@ -123,9 +147,9 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   real(gp) :: fluct,fnrm
   real(gp) ::sumx,sumy,sumz,fmax
   logical :: check
-  integer :: n,i_all,i_stat,m,it,nwork,i,j,iter_old
-  integer :: infocode,iprecon,iwrite,nitsd,histlen,nfluct
-  real(gp) :: fluctsum,ddot,shift,tmp,fnormmax_sw,limbfgs,erel
+  integer :: n,i_all,i_stat,m,i,iter_old
+  integer :: infocode,iwrite,nitsd,histlen,nfluct
+  real(gp) :: fluctsum,shift,tmp,fnormmax_sw,limbfgs,erel
 !  real(gp), dimension(3) :: alat
   real(gp), dimension(30) :: ehist
   real(gp), dimension(:), allocatable :: diag,work,xc,xdft,xwrite
@@ -184,7 +208,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   if (check) then
      if (iproc.eq.0) write(*,*) 'Converged before entering BFGS'
-     return     
+     return 
   endif
 
   allocate(xc(n),stat=i_stat)
@@ -208,18 +232,19 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         in%inputPsiId=1
         call call_bigdft(nproc,iproc,at,x,in,epot,f,rst,infocode)
 
-        if (iproc == 0) then                                        
-           call transforce(at%nat,f,sumx,sumy,sumz)                         
+        if (iproc == 0) then
+           call transforce(at,f,sumx,sumy,sumz)
            write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
            write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
            write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
-        end if 
+        end if
+
         ncount_bigdft=ncount_bigdft+1
         if (ncount_bigdft==1) ehist(1)=epot
         xdft(:)=x(:)
 
         call fnrmandforcemax(f,fnrm,fmax,at)
-        if (fmax < 3.d-1) call updatefluctsum(at%nat,f,nfluct,fluctsum,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(at,f,nfluct,fluctsum,fluct)
 
         call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
 
@@ -312,19 +337,26 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   call memocc(i_stat,i_all,'work',subname)
 
   !-------------------------------------------------------------------------------------
-end subroutine bfgs
-!!*******************************************************************************
+END SUBROUTINE bfgs
+!!***
 
 subroutine timeleft(tt)
+  use module_base
+  implicit none
+  real(gp), intent(out) :: tt
+  !local variables
   ! MODIFIED version for refined time limit on restart of global.f90.
   ! Only difference: Calls routine CPUtime(tt)
-  implicit real*8 (a-h,o-z)
+  integer :: ierr
+  real(kind=4) :: tcpu
+  real(gp) :: timelimit
+
   open(unit=55,file='CPUlimit',status='unknown')
   read(55,*,iostat=ierr) timelimit ! in hours
   if(ierr/=0)timelimit=1d6
   close(55)
   call cpu_time(tcpu)
-  tt=timelimit-tcpu/3600d0 ! in hours
+  tt=timelimit-real(tcpu,gp)/3600._gp ! in hours
 end subroutine timeleft
 
 subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
@@ -429,7 +461,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         in%output_wf=.false.
         call call_bigdft(nproc,iproc,at,tpos,in,tetot,gpf,rst,infocode)
         if (iproc == 0) then
-           call transforce(at%nat,gpf,sumx,sumy,sumz)
+           call transforce(at,gpf,sumx,sumy,sumz)
            write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
            write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
            write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
@@ -486,7 +518,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
         call call_bigdft(nproc,iproc,at,rxyz,in,etot,fxyz,rst,infocode)
         if (iproc == 0) then
-           call transforce(at%nat,fxyz,sumx,sumy,sumz)
+           call transforce(at,fxyz,sumx,sumy,sumz)
            write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
            write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
            write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
@@ -529,7 +561,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
         !if (iproc.eq.0) write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'CG ',ncount_bigdft,etot,sqrt(fnrm)
 
-        if (fmax < 3.d-1) call updatefluctsum(at%nat,fxyz,nfluct,fluctsum,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(at,fxyz,nfluct,fluctsum,fluct)
 
 
         call atomic_dot(at,gpf,gpf,unten)
@@ -661,10 +693,10 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
   real(gp), intent(in)::forcemax_sw
   !local variables
   character(len=*), parameter :: subname='steepdes'
-  logical :: care, check
+  logical :: care
   integer :: nsatur,iat,itot,itsd,i_stat,i_all,infocode,nbeqbx
   real(gp) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise,sumx,sumy,sumz
-  real(gp) :: fmax,t1,t2,t3,de1,de2,df1,df2,tmp,beta
+  real(gp) :: fmax,de1,de2,df1,df2,beta
   real(gp), allocatable, dimension(:,:) :: tpos
   character*4 fn4
   character*40 comment
@@ -715,7 +747,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
         in%output_wf=.false.
         call call_bigdft(nproc,iproc,at,rxyz,in,etot,ff,rst,infocode)
         if (iproc == 0) then
-           call transforce(at%nat,ff,sumx,sumy,sumz)
+           call transforce(at,ff,sumx,sumy,sumz)
            write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
            write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
            write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
@@ -751,7 +783,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
         df1=fnrm-fnrmitm1
         df2=fnrm-2._gp*fnrmitm1+fnrmitm2
 
-        if (fmax < 3.d-1) call updatefluctsum(at%nat,ff,nfluct,fluctsum,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(at,ff,nfluct,fluctsum,fluct)
         if (iproc.eq.0) then
            write(16,'(a,6(1x,e10.3),1x,i2)') 'fmax, fnrm/fnrmitm1, de1<0 , de2>0 , df1<0 , df2>0 ,nsatur',  & 
                 fmax, fnrm/fnrmitm1,de1,de2,df1,df2,nsatur
@@ -885,7 +917,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
   deallocate(tpos,stat=i_stat)
   call memocc(i_stat,i_all,'tpos',subname)
 
-end subroutine steepdes
+END SUBROUTINE steepdes
 
 
 subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
@@ -905,8 +937,8 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   real(gp) ::fluctsum 
   integer :: nfluct
   character(len=*), parameter :: subname='vstepsd'  
-  integer :: it,iat,i_all,i_stat,infocode, nitsd,itsd
-  real(gp) :: anoise,fluct,fnrm,fnrmold,beta0,beta,betaxx,betalast,betalastold
+  integer :: iat,i_all,i_stat,infocode, nitsd,itsd
+  real(gp) :: anoise,fluct,fnrm,fnrmold,beta,betaxx,betalast,betalastold
   real(gp) :: etotold,fmax,scpr,curv,tt,sumx,sumy,sumz
   real(gp), dimension(:,:), allocatable :: posold,ffold
   logical reset,check
@@ -930,11 +962,11 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
         in%output_wf=.false.
         call call_bigdft(nproc,iproc,at,wpos,in,etotold,ffold,rst,infocode)
         call fnrmandforcemax(ffold,fnrm,fmax,at)   
-           if (fmax < 3.d-1) call updatefluctsum(at%nat,ffold,nfluct,fluctsum,fluct)
+           if (fmax < 3.d-1) call updatefluctsum(at,ffold,nfluct,fluctsum,fluct)
            if (iproc == 0) then
            write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*in%frac_fluct,fluct
         if (iproc == 0) then                                        
-           call transforce(at%nat,ffold,sumx,sumy,sumz)                         
+           call transforce(at,ffold,sumx,sumy,sumz)                         
            write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
            write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
            write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
@@ -942,7 +974,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'Initial VSSD:fnrm= ',sqrt(fnrm)
            call  write_atomic_file('posout_'//fn4,etotold,wpos,at,trim(comment))
-           write(16,'(i5,1x,e12.5,1x,e21.14,a,e10.3)') itsd,sqrt(fnrm),etot,' GEOPT VSSD ',beta
+           write(16,'(1x,e12.5,1x,e21.14,a,e10.3)')sqrt(fnrm),etot,' GEOPT VSSD ',beta
            endif
 
         ncount_bigdft=ncount_bigdft+1
@@ -972,7 +1004,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
         in%output_wf=.false.
         call call_bigdft(nproc,iproc,at,wpos,in,etot,ff,rst,infocode)
         if (iproc == 0) then                                        
-           call transforce(at%nat,ff,sumx,sumy,sumz)                         
+           call transforce(at,ff,sumx,sumy,sumz)                         
            write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
            write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
            write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
@@ -990,7 +1022,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
         betalast=.5d0/curv
         if (reset) betaxx=min(betaxx,1.5d0*betalast)
         call fnrmandforcemax(ff,fnrm,fmax,at)   
-           if (fmax < 3.d-1) call updatefluctsum(at%nat,ff,nfluct,fluctsum,fluct)
+           if (fmax < 3.d-1) call updatefluctsum(at,ff,nfluct,fluctsum,fluct)
            if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*in%frac_fluct,fluct
            call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
            if (check) goto 100
@@ -1063,7 +1095,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
     call memocc(i_stat,i_all,'ffold',subname)
 
 
-        end subroutine vstepsd
+END SUBROUTINE vstepsd
 
 
 subroutine convcheck(fnrm, fmax, fluctfrac_fluct, forcemax, check)
@@ -1079,7 +1111,7 @@ subroutine convcheck(fnrm, fmax, fluctfrac_fluct, forcemax, check)
      check=.true.
   endif
 
-end subroutine convcheck
+END SUBROUTINE convcheck
 
 subroutine fnrmandforcemax(ff,fnrm,fmax,at)
   use module_base
@@ -1113,23 +1145,23 @@ subroutine fnrmandforcemax(ff,fnrm,fmax,at)
   !this is the norm of the forces of non-blocked atoms
   call atomic_dot(at,ff,ff,fnrm)
 !!$  fnrm=t1+t2+t3
-end subroutine fnrmandforcemax
+END SUBROUTINE fnrmandforcemax
 
 
-subroutine updatefluctsum(nat,fxyz,nfluct,fluctsum,fluct)
+subroutine updatefluctsum(at,fxyz,nfluct,fluctsum,fluct)
   use module_base
+  use module_types
   implicit none
-  integer, intent(in) :: nat
+  type(atoms_data), intent(in) :: at
   real(gp),intent(inout):: fluctsum,fluct
-  real(gp), dimension(3,nat), intent(in) :: fxyz
+  real(gp), dimension(3,at%nat), intent(in) :: fxyz
   integer, intent(inout):: nfluct
   !local variables
-  real(gp), save :: fluct_im1,fluct_im2,fluct_i
-  integer :: iat
+!!$  real(gp), save :: fluct_im1,fluct_im2,fluct_i
   real(gp) :: sumx,sumy,sumz
 
 
-  call transforce(nat,fxyz,sumx,sumy,sumz)
+  call transforce_forfluct(at,fxyz,sumx,sumy,sumz)
   nfluct=nfluct+1
 
 !!$  !limit the fluctuation value to n=3
@@ -1150,47 +1182,81 @@ subroutine updatefluctsum(nat,fxyz,nfluct,fluctsum,fluct)
 
   fluctsum=fluctsum+sumx**2+sumy**2+sumz**2
   !commented out, it increases the fluctuation artificially
-  fluct=fluctsum*sqrt(real(nat,gp))/real(nfluct,gp)
-end subroutine updatefluctsum
+  fluct=fluctsum*sqrt(real(at%nat,gp))/real(nfluct,gp)
+END SUBROUTINE updatefluctsum
 
 !should we evaluate the translational force also with blocked atoms?
-subroutine transforce(nat,fxyz,sumx,sumy,sumz)
+subroutine transforce(at,fxyz,sumx,sumy,sumz)
   use module_base
+  use module_types
   implicit none
-  real(gp),intent(in):: fxyz(3,nat)
+  type(atoms_data), intent(in) :: at
+  real(gp),intent(in):: fxyz(3,at%nat)
   real(gp), intent(out) :: sumx,sumy,sumz
-  integer ::iat, nat
+  integer :: iat
+  real(gp) :: alphax,alphay,alphaz
 
   !atomic_dot with one
   sumx=0._gp 
   sumy=0._gp 
   sumz=0._gp
-  do iat=1,nat
+  do iat=1,at%nat
+
      sumx=sumx+fxyz(1,iat) 
      sumy=sumy+fxyz(2,iat) 
      sumz=sumz+fxyz(3,iat)
+
   end do
-end subroutine transforce
+END SUBROUTINE transforce
+
+!should we evaluate the translational force also with blocked atoms?
+subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
+  use module_base
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: at
+  real(gp),intent(in):: fxyz(3,at%nat)
+  real(gp), intent(out) :: sumx,sumy,sumz
+  integer :: iat
+  real(gp) :: alphax,alphay,alphaz
+
+  !atomic_dot with one
+  sumx=0._gp 
+  sumy=0._gp 
+  sumz=0._gp
+  do iat=1,at%nat
+
+     call frozen_alpha(at%ifrztyp(iat),1,1.0_gp,alphax)
+     call frozen_alpha(at%ifrztyp(iat),2,1.0_gp,alphay)
+     call frozen_alpha(at%ifrztyp(iat),3,1.0_gp,alphaz)
+
+     sumx=sumx+alphax*fxyz(1,iat) 
+     sumy=sumy+alphay*fxyz(2,iat) 
+     sumz=sumz+alphaz*fxyz(3,iat)
+
+  end do
+END SUBROUTINE transforce_forfluct
+
 
 
 !*****************************************************************************************
 subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
   use module_base
   use module_types
-  use minimization, only:parameterminimization
+  use minimization, only: parameterminimization
   implicit none
   integer :: n,m,iproc,iwrite
   type(atoms_data), intent(in) :: at
   type(parameterminimization), intent(inout) :: parmin
   real(8)::x(n),xc(n),g(n),diag(n),w(n*(2*m+1)+2*m),f
-  real(8)::one,zero,gnorm,ddot,stp1,xnorm,beta,yr,sq,yy
+  real(8)::one,zero,gnorm,stp1,xnorm,beta,yr,sq,yy
   integer::npt,cp,i,inmc,iycn,iscn
   real(8), save::ys,a_t
   integer, save::bound,info,nfun,nfev,point,iypt,ispt
   logical, save::finish,new
   data one,zero/1.0d+0,0.0d+0/
   if(parmin%iflag==0) then
-     call init_lbfgs(at,n,m,x,f,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
+     call init_lbfgs(at,n,m,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
   endif
   new=.false.
   if(parmin%iflag==0) new=.true.
@@ -1339,9 +1405,9 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
      endif
      new=.true.
   enddo
-end subroutine lbfgs
+END SUBROUTINE lbfgs
 !*****************************************************************************************
-subroutine init_lbfgs(at,n,m,x,f,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
+subroutine init_lbfgs(at,n,m,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
   use module_base
   use module_types
   use minimization, only:parameterminimization
@@ -1349,9 +1415,9 @@ subroutine init_lbfgs(at,n,m,x,f,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iyp
   type(atoms_data), intent(in) :: at
   type(parameterminimization)::parmin
   integer::n,m,i
-  real(8)::x(n),g(n),diag(n),w(n*(2*m+1)+2*m),f
+  real(8)::g(n),diag(n),w(n*(2*m+1)+2*m)
   integer::nfun,point,iypt,ispt
-  real(8)::one,zero,gnorm,ddot,stp1,a_t
+  real(8)::one,zero,gnorm,stp1
   logical::finish
   data one,zero/1.0d+0,0.0d+0/
   parmin%iter=0
@@ -1408,13 +1474,19 @@ subroutine init_lbfgs(at,n,m,x,f,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iyp
   !stp1=2.d-2/gnorm  !original convention
   stp1=parmin%betax
 end subroutine init_lbfgs
-!*****************************************************************************************
+
+
+!!****f* BigDFT/lb1
+!! FUNCTION
+!!  This routine prints monitoring information. the frequency and
+!!  amount of output are controlled by iprint.
+!! SOURCE
+!!
 subroutine lb1(nfun,gnorm,n,m,x,f,g,a_t,finish,parmin)
-  use minimization, only:parameterminimization
-  type(parameterminimization)::parmin
-  !this routine prints monitoring information. the frequency and
-  !amount of output are controlled by iprint.
-  integer::nfun,n,m
+  use minimization, only: parameterminimization
+  implicit none
+  type(parameterminimization) :: parmin
+  integer::nfun,n,m,i
   real(8)::x(n),g(n),f,gnorm,a_t
   logical finish
   if(parmin%iter==0)then
@@ -1463,12 +1535,19 @@ subroutine lb1(nfun,gnorm,n,m,x,f,g,a_t,finish,parmin)
           ' BFGS terminated without detecting errors. iflag = 0'
   endif
   return
-end subroutine lb1
-!*****************************************************************************************
-subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin) !line search routine mcsrch
+END SUBROUTINE lb1
+!!***
+
+!!****f* BigDFT/mcsrch
+!! FUNCTION
+!!  Line search routine
+!! SOURCE
+!!
+subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin)
   use module_base
   use module_types
-  use minimization, only:parameterminimization
+  use minimization, only: parameterminimization
+  implicit none
   type(atoms_data), intent(in) :: at
   type(parameterminimization)::parmin
   integer::n,info,nfev
@@ -1583,7 +1662,7 @@ subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin) !line search routine mcs
         dgxm=dgx-dgtest
         dgym=dgy-dgtest
         !call mcstep to update the interval of uncertainty and to compute the new step.
-        call mcstep(a_l,fxm,dgxm,a_u,fym,dgym,a_t,fm,dgm, brackt,stmin,stmax,infoc,parmin)
+        call mcstep(a_l,fxm,dgxm,a_u,fym,dgym,a_t,fm,dgm, brackt,stmin,stmax,infoc) !,parmin)
         !reset the function and gradient values for f.
         fx=fxm+a_l*dgtest
         fy=fym+a_u*dgtest
@@ -1591,7 +1670,7 @@ subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin) !line search routine mcs
         dgy=dgym+dgtest
      else
         !call mcstep to update the interval of uncertainty and to compute the new step.
-        call mcstep(a_l,fx,dgx,a_u,fy,dgy,a_t,f,dg,brackt,stmin,stmax,infoc,parmin)
+        call mcstep(a_l,fx,dgx,a_u,fy,dgy,a_t,f,dg,brackt,stmin,stmax,infoc) !,parmin)
      end if
      !force a sufficient decrease in the size of the
      !interval of uncertainty.
@@ -1602,12 +1681,13 @@ subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin) !line search routine mcs
      end if
      yes=.true.
   enddo
-end subroutine mcsrch
+END SUBROUTINE mcsrch
+!!***
 
-!*****************************************************************************************
-subroutine mcstep(a_l,fx,dx,a_u,fy,dy,a_t,fp,dp,brackt,stpmin,stpmax,info,parmin)
+subroutine mcstep(a_l,fx,dx,a_u,fy,dy,a_t,fp,dp,brackt,stpmin,stpmax,info) !,parmin)
   use minimization, only:parameterminimization
-  type(parameterminimization)::parmin
+  implicit none
+!  type(parameterminimization) :: parmin
   integer::info
   real(8)::a_l,fx,dx,a_u,fy,dy,a_t,fp,dp,stpmin,stpmax
   logical::brackt,bound
@@ -1725,11 +1805,11 @@ subroutine mcstep(a_l,fx,dx,a_u,fy,dy,a_t,fp,dp,brackt,stpmin,stpmax,info,parmin
      end if
   end if
   return
-end subroutine mcstep
+END SUBROUTINE mcstep
 !*****************************************************************************************
 subroutine cal_a_c(a_l,fx,dx,a_t,fp,dp,a_c)
   implicit none
-  real(8)::a_l,fx,dx,a_t,fp,dp,a_c,theta,s,gamma,r,q,p
+  real(8)::a_l,fx,dx,a_t,fp,dp,a_c,theta,gamma,r,q,p
   theta=3.d0*(fx-fp)/(a_t-a_l)+dx+dp
   !s=max(abs(theta),abs(dx),abs(dp))
   gamma=sqrt(theta**2-dx*dp)
@@ -1743,7 +1823,7 @@ subroutine cal_a_c(a_l,fx,dx,a_t,fp,dp,a_c)
   !p=-((2.d0*fx-2.d0*fp-dx*a_l-dp*a_l+dx*a_t+dp*a_t)/(a_l-a_t)**3)
   !q=-((3.d0*fx-3.d0*fp-2.d0*dx*a_l-dp*a_l+2.d0*dx*a_t+dp*a_t)/(a_l-a_t)**2)
   !a_c=a_l+(-q+sqrt(q**2-3.d0*p*dx))/(3.d0*p)
-end subroutine cal_a_c
+END SUBROUTINE cal_a_c
 !*****************************************************************************************
 subroutine cal_a_c_2(a_l,fx,dx,a_t,fp,dp,a_c)
   implicit none
@@ -1756,7 +1836,7 @@ subroutine cal_a_c_2(a_l,fx,dx,a_t,fp,dp,a_c)
   q=((gamma-dp)+gamma)+dx
   r=p/q
   a_c=a_t+r*(a_l-a_t)
-end subroutine cal_a_c_2
+END SUBROUTINE cal_a_c_2
 !*****************************************************************************************
 subroutine cal_a_c_3(a_l,fx,dx,a_t,fp,dp,stpmin,stpmax,a_c)
   implicit none
@@ -1777,6 +1857,6 @@ subroutine cal_a_c_3(a_l,fx,dx,a_t,fp,dp,stpmin,stpmax,a_c)
   else
      a_c=stpmin
   endif
-end subroutine cal_a_c_3
+END SUBROUTINE cal_a_c_3
 !*****************************************************************************************
 

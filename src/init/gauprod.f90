@@ -1,3 +1,16 @@
+!!****f* BigDFT/restart_from_gaussians
+!! FUNCTION
+!!  Restart from gaussian functions
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA (LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   use module_base
   use module_types
@@ -31,6 +44,7 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   nullify(G%rxyz)
 
 end subroutine restart_from_gaussians
+!!***
 
 
 
@@ -66,7 +80,8 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fil
   !read the information from a file
   inquire(file=filename,exist=exists)
   if (.not. exists) then
-     if (iproc == 0) write(*,'(1x,3a)')&
+     !if (iproc == 0) 
+           write(*,'(1x,3a)')&
           'ERROR: The gaussian wavefunctions file "',trim(filename),'" is lacking, exiting...'
      stop
   end if
@@ -705,8 +720,10 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   allocate(work(100+ndebug),stat=i_stat)
   call memocc(i_stat,work,'work',subname)
 
-  call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),G%ncoeff,&
-       work(1),-1,info)
+  if (norbp > 0) then
+     call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
+          G%ncoeff,work(1),-1,info)
+  end if
   nwork=work(1)
 
   i_all=-product(shape(work))*kind(work)
@@ -717,8 +734,10 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
 
   
   call gaussian_overlap(G,G,ovrlp)
-  call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),G%ncoeff,&
-       work,nwork,info)
+  if (norbp > 0) then
+     call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
+          G%ncoeff,work,nwork,info)
+  end if
 
   i_all=-product(shape(iwork))*kind(iwork)
   deallocate(iwork,stat=i_stat)
@@ -1389,12 +1408,16 @@ subroutine lsh_rotation(l,theta,phi,coeffs)
 end subroutine lsh_rotation
 
 
-! calculate the scalar product between a sum of gaussians times polynomials and a wavefunction
-! \int dx dy dz 
-!           \sum_i=1..ntp fac_arr(i) {
-!                \sum_j=1..nterm psiat(j) [exp(-r^2/(2*(xp(j)^2)))] 
-!                    *((x-rx)^lx(i) *(y-ry)^ly(i) * (z-rz)^lz(i) ))} psi(x,y,z)
-! expressed in Daubechies Basis in the arrays psi_c, psi_f
+!!****f* BigDFT/wavetogau
+!! FUNCTION
+!!   Calculate the scalar product between a sum of gaussians times polynomials and a wavefunction
+!!   \int dx dy dz 
+!!             \sum_i=1..ntp fac_arr(i) {
+!!                  \sum_j=1..nterm psiat(j) [exp(-r^2/(2*(xp(j)^2)))] 
+!!                      *((x-rx)^lx(i) *(y-ry)^ly(i) * (z-rz)^lz(i) ))} psi(x,y,z)
+!!   Expressed in Daubechies Basis in the arrays psi_c, psi_f
+!! SOURCE
+!!
 subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hx,hy,hz, & 
      nseg_c,mvctr_c,keyg_c,keyv_c,nseg_f,mvctr_f,keyg_f,keyv_f,psi_c,psi_f,overlap)
   use module_base
@@ -1519,6 +1542,8 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
   call memocc(i_stat,i_all,'wprojz',subname)
 
 end subroutine wavetogau
+!!***
+
 
 !coefficients of the rotation matrix
 subroutine rotation_matrix(l,t,p,hrot)

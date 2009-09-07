@@ -215,8 +215,9 @@ subroutine apply_hp_hyb(n1,n2,n3, &
   real(gp) hgrid(3)	
 
   call uncompress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-       x(1),x(nvctr_c+1),x_c,x_f,x_f1,x_f2,x_f3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+       nseg_f,nvctr_f,keyg(1,nseg_c+min(1,nseg_f)),keyv(nseg_c+min(1,nseg_f)),   &
+       x(1),x(nvctr_c+min(1,nvctr_f)),x_c,x_f,x_f1,x_f2,x_f3,&
+       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 
   hgrid(1)=hx
   hgrid(2)=hy
@@ -227,7 +228,7 @@ subroutine apply_hp_hyb(n1,n2,n3, &
        hgrid,x_c,x_f,y_c,y_f,cprecr,x_f1,x_f2,x_f3,ibyz,ibxz,ibxy)
 
   call compress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
-       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), & 
-       y_c,y_f,y(1),y(nvctr_c+1),nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
+       nseg_f,nvctr_f,keyg(1,nseg_c+min(1,nseg_f)),keyv(nseg_c+min(1,nseg_f)), & 
+       y_c,y_f,y(1),y(nvctr_c+min(1,nvctr_f)),nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
 end subroutine apply_hp_hyb
 

@@ -1,21 +1,32 @@
-'make check' is the command to perform the series of tests (optimisation of geometry):
+The command 'make check' performs the series of tests (optimisation of geometry):
 - C             carbon atom
 - Ca2           dimer of Ca
+- Davidson-SiH4 calculate the Kohn-Sham eigenvalues (diagonalisation)
+- GPU           test using Graphics Processing Units
 - H             hydrogen atom
 - H-spin        hydrogen atom with Local Spin Density
+- H2O-CP2K      use the output wavefunctions from CP2K
+- H2O-slab      calculation of a slab of H2O molecules (surface boundary conditions)
 - Li+           lithium ion
+- MINHOP        use the minima hopping algorithm (program global from file global.F90)
+                Warning: The file 'global.f90' is not freely distributed
 - Mn2           non-collinear spin
 - NaCl          sodium chloride
+- NEB           nudged elastic band method (EXPERIMENTAL)
+- SiBulk        periodic calculation of silicon
 - SiH4          silane
-- Davidson-SiH4 calculate the Kohn-Sham eigenvalues (diagonalisation)
 - SiBulk        a periodic cell of 8 Si atoms
-- H2O-CP2K      Use the output wavefunctions from CP2K
                 (example to import wavefunctions from Gaussian basis sets)
-- MINHOP        Use the minima hopping algorithm (program global from file global.F90)
-                Warning: The file 'global.f90' is not freely distributed
 
-This call the program "cluster" in the src directories.
-The program "memguess" followed by the number of processors checks the input files and estimates the required memory.
+
+Executables (src directory):
+----------------------------
+- cluster       main executable
+- memguess <nb proc> [y|n]     
+                checks the input files and estimates the required memory fro a given number of processors
+- global        global minimum research
+- frequencies   calculations of frequencies (frozen phonon approximation)
+
 
 The input files are:
 - input.dat for the parameters of calculations
@@ -23,8 +34,8 @@ The input files are:
             The format is the number of atoms + atomic, bohr or angstroem for units
             and per line coordinates and name of each atoms
 - psppar.<name of atom> for the pseudopotentiel (ex, 'psppar.H_lda)
-            In this version only GTH pseudopotentials are used (PRB 54, 1703 (1996))
-            HGH will be available shortly
+            GTH pseudopotentials (PRB 54, 1703 (1996))
+            HGH and modified HGH (PRB 58, 3641 (1998) and Theor. Chem. Acc. 114, 145 (2005))
 
 - inguess.dat for the initial guess of wavefunctions (sum of gaussian functions)
             IF THIS FILE IS NOT PRESENT, THE INPUT GUESS IS AUTOMATICALLY GENERATED.
@@ -40,7 +51,7 @@ A diff is performed after each calculations to check the accuracy.
 1.d0     frac_fluct: geometry optimization stops if force norm less than frac_fluct of noise
 0.d0     randdis: random amplitude for atoms
 4.d0     betax: steepest descent step size,  if negative automatic determination
-.45      hgrid: grid spacing
+0.45     hgrid: grid spacing
 5.0      crmult:   crmult*radii_cf(*,1) gives the coarse radius around each atom
 9.       frmult:   frmult*radii_cf(*,2) gives the fine   radius around each atom
 1        ixc: exchange-correlation parameter (LDA=1)
@@ -53,7 +64,7 @@ A diff is performed after each calculations to check the accuracy.
 5.       rbuf  : length of the tail to be added (in atomic units)
 30       ncongt: number of conjugate gradient iterations for the calculation of tail
 1 0      nspin=1 non-spin polarization, mpol=total magnetic moment
-0 .false. .false. InputPsiId, output_wf, output_grid 
+0 .false. 0 InputPsiId, output_wf, output_density (cube format)
 
 For accuracy, we recommend to use 0.45 or lower as hgrid (grid step). 
 For some systems (Si), it is possible to increase hgrid.
@@ -62,12 +73,32 @@ to save time.
 
 "posinp" file
 -------------
-          2   angstroem
+ 2   angstroem
  10. 10. 10. Na_lda
  10. 10. 12.36 Cl_lda 
 
-You specify the number of atoms followed by the units (angstroem or bohr)
-Then the coordinates of the atoms
+You specify the number of atoms followed by the units (angstroem, bohr or reduced)
+Then the coordinates of the atoms.
+
+For a periodic system, you have:
+8 reduced
+periodic 10.26085381075144364474 10.26085381075144364474 10.26085381075144364474
+Si 0.   0.   0.
+Si 0.5  0.5  0.
+Si 0.5  0.   0.5
+Si 0.   0.5  0.5
+Si 0.25 0.25 0.25
+Si 0.75 0.75 0.25
+Si 0.75 0.25 0.75
+Si 0.25 0.75 0.75
+
+and for a surface calculation:
+3 angstroem
+surface 3.0 0.0 3.0
+O 1.5     0.0    1.5    
+H  .7285 0.620919 1.5 
+H  2.2715  0.620919 1.5 
+
 
 psppar.<name of atom> files
 ---------------------------

@@ -5,7 +5,11 @@
 !! AUTHOR
 !!    Luigi Genovese
 !! COPYRIGHT
-!!    Copyright (C) 2007 CEA
+!!   Copyright (C) 2007-2009 CEA
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
 !!
 !! SOURCE
 !!
@@ -21,9 +25,9 @@ program memguess
   character(len=20) :: tatonam
   character(len=40) :: comment
   logical :: optimise,GPUtest,convert=.false.,exists
-  integer :: nelec,ntimes,nproc,i_stat,ierror,i_all,output_grid
-  integer :: norbe,norbsc,nvctrp,nspin,iorb,norbu,norbd,nspinor,norb
-  integer :: iunit,ityp,norbgpu,nspin_ig
+  integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
+  integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
+  integer :: norbgpu,nspin_ig
   real(kind=8) :: peakmem,hx,hy,hz
   type(input_variables) :: in
   type(atoms_data) :: atoms
@@ -40,10 +44,13 @@ program memguess
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
   real(kind=8), dimension(:), allocatable :: locrad
-
+  !! By Ali
+  integer ::iline,ierror
+  character :: Dummy
 ! Get arguments
+
   call getarg(1,tatonam)
-  
+
   optimise=.false.
   GPUtest=.false.
   if(trim(tatonam)=='') then
@@ -109,6 +116,29 @@ program memguess
      end if
   end if
 
+!!$  open(unit=1,file='input.memguess',status='old')
+!!$  
+!!$  !line number, to control the input values
+!!$  iline=0
+!!$  
+!!$  !number of MPI proccessors
+!!$  read(1,*) nproc
+!!$  write(*,*) 'Number of mpi processes is: ',nproc
+!!$  
+!!$  read(1,*) optimise
+!!$  if (optimise) write(*,*) 'Molecule will be rotated to minimize simulation box size and workarrays in BigDFT'
+!!$  
+!!$  !    "T"  If the system grid is to be displayed in the "grid.xyz" file
+!!$  read(1,*) output_grid
+!!$  write(*,*)  'output_grid= ',output_grid
+!!$  
+!!$  !    "T"   'Perform the test with GPU, if present.'   
+!!$  read(1,*) GPUtest
+!!$  if (GPUtest) write(*,*) 'Perform the test with GPU'
+!!$!!! END of By Ali
+
+
+
   !initialize memory counting
   call memocc(0,0,'count','start')
 
@@ -119,7 +149,7 @@ program memguess
   call read_atomic_file('posinp',0,atoms,rxyz)
 
   if (convert) then
-     call read_input_variables(0,'input.dft',in)
+     call read_input_variables(0,'input.dat',in)
      write(*,'(a)',advance='NO')' Conversion of the input file...'
      call dft_input_converter(in)
      write(*,*)' ...done'
@@ -266,10 +296,10 @@ program memguess
   ! De-allocations
   i_all=-product(shape(orbs%occup))*kind(orbs%occup)
   deallocate(orbs%occup,stat=i_stat)
-  call memocc(i_stat,i_all,'occup',subname)
+  call memocc(i_stat,i_all,'orbs%occup',subname)
   i_all=-product(shape(orbs%spinsgn))*kind(orbs%spinsgn)
   deallocate(orbs%spinsgn,stat=i_stat)
-  call memocc(i_stat,i_all,'spinsgn',subname)
+  call memocc(i_stat,i_all,'orbs%spinsgn',subname)
   i_all=-product(shape(orbs%kpts))*kind(orbs%kpts)
   deallocate(orbs%kpts,stat=i_stat)
   call memocc(i_stat,i_all,'orbs%kpts',subname)
@@ -318,7 +348,7 @@ program memguess
         orbstst%spinsgn(iorb)=1.0_gp
      end do
 
-     call createWavefunctionsDescriptors(0,nproc,hx,hy,hz,&
+     call createWavefunctionsDescriptors(0,hx,hy,hz,&
           atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst)
      
      call compare_cpu_gpu_hamiltonian(0,1,atoms,orbstst,nspin,in%ncong,in%ixc,&
@@ -364,38 +394,38 @@ program memguess
   call memocc(i_stat,i_all,'logrid',subname)
   i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
   deallocate(nlpspd%nvctr_p,stat=i_stat)
-  call memocc(i_stat,i_all,'nvctr_p',subname)
+  call memocc(i_stat,i_all,'nlpspd%nvctr_p',subname)
   i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
   deallocate(nlpspd%nseg_p,stat=i_stat)
-  call memocc(i_stat,i_all,'nseg_p',subname)
+  call memocc(i_stat,i_all,'nlpspd%nseg_p',subname)
   i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
   deallocate(nlpspd%nboxp_c,stat=i_stat)
-  call memocc(i_stat,i_all,'nboxp_c',subname)
+  call memocc(i_stat,i_all,'nlpspd%nboxp_c',subname)
   i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
   deallocate(nlpspd%nboxp_f,stat=i_stat)
-  call memocc(i_stat,i_all,'nboxp_f',subname)
+  call memocc(i_stat,i_all,'nlpspd%nboxp_f',subname)
   i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
   deallocate(atoms%ifrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'ifrztyp',subname)
+  call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
   i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
   deallocate(atoms%natpol,stat=i_stat)
-  call memocc(i_stat,i_all,'natpol',subname)
+  call memocc(i_stat,i_all,'atoms%natpol',subname)
   i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
   deallocate(atoms%psppar,stat=i_stat)
-  call memocc(i_stat,i_all,'psppar',subname)
+  call memocc(i_stat,i_all,'atoms%psppar',subname)
   i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
   deallocate(atoms%npspcode,stat=i_stat)
-  call memocc(i_stat,i_all,'npspcode',subname)
+  call memocc(i_stat,i_all,'atoms%npspcode',subname)
   i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
   deallocate(atoms%nelpsp,stat=i_stat)
-  call memocc(i_stat,i_all,'nelpsp',subname)
+  call memocc(i_stat,i_all,'atoms%nelpsp',subname)
   !no need of using nzatom array
   i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
   deallocate(atoms%nzatom,stat=i_stat)
-  call memocc(i_stat,i_all,'nzatom',subname)
+  call memocc(i_stat,i_all,'atoms%nzatom',subname)
   i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
   deallocate(atoms%iasctype,stat=i_stat)
-  call memocc(i_stat,i_all,'iasctype',subname)
+  call memocc(i_stat,i_all,'atoms%iasctype',subname)
 
 
   call MemoryEstimator(atoms%geocode,nproc,in%idsx,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
@@ -408,7 +438,7 @@ program memguess
 
   i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
   deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atomnames',subname)
+  call memocc(i_stat,i_all,'atoms%atomnames',subname)
   i_all=-product(shape(radii_cf))*kind(radii_cf)
   deallocate(radii_cf,stat=i_stat)
   call memocc(i_stat,i_all,'radii_cf',subname)
@@ -417,14 +447,17 @@ program memguess
   call memocc(i_stat,i_all,'rxyz',subname)
   i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
   deallocate(atoms%iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'iatype',subname)
+  call memocc(i_stat,i_all,'atoms%iatype',subname)
+  i_all=-product(shape(atoms%amu))*kind(atoms%amu)
+  deallocate(atoms%amu,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%amu',subname)
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
-  
+
 end program memguess
 !!***
-
+  
 
 !!****f* BigDFT/optimise_volume
 !! FUNCTION
@@ -698,6 +731,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   use module_types
   use module_interfaces
   use Poisson_Solver
+  use libxc_functionals
+
   implicit none
   integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
   real(gp), intent(in) :: hx,hy,hz
@@ -708,7 +743,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !local variables
   character(len=*), parameter :: subname='compare_cpu_gpu_hamiltonian'
   logical :: rsflag
-  integer :: icoeff,norb,norbu,norbd,nspinor,i_stat,i_all,i1,i2,i3,ispin,j
+  integer :: icoeff,i_stat,i_all,i1,i2,i3,ispin,j
   integer :: iorb,n3d,n3p,n3pi,i3xcsh,i3s,jproc,nrhotot,nspinn,nvctrp
   real(kind=4) :: tt,t0,t1
   real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum,ekinGPU,epotGPU,gnrm,gnrmGPU
@@ -784,7 +819,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   end if
 
   !flag for toggling the REDUCE_SCATTER stategy
-  rsflag=.not. (ixc >= 11 .and. ixc <=16)
+  rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
+       & (ixc < 0 .and. libxc_functionals_isgga()))
 
   !calculate dimensions of the complete array to be allocated before the reduction procedure
   if (rsflag) then

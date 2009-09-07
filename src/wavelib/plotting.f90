@@ -1,18 +1,95 @@
-subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi,comment)
+subroutine plot_wf(kindplot,orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
   implicit none
-!!$  character(len=10) :: orbname,comment 
-  character(*) :: orbname,comment 
-  real(gp), intent(in) :: hx,hy,hz,rx,ry,rz
+  character(len=*) :: kindplot
+  character(len=10) :: comment
+  character(len=11) :: orbname
+  type(atoms_data), intent(in) :: at
+  real(gp), intent(in) :: hx,hy,hz
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
+  !local variables
+  character(len=*), parameter :: subname='plot_wf'
+  integer :: i_stat,i_all,i
+  integer :: nl1,nl2,nl3,n1i,n2i,n3i,n1,n2,n3
+  type(workarr_sumrho) :: w
+  real(wp), dimension(:), allocatable :: psir
+
+  n1=lr%d%n1
+  n2=lr%d%n2
+  n3=lr%d%n3
+  n1i=lr%d%n1i
+  n2i=lr%d%n2i
+  n3i=lr%d%n3i
+
+  call initialize_work_arrays_sumrho(lr,w)
+ 
+  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i+ndebug),stat=i_stat)
+  call memocc(i_stat,psir,'psir',subname)
+  !initialisation
+  if (lr%geocode == 'F') then
+     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
+  end if
+ 
+  call daub_to_isf(lr,w,psi,psir)
+
+  if (lr%geocode /= 'F') then
+     nl1=1
+     nl3=1
+  else
+     nl1=14
+     nl3=14
+  end if
+  !value of the buffer in the y direction
+  if (lr%geocode == 'P') then
+     nl2=1
+  else
+     nl2=14
+  end if
+
+  if (trim(kindplot)=='POT') then
+     !call plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,psir)
+     call plot_pot_full(hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+          nl1,nl2,nl3,orbname,psir,comment)
+  else if (trim(kindplot)=='CUBE') then
+     call plot_cube_full(at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+          nl1,nl2,nl3,orbname,psir,comment)
+  else
+     stop 'ERROR: plotting format not recognized'
+  end if
+  i_all=-product(shape(psir))*kind(psir)
+  deallocate(psir,stat=i_stat)
+  call memocc(i_stat,i_all,'psir',subname)
+
+  call deallocate_work_arrays_sumrho(w)
+
+END SUBROUTINE plot_wf
+
+subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
+  use module_base
+  use module_types
+  implicit none
+!HU  character(len=10) :: orbname,comment 
+  character(len=10) :: comment
+  character(len=11) :: orbname
+  type(atoms_data), intent(in) :: at
+  real(gp), intent(in) :: hx,hy,hz
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
   !local variables
   character(len=*), parameter :: subname='plot_wf'
   integer :: nw1,nw2,i_stat,i_all,i,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
   integer :: nxc,nxf,nl1,nl2,nl3,n1i,n2i,n3i
+  real(gp) :: rx, ry, rz
   real(wp), dimension(0:3) :: scal
   real(wp), dimension(:), allocatable :: psir,w1,w2,x_c_psifscf,x_f_psig
+
+  rx=rxyz(1,1)
+  ry=rxyz(2,1)
+  rz=rxyz(3,1)
 
   n1=lr%d%n1
   n2=lr%d%n2
@@ -139,14 +216,17 @@ subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi,comment)
 
 
   !call plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,psir)
-  call plot_pot_full(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+!HU  call plot_pot_full(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+!HU       nl1,nl2,nl3,orbname,psir,comment)
+  call plot_cube_full(at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
        nl1,nl2,nl3,orbname,psir,comment)
 
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)
 
-END SUBROUTINE plot_wf
+END SUBROUTINE plot_wf_cube
+
 
 subroutine plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,pot)
   use module_base
@@ -196,13 +276,13 @@ subroutine plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,po
 
 end subroutine plot_pot
 
-subroutine plot_pot_full(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+subroutine plot_pot_full(hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
   use module_base
   implicit none
   character(len=10), intent(in) :: orbname,comment
   integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,n1i,n2i,n3i
-  real(gp), intent(in) :: rx,ry,rz,hx,hy,hz
+  real(gp), intent(in) :: hx,hy,hz
   real(dp), dimension(*), intent(in) :: pot
   !local variables
   integer :: i1,i2,i3,ind
@@ -214,7 +294,6 @@ subroutine plot_pot_full(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   hxh=.5_gp*hx
   hyh=.5_gp*hy
   hzh=.5_gp*hz
-
 !  write(orbname,'(i0)')iounit
 !  open(unit=22,file='psi'//orbname//'.pot',status='unknown')
   open(unit=22,file=orbname//'.pot',status='unknown')
@@ -237,6 +316,75 @@ subroutine plot_pot_full(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
 !  close(unit=23) 
 
 end subroutine plot_pot_full
+
+subroutine plot_cube_full(at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+     nl1,nl2,nl3,orbname,pot,comment)
+  use module_base
+  use module_types
+  implicit none
+!HU  character(len=10), intent(in) :: orbname,comment
+  character(len=10), intent(in) :: comment
+  character(len=11), intent(in) :: orbname
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,n1i,n2i,n3i
+  real(gp), intent(in) :: hx,hy,hz
+  real(dp), dimension(*), intent(in) :: pot
+  !local variables
+  integer :: i1,i2,i3,ind,iat,j,icount
+  real(gp) :: hxh,hyh,hzh
+  character(len=3) :: advancestring
+
+!virtual orbitals are identified by their name
+!  write(*,'(1x,a,i0)')'printing orbital number= ',iounit
+  write(*,'(A)')'printing '//orbname
+  hxh=.5_gp*hx
+  hyh=.5_gp*hy
+  hzh=.5_gp*hz
+
+  open(unit=22,file=orbname//'.cube',status='unknown')
+  write(22,*)orbname
+  write(22,*)'CUBE file for orbital wavefunction'
+  !number of atoms
+  if (at%geocode=='P') then
+     write(22,'(i5,3(f12.6))') at%nat,0.0_gp,0.0_gp,0.0_gp
+  else if (at%geocode=='S') then
+     write(22,'(i5,3(f12.6))') at%nat,0.0_gp,-hyh,0.0_gp
+  else if (at%geocode=='F') then
+     write(22,'(i5,3(f12.6))') at%nat,-hxh,-hyh,-hzh
+  end if
+  !grid and grid spacings
+  write(22,'(i5,3(f12.6))') 2*n1+2,hxh,0.0_gp,0.0_gp
+  write(22,'(i5,3(f12.6))') 2*n2+2,0.0_gp,hyh,0.0_gp
+  write(22,'(i5,3(f12.6))') 2*n3+2,0.0_gp,0.0_gp,hzh
+  !atomic number and positions
+  do iat=1,at%nat
+     write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
+  end do
+
+  !the loop is reverted for a cube file
+  !charge normalised to the total charge
+
+  do i1=0,2*n1+1
+     do i2=0,2*n2+1
+        icount=0
+        do i3=0,2*n3+1
+           icount=icount+1
+           if (icount == 6 .or. i3==2*n3+1) then
+              advancestring='yes'
+              icount=0
+           else
+              advancestring='no'
+           end if
+
+           ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
+           write(22,'(1x,1pe13.6)',advance=advancestring) pot(ind)
+        end do
+     end do
+  end do
+  close(22)
+
+end subroutine plot_cube_full
 
 subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
   use module_base
@@ -288,12 +436,12 @@ subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
 
 end subroutine plot_psifscf
 
-subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,nelec,rho)
+subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=*), intent(in) :: filename
-  integer, intent(in) :: n1i,n2i,n3i,n3d,n1,n2,n3,nelec,i3s
+  integer, intent(in) :: n1i,n2i,n3i,n3d,n1,n2,n3,i3s
   real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
   !local variables
   integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,j1,j2,j3
@@ -330,7 +478,7 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,nelec,rho)
            ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-i3s)*n1i*n2i
            read(22,*)value
            if (i3+nl3 >= i3s .and. i3+nl3 <= i3s+n3d-1) then
-              rho(ind)=value*real(nelec,dp)
+              rho(ind)=value
            end if
         end do
      end do
@@ -340,13 +488,13 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,nelec,rho)
 end subroutine read_potfile
 
 
-subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nelec,&
+subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
      alat1,alat2,alat3,ngatherarr,rho)
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nelec,nproc
+  integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nproc
   real(gp), intent(in) :: alat1,alat2,alat3
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(dp), dimension(n1i*n2i*n3p), target, intent(in) :: rho
@@ -399,7 +547,7 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ne
         do i2=0,2*n2+1
            do i1=0,2*n1+1
               ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-              write(22,*)pot_ion(ind)/real(nelec,dp)
+              write(22,*)pot_ion(ind)
            end do
         end do
      end do

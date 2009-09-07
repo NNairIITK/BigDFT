@@ -181,8 +181,8 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
   !local variables
   integer, parameter :: nterm_max=20 !if GTH nterm_max=4
   integer :: istart_c,istart_f,mvctr_c,mvctr_f,mbvctr_c,mbvctr_f
-  integer :: nl1_c,nl1_f,nl2_c,nl2_f,nl3_c,nl3_f,nu1_c,nu1_f,nu2_c,nu2_f,nu3_c,nu3_f
-  integer :: iat,i,l,m,iproj,ityp,nterm,nwarnings,iterm
+  !integer :: nl1_c,nl1_f,nl2_c,nl2_f,nl3_c,nl3_f,nu1_c,nu1_f,nu2_c,nu2_f,nu3_c,nu3_f
+  integer :: iat,i,l,m,iproj,ityp,nterm,nwarnings,iterm,mbseg_c,mbseg_f,jseg_c
   real(gp) :: fpi,factor,gau_a,rx,ry,rz
   real(dp) :: scpr
   integer, dimension(3) :: nterm_arr
@@ -204,16 +204,20 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
      mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
      mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
 
+     mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
+     mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
+     jseg_c=nlpspd%nseg_p(2*iat-2)+1
+
      !decide the loop bounds
      do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
         do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
            if (at%psppar(l,i,ityp) /= 0.0_gp) then
               
               call projector(at%geocode,at%atomnames(ityp),iproc,iat,idir,l,i,&
-                   at%psppar(l,0,ityp),rxyz(1,iat),&
-                   nlpspd%nboxp_c(1,1,iat),nlpspd%nboxp_f(1,1,iat),n1,n2,n3,&
+                   at%psppar(l,0,ityp),rxyz(1,iat),n1,n2,n3,&
                    hx,hy,hz,cpmult,fpmult,radii_cf(ityp,3),radii_cf(ityp,2),&
-                   mbvctr_c,mbvctr_f,proj(istart_c),nwarnings)
+                   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                   nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),nwarnings)
               iproj=iproj+2*l-1
               istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)
               if (istart_c > nlpspd%nprojel+1) stop 'istart_c > nprojel+1'
@@ -238,21 +242,26 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
 
 end subroutine fill_projectors
 
-subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,nboxp_c,nboxp_f,n1,n2,n3,&
-     hx,hy,hz,cpmult,fpmult,radius_c,radius_f,mbvctr_c,mbvctr_f,proj,nwarnings)
+subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
+     hx,hy,hz,cpmult,fpmult,radius_c,radius_f,&
+     mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj,nwarnings)
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=20), intent(in) :: atomname
-  integer, intent(in) :: iat,iproc,idir,l,i,n1,n2,n3,mbvctr_c,mbvctr_f
+  integer, intent(in) :: iat,iproc,idir,l,i,n1,n2,n3,mbvctr_c,mbvctr_f,mseg_c,mseg_f
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult,radius_c,radius_f,gau_a
-  integer, dimension(2,3), intent(in) :: nboxp_c,nboxp_f
+  !integer, dimension(2,3), intent(in) :: nboxp_c,nboxp_f
+  integer, dimension(mseg_c+mseg_f), intent(in) :: keyv_p
+  integer, dimension(2,mseg_c+mseg_f), intent(in) :: keyg_p
+
   real(gp), dimension(3), intent(in) :: rxyz
   integer, intent(inout) :: nwarnings
   real(wp), dimension((mbvctr_c+7*mbvctr_f)*(2*l-1)), intent(out) :: proj
   !local variables
   integer, parameter :: nterm_max=20 !if GTH nterm_max=4
-  integer :: m,iterm,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
+  integer :: m,iterm
+  !integer :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
   integer :: istart_c,istart_f,nterm
   real(gp) :: fpi,factor,rx,ry,rz
   real(dp) :: scpr
@@ -269,19 +278,19 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,nboxp_c,nbox
   ry=rxyz(2) 
   rz=rxyz(3)
 
-  nl1_c=nboxp_c(1,1)
-  nl2_c=nboxp_c(1,2)
-  nl3_c=nboxp_c(1,3)
-  nl1_f=nboxp_f(1,1)
-  nl2_f=nboxp_f(1,2)
-  nl3_f=nboxp_f(1,3)
-
-  nu1_c=nboxp_c(2,1)
-  nu2_c=nboxp_c(2,2)
-  nu3_c=nboxp_c(2,3)
-  nu1_f=nboxp_f(2,1)
-  nu2_f=nboxp_f(2,2)
-  nu3_f=nboxp_f(2,3)
+!!$  nl1_c=nboxp_c(1,1)
+!!$  nl2_c=nboxp_c(1,2)
+!!$  nl3_c=nboxp_c(1,3)
+!!$  nl1_f=nboxp_f(1,1)
+!!$  nl2_f=nboxp_f(1,2)
+!!$  nl3_f=nboxp_f(1,3)
+!!$
+!!$  nu1_c=nboxp_c(2,1)
+!!$  nu2_c=nboxp_c(2,2)
+!!$  nu3_c=nboxp_c(2,3)
+!!$  nu1_f=nboxp_f(2,1)
+!!$  nu2_f=nboxp_f(2,2)
+!!$  nu3_f=nboxp_f(2,3)
 
 
   istart_c=1
@@ -289,6 +298,8 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,nboxp_c,nbox
   factor=sqrt(2.0_gp)*fpi/(sqrt(gau_a)**(2*(l-1)+4*i-1))
   do m=1,2*l-1
      istart_f=istart_c+mbvctr_c
+     !this is to avoid boundary problem
+     if (mbvctr_f == 0) istart_f=istart_f-1
      
      if (idir==0) then !normal projector calculation case
         call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,factors)
@@ -306,10 +317,15 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,nboxp_c,nbox
         end do
      end if
      
-     call crtproj(geocode,iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
-          & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radius_c,radius_f, & 
+     call crtproj(geocode,iproc,nterm,n1,n2,n3,radius_c,radius_f, & 
           & cpmult,fpmult,hx,hy,hz,gau_a,factors,rx,ry,rz,lx,ly,lz, & 
-          & mbvctr_c,mbvctr_f,proj(istart_c),proj(istart_f))
+          & mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c),proj(istart_f))
+
+!!$     call crtproj(geocode,iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
+!!$          & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radius_c,radius_f, & 
+!!$          & cpmult,fpmult,hx,hy,hz,gau_a,factors,rx,ry,rz,lx,ly,lz, & 
+!!$          & mbvctr_c,mbvctr_f,proj(istart_c),proj(istart_f))
+
      
      ! testing
      if (idir == 0) then
@@ -317,7 +333,7 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,nboxp_c,nbox
              & proj(istart_f),scpr)
         if (abs(1.d0-scpr) > 1.d-2) then
            if (abs(1.d0-scpr) > 1.d-1) then
-              if (iproc == 0) then
+              !if (iproc == 0) then
                  write(*,'(1x,a)')'error found!'
                  write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
                       'The norm of the nonlocal PSP for atom n=',iat,&
@@ -325,7 +341,7 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,nboxp_c,nbox
                       ') labeled by l=',l,' m=',m,' is ',scpr
                  write(*,'(1x,a)')&
                       'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
-              end if
+              !end if
               stop
            else
 !!$              write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
@@ -342,7 +358,7 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,nboxp_c,nbox
         !enddo
      end if
      !end testing
-     istart_c=istart_f+7*mbvctr_f
+     istart_c=istart_c+mbvctr_c+7*mbvctr_f
   enddo
 end subroutine projector
 
@@ -375,32 +391,37 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
 
 end subroutine numb_proj
 
+!!$subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, & 
+!!$     nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,  & 
+!!$     radius_c,radius_f,cpmult,fpmult,hx,hy,hz,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
+!!$     mvctr_c,mvctr_f,proj_c,proj_f)
 subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, & 
-     nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,  & 
      radius_c,radius_f,cpmult,fpmult,hx,hy,hz,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
-     mvctr_c,mvctr_f,proj_c,proj_f)
+     mvctr_c,mvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj_c,proj_f)
   ! returns the compressed form of a Gaussian projector 
   ! x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 ))
   ! in the arrays proj_c, proj_f
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nterm,n1,n2,n3,mvctr_c,mvctr_f
-  integer, intent(in) :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
+  integer, intent(in) :: iproc,nterm,n1,n2,n3,mvctr_c,mvctr_f,mseg_c,mseg_f
+  !  integer, intent(in) :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
   real(gp), intent(in) :: radius_c,radius_f,cpmult,fpmult,hx,hy,hz,gau_a,rx,ry,rz
   integer, dimension(nterm), intent(in) :: lx,ly,lz
   real(gp), dimension(nterm), intent(in) :: fac_arr
+  integer, dimension(mseg_c+mseg_f), intent(in) :: keyv_p
+  integer, dimension(2,mseg_c+mseg_f), intent(in) :: keyg_p
   real(wp), dimension(mvctr_c), intent(out) :: proj_c
   real(wp), dimension(7,mvctr_f), intent(out) :: proj_f
   !local variables
   character(len=*), parameter :: subname='crtproj'
   integer, parameter :: nw=32000
   logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
-  integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3,mvctr,i_all,i_stat,j1,j2,j3
+  integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3
+  integer :: mvctr,i_all,i_stat,j1,j2,j3,ithread,nthread,i0,j0,jj,ii,i,iseg
   real(gp) :: rad_c,rad_f,factor,err_norm,dz2,dy2,dx2,te,d2,cpmult_max,fpmult_max
   real(wp), dimension(0:nw,2) :: work
   real(wp), allocatable, dimension(:,:,:) :: wprojx,wprojy,wprojz
-
 
   allocate(wprojx(0:n1,2,nterm+ndebug),stat=i_stat)
   call memocc(i_stat,wprojx,'wprojx',subname)
@@ -440,118 +461,223 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
 !!$        if (mu1 < max(nu1_c,nu1_f)) write(*,*) 'Projector box larger than needed: mu1'
 !!$        if (mu2 < max(nu2_c,nu2_f)) write(*,*) 'Projector box larger than needed: mu2'
 !!$        if (mu3 < max(nu3_c,nu3_f)) write(*,*) 'Projector box larger than needed: mu3'
-!!$        
-!!$        !!approximate maximum value for cpmult,fpmult
-!!$        !cpmult_max=max((nu1_c-nl1_c)*hx*0.5d0/radius_f,&
-!!$        !     (nu2_c-nl2_c)*hy*0.5d0/radius_f,(nu3_c-nl3_c)*hz*0.5d0/radius_f)
-!!$        !fpmult_max=max((nu1_f-nl1_f)*hx*0.5d0/radius_f,&
-!!$        !     (nu2_f-nl2_f)*hy*0.5d0/radius_f,(nu3_f-nl3_f)*hz*0.5d0/radius_f)
-!!$        !print *,'cpmult_max,fpmult_max=',cpmult_max,fpmult_max
 !!$     endif
 
      !print *,iterm,ml1,mu1,ml2,mu2,ml3,mu3,n1,n2,n3,rad_c,rad_f
 
   end do
-  !        if (iproc.eq.0) write(*,*) 'max err_norm ',err_norm
 
-  ! First term: coarse projector components
-  !write(*,*) 'rad_c=',rad_c
-  
+  !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
+  !$omp shared(n1,proj_c,wprojx,wprojy,wprojz,mvctr_c) &
+  !$omp shared(proj_f,nterm,mvctr_f,mseg_f)
+  !$	ithread=omp_get_thread_num()
+  !$	nthread=omp_get_num_threads()
+
+  !$  if(ithread .eq. 0) then 
   mvctr=0
-
-  do i3=nl3_c,nu3_c
-     dz2=d2(i3,hz,n3,rz,perz)
-     do i2=nl2_c,nu2_c
-        dy2=d2(i2,hy,n2,ry,pery)
-        do i1=nl1_c,nu1_c
-           dx2=d2(i1,hx,n1,rx,perx)
-           if (dx2+(dy2+dz2) <= rad_c**2) then
-              mvctr=mvctr+1
-              proj_c(mvctr)=wprojx(i1,1,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
-           endif
-        enddo
+  ! coarse part
+  do iseg=1,mseg_c
+     jj=keyv_p(iseg)
+     j0=keyg_p(1,iseg)
+     j1=keyg_p(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        mvctr=mvctr+1
+        proj_c(i-i0+jj)=&
+             wprojx(i,1,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
      enddo
   enddo
+
+!!$  do i3=nl3_c,nu3_c
+!!$     dz2=d2(i3,hz,n3,rz,perz)
+!!$     do i2=nl2_c,nu2_c
+!!$        dy2=d2(i2,hy,n2,ry,pery)
+!!$        do i1=nl1_c,nu1_c
+!!$           dx2=d2(i1,hx,n1,rx,perx)
+!!$           if (dx2+(dy2+dz2) <= rad_c**2) then
+!!$              mvctr=mvctr+1
+!!$              proj_c(mvctr)=wprojx(i1,1,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
+!!$           endif
+!!$        enddo
+!!$     enddo
+!!$  enddo
 
   if (mvctr /=  mvctr_c) then
      write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_c ',mvctr,mvctr_c
      stop
   end if
+  !$  end if
 
+  !$  if(ithread .eq. 1 .or. nthread .eq. 1) then
   ! First term: fine projector components
+  ! fine part
   mvctr=0
-  do i3=nl3_f,nu3_f
-     dz2=d2(i3,hz,n3,rz,perz)
-     do i2=nl2_f,nu2_f
-        dy2=d2(i2,hy,n2,ry,pery)
-        do i1=nl1_f,nu1_f
-           dx2=d2(i1,hx,n1,rx,perx)
-           if (dx2+(dy2+dz2) <= rad_f**2) then
-              mvctr=mvctr+1
-              proj_f(1,mvctr)=wprojx(i1,2,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
-              proj_f(2,mvctr)=wprojx(i1,1,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
-              proj_f(3,mvctr)=wprojx(i1,2,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
-              proj_f(4,mvctr)=wprojx(i1,1,1)*wprojy(i2,1,1)*wprojz(i3,2,1)
-              proj_f(5,mvctr)=wprojx(i1,2,1)*wprojy(i2,1,1)*wprojz(i3,2,1)
-              proj_f(6,mvctr)=wprojx(i1,1,1)*wprojy(i2,2,1)*wprojz(i3,2,1)
-              proj_f(7,mvctr)=wprojx(i1,2,1)*wprojy(i2,2,1)*wprojz(i3,2,1)
-           endif
-        enddo
+  do iseg=mseg_c+1,mseg_c+mseg_f
+     jj=keyv_p(iseg)
+     j0=keyg_p(1,iseg)
+     j1=keyg_p(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        mvctr=mvctr+1
+        proj_f(1,i-i0+jj)=wprojx(i,2,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
+        proj_f(2,i-i0+jj)=wprojx(i,1,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
+        proj_f(3,i-i0+jj)=wprojx(i,2,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
+        proj_f(4,i-i0+jj)=wprojx(i,1,1)*wprojy(i2,1,1)*wprojz(i3,2,1)
+        proj_f(5,i-i0+jj)=wprojx(i,2,1)*wprojy(i2,1,1)*wprojz(i3,2,1)
+        proj_f(6,i-i0+jj)=wprojx(i,1,1)*wprojy(i2,2,1)*wprojz(i3,2,1)
+        proj_f(7,i-i0+jj)=wprojx(i,2,1)*wprojy(i2,2,1)*wprojz(i3,2,1)
      enddo
   enddo
+
+
+!!$  do i3=nl3_f,nu3_f
+!!$     dz2=d2(i3,hz,n3,rz,perz)
+!!$     do i2=nl2_f,nu2_f
+!!$        dy2=d2(i2,hy,n2,ry,pery)
+!!$        do i1=nl1_f,nu1_f
+!!$           dx2=d2(i1,hx,n1,rx,perx)
+!!$           if (dx2+(dy2+dz2) <= rad_f**2) then
+!!$              mvctr=mvctr+1
+!!$              proj_f(1,mvctr)=wprojx(i1,2,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
+!!$              proj_f(2,mvctr)=wprojx(i1,1,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
+!!$              proj_f(3,mvctr)=wprojx(i1,2,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
+!!$              proj_f(4,mvctr)=wprojx(i1,1,1)*wprojy(i2,1,1)*wprojz(i3,2,1)
+!!$              proj_f(5,mvctr)=wprojx(i1,2,1)*wprojy(i2,1,1)*wprojz(i3,2,1)
+!!$              proj_f(6,mvctr)=wprojx(i1,1,1)*wprojy(i2,2,1)*wprojz(i3,2,1)
+!!$              proj_f(7,mvctr)=wprojx(i1,2,1)*wprojy(i2,2,1)*wprojz(i3,2,1)
+!!$           endif
+!!$        enddo
+!!$     enddo
+!!$  enddo
   if (mvctr /= mvctr_f) then
      write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_f ',mvctr,mvctr_f
      stop 
   end if
+  !$  end if
 
-  do iterm=2,nterm
+  if (nterm >= 2) then
 
+     !$  if(ithread .eq. 0) then
      ! Other terms: coarse projector components
-     mvctr=0
-     do i3=nl3_c,nu3_c
-        dz2=d2(i3,hz,n3,rz,perz)
-        do i2=nl2_c,nu2_c
-           dy2=d2(i2,hy,n2,ry,pery)
-           do i1=nl1_c,nu1_c
-              dx2=d2(i1,hx,n1,rx,perx)
-              if (dx2+(dy2+dz2) <= rad_c**2) then
-              mvctr=mvctr+1
-                 proj_c(mvctr)=proj_c(mvctr)+wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
-              endif
-           enddo
-        enddo
-     enddo
+     ! coarse part
+     do iseg=1,mseg_c
+        jj=keyv_p(iseg)
+        j0=keyg_p(1,iseg)
+        j1=keyg_p(2,iseg)
+        ii=j0-1
+        i3=ii/((n1+1)*(n2+1))
+        ii=ii-i3*(n1+1)*(n2+1)
+        i2=ii/(n1+1)
+        i0=ii-i2*(n1+1)
+        i1=i0+j1-j0
+        do i=i0,i1
+           do iterm=2,nterm
+              proj_c(i-i0+jj)=proj_c(i-i0+jj)+&
+                   wprojx(i,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
+           end do
+        end do
+     end do
 
+!!$   mvctr=0
+!!$   do i3=nl3_c,nu3_c
+!!$      dz2=d2(i3,hz,n3,rz,perz)
+!!$      do i2=nl2_c,nu2_c
+!!$         dy2=d2(i2,hy,n2,ry,pery)
+!!$         do i1=nl1_c,nu1_c
+!!$            dx2=d2(i1,hx,n1,rx,perx)
+!!$            if (dx2+(dy2+dz2) <= rad_c**2) then
+!!$               mvctr=mvctr+1
+!!$               do iterm=2,nterm
+!!$                  proj_c(mvctr)=proj_c(mvctr)+&
+!!$                       wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
+!!$               enddo
+!!$            endif
+!!$         enddo
+!!$      enddo
+!!$   enddo
+     !$  end if
+
+     !$  if(ithread .eq. 1 .or. nthread .eq. 0) then
      ! Other terms: fine projector components
-     mvctr=0
-     do i3=nl3_f,nu3_f
-        dz2=d2(i3,hz,n3,rz,perz)
-        do i2=nl2_f,nu2_f
-           dy2=d2(i2,hy,n2,ry,pery)
-           do i1=nl1_f,nu1_f
-              dx2=d2(i1,hx,n1,rx,perx)
-              if (dx2+(dy2+dz2) <= rad_f**2) then
-                 mvctr=mvctr+1
-                 proj_f(1,mvctr)=&
-                      proj_f(1,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
-                 proj_f(2,mvctr)=&
-                      proj_f(2,mvctr)+wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
-                 proj_f(3,mvctr)=&
-                      proj_f(3,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
-                 proj_f(4,mvctr)=&
-                      proj_f(4,mvctr)+wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
-                 proj_f(5,mvctr)=&
-                      proj_f(5,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
-                 proj_f(6,mvctr)=&
-                      proj_f(6,mvctr)+wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
-                 proj_f(7,mvctr)=&
-                      proj_f(7,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
-              endif
-           enddo
-        enddo
-     enddo
+     do iseg=mseg_c+1,mseg_c+mseg_f
+        jj=keyv_p(iseg)
+        j0=keyg_p(1,iseg)
+        j1=keyg_p(2,iseg)
+        ii=j0-1
+        i3=ii/((n1+1)*(n2+1))
+        ii=ii-i3*(n1+1)*(n2+1)
+        i2=ii/(n1+1)
+        i0=ii-i2*(n1+1)
+        i1=i0+j1-j0
+        do i=i0,i1
+           do iterm=2,nterm
+              proj_f(1,i-i0+jj)=proj_f(1,i-i0+jj)+&
+                   wprojx(i,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
+              proj_f(2,i-i0+jj)=proj_f(2,i-i0+jj)+&
+                   wprojx(i,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
+              proj_f(3,i-i0+jj)=proj_f(3,i-i0+jj)+&
+                   wprojx(i,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
+              proj_f(4,i-i0+jj)=proj_f(4,i-i0+jj)+&
+                   wprojx(i,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
+              proj_f(5,i-i0+jj)=proj_f(5,i-i0+jj)+&
+                   wprojx(i,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
+              proj_f(6,i-i0+jj)=proj_f(6,i-i0+jj)+&
+                   wprojx(i,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
+              proj_f(7,i-i0+jj)=proj_f(7,i-i0+jj)+&
+                   wprojx(i,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
+           end do
+!!$         proj_f(1,i-i0+jj)=wprojx(i,2,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
+!!$         proj_f(2,i-i0+jj)=wprojx(i,1,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
+!!$         proj_f(3,i-i0+jj)=wprojx(i,2,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
+!!$         proj_f(4,i-i0+jj)=wprojx(i,1,1)*wprojy(i2,1,1)*wprojz(i3,2,1)
+!!$         proj_f(5,i-i0+jj)=wprojx(i,2,1)*wprojy(i2,1,1)*wprojz(i3,2,1)
+!!$         proj_f(6,i-i0+jj)=wprojx(i,1,1)*wprojy(i2,2,1)*wprojz(i3,2,1)
+!!$         proj_f(7,i-i0+jj)=wprojx(i,2,1)*wprojy(i2,2,1)*wprojz(i3,2,1)
+        end do
+     end do
 
-  enddo
+!!$   mvctr=0
+!!$   do i3=nl3_f,nu3_f
+!!$      dz2=d2(i3,hz,n3,rz,perz)
+!!$      do i2=nl2_f,nu2_f
+!!$         dy2=d2(i2,hy,n2,ry,pery)
+!!$         do i1=nl1_f,nu1_f
+!!$            dx2=d2(i1,hx,n1,rx,perx)
+!!$            if (dx2+(dy2+dz2) <= rad_f**2) then
+!!$               mvctr=mvctr+1
+!!$               do iterm=2,nterm
+!!$                  proj_f(1,mvctr)=proj_f(1,mvctr)+&
+!!$                       wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
+!!$                  proj_f(2,mvctr)=proj_f(2,mvctr)+&
+!!$                       wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
+!!$                  proj_f(3,mvctr)=proj_f(3,mvctr)+&
+!!$                       wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
+!!$                  proj_f(4,mvctr)=proj_f(4,mvctr)+&
+!!$                       wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
+!!$                  proj_f(5,mvctr)=proj_f(5,mvctr)+&
+!!$                       wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
+!!$                  proj_f(6,mvctr)=proj_f(6,mvctr)+&
+!!$                       wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
+!!$                  proj_f(7,mvctr)=proj_f(7,mvctr)+&
+!!$                       wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
+!!$               enddo
+!!$            endif
+!!$         enddo
+!!$      enddo
+!!$   enddo
+     !$  end if
+  end if
+  !$omp end parallel
 
   i_all=-product(shape(wprojx))*kind(wprojx)
   deallocate(wprojx,stat=i_stat)

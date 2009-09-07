@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <unistd.h>
+#include <sstream>
 
 #include "exceptions.h"
 
@@ -15,10 +16,20 @@
 
 #include "localqueu.h"
 #include "convolution_fct_call.h"
+#include "manage_cpu_affinity.h"
+#include "set_repartition.h"
+#include "trace_exec.h"
+#include "manage_global_var.h"
+#include "check_card/checker.h"
+
 
 extern short gpu_precision;
 unsigned int getPrecisionSize();
 
+
+
+
+global_gpu_attach *g_gpu_attach = NULL;
 
 local_network *l = NULL;
 localqueu *locq = NULL;
@@ -26,37 +37,113 @@ localqueu *locq = NULL;
 sem_unix *sem_gpu_CALC;
 sem_unix *sem_gpu_TRSF;
 
+trace_exec *tracer; //litle tracer
 
-
-
-void init_gpu_sharing(const char* NAME_FILE, int *error)
+extern "C"
+void init_lib__(int *iproc,int *error, int *iconv, int *iblas, bool *GPUshare)
 {
   *error = 0;
+
+  *iconv = 0; //gpu disabled by default
+  *iblas = 0;
   try
     {
-      int mpi_tasks_per_node,num_GPU;
-     
-      //read file
+      g_gpu_attach = new global_gpu_attach();
+
+      const char *NAME_FILE = "GPU.config";
       readConfFile read_conf(NAME_FILE);
+
+
+      int mpi_tasks_per_node,num_GPU;
+      int use_shared;
+      int iconv_param,iblas_param;
+
+      //read file
+
       read_conf.get("MPI_TASKS_PER_NODE",&mpi_tasks_per_node);
       read_conf.get("NUM_GPU",&num_GPU);
-      
-      //init node
-      l = new local_network(mpi_tasks_per_node,num_GPU);
+      read_conf.get("USE_SHARED",&use_shared);
+      read_conf.get("USE_GPU_BLAS",&iblas_param);
+      read_conf.get("USE_GPU_CONV",&iconv_param);
 
+
+      manage_cpu_affinity mca(*iproc);
+
+      for(int i=0;i<num_GPU;++i)
+	{
+	  std::ostringstream iss;
+	  std::string aff;
+	  iss << "GPU_CPUS_AFF" << "_" << i;
+	  read_conf.get(iss.str(),aff);
+	  
+	  mca.add_connexion(gpu_cpus_connexion(aff));
+
+	}
+
+
+      set_repartition *set_r;
+      if(use_shared == 1)
+	{
+	  set_r = new set_repartition_shared(mpi_tasks_per_node,num_GPU,*iproc,g_gpu_attach);
+	  *GPUshare = true;
+
+	  //	  *iconv = 1;
+	  //	  *iblas = 1;
+	}
+      else
+	{
+	  set_r = new set_repartition_static(mpi_tasks_per_node,num_GPU,*iproc,g_gpu_attach);
+	  *GPUshare = false;
+
+	  //  *iconv = 1;
+	  //  *iblas = 1;
+	
+
+	}
+      //init node
+      l = new local_network(mpi_tasks_per_node,num_GPU,mca,set_r,*iproc);
+
+
+
+      if(*iproc == 0)
+	std::cout << "Check card on all nodes...." << std::endl;
+
+      //disable GPU for tasks that not need it
+      if(g_gpu_attach->getIsAttached())
+	{
+	  //check the card precision, in order to detect error
+	  //call a fortran function in check_card/check_init.f90
+	  checker::runTestOne(); //check only if the card has one GPU...
+
+
+	  if(iconv_param == 1)
+	    *iconv = 1;
+
+	  if(iblas_param == 1)
+	    *iblas = 1;
+
+	}
+
+
+      //print repartition affinity
+      if(*iproc == 0)      
+	mca.print_affinity_matrix();
+
+
+      delete set_r; //ugly, to change...
       locq = new localqueu();
       sem_gpu_CALC = l->getSemCalc();
       sem_gpu_TRSF = l->getSemTrsf();
     }
 
-  catch(synchronization_error se)
+  catch(synchronization_error& se)
     {
       std::cerr << "*** ERROR(s) DETECTED AT THE INITIALIZATION OF THE INTER-NODE COMMUNICATION SYSTEM ***" << std::endl;
       std::cerr << "ERROR MESSAGE : " << se.what() << std::endl;
       *error = 1;
     }
 
-  catch(inter_node_communication_error ie)
+  catch(inter_node_communication_error& ie)
     {
       std::cerr << "*** ERROR(s) DETECTED AT THE INITIALIZATION OF THE INTER-NODE COMMUNICATION SYSTEM ***" << std::endl;
       std::cerr << "ERROR MESSAGE : " << ie.what() << std::endl;
@@ -64,34 +151,67 @@ void init_gpu_sharing(const char* NAME_FILE, int *error)
     }
 
 
-  catch(read_not_found re)
+  catch(read_not_found& re)
     {
       std::cerr << "*** ERROR : INVALID CONFIG FILE. You have to set the number of mpi tasks per node and the number of GPU to use per node ***" << std::endl;
       std::cerr << "Missing information : " << re.what() << std::endl;
       *error = 1;
     }
 
-  catch(file_not_found fe)
+  catch(file_not_found& fe)
     {
       std::cerr << "*** ERROR : CONFIG FILE NOT FOUND" << std::endl;
       std::cerr << "File not found : " << fe.what() << std::endl;
       *error = 1;
     }
 
-  catch(std::exception e)
+
+
+  catch(check_calc_error& cce)
+    {
+      std::cerr << "*** ERROR : HARDWARE PROBLEME ON A CARD" << std::endl;
+      std::cerr << "We have send calculations to a card and the result was bad. *** Hostname " << cce.what() << "***" << std::endl;
+      *error = 1;
+    }
+
+
+
+
+  catch(std::exception& e)
     {
       std::cerr << "*** ERROR(s) DETECTED AT THE INITIALIZATION OF THE INTER-NODE COMMUNICATION SYSTEM ***" << std::endl;
       std::cerr << "ERROR MESSAGE : " << e.what() << std::endl;
       *error = 1;
     }
  
+
+  catch(...)
+    {
+      std::cerr<< "** Unexpected exception "<< std::endl;
+      *error = 1;
+
+    }
+
+  std::ostringstream ostr;
+  ostr << "trace_" << *iproc;
+  tracer = new trace_exec(ostr.str(),false);
 }
+
+
+extern "C"
+void gpu_attached__(int *is_attached)
+{
+  *is_attached = g_gpu_attach->getIsAttached();
+}
+
 
 
 extern "C" 
 void stop_gpu_sharing__()
 {
   //  std::for_each(locq.begin(),locq.end(),deleter());
+
+  delete   g_gpu_attach;
   delete locq;
   delete l;
 }
@@ -320,7 +440,14 @@ unsigned int mem_size = (*nsize)*getPrecisionSize();
   
   }
 
-
+extern "C"
+void isAttached(int *isAttached)
+{
+  if(g_gpu_attach->getIsAttached())
+    *isAttached = 1;
+  else
+    *isAttached = 0;
+}
 
 /*extern "C" 
 void gpu_allocate_new__(int *nsize, //memory size
