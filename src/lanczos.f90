@@ -55,16 +55,8 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
-
-  allocate(ha%orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,ha%orbs%norb_par,'ha%orbs%norb_par',subname)
-  !davidson treatment for spin-pol case should be reworked
-
   call orbitals_descriptors(iproc,nproc,1,1,0,1,ha%orbs)
 
-  call memocc(i_stat,ha%orbs%occup,'ha%orbs%occup',subname)
-  allocate(ha%orbs%spinsgn(ha%orbs%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,ha%orbs%spinsgn,'ha%orbs%spinsgn',subname)
   allocate(ha%orbs%eval(ha%orbs%norb+ndebug),stat=i_stat)
   call memocc(i_stat,ha%orbs%eval,'ha%orbs%eval',subname)
   ha%orbs%occup(1:ha%orbs%norb)=1.0_gp
@@ -263,47 +255,11 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
 
-
-  i_all=-product(shape(ha%orbs%occup))*kind(ha%orbs%occup)
-  deallocate(ha%orbs%occup,stat=i_stat)
-  call memocc(i_stat,i_all,'ha%orbs%occup',subname)
-
-
-
-  i_all=-product(shape(ha%orbs%spinsgn))*kind(ha%orbs%spinsgn)
-  deallocate(ha%orbs%spinsgn,stat=i_stat)
-  call memocc(i_stat,i_all,'ha%orbs%spinsgn',subname)
-
-
+  call deallocate_orbs(ha%orbs,subname)
 
   i_all=-product(shape(ha%orbs%eval))*kind(ha%orbs%eval)
   deallocate(ha%orbs%eval,stat=i_stat)
   call memocc(i_stat,i_all,'ha%orbs%spinsgn',subname)
-
-
-
-  i_all=-product(shape(ha%orbs%kpts))*kind(ha%orbs%kpts)
-  deallocate(ha%orbs%kpts,stat=i_stat)
-  call memocc(i_stat,i_all,'ha%orbs%kpts',subname)
-
-
-
-  i_all=-product(shape(ha%orbs%kwgts))*kind(ha%orbs%kwgts)
-  deallocate(ha%orbs%kwgts,stat=i_stat)
-  call memocc(i_stat,i_all,'ha%orbs%kwgts',subname)
- 
-
-
-
-  i_all=-product(shape(ha%orbs%iokpt))*kind(ha%orbs%iokpt)
-  deallocate(ha%orbs%iokpt,stat=i_stat)
-  call memocc(i_stat,i_all,'ha%orbs%iokpt',subname)
-
-
-
-  i_all=-product(shape(ha%orbs%norb_par))*kind(ha%orbs%norb_par)
-  deallocate(ha%orbs%norb_par,stat=i_stat)
-  call memocc(i_stat,i_all,'ha%orbs%norb_par',subname)
 
 !!$  i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
 !!$  deallocate(Gabs_coeffs,stat=i_stat)

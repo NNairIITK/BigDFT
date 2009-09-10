@@ -28,7 +28,7 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
      kz=orbs%kpts(3,orbs%iokpt(iorb))
 
      !real k-point different from Gamma still not implemented
-     if (kx**2+ky**2+kz**2 > 0.0_gp) then
+     if (kx**2+ky**2+kz**2 > 0.0_gp .and. .true.) then
         ncplx=2
      else
         ncplx=1
@@ -678,8 +678,8 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
         else
            call apply_hp_per_k(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-             lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
-             cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww,scal) 
+                lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww,scal) 
         end if
      end if
   else if (lr%geocode == 'S') then

@@ -331,7 +331,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
 
   !control whether the k points are to be used
   !real k-point different from Gamma still not implemented
-  usekpts = kx**2+ky**2+kz**2 > 0.0_gp
+  usekpts = .true.!kx**2+ky**2+kz**2 > 0.0_gp
 
   hgridh(1)=hx*.5_gp
   hgridh(2)=hy*.5_gp
@@ -493,8 +493,9 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
            ! compute the kinetic part and add  it to psi_out
            ! the kinetic energy is calculated at the same time
            do idx=1,nspinor,2
+              !print *,'AAA',2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,hgridh
               call convolut_kinetic_per_T_k(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
-                   hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino)
+                   hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino,kx,ky,kz)
               ekin=ekin+ekino
            end do
 

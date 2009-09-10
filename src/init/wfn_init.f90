@@ -356,8 +356,8 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      deallocate(psiw,stat=i_stat)
      call memocc(i_stat,i_all,'psiw',subname)
 
-     n2hamovr=4
-     nsthamovr=3
+     n2hamovr=2!4
+     nsthamovr=1!3
   else
      !allocation values
      n2hamovr=2
@@ -434,7 +434,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      ndim_hamovr=2*ndim_hamovr
   end if
 
-  allocate(hamovr(nspin*ndim_hamovr,orbsu%nkpts,n2hamovr+ndebug),stat=i_stat)
+  allocate(hamovr(nspin*ndim_hamovr,n2hamovr,orbsu%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,hamovr,'hamovr',subname)
 
   !initialise hamovr
@@ -451,7 +451,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      
      !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nvctrp,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
      call overlap_matrices(norbtot,nvctrp,natsceff,nspin,nspinor,ndim_hamovr,norbgrp,&
-          hamovr(1,ikpt,nsthamovr),psi(ispsi),hpsi(ispsi))
+          hamovr(1,nsthamovr,ikpt),psi(ispsi),hpsi(ispsi))
      
      ispsi=ispsi+nvctrp*norbtot*orbsu%nspinor
   end do
@@ -467,7 +467,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
   if (nproc > 1) then
      !reduce the overlap matrix between all the processors
-     call MPI_ALLREDUCE(hamovr(1,1,3),hamovr(1,1,1),2*nspin*ndim_hamovr*orbsu%nkpts,&
+     call MPI_ALLREDUCE(MPI_IN_PLACE,hamovr(1,1,1),2*nspin*ndim_hamovr*orbsu%nkpts,&
           mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
   end if
 
@@ -478,7 +478,8 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      ikpt=orbs%iskpts+ikptp
 
      call solve_eigensystem(iproc,orbs%norb,orbs%norbu,orbs%norbd,norbi_max,&
-          ndim_hamovr,natsceff,nspin,nspinor,tolerance,norbgrp,hamovr(1,ikpt,1),orbs%eval)
+          ndim_hamovr,natsceff,nspin,nspinor,tolerance,norbgrp,hamovr(1,1,ikpt),&
+          orbs%eval((ikpt-1)*orbs%norb+1))
 
   end do
   !in the case of minimal basis allocate now the transposed wavefunction
@@ -511,10 +512,12 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      nvctrp=commu%nvctr_par(iproc,ikptp)
      if (.not. present(orbsv)) then
         call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
-             natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,ikpt,1),psi(ispsie:),psit(ispsi:))
+             natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
+             psi(ispsie:),psit(ispsi:))
      else
         call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
-             natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,ikpt,1),psi(ispsie:),psit(ispsi:),&
+             natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
+             psi(ispsie:),psit(ispsi:),&
              orbsv%norb,psivirt(ispsiv:))
      end if
      ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
@@ -556,14 +559,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   !orthogonalise the orbitals in the case of semi-core atoms
   if (norbsc > 0) then
      call orthogonalize(iproc,nproc,orbs,comms,wfd,psit)
-!!$     call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),wfd%nvctr_c+7*wfd%nvctr_f,psit,&
-!!$          orbs%nspinor) 
-!!$     if(orbs%norbd > 0) then
-!!$        call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),wfd%nvctr_c+7*wfd%nvctr_f,&
-!!$             psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),orbs%nspinor) 
-!!$     end if
   end if
-
 
   if (minimal) then
      allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
@@ -718,7 +714,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
            norbj=norbsc_arr(i,2)
            call sygv(1,'V','U',norbj,hamovr(imatrst+ndim_hamovr,1),&
                 norbj,hamovr(imatrst+ndim_hamovr,2),norbj,evale(norbi+1),work_lp(1),n_lp,info)
-           if (info.ne.0) write(*,*) 'SYGV ERROR',info,i,natsc+1
+           if (info /= 0) write(*,*) 'SYGV ERROR',info,i,natsc+1
         end if
      else
         call hegv(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
@@ -731,7 +727,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
            call hegv(1,'V','U',norbj,hamovr(imatrst+ndim_hamovr,1),&
                 norbj,hamovr(imatrst+ndim_hamovr,2),norbj,evale(norbi+1),&
                 work_lp(1),n_lp,work_rp(1),info)
-           if (info.ne.0) write(*,*) 'HEGV ERROR',info,i,natsc+1
+           if (info /= 0) write(*,*) 'HEGV ERROR',info,i,natsc+1
         end if
 
         
@@ -913,168 +909,63 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
   !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
 
   !allocate the pointer for virtual orbitals
-  if(nspinor==1 .or. nspinor == 2 .or. nspinor == 4) then
-     iorbst=1
-     iorbst2=1
-     imatrst=1
-     ispsiv=1
-     do ispin=1,nspin
-        norbsc=0
-        do i=1,natsc
-           norbi=norbsc_arr(i,ispin)
-           norbsc=norbsc+norbi
-           if (nspinor == 1) then
-              call gemm('N','N',nvctrp,norbi,norbi,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
-                   hamovr(imatrst),norbi,0.0_wp,ppsit(1,iorbst2),max(1,nvctrp))
-           else
-              call c_gemm('N','N',ncomp*nvctrp,norbi,norbi,(1.0_wp,0.0_wp),&
-                   psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst),norbi,&
-                   (0.0_wp,0.0_wp),ppsit(1,iorbst2),max(1,ncomp*nvctrp))
-           end if
-           iorbst=iorbst+norbi
-           iorbst2=iorbst2+norbi
-           imatrst=imatrst+ncplx*norbi**2
-        end do
-        norbi=norbsc_arr(natsc+1,ispin)
-        if(ispin==1) norbj=norbu-norbsc
-        if(ispin==2) norbj=norbd-norbsc
-        !        write(*,'(1x,a,5i4)') "DIMS:",norbi,norbj,iorbst,imatrst
-        !        norbj=norb-norbsc
-        if(norbj>0) then
-           if (nspinor == 1) then
-              call gemm('N','N',nvctrp,norbj,norbi,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
-                   hamovr(imatrst),norbi,0.0_wp,ppsit(1,iorbst2),max(1,nvctrp))
-           else
-              call c_gemm('N','N',ncomp*nvctrp,norbj,norbi,(1.0_wp,0.0_wp),&
-                   psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst),norbi,&
-                   (0.0_wp,0.0_wp),ppsit(1,iorbst2),max(1,ncomp*nvctrp))
-
-           end if
-        end if
-        !now store the input wavefunctions for the Davidson treatment
-        !we take the rest of the orbitals which are not assigned
-        !from the group of non-semicore orbitals
-        !the results are orthogonal with each other by construction
-        !in the case of semicore atoms the orthogonality is not guaranteed
-        if (present(nvirte) .and. nvirte >0) then
-           if (nspinor == 1) then
-              call gemm('N','N',nvctrp,nvirte,norbi,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
-                   hamovr(imatrst+norbi*norbj),norbi,0.0_wp,psivirt(ispsiv),max(1,nvctrp))
-           else
-              call c_gemm('N','N',ncomp*nvctrp,nvirte,norbi,(1.0_wp,0.0_wp),&
-                   psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst+norbi*norbj),norbi,&
-                   (0.0_wp,0.0_wp),psivirt(ispsiv),max(1,ncomp*nvctrp))
-           end if
-           ispsiv=ispsiv+nvctrp*nvirte*nspinor
-        end if
-        iorbst=norbi+norbsc+1 !this is equal to norbe+1
-        iorbst2=norbu+1
-        imatrst=ndim_hamovr+1
-     end do
-  else !not used anymore
-
-     allocate(tpsi(nspinor*nvctrp,norbe+ndebug),stat=i_stat)
-     call memocc(i_stat,tpsi,'tpsi',subname)
-     iorbst=1
-     iorbst2=1
-     imatrst=1
-     do ispin=1,nspin
-        norbsc=0
-        do i=1,natsc
-           norbi=norbsc_arr(i,ispin)
-           norbsc=norbsc+norbi
-           call gemm('N','N',nvctrp,norbi,norbi,1.0_wp,psi(1,iorbst),nvctrp,&
-                hamovr(imatrst),norbi,0.0_wp,tpsi(1,iorbst2),nvctrp)
-           iorbst=iorbst+norbi
-           iorbst2=iorbst2+norbi
-           imatrst=imatrst+norbi**2
-        end do
-        norbi=norbsc_arr(natsc+1,ispin)
-        if(ispin==1) norbj=norbu-norbsc
-        if(ispin==2) norbj=norbd-norbsc
-        !        write(*,'(1x,a,5i4)') "DIMS:",norbi,norbj,iorbst,imatrst
-        !        norbj=norb-norbsc
-        if(norbj>0) then
-           call gemm('N','N',nvctrp,norbj,norbi,1.0_wp,psi(1,iorbst),nvctrp,&
-                hamovr(imatrst),norbi,0.0_wp,tpsi(1,iorbst2),nvctrp)
-        end if
-        iorbst=norbi+norbsc+1 !this is equal to norbe+1
-        iorbst2=norbu+1
-        imatrst=ndim_hamovr+1
-     end do
-     !here we should put razero
-     ppsit=0.0_wp
-     inquire(file='moments',exist=exists)
-     if (.not.exists) then
-        stop 'The file "moments does not exist!'
-     endif
-     open(unit=iunit,file='moments',form='formatted',action='read',status='old')
-     fac=0.5_gp
-     !this part can be transferred on the atomic orbitals section
-     do iorb=1,norbu+norbd
-        read(unit=iunit,fmt=*,iostat=i_stat) mx,my,mz
-        if (i_stat /= 0) then
-           write(unit=*,fmt='(a,i0,a,i0,a)') &
-                'The file "moments" has the line ',iorb,&
-                ' which have not 3 numbers for the orbital ',iorb,'.'
-           stop 'The file "moments" is not correct!'
-        end if
-        mnorm=sqrt(mx**2+my**2+mz**2)
-        mx=mx/mnorm
-        my=my/mnorm
-        mz=mz/mnorm
-
-        ma=0.0_gp
-        mb=0.0_gp
-        mc=0.0_gp
-        md=0.0_gp
-
-        if(mz > 0.0_gp .and. iorb<=norbu) then 
-           ma=ma+mz
+  iorbst=1
+  iorbst2=1
+  imatrst=1
+  ispsiv=1
+  do ispin=1,nspin
+     norbsc=0
+     do i=1,natsc
+        norbi=norbsc_arr(i,ispin)
+        norbsc=norbsc+norbi
+        if (nspinor == 1) then
+           call gemm('N','N',nvctrp,norbi,norbi,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
+                hamovr(imatrst),norbi,0.0_wp,ppsit(1,iorbst2),max(1,nvctrp))
         else
-           mc=mc+abs(mz)
+           call c_gemm('N','N',ncomp*nvctrp,norbi,norbi,(1.0_wp,0.0_wp),&
+                psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst),norbi,&
+                (0.0_wp,0.0_wp),ppsit(1,iorbst2),max(1,ncomp*nvctrp))
         end if
-        if(mx > 0.0_gp .and. iorb<=norbu) then 
-           ma=ma+fac*mx
-           mb=mb+fac*mx
-           mc=mc+fac*mx
-           md=md+fac*mx
-        else
-           ma=ma-fac*abs(mx)
-           mb=mb-fac*abs(mx)
-           mc=mc+fac*abs(mx)
-           md=md+fac*abs(mx)
-        end if
-        if(my > 0.0_gp .and. iorb<=norbu) then 
-           ma=ma+fac*my
-           mb=mb-fac*my
-           mc=mc+fac*my
-           md=md+fac*my
-        else
-           ma=ma-fac*abs(my)
-           mb=mb+fac*abs(my)
-           mc=mc+fac*abs(my)
-           md=md+fac*abs(my)
-        end if
-        if(mx==0.0_gp .and. my==0.0_gp .and. mz==0.0_gp) then
-           ma=1.0_gp/sqrt(2.0_gp)
-           mb=0.0_gp
-           mc=1.0_gp/sqrt(2.0_gp)
-           md=0.0_gp
-        end if
-        do i=1,nvctrp
-           ppsit(2*i-1,iorb)=real(ma,wp)*tpsi(i,iorb)
-           ppsit(2*i,iorb)=real(mb,wp)*tpsi(i,iorb)
-           ppsit(2*i+2*nvctrp-1,iorb)=real(mc,wp)*tpsi(i,iorb)
-           ppsit(2*i+2*nvctrp,iorb)=real(md,wp)*tpsi(i,iorb)
-        end do
+        iorbst=iorbst+norbi
+        iorbst2=iorbst2+norbi
+        imatrst=imatrst+ncplx*norbi**2
      end do
-     close(unit=iunit)
-    
-     i_all=-product(shape(tpsi))*kind(tpsi)
-     deallocate(tpsi,stat=i_stat)
-     call memocc(i_stat,i_all,'tpsi',subname)
-  end if
+     norbi=norbsc_arr(natsc+1,ispin)
+     if(ispin==1) norbj=norbu-norbsc
+     if(ispin==2) norbj=norbd-norbsc
+     !        write(*,'(1x,a,5i4)') "DIMS:",norbi,norbj,iorbst,imatrst
+     !        norbj=norb-norbsc
+     if(norbj>0) then
+        if (nspinor == 1) then
+           call gemm('N','N',nvctrp,norbj,norbi,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
+                hamovr(imatrst),norbi,0.0_wp,ppsit(1,iorbst2),max(1,nvctrp))
+        else
+           call c_gemm('N','N',ncomp*nvctrp,norbj,norbi,(1.0_wp,0.0_wp),&
+                psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst),norbi,&
+                (0.0_wp,0.0_wp),ppsit(1,iorbst2),max(1,ncomp*nvctrp))
+
+        end if
+     end if
+     !now store the input wavefunctions for the Davidson treatment
+     !we take the rest of the orbitals which are not assigned
+     !from the group of non-semicore orbitals
+     !the results are orthogonal with each other by construction
+     !in the case of semicore atoms the orthogonality is not guaranteed
+     if (present(nvirte) .and. nvirte >0) then
+        if (nspinor == 1) then
+           call gemm('N','N',nvctrp,nvirte,norbi,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
+                hamovr(imatrst+norbi*norbj),norbi,0.0_wp,psivirt(ispsiv),max(1,nvctrp))
+        else
+           call c_gemm('N','N',ncomp*nvctrp,nvirte,norbi,(1.0_wp,0.0_wp),&
+                psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst+norbi*norbj),norbi,&
+                (0.0_wp,0.0_wp),psivirt(ispsiv),max(1,ncomp*nvctrp))
+        end if
+        ispsiv=ispsiv+nvctrp*nvirte*nspinor
+     end if
+     iorbst=norbi+norbsc+1 !this is equal to norbe+1
+     iorbst2=norbu+1
+     imatrst=ndim_hamovr+1
+  end do
 
 end subroutine build_eigenvectors
 

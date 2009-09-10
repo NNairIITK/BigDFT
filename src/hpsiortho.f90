@@ -202,17 +202,6 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   !takes also into account parallel k-points distribution
   call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,scprsum)
 
-!!$  call orthoconstraint_p(iproc,nproc,orbs%norbu,orbs%occup,comms%nvctr_par(iproc,1),psit,hpsi,&
-!!$       scprsum,orbs%nspinor)
-!!$  scprpart=0.0_dp
-!!$  if(orbs%norbd > 0) then
-!!$     scprpart=scprsum 
-!!$     call orthoconstraint_p(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),comms%nvctr_par(iproc,1),&
-!!$          psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),hpsi(1+comms%nvctr_par(iproc,1)*orbs%norbu),&
-!!$          scprsum,orbs%nspinor)
-!!$     scprsum=scprsum+scprpart
-!!$  end if
-
   !retranspose the hpsi wavefunction
   call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
 
@@ -264,12 +253,6 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 
   call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit)
 
-!!$  call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
-!!$       psit,orbs%nspinor)
-!!$  if(orbs%norbd > 0) then
-!!$     call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
-!!$          psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),orbs%nspinor)
-!!$  end if
   !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
   
   call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,&
@@ -348,10 +331,10 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      call memocc(i_stat,psidst,'psidst',subname)
      allocate(hpsidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,hpsidst,'hpsidst',subname)
-     allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
+     allocate(ads(idsx+1,idsx+1,orbs%nkptsp*3+ndebug),stat=i_stat)
      call memocc(i_stat,ads,'ads',subname)
 
-     call razero(3*(idsx+1)**2,ads)
+     call razero(orbs%nkptsp*3*(idsx+1)**2,ads)
   end if
 
 END SUBROUTINE hpsitopsi
@@ -882,8 +865,9 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   type(communications_arrays), intent(in) :: comms
   !local variables
   character(len=*), parameter :: subname='check_communications'
-  integer :: i,ispinor,iorb,indspin,indorb,jproc,i_stat,i_all,iscomp,idsx,index
-  real(wp) :: vali,valorb,psival,maxdiff,ierr
+  integer :: i,ispinor,iorb,indspin,indorb,jproc,i_stat,i_all,iscomp,idsx,index,ikptsp
+  integer :: ikpt,ispsi,nspinor,nvctrp
+  real(wp) :: vali,valorb,psival,maxdiff,ierr,valkpt
   real(wp), dimension(:), allocatable :: psi
   real(wp), dimension(:), pointer :: pwork
   real(wp) :: epsilon
@@ -895,7 +879,9 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   call memocc(i_stat,pwork,'pwork',subname)
 
   do iorb=1,orbs%norbp
-     valorb=real(orbs%isorb+iorb,wp)
+     ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+     valkpt=real(512*ikpt,wp)
+     valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
      indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
      do ispinor=1,orbs%nspinor
         indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
@@ -911,53 +897,76 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
 
   !check the results of the transposed wavefunction
   maxdiff=0.0_wp
-  !calculate the starting point for the component distribution
-  iscomp=0
-  if (orbs%nkptsp /=0) then
+  ispsi=0
+  do ikptsp=1,orbs%nkptsp
+     ikpt=orbs%iskpts+ikptsp
+     valkpt=real(512*ikpt,wp)
+     !calculate the starting point for the component distribution
+     iscomp=0
      do jproc=0,iproc-1
-        iscomp=iscomp+comms%nvctr_par(jproc,1)
+        iscomp=iscomp+comms%nvctr_par(jproc,ikptsp)
      end do
+     nvctrp=comms%nvctr_par(iproc,ikptsp)
+     nspinor=orbs%nspinor
+
      do iorb=1,orbs%norb
-        valorb=real(iorb,wp)
-        indorb=(iorb-1)*(comms%nvctr_par(iproc,1))*orbs%nspinor
-        do idsx=1,(orbs%nspinor-1)/2+1
-           do i=1,comms%nvctr_par(iproc,1)
-           vali=real(i+iscomp,wp)/512.d0  ! *1.d-5
-              do ispinor=1,((2+orbs%nspinor)/4+1)
+        valorb=real(iorb,wp)+valkpt
+        indorb=(iorb-1)*nvctrp*nspinor
+        do idsx=1,(nspinor-1)/2+1
+           do i=1,nvctrp
+              vali=real(i+iscomp,wp)/512.d0  ! *1.d-5
+              do ispinor=1,((2+nspinor)/4+1)
                  psival=(-1)**(ispinor-1)*(valorb+vali)
-!              if (psival .lt. 0.d0) then  !this is just to force the IEEE representation of psival
-!              write(321,*) psival,psival**2
-!              endif
-                 index=ispinor+(i-1)*((2+orbs%nspinor)/4+1)+&
-                      (idsx-1)*((2+orbs%nspinor)/4+1)*comms%nvctr_par(iproc,1)+indorb
+                 !this is just to force the IEEE representation of psival
+                 !              if (psival .lt. 0.d0) then  
+                 !              write(321,*) psival,psival**2
+                 !              endif
+                 index=ispinor+(i-1)*((2+nspinor)/4+1)+&
+                      (idsx-1)*((2+nspinor)/4+1)*nvctrp+indorb+ispsi
                  maxdiff=max(abs(psi(index)-psival),maxdiff)
               end do
            end do
         end do
      end do
-  end if
+     ispsi=ispsi+nvctrp*orbs%norb*nspinor
+  end do
+
   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
      write(*,*)'ERROR: process',iproc,'does not transpose wavefunctions correctly!'
      write(*,*)'       found an error of',maxdiff,'cannot continue.'
      write(*,*)'       data are written in the file transerror.log, exiting...'
 
      open(unit=22,file='transerror.log',status='unknown')
-     do iorb=1,orbs%norb
-        valorb=real(iorb,wp)
-        indorb=(iorb-1)*(comms%nvctr_par(iproc,1))*orbs%nspinor
-        do idsx=1,(orbs%nspinor-1)/2+1
-           do i=1,comms%nvctr_par(iproc,1)
-              vali=real(i+iscomp,wp)/512.d0  !*1.d-5
-              do ispinor=1,((2+orbs%nspinor)/4+1)
-                 psival=(-1)**(ispinor-1)*(valorb+vali)
-                 index=ispinor+(i-1)*((2+orbs%nspinor)/4+1)+&
-                      (idsx-1)*((2+orbs%nspinor)/4+1)*comms%nvctr_par(iproc,1)+indorb
-                 maxdiff=abs(psi(index)-psival)
-                 write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i+iscomp,iorb,psival,&
-                      psi(index),maxdiff
+     ispsi=0
+     do ikptsp=1,orbs%nkptsp
+        ikpt=orbs%iskpts+ikptsp
+        valkpt=real(512*ikpt,wp)
+        !calculate the starting point for the component distribution
+        iscomp=0
+        do jproc=0,iproc-1
+           iscomp=iscomp+comms%nvctr_par(jproc,ikptsp)
+        end do
+        nvctrp=comms%nvctr_par(iproc,ikptsp)
+        nspinor=orbs%nspinor
+
+        do iorb=1,orbs%norb
+           valorb=real(iorb,wp)+valkpt
+           indorb=(iorb-1)*nvctrp*nspinor
+           do idsx=1,(nspinor-1)/2+1
+              do i=1,nvctrp
+                 vali=real(i+iscomp,wp)/512.d0  !*1.d-5
+                 do ispinor=1,((2+nspinor)/4+1)
+                    psival=(-1)**(ispinor-1)*(valorb+vali)
+                    index=ispinor+(i-1)*((2+nspinor)/4+1)+&
+                         (idsx-1)*((2+nspinor)/4+1)*nvctrp+indorb+ispsi
+                    maxdiff=abs(psi(index)-psival)
+                    write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i+iscomp,iorb+ikpt,psival,&
+                         psi(index),maxdiff
+                 end do
               end do
            end do
         end do
+        ispsi=ispsi+nvctrp*orbs%norb*nspinor
      end do
      close(unit=22)
 
@@ -971,7 +980,9 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
 
   maxdiff=0.0_wp
   do iorb=1,orbs%norbp
-     valorb=real(orbs%isorb+iorb,wp)
+     ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+     valkpt=real(512*ikpt,wp)
+     valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
      indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
      do ispinor=1,orbs%nspinor
         indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
@@ -991,7 +1002,9 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      open(unit=22,file='transerror.log',status='unknown')
      maxdiff=0.0_wp
      do iorb=1,orbs%norbp
-        valorb=real(orbs%isorb+iorb,wp)
+        ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+        valkpt=real(512*ikpt,wp)
+        valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
         indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
         do ispinor=1,orbs%nspinor
            indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)

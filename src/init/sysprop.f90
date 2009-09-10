@@ -16,7 +16,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,i_all,i_stat,jproc
+  integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,i_all,i_stat,jproc,ikpts
 
   call read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,&
        norb,norbu,norbd,iunit)
@@ -28,10 +28,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   end if
 
   !temporary changement, to be controlled
-  !nspinor=2
-
-  allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
+  nspinor=2
 
   call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
 
@@ -53,8 +50,12 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
   end if
 
-  call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
-       orbs%occup,orbs%spinsgn)
+
+  !assign to each k-point the same occupation number
+  do ikpts=1,orbs%nkpts
+     call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
+          orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn)
+  end do
 
 end subroutine system_properties
 !!***
@@ -532,8 +533,11 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all
   logical, dimension(:), allocatable :: GPU_for_orbs
 
+  allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
+
   !assign the value of the k-points
-  orbs%nkpts=1
+  orbs%nkpts=2
   !allocate vectors related to k-points
   allocate(orbs%kpts(3,orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
@@ -544,8 +548,11 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
      orbs%kpts(1,ikpt)=0.0_gp
      orbs%kpts(2,ikpt)=0.0_gp
      orbs%kpts(3,ikpt)=0.0_gp
-     orbs%kwgts(ikpt)=1.0_gp
+     orbs%kwgts(ikpt)=1.0_gp/real(orbs%nkpts,gp)
   end do
+
+  orbs%kwgts(1)=0.2_gp
+  orbs%kwgts(2)=0.8_gp
 
   !initialise the array
   do jproc=0,nproc-1
@@ -623,6 +630,9 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   orbs%occup(1:orbs%norb*orbs%nkpts)=1.0_gp 
   orbs%spinsgn(1:orbs%norb*orbs%nkpts)=1.0_gp
 
+  !allocate the array which assign the k-point to processor in transposed version
+  allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
 
 end subroutine orbitals_descriptors
 !!***

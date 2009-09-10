@@ -673,9 +673,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,psidst,'psidst',subname)
      allocate(hpsidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,hpsidst,'hpsidst',subname)
-     allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
+     allocate(ads(idsx+1,idsx+1,orbs%nkptsp*3+ndebug),stat=i_stat)
      call memocc(i_stat,ads,'ads',subname)
-     call razero(3*(idsx+1)**2,ads)
+     call razero(orbs%nkptsp*3*(idsx+1)**2,ads)
   endif
 
   !allocate arrays for the GPU if a card is present
@@ -1037,13 +1037,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         if(iproc==0) write(*,*) 'ERROR: density cannot be plotted in .pot format for a spin-polarised calculation'
      else
      if (iproc.eq.0) write(*,*) 'writing electronic_density.pot'
-        call plot_density(atoms%geocode,'electronic_density.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-                          atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rho)
+        call plot_density(atoms%geocode,'electronic_density.pot',&
+             iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+             atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rho)
      end if
   else 
      if (iproc.eq.0) write(*,*) 'writing electronic_density.cube'
-     call plot_density_cube(atoms%geocode,'electronic_density',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
-                            in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+     call plot_density_cube(atoms%geocode,'electronic_density',&
+          iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
+          in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
   endif
   end if
   !calculate the total density in the case of nspin==2
@@ -1170,9 +1172,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   call timing(iproc,'Forces        ','OF')
 
-
-
-  
   if (in%c_absorbtion ) then
 
      if(iproc==0) print *, " goin to calculate spectra "
@@ -1502,11 +1501,9 @@ contains
        call free_gpu(GPU,orbs%norbp)
     end if
 
-    i_all=-product(shape(orbs%norb_par))*kind(orbs%norb_par)
-    deallocate(orbs%norb_par,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%norb_par',subname)
-
     call deallocate_comms(comms,subname)
+
+    call deallocate_orbs(orbs,subname)
 
     !semicores useful only for the input guess
     i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
@@ -1538,21 +1535,6 @@ contains
     deallocate(proj,stat=i_stat)
     call memocc(i_stat,i_all,'proj',subname)
 
-    i_all=-product(shape(orbs%occup))*kind(orbs%occup)
-    deallocate(orbs%occup,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%occup',subname)
-    i_all=-product(shape(orbs%spinsgn))*kind(orbs%spinsgn)
-    deallocate(orbs%spinsgn,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%spinsgn',subname)
-    i_all=-product(shape(orbs%kpts))*kind(orbs%kpts)
-    deallocate(orbs%kpts,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%kpts',subname)
-    i_all=-product(shape(orbs%kwgts))*kind(orbs%kwgts)
-    deallocate(orbs%kwgts,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%kwgts',subname)
-    i_all=-product(shape(orbs%iokpt))*kind(orbs%iokpt)
-    deallocate(orbs%iokpt,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%iokpt',subname)
     i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
     deallocate(atoms%psppar,stat=i_stat)
     call memocc(i_stat,i_all,'psppar',subname)

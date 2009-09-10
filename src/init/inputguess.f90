@@ -95,8 +95,6 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   if (nvirt==0) nvirte=0
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
-  allocate(orbsv%norb_par(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,orbsv%norb_par,'orbsv%norb_par',subname)
   !davidson treatment for spin-pol case should be reworked
   if (nspin == 1) then
      call orbitals_descriptors(iproc,nproc,nvirte,nvirte,0,orbs%nspinor,orbsv)
@@ -110,19 +108,9 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
   call deallocate_comms(commsv,subname)
 
-  !deallocation if no davidson calculation
-  if (nvirt == 0) then
-     i_all=-product(shape(orbsv%norb_par))*kind(orbsv%norb_par)
-     deallocate(orbsv%norb_par,stat=i_stat)
-     call memocc(i_stat,i_all,'orbsv%norb_par',subname)
-  end if
-
-
   !!!orbitals descriptor for inguess orbitals
   nspinorfororbse=orbs%nspinor
 
-  allocate(orbse%norb_par(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,orbse%norb_par,'orbse%norb_par',subname)
   !the number of orbitals to be considered is doubled 
   !in the case of a spin-polarised calculation
   !also for non-collinear case
@@ -579,7 +567,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
   logical :: myorbital,polarised,orbpol_nc
   integer :: iatsc,i_all,i_stat,ispin,ipolres,ipolorb,ichg,nsccode,mxpl,mxchg,iexpo,ishltmp
   integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,nterm,iocc,ictotpsi,ishell,icoeff
-  integer :: noncoll,ig,ispinor,icoll,norbpol_nc
+  integer :: noncoll,ig,ispinor,icoll,norbpol_nc,ikpts,ikorb
   real(wp) :: scprw
   real(dp) :: scpr
   real(gp) :: rx,ry,rz,ek,occshell,rcov,rprb,ehomo,shelloccup,mx,my,mz,ma,mb,mc,md
@@ -656,13 +644,15 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
      stop 
   end if
   
-  do jorb=1,orbse%norbp
-     do ispinor=1,orbse%nspinor
-        do icoeff=1,G%ncoeff
-           gaucoeff(icoeff,ispinor,jorb)=0.0_wp
-        end do
-     end do
-  end do
+
+  call razero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff)
+!!$  do jorb=1,orbse%norbp
+!!$     do ispinor=1,orbse%nspinor
+!!$        do icoeff=1,G%ncoeff
+!!$           gaucoeff(icoeff,ispinor,jorb)=0.0_wp
+!!$        end do
+!!$     end do
+!!$  end do
 
   !allocate and assign the exponents and the coefficients
   allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
@@ -843,138 +833,148 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
                  !non-collinear case
                  do icoll=1,noncoll !non-trivial only for nspinor=4
                     iorb=iorb+1
-                    jorb=iorb-orbse%isorb
-                    
-                    !the occupation number rule changes for non-collinear
-                    if (orbse%nspinor == 4) then
-                    !for each orbital of the shell, use the Hund rule
-                    !for determining the occupation
-                       if (ceiling(occres) >= real(2*l-1,gp)) then
-                          !the orbital is not polarised
-                          orbpol_nc=.false.
-                          !assign the occupation to one (Hund's rule)
-                          orbse%occup(iorb)=1.0_gp
-                          !once finished this orbital (icoll=2), lower the occres
-                          !and the number of polarisable orbitals
-                          if (icoll==2) then
-                             occres=occres-1.0_gp
-                             norbpol_nc=norbpol_nc-1
-                          end if
-                       else
-                          !in that case the orbital is polarised
-                          !polarise uniformly the orbital following the direction
-                          !indicated by the atmoments array
-                          orbpol_nc=.true.
-                          !the occupation number is assigned uniformly on the 
-                          !remaining orbitals
-                          !occupate only one of the orbitals
-                          if (icoll ==1) then
-                             orbse%occup(iorb)=2.0_gp*occres/real(norbpol_nc,gp)
-                          else
-                             orbse%occup(iorb)=0.0_gp
-                          end if
-                       end if
-                       !print *,iorb,l,m,occshell,ceiling(occshell),norbpol_nc,orbpol_nc,orbse%occup(iorb)
-                    else
-                       orbse%occup(iorb)=occshell/real(2*l-1,gp)
-                    end if
-                    if (orbse%isorb < iorb .and. iorb <= orbse%isorb+orbse%norbp) then
-                       if (orbse%nspinor == 1) then
-                          do ispinor=1,orbse%nspinor
-                             !here we put only the case nspinor==1
-                             !we can put a phase for check with the complex wavefunction
-                             gaucoeff(icoeff,ispinor,jorb)=1.0_wp
-                          end do
-                       else if (orbse%nspinor == 2) then
-                          do ispinor=1,orbse%nspinor
-                             !we can put a phase for check with the complex wavefunction
-                             gaucoeff(icoeff,ispinor,jorb)=1.0_wp/sqrt(2.0_wp)
-                          end do
-                       else if (orbse%nspinor == 4) then
-                          !assign the input orbitals according to the atomic moments
-                          fac=0.5_gp
+                    do ikpts=1,orbse%nkpts
+                       ikorb=iorb+(ikpts-1)*orbse%norb
+                       jorb=ikorb-orbse%isorb
 
-                          !if the shell is not polarised
-                          !put one electron up and the other down
-                          !otherwise, put a small unbalancing on the orbitals
-                          !such that the momentum of the
-                          if (orbpol_nc) then
-                             !in the case of unoccupied orbital, 
-                             !choose the orthogonal direction
-                             mx=atmoments(1,iat)
-                             my=atmoments(2,iat)
-                             mz=atmoments(3,iat)
-
-                             if (orbse%occup(iorb) == 0.0_gp) then
-                                mx=-mx
-                                my=-my
-                                mz=-mz
+                       !the occupation number rule changes for non-collinear
+                       if (orbse%nspinor == 4) then
+                          !for each orbital of the shell, use the Hund rule
+                          !for determining the occupation
+                          if (ceiling(occres) >= real(2*l-1,gp)) then
+                             !the orbital is not polarised
+                             orbpol_nc=.false.
+                             !assign the occupation to one (Hund's rule)
+                             orbse%occup(ikorb)=1.0_gp
+                             !once finished this orbital (icoll=2), lower the occres
+                             !and the number of polarisable orbitals
+                             if (icoll==2) then
+                                occres=occres-1.0_gp
+                                norbpol_nc=norbpol_nc-1
                              end if
                           else
-                             mx=0.0_gp
-                             my=0.0_gp
-                             mz=1.0_gp-2.0_gp*real(icoll-1,gp)
+                             !in that case the orbital is polarised
+                             !polarise uniformly the orbital following the direction
+                             !indicated by the atmoments array
+                             orbpol_nc=.true.
+                             !the occupation number is assigned uniformly on the 
+                             !remaining orbitals
+                             !occupate only one of the orbitals
+                             if (icoll ==1) then
+                                orbse%occup(ikorb)=2.0_gp*occres/real(norbpol_nc,gp)
+                             else
+                                orbse%occup(ikorb)=0.0_gp
+                             end if
                           end if
-
-                          mnorm=sqrt(mx**2+my**2+mz**2)
-                          if (mnorm /= 0.0_gp) then
-                             mx=mx/mnorm
-                             my=my/mnorm
-                             mz=mz/mnorm
-                          end if
-
-                          ma=0.0_gp
-                          mb=0.0_gp
-                          mc=0.0_gp
-                          md=0.0_gp
-
-                          if(mz > 0.0_gp) then 
-                             ma=ma+mz
-                          else
-                             mc=mc+abs(mz)
-                          end if
-                          if(mx > 0.0_gp) then 
-                             ma=ma+fac*mx
-                             mb=mb+fac*mx
-                             mc=mc+fac*mx
-                             md=md+fac*mx
-                          else
-                             ma=ma-fac*abs(mx)
-                             mb=mb-fac*abs(mx)
-                             mc=mc+fac*abs(mx)
-                             md=md+fac*abs(mx)
-                          end if
-                          if(my > 0.0_gp) then 
-                             ma=ma+fac*my
-                             mb=mb-fac*my
-                             mc=mc+fac*my
-                             md=md+fac*my
-                          else
-                             ma=ma-fac*abs(my)
-                             mb=mb+fac*abs(my)
-                             mc=mc+fac*abs(my)
-                             md=md+fac*abs(my)
-                          end if
-                          if(mx==0.0_gp .and. my==0.0_gp .and. mz==0.0_gp) then
-                             ma=1.0_gp/sqrt(2.0_gp)
-                             mb=0.0_gp
-                             mc=1.0_gp/sqrt(2.0_gp)
-                             md=0.0_gp
-                          end if
-
-                          !assign the gaussian coefficients for each
-                          !spinorial component
-                          gaucoeff(icoeff,1,jorb)=real(ma,wp)
-                          gaucoeff(icoeff,2,jorb)=real(mb,wp)
-                          gaucoeff(icoeff,3,jorb)=real(mc,wp)
-                          gaucoeff(icoeff,4,jorb)=real(md,wp)
-                          !print *,'here',iat,jorb,gaucoeff(icoeff,:,jorb)
+                          !print *,iorb,l,m,occshell,ceiling(occshell),norbpol_nc,orbpol_nc,orbse%occup(iorb)
+                       else
+                          orbse%occup(ikorb)=occshell/real(2*l-1,gp)
                        end if
-                       
-                       !associate to each orbital the reference localisation region
-                       !here identified by the atom
-                       iorbtolr(jorb)=iat 
-                    endif
+                       if (orbse%isorb < ikorb .and. ikorb <= orbse%isorb+orbse%norbp) then
+                          if (orbse%nspinor == 1) then
+                             do ispinor=1,orbse%nspinor
+                                !here we put only the case nspinor==1
+                                !we can put a phase for check with the complex wavefunction
+                                gaucoeff(icoeff,ispinor,jorb)=1.0_wp
+                             end do
+                          else if (orbse%nspinor == 2) then
+                             !we can put a phase for check with the complex wavefunction
+                             gaucoeff(icoeff,1,jorb)=0.5_wp*sqrt(3.0_wp)
+                             gaucoeff(icoeff,2,jorb)=0.5_wp
+
+!!$                             write(17+iproc,'(8i6)')iproc,ikorb,iorb,&
+!!$                                  ikpts,icoeff,l,m,G%ncoeff
+
+!!$                          do ispinor=1,orbse%nspinor
+!!$                             !we can put a phase for check with the complex wavefunction
+!!$                             gaucoeff(icoeff,ispinor,jorb)=1.0_wp/sqrt(2.0_wp)
+!!$                          end do
+                          else if (orbse%nspinor == 4) then
+                             !assign the input orbitals according to the atomic moments
+                             fac=0.5_gp
+
+                             !if the shell is not polarised
+                             !put one electron up and the other down
+                             !otherwise, put a small unbalancing on the orbitals
+                             !such that the momentum of the
+                             if (orbpol_nc) then
+                                !in the case of unoccupied orbital, 
+                                !choose the orthogonal direction
+                                mx=atmoments(1,iat)
+                                my=atmoments(2,iat)
+                                mz=atmoments(3,iat)
+
+                                if (orbse%occup(ikorb) == 0.0_gp) then
+                                   mx=-mx
+                                   my=-my
+                                   mz=-mz
+                                end if
+                             else
+                                mx=0.0_gp
+                                my=0.0_gp
+                                mz=1.0_gp-2.0_gp*real(icoll-1,gp)
+                             end if
+
+                             mnorm=sqrt(mx**2+my**2+mz**2)
+                             if (mnorm /= 0.0_gp) then
+                                mx=mx/mnorm
+                                my=my/mnorm
+                                mz=mz/mnorm
+                             end if
+
+                             ma=0.0_gp
+                             mb=0.0_gp
+                             mc=0.0_gp
+                             md=0.0_gp
+
+                             if(mz > 0.0_gp) then 
+                                ma=ma+mz
+                             else
+                                mc=mc+abs(mz)
+                             end if
+                             if(mx > 0.0_gp) then 
+                                ma=ma+fac*mx
+                                mb=mb+fac*mx
+                                mc=mc+fac*mx
+                                md=md+fac*mx
+                             else
+                                ma=ma-fac*abs(mx)
+                                mb=mb-fac*abs(mx)
+                                mc=mc+fac*abs(mx)
+                                md=md+fac*abs(mx)
+                             end if
+                             if(my > 0.0_gp) then 
+                                ma=ma+fac*my
+                                mb=mb-fac*my
+                                mc=mc+fac*my
+                                md=md+fac*my
+                             else
+                                ma=ma-fac*abs(my)
+                                mb=mb+fac*abs(my)
+                                mc=mc+fac*abs(my)
+                                md=md+fac*abs(my)
+                             end if
+                             if(mx==0.0_gp .and. my==0.0_gp .and. mz==0.0_gp) then
+                                ma=1.0_gp/sqrt(2.0_gp)
+                                mb=0.0_gp
+                                mc=1.0_gp/sqrt(2.0_gp)
+                                md=0.0_gp
+                             end if
+
+                             !assign the gaussian coefficients for each
+                             !spinorial component
+                             gaucoeff(icoeff,1,jorb)=real(ma,wp)
+                             gaucoeff(icoeff,2,jorb)=real(mb,wp)
+                             gaucoeff(icoeff,3,jorb)=real(mc,wp)
+                             gaucoeff(icoeff,4,jorb)=real(md,wp)
+                             !print *,'here',iat,jorb,gaucoeff(icoeff,:,jorb)
+                          end if
+
+                          !associate to each orbital the reference localisation region
+                          !here identified by the atom
+                          iorbtolr(jorb)=iat 
+                       endif
+                    end do
                  end do
                  icoeff=icoeff+1
               end do
@@ -1010,8 +1010,6 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
      if (iorbsc(2)/= norbsc+norbe) stop 'createAtomic orbitals: error (iorbsc) nspin=2'
      if (iorbv(2) /= 2*norbe) stop 'createAtomic orbitals: error (iorbv) nspin=2'
   end if
-
-  !create a gaussian basis descriptor with all the information about the 
 
 
   i_all=-product(shape(psiatn))*kind(psiatn)
