@@ -790,6 +790,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
            end if
 
         end if
+
+        !here we put the exact_exchange potential, in alternative to the poisson solver
+        
+
      endif
      call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
           cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
@@ -936,7 +940,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,thetaphi,'thetaphi',subname)
      thetaphi=0.0_gp
 
-     call wavelets_to_gaussians(atoms%geocode,orbs%norbp,orbs%nspinor,n1,n2,n3,gbd,thetaphi,&
+     call wavelets_to_gaussians(atoms%geocode,orbs%norbp,orbs%nspinor,&
+          n1,n2,n3,gbd,thetaphi,&
           hx,hy,hz,Glr%wfd,psi,gaucoeffs)
 
      i_all=-product(shape(thetaphi))*kind(thetaphi)
@@ -978,19 +983,23 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !plot the ionic potential, if required by output_grid
   if (abs(in%output_grid)==2) then
   if (in%output_grid==2) then
-     if (iproc.eq.0) write(*,*) 'writing ionic_potential.pot'
-     call plot_density(atoms%geocode,'ionic_potential.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-                       atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,pot_ion)
-     if (iproc.eq.0) write(*,*) 'writing local_potential.pot'
-     call plot_density(atoms%geocode,'local_potential.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-                       atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+     if (iproc == 0) write(*,*) 'writing ionic_potential.pot'
+     call plot_density(atoms%geocode,'ionic_potential.pot',iproc,nproc,&
+          n1,n2,n3,n1i,n2i,n3i,n3p,&
+          atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,pot_ion)
+     if (iproc == 0) write(*,*) 'writing local_potential.pot'
+     call plot_density(atoms%geocode,'local_potential.pot',iproc,nproc,&
+          n1,n2,n3,n1i,n2i,n3i,n3p,&
+          atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
   else
-     if (iproc.eq.0) write(*,*) 'writing ionic_potential.cube'
-     call plot_density_cube(atoms%geocode,'ionic_potential',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-                            in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot_ion)
-     if (iproc.eq.0) write(*,*) 'writing local_potential.cube'
-     call plot_density_cube(atoms%geocode,'local_potential',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-                            in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+     if (iproc == 0) write(*,*) 'writing ionic_potential.cube'
+     call plot_density_cube(atoms%geocode,'ionic_potential',iproc,nproc,&
+          n1,n2,n3,n1i,n2i,n3i,n3p,&
+          in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot_ion)
+     if (iproc == 0) write(*,*) 'writing local_potential.cube'
+     call plot_density_cube(atoms%geocode,'local_potential',iproc,nproc,&
+          n1,n2,n3,n1i,n2i,n3i,n3p,&
+          in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1+i3xcsh,1))
   endif
   end if
 
@@ -1241,19 +1250,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !!$        enddo
 !!$        close(unit=22)       
 
-
-
      endif
 
-     
      call lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
           cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
           rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
           , in%iat_absorber  , .false., orbs%norb,   psit , orbs%eval , in )
-    
-     
-
-
 
      if (nproc > 1) call MPI_FINALIZE(ierr)
 

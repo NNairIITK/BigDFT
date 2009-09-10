@@ -1,3 +1,57 @@
+!!$subroutine exact_exchange_potential
+!!$  use module_base
+!!$  use module_types
+!!$  use Poisson_Solver
+!!$  implicit none
+!!$  
+!!$
+!!$  !local variables
+!!$  type(workarr_sumrho) :: w
+!!$  real(wp), dimension(:,:), allocatable :: psir
+!!$
+!!$  
+!!$  call initialize_work_arrays_sumrho(lr,w)
+!!$  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,psir,'psir',subname)
+!!$
+!!$  allocate(rp_ij(lr%d%n1i*lr%d%n2i*n3p,orbs%norb*(orbs%norb+1)/2+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,rp_ij,'rp_ij',subname)
+!!$
+!!$  !uncompress the wavefunction in the real grid
+!!$  ispinor=1
+!!$  do iorb=1,orbs%norbp
+!!$     call daub_to_isf(lr,w,psi(1,ispinor,iorb),psir(iorb))
+!!$  end do
+!!$ 
+!!$  !communicate them between processors
+!!$
+!!$
+!!$  !build the partial densities for the poisson solver
+!!$  !TODO
+!!$
+!!$
+!!$  !partial exchange term
+!!$  call PSolver(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
+!!$       0,hxh,hyh,hzh,rp_ij,pkernel,pot_ion,ehart,zero,zero,0.d0,.false.,in%nspin,&
+!!$       quiet='YES')
+!!$
+!!$  !assign the potential for each function
+!!$  
+!!$
+!!$  i_all=-product(shape(rp_ij))*kind(rp_ij)
+!!$  deallocate(rp_ij,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'rp_ij',subname)
+!!$  
+!!$
+!!$  i_all=-product(shape(psir))*kind(psir)
+!!$  deallocate(psir,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'psir',subname)
+!!$
+!!$  call deallocate_work_arrays_sumrho(w)
+!!$
+!!$
+!!$end subroutine exact_exchange_potential
+
 ! calculate the action of the local hamiltonian on the orbitals
 subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      nspin,pot,psi,hpsi,ekin_sum,epot_sum)

@@ -200,10 +200,12 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   !assign the k-point to the given orbital, counting one orbital after each other
   jorb=1
   ikpts=1
+
+  !print *,'here',orbs%norb_par(:)
   do jproc=0,nproc-1
      do iorbp=1,orbs%norb_par(jproc)
         norb_par(jproc,ikpts)=norb_par(jproc,ikpts)+1
-        if (jorb == orbs%norb) then
+        if (mod(jorb,orbs%norb)==0) then
            ikpts=ikpts+1
         end if
         jorb=jorb+1
@@ -211,12 +213,13 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   end do
   !some checks
   if (orbs%norb /= 0) then
-     if (ikpts /= orbs%nkpts) then
-        write(*,*)' ERROR:ikpts not correct, orbitals:',ikpts,orbs%nkpts
-        stop
-     end if
+!!$     if (ikpts /= orbs%nkpts) then
+!!$        write(*,*)' ERROR:ikpts not correct, orbitals:',ikpts,orbs%nkpts
+!!$        stop
+!!$     end if
      !check the distribution
      do ikpts=1,orbs%nkpts
+        !print *,'partition',ikpts,orbs%nkpts,'ikpts',norb_par(:,ikpts)
         norb_tot=0
         do jproc=0,nproc-1
            norb_tot=norb_tot+norb_par(jproc,ikpts)

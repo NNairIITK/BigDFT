@@ -28,7 +28,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   end if
 
   !temporary changement, to be controlled
-  nspinor=2
+  !nspinor=2
 
   call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
 
@@ -537,7 +537,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
 
   !assign the value of the k-points
-  orbs%nkpts=2
+  orbs%nkpts=1!3
   !allocate vectors related to k-points
   allocate(orbs%kpts(3,orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
@@ -548,11 +548,12 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
      orbs%kpts(1,ikpt)=0.0_gp
      orbs%kpts(2,ikpt)=0.0_gp
      orbs%kpts(3,ikpt)=0.0_gp
-     orbs%kwgts(ikpt)=1.0_gp/real(orbs%nkpts,gp)
+     orbs%kwgts(ikpt)=1.0_gp
   end do
 
-  orbs%kwgts(1)=0.2_gp
-  orbs%kwgts(2)=0.8_gp
+!!$  orbs%kwgts(1)=0.2_gp
+!!$  orbs%kwgts(2)=0.5_gp
+!!$  orbs%kwgts(3)=0.3_gp
 
   !initialise the array
   do jproc=0,nproc-1
