@@ -307,7 +307,7 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   integer :: lpx,nsccode,mxpl,mxchg
   integer :: l,i,iocc,i_all,i_stat
   real(gp) :: alpz,alpl,rcov,rprb,zion,rij,a,a0,a0in,tt,ehomo
-  real(gp) value_at_r
+  real(gp) :: value_at_r,amu
 
   !filename = 'psppar.'//trim(atomname)
 
@@ -403,7 +403,7 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   if(psp_modifier.ne.0) then
      call modified_eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
   else
-     call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
+     call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
   endif
 
   occup(:,:)=0.000000000_gp
@@ -1164,15 +1164,8 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
   real(gp) Ediff, Rdiff, rpot_a,spot_a,hpot_a, Rinf_a
 
   real(gp), target  :: rgrid(Ngrid)
-  real(gp), target :: dumgrid1(Ngrid),dumgrid2(Ngrid) ,dumgrid3(Ngrid) , y_r(0:9), d_r(0:20)
-!!$  !! real(gp) , pointer :: py_r(:)
-!!$
-!!$  y_r(0)=1.0
-!!$  y_r(1)=2
-!!$  y_r(2)=3
-!!$  !! py_r=> y_r
-!!$  print *, py_r(1)
-!!$ 
+  real(gp), target :: dumgrid1(Ngrid),dumgrid2(Ngrid) ,dumgrid3(Ngrid) 
+
 
   if (nintp.ne.n_int) stop 'n_int><nintp'
 
@@ -1489,154 +1482,6 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
 
   
 
-  if(.false.) then
-
-     if(.false.) then ! ricalcola la rho con le soluzioni radiali
-
-        do iter=1,50
-           
-           do igrid=1,Ngrid
-              rhogrid(igrid)=0.0_gp
-           enddo
-           do l=0, lmax
-              dumgrid3 = potgrid  +   0.5_gp*l *(l +1.0_gp)/rgrid/rgrid  + vxcgrid
-              
-              do igrid=1,Ngrid
-
-                 if(-1.0/rgrid(igrid)< potgrid(igrid)  ) dumgrid3(igrid)= -1.0/rgrid(igrid)   +   0.5_gp*l *(l +1.0_gp)/rgrid(igrid)/rgrid(igrid)  + vxcgrid(igrid)
-                 !!! if(rgrid(igrid)>8.0+iter/20) dumgrid3(igrid)=10.0
-              enddo
-              
-              dumgrid1(:)=0.0_gp
-              do iocc=1,noccmax
-                 if( occup(iocc,l+1)>0.0001 )  then
-                    call schro(Egrid(isol) , rgrid ,  dumgrid3 , dumgrid1, dumgrid2 , ngrid , iocc+l , l*1.0_gp ,  zion)
-                    print *, " risolto per " ,  iocc+l , l*1.0_gp , Egrid(isol) , aeval(iocc,l+1)
-                    do igrid=1,Ngrid
-                       dum=dumgrid2(igrid)
-                       rhogrid(igrid)=rhogrid(igrid)+dum*dum*occup(iocc,l+1)
-                    enddo
-                 endif
-              enddo
-           enddo
-
-
-           do igrid=1,Ngrid
-              r=rgrid(igrid)
-              dum = rhogrid(igrid)/r/r *0.07957747154594768_gp
-              vxcgrid(igrid)=0.8_gp*vxcgrid(igrid) +0.2_gp* emuxc(dum) 
-           enddo
-
-           do igrid=1, Ngrid
-              r=rgrid(igrid)
-              newpotgrid(igrid) =0.5_gp*r*r  /    rprb**4*0 
-              newpotgrid(igrid) = newpotgrid(igrid) - zion/r * derf( r/alpz/sqrt(2.0)   )
-              rr = r/alpz
-              newpotgrid(igrid) = newpotgrid(igrid) + exp(-0.5_gp * rr**2 )*( gpot(1)+gpot(2)*rr**2 + gpot(3)*rr**4 )
-           enddo
-           ! poisson per potgrid
-           call integrate( rhogrid, dumgrid1, rgrid, Ngrid)
-           do igrid=1, Ngrid
-              newpotgrid(igrid)=newpotgrid(igrid)+dumgrid1(igrid)/rgrid(igrid)
-           enddo
-
-           do igrid=1, Ngrid
-              dumgrid1(igrid) = rhogrid(igrid)/rgrid(igrid)
-           enddo
-           call integrate( dumgrid1, dumgrid2, rgrid, Ngrid)
-           do igrid=1, Ngrid
-              newpotgrid(igrid)=newpotgrid(igrid)-dumgrid2(igrid) + dumgrid2(Ngrid)
-           enddo
-
-           potgrid=0.8_gp*potgrid+0.2_gp*newpotgrid
-           print *, " " 
-        enddo
-     endif
-     
-     dumgrid1(:)=0.0_gp
-     open(unit=22,file='pot.dat')
-     do igrid=1, Ngrid
-        write(22,'(200(f20.10,1x))') rgrid(igrid),potgrid(igrid)+vxcgrid(igrid)
-     enddo
-     close(unit=22)
-     
-     print *, " provo eq diff "
-     do idiff=1,600
-        Ediff=idiff*0.04_gp/3.0 +0.0_gp
-        do igrid=Ngrid,1,-1
-           dumgrid2(igrid)=potgrid(igrid)+vxcgrid(igrid)
-           if(rgrid(igrid)>2.0_gp) then
-              Nrdiff = igrid;
-              Rdiff = rgrid(igrid)
-           endif
-        enddo
-        do l=0, 9
-           if(l>0) then
-              do igrid=1,Ngrid
-                 dumgrid2 (igrid)=dumgrid2 (igrid)+ 0.5_gp*(2.0_gp*l)/rgrid(igrid)/rgrid(igrid)
-              enddo
-           endif
-           d_r(l)=phase( Ediff, Nrdiff, rgrid,dumgrid2  , dumgrid1 , psigrid(1,2+l) , l*1.0_gp ,0,zion, 1)
-           y_r(l)= psigrid(Nrdiff,2+l)
-           
-        enddo
-        
-        dumgrid1 = 0.0_gp
-        dumgrid2 = potgrid + vxcgrid
-        call schro(Egrid(1) , rgrid , dumgrid2  , dumgrid1, psigrid(:,1) , ngrid , 1+0 , 0*1.0_gp ,  zion)
-        
-!!$        print *, " E bound ", Egrid(1)
-!!$        open(unit=22,file='bound.dat')
-!!$        do igrid=1, Ngrid
-!!$           write(22,'(200(f20.10,1x))') rgrid(igrid),  psigrid(igrid,1)
-!!$        enddo
-!!$        close(unit=22)
-        
-        dumgrid1(:) =  psigrid(:,2+1)* psigrid(:,1)*rgrid(:)
-        call integrate(dumgrid1(1),dumgrid3(1),rgrid(1) ,Nrdiff)
-        fattore = dumgrid3(Nrdiff)
-        dumgrid1(:)=0
-        
-        if(.true.) then
-           
-           nls_a=10
-           lpot_a=1
-           rpot_a = 6.0_gp
-           spot_a = 1.0_gp
-           hpot_a = 3.0_gp
-           Rinf_a=100.0_gp
-           nstesp_coarse=1000
-           nsteps_fine  = 4
-           
-           ref= esatto_CalcolaRiflettivita( ngrid, rgrid, dumgrid2, nls_a, lpot_a, rpot_a,spot_a,hpot_a,y_r,d_r,&
-                Rdiff,    Rinf_a ,nstesp_coarse ,nsteps_fine, Ediff )
-
-           print *," ",  Ediff, ref*fattore*fattore, fattore
-           
-
-!!$           do igrid=1,Ngrid
-!!$              dumgrid2 (igrid)=potgrid(igrid)+vxcgrid(igrid)+ 0.5_gp*(2.0_gp)/rgrid(igrid)/rgrid(igrid)
-!!$           enddo
-!!$           d_r(1)=phase( Ediff, Ngrid, rgrid,dumgrid2  , dumgrid1 , psigrid(1,2+1) , 1*1.0_gp ,0,zion, 1)
-!!$           y_r(1)= psigrid(Ngrid,2+1)
-!!$
-!!$           print *,"C2 ", Ediff, 4*fattore*fattore/(   y_r(1)*y_r(1) +  d_r(1)*d_r(1)/2.0/Ediff   )
-
-
-!!$           open(unit=22,file='libera.dat')
-!!$           do igrid=1, Ngrid
-!!$              write(22,'(200(f20.10,1x))') rgrid(igrid),  psigrid(igrid,2+1)
-!!$           enddo
-!!$           close(unit=22)
-!!$           stop
-
-
-        endif
-     enddo
-        
-     stop
-  endif
-
 
 
   do igrid=1, ngrid
@@ -1864,8 +1709,11 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
   real(gp) Ediff, Rdiff, rpot_a,spot_a,hpot_a, Rinf_a
 
   real(gp), target  :: rgrid(Ngrid)
-  real(gp), target :: dumgrid1(Ngrid),dumgrid2(Ngrid) ,dumgrid3(Ngrid) , y_r(0:9), d_r(0:20)
-!!$  !! real(gp) , pointer :: py_r(:)
+  real(gp), target :: dumgrid1(Ngrid),dumgrid2(Ngrid) ,dumgrid3(Ngrid)
+  real(gp) , pointer :: y_r(:) ,  d_r(:)
+
+ 
+
 !!$
 !!$  y_r(0)=1.0
 !!$  y_r(1)=2
@@ -1886,8 +1734,6 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
   do l=1,lpx+1
      noproj = noproj .and. (alps(l) .eq. 0._gp)
   end do
-
-
   
 
 ! projectors, just in case
@@ -2191,6 +2037,10 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 
   if(.true.) then
 
+     allocate(y_r(0:9))
+     allocate(d_r(0:9))
+ 
+
      if(.false.) then ! ricalcola la rho con le soluzioni radiali
 
         do iter=1,50
@@ -2203,7 +2053,9 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
               
               do igrid=1,Ngrid
 
-                 if(-1.0/rgrid(igrid)< potgrid(igrid)  ) dumgrid3(igrid)= -1.0/rgrid(igrid)   +   0.5_gp*l *(l +1.0_gp)/rgrid(igrid)/rgrid(igrid)  + vxcgrid(igrid)
+                 if(-1.0/rgrid(igrid)< potgrid(igrid)  ) dumgrid3(igrid)=&
+                      -1.0/rgrid(igrid)   +  &
+                      0.5_gp*l *(l +1.0_gp)/rgrid(igrid)/rgrid(igrid)  + vxcgrid(igrid)
                  !!! if(rgrid(igrid)>8.0+iter/20) dumgrid3(igrid)=10.0
               enddo
               
@@ -2307,9 +2159,14 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
            Rinf_a=100.0_gp
            nstesp_coarse=1000
            nsteps_fine  = 4
-           
+                     
+!!$           print *, y_r,d_r
+!!$           print *, " A  y_r(1) " , y_r(1), d_r(1)
+
            ref= esatto_CalcolaRiflettivita( ngrid, rgrid, dumgrid2, nls_a, lpot_a, rpot_a,spot_a,hpot_a,y_r,d_r,&
                 Rdiff,    Rinf_a ,nstesp_coarse ,nsteps_fine, Ediff )
+
+       
 
            print *," ",  Ediff, ref*fattore*fattore, fattore
            
@@ -2333,7 +2190,8 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 
         endif
      enddo
-        
+     deallocate(y_r)
+     deallocate(d_r)
      stop
   endif
 

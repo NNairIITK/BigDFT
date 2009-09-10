@@ -308,7 +308,7 @@ contains
     integer i
 
     if( ha%nproc/=1) then
-       call transpose_v(ha%iproc,ha%nproc,ha%orbs%norbp,ha%orbs%nspinor,ha%lr%wfd,ha%comms,&
+       call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
             psi(1),work=wrk,outadd=Qvect(1,0))  
     else
        do i=1, EP_dim_tot
@@ -342,7 +342,7 @@ contains
     end if
     
     if( ha%nproc/=1) then
-       call transpose_v(ha%iproc,ha%nproc,ha%orbs%norbp,ha%orbs%nspinor,ha%lr%wfd,ha%comms,&
+       call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
             Qvect_tmp,work=wrk,outadd=Qvect(1,0))  
     else
        do i=1, EP_dim_tot
@@ -379,7 +379,7 @@ contains
     
 
     if( ha%nproc/=1) then
-       call transpose_v(ha%iproc,ha%nproc,ha%orbs%norbp,ha%orbs%nspinor,ha%lr%wfd,ha%comms,&
+       call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
             Qvect_tmp,work=wrk,outadd=Qvect(1,0))  
     else
        do i=1, EP_dim_tot
@@ -568,7 +568,7 @@ end subroutine EP_initialize_start
     endif
     
     if( ha%nproc > 1) then
-       call untranspose_v(ha%iproc,ha%nproc,ha%orbs%norbp,ha%orbs%nspinor,ha%lr%wfd,ha%comms,&
+       call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
             Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
     else
        do k=1, EP_dim_tot
@@ -579,7 +579,8 @@ end subroutine EP_initialize_start
  
 
     if(  ha%iproc ==0 ) print *, "chiamo hamiltonian "
-    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,ha%rxyz,ha%cpmult,ha%fpmult,ha%radii_cf,&
+    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
+         ha%rxyz,ha%cpmult,ha%fpmult,ha%radii_cf,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
          ha%ndimpot, &
          ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,ha%epot_sum,ha%eproj_sum,1,ha%GPU)
@@ -592,7 +593,7 @@ end subroutine EP_initialize_start
    endif
 
    if(  ha%nproc/=1) then
-      call transpose_v(ha%iproc,ha%nproc,ha%orbs%norbp,ha%orbs%nspinor,ha%lr%wfd,ha%comms,&
+      call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
            wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
    else
       do k=1, EP_dim_tot
@@ -741,7 +742,7 @@ end subroutine EP_initialize_start
       end if
    end do
 
-   call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
+   if (iproc==0)    call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
    if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
    !renormalize the orbitals

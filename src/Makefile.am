@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces memguess  provaesatto NEB frequencies $(minima_hopping_sources) 
+binaries_sources = cluster test_forces memguess NEB frequencies $(minima_hopping_sources) 
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -269,14 +269,6 @@ cluster_LDADD = libbigdft.a \
 	$(libs_cuda)
 
 
-provaesatto_SOURCES = provaesatto.f90 
-provaesatto_LDFLAGS = 
-provaesatto_LDADD = libbigdft.a 
-
-
-
-
-
 
 test_forces_SOURCES = test_forces.f90
 test_forces_LDFLAGS = 
@@ -336,11 +328,9 @@ CLEANFILES = mpif.h \
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
 
-cluster.o geometry.o: vdwcorrection.o
+cluster.o geometry.o: vdwcorrection.o esatto.o
 
 lanczos.o : lanczos_base.o lanczos_interface.o
-
-provaesatto.o : esatto.o
 
 #init.o : base.o interfaces.o
 

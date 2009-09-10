@@ -270,7 +270,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   nspin=in%nspin
 
   nvirt=in%nvirt
-  print * , " nvirt ", nvirt
 
   hx=in%hx
   hy=in%hy
@@ -908,12 +907,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           pkernel,psi,psivirt,ngatherarr)
   end if
 
-
-
-
-
-
-
   
   !project the wavefunctions on a gaussian basis and keep in memory
   if (in%gaussian_help) then
@@ -1217,8 +1210,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                     if( r>29) then
                        rhopot(ix,iy,iz+i3xcsh,1)=0.0
                     else
-                       igrid = binary_search( r, radpot(1,1), radpotcount )
-                       rhopot(ix,iy,iz+i3xcsh,1) = ( radpot(igrid,2)*(radpot(igrid+1,1)-R) + radpot(igrid+1,2)*(R-radpot(igrid,1)) )/&
+                       igrid = binary_search( r, radpot, radpotcount )
+                       rhopot(ix,iy,iz+i3xcsh,1) = &
+                            ( radpot(igrid,2)*(radpot(igrid+1,1)-R) + radpot(igrid+1,2)*(R-radpot(igrid,1)) )/&
                             ( radpot(igrid+1,1) -radpot(igrid,1) )
                     endif
                  endif
