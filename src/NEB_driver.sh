@@ -12,8 +12,9 @@
 #   [all free_only] [job_name] [workdir] [first_config]
 # OUTPUTS:
 #   [gen_output_file]
-DEBUG=
+DEBUG="yes"
 
+INCLUDED="yes"
 source NEB_include.sh
 
 type=$1
@@ -40,6 +41,26 @@ if test x"$DEBUG" != x ; then
     echo " datadir  = "$datadir
     echo " workdir  = "$workdir
 fi
+
+# Try to find the iteration number.
+cd $datadir
+for ((i = 1; i < 1024; i++)) ; do
+    ch=`printf "%03d" $i`
+    if ! [ -f $job_name.NEB.it${ch}.dat ] ; then
+	break
+    fi
+done
+neb_iter=`printf "%03d" $i`
+if test x"$DEBUG" != x ; then
+    echo "Current iter is "${neb_iter}"."
+fi
+
+# Save and remove the possible output from previous run.
+cd $datadir
+if [ -f gen_output_file ] ; then
+    cp -f -p gen_output_file $job_name.NEB.it${neb_iter}.forces
+fi
+rm -f gen_output_file
 
 # Consistency check.
 if test "$n_images" -lt 0 ; then
@@ -68,7 +89,6 @@ for ((count=${min};count<=${max};count++)) ; do
     fi
     # Empty the working directory.
     if [ ! -f $dir/RESTART ] ; then
-        rm -f $dir/*
         touch $dir/START
     fi
     neb_dir[$count]=$dir
@@ -76,7 +96,7 @@ done
 
 # Run an init function if necessary.
 cd $workdir
-init_jobs $job_name
+outfile=`init_jobs $job_name $datadir $count $n_nodes $first_config | tail -n 1`
 
 # Main loop. Start run in each directories, erasing the START keyword.
 jobs_done=0
@@ -141,24 +161,7 @@ done
 cd $workdir
 finalise_jobs $job_name
 
-# Compression of the work data and saving of previous results
-cd $workdir
-for ((i = 0; i < 256; i++)) ; do
-    ch=`printf "%03d" $i`
-    if ! [ -f $job_name.NEB.it${ch}.tar.bz2 ] ; then
-	if test x"$DEBUG" != x ; then
-	    echo "Compression of replica calculations into '$job_name.NEB.it${ch}.tar.bz2'"
-	fi
-	tar --exclude \*.bz2 -cjf $job_name.NEB.it${ch}.tar.bz2 $job_name.NEB.*
-	if [ -f $datadir/$job_name.NEB.dat ] ; then
-	    cp -f -p $datadir/$job_name.NEB.dat $datadir/$job_name.NEB.it${ch}.dat
-	fi
-	break
-    fi
-done
-
 # Generate the force file.
-rm -f $datadir/gen_output_file
 for ((count=${min};count<=${max};count++)) ; do
     cd ${neb_dir[$count]}
 
@@ -171,4 +174,19 @@ for ((count=${min};count<=${max};count++)) ; do
 	echo " THE PROGRAM IS GOING TO STOP !!!"
 	echo "  9999999.99999999" >> $datadir/gen_output_file
     fi
+    rm -f OK FAILED
 done
+
+# Copy of the outputs
+for ((count=${min};count<=${max};count++)) ; do
+    ch=`printf "%02d" $count`
+    cd $workdir/$job_name.NEB.$ch
+    cp -f -p $outfile $job_name.NEB.it${neb_iter}.out
+done
+
+# Copy of previous dat file.
+cd $datadir
+if [ -f $job_name.NEB.dat ] ; then
+    cp -f -p $job_name.NEB.dat $job_name.NEB.it${neb_iter}.dat
+fi
+
