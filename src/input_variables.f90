@@ -670,7 +670,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
      else if (file(l-5:l) == ".ascii") then
         write(atoms%format, "(A)") "ascii"
      else
-        write(*,*) "Atomic input file format not recognised."
+        write(*,*) "Atomic input file '" // trim(file) // "', format not recognised."
         write(*,*) " File should be *.ascii or *.xyz."
         stop
      end if
