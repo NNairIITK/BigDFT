@@ -203,6 +203,8 @@ program BigDFT
   enddo !loop over iconfig
   deallocate(arr_posinp)
 
+  call free_input_variables(inputs)
+
   call MPI_FINALIZE(ierr)
 
   if (GPUshare) call stop_gpu_sharing()

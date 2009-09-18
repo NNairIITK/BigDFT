@@ -21,19 +21,26 @@ module module_types
 !!****t* module_types/input_variables
 !! DESCRIPTION
 !!   Input variable structure
-!!   Structure of the variables read by input.dft file
+!!   Structure of the variables read by input.* files (*.dft, *.geopt...)
 !! SOURCE
 !!
   type, public :: input_variables
-     character(len=10) :: geopt_approach
      logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
-     integer :: ncount_cluster_x
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,nvirt,nplot
      integer :: output_grid, dispersion
-     real(gp) :: frac_fluct,randdis,betax,forcemax,gnrm_sw
+     real(gp) :: frac_fluct,gnrm_sw
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf
      integer :: iat_absorber,nvacancy,verbosity
      real(gp), dimension(3) :: ef
+     ! Geometry variables from *.geopt
+     character(len=10) :: geopt_approach
+     integer :: ncount_cluster_x
+     real(gp) :: betax,forcemax,randdis
+     integer :: optcell, ionmov, nnos
+     real(gp) :: dtion, mditemp, mdftemp, noseinert, friction, mdwall
+     real(gp) :: bmass, vmass, strprecon, strfact
+     real(gp) :: strtarget(6)
+     real(gp), pointer :: qmass(:)
   end type input_variables
 !!***
 

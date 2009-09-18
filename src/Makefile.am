@@ -63,9 +63,18 @@ EXTRA_DIST = \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
 	lib \
-	NEB_driver.sh
+	NEB_driver.sh \
+	ABINIT-moldyn/velocity_verlet.F90 \
+	ABINIT-moldyn/isokinetic.F90 \
+	ABINIT-moldyn/isotemp.F90 \
+	ABINIT-moldyn/isothermal.F90 \
+	ABINIT-moldyn/langevin.F90 \
+	ABINIT-moldyn/moldyn.F90 \
+	ABINIT-moldyn/nose.F90 \
+	ABINIT-moldyn/others.F90 \
+	ABINIT-moldyn/quenched.F90
 
-AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common
+AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common -I$(srcdir)/ABINIT-moldyn
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)
@@ -145,7 +154,8 @@ high_level = cluster.f90 \
 	vdwcorrection.f90 \
 	lanczos_interface.f90 \
 	lanczos_base.f90 \
-	lanczos.f90 
+	lanczos.f90 \
+	scfloop_API.f90
 
 #objects which can be compiled whithout any dependence
 low_level = init/projectors.f90  \
@@ -184,7 +194,7 @@ low_level = init/projectors.f90  \
 	wavelib/daubisf.f90
 
 if BUILD_LIB_ABINIT
-abinit = ABINIT-ewald/ewald.F90 \
+abinit_low = ABINIT-ewald/ewald.F90 \
 	ABINIT-ewald/matr3inv.F90 \
 	ABINIT-ewald/derfc.F90 \
 	ABINIT-geometry/sort_dp.F90 \
@@ -241,16 +251,24 @@ abinit = ABINIT-ewald/ewald.F90 \
 	ABINIT-geometry/smpbz.F90 \
 	ABINIT-geometry/symkpt.F90 \
 	ABINIT-geometry/getkgrid.F90
+abinit_high = ABINIT-moldyn/ab6_moldyn.F90 \
+	ABINIT-moldyn/xfpack.F90 \
+	ABINIT-moldyn/prtxvf.F90 \
+	ABINIT-moldyn/fconv.F90 \
+	ABINIT-moldyn/uniformrandom.F90 \
+	ABINIT-moldyn/matrginv.F90
 else
-abinit = 
+abinit_low = 
+abinit_high = 
 endif
 
 libbigdft_a_SOURCES = \
-	$(abinit) \
+	$(abinit_low) \
 	$(mpi_source) \
 	BigDFT_API.f90 \
+	$(low_level) \
 	$(high_level) \
-	$(low_level)
+	$(abinit_high)
 
 libbigdft_a_LIBADD = profiling/time.o \
 	profiling/memory.o \
@@ -319,7 +337,8 @@ CLEANFILES = mpif.h \
 	numeric.@MODULE_EXT@ NUMERIC.@MODULE_EXT@ \
 	minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
 	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
-	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@
+	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@ \
+	scfloop_API.@MODULE_EXT@ SCFLOOP_API.@MODULE_EXT@
 
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o : $(mpi_include)  $(modules_objects)
@@ -327,6 +346,21 @@ $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o : $(mpi_includ
 cluster.o geometry.o: vdwcorrection.o
 
 lanczos.o : lanczos_base.o lanczos_interface.o
+
+scfloop_API.o : BigDFT_API.o
+
+ab6_moldyn.o ABINIT-moldyn/ab6_moldyn.o : scfloop_API.o \
+	ABINIT-moldyn/ab6_moldyn.F90 \
+	ABINIT-moldyn/velocity_verlet.F90 \
+	ABINIT-moldyn/isokinetic.F90 \
+	ABINIT-moldyn/isotemp.F90 \
+	ABINIT-moldyn/isothermal.F90 \
+	ABINIT-moldyn/langevin.F90 \
+	ABINIT-moldyn/moldyn.F90 \
+	ABINIT-moldyn/nose.F90 \
+	ABINIT-moldyn/others.F90 \
+	ABINIT-moldyn/quenched.F90
+
 
 #init.o : base.o interfaces.o
 

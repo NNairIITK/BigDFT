@@ -22,43 +22,44 @@
 !!      input variables, for which there is a help file)
 !!
 !! List of datatypes :
-!! * aim_dataset_type : the "dataset" for aim
-!! * anaddb_dataset_type : the "dataset" for anaddb
 !! * bandstructure_type : different information about the band structure
 !! * bcp_type : a "bonding critical point" for aim
-!! * dataset_type : the "dataset" for the main abinit code
+!! * crystal_structure : information on the unit cell, symmetries
 !! * datafil_type : the data (units,filenames) related to files
 !! * dens_sym_operator_type : information for symmetrizing the density
 !! * efield_type : First-principles calculations in a finite electric field
-!! * electronic_structure : for GW part of ABINIT, energies, occupations,
-!!   wavefunctions in real and reciprocal space (big set of data !)
+!! * energies_type : simple datastructure to store parts of total energy.
 !! * epsilonm1_parameters : for GW part of ABINIT, parameters for epsilon-1
 !! * epsilonm1_results : for GW part of ABINIT, results of screening
 !! * gs_hamiltonian_type : datastructure describing an Hamiltonian
 !! * hdr_type   : the header of wf, den and pot files
-!! * MPI_type : the data related to MPI parallelization
+!! * bz_mesh : information on the sampling of the BZ used in the GW part
+!! * nuclear_type : data (esp. related to different nspden) at each nuclear site
 !! * pawang_type : for PAW, ANGular mesh discretization and related data
 !! * pawfgr_type : for PAW, Fine rectangular GRid parameters and related data
 !! * pawfgrtab_type : for PAW, various arrays giving data related to fine grid for a given atom
 !! * pawrad_type : for PAW, RADial mesh discretization and related data
 !! * pawtab_type : for PAW, TABulated data initialized at start
 !! * paw_an_type : for PAW, various arrays given on ANgular mesh or ANgular moments
-!! * paw_ij_type : for PAW, various arrays given on (i,j) (partial waves)
-!!   channels
+!! * paw_ij_type : for PAW, various arrays given on (i,j) (partial waves) channels
+!! * pawrhoij_type : for PAW, rhoij quantities and related data
 !! * pseudopotential_type : for norm-conserving pseudopotential, all the
 !!   information
 !! * pspheader_paw_type : for PAW, the header of the atomic file
 !! * pspheader_type : for norm-conserving pseudopotentials, the header of
 !!   the file
+!! * rdm_parameters : contains the parameters used during a RDM calculation
 !! * results_gs_type : contains the results of a GS calculation
 !! * results_out_type : contains a subset of the results, for internal
 !!   tests and timing analysis
+!! * scf_history : contains an history of previous SCF cycles (densities...)
 !! * sigma_parameters : for GW part of ABINIT, parameters for sigma
 !! * sigma_results : for GW part of ABINIT, results of sigma
 !! * wffile_type : a handler for dealing with the IO of a wavefunction file
+!! * wvl_internalVars_type : all internal input variables used by wavelets.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2001-2006 ABINIT group (XG)
+!! Copyright (C) 2001-2009 ABINIT group (XG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -72,6 +73,9 @@
 !! * pawtab_type : TABulated data initialized at start
 !! * paw_an_type : various arrays given on ANgular mesh or
 !! * paw_ij_type : various arrays given on (i,j) (partial waves) channels
+!! * paw_pwff_type : Form factors used to calculate the onsite contributions of a plane wave.
+!! * paw_pwij_type : Onsite matrix elements of a plane wave for a given atom type.
+!! * pawrhoij_type : for PAW, rhoij quantities and related data
 !! * pspheader_paw_type: the header of the atomic file
 !!
 !! TODO
@@ -85,6 +89,10 @@
 module defs_datatypes
 
  use defs_basis
+ use defs_parameters
+#if defined HAVE_BIGDFT
+ use BigDFT_API, only : atoms_data
+#endif
 
  implicit none
 
@@ -92,103 +100,50 @@ module defs_datatypes
 
 !!***
 
-!----------------------------------------------------------------------
 
-!!****t* defs_datatypes/aim_dataset_type
+!!****t* defs_datatypes/wvl_internalVars_type
 !! NAME
-!! aim_dataset_type
+!! wvl_internalVars_type
 !!
 !! FUNCTION
-!! The aim_dataset_type structured datatype
-!! gathers all the input variables for the aim code
+!! This type is a gathering for all internal variables wavelets required. It is
+!! included in the datatypes strutcture.
+!!
+!! NOTES
+!! This array should be defined early since it is included in datatype.
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
+type wvl_internalVars_type
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+  ! Size of the coarse grid, called n1, n2 and n3 in BigDFT.
+  integer :: n(3)
+  ! Size of the fine grid used to expand potentials, densities...
+  ! Each dimensions are equal to 2 * n(i) + buffer. The buffer value
+  ! depends on the boundary conditions.
+  ! They are called n1i, n2i and n3i in BigDFT.
+  integer :: ni(3)
+  ! Number of elements in the density/potential grid,
+  ! equals to ni(1) * ni(2) * ni(3)
+  integer :: ntot
+
+  ! Localisation information of a cube containing the fine grid.
+  ! (1,:) gives the lower point and (2,:) the higher one.
+  integer :: fGrid(2, 3)
+
+  ! The hgrid values in each direction, after the application of the
+  ! boundary conditions. In free boundary conditions, the three values
+  ! are equal.
+  real(dp) :: h(3)
+
+#if defined HAVE_BIGDFT
+  ! A copy of the current dtset values.
+  type(atoms_data) :: atoms
 #endif
-
- type aim_dataset_type
-
-! Since all these input variables are described in the aim_help.html
-! file, they are not described in length here ...
-
-! Integer
-  integer :: crit,denout,dltyp,gpsurf,irho,ivol,lapout,nsa,nsb,nsc
-  integer :: ngrid(3)
-  integer :: batom  !! Warning : corresponds to the input variable atom
-  integer :: foll   !! Warning : corresponds to the input variable follow
-  integer :: isurf  !! Warning : corresponds to the input variable surf
-  integer :: irsur  !! Warning : corresponds to the input variable rsurf
-  integer :: nph    !! Warning : corresponds to the input variable nphi
-  integer :: npt    !! Warning : corresponds to the input variable inpt
-  integer :: nth    !! Warning : corresponds to the input variable ntheta
-  integer :: plden  !! Warning : not documented in help file ?!
-
-! Real
-  real(dp) :: atrad,coff1,coff2,dpclim,folstp,lgrad,lgrad2,lstep,lstep2,&
-&  maxatd,maxcpd,phimax,phimin
-  real(dp) :: foldep(3),scal(3),vpts(3,4)
-  real(dp) :: dr0    !! Warning : correspond to the input variable radstp
-  real(dp) :: phi0   !! Warning : correspond to the input variable rsurdir(2)
-  real(dp) :: rmin   !! Warning : correspond to the input variable ratmin
-  real(dp) :: th0    !! Warning : correspond to the input variable rsurdir(1)
-  real(dp) :: themax !! Warning : correspond to the input variable thetamax
-  real(dp) :: themin !! Warning : correspond to the input variable thetamin
-
- end type aim_dataset_type
-
-!!***
-
-!----------------------------------------------------------------------
-
-!!****t* defs_datatypes/anaddb_dataset_type
-!! NAME
-!! anaddb_dataset_type
-!!
-!! FUNCTION
-!! The anaddb_dataset_type structured datatype
-!! gather all the input variables for the anaddb code.
-!!
-!! SOURCE
-
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
- type anaddb_dataset_type
-
-! Since all these input variables are described in the anaddb_help.html
-! file, they are not described in length here ...
-! Integer
-integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphflag,enunit
-  integer :: gkk2exist,gkk2write,gkk_rptexist,gkk_rptwrite,gkqexist,gkqwrite
-  integer :: ifcana,ifcflag,ifcout,instrflag,natfix,natifc,natom
-  integer :: nchan,nfreq,ngrids,nlflag,nph1l,nph2l,nqpath
-  integer :: nqshft,nsphere,nstrfix,ntemper,nwchan
-  integer :: phfrqexist,phfrqwrite,piezoflag,polflag,prtmbm,prtfsurf,prtnest,ramansr
-  integer :: relaxat,relaxstr,rfmeth,selectz,symdynmat,telphint,tkeepbands,thmflag
-  integer :: ngqpt(9)             ! ngqpt(9) instead of ngqpt(3) is needed in wght9.f
-  integer :: istrfix(6),ng2qpt(3),kptrlatt(3,3)
-
-! Real(dp)
-  real(dp) :: a2fsmear,dostol,elphsmear,elph_fermie,frmax,frmin,temperinc,tempermin,thmtol,mustar,rifcsph
-  real(dp) :: q1shft(3,4),q2shft(3),targetpol(3)
-
-! Integer pointers
-  integer, pointer :: atifc(:)    ! atifc(natom) WARNING : there is a transformation
-                                  ! of this input variable, in chkin9
-                                  ! This should be changed ...
-  integer, pointer :: iatfix(:)   ! iatfix(natom)
-
-! Real pointers
-  real(dp), pointer :: qnrml1(:)  ! qnrml1(nph1l)
-  real(dp), pointer :: qnrml2(:)  ! qnrml2(nph2l)
-  real(dp), pointer :: qpath(:,:) ! qpath(3,nqpath)
-  real(dp), pointer :: qph1l(:,:) ! qph1l(3,nph1l)
-  real(dp), pointer :: qph2l(:,:) ! qph2l(3,nph2l)
-
- end type anaddb_dataset_type
+end type wvl_internalVars_type
 
 !!***
 
@@ -199,16 +154,12 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
 !! bandstructure_type
 !!
 !! FUNCTION
-!! It contains different information about the band structure
-!! (eigenenergies, residuals, derivative of occupation number
-!!  vs energy in case of metallic occupations)
-!! and Brillouin zone according to the context : k points, occupation numbers,
-!! storage mode of wavefunctions, weights ...
-!! For example, the initial Brillouin zone, set up in the dataset, will be treated
-!! in the response function part of the code, to give a reduced
-!! Brillouin zone different from the original one, due to the
-!! breaking of the symmetries related to the existence of a wavevector,
-!! or the lack of time-reversal invariance
+!! It contains different information about the band structure: eigenenergies, residuals, derivative of occupation
+!! numbers vs energy in case of metallic occupations and Brillouin zone according to the context: k points,
+!! occupation numbers, storage mode of wavefunctions, weights ...
+!! For example, the initial Brillouin zone, set up in the dataset, will be treated in the response function part of
+!! the code, to give a reduced Brillouin zone different from the original one, due to the breaking of the symmetries
+!! related to the existence of a wavevector, or the lack of time-reversal invariance.
 !!
 !! SOURCE
 
@@ -218,22 +169,60 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
 
  type bandstructure_type
 
-  integer :: bantot                  ! total number of bands (sum(nband(:))
-  integer :: nkpt                    ! number of k points
-  integer :: nsppol                  ! number of spin-polarizations
-  integer, pointer :: istwfk(:)      ! istwfk(nkpt) storage mode at each k point
-  integer, pointer :: nband(:)       ! nband(nkpt*nsppol) number of bands
-                                     !    at each k point and spin-polarisation
-  integer, pointer :: npwarr(:)      ! npwarr(nkpt) number of plane waves at each k point
-  real(dp), pointer :: kptns(:,:)    ! kptns(3,nkpt)  k-point vectors
-  real(dp), pointer :: eig(:)        ! eig(bantot)  eigenvalues of each band
-  real(dp), pointer :: occ(:)        ! occ(bantot)  occupation of each band
-  real(dp), pointer :: doccde(:)     ! doccde(bantot)  derivative of the
-                                     !    occupation of each band wrt energy (needed for RF)
-  real(dp), pointer :: wtk(:)        ! wtk(nkpt)  weight of each k point
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+  integer :: bantot                ! total number of bands (sum(nband(:))
+  integer :: mband                 ! Max number of bands i.e MAXVAL(nband) (to dimension arrays)
+  integer :: nkpt                  ! number of k points
+  integer :: nspinor               ! 1 for collinear, 2 for noncollinear.
+  integer :: nsppol                ! number of spin-polarizations
+  integer :: occopt                ! Occupation option, see input variable.
+
+  !£integer :: kptopt
+  !£real(dp) :: tolwfr
+  !£real(dp),pointer :: resid(mband*nkpt*nsppol)
+  !£resid(mband*nkpt*nsppol)=residuals (hartree**2)
+
+  real(dp) :: entropy              ! Entropy associated with the smearing (adimensional)
+  real(dp) :: fermie               ! Fermi energy
+  real(dp) :: nelect               ! Number of electrons.
+  real(dp) :: tphysel              ! Physical temperature of electrons.
+  real(dp) :: tsmear               ! Temperature of smearing.
+
+  integer,pointer :: istwfk(:)
+  ! istwfk(nkpt)
+  ! Storage mode at each k point.
+
+  integer,pointer :: nband(:)
+  ! nband(nkpt*nsppol)
+  ! Number of bands at each k point and spin-polarisation.
+
+  integer,pointer :: npwarr(:)
+  ! npwarr(nkpt)
+  ! Number of plane waves at each k point.
+
+  real(dp),pointer :: kptns(:,:)
+  ! kptns(3,nkpt)
+  ! k-point vectors.
+
+  real(dp),pointer :: eig(:,:,:)
+  ! eig(mband,nkpt,nsppol)
+  ! Eigenvalues of each band.
+
+  real(dp),pointer :: occ(:,:,:)
+  ! occ(mband,nkpt,nsppol)
+  ! occupation of each band.
+
+  real(dp),pointer :: doccde(:,:,:)
+  ! doccde(mband,nkpt,nsppol)
+  ! derivative of the occupation of each band wrt energy (needed for RF).
+
+  real(dp),pointer :: wtk(:)
+  ! wtk(nkpt)
+  ! weight of each k point, normalized to one.
 
  end type bandstructure_type
-
 !!***
 
 !----------------------------------------------------------------------
@@ -253,6 +242,10 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
 
  type bcp_type
 
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+
 ! Integer
   integer :: iat     !! number of the bonding atom inside a primitive cell
   integer :: ipos    !! number of the primitive cell of the bonding atom
@@ -267,7 +260,6 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
   real(dp) :: vv(3)   !! position of the bcp relative to the central atom
 
  end type bcp_type
-
 !!***
 
 !----------------------------------------------------------------------
@@ -290,6 +282,10 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
 
  type datafiles_type
 
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+
   integer :: ireadden
    !   ireadden non-zero  if the den file must be read
   integer :: ireadwf
@@ -299,11 +295,15 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
    ! if(optdriver==1), that is, response-function computation,
    !   ireadwf non-zero  if the wff1 file must be read
    !   (if ird1wf non-zero or get1wf non-zero)
+  integer :: unchi0  ! unit number for chi0 files
   integer :: unddb   ! unit number for Derivative DataBase
   integer :: unddk   ! unit number for ddk 1WF file
   integer :: unkg    ! unit number for k+G data
   integer :: unkgq   ! unit number for k+G+q data
   integer :: unkg1   ! unit number for first-order k+G+q data
+  integer :: unkss   ! unit number for KSS file
+  integer :: unqps   ! unit number for QPS file
+  integer :: unscr   ! unit number for SCR file
   integer :: unwff1  ! unit number for wavefunctions, number one
   integer :: unwff2  ! unit number for wavefunctions, number two
   integer :: unwffgs ! unit number for ground-state wavefunctions
@@ -315,14 +315,19 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
   integer :: unylm   ! unit number for Ylm(k) data
   integer :: unylm1  ! unit number for first-order Ylm(k+q) data
   integer :: unpaw   ! unit number for temporary PAW data (for ex. rhoij_nk) (Paw only)
-  integer :: ungsc1  ! unit number for <g|S|c> data (Paw only), temporary one
-  integer :: ungsc2  ! unit number for <g|S|c> data (Paw only), temporary two
+  integer :: unpaw1  ! unit number for temporary PAW first-order cprj1=<c1_k,q|p>(1) data
+  integer :: unpawq  ! unit number for temporary PAW cprjq=<c+_k+q|p> at k+qdata
   integer :: unpos   ! unit number for restart molecular dynamics
 
   character(len=fnlen) :: filnam_ds(5)
    ! if no dataset mode, the five names from the standard input :
    !   ab_in, ab_out, abi, abo, tmp
    ! if dataset mode, the same 5 filenames, appended with //'_DS'//trim(jdtset)
+
+  character(len=fnlen) :: filchi0
+   ! if no dataset mode             : abi//'CHI0'
+   ! if dataset mode, and getchi0==0 : abi//'_DS'//trim(jdtset)//'CHI0'
+   ! if dataset mode, and getchi0/=0 : abo//'_DS'//trim(jgetkss)//'CHI0'
 
   character(len=fnlen) :: fildensin
    ! if no dataset mode             : abi//'DEN'
@@ -340,9 +345,9 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
    ! if dataset mode, and getkss/=0 : abo//'_DS'//trim(jgetkss)//'KSS'
 
   character(len=fnlen) :: filqps
-   ! if no dataset mode             : abi//'SCR'
-   ! if dataset mode, and getqps==0 : abi//'_DS'//trim(jdtset)//'SCR'
-   ! if dataset mode, and getqps/=0 : abo//'_DS'//trim(jgetqps)//'SCR'
+   ! if no dataset mode             : abi//'QPS'
+   ! if dataset mode, and getqps==0 : abi//'_DS'//trim(jdtset)//'QPS'
+   ! if dataset mode, and getqps/=0 : abo//'_DS'//trim(jgetqps)//'QPS'
 
   character(len=fnlen) :: filscr
    ! if no dataset mode             : abi//'SCR'
@@ -380,121 +385,6 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
 
 !----------------------------------------------------------------------
 
-!!****t* defs_datatypes/dataset_type
-!! NAME
-!! dataset_type
-!!
-!! FUNCTION
-!! The dataset_type structured datatype gather all the input variables,
-!! except those that are labelled NOT INTERNAL.
-!! For one dataset, it is initialized in driver.f, and will not change
-!! at all during the treatment of the dataset.
-!! The "evolving" input variables are also stored, with their
-!! name appended with _orig, to make clear that this is the original
-!! value, decided by the user, and not a possibly modified, intermediate value.
-!! The following input variables are NOT INTERNAL, that is, they
-!! are input variables used to determine other input variables,
-!! after suitable processing, and do not appear anymore afterwards
-!! (so, they do not appear as components of a dataset_type variable) :
-!! cpuh,cpum(but cpus is present),fband,kptbounds,ndivk,nobj,
-!! objaat,objbat,objaax,objbax,objan,objbn,objarf,objbrf,objaro,objbro
-!! objatr,objbtr,vaclst,vacuum
-!!
-!! SOURCE
-
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
- type dataset_type
-! Since all these input variables are described in the abinis_help.html
-! file, they are not described in length here ...
-! Integer
-  integer :: accesswff,berryopt,brvltt,ceksph,chkexit,chkprim,&
-&  delayperm,enunit,exchn2n3,fft_opt_lob,freqremax,freqspmax,frzfermi,getacfd,&
-&  getcell,getddk,getden,getkss,getocc,getqps,getscr,getvel,getwfk,&
-&  getwfq,getxcart,getxred,get1den,get1wf,gpara,gwcalctyp,iboxcut,&
-&  icoultrtmt,idyson,ikhxc,inclvkb,intexact,intxc,ionmov,&
-&  iprcch,iprcel,iprcfc,irdddk,irdkss,irdqps,irdscr,irdwfk,irdwfq,ird1wf,&
-&  iscf,isecur,istatr,istatshft,ixc,ixcpositron,&
-!  jdtset contains the actual number of the dataset
-&  jdtset,kpara,kptopt,kssform,ldgapp,localrdwf,lofwrite,mband,mffmem,mgfft,mgfftdg,&
-&  mkmem,mkqmem,mk1mem,mpw,mqgrid,mqgriddg,natom,natrd,natsph,nbandsus,nbdblock,nbdbuf,&
-&  nberry,nbandkss,ncenter,nconeq,nctime,ndtset,ndyson,&
-&  nfft,nfftdg,nfreqim,nfreqre,nfreqsp,nfreqsus,ngroup_rf,nkptgw,nkpt,nline,&
-&  nnsclo,nomegasrd,norb,npack,npara,npband,npfft,npsp,npspalch,npulayit,&
-&  npweps,npwkss,npwsigx,npwwfn,nqpt,nqptdm,nscforder,&
-&  nsheps,nshiftk,nshsigx,nshwfn,nspden,nspinor,nsppol,nstep,nsym,ntime,&
-&  ntypalch,ntypat,ntyppure,occopt,optcell,optdriver,&
-&  optforces,optfreqsus,optnlxccc,optstress,ortalg,&
-&  outputXML,paral_rf,parareel,&
-&  pawlcutd,pawlmix,pawmixdg,pawnphi,pawntheta,pawnzlm,pawoptmix,pawprtvol,pawxcdev,&
-&  positron,ppmodel,prepanl,prtacfd,prtbbb,prtcml,&
-&  prtden,prtdos,prteig,prtfsurf,prtgeo,prtgkk,prtkpt,prtnabla,prtpot,prtstm,prtvha,prtvhxc,prtvol,prtvxc,&
-&  prtwant,prtwf,prt1dm,ptgroupma,restartxf,rfasr,rfelfd,rfmeth,rfphon,rfstrs,rfthrd,&
-&  rfuser,rf1elfd,rf1phon,rf2elfd,rf2phon,rf3elfd,rf3phon,&
-&  signperm,spgaxor,spgorig,spgroup,splitsigc,suskxcrs,symmorphi,td_mexcit,tfkinfunc,timopt,usepaw,&
-&  usepawu,useria,userib,useric,userid,userie,useylm,vacnum,wfoptalg
-! Integer arrays
-  integer :: bdberry(4),dsifkpt(3),kptrlatt(3,3),ngfft(18),ngfftdg(18),nloalg(5),&
-&  qprtrb(3),rfatpol(2),rfdir(3),rf1atpol(2),rf1dir(3),&
-&  rf2atpol(2),rf2dir(3),rf3atpol(2),rf3dir(3),supercell(3)
-! Integer pointers
-  integer, pointer ::  algalch(:)    ! algalch(ntypalch)
-  integer, pointer ::  bdgw(:,:)     ! bdgw(2,nkptgw)
-  integer, pointer ::  iatfix(:,:)   ! iatfix(3,natom)
-  integer, pointer ::  iatsph(:)     ! iatsph(natsph)
-  integer, pointer ::  istwfk(:)     ! istwfk(nkpt)
-  integer, pointer ::  kberry(:,:)   ! kberry(3,nberry)
-  integer, pointer ::  lpawu(:)      ! lpawu(ntypat)
-  integer, pointer ::  ltypeorb(:)   ! ltypeorb(norb)
-  integer, pointer ::  nband(:)      ! nband(nkpt*nsppol)
-  integer, pointer ::  numorb(:)     ! numorb(ncenter)
-  integer, pointer ::  so_typat(:)   ! so_typat(ntypat)
-  integer, pointer ::  symafm(:)     ! symafm(nsym)
-  integer, pointer ::  symrel(:,:,:) ! symrel(3,3,nsym)
-  integer, pointer ::  typat(:)      ! typat(natom)
-! Real
-  real(dp) :: alpha,boxcutmin,bxctmindg,charge,cpus,dedlnn,diecut,diegap,dielam,&
-&  dielng,diemac,diemix,dilatmx,dosdeltae,dtion,&
-&  ecut,ecuteps,ecutsigx,ecutsm,ecutwfn,effmass,&
-&  eshift,fband,fixmom,freqsusin,freqsuslo,friction,kptnrm,kptrlen,mdftemp,&
-&  mditemp,mdwall,nelect,noseinert,omegasrdmax,pawecutdg,pawovlp,pawsphmix,ppmfrq,qptnrm,ratsph,&
-&  sciss,soenergy,stmbias,strfact,strprecon,td_maxene,tfnewton,toldfe,toldff,&
-&  tolmxf,tolvrs,tolwfr,tphysel,tsmear,userra,userrb,userrc,userrd,&
-&  userre,vacwidth,vis,zcut
-! Real arrays
-  real(dp) :: acell_orig(3),angdeg_orig(3),boxcenter(3),&
-&  efield(3),genafm(3),qpt(3),qptn(3),rprim_orig(3,3),&
-&  rprimd_orig(3,3),strtarget(6),vprtrb(2)
-! Real pointers
-  real(dp), pointer :: amu(:)         ! amu(ntypat)
-  real(dp), pointer :: densty(:,:)    ! densty(ntypat,4)
-  real(dp), pointer :: jpaw(:)        ! jpaw(ntypat)
-  real(dp), pointer :: kpt(:,:)       ! kpt(3,nkpt)
-  real(dp), pointer :: kptgw(:,:)     ! kptgw(3,nkptgw)
-  real(dp), pointer :: kptns(:,:)     ! kptns(3,nkpt)
-  real(dp), pointer :: mixalch(:,:)   ! mixalch(npspalch,ntypalch)
-  real(dp), pointer :: occ_orig(:)    ! occ_orig(mband*nkpt*nsppol)
-  real(dp), pointer :: qptdm(:,:)     ! qptdm(3,nqptdm)
-  real(dp), pointer :: rcoord(:,:)    ! rcoord(3,ncenter)
-  real(dp), pointer :: rtheta(:,:)    ! rtheta(3,norb)
-  real(dp), pointer :: shiftk(:,:)    ! shiftk(3,nshiftk)
-  real(dp), pointer :: spinat(:,:)    ! spinat(3,natom)
-  real(dp), pointer :: tnons(:,:)     ! tnons(3,nsym)
-  real(dp), pointer :: upaw(:)        ! upaw(ntypat)
-  real(dp), pointer :: vel_orig(:,:)  ! vel_orig(3,natom)
-  real(dp), pointer :: wtatcon(:,:,:) ! wtatcon(3,natom,nconeq)
-  real(dp), pointer :: wtk(:)         ! wtk(nkpt)
-  real(dp), pointer :: xred_orig(:,:) ! xred_orig(3,natom)
-  real(dp), pointer :: ziontypat(:)   ! ziontypat(ntypat)
-  real(dp), pointer :: znucl(:)       ! znucl(npsp)
- end type dataset_type
-
-!!***
-
-!----------------------------------------------------------------------
-
 !!****t* defs_datatypes/dens_sym_operator_type
 !! NAME
 !! dens_sym_operator_type
@@ -505,6 +395,10 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
 !! the density : number of symmetry operations, location of related
 !! points in reciprocal space, phases, etc ...
 !!
+!! TODO
+!!  MG It seems this structure is never used, can we remove it?
+!!  One should use more General object describing the crystal
+!!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
@@ -512,6 +406,10 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
 #endif
 
  type dens_sym_operator_type
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
 
 ! Integer scalar
 
@@ -540,13 +438,57 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
    ! anti-ferromagnetic character of the symmetry operations (+ if the
    ! magnetisation is not conserved, -1 if the magnetisation is reversed)
 
-! Real (double precision) arrays
+! Real (real(dp)) arrays
 
 ! real(dp), pointer :: phnons(:,:,:)
    ! phnons(2,nfft*flagdensymop,nspdensymop)
    ! phases associated with nonsymmorphic translations
 
  end type dens_sym_operator_type
+
+!!***
+
+!----------------------------------------------------------------------
+
+!!****t* defs_datatypes/macro_uj_type
+!! NAME
+!! dtmacro_uj
+!!
+!! FUNCTION
+!! This data type contains the potential shifts and the occupations 
+!! for the determination of U and J for the DFT+U calculations. jdtset in this context has a particular signification: 
+!! jdtset=1,2: non-selfconsistent calculations. jdtset=3,4 selfconsistent calculations. 
+!! jdtset=2,4  => pawujsh<0 ; jdtset=1,3 => pawujsh >0, 
+!!
+!! SOURCE
+
+#if defined HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+ type macro_uj_type
+
+! Integer
+  integer :: nat        !! number of atoms U (J) is determined on 
+  integer :: jdtset     !! dataset treated
+  integer :: ndtset     !! total number of datasets
+  integer :: nspden     !! number of densities treated
+  integer :: macro_uj   !! which mode the determination runs in
+  integer :: pawujat    !! which atom U (J) is determined on
+  integer :: pawujga    !! gamma for inversion of singular matrices
+  integer :: pawprtvol  !! controlling amount of output 
+
+! Real
+  real(dp) :: diemix    !! mixing parameter
+  real(dp) :: mdist     !! maximal distance of ions
+ 
+! Real arrays
+  real(dp) , pointer :: vsh(:,:)   !! potential shifts on atoms, dimensions: nspden,nat
+  real(dp) , pointer :: occ(:,:) !! occupancies after a potential shift: (occ(ispden,nat)
+  real(dp) , pointer :: xred(:,:)   !! atomic position for symmetrization 
+  real(dp) , pointer :: rprimd(:,:) !! unit cell for symmetrization 
+
+ end type macro_uj_type
 
 !!***
 
@@ -566,6 +508,10 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
 #endif
 
  type efield_type
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
 
 ! Integer variables
   integer :: fmkmem              ! number of k-points in the FBZ per cpu
@@ -643,14 +589,14 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
 
 !----------------------------------------------------------------------
 
-!!****t* defs_datatypes/electronic_structure
+!!****t* defs_datatypes/energies_type
 !! NAME
-!! electronic_structure
+!! energies_type
 !!
 !! FUNCTION
-!! For the GW part of ABINIT, the electronic_structure structured datatype
-!! gather all the energies, occupations, wavefunctions
-!!    in real and reciprocal space (big set of data !)
+!! Simple datastructure to gather all part of total energy. Not all
+!! attributes may have a value, depending on the scheme used to
+!! compute the total energy and several options read from dtset.
 !!
 !! SOURCE
 
@@ -658,73 +604,60 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
 #include "config.h"
 #endif
 
- type electronic_structure
-  integer nb,nk,ng,nr
-  real(dp), pointer :: en(:,:)       ! en(n,k) Bloch order
-  real(dp), pointer :: oc(:,:)       ! same
-  real(dp), pointer :: wfg(:,:,:)    ! wfg(g,n,k) order
-  real(dp), pointer :: wfr(:,:,:)    ! wfr(r,n,k) order
-  real(dp) :: fermie
-  real(dp) :: etotal, residm, ecut_eff
-  integer :: xc
- end type
+ type energies_type
 
-!!***
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
 
-!----------------------------------------------------------------------
-
-!!****t* defs_datatypes/epsilonm1_parameters
-!! NAME
-!! epsilonm1_parameters
-!!
-!! FUNCTION
-!! For the GW part of ABINIT, the  epsilonm1_parameters structured datatype
-!! gather different parameters that characterize the inverse dielectric
-!! matrices.
-!!
-!! SOURCE
-
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
- type epsilonm1_parameters
-  integer :: gwcalctyp
-  integer :: npwwfn,npwe
-  integer :: nb
-  integer :: nk,nkbz,nop
-  integer :: nq,nomega
-  integer :: nomegaer,nomegaei
-  real(dp) :: soenergy
-  real(dp) :: omegaermax
- end type
-
-!!***
-
-!----------------------------------------------------------------------
-
-!!****t* defs_datatypes/ epsilonm1_results
-!! NAME
-!! epsilonm1_results
-!!
-!! FUNCTION
-!! For the GW part of ABINIT, the  epsilonm1_results structured datatype
-!! gather the results of screening : the inverse dielectric
-!! matrix, and the omega matrices .
-!!
-!! SOURCE
-
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
- type epsilonm1_results
-  integer :: nq,nomega,npwe
-  complex, pointer :: omega(:)
-  complex, pointer :: epsm1(:,:,:,:)
-  complex, pointer :: bigomegatwsq(:,:,:),omegatw(:,:,:)
- end type
-
+!!  local psp energy (hartree)
+  real(dp) :: e_localpsp
+!!  Sum of the eigenvalues - Band energy (Hartree)
+!!  (valid for double-counting scheme dtset%optene == 1)
+  real(dp) :: e_eigenvalues
+!!  Ewald energy (hartree), store also the ion/ion energy for free
+!!  boundary conditions.
+  real(dp) :: e_ewald
+!!  Hartree part of total energy (hartree units)
+  real(dp) :: e_hartree
+!!  psp core-core energy
+  real(dp) :: e_corepsp
+!!  kinetic energy part of total energy.
+!!  (valid for direct scheme, dtset%optene == 0)
+  real(dp) :: e_kinetic
+!!  nonlocal pseudopotential part of total energy.
+  real(dp) :: e_nonlocalpsp
+!!  entropy energy due to the occupation number smearing (if metal)
+!!  Value is multiplied by dtset%tsmear, see %entropy for the entropy alone.
+!!  (valid for metals, dtset%occopt>=3 .and. dtset%occopt<=7)
+  real(dp) :: e_entropy
+  real(dp) :: entropy
+!!  correction energy for basis set error (Francis-Payne)
+  real(dp) :: e_pulay
+!!  exchange-correlation energy (hartree)
+  real(dp) :: e_xc
+!!  potential exchange-correlation energy (hartree)
+  real(dp) :: e_vxc
+!!  enxcdc=exchange-correlation double-counting energy (hartree)
+  real(dp) :: e_xcdc
+!!  PAW spherical part energy
+  real(dp) :: e_paw
+!!  PAW spherical part double-counting energy
+  real(dp) :: e_pawdc
+!!  Electric enthalpy, by adding both ionic and electronic contributions
+  real(dp) :: e_elecfield
+!!  Fermie energy
+  real(dp) :: e_fermie
+!!  h0=e_kinetic+e_localpsp+e_nonlocalpsp
+  real(dp) :: h0
+!!  Electron-positron: electron-positron interaction energy
+  real(dp) :: e_electronpositron
+!!  Electron-positron: double-counting electron-positron interaction energy
+  real(dp) :: edc_electronpositron
+!!  Electron-positron: energy only due to unchanged particles
+!!                     (if calctype=1, energy due to electrons only)
+!!                     (if calctype=2, energy due to positron only)
+  real(dp) :: e0_electronpositron
+ end type energies_type
 !!***
 
 !----------------------------------------------------------------------
@@ -754,6 +687,9 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
 #endif
 
  type gs_hamiltonian_type
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
 
 ! Integer scalar
 
@@ -815,6 +751,9 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
   integer :: npw
    ! number of plane waves
 
+  integer:: nspinor
+   ! Number of spinorial components
+
   integer :: ntypat
    ! Number of types of pseudopotentials
    ! same as dtset%ntypat
@@ -851,7 +790,7 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
   integer, pointer :: indlmn(:,:,:)
    ! indlmn(6,lmnmax,ntypat)
    ! For each type of psp,
-   ! array giving l,m,n,ln,lm,spin for i=ln  (if useylm=0)
+   ! array giving l,m,n,lm,ln,spin for i=ln  (if useylm=0)
    !                                or i=lmn (if useylm=1)
 
 ! integer, pointer :: indpw_k(:,:)
@@ -884,15 +823,19 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
    ! For each type of psp, 1 if no spin-orbit component is taken
    ! into account, 2 if a spin-orbit component is used
 
-! Real (double precision) scalar
+  integer, pointer :: typat(:)
+   ! typat(natom)
+   ! type of each atom
+
+! Real (real(dp)) scalar
 
   real(dp) :: ucvol
    ! unit cell volume (Bohr**3)
 
-! Real (double precision) arrays
+! Real (real(dp)) arrays
 
-  real(dp), pointer :: ekb(:,:)
-   ! ekb(dimekb1,dimekb2)
+  real(dp), pointer :: ekb(:,:,:)
+   ! ekb(dimekb1,dimekb2,nspinor**2)
    !  ->Norm conserving : (Real) Kleinman-Bylander energies (hartree)
    !          for number of basis functions (l,n) (lnmax)
    !          and number of atom types (ntypat)
@@ -983,6 +926,10 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
 #endif
 
  type hdr_type
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
   integer :: bantot        ! total number of bands (sum of nband on all kpts and spins)
   integer :: date          ! starting date
   integer :: headform      ! format of the header
@@ -990,7 +937,9 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
   integer :: nspinor,nsppol,nsym,ntypat,occopt        ! input variables
   integer :: pertcase      ! the index of the perturbation, 0 if GS calculation
   integer :: usepaw        ! input variable (0=norm-conserving psps, 1=paw)
+  integer :: usewvl        ! input variable (0=plane-waves, 1=wavelets)
   integer :: ngfft(3)      ! input variable
+  integer :: nwvlarr(2)    ! nwvlarr(2) array holding the number of wavelets for each resolution.
 
 ! This record is not a part of the hdr_type, although it is present in the
 ! header of the files. This is because it depends on the kind of file
@@ -1006,7 +955,7 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
   integer, pointer :: pspdat(:)    ! psdat(npsp) from psps
   integer, pointer :: pspso(:)     ! pspso(npsp) from psps
   integer, pointer :: pspxc(:)     ! pspxc(npsp) from psps
-  integer, pointer :: so_typat(:)  ! input variable so_typat(ntypat)
+  integer, pointer :: so_psp(:)    ! input variable so_psp(npsp)
   integer, pointer :: symafm(:)    ! input variable symafm(nsym)
   integer, pointer :: symrel(:,:,:)! input variable symrel(3,3,nsym)
   integer, pointer :: typat(:)     ! input variable typat(natom)
@@ -1016,14 +965,17 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
   real(dp) :: ecutsm                ! input variable
   real(dp) :: ecut_eff              ! ecut*dilatmx**2 (dilatmx is an input variable)
   real(dp) :: etot,fermie,residm    ! EVOLVING variables
-  real(dp) :: qptn(3)               ! the wavevector, in case of a perturbation
-  real(dp) :: rprimd(3,3)           ! EVOLVING variables
   real(dp) :: stmbias               ! input variable
   real(dp) :: tphysel               ! input variable
   real(dp) :: tsmear                ! input variable
+
+  real(dp) :: qptn(3)               ! the wavevector, in case of a perturbation
+  real(dp) :: rprimd(3,3)           ! EVOLVING variables
+
   real(dp), pointer :: kptns(:,:)   ! input variable kptns(3,nkpt)
   real(dp), pointer :: occ(:)       ! EVOLVING variable occ(bantot)
   real(dp), pointer :: tnons(:,:)   ! input variable tnons(3,nsym)
+  real(dp), pointer :: wtk(:)       ! weight of kpoints wtk(nkpt)
   real(dp), pointer :: xred(:,:)    ! EVOLVING variable xred(3,natom)
   real(dp), pointer :: zionpsp(:)   ! zionpsp(npsp) from psps
   real(dp), pointer :: znuclpsp(:)  ! znuclpsp(npsp) from psps
@@ -1033,24 +985,24 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
   character(len=6) :: codvsn              ! version of the code
   character(len=132), pointer :: title(:) ! title(npsp) from psps
 
-  type(atmrhoij_type), pointer :: atmrhoij(:) ! EVOLVING variable paw_ij(natom)%rhoij(lmn2_size,nspden), only for paw
+  type(pawrhoij_type), pointer :: pawrhoij(:) ! EVOLVING variable, only for paw
 
 !Should make a list of supplementary infos
+! MG: For postprocessing purposes, it is quite useful to
+!  have kptrlatt as well as nshiftk and shiftk. also kptopt is useful
+!  to know if time reversal can be employed
 
  end type hdr_type
-
 !!***
 
 !----------------------------------------------------------------------
 
-!!****t* defs_datatypes/MPI_type
+!!****t* defs_datatypes/mttk_type
 !! NAME
-!! MPI_type
+!! mttk_type
 !!
 !! FUNCTION
-!! The MPI_type structured datatype gather different information
-!! about the MPI parallelisation : number of processors,
-!! the index of my processor, the different groups of processors, etc ...
+!! For Martyna et al. (TTK) reversible MD integration scheme and related data
 !!
 !! SOURCE
 
@@ -1058,203 +1010,74 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
 #include "config.h"
 #endif
 
- type MPI_type
+ type mttk_type
 
-! Integer scalar
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
 
-  integer :: paral_compil_kpt
-   ! paral_compil_kpt =0 : no -DMPI flag was activated in the compiling procedure
-   ! paral_compil_kpt =1 : the -DMPI flag was activated in the compiling procedure
+!Real (double precision) scalars
 
-  integer :: paral_compil_fft
-   ! paral_compil_fft =0 : no -DMPIFFT flag was activated in the compiling procedure
-   ! paral_compil_fft =1 : the -DMPIFFT flag was activated in the compiling procedure
+   real(dp) :: glogv
+    !Logarithm of the volume
 
-  integer :: paral_compil_mpio
-   ! paral_compil_mpio =0 : no -DMPIO flag was activated in the compiling procedure
-   ! paral_compil_mpio =1 : the -DMPIO flag was activated in the compiling procedure
+   real(dp) :: vlogv
+    !Derivative of logv
 
-  integer :: paral_level
-   ! level of parallelization at a moment in the code
-   ! level = 1 : level parareel
-   ! level = 2 : level nkpt
-   ! level = 3 : level FFT
+!Real (double precision) arrays
 
-  integer :: paralbd
-   ! relevant only if paral_compil_kpt=1 . So, in addition to the kpt parallelization :
-   ! paralbd=0 : (no //ization on bands)
-   ! paralbd=1 : (//ization on bands)
-   ! paralbd>1 : (//ization on blocks of bands)
+  real(dp) :: gboxg(3,3)
+   !Imbalance in pressure (see paper)
 
-  integer :: me               ! number of my processor in the group of all processors
-  integer :: nproc            ! number of processors
-  integer :: me_group         ! number of my processor in my group of kpt
-  integer :: nproc_group      ! number of processors in my group of kpt
-  integer :: me_fft           ! number of my processor in my group of FFT
-  integer :: me_band           ! number of my processor in my group of bands
-  integer :: nproc_fft        ! number of processors in my group of FFT
-  integer :: master_fft       ! number of master of my fft group (in the world_group)
-  integer :: paral_fft        ! set to 1 if the FFT parallelisation is active
-  integer :: me_g0            ! if set to 1, means that the current processor is taking care of the G(0 0 0) planewave.
-  integer :: num_group_fft    ! number of FFT group of my processor. 0 if my processor is not in a group
-  integer :: num_group        ! number of group of my processor. 0 if my processor is not in a group
-  integer :: nproc_per_kpt    ! number of processors per kpt
-  integer :: world_group      ! number of the group of processor (for MPI communicator)
+  real(dp) :: vboxg(3,3)
+   !Velocity of log rprimd (see paper)
 
-  integer :: fft_master_group
-   ! fft_master_group
-   ! group of processors of fft_master_comm
-   ! exists only when paral_fft = 1
+  real(dp), pointer :: glogs(:)
+   ! glogs(nnos)
+   ! Imbalance of kinetic energy
 
-  integer :: fft_master_comm
-   ! fft_master_comm
-   ! communicator on master processors
-   ! (one processor per fft_group or all processors when paral_fft = 0)
+  real(dp), pointer :: vlogs(:)
+   ! vlogs(nnos)
+   ! Velocities of thermostat variables
 
-integer :: fft_option_lob
-   ! fft_option_lob
-   ! option for lob
-   ! fft_option_lob=1 : old version of lob
-   ! fft_option_lob=2 : new version of lob
-   ! exists only when paral_fft = 1
+  real(dp), pointer :: xlogs(:)
+   ! xlogs(nnos)
+   ! Positions of thermostat variables
 
+ end type mttk_type
 
-! Integer arrays
+!!***
 
-  integer, pointer :: fft_group(:)
-   ! fft_group(nkpt*nsppol)
-   ! tab of groups of processors which treat ffts
-   ! exists only when paral_fft = 1
+!----------------------------------------------------------------------
 
-  integer, pointer :: fft_comm(:)
-   ! fft_comm(nkpt*nsppol)
-   ! tab of communicators of processors which treat ffts of a kpt
-   ! exists only when paral_fft = 1
+!!****t* defs_datatypes/nuclear_type
+!! NAME
+!! nuclear_type
+!!
+!! FUNCTION
+!! Property results typically at each atom for each nspden. This appears to
+!! be necessary because in PAW calculations there can be different nspden values
+!! at each nuclear site.
+!!
+!! SOURCE
 
-  integer, pointer :: proc_distrb(:,:,:)
-   ! proc_distrb(nkpt,mband,nsppol)
-   ! number of the processor that will treat
-   ! each band in each k point.
+#if defined HAVE_CONFIG_H
+#include "config.h"
+#endif
 
-  integer, pointer :: kpt_group(:)
-   ! kpt_group(nproc_per_kpt)
-   ! tab of groups of processors which treat one nkpt/nsppol
-   ! exists only when paralbd > 1
+ type nuclear_type
 
-  integer, pointer :: kpt_comm(:)
-   ! kpt_comm(nproc_per_kpt)
-   ! tab of communicators of processors which treat one nkpt/nsppol
-   ! exists only when paralbd > 1
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
 
-  integer, pointer :: kptdstrb(:,:,:)
-   ! kptdstrb(me,ineigh,ikptloc)
-   ! tab of processors required for mv_3dte.f and berryphase_new.f
+!Real (real(dp)) arrays
 
-  integer, pointer :: kptdstrbi(:,:,:)
-   ! same as kptdstrb, but for k-points in the iBZ
-   ! required for MPI // of the finite electric field (see vtorho.f)
+  real(dp), pointer :: spden(:)
+   ! spden(nspden)
+   ! data for each ispden value; note that nspden for a given nucleus will
+   ! typically be retrieved from pawrhoij(iatom)%nspden and hence is nucleus
+   ! specific
 
-  integer, pointer :: nplanes_fft(:)
-   ! nplanes_fft(nkpt)
-   ! number of planes for my proc me_fft
-   ! exists only if mpi_enreg%paral_compil_fft==1
-
-   integer, pointer :: ind_fft_planes(:,:)
-   ! ind_fft_planes(nkpt,nplanes_fft)
-   ! indice of planes for each kpoint for my proc me_fft
-   ! exists only if mpi_enreg%paral_compil_fft==1
-
-!BEGIN TF_CHANGES
-! Adds for parallelization over perturbations
-  integer :: paral_compil_respfn
-   ! paral_compil_respfn =0 : no -DMPI flag was activated in the compiling procedure
-   ! paral_compil_respfn =1 : the -DMPI flag was activated in the compiling procedure
-
-  integer :: me_respfn           ! number of my processor in my group of perturbations
-  integer :: nproc_respfn        ! number of processors in my group of perturbations
-  integer :: my_respfn_group     ! my group for calculating perturbations
-  integer :: my_respfn_comm      ! my communicator of my_respfn_group
-  integer :: respfn_master_group ! groups for masters of respfn_groups
-  integer :: respfn_master_comm  ! communicator for masters of respfn_groups
-  integer :: ngroup_respfn       ! number of groups for calculating perturbations
-  integer :: spaceComm           ! communicator for calculating responsefunction
-                                 ! default is MPI_COMM_WORLD but may be changed in 08seqpar/loper3.F90
-
-  integer, pointer :: respfn_group(:) ! groups for calculating perturbations
-  integer, pointer :: respfn_comm(:)  ! communicators for respfn_group
-!END TF_CHANGES
-
-  integer :: gpara
-  ! describes if parallelization over G is selected in the inputfile
-  integer :: mgblk
-  ! maximal block size for blocks of G
-  integer :: gmin
-  ! describes the start-G for each processor
-  integer :: gmax
-  ! describes the end-G for each processor
-  integer, pointer :: gmpigroup(:)
-  ! one processor group for each k-point
-  integer, pointer :: gmpicomm(:)
-  ! one communicator for each k-point (each group)
-  integer :: ggroup
-  ! my group (each k-point is processed in one group)
-  integer :: gindex
-  ! my group index
-  integer :: gmaster
-  ! my group master (reserved for future use)
-  integer :: gngroup
-  ! number of processors in my group
-
-!This is for the bandFFT case
-   character :: mode_para
-   !If mode_para=='bandFFT', we are in bandFFT mode
-   integer :: commcart
-   !This is the communicator for the full cartesian array
-   integer :: comm_band, comm_fft
-   !The communicators over bands and fft respectively
-   integer :: me_cart
-   !This is the rank of the proc in the full cartesian array
-   integer :: dimcart
-   !This is the dimension of the cartesian array (2 for 2-dim)
-   integer :: nproc_band
-   !This is the number of procs on which we distribute bands
-   integer, pointer :: sizecart(:)
-   !The first dimension is the number of fft processors, the second the number of bands
-   integer, pointer :: coords(:)
-   !The coordinate of the proc in the cartesian array
-
-! Adds for parareel
-  integer :: parareel
-   ! parareel = 0 default
-   ! parareel = 1 if treats parareel case
-
-! All the following data exist only in the parareel=1 case
-  integer :: npara                 ! number of loops on gstate
-  integer :: ipara                 ! number of actual internal loop on gstate
-  integer :: jpara                 ! number of actual external loop on gstate
-  integer :: me_group_para         ! number of my processor in my group of para
-  integer :: nproc_group_para      ! number of processors in my group of para
-  integer :: num_group_para        ! number of group of my processor. 0 if my processor is not in a group
-  integer :: nproc_per_para        ! number of processors per para
-  integer :: master_group_para     ! number of the master processor (in the world group) of my group of para
-
-  integer, pointer :: proc_distrb_para(:,:)
-   ! proc_distrb_para(npara,nkpt)
-   ! exists only when parareel = 1
-   ! number of the processor that will treat
-   ! each kpt in each para.
-
-  integer, pointer :: kpt_group_para(:)
-   ! kpt_group_para(npara)
-   ! tab of groups of processors which treat one npara
-   ! exists only when parareel = 1
-
-  integer, pointer :: kpt_comm_para(:)
-   ! kpt_comm_para(npara)
-   ! tab of communicators of processors which treat one npara
-   ! exists only when parareel = 1
-
- end type MPI_type
+ end type nuclear_type
 
 !!***
 
@@ -1275,19 +1098,22 @@ integer :: fft_option_lob
 
  type pawang_type
 
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
 !Integer scalars
 
   integer :: angl_size
-   ! Dimension of paw angular mesh (angl_size=ntheta*nphi)
+   ! Dimension of paw angular mesh
+   ! angl_size=ntheta*nphi
 
   integer :: l_max
    ! Maximum value of angular momentum l+1
 
   integer :: l_size_max
-   ! Maximum value of angular momentum l_size=2*l_max-1
-
-  integer :: lcutd
-   !  1+max. index (l) of the moments used in the develop. of densities
+   ! Maximum value of angular momentum +1
+   ! leading to non-zero Gaunt coefficients
+   ! l_size_max = 2*l_max-1
 
   integer :: ngnt
    ! Number of non zero Gaunt coefficients
@@ -1298,6 +1124,14 @@ integer :: fft_option_lob
   integer :: nsym
    ! Number of symmetry elements in space group
 
+  integer :: gnt_option
+   ! Option for Gaunt coefficients:
+   !  gnt_option/=2, Gaunt coeffs are computed up to l_size_max
+   !  gnt_option==1, Gaunt coeffs are computed up to 2*l_size_max-1
+
+  integer :: use_ls_ylm
+   ! Flag: use_ls_ylm=1 if pawang%ls_ylm pointer is allocated
+
 !Integer arrays
 
   integer, pointer :: gntselect(:,:)
@@ -1305,17 +1139,23 @@ integer :: fft_option_lob
    ! Selection rules for Gaunt coefficients
    ! (if gntselect>0, Gaunt coeff. is non-zero)
 
-!Real (double precision) arrays
+!Real (real(dp)) arrays
 
   real(dp), pointer :: anginit(:,:)
    ! anginit(3,angl_size)
    ! For each point of the angular mesh, gives the coordinates
    ! of the corresponding point on an unitary sphere
+   ! Not used in present version (5.3)
 
   real(dp), pointer :: angwgth(:)
    ! angwgth(angl_size)
    ! For each point of the angular mesh, gives the weight
    ! of the corresponding point on an unitary sphere
+
+  real(dp), pointer :: ls_ylm(:,:,:)
+   ! ls_ylm(2,l_max**2*(l_max**2+1)/2,2)
+   ! LS operator in the real spherical harmonics basis
+   ! ls_ylm(ilm1m2,ispin)= <sigma, y_lm1| LS |y_lm2, sigma_prime>
 
   real(dp), pointer :: realgnt(:)
    ! realgnt(ngnt)
@@ -1350,6 +1190,9 @@ integer :: fft_option_lob
 #endif
 
  type pawfgr_type
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
 
 !Integer scalars
 
@@ -1389,7 +1232,7 @@ integer :: fft_option_lob
    ! ngfft(1:18)=integer array with FFT box dimensions and other
    ! information on FFTs, for the COARSE rectangular grid
 
-!Real (double precision)
+!Real (real(dp))
 
   real(dp) :: gsqcut
    ! Fourier cutoff on G^2 for "large sphere" of radius double
@@ -1417,15 +1260,42 @@ integer :: fft_option_lob
 
  type pawfgrtab_type
 
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
 !Integer scalars
+
+  integer :: cplex
+   ! cplex=1 if potentials/densities are real, 2 if they are complex
 
   integer :: l_size
    ! 1+maximum value of l leading to non zero Gaunt coeffs
    ! for the considered atom type
 
+  integer :: gylm_allocated
+   ! 1 if gylm() is allocated (and computed)
+
+  integer :: gylmgr_allocated
+   ! 1 if gylmgr() is allocated (and computed)
+
+  integer :: gylmgr2_allocated
+   ! 1 if gylmgr2() is allocated (and computed)
+
   integer :: nfgd
    ! Number of Fine rectangular GriD points
    ! in the paw sphere around considered atom
+
+  integer :: nhatfr_allocated
+   ! 1 if nhatfr() is allocated (and computed)
+
+  integer :: nspden
+   ! Number of spin-density components
+
+  integer :: rfgd_allocated
+   ! 1 if rfgd() is allocated (and computed)
+
+  integer :: vlocgr_allocated
+   ! 1 if vlocgr() is allocated (and computed)
 
 !Integer arrays
 
@@ -1434,22 +1304,39 @@ integer :: fft_option_lob
    ! Array giving the FFT index (fine grid) of a point in the paw
    ! sphere around considered atom (ifftsph=ix+n1*(iy-1+n2*(iz-1))
 
-!Real (double precision) arrays
+!Real (real(dp)) arrays
 
   real(dp), pointer :: gylm(:,:)
    ! gylm(nfgd,l_size*l_size)
-   ! Gives g(r)*Ylm(r) on the fine rectangular grid
+   ! Gives g_l(r)*Y_lm(r) on the fine rectangular grid
    ! around considered atom
 
   real(dp), pointer :: gylmgr(:,:,:)
    ! gylmgr(3,nfgd,l_size*l_size)
-   ! Gives the gradient of g(r)*Ylm(r) wrt cart. coordinates
+   ! Gives the gradient of g_l(r)*Y_lm(r) wrt cart. coordinates
    ! on the fine rectangular grid around considered atom
+
+  real(dp), pointer :: gylmgr2(:,:,:)
+   ! gylmgr(6,nfgd,l_size*l_size)
+   ! Gives the second gradient of g_l(r)*Y_lm(r) wrt cart. coordinates
+   ! on the fine rectangular grid around considered atom
+
+  real(dp), pointer :: nhatfr(:,:)
+   ! nhatfr(cplex*nfgd,nspden)
+   ! Gives the gradient of local potential wrt cart. coordinates
+   ! on the fine rectangular grid around considered atom
+   ! Only use in response function calculations
 
   real(dp), pointer :: rfgd(:,:)
    ! r(3,nfgd)
    ! Gives all R vectors (r-r_atom) on the Fine rectangular GriD
-   ! around considered atom
+   ! around considered atom in Cartesian coordinates.
+
+  real(dp), pointer :: vlocgr(:,:)
+   ! vlocgr(3,nfgd)
+   ! Gives the gradient of local potential wrt cart. coordinates
+   ! on the fine rectangular grid around considered atom
+   ! Only use in response function calculations
 
  end type pawfgrtab_type
 
@@ -1472,7 +1359,14 @@ integer :: fft_option_lob
 
  type pawrad_type
 
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
 !Integer scalars
+
+  integer :: int_meshsz
+   ! Mesh size used in integrals computation
+   ! Integrals will be computed up to r(int_meshsz)
 
   integer :: mesh_size
    ! Dimension of radial mesh
@@ -1484,7 +1378,7 @@ integer :: fft_option_lob
    !     3=logarithmic grid: r(i>1)=AA*exp[BB*(i-1)] and r(1)=0
    !     4=logarithmic grid: r(i)=-AA*ln[1-BB*(i-1)] with BB=1/n
 
-!Real (double precision) scalars
+!Real (real(dp)) scalars
 
   real(dp) :: lstep
    ! Exponential step of the mesh (BB parameter above)
@@ -1501,7 +1395,7 @@ integer :: fft_option_lob
    ! present grid onto a regular grid in order to
    ! integrate it using trapeze method
 
-!Real (double precision) arrays
+!Real (real(dp)) arrays
 
   real(dp), pointer :: rad(:)
    ! rad(mesh_size)
@@ -1514,7 +1408,7 @@ integer :: fft_option_lob
    ! any function is multiplied by this factor
 
   real(dp), pointer :: simfact(:)
-   ! radfact(mesh_size)
+   ! simfact(mesh_size)
    ! Factor used to compute radial integrals by the a Simpson scheme
    ! Integral[f] = Sum_i [simfact(i)*f(i)]
 
@@ -1537,23 +1431,41 @@ integer :: fft_option_lob
 
  type pawtab_type
 
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
 !Integer scalars
 
   integer :: basis_size
    ! Number of elements for the paw nl basis on the considered atom type
 
-!lda+u
+  integer :: has_kij
+   ! if 1, onsite matrix elements of the kinetic operator are allocated
+   ! if 2, onsite matrix elements of the kinetic operator are computed and stored
+
+  integer :: has_nabla
+   ! if /=0, onsite matrix elements of the nabla operator are stored and calculated
+
   integer :: ij_proj
    ! Number of (i,j) elements for the orbitals on which U acts (PAW+U only)
    ! on the considered atom type (ij_proj=1 (1 projector), 3 (2 projectors)...)
+   ! Also used for local exact-exchange
 
   integer :: ij_size
    ! Number of (i,j) elements for the symetric paw basis
    ! on the considered atom type (ij_size=basis_size*(basis_size+1)/2)
 
+  integer :: lcut_size
+   ! Maximum value of l+1 leading to non zero Gaunt coeffs
+   ! modified by dtset%pawlcutd
+   ! lcut_size=min(2*l_max,dtset%pawlcutd)+1
+
   integer :: l_size
    ! Maximum value of l+1 leading to non zero Gaunt coeffs
-   ! (l_size=2*l_max+1)
+   ! l_size=2*l_max-1
+
+  integer :: lexexch
+   ! lpawu gives l on which local exact-exchange is applied for a given type of atom.
 
   integer :: lmn_size
    ! Number of (l,m,n) elements for the paw basis
@@ -1570,9 +1482,15 @@ integer :: fft_option_lob
 
   integer :: nproju
    ! nproju is the number of projectors for orbitals on which paw+u acts.
+   ! Also used for local exact-exchange
 
   integer :: mesh_size
    ! Dimension of radial mesh
+
+  integer :: mqgrid
+   ! Number of points in the reciprocal space grid on which
+   ! the radial functions (tcorespl, tvalespl...) are specified
+   ! Same as psps%mqgrid_vl
 
   integer :: shape_lambda
    ! Lambda parameter in gaussian shapefunction (shape_type=2)
@@ -1584,7 +1502,10 @@ integer :: fft_option_lob
    ! shape_type= 2 ; g(r)=exp[-(r/sigma)**lambda]
    ! shape_type= 3 ; gl(r)=Alpha(1,l)*jl(q(1,l)*r)+Alpha(2,l)*jl(q(2,l)*r) for each l
 
-!lda+u
+  integer :: useexexch
+   ! useexexch=0 ; do not use local exact-exchange
+   ! useexexch=1 ; use local exact-exchange
+
   integer :: usepawu
    ! usepawu=0 ; do not use PAW+U formalism
    ! usepawu=1 ; use PAW+U formalism (Full localized limit)
@@ -1593,18 +1514,36 @@ integer :: fft_option_lob
   integer :: usetcore
    ! Flag controling use of pseudized core density (0 if tncore=zero)
 
+  integer :: usetvale
+   ! Flag controling use of pseudized valence density (0 if tnval is unknown)
+
   integer :: vlocopt
    ! 0 if Vloc in atomic data is Vbare    (Blochl s formulation)
    ! 1 if Vloc in atomic data is VH(tnzc) (Kresse s formulation)
 
-!Real (double precision) scalars
+!Real (real(dp)) scalars
+
+  real(dp) :: dncdq0
+   ! Gives 1/q d(tNcore(q))/dq for q=0
+   ! (tNcore(q) = FT of pseudo core density)
+
+  real(dp) :: dnvdq0
+   ! Gives 1/q d(tNvale(q))/dq for q=0
+   ! (tNvale(q) = FT of pseudo valence density)
 
   real(dp) :: exccore
    ! Exchange-correlation energy for the core density
 
- real(dp) :: jpaw
-   ! jpaw
+  real(dp) :: exchmix
+   ! mixing of exact exchange; default is 0.25 (PBE0)
+
+  real(dp) :: jpawu
+   ! jpawu
    ! Value of J parameter for paw+u for a given type.
+
+  integer :: mqgrid_shp
+   ! Number of points in the reciprocal space grid on which
+   ! the radial shape functions (shapefncg) are given
 
   real(dp) :: rpaw
    ! Radius of PAW sphere
@@ -1615,16 +1554,16 @@ integer :: fft_option_lob
   real(dp) :: shape_sigma
    ! Sigma parameter in gaussian shapefunction (shape_type=2)
 
-  real(dp) :: upaw
-   ! upaw
+  real(dp) :: upawu
+   ! upawu
    ! Value of U parameter for paw+u for a given type.
 
 
 !Integer arrays
 
   integer, pointer :: indklmn(:,:)
-   ! indklmn(4,lmn2_size)
-   ! Array giving klm, kln, abs(il-jl) and (il+jl) for each klmn=(ilmn,jlmn)
+   ! indklmn(6,lmn2_size)
+   ! Array giving klm, kln, abs(il-jl), (il+jl), ilm and jlm for each klmn=(ilmn,jlmn)
    ! Note: ilmn=(il,im,in) and ilmn<=jlmn
 
   integer, pointer :: klmntomn(:,:)
@@ -1640,11 +1579,12 @@ integer :: fft_option_lob
   integer, pointer :: lnproju(:)
    ! lnproju(nproju) gives ln (index for phi) for each projectors on which U acts (PAW+U only)
    ! nproju is 1 or 2 and  is the number of projectors for correlated orbitals
+   ! Also used for local exact-exchange
 
-!Real (double precision) arrays
+!Real (real(dp)) arrays
 
   real(dp), pointer :: coredens(:)
-   ! coredens(mesh_size_max)
+   ! coredens(mesh_size)
    ! Gives the core density of the atom
 
   real(dp), pointer :: dij0(:)
@@ -1658,17 +1598,32 @@ integer :: fft_option_lob
    ! ((ilmn,ilmn) term has to be added once)
    ! dltij(klmn)=1 if ilmn=jlmn, else dltij(klmn)=2
 
+  real(dp), pointer :: dshpfunc(:,:,:)
+   ! shapefunc(mesh_size,l_size,4)
+   ! Gives the 4 first derivatives of  radial shape function
+   ! for each l component; used only if shape_type=-1
+
   real(dp), pointer :: eijkl(:,:)
    ! eijkl(lmn2_size,lmn2_size)
    ! Part of the Dij term (non-local operator) that depends only from
    ! the projected occupation coeffs in the self-consistent loop
 
+ real(dp), pointer :: fk(:,:)
+   ! fk(6, 4)
+   ! Slater integrals used for local exact exchange
+
   real(dp), pointer :: gnorm(:)
    ! gnorm(l_size)
    ! Give the the normalization factor of each radial shape function
 
+  real(dp),pointer :: kij(:)
+   ! Onsite matrix elements <phi|\kinetic|phj>-<tphi|\kinetic|tphj>
+
+  real(dp),pointer :: nabla_ij(:,:,:)
+   ! Onsite matrix elements <phi|\nabla|phj>-<tphi|\nabla|tphj>
+
   real(dp), pointer :: phi(:,:)
-   ! phi(mesh_size_max, basis_size)
+   ! phi(mesh_size, basis_size)
    ! Gives, on the radial grid, the paw all electron wavefunctions
 
   real(dp), pointer :: phiphj(:,:)
@@ -1677,13 +1632,24 @@ integer :: fft_option_lob
 
   real(dp), pointer :: phiphjint(:)
    ! phiphjint(ij_proj)
-   ! Integration of Phi(:,i)*Phi(:,j) for LDA+U occupation matrix
+   ! Integration of Phi(:,i)*Phi(:,j) for LDA+U/local exact-exchange occupation matrix
+
+  real(dp), pointer :: qgrid_shp(:)
+   ! qgrid_shp(mqgrid_shp)
+   ! Grid of points in reciprocal space on which the shape functions are given
 
   real(dp), pointer :: qijl(:,:)
    ! qijl(l_size**2,lmn2_size)
    ! The qijl are the moments of the charge density difference between
    ! the AE and PS partial wave for each channel (i,j). They take part
    ! to the building of the compensation charge
+
+  real(dp), pointer :: rad_for_spline(:)
+   ! rad_for_spline(mesh_size)
+   ! Radial mesh used to spline quantities on radial mesh;
+   ! Allocated and used only when
+   !     shape_type=-1 (numerical shape function)
+   !  or usedvloc=1 (use of vloc derivative)
 
   real(dp), pointer :: rhoij0(:)
    ! rhoij0(lmn2_size)
@@ -1698,29 +1664,47 @@ integer :: fft_option_lob
    ! Q_i parameters in Bessel shapefunctions (shape_type=3)
 
   real(dp), pointer :: shapefunc(:,:)
-   ! shapefunc(mesh_size_max,l_size)
+   ! shapefunc(mesh_size,l_size)
    ! Gives the normalized radial shape function for each l component
+
+  real(dp), pointer :: shapefncg(:,:,:)
+   ! shapefncg(mqgrid_shp,2,l_size)
+   ! Gives the spherical Fourier transform of the radial shape function
+   ! for each l component (for each qgrid_shp(i)) + second derivative
 
   real(dp), pointer :: sij(:)
    ! sij(lmn2_size)
    ! Nonlocal part of the overlap operator
 
   real(dp), pointer :: tcoredens(:)
-   ! tcoredens(mesh_size_max)
+   ! tcoredens(mesh_size)
    ! Gives the pseudo core density of the atom
 
+  real(dp), pointer :: tcorespl(:,:)
+   ! tcorespl(mqgrid,2)
+   ! Gives the pseudo core density in reciprocal space on a regular grid
+
   real(dp), pointer :: tphi(:,:)
-   ! tphi(mesh_size_max,basis_size)
+   ! tphi(mesh_size,basis_size)
    ! Gives, on the radial grid, the paw atomic pseudowavefunctions
 
   real(dp), pointer :: tphitphj(:,:)
    ! tphitphj(mesh_size,ij_size)
    ! Useful product tPhi(:,i)*tPhi(:,j)
 
-! lda+u
+  real(dp), pointer :: tvalespl(:,:)
+   ! tvalespl(mqgrid,2)
+   ! Gives the pseudo valence density in reciprocal space on a regular grid
+
   real(dp), pointer :: Vee(:,:,:,:)
-   ! Screened interaction matrix  Deduced from U and J parameters
+   ! PAW+U:
+   ! Screened interaction matrix deduced from U and J parameters
    ! computed on the basis of orbitals on which U acts.
+
+  real(dp), pointer :: Vex(:,:,:,:,:)
+   ! Local exact-exchange:
+   ! Screened interaction matrix deduced from calculation of Slater integrals
+   ! computed on the basis of orbitals on which local exact exchange acts.
 
  end type pawtab_type
 
@@ -1743,10 +1727,32 @@ integer :: fft_option_lob
 
  type paw_an_type
 
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
 !Integer scalars
 
   integer :: angl_size
    ! Dimension of paw angular mesh (angl_size=ntheta*nphi)
+
+  integer :: cplex
+   ! cplex=1 if potentials/densities are real, 2 if they are complex
+
+  integer :: has_kxc
+   ! set to 1 if xc kernels kxc1 and kxct1 are allocated and used
+   !        2 if they are already computed
+
+  integer :: has_vhartree
+   ! set to 1 if vh1 and vht1 are allocated and used
+   !        2 if they are already computed
+
+  integer :: has_vxc
+   ! set to 1 if vxc1 and vxct1 are allocated and used
+   !        2 if they are already computed
+
+  integer :: has_vxcval
+   ! set to 1 if vxc1_val and vxct1_val are allocated and used
+   !        2 if they are already computed
 
   integer :: lm_size
    ! lm_size=(l_size)**2
@@ -1755,39 +1761,93 @@ integer :: fft_option_lob
   integer :: mesh_size
    ! Dimension of radial mesh
 
+  integer :: nkxc1
+   ! number of independent components of Kxc1 and Kxct1
+   ! (usually 3 for LDA, 23 for GGA)
+
   integer :: nspden
    ! Number of spin-density components
 
-!Integer arrays
+!Logical arrays
 
-  integer, pointer :: lmselect(:,:)
-   ! lmselect(lm_size,nspden)
-   ! lmselect(ilm,ispden)=select the non-zero LM-moments of spherical densities n1 and tn1
+  logical, pointer :: lmselect(:)
+   ! lmselect(lm_size)
+   ! lmselect(ilm)=select the non-zero LM-moments of "one-center" densities/potentials
 
-!Real (double precision) arrays
+!Real (real(dp)) arrays
+
+  real(dp), pointer :: kxc1 (:,:,:)
+   ! kxc1(cplex*mesh_size,lm_size or angl_size,nkxc1)
+   ! Gives xc kernel inside the sphere
+   !   (theta,phi) values of kernel if pawxcdev=0
+   !   LM-moments of kernel if pawxcdev/=0
+
+  real(dp), pointer :: kxct1 (:,:,:)
+   ! kxct1(cplex*mesh_size,lm_size or angl_size,nkxc1)
+   ! Gives xc pseudo kernel inside the sphere
+   !   (theta,phi) values of kernel if pawxcdev=0
+   !   LM-moments of kernel if pawxcdev/=0
+
+  real(dp), pointer :: vh1 (:,:,:)
+   ! vh1(cplex*mesh_size,lm_size,nspden)
+   ! Gives Hartree potential LM-moments inside the sphere
+
+  real(dp), pointer :: vht1 (:,:,:)
+   ! vht1(cplex*mesh_size,lm_size,nspden)
+   ! Gives Hartree tilde potential LM-moments inside the sphere
 
   real(dp), pointer :: vxc1 (:,:,:)
-   ! vxc1(mesh_size,angl_size,nspden)
+   ! vxc1(cplex*mesh_size,lm_size or angl_size,nspden)
    ! Gives xc potential inside the sphere
-   ! Only if dtset%pawxcdev=0
+   !   (theta,phi) values of potential if pawxcdev=0
+   !   LM-moments of potential if pawxcdev/=0
 
-  real(dp), pointer :: vxc1m (:,:,:)
-   ! vxc1m(mesh_size,lm_size,nspden)
-   ! Gives (l,m) moments of xc potential inside the sphere
-   ! Only if dtset%pawxcdev/=0
+  real(dp), pointer :: vxc1_val (:,:,:)
+   ! vxc1_val(cplex*mesh_size,lm_size or angl_size,nspden) (Usually real, Mainly used for GW)
+   ! Gives xc potential inside the sphere arising from valence only electrons
+   !   (theta,phi) values of potential if pawxcdev=0
+   !   LM-moments of potential if pawxcdev/=0
 
   real(dp), pointer :: vxct1 (:,:,:)
-   ! vxct1(mesh_size,angl_size,nspden)
-   ! Gives xc tild potential inside the sphere
-   ! Only if dtset%pawxcdev=0
+   ! vxct1(cplex*mesh_size,angl_size,nspden)
+   ! Gives xc pseudo potential inside the sphere
+   !   (theta,phi) values of potential if pawxcdev=0
+   !   LM-moments of potential if pawxcdev/=0
 
-   real(dp), pointer :: vxct1m (:,:,:)
-   ! vxct1m(mesh_size,lm_size,nspden)
-   ! Gives (l,m) moments of xc tild potential inside the sphere
-   ! Only if dtset%pawxcdev/=0
+  real(dp), pointer :: vxct1_val (:,:,:)
+   ! vxct1_val(cplex*mesh_size,angl_size,nspden) (Usually real, Mainly used for GW)
+   ! Gives xc pseudo potential inside the sphere
+   !   (theta,phi) values of potential if pawxcdev=0
+   !   LM-moments of potential if pawxcdev/=0
+
+  real(dp), pointer :: vxc_ex (:,:,:)
+   ! vxc_ex(cplex*mesh_size,angl_size,nspden)
+   ! Gives xc  potential for local exact exchange inside the sphere
+   !   (theta,phi) values of potential if pawxcdev=0
+   !   LM-moments of potential if pawxcdev/=0
 
  end type paw_an_type
+!!***
 
+!-------------------------------------------------------------------------
+
+!!****t* defs_datatypes/Paw_an_flags_type
+!! NAME
+!! Paw_an_flags_type
+!!
+!! FUNCTION
+!! For PAW, the various "has flags" defined in the paw_an_type
+!!
+!! SOURCE
+
+ type Paw_an_flags_type
+
+  integer :: has_kxc
+  integer :: has_vhartree
+  integer :: has_vxc
+  integer :: has_vxcval
+
+ end type Paw_an_flags_type
 !!***
 
 !----------------------------------------------------------------------
@@ -1807,7 +1867,309 @@ integer :: fft_option_lob
 
  type paw_ij_type
 
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
 !Integer scalars
+
+  integer :: cplex
+   ! cplex=1 if all on-site PAW quantities are real, 2 if they are complex
+   ! cplex=2 is useful for RF calculations
+
+  integer :: cplex_dij
+   ! cplex=1 if dij are real, 2 if they are complex
+
+  !£integer :: has_dijexxcore
+   ! 1 if dijexxcore is allocated
+   ! 2 if dijexxcore is already computed
+
+  integer :: has_dijfr
+   ! 1 if dijfr is allocated
+   ! 2 if dijfr is already computed
+
+  integer :: has_dijhartree
+   ! 1 if dijhartree is allocated
+   ! 2 if dijhartree is already computed
+
+  integer :: has_dijhat
+   ! 1 if dijhat is allocated
+   ! 2 if dijhat is already computed
+
+  integer :: has_dijso
+   ! 1 if dijso is associated and used, 0 otherwise
+   ! 2 if dijso is already computed
+
+  integer :: has_dijU
+   ! 1 if dijU is associated and used, 0 otherwise
+   ! 2 if dijU is already computed
+
+  integer :: has_dijxc
+   ! 1 if dijxc is associated and used, 0 otherwise
+   ! 2 if dijxc is already computed
+
+  integer :: has_dijxc_val
+   ! 1 if dijxc_val is associated and used, 0 otherwise
+   ! 2 if dijxc_val is already computed
+
+  integer :: has_dijR
+   ! 1 if dijR is associated and used, 0 otherwise
+   ! 2 if dijR is already computed
+
+  integer :: has_dijL
+   ! 1 if dijL is associated and used, 0 otherwise
+   ! 2 if dijL is already computed
+
+  integer :: has_dijLr3
+   ! 1 if dijLr3 is associated and used, 0 otherwise
+   ! 2 if dijLr3 is already computed
+
+  integer :: lmn_size
+   ! Number of (l,m,n) elements for the paw basis
+
+  integer :: lmn2_size
+   ! lmn2_size=lmn_size*(lmn_size+1)/2
+   ! where lmn_size is the number of (l,m,n) elements for the paw basis
+
+  integer :: ndij
+   ! Number of components of dij
+   ! Usually ndij=nspden, except for nspinor==2 (where ndij=nspinor**2)
+
+  integer :: nspden
+   ! Number of spin-density components (may be different from dtset%nspden if spin-orbit)
+
+  integer :: nsppol
+   ! Number of independant spin-components
+
+!Real (real(dp)) arrays
+
+  real(dp), pointer :: dij(:,:)
+   ! dij(cplex_dij*lmn2_size,ndij)
+   ! Dij term (non-local operator)
+   ! May be complex if cplex_dij=2
+   !  dij(:,:,1) contains Dij^up-up
+   !  dij(:,:,2) contains Dij^dn-dn
+   !  dij(:,:,3) contains Dij^up-dn (only if nspinor=2)
+   !  dij(:,:,4) contains Dij^dn-up (only if nspinor=2)
+
+  !£real(dp),pointer :: dijexxcore(:,:)
+  ! dijexxcore(cplex_dij*lmn2_size,ndij)
+  ! Onsite matrix elements of the Fock operator generated by core electrons
+
+  real(dp), pointer :: dijfr(:,:)
+   ! dijhat(cplex_dij*lmn2_size,ndij)
+   ! For response function calculation only
+   ! RF Frozen part of Dij (depends on q vector but not on 1st-order wave function)
+   ! Same storage as Dij (see above)
+
+  real(dp), pointer :: dijhartree(:)
+   ! dijhartree(cplex*lmn2_size)
+   ! Dij_hartree term
+   ! Contains all contributions to Dij from hartree
+   ! Warning: Dimensioned by cplex, not cplex_dij
+   ! Same storage as Dij (see above)
+
+  real(dp), pointer :: dijhat(:,:)
+   ! dijhat(cplex_dij*lmn2_size,ndij)
+   ! Dij_hat term (non-local operator) i.e \sum_LM \int_FFT Q_{ij}^{LM} vtrial
+   ! Same storage as Dij (see above)
+
+  real(dp), pointer :: dijU(:,:)
+   ! dijU(cplex_dij*lmn2_size,ndij)
+   ! Onsite matrix elements of the U part of the PAW Hamiltonian.
+   ! Same storage as Dij (see above)
+
+  real(dp), pointer :: dijso(:,:)
+   ! dijso(cplex_dij*lmn2_size,ndij)
+   ! Onsite matrix elements of L.S i.e <phi_i|L.S|phi_j>
+   ! Same storage as Dij (see above)
+
+  real(dp), pointer :: dijxc(:,:)
+   ! dijxc(cplex_dij*lmn2_size,ndij)
+   ! Onsite matrix elements of vxc i.e
+   ! <phi_i|vxc[n1+nc]|phi_j> - <tphi_i|vxc(tn1+nhat+tnc]|tphi_j>
+   ! Same storage as Dij (see above)
+
+  real(dp), pointer :: dijxc_val(:,:)
+   ! dijxc_val(cplex_dij*lmn2_size,ndij)
+   ! Onsite matrix elements of valence-only vxc i.e
+   ! <phi_i|vxc[n1]|phi_j> - <tphi_i|vxc(tn1+nhat]|tphi_j>
+   ! Same storage as Dij (see above)
+
+  real(dp), pointer :: dijR(:,:)
+   ! dijR(3,lmn2_size)
+   ! Onsite matrix elements of r-R, i.e., <phi_i|r-R|phi_j>
+   ! needed for PAW treatment of electric field perturbation
+   ! as r-R is a vector, there are three directions
+
+  real(dp), pointer :: dijL(:,:)
+   ! dijL(3,lmn2_size)
+   ! Onsite matrix elements of L, the orbital angular momentum.
+   ! needed for PAW treatment of magnetic field perturbation.
+   ! As L is a vector, there are three directions, also these are
+   ! always pure imaginary, only the imaginary part is saved here
+
+  real(dp), pointer :: dijLr3(:,:)
+   ! dijLr3(3,lmn2_size)
+   ! Onsite matrix elements of L/r^3, the orbital angular momentum,
+   ! weighted by 1/r^3. Needed for PAW treatment of magnetic field perturbation.
+   ! As L is a vector, there are three directions, also these are
+   ! always pure imaginary, only the imaginary part is saved here
+
+  real(dp), pointer :: noccmmp(:,:,:,:)
+   ! noccmmp(cplex_dij,2*lpawu+1,2*lpawu+1,nocc_nspden)
+   ! cplex_dij=1 if collinear
+   ! cplex_dij=2 if spin orbit is used
+   ! cplex_dij=2 is used if non-collinear (for coherence, it is not necessary in this case, however)
+   ! gives occupation matrix for lda+u (computed in setnoccmmp)
+   ! Stored as: noccmmp(:,:,1)=   n^{up,up}_{m,mp}
+   !            noccmmp(:,:,2)=   n^{dn,dn}_{m,mp}
+   !            noccmmp(:,:,3)=   n^{up,dn}_{m,mp} 
+   !            noccmmp(:,:,4)=   n^{dn,up}_{m,mp} 
+   ! noccmmp(m,mp,:) is computed from rhoij(klmn) with  m=klmntomn(2)>mp=klmntomn(1)
+
+  real(dp), pointer :: nocctot(:)
+   ! nocctot(nspden)
+   ! gives trace of occupation matrix for lda+u (computed in pawdenpot)
+   ! for each value of ispden (1 or 2)
+
+  real(dp), pointer :: vpawx(:,:,:)
+   ! vpawx(2*lexexch+1,2*lexexch+1,nspden)
+   ! exact exchange potential
+
+ end type paw_ij_type
+!!***
+
+!----------------------------------------------------------------------
+
+!!****t* defs_datatypes/paw_ij_flags_type
+!! NAME
+!! paw_ij_flags_type
+!!
+!! FUNCTION
+!! For PAW, the various "has flags" defined in the paw_ij_type
+!!
+!! SOURCE
+
+ type paw_ij_flags_type
+
+  integer :: has_dijfr
+  integer :: has_dijhartree
+  integer :: has_dijhat
+  integer :: has_dijso
+  integer :: has_dijU
+  integer :: has_dijxc
+  integer :: has_dijxc_val
+  integer :: has_dijR
+  integer :: has_dijL
+  integer :: has_dijLr3
+
+ end type paw_ij_flags_type
+!!***
+
+!----------------------------------------------------------------------
+
+!!****t* defs_datatypes/paw_pwff_type
+!! NAME
+!! paw_pwff_type
+!!
+!! FUNCTION
+!! For PAW, form factors used to evaluate $<phi|e^{-i(q+G).r}|phj>-<tphi|e^{-i(q+G).r}|tphj>$
+!!
+!! SOURCE
+
+ type paw_pwff_type
+
+  integer :: method
+  ! 1 For Arnaud-Alouani"s exact expression.
+  ! 2 For Shishkin-Kresse"s approximated expression.
+
+  integer :: dim1
+  integer :: dim2
+  ! Dimensions of pwff_spl, they depend on method.
+
+  integer :: nq_spl
+   ! Number of points in the reciprocal space grid on which
+   ! the radial integrals are evaluated.
+
+  real(dp) :: gmet(3,3)
+  ! Reciprocal space metric tensor in Bohr**-2
+
+  real(dp),pointer :: qgrid_spl(:)   !£ => null()
+   ! qgrid_spl(nq_spl)
+   ! The coordinates of the points of the radial grid for the integrals used in the spline.
+
+  real(dp),pointer :: pwff_spl(:,:,:,:)  !£ => null()
+  ! pwff_spl(nq_spl,2,0:dim1,dim2)
+  ! The different integrals on the radial |q| grid, for a given atom type.
+
+ end type paw_pwff_type
+
+!!***
+
+!----------------------------------------------------------------------
+
+!!****t* defs_datatypes/paw_pwij_type
+!! NAME
+!! paw_pwij_type
+!!
+!! FUNCTION
+!! For PAW, object storing $<phi|e^{-i(q+G).r}|phj> - <tphi|e^{-i(q+G).r}|tphj>$
+!! for a given q-point, for a particular TYPE of atom. Therefore the phase factor
+!! e^{i(q+G).R_at} has to be considered to have the onsite contribution of a particular atom.
+!!
+!! SOURCE
+
+ type paw_pwij_type
+
+  integer :: istpw
+  ! Storage mode (similar to istwfk), not used at present
+
+  integer :: npw
+   ! The number of plane waves
+
+  integer :: lmn_size
+   ! Number of (l,m,n) elements for the paw basis
+
+  integer :: lmn2_size
+   ! lmn2_size=lmn_size*(lmn_size+1)/2
+   ! where lmn_size is the number of (l,m,n) elements for the paw basis
+
+  real(dp) :: qpt(3)
+  ! The q-point in e^{-i(q+G)}.r}
+
+  real(dp),pointer :: mqpgij(:,:,:)  !£ => null()
+  ! pwij(2,npw,lmn2_size)
+  ! $<phi|e^{-i(q+G).r}|phj> - <tphi|e^{-i(q+G).r}|tphj>$
+
+ end type paw_pwij_type
+
+!!***
+
+!----------------------------------------------------------------------
+
+!!****t* defs_datatypes/pawrhoij_type
+!! NAME
+!! pawrhoij_type
+!!
+!! FUNCTION
+!! For PAW, rhoij quantities and related data
+!!
+!! SOURCE
+
+#if defined HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+ type pawrhoij_type
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+
+!Integer scalars
+
+  integer :: cplex
+   ! cplex=1 if rhoij are real, 2 if rhoij are complex
 
   integer :: lmn_size
    ! Number of (l,m,n) elements for the paw basis
@@ -1819,82 +2181,74 @@ integer :: fft_option_lob
   integer :: lmnmix_sz
    ! lmnmix_sz=number of (lmn,lmn_prime) verifying l<=lmix and l_prime<=lmix
    !           i.e. number of rhoij elements being mixed during SCF cycle
+   ! lmnmix_sz=0 if mixing data are note used
 
   integer :: ngrhoij
    ! First dimension of array grhoij
 
+  integer :: nrhoijsel
+   ! nrhoijsel
+   ! Number of non-zero value of rhoij
+   ! This is the size of rhoijp(:,:) (see below in this datastructure)
+
   integer :: nspden
-   ! Number of spin-density components
+   ! Number of spin-density components for rhoij (may be different from nspden for density)
+
+  integer :: nsppol
+   ! Number of independant spin-components
+
+  integer :: use_rhoij_
+   ! 1 if pawrhoij%rhoij_ is allocated
+
+  integer :: use_rhoijres
+   ! 1 if pawrhoij%rhoijres is allocated
 
 !Integer arrays
 
-  integer, pointer :: nrhoijsel(:)
-   ! nrhoijsel(nspden)
-   ! Number of non-zero value of rhoij for given spin component
-   ! This is the size of rhoijp(:,:) (see below in this datastructure)
-
   integer, pointer :: kpawmix(:)
    ! kpawmix(lmnmix_sz)
-   ! Indirect array selecting the elements of spherical part (rhoij or dij) being mixed during SCF cycle
+   ! Indirect array selecting the elements of rhoij
+   ! being mixed during SCF cycle
 
-  integer, pointer :: rhoijselect(:,:)
-   ! rhoijselect(lmn2_size,nspden)
+  integer, pointer :: rhoijselect(:)
+   ! rhoijselect(lmn2_size)
    ! Indirect array selecting the non-zero elements of rhoij:
    ! rhoijselect(isel,ispden)=klmn if rhoij(klmn,ispden) is non-zero
 
-!Real (double precision) arrays
-
-  real(dp), pointer :: dij(:,:)
-   ! dij(lmn2_size,nspden)
-   ! Dij term (non-local operator)
+!Real (real(dp)) arrays
 
   real(dp), pointer :: grhoij (:,:,:)
-   ! grhoij(ngrhoij,lmn2_size,nspden)
-   ! Symetrized gradients of Rho_ij wrt xred, strains, ...
-
-  real(dp), pointer :: noccmmp(:,:,:)
-   ! noccmmp(2*lpawu+1,2*lpawu+1,nspden)
-   ! gives occupation matrix for lda+u (computed in pawdenpot)
-
-  real(dp), pointer :: nocctot(:)
-   ! nocctot(nspden)
-   ! gives trace of occupation matrix for lda+u (computed in pawdenpot)
-   ! for each value of ispden (1 or 2)
-
-  real(dp), pointer :: rhoij (:,:)
-   ! rhoij(lmn2_size,nspden)
-   ! Symetrized (augmentation) waves occupancies Rho_ij
+   ! grhoij(ngrhoij,cplex*lmn2_size,nspden)
+   ! Gradients of Rho_ij wrt xred, strains, ... (non-packed storage)
 
   real(dp), pointer :: rhoij_ (:,:)
-   ! rhoij_(lmn2_size,nspden)
-   ! NON symetrized (augmentation) waves occupancies Rho_ij - used only for printing
+   ! rhoij_(cplex*lmn2_size,nspden)
+   ! Array used to (temporary) store Rho_ij in a non-packed storage mode
 
   real(dp), pointer :: rhoijp (:,:)
-   ! rhoijp(lmn2_size,nspden)
-   ! Symetrized (augmentation) waves occupancies Rho_ij
+   ! rhoijp(cplex*lmn2_size,nspden)
+   ! Augmentation waves occupancies Rho_ij
    ! in PACKED STORAGE (only non-zero elements are stored)
 
   real(dp), pointer :: rhoijres (:,:)
-   ! rhoijres(lmn2_size,nspden)
-   ! Rho_ij residuals
+   ! rhoijres(cplex*lmn2_size,nspden)
+   ! Rho_ij residuals during SCF cycle (non-packed storage)
 
-  real(dp), pointer :: veij(:)
-   ! veij(lmn2_size)
-   ! (i,j) channel that enters into the calculation of
-   !  the hartree energy term inside the spheres for
-   !  the density n1-ntild1-nhat
-
- end type paw_ij_type
+ end type pawrhoij_type
 
 !!***
 
 !----------------------------------------------------------------------
 
-!!****t* defs_datatypes/atmrhoij_type
+!!****t* defs_datatypes/cprj_type
 !! NAME
-!! atmrhoij_type
+!! cprj_type
 !!
 !! FUNCTION
+!! <p_lmn|Cnk> projected scalars and derivatives
+!!             where |p_lmn> are non-local projectors for a given atom
+!!                   |Cnk> is a wave function
+!! Used only when useylm=1
 !!
 !! SOURCE
 
@@ -1902,13 +2256,95 @@ integer :: fft_option_lob
 #include "config.h"
 #endif
 
- type atmrhoij_type
-  integer :: lmn2_size                 ! First dimension of rhoij
-  integer :: nspden                    ! Number of spin-density components
-  integer, pointer :: nrhoijsel(:)     ! Number of non-zero values of rhoij(:,ispden)
-  integer, pointer :: rhoijselect(:,:) ! (i,j) indexes of non-zero elements of rhoij
-  real(dp), pointer :: rhoij(:,:)      ! rhoij(lmn2_size,nspden) augmentation waves occupancies
- end type atmrhoij_type
+ type cprj_type
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+
+!Integer scalars
+
+  integer :: ncpgr
+   ! Number of gradients of cp=<p_lmn|Cnk>
+
+  integer :: nlmn
+   ! Number of (l,m,n) non-local projectors
+
+!Real (real(dp)) arrays
+
+  real(dp), pointer :: cp (:,:)
+   ! cp(2,nlmn)
+   ! <p_lmn|Cnk> projected scalars for a given atom and wave function
+
+  real(dp), pointer :: dcp (:,:,:)
+   ! dcp(2,ncpgr,nlmn)
+   ! derivatives of <p_lmn|Cnk> projected scalars for a given atom and wave function
+
+ end type cprj_type
+
+!!***
+
+!----------------------------------------------------------------------
+
+!!****t* defs_datatypes/pseudopotential_gth_type
+!! NAME
+!! pseudopotential_gth_type
+!!
+!! FUNCTION
+!! This structure is a sub-structure of pseudopotential_type used to
+!! store parameters from the GTH pseudo-potentials. All arrays have
+!! indices running on 1:npsp for each read pseudo-file. The 'set' array
+!! is a check array, since several different pseudo can be used in a simulation
+!! it set a flag for each npsp if params have been set or not. This is
+!! redundant with psps%pspcod in the way that when psps%pspcod(i) is 2,
+!! then gth_params%set(i) is .true.. GTH pseudo previous to wavelets introduction
+!! doesn't have geometric informations. These have been added on the last line.
+!! It is three radius informations, the %hasGeometry flag is there to know
+!! which kind of pseudo has been read.
+!!
+!! SOURCE
+
+#if defined HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+ type pseudopotential_gth_type
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+
+  ! These are {rloc, C(1...4)} coefficients for psppar(0, :, :) indices,
+  ! Followed by the h coefficients for psppar(1:2, :, :) indices.
+  !  size (0:2, 0:4, npsp)
+  real(dp), pointer :: psppar(:, :, :)
+  ! The covalence radii for each pseudo (?)
+  !  size (npsp)
+  real(dp), pointer :: radii_cov(:)
+  ! Cut-off radii for core part and long-range part.
+  ! radii_cf(:, 1) is for the long-range cut-off and
+  ! radii_cf(:, 2) is for the core cut-off.
+  !  size (npsp, 2)
+  real(dp), pointer :: radii_cf(:, :)
+  ! The semicore code, indicated as an integer.
+  ! The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
+  ! where n_l are the number of semicore orbitals for a given angular momentum
+  ! starting from the lower level of course
+  integer, pointer :: semicore(:)
+
+  ! Spin orbit coefficients in HGH/GTH formats: k11p etc... see psp3ini.F90
+  !   dimension = num l channels, 3 coeffs, num psp = (1:lmax+1,1:3,npsp)
+  real(dp), pointer :: psp_k_par(:, :, :)
+
+  ! Flag for geometric informations in the pseudo
+  !  size (npsp)
+  logical, pointer :: hasGeometry(:)
+
+  ! Consistency array, used for checking
+  !  size (npsp)
+  logical, pointer :: set(:)
+
+ end type pseudopotential_gth_type
 
 !!***
 
@@ -1931,6 +2367,10 @@ integer :: fft_option_lob
 #endif
 
  type pseudopotential_type
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
 
 ! Integer scalars
 
@@ -1967,7 +2407,7 @@ integer :: fft_option_lob
 
   integer :: mpspso
    ! mpspso is set to 1 if none of the psps is used with a spin-orbit part (that
-   !  is, if the user input variable so_typat (new name of pspso) is not equal
+   !  is, if the user input variable so_psp is not equal
    !  to 1 in at least one case
    ! otherwise, it is set to 2
 
@@ -2043,7 +2483,7 @@ integer :: fft_option_lob
    ! For each type of psp, the date of psp generation, as given by the psp file
 
   integer, pointer :: pspcod(:)
-   ! pspcod(ntypat)
+   ! pspcod(npsp)
    ! For each type of psp, the format -or code- of psp generation,
    !  as given by the psp file
 
@@ -2057,12 +2497,7 @@ integer :: fft_option_lob
    ! For each type of psp, the XC functional that was used to generate it,
    ! as given by the psp file
 
-! Real (double precision) arrays
-
-  real(dp), pointer :: dnqdq0(:)
-   ! dnqdq0(ntypat)
-   ! Gives 1/q d(tNcore(q))/dq for q=0 , for each type of PAW psp.
-   ! (tNcore(q) = FT of pseudo core density)
+! Real (real(dp)) arrays
 
   real(dp), pointer :: ekb(:,:)
    ! ekb(dimekb,ntypat*(1-usepaw))
@@ -2103,18 +2538,13 @@ integer :: fft_option_lob
    ! part of each type of psp (computed when the flag 'vlspl_recipSpace'
    ! is true).
 
-  real(dp), pointer :: ncspl(:,:,:)
-   ! ncspl(mqgrid_vl,2,ntypat*usepaw)
-   ! PAW only (use xccc1d in NC)
-   ! Gives, on the radial grid, the tncore part of each type of psp.
-
   real(dp), pointer :: xcccrc(:)
    ! xcccrc(ntypat)
    ! Gives the maximum radius of the pseudo-core charge, for each type of psp.
 
   real(dp), pointer :: xccc1d(:,:,:)
    ! xccc1d(n1xccc*(1-usepaw),6,ntypat)
-   ! Norm-conserving only (use ncspl in PAW)
+   ! Norm-conserving psps only
    ! The component xccc1d(n1xccc,1,ntypat) is the pseudo-core charge
    ! for each type of atom, on the radial grid. The components
    ! xccc1d(n1xccc,ideriv,ntypat) give the ideriv-th derivative of the
@@ -2148,6 +2578,12 @@ integer :: fft_option_lob
    ! title(ntypat)
    ! The content of first line read from the psp file
 
+! Types for pseudo-potentials that are based on parameters. Currently, only
+! GTH are supported (see pseudopotential_gth_type). To add one, one should
+! create an initialisation method and a destruction method in 02psp (see
+! psp2params.F90). These methods are called in driver().
+  type(pseudopotential_gth_type) :: gth_params
+
  end type pseudopotential_type
 
 !!***
@@ -2169,11 +2605,18 @@ integer :: fft_option_lob
 #endif
 
  type pspheader_paw_type
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
   integer :: basis_size    ! Number of elements of the wf basis ((l,n) quantum numbers)
   integer :: l_size        ! Maximum value of l+1 leading to a non zero Gaunt coefficient
   integer :: lmn_size      ! Number of elements of the paw basis
   integer :: mesh_size     ! Dimension of (main) radial mesh
   integer :: pawver        ! Version number of paw psp format
+  integer :: shape_type    ! Type of shape function
+  real(dp) :: rpaw         ! Radius for paw spheres
+  real(dp) :: rshp         ! Cut-off radius of shape function
  end type pspheader_paw_type
 
 !!***
@@ -2195,6 +2638,10 @@ integer :: fft_option_lob
 #endif
 
  type pspheader_type
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
   integer :: nproj(0:3) ! number of scalar projectors for each angular momentum
   integer :: nprojso(3) ! number of spin-orbit projectors for each angular momentum
   integer :: lmax       ! maximum l quantum number (-1 if only local)
@@ -2208,10 +2655,53 @@ integer :: fft_option_lob
   integer :: xccc       ! =0 if no XC core correction, non-zero if XC core correction
   real(dp) :: zionpsp     ! charge of the ion made of core electrons only
   real(dp) :: znuclpsp    ! atomic number of the nuclei
+  real(dp) :: GTHradii(0:4) ! Radii values for GTH (and HGH) family potentials
   character(len=fnlen) :: filpsp   ! name of the psp file
   character(len=fnlen) :: title    ! content of first line read from the psp file
   type(pspheader_paw_type) :: pawheader ! only for PAW psps. See above
  end type pspheader_type
+
+!!***
+
+!----------------------------------------------------------------------
+
+!!****t* defs_datatypes/rdm_parameters
+!! NAME
+!! rdm_parameters
+!!
+!! FUNCTION
+!! For the RDM part of ABINIT, the rdm_parameters structured datatype
+!! gather different parameters that characterize a RDM calculation.
+!!
+!!
+!! SOURCE
+
+#if defined HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+ type rdm_parameters
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+  integer :: npwvec                      ! Max between npwe and npwwfn, used to pass the dimension of arrays e.g gvec
+  integer :: npwwfn                      ! Number of planewaves for wavefunctions
+  integer :: npwx                        ! Number of planewaves for the exchange part
+  integer :: npwc                        ! Number of planewaves for $\Sigma_c$ and W
+  integer :: nbnds                       ! Number of bands kept in the calculation
+  integer :: nkibz                       ! Number of k-points in the IBZ
+  integer :: nqibz                       ! Number of q-points in the IBZ
+  integer :: nkbz                        ! Number of k-points in the BZ
+  integer :: nqbz                        ! Number of q-points in the BZ
+  integer :: nsym                        ! Number of symmetry operations
+                                         ! (operations related through the inversion symmetry are not considered)
+  integer :: nsppol                      ! 1 for unpolarized, 2 for spin-polarized calculations
+  integer :: time_reversal               ! 2 if time-reversal symmetry is used, 1 otherwise
+
+  integer :: mG0(3)                      ! For each reduced direction gives the max G0 component to account for umklapp processes
+
+ end type rdm_parameters
 
 !!***
 
@@ -2234,29 +2724,33 @@ integer :: fft_option_lob
 
  type results_gs_type
 
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
 ! Integer scalar
 
   integer :: natom
    ! The number of atoms for this dataset
 
-! Real (double precision) scalars
+! Real (real(dp)) scalars
 
 ! All the energies are in Hartree, obtained "per unit cell".
-  real(dp) :: eei      ! local pseudopotential energy (Hartree)
-  real(dp) :: eeig     ! sum of eigenvalue energy (Hartree)
-  real(dp) :: eew      ! Ewald energy (Hartree)
-  real(dp) :: ehart    ! Hartree part of total energy (Hartree)
-  real(dp) :: eii      ! pseudopotential core-core energy
-  real(dp) :: ek       ! kinetic energy (Hartree)
-  real(dp) :: enefield ! the term of the energy functional that depends
-                       ! explicitely on the electric field
-                       ! enefield = -ucvol*E*P
-  real(dp) :: enl      ! nonlocal pseudopotential energy (Hartree)
+  type(energies_type) :: energies
+!!$  real(dp) :: eei      ! local pseudopotential energy (Hartree)
+!!$  real(dp) :: eeig     ! sum of eigenvalue energy (Hartree)
+!!$  real(dp) :: eew      ! Ewald energy (Hartree)
+!!$  real(dp) :: ehart    ! Hartree part of total energy (Hartree)
+!!$  real(dp) :: eii      ! pseudopotential core-core energy
+!!$  real(dp) :: ek       ! kinetic energy (Hartree)
+!!$  real(dp) :: enefield ! the term of the energy functional that depends
+!!$                       ! explicitely on the electric field
+!!$                       ! enefield = -ucvol*E*P
+!!$  real(dp) :: enl      ! nonlocal pseudopotential energy (Hartree)
   real(dp) :: entropy  ! entropy (Hartree)
-  real(dp) :: enxc     ! exchange-correlation energy (Hartree)
-  real(dp) :: enxcdc   ! exchange-correlation double-counting energy (Hartree)
-  real(dp) :: epaw     ! PAW spherical energy (Hartree)
-  real(dp) :: epawdc   ! PAW spherical double-counting energy (Hartree)
+!!$  real(dp) :: enxc     ! exchange-correlation energy (Hartree)
+!!$  real(dp) :: enxcdc   ! exchange-correlation double-counting energy (Hartree)
+!!$  real(dp) :: epaw     ! PAW spherical energy (Hartree)
+!!$  real(dp) :: epawdc   ! PAW spherical double-counting energy (Hartree)
   real(dp) :: etotal   ! total energy (Hartree)
                        ! for fixed occupation numbers (occopt==0,1,or 2):
                        !   etotal=ek+ehart+enxc+eei+eew+eii+enl+PAW_spherical_part
@@ -2270,7 +2764,7 @@ integer :: fft_option_lob
                        ! to the usual problem at G=0 for Coulombic system, so vxcavg
                        ! is also the average of the local part of the Hamiltonian
 
-! Real (double precision) arrays
+! Real (real(dp)) arrays
 
   real(dp), pointer :: fcart(:,:)
    ! fcart(3,natom)
@@ -2292,12 +2786,6 @@ integer :: fft_option_lob
    ! grewtn(3,natom)
    ! Part of the gradient of the total energy (Hartree) with respect
    ! to change of reduced coordinates, that comes from the Ewald energy
-
-  real(dp), pointer :: grhat(:,:)
-   ! grhat(3,natom)
-   ! PAW ONLY
-   ! Part of the gradient of the total energy (Hartree) with respect
-   ! to change of reduced coordinates, that comes from the compensation charge
 
   real(dp), pointer :: grxc(:,:)
    ! grxc(3,natom)
@@ -2342,6 +2830,9 @@ integer :: fft_option_lob
 
  type results_out_type
 
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
 ! Integer scalar
 
   integer :: natom ! The number of atoms for this dataset
@@ -2352,12 +2843,12 @@ integer :: fft_option_lob
                                      ! k point, computed with the "true" rprimd
                                      ! Not taking into account the decrease due to istwfk
                                      ! Not taking into account the spread of pws on different procs
-! Real (double precision) scalars
+! Real (real(dp)) scalars
 
 ! All the energies are in Hartree, obtained "per unit cell".
   real(dp) :: etotal  ! total energy (Hartree)
 
-! Real (double precision) arrays
+! Real (real(dp)) arrays
 
   real(dp) :: acell(3),rprim(3,3),rprimd(3,3),strten(6)
   real(dp), pointer :: fcart(:,:) ! fcart(3,natom) Cartesian forces (Hartree/Bohr)
@@ -2375,13 +2866,13 @@ integer :: fft_option_lob
 
 !----------------------------------------------------------------------
 
-!!****t* defs_datatypes/sigma_parameters
+!!****t* defs_datatypes/scf_history_type
 !! NAME
-!! sigma_parameters
+!! scf_history_type
 !!
 !! FUNCTION
-!! For the GW part of ABINIT, the sigma_parameters structured datatype
-!! gather different parameters that characterize the self-energy operator.
+!! This structured datatype contains various arrays obtained from
+!! previous SCF cycles (density, positions...)
 !!
 !! SOURCE
 
@@ -2389,23 +2880,78 @@ integer :: fft_option_lob
 #include "config.h"
 #endif
 
- type sigma_parameters
-  integer :: gwcalctyp
-  integer :: npwwfn,npwx,npwc
-  integer :: nb
-  integer :: nk,nq
-  integer :: nkbz,nqbz
-  integer :: nop
-  integer :: splitsigc
-  integer :: ppmodel
-  real(dp) :: zcut, deltae
-  integer :: nomegasr,nomegasrd,nomegasi
-  real(dp) :: omegasrmax,omegasrdmax,omegasimax,omegasimin
-  integer :: nkcalc
-  integer, pointer :: kcalc(:), minbnd(:), maxbnd(:)
-  real(dp), pointer :: xkcalc(:,:)
- end type
+ type scf_history_type
 
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+! Integer scalar
+
+  integer :: history_size
+   ! Number of previous SCF cycles stored in history
+
+  integer :: icall
+   ! Number of call for the routine extraprho
+
+  integer :: natom
+   ! Number of atoms in cell
+
+  integer :: nfft
+   ! Size of FFT grid (for density)
+
+  integer :: nspden
+   ! Number of independant spin components for density
+
+  integer :: usecg
+   ! usecg=1 if the extrapolation of the wavefunctions is active
+
+  real(dp) :: alpha
+   ! alpha mixing coefficient for the prediction of density and wavefunctions
+
+  real(dp) :: beta
+   ! beta mixing coefficient for the prediction of density and wavefunctions
+
+! Integer arrays
+
+  integer,pointer :: hindex(:)
+   ! hindex(history_size)
+   ! Indexes of SCF cycles in the history
+   ! hindex(1) is the newest SCF cycle
+   ! hindex(history_size) is the oldest SCF cycle
+
+! Real (real(dp)) arrays
+
+   real(dp) :: rprimd(3,3)
+
+   real(dp),pointer :: cg(:,:,:)
+    ! cg(2,mcg,history_size)
+    ! wavefunction coefficients needed for each SCF cycle of history
+
+   real(dp),pointer :: deltarhor(:,:,:)
+    ! deltarhor(nfft,nspden,history_size)
+    ! Diference between electronic density (in real space)
+    ! and sum of atomic densities at the end of each SCF cycle of history
+
+   real(dp),pointer :: atmrho_last(:)
+    ! atmrho_last(nfft)
+    ! Sum of atomic densities at the end of the LAST SCF cycle
+
+   real(dp),pointer :: xreddiff(:,:,:)
+    ! xreddiff(3,natom,history_size)
+    ! Difference of reduced coordinates of atoms between a
+    ! SCF cycle and the previous
+
+! Structured datatypes arrays
+
+  type(pawrhoij_type), pointer :: pawrhoij(:,:)
+    ! pawrhoij(natom,history_size)
+    ! PAW only: occupancies matrix at the end of each SCF cycle of history
+
+  type(cprj_type),pointer :: cprj(:,:,:)
+    !cprj(natom,nspinor*mband*mkmem*nsppol,history_size)
+
+
+ end type scf_history_type
 !!***
 
 !----------------------------------------------------------------------
@@ -2416,7 +2962,7 @@ integer :: fft_option_lob
 !!
 !! FUNCTION
 !! For the GW part of ABINIT, the sigma_results structured datatype
-!! gather the results of sigma (to be explained in more details)
+!! gather the results of a sigma calculation.
 !!
 !! SOURCE
 
@@ -2425,25 +2971,147 @@ integer :: fft_option_lob
 #endif
 
  type sigma_results
-  integer nb,nk
-  integer :: nomega,nomegasrd,nomegasi
-  real(dp), pointer :: e0(:,:)
-  real(dp), pointer :: en_qp_diago(:,:)
-  real(dp), pointer :: vxcme(:,:)
-  real(dp), pointer :: sigxme(:,:)
-  complex, pointer :: hhartree(:,:,:)
-  complex, pointer :: eigvec_qp(:,:,:)
-  complex, pointer :: sigcmee0(:,:), dsigmee0(:,:), ze0(:,:)
-  complex, pointer :: sigmee(:,:), degw(:,:), egw(:,:)
-  real(dp), pointer :: e0gap(:), degwgap(:), egwgap(:)
-  complex(dp), pointer :: omegasrd(:,:,:)
-  complex, pointer :: sigcmesrd(:,:,:), sigxcmesrd(:,:,:)
-  complex(dp), pointer :: omegasi(:)
-  complex, pointer :: sigcmesi(:,:,:), sigxcmesi(:,:,:)
-  complex(dp), pointer :: omega(:)
-  complex, pointer :: sigcme(:,:,:), sigxcme(:,:,:)
-  real(dp), pointer :: ame(:,:,:), ak(:,:)
- end type
+
+! WARNING : if you modify this datatype, please check there there is no creation/destruction/copy routine,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+  integer :: b1gw,b2gw      ! min and Max gw band indeces over spin and k-points (used to dimension)
+  integer :: gwcalctyp     ! Flag defining the calculation type.
+  integer :: nkcalc        ! No. of points calculated
+  integer :: nkibz          ! No. of irreducible k-points.
+  integer :: nbnds          ! Total number of bands
+  integer :: nomega_r       ! No. of real frequencies for the spectral function.
+  integer :: nomega_i       ! No. of frequencies along the imaginary axis.
+  integer :: nomega4sd      ! No. of real frequencies to evaluate the derivative of $\Sigma(E)$.
+  integer :: nsig_ab        ! 1 if nspinor=1,4 for noncollinear case.
+  integer :: nsppol         ! No. of spin polarizations.
+  integer :: usepawu        ! 1 if we are using LDA+U as starting point (only for PAW)
+
+  real(dp) :: deltae       ! Frequency step for the calculation of d\Sigma/dE
+  real(dp) :: maxomega4sd  ! Max frequency around E_ks for d\Sigma/dE.
+  real(dp) :: maxomega_r   ! Max frequency for spectral function.
+  real(dp) :: scissor_ene  ! Scissor energy value. zero for None.
+
+  integer,pointer :: maxbnd(:)
+  ! maxbnd(nkcalc)
+  ! Max band index considered in GW for this k-point.
+
+  integer,pointer :: minbnd(:)
+  ! minbnd(nkcalc)
+  ! Min band index considered in GW for this k-point.
+
+  !real(dp),pointer :: ame(:,:,:)
+  ! ame(nbnds,nkibz,nomega))
+  ! Diagonal matrix elements of the spectral function.
+  ! Commented out, it can be calculated from the other quantities
+
+  real(dp),pointer :: degwgap(:,:)
+  ! degwgap(nkibz,nsppol)
+  ! Difference btw the QP and the KS optical gap.
+
+  real(dp),pointer :: egwgap(:,:)
+  ! egwgap(nkibz,nsppol))
+  ! QP optical gap at each k-point and spin.
+
+  real(dp),pointer :: en_qp_diago(:,:,:)
+  ! en_qp_diago(nbnds,nkibz,nsppol))
+  ! QP energies obtained from the diagonalization of the Hermitian approximation to Sigma (QPSCGW)
+
+  real(dp),pointer :: e0(:,:,:)
+  ! e0(nbnds,nkibz,nsppol)
+  ! KS eigenvalues for each band, k-point and spin. In case of self-consistent?
+
+  real(dp),pointer :: e0gap(:,:)
+  ! e0gap(nkibz,nsppol),
+  ! KS gap at each k-point, for each spin.
+
+  real(dp),pointer :: omega_r(:)
+  ! omega_r(nomega_r)
+  ! real frequencies used for the self energy.
+
+  real(dp),pointer :: xkcalc(:,:) ! TODO this should be replaced by a table (nkibz)
+  ! xkcalc(3,nkcalc)
+  ! List of calculated k-points
+
+  real(dp),pointer :: sigxme(:,:,:)
+  ! sigxme(b1gw:b2gw,nkibz,nsppol*nsig_ab))
+  ! Diagonal matrix elements of $\Sigma_x$ i.e $\<nks|\Sigma_x|nks\>$
+
+  real(dp),pointer :: vxcme(:,:,:)
+  ! vxcme(b1gw:b2gw,nkibz,nsppol*nsig_ab))
+  ! $\<nks|v_{xc}[n_val]|nks\>$ matrix elements of vxc (valence-only contribution).
+
+  real(dp),pointer :: vUme(:,:,:)
+  ! vUme(b1gw:b2gw,nkibz,nsppol*nsig_ab))
+  ! $\<nks|v_{U}|nks\>$ for LDA+U.
+
+  complex(dpc),pointer :: degw(:,:,:)
+  ! degw(b1gw:b2gw,nkibz,nsppol))
+  ! Difference between the QP and the KS energies.
+
+  complex(dpc),pointer :: dsigmee0(:,:,:)
+  ! dsigmee0(b1gw:b2gw,nkibz,nsppol*nsig_ab))
+  ! Derivative of $\Sigma_c(E)$ calculated at the KS eigenvalue.
+
+  complex(dpc),pointer :: egw(:,:,:)
+  ! degw(nbnds,nkibz,nsppol))
+  ! QP energies, $\epsilon_{nks}^{QP}$.
+
+  complex(dpc),pointer :: eigvec_qp(:,:,:,:)
+  ! eigvec_qp(nbnds,nbnds,nkibz,nsppol))
+  ! Expansion of the QP amplitude in the KS basis set.
+
+  complex(dpc),pointer :: hhartree(:,:,:,:)
+  ! hhartree(b1gw:b2gw,b1gw:b2gw,nkibz,nsppol*nsig_ab)
+  ! $\<nks|T+v_H+v_{loc}+v_{nl}|mks\>$
+
+  complex(dpc),pointer :: sigcme(:,:,:,:)
+  ! sigcme(b1gw:b2gw,nkibz,nomega_r,nsppol*nsig_ab))
+  ! $\<nks|\Sigma_{c}(E)|nks\>$ at each nomega_r frequency
+
+  complex(dpc),pointer :: sigmee(:,:,:)
+  ! sigmee(b1gw:b2gw,nkibz,nsppol*nsig_ab))
+  ! $\Sigma_{xc}E_{KS} + (E_{QP}- E_{KS})*dSigma/dE_KS
+
+  complex(dpc),pointer :: sigcmee0(:,:,:)
+  ! sigcmee0(b1gw:b2gw,nkibz,nsppol*nsig_ab))
+  ! Diagonal mat. elements of $\Sigma_c(E)$ calculated at the KS energy $E_{KS}$
+
+  complex(dpc),pointer :: sigcmesi(:,:,:,:)
+  ! sigcmesi(b1gw:b2gw,nkibz,nomega_i,nsppol*nsig_ab))
+  ! Matrix elements of $\Sigma_c$ along the imaginary axis.
+  ! Only used in case of analytical continuation.
+
+  complex(dpc),pointer :: sigcme4sd(:,:,:,:)
+  ! sigcme4sd(b1gw:b2gw,nkibz,nomega4sd,nsppol*nsig_ab))
+  ! Diagonal matrix elements of \Sigma_c around the zeroth order eigenvalue (usually KS).
+
+  complex(dpc),pointer :: sigxcme(:,:,:,:)
+  ! sigxme(b1gw:b2gw,nkibz,nomega_r,nsppol*nsig_ab))
+  ! $\<nks|\Sigma_{xc}(E)|nks\>$ at each real frequency frequency.
+
+  complex(dpc),pointer :: sigxcmesi(:,:,:,:)
+  ! sigxcmesi(b1gw:b2gw,nkibz,nomega_i,nsppol*nsig_ab))
+  ! Matrix elements of $\Sigma_{xc}$ along the imaginary axis.
+  ! Only used in case of analytical continuation.
+
+  complex(dpc),pointer :: sigxcme4sd(:,:,:,:)
+  ! sigxcme4sd(b1gw:b2gw,nkibz,nomega4sd,nsppol*nsig_ab))
+  ! Diagonal matrix elements of \Sigma_xc for frequencies around the zeroth order eigenvalues.
+
+  complex(dpc),pointer :: ze0(:,:,:)
+  ! ze0(b1gw:b2gw,nkibz,nsppol))
+  ! renormalization factor. $(1-\dfrac{\partial\Sigma_c} {\partial E_{KS}})^{-1}$
+
+  complex(dpc),pointer :: omega_i(:)
+  ! omegasi(nomega_i)
+  ! Frequencies along the imaginary axis used for the analytical continuation.
+
+  complex(dpc),pointer :: omega4sd(:,:,:,:)
+  ! omega4sd(b1gw:b2gw,nkibz,nomega4sd,nsppol).
+  ! Frequencies used to evaluate the Derivative of Sigma.
+
+ end type sigma_results
 
 !!***
 
@@ -2460,9 +3128,13 @@ integer :: fft_option_lob
 
  type vardims_type
 
-  integer :: mband,ntypat,natom,natsph,nkpt,nkptgw,nshiftk,nsppol,nberry,&
+! WARNING : if you modify this datatype, please check there there is no creation/destruction/copy routine,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+  integer :: mband,mproj,mpsang,mpw,ngrid1,ngrid2,ngrid3,&
+&            ntypat,natom,natsph,nkpt,nkptgw,nshiftk,nsppol,nberry,&
 &            nsym,npsp,nconeq,ntypalch,npspalch,nfft,nspden,wfs_dim1,wfs_dim2,&
-&            nfreqsus,npw_tiny,nqptdm,norb,ncenter
+&            nfreqsus,npw_tiny,nqptdm,nspinor
 
  end type vardims_type
 
@@ -2489,6 +3161,9 @@ integer :: fft_option_lob
 #endif
 
  type wffile_type
+
+! WARNING : if you modify this datatype, please check there there is no creation/destruction/copy routine,
+! declared in another part of ABINIT, that might need to take into account your modification.
 
 ! Integer scalar
   integer :: unwff
@@ -2534,8 +3209,326 @@ integer :: fft_option_lob
    !             (use in parallel)
 
  end type wffile_type
+!!***
 
 !----------------------------------------------------------------------
+
+!!****t* m_numeric_tools/transitions_type
+!! NAME
+!!  transitions_type
+!!
+!! FUNCTION
+!!
+!! INPUTS
+!!
+!! OUTPUT
+!!
+!! SOURCE
+
+
+ type transitions_type
+
+! WARNING : if you modify this datatype, please check there there is no creation/destruction/copy routine,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+  !TODO replace ntrans with nkibz,nkbz,nsppol
+  !add a logical flag for transitions in nbv
+
+  integer :: nbnds                          ! Total number of bands
+  integer :: nbvw                           ! Number of valence states allocated on each proc (used only if gwpara==2)
+  integer :: nomega                         ! Number of frequencies in num_w
+  integer :: nkbz                           ! Number of k-points in the BZ
+  integer :: nsppol                         ! 2 for spin polarized, 1 otherwise
+  integer :: ntrans                         ! Total number of transitions for this q-point
+  integer :: my_ntrans                      ! Number of transitions treated by this processor
+
+  real(dp) :: my_min_res,my_max_res         ! min and Max resonant transition for this processor
+
+  integer,pointer :: bands(:,:)             ! Left and right band index for this transition
+  integer,pointer :: distrb(:)              ! equal to me if this processor treats this transition
+  integer,pointer :: ik_ibz(:),ikmq_ibz(:)  ! For each ntrans, the index in the IBZ of k and k-q
+  integer,pointer :: ik_bz(:),ikmq_bz(:)    ! For each ntrans, the index in the  BZ of k and k-q
+  integer,pointer :: G0(:,:)                ! Umklapp vector required to bring k-q back to the first BZ ie kp = k-q-G0
+  integer,pointer :: spin(:,:)              ! The spin associated to this transition TODO another dimension?
+
+  real(dp),pointer :: delta_occ(:)          ! occ1-occ2 for this transition
+  real(dp),pointer :: qpoint(:)             ! The external q-point of chi0
+
+  complex(dpc),pointer :: delta_ene(:)      ! ene1-ene2 for this transition
+  complex(dpc),pointer :: num_w(:,:)        ! The frequency dependent part of chi0 (imaginary part if spectral)
+
+ end type transitions_type
+!!***
+
+!----------------------------------------------------------------------
+
+!!****t* defs_datatypes/ScrHdr_type
+!! NAME
+!!  ScrHdr_type
+!!
+!! FUNCTION
+!!
+!! INPUTS
+!!
+!! OUTPUT
+!!
+!! SOURCE
+
+
+!----------------------------------------------------------------------
+
+ !FIXME:
+ ! this is just an hack to cheat the build system.
+ ! the following data type should be defined in the appropriated module (m_io_screening.F90)
+
+ type ScrHdr_type
+
+! WARNING : if you modify this datatype, please check there there is no creation/destruction/copy routine,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+  !Other variables that can be added are, for the moment, commented out.
+  !Most of them are related to the Abinit implementation  and are not specified in the ETSF specs.
+
+  !Index of the qlwl section?
+  !gwcomp, gwencomp  ! Info on the extrapolar algorithm
+
+  integer :: ID           ! Matrix identifier: O if not yet defined, 1 for chi0,
+                          ! 2 for chi, 3 for epsilon, 4 for espilon^{-1}
+  integer :: ikxc         ! Kxc kernel used, 0 for None (RPA), >0 for static TDDFT (=ixc), <0 for frequency-dependent TDDFT
+  integer :: inclvkb      ! q-->0 treatment, 0 for None, 1-2 for transversal gauge, 3 for longitudinal
+  integer :: headform     ! format of the SCR header
+  integer :: fform        ! File format:
+  integer :: gwcalctyp    ! Calculation type (G0W0, G0W, GW ...)
+  integer :: nI,nJ        ! Number of spin components (rows,columns) in chi|eps^-1. (1,1) if collinear.
+                          !  The internal representation of the matrix is eps(nI*npwe,nJ*npwe)
+  integer :: nqibz        ! Number of q-points in the IBZ.
+  integer :: nqlwl        ! Number of points for the treatment of the long wavelength limit.
+  integer :: nomega       ! Total number of frequencies.
+  integer :: nbnds_used   ! Number of bands used during the screening calculation (only for info)
+  integer :: npwe         ! Number of G vectors reported on the file.
+  integer :: npwwfn_used  ! Number of G vectors for wavefunctions used during the screening calculation (only for info)
+  integer :: spmeth       ! Method used to approximate the delta function in the expression for Im Chi_0
+  integer :: test_type    ! 0 for None, 1 for TEST-PARTICLE, 2 for TEST-ELECTRON (only for TDDFT)
+  integer :: tordering    ! 0 if not defined, 1 for Time-Ordered, 2 for Advanced, 3 for Retarded.
+
+  real(dp) :: soenergy    ! Scissor Energy, zero if not used
+  real(dp) :: spsmear     ! Smearing of the delta in case of spmeth==2
+  real(dp) :: zcut        ! Imaginary shift to avoid the poles along the real axis.
+
+  type(Hdr_type) :: Hdr   ! The abinit header.
+
+!arrays
+  character(len=80) :: title(2)
+  ! Title describing the content of the file.
+
+  integer,pointer :: gvec(:,:)
+  ! gvec(3,npwe)
+  ! G vectors in r.l.u.
+
+  real(dp),pointer :: qibz(:,:)
+  ! qibz(3,nqibz)
+  ! q-points in r.l.u.
+
+  real(dp),pointer :: qlwl(:,:)
+  ! qlwl(3,nqlwl)
+  ! q-points for the long wave-length limit treatment (r.l.u)
+
+  complex(dpc),pointer :: lwing(:,:,:)
+  ! lwing(npwe,nomega,nqlwl)
+  ! Lower wings for the different q"s -->0
+
+  complex(dpc),pointer :: omega(:)
+  ! omega(nomega)
+  ! All frequencies calculated both along the real and the imaginary axis.
+
+  complex(dpc),pointer :: uwing(:,:,:)
+  ! uwing(npwe,nomega,nqlwl)
+  ! Upper wings for the different q"s -->0
+
+ end type ScrHdr_type
+!!***
+
+!----------------------------------------------------------------------
+
+!!****t* defs_datatypes/epsilonm1_results
+!! NAME
+!! epsilonm1_results
+!!
+!! FUNCTION
+!! For the GW part of ABINIT, the epsilonm1_results structured datatype
+!! gather the results of screening : the inverse dielectric matrix,
+!! and the omega matrices .
+!!
+!! SOURCE
+
+#if defined HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+ type Epsilonm1_results
+
+! WARNING : if you modify this datatype, please check there there is no creation/destruction/copy routine,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+  integer :: ID                          ! Matrix identifier: O if not yet defined, 1 for chi0,
+                                         ! 2 for chi, 3 for epsilon, 4 for espilon^{-1}
+  integer :: ikxc                        ! Kxc kernel used, 0 for None (RPA), >0 for static TDDFT (=ixc), <0 for TDDFT
+  integer :: fform                       ! File format: 1002 for SCR|SUSC files.
+  integer :: mqmem                       ! =0 for out-of-core solution, =nqibz if entire matrix is stored in memory.
+  integer :: nI,nJ                       ! Number of components (rows,columns) in chi|eps^-1. (1,1) if collinear.
+  integer :: nqibz                       ! Number of q-points in the IBZ used.
+  integer :: nqlwl                       ! Number of point used for the treatment of the long wave-length limit.
+  integer :: nomega                      ! Number of frequencies used.
+  integer :: nomega_i                    ! Number of purely imaginary frequencies used.
+  integer :: nomega_r                    ! Number of real frequencies used.
+  integer :: npwe                        ! Number of G vectors used.
+  integer :: test_type                   ! 0 for None, 1 for TEST-PARTICLE, 2 for TEST-ELECTRON (only for TDDFT)
+  integer :: Tordering                   ! 0 if not defined, 1 for Time-Ordered, 2 for Advanced, 3 for Retarded.
+
+  character(len=fnlen) :: fname          ! Name of the file from which epsm1 is read.
+
+!arrays
+  integer,pointer  :: gvec(:,:)
+  ! gvec(3,npwe)
+  ! G-vectors used to describe the two-point function (r.l.u.).
+
+  real(dp),pointer :: qibz(:,:)
+  ! qibz(3,nqibz)
+  ! q-points in reduced coordinates
+
+  real(dp),pointer :: qlwl(:,:)
+  ! qlwl(3,nqlwl)
+  ! q-points used for the long wave-length limit treatment.
+
+  complex(gwpc),pointer :: epsm1(:,:,:,:)
+  ! epsm1(npwe,npwe,nomega,nqibz)
+  ! Contains the two-point function $\epsilon_{G,Gp}(q,omega)$ in frequency and reciprocal space.
+
+  complex(dpc),pointer :: lwing(:,:,:)
+  ! lwing(npwe,nomega,nqlwl)
+  ! Lower wings for the different q"s -->0
+
+  complex(dpc),pointer :: omega(:)
+  ! omega(nomega)
+  ! Frequencies used both along the real and the imaginary axis.
+
+  complex(dpc),pointer :: uwing(:,:,:)
+  ! uwing(npwe,nomega,nqlwl)
+  ! Upper wings for the different q"s -->0
+
+  type(ScrHdr_type) :: Hscr
+  ! The header reported in the _SCR of _SUSC file.
+  ! This object contains information on the susceptibility or the inverse dielectric matrix
+  ! as stored in the external file. These quantities do *NOT* correspond to the quantities
+  ! used during the GW calculation since some parameters might differ, actually they might be smaller.
+  ! For example, the number of G-vectors used can be smaller than the number of G"s stored on file.
+
+ end type Epsilonm1_results
+!!***
+
+!----------------------------------------------------------------------
+
+!!****t* defs_datatypes/Jpt_gwpc_2D
+!! NAME
+!! Jpt_gwpc_2D
+!!
+!! FUNCTION
+!!  (to be described)
+!!
+!! SOURCE
+
+#if defined HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+ type :: Jpt_gwpc_2D
+
+! WARNING : if you modify this datatype, please check there there is no creation/destruction/copy routine,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+  integer :: stat = 1 !=JPT_ISPOINTER  =1
+  complex(gwpc),pointer :: datum(:,:) !£=> null()
+ end type Jpt_gwpc_2D
+!!***
+
+!----------------------------------------------------------------------
+
+!!****t* defs_datatypes/Jpt_gwpc_3D
+!! NAME
+!! Jpt_gwpc_3D
+!!
+!! FUNCTION
+!!  (to be described)
+!!
+!! SOURCE
+
+#if defined HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+ type :: Jpt_gwpc_3D
+
+! WARNING : if you modify this datatype, please check there there is no creation/destruction routine,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+  integer :: stat = 1 !=JPT_ISPOINTER  =1
+  complex(gwpc),pointer :: datum(:,:,:) !£=> null()
+ end type Jpt_gwpc_3D
+!!***
+
+!----------------------------------------------------------------------
+
+!!****t* defs_datatypes/PPmodel_type
+!! NAME
+!! PPmodel_type
+!!
+!! FUNCTION
+!!  (to be described)
+!!
+!! SOURCE
+
+#if defined HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+ type PPmodel_type
+
+! WARNING : if you modify this datatype, please check there there is no creation/destruction/copy routine,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+ !integers
+   integer :: dm2_botsq                          ! =npwc if ppmodel=1,2; =1 if ppmodel=3,4
+   integer :: dm_eig                             ! =npwc if ppmodel=3;   =0 if ppmodel=1,2,4
+   integer :: dm2_otq                            ! =npwc if ppmodel=1,2; =1 if ppmodel=3,4
+   integer :: model                              ! The type of Plasmonpole model
+   integer :: mqmem                              ! =nqibz if in-core solutions, =0 for out-of-core
+                                                 ! (In the former case the kast dimension in PPm arrays has size 1)
+   !integer :: needs_rhog                        ! 1 if the ppmodel requires rho(G).
+   integer :: nqibz                              ! Number of q-points in the IBZ
+   integer :: npwc                               ! Number of G vectors in $\tilde \epsilon $
+
+   real(dp) :: drude_plsmf                       ! Drude plasma frequency
+   logical :: save_memory_devel=.FALSE.          ! Use in-place storage of the PPm parameters, should be FALSE for non-developers.
+   !Â£real(dp) :: zcut
+   !Â£real(dp),pointer :: qibz(:,:)
+
+   !logical :: has_inversion
+   !logical :: has_time_reversal
+
+ !arrays
+   type(Jpt_gwpc_3D) :: bigomegatwsq
+   ! bigomegatwsq(npwc,dm2_botsq,nqibz)
+   ! Plasmon pole parameters $\tilde\Omega^2_{G Gp}(q)$.
+
+   type(Jpt_gwpc_3D) :: omegatw
+   ! omegatw(npwc,dm2_otq,nqibz)
+   ! Plasmon pole parameters $\tilde\omega_{G Gp}(q)$.
+
+   complex(gwpc),pointer :: eigpot(:,:,:)
+   ! eigpot(dm_eig,dm_eig,nqibz)
+   ! Eigvectors of the symmetrized inverse dielectric matrix
+ end type
+!!***
 
 end module defs_datatypes
 !!***

@@ -219,6 +219,7 @@ subroutine geopt_input_variables_default(in)
   in%forcemax=0.0_gp
   in%randdis=0.0_gp
   in%betax=2.0_gp
+  nullify(in%qmass)
 
 end subroutine geopt_input_variables_default
 
@@ -239,6 +240,9 @@ subroutine geopt_input_variables(iproc,filename,in)
   !local variables
   integer :: ierror,ierrfrc,iline
 
+  nullify(in%qmass)
+  in%ionmov = -1
+
   ! Read the input variables.
   open(unit=1,file=filename,status='old')
 
@@ -254,20 +258,71 @@ subroutine geopt_input_variables(iproc,filename,in)
   call check()
   read(1,*,iostat=ierror) in%randdis
   call check()
-  read(1,*,iostat=ierror) in%betax
-  call check()
+  if (trim(in%geopt_approach) == "AB6MD") then
+     read(1,*,iostat=ierror) in%ionmov
+     call check()
+     read(1,*,iostat=ierror) in%dtion
+     call check()
+     if (in%ionmov == 6) then
+        read(1,*,iostat=ierror) in%mditemp
+        call check()
+     elseif (in%ionmov > 7) then
+        read(1,*,iostat=ierror) in%mditemp, in%mdftemp
+        call check()
+     end if
+     if (in%ionmov == 8) then
+        read(1,*,iostat=ierror) in%noseinert
+        call check()
+     else if (in%ionmov == 9 .or. in%ionmov == 12) then
+        read(1,*,iostat=ierror) in%friction
+        call check()
+        read(1,*,iostat=ierror) in%mdwall
+        call check()
+     else if (in%ionmov == 13) then
+        read(1,*,iostat=ierror) in%nnos
+        call check()
+        allocate(in%qmass(in%nnos))
+        read(1,*,iostat=ierror) in%qmass
+        call check()
+        read(1,*,iostat=ierror) in%bmass, in%vmass
+        call check()
+     end if
+  else
+     read(1,*,iostat=ierror) in%betax
+     call check()
+  end if
 
  
   close(unit=1,iostat=ierror)
 
   if (iproc == 0) then
+     write(*,'(1x,a)') '--------------------------------------------------------------Geopt Input Parameters'
      write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x
      write(*,'(1x,a,1pe10.2)') 'Convergence criterion for forces: fraction of noise ',&
           in%frac_fluct
      write(*,'(1x,a,1pe10.2)') '                                : maximal component ',&
           in%forcemax
      write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',in%randdis
-     write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
+     if (in%ionmov < 0) then
+        write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
+     else
+        write(*,*) in%ionmov
+        write(*,*) in%dtion
+        if (in%ionmov > 7) then
+           write(*,*) in%mditemp, in%mdftemp
+        end if
+        if (in%ionmov == 8) then
+           write(*,*) in%noseinert
+        else if (in%ionmov == 9 .or. in%ionmov == 12) then
+           write(*,*) in%friction
+           write(*,*) in%mdwall
+        else if (in%ionmov == 13) then
+           write(*,*) in%nnos
+           write(*,*) in%qmass
+           write(*,*) in%bmass, in%vmass
+        end if
+     end if
+     write(*,'(1x,a)') '------------------------------------------------------------------------------------'
   end if
 
 contains
@@ -282,6 +337,20 @@ contains
   end subroutine check
 
 end subroutine geopt_input_variables
+!!***
+
+!!****f* BigDFT/free_input_variables
+!! FUNCTION
+!!  Free all dynamically allocated memory from the input variable structure.
+!! SOURCE
+!!
+subroutine free_input_variables(in)
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+
+  if (associated(in%qmass)) deallocate(in%qmass)
+end subroutine free_input_variables
 !!***
 
 !!****f* BigDFT/dft_input_converter

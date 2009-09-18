@@ -114,6 +114,11 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
      if (iproc ==0) write(*,*) '# ENTERING VSSD'
      call vstepsd(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
 
+  else if(trim(parmin%approach)=='AB6MD') then
+ 
+     if (iproc ==0) write(*,*) '# ENTERING Molecular Dynamic (ABINIT implementation)'
+     call ab6md(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
+
   else
      stop 'geometry optimization method undefined'
   endif
@@ -122,6 +127,97 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
 END SUBROUTINE geopt
 !!***
 
+subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
+  use module_base
+  use module_types
+  use scfloop_API
+  use ab6_moldyn
+  implicit none
+  integer, intent(in) :: nproc,iproc
+  integer, intent(inout) :: ncount_bigdft
+  type(atoms_data), intent(inout) :: at
+  type(input_variables), intent(inout) :: in
+  type(restart_objects), intent(inout) :: rst
+  real(gp), intent(inout) :: epot
+  real(gp), dimension(3*at%nat), intent(inout) :: x
+  logical, intent(out) :: fail
+  real(gp), dimension(3*at%nat), intent(out) :: f
+  !local variables
+  character(len=*), parameter :: subname='ab6md'
+  ! 1 atomic mass unit, in electronic mass
+  real(gp), parameter :: amu2emass=1.660538782d-27/9.10938215d-31
+  integer :: nxfh, iat, idim, iexit
+  integer, allocatable :: iatfix(:,:)
+  real(gp) :: acell(3), rprim(3,3), symrel(3,3,1)
+  real(gp), allocatable :: xfhist(:,:,:,:), amass(:), vel(:,:), xred(:,:), fred(:,:)
+
+  ! We save pointers on data used to call bigdft() routine.
+  if (ncount_bigdft == 0) then
+     call scfloop_init(nproc, at, in, rst)
+  end if
+
+  ! Prepare the objects used by ABINIT.
+  allocate(amass(at%nat))
+  allocate(xfhist(3, at%nat + 4, 2, in%ncount_cluster_x))
+  allocate(vel(3, at%nat))
+  allocate(xred(3, at%nat))
+  allocate(iatfix(3, at%nat))
+  allocate(fred(3, at%nat))
+  nxfh = 0
+  acell = (/ at%alat1, at%alat2, at%alat3 /)
+  rprim(:,:) = real(0, gp)
+  rprim(1,1) = real(1, gp)
+  rprim(2,2) = real(1, gp)
+  rprim(3,3) = real(1, gp)
+  symrel(:,:,1) = real(0, gp)
+  symrel(1,1,1) = real(1, gp)
+  symrel(2,2,1) = real(1, gp)
+  symrel(3,3,1) = real(1, gp)
+  do iat = 1, at%nat, 1
+     amass(iat) = amu2emass * at%amu(at%iatype(iat))
+     do idim = 1, 3, 1
+        xred(idim, iat) = x((iat - 1) * 3 + idim) / acell(idim)
+        fred(idim, iat) = - f((iat - 1) * 3 + idim) / acell(idim)
+     end do
+     if (at%ifrztyp(iat) == 0) then
+        iatfix(:, iat) = 0
+     else if (at%ifrztyp(iat) == 1) then
+        iatfix(:, iat) = 1
+     else if (at%ifrztyp(iat) == 2) then
+        iatfix(:, iat) = 0
+        iatfix(2, iat) = 1
+     else if (at%ifrztyp(iat) == 3) then
+        iatfix(:, iat) = 1
+        iatfix(2, iat) = 0
+     end if
+  end do
+  vel(:,:) = zero
+
+  ! Call the ABINIT routine.
+  ! currently, we force optcell == 0
+  call moldyn(acell, amass, iproc, in%ncount_cluster_x, nxfh, at%nat, &
+       & rprim, epot, iexit, &
+       & 0, in%ionmov, in%ncount_cluster_x, in%dtion, in%noseinert, &
+       & in%mditemp, in%mdftemp, in%friction, in%mdwall, in%nnos, &
+       & in%qmass, in%bmass, in%vmass, iatfix, in%strtarget, &
+       & in%strprecon, in%strfact, in%forcemax, &
+       & 1, symrel, vel, xfhist, fred, xred)
+
+  do iat = 1, at%nat, 1
+     do idim = 1, 3, 1
+        f(idim + 3 * (iat - 1)) = fred(idim, iat) * acell(idim)
+     end do
+  end do
+
+  deallocate(fred)
+  deallocate(iatfix)
+  deallocate(xred)
+  deallocate(vel)
+  deallocate(amass)
+  deallocate(xfhist)
+
+  fail = (iexit == 0)
+end subroutine ab6md
 
 !!****f* BigDFT/bfgs
 !! FUNCTION
