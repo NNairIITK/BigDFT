@@ -522,25 +522,14 @@ subroutine moldyn(acell,amass,me,&
 ! Here, stop the atoms for which the scalar product of velocity
 ! and force is negative, and recompute the kinetic energy.
   if(ionmov==7)then
-     call md_quenched_stop_atoms(dtion, fcart, itime, natom, nstopped, vel, vel_prevhalf, vel_nexthalf, xcart, xcart_next)
-     !   Now, compute the corrected kinetic energy
-     !   Generate xred_next from xcart_next
-     call xredxcart(natom,-1,rprimd_next,xcart_next,xred_next)
+     call md_quenched_stop_atoms(amass, dtion, ekin_corr, fcart, iatfix, itime, &
+          & natom, nstopped, rprimd, vel, vel_prevhalf, vel_nexthalf, &
+          & xcart, xcart_next, xred_next)
      !   Store xred_next, and eventual acell_next and rprim_next in vin
-     option=1
-     call xfpack(acell_next,acell0,fred_corrected,&
-          &    natom,ndim,nsym,optcell,option,rprim_next,rprimd0,&
-          &    strtarget,strten,symrel,ucvol_next,ucvol0,vin_next,vout,xred_next)
-     ekin_corr=0.0_dp
-     do iatom=1,natom
-        do idir=1,3
-           !     Warning : the fixing of atomis is implemented in reduced
-           !     coordinates, so that this expression is wrong
-           if (iatfix(idir,iatom) == 0) then
-              ekin_corr=ekin_corr+0.5_dp*amass(iatom)*vel(idir,iatom)**2
-           end if
-        end do
-     end do
+!!$     option=1
+!!$     call xfpack(acell_next,acell0,fred_corrected,&
+!!$          &    natom,ndim,nsym,optcell,option,rprim_next,rprimd0,&
+!!$          &    strtarget,strten,symrel,ucvol_next,ucvol0,vin_next,vout,xred_next)
   end if
 
   if (ionmov==8) then
@@ -563,6 +552,7 @@ subroutine moldyn(acell,amass,me,&
 &   '                    corrected KIN+POT.En.=',&
 &   etotal+ekin_corr,' Ha.'
    call wrtout(ab_out,message,'COLL')
+   call wrtout(std_out,message,'COLL')
   end if
   if(ionmov==9)then
    write(message, '(a,es22.14,2x,es22.14)' )&

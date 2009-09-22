@@ -1,5 +1,6 @@
-subroutine md_quenched_stop_atoms(dtion, fcart, itime, natom, nstopped, vel, &
-     & vel_prevhalf, vel_nexthalf, xcart, xcart_next)
+subroutine md_quenched_stop_atoms(amass, dtion, ekin, fcart, iatfix, itime, &
+     & natom, nstopped, rprimd, vel, vel_prevhalf, vel_nexthalf, &
+     & xcart, xcart_next, xred_next)
 
   use defs_basis
 
@@ -7,14 +8,17 @@ subroutine md_quenched_stop_atoms(dtion, fcart, itime, natom, nstopped, vel, &
 
   integer, intent(in) :: natom, itime
   integer, intent(out) :: nstopped
+  integer, intent(in) :: iatfix(3, natom)
   real(dp), intent(in) :: dtion
+  real(dp), intent(out) :: ekin
+  real(dp), intent(in) :: amass(natom), rprimd(3,3)
   real(dp), intent(in) :: fcart(3, natom)
   real(dp), intent(inout) :: vel(3,natom)
   real(dp), intent(out) :: vel_prevhalf(3,natom), vel_nexthalf(3, natom)
   real(dp), intent(in) :: xcart(3, natom)
-  real(dp), intent(out) :: xcart_next(3,natom)
+  real(dp), intent(out) :: xcart_next(3,natom), xred_next(3, natom)
 
-  integer :: iatom, istopped, ii
+  integer :: iatom, istopped, ii, idir
   real(dp) :: scprod
   integer, allocatable :: stopped(:)
   character(len=500) :: message
@@ -42,6 +46,7 @@ subroutine md_quenched_stop_atoms(dtion, fcart, itime, natom, nstopped, vel, &
   if(nstopped/=0)then
      write(message,'(a)') ' List of stopped atoms (ionmov=7) :'
      call wrtout(ab_out,message,'COLL')
+     call wrtout(std_out,message,'COLL')
      istopped=1
      do iatom=1,natom
         if(stopped(iatom)==1)then
@@ -52,10 +57,27 @@ subroutine md_quenched_stop_atoms(dtion, fcart, itime, natom, nstopped, vel, &
      do ii=1,nstopped,16
         write(message, '(16i4)' )stopped(ii:min(ii+15,nstopped))
         call wrtout(ab_out,message,'COLL')
+        call wrtout(std_out,message,'COLL')
      end do
      !   End of test nstopped/=0
   end if
 
   deallocate(stopped)
+
+  !   Now, compute the corrected kinetic energy
+  ekin=0.0_dp
+  do iatom=1,natom
+     do idir=1,3
+        !     Warning : the fixing of atomis is implemented in reduced
+        !     coordinates, so that this expression is wrong
+        if (iatfix(idir,iatom) == 0) then
+           ekin=ekin+0.5_dp*amass(iatom)*vel(idir,iatom)**2
+        end if
+     end do
+  end do
+
+  !   Generate xred_next from xcart_next
+  call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
+
   !  End of test ionmov==7
 end subroutine md_quenched_stop_atoms

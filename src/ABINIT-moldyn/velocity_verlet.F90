@@ -21,7 +21,7 @@ subroutine md_velocity_verlet(acell, acell_next, amass, dtion, fred, &
   real(dp), intent(out) :: acell_next(3), rprim_next(3,3), rprimd_next(3,3)
   real(dp), intent(out) :: xred_next(3,natom), xcart_next(3,natom)
 
-  integer :: iatom, idir, ndim, jatom
+  integer :: iatom, idir, ndim
   real(dp) :: taylor, acc(3)
   real(dp) :: gmet(3,3), gprimd(3,3), rmet(3,3)
 
