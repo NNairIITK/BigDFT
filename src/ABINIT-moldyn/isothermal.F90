@@ -114,7 +114,6 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0
      !   Convert back to xred (reduced coordinates)
      call xredxcart(natom,-1,rprimd_next,xcart_next,xred_next)
      !   Computation of the forces for the new positions
-     !   Compute LDA forces (big loop)
      !   If metric has changed since the initialization, update the Ylm's
 !!$    if (optcell/=0.and.psps%useylm==1.and.itime>0)then
 !!$     !!$ call status(0,dtfil%filstat,iexit,level,'call initylmg ')

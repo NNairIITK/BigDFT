@@ -35,7 +35,7 @@ subroutine print_logo()
   write(*,'(23x,a)')' g        g     i         B    B    '  
   write(*,'(23x,a)')'          g     i        B     B    ' 
   write(*,'(23x,a)')'         g               B    B     '
-  write(*,'(23x,a)')'    ggggg       i         BBBB                     (Ver 1.3.0-dev)'
+  write(*,'(23x,a)')'    ggggg       i         BBBB                 (Ver 1.3.0-dev)'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'
   write(*,'(1x,a)')&
@@ -219,6 +219,7 @@ subroutine geopt_input_variables_default(in)
   in%forcemax=0.0_gp
   in%randdis=0.0_gp
   in%betax=2.0_gp
+  in%ionmov = -1
   nullify(in%qmass)
 
 end subroutine geopt_input_variables_default
@@ -240,8 +241,8 @@ subroutine geopt_input_variables(iproc,filename,in)
   !local variables
   integer :: ierror,ierrfrc,iline
 
-  nullify(in%qmass)
-  in%ionmov = -1
+  ! default values.
+  call geopt_input_variables_default(in)
 
   ! Read the input variables.
   open(unit=1,file=filename,status='old')
@@ -297,30 +298,35 @@ subroutine geopt_input_variables(iproc,filename,in)
 
   if (iproc == 0) then
      write(*,'(1x,a)') '--------------------------------------------------------------Geopt Input Parameters'
-     write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x
-     write(*,'(1x,a,1pe10.2)') 'Convergence criterion for forces: fraction of noise ',&
-          in%frac_fluct
-     write(*,'(1x,a,1pe10.2)') '                                : maximal component ',&
-          in%forcemax
-     write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',in%randdis
-     if (in%ionmov < 0) then
-        write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
+     write(*, "(A)")   "       Generic param.              Geo. optim.                MD param."
+
+     write(*, "(1x,a,i7,1x,a,1x,a,1pe7.1,1x,a,1x,a,i7)") &
+          & "      Max. steps=", in%ncount_cluster_x, "|", &
+          & "Fluct. in forces=", in%frac_fluct,       "|", &
+          & "          ionmov=", in%ionmov
+     write(*, "(1x,a,a7,1x,a,1x,a,1pe7.1,1x,a,1x,a,1f7.0)") &
+          & "       algorithm=", in%geopt_approach, "|", &
+          & "  Max. in forces=", in%forcemax,       "|", &
+          & "           dtion=", in%dtion
+     write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,1x,a)", advance="no") &
+          & "random at.displ.=", in%randdis, "|", &
+          & "  steep. descent=", in%betax,   "|"
+     if (in%ionmov > 7) then
+        write(*, "(1x,a,1f5.0,1x,a,1f5.0)") &
+             & "start T=", in%mditemp, "stop T=", in%mdftemp
      else
-        write(*,*) in%ionmov
-        write(*,*) in%dtion
-        if (in%ionmov > 7) then
-           write(*,*) in%mditemp, in%mdftemp
-        end if
-        if (in%ionmov == 8) then
-           write(*,*) in%noseinert
-        else if (in%ionmov == 9 .or. in%ionmov == 12) then
-           write(*,*) in%friction
-           write(*,*) in%mdwall
-        else if (in%ionmov == 13) then
-           write(*,*) in%nnos
-           write(*,*) in%qmass
-           write(*,*) in%bmass, in%vmass
-        end if
+        write(*,*)
+     end if
+     
+     if (in%ionmov == 8) then
+        write(*,*) in%noseinert
+     else if (in%ionmov == 9) then
+        write(*,*) in%friction
+        write(*,*) in%mdwall
+     else if (in%ionmov == 13) then
+        write(*,*) in%nnos
+        write(*,*) in%qmass
+        write(*,*) in%bmass, in%vmass
      end if
      write(*,'(1x,a)') '------------------------------------------------------------------------------------'
   end if
