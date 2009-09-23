@@ -1050,6 +1050,13 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   i_all=-product(shape(xRed))*kind(xRed)
   deallocate(xRed,stat=i_stat)
   call memocc(i_stat,i_all,'xRed',subname)
+  if (atoms%geocode == 'S') then
+     call ab6_symmetry_set_periodicity(atoms%symObj, &
+          & (/ .true., .false., .true. /), ierr)
+  else   if (atoms%geocode == 'F') then
+     call ab6_symmetry_set_periodicity(atoms%symObj, &
+          & (/ .false., .false., .false. /), ierr)
+  end if
 
   ! Output...
   if (iproc.eq.0) then
