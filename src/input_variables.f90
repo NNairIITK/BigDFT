@@ -273,7 +273,7 @@ subroutine geopt_input_variables(iproc,filename,in)
      if (in%ionmov == 8) then
         read(1,*,iostat=ierror) in%noseinert
         call check()
-     else if (in%ionmov == 9 .or. in%ionmov == 12) then
+     else if (in%ionmov == 9) then
         read(1,*,iostat=ierror) in%friction
         call check()
         read(1,*,iostat=ierror) in%mdwall

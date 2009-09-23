@@ -1,25 +1,25 @@
-subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, fcart, &
-     & iatfix, itime, ktemp, mditemp, mttk_vars, natom, nnos, optcell, qmass, &
-     & rprim, rprimd, rprim_next, rprimd_next, strten, strtarget, ucvol, &
-     & ucvol_next, vel, vel_nexthalf, vmass, xcart, xcart_next, xred, xred_next)
+subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, etotal0, &
+     & fcart, iatfix, itime, ktemp, mditemp, me, mttk_vars, natom, nnos, optcell, &
+     & qmass, rprim, rprimd, rprim_next, rprimd_next, strten, strtarget, ucvol, &
+     & ucvol_next, vel, vel_nexthalf, vmass, xcart, xcart_next, xred_next)
 
   use defs_basis
   use defs_datatypes
 
   implicit none
 
-  integer, intent(in) :: natom, itime, nnos, optcell
-  real(dp), intent(in) :: mditemp, dtion, ucvol, ktemp, bmass, vmass, etotal
-  real(dp), intent(out) :: ucvol_next
+  integer, intent(in) :: natom, itime, nnos, optcell, me
+  real(dp), intent(in) :: mditemp, dtion, ucvol, ktemp, bmass, vmass
+  real(dp), intent(out) :: ucvol_next, etotal
+  real(dp), intent(inout) :: etotal0
   integer, intent(in) :: iatfix(3, natom)
   real(dp), intent(in) :: amass(natom), qmass(nnos)
   real(dp), intent(in) :: acell(3), rprim(3,3), rprimd(3,3)
   real(dp), intent(out) :: acell_next(3), rprim_next(3,3), rprimd_next(3,3)
   real(dp), intent(in) :: strtarget(6), strten(6)
-  real(dp), intent(in) :: fcart(3, natom)
-  real(dp), intent(inout) :: vel(3,natom)
+  real(dp), intent(inout) :: vel(3,natom), fcart(3, natom)
   real(dp), intent(out) :: vel_nexthalf(3, natom)
-  real(dp), intent(inout) :: xred(3,natom), xcart(3, natom)
+  real(dp), intent(in) :: xcart(3, natom)
   real(dp), intent(out) :: xred_next(3,natom), xcart_next(3,natom)
   type(mttk_type), intent(inout) :: mttk_vars
 
@@ -27,7 +27,7 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, fcart, 
   real(dp),parameter :: esh2=one/six,esh4=esh2/20._dp,esh6=esh4/42._dp
   real(dp),parameter :: esh8=esh6/72._dp,nosetol=tol10,v2tol=tol8
   integer :: iatom, idim, ierr
-  real(dp) :: ekin, massvol, mttk_aloc, mttk_aloc2, mttk_bloc, polysh, vlogv
+  real(dp) :: ekin, mttk_aloc, mttk_aloc2, mttk_bloc, polysh, vlogv
   real(dp) :: gmet(3,3), gprimd(3,3), rmet(3,3), mttk_alc(3)
   real(dp) :: mttk_alc2(3),mttk_blc(3),mttk_psh(3),mttk_tv(3,3),mttk_ubox(3,3)
   real(dp) :: mttk_uu(3),mttk_uv(3),mttk_veig(3),mttk_vt(3,3), work(lwork)
@@ -47,7 +47,7 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, fcart, 
 
   allocate(fcart_m(3,natom))
   !  XG070613 : Do not take away the following line , seems needed for the pathscale compiler
-  write(6,*)'moldyn',mttk_vars%vboxg(:,:)
+  if (me == 0) write(6,*)'moldyn',mttk_vars%vboxg(:,:)
   !  ##### sub  case optcell==0 Isothermal Ensemble ###########
   if(optcell==0) then
      !   There is no evolution of cell
@@ -63,8 +63,6 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, fcart, 
      end do
      vel_nexthalf(:,:)=vel(:,:)+dtion/two*fcart_m(:,:)
      !   New positions
-     !   Convert input xred (reduced coordinates) to xcart (cartesian)
-     call xredxcart(natom,1,rprimd,xcart,xred)
      xcart_next(:,:)=xcart(:,:)+vel_nexthalf(:,:)*dtion
      !   Convert back to xred (reduced coordinates)
      call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
@@ -75,16 +73,8 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, fcart, 
      !   enddo
      !   ENDDEBUG
      !   Computation of the forces for the new positions
-     !   Compute LDA forces (big loop)
-!!$     iapp=-1
-!!$     if(itime>0)iapp=itime
-!!$    call scfcv(acell,atindx,atindx1,cg,cpus,densymop_gs,dtefield,dtfil,&
-!!$&    dtset,ecore,eigen,hdr,iapp,indsym,initialized,&
-!!$&    irrzon,kg,mpi_enreg,&
-!!$&    nattyp,nfftf,npwarr,nspinor,occ,&
-!!$&    pawang,pawfgr,pawrad,pawrhoij,pawtab,phnons,psps,&
-!!$&    pwind,pwind_alloc,pwnsfac,rec_set,resid,results_gs,rhog,rhor,rprimd,&
-!!$&    scf_history,symrec,wffnew,wffnow,wvl,xred_next,xred,ylm,ylmgr)
+     !   Compute LDA forces (big loop), fcart_m is used as dummy argument for fred
+     call scfloop_main(acell, etotal, fcart, fcart_m, itime, me, natom, rprimd, xred_next)
      !   Next Half velocity step
      do idim=1,3
         fcart_m(idim,:)=fcart(idim,:)/amass(:)
@@ -92,8 +82,11 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, fcart, 
      vel(:,:)=vel_nexthalf(:,:)+dtion/two*fcart_m(:,:)
      !   Update Thermostat variables and velocity
      call isotemp(amass,dtion,ekin,iatfix,ktemp,mttk_vars,natom,nnos,qmass,vel)
-     if(itime==0) massvol=ekin+etotal
-     write(6,*) 'conserved energy:',(ekin+etotal)-massvol,ekin,etotal
+     if(itime==0) etotal0=ekin+etotal
+     write(message, '(a,es18.10,a,es18.10,a,es18.10)' )&
+          & ' dtotal=',(ekin+etotal)-etotal0, &
+          & ', ekin=',ekin,', epot=', etotal
+     call wrtout(std_out,message,'COLL')
      !   End of sub case optcell=0
      !   ##### sub  case optcell==1 Isothermal-Isenthalpic Ensemble (homogeneous cell deformation)##########
   else if (optcell==1) then
@@ -112,8 +105,6 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, fcart, 
      mttk_aloc2=(vlogv*dtion/two)**2
      polysh=(((esh8*mttk_aloc2+esh6)*mttk_aloc2+esh4)*mttk_aloc2+esh2)*mttk_aloc2+one
      mttk_bloc=mttk_aloc*polysh*dtion
-     !   Convert input xred (reduced coordinates) to xcart (cartesian)
-     call xredxcart(natom,1,rprimd,xcart,xred)
      xcart_next(:,:)=xcart(:,:)*mttk_aloc**2+vel_nexthalf(:,:)*mttk_bloc
      !   Update the volume and related quantities
      acell_next(:)=acell(:)*exp(dtion*vlogv)
@@ -137,15 +128,9 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, fcart, 
      !   write(6,*)' atom , position=',iatom,xcart_next(:,iatom)
      !   enddo
      !   ENDDEBUG
-!!$     iapp=-1
-!!$     if(itime>0)iapp=itime
-!!$    call scfcv(acell,atindx,atindx1,cg,cpus,densymop_gs,dtefield,dtfil,&
-!!$&    dtset,ecore,eigen,hdr,iapp,indsym,initialized,&
-!!$&    irrzon,kg,mpi_enreg,&
-!!$&    nattyp,nfftf,npwarr,nspinor,occ,&
-!!$&    pawang,pawfgr,pawrad,pawrhoij,pawtab,phnons,psps,&
-!!$&    pwind,pwind_alloc,pwnsfac,rec_set,resid,results_gs,rhog,rhor,rprimd_next,&
-!!$&    scf_history,symrec,wffnew,wffnow,wvl,xred_next,xred,ylm,ylmgr)
+     !   Compute LDA forces (big loop), fcart_m is used as dummy argument for fred
+     call scfloop_main(acell_next, etotal, fcart, fcart_m, itime, me, natom, &
+          & rprimd_next, xred_next)
      !   Next Half velocity step
      do idim=1,3
         fcart_m(idim,:)=fcart(idim,:)/amass(:)
@@ -153,8 +138,11 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, fcart, 
      vel(:,:)=vel_nexthalf(:,:)+dtion/two*fcart_m(:,:)
      !   Update Thermostat variables and velocity
      call isopress(amass,dtion,ekin,iatfix,ktemp,natom,nnos,qmass,strten,strtarget,ucvol,mttk_vars,vel,vlogv,vmass)
-     if(itime==0) massvol=ekin+etotal
-     write(6,*) 'conserved energy:',(ekin+etotal)-massvol,ekin,etotal
+     if(itime==0) etotal0=ekin+etotal
+     write(message, '(a,es18.10,a,es18.10,a,es18.10)' )&
+          & ' dtotal=',(ekin+etotal)-etotal0, &
+          & ', ekin=',ekin,', epot=', etotal
+     call wrtout(std_out,message,'COLL')
      !   End of sub case optcell = 1
      !   ##### sub  case optcell==2 Isothermal-Isenthalpic Ensemble (full cell deformation)##########
   else if (optcell==2) then
@@ -165,8 +153,6 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, fcart, 
         fcart_m(idim,:)=fcart(idim,:)/amass(:)
      end do
      vel_nexthalf(:,:)=vel(:,:)+dtion/two*fcart_m(:,:)
-     !   Convert input xred (reduced coordinates) to xcart (cartesian)
-     call xredxcart(natom,1,rprimd,xcart,xred)
      !   New positions
      mttk_vt(:,:)=mttk_vars%vboxg(:,:)
      call dsyev('V','U',3,mttk_vt,3,mttk_veig,work,lwork,ierr)
@@ -211,16 +197,9 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, fcart, 
      !   enddo
      !   ENDDEBUG
 
-     !   Compute LDA forces (big loop)
-!!$     iapp=-1
-!!$     if(itime>0)iapp=itime
-!!$    call scfcv(acell,atindx,atindx1,cg,cpus,densymop_gs,dtefield,dtfil,&
-!!$&    dtset,ecore,eigen,hdr,iapp,indsym,initialized,&
-!!$&    irrzon,kg,mpi_enreg,&
-!!$&    nattyp,nfftf,npwarr,nspinor,occ,&
-!!$&    pawang,pawfgr,pawrad,pawrhoij,pawtab,phnons,psps,&
-!!$&    pwind,pwind_alloc,pwnsfac,rec_set,resid,results_gs,rhog,rhor,rprimd_next,&
-!!$&    scf_history,symrec,wffnew,wffnow,wvl,xred_next,xred,ylm,ylmgr)
+     !   Compute LDA forces (big loop), fcart_m is used as dummy argument for fred
+     call scfloop_main(acell_next, etotal, fcart, fcart_m, itime, me, natom, &
+          & rprimd_next, xred_next)
      !   Next Half velocity step
      do idim=1,3
         fcart_m(idim,:)=fcart(idim,:)/amass(:)
@@ -228,8 +207,11 @@ subroutine md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, fcart, 
      vel(:,:)=vel_nexthalf(:,:)+dtion/two*fcart_m(:,:)
      !   Next half step for extended variables
      call isostress(amass,bmass,dtion,ekin,iatfix,ktemp, natom, nnos, qmass,strten,strtarget,ucvol,vel,mttk_vars)
-     if(itime==0) massvol=ekin+etotal
-     write(6,*) 'conserved energy:',itime,(ekin+etotal)-massvol,ekin,etotal
+     if(itime==0) etotal0=ekin+etotal
+     write(message, '(a,es18.10,a,es18.10,a,es18.10)' )&
+          & ' dtotal=',(ekin+etotal)-etotal0, &
+          & ', ekin=',ekin,', epot=', etotal
+     call wrtout(std_out,message,'COLL')
      !   Evolution of cell and volumr
      acell_next(:)=acell(:)
      ucvol_next=ucvol

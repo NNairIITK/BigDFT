@@ -195,7 +195,7 @@ subroutine moldyn(acell,amass,me,&
  integer :: ndim,nstopped,option
  integer :: prtvel,prtvol
  real(dp) :: diag,ekin, ekin_corr,etotal_prev,favg,gnose, ktemp
- real(dp) :: snose,ucvol,ucvol0, ucvol_next,v2nose,xi_nose
+ real(dp) :: massvol,snose,ucvol,ucvol0, ucvol_next,v2nose,xi_nose
  character(len=500) :: message
  type(mttk_type) :: mttk_vars
 !arrays
@@ -485,10 +485,11 @@ subroutine moldyn(acell,amass,me,&
 !  optcell=0 means isothermal, optcell==1:homogeneous cell fluctuations
 !  optcell=2: full cell fluctuation in addition to temperature control.
   else if (ionmov==13) then
-     call md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, fcart, &
-          & iatfix, itime, ktemp, mditemp, mttk_vars, natom, nnos, optcell, qmass, &
-          & rprim, rprimd, rprim_next, rprimd_next, strten, strtarget, ucvol, &
-          & ucvol_next, vel, vel_nexthalf, vmass, xcart, xcart_next, xred, xred_next)
+     call md_isothermal(acell, acell_next, amass, bmass, dtion, etotal, massvol, &
+          & fcart, iatfix, itime, ktemp, mditemp, me, mttk_vars, natom, nnos, &
+          & optcell, qmass, rprim, rprimd, rprim_next, rprimd_next, strten, &
+          & strtarget, ucvol, ucvol_next, vel, vel_nexthalf, vmass, xcart, &
+          & xcart_next, xred_next)
 
   else if(ionmov==14) then
      write(*,*) "TODO"
