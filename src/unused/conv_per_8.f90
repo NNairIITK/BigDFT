@@ -1346,30 +1346,30 @@ end subroutine ConvolkineticT
        END
 
 
-
-
-       subroutine SYNTHESE_PER(nd1,nd2,nd3,x,y,ww)
+subroutine SYNTHESE_PER(nd1,nd2,nd3,x,y,ww)
 ! A periodic synthesis (BACKWARD) wavelet transformation
 ! The input array x is not overwritten
-        implicit real(kind=8) (a-h,o-z)
-        dimension  x(0:nd1,0:nd2,0:nd3)
-        dimension ww(0:nd1,0:nd2,0:nd3)
-        dimension  y(0:nd1,0:nd2,0:nd3)
-
+  implicit none
+ !Arguments
+  integer, intent(in) :: nd1,nd2,nd3
+  real(kind=8), dimension ::  x(0:nd1,0:nd2,0:nd3)
+  real(kind=8), dimension :: ww(0:nd1,0:nd2,0:nd3)
+  real(kind=8), dimension ::  y(0:nd1,0:nd2,0:nd3)
+ !Local variables
+ integer :: nt
 ! i1,i2,i3 -> i2,i3,I1
-        nt=(nd2+1)*(nd3+1)
-        call  SYN_ROT_PER(nd1,nt,x,y)
+  nt=(nd2+1)*(nd3+1)
+  call  SYN_ROT_PER(nd1,nt,x,y)
 ! i2,i3,I1 -> i3,I1,I2
-        nt=(nd3+1)*(nd1+1)
-        call  SYN_ROT_PER(nd2,nt,y,ww)
+  nt=(nd3+1)*(nd1+1)
+  call  SYN_ROT_PER(nd2,nt,y,ww)
 ! i3,I1,I2  -> I1,I2,I3
-        nt=(nd1+1)*(nd2+1)
-        call  SYN_ROT_PER(nd3,nt,ww,y)
+  nt=(nd1+1)*(nd2+1)
+  call  SYN_ROT_PER(nd3,nt,ww,y)
+end subroutine SYNTHESE_PER
 
-        return
-        end
 
-       subroutine SYNTHESE_PER_SELF(nd1,nd2,nd3,x,y,ww)
+subroutine SYNTHESE_PER_SELF(nd1,nd2,nd3,x,y,ww)
 ! A periodic synthesis (BACKWARD) wavelet transformation
 ! The input array x is not overwritten
         implicit real(kind=8) (a-h,o-z)

@@ -1,18 +1,34 @@
-! gives the expansion coefficients of exp(-(1/2)*(x/gau_a)**2)
-!!  INPUT: hgrid
-!          factor
-!!         gau_cen
-!!          gau_a
-!!          n_gau
-!           nmax
-!			periodic: the flag for periodic boundary conditions
-!
-!! output: n_left,n_right: intervall where the gaussian is larger than
-!!         the machine precision
-!!         C(:,1) array of scaling function coefficients:
-!!         C(:,2) array of wavelet coefficients:
-!!         WW(:,1),WW(:,2): work arrays that have to be 16 times larger than C
-
+!!****f* BigDFT/gauss_to_daub
+!! FUNCTION
+!!   Project gaussian functions in a mesh of Daubechies scaling functions
+!!   Gives the expansion coefficients of :
+!!     factor*x**n_gau*exp(-(1/2)*(x/gau_a)**2)
+!! INPUT
+!!   hgrid    step size
+!!   factor   normalisation factor
+!!   gau_cen  center of gaussian function
+!!   gau_a    parameter of gaussian
+!!   n_gau    x**n_gau (polynomial degree)
+!!   nmax     size of the grid
+!!   nwork    size of the work array (ww) >= (nmax+1)*17
+!!   periodic the flag for periodic boundary conditions
+!!
+!! OUTPUT
+!!   n_left,n_right  interval where the gaussian is larger than the machine precision
+!!   C(:,1)          array of scaling function coefficients:
+!!   C(:,2)          array of wavelet coefficients:
+!!   WW(:,1),WW(:,2) work arrays that have to be 17 times larger than C
+!!   err_norm        normalisation error
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA (LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
      nmax,n_left,n_right,c,err_norm,&                      !no err_wav. nmax instead of n_intvx
      ww,nwork,periodic)                         !added work arrays ww with dimension nwork
@@ -57,7 +73,7 @@ subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
      rights(0)=i0+right_t
 
 
-     call gauss_to_scf
+     call gauss_to_scf()
 
      ! special for periodic case:
      call fold_tail
@@ -195,7 +211,7 @@ contains
 !!$             c(i,2)=ww(i-n_left+length,2)
 !!$          enddo
 !!$          ! the part of ww that goes beyond nmax 
-!!$          ! is shifted by nmax+1 to the left			
+!!$          ! is shifted by nmax+1 to the left
 !!$          do i=nmax+1,n_right
 !!$             c(i-nmax-1,1)=ww(i-n_left       ,2)
 !!$             c(i-nmax-1,2)=ww(i-n_left+length,2)
@@ -219,6 +235,7 @@ contains
 
 
 end subroutine gauss_to_daub
+!!***
 
 
 !

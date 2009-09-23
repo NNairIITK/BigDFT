@@ -1,6 +1,14 @@
-
-
-
+!!****m* BigDFT/find_pfproj
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2009 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine find_pfproj( Nsol,Ngrid,rgrid,  psi1s, psigrid, real_start, psigrid_pseudo)
   use module_base
   implicit none
@@ -20,7 +28,18 @@ subroutine find_pfproj( Nsol,Ngrid,rgrid,  psi1s, psigrid, real_start, psigrid_p
      coeffs(i)=dumgrid2(Ngrid)
 
      mass=0.0D0
+!     imass=-1
      mass_pseudo=0.0D0
+!!$
+!!$     do k=Ngrid, 1,-1
+!!$        if( abs(psigrid(k,i))>mass) then
+!!$           mass= abs(psigrid(k,i))
+!!$           imass=k
+!!$        endif
+!!$        if ( (Ngrid-imass).gt.10 .and.  (imass-k).gt.10 ) then
+!!$           exit
+!!$        endif
+!!$     enddo
 
      do k=1, Ngrid
         if( abs(psigrid(k,i))>mass) mass= abs(psigrid(k,i))
@@ -56,9 +75,14 @@ subroutine find_pfproj( Nsol,Ngrid,rgrid,  psi1s, psigrid, real_start, psigrid_p
   call  DGEMM('N','N',Ngrid ,1,   Nsol,1.0d0 ,psigrid , Ngrid ,coeffs ,Nsol, 0.0D0 , dumgrid , Ngrid)
 
 
-  do i=1,Nsol
-     coeffs(i)=coeffs(i)*segno(i)*segno_pseudo(i)
+  print *, " coefficient usati " 
+  do i=real_start,Nsol
+
+     print *, coeffs(i) , coeffs(i)*segno(i)*segno_pseudo(i-real_start+1)
+     coeffs(i)=coeffs(i)*segno(i)*segno_pseudo(i-real_start+1)
   enddo
+
+
 
   call  DGEMM('N','N',Ngrid ,1,   Nsol-real_start+1  ,1.0d0 ,psigrid_pseudo , Ngrid ,&
        coeffs(real_start) ,Nsol-real_start+1, 0.0D0 , dumgrid2 , Ngrid)
@@ -68,10 +92,10 @@ subroutine find_pfproj( Nsol,Ngrid,rgrid,  psi1s, psigrid, real_start, psigrid_p
 
   return
 end subroutine find_pfproj
-  
+!!***  
 
 
-subroutine     find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
+subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
   use module_base
   implicit none
  
@@ -134,11 +158,8 @@ subroutine     find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
      endif
   enddo
   
-
   return 
 end subroutine find_Scoeffs_grid
-
-
 
 
 subroutine   dump_1gauwf_on_radgrid(prefix, ng , expo,psi   ,lpow   )
@@ -267,7 +288,8 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
 
   integer, parameter :: n_int=100
 
-  real(gp), dimension(0:ng,noccmax,lmax+1), intent(out) :: psi, Egrid(Nsol), rgrid(Ngrid), psigrid(Ngrid,Nsol  )
+  real(gp), dimension(0:ng,noccmax,lmax+1), intent(out) :: psi, Egrid(Nsol),&
+       rgrid(Ngrid), psigrid(Ngrid,Nsol  )
   real(gp), dimension(noccmax,lmax+1  ), intent(out) ::  aeval,occup
   
   !local variables
@@ -285,7 +307,7 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   integer :: lpx,nsccode,mxpl,mxchg
   integer :: l,i,iocc,i_all,i_stat
   real(gp) :: alpz,alpl,rcov,rprb,zion,rij,a,a0,a0in,tt,ehomo
-  real(gp) value_at_r
+  real(gp) :: value_at_r,amu
 
   !filename = 'psppar.'//trim(atomname)
 
@@ -381,7 +403,7 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   if(psp_modifier.ne.0) then
      call modified_eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
   else
-     call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
+     call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
   endif
 
   occup(:,:)=0.000000000_gp
@@ -417,13 +439,16 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
 
   rij=3._gp
   ! exponents of gaussians
+  ! print *, " ESPONENTI " 
+  ! print *, " alpz " , alpz
   a0in=alpz
   a0=a0in/rij
   !       tt=sqrt(sqrt(2._gp))
-  tt=2._gp**.3_gp
+  tt=2._gp**(.3_gp)
   do i=0,ng
      a=a0*tt**i
      xp(i)=.5_gp/a**2
+     ! print *, " xp(", i,")", xp(i)
   end do
 
   ! initial guess
@@ -446,12 +471,20 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
 
 
 
-  call gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
-                 zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
-                 aeval,ng,psi,res,chrg,&
-                 Nsol, Labs, Ngrid,Egrid,  rgrid , psigrid )
-
-
+  if(psp_modifier==-1) then
+     if(iproc==0) print *, " calling gatom_modified_eqdiff"
+     call gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
+          zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
+          aeval,ng,psi,res,chrg,&
+          Nsol, Labs, Ngrid,Egrid,  rgrid , psigrid )
+     stop
+  else 
+     call gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
+          zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
+          aeval,ng,psi,res,chrg,&
+          Nsol, Labs, Ngrid,Egrid,  rgrid , psigrid )
+  endif
+  
 
 
   !post-treatment of the inguess data
@@ -564,11 +597,11 @@ end subroutine integrate
 
 function pow(x,n)
   use module_base, only: gp,wp
-  real(gp) x
+  implicit none
+  real(gp), intent(in) :: x
+  integer, intent(in) :: n
   real(gp) :: pow
-  integer n
   pow=x**n
-  return
 end function pow
 
 function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
@@ -603,7 +636,7 @@ function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
   yNcross=0
   yflag=0
   
-  ! -- Calcul du point intermediaire où le V est minimum
+  ! -- Calcul du point intermediaire o le V est minimum
   if( onlyout.eq.1 ) then
      ii=N-1  
   else
@@ -817,7 +850,7 @@ function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
      enddo
   endif
   
-  ! //------------ Propagation de   I   à  rinf --------------------------
+  ! //------------ Propagation de   I   ï¿½ rinf --------------------------
   
   do i=N,N-1,-1 
      y(i)=N-i    ! //y[i]=exp(-sqrt(-2*E)*r[i]);
@@ -1107,8 +1140,10 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
                  aeval,ng,psi,res,chrg,&
                  Nsol, Labs, Ngrid,Egrid,  rgrid , psigrid )
   use module_base, only: gp
+  use esatto
+
   implicit real(gp) (a-h,o-z)
-  logical :: noproj
+  logical :: noproj, readytoexit
   integer, parameter :: n_int=100
   dimension psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
        hh(0:ng,0:ng),ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
@@ -1120,12 +1155,24 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
        occup(noccmax,lmax+1),chrg(noccmax,lmax+1),&
        vh(0:ng,0:ng,4,0:ng,0:ng,4),&
        res(noccmax,lmax+1),xp(0:ng),& 
-       rgrid(Ngrid), psigrid(Ngrid, Nsol),psigrid_naked(Ngrid,Nsol), projgrid(Ngrid,3), &
-       rhogrid(Ngrid), potgrid(Ngrid), &
+       psigrid(Ngrid, Nsol),psigrid_naked(Ngrid,Nsol), projgrid(Ngrid,3), &
+       rhogrid(Ngrid), potgrid(Ngrid),  newpotgrid(Ngrid), &
        vxcgrid(Ngrid), &
-       dumgrid1(Ngrid),dumgrid2(Ngrid),  &
        Egrid(nsol), ppgrid(Nsol,3), work(nsol*nsol*2), &
        H(Nsol, Nsol)
+  
+  real(gp) Ediff, Rdiff, rpot_a,spot_a,hpot_a, Rinf_a
+
+  real(gp), target  :: rgrid(Ngrid)
+  real(gp), target :: dumgrid1(Ngrid),dumgrid2(Ngrid) ,dumgrid3(Ngrid) , y_r(0:9), d_r(0:20)
+!!$  !! real(gp) , pointer :: py_r(:)
+!!$
+!!$  y_r(0)=1.0
+!!$  y_r(1)=2
+!!$  y_r(2)=3
+!!$  !! py_r=> y_r
+!!$  print *, py_r(1)
+!!$ 
 
   if (nintp.ne.n_int) stop 'n_int><nintp'
 
@@ -1144,7 +1191,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
   
 
 ! projectors, just in case
-  if (.not. noproj) then
+  if ( .not. noproj) then
      do l=0,lpx
         gml1=sqrt( gamma(real(l,gp)+1.5_gp) / (2._gp*alps(l+1)**(2*l+3)) )
         gml2=sqrt( gamma(real(l,gp)+3.5_gp) / (2._gp*alps(l+1)**(2*l+7)) )&
@@ -1163,7 +1210,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
            do iorder=1,3
               do igrid=1,Ngrid
                  r=rgrid(igrid)
-                 projgrid(igrid,iorder) = (  exp( -r*r*tt)*(r**l *r) )* r**(2*(i-1))
+                 projgrid(igrid,iorder) = (  exp( -r*r*tt)*(r**l *r) )* r**(2*(iorder-1))
               end do
               
               do igrid=1, Ngrid
@@ -1197,7 +1244,9 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
   enddo
 
   evsum=1.d30
+  readytoexit=.false.
   big_loop: do it=1,50
+     if(it.eq.50) readytoexit=.true.
      evsumold=evsum
      evsum=0._gp
      
@@ -1226,24 +1275,27 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
        
      end do
 
-     do igrid=1,Ngrid
-        r=rgrid(igrid)
-        rhogrid(igrid)=0.0_gp
-        do l=0, lmax
-           do iocc=1,noccmax
-              if (occup(iocc,l+1).gt.0._gp) then
-                 dum=0.0_gp
-                 do j=0,ng
-                    dum=dum + psi(j,iocc,l+1)*exp(-r*r *   xp(j) )* r**(l+1)
-                 end do
-                 rhogrid(igrid)=rhogrid(igrid)+dum*dum*occup(iocc,l+1)
-              end if
-           end do
+
+     if( readytoexit) then
+
+        do igrid=1,Ngrid
+           r=rgrid(igrid)
+           rhogrid(igrid)=0.0_gp
+           do l=0, lmax
+              do iocc=1,noccmax
+                 if (occup(iocc,l+1).gt.0._gp) then
+                    dum=0.0_gp
+                    do j=0,ng
+                       dum=dum + psi(j,iocc,l+1)*exp(-r*r *   xp(j) )* r**(l+1)
+                    end do
+                    rhogrid(igrid)=rhogrid(igrid)+dum*dum*occup(iocc,l+1)
+                 end if
+              end do
+           enddo
+           dum = rhogrid(igrid)/r/r *0.07957747154594768_gp
+           vxcgrid(igrid)=emuxc(dum) 
         enddo
-        dum = rhogrid(igrid)/r/r *0.07957747154594768_gp
-        vxcgrid(igrid)=emuxc(dum)
-     enddo
-     
+     endif
   
      rmix=.5_gp
      if (it.eq.1) rmix=1._gp
@@ -1272,6 +1324,9 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
      call DGEMV('N',n_int,(lcx+1)*(ng+1)**2,1._gp,&
                 rmt,n_int,rho,1,0._gp,xcgrd,1)
 
+    
+
+
      dr=fact*rprb/real(n_int,gp)
      do k=1,n_int
         r=(real(k,gp)-.5_gp)*dr
@@ -1281,26 +1336,30 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
         xcgrd(k)=emuxc(tt)*r**2
      end do
 
-     do igrid=1, Ngrid
-        r=rgrid(igrid)
-        potgrid(igrid) =0.5_gp*r*r  /    rprb**4 
-        potgrid(igrid) = potgrid(igrid) - zion/r * derf( r/alpz/sqrt(2.0)   )
-        rr = r/alpz
-        potgrid(igrid) = potgrid(igrid) + exp(-0.5_gp * rr**2 )*( gpot(1)+gpot(2)*rr**2 + gpot(3)*rr**4 )
-     enddo
-! poisson per potgrid
-     call integrate( rhogrid, dumgrid1, rgrid, Ngrid)
-     do igrid=1, Ngrid
-        potgrid(igrid)=potgrid(igrid)+dumgrid1(igrid)/rgrid(igrid)
-     enddo
 
-     do igrid=1, Ngrid
-        dumgrid1(igrid) = rhogrid(igrid)/rgrid(igrid)
-     enddo
-     call integrate( dumgrid1, dumgrid2, rgrid, Ngrid)
-     do igrid=1, Ngrid
-        potgrid(igrid)=potgrid(igrid)-dumgrid2(igrid) + dumgrid2(Ngrid)
-     enddo
+     if(readytoexit) then
+        
+        do igrid=1, Ngrid
+           r=rgrid(igrid)
+           potgrid(igrid) =0.5_gp*r*r  /    rprb**4*0 
+           potgrid(igrid) = potgrid(igrid) - zion/r * derf( r/alpz/sqrt(2.0)   )
+           rr = r/alpz
+           potgrid(igrid) = potgrid(igrid) + exp(-0.5_gp * rr**2 )*( gpot(1)+gpot(2)*rr**2 + gpot(3)*rr**4 )
+        enddo
+        ! poisson per potgrid
+        call integrate( rhogrid, dumgrid1, rgrid, Ngrid)
+        do igrid=1, Ngrid
+           potgrid(igrid)=potgrid(igrid)+dumgrid1(igrid)/rgrid(igrid)
+        enddo
+        
+        do igrid=1, Ngrid
+           dumgrid1(igrid) = rhogrid(igrid)/rgrid(igrid)
+        enddo
+        call integrate( dumgrid1, dumgrid2, rgrid, Ngrid)
+        do igrid=1, Ngrid
+           potgrid(igrid)=potgrid(igrid)-dumgrid2(igrid) + dumgrid2(Ngrid)
+        enddo
+     endif
 ! ------------------------------------------------------------------------------------
 
 
@@ -1324,7 +1383,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
                    real(l,gp)**2*(xp(i)-xp(j))**2  ) + .5_gp*real(l,gp)*(real(l,gp)+1._gp)*const
 ! potential energy from parabolic potential
               hh(i,j)=hh(i,j) +&
-                   .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4 
+                   .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4*0 
 ! hartree potential from ionic core charge
               tt=sqrt(1._gp+2._gp*alpz**2*d)
               if (l.eq.0) then
@@ -1415,9 +1474,12 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
      end do loop_l
 
      tt=abs(evsum-evsumold)
-!     write(6,*) 'evdiff',it,tt
+     ! write(6,*) 'evdiff',it,tt, readytoexit
      if (tt.lt.1.e-12_gp) then
-         exit big_loop
+        if( readytoexit) then
+           exit big_loop
+        endif
+        readytoexit=.true.
      end if
   end do big_loop
 ! End of the big loop
@@ -1425,14 +1487,166 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
 
 
 
-  dumgrid1(:)=0.0_gp
+  
+
+  if(.false.) then
+
+     if(.false.) then ! ricalcola la rho con le soluzioni radiali
+
+        do iter=1,50
+           
+           do igrid=1,Ngrid
+              rhogrid(igrid)=0.0_gp
+           enddo
+           do l=0, lmax
+              dumgrid3 = potgrid  +   0.5_gp*l *(l +1.0_gp)/rgrid/rgrid  + vxcgrid
+              
+              do igrid=1,Ngrid
+
+                 if(-1.0/rgrid(igrid)< potgrid(igrid)  ) dumgrid3(igrid)=&
+                      -1.0/rgrid(igrid)   +   &
+                      0.5_gp*l *(l +1.0_gp)/rgrid(igrid)/rgrid(igrid)  + vxcgrid(igrid)
+                 !!! if(rgrid(igrid)>8.0+iter/20) dumgrid3(igrid)=10.0
+              enddo
+              
+              dumgrid1(:)=0.0_gp
+              do iocc=1,noccmax
+                 if( occup(iocc,l+1)>0.0001 )  then
+                    call schro(Egrid(isol) , rgrid ,  dumgrid3 , dumgrid1, dumgrid2 , ngrid , iocc+l , l*1.0_gp ,  zion)
+                    print *, " risolto per " ,  iocc+l , l*1.0_gp , Egrid(isol) , aeval(iocc,l+1)
+                    do igrid=1,Ngrid
+                       dum=dumgrid2(igrid)
+                       rhogrid(igrid)=rhogrid(igrid)+dum*dum*occup(iocc,l+1)
+                    enddo
+                 endif
+              enddo
+           enddo
+
+
+           do igrid=1,Ngrid
+              r=rgrid(igrid)
+              dum = rhogrid(igrid)/r/r *0.07957747154594768_gp
+              vxcgrid(igrid)=0.8_gp*vxcgrid(igrid) +0.2_gp* emuxc(dum) 
+           enddo
+
+           do igrid=1, Ngrid
+              r=rgrid(igrid)
+              newpotgrid(igrid) =0.5_gp*r*r  /    rprb**4*0 
+              newpotgrid(igrid) = newpotgrid(igrid) - zion/r * derf( r/alpz/sqrt(2.0)   )
+              rr = r/alpz
+              newpotgrid(igrid) = newpotgrid(igrid) + exp(-0.5_gp * rr**2 )*( gpot(1)+gpot(2)*rr**2 + gpot(3)*rr**4 )
+           enddo
+           ! poisson per potgrid
+           call integrate( rhogrid, dumgrid1, rgrid, Ngrid)
+           do igrid=1, Ngrid
+              newpotgrid(igrid)=newpotgrid(igrid)+dumgrid1(igrid)/rgrid(igrid)
+           enddo
+
+           do igrid=1, Ngrid
+              dumgrid1(igrid) = rhogrid(igrid)/rgrid(igrid)
+           enddo
+           call integrate( dumgrid1, dumgrid2, rgrid, Ngrid)
+           do igrid=1, Ngrid
+              newpotgrid(igrid)=newpotgrid(igrid)-dumgrid2(igrid) + dumgrid2(Ngrid)
+           enddo
+
+           potgrid=0.8_gp*potgrid+0.2_gp*newpotgrid
+           print *, " " 
+        enddo
+     endif
+     
+     dumgrid1(:)=0.0_gp
+     open(unit=22,file='pot.dat')
+     do igrid=1, Ngrid
+        write(22,'(200(f20.10,1x))') rgrid(igrid),potgrid(igrid)+vxcgrid(igrid)
+     enddo
+     close(unit=22)
+     
+     print *, " provo eq diff "
+     do idiff=1,600
+        Ediff=idiff*0.04_gp/3.0 +0.0_gp
+        do igrid=Ngrid,1,-1
+           dumgrid2(igrid)=potgrid(igrid)+vxcgrid(igrid)
+           if(rgrid(igrid)>2.0_gp) then
+              Nrdiff = igrid;
+              Rdiff = rgrid(igrid)
+           endif
+        enddo
+        do l=0, 9
+           if(l>0) then
+              do igrid=1,Ngrid
+                 dumgrid2 (igrid)=dumgrid2 (igrid)+ 0.5_gp*(2.0_gp*l)/rgrid(igrid)/rgrid(igrid)
+              enddo
+           endif
+           d_r(l)=phase( Ediff, Nrdiff, rgrid,dumgrid2  , dumgrid1 , psigrid(1,2+l) , l*1.0_gp ,0,zion, 1)
+           y_r(l)= psigrid(Nrdiff,2+l)
+           
+        enddo
+        
+        dumgrid1 = 0.0_gp
+        dumgrid2 = potgrid + vxcgrid
+        call schro(Egrid(1) , rgrid , dumgrid2  , dumgrid1, psigrid(:,1) , ngrid , 1+0 , 0*1.0_gp ,  zion)
+        
+!!$        print *, " E bound ", Egrid(1)
+!!$        open(unit=22,file='bound.dat')
+!!$        do igrid=1, Ngrid
+!!$           write(22,'(200(f20.10,1x))') rgrid(igrid),  psigrid(igrid,1)
+!!$        enddo
+!!$        close(unit=22)
+        
+        dumgrid1(:) =  psigrid(:,2+1)* psigrid(:,1)*rgrid(:)
+        call integrate(dumgrid1(1),dumgrid3(1),rgrid(1) ,Nrdiff)
+        fattore = dumgrid3(Nrdiff)
+        dumgrid1(:)=0
+        
+        if(.true.) then
+           
+           nls_a=10
+           lpot_a=1
+           rpot_a = 6.0_gp
+           spot_a = 1.0_gp
+           hpot_a = 3.0_gp
+           Rinf_a=100.0_gp
+           nstesp_coarse=1000
+           nsteps_fine  = 4
+           
+           ref= esatto_CalcolaRiflettivita( ngrid, rgrid, dumgrid2, nls_a, lpot_a, rpot_a,spot_a,hpot_a,y_r,d_r,&
+                Rdiff,    Rinf_a ,nstesp_coarse ,nsteps_fine, Ediff )
+
+           print *," ",  Ediff, ref*fattore*fattore, fattore
+           
+
+!!$           do igrid=1,Ngrid
+!!$              dumgrid2 (igrid)=potgrid(igrid)+vxcgrid(igrid)+ 0.5_gp*(2.0_gp)/rgrid(igrid)/rgrid(igrid)
+!!$           enddo
+!!$           d_r(1)=phase( Ediff, Ngrid, rgrid,dumgrid2  , dumgrid1 , psigrid(1,2+1) , 1*1.0_gp ,0,zion, 1)
+!!$           y_r(1)= psigrid(Ngrid,2+1)
+!!$
+!!$           print *,"C2 ", Ediff, 4*fattore*fattore/(   y_r(1)*y_r(1) +  d_r(1)*d_r(1)/2.0/Ediff   )
+
+
+!!$           open(unit=22,file='libera.dat')
+!!$           do igrid=1, Ngrid
+!!$              write(22,'(200(f20.10,1x))') rgrid(igrid),  psigrid(igrid,2+1)
+!!$           enddo
+!!$           close(unit=22)
+!!$           stop
+
+
+        endif
+     enddo
+        
+     stop
+  endif
+
+
+
   do igrid=1, ngrid
      r=rgrid(igrid)
      potgrid(igrid)=potgrid(igrid)+ 0.5_gp*labs*(labs+1.0_gp)/r/r
   enddo
   
-
-
+  dumgrid1(:)=0.0_gp
   do isol=1,nsol
 
      call schro(Egrid(isol) , rgrid ,  potgrid , dumgrid1, psigrid_naked(:,isol) , ngrid , isol+labs , labs*1.0_gp ,  zion)
@@ -1606,23 +1820,729 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
      end do
   end if
 
+
+
 END SUBROUTINE gatom_modified
 
 
-subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc, iproc, dump_functions,Gabs_coeffs)
+
+
+
+
+
+
+
+
+
+
+
+
+subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
+                 zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
+                 aeval,ng,psi,res,chrg,&
+                 Nsol, Labs, Ngrid,Egrid,  rgrid , psigrid )
+  use module_base, only: gp
+  use esatto
+
+  implicit real(gp) (a-h,o-z)
+  logical :: noproj, readytoexit
+  integer, parameter :: n_int=100
+  dimension psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
+       hh(0:ng,0:ng),ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
+       aux(2*ng+2),&
+       gpot(3),hsep(6,lpx+1),rmt(n_int,0:ng,0:ng,lmax+1),&
+       pp1(0:ng,lpx+1),pp2(0:ng,lpx+1),pp3(0:ng,lpx+1),alps(lpx+1),&
+       potgrd(n_int),&
+       rho(0:ng,0:ng,lmax+1),rhoold(0:ng,0:ng,lmax+1),xcgrd(n_int),&
+       occup(noccmax,lmax+1),chrg(noccmax,lmax+1),&
+       vh(0:ng,0:ng,4,0:ng,0:ng,4),&
+       res(noccmax,lmax+1),xp(0:ng),& 
+       psigrid(Ngrid, Nsol),psigrid_naked(Ngrid,Nsol), projgrid(Ngrid,3), &
+       rhogrid(Ngrid), potgrid(Ngrid),  newpotgrid(Ngrid), &
+       vxcgrid(Ngrid), &
+       Egrid(nsol), ppgrid(Nsol,3), work(nsol*nsol*2), &
+       H(Nsol, Nsol)
+  
+  real(gp) Ediff, Rdiff, rpot_a,spot_a,hpot_a, Rinf_a
+
+  real(gp), target  :: rgrid(Ngrid)
+  real(gp), target :: dumgrid1(Ngrid),dumgrid2(Ngrid) ,dumgrid3(Ngrid) , y_r(0:9), d_r(0:20)
+!!$  !! real(gp) , pointer :: py_r(:)
+!!$
+!!$  y_r(0)=1.0
+!!$  y_r(1)=2
+!!$  y_r(2)=3
+!!$  !! py_r=> y_r
+!!$  print *, py_r(1)
+!!$ 
+
+  if (nintp.ne.n_int) stop 'n_int><nintp'
+
+
+  do l=0,lmax
+     if (occup(1,l+1).gt.0._gp) lcx=l
+  end do
+  !write(6,*) 'lcx',lcx
+ 
+  noproj=.true.
+  do l=1,lpx+1
+     noproj = noproj .and. (alps(l) .eq. 0._gp)
+  end do
+  
+
+! projectors, just in case
+  if ( .not. noproj) then
+     do l=0,lpx
+        gml1=sqrt( gamma(real(l,gp)+1.5_gp) / (2._gp*alps(l+1)**(2*l+3)) )
+        gml2=sqrt( gamma(real(l,gp)+3.5_gp) / (2._gp*alps(l+1)**(2*l+7)) )&
+            /(real(l,gp)+2.5_gp)
+        gml3=sqrt( gamma(real(l,gp)+5.5_gp) / (2._gp*alps(l+1)**(2*l+11)) )&
+            /((real(l,gp)+3.5_gp)*(real(l,gp)+4.5_gp))
+        tt=1._gp/(2._gp*alps(l+1)**2)
+        do i=0,ng
+           ttt=1._gp/(xp(i)+tt)
+           pp1(i,l+1)=gml1*(sqrt(ttt)**(2*l+3))
+           pp2(i,l+1)=gml2*ttt*(sqrt(ttt)**(2*l+3))
+           pp3(i,l+1)=gml3*ttt**2*(sqrt(ttt)**(2*l+3))
+        end do
+        
+        if(l.eq.Labs) then
+           do iorder=1,3
+              do igrid=1,Ngrid
+                 r=rgrid(igrid)
+                 projgrid(igrid,iorder) = (  exp( -r*r*tt)*(r**l *r) )* r**(2*(iorder-1))
+              end do
+              
+              do igrid=1, Ngrid
+                 dumgrid1(igrid) =   projgrid(igrid,iorder)*projgrid(igrid,iorder)
+              enddo
+              call integrate( dumgrid1, dumgrid2, rgrid, Ngrid)
+              do igrid=1, Ngrid
+                 projgrid(igrid,iorder) = projgrid(igrid,iorder) / sqrt( dumgrid2(Ngrid) ) 
+              enddo
+           enddo
+        endif
+     end do
+  else
+     pp1(:,:)=0._gp
+     pp2(:,:)=0._gp
+     pp3(:,:)=0._gp
+     projgrid(:,:)=0.0_gp
+  end if
+
+  do l=0,lmax
+     do j=0,ng
+        do i=0,ng
+           rho(i,j,l+1)=0._gp
+        end do
+     end do
+  end do
+
+
+  do igrid=1,Ngrid
+     rhogrid(igrid)=0.0_gp
+  enddo
+
+  evsum=1.d30
+  readytoexit=.false.
+  big_loop: do it=1,50
+     if(it.eq.50) readytoexit=.true.
+     evsumold=evsum
+     evsum=0._gp
+     
+! coefficients of charge density
+     do l=0,lmax
+        do j=0,ng
+           do i=0,ng
+              rhoold(i,j,l+1)=rho(i,j,l+1)
+              rho(i,j,l+1)=0._gp        
+           end do
+        end do
+     end do
+
+     do l=0,lmax
+        do iocc=1,noccmax
+           if (occup(iocc,l+1).gt.0._gp) then
+              do j=0,ng
+                 do i=0,ng
+                    rho(i,j,l+1)=rho(i,j,l+1) + &
+                         psi(i,iocc,l+1)*psi(j,iocc,l+1)*occup(iocc,l+1)
+                 end do
+              end do
+           end if
+        end do
+
+       
+     end do
+
+
+     if( readytoexit) then
+
+        do igrid=1,Ngrid
+           r=rgrid(igrid)
+           rhogrid(igrid)=0.0_gp
+           do l=0, lmax
+              do iocc=1,noccmax
+                 if (occup(iocc,l+1).gt.0._gp) then
+                    dum=0.0_gp
+                    do j=0,ng
+                       dum=dum + psi(j,iocc,l+1)*exp(-r*r *   xp(j) )* r**(l+1)
+                    end do
+                    rhogrid(igrid)=rhogrid(igrid)+dum*dum*occup(iocc,l+1)
+                 end if
+              end do
+           enddo
+           dum = rhogrid(igrid)/r/r *0.07957747154594768_gp
+           vxcgrid(igrid)=emuxc(dum) 
+        enddo
+     endif
+  
+     rmix=.5_gp
+     if (it.eq.1) rmix=1._gp
+     do l=0,lmax
+        do j=0,ng
+           do i=0,ng
+              tt=rmix*rho(i,j,l+1) + (1._gp-rmix)*rhoold(i,j,l+1)
+              rho(i,j,l+1)=tt
+           end do
+        end do
+     end do
+
+! XC potential on grid
+!        do k=1,n_int
+!           xcgrd(k)=0._gp
+!        end do
+!        do l=0,lmax
+!           do j=0,ng
+!              do i=0,ng
+!                 do k=1,n_int
+!                    xcgrd(k)=xcgrd(k)+rmt(k,i,j,l+1)*rho(i,j,l+1)
+!                 end do
+!              end do
+!           end do
+!        end do
+     call DGEMV('N',n_int,(lcx+1)*(ng+1)**2,1._gp,&
+                rmt,n_int,rho,1,0._gp,xcgrd,1)
+
+    
+
+
+     dr=fact*rprb/real(n_int,gp)
+     do k=1,n_int
+        r=(real(k,gp)-.5_gp)*dr
+! divide by 4 pi
+        tt=xcgrd(k)*0.07957747154594768_gp
+! multiply with r^2 to speed up calculation of matrix elements
+        xcgrd(k)=emuxc(tt)*r**2
+     end do
+
+
+     if(readytoexit) then
+        
+        do igrid=1, Ngrid
+           r=rgrid(igrid)
+           potgrid(igrid) =0.5_gp*r*r  /    rprb**4*0 
+           potgrid(igrid) = potgrid(igrid) - zion/r * derf( r/alpz/sqrt(2.0)   )
+           rr = r/alpz
+           potgrid(igrid) = potgrid(igrid) + exp(-0.5_gp * rr**2 )*( gpot(1)+gpot(2)*rr**2 + gpot(3)*rr**4 )
+        enddo
+        ! poisson per potgrid
+        call integrate( rhogrid, dumgrid1, rgrid, Ngrid)
+        do igrid=1, Ngrid
+           potgrid(igrid)=potgrid(igrid)+dumgrid1(igrid)/rgrid(igrid)
+        enddo
+        
+        do igrid=1, Ngrid
+           dumgrid1(igrid) = rhogrid(igrid)/rgrid(igrid)
+        enddo
+        call integrate( dumgrid1, dumgrid2, rgrid, Ngrid)
+        do igrid=1, Ngrid
+           potgrid(igrid)=potgrid(igrid)-dumgrid2(igrid) + dumgrid2(Ngrid)
+        enddo
+     endif
+! ------------------------------------------------------------------------------------
+
+
+
+ 
+
+     loop_l: do l=0,lmax
+        gml=.5_gp*gamma(.5_gp+real(l,gp))
+
+!  lower triangles only
+        loop_i: do i=0,ng
+           loop_j: do j=0,i
+              d=xp(i)+xp(j)
+              sxp=1._gp/d
+              const=gml*sqrt(sxp)**(2*l+1)
+! overlap
+              ss(i,j)=const*sxp*(real(l,gp)+.5_gp)
+! kinetic energy
+              hh(i,j)=.5_gp*const*sxp**2* ( 3._gp*xp(i)*xp(j) +&
+                   real(l,gp)*(6._gp*xp(i)*xp(j)-xp(i)**2-xp(j)**2) -&
+                   real(l,gp)**2*(xp(i)-xp(j))**2  ) + .5_gp*real(l,gp)*(real(l,gp)+1._gp)*const
+! potential energy from parabolic potential
+              hh(i,j)=hh(i,j) +&
+                   .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4*0 
+! hartree potential from ionic core charge
+              tt=sqrt(1._gp+2._gp*alpz**2*d)
+              if (l.eq.0) then
+                 hh(i,j)=hh(i,j) -zion/(2._gp*d*tt)
+              else if (l.eq.1) then
+                 hh(i,j)=hh(i,j) -zion* &
+                      (1._gp + 3._gp*alpz**2*d)/(2._gp*d**2*tt**3)
+              else if (l.eq.2) then
+                 hh(i,j)=hh(i,j) -zion* &
+                      (2._gp + 10._gp*alpz**2*d + 15._gp*alpz**4*d**2)/(2._gp*d**3*tt**5)
+              else if (l.eq.3) then
+                 hh(i,j)=hh(i,j) -zion*3._gp* &
+                      (2._gp +14._gp*alpz**2*d +35._gp*alpz**4*d**2 +35._gp*alpz**6*d**3)/&
+                      (2._gp*d**4*tt**7)
+              else 
+                 stop 'l too big'
+              end if
+! potential from repulsive gauss potential
+              tt=alpl**2/(.5_gp+d*alpl**2)
+              if (1.eq.1) then
+              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
+                   + (gpot(2)/alpl**2)*.5_gp*gamma(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
+                   + (gpot(3)/alpl**4)*.5_gp*gamma(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))
+           endif
+! separable terms
+              if (1.eq.1 .and. l.le.lpx) then
+                 hh(i,j)=hh(i,j) + pp1(i,l+1)*hsep(1,l+1)*pp1(j,l+1)&
+                      + pp1(i,l+1)*hsep(2,l+1)*pp2(j,l+1)&
+                      + pp2(i,l+1)*hsep(2,l+1)*pp1(j,l+1)&
+                      + pp2(i,l+1)*hsep(3,l+1)*pp2(j,l+1)&
+                      + pp1(i,l+1)*hsep(4,l+1)*pp3(j,l+1)&
+                      + pp3(i,l+1)*hsep(4,l+1)*pp1(j,l+1)&
+                      + pp2(i,l+1)*hsep(5,l+1)*pp3(j,l+1)&
+                      + pp3(i,l+1)*hsep(5,l+1)*pp2(j,l+1)&
+                      + pp3(i,l+1)*hsep(6,l+1)*pp3(j,l+1)
+              end if
+! hartree potential from valence charge distribution
+!              tt=0._gp
+!              do lp=0,lcx
+!                 do jp=0,ng
+!                    do ip=0,ng
+!                       tt=tt + vh(ip,jp,lp+1,i,j,l+1)*rho(ip,jp,lp+1)
+!                    end do
+!                 end do
+!              end do
+              tt=DDOT((lcx+1)*(ng+1)**2,vh(0,0,1,i,j,l+1),1,rho(0,0,1),1)
+              hh(i,j)=hh(i,j) + tt
+! potential from XC potential
+              dr=fact*rprb/real(n_int,gp)
+!              tt=0._gp
+!              do k=1,n_int
+!                 tt=tt+xcgrd(k)*rmt(k,i,j,l+1)
+!              end do
+              tt=DDOT(n_int,rmt(1,i,j,l+1),1,xcgrd(1),1)
+              hh(i,j)=hh(i,j)+tt*dr
+           end do loop_j
+        end do loop_i
+
+! ESSL
+!        call DSYGV(1,hh,ng+1,ss,ng+1,eval,evec,ng+1,ng+1,aux,2*ng+2)
+! LAPACK
+        call DSYGV(1,'V','L',ng+1,hh,ng+1,ss,ng+1,eval,evec,(ng+1)**2,info)
+        if (info.ne.0) write(6,*) 'LAPACK',info
+        do iocc=0,noccmax-1
+           do i=0,ng
+              evec(i,iocc)=hh(i,iocc)
+           end do
+        end do
+! end LAPACK
+        do iocc=1,noccmax
+           evsum=evsum+eval(iocc-1)
+           aeval(iocc,l+1)=eval(iocc-1)
+           do i=0,ng
+              psi(i,iocc,l+1)=evec(i,iocc-1)
+           end do
+        end do
+!        write(6,*) 'eval',l
+!55      format(5(e14.7))
+!        write(6,55) eval 
+!        write(6,*) 'diff eval'
+!        write(6,55) (eval(i)-eval(i-1),i=1,ng)
+!        write(6,*) 'evec',l
+!33      format(10(e9.2))
+!        do i=0,ng
+!           write(6,33) (evec(i,iocc),iocc=0,noccmax-1)
+!        end do
+
+     end do loop_l
+
+     tt=abs(evsum-evsumold)
+     ! write(6,*) 'evdiff',it,tt, readytoexit
+     if (tt.lt.1.e-12_gp) then
+        if( readytoexit) then
+           exit big_loop
+        endif
+        readytoexit=.true.
+     end if
+  end do big_loop
+! End of the big loop
+
+
+
+
+  
+
+  if(.true.) then
+
+     if(.false.) then ! ricalcola la rho con le soluzioni radiali
+
+        do iter=1,50
+           
+           do igrid=1,Ngrid
+              rhogrid(igrid)=0.0_gp
+           enddo
+           do l=0, lmax
+              dumgrid3 = potgrid  +   0.5_gp*l *(l +1.0_gp)/rgrid/rgrid  + vxcgrid
+              
+              do igrid=1,Ngrid
+
+                 if(-1.0/rgrid(igrid)< potgrid(igrid)  ) dumgrid3(igrid)=&
+                      -1.0/rgrid(igrid)   +  &
+                      0.5_gp*l *(l +1.0_gp)/rgrid(igrid)/rgrid(igrid)  + vxcgrid(igrid)
+                 !!! if(rgrid(igrid)>8.0+iter/20) dumgrid3(igrid)=10.0
+              enddo
+              
+              dumgrid1(:)=0.0_gp
+              do iocc=1,noccmax
+                 if( occup(iocc,l+1)>0.0001 )  then
+                    call schro(Egrid(isol) , rgrid ,  dumgrid3 , dumgrid1, dumgrid2 , ngrid , iocc+l , l*1.0_gp ,  zion)
+                    print *, " risolto per " ,  iocc+l , l*1.0_gp , Egrid(isol) , aeval(iocc,l+1)
+                    do igrid=1,Ngrid
+                       dum=dumgrid2(igrid)
+                       rhogrid(igrid)=rhogrid(igrid)+dum*dum*occup(iocc,l+1)
+                    enddo
+                 endif
+              enddo
+           enddo
+
+
+           do igrid=1,Ngrid
+              r=rgrid(igrid)
+              dum = rhogrid(igrid)/r/r *0.07957747154594768_gp
+              vxcgrid(igrid)=0.8_gp*vxcgrid(igrid) +0.2_gp* emuxc(dum) 
+           enddo
+
+           do igrid=1, Ngrid
+              r=rgrid(igrid)
+              newpotgrid(igrid) =0.5_gp*r*r  /    rprb**4*0 
+              newpotgrid(igrid) = newpotgrid(igrid) - zion/r * derf( r/alpz/sqrt(2.0)   )
+              rr = r/alpz
+              newpotgrid(igrid) = newpotgrid(igrid) + exp(-0.5_gp * rr**2 )*( gpot(1)+gpot(2)*rr**2 + gpot(3)*rr**4 )
+           enddo
+           ! poisson per potgrid
+           call integrate( rhogrid, dumgrid1, rgrid, Ngrid)
+           do igrid=1, Ngrid
+              newpotgrid(igrid)=newpotgrid(igrid)+dumgrid1(igrid)/rgrid(igrid)
+           enddo
+
+           do igrid=1, Ngrid
+              dumgrid1(igrid) = rhogrid(igrid)/rgrid(igrid)
+           enddo
+           call integrate( dumgrid1, dumgrid2, rgrid, Ngrid)
+           do igrid=1, Ngrid
+              newpotgrid(igrid)=newpotgrid(igrid)-dumgrid2(igrid) + dumgrid2(Ngrid)
+           enddo
+
+           potgrid=0.8_gp*potgrid+0.2_gp*newpotgrid
+           print *, " " 
+        enddo
+     endif
+     
+     dumgrid1(:)=0.0_gp
+     open(unit=22,file='pot.dat')
+     do igrid=1, Ngrid
+        write(22,'(200(f20.10,1x))') rgrid(igrid),potgrid(igrid)+vxcgrid(igrid)
+     enddo
+     close(unit=22)
+     
+     print *, " provo eq diff "
+     do idiff=1,600
+        Ediff=idiff*0.04_gp/3.0 +0.0_gp
+        do igrid=Ngrid,1,-1
+           dumgrid2(igrid)=potgrid(igrid)+vxcgrid(igrid)
+           if(rgrid(igrid)>2.0_gp) then
+              Nrdiff = igrid;
+              Rdiff = rgrid(igrid)
+           endif
+        enddo
+        do l=0, 9
+           if(l>0) then
+              do igrid=1,Ngrid
+                 dumgrid2 (igrid)=dumgrid2 (igrid)+ 0.5_gp*(2.0_gp*l)/rgrid(igrid)/rgrid(igrid)
+              enddo
+           endif
+           d_r(l)=phase( Ediff, Nrdiff, rgrid,dumgrid2  , dumgrid1 , psigrid(1,2+l) , l*1.0_gp ,0,zion, 1)
+           y_r(l)= psigrid(Nrdiff,2+l)
+           
+        enddo
+        
+        dumgrid1 = 0.0_gp
+        dumgrid2 = potgrid + vxcgrid
+        call schro(Egrid(1) , rgrid , dumgrid2  , dumgrid1, psigrid(:,1) , ngrid , 1+0 , 0*1.0_gp ,  zion)
+        
+!!$        print *, " E bound ", Egrid(1)
+!!$        open(unit=22,file='bound.dat')
+!!$        do igrid=1, Ngrid
+!!$           write(22,'(200(f20.10,1x))') rgrid(igrid),  psigrid(igrid,1)
+!!$        enddo
+!!$        close(unit=22)
+        
+        dumgrid1(:) =  psigrid(:,2+1)* psigrid(:,1)*rgrid(:)
+        call integrate(dumgrid1(1),dumgrid3(1),rgrid(1) ,Nrdiff)
+        fattore = dumgrid3(Nrdiff)
+        dumgrid1(:)=0
+        
+        if(.true.) then
+           
+           nls_a=10
+           lpot_a=1
+           rpot_a = 6.0_gp
+           spot_a = 1.0_gp
+           hpot_a = 3.0_gp
+           Rinf_a=100.0_gp
+           nstesp_coarse=1000
+           nsteps_fine  = 4
+           
+           ref= esatto_CalcolaRiflettivita( ngrid, rgrid, dumgrid2, nls_a, lpot_a, rpot_a,spot_a,hpot_a,y_r,d_r,&
+                Rdiff,    Rinf_a ,nstesp_coarse ,nsteps_fine, Ediff )
+
+           print *," ",  Ediff, ref*fattore*fattore, fattore
+           
+
+!!$           do igrid=1,Ngrid
+!!$              dumgrid2 (igrid)=potgrid(igrid)+vxcgrid(igrid)+ 0.5_gp*(2.0_gp)/rgrid(igrid)/rgrid(igrid)
+!!$           enddo
+!!$           d_r(1)=phase( Ediff, Ngrid, rgrid,dumgrid2  , dumgrid1 , psigrid(1,2+1) , 1*1.0_gp ,0,zion, 1)
+!!$           y_r(1)= psigrid(Ngrid,2+1)
+!!$
+!!$           print *,"C2 ", Ediff, 4*fattore*fattore/(   y_r(1)*y_r(1) +  d_r(1)*d_r(1)/2.0/Ediff   )
+
+
+!!$           open(unit=22,file='libera.dat')
+!!$           do igrid=1, Ngrid
+!!$              write(22,'(200(f20.10,1x))') rgrid(igrid),  psigrid(igrid,2+1)
+!!$           enddo
+!!$           close(unit=22)
+!!$           stop
+
+
+        endif
+     enddo
+        
+     stop
+  endif
+
+
+
+  do igrid=1, ngrid
+     r=rgrid(igrid)
+     potgrid(igrid)=potgrid(igrid)+ 0.5_gp*labs*(labs+1.0_gp)/r/r
+  enddo
+  
+  dumgrid1(:)=0.0_gp
+  do isol=1,nsol
+
+     call schro(Egrid(isol) , rgrid ,  potgrid , dumgrid1, psigrid_naked(:,isol) , ngrid , isol+labs , labs*1.0_gp ,  zion)
+
+  enddo
+  
+
+  H(:,:)=0.0D0
+  do i=1,Nsol
+     H(i,i)=Egrid(i)
+     do iproj=1,3
+        do igrid=1,Ngrid
+           dumgrid1(igrid)=psigrid_naked(igrid,i)*projgrid(igrid,iproj)
+        enddo
+        call integrate(dumgrid1,dumgrid2,rgrid,Ngrid)
+        ppgrid(i,iproj)=dumgrid2(Ngrid)
+     enddo
+  enddo
+
+  do i=1,Nsol
+     do j=1, Nsol
+        if ( labs.le.lpx) then
+           H(i,j)=H(i,j)+ ppgrid(i,1)*hsep(1,labs+1)*ppgrid(j,1)&
+                + ppgrid(i,1)*hsep(2,labs+1)*ppgrid(j,2)&
+                + ppgrid(i,2)*hsep(2,labs+1)*ppgrid(j,1)&
+                + ppgrid(i,2)*hsep(3,labs+1)*ppgrid(j,2)&
+                + ppgrid(i,1)*hsep(4,labs+1)*ppgrid(j,3)&
+                + ppgrid(i,3)*hsep(4,labs+1)*ppgrid(j,1)&
+                + ppgrid(i,2)*hsep(5,labs+1)*ppgrid(j,3)&
+                + ppgrid(i,3)*hsep(5,labs+1)*ppgrid(j,2)&
+                + ppgrid(i,3)*hsep(6,labs+1)*ppgrid(j,3)
+        endif
+        do igrid=1,Ngrid
+           dumgrid1(igrid)=psigrid_naked(igrid,i)*psigrid_naked(igrid,j)*vxcgrid(igrid)
+        enddo
+        call integrate(dumgrid1,dumgrid2,rgrid,Ngrid)
+        H(i,j)=H(i,j)+dumgrid2(Ngrid)
+     enddo
+  enddo
+  
+
+
+
+  call DSYEV('V','U', Nsol, H, Nsol,Egrid , WORK, Nsol*Nsol*2, INFO)
+  
+  call  DGEMM('N','N',Ngrid ,Nsol,   Nsol,1.0d0 ,psigrid_naked, Ngrid ,H,Nsol, 0.0D0 , psigrid , Ngrid)
+
+  call resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,ng,res,&
+             zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
+             potgrd,xcgrd,noproj)
+
+
+
+
+
+! charge up to radius rcov
+  if (lmax.gt.3) stop 'cannot calculate chrg'
+  do l=0,lmax
+     do iocc=1,noccmax
+        chrg(iocc,l+1)=0._gp
+     end do
+  end do
+
+  do iocc=1,noccmax
+     do j=0,ng
+        do i=0,ng
+           d=xp(i)+xp(j)
+           sd=sqrt(d)
+           terf=derf(sd*rcov) 
+           texp=exp(-d*rcov**2)
+
+           tt=0.4431134627263791_gp*terf/sd**3 - 0.5_gp*rcov*texp/d
+           chrg(iocc,1)=chrg(iocc,1) + psi(i,iocc,1)*psi(j,iocc,1)*tt
+           if (lmax.eq.0) then
+              cycle
+           end if
+           tt=0.6646701940895686_gp*terf/sd**5 + &
+              (-0.75_gp*rcov*texp - 0.5_gp*d*rcov**3*texp)/d**2
+           chrg(iocc,2)=chrg(iocc,2) + psi(i,iocc,2)*psi(j,iocc,2)*tt
+           if (lmax.eq.1) then
+               cycle
+           end if
+           tt=1.661675485223921_gp*terf/sd**7 + &
+              (-1.875_gp*rcov*texp-1.25_gp*d*rcov**3*texp-.5_gp*d**2*rcov**5*texp) &
+              /d**3
+           chrg(iocc,3)=chrg(iocc,3) + psi(i,iocc,3)*psi(j,iocc,3)*tt
+           if (lmax.eq.2) then
+              cycle
+           end if
+           tt=5.815864198283725_gp*terf/sd**9 + &
+              (-6.5625_gp*rcov*texp - 4.375_gp*d*rcov**3*texp - &
+              1.75_gp*d**2*rcov**5*texp - .5_gp*d**3*rcov**7*texp)/d**4
+           chrg(iocc,4)=chrg(iocc,4) + psi(i,iocc,4)*psi(j,iocc,4)*tt
+        end do
+     end do
+  end do
+
+
+
+! ------------------------------------------------
+  
+
+
+! -----------------------------------------------
+
+
+
+
+! writing lines suppressed
+!!$        write(66,*)  lmax+1
+!!$        write(66,*) ' #LINETYPE{1324}' 
+!!$        write(66,*) ' $' 
+!!$  do l=0,lmax
+!!$           write(66,*) ' 161'
+!!$     r=0._gp
+!!$     do
+!!$        tt= wave(ng,l,xp,psi(0,1,l+1),r)
+!!$              write(66,*) r,tt
+!!$        r=r+.025_gp
+!!$        if(r > 4.00001_gp) exit
+!!$     end do
+!!$  end do
+! writing lines suppressed
+!!$        write(67,*) min(lmax+1,3)
+!!$        write(67,*) ' #LINETYPE{132}'
+!!$        write(67,*) ' #TITLE{FOURIER}' 
+!!$        write(67,*) ' $'
+  dr=6.28_gp/rprb/200._gp
+!!$        write(67,*) ' 200'
+  rk=0._gp
+  loop_rk1: do 
+     tt=0._gp
+     do i=0,ng
+        texp=exp(-.25_gp*rk**2/xp(i))
+!        texp=exp(-.5_gp*energy/xp(i))
+        sd=sqrt(xp(i))
+        tt=tt+psi(i,1,1)*0.4431134627263791_gp*texp/sd**3
+     end do
+!!$           write(67,*) rk,tt
+     rk=rk+dr
+     if(rk > 6.28_gp/rprb-.5_gp*dr) exit loop_rk1
+  end do loop_rk1
+  if (lmax.ge.1) then
+!!$           write(67,*) ' 200'
+     rk=0._gp
+     loop_rk2: do 
+        tt=0._gp
+        do i=0,ng
+           texp=exp(-.25_gp*rk**2/xp(i))
+           sd=sqrt(xp(i))
+           tt=tt+psi(i,1,2)*0.2215567313631895_gp*rk*texp/sd**5
+        end do
+!!$              write(67,*) rk,tt
+        rk=rk+dr
+        if (rk > 6.28_gp/rprb-.5_gp*dr) exit loop_rk2
+     end do loop_rk2
+  end if
+  if (lmax.ge.2) then
+!!$           write(67,*) ' 200'
+     rk=0._gp
+     do 
+        tt=0._gp
+        do i=0,ng
+           texp=exp(-.25_gp*rk**2/xp(i))
+           sd=sqrt(xp(i))
+           tt=tt+psi(i,1,3)*0.1107783656815948_gp*rk**2*texp/sd**7
+        end do
+!!$              write(67,*) rk,tt
+        rk=rk+dr
+        if (rk > 6.28_gp/rprb-.5_gp*dr) exit
+     end do
+  end if
+
+
+
+END SUBROUTINE gatom_modified_eqdiff
+
+
+
+
+
+
+subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc, iproc, dump_functions,abs_final_L, do_eqdiff)
 
   use module_base
   use module_types
   use module_interfaces
 
   implicit none
-  integer, parameter :: abs_final_L = 1
+  integer :: abs_final_L 
   integer, intent(in) :: in_iat_absorber, nproc, iproc, dump_functions
   type(gaussian_basis) , intent(out) :: Gabsorber
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  real(wp), dimension(2*abs_final_L+1), intent(out) :: Gabs_coeffs
-  
+  !! real(wp), dimension(2*abs_final_L+1), intent(out) :: Gabs_coeffs
+  logical do_eqdiff
   ! -----------------------------------------------------------
   
 
@@ -1650,21 +2570,26 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   real(gp), pointer :: Egrid(:) ,  rgrid(:) , psigrid (:,:) , Egrid_pseudo(:) ,  psigrid_pseudo (:,:) 
   integer i_stat
   character(len=*), parameter :: subname='GetExcitedOrbitalAsG'
-
+  real(gp) rzero
 
   ! if (in_iat_absorber.ne.0) then
 
   ity = atoms%iatype(in_iat_absorber)
-  ng  = 30
+  ng  = 60
   noccmax = 5 
   lmax=3
   
   ng_fine= 200
   
-  Nsol=50
-  Ngrid=10000
+  Nsol=200
+  Ngrid=30000
   
-  cradius=4.0
+
+  if(do_eqdiff) then
+     cradius=30.0 !!!!!!!! ATTENZIONE
+  else
+     cradius=5.0 !!!!!!!! ATTENZIONE
+  endif
   
 
   
@@ -1705,23 +2630,69 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   allocate(psi1s( Ngrid +ndebug ), stat=i_stat)
   call memocc(i_stat,psi1s,'psi1s',subname)
    
+!!$  do igrid=1, Ngrid
+!!$     rgrid(igrid) = igrid*1.0_gp/Ngrid * cradius
+!!$  enddo
+
+  rzero = 1.0_gp/Ngrid * cradius 
   do igrid=1, Ngrid
-     rgrid(igrid) = igrid*1.0_gp/Ngrid * cradius
+     rgrid(igrid) = rzero*  exp( igrid*   1.0_gp/Ngrid * log( cradius/rzero ))
   enddo
   
   
 
   abs_initial_L = 0
   
- 
+!!$ 
+!!$  
+!!$
+!!$
+!!$  if(iproc.eq.0)   print * , " routine GetExcitedOrbitalAsG  , calculate pseudo  noccmax, lmax, per verificare  grid  ", noccmax, lmax 
+!!$  psp_modifier=0
+!!$  call abs_generator_modified(iproc,atoms%nzatom(ity), atoms%nelpsp(ity),atoms%psppar(0,0,ity),&
+!!$       atoms%npspcode(ity),ng-1 ,noccmax , lmax , expo,psi,aeval, occup , psp_modifier , &
+!!$       Nsol, abs_initial_L , Ngrid,Egrid_pseudo,  rgrid , psigrid_pseudo  )
+!!$
+!!$
+!!$
+!!$  if(iproc.eq.0) then
+!!$     do iocc=1,2
+!!$        print *, " pseudo  Egau, pseudo  Egrid ", aeval(iocc, abs_initial_L+1  ), Egrid_pseudo(iocc)
+!!$     enddo
+!!$  endif
+!!$
+
+
+
+  if(do_eqdiff) then
+     if(iproc.eq.0)   print * , " routine GetExcitedOrbitalAsG  risolvendo equazione differenziale "
+     psp_modifier=-1
+     call abs_generator_modified(iproc,atoms%nzatom(ity), atoms%nelpsp(ity),atoms%psppar(0,0,ity),&
+          atoms%npspcode(ity),ng-1 ,noccmax , lmax , expo,psi,aeval, occup , psp_modifier , &
+          Nsol, abs_final_L , Ngrid,Egrid_pseudo,  rgrid , psigrid_pseudo  )
+     stop
+  endif
   
-  if(iproc.eq.0)   print * , " routine GetExcitedOrbitalAsG  , calculate pseudo " 
+
+
+  if(iproc.eq.0)   print * , " routine GetExcitedOrbitalAsG  , calculate pseudo  noccmax, lmax, ", noccmax, lmax 
   psp_modifier=0
   call abs_generator_modified(iproc,atoms%nzatom(ity), atoms%nelpsp(ity),atoms%psppar(0,0,ity),&
        atoms%npspcode(ity),ng-1 ,noccmax , lmax , expo,psi,aeval, occup , psp_modifier , &
        Nsol, abs_final_L , Ngrid,Egrid_pseudo,  rgrid , psigrid_pseudo  )
 
-  
+
+
+  if(iproc.eq.0) then
+     do iocc=1,2
+        print *, " pseudo  Egau, pseudo  Egrid ", aeval(iocc, abs_final_L+1  ), Egrid_pseudo(iocc)
+     enddo
+  endif
+
+
+
+   if(iproc.eq.0)   print * , " uscito routine GetExcitedOrbitalAsG  , calculate pseudo " 
+ 
 
   if(iproc.eq.0 .and. dump_functions.eq.1) then
      if(psp_modifier.eq.0) then
@@ -1752,12 +2723,19 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   !! retrieve 1 s *r 
 
   
-  do igrid=1,Ngrid
-     psi1s(igrid) =   psigrid(igrid,1)  *rgrid(igrid)
-  enddo
+     do igrid=1,Ngrid
+        psi1s(igrid) =   psigrid(igrid,1)  *rgrid(igrid)
+     enddo
+
+  if(iproc.eq.0 .and. dump_functions.eq.1) then
+     open(unit=22,file='numerov0.dat')
+     do igrid=1, Ngrid
+        write(22,'(200(f20.10,1x))') rgrid(igrid), (psigrid(igrid,j ), j=1,Nsol)   
+     enddo
+     close(unit=22)
+  endif
 
 
- 
   if(iproc.eq.0) print * , " routine GetExcitedOrbitalAsG  , calculate  atom with  real-pot " 
   
   psp_modifier=1
@@ -1766,6 +2744,13 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
        Nsol, abs_final_L , Ngrid,Egrid,  rgrid , psigrid  )
 
   
+  if(iproc.eq.0) then
+     do iocc=1,3
+        print *, " real Egau, real Egrid ", aeval(iocc, abs_final_L+1), Egrid(iocc)
+     enddo
+  endif
+     
+
 
   if(iproc.eq.0 .and. dump_functions.eq.1) then
      open(unit=22,file='numerov.dat')
@@ -1839,22 +2824,21 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   
   ! ----------------- Gabsorber --------------------------------------------------------
   Gabsorber%nat = 1
-  allocate(Gabsorber%rxyz(3,Gabsorber%nat  ))
+  allocate(Gabsorber%rxyz(3,Gabsorber%nat),stat=i_stat)
+  call memocc(i_stat,Gabsorber%rxyz ,'Gabsorber%rxyz',subname)
+
   allocate(Gabsorber%nshell(Gabsorber%nat ),stat=i_stat)
+  call memocc(i_stat,Gabsorber%nshell,'Gabsorber%nshell',subname)
 
   Gabsorber%rxyz(:,1) = rxyz(:,in_iat_absorber )
+
 
   Gabsorber%nshell(1)=1
   Gabsorber%nshltot  =1
 
   allocate(Gabsorber%ndoc(1),stat=i_stat)
-  allocate(Gabsorber%nam (1),stat=i_stat)
-
-
-  call memocc(i_stat,Gabsorber%rxyz ,'Gabsorber%rxyz',subname)
   call memocc(i_stat,Gabsorber%nshell,'Gabsorber%nshell',subname)
-
-  call memocc(i_stat,Gabsorber%ndoc,'Gabsorber%ndoc',subname)
+  allocate(Gabsorber%nam (1),stat=i_stat)
   call memocc(i_stat,Gabsorber%nam,'Gabsorber%nam',subname)
 
   Gabsorber%nexpo=0
@@ -1867,9 +2851,9 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   Gabsorber%ncoeff        =  Gabsorber%ncoeff+2* abs_final_l + 1
 
   allocate(Gabsorber%psiat(Gabsorber%nexpo),stat=i_stat)
-  allocate(Gabsorber%xp(Gabsorber%nexpo),stat=i_stat)
-
   call memocc(i_stat,Gabsorber%psiat , 'Gabsorber%psiat',subname)
+
+  allocate(Gabsorber%xp(Gabsorber%nexpo),stat=i_stat)
   call memocc(i_stat,Gabsorber%xp    , 'Gabsorber%xp',subname)
 
   iexpo=0
@@ -1879,14 +2863,10 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
      Gabsorber%xp(iexpo)=expo_fine(ig)
   end do
 
-  print *,'expo',shape(expo),ng_fine,expo(:)
+  ! print *,'expo',shape(expo),ng_fine,expo(:)
 
   ! -------------------------------------------------------------------------
 
-  !fill the polarisation, hard coded for the moment
-  Gabs_coeffs(1)=0.0_wp
-  Gabs_coeffs(2)=0.0_wp
-  Gabs_coeffs(3)=1.0_wp
 
   i_all=-product(shape(psigrid_pseudo))*kind(psigrid_pseudo)
   deallocate(psigrid_pseudo,stat=i_stat)

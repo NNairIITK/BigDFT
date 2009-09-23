@@ -50,6 +50,8 @@ subroutine comb_grow_tree(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
   integer :: ibzxx(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
   integer :: ibxxyy(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
+  integer :: m1,m2,m3,nt
+
   m1=nfu1-nfl1
   m2=nfu2-nfl2
   m3=nfu3-nfl3

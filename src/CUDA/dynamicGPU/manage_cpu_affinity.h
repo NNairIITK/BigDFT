@@ -48,12 +48,18 @@ public:
   
 
   //set the calling process affinity to a processor that we have to connect to gpu_to_atach GPU
-  void set_affinity(int cpu_aff) const;
+  void set_affinity(int cpu_aff) ;
+
+
+  void print_affinity_matrix() const;
+
 
 private:
 
   std::list<gpu_cpus_connexion> connexions;
 
+
+  std::vector<int> affinity_matrix; //store afinity
   int iproc;
 };
 

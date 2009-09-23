@@ -90,12 +90,12 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
         !stop
      end if
      if (GPUconv) then
-        if (iproc ==0)then
+!        if (iproc ==0)then
            write(*,*)&
                 '          The code should be stopped for a GPU calculation     '
            write(*,*)&
                 '          since density is not initialised to 10^-20               '
-        end if
+!        end if
         stop
      end if
   end if
@@ -316,12 +316,12 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
   end if
 
   if (nspin /= 1) then
-     if (iproc==0) then
+!     if (iproc==0) then
         write(*,'(1x,a)')&
              'Gaussian importing is possible only for non-spin polarised calculations'
         write(*,'(1x,a)')&
              'The writing rules of CP2K files for spin-polarised orbitals are not implemented'
-     end if
+!     end if
      stop
   end if
 
@@ -481,12 +481,8 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
        orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
 
   !allocate communications arrays for inputguess orbitals
-  call allocate_comms(nproc,commse,subname)
+  !call allocate_comms(nproc,orbse,commse,subname)
   call orbitals_communicators(iproc,nproc,Glr,orbse,commse)  
-
-  i_all=-product(shape(orbse%norb_par))*kind(orbse%norb_par)
-  deallocate(orbse%norb_par,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%norb_par',subname)
 
   hxh=.5_gp*hx
   hyh=.5_gp*hy
@@ -730,39 +726,10 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 
 
   if (nvirt == 0) then
-     i_all=-product(shape(orbsv%occup))*kind(orbsv%occup)
-     deallocate(orbsv%occup,stat=i_stat)
-     call memocc(i_stat,i_all,'orbsv%occup',subname)
-     i_all=-product(shape(orbsv%spinsgn))*kind(orbsv%spinsgn)
-     deallocate(orbsv%spinsgn,stat=i_stat)
-     call memocc(i_stat,i_all,'orbsv%spinsgn',subname)
-     i_all=-product(shape(orbsv%kpts))*kind(orbsv%kpts)
-     deallocate(orbsv%kpts,stat=i_stat)
-     call memocc(i_stat,i_all,'orbsv%kpts',subname)
-     i_all=-product(shape(orbsv%kwgts))*kind(orbsv%kwgts)
-     deallocate(orbsv%kwgts,stat=i_stat)
-     call memocc(i_stat,i_all,'orbsv%kwgts',subname)
-     i_all=-product(shape(orbsv%iokpt))*kind(orbsv%iokpt)
-     deallocate(orbsv%iokpt,stat=i_stat)
-     call memocc(i_stat,i_all,'orbsv%iokpt',subname)
+     call deallocate_orbs(orbsv,subname)
   end if
 
-  i_all=-product(shape(orbse%occup))*kind(orbse%occup)
-  deallocate(orbse%occup,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%occup',subname)
-  i_all=-product(shape(orbse%spinsgn))*kind(orbse%spinsgn)
-  deallocate(orbse%spinsgn,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%spinsgn',subname)
-  i_all=-product(shape(orbse%kpts))*kind(orbse%kpts)
-  deallocate(orbse%kpts,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%kpts',subname)
-  i_all=-product(shape(orbse%kwgts))*kind(orbse%kwgts)
-  deallocate(orbse%kwgts,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%kwgts',subname)
-  i_all=-product(shape(orbse%iokpt))*kind(orbse%iokpt)
-  deallocate(orbse%iokpt,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%iokpt',subname)
-
+  call deallocate_orbs(orbse,subname)
      
 end subroutine input_wf_diag
 

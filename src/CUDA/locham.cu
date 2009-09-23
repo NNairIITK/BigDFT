@@ -6,11 +6,14 @@
 **
 ** SOURCE
 */
-  
+#include "check_cuda.h"  
 #include <stdio.h>
 #include <cublas.h>
 #include "commonDef.h"
 #include "GPUparameters.h"
+
+
+
 
 //#include "locpot.h"  //for mf1d and magicfilterpot fcts
 //#include "anasyn.h" //wavana1d wavsyn1d
@@ -81,7 +84,7 @@ double do_blasDot<double>(int size, double *tab1, double *tab2)
 	    printf("CUBLAS_STATUS_EXECUTION_FAILED\n");
 	    }*/
 
-  //  cudaThreadSynchronize();
+    cudaThreadSynchronize();
   return ret;
 }
 
@@ -95,14 +98,16 @@ template<>
 void do_blasAxpy<float>(int size, float alpha,float *x, float *y)
 {
   cublasSaxpy(size,alpha,x,1,y,1); 
-  //cudaThreadSynchronize();
+  check_cuda_error<cuda_error>();
+  cudaThreadSynchronize();
 }
 
 template<>
 void do_blasAxpy<double>(int size, double alpha,double *x, double *y)
 {
   cublasDaxpy(size,alpha,x,1,y,1); 
-  //cudaThreadSynchronize();
+  check_cuda_error<cuda_error>();
+  cudaThreadSynchronize();
 }
 
 
@@ -116,14 +121,16 @@ template<>
 void do_blasScal<float>(int size, float alpha,float *x)
 {
   cublasSscal(size,alpha,x,1); 
-  //cudaThreadSynchronize();
+  check_cuda_error<cuda_error>();
+  cudaThreadSynchronize();
 }
 
 template<>
 void do_blasScal<double>(int size, double alpha,double *x)
 {
   cublasDscal(size,alpha,x,1); 
-  //cudaThreadSynchronize();
+  check_cuda_error<cuda_error>();
+  cudaThreadSynchronize();
 }
 
 
@@ -140,12 +147,17 @@ int copygpuprecondparameters(T hx, T hy,T hz)
   GPUprecondparameters<T>(CPUscal,hx,hy,hz);
 
   //send them to constant memory, once and for all
-  if(cudaMemcpyToSymbol(*GPUscal,&CPUscal, 8*sizeof(T)) != 0)
+  /*  if(cudaMemcpyToSymbol(*GPUscal,&CPUscal, 8*sizeof(T)) != 0)
     {
       printf("MemcpyToSymbol error\n");
   
       return 1;
-    }
+      }*/
+
+
+  check<cuda_error>(cudaMemcpyToSymbol(*GPUscal,&CPUscal, 8*sizeof(T)) != 0,"MemcpyToSymbol");
+
+
   return 0;
 }
 
@@ -178,12 +190,15 @@ int copygpulochamparameters(int n1,int n2, int n3)
   GPUParameters<T>(&parCPU[8],&num_halfwarpsMFx,2*n1,4*n2*n3,1,LOWFILMF,LUPFILMF,&linecutsMFx,&numBlocksMFx);
 
   //send them to constant memory, once and for all
-  if(cudaMemcpyToSymbol(*par,&parCPU, 9*sizeof(parGPU_t)) != 0)
+  /*  if(cudaMemcpyToSymbol(*par,&parCPU, 9*sizeof(parGPU_t)) != 0)
     {
       printf("MemcpyToSymbol error\n");
 
       return 1;
-    }
+      }*/
+
+  check<cuda_error>(cudaMemcpyToSymbol(*par,&parCPU, 9*sizeof(parGPU_t)) != 0,"cudaMemcpyToSymbol");
+
   return 0;
 }
 
@@ -193,13 +208,15 @@ void creategpuparameters_(int *n1,int *n2, int *n3,
 {
 
   
-  if(copygpulochamparameters<double>(*n1+1,*n2+1,*n3+1)!= 0) 
+  /*  if(copygpulochamparameters<double>(*n1+1,*n2+1,*n3+1)!= 0) 
     {
       printf("ERROR: GPU creategpuparameters\n ");
       return;
-    } 
+      } */
 
 
+
+  check<cuda_error>(copygpulochamparameters<double>(*n1+1,*n2+1,*n3+1) != 0,"GPU creategpuparameters");
   /*
   if(copygpuprecondparameters<double>(*hx, *hy, *hz)!= 0) 
     {
@@ -221,12 +238,15 @@ int waveletstosf(int n1,int n2, int n3,
 
   //wavelet synthesis
   waveletsynthesis<T> <<< gridWT3, threadsWT3 >>>(n3,4*n1*n2,in,out,0);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
   
   waveletsynthesis<T> <<< gridWT2, threadsWT2 >>>(n2,4*n1*n3,out,in,1);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
   waveletsynthesis<T> <<< gridWT1, threadsWT1 >>>(n1,4*n2*n3,in,out,2);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
   return 0;
@@ -241,12 +261,15 @@ int sftowavelets(int n1,int n2, int n3,
 
   //wavelet analysis
   waveletanalysis<T> <<< gridWT3, threadsWT3 >>>(n3,4*n1*n2,in,out,0);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
   waveletanalysis<T> <<< gridWT2, threadsWT2 >>>(n2,4*n1*n3,out,in,1);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
   waveletanalysis<T> <<< gridWT1, threadsWT1 >>>(n1,4*n2*n3,in,out,2);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
   return 0;
@@ -263,22 +286,28 @@ int potentialapplication(int n1,int n2, int n3,
 
   //calculate the MF transformation
   magicfilter1d<T> <<< gridMF3, threadsMF3 >>>(2*n3,4*n1*n2,psi,work,6);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
   magicfilter1d<T> <<< gridMF2, threadsMF2 >>>(2*n2,4*n1*n3,work,out,7);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
   magicfilter1d_pot<T> <<< gridMF1, threadsMF1 >>>(2*n1,4*n2*n3,out,pot,work,8);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
   //reverse MF calculation
   magicfilter1d_t<T> <<< gridMF3, threadsMF3 >>>(2*n3,4*n1*n2,work,out,6);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
   magicfilter1d_t<T> <<< gridMF2, threadsMF2 >>>(2*n2,4*n1*n3,out,work,7);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
   magicfilter1d_t<T> <<< gridMF1, threadsMF1 >>>(2*n1,4*n2*n3,work,out,8);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
   //calculate potential energy
@@ -299,14 +328,17 @@ int kineticapplication(int n1,int n2, int n3,
   //define the scale factor to be applied to the convolution
   T scale=0.5/(h3*h3);
   kinetic1d<T> <<< gridK3, threadsK3 >>>(2*n3,4*n1*n2,scale,psi,work,vpsi,out,3);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
   scale=0.5/(h2*h2);
   kinetic1d<T> <<< gridK2, threadsK2 >>>(2*n2,4*n1*n3,scale,work,psi,out,vpsi,4);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
   scale=0.5/(h1*h1);
   kinetic1d<T> <<< gridK1, threadsK1 >>>(2*n1,4*n2*n3,scale,psi,work,vpsi,out,5);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
   //calculate potential+kinetic energy
@@ -451,6 +483,7 @@ int fulllocalhamiltonian(int n1,int n2, int n3,
   cudaThreadSynchronize();
 
   uncompresscoarsefine<T> <<< gridC, threadsC >>>(n1,n2,n3,psiw,psi,keys);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
   
   //start the hamiltonian calculation
@@ -482,6 +515,7 @@ int fulllocalhamiltonian(int n1,int n2, int n3,
 
   //recompress
   compresscoarsefine<T> <<< gridC, threadsC >>>(n1,n2,n3,out,hpsiw,keys);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
   return 0;
@@ -547,6 +581,7 @@ int localhamiltonian(int n1,int n2, int n3,
 
   //recompress and put the output in the psi array
   compresscoarsefine<T> <<< gridC, threadsC >>>(n1,n2,n3,work1,psi,keys);
+  check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
   return 0;
@@ -564,6 +599,7 @@ void gpuhamilt_(int *n1,int *n2, int *n3,
 {
 
   
+
   if(completelocalhamiltonian<double>(*n1+1,*n2+1,*n3+1,
 				      *h1,*h2,*h3,
 				      *psi,*out,*pot,*work,*work2,

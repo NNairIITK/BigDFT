@@ -46,7 +46,9 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
 end subroutine restart_from_gaussians
 !!***
 
-subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
+
+
+subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fillrxyz)
   use module_base
   use module_types
   implicit none
@@ -54,18 +56,32 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(inout) :: orbs
   type(gaussian_basis), intent(out) :: G
-  real(wp), dimension(:,:), pointer :: coeffs
+  real(wp), dimension(:,:),   pointer :: coeffs
+  logical , optional :: opt_fillrxyz
   !local variables
   character(len=*), parameter :: subname='read_gaussian_information'
   logical :: exists
   integer :: jproc,i_stat,i_all,ierr,jexpo,iexpo,iat,iorb,jat,icoeff,jcoeff,jorb,j
   real(gp) :: rx,ry,rz
   real(gp), dimension(4) :: coeff
+  logical fillrxyz
+
+
+  if (present(opt_fillrxyz)) then
+     fillrxyz=opt_fillrxyz
+  else
+     fillrxyz=.false.
+  endif
+  
+        
+
+  print *," leggo " , filename
 
   !read the information from a file
   inquire(file=filename,exist=exists)
   if (.not. exists) then
-     if (iproc == 0) write(*,'(1x,3a)')&
+     !if (iproc == 0) 
+           write(*,'(1x,3a)')&
           'ERROR: The gaussian wavefunctions file "',trim(filename),'" is lacking, exiting...'
      stop
   end if
@@ -73,6 +89,9 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   open(unit=99,file=filename,status='unknown')
   read(99,*)G%nat,G%nshltot,G%nexpo,G%ncoeff
   
+
+
+
   allocate(G%nshell(G%nat+ndebug),stat=i_stat)
   call memocc(i_stat,G%nshell,'G%nshell',subname)
   allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
@@ -86,10 +105,23 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
 
   allocate(coeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,coeffs,'coeffs',subname)
+  
 
-  do iat=1,G%nat
-     read(99,*)jat,rx,ry,rz,G%nshell(iat)
-  end do
+
+  if(fillrxyz) then
+
+     allocate(G%rxyz (3,G%nat+ndebug),stat=i_stat)
+     call memocc(i_stat,coeffs,'coeffs',subname)
+     do iat=1,G%nat
+        read(99,*)jat,G%rxyz(1, iat),G%rxyz(2, iat),G%rxyz(3, iat)  ,G%nshell(iat)
+     end do
+  else
+     do iat=1,G%nat
+        read(99,*)jat,rx,ry ,ry  ,G%nshell(iat)
+     end do
+  endif
+
+
   read(99,*)G%ndoc,G%nam
   do iexpo=1,G%nexpo
      read(99,*)jexpo,G%xp(jexpo),G%psiat(jexpo)
@@ -1376,12 +1408,16 @@ subroutine lsh_rotation(l,theta,phi,coeffs)
 end subroutine lsh_rotation
 
 
-! calculate the scalar product between a sum of gaussians times polynomials and a wavefunction
-! \int dx dy dz 
-!           \sum_i=1..ntp fac_arr(i) {
-!                \sum_j=1..nterm psiat(j) [exp(-r^2/(2*(xp(j)^2)))] 
-!                    *((x-rx)^lx(i) *(y-ry)^ly(i) * (z-rz)^lz(i) ))} psi(x,y,z)
-! expressed in Daubechies Basis in the arrays psi_c, psi_f
+!!****f* BigDFT/wavetogau
+!! FUNCTION
+!!   Calculate the scalar product between a sum of gaussians times polynomials and a wavefunction
+!!   \int dx dy dz 
+!!             \sum_i=1..ntp fac_arr(i) {
+!!                  \sum_j=1..nterm psiat(j) [exp(-r^2/(2*(xp(j)^2)))] 
+!!                      *((x-rx)^lx(i) *(y-ry)^ly(i) * (z-rz)^lz(i) ))} psi(x,y,z)
+!!   Expressed in Daubechies Basis in the arrays psi_c, psi_f
+!! SOURCE
+!!
 subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hx,hy,hz, & 
      nseg_c,mvctr_c,keyg_c,keyv_c,nseg_f,mvctr_f,keyg_f,keyv_f,psi_c,psi_f,overlap)
   use module_base
@@ -1506,6 +1542,8 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
   call memocc(i_stat,i_all,'wprojz',subname)
 
 end subroutine wavetogau
+!!***
+
 
 !coefficients of the rotation matrix
 subroutine rotation_matrix(l,t,p,hrot)

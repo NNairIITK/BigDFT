@@ -2,7 +2,7 @@
 !! FUNCTION
 !!    Display the logo of BigDFT 
 !! COPYRIGHT
-!!    Copyright (C) 2007-2008 BigDFT group 
+!!    Copyright (C) 2007-2009 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -67,6 +67,7 @@ subroutine dft_input_variables(iproc,filename,in)
   !local variables
   character(len=7) :: cudagpu
   character(len=100) :: line
+  logical :: exists
   integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
 
   ! Read the input variables.
@@ -84,14 +85,8 @@ subroutine dft_input_variables(iproc,filename,in)
   read(1,*,iostat=ierror) in%ixc
   call check()
   !charged system, electric field (intensity and start-end points)
-  read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%ncharge,in%ef(1)
-  if (ierror == 0 .and. in%ef(1) /= 0.0_gp) then
-     read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
-  else
-     in%ef(2)=0.0_gp
-     in%ef(3)=0.0_gp
-  end if
+  call check()
+  read(1,*,iostat=ierror)  in%ncharge,in%elecfield
   call check()
   read(1,*,iostat=ierror) in%nspin,in%mpol
   call check()
@@ -116,10 +111,12 @@ subroutine dft_input_variables(iproc,filename,in)
         call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
      end if
 
-     call MPI_BARRIER(MPI_COMM_WORLD,ierror)
+   
     ! GPUshare=.true.
      if (iconv == 1) then
         !change the value of the GPU convolution flag defined in the module_base
+       
+
         GPUconv=.true.
      end if
      if (iblas == 1) then
@@ -146,9 +143,25 @@ subroutine dft_input_variables(iproc,filename,in)
   read(1,*,iostat=ierror) in%nvirt,in%nplot
   call check()
 
-  !x-adsorber treatment (in progress)
-  read(1,*,iostat=ierror)  in%iat_absorber
+  !x-absorber treatment
+  read(1,*,iostat=ierror) in%iat_absorber
   call check()
+
+
+  !read absorption-calculation input variables
+  !inquire for the needed file 
+  !if not present, set default ( no absorption calculation)
+  if (in%iat_absorber /= 0) then
+     inquire(file="input.abscalc",exist=exists)
+     if (.not. exists) then
+        if (iproc == 0) write(*,*)'ERROR: nedd file input.abscalc for x-ray absorber treatment.'
+        stop
+     end if
+     call abscalc_input_variables(iproc,'input.abscalc',in)
+  else
+     call abscalc_input_variables_default(in)
+  end if
+
 
   !electrostatic treatment of the vacancy (experimental)
   read(1,*,iostat=ierror)  in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
@@ -162,9 +175,9 @@ subroutine dft_input_variables(iproc,filename,in)
   !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
   !systems, while in principle it should work immediately
   if (in%nspin/=1 .and. in%nvirt/=0) then
-     if (iproc==0) then
+     !if (iproc==0) then
         write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
-     end if
+     !end if
      stop
   end if
  
@@ -183,7 +196,8 @@ subroutine dft_input_variables(iproc,filename,in)
   else if (in%nspin==1) then
      if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation:  NO '
   else
-     if (iproc == 0) write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
+     !if (iproc == 0) 
+     write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
      stop
   end if
 
@@ -192,7 +206,8 @@ contains
   subroutine check()
     iline=iline+1
     if (ierror/=0) then
-       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+       !if (iproc == 0) 
+             write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
@@ -223,6 +238,7 @@ subroutine geopt_input_variables_default(in)
   nullify(in%qmass)
 
 end subroutine geopt_input_variables_default
+!!***
 
 
 !!****f* BigDFT/geopt_input_variables
@@ -336,7 +352,8 @@ contains
   subroutine check()
     iline=iline+1
     if (ierror/=0) then
-       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
@@ -358,6 +375,104 @@ subroutine free_input_variables(in)
   if (associated(in%qmass)) deallocate(in%qmass)
 end subroutine free_input_variables
 !!***
+
+!!****f* BigDFT/abscalc_input_variables_default
+!! FUNCTION
+!!    Assign default values for ABSCALC variables
+!! SOURCE
+!!
+subroutine abscalc_input_variables_default(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(out) :: in
+
+  !put some fake values for the geometry optimsation case
+  in%c_absorbtion=.false.
+
+end subroutine abscalc_input_variables_default
+
+
+!!****f* BigDFT/abscalc_input_variables
+!! FUNCTION
+!!    Read the input variables needed for the ABSCALC
+!!    Every argument should be considered as mandatory
+!! SOURCE
+!!
+subroutine abscalc_input_variables(iproc,filename,in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc
+
+
+  !local variables
+  integer :: ierror,iline, i
+
+  character(len=*), parameter :: subname='abscalc_input_variables'
+  integer :: i_stat
+
+
+  ! Read the input variables.
+  open(unit=111,file=filename,status='old')
+
+  !line number, to control the input values
+  iline=0
+
+
+  !x-adsorber treatment (in progress)
+
+  read(111,*,iostat=ierror)  in%iat_absorber, in%absorber_gnrm
+  call check()
+  read(111,*,iostat=ierror)  in%L_absorber
+  call check()
+
+  allocate(in%Gabs_coeffs(2*in%L_absorber +1),stat=i_stat)
+  call memocc(i_stat,in%Gabs_coeffs,'in%Gabs_coeff',subname)
+
+  read(111,*,iostat=ierror)  (in%Gabs_coeffs(i+ndebug), i=1,2*in%L_absorber +1 )
+  call check()
+  
+  read(111,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
+
+  if(ierror==0) then
+     
+  else
+     in%abscalc_alterpot=.false.
+     in%abscalc_eqdiff =.false.
+  endif
+
+
+  in%c_absorbtion=.true.
+
+  close(unit=111)
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  end subroutine check
+
+end subroutine abscalc_input_variables
+!!***
+
+
+
+
+
+
+
+
+
+
 
 !!****f* BigDFT/dft_input_converter
 !! FUNCTION
@@ -393,7 +508,7 @@ subroutine dft_input_converter(in)
 
   line=''
   line=' ncharge: charge of the system, Electric field'
-  write(1,'(i3,3(f6.3),a)') in%ncharge,in%ef(1),in%ef(2),in%ef(3),trim(line)
+  write(1,'(i3,3(f6.3),a)') in%ncharge,in%elecfield,trim(line)
 
   line=''
   line=' nspin=1 non-spin polarization, mpol=total magnetic moment'
@@ -490,22 +605,22 @@ subroutine read_input_variables(iproc,filename,in)
   read(line,*,iostat=ierrfrc) cudagpu
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
      call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-   !  iconv = 0
-   !  iblas = 0
      
-
-   !  call set_cpu_gpu_aff(iproc,iconv,iblas)
-   ! GPUshare=.false.
-  !   call init_gpu_sharing(initerror) !to fix the number of gpu and mpi tasks per node, we have to fil the inter_node.config file
      if (initerror == 1) then
-        stop
+
+        write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
+        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
+
+
+
+     
      end if
     ! GPUshare=.true.
-     if (iconv == 0) then
+     if (iconv == 1) then
         !change the value of the GPU convolution flag defined in the module_base
         GPUconv=.true.
      end if
-     if (iblas == 0) then
+     if (iblas == 1) then
         !change the value of the GPU convolution flag defined in the module_base
         GPUblas=.true.
      end if
@@ -536,21 +651,14 @@ subroutine read_input_variables(iproc,filename,in)
 
   read(1,*,iostat=ierror) in%ixc
   call check()
-  read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%ncharge,in%ef(1)
-  if (ierror == 0 .and. in%ef(1) /= 0.0_gp) then
-     read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
-  else
-     in%ef(2)=0.0_gp
-     in%ef(3)=0.0_gp
-  end if
+  read(1,*,iostat=ierror) in%elecfield
   call check()
   read(1,*,iostat=ierror) in%gnrm_cv
   call check()
   read(1,'(a100)')line
   read(line,*,iostat=ierror) in%itermax,in%nrepmax
   if (ierror == 0) then
-     !read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
+     !read(line,*,iostat=ierror) in%ncharge,in%elecfield
   else
      read(line,*,iostat=ierror)in%itermax
      in%nrepmax=10
@@ -613,9 +721,9 @@ subroutine read_input_variables(iproc,filename,in)
   !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
   !systems
   if (in%nspin/=1 .and. in%nvirt/=0) then
-     if (iproc==0) then
+     !if (iproc==0) then
         write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
-     end if
+     !end if
      stop
   end if
  
@@ -643,7 +751,8 @@ subroutine read_input_variables(iproc,filename,in)
      else if (in%nspin==1) then
         if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation:  NO '
      else
-        if (iproc == 0) write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
+        !if (iproc == 0) 
+        write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
         stop
      end if
 
@@ -652,7 +761,8 @@ contains
   subroutine check()
     iline=iline+1
     if (ierror/=0) then
-       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
@@ -687,7 +797,7 @@ subroutine print_input_parameters(in,atoms)
        'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
        '|  CG Steps=',in%ncongt
   write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
-       ' elec. field=',in%ef(1),'|                   ','| DIIS Hist. N.=',in%idsx
+       ' elec. field=',in%elecfield,'|                   ','| DIIS Hist. N.=',in%idsx
   if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
           'Polarisation=',2*in%mpol, '|'
@@ -1045,7 +1155,7 @@ subroutine check_atoms_positions(iproc,atoms,rxyz)
         write(*,'(1x,a)')' done.'
         write(*,'(1x,a)')' Replace ??? in the file heading with the actual atoms number'               
      end if
-     stop
+     stop 'check_atoms_positions'
   end if
 end subroutine check_atoms_positions
 !!***
@@ -1163,12 +1273,12 @@ subroutine parse_extra_info(iproc,iat,extra,atoms)
 contains
 
  subroutine error
-   if (iproc == 0) then
+   !if (iproc == 0) then
       print *,extra
       write(*,'(1x,a,i0,a)')&
            'ERROR in input file for atom number ',iat,&
            ': after 4th column you can put the input polarisation(s) or the frzchain: f,fxz,fy'
-   end if
+   !end if
    stop
  end subroutine error
   
@@ -1213,14 +1323,16 @@ subroutine read_atomic_ascii(iproc,ifile,atoms,rxyz)
      end if
      nlines = nlines + 1
      if (nlines > 5000) then
-        if (iproc==0) write(*,*) 'Atomic input file too long (> 5000 lines).'
+        !if (iproc==0) 
+        write(*,*) 'Atomic input file too long (> 5000 lines).'
         stop 
      end if
   end do
   nlines = nlines - 1
 
   if (nlines < 4) then
-     if (iproc==0) write(*,*) 'Error in ASCII file format, file has less than 4 lines.'
+     !if (iproc==0) 
+      write(*,*) 'Error in ASCII file format, file has less than 4 lines.'
      stop 
   end if
 
@@ -1256,7 +1368,7 @@ subroutine read_atomic_ascii(iproc,ifile,atoms,rxyz)
   allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%amu,'atoms%amu',subname)
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%natpol,'rxyz',subname)
+  call memocc(i_stat,rxyz,'rxyz',subname)
 
   !controls if the positions are provided with machine precision
   if (index(atoms%units, 'd0') > 0) then
@@ -1281,7 +1393,8 @@ subroutine read_atomic_ascii(iproc,ifile,atoms,rxyz)
      read(lines(2),*) alat1d0,alat2d0,alat3d0
      read(lines(3),*) alat4d0,alat5d0,alat6d0
      if (alat2d0 /= 0.d0 .or. alat4d0 /= 0.d0 .or. alat5d0 /= 0.d0) then
-        if (iproc==0) write(*,*) 'Only orthorombic boxes are possible.'
+        !if (iproc==0) 
+        write(*,*) 'Only orthorombic boxes are possible.'
         stop 
      end if
      atoms%alat1 = real(alat1d0,gp)
@@ -1291,8 +1404,10 @@ subroutine read_atomic_ascii(iproc,ifile,atoms,rxyz)
      read(lines(2),*) alat1,alat2,alat3
      read(lines(3),*) alat4,alat5,alat6
      if (alat2 /= 0. .or. alat4 /= 0. .or. alat5 /= 0.) then
-        if (iproc==0) write(*,*) 'Only orthorombic boxes are possible.'
-        if (iproc==0) write(*,*) ' but alat2, alat4 and alat5 = ', alat2, alat4, alat5
+        !if (iproc==0) 
+           write(*,*) 'Only orthorombic boxes are possible.'
+        !if (iproc==0) 
+           write(*,*) ' but alat2, alat4 and alat5 = ', alat2, alat4, alat5
         stop 
      end if
      atoms%alat1 = real(alat1,gp)
@@ -1473,7 +1588,7 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
-  open(unit=9,file=filename//'.xyz')
+  open(unit=9,file=trim(filename)//'.xyz')
   xmax=0.0_gp
   ymax=0.0_gp
   zmax=0.0_gp

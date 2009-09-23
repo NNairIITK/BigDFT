@@ -16,7 +16,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,i_all,i_stat,jproc
+  integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,i_all,i_stat,jproc,ikpts
 
   call read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,&
        norb,norbu,norbd,iunit)
@@ -29,9 +29,6 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
   !temporary changement, to be controlled
   !nspinor=2
-
-  allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
 
   call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
 
@@ -53,13 +50,12 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
   end if
 
-  allocate(orbs%occup(orbs%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%occup,'orbs%occup',subname)
-  allocate(orbs%spinsgn(orbs%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
 
-  call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
-       orbs%occup,orbs%spinsgn)
+  !assign to each k-point the same occupation number
+  do ikpts=1,orbs%nkpts
+     call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
+          orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn)
+  end do
 
 end subroutine system_properties
 !!***
@@ -123,7 +119,8 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
 
      inquire(file=filename,exist=exists)
      if (.not. exists) then
-        if (iproc == 0) write(*,'(1x,3a)')&
+        !if (iproc == 0) 
+            write(*,'(1x,3a)')&
              'ERROR: The pseudopotential parameter file "',trim(filename),&
              '" is lacking, exiting...'
         stop
@@ -176,10 +173,10 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
            end do
         end do prjloop
      else
-        if (iproc == 0) then
+        !if (iproc == 0) then
            write(*,'(1x,a,a)')trim(atoms%atomnames(ityp)),&
                 'unrecognized pspcode: only GTH, HGH & HGH-K pseudos (ABINIT format)'
-        end if
+        !end if
         stop
      end if
      !see whether the atom is semicore or not
@@ -197,14 +194,16 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
         if (atoms%iatype(iat) == ityp) then
            call charge_and_spol(atoms%natpol(iat),ichg,ispol)
            if (abs(ispol) > mxpl) then
-              if (iproc ==0) write(*,'(1x,a,i0,a,a,2(a,i0))')&
+              !if (iproc ==0) 
+                      write(*,'(1x,a,i0,a,a,2(a,i0))')&
                    'ERROR: Input polarisation of atom No.',iat,&
                    ' (',trim(atoms%atomnames(ityp)),') must be <=',mxpl,&
                    ', while found ',ispol
               stop
            end if
            if (abs(ichg) > mxchg) then
-              if (iproc ==0) write(*,'(1x,a,i0,a,a,2(a,i0))')&
+              !if (iproc ==0) 
+                   write(*,'(1x,a,i0,a,a,2(a,i0))')&
                    'ERROR: Input charge of atom No.',iat,&
                    ' (',trim(atoms%atomnames(ityp)),') must be <=',mxchg,&
                    ', while found ',ichg
@@ -408,24 +407,24 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
      end do
 
      if (in%nspin == 2 .and. ispinsum /= norbu-norbd) then
-        if (iproc==0) then 
+        !if (iproc==0) then 
            write(*,'(1x,a,i0,a)')&
                 'ERROR: Total input polarisation (found ',ispinsum,&
                 ') must be equal to norbu-norbd.'
            write(*,'(1x,3(a,i0))')&
                 'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
-        end if
+        !end if
         stop
      end if
 
      if (ichgsum /= in%ncharge .and. ichgsum /= 0) then
-        if (iproc==0) then 
+        !if (iproc==0) then 
            write(*,'(1x,a,i0,a)')&
                 'ERROR: Total input charge (found ',ichgsum,&
                 ') cannot be different than charge.'
            write(*,'(1x,2(a,i0))')&
                 'The charge is=',in%ncharge,' input charge=',ichgsum
-        end if
+        !end if
         stop
      end if
 
@@ -436,7 +435,8 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
         ispinsum=ispinsum+abs(ispol)
      end do
      if (ispinsum == 0 .and. in%nspin==2) then
-        if (iproc==0) write(*,'(1x,a)')&
+        !if (iproc==0) 
+            write(*,'(1x,a)')&
              'WARNING: Found no input polarisation, add it for a correct input guess'
         !stop
      end if
@@ -458,14 +458,16 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
         read(unit=iunit,fmt=*,iostat=ierror) ntu,ntd
      end if
      if (ierror /=0) then
-        if (iproc==0) write(*,'(1x,a)') &
+        !if (iproc==0) 
+          write(*,'(1x,a)') &
              'ERROR: reading the number of orbitals in the file "occup.dat"'
         stop
      end if
      !Check
      if (in%nspin==1) then
         if (nt<norb) then
-           if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
+           !if (iproc==0) 
+               write(*,'(1x,a,i0,a,i0)') &
                 'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
                 ' should be greater or equal than (nelec+1)/2=',norb
            stop
@@ -477,7 +479,8 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
      else
         nt=ntu+ntd
         if (nt<norb) then
-           if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
+           !if (iproc==0) 
+               write(*,'(1x,a,i0,a,i0)') &
                 'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
                 ' should be greater or equal than nelec=',norb
            stop
@@ -485,7 +488,8 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
            norb=nt
         end if
         if (ntu<norbu) then
-           if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
+           !if (iproc==0) 
+                write(*,'(1x,a,i0,a,i0)') &
                 'ERROR: In the file "occup.dat", the number of orbitals up norbu=',ntu,&
                 ' should be greater or equal than min(nelec/2+mpol,nelec)=',norbu
            stop
@@ -493,7 +497,8 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
            norbu=ntu
         end if
         if (ntd<norbd) then
-           if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
+           !if (iproc==0) 
+                  write(*,'(1x,a,i0,a,i0)') &
                 'ERROR: In the file "occup.dat", the number of orbitals down norbd=',ntd,&
                 ' should be greater or equal than min(nelec/2-mpol,0)=',norbd
            stop
@@ -525,11 +530,14 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   type(orbitals_data), intent(out) :: orbs
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb
+  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all
+  logical, dimension(:), allocatable :: GPU_for_orbs
 
+  allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
 
   !assign the value of the k-points
-  orbs%nkpts=1
+  orbs%nkpts=1!3
   !allocate vectors related to k-points
   allocate(orbs%kpts(3,orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
@@ -543,10 +551,27 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
      orbs%kwgts(ikpt)=1.0_gp
   end do
 
+!!$  orbs%kwgts(1)=0.2_gp
+!!$  orbs%kwgts(2)=0.5_gp
+!!$  orbs%kwgts(3)=0.3_gp
+
   !initialise the array
   do jproc=0,nproc-1
      orbs%norb_par(jproc)=0 !size 0 nproc-1
   end do
+
+
+  !create an array which indicate which processor has a GPU associated 
+  !from the viewpoint of the BLAS routines
+  allocate(GPU_for_orbs(0:nproc-1+ndebug),stat=i_stat)
+  call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
+
+  if (nproc > 1 .and. .not. GPUshare) then
+     call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
+          MPI_COMM_WORLD,ierr)
+  else
+     GPU_for_orbs(0)=GPUconv
+  end if
 
   !cubic-code strategy: balance the orbitals between processors
   !in the most symmetric way
@@ -554,6 +579,11 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
      jproc=mod(iorb-1,nproc)
      orbs%norb_par(jproc)=orbs%norb_par(jproc)+1
   end do
+
+  i_all=-product(shape(GPU_for_orbs))*kind(GPU_for_orbs)
+  deallocate(GPU_for_orbs,stat=i_stat)
+  call memocc(i_stat,i_all,'GPU_for_orbs',subname)
+
 
   !check the distribution
   norb_tot=0
@@ -580,21 +610,30 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
 
   allocate(orbs%iokpt(orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
+
   !assign the k-point to the given orbital, counting one orbital after each other
   jorb=0
   do ikpt=1,orbs%nkpts
      do iorb=1,orbs%norb
-        jorb=jorb+1
+        jorb=jorb+1 !this runs over norb*nkpts values
         if (jorb > orbs%isorb .and. jorb <= orbs%isorb+orbs%norbp) then
            orbs%iokpt(jorb-orbs%isorb)=ikpt
         end if
      end do
   end do
 
-  !assign the number of k-points per processor
-  !the strategy for multiple k-points should be decided
-  !orbs%nkpts_par(:)=1
-  
+  !allocate occupation number and spinsign
+  !fill them in normal way
+  allocate(orbs%occup(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%occup,'orbs%occup',subname)
+  allocate(orbs%spinsgn(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
+  orbs%occup(1:orbs%norb*orbs%nkpts)=1.0_gp 
+  orbs%spinsgn(1:orbs%norb*orbs%nkpts)=1.0_gp
+
+  !allocate the array which assign the k-point to processor in transposed version
+  allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
 
 end subroutine orbitals_descriptors
 !!***
@@ -661,16 +700,16 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
         else
            nt=nt+1
            if (iorb<0 .or. iorb>norb) then
-              if (iproc==0) then
+              !if (iproc==0) then
                  write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
                  write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
-              end if
+              !end if
               stop
            elseif (rocc<0._gp .or. rocc>2._gp) then
-              if (iproc==0) then
+              !if (iproc==0) then
                  write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
                  write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
-              end if
+              !end if
               stop
            else
               occup(iorb)=rocc
@@ -685,10 +724,10 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
      !Check if sum(occup)=nelec
      rocc=sum(occup)
      if (abs(rocc-real(nelec,gp))>1.e-6_gp) then
-        if (iproc==0) then
+        !if (iproc==0) then
            write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the total number of electrons ',rocc,&
                           ' is not equal to ',nelec
-        end if
+        !end if
         stop
      end if
      if (nspin/=1) then

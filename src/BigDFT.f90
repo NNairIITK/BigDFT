@@ -67,7 +67,9 @@ program BigDFT
      open(54,file="list_posinp")
      read(54,*) nconfig
      if (nconfig > 0) then 
+        !allocation not referenced since memocc count not initialised
         allocate(arr_posinp(1:nconfig))
+
         do iconfig=1,nconfig
            read(54,*) arr_posinp(iconfig)
         enddo
@@ -200,13 +202,15 @@ program BigDFT
      !finalize memory counting
      call memocc(0,0,'count','stop')
 
+     if (GPUshare .and. GPUconv) call stop_gpu_sharing()
+
   enddo !loop over iconfig
+
   deallocate(arr_posinp)
 
   call free_input_variables(inputs)
 
   call MPI_FINALIZE(ierr)
 
-  if (GPUshare) call stop_gpu_sharing()
 end program BigDFT
 !!***

@@ -324,7 +324,8 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
               jbas=1
               ishell=ishell+1
               if (ishell > nshell(iatype(iat))) then
-                 if (iproc==0) write(*,'(1x,a,i0,a)')&
+                 !if (iproc==0) 
+                    write(*,'(1x,a,i0,a)')&
                       'Problem in the gaucoeff.dat file, the number of shells of atom ',iat ,&
                       ' is incoherent'
                  stop
@@ -353,7 +354,8 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
            read(line,*)nst
            nend=nst+ipar-1
            if (jat/=nat) then
-              if (iproc==0)write(*,'(1x,a,i0,a)')&
+              !if (iproc==0)
+                    write(*,'(1x,a,i0,a)')&
                    'Problem in the gaucoeff.dat file, only ',iat ,' atoms processed'
               stop
            else
@@ -478,7 +480,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
            !control whether the basis element may be
            !contribute to some of the orbital of the processor
            maycalc=.false.
-           loop_calc: do iorb=1,orbs%norb
+           loop_calc: do iorb=1,orbs%norb*orbs%nkpts
               if (orbs%isorb < iorb .and. iorb <= orbs%isorb+orbs%norbp) then
                  jorb=iorb-orbs%isorb
                  do ispinor=1,orbs%nspinor
@@ -502,7 +504,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
            end if
            !sum the result inside the orbital wavefunction
            !loop over the orbitals
-           do iorb=1,orbs%norb
+           do iorb=1,orbs%norb*orbs%nkpts
               if (orbs%isorb < iorb .and. iorb <= orbs%isorb+orbs%norbp) then
                  jorb=iorb-orbs%isorb
                  do ispinor=1,orbs%nspinor
@@ -528,22 +530,23 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   !calculate the deviation from 1 of the orbital norm
   normdev=0.0_dp
   tt=0.0_dp
-  do iorb=1,orbs%norb
+  do iorb=1,orbs%norb*orbs%nkpts
      if (orbs%isorb < iorb .and. iorb <= orbs%isorb+orbs%norbp) then
         jorb=iorb-orbs%isorb
         totnorm=0.0_dp
        do ispinor=1,orbs%nspinor !to be verified in case of nspinor=4
           call wnrm_wrap(wfd%nvctr_c,wfd%nvctr_f,psi(1,ispinor,jorb),scpr) 
-!!$           call wnrm(wfd%nvctr_c,wfd%nvctr_f,psi(1,ispinor,jorb),&
-!!$          psi(wfd%nvctr_c+1,ispinor,jorb),scpr) 
            totnorm=totnorm+scpr
+
+           !print *,'AAA',iproc,iorb,ispinor,scpr,jorb
         end do
         do ispinor=1,orbs%nspinor !to be verified in case of nspinor=4
            call wscal_wrap(wfd%nvctr_c,wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),&
                 psi(1,ispinor,jorb))
 
-!!$           call wscal(wfd%nvctr_c,wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),&
-!!$                psi(1,ispinor,jorb),psi(wfd%nvctr_c+1,ispinor,jorb))
+           !call wnrm_wrap(wfd%nvctr_c,wfd%nvctr_f,psi(1,ispinor,jorb),scpr) 
+           !print *,'BBB',iproc,iorb,ispinor,scpr
+
         end do
         !write(*,'(1x,a,i5,1pe14.7)')'norm of orbital ',iorb,totnorm
         tt=max(tt,abs(1.0_dp-totnorm))
@@ -1014,7 +1017,8 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
               jbas=1
               ishell=ishell+1
               if (ishell > nshell(iatype(iat))) then
-                 if (iproc==0) write(*,'(1x,a,i0,a)')&
+                 !if (iproc==0) 
+                  write(*,'(1x,a,i0,a)')&
                       'Problem in the gaucoeff.dat file, the number of shells of atom ',iat ,&
                       ' is incoherent'
                  stop
@@ -1043,7 +1047,8 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
            read(line,*)nst
            nend=nst+ipar-1
            if (jat/=nat) then
-              if (iproc==0)write(*,'(1x,a,i0,a)')&
+              !if (iproc==0) 
+                   write(*,'(1x,a,i0,a)')&
                    'Problem in the gaucoeff.dat file, only ',iat ,' atoms processed'
               stop
            else

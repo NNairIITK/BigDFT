@@ -175,7 +175,7 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
   call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%d,i_stat)
 
   
-  if(GPUshare) then
+  if(GPUshare .and. GPUconv) then
      !gpu sharing is enabled, we need pinned memory and set useDynamic on the GPU_pointer structure
      call cpu_pinned_allocation((2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor,GPU%pinned_in,i_stat)
      call cpu_pinned_allocation((2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor,GPU%pinned_out,i_stat)

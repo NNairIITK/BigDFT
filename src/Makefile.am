@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces memguess NEB frequencies $(minima_hopping_sources)
+binaries_sources = cluster test_forces memguess NEB frequencies $(minima_hopping_sources) 
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -155,7 +155,8 @@ high_level = cluster.f90 \
 	lanczos_interface.f90 \
 	lanczos_base.f90 \
 	lanczos.f90 \
-	scfloop_API.f90
+	scfloop_API.f90 \
+	esatto.f90
 
 #objects which can be compiled whithout any dependence
 low_level = init/projectors.f90  \
@@ -285,6 +286,8 @@ cluster_LDADD = libbigdft.a \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
+
+
 test_forces_SOURCES = test_forces.f90
 test_forces_LDFLAGS = 
 test_forces_LDADD = libbigdft.a \
@@ -330,6 +333,7 @@ CLEANFILES = mpif.h \
 	module_base.@MODULE_EXT@ MODULE_BASE.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@ VDWCORRECTION.@MODULE_EXT@ \
 	lanczos_base.@MODULE_EXT@ LANCZOS_BASE.@MODULE_EXT@ \
+	esatto@MODULE_EXT@ ESATTO.@MODULE_EXT@ \
 	lanczos_interface.@MODULE_EXT@ LANCZOS_INTERFACE.@MODULE_EXT@ \
 	formats.@MODULE_EXT@ FORMATS.@MODULE_EXT@ \
 	miscellany.@MODULE_EXT@ MISCELLANY.@MODULE_EXT@ \
@@ -341,9 +345,9 @@ CLEANFILES = mpif.h \
 	scfloop_API.@MODULE_EXT@ SCFLOOP_API.@MODULE_EXT@
 
 #dependencies
-$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o : $(mpi_include)  $(modules_objects)
+$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
 
-cluster.o geometry.o: vdwcorrection.o
+cluster.o geometry.o: vdwcorrection.o esatto.o
 
 lanczos.o : lanczos_base.o lanczos_interface.o
 
@@ -361,6 +365,7 @@ ab6_moldyn.o ABINIT-moldyn/ab6_moldyn.o : scfloop_API.o \
 	ABINIT-moldyn/others.F90 \
 	ABINIT-moldyn/quenched.F90
 
+xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
 #init.o : base.o interfaces.o
 
@@ -372,7 +377,7 @@ mpif.h:
 	touch mpif.h &&\
 	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
-	 echo "integer :: MPI_STATUSES_IGNORE" >> mpif.h &&\
+	 echo "integer :: MPI_STATUSES_IGNORE,MPI_LOGICAL" >> mpif.h &&\
 	 echo "integer :: MPI_MIN, MPI_MAX,MPI_CHARACTER" >> mpif.h
 
 test_forces.o: $(mod_bigdft)

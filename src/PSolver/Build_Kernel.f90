@@ -139,7 +139,8 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
 
   else
      
-     if (iproc==0) write(*,'(1x,a,3a)')'createKernel, geocode not admitted',geocode
+     !if (iproc==0) 
+     write(*,'(1x,a,3a)')'createKernel, geocode not admitted',geocode
 
      stop
   end if

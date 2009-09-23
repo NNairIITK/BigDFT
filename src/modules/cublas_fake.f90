@@ -13,6 +13,11 @@
     stop 'FAKE STRMM'
   end subroutine cublas_STRMM
 
+  subroutine cublas_DTRMM()
+    implicit none
+    stop 'FAKE DTRMM'
+  end subroutine cublas_DTRMM
+
   subroutine cublas_CTRMM()
     implicit none
     stop 'FAKE CTRMM'
@@ -53,18 +58,28 @@
     stop 'FAKE SNRM2'
   end subroutine cublas_SNRM2
 
+  subroutine cublas_DNRM2()
+    implicit none
+    stop 'FAKE DNRM2'
+  end subroutine cublas_DNRM2
+
   subroutine cublas_SDOT()
     implicit none
     stop 'FAKE SDOT'
   end subroutine cublas_SDOT
 
+  subroutine cublas_DDOT()
+    implicit none
+    stop 'FAKE DDOT'
+  end subroutine cublas_DDOT
+
   subroutine cublas_DGEMM()
     implicit none
-    stop 'FAKE SDOT'
+    stop 'FAKE DGEMM'
   end subroutine cublas_DGEMM
 
   subroutine cublas_DSYRK()
     implicit none
-    stop 'FAKE SDOT'
+    stop 'FAKE DSYRK'
   end subroutine cublas_DSYRK
 

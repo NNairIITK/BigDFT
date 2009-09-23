@@ -190,29 +190,20 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   end if
 
   !transpose the hpsi wavefunction
-  call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,comms,hpsi,work=psi)
+  call transpose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
 
   if (nproc == 1) then
      !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
      psit => psi
-     call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,comms,psit)
+     call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psit)
   end if
 
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
-  call orthoconstraint_p(iproc,nproc,orbs%norbu,orbs%occup,comms%nvctr_par(iproc),psit,hpsi,&
-       scprsum,orbs%nspinor)
-  scprpart=0.0_dp
-  if(orbs%norbd > 0) then
-     scprpart=scprsum 
-     call orthoconstraint_p(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),comms%nvctr_par(iproc),&
-          psit(1+comms%nvctr_par(iproc)*orbs%norbu),hpsi(1+comms%nvctr_par(iproc)*orbs%norbu),&
-          scprsum,orbs%nspinor)
-     scprsum=scprsum+scprpart
-  end if
+  !takes also into account parallel k-points distribution
+  call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,scprsum)
 
   !retranspose the hpsi wavefunction
-  call untranspose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,comms,&
-       hpsi,work=psi)
+  call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
 
   call timing(iproc,'Precondition  ','ON')
   if (iproc==0 .and. verbose > 1) then
@@ -243,59 +234,15 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   end if
   call timing(iproc,'Precondition  ','OF')
 
+  !transpose the hpsi wavefunction
+  call transpose_v(iproc,nproc,orbs,lr%wfd,comms,&
+       hpsi,work=psi)
+
   !apply the minimization method (DIIS or steepest descent)
-  if (idsx_actual > 0) then
-     !transpose the hpsi wavefunction into the diis array
-     call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,comms,&
-          hpsi,work=psi,&
-          outadd=hpsidst(1+comms%nvctr_par(iproc)*orbs%nspinor*orbs%norb*(mids-1)))
+  call timing(iproc,'Diis          ','ON')
 
-     call timing(iproc,'Diis          ','ON')
-
-     !psidst=psit
-     call dcopy(comms%nvctr_par(iproc)*orbs%norb*orbs%nspinor,&
-          psit(1),1,&
-          psidst(1+comms%nvctr_par(iproc)*orbs%nspinor*orbs%norb*(mids-1)),1) 
-
-     if (nproc > 1) then
-!!$        do i=1,nvctrp*orbs%norb*orbs%nspinor
-!!$           psidst(i+nvctrp*orbs%nspinor*orbs%norb*(mids-1))= psit(i)
-!!$        enddo
-     else
-        !hpsidst=hpsi
-        call dcopy(comms%nvctr_par(iproc)*orbs%norb*orbs%nspinor,&
-             hpsi(1),1,&
-             hpsidst(1+comms%nvctr_par(iproc)*orbs%nspinor*orbs%norb*(mids-1)),1) 
-!!$        do i=1,nvctrp*orbs%norb*orbs%nspinor
-!!$           psidst(i+nvctrp*orbs%nspinor*orbs%norb*(mids-1))= psit(i)
-!!$           hpsidst(i+nvctrp*orbs%nspinor*orbs%norb*(mids-1))=hpsi(i)
-!!$        enddo
-     endif
-
-     call diisstp(orbs%norb,nproc,iproc,orbs%nspinor,  &
-          ads,ids,mids,idsx_actual,comms%nvctr_par(iproc),&
-          psit,psidst,hpsidst)
-  else
-     ! update all wavefunctions with the preconditioned gradient
-     if (energy > energy_old) then
-        alpha=max(.125_wp,.5_wp*alpha)
-        if (alpha == .125_wp) write(*,*) 'Convergence problem or limit'
-     else
-        alpha=min(1.05_wp*alpha,1._wp)
-     endif
-     if (iproc == 0 .and. verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',alpha
-
-     !transpose the hpsi wavefunction
-     call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,comms,&
-          hpsi,work=psi)
-
-     call timing(iproc,'Diis          ','ON')
-     do iorb=1,orbs%norb*orbs%nspinor
-        call axpy(comms%nvctr_par(iproc),&
-             -alpha,hpsi(1+comms%nvctr_par(iproc)*(iorb-1)),1,&
-             psit(1+comms%nvctr_par(iproc)*(iorb-1)),1)
-     enddo
-  endif
+  call psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx_actual,energy,energy_old,alpha,&
+       hpsi,psidst,hpsidst,psit)
 
   call timing(iproc,'Diis          ','OF')
 
@@ -304,20 +251,13 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
           'Orthogonalization...'
   end if
 
-!!$  if(nspin==1 .or. nspinor==4) then
-!!$     call orthon_p(iproc,nproc,norb,nvctrp,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psit,nspinor)
-!!$  else
-  call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
-       psit,orbs%nspinor)
-  if(orbs%norbd > 0) then
-     call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
-          psit(1+comms%nvctr_par(iproc)*orbs%norbu),orbs%nspinor)
-  end if
-!!$  end if
-    !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
+  call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit)
+
+  !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
   
-  call untranspose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,comms,&
+  call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,&
        psit,work=hpsi,outadd=psi(1))
+
   if (nproc == 1) then
      nullify(psit)
   end if
@@ -387,46 +327,18 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      ids=0
      idiistol=0
 
-     allocate(psidst(comms%nvctr_par(iproc)*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
+     allocate(psidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(comms%nvctr_par(iproc)*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
+     allocate(hpsidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,hpsidst,'hpsidst',subname)
-     allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
+     allocate(ads(idsx+1,idsx+1,orbs%nkptsp*3+ndebug),stat=i_stat)
      call memocc(i_stat,ads,'ads',subname)
-     call razero(3*(idsx+1)**2,ads)
+
+     call razero(orbs%nkptsp*3*(idsx+1)**2,ads)
   end if
 
 END SUBROUTINE hpsitopsi
 !!***
-
-
-!!****f* BigDFT/trans_address
-!! FUNCTION
-!!   Calculate the address to start from for calculating the 
-!!   norm of the residue if hpsi is allocated in the transposed way
-!!   it can be eliminated when including all this procedure in a subroutine
-!!   in other terms, it takes the i1,i2 component of an array psi(nvctr,norbp) 
-!!   from an array of the form psi(nvctrp,norb)
-!!   for this routine norbp is not needed
-!! SOURCE
-!!
-subroutine trans_address(nvctrp,nvctr,i,iorb,i1,i2)
-  implicit none
-  integer, intent(in) :: nvctrp,nvctr,i,iorb
-  integer, intent(out) :: i1,i2
-  !local variables
-  integer :: ind
-!  if (nproc > 1) then
-     ind=i+nvctr*(iorb-1)
-     i1=mod(ind-1,nvctrp)+1
-     i2=(ind-i1)/nvctrp+1
-!!$  else
-!!$     i1=1
-!!$     i2=iorb
-!!$  end if
-END SUBROUTINE trans_address
-!!***
-
 
 !!****f* BigDFT/first_orthon
 !! FUNCTION
@@ -467,22 +379,20 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
   end if
 
   !to be substituted, must pass the wavefunction descriptors to the routine
-  call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,wfd,comms,psi,&
+  call transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
        work=hpsi,outadd=psit(1))
 
-!!$  if(nspin==1 .or. nspinor==4) then
-!!$     call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,nspinor) 
-!!$  else
-  call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc),wfd%nvctr_c+7*wfd%nvctr_f,&
-       psit,orbs%nspinor) 
-  if(orbs%norbd > 0) then
-     call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc),wfd%nvctr_c+7*wfd%nvctr_f,&
-          psit(1+comms%nvctr_par(iproc)*orbs%norbu),orbs%nspinor) 
-  end if
+  call orthogonalize(iproc,nproc,orbs,comms,wfd,psit)
+
+!!$  call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),wfd%nvctr_c+7*wfd%nvctr_f,&
+!!$       psit,orbs%nspinor) 
+!!$  if(orbs%norbd > 0) then
+!!$     call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),wfd%nvctr_c+7*wfd%nvctr_f,&
+!!$          psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),orbs%nspinor) 
 !!$  end if
   !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
-  call untranspose_v(iproc,nproc,orbs%norbp,orbs%nspinor,wfd,comms,psit,&
+  call untranspose_v(iproc,nproc,orbs,wfd,comms,psit,&
        work=hpsi,outadd=psi(1))
 
   if (nproc == 1) then
@@ -500,7 +410,7 @@ END SUBROUTINE first_orthon
 !!   Transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
 !! SOURCE
 !!
-subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
+subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt_keeppsit)
   use module_base
   use module_types
   use module_interfaces, except_this_one_C => last_orthon
@@ -511,45 +421,59 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
   integer, intent(in) :: iproc,nproc,nspin
   real(wp), intent(out) :: evsum
   real(wp), dimension(:) , pointer :: psi,hpsi,psit
+  logical, optional :: opt_keeppsit
   !local variables
+
+  logical :: keeppsit
+
   character(len=*), parameter :: subname='last_orthon'
   logical :: dowrite !write the screen output
   integer :: i_all,i_stat,iorb,jorb,md
   real(wp) :: evpart
   real(wp), dimension(:,:,:), allocatable :: mom_vec
 
-  call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,wfd,comms,&
+
+  
+  if (present(opt_keeppsit)) then
+     keeppsit=opt_keeppsit
+  else
+     keeppsit=.false.
+  endif
+  
+        
+
+
+  call transpose_v(iproc,nproc,orbs,wfd,comms,&
        hpsi,work=psi)
   if (nproc==1) then
      psit => psi
-     call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,wfd,comms,psit)
+     call transpose_v(iproc,nproc,orbs,wfd,comms,psit)
   end if
 
-!!$  if(nspin==1.or.nspinor==4) then
-!!$     call KStrans_p(iproc,nproc,norb,nvctrp,occup,hpsi,psit,evsum,eval,nspinor)
-!!$  else
-  call KStrans_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc),orbs%occup,hpsi,psit,&
-       evsum,orbs%eval,orbs%nspinor)
-  evpart=evsum
-  if(orbs%norbd > 0) then
-     call KStrans_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc),orbs%occup(orbs%norbu+1),&
-          hpsi(1+comms%nvctr_par(iproc)*orbs%norbu),psit(1+comms%nvctr_par(iproc)*orbs%norbu),&
-          evsum,orbs%eval(orbs%norbu+1),orbs%nspinor)
-     evsum=evsum+evpart
-  end if
+  call subspace_diagonalisation(iproc,nproc,orbs,comms,psit,hpsi,evsum)
+
+!!$  call KStrans_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),orbs%occup,hpsi,psit,&
+!!$       evsum,orbs%eval,orbs%nspinor)
+!!$  evpart=evsum
+!!$  if(orbs%norbd > 0) then
+!!$     call KStrans_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),orbs%occup(orbs%norbu+1),&
+!!$          hpsi(1+comms%nvctr_par(iproc,1)*orbs%norbu),psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),&
+!!$          evsum,orbs%eval(orbs%norbu+1),orbs%nspinor)
+!!$     evsum=evsum+evpart
 !!$  end if
 
-  call untranspose_v(iproc,nproc,orbs%norbp,orbs%nspinor,wfd,comms,&
+  call untranspose_v(iproc,nproc,orbs,wfd,comms,&
        psit,work=hpsi,outadd=psi(1))
 
-  if (nproc > 1) then
-     i_all=-product(shape(psit))*kind(psit)
-     deallocate(psit,stat=i_stat)
-     call memocc(i_stat,i_all,'psit',subname)
-  else
-     nullify(psit)
-  end if
-
+  if(.not.  keeppsit) then
+     if (nproc > 1  ) then
+        i_all=-product(shape(psit))*kind(psit)
+        deallocate(psit,stat=i_stat)
+        call memocc(i_stat,i_all,'psit',subname)
+     else
+        nullify(psit)
+     end if
+  endif
   !for a non-collinear treatment,
   !we add the calculation of the moments for printing their value
   !close to the corresponding eigenvector
@@ -603,37 +527,6 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
            end do
         end if
      end if
-!!$     if (nspin==1.or.orbs%nspinor==4) then
-!!$        if (orbs%nspinor ==4) then
-!!$           do iorb=1,orbs%norb
-!!$              dowrite =iorb <= 5 .or. iorb >= orbs%norb-5
-!!$              if (dowrite) & 
-!!$                   write(*,'(1x,a,i4,a,1x,1pe21.14,20x,(1x,3(0pf10.5)))') &
-!!$                   'eval(',iorb,')=',orbs%eval(iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
-!!$           end do
-!!$        else
-!!$           do iorb=1,orbs%norb
-!!$              dowrite =iorb <= 5 .or. iorb >= orbs%norb-5
-!!$              if (dowrite) & 
-!!$                   write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',orbs%eval(iorb)
-!!$           end do
-!!$        end if
-!!$     else
-!!$        do iorb=1,min(orbs%norbu,orbs%norbd)
-!!$           jorb=orbs%norbu+iorb
-!!$           write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-!!$                'eval(',iorb,',u)=',orbs%eval(iorb),'eval(',iorb,',d)=',orbs%eval(jorb)
-!!$        end do
-!!$        if (orbs%norbu > orbs%norbd) then
-!!$           do iorb=orbs%norbd+1,orbs%norbu
-!!$              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,',u)=',orbs%eval(iorb)
-!!$           end do
-!!$        else if (orbs%norbd > orbs%norbu) then
-!!$           do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
-!!$              write(*,'(50x,a,i4,a,1x,1pe21.14)') 'eval(',iorb-orbs%norbu,',d)=',orbs%eval(iorb)
-!!$           end do
-!!$        end if
-!!$     end if
   end if
 
   if (orbs%nspinor ==4) then
@@ -646,7 +539,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
   deallocate(hpsi,stat=i_stat)
   call memocc(i_stat,i_all,'hpsi',subname)
 
-END SUBROUTINE last_orthon
+end subroutine last_orthon
 !!***
 
 
@@ -765,7 +658,7 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   end do
 
 !!$  call plot_density(at%geocode,'deltarho.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-!!$       1,at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,i3s+i3xcsh,1))
+!!$       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,i3s+i3xcsh,1))
 
   !calculate the offset
   tt=0.d0
@@ -832,7 +725,7 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
        quiet=PSquiet)
 
 !!$  call plot_density(at%geocode,'VHdeltarho.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-!!$       1,at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,1+i3xcsh,1))
+!!$       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,1+i3xcsh,1))
 
 
   !sum the complete hartree potential
@@ -867,9 +760,9 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
         do i2=1,n2i
            do i1=1,n1i
               tt=tt+drho(i1,i2,i3+i3s-1+i3xcsh,1)
-           enddo
-        enddo
-     enddo
+           end do
+        end do
+     end do
      if (nproc > 1) then
         call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
              MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -897,7 +790,7 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   call axpy(n1i*n2i*n3p,1.0_dp,pot_ion(1,1,1),1,drho(1,1,i3s+i3xcsh,1),1)
 
 !!$  call plot_density(at%geocode,'VHpVion.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-!!$       1,at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,i3s+i3xcsh,1))
+!!$       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,i3s+i3xcsh,1))
 !!$
 !!$  !calculate the offset
 !!$  tt=0.d0
@@ -925,7 +818,7 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
 
 
 !!$  call plot_density(at%geocode,'Vtot.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-!!$       1,at%alat1,at%alat2,at%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+!!$       at%alat1,at%alat2,at%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
 
   !calculate the offset
   tt=0.d0
@@ -972,10 +865,12 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   type(communications_arrays), intent(in) :: comms
   !local variables
   character(len=*), parameter :: subname='check_communications'
-  integer :: i,ispinor,iorb,indspin,indorb,jproc,i_stat,i_all,iscomp,idsx,index
-  real(wp) :: vali,valorb,psival,maxdiff,ierr
+  integer :: i,ispinor,iorb,indspin,indorb,jproc,i_stat,i_all,iscomp,idsx,index,ikptsp
+  integer :: ikpt,ispsi,nspinor,nvctrp
+  real(wp) :: vali,valorb,psival,maxdiff,ierr,valkpt
   real(wp), dimension(:), allocatable :: psi
   real(wp), dimension(:), pointer :: pwork
+  real(wp) :: epsilon
 
   !allocate the "wavefunction" amd fill it, and also the workspace
   allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
@@ -984,68 +879,94 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   call memocc(i_stat,pwork,'pwork',subname)
 
   do iorb=1,orbs%norbp
-     valorb=real(orbs%isorb+iorb,wp)
+     ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+     valkpt=real(512*ikpt,wp)
+     valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
      indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
      do ispinor=1,orbs%nspinor
         indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
         do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           vali=real(i,wp)*1.d-5
+           vali=real(i,wp)/512.d0  ! *1.d-5
            psi(i+indspin+indorb)=(valorb+vali)*(-1)**(ispinor-1)
         end do
      end do
   end do
 
   !transpose the hpsi wavefunction
-  call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,comms,psi,work=pwork)
-
-  !calculate the starting point for the component distribution
-  iscomp=0
-  do jproc=0,iproc-1
-     iscomp=iscomp+comms%nvctr_par(jproc)
-  end do
+  call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psi,work=pwork)
 
   !check the results of the transposed wavefunction
   maxdiff=0.0_wp
-  do iorb=1,orbs%norb
-     valorb=real(iorb,wp)
-     indorb=(iorb-1)*(comms%nvctr_par(iproc))*orbs%nspinor
-     do idsx=1,(orbs%nspinor-1)/2+1
-        do i=1,comms%nvctr_par(iproc)
-           vali=real(i+iscomp,wp)*1.d-5
-           do ispinor=1,((2+orbs%nspinor)/4+1)
-              psival=(-1)**(ispinor-1)*(valorb+vali)
-              if (psival .lt. 0.d0) then  !this is just to force the IEEE representation of psival
-              write(321,*) psival,psival**2
-              endif
-              index=ispinor+(i-1)*((2+orbs%nspinor)/4+1)+&
-                   (idsx-1)*((2+orbs%nspinor)/4+1)*comms%nvctr_par(iproc)+indorb
-              maxdiff=max(abs(psi(index)-psival),maxdiff)
+  ispsi=0
+  do ikptsp=1,orbs%nkptsp
+     ikpt=orbs%iskpts+ikptsp
+     valkpt=real(512*ikpt,wp)
+     !calculate the starting point for the component distribution
+     iscomp=0
+     do jproc=0,iproc-1
+        iscomp=iscomp+comms%nvctr_par(jproc,ikptsp)
+     end do
+     nvctrp=comms%nvctr_par(iproc,ikptsp)
+     nspinor=orbs%nspinor
+
+     do iorb=1,orbs%norb
+        valorb=real(iorb,wp)+valkpt
+        indorb=(iorb-1)*nvctrp*nspinor
+        do idsx=1,(nspinor-1)/2+1
+           do i=1,nvctrp
+              vali=real(i+iscomp,wp)/512.d0  ! *1.d-5
+              do ispinor=1,((2+nspinor)/4+1)
+                 psival=(-1)**(ispinor-1)*(valorb+vali)
+                 !this is just to force the IEEE representation of psival
+                 !              if (psival .lt. 0.d0) then  
+                 !              write(321,*) psival,psival**2
+                 !              endif
+                 index=ispinor+(i-1)*((2+nspinor)/4+1)+&
+                      (idsx-1)*((2+nspinor)/4+1)*nvctrp+indorb+ispsi
+                 maxdiff=max(abs(psi(index)-psival),maxdiff)
+              end do
            end do
         end do
      end do
+     ispsi=ispsi+nvctrp*orbs%norb*nspinor
   end do
-  if (maxdiff /= 0.0_wp) then
+
+  if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
      write(*,*)'ERROR: process',iproc,'does not transpose wavefunctions correctly!'
      write(*,*)'       found an error of',maxdiff,'cannot continue.'
      write(*,*)'       data are written in the file transerror.log, exiting...'
 
      open(unit=22,file='transerror.log',status='unknown')
-     do iorb=1,orbs%norb
-        valorb=real(iorb,wp)
-        indorb=(iorb-1)*(comms%nvctr_par(iproc))*orbs%nspinor
-        do idsx=1,(orbs%nspinor-1)/2+1
-           do i=1,comms%nvctr_par(iproc)
-              vali=real(i+iscomp,wp)*1.d-5
-              do ispinor=1,((2+orbs%nspinor)/4+1)
-                 psival=(-1)**(ispinor-1)*(valorb+vali)
-                 index=ispinor+(i-1)*((2+orbs%nspinor)/4+1)+&
-                      (idsx-1)*((2+orbs%nspinor)/4+1)*comms%nvctr_par(iproc)+indorb
-                 maxdiff=abs(psi(index)-psival)
-                 write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i+iscomp,iorb,psival,&
-                      psi(index),maxdiff
+     ispsi=0
+     do ikptsp=1,orbs%nkptsp
+        ikpt=orbs%iskpts+ikptsp
+        valkpt=real(512*ikpt,wp)
+        !calculate the starting point for the component distribution
+        iscomp=0
+        do jproc=0,iproc-1
+           iscomp=iscomp+comms%nvctr_par(jproc,ikptsp)
+        end do
+        nvctrp=comms%nvctr_par(iproc,ikptsp)
+        nspinor=orbs%nspinor
+
+        do iorb=1,orbs%norb
+           valorb=real(iorb,wp)+valkpt
+           indorb=(iorb-1)*nvctrp*nspinor
+           do idsx=1,(nspinor-1)/2+1
+              do i=1,nvctrp
+                 vali=real(i+iscomp,wp)/512.d0  !*1.d-5
+                 do ispinor=1,((2+nspinor)/4+1)
+                    psival=(-1)**(ispinor-1)*(valorb+vali)
+                    index=ispinor+(i-1)*((2+nspinor)/4+1)+&
+                         (idsx-1)*((2+nspinor)/4+1)*nvctrp+indorb+ispsi
+                    maxdiff=abs(psi(index)-psival)
+                    write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i+iscomp,iorb+ikpt,psival,&
+                         psi(index),maxdiff
+                 end do
               end do
            end do
         end do
+        ispsi=ispsi+nvctrp*orbs%norb*nspinor
      end do
      close(unit=22)
 
@@ -1054,24 +975,26 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   end if
 
   !retranspose the hpsi wavefunction
-  call untranspose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,comms,&
+  call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,&
        psi,work=pwork)
 
   maxdiff=0.0_wp
   do iorb=1,orbs%norbp
-     valorb=real(orbs%isorb+iorb,wp)
+     ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+     valkpt=real(512*ikpt,wp)
+     valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
      indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
      do ispinor=1,orbs%nspinor
         indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
         do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           vali=real(i,wp)*1.d-5
+           vali=real(i,wp)/512.d0  !*1.d-5
            psival=(valorb+vali)*(-1)**(ispinor-1)
            maxdiff=max(abs(psi(i+indspin+indorb)-psival),maxdiff)
         end do
      end do
   end do
 
-  if (maxdiff /= 0.0_wp) then
+  if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
      write(*,*)'ERROR: process',iproc,'does not untranspose wavefunctions correctly!'
      write(*,*)'       found an error of',maxdiff,'cannot continue.'
      write(*,*)'       data are written in the file transerror.log, exiting...'
@@ -1079,12 +1002,14 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      open(unit=22,file='transerror.log',status='unknown')
      maxdiff=0.0_wp
      do iorb=1,orbs%norbp
-        valorb=real(orbs%isorb+iorb,wp)
+        ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+        valkpt=real(512*ikpt,wp)
+        valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
         indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
         do ispinor=1,orbs%nspinor
            indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
            do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-              vali=real(i,wp)*1.d-5
+              vali=real(i,wp)/512.d0  !*1.d-5
               psival=(valorb+vali)*(-1)**(ispinor-1)
               maxdiff=abs(psi(i+indspin+indorb)-psival)
               write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i,iorb+orbs%isorb,psival,&
