@@ -56,8 +56,9 @@ subroutine symanal(bravais,nsym,problem,ptgroup,symrel)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
- !use interfaces_01manage_mpi
-!use interfaces_12geometry, except_this_one => symanal
+! use interfaces_14_hidewrite
+! use interfaces_16_hideleave
+! use interfaces_42_geometry, except_this_one => symanal
 !End of the abilint section
 
  implicit none
@@ -123,7 +124,7 @@ subroutine symanal(bravais,nsym,problem,ptgroup,symrel)
    write(message, '(a,a,a,a,i4,a)' ) ch10,&
 &   ' symanal : BUG -',ch10,&
 &   '  The symmetry operation number',isym,' is not a root of unity'
-   call wrtout(6,message,'COLL')
+   call wrtout(std_out,message,'COLL')
    call leave_new('COLL')
   end if
 
@@ -167,7 +168,7 @@ subroutine symanal(bravais,nsym,problem,ptgroup,symrel)
 &   '  determinant(isym)=',determinant(isym),ch10,&
 &   '  root_invers(isym)=',root_invers(isym)
 
-   call wrtout(6,message,'COLL')
+   call wrtout(std_out,message,'COLL')
    call leave_new('COLL')
   end if
 
@@ -251,7 +252,7 @@ subroutine symanal(bravais,nsym,problem,ptgroup,symrel)
   write(message, '(a,a,a,a)' )ch10,&
 &  ' symanal : BUG -',ch10,&
 &  '  Could not find the point group'
-  call wrtout(6,message,'COLL')
+  call wrtout(std_out,message,'COLL')
   call leave_new('COLL')
  end if
 
@@ -295,7 +296,7 @@ subroutine symanal(bravais,nsym,problem,ptgroup,symrel)
 &  '  vectors, bravais(1)=',bravais(1),', is more symmetric',ch10,&
 &  '  than the real one, iholohedry=',iholohedry,', obtained by taking into',ch10,&
 &  '  account the atomic positions.'
-  call wrtout(6,message,'COLL')
+  call wrtout(std_out,message,'COLL')
  end if
 
  if(problem==2)then
@@ -307,7 +308,7 @@ subroutine symanal(bravais,nsym,problem,ptgroup,symrel)
 &  '  account the atomic positions. This might be due to an insufficient',ch10,&
 &  '  number of digits in the specification of rprim (at least 10),',ch10,&
 &  '  or to an erroneous rprim or angdeg. If this is not the case, then ...'
-  call wrtout(6,message,'COLL')
+  call wrtout(std_out,message,'COLL')
   call leave_new('COLL')
  end if
 

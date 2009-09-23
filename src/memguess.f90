@@ -310,7 +310,8 @@ program memguess
      norbd=0
      nspinor=1
 
-     call orbitals_descriptors(0,nproc,norb,norbu,norbd,nspinor,orbstst)
+     call orbitals_descriptors(0,in%nkpt,in%kpt,in%wkpt, &
+          & nproc,norb,norbu,norbd,nspinor,orbstst)
      allocate(orbstst%eval(orbstst%norbp+ndebug),stat=i_stat)
      call memocc(i_stat,orbstst%eval,'orbstst%eval',subname)
      do iorb=1,orbstst%norbp

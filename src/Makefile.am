@@ -251,7 +251,8 @@ abinit_low = ABINIT-ewald/ewald.F90 \
 	ABINIT-geometry/xredxcart.F90 \
 	ABINIT-geometry/smpbz.F90 \
 	ABINIT-geometry/symkpt.F90 \
-	ABINIT-geometry/getkgrid.F90
+	ABINIT-geometry/getkgrid.F90 \
+	ABINIT-geometry/testkgrid.F90
 abinit_high = ABINIT-moldyn/ab6_moldyn.F90 \
 	ABINIT-moldyn/xfpack.F90 \
 	ABINIT-moldyn/prtxvf.F90 \
@@ -300,10 +301,8 @@ test_forces_LDADD = libbigdft.a \
 NEB_SOURCES = NEB.f90 \
 	$(mpi_source)
 NEB_LDFLAGS = 
-NEB_LDADD = input_variables.o \
-	$(modules_objects) \
-	profiling/memory.o \
-	convolutions/interface_cuda_fake.o \
+NEB_LDADD = libbigdft.a \
+	PSolver/ABINIT-common/libABINIT.a \
 	$(libs_cuda)
 
 memguess_SOURCES = memguess.f90 \

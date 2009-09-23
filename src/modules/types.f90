@@ -36,6 +36,9 @@ module module_types
      integer :: iat_absorber, L_absorber
      real(gp), pointer:: Gabs_coeffs(:)
      logical ::  c_absorbtion , abscalc_alterpot, abscalc_eqdiff 
+     ! kpoints related input variables
+     integer :: nkpt
+     real(gp), pointer :: kpt(:,:), wkpt(:)
      ! Geometry variables from *.geopt
      character(len=10) :: geopt_approach
      integer :: ncount_cluster_x
@@ -146,6 +149,8 @@ module module_types
      integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom,ifrztyp
      real(gp), dimension(:,:,:), pointer :: psppar
      real(gp), dimension(:), pointer :: amu
+     ! The symmetry object from ABINIT
+     integer :: symObj
      ! AMmodif
      integer :: iat_absorber 
      ! AMmodif end

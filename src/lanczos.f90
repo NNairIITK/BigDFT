@@ -55,7 +55,7 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,1,1,0,1,ha%orbs)
+  call orbitals_descriptors(iproc,in%nkpt,in%kpt,in%wkpt,nproc,1,1,0,1,ha%orbs)
 
   allocate(ha%orbs%eval(ha%orbs%norb+ndebug),stat=i_stat)
   call memocc(i_stat,ha%orbs%eval,'ha%orbs%eval',subname)

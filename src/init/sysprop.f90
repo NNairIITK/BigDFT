@@ -30,7 +30,8 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   !temporary changement, to be controlled
   !nspinor=2
 
-  call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
+  call orbitals_descriptors(iproc,in%nkpt,in%kpt,in%wkpt, &
+       & nproc,norb,norbu,norbd,nspinor,orbs)
 
   !distribution of wavefunction arrays between processors
   !tuned for the moment only on the cubic distribution
@@ -522,12 +523,13 @@ end subroutine read_system_variables
 !!    It uses the cubic strategy for partitioning the orbitals
 !! SOURCE
 !!
-subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
+subroutine orbitals_descriptors(iproc,nkpt,kpt,wkpt,nproc,norb,norbu,norbd,nspinor,orbs)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nproc,nspinor,norb,norbu,norbd
+  integer, intent(in) :: iproc,nproc,nspinor,norb,norbu,norbd,nkpt
   type(orbitals_data), intent(out) :: orbs
+  real(gp), intent(in) :: kpt(3,nkpt), wkpt(nkpt)
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all
@@ -537,19 +539,14 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
 
   !assign the value of the k-points
-  orbs%nkpts=1!3
+  orbs%nkpts=nkpt
   !allocate vectors related to k-points
   allocate(orbs%kpts(3,orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
   allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
-  !only the gamma point for the moment
-  do ikpt=1,orbs%nkpts
-     orbs%kpts(1,ikpt)=0.0_gp
-     orbs%kpts(2,ikpt)=0.0_gp
-     orbs%kpts(3,ikpt)=0.0_gp
-     orbs%kwgts(ikpt)=1.0_gp
-  end do
+  orbs%kpts = kpt
+  orbs%kwgts = wkpt
 
 !!$  orbs%kwgts(1)=0.2_gp
 !!$  orbs%kwgts(2)=0.5_gp

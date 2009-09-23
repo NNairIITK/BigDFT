@@ -34,6 +34,7 @@
 !!   of the Bravais lattice in real space in terms
 !!   of primitive translations.
 !! spinat(3,natom)=initial spin of each atom, in unit of hbar/2.
+!! tolsym=tolerance for the symmetries
 !! typat(natom)=integer identifying type of atom.
 !! xred(3,natom)=reduced coordinates of atoms in terms of real space
 !!   primitive translations
@@ -58,22 +59,24 @@
 #include "config.h"
 #endif
 
-subroutine symfind(berryopt,efield,gprimd,jellslab,msym,natom,noncoll,nptsym,nsym,ptsymrel,&
-&                  spinat,symafm,symrel,tnons,typat,xred)
+ subroutine symfind(berryopt,efield,gprimd,jellslab,msym,natom,noncoll,nptsym,nspden,nspinor,nsym,pawspnorb,ptsymrel,&
+&                  spinat,symafm,symrel,tnons,tolsym,typat,xred)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
- !use interfaces_01manage_mpi
+! use interfaces_14_hidewrite
+! use interfaces_16_hideleave
 !End of the abilint section
 
  implicit none
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: berryopt,jellslab,msym,natom,noncoll,nptsym
+ integer,intent(in) :: berryopt,jellslab,msym,natom,noncoll,nptsym,nspden,nspinor,pawspnorb
  integer,intent(out) :: nsym
+ real(dp),intent(in) :: tolsym
 !arrays
  integer,intent(in) :: ptsymrel(3,3,msym),typat(natom)
  integer,intent(out) :: symafm(msym),symrel(3,3,msym)
@@ -85,7 +88,7 @@ subroutine symfind(berryopt,efield,gprimd,jellslab,msym,natom,noncoll,nptsym,nsy
 !scalars
  integer :: found3,foundcl,iatom,iatom0,iatom1,iatom2,iatom3,iclass,iclass0,ii
  integer :: isym,jj,kk,natom0,nclass,ntrial,printed,trialafm,trialok
- real(dp) :: spinatcl2,spinatcl20
+ real(dp) :: spinatcl2,spinatcl20,det
  logical,parameter :: afm_noncoll=.true.
  logical :: test_sameabscollin,test_sameabsnoncoll,test_samespin
  character(len=500) :: message
@@ -139,19 +142,19 @@ subroutine symfind(berryopt,efield,gprimd,jellslab,msym,natom,noncoll,nptsym,nsy
 !   absolute magnitude
     if( typat(iatom)==typecl(iclass)) then
      test_samespin=  &
-&     abs(spinat(1,iatom)-spinatcl(1,iclass))<tol8 .and. &
-&     abs(spinat(2,iatom)-spinatcl(2,iclass))<tol8 .and. &
-&     abs(spinat(3,iatom)-spinatcl(3,iclass))<tol8
+&     abs(spinat(1,iatom)-spinatcl(1,iclass))<tolsym .and. &
+&     abs(spinat(2,iatom)-spinatcl(2,iclass))<tolsym .and. &
+&     abs(spinat(3,iatom)-spinatcl(3,iclass))<tolsym
      test_sameabscollin= &
 &     noncoll==0 .and.&
-&     abs(spinat(1,iatom))<tol8 .and. abs(spinatcl(1,iclass))<tol8 .and.&
-&     abs(spinat(2,iatom))<tol8 .and. abs(spinatcl(2,iclass))<tol8 .and.&
-&     abs(abs(spinat(3,iatom))-abs(spinatcl(3,iclass)))<tol8
+&     abs(spinat(1,iatom))<tolsym .and. abs(spinatcl(1,iclass))<tolsym .and.&
+&     abs(spinat(2,iatom))<tolsym .and. abs(spinatcl(2,iclass))<tolsym .and.&
+&     abs(abs(spinat(3,iatom))-abs(spinatcl(3,iclass)))<tolsym
      test_sameabsnoncoll= &
 &     noncoll==1 .and. afm_noncoll .and. &
-&     abs(spinat(1,iatom)+spinatcl(1,iclass))<tol8 .and. &
-&     abs(spinat(2,iatom)+spinatcl(2,iclass))<tol8 .and. &
-&     abs(spinat(3,iatom)+spinatcl(3,iclass))<tol8
+&     abs(spinat(1,iatom)+spinatcl(1,iclass))<tolsym .and. &
+&     abs(spinat(2,iatom)+spinatcl(2,iclass))<tolsym .and. &
+&     abs(spinat(3,iatom)+spinatcl(3,iclass))<tolsym 
      if( test_samespin .or. test_sameabscollin .or. test_sameabsnoncoll) then
 !     DEBUG
 !     write(6,*)' symfind : find it belongs to class iclass=',iclass
@@ -199,8 +202,8 @@ subroutine symfind(berryopt,efield,gprimd,jellslab,msym,natom,noncoll,nptsym,nsy
  if(nclass>1)then
   do iclass=2,nclass
    spinatcl2=spinatcl(1,iclass)**2+spinatcl(2,iclass)**2+spinatcl(3,iclass)**2
-   if( (natomcl(iclass)<natom0 .and. (spinatcl20<tol10 .or. spinatcl2>tol10))  &
-&   .or. (spinatcl20<tol10 .and. spinatcl2>tol10)                         )then
+   if( (natomcl(iclass)<natom0 .and. (spinatcl20<tolsym .or. spinatcl2>tolsym))  &
+&   .or. (spinatcl20<tolsym .and. spinatcl2>tolsym)                         )then
     iclass0=iclass
     natom0=natomcl(iclass)
     spinatcl20=spinatcl2
@@ -241,8 +244,20 @@ subroutine symfind(berryopt,efield,gprimd,jellslab,msym,natom,noncoll,nptsym,nsy
 &   ptsymrel(:,2,isym)*efield(2) +  &
 &   ptsymrel(:,3,isym)*efield(3)
    diff(:)=efield(:)-efieldrot(:)
-   if( (diff(1)**2+diff(2)**2+diff(3)**2) > tol8**2 ) cycle
+   if( (diff(1)**2+diff(2)**2+diff(3)**2) > tolsym**2 ) cycle
   end if
+
+  if(pawspnorb>0.or.nspden==4) then
+!  if(nspinor==2) then
+!  if(nspden==4) then
+  det=ptsymrel(1,1,isym)*ptsymrel(2,2,isym)*ptsymrel(3,3,isym)+&
+&  ptsymrel(2,1,isym)*ptsymrel(3,2,isym)*ptsymrel(1,3,isym)+&
+&  ptsymrel(1,2,isym)*ptsymrel(2,3,isym)*ptsymrel(3,1,isym) - &
+&  (ptsymrel(3,1,isym)*ptsymrel(2,2,isym)*ptsymrel(1,3,isym)+&
+&  ptsymrel(2,1,isym)*ptsymrel(1,2,isym)*ptsymrel(3,3,isym)+&
+&  ptsymrel(3,2,isym)*ptsymrel(2,3,isym)*ptsymrel(1,1,isym))
+   if(det==-1) cycle
+  endif
 
 ! jellium slab case:
   if (jellslab/=0) then
@@ -270,18 +285,19 @@ subroutine symfind(berryopt,efield,gprimd,jellslab,msym,natom,noncoll,nptsym,nsy
 !  The tentative translation is found
    trialnons(:)=xred(:,iatom1)-sxred0(:)
    trialafm=1
-   if(abs(spinat(3,iatom1)-spinat(3,iatom0))>tol8)trialafm=-1
-   if(sum(abs(spinat(:,iatom1)*trialafm-spinat(:,iatom0)))>tol8)then
+   if(abs(spinat(3,iatom1)-spinat(3,iatom0))>tolsym)trialafm=-1
+
+   if(sum(abs(spinat(:,iatom1)*trialafm-spinat(:,iatom0)))>tolsym)then
     write(message,'(6a,3i5)')ch10,&
 &    ' symfind : BUG -',ch10,&
 &    '  Problem with matching the spin part within a class.',ch10,&
 &    '  isym,iatom0,iatom1=',isym,iatom0,iatom1
-    call wrtout(6,message,'COLL')
+    call wrtout(std_out,message,'COLL')
     call leave_new('COLL')
    end if
 !  jellium slab case: check whether symmetry operation has no translational
 !  component along z
-   if( jellslab/=0 .and. abs(trialnons(3)) > tol8 ) cycle
+   if( jellslab/=0 .and. abs(trialnons(3)) > tolsym ) cycle
    trialok=1
 
 !  DEBUG
@@ -316,14 +332,14 @@ subroutine symfind(berryopt,efield,gprimd,jellslab,msym,natom,noncoll,nptsym,nsy
 !     Check the location
       diff(:)=xred(:,iatom3)-symxred2(:)
       diff(:)=diff(:)-nint(diff(:))
-      if( (diff(1)**2+diff(2)**2+diff(3)**2) > tol8**2 )found3=0
+      if( (diff(1)**2+diff(2)**2+diff(3)**2) > tolsym**2 )found3=0
 !     Check the spinat
       if (noncoll==0) then
        diff(:)=spinat(:,iatom3)-symspinat2(:)
       else
        diff(:)=spinatred(:,iatom3)-symspinat2(:)
       end if
-      if( (diff(1)**2+diff(2)**2+diff(3)**2) > tol8**2 )found3=0
+      if( (diff(1)**2+diff(2)**2+diff(3)**2) > tolsym**2 )found3=0
       if(found3==1)exit
 
 !     End loop over iatom3
@@ -351,13 +367,13 @@ subroutine symfind(berryopt,efield,gprimd,jellslab,msym,natom,noncoll,nptsym,nsy
 &     '  translations) is larger than msym=',msym,ch10,&
 &     '  Action : take a cell that is primitive, or at least',ch10,&
 &     '  smaller than the present one.'
-     call wrtout(6,message,'COLL')
+     call wrtout(std_out,message,'COLL')
      call leave_new('COLL')
     end if
     ntrial=ntrial+1
     symrel(:,:,nsym)=ptsymrel(:,:,isym)
     symafm(nsym)=trialafm
-    tnons(:,nsym)=trialnons(:)-nint(trialnons(:)-tol8)
+    tnons(:,nsym)=trialnons(:)-nint(trialnons(:)-tolsym)
    end if
 
 !  End the loop on tentative translations

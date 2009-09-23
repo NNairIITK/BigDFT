@@ -50,7 +50,7 @@ subroutine symsgortho(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-!use interfaces_12geometry, except_this_one => symsgortho
+! use interfaces_42_geometry, except_this_one => symsgortho
 !End of the abilint section
 
  implicit none
@@ -69,7 +69,7 @@ subroutine symsgortho(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
  integer :: nogen,sporder
  character(len=1) :: brvsb
  character(len=15) :: intsb,ptintsb,ptschsb,schsb
- character(len=30) :: intsbl
+ character(len=35) :: intsbl
 !arrays
  integer :: genmmm(3,3),genmmp(3,3),genmpm(3,3),genmpp(3,3),genpmm(3,3)
  integer :: genpmp(3,3),genppm(3,3)

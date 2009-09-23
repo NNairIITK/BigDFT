@@ -111,6 +111,7 @@ end subroutine size_dvxc
 
 !fake ABINIT subroutines
 subroutine wrtout(unit,message,mode_paral)
+  use defs_basis
   implicit none
   include 'mpif.h'
 
@@ -121,7 +122,7 @@ subroutine wrtout(unit,message,mode_paral)
 
   integer :: ierr, iproc
 
-  if (unit == 6) then
+  if (unit == ab_out) then
      call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
      if (trim(mode_paral) == "COLL") then
         if (iproc == 0) print *,trim(message)

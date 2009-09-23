@@ -59,7 +59,7 @@
 !! to the original unit cell.
 !!
 !! PARENTS
-!!      crystal_methods,rdddb9,setsym
+!!      m_crystal,rdddb9,setsym
 !!
 !! CHILDREN
 !!      leave_new,symchk,wrtout
@@ -70,14 +70,15 @@
 #include "config.h"
 #endif
 
-subroutine symatm(indsym,natom,nsym,symrec,tnons,typat,xred)
+subroutine symatm(indsym,natom,nsym,symrec,tnons,tolsym,typat,xred)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
- !use interfaces_01manage_mpi
-!use interfaces_12geometry, except_this_one => symatm
+! use interfaces_14_hidewrite
+! use interfaces_16_hideleave
+! use interfaces_42_geometry, except_this_one => symatm
 !End of the abilint section
 
  implicit none
@@ -85,6 +86,7 @@ subroutine symatm(indsym,natom,nsym,symrec,tnons,typat,xred)
 !Arguments ------------------------------------
 !scalars
  integer,intent(in) :: natom,nsym
+ real(dp), intent(in) :: tolsym
 !arrays
  integer,intent(in) :: symrec(3,3,nsym),typat(natom)
  integer,intent(out) :: indsym(4,nsym,natom)
@@ -129,7 +131,7 @@ subroutine symatm(indsym,natom,nsym,symrec,tnons,typat,xred)
    difmax=max(abs(difmin(1)),abs(difmin(2)),abs(difmin(3)))
    err=max(err,difmax)
 !  Print warnings if differences exceed tolerance
-   if (difmax>tol8) then
+   if (difmax>tolsym) then
     write(message, '(6a,i3,a,i4,a,i3,a,a,3es12.4,4a)' ) ch10,&
 &    ' symatm : WARNING -',ch10,&
 &    '  Trouble finding symmetrically equivalent atoms',ch10,&
@@ -138,20 +140,20 @@ subroutine symatm(indsym,natom,nsym,symrec,tnons,typat,xred)
 &    '  gives tratom=',tratom(1:3),'.',ch10,&
 &    '  This is further away from every atom in crystal than',&
 &    ' the allowed tolerance.'
-    call wrtout(06,message,'COLL')
+    call wrtout(std_out,message,'COLL')
     write(message, '(a,3i3,a,a,3i3,a,a,3i3)' ) &
 &    '  The inverse symmetry matrix is',symrec(1,1:3,isym),ch10,&
 &    '                                ',symrec(2,1:3,isym),ch10,&
 &    '                                ',symrec(3,1:3,isym)
-    call wrtout(06,message,'COLL')
+    call wrtout(std_out,message,'COLL')
     write(message, '(a,3f13.7)' ) &
 &    '  and the nonsymmorphic transl. tnons =',&
 &    (tnons(mu,isym),mu=1,3)
-    call wrtout(06,message,'COLL')
+    call wrtout(std_out,message,'COLL')
     write(message, '(a,1p,3e11.3,a,a,i5)' ) &
 &    '  The nearest coordinate differs by',difmin(1:3),ch10,&
 &    '  for indsym(nearest atom)=',indsym(4,isym,iatom)
-    call wrtout(06,message,'COLL')
+    call wrtout(std_out,message,'COLL')
 !   
 !   Use errout to reduce volume of error diagnostic output
     if (errout==0) then
@@ -162,7 +164,7 @@ subroutine symatm(indsym,natom,nsym,symrec,tnons,typat,xred)
 &     ' away than some',ch10,&
 &     '  tolerance.  Should check atomic coordinates', &
 &     ' and symmetry group input data.'
-     call wrtout(06,message,'COLL')
+     call wrtout(std_out,message,'COLL')
      errout=1
     end if
 !   End difmax>tol
@@ -175,11 +177,11 @@ subroutine symatm(indsym,natom,nsym,symrec,tnons,typat,xred)
  do iatom=1,natom
   write(message, '(a,i5,a)' ) &
 &  ' symatm: atom number',iatom,' is reached starting at atom'
-  call wrtout(06,message,'COLL')
+  call wrtout(std_out,message,'COLL')
   do ii=1,(nsym-1)/24+1
    write(message, '(1x,24i3)' ) &
 &   (indsym(4,isym,iatom),isym=1+(ii-1)*24,min(nsym,ii*24))
-   call wrtout(06,message,'COLL')
+   call wrtout(std_out,message,'COLL')
   end do
  end do
 
@@ -188,21 +190,21 @@ subroutine symatm(indsym,natom,nsym,symrec,tnons,typat,xred)
 !stop
 !ENDDEBUG
 
- if (err>tol8) then
+ if (err>tolsym) then
   write(message, '(1x,a,1p,e14.5,a,e12.4)' ) &
-&  'symatm: maximum (delta t)=',err,' is larger than tol=',tol8
-  call wrtout(06,message,'COLL')
+&  'symatm: maximum (delta t)=',err,' is larger than tol=',tolsym
+  call wrtout(std_out,message,'COLL')
  end if
 
 !Stop execution if error is really big
- if (err>0.001d0) then
+ if (err>0.01d0) then
   write(message, '(a,a,a,a,a,a,a,a,a)' ) ch10,&
 &  ' symatm : ERROR -',ch10,&
-&  '  Largest error (above) is so large that either input',&
+&  '  Largest error (above) is so large (0.01) that either input',&
 &  '  atomic coordinates (xred)',ch10,&
 &  '  are wrong or space group symmetry data is wrong.',ch10,&
 &  '  Action : correct your input file.'
-  call wrtout(06,message,'COLL')
+  call wrtout(std_out,message,'COLL')
   call leave_new('COLL')
  end if
 !

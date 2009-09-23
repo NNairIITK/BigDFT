@@ -1,3 +1,14 @@
+!* * Fortran90 source file *
+!*
+!* Copyright (c) 2008-2009 ABINIT Group (Damien Caliste)
+!* All rights reserved.
+!*
+!* This file is part of the ABINIT software package. For license information,
+!* please see the COPYING file in the top-level directory of the ABINIT source
+!* distribution.
+!*
+!*
+
 module ab6_symmetry
 
   use defs_basis
@@ -10,6 +21,7 @@ module ab6_symmetry
 
   type, private :: symmetry
      ! The input characteristics
+     real(dp) :: tolsym
      real(dp) :: rprimd(3,3), gprimd(3,3), rmet(3,3)
      integer :: nAtoms
      integer, pointer :: typeAt(:)
@@ -20,8 +32,10 @@ module ab6_symmetry
 
      logical :: withJellium
 
-     logical :: withNonColinearSpin
+     integer :: withSpin
      real(dp), pointer :: spinAt(:,:)
+
+     logical :: withSpinOrbit
 
      ! The output characteristics
      ! The bravais parameters
@@ -47,42 +61,52 @@ module ab6_symmetry
   ! as an identifier that can be given to the other languages.
   type, private :: symmetry_list
      integer                       :: id
-     type(symmetry_list),  pointer :: next => null()
+     type(symmetry_list),  pointer :: next
      type(symmetry)                :: data
   end type symmetry_list
-  type(symmetry_list), pointer :: my_symmetries => null()
+  type(symmetry_list), pointer :: my_symmetries
   integer :: n_symmetries = 0
 
   logical, private, parameter :: AB_DBG = .false.
-
-  ! Error codes
-  integer, parameter, public :: AB6_NO_ERROR                = 0
-  integer, parameter, public :: AB6_ERROR_SYM_OBJ           = 1
-  integer, parameter, public :: AB6_ERROR_SYM_ARG           = 2
-  integer, parameter, public :: AB6_ERROR_SYM_NOT_PRIMITIVE = 3
 
   public :: ab6_symmetry_new
   public :: ab6_symmetry_free
   public :: ab6_symmetry_set_lattice
   public :: ab6_symmetry_set_structure
   public :: ab6_symmetry_set_spin
+  public :: ab6_symmetry_set_spin_orbit
   public :: ab6_symmetry_set_field
   public :: ab6_symmetry_set_jellium
 
+  public :: ab6_symmetry_get_n_atoms
   public :: ab6_symmetry_get_multiplicity
   public :: ab6_symmetry_get_bravais
   public :: ab6_symmetry_get_matrices
   public :: ab6_symmetry_get_group
   public :: ab6_symmetry_get_equivalent_atom
-  public :: ab6_symmetry_get_k_grid
+  public :: ab6_symmetry_get_mp_k_grid
+  public :: ab6_symmetry_get_auto_k_grid
 
 contains
 
-  subroutine new_token(token)
+  subroutine new_item(token)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
     type(symmetry_list), pointer :: token
 
     ! We allocate a new list token and prepend it.
     if (AB_DBG) write(0,*) "AB symmetry: create a new token."
+
+    ! Init case, very first call.
+    if (n_symmetries == 0) then
+       nullify(my_symmetries)
+    end if
+
+    ! Normal treatment.
     n_symmetries = n_symmetries + 1
 
     allocate(token)
@@ -92,12 +116,17 @@ contains
 
     my_symmetries => token
     if (AB_DBG) write(0,*) "AB symmetry: creation OK with id ", token%id
-  end subroutine new_token
+  end subroutine new_item
 
-  subroutine free_token(token)
+  subroutine free_item(token)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
     type(symmetry_list), pointer :: token
 
-    integer :: idtset
     type(symmetry_list), pointer :: tmp
 
     if (.not. associated(token)) then
@@ -125,9 +154,11 @@ contains
     end if
     deallocate(token)
     if (AB_DBG) write(0,*) "AB symmetry: free done"
-  end subroutine free_token
+  end subroutine free_item
 
-  subroutine get_token(token, id)
+  subroutine get_item(token, id)
+
+
     type(symmetry_list), pointer :: token
     integer, intent(in) :: id
 
@@ -136,7 +167,7 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: request list element ", id
     nullify(token)
-    ! List element are prepended so element id is at (nb - id) position.
+
     tmp => my_symmetries
     do
        if (.not. associated(tmp)) then
@@ -148,29 +179,39 @@ contains
        end if
        tmp => tmp%next
     end do
-  end subroutine get_token
+  end subroutine get_item
 
   subroutine new_symmetry(sym)
+
+
     type(symmetry), intent(out) :: sym
 
     if (AB_DBG) write(0,*) "AB symmetry: create a new symmetry object."
     nullify(sym%xRed)
     nullify(sym%spinAt)
     nullify(sym%typeAt)
+    sym%tolsym   = tol8
     sym%nSym     = -1
     sym%nBravSym = -1
     sym%withField   = .false.
     sym%withJellium = .false.
-    sym%withNonColinearSpin = .false.
+    sym%withSpin = 0
+    sym%withSpinOrbit = .false.
     sym%multiplicity = -1
     nullify(sym%indexingAtoms)
+    write(sym%pointGroup, "(A)") "-----"
   end subroutine new_symmetry
 
   subroutine free_symmetry(sym)
+
+
     type(symmetry), intent(inout) :: sym
 
     if (AB_DBG) write(0,*) "AB symmetry: free a symmetry."
 
+    if (associated(sym%xRed)) deallocate(sym%xRed)
+    if (associated(sym%spinAt)) deallocate(sym%spinAt)
+    if (associated(sym%typeAt)) deallocate(sym%typeAt)
     if (associated(sym%indexingAtoms)) deallocate(sym%indexingAtoms)
   end subroutine free_symmetry
 
@@ -179,27 +220,46 @@ contains
 
 
   subroutine ab6_symmetry_new(id)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
     integer, intent(out) :: id
 
     type(symmetry_list), pointer :: token
 
     if (AB_DBG) write(0,*) "AB symmetry: call new symmetry."
-    call new_token(token)
+    call new_item(token)
     id = token%id
   end subroutine ab6_symmetry_new
 
   subroutine ab6_symmetry_free(id)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
     integer, intent(in) :: id
 
     type(symmetry_list), pointer :: token
 
     if (AB_DBG) write(0,*) "AB symmetry: call free symmetry."
 
-    call get_token(token, id)
-    if (associated(token)) call free_token(token)
+    call get_item(token, id)
+    if (associated(token)) call free_item(token)
   end subroutine ab6_symmetry_free
 
   subroutine ab6_symmetry_set_lattice(id, rprimd, errno)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+! use interfaces_42_geometry
+!End of the abilint section
+
     integer, intent(in) :: id
     real(dp), intent(in) :: rprimd(3,3)
     integer, intent(out) :: errno
@@ -209,11 +269,14 @@ contains
     real(dp) :: gmet(3,3)
 
     if (AB_DBG) write(0,*) "AB symmetry: call set lattice."
+    if (AB_DBG) write(0, "(A,3F12.6,A)") "  (", rprimd(:,1), ")"
+    if (AB_DBG) write(0, "(A,3F12.6,A)") "  (", rprimd(:,2), ")"
+    if (AB_DBG) write(0, "(A,3F12.6,A)") "  (", rprimd(:,3), ")"
 
     errno = AB6_NO_ERROR
-    call get_token(token, id)
+    call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_SYM_OBJ
+       errno = AB6_ERROR_OBJ
        return
     end if
 
@@ -226,26 +289,41 @@ contains
   end subroutine ab6_symmetry_set_lattice
 
   subroutine ab6_symmetry_set_structure(id, nAtoms, typeAt, xRed, errno)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
     integer, intent(in) :: id
     integer, intent(in) :: nAtoms
-    integer, intent(in), target :: typeAt(nAtoms)
-    real(dp), intent(in), target :: xRed(3,nAtoms)
+    integer, intent(in) :: typeAt(nAtoms)
+    real(dp), intent(in) :: xRed(3,nAtoms)
     integer, intent(out) :: errno
 
     type(symmetry_list), pointer :: token
+    integer :: i
 
     if (AB_DBG) write(0,*) "AB symmetry: call set structure."
+    if (AB_DBG) write(0, "(A,I3,A)") "  ", nAtoms, " atoms"
+    if (AB_DBG) then
+       do i = 1, nAtoms, 1
+          write(0, "(A,3F12.6,I3)") "  ", xRed(:, i), typeAt(i)
+       end do
+    end if
 
     errno = AB6_NO_ERROR
-    call get_token(token, id)
+    call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_SYM_OBJ
+       errno = AB6_ERROR_OBJ
        return
     end if
 
     token%data%nAtoms =  nAtoms
-    token%data%typeAt => typeAt
-    token%data%xRed   => xRed
+    allocate(token%data%typeAt(nAtoms))
+    token%data%typeAt = typeAt
+    allocate(token%data%xRed(3, nAtoms))
+    token%data%xRed   = xRed
 
     ! We unset only the symmetries
     token%data%nSym     = -1
@@ -253,30 +331,117 @@ contains
   end subroutine ab6_symmetry_set_structure
 
   subroutine ab6_symmetry_set_spin(id, nAtoms, spinAt, errno)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
     integer, intent(in) :: id
     integer, intent(in) :: nAtoms
-    real(dp), intent(in), target :: spinAt(3,nAtoms)
+    real(dp), intent(in) :: spinAt(3,nAtoms)
     integer, intent(out) :: errno
 
     type(symmetry_list), pointer :: token
+    integer :: i
 
     if (AB_DBG) write(0,*) "AB symmetry: call set spin."
+    if (AB_DBG) then
+       do i = 1, nAtoms, 1
+          write(0, "(A,3F12.6)") "  ", spinAt(:, i)
+       end do
+    end if
 
     errno = AB6_NO_ERROR
-    call get_token(token, id)
-    if (.not. associated(token) .or. token%data%nAtoms /= nAtoms) then
-       errno = AB6_ERROR_SYM_OBJ
+    call get_item(token, id)
+    if (.not. associated(token)) then
+       errno = AB6_ERROR_OBJ
+       return
+    end if
+    if (token%data%nAtoms /= nAtoms) then
+       errno = AB6_ERROR_ARG
        return
     end if
 
-    token%data%withNonColinearSpin = .true.
-    token%data%spinAt => spinAt
+    token%data%withSpin = 4
+    allocate(token%data%spinAt(3, nAtoms))
+    token%data%spinAt = spinAt
 
     ! We unset only the symmetries
     token%data%nSym     = -1
   end subroutine ab6_symmetry_set_spin
 
+  subroutine ab6_symmetry_set_collinear_spin(id, nAtoms, spinAt, errno)
+    integer, intent(in) :: id
+    integer, intent(in) :: nAtoms
+    integer, intent(in) :: spinAt(nAtoms)
+    integer, intent(out) :: errno
+
+    type(symmetry_list), pointer :: token
+    integer :: i
+
+    if (AB_DBG) write(0,*) "AB symmetry: call set collinear spin."
+    if (AB_DBG) then
+       do i = 1, nAtoms, 1
+          write(0, "(A,I3)") "  ", spinAt(i)
+       end do
+    end if
+
+    errno = AB6_NO_ERROR
+    call get_item(token, id)
+    if (.not. associated(token)) then
+       errno = AB6_ERROR_OBJ
+       return
+    end if
+    if (token%data%nAtoms /= nAtoms) then
+       errno = AB6_ERROR_ARG
+       return
+    end if
+
+    token%data%withSpin = 2
+    allocate(token%data%spinAt(1, nAtoms))
+    token%data%spinAt = real(reshape(spinAt, (/ 1, nAtoms /)), dp)
+
+    ! We unset only the symmetries
+    token%data%nSym     = -1
+  end subroutine ab6_symmetry_set_collinear_spin
+
+  subroutine ab6_symmetry_set_spin_orbit(id, withSpinOrbit, errno)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
+    integer, intent(in) :: id
+    logical, intent(in) :: withSpinOrbit
+    integer, intent(out) :: errno
+
+    type(symmetry_list), pointer :: token
+    integer :: i
+
+    if (AB_DBG) write(0,*) "AB symmetry: call set spin orbit."
+
+    errno = AB6_NO_ERROR
+    call get_item(token, id)
+    if (.not. associated(token)) then
+       errno = AB6_ERROR_OBJ
+       return
+    end if
+
+    token%data%withSpinOrbit = withSpinOrbit
+
+    ! We unset only the symmetries
+    token%data%nSym     = -1
+  end subroutine ab6_symmetry_set_spin_orbit
+
   subroutine ab6_symmetry_set_field(id, field, errno)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
     integer, intent(in) :: id
     real(dp), intent(in) :: field(3)
     integer, intent(out) :: errno
@@ -286,9 +451,9 @@ contains
     if (AB_DBG) write(0,*) "AB symmetry: call set field."
 
     errno = AB6_NO_ERROR
-    call get_token(token, id)
+    call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_SYM_OBJ
+       errno = AB6_ERROR_OBJ
        return
     end if
 
@@ -300,8 +465,15 @@ contains
     token%data%nSym     = -1
   end subroutine ab6_symmetry_set_field
 
-  subroutine ab6_symmetry_set_jellium(id, errno)
+  subroutine ab6_symmetry_set_jellium(id, jellium, errno)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
     integer, intent(in) :: id
+    logical, intent(in) :: jellium
     integer, intent(out) :: errno
 
     type(symmetry_list), pointer :: token
@@ -309,13 +481,13 @@ contains
     if (AB_DBG) write(0,*) "AB symmetry: call set jellium."
 
     errno = AB6_NO_ERROR
-    call get_token(token, id)
+    call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_SYM_OBJ
+       errno = AB6_ERROR_OBJ
        return
     end if
 
-    token%data%withJellium = .true.
+    token%data%withJellium = jellium
 
     ! We unset only the symmetries
     token%data%nSym     = -1
@@ -325,7 +497,39 @@ contains
 
 
 
+  subroutine ab6_symmetry_get_n_atoms(id, nAtoms, errno)
+    !scalars
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
+    integer, intent(in) :: id
+    integer, intent(out) :: errno
+    integer, intent(out) :: nAtoms
+
+    type(symmetry_list), pointer :: token
+
+    if (AB_DBG) write(0,*) "AB symmetry: call get nAtoms."
+
+    errno = AB6_NO_ERROR
+    call get_item(token, id)
+    if (.not. associated(token)) then
+       errno = AB6_ERROR_OBJ
+       return
+    end if
+
+    nAtoms = token%data%nAtoms
+  end subroutine ab6_symmetry_get_n_atoms
+
   subroutine compute_bravais(sym)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+! use interfaces_42_geometry
+!End of the abilint section
+
     type(symmetry), intent(inout) :: sym
 
     integer :: berryopt
@@ -338,13 +542,21 @@ contains
     end if
     if (AB_DBG) write(0,*) "AB symmetry: call ABINIT symbrav."
     call symbrav(berryopt, sym%bravais, AB6_MAX_SYMMETRIES, &
-         & sym%nBravSym, sym%bravSym, sym%rmet, sym%rprimd)
+         & sym%nBravSym, sym%bravSym, sym%rmet, sym%rprimd, sym%tolsym)
     if (AB_DBG) write(0,*) "AB symmetry: call ABINIT OK."
+    if (AB_DBG) write(0, "(A,I3)") "  nSymBrav :", sym%nBravSym
+    if (AB_DBG) write(0, "(A,I3)") "  holohedry:", sym%bravais(1)
+    if (AB_DBG) write(0, "(A,I3)") "  center   :", sym%bravais(2)
   end subroutine compute_bravais
 
   subroutine ab6_symmetry_get_bravais(id, bravais, holohedry, center, &
        & nBravSym, bravSym, errno)
     !scalars
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
     integer, intent(in) :: id
     integer, intent(out) :: errno
     integer, intent(out) :: nBravSym, holohedry, center
@@ -356,9 +568,9 @@ contains
     if (AB_DBG) write(0,*) "AB symmetry: call get bravais."
 
     errno = AB6_NO_ERROR
-    call get_token(token, id)
+    call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_SYM_OBJ
+       errno = AB6_ERROR_OBJ
        return
     end if
 
@@ -375,10 +587,17 @@ contains
   end subroutine ab6_symmetry_get_bravais
 
   subroutine compute_matrices(sym)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+! use interfaces_42_geometry
+!End of the abilint section
+
     type(symmetry), intent(inout) :: sym
 
     integer :: berryopt, jellslab, noncol, shubnikov, isym, problem
-    integer :: nsym_nomagn, isym_nomagn
+    integer :: nsym_nomagn, isym_nomagn, nspinor, nspden, pawspnorb
     integer, allocatable :: sym_nomagn(:,:,:)
     integer :: identity(3,3)
     real(dp), allocatable :: transNon_nomagn(:,:)
@@ -400,28 +619,44 @@ contains
     else
        jellslab = 0
     end if
-    if (sym%withNonColinearSpin) then
+    if (sym%withSpin == 4) then
+       nspden = 4
        noncol = 1
        spinAt_ => sym%spinAt
+    else if (sym%withSpin == 2) then
+       nspden = 2
+       noncol = 0
+       spinAt_ => sym%spinAt
     else
+       nspden = 1
        noncol = 0
        allocate(spinAt_(3, sym%nAtoms))
        spinAt_ = 0
     end if
+    if (sym%withSpinOrbit) then
+       nspinor = 2
+       pawspnorb = 1
+    else
+       nspinor = 1
+       pawspnorb = 0
+    end if
 
     if (AB_DBG) write(0,*) "AB symmetry: call ABINIT symfind."
     call symfind(berryopt, sym%field, sym%gprimd, jellslab, AB6_MAX_SYMMETRIES, &
-         & sym%nAtoms, noncol, sym%nBravSym, sym%nSym, sym%bravSym, spinAt_, &
-         & sym%symafm, sym%sym, sym%transNon, sym%typeAt, sym%xRed)
+         & sym%nAtoms, noncol, sym%nBravSym, nspden, nspinor, sym%nSym, &
+         & pawspnorb, sym%bravSym, spinAt_, &
+         & sym%symafm, sym%sym, sym%transNon, sym%tolsym, sym%typeAt, sym%xRed)
     if (AB_DBG) write(0,*) "AB symmetry: call ABINIT OK."
+    if (AB_DBG) write(0, "(A,I3)") "  nSym:", sym%nSym
 
-    if (.not. sym%withNonColinearSpin) then
+    if (sym%withSpin == 0) then
        deallocate(spinAt_)
     end if
 
     if (AB_DBG) write(0,*) "AB symmetry: call ABINIT chkprimit."
     call chkprimit(0, sym%multiplicity, sym%nSym, sym%symAfm, sym%sym)
     if (AB_DBG) write(0,*) "AB symmetry: call ABINIT OK."
+    if (AB_DBG) write(0, "(A,I3)") "  multi:", sym%multiplicity
 
     if (sym%multiplicity == 1) then
        ! The cell is primitive, so that the space group can be
@@ -441,9 +676,11 @@ contains
           end if
        end do
 
+       if (AB_DBG) write(0, "(A,I3)") "  shubni:", shubnikov
        if(shubnikov == 1 .or. shubnikov == 3)then
           !  Find the point group
           call symanal(sym%bravais, sym%nSym, problem, sym%pointGroup, sym%sym)
+          if (AB_DBG) write(0, "(A,I3)") "  problem:", problem
           !  Find the space group
           call symspgr(sym%bravais, sym%nSym, sym%spaceGroup, sym%sym, sym%transNon)
        end if
@@ -486,6 +723,12 @@ contains
   end subroutine compute_matrices
 
   subroutine ab6_symmetry_get_matrices(id, nSym, sym, transNon, symAfm, errno)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
     integer, intent(in) :: id
     integer, intent(out) :: errno
     integer, intent(out) :: nSym
@@ -499,9 +742,9 @@ contains
     if (AB_DBG) write(0,*) "AB symmetry: call get matrices."
 
     errno = AB6_NO_ERROR
-    call get_token(token, id)
+    call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_SYM_OBJ
+       errno = AB6_ERROR_OBJ
        return
     end if
 
@@ -517,6 +760,12 @@ contains
   end subroutine ab6_symmetry_get_matrices
 
   subroutine ab6_symmetry_get_multiplicity(id, multiplicity, errno)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
     integer, intent(in) :: id
     integer, intent(out) :: multiplicity, errno
 
@@ -525,9 +774,9 @@ contains
     if (AB_DBG) write(0,*) "AB symmetry: call get multiplicity."
 
     errno = AB6_NO_ERROR
-    call get_token(token, id)
+    call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_SYM_OBJ
+       errno = AB6_ERROR_OBJ
        return
     end if
 
@@ -540,6 +789,12 @@ contains
 
   subroutine ab6_symmetry_get_group(id, pointGroup, spaceGroup, &
        & pointGroupMagn, genAfm, errno)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
     integer, intent(in)           :: id
     integer, intent(out)          :: errno
     real(dp), intent(out)         :: genAfm(3)
@@ -551,9 +806,9 @@ contains
     if (AB_DBG) write(0,*) "AB symmetry: call get group."
 
     errno = AB6_NO_ERROR
-    call get_token(token, id)
+    call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_SYM_OBJ
+       errno = AB6_ERROR_OBJ
        return
     end if
 
@@ -574,6 +829,14 @@ contains
   end subroutine ab6_symmetry_get_group
 
   subroutine compute_equivalent_atoms(sym)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+! use interfaces_32_util
+! use interfaces_42_geometry
+!End of the abilint section
+
     type(symmetry), intent(inout) :: sym
 
     integer, allocatable :: symrec(:,:,:)
@@ -590,12 +853,18 @@ contains
     
     !Obtain a list of rotated atom labels:
     call symatm(sym%indexingAtoms, sym%nAtoms, sym%nSym, symrec, &
-         & sym%transNon, sym%typeAt, sym%xRed)
+         & sym%transNon, sym%tolsym, sym%typeAt, sym%xRed)
 
     deallocate(symrec)
   end subroutine compute_equivalent_atoms
 
   subroutine ab6_symmetry_get_equivalent_atom(id, equiv, iAtom, errno)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
     integer, intent(in)  :: id
     integer, intent(in)  :: iAtom
     integer, intent(out) :: equiv(4, AB6_MAX_SYMMETRIES)
@@ -606,14 +875,14 @@ contains
     if (AB_DBG) write(0,*) "AB symmetry: call get equivalent."
 
     errno = AB6_NO_ERROR
-    call get_token(token, id)
+    call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_SYM_OBJ
+       errno = AB6_ERROR_OBJ
        return
     end if
 
     if (iAtom < 1 .or. iAtom > token%data%nAtoms) then
-       errno = AB6_ERROR_SYM_ARG
+       errno = AB6_ERROR_ARG
        return
     end if
 
@@ -625,30 +894,35 @@ contains
     equiv(:, 1:token%data%nSym) = token%data%indexingAtoms(:,:,iAtom)
   end subroutine ab6_symmetry_get_equivalent_atom
 
-  subroutine ab6_symmetry_get_k_grid(id, nkpt, kpt, wkpt, &
+  subroutine ab6_symmetry_get_mp_k_grid(id, nkpt, kpt, wkpt, &
        & ngkpt, nshiftk, shiftk, errno)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+! use interfaces_56_recipspace
+!End of the abilint section
+
     integer, intent(in)  :: id
     integer, intent(out) :: errno
     integer, intent(in) :: ngkpt(3)
     integer, intent(in) :: nshiftk
     real(dp), intent(in) :: shiftk(3, nshiftk)
     integer, intent(out) :: nkpt
-    real(dp), intent(out) :: kpt(3, ngkpt(1) * ngkpt(2) * ngkpt(3))
-    real(dp), intent(out) :: wkpt(ngkpt(1) * ngkpt(2) * ngkpt(3))
+    real(dp), pointer :: kpt(:,:), wkpt(:)
 
     type(symmetry_list), pointer  :: token
     integer :: nshiftk_, nkpt_
     real(dp) :: kptrlen
     integer :: kptrlatt(3,3)
     real(dp) :: shiftk_(3, 8)
-    real(dp), allocatable :: kpt_(:,:), wkpt_(:)
 
     if (AB_DBG) write(0,*) "AB symmetry: call get k grid."
 
     errno = AB6_NO_ERROR
-    call get_token(token, id)
+    call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_SYM_OBJ
+       errno = AB6_ERROR_OBJ
        return
     end if
 
@@ -674,14 +948,61 @@ contains
     ! Then, we call it again to get the actual values for the k points.
     nshiftk_ = nshiftk
     shiftk_(:, 1:nshiftk) = shiftk
-    allocate(kpt_(3, nkpt))
-    allocate(wkpt_(nkpt))
-    call getkgrid((/ 1, 1, 1 /), 6, 1, kpt_, 1, kptrlatt, kptrlen, &
+    allocate(kpt(3, nkpt))
+    allocate(wkpt(nkpt))
+    call getkgrid((/ 1, 1, 1 /), 6, 1, kpt, 1, kptrlatt, kptrlen, &
          & AB6_MAX_SYMMETRIES, nkpt, nkpt_, nshiftk_, token%data%nSym, &
          & token%data%rprimd, shiftk_, token%data%symAfm, token%data%sym, &
-         & token%data%transNon, (/ 0, 0, 0 /), wkpt_)
-    kpt(:, 1:nkpt) = kpt_
-    wkpt(1:nkpt) = wkpt_
-  end subroutine ab6_symmetry_get_k_grid
+         & token%data%transNon, (/ 0, 0, 0 /), wkpt)
+  end subroutine ab6_symmetry_get_mp_k_grid
+
+  subroutine ab6_symmetry_get_auto_k_grid(id, nkpt, kpt, wkpt, &
+       & kptrlen, errno)
+    integer, intent(in)  :: id
+    integer, intent(out) :: errno
+    integer, intent(out) :: nkpt
+    real(dp), intent(in) :: kptrlen
+    real(dp), pointer :: kpt(:,:), wkpt(:)
+
+    type(symmetry_list), pointer  :: token
+    integer :: nshiftk_, nkpt_
+    integer :: kptrlatt(3,3)
+    real(dp) :: shiftk_(3, 8)
+
+    if (AB_DBG) write(0,*) "AB symmetry: call get MP k grid."
+
+    errno = AB6_NO_ERROR
+    call get_item(token, id)
+    if (.not. associated(token)) then
+       errno = AB6_ERROR_OBJ
+       return
+    end if
+
+    if (token%data%nSym < 0) then
+       ! We do the computation of the matrix part.
+       call compute_matrices(token%data)
+    end if
+
+    !  The parameters of the k lattice are not known, compute
+    !  kptrlatt, nshiftk, shiftk.
+    call testkgrid(token%data%bravais,6,kptrlatt,kptrlen,&
+         & AB6_MAX_SYMMETRIES,nshiftk_,token%data%nSym,0,token%data%rprimd,&
+         & shiftk_,token%data%symAfm,token%data%sym,token%data%transNon,(/ 0, 0, 0 /))
+    if (AB_DBG) write(0,*) "AB symmetry: testkgrid -> kptrlatt=", kptrlatt
+
+    call getkgrid((/ 1, 1, 1 /), 6, 1, kpt, 1, kptrlatt, kptrlen, &
+         & AB6_MAX_SYMMETRIES, 0, nkpt, nshiftk_, token%data%nSym, &
+         & token%data%rprimd, shiftk_, token%data%symAfm, token%data%sym, &
+         & token%data%transNon, (/ 0, 0, 0 /), wkpt)
+    if (AB_DBG) write(0,*) "AB symmetry: getkgrid -> nkpt=", nkpt
+    allocate(kpt(3, nkpt))
+    allocate(wkpt(nkpt))
+
+    ! Then, we call it again to get the actual values for the k points.
+    call getkgrid((/ 1, 1, 1 /), 6, 1, kpt, 1, kptrlatt, kptrlen, &
+         & AB6_MAX_SYMMETRIES, nkpt, nkpt_, nshiftk_, token%data%nSym, &
+         & token%data%rprimd, shiftk_, token%data%symAfm, token%data%sym, &
+         & token%data%transNon, (/ 0, 0, 0 /), wkpt)
+  end subroutine ab6_symmetry_get_auto_k_grid
 
 end module ab6_symmetry
