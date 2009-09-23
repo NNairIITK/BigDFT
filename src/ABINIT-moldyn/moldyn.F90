@@ -454,7 +454,7 @@ subroutine moldyn(acell,amass,me,&
 ! ####### Test case ionmov=9  Langevin dynamics  ##########
   if (ionmov==9) then
      call md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, &
-          & mditemp, mdwall, natom, rprimd, vel, xcart, xcart_next, xred, xred_next)
+          & mditemp, mdwall, natom, rprimd, vel, xcart, xcart_next, xred_next)
      !  Impose no change of acell, ucvol, rprim, and rprimd
      acell_next(:)=acell(:)
      ucvol_next=ucvol
@@ -465,7 +465,7 @@ subroutine moldyn(acell,amass,me,&
   else if (ionmov==8) then
      call md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp, &
           & natom, noseinert, rprimd, snose, v2nose, vel, xcart, xcart_next, &
-          & xi_nose, xred, xred_next)
+          & xi_nose, xred_next)
      acell_next(:)=acell(:)
      ucvol_next=ucvol
      rprim_next(:,:)=rprim(:,:)
@@ -473,8 +473,8 @@ subroutine moldyn(acell,amass,me,&
 
 !  #####   case ionmov==12 Isokinetic Ensemble ###########
   else if (ionmov==12) then
-     call md_isokinetic(amass, dtion, fcart, itime, natom, mditemp, rprimd, vel, &
-          & vel_nexthalf, xcart, xcart_next, xred, xred_next)
+     call md_isokinetic(acell, amass, dtion, etotal, fcart, itime, natom, &
+          & mditemp, me, rprimd, vel, vel_nexthalf, xcart, xcart_next, xred_next)
      acell_next(:)=acell(:)
      ucvol_next=ucvol
      rprim_next(:,:)=rprim(:,:)
@@ -543,6 +543,11 @@ subroutine moldyn(acell,amass,me,&
   call wrtout(ab_out,message,'COLL')
   call wrtout(std_out,message,'COLL')
   write(message, '(a,es22.14,a)' )&
+&  '                                  KIN.En.=',&
+&  ekin,' Ha.'
+  call wrtout(ab_out,message,'COLL')
+  call wrtout(std_out,message,'COLL')
+  write(message, '(a,es22.14,a)' )&
 &  '                              KIN+POT.En.=',&
 &  etotal+ekin,' Ha.'
   call wrtout(ab_out,message,'COLL')
@@ -558,10 +563,6 @@ subroutine moldyn(acell,amass,me,&
    write(message, '(a,es22.14,2x,es22.14)' )&
 &   '           TEMP         TKA =',&
 &   ktemp/kb_HaK,ekin/(1.5_dp*natom*ktemp)
-   call wrtout(ab_out,message,'COLL')
-   call wrtout(std_out,message,'COLL')
-   write(message, '(a,es22.14)' )&
-&   '                       EKIN =',ekin
    call wrtout(ab_out,message,'COLL')
    call wrtout(std_out,message,'COLL')
   end if

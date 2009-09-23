@@ -304,7 +304,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
      call copy_old_wavefunctions(nproc,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
           Glr%wfd,psi,n1_old,n2_old,n3_old,wfd_old,psi_old)
-     write(*,*) "ok"
   else if (in%inputPsiId == 11) then
      !deallocate wavefunction and descriptors for placing the gaussians
      

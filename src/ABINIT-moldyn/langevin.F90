@@ -1,5 +1,5 @@
 subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, &
-     & mditemp, mdwall, natom, rprimd, vel, xcart, xcart_next, xred, xred_next)
+     & mditemp, mdwall, natom, rprimd, vel, xcart, xcart_next, xred_next)
   
   use defs_basis
 
@@ -10,7 +10,7 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
   real(dp),intent(inout) :: vel(3,natom)
   real(dp),intent(in) :: ktemp, mditemp, friction, dtion, mdwall
   real(dp),intent(in) :: rprimd(3,3)
-  real(dp),intent(inout) :: xred(3,natom), xcart(3, natom)
+  real(dp),intent(in) :: xcart(3, natom)
   real(dp),intent(out) :: xred_next(3,natom), xcart_next(3,natom)
   real(dp), intent(inout) :: fcart_mold(3, natom)
   
@@ -295,8 +295,6 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
 
   !  Compute next atomic coordinates using Verlet algorithm
 
-  !  Convert input xred (reduced coordinates) to xcart (cartesian)
-  call xredxcart(natom,1,rprimd,xcart,xred)
   !  Uses the velocity
   !  
   !  If an atom wants to cross the walls, velocity is reversed.
@@ -314,11 +312,9 @@ subroutine md_langevin(amass, dtion, fcart, fcart_mold, friction, itime, ktemp, 
         xcart_next(idim,iatom)=delxi
      end do
   end do
-  xcart(:,:)=xcart_next(:,:)
 
   !  Convert back to xred_next (reduced coordinates)
   call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
-  call xredxcart(natom,-1,rprimd,xcart,xred)
 
   if (itime==0) then
      !   no old forces are available at first step

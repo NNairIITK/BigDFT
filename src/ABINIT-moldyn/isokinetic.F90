@@ -87,23 +87,24 @@ subroutine md_isokinetic_init(amass, mditemp, natom, vel)
   end if
 end subroutine md_isokinetic_init
 
-subroutine md_isokinetic(amass, dtion, fcart, itime, natom, mditemp, rprimd, vel, &
-     & vel_nexthalf, xcart, xcart_next, xred, xred_next)
+subroutine md_isokinetic(acell, amass, dtion, epot, fcart, itime, natom, &
+     & mditemp, me, rprimd, vel, vel_nexthalf, xcart, xcart_next, xred_next)
 
   use defs_basis
 
   implicit none
 
-  integer, intent(in) :: natom, itime
-  real(dp),intent(in) :: mditemp, dtion
-  real(dp),intent(in) :: rprimd(3,3)
-  real(dp),intent(in) :: amass(natom), fcart(3, natom)
-  real(dp),intent(inout) :: vel(3,natom)
+  integer, intent(in) :: natom, itime, me
+  real(dp), intent(in) :: mditemp, dtion
+  real(dp), intent(out) :: epot
+  real(dp), intent(in) :: rprimd(3,3), acell(3)
+  real(dp), intent(in) :: amass(natom)
+  real(dp), intent(inout) :: vel(3,natom), fcart(3, natom)
   real(dp), intent(out) :: vel_nexthalf(3, natom)
-  real(dp),intent(inout) :: xred(3,natom), xcart(3, natom)
-  real(dp),intent(out) :: xred_next(3,natom), xcart_next(3,natom)
+  real(dp), intent(in) :: xcart(3, natom)
+  real(dp), intent(out) :: xred_next(3,natom), xcart_next(3,natom)
 
-  real(dp),parameter :: v2tol=tol8
+  real(dp), parameter :: v2tol=tol8
   integer :: idim, iatom
   real(dp) :: v2gauss, s1, s2, a, b, sqb, as, s, scdot
   real(dp), allocatable :: fcart_m(:,:)
@@ -111,99 +112,89 @@ subroutine md_isokinetic(amass, dtion, fcart, itime, natom, mditemp, rprimd, vel
   !  Application of Gauss' principle of least constraint according to Fei Zhang's algorithm (J. Chem. Phys. 106, 1997, p.6102)
   if (itime == 0) then
      call md_isokinetic_init(amass, mditemp, natom, vel)
+     vel_nexthalf(:,:)=vel(:,:)
+     xcart_next(:,:)=xcart(:,:)
+     call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
+
+     return
   end if
 
   allocate(fcart_m(3,natom))
+  v2gauss = zero
+  do iatom=1,natom
+     do idim=1,3
+        fcart_m(idim,iatom)=fcart(idim,iatom)/amass(iatom)
+        v2gauss=v2gauss+vel(idim,iatom)*vel(idim,iatom)*amass(iatom)
+     end do
+  end do
+
+  !   Computation of vel_nexthalf (4.16 de Ref.1)
+  !   Computation of a and b (4.13 de Ref.1)
+  a=0.0_dp
+  b=0.0_dp
+  do iatom=1,natom
+     do idim=1,3
+        a=a+fcart_m(idim,iatom)*vel(idim,iatom)*amass(iatom)
+        b=b+fcart_m(idim,iatom)*fcart_m(idim,iatom)*amass(iatom)
+     end do
+  end do
+  a=a/v2gauss
+  b=b/v2gauss
+  !   Computation of s and scdot
+  sqb=sqrt(b)
+  as=sqb*dtion/2.
+  s1=cosh(as)
+  s2=sinh(as)
+  s=a*(s1-1.)/b+s2/sqb
+  scdot=a*s2/sqb+s1
+  vel_nexthalf(:,:)=(vel(:,:)+fcart_m(:,:)*s)/scdot
+
+  !   Computation of the next positions
+  xcart_next(:,:)=xcart(:,:)+vel_nexthalf(:,:)*dtion
+
+  !   Convert back to xred (reduced coordinates)
+  call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
+
+  !   Computation of the forces for the new positions
+  !   Compute LDA forces (big loop), fcart_m is used as dummy argument for fred
+  call scfloop_main(acell, epot, fcart, fcart_m, itime, me, natom, rprimd, xred_next)
   do iatom=1,natom
      do idim=1,3
         fcart_m(idim,iatom)=fcart(idim,iatom)/amass(iatom)
      end do
   end do
 
+  !   Computation of vel(:,:) at the next positions
+  !   Computation of v2gauss
+  v2gauss=0.0_dp
+  do iatom=1,natom
+     do idim=1,3
+        v2gauss=v2gauss+vel_nexthalf(idim,iatom)*vel_nexthalf(idim,iatom)*amass(iatom)
+     end do
+  end do
+  !   Calcul de a et b (4.13 de Ref.1)
+  a=0.0_dp
+  b=0.0_dp
+  do iatom=1,natom
+     do idim=1,3
+        a=a+fcart_m(idim,iatom)*vel_nexthalf(idim,iatom)*amass(iatom)
+        b=b+fcart_m(idim,iatom)*fcart_m(idim,iatom)*amass(iatom)
+     end do
+  end do
+  a=a/v2gauss
+  b=b/v2gauss
+  !   Calcul de s et scdot
+  sqb=sqrt(b)
+  as=sqb*dtion/2.
+  s1=cosh(as)
+  s2=sinh(as)
+  s=a*(s1-1.)/b+s2/sqb
+  scdot=a*s2/sqb+s1
+  vel(:,:)=(vel_nexthalf(:,:)+fcart_m(:,:)*s)/scdot
+  !FB20090429    
   !  Convert input xred (reduced coordinates) to xcart (cartesian)
-  call xredxcart(natom,1,rprimd,xcart,xred)
-
-  if(itime==0) then
-     vel_nexthalf(:,:)=vel(:,:)
-     xcart_next(:,:)=xcart(:,:)
-     call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
-  else
-     !   Computation of vel_nexthalf (4.16 de Ref.1)
-     !   Computation of a and b (4.13 de Ref.1)
-     a=0.0_dp
-     b=0.0_dp
-     do iatom=1,natom
-        do idim=1,3
-           a=a+fcart_m(idim,iatom)*vel(idim,iatom)*amass(iatom)
-           b=b+fcart_m(idim,iatom)*fcart_m(idim,iatom)*amass(iatom)
-        end do
-     end do
-     a=a/v2gauss
-     b=b/v2gauss
-     !   Computation of s and scdot
-     sqb=sqrt(b)
-     as=sqb*dtion/2.
-     s1=cosh(as)
-     s2=sinh(as)
-     s=a*(s1-1.)/b+s2/sqb
-     scdot=a*s2/sqb+s1
-     vel_nexthalf(:,:)=(vel(:,:)+fcart_m(:,:)*s)/scdot
-
-     !   Computation of the next positions
-     xcart_next(:,:)=xcart(:,:)+vel_nexthalf(:,:)*dtion
-
-     !   Convert back to xred (reduced coordinates)
-     call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
-
-     !   Computation of the forces for the new positions
-     !   Compute LDA forces (big loop)
-!!$     iapp=-1
-!!$     if(itime>0)iapp=itime
-!!$    call scfcv(acell,atindx,atindx1,cg,cpus,densymop_gs,dtefield,dtfil,dtset,ecore,&
-!!$&    eigen,hdr,iapp,indsym,initialized,&
-!!$&    irrzon,kg,mpi_enreg,&
-!!$&    nattyp,nfftf,npwarr,nspinor,occ,&
-!!$&    pawang,pawfgr,pawrad,pawrhoij,pawtab,phnons,psps,&
-!!$&    pwind,pwind_alloc,pwnsfac,rec_set,resid,results_gs,rhog,rhor,rprimd,&
-!!$&    scf_history,symrec,wffnew,wffnow,wvl,xred_next,xred,ylm,ylmgr)
-     do iatom=1,natom
-        do idim=1,3
-           fcart_m(idim,iatom)=fcart(idim,iatom)/amass(iatom)
-        end do
-     end do
-
-     !   Computation of vel(:,:) at the next positions
-     !   Computation of v2gauss
-     v2gauss=0.0_dp
-     do iatom=1,natom
-        do idim=1,3
-           v2gauss=v2gauss+vel_nexthalf(idim,iatom)*vel_nexthalf(idim,iatom)*amass(iatom)
-        end do
-     end do
-     !   Calcul de a et b (4.13 de Ref.1)
-     a=0.0_dp
-     b=0.0_dp
-     do iatom=1,natom
-        do idim=1,3
-           a=a+fcart_m(idim,iatom)*vel_nexthalf(idim,iatom)*amass(iatom)
-           b=b+fcart_m(idim,iatom)*fcart_m(idim,iatom)*amass(iatom)
-        end do
-     end do
-     a=a/v2gauss
-     b=b/v2gauss
-     !   Calcul de s et scdot
-     sqb=sqrt(b)
-     as=sqb*dtion/2.
-     s1=cosh(as)
-     s2=sinh(as)
-     s=a*(s1-1.)/b+s2/sqb
-     scdot=a*s2/sqb+s1
-     vel(:,:)=(vel_nexthalf(:,:)+fcart_m(:,:)*s)/scdot
-     !FB20090429    
-     !  Convert input xred (reduced coordinates) to xcart (cartesian)
-     !   call xredxcart(natom,1,rprimd,xcart,xred)
-     !FB20090429    
-  end if
+  !   call xredxcart(natom,1,rprimd,xcart,xred)
+  !FB20090429    
   deallocate(fcart_m)
 
   !  End of case ionmov = 12
