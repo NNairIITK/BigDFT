@@ -66,17 +66,16 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   call orbitals_communicators(iproc,nproc,lr,ha%orbs,ha%comms)  
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
-
+ 
 !!$  
   !call allocate_comms(nproc,ha%orbs,ha%comms,subname)
-  if( iproc.eq.0) then
      write(filename,'(A,A,A)') "gproje_", at%atomnames(at%iatype(  in_iat_absorber )) , "_1s_dipole"
      
      inquire(FILE=filename,EXIST=projeexists)
-     if( projeexists) then
+     if( projeexists .and. .not. in%abscalc_eqdiff   ) then
 
 
-        print *, "leggo " 
+        print *, "leggo " ,  in%abscalc_eqdiff  
         nullify( dum_coeffs  ) 
 
         call read_gaussian_information(0 ,1 ,ha%orbs,Gabsorber,dum_coeffs , filename, .true. )
@@ -87,24 +86,26 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
      else
           
-  
-        call GetExcitedOrbitalAsG(in_iat_absorber ,Gabsorber,&
-             at,rxyz,nproc,iproc,1,    in%L_absorber ,  in%abscalc_eqdiff )
-        print * , " uscito get "
-
-        allocate(dum_coeffs(2*in%L_absorber+1,1+ndebug),stat=i_stat)
-        call memocc(i_stat,dum_coeffs,'dum_coeffs',subname)
-
-        dum_coeffs(:,1) = in%Gabs_coeffs(:)
-        
-        Gabs_coeffs(:)=in%Gabs_coeffs(:)
-
-        print *, " chiamo write " 
-        call write_gaussian_information( 0 ,1 ,ha%orbs,Gabsorber,dum_coeffs ,filename)
+           
+           call GetExcitedOrbitalAsG(in_iat_absorber ,Gabsorber,&
+                at,rxyz,nproc,iproc,1,    in%L_absorber ,  in%abscalc_eqdiff )
+           print * , " uscito get "
+           
+           allocate(dum_coeffs(2*in%L_absorber+1,1+ndebug),stat=i_stat)
+           call memocc(i_stat,dum_coeffs,'dum_coeffs',subname)
+           
+           dum_coeffs(:,1) = in%Gabs_coeffs(:)
+           
+           Gabs_coeffs(:)=in%Gabs_coeffs(:)
+           
+        if( iproc.eq.0) then
+           print *, " chiamo write " 
+           call write_gaussian_information( 0 ,1 ,ha%orbs,Gabsorber,dum_coeffs ,filename)
+        endif
      endif
      
 
-  endif
+
   
 
   !associate hamapp_arg pointers

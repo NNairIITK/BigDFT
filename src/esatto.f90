@@ -114,9 +114,9 @@ contains
 
   subroutine  inizializza(  nls_a, ngrid_A , rv_A,vv_A,   lpot_A, rpot_A, spot_A, hpot_A,    psi_A, derpsi_A, Rmts_A)
     integer  :: ngrid_A, lpot_A, nls_a
-    real(gp) , target ::  rv_A(1:ngrid_A),  vv_A(1:ngrid_A) ,  derpsi_A(0:nls_a-1), psi_A(0:nls_a-1)
+    real(gp) , target ::  rv_A(1:ngrid_A),  vv_A(1:ngrid_A) 
     real(gp) :: rpot_A, spot_A, hpot_A,Rmts_A
-    real(gp), pointer :: psi_p(:)
+    real(gp), pointer :: psi_p(:),  psi_A(:),  derpsi_A(:)
     integer l,j
 
 
@@ -133,16 +133,10 @@ contains
     hpot=hpot_A
 
 
-!!$    print *, " C  psi_A(1) " ,psi_A(1)
-
 
     psi=>psi_A
     psi_p=>psi_A
     derpsi=>derpsi_A
-
-!!$    print *, " C  psi(1) " ,psi(1)
-!!$    print *, " C  psi(1) " ,psi_p(1)
-
 
     Rmts=Rmts_A
    
@@ -416,9 +410,10 @@ contains
 
    real(gp) function esatto_CalcolaRiflettivita( ngrid_A ,rgrid, dumgrid1, nls_a, lpot_a, rpot_a,spot_a,hpot_a,y_r,d_r,&
         Rmts,    Rinf ,nsteps_coarse ,nsteps_fine, Energia )
-     real(gp), target :: rgrid(1:ngrid_A), dumgrid1(1:ngrid_A), y_r(0:nls_a-1), d_r(0:nls_a-1)
+     real(gp), target :: rgrid(1:ngrid_A), dumgrid1(1:ngrid_A)
      real(gp) rpot_a, spot_a, hpot_a,Rmts , Rinf, Energia
      integer nls_a, lpot_a, nsteps_coarse, nsteps_fine, ngrid_A
+     real(gp), pointer ::  y_r(:), d_r(:)
      
      
      integer iCs, iFs,i
@@ -438,11 +433,12 @@ contains
 !!$     py_r=> y_r
 !!$     print *, " B  py_r(1) " ,py_r(1)
 
+
      call  inizializza(  nls_a, ngrid_A ,rgrid  ,dumgrid1 ,   lpot_A, rpot_A, spot_A, hpot_A,  y_r  ,d_r ,Rmts )
      
      call RiflettivitaSub(Energia, Ref, Transm)
  
-  
+
      open(unit=22,file='runge.dat')
 
  

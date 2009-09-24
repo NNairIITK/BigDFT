@@ -249,6 +249,7 @@ subroutine gaussian_overlap(A,B,ovrlp)
      end do
   end do
 
+
   call gaudim_check(iexpo,icoeff,ishell,A%nexpo,A%ncoeff,A%nshltot)
   call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
   
@@ -355,6 +356,8 @@ subroutine kinetic_overlap(A,B,ovrlp)
         icoeff=icoeff+2*lA-1
      end do
   end do
+
+
 
   call gaudim_check(iexpo,icoeff,ishell,A%nexpo,A%ncoeff,A%nshltot)
   call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
@@ -471,6 +474,8 @@ subroutine potential_overlap(A,B,pot,n1,n2,n3,hx,hy,hz,ovrlp)
         icoeff=icoeff+2*lA-1
      end do
   end do
+
+
 
   call gaudim_check(iexpo,icoeff,ishell,A%nexpo,A%ncoeff,A%nshltot)
   call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
