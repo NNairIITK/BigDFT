@@ -34,7 +34,7 @@ subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alp
         ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*idsx
      end do
      
-     !here we should separate between up and down spin orbitals
+     !here we should separate between up and down spin orbitals, maybe
      call diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,&
           psit,psidst,hpsidst)
 
@@ -165,7 +165,6 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
         
         if (info /= 0) then
            print*, 'diisstp: DSYSV',info
-           stop
         end if
      else
         rds(1,ikpt)=1.0_dp

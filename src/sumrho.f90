@@ -200,238 +200,6 @@ end subroutine sumrho
 !!***
 
 
-!!****f* BigDFT/local_partial_density_old
-!! FUNCTION
-!!   Here starts the routine for building partial density inside the localisation region
-!!   This routine should be treated as a building-block for the linear scaling code
-!! SOURCE
-!!
-subroutine local_partial_density_old(iproc,nproc,rsflag,nscatterarr,&
-     nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
-  use module_base
-  use module_types
-  use module_interfaces
-  implicit none
-  logical, intent(in) :: rsflag
-  integer, intent(in) :: iproc,nproc,nrhotot
-  integer, intent(in) :: nspin
-  real(gp), intent(in) :: hxh,hyh,hzh
-  type(orbitals_data), intent(in) :: orbs
-  type(locreg_descriptors), intent(in) :: lr
-  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
-  real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,max(nspin,orbs%nspinor)), intent(inout) :: rho_p
-  !local variables
-  character(len=*), parameter :: subname='local_partial_density'
-  integer :: nw1,nw2,nxc,nxf,iorb
-  integer :: n1,n2,n3,n1i,n2i,n3i,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  integer :: oidx,sidx,nspinn,npsir,ncomplex
-  integer :: i_all,i_stat,ierr,j3,j3p,j,i
-  real(gp) :: hfac,spinval
-  real(wp), dimension(0:3) :: scal
-  real(wp), dimension(:,:), allocatable :: psir
-  real(wp), dimension(:), allocatable :: x_c_psifscf,x_f_psig,w1,w2
-
-  do i=0,3
-     scal(i)=1.0_wp
-  enddo
-
-  n1=lr%d%n1
-  n2=lr%d%n2
-  n3=lr%d%n3
-  n1i=lr%d%n1i
-  n2i=lr%d%n2i
-  n3i=lr%d%n3i
-  nfl1=lr%d%nfl1
-  nfl2=lr%d%nfl2
-  nfl3=lr%d%nfl3
-  nfu1=lr%d%nfu1
-  nfu2=lr%d%nfu2
-  nfu3=lr%d%nfu3
-  
-  select case(lr%geocode)
-  case('F')
-     !dimension of the work arrays
-     ! shrink convention: nw1>nw2
-     nw1=max((n3+1)*(2*n1+31)*(2*n2+31),& 
-          (n1+1)*(2*n2+31)*(2*n3+31),&
-          2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
-          2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
-     nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
-          4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
-          (n1+1)*(n2+1)*(2*n3+31),&
-          (2*n1+31)*(n2+1)*(n3+1))
-     nxc=(n1+1)*(n2+1)*(n3+1)!(2*n1+2)*(2*n2+2)*(2*n3+2)
-     nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
-  case('S')
-     !dimension of the work arrays
-     nw1=1
-     nw2=1
-     nxc=(2*n1+2)*(2*n2+31)*(2*n3+2)
-     nxf=1
-  case('P')
-     if (lr%hybrid_on) then
-        ! hybrid case:
-        nxc=(n1+1)*(n2+1)*(n3+1)
-        nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
-
-        nw1=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
-        nw1=max(nw1,2*(n3+1)*(n1+1)*(n2+1))	   ! for the comb_shrink_hyb_c
-        nw1=max(nw1,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
-
-        nw2=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
-        nw2=max(nw2,4*(n2+1)*(n3+1)*(n1+1))	! for the comb_shrink_hyb_c   
-        nw2=max(nw2,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
-     else
-        !dimension of the work arrays, fully periodic case
-        nw1=1
-        nw2=1
-        nxc=(2*n1+2)*(2*n2+2)*(2*n3+2)
-        nxf=1
-     endif
-
-  end select
-  !work arrays
-  allocate(x_c_psifscf(nxc+ndebug),stat=i_stat)
-  call memocc(i_stat,x_c_psifscf,'x_c_psifscf',subname)
-  allocate(x_f_psig(nxf+ndebug),stat=i_stat)
-  call memocc(i_stat,x_f_psig,'x_f_psig',subname)
-  allocate(w1(nw1+ndebug),stat=i_stat)
-  call memocc(i_stat,w1,'w1',subname)
-  allocate(w2(nw2+ndebug),stat=i_stat)
-  call memocc(i_stat,w2,'w2',subname)
-
-
-  !components of wavefunction in real space which must be considered simultaneously
-  !and components of the charge density
-  if (orbs%nspinor ==4) then
-     npsir=4
-     nspinn=4
-     ncomplex=0
-  else
-     npsir=1
-     nspinn=nspin
-     ncomplex=orbs%nspinor-1
-  end if
-
-  allocate(psir(n1i*n2i*n3i,npsir+ndebug),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
-  !initialisation
-  !print *,iproc,'there'
-  if (lr%geocode == 'F') then
-     call razero(nxc,x_c_psifscf)
-     call razero(nxf,x_f_psig)
-     call razero(n1i*n2i*n3i*npsir,psir)
-  end if
-
-  do iorb=1,orbs%norbp
-
-     !the factor requires the weigth for the k-point
-     hfac=orbs%kwgts(orbs%iokpt(iorb))*(orbs%occup(orbs%isorb+iorb)/(hxh*hyh*hzh))
-     spinval=orbs%spinsgn(orbs%isorb+iorb)
-
-     if (hfac /= 0.d0) then
-
-        !sum for complex function case, npsir=1 in that case
-        do oidx=0,ncomplex
-
-           select case(lr%geocode)
-           case('F')
-              do sidx=1,npsir
-
-                 call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-
-                      lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),  & 
-                      lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                      lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1), &
-                      scal,psi(1,oidx+sidx,iorb),psi(lr%wfd%nvctr_c+1,oidx+sidx,iorb),&
-                      x_c_psifscf,x_f_psig)
-
-                 call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,&
-                      x_c_psifscf,x_f_psig,  & 
-                      psir(1,sidx),lr%bounds%kb%ibyz_c,&
-                      lr%bounds%gb%ibzxx_c,lr%bounds%gb%ibxxyy_c,&
-                      lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f,&
-                      lr%bounds%ibyyzz_r)
-              end do
-
-              call partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
-                   hfac,nscatterarr,spinval,psir,rho_p,lr%bounds%ibyyzz_r)
-
-           case('P')
-
-              do sidx=1,npsir
-                 if (lr%hybrid_on) then
-                    ! hybrid case
-                    call uncompress_per_f_short(n1,n2,n3,lr%wfd%nseg_c,&
-                         lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
-                         lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                         lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1), &
-                         psi(1,oidx+sidx,iorb),psi(lr%wfd%nvctr_c+1,oidx+sidx,iorb),&
-                         x_c_psifscf,x_f_psig,&
-                         nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
-
-                    call comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-                         nw1,nw2,w1,w2,x_c_psifscf,x_f_psig,psir(1,sidx),lr%bounds%gb)
-                 else
-                    call uncompress_per(n1,n2,n3,lr%wfd%nseg_c,&
-                         lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
-                         lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                         lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),&
-                         psi(1,oidx+sidx,iorb),psi(lr%wfd%nvctr_c+1,oidx+sidx,iorb),&
-                         x_c_psifscf,psir(1,sidx))
-
-                    call convolut_magic_n_per_self(2*n1+1,2*n2+1,2*n3+1,&
-                         x_c_psifscf,psir(1,sidx)) 
-                 endif
-
-              end do
-
-              call partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
-                   hfac,nscatterarr,spinval,psir,rho_p)
-
-           case('S')
-
-              do sidx=1,npsir
-                 call uncompress_slab(n1,n2,n3,lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                      lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
-                      lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg(1,lr%wfd%nseg_c+1),&
-                      lr%wfd%keyv(lr%wfd%nseg_c+1),   &
-                      psi(1,oidx+sidx,iorb),psi(lr%wfd%nvctr_c+1,oidx+sidx,iorb),x_c_psifscf,&
-                      psir(1,sidx))
-
-                 call convolut_magic_n_slab_self(2*n1+1,2*n2+15,2*n3+1,x_c_psifscf,&
-                      psir(1,sidx)) 
-              end do
-
-              call partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
-                   hfac,nscatterarr,spinval,psir,rho_p)
-           end select
-
-        end do
-     end if
-  enddo
-
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
-  i_all=-product(shape(x_c_psifscf))*kind(x_c_psifscf)
-  deallocate(x_c_psifscf,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c_psifscf',subname)
-  i_all=-product(shape(x_f_psig))*kind(x_f_psig)
-  deallocate(x_f_psig,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f_psig',subname)
-  i_all=-product(shape(w1))*kind(w1)
-  deallocate(w1,stat=i_stat)
-  call memocc(i_stat,i_all,'w1',subname)
-  i_all=-product(shape(w2))*kind(w2)
-  deallocate(w2,stat=i_stat)
-  call memocc(i_stat,i_all,'w2',subname)
-
-end subroutine local_partial_density_old
-!!***
-
-
 !!****f* BigDFT/local_partial_density
 !! FUNCTION
 !!   Here starts the routine for building partial density inside the localisation region
@@ -485,6 +253,8 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
 
   do iorb=1,orbs%norbp
 
+     !print *,'norbp',orbs%norbp,orbs%norb,orbs%nkpts,orbs%kwgts,orbs%iokpt,orbs%occup
+
      !the factor requires the weigth for the k-point
      hfac=orbs%kwgts(orbs%iokpt(iorb))*(orbs%occup(orbs%isorb+iorb)/(hxh*hyh*hzh))
      spinval=orbs%spinsgn(orbs%isorb+iorb)
@@ -498,6 +268,9 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
               call daub_to_isf(lr,w,psi(1,oidx+sidx,iorb),psir(1,sidx))
            end do
 
+           !print *,'iorb,nrm',iorb,&
+           !nrm2(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir(1,1),1)
+
            select case(lr%geocode)
            case('F')
 
@@ -507,12 +280,14 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
 
            case('P')
 
-              call partial_density(rsflag,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,npsir,nspinn,nrhotot,&
+              call partial_density(rsflag,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                   npsir,nspinn,nrhotot,&
                    hfac,nscatterarr,spinval,psir,rho_p)
 
            case('S')
 
-              call partial_density(rsflag,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,npsir,nspinn,nrhotot,&
+              call partial_density(rsflag,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                   npsir,nspinn,nrhotot,&
                    hfac,nscatterarr,spinval,psir,rho_p)
 
            end select
