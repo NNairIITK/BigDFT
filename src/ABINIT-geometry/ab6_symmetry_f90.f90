@@ -203,7 +203,7 @@ contains
     sym%multiplicity = -1
     nullify(sym%indexingAtoms)
     write(sym%pointGroup, "(A)") "-----"
-    token%data%vaccum = 0
+    sym%vaccum = 0
   end subroutine new_symmetry
 
   subroutine free_symmetry(sym)

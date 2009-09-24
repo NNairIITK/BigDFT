@@ -105,7 +105,7 @@ program BigDFT
      !call read_input_variables(iproc,'input.dat',inputs)
 
      ! read k-points input variables (if given)
-     call kpt_input_variables(iproc,'input.kpt',inputs,atoms%symObj)
+     call kpt_input_variables(iproc,'input.kpt',inputs,atoms)
 
      !read geometry optimsation input variables
      !inquire for the file needed for geometry optimisation

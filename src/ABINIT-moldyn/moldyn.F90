@@ -209,8 +209,7 @@ subroutine moldyn(acell,amass,me,&
  real(dp),allocatable :: vel_nexthalf(:,:)
  real(dp),allocatable :: vel_prevhalf(:,:),vin(:),vin_next(:)
  real(dp),allocatable :: vin_prev(:),vout(:),xcart(:,:)
- real(dp),allocatable :: xcart_next(:,:),xcart_prev(:,:),xred_next(:,:)
- real(dp),allocatable :: xred_prev(:,:)
+ real(dp),allocatable :: xcart_next(:,:),xred_prev(:,:),xred_next(:,:)
 
 !************************************************************************
 !Beginning of executable session
@@ -246,7 +245,6 @@ subroutine moldyn(acell,amass,me,&
  allocate(vin_prev(ndim))
  allocate(vout(ndim))
  allocate(xcart(3,natom),xcart_next(3,natom))
- allocate(xcart_prev(3,natom))
  allocate(xred_next(3,natom),xred_prev(3,natom))
 
 !Compute dimensional primitive translations rprimd, then metric tensor gmet
@@ -344,8 +342,8 @@ subroutine moldyn(acell,amass,me,&
    vel_prevhalf(:,:)=vel_nexthalf(:,:)
    vin_prev(:)=vin(:)
    vin(:)=vin_next(:)
-   xcart_prev(:,:)=xcart(:,:)
    xcart(:,:)=xcart_next(:,:)
+   xred_prev(:,:)=xred(:,:)
    xred(:,:)=xred_next(:,:)
   else
 
@@ -500,7 +498,7 @@ subroutine moldyn(acell,amass,me,&
      & hessin, iatfix, itime, natom, optcell, rprim, &
      & rprim_next, rprimd, rprimd_next, &
      & ucvol, ucvol_next, vel, vel_nexthalf, vel_prevhalf, &
-     & xcart, xcart_next, xcart_prev, xred_next)
+     & xcart, xcart_next, xred_next, xred_prev)
   end if
 
 ! Compute the ionic kinetic energy (no cell shape kinetic energy yet)
@@ -642,7 +640,7 @@ subroutine moldyn(acell,amass,me,&
  deallocate(fred_corrected,hessin)
  deallocate(vel_nexthalf,vel_prevhalf)
  deallocate(vin,vin_next,vin_prev,vout)
- deallocate(xcart,xcart_next,xcart_prev,xred_next,xred_prev)
+ deallocate(xcart,xcart_next,xred_prev,xred_next)
  if(ionmov==13) then
   deallocate(mttk_vars%glogs,mttk_vars%vlogs,mttk_vars%xlogs)
  end if

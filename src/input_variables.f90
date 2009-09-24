@@ -376,7 +376,7 @@ end subroutine geopt_input_variables
 !!    Every argument should be considered as mandatory
 !! SOURCE
 !!
-subroutine kpt_input_variables(iproc,filename,in,symObj)
+subroutine kpt_input_variables(iproc,filename,in,atoms)
   use module_base
   use module_types
   use defs_basis
@@ -385,7 +385,7 @@ subroutine kpt_input_variables(iproc,filename,in,symObj)
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: in
-  integer, intent(in) :: symObj
+  type(atoms_data), intent(in) :: atoms
   !local variables
   logical :: exists
   character(len=*), parameter :: subname='kpt_input_variables'
@@ -421,7 +421,7 @@ subroutine kpt_input_variables(iproc,filename,in,symObj)
      read(1,*,iostat=ierror) kptrlen
      call check()
      
-     call ab6_symmetry_get_auto_k_grid(symObj, in%nkpt, in%kpt, in%wkpt, &
+     call ab6_symmetry_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) stop
   else if (trim(type) == "MPgrid" .or. trim(type) == "mpgrid") then
@@ -434,7 +434,7 @@ subroutine kpt_input_variables(iproc,filename,in,symObj)
         call check()
      end do
 
-     call ab6_symmetry_get_mp_k_grid(symObj, in%nkpt, in%kpt, in%wkpt, &
+     call ab6_symmetry_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
      if (ierror /= AB6_NO_ERROR) stop
   else if (trim(type) == "manual" .or. trim(type) == "Manual") then
@@ -456,12 +456,19 @@ subroutine kpt_input_variables(iproc,filename,in,symObj)
 
   close(unit=1,iostat=ierror)
 
+  ! Convert reduced coordinates into BZ coordinates.
+  do i = 1, in%nkpt, 1
+     in%kpt(:, i) = in%kpt(:, i) / (/ atoms%alat1, atoms%alat2, atoms%alat3 /) * two_pi
+  end do
+
   ! Output
   if (iproc == 0) then
      write(*, "(1x,a,i6)") "Number of k-points  =", in%nkpt
-     write(*, "(1x,a)")    "k-point       red. coordinates         weight"
+     write(*, "(1x,a)")    "k-point       red. coordinates             BZ coordinates            weight"
      do i = 1, in%nkpt, 1
-     write(*, "(3x,i3,1x,3f9.5,4x,f9.5)") i, in%kpt(:, i), in%wkpt(i)
+        write(*, "(3x,i3,1x,3f9.5,2x,3f9.5,4x,f9.5)") i, &
+             & in%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
+             & in%kpt(:, i), in%wkpt(i)
      end do
   end if
 
@@ -1642,7 +1649,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
            rxyz(3,iat)=real(rz,gp)
         end if
 
-    if (atoms%units == 'reduced') then !add treatment for reduced coordinates
+        if (atoms%units == 'reduced') then !add treatment for reduced coordinates
            rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
            rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
            rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
@@ -1654,7 +1661,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
            rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
            rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
         end if
- 
+
         do ityp=1,atoms%ntypes
            if (tatonam == atomnames(ityp)) then
               atoms%iatype(iat)=ityp

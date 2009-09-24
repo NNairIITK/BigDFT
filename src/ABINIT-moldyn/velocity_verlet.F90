@@ -2,7 +2,7 @@ subroutine md_velocity_verlet(acell, acell_next, amass, dtion, fred, &
      & hessin, iatfix, itime, natom, optcell, rprim, &
      & rprim_next, rprimd, rprimd_next, &
      & ucvol, ucvol_next, vel, vel_nexthalf, vel_prevhalf, &
-     & xcart, xcart_next, xcart_prev, xred_next)
+     & xcart, xcart_next, xred_next, xred_prev)
   
   use defs_basis
 
@@ -15,7 +15,7 @@ subroutine md_velocity_verlet(acell, acell_next, amass, dtion, fred, &
   real(dp), intent(in) :: vel_prevhalf(3, natom), amass(natom)
   real(dp), intent(in) :: rprim(3,3), rprimd(3,3), acell(3)
   real(dp), intent(in) :: hessin(3 * natom, 3 * natom), fred(3, natom)
-  real(dp), intent(in) :: xcart_prev(3, natom), xcart(3, natom)
+  real(dp), intent(in) :: xred_prev(3, natom), xcart(3, natom)
   real(dp), intent(inout) :: vel(3,natom)
   real(dp), intent(out) :: vel_nexthalf(3, natom)
   real(dp), intent(out) :: acell_next(3), rprim_next(3,3), rprimd_next(3,3)
@@ -30,18 +30,17 @@ subroutine md_velocity_verlet(acell, acell_next, amass, dtion, fred, &
   !  Compute next atomic coordinates and cell parameters, using Verlet algorithm
   !  First propagate the position, without acceleration
   if(itime/=0)then
-     xcart_next(:,:) = 2 * xcart(:,:) - xcart_prev(:,:)
+     ! Transfert cart into red
+     call xredxcart(natom,-1,rprimd,xcart,xred_next)
+     xred_next(:,:) = 2 * xred_next(:,:) - xred_prev(:,:)
      taylor=one
   else
-     !   Initialisation : no vin_prev is available, but the ionic velocity
+     !   Initialisation : no xcart_prev is available, but the ionic velocity
      !   is available, in cartesian coordinates
      !   Uses the velocity
      xcart_next(:,:) = xcart(:,:) + dtion * vel(:,:)
-     !   Impose no change of acell, ucvol, rprim, and rprimd
-     acell_next(:)=acell(:)
-     ucvol_next=ucvol
-     rprim_next(:,:)=rprim(:,:)
-     rprimd_next(:,:)=rprimd(:,:)
+     ! Transfert cart into red
+     call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
      taylor=half
   end if
 
@@ -56,22 +55,19 @@ subroutine md_velocity_verlet(acell, acell_next, amass, dtion, fred, &
 !!$        acc(3) = acc(3) + hessin(3 + 3 * (iatom - 1), 3 + 3 * (jatom - 1)) * &
 !!$             & fred(3, jatom)
 !!$     end do
-     acc(:) = (rprimd(:,1) * fred(1,iatom) + &
-          & rprimd(:,2) * fred(2,iatom) + &
-          & rprimd(:,3) * fred(3,iatom)) / amass(iatom)
+     acc(:) = fred(:,iatom) / amass(iatom)
      !   Note the minus sign: the forces are minus the gradients, contained in vout.
-     xcart_next(:, iatom) = xcart_next(:, iatom) - dtion**2 * acc(:) * taylor
+     xred_next(:, iatom) = xred_next(:, iatom) - dtion**2 * acc(:) * taylor
      !  Implement fixing of atoms : put back old values for fixed components
      do idir=1,3
         if (iatfix(idir,iatom) == 1) then
-           xcart_next(idir, iatom) = xcart(idir, iatom)
+           !TODOxred_next(idir, iatom) = xred(idir, iatom)
         end if
      end do
   end do
-  ! Transfert cart into red
-  call xredxcart(natom,-1,rprimd,xcart_next,xred_next)
+  ! Transfert red into cart
+  call xredxcart(natom,1,rprimd,xcart_next,xred_next)
 
-  !  Now, compute the velocity at the next half-step
   !  Get xred_next, and eventually acell_next, ucvol_next, rprim_next and
   !  rprimd_next, from vin_next
   if(optcell/=0)then

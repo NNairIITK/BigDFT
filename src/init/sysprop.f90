@@ -27,11 +27,8 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      nspinor=1
   end if
 
-  !temporary changement, to be controlled
-  !nspinor=2
-
-  call orbitals_descriptors(iproc,in%nkpt,in%kpt,in%wkpt, &
-       & nproc,norb,norbu,norbd,nspinor,orbs)
+  call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,nspinor, &
+       & in%nkpt,in%kpt,in%wkpt,orbs)
 
   !distribution of wavefunction arrays between processors
   !tuned for the moment only on the cubic distribution
@@ -523,11 +520,12 @@ end subroutine read_system_variables
 !!    It uses the cubic strategy for partitioning the orbitals
 !! SOURCE
 !!
-subroutine orbitals_descriptors(iproc,nkpt,kpt,wkpt,nproc,norb,norbu,norbd,nspinor,orbs)
+subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wkpt,orbs)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nproc,nspinor,norb,norbu,norbd,nkpt
+  integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt
+  integer, intent(inout) :: nspinor
   type(orbitals_data), intent(out) :: orbs
   real(gp), intent(in) :: kpt(3,nkpt), wkpt(nkpt)
   !local variables
@@ -545,12 +543,13 @@ subroutine orbitals_descriptors(iproc,nkpt,kpt,wkpt,nproc,norb,norbu,norbd,nspin
   call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
   allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
-  orbs%kpts = kpt
-  orbs%kwgts = wkpt
+  orbs%kpts(:, 1:nkpt) = kpt
+  orbs%kwgts(1:nkpt) = wkpt
 
-!!$  orbs%kwgts(1)=0.2_gp
-!!$  orbs%kwgts(2)=0.5_gp
-!!$  orbs%kwgts(3)=0.3_gp
+  ! Change the wavefunctions to complex if k-points are used (except gamma).
+  if (nspinor == 1) then
+     if (maxval(abs(orbs%kpts)) > 0._gp) nspinor = 2
+  end if
 
   !initialise the array
   do jproc=0,nproc-1
