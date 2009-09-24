@@ -797,7 +797,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      endif
      call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
           cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
-          rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
+          rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU,pkernel)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy

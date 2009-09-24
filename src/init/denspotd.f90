@@ -231,29 +231,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      end do
   end if
 
-!!$  !balance the components between processors
-!!$  !in the most symmetric way
-!!$  i=1
-!!$  j=1
-!!$  loop_components: do 
-!!$     jproc=mod(i-1,nproc)
-!!$     if (.true.) then !here there is the criterion for filling a processor
-!!$        comms%nvctr_par(jproc)=comms%nvctr_par(jproc)+1
-!!$        j=j+1
-!!$     end if
-!!$     if (j > lr%wfd%nvctr_c+7*lr%wfd%nvctr_f) exit loop_components
-!!$     i=i+1
-!!$  end do loop_components
-!!$
-!!$  !check the distribution
-!!$  nvctr_tot=0
-!!$  do jproc=0,nproc-1
-!!$     nvctr_tot=nvctr_tot+comms%nvctr_par(jproc)
-!!$  end do
-!!$  if(nvctr_tot /= lr%wfd%nvctr_c+7*lr%wfd%nvctr_f) then
-!!$     write(*,*)'ERROR: partition of components incorrect'
-!!$     stop
-!!$  end if
 
   !allocate communication arrays
   allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
