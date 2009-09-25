@@ -16,6 +16,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,pkernel)
   use module_base
   use module_types
+  use libxc_functionals
   implicit none
   integer, intent(in) :: iproc,nproc,ndimpot,nspin
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
@@ -35,7 +36,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(dp), dimension(*), optional :: pkernel
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
-  logical :: exctX=.false.
+  logical :: exctX
   integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot
   real(gp) :: eproj,eexctX
   real(gp), dimension(3,2) :: wrkallred
@@ -45,6 +46,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !stream ptr array
 !  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
 !  real(kind=8) :: stream_ptr_first_trsf
+
+  exctX = libxc_functionals_exctXfac() /= 0.d0
 
   call timing(iproc,'ApplyLocPotKin','ON')
 
@@ -58,8 +61,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !determine the dimension of the potential array
   if (exctX) then
      npot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+&
-          lr%d%n1i*lr%d%n2i*&
-          max(lr%d%n3i*orbs%norbp,ngatherarr(0,1)/(lr%d%n1i*lr%d%n2i)*orbs%norb)
+          max(lr%d%n1i*lr%d%n2i*&
+          max(lr%d%n3i*orbs%norbp,ngatherarr(0,1)/(lr%d%n1i*lr%d%n2i)*orbs%norb),1)
   else
      npot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin
   end if
@@ -110,9 +113,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   else
      call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   end if
-  
-  if (exctX) epot_sum=epot_sum+eexctX
 
+  
   if (nproc > 1 .or. exctX) then
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
@@ -162,6 +164,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      epot_sum=wrkallred(2,1)
      eproj_sum=wrkallred(3,1) 
   endif
+
+  if (exctX) epot_sum=epot_sum+eexctX
 
 END SUBROUTINE HamiltonianApplication
 !!***

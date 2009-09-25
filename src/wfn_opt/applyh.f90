@@ -3,6 +3,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,lr,orbs,n3parr,n3p,&
   use module_base
   use module_types
   use Poisson_Solver
+  use libxc_functionals
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,n3p
@@ -18,13 +19,16 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,lr,orbs,n3parr,n3p,&
   character(len=*), parameter :: subname='exact_exchange_potential'
   integer :: i_all,i_stat,ierr,ispinor,ispsiw
   integer :: i1,i2,i3p,iorb,iorbs,jorb,jorbs,ispsir,ind3,ind2,ind1i,ind1j,jproc,igran,ngran
-  real(gp) :: ehart,zero
+  real(wp) :: hfaci
+  real(gp) :: ehart,zero,hfac,exctXfac
   type(workarr_sumrho) :: w
   integer, dimension(:,:), allocatable :: ncommarr
   real(wp), dimension(:), allocatable :: psiw
   real(wp), dimension(:,:,:,:), allocatable :: rp_ij
 
   !call timing(iproc,'Exchangecorr  ','ON')
+
+  exctXfac = libxc_functionals_exctXfac()
 
   eexctX=0.0_gp
 
@@ -38,23 +42,39 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,lr,orbs,n3parr,n3p,&
   !partial densities with a given granularity
   allocate(rp_ij(lr%d%n1i,lr%d%n2i,n3p,ngran+ndebug),stat=i_stat)
   call memocc(i_stat,rp_ij,'rp_ij',subname)
-  allocate(psiw(lr%d%n1i*lr%d%n2i*max(lr%d%n3i*orbs%norbp,n3parr(0)/(lr%d%n1i*lr%d%n2i)*orbs%norb)+ndebug),stat=i_stat)
+  allocate(psiw(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,n3parr(0)*orbs%norb),1)+ndebug),stat=i_stat)
   call memocc(i_stat,psiw,'psiw',subname)
+
+  if (geocode == 'F') then
+     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psiw)
+  end if
+
 
   !uncompress the wavefunction in the real grid
   !and switch the values of the function
   ispinor=1
+  ispsiw=1
   do iorb=1,orbs%norbp
-     print *,'nspinor',orbs%nspinor
-     call daub_to_isf(lr,w,psi(1,ispinor,iorb),psiw)
-     print *,'iorb,iproc,psi',iorb,iproc,dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,psiw(1),1,psiw(1),1)
-     ispsiw=1
+     call daub_to_isf(lr,w,psi(1,ispinor,iorb),psiw(ispsiw))
+     !rescale the real-space wavefunction with the square root of the factor
+     !which depends on the orbitals and on the k-point weigths
+     !beware that for k-point treatment one should add the suitable phase to the array
+     call vscal(lr%d%n1i*lr%d%n2i*lr%d%n3i,hfaci,psiw(ispsiw),1)
+
      ispsir=1+(iorb-1)*n3parr(0)
      do jproc=0,nproc-1
-        !write(*,'(a,1x,7(i10))'),'iproc,jproc',iproc,jproc,iorb,ispsir,ispsiw,lr%d%n1i*lr%d%n2i*max(lr%d%n3i*orbs%norbp,n3p*orbs%norb),n3parr(jproc)
+        !write(*,'(a,1x,8(i10))'),'iproc,jproc',iproc,jproc,iorb,orbs%norbp,ispsir,ispsiw,&
+        !     lr%d%n1i*lr%d%n2i*max(lr%d%n3i*orbs%norbp,n3p*orbs%norb),n3parr(jproc)
         call dcopy(n3parr(jproc),psiw(ispsiw),1,psir(ispsir),1)
         ispsiw=ispsiw+n3parr(jproc)
-        ispsir=ispsir+n3parr(jproc)*orbs%norbp
+        if (jproc /= nproc-1) then
+           do jorb=iorb,orbs%norbp
+              ispsir=ispsir+n3parr(jproc)
+           end do
+           do jorb=1,iorb-1
+              ispsir=ispsir+n3parr(jproc+1)
+           end do
+        end if
      end do
   end do
   call deallocate_work_arrays_sumrho(w)
@@ -102,6 +122,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,lr,orbs,n3parr,n3p,&
   !and accumulate the result
   iorb=1
   jorb=1
+  hfac=1/(hxh*hyh*hzh)
   orbital_loop: do
      iorbs=iorb
      jorbs=jorb
@@ -115,7 +136,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,lr,orbs,n3parr,n3p,&
               do i1=1,lr%d%n1i
                  ind1i=i1+ind2+(iorb-1)*lr%d%n1i*lr%d%n2i*n3p
                  ind1j=i1+ind2+(jorb-1)*lr%d%n1i*lr%d%n2i*n3p
-                 rp_ij(i1,i2,i3p,igran)=psiw(ind1i)*psiw(ind1j)
+                 rp_ij(i1,i2,i3p,igran)=hfac*psiw(ind1i)*psiw(ind1j)
               end do
            end do
         end do
@@ -128,15 +149,19 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,lr,orbs,n3parr,n3p,&
      jorb=jorbs
      iorb=iorbs
      do igran=1,ngran
-        !print *,'test',iproc,sum(rp_ij(:,:,:,igran))
+        !this factor is only valid with one k-point
+        hfac=orbs%occup(iorb)*orbs%occup(jorb)
+
+        !print *,'test',iproc,iorb,jorb,sum(rp_ij(:,:,:,igran))
         if (iorb > orbs%norb) exit
         !partial exchange term for each partial density
         if (iproc == 0) write(*,*)'Exact exchange calculation, orbitals:',iorb,jorb
         call PSolver(geocode,'D',iproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
              0,hxh,hyh,hzh,rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,zero,zero,&
              0.d0,.false.,1,quiet='YES')
-        eexctX=eexctX+real(ehart,gp)
-        print *,'PSOLVER,ehart,iproc',iproc,ehart
+        eexctX=eexctX+hfac*real(ehart,gp)
+        !print *,'PSOLVER,ehart,iproc',iproc,ehart
+
         jorb=jorb+1
         if (jorb > orbs%norb) then
            iorb=iorb+1
@@ -146,20 +171,39 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,lr,orbs,n3parr,n3p,&
      jorb=jorbs
      iorb=iorbs
      do igran=1,ngran
+        !this factor is only valid with one k-point
+        !we have to correct with the kwgts if we want more than one k-point
+        hfac=real((orbs%occup(iorb)*orbs%occup(jorb)),wp)
+
         if (iorb > orbs%norb) exit orbital_loop
-        !accumulate the results for each of the wavefunctions concerned
-        do i3p=1,n3p
-           ind3=(i3p-1)*lr%d%n1i*lr%d%n2i
-           do i2=1,lr%d%n2i
-              ind2=(i2-1)*lr%d%n1i+ind3
-              do i1=1,lr%d%n1i
-                 ind1i=i1+ind2+(iorb-1)*lr%d%n1i*lr%d%n2i*n3p
-                 ind1j=i1+ind2+(jorb-1)*lr%d%n1i*lr%d%n2i*n3p
-                 psir(ind1i)=psir(ind1i)+rp_ij(i1,i2,i3p,igran)*psiw(ind1j)
-                 psir(ind1j)=psir(ind1j)+rp_ij(i1,i2,i3p,igran)*psiw(ind1i)
+        if (iorb /= jorb) then
+           !accumulate the results for each of the wavefunctions concerned
+           do i3p=1,n3p
+              ind3=(i3p-1)*lr%d%n1i*lr%d%n2i
+              do i2=1,lr%d%n2i
+                 ind2=(i2-1)*lr%d%n1i+ind3
+                 do i1=1,lr%d%n1i
+                    ind1i=i1+ind2+(iorb-1)*lr%d%n1i*lr%d%n2i*n3p
+                    ind1j=i1+ind2+(jorb-1)*lr%d%n1i*lr%d%n2i*n3p
+                    psir(ind1i)=psir(ind1i)+hfac*rp_ij(i1,i2,i3p,igran)*psiw(ind1j)
+                    psir(ind1j)=psir(ind1j)+hfac*rp_ij(i1,i2,i3p,igran)*psiw(ind1i)
+                 end do
               end do
            end do
-        end do
+        else
+           !accumulate the results for each of the wavefunctions concerned
+           do i3p=1,n3p
+              ind3=(i3p-1)*lr%d%n1i*lr%d%n2i
+              do i2=1,lr%d%n2i
+                 ind2=(i2-1)*lr%d%n1i+ind3
+                 do i1=1,lr%d%n1i
+                    ind1i=i1+ind2+(iorb-1)*lr%d%n1i*lr%d%n2i*n3p
+                    ind1j=i1+ind2+(jorb-1)*lr%d%n1i*lr%d%n2i*n3p
+                    psir(ind1i)=psir(ind1i)+hfac*rp_ij(i1,i2,i3p,igran)*psiw(ind1j)
+                 end do
+              end do
+           end do
+        end if
         jorb=jorb+1
         if (jorb > orbs%norb) then
            iorb=iorb+1
@@ -169,9 +213,9 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,lr,orbs,n3parr,n3p,&
   end do orbital_loop
 
   !the exact exchange energy is four times the Hartree energy
-  eexctX=-4.0_gp*eexctX
+  eexctX=-exctXfac*eexctX
 
-  print *,'iproc,eexctX',iproc,eexctX
+  !print *,'iproc,eexctX',iproc,eexctX,hxh*hyh*hzh
 
   !assign the potential for each function
   if (nproc > 1) then
@@ -186,7 +230,14 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,lr,orbs,n3parr,n3p,&
         do jproc=0,nproc-1
            call dcopy(n3parr(jproc),psiw(ispsir),1,psir(ispsiw),1)
            ispsiw=ispsiw+n3parr(jproc)
-           ispsir=ispsir+n3parr(jproc)*orbs%norbp
+           if (jproc /= nproc-1) then
+              do jorb=iorb,orbs%norbp
+                 ispsir=ispsir+n3parr(jproc)
+              end do
+              do jorb=1,iorb-1
+                 ispsir=ispsir+n3parr(jproc+1)
+              end do
+           end if
         end do
      end do
   end if
@@ -216,6 +267,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   use module_base
   use module_types
   use module_interfaces
+  use libxc_functionals
   implicit none
   integer, intent(in) :: iproc,nspin
   real(gp), intent(in) :: hx,hy,hz
@@ -228,13 +280,13 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
-  logical :: exctXC=.false.
   integer :: i_all,i_stat,ierr,iorb,npot,nsoffset,oidx,ispot
-  real(wp) :: exctXCcoeff
-  real(gp) :: ekin,epot,kx,ky,kz
+  real(wp) :: exctXcoeff
+  real(gp) :: ekin,epot,kx,ky,kz,etest
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir
 
+  exctXcoeff=libxc_functionals_exctXfac()
 
   !initialise the work arrays
   call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)  
@@ -252,6 +304,8 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   ekin_sum=0.0_gp
   epot_sum=0.0_gp
 
+  etest=0.0_gp
+
   do iorb=1,orbs%norbp
 
      if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
@@ -265,6 +319,10 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
      !the psir wavefunction is given in the spinorial form
      call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
+
+!!$     ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
+!!$     etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
+!!$     print *,'epot, iorb',iorb,etest
 
      !apply the potential to the psir wavefunction and calculate potential energy
      select case(lr%geocode)
@@ -290,12 +348,11 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      ky=orbs%kpts(2,orbs%iokpt(iorb))
      kz=orbs%kpts(3,orbs%iokpt(iorb))
 
-     if (exctXC) then
-        exctXCcoeff=1.0_wp
+     if (exctXcoeff /= 0.0_gp) then
         ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
         !add to the psir function the part of the potential coming from the exact exchange
         !the coefficient is miltiplied by -2 to restore the correct definition
-        call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,-2.0_wp*exctXCcoeff,pot(ispot),1,psir(1,1),1)
+        call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,-4.0_wp*exctXcoeff,pot(ispot),1,psir(1,1),1)
      end if
 
      !apply the kinetic term, sum with the potential and transform back to Daubechies basis
@@ -306,6 +363,8 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
 
   enddo
+
+  !print *,'iproc,etest',etest
 
   !deallocations of work arrays
   i_all=-product(shape(psir))*kind(psir)

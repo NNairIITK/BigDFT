@@ -56,6 +56,7 @@ module libxc_functionals
   public :: libxc_functionals_init, &
 &      libxc_functionals_getvxc, &
 &      libxc_functionals_isgga, &
+&      libxc_functionals_exctXfac,&
 &      libxc_functionals_end
 
 contains
@@ -264,6 +265,56 @@ contains
 
   end function libxc_functionals_isgga
 !!*** 
+
+!!****f* libxc_functionals/libxc_functionals_exctXfac
+!!
+!! FUNCTION
+!!
+!! INPUTS
+!!
+!! OUTPUT
+!! 
+!! PARENTS
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+  real(kind=8) function libxc_functionals_exctXfac()
+
+
+    implicit none
+
+!Arguments ------------------------------------
+
+!Local variables-------------------------------
+
+    logical :: libxc_functionals_needexctX
+    character(len=500) :: message
+
+! *************************************************************************
+
+#if defined HAVE_LIBXC
+    if (any(funcs%family == XC_FAMILY_HYB_GGA)) then
+       !factors for the exact exchange contribution of different hybrid functionals
+       if (any(funcs%id == XC_HYB_GGA_XC_PBEH)) then
+          libxc_functionals_exctXfac = 0.25d0 
+       end if
+    else
+      libxc_functionals_exctXfac = 0.d0
+    end if
+#else
+    libxc_functionals_exctXfac = 0.d0
+    write(message, '(a,a,a,a)' ) ch10,&
+         & ' wvl_init_type_wfs : LibXC library is not compiled.', ch10, &
+         & '   Action, used the flag --enable-libxc when configuring.'
+    call wrtout(6,message,'COLL')
+    call leave_new('COLL')
+#endif
+
+  end function libxc_functionals_exctXfac
+!!*** 
+
 
 !!****f* libxc_functionals/libxc_functionals_getvxc
 !! NAME

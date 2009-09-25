@@ -54,7 +54,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   !assign to each k-point the same occupation number
   do ikpts=1,orbs%nkpts
      call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
-          orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn)
+          orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
 
 end subroutine system_properties
