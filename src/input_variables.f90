@@ -1042,40 +1042,48 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   call check_atoms_positions(iproc,atoms,rxyz)
 
   ! Prepare the symmetry object.
-  call ab6_symmetry_new(atoms%symObj)
-  rprimd(:,:) = 0
-  rprimd(1,1) = atoms%alat1
-  rprimd(2,2) = atoms%alat2
-  rprimd(3,3) = atoms%alat3
-  call ab6_symmetry_set_lattice(atoms%symObj, rprimd, ierr)
-  allocate(xRed(3, atoms%nat),stat=i_stat)
-  call memocc(i_stat,xRed,'xRed',subname)
-  xRed(1,:) = modulo(rxyz(1, :) / atoms%alat1, 1._gp)
-  xRed(2,:) = modulo(rxyz(2, :) / atoms%alat2, 1._gp)
-  xRed(3,:) = modulo(rxyz(3, :) / atoms%alat3, 1._gp)
-  call ab6_symmetry_set_structure(atoms%symObj, atoms%nat, atoms%iatype, xRed, ierr)
-  i_all=-product(shape(xRed))*kind(xRed)
-  deallocate(xRed,stat=i_stat)
-  call memocc(i_stat,i_all,'xRed',subname)
-  if (atoms%geocode == 'S') then
-     call ab6_symmetry_set_periodicity(atoms%symObj, &
-          & (/ .true., .false., .true. /), ierr)
-  else   if (atoms%geocode == 'F') then
-     call ab6_symmetry_set_periodicity(atoms%symObj, &
-          & (/ .false., .false., .false. /), ierr)
+  if (atoms%geocode /= 'F') then
+     call ab6_symmetry_new(atoms%symObj)
+     rprimd(:,:) = 0
+     rprimd(1,1) = atoms%alat1
+     rprimd(2,2) = atoms%alat2
+     rprimd(3,3) = atoms%alat3
+     call ab6_symmetry_set_lattice(atoms%symObj, rprimd, ierr)
+     allocate(xRed(3, atoms%nat),stat=i_stat)
+     call memocc(i_stat,xRed,'xRed',subname)
+     xRed(1,:) = modulo(rxyz(1, :) / atoms%alat1, 1._gp)
+     xRed(2,:) = modulo(rxyz(2, :) / atoms%alat2, 1._gp)
+     xRed(3,:) = modulo(rxyz(3, :) / atoms%alat3, 1._gp)
+     call ab6_symmetry_set_structure(atoms%symObj, atoms%nat, atoms%iatype, xRed, ierr)
+     i_all=-product(shape(xRed))*kind(xRed)
+     deallocate(xRed,stat=i_stat)
+     call memocc(i_stat,i_all,'xRed',subname)
+     if (atoms%geocode == 'S') then
+        call ab6_symmetry_set_periodicity(atoms%symObj, &
+             & (/ .true., .false., .true. /), ierr)
+     else   if (atoms%geocode == 'F') then
+        call ab6_symmetry_set_periodicity(atoms%symObj, &
+             & (/ .false., .false., .false. /), ierr)
+     end if
+  else
+     atoms%symObj = -1
   end if
 
   ! Output...
   if (iproc.eq.0) then
-     call ab6_symmetry_get_matrices(atoms%symObj, nSym, sym, transNon, symAfm, ierr)
-     call ab6_symmetry_get_group(atoms%symObj, pointGroup, spaceGroup, &
-          & pointGroupMagn, genAfm, ierr)
-     if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(pointGroup, "(A)") "!prim"
+     if (atoms%geocode /= 'F') then
+        call ab6_symmetry_get_matrices(atoms%symObj, nSym, sym, transNon, symAfm, ierr)
+        call ab6_symmetry_get_group(atoms%symObj, pointGroup, spaceGroup, &
+             & pointGroupMagn, genAfm, ierr)
+        if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(pointGroup, "(A)") "!prim"
+     end if
 
      write(*,'(1x,a,i5)')        'Number of atoms     = ',atoms%nat
      write(*,'(1x,a,i5)')        'Number of atom types= ',atoms%ntypes
-     write(*,'(1x,a,i5,a,1x,a)') 'Number of symmetries= ',nSym, &
-          & " | point group=", pointGroup
+     if (atoms%geocode /= 'F') then
+        write(*,'(1x,a,i5,a,1x,a)') 'Number of symmetries= ',nSym, &
+             & " | point group=", pointGroup
+     end if
 
      do ityp=1,atoms%ntypes
         write(*,'(1x,a,i0,a,a)') 'Atoms of type ',ityp,' are ', &

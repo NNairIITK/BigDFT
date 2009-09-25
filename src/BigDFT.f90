@@ -193,7 +193,7 @@ program BigDFT
      i_all=-product(shape(atoms%amu))*kind(atoms%amu)
      deallocate(atoms%amu,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%amu',subname)
-     call ab6_symmetry_free(atoms%symObj)
+     if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
 
      call free_restart_objects(rst,subname)
 

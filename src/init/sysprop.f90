@@ -52,7 +52,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   !assign to each k-point the same occupation number
   do ikpts=1,orbs%nkpts
      call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
-          orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn)
+          orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
 
 end subroutine system_properties
@@ -543,8 +543,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
   allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
-  orbs%kpts(:, 1:nkpt) = kpt
-  orbs%kwgts(1:nkpt) = wkpt
+  orbs%kpts(:, 1:nkpt) = kpt(:,:)
+  orbs%kwgts(1:nkpt) = wkpt(:)
 
   ! Change the wavefunctions to complex if k-points are used (except gamma).
   if (nspinor == 1) then

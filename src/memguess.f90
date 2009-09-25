@@ -154,7 +154,7 @@ program memguess
      call dft_input_converter(in)
      write(*,*)' ...done'
   else
-     call dft_input_variables(0,'input.dft',in)
+     call dft_input_variables(0,'input.dft',in,atoms%symObj)
      !read geometry optimsation input variables
      !inquire for the file needed for geometry optimisation
      !if not present, perform a simple geometry optimisation
