@@ -72,6 +72,11 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   logical :: exists
   integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
 
+  ! default values for geopt and k points in case not call later.
+  call geopt_input_variables_default(in)
+  nullify(in%kpt)
+  nullify(in%wkpt)
+
   ! Read the input variables.
   open(unit=1,file=filename,status='old')
 
@@ -264,9 +269,6 @@ subroutine geopt_input_variables(iproc,filename,in)
   !local variables
   character(len=*), parameter :: subname='geopt_input_variables'
   integer :: i_stat,ierror,ierrfrc,iline
-
-  ! default values.
-  call geopt_input_variables_default(in)
 
   ! Read the input variables.
   open(unit=1,file=filename,status='old')
@@ -1047,13 +1049,14 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
      rprimd(:,:) = 0
      rprimd(1,1) = atoms%alat1
      rprimd(2,2) = atoms%alat2
+     if (atoms%geocode == 'S') rprimd(2,2) = 1000._gp
      rprimd(3,3) = atoms%alat3
      call ab6_symmetry_set_lattice(atoms%symObj, rprimd, ierr)
      allocate(xRed(3, atoms%nat),stat=i_stat)
      call memocc(i_stat,xRed,'xRed',subname)
-     xRed(1,:) = modulo(rxyz(1, :) / atoms%alat1, 1._gp)
-     xRed(2,:) = modulo(rxyz(2, :) / atoms%alat2, 1._gp)
-     xRed(3,:) = modulo(rxyz(3, :) / atoms%alat3, 1._gp)
+     xRed(1,:) = modulo(rxyz(1, :) / rprimd(1,1), 1._gp)
+     xRed(2,:) = modulo(rxyz(2, :) / rprimd(2,2), 1._gp)
+     xRed(3,:) = modulo(rxyz(3, :) / rprimd(3,3), 1._gp)
      call ab6_symmetry_set_structure(atoms%symObj, atoms%nat, atoms%iatype, xRed, ierr)
      i_all=-product(shape(xRed))*kind(xRed)
      deallocate(xRed,stat=i_stat)

@@ -18,6 +18,7 @@ program memguess
   use module_base
   use module_types
   use module_interfaces
+  use ab6_symmetry
 
   implicit none
   character(len=*), parameter :: subname='memguess'
@@ -417,6 +418,9 @@ program memguess
   i_all=-product(shape(atoms%amu))*kind(atoms%amu)
   deallocate(atoms%amu,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%amu',subname)
+  if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
+
+  call free_input_variables(in)
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
