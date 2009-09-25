@@ -75,7 +75,6 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fil
   
         
 
-  print *," leggo " , filename
 
   !read the information from a file
   inquire(file=filename,exist=exists)

@@ -72,25 +72,10 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   !assign the geometry optimisation method
   parmin%approach=in%geopt_approach
 
-!!$  !inquire for the file needed for geometry optimisation
-!!$  !if not present, switch to traditional SDCG method
-!!$  inquire(file="input.geopt",exist=exists)
-!!$
-!!$
-!!$  if (exists) then
-!!$     !Read from input.geopt
-!!$     open(84,file="input.geopt")
-!!$     read(84,*) parmin%approach
-!!$     close(84)
-!!$  else
-!!$     if (iproc ==0) write(*,*)' File "input.geopt" not found, do SDCG method'
-!!$     parmin%approach='SDCG'
-!!$  end if
-
   ncount_bigdft=0
   write(fn4,'(i4.4)') ncount_bigdft
   write(comment,'(a)')'INITIAL CONFIGURATION '
-  call write_atomic_file('posout_'//fn4,epot,pos,at,trim(comment))
+  if (iproc == 0) call write_atomic_file('posout_'//fn4,epot,pos,at,trim(comment))
 
   if (iproc ==0)  write(*,'(a,1x,a)') ' Begin of minimization using ',parmin%approach
   if(trim(parmin%approach)=='LBFGS') then
@@ -287,11 +272,6 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   
   fluctsum=0._gp
   nfluct=0
-
-!  alat(1)=at%alat1
-!  alat(2)=at%alat2
-!  alat(3)=at%alat3
-!  fluct=0._gp
 
   if (iproc==0)    write(*,*) 'Maximum number of SD steps used in the beginning: ',nitsd
 
@@ -530,27 +510,6 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
         !C line minimize along hh ----
         call atomic_axpy(at,rxyz,beta0,hh,tpos)
-!!$        do iat=1,at%nat
-!!$           if (at%lfrztyp(iat)) then
-!!$              tpos(1,iat)=rxyz(1,iat)
-!!$              tpos(2,iat)=rxyz(2,iat)
-!!$              tpos(3,iat)=rxyz(3,iat)
-!!$           else
-!!$              if (at%geocode == 'P') then
-!!$                 tpos(1,iat)=modulo(rxyz(1,iat)+beta0*hh(1,iat),at%alat1)
-!!$                 tpos(2,iat)=modulo(rxyz(2,iat)+beta0*hh(2,iat),at%alat2)
-!!$                 tpos(3,iat)=modulo(rxyz(3,iat)+beta0*hh(3,iat),at%alat3)
-!!$              else if (at%geocode == 'S') then
-!!$                 tpos(1,iat)=modulo(rxyz(1,iat)+beta0*hh(1,iat),at%alat1)
-!!$                 tpos(2,iat)=rxyz(2,iat)+beta0*hh(2,iat)
-!!$                 tpos(3,iat)=modulo(rxyz(3,iat)+beta0*hh(3,iat),at%alat3)
-!!$              else
-!!$                 tpos(1,iat)=rxyz(1,iat)+beta0*hh(1,iat)
-!!$                 tpos(2,iat)=rxyz(2,iat)+beta0*hh(2,iat)
-!!$                 tpos(3,iat)=rxyz(3,iat)+beta0*hh(3,iat)
-!!$              end if
-!!$           end if
-!!$        end do
 
         in%inputPsiId=1
         in%output_grid=0
@@ -651,7 +610,6 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'CONJG:fnrm= ',sqrt(fnrm)
            call  write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
-           !call wtxyz('posout_'//fn4,etot,rxyz,at,trim(comment))
         endif
 
 
@@ -1066,12 +1024,13 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
            write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
            write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
            write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
-        end if 
+
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'Initial VSSD:fnrm= ',sqrt(fnrm)
            call  write_atomic_file('posout_'//fn4,etotold,wpos,at,trim(comment))
            write(16,'(1x,e12.5,1x,e21.14,a,e10.3)')sqrt(fnrm),etot,' GEOPT VSSD ',beta
            endif
+        end if 
 
         ncount_bigdft=ncount_bigdft+1
 
@@ -1143,11 +1102,11 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
           beta=1.25d0*beta
           endif
 
-           if (iproc == 0) then
-           write(fn4,'(i4.4)') ncount_bigdft-1
-           write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
-           call  write_atomic_file('posout_'//fn4,etot,wpos,at,trim(comment))
-           endif
+          if (iproc == 0) then
+             write(fn4,'(i4.4)') ncount_bigdft-1
+             write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
+             call  write_atomic_file('posout_'//fn4,etot,wpos,at,trim(comment))
+          endif
 
           do iat=1,at%nat
           posold(1,iat)=wpos(1,iat)

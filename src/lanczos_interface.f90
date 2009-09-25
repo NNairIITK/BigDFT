@@ -742,7 +742,7 @@ end subroutine EP_initialize_start
       end if
    end do
 
-   call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
+   if (iproc==0)    call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
    if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
    !renormalize the orbitals

@@ -473,9 +473,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
              & in%kpt(:, i), in%wkpt(i)
      end do
   end if
-
 contains
-
   subroutine check()
     iline=iline+1
     if (ierror/=0) then
@@ -485,10 +483,8 @@ contains
        stop
     end if
   end subroutine check
-
 end subroutine kpt_input_variables
 !!***
-
 !!****f* BigDFT/free_input_variables
 !! FUNCTION
 !!  Free all dynamically allocated memory from the input variable structure.
@@ -499,10 +495,8 @@ subroutine free_input_variables(in)
   use module_types
   implicit none
   type(input_variables), intent(inout) :: in
-
   character(len=*), parameter :: subname='free_input_variables'
   integer :: i_stat, i_all
-
   if (associated(in%qmass)) then
      i_all=-product(shape(in%qmass))*kind(in%qmass)
      deallocate(in%qmass,stat=i_stat)
@@ -520,7 +514,6 @@ subroutine free_input_variables(in)
   end if
 end subroutine free_input_variables
 !!***
-
 !!****f* BigDFT/abscalc_input_variables_default
 !! FUNCTION
 !!    Assign default values for ABSCALC variables
@@ -610,15 +603,6 @@ end subroutine abscalc_input_variables
 !!***
 
 
-
-
-
-
-
-
-
-
-
 !!****f* BigDFT/dft_input_converter
 !! FUNCTION
 !!  Convert the format of input variables
@@ -653,7 +637,7 @@ subroutine dft_input_converter(in)
 
   line=''
   line=' ncharge: charge of the system, Electric field'
-  write(1,'(i3,3(f6.3),a)') in%ncharge,in%elecfield,trim(line)
+  write(1,'(i3,1(f6.3),a)') in%ncharge,in%elecfield,trim(line)
 
   line=''
   line=' nspin=1 non-spin polarization, mpol=total magnetic moment'
@@ -1229,10 +1213,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
 
   atoms%ntypes=0
   do iat=1,atoms%nat
-!!$     if (ierror == 0) then
-!!$        !old case of ascii file, added for backward compatibility
-!!$        if (iat /= 1) read(ifile,*) rx,ry,rz,tatonam
-!!$     else
+
      !xyz input file, allow extra information
      read(ifile,'(a150)')line 
      if (lpsdbl) then
@@ -1240,8 +1221,9 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
      else
         read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,extra
      end if
-     !print *,line
+     !print *,'extra',iat,extra
      call find_extra_info(line,extra)
+     !print *,'then',iat,extra
      call parse_extra_info(iproc,iat,extra,atoms)
 
      tatonam=trim(symbol)
@@ -1375,6 +1357,7 @@ subroutine find_extra_info(line,extra)
   i=1
   space=.true.
   nspace=-1
+  !print *,'line',line
   find_space : do
      !toggle the space value for each time
      if (line(i:i) == ' ' .neqv. space) then
@@ -1387,6 +1370,7 @@ subroutine find_extra_info(line,extra)
         exit find_space
      end if
      if (i==150) then
+        !print *,'AAA',extra
         extra='nothing'
         exit find_space
      end if

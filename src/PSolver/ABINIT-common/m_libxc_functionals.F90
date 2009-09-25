@@ -248,7 +248,7 @@ contains
 ! *************************************************************************
 
 #if defined HAVE_LIBXC
-    if (any(funcs%family == XC_FAMILY_GGA)) then
+    if (any(funcs%family == XC_FAMILY_GGA) .or. any(funcs%family == XC_FAMILY_HYB_GGA)) then
       libxc_functionals_isgga = .true.
     else
       libxc_functionals_isgga = .false.
