@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 23/08/2009
+# Date: 18/09/2009
 #--------------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -92,12 +92,12 @@
 # Declaration  declaration statements of all variables
 # Execution    execution statements
 #
+# The class Include is a special class to handle the include statement.
+# abilint gives an ersatz of 'mpif.f' file for commodity.
+#
 # Two special classes are not added as children because they duplicate the code:
 # Fortran_Type      inherited of the class Declaration to handle fortran types.
 # Fortran_Interface inherited of the class Fortran_Type to handle declaration of interfaces.
-#
-# The class Include is a special class to handle the include statement.
-# abilint gives an ersatz of 'mpif.f' file for commodity.
 #
 # The class Variable is created to have all information for a given variable.
 # A structure has a 'dict_vars' dictionary.
@@ -155,7 +155,7 @@ if 'set' not in dir(__builtins__):
     from sets import Set as set
 
 #Indentation (one blank character)
-indent = " "*1
+indent = " "*2
 
 #Prefix for the modules containing the interfaces
 prefix = "interfaces_"
@@ -207,9 +207,9 @@ intrinsic_functions = [ "abs", "achar", "acos", "adjustl", "adjustr", "aimag", "
                       ]
 
 #Comment "!Arguments"
-comment_arguments = "!Arguments " + "-"*50 + "\n"
+comment_arguments = "!Arguments " + "\n"
 #Comment "!Local variables"
-comment_local_variables = "!Local variables " + "-"*44 + "\n"
+comment_local_variables = "!Local variables " + "\n"
 #Last line of declaration
 comment_declaration = "!" + "*"*60
 
@@ -434,6 +434,60 @@ def indent_code(text,n=0):
     return new
 
 
+#Build the declaration
+def build_declaration(dict_vars):
+    "Build the declaration from a dictionary"
+    arguments = list()
+    locals = list()
+    declaration = ""
+    for var in dict_vars.values():
+        if var.is_argument:
+            arguments.append( (var.order(),var.lower) )
+        else:
+            locals.append( (var.order(),var.lower) )
+    arguments.sort()
+    locals.sort()
+    if arguments:
+        declaration = comment_arguments
+    line = ""
+    type = ""
+    for (order,name) in arguments:
+        arg = dict_vars[name]
+        (decl,var) = dict_vars[name].build_declaration()
+        if len(line) > 80 or decl != type:
+            if line:
+                declaration += line+"\n"
+            if decl == "interface":
+                line = var
+                type = ""
+            else:
+                type = decl 
+                line = indent+"%s :: %s" % (decl,var)
+        else:
+            if line:
+                line += "," + var
+    if line:
+        declaration += line+"\n"
+    if locals:
+        declaration += comment_local_variables
+    for (order,name) in locals:
+        (decl,var) = dict_vars[name].build_declaration()
+        if decl == "subroutine":
+            print "subroutine",var,"stop"
+            sys.exit(1)
+        if len(line) > 80 or  decl != type:
+            if line:
+                declaration += line+"\n"
+            type = decl 
+            line = indent+"%s :: %s" % (decl,var)
+        else:
+            if line:
+                line += "," + var
+    if line:
+        declaration += line+"\n"
+    return declaration
+
+
 #Class for a project
 class Project:
     "Class to define a project which is a set of directories and files."
@@ -581,6 +635,8 @@ class Project:
             if exclude not in file.name:
                 file.analyze(self)
         self.message.done()
+        #Analyze all variables of all routines
+        self.analyze_variables()
         #Build the list of arguments of all routines
         self.get_arguments()
         #Determine the list of functions
@@ -615,6 +671,19 @@ class Project:
                                 % (routine.name,routine.dir,called,self.routines[called].dir))
                 except KeyError:
                     pass
+    #
+    def analyze_variables(self):
+        "Analyze the variables of routines and modules"
+        self.message.section("Analyze the variables of all modules and routines...")
+        #Do for each module stored in self.modules
+        for (name,module) in self.modules.items():
+            self.message.write("(%s/%s <%s>)" % (module.dir,module.file,name))
+            module.analyze_variables(self)
+        #Do for each routine stored in self.routines
+        for (name,routine) in self.routines.items():
+            self.message.write("(%s/%s <%s>)" % (routine.dir,routine.file,name))
+            routine.analyze_variables(self)
+        self.message.done()
     #
     def backup(self):
         "Backup the code"
@@ -769,7 +838,6 @@ class Project:
             self.message.done()
         else:
             self.message.fatal("The Fortran type '%s' is not inside the project!\n" % name)
-
     #
     def find_file(self,filename):
         "Find the instance File given by its name"
@@ -992,7 +1060,7 @@ class Project:
         self.message.write("\n")
         for routine in self.routines.values():
             if isinstance(routine,Function):
-                self.message.write("Function %s -- (%s)\n" % (routine.name,routine.function_type))
+                self.message.write("Function %s -- (%s)\n" % (routine.name,routine.type))
                 self.functions.append(routine.name.lower())
         #We sort the functions
         self.functions.sort()
@@ -1095,6 +1163,11 @@ class Structure:
         "Check only if it is already analyzed"
         if self.is_analyzed:
             self.message.fatal("The structure %s is already analyzed" % self.name) 
+    #Ancestry (debugging)
+    def ancestry(self,n):
+        print n,self.name,repr(self)
+        if self.parent:
+            self.parent.ancestry(n+1)
     #Backup
     def backup(self):
         "Do a copy of the code"
@@ -1737,10 +1810,6 @@ class Module(Code):
                 struct.use_modules.update(self.use_modules)
                 #Add also the module used by the routine
                 self.use_modules.update(struct.use_modules)
-                #Add the variables declared in the module
-                struct.Declaration.dict_vars.update(self.Declaration.dict_vars)
-                #Add also the private variables
-                struct.Declaration.dict_vars.update(self.Declaration.dict_vars_private)
             elif self.re_include.match(line):
                 #Include directive
                 struct = Include(project,parent=self,line=line)
@@ -1748,6 +1817,18 @@ class Module(Code):
                 self.message.fatal("\n%s\n--> No detected routine!\n" % line \
                         + "This part of code can not be parsed as Fortran file:\n" \
                         + "Analysis Error in %s/%s:<%s>\n" % (self.dir,self.file,self.name))
+    #
+    def analyze_variables(self,project):
+        "Analyze the variables of the routine"
+        self.Declaration.analyze_variables(self.Implicit.dict,project)
+        #If it is inside a module i.e. the parent is a module, then
+        if isinstance(self.parent,Module):
+            #Add the variables declared in the parent (module)
+            if self.parent.Declaration.dict_vars == None:
+                self.parent.analyze_variables(project)
+            self.Declaration.dict_vars.update(self.parent.Declaration.dict_vars)
+            #Add also the private variables
+            self.Declaration.dict_vars.update(self.parent.Declaration.dict_vars_private)
     #
     def dependencies(self,project):
         "Build the dependencies from the list of use"
@@ -1802,6 +1883,7 @@ class Routine(Module):
         #Public
         self.public = False
         self.from_implicit = False
+        self.is_argument = False
         #Gestion of the cache
         #1 - Time stamp (done in Module class)
         #2 - The information of the cache is updated
@@ -1895,6 +1977,12 @@ class Routine(Module):
         #Format the comment "!Local variables"
         self.code = re_local_variables.sub(self.code,"\n\n" + comment_local_variables)
     #
+    def build_declaration(self):
+        "Build declaration for routine declared in an interface"
+        if isinstance(self.parent,Fortran_Interface):
+            self.ancestry(0)
+            return self.__str__()
+    #
     def cache_save(self):
          "Save some information for the cache"
          return { "timestamp": self.timestamp,
@@ -1917,6 +2005,17 @@ class Routine(Module):
                 self.cached_updated = False
                 self.cached_called = cached["called"]
                 self.cached_calling = cached["calling"]
+    #
+    def display_information(self):
+        "Display information about the routine"
+        message = "%s %s\n" % (self.nature,self.name)
+        if self.public:
+            message += 3*" " + "is public\n"
+        elif self.private:
+            message += 3*" " + "is private\n"
+        if self.nogeneric:
+            message += 3*" " + "is a generic routine\n"
+        self.message.write(message,verbose=-10)
     #
     def get_arguments(self,project):
         "Build the list of arguments of a routine"
@@ -2104,7 +2203,7 @@ class Function(Routine):
         Routine.__init__(self,name,parent,implicit,message)
         self.nature = "function"
         #Type of the function
-        self.function_type = None
+        self.type = None
     #
     def analyze(self,line,iter_code,project):
         "Analyze the function"
@@ -2136,30 +2235,34 @@ class Function(Routine):
         #Arguments (use the method of Routine class)
         Routine.get_arguments(self,project)
         #Check if the function has already a type
-        if not self.function_type:
+        if not self.type:
             #Check if dict_vars is not equal to None (case if the cache is used)
             if self.Declaration.dict_vars == None:
                 #Dictionary of variables
                 self.Declaration.analyze_variables(self.Implicit.dict,project)
             name = self.func_name.lower()
             if not self.Declaration.dict_vars.has_key(name):
-                self.message.fatal("\n%s/%s: Check if the arguments are well formatted:\n" \
-                    % (self.dir,self.file) \
-                    + "Type not declared for the function '%s'\n" % self.name)
+                if self.Implicit.dict:
+                    #There is an implicit dictionary
+                    Variable.type_from_implicit(self,self.Implicit.dict)
+                else:
+                    self.message.fatal("\n%s/%s: Check if the arguments are well formatted:\n" \
+                        % (self.dir,self.file) \
+                        + "Type not declared for the function '%s'\n" % self.name)
             else:
                 #We are looking for self.name in dict_vars
-                self.function_type = self.Declaration.dict_vars[name].type
+                self.type = self.Declaration.dict_vars[name].type
         #Add the type of the function
         name = self.name.lower()
         if not self.Declaration.dict_vars.has_key(name):
-            self.Declaration.dict_vars[name] = Variable(self.name,parent=self,type=self.function_type)
+            self.Declaration.dict_vars[name] = Variable(self.name,parent=self,type=self.type)
         #If in a module or a subroutine, add the type of the function in parent.dict_vars
         if isinstance(self.parent,Module):
             #Need to update dict_vars for dict_vars of the module and other functions
             self.parent.update_declaration(self.Declaration.dict_vars[name])
     #
     def has_type(self):
-        return self.function_type != None
+        return self.type != None
 
 
 class Program(Routine):
@@ -2220,7 +2323,7 @@ class Header_Function(Header_Routine):
         #Determine the type of the function
         if (len(self.parent.type) > 9):
             #'xxx function'
-            self.parent.function_type = self.parent.type[:-9].strip()
+            self.parent.type = self.parent.type[:-9].strip()
         else:
             #Determine inside the code
             #First check if result and use the corresponding name
@@ -2306,7 +2409,6 @@ class Use(Code):
                 #Add this module
                 self.modules.add(res.groupdict()["name"].lower())
                 while self.re_continuation.search(line):
-                    print line,res.groupdict()["name"].lower()
                     line = iter_code.next()
                     self.add_code(line)
                 comments=""
@@ -2503,7 +2605,7 @@ class Declaration(Code):
         self.code = re.sub( ".*::[ ]*[,]*[ ]*\n", "",self.code)
         #i# text_functions = ""
         #i# for struct in functions:
-        #i#     text_functions += indent + "%s :: %s\n" % (struct.function_type,struct.name)
+        #i#     text_functions += indent + "%s :: %s\n" % (struct.type,struct.name)
         #i# #Add at the end of declaration
         #i# if re_end_variables.search(self.code):
         #i#     #Add before "!******" only once (count=1)
@@ -2551,8 +2653,6 @@ class Declaration(Code):
             except StopIteration:
                 self.message.fatal("\n%s/%s: [%s]\n--> End of the code inside declaration!!\n" \
                         % (self.parent.dir,self.parent.file,self.parent.name))
-        #We analyze all the variables
-        self.analyze_variables(dict_implicit,project)
         #Get the last line
         return line
     #
@@ -2599,7 +2699,7 @@ class Declaration(Code):
                 elif self.re_interface_start.match(line):
                     #Definition of an interface : Create an interface
                     interface = Fortran_Interface(parent=self.parent)
-                    #Analyze the interface (and go to "end interface" and add the subroutines or the interface
+                    #Analyze the interface (and go to "end interface" and add the subroutines or the interface)
                     self.dict_vars.update(interface.analyze(line,iter_code,dict_implicit,project))
                     continue
                 #Remove '\n'
@@ -2683,20 +2783,24 @@ class Declaration(Code):
                 if variable.type == "":
                     #Add type of the implicit dictionary
                     variable.type_from_implicit(dict_implicit)
-        #Put private variables in a private directory and remove it
+        #Put private variables in a private directory and remove it. Get arguments for routines
         self.dict_vars_private = dict()
         for (name,variable) in self.dict_vars.items():
             if variable.private:
                 self.dict_vars_private[name] = variable
                 del(self.dict_vars[name])
+            #if isinstance(variable,Routine):
+                #variable.get_arguments(project)
     #
     #Give the declaration of arguments
     def arguments(self,arguments,dict_implicit,project):
         "Give declarations of arguments"
+        if not self.dict_vars:
+            return ""
         #List of declarations
         declarations = list()
         #Set for parameters in argument (ex: selected_kind)
-        parameters = set()
+        parameters = dict()
         #Set for modules in parameters
         modules = set()
         arguments_lower = map(lambda x: x.lower(),arguments)
@@ -2706,13 +2810,14 @@ class Declaration(Code):
             argument_lower = argument.lower()
             if self.dict_vars.has_key(argument_lower):
                 arg = self.dict_vars[argument_lower]
+                #Is an argument
+                arg.is_argument = True
             else:
                 #We use the implicit dictionary
                 arg = Variable(argument_lower,parent=self.parent,truename=argument,is_argument=True)
                 type_arg = arg.type_from_implicit(dict_implicit)
                 if type_arg == "":
-                    print self.dict_vars
-                    print arg.display_information()
+                    arg.display_information()
                     text = "\nArguments of the routine '%s':" % self.parent.name
                     for arg in arguments_lower:
                         text += " '%s'" % arg
@@ -2736,7 +2841,7 @@ class Declaration(Code):
                     has_name = True
                 elif self.dict_vars.has_key(name):
                     #Declared in the variable for the subroutine
-                    parameters.add(self.dict_vars[name])
+                    parameters[name] = self.dict_vars[name]
                     has_name = True
                 elif name in intrinsic_functions:
                     #This is an intrinsic functions
@@ -2775,13 +2880,13 @@ class Declaration(Code):
                     if unfound_module:
                         message("%s\n   " % texte \
                                 + " The module '%s' is not found and" % module \
-                                + " the argument '%s' depends on '%s' which could be in this module" \
-                                % (arg,name))
+                                + " the argument '%s' depends on '%s' which could be in this module." \
+                                % (arg.name,name))
                     else:
                         message("%s\n[%s/%s:%s]:" % \
                                            (texte,self.parent.dir,self.parent.file,self.parent.name) \
-                                + " The argument '%s' depends on '%s'" % (arg,name) \
-                                + " which is not found in the declaration even in a module" )
+                                + " The argument '%s' depends on '%s'" % (arg.name,name) \
+                                + " which is not found in the declaration even in a module." )
         #Build the declaration of arguments
         decl_args = ""
         #Sort arguments (integer, scalar, arrays)
@@ -2792,14 +2897,13 @@ class Declaration(Code):
         #Add implicit none
         decl_args += "implicit none\n"
         #Add parameters
-        for param in parameters:
-            decl_args += "%s :: %s\n" % param
+        decl_args += build_declaration(parameters)
         for (a,arg) in declarations:
-            if arg.type == "interface":
+            if isinstance(arg,Routine):
                 #Special case
                 line = "interface\n%send interface\n" % arg
             else:
-                line = "%s :: %s\n" % (arg.type,arg)
+                line = "%s :: %s\n" % arg.build_declaration()
                 if len(line) > 100:
                     #Split the line
                     line = line[:60] + line[60:].replace(',',', &\n&'+9*' ',1)
@@ -2925,42 +3029,27 @@ class Execution(Code):
                     % (self.parent.dir,self.parent.file,self.parent.name,module))
         #Treat undeclared variables
         undeclared = variables.difference(declared_variables)
+        #Add undeclared variables inside dict_vars
+        for name in undeclared:
+            dict_vars[name] = Variable(name,parent=self)
+            dict_vars[name].type_from_implicit(dict_implicit)
         #Add arguments or variables not typed inside dict_vars
+        undeclared= dict()
         for var in dict_vars.values():
             if var.from_implicit:
-                undeclared.add(var.name)
+                undeclared[var.lower] = var
         if undeclared:
-            undeclared = list(undeclared)
-            undeclared.sort()
-            self.message.section("%s/%s:%s\nUndeclared variables: %s\n" % \
-                (self.parent.dir,self.parent.file,self.parent.name,undeclared))
-            line = ""
-            implicit = ""
-            #Build the declaration
-            declaration=""
-            for var in undeclared:
-                i=var[0]
-                if not dict_implicit.has_key(i):
-                    self.message.error("%s/%s: [%s]\n--> The variable '%s' has no type!\n" \
-                        % (self.dir,self.file,self.parent.name,var))
-                    continue
-                if len(line) > 80 or dict_implicit[i] != implicit:
-                    if line:
-                        declaration += line+"\n"
-                    implicit = dict_implicit[i]
-                    line = "%s :: %s" % (dict_implicit[i],var)
-                else:
-                    if line:
-                        line += "," + var
-            if line:
-                declaration += line+"\n"
-                #self.message.write("Added declaration to the routine '%s':\n" % self.parent.name,verbose=-10)
+            #Build the declaration of all variables (to build only undeclared, use undeclared)
+            declaration = build_declaration(dict_vars)
             if declaration:
-                self.message.section(declaration)
+                self.message.error("%s/%s: [%s]\n--> Undeclared variables\n%s" \
+                    % (self.dir,self.file,self.name,build_declaration(undeclared)))
+                sys.exit(1)
                 #Edition using vim
                 if edition:
                     for var in dict_vars.values():
-                        print var.display_information()
+                        var.display_information()
+                    sys.exit(1)
                     #Edit inside vim the whole file: put in the register "a the declarations
                     vim_message = "Register v = %s" % declaration \
                             + "Register a = !Arguments\n" \
@@ -2996,7 +3085,8 @@ class Variable:
     #
     def __init__(self,name,parent=None,message=None,decl="",type="",truename="",is_argument=False):
         "Initialization: decl=declaration (lower case), truename = exact name of the variable"
-        self.name=name
+        self.name = name
+        self.lower = name.lower()
         #Proper attributes
         self.type=type
         self.is_argument = is_argument
@@ -3013,6 +3103,7 @@ class Variable:
         self.target = False
         self.value = None
         self.parent = parent
+        self.dependencies = None
         if self.type:
             self.from_implicit = None
         else:
@@ -3042,7 +3133,7 @@ class Variable:
                     head == "doubleprecision" or \
                     head[0:7] == "integer" or head == "logical" or \
                     head[0:4] == "real" or head == "type":
-                self.type = head
+                self.type = all
             elif head == "allocatable":
                 self.allocatable = True
             elif head == "dimension":
@@ -3096,6 +3187,33 @@ class Variable:
             self.search_name(self.dimension)
         return self.dependencies
     #
+    def build_declaration(self):
+        "Build the declaration of the variable"
+        decl = self.type
+        var = self.truename+self.dimension
+        if self.parameter:
+            decl += ", parameter"
+            var += "=" + self.value
+        if self.intent:
+            decl += ", " + self.intent
+        if self.public:
+            decl += ", public"
+        elif self.private:
+            decl += ", private"
+        if self.allocatable:
+            decl += ", allocatable"
+        if self.optional:
+            decl += ", optional"
+        elif self.external:
+            decl += ", external"
+        if self.pointer:
+            decl += ", pointer"
+        if self.save:
+            decl += ", save"
+        if self.target:
+            decl += ", target"
+        return (decl,var)
+    #
     def display_information(self):
         "Display information about the variable"
         if self.is_argument:
@@ -3129,6 +3247,11 @@ class Variable:
             message += 3*" " + "is saved\n"
         if self.target:
             message += 3*" " + "is a target\n"
+        if self.dependencies:
+            liste = ""
+            for name in self.dependencies:
+                liste += name + " "
+            message += 3*" " + "depends on %s\n" % liste
         self.message.write(message,verbose=-10)
     #
     def has_type(self):
@@ -3137,11 +3260,12 @@ class Variable:
     #
     def order(self):
         "Determine the order"
+        self.get_dependencies()
         if self.dimension:
-                if self.dependencies:
-                    order = 100
-                else:
-                    order = 10
+            if self.dependencies:
+                order = 100
+            else:
+                order = 10
         elif "integer" in self.type:
             #Insert first the integer
             order = 0
@@ -3219,6 +3343,7 @@ class Fortran_Type(Declaration):
         #Public
         self.public = False
         self.from_implicit = False
+        self.is_argument = False
     #
     def analyze(self,line,iter_code,dict_implicit,project):
         "Analyze the type statements"
@@ -3237,8 +3362,7 @@ class Fortran_Type(Declaration):
         self.header = line
         while True:
             try:
-                #Add "\n" because it is removed before
-                line = iter_code.next() + "\n"
+                line = iter_code.next()
             except StopIteration:
                 self.message.fatal("%s/%s: [%s]\n--> Incorrect end of a fortran type!!\n'%s'\n" \
                         % (self.dir,self.file,self.name,line[:-1]))
@@ -3246,7 +3370,7 @@ class Fortran_Type(Declaration):
                 self.add_code(line)
                 #Is it a continuation line or a comment line inside continuations lines?
                 while self.re_continuation.search(line) or self.re_comment_match.match(line):
-                    line = iter_code.next() + "\n"
+                    line = iter_code.next()
                     self.add_code(line)
             elif self.re_comment_match.match(line):
                 self.add_code(line)
@@ -3260,12 +3384,35 @@ class Fortran_Type(Declaration):
         #We analyze all variables
         self.analyze_variables(dict_implicit,project)
     #
+    def build_declaration(self):
+        "Need to code"
+        decl = "type"
+        if self.public:
+            decl += ", public"
+        elif self.private:
+            decl += ", private"
+        decl += ":: %s" % self.name
+        decl += self.code
+        decl += "end type %s" % self.name
+        return ("type", decl)
+    #
     def display_information(self):
-        "Display information"
-        pass
+        "Display information about the fortran type"
+        message = "Type %s\n" % self.name
+        if self.public:
+            message += 3*" " + "is public\n"
+        elif self.private:
+            message += 3*" " + "is private\n"
+        message += self.code
+        self.message.write(message,verbose=-10)
     #
     def has_type(self):
         return True
+    #
+    def order(self):
+        "Determine the order"
+        order = 100
+        return order
 
 
 #Class to handle the fortran interfaces inside declarations
@@ -3279,6 +3426,10 @@ class Fortran_Interface(Fortran_Type):
         "__init__ function as Fortran_Type, only the type differs"
         Fortran_Type.__init__(self,parent,name)
         self.type = "interface"
+        #Private
+        self.private = False
+        #Public
+        self.public = False
         self.from_implicit = False
     #
     def add_routine(self,routine):

@@ -149,16 +149,19 @@ SUBROUTINE CALC_GRAD_REZA_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsi_c,xpsi_f,ypsi_c,ypsi_f)
   ! ypsi = (1/2) \Nabla^2 xpsi
   use module_base
-  implicit real(kind=8) (a-h,o-z)        
-  dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
-  dimension xpsi_c(nvctr_c),xpsi_f(7,nvctr_f),scal(0:3)
-  dimension ypsi_c(nvctr_c),ypsi_f(7,nvctr_f)
-  dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
-  dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
- character(len=*), parameter :: subname='CALC_GRAD_REZA_prev'
-  allocatable xpsig_c(:,:,:),ypsig_c(:,:,:)
-  allocatable xpsig_f(:,:,:,:),ypsig_f(:,:,:,:)
-  allocatable xpsig_fc(:,:,:,:)
+  implicit none
+  integer :: keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
+  real(kind=8) :: xpsi_c(nvctr_c),xpsi_f(7,nvctr_f),scal(0:3)
+  real(kind=8) :: ypsi_c(nvctr_c),ypsi_f(7,nvctr_f)
+  integer :: ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
+  integer :: ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
+  character(len=*), parameter :: subname='CALC_GRAD_REZA_prev'
+  real(kind=8),allocatable :: xpsig_c(:,:,:),ypsig_c(:,:,:)
+  real(kind=8),allocatable :: xpsig_f(:,:,:,:),ypsig_f(:,:,:,:)
+  real(kind=8),allocatable :: xpsig_fc(:,:,:,:)
+  real(kind=8) :: cprecr,hgrid
+  integer :: i_all,i_stat
+  integer :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,nseg_c,nseg_f,nvctr_c,nvctr_f
 
   allocate(xpsig_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,xpsig_c,'xpsig_c',subname)
