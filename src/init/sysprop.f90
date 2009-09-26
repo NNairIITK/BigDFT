@@ -16,7 +16,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,i_all,i_stat,jproc
+  integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,i_all,i_stat,jproc,ikpts
 
   call read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,&
        norb,norbu,norbd,iunit)
@@ -29,9 +29,6 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
   !temporary changement, to be controlled
   !nspinor=2
-
-  allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
 
   call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
 
@@ -53,8 +50,12 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
   end if
 
-  call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
-       orbs%occup,orbs%spinsgn)
+
+  !assign to each k-point the same occupation number
+  do ikpts=1,orbs%nkpts
+     call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
+          orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
+  end do
 
 end subroutine system_properties
 !!***
@@ -530,22 +531,45 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all
+  real(gp) :: kx,alat
   logical, dimension(:), allocatable :: GPU_for_orbs
 
+  allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
+
   !assign the value of the k-points
-  orbs%nkpts=1
+  orbs%nkpts=1!3
   !allocate vectors related to k-points
   allocate(orbs%kpts(3,orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
   allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
   !only the gamma point for the moment
+
+!!$  open(55)
+!!$  read(55,*)kx,alat
+!!$  close(55)
+
+!!$  !toto point
+!!$  alat=10.1901d0
+!!$
+!!$  kx=1.23456000d-01
+!!$  ky=8.52147000d-01
+!!$  kz=9.87452000d-01
+
   do ikpt=1,orbs%nkpts
      orbs%kpts(1,ikpt)=0.0_gp
      orbs%kpts(2,ikpt)=0.0_gp
      orbs%kpts(3,ikpt)=0.0_gp
+!!$     orbs%kpts(1,ikpt)=kx*4.0*datan(1.d0)/(alat)
+!!$     orbs%kpts(2,ikpt)=0.d0
+!!$     orbs%kpts(3,ikpt)=0.d0
      orbs%kwgts(ikpt)=1.0_gp
   end do
+
+!!$  orbs%kwgts(1)=0.2_gp
+!!$  orbs%kwgts(2)=0.5_gp
+!!$  orbs%kwgts(3)=0.3_gp
 
   !initialise the array
   do jproc=0,nproc-1
@@ -558,15 +582,12 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   allocate(GPU_for_orbs(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
 
-  if (nproc > 1) then
+  if (nproc > 1 .and. .not. GPUshare) then
      call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
           MPI_COMM_WORLD,ierr)
   else
-     GPU_for_orbs(0)=GPUblas
+     GPU_for_orbs(0)=GPUconv
   end if
-
-  print *,'iproc,GPU_for_orbs:',iproc,GPU_for_orbs,GPUconv
-
 
   !cubic-code strategy: balance the orbitals between processors
   !in the most symmetric way
@@ -626,6 +647,9 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   orbs%occup(1:orbs%norb*orbs%nkpts)=1.0_gp 
   orbs%spinsgn(1:orbs%norb*orbs%nkpts)=1.0_gp
 
+  !allocate the array which assign the k-point to processor in transposed version
+  allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
 
 end subroutine orbitals_descriptors
 !!***

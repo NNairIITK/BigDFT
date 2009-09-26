@@ -46,7 +46,9 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
 end subroutine restart_from_gaussians
 !!***
 
-subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
+
+
+subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fillrxyz)
   use module_base
   use module_types
   implicit none
@@ -54,13 +56,25 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(inout) :: orbs
   type(gaussian_basis), intent(out) :: G
-  real(wp), dimension(:,:), pointer :: coeffs
+  real(wp), dimension(:,:),   pointer :: coeffs
+  logical , optional :: opt_fillrxyz
   !local variables
   character(len=*), parameter :: subname='read_gaussian_information'
   logical :: exists
   integer :: jproc,i_stat,i_all,ierr,jexpo,iexpo,iat,iorb,jat,icoeff,jcoeff,jorb,j
   real(gp) :: rx,ry,rz
   real(gp), dimension(4) :: coeff
+  logical fillrxyz
+
+
+  if (present(opt_fillrxyz)) then
+     fillrxyz=opt_fillrxyz
+  else
+     fillrxyz=.false.
+  endif
+  
+        
+
 
   !read the information from a file
   inquire(file=filename,exist=exists)
@@ -74,6 +88,9 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   open(unit=99,file=filename,status='unknown')
   read(99,*)G%nat,G%nshltot,G%nexpo,G%ncoeff
   
+
+
+
   allocate(G%nshell(G%nat+ndebug),stat=i_stat)
   call memocc(i_stat,G%nshell,'G%nshell',subname)
   allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
@@ -87,10 +104,23 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
 
   allocate(coeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,coeffs,'coeffs',subname)
+  
 
-  do iat=1,G%nat
-     read(99,*)jat,rx,ry,rz,G%nshell(iat)
-  end do
+
+  if(fillrxyz) then
+
+     allocate(G%rxyz (3,G%nat+ndebug),stat=i_stat)
+     call memocc(i_stat,coeffs,'coeffs',subname)
+     do iat=1,G%nat
+        read(99,*)jat,G%rxyz(1, iat),G%rxyz(2, iat),G%rxyz(3, iat)  ,G%nshell(iat)
+     end do
+  else
+     do iat=1,G%nat
+        read(99,*)jat,rx,ry ,ry  ,G%nshell(iat)
+     end do
+  endif
+
+
   read(99,*)G%ndoc,G%nam
   do iexpo=1,G%nexpo
      read(99,*)jexpo,G%xp(jexpo),G%psiat(jexpo)

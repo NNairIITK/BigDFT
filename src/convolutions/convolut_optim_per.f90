@@ -882,11 +882,11 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin_out)
   !$omp end critical
   !$omp end parallel
 !dee
-!  open(unit=97,file='check_ekin3',status='unknown')
-    write(197,*) '-------------------------------------------------------------------'
-do i=1,8
-    write(197,'(3(1X,e24.17))') ekin_array(i,1),ekin_array(i,2),ekin_array(i,3)
-end do
+!!$!  open(unit=97,file='check_ekin3',status='unknown')
+!!$    write(197,*) '-------------------------------------------------------------------'
+!!$do i=1,8
+!!$    write(197,'(3(1X,e24.17))') ekin_array(i,1),ekin_array(i,2),ekin_array(i,3)
+!!$end do
 !  close(97)
 
 end subroutine convolut_kinetic_per_T

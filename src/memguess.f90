@@ -27,7 +27,7 @@ program memguess
   logical :: optimise,GPUtest,convert=.false.,exists
   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
-  integer :: norbgpu,nspin_ig,ierror
+  integer :: norbgpu,nspin_ig
   real(kind=8) :: peakmem,hx,hy,hz
   type(input_variables) :: in
   type(atoms_data) :: atoms
@@ -44,10 +44,10 @@ program memguess
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
   real(kind=8), dimension(:), allocatable :: locrad
-  
   !! By Ali
-  integer ::iline
+  integer ::iline,ierror
   character :: Dummy
+! Get arguments
 
   call getarg(1,tatonam)
 
@@ -115,29 +115,27 @@ program memguess
         stop
      end if
   end if
-!!$
-!!$! Get arguments
-!!$open(unit=1,file='input.memguess',status='old')
-!!$ 
-!!$!line number, to control the input values
+
+!!$  open(unit=1,file='input.memguess',status='old')
+!!$  
+!!$  !line number, to control the input values
 !!$  iline=0
-!!$
+!!$  
 !!$  !number of MPI proccessors
 !!$  read(1,*) nproc
 !!$  write(*,*) 'Number of mpi processes is: ',nproc
-!!$
-!!$       read(1,*) optimise
-!!$       if (optimise) write(*,*) 'Molecule will be rotated to minimize simulation box size and workarrays in BigDFT'
-!!$
-!!$!    "T"  If the system grid is to be displayed in the "grid.xyz" file
-!!$       read(1,*) output_grid
-!!$        write(*,*)  'output_grid= ',output_grid
-!!$
-!!$!    "T"   'Perform the test with GPU, if present.'   
-!!$       read(1,*) GPUtest
-!!$           if (GPUtest) write(*,*) 'Perform the test with GPU'
-
-!!! END of By Ali
+!!$  
+!!$  read(1,*) optimise
+!!$  if (optimise) write(*,*) 'Molecule will be rotated to minimize simulation box size and workarrays in BigDFT'
+!!$  
+!!$  !    "T"  If the system grid is to be displayed in the "grid.xyz" file
+!!$  read(1,*) output_grid
+!!$  write(*,*)  'output_grid= ',output_grid
+!!$  
+!!$  !    "T"   'Perform the test with GPU, if present.'   
+!!$  read(1,*) GPUtest
+!!$  if (GPUtest) write(*,*) 'Perform the test with GPU'
+!!$!!! END of By Ali
 
 
 
@@ -181,10 +179,6 @@ program memguess
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
   call system_properties(0,nproc,in,atoms,orbs,radii_cf,nelec)
-
-  i_all=-product(shape(orbs%norb_par))*kind(orbs%norb_par)
-  deallocate(orbs%norb_par,stat=i_stat)
-  call memocc(i_stat,i_all,'orbs%norb_par',subname)
 
   if (optimise) then
      if (atoms%geocode =='F') then
@@ -296,23 +290,7 @@ program memguess
   call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Glr)
 
   ! De-allocations
-  i_all=-product(shape(orbs%occup))*kind(orbs%occup)
-  deallocate(orbs%occup,stat=i_stat)
-  call memocc(i_stat,i_all,'orbs%occup',subname)
-  i_all=-product(shape(orbs%spinsgn))*kind(orbs%spinsgn)
-  deallocate(orbs%spinsgn,stat=i_stat)
-  call memocc(i_stat,i_all,'orbs%spinsgn',subname)
-  i_all=-product(shape(orbs%kpts))*kind(orbs%kpts)
-  deallocate(orbs%kpts,stat=i_stat)
-  call memocc(i_stat,i_all,'orbs%kpts',subname)
-  i_all=-product(shape(orbs%kwgts))*kind(orbs%kwgts)
-  deallocate(orbs%kwgts,stat=i_stat)
-  call memocc(i_stat,i_all,'orbs%kwgts',subname)
-  i_all=-product(shape(orbs%iokpt))*kind(orbs%iokpt)
-  deallocate(orbs%iokpt,stat=i_stat)
-  call memocc(i_stat,i_all,'orbs%iokpt',subname)
-
-
+  call deallocate_orbs(orbs,subname)
 
   if (GPUtest .and. .not. GPUconv) then
      write(*,*)' ERROR: you can not put a GPUtest flag is there is no GPUrun.'
@@ -321,8 +299,6 @@ program memguess
   if (GPUconv .and. atoms%geocode=='P' .and. GPUtest) then
      !test the hamiltonian in CPU or GPU
      !create the orbitals data structure for one orbital
-     allocate(orbstst%norb_par(0:0+ndebug),stat=i_stat)
-     call memocc(i_stat,orbstst%norb_par,'orbstst%norb_par',subname)
      !test orbitals
      nspin=1
      if (norbgpu == 0) then
@@ -341,6 +317,11 @@ program memguess
         orbstst%eval(iorb)=-0.5_gp
      end do
 
+     do iorb=1,orbstst%norb
+        orbstst%occup(iorb)=1.0_gp
+        orbstst%spinsgn(iorb)=1.0_gp
+     end do
+
      call createWavefunctionsDescriptors(0,hx,hy,hz,&
           atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst)
      
@@ -349,15 +330,8 @@ program memguess
      
      call deallocate_wfd(Glr%wfd,subname)
 
-     i_all=-product(shape(orbstst%norb_par))*kind(orbstst%norb_par)
-     deallocate(orbstst%norb_par,stat=i_stat)
-     call memocc(i_stat,i_all,'orbstst%norb_par',subname)
-     i_all=-product(shape(orbstst%spinsgn))*kind(orbstst%spinsgn)
-     deallocate(orbstst%spinsgn,stat=i_stat)
-     call memocc(i_stat,i_all,'orbstst%spinsgn',subname)
-     i_all=-product(shape(orbstst%occup))*kind(orbstst%occup)
-     deallocate(orbstst%occup,stat=i_stat)
-     call memocc(i_stat,i_all,'orbstst%occup',subname)
+     call deallocate_orbs(orbstst,subname)
+
      i_all=-product(shape(orbstst%eval))*kind(orbstst%eval)
      deallocate(orbstst%eval,stat=i_stat)
      call memocc(i_stat,i_all,'orbstst%eval',subname)

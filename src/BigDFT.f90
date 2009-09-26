@@ -67,7 +67,9 @@ program BigDFT
      open(54,file="list_posinp")
      read(54,*) nconfig
      if (nconfig > 0) then 
+        !allocation not referenced since memocc count not initialised
         allocate(arr_posinp(1:nconfig))
+
         do iconfig=1,nconfig
            read(54,*) arr_posinp(iconfig)
         enddo
@@ -145,7 +147,7 @@ program BigDFT
         if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
         call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
         filename=trim('relaxed_'//arr_posinp(iconfig))
-        call write_atomic_file(filename,etot,rxyz,atoms,' ')
+        if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,' ')
      end if
 
 
@@ -200,11 +202,13 @@ program BigDFT
      !finalize memory counting
      call memocc(0,0,'count','stop')
 
+     if (GPUshare .and. GPUconv) call stop_gpu_sharing()
+
   enddo !loop over iconfig
+
   deallocate(arr_posinp)
 
   call MPI_FINALIZE(ierr)
 
-  if (GPUshare) call stop_gpu_sharing()
 end program BigDFT
 !!***

@@ -67,6 +67,7 @@ subroutine dft_input_variables(iproc,filename,in)
   !local variables
   character(len=7) :: cudagpu
   character(len=100) :: line
+  logical :: exists
   integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
 
   ! Read the input variables.
@@ -84,14 +85,8 @@ subroutine dft_input_variables(iproc,filename,in)
   read(1,*,iostat=ierror) in%ixc
   call check()
   !charged system, electric field (intensity and start-end points)
-  read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%ncharge,in%ef(1)
-  if (ierror == 0 .and. in%ef(1) /= 0.0_gp) then
-     read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
-  else
-     in%ef(2)=0.0_gp
-     in%ef(3)=0.0_gp
-  end if
+  call check()
+  read(1,*,iostat=ierror)  in%ncharge,in%elecfield
   call check()
   read(1,*,iostat=ierror) in%nspin,in%mpol
   call check()
@@ -148,9 +143,25 @@ subroutine dft_input_variables(iproc,filename,in)
   read(1,*,iostat=ierror) in%nvirt,in%nplot
   call check()
 
-  !x-adsorber treatment (in progress)
-  read(1,*,iostat=ierror)  in%iat_absorber
+  !x-absorber treatment
+  read(1,*,iostat=ierror) in%iat_absorber
   call check()
+
+
+  !read absorption-calculation input variables
+  !inquire for the needed file 
+  !if not present, set default ( no absorption calculation)
+  if (in%iat_absorber /= 0) then
+     inquire(file="input.abscalc",exist=exists)
+     if (.not. exists) then
+        if (iproc == 0) write(*,*)'ERROR: nedd file input.abscalc for x-ray absorber treatment.'
+        stop
+     end if
+     call abscalc_input_variables(iproc,'input.abscalc',in)
+  else
+     call abscalc_input_variables_default(in)
+  end if
+
 
   !electrostatic treatment of the vacancy (experimental)
   read(1,*,iostat=ierror)  in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
@@ -290,6 +301,96 @@ contains
 end subroutine geopt_input_variables
 !!***
 
+
+!!****f* BigDFT/abscalc_input_variables_default
+!! FUNCTION
+!!    Assign default values for ABSCALC variables
+!! SOURCE
+!!
+subroutine abscalc_input_variables_default(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(out) :: in
+
+  !put some fake values for the geometry optimsation case
+  in%c_absorbtion=.false.
+
+end subroutine abscalc_input_variables_default
+
+
+!!****f* BigDFT/abscalc_input_variables
+!! FUNCTION
+!!    Read the input variables needed for the ABSCALC
+!!    Every argument should be considered as mandatory
+!! SOURCE
+!!
+subroutine abscalc_input_variables(iproc,filename,in)
+  use module_base
+  use module_types
+  implicit none
+
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc
+  type(input_variables), intent(out) :: in
+
+
+  !local variables
+  integer :: ierror,iline, i
+
+  character(len=*), parameter :: subname='abscalc_input_variables'
+  integer :: i_stat
+
+
+  ! Read the input variables.
+  open(unit=111,file=filename,status='old')
+
+  !line number, to control the input values
+  iline=0
+
+
+  !x-adsorber treatment (in progress)
+
+  read(111,*,iostat=ierror)  in%iat_absorber, in%absorber_gnrm
+  call check()
+  read(111,*,iostat=ierror)  in%L_absorber
+  call check()
+
+  allocate(in%Gabs_coeffs(2*in%L_absorber +1),stat=i_stat)
+  call memocc(i_stat,in%Gabs_coeffs,'in%Gabs_coeff',subname)
+
+  read(111,*,iostat=ierror)  (in%Gabs_coeffs(i+ndebug), i=1,2*in%L_absorber +1 )
+  call check()
+  
+  read(111,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
+
+  if(ierror==0) then
+     
+  else
+     in%abscalc_alterpot=.false.
+     in%abscalc_eqdiff =.false.
+  endif
+
+
+  in%c_absorbtion=.true.
+
+  close(unit=111)
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  end subroutine check
+
+end subroutine abscalc_input_variables
+!!***
+
+
 !!****f* BigDFT/dft_input_converter
 !! FUNCTION
 !!  Convert the format of input variables
@@ -324,7 +425,7 @@ subroutine dft_input_converter(in)
 
   line=''
   line=' ncharge: charge of the system, Electric field'
-  write(1,'(i3,3(f6.3),a)') in%ncharge,in%ef(1),in%ef(2),in%ef(3),trim(line)
+  write(1,'(i3,1(f6.3),a)') in%ncharge,in%elecfield,trim(line)
 
   line=''
   line=' nspin=1 non-spin polarization, mpol=total magnetic moment'
@@ -467,21 +568,14 @@ subroutine read_input_variables(iproc,filename,in)
 
   read(1,*,iostat=ierror) in%ixc
   call check()
-  read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%ncharge,in%ef(1)
-  if (ierror == 0 .and. in%ef(1) /= 0.0_gp) then
-     read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
-  else
-     in%ef(2)=0.0_gp
-     in%ef(3)=0.0_gp
-  end if
+  read(1,*,iostat=ierror) in%elecfield
   call check()
   read(1,*,iostat=ierror) in%gnrm_cv
   call check()
   read(1,'(a100)')line
   read(line,*,iostat=ierror) in%itermax,in%nrepmax
   if (ierror == 0) then
-     !read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
+     !read(line,*,iostat=ierror) in%ncharge,in%elecfield
   else
      read(line,*,iostat=ierror)in%itermax
      in%nrepmax=10
@@ -620,7 +714,7 @@ subroutine print_input_parameters(in,atoms)
        'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
        '|  CG Steps=',in%ncongt
   write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
-       ' elec. field=',in%ef(1),'|                   ','| DIIS Hist. N.=',in%idsx
+       ' elec. field=',in%elecfield,'|                   ','| DIIS Hist. N.=',in%idsx
   if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
           'Polarisation=',2*in%mpol, '|'
@@ -836,10 +930,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
 
   atoms%ntypes=0
   do iat=1,atoms%nat
-!!$     if (ierror == 0) then
-!!$        !old case of ascii file, added for backward compatibility
-!!$        if (iat /= 1) read(ifile,*) rx,ry,rz,tatonam
-!!$     else
+
      !xyz input file, allow extra information
      read(ifile,'(a150)')line 
      if (lpsdbl) then
@@ -847,8 +938,9 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
      else
         read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,extra
      end if
-     !print *,line
+     !print *,'extra',iat,extra
      call find_extra_info(line,extra)
+     !print *,'then',iat,extra
      call parse_extra_info(iproc,iat,extra,atoms)
 
      tatonam=trim(symbol)
@@ -1000,6 +1092,7 @@ subroutine find_extra_info(line,extra)
   i=1
   space=.true.
   nspace=-1
+  !print *,'line',line
   find_space : do
      !toggle the space value for each time
      if (line(i:i) == ' ' .neqv. space) then
@@ -1012,6 +1105,7 @@ subroutine find_extra_info(line,extra)
         exit find_space
      end if
      if (i==150) then
+        !print *,'AAA',extra
         extra='nothing'
         exit find_space
      end if
@@ -1191,7 +1285,7 @@ subroutine read_atomic_ascii(iproc,ifile,atoms,rxyz)
   allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%amu,'atoms%amu',subname)
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%natpol,'rxyz',subname)
+  call memocc(i_stat,rxyz,'rxyz',subname)
 
   !controls if the positions are provided with machine precision
   if (index(atoms%units, 'd0') > 0) then
@@ -1411,7 +1505,7 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
-  open(unit=9,file=filename//'.xyz')
+  open(unit=9,file=trim(filename)//'.xyz')
   xmax=0.0_gp
   ymax=0.0_gp
   zmax=0.0_gp

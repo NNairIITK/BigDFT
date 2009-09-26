@@ -72,25 +72,10 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   !assign the geometry optimisation method
   parmin%approach=in%geopt_approach
 
-!!$  !inquire for the file needed for geometry optimisation
-!!$  !if not present, switch to traditional SDCG method
-!!$  inquire(file="input.geopt",exist=exists)
-!!$
-!!$
-!!$  if (exists) then
-!!$     !Read from input.geopt
-!!$     open(84,file="input.geopt")
-!!$     read(84,*) parmin%approach
-!!$     close(84)
-!!$  else
-!!$     if (iproc ==0) write(*,*)' File "input.geopt" not found, do SDCG method'
-!!$     parmin%approach='SDCG'
-!!$  end if
-
   ncount_bigdft=0
   write(fn4,'(i4.4)') ncount_bigdft
   write(comment,'(a)')'INITIAL CONFIGURATION '
-  call write_atomic_file('posout_'//fn4,epot,pos,at,trim(comment))
+  if (iproc == 0) call write_atomic_file('posout_'//fn4,epot,pos,at,trim(comment))
 
   if (iproc ==0)  write(*,'(a,1x,a)') ' Begin of minimization using ',parmin%approach
   if(trim(parmin%approach)=='LBFGS') then
@@ -192,11 +177,6 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   fluctsum=0._gp
   nfluct=0
 
-!  alat(1)=at%alat1
-!  alat(2)=at%alat2
-!  alat(3)=at%alat3
-!  fluct=0._gp
-
   if (iproc==0)    write(*,*) 'Maximum number of SD steps used in the beginning: ',nitsd
 
   call steepdes(nproc,iproc,at,x,epot,f,rst,ncount_bigdft,fluctsum,nfluct,fnrm,in,&
@@ -233,7 +213,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         call call_bigdft(nproc,iproc,at,x,in,epot,f,rst,infocode)
 
         if (iproc == 0) then
-           call transforce(at%nat,f,sumx,sumy,sumz)
+           call transforce(at,f,sumx,sumy,sumz)
            write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
            write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
            write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
@@ -244,7 +224,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         xdft(:)=x(:)
 
         call fnrmandforcemax(f,fnrm,fmax,at)
-        if (fmax < 3.d-1) call updatefluctsum(at%nat,f,nfluct,fluctsum,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(at,f,nfluct,fluctsum,fluct)
 
         call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
 
@@ -434,34 +414,13 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
         !C line minimize along hh ----
         call atomic_axpy(at,rxyz,beta0,hh,tpos)
-!!$        do iat=1,at%nat
-!!$           if (at%lfrztyp(iat)) then
-!!$              tpos(1,iat)=rxyz(1,iat)
-!!$              tpos(2,iat)=rxyz(2,iat)
-!!$              tpos(3,iat)=rxyz(3,iat)
-!!$           else
-!!$              if (at%geocode == 'P') then
-!!$                 tpos(1,iat)=modulo(rxyz(1,iat)+beta0*hh(1,iat),at%alat1)
-!!$                 tpos(2,iat)=modulo(rxyz(2,iat)+beta0*hh(2,iat),at%alat2)
-!!$                 tpos(3,iat)=modulo(rxyz(3,iat)+beta0*hh(3,iat),at%alat3)
-!!$              else if (at%geocode == 'S') then
-!!$                 tpos(1,iat)=modulo(rxyz(1,iat)+beta0*hh(1,iat),at%alat1)
-!!$                 tpos(2,iat)=rxyz(2,iat)+beta0*hh(2,iat)
-!!$                 tpos(3,iat)=modulo(rxyz(3,iat)+beta0*hh(3,iat),at%alat3)
-!!$              else
-!!$                 tpos(1,iat)=rxyz(1,iat)+beta0*hh(1,iat)
-!!$                 tpos(2,iat)=rxyz(2,iat)+beta0*hh(2,iat)
-!!$                 tpos(3,iat)=rxyz(3,iat)+beta0*hh(3,iat)
-!!$              end if
-!!$           end if
-!!$        end do
 
         in%inputPsiId=1
         in%output_grid=0
         in%output_wf=.false.
         call call_bigdft(nproc,iproc,at,tpos,in,tetot,gpf,rst,infocode)
         if (iproc == 0) then
-           call transforce(at%nat,gpf,sumx,sumy,sumz)
+           call transforce(at,gpf,sumx,sumy,sumz)
            write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
            write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
            write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
@@ -518,7 +477,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
         call call_bigdft(nproc,iproc,at,rxyz,in,etot,fxyz,rst,infocode)
         if (iproc == 0) then
-           call transforce(at%nat,fxyz,sumx,sumy,sumz)
+           call transforce(at,fxyz,sumx,sumy,sumz)
            write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
            write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
            write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
@@ -555,13 +514,12 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'CONJG:fnrm= ',sqrt(fnrm)
            call  write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
-           !call wtxyz('posout_'//fn4,etot,rxyz,at,trim(comment))
         endif
 
 
         !if (iproc.eq.0) write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'CG ',ncount_bigdft,etot,sqrt(fnrm)
 
-        if (fmax < 3.d-1) call updatefluctsum(at%nat,fxyz,nfluct,fluctsum,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(at,fxyz,nfluct,fluctsum,fluct)
 
 
         call atomic_dot(at,gpf,gpf,unten)
@@ -747,7 +705,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
         in%output_wf=.false.
         call call_bigdft(nproc,iproc,at,rxyz,in,etot,ff,rst,infocode)
         if (iproc == 0) then
-           call transforce(at%nat,ff,sumx,sumy,sumz)
+           call transforce(at,ff,sumx,sumy,sumz)
            write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
            write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
            write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
@@ -783,7 +741,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
         df1=fnrm-fnrmitm1
         df2=fnrm-2._gp*fnrmitm1+fnrmitm2
 
-        if (fmax < 3.d-1) call updatefluctsum(at%nat,ff,nfluct,fluctsum,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(at,ff,nfluct,fluctsum,fluct)
         if (iproc.eq.0) then
            write(16,'(a,6(1x,e10.3),1x,i2)') 'fmax, fnrm/fnrmitm1, de1<0 , de2>0 , df1<0 , df2>0 ,nsatur',  & 
                 fmax, fnrm/fnrmitm1,de1,de2,df1,df2,nsatur
@@ -962,20 +920,21 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
         in%output_wf=.false.
         call call_bigdft(nproc,iproc,at,wpos,in,etotold,ffold,rst,infocode)
         call fnrmandforcemax(ffold,fnrm,fmax,at)   
-           if (fmax < 3.d-1) call updatefluctsum(at%nat,ffold,nfluct,fluctsum,fluct)
+           if (fmax < 3.d-1) call updatefluctsum(at,ffold,nfluct,fluctsum,fluct)
            if (iproc == 0) then
            write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*in%frac_fluct,fluct
         if (iproc == 0) then                                        
-           call transforce(at%nat,ffold,sumx,sumy,sumz)                         
+           call transforce(at,ffold,sumx,sumy,sumz)                         
            write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
            write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
            write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
-        end if 
+
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'Initial VSSD:fnrm= ',sqrt(fnrm)
            call  write_atomic_file('posout_'//fn4,etotold,wpos,at,trim(comment))
            write(16,'(1x,e12.5,1x,e21.14,a,e10.3)')sqrt(fnrm),etot,' GEOPT VSSD ',beta
            endif
+        end if 
 
         ncount_bigdft=ncount_bigdft+1
 
@@ -1004,7 +963,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
         in%output_wf=.false.
         call call_bigdft(nproc,iproc,at,wpos,in,etot,ff,rst,infocode)
         if (iproc == 0) then                                        
-           call transforce(at%nat,ff,sumx,sumy,sumz)                         
+           call transforce(at,ff,sumx,sumy,sumz)                         
            write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
            write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
            write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
@@ -1022,7 +981,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
         betalast=.5d0/curv
         if (reset) betaxx=min(betaxx,1.5d0*betalast)
         call fnrmandforcemax(ff,fnrm,fmax,at)   
-           if (fmax < 3.d-1) call updatefluctsum(at%nat,ff,nfluct,fluctsum,fluct)
+           if (fmax < 3.d-1) call updatefluctsum(at,ff,nfluct,fluctsum,fluct)
            if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*in%frac_fluct,fluct
            call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
            if (check) goto 100
@@ -1047,11 +1006,11 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
           beta=1.25d0*beta
           endif
 
-           if (iproc == 0) then
-           write(fn4,'(i4.4)') ncount_bigdft-1
-           write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
-           call  write_atomic_file('posout_'//fn4,etot,wpos,at,trim(comment))
-           endif
+          if (iproc == 0) then
+             write(fn4,'(i4.4)') ncount_bigdft-1
+             write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
+             call  write_atomic_file('posout_'//fn4,etot,wpos,at,trim(comment))
+          endif
 
           do iat=1,at%nat
           posold(1,iat)=wpos(1,iat)
@@ -1148,19 +1107,20 @@ subroutine fnrmandforcemax(ff,fnrm,fmax,at)
 END SUBROUTINE fnrmandforcemax
 
 
-subroutine updatefluctsum(nat,fxyz,nfluct,fluctsum,fluct)
+subroutine updatefluctsum(at,fxyz,nfluct,fluctsum,fluct)
   use module_base
+  use module_types
   implicit none
-  integer, intent(in) :: nat
+  type(atoms_data), intent(in) :: at
   real(gp),intent(inout):: fluctsum,fluct
-  real(gp), dimension(3,nat), intent(in) :: fxyz
+  real(gp), dimension(3,at%nat), intent(in) :: fxyz
   integer, intent(inout):: nfluct
   !local variables
 !!$  real(gp), save :: fluct_im1,fluct_im2,fluct_i
   real(gp) :: sumx,sumy,sumz
 
 
-  call transforce(nat,fxyz,sumx,sumy,sumz)
+  call transforce_forfluct(at,fxyz,sumx,sumy,sumz)
   nfluct=nfluct+1
 
 !!$  !limit the fluctuation value to n=3
@@ -1181,27 +1141,61 @@ subroutine updatefluctsum(nat,fxyz,nfluct,fluctsum,fluct)
 
   fluctsum=fluctsum+sumx**2+sumy**2+sumz**2
   !commented out, it increases the fluctuation artificially
-  fluct=fluctsum*sqrt(real(nat,gp))/real(nfluct,gp)
+  fluct=fluctsum*sqrt(real(at%nat,gp))/real(nfluct,gp)
 END SUBROUTINE updatefluctsum
 
 !should we evaluate the translational force also with blocked atoms?
-subroutine transforce(nat,fxyz,sumx,sumy,sumz)
+subroutine transforce(at,fxyz,sumx,sumy,sumz)
   use module_base
+  use module_types
   implicit none
-  real(gp),intent(in):: fxyz(3,nat)
+  type(atoms_data), intent(in) :: at
+  real(gp),intent(in):: fxyz(3,at%nat)
   real(gp), intent(out) :: sumx,sumy,sumz
-  integer ::iat, nat
+  integer :: iat
+  real(gp) :: alphax,alphay,alphaz
 
   !atomic_dot with one
   sumx=0._gp 
   sumy=0._gp 
   sumz=0._gp
-  do iat=1,nat
+  do iat=1,at%nat
+
      sumx=sumx+fxyz(1,iat) 
      sumy=sumy+fxyz(2,iat) 
      sumz=sumz+fxyz(3,iat)
+
   end do
 END SUBROUTINE transforce
+
+!should we evaluate the translational force also with blocked atoms?
+subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
+  use module_base
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: at
+  real(gp),intent(in):: fxyz(3,at%nat)
+  real(gp), intent(out) :: sumx,sumy,sumz
+  integer :: iat
+  real(gp) :: alphax,alphay,alphaz
+
+  !atomic_dot with one
+  sumx=0._gp 
+  sumy=0._gp 
+  sumz=0._gp
+  do iat=1,at%nat
+
+     call frozen_alpha(at%ifrztyp(iat),1,1.0_gp,alphax)
+     call frozen_alpha(at%ifrztyp(iat),2,1.0_gp,alphay)
+     call frozen_alpha(at%ifrztyp(iat),3,1.0_gp,alphaz)
+
+     sumx=sumx+alphax*fxyz(1,iat) 
+     sumy=sumy+alphay*fxyz(2,iat) 
+     sumz=sumz+alphaz*fxyz(3,iat)
+
+  end do
+END SUBROUTINE transforce_forfluct
+
 
 
 !*****************************************************************************************

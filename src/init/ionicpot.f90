@@ -1,124 +1,124 @@
-subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
-     rxyz,eion,fion,psoffset,nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
-  use module_base
-  use module_types
-  use Poisson_Solver
-  implicit none
-  type(atoms_data), intent(in) :: at
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,nvacancy
-  real(gp), intent(in) :: hxh,hyh,hzh
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(dp), dimension(*), intent(in) :: pkernel
-  real(gp), intent(out) :: eion,psoffset
-  real(gp), dimension(3,at%nat), intent(out) :: fion
-  real(dp), dimension(*), intent(out) :: pot_ion
-  !local variables
-  character(len=*), parameter :: subname='IonicEnergyandForces'
-  logical :: slowion=.false.
-  logical :: perx,pery,perz,gox,goy,goz
-  integer :: iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
-  integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
-  real(gp) :: ucvol,rloc,twopitothreehalf,pi,atint,shortlength,charge,eself,rx,ry,rz
-  real(gp) :: fxion,fyion,fzion,dist,fxslf,fyslf,fzslf,fxerf,fyerf,fzerf,cutoff,zero
-  real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod,evacancy
-  real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart,Mz,cmassy
-  real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
-  !other arrays for the ewald treatment
-  real(gp), dimension(:,:), allocatable :: fewald,xred,gion
+subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
+rxyz,eion,fion,psoffset,nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
+use module_base
+use module_types
+use Poisson_Solver
+implicit none
+type(atoms_data), intent(in) :: at
+integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,nvacancy
+real(gp), intent(in) :: hxh,hyh,hzh,elecfield
+real(gp), dimension(3,at%nat), intent(in) :: rxyz
+real(dp), dimension(*), intent(in) :: pkernel
+real(gp), intent(out) :: eion,psoffset
+real(gp), dimension(3,at%nat), intent(out) :: fion
+real(dp), dimension(*), intent(out) :: pot_ion
+!local variables
+character(len=*), parameter :: subname='IonicEnergyandForces'
+logical :: slowion=.false.
+logical :: perx,pery,perz,gox,goy,goz
+integer :: iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
+integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
+real(gp) :: ucvol,rloc,twopitothreehalf,pi,atint,shortlength,charge,eself,rx,ry,rz
+real(gp) :: fxion,fyion,fzion,dist,fxslf,fyslf,fzslf,fxerf,fyerf,fzerf,cutoff,zero
+real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod,evacancy
+real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart,Mz,cmassy
+real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
+!other arrays for the ewald treatment
+real(gp), dimension(:,:), allocatable :: fewald,xred,gion
 
-  pi=4.d0*datan(1.d0)
+pi=4.d0*datan(1.d0)
 
-  if (at%geocode == 'P') then
-     !here we insert the calculation of the ewald forces
-     allocate(fewald(3,at%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,fewald,'fewald',subname)
-     allocate(xred(3,at%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,xred,'xred',subname)
+if (at%geocode == 'P') then
+!here we insert the calculation of the ewald forces
+allocate(fewald(3,at%nat+ndebug),stat=i_stat)
+call memocc(i_stat,fewald,'fewald',subname)
+allocate(xred(3,at%nat+ndebug),stat=i_stat)
+call memocc(i_stat,xred,'xred',subname)
 
-     !calculate rprimd
-     rprimd(:,:)=0.0_gp
+!calculate rprimd
+rprimd(:,:)=0.0_gp
 
-     rprimd(1,1)=at%alat1
-     rprimd(2,2)=at%alat2
-     rprimd(3,3)=at%alat3
+rprimd(1,1)=at%alat1
+rprimd(2,2)=at%alat2
+rprimd(3,3)=at%alat3
 
-     !calculate the metrics and the volume
-     call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
+!calculate the metrics and the volume
+call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
 
-     !calculate reduced coordinates
-     do iat=1,at%nat
-        do ii=1,3
-           xred(ii,iat)= gprimd(1,ii)*rxyz(1,iat)+gprimd(2,ii)*rxyz(2,iat)+&
-                gprimd(3,ii)*rxyz(3,iat)
-        end do
+!calculate reduced coordinates
+do iat=1,at%nat
+do ii=1,3
+   xred(ii,iat)= gprimd(1,ii)*rxyz(1,iat)+gprimd(2,ii)*rxyz(2,iat)+&
+	gprimd(3,ii)*rxyz(3,iat)
+end do
 
-        !in the case of a vacancy calculate the hartree energy by *not* extending 
-        !results outside supercell, to compensate the electronic part
-        if (iat == nvacancy) then
-           rx=rxyz(1,iat) 
-           ry=rxyz(2,iat)
-           rz=rxyz(3,iat)
-           ityp=at%iatype(iat)
-           evacancy=0.0_gp
-           do jat=1,iat-1
-              dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-              jtyp=at%iatype(jat)
-              chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
-              evacancy=evacancy+chgprod/dist
-           enddo
-           do jat=iat+1,at%nat
-              dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-              jtyp=at%iatype(jat)
-              chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
-              evacancy=evacancy+chgprod/dist
-           end do
-           if (iproc == 0) write(*,*)'Ionic energy of the vacancy, to be subtracted:',evacancy
-        end if
-     end do
+!in the case of a vacancy calculate the hartree energy by *not* extending 
+!results outside supercell, to compensate the electronic part
+if (iat == nvacancy) then
+   rx=rxyz(1,iat) 
+   ry=rxyz(2,iat)
+   rz=rxyz(3,iat)
+   ityp=at%iatype(iat)
+   evacancy=0.0_gp
+   do jat=1,iat-1
+      dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
+      jtyp=at%iatype(jat)
+      chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
+      evacancy=evacancy+chgprod/dist
+   enddo
+   do jat=iat+1,at%nat
+      dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
+      jtyp=at%iatype(jat)
+      chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
+      evacancy=evacancy+chgprod/dist
+   end do
+   if (iproc == 0) write(*,*)'Ionic energy of the vacancy, to be subtracted:',evacancy
+end if
+end do
 
-     !calculate ewald energy and forces
-     call ewald(eion,gmet,fewald,at%nat,at%ntypes,rmet,at%iatype,ucvol,&
-          xred,real(at%nelpsp,kind=8))
+!calculate ewald energy and forces
+call ewald(eion,gmet,fewald,at%nat,at%ntypes,rmet,at%iatype,ucvol,&
+  xred,real(at%nelpsp,kind=8))
 
-     !make forces dimensional
-     do iat=1,at%nat
-        do ii=1,3
-           fion(ii,iat)= - (gprimd(ii,1)*fewald(1,iat)+&
-                gprimd(ii,2)*fewald(2,iat)+&
-                gprimd(ii,3)*fewald(3,iat))
-        end do
-        !if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
-     end do
+!make forces dimensional
+do iat=1,at%nat
+do ii=1,3
+   fion(ii,iat)= - (gprimd(ii,1)*fewald(1,iat)+&
+	gprimd(ii,2)*fewald(2,iat)+&
+	gprimd(ii,3)*fewald(3,iat))
+end do
+!if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
+end do
 
-     i_all=-product(shape(xred))*kind(xred)
-     deallocate(xred,stat=i_stat)
-     call memocc(i_stat,i_all,'xred',subname)
-     i_all=-product(shape(fewald))*kind(fewald)
-     deallocate(fewald,stat=i_stat)
-     call memocc(i_stat,i_all,'fewald',subname)
+i_all=-product(shape(xred))*kind(xred)
+deallocate(xred,stat=i_stat)
+call memocc(i_stat,i_all,'xred',subname)
+i_all=-product(shape(fewald))*kind(fewald)
+deallocate(fewald,stat=i_stat)
+call memocc(i_stat,i_all,'fewald',subname)
 
-     !now calculate the integral of the local psp
-     !this is the offset to be applied in the Poisson Solver to have a neutralizing background
-     psoffset=0.0_gp
-     shortlength=0.0_gp
-     charge=0.0_gp
-     twopitothreehalf=2.0_gp*pi*sqrt(2.0_gp*pi)
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
-        rloc=at%psppar(0,0,ityp)
-        atint=at%psppar(0,1,ityp)+3.0_gp*at%psppar(0,2,ityp)+&
-             15.0_gp*at%psppar(0,3,ityp)+105.0_gp*at%psppar(0,4,ityp)
-        psoffset=psoffset+rloc**3*atint
-        shortlength=shortlength+real(at%nelpsp(ityp),gp)*rloc**2
-        charge=charge+real(at%nelpsp(ityp),gp)
-     end do
-     psoffset=twopitothreehalf*psoffset
-     shortlength=shortlength*2.d0*pi
+!now calculate the integral of the local psp
+!this is the offset to be applied in the Poisson Solver to have a neutralizing background
+psoffset=0.0_gp
+shortlength=0.0_gp
+charge=0.0_gp
+twopitothreehalf=2.0_gp*pi*sqrt(2.0_gp*pi)
+do iat=1,at%nat
+ityp=at%iatype(iat)
+rloc=at%psppar(0,0,ityp)
+atint=at%psppar(0,1,ityp)+3.0_gp*at%psppar(0,2,ityp)+&
+     15.0_gp*at%psppar(0,3,ityp)+105.0_gp*at%psppar(0,4,ityp)
+psoffset=psoffset+rloc**3*atint
+shortlength=shortlength+real(at%nelpsp(ityp),gp)*rloc**2
+charge=charge+real(at%nelpsp(ityp),gp)
+end do
+psoffset=twopitothreehalf*psoffset
+shortlength=shortlength*2.d0*pi
 
-     !print *,'psoffset',psoffset,'pspcore',(psoffset+shortlength)*charge/(at%alat1*at%alat2*at%alat3)
-     !if (iproc ==0) print *,'eion',eion,charge/ucvol*(psoffset+shortlength)
-     !correct ionic energy taking into account the PSP core correction
-     eion=eion+charge/ucvol*(psoffset+shortlength)
+!print *,'psoffset',psoffset,'pspcore',(psoffset+shortlength)*charge/(at%alat1*at%alat2*at%alat3)
+!if (iproc ==0) print *,'eion',eion,charge/ucvol*(psoffset+shortlength)
+!correct ionic energy taking into account the PSP core correction
+eion=eion+charge/ucvol*(psoffset+shortlength)
 
 !!$     !in the surfaces case, correct the energy term following (J.Chem.Phys. 111(7)-3155, 1999)
 !!$     if (at%geocode == 'S') then
@@ -145,289 +145,298 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
 !!$
 !!$     end if
 
-  else if (at%geocode == 'F') then
+else if (at%geocode == 'F') then
 
-     eion=0.0_gp
-     eself=0.0_gp
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
-        rx=rxyz(1,iat) 
-        ry=rxyz(2,iat)
-        rz=rxyz(3,iat)
-        !inizialization of the forces
-        fxion=0.0_gp
-        fyion=0.0_gp
-        fzion=0.0_gp
-        !initialisation of the hessian
-        hxx=0.0_gp
-        hxy=0.0_gp
-        hxz=0.0_gp
-        hyy=0.0_gp
-        hyz=0.0_gp
-        hzz=0.0_gp
+eion=0.0_gp
+eself=0.0_gp
+do iat=1,at%nat
+ityp=at%iatype(iat)
+rx=rxyz(1,iat) 
+ry=rxyz(2,iat)
+rz=rxyz(3,iat)
+!inizialization of the forces
+fxion=0.0_gp
+fyion=0.0_gp
+fzion=0.0_gp
+!initialisation of the hessian
+hxx=0.0_gp
+hxy=0.0_gp
+hxz=0.0_gp
+hyy=0.0_gp
+hyz=0.0_gp
+hzz=0.0_gp
 
-        !    ion-ion interaction
-        do jat=1,iat-1
-           dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-           jtyp=at%iatype(jat)
-           chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
-           eion=eion+chgprod/dist
-           !forces
-           fxion=fxion+chgprod/(dist**3)*(rx-rxyz(1,jat))
-           fyion=fyion+chgprod/(dist**3)*(ry-rxyz(2,jat))
-           fzion=fzion+chgprod/(dist**3)*(rz-rxyz(3,jat))
-           !hessian matrix
-           hxx=hxx+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))**2-chgprod/(dist**3)
-           hxy=hxy+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(ry-rxyz(2,jat))
-           hxz=hxz+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(rz-rxyz(3,jat))
-           hyy=hyy+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))**2-chgprod/(dist**3)
-           hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
-           hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
-        enddo
-        do jat=iat+1,at%nat
-           dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-           jtyp=at%iatype(jat)
-           chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
+!    ion-ion interaction
+do jat=1,iat-1
+   dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
+   jtyp=at%iatype(jat)
+   chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
+   eion=eion+chgprod/dist
+   !forces
+   fxion=fxion+chgprod/(dist**3)*(rx-rxyz(1,jat))
+   fyion=fyion+chgprod/(dist**3)*(ry-rxyz(2,jat))
+   fzion=fzion+chgprod/(dist**3)*(rz-rxyz(3,jat))
+   !hessian matrix
+   hxx=hxx+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))**2-chgprod/(dist**3)
+   hxy=hxy+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(ry-rxyz(2,jat))
+   hxz=hxz+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(rz-rxyz(3,jat))
+   hyy=hyy+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))**2-chgprod/(dist**3)
+   hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
+   hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
+enddo
+do jat=iat+1,at%nat
+   dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
+   jtyp=at%iatype(jat)
+   chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
 
-           !forces
-           fxion=fxion+chgprod/(dist**3)*(rx-rxyz(1,jat))
-           fyion=fyion+chgprod/(dist**3)*(ry-rxyz(2,jat))
-           fzion=fzion+chgprod/(dist**3)*(rz-rxyz(3,jat))
-           !hessian matrix
-           hxx=hxx+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))**2-chgprod/(dist**3)
-           hxy=hxy+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(ry-rxyz(2,jat))
-           hxz=hxz+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(rz-rxyz(3,jat))
-           hyy=hyy+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))**2-chgprod/(dist**3)
-           hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
-           hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
-        end do
+   !forces
+   fxion=fxion+chgprod/(dist**3)*(rx-rxyz(1,jat))
+   fyion=fyion+chgprod/(dist**3)*(ry-rxyz(2,jat))
+   fzion=fzion+chgprod/(dist**3)*(rz-rxyz(3,jat))
+   !hessian matrix
+   hxx=hxx+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))**2-chgprod/(dist**3)
+   hxy=hxy+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(ry-rxyz(2,jat))
+   hxz=hxz+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(rz-rxyz(3,jat))
+   hyy=hyy+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))**2-chgprod/(dist**3)
+   hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
+   hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
+end do
 
-        fion(1,iat)=fxion
-        fion(2,iat)=fyion
-        fion(3,iat)=fzion
+fion(1,iat)=fxion
+fion(2,iat)=fyion
+fion(3,iat)=fzion
 
-        !if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
-        !energy which comes from the self-interaction of the spread charge
-        eself=eself+real(at%nelpsp(ityp)**2,gp)*0.5_gp*sqrt(1.d0/pi)/at%psppar(0,0,ityp)
-     end do
+!if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
+!energy which comes from the self-interaction of the spread charge
+eself=eself+real(at%nelpsp(ityp)**2,gp)*0.5_gp*sqrt(1.d0/pi)/at%psppar(0,0,ityp)
+end do
 
-     !if (nproc==1 .and. slowion) print *,'eself',eself
-     
-  end if
+!if (nproc==1 .and. slowion) print *,'eself',eself
 
-  !for the surfaces BC,
-  !activate for the moment only the slow calculation of the ionic energy and forces
-  !if (at%geocode == 'S' .or. at%geocode == 'P') slowion=.true.
-  if (at%geocode == 'S') slowion=.true.
-  !slowion=.true.
-  
-  if (slowion) then
+end if
 
-     !case of slow ionic calculation
-     !conditions for periodicity in the three directions
-     perx=(at%geocode /= 'F')
-     pery=(at%geocode == 'P')
-     perz=(at%geocode /= 'F')
+!for the surfaces BC,
+!activate for the moment only the slow calculation of the ionic energy and forces
+!if (at%geocode == 'S' .or. at%geocode == 'P') slowion=.true.
+if (at%geocode == 'S') slowion=.true.
+!slowion=.true.
 
-     call ext_buffers(perx,nbl1,nbr1)
-     call ext_buffers(pery,nbl2,nbr2)
-     call ext_buffers(perz,nbl3,nbr3)
+if (slowion) then
 
-     !the ions corresponds to gaussian charges disposed in the same way as the pseudopotentials
+!case of slow ionic calculation
+!conditions for periodicity in the three directions
+perx=(at%geocode /= 'F')
+pery=(at%geocode == 'P')
+perz=(at%geocode /= 'F')
 
-     !first calculate the self-energy and the forces
-     !(the latter are zero for a symmetric grid distribution)
+call ext_buffers(perx,nbl1,nbr1)
+call ext_buffers(pery,nbl2,nbr2)
+call ext_buffers(perz,nbl3,nbr3)
 
-     !self energy initialisation
-     eself=0.0_gp
-     do iat=1,at%nat
+!the ions corresponds to gaussian charges disposed in the same way as the pseudopotentials
 
-        fion(1,iat)=0.0_gp
-        fion(2,iat)=0.0_gp
-        fion(3,iat)=0.0_gp
+!first calculate the self-energy and the forces
+!(the latter are zero for a symmetric grid distribution)
 
-        ityp=at%iatype(iat)
-        rloc=at%psppar(0,0,ityp)
-        charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
-        prefactor=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**5)
-        cutoff=10.0_gp*rloc
+!self energy initialisation
+eself=0.0_gp
+do iat=1,at%nat
 
-        !calculate the self energy of the isolated bc
-        eself=eself+real(at%nelpsp(ityp),gp)**2/rloc
+fion(1,iat)=0.0_gp
+fion(2,iat)=0.0_gp
+fion(3,iat)=0.0_gp
 
-        !in the case of a vacancy calculate the hartree energy by *not* extending 
-        !results outside supercell, to compensate the electronic part
-        if (iat == nvacancy) then
-           evacancy=0.0_gp
-           do jat=1,iat-1
-              dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-              jtyp=at%iatype(jat)
-              chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
-              evacancy=evacancy+chgprod/dist
-           enddo
-           do jat=iat+1,at%nat
-              dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-              jtyp=at%iatype(jat)
-              chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
-              evacancy=evacancy+chgprod/dist
-           end do
-           print *,'Ionic energy of the vacancy, to be subtracted:',0.5_gp*evacancy
-        end if
+ityp=at%iatype(iat)
+rloc=at%psppar(0,0,ityp)
+charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
+prefactor=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**5)
+cutoff=10.0_gp*rloc
 
-     enddo
+!calculate the self energy of the isolated bc
+eself=eself+real(at%nelpsp(ityp),gp)**2/rloc
 
-     eself=0.5_gp/sqrt(pi)*eself
+!in the case of a vacancy calculate the hartree energy by *not* extending 
+!results outside supercell, to compensate the electronic part
+if (iat == nvacancy) then
+   evacancy=0.0_gp
+   do jat=1,iat-1
+      dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
+      jtyp=at%iatype(jat)
+      chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
+      evacancy=evacancy+chgprod/dist
+   enddo
+   do jat=iat+1,at%nat
+      dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
+      jtyp=at%iatype(jat)
+      chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
+      evacancy=evacancy+chgprod/dist
+   end do
+   print *,'Ionic energy of the vacancy, to be subtracted:',0.5_gp*evacancy
+end if
 
-     !if (nproc==1) 
-     !print *,'iproc,eself',iproc,eself
-     call razero(n1i*n2i*n3pi,pot_ion)
+enddo
 
-     if (n3pi >0 ) then
-        !then calculate the hartree energy and forces of the charge distributions
-        !(and save the values for the ionic potential)
+eself=0.5_gp/sqrt(pi)*eself
 
-        do iat=1,at%nat
-           ityp=at%iatype(iat)
-           rx=rxyz(1,iat) 
-           ry=rxyz(2,iat)
-           rz=rxyz(3,iat)
+!if (nproc==1) 
+!print *,'iproc,eself',iproc,eself
+call razero(n1i*n2i*n3pi,pot_ion)
 
-           rloc=at%psppar(0,0,ityp)
-           charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
-           cutoff=10.0_gp*rloc
+if (n3pi >0 ) then
+!then calculate the hartree energy and forces of the charge distributions
+!(and save the values for the ionic potential)
 
-           isx=floor((rx-cutoff)/hxh)
-           isy=floor((ry-cutoff)/hyh)
-           isz=floor((rz-cutoff)/hzh)
+do iat=1,at%nat
+   ityp=at%iatype(iat)
+   rx=rxyz(1,iat) 
+   ry=rxyz(2,iat)
+   rz=rxyz(3,iat)
 
-           iex=ceiling((rx+cutoff)/hxh)
-           iey=ceiling((ry+cutoff)/hyh)
-           iez=ceiling((rz+cutoff)/hzh)
+   rloc=at%psppar(0,0,ityp)
+   charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
+   cutoff=10.0_gp*rloc
 
-           !these nested loops will be used also for the actual ionic forces, to be recalculated
-           do i3=isz,iez
-              z=real(i3,gp)*hzh-rz
-              call ind_positions(perz,i3,n3,j3,goz) 
-              j3=j3+nbl3+1
-              do i2=isy,iey
-                 y=real(i2,gp)*hyh-ry
-                 call ind_positions(pery,i2,n2,j2,goy)
-                 do i1=isx,iex
-                    x=real(i1,gp)*hxh-rx
-                    call ind_positions(perx,i1,n1,j1,gox)
-                    r2=x**2+y**2+z**2
-                    arg=r2/rloc**2
-                    xp=exp(-.5_gp*arg)
-                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                       pot_ion(ind)=pot_ion(ind)-xp*charge
-                    endif
-                 enddo
-              enddo
-           enddo
+   isx=floor((rx-cutoff)/hxh)
+   isy=floor((ry-cutoff)/hyh)
+   isz=floor((rz-cutoff)/hzh)
 
-        enddo
+   iex=ceiling((rx+cutoff)/hxh)
+   iey=ceiling((ry+cutoff)/hyh)
+   iez=ceiling((rz+cutoff)/hzh)
 
-     end if
+   !these nested loops will be used also for the actual ionic forces, to be recalculated
+   do i3=isz,iez
+      z=real(i3,gp)*hzh-rz
+      call ind_positions(perz,i3,n3,j3,goz) 
+      j3=j3+nbl3+1
+      do i2=isy,iey
+	 y=real(i2,gp)*hyh-ry
+	 call ind_positions(pery,i2,n2,j2,goy)
+	 do i1=isx,iex
+	    x=real(i1,gp)*hxh-rx
+	    call ind_positions(perx,i1,n1,j1,gox)
+	    r2=x**2+y**2+z**2
+	    arg=r2/rloc**2
+	    xp=exp(-.5_gp*arg)
+	    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+	       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+	       pot_ion(ind)=pot_ion(ind)-xp*charge
+	    endif
+	 enddo
+      enddo
+   enddo
 
-     !now call the Poisson Solver for the global energy forces
-     call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-          pot_ion,pkernel,pot_ion,ehart,zero,zero,-2.0_gp*psoffset,.false.,1)
+enddo
 
-     eion=ehart-eself
+end if
 
-     !print *,'ehart,eself',iproc,ehart,eself
+!now call the Poisson Solver for the global energy forces
+call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
+  pot_ion,pkernel,pot_ion,ehart,zero,zero,-2.0_gp*psoffset,.false.,1)
 
-     !if (nproc==1) 
-     !print *,'iproc,eion',iproc,eion
+eion=ehart-eself
 
-     do iat=1,at%nat
-        ityp=at%iatype(iat)
-        !coordinates of the center
-        rx=rxyz(1,iat) 
-        ry=rxyz(2,iat) 
-        rz=rxyz(3,iat)
-        !inizialization of the forces
-        fxerf=0.0_gp
-        fyerf=0.0_gp
-        fzerf=0.0_gp
+!print *,'ehart,eself',iproc,ehart,eself
 
-        !local part
-        rloc=at%psppar(0,0,ityp)
-        prefactor=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**5)
-        !maximum extension of the gaussian
-        cutoff=10.0_gp*rloc
+!if (nproc==1) 
+!print *,'iproc,eion',iproc,eion
 
-        isx=floor((rx-cutoff)/hxh)
-        isy=floor((ry-cutoff)/hyh)
-        isz=floor((rz-cutoff)/hzh)
+do iat=1,at%nat
+ityp=at%iatype(iat)
+!coordinates of the center
+rx=rxyz(1,iat) 
+ry=rxyz(2,iat) 
+rz=rxyz(3,iat)
+!inizialization of the forces
+fxerf=0.0_gp
+fyerf=0.0_gp
+fzerf=0.0_gp
 
-        iex=ceiling((rx+cutoff)/hxh)
-        iey=ceiling((ry+cutoff)/hyh)
-        iez=ceiling((rz+cutoff)/hzh)
+!local part
+rloc=at%psppar(0,0,ityp)
+prefactor=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**5)
+!maximum extension of the gaussian
+cutoff=10.0_gp*rloc
 
-        !calculate the forces near the atom due to the error function part of the potential
-        !calculate forces for all atoms only in the distributed part of the simulation box
-        if (n3pi >0 ) then
-           do i3=isz,iez
-              z=real(i3,gp)*hzh-rz
-              call ind_positions(perz,i3,n3,j3,goz) 
-              j3=j3+nbl3+1
-              do i2=isy,iey
-                 y=real(i2,gp)*hyh-ry
-                 call ind_positions(pery,i2,n2,j2,goy)
-                 do i1=isx,iex
-                    x=real(i1,gp)*hxh-rx
-                    call ind_positions(perx,i1,n1,j1,gox)
-                    r2=x**2+y**2+z**2
-                    arg=r2/rloc**2
-                    xp=exp(-.5_gp*arg)
-                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                       !error function part
-                       Vel=pot_ion(ind)
-                       fxerf=fxerf+xp*Vel*x
-                       fyerf=fyerf+xp*Vel*y
-                       fzerf=fzerf+xp*Vel*z
-                    endif
-                 end do
-              end do
-           end do
-        end if
-        !final result of the forces
+isx=floor((rx-cutoff)/hxh)
+isy=floor((ry-cutoff)/hyh)
+isz=floor((rz-cutoff)/hzh)
 
-        fion(1,iat)=fion(1,iat)+(hxh*hyh*hzh*prefactor)*fxerf
-        fion(2,iat)=fion(2,iat)+(hxh*hyh*hzh*prefactor)*fyerf
-        fion(3,iat)=fion(3,iat)+(hxh*hyh*hzh*prefactor)*fzerf
+iex=ceiling((rx+cutoff)/hxh)
+iey=ceiling((ry+cutoff)/hyh)
+iez=ceiling((rz+cutoff)/hzh)
 
-        !if (nproc==1) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
+!calculate the forces near the atom due to the error function part of the potential
+!calculate forces for all atoms only in the distributed part of the simulation box
+if (n3pi >0 ) then
+   do i3=isz,iez
+      z=real(i3,gp)*hzh-rz
+      call ind_positions(perz,i3,n3,j3,goz) 
+      j3=j3+nbl3+1
+      do i2=isy,iey
+	 y=real(i2,gp)*hyh-ry
+	 call ind_positions(pery,i2,n2,j2,goy)
+	 do i1=isx,iex
+	    x=real(i1,gp)*hxh-rx
+	    call ind_positions(perx,i1,n1,j1,gox)
+	    r2=x**2+y**2+z**2
+	    arg=r2/rloc**2
+	    xp=exp(-.5_gp*arg)
+	    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+	       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+	       !error function part
+	       Vel=pot_ion(ind)
+	       fxerf=fxerf+xp*Vel*x
+	       fyerf=fyerf+xp*Vel*y
+	       fzerf=fzerf+xp*Vel*z
+	    endif
+	 end do
+      end do
+   end do
+end if
+!final result of the forces
+
+fion(1,iat)=fion(1,iat)+(hxh*hyh*hzh*prefactor)*fxerf
+fion(2,iat)=fion(2,iat)+(hxh*hyh*hzh*prefactor)*fyerf
+fion(3,iat)=fion(3,iat)+(hxh*hyh*hzh*prefactor)*fzerf
+
+!if (nproc==1) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
 
 !!$        write(10+iat,'(1x,f8.3,i5,(1x,3(1x,1pe12.5)))',advance='no') &
 !!$             hxh,iat,(fion(j1,iat),j1=1,3)
 
 
-     end do
+end do
 
-     if (nproc > 1) then
-        allocate(gion(3,at%nat+ndebug),stat=i_stat)
-        call memocc(i_stat,gion,'gion',subname)
-        do iat=1,at%nat
-           gion(1,iat)=fion(1,iat)
-           gion(2,iat)=fion(2,iat)
-           gion(3,iat)=fion(3,iat)
-        end do
+if (nproc > 1) then
+allocate(gion(3,at%nat+ndebug),stat=i_stat)
+call memocc(i_stat,gion,'gion',subname)
+do iat=1,at%nat
+   gion(1,iat)=fion(1,iat)
+   gion(2,iat)=fion(2,iat)
+   gion(3,iat)=fion(3,iat)
+end do
 
-        call MPI_ALLREDUCE(gion,fion,3*at%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+call MPI_ALLREDUCE(gion,fion,3*at%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-        i_all=-product(shape(gion))*kind(gion)
-        deallocate(gion,stat=i_stat)
-        call memocc(i_stat,i_all,'gion',subname)
+i_all=-product(shape(gion))*kind(gion)
+deallocate(gion,stat=i_stat)
+call memocc(i_stat,i_all,'gion',subname)
 
-     end if
+end if
 
-     !if (iproc ==0) print *,'eion',eion,psoffset,shortlength
+!if (iproc ==0) print *,'eion',eion,psoffset,shortlength
 
-  end if
+end if
+
+! Add contribution from constant electric field to the forces
+do iat=1,at%nat
+ityp=at%iatype(iat)
+charge=real(at%nelpsp(ityp),gp)
+ry=rxyz(2,iat) 
+fion(2,iat)=fion(2,iat)+(charge*elecfield)
+eion=eion-(charge*elecfield)*ry
+        enddo
 
   if (iproc == 0) then
      write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
@@ -441,7 +450,7 @@ end subroutine IonicEnergyandForces
 
 
 subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
-     hxh,hyh,hzh,ef,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
+     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
      correct_offset)
   use module_base
   use module_types
@@ -453,7 +462,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,nvacancy
   real(gp), intent(in) :: hxh,hyh,hzh,psoffset
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3), intent(in) :: ef
+  real(gp), intent(in) :: elecfield
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
@@ -465,7 +474,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   integer :: n3d_fake,n3p_fake,n3pi_fake,i3xcsh_fake,i3s_fake
   real(kind=8) :: hgridh,pi,rholeaked,dist,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,eself,potxyz,offset
-  real(gp) :: ehart,eexcu,vexcu,elecfield,ystart,yend
+  real(gp) :: ehart,eexcu,vexcu
   real(dp), dimension(4) :: charges_mpi
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(dp), dimension(:), allocatable :: potion_corr
@@ -744,7 +753,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
 
 !!$     call plot_density(at%geocode,'gaupotion.pot',iproc,1,n1,n2,n3,n1i,n2i,n3i,n3i,&
-!!$          1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
+!!$          at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
 
 
 
@@ -761,7 +770,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
 
 !!$     call plot_density(at%geocode,'deltapotion.pot',iproc,1,n1,n2,n3,n1i,n2i,n3i,n3i,&
-!!$          1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
+!!$          at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
 
 
      iat=nvacancy
@@ -824,7 +833,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
 
      !call plot_density(at%geocode,'deltapotion_final.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3pi,&
-     !     1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
+     !     at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
 
      !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
      !add the periodic pot_ion
@@ -868,7 +877,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
      !here put nproc=1 
      call plot_density(at%geocode,'potion_corr.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3pi,&
-          1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr(ind))
+          at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr(ind))
 
 
 
@@ -892,7 +901,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 !!$     if (iproc==0) print *,'offset reread',offset
 !!$
 !!$     call plot_density(at%geocode,'potion_corr_2.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,&
-!!$          n3pi,1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
+!!$          n3pi,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
           
 
      i_all=-product(shape(ngatherarr))*kind(ngatherarr)
@@ -912,11 +921,6 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 !!$  end do
 !!$  print *,'actual offset',tt_tot*hxh*hyh*hzh
 
-  elecfield=ef(1)
-  !correct ystart and yend to the whole simulation box 
-  ystart=max(ef(2),0.0_gp)
-  yend=min(ef(3),at%alat2)
-
   !use rhopot to calculate the potential from a constant electric field along y direction
   if (elecfield /= 0.0_gp) then
      !constant electric field allowed only for free BC
@@ -926,9 +930,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
           'The constant electric field is allowed only for Free and Surfaces BC'
      stop
      end if
-     if (iproc == 0) write(*,'(1x,3(a,1pe10.2),a)') &
-          'Constant electric field of',elecfield,&
-          ' Ha*Bohr for:',ystart,' < y <',yend,' Bohr'
+     if (iproc == 0) write(*,'(1x,3(a,1pe10.2))') &
+          'Constant electric field of',elecfield,' Ha/Bohr for:'
 !or         'Parabolic confining potential: rprb=',elecfield,&
 !           ';  v_conf(r)= 1/(2*rprb**4) * r**2'
 
@@ -940,43 +943,23 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
            !z=real(i3+i3s-1-nbl3-1,gp)*hzh
            do i2=1,n2i
               y=real(i2-nbl2-1,gp)*hyh
-              if (y < ystart) then
                  do i1=1,n1i
                     !x=real(i1-nbl1-1,gp)*hxh
                     ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                    pot_ion(ind)=pot_ion(ind)+elecfield*(0.5_gp*(ystart-yend))
+                    pot_ion(ind)=pot_ion(ind)+elecfield*y
 !                    parabola: these two lines replace the above line 
 !                              comment out the if case and calculate x, z
 !                    r2=(x-rx)**2+(y-ry)**2+(z-rz)**2
 !                    pot_ion(ind)=pot_ion(ind)+0.5_gp/(elecfield**4)*r2
                  end do
-              else if (y > yend) then
-                 do i1=1,n1i
-                    !x=real(i1-nbl1-1,gp)*hxh
-                    ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                    pot_ion(ind)=pot_ion(ind)-elecfield*(0.5_gp*(ystart-yend))
-                 end do
-              else
-                 do i1=1,n1i
-                    !x=real(i1-nbl1-1,gp)*hxh
-                    ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                    pot_ion(ind)=pot_ion(ind)+elecfield*(y-0.5_gp*(ystart+yend))
-                 end do
-              end if
            end do
         end do
 
         if (efwrite .and. iproc == 0) then
-           open(unit=17,file='elecfield_y',status='unknown')
+           open(unit=17,file='elecpotential_y',status='unknown')
            do i2=nbl2+1,n2i-nbr2-1
               y=real(i2-nbl2-1,gp)*hyh
-              if (y < ystart) then
-                 write(17,*)i2,y,elecfield*(0.5_gp*(ystart-yend))
-              else if (y > yend) then
-                 write(17,*)i2,y,-elecfield*(0.5_gp*(ystart-yend))
-              else
-                 write(17,*)i2,y,elecfield*(y-0.5_gp*(ystart+yend))
-              end if
+                 write(17,*)i2,y,elecfield*y
            end do
            close(17)
         end if
