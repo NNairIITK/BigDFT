@@ -1567,7 +1567,7 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
-  open(unit=9,file=filename//'.ascii')
+  open(unit=9,file=trim(filename)//'.ascii')
   xmax=0.0_gp
   ymax=0.0_gp
   zmax=0.0_gp
