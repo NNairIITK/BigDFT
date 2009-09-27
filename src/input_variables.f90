@@ -317,6 +317,7 @@ subroutine abscalc_input_variables_default(in)
   in%c_absorbtion=.false.
 
 end subroutine abscalc_input_variables_default
+!!***
 
 
 !!****f* BigDFT/abscalc_input_variables
@@ -334,20 +335,17 @@ subroutine abscalc_input_variables(iproc,filename,in)
   integer, intent(in) :: iproc
   type(input_variables), intent(out) :: in
 
-
   !local variables
   integer :: ierror,iline, i
 
   character(len=*), parameter :: subname='abscalc_input_variables'
   integer :: i_stat
 
-
   ! Read the input variables.
   open(unit=111,file=filename,status='old')
 
   !line number, to control the input values
   iline=0
-
 
   !x-adsorber treatment (in progress)
 
@@ -370,7 +368,6 @@ subroutine abscalc_input_variables(iproc,filename,in)
      in%abscalc_alterpot=.false.
      in%abscalc_eqdiff =.false.
   endif
-
 
   in%c_absorbtion=.true.
 

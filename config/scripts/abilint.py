@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 18/09/2009
+# Date: 27/09/2009
 #--------------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -3130,7 +3130,7 @@ class Variable:
             if head == '':
                 return
             elif head[0:9] == "character" or head[0:7] == "complex" or \
-                    head == "doubleprecision" or \
+                    head == "doublecomplex" or head == "doubleprecision" or \
                     head[0:7] == "integer" or head == "logical" or \
                     head[0:4] == "real" or head == "type":
                 self.type = all

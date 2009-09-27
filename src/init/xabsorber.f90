@@ -1,4 +1,4 @@
-!!****m* BigDFT/find_pfproj
+!!****f* BigDFT/find_pfproj
 !!
 !! COPYRIGHT
 !!    Copyright (C) 2009 BigDFT group
@@ -1030,7 +1030,7 @@ function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
   endif
   return 
 end function phase
-	
+
  
 
 subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
