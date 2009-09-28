@@ -17,6 +17,7 @@ program frequencies
   use module_base
   use module_types
   use module_interfaces
+  use ab6_symmetry
 
   implicit none
   real(dp), parameter :: Ha_cmm1=219474.6313705_dp  ! 1 Hartree, in cm^-1 (from abinit 5.7.x)
@@ -64,8 +65,11 @@ program frequencies
   call memocc(i_stat,fxyz,'fxyz',subname)
 
   ! read dft input variables
-  call dft_input_variables(iproc,'input.dft',inputs)
+  call dft_input_variables(iproc,'input.dft',inputs,atoms%symObj)
   !call read_input_variables(iproc,'input.dat',inputs)
+
+  ! read k-points input variables (if given)
+  call kpt_input_variables(iproc,'input.kpt',inputs,atoms)
 
   !fake geopt variables
   call geopt_input_variables_default(inputs)
@@ -300,6 +304,7 @@ program frequencies
   i_all=-product(shape(atoms%amu))*kind(atoms%amu)
   deallocate(atoms%amu,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%amu',subname)
+  if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
 
   call free_restart_objects(rst,subname)
 
@@ -331,6 +336,8 @@ program frequencies
   i_all=-product(shape(forces))*kind(forces)
   deallocate(forces,stat=i_stat)
   call memocc(i_stat,i_all,'forces',subname)
+
+  call free_input_variables(inputs)
 
   !finalize memory counting
   call memocc(0,0,'count','stop')

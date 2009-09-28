@@ -18,6 +18,7 @@ program memguess
   use module_base
   use module_types
   use module_interfaces
+  use ab6_symmetry
 
   implicit none
   character(len=*), parameter :: subname='memguess'
@@ -154,7 +155,7 @@ program memguess
      call dft_input_converter(in)
      write(*,*)' ...done'
   else
-     call dft_input_variables(0,'input.dft',in)
+     call dft_input_variables(0,'input.dft',in,atoms%symObj)
      !read geometry optimsation input variables
      !inquire for the file needed for geometry optimisation
      !if not present, perform a simple geometry optimisation
@@ -310,7 +311,8 @@ program memguess
      norbd=0
      nspinor=1
 
-     call orbitals_descriptors(0,nproc,norb,norbu,norbd,nspinor,orbstst)
+     call orbitals_descriptors(0,nproc,norb,norbu,norbd,nspinor, &
+          & in%nkpt,in%kpt,in%wkpt,orbstst)
      allocate(orbstst%eval(orbstst%norbp+ndebug),stat=i_stat)
      call memocc(i_stat,orbstst%eval,'orbstst%eval',subname)
      do iorb=1,orbstst%norbp
@@ -416,6 +418,9 @@ program memguess
   i_all=-product(shape(atoms%amu))*kind(atoms%amu)
   deallocate(atoms%amu,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%amu',subname)
+  if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
+
+  call free_input_variables(in)
 
   !finalize memory counting
   call memocc(0,0,'count','stop')

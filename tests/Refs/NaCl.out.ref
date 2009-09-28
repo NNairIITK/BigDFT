@@ -32,11 +32,11 @@
  Atoms of type 2 are Cl
  FIXED Atom N.:1, Name: Na, ifrztyp=   1
  Spin-polarised calculation:  NO 
- Max. number of wavefnctn optim 4
- Convergence criterion for forces: fraction of noise   0.00E+00
-                                 : maximal component   1.00E-04
- Random displacement amplitude   0.00E+00
- Steepest descent step   1.00E+02
+ --------------------------------------------------------------Geopt Input Parameters
+       Generic param.              Geo. optim.                MD param.
+       Max. steps=      4 | Fluct. in forces=0.0E+00 |           ionmov=     -1
+        algorithm=VSSD    |   Max. in forces=1.0E-04 |            dtion=     0.
+ random at.displ.=0.0E+00 |   steep. descent=1.0E+02 |
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.

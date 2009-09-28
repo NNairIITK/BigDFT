@@ -13,6 +13,8 @@ mpif.h
 time.prc
 doc/cluster.pdf
 doc/halFFT.pdf
+doc/Manual/manual.pdf
+doc/Manual/manual.toc
 src/parameters.h
 src/cluster
 src/memguess
