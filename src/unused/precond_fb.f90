@@ -25,12 +25,10 @@ subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,n
 end preconditionall
 
 
-
-
 subroutine precondition(C,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-                        hgrid,nseg_c,nvctr_c,keyg_c,&
-                        keyv_c,nseg_f,nvctr_f,keyg_f,&
-                        keyv_f,psi_c,psi_f,IORB)
+              hgrid,nseg_c,nvctr_c,keyg_c,&
+              keyv_c,nseg_f,nvctr_f,keyg_f,&
+              keyv_f,psi_c,psi_f,IORB)
   implicit real(kind=8) (a-h,o-z)
   dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
   dimension psi_c(nvctr_c),psi_f(7,nvctr_f)
