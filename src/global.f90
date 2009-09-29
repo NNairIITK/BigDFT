@@ -12,8 +12,9 @@
 !!
 program MINHOP
 
-  !this will include also mpif.h
-  use BigDFT_API
+  use module_base
+  use module_types
+  use module_interfaces
 
   implicit real(kind=8) (a-h,o-z)
   real(kind=4) :: tts
@@ -77,8 +78,8 @@ program MINHOP
 
   open(unit=67,file='global.out')
 
-  write(filename,'(A,i3.3,a)')'latest.pos.force.',iproc,'.dat'
-  open(unit=111,file=filename)
+!  write(filename,'(A,i3.3,a)')'latest.pos.force.',iproc,'.dat'
+!  open(unit=111,file=filename)
 
 
   if (iproc.eq.0) write(67,'(a,3(1x,1pe11.4))') 'beta1,beta2,beta3',beta1,beta2,beta3
@@ -170,7 +171,7 @@ program MINHOP
   open(unit=11,file='ioput',status='old')
   if (iproc.eq.0) write(67,'(a,a)') 'reading input from ',filename
   if (iproc.eq.0) write(*,'(a,a)') ' # reading input from ',filename
-  read(11,*) ediff,ekinetic,dt
+  read(11,*) ediff,ekinetic,dt,nsoften
   read(11,*,iostat=ierr)irestart
   if(ierr/=0)irestart=0
   read(11,*,iostat=ierr)av_ekinetic
@@ -262,7 +263,7 @@ program MINHOP
      filename = 'global.mon'
      write(67,*) 'iteration results written in:',filename
      write(*,*) '# iteration results written in:',filename
-     open(unit=2,file=filename,status='unknown',access='append')
+     open(unit=2,file=filename,status='unknown',position='append')
   endif
 
   ! (un)comment the correct 2 lines
@@ -358,7 +359,7 @@ program MINHOP
      call rdposout(irestart,wpos,atoms%nat)
      ncount_bigdft=irestart
      inputs_opt%inputPsiId=0  !ALEX notices we need an input guess for the aborted geo
-     goto 5556
+     stop '5556'  !goto 5556
   end if
   
   
@@ -373,8 +374,8 @@ program MINHOP
   hopping_loop: do
      !1000 continue
      irestart=0! we can restart from a local minimum
-     rewind(111)
-     write(111,*)'*** process monitor file for nlmin',nlmin
+!     rewind(111)
+!     write(111,*)'*** process monitor file for nlmin',nlim
      ! check whether other processes send local minima data
      if (nlmin >= nlminx) then 
         write(67,*)iproc,'has  nlminx collected',nlmin
@@ -398,7 +399,7 @@ program MINHOP
            write(*,*) '#  Writing intermediate results at',nlmin_l,nlmin
         endif
         call winter(iproc,atoms,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
-             earr,elocmin,poslocmin,eref,ediff,ekinetic,dt)
+             earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
         nlmin_old=nlmin
      endif
 
@@ -431,7 +432,7 @@ program MINHOP
      enddo
 
      escape=escape+1.d0
-     call mdescape(mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,wpos, &
+     call mdescape(nsoften,mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,wpos, &
           nproc,iproc,atoms,rst,inputs_md)
 
      call fix_fragmentation(iproc,atoms,wpos,nputback)
@@ -507,7 +508,7 @@ program MINHOP
      escape_sam=escape_sam+1.d0
      esep=esep+(e_pos-e_wpos)**2
      ekinetic=ekinetic*beta1
-     if (iproc.eq.0) call wtioput(ediff,ekinetic,dt)
+     if (iproc.eq.0) call wtioput(ediff,ekinetic,dt,nsoften)
      if (iproc.eq.0) write(2,'(2(1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a)')  &
           hopp,escape,e_wpos-eref,ediff,ekinetic, &
           escape_sam/escape,escape_old/escape,escape_new/escape,'   S'
@@ -549,7 +550,7 @@ program MINHOP
         if (tt.gt. accur*(1.1d0)) egap=min(egap,tt)
         !       write(*,*) 'tt,egap',tt,egap
      endif
-     if (iproc.eq.0) call wtioput(ediff,ekinetic,dt)
+     if (iproc.eq.0) call wtioput(ediff,ekinetic,dt,nsoften)
 
      if (k_e_wpos.eq.0) then
         re_sm=min(re_sm,re_wpos)
@@ -579,7 +580,7 @@ program MINHOP
      !                       escape_sam/escape,escape_old/escape,escape_new/escape,newmin,' A '
      hopp_acc=hopp_acc+1.d0
      ediff=ediff*alpha1
-     if (iproc.eq.0) call wtioput(ediff,ekinetic,dt)
+     if (iproc.eq.0) call wtioput(ediff,ekinetic,dt,nsoften)
      av_ediff=av_ediff+ediff
      e_pos=e_wpos
      re_pos=re_wpos
@@ -616,7 +617,7 @@ program MINHOP
      !                       escape_sam/escape,escape_old/escape,escape_new/escape,newmin,' R '
      hopp_rej=hopp_rej+1.d0
      ediff=ediff*alpha2
-     if (iproc.eq.0) call wtioput(ediff,ekinetic,dt)
+     if (iproc.eq.0) call wtioput(ediff,ekinetic,dt,nsoften)
      !goto 1000
      !C                          ------------------------------------------------------------
   endif
@@ -630,32 +631,33 @@ end do hopping_loop
      write(*,*) '# writing final results'
   end if
   call winter(iproc,atoms,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
-       earr,elocmin,poslocmin,eref,ediff,ekinetic,dt)
+       earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
   if (iproc == 0) then
      write(67,*) ' found ',nlmin_l,nlmin,' minima'
      write(*,*) '# found ',nlmin_l,nlmin,' minima'
      !this section could be put in wtioput. However, here we only put
      !these variables when the progam exited nicely. Otherwise,
      !the counters here will be reinitialized on restart.
-     open(11,file='ioput',position='append')
-     write(11,*)irestart      ,'irestart for aborted geometry optimization'
-     write(11,*)av_ekinetic   ,'av_ekinetic'
-     write(11,*)av_ediff      ,'av_ediff   '
-     write(11,*)escape        ,'escape     '
-     write(11,*)escape_sam    ,'escape_sam '
-     write(11,*)escape_old    ,'escape_old '
-     write(11,*)escape_new    ,'escape_new '
-     write(11,*)hopp          ,'hopp       '
-     write(11,*)hopp_acc      ,'hopp_acc   '
-     write(11,*)hopp_rej      ,'hopp_rej   '
-     write(11,*)egap          ,'egap       '
-     write(11,*)esep          ,'esep       '
-     write(11,*)count_sd      ,'count_sd   '
-     write(11,*)count_cg      ,'count_cg   '
-     write(11,*)count_md      ,'count_md   '
-     write(11,*)nputback      ,'nputback   '
-     close(11)
+!     open(11,file='ioput',position='append')
+!     write(11,*)irestart      ,'irestart for aborted geometry optimization'
+!     write(11,*)av_ekinetic   ,'av_ekinetic'
+!     write(11,*)av_ediff      ,'av_ediff   '
+!     write(11,*)escape        ,'escape     '
+!     write(11,*)escape_sam    ,'escape_sam '
+!     write(11,*)escape_old    ,'escape_old '
+!     write(11,*)escape_new    ,'escape_new '
+!     write(11,*)hopp          ,'hopp       '
+!     write(11,*)hopp_acc      ,'hopp_acc   '
+!     write(11,*)hopp_rej      ,'hopp_rej   '
+!     write(11,*)egap          ,'egap       '
+!     write(11,*)esep          ,'esep       '
+!     write(11,*)count_sd      ,'count_sd   '
+!     write(11,*)count_cg      ,'count_cg   '
+!     write(11,*)count_md      ,'count_md   '
+!     write(11,*)nputback      ,'nputback   '
+!     close(11)
   endif
+
 
   call cpu_time(tcpu2)
   if (iproc.eq.0) then
@@ -745,13 +747,13 @@ end do hopping_loop
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
-  close(111)
+!  close(111)
   if (nproc > 1) call MPI_FINALIZE(ierr)
 
 
 contains
 
-  subroutine mdescape(mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
+  subroutine mdescape(nsoften,mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
        nproc,iproc,atoms,rst,inputs_md)!  &
     ! Does a MD run with the atomic positiosn rxyz
     use module_base
@@ -782,7 +784,7 @@ contains
 !!    close(78)
     inputs_md%inputPsiId=1
     !if(iproc==0)write(*,*)' #  no softening'
-    call soften(ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
+    call soften(nsoften,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
          nproc,iproc,atoms,rst,inputs_md)
     call velopt(atoms,rxyz,ekinetic,vxyz)
     call zero(3*atoms%nat,gg)
@@ -898,26 +900,21 @@ contains
     
   end subroutine mdescape
   
+  
 
-  subroutine soften(ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
+  subroutine soften(nsoften,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
        nproc,iproc,atoms,rst,inputs_md)! &
     use module_base
     use module_types
     use module_interfaces
-    implicit none
-    !Arguments
+    implicit real*8 (a-h,o-z)
     type(atoms_data) :: atoms
-    real*8 :: count_md,dt,e_pos,ekinetic
-    integer :: iproc,nproc
-    real*8 :: fxyz(3*atoms%nat),gg(3*atoms%nat),vxyz(3*atoms%nat),rxyz(3*atoms%nat),rxyz_old(3*atoms%nat)
+    dimension fxyz(3*atoms%nat),gg(3*atoms%nat),vxyz(3*atoms%nat),rxyz(3*atoms%nat),rxyz_old(3*atoms%nat)
     type(input_variables) :: inputs_md
     type(restart_objects) :: rst
     !Local variables
-    real*8 :: alpha,curv,curv0,eps_vxyz,etot,etot0,fd2
-    integer :: i,infocode,it,nit
-    real*8 :: res,sdf,svxyz
+    dimension wpos(3*atoms%nat)
 
-    nit=20
 !    eps_vxyz=1.d-1*atoms%nat
     alpha=inputs_md%betax
 
@@ -941,7 +938,7 @@ contains
     if(iproc==0)write(*,*)'#  eps_vxyz=',eps_vxyz
 
 
-    do it=1,nit
+    do it=1,nsoften
        
 !       do iat=1,atoms%nat
 !          if (atoms%lfrztyp(iat)) then
@@ -964,7 +961,7 @@ contains
 !             end if
 !          end if
 !       end do
-      call atomic_axpy(atoms,rxyz,1.0_gp,vxyz,wpos)
+      call atomic_axpy(atoms,rxyz,1.d0,vxyz,wpos)
 
 
        call call_bigdft(nproc,iproc,atoms,wpos,inputs_md,etot,fxyz,rst,infocode)
@@ -1030,7 +1027,7 @@ contains
        call atomic_axpy_forces(atoms,wpos,alpha,fxyz,wpos)
 
        do i=1,3*atoms%nat
-          vxyz(i)=wpos(mod(i-1,3)+1,(i-1)/3+1)-rxyz(i)
+          vxyz(i)=wpos(i)-rxyz(i)
        end do
      write(comment,'(a,1pe10.3)')'curv= ',curv
      call wtxyz('posvxyz',0.d0,vxyz,atoms,trim(comment))
@@ -1529,7 +1526,7 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
   real(gp), dimension(3,at%nat) :: rxyz
   !local variables
   real(gp), parameter :: bondlength=8.0_gp
-  integer :: iat,nloop,ncluster,ii,jat,jj,kat,nadd
+  integer :: iat,nloop,ncluster,ii,jat,jj,kat,nadd,ierr
   real(gp) :: xi,yi,zi,xj,yj,zj,ddmin,dd,d1,d2,d3,tt
   ! automatic arrays
   logical, dimension(at%nat) :: belong
@@ -1582,6 +1579,7 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
               write(444,*) ' LJ  ',rxyz(1,kat),rxyz(2,kat),rxyz(3,kat)
            enddo
         endif
+
 
         ! make sure the part that flew away is smaller than the cluster
         if (ncluster <= at%nat/2) then
@@ -1646,6 +1644,7 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
            enddo
         endif
         nloop=nloop+1
+     if (nloop.gt.4) call MPI_ABORT(MPI_COMM_WORLD,ierr)
      endif
   end do fragment_loop
 
@@ -1653,12 +1652,12 @@ end subroutine fix_fragmentation
 
 
 subroutine winter(iproc,at,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
-     earr,elocmin,poslocmin,eref,ediff,ekinetic,dt)
+     earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
   use module_base
   use module_types
   implicit none
   !implicit real*8 (a-h,o-z)
-  integer, intent(in) :: npminx,nlminx,nbuf,nlmin,nlmin_l,iproc
+  integer, intent(in) :: npminx,nlminx,nbuf,nlmin,nlmin_l,iproc,nsoften
   real(gp), intent(in) :: re_pos,eref,ediff,ekinetic,dt,accur
   type(atoms_data), intent(in) :: at
   real(gp), dimension(npminx), intent(in) :: elocmin
@@ -1692,30 +1691,30 @@ subroutine winter(iproc,at,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, &
      write(*,*) ' wrote earr.dat for  RESTART'
      close(12)
      
-     call  wtioput(ediff,ekinetic,dt)
+     call  wtioput(ediff,ekinetic,dt,nsoften)
      write(*,*) ' wrote ioput for  RESTART'
   end if
 
 end subroutine winter
 
 
-subroutine wtioput(ediff,ekinetic,dt)
+subroutine wtioput(ediff,ekinetic,dt,nsoften)
   implicit real*8 (a-h,o-z)
   open(unit=11,file='ioput',status='unknown')
-  write(11,'(3(1x,1pe24.17),a)') ediff,ekinetic,dt,' ediff, ekinetic and dt'
+  write(11,'(3(1x,1pe24.17)1x,i4,a)') ediff,ekinetic,dt,nsoften,' ediff, ekinetic dt and nsoften'
   close(11)
 end subroutine wtioput
 
 
 subroutine wtbest(nat,energy,pos,iatype,atomnames,natpol)
   implicit real*8 (a-h,o-z)
-  character(len=41) :: filename
-  character(len=20) :: atomnames
-  character(len=3) :: fn
+  character(41) filename
+  character(20) atomnames
+  character(3) fn
   dimension pos(3,nat),iatype(nat),atomnames(100)
-  integer, dimension(nat), intent(in) :: natpol
+  integer, dimension(nat):: natpol
 
-  !Generate filename and open files
+  !C generate filename and open files
   filename = 'posbest.xyz'
   open(unit=9,file=filename,status='unknown')
   write(9,'(i4,2x,a,1pe24.17)') nat,'  atomic', energy
@@ -1724,7 +1723,8 @@ subroutine wtbest(nat,energy,pos,iatype,atomnames,natpol)
      write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)') atomnames(iatype(iat)),&
           pos(1,iat),pos(2,iat),pos(3,iat),natpol(iat)-100
   enddo
-  close(unit=9)
+  close(9)
+  return
 end subroutine wtbest
 
 subroutine wtmd(istep,nat,energy,pos,iatype,atomnames,natpol)

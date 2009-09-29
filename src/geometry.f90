@@ -310,7 +310,11 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         exit
      endif
 
-     if(ncount_bigdft>in%ncount_cluster_x-1)  exit
+     if(ncount_bigdft>in%ncount_cluster_x-1)  then 
+      if (iproc==0)  write(16,*) 'BFGS exited before the geometry optimization converged because more than ',& 
+                            in%ncount_cluster_x,' wavefunction optimizations were required'
+      exit
+     endif
 
 
   enddo bfgs_loop   ! main BFGS loop
@@ -404,6 +408,8 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,&
        fluctsum,nfluct,fnrm,in,in%forcemax,nitsd,fluct)
   if (ncount_bigdft >= in%ncount_cluster_x) then
+      if (iproc==0)  write(16,*) 'SDCG exited before the geometry optimization converged because more than ',&
+                            in%ncount_cluster_x,' wavefunction optimizations were required'
      call close_and_deallocate
      return
   end if
@@ -592,6 +598,8 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         if(check) exit loop_cg
 
         if (ncount_bigdft.gt.in%ncount_cluster_x) then 
+           if (iproc==0)  write(16,*) 'SDCG exited before the geometry optimization converged because more than ',&
+                            in%ncount_cluster_x,' wavefunction optimizations were required'
            if (iproc.eq.0) write(*,*) 'ncount_bigdft in CG',ncount_bigdft
            exit loop_cg
         endif
@@ -729,6 +737,8 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
         if (iproc.eq.0) then
            write(*,*) 'SD FINISHED because ncount_bigdft > ncount_cluster_x',iproc,ncount_bigdft,in%ncount_cluster_x
            write(16,*) 'SD FINISHED because ncount_bigdft > ncount_cluster_x',iproc,ncount_bigdft,in%ncount_cluster_x
+           write(16,*) 'SDCG exited before the geometry optimization converged because more than ', & 
+                            in%ncount_cluster_x,' wavefunction optimizations were required'
         end if
 
         i_all=-product(shape(tpos))*kind(tpos)
@@ -848,6 +858,8 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
 
         !maximum number of allowed iterations reached
         if (ncount_bigdft > in%ncount_cluster_x) then 
+           if (iproc==0)  write(16,*) 'SDCG exited before the geometry optimization converged because more than ',& 
+                            in%ncount_cluster_x,' wavefunction optimizations were required'
            if (iproc == 0) write(*,*) 'ncount_bigdft in SD2',ncount_bigdft,in%ncount_cluster_x
            exit loop_sd
         endif
@@ -974,7 +986,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'Initial VSSD:fnrm= ',sqrt(fnrm)
            call  write_atomic_file('posout_'//fn4,etotold,wpos,at,trim(comment))
-           write(16,'(1x,e12.5,1x,e21.14,a,e10.3)')sqrt(fnrm),etot,' GEOPT VSSD ',beta
+           write(16,'(1x,e12.5,1x,e21.14,a,e10.3)')sqrt(fnrm),etotold,' GEOPT VSSD ',beta
            endif
 
         ncount_bigdft=ncount_bigdft+1
@@ -1026,7 +1038,11 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
            if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*in%frac_fluct,fluct
            call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
            if (check) goto 100
-           if (ncount_bigdft >= in%ncount_cluster_x) goto 100
+           if (ncount_bigdft >= in%ncount_cluster_x) then 
+             if (iproc==0)  write(16,*) 'VSSD exited before the geometry optimization converged because more than ',& 
+                            in%ncount_cluster_x,' wavefunction optimizations were required'
+             goto 100
+           endif
 
 
         if (etot.gt.etotold) then
