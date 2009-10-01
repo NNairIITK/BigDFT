@@ -529,6 +529,7 @@ subroutine abscalc_input_variables_default(in)
   in%c_absorbtion=.false.
 
 end subroutine abscalc_input_variables_default
+!!***
 
 
 !!****f* BigDFT/abscalc_input_variables
@@ -546,20 +547,17 @@ subroutine abscalc_input_variables(iproc,filename,in)
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
 
-
   !local variables
   integer :: ierror,iline, i
 
   character(len=*), parameter :: subname='abscalc_input_variables'
   integer :: i_stat
 
-
   ! Read the input variables.
   open(unit=111,file=filename,status='old')
 
   !line number, to control the input values
   iline=0
-
 
   !x-adsorber treatment (in progress)
 
@@ -582,7 +580,6 @@ subroutine abscalc_input_variables(iproc,filename,in)
      in%abscalc_alterpot=.false.
      in%abscalc_eqdiff =.false.
   endif
-
 
   in%c_absorbtion=.true.
 
@@ -1817,7 +1814,7 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
-  open(unit=9,file=filename//'.ascii')
+  open(unit=9,file=trim(filename)//'.ascii')
   xmax=0.0_gp
   ymax=0.0_gp
   zmax=0.0_gp

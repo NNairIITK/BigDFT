@@ -94,7 +94,6 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   deallocate(logrid_f,stat=i_stat)
   call memocc(i_stat,i_all,'logrid_f',subname)
 
-
   tt=dble(norb)/dble(nproc)
   norbp=int((1.d0-eps_mach*tt) + tt)
   tt=dble(nvctr_c+7*nvctr_f)/dble(nproc)
@@ -136,7 +135,6 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   omempot=real(n02*n03,kind=8)*8.d0*real(n01*nspin,kind=8)
   !memory of nonlocal pseudopotential arrays
   omemproj=real(nprojel,kind=8)*8.d0
-
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ Memory Estimation'

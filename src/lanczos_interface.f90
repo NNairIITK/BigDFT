@@ -586,6 +586,9 @@ end subroutine EP_initialize_start
          ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,ha%epot_sum,ha%eproj_sum,1,ha%GPU)
     if(  ha%iproc ==0 ) print *, " done "
 
+    !here the projector should be applied
+    call lowpass_projector(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,ha%lr%wfd%nvctr_c,wrk)
+
    if(ha%iproc.eq.0) then
       if(EP_shift /= 0 ) then
          call axpy(EP_dim_tot, EP_shift  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
@@ -780,7 +783,39 @@ end subroutine EP_initialize_start
  end subroutine gaussians_to_wavelets_nonorm
 
 
+ subroutine lowpass_projector(n1,n2,n3,nvctr,psi)
+   use module_base
+   implicit none
+   integer, intent(in) :: nvctr,n1,n2,n3
+   real(wp), dimension(nvctr), intent(inout) :: psi
+   !local variables
+   character(len=*), parameter :: subname='projector'
+   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
 
+
+   !test whether the coarse grid fills the whole box
+   if (nvctr /= (n1+1)*(n2+1)*(n3+1)) then
+      write(*,*)' ERROR: projector nont implemented for non-filled coarse grids'
+      stop
+   end if
+
+   !for the moment the dimensions should be odd
+   if (mod(n1,2) /=1 .or. mod(n2,2) /=1 .or. mod(n3,2) /=1) then
+      write(*,*)' ERROR: the dimensions should be odd'
+      stop
+   end if
+
+
+   allocate(psig(0:n1/2,2,0:n2/2,2,0:n3/2,2),stat=i_stat)
+   call memocc(i_stat,psig,'psig',subname)
+
+   call analyse_per_self(n1/2,n2/2,n3/2,psi,psig)
+   
+   !here the projector operation
+
+   call synthese_per_self(n1/2,n2/2,n3/2,psig,psi)
+
+ end subroutine lowpass_projector
  
  
 end module lanczos_interface

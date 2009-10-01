@@ -255,7 +255,6 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
 
      !print *,'norbp',orbs%norbp,orbs%norb,orbs%nkpts,orbs%kwgts,orbs%iokpt,orbs%occup
 
-     !the factor requires the weigth for the k-point
      hfac=orbs%kwgts(orbs%iokpt(iorb))*(orbs%occup(orbs%isorb+iorb)/(hxh*hyh*hzh))
      spinval=orbs%spinsgn(orbs%isorb+iorb)
 

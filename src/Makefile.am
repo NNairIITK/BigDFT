@@ -158,7 +158,7 @@ high_level = cluster.f90 \
 	scfloop_API.f90 \
 	esatto.f90
 
-#objects which can be compiled whithout any dependence
+#objects which can be compiled only with module_base
 low_level = init/projectors.f90  \
 	init/ionicpot.f90 \
 	init/gridmanipulation.f90 \
@@ -346,7 +346,7 @@ CLEANFILES = mpif.h \
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
 
-cluster.o geometry.o: vdwcorrection.o esatto.o
+cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o
 
 lanczos.o : lanczos_base.o lanczos_interface.o
 

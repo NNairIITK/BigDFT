@@ -17,7 +17,7 @@ program BigDFT
   use module_types
   use module_interfaces
   use ab6_symmetry
-!  use minimization, only:parameterminimization 
+!  use minimization, only: parameterminimization 
 
   !implicit real(kind=8) (a-h,o-z)
   !as a general policy, I will put "implicit none" by assuming the same
@@ -42,7 +42,7 @@ program BigDFT
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
-  integer npr,iam,iconfig,nconfig
+  integer :: npr,iam,iconfig,nconfig
   integer  :: nfluct
   real(gp) :: fluctsum
 
