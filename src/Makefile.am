@@ -324,13 +324,15 @@ frequencies_LDADD = libbigdft.a \
 
 
 CLEANFILES = \
+	ab6_symmetry.@MODULE_EXT@ AB6_SYMMETRY.@MODULE_EXT@ \
+	ab6_moldyn.@MODULE_EXT@ AB6_MOLDYN.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@ BIGDFT_API.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@ MODULE_INTERFACES.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@ \
 	module_base.@MODULE_EXT@ MODULE_BASE.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@ VDWCORRECTION.@MODULE_EXT@ \
 	lanczos_base.@MODULE_EXT@ LANCZOS_BASE.@MODULE_EXT@ \
-	esatto@MODULE_EXT@ ESATTO.@MODULE_EXT@ \
+	esatto.@MODULE_EXT@ ESATTO.@MODULE_EXT@ \
 	lanczos_interface.@MODULE_EXT@ LANCZOS_INTERFACE.@MODULE_EXT@ \
 	formats.@MODULE_EXT@ FORMATS.@MODULE_EXT@ \
 	miscellany.@MODULE_EXT@ MISCELLANY.@MODULE_EXT@ \
@@ -339,7 +341,7 @@ CLEANFILES = \
 	minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
 	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
 	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@ \
-	scfloop_API.@MODULE_EXT@ SCFLOOP_API.@MODULE_EXT@
+	scfloop_api.@MODULE_EXT@ SCFLOOP_API.@MODULE_EXT@
 
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
