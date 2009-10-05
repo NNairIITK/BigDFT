@@ -155,13 +155,15 @@ end
     AC_WARN([  set --disable-mpi in the configure line.])
     ac_use_mpi="Warning"
     MPI_LIBS=
-    MPI_INCLUDE=
+    MPI_INCLUDE='-I$(top_builddir)/src/modules'
     MPI_LDFLAGS=
   fi
 
   LIBS="$LIBS_OLD"
   LDFLAGS="$LDFLAGS_OLD"
   FCFLAGS="$FCFLAGS_OLD"
+else
+  MPI_INCLUDE='-I$(top_builddir)/src/modules'
 fi
 AM_CONDITIONAL(USE_MPI, test "$ac_use_mpi" = "yes")
 AC_SUBST(MPI_LIBS)
