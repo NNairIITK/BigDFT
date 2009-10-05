@@ -76,11 +76,9 @@ AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@
 
 if USE_MPI
 mpi_source =
-mpi_include =
 LMPI = @MPI_LDFLAGS@ 
 else
 mpi_source = ../MPIfake.f90
-mpi_include = $(top_builddir)/src/modules
 LMPI = 
 endif
 
@@ -127,15 +125,13 @@ PS_Exercise_LDADD =	libpoissonsolver.a \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
-CLEANFILES = mpif.h malloc.prc time.par PS_Check.out \
+CLEANFILES = malloc.prc time.par PS_Check.out \
 	POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@
 
 #dependencies
 poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 
 Poisson_Solver.o: ../modules/base.o $(SOURCES_MOD)
-
-#base.o : $(mpi_include)
 
 #PS_Check.o: Poisson_Solver.o
 

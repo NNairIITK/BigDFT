@@ -9,13 +9,7 @@ noinst_LIBRARIES = libABINIT.a
 
 SUBDIRS =
 
-if USE_MPI
-mpi_include =
-else
-mpi_include = $(top_builddir)/src/modules
-endif
-
-AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(mpi_include)
+AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@
 
 libABINIT_a_SOURCES = \
 	defs_basis.F90 \
