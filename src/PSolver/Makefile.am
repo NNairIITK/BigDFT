@@ -80,7 +80,7 @@ mpi_include =
 LMPI = @MPI_LDFLAGS@ 
 else
 mpi_source = ../MPIfake.f90
-mpi_include = mpif.h
+mpi_include = $(top_builddir)/src/modules
 LMPI = 
 endif
 
@@ -131,12 +131,6 @@ CLEANFILES = mpif.h malloc.prc time.par PS_Check.out \
 	POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@
 
 #dependencies
-mpif.h:
-	touch mpif.h &&\
-	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
-	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
-	 echo "integer :: MPI_MIN, MPI_MAX, MPI_CHARACTER" >> mpif.h
-
 poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 
 Poisson_Solver.o: ../modules/base.o $(SOURCES_MOD)

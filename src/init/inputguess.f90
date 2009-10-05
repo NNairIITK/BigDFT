@@ -32,7 +32,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   !local variables
   character(len=*), parameter :: subname='inputguess_gaussian_orbitals'
   integer, parameter :: ngx=31
-  integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte
+  integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt
   integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
   type(communications_arrays) :: commsv
   logical, dimension(:,:,:), allocatable :: scorb
@@ -97,9 +97,11 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   !create the orbitals descriptors, for virtual and inputguess orbitals
   !davidson treatment for spin-pol case should be reworked
   if (nspin == 1) then
-     call orbitals_descriptors(iproc,nproc,nvirte,nvirte,0,orbs%nspinor,orbsv)
+     call orbitals_descriptors(iproc,nproc,nvirte,nvirte,0, &
+          & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
   else if (nspin == 2) then
-     call orbitals_descriptors(iproc,nproc,nvirte,nvirte,nvirte,orbs%nspinor,orbsv)
+     call orbitals_descriptors(iproc,nproc,nvirte,nvirte,nvirte, &
+          & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
   end if
 
   !allocate communications arrays for virtual orbitals
@@ -115,12 +117,14 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   !in the case of a spin-polarised calculation
   !also for non-collinear case
   !nspin*noncoll is always <= 2
-  call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe,&
-       nspinorfororbse,orbse)
-  ist=1
-  do ispin=1,nspin
-     orbse%spinsgn(ist:ist+norbe-1)=real(1-2*(ispin-1),gp)
-     ist=norbe+1
+  call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
+       & nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
+  do ikpt = 1, orbse%nkpts
+     ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
+     do ispin=1,nspin
+        orbse%spinsgn(ist:ist+norbe-1)=real(1-2*(ispin-1),gp)
+        ist=ist+norbe
+     end do
   end do
 
   !this is the distribution procedure for cubic code

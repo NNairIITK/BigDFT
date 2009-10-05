@@ -14,6 +14,7 @@ program MINHOP
 
   !this will include also mpif.h
   use BigDFT_API
+  use ab6_symmetry
 
   implicit real(kind=8) (a-h,o-z)
   real(kind=4) :: tts
@@ -141,10 +142,12 @@ program MINHOP
   call read_atomic_positions(iproc,99,atoms,pos)
   close(unit=99)
   !Read input parameters for geometry optimization 
-  call dft_input_variables(iproc,'input.dft',inputs_opt)
+  call dft_input_variables(iproc,'input.dft',inputs_opt,atoms%symObj)
+  call kpt_input_variables(iproc,'input.kpt',inputs_opt,atoms)
   call geopt_input_variables(iproc,'input.geopt',inputs_opt)
 
-  call dft_input_variables(iproc,'mdinput.dft',inputs_md)
+  call dft_input_variables(iproc,'mdinput.dft',inputs_md,atoms%symObj)
+  call kpt_input_variables(iproc,'input.kpt',inputs_md,atoms)
   call geopt_input_variables(iproc,'mdinput.geopt',inputs_md)
 
 
@@ -700,6 +703,7 @@ end do hopping_loop
   i_all=-product(shape(atoms%amu))*kind(atoms%amu)
   deallocate(atoms%amu,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%amu',subname)
+  if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
 
   call free_restart_objects(rst,subname)
 
@@ -731,6 +735,9 @@ end do hopping_loop
 
   if (iproc.eq.0) write(67,'(a,1x,3(1x,1pe10.3))') 'Out:ediff,ekinetic,dt',ediff,ekinetic,dt
   close(2) 
+
+  call free_input_variables(inputs_opt)
+  call free_input_variables(inputs_md)
 
   !  call deallocate_wfd(wfd,subname)
   !  i_all=-product(shape(psi))*kind(psi)

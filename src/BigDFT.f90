@@ -16,6 +16,7 @@ program BigDFT
   use module_base
   use module_types
   use module_interfaces
+  use ab6_symmetry
 !  use minimization, only: parameterminimization 
 
   !implicit real(kind=8) (a-h,o-z)
@@ -100,8 +101,11 @@ program BigDFT
      call memocc(i_stat,fxyz,'fxyz',subname)
 
      ! read dft input variables
-     call dft_input_variables(iproc,'input.dft',inputs)
+     call dft_input_variables(iproc,'input.dft',inputs,atoms%symObj)
      !call read_input_variables(iproc,'input.dat',inputs)
+
+     ! read k-points input variables (if given)
+     call kpt_input_variables(iproc,'input.kpt',inputs,atoms)
 
      !read geometry optimsation input variables
      !inquire for the file needed for geometry optimisation
@@ -146,7 +150,7 @@ program BigDFT
         open(unit=16,file='geopt.mon',status='unknown')
         if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
         call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
-        filename=trim('relaxed_'//arr_posinp(iconfig))
+        filename=trim('relaxed_'//trim(arr_posinp(iconfig)))
         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,' ')
      end if
 
@@ -173,6 +177,7 @@ program BigDFT
 
 
      !deallocations
+     ! TODO, move them into input_variables as a free method for atoms
      i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
      deallocate(atoms%ifrztyp,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
@@ -188,6 +193,7 @@ program BigDFT
      i_all=-product(shape(atoms%amu))*kind(atoms%amu)
      deallocate(atoms%amu,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%amu',subname)
+     if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
 
      call free_restart_objects(rst,subname)
 
@@ -207,6 +213,8 @@ program BigDFT
   enddo !loop over iconfig
 
   deallocate(arr_posinp)
+
+  call free_input_variables(inputs)
 
   call MPI_FINALIZE(ierr)
 

@@ -27,10 +27,8 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      nspinor=1
   end if
 
-  !temporary changement, to be controlled
-  !nspinor=2
-
-  call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
+  call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,nspinor, &
+       & in%nkpt,in%kpt,in%wkpt,orbs)
 
   !distribution of wavefunction arrays between processors
   !tuned for the moment only on the cubic distribution
@@ -522,54 +520,36 @@ end subroutine read_system_variables
 !!    It uses the cubic strategy for partitioning the orbitals
 !! SOURCE
 !!
-subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
+subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wkpt,orbs)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nproc,nspinor,norb,norbu,norbd
+  integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt
+  integer, intent(inout) :: nspinor
   type(orbitals_data), intent(out) :: orbs
+  real(gp), intent(in) :: kpt(3,nkpt), wkpt(nkpt)
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all
-  real(gp) :: kx,alat
   logical, dimension(:), allocatable :: GPU_for_orbs
 
   allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
 
   !assign the value of the k-points
-  orbs%nkpts=1!3
+  orbs%nkpts=nkpt
   !allocate vectors related to k-points
   allocate(orbs%kpts(3,orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
   allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
-  !only the gamma point for the moment
+  orbs%kpts(:, 1:nkpt) = kpt(:,:)
+  orbs%kwgts(1:nkpt) = wkpt(:)
 
-!!$  open(55)
-!!$  read(55,*)kx,alat
-!!$  close(55)
-
-!!$  !toto point
-!!$  alat=10.1901d0
-!!$
-!!$  kx=1.23456000d-01
-!!$  ky=8.52147000d-01
-!!$  kz=9.87452000d-01
-
-  do ikpt=1,orbs%nkpts
-     orbs%kpts(1,ikpt)=0.0_gp
-     orbs%kpts(2,ikpt)=0.0_gp
-     orbs%kpts(3,ikpt)=0.0_gp
-!!$     orbs%kpts(1,ikpt)=kx*4.0*datan(1.d0)/(alat)
-!!$     orbs%kpts(2,ikpt)=0.d0
-!!$     orbs%kpts(3,ikpt)=0.d0
-     orbs%kwgts(ikpt)=1.0_gp
-  end do
-
-!!$  orbs%kwgts(1)=0.2_gp
-!!$  orbs%kwgts(2)=0.5_gp
-!!$  orbs%kwgts(3)=0.3_gp
+  ! Change the wavefunctions to complex if k-points are used (except gamma).
+  if (nspinor == 1) then
+     if (maxval(abs(orbs%kpts)) > 0._gp) nspinor = 2
+  end if
 
   !initialise the array
   do jproc=0,nproc-1

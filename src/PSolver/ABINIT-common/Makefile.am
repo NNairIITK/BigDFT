@@ -9,11 +9,19 @@ noinst_LIBRARIES = libABINIT.a
 
 SUBDIRS =
 
-AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@
+if USE_MPI
+mpi_include =
+else
+mpi_include = $(top_builddir)/src/modules
+endif
+
+AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(mpi_include)
 
 libABINIT_a_SOURCES = \
 	defs_basis.F90 \
+	defs_parameters.F90 \
         defs_datatypes.F90 \
+	defs_abitypes.F90 \
         defs_xc.F90 \
 	interfaces_14_hidewrite.F90 \
 	interfaces_16_hideleave.F90 \
@@ -47,7 +55,11 @@ interfaces_14_hidewrite.o interfaces_16_hideleave.o interfaces_56_xc.o m_libxc_f
 
 
 defs_datatypes.o: defs_datatypes.F90 \
+	defs_parameters.o \
 	defs_basis.o
+
+defs_abitypes.o: defs_abitypes.F90 \
+	defs_datatypes.o
 
 defs_xc.o: defs_xc.F90 \
 	defs_basis.o \
