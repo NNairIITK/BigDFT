@@ -12,7 +12,6 @@ SOURCES_MOD = PSolver_Main.f90 \
 	PSolver_Base.f90 \
 	xcenergy.f90 \
 	3Dgradient.f90 \
-	fft3d.f90 \
 	scaling_function.f90
 
 OTHERS = Makefile.PSolver \
@@ -91,6 +90,7 @@ endif
 
 libpoissonsolver_a_SOURCES = \
 	Poisson_Solver.f90 \
+	../lib/fft/fft3d.f90 \
 	../profiling/time.f90 
 
 libpoissonsolver_a_LIBADD = ../modules/libmodules.a
