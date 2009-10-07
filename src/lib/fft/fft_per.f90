@@ -1,111 +1,91 @@
-!!****f* fft_per
-!!
-!! DESCRIPTION
-!!   3-dimensional complex-complex FFT routine: 
-!!   When compared to the best vendor implementations on RISC architectures 
-!!   it gives close to optimal performance (perhaps loosing 20 percent in speed)
-!!   and it is significanly faster than many not so good vendor implementations 
-!!   as well as other portable FFT's. 
-!!   On all vector machines tested so far (Cray, NEC, Fujitsu) is 
-!!   was significantly faster than the vendor routines
-!!
-!! The theoretical background is described in :
-!! 1) S. Goedecker: Rotating a three-dimensional array in optimal
-!! positions for vector processing: Case study for a three-dimensional Fast
-!! Fourier Transform, Comp. Phys. Commun. \underline{76}, 294 (1993)
-!! Citing of this reference is greatly appreciated if the routines are used 
-!! for scientific work.
-!!
+! --------------------------------------------------------------
+!   3-dimensional complex-complex FFT routine: 
+!   When compared to the best vendor implementations on RISC architectures 
+!   it gives close to optimal performance (perhaps loosing 20 percent in speed)
+!   and it is significanly faster than many not so good vendor implementations 
+!   as well as other portable FFT's. 
+!   On all vector machines tested so far (Cray, NEC, Fujitsu) is 
+!   was significantly faster than the vendor routines
+! The theoretical background is described in :
+! 1) S. Goedecker: Rotating a three-dimensional array in optimal
+! positions for vector processing: Case study for a three-dimensional Fast
+! Fourier Transform, Comp. Phys. Commun. \underline{76}, 294 (1993)
+! Citing of this reference is greatly appreciated if the routines are used 
+! for scientific work.
+!
+!
+! Presumably good compiler flags:
+! IBM, serial power 2: xlf -qarch=pwr2 -O2 -qmaxmem=-1
+! with OpenMP: IBM: xlf_r -qfree -O4 -qarch=pwr3 -qtune=pwr3 -qsmp=omp -qmaxmem=-1 ; 
+!                   a.out
+! DEC: f90 -O3 -arch ev67 -pipeline
+! with OpenMP: DEC: f90 -O3 -arch ev67 -pipeline -omp -lelan ; 
+!                   prun -N1 -c4 a.out
+!-----------------------------------------------------------
+
+
+!!****f* BigDFT/fourier_dim
+!! FUNCTION
+!!   Give a number n_next > n compatible for the FFT
 !! COPYRIGHT
-!!   Copyright (C) Stefan Goedecker, CEA Grenoble, 2002, Basel University, 2009
-!!   This file is distributed under the terms of the
-!!   GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! SYNOPSIS
-!!   Presumably good compiler flags:
-!!   IBM, serial power 2: xlf -qarch=pwr2 -O2 -qmaxmem=-1
-!!   with OpenMP: IBM: xlf_r -qfree -O4 -qarch=pwr3 -qtune=pwr3 -qsmp=omp -qmaxmem=-1 ; 
-!!                     a.out
-!!   DEC: f90 -O3 -arch ev67 -pipeline
-!!   with OpenMP: DEC: f90 -O3 -arch ev67 -pipeline -omp -lelan ; 
-!!                     prun -N1 -c4 a.out
-!!
+!!  Copyright (C) Stefan Goedecker, Lausanne, Switzerland, August 1, 1991
+!!  Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
+!!  Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1999
+!!  Copyright (C) Stefan Goedecker, CEA Grenoble, 2002
+!!  Copyright (C) 2002-2009 BigDFT group 
+!!  This file is distributed under the terms of the
+!!  GNU General Public License, see ~/COPYING file
+!!  or http://www.gnu.org/copyleft/gpl.txt .
+!!  For the list of contributors, see ~/AUTHORS 
 !! SOURCE
 !!
-!-----------------------------------------------------------
-!
-!  HEADER PART: ntime=1: Checks accuracy 
-!               ntime<>1: Measures speed
-!
-!        Implicit real*8 (a-h,o-z)
-!        integer count1,count2,count_rate,count_max
-!
-!        parameter(ntime=30)
-!!   dimension parameters
-!        parameter(n1=128, n2=128, n3=128)   
-!!   parameters for FFT
-!        parameter(nd1=n1+1, nd2=n2+1, nd3=n3+1)
-!
-!! general array
-!        dimension zin(2,n1*n2*n3)
-!! arrays for FFT 
-!        dimension z(2,nd1*nd2*nd3,2)
-!
-!        Print*,'                    '
-!        Print*,'                    '
-!        write(6,'(a,3(i4),3x,i3)') 'FFT TEST for n1 ,n2 ,n3 =',n1,n2,n3
-!        write(6,*) 'nd1 ,nd2 ,nd3=', nd1 ,nd2 ,nd3
-!        Print*,'                    '
-!        isign=1
-!        do 398,i=1,nd1*nd2*nd3
-!        z(1,i,1)=0.d0
-!        z(2,i,1)=0.d0
-!        z(1,i,2)=0.d0
-!        z(2,i,2)=0.d0
-!398        continue
-!1234        call init(n1,n2,n3,nd1,nd2,nd3,zin,z)
-!
-!        inzee=1
-!        call fft(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
-!
-!        call cpu_time(t1)
-!        call system_clock(count1,count_rate,count_max)      
-!
-!        isign=-isign
-!        do i=1,ntime
-!        call fft(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
-!        enddo
-!
-!        call cpu_time(t2)
-!        call system_clock(count2,count_rate,count_max)      
-!        time=(t2-t1)/ntime
-!        tela=(count2-count1)/(float(count_rate)*ntime)
-!
-!        call vgl(n1,n2,n3,nd1,nd2,nd3,z(1,1,inzee), &
-!                       n1,n2,n3,zin,1.d0/(n1*n2*n3),tta,ttm)
-!        if (ntime.eq.1) print*,'Backw<>Forw:ttm=,tta=',ttm,tta
-!        if (ntime.eq.1 .and. ttm.gt.1.d-8) print*, 'WARNING'
-!
-!        if (ntime.ne.1) write(6,'(a,2(x,e11.4),x,i4)')  & 
-!              'Time (CPU,ELA) per FFT call (sec):' ,time,tela,ntime
-!        flops=5*n1*n2*n3*log(1.d0*n1*n2*n3)/log(2.d0)
-!    write(6,*) 'Estimated floating point operations per FFT call',flops
-!        if (ntime.ne.1) print*, 'CPU:  Mflops:' ,1.d-6*flops/time
-!        if (ntime.ne.1) print*, 'ELAP: Mflops:' ,1.d-6*flops/tela
-!
-!        if (isign.eq.-1) then
-!        goto 1234
-!        endif
-!        write(6,*) '   '
-!        write(6,*) 'The following output should be a real number and ',&
-!           'not a NANq. If this happens overflow occured because ',& 
-!           'the FFT was called too many times (ntime too big).:' 
-!        write(6,*) z(1,1,1)
-!
-!        end
+subroutine fourier_dim(n,n_next)
+  implicit none
+  !Arguments
+  integer, intent(in) :: n
+  integer, intent(out) :: n_next
 
-! auxiliary subroutines --------------------------
+  !Local variables
+  integer, parameter :: ndata = 180
+  !Multiple of 2,3,5
+  integer, dimension(ndata), parameter :: idata = (/   &
+          3,     4,     5,     6,     8,     9,    12,    15,    16,    18, &
+         20,    24,    25,    27,    30,    32,    36,    40,    45,    48, &
+         54,    60,    64,    72,    75,    80,    81,    90,    96,   100, &
+        108,   120,   125,   128,   135,   144,   150,   160,   162,   180, &
+        192,   200,   216,   225,   240,   243,   256,   270,   288,   300, &
+        320,   324,   360,   375,   384,   400,   405,   432,   450,   480, &
+        486,   500,   512,   540,   576,   600,   625,   640,   648,   675, &
+        720,   729,   750,   768,   800,   810,   864,   900,   960,   972, &
+       1000,  1024,  1080,  1125,  1152,  1200,  1215,  1280,  1296,  1350, &
+       1440,  1458,  1500,  1536,  1600,  1620,  1728,  1800,  1875,  1920, &
+       1944,  2000,  2025,  2048,  2160,  2250,  2304,  2400,  2430,  2500, &
+       2560,  2592,  2700,  2880,  3000,  3072,  3125,  3200,  3240,  3375, &
+       3456,  3600,  3750,  3840,  3888,  4000,  4050,  4096,  4320,  4500, &
+       4608,  4800,  5000,  5120,  5184,  5400,  5625,  5760,  6000,  6144, &
+       6400,  6480,  6750,  6912,  7200,  7500,  7680,  8000,  8192,  8640, &
+       9000,  9216,  9375,  9600, 10000, 10240, 10368, 10800, 11250, 11520, &
+      12000, 12288, 12500, 12800, 13824, 14400, 15000, 15360, 15625, 16000, &
+      16384, 17280, 18000, 18432, 18750, 19200, 20000, 20480, 23040, 24000   /)                                              
+  integer :: i
 
+  loop_data: do i=1,ndata
+     if (n <= idata(i)) then
+        n_next = idata(i)
+        return
+     end if
+  end do loop_data
+  write(unit=*,fmt=*) "fourier_dim: ",n," is bigger than ",idata(ndata)
+  stop
+end subroutine fourier_dim
+!!***
+
+
+!!****f* BigDFT/dimensions_fft
+!! FUNCTION
+!!   Give the dimensions of fft arrays
+!! SOURCE
+!!
 subroutine dimensions_fft(n1,n2,n3,nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
     implicit none
     integer, intent(in)::n1,n2,n3
@@ -128,98 +108,60 @@ subroutine dimensions_fft(n1,n2,n3,nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd
 end subroutine dimensions_fft
 !!***
 
-subroutine init(n1,n2,n3,nd1,nd2,nd3,zin,z)
-   implicit real*8 (a-h,o-z)
-   !Arguments
-   integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3
-   real*8 :: zin(2,n1,n2,n3),z(2,nd1,nd2,nd3)
-   !Local variables
-   integer :: i1,i2,i3
-   do i3=1,n3
-      do i2=1,n2
-         do i1=1,n1
-            zin(1,i1,i2,i3) = cos(1.23*float(i1*111+ i2*11 + i3))
-            zin(2,i1,i2,i3) = sin(3.21*float(i3*111 + i2*11 + i1))
-            z(1,i1,i2,i3) = zin(1,i1,i2,i3) 
-            z(2,i1,i2,i3) = zin(2,i1,i2,i3) 
-         end do
-      end do
-   end do
-end subroutine init
 
-        subroutine vgl(n1,n2,n3,nd1,nd2,nd3,x,md1,md2,md3,y,scale,tta,ttm)
-        implicit real*8 (a-h,o-z)
-        dimension x(2,nd1,nd2,nd3),y(2,md1,md2,md3)
-        ttm=0.d0
-        tta=0.d0
-        do 976,i3=1,n3
-        do 976,i2=1,n2
-        do 976,i1=1,n1
-        ttr=abs(x(1,i1,i2,i3)*scale-y(1,i1,i2,i3))/abs(y(1,i1,i2,i3))
-        tti=abs(x(2,i1,i2,i3)*scale-y(2,i1,i2,i3))/abs(y(2,i1,i2,i3))
-        ttm=max(ttr,tti,ttm)
-        tta=tta+ttr+tti
-976        continue
-        tta=tta/(n1*n2*n3)
-        return
-        end
-
-
-! FFT PART -----------------------------------------------------------------
-
-        subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
-!        CALCULATES THE DISCRETE FOURIERTRANSFORM F(I1,I2,I3)=
-!        S_(j1,j2,j3) EXP(isign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
-!       with optimal performance on vector computer, workstations and 
-!       multiprocessor shared memory computers using OpenMP compiler directives
-!        INPUT:
-!            n1,n2,n3:physical dimension of the transform. It must be a 
-!                     product of the prime factors 2,3,5, but greater than 3. 
-!                    If two ni's are equal it is recommended to place them 
-!                    behind each other.
-!            nd1,nd2,nd3:memory dimension of Z. ndi must always be greater or 
-!                        equal than ni. On a vector machine, it is recomended 
-!                       to chose ndi=ni if ni is odd and ndi=ni+1 if ni is 
-!                       even to obtain optimal execution speed. On RISC 
-!                       machines ndi=ni is usually fine for odd ni, for even 
-!                       ni one should try ndi=ni+1, ni+2, ni+4 to find the 
-!                       optimal performance. 
-!           inzee=1: first part of Z is data (input) array, 
-!                    second part work array
-!           inzee=2: first part of Z is work array, second part data array
-!                Z(1,i1,i2,i3,inzee)=real(R(i1,i2,i3))
-!                Z(2,i1,i2,i3,inzee)=imag(R(i1,i2,i3))
-!        OUTPUT:
-!           inzee=1: first part of Z is data (output) array, 
-!                    second part work array
-!           inzee=2: first part of Z is work array, second part data array
-!                real(F(i1,i2,i3))=Z(1,i1,i2,i3,inzee)
-!                imag(F(i1,i2,i3))=Z(2,i1,i2,i3,inzee)
-!           inzee on output is in general different from inzee on input
-!        The input data are always overwritten independently of the 
-!       value of inzee.
-! PERFORMANCE AND THE NCACHE
-!       The most important feature for performance is the right choice of 
-!       the parameter ncache. On a vector machine ncache has to be put to 0.
-!       On a RISC machine with cache, it is very important to find the optimal 
-!       value of NCACHE. NCACHE determines the size of the work array zw, that
-!       has to fit into cache. It has therefore to be chosen to equal roughly 
-!        half the size of the physical cache in units of real*8 numbers.
-!       If the machine has 2 cache levels it can not be predicted which 
-!       cache level will be the most relevant one for choosing ncache. 
-!       The optimal value of ncache can easily be determined by numerical 
-!       experimentation. A too large value of ncache leads to a dramatic 
-!       and sudden decrease of performance, a too small value to a to a 
-!       slow and less dramatic decrease of performance. If NCACHE is set 
-!       to a value so small, that not even a single one dimensional transform 
-!       can be done in the workarray zw, the program stops with an error 
-!       message.
-!  Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
-!  Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1995, 1999
-!  Copyright (C) Stefan Goedecker, CEA Grenoble, 2002
-!  This file is distributed under the terms of the
-!  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-
+!!****f* BigDFT/FFT
+!! FUNCTION
+!!  Calculates the discrete fourier transform F(I1,I2,I3)=
+!!  S_(j1,j2,j3) EXP(isign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
+!! DESCRIPTION
+!!  with optimal performance on vector computer, workstations and 
+!!  multiprocessor shared memory computers using OpenMP compiler directives
+!!   INPUT:
+!!       n1,n2,n3:physical dimension of the transform. It must be a 
+!!                product of the prime factors 2,3,5, but greater than 3. 
+!!               If two ni's are equal it is recommended to place them 
+!!               behind each other.
+!!       nd1,nd2,nd3:memory dimension of Z. ndi must always be greater or 
+!!                   equal than ni. On a vector machine, it is recomended 
+!!                  to chose ndi=ni if ni is odd and ndi=ni+1 if ni is 
+!!                  even to obtain optimal execution speed. On RISC 
+!!                  machines ndi=ni is usually fine for odd ni, for even 
+!!                  ni one should try ndi=ni+1, ni+2, ni+4 to find the 
+!!                  optimal performance. 
+!!      inzee=1: first part of Z is data (input) array, 
+!!               second part work array
+!!      inzee=2: first part of Z is work array, second part data array
+!!           Z(1,i1,i2,i3,inzee)=real(R(i1,i2,i3))
+!!           Z(2,i1,i2,i3,inzee)=imag(R(i1,i2,i3))
+!!   OUTPUT:
+!!      inzee=1: first part of Z is data (output) array, 
+!!               second part work array
+!!      inzee=2: first part of Z is work array, second part data array
+!!           real(F(i1,i2,i3))=Z(1,i1,i2,i3,inzee)
+!!           imag(F(i1,i2,i3))=Z(2,i1,i2,i3,inzee)
+!!      inzee on output is in general different from inzee on input
+!!   The input data are always overwritten independently of the 
+!!  value of inzee.
+!! 
+!! PERFORMANCE AND THE NCACHE
+!!  The most important feature for performance is the right choice of 
+!!  the parameter ncache. On a vector machine ncache has to be put to 0.
+!!  On a RISC machine with cache, it is very important to find the optimal 
+!!  value of NCACHE. NCACHE determines the size of the work array zw, that
+!!  has to fit into cache. It has therefore to be chosen to equal roughly 
+!!  half the size of the physical cache in units of real*8 numbers.
+!!  If the machine has 2 cache levels it can not be predicted which 
+!!  cache level will be the most relevant one for choosing ncache. 
+!!  The optimal value of ncache can easily be determined by numerical 
+!!  experimentation. A too large value of ncache leads to a dramatic 
+!!  and sudden decrease of performance, a too small value to a to a 
+!!  slow and less dramatic decrease of performance. If NCACHE is set 
+!!  to a value so small, that not even a single one dimensional transform 
+!!  can be done in the workarray zw, the program stops with an error 
+!!  message.
+!! SOURCE
+!!
+subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
         implicit real*8 (a-h,o-z)
 !!!$      interface
 !!!!$        integer ( kind=4 ) function omp_get_num_threads ( )
@@ -469,64 +411,47 @@ end subroutine init
         if (iam.eq.0) inzee=inzet
 !!!!!!!!!!$omp end parallel  
 
-
       endif
-        return
-        end
+      return
+end subroutine FFT
+!!***
 
-        subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
-!        CALCULATES THE DISCRETE FOURIERTRANSFORM F(I1,I2,I3)=
-!        S_(j1,j2,j3) EXP(isign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
-!       with optimal performance on vector computer, workstations and 
-!       multiprocessor shared memory computers using OpenMP compiler directives
-!        INPUT:
-!            n1,n2,n3:physical dimension of the transform. It must be a 
-!                     product of the prime factors 2,3,5, but greater than 3. 
-!                    If two ni's are equal it is recommended to place them 
-!                    behind each other.
-!            nd1,nd2,nd3:memory dimension of Z. ndi must always be greater or 
-!                        equal than ni. On a vector machine, it is recomended 
-!                       to chose ndi=ni if ni is odd and ndi=ni+1 if ni is 
-!                       even to obtain optimal execution speed. On RISC 
-!                       machines ndi=ni is usually fine for odd ni, for even 
-!                       ni one should try ndi=ni+1, ni+2, ni+4 to find the 
-!                       optimal performance. 
-!           inzee=1: first part of Z is data (input) array, 
-!                    second part work array
-!           inzee=2: first part of Z is work array, second part data array
-!                Z(1,i1,i2,i3,inzee)=real(R(i1,i2,i3))
-!                Z(2,i1,i2,i3,inzee)=imag(R(i1,i2,i3))
-!        OUTPUT:
-!           inzee=1: first part of Z is data (output) array, 
-!                    second part work array
-!           inzee=2: first part of Z is work array, second part data array
-!                real(F(i1,i2,i3))=Z(1,i1,i2,i3,inzee)
-!                imag(F(i1,i2,i3))=Z(2,i1,i2,i3,inzee)
-!           inzee on output is in general different from inzee on input
-!        The input data are always overwritten independently of the 
-!       value of inzee.
-! PERFORMANCE AND THE NCACHE
-!       The most important feature for performance is the right choice of 
-!       the parameter ncache. On a vector machine ncache has to be put to 0.
-!       On a RISC machine with cache, it is very important to find the optimal 
-!       value of NCACHE. NCACHE determines the size of the work array zw, that
-!       has to fit into cache. It has therefore to be chosen to equal roughly 
-!        half the size of the physical cache in units of real*8 numbers.
-!       If the machine has 2 cache levels it can not be predicted which 
-!       cache level will be the most relevant one for choosing ncache. 
-!       The optimal value of ncache can easily be determined by numerical 
-!       experimentation. A too large value of ncache leads to a dramatic 
-!       and sudden decrease of performance, a too small value to a to a 
-!       slow and less dramatic decrease of performance. If NCACHE is set 
-!       to a value so small, that not even a single one dimensional transform 
-!       can be done in the workarray zw, the program stops with an error 
-!       message.
-!  Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
-!  Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1995, 1999
-!  Copyright (C) Stefan Goedecker, CEA Grenoble, 2002
-!  This file is distributed under the terms of the
-!  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
 
+!!***f* BigDFT/FFT_for
+!! DESCRIPTION
+!!  Calculates the discrete Fourier transform F(I1,I2,I3)=
+!!  S_(j1,j2,j3) EXP(isign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
+!!  with optimal performance on vector computer, workstations and 
+!!  multiprocessor shared memory computers using OpenMP compiler directives
+!!   INPUT:
+!!       n1,n2,n3:physical dimension of the transform. It must be a 
+!!                product of the prime factors 2,3,5, but greater than 3. 
+!!               If two ni's are equal it is recommended to place them 
+!!               behind each other.
+!!       nd1,nd2,nd3:memory dimension of Z. ndi must always be greater or 
+!!                   equal than ni. On a vector machine, it is recomended 
+!!                  to chose ndi=ni if ni is odd and ndi=ni+1 if ni is 
+!!                  even to obtain optimal execution speed. On RISC 
+!!                  machines ndi=ni is usually fine for odd ni, for even 
+!!                  ni one should try ndi=ni+1, ni+2, ni+4 to find the 
+!!                  optimal performance. 
+!!      inzee=1: first part of Z is data (input) array, 
+!!               second part work array
+!!      inzee=2: first part of Z is work array, second part data array
+!!           Z(1,i1,i2,i3,inzee)=real(R(i1,i2,i3))
+!!           Z(2,i1,i2,i3,inzee)=imag(R(i1,i2,i3))
+!!   OUTPUT:
+!!      inzee=1: first part of Z is data (output) array, 
+!!               second part work array
+!!      inzee=2: first part of Z is work array, second part data array
+!!           real(F(i1,i2,i3))=Z(1,i1,i2,i3,inzee)
+!!           imag(F(i1,i2,i3))=Z(2,i1,i2,i3,inzee)
+!!      inzee on output is in general different from inzee on input
+!!   The input data are always overwritten independently of the 
+!!  value of inzee.
+!! SOURCE
+!!
+subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
         implicit real*8 (a-h,o-z)
 !!!!!!!$      interface
 !!!!!!$        integer ( kind=4 ) function omp_get_num_threads ( )
@@ -797,9 +722,10 @@ end subroutine init
 
 
       endif
-          contains
 
-            subroutine x0_to_z1(x0,z1,inzee)
+contains
+
+   subroutine x0_to_z1(x0,z1,inzee)
             ! Transform the real array x0 into a complex z1
             ! real      part of z1: elements of x0 with odd  i1
             ! imaginary part of z1: elements of x0 with even i1
@@ -858,7 +784,7 @@ end subroutine init
                 enddo
             endif
 
-            end subroutine x0_to_z1_simple
+    end subroutine x0_to_z1_simple
 
 
     subroutine z1_to_z3(z1,z3,inzee)
@@ -934,62 +860,15 @@ end subroutine init
     end subroutine z1_to_z3
 
 
-        end subroutine fft_for
+end subroutine fft_for
+!!***
 
 
-        subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z1,z3,inzee)
-!        CALCULATES THE DISCRETE FOURIERTRANSFORM F(I1,I2,I3)=
-!        S_(j1,j2,j3) EXP(isign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
-!       with optimal performance on vector computer, workstations and 
-!       multiprocessor shared memory computers using OpenMP compiler directives
-!        INPUT:
-!            n1,n2,n3:physical dimension of the transform. It must be a 
-!                     product of the prime factors 2,3,5, but greater than 3. 
-!                    If two ni's are equal it is recommended to place them 
-!                    behind each other.
-!            nd1,nd2,nd3:memory dimension of Z. ndi must always be greater or 
-!                        equal than ni. On a vector machine, it is recomended 
-!                       to chose ndi=ni if ni is odd and ndi=ni+1 if ni is 
-!                       even to obtain optimal execution speed. On RISC 
-!                       machines ndi=ni is usually fine for odd ni, for even 
-!                       ni one should try ndi=ni+1, ni+2, ni+4 to find the 
-!                       optimal performance. 
-!           inzee=1: first part of Z is data (input) array, 
-!                    second part work array
-!           inzee=2: first part of Z is work array, second part data array
-!                Z(1,i1,i2,i3,inzee)=real(R(i1,i2,i3))
-!                Z(2,i1,i2,i3,inzee)=imag(R(i1,i2,i3))
-!        OUTPUT:
-!           inzee=1: first part of Z is data (output) array, 
-!                    second part work array
-!           inzee=2: first part of Z is work array, second part data array
-!                real(F(i1,i2,i3))=Z(1,i1,i2,i3,inzee)
-!                imag(F(i1,i2,i3))=Z(2,i1,i2,i3,inzee)
-!           inzee on output is in general different from inzee on input
-!        The input data are always overwritten independently of the 
-!       value of inzee.
-! PERFORMANCE AND THE NCACHE
-!       The most important feature for performance is the right choice of 
-!       the parameter ncache. On a vector machine ncache has to be put to 0.
-!       On a RISC machine with cache, it is very important to find the optimal 
-!       value of NCACHE. NCACHE determines the size of the work array zw, that
-!       has to fit into cache. It has therefore to be chosen to equal roughly 
-!        half the size of the physical cache in units of real*8 numbers.
-!       If the machine has 2 cache levels it can not be predicted which 
-!       cache level will be the most relevant one for choosing ncache. 
-!       The optimal value of ncache can easily be determined by numerical 
-!       experimentation. A too large value of ncache leads to a dramatic 
-!       and sudden decrease of performance, a too small value to a to a 
-!       slow and less dramatic decrease of performance. If NCACHE is set 
-!       to a value so small, that not even a single one dimensional transform 
-!       can be done in the workarray zw, the program stops with an error 
-!       message.
-!  Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
-!  Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1995, 1999
-!  Copyright (C) Stefan Goedecker, CEA Grenoble, 2002
-!  This file is distributed under the terms of the
-!  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-
+!!****f* BigDFT/FFT_back
+!! FUNCTION
+!!  Calculates the discrete fourier transform F(I1,I2,I3)=
+!!  S_(j1,j2,j3) EXP(isign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
+subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z1,z3,inzee)
         implicit real*8 (a-h,o-z)
 !!!!!!!$      interface
 !!!!!!!$        integer ( kind=4 ) function omp_get_num_threads ( )
@@ -1259,10 +1138,9 @@ end subroutine init
 
       endif
 
-        return
-    contains
+contains
 
-            subroutine z3_to_z1(z3,z1,inzee)
+   subroutine z3_to_z1(z3,z1,inzee)
             ! transforms the data from the format z3:
             ! output of fft_for: stores only elements of z with i3=<nd3f
             ! 
@@ -1318,7 +1196,7 @@ end subroutine init
                 enddo
             enddo
                                 
-            end subroutine z3_to_z1
+    end subroutine z3_to_z1
 
     subroutine z1_to_z3(z1,z3,inzee)
     ! transforms the data from the format z1:
@@ -1440,25 +1318,30 @@ end subroutine init
     end subroutine z3_to_y
 
 
-  end subroutine fft_back
+end subroutine fft_back
+!!***
 
 
-        subroutine ctrig_(n,trig,after,before,now,isign,ic)
-!  Copyright (C) Stefan Goedecker, Lausanne, Switzerland, August 1, 1991
-!  Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
-!  Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1999
-!  This file is distributed under the terms of the
-!  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
+!!***f* BigDFT/ctrig_
+!! SIDE EFFECTS
+!!  Different factorizations affect the performance
+!!  Factoring 64 as 4*4*4 might for example be faster on some machines than 8*8.
+!! SOURCE
+!!
+subroutine ctrig_(n,trig,after,before,now,isign,ic)
 
-!     Different factorizations affect the performance
-!     Factoring 64 as 4*4*4 might for example be faster on some machines than 8*8.
-
-        implicit real*8 (a-h,o-z)
-        integer after,before
-        dimension now(7),after(7),before(7),trig(2,1024)
-        INTEGER, DIMENSION(7,82) :: idata 
+  implicit real(kind=8) (a-h,o-z)
+! Maximum number of points for FFT (should be same number in fft3d routine)
+  integer, parameter :: nfft_max=24000
+! Arguments
+  integer :: n,isign,ic
+  integer :: after(7),before(7),now(7)
+  real(kind=8) :: trig(2,nfft_max)
+! Local variables
+  integer, parameter :: ndata = 180
+  integer, dimension(7,ndata) :: idata 
 ! The factor 6 is only allowed in the first place!
-        data ((idata(i,j),i=1,7),j=1,82) /                        &
+        data ((idata(i,j),i=1,7),j=1,ndata) /                     &
             3,   3, 1, 1, 1, 1, 1,       4,   4, 1, 1, 1, 1, 1,   &
             5,   5, 1, 1, 1, 1, 1,       6,   6, 1, 1, 1, 1, 1,   &
             8,   8, 1, 1, 1, 1, 1,       9,   3, 3, 1, 1, 1, 1,   &
@@ -1499,72 +1382,120 @@ end subroutine init
           800,   8, 5, 5, 4, 1, 1,     810,   6, 5, 3, 3, 3, 1,   &
           864,   8, 4, 3, 3, 3, 1,     900,   5, 5, 4, 3, 3, 1,   &
           960,   5, 4, 4, 4, 3, 1,     972,   4, 3, 3, 3, 3, 3,   &
-         1000,   8, 5, 5, 5, 1, 1,    1024,   4, 4, 4, 4, 4, 1    /
-        do 111,i=1,82
-        if (n.eq.idata(1,i)) then
+         1000,   8, 5, 5, 5, 1, 1,    1024,   4, 4, 4, 4, 4, 1,   &
+         1080,   6, 5, 4, 3, 3, 1,    1125,   5, 5, 5, 3, 3, 1,   &
+         1152,   6, 4, 4, 4, 3, 1,    1200,   6, 8, 5, 5, 1, 1,   &
+         1215,   5, 3, 3, 3, 3, 3,    1280,   8, 8, 5, 4, 1, 1,   &
+         1296,   6, 8, 3, 3, 3, 1,    1350,   6, 5, 5, 3, 3, 1,   &
+         1440,   6, 5, 4, 4, 3, 1,    1458,   6, 3, 3, 3, 3, 3,   &
+         1500,   5, 5, 5, 4, 3, 1,    1536,   6, 8, 8, 4, 1, 1,   &
+         1600,   8, 8, 5, 5, 1, 1,    1620,   5, 4, 3, 3, 3, 3,   &
+         1728,   6, 8, 4, 3, 3, 1,    1800,   6, 5, 5, 4, 3, 1,   &
+         1875,   5, 5, 5, 5, 3, 1,    1920,   6, 5, 4, 4, 4, 1,   &
+         1944,   6, 4, 3, 3, 3, 3,    2000,   5, 5, 5, 4, 4, 1,   &
+         2025,   5, 5, 3, 3, 3, 3,    2048,   8, 4, 4, 4, 4, 1,   &
+         2160,   6, 8, 5, 3, 3, 1,    2250,   6, 5, 5, 5, 3, 1,   &
+         2304,   6, 8, 4, 4, 3, 1,    2400,   6, 5, 5, 4, 4, 1,   &
+         2430,   6, 5, 3, 3, 3, 3,    2500,   5, 5, 5, 5, 4, 1,   &
+         2560,   8, 5, 4, 4, 4, 1,    2592,   6, 4, 4, 3, 3, 3,   &
+         2700,   5, 5, 4, 3, 3, 3,    2880,   6, 8, 5, 4, 3, 1,   &
+         3000,   6, 5, 5, 5, 4, 1,    3072,   6, 8, 4, 4, 4, 1,   &
+         3125,   5, 5, 5, 5, 5, 1,    3200,   8, 5, 5, 4, 4, 1,   &
+         3240,   6, 5, 4, 3, 3, 3,    3375,   5, 5, 5, 3, 3, 3,   &
+         3456,   6, 4, 4, 4, 3, 3,    3600,   6, 8, 5, 5, 3, 1,   &
+         3750,   6, 5, 5, 5, 5, 1,    3840,   6, 8, 5, 4, 4, 1,   &
+         3888,   6, 8, 3, 3, 3, 3,    4000,   8, 5, 5, 5, 4, 1,   &
+         4050,   6, 5, 5, 3, 3, 3,    4096,   8, 8, 4, 4, 4, 1,   &
+         4320,   6, 5, 4, 4, 3, 3,    4500,   5, 5, 5, 4, 3, 3,   &
+         4608,   6, 8, 8, 4, 3, 1,    4800,   6, 8, 5, 5, 4, 1,   &
+         5000,   8, 5, 5, 5, 5, 1,    5120,   8, 8, 5, 4, 4, 1,   &
+         5184,   6, 8, 4, 3, 3, 3,    5400,   6, 5, 5, 4, 3, 3,   &
+         5625,   5, 5, 5, 5, 3, 3,    5760,   6, 8, 8, 5, 3, 1,   &
+         6000,   6, 8, 5, 5, 5, 1,    6144,   6, 8, 8, 4, 4, 1,   &
+         6400,   8, 8, 5, 5, 4, 1,    6480,   6, 8, 5, 3, 3, 3,   &
+         6750,   6, 5, 5, 5, 3, 3,    6912,   6, 8, 4, 4, 3, 3,   &
+         7200,   6, 5, 5, 4, 4, 3,    7500,   5, 5, 5, 5, 4, 3,   &
+         7680,   6, 8, 8, 5, 4, 1,    8000,   8, 8, 5, 5, 5, 1,   &
+         8192,   8, 8, 8, 4, 4, 1,    8640,   8, 8, 5, 3, 3, 3,   &
+         9000,   8, 5, 5, 5, 3, 3,    9216,   6, 8, 8, 8, 3, 1,   &
+         9375,   5, 5, 5, 5, 5, 3,    9600,   8, 5, 5, 4, 4, 3,   &
+        10000,   5, 5, 5, 5, 4, 4,   10240,   8, 8, 8, 5, 4, 1,   &
+        10368,   6, 8, 8, 3, 3, 3,   10800,   6, 8, 5, 5, 3, 3,   &
+        11250,   6, 5, 5, 5, 5, 3,   11520,   8, 8, 5, 4, 3, 3,   &
+        12000,   8, 5, 5, 5, 4, 3,   12288,   8, 8, 8, 8, 3, 1,   &
+        12500,   5, 5, 5, 5, 5, 4,   12800,   8, 8, 8, 5, 5, 1,   &
+        13824,   8, 8, 8, 3, 3, 3,   14400,   8, 8, 5, 5, 3, 3,   &
+        15000,   8, 5, 5, 5, 5, 3,   15360,   6, 8, 8, 8, 5, 1,   &
+        15625,   5, 5, 5, 5, 5, 5,   16000,   8, 5, 5, 5, 4, 4,   &
+        16384,   8, 8, 8, 8, 4, 1,   17280,   6, 8, 8, 5, 3, 3,   &
+        18000,   6, 8, 5, 5, 5, 3,   18432,   8, 8, 8, 4, 3, 3,   &
+        18750,   6, 5, 5, 5, 5, 5,   19200,   8, 8, 5, 5, 4, 3,   &
+        20000,   8, 5, 5, 5, 5, 4,   20480,   8, 8, 8, 8, 5, 1,   &
+        23040,   8, 8, 8, 5, 3, 3,   24000,   8, 8, 5, 5, 5, 3    /
+        
+  do i=1,ndata
+     if (n.eq.idata(1,i)) then
         ic=0
-        do 11,j=1,6
-        itt=idata(1+j,i)
-        if (itt.gt.1) then
-        ic=ic+1
-        now(j)=idata(1+j,i)
-        else
+        do j=1,6
+           itt=idata(1+j,i)
+           if (itt.gt.1) then
+              ic=ic+1
+              now(j)=idata(1+j,i)
+           else
+              goto 1000
+           endif
+        end do
         goto 1000
-        endif
-11        continue
-        goto 1000
-        endif
-111        continue
-        print*,'VALUE OF',n,'NOT ALLOWED FOR FFT, ALLOWED VALUES ARE:'
-37        format(15(i5))
-        write(6,37) (idata(1,i),i=1,82)
-        stop
-1000        continue
+     endif
+  end do
+  print *,'VALUE OF',n,'NOT ALLOWED FOR FFT, ALLOWED VALUES ARE:'
+  write(6,"(15(i5))") (idata(1,i),i=1,ndata)
+  stop
+1000 continue
 
-        after(1)=1
-        before(ic)=1
-        do 22,i=2,ic
-        after(i)=after(i-1)*now(i-1)
-22        before(ic-i+1)=before(ic-i+2)*now(ic-i+2)
+  after(1)=1
+  before(ic)=1
+  do i=2,ic
+     after(i)=after(i-1)*now(i-1)
+     before(ic-i+1)=before(ic-i+2)*now(ic-i+2)
+  end do
 
-12        format(6(i3))
-!        write(6,12) (after(i),i=1,ic)
-!        write(6,12) (now(i),i=1,ic)
-!        write(6,12) (before(i),i=1,ic)
+!  write(6,"(6(i3))") (after(i),i=1,ic)
+!  write(6,"(6(i3))") (now(i),i=1,ic)
+!  write(6,"(6(i3))") (before(i),i=1,ic)
 
-        twopi=6.283185307179586d0
-        angle=isign*twopi/n
-        if (mod(n,2).eq.0) then
-        nh=n/2
-        trig(1,1)=1.d0
-        trig(2,1)=0.d0
-        trig(1,nh+1)=-1.d0
-        trig(2,nh+1)=0.d0
-        do 40,i=1,nh-1
-        trigc=cos(i*angle)
-        trigs=sin(i*angle)
+  twopi=6.283185307179586d0
+  angle=real(isign,kind=8)*twopi/real(n,kind=8)
+  if (mod(n,2).eq.0) then
+     nh=n/2
+     trig(1,1)=1.d0
+     trig(2,1)=0.d0
+     trig(1,nh+1)=-1.d0
+     trig(2,nh+1)=0.d0
+     do i=1,nh-1
+        trigc=cos(real(i,kind=8)*angle)
+        trigs=sin(real(i,kind=8)*angle)
         trig(1,i+1)=trigc
         trig(2,i+1)=trigs
         trig(1,n-i+1)=trigc
         trig(2,n-i+1)=-trigs
-40      continue
-        else
-        nh=(n-1)/2
-        trig(1,1)=1.d0
-        trig(2,1)=0.d0
-        do 20,i=1,nh
-        trigc=cos(i*angle)
-        trigs=sin(i*angle)
+     end do
+  else
+     nh=(n-1)/2
+     trig(1,1)=1.d0
+     trig(2,1)=0.d0
+     do i=1,nh
+        trigc=cos(real(i,kind=8)*angle)
+        trigs=sin(real(i,kind=8)*angle)
         trig(1,i+1)=trigc
         trig(2,i+1)=trigs
         trig(1,n-i+1)=trigc
         trig(2,n-i+1)=-trigs
-20      continue
-        endif
+      end do
+  endif
 
-
-        return
-        end
+end subroutine ctrig_
+!!***
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccc

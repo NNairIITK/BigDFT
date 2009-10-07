@@ -577,7 +577,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   pi=4.d0*datan(1.d0)
 
   !arrays for the halFFT
-  call ctrig(n3/2,btrig,after,before,now,1,ic)
+  call ctrig_(n3/2,btrig,after,before,now,1,ic)
 
  
   !build the phases for the HalFFT reconstruction 
@@ -675,7 +675,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
      !now perform the FFT of the array in cache
      inzee=1
      do i=1,ic
-        call fftstp(num_of_mus,nfft,n3/2,num_of_mus,n3/2,&
+        call fftstp_(num_of_mus,nfft,n3/2,num_of_mus,n3/2,&
              halfft_cache(1,1,inzee),halfft_cache(1,1,3-inzee),&
              btrig,after(i),now(i),before(i),1)
         inzee=3-inzee
@@ -1404,7 +1404,7 @@ end subroutine inserthalf
 !!     n1,n2,n3:    logical dimension of the transform. As transform lengths 
 !!                  most products of the prime factors 2,3,5 are allowed.
 !!                  The detailed table with allowed transform lengths can 
-!!                  be found in subroutine CTRIG
+!!                  be found in subroutine ctrig_
 !!     nd1,nd2,nd3: Dimensions of work arrays
 !!
 !! RESTRICTIONS on USAGE
@@ -1506,9 +1506,9 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
 
   
   !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
-  call ctrig(n3/2,trig3,after3,before3,now3,1,ic3)
-  call ctrig(n1,trig1,after1,before1,now1,1,ic1)
-  call ctrig(n2,trig2,after2,before2,now2,1,ic2)
+  call ctrig_(n3/2,trig3,after3,before3,now3,1,ic3)
+  call ctrig_(n1,trig1,after1,before1,now1,1,ic1)
+  call ctrig_(n2,trig2,after2,before2,now2,1,ic2)
   
   !Calculating array of phases for HalFFT decoding
   twopion=8.d0*datan(1.d0)/real(n3,kind=8)
@@ -1538,7 +1538,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
            !performing FFT
            inzee=1
            do i=1,ic3
-              call fftstp(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    trig3,after3(i),now3(i),before3(i),1)
               inzee=3-inzee
            enddo
@@ -1593,13 +1593,13 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
            !input: I2,I1,j3,(jp3)          
            inzee=1
            do i=1,ic1-1
-              call fftstp(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
                    trig1,after1(i),now1(i),before1(i),1)
               inzee=3-inzee
            enddo
            !storing the last step into zt
            i=ic1
-           call fftstp(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1), & 
+           call fftstp_(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1), & 
                 trig1,after1(i),now1(i),before1(i),1)
            !output: I2,i1,j3,(jp3)
         end do
@@ -1622,7 +1622,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
            !input: i1,I2,j3,(jp3)
            inzee=1
            do i=1,ic2
-              call fftstp(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    trig2,after2(i),now2(i),before2(i),1)
               inzee=3-inzee
            enddo
