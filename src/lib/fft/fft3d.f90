@@ -1,42 +1,43 @@
-! --------------------------------------------------------------
-!   3-dimensional complex-complex FFT routine: 
-!   When compared to the best vendor implementations on RISC architectures 
-!   it gives close to optimal performance (perhaps loosing 20 percent in speed)
-!   and it is significanly faster than many not so good vendor implementations 
-!   as well as other portable FFT's. 
-!   On all vector machines tested so far (Cray, NEC, Fujitsu) is 
-!   was significantly faster than the vendor routines
-! The theoretical background is described in :
-! 1) S. Goedecker: Rotating a three-dimensional array in optimal
-! positions for vector processing: Case study for a three-dimensional Fast
-! Fourier Transform, Comp. Phys. Commun. \underline{76}, 294 (1993)
-! Citing of this reference is greatly appreciated if the routines are used 
-! for scientific work.
-!
-!
-! Presumably good compiler flags:
-! IBM, serial power 2: xlf -qarch=pwr2 -O2 -qmaxmem=-1
-! with OpenMP: IBM: xlf_r -qfree -O4 -qarch=pwr3 -qtune=pwr3 -qsmp=omp -qmaxmem=-1 ; 
-!                   a.out
-! DEC: f90 -O3 -arch ev67 -pipeline
-! with OpenMP: DEC: f90 -O3 -arch ev67 -pipeline -omp -lelan ; 
-!                   prun -N1 -c4 a.out
-!-----------------------------------------------------------
+!!***f* fft3d/fft3d
+!! DESCRIPTION
+!!   3-dimensional complex-complex FFT routine: 
+!!   When compared to the best vendor implementations on RISC architectures 
+!!   it gives close to optimal performance (perhaps loosing 20 percent in speed)
+!!   and it is significanly faster than many not so good vendor implementations 
+!!   as well as other portable FFT's. 
+!!   On all vector machines tested so far (Cray, NEC, Fujitsu) is 
+!!   was significantly faster than the vendor routines
+!!   The theoretical background is described in :
+!!   1) S. Goedecker: Rotating a three-dimensional array in optimal
+!!   positions for vector processing: Case study for a three-dimensional Fast
+!!   Fourier Transform, Comp. Phys. Commun. \underline{76}, 294 (1993)
+!!   Citing of this reference is greatly appreciated if the routines are used 
+!!   for scientific work.
+!!
+!! NOTES
+!!   Presumably good compiler flags:
+!!   IBM, serial power 2: xlf -qarch=pwr2 -O2 -qmaxmem=-1
+!!   with OpenMP: IBM: xlf_r -qfree -O4 -qarch=pwr3 -qtune=pwr3 -qsmp=omp -qmaxmem=-1 ; 
+!!                     a.out
+!!   DEC: f90 -O3 -arch ev67 -pipeline
+!!   with OpenMP: DEC: f90 -O3 -arch ev67 -pipeline -omp -lelan ; 
+!!                     prun -N1 -c4 a.out
+!! COPYRIGHT
+!!   Copyright (C) Stefan Goedecker, Lausanne, Switzerland, August 1, 1991
+!!   Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
+!!   Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1999
+!!   Copyright (C) Stefan Goedecker, CEA Grenoble, 2002
+!!   Copyright (C) 2002-2009 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+!!***
 
 
-!!****f* BigDFT/fourier_dim
+!!****f* fft3d/fourier_dim
 !! FUNCTION
 !!   Give a number n_next > n compatible for the FFT
-!! COPYRIGHT
-!!  Copyright (C) Stefan Goedecker, Lausanne, Switzerland, August 1, 1991
-!!  Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
-!!  Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1999
-!!  Copyright (C) Stefan Goedecker, CEA Grenoble, 2002
-!!  Copyright (C) 2002-2009 BigDFT group 
-!!  This file is distributed under the terms of the
-!!  GNU General Public License, see ~/COPYING file
-!!  or http://www.gnu.org/copyleft/gpl.txt .
-!!  For the list of contributors, see ~/AUTHORS 
 !! SOURCE
 !!
 subroutine fourier_dim(n,n_next)
@@ -81,7 +82,7 @@ end subroutine fourier_dim
 !!***
 
 
-!!****f* BigDFT/dimensions_fft
+!!****f* fft3d/dimensions_fft
 !! FUNCTION
 !!   Give the dimensions of fft arrays
 !! SOURCE
@@ -109,10 +110,10 @@ end subroutine dimensions_fft
 !!***
 
 
-!!****f* BigDFT/FFT
+!!****f* fft3d/FFT
 !! FUNCTION
 !!  Calculates the discrete fourier transform F(I1,I2,I3)=
-!!  S_(j1,j2,j3) EXP(isign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
+!!  S_(j1,j2,j3) EXP(i_sign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
 !! DESCRIPTION
 !!  with optimal performance on vector computer, workstations and 
 !!  multiprocessor shared memory computers using OpenMP compiler directives
@@ -161,7 +162,7 @@ end subroutine dimensions_fft
 !!  message.
 !! SOURCE
 !!
-subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
+subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    implicit real*8 (a-h,o-z)
 !!!$      interface
 !!!!$        integer ( kind=4 ) function omp_get_num_threads ( )
@@ -189,7 +190,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
 
 ! check whether input values are reasonable
    if (inzee.le.0 .or. inzee.ge.3) stop 'wrong inzee'
-   if (isign.ne.1 .and. isign.ne.-1) stop 'wrong isign'
+   if (i_sign.ne.1 .and. i_sign.ne.-1) stop 'wrong i_sign'
    if (n1.gt.nd1) stop 'n1>nd1'
    if (n2.gt.nd2) stop 'n2>nd2'
    if (n3.gt.nd3) stop 'n3>nd3'
@@ -198,41 +199,41 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
       if (ncache.eq.0) then
         allocate(trig(2,1024),after(20),now(20),before(20))
 
-        call ctrig_sg(n3,trig,after,before,now,isign,ic)
+        call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
         nfft=nd1*n2
         mm=nd1*nd2
         do i=1,ic-1
            call fftstp_sg(mm,nfft,nd3,mm,nd3,z(1,1,inzee),z(1,1,3-inzee), &
-                        trig,after(i),now(i),before(i),isign)
+                        trig,after(i),now(i),before(i),i_sign)
            inzee=3-inzee
         end do
         i=ic
         call fftrot_sg(mm,nfft,nd3,mm,nd3,z(1,1,inzee),z(1,1,3-inzee), &
-                          trig,after(i),now(i),before(i),isign)
+                          trig,after(i),now(i),before(i),i_sign)
         inzee=3-inzee
 
-        if (n2.ne.n3) call ctrig_sg(n2,trig,after,before,now,isign,ic)
+        if (n2.ne.n3) call ctrig_sg(n2,trig,after,before,now,i_sign,ic)
         nfft=nd3*n1
         mm=nd3*nd1
         do 52093,i=1,ic-1
         call fftstp_sg(mm,nfft,nd2,mm,nd2,z(1,1,inzee),z(1,1,3-inzee), &
-                           trig,after(i),now(i),before(i),isign)
+                           trig,after(i),now(i),before(i),i_sign)
 52093        inzee=3-inzee
         i=ic
         call fftrot_sg(mm,nfft,nd2,mm,nd2,z(1,1,inzee),z(1,1,3-inzee), &
-                       trig,after(i),now(i),before(i),isign)
+                       trig,after(i),now(i),before(i),i_sign)
         inzee=3-inzee
 
-        if (n1.ne.n2) call ctrig_sg(n1,trig,after,before,now,isign,ic)
+        if (n1.ne.n2) call ctrig_sg(n1,trig,after,before,now,i_sign,ic)
         nfft=nd2*n3
         mm=nd2*nd3
         do 53093,i=1,ic-1
         call fftstp_sg(mm,nfft,nd1,mm,nd1,z(1,1,inzee),z(1,1,3-inzee), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 53093        inzee=3-inzee
         i=ic
         call fftrot_sg(mm,nfft,nd1,mm,nd1,z(1,1,inzee),z(1,1,3-inzee), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
         inzee=3-inzee
 
 ! RISC machine with cache:
@@ -241,7 +242,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
 !!!!!$omp parallel  default(private) &
 !!!!$omp parallel & 
 !!!!$omp private(zw,trig,before,after,now,i,j,iam,npr,jj,ma,mb,mm,ic,n,m,jompa,jompb,lot,lotomp,inzeep,inzet,nn,nfft) &
-!!!!$omp shared(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee,ncache) 
+!!!!$omp shared(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee,ncache) 
         npr=1
 !!!!$       npr=omp_get_num_threads()
         iam=0
@@ -262,7 +263,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
         n=n3
         if (2*n*lot*2.gt.ncache) stop 'ncache1'
 
-        call ctrig_sg(n3,trig,after,before,now,isign,ic)
+        call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -273,7 +274,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
         j=ma
         jj=j*nd3-nd3+1
         call fftrot_sg(mm,nfft,m,mm,m,z(1,j,inzet),z(1,jj,3-inzet), &
-                          trig,after(i),now(i),before(i),isign)
+                          trig,after(i),now(i),before(i),i_sign)
 
       else
 
@@ -289,16 +290,16 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
         i=1
         inzeep=2
         call fftstp_sg(mm,nfft,m,nn,n,z(1,j,inzet),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
         inzeep=1
 
         do 1093,i=2,ic-1
         call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 1093        inzeep=3-inzeep
         i=ic
         call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z(1,jj,3-inzet), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 1000        continue
       endif
 
@@ -314,7 +315,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
         n=n2
         if (2*n*lot*2.gt.ncache) stop 'ncache2'
 
-        if (n2.ne.n3) call ctrig_sg(n2,trig,after,before,now,isign,ic)
+        if (n2.ne.n3) call ctrig_sg(n2,trig,after,before,now,i_sign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -325,7 +326,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
         j=ma
         jj=j*nd2-nd2+1
         call fftrot_sg(mm,nfft,m,mm,m,z(1,j,inzet),z(1,jj,3-inzet), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 
       else
 
@@ -341,17 +342,17 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
         i=1
         inzeep=2
         call fftstp_sg(mm,nfft,m,nn,n,z(1,j,inzet),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
         inzeep=1
 
         do 2093,i=2,ic-1
         call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 2093        inzeep=3-inzeep
 
         i=ic
         call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z(1,jj,3-inzet), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 2000        continue
       endif
         inzet=3-inzet
@@ -366,7 +367,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
         n=n1
         if (2*n*lot*2.gt.ncache) stop 'ncache3'
 
-        if (n1.ne.n2) call ctrig_sg(n1,trig,after,before,now,isign,ic)
+        if (n1.ne.n2) call ctrig_sg(n1,trig,after,before,now,i_sign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -377,7 +378,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
         j=ma
         jj=j*nd1-nd1+1
         call fftrot_sg(mm,nfft,m,mm,m,z(1,j,inzet),z(1,jj,3-inzet), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 
       else
 
@@ -393,16 +394,16 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
         i=1
         inzeep=2
         call fftstp_sg(mm,nfft,m,nn,n,z(1,j,inzet),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
         inzeep=1
 
         do 3093,i=2,ic-1
         call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 3093        inzeep=3-inzeep
         i=ic
         call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z(1,jj,3-inzet), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 3000        continue
       endif
         inzet=3-inzet
@@ -412,15 +413,14 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee)
 !!!!!!!!!!$omp end parallel  
 
       endif
-      return
 end subroutine FFT
 !!***
 
 
-!!***f* BigDFT/FFT_for
+!!***f* fft3d/FFT_for
 !! DESCRIPTION
 !!  Calculates the discrete Fourier transform F(I1,I2,I3)=
-!!  S_(j1,j2,j3) EXP(isign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
+!!  S_(j1,j2,j3) EXP(i_sign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
 !!  with optimal performance on vector computer, workstations and 
 !!  multiprocessor shared memory computers using OpenMP compiler directives
 !!   INPUT:
@@ -472,7 +472,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
         real*8,intent(out)::z3(2,nd1*nd2*nd3f,2)
         real*8              ::z1(2,nd1f*nd2*nd3,2) ! work array
 
-        integer::mm,nffta,isign=1
+        integer::mm,nffta,i_sign=1
         if (max(n1,n2,n3).gt.1024) stop '1024'
 
 ! some reasonable values of ncache: 
@@ -489,7 +489,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
 
 ! check whether input values are reasonable
     if (inzee.le.0 .or. inzee.ge.3) stop 'wrong inzee'
-    if (isign.ne.1 .and. isign.ne.-1) stop 'wrong isign'
+    if (i_sign.ne.1 .and. i_sign.ne.-1) stop 'wrong i_sign'
     if (n1.gt.nd1) stop 'n1>nd1'
     if (n2.gt.nd2) stop 'n2>nd2'
     if (n3.gt.nd3) stop 'n3>nd3'
@@ -502,44 +502,44 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
 ! vector computer with memory banks:
         allocate(trig(2,1024),after(20),now(20),before(20))
 
-        call ctrig_sg(n3,trig,after,before,now,isign,ic)
+        call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
 
         mm=nd1f*nd2 
         nffta=nd1f*n2
 
         do 51093,i=1,ic-1
         call fftstp_sg(mm,nffta,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
-                          trig,after(i),now(i),before(i),isign)
+                          trig,after(i),now(i),before(i),i_sign)
 51093            inzee=3-inzee
         i=ic
         call fftrot_sg(mm,nffta,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
-                          trig,after(i),now(i),before(i),isign)
+                          trig,after(i),now(i),before(i),i_sign)
         inzee=3-inzee
 
         call z1_to_z3(z1,z3,inzee)
 !===============================================================================================
-        if (n2.ne.n3) call ctrig_sg(n2,trig,after,before,now,isign,ic)
+        if (n2.ne.n3) call ctrig_sg(n2,trig,after,before,now,i_sign,ic)
         nfft=nd3f*n1
         mm=nd3f*nd1
         do 52093,i=1,ic-1
         call fftstp_sg(mm,nfft,nd2,mm,nd2,z3(1,1,inzee),z3(1,1,3-inzee), &
-                           trig,after(i),now(i),before(i),isign)
+                           trig,after(i),now(i),before(i),i_sign)
 52093        inzee=3-inzee
         i=ic
         call fftrot_sg(mm,nfft,nd2,mm,nd2,z3(1,1,inzee),z3(1,1,3-inzee), &
-                       trig,after(i),now(i),before(i),isign)
+                       trig,after(i),now(i),before(i),i_sign)
         inzee=3-inzee
 
-        if (n1.ne.n2) call ctrig_sg(n1,trig,after,before,now,isign,ic)
+        if (n1.ne.n2) call ctrig_sg(n1,trig,after,before,now,i_sign,ic)
         nfft=nd2*n3f
         mm=nd2*nd3f
         do 53093,i=1,ic-1
         call fftstp_sg(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 53093        inzee=3-inzee
         i=ic
         call fftrot_sg(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
         inzee=3-inzee
 
 ! RISC machine with cache:
@@ -548,7 +548,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
 !!!!$omp parallel  default(private) &
 !!!!$omp parallel & 
 !!!!$omp private(zw,trig,before,after,now,i,j,iam,npr,jj,ma,mb,mm,ic,n,m,jompa,jompb,lot,lotomp,inzeep,inzet,nn,nfft) &
-!!!!$omp shared(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee,ncache) 
+!!!!$omp shared(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee,ncache) 
         npr=1
 !!!!!!!$       npr=omp_get_num_threads()
         iam=0
@@ -569,7 +569,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
         n=n3
         if (2*n*lot*2.gt.ncache) stop 'ncache1'
 
-        call ctrig_sg(n3,trig,after,before,now,isign,ic)
+        call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -580,7 +580,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
         j=ma
         jj=j*nd3-nd3+1
         call fftrot_sg(mm,nfft,m,mm,m,z1(1,j,inzet),z1(1,jj,3-inzet), &
-                          trig,after(i),now(i),before(i),isign)
+                          trig,after(i),now(i),before(i),i_sign)
 
       else
 
@@ -596,16 +596,16 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
         i=1
         inzeep=2
         call fftstp_sg(mm,nfft,m,nn,n,z1(1,j,inzet),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
         inzeep=1
 
         do 1093,i=2,ic-1
         call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 1093        inzeep=3-inzeep
         i=ic
         call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z1(1,jj,3-inzet), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 1000        continue
       endif
 
@@ -623,7 +623,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
         n=n2
         if (2*n*lot*2.gt.ncache) stop 'ncache2'
 
-        if (n2.ne.n3) call ctrig_sg(n2,trig,after,before,now,isign,ic)
+        if (n2.ne.n3) call ctrig_sg(n2,trig,after,before,now,i_sign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -634,7 +634,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
         j=ma
         jj=j*nd2-nd2+1
         call fftrot_sg(mm,nfft,m,mm,m,z3(1,j,inzet),z3(1,jj,3-inzet), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 
       else
 
@@ -650,17 +650,17 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
         i=1
         inzeep=2
         call fftstp_sg(mm,nfft,m,nn,n,z3(1,j,inzet),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
         inzeep=1
 
         do 2093,i=2,ic-1
         call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 2093        inzeep=3-inzeep
 
         i=ic
         call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z3(1,jj,3-inzet), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 2000        continue
       endif
         inzet=3-inzet
@@ -675,7 +675,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
         n=n1
         if (2*n*lot*2.gt.ncache) stop 'ncache3'
 
-        if (n1.ne.n2) call ctrig_sg(n1,trig,after,before,now,isign,ic)
+        if (n1.ne.n2) call ctrig_sg(n1,trig,after,before,now,i_sign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -686,7 +686,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
         j=ma
         jj=j*nd1-nd1+1
         call fftrot_sg(mm,nfft,m,mm,m,z3(1,j,inzet),z3(1,jj,3-inzet), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 
       else
 
@@ -702,16 +702,16 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
         i=1
         inzeep=2
         call fftstp_sg(mm,nfft,m,nn,n,z3(1,j,inzet),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
         inzeep=1
 
         do 3093,i=2,ic-1
         call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 3093        inzeep=3-inzeep
         i=ic
         call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z3(1,jj,3-inzet), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 3000        continue
       endif
         inzet=3-inzet
@@ -726,137 +726,133 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
 contains
 
    subroutine x0_to_z1(x0,z1,inzee)
-            ! Transform the real array x0 into a complex z1
-            ! real      part of z1: elements of x0 with odd  i1
-            ! imaginary part of z1: elements of x0 with even i1
-            implicit none
-            integer,intent(in)::inzee
-            real*8,intent(in):: x0(n1,n2,n3)
-            real*8,intent(out)::z1(2,nd1f,nd2,nd3,2)
-            integer i2,i3
+      ! Transform the real array x0 into a complex z1
+      ! real      part of z1: elements of x0 with odd  i1
+      ! imaginary part of z1: elements of x0 with even i1
+      implicit none
+      integer,intent(in)::inzee
+      real*8,intent(in):: x0(n1,n2,n3)
+      real*8,intent(out)::z1(2,nd1f,nd2,nd3,2)
+      integer i2,i3
 
-            do i3=1,n3
-                do i2=1,n2
-                    ! 2*n1f=n1 for even n1
-                    ! 2*n1f=n1+1 for odd n1. Then, we copy one more element than
-                    ! necessary, but that's no problem.
-                    call my_copy(z1(1,1,i2,i3,inzee),x0(1,i2,i3))
-                enddo
-            enddo
+      do i3=1,n3
+          do i2=1,n2
+              ! 2*n1f=n1 for even n1
+              ! 2*n1f=n1+1 for odd n1. Then, we copy one more element than
+              ! necessary, but that's no problem.
+              call my_copy(z1(1,1,i2,i3,inzee),x0(1,i2,i3))
+          enddo
+      enddo
+   end subroutine x0_to_z1
 
-            end subroutine x0_to_z1
+   subroutine my_copy(x,y)
+      ! copies complex array y into complex array x
+      implicit none
+      real*8 x(2,n1f),y(2,n1f)
+      x=y
+   end subroutine my_copy
 
-            subroutine my_copy(x,y)
-                ! copies complex array y into complex array x
-                implicit none
-                real*8 x(2,n1f),y(2,n1f)
-                x=y
-            end subroutine my_copy
-
-            subroutine x0_to_z1_simple(x0,z1,inzee)
-            ! Transform the real array x0 into a complex z1
-            ! real      part of z1: elements of x0 with odd  i1
-            ! imaginary part of z1: elements of x0 with even i1
-            implicit none
-            integer,intent(in)::inzee
-            real*8,intent(in):: x0(n1,n2,n3)
-            real*8,intent(out)::z1(2,nd1f,nd2,nd3,2)
-            integer i1,i2,i3
-            
-            if (n1f*2.eq.n1) then
-                do i3=1,n3
-                    do i2=1,n2
-                        do i1=1,n1f
-                            z1(1,i1,i2,i3,inzee)=x0(2*i1-1,i2,i3)
-                            z1(2,i1,i2,i3,inzee)=x0(2*i1  ,i2,i3)
-                        enddo
-                    enddo
-                enddo
-            else ! n1=2*n1f-1
-                do i3=1,n3
-                    do i2=1,n2
-                        do i1=1,n1f-1
-                            z1(1,i1,i2,i3,inzee)=x0(2*i1-1,i2,i3)
-                            z1(2,i1,i2,i3,inzee)=x0(2*i1  ,i2,i3)
-                        enddo
-                        z1(1,n1f,i2,i3,inzee)=x0(n1,i2,i3)
-                    enddo
-                enddo
-            endif
-
+   subroutine x0_to_z1_simple(x0,z1,inzee)
+      ! Transform the real array x0 into a complex z1
+      ! real      part of z1: elements of x0 with odd  i1
+      ! imaginary part of z1: elements of x0 with even i1
+      implicit none
+      integer,intent(in)::inzee
+      real*8,intent(in):: x0(n1,n2,n3)
+      real*8,intent(out)::z1(2,nd1f,nd2,nd3,2)
+      integer i1,i2,i3
+      
+      if (n1f*2.eq.n1) then
+          do i3=1,n3
+              do i2=1,n2
+                  do i1=1,n1f
+                      z1(1,i1,i2,i3,inzee)=x0(2*i1-1,i2,i3)
+                      z1(2,i1,i2,i3,inzee)=x0(2*i1  ,i2,i3)
+                  enddo
+              enddo
+          enddo
+      else ! n1=2*n1f-1
+          do i3=1,n3
+              do i2=1,n2
+                  do i1=1,n1f-1
+                      z1(1,i1,i2,i3,inzee)=x0(2*i1-1,i2,i3)
+                      z1(2,i1,i2,i3,inzee)=x0(2*i1  ,i2,i3)
+                  enddo
+                  z1(1,n1f,i2,i3,inzee)=x0(n1,i2,i3)
+              enddo
+          enddo
+      endif
     end subroutine x0_to_z1_simple
 
-
     subroutine z1_to_z3(z1,z3,inzee)
-    ! transforms the array z1 that stores elements of z corresponding to even 
-    ! and odd values of i1, as symmetric and antisymmetric combinations w.r.t.
-    ! flip of i3,
-    ! into the array z3 that stores only elements of z with i3=<nd3f
-    implicit none
-    integer,intent(in)::inzee
-    integer i1,i2,i3
-    real*8,intent(in):: z1(2,nd3,nd1f,nd2,2)
-    real*8,intent(out)::z3( 2,nd3f,nd1 ,nd2,2)
-    
-    if (n1f*2.eq.n1) then
-        ! i3=1
-        do i2=1,n2
-            do i1=1,n1f
-                z3(1,1,2*i1-1,i2,inzee)= 2.d0*z1(1,1,i1,i2,inzee)
-                z3(2,1,2*i1-1,i2,inzee)= 0.d0
-                z3(1,1,2*i1  ,i2,inzee)= 2.d0*z1(2,1,i1,i2,inzee)
-                z3(2,1,2*i1  ,i2,inzee)= 0.d0
-            enddo
-        enddo
-        
-        do i2=1,n2
-            do i1=1,n1f
-                do i3=2,n3f
-                    z3(1,i3,2*i1-1,i2,inzee)= z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
-                    z3(2,i3,2*i1-1,i2,inzee)= z1(2,i3,i1,i2,inzee)-z1(2,n3+2-i3,i1,i2,inzee)
-                    z3(1,i3,2*i1  ,i2,inzee)= z1(2,i3,i1,i2,inzee)+z1(2,n3+2-i3,i1,i2,inzee)
-                    z3(2,i3,2*i1  ,i2,inzee)=-z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
-                enddo
-            enddo
-        enddo
-    else ! n1=2*n1f-1
-        ! i3=1
-        do i2=1,n2
-            do i1=1,n1f-1
-                z3(1,1,2*i1-1,i2,inzee)= 2.d0*z1(1,1,i1,i2,inzee)
-                z3(2,1,2*i1-1,i2,inzee)= 0.d0
-                z3(1,1,2*i1  ,i2,inzee)= 2.d0*z1(2,1,i1,i2,inzee)
-                z3(2,1,2*i1  ,i2,inzee)= 0.d0
-            enddo
-        enddo
-        
-        do i2=1,n2
-            do i1=1,n1f-1
-                do i3=2,n3f
-                    z3(1,i3,2*i1-1,i2,inzee)= z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
-                    z3(2,i3,2*i1-1,i2,inzee)= z1(2,i3,i1,i2,inzee)-z1(2,n3+2-i3,i1,i2,inzee)
-                    z3(1,i3,2*i1  ,i2,inzee)= z1(2,i3,i1,i2,inzee)+z1(2,n3+2-i3,i1,i2,inzee)
-                    z3(2,i3,2*i1  ,i2,inzee)=-z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
-                enddo
-            enddo
-        enddo
+       ! transforms the array z1 that stores elements of z corresponding to even 
+       ! and odd values of i1, as symmetric and antisymmetric combinations w.r.t.
+       ! flip of i3,
+       ! into the array z3 that stores only elements of z with i3=<nd3f
+       implicit none
+       integer,intent(in)::inzee
+       integer i1,i2,i3
+       real*8,intent(in):: z1(2,nd3,nd1f,nd2,2)
+       real*8,intent(out)::z3( 2,nd3f,nd1 ,nd2,2)
+       
+       if (n1f*2.eq.n1) then
+           ! i3=1
+           do i2=1,n2
+               do i1=1,n1f
+                   z3(1,1,2*i1-1,i2,inzee)= 2.d0*z1(1,1,i1,i2,inzee)
+                   z3(2,1,2*i1-1,i2,inzee)= 0.d0
+                   z3(1,1,2*i1  ,i2,inzee)= 2.d0*z1(2,1,i1,i2,inzee)
+                   z3(2,1,2*i1  ,i2,inzee)= 0.d0
+               enddo
+           enddo
+           
+           do i2=1,n2
+               do i1=1,n1f
+                   do i3=2,n3f
+                       z3(1,i3,2*i1-1,i2,inzee)= z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
+                       z3(2,i3,2*i1-1,i2,inzee)= z1(2,i3,i1,i2,inzee)-z1(2,n3+2-i3,i1,i2,inzee)
+                       z3(1,i3,2*i1  ,i2,inzee)= z1(2,i3,i1,i2,inzee)+z1(2,n3+2-i3,i1,i2,inzee)
+                       z3(2,i3,2*i1  ,i2,inzee)=-z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
+                   enddo
+               enddo
+           enddo
+       else ! n1=2*n1f-1
+           ! i3=1
+           do i2=1,n2
+               do i1=1,n1f-1
+                   z3(1,1,2*i1-1,i2,inzee)= 2.d0*z1(1,1,i1,i2,inzee)
+                   z3(2,1,2*i1-1,i2,inzee)= 0.d0
+                   z3(1,1,2*i1  ,i2,inzee)= 2.d0*z1(2,1,i1,i2,inzee)
+                   z3(2,1,2*i1  ,i2,inzee)= 0.d0
+               enddo
+           enddo
+           
+           do i2=1,n2
+               do i1=1,n1f-1
+                   do i3=2,n3f
+                       z3(1,i3,2*i1-1,i2,inzee)= z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
+                       z3(2,i3,2*i1-1,i2,inzee)= z1(2,i3,i1,i2,inzee)-z1(2,n3+2-i3,i1,i2,inzee)
+                       z3(1,i3,2*i1  ,i2,inzee)= z1(2,i3,i1,i2,inzee)+z1(2,n3+2-i3,i1,i2,inzee)
+                       z3(2,i3,2*i1  ,i2,inzee)=-z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
+                   enddo
+               enddo
+           enddo
 
-        ! i1=n1f is treated separately: 2*n1f-1=n1, but terms with 2*n1f are
-        ! omitted
+           ! i1=n1f is treated separately: 2*n1f-1=n1, but terms with 2*n1f are
+           ! omitted
 
-        do i2=1,n2
-            z3(1,1,n1,i2,inzee)= 2.d0*z1(1,1,n1f,i2,inzee)
-            z3(2,1,n1,i2,inzee)= 0.d0
-        enddo
-        
-        do i2=1,n2
-            do i3=2,n3f
-                z3(1,i3,n1,i2,inzee)= z1(1,i3,n1f,i2,inzee)+z1(1,n3+2-i3,n1f,i2,inzee)
-                z3(2,i3,n1,i2,inzee)= z1(2,i3,n1f,i2,inzee)-z1(2,n3+2-i3,n1f,i2,inzee)
-            enddo
-        enddo
-    endif
-
+           do i2=1,n2
+               z3(1,1,n1,i2,inzee)= 2.d0*z1(1,1,n1f,i2,inzee)
+               z3(2,1,n1,i2,inzee)= 0.d0
+           enddo
+           
+           do i2=1,n2
+               do i3=2,n3f
+                   z3(1,i3,n1,i2,inzee)= z1(1,i3,n1f,i2,inzee)+z1(1,n3+2-i3,n1f,i2,inzee)
+                   z3(2,i3,n1,i2,inzee)= z1(2,i3,n1f,i2,inzee)-z1(2,n3+2-i3,n1f,i2,inzee)
+               enddo
+           enddo
+       endif
     end subroutine z1_to_z3
 
 
@@ -864,10 +860,12 @@ end subroutine fft_for
 !!***
 
 
-!!****f* BigDFT/FFT_back
+!!****f* fft3d/FFT_back
 !! FUNCTION
 !!  Calculates the discrete fourier transform F(I1,I2,I3)=
-!!  S_(j1,j2,j3) EXP(isign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
+!!  S_(j1,j2,j3) EXP(i_sign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
+!! SOURCE
+!!
 subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z1,z3,inzee)
         implicit real*8 (a-h,o-z)
 !!!!!!!$      interface
@@ -889,7 +887,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
         real*8                  ::z1(2,nd1b*nd2*nd3,2) ! work array
         real*8,intent(out):: y(n1,n2,n3)
 
-        isign=-1
+        i_sign=-1
         if (max(n1,n2,n3).gt.1024) stop '1024'
 
 ! some reasonable values of ncache: 
@@ -903,7 +901,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
 
 ! check whether input values are reasonable
     if (inzee.le.0 .or. inzee.ge.3) stop 'wrong inzee'
-    if (isign.ne.1 .and. isign.ne.-1) stop 'wrong isign'
+    if (i_sign.ne.1 .and. i_sign.ne.-1) stop 'wrong i_sign'
     if (n1.gt.nd1) stop 'n1>nd1'
     if (n2.gt.nd2) stop 'n2>nd2'
     if (n3.gt.nd3) stop 'n3>nd3'
@@ -915,44 +913,44 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
 ! vector computer with memory banks:
         allocate(trig(2,1024),after(20),now(20),before(20))
 
-        call ctrig_sg(n3,trig,after,before,now,isign,ic)
+        call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
         nfft=nd1b*n2
         mm=nd1b*nd2
         do 51093,i=1,ic-1
         call fftstp_sg(mm,nfft,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
-                          trig,after(i),now(i),before(i),isign)
+                          trig,after(i),now(i),before(i),i_sign)
 51093        inzee=3-inzee
         i=ic
         call fftrot_sg(mm,nfft,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
-                          trig,after(i),now(i),before(i),isign)
+                          trig,after(i),now(i),before(i),i_sign)
 
         inzee=3-inzee
 
-        if (n2.ne.n3) call ctrig_sg(n2,trig,after,before,now,isign,ic)
+        if (n2.ne.n3) call ctrig_sg(n2,trig,after,before,now,i_sign,ic)
         nfft=nd3*n1b
         mm=nd3*nd1b
         do 52093,i=1,ic-1
         call fftstp_sg(mm,nfft,nd2,mm,nd2,z1(1,1,inzee),z1(1,1,3-inzee), &
-                           trig,after(i),now(i),before(i),isign)
+                           trig,after(i),now(i),before(i),i_sign)
 52093        inzee=3-inzee
         i=ic
         call fftrot_sg(mm,nfft,nd2,mm,nd2,z1(1,1,inzee),z1(1,1,3-inzee), &
-                       trig,after(i),now(i),before(i),isign)
+                       trig,after(i),now(i),before(i),i_sign)
         inzee=3-inzee
 
         ! here we transform back from z1 to z3
         call z1_to_z3(z1,z3,inzee)
 
-        if (n1.ne.n2) call ctrig_sg(n1,trig,after,before,now,isign,ic)
+        if (n1.ne.n2) call ctrig_sg(n1,trig,after,before,now,i_sign,ic)
         nfft=nd2*n3b
         mm=nd2*nd3b
         do 53093,i=1,ic-1
         call fftstp_sg(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 53093        inzee=3-inzee
         i=ic
         call fftrot_sg(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
         inzee=3-inzee
 
         call z3_to_y(z3,y,inzee)
@@ -963,7 +961,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
 !!!!!!!!!$omp parallel  default(private) &
 !!!!!$omp parallel & 
 !!!!!$omp private(zw,trig,before,after,now,i,j,iam,npr,jj,ma,mb,mm,ic,n,m,jompa,jompb,lot,lotomp,inzeep,inzet,nn,nfft) &
-!!!!!$omp shared(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee,ncache) 
+!!!!!$omp shared(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee,ncache) 
         npr=1
 !!!!!$       npr=omp_get_num_threads()
         iam=0
@@ -984,7 +982,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
         n=n3
         if (2*n*lot*2.gt.ncache) stop 'ncache1'
 
-        call ctrig_sg(n3,trig,after,before,now,isign,ic)
+        call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -995,7 +993,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
         j=ma
         jj=j*nd3-nd3+1
         call fftrot_sg(mm,nfft,m,mm,m,z1(1,j,inzet),z1(1,jj,3-inzet), &
-                          trig,after(i),now(i),before(i),isign)
+                          trig,after(i),now(i),before(i),i_sign)
 
       else
 
@@ -1011,16 +1009,16 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
         i=1
         inzeep=2
         call fftstp_sg(mm,nfft,m,nn,n,z1(1,j,inzet),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
         inzeep=1
 
         do 1093,i=2,ic-1
         call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 1093        inzeep=3-inzeep
         i=ic
         call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z1(1,jj,3-inzet), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 1000        continue
       endif
 
@@ -1036,7 +1034,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
         n=n2
         if (2*n*lot*2.gt.ncache) stop 'ncache2'
 
-        if (n2.ne.n3) call ctrig_sg(n2,trig,after,before,now,isign,ic)
+        if (n2.ne.n3) call ctrig_sg(n2,trig,after,before,now,i_sign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -1047,7 +1045,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
         j=ma
         jj=j*nd2-nd2+1
         call fftrot_sg(mm,nfft,m,mm,m,z1(1,j,inzet),z1(1,jj,3-inzet), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 
       else
 
@@ -1063,17 +1061,17 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
         i=1
         inzeep=2
         call fftstp_sg(mm,nfft,m,nn,n,z1(1,j,inzet),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
         inzeep=1
 
         do 2093,i=2,ic-1
         call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 2093        inzeep=3-inzeep
 
         i=ic
         call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z1(1,jj,3-inzet), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 2000        continue
       endif
         inzet=3-inzet
@@ -1089,7 +1087,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
         n=n1
         if (2*n*lot*2.gt.ncache) stop 'ncache3'
 
-        if (n1.ne.n2) call ctrig_sg(n1,trig,after,before,now,isign,ic)
+        if (n1.ne.n2) call ctrig_sg(n1,trig,after,before,now,i_sign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -1100,7 +1098,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
         j=ma
         jj=j*nd1-nd1+1
         call fftrot_sg(mm,nfft,m,mm,m,z3(1,j,inzet),z3(1,jj,3-inzet), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 
       else
 
@@ -1116,16 +1114,16 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
         i=1
         inzeep=2
         call fftstp_sg(mm,nfft,m,nn,n,z3(1,j,inzet),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
         inzeep=1
 
         do 3093,i=2,ic-1
         call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 3093        inzeep=3-inzeep
         i=ic
         call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z3(1,jj,3-inzet), &
-                         trig,after(i),now(i),before(i),isign)
+                         trig,after(i),now(i),before(i),i_sign)
 3000        continue
       endif
         inzet=3-inzet
@@ -1141,200 +1139,196 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
 contains
 
    subroutine z3_to_z1(z3,z1,inzee)
-            ! transforms the data from the format z3:
-            ! output of fft_for: stores only elements of z with i3=<nd3f
-            ! 
-            ! to the format z1:
-            ! input of fft_back: stores only elements of z with i1=<nd1b
-            implicit none
-            integer,intent(in)::inzee
-            real*8,intent(in):: z3(2,nd1 ,nd2,nd3f,2)
-            real*8,intent(out)::z1(2,nd1b,nd2,nd3,2)
-            integer i1,i2,i3
+      ! transforms the data from the format z3:
+      ! output of fft_for: stores only elements of z with i3=<nd3f
+      ! 
+      ! to the format z1:
+      ! input of fft_back: stores only elements of z with i1=<nd1b
+      implicit none
+      integer,intent(in)::inzee
+      real*8,intent(in):: z3(2,nd1 ,nd2,nd3f,2)
+      real*8,intent(out)::z1(2,nd1b,nd2,nd3,2)
+      integer i1,i2,i3
 
-            ! i3=1: then z1 is contained in z3 
-            do i2=1,n2
-                do i1=1,n1b
-                    z1(1,i1,i2,1,inzee)=z3(1,i1,i2,1,inzee)
-                    z1(2,i1,i2,1,inzee)=z3(2,i1,i2,1,inzee)
-                enddo
-            enddo    
+      ! i3=1: then z1 is contained in z3 
+      do i2=1,n2
+          do i1=1,n1b
+              z1(1,i1,i2,1,inzee)=z3(1,i1,i2,1,inzee)
+              z1(2,i1,i2,1,inzee)=z3(2,i1,i2,1,inzee)
+          enddo
+      enddo    
 
-            do i3=2,n3f
-                ! i2=1
-                ! i1=1
-                z1(1,1,1,i3,inzee)=z3(1,1,1,i3,inzee)
-                z1(2,1,1,i3,inzee)=z3(2,1,1,i3,inzee)
+      do i3=2,n3f
+          ! i2=1
+          ! i1=1
+          z1(1,1,1,i3,inzee)=z3(1,1,1,i3,inzee)
+          z1(2,1,1,i3,inzee)=z3(2,1,1,i3,inzee)
 
-                z1(1,1,1,n3+2-i3,inzee)=z3(1,1,1,i3,inzee)
-                z1(2,1,1,n3+2-i3,inzee)=-z3(2,1,1,i3,inzee)
+          z1(1,1,1,n3+2-i3,inzee)=z3(1,1,1,i3,inzee)
+          z1(2,1,1,n3+2-i3,inzee)=-z3(2,1,1,i3,inzee)
 
-                ! i2=1
-                do i1=2,n1b
-                    z1(1,i1,1,i3,inzee)=z3(1,i1,1,i3,inzee)
-                    z1(2,i1,1,i3,inzee)=z3(2,i1,1,i3,inzee)
+          ! i2=1
+          do i1=2,n1b
+              z1(1,i1,1,i3,inzee)=z3(1,i1,1,i3,inzee)
+              z1(2,i1,1,i3,inzee)=z3(2,i1,1,i3,inzee)
 
-                    z1(1,i1,1,n3+2-i3,inzee)= z3(1,n1+2-i1,1,i3,inzee)
-                    z1(2,i1,1,n3+2-i3,inzee)=-z3(2,n1+2-i1,1,i3,inzee)
-                enddo
+              z1(1,i1,1,n3+2-i3,inzee)= z3(1,n1+2-i1,1,i3,inzee)
+              z1(2,i1,1,n3+2-i3,inzee)=-z3(2,n1+2-i1,1,i3,inzee)
+          enddo
 
-                do i2=2,n2
-                    ! i1=1
-                    z1(1,1,i2,i3,inzee)=z3(1,1,i2,i3,inzee)
-                    z1(2,1,i2,i3,inzee)=z3(2,1,i2,i3,inzee)
+          do i2=2,n2
+              ! i1=1
+              z1(1,1,i2,i3,inzee)=z3(1,1,i2,i3,inzee)
+              z1(2,1,i2,i3,inzee)=z3(2,1,i2,i3,inzee)
 
-                    z1(1,1,i2,n3+2-i3,inzee)= z3(1,1,n2+2-i2,i3,inzee)
-                    z1(2,1,i2,n3+2-i3,inzee)=-z3(2,1,n2+2-i2,i3,inzee)
+              z1(1,1,i2,n3+2-i3,inzee)= z3(1,1,n2+2-i2,i3,inzee)
+              z1(2,1,i2,n3+2-i3,inzee)=-z3(2,1,n2+2-i2,i3,inzee)
 
-                    do i1=2,n1b
-                        z1(1,i1,i2,i3,inzee)=z3(1,i1,i2,i3,inzee)
-                        z1(2,i1,i2,i3,inzee)=z3(2,i1,i2,i3,inzee)
+              do i1=2,n1b
+                  z1(1,i1,i2,i3,inzee)=z3(1,i1,i2,i3,inzee)
+                  z1(2,i1,i2,i3,inzee)=z3(2,i1,i2,i3,inzee)
 
-                        z1(1,i1,i2,n3+2-i3,inzee)= z3(1,n1+2-i1,n2+2-i2,i3,inzee)
-                        z1(2,i1,i2,n3+2-i3,inzee)=-z3(2,n1+2-i1,n2+2-i2,i3,inzee)
-                    enddo
-                enddo
-            enddo
-                                
+                  z1(1,i1,i2,n3+2-i3,inzee)= z3(1,n1+2-i1,n2+2-i2,i3,inzee)
+                  z1(2,i1,i2,n3+2-i3,inzee)=-z3(2,n1+2-i1,n2+2-i2,i3,inzee)
+              enddo
+          enddo
+      enddo
     end subroutine z3_to_z1
 
     subroutine z1_to_z3(z1,z3,inzee)
-    ! transforms the data from the format z1:
-    ! stores the part of z with i1=<nd1b 
-    ! to the format z3:
-    ! stores the elements of z with even and odd values of i3
-    ! as its even and odd parts w.r.t. flip of n1
-    implicit none
-    integer,intent(in)::inzee
-    real*8,intent(in):: z1(2,nd2,nd3,nd1b,2)
-    real*8,intent(out)::z3(2,nd2,nd3b,nd1,2)
-    integer i1,i2,i3
+       ! transforms the data from the format z1:
+       ! stores the part of z with i1=<nd1b 
+       ! to the format z3:
+       ! stores the elements of z with even and odd values of i3
+       ! as its even and odd parts w.r.t. flip of n1
+       implicit none
+       integer,intent(in)::inzee
+       real*8,intent(in):: z1(2,nd2,nd3,nd1b,2)
+       real*8,intent(out)::z3(2,nd2,nd3b,nd1,2)
+       integer i1,i2,i3
 
-    if (2*n3b.eq.n3) then 
-        ! i1=1
-        do i3=1,n3b
-            do i2=1,n2
-                z3(1,i2,i3,1,inzee)= z1(1,i2,2*i3-1,1,inzee)-z1(2,i2,2*i3,1,inzee)
-                z3(2,i2,i3,1,inzee)= z1(2,i2,2*i3-1,1,inzee)+z1(1,i2,2*i3,1,inzee)
-            enddo
-        enddo
+       if (2*n3b.eq.n3) then 
+           ! i1=1
+           do i3=1,n3b
+               do i2=1,n2
+                   z3(1,i2,i3,1,inzee)= z1(1,i2,2*i3-1,1,inzee)-z1(2,i2,2*i3,1,inzee)
+                   z3(2,i2,i3,1,inzee)= z1(2,i2,2*i3-1,1,inzee)+z1(1,i2,2*i3,1,inzee)
+               enddo
+           enddo
 
-        do i1=2,n1b
-            do i3=1,n3b
-                do i2=1,n2
-                    z3(1,i2,i3,i1     ,inzee)= z1(1,i2,2*i3-1,i1,inzee)-z1(2,i2,2*i3,i1,inzee)
-                    z3(2,i2,i3,i1     ,inzee)= z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
-                    z3(1,i2,i3,n1+2-i1,inzee)= z1(1,i2,2*i3-1,i1,inzee)+z1(2,i2,2*i3,i1,inzee)
-                    z3(2,i2,i3,n1+2-i1,inzee)=-z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
-                enddo
-            enddo
-        enddo
-    else  ! 2*n3b=n3+1
-        ! i1=1
-        do i3=1,n3b-1
-            do i2=1,n2
-                z3(1,i2,i3,1,inzee)= z1(1,i2,2*i3-1,1,inzee)-z1(2,i2,2*i3,1,inzee)
-                z3(2,i2,i3,1,inzee)= z1(2,i2,2*i3-1,1,inzee)+z1(1,i2,2*i3,1,inzee)
-            enddo
-        enddo
+           do i1=2,n1b
+               do i3=1,n3b
+                   do i2=1,n2
+                       z3(1,i2,i3,i1     ,inzee)= z1(1,i2,2*i3-1,i1,inzee)-z1(2,i2,2*i3,i1,inzee)
+                       z3(2,i2,i3,i1     ,inzee)= z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
+                       z3(1,i2,i3,n1+2-i1,inzee)= z1(1,i2,2*i3-1,i1,inzee)+z1(2,i2,2*i3,i1,inzee)
+                       z3(2,i2,i3,n1+2-i1,inzee)=-z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
+                   enddo
+               enddo
+           enddo
+       else  ! 2*n3b=n3+1
+           ! i1=1
+           do i3=1,n3b-1
+               do i2=1,n2
+                   z3(1,i2,i3,1,inzee)= z1(1,i2,2*i3-1,1,inzee)-z1(2,i2,2*i3,1,inzee)
+                   z3(2,i2,i3,1,inzee)= z1(2,i2,2*i3-1,1,inzee)+z1(1,i2,2*i3,1,inzee)
+               enddo
+           enddo
 
-        do i1=2,n1b
-            do i3=1,n3b-1
-                do i2=1,n2
-                    z3(1,i2,i3,i1     ,inzee)= z1(1,i2,2*i3-1,i1,inzee)-z1(2,i2,2*i3,i1,inzee)
-                    z3(2,i2,i3,i1     ,inzee)= z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
-                    z3(1,i2,i3,n1+2-i1,inzee)= z1(1,i2,2*i3-1,i1,inzee)+z1(2,i2,2*i3,i1,inzee)
-                    z3(2,i2,i3,n1+2-i1,inzee)=-z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
-                enddo
-            enddo
-        enddo
+           do i1=2,n1b
+               do i3=1,n3b-1
+                   do i2=1,n2
+                       z3(1,i2,i3,i1     ,inzee)= z1(1,i2,2*i3-1,i1,inzee)-z1(2,i2,2*i3,i1,inzee)
+                       z3(2,i2,i3,i1     ,inzee)= z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
+                       z3(1,i2,i3,n1+2-i1,inzee)= z1(1,i2,2*i3-1,i1,inzee)+z1(2,i2,2*i3,i1,inzee)
+                       z3(2,i2,i3,n1+2-i1,inzee)=-z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
+                   enddo
+               enddo
+           enddo
 
-        ! i3=n3b is treated separately: 2*n3b-1=n3, but the terms with 2*n3b are
-        ! omitted
+           ! i3=n3b is treated separately: 2*n3b-1=n3, but the terms with 2*n3b are
+           ! omitted
 
-        ! i1=1
-        do i2=1,n2
-            z3(1,i2,n3b,1,inzee)= z1(1,i2,n3,1,inzee)
-            z3(2,i2,n3b,1,inzee)= z1(2,i2,n3,1,inzee)
-        enddo
+           ! i1=1
+           do i2=1,n2
+               z3(1,i2,n3b,1,inzee)= z1(1,i2,n3,1,inzee)
+               z3(2,i2,n3b,1,inzee)= z1(2,i2,n3,1,inzee)
+           enddo
 
-        do i1=2,n1b
-            do i2=1,n2
-                z3(1,i2,n3b,i1     ,inzee)= z1(1,i2,n3,i1,inzee)
-                z3(2,i2,n3b,i1     ,inzee)= z1(2,i2,n3,i1,inzee)
-                z3(1,i2,n3b,n1+2-i1,inzee)= z1(1,i2,n3,i1,inzee)
-                z3(2,i2,n3b,n1+2-i1,inzee)=-z1(2,i2,n3,i1,inzee)
-            enddo
-        enddo
+           do i1=2,n1b
+               do i2=1,n2
+                   z3(1,i2,n3b,i1     ,inzee)= z1(1,i2,n3,i1,inzee)
+                   z3(2,i2,n3b,i1     ,inzee)= z1(2,i2,n3,i1,inzee)
+                   z3(1,i2,n3b,n1+2-i1,inzee)= z1(1,i2,n3,i1,inzee)
+                   z3(2,i2,n3b,n1+2-i1,inzee)=-z1(2,i2,n3,i1,inzee)
+               enddo
+           enddo
 
-    endif
-
+       endif
     end subroutine z1_to_z3
 
     subroutine z3_to_y(z3,y,inzee)
-    ! transforms the output of FFT: z3, for which:
-    ! real part of      z3 contains elements of y with odd  i3
-    ! imaginary part of z3 contains elements of y with even i3
+       ! transforms the output of FFT: z3, for which:
+       ! real part of      z3 contains elements of y with odd  i3
+       ! imaginary part of z3 contains elements of y with even i3
 
-    ! into the final output: real array y.
-    implicit none
-    integer,intent(in)::inzee
-    real*8,intent(in)::z3(2,nd1,nd2,nd3b,2)
-    real*8,intent(out)::y(n1,n2,n3)
-    integer i1,i2,i3
-    real*8 fac
+       ! into the final output: real array y.
+       implicit none
+       integer,intent(in)::inzee
+       real*8,intent(in)::z3(2,nd1,nd2,nd3b,2)
+       real*8,intent(out)::y(n1,n2,n3)
+       integer i1,i2,i3
+       real*8 fac
 
-    fac=.5d0/(n1*n2*n3)
+       fac=.5d0/(n1*n2*n3)
 
-    if (2*n3b.eq.n3) then 
-        do i3=1,n3b
-            do i2=1,n2
-                do i1=1,n1
-                    y(i1,i2,2*i3-1)=z3(1,i1,i2,i3,inzee)*fac
-                    y(i1,i2,2*i3  )=z3(2,i1,i2,i3,inzee)*fac
-                enddo
-            enddo
-        enddo
-    else ! 2*n3b=n3+1
-        do i3=1,n3b-1
-            do i2=1,n2
-                do i1=1,n1
-                    y(i1,i2,2*i3-1)=z3(1,i1,i2,i3,inzee)*fac
-                    y(i1,i2,2*i3  )=z3(2,i1,i2,i3,inzee)*fac
-                enddo
-            enddo
-        enddo
+       if (2*n3b.eq.n3) then 
+           do i3=1,n3b
+               do i2=1,n2
+                   do i1=1,n1
+                       y(i1,i2,2*i3-1)=z3(1,i1,i2,i3,inzee)*fac
+                       y(i1,i2,2*i3  )=z3(2,i1,i2,i3,inzee)*fac
+                   enddo
+               enddo
+           enddo
+       else ! 2*n3b=n3+1
+           do i3=1,n3b-1
+               do i2=1,n2
+                   do i1=1,n1
+                       y(i1,i2,2*i3-1)=z3(1,i1,i2,i3,inzee)*fac
+                       y(i1,i2,2*i3  )=z3(2,i1,i2,i3,inzee)*fac
+                   enddo
+               enddo
+           enddo
 
-        ! i3=n3b is treated separately: 2*n3b-1=n3, but the terms with 2*n3b are
-        ! omitted
+           ! i3=n3b is treated separately: 2*n3b-1=n3, but the terms with 2*n3b are
+           ! omitted
 
-        do i2=1,n2
-            do i1=1,n1
-                y(i1,i2,n3)=z3(1,i1,i2,n3b,inzee)*fac
-            enddo
-        enddo
-    endif
-
+           do i2=1,n2
+               do i1=1,n1
+                   y(i1,i2,n3)=z3(1,i1,i2,n3b,inzee)*fac
+               enddo
+           enddo
+       endif
     end subroutine z3_to_y
-
 
 end subroutine fft_back
 !!***
 
 
-!!***f* BigDFT/ctrig_sg
+!!***f* fft3d/ctrig_sg
 !! SIDE EFFECTS
 !!  Different factorizations affect the performance
 !!  Factoring 64 as 4*4*4 might for example be faster on some machines than 8*8.
 !! SOURCE
 !!
-subroutine ctrig_sg(n,trig,after,before,now,isign,ic)
+subroutine ctrig_sg(n,trig,after,before,now,i_sign,ic)
 
   implicit real(kind=8) (a-h,o-z)
 ! Maximum number of points for FFT (should be same number in fft3d routine)
   integer, parameter :: nfft_max=24000
 ! Arguments
-  integer :: n,isign,ic
+  integer :: n,i_sign,ic
   integer :: after(7),before(7),now(7)
   real(kind=8) :: trig(2,nfft_max)
 ! Local variables
@@ -1465,7 +1459,7 @@ subroutine ctrig_sg(n,trig,after,before,now,isign,ic)
 !  write(6,"(6(i3))") (before(i),i=1,ic)
 
   twopi=6.283185307179586d0
-  angle=real(isign,kind=8)*twopi/real(n,kind=8)
+  angle=real(i_sign,kind=8)*twopi/real(n,kind=8)
   if (mod(n,2).eq.0) then
      nh=n/2
      trig(1,1)=1.d0
@@ -1495,20 +1489,19 @@ subroutine ctrig_sg(n,trig,after,before,now,isign,ic)
   endif
 
 end subroutine ctrig_sg
+!!***
 
 
-!ccccccccccccccccccccccccccccccccccccccccccccccc
-
-subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
-!  Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
-!  Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1995, 1999
-!  This file is distributed under the terms of the
-!  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
+!!****f* fft3d/fftstp_sg
+!! SOURCE
+!!
+subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,i_sign)
 
   implicit real(kind=8) (a-h,o-z)
+
   integer, parameter :: nfft_max=24000
 ! Arguments
-  integer :: mm,nfft,m,nn,n,after,before,isign
+  integer :: mm,nfft,m,nn,n,after,before,i_sign
   real(kind=8) :: trig(2,nfft_max),zin(2,mm,m),zout(2,nn,n)
 ! Local variables
   integer :: atn,atb
@@ -1518,7 +1511,7 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
 !         sqrt(.5d0)
   rt2i=0.7071067811865475d0
 
-! First now == 2
+! Radix 2
   if (now.eq.2) then
      ia=1
      nin1=ia-after
@@ -1544,7 +1537,7 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
      Big_Loop: do ia=2,after
         ias=ia-1
         if (2*ias.eq.after) then
-           if (isign.eq.1) then
+           if (i_sign.eq.1) then
               nin1=ia-after
               nout1=ia-atn
               do ib=1,before
@@ -1584,7 +1577,7 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
               end do
            endif
         else if (4*ias.eq.after) then
-           if (isign.eq.1) then
+           if (i_sign.eq.1) then
               nin1=ia-after
               nout1=ia-atn
               do ib=1,before
@@ -1628,7 +1621,7 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
               end do
            endif
         else if (4*ias.eq.3*after) then
-           if (isign.eq.1) then
+           if (i_sign.eq.1) then
               nin1=ia-after
               nout1=ia-atn
               do ib=1,before
@@ -1699,10 +1692,11 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
 
      end do Big_Loop
 !    End of Big_loop
-! End of if (now.eq.2)
+! End of if (now.eq.2) (radix 2)
 
+! Radix 4
   else if (now.eq.4) then
-     if (isign.eq.1) then 
+     if (i_sign.eq.1) then 
         ia=1
         nin1=ia-after
         nout1=ia-atn
@@ -1987,9 +1981,11 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
            endif
         end do
      endif
-! End of else if (now.eq.4)
+! End of else if (now.eq.4) (radix 4)
+
+! Radix 8
   else if (now.eq.8) then
-     if (isign.eq.-1) then 
+     if (i_sign.eq.-1) then 
         ia=1
         nin1=ia-after
         nout1=ia-atn
@@ -2210,7 +2206,7 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
               end do
            end do
         end do
-     else ! else for isign.eq.1
+     else ! else for i_sign.eq.1
         ia=1
         nin1=ia-after
         nout1=ia-atn
@@ -2431,11 +2427,13 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
               end do
            end do
         end do
-     endif  !end if of isign
+     endif  !end if of i_sign
+! end of radix 8
 
+! Radix 3
   else if (now.eq.3) then
 !         .5d0*sqrt(3.d0)
-     bb=real(isign,kind=8)*0.8660254037844387d0
+     bb=real(i_sign,kind=8)*0.8660254037844387d0
      ia=1
      nin1=ia-after
      nout1=ia-atn
@@ -2470,7 +2468,7 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
      loop_3000: do ia=2,after
         ias=ia-1
         if (4*ias.eq.3*after) then
-           if (isign.eq.1) then
+           if (i_sign.eq.1) then
               nin1=ia-after
               nout1=ia-atn
               do ib=1,before
@@ -2534,7 +2532,7 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
               end do
            endif
         else if (8*ias.eq.3*after) then
-           if (isign.eq.1) then
+           if (i_sign.eq.1) then
               nin1=ia-after
               nout1=ia-atn
               do ib=1,before
@@ -2645,17 +2643,18 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
            end do
         endif
      end do loop_3000
-! End of if (now.eq.3)
+! End of if (now.eq.3) (radix 3)
 
+! Radix 5
   else if (now.eq.5) then
 !     cos(2.d0*pi/5.d0)
      cos2=0.3090169943749474d0
 !     cos(4.d0*pi/5.d0)
      cos4=-0.8090169943749474d0
 !     sin(2.d0*pi/5.d0)
-     sin2=real(isign,kind=8)*0.9510565162951536d0
+     sin2=real(i_sign,kind=8)*0.9510565162951536d0
 !      sin(4.d0*pi/5.d0)
-     sin4=real(isign,kind=8)*0.5877852522924731d0
+     sin4=real(i_sign,kind=8)*0.5877852522924731d0
      ia=1
      nin1=ia-after
      nout1=ia-atn
@@ -2712,7 +2711,7 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
      loop_5000: do ia=2,after
         ias=ia-1
         if (8*ias.eq.5*after) then
-           if (isign.eq.1) then
+           if (i_sign.eq.1) then
               nin1=ia-after
               nout1=ia-atn
               do ib=1,before
@@ -2904,11 +2903,12 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
            end do
         endif
      end do loop_5000
-! end of if now.eq.5
+! end of if now.eq.5 (radix 5)
 
+! Radix 6
   else if (now.eq.6) then
 !     .5d0*sqrt(3.d0)
-     bb=real(isign,kind=8)*0.8660254037844387d0
+     bb=real(i_sign,kind=8)*0.8660254037844387d0
      ia=1
      nin1=ia-after
      nout1=ia-atn
@@ -2978,197 +2978,288 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
            zout(2,j,nout6)=ui3-vi3
         end do
      end do
+!end of radix 6
+
+!Radix 7
+  else if (now.eq.7) then
+
+     ia=1
+     nin1=ia-after
+     nout1=ia-atn
+
+     do ib=1,before
+        nin1=nin1+after
+        nin2=nin1+atb
+        nin3=nin2+atb
+        nin4=nin3+atb
+        nin5=nin4+atb
+        nin6=nin5+atb
+        nin7=nin6+atb
+        nout1=nout1+atn
+        nout2=nout1+after
+        nout3=nout2+after
+        nout4=nout3+after
+        nout5=nout4+after
+        nout6=nout5+after
+        nout7=nout6+after
+        do j=1,nfft
+
+           cos2= 0.62348980185873353053d0
+           cos4=-0.22252093395631440429d0
+           cos6=-0.90096886790241912624d0
+           
+           sin2= 0.78183148246802980871d0*isign
+           sin4= 0.97492791218182360702d0*isign
+           sin6= 0.43388373911755812048d0*isign
+           
+           r1=zin(1,j,nin1);   s1=zin(2,j,nin1)
+           r2=zin(1,j,nin2);   s2=zin(2,j,nin2)
+           r3=zin(1,j,nin3);   s3=zin(2,j,nin3)
+           r4=zin(1,j,nin4);   s4=zin(2,j,nin4)
+           r5=zin(1,j,nin5);   s5=zin(2,j,nin5)
+           r6=zin(1,j,nin6);   s6=zin(2,j,nin6)
+           r7=zin(1,j,nin7);   s7=zin(2,j,nin7)
+           
+           rp2=r2+r7; rp3=r3+r6; rp4=r4+r5
+           rm2=r2-r7; rm3=r3-r6; rm4=r4-r5
+           sp2=s2+s7; sp3=s3+s6; sp4=s4+s5
+           sm2=s2-s7; sm3=s3-s6; sm4=s4-s5 !3*4=12 flops
+           
+           ur2=r1+cos2*rp2+cos4*rp3+cos6*rp4
+           vr2=   sin2*sm2+sin4*sm3+sin6*sm4
+           
+           ui2=s1+cos2*sp2+cos4*sp3+cos6*sp4
+           vi2=   sin2*rm2+sin4*rm3+sin6*rm4
+                     
+           ur3=r1+cos4*rp2+cos6*rp3+cos2*rp4
+           vr3=   sin4*sm2-sin6*sm3-sin2*sm4
+           
+           ui3=s1+cos4*sp2+cos6*sp3+cos2*sp4
+           vi3=   sin4*rm2-sin6*rm3-sin2*rm4
+           
+           ur4=r1+cos6*rp2+cos2*rp3+cos4*rp4
+           vr4=   sin6*sm2-sin2*sm3+sin4*sm4
+           
+           ui4=s1+cos6*sp2+cos2*sp3+cos4*sp4
+           vi4=   sin6*rm2-sin2*rm3+sin4*rm4   ! 11*6=66 flops, of them
+           !6*6=36 multiplications
+           
+           zout(1,j,nout1)=r1+rp2+rp3+rp4; zout(2,j,nout1)=s1+sp2+sp3+sp4
+           zout(1,j,nout2)=ur2-vr2;        zout(2,j,nout2)=ui2+vi2
+           zout(1,j,nout3)=ur3-vr3;        zout(2,j,nout3)=ui3+vi3
+           zout(1,j,nout4)=ur4-vr4;        zout(2,j,nout4)=ui4+vi4
+           zout(1,j,nout5)=ur4+vr4;        zout(2,j,nout5)=ui4-vi4
+           zout(1,j,nout6)=ur3+vr3;        zout(2,j,nout6)=ui3-vi3
+           zout(1,j,nout7)=ur2+vr2;        zout(2,j,nout7)=ui2-vi2 
+           !(3+6)*2 =18 flops
+        end do
+
+        ! In total: 12+66+18=96flops
+     end do
+!end of radix 7
 
   else 
      stop 'error fftstp_sg'
   endif !end of now
 
 end subroutine fftstp_sg
+!!***
 
-subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
-!  Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
-!  Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1995, 1999
-!  This file is distributed under the terms of the
-!  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
 
-        implicit real*8 (a-h,o-z)
-        integer after,before,atn,atb
-        dimension trig(2,1024),zin(2,mm,m),zout(2,n,nn)
-        atn=after*now
-        atb=after*before
+!!****f* fft3d/fftrot_sg
+!! SOURCE
+!!
+subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,i_sign)
 
-!         sqrt(.5d0)
-        rt2i=0.7071067811865475d0
-        if (now.eq.2) then
-        ia=1
-        nin1=ia-after
-        nout1=ia-atn
-        do 2001,ib=1,before
-        nin1=nin1+after
-        nin2=nin1+atb
-        nout1=nout1+atn
-        nout2=nout1+after
-        do 2001,j=1,nfft
-        r1=zin(1,j,nin1)
-        s1=zin(2,j,nin1)
-        r2=zin(1,j,nin2)
-        s2=zin(2,j,nin2)
-        zout(1,nout1,j)= r2 + r1
-        zout(2,nout1,j)= s2 + s1
-        zout(1,nout2,j)= r1 - r2
-        zout(2,nout2,j)= s1 - s2
-2001        continue
-        do 2000,ia=2,after
-        ias=ia-1
-        if (2*ias.eq.after) then
-                if (isign.eq.1) then
-                        nin1=ia-after
-                        nout1=ia-atn
-                        do 2010,ib=1,before
-                        nin1=nin1+after
-                        nin2=nin1+atb
-                        nout1=nout1+atn
-                        nout2=nout1+after
-                        do 2010,j=1,nfft
-                        r1=zin(1,j,nin1)
-                        s1=zin(2,j,nin1)
-                        r2=zin(2,j,nin2)
-                        s2=zin(1,j,nin2)
-                        zout(1,nout1,j)= r1 - r2
-                        zout(2,nout1,j)= s2 + s1
-                        zout(1,nout2,j)= r2 + r1
-                        zout(2,nout2,j)= s1 - s2
-2010                        continue
-                else
-                        nin1=ia-after
-                        nout1=ia-atn
-                        do 2020,ib=1,before
-                        nin1=nin1+after
-                        nin2=nin1+atb
-                        nout1=nout1+atn
-                        nout2=nout1+after
-                        do 2020,j=1,nfft
-                        r1=zin(1,j,nin1)
-                        s1=zin(2,j,nin1)
-                        r2=zin(2,j,nin2)
-                        s2=zin(1,j,nin2)
-                        zout(1,nout1,j)= r2 + r1
-                        zout(2,nout1,j)= s1 - s2
-                        zout(1,nout2,j)= r1 - r2
-                        zout(2,nout2,j)= s2 + s1
-2020                        continue
-                endif
-        else if (4*ias.eq.after) then
-                if (isign.eq.1) then
-                        nin1=ia-after
-                        nout1=ia-atn
-                        do 2030,ib=1,before
-                        nin1=nin1+after
-                        nin2=nin1+atb
-                        nout1=nout1+atn
-                        nout2=nout1+after
-                        do 2030,j=1,nfft
-                        r1=zin(1,j,nin1)
-                        s1=zin(2,j,nin1)
-                        r=zin(1,j,nin2)
-                        s=zin(2,j,nin2)
-                        r2=(r - s)*rt2i
-                        s2=(r + s)*rt2i
-                        zout(1,nout1,j)= r2 + r1
-                        zout(2,nout1,j)= s2 + s1
-                        zout(1,nout2,j)= r1 - r2
-                        zout(2,nout2,j)= s1 - s2
-2030                        continue
-                else
-                        nin1=ia-after
-                        nout1=ia-atn
-                        do 2040,ib=1,before
-                        nin1=nin1+after
-                        nin2=nin1+atb
-                        nout1=nout1+atn
-                        nout2=nout1+after
-                        do 2040,j=1,nfft
-                        r1=zin(1,j,nin1)
-                        s1=zin(2,j,nin1)
-                        r=zin(1,j,nin2)
-                        s=zin(2,j,nin2)
-                        r2=(r + s)*rt2i
-                        s2=(s - r)*rt2i
-                        zout(1,nout1,j)= r2 + r1
-                        zout(2,nout1,j)= s2 + s1
-                        zout(1,nout2,j)= r1 - r2
-                        zout(2,nout2,j)= s1 - s2
-2040                        continue
-                endif
-        else if (4*ias.eq.3*after) then
-                if (isign.eq.1) then
-                        nin1=ia-after
-                        nout1=ia-atn
-                        do 2050,ib=1,before
-                        nin1=nin1+after
-                        nin2=nin1+atb
-                        nout1=nout1+atn
-                        nout2=nout1+after
-                        do 2050,j=1,nfft
-                        r1=zin(1,j,nin1)
-                        s1=zin(2,j,nin1)
-                        r=zin(1,j,nin2)
-                        s=zin(2,j,nin2)
-                        r2=(r + s)*rt2i
-                        s2=(r - s)*rt2i
-                        zout(1,nout1,j)= r1 - r2
-                        zout(2,nout1,j)= s2 + s1
-                        zout(1,nout2,j)= r2 + r1
-                        zout(2,nout2,j)= s1 - s2
-2050                        continue
-                else
-                        nin1=ia-after
-                        nout1=ia-atn
-                        do 2060,ib=1,before
-                        nin1=nin1+after
-                        nin2=nin1+atb
-                        nout1=nout1+atn
-                        nout2=nout1+after
-                        do 2060,j=1,nfft
-                        r1=zin(1,j,nin1)
-                        s1=zin(2,j,nin1)
-                        r=zin(1,j,nin2)
-                        s=zin(2,j,nin2)
-                        r2=(s - r)*rt2i
-                        s2=(r + s)*rt2i
-                        zout(1,nout1,j)= r2 + r1
-                        zout(2,nout1,j)= s1 - s2
-                        zout(1,nout2,j)= r1 - r2
-                        zout(2,nout2,j)= s2 + s1
-2060                        continue
-                endif
-        else
-                itrig=ias*before+1
-                cr2=trig(1,itrig)
-                ci2=trig(2,itrig)
-                nin1=ia-after
-                nout1=ia-atn
-                do 2090,ib=1,before
-                nin1=nin1+after
-                nin2=nin1+atb
-                nout1=nout1+atn
-                nout2=nout1+after
-                do 2090,j=1,nfft
-                r1=zin(1,j,nin1)
-                s1=zin(2,j,nin1)
-                r=zin(1,j,nin2)
-                s=zin(2,j,nin2)
-                r2=r*cr2 - s*ci2
-                s2=r*ci2 + s*cr2
-                zout(1,nout1,j)= r2 + r1
-                zout(2,nout1,j)= s2 + s1
-                zout(1,nout2,j)= r1 - r2
-                zout(2,nout2,j)= s1 - s2
-2090                continue
-        endif
-2000        continue
+   implicit real*8 (a-h,o-z)
+   integer after,before,atn,atb
+   dimension trig(2,1024),zin(2,mm,m),zout(2,n,nn)
+
+   atn=after*now
+   atb=after*before
+
+!  sqrt(.5d0)
+   rt2i=0.7071067811865475d0
+
+! Radix 2
+   if (now.eq.2) then
+      ia=1
+      nin1=ia-after
+      nout1=ia-atn
+      do ib=1,before
+         nin1=nin1+after
+         nin2=nin1+atb
+         nout1=nout1+atn
+         nout2=nout1+after
+         do j=1,nfft
+            r1=zin(1,j,nin1)
+            s1=zin(2,j,nin1)
+            r2=zin(1,j,nin2)
+            s2=zin(2,j,nin2)
+            zout(1,nout1,j)= r2 + r1
+            zout(2,nout1,j)= s2 + s1
+            zout(1,nout2,j)= r1 - r2
+            zout(2,nout2,j)= s1 - s2
+         end do
+      end do
+      do 2000,ia=2,after
+         ias=ia-1
+         if (2*ias.eq.after) then
+            if (i_sign.eq.1) then
+               nin1=ia-after
+               nout1=ia-atn
+               do ib=1,before
+                  nin1=nin1+after
+                  nin2=nin1+atb
+                  nout1=nout1+atn
+                  nout2=nout1+after
+                  do j=1,nfft
+                     r1=zin(1,j,nin1)
+                     s1=zin(2,j,nin1)
+                     r2=zin(2,j,nin2)
+                     s2=zin(1,j,nin2)
+                     zout(1,nout1,j)= r1 - r2
+                     zout(2,nout1,j)= s2 + s1
+                     zout(1,nout2,j)= r2 + r1
+                     zout(2,nout2,j)= s1 - s2
+                  end do
+               end do
+            else
+               nin1=ia-after
+               nout1=ia-atn
+               do ib=1,before
+                  nin1=nin1+after
+                  nin2=nin1+atb
+                  nout1=nout1+atn
+                  nout2=nout1+after
+                  do j=1,nfft
+                     r1=zin(1,j,nin1)
+                     s1=zin(2,j,nin1)
+                     r2=zin(2,j,nin2)
+                     s2=zin(1,j,nin2)
+                     zout(1,nout1,j)= r2 + r1
+                     zout(2,nout1,j)= s1 - s2
+                     zout(1,nout2,j)= r1 - r2
+                     zout(2,nout2,j)= s2 + s1
+                  end do
+               end do
+            endif
+         else if (4*ias.eq.after) then
+            if (i_sign.eq.1) then
+               nin1=ia-after
+               nout1=ia-atn
+               do ib=1,before
+                  nin1=nin1+after
+                  nin2=nin1+atb
+                  nout1=nout1+atn
+                  nout2=nout1+after
+                  do j=1,nfft
+                     r1=zin(1,j,nin1)
+                     s1=zin(2,j,nin1)
+                     r=zin(1,j,nin2)
+                     s=zin(2,j,nin2)
+                     r2=(r - s)*rt2i
+                     s2=(r + s)*rt2i
+                     zout(1,nout1,j)= r2 + r1
+                     zout(2,nout1,j)= s2 + s1
+                     zout(1,nout2,j)= r1 - r2
+                     zout(2,nout2,j)= s1 - s2
+                  end do
+               end do
+           else
+               nin1=ia-after
+               nout1=ia-atn
+               do ib=1,before
+                  nin1=nin1+after
+                  nin2=nin1+atb
+                  nout1=nout1+atn
+                  nout2=nout1+after
+                     do j=1,nfft
+                     r1=zin(1,j,nin1)
+                     s1=zin(2,j,nin1)
+                     r=zin(1,j,nin2)
+                     s=zin(2,j,nin2)
+                     r2=(r + s)*rt2i
+                     s2=(s - r)*rt2i
+                     zout(1,nout1,j)= r2 + r1
+                     zout(2,nout1,j)= s2 + s1
+                     zout(1,nout2,j)= r1 - r2
+                     zout(2,nout2,j)= s1 - s2
+                  end do
+               end do
+           endif
+      else if (4*ias.eq.3*after) then
+              if (i_sign.eq.1) then
+                      nin1=ia-after
+                      nout1=ia-atn
+                      do 2050,ib=1,before
+                      nin1=nin1+after
+                      nin2=nin1+atb
+                      nout1=nout1+atn
+                      nout2=nout1+after
+                      do 2050,j=1,nfft
+                      r1=zin(1,j,nin1)
+                      s1=zin(2,j,nin1)
+                      r=zin(1,j,nin2)
+                      s=zin(2,j,nin2)
+                      r2=(r + s)*rt2i
+                      s2=(r - s)*rt2i
+                      zout(1,nout1,j)= r1 - r2
+                      zout(2,nout1,j)= s2 + s1
+                      zout(1,nout2,j)= r2 + r1
+                      zout(2,nout2,j)= s1 - s2
+2050                      continue
+              else
+                      nin1=ia-after
+                      nout1=ia-atn
+                      do 2060,ib=1,before
+                      nin1=nin1+after
+                      nin2=nin1+atb
+                      nout1=nout1+atn
+                      nout2=nout1+after
+                      do 2060,j=1,nfft
+                      r1=zin(1,j,nin1)
+                      s1=zin(2,j,nin1)
+                      r=zin(1,j,nin2)
+                      s=zin(2,j,nin2)
+                      r2=(s - r)*rt2i
+                      s2=(r + s)*rt2i
+                      zout(1,nout1,j)= r2 + r1
+                      zout(2,nout1,j)= s1 - s2
+                      zout(1,nout2,j)= r1 - r2
+                      zout(2,nout2,j)= s2 + s1
+2060                      continue
+              endif
+      else
+              itrig=ias*before+1
+              cr2=trig(1,itrig)
+              ci2=trig(2,itrig)
+              nin1=ia-after
+              nout1=ia-atn
+              do 2090,ib=1,before
+              nin1=nin1+after
+              nin2=nin1+atb
+              nout1=nout1+atn
+              nout2=nout1+after
+              do 2090,j=1,nfft
+              r1=zin(1,j,nin1)
+              s1=zin(2,j,nin1)
+              r=zin(1,j,nin2)
+              s=zin(2,j,nin2)
+              r2=r*cr2 - s*ci2
+              s2=r*ci2 + s*cr2
+              zout(1,nout1,j)= r2 + r1
+              zout(2,nout1,j)= s2 + s1
+              zout(1,nout2,j)= r1 - r2
+              zout(2,nout2,j)= s1 - s2
+2090              continue
+      endif
+2000      continue
+!End of radix 2
+
+! Radix 4
         else if (now.eq.4) then
-        if (isign.eq.1) then 
+        if (i_sign.eq.1) then 
                 ia=1
                 nin1=ia-after
                 nout1=ia-atn
@@ -3447,8 +3538,11 @@ subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
                 endif
 4100                continue
         endif
+!End of radix 4
+
+! Radix 8
         else if (now.eq.8) then
-        if (isign.eq.-1) then 
+        if (i_sign.eq.-1) then 
                 ia=1
                         nin1=ia-after
                         nout1=ia-atn
@@ -3891,9 +3985,12 @@ subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
 8001                continue
 
         endif
+!End of radix 8
+
+! Radix 3
         else if (now.eq.3) then 
 !         .5d0*sqrt(3.d0)
-        bb=isign*0.8660254037844387d0
+        bb=i_sign*0.8660254037844387d0
         ia=1
         nin1=ia-after
         nout1=ia-atn
@@ -3927,7 +4024,7 @@ subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
         do 3000,ia=2,after
         ias=ia-1
         if (4*ias.eq.3*after) then
-        if (isign.eq.1) then
+        if (i_sign.eq.1) then
                 nin1=ia-after
                 nout1=ia-atn
                 do 3010,ib=1,before
@@ -3989,7 +4086,7 @@ subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
 3020                continue
         endif
         else if (8*ias.eq.3*after) then
-        if (isign.eq.1) then
+        if (i_sign.eq.1) then
                 nin1=ia-after
                 nout1=ia-atn
                 do 3030,ib=1,before
@@ -4097,15 +4194,18 @@ subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
 3090        continue
         endif
 3000        continue
+!End of radix 3
+
+! Radix 5
         else if (now.eq.5) then
 !         cos(2.d0*pi/5.d0)
         cos2=0.3090169943749474d0
 !         cos(4.d0*pi/5.d0)
         cos4=-0.8090169943749474d0
 !        sin(2.d0*pi/5.d0)
-        sin2=isign*0.9510565162951536d0
+        sin2=i_sign*0.9510565162951536d0
 !         sin(4.d0*pi/5.d0)
-        sin4=isign*0.5877852522924731d0
+        sin4=i_sign*0.5877852522924731d0
         ia=1
         nin1=ia-after
         nout1=ia-atn
@@ -4161,7 +4261,7 @@ subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
         do 5000,ia=2,after
         ias=ia-1
         if (8*ias.eq.5*after) then
-                if (isign.eq.1) then
+                if (i_sign.eq.1) then
                         nin1=ia-after
                         nout1=ia-atn
                         do 5010,ib=1,before
@@ -4350,81 +4450,161 @@ subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
 5100                continue
         endif
 5000        continue
-       else if (now.eq.6) then
+!End of radix 5
+
+! Radix 6
+   else if (now.eq.6) then
 !         .5d0*sqrt(3.d0)
-        bb=isign*0.8660254037844387d0
+      bb=i_sign*0.8660254037844387d0
+      ia=1
+      nin1=ia-after
+      nout1=ia-atn
+      do ib=1,before
+         nin1=nin1+after
+         nin2=nin1+atb
+         nin3=nin2+atb
+         nin4=nin3+atb
+         nin5=nin4+atb
+         nin6=nin5+atb
+         nout1=nout1+atn
+         nout2=nout1+after
+         nout3=nout2+after
+         nout4=nout3+after
+         nout5=nout4+after
+         nout6=nout5+after
+         do j=1,nfft
+            r2=zin(1,j,nin3)
+            s2=zin(2,j,nin3)
+            r3=zin(1,j,nin5)
+            s3=zin(2,j,nin5)
+            r=r2 + r3
+            s=s2 + s3
+            r1=zin(1,j,nin1)
+            s1=zin(2,j,nin1)
+            ur1 = r + r1
+            ui1 = s + s1
+            r1=r1 - .5d0*r
+            s1=s1 - .5d0*s
+            r=r2-r3
+            s=s2-s3
+            ur2 = r1 - s*bb
+            ui2 = s1 + r*bb
+            ur3 = r1 + s*bb
+            ui3 = s1 - r*bb
 
-        ia=1
-        nin1=ia-after
-        nout1=ia-atn
-        do 6120,ib=1,before
-        nin1=nin1+after
-        nin2=nin1+atb
-        nin3=nin2+atb
-        nin4=nin3+atb
-        nin5=nin4+atb
-        nin6=nin5+atb
-        nout1=nout1+atn
-        nout2=nout1+after
-        nout3=nout2+after
-        nout4=nout3+after
-        nout5=nout4+after
-        nout6=nout5+after
-        do 6120,j=1,nfft
-        r2=zin(1,j,nin3)
-        s2=zin(2,j,nin3)
-        r3=zin(1,j,nin5)
-        s3=zin(2,j,nin5)
-        r=r2 + r3
-        s=s2 + s3
-        r1=zin(1,j,nin1)
-        s1=zin(2,j,nin1)
-        ur1 = r + r1
-        ui1 = s + s1
-        r1=r1 - .5d0*r
-        s1=s1 - .5d0*s
-        r=r2-r3
-        s=s2-s3
-        ur2 = r1 - s*bb
-        ui2 = s1 + r*bb
-        ur3 = r1 + s*bb
-        ui3 = s1 - r*bb
+            r2=zin(1,j,nin6)
+            s2=zin(2,j,nin6)
+            r3=zin(1,j,nin2)
+            s3=zin(2,j,nin2)
+            r=r2 + r3
+            s=s2 + s3
+            r1=zin(1,j,nin4)
+            s1=zin(2,j,nin4)
+            vr1 = r + r1
+            vi1 = s + s1
+            r1=r1 - .5d0*r
+            s1=s1 - .5d0*s
+            r=r2-r3
+            s=s2-s3
+            vr2 = r1 - s*bb
+            vi2 = s1 + r*bb
+            vr3 = r1 + s*bb
+            vi3 = s1 - r*bb
 
-        r2=zin(1,j,nin6)
-        s2=zin(2,j,nin6)
-        r3=zin(1,j,nin2)
-        s3=zin(2,j,nin2)
-        r=r2 + r3
-        s=s2 + s3
-        r1=zin(1,j,nin4)
-        s1=zin(2,j,nin4)
-        vr1 = r + r1
-        vi1 = s + s1
-        r1=r1 - .5d0*r
-        s1=s1 - .5d0*s
-        r=r2-r3
-        s=s2-s3
-        vr2 = r1 - s*bb
-        vi2 = s1 + r*bb
-        vr3 = r1 + s*bb
-        vi3 = s1 - r*bb
+            zout(1,nout1,j)=ur1+vr1
+            zout(2,nout1,j)=ui1+vi1
+            zout(1,nout5,j)=ur2+vr2
+            zout(2,nout5,j)=ui2+vi2
+            zout(1,nout3,j)=ur3+vr3
+            zout(2,nout3,j)=ui3+vi3
+            zout(1,nout4,j)=ur1-vr1
+            zout(2,nout4,j)=ui1-vi1
+            zout(1,nout2,j)=ur2-vr2
+            zout(2,nout2,j)=ui2-vi2
+            zout(1,nout6,j)=ur3-vr3
+            zout(2,nout6,j)=ui3-vi3
+         end do
+      end do
+!End of radix 6
 
-        zout(1,nout1,j)=ur1+vr1
-        zout(2,nout1,j)=ui1+vi1
-        zout(1,nout5,j)=ur2+vr2
-        zout(2,nout5,j)=ui2+vi2
-        zout(1,nout3,j)=ur3+vr3
-        zout(2,nout3,j)=ui3+vi3
-        zout(1,nout4,j)=ur1-vr1
-        zout(2,nout4,j)=ui1-vi1
-        zout(1,nout2,j)=ur2-vr2
-        zout(2,nout2,j)=ui2-vi2
-        zout(1,nout6,j)=ur3-vr3
-        zout(2,nout6,j)=ui3-vi3
-6120        continue
+! Radix 7
+   else if (now.eq.7) then
 
-       else
-        stop 'error fftrot_sg'
-       endif
+      ia=1
+      nin1=ia-after
+      nout1=ia-atn
+
+      do ib=1,before
+         nin1=nin1+after
+         nin2=nin1+atb
+         nin3=nin2+atb
+         nin4=nin3+atb
+         nin5=nin4+atb
+         nin6=nin5+atb
+         nin7=nin6+atb
+         nout1=nout1+atn
+         nout2=nout1+after
+         nout3=nout2+after
+         nout4=nout3+after
+         nout5=nout4+after
+         nout6=nout5+after
+         nout7=nout6+after
+         do j=1,nfft
+
+            cos2= 0.62348980185873353053d0
+            cos4=-0.22252093395631440429d0
+            cos6=-0.90096886790241912624d0
+
+            sin2= 0.78183148246802980871d0*isign
+            sin4= 0.97492791218182360702d0*isign
+            sin6= 0.43388373911755812048d0*isign
+
+            r1=zin(1,j,nin1);   s1=zin(2,j,nin1)
+            r2=zin(1,j,nin2);   s2=zin(2,j,nin2)
+            r3=zin(1,j,nin3);   s3=zin(2,j,nin3)
+            r4=zin(1,j,nin4);   s4=zin(2,j,nin4)
+            r5=zin(1,j,nin5);   s5=zin(2,j,nin5)
+            r6=zin(1,j,nin6);   s6=zin(2,j,nin6)
+            r7=zin(1,j,nin7);   s7=zin(2,j,nin7)
+
+            rp2=r2+r7; rp3=r3+r6; rp4=r4+r5
+            rm2=r2-r7; rm3=r3-r6; rm4=r4-r5
+            sp2=s2+s7; sp3=s3+s6; sp4=s4+s5
+            sm2=s2-s7; sm3=s3-s6; sm4=s4-s5
+
+            ur2=r1+cos2*rp2+cos4*rp3+cos6*rp4
+            vr2=   sin2*sm2+sin4*sm3+sin6*sm4
+
+            ui2=s1+cos2*sp2+cos4*sp3+cos6*sp4
+            vi2=   sin2*rm2+sin4*rm3+sin6*rm4
+                      
+            ur3=r1+cos4*rp2+cos6*rp3+cos2*rp4
+            vr3=   sin4*sm2-sin6*sm3-sin2*sm4
+
+            ui3=s1+cos4*sp2+cos6*sp3+cos2*sp4
+            vi3=   sin4*rm2-sin6*rm3-sin2*rm4
+
+            ur4=r1+cos6*rp2+cos2*rp3+cos4*rp4
+            vr4=   sin6*sm2-sin2*sm3+sin4*sm4
+
+            ui4=s1+cos6*sp2+cos2*sp3+cos4*sp4
+            vi4=   sin6*rm2-sin2*rm3+sin4*rm4
+
+            zout(1,nout1,j)=r1+rp2+rp3+rp4; zout(2,nout1,j)=s1+sp2+sp3+sp4
+            zout(1,nout2,j)=ur2-vr2;        zout(2,nout2,j)=ui2+vi2
+            zout(1,nout3,j)=ur3-vr3;        zout(2,nout3,j)=ui3+vi3
+            zout(1,nout4,j)=ur4-vr4;        zout(2,nout4,j)=ui4+vi4
+            zout(1,nout5,j)=ur4+vr4;        zout(2,nout5,j)=ui4-vi4
+            zout(1,nout6,j)=ur3+vr3;        zout(2,nout6,j)=ui3-vi3
+            zout(1,nout7,j)=ur2+vr2;        zout(2,nout7,j)=ui2-vi2
+
+         end do
+      end do
+!End of radix 7
+
+   else
+      stop 'error fftrot_sg'
+   endif
 
 end subroutine fftrot_sg
+!!***
