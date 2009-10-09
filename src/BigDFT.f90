@@ -204,6 +204,7 @@ program BigDFT
      deallocate(fxyz,stat=i_stat)
      call memocc(i_stat,i_all,'fxyz',subname)
 
+     call free_input_variables(inputs)
 
      !finalize memory counting
      call memocc(0,0,'count','stop')
@@ -213,8 +214,6 @@ program BigDFT
   enddo !loop over iconfig
 
   deallocate(arr_posinp)
-
-  call free_input_variables(inputs)
 
   call MPI_FINALIZE(ierr)
 
