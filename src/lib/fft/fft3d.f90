@@ -3102,7 +3102,7 @@ subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,i_sign)
             zout(2,nout2,j)= s1 - s2
          end do
       end do
-      do 2000,ia=2,after
+      loop_2000: do ia=2,after
          ias=ia-1
          if (2*ias.eq.after) then
             if (i_sign.eq.1) then
@@ -3166,7 +3166,7 @@ subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,i_sign)
                      zout(2,nout2,j)= s1 - s2
                   end do
                end do
-           else
+            else
                nin1=ia-after
                nout1=ia-atn
                do ib=1,before
@@ -3174,7 +3174,7 @@ subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,i_sign)
                   nin2=nin1+atb
                   nout1=nout1+atn
                   nout2=nout1+after
-                     do j=1,nfft
+                  do j=1,nfft
                      r1=zin(1,j,nin1)
                      s1=zin(2,j,nin1)
                      r=zin(1,j,nin2)
@@ -3187,132 +3187,136 @@ subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,i_sign)
                      zout(2,nout2,j)= s1 - s2
                   end do
                end do
-           endif
-      else if (4*ias.eq.3*after) then
-              if (i_sign.eq.1) then
-                      nin1=ia-after
-                      nout1=ia-atn
-                      do 2050,ib=1,before
-                      nin1=nin1+after
-                      nin2=nin1+atb
-                      nout1=nout1+atn
-                      nout2=nout1+after
-                      do 2050,j=1,nfft
-                      r1=zin(1,j,nin1)
-                      s1=zin(2,j,nin1)
-                      r=zin(1,j,nin2)
-                      s=zin(2,j,nin2)
-                      r2=(r + s)*rt2i
-                      s2=(r - s)*rt2i
-                      zout(1,nout1,j)= r1 - r2
-                      zout(2,nout1,j)= s2 + s1
-                      zout(1,nout2,j)= r2 + r1
-                      zout(2,nout2,j)= s1 - s2
-2050                      continue
-              else
-                      nin1=ia-after
-                      nout1=ia-atn
-                      do 2060,ib=1,before
-                      nin1=nin1+after
-                      nin2=nin1+atb
-                      nout1=nout1+atn
-                      nout2=nout1+after
-                      do 2060,j=1,nfft
-                      r1=zin(1,j,nin1)
-                      s1=zin(2,j,nin1)
-                      r=zin(1,j,nin2)
-                      s=zin(2,j,nin2)
-                      r2=(s - r)*rt2i
-                      s2=(r + s)*rt2i
-                      zout(1,nout1,j)= r2 + r1
-                      zout(2,nout1,j)= s1 - s2
-                      zout(1,nout2,j)= r1 - r2
-                      zout(2,nout2,j)= s2 + s1
-2060                      continue
-              endif
-      else
-              itrig=ias*before+1
-              cr2=trig(1,itrig)
-              ci2=trig(2,itrig)
-              nin1=ia-after
-              nout1=ia-atn
-              do 2090,ib=1,before
-              nin1=nin1+after
-              nin2=nin1+atb
-              nout1=nout1+atn
-              nout2=nout1+after
-              do 2090,j=1,nfft
-              r1=zin(1,j,nin1)
-              s1=zin(2,j,nin1)
-              r=zin(1,j,nin2)
-              s=zin(2,j,nin2)
-              r2=r*cr2 - s*ci2
-              s2=r*ci2 + s*cr2
-              zout(1,nout1,j)= r2 + r1
-              zout(2,nout1,j)= s2 + s1
-              zout(1,nout2,j)= r1 - r2
-              zout(2,nout2,j)= s1 - s2
-2090              continue
-      endif
-2000      continue
+            endif
+         else if (4*ias.eq.3*after) then
+            if (i_sign.eq.1) then
+               nin1=ia-after
+               nout1=ia-atn
+               do ib=1,before
+                  nin1=nin1+after
+                  nin2=nin1+atb
+                  nout1=nout1+atn
+                  nout2=nout1+after
+                  do j=1,nfft
+                     r1=zin(1,j,nin1)
+                     s1=zin(2,j,nin1)
+                     r=zin(1,j,nin2)
+                     s=zin(2,j,nin2)
+                     r2=(r + s)*rt2i
+                     s2=(r - s)*rt2i
+                     zout(1,nout1,j)= r1 - r2
+                     zout(2,nout1,j)= s2 + s1
+                     zout(1,nout2,j)= r2 + r1
+                     zout(2,nout2,j)= s1 - s2
+                  end do
+               end do
+            else
+               nin1=ia-after
+               nout1=ia-atn
+               do ib=1,before
+                  nin1=nin1+after
+                  nin2=nin1+atb
+                  nout1=nout1+atn
+                  nout2=nout1+after
+                  do j=1,nfft
+                     r1=zin(1,j,nin1)
+                     s1=zin(2,j,nin1)
+                     r=zin(1,j,nin2)
+                     s=zin(2,j,nin2)
+                     r2=(s - r)*rt2i
+                     s2=(r + s)*rt2i
+                     zout(1,nout1,j)= r2 + r1
+                     zout(2,nout1,j)= s1 - s2
+                     zout(1,nout2,j)= r1 - r2
+                     zout(2,nout2,j)= s2 + s1
+                  end do
+               end do
+            endif
+         else
+            itrig=ias*before+1
+            cr2=trig(1,itrig)
+            ci2=trig(2,itrig)
+            nin1=ia-after
+            nout1=ia-atn
+            do ib=1,before
+               nin1=nin1+after
+               nin2=nin1+atb
+               nout1=nout1+atn
+               nout2=nout1+after
+               do j=1,nfft
+                  r1=zin(1,j,nin1)
+                  s1=zin(2,j,nin1)
+                  r=zin(1,j,nin2)
+                  s=zin(2,j,nin2)
+                  r2=r*cr2 - s*ci2
+                  s2=r*ci2 + s*cr2
+                  zout(1,nout1,j)= r2 + r1
+                  zout(2,nout1,j)= s2 + s1
+                  zout(1,nout2,j)= r1 - r2
+                  zout(2,nout2,j)= s1 - s2
+               end do
+            end do
+         endif
+      end do loop_2000
 !End of radix 2
 
 ! Radix 4
-        else if (now.eq.4) then
-        if (i_sign.eq.1) then 
-                ia=1
-                nin1=ia-after
-                nout1=ia-atn
-                do 4001,ib=1,before
-                nin1=nin1+after
-                nin2=nin1+atb
-                nin3=nin2+atb
-                nin4=nin3+atb
-                nout1=nout1+atn
-                nout2=nout1+after
-                nout3=nout2+after
-                nout4=nout3+after
-                do 4001,j=1,nfft
-                r1=zin(1,j,nin1)
-                s1=zin(2,j,nin1)
-                r2=zin(1,j,nin2)
-                s2=zin(2,j,nin2)
-                r3=zin(1,j,nin3)
-                s3=zin(2,j,nin3)
-                r4=zin(1,j,nin4)
-                s4=zin(2,j,nin4)
-                r=r1 + r3
-                s=r2 + r4
-                zout(1,nout1,j) = r + s
-                zout(1,nout3,j) = r - s
-                r=r1 - r3
-                s=s2 - s4
-                zout(1,nout2,j) = r - s 
-                zout(1,nout4,j) = r + s
-                r=s1 + s3
-                s=s2 + s4
-                zout(2,nout1,j) = r + s 
-                zout(2,nout3,j) = r - s
-                r=s1 - s3
-                s=r2 - r4
-                zout(2,nout2,j) = r + s 
-                zout(2,nout4,j) = r - s
-4001                continue
-                do 4000,ia=2,after
-                ias=ia-1
-                if (2*ias.eq.after) then
-                        nin1=ia-after
-                        nout1=ia-atn
-                        do 4010,ib=1,before
-                        nin1=nin1+after
-                        nin2=nin1+atb
-                        nin3=nin2+atb
-                        nin4=nin3+atb
-                        nout1=nout1+atn
-                        nout2=nout1+after
-                        nout3=nout2+after
-                        nout4=nout3+after
-                        do 4010,j=1,nfft
+      else if (now.eq.4) then
+         if (i_sign.eq.1) then 
+            ia=1
+            nin1=ia-after
+            nout1=ia-atn
+            do ib=1,before
+               nin1=nin1+after
+               nin2=nin1+atb
+               nin3=nin2+atb
+               nin4=nin3+atb
+               nout1=nout1+atn
+               nout2=nout1+after
+               nout3=nout2+after
+               nout4=nout3+after
+               do j=1,nfft
+                  r1=zin(1,j,nin1)
+                  s1=zin(2,j,nin1)
+                  r2=zin(1,j,nin2)
+                  s2=zin(2,j,nin2)
+                  r3=zin(1,j,nin3)
+                  s3=zin(2,j,nin3)
+                  r4=zin(1,j,nin4)
+                  s4=zin(2,j,nin4)
+                  r=r1 + r3
+                  s=r2 + r4
+                  zout(1,nout1,j) = r + s
+                  zout(1,nout3,j) = r - s
+                  r=r1 - r3
+                  s=s2 - s4
+                  zout(1,nout2,j) = r - s 
+                  zout(1,nout4,j) = r + s
+                  r=s1 + s3
+                  s=s2 + s4
+                  zout(2,nout1,j) = r + s 
+                  zout(2,nout3,j) = r - s
+                  r=s1 - s3
+                  s=r2 - r4
+                  zout(2,nout2,j) = r + s 
+                  zout(2,nout4,j) = r - s
+               end do
+            end do
+            loop_4000: do ia=2,after
+               ias=ia-1
+               if (2*ias.eq.after) then
+                  nin1=ia-after
+                  nout1=ia-atn
+                  do ib=1,before
+                     nin1=nin1+after
+                     nin2=nin1+atb
+                     nin3=nin2+atb
+                     nin4=nin3+atb
+                     nout1=nout1+atn
+                     nout2=nout1+after
+                     nout3=nout2+after
+                     nout4=nout3+after
+                     do j=1,nfft
                         r1=zin(1,j,nin1)
                         s1=zin(2,j,nin1)
                         r=zin(1,j,nin2)
@@ -3341,30 +3345,31 @@ subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,i_sign)
                         s=r2 + r4
                         zout(2,nout2,j) = r + s 
                         zout(2,nout4,j) = r - s
-4010                        continue
-                else
-                        itt=ias*before
-                        itrig=itt+1
-                        cr2=trig(1,itrig)
-                        ci2=trig(2,itrig)
-                        itrig=itrig+itt
-                        cr3=trig(1,itrig)
-                        ci3=trig(2,itrig)
-                        itrig=itrig+itt
-                        cr4=trig(1,itrig)
-                        ci4=trig(2,itrig)
-                        nin1=ia-after
-                        nout1=ia-atn
-                        do 4020,ib=1,before
-                        nin1=nin1+after
-                        nin2=nin1+atb
-                        nin3=nin2+atb
-                        nin4=nin3+atb
-                        nout1=nout1+atn
-                        nout2=nout1+after
-                        nout3=nout2+after
-                        nout4=nout3+after
-                        do 4020,j=1,nfft
+                     end do
+                  end do
+               else
+                  itt=ias*before
+                  itrig=itt+1
+                  cr2=trig(1,itrig)
+                  ci2=trig(2,itrig)
+                  itrig=itrig+itt
+                  cr3=trig(1,itrig)
+                  ci3=trig(2,itrig)
+                  itrig=itrig+itt
+                  cr4=trig(1,itrig)
+                  ci4=trig(2,itrig)
+                  nin1=ia-after
+                  nout1=ia-atn
+                  do ib=1,before
+                     nin1=nin1+after
+                     nin2=nin1+atb
+                     nin3=nin2+atb
+                     nin4=nin3+atb
+                     nout1=nout1+atn
+                     nout2=nout1+after
+                     nout3=nout2+after
+                     nout4=nout3+after
+                     do j=1,nfft
                         r1=zin(1,j,nin1)
                         s1=zin(2,j,nin1)
                         r=zin(1,j,nin2)
@@ -3395,63 +3400,66 @@ subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,i_sign)
                         s=r2 - r4
                         zout(2,nout2,j) = r + s 
                         zout(2,nout4,j) = r - s
-4020                        continue
-                endif
-4000                continue
-        else
-                ia=1
-                nin1=ia-after
-                nout1=ia-atn
-                do 4101,ib=1,before
-                nin1=nin1+after
-                nin2=nin1+atb
-                nin3=nin2+atb
-                nin4=nin3+atb
-                nout1=nout1+atn
-                nout2=nout1+after
-                nout3=nout2+after
-                nout4=nout3+after
-                do 4101,j=1,nfft
-                r1=zin(1,j,nin1)
-                s1=zin(2,j,nin1)
-                r2=zin(1,j,nin2)
-                s2=zin(2,j,nin2)
-                r3=zin(1,j,nin3)
-                s3=zin(2,j,nin3)
-                r4=zin(1,j,nin4)
-                s4=zin(2,j,nin4)
-                r=r1 + r3
-                s=r2 + r4
-                zout(1,nout1,j) = r + s
-                zout(1,nout3,j) = r - s
-                r=r1 - r3
-                s=s2 - s4
-                zout(1,nout2,j) = r + s
-                zout(1,nout4,j) = r - s
-                r=s1 + s3
-                s=s2 + s4
-                zout(2,nout1,j) = r + s
-                zout(2,nout3,j) = r - s
-                r=s1 - s3
-                s=r2 - r4
-                zout(2,nout2,j) = r - s
-                zout(2,nout4,j) = r + s
-4101                continue
-                do 4100,ia=2,after
-                ias=ia-1
-                if (2*ias.eq.after) then
-                        nin1=ia-after
-                        nout1=ia-atn
-                        do 4110,ib=1,before
-                        nin1=nin1+after
-                        nin2=nin1+atb
-                        nin3=nin2+atb
-                        nin4=nin3+atb
-                        nout1=nout1+atn
-                        nout2=nout1+after
-                        nout3=nout2+after
-                        nout4=nout3+after
-                        do 4110,j=1,nfft
+                     end do
+                  end do
+               endif
+            end do loop_4000
+
+         else
+            ia=1
+            nin1=ia-after
+            nout1=ia-atn
+            do ib=1,before
+               nin1=nin1+after
+               nin2=nin1+atb
+               nin3=nin2+atb
+               nin4=nin3+atb
+               nout1=nout1+atn
+               nout2=nout1+after
+               nout3=nout2+after
+               nout4=nout3+after
+               do j=1,nfft
+                  r1=zin(1,j,nin1)
+                  s1=zin(2,j,nin1)
+                  r2=zin(1,j,nin2)
+                  s2=zin(2,j,nin2)
+                  r3=zin(1,j,nin3)
+                  s3=zin(2,j,nin3)
+                  r4=zin(1,j,nin4)
+                  s4=zin(2,j,nin4)
+                  r=r1 + r3
+                  s=r2 + r4
+                  zout(1,nout1,j) = r + s
+                  zout(1,nout3,j) = r - s
+                  r=r1 - r3
+                  s=s2 - s4
+                  zout(1,nout2,j) = r + s
+                  zout(1,nout4,j) = r - s
+                  r=s1 + s3
+                  s=s2 + s4
+                  zout(2,nout1,j) = r + s
+                  zout(2,nout3,j) = r - s
+                  r=s1 - s3
+                  s=r2 - r4
+                  zout(2,nout2,j) = r - s
+                  zout(2,nout4,j) = r + s
+               end do
+            end do
+            loop_4100: do ia=2,after
+               ias=ia-1
+               if (2*ias.eq.after) then
+                  nin1=ia-after
+                  nout1=ia-atn
+                  do ib=1,before
+                     nin1=nin1+after
+                     nin2=nin1+atb
+                     nin3=nin2+atb
+                     nin4=nin3+atb
+                     nout1=nout1+atn
+                     nout2=nout1+after
+                     nout3=nout2+after
+                     nout4=nout3+after
+                     do j=1,nfft
                         r1=zin(1,j,nin1)
                         s1=zin(2,j,nin1)
                         r=zin(1,j,nin2)
@@ -3480,30 +3488,31 @@ subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,i_sign)
                         s=r2 - r4
                         zout(2,nout2,j) = r - s
                         zout(2,nout4,j) = r + s
-4110                        continue
-                else
-                        itt=ias*before
-                        itrig=itt+1
-                        cr2=trig(1,itrig)
-                        ci2=trig(2,itrig)
-                        itrig=itrig+itt
-                        cr3=trig(1,itrig)
-                        ci3=trig(2,itrig)
-                        itrig=itrig+itt
-                        cr4=trig(1,itrig)
-                        ci4=trig(2,itrig)
-                        nin1=ia-after
-                        nout1=ia-atn
-                        do 4120,ib=1,before
-                        nin1=nin1+after
-                        nin2=nin1+atb
-                        nin3=nin2+atb
-                        nin4=nin3+atb
-                        nout1=nout1+atn
-                        nout2=nout1+after
-                        nout3=nout2+after
-                        nout4=nout3+after
-                        do 4120,j=1,nfft
+                     end do
+                  end do
+               else
+                  itt=ias*before
+                  itrig=itt+1
+                  cr2=trig(1,itrig)
+                  ci2=trig(2,itrig)
+                  itrig=itrig+itt
+                  cr3=trig(1,itrig)
+                  ci3=trig(2,itrig)
+                  itrig=itrig+itt
+                  cr4=trig(1,itrig)
+                  ci4=trig(2,itrig)
+                  nin1=ia-after
+                  nout1=ia-atn
+                  do ib=1,before
+                     nin1=nin1+after
+                     nin2=nin1+atb
+                     nin3=nin2+atb
+                     nin4=nin3+atb
+                     nout1=nout1+atn
+                     nout2=nout1+after
+                     nout3=nout2+after
+                     nout4=nout3+after
+                     do j=1,nfft
                         r1=zin(1,j,nin1)
                         s1=zin(2,j,nin1)
                         r=zin(1,j,nin2)
@@ -3534,9 +3543,10 @@ subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,i_sign)
                         s=r2 - r4
                         zout(2,nout2,j) = r - s
                         zout(2,nout4,j) = r + s
-4120                        continue
-                endif
-4100                continue
+                     end do
+                  end do
+               endif
+            end do loop_4100
         endif
 !End of radix 4
 

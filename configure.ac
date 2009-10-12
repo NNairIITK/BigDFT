@@ -420,6 +420,8 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
+src/lib/Makefile
+src/lib/fft/Makefile
 src/modules/Makefile
 src/profiling/Makefile
 src/PSolver/ABINIT-common/Makefile
