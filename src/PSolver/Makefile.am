@@ -12,7 +12,6 @@ SOURCES_MOD = PSolver_Main.f90 \
 	PSolver_Base.f90 \
 	xcenergy.f90 \
 	3Dgradient.f90 \
-	fft3d.f90 \
 	scaling_function.f90
 
 OTHERS = Makefile.PSolver \
@@ -76,11 +75,9 @@ AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@
 
 if USE_MPI
 mpi_source =
-mpi_include =
 LMPI = @MPI_LDFLAGS@ 
 else
 mpi_source = ../MPIfake.f90
-mpi_include = mpif.h
 LMPI = 
 endif
 
@@ -93,6 +90,7 @@ endif
 
 libpoissonsolver_a_SOURCES = \
 	Poisson_Solver.f90 \
+	../lib/fft/fft3d.f90 \
 	../profiling/time.f90 
 
 libpoissonsolver_a_LIBADD = ../modules/libmodules.a
@@ -127,21 +125,13 @@ PS_Exercise_LDADD =	libpoissonsolver.a \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
-CLEANFILES = mpif.h malloc.prc time.par PS_Check.out \
+CLEANFILES = malloc.prc time.prc PS_Check.out \
 	POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@
 
 #dependencies
-mpif.h:
-	touch mpif.h &&\
-	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
-	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
-	 echo "integer :: MPI_MIN, MPI_MAX, MPI_CHARACTER" >> mpif.h
-
 poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 
 Poisson_Solver.o: ../modules/base.o $(SOURCES_MOD)
-
-#base.o : $(mpi_include)
 
 #PS_Check.o: Poisson_Solver.o
 

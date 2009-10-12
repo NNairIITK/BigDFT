@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 27/09/2009
+# Date: 28/09/2009
 #--------------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -470,6 +470,8 @@ def build_declaration(dict_vars):
         declaration += line+"\n"
     if locals:
         declaration += comment_local_variables
+    line = ""
+    type = ""
     for (order,name) in locals:
         (decl,var) = dict_vars[name].build_declaration()
         if decl == "subroutine":
@@ -2552,7 +2554,7 @@ class Declaration(Code):
     re_noamp = re.compile("[ ]*[&]+[ ]*")
     #Detect only declarations without include, data, external and save
     re_only_declaration = re.compile('^[ \t]*' \
-        + '(character|complex|dimension|double|end[ ]+type|integer|interface|logical|parameter|private|public|real|type)',\
+        + '(allocatable|character|complex|dimension|double|end[ ]+type|integer|interface|logical|parameter|private|public|real|type)',\
         re.IGNORECASE)
     #For character(len=xxx)
     re_character = re.compile('character[(](len[ =]+)?(?P<len>[^)]+)[)]',re.IGNORECASE)
@@ -2741,7 +2743,8 @@ class Declaration(Code):
                         decl_lower[0:7] == "complex" or \
                         decl_lower[0:7] == "integer" or \
                         decl_lower[0:7] == "logical" or \
-                        decl_lower == "dimension":
+                        decl_lower == "dimension" or decl_lower == "allocatable":
+                    #In this case: decl = liste[0] and liste = the rest
                     liste = reduce(lambda x,y: x + " " + y, liste[1:])
                 elif "character" in decl_lower:
                     #Detect character without ::
@@ -3043,13 +3046,11 @@ class Execution(Code):
             declaration = build_declaration(dict_vars)
             if declaration:
                 self.message.error("%s/%s: [%s]\n--> Undeclared variables\n%s" \
-                    % (self.dir,self.file,self.name,build_declaration(undeclared)))
-                sys.exit(1)
+                    % (self.dir,self.file,self.parent.name,build_declaration(undeclared)))
                 #Edition using vim
                 if edition:
                     for var in dict_vars.values():
                         var.display_information()
-                    sys.exit(1)
                     #Edit inside vim the whole file: put in the register "a the declarations
                     vim_message = "Register v = %s" % declaration \
                             + "Register a = !Arguments\n" \
@@ -3137,7 +3138,10 @@ class Variable:
             elif head == "allocatable":
                 self.allocatable = True
             elif head == "dimension":
-                self.dimension = all[9:]
+                dim = all[9:]
+                if dim:
+                    #To avoid to remove dimension information as dimension :: a(5)
+                    self.dimension = dim
             elif head == "intent":
                 self.intent = head[7:-2]
             elif head == "external":

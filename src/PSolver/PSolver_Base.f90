@@ -112,9 +112,9 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf,&
   end if
 
   !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
-  call ctrig(n3,btrig3,after3,before3,now3,1,ic3)
-  call ctrig(n1,btrig1,after1,before1,now1,1,ic1)
-  call ctrig(n2,btrig2,after2,before2,now2,1,ic2)
+  call ctrig_sg(n3,btrig3,after3,before3,now3,1,ic3)
+  call ctrig_sg(n1,btrig1,after1,before1,now1,1,ic1)
+  call ctrig_sg(n2,btrig2,after2,before2,now2,1,ic2)
   do  j=1,n1
      ftrig1(1,j)= btrig1(1,j)
      ftrig1(2,j)=-btrig1(2,j)
@@ -151,7 +151,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf,&
            !input: I1,I3,J2,(Jp2)
            inzee=1
            do i=1,ic3
-              call fftstp(lot,nfft,n3,lot,n3,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n3,lot,n3,zw(1,1,inzee),zw(1,1,3-inzee), &
                    btrig3,after3(i),now3(i),before3(i),1)
               inzee=3-inzee
            enddo
@@ -221,14 +221,14 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf,&
            !input: I2,I1,j3,(jp3)
            inzee=1
            do i=1,ic1-1
-              call fftstp(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
                    btrig1,after1(i),now1(i),before1(i),1)
               inzee=3-inzee
            enddo
 
            !storing the last step into zt array
            i=ic1
-           call fftstp(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1), & 
+           call fftstp_sg(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1), & 
                 btrig1,after1(i),now1(i),before1(i),1)           
            !output: I2,i1,j3,(jp3)
         end do
@@ -257,7 +257,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf,&
            !input: i1,I2,j3,(jp3)
            inzee=1
            do i=1,ic2
-              call fftstp(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    btrig2,after2(i),now2(i),before2(i),1)
               inzee=3-inzee
            enddo
@@ -276,7 +276,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf,&
            !transform along y axis
            !input: i1,i2,j3,(jp3)
            do i=1,ic2
-              call fftstp(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    ftrig2,after2(i),now2(i),before2(i),-1)
               inzee=3-inzee
            enddo
@@ -297,12 +297,12 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf,&
 
            !performing FFT
            i=1
-           call fftstp(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1), &
+           call fftstp_sg(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1), &
                 ftrig1,after1(i),now1(i),before1(i),-1)
            
            inzee=1
            do i=2,ic1
-              call fftstp(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
                    ftrig1,after1(i),now1(i),before1(i),-1)
               inzee=3-inzee
            enddo
@@ -357,7 +357,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf,&
            !input: I1,i3,J2,(Jp2)           
            inzee=1
            do i=1,ic3
-              call fftstp(lot,nfft,n3,lot,n3,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n3,lot,n3,zw(1,1,inzee),zw(1,1,3-inzee), &
                    ftrig3,after3(i),now3(i),before3(i),-1)
               inzee=3-inzee
            enddo
@@ -937,7 +937,7 @@ end subroutine multkernel
 !!     n1,n2,n3/2:  logical dimension of the transform. As transform lengths 
 !!                  most products of the prime factors 2,3,5 are allowed.
 !!                  The detailed table with allowed transform lengths can 
-!!                  be found in subroutine CTRIG
+!!                  be found in subroutine ctrig_sg
 !!     md1,md2,md3: Dimension of ZF
 !!     nd1,nd2,nd3/nproc: Dimension of POT
 !!     scal:        factor of renormalization of the FFT in order to acheve unitarity 
@@ -1064,9 +1064,9 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
 
 
   !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
-  call ctrig(n3/2,btrig3,after3,before3,now3,1,ic3)
-  call ctrig(n1,btrig1,after1,before1,now1,1,ic1)
-  call ctrig(n2,btrig2,after2,before2,now2,1,ic2)
+  call ctrig_sg(n3/2,btrig3,after3,before3,now3,1,ic3)
+  call ctrig_sg(n1,btrig1,after1,before1,now1,1,ic1)
+  call ctrig_sg(n2,btrig2,after2,before2,now2,1,ic2)
   do  j=1,n1
      ftrig1(1,j)= btrig1(1,j)
      ftrig1(2,j)=-btrig1(2,j)
@@ -1115,7 +1115,7 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
            !input: I1,I3,J2,(Jp2)
            inzee=1
            do i=1,ic3
-              call fftstp(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    btrig3,after3(i),now3(i),before3(i),1)
               inzee=3-inzee
            enddo
@@ -1185,14 +1185,14 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
            !input: I2,I1,j3,(jp3)
            inzee=1
            do i=1,ic1-1
-              call fftstp(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
                    btrig1,after1(i),now1(i),before1(i),1)
               inzee=3-inzee
            enddo
 
            !storing the last step into zt array
            i=ic1
-           call fftstp(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1), & 
+           call fftstp_sg(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1), & 
                 btrig1,after1(i),now1(i),before1(i),1)           
            !output: I2,i1,j3,(jp3)
         end do
@@ -1221,7 +1221,7 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
            !input: i1,I2,j3,(jp3)
            inzee=1
            do i=1,ic2
-              call fftstp(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    btrig2,after2(i),now2(i),before2(i),1)
               inzee=3-inzee
            enddo
@@ -1235,7 +1235,7 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
            !transform along y axis
            !input: i1,i2,j3,(jp3)
            do i=1,ic2
-              call fftstp(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    ftrig2,after2(i),now2(i),before2(i),-1)
               inzee=3-inzee
            enddo
@@ -1256,12 +1256,12 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
 
            !performing FFT
            i=1
-           call fftstp(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1), &
+           call fftstp_sg(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1), &
                 ftrig1,after1(i),now1(i),before1(i),-1)
            
            inzee=1
            do i=2,ic1
-              call fftstp(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
                    ftrig1,after1(i),now1(i),before1(i),-1)
               inzee=3-inzee
            enddo
@@ -1318,7 +1318,7 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
            !input: I1,i3,J2,(Jp2)           
            inzee=1
            do i=1,ic3
-              call fftstp(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    ftrig3,after3(i),now3(i),before3(i),-1)
               inzee=3-inzee
            enddo
@@ -1756,7 +1756,7 @@ end subroutine unscramble_pack
 !!     n1,n2,n3:    logical dimension of the transform. As transform lengths 
 !!                  most products of the prime factors 2,3,5 are allowed.
 !!                  The detailed table with allowed transform lengths can 
-!!                  be found in subroutine CTRIG
+!!                  be found in subroutine ctrig_sg
 !!     md1,md2,md3: Dimension of ZF
 !!     nd1,nd2,nd3: Dimension of POT
 !!     scal:        factor of renormalization of the FFT in order to acheve unitarity 
@@ -1882,9 +1882,9 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
 
 
   !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
-  call ctrig(n3/2,btrig3,after3,before3,now3,1,ic3)
-  call ctrig(n1,btrig1,after1,before1,now1,1,ic1)
-  call ctrig(n2,btrig2,after2,before2,now2,1,ic2)
+  call ctrig_sg(n3/2,btrig3,after3,before3,now3,1,ic3)
+  call ctrig_sg(n1,btrig1,after1,before1,now1,1,ic1)
+  call ctrig_sg(n2,btrig2,after2,before2,now2,1,ic2)
   do  j=1,n1
      ftrig1(1,j)= btrig1(1,j)
      ftrig1(2,j)=-btrig1(2,j)
@@ -1933,7 +1933,7 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
            !input: I1,I3,J2,(Jp2)
            inzee=1
            do i=1,ic3
-              call fftstp(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    btrig3,after3(i),now3(i),before3(i),1)
               inzee=3-inzee
            enddo
@@ -2002,14 +2002,14 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
            !input: I2,I1,j3,(jp3)
            inzee=1
            do i=1,ic1-1
-              call fftstp(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
                    btrig1,after1(i),now1(i),before1(i),1)
               inzee=3-inzee
            enddo
 
            !storing the last step into zt array
            i=ic1
-           call fftstp(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1), & 
+           call fftstp_sg(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1), & 
                 btrig1,after1(i),now1(i),before1(i),1)           
            !output: I2,i1,j3,(jp3)
         end do
@@ -2038,7 +2038,7 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
            !input: i1,I2,j3,(jp3)
            inzee=1
            do i=1,ic2
-              call fftstp(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    btrig2,after2(i),now2(i),before2(i),1)
               inzee=3-inzee
            enddo
@@ -2052,7 +2052,7 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
            !transform along y axis
            !input: i1,i2,j3,(jp3)
            do i=1,ic2
-              call fftstp(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    ftrig2,after2(i),now2(i),before2(i),-1)
               inzee=3-inzee
            enddo
@@ -2073,12 +2073,12 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
 
            !performing FFT
            i=1
-           call fftstp(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1), &
+           call fftstp_sg(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1), &
                 ftrig1,after1(i),now1(i),before1(i),-1)
            
            inzee=1
            do i=2,ic1
-              call fftstp(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
                    ftrig1,after1(i),now1(i),before1(i),-1)
               inzee=3-inzee
            enddo
@@ -2134,7 +2134,7 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
            !input: I1,i3,J2,(Jp2)           
            inzee=1
            do i=1,ic3
-              call fftstp(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    ftrig3,after3(i),now3(i),before3(i),-1)
               inzee=3-inzee
            enddo
@@ -2418,7 +2418,7 @@ end subroutine F_unfill_downcorn
 !!     n1,n2,n3:    logical dimension of the transform. As transform lengths 
 !!                  most products of the prime factors 2,3,5 are allowed.
 !!                  The detailed table with allowed transform lengths can 
-!!                  be found in subroutine CTRIG
+!!                  be found in subroutine ctrig_sg
 !!     md1,md2,md3: Dimension of ZF
 !!     nd1,nd2,nd3: Dimension of POT
 !!     scal:        factor of renormalization of the FFT in order to acheve unitarity 
@@ -2542,9 +2542,9 @@ subroutine W_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
 
 
   !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
-  call ctrig(n3/2,btrig3,after3,before3,now3,1,ic3)
-  call ctrig(n1,btrig1,after1,before1,now1,1,ic1)
-  call ctrig(n2,btrig2,after2,before2,now2,1,ic2)
+  call ctrig_sg(n3/2,btrig3,after3,before3,now3,1,ic3)
+  call ctrig_sg(n1,btrig1,after1,before1,now1,1,ic1)
+  call ctrig_sg(n2,btrig2,after2,before2,now2,1,ic2)
   do  j=1,n1
      ftrig1(1,j)= btrig1(1,j)
      ftrig1(2,j)=-btrig1(2,j)
@@ -2593,7 +2593,7 @@ subroutine W_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
            !input: I1,I3,J2,(Jp2)
            inzee=1
            do i=1,ic3
-              call fftstp(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    btrig3,after3(i),now3(i),before3(i),1)
               inzee=3-inzee
            enddo
@@ -2662,14 +2662,14 @@ subroutine W_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
            !input: I2,I1,j3,(jp3)
            inzee=1
            do i=1,ic1-1
-              call fftstp(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
                    btrig1,after1(i),now1(i),before1(i),1)
               inzee=3-inzee
            enddo
 
            !storing the last step into zt array
            i=ic1
-           call fftstp(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1), & 
+           call fftstp_sg(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1), & 
                 btrig1,after1(i),now1(i),before1(i),1)           
            !output: I2,i1,j3,(jp3)
         end do
@@ -2698,7 +2698,7 @@ subroutine W_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
            !input: i1,I2,j3,(jp3)
            inzee=1
            do i=1,ic2
-              call fftstp(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    btrig2,after2(i),now2(i),before2(i),1)
               inzee=3-inzee
            enddo
@@ -2712,7 +2712,7 @@ subroutine W_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
            !transform along y axis
            !input: i1,i2,j3,(jp3)
            do i=1,ic2
-              call fftstp(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    ftrig2,after2(i),now2(i),before2(i),-1)
               inzee=3-inzee
            enddo
@@ -2733,12 +2733,12 @@ subroutine W_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
 
            !performing FFT
            i=1
-           call fftstp(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1), &
+           call fftstp_sg(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1), &
                 ftrig1,after1(i),now1(i),before1(i),-1)
            
            inzee=1
            do i=2,ic1
-              call fftstp(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
                    ftrig1,after1(i),now1(i),before1(i),-1)
               inzee=3-inzee
            enddo
@@ -2794,7 +2794,7 @@ subroutine W_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
            !input: I1,i3,J2,(Jp2)           
            inzee=1
            do i=1,ic3
-              call fftstp(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    ftrig3,after3(i),now3(i),before3(i),-1)
               inzee=3-inzee
            enddo

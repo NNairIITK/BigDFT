@@ -1,6 +1,4 @@
-
-
-        subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,  & 
+subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,  & 
                    ncong,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,eval,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
 ! Calls the preconditioner for each orbital treated by the processor
         implicit real(kind=8) (a-h,o-z)
@@ -23,24 +21,30 @@
 
        call timing(iproc,'Precondition  ','OF')
 
-      return
-      end
+end subroutine preconditionall
 
 
-
-
-        subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
                    nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
                    ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
 ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 ! hpsi is the right hand side on input and the solution on output
-        implicit real(kind=8) (a-h,o-z)
-        dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
-        dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-        dimension hpsi(nvctr_c+7*nvctr_f),scal(0:3),residues(ncong)
-        dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-        allocatable rpsi(:),ppsi(:),wpsi(:)
-!        allocatable spsi(:)
+  implicit none
+!Arguments 
+  integer :: iorb,n1,n2,n3,ncong,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,nseg_c,nseg_f,nvctr_c
+  integer :: nvctr_f
+  real(kind=8) :: cprecr,hgrid,hpsi(nvctr_c+7*nvctr_f)
+  integer :: ibxy_c(2,0:n1,0:n2),ibxy_f(2,0:n1,0:n2),ibxz_c(2,0:n1,0:n3),ibxz_f(2,0:n1,0:n3)
+  integer :: ibyz_c(2,0:n2,0:n3),ibyz_f(2,0:n2,0:n3),keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
+!Local variables 
+  integer :: i,i_all,i_stat,icong
+  real(kind=8) :: a2,alpha,alpha1,alpha2,b2,beta,beta1,beta2,fac_h,h0,h1,h2,h3,tt
+  real(kind=8), allocatable :: ppsi(:)
+  real(kind=8) :: residues(ncong)
+  real(kind=8), allocatable :: rpsi(:)
+  real(kind=8) :: scal(0:3)
+  real(kind=8), allocatable :: wpsi(:)
+!  real(kind=8), allocatable :: spsi(:)
 
         allocate(rpsi(nvctr_c+7*nvctr_f),stat=i_stat)
         call memocc(i_stat,product(shape(rpsi))*kind(rpsi),'rpsi','precong')
@@ -162,11 +166,10 @@
         deallocate(wpsi,stat=i_stat)
         call memocc(i_stat,i_all,'wpsi','precong')
 
-        end
+end subroutine precong
 
 
-
-        subroutine wscalv(nvctr_c,nvctr_f,scal,psi_c,psi_f)
+subroutine wscalv(nvctr_c,nvctr_f,scal,psi_c,psi_f)
 ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
         implicit real(kind=8) (a-h,o-z)
         dimension psi_c(nvctr_c),psi_f(7,nvctr_f),scal(0:3)
@@ -184,9 +187,7 @@
            psi_f(7,i)=psi_f(7,i)*scal(3)       !  2 2 2
         enddo
 
-        return
-        end
-
+end subroutine wscalv
 
 
         SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
