@@ -278,21 +278,6 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
   ry=rxyz(2) 
   rz=rxyz(3)
 
-!!$  nl1_c=nboxp_c(1,1)
-!!$  nl2_c=nboxp_c(1,2)
-!!$  nl3_c=nboxp_c(1,3)
-!!$  nl1_f=nboxp_f(1,1)
-!!$  nl2_f=nboxp_f(1,2)
-!!$  nl3_f=nboxp_f(1,3)
-!!$
-!!$  nu1_c=nboxp_c(2,1)
-!!$  nu2_c=nboxp_c(2,2)
-!!$  nu3_c=nboxp_c(2,3)
-!!$  nu1_f=nboxp_f(2,1)
-!!$  nu2_f=nboxp_f(2,2)
-!!$  nu3_f=nboxp_f(2,3)
-
-
   istart_c=1
   !start of the projectors expansion routine
   factor=sqrt(2.0_gp)*fpi/(sqrt(gau_a)**(2*(l-1)+4*i-1))
@@ -321,12 +306,6 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
           & cpmult,fpmult,hx,hy,hz,gau_a,factors,rx,ry,rz,lx,ly,lz, & 
           & mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c),proj(istart_f))
 
-!!$     call crtproj(geocode,iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
-!!$          & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radius_c,radius_f, & 
-!!$          & cpmult,fpmult,hx,hy,hz,gau_a,factors,rx,ry,rz,lx,ly,lz, & 
-!!$          & mbvctr_c,mbvctr_f,proj(istart_c),proj(istart_f))
-
-     
      ! testing
      if (idir == 0) then
         call wnrm(mbvctr_c,mbvctr_f,proj(istart_c), &
@@ -391,10 +370,6 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
 
 end subroutine numb_proj
 
-!!$subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, & 
-!!$     nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,  & 
-!!$     radius_c,radius_f,cpmult,fpmult,hx,hy,hz,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
-!!$     mvctr_c,mvctr_f,proj_c,proj_f)
 subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, & 
      radius_c,radius_f,cpmult,fpmult,hx,hy,hz,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
      mvctr_c,mvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj_c,proj_f)
@@ -493,20 +468,6 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
      enddo
   enddo
 
-!!$  do i3=nl3_c,nu3_c
-!!$     dz2=d2(i3,hz,n3,rz,perz)
-!!$     do i2=nl2_c,nu2_c
-!!$        dy2=d2(i2,hy,n2,ry,pery)
-!!$        do i1=nl1_c,nu1_c
-!!$           dx2=d2(i1,hx,n1,rx,perx)
-!!$           if (dx2+(dy2+dz2) <= rad_c**2) then
-!!$              mvctr=mvctr+1
-!!$              proj_c(mvctr)=wprojx(i1,1,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
-!!$           endif
-!!$        enddo
-!!$     enddo
-!!$  enddo
-
   if (mvctr /=  mvctr_c) then
      write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_c ',mvctr,mvctr_c
      stop
@@ -539,26 +500,6 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
      enddo
   enddo
 
-
-!!$  do i3=nl3_f,nu3_f
-!!$     dz2=d2(i3,hz,n3,rz,perz)
-!!$     do i2=nl2_f,nu2_f
-!!$        dy2=d2(i2,hy,n2,ry,pery)
-!!$        do i1=nl1_f,nu1_f
-!!$           dx2=d2(i1,hx,n1,rx,perx)
-!!$           if (dx2+(dy2+dz2) <= rad_f**2) then
-!!$              mvctr=mvctr+1
-!!$              proj_f(1,mvctr)=wprojx(i1,2,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
-!!$              proj_f(2,mvctr)=wprojx(i1,1,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
-!!$              proj_f(3,mvctr)=wprojx(i1,2,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
-!!$              proj_f(4,mvctr)=wprojx(i1,1,1)*wprojy(i2,1,1)*wprojz(i3,2,1)
-!!$              proj_f(5,mvctr)=wprojx(i1,2,1)*wprojy(i2,1,1)*wprojz(i3,2,1)
-!!$              proj_f(6,mvctr)=wprojx(i1,1,1)*wprojy(i2,2,1)*wprojz(i3,2,1)
-!!$              proj_f(7,mvctr)=wprojx(i1,2,1)*wprojy(i2,2,1)*wprojz(i3,2,1)
-!!$           endif
-!!$        enddo
-!!$     enddo
-!!$  enddo
   if (mvctr /= mvctr_f) then
      write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_f ',mvctr,mvctr_f
      stop 
@@ -588,23 +529,6 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
         end do
      end do
 
-!!$   mvctr=0
-!!$   do i3=nl3_c,nu3_c
-!!$      dz2=d2(i3,hz,n3,rz,perz)
-!!$      do i2=nl2_c,nu2_c
-!!$         dy2=d2(i2,hy,n2,ry,pery)
-!!$         do i1=nl1_c,nu1_c
-!!$            dx2=d2(i1,hx,n1,rx,perx)
-!!$            if (dx2+(dy2+dz2) <= rad_c**2) then
-!!$               mvctr=mvctr+1
-!!$               do iterm=2,nterm
-!!$                  proj_c(mvctr)=proj_c(mvctr)+&
-!!$                       wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
-!!$               enddo
-!!$            endif
-!!$         enddo
-!!$      enddo
-!!$   enddo
      !$  end if
 
      !$  if(ithread .eq. 1 .or. nthread .eq. 0) then
@@ -636,45 +560,9 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
               proj_f(7,i-i0+jj)=proj_f(7,i-i0+jj)+&
                    wprojx(i,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
            end do
-!!$         proj_f(1,i-i0+jj)=wprojx(i,2,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
-!!$         proj_f(2,i-i0+jj)=wprojx(i,1,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
-!!$         proj_f(3,i-i0+jj)=wprojx(i,2,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
-!!$         proj_f(4,i-i0+jj)=wprojx(i,1,1)*wprojy(i2,1,1)*wprojz(i3,2,1)
-!!$         proj_f(5,i-i0+jj)=wprojx(i,2,1)*wprojy(i2,1,1)*wprojz(i3,2,1)
-!!$         proj_f(6,i-i0+jj)=wprojx(i,1,1)*wprojy(i2,2,1)*wprojz(i3,2,1)
-!!$         proj_f(7,i-i0+jj)=wprojx(i,2,1)*wprojy(i2,2,1)*wprojz(i3,2,1)
         end do
      end do
 
-!!$   mvctr=0
-!!$   do i3=nl3_f,nu3_f
-!!$      dz2=d2(i3,hz,n3,rz,perz)
-!!$      do i2=nl2_f,nu2_f
-!!$         dy2=d2(i2,hy,n2,ry,pery)
-!!$         do i1=nl1_f,nu1_f
-!!$            dx2=d2(i1,hx,n1,rx,perx)
-!!$            if (dx2+(dy2+dz2) <= rad_f**2) then
-!!$               mvctr=mvctr+1
-!!$               do iterm=2,nterm
-!!$                  proj_f(1,mvctr)=proj_f(1,mvctr)+&
-!!$                       wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
-!!$                  proj_f(2,mvctr)=proj_f(2,mvctr)+&
-!!$                       wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
-!!$                  proj_f(3,mvctr)=proj_f(3,mvctr)+&
-!!$                       wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
-!!$                  proj_f(4,mvctr)=proj_f(4,mvctr)+&
-!!$                       wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
-!!$                  proj_f(5,mvctr)=proj_f(5,mvctr)+&
-!!$                       wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
-!!$                  proj_f(6,mvctr)=proj_f(6,mvctr)+&
-!!$                       wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
-!!$                  proj_f(7,mvctr)=proj_f(7,mvctr)+&
-!!$                       wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
-!!$               enddo
-!!$            endif
-!!$         enddo
-!!$      enddo
-!!$   enddo
      !$  end if
   end if
   !$omp end parallel

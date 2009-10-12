@@ -1,214 +1,211 @@
-
-        subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
                    hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,cprec,logrid_c,logrid_f,hpsi)
 ! Calls the preconditioner for each orbital treated by the processor
-        implicit real(kind=8) (a-h,o-z)
-        dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-        dimension hpsi(nvctr_c+7*nvctr_f,norbp)
+  implicit real(kind=8) (a-h,o-z)
+  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
+  dimension hpsi(nvctr_c+7*nvctr_f,norbp)
 
-       call cpu_time(tr0)
-       call system_clock(ncount1,ncount_rate,ncount_max)
+  call cpu_time(tr0)
+  call system_clock(ncount1,ncount_rate,ncount_max)
 
-     do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-      cr=-cprec
-      call precondition(cr,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,&
-                        nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
-                        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),&
-                        hpsi(1,iorb-iproc*norbp),hpsi(nvctr_c+1,iorb-iproc*norbp),IORB)
+  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+     cr=-cprec
+     call precondition(cr,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,&
+                   nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
+                   nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),&
+                   hpsi(1,iorb-iproc*norbp),hpsi(nvctr_c+1,iorb-iproc*norbp),IORB)
 
-      enddo
+  enddo
 
-       call cpu_time(tr1)
-       call system_clock(ncount2,ncount_rate,ncount_max)
-       tel=dble(ncount2-ncount1)/dble(ncount_rate)
-       write(77,'(a40,i4,2(1x,e10.3))') 'PRECONDITIONING TIME',iproc,tr1-tr0,tel
+  call cpu_time(tr1)
+  call system_clock(ncount2,ncount_rate,ncount_max)
+  tel=dble(ncount2-ncount1)/dble(ncount_rate)
+  write(77,'(a40,i4,2(1x,e10.3))') 'PRECONDITIONING TIME',iproc,tr1-tr0,tel
 
-
-      return
-      end
+end preconditionall
 
 
 
 
-      subroutine precondition(C,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-                              hgrid,nseg_c,nvctr_c,keyg_c,&
-                              keyv_c,nseg_f,nvctr_f,keyg_f,&
-                              keyv_f,psi_c,psi_f,IORB)
-        implicit real(kind=8) (a-h,o-z)
-        dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
-        dimension psi_c(nvctr_c),psi_f(7,nvctr_f)
-        
-        real(kind=8),allocatable,dimension(:) ::   GG_C, HPSI_C, HPSI_C_OLD
-        real(kind=8),allocatable,dimension(:) ::    HPSI_C_MOD, PSI_C_NEW
-        real(kind=8),allocatable,dimension(:) ::    AUX,ALPHAS_PR
-        real(kind=8),allocatable,dimension(:,:) :: GG_F, HPSI_F, HPSI_F_OLD
-        real(kind=8),allocatable,dimension(:,:) ::  HPSI_F_MOD,   PSI_F_NEW
-        
-        real(kind=8), parameter :: A2=3.55369228991319019D0,ALPHAMIN=.05d0,COSMIN=.5D0
+subroutine precondition(C,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+                        hgrid,nseg_c,nvctr_c,keyg_c,&
+                        keyv_c,nseg_f,nvctr_f,keyg_f,&
+                        keyv_f,psi_c,psi_f,IORB)
+  implicit real(kind=8) (a-h,o-z)
+  dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
+  dimension psi_c(nvctr_c),psi_f(7,nvctr_f)
+  
+  real(kind=8),allocatable,dimension(:) ::   GG_C, HPSI_C, HPSI_C_OLD
+  real(kind=8),allocatable,dimension(:) ::    HPSI_C_MOD, PSI_C_NEW
+  real(kind=8),allocatable,dimension(:) ::    AUX,ALPHAS_PR
+  real(kind=8),allocatable,dimension(:,:) :: GG_F, HPSI_F, HPSI_F_OLD
+  real(kind=8),allocatable,dimension(:,:) ::  HPSI_F_MOD,   PSI_F_NEW
+  
+  real(kind=8), parameter :: A2=3.55369228991319019D0,ALPHAMIN=.05d0,COSMIN=.5D0
 
-        OPEN(10,FILE='input.dat') 
-          DO I=1,8
-            READ(10,*)
-          ENDDO
-          READ(10,*) NSTEP_MIN,NSTEP_MAX
-          READ(10,*) 
-          READ(10,*) FAC_NORM2          
-        CLOSE(10)
+  OPEN(10,FILE='input.dat') 
+    DO I=1,8
+      READ(10,*)
+    ENDDO
+    READ(10,*) NSTEP_MIN,NSTEP_MAX
+    READ(10,*) 
+    READ(10,*) FAC_NORM2          
+  CLOSE(10)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !       DETERMINE THE NUMBER OF SWEEPS ETC
 !
-       NUM_TRANS=NINT(  LOG( 1.5D0*A2/(HGRID**2*C) )/(2.D0*LOG(2.D0))  )
-       write(*,*) 'NUMBER OF WAVELET TRANSFORMS (sweeps)',NUM_TRANS,hgrid,c
+  NUM_TRANS=NINT(  LOG( 1.5D0*A2/(HGRID**2*C) )/(2.D0*LOG(2.D0))  )
+  write(*,*) 'NUMBER OF WAVELET TRANSFORMS (sweeps)',NUM_TRANS,hgrid,c
 ! Find right leading dimensions for array
 
-        N2_NT=2**NUM_TRANS
-        
-        ND1=CEILING( ((N1+1)*1.D0)/(N2_NT*1.D0) ) *N2_NT-1
-        ND2=CEILING( ((N2+1)*1.D0)/(N2_NT*1.D0) ) *N2_NT-1
-        ND3=CEILING( ((N3+1)*1.D0)/(N2_NT*1.D0) ) *N2_NT-1
+  N2_NT=2**NUM_TRANS
+  
+  ND1=CEILING( ((N1+1)*1.D0)/(N2_NT*1.D0) ) *N2_NT-1
+  ND2=CEILING( ((N2+1)*1.D0)/(N2_NT*1.D0) ) *N2_NT-1
+  ND3=CEILING( ((N3+1)*1.D0)/(N2_NT*1.D0) ) *N2_NT-1
 
-        WRITE(*,*)'ND1=',ND1,'ND2=',ND2,'ND3=',ND3
+  WRITE(*,*)'ND1=',ND1,'ND2=',ND2,'ND3=',ND3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !       
-!       FIND THE SQUARE OF UNPRECONDITIONED GRADIENT 
+! FIND THE SQUARE OF UNPRECONDITIONED GRADIENT 
 !   
 
-          PSI2=DOT_PRODUCT(PSI_C,PSI_C)
-          DO I=1,7
-            DO J=1,NVCTR_F
-              PSI2=PSI2+PSI_F(I,J)**2  
-            ENDDO
-          ENDDO
+  PSI2=DOT_PRODUCT(PSI_C,PSI_C)
+  DO I=1,7
+    DO J=1,NVCTR_F
+      PSI2=PSI2+PSI_F(I,J)**2  
+    ENDDO
+  ENDDO
 
-        ALLOCATE(AUX(NSTEP_MAX),ALPHAS_PR(NSTEP_MAX)) 
-        allocate(GG_c(nvctr_c),stat=i_stat)
-        call memocc(i_stat,product(shape(gg_c))*kind(gg_c),'gg_c','precondition')
-        allocate(GG_f(7,nvctr_f),stat=i_stat)
-        call memocc(i_stat,product(shape(gg_f))*kind(gg_f),'gg_f','precondition')
-        allocate(PSI_c_NEW(nvctr_c),stat=i_stat)
-        call memocc(i_stat,product(shape(psi_c_new))*kind(psi_c_new),'psi_c_new','precondition')
-        allocate(PSI_f_NEW(7,nvctr_f),stat=i_stat)
-        call memocc(i_stat,product(shape(psi_f_new))*kind(psi_f_new),'psi_f_new','precondition')
-        allocate(HPSI_c(nvctr_c),stat=i_stat)
-        call memocc(i_stat,product(shape(hpsi_c))*kind(hpsi_c),'hpsi_c','precondition')
-        allocate(HPSI_f(7,nvctr_f),stat=i_stat)
-        call memocc(i_stat,product(shape(hpsi_f))*kind(hpsi_f),'hpsi_f','precondition')
-        allocate(HPSI_c_OLD(nvctr_c),stat=i_stat)
-        call memocc(i_stat,product(shape(hpsi_c_old))*kind(hpsi_c_old),'hpsi_c_old','precondition')
-        allocate(HPSI_f_OLD(7,nvctr_f),stat=i_stat)
-        call memocc(i_stat,product(shape(hpsi_f_old))*kind(hpsi_f_old),'hpsi_f_old','precondition')
-        allocate(HPSI_c_MOD(nvctr_c),stat=i_stat)
-        call memocc(i_stat,product(shape(hpsi_c_mod))*kind(hpsi_c_mod),'hpsi_c_mod','precondition')
-        allocate(HPSI_f_MOD(7,nvctr_f),stat=i_stat)
-        call memocc(i_stat,product(shape(hpsi_f_mod))*kind(hpsi_f_mod),'hpsi_f_mod','precondition')
-
-
-        GG_C=PSI_C
-        GG_F=PSI_F
-        
-         nl1_c=0 ; nu1_c=n1 
-        nl2_c=0 ; nu2_c=n2
-        nl3_c=0 ; nu3_c=n3
-        nl1_f=nfl1 ; nu1_f=nfu1 
-        nl2_f=nfl2 ; nu2_f=nfu2 
-        nl3_f=nfl3 ; nu3_f=nfu3
-       
-        CALL prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
-                  keyg_c,keyv_c,psi_c,psi_f,C,&
-                  NUM_TRANS,ND1,ND2,ND3,N2_NT)
-
-          CALL CALC_GRAD_reza(n1,n2,n3,&
-                         nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, & 
-                         nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f, &
-                         nseg_c,nvctr_c,keyg_c,&
-                        keyv_c,nseg_f,nvctr_f,&
-                        keyg_f,keyv_f,psi_c,psi_f, &
-                        hgrid,gg_c,gg_f,C, &
-                         hpsi_c_old,hpsi_f_old,hpsi2old)
+  ALLOCATE(AUX(NSTEP_MAX),ALPHAS_PR(NSTEP_MAX)) 
+  allocate(GG_c(nvctr_c),stat=i_stat)
+  call memocc(i_stat,product(shape(gg_c))*kind(gg_c),'gg_c','precondition')
+  allocate(GG_f(7,nvctr_f),stat=i_stat)
+  call memocc(i_stat,product(shape(gg_f))*kind(gg_f),'gg_f','precondition')
+  allocate(PSI_c_NEW(nvctr_c),stat=i_stat)
+  call memocc(i_stat,product(shape(psi_c_new))*kind(psi_c_new),'psi_c_new','precondition')
+  allocate(PSI_f_NEW(7,nvctr_f),stat=i_stat)
+  call memocc(i_stat,product(shape(psi_f_new))*kind(psi_f_new),'psi_f_new','precondition')
+  allocate(HPSI_c(nvctr_c),stat=i_stat)
+  call memocc(i_stat,product(shape(hpsi_c))*kind(hpsi_c),'hpsi_c','precondition')
+  allocate(HPSI_f(7,nvctr_f),stat=i_stat)
+  call memocc(i_stat,product(shape(hpsi_f))*kind(hpsi_f),'hpsi_f','precondition')
+  allocate(HPSI_c_OLD(nvctr_c),stat=i_stat)
+  call memocc(i_stat,product(shape(hpsi_c_old))*kind(hpsi_c_old),'hpsi_c_old','precondition')
+  allocate(HPSI_f_OLD(7,nvctr_f),stat=i_stat)
+  call memocc(i_stat,product(shape(hpsi_f_old))*kind(hpsi_f_old),'hpsi_f_old','precondition')
+  allocate(HPSI_c_MOD(nvctr_c),stat=i_stat)
+  call memocc(i_stat,product(shape(hpsi_c_mod))*kind(hpsi_c_mod),'hpsi_c_mod','precondition')
+  allocate(HPSI_f_MOD(7,nvctr_f),stat=i_stat)
+  call memocc(i_stat,product(shape(hpsi_f_mod))*kind(hpsi_f_mod),'hpsi_f_mod','precondition')
 
 
-        ALPHA=PIECELINE(C*HGRID*HGRID*.25d0)*.5d0
-        WRITE(*,*)'IORB,C,ALPHA_PR:',IORB,C,ALPHA
+  GG_C=PSI_C
+  GG_F=PSI_F
+  
+  nl1_c=0 ; nu1_c=n1 
+  nl2_c=0 ; nu2_c=n2
+  nl3_c=0 ; nu3_c=n3
+  nl1_f=nfl1 ; nu1_f=nfu1 
+  nl2_f=nfl2 ; nu2_f=nfu2 
+  nl3_f=nfl3 ; nu3_f=nfu3
+  
+  CALL prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
+            keyg_c,keyv_c,psi_c,psi_f,C,&
+            NUM_TRANS,ND1,ND2,ND3,N2_NT)
 
-        LOOP:DO ISTEP=1,NSTEP_MAX
-
-!          HPSI_MOD=HPSI_OLD
-          HPSI_C_MOD=HPSI_C_OLD
-          HPSI_F_MOD=HPSI_F_OLD
-
-!          CALL prec_diag_simp(n1,n2,n3,hgrid,C,hpsi_MOD)
-        CALL prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
-                  keyg_c,keyv_c,Hpsi_C_MOD,HPSI_F_MOD,C,&
-                  NUM_TRANS,ND1,ND2,ND3,N2_NT)
-
-!          PSI_NEW=PSI-ALPHA*HPSI_MOD
-
-          PSI_C_NEW=PSI_C-ALPHA*HPSI_C_MOD
-          PSI_F_NEW=PSI_F-ALPHA*HPSI_F_MOD
-
-!          CALL CALC_GRAD(n1,n2,n3,psi_new,hgrid,gg,C,hpsi,hpsi2)           
-
-          CALL CALC_GRAD_reza(n1,n2,n3,&
-                         nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, & 
-                         nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f, &
-                         nseg_c,nvctr_c,keyg_c,&
-                        keyv_c,nseg_f,nvctr_f,&
-                        keyg_f,keyv_f,psi_c_NEW,psi_f_NEW, &
-                        hgrid,gg_c,gg_f,C, &
-                         hpsi_c,hpsi_f,hpsi2)
-
-!         SCALPROD=DOT_PRODUCT(HPSI,HPSI_OLD)
-          SCALPROD=DOT_PRODUCT(HPSI_C,HPSI_C_OLD)
-          DO I=1,7
-            DO J=1,NVCTR_F
-              SCALPROD=SCALPROD+HPSI_F(I,J)*HPSI_F_OLD(I,J)
-            ENDDO
-          ENDDO
+  CALL CALC_GRAD_reza(n1,n2,n3,&
+            nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, & 
+            nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f, &
+            nseg_c,nvctr_c,keyg_c,&
+            keyv_c,nseg_f,nvctr_f,&
+            keyg_f,keyv_f,psi_c,psi_f, &
+            hgrid,gg_c,gg_f,C, &
+            hpsi_c_old,hpsi_f_old,hpsi2old)
 
 
-          COSANG=SCALPROD/SQRT(HPSI2*HPSI2OLD)
-          AUX(ISTEP)=HPSI2
-          ALPHAS_PR(ISTEP)=ALPHA
-                 
-          IF (COSANG.GT.COSMIN) THEN
-!            PSI=PSI_NEW
-            PSI_C=PSI_C_NEW
-            PSI_F=PSI_F_NEW
+  ALPHA=PIECELINE(C*HGRID*HGRID*.25d0)*.5d0
+  WRITE(*,*)'IORB,C,ALPHA_PR:',IORB,C,ALPHA
+
+  LOOP:DO ISTEP=1,NSTEP_MAX
+
+!    HPSI_MOD=HPSI_OLD
+    HPSI_C_MOD=HPSI_C_OLD
+    HPSI_F_MOD=HPSI_F_OLD
+
+!    CALL prec_diag_simp(n1,n2,n3,hgrid,C,hpsi_MOD)
+  CALL prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
+            keyg_c,keyv_c,Hpsi_C_MOD,HPSI_F_MOD,C,&
+            NUM_TRANS,ND1,ND2,ND3,N2_NT)
+
+!    PSI_NEW=PSI-ALPHA*HPSI_MOD
+
+    PSI_C_NEW=PSI_C-ALPHA*HPSI_C_MOD
+    PSI_F_NEW=PSI_F-ALPHA*HPSI_F_MOD
+
+!    CALL CALC_GRAD(n1,n2,n3,psi_new,hgrid,gg,C,hpsi,hpsi2)           
+
+    CALL CALC_GRAD_reza(n1,n2,n3,&
+                   nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, & 
+                   nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f, &
+                   nseg_c,nvctr_c,keyg_c,&
+                  keyv_c,nseg_f,nvctr_f,&
+                  keyg_f,keyv_f,psi_c_NEW,psi_f_NEW, &
+                  hgrid,gg_c,gg_f,C, &
+                   hpsi_c,hpsi_f,hpsi2)
+
+!   SCALPROD=DOT_PRODUCT(HPSI,HPSI_OLD)
+    SCALPROD=DOT_PRODUCT(HPSI_C,HPSI_C_OLD)
+    DO I=1,7
+      DO J=1,NVCTR_F
+        SCALPROD=SCALPROD+HPSI_F(I,J)*HPSI_F_OLD(I,J)
+      ENDDO
+    ENDDO
+
+
+    COSANG=SCALPROD/SQRT(HPSI2*HPSI2OLD)
+    AUX(ISTEP)=HPSI2
+    ALPHAS_PR(ISTEP)=ALPHA
+           
+    IF (COSANG.GT.COSMIN) THEN
+!      PSI=PSI_NEW
+      PSI_C=PSI_C_NEW
+      PSI_F=PSI_F_NEW
 !
-            IF ((HPSI2.LT.PSI2*FAC_NORM2).AND.(ISTEP.GT.NSTEP_MIN)) EXIT  
-!            HPSI_OLD=HPSI
-            HPSI_C_OLD=HPSI_C
-            HPSI_F_OLD=HPSI_F
+      IF ((HPSI2.LT.PSI2*FAC_NORM2).AND.(ISTEP.GT.NSTEP_MIN)) EXIT  
+!      HPSI_OLD=HPSI
+      HPSI_C_OLD=HPSI_C
+      HPSI_F_OLD=HPSI_F
 !
-            HPSI2OLD=HPSI2
+      HPSI2OLD=HPSI2
 !
-            ALPHA=ALPHA*1.1d0
-          ELSE
-            ALPHA=ALPHA*0.5d0
-            IF (ALPHA.LT.ALPHAMIN) THEN
-              WRITE(*,*)'ALPHA HIT MINIMUM'
-              EXIT LOOP
-           ENDIF
+      ALPHA=ALPHA*1.1d0
+    ELSE
+      ALPHA=ALPHA*0.5d0
+      IF (ALPHA.LT.ALPHAMIN) THEN
+        WRITE(*,*)'ALPHA HIT MINIMUM'
+        EXIT LOOP
+     ENDIF
 
-          ENDIF  
+    ENDIF  
 
-        ENDDO LOOP
+  ENDDO LOOP
 
-        IF (ISTEP.EQ.NSTEP_MAX+1) ISTEP = NSTEP_MAX
+  IF (ISTEP.EQ.NSTEP_MAX+1) ISTEP = NSTEP_MAX
 
-        WRITE(*,*)'IORB,  # OF STEPS: ', IORB,ISTEP
-!        WRITE(*,'(a,20(e9.2))')'AUX_GRAD2=',(AUX(I),I=1,ISTEP)
-        WRITE(*,'(a,20(e12.5))')'AUX_GRAD2=',(AUX(I),I=1,ISTEP)
-        WRITE(*,'(a,20(e9.2))')'ALPHAS_PR==',(ALPHAS_PR(I),I=1,ISTEP)
+  WRITE(*,*)'IORB,  # OF STEPS: ', IORB,ISTEP
+!  WRITE(*,'(a,20(e9.2))')'AUX_GRAD2=',(AUX(I),I=1,ISTEP)
+  WRITE(*,'(a,20(e12.5))')'AUX_GRAD2=',(AUX(I),I=1,ISTEP)
+  WRITE(*,'(a,20(e9.2))')'ALPHAS_PR==',(ALPHAS_PR(I),I=1,ISTEP)
 
-        DEALLOCATE(GG_C,GG_F,AUX,ALPHAS_PR) 
-        DEALLOCATE(HPSI_C,HPSI_F) 
-        DEALLOCATE(HPSI_C_OLD,HPSI_F_OLD) 
-        DEALLOCATE(HPSI_C_MOD,HPSI_F_MOD) 
-        DEALLOCATE(PSI_C_NEW,PSI_F_NEW) 
+  DEALLOCATE(GG_C,GG_F,AUX,ALPHAS_PR) 
+  DEALLOCATE(HPSI_C,HPSI_F) 
+  DEALLOCATE(HPSI_C_OLD,HPSI_F_OLD) 
+  DEALLOCATE(HPSI_C_MOD,HPSI_F_MOD) 
+  DEALLOCATE(PSI_C_NEW,PSI_F_NEW) 
           
-    end
+end subroutine preconditionall
 
           
        SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,&
@@ -953,72 +950,75 @@ end
        END
 
 
+SUBROUTINE MULTI_FORWARD(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3)
+   implicit none
+   !Arguments
+   integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,num_trans
+   real(kind=8) :: x(0:nd1,0:nd2,0:nd3)
+   !Local variables
+   real(kind=8), allocatable :: XX(:),YY(:),WW(:) 
+   integer :: i,i1,i2,i3,i_trans
+   
+   N1=ND1
+   N2=ND2
+   N3=ND3
+   
+   IF (NUM_TRANS.GE.1)  THEN
+   
+     ALLOCATE(YY((ND1+1)*(ND2+1)*(ND3+1))) 
+     ALLOCATE(XX((ND1+1)*(ND2+1)*(ND3+1)))
+   
+     CALL FORWARD_3D_SELF(N1,N2,N3,X,YY,XX)
+   
+     N1=(N1+1)/2-1
+     N2=(N2+1)/2-1
+     N3=(N3+1)/2-1
+   
+   ENDIF
+   
+   IF (NUM_TRANS.GE.2) THEN
+   
+     ALLOCATE(WW((N1+1)*(N2+1)*(N3+1)))
+   
+     DO I_TRANS=2,NUM_TRANS
+   
+       I=1
+       DO I3=0,N3
+       DO I2=0,N2
+       DO I1=0,N1
+             XX(I)=X(I1,I2,I3)
+             I=I+1
+       ENDDO
+       ENDDO
+       ENDDO
+   
+       CALL FORWARD_3D(N1,N2,N3,XX,YY,WW)
+   
+       I=1
+       DO I3=0,N3
+       DO I2=0,N2
+       DO I1=0,N1
+             X(I1,I2,I3)=YY(I)
+             I=I+1
+       ENDDO
+       ENDDO
+       ENDDO
+   
+       N1=(N1+1)/2-1
+       N2=(N2+1)/2-1
+       N3=(N3+1)/2-1
+   
+     ENDDO
+   
+     DEALLOCATE(WW)
+   
+   ENDIF
+   
+   IF (NUM_TRANS.GE.1) THEN 
+     DEALLOCATE(YY,XX)         
+   ENDIF 
 
-       SUBROUTINE MULTI_FORWARD(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3)
-       implicit real(kind=8) (a-h,o-z)
-       dimension  x(0:nd1,0:nd2,0:nd3)
-       ALLOCATABLE XX(:),YY(:),WW(:) 
-
-       N1=ND1
-       N2=ND2
-       N3=ND3
-
-       IF (NUM_TRANS.GE.1)  THEN
-
-         ALLOCATE(YY((ND1+1)*(ND2+1)*(ND3+1))) 
-         ALLOCATE(XX((ND1+1)*(ND2+1)*(ND3+1)))
-
-         CALL FORWARD_3D_SELF(N1,N2,N3,X,YY,XX)
-
-         N1=(N1+1)/2-1
-         N2=(N2+1)/2-1
-         N3=(N3+1)/2-1
-
-       ENDIF
-
-       IF (NUM_TRANS.GE.2) THEN
-
-         ALLOCATE(WW((N1+1)*(N2+1)*(N3+1)))
-
-         DO I_TRANS=2,NUM_TRANS
-
-           I=1
-           DO I3=0,N3
-           DO I2=0,N2
-           DO I1=0,N1
-                 XX(I)=X(I1,I2,I3)
-                 I=I+1
-           ENDDO
-           ENDDO
-           ENDDO
-
-           CALL FORWARD_3D(N1,N2,N3,XX,YY,WW)
- 
-           I=1
-           DO I3=0,N3
-           DO I2=0,N2
-           DO I1=0,N1
-                 X(I1,I2,I3)=YY(I)
-                 I=I+1
-           ENDDO
-           ENDDO
-           ENDDO
-
-           N1=(N1+1)/2-1
-           N2=(N2+1)/2-1
-           N3=(N3+1)/2-1
-
-         ENDDO
- 
-         DEALLOCATE(WW)
-
-       ENDIF
-
-       IF (NUM_TRANS.GE.1) THEN 
-         DEALLOCATE(YY,XX)         
-       ENDIF 
-
-       END
+END SUBROUTINE MULTI_FORWARD
 
 
 

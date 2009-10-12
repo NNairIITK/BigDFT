@@ -34,6 +34,7 @@
 
 MODULE Numeric
 
+  IMPLICIT NONE
   INTEGER, PARAMETER :: sgl = KIND(1.0)
   INTEGER, PARAMETER :: dbl = KIND(1.D0)
 
@@ -42,6 +43,7 @@ END MODULE Numeric
 
 MODULE Formats
 
+  IMPLICIT NONE
   CHARACTER (LEN=*), PARAMETER ::                                              &
   fmt1 = "(3(2X,F12.8),3(2X,I1),3(2X,F12.8))",                                 &
   fmt2 = "(3(2X,F12.8))",                                                      &
@@ -405,7 +407,8 @@ MODULE NEB_routines
 
       IMPLICIT NONE
 
-      INTEGER                                    :: i, j, n1, n2
+      INTEGER                                    :: i, j, n1, n2, ios, j0, k
+      real(kind = dbl)                           :: r, a
       CHARACTER (LEN=20)                         :: minimization_scheme
       CHARACTER (LEN=95)                         :: vel_file
       INTEGER, PARAMETER                         :: unit = 10
@@ -468,19 +471,19 @@ MODULE NEB_routines
       data_file          = trim(job_name) // ".NEB.dat"
       interpolation_file = trim(job_name) // ".NEB.int"
       restart_file       = trim(job_name) // ".NEB.restart"
-      
+
 !! initial and final configuration are read only if a new simulation
 !! is started ( restart = .FALSE. ) 
       
       IF ( .NOT. restart ) THEN
 
-         IF ( first_config == "" ) THEN
+         IF ( trim(first_config) == "" ) THEN
 
             WRITE(*,'(T2,"read_input: first_config not assigned ")') 
 
             STOP
 
-         ELSE IF ( last_config == "" ) THEN       
+         ELSE IF ( trim(last_config) == "" ) THEN       
 
             WRITE(*,'(T2,"read_input: last_config not assigned ")') 
 
@@ -626,37 +629,85 @@ MODULE NEB_routines
         OPEN( UNIT = unit, FILE = restart_file, STATUS = "OLD", &
               ACTION = "READ" )
     
-          DO i = 1, num_of_images
+        ! Read as many configurations as contained in the
+        ! Restart file.
+        DO i = 1, num_of_images
 
-            READ(unit,*)
-            READ(unit,fmt3) V(i)
+           READ(unit,*, iostat = ios)
+           if (ios /= 0) exit
+           READ(unit,fmt3) V(i)
 
-            DO j = 1, dim, 3 
-       
-              READ(unit,fmt1) pos(j,i),     & 
-                              pos((j+1),i), &
-                              pos((j+2),i), &
-                              fix_atom(j),     &
-                              fix_atom((j+1)), &
-                              fix_atom((j+2)), &
-                              PES_gradient(j,i),     &
-                              PES_gradient((j+1),i), &
-                              PES_gradient((j+2),i)
-            END DO
-            PES_gradient(:, i) = PES_gradient(:, i) * (-1d0)
-      
-            IF ( V(i) >= Emax ) THEN
- 
+           DO j = 1, dim, 3 
+
+              READ(unit,*)    pos(j,i),     & 
+                   pos((j+1),i), &
+                   pos((j+2),i), &
+                   fix_atom(j),     &
+                   fix_atom((j+1)), &
+                   fix_atom((j+2)), &
+                   PES_gradient(j,i),     &
+                   PES_gradient((j+1),i), &
+                   PES_gradient((j+2),i)
+           END DO
+           PES_gradient(:, i) = PES_gradient(:, i) * (-1d0)
+
+           IF ( V(i) >= Emax ) THEN
+
               Emax = V(i)         
 
               Emax_index = i
 
-            END IF
-      
-          END DO
+           END IF
 
-        CLOSE( UNIT = unit )
-  
+        END DO
+
+        CLOSE( UNIT = unit) 
+
+        ! Check that we read at least two configurations...
+        i = i - 1
+        if (i < 2) then
+           WRITE(*,'(T2,"read_input: number of replica in restart file is less than 2")')
+           WRITE(*,'(T2,"            N = ", I8 )') i - 1
+           STOP  
+        end if
+
+        ! Add some intermediate configurations if num_of_images > i
+        if (num_of_images > i) then
+           ALLOCATE( d_R(dim) )           
+           r = real(i - 1, dbl) / real(num_of_images - 1, dbl)
+           a = real(0, dbl)
+           j0 = num_of_images
+           do j = num_of_images, 1, -1
+              ! j : the current position in pos array.
+              ! i : the current position in read configurations.
+              ! r : the ideal ratio (i_0 - 1) / (num_of_images - 1)
+              ! a : the current ratio.
+              ! We copy i to j if a < r, otherwise we create a new
+              ! linear approximant.
+              if (a < r) then
+                 pos(:, j) = pos(:, i)
+                 i = i - 1
+                 ! We create the new linear approx. replicas between j and j0.
+                 if (j0 /= j) then
+                    d_R = ( pos(:,j0) - pos(:,j) ) / &
+                         DBLE( j0 - j )
+                    do k = j0 - 1, j + 1, -1
+                       write(*,*) k, ": new linear approx replica."
+                       pos(:, k) = pos(:, k + 1) - d_R(:)
+                    end do
+                 end if
+                 j0 = j
+                 write(*,*) j, ": restart replica."
+              end if
+              a = (r * real(num_of_images - 1, dbl) - real(i, dbl) + real(1, dbl)) / &
+                   & (real(num_of_images, dbl) - real(j, dbl) + real(1, dbl))
+           end do
+           deallocate(d_R)
+
+           CALL write_restart     
+
+        end if
+
         vel_file = TRIM( scratch_dir )//"/velocities_file"
   
         IF ( ( algorithm >= 4 ) .AND. &
@@ -849,6 +900,8 @@ MODULE NEB_routines
          end if
 
          CALL compute_tangent   
+
+         CALL write_restart     
 
       END IF
 

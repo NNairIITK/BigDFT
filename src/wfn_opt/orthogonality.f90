@@ -1,5 +1,17 @@
-!orthogonality routine, for all the orbitals
-!uses wavefunctions in their transposed form
+!!****f* BigDFT/orthogonalize
+!! FUNCTION
+!!    Orthogonality routine, for all the orbitals
+!!    Uses wavefunctions in their transposed form
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA, ESRF, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
   use module_base
   use module_types
@@ -48,7 +60,6 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
   !Lower triangle of overlap matrix using BLAS
   !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; lower triangle
 
-
   !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
   ispsi=1
   do ikptp=1,orbs%nkptsp
@@ -60,7 +71,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
              nvctrp,norb,norbs,ncomp,nspinor)
         
         !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nvctrp,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
-
+       
         if(nspinor==1) then
            call syrk('L','T',norb,nvctrp,1.0_wp,psi(ispsi),max(1,nvctrp),&
                 0.0_wp,ovrlp(ndimovrlp(ispin,ikpt-1)+1,istart),norb)
@@ -103,6 +114,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
 
            ! Cholesky factorization
            call potrf( 'L',norb,ovrlp(ndimovrlp(ispin,ikpt-1)+1,1),norb,info)
+           !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
            if (info /= 0) then
               write(*,*) 'info Cholesky factorization',info
            end if
@@ -117,6 +129,8 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
 
         else if (nvctrp /= 0) then
 
+           !print *,'here',ispin,ikptp,ikpt
+
            ! Cholesky factorization
            call c_potrf( 'L',norb,ovrlp(ndimovrlp(ispin,ikpt-1)+1,1),norb,info )
            if (info /= 0) then
@@ -130,11 +144,12 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
            call c_trmm('R','L','C','N',ncomp*nvctrp,norb,(1.0_wp,0.0_wp),&
                 ovrlp(ndimovrlp(ispin,ikpt-1)+1,1),norb,psi(ispsi),max(1,ncomp*nvctrp))
 
+           !print *,'there',ispin,ikptp,ikpt
+
         end if
         ispsi=ispsi+nvctrp*norb*nspinor
      end do
   end do
-
 
   i_all=-product(shape(ovrlp))*kind(ovrlp)
   deallocate(ovrlp,stat=i_stat)
@@ -155,10 +170,16 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
 !!$       psi(1+comms%nvctr_par(iproc)*orbs%norbu),orbs%nspinor) 
 !!$end if
 
-end subroutine orthogonalize
+END SUBROUTINE orthogonalize
+!!***
 
-!orthogonality routine, for all the orbitals
-!uses wavefunctions in their transposed form
+
+!!****f* BigDFT/orthoconstraint
+!! FUNCTION
+!!   Orthogonality routine, for all the orbitals
+!!   Uses wavefunctions in their transposed form
+!! SOURCE
+!!
 subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   use module_base
   use module_types
@@ -174,9 +195,11 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   character(len=*), parameter :: subname='orthoconstraint'
   integer :: i_stat,i_all,ierr,info,iorb
   integer :: istart,ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
-  real(dp) :: occ
+  real(dp) :: occ,tt
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:,:), allocatable :: alag
+  real(dp), dimension(:), allocatable :: scprkpts
+  
 
   !separate the orthogonalisation procedure for up and down orbitals 
   !and for different k-points
@@ -217,12 +240,15 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
              nvctrp,norb,norbs,ncomp,nspinor)
 
         if(nspinor==1) then
-           call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),max(1,nvctrp),hpsi(ispsi),max(1,nvctrp),0.0_wp,&
+           call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+                max(1,nvctrp),hpsi(ispsi),max(1,nvctrp),0.0_wp,&
                 alag(ndimovrlp(ispin,ikpt-1)+1,istart),norb)
         else
            !this part should be recheck in the case of nspinor == 2
-           call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),max(1,ncomp*nvctrp), &
-                hpsi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),alag(ndimovrlp(ispin,ikpt-1)+1,istart),norb)
+           call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
+                max(1,ncomp*nvctrp), &
+                hpsi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
+                alag(ndimovrlp(ispin,ikpt-1)+1,istart),norb)
         end if
         ispsi=ispsi+nvctrp*norb*nspinor
      end do
@@ -254,21 +280,25 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
         call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
 
-        if(nspinor == 1) then
-           do iorb=1,norb
-              occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb),dp)
-              scprsum=scprsum+&
-                   occ*real(alag(ndimovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs,1),dp)
-           enddo
-        else if (nspinor == 4 .or. nspinor == 2) then
-           !not sure about the imaginary part of the diagonal
-           do iorb=1,norb
-              occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb),dp)
-              scprsum=scprsum+&
-                   occ*real(alag(ndimovrlp(ispin,ikpt-1)+2*iorb-1+(iorb-1)*norbs,1),dp)
-              scprsum=scprsum+&
-                   occ*real(alag(ndimovrlp(ispin,ikpt-1)+2*iorb+(iorb-1)*norbs,1),dp)
-           enddo
+        !calculate the scprsum if the k-point is associated to this processor
+        if (orbs%ikptproc(ikpt) == iproc) then
+
+           if(nspinor == 1) then
+              do iorb=1,norb
+                 occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb),dp)
+                 scprsum=scprsum+&
+                      occ*real(alag(ndimovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs,1),dp)
+              enddo
+           else if (nspinor == 4 .or. nspinor == 2) then
+              !not sure about the imaginary part of the diagonal
+              do iorb=1,norb
+                 occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb),dp)
+                 scprsum=scprsum+&
+                      occ*real(alag(ndimovrlp(ispin,ikpt-1)+2*iorb-1+(iorb-1)*norbs,1),dp)
+                 scprsum=scprsum+&
+                      occ*real(alag(ndimovrlp(ispin,ikpt-1)+2*iorb+(iorb-1)*norbs,1),dp)
+              enddo
+           end if
         end if
 
         if(nspinor==1 .and. nvctrp /= 0) then
@@ -283,6 +313,12 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
      end do
   end do
 
+  if (nproc > 1) then
+     tt=scprsum
+     call MPI_ALLREDUCE(tt,scprsum,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+  end if
+
+
 
   i_all=-product(shape(alag))*kind(alag)
   deallocate(alag,stat=i_stat)
@@ -294,11 +330,16 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
 
   call timing(iproc,'LagrM_comput  ','OF')
 
-end subroutine orthoconstraint
+END SUBROUTINE orthoconstraint
+!!***
 
 
-!found the linear combination of the wavefunctions which diagonalises
-!the overlap matrix
+!!****f* BigDFT/subspace_diagonalisation
+!! FUNCTION
+!!   Found the linear combination of the wavefunctions which diagonalises
+!!   the overlap matrix
+!! SOURCE
+!!
 subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   use module_base
   use module_types
@@ -495,7 +536,9 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   deallocate(ndimovrlp,stat=i_stat)
   call memocc(i_stat,i_all,'ndimovrlp',subname)
 
-end subroutine subspace_diagonalisation
+END SUBROUTINE subspace_diagonalisation
+!!***
+
 
 !!****f* BigDFT/orthon_virt_occup
 !! DESCRIPTION
@@ -670,10 +713,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
   call timing(iproc,'LagrM_comput  ','OF')
 
 end subroutine orthon_virt_occup
-
-
-
-
+!!***
 
 subroutine complex_components(nspinor,norb,norbs,ncomp)
   implicit none
@@ -692,7 +732,6 @@ subroutine complex_components(nspinor,norb,norbs,ncomp)
   end if
   
 end subroutine complex_components
-
 
 subroutine orbitals_and_components(iproc,ikptp,ispin,orbs,comms,nvctrp,norb,norbs,ncomp,nspinor)
   use module_base
@@ -724,8 +763,9 @@ subroutine dimension_ovrlp(nspin,orbs,ndimovrlp)
 
   ndimovrlp(1,0)=0
   if (nspin == 2) then
-     norb=orbs%norbd
+     norb=orbs%norbu
 
+     !this is first k-point
      call complex_components(orbs%nspinor,norb,norbs,ncomp)
 
      ndimovrlp(2,0)=norbs*norb
@@ -734,17 +774,20 @@ subroutine dimension_ovrlp(nspin,orbs,ndimovrlp)
   do ikpt=1,orbs%nkpts
      !this part should be enhanced for real k-points
      norb=orbs%norbu
-
+     if (nspin == 2) norb = orbs%norbd
+     !this is ikpt k-point
      call complex_components(orbs%nspinor,norb,norbs,ncomp)
 
      ndimovrlp(1,ikpt)=ndimovrlp(nspin,ikpt-1)+norbs*norb
      if (orbs%norbd > 0) then
-
-        norb=orbs%norbd
-        
+        norb=orbs%norbu
+        !this is ikpt+1
         call complex_components(orbs%nspinor,norb,norbs,ncomp)
-
-        ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)+norbs*norb
+        if (ikpt == orbs%nkpts) then
+           ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)
+        else
+           ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)+norbs*norb
+        end if
      end if
   end do
 
@@ -762,8 +805,8 @@ subroutine dimension_ovrlp_virt(nspin,orbs,orbsv,ndimovrlp)
 
   ndimovrlp(1,0)=0
   if (nspin == 2) then
-     norb=orbs%norbd
-     norbv=orbsv%norbd
+     norb=orbs%norbu
+     norbv=orbsv%norbu
      call complex_components(orbs%nspinor,norb,norbs,ncomp)
 
      ndimovrlp(2,0)=norbs*norbv
@@ -772,19 +815,28 @@ subroutine dimension_ovrlp_virt(nspin,orbs,orbsv,ndimovrlp)
   do ikpt=1,orbs%nkpts
      !this part should be enhanced for real k-points
      norb=orbs%norbu
-     norbv=orbsv%norbu
+     norbv=orbsv%norbu 
+     if (nspin == 2) then
+        norb=orbs%norbd
+        norbv=orbsv%norbd
+     end if
+
 
      call complex_components(orbs%nspinor,norb,norbs,ncomp)
 
      ndimovrlp(1,ikpt)=ndimovrlp(nspin,ikpt-1)+norbs*norbv
      if (orbs%norbd > 0) then
 
-        norb=orbs%norbd
-        norbv=orbsv%norbd
+        norb=orbs%norbu
+        norbv=orbsv%norbu
         
         call complex_components(orbs%nspinor,norb,norbs,ncomp)
 
-        ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)+norbs*norbv
+        if (ikpt == orbs%nkpts) then
+           ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)
+        else
+           ndimovrlp(2,ikpt)=ndimovrlp(1,ikpt)+norbs*norbv
+        end if
      end if
   end do
 
@@ -805,8 +857,10 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   integer :: i_stat,i_all,istart,iorb,jorb,ierr,norbs,i,j,ncomp
   real(dp) :: occ
   real(wp), dimension(:,:,:), allocatable :: alag
+  integer volta
 
   call timing(iproc,'LagrM_comput  ','ON')
+
   istart=2
   if (nproc == 1) istart=1
 
@@ -853,6 +907,8 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
 !          enddo
 !          endif
 
+
+
   scprsum=0.0_dp
   if(nspinor == 1) then
      do iorb=1,norb
@@ -867,6 +923,8 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
        scprsum=scprsum+occ*real(alag(2*iorb,iorb,1),dp)
      enddo
   end if
+
+
 !  if(iproc==0) print *,'ortho_p',scprsum
 
   ! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
@@ -877,9 +935,13 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
      call C_GEMM('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),psit(1,1),max(1,ncomp*nvctrp),&
           alag(1,1,1),norb,(1.0_wp,0.0_wp),hpsit(1,1),max(1,ncomp*nvctrp))
   end if
+
+
   i_all=-product(shape(alag))*kind(alag)
   deallocate(alag,stat=i_stat)
   call memocc(i_stat,i_all,'alag',subname)
+
+
 
   call timing(iproc,'LagrM_comput  ','OF')
 
@@ -896,8 +958,11 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
   integer :: info,i_all,i_stat,nvctr_eff,ierr,istart,i,j,norbs,iorb,jorb,ncomp
   real(wp) :: tt,ttLOC,ttr,tti
   real(wp), dimension(:,:,:), allocatable :: ovrlp
+  integer volta
 
   call timing(iproc,'GramS_comput  ','ON')
+
+  do volta=1,2
 
   if (norb == 1) then 
 
@@ -1051,6 +1116,8 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
      call memocc(i_stat,i_all,'ovrlp',subname)
 
   end if
+
+  enddo
 
   call timing(iproc,'GramS_comput  ','OF')
 

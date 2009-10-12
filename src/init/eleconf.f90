@@ -1638,7 +1638,6 @@ end subroutine eleconf
 !!****f* BigDFT/correct_semicore
 !! FUNCTION
 !!   Correct the electronic configuration for a given atomic charge
-!!
 !! SOURCE
 !!
 subroutine correct_semicore(symbol,nmax,lmax,ichg,neleconf,nsccode)
@@ -1709,12 +1708,10 @@ end subroutine correct_semicore
 
 
 ! AMmodif  start
-! Thi modified version returns the hardest pseudo potential 
-! for the given atom
-!
-!!***** BigDFT/modified_eleconf
+!!****f* BigDFT/modified_eleconf
 !! FUNCTION
-!!   Give electronic configuration of atom
+!!   Give electronic configuration of atom (copied from eleconf).
+!!   This modified version returns the hardest pseudo potential for the given atom.
 !!
 !! SYNOPSIS
 !!  Input
@@ -1729,8 +1726,6 @@ end subroutine correct_semicore
 !!             The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
 !!             where n_l are the number of semicore orbitals for a given angular momentum
 !!             starting from the lower level of course
-!!
-!!   Copied    from     eleconf
 !!
 !!
 !! SOURCE
@@ -3417,7 +3412,6 @@ neleconf(6,1)=6
 has_found=1
 exit
 
-
 case default
    !! do nothing
 end select
@@ -3427,7 +3421,6 @@ if ( has_found.eq.0) then
    write(*,*) "Electronic configuration ",nzatom," not found in modified_eleconf!"
    stop
 endif
-
 
 ! Test than try_nvalelec is coherent with neleconf
   nsum = 0
@@ -3441,7 +3434,6 @@ endif
      stop
   end if
   mxchg=nsum
-
 
   !! nsccode, for the routin abs_generator, which calls modified_eleconf ( this routine)
   !! is not used. Therefore the following block is commented 
@@ -3471,8 +3463,6 @@ endif
      end do
   end do
 
-
-
   ! fill the lower orbitals
   low_n=-1
   low_l=-1
@@ -3500,8 +3490,6 @@ endif
         neleconf(i,l) = 2*(2*l+1)
      enddo
   enddo
-  
-
 
 end subroutine modified_eleconf
 !!***

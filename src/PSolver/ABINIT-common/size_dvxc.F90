@@ -111,14 +111,25 @@ end subroutine size_dvxc
 
 !fake ABINIT subroutines
 subroutine wrtout(unit,message,mode_paral)
+  use defs_basis
   implicit none
+  include 'mpif.h'
 
   !Arguments ------------------------------------
   integer,intent(in) :: unit
   character(len=4),intent(in) :: mode_paral
   character(len=500),intent(inout) :: message
 
-  print *,trim(message)
+  integer :: ierr, iproc
+
+  if (unit == ab_out) then
+     call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+     if (trim(mode_paral) == "COLL") then
+        if (iproc == 0) print *,trim(message)
+     else
+        write(*, "(I03,2x,A)") iproc, trim(message)
+     end if
+  end if
 end subroutine wrtout
 
 subroutine leave_new(mode_paral)
@@ -128,6 +139,6 @@ subroutine leave_new(mode_paral)
   !Arguments ------------------------------------
   character(len=4),intent(in) :: mode_paral
 
-  print *,'exiting...'
+  print *,mode_paral, 'exiting...'
   stop
 end subroutine leave_new

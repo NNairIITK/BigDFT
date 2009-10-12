@@ -484,10 +484,6 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   !call allocate_comms(nproc,orbse,commse,subname)
   call orbitals_communicators(iproc,nproc,Glr,orbse,commse)  
 
-  i_all=-product(shape(orbse%norb_par))*kind(orbse%norb_par)
-  deallocate(orbse%norb_par,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%norb_par',subname)
-
   hxh=.5_gp*hx
   hyh=.5_gp*hy
   hzh=.5_gp*hz
@@ -643,7 +639,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
        nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
        rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,GPU)
+       psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,GPU,pkernel)
 
 !!$  !calculate the overlap matrix knowing that the original functions are gaussian-based
 !!$  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
@@ -730,39 +726,10 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 
 
   if (nvirt == 0) then
-     i_all=-product(shape(orbsv%occup))*kind(orbsv%occup)
-     deallocate(orbsv%occup,stat=i_stat)
-     call memocc(i_stat,i_all,'orbsv%occup',subname)
-     i_all=-product(shape(orbsv%spinsgn))*kind(orbsv%spinsgn)
-     deallocate(orbsv%spinsgn,stat=i_stat)
-     call memocc(i_stat,i_all,'orbsv%spinsgn',subname)
-     i_all=-product(shape(orbsv%kpts))*kind(orbsv%kpts)
-     deallocate(orbsv%kpts,stat=i_stat)
-     call memocc(i_stat,i_all,'orbsv%kpts',subname)
-     i_all=-product(shape(orbsv%kwgts))*kind(orbsv%kwgts)
-     deallocate(orbsv%kwgts,stat=i_stat)
-     call memocc(i_stat,i_all,'orbsv%kwgts',subname)
-     i_all=-product(shape(orbsv%iokpt))*kind(orbsv%iokpt)
-     deallocate(orbsv%iokpt,stat=i_stat)
-     call memocc(i_stat,i_all,'orbsv%iokpt',subname)
+     call deallocate_orbs(orbsv,subname)
   end if
 
-  i_all=-product(shape(orbse%occup))*kind(orbse%occup)
-  deallocate(orbse%occup,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%occup',subname)
-  i_all=-product(shape(orbse%spinsgn))*kind(orbse%spinsgn)
-  deallocate(orbse%spinsgn,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%spinsgn',subname)
-  i_all=-product(shape(orbse%kpts))*kind(orbse%kpts)
-  deallocate(orbse%kpts,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%kpts',subname)
-  i_all=-product(shape(orbse%kwgts))*kind(orbse%kwgts)
-  deallocate(orbse%kwgts,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%kwgts',subname)
-  i_all=-product(shape(orbse%iokpt))*kind(orbse%iokpt)
-  deallocate(orbse%iokpt,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%iokpt',subname)
-
+  call deallocate_orbs(orbse,subname)
      
 end subroutine input_wf_diag
 

@@ -138,14 +138,14 @@ module module_interfaces
        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
      end subroutine write_atomic_file
 
-     subroutine read_atomic_ascii(iproc,ifile,at,rxyz)
+     subroutine read_ascii_positions(iproc,ifile,at,rxyz)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: iproc,ifile
        type(atoms_data), intent(inout) :: at
        real(gp), dimension(:,:), pointer :: rxyz
-     end subroutine read_atomic_ascii
+     end subroutine read_ascii_positions
 
      subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
           iatype,rxyz,radii_cf,crmult,frmult,norb,nprojel,atomnames,output_grid,nspin,peakmem)
@@ -202,14 +202,14 @@ module module_interfaces
        integer, dimension(0:nproc-1,2), intent(out) :: ngatherarr
      end subroutine createDensPotDescriptors
 
-     subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,rxyz,eion,fion,psoffset,&
+     subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,rxyz,eion,fion,psoffset,&
           nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
        use module_base
        use module_types
        implicit none
        type(atoms_data), intent(in) :: at
        integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,nvacancy
-       real(kind=8), intent(in) :: hxh,hyh,hzh
+       real(kind=8), intent(in) :: hxh,hyh,hzh,elecfield
        real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
        real(kind=8), dimension(*), intent(in) :: pkernel
        real(kind=8), intent(out) :: eion,psoffset
@@ -218,7 +218,7 @@ module module_interfaces
      end subroutine IonicEnergyandForces
 
      subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
-          hxh,hyh,hzh,ef,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
+          hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
           correct_offset)
        use module_base
        use module_types
@@ -228,7 +228,7 @@ module module_interfaces
        integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,nvacancy
        real(gp), intent(in) :: hxh,hyh,hzh,psoffset
        type(atoms_data), intent(in) :: at
-       real(gp), dimension(3), intent(in) :: ef
+       real(gp), intent(in) :: elecfield
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(dp), dimension(*), intent(in) :: pkernel
        real(wp), dimension(*), intent(inout) :: pot_ion
@@ -327,7 +327,7 @@ module module_interfaces
 
      subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
-          ekin_sum,epot_sum,eproj_sum,nspin,GPU)
+          ekin_sum,epot_sum,eproj_sum,nspin,GPU,pkernel)
        use module_base
        use module_types
        implicit none
@@ -346,6 +346,7 @@ module module_interfaces
        real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
+       real(dp), dimension(*), optional :: pkernel
      end subroutine HamiltonianApplication
 
      subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
@@ -389,7 +390,7 @@ module module_interfaces
      end subroutine DiagHam
 
      subroutine last_orthon(iproc,nproc,orbs,wfd,&
-          nspin,comms,psi,hpsi,psit,evsum)
+          nspin,comms,psi,hpsi,psit,evsum, keeppsit)
        use module_base
        use module_types
        implicit none
@@ -399,6 +400,7 @@ module module_interfaces
        integer, intent(in) :: iproc,nproc,nspin
        real(wp), intent(out) :: evsum
        real(wp), dimension(:) , pointer :: psi,hpsi,psit
+       logical , optional :: keeppsit
      end subroutine last_orthon
 
      subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
@@ -640,7 +642,7 @@ module module_interfaces
        real(wp), dimension(:,:), pointer :: wfn_cp2k
      end subroutine parse_cp2k_files
 
-     subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
+     subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fillrxyz)
        use module_base
        use module_types
        implicit none
@@ -649,6 +651,7 @@ module module_interfaces
        type(orbitals_data), intent(in) :: orbs
        type(gaussian_basis), intent(out) :: G
        real(wp), dimension(:,:), pointer :: coeffs
+       logical, optional :: opt_fillrxyz
      end subroutine read_gaussian_information
 
      subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
@@ -735,9 +738,9 @@ module module_interfaces
        real(dp), dimension(:), pointer :: pkernel_ref,pkernel
      end subroutine correct_hartree_potential
 
-     subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,Gabsorber,Gabs_coeffs,&
+     subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
           cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-          ekin_sum,epot_sum,eproj_sum,nspin,GPU)
+          ekin_sum,epot_sum,eproj_sum,nspin,GPU, in_iat_absorber, doorthoocc, Occ_norb, Occ_psit, Occ_eval, in )
        use module_base
        use module_types
        implicit none
@@ -746,15 +749,23 @@ module module_interfaces
        type(atoms_data), intent(in), target :: at
        type(nonlocal_psp_descriptors), intent(in) , target :: nlpspd
        type(locreg_descriptors), intent(in) , target :: lr 
-       type(gaussian_basis), target :: Gabsorber
        integer, dimension(0:nproc-1,2), intent(in) , target :: ngatherarr 
        real(gp), dimension(3,at%nat), intent(in) , target :: rxyz
        real(gp), dimension(at%ntypes,3), intent(in) , target :: radii_cf  
        real(wp), dimension(nlpspd%nprojel), intent(in) , target :: proj
        real(wp), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
-       real(wp), dimension(3), target :: Gabs_coeffs
        real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
        type(GPU_pointers), intent(inout) , target :: GPU
+       integer, intent(in) :: in_iat_absorber
+
+       logical, intent(in) :: doorthoocc
+       integer, intent(in)  :: Occ_norb
+       real(wp), dimension(:), pointer :: Occ_psit
+       real(wp), dimension(:), pointer :: Occ_eval
+       
+       type(input_variables),intent(in) :: in
+
+
      end subroutine lanczos
 
      subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)

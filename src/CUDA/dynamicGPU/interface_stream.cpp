@@ -104,7 +104,7 @@ void init_lib__(int *iproc,int *error, int *iconv, int *iblas, bool *GPUshare)
       l = new local_network(mpi_tasks_per_node,num_GPU,mca,set_r,*iproc);
 
 
-
+      /*
       if(*iproc == 0)
 	std::cout << "Check card on all nodes...." << std::endl;
 
@@ -124,6 +124,7 @@ void init_lib__(int *iproc,int *error, int *iconv, int *iblas, bool *GPUshare)
 
 	}
 
+      */
 
       //print repartition affinity
       if(*iproc == 0)      

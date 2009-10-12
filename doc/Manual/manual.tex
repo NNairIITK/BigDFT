@@ -19,13 +19,63 @@
 \begin{itemize}
 \item Stefan.Goedecker@unibas.ch \\
 http://www.unibas.ch/comphys/comphys \\
-\item Luigi.Genovese@esrf.fr
+\item Luigi.Genovese@esrf.fr \\
+\item Damien.Caliste@cea.fr
 \end{itemize}
 \normalsize
+\tableofcontents
 
-\pagebreak
 \chapter{Installing BigDFT}
-Who could write something on this?
+
+The compilation and installation of BigDFT relies on the GNU standard building chain: 'configure', 'make', 'make install'. BigDFT can be used an independant program (as described in this manual), or as a library, to be embeded in other softwares, like inside ABINIT.
+
+\section{Building the executables}
+
+\subsection{Configure}
+After the package has been untared, the sources should be configured, depending on the system we want to run on. Thanks to the autotools, it is possible to generate several builds from the same source tree. It is adviced to create a compilation directory, either inside or outside the source tree. Lets call this directory \texttt{compile-gfortran} for instance. One starts the configure from there \texttt{'source tree path'/configure}.
+
+The following modularities during compilation are available:
+\begin{itemize}
+  \item \texttt{--disable-mpi}: force not to use MPI during build. By default the configure will try to detect if the compiler has some native MPI capabilities. If not MPI will be automatically disabled.
+  \item \texttt{--enable-cuda-gpu}: compile the CUDA parts to run on NVidia GPUs. This options requires to add some other one to find the CUDA environnement, see the \texttt{--with} options later.
+\end{itemize}
+
+One can tune the compilation environnement using the following options:
+\begin{itemize}
+  \item \texttt{--with-cuda-path}: give the path to the NVidia Cuda tools (default is \texttt{/usr/local/cuda}).
+  \item \texttt{--with-cuda-cflags}: specify the flags for the NVidia Cuda Compiler.
+  \item \texttt{--with-ext-linalg}: Give the name of the libraries replacing Blas and Lapack (default = none specified). Use the -l before the name(s).
+  \item \texttt{--with-ext-linalg-path}: Give the path of the other linear algebra libraries (default = \texttt{-L/usr/lib}). Use the -L before the path(es).
+  \item \texttt{FC}: Specify the compiler.
+\end{itemize}
+
+A example of compilation using the MKL from Intel instead of basic Blas and Lapack installation:\\
+\texttt{../configure --with-ext-linalg="-lmkl\_ia32 -lmkl\_lapack"\\
+   --with-ext-linalg-path="-L/opt/intel/mkl72/lib/32"\\
+   --prefix=/home/caliste/usr FC=ifort}
+
+An other example, compiling CUDA parts:\\
+\texttt{../../sources/bigdft-1.3.0-dev/configure\\
+  FC=mpif90 FCFLAGS="-O2  -assume 2underscores"\\
+  CC=icc CXX=icc CXXFLAGS="-O2  -I/applications/cuda-2.2/include/"\\
+  CFLAGS="-O2  -I/applications/cuda-2.2/include/"\\
+  --with-ext-linalg="-L/applications/intel/mkl/10.1.1.019/lib/em64t\\
+                     -lmkl\_scalapack\_lp64 -lmkl\_blacs\_intelmpi20\_lp64\\
+                     -lmkl\_intel\_lp64 -lmkl\_lapack -lmkl\_sequential -lmkl\_core"\\
+  --enable-cuda-gpu --with-cuda-path=/applications/cuda-2.2}
+
+\subsection{Make}
+Make the package and create the 'cluster' executable, issuing \texttt{make}. The GNU option \texttt{-j$n$} is working with whatever value of $n$ (tested up to 16).
+
+\subsection{Install}
+To install the package, issue \texttt{make install}. It will copy all files to the specified prefix (see configure).
+
+\subsection{Clean}
+Clean the source tree of the 'make' action by \texttt{make clean}.
+
+\section{Building a library}
+To avoid to create the binary executable,
+use \texttt{--disable--build-binary} option.
 
 \chapter{Structure of the BigDFT code}
 \noindent
@@ -76,11 +126,12 @@ form the high resolution region. Default values for the 'size of the atom' and  
 are contained in the package. The user can however chose different values and these values can be specified by 
 adding a additional line at the end of the pseudopotentila parameter files which contains first the altenative 
 values of {\bf crmult} and then {\bf frmult}. The grid can be visualized by calling the 'memguess' program 
-with the option '-y'? The output file 'grid.xyz' contains the atomic positions and in addition 
+with the the keywords {\bf output\_grid}=1 in the input file. The output file 'grid.xyz' contains the atomic positions and in addition 
 the grid points which denoted by 'g' if the are in the coarse region and by 'G' if they are in the fine region. 
 Whereas the total number of basis functions is nearly independent of the orientation of the molecule, the size of some 
-work arrays depends on the orientation. When the memguess routine is called with the option '-o' it will rotate 
-a molecule that will be calculated with free boundary conditions in such a way that the works arrays are as small as 
+work arrays depends on the orientation. When the memguess routine is called with the option {\bf optimise} = .true., it will rotate 
+a molecule that will be calculated with free boundary conditions in such a way that the simulation cell size and 
+hence the size of the work arrays are as small as 
 possible. The rotated output is written in the file posout\_000.xyz.
 
 \begin{figure}[h]             % produce figure
@@ -148,8 +199,24 @@ Same as above, but also frozen
 
 \pagebreak
 \begin{center} \large
-{ \bf The input file input.dft}
+{ \bf The input file input.memguess}
 \end{center}
+Before running BigDFT it is recommended to run the memguess routine. If it runs correctly all input files are available 
+(this routine needs a posinp.xyz and does not accept a list\_posinp file). It then allows to estimate the required memory and to 
+find an optimal number of MPI processes for a parallel run. For good load balancing each MPI process should roughly treat the same number 
+of orbitals. The memguess program prints out the number of orbitals and how many orbitals are treated by each MPI process. 
+On a parallel machine with a high performance interconnect network on can choose the number of MPI processes {\bf nproc} equal 
+to the number of occupied orbitals, i.e. each MPI process treats one orbital. On machines with slower networks each MPI process should 
+have at least 2 to 4 orbitals. 
+\begin{itemize}
+\item {\bf nproc}: Number of MPI processes
+\item {\bf optimise}: if =.true. the molecule will be rotated such that the size of the workarrays is minimal
+\item {\bf output\_grid}: if =1 the file grid.xyz will be generated, =0 otherwise
+\item {\bf GPUtest}: if =.true. perform the test with GPU
+\end{itemize}
+
+
+\section{The input file input.dft}
 This file contains all the parameters required for a single wavefunction calculations
 \begin{itemize}
 \item {\bf hgridx},{\bf hgridy},{\bf hgridz}: The grid spacing of the cartesian grid. As 
@@ -170,7 +237,8 @@ This file contains all the parameters required for a single wavefunction calcula
       \item -101130  PBE from  libXC
       \item -116133 PBEsol from libXC
       \end{itemize}
-\item {\bf ncharge}, {\bf elecfield}: total charge of the system and constant electric field along the y direction
+\item {\bf ncharge}, {\bf elecfield}: total charge of the system and constant electric field along the y direction in units of Ha/bohr. 
+      A positive {\bf ncharge} means that electrons are taken away.
 \item {\bf nspin}, {\bf mpol}: nspin=1: closed shaell system without spin polarization, nspin=2: spin polarized 
       system, nspin=4: non-collinear magnetic system
 \item {\bf gnrm\_cv} convergence criterion for the wavefunction optimization (norm of the gradient).
@@ -218,8 +286,11 @@ in cases where one has near degenercy between the homo and lumo orbitals. 50 and
                                'wavefunction.*' files. Writing a  'wavefunction.*' file for each orbital can take a considerable 
                                amount of time and disk space. 
        \item {\bf output\_density} = 0, no output density is written
-       \item {\bf output\_density} = 1, output density is written in the .pot format of V\_sim into the file 'density.pot'
-       \item {\bf output\_density} = 2, output density is written in the .cube format into the file 'density.cube'
+       \item {\bf output\_density} = 1, output electronic density is written in the .pot format of V\_sim into the file 'electronic\_density.pot'
+       \item {\bf output\_density} = -1, same as  {\bf output\_density} = 1, but using .cube format: electronic\_density.cube
+       \item {\bf output\_density} = 2, in addition to the electronic charge density the following files are written:
+                                  'ionic\_potential.pot', 'local\_potential.pot', 'hartree\_potential.pot'.
+       \item {\bf output\_density} = -2, same as {\bf output\_density} = 2, but all files are written in the .cube format
       \end{itemize}
 \item {\bf calc\_tail} , {\bf rbuf}, {\bf ncongt}:  Far reaching tails of the wavefunctions decaying into the vacuum are  
                                       added in a perturbative treatment if the variable {\bf calc\_tail} is set to .true.. 
@@ -254,9 +325,10 @@ If this file exists BigDFT will do a geometry optimization and the file contains
 \begin{itemize}
 \item {\bf geopt\_approach} : this character string specifies the method used for the geometry optimization.
        \begin{itemize}
-       \item  VSSD: Variable Stepsize Steepest Descent method
-       \item  SDCG: A combination od Stepest Descent and Conjugate Gradient
-       \item  LBFGS: Limited Memory BFGS
+       \item  \emph{VSSD}: Variable Stepsize Steepest Descent method
+       \item  \emph{SDCG}: A combination od Stepest Descent and Conjugate Gradient
+       \item  \emph{LBFGS}: Limited Memory BFGS
+       \item  \emph{AB6MD}: The molecular dynamic routines from ABINIT 6
        \end{itemize}
 \item  {\bf  ncount\_cluster\_x} : Maximum number of force evaluations to be used for the geometry optimization.
 \item  {\bf frac\_fluct },{\bf forcemax } : Convergence criteria for the geometry optimization. The geometry optimization stops either 
@@ -280,22 +352,49 @@ If this file exists BigDFT will do a geometry optimization and the file contains
                       case the average stepsize in terms of betax should be around 4 (after a brief initial period where it is around 8).
                       In constrast to the SDCG method the LBFGS method is not very sensitive to the correct stepsize but nevertheless 
                       one should try to find reasonable values also in this case.
+\item  \textbf{ionmov} : in case of {\bf geopt\_approach = AB6MD}, the {\bf betax } line should be replaced by this one. It contains an integer value as described in the ABINIT manual. Possible values are:
+                         \begin{itemize}
+                         \item 6: simple velocity-Verlet molecular dynamic.
+                         \item 7: quenched molecular dynamic, when the scalar product force / velocity becomes negative, the velocity is set to zero. The force criterion is tested at each step.
+                         \item 8: Nose-Hoover thermostat.
+                         \item 9: Langevin dynamic (adding a friction force and a gaussian random force on atoms).
+                         \item 12: Isokinetic ensemble molecular dynamics. The equation of motion of the ions in contact with a thermostat are solved with the algorithm proposed by Zhang [J. Chem. Phys. 106, 6102 (1997)], as worked out by Minary et al [J. Chem. Phys. 188, 2510 (2003)]. The conservation of the kinetic energy is obtained within machine precision, at each step.
+                         \item 13: Iosthermal/isenthalpic ensemble. The equation of motion of the ions in contact with a thermostat and a barostat are solved with the algorithm proposed by Martyna, Tuckermann Tobias and Klein [Mol. Phys., 1996, p. 1117].
+                         \end{itemize}
+\item  \textbf{dtion} : the time step for molecular dynamic, in atomic time units. One atomic time unit is 2.418884e-17 seconds, which is the value of Planck's constant in hartree*sec. The following lines depend on the choosen value for \textbf{ionmov}.
+\item  if \textbf{ionmov = 6} : one line containing the initial temperature in kelvin. If negative, the initial velocities are all zero. If positive, random speeds are chosen to match the given temperature (NOT implemented yet!).
+\item  if \textbf{ionmov $>$ 7} : one line containing two temperatures in kelvin. When different, the temperature is linearly change at each geometry step to go from the first value to the second.
+\item  if \textbf{ionmov = 8} : one additionnal line containing the thermostat inertia coefficient for Nose-Hoover dynamic.
+\item  if \textbf{ionmov = 9} : two additionnal lines containing first the friction coefficient and then a value in bohr corresponding at a distance where the atoms can bounce on (see the ABINIT documentation for further details).
+\item  if \textbf{ionmov = 13} : several additionnal lines containing first the number of thermostats in the chain of thermostats. Then a line with the mass of each thermostat in the chain. And finally a line with two values for the barostat mass, depending on optcell value (NOT implemented yet).
+
+
 \end{itemize}
 
+\section{The input file input.kpt}
+This file is used to specify a set of $k$ points. If this file does not exist, only the $\Gamma$ point will be used. The $k$ point generation relies on the ABINIT implementation. This files contains the following information:
+\begin{itemize}
+  \item  \textbf{kptopt}: this character string specifies the method used to generate the $k$ point mesh.
+       \begin{itemize}
+       \item  \emph{auto}: automatic generation is used, based on the $k$ point density we whish in Fourrier space, taking into account the symmetries of the system.
+       \item  \emph{MPgrid}: a Monkhorst-Pack grid, using only the special $k$ points, taking into account the symmetries of the system.
+       \item  \emph{manual}: a manual set of $k$ points.
+       \end{itemize}
+       The following lines depend on the choice of \textbf{kptopt}.
+  \item  if \textbf{kptopt = 'auto'}: one additionnal line containing a real space length \textbf{kptrlen}. BigDFT will automatically generate a large set of possible $k$ point grids, and select among this set, the grids that give a length of smallest vector LARGER than \textbf{kptrlen}, and among these grids, the one that, reduces to the smallest number of $k$ points.
+  \item  if \textbf{kptopt = 'MPgrid'}: several additionnal lines. The first line should contains three integers describing the mesh of Monkhorst-Pack grid in reciprocal space. The second line contains one integer \textbf{nshiftk} that give the number of shift one would ike to apply to the MMP grid to obtain the final $k$ point mesh. Then the file contains \textbf{nshiftk} lines with three real numbers each, giving the shift to apply in reciprocal space.
+  \item  if \textbf{kptopt = 'manual'}: several additionnal lines. The first contains \textbf{nkpt}, an integer giving the number of manually defined $k$ points. Then \textbf{nkpt} lines follow, whith four real values each, the three firsts being the coordinates in reciprocal space (in $[0;0.5]$) and the fourth bing the weigth. If the sum of all weigths does not equal to one, weight values are renormalised.
+\end{itemize}
 
 \chapter{ \bf Running Bigdft}
+The MPI version is executed on most machines with the mpirun command followed by the name of the executable which is 
+cluster in our case.
+The treatment of each orbital can be speeded up by using the mixed MPI/OpenMP implementation 
+where each MPI processes uses several OpenMP threads to do the calculations for its orbitals faster. 
+The OpenMp is simply activated by compiling the program with an OpenMP flag and by specifying the number of OpenMP threats by
+export OMP\_NUM\_THREADS=4 if 4 threads are for instance desired.
 
 \noindent
-Before running BigDFT it is recommended to run the memguess routine. If it runs correctly all input files are available 
-(this routine needs a posinp.xyz and does not accept a list\_posinp file). It then allows to estimate the required memory and to 
-find an optimal number of MPI processes for a parallel run. For good load balancing each MPI process should roughly treat the same number 
-of orbitals. On a parallel machine with a high performance interconnect network on can choose the number of MPI processes equal 
-to the number of occupied orbitals, i.e. each MPI process treats one orbital. On machines with slower networks each MPI process should 
-have at least 2 to 4 orbitals. The treatment of each orbital can be speeded up by using the mixed MPI/OpenMP implementaions 
-where each MPI processes uses several OpenMP threads to do the calculations for its orbitals faster. 
-The OpenMp is simply activated by compiling the program with an OpenMP flag. 
-The memguess routine can alo do many other useful things. The full list of options can be obtained by just typing memguess without any argument. 
-
 The Bigdft program monitors during a run the memory utilization and the time spent in various subroutines. Detailed information 
 is written in the files malloc.prc and time.prc. The the end the program checks whether the number of deallocations was equal 
 to the number of allocations and whwther the total memory went back to zero. If this should not the case please send a bug report 

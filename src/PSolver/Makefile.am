@@ -99,17 +99,18 @@ libpoissonsolver_a_LIBADD = ../modules/libmodules.a
 
 PS_Check_SOURCES = PS_Check.f90 $(mpi_source)
 PS_Check_LDFLAGS =
-PS_Check_LDADD = 	libpoissonsolver.a \
+PS_Check_LDADD = libpoissonsolver.a \
 	../modules/libmodules.a \
 	../profiling/libprofiling.a \
 	ABINIT-common/libABINIT.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
+PS_Check_DEPENDENCIES = Poisson_Solver.o
 
 PS_Program_SOURCES = PS_Program.f90 $(mpi_source)
 PS_Program_LDFLAGS = 
-PS_Program_LDADD = 	libpoissonsolver.a \
+PS_Program_LDADD = libpoissonsolver.a \
 	../modules/libmodules.a \
 	../profiling/libprofiling.a \
 	ABINIT-common/libABINIT.a \
@@ -118,7 +119,7 @@ PS_Program_LDADD = 	libpoissonsolver.a \
 	$(libs_cuda) 
 
 PS_Exercise_SOURCES = PS_Exercise.f90 $(mpi_source)
-PS_Exercise_LDADD = 	libpoissonsolver.a \
+PS_Exercise_LDADD =	libpoissonsolver.a \
 	../modules/libmodules.a \
 	../profiling/libprofiling.a \
 	ABINIT-common/libABINIT.a \
@@ -138,24 +139,25 @@ mpif.h:
 
 poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 
-Poisson_Solver.o : ../modules/base.o $(SOURCES_MOD)
+Poisson_Solver.o: ../modules/base.o $(SOURCES_MOD)
 
 #base.o : $(mpi_include)
 
-PS_Check.o: Poisson_Solver.o
+#PS_Check.o: Poisson_Solver.o
+
 
 
 check:
-	$(run_parallel) ./PS_Check 57 48 63 0 F  > PS_Check.out
-	$(run_parallel) ./PS_Check 57 48 63 1 F >> PS_Check.out
+	$(run_parallel) ./PS_Check 57 48 63  0 F  > PS_Check.out
+	$(run_parallel) ./PS_Check 57 48 63  1 F >> PS_Check.out
 	$(run_parallel) ./PS_Check 57 48 63 11 F >> PS_Check.out
 	$(run_parallel) ./PS_Check 57 48 63 13 F >> PS_Check.out
-	$(run_parallel) ./PS_Check 64 64 64 0 P >> PS_Check.out
-	$(run_parallel) ./PS_Check 64 64 64 1 P >> PS_Check.out
+	$(run_parallel) ./PS_Check 64 64 64  0 P >> PS_Check.out
+	$(run_parallel) ./PS_Check 64 64 64  1 P >> PS_Check.out
 	$(run_parallel) ./PS_Check 64 64 64 11 P >> PS_Check.out
 	$(run_parallel) ./PS_Check 64 64 64 13 P >> PS_Check.out
-	$(run_parallel) ./PS_Check 32 64 48 0 S >> PS_Check.out
-	$(run_parallel) ./PS_Check 32 64 48 1 S >> PS_Check.out
+	$(run_parallel) ./PS_Check 32 64 48  0 S >> PS_Check.out
+	$(run_parallel) ./PS_Check 32 64 48  1 S >> PS_Check.out
 	$(run_parallel) ./PS_Check 32 64 48 11 S >> PS_Check.out
 	$(run_parallel) ./PS_Check 32 64 48 13 S >> PS_Check.out
 	python $(top_srcdir)/tests/fldiff.py --discrepancy=2.e-8 PS_Check.out $(top_srcdir)/src/PSolver/PS_Check.out.ref

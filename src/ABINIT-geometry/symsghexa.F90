@@ -49,7 +49,7 @@ subroutine symsghexa(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-!use interfaces_12geometry, except_this_one => symsghexa
+! use interfaces_42_geometry, except_this_one => symsghexa
 !End of the abilint section
 
  implicit none
@@ -68,7 +68,7 @@ subroutine symsghexa(brvltt,msym,nsym,shubnikov,spgaxor,spgorig,spgroup,&
  real(dp),parameter :: fivesixth=5.0d0/6.0d0,twothird=2.0d0/3.0d0
  character(len=1) :: brvsb
  character(len=15) :: intsb,ptintsb,ptschsb,schsb
- character(len=30) :: intsbl
+ character(len=35) :: intsbl
 !arrays
  real(dp) :: genm(3,3),genmmp(3,3),genswm(3,3),genswmmm(3,3),genswmmp(3,3)
  real(dp) :: genswp(3,3)
