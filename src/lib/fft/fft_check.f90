@@ -35,6 +35,7 @@
 program fft_check
 
    write(*,'(a)') 'FFT test: (n1,n2,n3)'
+   call do_fft(  7, 16,128)
    call do_fft(  3, 16,128)
    call do_fft(128,128,128)
 
