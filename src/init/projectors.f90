@@ -422,6 +422,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   real(gp) :: rad_c,rad_f,factor,err_norm,dz2,dy2,dx2,te,d2,cpmult_max,fpmult_max
   real(wp), dimension(0:nw,2) :: work
   real(wp), allocatable, dimension(:,:,:) :: wprojx,wprojy,wprojz
+  integer omp_get_thread_num,omp_get_num_threads
 
   allocate(wprojx(0:n1,2,nterm+ndebug),stat=i_stat)
   call memocc(i_stat,wprojx,'wprojx',subname)

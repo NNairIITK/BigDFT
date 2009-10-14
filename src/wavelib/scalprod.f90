@@ -7,6 +7,8 @@ subroutine wnrm_wrap(mvctr_c,mvctr_f,psi,scpr)
   real(dp), intent(out) :: scpr
   !local variables
   integer :: i_f
+  integer omp_get_thread_num
+
 
   i_f=min(mvctr_f,1)
  
@@ -271,6 +273,8 @@ subroutine wpdot(  &
   integer :: iaseg,ibseg,llc,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,llf,i,ithread,nthread
   real(dp) :: pac,paf1,paf2,paf3,paf4,paf5,paf6,paf7,pbc,pbf1,pbf2,pbf3,pbf4,pbf5,pbf6,pbf7
   real(dp) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
+  integer omp_get_thread_num
+
   !  integer :: ncount0,ncount2,ncount_rate,ncount_max
   !  real(gp) :: tel
 
@@ -483,6 +487,8 @@ subroutine waxpy(  &
   !  integer :: ncount0,ncount2,ncount_rate,ncount_max
   !  real(gp) :: tel 
   real(wp) :: scprwp
+  integer omp_get_thread_num
+
   !dee
   !  open(unit=97,file='time_waxpy',status='unknown')
   !  call system_clock(ncount0,ncount_rate,ncount_max)

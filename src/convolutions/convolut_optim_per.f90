@@ -832,6 +832,7 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin_out)
   real(wp), dimension(3) :: scale
   real(wp), dimension(lowfil:lupfil,3) :: fil
   real(wp), dimension(8,3) :: ekin_array
+  integer omp_get_thread_num
 
   ekin_out=0._wp
   do i=1,8
