@@ -76,7 +76,7 @@ module Poisson_Solver
   !wrapper to the poisson solver for allowing non-collinear densities
   public :: PSolverNC
   !calculate the allocation dimensions
-  public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions,fourier_dim
+  public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions!,fourier_dim
 
 contains
 
@@ -85,7 +85,7 @@ contains
   include 'PSolver_Base.f90'
   include 'xcenergy.f90'
   include '3Dgradient.f90'
-  include 'fft3d.f90'
+  !include 'fft3D.f90'
   include 'scaling_function.f90'
 
 end module Poisson_Solver

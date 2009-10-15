@@ -55,10 +55,9 @@ global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda)
+SUBDIRS = modules convolutions lib $(sub_dirs_ps) profiling $(sub_dirs_cuda)
 
 EXTRA_DIST = \
-	Makefile.standalone \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
@@ -74,7 +73,7 @@ EXTRA_DIST = \
 	ABINIT-moldyn/others.F90 \
 	ABINIT-moldyn/quenched.F90
 
-AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common -I$(srcdir)/ABINIT-moldyn
+AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common -I$(srcdir)/ABINIT-moldyn @LIBXC_INCLUDE@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)
@@ -84,11 +83,9 @@ module_DATA = $(mod_bigdft)
 
 if USE_MPI
 mpi_source =
-mpi_include =
 LMPI = @MPI_LDFLAGS@
 else
 mpi_source = MPIfake.f90
-mpi_include = mpif.h
 LMPI =
 endif
 
@@ -183,8 +180,7 @@ low_level = init/projectors.f90  \
 	wfn_opt/precond_slab.f90 \
 	wfn_opt/kernel_per_optim.f90 \
 	wfn_opt/kernel_slab_simple.f90 \
-	wfn_opt/fft_per.f90 \
-	wfn_opt/fft2d.f90 \
+	lib/fft/fft2d.f90 \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
 	wavelib/plotting.f90 \
@@ -325,14 +321,16 @@ frequencies_LDADD = libbigdft.a \
 	$(libs_cuda)
 
 
-CLEANFILES = mpif.h \
+CLEANFILES = \
+	ab6_symmetry.@MODULE_EXT@ AB6_SYMMETRY.@MODULE_EXT@ \
+	ab6_moldyn.@MODULE_EXT@ AB6_MOLDYN.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@ BIGDFT_API.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@ MODULE_INTERFACES.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@ \
 	module_base.@MODULE_EXT@ MODULE_BASE.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@ VDWCORRECTION.@MODULE_EXT@ \
 	lanczos_base.@MODULE_EXT@ LANCZOS_BASE.@MODULE_EXT@ \
-	esatto@MODULE_EXT@ ESATTO.@MODULE_EXT@ \
+	esatto.@MODULE_EXT@ ESATTO.@MODULE_EXT@ \
 	lanczos_interface.@MODULE_EXT@ LANCZOS_INTERFACE.@MODULE_EXT@ \
 	formats.@MODULE_EXT@ FORMATS.@MODULE_EXT@ \
 	miscellany.@MODULE_EXT@ MISCELLANY.@MODULE_EXT@ \
@@ -341,12 +339,12 @@ CLEANFILES = mpif.h \
 	minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
 	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
 	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@ \
-	scfloop_API.@MODULE_EXT@ SCFLOOP_API.@MODULE_EXT@
+	scfloop_api.@MODULE_EXT@ SCFLOOP_API.@MODULE_EXT@
 
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
 
-cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o
+cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o ab6_moldyn.o
 
 lanczos.o : lanczos_base.o lanczos_interface.o
 
@@ -371,13 +369,6 @@ xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 #BigDFT_API.o: base.o types.o interfaces.o
 
 #$(high_level:.f90=.o) : base.o types.o
-
-mpif.h:
-	touch mpif.h &&\
-	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
-	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
-	 echo "integer :: MPI_STATUSES_IGNORE,MPI_LOGICAL" >> mpif.h &&\
-	 echo "integer :: MPI_MIN, MPI_MAX,MPI_CHARACTER" >> mpif.h
 
 test_forces.o: $(mod_bigdft)
 

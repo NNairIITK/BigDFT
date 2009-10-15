@@ -1,13 +1,17 @@
-
 subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
   ! In one dimension, 
   ! Applies the magic filter transposed, then analysis wavelet transformation.
   ! The size of the data is forced to shrink
-  implicit real(kind=8) (a-h,o-z)
-  integer,parameter:: lowfil2=-14,lupfil2=16
-  real(kind=8) x(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16) ! input
-  real(kind=8) y(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)! output
-  integer ib(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
+  implicit none
+!Arguments 
+  integer :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,ib(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
+  real(kind=8) :: x(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16),y(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)
+!Local variables 
+  integer :: i,icur,j2,j3,l
+  integer, parameter :: lowfil2=-14,lupfil2=16
+  integer :: ncount0,ncount1,ncount_max,ncount_rate,nflop
+  real(kind=8) :: c1i0,c1i1,c1i2,c1i3,c2i0,c2i1,c2i2,c2i3,ci1,ci2,tel
+
   include 'v_long.inc'
 
   nflop=0
