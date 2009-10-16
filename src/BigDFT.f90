@@ -208,7 +208,7 @@ program BigDFT
      !finalize memory counting
      call memocc(0,0,'count','stop')
 
-     if (GPUshare .and. GPUconv) call stop_gpu_sharing()
+     call sg_end()
 
   enddo !loop over iconfig
 

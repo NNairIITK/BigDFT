@@ -33,7 +33,6 @@ EXTRA_DIST = \
 	$(SOURCES_CONV_CHECK)
 
 SOURCES_CONV = 	cudafct.cu \
-	memory_management.cu \
 	locham.cu 
 
 SOURCES_CONV_CHECK = locpot.cu \
@@ -43,17 +42,7 @@ SOURCES_CONV_CHECK = locpot.cu \
 	precond.cu \
 	density.cu
 
-SOURCES_SHARED = \
-	dynamicGPU/interface_stream.cpp \
-	dynamicGPU/init_network.cpp \
-	dynamicGPU/convolution_fct_call.cpp \
-	dynamicGPU/localqueu.cpp \
-	dynamicGPU/manage_cpu_affinity.cpp \
-	dynamicGPU/check_card/check_init.f90 \
-	dynamicGPU/check_card/checker.cpp \
-	dynamicGPU/set_repartition.cpp \
-	dynamicGPU/trace_exec.cpp \
-	dynamicGPU/read_conf_file.cpp \
+SOURCES_SHARED = binding_s_gpu.c \
 	commonDef.cpp  \
 	fortran.c
 

@@ -67,18 +67,17 @@ private:
 class fct_call_calc_generic : public fct_call
 {
 public:
-  fct_call_calc_generic(sg_callback_ptr f_call_, void *param,size_t param_size)
-    :f_call(f_call_){initParam_local(param_local,param,param_size);}
+  fct_call_calc_generic(sg_callback_ptr f_call_, void *param_, size_t size_param_)
+    :f_call(f_call_),size_param(size_param_)
+  {malloc_and_copy(param_,size_param_);}
   virtual void operator()(int); 
   virtual ~fct_call_calc_generic();
 
   
 private:
-  void initParam_local(void *dest, const void *src, size_t param_size);
+  void malloc_and_copy(void* src,size_t size);
   sg_callback_ptr f_call;
-  void *param_local;
-  
+  void *local_param;
+  size_t size_param;
 };
-
-
 #endif

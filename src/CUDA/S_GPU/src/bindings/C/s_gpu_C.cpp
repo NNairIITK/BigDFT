@@ -28,9 +28,9 @@ sem_unix *sem_gpu_TRSF;
 
 
 extern "C"
-int sg_init(bool *GPUshare, bool *useGPU,int iproc)
+int sg_init(int *GPUshare, int *useGPU,int iproc)
 {
-  *useGPU = false;
+  *useGPU = 0;
 
   try
     {
@@ -71,12 +71,12 @@ int sg_init(bool *GPUshare, bool *useGPU,int iproc)
       if(use_shared == 1)
 	{
 	  set_r = new set_repartition_shared(mpi_tasks_per_node,num_GPU,iproc,g_gpu_attach);
-	  *GPUshare = true;
+	  *GPUshare = 1;
 	}
       else
 	{
 	  set_r = new set_repartition_static(mpi_tasks_per_node,num_GPU,iproc,g_gpu_attach);
-	  *GPUshare = false;
+	  *GPUshare = 0;
 	}
       //init node
       l = new local_network(mpi_tasks_per_node,num_GPU,mca,set_r,iproc);
@@ -94,7 +94,7 @@ int sg_init(bool *GPUshare, bool *useGPU,int iproc)
 	  // checker::runTestOne(); //check only if the card has one GPU...
 
 
-	  *useGPU = true;
+	  *useGPU = 1;
 
 	}
 
@@ -174,9 +174,18 @@ int sg_init(bool *GPUshare, bool *useGPU,int iproc)
 }
 
 
+extern "C"
+void sg_end()
+{
+  delete g_gpu_attach;
+  delete locq;
+  delete l;
+}
+
+
 
 extern "C"
-sg_stream_ptr create_stream()
+sg_stream_ptr sg_create_stream()
 {
   gpu_stream *new_stream = new gpu_stream(l->getCurrGPU());
   locq->addStream(new_stream);
@@ -231,24 +240,29 @@ int sg_gpu_receiv_arr(void *dest, const GPU_ptr src, size_t mem_size, sg_stream_
 extern "C"
 int sg_mem_copy(void *dest, const void *src, size_t mem_size, sg_stream_ptr stream)
 {
+
+  // std::cout << "c++ beg memcpy" << std::endl;
 fct_call_memcpy *trsf_memcpy =
   new fct_call_memcpy(src,dest,mem_size);
-
+// std::cout << "c++ aff new memcpy" << std::endl;
  
  ((gpu_stream*)stream)->addOp(trsf_memcpy,TRANSF);
 
+ // std::cout << "c++ END memcpy" << std::endl;
  return 0;
 }
 
 
 extern "C"
-int sg_calc(sg_callback_ptr f_call, void *param, size_t param_size,sg_stream_ptr stream)
+int sg_calc(sg_callback_ptr f_call, void *param,size_t size_param,sg_stream_ptr stream)
 {
   
   fct_call_calc_generic *calc_generic =
-    new fct_call_calc_generic(f_call,param,param_size);
+    new fct_call_calc_generic(f_call,param,size_param);
 
   
   ((gpu_stream*)stream)->addOp(calc_generic,CALC);
   return 0;
 }
+
+
