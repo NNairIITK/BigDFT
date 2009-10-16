@@ -15,6 +15,7 @@ doc/cluster.pdf
 doc/halFFT.pdf
 doc/Manual/manual.pdf
 doc/Manual/manual.toc
+src/lib/fft/fft_check
 src/parameters.h
 src/cluster
 src/memguess

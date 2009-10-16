@@ -118,9 +118,9 @@ subroutine make_kernel(n1,hgrid,kern)
   enddo
 
   isign=1
-  call ctrig(n1+1,trig,after,before,now,isign,ic)
+  call ctrig_sg(n1+1,trig,after,before,now,isign,ic)
   do i=1,ic
-     call fftstp(1,1,nd1,1,nd1,z(1,1,inzee),z(1,1,3-inzee),trig,after(i),now(i),before(i),isign)
+     call fftstp_sg(1,1,nd1,1,nd1,z(1,1,inzee),z(1,1,3-inzee),trig,after(i),now(i),before(i),isign)
      inzee=3-inzee
   enddo
 

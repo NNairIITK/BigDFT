@@ -34,14 +34,13 @@ libABINIT_a_SOURCES = \
         invcb.F90 \
 	size_dvxc.F90
 
-CLEANFILES = defs_basis.@MODULE_EXT@ \
-	defs_datatypes.@MODULE_EXT@ \
-	defs_xc.@MODULE_EXT@ \
-	m_libxc_functionals.@MODULE_EXT@ \
-	DEFS_BASIS.@MODULE_EXT@ \
-	DEFS_DATATYPES.@MODULE_EXT@ \
-	DEFS_XC.@MODULE_EXT@ \
-	M_LIBXC_FUNCTIONALS.@MODULE_EXT@
+CLEANFILES = \
+	defs_abitypes.@MODULE_EXT@ DEFS_ABITYPES.@MODULE_EXT@ \
+	defs_basis.@MODULE_EXT@ DEFS_BASIS.@MODULE_EXT@ \
+	defs_datatypes.@MODULE_EXT@ DEFS_DATATYPES.@MODULE_EXT@ \
+	defs_parameters.@MODULE_EXT@ DEFS_PARAMETERS.@MODULE_EXT@ \
+	defs_xc.@MODULE_EXT@ DEFS_XC.@MODULE_EXT@ \
+	libxc_functionals.@MODULE_EXT@ LIBXC_FUNCTIONALS.@MODULE_EXT@
 
 #dependencies
 

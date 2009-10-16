@@ -1,0 +1,3 @@
+FFT test: (n1,n2,n3)
+    3   16  128 Backw<>Forw:ttm=,tta= 1.48E-12 2.24E-15 Succeeded 
+  128  128  128 Backw<>Forw:ttm=,tta= 9.36E-12 3.48E-15 Succeeded 

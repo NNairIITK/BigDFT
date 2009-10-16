@@ -320,7 +320,7 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
   integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e,j3,i3sg,ithread,nthread
   real(gp) :: hfac2
   real(dp) :: psisq,p1,p2,p3,p4,r1,r2,r3,r4
-  integer omp_get_thread_num,omp_get_num_threads
+  integer :: omp_get_thread_num,omp_get_num_threads
   !sum different slices by taking into account the overlap
   i3sg=0
 !$omp parallel default(private) shared(n1i,nproc,rsflag,nspinn,nscatterarr,spinsgn) &
@@ -425,7 +425,7 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
   integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e,j3,i3sg,ithread,nthread
   real(gp) :: hfac2
   real(dp) :: psisq,p1,p2,p3,p4,r1,r2,r3,r4
-  integer omp_get_thread_num,omp_get_num_threads
+  integer :: omp_get_thread_num,omp_get_num_threads
   !sum different slices by taking into account the overlap
   i3sg=0
 !$omp parallel default(private) shared(n1i,nproc,rsflag,nspinn,nscatterarr,spinsgn) &
