@@ -12,9 +12,9 @@
 !!
 program MINHOP
 
-  use module_base
-  use module_types
-  use module_interfaces
+  !this will include also mpif.h
+  use BigDFT_API
+  use ab6_symmetry
 
   implicit real(kind=8) (a-h,o-z)
   real(kind=4) :: tts
@@ -50,6 +50,7 @@ program MINHOP
   character(len=4) :: fn4
   character(len=5) :: fn5
   character(len=50) :: comment
+  integer :: ierr
 
   !include 'mpif.h'
 
@@ -142,10 +143,12 @@ program MINHOP
   call read_atomic_positions(iproc,99,atoms,pos)
   close(unit=99)
   !Read input parameters for geometry optimization 
-  call dft_input_variables(iproc,'input.dft',inputs_opt)
+  call dft_input_variables(iproc,'input.dft',inputs_opt,atoms%symObj)
+  call kpt_input_variables(iproc,'input.kpt',inputs_opt,atoms)
   call geopt_input_variables(iproc,'input.geopt',inputs_opt)
 
-  call dft_input_variables(iproc,'mdinput.dft',inputs_md)
+  call dft_input_variables(iproc,'mdinput.dft',inputs_md,atoms%symObj)
+  call kpt_input_variables(iproc,'input.kpt',inputs_md,atoms)
   call geopt_input_variables(iproc,'mdinput.geopt',inputs_md)
 
 
@@ -263,7 +266,7 @@ program MINHOP
      filename = 'global.mon'
      write(67,*) 'iteration results written in:',filename
      write(*,*) '# iteration results written in:',filename
-     open(unit=2,file=filename,status='unknown',position='append')
+     open(unit=2,file=filename,status='unknown',access='append')
   endif
 
   ! (un)comment the correct 2 lines
@@ -359,7 +362,7 @@ program MINHOP
      call rdposout(irestart,wpos,atoms%nat)
      ncount_bigdft=irestart
      inputs_opt%inputPsiId=0  !ALEX notices we need an input guess for the aborted geo
-     stop '5556'  !goto 5556
+     goto 5556
   end if
   
   
@@ -375,7 +378,7 @@ program MINHOP
      !1000 continue
      irestart=0! we can restart from a local minimum
 !     rewind(111)
-!     write(111,*)'*** process monitor file for nlmin',nlim
+!     write(111,*)'*** process monitor file for nlmin',nlmin
      ! check whether other processes send local minima data
      if (nlmin >= nlminx) then 
         write(67,*)iproc,'has  nlminx collected',nlmin
@@ -658,7 +661,6 @@ end do hopping_loop
 !     close(11)
   endif
 
-
   call cpu_time(tcpu2)
   if (iproc.eq.0) then
      !C ratios from all the global counters
@@ -702,6 +704,7 @@ end do hopping_loop
   i_all=-product(shape(atoms%amu))*kind(atoms%amu)
   deallocate(atoms%amu,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%amu',subname)
+  if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
 
   call free_restart_objects(rst,subname)
 
@@ -733,6 +736,9 @@ end do hopping_loop
 
   if (iproc.eq.0) write(67,'(a,1x,3(1x,1pe10.3))') 'Out:ediff,ekinetic,dt',ediff,ekinetic,dt
   close(2) 
+
+  call free_input_variables(inputs_opt)
+  call free_input_variables(inputs_md)
 
   !  call deallocate_wfd(wfd,subname)
   !  i_all=-product(shape(psi))*kind(psi)
@@ -900,7 +906,6 @@ contains
     
   end subroutine mdescape
   
-  
 
   subroutine soften(nsoften,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
        nproc,iproc,atoms,rst,inputs_md)! &
@@ -1057,6 +1062,7 @@ contains
   end subroutine soften
 
 
+
 end program
 !!***
 
@@ -1204,7 +1210,7 @@ subroutine velopt(at,rxyz,ekinetic,vxyz)
   !        to be implemented
 
   ! Soften previous velocity distribution
-  !call soften(iproc,nat,rxyz,vxyz,rayl0,rayl,res,it)
+  !call soften(nsoften,??iproc,nat,rxyz,vxyz,rayl0,rayl,res,it)
   !^^^^^^^^^^^^^^^^^^^^^^
   !IMPORTANT: This is done at the level of mdescape in this version! 
 
@@ -1580,7 +1586,6 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
            enddo
         endif
 
-
         ! make sure the part that flew away is smaller than the cluster
         if (ncluster <= at%nat/2) then
            !     write(*,*) 'FLIP'
@@ -1644,7 +1649,7 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
            enddo
         endif
         nloop=nloop+1
-     if (nloop.gt.4) call MPI_ABORT(MPI_COMM_WORLD,ierr)
+     if (nloop.gt.4) call MPI_ABORT(MPI_COMM_WORLD,ierr)  
      endif
   end do fragment_loop
 
@@ -1701,20 +1706,20 @@ end subroutine winter
 subroutine wtioput(ediff,ekinetic,dt,nsoften)
   implicit real*8 (a-h,o-z)
   open(unit=11,file='ioput',status='unknown')
-  write(11,'(3(1x,1pe24.17)1x,i4,a)') ediff,ekinetic,dt,nsoften,' ediff, ekinetic dt and nsoften'
+  write(11,'(3(1x,1pe24.17)1x,i4,a)') ediff,ekinetic,dt,nsoften,' ediff, ekinetic,dt,nsoften'
   close(11)
 end subroutine wtioput
 
 
 subroutine wtbest(nat,energy,pos,iatype,atomnames,natpol)
   implicit real*8 (a-h,o-z)
-  character(41) filename
-  character(20) atomnames
-  character(3) fn
+  character(len=41) :: filename
+  character(len=20) :: atomnames
+  character(len=3) :: fn
   dimension pos(3,nat),iatype(nat),atomnames(100)
-  integer, dimension(nat):: natpol
+  integer, dimension(nat), intent(in) :: natpol
 
-  !C generate filename and open files
+  !Generate filename and open files
   filename = 'posbest.xyz'
   open(unit=9,file=filename,status='unknown')
   write(9,'(i4,2x,a,1pe24.17)') nat,'  atomic', energy
@@ -1723,8 +1728,7 @@ subroutine wtbest(nat,energy,pos,iatype,atomnames,natpol)
      write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)') atomnames(iatype(iat)),&
           pos(1,iat),pos(2,iat),pos(3,iat),natpol(iat)-100
   enddo
-  close(9)
-  return
+  close(unit=9)
 end subroutine wtbest
 
 subroutine wtmd(istep,nat,energy,pos,iatype,atomnames,natpol)

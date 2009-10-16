@@ -129,21 +129,22 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   ncomp_res=(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
   do jproc=0,nproc-1
      loop_comps: do
-        !print *,jproc,nvctr_par(jproc,0),ncomp_res 
         if (nvctr_par(jproc,0) >= ncomp_res) then
            nvctr_par(jproc,ikpts)= ncomp_res
            ikpts=ikpts+1
-           ncomp_res=(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
            nvctr_par(jproc,0)=nvctr_par(jproc,0)-ncomp_res
+           ncomp_res=(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
         else
            nvctr_par(jproc,ikpts)= nvctr_par(jproc,0)
            ncomp_res=ncomp_res-nvctr_par(jproc,0)
            nvctr_par(jproc,0)=0
+           exit loop_comps
         end if
         if (nvctr_par(jproc,0) == 0 ) then
            ncomp_res=(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
            exit loop_comps
         end if
+
      end do loop_comps
   end do
 
@@ -154,6 +155,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 !!$  end if
   !check the distribution
   do ikpts=1,orbs%nkpts
+     !print *,'iproc,cpts:',lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nvctr_par(:,ikpts)
      nvctr_tot=0
      do jproc=0,nproc-1
         nvctr_tot=nvctr_tot+nvctr_par(jproc,ikpts)
@@ -166,28 +168,44 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 
   !calculate the number of k-points treated by each processor in the component distribution
   nkptsp=0
-  iskpts=0
+  iskpts=-1
   do ikpts=1,orbs%nkpts
      if (nvctr_par(iproc,ikpts) /= 0) then
         nkptsp=nkptsp+1
-        if (iskpts == 0) then
+        if (iskpts == -1) then
            iskpts=ikpts-1
         end if
      end if
   end do
-
+  
   orbs%nkptsp=nkptsp
   orbs%iskpts=iskpts
 
+  !this function which associates a given k-point to a processor 
+  !the association is chosen such that each k-point is associated to only
+  !one processor
+  !if two processors treat the same k-point the processor which highest rank is chosen
+  do ikpts=1,orbs%nkpts
+     loop_jproc: do jproc=nproc-1,0,-1
+        if (nvctr_par(jproc,ikpts) /= 0) then
+           orbs%ikptproc(ikpts)=jproc
+           exit loop_jproc
+        end if
+     end do loop_jproc
+  end do
+  
+  !print *,'check',orbs%ikptproc(:)
 
   !calculate the same k-point distribution for the orbitals
   !assign the k-point to the given orbital, counting one orbital after each other
   jorb=1
   ikpts=1
+
+  !print *,'here',orbs%norb_par(:)
   do jproc=0,nproc-1
      do iorbp=1,orbs%norb_par(jproc)
         norb_par(jproc,ikpts)=norb_par(jproc,ikpts)+1
-        if (jorb == orbs%norb) then
+        if (mod(jorb,orbs%norb)==0) then
            ikpts=ikpts+1
         end if
         jorb=jorb+1
@@ -195,46 +213,24 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   end do
   !some checks
   if (orbs%norb /= 0) then
-     if (ikpts /= orbs%nkpts+1 ) then
-        write(*,*)' ERROR:ikpts not correct, orbitals:',ikpts,orbs%nkpts
-        stop
-     end if
+!!$     if (ikpts /= orbs%nkpts) then
+!!$        write(*,*)' ERROR:ikpts not correct, orbitals:',ikpts,orbs%nkpts
+!!$        stop
+!!$     end if
      !check the distribution
      do ikpts=1,orbs%nkpts
+        !print *,'partition',ikpts,orbs%nkpts,'ikpts',norb_par(:,ikpts)
         norb_tot=0
         do jproc=0,nproc-1
            norb_tot=norb_tot+norb_par(jproc,ikpts)
         end do
         if(norb_tot /= orbs%norb) then
-           write(*,*)'ERROR: partition of components incorrect, kpoint:',ikpts
+           write(*,*)'ERROR: partition of orbitals incorrect, kpoint:',ikpts
            stop
         end if
      end do
   end if
 
-!!$  !balance the components between processors
-!!$  !in the most symmetric way
-!!$  i=1
-!!$  j=1
-!!$  loop_components: do 
-!!$     jproc=mod(i-1,nproc)
-!!$     if (.true.) then !here there is the criterion for filling a processor
-!!$        comms%nvctr_par(jproc)=comms%nvctr_par(jproc)+1
-!!$        j=j+1
-!!$     end if
-!!$     if (j > lr%wfd%nvctr_c+7*lr%wfd%nvctr_f) exit loop_components
-!!$     i=i+1
-!!$  end do loop_components
-!!$
-!!$  !check the distribution
-!!$  nvctr_tot=0
-!!$  do jproc=0,nproc-1
-!!$     nvctr_tot=nvctr_tot+comms%nvctr_par(jproc)
-!!$  end do
-!!$  if(nvctr_tot /= lr%wfd%nvctr_c+7*lr%wfd%nvctr_f) then
-!!$     write(*,*)'ERROR: partition of components incorrect'
-!!$     stop
-!!$  end if
 
   !allocate communication arrays
   allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)

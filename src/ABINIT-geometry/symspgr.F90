@@ -73,8 +73,9 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
- !use interfaces_01manage_mpi
-!use interfaces_12geometry, except_this_one => symspgr
+! use interfaces_14_hidewrite
+! use interfaces_16_hideleave
+! use interfaces_42_geometry, except_this_one => symspgr
 !End of the abilint section
 
  implicit none
@@ -94,7 +95,7 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons)
  integer :: tnons_order,type_axis
  character(len=1) :: brvsb
  character(len=15) :: intsb,ptintsb,ptschsb,schsb
- character(len=30) :: intsbl
+ character(len=35) :: intsbl
  character(len=500) :: message
 !arrays
  integer :: identity(3,3),matrix(3,3),n_axes(31),n_axest(31),test_direction(3)
@@ -231,7 +232,7 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons)
    write(message, '(a,a,a,a,i4,a)' ) ch10,&
 &   ' symspgr : BUG -',ch10,&
 &   '  The symmetry operation number',isym,' is not a root of unity'
-   call wrtout(6,message,'COLL')
+   call wrtout(std_out,message,'COLL')
    call leave_new('COLL')
   end if
 
@@ -280,13 +281,13 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons)
 &    '  symrelconv(:,3,isym)=',symrelconv(:,3,isym),ch10,&
 &    '  tnonsconv(:,isym)=',tnonsconv(:,isym),ch10,&
 &    '  trialt(:)=',trialt(:)
-    call wrtout(6,message,'COLL')
+    call wrtout(std_out,message,'COLL')
     write(message, '(4a,i4,2a)' )&
 &    ch10,&
 &    ' symspgr : BUG -',ch10,&
 &    '  The space symmetry operation number',isym,ch10,&
 &    '  is not a (translated) root of unity'
-    call wrtout(6,message,'COLL')
+    call wrtout(std_out,message,'COLL')
     call leave_new('COLL')
    end if
 
@@ -495,7 +496,7 @@ subroutine symspgr(bravais,nsym,spgroup,symrel,tnons)
 &    '  For space groups 23, 24, 197 or 197, the three binary axes',ch10,&
 &    '  are not equally partitioned along the x, y and z directions',ch10,&
 &    '  test_direction(1:3)=',test_direction(:)
-    call wrtout(6,message,'COLL')
+    call wrtout(std_out,message,'COLL')
     call leave_new('COLL')
    end if
    additional_info=1

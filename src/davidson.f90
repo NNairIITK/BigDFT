@@ -142,11 +142,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   !call allocate_comms(nproc,orbsv,commsv,subname)
   call orbitals_communicators(iproc,nproc,lr,orbsv,commsv)  
 
-  i_all=-product(shape(orbsv%norb_par))*kind(orbsv%norb_par)
-  deallocate(orbsv%norb_par,stat=i_stat)
-  call memocc(i_stat,i_all,'orbsv%norb_par',subname)
-
-
   if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
   !project v such that they are orthogonal to all occupied psi
   !Orthogonalize before and afterwards.
@@ -703,20 +698,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
 
   call deallocate_comms(commsv,subname)
 
-  i_all=-product(shape(orbsv%occup))*kind(orbsv%occup)
-  deallocate(orbsv%occup,stat=i_stat)
-  call memocc(i_stat,i_all,'orbsv%occup',subname)
-  i_all=-product(shape(orbsv%spinsgn))*kind(orbsv%spinsgn)
-  deallocate(orbsv%spinsgn,stat=i_stat)
-  call memocc(i_stat,i_all,'orbsv%spinsgn',subname)
-  i_all=-product(shape(orbsv%kpts))*kind(orbsv%kpts)
-  deallocate(orbsv%kpts,stat=i_stat)
-  call memocc(i_stat,i_all,'orbsv%kpts',subname)
-  i_all=-product(shape(orbsv%kwgts))*kind(orbsv%kwgts)
-  deallocate(orbsv%kwgts,stat=i_stat)
-  call memocc(i_stat,i_all,'orbsv%kwgts',subname)
-
-
   ! PLOTTING
 
   !plot the converged wavefunctions in the different orbitals.
@@ -767,11 +748,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   i_all=-product(shape(e))*kind(e)
   deallocate(e,stat=i_stat)
   call memocc(i_stat,i_all,'e',subname)
-  i_all=-product(shape(orbsv%iokpt))*kind(orbsv%iokpt)
-  deallocate(orbsv%iokpt,stat=i_stat)
-  call memocc(i_stat,i_all,'orbsv%iokpt',subname)
 
-
+  call deallocate_orbs(orbsv,subname)
 
 END SUBROUTINE davidson
 !!***

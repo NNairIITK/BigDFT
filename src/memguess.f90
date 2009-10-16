@@ -18,6 +18,7 @@ program memguess
   use module_base
   use module_types
   use module_interfaces
+  use ab6_symmetry
 
   implicit none
   character(len=*), parameter :: subname='memguess'
@@ -154,7 +155,7 @@ program memguess
      call dft_input_converter(in)
      write(*,*)' ...done'
   else
-     call dft_input_variables(0,'input.dft',in)
+     call dft_input_variables(0,'input.dft',in,atoms%symObj)
      !read geometry optimsation input variables
      !inquire for the file needed for geometry optimisation
      !if not present, perform a simple geometry optimisation
@@ -179,10 +180,6 @@ program memguess
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
   call system_properties(0,nproc,in,atoms,orbs,radii_cf,nelec)
-
-  i_all=-product(shape(orbs%norb_par))*kind(orbs%norb_par)
-  deallocate(orbs%norb_par,stat=i_stat)
-  call memocc(i_stat,i_all,'orbs%norb_par',subname)
 
   if (optimise) then
      if (atoms%geocode =='F') then
@@ -294,23 +291,7 @@ program memguess
   call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Glr)
 
   ! De-allocations
-  i_all=-product(shape(orbs%occup))*kind(orbs%occup)
-  deallocate(orbs%occup,stat=i_stat)
-  call memocc(i_stat,i_all,'orbs%occup',subname)
-  i_all=-product(shape(orbs%spinsgn))*kind(orbs%spinsgn)
-  deallocate(orbs%spinsgn,stat=i_stat)
-  call memocc(i_stat,i_all,'orbs%spinsgn',subname)
-  i_all=-product(shape(orbs%kpts))*kind(orbs%kpts)
-  deallocate(orbs%kpts,stat=i_stat)
-  call memocc(i_stat,i_all,'orbs%kpts',subname)
-  i_all=-product(shape(orbs%kwgts))*kind(orbs%kwgts)
-  deallocate(orbs%kwgts,stat=i_stat)
-  call memocc(i_stat,i_all,'orbs%kwgts',subname)
-  i_all=-product(shape(orbs%iokpt))*kind(orbs%iokpt)
-  deallocate(orbs%iokpt,stat=i_stat)
-  call memocc(i_stat,i_all,'orbs%iokpt',subname)
-
-
+  call deallocate_orbs(orbs,subname)
 
   if (GPUtest .and. .not. GPUconv) then
      write(*,*)' ERROR: you can not put a GPUtest flag is there is no GPUrun.'
@@ -319,8 +300,6 @@ program memguess
   if (GPUconv .and. atoms%geocode=='P' .and. GPUtest) then
      !test the hamiltonian in CPU or GPU
      !create the orbitals data structure for one orbital
-     allocate(orbstst%norb_par(0:0+ndebug),stat=i_stat)
-     call memocc(i_stat,orbstst%norb_par,'orbstst%norb_par',subname)
      !test orbitals
      nspin=1
      if (norbgpu == 0) then
@@ -332,11 +311,8 @@ program memguess
      norbd=0
      nspinor=1
 
-     call orbitals_descriptors(0,nproc,norb,norbu,norbd,nspinor,orbstst)
-     allocate(orbstst%occup(orbstst%norb+ndebug),stat=i_stat)
-     call memocc(i_stat,orbstst%occup,'orbstst%occup',subname)
-     allocate(orbstst%spinsgn(orbstst%norb+ndebug),stat=i_stat)
-     call memocc(i_stat,orbstst%spinsgn,'orbstst%spinsgn',subname)
+     call orbitals_descriptors(0,nproc,norb,norbu,norbd,nspinor, &
+          & in%nkpt,in%kpt,in%wkpt,orbstst)
      allocate(orbstst%eval(orbstst%norbp+ndebug),stat=i_stat)
      call memocc(i_stat,orbstst%eval,'orbstst%eval',subname)
      do iorb=1,orbstst%norbp
@@ -356,20 +332,11 @@ program memguess
      
      call deallocate_wfd(Glr%wfd,subname)
 
-     i_all=-product(shape(orbstst%norb_par))*kind(orbstst%norb_par)
-     deallocate(orbstst%norb_par,stat=i_stat)
-     call memocc(i_stat,i_all,'orbstst%norb_par',subname)
-     i_all=-product(shape(orbstst%spinsgn))*kind(orbstst%spinsgn)
-     deallocate(orbstst%spinsgn,stat=i_stat)
-     call memocc(i_stat,i_all,'orbstst%spinsgn',subname)
-     i_all=-product(shape(orbstst%occup))*kind(orbstst%occup)
-     deallocate(orbstst%occup,stat=i_stat)
-     call memocc(i_stat,i_all,'orbstst%occup',subname)
+     call deallocate_orbs(orbstst,subname)
 
      i_all=-product(shape(orbstst%eval))*kind(orbstst%eval)
      deallocate(orbstst%eval,stat=i_stat)
      call memocc(i_stat,i_all,'orbstst%eval',subname)
-     i_all=-product(shape(orbstst%occup))*kind(orbstst%occup)
 
   end if
 
@@ -451,6 +418,9 @@ program memguess
   i_all=-product(shape(atoms%amu))*kind(atoms%amu)
   deallocate(atoms%amu,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%amu',subname)
+  if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
+
+  call free_input_variables(in)
 
   !finalize memory counting
   call memocc(0,0,'count','stop')

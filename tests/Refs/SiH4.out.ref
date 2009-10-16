@@ -31,11 +31,11 @@
  Atoms of type 1 are Si
  Atoms of type 2 are H
  Spin-polarised calculation:  NO 
- Max. number of wavefnctn optim 500
- Convergence criterion for forces: fraction of noise   1.00E+00
-                                 : maximal component   0.00E+00
- Random displacement amplitude   0.00E+00
- Steepest descent step   4.00E+00
+ --------------------------------------------------------------Geopt Input Parameters
+       Generic param.              Geo. optim.                MD param.
+       Max. steps=    500 | Fluct. in forces=1.0E+00 |           ionmov=     -1
+        algorithm=SDCG    |   Max. in forces=0.0E+00 |            dtion=     0.
+ random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.

@@ -13,9 +13,10 @@
 !!
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
-     ekin_sum,epot_sum,eproj_sum,nspin,GPU)
+     ekin_sum,epot_sum,eproj_sum,nspin,GPU,pkernel)
   use module_base
   use module_types
+  use libxc_functionals
   implicit none
   integer, intent(in) :: iproc,nproc,ndimpot,nspin
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
@@ -28,21 +29,25 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
-  real(wp), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
+  real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
   real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
+  real(dp), dimension(*), optional :: pkernel
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
-  integer :: i_all,i_stat,ierr,iorb,ispin
-  real(gp) :: eproj
+  logical :: exctX
+  integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot
+  real(gp) :: eproj,eexctX
   real(gp), dimension(3,2) :: wrkallred
-  real(wp), dimension(:,:), pointer :: pot
+  real(wp), dimension(:), pointer :: pot
   integer,parameter::lupfil=14
 
   !stream ptr array
 !  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
 !  real(kind=8) :: stream_ptr_first_trsf
+
+  exctX = libxc_functionals_exctXfac() /= 0.d0
 
   call timing(iproc,'ApplyLocPotKin','ON')
 
@@ -52,20 +57,51 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           'Hamiltonian application...'
   end if
 
+  
+  !determine the dimension of the potential array
+  if (exctX) then
+     npot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+&
+          max(lr%d%n1i*lr%d%n2i*&
+          max(lr%d%n3i*orbs%norbp,ngatherarr(0,1)/(lr%d%n1i*lr%d%n2i)*orbs%norb),1)
+  else
+     npot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin
+  end if
+
   !build the potential on the whole simulation box
   !in the linear scaling case this should be done for a given localisation region
   !cannot be deplaced due to the fact that n1i is not calculated
   if (nproc > 1) then
-     allocate(pot(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspin+ndebug),stat=i_stat)
+     allocate(pot(npot+ndebug),stat=i_stat)
      call memocc(i_stat,pot,'pot',subname)
-
+     ispot=1
+     ispotential=1
      do ispin=1,nspin
-        call MPI_ALLGATHERV(potential(1,ispin),ndimpot,&
-             mpidtypw,pot(1,ispin),ngatherarr(0,1),&
+        call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
+             mpidtypw,pot(ispot),ngatherarr(0,1),&
              ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+        ispot=ispot+lr%d%n1i*lr%d%n2i*lr%d%n3i
+        ispotential=ispotential+max(1,ndimpot)
      end do
   else
-     pot => potential
+     if (exctX) then
+        allocate(pot(npot+ndebug),stat=i_stat)
+        call memocc(i_stat,pot,'pot',subname)
+        call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,potential,1,pot,1)
+     else
+        pot => potential
+     end if
+     ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+1
+  end if
+
+ 
+  !fill the rest of the potential with the exact-exchange terms
+  if (present(pkernel) .and. exctX) then
+     call timing(iproc,'ApplyLocPotKin','OF')
+     n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
+     call exact_exchange_potential(iproc,nproc,at%geocode,lr,orbs,ngatherarr(0,1),n3p,&
+          0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+     !print *,'iproc,eexctX',iproc,eexctX
+     call timing(iproc,'ApplyLocPotKin','ON')
   end if
 
   !apply the local hamiltonian for each of the orbitals
@@ -77,8 +113,9 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   else
      call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   end if
+
   
-  if (nproc > 1) then
+  if (nproc > 1 .or. exctX) then
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
      call memocc(i_stat,i_all,'pot',subname)
@@ -127,6 +164,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      epot_sum=wrkallred(2,1)
      eproj_sum=wrkallred(3,1) 
   endif
+
+  if (exctX) epot_sum=epot_sum+eexctX
 
 END SUBROUTINE HamiltonianApplication
 !!***
@@ -202,17 +241,6 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   !takes also into account parallel k-points distribution
   call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,scprsum)
 
-!!$  call orthoconstraint_p(iproc,nproc,orbs%norbu,orbs%occup,comms%nvctr_par(iproc,1),psit,hpsi,&
-!!$       scprsum,orbs%nspinor)
-!!$  scprpart=0.0_dp
-!!$  if(orbs%norbd > 0) then
-!!$     scprpart=scprsum 
-!!$     call orthoconstraint_p(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),comms%nvctr_par(iproc,1),&
-!!$          psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),hpsi(1+comms%nvctr_par(iproc,1)*orbs%norbu),&
-!!$          scprsum,orbs%nspinor)
-!!$     scprsum=scprsum+scprpart
-!!$  end if
-
   !retranspose the hpsi wavefunction
   call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
 
@@ -264,12 +292,6 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 
   call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit)
 
-!!$  call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
-!!$       psit,orbs%nspinor)
-!!$  if(orbs%norbd > 0) then
-!!$     call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
-!!$          psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),orbs%nspinor)
-!!$  end if
   !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
   
   call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,&
@@ -348,10 +370,10 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      call memocc(i_stat,psidst,'psidst',subname)
      allocate(hpsidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,hpsidst,'hpsidst',subname)
-     allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
+     allocate(ads(idsx+1,idsx+1,orbs%nkptsp*3+ndebug),stat=i_stat)
      call memocc(i_stat,ads,'ads',subname)
 
-     call razero(3*(idsx+1)**2,ads)
+     call razero(orbs%nkptsp*3*(idsx+1)**2,ads)
   end if
 
 END SUBROUTINE hpsitopsi
@@ -427,7 +449,7 @@ END SUBROUTINE first_orthon
 !!   Transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
 !! SOURCE
 !!
-subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
+subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt_keeppsit)
   use module_base
   use module_types
   use module_interfaces, except_this_one_C => last_orthon
@@ -438,12 +460,27 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
   integer, intent(in) :: iproc,nproc,nspin
   real(wp), intent(out) :: evsum
   real(wp), dimension(:) , pointer :: psi,hpsi,psit
+  logical, optional :: opt_keeppsit
   !local variables
+
+  logical :: keeppsit
+
   character(len=*), parameter :: subname='last_orthon'
   logical :: dowrite !write the screen output
   integer :: i_all,i_stat,iorb,jorb,md
   real(wp) :: evpart
   real(wp), dimension(:,:,:), allocatable :: mom_vec
+
+
+  
+  if (present(opt_keeppsit)) then
+     keeppsit=opt_keeppsit
+  else
+     keeppsit=.false.
+  endif
+  
+        
+
 
   call transpose_v(iproc,nproc,orbs,wfd,comms,&
        hpsi,work=psi)
@@ -467,14 +504,15 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
   call untranspose_v(iproc,nproc,orbs,wfd,comms,&
        psit,work=hpsi,outadd=psi(1))
 
-  if (nproc > 1) then
-     i_all=-product(shape(psit))*kind(psit)
-     deallocate(psit,stat=i_stat)
-     call memocc(i_stat,i_all,'psit',subname)
-  else
-     nullify(psit)
-  end if
-
+  if(.not.  keeppsit) then
+     if (nproc > 1  ) then
+        i_all=-product(shape(psit))*kind(psit)
+        deallocate(psit,stat=i_stat)
+        call memocc(i_stat,i_all,'psit',subname)
+     else
+        nullify(psit)
+     end if
+  endif
   !for a non-collinear treatment,
   !we add the calculation of the moments for printing their value
   !close to the corresponding eigenvector
@@ -866,8 +904,9 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   type(communications_arrays), intent(in) :: comms
   !local variables
   character(len=*), parameter :: subname='check_communications'
-  integer :: i,ispinor,iorb,indspin,indorb,jproc,i_stat,i_all,iscomp,idsx,index
-  real(wp) :: vali,valorb,psival,maxdiff,ierr
+  integer :: i,ispinor,iorb,indspin,indorb,jproc,i_stat,i_all,iscomp,idsx,index,ikptsp
+  integer :: ikpt,ispsi,nspinor,nvctrp
+  real(wp) :: vali,valorb,psival,maxdiff,ierr,valkpt
   real(wp), dimension(:), allocatable :: psi
   real(wp), dimension(:), pointer :: pwork
   real(wp) :: epsilon
@@ -879,7 +918,9 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   call memocc(i_stat,pwork,'pwork',subname)
 
   do iorb=1,orbs%norbp
-     valorb=real(orbs%isorb+iorb,wp)
+     ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+     valkpt=real(512*ikpt,wp)
+     valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
      indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
      do ispinor=1,orbs%nspinor
         indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
@@ -895,53 +936,76 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
 
   !check the results of the transposed wavefunction
   maxdiff=0.0_wp
-  !calculate the starting point for the component distribution
-  iscomp=0
-  if (orbs%nkptsp /=0) then
+  ispsi=0
+  do ikptsp=1,orbs%nkptsp
+     ikpt=orbs%iskpts+ikptsp
+     valkpt=real(512*ikpt,wp)
+     !calculate the starting point for the component distribution
+     iscomp=0
      do jproc=0,iproc-1
-        iscomp=iscomp+comms%nvctr_par(jproc,1)
+        iscomp=iscomp+comms%nvctr_par(jproc,ikptsp)
      end do
+     nvctrp=comms%nvctr_par(iproc,ikptsp)
+     nspinor=orbs%nspinor
+
      do iorb=1,orbs%norb
-        valorb=real(iorb,wp)
-        indorb=(iorb-1)*(comms%nvctr_par(iproc,1))*orbs%nspinor
-        do idsx=1,(orbs%nspinor-1)/2+1
-           do i=1,comms%nvctr_par(iproc,1)
-           vali=real(i+iscomp,wp)/512.d0  ! *1.d-5
-              do ispinor=1,((2+orbs%nspinor)/4+1)
+        valorb=real(iorb,wp)+valkpt
+        indorb=(iorb-1)*nvctrp*nspinor
+        do idsx=1,(nspinor-1)/2+1
+           do i=1,nvctrp
+              vali=real(i+iscomp,wp)/512.d0  ! *1.d-5
+              do ispinor=1,((2+nspinor)/4+1)
                  psival=(-1)**(ispinor-1)*(valorb+vali)
-!              if (psival .lt. 0.d0) then  !this is just to force the IEEE representation of psival
-!              write(321,*) psival,psival**2
-!              endif
-                 index=ispinor+(i-1)*((2+orbs%nspinor)/4+1)+&
-                      (idsx-1)*((2+orbs%nspinor)/4+1)*comms%nvctr_par(iproc,1)+indorb
+                 !this is just to force the IEEE representation of psival
+                 !              if (psival .lt. 0.d0) then  
+                 !              write(321,*) psival,psival**2
+                 !              endif
+                 index=ispinor+(i-1)*((2+nspinor)/4+1)+&
+                      (idsx-1)*((2+nspinor)/4+1)*nvctrp+indorb+ispsi
                  maxdiff=max(abs(psi(index)-psival),maxdiff)
               end do
            end do
         end do
      end do
-  end if
+     ispsi=ispsi+nvctrp*orbs%norb*nspinor
+  end do
+
   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
      write(*,*)'ERROR: process',iproc,'does not transpose wavefunctions correctly!'
      write(*,*)'       found an error of',maxdiff,'cannot continue.'
      write(*,*)'       data are written in the file transerror.log, exiting...'
 
      open(unit=22,file='transerror.log',status='unknown')
-     do iorb=1,orbs%norb
-        valorb=real(iorb,wp)
-        indorb=(iorb-1)*(comms%nvctr_par(iproc,1))*orbs%nspinor
-        do idsx=1,(orbs%nspinor-1)/2+1
-           do i=1,comms%nvctr_par(iproc,1)
-              vali=real(i+iscomp,wp)/512.d0  !*1.d-5
-              do ispinor=1,((2+orbs%nspinor)/4+1)
-                 psival=(-1)**(ispinor-1)*(valorb+vali)
-                 index=ispinor+(i-1)*((2+orbs%nspinor)/4+1)+&
-                      (idsx-1)*((2+orbs%nspinor)/4+1)*comms%nvctr_par(iproc,1)+indorb
-                 maxdiff=abs(psi(index)-psival)
-                 write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i+iscomp,iorb,psival,&
-                      psi(index),maxdiff
+     ispsi=0
+     do ikptsp=1,orbs%nkptsp
+        ikpt=orbs%iskpts+ikptsp
+        valkpt=real(512*ikpt,wp)
+        !calculate the starting point for the component distribution
+        iscomp=0
+        do jproc=0,iproc-1
+           iscomp=iscomp+comms%nvctr_par(jproc,ikptsp)
+        end do
+        nvctrp=comms%nvctr_par(iproc,ikptsp)
+        nspinor=orbs%nspinor
+
+        do iorb=1,orbs%norb
+           valorb=real(iorb,wp)+valkpt
+           indorb=(iorb-1)*nvctrp*nspinor
+           do idsx=1,(nspinor-1)/2+1
+              do i=1,nvctrp
+                 vali=real(i+iscomp,wp)/512.d0  !*1.d-5
+                 do ispinor=1,((2+nspinor)/4+1)
+                    psival=(-1)**(ispinor-1)*(valorb+vali)
+                    index=ispinor+(i-1)*((2+nspinor)/4+1)+&
+                         (idsx-1)*((2+nspinor)/4+1)*nvctrp+indorb+ispsi
+                    maxdiff=abs(psi(index)-psival)
+                    write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i+iscomp,iorb+ikpt,psival,&
+                         psi(index),maxdiff
+                 end do
               end do
            end do
         end do
+        ispsi=ispsi+nvctrp*orbs%norb*nspinor
      end do
      close(unit=22)
 
@@ -955,7 +1019,9 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
 
   maxdiff=0.0_wp
   do iorb=1,orbs%norbp
-     valorb=real(orbs%isorb+iorb,wp)
+     ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+     valkpt=real(512*ikpt,wp)
+     valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
      indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
      do ispinor=1,orbs%nspinor
         indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
@@ -975,7 +1041,9 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      open(unit=22,file='transerror.log',status='unknown')
      maxdiff=0.0_wp
      do iorb=1,orbs%norbp
-        valorb=real(orbs%isorb+iorb,wp)
+        ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+        valkpt=real(512*ikpt,wp)
+        valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
         indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
         do ispinor=1,orbs%nspinor
            indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)

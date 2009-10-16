@@ -322,13 +322,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   eproj_sum=0.d0
 
   !allocate the fake orbital structure for the application of projectors
-  allocate(orbsb%norb_par(0:0+ndebug),stat=i_stat)
-  call memocc(i_stat,orbsb%norb_par,'orbsb%norb_par',subname)
-  call orbitals_descriptors(0,1,1,1,0,1,orbsb)
-
-  i_all=-product(shape(orbsb%norb_par))*kind(orbsb%norb_par)
-  deallocate(orbsb%norb_par,stat=i_stat)
-  call memocc(i_stat,i_all,'orbsb%norb_par',subname)
+  call orbitals_descriptors(0,1,1,1,0,1,1, &
+       & reshape((/0._gp,0._gp,0._gp/),(/3,1/)),(/1._gp /),orbsb)
 
   do iorb=1,orbs%norbp
 
@@ -437,21 +432,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      write(*,'(1x,a)')'done.'
   end if
 
-  i_all=-product(shape(orbsb%occup))*kind(orbsb%occup)
-  deallocate(orbsb%occup,stat=i_stat)
-  call memocc(i_stat,i_all,'orbsb%occup',subname)
-  i_all=-product(shape(orbsb%spinsgn))*kind(orbsb%spinsgn)
-  deallocate(orbsb%spinsgn,stat=i_stat)
-  call memocc(i_stat,i_all,'orbsb%spinsgn',subname)
-  i_all=-product(shape(orbsb%kpts))*kind(orbsb%kpts)
-  deallocate(orbsb%kpts,stat=i_stat)
-  call memocc(i_stat,i_all,'orbsb%kpts',subname)
-  i_all=-product(shape(orbsb%kwgts))*kind(orbsb%kwgts)
-  deallocate(orbsb%kwgts,stat=i_stat)
-  call memocc(i_stat,i_all,'orbsb%kwgts',subname)
-  i_all=-product(shape(orbsb%iokpt))*kind(orbsb%iokpt)
-  deallocate(orbsb%iokpt,stat=i_stat)
-  call memocc(i_stat,i_all,'orbsb%iokpt',subname)
+  call deallocate_orbs(orbsb,subname)
 
   i_all=-product(shape(txyz))*kind(txyz)
   deallocate(txyz,stat=i_stat)

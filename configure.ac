@@ -39,7 +39,7 @@ dnl fortran available (e. g. Fortran95). Then FC variable
 dnl is set.
 AC_PROG_FC([], [Fortran 90])
 
-ABI_PROG_FC()
+#	       ABI_PROG_FC()
 
 dnl Defining fortran language for tests.
 AC_LANG(Fortran)

@@ -292,14 +292,11 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
   integer :: istart_c,istart_f,iproj,iat,ityp,i,j,l,m
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings
-  real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj
+  real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac
   integer :: idir,i_all,i_stat
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:), allocatable :: scalprod
-
-!!$  !to be eliminated only for testing purposes
-!!$  fsep(:,:)=0.d0
 
   allocate(scalprod(0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
@@ -366,7 +363,7 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
               enddo
            enddo
 
-           !calculate the contribution for each orbital
+           !calculate the contribution for each orbital\
            do iorb=1,orbs%norbp*orbs%nspinor
               istart_c=1
               do l=1,4
@@ -379,17 +376,6 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
                                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                                nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
                                proj(istart_c),scalprod(idir,m,i,l,iat,iorb))
-
-!!$                          call wpdot(  &
-!!$                               wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-!!$                               wfd%keyv(1),wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,1),&
-!!$                               wfd%keyg(1,wfd%nseg_c+1),&
-!!$                               psi(1,iorb),psi(wfd%nvctr_c+1,iorb),  &
-!!$                               mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                               nlpspd%keyv_p(jseg_c),nlpspd%keyv_p(jseg_f),  &
-!!$                               nlpspd%keyg_p(1,jseg_c),nlpspd%keyg_p(1,jseg_f),&
-!!$                               proj(istart_c),proj(istart_f),scalprod(idir,m,i,l,iat,iorb))
-
                           istart_c=istart_f+7*mbvctr_f
                        end do
                     end if
@@ -437,18 +423,6 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
                                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                                nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
                                proj(istart_c),scalprod(idir,m,i,l,iat,iorb))
-
-
-
-!!$                          call wpdot(  &
-!!$                               wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-!!$                               wfd%keyv(1),wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,1),&
-!!$                               wfd%keyg(1,wfd%nseg_c+1),&
-!!$                               psi(1,iorb),psi(wfd%nvctr_c+1,iorb),  &
-!!$                               mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                               nlpspd%keyv_p(jseg_c),nlpspd%keyv_p(jseg_f),  &
-!!$                               nlpspd%keyg_p(1,jseg_c),nlpspd%keyg_p(1,jseg_f),&
-!!$                               proj(istart_c),proj(istart_f),scalprod(idir,m,i,l,iat,iorb))
 
                           istart_c=istart_f+7*mbvctr_f
                        end do
@@ -525,13 +499,14 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
         end if
      end do
 
+     !orbital-dependent factor for the forces
+     orbfac=orbs%kwgts(orbs%iokpt((iorb-1)/orbs%nspinor+1))*&
+             orbs%occup((iorb-1)/orbs%nspinor+1+orbs%isorb)*2.0_gp
+
      do iat=1,at%nat
-        fsep(1,iat)=fsep(1,iat)+&
-             orbs%occup((iorb-1)/orbs%nspinor+1+orbs%isorb)*2.0_gp*fxyz_orb(1,iat)
-        fsep(2,iat)=fsep(2,iat)+&
-             orbs%occup((iorb-1)/orbs%nspinor+1+orbs%isorb)*2.0_gp*fxyz_orb(2,iat)
-        fsep(3,iat)=fsep(3,iat)+&
-             orbs%occup((iorb-1)/orbs%nspinor+1+orbs%isorb)*2.0_gp*fxyz_orb(3,iat)
+        fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
+        fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
+        fsep(3,iat)=fsep(3,iat)+orbfac*fxyz_orb(3,iat)
      end do
 
   end do

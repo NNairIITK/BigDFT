@@ -1,24 +1,291 @@
+subroutine exact_exchange_potential(iproc,nproc,geocode,lr,orbs,n3parr,n3p,&
+     hxh,hyh,hzh,pkernel,psi,psir,eexctX)
+  use module_base
+  use module_types
+  use Poisson_Solver
+  use libxc_functionals
+  implicit none
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: iproc,nproc,n3p
+  real(gp), intent(in) :: hxh,hyh,hzh
+  type(locreg_descriptors), intent(in) :: lr
+  type(orbitals_data), intent(in) :: orbs
+  integer, dimension(0:nproc-1), intent(in) :: n3parr
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+  real(dp), dimension(*), intent(in) :: pkernel
+  real(gp), intent(out) :: eexctX
+  real(wp), dimension(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,n3parr(0)*orbs%norb)), intent(out) :: psir
+  !local variables
+  character(len=*), parameter :: subname='exact_exchange_potential'
+  integer :: i_all,i_stat,ierr,ispinor,ispsiw
+  integer :: i1,i2,i3p,iorb,iorbs,jorb,jorbs,ispsir,ind3,ind2,ind1i,ind1j,jproc,igran,ngran
+  real(wp) :: hfaci
+  real(gp) :: ehart,zero,hfac,exctXfac
+  type(workarr_sumrho) :: w
+  integer, dimension(:,:), allocatable :: ncommarr
+  real(wp), dimension(:), allocatable :: psiw
+  real(wp), dimension(:,:,:,:), allocatable :: rp_ij
+
+  !call timing(iproc,'Exchangecorr  ','ON')
+
+  exctXfac = libxc_functionals_exctXfac()
+
+  eexctX=0.0_gp
+
+  call initialize_work_arrays_sumrho(lr,w)
+  
+  !the granularity of the calculation is set by ngran
+  !for the moment it is irrelevant but if the poisson solver is modified
+  !we may increase this value
+  ngran=1
+
+  !partial densities with a given granularity
+  allocate(rp_ij(lr%d%n1i,lr%d%n2i,n3p,ngran+ndebug),stat=i_stat)
+  call memocc(i_stat,rp_ij,'rp_ij',subname)
+  allocate(psiw(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,n3parr(0)*orbs%norb),1)+ndebug),stat=i_stat)
+  call memocc(i_stat,psiw,'psiw',subname)
+
+  if (geocode == 'F') then
+     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psiw)
+  end if
+
+
+  !uncompress the wavefunction in the real grid
+  !and switch the values of the function
+  ispinor=1
+  ispsiw=1
+  do iorb=1,orbs%norbp
+     call daub_to_isf(lr,w,psi(1,ispinor,iorb),psiw(ispsiw))
+     ispsir=1+(iorb-1)*n3parr(0)
+     do jproc=0,nproc-1
+        !write(*,'(a,1x,8(i10))'),'iproc,jproc',iproc,jproc,iorb,orbs%norbp,ispsir,ispsiw,&
+        !     lr%d%n1i*lr%d%n2i*max(lr%d%n3i*orbs%norbp,n3p*orbs%norb),n3parr(jproc)
+        call dcopy(n3parr(jproc),psiw(ispsiw),1,psir(ispsir),1)
+        ispsiw=ispsiw+n3parr(jproc)
+        if (jproc /= nproc-1) then
+           do jorb=iorb,orbs%norbp
+              ispsir=ispsir+n3parr(jproc)
+           end do
+           do jorb=1,iorb-1
+              ispsir=ispsir+n3parr(jproc+1)
+           end do
+        end if
+     end do
+  end do
+  call deallocate_work_arrays_sumrho(w)
+
+  !communicate them between processors
+  if (nproc > 1) then
+     !arrays for the communication between processors
+     !valid only for one k-point for the moment
+     !and only real functions (nspinor=1)
+
+     allocate(ncommarr(0:nproc-1,4+ndebug),stat=i_stat)
+     call memocc(i_stat,ncommarr,'ncommarr',subname)
+
+     !count array for orbitals => components
+     do jproc=0,nproc-1
+        ncommarr(jproc,1)=n3parr(jproc)*orbs%norb_par(iproc)
+     end do
+     !displacement array for orbitals => components
+     ncommarr(0,2)=0
+     do jproc=1,nproc-1
+        ncommarr(jproc,2)=ncommarr(jproc-1,2)+ncommarr(jproc-1,1)
+     end do
+     !count array for components => orbitals
+     do jproc=0,nproc-1
+        ncommarr(jproc,3)=n3parr(iproc)*orbs%norb_par(jproc)
+     end do
+     !displacement array for components => orbitals
+     ncommarr(0,4)=0
+     do jproc=1,nproc-1
+        ncommarr(jproc,4)=ncommarr(jproc-1,4)+ncommarr(jproc-1,3)
+     end do
+
+
+     call MPI_ALLTOALLV(psir,ncommarr(0,1),ncommarr(0,2),mpidtypw, &
+          psiw,ncommarr(0,3),ncommarr(0,4),mpidtypw,MPI_COMM_WORLD,ierr)
+
+
+  else
+     call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psiw,1)
+  end if
+
+  call razero(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir)
+
+  !build the partial densities for the poisson solver, calculate the partial potential
+  !and accumulate the result
+  iorb=1
+  jorb=1
+  orbital_loop: do
+     iorbs=iorb
+     jorbs=jorb
+     hfac=1/(hxh*hyh*hzh)
+     do igran=1,ngran
+        if (iorb > orbs%norb) exit
+        !calculate partial density (real functions), no spin-polarisation
+        do i3p=1,n3p
+           ind3=(i3p-1)*lr%d%n1i*lr%d%n2i
+           do i2=1,lr%d%n2i
+              ind2=(i2-1)*lr%d%n1i+ind3
+              do i1=1,lr%d%n1i
+                 ind1i=i1+ind2+(iorb-1)*lr%d%n1i*lr%d%n2i*n3p
+                 ind1j=i1+ind2+(jorb-1)*lr%d%n1i*lr%d%n2i*n3p
+                 rp_ij(i1,i2,i3p,igran)=hfac*psiw(ind1i)*psiw(ind1j)
+              end do
+           end do
+        end do
+        jorb=jorb+1
+        if (jorb > orbs%norb) then
+           iorb=iorb+1
+           jorb=iorb
+        end if
+     end do
+     jorb=jorbs
+     iorb=iorbs
+     do igran=1,ngran
+        !this factor is only valid with one k-point
+        hfac=orbs%occup(iorb)*orbs%occup(jorb)
+
+        !print *,'test',iproc,iorb,jorb,sum(rp_ij(:,:,:,igran))
+        if (iorb > orbs%norb) exit
+        !partial exchange term for each partial density
+        if (iproc == 0) write(*,*)'Exact exchange calculation, orbitals:',iorb,jorb
+        call PSolver(geocode,'D',iproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+             0,hxh,hyh,hzh,rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,zero,zero,&
+             0.d0,.false.,1,quiet='YES')
+        if (iorb==jorb) then
+           eexctX=eexctX+hfac*real(ehart,gp)
+        else
+           eexctX=eexctX+2.0_gp*hfac*real(ehart,gp)
+        end if
+        !print *,'PSOLVER,ehart,iproc',iproc,ehart,hfac
+
+        jorb=jorb+1
+        if (jorb > orbs%norb) then
+           iorb=iorb+1
+           jorb=iorb
+        end if
+     end do
+     jorb=jorbs
+     iorb=iorbs
+     do igran=1,ngran
+        !this factor is only valid with one k-point
+        !we have to correct with the kwgts if we want more than one k-point
+        hfac=-0.25_wp*real((orbs%occup(iorb)*orbs%occup(jorb)),wp)
+
+        if (iorb > orbs%norb) exit orbital_loop
+        if (iorb /= jorb) then
+           !accumulate the results for each of the wavefunctions concerned
+           do i3p=1,n3p
+              ind3=(i3p-1)*lr%d%n1i*lr%d%n2i
+              do i2=1,lr%d%n2i
+                 ind2=(i2-1)*lr%d%n1i+ind3
+                 do i1=1,lr%d%n1i
+                    ind1i=i1+ind2+(iorb-1)*lr%d%n1i*lr%d%n2i*n3p
+                    ind1j=i1+ind2+(jorb-1)*lr%d%n1i*lr%d%n2i*n3p
+                    psir(ind1i)=psir(ind1i)+hfac*rp_ij(i1,i2,i3p,igran)*psiw(ind1j)
+                    psir(ind1j)=psir(ind1j)+hfac*rp_ij(i1,i2,i3p,igran)*psiw(ind1i)
+                 end do
+              end do
+           end do
+        else
+           !accumulate the results for each of the wavefunctions concerned
+           do i3p=1,n3p
+              ind3=(i3p-1)*lr%d%n1i*lr%d%n2i
+              do i2=1,lr%d%n2i
+                 ind2=(i2-1)*lr%d%n1i+ind3
+                 do i1=1,lr%d%n1i
+                    ind1i=i1+ind2+(iorb-1)*lr%d%n1i*lr%d%n2i*n3p
+                    ind1j=i1+ind2+(jorb-1)*lr%d%n1i*lr%d%n2i*n3p
+                    psir(ind1i)=psir(ind1i)+hfac*rp_ij(i1,i2,i3p,igran)*psiw(ind1j)
+                 end do
+              end do
+           end do
+        end if
+        jorb=jorb+1
+        if (jorb > orbs%norb) then
+           iorb=iorb+1
+           jorb=iorb
+        end if
+     end do
+  end do orbital_loop
+
+  !the exact exchange energy is four times the Hartree energy
+  eexctX=-1.0_gp*exctXfac*eexctX
+
+  if (iproc == 0) write(*,'(a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
+
+  !assign the potential for each function
+  if (nproc > 1) then
+     !call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psirt,1)
+     !recommunicate the values in the psir array
+     call MPI_ALLTOALLV(psir,ncommarr(0,3),ncommarr(0,4),mpidtypw, &
+          psiw,ncommarr(0,1),ncommarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+     !redress the potential
+     ispsiw=1
+     do iorb=1,orbs%norbp
+        ispsir=1+(iorb-1)*n3parr(0)
+        do jproc=0,nproc-1
+           call dcopy(n3parr(jproc),psiw(ispsir),1,psir(ispsiw),1)
+           ispsiw=ispsiw+n3parr(jproc)
+           if (jproc /= nproc-1) then
+              do jorb=iorb,orbs%norbp
+                 ispsir=ispsir+n3parr(jproc)
+              end do
+              do jorb=1,iorb-1
+                 ispsir=ispsir+n3parr(jproc+1)
+              end do
+           end if
+        end do
+     end do
+  end if
+
+  i_all=-product(shape(rp_ij))*kind(rp_ij)
+  deallocate(rp_ij,stat=i_stat)
+  call memocc(i_stat,i_all,'rp_ij',subname)
+  
+  i_all=-product(shape(psiw))*kind(psiw)
+  deallocate(psiw,stat=i_stat)
+  call memocc(i_stat,i_all,'psiw',subname)
+
+
+  if (nproc > 1) then
+     i_all=-product(shape(ncommarr))*kind(ncommarr)
+     deallocate(ncommarr,stat=i_stat)
+     call memocc(i_stat,i_all,'ncommarr',subname)
+  end if
+
+  !call timing(iproc,'Exchangecorr  ','OF')
+
+end subroutine exact_exchange_potential
+
 ! calculate the action of the local hamiltonian on the orbitals
 subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   use module_base
   use module_types
   use module_interfaces
+  use libxc_functionals
   implicit none
   integer, intent(in) :: iproc,nspin
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
-  real(wp), dimension(lr%d%n1i,lr%d%n2i,lr%d%n3i,nspin) :: pot
+  real(wp), dimension(*) :: pot
+  !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
-  integer :: i_all,i_stat,ierr,iorb,npot,nsoffset,oidx
-  real(gp) :: ekin,epot,kx,ky,kz
+  integer :: i_all,i_stat,ierr,iorb,npot,nsoffset,oidx,ispot
+  real(wp) :: exctXcoeff
+  real(gp) :: ekin,epot,kx,ky,kz,etest
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir
+
+  exctXcoeff=libxc_functionals_exctXfac()
 
   !initialise the work arrays
   call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)  
@@ -36,12 +303,14 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   ekin_sum=0.0_gp
   epot_sum=0.0_gp
 
+  etest=0.0_gp
+
   do iorb=1,orbs%norbp
 
      if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
         nsoffset=1
      else
-        nsoffset=2
+        nsoffset=lr%d%n1i*lr%d%n2i*lr%d%n3i+1
      end if
 
      oidx=(iorb-1)*orbs%nspinor+1
@@ -50,29 +319,40 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      !the psir wavefunction is given in the spinorial form
      call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
 
+     !ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
+     !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
+     !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
+
      !apply the potential to the psir wavefunction and calculate potential energy
      select case(lr%geocode)
      case('F')
 
         call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-             pot(1,1,1,nsoffset),epot,&
+             pot(nsoffset),epot,&
              lr%bounds%ibyyzz_r) !optional
           
      case('P') 
         !here the hybrid BC act the same way
         call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,0,0,0,orbs%nspinor,npot,psir,&
-             pot(1,1,1,nsoffset),epot)
+             pot(nsoffset),epot)
 
      case('S')
 
         call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,orbs%nspinor,npot,psir,&
-             pot(1,1,1,nsoffset),epot)
+             pot(nsoffset),epot)
      end select
 
      !k-point values, if present
      kx=orbs%kpts(1,orbs%iokpt(iorb))
      ky=orbs%kpts(2,orbs%iokpt(iorb))
      kz=orbs%kpts(3,orbs%iokpt(iorb))
+
+     if (exctXcoeff /= 0.0_gp) then
+        ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
+        !add to the psir function the part of the potential coming from the exact exchange
+        !the coefficient is miltiplied by -2 to restore the correct definition
+        call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
+     end if
 
      !apply the kinetic term, sum with the potential and transform back to Daubechies basis
      call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
@@ -82,6 +362,8 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
 
   enddo
+
+  !print *,'iproc,etest',etest
 
   !deallocations of work arrays
   i_all=-product(shape(psir))*kind(psir)
@@ -1064,7 +1346,6 @@ subroutine applyprojector(l,i,psppar,npspcode,&
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(mbseg_c+mbseg_f), intent(in) :: keyv_p
   integer, dimension(2,mbseg_c+mbseg_f), intent(in) :: keyg_p
-!  real(wp), dimension((mbvctr_c+7*mbvctr_f)*(2*l-1)), intent(in) :: proj
   real(wp), dimension(*), intent(in) :: proj
   real(gp), dimension(0:4,0:6), intent(in) :: psppar
   real(wp), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
@@ -1084,40 +1365,13 @@ subroutine applyprojector(l,i,psppar,npspcode,&
           nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,  &
           mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_c),scpr)
   
-!!$     call wpdot(  &
-!!$          nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-!!$          keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
-!!$          mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
-!!$          keyg_p(1,1),keyg_p(1,mbseg_c+1),proj(istart_c),proj(istart_f),scpr)
-
-!!$                 ! test (will sometimes give wrong result)
-!!$                 call wpdot(  &
-!!$                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
-!!$                      keyg_p(1,1),keyg_p(1,mbseg_c+1),proj(istart_c),proj(istart_f),  &
-!!$                      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-!!$                      keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),tcpr)
-!!$                 if (scpr.ne.tcpr) then
-!!$                    print *,'projectors: scpr.ne.tcpr'
-!!$                    print *,'l,i,m,h_i^l=',l,i,m,psppar(l,i)
-!!$                    print *,'scpr,tcpr',scpr,tcpr
-!!$                    stop 
-!!$                 end if
-!!$                 ! testend
-
      scprp=scpr*real(psppar(l,i),dp)
      eproj=eproj+real(scprp,gp)*real(scpr,gp)
 
      call waxpy_wrap(scprp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_c),&
           nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
 
-
      !print *,'scprp,m,l,i',scprp,m,l,i
-
-!!$     call waxpy(&
-!!$          scprp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
-!!$          keyg_p(1,1),keyg_p(1,mbseg_c+1),proj(istart_c),proj(istart_f),  &
-!!$          nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-!!$          keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
 
      istart_c=istart_f+7*mbvctr_f
   enddo
@@ -1156,24 +1410,8 @@ subroutine applyprojector(l,i,psppar,npspcode,&
            call wpdot_wrap(nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,  &
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_c_j),scpr_j)
 
-!!$           call wpdot(&
-!!$                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-!!$                keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
-!!$                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
-!!$                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
-!!$                proj(istart_c_j),proj(istart_f_j),scpr_j)
-
            call wpdot_wrap(nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,  &
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_c_i),scpr_i)
-
-
-!!$           call wpdot(&
-!!$                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-!!$                keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
-!!$                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
-!!$                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
-!!$                proj(istart_c_i),proj(istart_f_i),scpr_i)
-
 
            scprp_j=scpr_j*real(offdiagcoeff*psppar(l,j),dp)
            scprp_i=scpr_i*real(offdiagcoeff*psppar(l,j),dp)
@@ -1186,26 +1424,9 @@ subroutine applyprojector(l,i,psppar,npspcode,&
                 proj(istart_c_i),&
                 nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
 
-!!$           call waxpy(&
-!!$                scprp_j,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                keyv_p(1),keyv_p(mbseg_c+1),  &
-!!$                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
-!!$                proj(istart_c_i),proj(istart_f_i),  &
-!!$                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-!!$                keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
-
            call waxpy_wrap(scprp_i,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                 keyv_p,keyg_p,proj(istart_c_j),&
                 nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
-
-
-!!$           call waxpy(&
-!!$                scprp_i,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                keyv_p(1),keyv_p(mbseg_c+1),  &
-!!$                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
-!!$                proj(istart_c_j),proj(istart_f_j),  &
-!!$                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-!!$                keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
 
            istart_c_j=istart_f_j+7*mbvctr_f
            istart_c_i=istart_f_i+7*mbvctr_f
@@ -1223,22 +1444,8 @@ subroutine applyprojector(l,i,psppar,npspcode,&
            call wpdot_wrap(nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_c_j),scpr_j)
 
-!!$           call wpdot(&
-!!$                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-!!$                keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
-!!$                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
-!!$                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
-!!$                proj(istart_c_j),proj(istart_f_j),scpr_j)
-
            call wpdot_wrap(nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,psi,&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj(istart_c_i),scpr_i)
-
-!!$           call wpdot(&
-!!$                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-!!$                keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
-!!$                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(1),keyv_p(mbseg_c+1),  &
-!!$                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
-!!$                proj(istart_c_i),proj(istart_f_i),scpr_i)
 
            !scpr_i*h_ij*scpr_j+scpr_j*h_ij*scpr_i (with symmetric h_ij)
            eproj=eproj+2._gp*real(scpr_i,gp)*psppar(l,i+j+1)*real(scpr_j,gp)
@@ -1250,26 +1457,9 @@ subroutine applyprojector(l,i,psppar,npspcode,&
                 proj(istart_c_i),&
                 nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
 
-!!$           call waxpy(&
-!!$                scprp_j,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                keyv_p(1),keyv_p(mbseg_c+1),  &
-!!$                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
-!!$                proj(istart_c_i),proj(istart_f_i),  &
-!!$                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-!!$                keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
-
            call waxpy_wrap(scprp_i,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,&
                 proj(istart_c_j),&
                 nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,hpsi)
-
-
-!!$           call waxpy(&
-!!$                scprp_i,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                keyv_p(1),keyv_p(mbseg_c+1),  &
-!!$                keyg_p(1,1),keyg_p(1,mbseg_c+1),&
-!!$                proj(istart_c_j),proj(istart_f_j),  &
-!!$                nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-!!$                keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
 
            istart_c_j=istart_f_j+7*mbvctr_f
            istart_c_i=istart_f_i+7*mbvctr_f

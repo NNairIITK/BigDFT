@@ -21,19 +21,33 @@ module module_types
 !!****t* module_types/input_variables
 !! DESCRIPTION
 !!   Input variable structure
-!!   Structure of the variables read by input.dft file
+!!   Structure of the variables read by input.* files (*.dft, *.geopt...)
 !! SOURCE
 !!
   type, public :: input_variables
-     character(len=10) :: geopt_approach
      logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
-     integer :: ncount_cluster_x
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,nvirt,nplot
      integer :: output_grid, dispersion
-     real(gp) :: frac_fluct,randdis,betax,forcemax,gnrm_sw
-     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf
-     integer :: iat_absorber,nvacancy,verbosity
+     real(gp) :: frac_fluct,gnrm_sw
+     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf 
+     integer :: nvacancy,verbosity
      real(gp) :: elecfield
+     real(gp):: absorber_gnrm
+     integer :: iat_absorber, L_absorber
+     real(gp), pointer:: Gabs_coeffs(:)
+     logical ::  c_absorbtion , abscalc_alterpot, abscalc_eqdiff 
+     ! kpoints related input variables
+     integer :: nkpt
+     real(gp), pointer :: kpt(:,:), wkpt(:)
+     ! Geometry variables from *.geopt
+     character(len=10) :: geopt_approach
+     integer :: ncount_cluster_x
+     real(gp) :: betax,forcemax,randdis
+     integer :: optcell, ionmov, nnos
+     real(gp) :: dtion, mditemp, mdftemp, noseinert, friction, mdwall
+     real(gp) :: bmass, vmass, strprecon, strfact
+     real(gp) :: strtarget(6)
+     real(gp), pointer :: qmass(:)
   end type input_variables
 !!***
 
@@ -135,6 +149,8 @@ module module_types
      integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom,ifrztyp
      real(gp), dimension(:,:,:), pointer :: psppar
      real(gp), dimension(:), pointer :: amu
+     ! The symmetry object from ABINIT
+     integer :: symObj
      ! AMmodif
      integer :: iat_absorber 
      ! AMmodif end
@@ -173,7 +189,7 @@ module module_types
 !!
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
-     integer, dimension(:), pointer :: norb_par,iokpt
+     integer, dimension(:), pointer :: norb_par,iokpt,ikptproc
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
@@ -383,6 +399,45 @@ contains
     call memocc(i_stat,i_all,'ndsplt',subname)
   end subroutine deallocate_comms
 !!***
+
+!!****f* module_types/deallocate_orbs
+!! FUNCTION
+!!   De-Allocate orbitals data structure, except eval pointer
+!!   which is not allocated in the orbitals_descriptor routine
+!! SOURCE
+!!
+subroutine deallocate_orbs(orbs,subname)
+  use module_base
+  implicit none
+    character(len=*), intent(in) :: subname
+    type(orbitals_data), intent(inout) :: orbs
+    !local variables
+    integer :: i_all,i_stat
+
+    i_all=-product(shape(orbs%norb_par))*kind(orbs%norb_par)
+    deallocate(orbs%norb_par,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%norb_par',subname)
+    i_all=-product(shape(orbs%occup))*kind(orbs%occup)
+    deallocate(orbs%occup,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%occup',subname)
+    i_all=-product(shape(orbs%spinsgn))*kind(orbs%spinsgn)
+    deallocate(orbs%spinsgn,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%spinsgn',subname)
+    i_all=-product(shape(orbs%kpts))*kind(orbs%kpts)
+    deallocate(orbs%kpts,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%kpts',subname)
+    i_all=-product(shape(orbs%kwgts))*kind(orbs%kwgts)
+    deallocate(orbs%kwgts,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%kwgts',subname)
+    i_all=-product(shape(orbs%iokpt))*kind(orbs%iokpt)
+    deallocate(orbs%iokpt,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%iokpt',subname)
+    i_all=-product(shape(orbs%ikptproc))*kind(orbs%ikptproc)
+    deallocate(orbs%ikptproc,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%ikptproc',subname)
+
+
+end subroutine deallocate_orbs
 
 !!****f* module_types/init_restart_objects
 !! FUNCTION

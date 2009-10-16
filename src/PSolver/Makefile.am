@@ -99,17 +99,18 @@ libpoissonsolver_a_LIBADD = ../modules/libmodules.a
 
 PS_Check_SOURCES = PS_Check.f90 $(mpi_source)
 PS_Check_LDFLAGS =
-PS_Check_LDADD = 	libpoissonsolver.a \
+PS_Check_LDADD = libpoissonsolver.a \
 	../modules/libmodules.a \
 	../profiling/libprofiling.a \
 	ABINIT-common/libABINIT.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
+PS_Check_DEPENDENCIES = Poisson_Solver.o
 
 PS_Program_SOURCES = PS_Program.f90 $(mpi_source)
 PS_Program_LDFLAGS = 
-PS_Program_LDADD = 	libpoissonsolver.a \
+PS_Program_LDADD = libpoissonsolver.a \
 	../modules/libmodules.a \
 	../profiling/libprofiling.a \
 	ABINIT-common/libABINIT.a \
@@ -118,7 +119,7 @@ PS_Program_LDADD = 	libpoissonsolver.a \
 	$(libs_cuda) 
 
 PS_Exercise_SOURCES = PS_Exercise.f90 $(mpi_source)
-PS_Exercise_LDADD = 	libpoissonsolver.a \
+PS_Exercise_LDADD =	libpoissonsolver.a \
 	../modules/libmodules.a \
 	../profiling/libprofiling.a \
 	ABINIT-common/libABINIT.a \
@@ -138,11 +139,12 @@ mpif.h:
 
 poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 
-Poisson_Solver.o : ../modules/base.o $(SOURCES_MOD)
+Poisson_Solver.o: ../modules/base.o $(SOURCES_MOD)
 
 #base.o : $(mpi_include)
 
-PS_Check.o: Poisson_Solver.o
+#PS_Check.o: Poisson_Solver.o
+
 
 
 check:

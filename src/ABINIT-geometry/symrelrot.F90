@@ -45,8 +45,9 @@ subroutine symrelrot(nsym,rprimd,rprimd_new,symrel)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
- !use interfaces_01manage_mpi
-!use interfaces_11util
+! use interfaces_14_hidewrite
+! use interfaces_16_hideleave
+! use interfaces_32_util
 !End of the abilint section
 
  implicit none
@@ -102,7 +103,7 @@ subroutine symrelrot(nsym,rprimd,rprimd_new,symrel)
 &     '  symrel=',matr2(:,1),ch10,&
 &     '         ',matr2(:,2),ch10,&
 &     '         ',matr2(:,3)
-     call wrtout(6,message,'COLL')
+     call wrtout(std_out,message,'COLL')
      call leave_new('COLL')
     end if
     symrel(ii,jj,isym)=nint(val)
