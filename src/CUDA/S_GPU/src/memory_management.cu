@@ -127,10 +127,8 @@ void sg_gpu_imm_send__(void **GPU_pointer,
 
 
   *ierr=0;
-  std::cout << "SEND memsi " << mem_size << ", prec " << *precision << std::endl;
 
-
- try
+  try
     {
       check<cuda_error>(cudaMemcpy(*GPU_pointer, CPU_pointer, mem_size, cudaMemcpyHostToDevice)  != 0,"copy host to device",__FILE__,__LINE__);
     }
