@@ -289,7 +289,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    real(kind=8), intent(inout) :: z(2,nd1*nd2*nd3,2)
    !Local variables
    real(kind=8), allocatable, dimension(:,:,:) :: zw  
-   real(kind=8), allocatable, dimension(:,:) :: trig
+   real(kind=8), dimension(2,nfft_max) :: trig
    integer, dimension(n_factors) :: after,now,before
 
    if (max(n1,n2,n3).gt.nfft_max) then
@@ -314,8 +314,6 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
     
 ! vector computer with memory banks:
    if (ncache.eq.0) then
-      allocate(trig(2,1024))
-
       call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
       nfft=nd1*n2
       mm=nd1*nd2
@@ -373,7 +371,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
 !      write(6,*) 'npr,iam',npr,iam
 ! Critical section only necessary on Intel
 !!!!$omp critical
-      allocate(zw(2,ncache/4,2),trig(2,1024))
+      allocate(zw(2,ncache/4,2))
 !!!!$omp end critical
 
       inzet=inzee
@@ -415,7 +413,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
             i=1
             inzeep=2
             call fftstp_sg(mm,nfft,m,nn,n,z(1,j,inzet),zw(1,1,3-inzeep), &
-                             trig,after(i),now(i),before(i),i_sign)
+                           trig,after(i),now(i),before(i),i_sign)
             inzeep=1
            
             do i=2,ic-1
@@ -523,11 +521,11 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
             i=1
             inzeep=2
             call fftstp_sg(mm,nfft,m,nn,n,z(1,j,inzet),zw(1,1,3-inzeep), &
-                             trig,after(i),now(i),before(i),i_sign)
+                           trig,after(i),now(i),before(i),i_sign)
             inzeep=1
             do i=2,ic-1
                call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                                trig,after(i),now(i),before(i),i_sign)
+                              trig,after(i),now(i),before(i),i_sign)
                inzeep=3-inzeep
             end do
             i=ic
@@ -537,7 +535,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
       end if
       inzet=3-inzet
      
-      deallocate(zw,trig)
+      deallocate(zw)
       if (iam.eq.0) inzee=inzet
 !!!!!!!!!!$omp end parallel  
 
@@ -603,7 +601,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
    real(kind=8), intent(inout) :: z1(2,nd1f*nd2*nd3,2) ! work array
    !Local variables
    real(kind=8), allocatable, dimension(:,:,:) :: zw  
-   real(kind=8), allocatable, dimension(:,:) :: trig
+   real(kind=8), dimension(2,nfft_max) :: trig
    integer, dimension(n_factors) :: after,now,before
    integer::mm,nffta,i_sign=1
 
@@ -636,7 +634,6 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
 
    if (ncache.eq.0) then
 ! vector computer with memory banks:
-      allocate(trig(2,1024))
       call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
       mm=nd1f*nd2 
       nffta=nd1f*n2
@@ -693,7 +690,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
 !!!!!        write(6,*) 'npr,iam',npr,iam
 ! Critical section only necessary on Intel
 !!!!!$omp critical
-      allocate(zw(2,ncache/4,2),trig(2,1024))
+      allocate(zw(2,ncache/4,2))
 !!!!!$omp end critical
 
       inzet=inzee
@@ -835,7 +832,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
             i=1
             inzeep=2
             call fftstp_sg(mm,nfft,m,nn,n,z3(1,j,inzet),zw(1,1,3-inzeep), &
-                             trig,after(i),now(i),before(i),i_sign)
+                           trig,after(i),now(i),before(i),i_sign)
             inzeep=1
             do i=2,ic-1
                call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
@@ -848,7 +845,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
          end do
       end if
       inzet=3-inzet
-      deallocate(zw,trig)
+      deallocate(zw)
       if (iam.eq.0) inzee=inzet
 !!!!!!!!!$omp end parallel  
 
@@ -1017,7 +1014,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
 
 
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:,:,:) :: zw  
-        REAL(KIND=8), ALLOCATABLE, DIMENSION(:,:) :: trig
+        REAL(KIND=8), DIMENSION(2,nfft_max) :: trig
         INTEGER, DIMENSION(n_factors) :: after,now,before
         integer,intent(in):: nd3f,n3f,n1b,nd1b,n3b,nd3b
         integer,intent(in):: n1,n2,n3,nd1,nd2,nd3
@@ -1049,51 +1046,52 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
 
    if (ncache.eq.0) then
 ! vector computer with memory banks:
-        allocate(trig(2,1024))
+      call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
+      nfft=nd1b*n2
+      mm=nd1b*nd2
+      do i=1,ic-1
+         call fftstp_sg(mm,nfft,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
+                        trig,after(i),now(i),before(i),i_sign)
+         inzee=3-inzee
+      end do
+      i=ic
+      call fftrot_sg(mm,nfft,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
+                     trig,after(i),now(i),before(i),i_sign)
 
-        call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
-        nfft=nd1b*n2
-        mm=nd1b*nd2
-        do 51093,i=1,ic-1
-        call fftstp_sg(mm,nfft,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
-                          trig,after(i),now(i),before(i),i_sign)
-51093        inzee=3-inzee
-        i=ic
-        call fftrot_sg(mm,nfft,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
-                          trig,after(i),now(i),before(i),i_sign)
+      inzee=3-inzee
 
-        inzee=3-inzee
+      if (n2.ne.n3) then
+         call ctrig_sg(n2,trig,after,before,now,i_sign,ic)
+      end if
+      nfft=nd3*n1b
+      mm=nd3*nd1b
+      do 52093,i=1,ic-1
+      call fftstp_sg(mm,nfft,nd2,mm,nd2,z1(1,1,inzee),z1(1,1,3-inzee), &
+                     trig,after(i),now(i),before(i),i_sign)
+52093      inzee=3-inzee
+      i=ic
+      call fftrot_sg(mm,nfft,nd2,mm,nd2,z1(1,1,inzee),z1(1,1,3-inzee), &
+                     trig,after(i),now(i),before(i),i_sign)
+      inzee=3-inzee
 
-        if (n2.ne.n3) then
-           call ctrig_sg(n2,trig,after,before,now,i_sign,ic)
-        end if
-        nfft=nd3*n1b
-        mm=nd3*nd1b
-        do 52093,i=1,ic-1
-        call fftstp_sg(mm,nfft,nd2,mm,nd2,z1(1,1,inzee),z1(1,1,3-inzee), &
-                           trig,after(i),now(i),before(i),i_sign)
-52093        inzee=3-inzee
-        i=ic
-        call fftrot_sg(mm,nfft,nd2,mm,nd2,z1(1,1,inzee),z1(1,1,3-inzee), &
+      ! here we transform back from z1 to z3
+      call z1_to_z3(z1,z3,inzee)
+
+      if (n1.ne.n2) then
+         call ctrig_sg(n1,trig,after,before,now,i_sign,ic)
+      end if
+      nfft=nd2*n3b
+      mm=nd2*nd3b
+      do 53093,i=1,ic-1
+      call fftstp_sg(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
                        trig,after(i),now(i),before(i),i_sign)
-        inzee=3-inzee
+53093      inzee=3-inzee
+      i=ic
+      call fftrot_sg(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
+                       trig,after(i),now(i),before(i),i_sign)
+      inzee=3-inzee
 
-        ! here we transform back from z1 to z3
-        call z1_to_z3(z1,z3,inzee)
-
-        if (n1.ne.n2) call ctrig_sg(n1,trig,after,before,now,i_sign,ic)
-        nfft=nd2*n3b
-        mm=nd2*nd3b
-        do 53093,i=1,ic-1
-        call fftstp_sg(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
-                         trig,after(i),now(i),before(i),i_sign)
-53093        inzee=3-inzee
-        i=ic
-        call fftrot_sg(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
-                         trig,after(i),now(i),before(i),i_sign)
-        inzee=3-inzee
-
-        call z3_to_y(z3,y,inzee)
+      call z3_to_y(z3,y,inzee)
 
 ! RISC machine with cache:
    else
@@ -1109,7 +1107,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
 !      write(6,*) 'npr,iam',npr,iam
 ! Critical section only necessary on Intel
 !!!!!!$omp critical
-        allocate(zw(2,ncache/4,2),trig(2,1024))
+        allocate(zw(2,ncache/4,2))
 !!!!!!!$omp end critical
 
       inzet=inzee
@@ -1278,7 +1276,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
         inzet=3-inzet
         
         call z3_to_y(z3,y,inzet)
-        deallocate(zw,trig)
+        deallocate(zw)
         if (iam.eq.0) inzee=inzet
 !!!!!!!!!!!$omp end parallel  
 
