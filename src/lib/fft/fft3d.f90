@@ -290,7 +290,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    !Local variables
    real(kind=8), allocatable, dimension(:,:,:) :: zw  
    real(kind=8), allocatable, dimension(:,:) :: trig
-   integer, allocatable, dimension(:) :: after,now,before
+   integer, dimension(n_factors) :: after,now,before
 
    if (max(n1,n2,n3).gt.nfft_max) then
       write(*,*) 'Dimension bigger than ', nfft_max
@@ -314,7 +314,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
     
 ! vector computer with memory banks:
    if (ncache.eq.0) then
-      allocate(trig(2,1024),after(20),now(20),before(20))
+      allocate(trig(2,1024))
 
       call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
       nfft=nd1*n2
@@ -373,7 +373,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
 !      write(6,*) 'npr,iam',npr,iam
 ! Critical section only necessary on Intel
 !!!!$omp critical
-      allocate(zw(2,ncache/4,2),trig(2,1024),after(20),now(20),before(20))
+      allocate(zw(2,ncache/4,2),trig(2,1024))
 !!!!$omp end critical
 
       inzet=inzee
@@ -537,7 +537,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
       end if
       inzet=3-inzet
      
-      deallocate(zw,trig,after,now,before)
+      deallocate(zw,trig)
       if (iam.eq.0) inzee=inzet
 !!!!!!!!!!$omp end parallel  
 
@@ -604,7 +604,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
    !Local variables
    real(kind=8), allocatable, dimension(:,:,:) :: zw  
    real(kind=8), allocatable, dimension(:,:) :: trig
-   integer, allocatable, dimension(:) :: after,now,before
+   integer, dimension(n_factors) :: after,now,before
    integer::mm,nffta,i_sign=1
 
    if (max(n1,n2,n3).gt.nfft_max) then
@@ -636,7 +636,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
 
    if (ncache.eq.0) then
 ! vector computer with memory banks:
-      allocate(trig(2,1024),after(20),now(20),before(20))
+      allocate(trig(2,1024))
       call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
       mm=nd1f*nd2 
       nffta=nd1f*n2
@@ -693,7 +693,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
 !!!!!        write(6,*) 'npr,iam',npr,iam
 ! Critical section only necessary on Intel
 !!!!!$omp critical
-      allocate(zw(2,ncache/4,2),trig(2,1024),after(20),now(20),before(20))
+      allocate(zw(2,ncache/4,2),trig(2,1024))
 !!!!!$omp end critical
 
       inzet=inzee
@@ -848,7 +848,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
          end do
       end if
       inzet=3-inzet
-      deallocate(zw,trig,after,now,before)
+      deallocate(zw,trig)
       if (iam.eq.0) inzee=inzet
 !!!!!!!!!$omp end parallel  
 
@@ -1002,7 +1002,10 @@ end subroutine fft_for
 !! SOURCE
 !!
 subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z1,z3,inzee)
-        implicit real(kind=8) (a-h,o-z)
+
+   use module_fft_sg
+   implicit real(kind=8) (a-h,o-z)
+
 !!!!!!!$      interface
 !!!!!!!$        integer ( kind=4 ) function omp_get_num_threads ( )
 !!!!!!$        end function omp_get_num_threads
@@ -1015,7 +1018,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
 
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:,:,:) :: zw  
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:,:) :: trig
-        INTEGER, ALLOCATABLE, DIMENSION(:) :: after,now,before
+        INTEGER, DIMENSION(n_factors) :: after,now,before
         integer,intent(in):: nd3f,n3f,n1b,nd1b,n3b,nd3b
         integer,intent(in):: n1,n2,n3,nd1,nd2,nd3
         real(kind=8),intent(inout)::z3(2,nd1*nd2*nd3b,2)
@@ -1046,7 +1049,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
 
    if (ncache.eq.0) then
 ! vector computer with memory banks:
-        allocate(trig(2,1024),after(20),now(20),before(20))
+        allocate(trig(2,1024))
 
         call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
         nfft=nd1b*n2
@@ -1106,7 +1109,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
 !      write(6,*) 'npr,iam',npr,iam
 ! Critical section only necessary on Intel
 !!!!!!$omp critical
-        allocate(zw(2,ncache/4,2),trig(2,1024),after(20),now(20),before(20))
+        allocate(zw(2,ncache/4,2),trig(2,1024))
 !!!!!!!$omp end critical
 
       inzet=inzee
@@ -1275,7 +1278,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
         inzet=3-inzet
         
         call z3_to_y(z3,y,inzet)
-        deallocate(zw,trig,after,now,before)
+        deallocate(zw,trig)
         if (iam.eq.0) inzee=inzet
 !!!!!!!!!!!$omp end parallel  
 
