@@ -11,6 +11,8 @@ public:
     :NUM_ACTORS(numActors),NUM_GPU(numGPU),iproc(iproc_),gga(gga_){}
 
   virtual void do_repartition(int currNum,int *connectedGPU) const = 0;
+
+  virtual ~set_repartition(){}
 protected:
 
   const int NUM_ACTORS;
@@ -28,6 +30,8 @@ public:
     :set_repartition(numActors,numGPU,iproc,gga_){}
 
   virtual void do_repartition(int currNum,int *connectedGPU) const;
+
+  virtual ~set_repartition_shared(){}
 };
 
 class set_repartition_static : public set_repartition
@@ -39,7 +43,7 @@ public:
   {}
 
   virtual void do_repartition(int currNum,int *connectedGPU) const;
-
+  virtual ~set_repartition_static(){}
 
 };
 #endif

@@ -110,9 +110,10 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   read(line,*,iostat=ierrfrc) cudagpu
   iline=iline+1
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
-     call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-   !  iconv = 0
-   !  iblas = 0
+    ! call init_lib(iproc,initerror,iconv,iblas,GPUshare)
+     call sg_init(GPUshare,iconv,iproc,initerror)
+     iconv = 1
+     iblas = 1
      if (initerror == 1) then
         write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
         call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
@@ -730,8 +731,10 @@ subroutine read_input_variables(iproc,filename,in)
   read(1,'(a100)')line
   read(line,*,iostat=ierrfrc) cudagpu
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
-     call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-     
+!     call init_lib(iproc,initerror,iconv,iblas,GPUshare)
+     call sg_init(GPUshare,iconv,iproc,initerror)
+iconv = 1
+iblas = 1
      if (initerror == 1) then
 
         write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'

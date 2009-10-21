@@ -358,7 +358,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      orbsv%eval=>orbs%eval
      if (orbs%norb < orbsv%norb) then
         write(*,*)'ERROR: too many virtual orbitals demanded, cannot proceed.'
-        write(*,*)'       chenge the eigenvalues array to fix this problem'
+        write(*,*)'       change the eigenvalues array to fix this problem'
         stop
      end if
      call preconditionall(iproc,nproc,orbsv,lr,hx,hy,hz,in%ncong,g,gnrm_fake)

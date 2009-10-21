@@ -30,7 +30,6 @@
 #include "message.h"
 #include "exceptions.h"
 #include "localqueu.h"
-#include "manage_gpu.h"
 #include "manage_cpu_affinity.h"
 #include "set_repartition.h"
 
@@ -38,14 +37,16 @@
 class sem_unix
 {
 public:
-  sem_unix(int semid,int currGPU); //constructor if we have aleready a sem_id
-  sem_unix(const char *nomfic, int numGPU,int currGPU) throw (synchronization_error);
+  sem_unix(); //constructor if we have aleready a sem_id
+  sem_unix(int numGPU,int currGPU) throw (synchronization_error);
   ~sem_unix();
 
   void P() throw (synchronization_error);
   void V() throw (synchronization_error);
 
   int getSemid() const {return semid;};
+
+  void createFromExistingSem(int semid,int currGPU);
 private:
   int semid;
 
@@ -89,7 +90,7 @@ public:
 
   sem_unix *getSemCalc() {return sem_unix_gpu_CALC;}
   sem_unix *getSemTrsf() {return sem_unix_gpu_TRSF;}
-  manage_gpu *man_gpu;
+  // manage_gpu *man_gpu;
 
   int send_next(const message* msg) throw (inter_node_communication_error);
   int recv_prev(message* msg) throw (inter_node_communication_error);

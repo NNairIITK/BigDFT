@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets], [1.3.0-dev], [Damien.Caliste@cea.fr], [bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.3.0-dev],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -150,9 +150,9 @@ end
     fi
 
   else
-    AC_WARN([MPI is not working and has been disabled.])
-    AC_WARN([  If you don't want to see this warning,])
-    AC_WARN([  set --disable-mpi in the configure line.])
+    AC_MSG_WARN([MPI is not working and has been disabled.])
+    AC_MSG_WARN([  If you don't want to see this warning,])
+    AC_MSG_WARN([  set --disable-mpi in the configure line.])
     ac_use_mpi="Warning"
     MPI_LIBS=
     MPI_INCLUDE='-I$(top_builddir)/src/modules'
@@ -428,6 +428,7 @@ src/PSolver/ABINIT-common/Makefile
 src/PSolver/Makefile
 src/convolutions/Makefile
 src/CUDA/Makefile
+src/CUDA/S_GPU/Makefile
 utils/Makefile
 utils/PSPfiles/Makefile
 doc/Makefile
