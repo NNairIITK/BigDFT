@@ -95,10 +95,10 @@ conv_check_LDFLAGS =
 conv_check_LDADD = ../libbigdft.a \
 	$(libs_cuda)
 
-GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
-GPUham_LDFLAGS =
-GPUham_LDADD = ../libbigdft.a \
-	$(libs_cuda)
+#GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
+#GPUham_LDFLAGS =
+#GPUham_LDADD = ../libbigdft.a \
+#	$(libs_cuda)
 
 .cu.o:
 	$(NVCC) $(CUDA_FLAGS) $(AM_CPPFLAGS) -c $< -o $@

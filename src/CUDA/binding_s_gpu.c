@@ -108,6 +108,25 @@ void sg_callback_locham(void *param)
  *locpar->epot_sum += locpar->occup_gpu*epotToAdd;
 }
 
+void sg_callback_fulllocham(void *param)
+{
+  sg_param_locham_t *locpar = ((sg_param_locham_t*)(param));
+ 
+
+
+  double epotToAdd,ekinToAdd;
+  gpufulllocham_(&locpar->n1,&locpar->n2, &locpar->n3,
+	     &locpar->h1,&locpar->h2,&locpar->h3,
+	     locpar->psi,locpar->pot,locpar->keys,			     
+	     locpar->work1, locpar->work2, locpar->work3,
+	     &epotToAdd,&ekinToAdd);
+
+
+  *locpar->ekin_sum += locpar->occup_gpu*ekinToAdd;
+ *locpar->epot_sum += locpar->occup_gpu*epotToAdd;
+}
+
+
 void sg_locham_adapter__(int *n1,int *n2, int *n3,
 			double *h1,double *h2,double *h3,
 			double **psi,double **pot,int **keys, 
@@ -138,6 +157,39 @@ void sg_locham_adapter__(int *n1,int *n2, int *n3,
 
   
   sg_calc(&sg_callback_locham,&param,sizeof(sg_param_locham_t),*stream);
+}
+
+
+void sg_fulllocham_adapter__(int *n1,int *n2, int *n3,
+			double *h1,double *h2,double *h3,
+			double **psi,double **pot,int **keys, 
+			double **work1,double **work2,double **work3,
+			double *epot_sum,double *ekin_sum,
+			double *occup_gpu,
+			sg_stream_ptr *stream)
+{
+  sg_param_locham_t param;
+
+  
+  param.n1 = *n1;
+  param.n2 = *n2;
+  param.n3 = *n3;
+
+  param.h1 = *h1;
+  param.h2 = *h2;
+  param.h3 = *h3;
+  param.psi = psi;
+  param.pot = pot;
+  param.keys = keys;
+  param.work1 = work1;
+  param.work2 = work2;
+  param.work3 = work3;
+  param.epot_sum = epot_sum;
+  param.ekin_sum = ekin_sum;
+  param.occup_gpu = *occup_gpu;
+
+  
+  sg_calc(&sg_callback_fulllocham,&param,sizeof(sg_param_locham_t),*stream);
 }
 
 

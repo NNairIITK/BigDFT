@@ -188,6 +188,8 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
      GPU%useDynamic = .false.
   end if
   
+  !at the starting point do not use full_locham
+  GPU%full_locham = .false.
 
 end subroutine prepare_gpu_for_locham
 
@@ -240,7 +242,7 @@ subroutine local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,&
   real(gp), intent(out) :: ekin_sum,epot_sum
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
 
-type(GPU_pointers), intent(inout) :: GPU
+  type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_GPU'
 
@@ -257,8 +259,18 @@ type(GPU_pointers), intent(inout) :: GPU
 
      !copy the potential on GPU
      call sg_gpu_imm_send(GPU%rhopot,pot,lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,8,i_stat)
+
+     !if required copy the wavefunctions on the GPU 
+     if (GPU%full_locham) then
+        do iorb=1,orbs%norbp
+           call sg_gpu_imm_send(GPU%psi(iorb),&
+                psi(1,(iorb-1)*orbs%nspinor+1),&
+                (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,i_stat)
+        end do
+     end if
+
      !calculate the local hamiltonian
-     !WARNING: wavefunctions should be already on the card in decompressed form
+     !WARNING: the difference between full_locham and normal locham is inside
      call gpu_locham(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
      
      
@@ -273,7 +285,7 @@ type(GPU_pointers), intent(inout) :: GPU
   else
      !GPU are shared
      
-     
+     print *,'here',GPU%full_locham
      !copy the potential on GPU
      call sg_create_stream(stream_ptr_first_trsf)
  
@@ -290,19 +302,31 @@ type(GPU_pointers), intent(inout) :: GPU
      
      call sg_launch_all_streams() !stream are removed after this call, the queue becomes empty
      
-     do iorb=1,orbs%norbp
+     do iorb=1,orbs%norbp      
+
+        !each orbital create one stream
         call sg_create_stream(tab_stream_ptr(iorb))
         
+        if (GPU%full_locham) then
+           call sg_memcpy_f_to_c(GPU%pinned_in,&
+                psi(1,(iorb-1)*orbs%nspinor+1),&
+                (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
+                tab_stream_ptr(iorb),i_stat)
+           
+           
+           call sg_gpu_pi_send(GPU%psi(iorb),&
+                GPU%pinned_in,&
+                (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
+                tab_stream_ptr(iorb),i_stat)
+        end if
         
         !calculate the local hamiltonian
-        !WARNING: wavefunctions should be already on the card in decompressed form
+        !WARNING: the difference between full_locham and normal locham is inside
         call gpu_locham_helper_stream(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum,iorb,tab_stream_ptr(iorb))
         
         
         !copy back the compressed wavefunctions
         !receive the data of GPU
-        
-
         call sg_gpu_pi_recv(GPU%pinned_out,&
              GPU%psi(iorb),&
              (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
@@ -446,8 +470,7 @@ subroutine local_partial_density_GPU(iproc,nproc,orbs,&
              psi(1,(iorb-1)*orbs%nspinor+1),&
              (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,i_stat)
      end do
-  
-     
+       
      !calculate the density
      call gpu_locden(lr,nspin,hxh,hyh,hzh,orbs,GPU)
      
@@ -547,7 +570,6 @@ subroutine gpu_locden_helper_stream(lr,nspin,hxh,hyh,hzh,orbs,GPU,stream_ptr)
 end subroutine gpu_locden_helper_stream
 
 
-
 subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
   use module_base
   use module_types
@@ -562,16 +584,30 @@ subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
   real(gp) :: ekin,epot
   ekin_sum=0.0_gp
   epot_sum=0.0_gp
-  do iorb=1,orbs%norbp
 
-     call gpulocham(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
-          GPU%psi(iorb),GPU%rhopot,GPU%keys,&
-          GPU%work1,GPU%work2,GPU%work3,epot,ekin)
+  if (GPU%full_locham) then
+     do iorb=1,orbs%norbp
 
-     ekin_sum=ekin_sum+orbs%occup(iorb+orbs%isorb)*ekin
-     epot_sum=epot_sum+orbs%occup(iorb+orbs%isorb)*epot
+        call gpufulllocham(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+             GPU%psi(iorb),GPU%rhopot,GPU%keys,&
+             GPU%work1,GPU%work2,GPU%work3,epot,ekin)
 
-  end do
+        ekin_sum=ekin_sum+orbs%occup(iorb+orbs%isorb)*ekin
+        epot_sum=epot_sum+orbs%occup(iorb+orbs%isorb)*epot
+
+     end do
+  else
+     do iorb=1,orbs%norbp
+
+        call gpulocham(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+             GPU%psi(iorb),GPU%rhopot,GPU%keys,&
+             GPU%work1,GPU%work2,GPU%work3,epot,ekin)
+
+        ekin_sum=ekin_sum+orbs%occup(iorb+orbs%isorb)*ekin
+        epot_sum=epot_sum+orbs%occup(iorb+orbs%isorb)*epot
+
+     end do
+  end if
 
 end subroutine gpu_locham
 
@@ -591,7 +627,7 @@ subroutine gpu_locham_helper_stream(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum
   real(gp) :: ekin,epot
 
   real(gp) :: ocupGPU
-  real(kind=8), intent(in) :: stream_ptr !corrected, it was integer
+  real(kind=8), intent(in) :: stream_ptr 
 
   ekin_sum=0.0_gp
   epot_sum=0.0_gp
@@ -599,12 +635,15 @@ subroutine gpu_locham_helper_stream(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum
 
   ocupGPU = orbs%occup(iorb+orbs%isorb)
 
-
-
-
-  call sg_locham_adapter(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
-       GPU%psi(iorb),GPU%rhopot,GPU%keys,&
-       GPU%work1,GPU%work2,GPU%work3,epot_sum,ekin_sum,ocupGPU,stream_ptr)
+  if (GPU%full_locham) then
+     call sg_fulllocham_adapter(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+          GPU%psi(iorb),GPU%rhopot,GPU%keys,&
+          GPU%work1,GPU%work2,GPU%work3,epot_sum,ekin_sum,ocupGPU,stream_ptr)
+  else
+     call sg_locham_adapter(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+          GPU%psi(iorb),GPU%rhopot,GPU%keys,&
+          GPU%work1,GPU%work2,GPU%work3,epot_sum,ekin_sum,ocupGPU,stream_ptr)
+  end if
 
 
 end subroutine gpu_locham_helper_stream

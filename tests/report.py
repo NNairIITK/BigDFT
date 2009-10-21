@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Final report (read fldiff.report from fldiff.py)
-# Date: 25/12/2008
+# Date: 17/10/2009
 #----------------------------------------------------------------------------
 
 import glob
@@ -23,13 +23,13 @@ for file in glob.glob("*/fldiff.report"):
         discrepancy = float(discrepancy[0])
         if discrepancy <= max_discrepancy:
             start = "\033[0;32m"
-            state = "succeeded < %7.1e" % max_discrepancy
+            state = "%7.1e < (%7.1e) succeeded" % (discrepancy,max_discrepancy)
             end = "\033[m"
         else:
             start = "\033[0;31m"
-            state = "failed    > %7.1e" % max_discrepancy
+            state = "%7.1e > (%7.1e)    failed" % (discrepancy,max_discrepancy)
             end = "\033[m"
             Exit = 1
-        print "%s%-13s %-9s (%7.1e)%s" % (start,dir,state,discrepancy,end)
+        print "%s%-13s %s%s" % (start,dir,state,end)
 #Error code
-sys.exit(Exit)
+sys.exit(1)

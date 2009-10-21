@@ -54,7 +54,7 @@
 !!
 subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      orbs,orbsv,nvirt,lr,comms,&
-     hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr)
+     hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
   use module_base
   use module_types
   use module_interfaces, except_this_one => davidson
@@ -75,6 +75,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(dp), dimension(*), intent(in) :: pkernel,rhopot
   type(orbitals_data), intent(inout) :: orbsv
+  type(GPU_pointers), intent(inout) :: GPU
   !this is a Fortran 95 standard, should be avoided (it is a pity IMHO)
   !real(kind=8), dimension(:,:,:,:), allocatable :: rhopot 
   real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
@@ -88,11 +89,22 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   integer :: ise,ish,jnd,j,ispsi,ikpt,ikptp,nvctrp
   real(kind=8) :: tt,gnrm,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,gnrm_fake
   type(communications_arrays) :: commsv
-  type(GPU_pointers) :: GPU !added for interface compatibility, not working here
   real(wp), dimension(:), allocatable :: work
   real(wp), dimension(:), allocatable :: hv,g,hg,ew
   real(wp), dimension(:,:,:,:), allocatable :: e,hamovr
   real(wp), dimension(:), pointer :: psiw
+
+  !in the GPU case, the wavefunction should be copied to the card 
+  !at each HamiltonianApplication
+  !rebind the GPU pointers to the orbsv structure
+  if (GPUconv) then
+     call free_gpu(GPU,orbs%norbp)
+     call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
+          hx,hy,hz,lr%wfd,orbsv,GPU)
+  end if
+  
+  GPU%full_locham=.true.
+  
 
   !last index of e and hamovr are for mpi_allreduce. 
   !e (eigenvalues) is also used as 2 work arrays
@@ -750,6 +762,11 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   call memocc(i_stat,i_all,'e',subname)
 
   call deallocate_orbs(orbsv,subname)
+
+  if (GPUconv) then
+     call free_gpu(GPU,orbsv%norbp)
+  end if
+
 
 END SUBROUTINE davidson
 !!***

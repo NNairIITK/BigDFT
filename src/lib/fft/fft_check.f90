@@ -34,7 +34,14 @@
 !!
 program fft_check
 
+   use module_fft_sg
+   implicit none
+   integer :: i
    write(*,'(a)') 'FFT test: (n1,n2,n3)'
+   do i=1,ndata
+      call do_fft(i_data(i), 3, 3)
+   end do
+   call do_fft(  7, 16,128)
    call do_fft(  3, 16,128)
    call do_fft(128,128,128)
 
@@ -91,8 +98,8 @@ contains
         tela=(count2-count1)/real(count_rate,kind=8)
 
         call vgl(n1,n2,n3,nd1,nd2,nd3,z(1,1,inzee), &
-                       n1,n2,n3,zin,1.d0/(n1*n2*n3),tta,ttm)
-        if (ttm.gt.1.d-8) then
+                       n1,n2,n3,zin,1.d0/real(n1*n2*n3,kind=8),tta,ttm)
+        if (ttm.gt.1.d-10) then
            message = 'Failed'
         else
            message = 'Succeeded'
@@ -110,7 +117,7 @@ contains
    end subroutine do_fft
 
    subroutine init(n1,n2,n3,nd1,nd2,nd3,zin,z)
-      implicit real*8 (a-h,o-z)
+      implicit none
       !Arguments
       integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3
       real*8 :: zin(2,n1,n2,n3),z(2,nd1,nd2,nd3)
@@ -119,8 +126,8 @@ contains
       do i3=1,n3
          do i2=1,n2
             do i1=1,n1
-               zin(1,i1,i2,i3) = cos(1.23*real(i1*111 + i2*11 + i3,kind=8))
-               zin(2,i1,i2,i3) = sin(3.21*real(i3*111 + i2*11 + i1,kind=8))
+               zin(1,i1,i2,i3) = cos(1.23d0*real(i1*111 + i2*11 + i3,kind=8))
+               zin(2,i1,i2,i3) = sin(3.21d0*real(i3*111 + i2*11 + i1,kind=8))
                z(1,i1,i2,i3) = zin(1,i1,i2,i3) 
                z(2,i1,i2,i3) = zin(2,i1,i2,i3) 
             end do
@@ -130,8 +137,14 @@ contains
 
 
    subroutine vgl(n1,n2,n3,nd1,nd2,nd3,x,md1,md2,md3,y,scale,tta,ttm)
-      implicit real*8 (a-h,o-z)
-      dimension x(2,nd1,nd2,nd3),y(2,md1,md2,md3)
+      implicit none
+      !Arguments
+      integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3
+      real(kind=8), intent(in) :: x(2,nd1,nd2,nd3),y(2,md1,md2,md3)
+      real(kind=8), intent(in) :: scale
+      !Local variables
+      real(kind=8) :: ttm,tta,ttr,tti
+      integer :: i1,i2,i3
       ttm=0.d0
       tta=0.d0
       do i3=1,n3
