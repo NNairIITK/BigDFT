@@ -1834,8 +1834,8 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   end if
 
   write(9, "(A,A)") "# BigDFT file - ", trim(comment)
-  write(9, "(3e24.17)") atoms%alat1, 0.d0, atoms%alat2
-  write(9, "(3e24.17)") 0.d0,        0.d0, atoms%alat3
+  write(9, "(3e24.17)") atoms%alat1*factor, 0.d0, atoms%alat2*factor
+  write(9, "(3e24.17)") 0.d0,               0.d0, atoms%alat3*factor
 
   write(9, "(A,A)") "#keyword: ", trim(atoms%units)
   if (atoms%geocode == 'P') write(9, "(A)") "#keyword: periodic"
