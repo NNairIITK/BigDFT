@@ -314,7 +314,7 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
            if (abs(1.d0-scpr) > 1.d-1) then
               !if (iproc == 0) then
                  write(*,'(1x,a)')'error found!'
-                 write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
+                 write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
                       'The norm of the nonlocal PSP for atom n=',iat,&
                       ' (',trim(atomname),&
                       ') labeled by l=',l,' m=',m,' is ',scpr

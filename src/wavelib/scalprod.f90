@@ -286,7 +286,7 @@ subroutine wpdot(  &
   !dee
 !$omp parallel default (private) &
 !$omp shared (maseg_c,keyav_c,keyag_c,keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f)&
-!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,mbseg_f,keybg_f,keyag_f,keyav_f)&
+!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,keybg_f,keyag_f,keyav_f)&
 !$omp shared (apsi_f,scpr)
 !$    ithread=omp_get_thread_num()
 !$    nthread=omp_get_num_threads()

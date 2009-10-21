@@ -38,6 +38,8 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
        0.031695087811525991431_wp, 0.00054213233180001068935_wp, &
        -0.0033824159510050025955_wp , 0.0_wp /
 
+write(*,*) 'EXECUTED'
+
   lenc=right+1
   len_2=lenc/2
 
