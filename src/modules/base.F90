@@ -14,8 +14,13 @@
 module module_base 
   !use MPI
   implicit none  
+#ifdef HAVE_DEBUG
   !buffer to be added at the end of the last dimension of an array to control bounds_check
+  integer, parameter :: ndebug=3
+#else
+  !disable debug case
   integer, parameter :: ndebug=0
+#endif
 
   !verbosity of the output, control the level of writing (minimal by default)
   integer :: verbose=2

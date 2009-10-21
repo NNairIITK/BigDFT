@@ -156,7 +156,7 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
   call creategpuparameters(n1,n2,n3,hx,hy,hz)
 
   !allocate the number of GPU pointers for the wavefunctions
-  allocate(GPU%psi(orbs%norbp),stat=i_stat)
+  allocate(GPU%psi(orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,GPU%psi,'GPU%psi',subname)
 
   !allocate space on the card

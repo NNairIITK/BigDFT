@@ -309,7 +309,7 @@ subroutine geopt_input_variables(iproc,filename,in)
      else if (in%ionmov == 13) then
         read(1,*,iostat=ierror) in%nnos
         call check()
-        allocate(in%qmass(in%nnos),stat=i_stat)
+        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
         call memocc(i_stat,in%qmass,'in%qmass',subname)
         read(1,*,iostat=ierror) in%qmass
         call check()
@@ -402,10 +402,10 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   inquire(file=trim(filename),exist=exists)
   if (.not. exists) then
      ! Set only the gamma point.
-     allocate(in%kpt(3, in%nkpt),stat=i_stat)
+     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%kpt,'in%kpt',subname)
      in%kpt(:, 1) = (/ 0., 0., 0. /)
-     allocate(in%wkpt(in%nkpt),stat=i_stat)
+     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%wkpt,'in%wkpt',subname)
      in%wkpt(1) = 1.
      return
@@ -443,9 +443,9 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   else if (trim(type) == "manual" .or. trim(type) == "Manual") then
      read(1,*,iostat=ierror) in%nkpt
      call check()
-     allocate(in%kpt(3, in%nkpt),stat=i_stat)
+     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%kpt,'in%kpt',subname)
-     allocate(in%wkpt(in%nkpt),stat=i_stat)
+     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%wkpt,'in%wkpt',subname)
      do i = 1, in%nkpt, 1
         read(1,*,iostat=ierror) in%kpt(:, i), in%wkpt(i)
@@ -567,7 +567,7 @@ subroutine abscalc_input_variables(iproc,filename,in)
   read(111,*,iostat=ierror)  in%L_absorber
   call check()
 
-  allocate(in%Gabs_coeffs(2*in%L_absorber +1),stat=i_stat)
+  allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)
   call memocc(i_stat,in%Gabs_coeffs,'in%Gabs_coeff',subname)
 
   read(111,*,iostat=ierror)  (in%Gabs_coeffs(i+ndebug), i=1,2*in%L_absorber +1 )
@@ -1036,7 +1036,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
      if (atoms%geocode == 'S') rprimd(2,2) = 1000._gp
      rprimd(3,3) = atoms%alat3
      call ab6_symmetry_set_lattice(atoms%symObj, rprimd, ierr)
-     allocate(xRed(3, atoms%nat),stat=i_stat)
+     allocate(xRed(3, atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,xRed,'xRed',subname)
      xRed(1,:) = modulo(rxyz(1, :) / rprimd(1,1), 1._gp)
      xRed(2,:) = modulo(rxyz(2, :) / rprimd(2,2), 1._gp)

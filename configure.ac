@@ -90,7 +90,7 @@ fi
 
 dnl Enable or not MPI.
 ac_use_mpi="yes"
-AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enable by default).]),
+AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enabled by default).]),
               ac_use_mpi=$enableval, ac_use_mpi="yes")
 if test "$ac_use_mpi" = "yes"; then
   dnl We set all flags by hand
@@ -170,6 +170,13 @@ AC_SUBST(MPI_LIBS)
 AC_SUBST(MPI_INCLUDE)
 AC_SUBST(MPI_LDFLAGS)
 
+dnl Enable ndebug variable (disabled by default)
+ac_use_debug="no"
+AC_ARG_ENABLE(debug, AS_HELP_STRING([--debug], [Debugging options (disabled by default)]),
+              ac_use_debug=$enableval, ac_use_debug="no")
+if test x"$ac_use_debug" = x"yes" ; then
+  AC_DEFINE([HAVE_DEBUG], [1], [compile the code with debugging options])
+fi
 
 dnl Use the simple or the optimised convolution code.
 AC_MSG_CHECKING([for convolution optimisation])
@@ -475,6 +482,7 @@ Build:
   Minima hopping binary:     $ac_build_bin_minima_hopping
 
 Options:
+  Debug version:             $ac_use_debug		
   With MPI:                  $ac_use_mpi
    | Include dir.:           $MPI_INCLUDE
    | Linker flags:           $MPI_LDFLAGS
