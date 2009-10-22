@@ -227,42 +227,42 @@ subroutine ib_transpose(ib,ib_t,n1,n2)
 
 end subroutine ib_transpose
 
-!!$subroutine make_logrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,logrid)
-!!$    implicit none
-!!$    integer n1,n2,n3
-!!$    integer i1,i2,i3 ! counters
-!!$    integer j1,j2,j3 ! positions relative to box center
-!!$    integer nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-!!$    integer nm1,nm2,nm3 ! medium point of the box
-!!$    integer nd1,nd2,nd3 ! dimension of the box
-!!$    integer nrad,nrad2  ! internal sphere radius and radius squared
-!!$    logical logrid(0:n1,0:n2,0:n3)
-!!$
-!!$    logrid=.false.
-!!$
-!!$    nm1=(nfl1+nfu1)/2
-!!$    nm2=(nfl2+nfu2)/2
-!!$    nm3=(nfl3+nfu3)/2
-!!$
-!!$    nd1=nm1-nfl1
-!!$    nd2=nm2-nfl2
-!!$    nd3=nm3-nfl3
-!!$
-!!$    nrad=min(nd1,nd2,nd3)
-!!$    nrad2=nrad*nrad
-!!$
-!!$    do i1=nfl1,nfu1        
-!!$        do i2=nfl2,nfu2
-!!$            do i3=nfl3,nfu3
-!!$                j1=i1-nm1
-!!$                j2=i2-nm2
-!!$                j3=i3-nm3
-!!$                if (j1*j1+j2*j2+j3*j3.le.nrad2) logrid(i1,i2,i3)=.true.
-!!$            enddo
-!!$        enddo
-!!$    enddo
-!!$    
-!!$end subroutine make_logrid
+!!!subroutine make_logrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,logrid)
+!!!    implicit none
+!!!    integer n1,n2,n3
+!!!    integer i1,i2,i3 ! counters
+!!!    integer j1,j2,j3 ! positions relative to box center
+!!!    integer nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+!!!    integer nm1,nm2,nm3 ! medium point of the box
+!!!    integer nd1,nd2,nd3 ! dimension of the box
+!!!    integer nrad,nrad2  ! internal sphere radius and radius squared
+!!!    logical logrid(0:n1,0:n2,0:n3)
+!!!
+!!!    logrid=.false.
+!!!
+!!!    nm1=(nfl1+nfu1)/2
+!!!    nm2=(nfl2+nfu2)/2
+!!!    nm3=(nfl3+nfu3)/2
+!!!
+!!!    nd1=nm1-nfl1
+!!!    nd2=nm2-nfl2
+!!!    nd3=nm3-nfl3
+!!!
+!!!    nrad=min(nd1,nd2,nd3)
+!!!    nrad2=nrad*nrad
+!!!
+!!!    do i1=nfl1,nfu1        
+!!!        do i2=nfl2,nfu2
+!!!            do i3=nfl3,nfu3
+!!!                j1=i1-nm1
+!!!                j2=i2-nm2
+!!!                j3=i3-nm3
+!!!                if (j1*j1+j2*j2+j3*j3.le.nrad2) logrid(i1,i2,i3)=.true.
+!!!            enddo
+!!!        enddo
+!!!    enddo
+!!!    
+!!!end subroutine make_logrid
 
 subroutine ib_to_logrid_rot(ib,logrid,nfl,nfu,ndat)
 ! This one mimics the comb_rot_grow_f_loc

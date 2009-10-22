@@ -134,83 +134,83 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
 
   call solve_eigensystem(iproc,orbs%norb,orbs%norbu,orbs%norbd,norbi_max,&
        ndim_hamovr,natsceff,nspin,nspinor,tolerance,norbgrp,hamovr,orbs%eval)
-!!$
-!!$  !allocate the pointer for virtual orbitals
-!!$  if(present(orbsv) .and. present(psivirt) .and. orbsv%norb > 0) then
-!!$     allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,psivirt,'psivirt',subname)
-!!$  end if
-!!$
-!!$  if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
-!!$  nvctr=wfd%nvctr_c+7*wfd%nvctr_f
-!!$  if (.not. present(orbsv)) then
-!!$     call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
-!!$          natsceff,nspin,orbs%nspinor,ndim_hamovr,norbgrp,hamovr,psi,psit)
-!!$  else
-!!$     call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
-!!$          natsceff,nspin,orbs%nspinor,ndim_hamovr,norbgrp,hamovr,psi,psit,orbsv%norb,psivirt)
-!!$  end if
-!!$  
-!!$  !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
-!!$     
+!!!
+!!!  !allocate the pointer for virtual orbitals
+!!!  if(present(orbsv) .and. present(psivirt) .and. orbsv%norb > 0) then
+!!!     allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
+!!!     call memocc(i_stat,psivirt,'psivirt',subname)
+!!!  end if
+!!!
+!!!  if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
+!!!  nvctr=wfd%nvctr_c+7*wfd%nvctr_f
+!!!  if (.not. present(orbsv)) then
+!!!     call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
+!!!          natsceff,nspin,orbs%nspinor,ndim_hamovr,norbgrp,hamovr,psi,psit)
+!!!  else
+!!!     call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
+!!!          natsceff,nspin,orbs%nspinor,ndim_hamovr,norbgrp,hamovr,psi,psit,orbsv%norb,psivirt)
+!!!  end if
+!!!  
+!!!  !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
+!!!     
   i_all=-product(shape(hamovr))*kind(hamovr)
   deallocate(hamovr,stat=i_stat)
   call memocc(i_stat,i_all,'hamovr',subname)
-!!$  i_all=-product(shape(norbgrp))*kind(norbgrp)
-!!$  deallocate(norbgrp,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'norbgrp',subname)
-!!$
-!!$  if (minimal) then
-!!$     !deallocate the old psi
-!!$     i_all=-product(shape(psi))*kind(psi)
-!!$     deallocate(psi,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'psi',subname)
-!!$  else if (nproc == 1) then
-!!$     !reverse objects for the normal diagonalisation in serial
-!!$     !at this stage hpsi is the eigenvectors and psi is the old wavefunction
-!!$     !this will restore the correct identification
-!!$     nullify(hpsi)
-!!$     hpsi => psi
-!!$!     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.) 
-!!$    nullify(psi)
-!!$     psi => psit
-!!$  end if
-!!$
-!!$  !orthogonalise the orbitals in the case of semi-core atoms
-!!$  if (norbsc > 0) then
+!!!  i_all=-product(shape(norbgrp))*kind(norbgrp)
+!!!  deallocate(norbgrp,stat=i_stat)
+!!!  call memocc(i_stat,i_all,'norbgrp',subname)
+!!!
+!!!  if (minimal) then
+!!!     !deallocate the old psi
+!!!     i_all=-product(shape(psi))*kind(psi)
+!!!     deallocate(psi,stat=i_stat)
+!!!     call memocc(i_stat,i_all,'psi',subname)
+!!!  else if (nproc == 1) then
+!!!     !reverse objects for the normal diagonalisation in serial
+!!!     !at this stage hpsi is the eigenvectors and psi is the old wavefunction
+!!!     !this will restore the correct identification
+!!!     nullify(hpsi)
+!!!     hpsi => psi
+!!!!     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.) 
+!!!    nullify(psi)
+!!!     psi => psit
+!!!  end if
+!!!
+!!!  !orthogonalise the orbitals in the case of semi-core atoms
+!!!  if (norbsc > 0) then
      !if(nspin==1) then
      !   call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,nspinor) 
      !else
-!!$     call orthon_p(iproc,nproc,orbs%norbu,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,&
-!!$          orbs%nspinor) 
-!!$     if(orbs%norbd > 0) then
-!!$        call orthon_p(iproc,nproc,orbs%norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,&
-!!$             psit(1+nvctrp*orbs%norbu),orbs%nspinor) 
+!!!     call orthon_p(iproc,nproc,orbs%norbu,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,&
+!!!          orbs%nspinor) 
+!!!     if(orbs%norbd > 0) then
+!!!        call orthon_p(iproc,nproc,orbs%norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,&
+!!!             psit(1+nvctrp*orbs%norbu),orbs%nspinor) 
      !   end if
-!!$     end if
-!!$  end if
-!!$
-!!$
-!!$  if (minimal) then
-!!$     allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,hpsi,'hpsi',subname)
-!!$!     hpsi=0.0d0
-!!$     if (nproc > 1) then
-!!$        !allocate the direct wavefunction
-!!$        allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
-!!$        call memocc(i_stat,psi,'psi',subname)
-!!$     else
-!!$        psi => psit
-!!$     end if
-!!$  end if
-!!$
-!!$  !this untranspose also the wavefunctions 
-!!$  call untranspose_v(iproc,nproc,orbs%norbp,orbs%nspinor,wfd,nvctrp,comms,&
-!!$       psit,work=hpsi,outadd=psi(1))
-!!$
-!!$  if (nproc == 1) then
-!!$     nullify(psit)
-!!$  end if
+!!!     end if
+!!!  end if
+!!!
+!!!
+!!!  if (minimal) then
+!!!     allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+!!!     call memocc(i_stat,hpsi,'hpsi',subname)
+!!!!     hpsi=0.0d0
+!!!     if (nproc > 1) then
+!!!        !allocate the direct wavefunction
+!!!        allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+!!!        call memocc(i_stat,psi,'psi',subname)
+!!!     else
+!!!        psi => psit
+!!!     end if
+!!!  end if
+!!!
+!!!  !this untranspose also the wavefunctions 
+!!!  call untranspose_v(iproc,nproc,orbs%norbp,orbs%nspinor,wfd,nvctrp,comms,&
+!!!       psit,work=hpsi,outadd=psi(1))
+!!!
+!!!  if (nproc == 1) then
+!!!     nullify(psit)
+!!!  end if
 
 end subroutine Gaussian_DiagHam
 !!***
@@ -631,18 +631,18 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
                 (0.0_wp,0.0_wp),hamovr(imatrst,2),norbi)
 
         end if
-!!$        open(17)
-!!$        open(18)
-!!$        do jorb=1,norbi
-!!$           write(17,'(i0,1x,48(1pe8.1))')jorb,&
-!!$                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,1),icplx=1,ncplx,2),iorb=1,norbi)
-!!$           write(18,'(i0,1x,48(1pe8.1))')jorb,&
-!!$                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,2),icplx=1,ncplx,2),iorb=1,norbi)
-!!$        end do
-!!$
-!!$        close(17)
-!!$        close(18)
-!!$        stop
+!!!        open(17)
+!!!        open(18)
+!!!        do jorb=1,norbi
+!!!           write(17,'(i0,1x,48(1pe8.1))')jorb,&
+!!!                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,1),icplx=1,ncplx,2),iorb=1,norbi)
+!!!           write(18,'(i0,1x,48(1pe8.1))')jorb,&
+!!!                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,2),icplx=1,ncplx,2),iorb=1,norbi)
+!!!        end do
+!!!
+!!!        close(17)
+!!!        close(18)
+!!!        stop
         iorbst=iorbst+norbi
         imatrst=imatrst+ncplx*norbi**2
      end do
@@ -733,29 +733,29 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
         
      end if
 
-!!$     if (iproc == 0) then
-!!$        !write the matrices on a file
-!!$        open(12)
-!!$        do jjorb=1,norbi
-!!$           do jiorb=1,norbi
-!!$              write(12,'(1x,2(i0,1x),2(1pe24.17,1x))')jjorb,jiorb,&
-!!$                   hamovr(jjorb+norbi*(jiorb-1),1),hamovr(jjorb+norbi*(jiorb-1),2)
-!!$           end do
-!!$        end do
-!!$        close(12)
-!!$        !open(33+2*(i-1))
-!!$        !write(33+2*(i-1),'(2000(1pe10.2))')&
-!!$        !        (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
-!!$        !end do
-!!$        !close(33+2*(i-1))
-!!$        !open(34+2*(i-1))
-!!$        !do jjorb=1,norbi
-!!$        !   write(34+2*(i-1),'(2000(1pe10.2))')&
-!!$        !        (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,2),jiorb=1,norbi)
-!!$        !end do
-!!$        !close(34+2*(i-1))
-!!$
-!!$     end if
+!!!     if (iproc == 0) then
+!!!        !write the matrices on a file
+!!!        open(12)
+!!!        do jjorb=1,norbi
+!!!           do jiorb=1,norbi
+!!!              write(12,'(1x,2(i0,1x),2(1pe24.17,1x))')jjorb,jiorb,&
+!!!                   hamovr(jjorb+norbi*(jiorb-1),1),hamovr(jjorb+norbi*(jiorb-1),2)
+!!!           end do
+!!!        end do
+!!!        close(12)
+!!!        !open(33+2*(i-1))
+!!!        !write(33+2*(i-1),'(2000(1pe10.2))')&
+!!!        !        (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
+!!!        !end do
+!!!        !close(33+2*(i-1))
+!!!        !open(34+2*(i-1))
+!!!        !do jjorb=1,norbi
+!!!        !   write(34+2*(i-1),'(2000(1pe10.2))')&
+!!!        !        (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,2),jiorb=1,norbi)
+!!!        !end do
+!!!        !close(34+2*(i-1))
+!!!
+!!!     end if
 
      !writing rules, control if the last eigenvector is degenerate
      !do this for each spin

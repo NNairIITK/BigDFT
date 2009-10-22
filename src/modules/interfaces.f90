@@ -524,7 +524,7 @@ module module_interfaces
 
      subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
           orbs,orbsv,nvirt,lr,comms,&
-          hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr)
+          hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
        use module_base
        use module_types
        implicit none
@@ -544,6 +544,7 @@ module module_interfaces
        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
        real(dp), dimension(*), intent(in) :: pkernel,rhopot
        type(orbitals_data), intent(inout) :: orbsv
+       type(GPU_pointers), intent(inout) :: GPU
        real(wp), dimension(:), pointer :: psi,v
      end subroutine davidson
 

@@ -15,10 +15,10 @@ int c_cudaGetDeviceCount(int *s_gpuCount);
 int c_cudaSetDevice(int device);
 
 
-int c_cudaMalloc(void**,unsigned int memsize);
+int c_cudaMalloc(void**,size_t memsize);
 
-int c_cudaMallocHost(void**,unsigned int memsize);
-int c_cudaMallocHost(float**,unsigned int memsize);
+int c_cudaMallocHost(void**,size_t memsize);
+int c_cudaMallocHost(float**,size_t memsize);
 
 int c_cuda_gpu_send_pi(void *dest, const void *src,  size_t memByte);
 

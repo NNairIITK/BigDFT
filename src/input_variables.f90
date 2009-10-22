@@ -110,9 +110,10 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   read(line,*,iostat=ierrfrc) cudagpu
   iline=iline+1
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
-     call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-   !  iconv = 0
-   !  iblas = 0
+    ! call init_lib(iproc,initerror,iconv,iblas,GPUshare)
+     call sg_init(GPUshare,iconv,iproc,initerror)
+     iconv = 1
+     iblas = 1
      if (initerror == 1) then
         write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
         call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
@@ -308,7 +309,7 @@ subroutine geopt_input_variables(iproc,filename,in)
      else if (in%ionmov == 13) then
         read(1,*,iostat=ierror) in%nnos
         call check()
-        allocate(in%qmass(in%nnos),stat=i_stat)
+        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
         call memocc(i_stat,in%qmass,'in%qmass',subname)
         read(1,*,iostat=ierror) in%qmass
         call check()
@@ -401,10 +402,10 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   inquire(file=trim(filename),exist=exists)
   if (.not. exists) then
      ! Set only the gamma point.
-     allocate(in%kpt(3, in%nkpt),stat=i_stat)
+     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%kpt,'in%kpt',subname)
      in%kpt(:, 1) = (/ 0., 0., 0. /)
-     allocate(in%wkpt(in%nkpt),stat=i_stat)
+     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%wkpt,'in%wkpt',subname)
      in%wkpt(1) = 1.
      return
@@ -442,9 +443,9 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   else if (trim(type) == "manual" .or. trim(type) == "Manual") then
      read(1,*,iostat=ierror) in%nkpt
      call check()
-     allocate(in%kpt(3, in%nkpt),stat=i_stat)
+     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%kpt,'in%kpt',subname)
-     allocate(in%wkpt(in%nkpt),stat=i_stat)
+     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%wkpt,'in%wkpt',subname)
      do i = 1, in%nkpt, 1
         read(1,*,iostat=ierror) in%kpt(:, i), in%wkpt(i)
@@ -566,7 +567,7 @@ subroutine abscalc_input_variables(iproc,filename,in)
   read(111,*,iostat=ierror)  in%L_absorber
   call check()
 
-  allocate(in%Gabs_coeffs(2*in%L_absorber +1),stat=i_stat)
+  allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)
   call memocc(i_stat,in%Gabs_coeffs,'in%Gabs_coeff',subname)
 
   read(111,*,iostat=ierror)  (in%Gabs_coeffs(i+ndebug), i=1,2*in%L_absorber +1 )
@@ -730,8 +731,10 @@ subroutine read_input_variables(iproc,filename,in)
   read(1,'(a100)')line
   read(line,*,iostat=ierrfrc) cudagpu
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
-     call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-     
+!     call init_lib(iproc,initerror,iconv,iblas,GPUshare)
+     call sg_init(GPUshare,iconv,iproc,initerror)
+iconv = 1
+iblas = 1
      if (initerror == 1) then
 
         write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
@@ -1033,7 +1036,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
      if (atoms%geocode == 'S') rprimd(2,2) = 1000._gp
      rprimd(3,3) = atoms%alat3
      call ab6_symmetry_set_lattice(atoms%symObj, rprimd, ierr)
-     allocate(xRed(3, atoms%nat),stat=i_stat)
+     allocate(xRed(3, atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,xRed,'xRed',subname)
      xRed(1,:) = modulo(rxyz(1, :) / rprimd(1,1), 1._gp)
      xRed(2,:) = modulo(rxyz(2, :) / rprimd(2,2), 1._gp)
@@ -1139,17 +1142,17 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   !read from positions of .xyz format, but accepts also the old .ascii format
   read(ifile,'(a150)')line
 
-!!$  !old format, still here for backward compatibility
-!!$  !admits only simple precision calculation
-!!$  read(line,*,iostat=ierror) rx,ry,rz,tatonam
+!!!  !old format, still here for backward compatibility
+!!!  !admits only simple precision calculation
+!!!  read(line,*,iostat=ierror) rx,ry,rz,tatonam
 
-!!$  !in case of old format, put geocode to F and alat to 0.
-!!$  if (ierror == 0) then
-!!$     atoms%geocode='F'
-!!$     alat1d0=0.0_gp
-!!$     alat2d0=0.0_gp
-!!$     alat3d0=0.0_gp
-!!$  else
+!!!  !in case of old format, put geocode to F and alat to 0.
+!!!  if (ierror == 0) then
+!!!     atoms%geocode='F'
+!!!     alat1d0=0.0_gp
+!!!     alat2d0=0.0_gp
+!!!     alat3d0=0.0_gp
+!!!  else
   if (lpsdbl) then
      read(line,*,iostat=ierrsfx) tatonam,alat1d0,alat2d0,alat3d0
   else
@@ -1178,7 +1181,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
      alat2d0=0.0_gp
      alat3d0=0.0_gp
   end if
-!!$  end if
+!!!  end if
 
   !reduced coordinates are possible only with periodic units
   if (atoms%units == 'reduced' .and. atoms%geocode == 'F') then
@@ -1224,7 +1227,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
      call parse_extra_info(iproc,iat,extra,atoms)
 
      tatonam=trim(symbol)
-!!$     end if
+!!!     end if
      if (lpsdbl) then
         rxyz(1,iat)=rxd0
         rxyz(2,iat)=ryd0
@@ -1444,10 +1447,10 @@ subroutine parse_extra_info(iproc,iat,extra,atoms)
   !convert the suffix into ifrztyp
   call frozen_ftoi(suffix,atoms%ifrztyp(iat))
 
-!!$  if (trim(suffix) == 'f') then
-!!$     !the atom is considered as blocked
-!!$     atoms%ifrztyp(iat)=1
-!!$  end if
+!!!  if (trim(suffix) == 'f') then
+!!!     !the atom is considered as blocked
+!!!     atoms%ifrztyp(iat)=1
+!!!  end if
 
 contains
 
@@ -1831,8 +1834,8 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   end if
 
   write(9, "(A,A)") "# BigDFT file - ", trim(comment)
-  write(9, "(3e24.17)") atoms%alat1, 0.d0, atoms%alat2
-  write(9, "(3e24.17)") 0.d0,        0.d0, atoms%alat3
+  write(9, "(3e24.17)") atoms%alat1*factor, 0.d0, atoms%alat2*factor
+  write(9, "(3e24.17)") 0.d0,               0.d0, atoms%alat3*factor
 
   write(9, "(A,A)") "#keyword: ", trim(atoms%units)
   if (atoms%geocode == 'P') write(9, "(A)") "#keyword: periodic"

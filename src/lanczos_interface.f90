@@ -37,22 +37,22 @@ module lanczos_interface
   real(wp), dimension(:), pointer :: EP_occprojections
 contains
 
-!!$  subroutine settapointer(p)
-!!$    real(8), intent(inout), TARGET :: p(:,:)
-!!$    passed_matrix => p 
-!!$    return
-!!$  end subroutine settapointer
+!!!  subroutine settapointer(p)
+!!!    real(8), intent(inout), TARGET :: p(:,:)
+!!!    passed_matrix => p 
+!!!    return
+!!!  end subroutine settapointer
 
-!!$  subroutine testapointer()
-!!$    integer i,j
-!!$    integer , pointer :: shape_a(:)
-!!$    print *, " ecco il pointer " 
-!!$    print *, " shape is " , shape(passed_matrix)
-!!$    do i=1,  size(passed_matrix, 1)
-!!$       print *, (passed_matrix(i,j), j=1, size(passed_matrix,2))
-!!$    enddo
-!!$    return
-!!$  end subroutine testapointer
+!!!  subroutine testapointer()
+!!!    integer i,j
+!!!    integer , pointer :: shape_a(:)
+!!!    print *, " ecco il pointer " 
+!!!    print *, " shape is " , shape(passed_matrix)
+!!!    do i=1,  size(passed_matrix, 1)
+!!!       print *, (passed_matrix(i,j), j=1, size(passed_matrix,2))
+!!!    enddo
+!!!    return
+!!!  end subroutine testapointer
 
   
 
@@ -110,15 +110,15 @@ contains
          0.0_wp ,  dumQvect(1,1) ,  EP_dim )
 
 
-!!$
-!!$    do i=0, k-1
-!!$       do j=1, EP_dim
-!!$          dumQvect(j,i+1)=0.0d0
-!!$          do l=0, m-1 ! controllare il range
-!!$             dumQvect(j,i+1)=dumQvect(j,i+1)+EV( l,i )*Qvect(  j,l ) 
-!!$          enddo 
-!!$       enddo
-!!$    enddo
+!!!
+!!!    do i=0, k-1
+!!!       do j=1, EP_dim
+!!!          dumQvect(j,i+1)=0.0d0
+!!!          do l=0, m-1 ! controllare il range
+!!!             dumQvect(j,i+1)=dumQvect(j,i+1)+EV( l,i )*Qvect(  j,l ) 
+!!!          enddo 
+!!!       enddo
+!!!    enddo
 
 
     return 
@@ -359,19 +359,19 @@ contains
     integer :: i,k, volta
     real(wp), pointer ::  scals(:), scalstot(:)
 
-!!$    if( associated(EP_Gabsorber) ) then
-!!$    if( ha%iproc == 0  ) then
+!!!    if( associated(EP_Gabsorber) ) then
+!!!    if( ha%iproc == 0  ) then
        ! print *, " inizializzo da Gabsorber " 
-!!$        print *, EP_Gabsorber%rxyz(1,1)
+!!!        print *, EP_Gabsorber%rxyz(1,1)
        call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%lr%geocode,ha%orbs,ha%lr%d,&
             ha%hx,ha%hy,ha%hz,ha%lr%wfd,EP_Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
  
-!!$
-!!$       if(ha%iproc.eq.0) then
-!!$          call plot_wf('testa',ha%lr,ha%hx,ha%hy,ha%hz,ha%rxyz(1,1),ha%rxyz(2,1),ha%rxyz(3,1),&
-!!$               Qvect_tmp,'comm')
-!!$       endif
-!!$    endif
+!!!
+!!!       if(ha%iproc.eq.0) then
+!!!          call plot_wf('testa',ha%lr,ha%hx,ha%hy,ha%hz,ha%rxyz(1,1),ha%rxyz(2,1),ha%rxyz(3,1),&
+!!!               Qvect_tmp,'comm')
+!!!       endif
+!!!    endif
     if (.not. associated(Qvect)) then
        write(*,*)'ERROR: initialization vector not allocated!'
        stop
@@ -441,16 +441,16 @@ contains
 
 
 
-!!$    call untranspose_v(ha%iproc,ha%nproc,ha%orbs%norbp,ha%orbs%nspinor,ha%lr%wfd,ha%comms,&
-!!$               Qvect(1,0), work=wrk,outadd= Qvect_tmp(1) )  
-!!$
-!!$    if(ha%iproc.eq.0) then
-!!$       call plot_wf('testadopo',ha%lr,ha%hx,ha%hy,ha%hz,ha%rxyz(1,1),ha%rxyz(2,1),ha%rxyz(3,1),&
-!!$            Qvect_tmp,'comm')
-!!$    endif
-!!$ else
-!!$    call EP_set_all_random(0)
-!!$ endif
+!!!    call untranspose_v(ha%iproc,ha%nproc,ha%orbs%norbp,ha%orbs%nspinor,ha%lr%wfd,ha%comms,&
+!!!               Qvect(1,0), work=wrk,outadd= Qvect_tmp(1) )  
+!!!
+!!!    if(ha%iproc.eq.0) then
+!!!       call plot_wf('testadopo',ha%lr,ha%hx,ha%hy,ha%hz,ha%rxyz(1,1),ha%rxyz(2,1),ha%rxyz(3,1),&
+!!!            Qvect_tmp,'comm')
+!!!    endif
+!!! else
+!!!    call EP_set_all_random(0)
+!!! endif
 
     EP_norma2_initialized_state= EP_scalare(0,0)
 
@@ -627,9 +627,9 @@ end subroutine EP_initialize_start
    
    call axpy(EP_dim, fact,   Qvect(1,i)  , 1,  dumQvect(1,-p)  , 1)
    
-!!$    do k=1,EP_dim
-!!$       dumQvect(k,-p) = dumQvect(k,-p)+fact*Qvect(k,i)
-!!$    enddo
+!!!    do k=1,EP_dim
+!!!       dumQvect(k,-p) = dumQvect(k,-p)+fact*Qvect(k,i)
+!!!    enddo
    
    
    return

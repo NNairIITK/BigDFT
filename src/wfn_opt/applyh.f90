@@ -670,29 +670,29 @@ subroutine applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   nw=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
   nw=max(nw,2*(n3+1)*(n1+1)*(n2+1))	   ! for the comb_shrink_hyb_c
   nw=max(nw,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
-  allocate(w(nw),stat=i_stat)
+  allocate(w(nw+ndebug),stat=i_stat)
   call memocc(i_stat,w,'w','applylocpotkinone_hyb')
   
   nww=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
   nww=max(nww,4*(n2+1)*(n3+1)*(n1+1))	! for the comb_shrink_hyb_c   
   nww=max(nww,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
-  allocate(ww(nww),stat=i_stat)
+  allocate(ww(nww+ndebug),stat=i_stat)
   call memocc(i_stat,ww,'ww','applylocpotkinone_hyb')
 
-   allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+   allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
    call memocc(i_stat,x_f,'x_f','applylocpotkinone_hyb')
-   allocate(x_c(0:n1,0:n2,0:n3),stat=i_stat)
+   allocate(x_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
    call memocc(i_stat,x_c,'x_c ','applylocpotkinone_hyb')
-   allocate(x_f1(nf),stat=i_stat)
+   allocate(x_f1(nf+ndebug),stat=i_stat)
    call memocc(i_stat,x_f1,'x_f1','applylocpotkinone_hyb')
-   allocate(x_f2(nf),stat=i_stat)
+   allocate(x_f2(nf+ndebug),stat=i_stat)
    call memocc(i_stat,x_f2,'x_f2','applylocpotkinone_hyb')
-   allocate(x_f3(nf),stat=i_stat)
+   allocate(x_f3(nf+ndebug),stat=i_stat)
    call memocc(i_stat,x_f3,'x_f3','applylocpotkinone_hyb')
 	 
-   allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+   allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
    call memocc(i_stat,y_f,'y_f','applylocpotkinone_hyb')
-   allocate(y_c(0:n1,0:n2,0:n3),stat=i_stat)
+   allocate(y_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
    call memocc(i_stat,y_c,'y_c','applylocpotkinone_hyb')
 
   call uncompress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &

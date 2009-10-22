@@ -1,6 +1,6 @@
 #include "manage_cpu_affinity.h"
 
-#include "cpp_utils.h"
+#include "class_utils.h"
 
 #include <iostream>
 #include <sched.h>

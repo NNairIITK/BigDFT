@@ -272,18 +272,18 @@ subroutine correct_grid(a,h,n)
   end do
   n=m-1
 
-!!$  !here the dimensions should be corrected in order to 
-!!$  !allow the fft for the preconditioner
-!!$  m=2*n+2
-!!$  do 
-!!$     call fourier_dim(m,m)
-!!$     if ((m/2)*2==m) then
-!!$        n=(m-2)/2
-!!$        exit
-!!$     else
-!!$        m=m+1
-!!$     end if
-!!$  end do
+!!!  !here the dimensions should be corrected in order to 
+!!!  !allow the fft for the preconditioner
+!!!  m=2*n+2
+!!!  do 
+!!!     call fourier_dim(m,m)
+!!!     if ((m/2)*2==m) then
+!!!        n=(m-2)/2
+!!!        exit
+!!!     else
+!!!        m=m+1
+!!!     end if
+!!!  end do
 
   h=a/real(n+1,gp)
   

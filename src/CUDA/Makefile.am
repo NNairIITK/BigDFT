@@ -33,7 +33,6 @@ EXTRA_DIST = \
 	$(SOURCES_CONV_CHECK)
 
 SOURCES_CONV = 	cudafct.cu \
-	memory_management.cu \
 	locham.cu 
 
 SOURCES_CONV_CHECK = locpot.cu \
@@ -43,17 +42,7 @@ SOURCES_CONV_CHECK = locpot.cu \
 	precond.cu \
 	density.cu
 
-SOURCES_SHARED = \
-	dynamicGPU/interface_stream.cpp \
-	dynamicGPU/init_network.cpp \
-	dynamicGPU/convolution_fct_call.cpp \
-	dynamicGPU/localqueu.cpp \
-	dynamicGPU/manage_cpu_affinity.cpp \
-	dynamicGPU/check_card/check_init.f90 \
-	dynamicGPU/check_card/checker.cpp \
-	dynamicGPU/set_repartition.cpp \
-	dynamicGPU/trace_exec.cpp \
-	dynamicGPU/read_conf_file.cpp \
+SOURCES_SHARED = binding_s_gpu.c \
 	commonDef.cpp  \
 	fortran.c
 
@@ -71,7 +60,7 @@ SUFFIXES = .cu
 
 if USE_CUDA_GPU
 sub_dirs_cuda=CUDA
-libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a S_GPU/libs_gpu.a
 #cutil is used for CUDA timer
 #libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a @LIB_CUTIL_PATH@/libcutil.a
 
@@ -81,7 +70,8 @@ libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a
 #bin_PROGRAMS = 
 #endif
 
-check_PROGRAMS = conv_check GPUham
+check_PROGRAMS = conv_check 
+#	GPUham
 
 else
 check_PROGRAMS = 
@@ -105,10 +95,10 @@ conv_check_LDFLAGS =
 conv_check_LDADD = ../libbigdft.a \
 	$(libs_cuda)
 
-GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
-GPUham_LDFLAGS =
-GPUham_LDADD = ../libbigdft.a \
-	$(libs_cuda)
+#GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
+#GPUham_LDFLAGS =
+#GPUham_LDADD = ../libbigdft.a \
+#	$(libs_cuda)
 
 .cu.o:
 	$(NVCC) $(CUDA_FLAGS) $(AM_CPPFLAGS) -c $< -o $@

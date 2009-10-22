@@ -493,9 +493,9 @@ MODULE NEB_routines
 
       END IF
  
-!!$      IF ( restart ) THEN
-!!$         num_of_images = num_of_images - 2
-!!$      END IF
+!!!      IF ( restart ) THEN
+!!!         num_of_images = num_of_images - 2
+!!!      END IF
 
       IF ( minimization_scheme == "steepest_descent" ) THEN
 
@@ -741,32 +741,32 @@ MODULE NEB_routines
       
         ALLOCATE( d_R(dim) )           
 
-!!$        OPEN( UNIT = unit, FILE = first_config, STATUS = "OLD", &
-!!$              ACTION = "READ" )
-!!$    
-!!$          DO i = 1, dim, 3 
-!!$       
-!!$            READ(unit,fmt2) pos(i,1),     & 
-!!$                            pos((i+1),1), &
-!!$                            pos((i+2),1)
-!!$      
-!!$          END DO
-!!$
-!!$        CLOSE( UNIT = unit )
+!!!        OPEN( UNIT = unit, FILE = first_config, STATUS = "OLD", &
+!!!              ACTION = "READ" )
+!!!    
+!!!          DO i = 1, dim, 3 
+!!!       
+!!!            READ(unit,fmt2) pos(i,1),     & 
+!!!                            pos((i+1),1), &
+!!!                            pos((i+2),1)
+!!!      
+!!!          END DO
+!!!
+!!!        CLOSE( UNIT = unit )
         pos(:, 1) = reshape(xcart1, (/ dim /))
 
-!!$        OPEN( UNIT = unit, FILE = last_config, STATUS = "OLD", &
-!!$              ACTION = "READ" )
-!!$
-!!$          DO i = 1, dim, 3 
-!!$ 
-!!$            READ(unit,fmt2) pos(i,num_of_images),     &
-!!$                            pos((i+1),num_of_images), &
-!!$                            pos((i+2),num_of_images)
-!!$      
-!!$          END DO
-!!$
-!!$        CLOSE( UNIT = unit )
+!!!        OPEN( UNIT = unit, FILE = last_config, STATUS = "OLD", &
+!!!              ACTION = "READ" )
+!!!
+!!!          DO i = 1, dim, 3 
+!!! 
+!!!            READ(unit,fmt2) pos(i,num_of_images),     &
+!!!                            pos((i+1),num_of_images), &
+!!!                            pos((i+2),num_of_images)
+!!!      
+!!!          END DO
+!!!
+!!!        CLOSE( UNIT = unit )
         pos(:, num_of_images) = reshape(xcart2, (/ dim /))
   
         d_R = ( pos(:,num_of_images) - pos(:,1) ) / &

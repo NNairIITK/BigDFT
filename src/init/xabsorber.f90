@@ -30,16 +30,16 @@ subroutine find_pfproj( Nsol,Ngrid,rgrid,  psi1s, psigrid, real_start, psigrid_p
      mass=0.0D0
 !     imass=-1
      mass_pseudo=0.0D0
-!!$
-!!$     do k=Ngrid, 1,-1
-!!$        if( abs(psigrid(k,i))>mass) then
-!!$           mass= abs(psigrid(k,i))
-!!$           imass=k
-!!$        endif
-!!$        if ( (Ngrid-imass).gt.10 .and.  (imass-k).gt.10 ) then
-!!$           exit
-!!$        endif
-!!$     enddo
+!!!
+!!!     do k=Ngrid, 1,-1
+!!!        if( abs(psigrid(k,i))>mass) then
+!!!           mass= abs(psigrid(k,i))
+!!!           imass=k
+!!!        endif
+!!!        if ( (Ngrid-imass).gt.10 .and.  (imass-k).gt.10 ) then
+!!!           exit
+!!!        endif
+!!!     enddo
 
      do k=1, Ngrid
         if( abs(psigrid(k,i))>mass) mass= abs(psigrid(k,i))
@@ -465,9 +465,9 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
 
 
 
-!!$  call gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
-!!$       zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
-!!$       aeval,ng,psi,res,chrg)
+!!!  call gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
+!!!       zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
+!!!       aeval,ng,psi,res,chrg)
 
 
 
@@ -1071,12 +1071,12 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
   pathl = Phase(Elow ,NGRID, r,v,nonloc,y,  l ,0,  Z,0);
  
 
-!!$  print *, Ehigh, pathh
-!!$  print *, Elow, pathl
+!!!  print *, Ehigh, pathh
+!!!  print *, Elow, pathl
 
   but= PI*(nsol-l-1)
 
-!!$  print *, " Z " , Z
+!!!  print *, " Z " , Z
 
 
 
@@ -1599,26 +1599,26 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
 
 
 ! writing lines suppressed
-!!$        write(66,*)  lmax+1
-!!$        write(66,*) ' #LINETYPE{1324}' 
-!!$        write(66,*) ' $' 
-!!$  do l=0,lmax
-!!$           write(66,*) ' 161'
-!!$     r=0._gp
-!!$     do
-!!$        tt= wave(ng,l,xp,psi(0,1,l+1),r)
-!!$              write(66,*) r,tt
-!!$        r=r+.025_gp
-!!$        if(r > 4.00001_gp) exit
-!!$     end do
-!!$  end do
+!!!        write(66,*)  lmax+1
+!!!        write(66,*) ' #LINETYPE{1324}' 
+!!!        write(66,*) ' $' 
+!!!  do l=0,lmax
+!!!           write(66,*) ' 161'
+!!!     r=0._gp
+!!!     do
+!!!        tt= wave(ng,l,xp,psi(0,1,l+1),r)
+!!!              write(66,*) r,tt
+!!!        r=r+.025_gp
+!!!        if(r > 4.00001_gp) exit
+!!!     end do
+!!!  end do
 ! writing lines suppressed
-!!$        write(67,*) min(lmax+1,3)
-!!$        write(67,*) ' #LINETYPE{132}'
-!!$        write(67,*) ' #TITLE{FOURIER}' 
-!!$        write(67,*) ' $'
+!!!        write(67,*) min(lmax+1,3)
+!!!        write(67,*) ' #LINETYPE{132}'
+!!!        write(67,*) ' #TITLE{FOURIER}' 
+!!!        write(67,*) ' $'
   dr=6.28_gp/rprb/200._gp
-!!$        write(67,*) ' 200'
+!!!        write(67,*) ' 200'
   rk=0._gp
   loop_rk1: do 
      tt=0._gp
@@ -1628,12 +1628,12 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
         sd=sqrt(xp(i))
         tt=tt+psi(i,1,1)*0.4431134627263791_gp*texp/sd**3
      end do
-!!$           write(67,*) rk,tt
+!!!           write(67,*) rk,tt
      rk=rk+dr
      if(rk > 6.28_gp/rprb-.5_gp*dr) exit loop_rk1
   end do loop_rk1
   if (lmax.ge.1) then
-!!$           write(67,*) ' 200'
+!!!           write(67,*) ' 200'
      rk=0._gp
      loop_rk2: do 
         tt=0._gp
@@ -1642,13 +1642,13 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
            sd=sqrt(xp(i))
            tt=tt+psi(i,1,2)*0.2215567313631895_gp*rk*texp/sd**5
         end do
-!!$              write(67,*) rk,tt
+!!!              write(67,*) rk,tt
         rk=rk+dr
         if (rk > 6.28_gp/rprb-.5_gp*dr) exit loop_rk2
      end do loop_rk2
   end if
   if (lmax.ge.2) then
-!!$           write(67,*) ' 200'
+!!!           write(67,*) ' 200'
      rk=0._gp
      do 
         tt=0._gp
@@ -1657,7 +1657,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
            sd=sqrt(xp(i))
            tt=tt+psi(i,1,3)*0.1107783656815948_gp*rk**2*texp/sd**7
         end do
-!!$              write(67,*) rk,tt
+!!!              write(67,*) rk,tt
         rk=rk+dr
         if (rk > 6.28_gp/rprb-.5_gp*dr) exit
      end do
@@ -1714,13 +1714,13 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 
  
 
-!!$
-!!$  y_r(0)=1.0
-!!$  y_r(1)=2
-!!$  y_r(2)=3
-!!$  !! py_r=> y_r
-!!$  print *, py_r(1)
-!!$ 
+!!!
+!!!  y_r(0)=1.0
+!!!  y_r(1)=2
+!!!  y_r(2)=3
+!!!  !! py_r=> y_r
+!!!  print *, py_r(1)
+!!! 
 
   if (nintp.ne.n_int) stop 'n_int><nintp'
 
@@ -2137,12 +2137,12 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
         dumgrid2 = potgrid + vxcgrid
         call schro(Egrid(1) , rgrid , dumgrid2  , dumgrid1, psigrid(:,1) , ngrid , 1+0 , 0*1.0_gp ,  zion)
         
-!!$        print *, " E bound ", Egrid(1)
-!!$        open(unit=22,file='bound.dat')
-!!$        do igrid=1, Ngrid
-!!$           write(22,'(200(f20.10,1x))') rgrid(igrid),  psigrid(igrid,1)
-!!$        enddo
-!!$        close(unit=22)
+!!!        print *, " E bound ", Egrid(1)
+!!!        open(unit=22,file='bound.dat')
+!!!        do igrid=1, Ngrid
+!!!           write(22,'(200(f20.10,1x))') rgrid(igrid),  psigrid(igrid,1)
+!!!        enddo
+!!!        close(unit=22)
         
         dumgrid1(:) =  psigrid(:,2+1)* psigrid(:,1)*rgrid(:)
         call integrate(dumgrid1(1),dumgrid3(1),rgrid(1) ,Nrdiff)
@@ -2160,8 +2160,8 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
            nstesp_coarse=1000
            nsteps_fine  = 4
                      
-!!$           print *, y_r,d_r
-!!$           print *, " A  y_r(1) " , y_r(1), d_r(1)
+!!!           print *, y_r,d_r
+!!!           print *, " A  y_r(1) " , y_r(1), d_r(1)
 
            ref= esatto_CalcolaRiflettivita( ngrid, rgrid, dumgrid2, nls_a, lpot_a, rpot_a,spot_a,hpot_a,y_r,d_r,&
                 Rdiff,    Rinf_a ,nstesp_coarse ,nsteps_fine, Ediff )
@@ -2171,21 +2171,21 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
            print *," ",  Ediff, ref*fattore*fattore, fattore
            
 
-!!$           do igrid=1,Ngrid
-!!$              dumgrid2 (igrid)=potgrid(igrid)+vxcgrid(igrid)+ 0.5_gp*(2.0_gp)/rgrid(igrid)/rgrid(igrid)
-!!$           enddo
-!!$           d_r(1)=phase( Ediff, Ngrid, rgrid,dumgrid2  , dumgrid1 , psigrid(1,2+1) , 1*1.0_gp ,0,zion, 1)
-!!$           y_r(1)= psigrid(Ngrid,2+1)
-!!$
-!!$           print *,"C2 ", Ediff, 4*fattore*fattore/(   y_r(1)*y_r(1) +  d_r(1)*d_r(1)/2.0/Ediff   )
+!!!           do igrid=1,Ngrid
+!!!              dumgrid2 (igrid)=potgrid(igrid)+vxcgrid(igrid)+ 0.5_gp*(2.0_gp)/rgrid(igrid)/rgrid(igrid)
+!!!           enddo
+!!!           d_r(1)=phase( Ediff, Ngrid, rgrid,dumgrid2  , dumgrid1 , psigrid(1,2+1) , 1*1.0_gp ,0,zion, 1)
+!!!           y_r(1)= psigrid(Ngrid,2+1)
+!!!
+!!!           print *,"C2 ", Ediff, 4*fattore*fattore/(   y_r(1)*y_r(1) +  d_r(1)*d_r(1)/2.0/Ediff   )
 
 
-!!$           open(unit=22,file='libera.dat')
-!!$           do igrid=1, Ngrid
-!!$              write(22,'(200(f20.10,1x))') rgrid(igrid),  psigrid(igrid,2+1)
-!!$           enddo
-!!$           close(unit=22)
-!!$           stop
+!!!           open(unit=22,file='libera.dat')
+!!!           do igrid=1, Ngrid
+!!!              write(22,'(200(f20.10,1x))') rgrid(igrid),  psigrid(igrid,2+1)
+!!!           enddo
+!!!           close(unit=22)
+!!!           stop
 
 
         endif
@@ -2312,26 +2312,26 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 
 
 ! writing lines suppressed
-!!$        write(66,*)  lmax+1
-!!$        write(66,*) ' #LINETYPE{1324}' 
-!!$        write(66,*) ' $' 
-!!$  do l=0,lmax
-!!$           write(66,*) ' 161'
-!!$     r=0._gp
-!!$     do
-!!$        tt= wave(ng,l,xp,psi(0,1,l+1),r)
-!!$              write(66,*) r,tt
-!!$        r=r+.025_gp
-!!$        if(r > 4.00001_gp) exit
-!!$     end do
-!!$  end do
+!!!        write(66,*)  lmax+1
+!!!        write(66,*) ' #LINETYPE{1324}' 
+!!!        write(66,*) ' $' 
+!!!  do l=0,lmax
+!!!           write(66,*) ' 161'
+!!!     r=0._gp
+!!!     do
+!!!        tt= wave(ng,l,xp,psi(0,1,l+1),r)
+!!!              write(66,*) r,tt
+!!!        r=r+.025_gp
+!!!        if(r > 4.00001_gp) exit
+!!!     end do
+!!!  end do
 ! writing lines suppressed
-!!$        write(67,*) min(lmax+1,3)
-!!$        write(67,*) ' #LINETYPE{132}'
-!!$        write(67,*) ' #TITLE{FOURIER}' 
-!!$        write(67,*) ' $'
+!!!        write(67,*) min(lmax+1,3)
+!!!        write(67,*) ' #LINETYPE{132}'
+!!!        write(67,*) ' #TITLE{FOURIER}' 
+!!!        write(67,*) ' $'
   dr=6.28_gp/rprb/200._gp
-!!$        write(67,*) ' 200'
+!!!        write(67,*) ' 200'
   rk=0._gp
   loop_rk1: do 
      tt=0._gp
@@ -2341,12 +2341,12 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
         sd=sqrt(xp(i))
         tt=tt+psi(i,1,1)*0.4431134627263791_gp*texp/sd**3
      end do
-!!$           write(67,*) rk,tt
+!!!           write(67,*) rk,tt
      rk=rk+dr
      if(rk > 6.28_gp/rprb-.5_gp*dr) exit loop_rk1
   end do loop_rk1
   if (lmax.ge.1) then
-!!$           write(67,*) ' 200'
+!!!           write(67,*) ' 200'
      rk=0._gp
      loop_rk2: do 
         tt=0._gp
@@ -2355,13 +2355,13 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
            sd=sqrt(xp(i))
            tt=tt+psi(i,1,2)*0.2215567313631895_gp*rk*texp/sd**5
         end do
-!!$              write(67,*) rk,tt
+!!!              write(67,*) rk,tt
         rk=rk+dr
         if (rk > 6.28_gp/rprb-.5_gp*dr) exit loop_rk2
      end do loop_rk2
   end if
   if (lmax.ge.2) then
-!!$           write(67,*) ' 200'
+!!!           write(67,*) ' 200'
      rk=0._gp
      do 
         tt=0._gp
@@ -2370,7 +2370,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
            sd=sqrt(xp(i))
            tt=tt+psi(i,1,3)*0.1107783656815948_gp*rk**2*texp/sd**7
         end do
-!!$              write(67,*) rk,tt
+!!!              write(67,*) rk,tt
         rk=rk+dr
         if (rk > 6.28_gp/rprb-.5_gp*dr) exit
      end do
@@ -2486,9 +2486,9 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   allocate(psi1s( Ngrid +ndebug ), stat=i_stat)
   call memocc(i_stat,psi1s,'psi1s',subname)
    
-!!$  do igrid=1, Ngrid
-!!$     rgrid(igrid) = igrid*1.0_gp/Ngrid * cradius
-!!$  enddo
+!!!  do igrid=1, Ngrid
+!!!     rgrid(igrid) = igrid*1.0_gp/Ngrid * cradius
+!!!  enddo
 
   rzero = 1.0_gp/Ngrid * cradius 
   do igrid=1, Ngrid
@@ -2499,24 +2499,24 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
 
   abs_initial_L = 0
   
-!!$ 
-!!$  
-!!$
-!!$
-!!$  if(iproc.eq.0)   print * , " routine GetExcitedOrbitalAsG  , calculate pseudo  noccmax, lmax, per verificare  grid  ", noccmax, lmax 
-!!$  psp_modifier=0
-!!$  call abs_generator_modified(iproc,atoms%nzatom(ity), atoms%nelpsp(ity),atoms%psppar(0,0,ity),&
-!!$       atoms%npspcode(ity),ng-1 ,noccmax , lmax , expo,psi,aeval, occup , psp_modifier , &
-!!$       Nsol, abs_initial_L , Ngrid,Egrid_pseudo,  rgrid , psigrid_pseudo  )
-!!$
-!!$
-!!$
-!!$  if(iproc.eq.0) then
-!!$     do iocc=1,2
-!!$        print *, " pseudo  Egau, pseudo  Egrid ", aeval(iocc, abs_initial_L+1  ), Egrid_pseudo(iocc)
-!!$     enddo
-!!$  endif
-!!$
+!!! 
+!!!  
+!!!
+!!!
+!!!  if(iproc.eq.0)   print * , " routine GetExcitedOrbitalAsG  , calculate pseudo  noccmax, lmax, per verificare  grid  ", noccmax, lmax 
+!!!  psp_modifier=0
+!!!  call abs_generator_modified(iproc,atoms%nzatom(ity), atoms%nelpsp(ity),atoms%psppar(0,0,ity),&
+!!!       atoms%npspcode(ity),ng-1 ,noccmax , lmax , expo,psi,aeval, occup , psp_modifier , &
+!!!       Nsol, abs_initial_L , Ngrid,Egrid_pseudo,  rgrid , psigrid_pseudo  )
+!!!
+!!!
+!!!
+!!!  if(iproc.eq.0) then
+!!!     do iocc=1,2
+!!!        print *, " pseudo  Egau, pseudo  Egrid ", aeval(iocc, abs_initial_L+1  ), Egrid_pseudo(iocc)
+!!!     enddo
+!!!  endif
+!!!
 
 
 

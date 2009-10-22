@@ -12,12 +12,14 @@
 */
 
 #ifndef   	READ_CONF_FILE_H_
-# define   	READ_CONF_FILE_H_
+#define   	READ_CONF_FILE_H_
 
-#include "read_conf_exception.h"
+
 #include <map>
 #include <string>
-#include "cpp_utils.h"
+
+#include "read_conf_exception.h"
+#include "class_utils.h"
 
 typedef std::map<std::string , std::string> mapFile_t;
 

@@ -70,7 +70,7 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
               end select
 
            else !normal preconditioner
-
+              
               call precondition_residue(lr,ncplx,ncong,cprecr,&
                    hx,hy,hz,kx,ky,kz,hpsi(1,inds,iorb))
 

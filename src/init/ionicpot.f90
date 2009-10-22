@@ -120,30 +120,30 @@ shortlength=shortlength*2.d0*pi
 !correct ionic energy taking into account the PSP core correction
 eion=eion+charge/ucvol*(psoffset+shortlength)
 
-!!$     !in the surfaces case, correct the energy term following (J.Chem.Phys. 111(7)-3155, 1999)
-!!$     if (at%geocode == 'S') then
-!!$        !calculate the Mz dipole component (which in our case corresponds to y direction)
-!!$        !first calculate the center of mass
-!!$        cmassy=0.0_gp
-!!$        do iat=1,at%nat
-!!$           cmassy=cmassy+rxyz(2,iat)
-!!$        end do
-!!$        
-!!$        Mz=0.0_gp
-!!$        do iat=1,at%nat
-!!$           ityp=at%iatype(iat)
-!!$           Mz=Mz+real(at%nelpsp(ityp),gp)*(rxyz(2,iat)-cmassy)
-!!$        end do
-!!$        
-!!$        !correct energy and forces in the y direction
-!!$        eion=eion+0.5_gp/ucvol*Mz**2
-!!$        do iat=1,at%nat
-!!$           ityp=at%iatype(iat)
-!!$           fion(2,iat)=fion(2,iat)-real(at%nelpsp(ityp),gp)/ucvol*Mz
-!!$           if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
-!!$        end do
-!!$
-!!$     end if
+!!!     !in the surfaces case, correct the energy term following (J.Chem.Phys. 111(7)-3155, 1999)
+!!!     if (at%geocode == 'S') then
+!!!        !calculate the Mz dipole component (which in our case corresponds to y direction)
+!!!        !first calculate the center of mass
+!!!        cmassy=0.0_gp
+!!!        do iat=1,at%nat
+!!!           cmassy=cmassy+rxyz(2,iat)
+!!!        end do
+!!!        
+!!!        Mz=0.0_gp
+!!!        do iat=1,at%nat
+!!!           ityp=at%iatype(iat)
+!!!           Mz=Mz+real(at%nelpsp(ityp),gp)*(rxyz(2,iat)-cmassy)
+!!!        end do
+!!!        
+!!!        !correct energy and forces in the y direction
+!!!        eion=eion+0.5_gp/ucvol*Mz**2
+!!!        do iat=1,at%nat
+!!!           ityp=at%iatype(iat)
+!!!           fion(2,iat)=fion(2,iat)-real(at%nelpsp(ityp),gp)/ucvol*Mz
+!!!           if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
+!!!        end do
+!!!
+!!!     end if
 
 else if (at%geocode == 'F') then
 
@@ -402,8 +402,8 @@ fion(3,iat)=fion(3,iat)+(hxh*hyh*hzh*prefactor)*fzerf
 
 !if (nproc==1) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
 
-!!$        write(10+iat,'(1x,f8.3,i5,(1x,3(1x,1pe12.5)))',advance='no') &
-!!$             hxh,iat,(fion(j1,iat),j1=1,3)
+!!!        write(10+iat,'(1x,f8.3,i5,(1x,3(1x,1pe12.5)))',advance='no') &
+!!!             hxh,iat,(fion(j1,iat),j1=1,3)
 
 
 end do
@@ -594,12 +594,12 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   end if
 
 
-!!$  !calculate the value of the offset to be put
-!!$  tt_tot=0.d0
-!!$  do ind=1,n1i*n2i*n3i
-!!$     tt_tot=tt_tot+pot_ion(ind)
-!!$  end do
-!!$  print *,'previous offset',tt_tot*hxh*hyh*hzh
+!!!  !calculate the value of the offset to be put
+!!!  tt_tot=0.d0
+!!!  do ind=1,n1i*n2i*n3i
+!!!     tt_tot=tt_tot+pot_ion(ind)
+!!!  end do
+!!!  print *,'previous offset',tt_tot*hxh*hyh*hzh
 
   if (n3pi > 0) then
      do iat=1,at%nat
@@ -752,8 +752,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      call memocc(i_stat,i_all,'nscatterarr',subname)
 
 
-!!$     call plot_density(at%geocode,'gaupotion.pot',iproc,1,n1,n2,n3,n1i,n2i,n3i,n3i,&
-!!$          at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
+!!!     call plot_density(at%geocode,'gaupotion.pot',iproc,1,n1,n2,n3,n1i,n2i,n3i,n3i,&
+!!!          at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
 
 
 
@@ -769,8 +769,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      call memocc(i_stat,i_all,'pkernel_ref',subname)
 
 
-!!$     call plot_density(at%geocode,'deltapotion.pot',iproc,1,n1,n2,n3,n1i,n2i,n3i,n3i,&
-!!$          at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
+!!!     call plot_density(at%geocode,'deltapotion.pot',iproc,1,n1,n2,n3,n1i,n2i,n3i,n3i,&
+!!!          at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
 
 
      iat=nvacancy
@@ -881,27 +881,27 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
 
 
-!!$     !reread file from disk
-!!$     !overwrite pot_ion with the potential previously created
-!!$     call read_potfile(at%geocode,'potion_corr.pot',n1,n2,n3,n1i,n2i,n3i,n3pi,i3s,1,potion_corr)
-!!$
-!!$     !calculate the offset
-!!$     tt=0.d0
-!!$     do ind=1,n3pi*n2i*n1i
-!!$        tt=tt+potion_corr(ind)
-!!$     enddo
-!!$     !tt=tt*hxh*hyh*hzh
-!!$     if (nproc > 1) then
-!!$        call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-!!$             MPI_SUM,MPI_COMM_WORLD,ierr)
-!!$     else
-!!$        offset=tt
-!!$     end if
-!!$
-!!$     if (iproc==0) print *,'offset reread',offset
-!!$
-!!$     call plot_density(at%geocode,'potion_corr_2.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,&
-!!$          n3pi,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
+!!!     !reread file from disk
+!!!     !overwrite pot_ion with the potential previously created
+!!!     call read_potfile(at%geocode,'potion_corr.pot',n1,n2,n3,n1i,n2i,n3i,n3pi,i3s,1,potion_corr)
+!!!
+!!!     !calculate the offset
+!!!     tt=0.d0
+!!!     do ind=1,n3pi*n2i*n1i
+!!!        tt=tt+potion_corr(ind)
+!!!     enddo
+!!!     !tt=tt*hxh*hyh*hzh
+!!!     if (nproc > 1) then
+!!!        call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
+!!!             MPI_SUM,MPI_COMM_WORLD,ierr)
+!!!     else
+!!!        offset=tt
+!!!     end if
+!!!
+!!!     if (iproc==0) print *,'offset reread',offset
+!!!
+!!!     call plot_density(at%geocode,'potion_corr_2.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,&
+!!!          n3pi,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
           
 
      i_all=-product(shape(ngatherarr))*kind(ngatherarr)
@@ -914,12 +914,12 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
   end if
 
-!!$  !calculate the value of the offset to be put
-!!$  tt_tot=0.d0
-!!$  do ind=1,n1i*n2i*n3i
-!!$     tt_tot=tt_tot+pot_ion(ind)
-!!$  end do
-!!$  print *,'actual offset',tt_tot*hxh*hyh*hzh
+!!!  !calculate the value of the offset to be put
+!!!  tt_tot=0.d0
+!!!  do ind=1,n1i*n2i*n3i
+!!!     tt_tot=tt_tot+pot_ion(ind)
+!!!  end do
+!!!  print *,'actual offset',tt_tot*hxh*hyh*hzh
 
   !use rhopot to calculate the potential from a constant electric field along y direction
   if (elecfield /= 0.0_gp) then

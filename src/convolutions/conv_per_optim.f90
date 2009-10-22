@@ -57,6 +57,10 @@ write(*,*) 'ana_rot_per_old EXECUTED',right,nt,c(0,1),c(right,nt)
 
 
 !$omp do
+<<<<<<< TREE
+=======
+
+>>>>>>> MERGE-SOURCE
   do it=1,nt-11,12
      do i=0,len_2-1
         i2=2*i

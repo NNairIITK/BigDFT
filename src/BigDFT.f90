@@ -47,15 +47,6 @@ program BigDFT
   real(gp) :: fluctsum
 
  
-  !!!!$      interface
-  !!!!$        integer ( kind=4 ) function omp_get_num_threads ( )
-  !!!!$        end function omp_get_num_threads
-  !!!!$      end interface
-  !!!!$      interface
-  !!!!$        integer ( kind=4 ) function omp_get_thread_num ( )
- !!!! !$        end function omp_get_thread_num
-  !!!!!$      end interface
-
   ! Start MPI in parallel version
   !in the case of MPIfake libraries the number of processors is automatically adjusted
   call MPI_INIT(ierr)
@@ -204,17 +195,16 @@ program BigDFT
      deallocate(fxyz,stat=i_stat)
      call memocc(i_stat,i_all,'fxyz',subname)
 
+     call free_input_variables(inputs)
 
      !finalize memory counting
      call memocc(0,0,'count','stop')
 
-     if (GPUshare .and. GPUconv) call stop_gpu_sharing()
+     call sg_end()
 
   enddo !loop over iconfig
 
   deallocate(arr_posinp)
-
-  call free_input_variables(inputs)
 
   call MPI_FINALIZE(ierr)
 

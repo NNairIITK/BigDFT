@@ -868,7 +868,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call davidson(iproc,nproc,n1i,n2i,n3i,in,atoms,cpmult,fpmult,radii_cf,&
           orbs,orbsv,nvirt,Glr,comms,&
           hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj, &
-          pkernel,psi,psivirt,ngatherarr)
+          pkernel,psi,psivirt,ngatherarr,GPU)
   end if
 
   
@@ -880,13 +880,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
 
      !extract the gaussian basis from the pseudowavefunctions
-!!$     if (in%inputPsiId == 11) then
-!!$        !extract the gaussian basis from the pseudowavefunctions
-!!$        call gaussian_pswf_basis(iproc,atoms,rxyz,gbd)
-!!$     else if (in%inputPsiId == 12) then
-!!$        !extract the gaussian basis from the pseudopotential
-!!$        call gaussian_psp_basis(atoms,rxyz,gbd)
-!!$     end if
+!!!     if (in%inputPsiId == 11) then
+!!!        !extract the gaussian basis from the pseudowavefunctions
+!!!        call gaussian_pswf_basis(iproc,atoms,rxyz,gbd)
+!!!     else if (in%inputPsiId == 12) then
+!!!        !extract the gaussian basis from the pseudopotential
+!!!        call gaussian_psp_basis(atoms,rxyz,gbd)
+!!!     end if
 
      !extract the gaussian basis from the pseudowavefunctions
      call gaussian_pswf_basis(iproc,atoms,rxyz,gbd)
@@ -916,9 +916,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !add flag for writing waves in the gaussian basis form
      if (in%gaussian_help) then
 
-!!$        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
-!!$
-!!$        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
+!!!        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
+!!!
+!!!        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
         !write the coefficients and the basis on a file
         call write_gaussian_information(iproc,nproc,orbs,gbd,gaucoeffs,'wavefunctions.gau')
 
@@ -1153,7 +1153,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         spot_a = 1.0
         hpot_a = 3.0
         !! questa disposizione vale solo nel caso periodico ( si parte da 1, se no sarebbe 15 )
-!!$        allocate(radpot(n1i*n2i*n3p ,2 ))
+!!!        allocate(radpot(n1i*n2i*n3p ,2 ))
         radpotcount=0
 
         allocate(radpot(30000 ,2 ))
@@ -1187,9 +1187,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
                  if(r<minr) minr=r
 
-!!$                 radpotcount=radpotcount+1
-!!$                 radpot(radpotcount,1)=r
-!!$                 radpot(radpotcount,2)=rhopot(ix,iy,iz+i3xcsh,1)
+!!!                 radpotcount=radpotcount+1
+!!!                 radpot(radpotcount,1)=r
+!!!                 radpot(radpotcount,2)=rhopot(ix,iy,iz+i3xcsh,1)
 
                  if( r.ne.0.0) then
                     harmo = rz/r *sqrt(3.0/4.0/3.1415926535)
@@ -1204,11 +1204,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
               enddo
            enddo
         enddo
-!!$        open(unit=22,file='radpot.dat')
-!!$        do igrid=1, radpotcount
-!!$           write(22,'(200(f20.10,1x))')  radpot(igrid,1),  radpot(igrid,2)
-!!$        enddo
-!!$        close(unit=22)       
+!!!        open(unit=22,file='radpot.dat')
+!!!        do igrid=1, radpotcount
+!!!           write(22,'(200(f20.10,1x))')  radpot(igrid,1),  radpot(igrid,2)
+!!!        enddo
+!!!        close(unit=22)       
 
      endif
 
@@ -1366,7 +1366,7 @@ contains
        call memocc(i_stat,i_all,'hpsi',subname)
      
        !free GPU if it is the case
-       if (GPUconv) then
+       if (GPUconv .and. .not.(nvirt > 0 .and. in%inputPsiId == 0)) then
           call free_gpu(GPU,orbs%norbp)
        end if
 
@@ -1459,7 +1459,7 @@ contains
     endif
 
     !free GPU if it is the case
-    if (GPUconv) then
+    if (GPUconv .and. .not.(nvirt > 0 .and. in%inputPsiId == 0)) then
        call free_gpu(GPU,orbs%norbp)
     end if
 
