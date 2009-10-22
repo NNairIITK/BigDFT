@@ -156,6 +156,10 @@ program memguess
      write(*,*)' ...done'
   else
      call dft_input_variables(0,'input.dft',in,atoms%symObj)
+
+     ! read k-points input variables (if given)
+     call kpt_input_variables(0,'input.kpt',in,atoms)
+
      !read geometry optimsation input variables
      !inquire for the file needed for geometry optimisation
      !if not present, perform a simple geometry optimisation

@@ -570,7 +570,7 @@ program conv_check
            end do
            nvctr_cf=keyv(nseg)+i1e-i1s+1
 
-           allocate(psi(8*nvctr_cf),stat=i_stat)
+           allocate(psi(8*nvctr_cf+ndebug),stat=i_stat)
            call memocc(i_stat,psi,'psi',subname)
            !determine the values for psi function
            do i=1,nvctr_cf
@@ -683,7 +683,7 @@ program conv_check
            i_all=-product(shape(psi_cuda))
            deallocate(psi_cuda,stat=i_stat)
            call memocc(i_stat,i_all,'psi_cuda',subname)
-           allocate(psi_cuda(8*nvctr_cf,1,1),stat=i_stat)
+           allocate(psi_cuda(8*nvctr_cf,1,1+ndebug),stat=i_stat)
            call memocc(i_stat,psi_cuda,'psi_cuda',subname)
 
 
