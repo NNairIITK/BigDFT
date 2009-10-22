@@ -117,8 +117,8 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
 
   call precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal)
 
-!!$  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
-!!$  write(*,*)'debug1',rmr_new
+!!  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
+!!  write(*,*)'debug1',rmr_new
 
   r=b-d ! r=b-Ax
 
@@ -734,8 +734,8 @@ subroutine calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
        scal,xpsi_c,xpsi_f,xpsig_c,xpsig_f,x_f1,x_f2,x_f3)
 
-!!$  ypsig_c=xpsig_c
-!!$  ypsig_f=xpsig_f
+!!  ypsig_c=xpsig_c
+!!  ypsig_f=xpsig_f
   call Convolkinetic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
        cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
        xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3)
@@ -1007,12 +1007,12 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   allocate(wpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
   call memocc(i_stat,wpsi,'wpsi',subname)
 
-!!$  !array of initial wavefunction
-!!$  allocate(spsi(nvctr_c+7*nvctr_f),stat=i_stat)
-!!$  call memocc(i_stat,spsi,'spsi',subname)
-!!$  do i=1,nvctr_c+7*nvctr_f
-!!$     spsi(i)=hpsi(i)
-!!$  enddo
+!!  !array of initial wavefunction
+!!  allocate(spsi(nvctr_c+7*nvctr_f),stat=i_stat)
+!!  call memocc(i_stat,spsi,'spsi',subname)
+!!  do i=1,nvctr_c+7*nvctr_f
+!!     spsi(i)=hpsi(i)
+!!  enddo
 
   fac_h=1.0_wp/real(hgrid,wp)**2
   h0=    1.5_wp*a2*fac_h
@@ -1144,27 +1144,27 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   !write(*,'(i4,(100(1x,e8.2)))') iorb,(residues(icong),icong=2,ncong)
 
-!!$  ! check final residue of original equation
-!!$  do i=0,3
-!!$     scal(i)=1.d0
-!!$  enddo
-!!$
-!!$  call CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
-!!$       nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
-!!$       scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,&
-!!$       ibxy_f,hpsi,hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
-!!$       xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
-!!$       x_f1,x_f2,x_f3)
-!!$     
-!!$  tt=0.d0
-!!$  do i=1,nvctr_c+7*nvctr_f
-!!$     tt=tt+(wpsi(i)-spsi(i))**2
-!!$  enddo
-!!$  !write(*,'(1x,a,1x,i0,1x,1pe13.6)') 'Precond, final residue',iorb,sqrt(tt)
-!!$  i_all=-product(shape(spsi))*kind(spsi)
-!!$  deallocate(spsi,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'spsi',subname)
-!!$  ! checkend
+!!  ! check final residue of original equation
+!!  do i=0,3
+!!     scal(i)=1.d0
+!!  enddo
+!!
+!!  call CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+!!       nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
+!!       scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,&
+!!       ibxy_f,hpsi,hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
+!!       xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
+!!       x_f1,x_f2,x_f3)
+!!     
+!!  tt=0.d0
+!!  do i=1,nvctr_c+7*nvctr_f
+!!     tt=tt+(wpsi(i)-spsi(i))**2
+!!  enddo
+!!  !write(*,'(1x,a,1x,i0,1x,1pe13.6)') 'Precond, final residue',iorb,sqrt(tt)
+!!  i_all=-product(shape(spsi))*kind(spsi)
+!!  deallocate(spsi,stat=i_stat)
+!!  call memocc(i_stat,i_all,'spsi',subname)
+!!  ! checkend
 
   i_all=-product(shape(rpsi))*kind(rpsi)
   deallocate(rpsi,stat=i_stat)

@@ -63,6 +63,7 @@ subroutine analyse_per_old(nd1,nd2,nd3,y,x,ww)
   !local variables
   integer :: nt
 
+write(*,*) 'ENTER  analyse_per_old'
   ! i1,i2,i3 -> i2,i3,i1
   nt=(nd2+1)*(nd3+1)
   call  ana_rot_per_old(nd1,nt,y,x)
@@ -73,6 +74,7 @@ subroutine analyse_per_old(nd1,nd2,nd3,y,x,ww)
   nt=(nd1+1)*(nd2+1)
   call  ana_rot_per_old(nd3,nt,ww,x)
 
+write(*,*) 'LEAVE analyse_per_old'
 end subroutine analyse_per_old
 
 subroutine analyse_per_old_self(nd1,nd2,nd3,y,x,ww)
@@ -202,6 +204,8 @@ subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
   integer :: nn1,nn2,nn3,i_trans,i_all,i_stat,i1,i2,i3,i
   real(wp), dimension(:), allocatable :: xx,yy,ww
 
+write(*,*) 'ENTER ana_repeated_per'
+
   n1=nd1
   n2=nd2
   n3=nd3
@@ -214,6 +218,7 @@ subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
      allocate(xx((nd1+1)*(nd2+1)*(nd3+1)+ndebug),stat=i_stat)
      call memocc(i_stat,xx,'xx',subname)
 
+     write(*,*) '1:n1,n2,n3',n1,n2,n3
      call analyse_per_old_self(n1,n2,n3,x,yy,xx)
 
      n1=(n1+1)/2-1
@@ -239,7 +244,9 @@ subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
            enddo
         enddo
 
+     write(*,*) '2:n1,n2,n3',n1,n2,n3
         call analyse_per_old(n1,n2,n3,xx,yy,ww)
+     write(*,*) '3:n1,n2,n3',n1,n2,n3
 
         i=1
         do i3=0,n3
@@ -273,4 +280,5 @@ subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
      call memocc(i_stat,i_all,'yy',subname)
   endif
 
+write(*,*) 'LEAVE ana_repeated_per'
 end subroutine ana_repeated_per

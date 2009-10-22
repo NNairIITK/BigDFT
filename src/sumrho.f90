@@ -144,12 +144,12 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   do ispin=1,nspin!n
      tmred(ispin,itmred)=0.0_dp
      do i=1,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2)
-!!$        tt=tt+rho(i+i3off,ispin)
+!!        tt=tt+rho(i+i3off,ispin)
         tmred(ispin,itmred)=tmred(ispin,itmred)+rho(i+i3off,ispin)
         !temporary check for debugging purposes
-!!$        if (rho(i+i3off,ispin)/rho(i+i3off,ispin) /= 1.d0) then
-!!$           print *,iproc,'error in density construction',rho(i+i3off,ispin)
-!!$        end if
+!!        if (rho(i+i3off,ispin)/rho(i+i3off,ispin) /= 1.d0) then
+!!           print *,iproc,'error in density construction',rho(i+i3off,ispin)
+!!        end if
      enddo
      tmred(nspin+1,itmred)=tmred(nspin+1,itmred)+tmred(ispin,itmred)
   end do
@@ -161,7 +161,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
 
      call timing(iproc,'Rho_comput    ','OF')
      call timing(iproc,'Rho_commun    ','ON')
-!!$     call MPI_REDUCE(tt,charge,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+!!     call MPI_REDUCE(tt,charge,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,ierr)
      call MPI_REDUCE(tmred(1,2),tmred(1,1),nspin+1,mpidtypd,MPI_SUM,0,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')

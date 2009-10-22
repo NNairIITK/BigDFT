@@ -149,7 +149,7 @@ program PSolver_Program
         ncomp=n3p
      end if
 
-!!$  print *,'iproc,i3xcsh,i3s',iproc,i3xcsh,i3s
+!!  print *,'iproc,i3xcsh,i3s',iproc,i3xcsh,i3s
 
      !apply the Poisson Solver (case with distributed potential
      call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
@@ -169,7 +169,7 @@ program PSolver_Program
      call compare(n01,n02,ncomp,potential(1,1,i3sd+i3xcsh),density(1,1,i3sd+i3xcsh),&
           i1_max,i2_max,i3_max,max_diff)
 
-!!$  print *,'iproc,i3xcsh,i3s,max_diff',iproc,i3xcsh,i3s,max_diff
+!!  print *,'iproc,i3xcsh,i3s,max_diff',iproc,i3xcsh,i3s,max_diff
 
      !extract the max
      if (nproc > 1) then
@@ -221,7 +221,7 @@ program PSolver_Program
         !Maximum difference
         call compare(n01,n02,n03,potential,rhopot,i1_max,i2_max,i3_max,diff_ser)
 
-!!$     print *,'iproc,diff_ser',iproc,diff_ser
+!!     print *,'iproc,diff_ser',iproc,diff_ser
 
         if (iproc==0) then
            write(*,*) '------------------'
@@ -237,8 +237,8 @@ program PSolver_Program
         call compare(n01,n02,ncomp,rhopot(1,1,i3sd+i3xcsh),density(1,1,i3sd+i3xcsh),&
              i1_max,i2_max,i3_max,max_diff)
 
-!!$     print *,'max_diff,i1_max,i2_max,i3_max,i3s,i3xcsh,n3p',max_diff,i1_max,i2_max,i3_max,&
-!!$          i3s,i3xcsh,n3p
+!!     print *,'max_diff,i1_max,i2_max,i3_max,i3s,i3xcsh,n3p',max_diff,i1_max,i2_max,i3_max,&
+!!          i3s,i3xcsh,n3p
 
         if (nproc > 1) then
            !extract the max
@@ -406,14 +406,14 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      by=2.d0!real(nu,kind=8)
      bz=2.d0
 
-!!$     !plot of the functions used
-!!$     do i1=1,n03
-!!$        x = hx*real(i1,kind=8)!valid if hy=hz
-!!$        y = hz*real(i1,kind=8) 
-!!$        call functions(x,ax,bx,fx,fx2,ifx)
-!!$        call functions(y,az,bz,fz,fz2,ifz)
-!!$        write(20,*)i1,fx,fx2,fz,fz2
-!!$     end do
+!!     !plot of the functions used
+!!     do i1=1,n03
+!!        x = hx*real(i1,kind=8)!valid if hy=hz
+!!        y = hz*real(i1,kind=8) 
+!!        call functions(x,ax,bx,fx,fx2,ifx)
+!!        call functions(y,az,bz,fz,fz2,ifz)
+!!        write(20,*)i1,fx,fx2,fz,fz2
+!!     end do
 
      !Initialization of density and potential
      denval=0.d0 !value for keeping the density positive
@@ -435,28 +435,28 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
 
 !plane capacitor oriented along the y direction
-!!$     do i2=1,n02
-!!$        if (i2==n02/4) then
-!!$           do i3=1,n03
-!!$              do i1=1,n01
-!!$                 density(i1,i2,i3)=1.d0!real(i2,kind=8)
-!!$              end do
-!!$           end do
-!!$        else if (i2==3*n02/4) then
-!!$           do i3=1,n03
-!!$              do i1=1,n01
-!!$                 density(i1,i2,i3)=-1.d0!real(i2,kind=8)
-!!$              end do
-!!$           end do
-!!$        else
-!!$           do i3=1,n03
-!!$              do i1=1,n01
-!!$                 density(i1,i2,i3)=0.d0
-!!$              end do
-!!$           end do
-!!$        end if
-!!$     end do
-!!$     denval=0.d0
+!!     do i2=1,n02
+!!        if (i2==n02/4) then
+!!           do i3=1,n03
+!!              do i1=1,n01
+!!                 density(i1,i2,i3)=1.d0!real(i2,kind=8)
+!!              end do
+!!           end do
+!!        else if (i2==3*n02/4) then
+!!           do i3=1,n03
+!!              do i1=1,n01
+!!                 density(i1,i2,i3)=-1.d0!real(i2,kind=8)
+!!              end do
+!!           end do
+!!        else
+!!           do i3=1,n03
+!!              do i1=1,n01
+!!                 density(i1,i2,i3)=0.d0
+!!              end do
+!!           end do
+!!        end if
+!!     end do
+!!     denval=0.d0
 
      if (ixc==0) denval=0.d0
 
@@ -507,27 +507,27 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      end do
 
 !plane capacitor oriented along the y direction
-!!$     do i2=1,n02
-!!$        if (i2==1) then
-!!$           do i3=1,n03
-!!$              do i1=1,n01
-!!$                 density(i1,i2,i3)=1.d0!real(i2,kind=8)
-!!$              end do
-!!$           end do
-!!$        else if (i2==n02) then
-!!$           do i3=1,n03
-!!$              do i1=1,n01
-!!$                 density(i1,i2,i3)=-1.d0!real(i2,kind=8)
-!!$              end do
-!!$           end do
-!!$        else
-!!$           do i3=1,n03
-!!$              do i1=1,n01
-!!$                 density(i1,i2,i3)=0.d0
-!!$              end do
-!!$           end do
-!!$        end if
-!!$     end do
+!!     do i2=1,n02
+!!        if (i2==1) then
+!!           do i3=1,n03
+!!              do i1=1,n01
+!!                 density(i1,i2,i3)=1.d0!real(i2,kind=8)
+!!              end do
+!!           end do
+!!        else if (i2==n02) then
+!!           do i3=1,n03
+!!              do i1=1,n01
+!!                 density(i1,i2,i3)=-1.d0!real(i2,kind=8)
+!!              end do
+!!           end do
+!!        else
+!!           do i3=1,n03
+!!              do i1=1,n01
+!!                 density(i1,i2,i3)=0.d0
+!!              end do
+!!           end do
+!!        end if
+!!     end do
 
      if (ixc==0) denval=0.d0
 
@@ -562,27 +562,27 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      end do
 
 !plane capacitor oriented along the y direction
-!!$     do i2=1,n02
-!!$        if (i2==n02/4) then
-!!$           do i3=1,n03
-!!$              do i1=1,n01
-!!$                 density(i1,i2,i3)=1.d0!real(i2,kind=8)
-!!$              end do
-!!$           end do
-!!$        else if (i2==3*n02/4) then
-!!$           do i3=1,n03
-!!$              do i1=1,n01
-!!$                 density(i1,i2,i3)=-1.d0!real(i2,kind=8)
-!!$              end do
-!!$           end do
-!!$        else
-!!$           do i3=1,n03
-!!$              do i1=1,n01
-!!$                 density(i1,i2,i3)=0.d0
-!!$              end do
-!!$           end do
-!!$        end if
-!!$     end do
+!!     do i2=1,n02
+!!        if (i2==n02/4) then
+!!           do i3=1,n03
+!!              do i1=1,n01
+!!                 density(i1,i2,i3)=1.d0!real(i2,kind=8)
+!!              end do
+!!           end do
+!!        else if (i2==3*n02/4) then
+!!           do i3=1,n03
+!!              do i1=1,n01
+!!                 density(i1,i2,i3)=-1.d0!real(i2,kind=8)
+!!              end do
+!!           end do
+!!        else
+!!           do i3=1,n03
+!!              do i1=1,n01
+!!                 density(i1,i2,i3)=0.d0
+!!              end do
+!!           end do
+!!        end if
+!!     end do
      
      denval=0.d0
 
@@ -612,9 +612,9 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
               !tt=0.d0!1.d0
               pot_ion(i1,i2,i3)=tt
               potential(i1,i2,i3)=potential(i1,i2,i3)+potion_fac*tt
-!!$              !for the ixc/=0 case
-!!$              call random_number(tt)
-!!$              rhopot(i1,i2,i3)=abs(tt)
+!!              !for the ixc/=0 case
+!!              call random_number(tt)
+!!              rhopot(i1,i2,i3)=abs(tt)
            end do
         end do
      end do
@@ -699,27 +699,27 @@ subroutine functions(x,a,b,f,f2,whichone)
 
 end subroutine functions
 
-!!$!fake ABINIT subroutines
-!!$subroutine wrtout(unit,message,mode_paral)
-!!$  implicit none
-!!$
-!!$  !Arguments ------------------------------------
-!!$  integer,intent(in) :: unit
-!!$  character(len=4),intent(in) :: mode_paral
-!!$  character(len=500),intent(inout) :: message
-!!$
-!!$  print *,message
-!!$end subroutine wrtout
-!!$
-!!$subroutine leave_new(mode_paral)
-!!$  implicit none
-!!$
-!!$  !Arguments ------------------------------------
-!!$  character(len=4),intent(in) :: mode_paral
-!!$
-!!$  print *,'exiting...'
-!!$  stop
-!!$end subroutine leave_new
+!!!fake ABINIT subroutines
+!!subroutine wrtout(unit,message,mode_paral)
+!!  implicit none
+!!
+!!  !Arguments ------------------------------------
+!!  integer,intent(in) :: unit
+!!  character(len=4),intent(in) :: mode_paral
+!!  character(len=500),intent(inout) :: message
+!!
+!!  print *,message
+!!end subroutine wrtout
+!!
+!!subroutine leave_new(mode_paral)
+!!  implicit none
+!!
+!!  !Arguments ------------------------------------
+!!  character(len=4),intent(in) :: mode_paral
+!!
+!!  print *,'exiting...'
+!!  stop
+!!end subroutine leave_new
 
 end program PSolver_Program
 !!***

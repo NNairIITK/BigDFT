@@ -12,8 +12,8 @@ subroutine  comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
   real(wp), dimension(2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16), intent(in) :: x
   real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(out) :: y
   !local variables
-!!$    integer :: ncount0,ncount1,ncount_rate,ncount_max,nflop
-!!$    real(kind=8) :: tel
+!!    integer :: ncount0,ncount1,ncount_rate,ncount_max,nflop
+!!    real(kind=8) :: tel
   integer :: l1,l2,i,t,l1_0,l1_1,ll1
   real(wp) :: y2i__0,y2i__1,y2i1_0,y2i1_1,y2i,y2i1
   include 'v_17.inc'
@@ -70,8 +70,8 @@ subroutine comb_rot_grow_loc_square_1(n1,n2,n3,x,y,ib,ib2,loczero)
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
   real(wp), dimension(0:n2,0:n3,-14:2*n1+16), intent(out) :: y
   !local variables
-!!$    integer ncount0,ncount1,ncount2,ncount_rate,ncount_max,nflop
-!!$    real(kind=8) tel,t0,t1
+!!    integer ncount0,ncount1,ncount2,ncount_rate,ncount_max,nflop
+!!    real(kind=8) tel,t0,t1
   integer i,t,l2,l3,l1
   integer ll1,ll3,l10,l11,l30,l31,ll2,l21
   real(wp) y2i__11, y2i__12, y2i1_11, y2i1_12, y2i__21, y2i__22, y2i1_21, y2i1_22,y2i,y2i1

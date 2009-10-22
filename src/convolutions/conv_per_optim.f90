@@ -1,6 +1,3 @@
-
-
-
 subroutine ana_rot_per_old(right,nt,c,cd_1)
   !
   !      forward wavelet transform, analysis, periodic
@@ -38,7 +35,7 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
        0.031695087811525991431_wp, 0.00054213233180001068935_wp, &
        -0.0033824159510050025955_wp , 0.0_wp /
 
-write(*,*) 'EXECUTED'
+write(*,*) 'ana_rot_per_old EXECUTED',right,nt,c(0,1),c(right,nt)
 
   lenc=right+1
   len_2=lenc/2
@@ -60,9 +57,6 @@ write(*,*) 'EXECUTED'
 
 
 !$omp do
-
-
-
   do it=1,nt-11,12
      do i=0,len_2-1
         i2=2*i
@@ -184,6 +178,8 @@ write(*,*) 'EXECUTED'
   i_all=-product(shape(mod_my))*kind(mod_my)
   deallocate(mod_my,stat=i_stat) 
   call memocc(i_stat,i_all,'mod_my',subname)
+
+write(*,*) 'ana_rot_per_old finished'
 
 end subroutine ana_rot_per_old
 

@@ -48,11 +48,11 @@ subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alp
      endif
      if (iproc == 0 .and. verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',alpha
 
-!!$     do iorb=1,orbs%norb*orbs%nspinor
-!!$        call axpy(comms%nvctr_par(iproc),&
-!!$             -alpha,hpsi(1+comms%nvctr_par(iproc)*(iorb-1)),1,&
-!!$             psit(1+comms%nvctr_par(iproc)*(iorb-1)),1)
-!!$     enddo
+!!     do iorb=1,orbs%norb*orbs%nspinor
+!!        call axpy(comms%nvctr_par(iproc),&
+!!             -alpha,hpsi(1+comms%nvctr_par(iproc)*(iorb-1)),1,&
+!!             psit(1+comms%nvctr_par(iproc)*(iorb-1)),1)
+!!     enddo
 
      call axpy(sum(comms%ncntt(0:nproc-1)),-alpha,hpsit(1),1,psit(1),1)
 
@@ -109,10 +109,10 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
      ist=max(1,ids-idsx+1)
      do i=ist,ids
         mi=mod(i-1,idsx)+1
-!!$     do iorb=1,norb*nspinor
-!!$        tt=dot(nvctrp,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mi),1)
-!!$        rds(i-ist+1)=rds(i-ist+1)+tt
-!!$     end do
+!!     do iorb=1,norb*nspinor
+!!        tt=dot(nvctrp,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mi),1)
+!!        rds(i-ist+1)=rds(i-ist+1)+tt
+!!     end do
         !to be corrected for complex wavefunctions
         rds(i-ist+1,ikpt)=dot(nvctrp*orbs%norb*orbs%nspinor,&
              hpsidst(ispsidst+(mids-1)*nvctrp*orbs%norb*orbs%nspinor),1,&
@@ -127,8 +127,8 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
      call MPI_ALLREDUCE(MPI_IN_PLACE,rds,(idsx+1)*orbs%nkpts,  & 
                  mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-!!$     call MPI_ALLREDUCE(rds,ads(1,min(idsx,ids),1),min(ids,idsx),  & 
-!!$                 MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!     call MPI_ALLREDUCE(rds,ads(1,min(idsx,ids),1),min(ids,idsx),  & 
+!!                 MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
   endif
 
