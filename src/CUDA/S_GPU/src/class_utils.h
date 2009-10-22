@@ -1,6 +1,8 @@
 #ifndef CLASS_UTILS_H
 #define CLASS_UTILS_H
 
+#include <sstream>
+
 class deleter 
 { 
 public:
@@ -19,6 +21,20 @@ inline void getHostName(std::string& h)
   gethostname(hostname,HOST_NAME_SIZE);
 
   h = hostname;
-  }
+}
+
+
+
+template<typename T>
+T strTo(const std::string& str)
+{
+  T dest;
+  std::istringstream iss( str );
+  iss >> dest;
+  return dest;
+}
+
+
+
 
 #endif

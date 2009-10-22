@@ -59,8 +59,6 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
 
 !$omp do
 
-
-
   do it=1,nt-11,12
      do i=0,len_2-1
         i2=2*i

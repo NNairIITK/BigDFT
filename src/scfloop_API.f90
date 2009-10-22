@@ -63,7 +63,7 @@ contains
 
     in%inputPsiId=1
     ! need to transform xred into xcart
-    allocate(xcart(3, at%nat),stat=i_stat)
+    allocate(xcart(3, at%nat+ndebug),stat=i_stat)
     call memocc(i_stat,xcart,'xcart',subname)
     do i = 1, at%nat, 1
        xcart(:, i) = xred(:, i) * acell(:)
@@ -106,7 +106,7 @@ contains
 
     fnrm = real(0, dp)
     ! need to transform xred into xcart
-    allocate(xcart(3, at%nat),stat=i_stat)
+    allocate(xcart(3, at%nat+ndebug),stat=i_stat)
     call memocc(i_stat,xcart,'xcart',subname)
     do i = 1, at%nat, 1
        xcart(:, i) = xred(:, i) * acell(:)

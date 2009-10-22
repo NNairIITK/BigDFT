@@ -33,7 +33,7 @@
 void local_network::init(manage_cpu_affinity& mca,const set_repartition* set_r,int _iproc) throw (inter_node_communication_error,check_calc_error)
 {
   iproc = _iproc;
-  man_gpu = NULL;
+  // man_gpu = NULL;
   sem_unix_gpu_TRSF = NULL;
   sem_unix_gpu_CALC = NULL;
 
@@ -156,10 +156,10 @@ void local_network::init(manage_cpu_affinity& mca,const set_repartition* set_r,i
       if(currNum == 0)
 	{
 	  //create sems and send to all
-	  sem_unix_gpu_TRSF = new sem_unix(nomfic,2*NUM_GPU,2*currGPU); //2sem per GPUs
+	  sem_unix_gpu_TRSF = new sem_unix(2*NUM_GPU,2*currGPU); //2sem per GPUs
 
-	  sem_unix_gpu_CALC = new sem_unix(sem_unix_gpu_TRSF->getSemid(),2*currGPU + 1);
-
+	  sem_unix_gpu_CALC = new sem_unix();
+	  sem_unix_gpu_CALC->createFromExistingSem(sem_unix_gpu_TRSF->getSemid(),2*currGPU + 1);
 
 
 	  message msgSem;
@@ -177,11 +177,11 @@ void local_network::init(manage_cpu_affinity& mca,const set_repartition* set_r,i
 	{
 	  message msgSemRcv;
 	  recv_prev(&msgSemRcv);
-	  sem_unix_gpu_TRSF = new sem_unix(msgSemRcv.node,2*currGPU);
+	  sem_unix_gpu_TRSF = new sem_unix();
+	  sem_unix_gpu_TRSF->createFromExistingSem(msgSemRcv.node,2*currGPU);
 
-
-	  sem_unix_gpu_CALC = new sem_unix(msgSemRcv.node,2*currGPU +1);
-
+	  sem_unix_gpu_CALC = new sem_unix();
+	  sem_unix_gpu_CALC->createFromExistingSem(msgSemRcv.node,2*currGPU +1);
 
 	  send_next(&msgSemRcv);
 	  }
@@ -575,11 +575,11 @@ bool manage_end::allFinish() const
 //----------------------- sem unix
 
 
-sem_unix::sem_unix(const char *nomfic, int numGPU,int currGPU_) throw (synchronization_error)
+sem_unix::sem_unix(int numGPU,int currGPU_) throw (synchronization_error)
  {
    currGPU = currGPU_;
 
-   const int semKEY = 33;
+   //  const int semKEY = 33;
    union semun 
    {
      int              val;    /* Value for SETVAL */
@@ -619,13 +619,18 @@ sem_unix::sem_unix(const char *nomfic, int numGPU,int currGPU_) throw (synchroni
    initHere = true;
  }
 
-
-sem_unix::sem_unix(int _semid,int _currGPU)
+sem_unix::sem_unix()
+{
+  initHere = false;
+}
+void sem_unix::createFromExistingSem(int _semid,int _currGPU)
 {
   semid = _semid;
   currGPU = _currGPU;
-  initHere = false;
 }
+
+
+
 sem_unix::~sem_unix()
 {
   if(initHere)

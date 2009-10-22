@@ -868,7 +868,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call davidson(iproc,nproc,n1i,n2i,n3i,in,atoms,cpmult,fpmult,radii_cf,&
           orbs,orbsv,nvirt,Glr,comms,&
           hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj, &
-          pkernel,psi,psivirt,ngatherarr)
+          pkernel,psi,psivirt,ngatherarr,GPU)
   end if
 
   
@@ -1366,7 +1366,7 @@ contains
        call memocc(i_stat,i_all,'hpsi',subname)
      
        !free GPU if it is the case
-       if (GPUconv) then
+       if (GPUconv .and. .not.(nvirt > 0 .and. in%inputPsiId == 0)) then
           call free_gpu(GPU,orbs%norbp)
        end if
 
@@ -1459,7 +1459,7 @@ contains
     endif
 
     !free GPU if it is the case
-    if (GPUconv) then
+    if (GPUconv .and. .not.(nvirt > 0 .and. in%inputPsiId == 0)) then
        call free_gpu(GPU,orbs%norbp)
     end if
 

@@ -254,10 +254,10 @@ module module_types
 !! SOURCE
 !!
   type, public :: GPU_pointers
+     logical :: useDynamic,full_locham
      real(kind=8) :: keys,work1,work2,work3,rhopot,r,d
-     real(kind=8), dimension(:), pointer :: psi
      real(kind=8) :: pinned_in,pinned_out
-     logical :: useDynamic
+     real(kind=8), dimension(:), pointer :: psi
   end type GPU_pointers
 !!***
 

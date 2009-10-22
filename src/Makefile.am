@@ -25,9 +25,9 @@ scripts_sources =
 endif
 
 if USE_CUDA_GPU
-sub_dirs_cuda=CUDA
+sub_dirs_cuda=CUDA CUDA/S_GPU
 GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90
-libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas CUDA/libGPU.a @LIB_CUTIL_PATH@/libcutil.a
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas CUDA/libGPU.a @LIB_CUTIL_PATH@/libcutil.a CUDA/S_GPU/libs_gpu.a
 GPU_BLAS=
 else
 sub_dirs_cuda=
@@ -58,7 +58,6 @@ global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 SUBDIRS = modules convolutions lib $(sub_dirs_ps) profiling $(sub_dirs_cuda)
 
 EXTRA_DIST = \
-	Makefile.standalone \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
@@ -74,7 +73,7 @@ EXTRA_DIST = \
 	ABINIT-moldyn/others.F90 \
 	ABINIT-moldyn/quenched.F90
 
-AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common -I$(srcdir)/ABINIT-moldyn
+AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common -I$(srcdir)/ABINIT-moldyn @LIBXC_INCLUDE@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)

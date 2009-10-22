@@ -70,7 +70,7 @@ SUBDIRS = $(sub_dirs_xc)
 
 check_PROGRAMS = PS_Check PS_Program PS_Exercise
 
-AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ 
+AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ @LIBXC_INCLUDE@
 
 
 if USE_MPI

@@ -156,6 +156,10 @@ program memguess
      write(*,*)' ...done'
   else
      call dft_input_variables(0,'input.dft',in,atoms%symObj)
+
+     ! read k-points input variables (if given)
+     call kpt_input_variables(0,'input.kpt',in,atoms)
+
      !read geometry optimsation input variables
      !inquire for the file needed for geometry optimisation
      !if not present, perform a simple geometry optimisation
@@ -824,8 +828,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   !copy the wavefunctions on GPU
   do iorb=1,orbs%norbp
-     call GPU_send((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-          psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
+     !!!!! call GPU_send((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
+     !!!!!     psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
   end do
 
   !now the GPU part
@@ -838,7 +842,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   GPUtime=real(t1-t0,kind=8)
 
   !receive the density on GPU
-  call GPU_receive(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,rho,GPU%rhopot,i_stat)
+  !!!!! call GPU_receive(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,rho,GPU%rhopot,i_stat)
 
   i_all=-product(shape(nscatterarr))*kind(nscatterarr)
   deallocate(nscatterarr,stat=i_stat)
@@ -876,7 +880,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   end do
 
   !copy the potential on GPU
-  call GPU_send(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,pot,GPU%rhopot,i_stat)
+  !!!!! call GPU_send(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,pot,GPU%rhopot,i_stat)
 
 
   write(*,'(1x,a)')repeat('-',34)//' CPU-GPU comparison: Local Hamiltonian calculation'
@@ -914,8 +918,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   
   !receive the data of GPU
   do iorb=1,orbs%norbp
-     call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-          psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
+     !!!!! call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
+      !!!!!!!    psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
   end do
   
 
@@ -1019,8 +1023,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   print *,'gnrmGPU',gnrmGPU
 
   do iorb=1,orbs%norbp
-     call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-          psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
+     !!!!! call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
+         !! psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
   end do
 
 
