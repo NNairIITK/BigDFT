@@ -13,7 +13,7 @@
 !!
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
-     ekin_sum,epot_sum,eproj_sum,nspin,GPU)
+     ekin_sum,epot_sum,eproj_sum,nspin,GPU,pkernel)
   use module_base
   use module_types
   implicit none
@@ -28,16 +28,18 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
-  real(wp), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
+  real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
   real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
+  real(dp), dimension(*), optional :: pkernel
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
-  integer :: i_all,i_stat,ierr,iorb,ispin
-  real(gp) :: eproj
+  logical :: exctX=.false.
+  integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot
+  real(gp) :: eproj,eexctX
   real(gp), dimension(3,2) :: wrkallred
-  real(wp), dimension(:,:), pointer :: pot
+  real(wp), dimension(:), pointer :: pot
   integer,parameter::lupfil=14
 
   !stream ptr array
@@ -52,20 +54,51 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           'Hamiltonian application...'
   end if
 
+  
+  !determine the dimension of the potential array
+  if (exctX) then
+     npot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+&
+          lr%d%n1i*lr%d%n2i*&
+          max(lr%d%n3i*orbs%norbp,ngatherarr(0,1)/(lr%d%n1i*lr%d%n2i)*orbs%norb)
+  else
+     npot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin
+  end if
+
   !build the potential on the whole simulation box
   !in the linear scaling case this should be done for a given localisation region
   !cannot be deplaced due to the fact that n1i is not calculated
   if (nproc > 1) then
-     allocate(pot(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspin+ndebug),stat=i_stat)
+     allocate(pot(npot+ndebug),stat=i_stat)
      call memocc(i_stat,pot,'pot',subname)
-
+     ispot=1
+     ispotential=1
      do ispin=1,nspin
-        call MPI_ALLGATHERV(potential(1,ispin),ndimpot,&
-             mpidtypw,pot(1,ispin),ngatherarr(0,1),&
+        call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
+             mpidtypw,pot(ispot),ngatherarr(0,1),&
              ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+        ispot=ispot+lr%d%n1i*lr%d%n2i*lr%d%n3i
+        ispotential=ispotential+max(1,ndimpot)
      end do
   else
-     pot => potential
+     if (exctX) then
+        allocate(pot(npot+ndebug),stat=i_stat)
+        call memocc(i_stat,pot,'pot',subname)
+        call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,potential,1,pot,1)
+     else
+        pot => potential
+     end if
+     ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+1
+  end if
+
+ 
+  !fill the rest of the potential with the exact-exchange terms
+  if (present(pkernel) .and. exctX) then
+     call timing(iproc,'ApplyLocPotKin','OF')
+     n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
+     call exact_exchange_potential(iproc,nproc,at%geocode,lr,orbs,ngatherarr(0,1),n3p,&
+          0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+     !print *,'iproc,eexctX',iproc,eexctX
+     call timing(iproc,'ApplyLocPotKin','ON')
   end if
 
   !apply the local hamiltonian for each of the orbitals
@@ -78,7 +111,9 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   end if
   
-  if (nproc > 1) then
+  if (exctX) epot_sum=epot_sum+eexctX
+
+  if (nproc > 1 .or. exctX) then
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
      call memocc(i_stat,i_all,'pot',subname)

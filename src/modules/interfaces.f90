@@ -261,7 +261,7 @@ module module_interfaces
      subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,&
-          nscatterarr,ngatherarr,nspin)
+          nscatterarr,ngatherarr,nspin,potshortcut)
        use module_base
        use module_types
        implicit none
@@ -282,6 +282,7 @@ module module_interfaces
        real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
        type(orbitals_data), intent(out) :: orbsv
        real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
+       integer potshortcut
      end subroutine input_wf_diag
 
      subroutine reformatmywaves(iproc,orbs,at,&
@@ -327,7 +328,7 @@ module module_interfaces
 
      subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
-          ekin_sum,epot_sum,eproj_sum,nspin,GPU)
+          ekin_sum,epot_sum,eproj_sum,nspin,GPU,pkernel)
        use module_base
        use module_types
        implicit none
@@ -346,6 +347,7 @@ module module_interfaces
        real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
+       real(dp), dimension(*), optional :: pkernel
      end subroutine HamiltonianApplication
 
      subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
@@ -766,6 +768,33 @@ module module_interfaces
 
 
      end subroutine lanczos
+
+
+subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
+     cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
+     ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
+  use module_base
+  use module_types
+  implicit none
+  integer  :: iproc,nproc,ndimpot,nspin
+  real(gp)  :: hx,hy,hz,cpmult,fpmult
+  type(atoms_data), target :: at
+  type(nonlocal_psp_descriptors), target :: nlpspd
+  type(locreg_descriptors), target :: lr
+  integer, dimension(0:nproc-1,2), target :: ngatherarr 
+  real(gp), dimension(3,at%nat), target :: rxyz
+  real(gp), dimension(at%ntypes,3), target :: radii_cf  
+  real(wp), dimension(nlpspd%nprojel), target :: proj
+  real(wp), dimension(max(ndimpot,1),nspin), target :: potential
+
+  real(gp) :: ekin_sum,epot_sum,eproj_sum
+  type(GPU_pointers), intent(inout) , target :: GPU
+  integer, intent(in) :: in_iat_absorber
+  
+
+  type(input_variables),intent(in) :: in
+
+end subroutine chebychev
 
      subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
        use module_base

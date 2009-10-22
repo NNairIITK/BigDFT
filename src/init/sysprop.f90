@@ -531,6 +531,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all
+  real(gp) :: kx,alat
   logical, dimension(:), allocatable :: GPU_for_orbs
 
   allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
@@ -544,10 +545,25 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
   !only the gamma point for the moment
+
+!!$  open(55)
+!!$  read(55,*)kx,alat
+!!$  close(55)
+
+!!$  !toto point
+!!$  alat=10.1901d0
+!!$
+!!$  kx=1.23456000d-01
+!!$  ky=8.52147000d-01
+!!$  kz=9.87452000d-01
+
   do ikpt=1,orbs%nkpts
      orbs%kpts(1,ikpt)=0.0_gp
      orbs%kpts(2,ikpt)=0.0_gp
      orbs%kpts(3,ikpt)=0.0_gp
+!!$     orbs%kpts(1,ikpt)=kx*4.0*datan(1.d0)/(alat)
+!!$     orbs%kpts(2,ikpt)=0.d0
+!!$     orbs%kpts(3,ikpt)=0.d0
      orbs%kwgts(ikpt)=1.0_gp
   end do
 

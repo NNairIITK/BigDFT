@@ -420,7 +420,7 @@ END SUBROUTINE import_gaussians
 subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
      nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,&
-     nscatterarr,ngatherarr,nspin)
+     nscatterarr,ngatherarr,nspin,  potshortcut)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -446,6 +446,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
   type(orbitals_data), intent(out) :: orbsv
   real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
+  integer potshortcut
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   integer, parameter :: ngx=31
@@ -459,6 +460,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   real(gp), dimension(:), allocatable :: locrad
   type(locreg_descriptors), dimension(:), allocatable :: Llr
   real(wp), dimension(:,:,:), pointer :: psigau
+  integer i,j,k
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -632,6 +634,9 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 !!$  end if
 
 
+
+  if(potshortcut>0) return 
+
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(orbse%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
@@ -639,7 +644,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
        nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
        rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,GPU)
+       psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,GPU,pkernel)
 
 !!$  !calculate the overlap matrix knowing that the original functions are gaussian-based
 !!$  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)

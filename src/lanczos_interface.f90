@@ -9,7 +9,8 @@ module lanczos_interface
   public :: EP_inizializza,EP_initialize_start,EP_allocate_for_eigenprob, get_EP_dim, set_EP_shift,&
        EP_mat_mult,EP_make_dummy_vectors,  EP_normalizza,EP_copy,EP_scalare, EP_copia_per_prova, &
        EP_set_all_random, EP_GramSchmidt, EP_add_from_vect_with_fact, EP_Moltiplica, EP_memorizza_stato, &
-       EP_free, EP_initialize_start_0,  EP_norma2_initialized_state , EP_store_occupied_orbitals, EP_occprojections
+       EP_free, EP_initialize_start_0,  EP_norma2_initialized_state , EP_store_occupied_orbitals, EP_occprojections,&
+       EP_multbyfact
 
  
   character(len=*), parameter :: subname='lanczos_interface'
@@ -35,6 +36,10 @@ module lanczos_interface
   logical EP_doorthoocc
   integer EP_norb
   real(wp), dimension(:), pointer :: EP_occprojections
+
+  real(wp), dimension(:,:,:,:,:,:), allocatable :: psi_gross
+  logical , allocatable ::logrid(:,:,:)
+
 contains
 
 !!$  subroutine settapointer(p)
@@ -100,13 +105,13 @@ contains
     implicit none
     
     integer , intent(in):: m,k
-    real(8), intent (in) :: EV(0:m-1,0:k-1)
+    real(8), intent (in) :: EV(1)
 ! ::::::::::::::::::::::::::::::::::::
     integer i,j,l
 
     call gemm('N','N', EP_dim , k, m  ,1.0_wp ,&
          Qvect(1,0)  , EP_dim ,&
-         EV(0 ,0) ,m ,&
+         EV(1) ,m ,&
          0.0_wp ,  dumQvect(1,1) ,  EP_dim )
 
 
@@ -170,9 +175,17 @@ contains
     implicit none
     integer, intent(in):: nsteps
 ! :::::::::::::::::::::::
+
+    if(associated(Qvect) ) then
+       i_all=-product(shape(Qvect))*kind(Qvect)
+       deallocate(Qvect,stat=i_stat)
+       call memocc(i_stat,i_all,'Qvect',subname)
+    endif
+
     allocate(Qvect(EP_dim,0:nsteps+ndebug),&
          stat=i_stat)
     call memocc(i_stat,Qvect,'Qvect',subname)
+
   end subroutine EP_allocate_for_eigenprob
 
 
@@ -180,6 +193,12 @@ contains
     implicit none
     integer, intent(in):: nd
 ! :::::::::::::::::::::::    
+    if(associated(dumQvect) ) then
+       i_all=-product(shape(dumQvect))*kind(dumQvect)
+       deallocate(dumQvect,stat=i_stat)
+       call memocc(i_stat,i_all,'dumQvect',subname)
+    endif
+
     allocate(dumQvect(EP_dim,0:nd+1+ndebug),&
          stat=i_stat)
     call memocc(i_stat,dumQvect,'dumQvect',subname)
@@ -213,6 +232,20 @@ contains
   end subroutine EP_normalizza
     
 
+  subroutine EP_multbyfact(j, fact)
+    implicit none
+    integer, intent(in)::j
+    real(gp) fact
+! ::::::::::::::::::::::::::::::::::::::
+    if(J.ge.0) then
+       call EP_multbyfact_interno( Qvect(1:,j), fact )
+    else
+       call EP_multbyfact_interno( dumQvect(1:,-j), fact )
+    endif
+    return 
+  end subroutine EP_multbyfact
+    
+
 
   subroutine EP_normalizza_interno(Q)
     implicit none
@@ -235,6 +268,17 @@ contains
     call vscal(EP_dim,sump, Q(1), 1  ) 
 
   end subroutine EP_normalizza_interno
+
+
+  subroutine EP_multbyfact_interno(Q, fact)
+    implicit none
+    real(wp) Q(EP_dim)
+    real(gp) fact
+! :::::::::::::::::::::::
+
+    call vscal(EP_dim,fact, Q(1), 1  ) 
+
+  end subroutine EP_multbyfact_interno
 
 
   subroutine EP_copy(i,j)
@@ -556,27 +600,42 @@ end subroutine EP_initialize_start
     real(8) sumdum
  
 
-
-
-   if(p.ge.0) then
-       print *, " problema Moltiplica solo con dumvect per result "
-       stop
-    endif
-    if(i.lt.0) then
-       print *, " problema Moltiplica solo con vect per input "
-       stop
-    endif
+!!$
+!!$
+!!$   if(p.ge.0) then
+!!$       print *, " problema Moltiplica solo con dumvect per result "
+!!$       stop
+!!$    endif
+!!$    if(i.lt.0) then
+!!$       print *, " problema Moltiplica solo con vect per input "
+!!$       stop
+!!$    endif
     
     if( ha%nproc > 1) then
-       call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
-            Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+       if(i>=0) then
+          call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+               Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+       else
+          call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+               dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+       endif
     else
-       do k=1, EP_dim_tot
-          Qvect_tmp(k)=  Qvect(k,i)
-       enddo
+       if(i>=0) then
+          do k=1, EP_dim_tot
+             Qvect_tmp(k)=  Qvect(k,i)
+          enddo
+       else
+          do k=1, EP_dim_tot
+             Qvect_tmp(k)=  dumQvect(k,-i)
+          enddo
+       endif
     endif
-
+    
  
+    if(ha%iproc==0 .and. .false. ) then
+       !here the projector should be applied
+       call lowpass_projector(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,ha%lr%wfd%nvctr_c, Qvect_tmp )
+    endif
 
     if(  ha%iproc ==0 ) print *, "chiamo hamiltonian "
     call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
@@ -586,21 +645,42 @@ end subroutine EP_initialize_start
          ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,ha%epot_sum,ha%eproj_sum,1,ha%GPU)
     if(  ha%iproc ==0 ) print *, " done "
 
+
+
+    if(ha%iproc==0 .and. .false.) then
+       !here the projector should be applied
+       print *,  "here the projector should be applied   ha%iproc   ",  ha%iproc 
+       print *, ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3
+       call lowpass_projector(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,ha%lr%wfd%nvctr_c,wrk)
+       print *, " projector OK ha%iproc ",  ha%iproc  
+    endif
+
    if(ha%iproc.eq.0) then
       if(EP_shift /= 0 ) then
          call axpy(EP_dim_tot, EP_shift  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
       endif
    endif
 
-   if(  ha%nproc/=1) then
-      call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
-           wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
-   else
-      do k=1, EP_dim_tot
-         dumQvect(k,-p) =  wrk(k)
-      enddo
-   endif
    
+   if(p<0) then
+      if(  ha%nproc/=1) then
+         call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+              wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+      else
+         do k=1, EP_dim_tot
+            dumQvect(k,-p) =  wrk(k)
+         enddo
+      endif
+   else
+      if(  ha%nproc/=1) then
+         call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+              wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+      else
+         do k=1, EP_dim_tot
+            Qvect(k,p) =  wrk(k)
+         enddo
+      endif
+   endif
    return 
  end subroutine EP_Moltiplica
  
@@ -613,16 +693,16 @@ end subroutine EP_initialize_start
    ! :::::::::::::::::::::::::::
    integer k
    
-   if(p.ge.0) then
-      print *, " problema Moltiplica solo con dumvect per result "
-      stop
+ 
+   if(i.ge.0  .and. p<0) then
+      call axpy(EP_dim, fact,   Qvect(1,i)  , 1,  dumQvect(1,-p)  , 1)
+   elseif(i.ge.0  .and. p>=0) then
+      call axpy(EP_dim, fact,   Qvect(1,i)  , 1,  Qvect(1,p)  , 1)
+   elseif(i<0  .and. p<0) then
+      call axpy(EP_dim, fact,   dumQvect(1,-i)  , 1,  dumQvect(1,-p)  , 1)
+   else
+      call axpy(EP_dim, fact,   dumQvect(1,-i)  , 1,  Qvect(1, p)  , 1)
    endif
-   if(i.lt.0) then
-      print *, " problema Moltiplica solo con vect per input "
-      stop
-   endif
-   
-   call axpy(EP_dim, fact,   Qvect(1,i)  , 1,  dumQvect(1,-p)  , 1)
    
 !!$    do k=1,EP_dim
 !!$       dumQvect(k,-p) = dumQvect(k,-p)+fact*Qvect(k,i)
@@ -780,7 +860,140 @@ end subroutine EP_initialize_start
  end subroutine gaussians_to_wavelets_nonorm
 
 
+ subroutine lowpass_projector(n1,n2,n3,nvctr,psi)
+   use module_base
+   implicit none
+   integer, intent(in) :: nvctr,n1,n2,n3
+   real(wp), dimension(nvctr), intent(inout) :: psi
+   !local variables
+   character(len=*), parameter :: subname='projector'
+   real(gp) rx,ry,rz
+   real(gp) rxc,ryc,rzc
+   integer ia, iat
+   logical isgross
+   real(gp) radius_gross
+   integer ix,iy,iz
+   real(gp) r
+   integer countgross
 
+
+
+   !test whether the coarse grid fills the whole box
+   if (nvctr /= (n1+1)*(n2+1)*(n3+1)) then
+      write(*,*)' ERROR: projector nont implemented for non-filled coarse grids'
+      stop
+   end if
+
+   !for the moment the dimensions should be odd
+   if (mod(n1,2) /=1 .or. mod(n2,2) /=1 .or. mod(n3,2) /=1) then
+      write(*,*)' ERROR: the dimensions should be odd'
+      if (ha%nproc > 1) call MPI_FINALIZE(ierr)
+      stop
+   end if
+
+
+   if(.not. allocated(psi_gross)) then 
+      allocate(psi_gross(0:n1/2,2,0:n2/2,2,0:n3/2,2),stat=i_stat)
+      call memocc(i_stat,psi_gross,'psi_gross',subname)
+      allocate(logrid(0:n1/2,0:n2/2,0:n3/2+ndebug),stat=i_stat)
+      call memocc(i_stat,logrid,'logrid',subname)
+   endif
+
+   call analyse_per_self(n1/2,n2/2,n3/2,psi,psi_gross)
+
+!!$
+!!$
+!!$  ! coarse grid quantities
+!!$  call fill_logrid(ha%at%geocode,n1/2,n2/2,n3/2,0,n1/2,0,n2/2,0,n3/2,0,ha%at%nat,&
+!!$       ha%at%ntypes,ha%at%iatype,ha%rxyz,ha%radii_cf(1,1),8.0_gp,2.0_gp*ha%hx,2.0_gp*ha%hy,2.0_gp*ha%hz,logrid)
+
+!!$
+   do ia =1, ha%at%nat
+      iat=ha%at%iatype(ia)
+      radius_gross = ha%radii_cf(  iat ,1 )*8
+      print *, " per atomo " , ia , "   " ,  radius_gross
+   enddo
+   countgross=0
+   do ix=1,n1/2
+      do iy=1,n2/2
+         do iz = 1,n3/2
+            rx = ha%hx*(ix-1)           *2.0  
+            ry = ha%hy*(iy-1)           *2.0  
+            rz = ha%hz*(iz-1)           *2.0  
+            isgross=.true.
+            do ia =1, ha%at%nat
+               iat=ha%at%iatype(ia)
+               radius_gross = ha%radii_cf(  iat ,1 )*8
+               rxc = rx  -  ha%rxyz(1,ia )
+               ryc = ry  -  ha%rxyz(2,ia )
+               rzc = rz  -  ha%rxyz(3,ia )
+               r  = sqrt( rxc*rxc+ryc*ryc+rzc*rzc)
+               if( r < radius_gross) isgross=.false.
+               if(.not. isgross) exit
+            enddo
+            if(isgross) then
+               countgross=countgross+1
+               psi_gross(ix,2 ,iy,1 , iz,1    )=0.0_wp
+!!$
+               psi_gross(ix,2 ,iy,2 , iz,2    )=0.0_wp
+               psi_gross(ix,1 ,iy,2 , iz,2    )=0.0_wp
+               psi_gross(ix,2 ,iy,1 , iz,2    )=0.0_wp
+               psi_gross(ix,2 ,iy,2 , iz,1    )=0.0_wp
+               psi_gross(ix,1 ,iy,1 , iz,2    )=0.0_wp
+               psi_gross(ix,1 ,iy,2 , iz,1    )=0.0_wp
+!!$
+            endif
+         enddo
+      enddo
+   enddo
+
+   print *, "  countgross " , countgross
+
+!!$   do iz=1,n3/2
+!!$      do iy=1,n2/2
+!!$         do ix = 1,n1/2
+!!$            if(.not. logrid(ix,iy,iz)) then
+!!$               psi_gross(ix,2 ,iy,1 , iz,1    )=0.0_wp
+!!$            endif
+!!$         enddo
+!!$      end do
+!!$      do iy=1,n2/2
+!!$         do ix = 1,n1/2
+!!$            if(.not. logrid(ix,iy,iz)) then
+!!$               psi_gross(ix,1 ,iy,2 , iz,1    )=0.0_wp
+!!$               psi_gross(ix,2 ,iy,2 , iz,1    )=0.0_wp
+!!$            endif
+!!$         enddo
+!!$      end do
+!!$   end do
+!!$   do iz=1,n3/2
+!!$      do iy=1,n2/2
+!!$         do ix = 1,n1/2
+!!$            if(.not. logrid(ix,iy,iz)) then
+!!$               psi_gross(ix,1 ,iy,1 , iz,2    )=0.0_wp
+!!$               psi_gross(ix,2 ,iy,1 , iz,2    )=0.0_wp
+!!$            endif
+!!$         enddo
+!!$      end do
+!!$      do iy=1,n2/2
+!!$         do ix = 1,n1/2
+!!$            if(.not. logrid(ix,iy,iz)) then
+!!$               psi_gross(ix,1 ,iy,2 , iz,2    )=0.0_wp
+!!$               psi_gross(ix,2 ,iy,2 , iz,2    )=0.0_wp
+!!$            endif
+!!$         enddo
+!!$      end do
+!!$   enddo
+
+   
+   !here the projector operation
+
+   print *, " passo di qui " 
+!!$   psi_gross=0.0_wp
+
+   call synthese_per_self(n1/2,n2/2,n3/2,psi_gross,psi)
+
+ end subroutine lowpass_projector
  
  
 end module lanczos_interface

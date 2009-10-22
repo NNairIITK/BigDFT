@@ -144,14 +144,14 @@ subroutine dft_input_variables(iproc,filename,in)
   call check()
 
   !x-absorber treatment
-  read(1,*,iostat=ierror) in%iat_absorber
+  read(1,*,iostat=ierror) in%iabscalc_type
   call check()
 
 
   !read absorption-calculation input variables
   !inquire for the needed file 
   !if not present, set default ( no absorption calculation)
-  if (in%iat_absorber /= 0) then
+  if ( in%iabscalc_type/= 0) then
      inquire(file="input.abscalc",exist=exists)
      if (.not. exists) then
         if (iproc == 0) write(*,*)'ERROR: nedd file input.abscalc for x-ray absorber treatment.'
@@ -302,14 +302,6 @@ end subroutine geopt_input_variables
 !!***
 
 
-
-
-
-
-
-
-
-
 !!****f* BigDFT/abscalc_input_variables_default
 !! FUNCTION
 !!    Assign default values for ABSCALC variables
@@ -321,8 +313,9 @@ subroutine abscalc_input_variables_default(in)
   implicit none
   type(input_variables), intent(out) :: in
 
-  !put some fake values for the geometry optimsation case
   in%c_absorbtion=.false.
+  in%potshortcut=0
+
 
 end subroutine abscalc_input_variables_default
 
@@ -369,6 +362,9 @@ subroutine abscalc_input_variables(iproc,filename,in)
 
   read(111,*,iostat=ierror)  (in%Gabs_coeffs(i+ndebug), i=1,2*in%L_absorber +1 )
   call check()
+
+  read(111,*,iostat=ierror)  in%potshortcut
+  call check()
   
   read(111,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
 
@@ -397,15 +393,6 @@ contains
 
 end subroutine abscalc_input_variables
 !!***
-
-
-
-
-
-
-
-
-
 
 
 !!****f* BigDFT/dft_input_converter
@@ -442,7 +429,7 @@ subroutine dft_input_converter(in)
 
   line=''
   line=' ncharge: charge of the system, Electric field'
-  write(1,'(i3,3(f6.3),a)') in%ncharge,in%elecfield,trim(line)
+  write(1,'(i3,1(f6.3),a)') in%ncharge,in%elecfield,trim(line)
 
   line=''
   line=' nspin=1 non-spin polarization, mpol=total magnetic moment'
@@ -947,10 +934,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
 
   atoms%ntypes=0
   do iat=1,atoms%nat
-!!$     if (ierror == 0) then
-!!$        !old case of ascii file, added for backward compatibility
-!!$        if (iat /= 1) read(ifile,*) rx,ry,rz,tatonam
-!!$     else
+
      !xyz input file, allow extra information
      read(ifile,'(a150)')line 
      if (lpsdbl) then
@@ -958,8 +942,9 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
      else
         read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,extra
      end if
-     !print *,line
+     !print *,'extra',iat,extra
      call find_extra_info(line,extra)
+     !print *,'then',iat,extra
      call parse_extra_info(iproc,iat,extra,atoms)
 
      tatonam=trim(symbol)
@@ -1111,6 +1096,7 @@ subroutine find_extra_info(line,extra)
   i=1
   space=.true.
   nspace=-1
+  !print *,'line',line
   find_space : do
      !toggle the space value for each time
      if (line(i:i) == ' ' .neqv. space) then
@@ -1123,6 +1109,7 @@ subroutine find_extra_info(line,extra)
         exit find_space
      end if
      if (i==150) then
+        !print *,'AAA',extra
         extra='nothing'
         exit find_space
      end if

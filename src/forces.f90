@@ -298,9 +298,6 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:), allocatable :: scalprod
 
-!!$  !to be eliminated only for testing purposes
-!!$  fsep(:,:)=0.d0
-
   allocate(scalprod(0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
 

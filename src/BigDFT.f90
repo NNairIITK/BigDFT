@@ -147,7 +147,7 @@ program BigDFT
         if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
         call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
         filename=trim('relaxed_'//arr_posinp(iconfig))
-        call write_atomic_file(filename,etot,rxyz,atoms,' ')
+        if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,' ')
      end if
 
 

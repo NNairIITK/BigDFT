@@ -35,9 +35,12 @@ module module_types
      integer :: nvacancy,verbosity
      real(gp) :: elecfield
      real(gp):: absorber_gnrm
+     integer :: iabscalc_type   ! 0 non calc, 1 cheb ,  2 lanc
      integer :: iat_absorber, L_absorber
      real(gp), pointer:: Gabs_coeffs(:)
      logical ::  c_absorbtion , abscalc_alterpot, abscalc_eqdiff 
+     integer ::  potshortcut
+     
   end type input_variables
 !!***
 
@@ -209,7 +212,7 @@ module module_types
   type, public :: restart_objects
      integer :: n1,n2,n3
      real(gp) :: hx_old,hy_old,hz_old
-     real(wp), dimension(:), pointer :: psi
+     real(wp), dimension(:), pointer :: psi 
      real(wp), dimension(:,:), pointer :: gaucoeffs
      real(gp), dimension(:,:), pointer :: rxyz_old
      type(locreg_descriptors) :: Glr
