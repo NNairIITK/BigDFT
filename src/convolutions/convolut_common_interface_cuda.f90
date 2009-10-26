@@ -285,7 +285,7 @@ subroutine local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,&
   else
      !GPU are shared
      
-     print *,'here',GPU%full_locham
+     !print *,'here',GPU%full_locham
      !copy the potential on GPU
      call sg_create_stream(stream_ptr_first_trsf)
  
