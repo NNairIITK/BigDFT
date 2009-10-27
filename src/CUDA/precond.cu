@@ -155,6 +155,85 @@ int gpucg_precong(int n1,int n2, int n3,int npsi,int ncong,
 
 }
 
+//preconditioning loop
+//reproduces the precong_per after the precondition_preconditioner
+template<typename T>
+int gpucg_intprecong(int n1,int n2, int n3,int npsi,int ncong,
+		     T h1,T h2,T h3,T c,T *x,int *keys,T *r,T *b,T *d,
+		     T *work1,T *work2,T *work3)
+{
+
+  dim3  gridC(nblocksC, 1, 1);  
+  dim3  threadsC(ELEMS_BLOCK, nseg_blockC , 1);
+
+  gpuapply_hp<T>(n1,n2,n3,h1,h2,h3,c,
+		 x,d,keys,
+		 work1,work2,work3);
+
+  //change the sign of the 0-th step such as to use axpy calls
+  //d=d-b
+  do_blasAxpy(npsi,(T)(-1.),b,d);
+  cudaThreadSynchronize();
+
+  //r=d
+  cudaMemcpy(r,d,npsi*sizeof(T), cudaMemcpyDeviceToDevice);
+  cudaThreadSynchronize();
+
+  T rmr_new=do_blasDot(npsi, r, r);
+  cudaThreadSynchronize();
+
+  T alpha,beta,rmr_old;
+
+  for(int i=0;i < ncong;++i)
+    {
+      gpuapply_hp<T>(n1,n2,n3,h1,h2,h3,c,
+		     d,b,keys,
+		     work1,work2,work3);
+
+      alpha=rmr_new/do_blasDot(npsi, d, b);
+      cudaThreadSynchronize();
+
+      //here the sign is inverted because of the
+      //mapping d -> -d => b -> -b
+      
+      //x=x-alpha*d
+      do_blasAxpy(npsi,-alpha,d,x);
+      cudaThreadSynchronize();
+
+      if (i != ncong-1)
+	{
+	  //r=r-alpha*b (r does not change sign since also b is opposite)
+	  do_blasAxpy(npsi,-alpha,b,r);
+	  cudaThreadSynchronize();
+
+	  rmr_old=rmr_new;
+	  rmr_new=do_blasDot(npsi, r, r);
+	  cudaThreadSynchronize();
+
+	  beta=rmr_new/rmr_old;
+
+	  //d=d+1/beta*r
+	  do_blasAxpy(npsi,(T)(1)/beta,r,d);
+	  cudaThreadSynchronize();
+
+	  //d=beta*d
+	  do_blasScal(npsi,beta,d);
+	  cudaThreadSynchronize();
+	}
+  
+	
+    }
+
+
+  wscalgpu<T> <<< gridC, threadsC >>>(x,h1,h2,h3,c,keys);
+  cudaThreadSynchronize();
+
+
+  return 0;
+
+}
+
+
 extern "C" 
 void gpuprecond_(int *n1,int *n2, int *n3,int *npsi,
 		 double *h1,double *h2,double *h3,
@@ -171,6 +250,31 @@ void gpuprecond_(int *n1,int *n2, int *n3,int *npsi,
   if(gpucg_precong<double>(*n1+1,*n2+1,*n3+1,*npsi,*ncong,
 			   *h1,*h2,*h3,*c,
 			   *x,*keys,*r,*b,*d,*work1,*work2,*work3,gnrm)!= 0)
+    {
+      printf("ERROR: GPU fulllocalhamiltonian\n ");
+      return;
+    } 
+
+  CUERR;
+  return; 
+}
+
+extern "C" 
+void gpuintprecond_(int *n1,int *n2, int *n3,int *npsi,
+		    double *h1,double *h2,double *h3,
+		    double **x,int **keys, 
+		    double **r,double **b,double **d,
+		    double **work1,double **work2,double **work3,
+		    double *c,int *ncong)
+{
+  
+  /* printf("%i, %i, %i, %i,  %lf, %lf, %lf, %p, %p, %p, %p, %p %p, %p, %p, %lf, %i, %lf\n",*n1+1,*n2+1,*n3+1,*npsi,*ncong,
+	 *h1,*h2,*h3,*c,
+	 *x,*keys,*r,*b,*d,*work1,*work2,*work3,*gnrm);*/
+
+  if(gpucg_intprecong<double>(*n1+1,*n2+1,*n3+1,*npsi,*ncong,
+			      *h1,*h2,*h3,*c,
+			      *x,*keys,*r,*b,*d,*work1,*work2,*work3)!= 0)
     {
       printf("ERROR: GPU fulllocalhamiltonian\n ");
       return;
