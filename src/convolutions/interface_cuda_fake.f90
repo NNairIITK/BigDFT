@@ -130,5 +130,5 @@
 
  subroutine sg_end()
    implicit none
-   stop 'sg_end'
+   !stop 'sg_end'
  end subroutine sg_end

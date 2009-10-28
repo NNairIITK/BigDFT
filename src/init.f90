@@ -420,7 +420,7 @@ END SUBROUTINE import_gaussians
 subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
      nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,&
-     nscatterarr,ngatherarr,nspin)
+     nscatterarr,ngatherarr,nspin,  potshortcut)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -446,6 +446,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
   type(orbitals_data), intent(out) :: orbsv
   real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
+  integer potshortcut
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   integer, parameter :: ngx=31
@@ -459,6 +460,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   real(gp), dimension(:), allocatable :: locrad
   type(locreg_descriptors), dimension(:), allocatable :: Llr
   real(wp), dimension(:,:,:), pointer :: psigau
+  integer i,j,k
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -631,6 +633,9 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 !!$     call memocc(i_stat,i_all,'smat',subname)
 !!$  end if
 
+
+
+  if(potshortcut>0) return 
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(orbse%npsidim+ndebug),stat=i_stat)

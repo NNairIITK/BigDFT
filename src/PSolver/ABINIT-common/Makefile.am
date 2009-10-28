@@ -74,7 +74,8 @@ size_dvxc.o: size_dvxc.F90 \
 	defs_basis.o
 
 xchcth.o: xchcth.F90 \
-	defs_basis.o
+	defs_basis.o \
+	interfaces_14_hidewrite.o
 
 xchelu.o: xchelu.F90 \
 	defs_basis.o
@@ -93,10 +94,12 @@ xcspol.o: xcspol.F90 \
 	defs_xc.o
 
 xctetr.o: xctetr.F90 \
-	defs_basis.o
+	defs_basis.o \
+	interfaces_14_hidewrite.o
 
 xcwign.o: xcwign.F90 \
 	defs_basis.o
 
 xcxalp.o: xcxalp.F90 \
-	defs_basis.o
+	defs_basis.o \
+	interfaces_14_hidewrite.o
