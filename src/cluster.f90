@@ -656,7 +656,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   endif
 
   !allocate arrays for the GPU if a card is present
-  if (GPUconv) then
+  !do this only if the potshortcut treatment is not activated
+  if (GPUconv .and.  in%potshortcut==0) then
      call prepare_gpu_for_locham(Glr%d%n1,Glr%d%n2,Glr%d%n3,in%nspin,&
           hx,hy,hz,Glr%wfd,orbs,GPU)
   end if
@@ -1394,7 +1395,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         call  chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
-             , in%iat_absorber, in  )
+             , in%iat_absorber, in)
         
         if (nproc > 1) call MPI_FINALIZE(ierr)
         stop

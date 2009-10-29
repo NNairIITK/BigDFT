@@ -98,7 +98,8 @@ xctetr.o: xctetr.F90 \
 	interfaces_14_hidewrite.o
 
 xcwign.o: xcwign.F90 \
-	defs_basis.o
+	defs_basis.o \
+	interfaces_14_hidewrite.o
 
 xcxalp.o: xcxalp.F90 \
 	defs_basis.o \

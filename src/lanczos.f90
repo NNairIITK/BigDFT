@@ -52,10 +52,15 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   !print *, " IN ROUTINE LANCZOS "
 
-
-
   !create the orbitals descriptors, for virtual and inputguess orbitals
   call orbitals_descriptors(iproc,nproc,1,1,0,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
+
+  if (GPUconv) then
+     call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
+          hx,hy,hz,lr%wfd,ha%orbs,GPU)
+  end if
+  GPU%full_locham=.true.
+
 
   allocate(ha%orbs%eval(ha%orbs%norb+ndebug),stat=i_stat)
   call memocc(i_stat,ha%orbs%eval,'ha%orbs%eval',subname)
@@ -257,6 +262,9 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   call EP_free()
 
+  if (GPUconv) then
+     call free_gpu(GPU,ha%orbs%norbp)
+  end if
 
 
   call deallocate_orbs(ha%orbs,subname)
@@ -324,6 +332,13 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
   call orbitals_descriptors(iproc,nproc,1,1,0,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
+
+  if (GPUconv) then
+     call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
+          hx,hy,hz,lr%wfd,ha%orbs,GPU)
+  end if
+  GPU%full_locham=.true.
+
 
   allocate(ha%orbs%eval(ha%orbs%norb+ndebug),stat=i_stat)
   call memocc(i_stat,ha%orbs%eval,'ha%orbs%eval',subname)
@@ -479,6 +494,11 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   call deallocate_comms(ha%comms,subname)
 
   call EP_free()
+
+  if (GPUconv) then
+     call free_gpu(GPU,ha%orbs%norbp)
+  end if
+
 
   call deallocate_orbs(ha%orbs,subname)
 

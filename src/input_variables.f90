@@ -399,6 +399,13 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   ! Set default values.
   in%nkpt = 1
 
+  !check also the GPU activation in relation to the boundary conditions
+  if (GPUconv .and. atoms%geocode /= 'P') then
+     if (iproc==0) write(*,*)&
+          ' ERROR: the CUDA convolutions are ported only for 3D periodic boundary conditions, cannot proceed...'
+     stop
+  end if
+
   inquire(file=trim(filename),exist=exists)
   if (.not. exists) then
      ! Set only the gamma point.

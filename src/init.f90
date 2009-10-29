@@ -450,6 +450,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   integer, parameter :: ngx=31
+  logical :: switchGPUconv
   integer :: i_stat,i_all,iat,nspin_ig
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,accurex
   type(gaussian_basis) :: G
@@ -531,9 +532,13 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call memocc(i_stat,psi,'psi',subname)
 
   !allocate arrays for the GPU if a card is present
-  if (GPUconv) then
-       call prepare_gpu_for_locham(Glr%d%n1,Glr%d%n2,Glr%d%n3,nspin,&
-            hx,hy,hz,Glr%wfd,orbse,GPU)
+  switchGPUconv=.false.
+  if (GPUconv .and. potshortcut ==0 ) then
+     call prepare_gpu_for_locham(Glr%d%n1,Glr%d%n2,Glr%d%n3,nspin,&
+          hx,hy,hz,Glr%wfd,orbse,GPU)
+  else if (GPUconv .and. potshortcut >0 ) then
+     switchGPUconv=.true.
+     GPUconv=.false.
   end if
 
   !use only the part of the arrays for building the hamiltonian matrix
@@ -635,7 +640,15 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 
 
 
-  if(potshortcut>0) return 
+  if(potshortcut>0) then
+!!$    if (GPUconv) then
+!!$       call free_gpu(GPU,orbs%norbp)
+!!$    end if
+     if (switchGPUconv) then
+        GPUconv=.true.
+     end if
+    return 
+  end if
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(orbse%npsidim+ndebug),stat=i_stat)
