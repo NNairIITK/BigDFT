@@ -250,7 +250,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
   integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b 
   real(gp) :: fac
   real(wp) :: fac_h,h0,h1,h2,h3,alpha1
-  
+    
   if (lr%geocode == 'F') then
      !using hx instead of hgrid for isolated bc
      fac_h=1.0_wp/real(hx,wp)**2
@@ -343,11 +343,10 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
            !if GPU is swithced on and there is no call to GPU preconditioner
            !do not do the FFT preconditioning
-           if (.not. GPUconv) then
+           if (.not. GPUconv .or. .true.) then
               !	compute the input guess x via a Fourier transform in a cubic box.
               !	Arrays psifscf and ww serve as work arrays for the Fourier
               fac=1.0_gp/scal(0)**2
-
               call prec_fft_c(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nseg_c,&
                    lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
                    cprecr,hx,hy,hz,x(1,idx),&
@@ -356,7 +355,6 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
                    w%ww(nd1b*nd2*nd3*4+nd1*nd2*nd3f*4+1),&
                    nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,fac)
            end if
-
         end do
      end if
 

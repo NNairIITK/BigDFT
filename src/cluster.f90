@@ -863,15 +863,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   if (abs(evsum-energybs) > 1.d-8 .and. iproc==0) write( *,'(1x,a,2(1x,1pe20.13))')&
        'Difference:evsum,energybs',evsum,energybs
- 
-  if (nvirt > 0 .and. in%inputPsiId == 0) then
-     call davidson(iproc,nproc,n1i,n2i,n3i,in,atoms,cpmult,fpmult,radii_cf,&
-          orbs,orbsv,nvirt,Glr,comms,&
-          hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj, &
-          pkernel,psi,psivirt,ngatherarr,GPU)
-  end if
-
-  
+   
   !project the wavefunctions on a gaussian basis and keep in memory
   if (in%gaussian_help) then
      if (iproc.eq.0) then
@@ -1140,6 +1132,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
 
   call timing(iproc,'Forces        ','OF')
+
+  if (nvirt > 0 .and. in%inputPsiId == 0) then
+     call davidson(iproc,nproc,n1i,n2i,n3i,in,atoms,cpmult,fpmult,radii_cf,&
+          orbs,orbsv,nvirt,Glr,comms,&
+          hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj, &
+          pkernel,psi,psivirt,ngatherarr,GPU)
+  end if
 
   if (in%c_absorbtion ) then
 

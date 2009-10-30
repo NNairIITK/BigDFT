@@ -880,20 +880,20 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
         !or the forces are below the fixed tolerance
 
         if (iproc==0) then
-            if (fnrm < fluct*in%frac_fluct ) write(*,*)&
+            if (fnrm < fluct*in%frac_fluct ) write(*,'(a,2(1x,1pe24.17))')&
                  'SD EXIT because fnrm < fluct*frac_fluct' ,&
                  fnrm,fluct*in%frac_fluct
-            if (fmax < forcemax_sw ) write(*,*)&
+            if (fmax < forcemax_sw ) write(*,'(a,2(1x,1pe24.17))')&
                  'SD EXIT because fmax < forcemax_sw ',&
                  fmax , forcemax_sw
-            if (nsatur > 5  ) write(*,*)&
+            if (nsatur > 5  ) write(*,'(a,1x,i0)')&
                  'SD EXIT because nsatur > 5 ',nsatur 
-            if (fnrm < fluct*in%frac_fluct ) write(16,*) &
+            if (fnrm < fluct*in%frac_fluct ) write(16,'(a,2(1x,1pe24.17))') &
                  'SD EXIT because fnrm < fluct*frac_fluct',&
                  fnrm , fluct*in%frac_fluct
-            if (fmax < forcemax_sw ) write(16,*)&
+            if (fmax < forcemax_sw ) write(16,'(a,2(1x,1pe24.17))')&
                  'SD EXIT because fmax < forcemax_sw ' ,fmax , forcemax_sw
-            if (nsatur > 5  ) write(16,*) 'SD EXIT because nsatur > 5 ',nsatur 
+            if (nsatur > 5  ) write(16,'(a,1x,i0)') 'SD EXIT because nsatur > 5 ',nsatur 
         endif
 
         if (fnrm < fluct*in%frac_fluct .or. &
