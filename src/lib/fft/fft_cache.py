@@ -9,13 +9,13 @@ text = "integer, parameter :: ncache"
 
 def do_cache(ncache,args):
     re_ncache = re.compile(text+".*",re.MULTILINE)
-    file_module = open("fft3d.f90").read()
+    file_module = open("fft3d-temp.f90").read()
     file_module = re_ncache.sub(text+"=%d\n" % ncache,file_module)
-    open("toto.f90","w").write(file_module)
+    open("fft3d-temp.f90","w").write(file_module)
     sys.stdout.write("compile.")
     sys.stdout.flush()
-    os.system("%s -c toto.f90" % args)
-    os.system("%s -o fft_cache fft_cache.f90 toto.f90" % args)
+    os.system("%s -c fft3d-temp.f90" % args)
+    os.system("%s -o fft_cache fft_cache-temp.f90 fft3d-temp.f90" % args)
     sys.stdout.write("test")
     sys.stdout.flush()
     os.system("./fft_cache >> fft_cache.out 2>&1")
@@ -97,5 +97,9 @@ for c in caches:
     fd.write("%s %s %s\n" % (c,perf,dico[128][c]))
 fd.close()
 
+start = "\033[0;32m"
+end = "\033[m"
+print "Use fft_cache.gnuplot to display the results"
 print "The best ncache between tested values for 50 <= n1 <= 500 is ncache=",best
+print start+"Test succeeded"+end
 
