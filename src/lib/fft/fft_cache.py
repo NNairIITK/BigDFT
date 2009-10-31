@@ -3,25 +3,43 @@
 
 import re
 import os
+import sys
 
 text = "integer, parameter :: ncache"
 
-def do_cache(ncache):
+def do_cache(ncache,args):
     re_ncache = re.compile(text+".*",re.MULTILINE)
     file_module = open("fft3d.f90").read()
     file_module = re_ncache.sub(text+"=%d\n" % ncache,file_module)
     open("toto.f90","w").write(file_module)
-    os.system("gfortran -c toto.f90")
-    os.system("gfortran -o fft_cache fft_cache.f90 toto.f90")
-    os.system("./fft_cache")
+    sys.stdout.write("compile.")
+    sys.stdout.flush()
+    os.system("%s -c toto.f90" % args)
+    os.system("%s -o fft_cache fft_cache.f90 toto.f90" % args)
+    sys.stdout.write("test")
+    sys.stdout.flush()
+    os.system("./fft_cache >> fft_cache.out 2>&1")
 
-list = [ 1, 6, 10, 20, 50, 100, 500, 1000]
+list_cache = [ 0, 6, 12, 24, 50, 75, 100]
+
+if len(sys.argv) == 1:
+    sys.stderr.write("Usage: fft_cache name_of_compiler_and_options\n")
+    sys.exit(1)
+args=""
+for i in sys.argv[1:]:
+    args += "%s " % i
 
 #Remove the file "fft_cache.dat"
-os.remove("fft_cache.dat")
-for ncache in list:
-    do_cache(ncache*1024)
-    print ncache
+if os.path.exists("fft_cache.dat"):
+    os.remove("fft_cache.dat")
+if os.path.exists("fft_cache.out"):
+    os.remove("fft_cache.out")
+
+for ncache in list_cache:
+    sys.stdout.write("[%d:" % ncache)
+    do_cache(ncache*1024,args)
+    sys.stdout.write("]")
+sys.stdout.write("done.\n")
 
 #Build new file
 dico = dict()
@@ -36,7 +54,7 @@ for line in open("fft_cache.dat").readlines():
         lengthes.add(length)
         if not dico.has_key(length):
             dico[length] = dict()
-        dico[length][cache] = line[-1]
+        dico[length][cache] = float(line[-1])
 
 caches = list(caches)
 caches.sort()
@@ -49,12 +67,35 @@ for c in caches:
     fd.write(" %d" % c)
 fd.write("\n")
 
+performances = dict()
+for c in caches:
+    performances[c] = 0.
+
 for l in lengthes:
-    fd.write("%d" % l)
+    fd.write("%d " % l)
+    best = 1.e10
     for c in caches:
         if dico[l].has_key(c):
-            fd.write("%s" % dico[l][c])
+            perf = dico[l][c]
+            fd.write("%f20.15 " % perf)
+            if perf < best:
+                best = perf
+            if l >= 50 and l <= 500:
+                performances[c] += perf
         else:
             fd.write(" * ")
-    fd.write("\n")
+    fd.write("%f20.15\n" % best)
 fd.close()
+
+best = caches[0]
+fd = open("fft_perf.dat","w")
+fd.write("#ncache performances (50 <= x <+ 500) time(n1=128)\n")
+for c in caches:
+    perf = performances[c] 
+    if performances[c] < performances[best]:
+        best = c
+    fd.write("%s %s %s\n" % (c,perf,dico[128][c]))
+fd.close()
+
+print "The best ncache between tested values for 50 <= n1 <= 500 is ncache=",best
+

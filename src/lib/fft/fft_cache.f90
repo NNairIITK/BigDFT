@@ -37,18 +37,22 @@ program fft_cache
    use module_fft_sg
    implicit none
    integer, parameter :: iunit=21
-   integer :: i,j,n1
+   integer :: i,j,n1,ntime
    real(kind=8) :: t1,t2
-   write(*,'(a)') 'FFT test: (n1,n2,n3)'
+   logical :: ok_test
+   !write(*,'(a)') 'FFT test: (n1,n2,n3)'
    open(unit=iunit,file="fft_cache.dat",status="unknown",position="append")
    do i=1,ndata
       call cpu_time(t1)
       n1 = i_data(i)
-      do j=1,nfft_max/n1+1
-         call do_fft(n1, 3, 3,j)
+      ntime=2*(nfft_max/n1+1)
+      do j=1,ntime
+         !call do_fft(n1, 3, 3,j)
+         call do_fft(n1, 3, 3, 0, ok_test)
+         if (.not.ok_test) STOP 'fft_cache: One test has failed!'
       end do
       call cpu_time(t2)
-      write(unit=6,fmt=*) j,t2-t1
+      !write(unit=6,fmt=*) j,t2-t1
       write(unit=iunit,fmt=*) ncache,n1,t2-t1
    end do
    write(unit=iunit,fmt=*) 
@@ -56,12 +60,13 @@ program fft_cache
 
 contains
 
-   subroutine do_fft(n1,n2,n3,itime)
+   subroutine do_fft(n1,n2,n3,itime,ok_test)
 
       implicit none
 
       ! dimension parameters
       integer, intent(in) :: n1, n2, n3, itime
+      logical, intent(out) :: ok_test
       ! Local variables
       integer :: count1,count2,count_rate,count_max,i,inzee,i_sign
       real(kind=8) :: ttm,tta,t1,t2,tela,time,flops
@@ -110,8 +115,10 @@ contains
                        n1,n2,n3,zin,1.d0/real(n1*n2*n3,kind=8),tta,ttm)
         if (ttm.gt.1.d-10) then
            message = 'Failed'
+           ok_test = .False.
         else
            message = 'Succeeded'
+           ok_test = .True.
         end if
         flops=5*n1*n2*n3*log(1.d0*n1*n2*n3)/log(2.d0)
         !write(6,'(a,2(x,e11.4),x,i4)')  'Time (CPU,ELA) per FFT call (sec):' ,time,tela
