@@ -200,7 +200,7 @@ program BigDFT
      !finalize memory counting
      call memocc(0,0,'count','stop')
 
-     call sg_end()
+!     call sg_end()
 
   enddo !loop over iconfig
 
