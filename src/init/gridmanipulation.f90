@@ -266,7 +266,7 @@ subroutine correct_grid(a,h,n)
      !control if the double of this dimension is compatible with the FFT
      call fourier_dim(2*m,m2)
      !if this check is passed both the preconditioner and the PSolver works
-     if (m2==2*m) exit
+     if (m2==2*m   .and. mod(m,2) ==0  ) exit
 
      nt=m+1
   end do

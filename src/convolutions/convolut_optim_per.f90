@@ -551,18 +551,18 @@ end subroutine convrot_t_per
 !!!!!commented out as this routine is not used 
 subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
 !  !   applies the kinetic energy operator onto x to get y. Works for periodic BC
-  use module_base
-  implicit none
+!  use module_base
+!  implicit none
 !
 !
-  integer, intent(in) :: n1,n2,n3
-  real(gp),intent(in)::c
-  real(gp), dimension(3), intent(in) :: hgrid
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y
-
+!  integer, intent(in) :: n1,n2,n3
+!  real(gp),intent(in)::c
+!  real(gp), dimension(3), intent(in) :: hgrid
+!  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
+!  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y
+!
   stop 'convolut_kinetic_per_c should never be called'
-
+!
 !  !local variables
 !  integer, parameter :: lowfil=-14,lupfil=14
 !  integer :: i1,i2,i3,i,l,j,k

@@ -1,3 +1,21 @@
+EXTRA_DIST = include/s_gpu.h \
+	include/sg_common_def.h \
+	src/class_utils.h \
+	src/exceptions.h \
+	src/fct_call_implementation.h \
+	src/localqueu.h \
+	src/manage_global_var.h \
+	src/read_conf_exception.h \
+	src/set_repartition.h \
+	src/cudafct.h \
+	src/fct_call.h \
+	src/init_network.h \
+	src/manage_cpu_affinity.h \
+	src/message.h \
+	src/read_conf_file.h
+
+
+
 S_GPU_SOURCES = src/bindings/C/s_gpu_C.cpp \
 	src/fct_call_implementation.cpp  \
 	src/localqueu.cpp \

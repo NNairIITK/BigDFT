@@ -52,7 +52,6 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
      nspinn=nspin
   end if
 
-
   !flag for toggling the REDUCE_SCATTER stategy
   rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
        & (ixc < 0 .and. libxc_functionals_isgga())) .and. .not. have_mpi2

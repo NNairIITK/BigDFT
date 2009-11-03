@@ -59,6 +59,13 @@ module module_base
   !inside localize_projectors routines
   logical :: DistProjApply=.true.
 
+  !interface for MPI_ALLREDUCE routine
+  interface mpiallred
+     module procedure mpiallred_int,mpiallred_real,mpiallred_double
+  end interface
+
+
+
   !interfaces for LAPACK routines
   interface potrf
      module procedure potrf_simple,potrf_double
@@ -136,6 +143,100 @@ module module_base
   end interface
 
   contains
+    
+    !interface for MPI_ALLREDUCE operations
+    subroutine mpiallred_int(buffer,ntot,mpi_op,mpi_comm,ierr)
+      implicit none
+      integer, intent(in) :: ntot,mpi_op,mpi_comm
+      integer, intent(in) :: buffer
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI2
+      !case with MPI_IN_PLACE
+      call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
+           MPI_INTEGER,mpi_op,mpi_comm,ierr)
+#else
+      !local variables
+      character(len=*), parameter :: subname='mpi_allred'
+      integer :: i_all,i_stat
+      integer, dimension(:), allocatable :: copybuf
+
+      !case without mpi_in_place
+      allocate(copybuf(ntot+ndebug),stat=i_stat)
+      call memocc(i_stat,copybuf,'copybuf',subname)
+
+      !not appropriate for integers, to be seen if it works
+      call scopy(ntot,buffer,1,copybuf,1) 
+
+      call MPI_ALLREDUCE(copybuf,buffer,ntot,&
+           MPI_INTEGER,mpi_op,mpi_comm,ierr)
+      
+      i_all=-product(shape(copybuf))*kind(copybuf)
+      deallocate(copybuf,stat=i_stat)
+      call memocc(i_stat,i_all,'copybuf',subname)
+#endif
+    end subroutine mpiallred_int
+
+    subroutine mpiallred_real(buffer,ntot,mpi_op,mpi_comm,ierr)
+      implicit none
+      integer, intent(in) :: ntot,mpi_op,mpi_comm
+      real(kind=4), intent(in) :: buffer
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI2
+      !case with MPI_IN_PLACE
+      call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
+           MPI_REAL,mpi_op,mpi_comm,ierr)
+#else
+      !local variables
+      character(len=*), parameter :: subname='mpi_allred'
+      integer :: i_all,i_stat
+      real(kind=4), dimension(:), allocatable :: copybuf
+
+      !case without mpi_in_place
+      allocate(copybuf(ntot+ndebug),stat=i_stat)
+      call memocc(i_stat,copybuf,'copybuf',subname)
+      
+      call scopy(ntot,buffer,1,copybuf,1) 
+
+      call MPI_ALLREDUCE(copybuf,buffer,ntot,&
+           MPI_REAL,mpi_op,mpi_comm,ierr)
+      
+      i_all=-product(shape(copybuf))*kind(copybuf)
+      deallocate(copybuf,stat=i_stat)
+      call memocc(i_stat,i_all,'copybuf',subname)
+#endif
+    end subroutine mpiallred_real
+
+    subroutine mpiallred_double(buffer,ntot,mpi_op,mpi_comm,ierr)
+      implicit none
+      integer, intent(in) :: ntot,mpi_op,mpi_comm
+      real(kind=8), intent(in) :: buffer
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI2
+      !case with MPI_IN_PLACE
+      call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
+           MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+#else
+      !local variables
+      character(len=*), parameter :: subname='mpi_allred'
+      integer :: i_all,i_stat
+      real(kind=8), dimension(:), allocatable :: copybuf
+
+      !case without mpi_in_place
+      allocate(copybuf(ntot+ndebug),stat=i_stat)
+      call memocc(i_stat,copybuf,'copybuf',subname)
+      
+      call dcopy(ntot,buffer,1,copybuf,1) 
+
+      call MPI_ALLREDUCE(copybuf,buffer,ntot,&
+           MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+      
+      i_all=-product(shape(copybuf))*kind(copybuf)
+      deallocate(copybuf,stat=i_stat)
+      call memocc(i_stat,i_all,'copybuf',subname)
+#endif
+    end subroutine mpiallred_double
+    
+
 
     !interfaces for LAPACK routines
     !WARNING: in these interfaces the input arrays are declared as scalars,
