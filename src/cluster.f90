@@ -762,7 +762,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                  end if
                  potion_overwritten=.true.
               end if
-           call correct_hartree_potential(atoms,iproc,nproc,&
+              call correct_hartree_potential(atoms,iproc,nproc,&
                    Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
                    n3p,n3pi,n3d,i3s,i3xcsh,hxh,hyh,hzh,pkernel,ngatherarr,&
                    rhoref,pkernel_ref,pot_ion,rhopot,ixc,in%nspin,ehart,eexcu,vexcu,PSquiet,&
