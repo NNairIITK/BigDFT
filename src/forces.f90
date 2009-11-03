@@ -143,10 +143,10 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      floc(2,iat)=fyion+(hxh*hyh*hzh*prefactor)*fyerf+(hxh*hyh*hzh/rloc**2)*fygau
      floc(3,iat)=fzion+(hxh*hyh*hzh*prefactor)*fzerf+(hxh*hyh*hzh/rloc**2)*fzgau
 
-!!$     !only for testing purposes, printing the components of the forces for each atoms
-!!$     write(10+iat,'(2(1x,3(1x,1pe12.5)))') &
-!!$          (hxh*hyh*hzh*prefactor)*fxerf,(hxh*hyh*hzh*prefactor)*fyerf,&
-!!$          (hxh*hyh*hzh*prefactor)*fzerf,(hxh*hyh*hzh/rloc**2)*fxgau,(hxh*hyh*hzh/rloc**2)*fygau,(hxh*hyh*hzh/rloc**2)*fzgau
+!!!     !only for testing purposes, printing the components of the forces for each atoms
+!!!     write(10+iat,'(2(1x,3(1x,1pe12.5)))') &
+!!!          (hxh*hyh*hzh*prefactor)*fxerf,(hxh*hyh*hzh*prefactor)*fyerf,&
+!!!          (hxh*hyh*hzh*prefactor)*fzerf,(hxh*hyh*hzh/rloc**2)*fxgau,(hxh*hyh*hzh/rloc**2)*fygau,(hxh*hyh*hzh/rloc**2)*fzgau
 
   end do
 
@@ -511,10 +511,10 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
 
   end do
 
-!!$  do iat=1,at%nat
-!!$     write(20+iat,'(1x,i5,1x,3(1x,1pe12.5))') &
-!!$          iat,fsep(1,iat),fsep(2,iat),fsep(3,iat)
-!!$  end do
+!!!  do iat=1,at%nat
+!!!     write(20+iat,'(1x,i5,1x,3(1x,1pe12.5))') &
+!!!          iat,fsep(1,iat),fsep(2,iat),fsep(3,iat)
+!!!  end do
 
   i_all=-product(shape(fxyz_orb))*kind(fxyz_orb)
   deallocate(fxyz_orb,stat=i_stat)

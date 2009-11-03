@@ -34,12 +34,12 @@
       afunc=solvertype
    end if
 
-!!$  call getarg(4,chain)
-!!$  read(unit=chain,fmt=*) ixc
-!!$  call getarg(5,chain)
-!!$  read(unit=chain,fmt=*) geocode
-!!$  call getarg(6,chain)
-!!$  read(unit=chain,fmt=*) datacode
+!!!  call getarg(4,chain)
+!!!  read(unit=chain,fmt=*) ixc
+!!!  call getarg(5,chain)
+!!!  read(unit=chain,fmt=*) geocode
+!!!  call getarg(6,chain)
+!!!  read(unit=chain,fmt=*) datacode
 
 
    open(unit=12,file='results.out',status='unknown')
@@ -49,17 +49,17 @@
    acell=14.d0
    sigma=1.d0
 
-!!$   !!!!!INPUT VARIABLES THAT CAN BE MODIFIED
-!!$   !type of the solver:
-!!$   !       'F' for Free (Isolated) BC
-!!$   !       'S' for Surfaces BC
-!!$   !       'P' for Periodic BC
-!!$   solvertype='P'
-!!$   !degree of interpolating scaling functions
-!!$   isf_order=16
-!!$   !grid spacing
-!!$   hgrid=0.1d0
-!!$   !!!!!END OF THE INPUT VARIABLES
+!!!   !!!!!INPUT VARIABLES THAT CAN BE MODIFIED
+!!!   !type of the solver:
+!!!   !       'F' for Free (Isolated) BC
+!!!   !       'S' for Surfaces BC
+!!!   !       'P' for Periodic BC
+!!!   solvertype='P'
+!!!   !degree of interpolating scaling functions
+!!!   isf_order=16
+!!!   !grid spacing
+!!!   hgrid=0.1d0
+!!!   !!!!!END OF THE INPUT VARIABLES
 
    !in the case of a multiple run, consider the possibility to 
    !uncomment the following lines for making a loop cycle on the grid spacing
@@ -235,15 +235,15 @@
    norm=norm*hgrid**3
 
    !print *,'norm',norm
-!!$   !plot of the functions used
-!!$   do i1=1,n1
-!!$      x = hgrid*real(i1,kind=8)-0.5d0*length!valid if hy=hz
-!!$      y = hgrid*real(i1,kind=8)-0.5d0*length 
-!!$      call functions(x,length,zero,fx,fx2,5)
-!!$      call functions(y,length,zero,fy,fy2,6)
-!!$      write(20,*)i1,fx,fx2,fy,fy2,rhoS(n1/2,i1,n3/2),potS(n1/2,i1,n3/2),&
-!!$           rhoF(i1,n2/2,n3/2),potF(i1,n2/2,n3/2)
-!!$   end do
+!!!   !plot of the functions used
+!!!   do i1=1,n1
+!!!      x = hgrid*real(i1,kind=8)-0.5d0*length!valid if hy=hz
+!!!      y = hgrid*real(i1,kind=8)-0.5d0*length 
+!!!      call functions(x,length,zero,fx,fx2,5)
+!!!      call functions(y,length,zero,fy,fy2,6)
+!!!      write(20,*)i1,fx,fx2,fy,fy2,rhoS(n1/2,i1,n3/2),potS(n1/2,i1,n3/2),&
+!!!           rhoF(i1,n2/2,n3/2),potF(i1,n2/2,n3/2)
+!!!   end do
 
  end subroutine assign_functions
 

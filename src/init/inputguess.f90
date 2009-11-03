@@ -650,13 +650,13 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
   
 
   call razero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff)
-!!$  do jorb=1,orbse%norbp
-!!$     do ispinor=1,orbse%nspinor
-!!$        do icoeff=1,G%ncoeff
-!!$           gaucoeff(icoeff,ispinor,jorb)=0.0_wp
-!!$        end do
-!!$     end do
-!!$  end do
+!!!  do jorb=1,orbse%norbp
+!!!     do ispinor=1,orbse%nspinor
+!!!        do icoeff=1,G%ncoeff
+!!!           gaucoeff(icoeff,ispinor,jorb)=0.0_wp
+!!!        end do
+!!!     end do
+!!!  end do
 
   !allocate and assign the exponents and the coefficients
   allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
@@ -886,13 +886,13 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
                              gaucoeff(icoeff,1,jorb)=0.5_wp*sqrt(3.0_wp)
                              gaucoeff(icoeff,2,jorb)=0.5_wp
 
-!!$                             write(17+iproc,'(8i6)')iproc,ikorb,iorb,&
-!!$                                  ikpts,icoeff,l,m,G%ncoeff
+!!!                             write(17+iproc,'(8i6)')iproc,ikorb,iorb,&
+!!!                                  ikpts,icoeff,l,m,G%ncoeff
 
-!!$                          do ispinor=1,orbse%nspinor
-!!$                             !we can put a phase for check with the complex wavefunction
-!!$                             gaucoeff(icoeff,ispinor,jorb)=1.0_wp/sqrt(2.0_wp)
-!!$                          end do
+!!!                          do ispinor=1,orbse%nspinor
+!!!                             !we can put a phase for check with the complex wavefunction
+!!!                             gaucoeff(icoeff,ispinor,jorb)=1.0_wp/sqrt(2.0_wp)
+!!!                          end do
                           else if (orbse%nspinor == 4) then
                              !assign the input orbitals according to the atomic moments
                              fac=0.5_gp
@@ -1093,12 +1093,12 @@ subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
   !write(*,*) 'ek=',ek,tt,l,ng
   ! scale atomic wavefunction
   tt=sqrt(1._gp/tt)
-!!$        if (l.eq.0) then  ! multiply with 1/sqrt(4*pi)
-!!$        tt=tt*0.28209479177387814347_gp
-!!$        else if (l.eq.1) then  ! multiply with sqrt(3/(4*pi))
-!!$        tt=tt*0.48860251190291992159_gp
-!!$        !decide the value of the normalization to be used
-!!$        endif
+!!!        if (l.eq.0) then  ! multiply with 1/sqrt(4*pi)
+!!!        tt=tt*0.28209479177387814347_gp
+!!!        else if (l.eq.1) then  ! multiply with sqrt(3/(4*pi))
+!!!        tt=tt*0.48860251190291992159_gp
+!!!        !decide the value of the normalization to be used
+!!!        endif
   do i=1,ng
      psiatn(i)=psiat(i)*tt
   enddo
@@ -1718,26 +1718,26 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
   end do
 
 ! writing lines suppressed
-!!$        write(66,*)  lmax+1
-!!$        write(66,*) ' #LINETYPE{1324}' 
-!!$        write(66,*) ' $' 
-!!$  do l=0,lmax
-!!$           write(66,*) ' 161'
-!!$     r=0._gp
-!!$     do
-!!$        tt= wave(ng,l,xp,psi(0,1,l+1),r)
-!!$              write(66,*) r,tt
-!!$        r=r+.025_gp
-!!$        if(r > 4.00001_gp) exit
-!!$     end do
-!!$  end do
+!!!        write(66,*)  lmax+1
+!!!        write(66,*) ' #LINETYPE{1324}' 
+!!!        write(66,*) ' $' 
+!!!  do l=0,lmax
+!!!           write(66,*) ' 161'
+!!!     r=0._gp
+!!!     do
+!!!        tt= wave(ng,l,xp,psi(0,1,l+1),r)
+!!!              write(66,*) r,tt
+!!!        r=r+.025_gp
+!!!        if(r > 4.00001_gp) exit
+!!!     end do
+!!!  end do
 ! writing lines suppressed
-!!$        write(67,*) min(lmax+1,3)
-!!$        write(67,*) ' #LINETYPE{132}'
-!!$        write(67,*) ' #TITLE{FOURIER}' 
-!!$        write(67,*) ' $'
+!!!        write(67,*) min(lmax+1,3)
+!!!        write(67,*) ' #LINETYPE{132}'
+!!!        write(67,*) ' #TITLE{FOURIER}' 
+!!!        write(67,*) ' $'
   dr=6.28_gp/rprb/200._gp
-!!$        write(67,*) ' 200'
+!!!        write(67,*) ' 200'
   rk=0._gp
   loop_rk1: do 
      tt=0._gp
@@ -1747,12 +1747,12 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
         sd=sqrt(xp(i))
         tt=tt+psi(i,1,1)*0.4431134627263791_gp*texp/sd**3
      end do
-!!$           write(67,*) rk,tt
+!!!           write(67,*) rk,tt
      rk=rk+dr
      if(rk > 6.28_gp/rprb-.5_gp*dr) exit loop_rk1
   end do loop_rk1
   if (lmax.ge.1) then
-!!$           write(67,*) ' 200'
+!!!           write(67,*) ' 200'
      rk=0._gp
      loop_rk2: do 
         tt=0._gp
@@ -1761,13 +1761,13 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
            sd=sqrt(xp(i))
            tt=tt+psi(i,1,2)*0.2215567313631895_gp*rk*texp/sd**5
         end do
-!!$              write(67,*) rk,tt
+!!!              write(67,*) rk,tt
         rk=rk+dr
         if (rk > 6.28_gp/rprb-.5_gp*dr) exit loop_rk2
      end do loop_rk2
   end if
   if (lmax.ge.2) then
-!!$           write(67,*) ' 200'
+!!!           write(67,*) ' 200'
      rk=0._gp
      do 
         tt=0._gp
@@ -1776,7 +1776,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
            sd=sqrt(xp(i))
            tt=tt+psi(i,1,3)*0.1107783656815948_gp*rk**2*texp/sd**7
         end do
-!!$              write(67,*) rk,tt
+!!!              write(67,*) rk,tt
         rk=rk+dr
         if (rk > 6.28_gp/rprb-.5_gp*dr) exit
      end do

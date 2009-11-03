@@ -748,9 +748,9 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   deallocate(ovrlp,stat=i_stat)
   call memocc(i_stat,i_all,'ovrlp',subname)
 
-!!$  do iorb=1,norbp
-!!$     print *,'iorb, dual,coeffs',iorb,coeffs(:,iorb)
-!!$  end do
+!!!  do iorb=1,norbp
+!!!     print *,'iorb, dual,coeffs',iorb,coeffs(:,iorb)
+!!!  end do
   
 end subroutine dual_gaussian_coefficients
 
@@ -1200,11 +1200,11 @@ function secondprod1(p,l)
   !divide by the last value
   part1=real(l,gp)/part1
   tt=rfac(l-2*p+1,l-1)
-!!$  part1=1.d0
-!!$  do i=p+1,2*p !in the second case the bound must be changed here
-!!$     tt=real(i,gp)
-!!$     part1=part1*tt
-!!$  end do
+!!!  part1=1.d0
+!!!  do i=p+1,2*p !in the second case the bound must be changed here
+!!!     tt=real(i,gp)
+!!!     part1=part1*tt
+!!!  end do
   secondprod1=tt*part1
 end function secondprod1
 
@@ -1221,11 +1221,11 @@ function secondprod2(p,l)
   !divide by the last value
   part1=real(l,gp)/part1
   tt=rfac(2*p+1,l-1)
-!!$  part1=1.d0
-!!$  do i=p+1,2*p !in the second case the bound must be changed here
-!!$     tt=real(i,gp)
-!!$     part1=part1*tt
-!!$  end do
+!!!  part1=1.d0
+!!!  do i=p+1,2*p !in the second case the bound must be changed here
+!!!     tt=real(i,gp)
+!!!     part1=part1*tt
+!!!  end do
   secondprod2=tt*part1
 end function secondprod2
 

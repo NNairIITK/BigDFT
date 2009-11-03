@@ -37,6 +37,8 @@ subroutine ana_rot_per(n,ndat,x,y)
   real(wp) :: ci1,ci2,ci3,ci4,ci5,ci6,ci7,ci8
   real(wp) :: di1,di2,di3,di4,di5,di6,di7,di8
 
+ write(*,*) 'ana_rot_per executed'
+
   call fill_mod_arr(mod_arr,-7,2*n+8,2*n+2)
 
 !dee
@@ -557,7 +559,7 @@ subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
 !  real(gp),intent(in)::c
 !  real(gp), dimension(3), intent(in) :: hgrid
 !  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
-!  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y
+!  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y
 !
   stop 'convolut_kinetic_per_c should never be called'
 !

@@ -674,22 +674,22 @@ contains
 
        call EP_copy(i+1, p)
        ! emergenza
-!!$       call EP_GramSchmidt(i+1,i+1)
-!!$       call EP_normalizza(i+1)
+!!!       call EP_GramSchmidt(i+1,i+1)
+!!!       call EP_normalizza(i+1)
 
 
        
-!!$
-!!$
-!!$       print *, "LB_beta(",i,")=" , LB_beta(i)
-!!$       ! controlla hermitianicita
-!!$       call EP_Moltiplica(p, i+1 )
-!!$       print *, "alla rovescio " , EP_scalare(p,i)- LB_beta(i)
-!!$       
-!!$       if (i.gt.2) then
-!!$          print *, "con due prima " , EP_scalare(i-1,i+1)
-!!$
-!!$       endif
+!!!
+!!!
+!!!       print *, "LB_beta(",i,")=" , LB_beta(i)
+!!!       ! controlla hermitianicita
+!!!       call EP_Moltiplica(p, i+1 )
+!!!       print *, "alla rovescio " , EP_scalare(p,i)- LB_beta(i)
+!!!       
+!!!       if (i.gt.2) then
+!!!          print *, "con due prima " , EP_scalare(i-1,i+1)
+!!!
+!!!       endif
 
 
     enddo

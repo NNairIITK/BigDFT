@@ -238,10 +238,10 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   character*40 comment
   type(parameterminimization)::parmin
   parmin%betax=in%betax
-!!$  !Read from input.geopt
-!!$  open(84,file="input.geopt")
-!!$  read(84,*) parmin%approach
-!!$  close(84)
+!!!  !Read from input.geopt
+!!!  open(84,file="input.geopt")
+!!!  read(84,*) parmin%approach
+!!!  close(84)
   parmin%approach=in%geopt_approach
   n=3*at%nat
   fail=.false.    
@@ -386,7 +386,11 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         exit
      endif
 
-     if(ncount_bigdft>in%ncount_cluster_x-1)  exit
+     if(ncount_bigdft>in%ncount_cluster_x-1)  then 
+      if (iproc==0)  write(16,*) 'BFGS exited before the geometry optimization converged because more than ',& 
+                            in%ncount_cluster_x,' wavefunction optimizations were required'
+      exit
+     endif
 
 
   enddo bfgs_loop   ! main BFGS loop
@@ -480,6 +484,8 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,&
        fluctsum,nfluct,fnrm,in,in%forcemax,nitsd,fluct)
   if (ncount_bigdft >= in%ncount_cluster_x) then
+      if (iproc==0)  write(16,*) 'SDCG exited before the geometry optimization converged because more than ',&
+                            in%ncount_cluster_x,' wavefunction optimizations were required'
      call close_and_deallocate
      return
   end if
@@ -540,27 +546,27 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         
         tpos=rxyz
         call atomic_axpy(at,rxyz,beta,hh,rxyz)
-!!$        do iat=1,at%nat
-!!$           tpos(1,iat)=rxyz(1,iat)
-!!$           tpos(2,iat)=rxyz(2,iat)
-!!$           tpos(3,iat)=rxyz(3,iat)
-!!$           if ( .not. at%lfrztyp(iat)) then
-!!$              if (at%geocode == 'P') then
-!!$                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*hh(1,iat),at%alat1)
-!!$                 rxyz(2,iat)=modulo(rxyz(2,iat)+beta*hh(2,iat),at%alat2)
-!!$                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*hh(3,iat),at%alat3)
-!!$              else if (at%geocode == 'S') then
-!!$                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*hh(1,iat),at%alat1)
-!!$                 rxyz(2,iat)=rxyz(2,iat)+beta*hh(2,iat)
-!!$                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*hh(3,iat),at%alat3)
-!!$              else
-!!$                 rxyz(1,iat)=rxyz(1,iat)+beta*hh(1,iat)
-!!$                 rxyz(2,iat)=rxyz(2,iat)+beta*hh(2,iat)
-!!$                 rxyz(3,iat)=rxyz(3,iat)+beta*hh(3,iat)
-!!$              end if
-!!$
-!!$           end if
-!!$        end do
+!!!        do iat=1,at%nat
+!!!           tpos(1,iat)=rxyz(1,iat)
+!!!           tpos(2,iat)=rxyz(2,iat)
+!!!           tpos(3,iat)=rxyz(3,iat)
+!!!           if ( .not. at%lfrztyp(iat)) then
+!!!              if (at%geocode == 'P') then
+!!!                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*hh(1,iat),at%alat1)
+!!!                 rxyz(2,iat)=modulo(rxyz(2,iat)+beta*hh(2,iat),at%alat2)
+!!!                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*hh(3,iat),at%alat3)
+!!!              else if (at%geocode == 'S') then
+!!!                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*hh(1,iat),at%alat1)
+!!!                 rxyz(2,iat)=rxyz(2,iat)+beta*hh(2,iat)
+!!!                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*hh(3,iat),at%alat3)
+!!!              else
+!!!                 rxyz(1,iat)=rxyz(1,iat)+beta*hh(1,iat)
+!!!                 rxyz(2,iat)=rxyz(2,iat)+beta*hh(2,iat)
+!!!                 rxyz(3,iat)=rxyz(3,iat)+beta*hh(3,iat)
+!!!              end if
+!!!
+!!!           end if
+!!!        end do
         avbeta=avbeta+beta/in%betax
         avnum=avnum+1._gp
 
@@ -623,16 +629,16 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         call atomic_dot(at,fxyz,fxyz,oben2)
         oben=oben2-oben1
 
-!!$        obenx=0._gp
-!!$        obeny=0._gp
-!!$        obenz=0._gp
-!!$        unten=0._gp
-!!$        do iat=1,at%nat
-!!$           obenx=obenx+(fxyz(1,iat)-gpf(1,iat))*fxyz(1,iat)
-!!$           obeny=obeny+(fxyz(2,iat)-gpf(2,iat))*fxyz(2,iat)
-!!$           obenz=obenz+(fxyz(3,iat)-gpf(3,iat))*fxyz(3,iat)
-!!$           unten=unten+gpf(1,iat)**2+gpf(2,iat)**2+gpf(3,iat)**2
-!!$        end do
+!!!        obenx=0._gp
+!!!        obeny=0._gp
+!!!        obenz=0._gp
+!!!        unten=0._gp
+!!!        do iat=1,at%nat
+!!!           obenx=obenx+(fxyz(1,iat)-gpf(1,iat))*fxyz(1,iat)
+!!!           obeny=obeny+(fxyz(2,iat)-gpf(2,iat))*fxyz(2,iat)
+!!!           obenz=obenz+(fxyz(3,iat)-gpf(3,iat))*fxyz(3,iat)
+!!!           unten=unten+gpf(1,iat)**2+gpf(2,iat)**2+gpf(3,iat)**2
+!!!        end do
 
         call fnrmandforcemax(fxyz,fnrm,fmax,at)
         if (iproc.eq.0) then
@@ -646,6 +652,8 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         if(check) exit loop_cg
 
         if (ncount_bigdft.gt.in%ncount_cluster_x) then 
+           if (iproc==0)  write(16,*) 'SDCG exited before the geometry optimization converged because more than ',&
+                            in%ncount_cluster_x,' wavefunction optimizations were required'
            if (iproc.eq.0) write(*,*) 'ncount_bigdft in CG',ncount_bigdft
            exit loop_cg
         endif
@@ -693,11 +701,11 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         !rlambda=(obenx+obeny+obenz)/unten
         rlambda=oben/unten
         call atomic_axpy_forces(at,fxyz,rlambda,hh,hh)
-!!$        do iat=1,at%nat
-!!$           hh(1,iat)=fxyz(1,iat)+rlambda*hh(1,iat)
-!!$           hh(2,iat)=fxyz(2,iat)+rlambda*hh(2,iat)
-!!$           hh(3,iat)=fxyz(3,iat)+rlambda*hh(3,iat)
-!!$        end do
+!!!        do iat=1,at%nat
+!!!           hh(1,iat)=fxyz(1,iat)+rlambda*hh(1,iat)
+!!!           hh(2,iat)=fxyz(2,iat)+rlambda*hh(2,iat)
+!!!           hh(3,iat)=fxyz(3,iat)+rlambda*hh(3,iat)
+!!!        end do
      end do loop_cg
      exit redo_cg
   end do redo_cg
@@ -783,6 +791,8 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
         if (iproc.eq.0) then
            write(*,*) 'SD FINISHED because ncount_bigdft > ncount_cluster_x',iproc,ncount_bigdft,in%ncount_cluster_x
            write(16,*) 'SD FINISHED because ncount_bigdft > ncount_cluster_x',iproc,ncount_bigdft,in%ncount_cluster_x
+           write(16,*) 'SDCG exited before the geometry optimization converged because more than ', & 
+                            in%ncount_cluster_x,' wavefunction optimizations were required'
         end if
 
         i_all=-product(shape(tpos))*kind(tpos)
@@ -902,6 +912,8 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
 
         !maximum number of allowed iterations reached
         if (ncount_bigdft > in%ncount_cluster_x) then 
+           if (iproc==0)  write(16,*) 'SDCG exited before the geometry optimization converged because more than ',& 
+                            in%ncount_cluster_x,' wavefunction optimizations were required'
            if (iproc == 0) write(*,*) 'ncount_bigdft in SD2',ncount_bigdft,in%ncount_cluster_x
            exit loop_sd
         endif
@@ -924,43 +936,43 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
         fnrmitm1=fnrm
         
         beta=min(1.2_gp*beta,in%betax)
-!!$        if (beta /= in%betax) nbeqbx=0
+!!!        if (beta /= in%betax) nbeqbx=0
         if (beta == in%betax) then 
            !     if (iproc.eq.0) write(16,*) 'beta=betax'
            care=.true.
-!!$           !if beta=betax since too many iterations (say 5),
-!!$           !then betax can be increased
-!!$           nbeqbx=nbeqbx+1
-!!$           if (nbeqbx == 5) then
-!!$              in%betax=1.2_gp*in%betax
-!!$              nbeqbx=0
-!!$           end if
+!!!           !if beta=betax since too many iterations (say 5),
+!!!           !then betax can be increased
+!!!           nbeqbx=nbeqbx+1
+!!!           if (nbeqbx == 5) then
+!!!              in%betax=1.2_gp*in%betax
+!!!              nbeqbx=0
+!!!           end if
         endif
         if (iproc.eq.0) write(16,*) 'beta=',beta
 
         tpos=rxyz
         call atomic_axpy(at,rxyz,beta,ff,rxyz)
 
-!!$        do iat=1,at%nat
-!!$           tpos(1,iat)=rxyz(1,iat)
-!!$           tpos(2,iat)=rxyz(2,iat)
-!!$           tpos(3,iat)=rxyz(3,iat)
-!!$           if ( .not. at%lfrztyp(iat)) then
-!!$              if (at%geocode == 'P') then
-!!$                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*ff(1,iat),at%alat1)
-!!$                 rxyz(2,iat)=modulo(rxyz(2,iat)+beta*ff(2,iat),at%alat2)
-!!$                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*ff(3,iat),at%alat3)
-!!$              else if (at%geocode == 'S') then
-!!$                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*ff(1,iat),at%alat1)
-!!$                 rxyz(2,iat)=rxyz(2,iat)+beta*ff(2,iat)
-!!$                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*ff(3,iat),at%alat3)
-!!$              else
-!!$                 rxyz(1,iat)=rxyz(1,iat)+beta*ff(1,iat)
-!!$                 rxyz(2,iat)=rxyz(2,iat)+beta*ff(2,iat)
-!!$                 rxyz(3,iat)=rxyz(3,iat)+beta*ff(3,iat)
-!!$              end if
-!!$           end if
-!!$        end do
+!!!        do iat=1,at%nat
+!!!           tpos(1,iat)=rxyz(1,iat)
+!!!           tpos(2,iat)=rxyz(2,iat)
+!!!           tpos(3,iat)=rxyz(3,iat)
+!!!           if ( .not. at%lfrztyp(iat)) then
+!!!              if (at%geocode == 'P') then
+!!!                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*ff(1,iat),at%alat1)
+!!!                 rxyz(2,iat)=modulo(rxyz(2,iat)+beta*ff(2,iat),at%alat2)
+!!!                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*ff(3,iat),at%alat3)
+!!!              else if (at%geocode == 'S') then
+!!!                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*ff(1,iat),at%alat1)
+!!!                 rxyz(2,iat)=rxyz(2,iat)+beta*ff(2,iat)
+!!!                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*ff(3,iat),at%alat3)
+!!!              else
+!!!                 rxyz(1,iat)=rxyz(1,iat)+beta*ff(1,iat)
+!!!                 rxyz(2,iat)=rxyz(2,iat)+beta*ff(2,iat)
+!!!                 rxyz(3,iat)=rxyz(3,iat)+beta*ff(3,iat)
+!!!              end if
+!!!           end if
+!!!        end do
      end do loop_sd
      exit redo_sd
   end do redo_sd
@@ -1028,7 +1040,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'Initial VSSD:fnrm= ',sqrt(fnrm)
            call  write_atomic_file('posout_'//fn4,etotold,wpos,at,trim(comment))
-           write(16,'(1x,e12.5,1x,e21.14,a,e10.3)')sqrt(fnrm),etot,' GEOPT VSSD ',beta
+           write(16,'(1x,e12.5,1x,e21.14,a,e10.3)')sqrt(fnrm),etotold,' GEOPT VSSD ',beta
            endif
         end if 
 
@@ -1081,7 +1093,11 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
            if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*in%frac_fluct,fluct
            call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
            if (check) goto 100
-           if (ncount_bigdft >= in%ncount_cluster_x) goto 100
+           if (ncount_bigdft >= in%ncount_cluster_x) then 
+             if (iproc==0)  write(16,*) 'VSSD exited before the geometry optimization converged because more than ',& 
+                            in%ncount_cluster_x,' wavefunction optimizations were required'
+             goto 100
+           endif
 
 
         if (etot.gt.etotold) then
@@ -1178,28 +1194,28 @@ subroutine fnrmandforcemax(ff,fnrm,fmax,at)
   real(gp):: t1,t2,t3
   integer:: iat
 
-!!$  t1=0._gp 
-!!$  t2=0._gp 
-!!$  t3=0._gp
+!!!  t1=0._gp 
+!!!  t2=0._gp 
+!!!  t3=0._gp
   fmax=0._gp
   do iat=1,at%nat
      call frozen_alpha(at%ifrztyp(iat),1,ff(1,iat)**2,t1)
      call frozen_alpha(at%ifrztyp(iat),2,ff(2,iat)**2,t2)
      call frozen_alpha(at%ifrztyp(iat),3,ff(3,iat)**2,t3)
      fmax=max(fmax,sqrt(t1+t2+t3))
-!!$     if (at%ifrztyp(iat) == 0) then
-!!$        t1=t1+ff(1,iat)**2 
-!!$        t2=t2+ff(2,iat)**2 
-!!$        t3=t3+ff(3,iat)**2
+!!!     if (at%ifrztyp(iat) == 0) then
+!!!        t1=t1+ff(1,iat)**2 
+!!!        t2=t2+ff(2,iat)**2 
+!!!        t3=t3+ff(3,iat)**2
         !in general fmax is measured with the inf norm
-!!$     fmax=max(fmax,sqrt(ff(1,iat)**2+ff(2,iat)**2+ff(3,iat)**2))
+!!!     fmax=max(fmax,sqrt(ff(1,iat)**2+ff(2,iat)**2+ff(3,iat)**2))
         !fmax=max(fmax,abs(ff(1,iat)),abs(ff(2,iat)),abs(ff(3,iat)))
-!!$     end if
+!!!     end if
   enddo
 
   !this is the norm of the forces of non-blocked atoms
   call atomic_dot(at,ff,ff,fnrm)
-!!$  fnrm=t1+t2+t3
+!!!  fnrm=t1+t2+t3
 END SUBROUTINE fnrmandforcemax
 
 
@@ -1212,28 +1228,28 @@ subroutine updatefluctsum(at,fxyz,nfluct,fluctsum,fluct)
   real(gp), dimension(3,at%nat), intent(in) :: fxyz
   integer, intent(inout):: nfluct
   !local variables
-!!$  real(gp), save :: fluct_im1,fluct_im2,fluct_i
+!!!  real(gp), save :: fluct_im1,fluct_im2,fluct_i
   real(gp) :: sumx,sumy,sumz
 
 
   call transforce_forfluct(at,fxyz,sumx,sumy,sumz)
   nfluct=nfluct+1
 
-!!$  !limit the fluctuation value to n=3
-!!$  !to be done only in the case of SDCG
-!!$  !for BFGS it is best to consider everything
-!!$  if (nfluct >= 3) then
-!!$     fluct_im2=fluct_im1
-!!$     fluct_im1=fluct_i
-!!$  else if (nfluct == 2) then
-!!$     fluct_im2=0.0_gp
-!!$     fluct_im1=fluct_i
-!!$  else if (nfluct == 1) then
-!!$     fluct_im2=0.0_gp
-!!$     fluct_im1=0.0_gp
-!!$  end if
-!!$  fluct_i=sumx**2+sumy**2+sumz**2
-!!$  fluct=sqrt(real(nat,gp))*(fluct_i+fluct_im1+fluct_im2)/3.0_gp
+!!!  !limit the fluctuation value to n=3
+!!!  !to be done only in the case of SDCG
+!!!  !for BFGS it is best to consider everything
+!!!  if (nfluct >= 3) then
+!!!     fluct_im2=fluct_im1
+!!!     fluct_im1=fluct_i
+!!!  else if (nfluct == 2) then
+!!!     fluct_im2=0.0_gp
+!!!     fluct_im1=fluct_i
+!!!  else if (nfluct == 1) then
+!!!     fluct_im2=0.0_gp
+!!!     fluct_im1=0.0_gp
+!!!  end if
+!!!  fluct_i=sumx**2+sumy**2+sumz**2
+!!!  fluct=sqrt(real(nat,gp))*(fluct_i+fluct_im1+fluct_im2)/3.0_gp
 
   fluctsum=fluctsum+sumx**2+sumy**2+sumz**2
   !commented out, it increases the fluctuation artificially
@@ -1324,10 +1340,10 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
         if(parmin%iter/=1) then
            if(parmin%iter>m) bound=m
            call atomic_dot(at,w(iypt+npt+1),w(ispt+npt+1),ys)
-!!$           ys=ddot(n,w(iypt+npt+1),1,w(ispt+npt+1),1)
+!!!           ys=ddot(n,w(iypt+npt+1),1,w(ispt+npt+1),1)
            if(.not.parmin%diagco) then
               call atomic_dot(at,w(iypt+npt+1),w(iypt+npt+1),yy)
-!!$              yy=ddot(n,w(iypt+npt+1),1,w(iypt+npt+1),1)
+!!!              yy=ddot(n,w(iypt+npt+1),1,w(iypt+npt+1),1)
               do i=1,n
                  diag(i)= ys/yy
               enddo
@@ -1363,12 +1379,12 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
            cp=cp-1
            if(cp==-1)cp=m-1
            call atomic_dot(at,w(ispt+cp*n+1),w,sq)
-!!$           sq= ddot(n,w(ispt+cp*n+1),1,w,1)
+!!!           sq= ddot(n,w(ispt+cp*n+1),1,w,1)
            inmc=n+m+cp+1
            iycn=iypt+cp*n
            w(inmc)= w(n+cp+1)*sq
            call atomic_axpy(at,w,-w(inmc),w(iycn+1),w)
-!!$           call daxpy(n,-w(inmc),w(iycn+1),1,w,1)
+!!!           call daxpy(n,-w(inmc),w(iycn+1),1,w,1)
         enddo
         !to be used only in the case parmin%diagco==.false.
         !in that case diag=constant
@@ -1385,13 +1401,13 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
 
         do i=1,bound
            call atomic_dot(at,w(iypt+cp*n+1),w,yr)
-!!$           yr=ddot(n,w(iypt+cp*n+1),1,w,1)
+!!!           yr=ddot(n,w(iypt+cp*n+1),1,w,1)
            beta= w(n+cp+1)*yr
            inmc=n+m+cp+1
            beta= w(inmc)-beta
            iscn=ispt+cp*n
            call atomic_axpy(at,w,beta,w(iscn+1),w)
-!!$           call daxpy(n,beta,w(iscn+1),1,w,1)
+!!!           call daxpy(n,beta,w(iscn+1),1,w,1)
            cp=cp+1
            if(cp==m) cp=0
         enddo
@@ -1430,10 +1446,10 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
      npt=point*n
      call atomic_axpy(at,w(ispt+npt+1),a_t-1.0_gp,w(ispt+npt+1),w(ispt+npt+1))
      call atomic_axpy(at,-1.0_gp*w,-1.0_gp,g, w(iypt+npt+1))
-!!$     do i=1,n
-!!$        w(ispt+npt+i)=a_t*w(ispt+npt+i)
-!!$        w(iypt+npt+i)=-g(i)-w(i)
-!!$     enddo
+!!!     do i=1,n
+!!!        w(ispt+npt+i)=a_t*w(ispt+npt+i)
+!!!        w(iypt+npt+i)=-g(i)-w(i)
+!!!     enddo
      !point=point+1
      !if(point==m) point=0
      point=mod(point+1,m)
@@ -1442,8 +1458,8 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
      call atomic_dot(at,x,x,xnorm)
      gnorm=sqrt(gnorm)
      xnorm=sqrt(xnorm)
-!!$     gnorm=sqrt(ddot(n,g,1,g,1))
-!!$     xnorm=sqrt(ddot(n,x,1,x,1))
+!!!     gnorm=sqrt(ddot(n,g,1,g,1))
+!!!     xnorm=sqrt(ddot(n,x,1,x,1))
      xnorm=max(1.0d0,xnorm)
 !     if(gnorm/xnorm<=parmin%eps) finish=.true.
      if(parmin%iprint(1)>=0) then
@@ -1509,19 +1525,19 @@ subroutine init_lbfgs(at,n,m,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
 
   !to be ussed only in the case parmin%diagco==.false.
   !in that case diag=1.
-!!$  if (.not. parmin%diagco) then
-!!$     !this line equals to w=g
-!!$     call atomic_axpy(at,g,0.0_gp,g,w(ispt+1))
-!!$  else
+!!!  if (.not. parmin%diagco) then
+!!!     !this line equals to w=g
+!!!     call atomic_axpy(at,g,0.0_gp,g,w(ispt+1))
+!!!  else
      !here the blocked atoms are treated as the others
   do i=1,n
      w(ispt+i)=g(i)*diag(i)
   enddo
-!!$  end if
+!!!  end if
  
   call atomic_dot(at,g,g,gnorm)
   gnorm=dsqrt(gnorm)
-!!$  gnorm=dsqrt(ddot(n,g,1,g,1))
+!!!  gnorm=dsqrt(ddot(n,g,1,g,1))
 
   !    stp1=one/gnorm
   
@@ -1626,10 +1642,10 @@ subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin)
      call atomic_dot(at,g,s,dginit)
      dginit=-dginit
 
-!!$     dginit = zero
-!!$     do j = 1, n
-!!$        dginit = dginit - g(j)*s(j)
-!!$     enddo
+!!!     dginit = zero
+!!!     do j = 1, n
+!!!        dginit = dginit - g(j)*s(j)
+!!!     enddo
      if (dginit >=  zero) then
         write(parmin%lp,'(a,1pe24.17)') 'the search direction is not a descent direction',dginit
         return
@@ -1676,9 +1692,9 @@ subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin)
         !and compute the directional derivative.
         !we return to main program to obtain f and g.
         call atomic_axpy(at,wa,a_t,s,x)
-!!$        do j = 1, n
-!!$           x(j) = wa(j) + a_t*s(j)
-!!$        enddo
+!!!        do j = 1, n
+!!!           x(j) = wa(j) + a_t*s(j)
+!!!        enddo
         info=-1
         return
      endif
@@ -1686,10 +1702,10 @@ subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin)
      nfev = nfev + 1
      call atomic_dot(at,g,s,dg)
      dg=-dg
-!!$     dg = zero
-!!$     do j=1,n
-!!$        dg=dg-g(j)*s(j)
-!!$     enddo
+!!!     dg = zero
+!!!     do j=1,n
+!!!        dg=dg-g(j)*s(j)
+!!!     enddo
      ftest1=finit+a_t*dgtest
      !test for convergence.
      if((brackt .and. (a_t<=stmin .or. a_t>=stmax))   .or. infoc==0) info=6

@@ -166,11 +166,11 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   !call orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
   call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
 
-!!$  call orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,v,msg)
-!!$  if(orbs%norbd > 0) then
-!!$     call orthoconvirt_p(iproc,nproc,orbs%norbd,&
-!!$       orbsv%norb,comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),v,msg)
-!!$  end if
+!!!  call orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,v,msg)
+!!!  if(orbs%norbd > 0) then
+!!!     call orthoconvirt_p(iproc,nproc,orbs%norbd,&
+!!!       orbsv%norb,comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),v,msg)
+!!!  end if
   !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
   call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
   !call orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
@@ -311,11 +311,11 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      !project g such that they are orthogonal to all occupied psi. 
      !Gradients do not need orthogonality.
      call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,g,msg)
-!!$     call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,g,msg)
-!!$     if(orbs%norbd > 0 ) then
-!!$        call orthoconvirt_p(iproc,nproc,orbs%norbd,&
-!!$          orbsv%norb,comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),g,msg)
-!!$     end if
+!!!     call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,g,msg)
+!!!     if(orbs%norbd > 0 ) then
+!!!        call orthoconvirt_p(iproc,nproc,orbs%norbd,&
+!!!          orbsv%norb,comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),g,msg)
+!!!     end if
 
      call timing(iproc,'Davidson      ','ON')
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
@@ -386,11 +386,11 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
 
      !project g such that they are orthogonal to all occupied psi
      call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,g,msg)
-!!$     call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,g,msg)
-!!$     if(orbs%norbd > 0) then 
-!!$        call orthoconvirt_p(iproc,nproc,orbs%norbd,orbsv%norb,&
-!!$          comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),g,msg)
-!!$     end if
+!!!     call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,g,msg)
+!!!     if(orbs%norbd > 0) then 
+!!!        call orthoconvirt_p(iproc,nproc,orbs%norbd,orbsv%norb,&
+!!!          comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),g,msg)
+!!!     end if
      !retranspose the gradient g
      call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
 
@@ -631,11 +631,11 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
      !call  orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
      call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
-!!$     call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,v,msg)
-!!$     if(orbs%norbd > 0) then
-!!$        call orthoconvirt_p(iproc,nproc,orbs%norbd,orbsv%norb,&
-!!$          comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),v,msg)
-!!$     end if
+!!!     call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,v,msg)
+!!!     if(orbs%norbd > 0) then
+!!!        call orthoconvirt_p(iproc,nproc,orbs%norbd,orbsv%norb,&
+!!!          comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),v,msg)
+!!!     end if
      !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
      call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
      !call  orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)

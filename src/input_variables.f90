@@ -111,7 +111,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   iline=iline+1
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
     ! call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-     call sg_init(GPUshare,iconv,iproc,initerror)
+!     call sg_init(GPUshare,iconv,iproc,initerror)
      iconv = 1
      iblas = 1
      if (initerror == 1) then
@@ -743,7 +743,7 @@ subroutine read_input_variables(iproc,filename,in)
   read(line,*,iostat=ierrfrc) cudagpu
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
 !     call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-     call sg_init(GPUshare,iconv,iproc,initerror)
+!     call sg_init(GPUshare,iconv,iproc,initerror)
 iconv = 1
 iblas = 1
      if (initerror == 1) then
@@ -1153,17 +1153,17 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   !read from positions of .xyz format, but accepts also the old .ascii format
   read(ifile,'(a150)')line
 
-!!$  !old format, still here for backward compatibility
-!!$  !admits only simple precision calculation
-!!$  read(line,*,iostat=ierror) rx,ry,rz,tatonam
+!!!  !old format, still here for backward compatibility
+!!!  !admits only simple precision calculation
+!!!  read(line,*,iostat=ierror) rx,ry,rz,tatonam
 
-!!$  !in case of old format, put geocode to F and alat to 0.
-!!$  if (ierror == 0) then
-!!$     atoms%geocode='F'
-!!$     alat1d0=0.0_gp
-!!$     alat2d0=0.0_gp
-!!$     alat3d0=0.0_gp
-!!$  else
+!!!  !in case of old format, put geocode to F and alat to 0.
+!!!  if (ierror == 0) then
+!!!     atoms%geocode='F'
+!!!     alat1d0=0.0_gp
+!!!     alat2d0=0.0_gp
+!!!     alat3d0=0.0_gp
+!!!  else
   if (lpsdbl) then
      read(line,*,iostat=ierrsfx) tatonam,alat1d0,alat2d0,alat3d0
   else
@@ -1192,7 +1192,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
      alat2d0=0.0_gp
      alat3d0=0.0_gp
   end if
-!!$  end if
+!!!  end if
 
   !reduced coordinates are possible only with periodic units
   if (atoms%units == 'reduced' .and. atoms%geocode == 'F') then
@@ -1238,7 +1238,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
      call parse_extra_info(iproc,iat,extra,atoms)
 
      tatonam=trim(symbol)
-!!$     end if
+!!!     end if
      if (lpsdbl) then
         rxyz(1,iat)=rxd0
         rxyz(2,iat)=ryd0
@@ -1458,10 +1458,10 @@ subroutine parse_extra_info(iproc,iat,extra,atoms)
   !convert the suffix into ifrztyp
   call frozen_ftoi(suffix,atoms%ifrztyp(iat))
 
-!!$  if (trim(suffix) == 'f') then
-!!$     !the atom is considered as blocked
-!!$     atoms%ifrztyp(iat)=1
-!!$  end if
+!!!  if (trim(suffix) == 'f') then
+!!!     !the atom is considered as blocked
+!!!     atoms%ifrztyp(iat)=1
+!!!  end if
 
 contains
 

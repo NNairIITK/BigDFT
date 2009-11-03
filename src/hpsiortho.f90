@@ -398,11 +398,11 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
   character(len=*), parameter :: subname='first_orthon'
   integer :: i_stat
 
-!!$  if(nspin==4) then
-!!$     nspinor=4
-!!$  else
-!!$     nspinor=1
-!!$  end if
+!!!  if(nspin==4) then
+!!!     nspinor=4
+!!!  else
+!!!     nspinor=1
+!!!  end if
   
   if (nproc > 1) then
      !allocate hpsi array (used also as transposed)
@@ -423,12 +423,12 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
 
   call orthogonalize(iproc,nproc,orbs,comms,wfd,psit)
 
-!!$  call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),wfd%nvctr_c+7*wfd%nvctr_f,&
-!!$       psit,orbs%nspinor) 
-!!$  if(orbs%norbd > 0) then
-!!$     call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),wfd%nvctr_c+7*wfd%nvctr_f,&
-!!$          psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),orbs%nspinor) 
-!!$  end if
+!!!  call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),wfd%nvctr_c+7*wfd%nvctr_f,&
+!!!       psit,orbs%nspinor) 
+!!!  if(orbs%norbd > 0) then
+!!!     call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),wfd%nvctr_c+7*wfd%nvctr_f,&
+!!!          psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),orbs%nspinor) 
+!!!  end if
   !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
   call untranspose_v(iproc,nproc,orbs,wfd,comms,psit,&
@@ -491,15 +491,15 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
 
   call subspace_diagonalisation(iproc,nproc,orbs,comms,psit,hpsi,evsum)
 
-!!$  call KStrans_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),orbs%occup,hpsi,psit,&
-!!$       evsum,orbs%eval,orbs%nspinor)
-!!$  evpart=evsum
-!!$  if(orbs%norbd > 0) then
-!!$     call KStrans_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),orbs%occup(orbs%norbu+1),&
-!!$          hpsi(1+comms%nvctr_par(iproc,1)*orbs%norbu),psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),&
-!!$          evsum,orbs%eval(orbs%norbu+1),orbs%nspinor)
-!!$     evsum=evsum+evpart
-!!$  end if
+!!!  call KStrans_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),orbs%occup,hpsi,psit,&
+!!!       evsum,orbs%eval,orbs%nspinor)
+!!!  evpart=evsum
+!!!  if(orbs%norbd > 0) then
+!!!     call KStrans_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),orbs%occup(orbs%norbu+1),&
+!!!          hpsi(1+comms%nvctr_par(iproc,1)*orbs%norbu),psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),&
+!!!          evsum,orbs%eval(orbs%norbu+1),orbs%nspinor)
+!!!     evsum=evsum+evpart
+!!!  end if
 
   call untranspose_v(iproc,nproc,orbs,wfd,comms,&
        psit,work=hpsi,outadd=psi(1))
@@ -696,8 +696,8 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
      end do
   end do
 
-!!$  call plot_density(at%geocode,'deltarho.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-!!$       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,i3s+i3xcsh,1))
+!!!  call plot_density(at%geocode,'deltarho.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+!!!       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,i3s+i3xcsh,1))
 
   !calculate the offset
   tt=0.d0
@@ -763,8 +763,8 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
        drho,pkernel_ref,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
        quiet=PSquiet)
 
-!!$  call plot_density(at%geocode,'VHdeltarho.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-!!$       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,1+i3xcsh,1))
+!!!  call plot_density(at%geocode,'VHdeltarho.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+!!!       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,1+i3xcsh,1))
 
 
   !sum the complete hartree potential
@@ -828,27 +828,27 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   !sum the different potentials (valid only for non-spin polarised systems)
   call axpy(n1i*n2i*n3p,1.0_dp,pot_ion(1,1,1),1,drho(1,1,i3s+i3xcsh,1),1)
 
-!!$  call plot_density(at%geocode,'VHpVion.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-!!$       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,i3s+i3xcsh,1))
-!!$
-!!$  !calculate the offset
-!!$  tt=0.d0
-!!$  do i3=1,n3p
-!!$     do i2=1,n2i
-!!$        do i1=1,n1i
-!!$           tt=tt+drho(i1,i2,i3+i3xcsh,1)
-!!$        enddo
-!!$     enddo
-!!$  enddo
-!!$  !tt=tt*hxh*hyh*hzh
-!!$  if (nproc > 1) then
-!!$     call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-!!$          MPI_SUM,MPI_COMM_WORLD,ierr)
-!!$  else
-!!$     offset=tt
-!!$  end if
-!!$
-!!$  if (iproc==0) print *,'offset of Vh+Vion',offset
+!!!  call plot_density(at%geocode,'VHpVion.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+!!!       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,i3s+i3xcsh,1))
+!!!
+!!!  !calculate the offset
+!!!  tt=0.d0
+!!!  do i3=1,n3p
+!!!     do i2=1,n2i
+!!!        do i1=1,n1i
+!!!           tt=tt+drho(i1,i2,i3+i3xcsh,1)
+!!!        enddo
+!!!     enddo
+!!!  enddo
+!!!  !tt=tt*hxh*hyh*hzh
+!!!  if (nproc > 1) then
+!!!     call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
+!!!          MPI_SUM,MPI_COMM_WORLD,ierr)
+!!!  else
+!!!     offset=tt
+!!!  end if
+!!!
+!!!  if (iproc==0) print *,'offset of Vh+Vion',offset
 
   call axpy(n1i*n2i*n3p*nspin,1.0_dp,vxc(1,1,1,1),1,drho(1,1,i3s+i3xcsh,1),1)
 
@@ -856,8 +856,8 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   call dcopy(n1i*n2i*n3d*nspin,drho(1,1,i3s,1),1,rhopot,1) 
 
 
-!!$  call plot_density(at%geocode,'Vtot.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-!!$       at%alat1,at%alat2,at%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+!!!  call plot_density(at%geocode,'Vtot.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+!!!       at%alat1,at%alat2,at%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
 
   !calculate the offset
   tt=0.d0

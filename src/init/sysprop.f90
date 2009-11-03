@@ -506,9 +506,9 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
      end if
   end if
 
-!!$  tt=dble(norb)/dble(nproc)
-!!$  norbp=int((1.d0-eps_mach*tt) + tt)
-!!$  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
+!!!  tt=dble(norb)/dble(nproc)
+!!!  norbp=int((1.d0-eps_mach*tt) + tt)
+!!!  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
 
 end subroutine read_system_variables
 !!***
@@ -727,16 +727,16 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
         stop
      end if
      if (nspin/=1) then
-!!$        !Check if the polarisation is respected (mpol)
-!!$        rup=sum(occup(1:norbu))
-!!$        rdown=sum(occup(norbu+1:norb))
-!!$        if (abs(rup-rdown-real(norbu-norbd,gp))>1.e-6_gp) then
-!!$           if (iproc==0) then
-!!$              write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the polarization ',rup-rdown,&
-!!$                             ' is not equal to ',norbu-norbd
-!!$           end if
-!!$           stop
-!!$        end if
+!!!        !Check if the polarisation is respected (mpol)
+!!!        rup=sum(occup(1:norbu))
+!!!        rdown=sum(occup(norbu+1:norb))
+!!!        if (abs(rup-rdown-real(norbu-norbd,gp))>1.e-6_gp) then
+!!!           if (iproc==0) then
+!!!              write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the polarization ',rup-rdown,&
+!!!                             ' is not equal to ',norbu-norbd
+!!!           end if
+!!!           stop
+!!!        end if
         !Fill spinsgn
         do iorb=1,norbu
            spinsgn(iorb)=1.0_gp

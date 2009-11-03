@@ -314,7 +314,7 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
            if (abs(1.d0-scpr) > 1.d-1) then
               !if (iproc == 0) then
                  write(*,'(1x,a)')'error found!'
-                 write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
+                 write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
                       'The norm of the nonlocal PSP for atom n=',iat,&
                       ' (',trim(atomname),&
                       ') labeled by l=',l,' m=',m,' is ',scpr
@@ -323,10 +323,10 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
               !end if
               stop
            else
-!!$              write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
-!!$                   'The norm of the nonlocal PSP for atom n=',iat,&
-!!$                   ' (',trim(atomname),&
-!!$                   ') labeled by l=',l,' m=',m,' is ',scpr
+!!!              write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
+!!!                   'The norm of the nonlocal PSP for atom n=',iat,&
+!!!                   ' (',trim(atomname),&
+!!!                   ') labeled by l=',l,' m=',m,' is ',scpr
               nwarnings=nwarnings+1
            end if
         end if
@@ -430,14 +430,14 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
      n_gau=lz(iterm) 
      call gauss_to_daub(hz,1.d0,rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1,iterm),te,work,nw,perz) 
      err_norm=max(err_norm,te) 
-!!$     if (iproc.eq.0 .and. geocode == 'F')  then
-!!$        if (ml1 > min(nl1_c,nl1_f)) write(*,*) 'Projector box larger than needed: ml1'
-!!$        if (ml2 > min(nl2_c,nl2_f)) write(*,*) 'Projector box larger than needed: ml2'
-!!$        if (ml3 > min(nl3_c,nl3_f)) write(*,*) 'Projector box larger than needed: ml3'
-!!$        if (mu1 < max(nu1_c,nu1_f)) write(*,*) 'Projector box larger than needed: mu1'
-!!$        if (mu2 < max(nu2_c,nu2_f)) write(*,*) 'Projector box larger than needed: mu2'
-!!$        if (mu3 < max(nu3_c,nu3_f)) write(*,*) 'Projector box larger than needed: mu3'
-!!$     endif
+!!!     if (iproc.eq.0 .and. geocode == 'F')  then
+!!!        if (ml1 > min(nl1_c,nl1_f)) write(*,*) 'Projector box larger than needed: ml1'
+!!!        if (ml2 > min(nl2_c,nl2_f)) write(*,*) 'Projector box larger than needed: ml2'
+!!!        if (ml3 > min(nl3_c,nl3_f)) write(*,*) 'Projector box larger than needed: ml3'
+!!!        if (mu1 < max(nu1_c,nu1_f)) write(*,*) 'Projector box larger than needed: mu1'
+!!!        if (mu2 < max(nu2_c,nu2_f)) write(*,*) 'Projector box larger than needed: mu2'
+!!!        if (mu3 < max(nu3_c,nu3_f)) write(*,*) 'Projector box larger than needed: mu3'
+!!!     endif
 
      !print *,iterm,ml1,mu1,ml2,mu2,ml3,mu3,n1,n2,n3,rad_c,rad_f
 

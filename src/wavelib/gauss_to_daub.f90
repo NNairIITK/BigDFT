@@ -66,8 +66,8 @@ subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
   if (periodic) then
      !we expand the whole Gaussian in scfunctions and later fold one of its tails periodically
      !we limit however the folding to one cell on each side (it can be eliminated)
-!!$     lefts( 0)=max(i0-right_t,-nmax)
-!!$     rights(0)=min(i0+right_t,2*nmax)
+!!     lefts( 0)=max(i0-right_t,-nmax)
+!!     rights(0)=min(i0+right_t,2*nmax)
 
      lefts( 0)=i0-right_t
      rights(0)=i0+right_t
@@ -193,44 +193,44 @@ contains
     end do
 
 
-!!$    !write(*,*) 'I fold the tail'
-!!$    ! shift the resulting array and fold its periodic tails:
-!!$    if (n_left.ge.0) then
-!!$       if (n_right.le.nmax) then
-!!$          ! normal situation: the gaussian is inside the box
-!!$          do i=n_left,n_right
-!!$             c(i,1)=ww(i-n_left       ,2)
-!!$             c(i,2)=ww(i-n_left+length,2)
-!!$          enddo
-!!$       else
-!!$          ! the gaussian extends beyond the right border
-!!$
-!!$          ! the normal part:
-!!$          do i=n_left,nmax
-!!$             c(i,1)=ww(i-n_left       ,2)
-!!$             c(i,2)=ww(i-n_left+length,2)
-!!$          enddo
-!!$          ! the part of ww that goes beyond nmax 
-!!$          ! is shifted by nmax+1 to the left
-!!$          do i=nmax+1,n_right
-!!$             c(i-nmax-1,1)=ww(i-n_left       ,2)
-!!$             c(i-nmax-1,2)=ww(i-n_left+length,2)
-!!$          enddo
-!!$       endif
-!!$    else
-!!$       ! the gaussian extends beyond the left border
-!!$       ! the part of ww to the left of 0
-!!$       ! is shifted by nmax+1 to the right
-!!$       do i=n_left,-1
-!!$          c(i+nmax+1,1)=ww(i-n_left       ,2)
-!!$          c(i+nmax+1,2)=ww(i-n_left+length,2)
-!!$       enddo
-!!$       ! the normal part:
-!!$       do i=0,n_right
-!!$          c(i,1)=ww(i-n_left       ,2)
-!!$          c(i,2)=ww(i-n_left+length,2)
-!!$       enddo
-!!$    endif
+!!    !write(*,*) 'I fold the tail'
+!!    ! shift the resulting array and fold its periodic tails:
+!!    if (n_left.ge.0) then
+!!       if (n_right.le.nmax) then
+!!          ! normal situation: the gaussian is inside the box
+!!          do i=n_left,n_right
+!!             c(i,1)=ww(i-n_left       ,2)
+!!             c(i,2)=ww(i-n_left+length,2)
+!!          enddo
+!!       else
+!!          ! the gaussian extends beyond the right border
+!!
+!!          ! the normal part:
+!!          do i=n_left,nmax
+!!             c(i,1)=ww(i-n_left       ,2)
+!!             c(i,2)=ww(i-n_left+length,2)
+!!          enddo
+!!          ! the part of ww that goes beyond nmax 
+!!          ! is shifted by nmax+1 to the left
+!!          do i=nmax+1,n_right
+!!             c(i-nmax-1,1)=ww(i-n_left       ,2)
+!!             c(i-nmax-1,2)=ww(i-n_left+length,2)
+!!          enddo
+!!       endif
+!!    else
+!!       ! the gaussian extends beyond the left border
+!!       ! the part of ww to the left of 0
+!!       ! is shifted by nmax+1 to the right
+!!       do i=n_left,-1
+!!          c(i+nmax+1,1)=ww(i-n_left       ,2)
+!!          c(i+nmax+1,2)=ww(i-n_left+length,2)
+!!       enddo
+!!       ! the normal part:
+!!       do i=0,n_right
+!!          c(i,1)=ww(i-n_left       ,2)
+!!          c(i,2)=ww(i-n_left+length,2)
+!!       enddo
+!!    endif
   end subroutine fold_tail
 
 

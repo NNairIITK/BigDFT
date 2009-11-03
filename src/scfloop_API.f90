@@ -17,7 +17,7 @@ module scfloop_API
   public :: scfloop_init
   public :: scfloop_main
   public :: scfloop_output
-!!$  public :: scfloop_finalise
+!!!  public :: scfloop_finalise
 contains
 
   subroutine scfloop_init(nproc_, at_, in_, rst_)
@@ -124,6 +124,6 @@ contains
     call memocc(i_stat,i_all,'xcart',subname)
   end subroutine scfloop_output
 
-!!$  subroutine scfloop_finalise()
-!!$  end subroutine scfloop_finalise
+!!!  subroutine scfloop_finalise()
+!!!  end subroutine scfloop_finalise
 end module scfloop_API
