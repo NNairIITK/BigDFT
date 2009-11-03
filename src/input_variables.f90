@@ -133,7 +133,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
      end if
   end if
 
-  !now the varaibles which are to be used only for the last run
+  !now the variables which are to be used only for the last run
   read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
   call check()
   !project however the wavefunction on gaussians if asking to write them on disk
@@ -155,14 +155,13 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   read(1,*,iostat=ierror) in%iat_absorber
   call check()
 
-
   !read absorption-calculation input variables
   !inquire for the needed file 
   !if not present, set default ( no absorption calculation)
   if (in%iat_absorber /= 0) then
      inquire(file="input.abscalc",exist=exists)
      if (.not. exists) then
-        if (iproc == 0) write(*,*)'ERROR: nedd file input.abscalc for x-ray absorber treatment.'
+        if (iproc == 0) write(*,*)'ERROR: need file input.abscalc for x-ray absorber treatment.'
         stop
      end if
      call abscalc_input_variables(iproc,'input.abscalc',in)

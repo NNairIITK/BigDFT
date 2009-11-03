@@ -5,9 +5,13 @@ import re
 import os
 import sys
 
-text = "integer, parameter :: ncache"
+#Values to write in green
+start = "\033[0;32m"
+end = "\033[m"
 
 def do_cache(ncache,args):
+    "Do a calculation to test a value of ncache"
+    text = "integer, parameter :: ncache"
     re_ncache = re.compile(text+".*",re.MULTILINE)
     file_module = open("fft3d-temp.f90").read()
     file_module = re_ncache.sub(text+"=%d\n" % ncache,file_module)
@@ -20,6 +24,7 @@ def do_cache(ncache,args):
     sys.stdout.flush()
     os.system("./fft_cache >> fft_cache.out 2>&1")
 
+#List of tested values of ncache
 list_cache = [ 0, 6, 12, 24, 50, 75, 100]
 
 if len(sys.argv) == 1:
@@ -97,8 +102,6 @@ for c in caches:
     fd.write("%s %s %s\n" % (c,perf,dico[128][c]))
 fd.close()
 
-start = "\033[0;32m"
-end = "\033[m"
 print "Use fft_cache.gnuplot to display the results"
 print "The best ncache between tested values for 50 <= n1 <= 500 is ncache=",best
 print start+"Test succeeded"+end

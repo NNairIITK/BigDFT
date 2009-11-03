@@ -1,12 +1,15 @@
 
 
 module lanczos_base
+  use module_base
   implicit none
   private
 
   public ::LB_alpha , LB_beta, LB_eval, LB_shift, LB_nsteps, LB_allocate_for_lanczos, &
-       LB_de_allocate_for_lanczos, LB_cerca, LB_passeggia
+       LB_de_allocate_for_lanczos, LB_cerca, LB_passeggia, LB_allocate_for_chebychev,&
+        LB_iproc, LB_nproc, LB_passeggia_Chebychev
   
+  character(len=*), parameter :: subname='lanczos_base'
 
 
   real(8), pointer :: LB_alpha(:)
@@ -20,35 +23,105 @@ module lanczos_base
   real(8) LANCZOS_tol
   integer LB_nsteps
   integer hasoldalpha
-  
-
+  integer i_stat,i_all
+  integer LB_iproc, LB_nproc
 contains
 
+  subroutine LB_allocate_for_chebychev( )
+   if(associated(LB_alpha )) then
+      call  LB_de_allocate_for_lanczos( )
+   endif
+
+   allocate(LB_alpha(0: 3*LB_nsteps ) , stat=i_stat)
+   call memocc(i_stat,LB_alpha,'LB_alpha',subname)
+
+   allocate(LB_beta(0: 1 ) , stat=i_stat)
+   call memocc(i_stat,LB_beta,'LB_beta',subname)
+
+   allocate(omega( 0:1,  0:1      )  , stat=i_stat)
+   call memocc(i_stat,omega,'omega',subname)
+
+   
+   allocate(evect( 0:1,  0:1    )   , stat=i_stat)
+   call memocc(i_stat,evect,'evect',subname)
+
+   allocate(LB_eval(0: 1 )   , stat=i_stat)
+   call memocc(i_stat,LB_eval,'LB_eval',subname)
+
+   allocate(diagwork( 0:1*(3+1)   )  , stat=i_stat)
+   call memocc(i_stat,diagwork,'diagwork',subname)
+
+   allocate(oldalpha (0: 1 )        , stat=i_stat  )
+   call memocc(i_stat,oldalpha,'oldalpha',subname)
+
+  end subroutine LB_allocate_for_chebychev
+
+
   subroutine LB_allocate_for_lanczos( )
-    allocate(LB_alpha(0: LB_nsteps ))
-    allocate(LB_beta(0: LB_nsteps-1 ))
-    allocate(omega( 0:LB_nsteps,  0:LB_nsteps      ) )
+   if(associated(LB_alpha )) then
+      call  LB_de_allocate_for_lanczos( )
+   endif
 
-    allocate(evect( 0:LB_nsteps-1,  0:LB_nsteps-1    )  )
-    allocate(LB_eval(0: LB_nsteps-1 )  )
-    allocate(diagwork( 0:LB_nsteps*(3+LB_nsteps)   ) )
-    allocate(oldalpha (0: LB_nsteps-1 )         )
+   allocate(LB_alpha(0: LB_nsteps ) , stat=i_stat)
+   call memocc(i_stat,LB_alpha,'LB_alpha',subname)
 
+   allocate(LB_beta(0: LB_nsteps-1 ) , stat=i_stat)
+   call memocc(i_stat,LB_beta,'LB_beta',subname)
 
-    omega(:,:)=0.0D0
+   allocate(omega( 0:LB_nsteps,  0:LB_nsteps      )  , stat=i_stat)
+   call memocc(i_stat,omega,'omega',subname)
 
-  end subroutine LB_allocate_for_lanczos
+   
+   allocate(evect( 0:LB_nsteps-1,  0:LB_nsteps-1    )   , stat=i_stat)
+   call memocc(i_stat,evect,'evect',subname)
 
+   allocate(LB_eval(0: LB_nsteps-1 )   , stat=i_stat)
+   call memocc(i_stat,LB_eval,'LB_eval',subname)
+
+   allocate(diagwork( 0:LB_nsteps*(3+LB_nsteps)   )  , stat=i_stat)
+   call memocc(i_stat,diagwork,'diagwork',subname)
+
+   allocate(oldalpha (0: LB_nsteps )        , stat=i_stat  )
+   call memocc(i_stat,oldalpha,'oldalpha',subname)
+
+   
+
+   omega(:,:)=0.0D0
+
+ end subroutine LB_allocate_for_lanczos
 
   subroutine LB_de_allocate_for_lanczos( )
-    deallocate(LB_alpha)
-    deallocate(LB_beta)
-    deallocate(omega )
 
+    i_all=-product(shape(LB_alpha))*kind(LB_alpha)
+    deallocate(LB_alpha)
+    call memocc(i_stat,i_all,'LB_alpha',subname)
+
+
+    i_all=-product(shape(LB_beta))*kind(LB_beta)
+    deallocate(LB_beta)
+    call memocc(i_stat,i_all,'LB_beta',subname)
+
+
+    i_all=-product(shape(omega))*kind(omega)
+    deallocate(omega )
+    call memocc(i_stat,i_all,'omega',subname)
+
+    i_all=-product(shape(evect))*kind(evect)
     deallocate(evect  )
+    call memocc(i_stat,i_all,'evect',subname)
+
+    i_all=-product(shape(LB_eval))*kind(LB_eval)
     deallocate(LB_eval  )
+    call memocc(i_stat,i_all,'LB_eval',subname)
+
+    i_all=-product(shape(diagwork))*kind(diagwork)
     deallocate(diagwork    )
+    call memocc(i_stat,i_all,'diagwork',subname)
+
+    i_all=-product(shape(oldalpha))*kind(oldalpha)
     deallocate(oldalpha          )
+    call memocc(i_stat,i_all,'oldalpha',subname)
+
   end subroutine LB_de_allocate_for_lanczos
    
   integer function converged(m)
@@ -56,7 +129,7 @@ contains
     integer, intent(in):: m
 ! ::::::::::::::::::::::::::::::::::::::::::
     integer j,i,k
-    real(8) dum, dumvect(LB_nsteps )
+    real(8) dum, dumvect(0:LB_nsteps )
     do j=1, m-1
        do i=0, m-j-1
           if( abs(LB_eval(i) ) .lt. abs(LB_eval(i+1) ) ) then
@@ -71,12 +144,14 @@ contains
           endif
        enddo
     enddo
-       
+    
+
     converged=0
     
     if( hasoldalpha.eq.1) then
        do while(converged.lt.m)
-          if (abs(LB_eval(converged)-oldalpha(converged))/abs(oldalpha(converged))  .gt. LANCZOS_tol) then
+          if(LB_iproc==0) print *, LB_eval(converged),oldalpha(converged),  LANCZOS_tol
+          if (abs(LB_eval(converged)-oldalpha(converged))/abs(oldalpha(converged)-LB_shift)  .gt. LANCZOS_tol) then
              exit
           endif
           converged=converged+1
@@ -84,9 +159,10 @@ contains
     else
        hasoldalpha=1
     endif
+
+   
     oldalpha(:m-1)=LB_eval(:m-1)
-    
-    return
+
   end function converged
 
 
@@ -108,16 +184,22 @@ contains
     evect(0:k-1,k)=LB_beta(0:k-1)
 
 
-
-
+!!$    if(LB_iproc==0) then
+!!$       print *, " in diag "
+!!$       print *, "  evect  " , evect
+!!$       print *, " LB_eval  " , LB_eval
+!!$    endif
     lwork = LB_nsteps*(3+LB_nsteps)
 
-    call DSYEV( 'V', 'U', m, evect, m, LB_eval, diagwork, LWORK, INFO )
+    call DSYEV( 'V', 'U', m, evect(0,0) , m, LB_eval(0), diagwork(0), LWORK, INFO )
 
-    
-    print *, " evals  " 
-    print *, LB_eval-LB_shift
+    if(LB_iproc==0) then
+       print *, " evals  " 
+       print *, LB_eval-LB_shift
+    endif
 
+!!$    if(LB_nproc>1) call MPI_finalize()
+!!$    stop
 
     if(info .ne.0) then
        print *, " problema con dsyev"
@@ -129,7 +211,7 @@ contains
   integer function  LB_cerca( nd, shift, tol, set_EP_shift, EP_allocate_for_eigenprob,&
        EP_make_dummy_vectors, get_EP_dim, EP_initialize_start , EP_normalizza,&
        EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy , EP_mat_mult, &
-       EP_scalare ,EP_add_from_vect_with_fact)
+       EP_scalare ,EP_add_from_vect_with_fact, accontentati_di_n)
 
     implicit none
 
@@ -179,12 +261,16 @@ contains
        end subroutine
        subroutine EP_mat_mult(m,k ,  EV )
          integer  m,k
-         real(8)  EV(0:m-1,0:k-1 )
+         real(8)  EV(1 )
        end subroutine        
 
     end interface
+
+    integer , optional :: accontentati_di_n
+
 ! :::::::::::::::::::::::::::::::::::::::::::::::::::
     integer k,nc,m
+    integer n_converged_cercati
     real(8) dum
 
     LANCZOS_tol=tol
@@ -213,14 +299,21 @@ contains
          EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy,   EP_mat_mult, &
          EP_scalare,EP_add_from_vect_with_fact     )
 
+    n_converged_cercati = nd
+    if(present(accontentati_di_n)) then
+       n_converged_cercati=accontentati_di_n
+    endif
 
-
-    do while(nc.lt.nd)
+    do while(nc.lt.n_converged_cercati)
 
        call diago(k,m)
+
+
+
        nc=converged(m)
+
        if ( k.gt.0) then
-          if( notzero( LB_beta ,k, LANCZOS_tol).eq.0 ) then
+          if( notzero( k, LANCZOS_tol).eq.0 ) then
              exit
           endif
        endif
@@ -233,9 +326,10 @@ contains
        endif
   
 
-
+       
 
        call ricipolla(k,m, EP_normalizza ,EP_copy, EP_mat_mult)
+
 
        call LB_passeggia(k,m , get_EP_dim, EP_initialize_start , EP_normalizza, &
             EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy ,&
@@ -249,9 +343,8 @@ contains
     return 
   end function LB_cerca
 
-  integer function notzero(LB_beta, k, tol)
+  integer function notzero(k, tol)
     implicit none
-    real(8), intent(in) ::LB_beta(0: LB_nsteps-1 )
     integer, intent(in) :: k
     real(8), intent(in) :: tol
     !::::::::::::::::::::::::::::::`
@@ -278,7 +371,7 @@ contains
        end subroutine EP_copy
        subroutine EP_mat_mult(m,k ,  EV )
          integer  m,k
-         real(8)  EV(0:m-1,0:k-1 )
+         real(8)  EV(1 )
        end subroutine EP_mat_mult
     end interface
     
@@ -290,17 +383,15 @@ contains
 
 
 
+
     LB_alpha(0:k-1)=LB_eval(0:k-1)
 
     LB_beta(0:k-1) = LB_beta(m-1)*evect(m-1, 0:k-1)
 
 
 
+    call EP_mat_mult(m,k,  evect(0:, 0:  )   ) 
 
-    call EP_mat_mult(m,k,  evect(0:m-1, 0:k-1  )   ) ! usare i dumvectors a partire da -1
-
-
-    
 
     do i=0, k-1
        call EP_normalizza(-i-1)
@@ -321,12 +412,12 @@ contains
     
 
 
-    call dgemm('N','N',m,m,m,acoeff,omega ,LB_nsteps+1,  evect ,LB_nsteps,bcoeff,dumomega,m)
+    call dgemm('N','N',m,m,m,acoeff,omega(0,0) ,LB_nsteps+1,  evect(0,0) ,LB_nsteps,bcoeff,dumomega(0,0),m)
 
     omega(0:k,k)=dumomega(0:k,k)
     omega(k,0:k)=dumomega(0:k,k)
 
-    call dgemm('T','N',m,m,m,acoeff,evect ,LB_nsteps,  dumomega  ,m,bcoeff,dumomega2,m)
+    call dgemm('T','N',m,m,m,acoeff,evect(0,0) ,LB_nsteps,  dumomega (0,0) ,m,bcoeff,dumomega2(0,0),m)
     omega(0:k-1,0:k-1)= dumomega2 (0:k-1,0:k-1)
 
 
@@ -353,7 +444,7 @@ contains
     interface
        subroutine EP_mat_mult(m,k ,  EV )
          integer  m,k
-         real(8)  EV(0:m-1,0:k-1 )
+         real(8)  EV(1 )
        end subroutine  
        integer function get_EP_dim()
        end function
@@ -400,6 +491,7 @@ contains
     endif
     
     DO i=k, m-1
+
 
        open(unit=22,file="alphabeta_p")
        write(22,*) i, 1.0
@@ -603,6 +695,116 @@ contains
     enddo
     
   end subroutine LB_passeggia
+
+
+
+
+
+
+
+
+
+  subroutine LB_passeggia_Chebychev (  m, cheb_min,  fact_cheb,  get_EP_dim,  EP_initialize_start , EP_normalizza, &
+       EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy,  EP_mat_mult,&
+       EP_scalare,EP_add_from_vect_with_fact , EP_multbyfact)
+    use module_base
+    implicit none
+    integer, intent(in)::m
+    ! ::::::::::::::::::::::::::::::::::::::::
+    real(8) sn,eu,eusn,eq
+    real(8) max0
+    real(gp) cheb_min,  fact_cheb
+    integer pvect
+    integer i,l,j, w
+    interface
+       subroutine EP_mat_mult(m,k ,  EV )
+         integer  m,k
+         real(8)  EV(1 )
+       end subroutine  
+       integer function get_EP_dim()
+       end function
+       subroutine EP_initialize_start()
+       end subroutine 
+       subroutine EP_normalizza(i)
+         integer i
+       end subroutine 
+       subroutine EP_Moltiplica(i,j)
+         integer i,j
+       end subroutine 
+       real(8) function EP_scalare(i,j)
+         integer i,j
+       end function 
+       subroutine EP_add_from_vect_with_fact( i, j  ,   a )
+         integer i,j
+         real(8) a
+       end subroutine 
+       subroutine EP_GramSchmidt(i,j)
+         integer i,j
+       end subroutine 
+       subroutine EP_set_all_random(i)
+         integer i
+       end subroutine 
+       subroutine EP_copy(i,j)
+         integer i,j
+       end subroutine
+       subroutine EP_multbyfact(j, fact)
+         use module_base
+         implicit none
+         integer, intent(in)::j
+         real(gp) fact
+         ! ::::::::::::::::::::::::::::::::::::::
+
+       end subroutine EP_multbyfact
+       
+
+    end interface
+    integer p
+    real(8) add
+    real(8) condition
+    integer ipa
+    integer tmp1, attuale, precedente
+
+    tmp1 = 1
+    attuale= 2
+    precedente= 3
+
+    call EP_initialize_start()
+    call EP_copy(attuale,0)
+    call EP_copy(precedente,0)
+    LB_alpha(0)=EP_scalare(attuale,attuale)
+    
+    DO i=0, m-1
+
+       open(unit=22,file="alphabeta_chebychev")
+       write(22,*) 2*i+1,  cheb_min, fact_cheb
+       do ipa=0, 2*i
+          write(22,*) LB_alpha(ipa)
+       enddo
+       close(unit=22)
+
+
+       call EP_Moltiplica(tmp1, attuale )
+       call EP_multbyfact(tmp1,fact_cheb)
+       if(i==0) then
+          LB_alpha(1)=EP_scalare(tmp1,attuale)
+       else
+          call EP_multbyfact(tmp1,2.0_gp)
+          call EP_add_from_vect_with_fact(tmp1,precedente,-1.0_gp ) 
+       endif
+
+       
+       LB_alpha(2*i+1) = 2*EP_scalare(tmp1,attuale)-LB_alpha(1)
+       LB_alpha(2*i+2) = 2*EP_scalare(tmp1,tmp1)-LB_alpha(0)
+       
+       print *, LB_alpha(2*i+1)
+       print *, LB_alpha(2*i+2)
+
+       call EP_copy(precedente,attuale)
+       call EP_copy(attuale,tmp1)
+
+    enddo
+    
+  end subroutine LB_passeggia_Chebychev 
    
 end module lanczos_base
 

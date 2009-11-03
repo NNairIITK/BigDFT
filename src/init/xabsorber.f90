@@ -2777,3 +2777,251 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
 
   return
 end subroutine GetExcitedOrbitalAsG
+
+
+
+
+
+
+
+
+
+subroutine zero4b2B(n,x)
+  implicit none
+  !Arguments
+  integer, intent(in) :: n
+  real(kind=8), intent(out) :: x(n)
+  !Local variables
+  integer :: i
+  do i=1,n
+     x(i)=0.d0
+  end do
+end subroutine zero4b2B
+!!***
+
+
+!!****f* PSolver/back_trans_14_4b2B
+!! FUNCTION
+!!   backward wavelet transform
+!!   nd: length of data set
+!!   nt length of data in data set to be transformed
+!!   m filter length (m has to be even!)
+!!   x input data, y output data
+!!
+!! SOURCE
+!!
+subroutine back_trans_14_4b2B(nd,nt,x,y)
+  implicit none
+  !Arguments
+  integer, intent(in) :: nd,nt
+  real(kind=8), intent(in) :: x(0:nd-1)
+  real(kind=8), intent(out) :: y(0:nd-1)
+  !Local variables
+  integer :: i,j,ind
+
+  !!include 'lazy_16.inc'
+  !!****h* PSolver/lazy_16
+  !! FUNCTION
+  !!   Filters for interpolating scaling functions (order 16)
+  !!
+  !! SOURCE
+  !!
+  integer, parameter :: m=18
+  real(kind=8), dimension(-m:m) :: ch = (/&
+       0.d0,0.d0,0.d0,-6.39259815216064453D-6,0.D0,0.000110641121864318848D0,0.D0,&
+       -0.000915303826332092285D0,0.D0,0.00484772026538848877D0,0.D0,&
+       -0.0186983495950698853D0,0.D0,0.0575909167528152466D0,0.D0,&
+       -0.159974768757820129D0,0.D0,0.617045536637306213D0,1.D0,0.617045536637306213D0,&
+       0D0,-0.159974768757820129D0,0.D0,0.0575909167528152466D0,0.D0,&
+       -0.0186983495950698853D0,0.D0,0.00484772026538848877D0,0.D0,&
+       -0.000915303826332092285D0,0.D0,0.000110641121864318848D0,0.D0,&
+       -6.39259815216064453D-6,0.d0,0.d0,0.d0&
+       /)
+  real(kind=8), dimension(-m:m) :: cg,cht,cgt
+  
+  !******** coefficients for wavelet transform *********************
+  do i=-m,m
+     cht(i)=0.d0
+     cg(i)=0.d0
+     cgt(i)=0.d0
+  enddo
+  
+  ! the normalization is chosen such that a constant function remains the same constant 
+  ! on each level of the transform
+  
+  cht( 0)=1.D0
+  
+  ! g coefficients from h coefficients
+  do i=-m,m-1
+     cg(i+1)=cht(-i)*(-1.d0)**(i+1)
+     cgt(i+1)=ch(-i)*(-1.d0)**(i+1)
+  enddo
+  !!***
+  ! -------------------------------- lazy end --------------------------------------------
+  
+  do i=0,nt/2-1
+     y(2*i+0)=0.d0
+     y(2*i+1)=0.d0
+     
+     do j=-m/2,m/2-1
+        
+        ! periodically wrap index if necessary
+        ind=i-j
+        loop99: do
+           if (ind.lt.0) then 
+              ind=ind+nt/2
+              cycle loop99
+           end if
+           if (ind.ge.nt/2) then 
+              ind=ind-nt/2
+              cycle loop99
+           end if
+           exit loop99
+        end do loop99
+
+        y(2*i+0)=y(2*i+0) + ch(2*j-0)*x(ind)+cg(2*j-0)*x(ind+nt/2)
+        y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
+     end do
+  end do
+        
+end subroutine back_trans_14_4b2B
+
+
+
+subroutine scaling_function4b2B(itype,nd,nrange,a,x)
+
+  implicit none
+  !Arguments
+  !Type of interpolating functions
+  integer, intent(in) :: itype
+  !Number of points: must be 2**nex
+  integer, intent(in) :: nd
+  integer, intent(out) :: nrange
+  real(kind=8), dimension(0:nd), intent(out) :: a,x
+  !Local variables
+  character(len=*), parameter :: subname='scaling_function4b2B'
+  real(kind=8), dimension(:), allocatable :: y
+  integer :: i,nt,ni,i_all,i_stat, ndebug
+  
+  ndebug=1
+
+  !Only itype=8,14,16,20,24,30,40,50,60,100
+  select case(itype)
+  case(8,14,16,20,24,30,40,50,60,100)
+     !O.K.
+  case default
+     print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
+     stop
+  end select
+!!$  write(unit=*,fmt="(1x,a,i0,a)") &
+!!$       "Use interpolating scaling functions of ",itype," order"
+
+  !Give the range of the scaling function
+  !from -itype to itype
+  ni=2*itype
+  nrange = ni
+  allocate(y(0:nd+ndebug),stat=i_stat)
+  ! call memocc(i_stat,y,'y',subname)
+  
+  ! plot scaling function
+  call zero4b2B(nd+1,x)
+  call zero4b2B(nd+1,y)
+  nt=ni
+  x(nt/2)=1.d0
+  loop1: do
+     nt=2*nt
+     ! write(6,*) 'nd,nt',nd,nt
+     select case(itype)
+     case(8)
+        stop
+     case(14)
+        stop
+     case(16)
+        call back_trans_14_4b2B(nd,nt,x,y)
+     case(20)
+        stop
+     case(24)
+        stop
+     case(30)
+        stop
+     case(40)
+        stop
+     case(50)
+        stop
+     case(60)
+        stop
+     case(100)
+        stop
+     end select
+
+     do i=0,nt-1
+        x(i)=y(i)
+     end do
+     if (nt.eq.nd) then
+        exit loop1
+     end if
+  end do loop1
+
+  !open (unit=1,file='scfunction',status='unknown')
+  do i=0,nd
+     a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-1.d0)
+     !write(1,*) a(i),x(i)
+  end do
+  !close(1)
+
+  i_all=-product(shape(y))*kind(y)
+  deallocate(y,stat=i_stat)
+  ! call memocc(i_stat,i_all,'y',subname)
+end subroutine scaling_function4b2B
+!!***
+
+
+subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
+  use module_base
+  implicit none
+  character(len=*), intent(in) :: filename
+  integer, intent(out) :: n1i,n2i,n3i
+  real(gp) alat1, alat2, alat3, dum, dum1
+  ! real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
+  real(dp), pointer :: rho(:)
+  !local variables
+  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,j1,j2,j3
+  real(dp) :: value
+  character(len=*), parameter :: subname='read_potfile4b2B'
+
+  open(unit=22,file=filename,status='unknown')
+  read(22,*)!'normalised density'
+  read(22,*) n1i,n2i,n3i
+  read(22,*) alat1,dum ,alat2
+  read(22,*)  dum, dum1, alat3
+  read(22,*)!xyz   periodic' !not true in general but needed in the case
+
+  !conditions for periodicity in the three directions
+  !value of the buffer in the x and z direction
+  nl1=1
+  nl3=1
+  nl2=1
+
+
+  allocate( rho( n1i*n2i*n3i ) , stat=i_stat )
+  call memocc(i_stat,rho,'rho',subname)
+
+
+  
+  call razero(max(n1i*n2i*n3i,1),rho)
+
+  do i3=0,n3i-1
+     do i2=0,n2i-1
+        do i1=0,n1i-1
+           ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
+           read(22,*)value
+           rho(ind)=value
+        end do
+     end do
+  end do
+  close(22)
+  
+end subroutine read_potfile4b2B
+
+
+

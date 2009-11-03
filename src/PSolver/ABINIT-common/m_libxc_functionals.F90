@@ -256,11 +256,11 @@ contains
     end if
 #else
     libxc_functionals_isgga = .false.
-    write(message, '(a,a,a,a)' ) ch10,&
-         & ' wvl_init_type_wfs : LibXC library is not compiled.', ch10, &
-         & '   Action, used the flag --enable-libxc when configuring.'
-    call wrtout(6,message,'COLL')
-    call leave_new('COLL')
+!!$    write(message, '(a,a,a,a)' ) ch10,&
+!!$         & ' wvl_init_type_wfs : LibXC library is not compiled.', ch10, &
+!!$         & '   Action, used the flag --enable-libxc when configuring.'
+!!$    call wrtout(6,message,'COLL')
+!!$    call leave_new('COLL')
 #endif
 
   end function libxc_functionals_isgga
@@ -305,11 +305,11 @@ contains
     end if
 #else
     libxc_functionals_exctXfac = 0.d0
-    write(message, '(a,a,a,a)' ) ch10,&
-         & ' wvl_init_type_wfs : LibXC library is not compiled.', ch10, &
-         & '   Action, used the flag --enable-libxc when configuring.'
-    call wrtout(6,message,'COLL')
-    call leave_new('COLL')
+!!$    write(message, '(a,a,a,a)' ) ch10,&
+!!$         & ' wvl_init_type_wfs : LibXC library is not compiled.', ch10, &
+!!$         & '   Action, used the flag --enable-libxc when configuring.'
+!!$    call wrtout(6,message,'COLL')
+!!$    call leave_new('COLL')
 #endif
 
   end function libxc_functionals_exctXfac

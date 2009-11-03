@@ -1,6 +1,6 @@
 !!****f* BigDFT/MPIfake
 !! FUNCTION
-!!    Fake functions for MPI in the case onf serial version
+!!    Fake functions for MPI in the case of serial version
 !!
 !! COPYRIGHT
 !!    Copyright (C) 2007-2009 BigDFT group 
@@ -31,6 +31,8 @@
         ierr=0
         end subroutine MPI_COMM_SIZE
 
+!here we have routines which do not transform the argument for nproc==1
+!these routines can be safely called also in the serial version
         subroutine  MPI_FINALIZE(ierr)
         implicit none
         integer :: ierr
@@ -49,13 +51,13 @@
         implicit none
         end subroutine MPI_REDUCE
 
-! These routines in serial version should not be called.
-! A stop is added
-
         subroutine  MPI_ALLREDUCE()
         implicit none
-        stop 'MPIFAKE: ALLREDUCE'
         end subroutine MPI_ALLREDUCE
+
+
+! These routines in serial version should not be called.
+! A stop is added
 
         subroutine  MPI_ALLGatherV()
         implicit none
