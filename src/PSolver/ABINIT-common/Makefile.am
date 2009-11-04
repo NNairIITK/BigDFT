@@ -46,6 +46,7 @@ CLEANFILES = \
 
 interfaces_14_hidewrite.o interfaces_16_hideleave.o interfaces_56_xc.o m_libxc_functionals.o defs_parameters.o : defs_basis.o
 
+m_libxc_functionals.o : interfaces_16_hideleave.o 
 
 defs_datatypes.o: defs_datatypes.F90 \
 	defs_parameters.o \
@@ -87,6 +88,7 @@ xcpbe.o: xcpbe.F90 \
 	defs_basis.o
 
 xcpzca.o: xcpzca.F90 \
+	interfaces_16_hideleave.o \
 	defs_basis.o
 
 xcspol.o: xcspol.F90 \
