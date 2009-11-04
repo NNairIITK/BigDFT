@@ -785,7 +785,7 @@ contains
 
        call EP_Moltiplica(tmp1, attuale )
        call EP_multbyfact(tmp1,fact_cheb)
-       if(i==1) then
+       if(i==0) then
           LB_alpha(1)=EP_scalare(tmp1,attuale)
        else
           call EP_multbyfact(tmp1,2.0_gp)
