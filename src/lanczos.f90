@@ -384,10 +384,6 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
            call write_gaussian_information( 0 ,1 ,ha%orbs,Gabsorber,dum_coeffs ,filename)
         endif
      endif
-     
-
-
-  
 
   !associate hamapp_arg pointers
   ha%iproc=iproc

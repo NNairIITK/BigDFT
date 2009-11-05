@@ -111,7 +111,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   iline=iline+1
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
     ! call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-!     call sg_init(GPUshare,iconv,iproc,initerror)
+     call sg_init(GPUshare,iconv,iproc,initerror)
      iconv = 1
      iblas = 1
      if (initerror == 1) then
@@ -535,7 +535,7 @@ subroutine abscalc_input_variables_default(in)
 
   in%c_absorbtion=.false.
   in%potshortcut=0
-
+  in%iat_absorber=0
 
 end subroutine abscalc_input_variables_default
 !!***
