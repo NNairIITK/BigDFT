@@ -14,7 +14,7 @@ def do_cache(ncache,args):
     text = "integer, parameter :: ncache"
     re_ncache = re.compile(text+".*",re.MULTILINE)
     file_module = open("fft3d-temp.f90").read()
-    file_module = re_ncache.sub(text+"=%d\n" % ncache,file_module)
+    file_module = re_ncache.sub(text+"=%d" % ncache,file_module)
     open("fft3d-temp.f90","w").write(file_module)
     sys.stdout.write("compile.")
     sys.stdout.flush()
@@ -22,10 +22,12 @@ def do_cache(ncache,args):
     os.system("%s -o fft_cache fft_cache-temp.f90 fft3d-temp.f90" % args)
     sys.stdout.write("test")
     sys.stdout.flush()
-    os.system("./fft_cache >> fft_cache.out 2>&1")
+    #os.system("./fft_cache >> fft_cache.out 2>&1")
+    os.system("./fft_cache")
 
 #List of tested values of ncache
 list_cache = [ 0, 6, 12, 24, 50, 75, 100]
+#list_cache = range(0,2000,10)
 
 if len(sys.argv) == 1:
     sys.stderr.write("Usage: fft_cache name_of_compiler_and_options\n")
@@ -94,12 +96,12 @@ fd.close()
 
 best = caches[0]
 fd = open("fft_perf.dat","w")
-fd.write("#ncache performances (50 <= x <+ 500) time(n1=128)\n")
+fd.write("#ncache performances (50 <= x <+ 500) time\n")
 for c in caches:
     perf = performances[c] 
     if performances[c] < performances[best]:
         best = c
-    fd.write("%s %s %s\n" % (c,perf,dico[128][c]))
+    fd.write("%s %s\n" % (c,perf))
 fd.close()
 
 print "Use fft_cache.gnuplot to display the results"

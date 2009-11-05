@@ -36,62 +36,66 @@ program fft_cache
 
    use module_fft_sg
    implicit none
+   integer, parameter :: nsize_dat = 20000000
    integer, parameter :: iunit=21
-   integer :: i,j,n1,ntime
-   real(kind=8) :: tt
+   integer :: ip,jp,n3,ndat,ntime
+   real(kind=8) :: time,tela
    open(unit=iunit,file="fft_cache.dat",status="unknown",position="append")
-   do i=1,ndata
-      n1 = i_data(i)
-      ntime=2*(nfft_max/n1+1)
-      do j=1,ntime
-         call do_fft(n1, ndat, time, tela)
+   do ip=1,ndata,10
+      n3 = i_data(ip)
+      !n3 = 315
+      ndat = nsize_dat/8/n3
+      ntime=1!3
+      do jp=1,ntime
+         call do_fft(ndat, n3, time, tela)
       end do
-      write(unit=iunit,fmt=*) ncache,n1,ndat,time,tela
+      write(unit=6,fmt="(a,i0,a)",advance="no") "(",n3,")"
+      write(unit=iunit,fmt=*) ncache,n3,ndat,time,tela
    end do
    write(unit=iunit,fmt=*) 
    close(unit=iunit)
 
 contains
 
-   subroutine do_fft(n1,ndat,time,tela)
+   subroutine do_fft(ndat,n3,time,tela)
 
       implicit none
 
       ! dimension parameters
-      integer, intent(in) :: n1, ndat, itime
+      integer, intent(in) :: ndat, n3
       real(kind=8), intent(out) :: time,tela
       ! Local variables
       integer :: count1,count2,count_rate,count_max,i,inzee,i_sign
       real(kind=8) :: t1,t2
       ! parameters for FFT
-      integer :: nd1, nddat
+      integer :: nd3, nddat
       ! general array
       real(kind=8), allocatable :: zin(:,:)
       ! arrays for FFT 
       real(kind=8), allocatable :: z(:,:,:)
       character(len=10) :: message
 
-      nd1=n1+1
+      nd3=n3+1
       nddat=ndat+1
 
       ! Allocations
-      allocate(zin(2,n1*n2*n3))
-      allocate(z(2,nd1*nd2*nd3,2))
+      allocate(zin(2,ndat*n3))
+      allocate(z(2,nddat*nd3,2))
 
-      do i=1,nd1*nd2*nd3
+      do i=1,nddat*nd3
          z(1,i,1)=0.d0
          z(2,i,1)=0.d0
          z(1,i,2)=0.d0
          z(2,i,2)=0.d0
       end do
 
-      call init(n1,n2,n3,nd1,nd2,nd3,zin,z)
+      call init(ndat,n3,nddat,nd3,zin,z)
 
       i_sign=-1
       inzee=1
       call cpu_time(t1)
       call system_clock(count1,count_rate,count_max)      
-      call fft1(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
+      call fft1(ndat,n3,nddat,nd3,z,i_sign,inzee)
       call system_clock(count2,count_rate,count_max)      
       call cpu_time(t2)
       time=(t2-t1)
@@ -103,27 +107,25 @@ contains
 
    end subroutine do_fft
 
-   subroutine init(n1,n2,n3,nd1,nd2,nd3,zin,z)
+   subroutine init(ndat,n3,nddat,nd3,zin,z)
       implicit none
       !Arguments
-      integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3
-      real*8 :: zin(2,n1,n2,n3),z(2,nd1,nd2,nd3)
+      integer, intent(in) :: ndat,n3,nddat,nd3
+      real*8 :: zin(2,ndat,n3),z(2,nddat,nd3)
       !Local variables
-      integer :: i1,i2,i3
+      integer :: id,i3
       do i3=1,n3
-         do i2=1,n2
-            do i1=1,n1
-               zin(1,i1,i2,i3) = cos(1.23d0*real(i1*111 + i2*11 + i3,kind=8))
-               zin(2,i1,i2,i3) = sin(3.21d0*real(i3*111 + i2*11 + i1,kind=8))
-               z(1,i1,i2,i3) = zin(1,i1,i2,i3) 
-               z(2,i1,i2,i3) = zin(2,i1,i2,i3) 
-            end do
+         do id=1,ndat
+            zin(1,id,i3) = cos(1.23d0*real(id*11 + i3,kind=8))
+            zin(2,id,i3) = sin(3.21d0*real(i3*11 + id,kind=8))
+            z(1,id,i3) = zin(1,id,i3) 
+            z(2,id,i3) = zin(2,id,i3) 
          end do
       end do
    end subroutine init
 
    !Do one basic FFT (transform along Z)
-   subroutine fft1(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
+   subroutine fft1(ndat,n3,nddat,nd3,z,i_sign,inzee)
 
       use module_fft_sg
       implicit real(kind=8) (a-h,o-z), integer (i-n)
@@ -138,15 +140,15 @@ contains
       !!!!$      end interface
 
       !Arguments
-      integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,i_sign
+      integer, intent(in) :: ndat,n3,nddat,nd3,i_sign
       integer, intent(inout) :: inzee
-      real(kind=8), intent(inout) :: z(2,nd1*nd2*nd3,2)
+      real(kind=8), intent(inout) :: z(2,nddat*nd3,2)
       !Local variables
       real(kind=8), dimension(2,nfft_max) :: trig
       integer, dimension(n_factors) :: after,now,before
       real(kind=8), allocatable, dimension(:,:,:) :: zw  
 
-      if (max(n1,n2,n3).gt.nfft_max) then
+      if (n3.gt.nfft_max) then
          write(*,*) 'Dimension bigger than ', nfft_max
          stop
       end if
@@ -154,15 +156,13 @@ contains
       ! check whether input values are reasonable
       if (inzee.le.0 .or. inzee.ge.3) stop 'wrong inzee'
       if (i_sign.ne.1 .and. i_sign.ne.-1) stop 'wrong i_sign'
-      if (n1.gt.nd1) stop 'n1>nd1'
-      if (n2.gt.nd2) stop 'n2>nd2'
       if (n3.gt.nd3) stop 'n3>nd3'
        
       ! vector computer with memory banks:
       if (ncache.eq.0) then
          call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
-         nfft=nd1*n2
-         mm=nd1*nd2
+         nfft=ndat
+         mm=nddat
          do i=1,ic-1
             call fftstp_sg(mm,nfft,nd3,mm,nd3,z(1,1,inzee),z(1,1,3-inzee), &
                            trig,after(i),now(i),before(i),i_sign)
@@ -194,7 +194,7 @@ contains
          inzet=inzee
          ! TRANSFORM ALONG Z AXIS
 
-         mm=nd1*nd2
+         mm=nddat
          m=nd3
          lot=max(1,ncache/(4*n3))
          nn=lot
@@ -207,9 +207,9 @@ contains
 
          if (ic.eq.1) then
             i=ic
-            lotomp=(nd1*n2)/npr+1
+            lotomp=(ndat)/npr+1
             ma=iam*lotomp+1
-            mb=min((iam+1)*lotomp,nd1*n2)
+            mb=min((iam+1)*lotomp,ndat)
             nfft=mb-ma+1
             j=ma
             jj=j*nd3-nd3+1
@@ -218,9 +218,9 @@ contains
 
          else
 
-            lotomp=(nd1*n2)/npr+1
+            lotomp=(ndat)/npr+1
             jompa=iam*lotomp+1
-            jompb=min((iam+1)*lotomp,nd1*n2)
+            jompb=min((iam+1)*lotomp,ndat)
             do j=jompa,jompb,lot
                ma=j
                mb=min(j+(lot-1),jompb)

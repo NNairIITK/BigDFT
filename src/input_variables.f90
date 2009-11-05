@@ -525,8 +525,9 @@ subroutine abscalc_input_variables_default(in)
   implicit none
   type(input_variables), intent(out) :: in
 
-  !put some fake values for the geometry optimsation case
   in%c_absorbtion=.false.
+  in%potshortcut=0
+
 
 end subroutine abscalc_input_variables_default
 !!***
@@ -570,6 +571,9 @@ subroutine abscalc_input_variables(iproc,filename,in)
   call memocc(i_stat,in%Gabs_coeffs,'in%Gabs_coeff',subname)
 
   read(111,*,iostat=ierror)  (in%Gabs_coeffs(i+ndebug), i=1,2*in%L_absorber +1 )
+  call check()
+
+  read(111,*,iostat=ierror)  in%potshortcut
   call check()
   
   read(111,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
