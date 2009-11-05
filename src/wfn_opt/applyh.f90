@@ -501,20 +501,20 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   call apply_potential(n1,n2,n3,1,1,1,nbuf,nspinor,npot,psir,pot,epot,&
        ibyyzz_r) !optional
 
-!!$  epot=0.0_gp
-!!$  if (nspinor==1 .or. nspinor == 2) then
-!!$     do ispinor=1,nspinor
-!!$        if (nbuf == 0) then
-!!$           call realspace(ibyyzz_r,pot,psir(1,ispinor),epots,n1,n2,n3)
-!!$        else
-!!$           !this is for the tails. In principle it should work only for 
-!!$           call realspace_nbuf(ibyyzz_r,pot,psir(1,ispinor),epot,n1,n2,n3,nbuf)
-!!$        endif
-!!$           epot=epot+epots
-!!$        end do
-!!$  else
-!!$     call realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
-!!$  end if
+!!  epot=0.0_gp
+!!  if (nspinor==1 .or. nspinor == 2) then
+!!     do ispinor=1,nspinor
+!!        if (nbuf == 0) then
+!!           call realspace(ibyyzz_r,pot,psir(1,ispinor),epots,n1,n2,n3)
+!!        else
+!!           !this is for the tails. In principle it should work only for 
+!!           call realspace_nbuf(ibyyzz_r,pot,psir(1,ispinor),epot,n1,n2,n3,nbuf)
+!!        endif
+!!           epot=epot+epots
+!!        end do
+!!  else
+!!     call realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
+!!  end if
   
   ekin=0.0_gp
   do idx=1,nspinor
@@ -565,7 +565,7 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
   real(gp), dimension(3) :: hgridh
 
   ! Initialisation of potential energy  
-!!$  epot=0.0_gp
+!!  epot=0.0_gp
   ekin=0.0_gp
 
   hgridh(1)=hx*.5_gp
@@ -585,25 +585,25 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
 
   call apply_potential(n1,n2,n3,0,0,0,0,nspinor,npot,psir,pot,epot)
 
-!!$  !!$omp parallel default(private)&
-!!$  !!$omp shared(pot,psir,n1,n2,n3,epot)
-!!$
-!!$  epot_p=0._gp
-!!$  !!$omp do
-!!$  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
-!!$     v=real(pot(i),gp)
-!!$     p=real(psir(i),gp)
-!!$     tt=pot(i)*psir(i)
-!!$     epot_p=epot_p+p*v*p
-!!$     psir(i)=tt
-!!$  enddo
-!!$  !!$omp end do
-!!$
-!!$  !!$omp critical
-!!$  epot=epot+epot_p
-!!$  !!$omp end critical
-!!$
-!!$  !!$omp end parallel
+!!  !$omp parallel default(private)&
+!!  !$omp shared(pot,psir,n1,n2,n3,epot)
+!!
+!!  epot_p=0._gp
+!!  !$omp do
+!!  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+!!     v=real(pot(i),gp)
+!!     p=real(psir(i),gp)
+!!     tt=pot(i)*psir(i)
+!!     epot_p=epot_p+p*v*p
+!!     psir(i)=tt
+!!  enddo
+!!  !$omp end do
+!!
+!!  !$omp critical
+!!  epot=epot+epot_p
+!!  !$omp end critical
+!!
+!!  !$omp end parallel
 
   do idx=1,nspinor
      call convolut_magic_t_per_self(2*n1+1,2*n2+1,2*n3+1,psir(1,idx),psi_out(1,idx))
@@ -706,14 +706,14 @@ subroutine applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   
   call apply_potential(n1,n2,n3,0,0,0,0,nspinor,npot,psir,pot,epot)
 
-!!$  epot=0.0_gp
-!!$  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
-!!$     v=real(pot(i),gp)
-!!$     p=real(psir(i),gp)
-!!$     tt=pot(i)*psir(i)
-!!$     epot=epot+p*v*p
-!!$     psir(i)=tt
-!!$  enddo
+!!  epot=0.0_gp
+!!  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+!!     v=real(pot(i),gp)
+!!     p=real(psir(i),gp)
+!!     tt=pot(i)*psir(i)
+!!     epot=epot+p*v*p
+!!     psir(i)=tt
+!!  enddo
 
 ! y_c has the scfunction output of the kinetic energy operator  
 !psir  : input, y_c: output, psi_in:work
@@ -811,14 +811,14 @@ subroutine applylocpotkinone_slab(n1,n2,n3, &
   
   call apply_potential(n1,n2,n3,0,1,0,0,nspinor,npot,psir,pot,epot)
 
-!!$  epot=0.0_gp
-!!$  do i=1,(2*n1+2)*(2*n2+31)*(2*n3+2)
-!!$     v=real(pot(i),gp)
-!!$     p=real(psir(i),gp)
-!!$     tt=pot(i)*psir(i)
-!!$     epot=epot+p*v*p
-!!$     psir(i)=tt
-!!$  enddo
+!!  epot=0.0_gp
+!!  do i=1,(2*n1+2)*(2*n2+31)*(2*n3+2)
+!!     v=real(pot(i),gp)
+!!     p=real(psir(i),gp)
+!!     tt=pot(i)*psir(i)
+!!     epot=epot+p*v*p
+!!     psir(i)=tt
+!!  enddo
 
   do idx=1,nspinor
      call convolut_magic_t_slab_self(2*n1+1,2*n2+15,2*n3+1,psir(1,idx),psi_out(1,idx))
@@ -862,13 +862,13 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
   epot=0.0_wp
 
 
-  !!$omp parallel default(private)&
-  !!$omp shared(pot,psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
+!$NOomp parallel default(private)&
+!$NOomp shared(pot,psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
   !case without bounds
   i1s=-14*nl1
   i1e=2*n1+1+15*nl1
   epot_p=0._gp
-  !!$omp do
+!$NOomp do
   do i3=-14*nl3,2*n3+1+15*nl3
      if (i3 >= -14+2*nbuf .and. i3 <= 2*n3+16-2*nbuf) then !check for the nbuf case
         do i2=-14*nl2,2*n2+1+15*nl2
@@ -967,13 +967,13 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
         enddo
      endif
   enddo
-  !!$omp end do
+!$NOomp end do
 
-  !!$omp critical
+!$NOomp critical
   epot=epot+epot_p
-  !!$omp end critical
+!$NOomp end critical
 
-  !!$omp end parallel
+!$NOomp end parallel
 
 
 end subroutine apply_potential

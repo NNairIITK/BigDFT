@@ -414,9 +414,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
      end do tail_adding
 
-!!$     write(*,'(1x,a,i3,3(1x,1pe13.6),2(1x,1pe9.2))') &
-!!$          'BIG: iorb,denergies,gnrm,dnorm',&
-!!$          iorb,ekin-ekin1,epot-epot1,eproj-eproj1,tt,sum_tail-1.d0
+!!!     write(*,'(1x,a,i3,3(1x,1pe13.6),2(1x,1pe9.2))') &
+!!!          'BIG: iorb,denergies,gnrm,dnorm',&
+!!!          iorb,ekin-ekin1,epot-epot1,eproj-eproj1,tt,sum_tail-1.d0
 
      if (iproc == 0) then
         write(*,'(a)',advance='no') &

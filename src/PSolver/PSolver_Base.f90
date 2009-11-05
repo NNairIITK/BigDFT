@@ -46,9 +46,9 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf,&
 
   call timing(iproc,'PSolv_comput  ','ON')
   ! check input
-!!$  if (mod(n1,2).ne.0) stop 'Parallel convolution:ERROR:n1' !this can be avoided
-!!$  if (mod(n2,2).ne.0) stop 'Parallel convolution:ERROR:n2' !this can be avoided
-!!$  if (mod(n3,2).ne.0) stop 'Parallel convolution:ERROR:n3' !this can be avoided
+!!  if (mod(n1,2).ne.0) stop 'Parallel convolution:ERROR:n1' !this can be avoided
+!!  if (mod(n2,2).ne.0) stop 'Parallel convolution:ERROR:n2' !this can be avoided
+!!  if (mod(n3,2).ne.0) stop 'Parallel convolution:ERROR:n3' !this can be avoided
   if (nd1.lt.n1/2+1) stop 'Parallel convolution:ERROR:nd1' 
   if (nd2.lt.n2/2+1) stop 'Parallel convolution:ERROR:nd2' 
   if (nd3.lt.n3/2+1) stop 'Parallel convolution:ERROR:nd3' 
@@ -266,7 +266,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf,&
 
            !Multiply with kernel in fourier space
            i3=iproc*(nd3/nproc)+j3
-!!$           call P_multkernel_old(n1,n2,n3,lot,nfft,j,i3,zw(1,1,inzee),hx,hy,hz,offset)!,fourisf)
+!!           call P_multkernel_old(n1,n2,n3,lot,nfft,j,i3,zw(1,1,inzee),hx,hy,hz,offset)!,fourisf)
            call P_multkernel(nd1,nd2,n1,n2,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee),&
                 i3,hx,hy,hz,offset)
 
@@ -883,7 +883,7 @@ subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
      !isign=(j1/(n1/2+2))
      !j1=(1-2*isign)*j1+isign*(n1+2) !n1/2+1-abs(n1/2+2-jS-i1)
      j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
-!!$     j1=n1/2+1-abs(n1/2+2-jS-j)!this stands for j1=min(jS-1+j,n1+3-jS-j)
+!!     j1=n1/2+1-abs(n1/2+2-jS-j)!this stands for j1=min(jS-1+j,n1+3-jS-j)
      zw(1,j,1)=zw(1,j,1)*pot(j1,1)
      zw(2,j,1)=zw(2,j,1)*pot(j1,1)
   end do
@@ -893,7 +893,7 @@ subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
      do j=1,nfft
         j1=j+jS-1
         j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
-!!$        j1=n1/2+1-abs(n1/2+2-jS-j)
+!!        j1=n1/2+1-abs(n1/2+2-jS-j)
         j2=n2+2-i2
         zw(1,j,i2)=zw(1,j,i2)*pot(j1,i2)
         zw(2,j,i2)=zw(2,j,i2)*pot(j1,i2)
@@ -906,7 +906,7 @@ subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
   do j=1,nfft
      j1=j+jS-1
      j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
-!!$     j1=n1/2+1-abs(n1/2+2-jS-j)
+!!     j1=n1/2+1-abs(n1/2+2-jS-j)
      j2=n2/2+1
      zw(1,j,j2)=zw(1,j,j2)*pot(j1,j2)
      zw(2,j,j2)=zw(2,j,j2)*pot(j1,j2)

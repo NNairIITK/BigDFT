@@ -731,7 +731,7 @@ subroutine memory_occupation(istat,isize,array,routine)
            loc%array=array
            loc%memory=isize
            loc%peak=isize
-!!$               end if
+!!!               end if
         else
            loc%memory=loc%memory+isize
            if (loc%memory > loc%peak) then

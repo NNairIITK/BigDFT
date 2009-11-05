@@ -263,10 +263,10 @@ contains
 
       Ref(:,:)=0.0
       
-!!$      print *, " D  psi(1) " ,psi(1)
+!!!      print *, " D  psi(1) " ,psi(1)
 
       do i=0, nls-1
-!!$         print *, "per l=  ", i, " psi ", psi(i)
+!!!         print *, "per l=  ", i, " psi ", psi(i)
          Ref(i,i) = ( UIC *K(i) *psi(i) + derpsi(i) )/(  UIC *K(i) * psi(i) - derpsi(i) )
       enddo
  
@@ -416,13 +416,13 @@ contains
      complex(gp) UD(  0:nls_a-1,0:nls_a-1       ), DD(  0:nls_a-1,0:nls_a-1       )
      complex(gp) UIC 
      complex(gp) Ref(0:nls_a-1,0:nls_a-1), Transm(0:nls_a-1,0:nls_a-1), Kh(0:nls_a-1)
-!!$     real(gp) , pointer :: py_r(:)
+!!!     real(gp) , pointer :: py_r(:)
 
      UIC=(0.0,1.0)
 
-!!$     print *, " B  y_r(1) " ,y_r(1)
-!!$     py_r=> y_r
-!!$     print *, " B  py_r(1) " ,py_r(1)
+!!!     print *, " B  y_r(1) " ,y_r(1)
+!!!     py_r=> y_r
+!!!     print *, " B  py_r(1) " ,py_r(1)
 
      call  inizializza(  nls_a, ngrid_A ,rgrid  ,dumgrid1 ,   lpot_A, rpot_A, spot_A, hpot_A,  y_r  ,d_r ,Rmts )
 

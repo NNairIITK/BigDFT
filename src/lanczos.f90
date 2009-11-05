@@ -72,7 +72,7 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
  
-!!$  
+!!!  
   !call allocate_comms(nproc,ha%orbs,ha%comms,subname)
      ! write(filename,'(A,A,A)') "gproje_", at%atomnames(at%iatype(  in_iat_absorber )) , "_1s_dipole"
      write(filename,'(A,A,A,I1)') "gproje_", at%atomnames(at%iatype(  in_iat_absorber )) , "_1s_",  in%L_absorber
@@ -214,8 +214,8 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      call EP_normalizza(0)
      ! call EP_initialize_start_0( Gabsorber)
      
-!!$     if ( iproc.eq.0)    print *, " copio psi "
-!!$     call EP_copia_per_prova(psi)
+!!!     if ( iproc.eq.0)    print *, " copio psi "
+!!!     call EP_copia_per_prova(psi)
      call  EP_Moltiplica(-1,0) 
      dum= EP_scalare(0,-1)
      ! if (iproc.eq.0) then
@@ -246,8 +246,8 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      call EP_normalizza(0)
      ! call EP_initialize_start_0( Gabsorber)
     
-!!$     if ( iproc.eq.0)    print *, " copio psi "
-!!$     call EP_copia_per_prova(psi)
+!!!     if ( iproc.eq.0)    print *, " copio psi "
+!!!     call EP_copia_per_prova(psi)
      call  EP_Moltiplica(-1,0) 
      dum= EP_scalare(0,-1)
      ! if (iproc.eq.0) then
@@ -273,9 +273,9 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   deallocate(ha%orbs%eval,stat=i_stat)
   call memocc(i_stat,i_all,'ha%orbs%spinsgn',subname)
 
-!!$  i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
-!!$  deallocate(Gabs_coeffs,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'Gabs_coeffs',subname)
+!!!  i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
+!!!  deallocate(Gabs_coeffs,stat=i_stat)
+!!!  call memocc(i_stat,i_all,'Gabs_coeffs',subname)
 
 
 
@@ -384,10 +384,6 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
            call write_gaussian_information( 0 ,1 ,ha%orbs,Gabsorber,dum_coeffs ,filename)
         endif
      endif
-     
-
-
-  
 
   !associate hamapp_arg pointers
   ha%iproc=iproc

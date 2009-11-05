@@ -473,11 +473,11 @@ subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
                 wb_vxc(i1,i2,4,ispden)=wb_vxc(i1,i2,4,ispden)+derz/hz
              end do
           end do
-!!$          i3s=5
-!!$          i3e=n3-4
+!!!          i3s=5
+!!!          i3e=n3-4
        else
-!!$          i3s=1
-!!$          i3e=n3
+!!!          i3s=1
+!!!          i3e=n3
        end if
        do i3=5,n3-4 
           do i2=1,n2

@@ -279,9 +279,9 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   call fourtrans_isf(n2/2,fourISFy)
   call fourtrans_isf(n3/2,fourISFz)
 
-!!$  fourISFx=0.d0
-!!$  fourISFy=0.d0
-!!$  fourISFz=0.d0
+!!  fourISFx=0.d0
+!!  fourISFy=0.d0
+!!  fourISFz=0.d0
 
   !calculate directly the reciprocal space components of the kernel function
   do i3=1,nker3/nproc
@@ -728,29 +728,29 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
           kernel_mpi,nker1*(nact2/nproc)*(nker3/nproc), &
           MPI_double_precision,MPI_COMM_WORLD,ierr)
 
-!!$     !Maximum difference
-!!$     max_diff = 0.d0
-!!$     i1_max = 1
-!!$     i2_max = 1
-!!$     i3_max = 1
-!!$     do i3=1,nker3/nproc
-!!$        do i2=1,nact2/nproc
-!!$           do i1=1,nker1
-!!$              factor=abs(kernel(i1,i2,i3+iproc*(nker3/nproc))&
-!!$                   -kernel_mpi(i1,i2,i3,iproc+1))
-!!$              if (max_diff < factor) then
-!!$                 max_diff = factor
-!!$                 i1_max = i1
-!!$                 i2_max = i2
-!!$                 i3_max = i3
-!!$              end if
-!!$           end do
-!!$        end do
-!!$     end do
-!!$     write(*,*) '------------------'
-!!$     print *,'iproc=',iproc,'difference post-mpi, at',i1_max,i2_max,i3_max
-!!$     write(unit=*,fmt="(1x,a,1pe12.4)") 'Max diff: ',max_diff,&
-!!$          'calculated',kernel(i1_max,i2_max,i3_max+iproc*(nker3/nproc)),'post-mpi',kernel_mpi(i1_max,i2_max,i3_max,iproc+1)
+!!     !Maximum difference
+!!     max_diff = 0.d0
+!!     i1_max = 1
+!!     i2_max = 1
+!!     i3_max = 1
+!!     do i3=1,nker3/nproc
+!!        do i2=1,nact2/nproc
+!!           do i1=1,nker1
+!!              factor=abs(kernel(i1,i2,i3+iproc*(nker3/nproc))&
+!!                   -kernel_mpi(i1,i2,i3,iproc+1))
+!!              if (max_diff < factor) then
+!!                 max_diff = factor
+!!                 i1_max = i1
+!!                 i2_max = i2
+!!                 i3_max = i3
+!!              end if
+!!           end do
+!!        end do
+!!     end do
+!!     write(*,*) '------------------'
+!!     print *,'iproc=',iproc,'difference post-mpi, at',i1_max,i2_max,i3_max
+!!     write(unit=*,fmt="(1x,a,1pe12.4)") 'Max diff: ',max_diff,&
+!!          'calculated',kernel(i1_max,i2_max,i3_max+iproc*(nker3/nproc)),'post-mpi',kernel_mpi(i1_max,i2_max,i3_max,iproc+1)
 
      do jp2=1,nproc
         do i3=1,nker3/nproc
@@ -1353,7 +1353,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 
 !!!!END KERNEL CONSTRUCTION
 
-!!$ if(iproc .eq. 0) print *,"Do a 3D PHalFFT for the kernel"
+!! if(iproc .eq. 0) print *,"Do a 3D PHalFFT for the kernel"
 
  call kernelfft(nfft1,nfft2,nfft3,nker1,nker2,nker3,n1k,n2k,n3k,nproc,iproc,&
       kp,karray)

@@ -344,7 +344,7 @@ CLEANFILES = \
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
 
-cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o ab6_moldyn.o
+cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o ab6_moldyn.o libbigdft.a
 
 lanczos.o : lanczos_base.o lanczos_interface.o
 
