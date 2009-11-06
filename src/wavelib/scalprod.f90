@@ -290,9 +290,10 @@ subroutine wpdot(  &
 !$omp shared (apsi_f,scpr)
 !$    ithread=omp_get_thread_num()
 !$    nthread=omp_get_num_threads()
-!$  if (ithread .eq. 0) then
     scpr0=0.0_dp
-  llc=0
+
+!$  if (ithread .eq. 0) then
+!  llc=0
   !coarse part
   ibseg=1
   !for each segment of the first function
@@ -325,7 +326,7 @@ subroutine wpdot(  &
         !write(*,*) 'ja0,ja1,jb0,jb1',ja0,ja1,jb0,jb1,length
         !write(*,'(5(a,i5))') 'C:from ',jaj+iaoff,' to ',jaj+iaoff+length,' and from ',jbj+iboff,' to ',jbj+iboff+length
         do i=0,length
-           llc=llc+1
+!           llc=llc+1
            pac=real(apsi_c(jaj+iaoff+i),dp)
            pbc=real(bpsi_c(jbj+iboff+i),dp)
            scpr0=scpr0+pac*pbc
@@ -340,7 +341,6 @@ subroutine wpdot(  &
 
 
 !$  if (ithread .eq. 1  .or. nthread .eq. 1) then
-!$  scpr0=0.0_dp
   scpr1=0.0_dp
   scpr2=0.0_dp
   scpr3=0.0_dp
@@ -348,7 +348,7 @@ subroutine wpdot(  &
   scpr5=0.0_dp
   scpr6=0.0_dp
   scpr7=0.0_dp
-  llf=0
+!  llf=0
   ! fine part
   !add possibility of zero fine segments for the projectors
   ibseg=1
@@ -379,7 +379,7 @@ subroutine wpdot(  &
               length=min(ja1,jb1)-jb0
            endif
            do i=0,length
-              llf=llf+1
+!              llf=llf+1
               paf1=real(apsi_f(1,jaj+iaoff+i),dp)
               pbf1=real(bpsi_f(1,jbj+iboff+i),dp)
               paf2=real(apsi_f(2,jaj+iaoff+i),dp)
