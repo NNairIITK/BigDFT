@@ -332,7 +332,7 @@ subroutine geopt_input_variables(iproc,filename,in)
           & "      Max. steps=", in%ncount_cluster_x, "|", &
           & "Fluct. in forces=", in%frac_fluct,       "|", &
           & "          ionmov=", in%ionmov
-     write(*, "(1x,a,a7,1x,a,1x,a,1pe7.1,1x,a,1x,a,1f7.0)") &
+     write(*, "(1x,a,a7,1x,a,1x,a,1pe7.1,1x,a,1x,a,0pf7.0)") &
           & "       algorithm=", in%geopt_approach, "|", &
           & "  Max. in forces=", in%forcemax,       "|", &
           & "           dtion=", in%dtion

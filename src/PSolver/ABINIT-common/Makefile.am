@@ -79,6 +79,7 @@ xchcth.o: xchcth.F90 \
 	interfaces_14_hidewrite.o
 
 xchelu.o: xchelu.F90 \
+	interfaces_16_hideleave.o \
 	defs_basis.o
 
 xclb.o: xclb.F90 \
@@ -105,4 +106,5 @@ xcwign.o: xcwign.F90 \
 
 xcxalp.o: xcxalp.F90 \
 	defs_basis.o \
+	interfaces_16_hideleave.o \
 	interfaces_14_hidewrite.o
