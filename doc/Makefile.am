@@ -7,7 +7,9 @@ EXTRA_DIST = \
 	figrid.ps
 
 
-# doc/robodoc-html will contain all the documnentation files made by robodoc
+pdf: cluster.pdf halFFT.pdf
+
+# doc/robodoc-html will contain all the documentation files made by robodoc
 robodoc:
 	export OLDPWD=`pwd`; cd $(top_srcdir); \
 	pwd; robodoc --rc config/robodoc/robodoc-html.rc\
@@ -17,8 +19,8 @@ robodoc:
 cluster.pdf: cluster.tex
 	pdflatex $(top_srcdir)/doc/cluster.tex
 
-HalFFT.pdf: HalFFT.tex
-	pdflatex $(top_srcdir)/doc/HalFFT.tex
+halFFT.pdf: halFFT.tex
+	pdflatex $(top_srcdir)/doc/halFFT.tex
 
 clean:
 	rm -f *.aux *.log

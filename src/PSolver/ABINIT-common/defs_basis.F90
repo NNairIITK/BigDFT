@@ -8,7 +8,7 @@
 !! physical constants.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2000-2006 ABINIT group (HM, XG,XW)
+!! Copyright (C) 2000-2009 ABINIT group (HM, XG,XW)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -41,14 +41,25 @@ module defs_basis
 
 !nb of bytes related to default simple-precision real/complex subtypes
 !(= 4 for many machine architectures, = 8 for Cray T3E for instance)
-!integer, parameter :: sp=kind(1.0)          ! Single precision should not be used
-!integer, parameter :: spc=kind((1.0,1.0))
+! integer, parameter :: sp=kind(1.0)          ! Single precision should not be used
+ integer, parameter :: spc=kind((1.0,1.0))
 
 !nb of bytes related to default double-precision real/complex subtypes
 !(= 8 for many machine architectures)
  integer, parameter :: dp=kind(1.0d0)
- integer, parameter :: dpc=kind((1.0d0,1.0d0))  ! Complex should not be used presently
-                                                ! except for use of libraries
+ integer, parameter :: dpc=kind((1.0_dp,1.0_dp))  ! Complex should not be used presently
+                                                  ! except for use of libraries
+
+!nb of bytes related to GW arrays, that can be tuned from sp to dp independently
+!of other variables in ABINIT. Presently single precision is the default.
+
+#if defined HAVE_GW_DPC
+ integer, parameter :: gwp=kind(1.0d00)
+ integer, parameter :: gwpc=kind((1.0_dp,1.0_dp))
+#else
+ integer, parameter :: gwp=kind(1.0)
+ integer, parameter :: gwpc=kind((1.0,1.0))
+#endif
 
 !Example:
 ! integer, parameter :: urp=selected_real_kind((p=)12,(r=)50)
@@ -63,8 +74,8 @@ module defs_basis
  integer, parameter :: lgt=kind(.true.)
 
 !The default lengths
- integer, parameter :: fnlen=132    ! maximum length of file name variables
- integer, parameter :: strlen=32000 ! maximum length of input string
+ integer, parameter :: fnlen=264     ! maximum length of file name variables
+ integer, parameter :: strlen=2000000 ! maximum length of input string
 
 !Some constants:
  integer, parameter :: integer_not_used=0
@@ -98,6 +109,7 @@ module defs_basis
 
 !Fractionary real constants
  real(dp), parameter :: half=0.50_dp
+ real(dp), parameter :: onehalf=1.50_dp
  real(dp), parameter :: third=one/three
  real(dp), parameter :: quarter=0.25_dp
  real(dp), parameter :: fifth=0.20_dp
@@ -132,34 +144,60 @@ module defs_basis
 !Real precision
  real(dp), parameter :: greatest_real = huge(one)
  real(dp), parameter :: smallest_real = -greatest_real
+ real(dp), parameter :: tol3= 0.001_dp
+ real(dp), parameter :: tol4= 0.0001_dp
+ real(dp), parameter :: tol5= 0.00001_dp
  real(dp), parameter :: tol6= 0.000001_dp
+ real(dp), parameter :: tol7= 0.0000001_dp
  real(dp), parameter :: tol8= 0.00000001_dp
+ real(dp), parameter :: tol9= 0.000000001_dp
  real(dp), parameter :: tol10=0.0000000001_dp
  real(dp), parameter :: tol11=0.00000000001_dp
  real(dp), parameter :: tol12=0.000000000001_dp
+ real(dp), parameter :: tol13=0.0000000000001_dp
  real(dp), parameter :: tol14=0.00000000000001_dp
+ real(dp), parameter :: tol15=0.000000000000001_dp
  real(dp), parameter :: tol16=0.0000000000000001_dp
+
+!real constants derived from sqrt(n.)
+ real(dp), parameter :: sqrt2=1.4142135623730950488016887242096939_dp
+ real(dp), parameter :: half_sqrt2=0.70710678118654752440084436210484697_dp
+ real(dp), parameter :: sqrt3=1.7320508075688772935274463415058739_dp
+ real(dp), parameter :: half_sqrt3=0.86602540378443864676372317075293693_dp
+ real(dp), parameter :: sqrthalf=0.70710678118654752440084436210484697_dp
+
+!Conversion factors of common use, not directly related to physical quantities.
+ real(dp), parameter :: b2Mb=one/1024.0_dp**2  ! conversion factor byte --> Mbyte
 
 !Real physical constants
 !Revised fundamental constants from http://physics.nist.gov/cuu/Constants/index.html
-!(from 2002 least squares adjustment)
- real(dp), parameter :: Bohr_Ang=0.5291772108_dp    ! 1 Bohr, in Angstrom
+!(from 2006 least squares adjustment)
+ real(dp), parameter :: Bohr_Ang=0.52917720859_dp    ! 1 Bohr, in Angstrom
  real(dp), parameter :: Ha_cmm1=219474.6313705_dp  ! 1 Hartree, in cm^-1
- real(dp), parameter :: Ha_eV=27.2113845_dp ! 1 Hartree, in eV
- real(dp), parameter :: Ha_K=Ha_eV*11600.0_dp ! 1Hartree, in Kelvin
- real(dp), parameter :: Ha_THz=6579.683920720_dp ! 1 Hartree, in THz
- real(dp), parameter :: e_Cb=1.60217653d-19 ! minus the electron charge, in Coulomb
+ real(dp), parameter :: Ha_eV=27.21138386_dp ! 1 Hartree, in eV
+ real(dp), parameter :: Ha_K=315774.65_dp ! 1Hartree, in Kelvin
+ real(dp), parameter :: Ha_THz=6579.683920722_dp ! 1 Hartree, in THz
+ real(dp), parameter :: Ha_J=4.35974394d-18    !1 Hartree, in J
+ real(dp), parameter :: e_Cb=1.602176487d-19 ! minus the electron charge, in Coulomb
  real(dp), parameter :: kb_HaK=8.617343d-5/Ha_eV ! Boltzmann constant in Ha/K
- real(dp), parameter :: amu_emass=1.66053886d-27/9.1093826d-31 ! 1 atomic mass unit, in electronic mass
+ real(dp), parameter :: amu_emass=1.660538782d-27/9.10938215d-31 ! 1 atomic mass unit, in electronic mass
 !This value is 1Ha/bohr^3 in 1d9 J/m^3
 !real(dp), parameter :: HaBohr3_GPa=29421.033_dp ! 1 Ha/Bohr^3, in GPa
  real(dp), parameter :: HaBohr3_GPa=Ha_eV/Bohr_Ang**3*e_Cb*1.0d+21 ! 1 Ha/Bohr^3, in GPa
- real(dp), parameter :: Avogadro=6.0221415d23 ! per mole
+ real(dp), parameter :: Avogadro=6.02214179d23 ! per mole
 !This value is 1 Ohm.cm in atomic units
  real(dp), parameter :: Ohmcm=two*pi*Ha_THz*ninth*ten
 !real(dp), parameter :: eps0=8.854187817d-12 ! permittivity of free space in F/m
  real(dp), parameter :: eps0=one/(four_pi*0.0000001_dp*299792458.0_dp**2)
  real(dp), parameter :: AmuBohr2_Cm2=e_Cb*1.0d20/(Bohr_Ang*Bohr_Ang)
+ real(dp), parameter :: InvFineStruct=137.035999679_dp  ! Inverse of fine structure constant
+ real(dp), parameter :: Sp_Lt=2.99792458d8/2.1876912633d6 ! speed of light in atomic units
+ real(dp), parameter :: Time_Sec=2.418884326505D-17 !  Atomic unit of time, in seconds
+
+!Complex constants
+ complex(dpc), parameter :: czero=(0._dp,0._dp)
+ complex(dpc), parameter :: cone =(1._dp,0._dp)
+ complex(dpc) ,parameter :: j_dpc=(0._dp,1.0_dp)
 
 !Character constants
  character(len=1), parameter :: ch10 = char(10)
@@ -167,5 +205,15 @@ module defs_basis
 !Define fake communicator for sequential abinit
  integer, parameter :: abinit_comm_serial = -12345
  integer, parameter :: abinit_offset = 8
+
+ ! Error codes used by the bindings.
+ integer, parameter, public :: AB6_NO_ERROR                = 0
+ integer, parameter, public :: AB6_ERROR_OBJ               = 1
+ integer, parameter, public :: AB6_ERROR_ARG               = 2
+ integer, parameter, public :: AB6_ERROR_INVARS_ATT        = 3
+ integer, parameter, public :: AB6_ERROR_INVARS_ID         = 4
+ integer, parameter, public :: AB6_ERROR_INVARS_SIZE       = 5
+ integer, parameter, public :: AB6_ERROR_SYM_NOT_PRIMITIVE = 6
+
 end module defs_basis
 !!***

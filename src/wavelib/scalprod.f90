@@ -26,13 +26,14 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   integer :: i,ithread,nthread
   real(dp) :: pc,pf1,pf2,pf3,pf4,pf5,pf6,pf7
   real(dp) :: scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7
+  integer :: omp_get_thread_num,omp_get_num_threads
 
    scpr=0.0_dp
 !$omp parallel default(private) shared(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
+   scpr0=0.0_dp
 !$    ithread=omp_get_thread_num()
 !$    nthread=omp_get_num_threads()
 !$  if (ithread .eq. 0) then
-   scpr0=0.0_dp
  do i=1,mvctr_c
     !scpr0=scpr0+psi_c(i)**2
     pc=real(psi_c(i),dp)
@@ -40,7 +41,6 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
  enddo
 !$  endif
 !$  if (ithread .eq. 1  .or. nthread .eq. 1) then
-!$ scpr0=0.0_dp
  scpr1=0.0_dp
  scpr2=0.0_dp
  scpr3=0.0_dp
@@ -49,13 +49,13 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
  scpr6=0.0_dp
  scpr7=0.0_dp
  do i=1,mvctr_f
-!$     scpr1=scpr1+psi_f(1,i)**2
-!$     scpr2=scpr2+psi_f(2,i)**2
-!$     scpr3=scpr3+psi_f(3,i)**2
-!$     scpr4=scpr4+psi_f(4,i)**2
-!$     scpr5=scpr5+psi_f(5,i)**2
-!$     scpr6=scpr6+psi_f(6,i)**2
-!$     scpr7=scpr7+psi_f(7,i)**2
+!     scpr1=scpr1+psi_f(1,i)**2
+!     scpr2=scpr2+psi_f(2,i)**2
+!     scpr3=scpr3+psi_f(3,i)**2
+!     scpr4=scpr4+psi_f(4,i)**2
+!     scpr5=scpr5+psi_f(5,i)**2
+!     scpr6=scpr6+psi_f(6,i)**2
+!     scpr7=scpr7+psi_f(7,i)**2
     pf1=real(psi_f(1,i),dp)
     pf2=real(psi_f(2,i),dp)
     pf3=real(psi_f(3,i),dp)
@@ -272,6 +272,7 @@ subroutine wpdot(  &
   integer :: iaseg,ibseg,llc,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,llf,i,ithread,nthread
   real(dp) :: pac,paf1,paf2,paf3,paf4,paf5,paf6,paf7,pbc,pbf1,pbf2,pbf3,pbf4,pbf5,pbf6,pbf7
   real(dp) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
+  integer :: omp_get_thread_num,omp_get_num_threads
   !  integer :: ncount0,ncount2,ncount_rate,ncount_max
   !  real(gp) :: tel
 
@@ -285,7 +286,7 @@ subroutine wpdot(  &
   !dee
 !$omp parallel default (private) &
 !$omp shared (maseg_c,keyav_c,keyag_c,keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f)&
-!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,mbseg_f,keybg_f,keyag_f,keyav_f)&
+!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,keybg_f,keyag_f,keyav_f)&
 !$omp shared (apsi_f,scpr)
 !$    ithread=omp_get_thread_num()
 !$    nthread=omp_get_num_threads()
@@ -484,6 +485,7 @@ subroutine waxpy(  &
   !  integer :: ncount0,ncount2,ncount_rate,ncount_max
   !  real(gp) :: tel 
   real(wp) :: scprwp
+  integer :: omp_get_thread_num,omp_get_num_threads
   !dee
   !  open(unit=97,file='time_waxpy',status='unknown')
   !  call system_clock(ncount0,ncount_rate,ncount_max)

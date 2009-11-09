@@ -17,6 +17,7 @@ program frequencies
   use module_base
   use module_types
   use module_interfaces
+  use ab6_symmetry
 
   implicit none
   real(dp), parameter :: Ha_cmm1=219474.6313705_dp  ! 1 Hartree, in cm^-1 (from abinit 5.7.x)
@@ -64,8 +65,11 @@ program frequencies
   call memocc(i_stat,fxyz,'fxyz',subname)
 
   ! read dft input variables
-  call dft_input_variables(iproc,'input.dft',inputs)
+  call dft_input_variables(iproc,'input.dft',inputs,atoms%symObj)
   !call read_input_variables(iproc,'input.dat',inputs)
+
+  ! read k-points input variables (if given)
+  call kpt_input_variables(iproc,'input.kpt',inputs,atoms)
 
   !fake geopt variables
   call geopt_input_variables_default(inputs)
@@ -125,11 +129,11 @@ program frequencies
   call memocc(i_stat,fpos_m,'fpos_m',subname)
   allocate(fpos_p(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fpos_p,'fpos_p',subname)
-  allocate(hessian(3*atoms%nat,3*atoms%nat),stat=i_stat)
+  allocate(hessian(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,hessian,'hessian',subname)
-  allocate(moves(2,3,atoms%nat),stat=i_stat)
+  allocate(moves(2,3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,moves,'moves',subname)
-  allocate(forces(2,3,atoms%nat,3*atoms%nat),stat=i_stat)
+  allocate(forces(2,3,atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,forces,'forces',subname)
 
   !initialise the moves to false
@@ -242,13 +246,13 @@ program frequencies
   call memocc(i_stat,i_all,'fpos_p',subname)
 
   !allocations
-  allocate(eigen_r(3*atoms%nat),stat=i_stat)
+  allocate(eigen_r(3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,eigen_r,'eigen_r',subname)
-  allocate(eigen_i(3*atoms%nat),stat=i_stat)
+  allocate(eigen_i(3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,eigen_i,'eigen_i',subname)
-  allocate(vector_r(3*atoms%nat,3*atoms%nat),stat=i_stat)
+  allocate(vector_r(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,vector_r,'vector_r',subname)
-  allocate(vector_l(3*atoms%nat,3*atoms%nat),stat=i_stat)
+  allocate(vector_l(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,vector_l,'vector_l',subname)
 
   !Diagonalise the hessian matrix
@@ -300,6 +304,7 @@ program frequencies
   i_all=-product(shape(atoms%amu))*kind(atoms%amu)
   deallocate(atoms%amu,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%amu',subname)
+  if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
 
   call free_restart_objects(rst,subname)
 
@@ -332,6 +337,8 @@ program frequencies
   deallocate(forces,stat=i_stat)
   call memocc(i_stat,i_all,'forces',subname)
 
+  call free_input_variables(inputs)
+
   !finalize memory counting
   call memocc(0,0,'count','stop')
 
@@ -349,7 +356,7 @@ contains
     real(gp), dimension(:), allocatable :: work
 
     lwork=6*n
-    allocate(work(lwork),stat=i_stat)
+    allocate(work(lwork+ndebug),stat=i_stat)
     call memocc(i_stat,work,'work',subname)
 
     call dgeev('V','V',n,hessian,n,eigen_r,eigen_i,vector_l,n,vector_r,n,work,lwork,info)

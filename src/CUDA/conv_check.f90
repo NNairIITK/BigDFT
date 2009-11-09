@@ -45,11 +45,11 @@ program conv_check
   real(kind=8), dimension(lowfilK:lupfilK) :: fil
 
  
-!!$  !Use arguments
-!!$  call getarg(1,chain)
-!!$  read(unit=chain,fmt=*) n1
-!!$  call getarg(2,chain)
-!!$  read(unit=chain,fmt=*) ndat
+!!!  !Use arguments
+!!!  call getarg(1,chain)
+!!!  read(unit=chain,fmt=*) n1
+!!!  call getarg(2,chain)
+!!!  read(unit=chain,fmt=*) ndat
 
   read(unit=1,fmt=*,iostat=ierror) ndim,n1s,n1e,ndats,ndate,ntimes
   if (ierror /= 0) then
@@ -86,22 +86,22 @@ program conv_check
   fil(13)=   2.70800493626319438269856689037647576e-13_wp*scale
   fil(14)=  -6.924474940639200152025730585882e-18_wp*scale
 
-!!$  ! second derivative filters for Daubechies 16
-!!$  fil(0)=    0.e-3_wp*scale
-!!$  fil(1)=    1.e-3_wp*scale
-!!$  fil(2)=    2.e-3_wp*scale
-!!$  fil(3)=    3.e-3_wp*scale
-!!$  fil(4)=    4.e-3_wp*scale
-!!$  fil(5)=    5.e-3_wp*scale
-!!$  fil(6)=    6.e-3_wp*scale
-!!$  fil(7)=    7.e-3_wp*scale
-!!$  fil(8)=    8.e-3_wp*scale
-!!$  fil(9)=    9.e-3_wp*scale
-!!$  fil(10)=  10.e-3_wp*scale
-!!$  fil(11)=  11.e-3_wp*scale
-!!$  fil(12)=  12.e-3_wp*scale
-!!$  fil(13)=  13.e-3_wp*scale
-!!$  fil(14)=  14.e-3_wp*scale
+!!!  ! second derivative filters for Daubechies 16
+!!!  fil(0)=    0.e-3_wp*scale
+!!!  fil(1)=    1.e-3_wp*scale
+!!!  fil(2)=    2.e-3_wp*scale
+!!!  fil(3)=    3.e-3_wp*scale
+!!!  fil(4)=    4.e-3_wp*scale
+!!!  fil(5)=    5.e-3_wp*scale
+!!!  fil(6)=    6.e-3_wp*scale
+!!!  fil(7)=    7.e-3_wp*scale
+!!!  fil(8)=    8.e-3_wp*scale
+!!!  fil(9)=    9.e-3_wp*scale
+!!!  fil(10)=  10.e-3_wp*scale
+!!!  fil(11)=  11.e-3_wp*scale
+!!!  fil(12)=  12.e-3_wp*scale
+!!!  fil(13)=  13.e-3_wp*scale
+!!!  fil(14)=  14.e-3_wp*scale
 
 
   do i=1,14
@@ -110,7 +110,7 @@ program conv_check
 
   ekin=0.0_wp
   
-  call set_gpu_double() !after this call, all memory operations are in double precision, call set_gpu_simple() in order to have simple memory operations
+  !call set_gpu_double() !after this call, all memory operations are in double precision, call set_gpu_simple() in order to have simple memory operations
 
 
   !one dimensional case
@@ -167,10 +167,14 @@ program conv_check
               end do
            end do
 
-           call GPU_allocate(n1*ndat,psi_GPU,i_stat)
-           call GPU_allocate(n1*ndat,work_GPU,i_stat)
+!!!           call GPU_allocate(n1*ndat,psi_GPU,i_stat)
+!!!           call GPU_allocate(n1*ndat,work_GPU,i_stat)
+           call sg_gpu_alloc(psi_GPU,n1*ndat,8,i_stat)
+           call sg_gpu_alloc(work_GPU,n1*ndat,8,i_stat)
 
-           call GPU_send(n1*ndat,v_cuda,work_GPU,i_stat)
+
+           call  sg_gpu_imm_send(work_GPU,v_cuda,n1*ndat,8,i_stat)
+           !call GPU_send(n1*ndat,v_cuda,work_GPU,i_stat)
 
            !now the CUDA part
            !take timings
@@ -188,10 +192,15 @@ program conv_check
                 GPUtime*1.d3/real(ntimes,kind=8),&
                 real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 
-           call GPU_receive(n1*ndat,psi_cuda,psi_GPU,i_stat)
+           call sg_gpu_imm_recv(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
 
-           call GPU_deallocate(psi_GPU,i_stat)
-           call GPU_deallocate(work_GPU,i_stat)
+           !call GPU_receive(n1*ndat,psi_cuda,psi_GPU,i_stat)
+
+           call sg_gpu_free(psi_GPU,i_stat)
+           call sg_gpu_free(work_GPU,i_stat)
+
+!!!           call GPU_deallocate(psi_GPU,i_stat)
+!!!           call GPU_deallocate(work_GPU,i_stat)
 
            !check the differences between the results
            maxdiff=0.d0
@@ -244,17 +253,17 @@ program conv_check
            call cpu_time(t0)
            do itimes=1,ntimes
               ekin=0.0_gp
-!!$              do i2=1,ndat
-!!$                 do i1=1,n1
-!!$                    tt=0.0_wp
-!!$                    do l=lowfilK,lupfilK
-!!$                       j=modulo(i1-1+l,n1)+1
-!!$                       tt=tt+psi_in(j   ,i2,1)*fil(l)
-!!$                    enddo
-!!$                    psi_out(i2,i1,1)=tt
-!!$                    ekin=ekin+psi_in(i1,i2,1)*tt
-!!$                 enddo
-!!$              end do
+!!!              do i2=1,ndat
+!!!                 do i1=1,n1
+!!!                    tt=0.0_wp
+!!!                    do l=lowfilK,lupfilK
+!!!                       j=modulo(i1-1+l,n1)+1
+!!!                       tt=tt+psi_in(j   ,i2,1)*fil(l)
+!!!                    enddo
+!!!                    psi_out(i2,i1,1)=tt
+!!!                    ekin=ekin+psi_in(i1,i2,1)*tt
+!!!                 enddo
+!!!              end do
               call conv_kin_x(psi_in,psi_out,ndat,ekin)   
 
            end do
@@ -273,12 +282,18 @@ program conv_check
 
            print *,'ekin',ekin
 
-           call GPU_allocate(n1*ndat,psi_GPU,i_stat)
-           call GPU_allocate(n1*ndat,work_GPU,i_stat)
-           call GPU_allocate(n1*ndat,work2_GPU,i_stat)
-           call GPU_allocate(n1*ndat,v_GPU,i_stat)
+           call sg_gpu_alloc(psi_GPU,n1*ndat,8,i_stat)
+           call sg_gpu_alloc(work_GPU,n1*ndat,8,i_stat)
+           call sg_gpu_alloc(work2_GPU,n1*ndat,8,i_stat)
+           call sg_gpu_alloc(v_GPU,n1*ndat,8,i_stat)
 
-           call GPU_send(n1*ndat,v_cuda,work_GPU,i_stat)
+
+!!!           call GPU_allocate(n1*ndat,psi_GPU,i_stat)
+!!!           call GPU_allocate(n1*ndat,work_GPU,i_stat)
+!!!           call GPU_allocate(n1*ndat,work2_GPU,i_stat)
+!!!           call GPU_allocate(n1*ndat,v_GPU,i_stat)
+
+           call sg_gpu_imm_send(work_GPU,v_cuda,n1*ndat,8,i_stat)
 
            !now the CUDA part
            !take timings
@@ -297,12 +312,13 @@ program conv_check
                 GPUtime*1.d3/real(ntimes,kind=8),&
                 real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 
-           call GPU_receive(n1*ndat,psi_cuda,psi_GPU,i_stat)
+           !call GPU_receive(n1*ndat,psi_cuda,psi_GPU,i_stat)
+           call sg_gpu_imm_recv(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
 
-           call GPU_deallocate(v_GPU,i_stat)
-           call GPU_deallocate(psi_GPU,i_stat)
-           call GPU_deallocate(work_GPU,i_stat)
-           call GPU_deallocate(work2_GPU,i_stat)
+           call sg_gpu_free(v_GPU,i_stat)
+           call sg_gpu_free(psi_GPU,i_stat)
+           call sg_gpu_free(work_GPU,i_stat)
+           call sg_gpu_free(work2_GPU,i_stat)
 
            print *,'ekinGPU',ekinGPUd
 
@@ -363,15 +379,18 @@ program conv_check
                    CPUtime*1.d3/real(ntimes,kind=8),&
                    real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
 
-              call GPU_allocate(n1*ndat,psi_GPU,i_stat)
-              call GPU_allocate(n1*ndat,work_GPU,i_stat)
+!!!              call GPU_allocate(n1*ndat,psi_GPU,i_stat)
+!!!              call GPU_allocate(n1*ndat,work_GPU,i_stat)
+              call sg_gpu_alloc(psi_GPU,n1*ndat,8,i_stat)
+              call sg_gpu_alloc(work_GPU,n1*ndat,8,i_stat)
 
-              call GPU_send(n1*ndat,v_cuda,work_GPU,i_stat)
+              !call GPU_send(n1*ndat,v_cuda,work_GPU,i_stat)
+              call sg_gpu_imm_send(work_GPU,v_cuda,n1*ndat,8,i_stat)
 
               !now the CUDA part
               !take timings
 
-              write(*,'(a,i6,i6)')'GPU Analisys, dimensions:',n1,ndat
+              write(*,'(a,i6,i6)')'GPU Analysis, dimensions:',n1,ndat
 
               call cpu_time(t0)
               do i=1,ntimes
@@ -384,10 +403,10 @@ program conv_check
                    GPUtime*1.d3/real(ntimes,kind=8),&
                    real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 
-              call GPU_receive(n1*ndat,psi_cuda,psi_GPU,i_stat)
+              call sg_gpu_imm_recv(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
 
-              call GPU_deallocate(psi_GPU,i_stat)
-              call GPU_deallocate(work_GPU,i_stat)
+              call sg_gpu_free(psi_GPU,i_stat)
+              call sg_gpu_free(work_GPU,i_stat)
 
               !check the differences between the results
               maxdiff=0.d0
@@ -442,16 +461,16 @@ program conv_check
                    CPUtime*1.d3/real(ntimes,kind=8),&
                    real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
 
-!!$              do i=1,ndat
-!!$                 do i1=1,n1
-!!$                    v_cuda(i,i1,1)=real(i1,kind=8)+1.d-4*real(i,kind=8)
-!!$                 end do
-!!$              end do
+!!!              do i=1,ndat
+!!!                 do i1=1,n1
+!!!                    v_cuda(i,i1,1)=real(i1,kind=8)+1.d-4*real(i,kind=8)
+!!!                 end do
+!!!              end do
 
-              call GPU_allocate(n1*ndat,psi_GPU,i_stat)
-              call GPU_allocate(n1*ndat,work_GPU,i_stat)
+              call sg_gpu_alloc(psi_GPU,n1*ndat,8,i_stat)
+              call sg_gpu_alloc(work_GPU,n1*ndat,8,i_stat)
 
-              call GPU_send(n1*ndat,v_cuda,work_GPU,i_stat)
+              call sg_gpu_imm_send(work_GPU,v_cuda,n1*ndat,8,i_stat)
 
               !now the CUDA part
               !take timings
@@ -469,10 +488,10 @@ program conv_check
                    GPUtime*1.d3/real(ntimes,kind=8),&
                    real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 
-              call GPU_receive(n1*ndat,psi_cuda,psi_GPU,i_stat)
+              call sg_gpu_imm_recv(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
 
-              call GPU_deallocate(psi_GPU,i_stat)
-              call GPU_deallocate(work_GPU,i_stat)
+              call sg_gpu_free(psi_GPU,i_stat)
+              call sg_gpu_free(work_GPU,i_stat)
 
               !check the differences between the results
               maxdiff=0.d0
@@ -551,7 +570,7 @@ program conv_check
            end do
            nvctr_cf=keyv(nseg)+i1e-i1s+1
 
-           allocate(psi(8*nvctr_cf),stat=i_stat)
+           allocate(psi(8*nvctr_cf+ndebug),stat=i_stat)
            call memocc(i_stat,psi,'psi',subname)
            !determine the values for psi function
            do i=1,nvctr_cf
@@ -592,10 +611,10 @@ program conv_check
 
 
            !now the CUDA part
-           call GPU_allocate(8*nvctr_cf,psi_GPU,i_stat)
-           call GPU_allocate((2*n1+2)*(2*n1+2)*(2*n1+2),work_GPU,i_stat)
+           call sg_gpu_alloc(psi_GPU,8*nvctr_cf,8,i_stat)
+           call sg_gpu_alloc(work_GPU,(2*n1+2)*(2*n1+2)*(2*n1+2),8,i_stat)
 
-           call GPU_send(8*nvctr_cf,psi,psi_GPU,i_stat)
+           call sg_gpu_imm_send(psi_GPU,psi,8*nvctr_cf,8,i_stat)
 
            !assign the keys values
            call adjust_keys_for_gpu(nseg,nseg,keyv,keyg,keyv,keyg,nvctr_cf,keys_GPU)
@@ -616,11 +635,11 @@ program conv_check
                 GPUtime*1.d3/real(ntimes,kind=8),&
                 real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
 
-           call GPU_receive((2*n1+2)*(2*n1+2)*(2*n1+2),psi_cuda,work_GPU,i_stat)
+           call sg_gpu_imm_recv(psi_cuda,work_GPU,(2*n1+2)*(2*n1+2)*(2*n1+2),8,i_stat)
 
-           call GPU_deallocate(psi_GPU,i_stat)
-           call GPU_deallocate(work_GPU,i_stat)
-           call GPU_deallocate(keys_GPU,i_stat)
+           call sg_gpu_free(psi_GPU,i_stat)
+           call sg_gpu_free(work_GPU,i_stat)
+           call sg_gpu_free(keys_GPU,i_stat)
 
 
            !check the differences between the results
@@ -664,7 +683,7 @@ program conv_check
            i_all=-product(shape(psi_cuda))
            deallocate(psi_cuda,stat=i_stat)
            call memocc(i_stat,i_all,'psi_cuda',subname)
-           allocate(psi_cuda(8*nvctr_cf,1,1),stat=i_stat)
+           allocate(psi_cuda(8*nvctr_cf,1,1+ndebug),stat=i_stat)
            call memocc(i_stat,psi_cuda,'psi_cuda',subname)
 
 
@@ -686,10 +705,10 @@ program conv_check
 
 
            !now the CUDA part
-           call GPU_allocate(8*nvctr_cf,psi_GPU,i_stat)
-           call GPU_allocate((2*n1+2)*(2*n1+2)*(2*n1+2),work_GPU,i_stat)
+           call sg_gpu_alloc(psi_GPU,8*nvctr_cf,8,i_stat)
+           call sg_gpu_alloc(work_GPU,(2*n1+2)*(2*n1+2)*(2*n1+2),8,i_stat)
 
-           call GPU_send((2*n1+2)*(2*n1+2)*(2*n1+2),psi_in,work_GPU,i_stat)
+           call sg_gpu_imm_send(work_GPU,psi_in,(2*n1+2)*(2*n1+2)*(2*n1+2),8,i_stat)
 
            call adjust_keys_for_gpu(nseg,nseg,keyv,keyg,keyv,keyg,nvctr_cf,keys_GPU)
 
@@ -709,11 +728,11 @@ program conv_check
                 GPUtime*1.d3/real(ntimes,kind=8),&
                 real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
 
-           call GPU_receive(8*nvctr_cf,psi_cuda,psi_GPU,i_stat)
+           call sg_gpu_imm_recv(psi_cuda,psi_GPU,8*nvctr_cf,8,i_stat)
 
-           call GPU_deallocate(psi_GPU,i_stat)
-           call GPU_deallocate(work_GPU,i_stat)
-           call GPU_deallocate(keys_GPU,i_stat)
+           call sg_gpu_free(psi_GPU,i_stat)
+           call sg_gpu_free(work_GPU,i_stat)
+           call sg_gpu_free(keys_GPU,i_stat)
 
 
            !check the differences between the results

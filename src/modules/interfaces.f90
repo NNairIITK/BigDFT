@@ -138,14 +138,14 @@ module module_interfaces
        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
      end subroutine write_atomic_file
 
-     subroutine read_atomic_ascii(iproc,ifile,at,rxyz)
+     subroutine read_ascii_positions(iproc,ifile,at,rxyz)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: iproc,ifile
        type(atoms_data), intent(inout) :: at
        real(gp), dimension(:,:), pointer :: rxyz
-     end subroutine read_atomic_ascii
+     end subroutine read_ascii_positions
 
      subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
           iatype,rxyz,radii_cf,crmult,frmult,norb,nprojel,atomnames,output_grid,nspin,peakmem)
@@ -525,7 +525,7 @@ module module_interfaces
 
      subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
           orbs,orbsv,nvirt,lr,comms,&
-          hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr)
+          hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
        use module_base
        use module_types
        implicit none
@@ -545,6 +545,7 @@ module module_interfaces
        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
        real(dp), dimension(*), intent(in) :: pkernel,rhopot
        type(orbitals_data), intent(inout) :: orbsv
+       type(GPU_pointers), intent(inout) :: GPU
        real(wp), dimension(:), pointer :: psi,v
      end subroutine davidson
 

@@ -25,9 +25,9 @@ scripts_sources =
 endif
 
 if USE_CUDA_GPU
-sub_dirs_cuda=CUDA
+sub_dirs_cuda=CUDA CUDA/S_GPU
 GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90
-libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas CUDA/libGPU.a @LIB_CUTIL_PATH@/libcutil.a
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas CUDA/libGPU.a @LIB_CUTIL_PATH@/libcutil.a CUDA/S_GPU/libs_gpu.a
 GPU_BLAS=
 else
 sub_dirs_cuda=
@@ -55,17 +55,25 @@ global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda)
+SUBDIRS = modules convolutions lib $(sub_dirs_ps) profiling $(sub_dirs_cuda)
 
 EXTRA_DIST = \
-	Makefile.standalone \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
 	lib \
-	NEB_driver.sh
+	NEB_driver.sh \
+	ABINIT-moldyn/velocity_verlet.F90 \
+	ABINIT-moldyn/isokinetic.F90 \
+	ABINIT-moldyn/isotemp.F90 \
+	ABINIT-moldyn/isothermal.F90 \
+	ABINIT-moldyn/langevin.F90 \
+	ABINIT-moldyn/moldyn.F90 \
+	ABINIT-moldyn/nose.F90 \
+	ABINIT-moldyn/others.F90 \
+	ABINIT-moldyn/quenched.F90
 
-AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common
+AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common -I$(srcdir)/ABINIT-moldyn @LIBXC_INCLUDE@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)
@@ -75,11 +83,9 @@ module_DATA = $(mod_bigdft)
 
 if USE_MPI
 mpi_source =
-mpi_include =
 LMPI = @MPI_LDFLAGS@
 else
 mpi_source = MPIfake.f90
-mpi_include = mpif.h
 LMPI =
 endif
 
@@ -145,10 +151,11 @@ high_level = cluster.f90 \
 	vdwcorrection.f90 \
 	lanczos_interface.f90 \
 	lanczos_base.f90 \
-	lanczos.f90  \
+	lanczos.f90 \
+	scfloop_API.f90 \
 	esatto.f90
 
-#objects which can be compiled whithout any dependence
+#objects which can be compiled only with module_base
 low_level = init/projectors.f90  \
 	init/ionicpot.f90 \
 	init/gridmanipulation.f90 \
@@ -173,8 +180,7 @@ low_level = init/projectors.f90  \
 	wfn_opt/precond_slab.f90 \
 	wfn_opt/kernel_per_optim.f90 \
 	wfn_opt/kernel_slab_simple.f90 \
-	wfn_opt/fft_per.f90 \
-	wfn_opt/fft2d.f90 \
+	lib/fft/fft2d.f90 \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
 	wavelib/plotting.f90 \
@@ -185,7 +191,7 @@ low_level = init/projectors.f90  \
 	wavelib/daubisf.f90
 
 if BUILD_LIB_ABINIT
-abinit = ABINIT-ewald/ewald.F90 \
+abinit_low = ABINIT-ewald/ewald.F90 \
 	ABINIT-ewald/matr3inv.F90 \
 	ABINIT-ewald/derfc.F90 \
 	ABINIT-geometry/sort_dp.F90 \
@@ -241,17 +247,26 @@ abinit = ABINIT-ewald/ewald.F90 \
 	ABINIT-geometry/xredxcart.F90 \
 	ABINIT-geometry/smpbz.F90 \
 	ABINIT-geometry/symkpt.F90 \
-	ABINIT-geometry/getkgrid.F90
+	ABINIT-geometry/getkgrid.F90 \
+	ABINIT-geometry/testkgrid.F90
+abinit_high = ABINIT-moldyn/ab6_moldyn.F90 \
+	ABINIT-moldyn/xfpack.F90 \
+	ABINIT-moldyn/prtxvf.F90 \
+	ABINIT-moldyn/fconv.F90 \
+	ABINIT-moldyn/uniformrandom.F90 \
+	ABINIT-moldyn/matrginv.F90
 else
-abinit = 
+abinit_low = 
+abinit_high = 
 endif
 
 libbigdft_a_SOURCES = \
-	$(abinit) \
+	$(abinit_low) \
 	$(mpi_source) \
 	BigDFT_API.f90 \
+	$(low_level) \
 	$(high_level) \
-	$(low_level)
+	$(abinit_high)
 
 libbigdft_a_LIBADD = profiling/time.o \
 	profiling/memory.o \
@@ -282,10 +297,8 @@ test_forces_LDADD = libbigdft.a \
 NEB_SOURCES = NEB.f90 \
 	$(mpi_source)
 NEB_LDFLAGS = 
-NEB_LDADD = input_variables.o \
-	$(modules_objects) \
-	profiling/memory.o \
-	convolutions/interface_cuda_fake.o \
+NEB_LDADD = libbigdft.a \
+	PSolver/ABINIT-common/libABINIT.a \
 	$(libs_cuda)
 
 memguess_SOURCES = memguess.f90 \
@@ -308,14 +321,16 @@ frequencies_LDADD = libbigdft.a \
 	$(libs_cuda)
 
 
-CLEANFILES = mpif.h \
+CLEANFILES = \
+	ab6_symmetry.@MODULE_EXT@ AB6_SYMMETRY.@MODULE_EXT@ \
+	ab6_moldyn.@MODULE_EXT@ AB6_MOLDYN.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@ BIGDFT_API.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@ MODULE_INTERFACES.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@ \
 	module_base.@MODULE_EXT@ MODULE_BASE.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@ VDWCORRECTION.@MODULE_EXT@ \
 	lanczos_base.@MODULE_EXT@ LANCZOS_BASE.@MODULE_EXT@ \
-	esatto@MODULE_EXT@ ESATTO.@MODULE_EXT@ \
+	esatto.@MODULE_EXT@ ESATTO.@MODULE_EXT@ \
 	lanczos_interface.@MODULE_EXT@ LANCZOS_INTERFACE.@MODULE_EXT@ \
 	formats.@MODULE_EXT@ FORMATS.@MODULE_EXT@ \
 	miscellany.@MODULE_EXT@ MISCELLANY.@MODULE_EXT@ \
@@ -323,27 +338,37 @@ CLEANFILES = mpif.h \
 	numeric.@MODULE_EXT@ NUMERIC.@MODULE_EXT@ \
 	minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
 	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
-	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@
+	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@ \
+	scfloop_api.@MODULE_EXT@ SCFLOOP_API.@MODULE_EXT@
 
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
 
-cluster.o geometry.o: vdwcorrection.o esatto.o
+cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o ab6_moldyn.o libbigdft.a
 
 lanczos.o : lanczos_base.o lanczos_interface.o
+
+scfloop_API.o : BigDFT_API.o
+
+ab6_moldyn.o ABINIT-moldyn/ab6_moldyn.o : scfloop_API.o \
+	ABINIT-moldyn/ab6_moldyn.F90 \
+	ABINIT-moldyn/velocity_verlet.F90 \
+	ABINIT-moldyn/isokinetic.F90 \
+	ABINIT-moldyn/isotemp.F90 \
+	ABINIT-moldyn/isothermal.F90 \
+	ABINIT-moldyn/langevin.F90 \
+	ABINIT-moldyn/moldyn.F90 \
+	ABINIT-moldyn/nose.F90 \
+	ABINIT-moldyn/others.F90 \
+	ABINIT-moldyn/quenched.F90
+
+xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
 #init.o : base.o interfaces.o
 
 #BigDFT_API.o: base.o types.o interfaces.o
 
 #$(high_level:.f90=.o) : base.o types.o
-
-mpif.h:
-	touch mpif.h &&\
-	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
-	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
-	 echo "integer :: MPI_STATUSES_IGNORE,MPI_LOGICAL" >> mpif.h &&\
-	 echo "integer :: MPI_MIN, MPI_MAX,MPI_CHARACTER" >> mpif.h
 
 test_forces.o: $(mod_bigdft)
 

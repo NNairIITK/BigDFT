@@ -31,11 +31,11 @@
  Atoms of type 1 are Si
  Atoms of type 2 are H
  Spin-polarised calculation:  NO 
- Max. number of wavefnctn optim 500
- Convergence criterion for forces: fraction of noise   1.00E+00
-                                 : maximal component   0.00E+00
- Random displacement amplitude   0.00E+00
- Steepest descent step   4.00E+00
+ --------------------------------------------------------------Geopt Input Parameters
+       Generic param.              Geo. optim.                MD param.
+       Max. steps=    500 | Fluct. in forces=1.0E+00 |           ionmov=     -1
+        algorithm=SDCG    |   Max. in forces=0.0E+00 |            dtion=     0.
+ random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -489,8 +489,7 @@ translational force along x=  2.29929281155490613E-05
 translational force along y=  2.29929281102677025E-05
 translational force along z=  2.29929281054253032E-05
  FORCES norm(Ha/Bohr): maxval=   2.26260E-05 fnrm=   2.07431E-09 fluct=   4.02808E-09
- SD EXIT because fnrm < fluct*frac_fluct  2.074311268778737E-009
-  4.028075041930252E-009
+ SD EXIT because fnrm < fluct*frac_fluct  2.074311268778737E-009  4.028075041930252E-009
 End of minimization using  SDCG      
  Final values of the Forces for each atom
      1     Si  7.89211E-06  7.89211E-06  7.89211E-06

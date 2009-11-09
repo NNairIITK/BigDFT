@@ -279,9 +279,9 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   call fourtrans_isf(n2/2,fourISFy)
   call fourtrans_isf(n3/2,fourISFz)
 
-!!$  fourISFx=0.d0
-!!$  fourISFy=0.d0
-!!$  fourISFz=0.d0
+!!  fourISFx=0.d0
+!!  fourISFy=0.d0
+!!  fourISFz=0.d0
 
   !calculate directly the reciprocal space components of the kernel function
   do i3=1,nker3/nproc
@@ -577,7 +577,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   pi=4.d0*datan(1.d0)
 
   !arrays for the halFFT
-  call ctrig(n3/2,btrig,after,before,now,1,ic)
+  call ctrig_sg(n3/2,btrig,after,before,now,1,ic)
 
  
   !build the phases for the HalFFT reconstruction 
@@ -675,7 +675,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
      !now perform the FFT of the array in cache
      inzee=1
      do i=1,ic
-        call fftstp(num_of_mus,nfft,n3/2,num_of_mus,n3/2,&
+        call fftstp_sg(num_of_mus,nfft,n3/2,num_of_mus,n3/2,&
              halfft_cache(1,1,inzee),halfft_cache(1,1,3-inzee),&
              btrig,after(i),now(i),before(i),1)
         inzee=3-inzee
@@ -728,29 +728,29 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
           kernel_mpi,nker1*(nact2/nproc)*(nker3/nproc), &
           MPI_double_precision,MPI_COMM_WORLD,ierr)
 
-!!$     !Maximum difference
-!!$     max_diff = 0.d0
-!!$     i1_max = 1
-!!$     i2_max = 1
-!!$     i3_max = 1
-!!$     do i3=1,nker3/nproc
-!!$        do i2=1,nact2/nproc
-!!$           do i1=1,nker1
-!!$              factor=abs(kernel(i1,i2,i3+iproc*(nker3/nproc))&
-!!$                   -kernel_mpi(i1,i2,i3,iproc+1))
-!!$              if (max_diff < factor) then
-!!$                 max_diff = factor
-!!$                 i1_max = i1
-!!$                 i2_max = i2
-!!$                 i3_max = i3
-!!$              end if
-!!$           end do
-!!$        end do
-!!$     end do
-!!$     write(*,*) '------------------'
-!!$     print *,'iproc=',iproc,'difference post-mpi, at',i1_max,i2_max,i3_max
-!!$     write(unit=*,fmt="(1x,a,1pe12.4)") 'Max diff: ',max_diff,&
-!!$          'calculated',kernel(i1_max,i2_max,i3_max+iproc*(nker3/nproc)),'post-mpi',kernel_mpi(i1_max,i2_max,i3_max,iproc+1)
+!!     !Maximum difference
+!!     max_diff = 0.d0
+!!     i1_max = 1
+!!     i2_max = 1
+!!     i3_max = 1
+!!     do i3=1,nker3/nproc
+!!        do i2=1,nact2/nproc
+!!           do i1=1,nker1
+!!              factor=abs(kernel(i1,i2,i3+iproc*(nker3/nproc))&
+!!                   -kernel_mpi(i1,i2,i3,iproc+1))
+!!              if (max_diff < factor) then
+!!                 max_diff = factor
+!!                 i1_max = i1
+!!                 i2_max = i2
+!!                 i3_max = i3
+!!              end if
+!!           end do
+!!        end do
+!!     end do
+!!     write(*,*) '------------------'
+!!     print *,'iproc=',iproc,'difference post-mpi, at',i1_max,i2_max,i3_max
+!!     write(unit=*,fmt="(1x,a,1pe12.4)") 'Max diff: ',max_diff,&
+!!          'calculated',kernel(i1_max,i2_max,i3_max+iproc*(nker3/nproc)),'post-mpi',kernel_mpi(i1_max,i2_max,i3_max,iproc+1)
 
      do jp2=1,nproc
         do i3=1,nker3/nproc
@@ -1353,7 +1353,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 
 !!!!END KERNEL CONSTRUCTION
 
-!!$ if(iproc .eq. 0) print *,"Do a 3D PHalFFT for the kernel"
+!! if(iproc .eq. 0) print *,"Do a 3D PHalFFT for the kernel"
 
  call kernelfft(nfft1,nfft2,nfft3,nker1,nker2,nker3,n1k,n2k,n3k,nproc,iproc,&
       kp,karray)
@@ -1404,7 +1404,7 @@ end subroutine inserthalf
 !!     n1,n2,n3:    logical dimension of the transform. As transform lengths 
 !!                  most products of the prime factors 2,3,5 are allowed.
 !!                  The detailed table with allowed transform lengths can 
-!!                  be found in subroutine CTRIG
+!!                  be found in subroutine ctrig_sg
 !!     nd1,nd2,nd3: Dimensions of work arrays
 !!
 !! RESTRICTIONS on USAGE
@@ -1506,9 +1506,9 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
 
   
   !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
-  call ctrig(n3/2,trig3,after3,before3,now3,1,ic3)
-  call ctrig(n1,trig1,after1,before1,now1,1,ic1)
-  call ctrig(n2,trig2,after2,before2,now2,1,ic2)
+  call ctrig_sg(n3/2,trig3,after3,before3,now3,1,ic3)
+  call ctrig_sg(n1,trig1,after1,before1,now1,1,ic1)
+  call ctrig_sg(n2,trig2,after2,before2,now2,1,ic2)
   
   !Calculating array of phases for HalFFT decoding
   twopion=8.d0*datan(1.d0)/real(n3,kind=8)
@@ -1538,7 +1538,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
            !performing FFT
            inzee=1
            do i=1,ic3
-              call fftstp(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    trig3,after3(i),now3(i),before3(i),1)
               inzee=3-inzee
            enddo
@@ -1593,13 +1593,13 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
            !input: I2,I1,j3,(jp3)          
            inzee=1
            do i=1,ic1-1
-              call fftstp(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
                    trig1,after1(i),now1(i),before1(i),1)
               inzee=3-inzee
            enddo
            !storing the last step into zt
            i=ic1
-           call fftstp(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1), & 
+           call fftstp_sg(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1), & 
                 trig1,after1(i),now1(i),before1(i),1)
            !output: I2,i1,j3,(jp3)
         end do
@@ -1622,7 +1622,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
            !input: i1,I2,j3,(jp3)
            inzee=1
            do i=1,ic2
-              call fftstp(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
                    trig2,after2(i),now2(i),before2(i),1)
               inzee=3-inzee
            enddo

@@ -1,3 +1,14 @@
+!!****m* BigDFT/esatto
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2009 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 module esatto
   use module_base
   use module_interfaces
@@ -22,8 +33,6 @@ contains
   end subroutine binomial
 
 
-
-  
   real(gp) function Wig( two_ja,  two_jb,  two_jc,&
        two_ma,  two_mb,  two_mc             )
     
@@ -32,8 +41,6 @@ contains
     integer  jca ,jcb ,jcc ,jmma ,jmmb, jmmc,jpma,jpmb,jpmc,jsum,kmin, kmax, k, sign, status
     real(gp)  sum_pos , sum_neg , norm, term
     real(gp)  bc1, bc2, bc3, bcn1, bcn2, bcd1, bcd2, bcd3, bcd4
-
-
 
     if(two_ja < 0 .or. two_jb < 0 .or. two_jc < 0)  then
        print *, " domain error  in Wig"
@@ -95,8 +102,6 @@ contains
   end function Wig
   
   
-
-  
   real(gp) function  ThreeYintegral(Lout,Lpot,Lin,  Mout,Mpot,Min  )
     
     integer , intent(IN) :: Lout,Lpot,Lin,  Mout,Mpot,Min 
@@ -112,15 +117,13 @@ contains
     
   end function ThreeYintegral
 
+
   subroutine  inizializza(  nls_a, ngrid_A , rv_A,vv_A,   lpot_A, rpot_A, spot_A, hpot_A,    psi_A, derpsi_A, Rmts_A)
     integer  :: ngrid_A, lpot_A, nls_a
     real(gp) , target ::  rv_A(1:ngrid_A),  vv_A(1:ngrid_A) 
     real(gp) :: rpot_A, spot_A, hpot_A,Rmts_A
     real(gp), pointer :: psi_p(:),  psi_A(:),  derpsi_A(:)
     integer l,j
-
-
-
 
     NLS=nls_a
     ngrid=ngrid_A
@@ -132,14 +135,12 @@ contains
     spot=spot_A
     hpot=hpot_A
 
-
-
     psi=>psi_A
     psi_p=>psi_A
     derpsi=>derpsi_A
 
     Rmts=Rmts_A
-   
+
     facttable(0)=1.0
     do l=1,50
        facttable(l)=l*facttable(l-1)
@@ -160,6 +161,7 @@ contains
     enddo
 
   end subroutine inizializza
+
 
   integer function binary_search( dval, dlist,  len)
     integer len
@@ -224,7 +226,8 @@ contains
        endif
     enddo
   end subroutine getKs
-  
+
+
   subroutine getHam2ham(R, h2h_res, fattore)
     real(gp) R, fattore
       complex(gp) :: h2h_res(0:nls-1,0:nls-1)
@@ -247,7 +250,6 @@ contains
     end subroutine getHam2ham
 
 
-
     subroutine RiflettivitaSub( E , Ref, Trasm)
       real(gp) E 
       complex(gp) :: Ref(0:nls-1,0:nls-1), Trasm(0:nls-1,0:nls-1)
@@ -261,11 +263,10 @@ contains
 
       Ref(:,:)=0.0
       
-!!$      print *, " D  psi(1) " ,psi(1)
-
+!!!      print *, " D  psi(1) " ,psi(1)
 
       do i=0, nls-1
-!!$         print *, "per l=  ", i, " psi ", psi(i)
+!!!         print *, "per l=  ", i, " psi ", psi(i)
          Ref(i,i) = ( UIC *K(i) *psi(i) + derpsi(i) )/(  UIC *K(i) * psi(i) - derpsi(i) )
       enddo
  
@@ -294,6 +295,7 @@ contains
       enddo
     end subroutine Up_Down
 
+
     SUBROUTINE ZGEMM_i(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
       DOUBLE COMPLEX ALPHA,BETA
       INTEGER K,LDA,LDB,LDC,M,N
@@ -302,7 +304,8 @@ contains
       print *, TRANSA,TRANSB,M,N,K,ALPHA,LDA,LDB,BETA,LDC
       call ZGEMM(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
     end SUBROUTINE ZGEMM_i
-      
+
+
    subroutine Propaga( R1, R2,Energy, E, dE_dz)
      real(gp) R1,R2,Energy
      complex(gp) :: E(0:nls-1,0:nls-1), dE_dz(0:nls-1,0:nls-1)
@@ -338,34 +341,26 @@ contains
      call zgemm( 'N','N',  nls,nls,nls  , alpha,    tf(0,0) , nls,  E(0,0), nls , beta,         di2(0,0), nls     ) 
 
 
-
-
      Ea     =  E    + hh*di1
      dE_dza =  dE_dz+ hh*di2
-
 
      call  getHam2ham(R1+hh  , tf , 2.0_gp ) 
      call getKs(R1+hh , Energy, K2 , .true. )
      do i=0, nls-1
         tf(i,i) =  tf(i,i) - K2(i) 
      enddo
-    
+
      dt1 =  dE_dza 
 !!     print *, " propaga 2 "
      call zgemm( 'N','N',  nls,nls,nls  , alpha,    tf(0,0) , nls,  Ea(0,0), nls , beta,         dt2(0,0), nls     ) 
-     
-
-     
 
      Ea     =  E    + hh*dt1
      dE_dza =  dE_dz+ hh*dt2
 
-    
      dm1=dE_dza
      !!     print *, " propaga 3 "
-     
+
      call zgemm( 'N','N',  nls,nls,nls  , alpha,    tf(0,0) , nls,  Ea(0,0), nls , beta,         dm2(0,0), nls     ) 
-    
 
      Ea     =  E    + 2*hh*dm1
      dE_dza =  dE_dz+ 2*hh*dm2
@@ -373,25 +368,23 @@ contains
      dm1 =dm1+dt1
      dm2 =dm2+dt2
 
-
-  
      call  getHam2ham(R2  , tf , 2.0_gp ) 
      call getKs(R2 , Energy, K2 , .true. )
      do i=0, nls-1
         tf(i,i) =  tf(i,i) - K2(i) 
      enddo
-     
+
      dt1 = dE_dza
      !!     print *, " propaga 4 "
-     
+
      call zgemm( 'N','N',  nls,nls,nls  , alpha,    tf(0,0) , nls,  Ea(0,0), nls , beta,    dt2(0,0), nls     ) 
-     
-     
+
      h6=hh/3.0     
-     
+
      E     =E+h6*((di1+dt1)+   2.0* dm1)
      dE_dz  =dE_dz+ h6*((di2+dt2)+  2.0* dm2)
    end subroutine Propaga
+
 
    function inverse(n,A)
      integer n
@@ -399,7 +392,7 @@ contains
      complex(gp) :: A(0:n-1,0:n-1)
 
      integer INFO,i, IPIV(n)
-     
+
      inverse=0.0
      do i=0,n-1
         inverse(i,i)=1.0
@@ -408,14 +401,14 @@ contains
      call ZGESV( n , n , A(0,0), n, IPIV, inverse(0,0), n, INFO )
    end function inverse
 
+
    real(gp) function esatto_CalcolaRiflettivita( ngrid_A ,rgrid, dumgrid1, nls_a, lpot_a, rpot_a,spot_a,hpot_a,y_r,d_r,&
         Rmts,    Rinf ,nsteps_coarse ,nsteps_fine, Energia )
      real(gp), target :: rgrid(1:ngrid_A), dumgrid1(1:ngrid_A)
      real(gp) rpot_a, spot_a, hpot_a,Rmts , Rinf, Energia
      integer nls_a, lpot_a, nsteps_coarse, nsteps_fine, ngrid_A
      real(gp), pointer ::  y_r(:), d_r(:)
-     
-     
+
      integer iCs, iFs,i
      real(gp) R0, Rh, rf0, rfh
      complex(gp) dE_dz(  0:nls_a-1,0:nls_a-1       ), E(  0:nls_a-1,0:nls_a-1       )
@@ -423,31 +416,24 @@ contains
      complex(gp) UD(  0:nls_a-1,0:nls_a-1       ), DD(  0:nls_a-1,0:nls_a-1       )
      complex(gp) UIC 
      complex(gp) Ref(0:nls_a-1,0:nls_a-1), Transm(0:nls_a-1,0:nls_a-1), Kh(0:nls_a-1)
-!!$     real(gp) , pointer :: py_r(:)
-
-
+!!!     real(gp) , pointer :: py_r(:)
 
      UIC=(0.0,1.0)
 
-!!$     print *, " B  y_r(1) " ,y_r(1)
-!!$     py_r=> y_r
-!!$     print *, " B  py_r(1) " ,py_r(1)
-
+!!!     print *, " B  y_r(1) " ,y_r(1)
+!!!     py_r=> y_r
+!!!     print *, " B  py_r(1) " ,py_r(1)
 
      call  inizializza(  nls_a, ngrid_A ,rgrid  ,dumgrid1 ,   lpot_A, rpot_A, spot_A, hpot_A,  y_r  ,d_r ,Rmts )
-     
+
      call RiflettivitaSub(Energia, Ref, Transm)
- 
 
      open(unit=22,file='runge.dat')
 
- 
      do iCs=0, nsteps_coarse-1
         R0 = Rmts +(  (Rinf-Rmts )/NSteps_coarse )*iCs
         Rh = Rmts +(  (Rinf-Rmts )/NSteps_coarse )*(iCs+1)
-        
-        
-        
+
         call getKs(Rh  ,Energia, Kh,.false. )
         dE_dz = 0.0
         E     = 0.0 
@@ -455,16 +441,15 @@ contains
            E    (i,i) = 1.0
            dE_dz(i,i) = UIC * Kh(i)  
         enddo
-        
+
         do iFs=0, nsteps_fine-1
            rfh = Rh +(  (R0-Rh )/nsteps_fine  )*iFs
            rf0 = Rh +(  (R0-Rh )/nsteps_fine  )*(iFs+1)
-           
+
            call Propaga( rfh, rf0 , Energia , E, dE_dz)
-           
+
         enddo
         call Up_Down( R0, Energia, E, dE_dz,UU, DU )
-           
 
         dE_dz = 0.0
         E     = 0.0 
@@ -472,7 +457,7 @@ contains
            E    (i,i) = 1.0
            dE_dz(i,i) = -UIC * Kh(i)  
         enddo
-     
+
         do iFs=0, nsteps_fine-1
            rfh = Rh +(  (R0-Rh )/nsteps_fine  )*iFs
            rf0 = Rh +(  (R0-Rh )/nsteps_fine  )*(iFs+1)
@@ -490,9 +475,8 @@ contains
      enddo
      esatto_CalcolaRiflettivita= DBLE(sum( Transm(1,:)*conjg(Transm(1,:)))     )
 
-
      close(unit=22)
 
-     
    end function esatto_CalcolaRiflettivita
  end module esatto
+ !!***

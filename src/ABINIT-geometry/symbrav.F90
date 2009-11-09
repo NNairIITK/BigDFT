@@ -26,6 +26,7 @@
 !! msym=default maximal number of symmetries
 !! rmet(3,3)=real space metric (bohr**2).
 !! rprimd(3,3)=dimensional primitive translations for real space (bohr)
+!! tolsym=tolerance for the symmetries
 !!
 !! OUTPUT
 !!  bravais(11): bravais(1)=iholohedry
@@ -69,15 +70,16 @@
 #include "config.h"
 #endif
 
-subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
+subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd,tolsym)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
- !use interfaces_01manage_mpi
-!use interfaces_11util
-!use interfaces_12geometry, except_this_one => symbrav
+! use interfaces_14_hidewrite
+! use interfaces_16_hideleave
+! use interfaces_32_util
+! use interfaces_42_geometry, except_this_one => symbrav
 !End of the abilint section
 
  implicit none
@@ -86,6 +88,7 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
 !scalars
  integer,intent(in) :: berryopt,msym
  integer,intent(out) :: nptsym
+ real(dp),intent(in) :: tolsym
 !arrays
  integer,intent(out) :: bravais(11),ptsymrel(3,3,msym)
  real(dp),intent(in) :: rmet(3,3),rprimd(3,3)
@@ -123,13 +126,13 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
 !--------------------------------------------------------------------------
 !Examine the angles and vector lengths
  ang90(:)=0
- if(abs(metmin(1,2))<tol8)ang90(3)=1
- if(abs(metmin(1,3))<tol8)ang90(2)=1
- if(abs(metmin(2,3))<tol8)ang90(1)=1
+ if(abs(metmin(1,2))<tolsym)ang90(3)=1
+ if(abs(metmin(1,3))<tolsym)ang90(2)=1
+ if(abs(metmin(2,3))<tolsym)ang90(1)=1
  equal(:)=0
- if(abs(metmin(1,1)-metmin(2,2))<tol8)equal(3)=1
- if(abs(metmin(1,1)-metmin(3,3))<tol8)equal(2)=1
- if(abs(metmin(2,2)-metmin(3,3))<tol8)equal(1)=1
+ if(abs(metmin(1,1)-metmin(2,2))<tolsym)equal(3)=1
+ if(abs(metmin(1,1)-metmin(3,3))<tolsym)equal(2)=1
+ if(abs(metmin(2,2)-metmin(3,3))<tolsym)equal(1)=1
 
 !DEBUG
 !write(6,*)' ang90=',ang90(:)
@@ -193,13 +196,13 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
 &   ang90(ia)==1 .and. ang90(ib)==1 .and. equal(itrial)==1 )then
     reduceda=metmin(ib,ia)/metmin(ia,ia)
     fact=1 ; center=0
-    if(abs(reduceda+0.5d0)<tol8)then
+    if(abs(reduceda+0.5d0)<tolsym)then
      cell_base(:,1)=minim(:,ia)
      cell_base(:,2)=minim(:,ib)
      cell_base(:,3)=minim(:,itrial)
 !    Checks that the basis vectors are OK for the target holohedry
      call holocell(cell_base,foundc,iholohedry)
-    else if(abs(reduceda-0.5d0)<tol8)then
+    else if(abs(reduceda-0.5d0)<tolsym)then
      cell_base(:,1)=minim(:,ia)
      cell_base(:,2)=minim(:,ib)-minim(:,ia)
      cell_base(:,3)=minim(:,itrial)
@@ -222,16 +225,16 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
     reducedb=metmin(itrial,ib)/metmin(ib,ib)
     cell_base(:,ia)=minim(:,ia)
     cell_base(:,ib)=minim(:,ib)
-    if( (abs(abs(reduceda)-0.5d0)<tol8 .and. abs(reducedb)<tol8 ) .or. &
-&    ( abs(reduceda)<tol8 .and. abs(abs(reducedb)-0.5d0)<tol8)       )then
-     if(abs(abs(reduceda)-0.5d0)<tol8)center=ib
-     if(abs(abs(reducedb)-0.5d0)<tol8)center=ia
+    if( (abs(abs(reduceda)-0.5d0)<tolsym .and. abs(reducedb)<tolsym ) .or. &
+&    ( abs(reduceda)<tolsym .and. abs(abs(reducedb)-0.5d0)<tolsym)       )then
+     if(abs(abs(reduceda)-0.5d0)<tolsym)center=ib
+     if(abs(abs(reducedb)-0.5d0)<tolsym)center=ia
      fact=2
      cell_base(:,itrial)= &
 &     (minim(:,itrial)-reduceda*minim(:,ia)-reducedb*minim(:,ib) )*2.0d0
      call holocell(cell_base,foundc,iholohedry)
-    else if( abs(abs(reduceda)-0.5d0)<tol8 .and.&
-&     abs(abs(reducedb)-0.5d0)<tol8       ) then
+    else if( abs(abs(reduceda)-0.5d0)<tolsym .and.&
+&     abs(abs(reducedb)-0.5d0)<tolsym       ) then
      fact=2 ; center=-1
      cell_base(:,itrial)= &
 &     (minim(:,itrial)-reduceda*minim(:,ia)-reducedb*minim(:,ib) )*2.0d0
@@ -267,8 +270,8 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
     reduceda=metmin(itrial,ia)/metmin(itrial,itrial)
     reducedb=metmin(itrial,ib)/metmin(itrial,itrial)
 !   If both projections are half-integer, one might have found an axis
-    if( abs(abs(reduceda)-0.5d0)<tol8 .and.&
-&    abs(abs(reducedb)-0.5d0)<tol8       ) then
+    if( abs(abs(reduceda)-0.5d0)<tolsym .and.&
+&    abs(abs(reducedb)-0.5d0)<tolsym       ) then
      vecta(:)=minim(:,ia)-reduceda*minim(:,itrial)
      vectb(:)=minim(:,ib)-reducedb*minim(:,itrial)
      norm2a=vecta(1)**2+vecta(2)**2+vecta(3)**2
@@ -276,14 +279,14 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
      scalarprod=vecta(1)*vectb(1)+vecta(2)*vectb(2)+vecta(3)*vectb(3)
 !    Note the order of selection : body-centered is prefered
 !    over face centered, which is correct for the tetragonal case
-     if(abs(norm2a-norm2b)<tol8)then
+     if(abs(norm2a-norm2b)<tolsym)then
 !     The lattice is body centered
       fact=2 ; center=-1
       cell_base(:,ia)=vecta(:)+vectb(:)
       cell_base(:,ib)=vecta(:)-vectb(:)
       cell_base(:,itrial)=minim(:,itrial)
       call holocell(cell_base,foundc,iholohedry)
-     else if(abs(scalarprod)<tol8)then
+     else if(abs(scalarprod)<tolsym)then
 !     The lattice is face centered
       fact=2 ; center=-3
       cell_base(:,ia)=2.0d0*vecta(:)
@@ -315,7 +318,7 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
     reducedb=( minim(1,itrial)*vectb(1)+       &
 &    minim(2,itrial)*vectb(2)+       &
 &    minim(3,itrial)*vectb(3) )/norm2b
-    if( abs(abs(reduceda)-0.5d0)<tol8 )then
+    if( abs(abs(reduceda)-0.5d0)<tolsym )then
 !    The first vector is an axis
      fact=2 ; center=-1
      cell_base(:,ia)=vecta(:)
@@ -324,7 +327,7 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
      cell_base(:,ib)=vecta(:)+vectb(:)
      cell_base(:,itrial)=vecta(:)-vectb(:)
      call holocell(cell_base,foundc,iholohedry)
-    else if( abs(abs(reducedb)-0.5d0)<tol8 )then
+    else if( abs(abs(reducedb)-0.5d0)<tolsym )then
 !    The second vector is an axis
      fact=2 ; center=-1
      cell_base(:,ib)=vectb(:)
@@ -356,8 +359,8 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
     reducedb=( minim(1,itrial)*vectb(1)+       &
 &    minim(2,itrial)*vectb(2)+       &
 &    minim(3,itrial)*vectb(3) )/norm2b
-    if( (abs(abs(reduceda)-0.5d0)<tol8 .and. abs(reducedb)<tol8 ) .or. &
-&    ( abs(reduceda)<tol8 .and. abs(abs(reducedb)-0.5d0)<tol8)       )then
+    if( (abs(abs(reduceda)-0.5d0)<tolsym .and. abs(reducedb)<tolsym ) .or. &
+&    ( abs(reduceda)<tolsym .and. abs(abs(reducedb)-0.5d0)<tolsym)       )then
      fact=2 ; center=-3
      cell_base(:,itrial)= &
 &     (minim(:,itrial)-reduceda*vecta(:)-reducedb*vectb(:) )*2.0d0
@@ -380,7 +383,7 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
     norm2a=vecta(1)**2+vecta(2)**2+vecta(3)**2
     norm2b=vectb(1)**2+vectb(2)**2+vectb(3)**2
 !   The trial vector length must be equal to one of these lengths
-    if(abs(metmin(itrial,itrial)-norm2a)<tol8)then
+    if(abs(metmin(itrial,itrial)-norm2a)<tolsym)then
      fact=2 ; center=-3
      cell_base(:,ia)=vecta(:)+minim(:,itrial)
      cell_base(:,ib)=vecta(:)-minim(:,itrial)
@@ -393,12 +396,12 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
      reducedb=( cell_base(1,ib)*vectb(1)+       &
 &     cell_base(2,ib)*vectb(2)+       &
 &     cell_base(3,ib)*vectb(3) )/norm2b
-     if( abs(abs(reduceda)-0.5d0)<tol8 .and.         &
-&     abs(abs(reducedb)-0.5d0)<tol8      )then
+     if( abs(abs(reduceda)-0.5d0)<tolsym .and.         &
+&     abs(abs(reducedb)-0.5d0)<tolsym      )then
       cell_base(:,itrial)=vectb(:)-reduceda*cell_base(:,ia)-reducedb*cell_base(:,ib)
       call holocell(cell_base,foundc,iholohedry)
      end if
-    else if(abs(metmin(itrial,itrial)-norm2b)<tol8)then
+    else if(abs(metmin(itrial,itrial)-norm2b)<tolsym)then
      fact=2 ; center=-3
      cell_base(:,ia)=vectb(:)+minim(:,itrial)
      cell_base(:,ib)=vectb(:)-minim(:,itrial)
@@ -411,8 +414,8 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
      reducedb=( cell_base(1,ib)*vecta(1)+       &
 &     cell_base(2,ib)*vecta(2)+       &
 &     cell_base(3,ib)*vecta(3) )/norm2b
-     if( abs(abs(reduceda)-0.5d0)<tol8 .and.         &
-&     abs(abs(reducedb)-0.5d0)<tol8      )then
+     if( abs(abs(reduceda)-0.5d0)<tolsym .and.         &
+&     abs(abs(reducedb)-0.5d0)<tolsym      )then
       cell_base(:,itrial)=vecta(:)-reduceda*cell_base(:,ia)-reducedb*cell_base(:,ib)
       call holocell(cell_base,foundc,iholohedry)
      end if
@@ -428,8 +431,8 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
 !  scalar product
    if(foundc==0 .and. iholohedry==5 .and. &
 &   equal(1)==1 .and. equal(2)==1 .and. equal(3)==1 )then
-    if(abs(abs(metmin(1,2))-abs(metmin(1,3)))<tol8 .and.     &
-&    abs(abs(metmin(1,2))-abs(metmin(2,3)))<tol8      )then
+    if(abs(abs(metmin(1,2))-abs(metmin(1,3)))<tolsym .and.     &
+&    abs(abs(metmin(1,2))-abs(metmin(2,3)))<tolsym      )then
      fact=1 ; center=0
      cell_base(:,:)=minim(:,:)
 !    One might have to change the sign of one of the vectors
@@ -466,15 +469,15 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
     reducedb=( minim(1,itrial)*vectb(1)+       &
 &    minim(2,itrial)*vectb(2)+       &
 &    minim(3,itrial)*vectb(3) )/norm2trial
-    if(abs(abs(reduceda)-1.0d0/3.0d0)<tol8 .and.      &
-&    abs(abs(reducedb)-1.0d0/3.0d0)<tol8      ) then
+    if(abs(abs(reduceda)-1.0d0/3.0d0)<tolsym .and.      &
+&    abs(abs(reducedb)-1.0d0/3.0d0)<tolsym      ) then
 !    Projection on the orthogonal plane
      vecta(:)=vecta(:)-reduceda*cell_base(:,itrial)
      vectb(:)=vectb(:)-reducedb*cell_base(:,itrial)
 !    These two vectors should have an angle of 60 or 120 degrees
      norm2a=vecta(1)**2+vecta(2)**2+vecta(3)**2
      scalarprod=vecta(1)*vectb(1)+vecta(2)*vectb(2)+vecta(3)*vectb(3)
-     if(abs(abs(2*scalarprod)-norm2a)<tol8)then
+     if(abs(abs(2*scalarprod)-norm2a)<tolsym)then
       fact=1 ; center=0
       if(scalarprod>0.0d0)vectb(:)=-vectb(:)
 !     Now vecta and vectb have an angle of 120 degrees
@@ -504,15 +507,15 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
     reducedb=( cell_base(1,itrial)*vectb(1)+       &
 &    cell_base(2,itrial)*vectb(2)+       &
 &    cell_base(3,itrial)*vectb(3) )/norm2trial
-    if(abs(norm2trial-norm2a)<tol8 .and. &
-&    abs(abs(2*reduceda)-norm2trial)<tol8    )then
+    if(abs(norm2trial-norm2a)<tolsym .and. &
+&    abs(abs(2*reduceda)-norm2trial)<tolsym    )then
      fact=1 ; center=0
      cell_base(:,1)=minim(:,ia)
      cell_base(:,2)=-minim(:,ib)
      cell_base(:,3)=-minim(:,ib)+2*reduceda*minim(:,itrial)
      call holocell(cell_base,foundc,iholohedry)
-    else if (abs(norm2trial-norm2b)<tol8 .and. &
-&     abs(abs(2*reducedb)-norm2trial)<tol8    )then
+    else if (abs(norm2trial-norm2b)<tolsym .and. &
+&     abs(abs(2*reducedb)-norm2trial)<tolsym    )then
      fact=1 ; center=0
      cell_base(:,1)=minim(:,ia)
      cell_base(:,2)=minim(:,ib)
@@ -532,7 +535,7 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
     norm2a=vecta(1)**2+vecta(2)**2+vecta(3)**2
     norm2b=vectb(1)**2+vectb(2)**2+vectb(3)**2
     scalarprod=vecta(1)*vectb(1)+vecta(2)*vectb(2)+vecta(3)*vectb(3)
-    if(abs(abs(2*scalarprod)-norm2a)<tol8)then
+    if(abs(abs(2*scalarprod)-norm2a)<tolsym)then
 !    This is in order to have 120 angle between vecta and vectb
      if(scalarprod>0.0d0)vectb(:)=-vectb(:)
      reduceda=( cell_base(1,itrial)*vecta(1)+        &
@@ -543,27 +546,27 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
 &     cell_base(3,itrial)*vectb(3) )/norm2b
      fact=1 ; center=0
      cell_base(:,1)=minim(:,itrial)
-     if(abs(reduceda-0.5d0)<tol8 .and. abs(reducedb)<tol8 )then
+     if(abs(reduceda-0.5d0)<tolsym .and. abs(reducedb)<tolsym )then
       cell_base(:,2)=minim(:,itrial)-vecta(:)
       cell_base(:,3)=minim(:,itrial)-vecta(:)-vectb(:)
       call holocell(cell_base,foundc,iholohedry)
-     else if(abs(reduceda-0.5d0)<tol8 .and. abs(reducedb+0.5d0)<tol8 )then
+     else if(abs(reduceda-0.5d0)<tolsym.and. abs(reducedb+0.5d0)<tolsym )then
       cell_base(:,2)=minim(:,itrial)-vecta(:)
       cell_base(:,3)=minim(:,itrial)+vectb(:)
       call holocell(cell_base,foundc,iholohedry)
-     else if(abs(reduceda)<tol8 .and. abs(reducedb+0.5d0)<tol8 )then
+     else if(abs(reduceda)<tolsym .and. abs(reducedb+0.5d0)<tolsym )then
       cell_base(:,2)=minim(:,itrial)+vectb(:)
       cell_base(:,3)=minim(:,itrial)+vecta(:)+vectb(:)
       call holocell(cell_base,foundc,iholohedry)
-     else if(abs(reduceda+0.5d0)<tol8 .and. abs(reducedb)<tol8 )then
+     else if(abs(reduceda+0.5d0)<tolsym .and. abs(reducedb)<tolsym)then
       cell_base(:,2)=minim(:,itrial)+vecta(:)
       cell_base(:,3)=minim(:,itrial)+vecta(:)+vectb(:)
       call holocell(cell_base,foundc,iholohedry)
-     else if(abs(reduceda+0.5d0)<tol8 .and. abs(reducedb-0.5d0)<tol8 )then
+     else if(abs(reduceda+0.5d0)<tolsym .and. abs(reducedb-0.5d0)<tolsym)then
       cell_base(:,2)=minim(:,itrial)+vecta(:)
       cell_base(:,3)=minim(:,itrial)-vectb(:)
       call holocell(cell_base,foundc,iholohedry)
-     else if(abs(reduceda)<tol8 .and. abs(reducedb-0.5d0)<tol8 )then
+     else if(abs(reduceda)<tolsym .and. abs(reducedb-0.5d0)<tolsym )then
       cell_base(:,2)=minim(:,itrial)-vectb(:)
       cell_base(:,3)=minim(:,itrial)-vecta(:)-vectb(:)
       call holocell(cell_base,foundc,iholohedry)
@@ -607,15 +610,15 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
 !    DEBUG
 !    write(6,*)' symbrav : test iholohedry=2, sca,scb=',sca,scb
 !    ENDDEBUG
-     if(abs(sca)<tol8 .or. abs(scb)<tol8)then
+     if(abs(sca)<tolsym .or. abs(scb)<tolsym)then
       fact=2 ; center=3
 !     The itrial direction is centered
       cell_base(:,3)=vectc(:)
-      if(abs(sca)<tol8)then
+      if(abs(sca)<tolsym)then
        cell_base(:,2)=vecta(:)
        cell_base(:,1)=vectb(:)
        call holocell(cell_base,foundc,iholohedry)
-      else if(abs(scb)<tol8)then
+      else if(abs(scb)<tolsym)then
        cell_base(:,2)=vectb(:)
        cell_base(:,1)=vecta(:)
        call holocell(cell_base,foundc,iholohedry)
@@ -638,14 +641,14 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
     reducedb=( minim(1,itrial)*vectb(1)+       &
 &    minim(2,itrial)*vectb(2)+       &
 &    minim(3,itrial)*vectb(3) )/norm2b
-    if(abs(abs(reduceda)-0.5d0)<tol8 .or. abs(abs(reducedb)-0.5d0)<tol8) then
+    if(abs(abs(reduceda)-0.5d0)<tolsym .or. abs(abs(reducedb)-0.5d0)<tolsym) then
      fact=2 ; center=3
-     if(abs(abs(reduceda)-0.5d0)<tol8)then
+     if(abs(abs(reduceda)-0.5d0)<tolsym)then
       cell_base(:,2)=vecta(:)
       cell_base(:,3)=vectb(:)
       cell_base(:,1)=2*(minim(:,itrial)-reduceda*vecta(:))
       call holocell(cell_base,foundc,iholohedry)
-     else if(abs(abs(reducedb)-0.5d0)<tol8)then
+     else if(abs(abs(reducedb)-0.5d0)<tolsym)then
       cell_base(:,2)=vectb(:)
       cell_base(:,3)=vecta(:)
       cell_base(:,1)=2*(minim(:,itrial)-reducedb*vectb(:))
@@ -668,20 +671,20 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
     reducedb=( minim(1,itrial)*vectb(1)+       &
 &    minim(2,itrial)*vectb(2)+       &
 &    minim(3,itrial)*vectb(3) )/norm2trial
-    if(abs(abs(reduceda)-0.5d0)<tol8)then
+    if(abs(abs(reduceda)-0.5d0)<tolsym)then
      vecta(:)=2.0d0*(vecta(:)-reduceda*minim(:,itrial))
      scalarprod=vecta(1)*vectb(1)+vecta(2)*vectb(2)+vecta(3)*vectb(3)
-     if(abs(scalarprod)<tol8)then
+     if(abs(scalarprod)<tolsym)then
       fact=2 ; center=3
       cell_base(:,1)=minim(:,itrial)
       cell_base(:,2)=vecta(:)
       cell_base(:,3)=vectb(:)
       call holocell(cell_base,foundc,iholohedry)
      end if
-    else if(abs(abs(reducedb)-0.5d0)<tol8)then
+    else if(abs(abs(reducedb)-0.5d0)<tolsym)then
      vectb(:)=2.0d0*(vectb(:)-reducedb*minim(:,itrial))
      scalarprod=vecta(1)*vectb(1)+vecta(2)*vectb(2)+vecta(3)*vectb(3)
-     if(abs(scalarprod)<tol8)then
+     if(abs(scalarprod)<tolsym)then
       fact=2 ; center=3
       cell_base(:,1)=minim(:,itrial)
       cell_base(:,2)=vectb(:)
@@ -736,13 +739,13 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
 
 !Examine the angles and vector lengths
  ang90(:)=0
- if(abs(metmin(1,2))<tol8)ang90(3)=1
- if(abs(metmin(1,3))<tol8)ang90(2)=1
- if(abs(metmin(2,3))<tol8)ang90(1)=1
+ if(abs(metmin(1,2))<tolsym)ang90(3)=1
+ if(abs(metmin(1,3))<tolsym)ang90(2)=1
+ if(abs(metmin(2,3))<tolsym)ang90(1)=1
  equal(:)=0
- if(abs(metmin(1,1)-metmin(2,2))<tol8)equal(3)=1
- if(abs(metmin(1,1)-metmin(3,3))<tol8)equal(2)=1
- if(abs(metmin(2,2)-metmin(3,3))<tol8)equal(1)=1
+ if(abs(metmin(1,1)-metmin(2,2))<tolsym)equal(3)=1
+ if(abs(metmin(1,1)-metmin(3,3))<tolsym)equal(2)=1
+ if(abs(metmin(2,2)-metmin(3,3))<tolsym)equal(1)=1
 
 !DEBUG
 !write(6, '(a,3es14.6,a,3es14.6,a,3es14.6)')' rprimd=',&
@@ -824,7 +827,7 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
 
 ! Hexagonal system
   if(found==0 .and. ang90(1)==1 .and. ang90(2)==1 .and.       &
-&  equal(3)==1 .and. (2*metmin(2,1)+metmin(1,1))<tol8   )then
+&  equal(3)==1 .and. (2*metmin(2,1)+metmin(1,1))<tolsym   )then
    iholohedry=6 ; found=1
    write(message,'(a,a)')ch10,&
 &   ' symbrav : the Bravais lattice is hP (primitive hexagonal)'
@@ -832,8 +835,8 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
 
 ! Rhombohedral system
   if(found==0 .and. equal(1)+equal(2)+equal(3)==3 .and.       &
-&  abs(metmin(2,1)-metmin(3,2))<tol8             .and.       &
-&  abs(metmin(2,1)-metmin(3,1))<tol8                   )then
+&  abs(metmin(2,1)-metmin(3,2))<tolsym             .and.       &
+&  abs(metmin(2,1)-metmin(3,1))<tolsym                   )then
    iholohedry=5 ; found=1
    write(message,'(a,a)')ch10,&
 &   ' symbrav : the Bravais lattice is hR (rhombohedral)'
@@ -889,18 +892,18 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
 ! signs of each vector. This is not done systematically in what follows ...
 ! Here, the third axis is left unchanged
   if(iholohedry/=5)then
-   if(scprods(1,1)<-tol8 .and. scprods(2,2)<-tol8)then
+   if(scprods(1,1)<-tolsym .and. scprods(2,2)<-tolsym)then
     axes(:,1)=-axes(:,1) ; axes(:,2)=-axes(:,2)
     cycle
    end if
   end if
 ! The first (or second) axis is left unchanged
   if(iholohedry/=5 .and. iholohedry/=6)then
-   if(scprods(2,2)<-tol8 .and. scprods(3,3)<-tol8)then
+   if(scprods(2,2)<-tolsym .and. scprods(3,3)<-tolsym)then
     axes(:,2)=-axes(:,2) ; axes(:,3)=-axes(:,3)
     cycle
    end if
-   if(scprods(1,1)<-tol8 .and. scprods(3,3)<-tol8)then
+   if(scprods(1,1)<-tolsym .and. scprods(3,3)<-tolsym)then
     axes(:,1)=-axes(:,1) ; axes(:,3)=-axes(:,3)
     cycle
    end if
@@ -908,12 +911,12 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
 ! Permutation of the three axis
   if(iholohedry==5 .or. iholohedry==7)then
    trace=scprods(1,1)+scprods(2,2)+scprods(3,3)
-   if(trace+tol8 < scprods(1,2)+scprods(2,3)+scprods(3,1))then
+   if(trace+tolsym< scprods(1,2)+scprods(2,3)+scprods(3,1))then
     vecta(:)=axes(:,1) ; axes(:,1)=axes(:,3)
     axes(:,3)=axes(:,2); axes(:,2)=vecta(:)
     cycle
    end if
-   if(trace+tol8 < scprods(1,3)+scprods(2,1)+scprods(3,2))then
+   if(trace+tolsym < scprods(1,3)+scprods(2,1)+scprods(3,2))then
     vecta(:)=axes(:,1) ; axes(:,1)=axes(:,2)
     axes(:,2)=axes(:,3); axes(:,3)=vecta(:)
     cycle
@@ -922,7 +925,7 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
 !  are pointing opposite to the three original vectors
 !  One takes their opposite, then switch to of them, then process
 !  them again in the loop
-   if(sum(scprods(:,:))<tol8)then
+   if(sum(scprods(:,:))<tolsym)then
     axes(:,1)=-axes(:,1)
     vecta(:)=-axes(:,2)
     axes(:,2)=-axes(:,3)
@@ -938,7 +941,7 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
 !--------------------------------------------------------------------------
 !Print the Bravais lattice (the message is contained in "message")
 !NOTE : this has been transferred to invars2m, XG, 20000616
-!call wrtout(6,message,'COLL')
+!call wrtout(std_out,message,'COLL')
 !call wrtout(iout,message,'COLL')
 
 !--------------------------------------------------------------------------
@@ -954,7 +957,7 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
   write(message,'(a,a,a,a)')ch10,&
 &  ' symbrav : BUG -',ch10,&
 &  '  Crazy error, compiler bug '
-  call wrtout(6,message,'COLL')
+  call wrtout(std_out,message,'COLL')
  end if
 
 !--------------------------------------------------------------------------
@@ -1025,15 +1028,16 @@ subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd)
  do ii=1,3
   do jj=1,3
    val=coord(ii,jj)*fact
-   if(abs(val-nint(val))>tol8)then
-    write(message,'(7a,a,3es14.6,a,a,3es14.6,a,a,3es14.6)')&
+   if(abs(val-nint(val))>tolsym)then
+    write(message,'(7a,a,3es18.10,a,a,3es18.10,a,a,3es18.10,a,a,i4)')&
 &    ch10,' symbrav : BUG -',ch10,&
 &    '  One of the coordinates of rprimd in axes is non-integer,',ch10,&
 &    '  or non-half-integer (if centering).',ch10,&
 &    '  coord=',coord(:,1),ch10,&
 &    '        ',coord(:,2),ch10,&
-&    '        ',coord(:,3)
-    call wrtout(6,message,'COLL')
+&    '        ',coord(:,3),ch10,&
+&    '  fact=',fact
+    call wrtout(std_out,message,'COLL')
     call leave_new('COLL')
    end if
    icoord(ii,jj)=nint(val)

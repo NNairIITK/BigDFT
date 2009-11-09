@@ -122,3 +122,13 @@
    implicit none
    stop 'init_lib'
  end subroutine init_lib
+
+ subroutine sg_init()
+   implicit none
+   stop 'sg_init'
+ end subroutine sg_init
+
+ subroutine sg_end()
+   implicit none
+   !stop 'sg_end'
+ end subroutine sg_end

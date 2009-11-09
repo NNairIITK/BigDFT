@@ -37,6 +37,8 @@ subroutine ana_rot_per(n,ndat,x,y)
   real(wp) :: ci1,ci2,ci3,ci4,ci5,ci6,ci7,ci8
   real(wp) :: di1,di2,di3,di4,di5,di6,di7,di8
 
+ write(*,*) 'ana_rot_per executed'
+
   call fill_mod_arr(mod_arr,-7,2*n+8,2*n+2)
 
 !dee
@@ -549,18 +551,18 @@ end subroutine convrot_t_per
 !!!!!commented out as this routine is not used 
 subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
 !  !   applies the kinetic energy operator onto x to get y. Works for periodic BC
-  use module_base
-  implicit none
+!  use module_base
+!  implicit none
 !
 !
-  integer, intent(in) :: n1,n2,n3
-  real(gp),intent(in)::c
-  real(gp), dimension(3), intent(in) :: hgrid
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y
-
+!  integer, intent(in) :: n1,n2,n3
+!  real(gp),intent(in)::c
+!  real(gp), dimension(3), intent(in) :: hgrid
+!  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
+!  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y
+!
   stop 'convolut_kinetic_per_c should never be called'
-
+!
 !  !local variables
 !  integer, parameter :: lowfil=-14,lupfil=14
 !  integer :: i1,i2,i3,i,l,j,k
@@ -832,6 +834,7 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin_out)
   real(wp), dimension(3) :: scale
   real(wp), dimension(lowfil:lupfil,3) :: fil
   real(wp), dimension(8,3) :: ekin_array
+  integer omp_get_thread_num
 
   ekin_out=0._wp
   do i=1,8

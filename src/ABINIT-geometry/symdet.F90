@@ -39,7 +39,8 @@ subroutine symdet(determinant,nsym,sym)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
- !use interfaces_01manage_mpi
+! use interfaces_14_hidewrite
+! use interfaces_16_hideleave
 !End of the abilint section
 
  implicit none
@@ -72,7 +73,7 @@ subroutine symdet(determinant,nsym,sym)
 &   ' is',det,' .',ch10,&
 &   '  For a legitimate symmetry, abs(determinant) must be 1.',ch10,&
 &   '  Action : check your symmetry operations (symrel) in input file.'
-   call wrtout(06,message,'COLL')
+   call wrtout(std_out,message,'COLL')
    call leave_new('COLL')
   end if
   determinant(isym)=det

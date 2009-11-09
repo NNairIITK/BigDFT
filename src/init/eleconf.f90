@@ -1685,24 +1685,24 @@ subroutine correct_semicore(symbol,nmax,lmax,ichg,neleconf,nsccode)
      
   end if
 
-!!$  !if the atom has only closed shells we can treat it as semicore atom (commented)
-!!$  isccode=nsccode
-!!$  do l=lmax,0,-1
-!!$     !control whether it is already semicore
-!!$     itmp=isccode/((lmax+1)**l)
-!!$     isccode=isccode-itmp*((lmax+1)**l)
-!!$     !print *,'symbol',symbol,l,itmp,isccode,itmp*(lmax**l)
-!!$     do i=1,nmax
-!!$        if (neleconf(i,l) == 2*(2*l+1)) then
-!!$           if (itmp==1) then
-!!$              itmp=0
-!!$              cycle
-!!$           else
-!!$               nsccode=nsccode+4**l !the maximum occupied is noccmax=2
-!!$           end if
-!!$        end if
-!!$     end do
-!!$  end do
+!!!  !if the atom has only closed shells we can treat it as semicore atom (commented)
+!!!  isccode=nsccode
+!!!  do l=lmax,0,-1
+!!!     !control whether it is already semicore
+!!!     itmp=isccode/((lmax+1)**l)
+!!!     isccode=isccode-itmp*((lmax+1)**l)
+!!!     !print *,'symbol',symbol,l,itmp,isccode,itmp*(lmax**l)
+!!!     do i=1,nmax
+!!!        if (neleconf(i,l) == 2*(2*l+1)) then
+!!!           if (itmp==1) then
+!!!              itmp=0
+!!!              cycle
+!!!           else
+!!!               nsccode=nsccode+4**l !the maximum occupied is noccmax=2
+!!!           end if
+!!!        end if
+!!!     end do
+!!!  end do
 end subroutine correct_semicore
 !!***
 
@@ -3438,20 +3438,20 @@ endif
   !! nsccode, for the routin abs_generator, which calls modified_eleconf ( this routine)
   !! is not used. Therefore the following block is commented 
   
-!!$  !correct the value of the nsccode following the new conventions
-!!$  if (nsccode /= 0) then
-!!$     sccode=real(nsccode,kind=8)
-!!$     nsccode=0
-!!$     inorbsc=ceiling(dlog(sccode)/dlog(10.d0))
-!!$     if (sccode==1.d0) inorbsc=1
-!!$     ipow=inorbsc-1
-!!$     do i=1,inorbsc
-!!$        lsc=floor(sccode/10.d0**ipow)
-!!$        sccode=sccode-real(lsc,kind=8)*10.d0**ipow
-!!$        ipow=ipow-1
-!!$        nsccode=nsccode+4**(lsc-1)
-!!$     end do
-!!$  end if
+!!!  !correct the value of the nsccode following the new conventions
+!!!  if (nsccode /= 0) then
+!!!     sccode=real(nsccode,kind=8)
+!!!     nsccode=0
+!!!     inorbsc=ceiling(dlog(sccode)/dlog(10.d0))
+!!!     if (sccode==1.d0) inorbsc=1
+!!!     ipow=inorbsc-1
+!!!     do i=1,inorbsc
+!!!        lsc=floor(sccode/10.d0**ipow)
+!!!        sccode=sccode-real(lsc,kind=8)*10.d0**ipow
+!!!        ipow=ipow-1
+!!!        nsccode=nsccode+4**(lsc-1)
+!!!     end do
+!!!  end if
 
   !calculate the maximum spin polarisation and the maximum charge to be placed on the atom
   mxpl=0

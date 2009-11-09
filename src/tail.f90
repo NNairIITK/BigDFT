@@ -322,7 +322,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   eproj_sum=0.d0
 
   !allocate the fake orbital structure for the application of projectors
-  call orbitals_descriptors(0,1,1,1,0,1,orbsb)
+  call orbitals_descriptors(0,1,1,1,0,1,1, &
+       & reshape((/0._gp,0._gp,0._gp/),(/3,1/)),(/1._gp /),orbsb)
 
   do iorb=1,orbs%norbp
 
@@ -413,9 +414,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
      end do tail_adding
 
-!!$     write(*,'(1x,a,i3,3(1x,1pe13.6),2(1x,1pe9.2))') &
-!!$          'BIG: iorb,denergies,gnrm,dnorm',&
-!!$          iorb,ekin-ekin1,epot-epot1,eproj-eproj1,tt,sum_tail-1.d0
+!!!     write(*,'(1x,a,i3,3(1x,1pe13.6),2(1x,1pe9.2))') &
+!!!          'BIG: iorb,denergies,gnrm,dnorm',&
+!!!          iorb,ekin-ekin1,epot-epot1,eproj-eproj1,tt,sum_tail-1.d0
 
      if (iproc == 0) then
         write(*,'(a)',advance='no') &

@@ -54,7 +54,7 @@
 !!
 subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      orbs,orbsv,nvirt,lr,comms,&
-     hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr)
+     hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
   use module_base
   use module_types
   use module_interfaces, except_this_one => davidson
@@ -75,6 +75,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(dp), dimension(*), intent(in) :: pkernel,rhopot
   type(orbitals_data), intent(inout) :: orbsv
+  type(GPU_pointers), intent(inout) :: GPU
   !this is a Fortran 95 standard, should be avoided (it is a pity IMHO)
   !real(kind=8), dimension(:,:,:,:), allocatable :: rhopot 
   real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
@@ -88,11 +89,22 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   integer :: ise,ish,jnd,j,ispsi,ikpt,ikptp,nvctrp
   real(kind=8) :: tt,gnrm,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,gnrm_fake
   type(communications_arrays) :: commsv
-  type(GPU_pointers) :: GPU !added for interface compatibility, not working here
   real(wp), dimension(:), allocatable :: work
   real(wp), dimension(:), allocatable :: hv,g,hg,ew
   real(wp), dimension(:,:,:,:), allocatable :: e,hamovr
   real(wp), dimension(:), pointer :: psiw
+
+  !in the GPU case, the wavefunction should be copied to the card 
+  !at each HamiltonianApplication
+  !rebind the GPU pointers to the orbsv structure
+  if (GPUconv) then
+     call free_gpu(GPU,orbs%norbp)
+     call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
+          hx,hy,hz,lr%wfd,orbsv,GPU)
+  end if
+  
+  GPU%full_locham=.true.
+  
 
   !last index of e and hamovr are for mpi_allreduce. 
   !e (eigenvalues) is also used as 2 work arrays
@@ -154,11 +166,11 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   !call orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
   call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
 
-!!$  call orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,v,msg)
-!!$  if(orbs%norbd > 0) then
-!!$     call orthoconvirt_p(iproc,nproc,orbs%norbd,&
-!!$       orbsv%norb,comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),v,msg)
-!!$  end if
+!!!  call orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,v,msg)
+!!!  if(orbs%norbd > 0) then
+!!!     call orthoconvirt_p(iproc,nproc,orbs%norbd,&
+!!!       orbsv%norb,comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),v,msg)
+!!!  end if
   !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
   call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
   !call orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
@@ -299,11 +311,11 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      !project g such that they are orthogonal to all occupied psi. 
      !Gradients do not need orthogonality.
      call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,g,msg)
-!!$     call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,g,msg)
-!!$     if(orbs%norbd > 0 ) then
-!!$        call orthoconvirt_p(iproc,nproc,orbs%norbd,&
-!!$          orbsv%norb,comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),g,msg)
-!!$     end if
+!!!     call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,g,msg)
+!!!     if(orbs%norbd > 0 ) then
+!!!        call orthoconvirt_p(iproc,nproc,orbs%norbd,&
+!!!          orbsv%norb,comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),g,msg)
+!!!     end if
 
      call timing(iproc,'Davidson      ','ON')
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
@@ -358,7 +370,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      orbsv%eval=>orbs%eval
      if (orbs%norb < orbsv%norb) then
         write(*,*)'ERROR: too many virtual orbitals demanded, cannot proceed.'
-        write(*,*)'       chenge the eigenvalues array to fix this problem'
+        write(*,*)'       change the eigenvalues array to fix this problem'
         stop
      end if
      call preconditionall(iproc,nproc,orbsv,lr,hx,hy,hz,in%ncong,g,gnrm_fake)
@@ -374,11 +386,11 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
 
      !project g such that they are orthogonal to all occupied psi
      call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,g,msg)
-!!$     call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,g,msg)
-!!$     if(orbs%norbd > 0) then 
-!!$        call orthoconvirt_p(iproc,nproc,orbs%norbd,orbsv%norb,&
-!!$          comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),g,msg)
-!!$     end if
+!!!     call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,g,msg)
+!!!     if(orbs%norbd > 0) then 
+!!!        call orthoconvirt_p(iproc,nproc,orbs%norbd,orbsv%norb,&
+!!!          comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),g,msg)
+!!!     end if
      !retranspose the gradient g
      call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
 
@@ -619,11 +631,11 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
      !call  orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
      call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
-!!$     call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,v,msg)
-!!$     if(orbs%norbd > 0) then
-!!$        call orthoconvirt_p(iproc,nproc,orbs%norbd,orbsv%norb,&
-!!$          comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),v,msg)
-!!$     end if
+!!!     call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,v,msg)
+!!!     if(orbs%norbd > 0) then
+!!!        call orthoconvirt_p(iproc,nproc,orbs%norbd,orbsv%norb,&
+!!!          comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),v,msg)
+!!!     end if
      !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
      call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
      !call  orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
@@ -750,6 +762,11 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   call memocc(i_stat,i_all,'e',subname)
 
   call deallocate_orbs(orbsv,subname)
+
+  if (GPUconv) then
+     call free_gpu(GPU,orbsv%norbp)
+  end if
+
 
 END SUBROUTINE davidson
 !!***

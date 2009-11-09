@@ -371,7 +371,7 @@ contains
        end do
     end do
 
-!!$  print *,'iproc,i3xcsh,i3s,max_diff',iproc,i3xcsh,i3s,max_diff
+!!!  print *,'iproc,i3xcsh,i3s,max_diff',iproc,i3xcsh,i3s,max_diff
 
     if (nproc > 1) then
        !extract the max
@@ -390,14 +390,14 @@ contains
                   '      result:',density(i1_max,i2_max,i3_max),&
                   '    original:',potential(i1_max,i2_max,i3_max)
              write(*,'(a,3(i0,1x))') '  Max diff at: ',i1_max,i2_max,i3_max
-!!$           i3=i3_max
-!!$           i1=i1_max
-!!$           do i2=1,n02
-!!$              !do i1=1,n01
-!!$                 write(20,*)i1,i2,potential(i1,i2,i3),density(i1,i2,i3)
-!!$              !end do
-!!$           end do
-!!$           stop
+!!!           i3=i3_max
+!!!           i1=i1_max
+!!!           do i2=1,n02
+!!!              !do i1=1,n01
+!!!                 write(20,*)i1,i2,potential(i1,i2,i3),density(i1,i2,i3)
+!!!              !end do
+!!!           end do
+!!!           stop
           else
              write(unit=*,fmt="(1x,a,1pe20.12)") &
                   trim(description) // '    Max diff:',diff_par
@@ -456,14 +456,14 @@ contains
        by=2.d0!real(nu,kind=8)
        bz=2.d0
 
-!!$     !plot of the functions used
-!!$     do i1=1,n03
-!!$        x = hx*real(i1,kind=8)!valid if hy=hz
-!!$        y = hz*real(i1,kind=8) 
-!!$        call functions(x,ax,bx,fx,fx2,ifx)
-!!$        call functions(y,az,bz,fz,fz2,ifz)
-!!$        write(20,*)i1,fx,fx2,fz,fz2
-!!$     end do
+!!!     !plot of the functions used
+!!!     do i1=1,n03
+!!!        x = hx*real(i1,kind=8)!valid if hy=hz
+!!!        y = hz*real(i1,kind=8) 
+!!!        call functions(x,ax,bx,fx,fx2,ifx)
+!!!        call functions(y,az,bz,fz,fz2,ifz)
+!!!        write(20,*)i1,fx,fx2,fz,fz2
+!!!     end do
 
        !Initialization of density and potential
        denval=0.d0 !value for keeping the density positive
@@ -597,9 +597,9 @@ contains
                 !denval*2pi*Lx*Lz/Ly^2(y^2-Ly^2/4), less accurate in hgrid
              end if
 
-!!$           if (rhopot(i1,i2,i3,1) <= 0.d0) then
-!!$              print *,i1,i2,i3,rhopot(i1,i2,i3,1),denval
-!!$           end if
+!!!           if (rhopot(i1,i2,i3,1) <= 0.d0) then
+!!!              print *,i1,i2,i3,rhopot(i1,i2,i3,1),denval
+!!!           end if
           end do
        end do
     end do
