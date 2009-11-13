@@ -320,7 +320,7 @@ module module_types
   type, public :: lanczos_args
      !arguments for the hamiltonian
      integer :: iproc,nproc,ndimpot,nspin
-     real(gp) :: hx,hy,hz,cpmult,fpmult
+     real(gp) :: hx,hy,hz
      real(gp) :: ekin_sum,epot_sum,eproj_sum
      type(atoms_data), pointer :: at
      type(orbitals_data) :: orbs
@@ -329,8 +329,7 @@ module module_types
      type(locreg_descriptors), pointer :: lr 
      type(gaussian_basis), pointer :: Gabsorber    
      integer, dimension(:,:), pointer :: ngatherarr 
-     real(gp), dimension(:,:),  pointer :: rxyz
-     real(gp), dimension(:,:), pointer :: radii_cf  
+     real(gp), dimension(:,:),  pointer :: rxyz,radii_cf
      real(wp), dimension(:), pointer :: proj
      !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), pointer :: psi
      real(wp), dimension(:,:), pointer :: potential

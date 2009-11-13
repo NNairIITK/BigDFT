@@ -191,7 +191,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   character(len=3) :: PSquiet
   character(len=4) :: f4
   character(len=50) :: filename
-  logical :: endloop,potion_overwritten=.false.,allfiles,onefile
+  logical :: endloop,potion_overwritten=.false.,allfiles,onefile,refill_proj
   integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before
   integer :: nvirt,ndiis_sd_sw
   integer :: nelec,ndegree_ip,j,i,iorb
@@ -375,7 +375,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call timing(iproc,'CrtDescriptors','OF')
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
-  call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,&
+  call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
 
@@ -510,14 +510,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      !import gaussians form CP2K (data in files gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
-     call import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,atoms,orbs,comms,&
+     call import_gaussians(iproc,nproc,atoms,orbs,comms,&
           Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj, &
           pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,in%nspin)
 
   case(0)
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
-     call input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,atoms,&
+     call input_wf_diag(iproc,nproc,atoms,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,nscatterarr,ngatherarr,nspin, in%potshortcut )
 
@@ -785,7 +785,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   
 
      call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
-          cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
+          nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
           rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU,pkernel)
 
      energybs=ekin_sum+epot_sum+eproj_sum
@@ -1114,8 +1114,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
 
-     call nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,atoms,rxyz,radii_cf,&
-          orbs,nlpspd,proj,Glr%wfd,psi,gxyz,in%calc_tail) !refill projectors for tails
+     !refill projectors for tails, davidson or x-absorbtion procedures
+     refill_proj=in%calc_tail .or. nvirt > 0 .and. in%inputPsiId == 0 &
+          .or. in%c_absorbtion 
+
+     call nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,atoms,rxyz,&
+          orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
 
      if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
 
@@ -1174,7 +1178,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call timing(iproc,'Forces        ','OF')
 
      if (nvirt > 0 .and. in%inputPsiId == 0) then
-        call davidson(iproc,nproc,n1i,n2i,n3i,in,atoms,cpmult,fpmult,radii_cf,&
+        call davidson(iproc,nproc,n1i,n2i,n3i,in,atoms,&
              orbs,orbsv,nvirt,Glr,comms,&
              hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj, &
              pkernel,psi,psivirt,ngatherarr,GPU)
@@ -1385,7 +1389,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      
      if(in%iabscalc_type==2) then
         call lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
+             radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
              , in%iat_absorber  , .false., orbs%norb,   psit , orbs%eval , in )
         
@@ -1393,7 +1397,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         stop
      else
         call  chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
+             radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
              , in%iat_absorber, in)
         
@@ -1464,7 +1468,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      
      !pass hx instead of hgrid since we are only in free BC
      call CalculateTailCorrection(iproc,nproc,atoms,rbuf,orbs,&
-          Glr,nlpspd,ncongt,pot,hx,rxyz,radii_cf,crmult,frmult,cpmult,fpmult,in%nspin,&
+          Glr,nlpspd,ncongt,pot,hx,rxyz,radii_cf,crmult,frmult,in%nspin,&
           proj,psi,in%output_grid,ekin_sum,epot_sum,eproj_sum)
      
      i_all=-product(shape(pot))*kind(pot)

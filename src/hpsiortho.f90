@@ -12,32 +12,31 @@
 !! SOURCE
 !!
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-     cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
+     nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,pkernel)
   use module_base
   use module_types
   use libxc_functionals
   implicit none
   integer, intent(in) :: iproc,nproc,ndimpot,nspin
-  real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
+  real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors), intent(in) :: lr 
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,orbs%norbp), intent(in) :: psi
   real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
   real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,orbs%norbp), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
   real(dp), dimension(*), optional :: pkernel
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX
-  integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot
+  integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
   real(gp) :: eproj,eexctX
   real(gp), dimension(3,2) :: wrkallred
   real(wp), dimension(:), pointer :: pot
@@ -133,22 +132,17 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !apply the projectors following the strategy (On-the-fly calculation or not)
   if (DistProjApply) then
      call applyprojectorsonthefly(iproc,orbs,at,lr%d%n1,lr%d%n2,lr%d%n3,&
-          rxyz,hx,hy,hz,cpmult,fpmult,radii_cf,lr%wfd,nlpspd,proj,psi,hpsi,eproj_sum)
+          rxyz,hx,hy,hz,lr%wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   else
-     !one should add a flag here which states that it works only for global region
      ! loop over all my orbitals
-     !should be changed in view of spin-orbit coupling
-     do iorb=1,orbs%norbp*orbs%nspinor
-        call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &
-             nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,nlpspd%keyg_p,nlpspd%keyv_p,&
-             nlpspd%nvctr_p,&
-             proj,lr%wfd%nseg_c,lr%wfd%nseg_f,lr%wfd%keyg,lr%wfd%keyv,&
-             lr%wfd%nvctr_c,lr%wfd%nvctr_f, & 
-             psi(1,iorb),hpsi(1,iorb),eproj)
-        eproj_sum=eproj_sum+&
-             orbs%kwgts(orbs%iokpt((iorb-1)/orbs%nspinor+1))*&
-             orbs%occup((iorb+orbs%isorb-1)/orbs%nspinor+1)*eproj
-     enddo
+     do iorb=1,orbs%norbp
+        istart_c=1
+        do iat=1,at%nat
+           call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,lr%wfd,nlpspd,&
+                proj,psi(1,iorb),hpsi(1,iorb),eproj_sum)           
+        end do
+        if (istart_c-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp application'
+     end do
   end if
 
   call timing(iproc,'ApplyProj     ','OF')
@@ -423,12 +417,6 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
 
   call orthogonalize(iproc,nproc,orbs,comms,wfd,psit)
 
-!!!  call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),wfd%nvctr_c+7*wfd%nvctr_f,&
-!!!       psit,orbs%nspinor) 
-!!!  if(orbs%norbd > 0) then
-!!!     call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),wfd%nvctr_c+7*wfd%nvctr_f,&
-!!!          psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),orbs%nspinor) 
-!!!  end if
   !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
   call untranspose_v(iproc,nproc,orbs,wfd,comms,psit,&
@@ -478,9 +466,6 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   else
      keeppsit=.false.
   endif
-  
-        
-
 
   call transpose_v(iproc,nproc,orbs,wfd,comms,&
        hpsi,work=psi)
@@ -490,16 +475,6 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   end if
 
   call subspace_diagonalisation(iproc,nproc,orbs,comms,psit,hpsi,evsum)
-
-!!!  call KStrans_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc,1),orbs%occup,hpsi,psit,&
-!!!       evsum,orbs%eval,orbs%nspinor)
-!!!  evpart=evsum
-!!!  if(orbs%norbd > 0) then
-!!!     call KStrans_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc,1),orbs%occup(orbs%norbu+1),&
-!!!          hpsi(1+comms%nvctr_par(iproc,1)*orbs%norbu),psit(1+comms%nvctr_par(iproc,1)*orbs%norbu),&
-!!!          evsum,orbs%eval(orbs%norbu+1),orbs%nspinor)
-!!!     evsum=evsum+evpart
-!!!  end if
 
   call untranspose_v(iproc,nproc,orbs,wfd,comms,&
        psit,work=hpsi,outadd=psi(1))
