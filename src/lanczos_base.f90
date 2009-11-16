@@ -202,7 +202,7 @@ contains
 !!$    stop
 
     if(info .ne.0) then
-       print *, " problema con dsyev"
+       print *, " problem with dsyev"
        stop
     endif
     return 
@@ -492,25 +492,18 @@ contains
     
     DO i=k, m-1
 
-
-       open(unit=22,file="alphabeta_p")
-       write(22,*) i, 1.0
-       do ipa=0, i-1
-          write(22,*) LB_alpha(ipa), LB_beta(ipa)
-       enddo
-       close(unit=22)
-
-
- 
+       if(LB_iproc==0 .and. modulo( m-1-i   ,100)==0 ) then
+          open(unit=22,file="alphabeta_p")
+          write(22,*) i, 1.0
+          do ipa=0, i-1
+             write(22,*) LB_alpha(ipa), LB_beta(ipa)
+          enddo
+          close(unit=22)
+       end if
 
        call EP_Moltiplica(p, i )
- 
-       
        
        LB_alpha(i) = EP_scalare(p , i)
-       
-       print *, LB_alpha(i)
-
        
        if (i.eq.k) then
 
@@ -530,7 +523,6 @@ contains
 
        LB_beta(i)=sqrt(EP_scalare(p,p))
 
-       ! print *, "LB_beta(",i,")=" , LB_beta(i)
 
        
        omega(i,i)=1.
@@ -640,7 +632,7 @@ contains
           
           if ( LB_beta(i).lt. condition) then
              
-             print *, "starting with a vector perpendicular"
+             if(LB_iproc==0) print *, "starting with a perpendicular vector"
              
              LB_beta(i)=0.0D0
              
@@ -697,14 +689,84 @@ contains
   end subroutine LB_passeggia
 
 
+  subroutine CalcolaSpettroChebychev( cheb_shift, fact_cheb,   Nu ) 
+    real(gp) cheb_shift, fact_cheb
+    integer Nu
 
+    real(gp), pointer :: Xs(:), res(:),Pi
+    complex(16), pointer :: alphas(:), expn(:)
 
+    integer Nbar
+    integer i,n
+    
+    character(200)  filename, saux
+  
+    write(saux,'(i5)') Nu
+    saux=trim(saux)
+    filename="cheb_spectra_" // saux
 
+    Pi=acos(-1.0_gp)
 
+    Nbar =1
+    do while(Nbar<Nu) 
+       Nbar=Nbar*2
+    enddo
+    Nbar=Nbar*2   
+    
+    allocate(Xs(0:Nbar-1) , stat=i_stat)
+    call memocc(i_stat,Xs,'Xs',subname)
+    
+    allocate(res(0:Nbar-1) , stat=i_stat)
+    call memocc(i_stat,res,'res',subname)
+        
+    allocate(alphas(0:Nbar-1) , stat=i_stat)
+    !! call memocc(i_stat,alphas,'alphas',subname)
+    
+    allocate(expn(0:Nbar-1) , stat=i_stat)
+    !! call memocc(i_stat,expn,'expn',subname)
+    
+    do i=0,Nbar-1
+       Xs(i)=cos( (Nbar-1 - i +0.5_gp)*Pi/Nbar)
+       res(i)=LB_alpha(0)
+       alphas(i) = exp(   ((0.0_gp,1.0_gp) * ( Nbar-1 - i +0.5_gp)) *Pi/Nbar     ) 
+       expn(i)=(1.0_gp,0)
+    enddo
+    
+    do n=1,Nu-1
+       expn(:)=expn(:)*alphas(:)
+       res(:)=res(:)+2*REAL(expn(:))*LB_alpha(n)
+    enddo
+    
+    res =res/Pi/sqrt(1-Xs*Xs)
+    
+    
+    open(unit=22,file=filename)
+    do i=0, Nbar-1
+       write(22,*) Xs(i), res(i)
+    enddo
+    close(unit=22)
+    
 
-
-
-  subroutine LB_passeggia_Chebychev (  m, cheb_min,  fact_cheb,  get_EP_dim,  EP_initialize_start , EP_normalizza, &
+    i_all=-product(shape(Xs))*kind(Xs)
+    deallocate(Xs)
+    call memocc(i_stat,i_all,'Xs',subname)
+    
+    i_all=-product(shape(res))*kind(res)
+    deallocate(res)
+    call memocc(i_stat,i_all,'res',subname)
+    
+    i_all=-product(shape(alphas))*kind(alphas)
+    deallocate(alphas)
+    !! call memocc(i_stat,i_all,'alphas',subname)
+    
+    i_all=-product(shape(expn))*kind(expn)
+    deallocate(expn)
+    !! call memocc(i_stat,i_all,'expn',subname)
+    
+  end subroutine CalcolaSpettroChebychev
+  
+  
+  subroutine LB_passeggia_Chebychev (  m, cheb_shift,  fact_cheb,  get_EP_dim,  EP_initialize_start , EP_normalizza, &
        EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy,  EP_mat_mult,&
        EP_scalare,EP_add_from_vect_with_fact , EP_multbyfact)
     use module_base
@@ -713,7 +775,7 @@ contains
     ! ::::::::::::::::::::::::::::::::::::::::
     real(8) sn,eu,eusn,eq
     real(8) max0
-    real(gp) cheb_min,  fact_cheb
+    real(gp) cheb_shift,  fact_cheb
     integer pvect
     integer i,l,j, w
     interface
@@ -774,15 +836,16 @@ contains
     LB_alpha(0)=EP_scalare(attuale,attuale)
     
     DO i=0, m-1
-
-       open(unit=22,file="alphabeta_chebychev")
-       write(22,*) 2*i+1,  cheb_min, fact_cheb
-       do ipa=0, 2*i
-          write(22,*) LB_alpha(ipa)
-       enddo
-       close(unit=22)
-
-
+       if(LB_iproc==0 .and. modulo( m-1-i   ,100)==0 ) then
+          open(unit=22,file="coeffs_chebychev")
+          write(22,*) 2*i+1,  cheb_shift, fact_cheb
+          do ipa=0, 2*i
+             write(22,*) LB_alpha(ipa)
+          enddo
+          close(unit=22)
+          call CalcolaSpettroChebychev( cheb_shift, fact_cheb,   2*i+1 ) 
+      endif
+       
        call EP_Moltiplica(tmp1, attuale )
        call EP_multbyfact(tmp1,fact_cheb)
        if(i==0) then
@@ -791,21 +854,18 @@ contains
           call EP_multbyfact(tmp1,2.0_gp)
           call EP_add_from_vect_with_fact(tmp1,precedente,-1.0_gp ) 
        endif
-
+       
        
        LB_alpha(2*i+1) = 2*EP_scalare(tmp1,attuale)-LB_alpha(1)
        LB_alpha(2*i+2) = 2*EP_scalare(tmp1,tmp1)-LB_alpha(0)
        
-       print *, LB_alpha(2*i+1)
-       print *, LB_alpha(2*i+2)
-
        call EP_copy(precedente,attuale)
        call EP_copy(attuale,tmp1)
-
+       
     enddo
     
-  end subroutine LB_passeggia_Chebychev 
-   
+  end subroutine LB_passeggia_Chebychev
+  
 end module lanczos_base
 
 

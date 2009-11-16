@@ -111,7 +111,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   iline=iline+1
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
     ! call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-!     call sg_init(GPUshare,iconv,iproc,initerror)
+     call sg_init(GPUshare,iconv,iproc,initerror)
      iconv = 1
      iblas = 1
      if (initerror == 1) then
@@ -332,7 +332,7 @@ subroutine geopt_input_variables(iproc,filename,in)
           & "      Max. steps=", in%ncount_cluster_x, "|", &
           & "Fluct. in forces=", in%frac_fluct,       "|", &
           & "          ionmov=", in%ionmov
-     write(*, "(1x,a,a7,1x,a,1x,a,1pe7.1,1x,a,1x,a,1f7.0)") &
+     write(*, "(1x,a,a7,1x,a,1x,a,1pe7.1,1x,a,1x,a,0pf7.0)") &
           & "       algorithm=", in%geopt_approach, "|", &
           & "  Max. in forces=", in%forcemax,       "|", &
           & "           dtion=", in%dtion
@@ -535,7 +535,7 @@ subroutine abscalc_input_variables_default(in)
 
   in%c_absorbtion=.false.
   in%potshortcut=0
-
+  in%iat_absorber=0
 
 end subroutine abscalc_input_variables_default
 !!***

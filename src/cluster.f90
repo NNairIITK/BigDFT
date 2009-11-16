@@ -879,17 +879,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   if (in%potshortcut==0) then
 
-     ! transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
-     if (in%iat_absorber /= 0  .and. .false.) then
-        ! the last argument tells to the routine to keep psit
-        if(iproc==0) print *, " in cluster " , associated(psit)
-        call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
-             comms,psi,hpsi,psit,evsum, .true.)
-        if(iproc==0) print *, " in cluster , dopo " , associated(psit)
-     else
-        call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
-             comms,psi,hpsi,psit,evsum)
-     endif
+     call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
+          comms,psi,hpsi,psit,evsum)
 
 
      if (abs(evsum-energybs) > 1.d-8 .and. iproc==0) write( *,'(1x,a,2(1x,1pe20.13))')&
@@ -1184,7 +1175,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   if (in%c_absorbtion ) then
 
-     if(iproc==0) print *, " goin to calculate spectra "
+     if(iproc==0) print *, " going to calculate spectra "
 
      
      if(in%potshortcut==2) then
@@ -1204,12 +1195,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
               end if
            enddo
         enddo
-        ! come passare da un x della vecchia a un x della nuova
-        ! ((x-1)*hx_old/2.0+shift_x)/(hx/2.0) +1 
-        ! cambiamento inverso 
-        !  ((x-1)*hx/2.0-shift_x)/(hx_old/2.0) +1 
-        
-
+        ! passing from an old grid  x  to a new grid one
+        !    ((x-1)*hx_old/2.0+shift_x)/(hx/2.0) +1 
+        ! inverse change
+        !    ((x-1)*hx/2.0-shift_x)/(hx_old/2.0) +1 
         
 
         itype=16
@@ -1230,8 +1219,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         call memocc(i_stat,i_all,'intfunc_x',subname)
         
 
-        ! come accedere alla funzione 
-        ! x in unita della vecchia griglia   intfunc_y(( x+16) *2**9)
+        ! how to acceed to a  function using a  
+        ! x variable given in units of the old  grids intfunc_y(( x+16) *2**9)
         
         
         
@@ -1275,7 +1264,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                  do iz= minZ_B , maxZ_B 
                     
                     rz = hz*(iz-1  )/2.0  
-                    idelta = NINT((rz-rz_bB)/(hz_old/2))   !  float2int andrebbe ottimizzato ...
+                    idelta = NINT((rz-rz_bB)/(hz_old/2))   !  float2intshould be optimized  ...
                     
                     factz = intfunc_y(nd/2+idelta)
                     
@@ -1283,7 +1272,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                     do iy= minY_B , maxY_B 
                        
                        ry = hy*(iy-1  )/2.0  
-                       idelta = NINT((ry-ry_bB)/(hy_old/2))   !  float2int andrebbe ottimizzato ...
+                       idelta = NINT((ry-ry_bB)/(hy_old/2))   !  float2intshould be optimized  ...
                        
                        facty = factz*intfunc_y(nd/2+idelta)
                        
@@ -1291,7 +1280,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                        do ix= minX_B , maxX_B 
                           
                           rx = hx*(ix-1  )/2.0  
-                          idelta = NINT((rx-rx_bB)/(hx_old/2))   !  float2int andrebbe ottimizzato ...
+                          idelta = NINT((rx-rx_bB)/(hx_old/2))   !   float2intshould be optimized  ...
                           
                           factx = facty*intfunc_y(nd/2+idelta)
                           
@@ -1317,18 +1306,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      endif
      
      if(in%abscalc_alterpot) then
-        ! ATTENZIONE alterazione del potenziale per 
-        ! il caso risolvibile esattamente
+        ! Attention :  modification of the  potential for the  
+        ! exactly resolvable case 
+
         lpot_a=1
         rpot_a = 6.0
         spot_a = 1.0
         hpot_a = 3.0
-        !! questa disposizione vale solo nel caso periodico ( si parte da 1, se no sarebbe 15 )
-!!!        allocate(radpot(n1i*n2i*n3p ,2 ))
-        radpotcount=0
-        
+
+
         allocate(radpot(30000 ,2 ))
         radpotcount=30000
+
         open(unit=22,file='pot.dat', status='old')
         do igrid=1, radpotcount
            read(22,*)  radpot(igrid ,1 ),  radpot(igrid , 2 )
@@ -1358,10 +1347,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                  
                  if(r<minr) minr=r
                  
-!!!                 radpotcount=radpotcount+1
-!!!                 radpot(radpotcount,1)=r
-!!!                 radpot(radpotcount,2)=rhopot(ix,iy,iz+i3xcsh,1)
-                 
                  if( r.ne.0.0) then
                     harmo = rz/r *sqrt(3.0/4.0/3.1415926535)
                  else
@@ -1375,11 +1360,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
               enddo
            enddo
         enddo
-!!!        open(unit=22,file='radpot.dat')
-!!!        do igrid=1, radpotcount
-!!!           write(22,'(200(f20.10,1x))')  radpot(igrid,1),  radpot(igrid,2)
-!!!        enddo
-!!!        close(unit=22)       
         
      end if
      
@@ -1389,16 +1369,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
              , in%iat_absorber  , .false., orbs%norb,   psit , orbs%eval , in )
         
-        if (nproc > 1) call MPI_FINALIZE(ierr)
-        stop
      else
         call  chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
              , in%iat_absorber, in)
         
-        if (nproc > 1) call MPI_FINALIZE(ierr)
-        stop
      endif
      
   end if
@@ -1407,7 +1383,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   if (in%potshortcut>0) stop ' in%potshortcut meaningless outside spectra calculation '
   
   !------------------------------------------------------------------------
-  if (in%calc_tail .and. atoms%geocode == 'F') then
+  if (in%calc_tail .and. atoms%geocode == 'F' .and. .not. in%c_absorbtion ) then
      call timing(iproc,'Tail          ','ON')
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential

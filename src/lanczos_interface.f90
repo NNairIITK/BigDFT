@@ -403,19 +403,9 @@ contains
     integer :: i,k, volta
     real(wp), pointer ::  scals(:), scalstot(:)
 
-!!!    if( associated(EP_Gabsorber) ) then
-!!!    if( ha%iproc == 0  ) then
-       ! print *, " inizializzo da Gabsorber " 
-!!!        print *, EP_Gabsorber%rxyz(1,1)
        call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%lr%geocode,ha%orbs,ha%lr%d,&
             ha%hx,ha%hy,ha%hz,ha%lr%wfd,EP_Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
  
-!!!
-!!!       if(ha%iproc.eq.0) then
-!!!          call plot_wf('testa',ha%lr,ha%hx,ha%hy,ha%hz,ha%rxyz(1,1),ha%rxyz(2,1),ha%rxyz(3,1),&
-!!!               Qvect_tmp,'comm')
-!!!       endif
-!!!    endif
     if (.not. associated(Qvect)) then
        write(*,*)'ERROR: initialization vector not allocated!'
        stop
@@ -436,15 +426,11 @@ contains
     
 
     if(EP_doorthoocc) then
-       print *, " doorthoocc " 
+
        allocate(scals( EP_norb) ,stat=i_stat)
        call memocc(i_stat,scals,'scals',subname)
        allocate(scalstot( EP_norb) ,stat=i_stat)
        call memocc(i_stat,scalstot,'scalstot',subname)
-       
-       print *, " EP_dim", EP_dim , " EP_norb  ",EP_norb,  ha%iproc
-       print *," associated(occQvect)    " ,  associated(occQvect)  ,  ha%iproc
-       print *, "  shape(occQvect )  " , shape(occQvect )  ,  ha%iproc
        
 
        do volta=1,2 
@@ -467,7 +453,6 @@ contains
           enddo
        enddo
        
-       print *, 2
 
        i_all=-product(shape(scals))*kind(scals)
        deallocate(scals,stat=i_stat)
@@ -549,7 +534,7 @@ end subroutine EP_initialize_start
     real(wp) scals(0:n-1), scalstot(0:n-1), occscals(1:EP_norb), occscalstot(1:EP_norb)
 
     if(ha%iproc.eq.0) then
-       print *, " inizio GramSchmidt ", n
+       print *, " starting GramSchmidt ", n
     endif
 
     do volta=1,2
@@ -583,7 +568,7 @@ end subroutine EP_initialize_start
     enddo
 
     if(ha%iproc.eq.0) then
-       print *, " finito  GramSchmidt "
+       print *, "GramSchmidt done "
     endif
 
     return
@@ -599,17 +584,6 @@ end subroutine EP_initialize_start
     integer k, nprocbidon
     real(8) sumdum
  
-
-!!$
-!!$
-!!$   if(p.ge.0) then
-!!$       print *, " problema Moltiplica solo con dumvect per result "
-!!$       stop
-!!$    endif
-!!$    if(i.lt.0) then
-!!$       print *, " problema Moltiplica solo con vect per input "
-!!$       stop
-!!$    endif
     
     if( ha%nproc > 1) then
        if(i>=0) then
@@ -637,7 +611,7 @@ end subroutine EP_initialize_start
        call lowpass_projector(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,ha%lr%wfd%nvctr_c, Qvect_tmp )
     endif
 
-    if(  ha%iproc ==0 ) print *, "chiamo hamiltonian "
+    if(  ha%iproc ==0 ) print *, " calling  hamiltonian "
     call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
          ha%rxyz,ha%cpmult,ha%fpmult,ha%radii_cf,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
@@ -911,7 +885,7 @@ end subroutine EP_initialize_start
    do ia =1, ha%at%nat
       iat=ha%at%iatype(ia)
       radius_gross = ha%radii_cf(  iat ,1 )*8
-      print *, " per atomo " , ia , "   " ,  radius_gross
+      if(ha%iproc==0) print *, " for atomo " , ia , " fine degrees of freedo,g will be thrown beyond radius =  " ,  radius_gross
    enddo
    countgross=0
    do ix=1,n1/2
@@ -947,7 +921,6 @@ end subroutine EP_initialize_start
       enddo
    enddo
 
-   print *, "  countgross " , countgross
 
 !!$   do iz=1,n3/2
 !!$      do iy=1,n2/2
@@ -988,7 +961,6 @@ end subroutine EP_initialize_start
    
    !here the projector operation
 
-   print *, " passo di qui " 
 !!$   psi_gross=0.0_wp
 
    call synthese_per_self(n1/2,n2/2,n3/2,psi_gross,psi)
