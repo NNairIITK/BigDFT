@@ -1,7 +1,8 @@
 module scfloop_API
 
-  use BigDFT_API
+  use module_base
   use module_types
+  use module_interfaces
 
   implicit none
 

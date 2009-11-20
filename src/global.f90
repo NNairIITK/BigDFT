@@ -793,7 +793,7 @@ contains
     call soften(nsoften,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
          nproc,iproc,atoms,rst,inputs_md)
     call velopt(atoms,rxyz,ekinetic,vxyz)
-    call zero(3*atoms%nat,gg)
+    call razero(3*atoms%nat,gg)
 
     if(iproc==0) write(*,*) '# MINHOP start MD'
     !C inner (escape) loop

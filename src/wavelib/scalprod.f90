@@ -1,16 +1,23 @@
 !wrapper for simplifying the call
-subroutine wnrm_wrap(mvctr_c,mvctr_f,psi,scpr)
+subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
   use module_base
   implicit none
-  integer, intent(in) :: mvctr_c,mvctr_f
-  real(wp), dimension(mvctr_c+7*mvctr_f), intent(in) :: psi
+  integer, intent(in) :: mvctr_c,mvctr_f,ncplx
+  real(wp), dimension((mvctr_c+7*mvctr_f)*ncplx), intent(in) :: psi
   real(dp), intent(out) :: scpr
   !local variables
   integer :: i_f
+  real(dp) :: scalp
 
   i_f=min(mvctr_f,1)
  
   call wnrm(mvctr_c,mvctr_f,psi,psi(mvctr_c+i_f),scpr)
+
+  if (ncplx ==2) then
+     call wnrm(mvctr_c,mvctr_f,&
+          psi(mvctr_c+7*mvctr_f+1),psi(mvctr_c+7*mvctr_f+mvctr_c+i_f),scalp)
+     scpr=scpr+scalp
+  end if
   
 end subroutine wnrm_wrap
 

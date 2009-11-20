@@ -780,19 +780,18 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
+  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
+  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
   real(gp), intent(out) :: eproj_sum
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
   !local variables
   integer :: iat,nwarnings,iproj,iorb,ityp,l,i,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c
-  integer :: istart_c,idir,ispinor
+  integer :: istart_c,idir,ispinor,isorb,ieorb,ikpt,nspinor,ispsi_k,ispsi
   real(gp) :: eproj
   
   !put idir=0, no derivative
   idir=0
   nwarnings=0
-  iproj=0
   eproj_sum=0.0_gp
 
   !quick return if no orbitals on this processor
@@ -800,21 +799,38 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
      return
   end if
 
-  do iat=1,at%nat
-     istart_c=1
-     call atom_projector(iproc,iat,idir,istart_c,iproj,&
-          n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+  !apply the projectors on the fly for each k-point of the processor
+  !starting k-point
+  ikpt=orbs%iokpt(1)
 
-     !apply the projector to all the orbitals belonging to the processor
-     do iorb=1,orbs%norbp
+  ispsi_k=1
+  loop_kpt: do
+
+     call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+
+     !this may not work for non-collinear cases
+
+     iproj=0
+     do iat=1,at%nat
         istart_c=1
-        call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,&
-             proj,psi(1,1,iorb),hpsi(1,1,iorb),eproj_sum)
-     end do
+        call atom_projector(iproc,ikpt,iat,idir,istart_c,iproj,&
+             n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
 
-  end do
-     
-  if (iproj /= nlpspd%nproj) stop 'incorrect number of projectors created'
+        !apply the projector to all the orbitals belonging to the processor
+        ispsi=ispsi_k
+        do iorb=isorb,ieorb
+           istart_c=1
+           call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,&
+                proj,psi(ispsi),hpsi(ispsi),eproj_sum)
+           ispsi=ispsi+(wfd%nvctr_c+7*wfd%nvctr_f)*nspinor
+        end do
+
+     end do
+     if (iproj /= nlpspd%nproj) stop 'incorrect number of projectors created'
+     if (ieorb == orbs%norbp) exit loop_kpt
+     ikpt=ikpt+1
+     ispsi_k=ispsi
+  end do loop_kpt
 
   if (iproc == 0 .and. nlpspd%nproj /=0 .and. idir == 0) then
      if (nwarnings == 0) then
@@ -845,14 +861,24 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(out) :: hpsi
   !local variables
   integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,istart_c_i,ncplx
-  real(gp) :: eproj_spinor
+  real(gp) :: eproj_spinor,kx,ky,kz
 
   !complex functions or not
   !this should be decided as a function of the orbital
-  ncplx=1
+  !features of the k-point ikpt
+  kx=orbs%kpts(1,orbs%iokpt(iorb))
+  ky=orbs%kpts(2,orbs%iokpt(iorb))
+  kz=orbs%kpts(3,orbs%iokpt(iorb))
+
+  !evaluate the complexity of the k-point
+  if (kx**2 + ky**2 + kz**2 == 0) then
+     ncplx=1
+  else
+     ncplx=2
+  end if
 
   istart_c_i=istart_c
-  do ispinor=1,orbs%nspinor
+  do ispinor=1,orbs%nspinor,ncplx
      eproj_spinor=0.0_gp
      if (ispinor >= 2) istart_c=istart_c_i
      ityp=at%iatype(iat)
@@ -1131,4 +1157,62 @@ subroutine applyprojector_old(l,i,psppar,npspcode,&
      end do loop_jK
   end if
 end subroutine applyprojector_old
+
+!find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
+subroutine orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ikpt
+  type(orbitals_data), intent(in) :: orbs
+  integer, intent(out) :: isorb,ieorb,nspinor
+  !local variables
+  integer :: iorb
+
+  !find starting orbital
+  do iorb=1,orbs%norbp
+     if (orbs%iokpt(iorb)==ikpt) then
+        isorb=iorb
+        exit
+     end if
+  end do
+
+  !find ending orbital
+  do iorb=orbs%norbp,1,-1
+     if (orbs%iokpt(iorb)==ikpt) then
+        ieorb=iorb
+        exit
+     end if
+  end do
+
+  !nspinor for this k-point
+  nspinor=orbs%nspinor
+
+end subroutine orbs_in_kpt
+
+!determine whether the k-point is complex of real
+!find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
+subroutine ncplx_kpt(ikpt,orbs,ncplx)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ikpt
+  type(orbitals_data), intent(in) :: orbs
+  integer, intent(out) :: ncplx
+  !local variables
+  real(gp) :: kx,ky,kz
+
+  !features of the k-point ikpt
+  kx=orbs%kpts(1,ikpt)
+  ky=orbs%kpts(2,ikpt)
+  kz=orbs%kpts(3,ikpt)
+
+  !evaluate the complexity of the k-point
+  if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
+     ncplx=1
+  else
+     ncplx=2
+  end if
+
+end subroutine ncplx_kpt
 

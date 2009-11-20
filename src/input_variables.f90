@@ -187,8 +187,8 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   else
      in%verbosity=ivrbproj
   end if
-!!$  !temporary correction
-!!$  DistProjApply=.false.
+!!  !temporary correction
+!!  DistProjApply=.false.
   
 
 

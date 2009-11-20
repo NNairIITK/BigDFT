@@ -19,7 +19,8 @@
 module BigDFT_API
   use module_base
   use module_types
-  use module_interfaces
+  use scfloop_API
+  use ab6_moldyn
   implicit none
 end module BigDFT_API
 !!***
