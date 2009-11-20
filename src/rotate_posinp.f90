@@ -1,98 +1,107 @@
-        PROGRAM ROTATE_POSINP
-! Rotates the molecular structure in the input file posinp.xyz and 
-! writes the result in the file rot_posinp.xyz
-! Comparing the BigDFT energies of the original and rotated configuration 
-! can help to estimate the accuracy the the chosen parameter set( hgrid, crmult etc).
+!!****p* BigDFT/BigDFT
+!! FUNCTION
+!!  Rotates the molecular structure in the input file posinp.xyz and 
+!!  writes the result in the file rot_posinp.xyz
+!!  Comparing the BigDFT energies of the original and rotated configuration 
+!!  can help to estimate the accuracy the the chosen parameter set( hgrid, crmult etc).
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
+PROGRAM rotate_posinp
 
-        implicit real*8 (a-h,o-z)
-        parameter(natx=2000)
-        character(len=5) atomname(natx)
-        character(len=10) units
-        character(len=20) extra(natx) 
-        character(len=100) line,line2
-        dimension pos(3,natx),pos_s(3)
-        parameter(PI=3.141592654d0)       
+   implicit real*8 (a-h,o-z)
+   parameter(natx=2000)
+   character(len=5) atomname(natx)
+   character(len=10) units
+   character(len=20) extra(natx) 
+   character(len=100) line,line2
+   dimension pos(3,natx),pos_s(3)
+   parameter(PI=3.141592654d0)       
 
-        write(*,*) 'reading atomic positions from file posinp'
-        open(unit=9,file='posinp.xyz',status='unknown')
-        read(9,*) nat,units
-        if (nat.gt.natx) stop 'increase natx'
-        read(9,*) line2
+   write(*,*) 'reading atomic positions from file posinp'
+   open(unit=9,file='posinp.xyz',status='unknown')
+   read(9,*) nat,units
+   if (nat.gt.natx) stop 'increase natx'
+   read(9,*) line2
 
 ! put center of mass at origin
-        pos_s(1)=0.d0
-        pos_s(2)=0.d0
-        pos_s(3)=0.d0
-        do iat=1,nat
-        read(9,'(a100)')line
+   pos_s(1)=0.d0
+   pos_s(2)=0.d0
+   pos_s(3)=0.d0
+   do iat=1,nat
+      read(9,'(a100)')line
 
-        read(line,*,iostat=ierror) atomname(iat),pos(1,iat),pos(2,iat),pos(3,iat) ,extra(iat)
-        if (ierror .ne. 0) then
-        read(line,*,iostat=ierror) atomname(iat),pos(1,iat),pos(2,iat),pos(3,iat) 
-        extra(iat)='  '
-        end if
+      read(line,*,iostat=ierror) atomname(iat),pos(1,iat),pos(2,iat),pos(3,iat) ,extra(iat)
+      if (ierror .ne. 0) then
+         read(line,*,iostat=ierror) atomname(iat),pos(1,iat),pos(2,iat),pos(3,iat) 
+         extra(iat)='  '
+      end if
 
-             pos_s(1)=pos_s(1)+pos(1,iat)
-             pos_s(2)=pos_s(2)+pos(2,iat)
-             pos_s(3)=pos_s(3)+pos(3,iat)
-        enddo
-        close(9)
-        pos_s(1)=pos_s(1)/nat
-        pos_s(2)=pos_s(2)/nat
-        pos_s(3)=pos_s(3)/nat  
-        do iat=1,nat
-             pos(1,iat)=pos(1,iat)-pos_s(1)
-             pos(2,iat)=pos(2,iat)-pos_s(2)        
-             pos(3,iat)=pos(3,iat)-pos_s(3)
-        enddo
+      pos_s(1)=pos_s(1)+pos(1,iat)
+      pos_s(2)=pos_s(2)+pos(2,iat)
+      pos_s(3)=pos_s(3)+pos(3,iat)
+   end do
+   close(unit=9)
+   pos_s(1)=pos_s(1)/nat
+   pos_s(2)=pos_s(2)/nat
+   pos_s(3)=pos_s(3)/nat  
+   do iat=1,nat
+      pos(1,iat)=pos(1,iat)-pos_s(1)
+      pos(2,iat)=pos(2,iat)-pos_s(2)        
+      pos(3,iat)=pos(3,iat)-pos_s(3)
+   end do
 
-        write(*,*) 'rotations in degrees (0<= Phi <=360):'
-        write(*,*)
-        write(*,*) 'around z axis / in xy-plane:'
-        read(*,*) phi_1
-        phi_1=2.d0*PI*phi_1/360.d0
-        write(*,*) 'around y axis / in xz-plane:'
-        read(*,*) phi_2
-        phi_2=2.d0*PI*phi_2/360.d0
-        write(*,*) 'around x axis / in yz-plane:'
-        read(*,*) phi_3
-        phi_3=2.d0*PI*phi_3/360.d0
+   write(*,*) 'rotations in degrees (0<= Phi <=360):'
+   write(*,*)
+   write(*,*) 'around z axis / in xy-plane:'
+   read(*,*) phi_1
+   phi_1=2.d0*PI*phi_1/360.d0
+   write(*,*) 'around y axis / in xz-plane:'
+   read(*,*) phi_2
+   phi_2=2.d0*PI*phi_2/360.d0
+   write(*,*) 'around x axis / in yz-plane:'
+   read(*,*) phi_3
+   phi_3=2.d0*PI*phi_3/360.d0
 
-        do iat=1,nat
-             
-             t1=cos(phi_1)*pos(1,iat)+sin(phi_1)*pos(2,iat)
-             t2=-sin(phi_1)*pos(1,iat)+cos(phi_1)*pos(2,iat)
-             pos(1,iat)=t1
-             pos(2,iat)=t2
+   do iat=1,nat
+      t1=cos(phi_1)*pos(1,iat)+sin(phi_1)*pos(2,iat)
+      t2=-sin(phi_1)*pos(1,iat)+cos(phi_1)*pos(2,iat)
+      pos(1,iat)=t1
+      pos(2,iat)=t2
 
-             t1=cos(phi_2)*pos(1,iat)+sin(phi_2)*pos(3,iat)
-             t3=-sin(phi_2)*pos(1,iat)+cos(phi_2)*pos(3,iat)
-             pos(1,iat)=t1
-             pos(3,iat)=t3
+      t1=cos(phi_2)*pos(1,iat)+sin(phi_2)*pos(3,iat)
+      t3=-sin(phi_2)*pos(1,iat)+cos(phi_2)*pos(3,iat)
+      pos(1,iat)=t1
+      pos(3,iat)=t3
 
-             t2=cos(phi_3)*pos(2,iat)+sin(phi_3)*pos(3,iat)
-             t3=-sin(phi_3)*pos(2,iat)+cos(phi_3)*pos(3,iat)
-             pos(2,iat)=t2
-             pos(3,iat)=t3
-
-             
-        enddo
+      t2=cos(phi_3)*pos(2,iat)+sin(phi_3)*pos(3,iat)
+      t3=-sin(phi_3)*pos(2,iat)+cos(phi_3)*pos(3,iat)
+      pos(2,iat)=t2
+      pos(3,iat)=t3
+   end do
 
 ! shift back center of mass to original position
-        do iat=1,nat
-             pos(1,iat)=pos(1,iat)+pos_s(1)
-             pos(2,iat)=pos(2,iat)+pos_s(2)
-             pos(3,iat)=pos(3,iat)+pos_s(3)
-        enddo
-      
-        write(*,*) 'writing atomic positions to file rot_posinp'
-        open(unit=9,file='rotate_posinp.xyz',status='unknown')
-        write(9,*) nat, units
-        write(9,'(a100)') line2
-        do iat=1,nat
-        write(9,'(a5,3x,3(1x,e17.10),4x,a)') atomname(iat),pos(1,iat),pos(2,iat),pos(3,iat),extra(iat)
-        enddo
-        close(9)
-        end
+   do iat=1,nat
+      pos(1,iat)=pos(1,iat)+pos_s(1)
+      pos(2,iat)=pos(2,iat)+pos_s(2)
+      pos(3,iat)=pos(3,iat)+pos_s(3)
+   end do
 
+   write(*,*) 'writing atomic positions to file rot_posinp'
+   open(unit=9,file='rotate_posinp.xyz',status='unknown')
+   write(9,*) nat, units
+   write(9,'(a100)') line2
+   do iat=1,nat
+      write(9,'(a5,3x,3(1x,e17.10),4x,a)') atomname(iat),pos(1,iat),pos(2,iat),pos(3,iat),extra(iat)
+   end do
+   close(unit=9)
 
+end program rotate_posinp
+!!

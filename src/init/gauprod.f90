@@ -814,7 +814,7 @@ function gauinth(a,l)
 end function gauinth
 
 !calculates a dot product between two differents gaussians times spherical harmonics
-!vaild only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
+!valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
 !to be rearranged when only some of them is zero
 subroutine gprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
   use module_base
