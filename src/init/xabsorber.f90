@@ -3130,10 +3130,10 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   integer, intent(out) :: n1i,n2i,n3i
   real(gp) alat1, alat2, alat3, dum, dum1
   ! real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
-  real(dp), pointer :: rho(:)
+  real(gp), pointer :: rho(:)
   !local variables
   integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,j1,j2,j3
-  real(dp) :: value
+  real(gp) :: value
   character(len=*), parameter :: subname='read_potfile4b2B'
 
   open(unit=22,file=filename,status='unknown')
@@ -3150,13 +3150,12 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   nl2=1
 
 
+  print *, " allocation for rho for  n1i,n2i,n3i ",  n1i,n2i,n3i
+
   allocate( rho( n1i*n2i*n3i ) , stat=i_stat )
   call memocc(i_stat,rho,'rho',subname)
 
-
-  
-  call razero(max(n1i*n2i*n3i,1),rho)
-
+  print *, " going to read all pot points " 
   do i3=0,n3i-1
      do i2=0,n2i-1
         do i1=0,n1i-1
@@ -3166,6 +3165,7 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
         end do
      end do
   end do
+  print *, " closing file  " 
   close(22)
   
 end subroutine read_potfile4b2B
