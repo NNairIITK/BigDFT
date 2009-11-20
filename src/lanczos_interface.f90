@@ -611,13 +611,12 @@ end subroutine EP_initialize_start
        call lowpass_projector(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,ha%lr%wfd%nvctr_c, Qvect_tmp )
     endif
 
-    if(  ha%iproc ==0 ) print *, " calling  hamiltonian "
     call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
          ha%rxyz,ha%cpmult,ha%fpmult,ha%radii_cf,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
          ha%ndimpot, &
          ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,ha%epot_sum,ha%eproj_sum,1,ha%GPU)
-    if(  ha%iproc ==0 ) print *, " done "
+    if(  ha%iproc ==0 ) write(*,*)" done "
 
 
 

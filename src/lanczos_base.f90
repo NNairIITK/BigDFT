@@ -693,25 +693,30 @@ contains
     real(gp) cheb_shift, fact_cheb
     integer Nu
 
-    real(gp), pointer :: Xs(:), res(:),Pi
-    complex(16), pointer :: alphas(:), expn(:)
+    real(gp), pointer :: Xs(:), res(:), cfftreal(:), cfftimag(:)
+    complex(kind=8), pointer :: alphas(:), expn(:)
+    complex(kind=8) ctemp
 
     integer Nbar
     integer i,n
-    
+    real(gp) Pi
     character(200)  filename, saux
-  
-    write(saux,'(i5)') Nu
-    saux=trim(saux)
-    filename="cheb_spectra_" // saux
+    real(gp) fact
 
-    Pi=acos(-1.0_gp)
 
+
+    write(filename,'(a,i0)') "cheb_spectra_" , Nu
+    print *, " writing spectra to " , filename 
+
+    Pi=acos(-1.0)
+    print *, Pi
     Nbar =1
     do while(Nbar<Nu) 
        Nbar=Nbar*2
     enddo
     Nbar=Nbar*2   
+
+
     
     allocate(Xs(0:Nbar-1) , stat=i_stat)
     call memocc(i_stat,Xs,'Xs',subname)
@@ -723,29 +728,63 @@ contains
     !! call memocc(i_stat,alphas,'alphas',subname)
     
     allocate(expn(0:Nbar-1) , stat=i_stat)
-    !! call memocc(i_stat,expn,'expn',subname)
+
+
+    allocate(cfftreal(0:2*Nbar-1) , stat=i_stat)
+    call memocc(i_stat,cfftreal,'cfftreal',subname)
+  
+    allocate(cfftimag(0:2*Nbar-1) , stat=i_stat)
+    call memocc(i_stat,cfftimag,'cfftimag',subname)
     
+
+
+    cfftreal=0
+    cfftimag=0
     do i=0,Nbar-1
        Xs(i)=cos( (Nbar-1 - i +0.5_gp)*Pi/Nbar)
-       res(i)=LB_alpha(0)
-       alphas(i) = exp(   ((0.0_gp,1.0_gp) * ( Nbar-1 - i +0.5_gp)) *Pi/Nbar     ) 
-       expn(i)=(1.0_gp,0)
+!!$       res(i)=LB_alpha(0)
+!!$       alphas(i) = exp(   ((0.0_gp,1.0_gp) * ( Nbar-1 - i +0.5_gp)) *Pi/Nbar     ) 
+!!$       expn(i)=(1.0_gp,0)
+!!$
+
+!!$
+!!$       exp(   ((0.0_gp,1.0_gp) * (  - i )) *Pi/Nbar     ) 
+!!$       exp(   ((0.0_gp,1.0_gp) * ( Nbar-1  +0.5_gp)) *Pi/Nbar     ) = -exp(   ((0.0_gp,1.0_gp) * ( -0.5_gp)) *Pi/Nbar     )
+       
+       if(i<Nu) then
+          fact = 1.0/(Nu+1)*( (Nu-i +1.0)*cos(pi* i /(Nu+1.0))+ &
+               sin(pi* i /(Nu+1.0))* cos(pi/(Nu+1))/sin(pi/(Nu+1))    )
+          ctemp= LB_alpha(i)*fact*exp(   ((0.0_gp,1.0_gp) * ( Nbar -0.5_gp)) *i*Pi/Nbar     )
+          cfftreal(i)=REAL(ctemp)
+          cfftimag(i)=AIMAG(ctemp)
+       else
+          cfftreal(i)=0
+          cfftimag(i)=0
+       endif
     enddo
+
+
+    call FFT842(0, 2*Nbar, cfftreal(0:), cfftimag(0:) )
+    cfftreal=cfftreal-LB_alpha(0)*0.5
+
+!!$    do n=1,Nu-1
+!!$       expn(:)=expn(:)*alphas(:)
+!!$       fact = 1.0/(Nu+1)*( (Nu-n +1.0)*cos(pi* n /(Nu+1))+ &
+!!$       sin(pi* n /(Nu+1.0))* cos(pi/(Nu+1))/sin(pi/(Nu+1))    )
+!!$       res(:)=res(:)+2*REAL(expn(:))*LB_alpha(n)*fact
+!!$    enddo
+
+    print *, " done " 
     
-    do n=1,Nu-1
-       expn(:)=expn(:)*alphas(:)
-       res(:)=res(:)+2*REAL(expn(:))*LB_alpha(n)
-    enddo
-    
-    res =res/Pi/sqrt(1-Xs*Xs)
+!!$    res =res/Pi/sqrt(1-Xs*Xs)
+    cfftreal =2*cfftreal/Pi/sqrt(1-Xs*Xs)
     
     
     open(unit=22,file=filename)
     do i=0, Nbar-1
-       write(22,*) Xs(i), res(i)
+       write(22,*) Xs(i) / fact_cheb + cheb_shift , cfftreal(i)
     enddo
     close(unit=22)
-    
 
     i_all=-product(shape(Xs))*kind(Xs)
     deallocate(Xs)
@@ -762,7 +801,18 @@ contains
     i_all=-product(shape(expn))*kind(expn)
     deallocate(expn)
     !! call memocc(i_stat,i_all,'expn',subname)
+
+    i_all=-product(shape(cfftreal))*kind(cfftreal)
+    deallocate(cfftreal)
+    call memocc(i_stat,i_all,'cfftreal',subname)
     
+    i_all=-product(shape(cfftimag))*kind(cfftimag)
+    deallocate(cfftimag)
+    call memocc(i_stat,i_all,'cfftimag',subname)
+    
+
+
+
   end subroutine CalcolaSpettroChebychev
   
   
@@ -865,6 +915,294 @@ contains
     enddo
     
   end subroutine LB_passeggia_Chebychev
+
+
+
+
+!
+!-----------------------------------------------------------------------
+! SUBROUTINE:  FFT842
+! FAST FOURIER TRANSFORM FOR N=2**M
+! COMPLEX INPUT
+!-----------------------------------------------------------------------
+!
+      SUBROUTINE FFT842(IN, N, X, Y)
+!
+! THIS PROGRAM REPLACES THE VECTOR Z=X+IY BY ITS  FINITE
+! DISCRETE, COMPLEX FOURIER TRANSFORM IF IN=0.  THE INVERSE TRANSFORM
+! IS CALCULATED FOR IN=1.  IT PERFORMS AS MANY BASE
+! 8 ITERATIONS AS POSSIBLE AND THEN FINISHES WITH A BASE 4 ITERATION
+! OR A BASE 2 ITERATION IF NEEDED.
+!
+! THE SUBROUTINE IS CALLED AS SUBROUTINE FFT842 (IN,N,X,Y).
+! THE INTEGER N (A POWER OF 2), THE N REAL LOCATION ARRAY X, AND
+! THE N REAL LOCATION ARRAY Y MUST BE SUPPLIED TO THE SUBROUTINE.
+!
+
+      IMPLICIT REAL*8(A-H, O-Z), INTEGER(I-N)
+
+      DIMENSION X(*), Y(*), L(15)
+      COMMON /CON2/ PI2, P7
+      EQUIVALENCE (L15,L(1)), (L14,L(2)), (L13,L(3)), (L12,L(4)),&
+         (L11,L(5)), (L10,L(6)), (L9,L(7)), (L8,L(8)), (L7,L(9)),&
+         (L6,L(10)), (L5,L(11)), (L4,L(12)), (L3,L(13)), (L2,L(14)),&
+         (L1,L(15))
+
+      PI2 = 8.*ATAN(1.)
+      P7 = 1./SQRT(2.)
+      DO 10 I=1,15
+        M = I
+        NT = 2**I
+        IF (N.EQ.NT) GO TO 20
+  10  CONTINUE
+      WRITE (*,9999)
+9999  FORMAT (35H N IS NOT A POWER OF TWO FOR FFT842)
+      STOP
+  20  N2POW = M
+      NTHPO = N
+      FN = NTHPO
+      IF (IN.EQ.1) GO TO 40
+      DO 30 I=1,NTHPO
+        Y(I) = -Y(I)
+  30  CONTINUE
+  40  N8POW = N2POW/3
+      IF (N8POW.EQ.0) GO TO 60
+!
+! RADIX 8 PASSES,IF ANY.
+!
+      DO 50 IPASS=1,N8POW
+        NXTLT = 2**(N2POW-3*IPASS)
+        LENGT = 8*NXTLT
+        CALL R8TX(NXTLT, NTHPO, LENGT, X(1), X(NXTLT+1), X(2*NXTLT+1),&
+           X(3*NXTLT+1), X(4*NXTLT+1), X(5*NXTLT+1), X(6*NXTLT+1),&
+           X(7*NXTLT+1), Y(1), Y(NXTLT+1), Y(2*NXTLT+1), Y(3*NXTLT+1),&
+           Y(4*NXTLT+1), Y(5*NXTLT+1), Y(6*NXTLT+1), Y(7*NXTLT+1))
+  50  CONTINUE
+!
+! IS THERE A FOUR FACTOR LEFT
+!
+  60  IF (N2POW-3*N8POW-1) 90, 70, 80
+!
+! GO THROUGH THE BASE 2 ITERATION
+!
+!
+  70  CALL R2TX(NTHPO, X(1), X(2), Y(1), Y(2))
+      GO TO 90
+!
+! GO THROUGH THE BASE 4 ITERATION
+!
+  80  CALL R4TX(NTHPO, X(1), X(2), X(3), X(4), Y(1), Y(2), Y(3), Y(4))
+!
+  90  DO 110 J=1,15
+        L(J) = 1
+        IF (J-N2POW) 100, 100, 110
+ 100    L(J) = 2**(N2POW+1-J)
+ 110  CONTINUE
+      IJ = 1
+      DO 130 J1=1,L1
+      DO 130 J2=J1,L2,L1
+      DO 130 J3=J2,L3,L2
+      DO 130 J4=J3,L4,L3
+      DO 130 J5=J4,L5,L4
+      DO 130 J6=J5,L6,L5
+      DO 130 J7=J6,L7,L6
+      DO 130 J8=J7,L8,L7
+      DO 130 J9=J8,L9,L8
+      DO 130 J10=J9,L10,L9
+      DO 130 J11=J10,L11,L10
+      DO 130 J12=J11,L12,L11
+      DO 130 J13=J12,L13,L12
+      DO 130 J14=J13,L14,L13
+      DO 130 JI=J14,L15,L14
+        IF (IJ-JI) 120, 130, 130
+ 120    R = X(IJ)
+        X(IJ) = X(JI)
+        X(JI) = R
+        FI = Y(IJ)
+        Y(IJ) = Y(JI)
+        Y(JI) = FI
+ 130    IJ = IJ + 1
+      IF (IN.EQ.1) GO TO 150
+      DO 140 I=1,NTHPO
+        Y(I) = -Y(I)
+ 140  CONTINUE
+      GO TO 170
+ 150  DO 160 I=1,NTHPO
+        X(I) = X(I)/FN
+        Y(I) = Y(I)/FN
+ 160  CONTINUE
+ 170  RETURN
+     END SUBROUTINE FFT842
+
+
+
+
+
+!
+!-----------------------------------------------------------------------
+! SUBROUTINE:  R2TX
+! RADIX 2 ITERATION SUBROUTINE
+!-----------------------------------------------------------------------
+!
+      SUBROUTINE R2TX(NTHPO, CR0, CR1, CI0, CI1)
+      IMPLICIT REAL*8(A-H, O-Z), INTEGER(I-N)
+      DIMENSION CR0(2), CR1(2), CI0(2), CI1(2)
+      DO 10 K=1,NTHPO,2
+        R1 = CR0(K) + CR1(K)
+        CR1(K) = CR0(K) - CR1(K)
+        CR0(K) = R1
+        FI1 = CI0(K) + CI1(K)
+        CI1(K) = CI0(K) - CI1(K)
+        CI0(K) = FI1
+  10  CONTINUE
+      RETURN
+      END  SUBROUTINE R2TX
+!
+!-----------------------------------------------------------------------
+! SUBROUTINE:  R4TX
+! RADIX 4 ITERATION SUBROUTINE
+!-----------------------------------------------------------------------
+!
+      SUBROUTINE R4TX(NTHPO, CR0, CR1, CR2, CR3, CI0, CI1, CI2, CI3)
+      IMPLICIT REAL*8(A-H, O-Z), INTEGER(I-N)
+      DIMENSION CR0(2), CR1(2), CR2(2), CR3(2), CI0(2), CI1(2), CI2(2),&
+         CI3(2)
+      DO 10 K=1,NTHPO,4
+        R1 = CR0(K) + CR2(K)
+        R2 = CR0(K) - CR2(K)
+        R3 = CR1(K) + CR3(K)
+        R4 = CR1(K) - CR3(K)
+        FI1 = CI0(K) + CI2(K)
+        FI2 = CI0(K) - CI2(K)
+        FI3 = CI1(K) + CI3(K)
+        FI4 = CI1(K) - CI3(K)
+        CR0(K) = R1 + R3
+        CI0(K) = FI1 + FI3
+        CR1(K) = R1 - R3
+        CI1(K) = FI1 - FI3
+        CR2(K) = R2 - FI4
+        CI2(K) = FI2 + R4
+        CR3(K) = R2 + FI4
+        CI3(K) = FI2 - R4
+  10  CONTINUE
+      RETURN
+      END  SUBROUTINE R4TX
+!
+!-----------------------------------------------------------------------
+! SUBROUTINE:  R8TX
+! RADIX 8 ITERATION SUBROUTINE
+!-----------------------------------------------------------------------
+!
+      SUBROUTINE R8TX(NXTLT, NTHPO, LENGT, CR0, CR1, CR2, CR3, CR4,&
+         CR5, CR6, CR7, CI0, CI1, CI2, CI3, CI4, CI5, CI6, CI7)
+      IMPLICIT REAL*8(A-H, O-Z), INTEGER(I-N)
+      DIMENSION CR0(2), CR1(2), CR2(2), CR3(2), CR4(2), CR5(2), CR6(2),&
+         CR7(2), CI1(2), CI2(2), CI3(2), CI4(2), CI5(2), CI6(2),&
+         CI7(2), CI0(2)
+      COMMON /CON2/ PI2, P7
+!
+      SCALE = PI2/FLOAT(LENGT)
+      DO 30 J=1,NXTLT
+        ARG = FLOAT(J-1)*SCALE
+        C1 = COS(ARG)
+        S1 = SIN(ARG)
+        C2 = C1**2 - S1**2
+        S2 = C1*S1 + C1*S1
+        C3 = C1*C2 - S1*S2
+        S3 = C2*S1 + S2*C1
+        C4 = C2**2 - S2**2
+        S4 = C2*S2 + C2*S2
+        C5 = C2*C3 - S2*S3
+        S5 = C3*S2 + S3*C2
+        C6 = C3**2 - S3**2
+        S6 = C3*S3 + C3*S3
+        C7 = C3*C4 - S3*S4
+        S7 = C4*S3 + S4*C3
+        DO 20 K=J,NTHPO,LENGT
+          AR0 = CR0(K) + CR4(K)
+          AR1 = CR1(K) + CR5(K)
+          AR2 = CR2(K) + CR6(K)
+          AR3 = CR3(K) + CR7(K)
+          AR4 = CR0(K) - CR4(K)
+          AR5 = CR1(K) - CR5(K)
+          AR6 = CR2(K) - CR6(K)
+          AR7 = CR3(K) - CR7(K)
+          AI0 = CI0(K) + CI4(K)
+          AI1 = CI1(K) + CI5(K)
+          AI2 = CI2(K) + CI6(K)
+          AI3 = CI3(K) + CI7(K)
+          AI4 = CI0(K) - CI4(K)
+          AI5 = CI1(K) - CI5(K)
+          AI6 = CI2(K) - CI6(K)
+          AI7 = CI3(K) - CI7(K)
+          BR0 = AR0 + AR2
+          BR1 = AR1 + AR3
+          BR2 = AR0 - AR2
+          BR3 = AR1 - AR3
+          BR4 = AR4 - AI6
+          BR5 = AR5 - AI7
+          BR6 = AR4 + AI6
+          BR7 = AR5 + AI7
+          BI0 = AI0 + AI2
+          BI1 = AI1 + AI3
+          BI2 = AI0 - AI2
+          BI3 = AI1 - AI3
+          BI4 = AI4 + AR6
+          BI5 = AI5 + AR7
+          BI6 = AI4 - AR6
+          BI7 = AI5 - AR7
+          CR0(K) = BR0 + BR1
+          CI0(K) = BI0 + BI1
+          IF (J.LE.1) GO TO 10
+          CR1(K) = C4*(BR0-BR1) - S4*(BI0-BI1)
+          CI1(K) = C4*(BI0-BI1) + S4*(BR0-BR1)
+          CR2(K) = C2*(BR2-BI3) - S2*(BI2+BR3)
+          CI2(K) = C2*(BI2+BR3) + S2*(BR2-BI3)
+          CR3(K) = C6*(BR2+BI3) - S6*(BI2-BR3)
+          CI3(K) = C6*(BI2-BR3) + S6*(BR2+BI3)
+          TR = P7*(BR5-BI5)
+          TI = P7*(BR5+BI5)
+          CR4(K) = C1*(BR4+TR) - S1*(BI4+TI)
+          CI4(K) = C1*(BI4+TI) + S1*(BR4+TR)
+          CR5(K) = C5*(BR4-TR) - S5*(BI4-TI)
+          CI5(K) = C5*(BI4-TI) + S5*(BR4-TR)
+          TR = -P7*(BR7+BI7)
+          TI = P7*(BR7-BI7)
+          CR6(K) = C3*(BR6+TR) - S3*(BI6+TI)
+          CI6(K) = C3*(BI6+TI) + S3*(BR6+TR)
+          CR7(K) = C7*(BR6-TR) - S7*(BI6-TI)
+          CI7(K) = C7*(BI6-TI) + S7*(BR6-TR)
+          GO TO 20
+  10      CR1(K) = BR0 - BR1
+          CI1(K) = BI0 - BI1
+          CR2(K) = BR2 - BI3
+          CI2(K) = BI2 + BR3
+          CR3(K) = BR2 + BI3
+          CI3(K) = BI2 - BR3
+          TR = P7*(BR5-BI5)
+          TI = P7*(BR5+BI5)
+          CR4(K) = BR4 + TR
+          CI4(K) = BI4 + TI
+          CR5(K) = BR4 - TR
+          CI5(K) = BI4 - TI
+          TR = -P7*(BR7+BI7)
+          TI = P7*(BR7-BI7)
+          CR6(K) = BR6 + TR
+          CI6(K) = BI6 + TI
+          CR7(K) = BR6 - TR
+          CI7(K) = BI6 - TI
+  20    CONTINUE
+  30  CONTINUE
+      RETURN
+      END SUBROUTINE R8TX
+
+
+
+
+
+
+
+
   
 end module lanczos_base
 

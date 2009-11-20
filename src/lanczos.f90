@@ -75,9 +75,10 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 !!!  
   !call allocate_comms(nproc,ha%orbs,ha%comms,subname)
      ! write(filename,'(A,A,A)') "gproje_", at%atomnames(at%iatype(  in_iat_absorber )) , "_1s_dipole"
-     write(filename,'(A,A,A,I1)') "gproje_", at%atomnames(at%iatype(  in_iat_absorber )) , "_1s_",  in%L_absorber
+     write(filename,'(A,A,A,I1)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
 
-     inquire(FILE=filename,EXIST=projeexists)
+     inquire(FILE=trim(filename),EXIST=projeexists)
+
      if( projeexists .and. .not. in%abscalc_eqdiff   ) then
 
 
@@ -154,7 +155,7 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   call EP_memorizza_stato(Gabsorber) 
      
   if(.true.) then
-     LB_nsteps =2000
+     LB_nsteps =in%nsteps
      call LB_allocate_for_lanczos( )
      call EP_allocate_for_eigenprob(LB_nsteps)
      call EP_make_dummy_vectors(10)
@@ -284,9 +285,11 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
  
 
-  write(filename,'(A,A,A,I1)') "gproje_", at%atomnames(at%iatype(  in_iat_absorber )) , "_1s_",  in%L_absorber
+  write(filename,'(A,A,A,I1)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
   
-  inquire(FILE=filename,EXIST=projeexists)
+
+  inquire(FILE=trim(filename),EXIST=projeexists)
+
   if( projeexists .and. .not. in%abscalc_eqdiff   ) then
      
      if(iproc==0) then
@@ -296,7 +299,6 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
         print *," from file " , filename
      endif
      
-     
      nullify( dum_coeffs  ) 
      
      call read_gaussian_information(0 ,1 ,ha%orbs,Gabsorber,dum_coeffs , filename, .true. )
@@ -304,7 +306,6 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      Gabsorber%rxyz(:,1)=rxyz(:, in_iat_absorber )
      
      Gabs_coeffs(:)=in%Gabs_coeffs(:)
-     
   else
      if(iproc==0) then
         print *, "calculating  projection on pseudofunctions"
@@ -326,7 +327,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      if( iproc.eq.0) then
         print *,"writing them on file " , filename
-        call write_gaussian_information( 0 ,1 ,ha%orbs,Gabsorber,dum_coeffs ,filename)
+        call write_gaussian_information( 0 ,1 ,ha%orbs,Gabsorber,dum_coeffs ,trim(filename))
      endif
   endif
   
@@ -409,6 +410,8 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      eval_max = 4.0*Pi*Pi*(1.0/hx/hx + 1.0/hy/hy + 1.0/hz/hz  )/2.0*1.01
   endif
 
+  print *, "  eval_min,   eval_max     " ,eval_min,   eval_max 
+
   cheb_shift=0.5*(eval_min+ eval_max) 
   fact_cheb = (2-0.0001)/(eval_max-eval_min)
      
@@ -417,7 +420,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   if(.true.) then
      
      call EP_memorizza_stato(Gabsorber) ! se uno stato e' memorizzato EP_initialize_start usa quello, se no random
-     LB_nsteps =2000
+     LB_nsteps = in%nsteps
      
      call LB_allocate_for_chebychev( )
      call EP_allocate_for_eigenprob(3) ! invece di nsteps, giusto qualche vettore per fare i calcoli
@@ -433,8 +436,11 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      if(ha%iproc==0) then
         print *, "coefficients from Chebychev "
         print *,  2*LB_nsteps, cheb_shift,  fact_cheb
+        print *,"... " 
         do i=0, 2*LB_nsteps-1
-           print *,  LB_alpha(i)
+           if(i>2*LB_nsteps-1 -10) then
+              print *,  LB_alpha(i)
+           endif
         enddo
         close(unit=22)
      endif
@@ -445,10 +451,13 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   call EP_free()
 
-  if (GPUconv) then
-     call free_gpu(GPU,ha%orbs%norbp)
-  end if
 
+!!$ this free is already executed by bigdft
+!!$
+!!$  if (GPUconv) then
+!!$     call free_gpu(GPU,ha%orbs%norbp)
+!!$  end if
+!!$
 
   call deallocate_orbs(ha%orbs,subname)
 

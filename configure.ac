@@ -1,4 +1,4 @@
-dnl Process this file with autoconf to produce a configure script.
+
 
 AC_PREREQ(2.59)
 
@@ -458,6 +458,7 @@ tests/H2-freq/Makefile
 tests/NEB/Makefile
 tests/NEB/input
 tests/NEB/NEB_include.sh
+tests/XabsCheb/Makefile
 ])
 if test x"$ac_build_libxc" = x"yes" ; then
   # Call libXC ./configure script recursively.

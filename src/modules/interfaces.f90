@@ -797,44 +797,55 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 end subroutine chebychev
 
-     subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
-       use module_base
-       use module_types
-       implicit none
-       character(len=10) :: comment
-       character(len=11) :: orbname
-       type(atoms_data), intent(in) :: at
-       real(gp), intent(in) :: hx,hy,hz
-       real(gp), dimension(3,at%nat), intent(in) :: rxyz
-       type(locreg_descriptors), intent(in) :: lr
-       real(wp), dimension(*) :: psi
-     end subroutine plot_wf_cube
+subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
+  use module_base
+  use module_types
+  implicit none
+  character(len=10) :: comment
+  character(len=11) :: orbname
+  type(atoms_data), intent(in) :: at
+  real(gp), intent(in) :: hx,hy,hz
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(*) :: psi
+end subroutine plot_wf_cube
 
-     subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
-       implicit none
-       integer, intent(in) :: nzatom,nvalelec
-       character(len=2), intent(out) :: symbol
-       real(kind=8), intent(out) :: rcov,rprb,ehomo,amu
-       integer, parameter :: nmax=6,lmax=3
-       integer, intent(out) :: neleconf(nmax,0:lmax)
-       integer, intent(out) :: nsccode,mxpl,mxchg
-     end subroutine eleconf
-     
-     subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alpha,&
-          hpsit,psidst,hpsidst,psit)
-       use module_base
-       use module_types
-       implicit none
-       integer, intent(in) :: iproc,nproc,ids,mids,idsx
-       real(gp), intent(in) :: energy,energy_old
-       type(orbitals_data), intent(in) :: orbs
-       type(communications_arrays), intent(in) :: comms
-       real(gp), intent(inout) :: alpha
-       real(wp), dimension(:), pointer :: psit,hpsit,psidst,hpsidst
-       real(wp), dimension(:,:,:), pointer :: ads
-     end subroutine psimix
-     
-  end interface
+subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
+  implicit none
+  integer, intent(in) :: nzatom,nvalelec
+  character(len=2), intent(out) :: symbol
+  real(kind=8), intent(out) :: rcov,rprb,ehomo,amu
+  integer, parameter :: nmax=6,lmax=3
+  integer, intent(out) :: neleconf(nmax,0:lmax)
+  integer, intent(out) :: nsccode,mxpl,mxchg
+end subroutine eleconf
+
+subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alpha,&
+     hpsit,psidst,hpsidst,psit)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc,ids,mids,idsx
+  real(gp), intent(in) :: energy,energy_old
+  type(orbitals_data), intent(in) :: orbs
+  type(communications_arrays), intent(in) :: comms
+  real(gp), intent(inout) :: alpha
+  real(wp), dimension(:), pointer :: psit,hpsit,psidst,hpsidst
+  real(wp), dimension(:,:,:), pointer :: ads
+end subroutine psimix
+
+
+subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
+  use module_base
+  implicit none
+  character(len=*), intent(in) :: filename
+  integer, intent(out) :: n1i,n2i,n3i
+  real(gp) alat1, alat2, alat3, dum, dum1
+  ! real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
+  real(gp), pointer :: rho(:)
+end subroutine read_potfile4b2B
+
+end interface
 
 end module module_interfaces
 !!***
