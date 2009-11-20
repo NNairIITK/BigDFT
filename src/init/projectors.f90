@@ -1,17 +1,20 @@
 subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
-     logrid,at,nlpspd)
+     logrid,at,orbs,nlpspd)
   use module_base
   use module_types
   implicit none
-  type(atoms_data), intent(in) :: at
-  type(nonlocal_psp_descriptors), intent(out) :: nlpspd
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
+  type(nonlocal_psp_descriptors), intent(out) :: nlpspd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
   !local variables
+  logical :: cmplxprojs
   integer :: istart,ityp,natyp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
+  integer :: iorb,ikpt,nkptsproj
   real(gp) :: maxfullvol,totfullvol,totzerovol,zerovol,fullvol,maxrad,maxzerovol,rad
   
   if (iproc.eq.0) then
@@ -149,8 +152,37 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
      end if
   end if
 
+  !here is the point in which the projector strategy should be decided
+  !DistProjApply shoud never change after this point
+
   !number of elements of the projectors
   if (.not. DistProjApply) nlpspd%nprojel=istart-1
+
+  !modify nprojel in the case in which at one of the k-points
+  !contained is not zero
+
+  cmplxprojs=.false.
+  do iorb=1,orbs%norbp
+     ikpt=orbs%iokpt(iorb)
+     cmplxprojs = (orbs%kpts(1,ikpt)**2+orbs%kpts(1,ikpt)**2+orbs%kpts(1,ikpt)**2 >0 .and.&
+          orbs%nspinor > 1)
+  end do
+
+  !then calculate the number of k-points per processor
+  !(assume always one k-point at a time in the on-the-fly stategy)
+  if (DistProjApply) then
+     nkptsproj=1
+  else
+     nkptsproj=max(max((orbs%isorb+orbs%norbp-1),0)/orbs%norb +1 - orbs%isorb/orbs%norb,1)
+  end if
+
+  nlpspd%nprojel=nkptsproj*nlpspd%nprojel
+  
+  !if the projectors are complex a real and an imaginary part should exist
+  !NOTE: for the moment we double this for each projector, but there is no need to
+  !      do this for real k-points
+  if (cmplxprojs) nlpspd%nprojel=2*nlpspd%nprojel
+
   if (iproc.eq.0) then
      if (DistProjApply) then
         write(*,'(44x,a)') '------   On-the-fly projectors application'
@@ -166,30 +198,21 @@ end subroutine localize_projectors
 
 
 !fill the proj array with the PSP projectors or their derivatives, following idir value
-subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
-     nlpspd,proj,idir)
+subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
   use module_base
   use module_types
   implicit none
-  type(atoms_data), intent(in) :: at
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   integer, intent(in) :: iproc,n1,n2,n3,idir
-  real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
+  real(gp), intent(in) :: hx,hy,hz
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
   !local variables
   integer, parameter :: nterm_max=20 !if GTH nterm_max=4
-  integer :: istart_c,istart_f,mvctr_c,mvctr_f,mbvctr_c,mbvctr_f
-  !integer :: nl1_c,nl1_f,nl2_c,nl2_f,nl3_c,nl3_f,nu1_c,nu1_f,nu2_c,nu2_f,nu3_c,nu3_f
-  integer :: iat,i,l,m,iproj,ityp,nterm,nwarnings,iterm,mbseg_c,mbseg_f,jseg_c
-  real(gp) :: fpi,factor,gau_a,rx,ry,rz
-  real(dp) :: scpr
-  integer, dimension(3) :: nterm_arr
-  integer, dimension(nterm_max) :: lx,ly,lz
-  integer, dimension(3,nterm_max,3) :: lxyz_arr
-  real(gp), dimension(nterm_max) :: factors
-  real(gp), dimension(nterm_max,3) :: fac_arr
+  integer :: istart_c
+  integer :: iat,iproj,nwarnings
 
   if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) write(*,'(1x,a)',advance='no') &
        'Calculating wavelets expansion of projectors...'
@@ -200,31 +223,9 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
   iproj=0
 
   do iat=1,at%nat
-     ityp=at%iatype(iat)
-     mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-     mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
-
-     mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-     mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-     jseg_c=nlpspd%nseg_p(2*iat-2)+1
-
-     !decide the loop bounds
-     do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
-        do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
-           if (at%psppar(l,i,ityp) /= 0.0_gp) then
-              
-              call projector(at%geocode,at%atomnames(ityp),iproc,iat,idir,l,i,&
-                   at%psppar(l,0,ityp),rxyz(1,iat),n1,n2,n3,&
-                   hx,hy,hz,cpmult,fpmult,radii_cf(ityp,3),radii_cf(ityp,2),&
-                   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                   nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),nwarnings)
-              iproj=iproj+2*l-1
-              istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)
-              if (istart_c > nlpspd%nprojel+1) stop 'istart_c > nprojel+1'
-
-           endif
-        enddo
-     enddo
+     !this routine is defined to uniformise the call for on-the-fly application
+     call atom_projector(iproc,iat,idir,istart_c,iproj,&
+          n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
   enddo
   if (iproj /= nlpspd%nproj) stop 'incorrect number of projectors created'
   ! projector part finished
@@ -242,15 +243,58 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
 
 end subroutine fill_projectors
 
+subroutine atom_projector(iproc,iat,idir,istart_c,iproj,&
+     n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iat,idir,n1,n2,n3,iproc
+  real(gp), intent(in) :: hx,hy,hz
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  integer, intent(inout) :: istart_c,iproj,nwarnings
+  real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
+  !local variables
+  integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i
+  ityp=at%iatype(iat)
+  mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
+  mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
+
+  mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
+  mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
+  jseg_c=nlpspd%nseg_p(2*iat-2)+1
+
+  !decide the loop bounds
+  do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
+     do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
+        if (at%psppar(l,i,ityp) /= 0.0_gp) then
+
+           call projector(at%geocode,at%atomnames(ityp),iproc,iat,idir,l,i,&
+                at%psppar(l,0,ityp),rxyz(1,iat),n1,n2,n3,&
+                hx,hy,hz,&
+                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),nwarnings)
+           iproj=iproj+2*l-1
+           istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)
+           if (istart_c > nlpspd%nprojel+1) stop 'istart_c > nprojel+1'
+
+        endif
+     enddo
+  enddo
+end subroutine atom_projector
+
+
 subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
-     hx,hy,hz,cpmult,fpmult,radius_c,radius_f,&
+     hx,hy,hz,&
      mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj,nwarnings)
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=20), intent(in) :: atomname
   integer, intent(in) :: iat,iproc,idir,l,i,n1,n2,n3,mbvctr_c,mbvctr_f,mseg_c,mseg_f
-  real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult,radius_c,radius_f,gau_a
+  real(gp), intent(in) :: hx,hy,hz,gau_a
   !integer, dimension(2,3), intent(in) :: nboxp_c,nboxp_f
   integer, dimension(mseg_c+mseg_f), intent(in) :: keyv_p
   integer, dimension(2,mseg_c+mseg_f), intent(in) :: keyg_p
@@ -302,8 +346,7 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
         end do
      end if
      
-     call crtproj(geocode,iproc,nterm,n1,n2,n3,radius_c,radius_f, & 
-          & cpmult,fpmult,hx,hy,hz,gau_a,factors,rx,ry,rz,lx,ly,lz, & 
+     call crtproj(geocode,iproc,nterm,n1,n2,n3,hx,hy,hz,gau_a,factors,rx,ry,rz,lx,ly,lz, & 
           & mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c),proj(istart_f))
 
      ! testing
@@ -371,7 +414,7 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
 end subroutine numb_proj
 
 subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, & 
-     radius_c,radius_f,cpmult,fpmult,hx,hy,hz,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
+     hx,hy,hz,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
      mvctr_c,mvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj_c,proj_f)
   ! returns the compressed form of a Gaussian projector 
   ! x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 ))
@@ -380,8 +423,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nterm,n1,n2,n3,mvctr_c,mvctr_f,mseg_c,mseg_f
-  !  integer, intent(in) :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
-  real(gp), intent(in) :: radius_c,radius_f,cpmult,fpmult,hx,hy,hz,gau_a,rx,ry,rz
+  real(gp), intent(in) :: hx,hy,hz,gau_a,rx,ry,rz
   integer, dimension(nterm), intent(in) :: lx,ly,lz
   real(gp), dimension(nterm), intent(in) :: fac_arr
   integer, dimension(mseg_c+mseg_f), intent(in) :: keyv_p
@@ -394,7 +436,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3
   integer :: mvctr,i_all,i_stat,j1,j2,j3,ithread,nthread,i0,j0,jj,ii,i,iseg
-  real(gp) :: rad_c,rad_f,factor,err_norm,dz2,dy2,dx2,te,d2,cpmult_max,fpmult_max
+  real(gp) :: factor,err_norm,dz2,dy2,dx2,te
   real(wp), dimension(0:nw,2) :: work
   real(wp), allocatable, dimension(:,:,:) :: wprojx,wprojy,wprojz
   integer omp_get_thread_num,omp_get_num_threads
@@ -411,12 +453,6 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   pery=(geocode == 'P')
   perz=(geocode /= 'F')
 
-  rad_c=radius_c*cpmult
-  rad_f=radius_f*fpmult
-
-  !print *,''
-  !print *,'limits',nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
-
   ! make sure that the coefficients returned by CALL GAUSS_TO_DAUB are zero outside [ml:mr] 
   err_norm=0.0_gp 
   do iterm=1,nterm
@@ -430,17 +466,6 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
      n_gau=lz(iterm) 
      call gauss_to_daub(hz,1.d0,rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1,iterm),te,work,nw,perz) 
      err_norm=max(err_norm,te) 
-!!!     if (iproc.eq.0 .and. geocode == 'F')  then
-!!!        if (ml1 > min(nl1_c,nl1_f)) write(*,*) 'Projector box larger than needed: ml1'
-!!!        if (ml2 > min(nl2_c,nl2_f)) write(*,*) 'Projector box larger than needed: ml2'
-!!!        if (ml3 > min(nl3_c,nl3_f)) write(*,*) 'Projector box larger than needed: ml3'
-!!!        if (mu1 < max(nu1_c,nu1_f)) write(*,*) 'Projector box larger than needed: mu1'
-!!!        if (mu2 < max(nu2_c,nu2_f)) write(*,*) 'Projector box larger than needed: mu2'
-!!!        if (mu3 < max(nu3_c,nu3_f)) write(*,*) 'Projector box larger than needed: mu3'
-!!!     endif
-
-     !print *,iterm,ml1,mu1,ml2,mu2,ml3,mu3,n1,n2,n3,rad_c,rad_f
-
   end do
 
   !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
@@ -579,27 +604,6 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   call memocc(i_stat,i_all,'wprojz',subname)
 
 end subroutine crtproj
-
-function d2(i,h,n,r,periodic)
-  use module_base
-  implicit none
-  logical, intent(in) :: periodic !determine whether the dimension is periodic or not
-  integer, intent(in) :: i,n
-  real(gp), intent(in) :: h,r
-  real(gp) :: d2
-  !local variables
-  integer :: j
-
-  if (periodic) then
-     !take the point which has the minimum distance  comparing with the periodic image
-     !which is i-+(n+1) if it is on the second or on the first half respectively
-     j=i-(2*(i/(n/2+1))-1)*(n+1)
-     d2=min((real(i,gp)*h-r)**2,(real(j,gp)*h-r)**2)
-  else
-     d2=(real(i,gp)*h-r)**2
-  end if
-  
-end function d2
 
 subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
   ! finds the size of the smallest subbox that contains a localization region made 

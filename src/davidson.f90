@@ -52,7 +52,7 @@
 !!
 !! SOURCE
 !!
-subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
+subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
      orbs,orbsv,nvirt,lr,comms,&
      hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
   use module_base
@@ -68,8 +68,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   type(locreg_descriptors), intent(in) :: lr 
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
-  real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
-  real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
+  real(gp), intent(in) :: hx,hy,hz
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
@@ -190,7 +189,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
   allocate(hv(orbsv%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,hv,'hv',subname)
   
-  call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
+  call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
        nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
        rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
 
@@ -227,8 +226,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      call MPI_ALLREDUCE(e(1,1,1,2),e(1,1,1,1),2*orbsv%norb*orbsv%nkpts,&
           mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
   end if
-
-
 
   if(iproc==0)write(*,'(1x,a)')"done."
   if(iproc==0)write(*,'(1x,a)')"     sqnorm                Rayleigh quotient"
@@ -399,8 +396,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      allocate(hg(orbsv%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,hg,'hg',subname)
 
-     call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,cpmult,fpmult,&
-          radii_cf,nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
+     call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+          nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
           rhopot(1+i3xcsh*n1i*n2i),g,hg,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
 
      !transpose  g and hg
@@ -646,8 +643,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,cpmult,fpmult,radii_cf,&
      ! Hamilton application on v
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
   
-     call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,cpmult,fpmult,&
-          radii_cf,nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
+     call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+          nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
           rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
 
      !transpose  v and hv

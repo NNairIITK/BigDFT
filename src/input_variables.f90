@@ -70,7 +70,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   character(len=7) :: cudagpu
   character(len=100) :: line
   logical :: exists
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
+  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj
 
   ! default values for geopt and k points in case not call later.
   call geopt_input_variables_default(in)
@@ -175,8 +175,20 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   call check()
 
   !verbosity of the output
-  read(1,*,iostat=ierror)  in%verbosity
+  read(1,*,iostat=ierror)  ivrbproj
   call check()
+
+  !if the verbosity is bigger than 10 apply the projectors
+  !in the once-and-for-all scheme, otherwise use the default
+  if (ivrbproj > 10) then
+     DistProjApply=.false.
+     in%verbosity=ivrbproj-10
+  else
+     in%verbosity=ivrbproj
+  end if
+!!$  !temporary correction
+!!$  DistProjApply=.false.
+  
 
 
   !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
@@ -331,7 +343,7 @@ subroutine geopt_input_variables(iproc,filename,in)
           & "      Max. steps=", in%ncount_cluster_x, "|", &
           & "Fluct. in forces=", in%frac_fluct,       "|", &
           & "          ionmov=", in%ionmov
-     write(*, "(1x,a,a7,1x,a,1x,a,1pe7.1,1x,a,1x,a,1f7.0)") &
+     write(*, "(1x,a,a7,1x,a,1x,a,1pe7.1,1x,a,1x,a,0pf7.0)") &
           & "       algorithm=", in%geopt_approach, "|", &
           & "  Max. in forces=", in%forcemax,       "|", &
           & "           dtion=", in%dtion

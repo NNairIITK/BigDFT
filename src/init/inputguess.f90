@@ -100,7 +100,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
      call orbitals_descriptors(iproc,nproc,nvirte,nvirte,0, &
           & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
   else if (nspin == 2) then
-     call orbitals_descriptors(iproc,nproc,nvirte,nvirte,nvirte, &
+     call orbitals_descriptors(iproc,nproc,2*nvirte,nvirte,nvirte, &
           & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
   end if
 
