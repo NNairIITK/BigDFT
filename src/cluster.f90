@@ -191,7 +191,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   character(len=3) :: PSquiet
   character(len=4) :: f4
   character(len=50) :: filename
-  logical :: endloop,potion_overwritten=.false.,allfiles,onefile,refill_proj
+  logical :: endloop,potion_overwritten=.false.,allfiles,onefile,refill_proj,DoDavidson
   integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before
   integer :: nvirt,ndiis_sd_sw
   integer :: nelec,ndegree_ip,j,i,iorb
@@ -259,7 +259,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !an array would have been copied, thus occupying more memory space
   !Hence WARNING: these variables are copied, in case of an update the new value should be 
   !reassigned inside the structure
-
 
 
   crmult=in%crmult
@@ -875,6 +874,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,i_all,'ads',subname)
   end if
 
+  !analyse the possiblity to calculate Davidson treatment
+  !(nvirt > 0 .and. in%inputPsiId == 0)
+  DoDavidson= in%nvirt > 0 .and. infocode==0
 
 
   if (in%potshortcut==0) then
@@ -962,6 +964,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         end if
      end if
 
+
+ 
 
      !plot the ionic potential, if required by output_grid
      if (abs(in%output_grid)==2) then
@@ -1087,6 +1091,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         end if
      end if
 
+     !better to deallocate this after davidson
      i_all=-product(shape(pkernel))*kind(pkernel)
      deallocate(pkernel,stat=i_stat)
      call memocc(i_stat,i_all,'pkernel',subname)
@@ -1115,8 +1120,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
 
      !refill projectors for tails, davidson or x-absorbtion procedures
-     refill_proj=in%calc_tail .or. nvirt > 0 .and. in%inputPsiId == 0 &
-          .or. in%c_absorbtion 
+     refill_proj=in%calc_tail .or. DoDavidson .or. in%c_absorbtion 
 
      call nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,atoms,rxyz,&
           orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
@@ -1134,7 +1138,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         enddo
      end if
 
-     !add to the forces the ionic contribution 
+     !add to the forces the ionic and dispersion contribution 
      do iat=1,atoms%nat
         fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)
         fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)
@@ -1177,7 +1181,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      call timing(iproc,'Forces        ','OF')
 
-     if (nvirt > 0 .and. in%inputPsiId == 0) then
+     !if (nvirt > 0 .and. in%inputPsiId == 0) then
+     if (DoDavidson) then
         call davidson(iproc,nproc,n1i,n2i,n3i,in,atoms,&
              orbs,orbsv,nvirt,Glr,comms,&
              hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj, &
@@ -1550,7 +1555,7 @@ contains
        call memocc(i_stat,i_all,'hpsi',subname)
        
        !free GPU if it is the case
-       if (GPUconv .and. .not.(nvirt > 0 .and. in%inputPsiId == 0)) then
+       if (GPUconv .and. .not.(DoDavidson)) then
           call free_gpu(GPU,orbs%norbp)
        end if
        
@@ -1595,7 +1600,7 @@ contains
     end if
     !deallocate wavefunction for virtual orbitals
     !if it is the case
-    if (in%nvirt > 0) then
+    if (DoDavidson) then
        i_all=-product(shape(psivirt))*kind(psivirt)
        deallocate(psivirt,stat=i_stat)
        call memocc(i_stat,i_all,'psivirt',subname)
@@ -1643,7 +1648,7 @@ contains
     endif
     
     !free GPU if it is the case
-    if (GPUconv .and. .not.(nvirt > 0 .and. in%inputPsiId == 0)) then
+    if (GPUconv .and. .not.(DoDavidson)) then
        call free_gpu(GPU,orbs%norbp)
     end if
     

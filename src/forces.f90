@@ -365,7 +365,7 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
            ikpt=ikpt+1
            ispsi_k=ispsi
         end do loop_kpt
-        if (istart_c-1  /= nlpspd%nprojel) stop '2:applyprojectors'
+        if (istart_ck-1  /= nlpspd%nprojel) stop '2:applyprojectors'
 
      end do
 

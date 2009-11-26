@@ -248,7 +248,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   
 
   !itermax=... use the input variable instead
-  do iter=1,in%itermax
+  iter=1
+  davidson_loop: do 
      if(iproc==0)write(*,'(1x,a,i3)')&
      "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter",iter
      if(msg) write(*,'(1x,a)')"squared norm of the (nvirt) gradients"
@@ -298,7 +299,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
         i_all=-product(shape(g))*kind(g)
         deallocate(g,stat=i_stat)
         call memocc(i_stat,i_all,'g',subname)
-        exit ! iteration loop
+        exit davidson_loop! iteration loop
      end if
      call timing(iproc,'Davidson      ','OF')
 
@@ -308,11 +309,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
      !project g such that they are orthogonal to all occupied psi. 
      !Gradients do not need orthogonality.
      call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,g,msg)
-!!!     call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,g,msg)
-!!!     if(orbs%norbd > 0 ) then
-!!!        call orthoconvirt_p(iproc,nproc,orbs%norbd,&
-!!!          orbsv%norb,comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),g,msg)
-!!!     end if
 
      call timing(iproc,'Davidson      ','ON')
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
@@ -383,11 +379,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
      !project g such that they are orthogonal to all occupied psi
      call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,g,msg)
-!!!     call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,g,msg)
-!!!     if(orbs%norbd > 0) then 
-!!!        call orthoconvirt_p(iproc,nproc,orbs%norbd,orbsv%norb,&
-!!!          comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),g,msg)
-!!!     end if
      !retranspose the gradient g
      call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
 
@@ -626,16 +617,10 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
      !these routines should work both in parallel or in serial
      call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
-     !call  orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
      call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
-!!!     call  orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,v,msg)
-!!!     if(orbs%norbd > 0) then
-!!!        call orthoconvirt_p(iproc,nproc,orbs%norbd,orbsv%norb,&
-!!!          comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),v,msg)
-!!!     end if
+
      !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
      call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
-     !call  orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
 
      !retranspose v
      call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,v,work=psiw)
@@ -653,11 +638,15 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
      if(iproc==0)write(*,'(1x,a)')"done. "
      call timing(iproc,'Davidson      ','ON')
-  end do! davidson iterations
+     iter=iter+1
+     if(iter>in%itermax+100)then !an input variable should be put
+        if(iproc==0)write(*,'(1x,a)')'No convergence within the allowed number of minimization steps (itermax + 100)'
+        exit davidson_loop
+     end if
 
-  if(iter>in%itermax)then
-     if(iproc==0)write(*,'(1x,a)')'No convergence within the allowed number of minimization steps'
-  else
+  end do davidson_loop
+
+  if(iter <=in%itermax) then
      if(iproc==0)write(*,'(1x,a,i3,a)')'Davidsons method: Convergence after ',iter-1,' iterations.'
   end if
   !finalize: Retranspose, deallocate

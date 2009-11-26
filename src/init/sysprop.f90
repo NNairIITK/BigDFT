@@ -527,7 +527,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt
   integer, intent(inout) :: nspinor
   type(orbitals_data), intent(out) :: orbs
-  real(gp), intent(in) :: kpt(3,nkpt), wkpt(nkpt)
+  real(gp), dimension(nkpt), intent(in) :: wkpt
+  real(gp), dimension(3,nkpt), intent(in) :: kpt
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all

@@ -858,24 +858,15 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(in) :: psi
   integer, intent(inout) :: istart_c
   real(gp), intent(inout) :: eproj
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(out) :: hpsi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
   !local variables
   integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,istart_c_i,ncplx
-  real(gp) :: eproj_spinor,kx,ky,kz
+  real(gp) :: eproj_spinor
 
   !complex functions or not
   !this should be decided as a function of the orbital
   !features of the k-point ikpt
-  kx=orbs%kpts(1,orbs%iokpt(iorb))
-  ky=orbs%kpts(2,orbs%iokpt(iorb))
-  kz=orbs%kpts(3,orbs%iokpt(iorb))
-
-  !evaluate the complexity of the k-point
-  if (kx**2 + ky**2 + kz**2 == 0) then
-     ncplx=1
-  else
-     ncplx=2
-  end if
+  call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
 
   istart_c_i=istart_c
   do ispinor=1,orbs%nspinor,ncplx

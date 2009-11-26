@@ -466,14 +466,16 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
      call memocc(i_stat,in%kpt,'in%kpt',subname)
      allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%wkpt,'in%wkpt',subname)
-     do i = 1, in%nkpt, 1
+     norm=0.0_gp
+     do i = 1, in%nkpt
         read(1,*,iostat=ierror) in%kpt(:, i), in%wkpt(i)
+        norm=norm+in%wkpt(i)
         call check()
      end do
      
      ! We normalise the weights.
-     norm = sum(in%wkpt)
      in%wkpt(:) = in%wkpt / norm
+
   end if
 
   close(unit=1,iostat=ierror)
