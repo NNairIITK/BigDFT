@@ -2790,10 +2790,10 @@ end subroutine GetExcitedOrbitalAsG
 
 
 function GetBottom(  atoms, iproc)
-
+  
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces,except_this_one => GetBottom
 
   implicit none
   type(atoms_data), intent(in) :: atoms
@@ -2880,16 +2880,14 @@ function GetBottom(  atoms, iproc)
 
   GetBottom=1.0D4
 
+  psp_modifier=0;
+
   do ity=1, atoms%ntypes
      call abs_generator_modified(iproc,atoms%nzatom(ity), atoms%nelpsp(ity),atoms%psppar(0,0,ity),&
           atoms%npspcode(ity),ng-1 ,noccmax , lmax , expo,psi,aeval, occup , psp_modifier , &
           Nsol, abs_final_L , Ngrid,Egrid,  rgrid , psigrid )
      if(aeval(1,1)<GetBottom) GetBottom=aeval(1,1)
   enddo
-
-
-
-
   
   i_all=-product(shape(Egrid))*kind(Egrid)
   deallocate(Egrid,stat=i_stat)

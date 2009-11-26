@@ -777,7 +777,7 @@ contains
     print *, " done " 
     
 !!$    res =res/Pi/sqrt(1-Xs*Xs)
-    cfftreal =2*cfftreal/Pi/sqrt(1-Xs*Xs)
+    cfftreal(0:Nbar-1) =2*cfftreal(0:Nbar-1)/Pi/sqrt(1-Xs*Xs)
     
     
     open(unit=22,file=filename)
@@ -1046,7 +1046,7 @@ contains
 !
       SUBROUTINE R2TX(NTHPO, CR0, CR1, CI0, CI1)
       IMPLICIT REAL*8(A-H, O-Z), INTEGER(I-N)
-      DIMENSION CR0(2), CR1(2), CI0(2), CI1(2)
+      DIMENSION CR0(*), CR1(*), CI0(*), CI1(*)
       DO 10 K=1,NTHPO,2
         R1 = CR0(K) + CR1(K)
         CR1(K) = CR0(K) - CR1(K)
@@ -1065,8 +1065,8 @@ contains
 !
       SUBROUTINE R4TX(NTHPO, CR0, CR1, CR2, CR3, CI0, CI1, CI2, CI3)
       IMPLICIT REAL*8(A-H, O-Z), INTEGER(I-N)
-      DIMENSION CR0(2), CR1(2), CR2(2), CR3(2), CI0(2), CI1(2), CI2(2),&
-         CI3(2)
+      DIMENSION CR0(*), CR1(*), CR2(*), CR3(*), CI0(*), CI1(*), CI2(*),&
+         CI3(*)
       DO 10 K=1,NTHPO,4
         R1 = CR0(K) + CR2(K)
         R2 = CR0(K) - CR2(K)
@@ -1096,9 +1096,9 @@ contains
       SUBROUTINE R8TX(NXTLT, NTHPO, LENGT, CR0, CR1, CR2, CR3, CR4,&
          CR5, CR6, CR7, CI0, CI1, CI2, CI3, CI4, CI5, CI6, CI7)
       IMPLICIT REAL*8(A-H, O-Z), INTEGER(I-N)
-      DIMENSION CR0(2), CR1(2), CR2(2), CR3(2), CR4(2), CR5(2), CR6(2),&
-         CR7(2), CI1(2), CI2(2), CI3(2), CI4(2), CI5(2), CI6(2),&
-         CI7(2), CI0(2)
+      DIMENSION CR0(*), CR1(*), CR2(*), CR3(*), CR4(*), CR5(*), CR6(*),&
+         CR7(*), CI1(*), CI2(*), CI3(*), CI4(*), CI5(*), CI6(*),&
+         CI7(*), CI0(*)
       COMMON /CON2/ PI2, P7
 !
       SCALE = PI2/FLOAT(LENGT)

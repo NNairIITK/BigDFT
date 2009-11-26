@@ -797,6 +797,20 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 end subroutine chebychev
 
+
+
+
+
+function GetBottom(  atoms, iproc)
+  use module_base
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  integer iproc
+  real(gp) GetBottom
+end function GetBottom
+
+
 subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types

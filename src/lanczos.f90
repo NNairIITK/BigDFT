@@ -1,4 +1,5 @@
 
+
 subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
       ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber, doorthoocc, Occ_norb, Occ_psit, Occ_eval,&
@@ -45,9 +46,11 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   type(gaussian_basis), target ::  Gabsorber
   real(wp),   pointer  :: Gabs_coeffs(:)
-  real(wp),  pointer :: dum_coeffs(:,:)
-  character(len=80) :: filename
+  real(wp),  pointer, dimension(:,:)  :: dum_coeffs
+  character(len=800) :: filename
   logical :: projeexists
+
+
 
 
   if(iproc==0) print *, " IN ROUTINE LANCZOS "
@@ -91,7 +94,9 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
         nullify( dum_coeffs  ) 
 
-        call read_gaussian_information(0 ,1 ,ha%orbs,Gabsorber,dum_coeffs , filename, .true. )
+        call read_gaussian_information (0 ,1 ,ha%orbs,Gabsorber,dum_coeffs , filename, .true. )
+
+        print *, " reading ok " 
 
         Gabsorber%rxyz(:,1)=rxyz(:, in_iat_absorber )
 
@@ -120,6 +125,7 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
            call write_gaussian_information( 0 ,1 ,ha%orbs,Gabsorber,dum_coeffs ,filename)
         endif
      endif
+
 
   ha%iproc=iproc
   ha%nproc=nproc
@@ -250,15 +256,16 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   type(gaussian_basis), target ::  Gabsorber
   real(wp),   pointer  :: Gabs_coeffs(:)
-  real(wp),  pointer :: dum_coeffs(:,:)
+  real(wp),  pointer, dimension (:,:) :: dum_coeffs
   character(len=80) :: filename
   logical :: projeexists
   real(gp) eval_min, eval_max, fact_cheb, cheb_shift
   integer accontentati_di
   real(gp) Pi
 
-  real(gp) GetBottom
-  
+
+
+
   if (iproc==0) print *, " IN ROUTINE  chebychev  "
 
 
@@ -281,6 +288,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%orbs%eval(1:ha%orbs%norb)=1.0_gp
 
   call orbitals_communicators(iproc,nproc,lr,ha%orbs,ha%comms)  
+
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
  
@@ -301,8 +309,14 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      nullify( dum_coeffs  ) 
      
+
+     nullify(Gabsorber%nshell)
+     nullify(Gabsorber%nam)
+     nullify(Gabsorber%ndoc)
+     nullify(Gabsorber%xp)
+     nullify(Gabsorber%psiat)
+   
      call read_gaussian_information(0 ,1 ,ha%orbs,Gabsorber,dum_coeffs , filename, .true. )
-     
      Gabsorber%rxyz(:,1)=rxyz(:, in_iat_absorber )
      
      Gabs_coeffs(:)=in%Gabs_coeffs(:)
@@ -331,6 +345,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      endif
   endif
   
+
   !associate hamapp_arg pointers
   ha%iproc=iproc
   ha%nproc=nproc
@@ -361,6 +376,8 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   !initialise the arguments for HamiltonianApplication
 
 
+  
+
   call EP_inizializza(ha) 
   
   call  EP_memorizza_stato(Gabsorber) 
@@ -378,19 +395,11 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
           EP_set_all_random, EP_copy , EP_mat_mult,  EP_scalare,EP_add_from_vect_with_fact,accontentati_di)
      
      if(iproc==0) then
-        print *, " valori propri massimi " 
+        print *, " maximal eigenvalues " 
         print *, LB_eval
      endif
      eval_max = LB_eval(0)
      
-     
-
-     
-
-     
-
-
-
      ! trova il valore minimo 
      shift =-10000
      
@@ -400,7 +409,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
           EP_set_all_random, EP_copy , EP_mat_mult,  EP_scalare,EP_add_from_vect_with_fact,accontentati_di)
      
      if(iproc==0) then
-        print *, " valori propri minimi " 
+        print *, " minima eigenvalues" 
         print *, LB_eval
      endif
      eval_min = LB_eval(0)+10000
@@ -410,7 +419,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      eval_max = 4.0*Pi*Pi*(1.0/hx/hx + 1.0/hy/hy + 1.0/hz/hz  )/2.0*1.01
   endif
 
-  print *, "  eval_min,   eval_max     " ,eval_min,   eval_max 
+
 
   cheb_shift=0.5*(eval_min+ eval_max) 
   fact_cheb = (2-0.0001)/(eval_max-eval_min)
@@ -450,7 +459,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   call deallocate_comms(ha%comms,subname)
 
   call EP_free()
-
+  call  LB_de_allocate_for_lanczos( )
 
 !!$ this free is already executed by bigdft
 !!$
@@ -465,9 +474,9 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   deallocate(ha%orbs%eval,stat=i_stat)
   call memocc(i_stat,i_all,'ha%orbs%spinsgn',subname)
 
-!!$  i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
-!!$  deallocate(Gabs_coeffs,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'Gabs_coeffs',subname)
+  i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
+  deallocate(Gabs_coeffs,stat=i_stat)
+  call memocc(i_stat,i_all,'Gabs_coeffs',subname)
 
 
 
