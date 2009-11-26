@@ -598,6 +598,9 @@ subroutine abscalc_input_variables(iproc,filename,in)
   read(111,*,iostat=ierror)  in%potshortcut
   call check()
   
+  read(111,*,iostat=ierror)  in%nsteps
+  call check()
+  
   read(111,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
 
   if(ierror==0) then

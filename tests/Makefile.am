@@ -14,7 +14,8 @@ SUBDIRS = \
 	  H2O-slab \
 	  Davidson-SiH4 \
 	  H2-freq \
-	  NEB
+	  NEB \
+	  XabsCheb 
 
 
 #This will run the automatic tests also for GPU

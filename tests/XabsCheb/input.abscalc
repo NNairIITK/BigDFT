@@ -1,0 +1,6 @@
+  1   1.0  absorber atom number  and convergence parameter for exra refinement to be removed in future  ( no need to refine occupied states )
+  1        L orbital moment of the final electraon
+  0.0   0.0   1.0              and its componenent
+  1                            pot short_cut
+  200                         number of Hamiltonian multiplications 
+  .false. .false.              flags for test pourposes 

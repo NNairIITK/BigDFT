@@ -38,6 +38,7 @@ module module_types
      real(gp), pointer:: Gabs_coeffs(:)
      logical ::  c_absorbtion , abscalc_alterpot, abscalc_eqdiff 
      integer ::  potshortcut
+     integer ::  nsteps
      
      ! kpoints related input variables
      integer :: nkpt
