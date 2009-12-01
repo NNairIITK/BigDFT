@@ -1102,14 +1102,12 @@ subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
   do i=1,ng
      psiatn(i)=psiat(i)*tt
   enddo
-
 end subroutine atomkin
 !!***
 
+
 !!****f* BigDFT/calc_coeff_inguess
 !! FUNCTION
-!!   
-!!
 !! SOURCE
 !!
 subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
@@ -1222,8 +1220,6 @@ END SUBROUTINE calc_coeff_inguess
 
 !!****f* BigDFT/iguess_generator
 !! FUNCTION
-!!   
-!!
 !! SOURCE
 !!
 subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,occupat,expo,psiat)
@@ -1429,8 +1425,6 @@ END SUBROUTINE iguess_generator
 
 !!****f* BigDFT/gatom
 !! FUNCTION
-!!   
-!!
 !! SOURCE
 !!
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
@@ -1520,7 +1514,6 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
            end if
         end do
      end do
-
 
      rmix=.5_gp
      if (it.eq.1) rmix=1._gp
@@ -1788,7 +1781,6 @@ END SUBROUTINE gatom
 
 !!****f* BigDFT/resid
 !! FUNCTION
-!!   
 !!
 !! SOURCE
 !!
@@ -1893,7 +1885,6 @@ END SUBROUTINE resid
 
 !!****f* BigDFT/crtvh
 !! FUNCTION
-!!   
 !!
 !! SOURCE
 !!
@@ -1983,7 +1974,6 @@ END SUBROUTINE crtvh
 
 !!****f* BigDFT/wave
 !! FUNCTION
-!!   
 !!
 !! SOURCE
 !!
@@ -2083,7 +2073,6 @@ end function gamma
 
 !!****f* BigDFT/psitospi0
 !! FUNCTION
-!!   
 !!
 !! SOURCE
 !!
@@ -2133,10 +2122,8 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
         psi_o(i,iorb)=psi(i,iorb)
      end do
   end do
-
  
   call razero(nvctr*nspin*norbep,psi)
-  
 
   do iorb=1,norbe
      jorb=iorb-iproc*norbep
@@ -2165,3 +2152,4 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
   end if
 
 END SUBROUTINE psitospi0
+!!***

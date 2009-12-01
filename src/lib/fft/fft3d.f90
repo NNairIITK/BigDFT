@@ -1,4 +1,4 @@
-!!***m* fft3d/module_fft_sg
+!!****m* fft3d/module_fft_sg
 !! DESCRIPTION
 !!   3-dimensional complex-complex FFT routine: 
 !!   When compared to the best vendor implementations on RISC architectures 
@@ -763,7 +763,7 @@ end subroutine FFT
 !!***
 
 
-!!***f* fft3d/FFT_for
+!!****f* fft3d/FFT_for
 !! DESCRIPTION
 !!  Calculates the discrete Fourier transform F(I1,I2,I3)=
 !!  S_(j1,j2,j3) EXP(i_sign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
@@ -1672,7 +1672,7 @@ end subroutine fft_back
 !!***
 
 
-!!***f* fft3d/ctrig_sg
+!!****f* fft3d/ctrig_sg
 !! SIDE EFFECTS
 !!  Different factorizations affect the performance
 !!  Factoring 64 as 4*4*4 might for example be faster on some machines than 8*8.

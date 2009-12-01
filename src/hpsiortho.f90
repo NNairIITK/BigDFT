@@ -27,16 +27,17 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,orbs%norbp), intent(in) :: psi
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
   real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
-  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,orbs%norbp), intent(out) :: hpsi
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
   real(dp), dimension(*), optional :: pkernel
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX
   integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
+  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
   real(gp) :: eproj,eexctX
   real(gp), dimension(3,2) :: wrkallred
   real(wp), dimension(:), pointer :: pot
@@ -133,16 +134,34 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   if (DistProjApply) then
      call applyprojectorsonthefly(iproc,orbs,at,lr%d%n1,lr%d%n2,lr%d%n3,&
           rxyz,hx,hy,hz,lr%wfd,nlpspd,proj,psi,hpsi,eproj_sum)
-  else
-     ! loop over all my orbitals
-     do iorb=1,orbs%norbp
-        istart_c=1
-        do iat=1,at%nat
-           call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,lr%wfd,nlpspd,&
-                proj,psi(1,iorb),hpsi(1,iorb),eproj_sum)           
+  else if(orbs%norbp > 0) then
+     !apply the projectors  k-point of the processor
+     !starting k-point
+     ikpt=orbs%iokpt(1)
+     istart_ck=1
+     ispsi_k=1
+     loop_kpt: do
+
+        call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+
+        ! loop over all my orbitals
+        ispsi=ispsi_k
+        do iorb=isorb,ieorb
+           istart_c=istart_ck
+           do iat=1,at%nat
+              call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,lr%wfd,nlpspd,&
+                   proj,psi(ispsi),hpsi(ispsi),eproj_sum)           
+           end do
+           ispsi=ispsi+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*nspinor
         end do
-        if (istart_c-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp application'
-     end do
+        istart_ck=istart_c
+        if (ieorb == orbs%norbp) exit loop_kpt
+        ikpt=ikpt+1
+        ispsi_k=ispsi
+     end do loop_kpt
+
+     if (istart_c-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp application'
+
   end if
 
   call timing(iproc,'ApplyProj     ','OF')

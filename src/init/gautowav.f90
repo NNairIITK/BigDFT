@@ -535,7 +535,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
         jorb=iorb-orbs%isorb
         totnorm=0.0_dp
        do ispinor=1,orbs%nspinor !to be verified in case of nspinor=4
-          call wnrm_wrap(wfd%nvctr_c,wfd%nvctr_f,psi(1,ispinor,jorb),scpr) 
+          call wnrm_wrap(1,wfd%nvctr_c,wfd%nvctr_f,psi(1,ispinor,jorb),scpr) 
            totnorm=totnorm+scpr
 
            !print *,'AAA',iproc,iorb,ispinor,scpr,jorb

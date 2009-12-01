@@ -2819,45 +2819,7 @@ subroutine back_trans_14_4b2B(nd,nt,x,y)
   !Local variables
   integer :: i,j,ind
 
-  !!include 'lazy_16.inc'
-  !!****h* PSolver/lazy_16
-  !! FUNCTION
-  !!   Filters for interpolating scaling functions (order 16)
-  !!
-  !! SOURCE
-  !!
-  integer, parameter :: m=18
-  real(kind=8), dimension(-m:m) :: ch = (/&
-       0.d0,0.d0,0.d0,-6.39259815216064453D-6,0.D0,0.000110641121864318848D0,0.D0,&
-       -0.000915303826332092285D0,0.D0,0.00484772026538848877D0,0.D0,&
-       -0.0186983495950698853D0,0.D0,0.0575909167528152466D0,0.D0,&
-       -0.159974768757820129D0,0.D0,0.617045536637306213D0,1.D0,0.617045536637306213D0,&
-       0D0,-0.159974768757820129D0,0.D0,0.0575909167528152466D0,0.D0,&
-       -0.0186983495950698853D0,0.D0,0.00484772026538848877D0,0.D0,&
-       -0.000915303826332092285D0,0.D0,0.000110641121864318848D0,0.D0,&
-       -6.39259815216064453D-6,0.d0,0.d0,0.d0&
-       /)
-  real(kind=8), dimension(-m:m) :: cg,cht,cgt
-  
-  !******** coefficients for wavelet transform *********************
-  do i=-m,m
-     cht(i)=0.d0
-     cg(i)=0.d0
-     cgt(i)=0.d0
-  enddo
-  
-  ! the normalization is chosen such that a constant function remains the same constant 
-  ! on each level of the transform
-  
-  cht( 0)=1.D0
-  
-  ! g coefficients from h coefficients
-  do i=-m,m-1
-     cg(i+1)=cht(-i)*(-1.d0)**(i+1)
-     cgt(i+1)=ch(-i)*(-1.d0)**(i+1)
-  enddo
-  !!***
-  ! -------------------------------- lazy end --------------------------------------------
+  include 'lazy_16.inc'
   
   do i=0,nt/2-1
      y(2*i+0)=0.d0
@@ -2885,9 +2847,12 @@ subroutine back_trans_14_4b2B(nd,nt,x,y)
   end do
         
 end subroutine back_trans_14_4b2B
+!!***
 
 
-
+!!****f* PSolver/scaling_function4b2B
+!! SOURCE
+!!
 subroutine scaling_function4b2B(itype,nd,nrange,a,x)
 
   implicit none
@@ -2976,6 +2941,9 @@ end subroutine scaling_function4b2B
 !!***
 
 
+!!****f* PSolver/scaling_function4b2B
+!! SOURCE
+!!
 subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   use module_base
   implicit none
@@ -3002,11 +2970,8 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   nl3=1
   nl2=1
 
-
   allocate( rho( n1i*n2i*n3i ) , stat=i_stat )
   call memocc(i_stat,rho,'rho',subname)
-
-
   
   call razero(max(n1i*n2i*n3i,1),rho)
 
@@ -3022,6 +2987,4 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   close(22)
   
 end subroutine read_potfile4b2B
-
-
-
+!!***

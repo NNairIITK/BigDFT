@@ -1183,7 +1183,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         call read_atomic_file("b2B_xanes",iproc, atoms_b2B, rxyz_b2B )
         if( atoms%nat/=atoms_b2B%nat) then
            if(iproc==0) write(*,*)  "   b2B_xanes.xyz  is not compatible with actual positions" 
-           if(nproc>1) call MPI_Finalize()
+           if(nproc>1) call MPI_FINALIZE(ierr)
            stop '      b2B_xanes.xyz  is not compatible with actual positions          '
         end if
         do j=1,3
@@ -1191,7 +1191,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
            do iat=2,atoms%nat
               if( abs(shift_b2B(j) - (rxyz(j,iat) - rxyz_b2B(j,iat) )  )>1.0e-4 ) then
                  if(iproc==0) write(*,*)  "   b2B_xanes.xyz  positions are not compatible with actual positions" 
-                 if(nproc>1) call MPI_Finalize()
+                 if(nproc>1) call MPI_FINALIZE(ierr)
                  stop '      b2B_xanes.xyz positions are not compatible with actual positions          '
               end if
            enddo

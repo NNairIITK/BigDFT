@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 28/09/2009
+# Date: 01/12/2009
 #--------------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -3764,8 +3764,8 @@ bigdft_include = { "mpif.h": mpif_file,
                    "fftw3.f": fftw3_file}
 
 
-#Exclude files
-bigdft_exclude = [ "PSolver/base.f90" ]
+#Exclude files (*/*.f90)
+bigdft_exclude = [ "PSolver/base.f90", "ABINIT-moldyn/others.F90" ]
 
 
 #Files to generate generic routines

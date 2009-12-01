@@ -1,3 +1,14 @@
+!!****f* BigDFT/IonicEnergyandForces
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 (LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      rxyz,eion,fion,psoffset,nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
   use module_base
@@ -447,8 +458,14 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      end if
   end if
 end subroutine IonicEnergyandForces
+!!***
 
 
+!!****f* BigDFT/createIonicPotential
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
      correct_offset)
@@ -1024,8 +1041,15 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   call timing(iproc,'CrtLocPot     ','OF')
 
 end subroutine createIonicPotential
-!determine the index in which the potential must be inserted, following the BC
-!determine also whether the index is inside or outside the box for free BC
+!!***
+
+!!****f* BigDFT/sum_erfcr
+!! FUNCTION
+!!   Determine the index in which the potential must be inserted, following the BC
+!!   Determine also whether the index is inside or outside the box for free BC
+!!
+!! SOURCE
+!!
 subroutine ind_positions(periodic,i,n,j,go)
   implicit none
   logical, intent(in) :: periodic
@@ -1046,7 +1070,14 @@ subroutine ind_positions(periodic,i,n,j,go)
   end if
 
 end subroutine ind_positions
+!!***
 
+
+!!****f* BigDFT/sum_erfcr
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
   use module_base
   implicit none
@@ -1090,7 +1121,14 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
   end do
 
 end subroutine sum_erfcr
+!!***
 
+
+!!****f* BigDFT/ext_buffers
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine ext_buffers(periodic,nl,nr)
   implicit none
   logical, intent(in) :: periodic
@@ -1104,7 +1142,15 @@ subroutine ext_buffers(periodic,nl,nr)
      nr=15
   end if
 end subroutine ext_buffers
+!!***
 
+
+!!****f* BigDFT/derf
+!! FUNCTION
+!!   Error function in double precision
+!!
+!! SOURCE
+!!
 subroutine derf(derf_yy,yy)
 
  use module_base
@@ -1226,3 +1272,4 @@ subroutine derf(derf_yy,yy)
  derf_yy = res
 
 end subroutine derf
+!!***

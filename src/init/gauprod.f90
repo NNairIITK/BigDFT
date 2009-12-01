@@ -47,7 +47,12 @@ end subroutine restart_from_gaussians
 !!***
 
 
-
+!!****f* BigDFT/read_gaussian_information
+!! FUNCTION
+!!   Read information for gaussian basis set (from CP2K) or for restarting
+!!
+!! SOURCE
+!!
 subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fillrxyz)
   use module_base
   use module_types
@@ -66,15 +71,11 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fil
   real(gp), dimension(4) :: coeff
   logical fillrxyz
 
-
   if (present(opt_fillrxyz)) then
      fillrxyz=opt_fillrxyz
   else
      fillrxyz=.false.
   endif
-  
-        
-
 
   !read the information from a file
   inquire(file=filename,exist=exists)
@@ -87,9 +88,6 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fil
 
   open(unit=99,file=filename,status='unknown')
   read(99,*)G%nat,G%nshltot,G%nexpo,G%ncoeff
-  
-
-
 
   allocate(G%nshell(G%nat+ndebug),stat=i_stat)
   call memocc(i_stat,G%nshell,'G%nshell',subname)
@@ -105,7 +103,6 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fil
   allocate(coeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,coeffs,'coeffs',subname)
   
-
 
   if(fillrxyz) then
 
@@ -139,7 +136,15 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fil
   close(99)
  
 end subroutine read_gaussian_information
+!!***
 
+
+!!****f* BigDFT/write_gaussian_information
+!! FUNCTION
+!!   Write gaussian informatio for another program or for restarting
+!!
+!! SOURCE
+!!
 subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   use module_base
   use module_types
@@ -211,9 +216,16 @@ subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   call memocc(i_stat,i_all,'gaupsi',subname)
   
 end subroutine write_gaussian_information
+!!***
 
-!gaussian section
-!create gaussian structure from input guess pseudo wavefunctions
+
+!!****f* BigDFT/gaussian_pswf_basis
+!! FUNCTION
+!!   gaussian section
+!!   Create gaussian structure from input guess pseudo wavefunctions
+!!
+!! SOURCE
+!!
 subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
   use module_base
   use module_types
@@ -368,11 +380,17 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
   call memocc(i_stat,i_all,'psiatn',subname)
 
 end subroutine gaussian_pswf_basis
+!!***
 
 
-!gaussian section
-!create gaussian structure from input guess pseudo wavefunctions
-!extend the basis to all the different gaussians
+!!****f* BigDFT/gaussian_ext_pswf_basis
+!! FUNCTION
+!!   Gaussian section
+!!   Create gaussian structure from input guess pseudo wavefunctions
+!!   extend the basis to all the different gaussians
+!!
+!! SOURCE
+!!
 subroutine gaussian_ext_pswf_basis(iproc,at,rxyz,G)
   use module_base
   use module_types
@@ -498,7 +516,6 @@ subroutine gaussian_ext_pswf_basis(iproc,at,rxyz,G)
      stop 
   end if
 
-  
 
   i_all=-product(shape(scorb))*kind(scorb)
   deallocate(scorb,stat=i_stat)
@@ -526,12 +543,18 @@ subroutine gaussian_ext_pswf_basis(iproc,at,rxyz,G)
   call memocc(i_stat,i_all,'psiatn',subname)
 
 end subroutine gaussian_ext_pswf_basis
+!!***
 
 
-!extract the pseudopotential basis
-!WARNING: this is not the complete PSP basis set. 
-!         the radial power term is lacking in the gaussian descriptors 
-!         should be added if needed
+!!****f* BigDFT/gaussian_psp_basis
+!! FUNCTION
+!!   Extract the pseudopotential basis
+!! WARNING
+!!   This is not the complete PSP basis set. 
+!!   the radial power term is lacking in the gaussian descriptors 
+!!   should be added if needed
+!! SOURCE
+!!
 subroutine gaussian_psp_basis(at,rxyz,G)
   use module_base
   use module_types
@@ -602,6 +625,7 @@ subroutine gaussian_psp_basis(at,rxyz,G)
   end do
 
 end subroutine gaussian_psp_basis
+!!***
 
 subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
   use module_base

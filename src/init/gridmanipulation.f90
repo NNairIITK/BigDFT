@@ -5,7 +5,6 @@
 !!   Assign these values to the global localisation region descriptor.
 !! SOURCE
 !!
-!!***
 subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
   use module_base
   use module_types
@@ -230,15 +229,15 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
   Glr%hybrid_on=(Glr%hybrid_on.and.(nfu2-nfl2+lupfil < n2+1))
   Glr%hybrid_on=(Glr%hybrid_on.and.(nfu3-nfl3+lupfil < n3+1))
 
-
   if (Glr%hybrid_on) then
      if (iproc == 0) write(*,*)'wavelet localization is ON'
   else
      if (iproc == 0) write(*,*)'wavelet localization is OFF'
   endif
 
-
 end subroutine system_size
+!!***
+
 
 !!****f* BigDFT/correct_grid
 !! FUNCTION
@@ -246,7 +245,6 @@ end subroutine system_size
 !!   allow the fft for the preconditioner and for Poisson Solver
 !! SOURCE
 !!
-!!***
 subroutine correct_grid(a,h,n)
   use module_base
   use Poisson_Solver
@@ -288,8 +286,14 @@ subroutine correct_grid(a,h,n)
   h=a/real(n+1,gp)
   
 end subroutine correct_grid
+!!***
 
-! Calculates the length of the keys describing a wavefunction data structure
+
+!!****f* BigDFT/num_segkeys
+!! FUNCTION
+!!   Calculates the length of the keys describing a wavefunction data structure
+!! SOURCE
+!!
 subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
   implicit none
   integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3
@@ -341,8 +345,14 @@ nend=nend+nendi
   mseg=nend
   
 end subroutine num_segkeys
+!!***
 
-! Calculates the keys describing a wavefunction data structure
+
+!!****f* BigDFT/segkeys
+!! FUNCTION
+!!   Calculates the keys describing a wavefunction data structure
+!! SOURCE
+!!
 subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
   !implicit real(kind=8) (a-h,o-z)
   implicit none
@@ -388,11 +398,18 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
   endif
   !mseg=nend
 end subroutine segkeys
+!!***
 
+
+!!****f* BigDFT/fill_logrid
+!! FUNCTION
+!!   set up an array logrid(i1,i2,i3) that specifies whether the grid point
+!!   i1,i2,i3 is the center of a scaling function/wavelet
+!!
+!! SOURCE
+!!
 subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
      ntypes,iatype,rxyz,radii,rmult,hx,hy,hz,logrid)
-  ! set up an array logrid(i1,i2,i3) that specifies whether the grid point
-  ! i1,i2,i3 is the center of a scaling function/wavelet
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
@@ -482,7 +499,14 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
   enddo
 
 END SUBROUTINE fill_logrid
+!!***
 
+
+!!****f* BigDFT/make_bounds
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -537,7 +561,6 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
      end do
   end do
 
-
   do i2=0,n2 
      do i1=0,n1 
         ibxy(1,i1,i2)= 1000
@@ -560,4 +583,5 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
   end do
 
 end subroutine make_bounds
+!!***
 
