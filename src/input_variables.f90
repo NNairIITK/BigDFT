@@ -1523,7 +1523,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
      write(line, "(a150)") adjustl(lines(i))
      if (line(1:1) /= '#' .and. line(1:1) /= '!' .and. len(trim(line)) /= 0) then
         atoms%nat = atoms%nat + 1
-     else if (line(1:9) == "#keyword:" .or. line(1:9) == "!keyword:") then
+     else if (line(1:8) == "#keyword" .or. line(1:8) == "!keyword") then
         if (index(line, 'bohr') > 0)        write(atoms%units, "(A)") "bohr"
         if (index(line, 'bohrd0') > 0)      write(atoms%units, "(A)") "bohrd0"
         if (index(line, 'atomic') > 0)      write(atoms%units, "(A)") "atomicd0"

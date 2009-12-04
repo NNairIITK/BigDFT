@@ -197,8 +197,8 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
              iat,trim(atoms%atomnames(atoms%iatype(iat))),&
              (rxyz(j,iat),j=1,3),rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz
      enddo
-     write(*,'(1x,a,3(1x,1pe12.5),a,3(1x,0pf5.2))') &
-          '   Shift of=',-cxmin,-cymin,-czmin,' Grid Spacings=',hx,hy,hz
+     write(*,'(1x,a,3(1x,1pe12.5),a,3(1x,0pf7.4))') &
+          '   Shift of=',-cxmin,-cymin,-czmin,' H grids=',hx,hy,hz
      write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
           '  Box Sizes=',atoms%alat1,atoms%alat2,atoms%alat3,n1,n2,n3
      write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&

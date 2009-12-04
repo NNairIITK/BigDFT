@@ -32,6 +32,13 @@ The compilation and installation of BigDFT relies on the GNU standard building c
 \section{Building the executables}
 
 \subsection{Configure}
+BigDFT build system is based on standard GNU autotools. The end
+user does not need to have the Autotools package installed on his
+computer, the \texttt{configure} script provided in BigDFT package
+will to the job to create the \texttt{Makefile} and set the
+options, like the optimisation level, the associated libraries to link
+with...
+
 After the package has been untared, the sources should be configured, depending on the system we want to run on. Thanks to the autotools, it is possible to generate several builds from the same source tree. It is adviced to create a compilation directory, either inside or outside the source tree. Lets call this directory \texttt{compile-gfortran} for instance. One starts the configure from there \texttt{'source tree path'/configure}.
 
 The following modularities during compilation are available:
@@ -47,6 +54,10 @@ One can tune the compilation environnement using the following options:
   \item \texttt{--with-ext-linalg}: Give the name of the libraries replacing Blas and Lapack (default = none specified). Use the -l before the name(s).
   \item \texttt{--with-ext-linalg-path}: Give the path of the other linear algebra libraries (default = \texttt{-L/usr/lib}). Use the -L before the path(es).
   \item \texttt{FC}: Specify the compiler.
+  \item \texttt{FC_FLAGS}: Specify the flags, like the
+optimisation flags, to pass to the compiler (default are \texttt{-g
+-O2} for GNU compilers).
+  \item \texttt{--prefix=DIR}: Specify your installation directory (\texttt{/usr/local} is default).
 \end{itemize}
 
 A example of compilation using the MKL from Intel instead of basic Blas and Lapack installation:\\
