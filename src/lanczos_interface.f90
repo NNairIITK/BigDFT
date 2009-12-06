@@ -87,10 +87,10 @@ contains
        stop "array size inconsistency" 
     endif
     
-    allocate(Qvect_tmp(ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) ) 
-    allocate(wrk      (ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) )
- 
+    allocate(Qvect_tmp(ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) , stat=i_stat) 
     call memocc(i_stat,Qvect_tmp,'Qvect_tmp',subname)
+
+    allocate(wrk      (ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) , stat=i_stat )
     call memocc(i_stat,wrk,'wrk',subname)
 
     EP_shift=0.0
@@ -213,7 +213,7 @@ contains
     EP_doorthoocc=.true.
     EP_norb=norb
     occQvect=>Occ_psit
-    allocate(EP_occprojections(EP_norb) , stat=i_stat )
+    allocate(EP_occprojections(EP_norb+ndebug) , stat=i_stat )
     call memocc(i_stat,EP_occprojections,'EP_occprojections',subname)
 
   end subroutine EP_store_occupied_orbitals
@@ -427,9 +427,9 @@ contains
 
     if(EP_doorthoocc) then
 
-       allocate(scals( EP_norb) ,stat=i_stat)
+       allocate(scals( EP_norb+ndebug) ,stat=i_stat)
        call memocc(i_stat,scals,'scals',subname)
-       allocate(scalstot( EP_norb) ,stat=i_stat)
+       allocate(scalstot( EP_norb+ndebug) ,stat=i_stat)
        call memocc(i_stat,scalstot,'scalstot',subname)
        
 
@@ -715,7 +715,6 @@ end subroutine EP_initialize_start
    if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
 
    allocate(tpsi(wfd%nvctr_c+7*wfd%nvctr_f+ndebug),stat=i_stat)
-
    call memocc(i_stat,tpsi,'tpsi',subname)
 
    !initialize the wavefunction
@@ -866,7 +865,7 @@ end subroutine EP_initialize_start
 
 
    if(.not. allocated(psi_gross)) then 
-      allocate(psi_gross(0:n1/2,2,0:n2/2,2,0:n3/2,2),stat=i_stat)
+      allocate(psi_gross(0:n1/2,2,0:n2/2,2,0:n3/2,2+ndebug),stat=i_stat)
       call memocc(i_stat,psi_gross,'psi_gross',subname)
       allocate(logrid(0:n1/2,0:n2/2,0:n3/2+ndebug),stat=i_stat)
       call memocc(i_stat,logrid,'logrid',subname)

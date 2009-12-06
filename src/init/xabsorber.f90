@@ -1684,7 +1684,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg,&
                  Nsol, Labs, Ngrid,Egrid,  rgrid , psigrid )
-  use module_base, only: gp
+  use module_base
   use esatto
 
   implicit real(gp) (a-h,o-z)
@@ -1711,6 +1711,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
   real(gp) :: rgrid(Ngrid)
   real(gp), target :: dumgrid1(Ngrid),dumgrid2(Ngrid) ,dumgrid3(Ngrid)
   real(gp) , pointer :: y_r(:) ,  d_r(:)
+  character(len=*), parameter :: subname='gatom_modified_eqdiff'
 
  
 
@@ -2037,8 +2038,10 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 
   if(.true.) then
 
-     allocate(y_r(0:9))
-     allocate(d_r(0:9))
+     allocate(y_r(0:9+ndebug), stat=i_stat)
+     call memocc(i_stat,y_r,'y_r',subname)
+     allocate(d_r(0:9+ndebug), stat=i_stat)
+     call memocc(i_stat,d_r,'d_r',subname)
  
 
      if(.false.) then ! ricalcola la rho con le soluzioni radiali
@@ -2190,8 +2193,13 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 
         endif
      enddo
-     deallocate(y_r)
-     deallocate(d_r)
+     i_all=-product(shape(y_r))*kind(y_r)
+     deallocate(y_r, stat=i_stat)
+     call memocc(i_stat,i_all,'y_r',subname)
+
+     i_all=-product(shape(d_r))*kind(d_r)
+     deallocate(d_r, stat=i_stat)
+     call memocc(i_stat,i_all,'d_r',subname)
      stop
   endif
 
@@ -3034,7 +3042,7 @@ end subroutine back_trans_14_4b2B
 
 
 subroutine scaling_function4b2B(itype,nd,nrange,a,x)
-
+  use module_base
   implicit none
   !Arguments
   !Type of interpolating functions
@@ -3046,9 +3054,8 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
   !Local variables
   character(len=*), parameter :: subname='scaling_function4b2B'
   real(kind=8), dimension(:), allocatable :: y
-  integer :: i,nt,ni,i_all,i_stat, ndebug
-  
-  ndebug=1
+  integer :: i,nt,ni,i_all,i_stat  
+
 
   !Only itype=8,14,16,20,24,30,40,50,60,100
   select case(itype)
@@ -3066,7 +3073,7 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
   ni=2*itype
   nrange = ni
   allocate(y(0:nd+ndebug),stat=i_stat)
-  ! call memocc(i_stat,y,'y',subname)
+  call memocc(i_stat,y,'y',subname)
   
   ! plot scaling function
   call zero4b2B(nd+1,x)
@@ -3116,7 +3123,7 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
 
   i_all=-product(shape(y))*kind(y)
   deallocate(y,stat=i_stat)
-  ! call memocc(i_stat,i_all,'y',subname)
+  call memocc(i_stat,i_all,'y',subname)
 end subroutine scaling_function4b2B
 !!***
 

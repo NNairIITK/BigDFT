@@ -75,36 +75,37 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
  
-!!!  
-  !call allocate_comms(nproc,ha%orbs,ha%comms,subname)
-     ! write(filename,'(A,A,A)') "gproje_", at%atomnames(at%iatype(  in_iat_absorber )) , "_1s_dipole"
-     write(filename,'(A,A,A,I1)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
+  write(filename,'(A,A,A,I1)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
+  
+  inquire(FILE=trim(filename),EXIST=projeexists)
+  
+  if( projeexists .and. .not. in%abscalc_eqdiff   ) then
+     
+     if(iproc==0) then
+        print *, "reading  precalculated  projection on pseudofunctions"
+        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print *, "After application of a 2*L-pole  with L= ", in%L_absorber
+        print *," from file " , filename
+     endif
 
-     inquire(FILE=trim(filename),EXIST=projeexists)
-
-     if( projeexists .and. .not. in%abscalc_eqdiff   ) then
-
-
-        if(iproc==0) then
-           print *, "reading  precalculated  projection on pseudofunctions"
-           print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-           print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-           print *," from file " , filename
-        endif
-
-        nullify( dum_coeffs  ) 
-
-        call read_gaussian_information (0 ,1 ,ha%orbs,Gabsorber,dum_coeffs , filename, .true. )
-
-        print *, " reading ok " 
-
-        Gabsorber%rxyz(:,1)=rxyz(:, in_iat_absorber )
-
-        Gabs_coeffs(:)=in%Gabs_coeffs(:)
-
-     else
-          
-        
+     nullify( dum_coeffs  ) 
+     nullify(Gabsorber%nshell)
+     nullify(Gabsorber%nam)
+     nullify(Gabsorber%ndoc)
+     nullify(Gabsorber%xp)
+     nullify(Gabsorber%psiat)
+     
+     call read_gaussian_information (0 ,1 ,ha%orbs,Gabsorber,dum_coeffs , filename, .true. )    
+     Gabsorber%rxyz(:,1)=rxyz(:, in_iat_absorber )
+     
+     i_all=-product(shape(dum_coeffs))*kind(dum_coeffs)
+     deallocate(dum_coeffs,stat=i_stat)
+     call memocc(i_stat,i_all,'coeffs',subname)
+     
+     Gabs_coeffs(:)=in%Gabs_coeffs(:)
+     
+  else
+     
         if(iproc==0) then
            print *, "calculating  projection on pseudofunctions"
            print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
@@ -124,6 +125,11 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
            print *,"writing them on file " , filename
            call write_gaussian_information( 0 ,1 ,ha%orbs,Gabsorber,dum_coeffs ,filename)
         endif
+     
+        i_all=-product(shape(dum_coeffs))*kind(dum_coeffs)
+        deallocate(dum_coeffs,stat=i_stat)
+        call memocc(i_stat,i_all,'coeffs',subname)
+        
      endif
 
 
@@ -152,11 +158,8 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%GPU=>GPU !!
   ha%Gabsorber=>Gabsorber 
   ha%Gabs_coeffs=>Gabs_coeffs
-  
-
 
   call EP_inizializza(ha) 
-  
 
   call EP_memorizza_stato(Gabsorber) 
      
@@ -179,10 +182,10 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
         open(unit=22,file="alphabeta")
         write(22,*) LB_nsteps, EP_norma2_initialized_state
         print *, " alpha and beta from lanczos "
-        print *,  LB_nsteps, EP_norma2_initialized_state
+        WRITE(*,'(I5,1ES23.16)')    LB_nsteps, EP_norma2_initialized_state
         do i=0, LB_nsteps-1
            write(22,*) LB_alpha(i), LB_beta(i)
-           print *, LB_alpha(i), LB_beta(i)
+           WRITE(*,'(2ES23.16)')  LB_alpha(i), LB_beta(i)
         enddo
         if(doorthoocc) then
            write(22,*) Occ_norb
@@ -193,12 +196,14 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
         close(unit=22)
      endif
 
+     call LB_de_allocate_for_lanczos( )
+
+
+     
 
   endif
   
-
   call deallocate_comms(ha%comms,subname)
-
 
   call EP_free()
 
@@ -206,12 +211,17 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      call free_gpu(GPU,ha%orbs%norbp)
   end if
 
-
   call deallocate_orbs(ha%orbs,subname)
+
+  call deallocate_gwf(Gabsorber, subname)
 
   i_all=-product(shape(ha%orbs%eval))*kind(ha%orbs%eval)
   deallocate(ha%orbs%eval,stat=i_stat)
   call memocc(i_stat,i_all,'ha%orbs%spinsgn',subname)
+
+  i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
+  deallocate(Gabs_coeffs,stat=i_stat)
+  call memocc(i_stat,i_all,'Gabs_coeffs',subname)
 
 end subroutine lanczos
 
@@ -294,7 +304,6 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
  
 
   write(filename,'(A,A,A,I1)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
-  
 
   inquire(FILE=trim(filename),EXIST=projeexists)
 
@@ -308,7 +317,6 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      endif
      
      nullify( dum_coeffs  ) 
-     
 
      nullify(Gabsorber%nshell)
      nullify(Gabsorber%nam)
@@ -319,6 +327,10 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      call read_gaussian_information(0 ,1 ,ha%orbs,Gabsorber,dum_coeffs , filename, .true. )
      Gabsorber%rxyz(:,1)=rxyz(:, in_iat_absorber )
      
+     i_all=-product(shape(dum_coeffs))*kind(dum_coeffs)
+     deallocate(dum_coeffs,stat=i_stat)
+     call memocc(i_stat,i_all,'coeffs',subname)
+
      Gabs_coeffs(:)=in%Gabs_coeffs(:)
   else
      if(iproc==0) then
@@ -343,6 +355,12 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
         print *,"writing them on file " , filename
         call write_gaussian_information( 0 ,1 ,ha%orbs,Gabsorber,dum_coeffs ,trim(filename))
      endif
+   
+     
+     i_all=-product(shape(dum_coeffs))*kind(dum_coeffs)
+     deallocate(dum_coeffs,stat=i_stat)
+     call memocc(i_stat,i_all,'coeffs',subname)
+     
   endif
   
 
@@ -372,16 +390,10 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%GPU=>GPU !!
   ha%Gabsorber=>Gabsorber 
   ha%Gabs_coeffs=>Gabs_coeffs
-  
-  !initialise the arguments for HamiltonianApplication
-
-
-  
-
+ 
   call EP_inizializza(ha) 
   
   call  EP_memorizza_stato(Gabsorber) 
-
 
   if(.false.) then
 
@@ -444,40 +456,70 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
      if(ha%iproc==0) then
         print *, "coefficients from Chebychev "
-        print *,  2*LB_nsteps, cheb_shift,  fact_cheb
+        WRITE(*,'(I5,2ES23.16)')   2*LB_nsteps, cheb_shift,  fact_cheb
         print *,"... " 
         do i=0, 2*LB_nsteps-1
            if(i>2*LB_nsteps-1 -10) then
-              print *,  LB_alpha(i)
+              WRITE(*,'(1ES23.16)')   LB_alpha(i)
            endif
         enddo
-        close(unit=22)
      endif
   endif
 
+
   !deallocate communication and orbitals descriptors
   call deallocate_comms(ha%comms,subname)
+
 
   call EP_free()
   call  LB_de_allocate_for_lanczos( )
 
 !!$ this free is already executed by bigdft
 !!$
-!!$  if (GPUconv) then
-!!$     call free_gpu(GPU,ha%orbs%norbp)
-!!$  end if
-!!$
+  if (GPUconv) then
+     call free_gpu(GPU,ha%orbs%norbp)
+  end if
 
-  call deallocate_orbs(ha%orbs,subname)
 
   i_all=-product(shape(ha%orbs%eval))*kind(ha%orbs%eval)
   deallocate(ha%orbs%eval,stat=i_stat)
-  call memocc(i_stat,i_all,'ha%orbs%spinsgn',subname)
-
+  call memocc(i_stat,i_all,'ha%orbs%eval',subname)
+  
   i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
   deallocate(Gabs_coeffs,stat=i_stat)
   call memocc(i_stat,i_all,'Gabs_coeffs',subname)
 
+
+  call deallocate_orbs(ha%orbs,subname)
+
+  call deallocate_gwf(Gabsorber, subname)
+
+
+!!$  i_all=-product(shape(Gabsorber%nshell))*kind(Gabsorber%nshell)
+!!$  deallocate(Gabsorber%nshell,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'Gabsorber%nshell',subname)
+!!$
+!!$  i_all=-product(shape(Gabsorber%nam))*kind(Gabsorber%nam)
+!!$  deallocate(Gabsorber%nam,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'Gabsorber%nam',subname)
+!!$
+!!$  i_all=-product(shape(Gabsorber%ndoc))*kind(Gabsorber%ndoc)
+!!$  deallocate(Gabsorber%ndoc,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'Gabsorber%ndoc',subname)
+!!$
+!!$  i_all=-product(shape(Gabsorber%xp))*kind(Gabsorber%xp)
+!!$  deallocate(Gabsorber%xp,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'Gabsorber%xp',subname)
+!!$
+!!$  i_all=-product(shape(Gabsorber%psiat))*kind(Gabsorber%psiat)
+!!$  deallocate(Gabsorber%psiat,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'Gabsorber%psiat',subname)
+!!$
+!!$  if( associated(Gabsorber%rxyz)) then
+!!$     i_all=-product(shape(Gabsorber%rxyz))*kind(Gabsorber%rxyz)
+!!$     deallocate(Gabsorber%rxyz,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'Gabsorber%rxyz',subname)
+!!$  endif
 
 
 end subroutine chebychev

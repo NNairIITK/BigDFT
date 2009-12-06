@@ -594,6 +594,13 @@ end subroutine deallocate_orbs
     deallocate(G%xp,stat=i_stat)
     call memocc(i_stat,i_all,'xp',subname)
 
+    if( associated(G%rxyz)) then
+       i_all=-product(shape(G%rxyz))*kind(G%rxyz)
+       deallocate(G%rxyz,stat=i_stat)
+       call memocc(i_stat,i_all,'G%rxyz',subname)
+    endif
+    
+
   end subroutine deallocate_gwf
 !!***
 

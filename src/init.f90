@@ -463,6 +463,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   real(wp), dimension(:,:,:), pointer :: psigau
   integer i,j,k
 
+
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
   allocate(locrad(at%nat+ndebug),stat=i_stat)
@@ -566,6 +567,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   end if
 
 
+
 !!!  if (nproc == 1) then
 !!!     !calculate the overlap matrix as well as the kinetic overlap
 !!!     !in view of complete gaussian calculation
@@ -647,6 +649,19 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      if (switchGPUconv) then
         GPUconv=.true.
      end if
+
+     if (nvirt == 0) then
+        call deallocate_orbs(orbsv,subname)
+     end if
+     call deallocate_orbs(orbse,subname)
+     
+     !deallocate the gaussian basis descriptors
+     call deallocate_gwf(G,subname)
+    
+     i_all=-product(shape(psigau))*kind(psigau)
+     deallocate(psigau,stat=i_stat)
+     call memocc(i_stat,i_all,'psigau',subname)
+     call deallocate_comms(commse,subname)
     return 
   end if
 
@@ -719,6 +734,8 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      call free_gpu(GPU,orbse%norbp)
   end if
 
+
+
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Input Wavefunctions Orthogonalization:'
 
@@ -747,6 +764,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   if (nvirt == 0) then
      call deallocate_orbs(orbsv,subname)
   end if
+
 
   call deallocate_orbs(orbse,subname)
      

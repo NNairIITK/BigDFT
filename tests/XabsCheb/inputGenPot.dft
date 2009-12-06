@@ -1,4 +1,4 @@
- 0.45 0.45 0.45 hx,hy,hz: grid spacing in the three directions
+ 0.43 0.43 0.43 hx,hy,hz: grid spacing in the three directions
 45.0 9.0 crmult, frmult: c(f)rmult*radii_cf(*,1(2)) gives the coarse (fine)radius around each atom
   1 ixc: exchange-correlation parameter (LDA=1,PBE=11)
   0 0.000 0.000 0.000 ncharge: charge of the system, Electric field
@@ -8,7 +8,7 @@
   6  0   ncong, idsx: # CG iterations for the preconditioning equation, length of the diis history
   0 dispersion correction functional (values 1,2,3), 0=no correction
 noCUDAGPU write "CUDAGPU" on this line to use GPU acceleration (GPU.config file is needed)
-          0  F           0  InputPsiId, output_wf, output_grid
+          0  F           2  InputPsiId, output_wf, output_grid
  5.0  30 calc_tail, rbuf, ncongt: calculate tails,length of the tail (AU),# tail CG iterations
  0  0 davidson treatment, no. of virtual orbitals, no of plotted orbitals
 1   meaning  : 0 no absorption 1 tchebychev 2 Lanczos 
