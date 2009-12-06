@@ -1,4 +1,4 @@
-!!****f* BigDFT/
+!!****f* BigDFT/createWavefunctionsDescriptors
 !! FUNCTION
 !!   Calculates the descriptor arrays and nvctrp
 !!   Calculates also the bounds arrays needed for convolutions
@@ -418,8 +418,8 @@ END SUBROUTINE import_gaussians
 
 subroutine input_wf_diag(iproc,nproc,at,&
      orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
-     nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,&
-     nscatterarr,ngatherarr,nspin,  potshortcut)
+     nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
+     nscatterarr,ngatherarr,nspin,potshortcut)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -443,15 +443,15 @@ subroutine input_wf_diag(iproc,nproc,at,&
   real(dp), dimension(*), intent(in) :: pkernel
   real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
   type(orbitals_data), intent(out) :: orbsv
+  type(gaussian_basis), intent(out) :: G !basis for davidson IG
   real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
-  integer potshortcut
+  integer, intent(in) ::potshortcut
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   integer, parameter :: ngx=31
   logical :: switchGPUconv
   integer :: i_stat,i_all,iat,nspin_ig
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,accurex
-  type(gaussian_basis) :: G
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
   type(GPU_pointers) :: GPU
@@ -540,8 +540,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
   end if
 
   !use only the part of the arrays for building the hamiltonian matrix
-  call gaussians_to_wavelets(iproc,nproc,at%geocode,orbse,Glr%d,&
-       hx,hy,hz,Glr%wfd,G,psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
+  !call gaussians_to_wavelets(iproc,nproc,at%geocode,orbse,Glr%d,&
+  !     hx,hy,hz,Glr%wfd,G,psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
+
+  !use only the part of the arrays for building the hamiltonian matrix
+  call gaussians_to_wavelets_new(iproc,nproc,Glr,orbse,hx,hy,hz,G,&
+       psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
+
 
   i_all=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=i_stat)
@@ -688,17 +693,11 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !!!  call Gaussian_DiagHam(iproc,nproc,at%natsc,nspin,orbs,G,mpirequests,&
 !!!       psigau,hpsigau,orbse,etol,norbsc_arr)
 
-  !deallocate the gaussian basis descriptors
-  call deallocate_gwf(G,subname)
-
 
 !!!  i_all=-product(shape(mpirequests))*kind(mpirequests)
 !!!  deallocate(mpirequests,stat=i_stat)
 !!!  call memocc(i_stat,i_all,'mpirequests',subname)
 
-  i_all=-product(shape(psigau))*kind(psigau)
-  deallocate(psigau,stat=i_stat)
-  call memocc(i_stat,i_all,'psigau',subname)
 !!!  i_all=-product(shape(hpsigau))*kind(hpsigau)
 !!!  deallocate(hpsigau,stat=i_stat)
 !!!  call memocc(i_stat,i_all,'hpsigau',subname)
@@ -736,13 +735,21 @@ subroutine input_wf_diag(iproc,nproc,at,&
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
         write(*,'(1x,a,1pe9.2)') &
           'expected accuracy in energy per orbital ',accurex/real(orbs%norb,kind=8)
-        write(*,'(1x,a,1pe9.2)') &
-             'suggested value for gnrm_cv ',accurex/real(orbs%norb,kind=8)
+        !write(*,'(1x,a,1pe9.2)') &
+        !     'suggested value for gnrm_cv ',accurex/real(orbs%norb,kind=8)
      end if
   endif
 
+  !here we can define the subroutine which generates the coefficients for the virtual orbitals
+
+  i_all=-product(shape(psigau))*kind(psigau)
+  deallocate(psigau,stat=i_stat)
+  call memocc(i_stat,i_all,'psigau',subname)
+  call deallocate_gwf(G,subname)
 
   if (nvirt == 0) then
+     !deallocate the gaussian basis descriptors
+     !call deallocate_gwf(G,subname)
      call deallocate_orbs(orbsv,subname)
   end if
 

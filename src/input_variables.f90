@@ -192,15 +192,13 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   
 
 
-  !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
-  !systems, while in principle it should work immediately
-  if (in%nspin/=1 .and. in%nvirt/=0) then
-     !if (iproc==0) then
-        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
-     !end if
-     stop
-  end if
- 
+!  if (in%nspin/=1 .and. in%nvirt/=0) then
+!     !if (iproc==0) then
+!        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
+!     !end if
+!     stop
+!  end if
+! 
   close(unit=1,iostat=ierror)
 
   if (in%nvirt > 0 .and. iproc ==0) then
@@ -1450,7 +1448,7 @@ subroutine parse_extra_info(iproc,iat,extra,atoms)
         end if
      else
         nchrg=0
-        call valid_frzchain(trim(extra),go)
+        call valid_frzchain(trim(suffix),go)
         if (.not. go) then
            read(suffix,*,iostat=ierr2)nchrg
            if (ierr2 /= 0) then
@@ -1458,6 +1456,8 @@ subroutine parse_extra_info(iproc,iat,extra,atoms)
            else
               suffix='    '
            end if
+        else
+
         end if
      end if
   end if
@@ -1470,7 +1470,7 @@ subroutine parse_extra_info(iproc,iat,extra,atoms)
   end if
   atoms%natpol(iat)=1000*nchrg+nsgn*100+nspol
 
-  !print *,'natpol atomic',iat,atoms%natpol(iat)
+  !print *,'natpol atomic',iat,atoms%natpol(iat),suffix
 
   !convert the suffix into ifrztyp
   call frozen_ftoi(suffix,atoms%ifrztyp(iat))

@@ -239,6 +239,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
   type(orbitals_data) :: orbsv
+  type(gaussian_basis) :: Gvirt
   type(GPU_pointers) :: GPU
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: rho
@@ -553,7 +554,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,atoms,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
-          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,nscatterarr,ngatherarr,nspin, in%potshortcut )
+          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
+          nscatterarr,ngatherarr,nspin, in%potshortcut)
 
   case(1)
      !these parts should be reworked for the non-collinear spin case
@@ -988,9 +990,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         end if
      end if
 
-
- 
-
      !plot the ionic potential, if required by output_grid
      if (abs(in%output_grid)==2) then
         if (in%output_grid==2) then
@@ -1402,6 +1401,7 @@ contains
     !deallocate wavefunction for virtual orbitals
     !if it is the case
     if (DoDavidson) then
+       !call deallocate_gwf(Gvirt,subname)
        i_all=-product(shape(psivirt))*kind(psivirt)
        deallocate(psivirt,stat=i_stat)
        call memocc(i_stat,i_all,'psivirt',subname)
@@ -1624,6 +1624,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
   type(orbitals_data) :: orbsv
+  type(gaussian_basis) :: Gvirt
   type(GPU_pointers) :: GPU
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: rho
@@ -1947,7 +1948,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,atoms,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
-          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,nscatterarr,ngatherarr,nspin, in%potshortcut )
+          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
+          nscatterarr,ngatherarr,nspin, in%potshortcut )
 
   case(1)
      !these parts should be reworked for the non-collinear spin case
@@ -3039,6 +3041,7 @@ contains
     !deallocate wavefunction for virtual orbitals
     !if it is the case
     if (in%nvirt > 0) then
+       !call deallocate_gwf(Gvirt,subname)
        i_all=-product(shape(psivirt))*kind(psivirt)
        deallocate(psivirt,stat=i_stat)
        call memocc(i_stat,i_all,'psivirt',subname)

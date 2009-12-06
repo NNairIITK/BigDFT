@@ -85,7 +85,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   character(len=11) :: orbname
   logical :: msg !extended output
   integer :: n2virt,n2virtp,ierr,i_stat,i_all,iorb,jorb,iter,nwork,ind,i1,i2!<-last 3 for debug
-  integer :: ise,ish,jnd,j,ispsi,ikpt,ikptp,nvctrp
+  integer :: ise,jnd,j,ispsi,ikpt,ikptp,nvctrp
   real(kind=8) :: tt,gnrm,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,gnrm_fake
   type(communications_arrays) :: commsv
   real(wp), dimension(:), allocatable :: work
@@ -117,21 +117,15 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   !if(msg)write(*,*)'shape(v)',shape(v),'size(v)',size(v)
 
   !dimensions for allocations of matrices
-  if (nproc > 1) then
-     ise=2
-     ish=4
-  else
+!  if (nproc > 1) then
+!     ise=2
+!  else
      ise=1
-     ish=2
-  end if
+!  end if
 
   n2virt=2*orbsv%norb! the dimension of the subspace
   !to be modified for complex wavefunctions
 
-  if (nproc == 1) then
-   
-  end if
- 
   !disassociate work array for transposition in serial
   if (nproc > 1) then
      allocate(psiw(orbs%npsidim+ndebug),stat=i_stat)
@@ -150,7 +144,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   end if
 
   !allocate communications arrays for virtual orbitals
-  !call allocate_comms(nproc,orbsv,commsv,subname)
   call orbitals_communicators(iproc,nproc,lr,orbsv,commsv)  
 
   if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
@@ -162,17 +155,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
   !this is the same also in serial
   call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
-  !call orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
+
   call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
 
-!!!  call orthoconvirt_p(iproc,nproc,orbs%norbu,orbsv%norb,comms%nvctr_par(iproc,1),psi,v,msg)
-!!!  if(orbs%norbd > 0) then
-!!!     call orthoconvirt_p(iproc,nproc,orbs%norbd,&
-!!!       orbsv%norb,comms%nvctr_par(iproc,1),psi(1+comms%nvctr_par(iproc,1)*orbs%norbu),v,msg)
-!!!  end if
   !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
   call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
-  !call orthon_p(iproc,nproc,orbsv%norb,commsv%nvctr_par(iproc,1),lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,v,1)
+
 
   !retranspose v
   if(nproc > 1)then
@@ -207,7 +195,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   call razero(orbsv%norb*2*orbsv%nkpts*ise,e)
   ! Rayleigh quotients.
 
-
   !probably this loop can be rewritten using GEMMs
   ispsi=1
   do ikptp=1,orbsv%nkptsp
@@ -222,9 +209,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   end do
 
   if(nproc > 1)then
-     !sum up the contributions of nproc sets with commsv%nvctr_par(iproc,1) wavelet coefficients each
-     call MPI_ALLREDUCE(e(1,1,1,2),e(1,1,1,1),2*orbsv%norb*orbsv%nkpts,&
-          mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
+     !sum up the contributions of nproc sets with 
+     !commsv%nvctr_par(iproc,1) wavelet coefficients each
+     !call MPI_ALLREDUCE(e(1,1,1,2),e(1,1,1,1),2*orbsv%norb*orbsv%nkpts,&
+     !     mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(e(1,1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+
   end if
 
   if(iproc==0)write(*,'(1x,a)')"done."
@@ -265,22 +255,20 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
      do ikptp=1,orbsv%nkptsp
         ikpt=ikptp+orbsv%iskpts
         nvctrp=commsv%nvctr_par(iproc,ikptp)
-
         do iorb=1,orbsv%norb
+           !gradient = hv-e*v
            call axpy(nvctrp,-e(iorb,ikpt,1,1),v(ispsi+nvctrp*(iorb-1)),1,&
                 g(ispsi+nvctrp*(iorb-1)),1)
-           !gradient = hv-e*v
-           e(iorb,ikpt,2,ise)= nrm2(nvctrp,g(ispsi+nvctrp*(iorb-1)),1)**2
-           !local contribution to the square norm
-        end do
 
+           !local contribution to the square norm
+           e(iorb,ikpt,2,ise)= nrm2(nvctrp,g(ispsi+nvctrp*(iorb-1)),1)**2
+        end do
         ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
      end do
 
      if(nproc > 1)then
         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-        call MPI_ALLREDUCE(e(1,1,2,2),e(1,1,2,1),orbsv%norb*orbsv%nkpts,&
-             mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(e(1,1,2,1),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
      end if
 
      gnrm=0._dp
@@ -329,8 +317,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
      if(nproc > 1)then
         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-        call MPI_ALLREDUCE(e(1,1,2,2),e(1,1,2,1),orbsv%norb*orbsv%nkpts,&
-             mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(e(1,1,2,1),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
      end if
 
      gnrm=0._dp
@@ -417,8 +404,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
      
      if(nproc > 1)then
         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-        call MPI_ALLREDUCE(e(1,1,2,2),e(1,1,2,1),orbsv%norb*orbsv%nkpts,&
-             mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(e(1,1,2,1),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
      end if
 
      gnrm=0.0_dp
@@ -440,7 +426,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
      !                 <gi-n | hvj>  <gi-n | hgj-n>                   <gi-n | vj>  <gi-n | gj-n>
 
      !the dimension should be chosen with the max between k-points
-     allocate(hamovr(n2virt,n2virt,orbsv%nkpts,ish+ndebug),stat=i_stat)
+     allocate(hamovr(n2virt,n2virt,2,orbsv%nkpts+ndebug),stat=i_stat)
      call memocc(i_stat,hamovr,'hamovr',subname)
 
      ! store upper triangular part of these matrices only
@@ -450,31 +436,28 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
         ikpt=ikptp+orbsv%iskpts
         nvctrp=commsv%nvctr_par(iproc,ikptp)
 
-        do iorb=1,orbsv%norb
-           do jorb=iorb,orbsv%norb!or 1,nvirte 
-              ind=ispsi+nvctrp*(iorb-1)
-              jnd=ispsi+nvctrp*(jorb-1)
-              hamovr(iorb,jorb,ikpt,ish-1)=               dot(nvctrp,v(ind),1,hv(jnd),1)
-              hamovr(jorb,iorb+orbsv%norb,ikpt,ish-1)=        dot(nvctrp,g(ind),1,hv(jnd),1)
-              !=hamovr(iorb+orbsv%norb,jorb,ikpt,ish-1)=        dot(nvctrp,g(ind),1,hv(jnd),1)
-              hamovr(iorb,jorb+orbsv%norb,ikpt,ish-1)=        dot(nvctrp,v(ind),1,hg(jnd),1)
-              hamovr(iorb+orbsv%norb,jorb+orbsv%norb,ikpt,ish-1)= dot(nvctrp,g(ind),1,hg(jnd),1)
+        call Davidson_subspace_hamovr(orbsv%norb,nvctrp,hamovr(1,1,1,ikpt),&
+             v(ispsi),g(ispsi),hv(ispsi),hg(ispsi))
 
-              hamovr(iorb,jorb,ikpt,ish)=               dot(nvctrp,v(ind),1, v(jnd),1)
-              hamovr(jorb,iorb+orbsv%norb,ikpt,ish)=       dot(nvctrp,g(ind),1, v(jnd),1)
-              !=hamovr(iorb+orbsv%norb,jorb,ikpt,ish)=        dot(nvctrp,g(ind),1, v(jnd),1)
-              hamovr(iorb,jorb+orbsv%norb,ikpt,ish)=        dot(nvctrp,v(ind),1, g(jnd),1)
-              hamovr(iorb+orbsv%norb,jorb+orbsv%norb,ikpt,ish)= dot(nvctrp,g(ind),1, g(jnd),1)
-           enddo
-        enddo
+!        do iorb=1,orbsv%norb
+!           do jorb=iorb,orbsv%norb!or 1,nvirte 
+!              ind=ispsi+nvctrp*(iorb-1)
+!              jnd=ispsi+nvctrp*(jorb-1)
+!              hamovr(iorb,jorb,1,ikpt)=               dot(nvctrp,v(ind),1,hv(jnd),1)
+!              hamovr(jorb,iorb+orbsv%norb,1,ikpt)=        dot(nvctrp,g(ind),1,hv(jnd),1)
+!              !=hamovr(iorb+orbsv%norb,jorb,ikpt,ish-1)=        dot(nvctrp,g(ind),1,hv(jnd),1)
+!              hamovr(iorb,jorb+orbsv%norb,1,ikpt)=        dot(nvctrp,v(ind),1,hg(jnd),1)
+!              hamovr(iorb+orbsv%norb,jorb+orbsv%norb,1,ikpt)= dot(nvctrp,g(ind),1,hg(jnd),1)
+!
+!              hamovr(iorb,jorb,2,ikpt)=               dot(nvctrp,v(ind),1, v(jnd),1)
+!              hamovr(jorb,iorb+orbsv%norb,2,ikpt)=       dot(nvctrp,g(ind),1, v(jnd),1)
+!              !=hamovr(iorb+orbsv%norb,jorb,ikpt,2)=        dot(nvctrp,g(ind),1, v(jnd),1)
+!              hamovr(iorb,jorb+orbsv%norb,2,ikpt)=        dot(nvctrp,v(ind),1, g(jnd),1)
+!              hamovr(iorb+orbsv%norb,jorb+orbsv%norb,2,ikpt)= dot(nvctrp,g(ind),1, g(jnd),1)
+!           enddo
+!        enddo
         ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
      end do
-
-
-     !Note: The previous data layout allowed level 3 BLAS
-!    call DGEMM('T','N',nvirte,nvirte,nvctrp,1.d0,v(1,1),nvctrp,&
-!         hv(1,1),nvctrp,0.d0,hamovr(1,1,ish-1),n2virt)
-!    call DSYRK('U','T',n2virt,nvctrp,1.d0,v(1,1),nvctrp,0.d0,hamovr(1,1,ish),n2virt)!upper
 
 
      i_all=-product(shape(hg))*kind(hg)
@@ -483,8 +466,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
      if(nproc > 1)then
         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-        call MPI_ALLREDUCE(hamovr(1,1,1,3),hamovr(1,1,1,1),2*n2virt**2*orbsv%nkpts,&
-             mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(hamovr(1,1,1,1),2*n2virt**2*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
      end if
      
      if(msg)then
@@ -493,13 +475,13 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
            write(*,'(1x)')
            write(*,*)"subspace H "
            do iorb=1,n2virt
-              write(*,*)hamovr(iorb,iorb:n2virt,ikpt,1)
+              write(*,*)hamovr(iorb,iorb:n2virt,1,ikpt)
               write(*,*)
            end do
            write(*,*)"subspace S"
            write(*,*)
            do iorb=1,n2virt
-              write(*,*)hamovr(iorb,iorb:n2virt,ikpt,2)
+              write(*,*)hamovr(iorb,iorb:n2virt,2,ikpt)
               write(*,*)
            end do
         end do
@@ -519,7 +501,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
      do ikptp=1,orbsv%nkptsp
         ikpt=ikptp+orbsv%iskpts
         
-        call sygv(1,'V','U',n2virt,hamovr(1,1,ikpt,1),n2virt,hamovr(1,1,ikpt,2),n2virt,&
+        call sygv(1,'V','U',n2virt,hamovr(1,1,1,ikpt),n2virt,hamovr(1,1,2,ikpt),n2virt,&
              ew(1),work(1),nwork,i_stat)! Lapack GEVP
 
         do iorb=1,orbsv%norb
@@ -552,7 +534,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
         write(*,*)"and the eigenvectors are"
         write(*,*)
         do iorb=1,n2virt
-          write(*,*)hamovr(iorb,:,ikpt,1)!iorb:n2virt,1)
+          write(*,*)hamovr(iorb,:,1,ikpt)!iorb:n2virt,1)
           write(*,*)
         end do
      end do
@@ -580,10 +562,10 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
         do jorb=1,orbsv%norb! v to update
            call razero(nvctrp,hv(ispsi+nvctrp*(jorb-1)))
            do iorb=1,orbsv%norb ! sum over v and g
-              tt=hamovr(iorb,jorb,ikpt,1)
+              tt=hamovr(iorb,jorb,1,ikpt)
               call axpy(nvctrp,tt,v(ispsi+nvctrp*(iorb-1)),1,&
                    hv(ispsi+nvctrp*(jorb-1)),1)
-              tt=hamovr(iorb+orbsv%norb,jorb,ikpt,1)
+              tt=hamovr(iorb+orbsv%norb,jorb,1,ikpt)
               call axpy(nvctrp,tt,g(ispsi+nvctrp*(iorb-1)),1,&
                    hv(ispsi+nvctrp*(jorb-1)),1)
            enddo
@@ -757,6 +739,41 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 END SUBROUTINE davidson
 !!***
 
+!generate upper triangular matrix in the subspace of Davidson algorithm
+subroutine Davidson_subspace_hamovr(norb,nvctrp,hamovr,v,g,hv,hg)
+  use module_base
+  implicit none
+  integer, intent(in) :: norb,nvctrp
+  real(wp), dimension(nvctrp,norb), intent(in) :: v,g,hv,hg
+  real(wp), dimension(2*norb,2*norb,2), intent(out) :: hamovr
+  !local variables
+  integer :: iorb,jorb
+
+  !                 <vi | hvj>      <vi | hgj-n>                   <vi | vj>      <vi | gj-n>
+  ! hamovr(i,j,1)=                               ;  hamovr(i,j,2)=  
+  !                 <gi-n | hvj>  <gi-n | hgj-n>                   <gi-n | vj>  <gi-n | gj-n>
+
+  do iorb=1,norb
+     do jorb=iorb,norb
+        hamovr(iorb,jorb,1)=               dot(nvctrp,v(1,iorb),1,hv(1,jorb),1)
+        hamovr(jorb,iorb+norb,1)=        dot(nvctrp,g(1,iorb),1,hv(1,jorb),1)
+        hamovr(iorb,jorb+norb,1)=        dot(nvctrp,v(1,iorb),1,hg(1,jorb),1)
+        hamovr(iorb+norb,jorb+norb,1)= dot(nvctrp,g(1,iorb),1,hg(1,jorb),1)
+        
+        hamovr(iorb,jorb,2)=               dot(nvctrp,v(1,iorb),1, v(1,jorb),1)
+        hamovr(jorb,iorb+norb,2)=       dot(nvctrp,g(1,iorb),1, v(1,jorb),1)
+        hamovr(iorb,jorb+norb,2)=        dot(nvctrp,v(1,iorb),1, g(1,jorb),1)
+        hamovr(iorb+norb,jorb+norb,2)= dot(nvctrp,g(1,iorb),1, g(1,jorb),1)
+     enddo
+  enddo
+
+
+     !Note: The previous data layout allowed level 3 BLAS
+!    call DGEMM('T','N',nvirte,nvirte,nvctrp,1.d0,v(1,1),nvctrp,&
+!         hv(1,1),nvctrp,0.d0,hamovr(1,1,1),n2virt)
+!    call DSYRK('U','T',n2virt,nvctrp,1.d0,v(1,1),nvctrp,0.d0,hamovr(1,1,2),n2virt)!upper
+  
+end subroutine Davidson_subspace_hamovr
 
 !!****f* BigDFT/orthoconvirt
 !! DESCRIPTION

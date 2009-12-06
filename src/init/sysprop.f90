@@ -197,7 +197,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
                    'ERROR: Input polarisation of atom No.',iat,&
                    ' (',trim(atoms%atomnames(ityp)),') must be <=',mxpl,&
                    ', while found ',ispol
-              stop
+                      stop
            end if
            if (abs(ichg) > mxchg) then
               !if (iproc ==0) 
@@ -205,7 +205,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
                    'ERROR: Input charge of atom No.',iat,&
                    ' (',trim(atoms%atomnames(ityp)),') must be <=',mxchg,&
                    ', while found ',ichg
-              stop
+                   stop
            end if
         end if
      end do
@@ -580,7 +580,6 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   i_all=-product(shape(GPU_for_orbs))*kind(GPU_for_orbs)
   deallocate(GPU_for_orbs,stat=i_stat)
   call memocc(i_stat,i_all,'GPU_for_orbs',subname)
-
 
   !check the distribution
   norb_tot=0

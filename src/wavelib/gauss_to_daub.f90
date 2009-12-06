@@ -455,6 +455,7 @@ contains
           end if
        end if
 
+       !print *,'here',gau_a,gau_cen,n_gau
        call apply_w(ww(:,1,icplx),ww(:,2,icplx),&
             leftx   ,rightx   ,lefts(4),rights(4),h)
 

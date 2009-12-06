@@ -260,7 +260,7 @@ module module_interfaces
 
      subroutine input_wf_diag(iproc,nproc,at,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
-          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,&
+          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
           nscatterarr,ngatherarr,nspin,potshortcut)
        use module_base
        use module_types
@@ -280,8 +280,9 @@ module module_interfaces
        real(dp), dimension(*), intent(in) :: pkernel
        real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
        type(orbitals_data), intent(out) :: orbsv
+       type(gaussian_basis), intent(out) :: G 
        real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
-       integer potshortcut
+       integer, intent(in) :: potshortcut
      end subroutine input_wf_diag
 
      subroutine reformatmywaves(iproc,orbs,at,&
@@ -540,7 +541,7 @@ module module_interfaces
        real(wp), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
        real(wp), dimension(nvctrp,norbe), intent(in) :: psi
        real(wp), dimension(nvctrp*nspinor,norb), intent(out) :: ppsit
-       integer, intent(in), optional :: nvirte
+       integer, dimension(2), intent(in), optional :: nvirte
        real(wp), dimension(*), optional :: psivirt
      end subroutine build_eigenvectors
 
