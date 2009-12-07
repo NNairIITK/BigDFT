@@ -70,7 +70,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   character(len=7) :: cudagpu
   character(len=100) :: line
   logical :: exists
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
+  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj
 
   ! default values for geopt and k points in case not call later.
   call geopt_input_variables_default(in)
@@ -162,7 +162,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   if ( in%iabscalc_type/= 0) then
      inquire(file="input.abscalc",exist=exists)
      if (.not. exists) then
-        if (iproc == 0) write(*,*)'ERROR: nedd file input.abscalc for x-ray absorber treatment.'
+        if (iproc == 0) write(*,*)'ERROR: need file input.abscalc for x-ray absorber treatment.'
         stop
      end if
      call abscalc_input_variables(iproc,'input.abscalc',in)
@@ -176,19 +176,29 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   call check()
 
   !verbosity of the output
-  read(1,*,iostat=ierror)  in%verbosity
+  read(1,*,iostat=ierror)  ivrbproj
   call check()
 
-
-  !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
-  !systems, while in principle it should work immediately
-  if (in%nspin/=1 .and. in%nvirt/=0) then
-     !if (iproc==0) then
-        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
-     !end if
-     stop
+  !if the verbosity is bigger than 10 apply the projectors
+  !in the once-and-for-all scheme, otherwise use the default
+  if (ivrbproj > 10) then
+     DistProjApply=.false.
+     in%verbosity=ivrbproj-10
+  else
+     in%verbosity=ivrbproj
   end if
- 
+!!  !temporary correction
+!!  DistProjApply=.false.
+  
+
+
+!  if (in%nspin/=1 .and. in%nvirt/=0) then
+!     !if (iproc==0) then
+!        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
+!     !end if
+!     stop
+!  end if
+! 
   close(unit=1,iostat=ierror)
 
   if (in%nvirt > 0 .and. iproc ==0) then
@@ -454,14 +464,16 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
      call memocc(i_stat,in%kpt,'in%kpt',subname)
      allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%wkpt,'in%wkpt',subname)
-     do i = 1, in%nkpt, 1
+     norm=0.0_gp
+     do i = 1, in%nkpt
         read(1,*,iostat=ierror) in%kpt(:, i), in%wkpt(i)
+        norm=norm+in%wkpt(i)
         call check()
      end do
      
      ! We normalise the weights.
-     norm = sum(in%wkpt)
      in%wkpt(:) = in%wkpt / norm
+
   end if
 
   close(unit=1,iostat=ierror)
@@ -521,15 +533,11 @@ subroutine free_input_variables(in)
      call memocc(i_stat,i_all,'in%wkpt',subname)
   end if
 
-
-  if (associated(in%Gabs_coeffs) ) then
-     i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
-     deallocate(in%Gabs_coeffs,stat=i_stat)
-     call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
-  end if
-
-  
-
+!!$  if (associated(in%Gabs_coeffs) ) then
+!!$     i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
+!!$     deallocate(in%Gabs_coeffs,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
+!!$  end if
 
 end subroutine free_input_variables
 !!***
@@ -1485,7 +1493,7 @@ subroutine parse_extra_info(iproc,iat,extra,atoms)
         end if
      else
         nchrg=0
-        call valid_frzchain(trim(extra),go)
+        call valid_frzchain(trim(suffix),go)
         if (.not. go) then
            read(suffix,*,iostat=ierr2)nchrg
            if (ierr2 /= 0) then
@@ -1493,6 +1501,8 @@ subroutine parse_extra_info(iproc,iat,extra,atoms)
            else
               suffix='    '
            end if
+        else
+
         end if
      end if
   end if
@@ -1505,7 +1515,7 @@ subroutine parse_extra_info(iproc,iat,extra,atoms)
   end if
   atoms%natpol(iat)=1000*nchrg+nsgn*100+nspol
 
-  !print *,'natpol atomic',iat,atoms%natpol(iat)
+  !print *,'natpol atomic',iat,atoms%natpol(iat),suffix
 
   !convert the suffix into ifrztyp
   call frozen_ftoi(suffix,atoms%ifrztyp(iat))

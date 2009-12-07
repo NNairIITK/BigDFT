@@ -19,7 +19,7 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
   type(locreg_descriptors), intent(out) :: Glr
   !local variables
   integer, parameter :: lupfil=14
-  real(gp), parameter ::eps_mach=1.e-12_gp,onem=1.0_gp-eps_mach
+  real(gp), parameter ::eps_mach=1.e-12_gp
   integer :: iat,j,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
   real(gp) :: rad,cxmin,cxmax,cymin,cymax,czmin,czmax,alatrue1,alatrue2,alatrue3
 
@@ -54,13 +54,14 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
      czmin=min(czmin,rxyz(3,iat)-rad)
   enddo
 
-  cxmax=cxmax+eps_mach 
-  cymax=cymax+eps_mach  
-  czmax=czmax+eps_mach  
-
-  cxmin=cxmin-eps_mach
-  cymin=cymin-eps_mach
-  czmin=czmin-eps_mach
+!eliminate epsilon form the grid size calculation
+!!  cxmax=cxmax+eps_mach 
+!!  cymax=cymax+eps_mach  
+!!  czmax=czmax+eps_mach  
+!!
+!!  cxmin=cxmin-eps_mach
+!!  cymin=cymin-eps_mach
+!!  czmin=czmin-eps_mach
 
 
   !define the box sizes for free BC, and calculate dimensions for the fine grid with ISF
@@ -71,8 +72,11 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
 
      ! grid sizes n1,n2,n3
      n1=int(atoms%alat1/hx)
+!if (mod(n1,2)==1) n1=n1+1
      n2=int(atoms%alat2/hy)
+!if (mod(n2,2)==1) n2=n2+1
      n3=int(atoms%alat3/hz)
+!if (mod(n3,2)==1) n3=n3+1
      alatrue1=real(n1,gp)*hx
      alatrue2=real(n2,gp)*hy
      alatrue3=real(n3,gp)*hz
@@ -403,7 +407,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
   real(gp), dimension(3,nat), intent(in) :: rxyz
   logical, dimension(0:n1,0:n2,0:n3), intent(out) :: logrid
   !local variables
-  real(kind=8), parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
+  real(kind=8), parameter :: eps_mach=1.d-12
   integer :: i1,i2,i3,iat,ml1,ml2,ml3,mu1,mu2,mu3,j1,j2,j3
   real(gp) :: dx,dy2,dz2,rad
 

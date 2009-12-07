@@ -294,9 +294,6 @@ program memguess
 
   call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Glr)
 
-  ! De-allocations
-  call deallocate_orbs(orbs,subname)
-
   if (GPUtest .and. .not. GPUconv) then
      write(*,*)' ERROR: you can not put a GPUtest flag is there is no GPUrun.'
      stop
@@ -358,7 +355,7 @@ program memguess
   call memocc(i_stat,logrid,'logrid',subname)
 
   call localize_projectors(0,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,&
-       in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,nlpspd)
+       in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,orbs,nlpspd)
 
   i_all=-product(shape(logrid))*kind(logrid)
   deallocate(logrid,stat=i_stat)
@@ -424,7 +421,10 @@ program memguess
   call memocc(i_stat,i_all,'atoms%amu',subname)
   if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
 
+  ! De-allocations
+  call deallocate_orbs(orbs,subname)
   call free_input_variables(in)
+
 
   !finalize memory counting
   call memocc(0,0,'count','stop')

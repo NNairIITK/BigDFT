@@ -1,9 +1,10 @@
 
 
 subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
-     cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber, doorthoocc, Occ_norb, Occ_psit, Occ_eval,&
-  in  )! aggiunger a interface
+     radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
+     ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
+     doorthoocc,Occ_norb,Occ_psit,Occ_eval,&
+     in  )! aggiunger a interface
   use module_base
   use module_types
   use lanczos_interface
@@ -14,13 +15,13 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   implicit none
   integer  :: iproc,nproc,ndimpot,nspin
-  real(gp)  :: hx,hy,hz,cpmult,fpmult
+  real(gp)  :: hx,hy,hz
   type(atoms_data), target :: at
   type(nonlocal_psp_descriptors), target :: nlpspd
   type(locreg_descriptors), target :: lr
   integer, dimension(0:nproc-1,2), target :: ngatherarr 
   real(gp), dimension(3,at%nat), target :: rxyz
-  real(gp), dimension(at%ntypes,3), target :: radii_cf  
+  real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
   real(wp), dimension(nlpspd%nprojel), target :: proj
   real(wp), dimension(max(ndimpot,1),nspin), target :: potential
 
@@ -140,9 +141,6 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%hy=hy
   ha%hz=hz
   ha%rxyz=>rxyz
-  ha%cpmult=cpmult
-  ha%fpmult=fpmult
-
 
   ha%radii_cf=>radii_cf
   ha%nlpspd=>nlpspd !!
@@ -213,20 +211,28 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   call deallocate_orbs(ha%orbs,subname)
 
+  i_all=-product(shape(Gabsorber%rxyz))*kind(Gabsorber%rxyz)
+  deallocate(Gabsorber%rxyz,stat=i_stat)
+  call memocc(i_stat,i_all,'Gabsorber%rxyz',subname)
+
   call deallocate_gwf(Gabsorber, subname)
 
   i_all=-product(shape(ha%orbs%eval))*kind(ha%orbs%eval)
   deallocate(ha%orbs%eval,stat=i_stat)
-  call memocc(i_stat,i_all,'ha%orbs%spinsgn',subname)
+  call memocc(i_stat,i_all,'ha%orbs%eval',subname)
 
   i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
   deallocate(Gabs_coeffs,stat=i_stat)
   call memocc(i_stat,i_all,'Gabs_coeffs',subname)
 
+
+  call deallocate_abscalc_input(in, subname)
+
+
 end subroutine lanczos
 
 subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
-     cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
+     radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
   use module_base
   use module_types
@@ -238,13 +244,13 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   implicit none
   integer  :: iproc,nproc,ndimpot,nspin
-  real(gp)  :: hx,hy,hz,cpmult,fpmult
+  real(gp)  :: hx,hy,hz
   type(atoms_data), target :: at
   type(nonlocal_psp_descriptors), target :: nlpspd
   type(locreg_descriptors), target :: lr
   integer, dimension(0:nproc-1,2), target :: ngatherarr 
   real(gp), dimension(3,at%nat), target :: rxyz
-  real(gp), dimension(at%ntypes,3), target :: radii_cf  
+  real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
   real(wp), dimension(nlpspd%nprojel), target :: proj
   real(wp), dimension(max(ndimpot,1),nspin), target :: potential
 
@@ -372,9 +378,6 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%hy=hy
   ha%hz=hz
   ha%rxyz=>rxyz
-  ha%cpmult=cpmult
-  ha%fpmult=fpmult
-
 
   ha%radii_cf=>radii_cf
   ha%nlpspd=>nlpspd !!
@@ -391,7 +394,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%Gabsorber=>Gabsorber 
   ha%Gabs_coeffs=>Gabs_coeffs
  
-  call EP_inizializza(ha) 
+  call EP_inizializza(ha)  
   
   call  EP_memorizza_stato(Gabsorber) 
 
@@ -492,7 +495,13 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   call deallocate_orbs(ha%orbs,subname)
 
+  i_all=-product(shape(Gabsorber%rxyz))*kind(Gabsorber%rxyz)
+  deallocate(Gabsorber%rxyz,stat=i_stat)
+  call memocc(i_stat,i_all,'Gabsorber%rxyz',subname)
+
   call deallocate_gwf(Gabsorber, subname)
+
+  call deallocate_abscalc_input(in, subname)
 
 
 !!$  i_all=-product(shape(Gabsorber%nshell))*kind(Gabsorber%nshell)
