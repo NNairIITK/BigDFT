@@ -454,13 +454,13 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
   epot=0.0_wp
 
 
-!$NOomp parallel default(private)&
-!$NOomp shared(pot,psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
+!$omp parallel default(private)&
+!$omp shared(pot,psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
   !case without bounds
   i1s=-14*nl1
   i1e=2*n1+1+15*nl1
   epot_p=0._gp
-!$NOomp do
+!$omp do
   do i3=-14*nl3,2*n3+1+15*nl3
      if (i3 >= -14+2*nbuf .and. i3 <= 2*n3+16-2*nbuf) then !check for the nbuf case
         do i2=-14*nl2,2*n2+1+15*nl2
@@ -559,13 +559,13 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
         enddo
      endif
   enddo
-!$NOomp end do
+!$omp end do
 
-!$NOomp critical
+!$omp critical
   epot=epot+epot_p
-!$NOomp end critical
+!$omp end critical
 
-!$NOomp end parallel
+!$omp end parallel
 
 
 end subroutine apply_potential

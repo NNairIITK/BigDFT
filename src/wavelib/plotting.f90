@@ -346,17 +346,17 @@ subroutine plot_cube_full(at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   write(22,*)orbname
   write(22,*)'CUBE file for orbital wavefunction'
   !number of atoms
-  if (at%geocode=='P') then
-     write(22,'(i5,3(f12.6))') at%nat,0.0_gp,0.0_gp,0.0_gp
-  else if (at%geocode=='S') then
-     write(22,'(i5,3(f12.6))') at%nat,0.0_gp,-hyh,0.0_gp
-  else if (at%geocode=='F') then
-     write(22,'(i5,3(f12.6))') at%nat,-hxh,-hyh,-hzh
-  end if
+!  if (at%geocode=='P') then
+     write(22,'(i5,3(f12.6),a)') at%nat,0.0_gp,0.0_gp,0.0_gp,' modified origin'
+!  else if (at%geocode=='S') then
+!     write(22,'(i5,3(f12.6))') at%nat,0.0_gp,-hyh,0.0_gp
+!  else if (at%geocode=='F') then
+!     write(22,'(i5,3(f12.6))') at%nat,-hxh,-hyh,-hzh
+!  end if
   !grid and grid spacings
-  write(22,'(i5,3(f12.6))') 2*n1+2,hxh,0.0_gp,0.0_gp
-  write(22,'(i5,3(f12.6))') 2*n2+2,0.0_gp,hyh,0.0_gp
-  write(22,'(i5,3(f12.6))') 2*n3+2,0.0_gp,0.0_gp,hzh
+  write(22,'(i5,3(f19.12))') 2*n1+2,hxh,0.0_gp,0.0_gp
+  write(22,'(i5,3(f19.12))') 2*n2+2,0.0_gp,hyh,0.0_gp
+  write(22,'(i5,3(f19.12))') 2*n3+2,0.0_gp,0.0_gp,hzh
   !atomic number and positions
   do iat=1,at%nat
      write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
@@ -694,13 +694,13 @@ contains
         write(22,*)'CUBE file for charge density'
         write(22,*)'Case for '//trim(message)
         !number of atoms
-        if (geocode=='P') then
-           write(22,'(i5,3(f12.6))') at%nat,0.0_gp,0.0_gp,0.0_gp
-        else if (geocode=='S') then
-           write(22,'(i5,3(f12.6))') at%nat,0.0_gp,-hyh,0.0_gp
-        else if (geocode=='F') then
-           write(22,'(i5,3(f12.6))') at%nat,-hxh,-hyh,-hzh
-        end if
+!        if (geocode=='P') then
+           write(22,'(i5,3(f12.6),a)') at%nat,0.0_gp,0.0_gp,0.0_gp,' modified'
+!        else if (geocode=='S') then
+!           write(22,'(i5,3(f12.6))') at%nat,0.0_gp,-hyh,0.0_gp
+!        else if (geocode=='F') then
+!           write(22,'(i5,3(f12.6))') at%nat,-hxh,-hyh,-hzh
+!        end if
         !grid and grid spacings
         write(22,'(i5,3(f12.6))') 2*n1+2,hxh,0.0_gp,0.0_gp
         write(22,'(i5,3(f12.6))') 2*n2+2,0.0_gp,hyh,0.0_gp

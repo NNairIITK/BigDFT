@@ -72,8 +72,11 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
 
      ! grid sizes n1,n2,n3
      n1=int(atoms%alat1/hx)
+!if (mod(n1,2)==1) n1=n1+1
      n2=int(atoms%alat2/hy)
+!if (mod(n2,2)==1) n2=n2+1
      n3=int(atoms%alat3/hz)
+!if (mod(n3,2)==1) n3=n3+1
      alatrue1=real(n1,gp)*hx
      alatrue2=real(n2,gp)*hy
      alatrue3=real(n3,gp)*hz
