@@ -85,9 +85,6 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fil
   open(unit=99,file=filename,status='unknown')
   read(99,*)G%nat,G%nshltot,G%nexpo,G%ncoeff
   
-
-
-
   allocate(G%nshell(G%nat+ndebug),stat=i_stat)
   call memocc(i_stat,G%nshell,'G%nshell',subname)
   allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
@@ -119,10 +116,9 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fil
 
 
 
-  read(99,*)G%ndoc,G%nam(1:G%nshltot)
+  read(99,*)G%ndoc(1:G%nshltot),G%nam(1:G%nshltot)
   do iexpo=1,G%nexpo
      read(99,*)jexpo,G%xp(jexpo),G%psiat(jexpo)
-     !print *,'iat',iat,iexpo,jexpo
   end do
   do iorb=1,orbs%norb
      read(99,*)jorb,orbs%eval(jorb)
