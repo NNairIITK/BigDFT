@@ -18,6 +18,7 @@ SUBDIRS = \
 	  XabsCheb 
 
 
+
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
 SUBDIRS += GPU

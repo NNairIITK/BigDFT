@@ -32,26 +32,26 @@ contains
       call  LB_de_allocate_for_lanczos( )
    endif
 
-   allocate(LB_alpha(0: 3*LB_nsteps ) , stat=i_stat)
+   allocate(LB_alpha(0: 3*LB_nsteps+ndebug ) , stat=i_stat)
    call memocc(i_stat,LB_alpha,'LB_alpha',subname)
 
-   allocate(LB_beta(0: 1 ) , stat=i_stat)
+   allocate(LB_beta(0: 1+ndebug ) , stat=i_stat)
    call memocc(i_stat,LB_beta,'LB_beta',subname)
 
-   allocate(omega( 0:1,  0:1      )  , stat=i_stat)
+   allocate(omega( 0:1,  0:1    +ndebug  )  , stat=i_stat)
    call memocc(i_stat,omega,'omega',subname)
 
    
-   allocate(evect( 0:1,  0:1    )   , stat=i_stat)
+   allocate(evect( 0:1,  0:1   +ndebug )   , stat=i_stat)
    call memocc(i_stat,evect,'evect',subname)
 
-   allocate(LB_eval(0: 1 )   , stat=i_stat)
+   allocate(LB_eval(0: 1+ndebug )   , stat=i_stat)
    call memocc(i_stat,LB_eval,'LB_eval',subname)
 
-   allocate(diagwork( 0:1*(3+1)   )  , stat=i_stat)
+   allocate(diagwork( 0:1*(3+1)+ndebug   )  , stat=i_stat)
    call memocc(i_stat,diagwork,'diagwork',subname)
 
-   allocate(oldalpha (0: 1 )        , stat=i_stat  )
+   allocate(oldalpha (0: 1 +ndebug )        , stat=i_stat  )
    call memocc(i_stat,oldalpha,'oldalpha',subname)
 
   end subroutine LB_allocate_for_chebychev
@@ -62,26 +62,26 @@ contains
       call  LB_de_allocate_for_lanczos( )
    endif
 
-   allocate(LB_alpha(0: LB_nsteps ) , stat=i_stat)
+   allocate(LB_alpha(0: LB_nsteps+ndebug ) , stat=i_stat)
    call memocc(i_stat,LB_alpha,'LB_alpha',subname)
 
-   allocate(LB_beta(0: LB_nsteps-1 ) , stat=i_stat)
+   allocate(LB_beta(0: LB_nsteps-1+ndebug ) , stat=i_stat)
    call memocc(i_stat,LB_beta,'LB_beta',subname)
 
-   allocate(omega( 0:LB_nsteps,  0:LB_nsteps      )  , stat=i_stat)
+   allocate(omega( 0:LB_nsteps,  0:LB_nsteps     +ndebug )  , stat=i_stat)
    call memocc(i_stat,omega,'omega',subname)
 
    
-   allocate(evect( 0:LB_nsteps-1,  0:LB_nsteps-1    )   , stat=i_stat)
+   allocate(evect( 0:LB_nsteps-1,  0:LB_nsteps-1   +ndebug )   , stat=i_stat)
    call memocc(i_stat,evect,'evect',subname)
 
-   allocate(LB_eval(0: LB_nsteps-1 )   , stat=i_stat)
+   allocate(LB_eval(0: LB_nsteps-1+ndebug )   , stat=i_stat)
    call memocc(i_stat,LB_eval,'LB_eval',subname)
 
-   allocate(diagwork( 0:LB_nsteps*(3+LB_nsteps)   )  , stat=i_stat)
+   allocate(diagwork( 0:LB_nsteps*(3+LB_nsteps+ndebug)   )  , stat=i_stat)
    call memocc(i_stat,diagwork,'diagwork',subname)
 
-   allocate(oldalpha (0: LB_nsteps )        , stat=i_stat  )
+   allocate(oldalpha (0: LB_nsteps+ndebug )        , stat=i_stat  )
    call memocc(i_stat,oldalpha,'oldalpha',subname)
 
    
@@ -403,8 +403,8 @@ contains
     call EP_copy(k, m )
     
   
-    allocate(dumomega(0:m-1,0:m-1))
-    allocate(dumomega2(0:m-1,0:m-1))
+    allocate(dumomega(0:m-1,0:m-1+ndebug))
+    allocate(dumomega2(0:m-1,0:m-1+ndebug))
     
 
     acoeff=1.0D0
@@ -709,7 +709,6 @@ contains
     print *, " writing spectra to " , filename 
 
     Pi=acos(-1.0)
-    print *, Pi
     Nbar =1
     do while(Nbar<Nu) 
        Nbar=Nbar*2
@@ -718,22 +717,25 @@ contains
 
 
     
-    allocate(Xs(0:Nbar-1) , stat=i_stat)
+    allocate(Xs(0:Nbar-1+ndebug) , stat=i_stat)
     call memocc(i_stat,Xs,'Xs',subname)
     
-    allocate(res(0:Nbar-1) , stat=i_stat)
+    allocate(res(0:Nbar-1+ndebug) , stat=i_stat)
     call memocc(i_stat,res,'res',subname)
         
-    allocate(alphas(0:Nbar-1) , stat=i_stat)
+
+    !! memocc does not work in complex
+    allocate(alphas(0:Nbar-1+ndebug) , stat=i_stat)
     !! call memocc(i_stat,alphas,'alphas',subname)
     
-    allocate(expn(0:Nbar-1) , stat=i_stat)
+    !! memocc does not work in complex
+    allocate(expn(0:Nbar-1+ndebug) , stat=i_stat)
 
 
-    allocate(cfftreal(0:2*Nbar-1) , stat=i_stat)
+    allocate(cfftreal(0:2*Nbar-1+ndebug) , stat=i_stat)
     call memocc(i_stat,cfftreal,'cfftreal',subname)
   
-    allocate(cfftimag(0:2*Nbar-1) , stat=i_stat)
+    allocate(cfftimag(0:2*Nbar-1+ndebug) , stat=i_stat)
     call memocc(i_stat,cfftimag,'cfftimag',subname)
     
 
@@ -794,10 +796,13 @@ contains
     deallocate(res)
     call memocc(i_stat,i_all,'res',subname)
     
+    !! memocc does not work in complex
     i_all=-product(shape(alphas))*kind(alphas)
     deallocate(alphas)
     !! call memocc(i_stat,i_all,'alphas',subname)
     
+
+    !! memocc does not work in complex
     i_all=-product(shape(expn))*kind(expn)
     deallocate(expn)
     !! call memocc(i_stat,i_all,'expn',subname)

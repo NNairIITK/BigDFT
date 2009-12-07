@@ -660,11 +660,11 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   !bu with at least ngx*nterm_max ~= 100 elements
   nterms_max=max(maxsizeKB*1024/(2*ncplx*max(lr%d%n1,lr%d%n2,lr%d%n3)),100)
 
-  allocate(wx(ncplx,0:lr%d%n1,2,nterms_max),stat=i_stat)
+  allocate(wx(ncplx,0:lr%d%n1,2,nterms_max+ndebug),stat=i_stat)
   call memocc(i_stat,wx,'wx',subname)
-  allocate(wy(ncplx,0:lr%d%n2,2,nterms_max),stat=i_stat)
+  allocate(wy(ncplx,0:lr%d%n2,2,nterms_max+ndebug),stat=i_stat)
   call memocc(i_stat,wy,'wy',subname)
-  allocate(wz(ncplx,0:lr%d%n3,2,nterms_max),stat=i_stat)
+  allocate(wz(ncplx,0:lr%d%n3,2,nterms_max+ndebug),stat=i_stat)
   call memocc(i_stat,wz,'wz',subname)
 
   !conditions for periodicity in the three directions

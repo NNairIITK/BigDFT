@@ -71,9 +71,6 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fil
   else
      fillrxyz=.false.
   endif
-  
-        
-
 
   !read the information from a file
   inquire(file=filename,exist=exists)
@@ -122,9 +119,10 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fil
 
 
 
-  read(99,*)G%ndoc,G%nam
+  read(99,*)G%ndoc,G%nam(1:G%nshltot)
   do iexpo=1,G%nexpo
      read(99,*)jexpo,G%xp(jexpo),G%psiat(jexpo)
+     !print *,'iat',iat,iexpo,jexpo
   end do
   do iorb=1,orbs%norb
      read(99,*)jorb,orbs%eval(jorb)

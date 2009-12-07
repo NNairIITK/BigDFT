@@ -162,7 +162,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   if ( in%iabscalc_type/= 0) then
      inquire(file="input.abscalc",exist=exists)
      if (.not. exists) then
-        if (iproc == 0) write(*,*)'ERROR: nedd file input.abscalc for x-ray absorber treatment.'
+        if (iproc == 0) write(*,*)'ERROR: need file input.abscalc for x-ray absorber treatment.'
         stop
      end if
      call abscalc_input_variables(iproc,'input.abscalc',in)
@@ -532,6 +532,13 @@ subroutine free_input_variables(in)
      deallocate(in%wkpt,stat=i_stat)
      call memocc(i_stat,i_all,'in%wkpt',subname)
   end if
+
+!!$  if (associated(in%Gabs_coeffs) ) then
+!!$     i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
+!!$     deallocate(in%Gabs_coeffs,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
+!!$  end if
+
 end subroutine free_input_variables
 !!***
 !!****f* BigDFT/abscalc_input_variables_default
@@ -1113,6 +1120,44 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   end if
 end subroutine read_atomic_file
 !!***
+
+
+subroutine deallocate_atoms(atoms ) 
+
+  use module_base
+  use module_types
+  use module_interfaces
+  use ab6_symmetry
+
+  implicit none
+
+  character(len=*), parameter :: subname='deallocate_atoms'
+  integer :: i_stat, i_all
+
+
+  type(atoms_data), intent(inout) :: atoms
+  !deallocations
+
+  i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
+  deallocate(atoms%ifrztyp,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
+  i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
+  deallocate(atoms%iatype,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%iatype',subname)
+  i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
+  deallocate(atoms%natpol,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%natpol',subname)
+  i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
+  deallocate(atoms%atomnames,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%atomnames',subname)
+  i_all=-product(shape(atoms%amu))*kind(atoms%amu)
+  deallocate(atoms%amu,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%amu',subname)
+  if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
+end subroutine deallocate_atoms
+
+
+
 
 !!****f* BigDFT/read_atomic_positions
 !! FUNCTION

@@ -347,6 +347,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
   real(gp), dimension(:), allocatable :: psiatn
   real(gp), dimension(:,:), allocatable :: atmoments
 
+
   if (iproc == 0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')'Calculating AIO wavefunctions...'
   end if
