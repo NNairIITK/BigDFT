@@ -211,15 +211,23 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   call deallocate_orbs(ha%orbs,subname)
 
+  i_all=-product(shape(Gabsorber%rxyz))*kind(Gabsorber%rxyz)
+  deallocate(Gabsorber%rxyz,stat=i_stat)
+  call memocc(i_stat,i_all,'Gabsorber%rxyz',subname)
+
   call deallocate_gwf(Gabsorber, subname)
 
   i_all=-product(shape(ha%orbs%eval))*kind(ha%orbs%eval)
   deallocate(ha%orbs%eval,stat=i_stat)
-  call memocc(i_stat,i_all,'ha%orbs%spinsgn',subname)
+  call memocc(i_stat,i_all,'ha%orbs%eval',subname)
 
   i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
   deallocate(Gabs_coeffs,stat=i_stat)
   call memocc(i_stat,i_all,'Gabs_coeffs',subname)
+
+
+  call deallocate_abscalc_input(in, subname)
+
 
 end subroutine lanczos
 
@@ -487,7 +495,13 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   call deallocate_orbs(ha%orbs,subname)
 
+  i_all=-product(shape(Gabsorber%rxyz))*kind(Gabsorber%rxyz)
+  deallocate(Gabsorber%rxyz,stat=i_stat)
+  call memocc(i_stat,i_all,'Gabsorber%rxyz',subname)
+
   call deallocate_gwf(Gabsorber, subname)
+
+  call deallocate_abscalc_input(in, subname)
 
 
 !!$  i_all=-product(shape(Gabsorber%nshell))*kind(Gabsorber%nshell)

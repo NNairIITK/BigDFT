@@ -403,6 +403,33 @@ contains
   end subroutine deallocate_comms
 !!***
 
+!!****f* module_types/deallocate_abscalc_input
+!! FUNCTION
+!!  
+!! SOURCE
+!!
+  subroutine deallocate_abscalc_input(in, subname)
+    use module_base
+    implicit none
+    type(input_variables) :: in
+    character(len=*), intent(in) :: subname
+
+
+    !local variables
+    integer :: i_all,i_stat
+
+    i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
+    deallocate(in%Gabs_coeffs, stat=i_stat)
+    call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
+
+  end subroutine deallocate_abscalc_input
+!!***
+
+
+
+
+
+
 !!****f* module_types/deallocate_orbs
 !! FUNCTION
 !!   De-Allocate orbitals data structure, except eval pointer
