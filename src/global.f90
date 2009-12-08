@@ -20,7 +20,7 @@ program MINHOP
   implicit real(kind=8) (a-h,o-z)
   real(kind=4) :: tts
   logical :: newmin
-  character(len=20) :: units,atmn
+  character(len=20) :: unitsp,units,atmn
   character(len=80) :: line
   type(atoms_data) :: atoms
   type(input_variables) :: inputs_opt, inputs_md
@@ -41,6 +41,7 @@ program MINHOP
   character(len=4) :: fn4
   character(len=5) :: fn5
   character(len=50) :: comment
+  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
 
   ! Start MPI version
   call MPI_INIT(ierr)
@@ -175,11 +176,21 @@ program MINHOP
            write(*,*) iproc,' COULD not read file ',filename
            exit
         end if
-        read(9,*) natp,units,elocmin(nlmin_l)
+        read(9,*) natp,unitsp,elocmin(nlmin_l)
         if (atoms%nat.ne.natp) stop   'nat <> natp'
+        if (trim(unitsp).ne.trim(units)) write(*,*) '# different units in poslow and poscur file:',trim(unitsp),(units)
         read(9,*)
         do iat=1,atoms%nat
-           read(9,*) atmn,poslocmin(1,iat,nlmin_l),poslocmin(2,iat,nlmin_l),poslocmin(3,iat,nlmin_l)
+          read(9,*) atmn,t1,t2,t3
+          if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then ! if Angstroem convert to Bohr
+              poslocmin(1,iat,nlmin_l)=t1/bohr 
+              poslocmin(2,iat,nlmin_l)=t2/bohr 
+              poslocmin(3,iat,nlmin_l)=t3/bohr
+          else
+              poslocmin(1,iat,nlmin_l)=t1
+              poslocmin(2,iat,nlmin_l)=t2
+              poslocmin(3,iat,nlmin_l)=t3
+          endif
         enddo
         close(9)
         if (iproc.eq.0) write(67,*) 'read file',filename
@@ -655,8 +666,6 @@ contains
        inputs_md%inputPsiId=1
        if (istep > 2) inputs_md%itermax=50
        call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,e_rxyz,ff,rst,infocode)
-
-write(100+iproc,*) 'EXIT bigdft'
 
        if (iproc == 0) then
           write(fn,'(i4.4)') istep
