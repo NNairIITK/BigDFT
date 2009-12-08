@@ -74,7 +74,7 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   !call allocate_comms(nproc,ha%comms,subname)
   call orbitals_communicators(iproc,nproc,lr,ha%orbs,ha%comms)  
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
-  call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
+  call memocc(i_stat,Gabs_coeffs,'Gabs_coeff',subname)
  
   write(filename,'(A,A,A,I1)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
   
@@ -223,7 +223,7 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
   deallocate(Gabs_coeffs,stat=i_stat)
-  call memocc(i_stat,i_all,'Gabs_coeffs',subname)
+  call memocc(i_stat,i_all,'Gabs_coeff',subname)
 
 
   call deallocate_abscalc_input(in, subname)
@@ -306,7 +306,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   call orbitals_communicators(iproc,nproc,lr,ha%orbs,ha%comms)  
 
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
-  call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
+  call memocc(i_stat,Gabs_coeffs,'Gabs_coeff',subname)
  
 
   write(filename,'(A,A,A,I1)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
@@ -490,7 +490,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   
   i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
   deallocate(Gabs_coeffs,stat=i_stat)
-  call memocc(i_stat,i_all,'Gabs_coeffs',subname)
+  call memocc(i_stat,i_all,'Gabs_coeff',subname)
 
 
   call deallocate_orbs(ha%orbs,subname)

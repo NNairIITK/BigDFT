@@ -1122,7 +1122,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !better to deallocate this after davidson
      i_all=-product(shape(pkernel))*kind(pkernel)
      deallocate(pkernel,stat=i_stat)
-     call memocc(i_stat,i_all,'pkernel',subname)
+     call memocc(i_stat,i_all,'kernel',subname)
 
      if (in%read_ref_den) then
         i_all=-product(shape(pkernel_ref))*kind(pkernel_ref)
@@ -1370,7 +1370,7 @@ contains
        
        i_all=-product(shape(pkernel))*kind(pkernel)
        deallocate(pkernel,stat=i_stat)
-       call memocc(i_stat,i_all,'pkernel',subname)
+       call memocc(i_stat,i_all,'kernel',subname)
        if (in%read_ref_den) then
           i_all=-product(shape(pkernel_ref))*kind(pkernel_ref)
           deallocate(pkernel_ref,stat=i_stat)
@@ -1890,7 +1890,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
        
   i_all=-product(shape(pkernel))*kind(pkernel)
   deallocate(pkernel,stat=i_stat)
-  call memocc(i_stat,i_all,'pkernel',subname)
+  call memocc(i_stat,i_all,'kernel',subname)
 
 
 
@@ -2069,6 +2069,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
            enddo
         enddo
 
+        if (iproc == 0) write(*,*) 'writing NEW local_potential.pot'
+        call plot_density(atoms%geocode,'local_potentialb2BNEW.pot',iproc,nproc,&
+             n1,n2,n3,n1i,n2i,n3i,n3p,&
+             atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+
+
         i_all=-product(shape(auxint))*kind(auxint)
         deallocate(auxint,stat=i_stat)
         call memocc(i_stat,i_all,'auxint',subname)
@@ -2082,7 +2088,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
         call memocc(i_stat,i_all,'intfunc_y',subname)
         print *," exiting b2B"
   
-        call deallocate_atoms(atoms_b2B ) 
+        call deallocate_atoms(atoms_b2B) 
 
         i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
         deallocate(rxyz_b2B,stat=i_stat)
