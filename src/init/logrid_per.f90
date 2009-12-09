@@ -188,8 +188,8 @@ subroutine ib_to_logrid_rot_per(ib,logrid,n,ndat)
 
   do l=1,ndat
      do i = 2*ib(1,l)-14 , 2*ib(2,l)+16
-		ii=modulo(i,2*n+2) 
-        logrid(l,i)=.true.
+        ii=modulo(i,2*n+2) 
+        logrid(l,ii)=.true.
      enddo
   enddo
 

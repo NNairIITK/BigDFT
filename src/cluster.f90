@@ -158,12 +158,7 @@
   !put a barrier for all the processes
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
-
 end subroutine call_bigdft
-
-
-
-
 
 
 !!***
@@ -265,7 +260,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(:,:,:), pointer :: ads
   
   !for xabsorber
-  logical in_refinement
   integer lpot_a, ix, iy, iz
   real(gp) rpot_a, spot_a, hpot_a, espo, harmo, r, rx, ry, rz, minrx, maxrx,   minry, maxry,   minrz, maxrz, minr  
   real(gp), pointer :: radpot(:,:)
@@ -415,9 +409,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
-
-
- 
 
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation
@@ -741,10 +732,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !end of the initialization part
   call timing(iproc,'INIT','PR')
 
-  ! loop for wavefunction minimization
-  in_refinement=.false.
-
-
   wfn_loop: do iter=1,itermax
 
      if( in%potshortcut>0) then
@@ -759,10 +746,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      endif
      !control whether the minimisation iterations ended
      endloop= gnrm <= gnrm_cv .or. iter == itermax
-     if(endloop .and. .not. in_refinement) then
+     if(endloop) then
         if(in%iat_absorber>0) then
            gnrm_cv = in%absorber_gnrm
-           in_refinement=.true.
            endloop=.false.
         end if
      endif
@@ -776,54 +762,46 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !stop the partial timing counter if necessary
      if (endloop) call timing(iproc,'WFN_OPT','PR')
 
-     if(.not. in_refinement) then
+     ! Potential from electronic charge density
+     call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
+          n1i*n2i*n3d,nscatterarr,in%nspin,GPU)
 
-        ! Potential from electronic charge density
-        call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-             n1i*n2i*n3d,nscatterarr,in%nspin,GPU)
+     if(orbs%nspinor==4) then
+        !this wrapper can be inserted inside the poisson solver 
+        call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
+             ixc,hxh,hyh,hzh,&
+             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+     else
 
-        if(orbs%nspinor==4) then
-           !this wrapper can be inserted inside the poisson solver 
-           call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
-                ixc,hxh,hyh,hzh,&
-                rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
-        else
-
-           if (in%read_ref_den .and. gnrm <= in%gnrm_sw .or. potion_overwritten) then
-              if (.not. potion_overwritten) then
-                 !overwrite pot_ion with the potential previously created
-                 call read_potfile(atoms%geocode,'potion_corr.pot',n1,n2,n3,n1i,n2i,n3i,n3pi,&
+        if (in%read_ref_den .and. gnrm <= in%gnrm_sw .or. potion_overwritten) then
+           if (.not. potion_overwritten) then
+              !overwrite pot_ion with the potential previously created
+              call read_potfile(atoms%geocode,'potion_corr.pot',n1,n2,n3,n1i,n2i,n3i,n3pi,&
                    i3s+i3xcsh,pot_ion)
 
-                 if (.not. in%correct_offset) then
-                    !read the ionic energy from disk
-                    open(unit=22,file='eion_corr.tmp',status='unknown')
-                    read(22,*)eion,ehart_fake
-                    close(unit=22)
-                 end if
-                 potion_overwritten=.true.
+              if (.not. in%correct_offset) then
+                 !read the ionic energy from disk
+                 open(unit=22,file='eion_corr.tmp',status='unknown')
+                 read(22,*)eion,ehart_fake
+                 close(unit=22)
               end if
-              call correct_hartree_potential(atoms,iproc,nproc,&
-                   Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
-                   n3p,n3pi,n3d,i3s,i3xcsh,hxh,hyh,hzh,pkernel,ngatherarr,&
-                   rhoref,pkernel_ref,pot_ion,rhopot,ixc,in%nspin,ehart,eexcu,vexcu,PSquiet,&
-                   in%correct_offset)
-
-           else
-              call PSolver(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
-                   ixc,hxh,hyh,hzh,&
-                   rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,in%nspin,&
-                   quiet=PSquiet)
-
+              potion_overwritten=.true.
            end if
+           call correct_hartree_potential(atoms,iproc,nproc,&
+                Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
+                n3p,n3pi,n3d,i3s,i3xcsh,hxh,hyh,hzh,pkernel,ngatherarr,&
+                rhoref,pkernel_ref,pot_ion,rhopot,ixc,in%nspin,ehart,eexcu,vexcu,PSquiet,&
+                in%correct_offset)
+
+        else
+           call PSolver(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
+                ixc,hxh,hyh,hzh,&
+                rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,in%nspin,&
+                quiet=PSquiet)
 
         end if
 
-        !here we put the exact_exchange potential, in alternative to the poisson solver
-        
-
-     endif
-  
+     end if
 
      call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
           nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
@@ -855,7 +833,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      !control the previous value of idsx_actual
      idsx_actual_before=idsx_actual
-     
 
      call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
           iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
@@ -1841,32 +1818,32 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
 
   !check the communication distribution
-  call check_communications(iproc,nproc,orbs,Glr,comms)
+  !call check_communications(iproc,nproc,orbs,Glr,comms)
 
 
-  if(in%potshortcut==2) goto 12345
+  if(in%potshortcut/=2) then
 
 
- 
-  inputpsi=in%inputPsiId
 
-   
-  nspin=in%nspin
-  !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
+     inputpsi=in%inputPsiId
+
+
+     nspin=in%nspin
+     !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,atoms,&
-       orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
+          orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut )
 
 
-  i_all=-product(shape(psi))*kind(psi)
-  deallocate(psi,stat=i_stat)
-  call memocc(i_stat,i_all,'psi',subname)
+     i_all=-product(shape(psi))*kind(psi)
+     deallocate(psi,stat=i_stat)
+     call memocc(i_stat,i_all,'psi',subname)
 
 
 
 
-12345 continue
+  end if
    
   if (nproc > 1  ) then
      i_all=-product(shape(hpsi))*kind(hpsi)
