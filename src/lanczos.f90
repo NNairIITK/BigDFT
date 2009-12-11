@@ -73,6 +73,7 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%orbs%eval(1:ha%orbs%norb)=1.0_gp
   !call allocate_comms(nproc,ha%comms,subname)
   call orbitals_communicators(iproc,nproc,lr,ha%orbs,ha%comms)  
+
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeff',subname)
  
