@@ -87,10 +87,10 @@ contains
        stop "array size inconsistency" 
     endif
     
-    allocate(Qvect_tmp(ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) ) 
-    allocate(wrk      (ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) )
- 
+    allocate(Qvect_tmp(ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) , stat=i_stat) 
     call memocc(i_stat,Qvect_tmp,'Qvect_tmp',subname)
+
+    allocate(wrk      (ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) , stat=i_stat )
     call memocc(i_stat,wrk,'wrk',subname)
 
     EP_shift=0.0
@@ -213,7 +213,7 @@ contains
     EP_doorthoocc=.true.
     EP_norb=norb
     occQvect=>Occ_psit
-    allocate(EP_occprojections(EP_norb) , stat=i_stat )
+    allocate(EP_occprojections(EP_norb+ndebug) , stat=i_stat )
     call memocc(i_stat,EP_occprojections,'EP_occprojections',subname)
 
   end subroutine EP_store_occupied_orbitals
@@ -238,9 +238,9 @@ contains
     real(gp) fact
 ! ::::::::::::::::::::::::::::::::::::::
     if(J.ge.0) then
-       call EP_multbyfact_interno( Qvect(1:,j), fact )
+       call EP_multbyfact_interno( Qvect(1,j), fact )
     else
-       call EP_multbyfact_interno( dumQvect(1:,-j), fact )
+       call EP_multbyfact_interno( dumQvect(1,-j), fact )
     endif
     return 
   end subroutine EP_multbyfact
@@ -272,11 +272,11 @@ contains
 
   subroutine EP_multbyfact_interno(Q, fact)
     implicit none
-    real(wp) Q(EP_dim)
+    real(wp) Q
     real(gp) fact
 ! :::::::::::::::::::::::
 
-    call vscal(EP_dim,fact, Q(1), 1  ) 
+    call vscal(EP_dim,fact, Q, 1  ) 
 
   end subroutine EP_multbyfact_interno
 
@@ -311,13 +311,13 @@ contains
     implicit none
     integer, intent(in) :: i,j
     if( i.ge.0 .and. j.ge.0) then
-       EP_scalare = EP_scalare_interna(Qvect(1:,i), Qvect(1:,j) )
+       EP_scalare = EP_scalare_interna(Qvect(1,i), Qvect(1,j) )
     else  if( i.lt.0 .and. j.ge.0) then
-       EP_scalare = EP_scalare_interna(dumQvect(1:,-i), Qvect(1:,j) )
+       EP_scalare = EP_scalare_interna(dumQvect(1,-i), Qvect(1,j) )
     else  if( i.ge.0 .and. j.lt.0) then
-       EP_scalare = EP_scalare_interna(Qvect(1:,i), dumQvect(1:,-j) )
+       EP_scalare = EP_scalare_interna(Qvect(1,i), dumQvect(1,-j) )
     else 
-       EP_scalare = EP_scalare_interna(dumQvect(1:,-i), dumQvect(1:,-j) )
+       EP_scalare = EP_scalare_interna(dumQvect(1,-i), dumQvect(1,-j) )
     endif
     
     return 
@@ -326,13 +326,13 @@ contains
  
   real(8) function EP_scalare_interna(a,b)
     implicit none
-    real(8), intent(in):: a(EP_dim), b(EP_dim)
+    real(8), intent(in):: a,b
     ! ::::::::::::::::::::::::::::::::::::::::::::::
     integer i,j
 
     real(wp) sump, sumtot
 
-    sump = dot(EP_dim,a(1),1 ,b(1),1)
+    sump = dot(EP_dim,a,1 ,b,1)
     sumtot=0
 
     if(ha%nproc/=1) then
@@ -343,6 +343,27 @@ contains
     EP_scalare_interna=sumtot
 
   end function EP_scalare_interna
+
+!  real(8) function EP_scalare_interna(a,b)
+!    implicit none
+!    real(8), intent(in):: a(EP_dim), b(EP_dim)
+!    ! ::::::::::::::::::::::::::::::::::::::::::::::
+!    integer i,j
+!
+!    real(wp) sump, sumtot
+!
+!    sump = dot(EP_dim,a(1),1 ,b(1),1)
+!    sumtot=0
+!
+!    if(ha%nproc/=1) then
+!       call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+!    else
+!       sumtot=sump
+!    endif
+!    EP_scalare_interna=sumtot
+!
+!  end function EP_scalare_interna
+!
     
   subroutine  EP_copia_per_prova(psi)
     use module_interfaces
@@ -427,9 +448,9 @@ contains
 
     if(EP_doorthoocc) then
 
-       allocate(scals( EP_norb) ,stat=i_stat)
+       allocate(scals( EP_norb+ndebug) ,stat=i_stat)
        call memocc(i_stat,scals,'scals',subname)
-       allocate(scalstot( EP_norb) ,stat=i_stat)
+       allocate(scalstot( EP_norb+ndebug) ,stat=i_stat)
        call memocc(i_stat,scalstot,'scalstot',subname)
        
 
@@ -612,7 +633,7 @@ end subroutine EP_initialize_start
     endif
 
     call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-         ha%rxyz,ha%cpmult,ha%fpmult,ha%radii_cf,&
+         ha%rxyz,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
          ha%ndimpot, &
          ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,ha%epot_sum,ha%eproj_sum,1,ha%GPU)
@@ -715,7 +736,6 @@ end subroutine EP_initialize_start
    if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
 
    allocate(tpsi(wfd%nvctr_c+7*wfd%nvctr_f+ndebug),stat=i_stat)
-
    call memocc(i_stat,tpsi,'tpsi',subname)
 
    !initialize the wavefunction
@@ -866,7 +886,7 @@ end subroutine EP_initialize_start
 
 
    if(.not. allocated(psi_gross)) then 
-      allocate(psi_gross(0:n1/2,2,0:n2/2,2,0:n3/2,2),stat=i_stat)
+      allocate(psi_gross(0:n1/2,2,0:n2/2,2,0:n3/2,2+ndebug),stat=i_stat)
       call memocc(i_stat,psi_gross,'psi_gross',subname)
       allocate(logrid(0:n1/2,0:n2/2,0:n3/2+ndebug),stat=i_stat)
       call memocc(i_stat,logrid,'logrid',subname)

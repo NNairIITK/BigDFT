@@ -277,7 +277,7 @@ end subroutine dump_gauwf_on_radgrid
 
 subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccmax, lmax ,expo,psi, aeval, occup, psp_modifier, &
      Nsol, Labs, Ngrid,Egrid,  rgrid , psigrid  )
-  use module_base, only: gp, memocc
+  use module_base, only: gp, memocc,ndebug
   implicit none
   integer, intent(in) :: iproc,izatom,ielpsp,ng,npspcode,noccmax, lmax, Nsol, labs, Ngrid
   real(gp), dimension(0:4,0:6), intent(in) :: psppar
@@ -323,9 +323,9 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
         end if
      end do lpx_determination
   endif
-  allocate(alps(lpx+1),stat=i_stat)
+  allocate(alps(lpx+1+ndebug),stat=i_stat)
   call memocc(i_stat,alps,'alps',subname)
-  allocate(hsep(6,lpx+1),stat=i_stat)
+  allocate(hsep(6,lpx+1+ndebug),stat=i_stat)
   call memocc(i_stat,hsep,'hsep',subname)
 
   !assignation of radii and coefficients of the local part
@@ -356,7 +356,7 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
         hsep(6,l)=psppar(l,3)
      end do
   else if (npspcode == 3) then !HGH case
-     allocate(ofdcoef(3,4),stat=i_stat)
+     allocate(ofdcoef(3,4+ndebug),stat=i_stat)
      call memocc(i_stat,ofdcoef,'ofdcoef',subname)
 
      ofdcoef(1,1)=-0.5_gp*sqrt(3._gp/5._gp) !h2
@@ -423,12 +423,12 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
 
 
   !allocate arrays for the gatom routine
-  allocate(vh(4*(ng+1)**2,4*(ng+1)**2),stat=i_stat)
+  allocate(vh(4*(ng+1)**2,4*(ng+1)**2+ndebug),stat=i_stat)
   call memocc(i_stat,vh,'vh',subname)
 
-  allocate(xp(0:ng),stat=i_stat)
+  allocate(xp(0:ng+ndebug),stat=i_stat)
   call memocc(i_stat,xp,'xp',subname)
-  allocate(rmt(n_int,0:ng,0:ng,lmax+1),stat=i_stat)
+  allocate(rmt(n_int,0:ng,0:ng,lmax+1+ndebug),stat=i_stat)
   call memocc(i_stat,rmt,'rmt',subname)
 
 
@@ -1684,7 +1684,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg,&
                  Nsol, Labs, Ngrid,Egrid,  rgrid , psigrid )
-  use module_base, only: gp
+  use module_base
   use esatto
 
   implicit real(gp) (a-h,o-z)
@@ -1711,6 +1711,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
   real(gp) :: rgrid(Ngrid)
   real(gp), target :: dumgrid1(Ngrid),dumgrid2(Ngrid) ,dumgrid3(Ngrid)
   real(gp) , pointer :: y_r(:) ,  d_r(:)
+  character(len=*), parameter :: subname='gatom_modified_eqdiff'
 
  
 
@@ -2037,8 +2038,10 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 
   if(.true.) then
 
-     allocate(y_r(0:9))
-     allocate(d_r(0:9))
+     allocate(y_r(0:9+ndebug), stat=i_stat)
+     call memocc(i_stat,y_r,'y_r',subname)
+     allocate(d_r(0:9+ndebug), stat=i_stat)
+     call memocc(i_stat,d_r,'d_r',subname)
  
 
      if(.false.) then ! ricalcola la rho con le soluzioni radiali
@@ -2190,8 +2193,13 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 
         endif
      enddo
-     deallocate(y_r)
-     deallocate(d_r)
+     i_all=-product(shape(y_r))*kind(y_r)
+     deallocate(y_r, stat=i_stat)
+     call memocc(i_stat,i_all,'y_r',subname)
+
+     i_all=-product(shape(d_r))*kind(d_r)
+     deallocate(d_r, stat=i_stat)
+     call memocc(i_stat,i_all,'d_r',subname)
      stop
   endif
 
@@ -2687,10 +2695,10 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   
   ! ----------------- Gabsorber --------------------------------------------------------
   Gabsorber%nat = 1
-  allocate(Gabsorber%rxyz(3,Gabsorber%nat),stat=i_stat)
+  allocate(Gabsorber%rxyz(3,Gabsorber%nat+ndebug),stat=i_stat)
   call memocc(i_stat,Gabsorber%rxyz ,'Gabsorber%rxyz',subname)
 
-  allocate(Gabsorber%nshell(Gabsorber%nat ),stat=i_stat)
+  allocate(Gabsorber%nshell(Gabsorber%nat+ndebug),stat=i_stat)
   call memocc(i_stat,Gabsorber%nshell,'Gabsorber%nshell',subname)
 
   Gabsorber%rxyz(:,1) = rxyz(:,in_iat_absorber )
@@ -2699,9 +2707,9 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   Gabsorber%nshell(1)=1
   Gabsorber%nshltot  =1
 
-  allocate(Gabsorber%ndoc(1),stat=i_stat)
+  allocate(Gabsorber%ndoc(1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabsorber%nshell,'Gabsorber%nshell',subname)
-  allocate(Gabsorber%nam (1),stat=i_stat)
+  allocate(Gabsorber%nam (1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabsorber%nam,'Gabsorber%nam',subname)
 
   Gabsorber%nexpo=0
@@ -2713,10 +2721,10 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   Gabsorber%nexpo         =  Gabsorber%nexpo+ ng_fine 
   Gabsorber%ncoeff        =  Gabsorber%ncoeff+2* abs_final_l + 1
 
-  allocate(Gabsorber%psiat(Gabsorber%nexpo),stat=i_stat)
+  allocate(Gabsorber%psiat(Gabsorber%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,Gabsorber%psiat , 'Gabsorber%psiat',subname)
 
-  allocate(Gabsorber%xp(Gabsorber%nexpo),stat=i_stat)
+  allocate(Gabsorber%xp(Gabsorber%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,Gabsorber%xp    , 'Gabsorber%xp',subname)
 
   iexpo=0
@@ -2790,10 +2798,10 @@ end subroutine GetExcitedOrbitalAsG
 
 
 function GetBottom(  atoms, iproc)
-
+  
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces,except_this_one => GetBottom
 
   implicit none
   type(atoms_data), intent(in) :: atoms
@@ -2880,16 +2888,14 @@ function GetBottom(  atoms, iproc)
 
   GetBottom=1.0D4
 
+  psp_modifier=0;
+
   do ity=1, atoms%ntypes
      call abs_generator_modified(iproc,atoms%nzatom(ity), atoms%nelpsp(ity),atoms%psppar(0,0,ity),&
           atoms%npspcode(ity),ng-1 ,noccmax , lmax , expo,psi,aeval, occup , psp_modifier , &
           Nsol, abs_final_L , Ngrid,Egrid,  rgrid , psigrid )
      if(aeval(1,1)<GetBottom) GetBottom=aeval(1,1)
   enddo
-
-
-
-
   
   i_all=-product(shape(Egrid))*kind(Egrid)
   deallocate(Egrid,stat=i_stat)
@@ -3036,7 +3042,7 @@ end subroutine back_trans_14_4b2B
 
 
 subroutine scaling_function4b2B(itype,nd,nrange,a,x)
-
+  use module_base
   implicit none
   !Arguments
   !Type of interpolating functions
@@ -3048,9 +3054,8 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
   !Local variables
   character(len=*), parameter :: subname='scaling_function4b2B'
   real(kind=8), dimension(:), allocatable :: y
-  integer :: i,nt,ni,i_all,i_stat, ndebug
-  
-  ndebug=1
+  integer :: i,nt,ni,i_all,i_stat  
+
 
   !Only itype=8,14,16,20,24,30,40,50,60,100
   select case(itype)
@@ -3068,7 +3073,7 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
   ni=2*itype
   nrange = ni
   allocate(y(0:nd+ndebug),stat=i_stat)
-  ! call memocc(i_stat,y,'y',subname)
+  call memocc(i_stat,y,'y',subname)
   
   ! plot scaling function
   call zero4b2B(nd+1,x)
@@ -3118,7 +3123,7 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
 
   i_all=-product(shape(y))*kind(y)
   deallocate(y,stat=i_stat)
-  ! call memocc(i_stat,i_all,'y',subname)
+  call memocc(i_stat,i_all,'y',subname)
 end subroutine scaling_function4b2B
 !!***
 
@@ -3152,7 +3157,7 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
 
   print *, " allocation for rho for  n1i,n2i,n3i ",  n1i,n2i,n3i
 
-  allocate( rho( n1i*n2i*n3i ) , stat=i_stat )
+  allocate( rho( n1i*n2i*n3i+ndebug) , stat=i_stat )
   call memocc(i_stat,rho,'rho',subname)
 
   print *, " going to read all pot points " 

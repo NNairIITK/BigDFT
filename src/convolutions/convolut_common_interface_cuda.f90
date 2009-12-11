@@ -147,7 +147,7 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
   character(len=*), parameter :: subname='prepare_gpu_for_locham'
   integer :: i_stat,iorb
 
- 
+  print *, " in   prepare_gpu_for_locham " 
  
   call adjust_keys_for_gpu(wfd%nseg_c,wfd%nseg_f,wfd%keyv(1),wfd%keyg(1,1),&
        wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,wfd%nseg_c+1),wfd%nvctr_c,GPU%keys)
