@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 01/12/2009
+# Date: 04/12/2009
 #--------------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -3057,13 +3057,15 @@ class Execution(Code):
                             + "Register l = !Local variables\n" \
                             + "Edit the routine %s (use reg v, reg a or reg l)\n" % self.parent.name \
                             + "Create a file EXIT to stop all editions"
-                    vim_commands = """-c 'let @a ="%s!Arguments\\n"'""" % indent \
-                            + """ -c 'let @l = "%s!Local variables\\n"'""" % indent \
-                            + """ -c 'let @v ="%s"'""" % declaration \
-                            + """ -c 'let @/ ="%s"'""" % self.parent.name \
-                            + """ -c 'echo "%s"'""" % vim_message\
+                    vim_commands = """let @a ="%s!Arguments\\n"\n""" % indent \
+                            + """let @l = "%s!Local variables\\n"\n""" % indent \
+                            + """let @v ="%s"\n""" % declaration.replace("\n","\\n") \
+                            + """let @/ ="%s"\n""" % self.parent.name \
+                            + """echo "%s"\n""" % vim_message.replace("\n","\\n")
+                    open("temp.vim","w").write(vim_commands)
                     #subprocess.call(["vim", "%s/%s" % (self.parent.dir,self.parent.file)])
-                    os.system("vim %s %s/%s" % (vim_commands,self.parent.dir,self.parent.file))
+                    os.system("vim -S temp.vim %s/%s" % (self.parent.dir,self.parent.file))
+                    os.remove("temp.vim")
                     if os.path.exists("EXIT"):
                         self.message.write("\nThe file 'EXIT' has been edited.\nSTOP EDITION and abilint.\n",verbose=-10)
                         sys.exit(1)
@@ -3194,7 +3196,8 @@ class Variable:
     def build_declaration(self):
         "Build the declaration of the variable"
         decl = self.type
-        var = self.truename+self.dimension
+        #var = self.truename+self.dimension
+        var = self.truename
         if self.parameter:
             decl += ", parameter"
             var += "=" + self.value
@@ -3216,6 +3219,8 @@ class Variable:
             decl += ", save"
         if self.target:
             decl += ", target"
+        if self.dimension:
+            decl += ", dimension%s" % self.dimension
         return (decl,var)
     #
     def display_information(self):
