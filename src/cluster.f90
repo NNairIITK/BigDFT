@@ -1565,7 +1565,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
   logical :: endloop,potion_overwritten=.false.,allfiles,onefile
   integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before
   integer :: nvirt,ndiis_sd_sw
-  integer :: nelec,ndegree_ip,j,i,iorb
+  integer :: nelec,ndegree_ip,j,i,k, iorb
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i,i03,i04
   integer :: i1,i2,i3,ind,iat,i_all,i_stat,iter,ierr,jproc,ispin,inputpsi
@@ -1627,7 +1627,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(gp), pointer :: auxint(:)
   logical exists ; 
   ! ----------------------------------
+  ! per monitorare il minimo del pot letto in b2B attorno al 1 atomo
+  real(gp)  potx(21,3), potcoors(3,21,3)
   
+
+  !------------------------------------------
   !copying the input variables for readability
   !this section is of course not needed
   !note that this procedure is convenient ONLY in the case of scalar variables
@@ -1911,7 +1915,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
         inquire(file="b2B_xanes.cube",exist=exists)
         if(exists) then
 
-
+           stop " non ancora implementato "
 
 
         else
@@ -1932,7 +1936,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
               stop '  b2B potential mast be defined on a smaller ( in number of points  ) source grid then the target grid    '
            endif
            
-           if(atoms_b2B%geocode/='F') then
+           if( atoms_b2B%geocode/='F') then
               hx_old = 2*alat1_bB / (n1i_bB)
               hy_old = 2*alat2_bB / (n2i_bB)
               hz_old = 2*alat3_bB / (n3i_bB)
@@ -1942,15 +1946,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
               hz_old = 2*alat3_bB / (n3i_bB-1)
            endif
         endif
-
-
-
-
-
-
-
-
-
 
 
         do j=1,3
@@ -1973,7 +1968,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
         
 
         itype=16
-        nd=2**14
+        nd=2**20
 
         allocate(  intfunc_x(0:nd+ndebug),stat=i_stat )
         call memocc(i_stat,intfunc_x,'intfunc_x',subname)
@@ -1982,7 +1977,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
         print *, " scaling function for interpolation "
 
-        call scaling_function4b2B(itype,nd,nrange,intfunc_x,intfunc_y)  ! intervallo di 32 con 2**14 punti
+        call scaling_function4b2B(itype,nd,nrange,intfunc_x,intfunc_y)  ! intervallo di 32 con 2**20 punti
         if( abs(intfunc_y(nd/2)-1)>1.0e-10 ) then
            stop " wrong scaling function 4b2B: not a centered one "
         endif
@@ -1993,21 +1988,62 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
         
 
         ! how to acceed to a  function using a  
-        ! x variable given in units of the old  grids intfunc_y(( x+16) *2**9)
-        
-        
-        
+        ! x variable given in units of the old  grids intfunc_y(( x+16) *2**15)
 
         rhopot=0.0_gp
-  
+
+
+        do j=-10,10
+           do k=1,3
+              potcoors(:,j+11,k)= rxyz_b2B(:,1)
+              potcoors(k,j+11,k) = potcoors(k,j+11,k)+j*0.1
+           enddo
+        enddo
+        potx=0.0
 
         do iz_bB = 1,n3i_bB
            do iy_bB=1,n2i_bB
               do ix_bB=1,n1i_bB
                  rhopot(ix_bB,iy_bB,iz_bB +i3xcsh,1) =  pot_bB(ix_bB  + (iy_bB-1)*n1i_bB  + (iz_bB-1)*n1i_bB*n2i_bB)
+                 
+                 do j=-10,10
+                    do k=1,3
+                       rx_bB = hx_old*(ix_bB-1)           /2.0   - potcoors(1,j+11,k)
+                       ry_bB = hy_old*(iy_bB-1)           /2.0   - potcoors(2,j+11,k)
+                       rz_bB = hz_old*(iz_bB-1)           /2.0   - potcoors(3,j+11,k)
+
+                       idelta = (NINT((rx_bB)*2**15/(hx_old/2)))  + nd/2
+                       if(idelta<nd .and. idelta>0 ) then 
+                          factx = intfunc_y(idelta)
+                          
+                          idelta =  abs(NINT((ry_bB)*2**15/(hy_old/2)) ) + nd/2
+                          if(idelta<nd) then 
+                             facty = intfunc_y(idelta)
+                             
+                             idelta = abs( NINT((rz_bB)*2**15/(hz_old/2)) ) + nd/2
+                             if(idelta<nd) then 
+                                factz = intfunc_y(idelta)
+                                
+                                potx(j+11 ,k) =potx(j+11,k)+factx*facty*factz*rhopot(ix_bB,iy_bB,iz_bB +i3xcsh,1)
+                             end if
+                          end if
+                       end if
+                    end do
+                 end do
               enddo
            enddo
         enddo
+        
+
+        open(unit=22,file='potx.dat', status='unknown')
+        do j=1,21
+           write(22,*)  (potx(j,k), k=1,3)
+        enddo
+        close(unit=22)
+        
+
+        
+
         allocate(auxint(n1i+n2i+n3i+ndebug),stat=i_stat)
         call memocc(i_stat,pot,'auxint',subname)
 
@@ -2020,7 +2056,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
                  maxX_B  =  min(n1i,NINT((rx_bB +8*hx_old/2)/(hx/2.0)))
                  do ix= minX_B , maxX_B 
                     rx = hx*(ix-1  )/2.0  
-                    idelta = NINT((rx-rx_bB)*2**9/(hx_old/2))  
+                    idelta = NINT((rx-rx_bB)*2**15/(hx_old/2))  
                     factx = intfunc_y(nd/2+idelta)
 !!$                    print *, rx, rx_bB, ix, ix_bB      , factx
                     auxint(ix) = auxint(ix) + &
@@ -2041,7 +2077,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
                  maxY_B  =  min(n2i,NINT((ry_bB +8*hy_old/2)/(hy/2.0)))
                  do iy= minY_B , maxY_B 
                     ry = hy*(iy-1  )/2.0  
-                    idelta = NINT((ry-ry_bB)*2**9/(hy_old/2))
+                    idelta = NINT((ry-ry_bB)*2**15/(hy_old/2))
                     facty = intfunc_y(nd/2+idelta)
                     auxint(iy) = auxint(iy) + &
                          facty * rhopot(ix_bB,iy_bB,iz_bB+i3xcsh,1)
@@ -2062,7 +2098,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
                  do iz= minZ_B , maxZ_B 
                     rz = hz*(iz-1  )/2.0  
-                    idelta = NINT((rz-rz_bB)*2**9/(hz_old/2.0))     
+                    idelta = NINT((rz-rz_bB)*2**15/(hz_old/2.0))     
                     factz = intfunc_y(nd/2+idelta)
                     auxint(iz+i3xcsh) = auxint(iz+i3xcsh) + &
                          factz * rhopot(ix_bB,iy_bB,iz_bB+i3xcsh,1)
@@ -2073,9 +2109,15 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
         enddo
 
         if (iproc == 0) write(*,*) 'writing NEW local_potential.pot'
+
+
+
         call plot_density(atoms%geocode,'local_potentialb2BNEW.pot',iproc,nproc,&
              n1,n2,n3,n1i,n2i,n3i,n3p,&
              atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+
+
+
 
 
         i_all=-product(shape(auxint))*kind(auxint)
