@@ -37,8 +37,6 @@ subroutine ana_rot_per(n,ndat,x,y)
   real(wp) :: ci1,ci2,ci3,ci4,ci5,ci6,ci7,ci8
   real(wp) :: di1,di2,di3,di4,di5,di6,di7,di8
 
- write(*,*) 'ana_rot_per executed'
-
   call fill_mod_arr(mod_arr,-7,2*n+8,2*n+2)
 
 !dee
