@@ -664,6 +664,9 @@ subroutine input_wf_diag(iproc,nproc,at,&
      deallocate(psigau,stat=i_stat)
      call memocc(i_stat,i_all,'psigau',subname)
      call deallocate_comms(commse,subname)
+     i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
+     deallocate(norbsc_arr,stat=i_stat)
+     call memocc(i_stat,i_all,'norbsc_arr',subname)
     return 
   end if
 

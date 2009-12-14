@@ -238,9 +238,9 @@ contains
     real(gp) fact
 ! ::::::::::::::::::::::::::::::::::::::
     if(J.ge.0) then
-       call EP_multbyfact_interno( Qvect(1:,j), fact )
+       call EP_multbyfact_interno( Qvect(1,j), fact )
     else
-       call EP_multbyfact_interno( dumQvect(1:,-j), fact )
+       call EP_multbyfact_interno( dumQvect(1,-j), fact )
     endif
     return 
   end subroutine EP_multbyfact
@@ -272,11 +272,11 @@ contains
 
   subroutine EP_multbyfact_interno(Q, fact)
     implicit none
-    real(wp) Q(EP_dim)
+    real(wp) Q
     real(gp) fact
 ! :::::::::::::::::::::::
 
-    call vscal(EP_dim,fact, Q(1), 1  ) 
+    call vscal(EP_dim,fact, Q, 1  ) 
 
   end subroutine EP_multbyfact_interno
 
@@ -311,13 +311,13 @@ contains
     implicit none
     integer, intent(in) :: i,j
     if( i.ge.0 .and. j.ge.0) then
-       EP_scalare = EP_scalare_interna(Qvect(1:,i), Qvect(1:,j) )
+       EP_scalare = EP_scalare_interna(Qvect(1,i), Qvect(1,j) )
     else  if( i.lt.0 .and. j.ge.0) then
-       EP_scalare = EP_scalare_interna(dumQvect(1:,-i), Qvect(1:,j) )
+       EP_scalare = EP_scalare_interna(dumQvect(1,-i), Qvect(1,j) )
     else  if( i.ge.0 .and. j.lt.0) then
-       EP_scalare = EP_scalare_interna(Qvect(1:,i), dumQvect(1:,-j) )
+       EP_scalare = EP_scalare_interna(Qvect(1,i), dumQvect(1,-j) )
     else 
-       EP_scalare = EP_scalare_interna(dumQvect(1:,-i), dumQvect(1:,-j) )
+       EP_scalare = EP_scalare_interna(dumQvect(1,-i), dumQvect(1,-j) )
     endif
     
     return 
@@ -326,13 +326,13 @@ contains
  
   real(8) function EP_scalare_interna(a,b)
     implicit none
-    real(8), intent(in):: a(EP_dim), b(EP_dim)
+    real(8), intent(in):: a,b
     ! ::::::::::::::::::::::::::::::::::::::::::::::
     integer i,j
 
     real(wp) sump, sumtot
 
-    sump = dot(EP_dim,a(1),1 ,b(1),1)
+    sump = dot(EP_dim,a,1 ,b,1)
     sumtot=0
 
     if(ha%nproc/=1) then
@@ -343,6 +343,27 @@ contains
     EP_scalare_interna=sumtot
 
   end function EP_scalare_interna
+
+!  real(8) function EP_scalare_interna(a,b)
+!    implicit none
+!    real(8), intent(in):: a(EP_dim), b(EP_dim)
+!    ! ::::::::::::::::::::::::::::::::::::::::::::::
+!    integer i,j
+!
+!    real(wp) sump, sumtot
+!
+!    sump = dot(EP_dim,a(1),1 ,b(1),1)
+!    sumtot=0
+!
+!    if(ha%nproc/=1) then
+!       call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+!    else
+!       sumtot=sump
+!    endif
+!    EP_scalare_interna=sumtot
+!
+!  end function EP_scalare_interna
+!
     
   subroutine  EP_copia_per_prova(psi)
     use module_interfaces

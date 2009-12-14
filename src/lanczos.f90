@@ -74,7 +74,7 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   !call allocate_comms(nproc,ha%comms,subname)
   call orbitals_communicators(iproc,nproc,lr,ha%orbs,ha%comms)  
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
-  call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
+  call memocc(i_stat,Gabs_coeffs,'Gabs_coeff',subname)
  
   write(filename,'(A,A,A,I1)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
   
@@ -223,7 +223,7 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
   deallocate(Gabs_coeffs,stat=i_stat)
-  call memocc(i_stat,i_all,'Gabs_coeffs',subname)
+  call memocc(i_stat,i_all,'Gabs_coeff',subname)
 
 
   call deallocate_abscalc_input(in, subname)
@@ -306,7 +306,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   call orbitals_communicators(iproc,nproc,lr,ha%orbs,ha%comms)  
 
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
-  call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
+  call memocc(i_stat,Gabs_coeffs,'Gabs_coeff',subname)
  
 
   write(filename,'(A,A,A,I1)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
@@ -369,7 +369,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      
   endif
   
-
+  print *, "OK "
   !associate hamapp_arg pointers
   ha%iproc=iproc
   ha%nproc=nproc
@@ -395,8 +395,12 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%Gabs_coeffs=>Gabs_coeffs
  
   call EP_inizializza(ha)  
-  
+  print *, "OK 1"
+ 
   call  EP_memorizza_stato(Gabsorber) 
+
+   print *, "OK 2"
+ 
 
   if(.false.) then
 
@@ -440,19 +444,24 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   fact_cheb = (2-0.0001)/(eval_max-eval_min)
      
         
-     
+       print *, "OK 4"
+ 
   if(.true.) then
      
      call EP_memorizza_stato(Gabsorber) ! se uno stato e' memorizzato EP_initialize_start usa quello, se no random
      LB_nsteps = in%nsteps
      
+  print *, "OK 45"
+ 
+
      call LB_allocate_for_chebychev( )
      call EP_allocate_for_eigenprob(3) ! invece di nsteps, giusto qualche vettore per fare i calcoli
      call EP_make_dummy_vectors(2)
   
 
      call set_EP_shift(-cheb_shift) 
-     
+       print *, "OK 5"
+ 
      call LB_passeggia_Chebychev (LB_nsteps, cheb_shift,  fact_cheb,     get_EP_dim, EP_initialize_start , EP_normalizza,&
           EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy,   EP_mat_mult, &
           EP_scalare,EP_add_from_vect_with_fact  , EP_multbyfact  )
@@ -490,7 +499,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   
   i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
   deallocate(Gabs_coeffs,stat=i_stat)
-  call memocc(i_stat,i_all,'Gabs_coeffs',subname)
+  call memocc(i_stat,i_all,'Gabs_coeff',subname)
 
 
   call deallocate_orbs(ha%orbs,subname)

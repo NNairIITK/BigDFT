@@ -277,7 +277,7 @@ end subroutine dump_gauwf_on_radgrid
 
 subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccmax, lmax ,expo,psi, aeval, occup, psp_modifier, &
      Nsol, Labs, Ngrid,Egrid,  rgrid , psigrid  )
-  use module_base, only: gp, memocc
+  use module_base, only: gp, memocc,ndebug
   implicit none
   integer, intent(in) :: iproc,izatom,ielpsp,ng,npspcode,noccmax, lmax, Nsol, labs, Ngrid
   real(gp), dimension(0:4,0:6), intent(in) :: psppar
@@ -323,9 +323,9 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
         end if
      end do lpx_determination
   endif
-  allocate(alps(lpx+1),stat=i_stat)
+  allocate(alps(lpx+1+ndebug),stat=i_stat)
   call memocc(i_stat,alps,'alps',subname)
-  allocate(hsep(6,lpx+1),stat=i_stat)
+  allocate(hsep(6,lpx+1+ndebug),stat=i_stat)
   call memocc(i_stat,hsep,'hsep',subname)
 
   !assignation of radii and coefficients of the local part
@@ -356,7 +356,7 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
         hsep(6,l)=psppar(l,3)
      end do
   else if (npspcode == 3) then !HGH case
-     allocate(ofdcoef(3,4),stat=i_stat)
+     allocate(ofdcoef(3,4+ndebug),stat=i_stat)
      call memocc(i_stat,ofdcoef,'ofdcoef',subname)
 
      ofdcoef(1,1)=-0.5_gp*sqrt(3._gp/5._gp) !h2
@@ -423,12 +423,12 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
 
 
   !allocate arrays for the gatom routine
-  allocate(vh(4*(ng+1)**2,4*(ng+1)**2),stat=i_stat)
+  allocate(vh(4*(ng+1)**2,4*(ng+1)**2+ndebug),stat=i_stat)
   call memocc(i_stat,vh,'vh',subname)
 
-  allocate(xp(0:ng),stat=i_stat)
+  allocate(xp(0:ng+ndebug),stat=i_stat)
   call memocc(i_stat,xp,'xp',subname)
-  allocate(rmt(n_int,0:ng,0:ng,lmax+1),stat=i_stat)
+  allocate(rmt(n_int,0:ng,0:ng,lmax+1+ndebug),stat=i_stat)
   call memocc(i_stat,rmt,'rmt',subname)
 
 
@@ -2695,10 +2695,10 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   
   ! ----------------- Gabsorber --------------------------------------------------------
   Gabsorber%nat = 1
-  allocate(Gabsorber%rxyz(3,Gabsorber%nat),stat=i_stat)
+  allocate(Gabsorber%rxyz(3,Gabsorber%nat+ndebug),stat=i_stat)
   call memocc(i_stat,Gabsorber%rxyz ,'Gabsorber%rxyz',subname)
 
-  allocate(Gabsorber%nshell(Gabsorber%nat ),stat=i_stat)
+  allocate(Gabsorber%nshell(Gabsorber%nat+ndebug),stat=i_stat)
   call memocc(i_stat,Gabsorber%nshell,'Gabsorber%nshell',subname)
 
   Gabsorber%rxyz(:,1) = rxyz(:,in_iat_absorber )
@@ -2707,9 +2707,9 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   Gabsorber%nshell(1)=1
   Gabsorber%nshltot  =1
 
-  allocate(Gabsorber%ndoc(1),stat=i_stat)
+  allocate(Gabsorber%ndoc(1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabsorber%nshell,'Gabsorber%nshell',subname)
-  allocate(Gabsorber%nam (1),stat=i_stat)
+  allocate(Gabsorber%nam (1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabsorber%nam,'Gabsorber%nam',subname)
 
   Gabsorber%nexpo=0
@@ -2721,10 +2721,10 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   Gabsorber%nexpo         =  Gabsorber%nexpo+ ng_fine 
   Gabsorber%ncoeff        =  Gabsorber%ncoeff+2* abs_final_l + 1
 
-  allocate(Gabsorber%psiat(Gabsorber%nexpo),stat=i_stat)
+  allocate(Gabsorber%psiat(Gabsorber%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,Gabsorber%psiat , 'Gabsorber%psiat',subname)
 
-  allocate(Gabsorber%xp(Gabsorber%nexpo),stat=i_stat)
+  allocate(Gabsorber%xp(Gabsorber%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,Gabsorber%xp    , 'Gabsorber%xp',subname)
 
   iexpo=0
@@ -2882,7 +2882,7 @@ function GetBottom(  atoms, iproc)
   
   
 
-  abs_final_L = 1
+  abs_final_L = 0
 
 
 
@@ -2891,6 +2891,7 @@ function GetBottom(  atoms, iproc)
   psp_modifier=0;
 
   do ity=1, atoms%ntypes
+     print *, " for atoms " , atoms%nzatom(ity)
      call abs_generator_modified(iproc,atoms%nzatom(ity), atoms%nelpsp(ity),atoms%psppar(0,0,ity),&
           atoms%npspcode(ity),ng-1 ,noccmax , lmax , expo,psi,aeval, occup , psp_modifier , &
           Nsol, abs_final_L , Ngrid,Egrid,  rgrid , psigrid )
@@ -3157,7 +3158,7 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
 
   print *, " allocation for rho for  n1i,n2i,n3i ",  n1i,n2i,n3i
 
-  allocate( rho( n1i*n2i*n3i ) , stat=i_stat )
+  allocate( rho( n1i*n2i*n3i+ndebug) , stat=i_stat )
   call memocc(i_stat,rho,'rho',subname)
 
   print *, " going to read all pot points " 
