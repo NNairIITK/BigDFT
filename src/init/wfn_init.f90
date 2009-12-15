@@ -961,7 +961,7 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
                 hamovr(imatrst+norbi*norbj),norbi,0.0_wp,psivirt(ispsiv),max(1,nvctrp))
         else
            call c_gemm('N','N',ncomp*nvctrp,nvirte(ispin),norbi,(1.0_wp,0.0_wp),&
-                psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst+ncplxnorbi*norbj),norbi,&
+                psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst+ncplx*norbi*norbj),norbi,&
                 (0.0_wp,0.0_wp),psivirt(ispsiv),max(1,ncomp*nvctrp))
         end if
         ispsiv=ispsiv+nvctrp*nvirte(ispin)*nspinor

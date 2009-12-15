@@ -633,12 +633,13 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
            ispsi=ispsi+nvctrp*norb*nspinor
 
-           if(iproc == 0)write(*,'(1x,a)')'The refined eigenvalues are'
            if (nspin ==1) then
+              if(iproc == 0)write(*,'(1x,a)')'done. The refined eigenvalues are'
               do iorb=1,nvirt
                  if(iproc==0)write(*,'(1x,i3,2(1pe21.14))')iorb,(e(iorb,ikpt,j),j=1,2)
               end do
            else if (ispin == 2) then
+              if(iproc == 0)write(*,'(1x,a)')'done. The refined eigenvalues are'
               do iorb=1,nvirt
                  if(iproc==0)write(*,'(1x,i3,4(1pe21.14))')&
                       iorb,(e(iorb,ikpt,j),j=1,2),(e(iorb+orbsv%norbu,ikpt,j),j=1,2)
@@ -682,7 +683,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
      call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,v,work=psiw)
      call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,hv,work=psiw)
 
-     if(iproc==0)write(*,'(1x,a)')"done. "
+     if(iproc==0 .and. verbose > 1) write(*,'(1x,a)')"done. "
      call timing(iproc,'Davidson      ','ON')
      iter=iter+1
      if(iter>in%itermax+100)then !an input variable should be put
@@ -964,7 +965,7 @@ subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
           hamovr(1,norb+1,1,2),2*norb)
   end if
 
-  !<gi | gj> => hsub(:,:,:,6)
+  !<gi | gj>
   if(nspinor==1) then
      call syrk('U','T',norb,nvctrp,1.0_wp,g(1),max(1,nvctrp),&
           0.0_wp,hamovr(1,norb+1,norb+1,2),2*norb)
@@ -978,8 +979,8 @@ subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
   do jorb=1,norb
      do iorb=1,norb
         do icplx=1,ncplx
-           hamovr(icplx,iorb,jorb+norb,1)     = (-1)**(icplx-1)*hamovr(icplx,jorb+norb,iorb,1)  
-           hamovr(icplx,iorb,jorb+norb,2)     = (-1)**(icplx-1)*hamovr(icplx,jorb+norb,iorb,2)  
+           hamovr(icplx,iorb,jorb+norb,1) = (-1)**(icplx-1)*hamovr(icplx,jorb+norb,iorb,1)  
+           hamovr(icplx,iorb,jorb+norb,2) = (-1)**(icplx-1)*hamovr(icplx,jorb+norb,iorb,2)  
         end do
      enddo
   enddo
@@ -1035,145 +1036,3 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
   call dcopy(nspinor*nvctrp*norb,work(1),1,v(1),1)
 
 end subroutine update_psivirt
-
-
-!!****f* BigDFT/orthoconvirt
-!! DESCRIPTION
-!!   Makes sure all psivirt/gradients are othogonal to the occupied states psi
-!!   This routine is almost the same as orthoconstraint. Only differences:
-!!   hpsi(:,norb) -->  psivirt(:,nvirte) , therefore different dimensions.
-!!
-!! WARNING
-!!   Orthogonality to spin polarized channels is achieved in two calls,
-!    because up and down orbitals of psi are not orthogonal.
-!! SOURCE
-!! 
-subroutine orthoconvirt(norb,nvirte,nvctrp,psi,hpsi,msg)
-  use module_base
-  implicit none! real(kind=8) (a-h,o-z)
-  integer::norb,nvirte,nvctrp,i_all,i_stat,iorb,jorb,iproc
-  logical, parameter :: parallel=.false.
-  real(8):: psi(nvctrp,norb),hpsi(nvctrp,nvirte)!,occup(norb)
-  real(8), allocatable :: alag(:,:,:)
-  real(8)::scprsum,tt
-  character(len=*), parameter :: subname='orthoconvirt'
-  logical::msg
-
-  iproc=0
-  call timing(iproc,'LagrM_comput  ','ON')
-
-  allocate(alag(norb,nvirte,2+ndebug),stat=i_stat)
-  call memocc(i_stat,alag,'alag',subname)
-
-  if (nvctrp == 0) then
-     call razero(norb*nvirte*2,alag)
-  end if
-  !     alag(jorb,iorb,2)=+psi(k,jorb)*hpsi(k,iorb)
-
-  call DGEMM('T','N',norb,nvirte,nvctrp,1.d0,psi(1,1),nvctrp,hpsi(1,1),nvctrp,0.d0,alag(1,1,1),norb)
-
-  if(msg)write(*,'(1x,a)')'scalar products are'
-  if(msg)write(*,'(1x,a)')'iocc ivirt       value'!                  zero if<1d-12'
-
-  scprsum=0.0_dp
-  do iorb=1,norb
-   do jorb=1,nvirte
-     tt=alag(iorb,jorb,1)
-     if(msg)write(*,'(1x,2i3,1pe21.14)')iorb,jorb,tt
-     scprsum=scprsum+tt**2
-     !if(abs(tt)<1d-12)alag(iorb,jorb,1)=0d0 
-     !if(msg)write(*,'(i5,1x,i5,7x,2(1pe21.14,1x))')iorb,jorb,tt,alag(iorb,jorb,1)
-   end do
-  enddo
-  scprsum=dsqrt(scprsum/dble(norb)/dble(nvirte))
-  if(msg)write(*,'(1x,a,1pe21.14)')'sqrt sum squares is',scprsum
-  if(msg)write(*,'(1x)')
-  ! hpsi(k,iorb)=-psi(k,jorb)*alag(jorb,iorb,1)
-  !if(maxval(alag(:,:,1))>0d0)&
-  call DGEMM('N','N',nvctrp,nvirte,norb,&
-             -1.d0,psi(1,1),nvctrp,alag(1,1,1),norb,1.d0,hpsi(1,1),nvctrp)
-
-  i_all=-product(shape(alag))*kind(alag)
-  deallocate(alag,stat=i_stat)
-  call memocc(i_stat,i_all,'alag',subname)
-
-  call timing(iproc,'LagrM_comput  ','OF')
-
-END SUBROUTINE orthoconvirt
-!!***
-
-
-!!****f* BigDFT/orthoconvirt_p
-!! DESCRIPTION
-!!   Makes sure all psivirt/gradients are othogonal to the occupied states psi.
-!!   This routine is almost the same as orthoconstraint_p. Difference:
-!!   hpsi(:,norb) -->  psivirt(:,nvirte) , therefore rectangular alag.
-!! 
-!! WARNING
-!!   Orthogonality to spin polarized channels is achieved in two calls,
-!!   because up and down orbitals of psi are not orthogonal.
-!! SOURCE
-!!
-subroutine orthoconvirt_p(iproc,nproc,norb,nvirte,nvctrp,psi,hpsi,msg)
-  use module_base
-  implicit none
-  integer, intent(in) :: norb,nvirte,nvctrp,iproc,nproc
-  real(wp), dimension(nvctrp,norb), intent(in) :: psi
-  real(wp), dimension(nvctrp,nvirte), intent(out) :: hpsi
-  !local variables
-  character(len=*), parameter :: subname='orthoconvirt_p'
-  logical :: msg
-  integer :: i_all,i_stat,ierr,iorb,jorb,istart
-  real(wp), dimension(:,:,:), allocatable :: alag
-  real(wp) :: scprsum,tt
-
-  istart=1
-  if (nproc > 1) istart=2
-
-  call timing(iproc,'LagrM_comput  ','ON')
-
-  allocate(alag(norb,nvirte,istart+ndebug),stat=i_stat)
-  call memocc(i_stat,alag,'alag',subname)
-
-  !     alag(jorb,iorb,2)=+psi(k,jorb)*hpsi(k,iorb)
-  call DGEMM('T','N',norb,nvirte,nvctrp,1.d0,psi(1,1),nvctrp,hpsi(1,1),nvctrp,&
-       0.d0,alag(1,1,istart),norb)
-
-  if (nproc > 1) then
-     call timing(iproc,'LagrM_comput  ','OF')
-     call timing(iproc,'LagrM_commun  ','ON')
-     call MPI_ALLREDUCE(alag(1,1,2),alag(1,1,1),norb*nvirte,&
-          mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'LagrM_commun  ','OF')
-     call timing(iproc,'LagrM_comput  ','ON')
-  end if
-
-  if(msg)write(*,'(1x,a)')'scalar products are'
-  if(msg)write(*,'(1x,a)')'iocc  ivirt       value'!               zero if<1d-12'
-
-  scprsum=0.0_dp
-  do iorb=1,norb
-   do jorb=1,nvirte
-     tt=alag(iorb,jorb,1)
-     if(msg) write(*,'(1x,2i3,1pe21.14)')iorb,jorb,tt
-     scprsum=scprsum+tt**2
-     !if(abs(tt)<1d-12)alag(iorb,jorb,1)=0d0
-     !if(msg)write(*,'(2(i3),7x,2(1pe21.14))')iorb,jorb,tt,alag(iorb,jorb,1)
-   end do
-  enddo
-  scprsum=dsqrt(scprsum/dble(norb)/dble(nvirte))
-  if(msg)write(*,'(1x,a,1pe21.14)')'sqrt sum squares is',scprsum
-  if(msg)write(*,'(1x)')
-  !hpsi(k,iorb)=-psi(k,jorb)*alag(jorb,iorb,1)
-  !if(maxval(alag(:,:,1))>0d0)
-  call DGEMM('N','N',nvctrp,nvirte,norb,&
-       -1.d0,psi(1,1),nvctrp,alag(1,1,1),norb,1.d0,hpsi(1,1),nvctrp)
-
-  i_all=-product(shape(alag))*kind(alag)
-  deallocate(alag,stat=i_stat)
-  call memocc(i_stat,i_all,'alag',subname)
-
-  call timing(iproc,'LagrM_comput  ','OF')
-
-END SUBROUTINE orthoconvirt_p
-!!***

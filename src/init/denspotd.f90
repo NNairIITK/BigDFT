@@ -309,3 +309,13 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 
 
 end subroutine orbitals_communicators
+
+
+!!subroutine print_distribution_schemes(iproc,nproc,nkpts,norb_par,nvctr_par)
+!!  use module_base
+!!  implicit none
+!!  integer, intent(in) :: iproc,nproc,nkpts
+!!  integer, dimension(0:nproc-1,nkpts), intent(in) :: norb_par,nvctr_par
+!!  !local variables
+!!  
+!!end subroutine print_distribution_schemes
