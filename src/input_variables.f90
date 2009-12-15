@@ -426,6 +426,11 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
      call memocc(i_stat,in%wkpt,'in%wkpt',subname)
      in%wkpt(1) = 1.
      return
+  !and control whether we are giving k-points to Free BC
+  else if (atoms%geocode == 'F') then
+     if (iproc==0) write(*,*)&
+          ' NONSENSE: Trying to use k-points with Free Boundary Conditions!'
+     stop
   end if
 
   ! Real generation of k-point set.

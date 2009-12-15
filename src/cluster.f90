@@ -895,7 +895,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !analyse the possiblity to calculate Davidson treatment
   !(nvirt > 0 .and. in%inputPsiId == 0)
-  DoDavidson= in%nvirt > 0 .and. infocode==0
+  DoDavidson= in%nvirt > 0 .and. infocode==0 .or. in%nrepmax == 1
   if (in%potshortcut==0) then
 
      call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
