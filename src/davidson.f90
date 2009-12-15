@@ -91,7 +91,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: work,work_rp,hamovr
   real(wp), dimension(:), allocatable :: hv,g,hg,ew
-  real(wp), dimension(:,:,:,:), allocatable :: e
+  real(wp), dimension(:,:,:), allocatable :: e
   real(wp), dimension(:), pointer :: psiw
 
   !in the GPU case, the wavefunction should be copied to the card 
@@ -109,7 +109,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   !last index of e and hamovr are for mpi_allreduce. 
   !e (eigenvalues) is also used as 2 work arrays
   
-  msg=verbose > 2!.false.! no extended output
+  msg=verbose > 2 .and. iproc ==0! no extended output
   !msg =(iproc==0)!extended output
 
   if(iproc==0)write(*,'(1x,a)')"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
@@ -178,7 +178,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
   !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
 
-  allocate(e(orbsv%norb,orbsv%nkpts,2,1+ndebug),stat=i_stat)
+  allocate(e(orbsv%norb,orbsv%nkpts,2+ndebug),stat=i_stat)
   call memocc(i_stat,e,'e',subname)
 
   !transpose  v and hv
@@ -187,7 +187,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
   call timing(iproc,'Davidson      ','ON')
   !Timing excludes transposition, hamilton application and preconditioning
-  call razero(orbsv%norb*2*orbsv%nkpts*1,e)
+  call razero(orbsv%norb*2*orbsv%nkpts,e)
   ! Rayleigh quotients.
 
   !probably this loop can be rewritten using GEMMs
@@ -196,9 +196,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
      ikpt=ikptp+orbsv%iskpts
      nvctrp=commsv%nvctr_par(iproc,ikptp)
      do iorb=1,orbsv%norb ! temporary variables 
-        e(iorb,ikpt,1,1)= dot(nvctrp,v(ispsi+nvctrp*(iorb-1)),1,&
+        e(iorb,ikpt,1)= dot(nvctrp,v(ispsi+nvctrp*(iorb-1)),1,&
              hv(ispsi+nvctrp*(iorb-1)),1)          != <psi|H|psi> 
-        e(iorb,ikpt,2,1)= nrm2(nvctrp,v(ispsi+nvctrp*(iorb-1)),1)**2   != <psi|psi> 
+        e(iorb,ikpt,2)= nrm2(nvctrp,v(ispsi+nvctrp*(iorb-1)),1)**2   != <psi|psi> 
      end do
      ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
   end do
@@ -208,7 +208,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
      !commsv%nvctr_par(iproc,1) wavelet coefficients each
      !call MPI_ALLREDUCE(e(1,1,1,2),e(1,1,1,1),2*orbsv%norb*orbsv%nkpts,&
      !     mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
-     call mpiallred(e(1,1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
 
   end if
 
@@ -218,9 +218,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   do ikpt=1,orbsv%nkpts
      do iorb=1,orbsv%norb
         !e(:,1,1) = <psi|H|psi> / <psi|psi>
-        e(iorb,ikpt,1,1)=e(iorb,ikpt,1,1)/e(iorb,ikpt,2,1)
+        e(iorb,ikpt,1)=e(iorb,ikpt,1)/e(iorb,ikpt,2)
         if(iproc==0) write(*,'(1x,i3,2(1x,1pe21.14))')&
-             iorb,e(iorb,ikpt,2,1),e(iorb,ikpt,1,1)
+             iorb,e(iorb,ikpt,2),e(iorb,ikpt,1)
      end do
   end do
 
@@ -244,7 +244,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   allocate(ndimovrlp(nspin,0:orbsv%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,ndimovrlp,'ndimovrlp',subname)
 
-  call dimension_ovrlp(nspin,orbs,ndimovrlp)
+  call dimension_ovrlp(nspin,orbsv,ndimovrlp)
   
   !the dimension should be chosen with the max between k-points
   !allocate(hamovr(n2virt,n2virt,2,orbsv%nkpts+ndebug),stat=i_stat)
@@ -254,17 +254,21 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   !put to zero all the k-points which are not needed
   call razero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
 
-  nwork=max(10,8*orbsv%norb)
+  nwork=max(10,16*orbsv%norb)
   allocate(work(nwork+ndebug),stat=i_stat)
   call memocc(i_stat,work,'work',subname)
   
   allocate(ew(2*orbsv%norb+ndebug),stat=i_stat)
   call memocc(i_stat,ew,'ew',subname)
 
+  allocate(orbsv%eval(orbsv%norb*orbsv%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbsv%eval,'eval',subname)
+
 
   !itermax=... use the input variable instead
   iter=1
   davidson_loop: do 
+
      if(iproc==0)write(*,'(1x,a,i3)')&
      "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter",iter
      if(msg) write(*,'(1x,a)')"squared norm of the (nvirt) gradients"
@@ -274,7 +278,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
      call dcopy(orbsv%npsidim,hv,1,g,1)! don't overwrite hv
 
-     call razero(orbsv%norb*orbsv%nkpts,e(1,1,2,1))
+     call razero(orbsv%norb*orbsv%nkpts,e(1,1,2))
      !also these operations are presumably GEMMs
      !here we should add the ncomp term for non-collinear case
      ispsi=1
@@ -283,36 +287,36 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
         nvctrp=commsv%nvctr_par(iproc,ikptp)
         do iorb=1,orbsv%norb
            !gradient = hv-e*v
-           call axpy(nvctrp,-e(iorb,ikpt,1,1),v(ispsi+nvctrp*(iorb-1)),1,&
+           call axpy(nvctrp,-e(iorb,ikpt,1),v(ispsi+nvctrp*(iorb-1)),1,&
                 g(ispsi+nvctrp*(iorb-1)),1)
 
            !local contribution to the square norm
-           e(iorb,ikpt,2,1)= nrm2(nvctrp,g(ispsi+nvctrp*(iorb-1)),1)**2
+           e(iorb,ikpt,2)= nrm2(nvctrp,g(ispsi+nvctrp*(iorb-1)),1)**2
         end do
         ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
      end do
 
      if(nproc > 1)then
         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-        call mpiallred(e(1,1,2,1),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
      end if
 
      gnrm=0._dp
      do ikpt=1,orbsv%nkpts
         do iorb=1,nvirt
-           tt=real(e(iorb,ikpt,2,1)*orbsv%kwgts(ikpt),dp)
+           tt=real(e(iorb,ikpt,2)*orbsv%kwgts(ikpt),dp)
            if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
            gnrm=gnrm+tt
         end do
         if (nspin == 2) then
            do iorb=1,nvirt
-              tt=real(e(iorb+orbsv%norbu,ikpt,2,1)*orbsv%kwgts(ikpt),dp)
-              if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
+              tt=real(e(iorb+orbsv%norbu,ikpt,2)*orbsv%kwgts(ikpt),dp)
+              if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb+orbsv%norbu,tt
               gnrm=gnrm+tt
            end do
         end if
      end do
-     !should we divied by nvrit or by orbsv%norb?
+     !should we divide by nvrit or by orbsv%norb?
      gnrm=dsqrt(gnrm/real(orbsv%norb,dp))
 
      if(iproc == 0)write(*,'(1x,a,2(1x,1pe12.5))')&
@@ -336,14 +340,14 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
      if(msg)write(*,'(1x,a)')"squared norm of all gradients after projection"
 
-     call razero(orbsv%norb*orbsv%nkpts,e(1,1,2,1))
+     call razero(orbsv%norb*orbsv%nkpts,e(1,1,2))
      ispsi=1
      do ikptp=1,orbsv%nkptsp
         ikpt=ikptp+orbsv%iskpts
         nvctrp=commsv%nvctr_par(iproc,ikptp)
 
         do iorb=1,orbsv%norb
-           e(iorb,ikpt,2,1)= nrm2(nvctrp,g(ispsi+nvctrp*(iorb-1)),1)**2
+           e(iorb,ikpt,2)= nrm2(nvctrp,g(ispsi+nvctrp*(iorb-1)),1)**2
         end do
 
         ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
@@ -351,19 +355,19 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
      if(nproc > 1)then
         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-        call mpiallred(e(1,1,2,1),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
      end if
 
      gnrm=0._dp
      do ikpt=1,orbsv%nkpts
         do iorb=1,nvirt
-           tt=real(e(iorb,ikpt,2,1)*orbsv%kwgts(ikpt),dp)
+           tt=real(e(iorb,ikpt,2)*orbsv%kwgts(ikpt),dp)
            if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
            gnrm=gnrm+tt
         end do
         if (nspin == 2) then
            do iorb=1,nvirt
-              tt=real(e(iorb+orbsv%norbu,ikpt,2,1)*orbsv%kwgts(ikpt),dp)
+              tt=real(e(iorb+orbsv%norbu,ikpt,2)*orbsv%kwgts(ikpt),dp)
               if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
               gnrm=gnrm+tt
            end do
@@ -386,14 +390,22 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
      call timing(iproc,'Precondition  ','ON')
 
+     !we fill the values of the eval for the orbitals used in the preconditioner
+     do ikpt=1,orbsv%nkpts
+        do iorb=1,orbsv%norb
+           orbsv%eval(iorb+(ikpt-1)*orbsv%norb)=e(iorb,ikpt,1)
+        end do
+     end do
      !we use for preconditioning the eval from the lowest value of the KS wavefunctions
-     !WARNING this pointer association is nor coherent: it will give errors if orbs%norb < orbsv%norb
-     orbsv%eval=>orbs%eval
-     if (orbs%norb < orbsv%norb) then
-        write(*,*)'ERROR: too many virtual orbitals demanded, cannot proceed.'
-        write(*,*)'       change the eigenvalues array to fix this problem'
-        stop
-     end if
+     !WARNING this pointer association is nor coherent: 
+     !        it will give errors if orbs%norb < orbsv%norb
+!     orbsv%eval=>orbs%eval
+!     if (orbs%norb < orbsv%norb) then
+!        write(*,*)'ERROR: too many virtual orbitals demanded, cannot proceed.'
+!        write(*,*)'       change the eigenvalues array to fix this problem'
+!        stop
+!     end if
+
      call preconditionall(iproc,nproc,orbsv,lr,hx,hy,hz,in%ncong,g,gnrm_fake)
 
      call timing(iproc,'Precondition  ','OF')
@@ -429,7 +441,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
      if(msg)write(*,'(1x,a)')"Norm of all preconditioned gradients"
 
-     call razero(orbsv%norb*orbsv%nkpts,e(1,1,2,1))
+     call razero(orbsv%norb*orbsv%nkpts,e(1,1,2))
 
      ispsi=1
      do ikptp=1,orbsv%nkptsp
@@ -437,7 +449,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
         nvctrp=commsv%nvctr_par(iproc,ikptp)
 
         do iorb=1,orbsv%norb
-           e(iorb,ikpt,2,1)=nrm2(nvctrp,g(ispsi+nvctrp*(iorb-1)),1)**2
+           e(iorb,ikpt,2)=nrm2(nvctrp,g(ispsi+nvctrp*(iorb-1)),1)**2
         end do
 
         ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
@@ -445,13 +457,13 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
      
      if(nproc > 1)then
         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-        call mpiallred(e(1,1,2,1),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
      end if
 
      gnrm=0.0_dp
      do ikpt=1,orbsv%nkpts
         do iorb=1,orbsv%norb
-           tt=real(e(iorb,ikpt,2,1)*orbsv%kwgts(ikpt),dp)
+           tt=real(e(iorb,ikpt,2)*orbsv%kwgts(ikpt),dp)
            if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
            gnrm=gnrm+tt
         end do
@@ -465,6 +477,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
      !                 <vi | hvj>      <vi | hgj-n>                   <vi | vj>      <vi | gj-n>
      ! hamovr(i,j,1)=                               ;  hamovr(i,j,2)=  
      !                 <gi-n | hvj>  <gi-n | hgj-n>                   <gi-n | vj>  <gi-n | gj-n>
+     !put to zero all the k-points which are not needed
+     call razero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
 
 
      ! store upper triangular part of these matrices only
@@ -482,7 +496,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
            else
               ncplx=1
            end if
-
+!print *,iproc,ikpt,ispin,norb,nspinor,ncplx,nvctrp,8*ndimovrlp(ispin,ikpt-1)+1,8*ndimovrlp(nspin,orbsv%nkpts)
            call Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,&
                 hamovr(8*ndimovrlp(ispin,ikpt-1)+1),&
                 v(ispsi),g(ispsi),hv(ispsi),hg(ispsi))
@@ -491,19 +505,17 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
         end do
      end do
 
-
      i_all=-product(shape(hg))*kind(hg)
      deallocate(hg,stat=i_stat)
      call memocc(i_stat,i_all,'hg',subname)
 
      if(nproc > 1)then
         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-        call mpiallred(hamovr(1),8*ndimovrlp(nspin,orbsv%nkpts)*orbsv%nkpts,&
+        call mpiallred(hamovr(1),8*ndimovrlp(nspin,orbsv%nkpts),&
              MPI_SUM,MPI_COMM_WORLD,ierr)
      end if
 
      if(iproc==0)write(*,'(1x,a)')"done."
-
 
      ispsi=1
      do ikptp=1,orbsv%nkptsp
@@ -558,9 +570,10 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
            if (ispin==1) ise=0
            do iorb=1,norb
-              e(iorb+ise,ikpt,1,1)=ew(iorb)
-              e(iorb+ise,ikpt,2,1)=ew(iorb+norb)
+              e(iorb+ise,ikpt,1)=ew(iorb)
+              e(iorb+ise,ikpt,2)=ew(iorb+norb)
            end do
+           ise=norb
 
            if (nspinor /= 1) then
               i_all=-product(shape(work_rp))*kind(work_rp)
@@ -571,7 +584,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
            if(msg)then
               write(*,'(1x,a)')'    e(update)           e(not used)'
               do iorb=1,orbsv%norb
-                 write(*,'(1x,i3,2(1pe21.14))')iorb, (e(iorb,ikpt,j,1),j=1,2)
+                 write(*,'(1x,i3,2(1pe21.14))')iorb, (e(iorb,ikpt,j),j=1,2)
               end do
               write(*,*)
               write(*,*)"and the eigenvectors are"
@@ -582,7 +595,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
                  write(*,*)
               end do
            end if
-           ise=norb
+
 
            if(iproc==0)write(*,'(1x,a)',advance="no")&
                 "done. Update v with eigenvectors..."
@@ -623,12 +636,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
            if(iproc == 0)write(*,'(1x,a)')'The refined eigenvalues are'
            if (nspin ==1) then
               do iorb=1,nvirt
-                 if(iproc==0)write(*,'(1x,i3,2(1pe21.14))')iorb,(e(iorb,ikpt,j,1),j=1,2)
+                 if(iproc==0)write(*,'(1x,i3,2(1pe21.14))')iorb,(e(iorb,ikpt,j),j=1,2)
               end do
-           else
+           else if (ispin == 2) then
               do iorb=1,nvirt
                  if(iproc==0)write(*,'(1x,i3,4(1pe21.14))')&
-                      iorb,(e(iorb,ikpt,j,1),j=1,2),(e(iorb+orbsv%norbu,ikpt,j,1),j=1,2)
+                      iorb,(e(iorb,ikpt,j),j=1,2),(e(iorb+orbsv%norbu,ikpt,j),j=1,2)
               end do
               
            end if
@@ -680,6 +693,10 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
   end do davidson_loop
 
+  i_all=-product(shape(orbsv%eval))*kind(orbsv%eval)
+  deallocate(orbsv%eval,stat=i_stat)
+  call memocc(i_stat,i_all,'eval',subname)
+
   i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
   deallocate(ndimovrlp,stat=i_stat)
   call memocc(i_stat,i_all,'ndimovrlp',subname)
@@ -696,8 +713,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   deallocate(ew,stat=i_stat)
   call memocc(i_stat,i_all,'ew',subname)
 
-
-
   if(iter <=in%itermax) then
      if(iproc==0)write(*,'(1x,a,i3,a)')&
           'Davidsons method: Convergence after ',iter-1,' iterations.'
@@ -713,9 +728,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
                    orbs%eval(iorb+(ikpt-1)*orbs%norb)
            end do
            write(*,'(1x,a,1pe21.14)')&
-                'HOMO LUMO gap   =',e(1,ikpt,1,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb)
+                'HOMO LUMO gap   =',e(1,ikpt,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb)
            do iorb=1,orbsv%norb
-              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_virtual(',iorb,')=',e(iorb,ikpt,1,1)
+              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_virtual(',iorb,')=',e(iorb,ikpt,1)
            end do
         end do
      else
@@ -740,23 +755,23 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
            end if
            write(*,'(1x,a,1x,1pe21.14,14x,a,1x,1pe21.14)') &
                 'HOMO LUMO gap, u =',&
-                e(1,ikpt,1,1)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb),&
-                ',d =',e(orbsv%norbu+1,ikpt,1,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb)
+                e(1,ikpt,1)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb),&
+                ',d =',e(orbsv%norbu+1,ikpt,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb)
            do iorb=1,min(orbsv%norbu,orbsv%norbd)
               jorb=orbsv%norbu+iorb
               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-                   'e_vrt(',iorb,',u)=',e(iorb,ikpt,1,1),&
-                   'e_vrt(',iorb,',d)=',e(jorb,ikpt,1,1)
+                   'e_vrt(',iorb,',u)=',e(iorb,ikpt,1),&
+                   'e_vrt(',iorb,',d)=',e(jorb,ikpt,1)
            end do
            if (orbsv%norbu > orbsv%norbd) then
               do iorb=orbsv%norbd+1,orbsv%norbu
                  write(*,'(1x,a,i4,a,1x,1pe21.14)') &
-                      'e_vrt(',iorb,',u)=',e(iorb,ikpt,1,1)
+                      'e_vrt(',iorb,',u)=',e(iorb,ikpt,1)
               end do
            else if (orbsv%norbd > orbsv%norbu) then
               do iorb=2*orbsv%norbu+1,orbsv%norbu+orbsv%norbd
                  write(*,'(50x,a,i4,a,1x,1pe21.14)') &
-                      'e_vrt(',iorb-orbsv%norbu,',d)=',e(iorb,ikpt,1,1)
+                      'e_vrt(',iorb-orbsv%norbu,',d)=',e(iorb,ikpt,1)
               end do
            end if
         end do
@@ -814,7 +829,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
      end if
      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
      write(orbname,'(A,i3.3)')'virtual',iorb+orbsv%isorb
-     write(comment,'(1pe10.3)')e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1,1)
+     write(comment,'(1pe10.3)')e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
      !choose the way of plotting the wavefunctions
      if (in%nplot > 0) then
         call plot_wf('POT',orbname,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
@@ -863,10 +878,6 @@ subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
   !local variables
   character(len=*), parameter :: subname='Davidson_subspace_hamovr'
   integer :: iorb,jorb,icplx,ncomp,i_stat,i_all
-  real(wp), dimension(:,:,:,:), allocatable :: hsub
-
-  allocate(hsub(ncplx,norb,norb,6+ndebug),stat=i_stat)
-  call memocc(i_stat,hsub,'hsub',subname)
 
   if (nspinor == 4) then
      ncomp=2
@@ -896,106 +907,82 @@ subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
 
   !4 gemm + 2 dsyrk operations
 
-  !<vi | hvj> => hsub(:,:,:,1)
+  !<vi | hvj> 
   if(nspinor==1) then
      call gemm('T','N',norb,norb,nvctrp,1.0_wp,v(1),&
           max(1,nvctrp),hv(1),max(1,nvctrp),0.0_wp,&
-          hsub(1,1,1,1),norb)
+          hamovr(1,1,1,1),2*norb)
   else
-     !this part should be recheck in the case of nspinor == 2
      call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),v(1),&
           max(1,ncomp*nvctrp), &
           hv(1),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
-          hsub(1,1,1,1),norb)
+          hamovr(1,1,1,1),2*norb)
   end if
 
-  !<gi | hvj> => hsub(:,:,:,2)
+  !<gi | hvj> 
   if(nspinor==1) then
      call gemm('T','N',norb,norb,nvctrp,1.0_wp,g(1),&
           max(1,nvctrp),hv(1),max(1,nvctrp),0.0_wp,&
-          hsub(1,1,1,2),norb)
+          hamovr(1,norb+1,1,1),2*norb)
   else
-     !this part should be recheck in the case of nspinor == 2
      call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),g(1),&
           max(1,ncomp*nvctrp), &
           hv(1),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
-          hsub(1,1,1,2),norb)
+          hamovr(1,norb+1,1,1),2*norb)
   end if
 
-  !<gi | hgj> => hsub(:,:,:,3)
+  !<gi | hgj>
   if(nspinor==1) then
      call gemm('T','N',norb,norb,nvctrp,1.0_wp,g(1),&
           max(1,nvctrp),hg(1),max(1,nvctrp),0.0_wp,&
-          hsub(1,1,1,3),norb)
+          hamovr(1,norb+1,norb+1,1),2*norb)
   else
-     !this part should be recheck in the case of nspinor == 2
      call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),g(1),&
           max(1,ncomp*nvctrp), &
           hg(1),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
-          hsub(1,1,1,3),norb)
+          hamovr(1,norb+1,norb+1,1),2*norb)
   end if
 
-  !<vi | vj> => hsub(:,:,:,4)
+  !<vi | vj> 
   if(nspinor==1) then
      call syrk('U','T',norb,nvctrp,1.0_wp,v(1),max(1,nvctrp),&
-          0.0_wp,hsub(1,1,1,4),norb)
+          0.0_wp,hamovr(1,1,1,2),2*norb)
   else
      call herk('U','C',norb,ncomp*nvctrp,1.0_wp,v(1),max(1,ncomp*nvctrp),&
-          0.0_wp,hsub(1,1,1,4),norb)
+          0.0_wp,hamovr(1,1,1,2),2*norb)
   end if
 
   !<gi | vj> => hsub(:,:,:,5)
   if(nspinor==1) then
      call gemm('T','N',norb,norb,nvctrp,1.0_wp,g(1),&
           max(1,nvctrp),v(1),max(1,nvctrp),0.0_wp,&
-          hsub(1,1,1,5),norb)
+          hamovr(1,norb+1,1,2),2*norb)
   else
-     !this part should be recheck in the case of nspinor == 2
      call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),g(1),&
           max(1,ncomp*nvctrp), &
           v(1),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
-          hsub(1,1,1,5),norb)
+          hamovr(1,norb+1,1,2),2*norb)
   end if
 
   !<gi | gj> => hsub(:,:,:,6)
   if(nspinor==1) then
      call syrk('U','T',norb,nvctrp,1.0_wp,g(1),max(1,nvctrp),&
-          0.0_wp,hsub(1,1,1,6),norb)
+          0.0_wp,hamovr(1,norb+1,norb+1,2),2*norb)
   else
      call herk('U','C',norb,ncomp*nvctrp,1.0_wp,g(1),max(1,ncomp*nvctrp),&
-          0.0_wp,hsub(1,1,1,6),norb)
+          0.0_wp,hamovr(1,norb+1,norb+1,2),2*norb)
   end if
 
 
   !fill hamovr (Upper triangular)
   do jorb=1,norb
-     do iorb=1,jorb
+     do iorb=1,norb
         do icplx=1,ncplx
-           hamovr(icplx,iorb,jorb,1)          = hsub(icplx,iorb,jorb,1)
-           hamovr(icplx,jorb,iorb+norb,1)     = hsub(icplx,iorb,jorb,2)     
-           !hamovr(icplx,jorb,iorb+norb,1)     = hsub(icplx,jorb,iorb,2)     
-           !hamovr(icplx,iorb,jorb+norb,1)     = (-1)**(icplx-1)*hsub(icplx,iorb,jorb,2)  
-           hamovr(icplx,iorb,jorb+norb,1)     = (-1)**(icplx-1)*hsub(icplx,jorb,iorb,2)  
-           hamovr(icplx,iorb+norb,jorb+norb,1)= hsub(icplx,iorb,jorb,3)   
-
-           hamovr(icplx,iorb,jorb,2)          = hsub(icplx,iorb,jorb,4)
-           hamovr(icplx,jorb,iorb+norb,2)     = hsub(icplx,iorb,jorb,5)     
-           hamovr(icplx,iorb,jorb+norb,2)     = (-1)**(icplx-1)*hsub(icplx,jorb,iorb,5)
-           hamovr(icplx,iorb+norb,jorb+norb,2)= hsub(icplx,iorb,jorb,6)
+           hamovr(icplx,iorb,jorb+norb,1)     = (-1)**(icplx-1)*hamovr(icplx,jorb+norb,iorb,1)  
+           hamovr(icplx,iorb,jorb+norb,2)     = (-1)**(icplx-1)*hamovr(icplx,jorb+norb,iorb,2)  
         end do
      enddo
   enddo
-
-
-  !Note: The previous data layout allowed level 3 BLAS
-  !    call DGEMM('T','N',nvirte,nvirte,nvctrp,1.d0,v(1,1),nvctrp,&
-  !         hv(1,1),nvctrp,0.d0,hamovr(1,1,1),n2virt)
-  !    call DSYRK('U','T',n2virt,nvctrp,1.d0,v(1,1),nvctrp,0.d0,hamovr(1,1,2),n2virt)!upper
-
-  i_all=-product(shape(hsub))*kind(hsub)
-  deallocate(hsub,stat=i_stat)
-  call memocc(i_stat,i_all,'hsub',subname)
-
 
 end subroutine Davidson_subspace_hamovr
 
@@ -1027,7 +1014,7 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
   !call DGEMM('N','N',nvctrp,nvirte,n2virt,1.d0,v(1,1),nvctrp,hamovr(1,1,1),n2virt,0.d0,hv(1,1),nvctrp)
   !    dimensions    =m      =n   =k          m,k        k,n                   m,n             
   !call DCOPY(nvctrp*nvirte,hv(1,1),1,v(1,1),1)
-  !<vi | hvj> => hsub(:,:,:,1)
+
   if(nspinor==1) then
      call gemm('N','N',nvctrp,norb,norb,1.0_wp,v(1),&
           max(1,nvctrp),hamovr(1,1,1),max(1,2*norb),0.0_wp,&

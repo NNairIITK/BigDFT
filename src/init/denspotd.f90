@@ -289,22 +289,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 
   !print *,'iproc,comms',iproc,comms%ncntd,comms%ndspld,comms%ncntt,comms%ndsplt
 
-!!!  do jproc=0,nproc-1
-!!!     comms%ncntd(jproc)=comms%nvctr_par(jproc)*orbs%norb_par(iproc)*orbs%nspinor
-!!!  end do
-!!!  comms%ndspld(0)=0
-!!!  do jproc=1,nproc-1
-!!!     comms%ndspld(jproc)=comms%ndspld(jproc-1)+comms%ncntd(jproc-1)
-!!!  end do
-!!!  !receive buffer
-!!!  do jproc=0,nproc-1
-!!!     comms%ncntt(jproc)=comms%nvctr_par(iproc)*orbs%norb_par(jproc)*orbs%nspinor
-!!!  end do
-!!!  comms%ndsplt(0)=0
-!!!  do jproc=1,nproc-1
-!!!     comms%ndsplt(jproc)=comms%ndsplt(jproc-1)+comms%ncntt(jproc-1)
-!!!  end do
-
   i_all=-product(shape(nvctr_par))*kind(nvctr_par)
   deallocate(nvctr_par,stat=i_stat)
   call memocc(i_stat,i_all,'nvctr_par',subname)

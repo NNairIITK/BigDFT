@@ -961,21 +961,10 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
                 hamovr(imatrst+norbi*norbj),norbi,0.0_wp,psivirt(ispsiv),max(1,nvctrp))
         else
            call c_gemm('N','N',ncomp*nvctrp,nvirte(ispin),norbi,(1.0_wp,0.0_wp),&
-                psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst+norbi*norbj),norbi,&
+                psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst+ncplxnorbi*norbj),norbi,&
                 (0.0_wp,0.0_wp),psivirt(ispsiv),max(1,ncomp*nvctrp))
         end if
         ispsiv=ispsiv+nvctrp*nvirte(ispin)*nspinor
-!tentative example for calculating psivirt distribution
-!        if (nspinor == 1) then
-!           call gemm('N','N',ncoeff,nvirte(ispin),norbi,1.0_wp,&
-!                psigau(1,iorbst),max(1,ncoeff),&
-!                hamovr(imatrst+norbi*norbj),norbi,0.0_wp,psivirt(ispsiv),max(1,ncoeff))
-!        else
-!           call c_gemm('N','N',ncomp*ncoeff,nvirte(ispin),norbi,(1.0_wp,0.0_wp),&
-!                psigau(1,iorbst),max(1,ncomp*ncoeff),hamovr(imatrst+norbi*norbj),norbi,&
-!                (0.0_wp,0.0_wp),psivirt(ispsiv),max(1,ncomp*ncoeff))
-!        end if
-!        ispsiv=ispsiv+ncoeff*nvirte(ispin)*nspinor
      end if
      iorbst=norbi+norbsc+1 !this is equal to norbe+1
      iorbst2=norbu+1

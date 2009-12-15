@@ -616,6 +616,8 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
         norbv=orbsv%norbu
         if (ispin==2) norbv=orbsv%norbd
 
+        !print *,'nvctrp',iproc,commsv%nvctr_par(iproc,ikptp),nvctrp,ikpt,orbs%nkpts,orbsv%nkpts,norbs,norbv,orbsv%nkptsp,orbs%nkptsp
+
         !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nvctrp,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
 
         if(nspinor==1) then

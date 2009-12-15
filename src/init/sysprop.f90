@@ -544,7 +544,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
   allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
-  orbs%kpts(:, 1:nkpt) = kpt(:,:)
+  orbs%kpts(:,1:nkpt) = kpt(:,:)
   orbs%kwgts(1:nkpt) = wkpt(:)
 
   ! Change the wavefunctions to complex if k-points are used (except gamma).
