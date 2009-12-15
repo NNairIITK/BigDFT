@@ -226,6 +226,7 @@ end subroutine Gaussian_DiagHam
 !!    orbital basis set.
 !! COPYRIGHT
 !!    Copyright (C) 2008 CEA Grenoble
+!!    Copyright (C) 2009 ESRF Grenoble
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -239,7 +240,8 @@ end subroutine Gaussian_DiagHam
 !!    norbd  number of down orbitals in the spin-polarised case; for non spin-pol equal to 0
 !!    norb   total number of orbitals of the resulting eigenfunctions
 !!    norbp  number of orbitals in parallel. For nproc=1 norbp=norb
-!!    nvirte  number of virtual orbitals to be saved as input guess for the Davidson method
+!!    nvirte  number of virtual orbitals to be saved as input guess 
+!!            for the Davidson method (for both spins)
 !!    nvctrp number of points of the wavefunctions for each orbital in the transposed sense
 !!    wfd    data structure of the wavefunction descriptors
 !!    norbe  (optional) number of orbitals of the initial set of wavefunction, to be reduced
@@ -518,7 +520,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
         call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
              natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
              psi(ispsie:),psit(ispsi:),&
-             orbsv%norb,psivirt(ispsiv:))
+             (/orbsv%norbu,orbsv%norbd/),psivirt(ispsiv:))
      end if
      ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
      ispsie=ispsie+nvctrp*norbtot*orbs%nspinor
@@ -540,6 +542,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   deallocate(norbgrp,stat=i_stat)
   call memocc(i_stat,i_all,'norbgrp',subname)
 
+  !print * ,'debug2,iproc',iproc,orbsv%norb,orbsv%norbp,orbsv%norbu,orbsv%norbd,orbsv%npsidim
   if (minimal) then
      !deallocate the old psi
      i_all=-product(shape(psi))*kind(psi)
@@ -555,7 +558,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      nullify(psi)
      psi => psit
   end if
-
+ 
   !orthogonalise the orbitals in the case of semi-core atoms
   if (norbsc > 0) then
      call orthogonalize(iproc,nproc,orbs,comms,wfd,psit)
@@ -786,7 +789,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
               nwrtmsg=1
               message=' <- First virtual eigenvalue '
            end if
-           if (iproc.eq.0) then
+           if (iproc == 0) then
               if (nwrtmsg == 1) then
                  write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
                       'evale(',iorb+iorbst-1,')=',evale(iorb),trim(message)
@@ -882,7 +885,7 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
   real(wp), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
   real(wp), dimension(nvctrp*nspinore,norbe), intent(in) :: psi
   real(wp), dimension(nvctrp*nspinor,norb), intent(out) :: ppsit
-  integer, intent(in), optional :: nvirte
+  integer, dimension(2), intent(in), optional :: nvirte
   real(wp), dimension(*), optional :: psivirt
   !Local variables
   character(len=*), parameter :: subname='build_eigenvectors'
@@ -950,17 +953,29 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
      !we take the rest of the orbitals which are not assigned
      !from the group of non-semicore orbitals
      !the results are orthogonal with each other by construction
-     !in the case of semicore atoms the orthogonality is not guaranteed
-     if (present(nvirte) .and. nvirte >0) then
+     if (present(nvirte) .and. nvirte(ispin) >0) then
         if (nspinor == 1) then
-           call gemm('N','N',nvctrp,nvirte,norbi,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
+           !print *,'debug',ispin,nvirte,imatrst+norbi*norbj,nspin*ndim_hamovr
+           call gemm('N','N',nvctrp,nvirte(ispin),norbi,1.0_wp,&
+                psi(1,iorbst),max(1,nvctrp),&
                 hamovr(imatrst+norbi*norbj),norbi,0.0_wp,psivirt(ispsiv),max(1,nvctrp))
         else
-           call c_gemm('N','N',ncomp*nvctrp,nvirte,norbi,(1.0_wp,0.0_wp),&
+           call c_gemm('N','N',ncomp*nvctrp,nvirte(ispin),norbi,(1.0_wp,0.0_wp),&
                 psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst+norbi*norbj),norbi,&
                 (0.0_wp,0.0_wp),psivirt(ispsiv),max(1,ncomp*nvctrp))
         end if
-        ispsiv=ispsiv+nvctrp*nvirte*nspinor
+        ispsiv=ispsiv+nvctrp*nvirte(ispin)*nspinor
+!tentative example for calculating psivirt distribution
+!        if (nspinor == 1) then
+!           call gemm('N','N',ncoeff,nvirte(ispin),norbi,1.0_wp,&
+!                psigau(1,iorbst),max(1,ncoeff),&
+!                hamovr(imatrst+norbi*norbj),norbi,0.0_wp,psivirt(ispsiv),max(1,ncoeff))
+!        else
+!           call c_gemm('N','N',ncomp*ncoeff,nvirte(ispin),norbi,(1.0_wp,0.0_wp),&
+!                psigau(1,iorbst),max(1,ncomp*ncoeff),hamovr(imatrst+norbi*norbj),norbi,&
+!                (0.0_wp,0.0_wp),psivirt(ispsiv),max(1,ncomp*ncoeff))
+!        end if
+!        ispsiv=ispsiv+ncoeff*nvirte(ispin)*nspinor
      end if
      iorbst=norbi+norbsc+1 !this is equal to norbe+1
      iorbst2=norbu+1

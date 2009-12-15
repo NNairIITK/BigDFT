@@ -114,6 +114,7 @@ program MINHOP
   call dft_input_variables(iproc,'input.dft',inputs_opt,atoms%symObj)
   call geopt_input_variables(iproc,'input.geopt',inputs_opt)
   call kpt_input_variables(iproc,'input.kpt',inputs_opt,atoms)
+
   call dft_input_variables(iproc,'mdinput.dft',inputs_md,atoms%symObj)
   call geopt_input_variables(iproc,'mdinput.geopt',inputs_md)
   call kpt_input_variables(iproc,'input.kpt',inputs_md,atoms)
@@ -143,20 +144,21 @@ program MINHOP
   call memocc(i_stat,poslocmin,'poslocmin',subname)
  
 ! read random offset
-        open(unit=11,file='rand.inp')
-        read(11,'(i3)') nrandoff
-!        write(*,*) 'nrandoff ',nrandoff
-        close(11)
-        do  i=1,nrandoff
-           call random_number(ts)
-        enddo  
-
-! read input parameters
-        write(filename,'(a6,i3.3)') 'ioput'   !,iproc
-        open(unit=11,file='ioput',status='old')
-        read(11,*) ediff,ekinetic,dt,nsoften
-        close(11)
-        write(*,'(a,1x,i3,3(1x,e10.3),1x,i4)') 'In :iproc,ediff,ekinetic,dt,nsoften',iproc,ediff,ekinetic,dt,nsoften
+  open(unit=11,file='rand.inp')
+  read(11,'(i3)') nrandoff
+  !        write(*,*) 'nrandoff ',nrandoff
+  close(11)
+  do  i=1,nrandoff
+     call random_number(ts)
+  enddo
+  
+  ! read input parameters
+  write(filename,'(a6,i3.3)') 'ioput'   !,iproc
+  open(unit=11,file='ioput',status='old')
+  read(11,*) ediff,ekinetic,dt,nsoften
+  close(11)
+  !write(*,'(a,1x,i3,3(1x,e10.3),1x,i4)') 'In :iproc,ediff,ekinetic,dt,nsoften',iproc,ediff,ekinetic,dt,nsoften
+  if (iproc == 0) write(*,'(a,1x,3(1x,e10.3),1x,i4)') 'In :ediff,ekinetic,dt,nsoften',ediff,ekinetic,dt,nsoften
 
   if (iproc ==0 ) open(unit=16,file='geopt.mon',status='unknown')
 
@@ -618,7 +620,7 @@ contains
     call soften(nsoften,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
          nproc,iproc,atoms,rst,inputs_md)
     call velopt(atoms,rxyz,ekinetic,vxyz)
-    call zero(3*atoms%nat,gg)
+    call razero(3*atoms%nat,gg)
 
     if(iproc==0) write(*,*) '# MINHOP start MD'
     !C inner (escape) loop

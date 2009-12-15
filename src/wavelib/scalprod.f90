@@ -1,16 +1,23 @@
 !wrapper for simplifying the call
-subroutine wnrm_wrap(mvctr_c,mvctr_f,psi,scpr)
+subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
   use module_base
   implicit none
-  integer, intent(in) :: mvctr_c,mvctr_f
-  real(wp), dimension(mvctr_c+7*mvctr_f), intent(in) :: psi
+  integer, intent(in) :: mvctr_c,mvctr_f,ncplx
+  real(wp), dimension((mvctr_c+7*mvctr_f)*ncplx), intent(in) :: psi
   real(dp), intent(out) :: scpr
   !local variables
   integer :: i_f
+  real(dp) :: scalp
 
   i_f=min(mvctr_f,1)
  
   call wnrm(mvctr_c,mvctr_f,psi,psi(mvctr_c+i_f),scpr)
+
+  if (ncplx ==2) then
+     call wnrm(mvctr_c,mvctr_f,&
+          psi(mvctr_c+7*mvctr_f+1),psi(mvctr_c+7*mvctr_f+mvctr_c+i_f),scalp)
+     scpr=scpr+scalp
+  end if
   
 end subroutine wnrm_wrap
 
@@ -210,20 +217,24 @@ end subroutine wzero
 
 
 !wrapper of wpdot to avoid boundary problems in absence of wavelets
-subroutine wpdot_wrap(mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi,  &
+!and to perform scalar product for complex wavefunctions and projectors
+!NOTE: is the wavefunctions are complex, so should be also the projectors
+subroutine wpdot_wrap(ncplx,mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi,  &
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,scpr)
   use module_base
   implicit none
-  integer, intent(in) :: mavctr_c,mavctr_f,maseg_c,maseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
+  integer, intent(in) :: mavctr_c,mavctr_f,maseg_c,maseg_f
+  integer, intent(in) :: ncplx,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   integer, dimension(maseg_c+maseg_f), intent(in) :: keyav
   integer, dimension(mbseg_c+mbseg_f), intent(in) :: keybv
   integer, dimension(2,maseg_c+maseg_f), intent(in) :: keyag
   integer, dimension(2,mbseg_c+mbseg_f), intent(in) :: keybg
-  real(wp), dimension(mavctr_c+7*mavctr_f), intent(in) :: apsi
-  real(wp), dimension(mbvctr_c+7*mbvctr_f), intent(in) :: bpsi
-  real(dp), intent(out) :: scpr
+  real(wp), dimension(mavctr_c+7*mavctr_f,ncplx), intent(in) :: apsi
+  real(wp), dimension(mbvctr_c+7*mbvctr_f,ncplx), intent(in) :: bpsi
+  real(dp), dimension(ncplx), intent(out) :: scpr
   !local variables
-  integer :: ia_f,ib_f,iaseg_f,ibseg_f
+  integer :: ia_f,ib_f,iaseg_f,ibseg_f,ia,ib
+  real(dp), dimension(ncplx,ncplx) :: scalprod 
 
   ia_f=min(mavctr_f,1)
   ib_f=min(mbvctr_f,1)
@@ -232,14 +243,29 @@ subroutine wpdot_wrap(mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi,  &
   ibseg_f=min(mbseg_f,1)
 
 
-  call wpdot(mavctr_c,mavctr_f,maseg_c,maseg_f,&
-       keyav,keyav(maseg_c+iaseg_f),&
-       keyag,keyag(1,maseg_c+iaseg_f),&
-       apsi,apsi(mavctr_c+ia_f),  &
-       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-       keybv,keybv(mbseg_c+ibseg_f),&
-       keybg,keybg(1,mbseg_c+ibseg_f),&
-       bpsi,bpsi(mbvctr_c+ib_f),scpr)
+  do ia=1,ncplx
+     do ib=1,ncplx
+        call wpdot(mavctr_c,mavctr_f,maseg_c,maseg_f,&
+             keyav,keyav(maseg_c+iaseg_f),&
+             keyag,keyag(1,maseg_c+iaseg_f),&
+             apsi(1,ia),apsi(mavctr_c+ia_f,ia),  &
+             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+             keybv,keybv(mbseg_c+ibseg_f),&
+             keybg,keybg(1,mbseg_c+ibseg_f),&
+             bpsi(1,ib),bpsi(mbvctr_c+ib_f,ib),scalprod(ia,ib))
+     end do
+  end do
+
+  !then define the result
+  if (ncplx == 1) then
+     scpr(1)=scalprod(1,1)
+  else if (ncplx == 2) then
+     scpr(1)=scalprod(1,1)+scalprod(2,2)
+     scpr(2)=scalprod(1,2)-scalprod(2,1)
+  else
+     write(*,*)'ERROR wpdot: ncplx not valid:',ncplx
+     stop
+  end if
 
 end subroutine wpdot_wrap
 
@@ -425,21 +451,24 @@ subroutine wpdot(  &
 
 end subroutine wpdot
 
-subroutine waxpy_wrap(scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,&
+!wrapper of waxpy for complex Ax+y and for no fine grid cases
+!WARNING: in complex cases, it acts with y = Conj(A) *x +y, with the complex conjugate
+!         if the a function is complex, so should be the b function
+subroutine waxpy_wrap(ncplx,scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,&
      mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi)
   use module_base
   implicit none
-  integer, intent(in) :: mavctr_c,mavctr_f,maseg_c,maseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
-  real(dp), intent(in) :: scpr
+  integer, intent(in) :: mavctr_c,mavctr_f,maseg_c,maseg_f
+  integer, intent(in) :: ncplx,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
+  real(dp), dimension(ncplx), intent(in) :: scpr
   integer, dimension(maseg_c+maseg_f), intent(in) :: keyav
   integer, dimension(mbseg_c+mbseg_f), intent(in) :: keybv
   integer, dimension(2,maseg_c+maseg_f), intent(in) :: keyag
   integer, dimension(2,mbseg_c+mbseg_f), intent(in) :: keybg
-  real(wp), dimension(mbvctr_c+7*mbvctr_f), intent(in) :: bpsi
-  real(wp), dimension(mavctr_c+7*mavctr_f), intent(inout) :: apsi
-
+  real(wp), dimension(mbvctr_c+7*mbvctr_f,ncplx), intent(in) :: bpsi
+  real(wp), dimension(mavctr_c+7*mavctr_f,ncplx), intent(inout) :: apsi
   !local variables
-  integer :: ia_f,ib_f,iaseg_f,ibseg_f
+  integer :: ia_f,ib_f,iaseg_f,ibseg_f,ia,ib,is
 
   ia_f=min(mavctr_f,1)
   ib_f=min(mbvctr_f,1)
@@ -447,14 +476,60 @@ subroutine waxpy_wrap(scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,&
   iaseg_f=min(maseg_f,1)
   ibseg_f=min(mbseg_f,1)
 
-  call waxpy(scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+
+  ia=1
+  ib=1
+  is=1
+  call waxpy(scpr(is),mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
        keybv,keybv(mbseg_c+ibseg_f),&
        keybg,keybg(1,mbseg_c+ibseg_f),&
-       bpsi,bpsi(mbvctr_c+ib_f), &
+       bpsi(1,ib),bpsi(mbvctr_c+ib_f,ib), &
        mavctr_c,mavctr_f,maseg_c,maseg_f,&
        keyav,keyav(maseg_c+iaseg_f),&
        keyag,keyag(1,maseg_c+iaseg_f),&
-       apsi,apsi(mavctr_c+ia_f))
+       apsi(1,ia),apsi(mavctr_c+ia_f,ia))
+   if (ncplx == 2) then
+      ib=2
+      is=2
+
+      call waxpy(scpr(is),mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+           keybv,keybv(mbseg_c+ibseg_f),&
+           keybg,keybg(1,mbseg_c+ibseg_f),&
+           bpsi(1,ib),bpsi(mbvctr_c+ib_f,ib), &
+           mavctr_c,mavctr_f,maseg_c,maseg_f,&
+           keyav,keyav(maseg_c+iaseg_f),&
+           keyag,keyag(1,maseg_c+iaseg_f),&
+           apsi(1,ia),apsi(mavctr_c+ia_f,ia))
+
+      ia=2
+      is=1
+      ib=2
+
+      call waxpy(scpr(is),mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+           keybv,keybv(mbseg_c+ibseg_f),&
+           keybg,keybg(1,mbseg_c+ibseg_f),&
+           bpsi(1,ib),bpsi(mbvctr_c+ib_f,ib), &
+           mavctr_c,mavctr_f,maseg_c,maseg_f,&
+           keyav,keyav(maseg_c+iaseg_f),&
+           keyag,keyag(1,maseg_c+iaseg_f),&
+           apsi(1,ia),apsi(mavctr_c+ia_f,ia))
+
+
+      is=2
+      ib=1
+      !beware the minus sign
+      call waxpy(-scpr(is),mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+           keybv,keybv(mbseg_c+ibseg_f),&
+           keybg,keybg(1,mbseg_c+ibseg_f),&
+           bpsi(1,ib),bpsi(mbvctr_c+ib_f,ib), &
+           mavctr_c,mavctr_f,maseg_c,maseg_f,&
+           keyav,keyav(maseg_c+iaseg_f),&
+           keyag,keyag(1,maseg_c+iaseg_f),&
+           apsi(1,ia),apsi(mavctr_c+ia_f,ia))
+      
+   end if
+
+
 
 end subroutine waxpy_wrap
 

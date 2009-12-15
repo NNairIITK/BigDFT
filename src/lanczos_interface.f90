@@ -87,10 +87,10 @@ contains
        stop "array size inconsistency" 
     endif
     
-    allocate(Qvect_tmp(ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) ) 
-    allocate(wrk      (ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) )
- 
+    allocate(Qvect_tmp(ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) , stat=i_stat) 
     call memocc(i_stat,Qvect_tmp,'Qvect_tmp',subname)
+
+    allocate(wrk      (ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) , stat=i_stat )
     call memocc(i_stat,wrk,'wrk',subname)
 
     EP_shift=0.0
@@ -213,7 +213,7 @@ contains
     EP_doorthoocc=.true.
     EP_norb=norb
     occQvect=>Occ_psit
-    allocate(EP_occprojections(EP_norb) , stat=i_stat )
+    allocate(EP_occprojections(EP_norb+ndebug) , stat=i_stat )
     call memocc(i_stat,EP_occprojections,'EP_occprojections',subname)
 
   end subroutine EP_store_occupied_orbitals
@@ -238,9 +238,9 @@ contains
     real(gp) fact
 ! ::::::::::::::::::::::::::::::::::::::
     if(J.ge.0) then
-       call EP_multbyfact_interno( Qvect(1:,j), fact )
+       call EP_multbyfact_interno( Qvect(1,j), fact )
     else
-       call EP_multbyfact_interno( dumQvect(1:,-j), fact )
+       call EP_multbyfact_interno( dumQvect(1,-j), fact )
     endif
     return 
   end subroutine EP_multbyfact
@@ -272,11 +272,11 @@ contains
 
   subroutine EP_multbyfact_interno(Q, fact)
     implicit none
-    real(wp) Q(EP_dim)
+    real(wp) Q
     real(gp) fact
 ! :::::::::::::::::::::::
 
-    call vscal(EP_dim,fact, Q(1), 1  ) 
+    call vscal(EP_dim,fact, Q, 1  ) 
 
   end subroutine EP_multbyfact_interno
 
@@ -311,13 +311,13 @@ contains
     implicit none
     integer, intent(in) :: i,j
     if( i.ge.0 .and. j.ge.0) then
-       EP_scalare = EP_scalare_interna(Qvect(1:,i), Qvect(1:,j) )
+       EP_scalare = EP_scalare_interna(Qvect(1,i), Qvect(1,j) )
     else  if( i.lt.0 .and. j.ge.0) then
-       EP_scalare = EP_scalare_interna(dumQvect(1:,-i), Qvect(1:,j) )
+       EP_scalare = EP_scalare_interna(dumQvect(1,-i), Qvect(1,j) )
     else  if( i.ge.0 .and. j.lt.0) then
-       EP_scalare = EP_scalare_interna(Qvect(1:,i), dumQvect(1:,-j) )
+       EP_scalare = EP_scalare_interna(Qvect(1,i), dumQvect(1,-j) )
     else 
-       EP_scalare = EP_scalare_interna(dumQvect(1:,-i), dumQvect(1:,-j) )
+       EP_scalare = EP_scalare_interna(dumQvect(1,-i), dumQvect(1,-j) )
     endif
     
     return 
@@ -326,13 +326,13 @@ contains
  
   real(8) function EP_scalare_interna(a,b)
     implicit none
-    real(8), intent(in):: a(EP_dim), b(EP_dim)
+    real(8), intent(in):: a,b
     ! ::::::::::::::::::::::::::::::::::::::::::::::
     integer i,j
 
     real(wp) sump, sumtot
 
-    sump = dot(EP_dim,a(1),1 ,b(1),1)
+    sump = dot(EP_dim,a,1 ,b,1)
     sumtot=0
 
     if(ha%nproc/=1) then
@@ -343,6 +343,27 @@ contains
     EP_scalare_interna=sumtot
 
   end function EP_scalare_interna
+
+!  real(8) function EP_scalare_interna(a,b)
+!    implicit none
+!    real(8), intent(in):: a(EP_dim), b(EP_dim)
+!    ! ::::::::::::::::::::::::::::::::::::::::::::::
+!    integer i,j
+!
+!    real(wp) sump, sumtot
+!
+!    sump = dot(EP_dim,a(1),1 ,b(1),1)
+!    sumtot=0
+!
+!    if(ha%nproc/=1) then
+!       call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+!    else
+!       sumtot=sump
+!    endif
+!    EP_scalare_interna=sumtot
+!
+!  end function EP_scalare_interna
+!
     
   subroutine  EP_copia_per_prova(psi)
     use module_interfaces
@@ -403,19 +424,9 @@ contains
     integer :: i,k, volta
     real(wp), pointer ::  scals(:), scalstot(:)
 
-!!!    if( associated(EP_Gabsorber) ) then
-!!!    if( ha%iproc == 0  ) then
-       ! print *, " inizializzo da Gabsorber " 
-!!!        print *, EP_Gabsorber%rxyz(1,1)
        call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%lr%geocode,ha%orbs,ha%lr%d,&
             ha%hx,ha%hy,ha%hz,ha%lr%wfd,EP_Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
  
-!!!
-!!!       if(ha%iproc.eq.0) then
-!!!          call plot_wf('testa',ha%lr,ha%hx,ha%hy,ha%hz,ha%rxyz(1,1),ha%rxyz(2,1),ha%rxyz(3,1),&
-!!!               Qvect_tmp,'comm')
-!!!       endif
-!!!    endif
     if (.not. associated(Qvect)) then
        write(*,*)'ERROR: initialization vector not allocated!'
        stop
@@ -436,15 +447,11 @@ contains
     
 
     if(EP_doorthoocc) then
-       print *, " doorthoocc " 
-       allocate(scals( EP_norb) ,stat=i_stat)
+
+       allocate(scals( EP_norb+ndebug) ,stat=i_stat)
        call memocc(i_stat,scals,'scals',subname)
-       allocate(scalstot( EP_norb) ,stat=i_stat)
+       allocate(scalstot( EP_norb+ndebug) ,stat=i_stat)
        call memocc(i_stat,scalstot,'scalstot',subname)
-       
-       print *, " EP_dim", EP_dim , " EP_norb  ",EP_norb,  ha%iproc
-       print *," associated(occQvect)    " ,  associated(occQvect)  ,  ha%iproc
-       print *, "  shape(occQvect )  " , shape(occQvect )  ,  ha%iproc
        
 
        do volta=1,2 
@@ -467,7 +474,6 @@ contains
           enddo
        enddo
        
-       print *, 2
 
        i_all=-product(shape(scals))*kind(scals)
        deallocate(scals,stat=i_stat)
@@ -549,7 +555,7 @@ end subroutine EP_initialize_start
     real(wp) scals(0:n-1), scalstot(0:n-1), occscals(1:EP_norb), occscalstot(1:EP_norb)
 
     if(ha%iproc.eq.0) then
-       print *, " inizio GramSchmidt ", n
+       print *, " starting GramSchmidt ", n
     endif
 
     do volta=1,2
@@ -583,7 +589,7 @@ end subroutine EP_initialize_start
     enddo
 
     if(ha%iproc.eq.0) then
-       print *, " finito  GramSchmidt "
+       print *, "GramSchmidt done "
     endif
 
     return
@@ -599,17 +605,6 @@ end subroutine EP_initialize_start
     integer k, nprocbidon
     real(8) sumdum
  
-
-!!$
-!!$
-!!$   if(p.ge.0) then
-!!$       print *, " problema Moltiplica solo con dumvect per result "
-!!$       stop
-!!$    endif
-!!$    if(i.lt.0) then
-!!$       print *, " problema Moltiplica solo con vect per input "
-!!$       stop
-!!$    endif
     
     if( ha%nproc > 1) then
        if(i>=0) then
@@ -637,13 +632,12 @@ end subroutine EP_initialize_start
        call lowpass_projector(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,ha%lr%wfd%nvctr_c, Qvect_tmp )
     endif
 
-    if(  ha%iproc ==0 ) print *, "chiamo hamiltonian "
     call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-         ha%rxyz,ha%cpmult,ha%fpmult,ha%radii_cf,&
+         ha%rxyz,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
          ha%ndimpot, &
          ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,ha%epot_sum,ha%eproj_sum,1,ha%GPU)
-    if(  ha%iproc ==0 ) print *, " done "
+    if(  ha%iproc ==0 ) write(*,*)" done "
 
 
 
@@ -742,7 +736,6 @@ end subroutine EP_initialize_start
    if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
 
    allocate(tpsi(wfd%nvctr_c+7*wfd%nvctr_f+ndebug),stat=i_stat)
-
    call memocc(i_stat,tpsi,'tpsi',subname)
 
    !initialize the wavefunction
@@ -893,7 +886,7 @@ end subroutine EP_initialize_start
 
 
    if(.not. allocated(psi_gross)) then 
-      allocate(psi_gross(0:n1/2,2,0:n2/2,2,0:n3/2,2),stat=i_stat)
+      allocate(psi_gross(0:n1/2,2,0:n2/2,2,0:n3/2,2+ndebug),stat=i_stat)
       call memocc(i_stat,psi_gross,'psi_gross',subname)
       allocate(logrid(0:n1/2,0:n2/2,0:n3/2+ndebug),stat=i_stat)
       call memocc(i_stat,logrid,'logrid',subname)
@@ -911,7 +904,7 @@ end subroutine EP_initialize_start
    do ia =1, ha%at%nat
       iat=ha%at%iatype(ia)
       radius_gross = ha%radii_cf(  iat ,1 )*8
-      print *, " per atomo " , ia , "   " ,  radius_gross
+      if(ha%iproc==0) print *, " for atomo " , ia , " fine degrees of freedo,g will be thrown beyond radius =  " ,  radius_gross
    enddo
    countgross=0
    do ix=1,n1/2
@@ -947,7 +940,6 @@ end subroutine EP_initialize_start
       enddo
    enddo
 
-   print *, "  countgross " , countgross
 
 !!$   do iz=1,n3/2
 !!$      do iy=1,n2/2
@@ -988,7 +980,6 @@ end subroutine EP_initialize_start
    
    !here the projector operation
 
-   print *, " passo di qui " 
 !!$   psi_gross=0.0_wp
 
    call synthese_per_self(n1/2,n2/2,n3/2,psi_gross,psi)

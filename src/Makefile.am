@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces memguess NEB frequencies $(minima_hopping_sources) 
+binaries_sources = cluster test_forces memguess NEB frequencies MDanalisys $(minima_hopping_sources) 
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -283,6 +283,14 @@ cluster_LDADD = libbigdft.a \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
+MDanalisys_SOURCES = distances.f90 
+MDanalisys_LDFLAGS = 
+MDanalisys_LDADD = libbigdft.a \
+	PSolver/libpoissonsolver.a \
+	PSolver/ABINIT-common/libABINIT.a \
+	$(LMPI) \
+	@MPI_LIBS@ \
+	$(libs_cuda)
 
 
 test_forces_SOURCES = test_forces.f90
@@ -344,11 +352,13 @@ CLEANFILES = \
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
 
-cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o ab6_moldyn.o libbigdft.a
+cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o ab6_moldyn.o 
 
 lanczos.o : lanczos_base.o lanczos_interface.o
 
-scfloop_API.o : BigDFT_API.o
+BigDFT_API.o : scfloop_API.o
+
+distances.o global.o : BigDFT_API.o
 
 ab6_moldyn.o ABINIT-moldyn/ab6_moldyn.o : scfloop_API.o \
 	ABINIT-moldyn/ab6_moldyn.F90 \

@@ -69,6 +69,7 @@ drivexc.o: drivexc.F90 \
 	interfaces_14_hidewrite.o
 
 invcb.o: invcb.F90 \
+	interfaces_16_hideleave.o \
 	defs_basis.o
 
 size_dvxc.o: size_dvxc.F90 \
@@ -79,6 +80,7 @@ xchcth.o: xchcth.F90 \
 	interfaces_14_hidewrite.o
 
 xchelu.o: xchelu.F90 \
+	interfaces_16_hideleave.o \
 	defs_basis.o
 
 xclb.o: xclb.F90 \
@@ -89,7 +91,7 @@ xcpbe.o: xcpbe.F90 \
 
 xcpzca.o: xcpzca.F90 \
 	interfaces_16_hideleave.o \
-	defs_basis.o
+	defs_basis.o 
 
 xcspol.o: xcspol.F90 \
 	defs_basis.o \
@@ -105,4 +107,5 @@ xcwign.o: xcwign.F90 \
 
 xcxalp.o: xcxalp.F90 \
 	defs_basis.o \
+	interfaces_16_hideleave.o \
 	interfaces_14_hidewrite.o

@@ -235,8 +235,10 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   !allocate communication arrays
   allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
   call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
+
   allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,comms%ncntd,'ncntd',subname)
+
   allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,comms%ncntt,'ncntt',subname)
   allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
