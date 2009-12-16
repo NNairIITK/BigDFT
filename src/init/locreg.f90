@@ -556,10 +556,10 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocre
        !keymask(wfdg%nseg_c+1))
 
   !a little check on the masking array
-!!$  if (count(maskarr) /= wfdl%nvctr_c+7*wfdl%nvctr_f) then
-!!$     write(*,'(1x,a)')'ERROR : Masking problem, check maskarr'
-!!$     stop
-!!$  end if
+!!!  if (count(maskarr) /= wfdl%nvctr_c+7*wfdl%nvctr_f) then
+!!!     write(*,'(1x,a)')'ERROR : Masking problem, check maskarr'
+!!!     stop
+!!!  end if
 
 end subroutine loc_wfd
 

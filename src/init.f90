@@ -1,4 +1,4 @@
-!!****f* BigDFT/
+!!****f* BigDFT/createWavefunctionsDescriptors
 !! FUNCTION
 !!   Calculates the descriptor arrays and nvctrp
 !!   Calculates also the bounds arrays needed for convolutions
@@ -181,14 +181,15 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
 end subroutine createWavefunctionsDescriptors
 !!***
 
-subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,&
+subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
      radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   use module_base
   use module_types
   implicit none
-  type(atoms_data), intent(in) :: at
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   type(nonlocal_psp_descriptors), intent(out) :: nlpspd
@@ -213,7 +214,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,&
   call memocc(i_stat,logrid,'logrid',subname)
 
   call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
-       logrid,at,nlpspd)
+       logrid,at,orbs,nlpspd)
 
   ! allocations for arrays holding the projectors and their data descriptors
   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
@@ -272,13 +273,12 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,&
   !fill the projectors if the strategy is a distributed calculation
   if (.not. DistProjApply) then
      !calculate the wavelet expansion of projectors
-     call fill_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
-          nlpspd,proj,0)
+     call fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
   end if
 
 END SUBROUTINE createProjectorsArrays
 
-subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
+subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
      Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj,& 
      pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin)
   use module_base
@@ -287,14 +287,13 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
   use Poisson_Solver
   implicit none
   integer, intent(in) :: iproc,nproc,ixc,nspin
-  real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
+  real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors), intent(in) :: Glr
   type(communications_arrays), intent(in) :: comms
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(dp), dimension(*), intent(in) :: pkernel
@@ -337,35 +336,35 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
   call memocc(i_stat,psi,'psi',subname)
 
 
-!!$  !put to zero the value of psi function to control what happens for a complex case
-!!$  call razero(orbs%npsidim,psi)
+!!!  !put to zero the value of psi function to control what happens for a complex case
+!!!  call razero(orbs%npsidim,psi)
 
   !calculate the overlap matrix for debugging and testing
-!!$  allocate(ovrlp(CP2K%ncoeff*CP2K%ncoeff),stat=i_stat)
-!!$  call memocc(i_stat,ovrlp,'ovrlp',subname)
-!!$  allocate(tmp(CP2K%ncoeff,norb),stat=i_stat)
-!!$  call memocc(i_stat,tmp,'tmp',subname)
-!!$  allocate(smat(norb,norb),stat=i_stat)
-!!$  call memocc(i_stat,smat,'smat',subname)
-!!$  !overlap calculation of the gaussian matrix, to be done in view of quick restart
-!!$  call gaussian_overlap(CP2K,CP2K,ovrlp)
-!!$  call dsymm('L','U',CP2K%ncoeff,norb,1.0_gp,ovrlp(1),CP2K%ncoeff,wfn_cp2k(1,1),CP2K%ncoeff,&
-!!$       0.d0,tmp(1,1),CP2K%ncoeff)
-!!$  i_all=-product(shape(ovrlp))*kind(ovrlp)
-!!$  deallocate(ovrlp,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'ovrlp',subname)
-!!$  call gemm('T','N',norb,norb,CP2K%ncoeff,1.0_gp,wfn_cp2k(1,1),CP2K%ncoeff,tmp(1,1),CP2K%ncoeff,&
-!!$       0.0_wp,smat(1,1),norb)
-!!$  !print overlap matrices
-!!$  do i=1,norb
-!!$     write(*,'(i5,30(1pe19.12))')i,(smat(i,iorb),iorb=1,norb)
-!!$  end do
-!!$  i_all=-product(shape(tmp))*kind(tmp)
-!!$  deallocate(tmp,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'tmp',subname)
-!!$  i_all=-product(shape(smat))*kind(smat)
-!!$  deallocate(smat,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'smat',subname)
+!!!  allocate(ovrlp(CP2K%ncoeff*CP2K%ncoeff),stat=i_stat)
+!!!  call memocc(i_stat,ovrlp,'ovrlp',subname)
+!!!  allocate(tmp(CP2K%ncoeff,norb),stat=i_stat)
+!!!  call memocc(i_stat,tmp,'tmp',subname)
+!!!  allocate(smat(norb,norb),stat=i_stat)
+!!!  call memocc(i_stat,smat,'smat',subname)
+!!!  !overlap calculation of the gaussian matrix, to be done in view of quick restart
+!!!  call gaussian_overlap(CP2K,CP2K,ovrlp)
+!!!  call dsymm('L','U',CP2K%ncoeff,norb,1.0_gp,ovrlp(1),CP2K%ncoeff,wfn_cp2k(1,1),CP2K%ncoeff,&
+!!!       0.d0,tmp(1,1),CP2K%ncoeff)
+!!!  i_all=-product(shape(ovrlp))*kind(ovrlp)
+!!!  deallocate(ovrlp,stat=i_stat)
+!!!  call memocc(i_stat,i_all,'ovrlp',subname)
+!!!  call gemm('T','N',norb,norb,CP2K%ncoeff,1.0_gp,wfn_cp2k(1,1),CP2K%ncoeff,tmp(1,1),CP2K%ncoeff,&
+!!!       0.0_wp,smat(1,1),norb)
+!!!  !print overlap matrices
+!!!  do i=1,norb
+!!!     write(*,'(i5,30(1pe19.12))')i,(smat(i,iorb),iorb=1,norb)
+!!!  end do
+!!!  i_all=-product(shape(tmp))*kind(tmp)
+!!!  deallocate(tmp,stat=i_stat)
+!!!  call memocc(i_stat,i_all,'tmp',subname)
+!!!  i_all=-product(shape(smat))*kind(smat)
+!!!  deallocate(smat,stat=i_stat)
+!!!  call memocc(i_stat,i_all,'smat',subname)
 
   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbs,Glr%d,&
        hx,hy,hz,Glr%wfd,CP2K,wfn_cp2k,psi)
@@ -388,7 +387,7 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
   allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
 
-  call HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
+  call HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,&
        Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
        rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
@@ -417,10 +416,10 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
 
 END SUBROUTINE import_gaussians
 
-subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
+subroutine input_wf_diag(iproc,nproc,at,&
      orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
-     nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,&
-     nscatterarr,ngatherarr,nspin)
+     nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
+     nscatterarr,ngatherarr,nspin,potshortcut)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -431,7 +430,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   implicit none
   integer, intent(in) :: iproc,nproc,ixc
   integer, intent(inout) :: nspin,nvirt
-  real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
+  real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(inout) :: orbs
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -439,19 +438,20 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   type(communications_arrays), intent(in) :: comms
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(dp), dimension(*), intent(in) :: pkernel
   real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
   type(orbitals_data), intent(out) :: orbsv
+  type(gaussian_basis), intent(out) :: G !basis for davidson IG
   real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
+  integer, intent(in) ::potshortcut
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   integer, parameter :: ngx=31
+  logical :: switchGPUconv
   integer :: i_stat,i_all,iat,nspin_ig
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,accurex
-  type(gaussian_basis) :: G
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
   type(GPU_pointers) :: GPU
@@ -459,6 +459,8 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   real(gp), dimension(:), allocatable :: locrad
   type(locreg_descriptors), dimension(:), allocatable :: Llr
   real(wp), dimension(:,:,:), pointer :: psigau
+  integer i,j,k
+
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -494,12 +496,12 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   !once the wavefunction coefficients are known perform a set 
   !of nonblocking send-receive operations to calculate overlap matrices
 
-!!$  !create mpirequests array for controlling the success of the send-receive operation
-!!$  allocate(mpirequests(nproc-1+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,mpirequests,'mpirequests',subname)
-!!$
-!!$  call nonblocking_transposition(iproc,nproc,G%ncoeff,orbse%isorb+orbse%norbp,&
-!!$       orbse%nspinor,psigau,orbse%norb_par,mpirequests)
+!!!  !create mpirequests array for controlling the success of the send-receive operation
+!!!  allocate(mpirequests(nproc-1+ndebug),stat=i_stat)
+!!!  call memocc(i_stat,mpirequests,'mpirequests',subname)
+!!!
+!!!  call nonblocking_transposition(iproc,nproc,G%ncoeff,orbse%isorb+orbse%norbp,&
+!!!       orbse%nspinor,psigau,orbse%norb_par,mpirequests)
 
 
   !experimental part for building the localisation regions
@@ -529,14 +531,23 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call memocc(i_stat,psi,'psi',subname)
 
   !allocate arrays for the GPU if a card is present
-  if (GPUconv) then
-       call prepare_gpu_for_locham(Glr%d%n1,Glr%d%n2,Glr%d%n3,nspin,&
-            hx,hy,hz,Glr%wfd,orbse,GPU)
+  switchGPUconv=.false.
+  if (GPUconv .and. potshortcut ==0 ) then
+     call prepare_gpu_for_locham(Glr%d%n1,Glr%d%n2,Glr%d%n3,nspin,&
+          hx,hy,hz,Glr%wfd,orbse,GPU)
+  else if (GPUconv .and. potshortcut >0 ) then
+     switchGPUconv=.true.
+     GPUconv=.false.
   end if
 
   !use only the part of the arrays for building the hamiltonian matrix
-  call gaussians_to_wavelets(iproc,nproc,at%geocode,orbse,Glr%d,&
-       hx,hy,hz,Glr%wfd,G,psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
+  !call gaussians_to_wavelets(iproc,nproc,at%geocode,orbse,Glr%d,&
+  !     hx,hy,hz,Glr%wfd,G,psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
+
+  !use only the part of the arrays for building the hamiltonian matrix
+  call gaussians_to_wavelets_new(iproc,nproc,Glr,orbse,hx,hy,hz,G,&
+       psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
+
 
   i_all=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=i_stat)
@@ -559,104 +570,131 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   end if
 
 
-!!$  if (nproc == 1) then
-!!$     !calculate the overlap matrix as well as the kinetic overlap
-!!$     !in view of complete gaussian calculation
-!!$     allocate(ovrlp(G%ncoeff*G%ncoeff),stat=i_stat)
-!!$     call memocc(i_stat,ovrlp,'ovrlp',subname)
-!!$     allocate(tmp(G%ncoeff,orbse%norb),stat=i_stat)
-!!$     call memocc(i_stat,tmp,'tmp',subname)
-!!$     allocate(smat(orbse%norb,orbse%norb),stat=i_stat)
-!!$     call memocc(i_stat,smat,'smat',subname)
-!!$
-!!$     !overlap calculation of the gaussian matrix
-!!$     call gaussian_overlap(G,G,ovrlp)
-!!$     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
-!!$          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
-!!$
-!!$     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
-!!$          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
-!!$
-!!$     !print overlap matrices
-!!$     do i=1,orbse%norb
-!!$        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
-!!$     end do
-!!$
-!!$     !overlap calculation of the kinetic operator
-!!$     call kinetic_overlap(G,G,ovrlp)
-!!$     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
-!!$          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
-!!$
-!!$     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
-!!$          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
-!!$
-!!$     !print overlap matrices
-!!$     tt=0.0_wp
-!!$     do i=1,orbse%norb
-!!$        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
-!!$        !write(12,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
-!!$        tt=tt+smat(i,i)
-!!$     end do
-!!$     print *,'trace',tt
-!!$
-!!$     !overlap calculation of the kinetic operator
-!!$     call cpu_time(t0)
-!!$     call potential_overlap(G,G,rhopot,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-!!$          ovrlp)
-!!$     call cpu_time(t1)
-!!$     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
-!!$          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
-!!$
-!!$     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
-!!$          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
-!!$
-!!$     !print overlap matrices
-!!$     tt=0.0_wp
-!!$     do i=1,orbse%norb
-!!$        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
-!!$        !write(12,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
-!!$        tt=tt+smat(i,i)
-!!$     end do
-!!$     print *,'trace',tt
-!!$     print *, 'time',t1-t0
-!!$
-!!$     i_all=-product(shape(ovrlp))*kind(ovrlp)
-!!$     deallocate(ovrlp,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'ovrlp',subname)
-!!$     i_all=-product(shape(tmp))*kind(tmp)
-!!$     deallocate(tmp,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'tmp',subname)
-!!$     i_all=-product(shape(smat))*kind(smat)
-!!$     deallocate(smat,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'smat',subname)
-!!$  end if
 
+!!!  if (nproc == 1) then
+!!!     !calculate the overlap matrix as well as the kinetic overlap
+!!!     !in view of complete gaussian calculation
+!!!     allocate(ovrlp(G%ncoeff*G%ncoeff),stat=i_stat)
+!!!     call memocc(i_stat,ovrlp,'ovrlp',subname)
+!!!     allocate(tmp(G%ncoeff,orbse%norb),stat=i_stat)
+!!!     call memocc(i_stat,tmp,'tmp',subname)
+!!!     allocate(smat(orbse%norb,orbse%norb),stat=i_stat)
+!!!     call memocc(i_stat,smat,'smat',subname)
+!!!
+!!!     !overlap calculation of the gaussian matrix
+!!!     call gaussian_overlap(G,G,ovrlp)
+!!!     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
+!!!          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
+!!!
+!!!     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
+!!!          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
+!!!
+!!!     !print overlap matrices
+!!!     do i=1,orbse%norb
+!!!        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
+!!!     end do
+!!!
+!!!     !overlap calculation of the kinetic operator
+!!!     call kinetic_overlap(G,G,ovrlp)
+!!!     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
+!!!          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
+!!!
+!!!     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
+!!!          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
+!!!
+!!!     !print overlap matrices
+!!!     tt=0.0_wp
+!!!     do i=1,orbse%norb
+!!!        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
+!!!        !write(12,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
+!!!        tt=tt+smat(i,i)
+!!!     end do
+!!!     print *,'trace',tt
+!!!
+!!!     !overlap calculation of the kinetic operator
+!!!     call cpu_time(t0)
+!!!     call potential_overlap(G,G,rhopot,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+!!!          ovrlp)
+!!!     call cpu_time(t1)
+!!!     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
+!!!          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
+!!!
+!!!     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
+!!!          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
+!!!
+!!!     !print overlap matrices
+!!!     tt=0.0_wp
+!!!     do i=1,orbse%norb
+!!!        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
+!!!        !write(12,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
+!!!        tt=tt+smat(i,i)
+!!!     end do
+!!!     print *,'trace',tt
+!!!     print *, 'time',t1-t0
+!!!
+!!!     i_all=-product(shape(ovrlp))*kind(ovrlp)
+!!!     deallocate(ovrlp,stat=i_stat)
+!!!     call memocc(i_stat,i_all,'ovrlp',subname)
+!!!     i_all=-product(shape(tmp))*kind(tmp)
+!!!     deallocate(tmp,stat=i_stat)
+!!!     call memocc(i_stat,i_all,'tmp',subname)
+!!!     i_all=-product(shape(smat))*kind(smat)
+!!!     deallocate(smat,stat=i_stat)
+!!!     call memocc(i_stat,i_all,'smat',subname)
+!!!  end if
+
+
+  if(potshortcut>0) then
+!!$    if (GPUconv) then
+!!$       call free_gpu(GPU,orbs%norbp)
+!!$    end if
+     if (switchGPUconv) then
+        GPUconv=.true.
+     end if
+
+     if (nvirt == 0) then
+        call deallocate_orbs(orbsv,subname)
+     end if
+     call deallocate_orbs(orbse,subname)
+     
+     !deallocate the gaussian basis descriptors
+     call deallocate_gwf(G,subname)
+    
+     i_all=-product(shape(psigau))*kind(psigau)
+     deallocate(psigau,stat=i_stat)
+     call memocc(i_stat,i_all,'psigau',subname)
+     call deallocate_comms(commse,subname)
+     i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
+     deallocate(norbsc_arr,stat=i_stat)
+     call memocc(i_stat,i_all,'norbsc_arr',subname)
+    return 
+  end if
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(orbse%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
   
-  call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
+  call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
        rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,GPU,pkernel)
 
-!!$  !calculate the overlap matrix knowing that the original functions are gaussian-based
-!!$  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,thetaphi,'thetaphi',subname)
-!!$  thetaphi=0.0_gp
-!!$
-!!$  !calculate the scalar product between the hamiltonian and the gaussian basis
-!!$  allocate(hpsigau(G%ncoeff,orbse%norbp+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,hpsigau,'hpsigau',subname)
-!!$
-!!$
-!!$  call wavelets_to_gaussians(at%geocode,orbse%norbp,Glr%d%n1,Glr%d%n2,Glr%d%n3,G,&
-!!$       thetaphi,hx,hy,hz,Glr%wfd,hpsi,hpsigau)
-!!$
-!!$  i_all=-product(shape(thetaphi))*kind(thetaphi)
-!!$  deallocate(thetaphi,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'thetaphi',subname)
+!!!  !calculate the overlap matrix knowing that the original functions are gaussian-based
+!!!  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
+!!!  call memocc(i_stat,thetaphi,'thetaphi',subname)
+!!!  thetaphi=0.0_gp
+!!!
+!!!  !calculate the scalar product between the hamiltonian and the gaussian basis
+!!!  allocate(hpsigau(G%ncoeff,orbse%norbp+ndebug),stat=i_stat)
+!!!  call memocc(i_stat,hpsigau,'hpsigau',subname)
+!!!
+!!!
+!!!  call wavelets_to_gaussians(at%geocode,orbse%norbp,Glr%d%n1,Glr%d%n2,Glr%d%n3,G,&
+!!!       thetaphi,hx,hy,hz,Glr%wfd,hpsi,hpsigau)
+!!!
+!!!  i_all=-product(shape(thetaphi))*kind(thetaphi)
+!!!  deallocate(thetaphi,stat=i_stat)
+!!!  call memocc(i_stat,i_all,'thetaphi',subname)
 
 
   accurex=abs(eks-ekin_sum)
@@ -669,23 +707,17 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
   endif
 
-!!$  call Gaussian_DiagHam(iproc,nproc,at%natsc,nspin,orbs,G,mpirequests,&
-!!$       psigau,hpsigau,orbse,etol,norbsc_arr)
-
-  !deallocate the gaussian basis descriptors
-  call deallocate_gwf(G,subname)
+!!!  call Gaussian_DiagHam(iproc,nproc,at%natsc,nspin,orbs,G,mpirequests,&
+!!!       psigau,hpsigau,orbse,etol,norbsc_arr)
 
 
-!!$  i_all=-product(shape(mpirequests))*kind(mpirequests)
-!!$  deallocate(mpirequests,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'mpirequests',subname)
+!!!  i_all=-product(shape(mpirequests))*kind(mpirequests)
+!!!  deallocate(mpirequests,stat=i_stat)
+!!!  call memocc(i_stat,i_all,'mpirequests',subname)
 
-  i_all=-product(shape(psigau))*kind(psigau)
-  deallocate(psigau,stat=i_stat)
-  call memocc(i_stat,i_all,'psigau',subname)
-!!$  i_all=-product(shape(hpsigau))*kind(hpsigau)
-!!$  deallocate(hpsigau,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'hpsigau',subname)
+!!!  i_all=-product(shape(hpsigau))*kind(hpsigau)
+!!!  deallocate(hpsigau,stat=i_stat)
+!!!  call memocc(i_stat,i_all,'hpsigau',subname)
 
 
 
@@ -700,6 +732,8 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   if (GPUconv) then
      call free_gpu(GPU,orbse%norbp)
   end if
+
+
 
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Input Wavefunctions Orthogonalization:'
@@ -717,17 +751,27 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      write(*,'(1x,a)')'done.'
      !gaussian estimation valid only for Free BC
      if (at%geocode == 'F') then
+        write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
         write(*,'(1x,a,1pe9.2)') &
-          'expected accuracy in kinetic energy due to grid size',accurex
-        write(*,'(1x,a,1pe9.2)') &
-             'suggested value for gnrm_cv ',accurex/real(orbs%norb,kind=8)
+          'expected accuracy in energy per orbital ',accurex/real(orbs%norb,kind=8)
+        !write(*,'(1x,a,1pe9.2)') &
+        !     'suggested value for gnrm_cv ',accurex/real(orbs%norb,kind=8)
      end if
   endif
 
+  !here we can define the subroutine which generates the coefficients for the virtual orbitals
+  call deallocate_gwf(G,subname)
+
+  i_all=-product(shape(psigau))*kind(psigau)
+  deallocate(psigau,stat=i_stat)
+  call memocc(i_stat,i_all,'psigau',subname)
 
   if (nvirt == 0) then
+     !deallocate the gaussian basis descriptors
+     !call deallocate_gwf(G,subname)
      call deallocate_orbs(orbsv,subname)
   end if
+
 
   call deallocate_orbs(orbse,subname)
      

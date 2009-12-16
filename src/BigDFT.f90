@@ -47,15 +47,6 @@ program BigDFT
   real(gp) :: fluctsum
 
  
-  !!!!$      interface
-  !!!!$        integer ( kind=4 ) function omp_get_num_threads ( )
-  !!!!$        end function omp_get_num_threads
-  !!!!$      end interface
-  !!!!$      interface
-  !!!!$        integer ( kind=4 ) function omp_get_thread_num ( )
- !!!! !$        end function omp_get_thread_num
-  !!!!!$      end interface
-
   ! Start MPI in parallel version
   !in the case of MPIfake libraries the number of processors is automatically adjusted
   call MPI_INIT(ierr)
@@ -176,24 +167,8 @@ program BigDFT
      endif
 
 
-     !deallocations
-     ! TODO, move them into input_variables as a free method for atoms
-     i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
-     deallocate(atoms%ifrztyp,stat=i_stat)
-     call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
-     i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
-     deallocate(atoms%iatype,stat=i_stat)
-     call memocc(i_stat,i_all,'atoms%iatype',subname)
-     i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
-     deallocate(atoms%natpol,stat=i_stat)
-     call memocc(i_stat,i_all,'atoms%natpol',subname)
-     i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
-     deallocate(atoms%atomnames,stat=i_stat)
-     call memocc(i_stat,i_all,'atoms%atomnames',subname)
-     i_all=-product(shape(atoms%amu))*kind(atoms%amu)
-     deallocate(atoms%amu,stat=i_stat)
-     call memocc(i_stat,i_all,'atoms%amu',subname)
-     if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
+
+     call deallocate_atoms(atoms ) 
 
      call free_restart_objects(rst,subname)
 
@@ -209,7 +184,7 @@ program BigDFT
      !finalize memory counting
      call memocc(0,0,'count','stop')
 
-     if (GPUshare .and. GPUconv) call stop_gpu_sharing()
+!     call sg_end()
 
   enddo !loop over iconfig
 

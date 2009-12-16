@@ -149,10 +149,10 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   end do
 
   !some checks
-!!$  if (ikpts /= orbs%nkpts ) then
-!!$     write(*,*)' ERROR:ikpts not correct:',ikpts,orbs%nkpts
-!!$     stop
-!!$  end if
+!!!  if (ikpts /= orbs%nkpts ) then
+!!!     write(*,*)' ERROR:ikpts not correct:',ikpts,orbs%nkpts
+!!!     stop
+!!!  end if
   !check the distribution
   do ikpts=1,orbs%nkpts
      !print *,'iproc,cpts:',lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nvctr_par(:,ikpts)
@@ -213,10 +213,10 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   end do
   !some checks
   if (orbs%norb /= 0) then
-!!$     if (ikpts /= orbs%nkpts) then
-!!$        write(*,*)' ERROR:ikpts not correct, orbitals:',ikpts,orbs%nkpts
-!!$        stop
-!!$     end if
+!!!     if (ikpts /= orbs%nkpts) then
+!!!        write(*,*)' ERROR:ikpts not correct, orbitals:',ikpts,orbs%nkpts
+!!!        stop
+!!!     end if
      !check the distribution
      do ikpts=1,orbs%nkpts
         !print *,'partition',ikpts,orbs%nkpts,'ikpts',norb_par(:,ikpts)
@@ -235,8 +235,10 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   !allocate communication arrays
   allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
   call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
+
   allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,comms%ncntd,'ncntd',subname)
+
   allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,comms%ncntt,'ncntt',subname)
   allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
@@ -287,22 +289,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 
   !print *,'iproc,comms',iproc,comms%ncntd,comms%ndspld,comms%ncntt,comms%ndsplt
 
-!!$  do jproc=0,nproc-1
-!!$     comms%ncntd(jproc)=comms%nvctr_par(jproc)*orbs%norb_par(iproc)*orbs%nspinor
-!!$  end do
-!!$  comms%ndspld(0)=0
-!!$  do jproc=1,nproc-1
-!!$     comms%ndspld(jproc)=comms%ndspld(jproc-1)+comms%ncntd(jproc-1)
-!!$  end do
-!!$  !receive buffer
-!!$  do jproc=0,nproc-1
-!!$     comms%ncntt(jproc)=comms%nvctr_par(iproc)*orbs%norb_par(jproc)*orbs%nspinor
-!!$  end do
-!!$  comms%ndsplt(0)=0
-!!$  do jproc=1,nproc-1
-!!$     comms%ndsplt(jproc)=comms%ndsplt(jproc-1)+comms%ncntt(jproc-1)
-!!$  end do
-
   i_all=-product(shape(nvctr_par))*kind(nvctr_par)
   deallocate(nvctr_par,stat=i_stat)
   call memocc(i_stat,i_all,'nvctr_par',subname)
@@ -323,3 +309,13 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 
 
 end subroutine orbitals_communicators
+
+
+!!subroutine print_distribution_schemes(iproc,nproc,nkpts,norb_par,nvctr_par)
+!!  use module_base
+!!  implicit none
+!!  integer, intent(in) :: iproc,nproc,nkpts
+!!  integer, dimension(0:nproc-1,nkpts), intent(in) :: norb_par,nvctr_par
+!!  !local variables
+!!  
+!!end subroutine print_distribution_schemes

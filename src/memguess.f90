@@ -117,26 +117,26 @@ program memguess
      end if
   end if
 
-!!$  open(unit=1,file='input.memguess',status='old')
-!!$  
-!!$  !line number, to control the input values
-!!$  iline=0
-!!$  
-!!$  !number of MPI proccessors
-!!$  read(1,*) nproc
-!!$  write(*,*) 'Number of mpi processes is: ',nproc
-!!$  
-!!$  read(1,*) optimise
-!!$  if (optimise) write(*,*) 'Molecule will be rotated to minimize simulation box size and workarrays in BigDFT'
-!!$  
-!!$  !    "T"  If the system grid is to be displayed in the "grid.xyz" file
-!!$  read(1,*) output_grid
-!!$  write(*,*)  'output_grid= ',output_grid
-!!$  
-!!$  !    "T"   'Perform the test with GPU, if present.'   
-!!$  read(1,*) GPUtest
-!!$  if (GPUtest) write(*,*) 'Perform the test with GPU'
-!!$!!! END of By Ali
+!!!  open(unit=1,file='input.memguess',status='old')
+!!!  
+!!!  !line number, to control the input values
+!!!  iline=0
+!!!  
+!!!  !number of MPI proccessors
+!!!  read(1,*) nproc
+!!!  write(*,*) 'Number of mpi processes is: ',nproc
+!!!  
+!!!  read(1,*) optimise
+!!!  if (optimise) write(*,*) 'Molecule will be rotated to minimize simulation box size and workarrays in BigDFT'
+!!!  
+!!!  !    "T"  If the system grid is to be displayed in the "grid.xyz" file
+!!!  read(1,*) output_grid
+!!!  write(*,*)  'output_grid= ',output_grid
+!!!  
+!!!  !    "T"   'Perform the test with GPU, if present.'   
+!!!  read(1,*) GPUtest
+!!!  if (GPUtest) write(*,*) 'Perform the test with GPU'
+!!!!!! END of By Ali
 
 
 
@@ -156,6 +156,10 @@ program memguess
      write(*,*)' ...done'
   else
      call dft_input_variables(0,'input.dft',in,atoms%symObj)
+
+     ! read k-points input variables (if given)
+     call kpt_input_variables(0,'input.kpt',in,atoms)
+
      !read geometry optimsation input variables
      !inquire for the file needed for geometry optimisation
      !if not present, perform a simple geometry optimisation
@@ -290,9 +294,6 @@ program memguess
 
   call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Glr)
 
-  ! De-allocations
-  call deallocate_orbs(orbs,subname)
-
   if (GPUtest .and. .not. GPUconv) then
      write(*,*)' ERROR: you can not put a GPUtest flag is there is no GPUrun.'
      stop
@@ -354,7 +355,7 @@ program memguess
   call memocc(i_stat,logrid,'logrid',subname)
 
   call localize_projectors(0,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,&
-       in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,nlpspd)
+       in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,orbs,nlpspd)
 
   i_all=-product(shape(logrid))*kind(logrid)
   deallocate(logrid,stat=i_stat)
@@ -420,7 +421,10 @@ program memguess
   call memocc(i_stat,i_all,'atoms%amu',subname)
   if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
 
+  ! De-allocations
+  call deallocate_orbs(orbs,subname)
   call free_input_variables(in)
+
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
@@ -824,8 +828,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   !copy the wavefunctions on GPU
   do iorb=1,orbs%norbp
-     call GPU_send((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-          psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
+     !!!!! call GPU_send((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
+     !!!!!     psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
   end do
 
   !now the GPU part
@@ -838,7 +842,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   GPUtime=real(t1-t0,kind=8)
 
   !receive the density on GPU
-  call GPU_receive(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,rho,GPU%rhopot,i_stat)
+  !!!!! call GPU_receive(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,rho,GPU%rhopot,i_stat)
 
   i_all=-product(shape(nscatterarr))*kind(nscatterarr)
   deallocate(nscatterarr,stat=i_stat)
@@ -876,7 +880,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   end do
 
   !copy the potential on GPU
-  call GPU_send(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,pot,GPU%rhopot,i_stat)
+  !!!!! call GPU_send(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,pot,GPU%rhopot,i_stat)
 
 
   write(*,'(1x,a)')repeat('-',34)//' CPU-GPU comparison: Local Hamiltonian calculation'
@@ -914,8 +918,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   
   !receive the data of GPU
   do iorb=1,orbs%norbp
-     call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-          psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
+     !!!!! call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
+      !!!!!!!    psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
   end do
   
 
@@ -1019,8 +1023,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   print *,'gnrmGPU',gnrmGPU
 
   do iorb=1,orbs%norbp
-     call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-          psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
+     !!!!! call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
+         !! psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
   end do
 
 

@@ -129,11 +129,11 @@ program frequencies
   call memocc(i_stat,fpos_m,'fpos_m',subname)
   allocate(fpos_p(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fpos_p,'fpos_p',subname)
-  allocate(hessian(3*atoms%nat,3*atoms%nat),stat=i_stat)
+  allocate(hessian(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,hessian,'hessian',subname)
-  allocate(moves(2,3,atoms%nat),stat=i_stat)
+  allocate(moves(2,3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,moves,'moves',subname)
-  allocate(forces(2,3,atoms%nat,3*atoms%nat),stat=i_stat)
+  allocate(forces(2,3,atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,forces,'forces',subname)
 
   !initialise the moves to false
@@ -246,21 +246,21 @@ program frequencies
   call memocc(i_stat,i_all,'fpos_p',subname)
 
   !allocations
-  allocate(eigen_r(3*atoms%nat),stat=i_stat)
+  allocate(eigen_r(3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,eigen_r,'eigen_r',subname)
-  allocate(eigen_i(3*atoms%nat),stat=i_stat)
+  allocate(eigen_i(3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,eigen_i,'eigen_i',subname)
-  allocate(vector_r(3*atoms%nat,3*atoms%nat),stat=i_stat)
+  allocate(vector_r(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,vector_r,'vector_r',subname)
-  allocate(vector_l(3*atoms%nat,3*atoms%nat),stat=i_stat)
+  allocate(vector_l(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,vector_l,'vector_l',subname)
 
   !Diagonalise the hessian matrix
   call solve(hessian,3*atoms%nat,eigen_r,eigen_i,vector_l,vector_r)
 
   if (iproc==0) then
-     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r
-     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i
+     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(1:3*atoms%nat)
+     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i(1:3*atoms%nat)
      do i=1,3*atoms%nat
         if (eigen_r(i)<0.0_dp) then
            eigen_r(i)=-sqrt(-eigen_r(i))
@@ -268,8 +268,8 @@ program frequencies
            eigen_r(i)= sqrt( eigen_r(i))
        end if
      end do
-     write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r
-     write(*,'(1x,a,1x,100(f13.2))') '=F: frequencies (cm-1)      =',eigen_r*Ha_cmm1
+     write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r(1:3*atoms%nat)
+     write(*,'(1x,a,1x,100(f13.2))') '=F: frequencies (cm-1)      =',eigen_r(1:3*atoms%nat)*Ha_cmm1
      !Build frequencies.xyz
      open(unit=15,file='frequencies.xyz',status="unknown")
      do i=1,3*atoms%nat
@@ -356,7 +356,7 @@ contains
     real(gp), dimension(:), allocatable :: work
 
     lwork=6*n
-    allocate(work(lwork),stat=i_stat)
+    allocate(work(lwork+ndebug),stat=i_stat)
     call memocc(i_stat,work,'work',subname)
 
     call dgeev('V','V',n,hessian,n,eigen_r,eigen_i,vector_l,n,vector_r,n,work,lwork,info)

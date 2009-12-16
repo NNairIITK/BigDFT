@@ -70,7 +70,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   character(len=7) :: cudagpu
   character(len=100) :: line
   logical :: exists
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
+  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj
 
   ! default values for geopt and k points in case not call later.
   call geopt_input_variables_default(in)
@@ -110,9 +110,10 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   read(line,*,iostat=ierrfrc) cudagpu
   iline=iline+1
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
-     call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-   !  iconv = 0
-   !  iblas = 0
+    ! call init_lib(iproc,initerror,iconv,iblas,GPUshare)
+     call sg_init(GPUshare,iconv,iproc,initerror)
+     iconv = 1
+     iblas = 1
      if (initerror == 1) then
         write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
         call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
@@ -151,17 +152,17 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   call check()
 
   !x-absorber treatment
-  read(1,*,iostat=ierror) in%iat_absorber
+  read(1,*,iostat=ierror) in%iabscalc_type
   call check()
 
 
   !read absorption-calculation input variables
   !inquire for the needed file 
   !if not present, set default ( no absorption calculation)
-  if (in%iat_absorber /= 0) then
+  if ( in%iabscalc_type/= 0) then
      inquire(file="input.abscalc",exist=exists)
      if (.not. exists) then
-        if (iproc == 0) write(*,*)'ERROR: nedd file input.abscalc for x-ray absorber treatment.'
+        if (iproc == 0) write(*,*)'ERROR: need file input.abscalc for x-ray absorber treatment.'
         stop
      end if
      call abscalc_input_variables(iproc,'input.abscalc',in)
@@ -175,19 +176,29 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   call check()
 
   !verbosity of the output
-  read(1,*,iostat=ierror)  in%verbosity
+  read(1,*,iostat=ierror)  ivrbproj
   call check()
 
-
-  !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
-  !systems, while in principle it should work immediately
-  if (in%nspin/=1 .and. in%nvirt/=0) then
-     !if (iproc==0) then
-        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
-     !end if
-     stop
+  !if the verbosity is bigger than 10 apply the projectors
+  !in the once-and-for-all scheme, otherwise use the default
+  if (ivrbproj > 10) then
+     DistProjApply=.false.
+     in%verbosity=ivrbproj-10
+  else
+     in%verbosity=ivrbproj
   end if
- 
+!!  !temporary correction
+!!  DistProjApply=.false.
+  
+
+
+!  if (in%nspin/=1 .and. in%nvirt/=0) then
+!     !if (iproc==0) then
+!        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
+!     !end if
+!     stop
+!  end if
+! 
   close(unit=1,iostat=ierror)
 
   if (in%nvirt > 0 .and. iproc ==0) then
@@ -308,7 +319,7 @@ subroutine geopt_input_variables(iproc,filename,in)
      else if (in%ionmov == 13) then
         read(1,*,iostat=ierror) in%nnos
         call check()
-        allocate(in%qmass(in%nnos),stat=i_stat)
+        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
         call memocc(i_stat,in%qmass,'in%qmass',subname)
         read(1,*,iostat=ierror) in%qmass
         call check()
@@ -331,7 +342,7 @@ subroutine geopt_input_variables(iproc,filename,in)
           & "      Max. steps=", in%ncount_cluster_x, "|", &
           & "Fluct. in forces=", in%frac_fluct,       "|", &
           & "          ionmov=", in%ionmov
-     write(*, "(1x,a,a7,1x,a,1x,a,1pe7.1,1x,a,1x,a,1f7.0)") &
+     write(*, "(1x,a,a7,1x,a,1x,a,1pe7.1,1x,a,1x,a,0pf7.0)") &
           & "       algorithm=", in%geopt_approach, "|", &
           & "  Max. in forces=", in%forcemax,       "|", &
           & "           dtion=", in%dtion
@@ -398,16 +409,28 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   ! Set default values.
   in%nkpt = 1
 
+  !check also the GPU activation in relation to the boundary conditions
+  if (GPUconv .and. atoms%geocode /= 'P') then
+     if (iproc==0) write(*,*)&
+          ' ERROR: the CUDA convolutions are ported only for 3D periodic boundary conditions, cannot proceed...'
+     stop
+  end if
+
   inquire(file=trim(filename),exist=exists)
   if (.not. exists) then
      ! Set only the gamma point.
-     allocate(in%kpt(3, in%nkpt),stat=i_stat)
+     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%kpt,'in%kpt',subname)
      in%kpt(:, 1) = (/ 0., 0., 0. /)
-     allocate(in%wkpt(in%nkpt),stat=i_stat)
+     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%wkpt,'in%wkpt',subname)
      in%wkpt(1) = 1.
      return
+  !and control whether we are giving k-points to Free BC
+  else if (atoms%geocode == 'F') then
+     if (iproc==0) write(*,*)&
+          ' NONSENSE: Trying to use k-points with Free Boundary Conditions!'
+     stop
   end if
 
   ! Real generation of k-point set.
@@ -442,18 +465,20 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   else if (trim(type) == "manual" .or. trim(type) == "Manual") then
      read(1,*,iostat=ierror) in%nkpt
      call check()
-     allocate(in%kpt(3, in%nkpt),stat=i_stat)
+     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%kpt,'in%kpt',subname)
-     allocate(in%wkpt(in%nkpt),stat=i_stat)
+     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%wkpt,'in%wkpt',subname)
-     do i = 1, in%nkpt, 1
+     norm=0.0_gp
+     do i = 1, in%nkpt
         read(1,*,iostat=ierror) in%kpt(:, i), in%wkpt(i)
+        norm=norm+in%wkpt(i)
         call check()
      end do
      
      ! We normalise the weights.
-     norm = sum(in%wkpt)
      in%wkpt(:) = in%wkpt / norm
+
   end if
 
   close(unit=1,iostat=ierror)
@@ -512,6 +537,13 @@ subroutine free_input_variables(in)
      deallocate(in%wkpt,stat=i_stat)
      call memocc(i_stat,i_all,'in%wkpt',subname)
   end if
+
+!!$  if (associated(in%Gabs_coeffs) ) then
+!!$     i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
+!!$     deallocate(in%Gabs_coeffs,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
+!!$  end if
+
 end subroutine free_input_variables
 !!***
 !!****f* BigDFT/abscalc_input_variables_default
@@ -525,8 +557,9 @@ subroutine abscalc_input_variables_default(in)
   implicit none
   type(input_variables), intent(out) :: in
 
-  !put some fake values for the geometry optimsation case
   in%c_absorbtion=.false.
+  in%potshortcut=0
+  in%iat_absorber=0
 
 end subroutine abscalc_input_variables_default
 !!***
@@ -566,10 +599,16 @@ subroutine abscalc_input_variables(iproc,filename,in)
   read(111,*,iostat=ierror)  in%L_absorber
   call check()
 
-  allocate(in%Gabs_coeffs(2*in%L_absorber +1),stat=i_stat)
+  allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)
   call memocc(i_stat,in%Gabs_coeffs,'in%Gabs_coeff',subname)
 
   read(111,*,iostat=ierror)  (in%Gabs_coeffs(i+ndebug), i=1,2*in%L_absorber +1 )
+  call check()
+
+  read(111,*,iostat=ierror)  in%potshortcut
+  call check()
+  
+  read(111,*,iostat=ierror)  in%nsteps
   call check()
   
   read(111,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
@@ -730,8 +769,10 @@ subroutine read_input_variables(iproc,filename,in)
   read(1,'(a100)')line
   read(line,*,iostat=ierrfrc) cudagpu
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
-     call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-     
+!     call init_lib(iproc,initerror,iconv,iblas,GPUshare)
+!     call sg_init(GPUshare,iconv,iproc,initerror)
+iconv = 1
+iblas = 1
      if (initerror == 1) then
 
         write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
@@ -1033,7 +1074,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
      if (atoms%geocode == 'S') rprimd(2,2) = 1000._gp
      rprimd(3,3) = atoms%alat3
      call ab6_symmetry_set_lattice(atoms%symObj, rprimd, ierr)
-     allocate(xRed(3, atoms%nat),stat=i_stat)
+     allocate(xRed(3, atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,xRed,'xRed',subname)
      xRed(1,:) = modulo(rxyz(1, :) / rprimd(1,1), 1._gp)
      xRed(2,:) = modulo(rxyz(2, :) / rprimd(2,2), 1._gp)
@@ -1084,6 +1125,44 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   end if
 end subroutine read_atomic_file
 !!***
+
+
+subroutine deallocate_atoms(atoms ) 
+
+  use module_base
+  use module_types
+  use module_interfaces
+  use ab6_symmetry
+
+  implicit none
+
+  character(len=*), parameter :: subname='deallocate_atoms'
+  integer :: i_stat, i_all
+
+
+  type(atoms_data), intent(inout) :: atoms
+  !deallocations
+
+  i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
+  deallocate(atoms%ifrztyp,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
+  i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
+  deallocate(atoms%iatype,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%iatype',subname)
+  i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
+  deallocate(atoms%natpol,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%natpol',subname)
+  i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
+  deallocate(atoms%atomnames,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%atomnames',subname)
+  i_all=-product(shape(atoms%amu))*kind(atoms%amu)
+  deallocate(atoms%amu,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%amu',subname)
+  if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
+end subroutine deallocate_atoms
+
+
+
 
 !!****f* BigDFT/read_atomic_positions
 !! FUNCTION
@@ -1139,17 +1218,17 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   !read from positions of .xyz format, but accepts also the old .ascii format
   read(ifile,'(a150)')line
 
-!!$  !old format, still here for backward compatibility
-!!$  !admits only simple precision calculation
-!!$  read(line,*,iostat=ierror) rx,ry,rz,tatonam
+!!!  !old format, still here for backward compatibility
+!!!  !admits only simple precision calculation
+!!!  read(line,*,iostat=ierror) rx,ry,rz,tatonam
 
-!!$  !in case of old format, put geocode to F and alat to 0.
-!!$  if (ierror == 0) then
-!!$     atoms%geocode='F'
-!!$     alat1d0=0.0_gp
-!!$     alat2d0=0.0_gp
-!!$     alat3d0=0.0_gp
-!!$  else
+!!!  !in case of old format, put geocode to F and alat to 0.
+!!!  if (ierror == 0) then
+!!!     atoms%geocode='F'
+!!!     alat1d0=0.0_gp
+!!!     alat2d0=0.0_gp
+!!!     alat3d0=0.0_gp
+!!!  else
   if (lpsdbl) then
      read(line,*,iostat=ierrsfx) tatonam,alat1d0,alat2d0,alat3d0
   else
@@ -1178,7 +1257,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
      alat2d0=0.0_gp
      alat3d0=0.0_gp
   end if
-!!$  end if
+!!!  end if
 
   !reduced coordinates are possible only with periodic units
   if (atoms%units == 'reduced' .and. atoms%geocode == 'F') then
@@ -1224,7 +1303,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
      call parse_extra_info(iproc,iat,extra,atoms)
 
      tatonam=trim(symbol)
-!!$     end if
+!!!     end if
      if (lpsdbl) then
         rxyz(1,iat)=rxd0
         rxyz(2,iat)=ryd0
@@ -1419,7 +1498,7 @@ subroutine parse_extra_info(iproc,iat,extra,atoms)
         end if
      else
         nchrg=0
-        call valid_frzchain(trim(extra),go)
+        call valid_frzchain(trim(suffix),go)
         if (.not. go) then
            read(suffix,*,iostat=ierr2)nchrg
            if (ierr2 /= 0) then
@@ -1427,6 +1506,8 @@ subroutine parse_extra_info(iproc,iat,extra,atoms)
            else
               suffix='    '
            end if
+        else
+
         end if
      end if
   end if
@@ -1439,15 +1520,15 @@ subroutine parse_extra_info(iproc,iat,extra,atoms)
   end if
   atoms%natpol(iat)=1000*nchrg+nsgn*100+nspol
 
-  !print *,'natpol atomic',iat,atoms%natpol(iat)
+  !print *,'natpol atomic',iat,atoms%natpol(iat),suffix
 
   !convert the suffix into ifrztyp
   call frozen_ftoi(suffix,atoms%ifrztyp(iat))
 
-!!$  if (trim(suffix) == 'f') then
-!!$     !the atom is considered as blocked
-!!$     atoms%ifrztyp(iat)=1
-!!$  end if
+!!!  if (trim(suffix) == 'f') then
+!!!     !the atom is considered as blocked
+!!!     atoms%ifrztyp(iat)=1
+!!!  end if
 
 contains
 

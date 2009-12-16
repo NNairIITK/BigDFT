@@ -66,15 +66,11 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fil
   real(gp), dimension(4) :: coeff
   logical fillrxyz
 
-
   if (present(opt_fillrxyz)) then
      fillrxyz=opt_fillrxyz
   else
      fillrxyz=.false.
   endif
-  
-        
-
 
   !read the information from a file
   inquire(file=filename,exist=exists)
@@ -85,12 +81,10 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fil
      stop
   end if
 
+
   open(unit=99,file=filename,status='unknown')
   read(99,*)G%nat,G%nshltot,G%nexpo,G%ncoeff
   
-
-
-
   allocate(G%nshell(G%nat+ndebug),stat=i_stat)
   call memocc(i_stat,G%nshell,'G%nshell',subname)
   allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
@@ -110,7 +104,7 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fil
   if(fillrxyz) then
 
      allocate(G%rxyz (3,G%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,coeffs,'coeffs',subname)
+     call memocc(i_stat,G%rxyz,'G%rxyz',subname)
      do iat=1,G%nat
         read(99,*)jat,G%rxyz(1, iat),G%rxyz(2, iat),G%rxyz(3, iat)  ,G%nshell(iat)
      end do
@@ -121,7 +115,8 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fil
   endif
 
 
-  read(99,*)G%ndoc,G%nam
+
+  read(99,*)G%ndoc(1:G%nshltot),G%nam(1:G%nshltot)
   do iexpo=1,G%nexpo
      read(99,*)jexpo,G%xp(jexpo),G%psiat(jexpo)
   end do
@@ -132,13 +127,13 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fil
         if (orbs%isorb < iorb .and. iorb <= orbs%isorb+orbs%norbp) then
            do j=1,orbs%nspinor
               coeffs(jcoeff,(jorb-1-orbs%isorb)*orbs%nspinor+j)=coeff(j)
+              
            end do
         end if
      end do
   end do
   close(99)
- 
-end subroutine read_gaussian_information
+ end subroutine read_gaussian_information
 
 subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   use module_base
@@ -748,9 +743,9 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   deallocate(ovrlp,stat=i_stat)
   call memocc(i_stat,i_all,'ovrlp',subname)
 
-!!$  do iorb=1,norbp
-!!$     print *,'iorb, dual,coeffs',iorb,coeffs(:,iorb)
-!!$  end do
+!!!  do iorb=1,norbp
+!!!     print *,'iorb, dual,coeffs',iorb,coeffs(:,iorb)
+!!!  end do
   
 end subroutine dual_gaussian_coefficients
 
@@ -1200,11 +1195,11 @@ function secondprod1(p,l)
   !divide by the last value
   part1=real(l,gp)/part1
   tt=rfac(l-2*p+1,l-1)
-!!$  part1=1.d0
-!!$  do i=p+1,2*p !in the second case the bound must be changed here
-!!$     tt=real(i,gp)
-!!$     part1=part1*tt
-!!$  end do
+!!!  part1=1.d0
+!!!  do i=p+1,2*p !in the second case the bound must be changed here
+!!!     tt=real(i,gp)
+!!!     part1=part1*tt
+!!!  end do
   secondprod1=tt*part1
 end function secondprod1
 
@@ -1221,11 +1216,11 @@ function secondprod2(p,l)
   !divide by the last value
   part1=real(l,gp)/part1
   tt=rfac(2*p+1,l-1)
-!!$  part1=1.d0
-!!$  do i=p+1,2*p !in the second case the bound must be changed here
-!!$     tt=real(i,gp)
-!!$     part1=part1*tt
-!!$  end do
+!!!  part1=1.d0
+!!!  do i=p+1,2*p !in the second case the bound must be changed here
+!!!     tt=real(i,gp)
+!!!     part1=part1*tt
+!!!  end do
   secondprod2=tt*part1
 end function secondprod2
 

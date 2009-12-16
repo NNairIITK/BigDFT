@@ -489,8 +489,7 @@ translational force along x=  2.29929281155490613E-05
 translational force along y=  2.29929281102677025E-05
 translational force along z=  2.29929281054253032E-05
  FORCES norm(Ha/Bohr): maxval=   2.26260E-05 fnrm=   2.07431E-09 fluct=   4.02808E-09
- SD EXIT because fnrm < fluct*frac_fluct  2.074311268778737E-009
-  4.028075041930252E-009
+ SD EXIT because fnrm < fluct*frac_fluct  2.074311268778737E-009  4.028075041930252E-009
 End of minimization using  SDCG      
  Final values of the Forces for each atom
      1     Si  7.89211E-06  7.89211E-06  7.89211E-06

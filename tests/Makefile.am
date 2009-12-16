@@ -14,7 +14,9 @@ SUBDIRS = \
 	  H2O-slab \
 	  Davidson-SiH4 \
 	  H2-freq \
-	  NEB
+	  NEB \
+	  XabsCheb 
+
 
 
 #This will run the automatic tests also for GPU
@@ -42,7 +44,7 @@ foot_message:
 
 mpirun:
 	@echo "     Use the environment variable run_parallel"
-	@echo "     ex: export run_parallel='ompirun -np 2'  "
+	@echo "     ex: export run_parallel='mpirun -np 2'  "
 
 
 EXTRA_DIST = \

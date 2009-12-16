@@ -70,7 +70,7 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
               end select
 
            else !normal preconditioner
-
+              
               call precondition_residue(lr,ncplx,ncong,cprecr,&
                    hx,hy,hz,kx,ky,kz,hpsi(1,inds,iorb))
 
@@ -117,8 +117,8 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
 
   call precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal)
 
-!!$  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
-!!$  write(*,*)'debug1',rmr_new
+!!  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
+!!  write(*,*)'debug1',rmr_new
 
   r=b-d ! r=b-Ax
 
@@ -250,7 +250,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
   integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b 
   real(gp) :: fac
   real(wp) :: fac_h,h0,h1,h2,h3,alpha1
-  
+    
   if (lr%geocode == 'F') then
      !using hx instead of hgrid for isolated bc
      fac_h=1.0_wp/real(hx,wp)**2
@@ -343,11 +343,10 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
            !if GPU is swithced on and there is no call to GPU preconditioner
            !do not do the FFT preconditioning
-           if (.not. GPUconv) then
+           if (.not. GPUconv .or. .true.) then
               !	compute the input guess x via a Fourier transform in a cubic box.
               !	Arrays psifscf and ww serve as work arrays for the Fourier
               fac=1.0_gp/scal(0)**2
-
               call prec_fft_c(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nseg_c,&
                    lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
                    cprecr,hx,hy,hz,x(1,idx),&
@@ -356,7 +355,6 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
                    w%ww(nd1b*nd2*nd3*4+nd1*nd2*nd3f*4+1),&
                    nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,fac)
            end if
-
         end do
      end if
 
@@ -734,8 +732,8 @@ subroutine calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
        scal,xpsi_c,xpsi_f,xpsig_c,xpsig_f,x_f1,x_f2,x_f3)
 
-!!$  ypsig_c=xpsig_c
-!!$  ypsig_f=xpsig_f
+!!  ypsig_c=xpsig_c
+!!  ypsig_f=xpsig_f
   call Convolkinetic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
        cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
        xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3)
@@ -1007,12 +1005,12 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   allocate(wpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
   call memocc(i_stat,wpsi,'wpsi',subname)
 
-!!$  !array of initial wavefunction
-!!$  allocate(spsi(nvctr_c+7*nvctr_f),stat=i_stat)
-!!$  call memocc(i_stat,spsi,'spsi',subname)
-!!$  do i=1,nvctr_c+7*nvctr_f
-!!$     spsi(i)=hpsi(i)
-!!$  enddo
+!!  !array of initial wavefunction
+!!  allocate(spsi(nvctr_c+7*nvctr_f),stat=i_stat)
+!!  call memocc(i_stat,spsi,'spsi',subname)
+!!  do i=1,nvctr_c+7*nvctr_f
+!!     spsi(i)=hpsi(i)
+!!  enddo
 
   fac_h=1.0_wp/real(hgrid,wp)**2
   h0=    1.5_wp*a2*fac_h
@@ -1144,27 +1142,27 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   !write(*,'(i4,(100(1x,e8.2)))') iorb,(residues(icong),icong=2,ncong)
 
-!!$  ! check final residue of original equation
-!!$  do i=0,3
-!!$     scal(i)=1.d0
-!!$  enddo
-!!$
-!!$  call CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
-!!$       nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
-!!$       scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,&
-!!$       ibxy_f,hpsi,hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
-!!$       xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
-!!$       x_f1,x_f2,x_f3)
-!!$     
-!!$  tt=0.d0
-!!$  do i=1,nvctr_c+7*nvctr_f
-!!$     tt=tt+(wpsi(i)-spsi(i))**2
-!!$  enddo
-!!$  !write(*,'(1x,a,1x,i0,1x,1pe13.6)') 'Precond, final residue',iorb,sqrt(tt)
-!!$  i_all=-product(shape(spsi))*kind(spsi)
-!!$  deallocate(spsi,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'spsi',subname)
-!!$  ! checkend
+!!  ! check final residue of original equation
+!!  do i=0,3
+!!     scal(i)=1.d0
+!!  enddo
+!!
+!!  call CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+!!       nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
+!!       scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,&
+!!       ibxy_f,hpsi,hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
+!!       xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
+!!       x_f1,x_f2,x_f3)
+!!     
+!!  tt=0.d0
+!!  do i=1,nvctr_c+7*nvctr_f
+!!     tt=tt+(wpsi(i)-spsi(i))**2
+!!  enddo
+!!  !write(*,'(1x,a,1x,i0,1x,1pe13.6)') 'Precond, final residue',iorb,sqrt(tt)
+!!  i_all=-product(shape(spsi))*kind(spsi)
+!!  deallocate(spsi,stat=i_stat)
+!!  call memocc(i_stat,i_all,'spsi',subname)
+!!  ! checkend
 
   i_all=-product(shape(rpsi))*kind(rpsi)
   deallocate(rpsi,stat=i_stat)

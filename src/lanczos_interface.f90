@@ -9,7 +9,8 @@ module lanczos_interface
   public :: EP_inizializza,EP_initialize_start,EP_allocate_for_eigenprob, get_EP_dim, set_EP_shift,&
        EP_mat_mult,EP_make_dummy_vectors,  EP_normalizza,EP_copy,EP_scalare, EP_copia_per_prova, &
        EP_set_all_random, EP_GramSchmidt, EP_add_from_vect_with_fact, EP_Moltiplica, EP_memorizza_stato, &
-       EP_free, EP_initialize_start_0,  EP_norma2_initialized_state , EP_store_occupied_orbitals, EP_occprojections
+       EP_free, EP_initialize_start_0,  EP_norma2_initialized_state , EP_store_occupied_orbitals, EP_occprojections,&
+       EP_multbyfact
 
  
   character(len=*), parameter :: subname='lanczos_interface'
@@ -35,24 +36,28 @@ module lanczos_interface
   logical EP_doorthoocc
   integer EP_norb
   real(wp), dimension(:), pointer :: EP_occprojections
+
+  real(wp), dimension(:,:,:,:,:,:), allocatable :: psi_gross
+  logical , allocatable ::logrid(:,:,:)
+
 contains
 
-!!$  subroutine settapointer(p)
-!!$    real(8), intent(inout), TARGET :: p(:,:)
-!!$    passed_matrix => p 
-!!$    return
-!!$  end subroutine settapointer
+!!!  subroutine settapointer(p)
+!!!    real(8), intent(inout), TARGET :: p(:,:)
+!!!    passed_matrix => p 
+!!!    return
+!!!  end subroutine settapointer
 
-!!$  subroutine testapointer()
-!!$    integer i,j
-!!$    integer , pointer :: shape_a(:)
-!!$    print *, " ecco il pointer " 
-!!$    print *, " shape is " , shape(passed_matrix)
-!!$    do i=1,  size(passed_matrix, 1)
-!!$       print *, (passed_matrix(i,j), j=1, size(passed_matrix,2))
-!!$    enddo
-!!$    return
-!!$  end subroutine testapointer
+!!!  subroutine testapointer()
+!!!    integer i,j
+!!!    integer , pointer :: shape_a(:)
+!!!    print *, " ecco il pointer " 
+!!!    print *, " shape is " , shape(passed_matrix)
+!!!    do i=1,  size(passed_matrix, 1)
+!!!       print *, (passed_matrix(i,j), j=1, size(passed_matrix,2))
+!!!    enddo
+!!!    return
+!!!  end subroutine testapointer
 
   
 
@@ -82,10 +87,10 @@ contains
        stop "array size inconsistency" 
     endif
     
-    allocate(Qvect_tmp(ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) ) 
-    allocate(wrk      (ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) )
- 
+    allocate(Qvect_tmp(ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) , stat=i_stat) 
     call memocc(i_stat,Qvect_tmp,'Qvect_tmp',subname)
+
+    allocate(wrk      (ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) , stat=i_stat )
     call memocc(i_stat,wrk,'wrk',subname)
 
     EP_shift=0.0
@@ -100,25 +105,25 @@ contains
     implicit none
     
     integer , intent(in):: m,k
-    real(8), intent (in) :: EV(0:m-1,0:k-1)
+    real(8), intent (in) :: EV(1)
 ! ::::::::::::::::::::::::::::::::::::
     integer i,j,l
 
     call gemm('N','N', EP_dim , k, m  ,1.0_wp ,&
          Qvect(1,0)  , EP_dim ,&
-         EV(0 ,0) ,m ,&
+         EV(1) ,m ,&
          0.0_wp ,  dumQvect(1,1) ,  EP_dim )
 
 
-!!$
-!!$    do i=0, k-1
-!!$       do j=1, EP_dim
-!!$          dumQvect(j,i+1)=0.0d0
-!!$          do l=0, m-1 ! controllare il range
-!!$             dumQvect(j,i+1)=dumQvect(j,i+1)+EV( l,i )*Qvect(  j,l ) 
-!!$          enddo 
-!!$       enddo
-!!$    enddo
+!!!
+!!!    do i=0, k-1
+!!!       do j=1, EP_dim
+!!!          dumQvect(j,i+1)=0.0d0
+!!!          do l=0, m-1 ! controllare il range
+!!!             dumQvect(j,i+1)=dumQvect(j,i+1)+EV( l,i )*Qvect(  j,l ) 
+!!!          enddo 
+!!!       enddo
+!!!    enddo
 
 
     return 
@@ -170,9 +175,17 @@ contains
     implicit none
     integer, intent(in):: nsteps
 ! :::::::::::::::::::::::
+
+    if(associated(Qvect) ) then
+       i_all=-product(shape(Qvect))*kind(Qvect)
+       deallocate(Qvect,stat=i_stat)
+       call memocc(i_stat,i_all,'Qvect',subname)
+    endif
+
     allocate(Qvect(EP_dim,0:nsteps+ndebug),&
          stat=i_stat)
     call memocc(i_stat,Qvect,'Qvect',subname)
+
   end subroutine EP_allocate_for_eigenprob
 
 
@@ -180,6 +193,12 @@ contains
     implicit none
     integer, intent(in):: nd
 ! :::::::::::::::::::::::    
+    if(associated(dumQvect) ) then
+       i_all=-product(shape(dumQvect))*kind(dumQvect)
+       deallocate(dumQvect,stat=i_stat)
+       call memocc(i_stat,i_all,'dumQvect',subname)
+    endif
+
     allocate(dumQvect(EP_dim,0:nd+1+ndebug),&
          stat=i_stat)
     call memocc(i_stat,dumQvect,'dumQvect',subname)
@@ -194,7 +213,7 @@ contains
     EP_doorthoocc=.true.
     EP_norb=norb
     occQvect=>Occ_psit
-    allocate(EP_occprojections(EP_norb) , stat=i_stat )
+    allocate(EP_occprojections(EP_norb+ndebug) , stat=i_stat )
     call memocc(i_stat,EP_occprojections,'EP_occprojections',subname)
 
   end subroutine EP_store_occupied_orbitals
@@ -211,6 +230,20 @@ contains
     endif
     return 
   end subroutine EP_normalizza
+    
+
+  subroutine EP_multbyfact(j, fact)
+    implicit none
+    integer, intent(in)::j
+    real(gp) fact
+! ::::::::::::::::::::::::::::::::::::::
+    if(J.ge.0) then
+       call EP_multbyfact_interno( Qvect(1,j), fact )
+    else
+       call EP_multbyfact_interno( dumQvect(1,-j), fact )
+    endif
+    return 
+  end subroutine EP_multbyfact
     
 
 
@@ -235,6 +268,17 @@ contains
     call vscal(EP_dim,sump, Q(1), 1  ) 
 
   end subroutine EP_normalizza_interno
+
+
+  subroutine EP_multbyfact_interno(Q, fact)
+    implicit none
+    real(wp) Q
+    real(gp) fact
+! :::::::::::::::::::::::
+
+    call vscal(EP_dim,fact, Q, 1  ) 
+
+  end subroutine EP_multbyfact_interno
 
 
   subroutine EP_copy(i,j)
@@ -267,13 +311,13 @@ contains
     implicit none
     integer, intent(in) :: i,j
     if( i.ge.0 .and. j.ge.0) then
-       EP_scalare = EP_scalare_interna(Qvect(1:,i), Qvect(1:,j) )
+       EP_scalare = EP_scalare_interna(Qvect(1,i), Qvect(1,j) )
     else  if( i.lt.0 .and. j.ge.0) then
-       EP_scalare = EP_scalare_interna(dumQvect(1:,-i), Qvect(1:,j) )
+       EP_scalare = EP_scalare_interna(dumQvect(1,-i), Qvect(1,j) )
     else  if( i.ge.0 .and. j.lt.0) then
-       EP_scalare = EP_scalare_interna(Qvect(1:,i), dumQvect(1:,-j) )
+       EP_scalare = EP_scalare_interna(Qvect(1,i), dumQvect(1,-j) )
     else 
-       EP_scalare = EP_scalare_interna(dumQvect(1:,-i), dumQvect(1:,-j) )
+       EP_scalare = EP_scalare_interna(dumQvect(1,-i), dumQvect(1,-j) )
     endif
     
     return 
@@ -282,13 +326,13 @@ contains
  
   real(8) function EP_scalare_interna(a,b)
     implicit none
-    real(8), intent(in):: a(EP_dim), b(EP_dim)
+    real(8), intent(in):: a,b
     ! ::::::::::::::::::::::::::::::::::::::::::::::
     integer i,j
 
     real(wp) sump, sumtot
 
-    sump = dot(EP_dim,a(1),1 ,b(1),1)
+    sump = dot(EP_dim,a,1 ,b,1)
     sumtot=0
 
     if(ha%nproc/=1) then
@@ -299,6 +343,27 @@ contains
     EP_scalare_interna=sumtot
 
   end function EP_scalare_interna
+
+!  real(8) function EP_scalare_interna(a,b)
+!    implicit none
+!    real(8), intent(in):: a(EP_dim), b(EP_dim)
+!    ! ::::::::::::::::::::::::::::::::::::::::::::::
+!    integer i,j
+!
+!    real(wp) sump, sumtot
+!
+!    sump = dot(EP_dim,a(1),1 ,b(1),1)
+!    sumtot=0
+!
+!    if(ha%nproc/=1) then
+!       call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+!    else
+!       sumtot=sump
+!    endif
+!    EP_scalare_interna=sumtot
+!
+!  end function EP_scalare_interna
+!
     
   subroutine  EP_copia_per_prova(psi)
     use module_interfaces
@@ -359,19 +424,9 @@ contains
     integer :: i,k, volta
     real(wp), pointer ::  scals(:), scalstot(:)
 
-!!$    if( associated(EP_Gabsorber) ) then
-!!$    if( ha%iproc == 0  ) then
-       ! print *, " inizializzo da Gabsorber " 
-!!$        print *, EP_Gabsorber%rxyz(1,1)
        call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%lr%geocode,ha%orbs,ha%lr%d,&
             ha%hx,ha%hy,ha%hz,ha%lr%wfd,EP_Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
  
-!!$
-!!$       if(ha%iproc.eq.0) then
-!!$          call plot_wf('testa',ha%lr,ha%hx,ha%hy,ha%hz,ha%rxyz(1,1),ha%rxyz(2,1),ha%rxyz(3,1),&
-!!$               Qvect_tmp,'comm')
-!!$       endif
-!!$    endif
     if (.not. associated(Qvect)) then
        write(*,*)'ERROR: initialization vector not allocated!'
        stop
@@ -392,15 +447,11 @@ contains
     
 
     if(EP_doorthoocc) then
-       print *, " doorthoocc " 
-       allocate(scals( EP_norb) ,stat=i_stat)
+
+       allocate(scals( EP_norb+ndebug) ,stat=i_stat)
        call memocc(i_stat,scals,'scals',subname)
-       allocate(scalstot( EP_norb) ,stat=i_stat)
+       allocate(scalstot( EP_norb+ndebug) ,stat=i_stat)
        call memocc(i_stat,scalstot,'scalstot',subname)
-       
-       print *, " EP_dim", EP_dim , " EP_norb  ",EP_norb,  ha%iproc
-       print *," associated(occQvect)    " ,  associated(occQvect)  ,  ha%iproc
-       print *, "  shape(occQvect )  " , shape(occQvect )  ,  ha%iproc
        
 
        do volta=1,2 
@@ -423,7 +474,6 @@ contains
           enddo
        enddo
        
-       print *, 2
 
        i_all=-product(shape(scals))*kind(scals)
        deallocate(scals,stat=i_stat)
@@ -441,16 +491,16 @@ contains
 
 
 
-!!$    call untranspose_v(ha%iproc,ha%nproc,ha%orbs%norbp,ha%orbs%nspinor,ha%lr%wfd,ha%comms,&
-!!$               Qvect(1,0), work=wrk,outadd= Qvect_tmp(1) )  
-!!$
-!!$    if(ha%iproc.eq.0) then
-!!$       call plot_wf('testadopo',ha%lr,ha%hx,ha%hy,ha%hz,ha%rxyz(1,1),ha%rxyz(2,1),ha%rxyz(3,1),&
-!!$            Qvect_tmp,'comm')
-!!$    endif
-!!$ else
-!!$    call EP_set_all_random(0)
-!!$ endif
+!!!    call untranspose_v(ha%iproc,ha%nproc,ha%orbs%norbp,ha%orbs%nspinor,ha%lr%wfd,ha%comms,&
+!!!               Qvect(1,0), work=wrk,outadd= Qvect_tmp(1) )  
+!!!
+!!!    if(ha%iproc.eq.0) then
+!!!       call plot_wf('testadopo',ha%lr,ha%hx,ha%hy,ha%hz,ha%rxyz(1,1),ha%rxyz(2,1),ha%rxyz(3,1),&
+!!!            Qvect_tmp,'comm')
+!!!    endif
+!!! else
+!!!    call EP_set_all_random(0)
+!!! endif
 
     EP_norma2_initialized_state= EP_scalare(0,0)
 
@@ -505,7 +555,7 @@ end subroutine EP_initialize_start
     real(wp) scals(0:n-1), scalstot(0:n-1), occscals(1:EP_norb), occscalstot(1:EP_norb)
 
     if(ha%iproc.eq.0) then
-       print *, " inizio GramSchmidt ", n
+       print *, " starting GramSchmidt ", n
     endif
 
     do volta=1,2
@@ -539,7 +589,7 @@ end subroutine EP_initialize_start
     enddo
 
     if(ha%iproc.eq.0) then
-       print *, " finito  GramSchmidt "
+       print *, "GramSchmidt done "
     endif
 
     return
@@ -555,39 +605,49 @@ end subroutine EP_initialize_start
     integer k, nprocbidon
     real(8) sumdum
  
-
-
-
-   if(p.ge.0) then
-       print *, " problema Moltiplica solo con dumvect per result "
-       stop
-    endif
-    if(i.lt.0) then
-       print *, " problema Moltiplica solo con vect per input "
-       stop
-    endif
     
     if( ha%nproc > 1) then
-       call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
-            Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+       if(i>=0) then
+          call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+               Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+       else
+          call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+               dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+       endif
     else
-       do k=1, EP_dim_tot
-          Qvect_tmp(k)=  Qvect(k,i)
-       enddo
+       if(i>=0) then
+          do k=1, EP_dim_tot
+             Qvect_tmp(k)=  Qvect(k,i)
+          enddo
+       else
+          do k=1, EP_dim_tot
+             Qvect_tmp(k)=  dumQvect(k,-i)
+          enddo
+       endif
+    endif
+    
+ 
+    if(ha%iproc==0 .and. .false. ) then
+       !here the projector should be applied
+       call lowpass_projector(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,ha%lr%wfd%nvctr_c, Qvect_tmp )
     endif
 
- 
-
-    if(  ha%iproc ==0 ) print *, "chiamo hamiltonian "
     call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-         ha%rxyz,ha%cpmult,ha%fpmult,ha%radii_cf,&
+         ha%rxyz,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
          ha%ndimpot, &
          ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,ha%epot_sum,ha%eproj_sum,1,ha%GPU)
-    if(  ha%iproc ==0 ) print *, " done "
+    if(  ha%iproc ==0 ) write(*,*)" done "
 
-    !here the projector should be applied
-    call lowpass_projector(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,ha%lr%wfd%nvctr_c,wrk)
+
+
+    if(ha%iproc==0 .and. .false.) then
+       !here the projector should be applied
+       print *,  "here the projector should be applied   ha%iproc   ",  ha%iproc 
+       print *, ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3
+       call lowpass_projector(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,ha%lr%wfd%nvctr_c,wrk)
+       print *, " projector OK ha%iproc ",  ha%iproc  
+    endif
 
    if(ha%iproc.eq.0) then
       if(EP_shift /= 0 ) then
@@ -595,15 +655,26 @@ end subroutine EP_initialize_start
       endif
    endif
 
-   if(  ha%nproc/=1) then
-      call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
-           wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
-   else
-      do k=1, EP_dim_tot
-         dumQvect(k,-p) =  wrk(k)
-      enddo
-   endif
    
+   if(p<0) then
+      if(  ha%nproc/=1) then
+         call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+              wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+      else
+         do k=1, EP_dim_tot
+            dumQvect(k,-p) =  wrk(k)
+         enddo
+      endif
+   else
+      if(  ha%nproc/=1) then
+         call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+              wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+      else
+         do k=1, EP_dim_tot
+            Qvect(k,p) =  wrk(k)
+         enddo
+      endif
+   endif
    return 
  end subroutine EP_Moltiplica
  
@@ -616,20 +687,20 @@ end subroutine EP_initialize_start
    ! :::::::::::::::::::::::::::
    integer k
    
-   if(p.ge.0) then
-      print *, " problema Moltiplica solo con dumvect per result "
-      stop
-   endif
-   if(i.lt.0) then
-      print *, " problema Moltiplica solo con vect per input "
-      stop
+ 
+   if(i.ge.0  .and. p<0) then
+      call axpy(EP_dim, fact,   Qvect(1,i)  , 1,  dumQvect(1,-p)  , 1)
+   elseif(i.ge.0  .and. p>=0) then
+      call axpy(EP_dim, fact,   Qvect(1,i)  , 1,  Qvect(1,p)  , 1)
+   elseif(i<0  .and. p<0) then
+      call axpy(EP_dim, fact,   dumQvect(1,-i)  , 1,  dumQvect(1,-p)  , 1)
+   else
+      call axpy(EP_dim, fact,   dumQvect(1,-i)  , 1,  Qvect(1, p)  , 1)
    endif
    
-   call axpy(EP_dim, fact,   Qvect(1,i)  , 1,  dumQvect(1,-p)  , 1)
-   
-!!$    do k=1,EP_dim
-!!$       dumQvect(k,-p) = dumQvect(k,-p)+fact*Qvect(k,i)
-!!$    enddo
+!!!    do k=1,EP_dim
+!!!       dumQvect(k,-p) = dumQvect(k,-p)+fact*Qvect(k,i)
+!!!    enddo
    
    
    return
@@ -665,7 +736,6 @@ end subroutine EP_initialize_start
    if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
 
    allocate(tpsi(wfd%nvctr_c+7*wfd%nvctr_f+ndebug),stat=i_stat)
-
    call memocc(i_stat,tpsi,'tpsi',subname)
 
    !initialize the wavefunction
@@ -790,7 +860,15 @@ end subroutine EP_initialize_start
    real(wp), dimension(nvctr), intent(inout) :: psi
    !local variables
    character(len=*), parameter :: subname='projector'
-   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
+   real(gp) rx,ry,rz
+   real(gp) rxc,ryc,rzc
+   integer ia, iat
+   logical isgross
+   real(gp) radius_gross
+   integer ix,iy,iz
+   real(gp) r
+   integer countgross
+
 
 
    !test whether the coarse grid fills the whole box
@@ -802,18 +880,109 @@ end subroutine EP_initialize_start
    !for the moment the dimensions should be odd
    if (mod(n1,2) /=1 .or. mod(n2,2) /=1 .or. mod(n3,2) /=1) then
       write(*,*)' ERROR: the dimensions should be odd'
+      if (ha%nproc > 1) call MPI_FINALIZE(ierr)
       stop
    end if
 
 
-   allocate(psig(0:n1/2,2,0:n2/2,2,0:n3/2,2),stat=i_stat)
-   call memocc(i_stat,psig,'psig',subname)
+   if(.not. allocated(psi_gross)) then 
+      allocate(psi_gross(0:n1/2,2,0:n2/2,2,0:n3/2,2+ndebug),stat=i_stat)
+      call memocc(i_stat,psi_gross,'psi_gross',subname)
+      allocate(logrid(0:n1/2,0:n2/2,0:n3/2+ndebug),stat=i_stat)
+      call memocc(i_stat,logrid,'logrid',subname)
+   endif
 
-   call analyse_per_self(n1/2,n2/2,n3/2,psi,psig)
+   call analyse_per_self(n1/2,n2/2,n3/2,psi,psi_gross)
+
+!!$
+!!$
+!!$  ! coarse grid quantities
+!!$  call fill_logrid(ha%at%geocode,n1/2,n2/2,n3/2,0,n1/2,0,n2/2,0,n3/2,0,ha%at%nat,&
+!!$       ha%at%ntypes,ha%at%iatype,ha%rxyz,ha%radii_cf(1,1),8.0_gp,2.0_gp*ha%hx,2.0_gp*ha%hy,2.0_gp*ha%hz,logrid)
+
+!!$
+   do ia =1, ha%at%nat
+      iat=ha%at%iatype(ia)
+      radius_gross = ha%radii_cf(  iat ,1 )*8
+      if(ha%iproc==0) print *, " for atomo " , ia , " fine degrees of freedo,g will be thrown beyond radius =  " ,  radius_gross
+   enddo
+   countgross=0
+   do ix=1,n1/2
+      do iy=1,n2/2
+         do iz = 1,n3/2
+            rx = ha%hx*(ix-1)           *2.0  
+            ry = ha%hy*(iy-1)           *2.0  
+            rz = ha%hz*(iz-1)           *2.0  
+            isgross=.true.
+            do ia =1, ha%at%nat
+               iat=ha%at%iatype(ia)
+               radius_gross = ha%radii_cf(  iat ,1 )*8
+               rxc = rx  -  ha%rxyz(1,ia )
+               ryc = ry  -  ha%rxyz(2,ia )
+               rzc = rz  -  ha%rxyz(3,ia )
+               r  = sqrt( rxc*rxc+ryc*ryc+rzc*rzc)
+               if( r < radius_gross) isgross=.false.
+               if(.not. isgross) exit
+            enddo
+            if(isgross) then
+               countgross=countgross+1
+               psi_gross(ix,2 ,iy,1 , iz,1    )=0.0_wp
+!!$
+               psi_gross(ix,2 ,iy,2 , iz,2    )=0.0_wp
+               psi_gross(ix,1 ,iy,2 , iz,2    )=0.0_wp
+               psi_gross(ix,2 ,iy,1 , iz,2    )=0.0_wp
+               psi_gross(ix,2 ,iy,2 , iz,1    )=0.0_wp
+               psi_gross(ix,1 ,iy,1 , iz,2    )=0.0_wp
+               psi_gross(ix,1 ,iy,2 , iz,1    )=0.0_wp
+!!$
+            endif
+         enddo
+      enddo
+   enddo
+
+
+!!$   do iz=1,n3/2
+!!$      do iy=1,n2/2
+!!$         do ix = 1,n1/2
+!!$            if(.not. logrid(ix,iy,iz)) then
+!!$               psi_gross(ix,2 ,iy,1 , iz,1    )=0.0_wp
+!!$            endif
+!!$         enddo
+!!$      end do
+!!$      do iy=1,n2/2
+!!$         do ix = 1,n1/2
+!!$            if(.not. logrid(ix,iy,iz)) then
+!!$               psi_gross(ix,1 ,iy,2 , iz,1    )=0.0_wp
+!!$               psi_gross(ix,2 ,iy,2 , iz,1    )=0.0_wp
+!!$            endif
+!!$         enddo
+!!$      end do
+!!$   end do
+!!$   do iz=1,n3/2
+!!$      do iy=1,n2/2
+!!$         do ix = 1,n1/2
+!!$            if(.not. logrid(ix,iy,iz)) then
+!!$               psi_gross(ix,1 ,iy,1 , iz,2    )=0.0_wp
+!!$               psi_gross(ix,2 ,iy,1 , iz,2    )=0.0_wp
+!!$            endif
+!!$         enddo
+!!$      end do
+!!$      do iy=1,n2/2
+!!$         do ix = 1,n1/2
+!!$            if(.not. logrid(ix,iy,iz)) then
+!!$               psi_gross(ix,1 ,iy,2 , iz,2    )=0.0_wp
+!!$               psi_gross(ix,2 ,iy,2 , iz,2    )=0.0_wp
+!!$            endif
+!!$         enddo
+!!$      end do
+!!$   enddo
+
    
    !here the projector operation
 
-   call synthese_per_self(n1/2,n2/2,n3/2,psig,psi)
+!!$   psi_gross=0.0_wp
+
+   call synthese_per_self(n1/2,n2/2,n3/2,psi_gross,psi)
 
  end subroutine lowpass_projector
  

@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 22/04/2009
+# Date: 13/10/2009
 #----------------------------------------------------------------------------
 
 import difflib
@@ -240,6 +240,7 @@ while not EOF:
                 print line2,
         else:
             print "%s the number of floating point differs" % context[:-1]
+            maximum = 1
     #Add lines if necessary
     while i1 < n1-1:
         i1 += 1

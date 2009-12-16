@@ -74,8 +74,8 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
      call razero(w%nyc*nspinor,w%y_c)
      call razero(w%nyf*nspinor,w%y_f)
 
-!!$        call razero(w%nw1*nspinor,w%w1)
-!!$        call razero(w%nw2*nspinor,w%w2)
+!!        call razero(w%nw1*nspinor,w%w1)
+!!        call razero(w%nw2*nspinor,w%w2)
 
   case('S')
      w%nw1=0

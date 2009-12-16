@@ -66,7 +66,7 @@ int localpartialdensity(int n1,int n2, int n3, int nspin, T norbp,
 
       hfac=occup[iorb]/(h1*h2*h3);
 
-      iaddjmp=(spinsgn[iorb] > 0. ? 0 : 8*n1*n2*n3-1);
+      iaddjmp=(spinsgn[iorb] > 0. ? 0 : 8*n1*n2*n3);
 
       //uncompression
       //set the value of the psig array to zero

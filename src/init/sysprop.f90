@@ -197,7 +197,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
                    'ERROR: Input polarisation of atom No.',iat,&
                    ' (',trim(atoms%atomnames(ityp)),') must be <=',mxpl,&
                    ', while found ',ispol
-              stop
+                      stop
            end if
            if (abs(ichg) > mxchg) then
               !if (iproc ==0) 
@@ -205,7 +205,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
                    'ERROR: Input charge of atom No.',iat,&
                    ' (',trim(atoms%atomnames(ityp)),') must be <=',mxchg,&
                    ', while found ',ichg
-              stop
+                   stop
            end if
         end if
      end do
@@ -506,9 +506,9 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
      end if
   end if
 
-!!$  tt=dble(norb)/dble(nproc)
-!!$  norbp=int((1.d0-eps_mach*tt) + tt)
-!!$  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
+!!!  tt=dble(norb)/dble(nproc)
+!!!  norbp=int((1.d0-eps_mach*tt) + tt)
+!!!  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
 
 end subroutine read_system_variables
 !!***
@@ -527,7 +527,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt
   integer, intent(inout) :: nspinor
   type(orbitals_data), intent(out) :: orbs
-  real(gp), intent(in) :: kpt(3,nkpt), wkpt(nkpt)
+  real(gp), dimension(nkpt), intent(in) :: wkpt
+  real(gp), dimension(3,nkpt), intent(in) :: kpt
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all
@@ -543,7 +544,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
   allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
-  orbs%kpts(:, 1:nkpt) = kpt(:,:)
+  orbs%kpts(:,1:nkpt) = kpt(:,:)
   orbs%kwgts(1:nkpt) = wkpt(:)
 
   ! Change the wavefunctions to complex if k-points are used (except gamma).
@@ -579,7 +580,6 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   i_all=-product(shape(GPU_for_orbs))*kind(GPU_for_orbs)
   deallocate(GPU_for_orbs,stat=i_stat)
   call memocc(i_stat,i_all,'GPU_for_orbs',subname)
-
 
   !check the distribution
   norb_tot=0
@@ -625,7 +625,14 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   allocate(orbs%spinsgn(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
   orbs%occup(1:orbs%norb*orbs%nkpts)=1.0_gp 
-  orbs%spinsgn(1:orbs%norb*orbs%nkpts)=1.0_gp
+  do ikpt=1,orbs%nkpts
+     do iorb=1,orbs%norbu
+        orbs%spinsgn(iorb+(ikpt-1)*orbs%norb)=1.0_gp
+     end do
+     do iorb=1,orbs%norbd
+        orbs%spinsgn(iorb+orbs%norbu+(ikpt-1)*orbs%norb)=-1.0_gp
+     end do
+  end do
 
   !allocate the array which assign the k-point to processor in transposed version
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
@@ -727,16 +734,16 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
         stop
      end if
      if (nspin/=1) then
-!!$        !Check if the polarisation is respected (mpol)
-!!$        rup=sum(occup(1:norbu))
-!!$        rdown=sum(occup(norbu+1:norb))
-!!$        if (abs(rup-rdown-real(norbu-norbd,gp))>1.e-6_gp) then
-!!$           if (iproc==0) then
-!!$              write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the polarization ',rup-rdown,&
-!!$                             ' is not equal to ',norbu-norbd
-!!$           end if
-!!$           stop
-!!$        end if
+!!!        !Check if the polarisation is respected (mpol)
+!!!        rup=sum(occup(1:norbu))
+!!!        rdown=sum(occup(norbu+1:norb))
+!!!        if (abs(rup-rdown-real(norbu-norbd,gp))>1.e-6_gp) then
+!!!           if (iproc==0) then
+!!!              write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the polarization ',rup-rdown,&
+!!!                             ' is not equal to ',norbu-norbd
+!!!           end if
+!!!           stop
+!!!        end if
         !Fill spinsgn
         do iorb=1,norbu
            spinsgn(iorb)=1.0_gp

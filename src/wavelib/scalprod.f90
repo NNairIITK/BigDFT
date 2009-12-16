@@ -1,16 +1,23 @@
 !wrapper for simplifying the call
-subroutine wnrm_wrap(mvctr_c,mvctr_f,psi,scpr)
+subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
   use module_base
   implicit none
-  integer, intent(in) :: mvctr_c,mvctr_f
-  real(wp), dimension(mvctr_c+7*mvctr_f), intent(in) :: psi
+  integer, intent(in) :: mvctr_c,mvctr_f,ncplx
+  real(wp), dimension((mvctr_c+7*mvctr_f)*ncplx), intent(in) :: psi
   real(dp), intent(out) :: scpr
   !local variables
   integer :: i_f
+  real(dp) :: scalp
 
   i_f=min(mvctr_f,1)
  
   call wnrm(mvctr_c,mvctr_f,psi,psi(mvctr_c+i_f),scpr)
+
+  if (ncplx ==2) then
+     call wnrm(mvctr_c,mvctr_f,&
+          psi(mvctr_c+7*mvctr_f+1),psi(mvctr_c+7*mvctr_f+mvctr_c+i_f),scalp)
+     scpr=scpr+scalp
+  end if
   
 end subroutine wnrm_wrap
 
@@ -26,13 +33,14 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   integer :: i,ithread,nthread
   real(dp) :: pc,pf1,pf2,pf3,pf4,pf5,pf6,pf7
   real(dp) :: scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7
+  integer :: omp_get_thread_num,omp_get_num_threads
 
    scpr=0.0_dp
 !$omp parallel default(private) shared(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
+   scpr0=0.0_dp
 !$    ithread=omp_get_thread_num()
 !$    nthread=omp_get_num_threads()
 !$  if (ithread .eq. 0) then
-   scpr0=0.0_dp
  do i=1,mvctr_c
     !scpr0=scpr0+psi_c(i)**2
     pc=real(psi_c(i),dp)
@@ -40,7 +48,6 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
  enddo
 !$  endif
 !$  if (ithread .eq. 1  .or. nthread .eq. 1) then
-!$ scpr0=0.0_dp
  scpr1=0.0_dp
  scpr2=0.0_dp
  scpr3=0.0_dp
@@ -49,13 +56,13 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
  scpr6=0.0_dp
  scpr7=0.0_dp
  do i=1,mvctr_f
-!$     scpr1=scpr1+psi_f(1,i)**2
-!$     scpr2=scpr2+psi_f(2,i)**2
-!$     scpr3=scpr3+psi_f(3,i)**2
-!$     scpr4=scpr4+psi_f(4,i)**2
-!$     scpr5=scpr5+psi_f(5,i)**2
-!$     scpr6=scpr6+psi_f(6,i)**2
-!$     scpr7=scpr7+psi_f(7,i)**2
+!     scpr1=scpr1+psi_f(1,i)**2
+!     scpr2=scpr2+psi_f(2,i)**2
+!     scpr3=scpr3+psi_f(3,i)**2
+!     scpr4=scpr4+psi_f(4,i)**2
+!     scpr5=scpr5+psi_f(5,i)**2
+!     scpr6=scpr6+psi_f(6,i)**2
+!     scpr7=scpr7+psi_f(7,i)**2
     pf1=real(psi_f(1,i),dp)
     pf2=real(psi_f(2,i),dp)
     pf3=real(psi_f(3,i),dp)
@@ -210,20 +217,24 @@ end subroutine wzero
 
 
 !wrapper of wpdot to avoid boundary problems in absence of wavelets
-subroutine wpdot_wrap(mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi,  &
+!and to perform scalar product for complex wavefunctions and projectors
+!NOTE: is the wavefunctions are complex, so should be also the projectors
+subroutine wpdot_wrap(ncplx,mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi,  &
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,scpr)
   use module_base
   implicit none
-  integer, intent(in) :: mavctr_c,mavctr_f,maseg_c,maseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
+  integer, intent(in) :: mavctr_c,mavctr_f,maseg_c,maseg_f
+  integer, intent(in) :: ncplx,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   integer, dimension(maseg_c+maseg_f), intent(in) :: keyav
   integer, dimension(mbseg_c+mbseg_f), intent(in) :: keybv
   integer, dimension(2,maseg_c+maseg_f), intent(in) :: keyag
   integer, dimension(2,mbseg_c+mbseg_f), intent(in) :: keybg
-  real(wp), dimension(mavctr_c+7*mavctr_f), intent(in) :: apsi
-  real(wp), dimension(mbvctr_c+7*mbvctr_f), intent(in) :: bpsi
-  real(dp), intent(out) :: scpr
+  real(wp), dimension(mavctr_c+7*mavctr_f,ncplx), intent(in) :: apsi
+  real(wp), dimension(mbvctr_c+7*mbvctr_f,ncplx), intent(in) :: bpsi
+  real(dp), dimension(ncplx), intent(out) :: scpr
   !local variables
-  integer :: ia_f,ib_f,iaseg_f,ibseg_f
+  integer :: ia_f,ib_f,iaseg_f,ibseg_f,ia,ib
+  real(dp), dimension(ncplx,ncplx) :: scalprod 
 
   ia_f=min(mavctr_f,1)
   ib_f=min(mbvctr_f,1)
@@ -232,14 +243,29 @@ subroutine wpdot_wrap(mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi,  &
   ibseg_f=min(mbseg_f,1)
 
 
-  call wpdot(mavctr_c,mavctr_f,maseg_c,maseg_f,&
-       keyav,keyav(maseg_c+iaseg_f),&
-       keyag,keyag(1,maseg_c+iaseg_f),&
-       apsi,apsi(mavctr_c+ia_f),  &
-       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-       keybv,keybv(mbseg_c+ibseg_f),&
-       keybg,keybg(1,mbseg_c+ibseg_f),&
-       bpsi,bpsi(mbvctr_c+ib_f),scpr)
+  do ia=1,ncplx
+     do ib=1,ncplx
+        call wpdot(mavctr_c,mavctr_f,maseg_c,maseg_f,&
+             keyav,keyav(maseg_c+iaseg_f),&
+             keyag,keyag(1,maseg_c+iaseg_f),&
+             apsi(1,ia),apsi(mavctr_c+ia_f,ia),  &
+             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+             keybv,keybv(mbseg_c+ibseg_f),&
+             keybg,keybg(1,mbseg_c+ibseg_f),&
+             bpsi(1,ib),bpsi(mbvctr_c+ib_f,ib),scalprod(ia,ib))
+     end do
+  end do
+
+  !then define the result
+  if (ncplx == 1) then
+     scpr(1)=scalprod(1,1)
+  else if (ncplx == 2) then
+     scpr(1)=scalprod(1,1)+scalprod(2,2)
+     scpr(2)=scalprod(1,2)-scalprod(2,1)
+  else
+     write(*,*)'ERROR wpdot: ncplx not valid:',ncplx
+     stop
+  end if
 
 end subroutine wpdot_wrap
 
@@ -272,6 +298,7 @@ subroutine wpdot(  &
   integer :: iaseg,ibseg,llc,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,llf,i,ithread,nthread
   real(dp) :: pac,paf1,paf2,paf3,paf4,paf5,paf6,paf7,pbc,pbf1,pbf2,pbf3,pbf4,pbf5,pbf6,pbf7
   real(dp) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
+  integer :: omp_get_thread_num,omp_get_num_threads
   !  integer :: ncount0,ncount2,ncount_rate,ncount_max
   !  real(gp) :: tel
 
@@ -285,13 +312,14 @@ subroutine wpdot(  &
   !dee
 !$omp parallel default (private) &
 !$omp shared (maseg_c,keyav_c,keyag_c,keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f)&
-!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,mbseg_f,keybg_f,keyag_f,keyav_f)&
+!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,keybg_f,keyag_f,keyav_f)&
 !$omp shared (apsi_f,scpr)
 !$    ithread=omp_get_thread_num()
 !$    nthread=omp_get_num_threads()
-!$  if (ithread .eq. 0) then
     scpr0=0.0_dp
-  llc=0
+
+!$  if (ithread .eq. 0) then
+!  llc=0
   !coarse part
   ibseg=1
   !for each segment of the first function
@@ -324,7 +352,7 @@ subroutine wpdot(  &
         !write(*,*) 'ja0,ja1,jb0,jb1',ja0,ja1,jb0,jb1,length
         !write(*,'(5(a,i5))') 'C:from ',jaj+iaoff,' to ',jaj+iaoff+length,' and from ',jbj+iboff,' to ',jbj+iboff+length
         do i=0,length
-           llc=llc+1
+!           llc=llc+1
            pac=real(apsi_c(jaj+iaoff+i),dp)
            pbc=real(bpsi_c(jbj+iboff+i),dp)
            scpr0=scpr0+pac*pbc
@@ -339,7 +367,6 @@ subroutine wpdot(  &
 
 
 !$  if (ithread .eq. 1  .or. nthread .eq. 1) then
-!$  scpr0=0.0_dp
   scpr1=0.0_dp
   scpr2=0.0_dp
   scpr3=0.0_dp
@@ -347,7 +374,7 @@ subroutine wpdot(  &
   scpr5=0.0_dp
   scpr6=0.0_dp
   scpr7=0.0_dp
-  llf=0
+!  llf=0
   ! fine part
   !add possibility of zero fine segments for the projectors
   ibseg=1
@@ -378,7 +405,7 @@ subroutine wpdot(  &
               length=min(ja1,jb1)-jb0
            endif
            do i=0,length
-              llf=llf+1
+!              llf=llf+1
               paf1=real(apsi_f(1,jaj+iaoff+i),dp)
               pbf1=real(bpsi_f(1,jbj+iboff+i),dp)
               paf2=real(apsi_f(2,jaj+iaoff+i),dp)
@@ -424,21 +451,24 @@ subroutine wpdot(  &
 
 end subroutine wpdot
 
-subroutine waxpy_wrap(scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,&
+!wrapper of waxpy for complex Ax+y and for no fine grid cases
+!WARNING: in complex cases, it acts with y = Conj(A) *x +y, with the complex conjugate
+!         if the a function is complex, so should be the b function
+subroutine waxpy_wrap(ncplx,scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,&
      mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi)
   use module_base
   implicit none
-  integer, intent(in) :: mavctr_c,mavctr_f,maseg_c,maseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
-  real(dp), intent(in) :: scpr
+  integer, intent(in) :: mavctr_c,mavctr_f,maseg_c,maseg_f
+  integer, intent(in) :: ncplx,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
+  real(dp), dimension(ncplx), intent(in) :: scpr
   integer, dimension(maseg_c+maseg_f), intent(in) :: keyav
   integer, dimension(mbseg_c+mbseg_f), intent(in) :: keybv
   integer, dimension(2,maseg_c+maseg_f), intent(in) :: keyag
   integer, dimension(2,mbseg_c+mbseg_f), intent(in) :: keybg
-  real(wp), dimension(mbvctr_c+7*mbvctr_f), intent(in) :: bpsi
-  real(wp), dimension(mavctr_c+7*mavctr_f), intent(inout) :: apsi
-
+  real(wp), dimension(mbvctr_c+7*mbvctr_f,ncplx), intent(in) :: bpsi
+  real(wp), dimension(mavctr_c+7*mavctr_f,ncplx), intent(inout) :: apsi
   !local variables
-  integer :: ia_f,ib_f,iaseg_f,ibseg_f
+  integer :: ia_f,ib_f,iaseg_f,ibseg_f,ia,ib,is
 
   ia_f=min(mavctr_f,1)
   ib_f=min(mbvctr_f,1)
@@ -446,14 +476,60 @@ subroutine waxpy_wrap(scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,&
   iaseg_f=min(maseg_f,1)
   ibseg_f=min(mbseg_f,1)
 
-  call waxpy(scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+
+  ia=1
+  ib=1
+  is=1
+  call waxpy(scpr(is),mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
        keybv,keybv(mbseg_c+ibseg_f),&
        keybg,keybg(1,mbseg_c+ibseg_f),&
-       bpsi,bpsi(mbvctr_c+ib_f), &
+       bpsi(1,ib),bpsi(mbvctr_c+ib_f,ib), &
        mavctr_c,mavctr_f,maseg_c,maseg_f,&
        keyav,keyav(maseg_c+iaseg_f),&
        keyag,keyag(1,maseg_c+iaseg_f),&
-       apsi,apsi(mavctr_c+ia_f))
+       apsi(1,ia),apsi(mavctr_c+ia_f,ia))
+   if (ncplx == 2) then
+      ib=2
+      is=2
+
+      call waxpy(scpr(is),mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+           keybv,keybv(mbseg_c+ibseg_f),&
+           keybg,keybg(1,mbseg_c+ibseg_f),&
+           bpsi(1,ib),bpsi(mbvctr_c+ib_f,ib), &
+           mavctr_c,mavctr_f,maseg_c,maseg_f,&
+           keyav,keyav(maseg_c+iaseg_f),&
+           keyag,keyag(1,maseg_c+iaseg_f),&
+           apsi(1,ia),apsi(mavctr_c+ia_f,ia))
+
+      ia=2
+      is=1
+      ib=2
+
+      call waxpy(scpr(is),mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+           keybv,keybv(mbseg_c+ibseg_f),&
+           keybg,keybg(1,mbseg_c+ibseg_f),&
+           bpsi(1,ib),bpsi(mbvctr_c+ib_f,ib), &
+           mavctr_c,mavctr_f,maseg_c,maseg_f,&
+           keyav,keyav(maseg_c+iaseg_f),&
+           keyag,keyag(1,maseg_c+iaseg_f),&
+           apsi(1,ia),apsi(mavctr_c+ia_f,ia))
+
+
+      is=2
+      ib=1
+      !beware the minus sign
+      call waxpy(-scpr(is),mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+           keybv,keybv(mbseg_c+ibseg_f),&
+           keybg,keybg(1,mbseg_c+ibseg_f),&
+           bpsi(1,ib),bpsi(mbvctr_c+ib_f,ib), &
+           mavctr_c,mavctr_f,maseg_c,maseg_f,&
+           keyav,keyav(maseg_c+iaseg_f),&
+           keyag,keyag(1,maseg_c+iaseg_f),&
+           apsi(1,ia),apsi(mavctr_c+ia_f,ia))
+      
+   end if
+
+
 
 end subroutine waxpy_wrap
 
@@ -484,6 +560,7 @@ subroutine waxpy(  &
   !  integer :: ncount0,ncount2,ncount_rate,ncount_max
   !  real(gp) :: tel 
   real(wp) :: scprwp
+  integer :: omp_get_thread_num,omp_get_num_threads
   !dee
   !  open(unit=97,file='time_waxpy',status='unknown')
   !  call system_clock(ncount0,ncount_rate,ncount_max)

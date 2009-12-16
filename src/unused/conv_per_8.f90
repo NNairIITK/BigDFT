@@ -1412,7 +1412,7 @@ subroutine SYNTHESE_PER_SELF(nd1,nd2,nd3,x,y,ww)
         return
         end
 
-        subroutine ANALYSE_PER_SELF(nd1,nd2,nd3,y,x,ww)
+subroutine ANALYSE_PER_SELF(nd1,nd2,nd3,y,x,ww)
 ! An analysis (FORWARD) periodic wavelet transformation
 ! The input array y is NOT overwritten
         implicit real(kind=8) (a-h,o-z)
@@ -1430,20 +1430,24 @@ subroutine SYNTHESE_PER_SELF(nd1,nd2,nd3,x,y,ww)
         nt=(nd1+1)*(nd2+1)
         call  ANA_ROT_PER(nd3,nt,ww,y)
 
-        return
-        end
+end subroutine ANALYSE_PER_SELF
 
 
-      SUBROUTINE ANA_ROT_PER(RIGHT,NT,C,CD_1)
+SUBROUTINE ANA_ROT_PER(RIGHT,NT,C,CD_1)
 !
 !      FORWARD WAVELET TRANSFORM, ANALYSIS, PERIODIC
 !
-       implicit real(kind=8) (a-h,o-z)
-       INTEGER RIGHT
-       DIMENSION C(0:RIGHT,NT),CD_1(NT,0:RIGHT)
-       ALLOCATABLE MOD_MY(:)
-        parameter(m=8)
-        real(kind=8) ch(-8:9) ,cg(-8:9)
+  implicit none
+!Arguments 
+  integer :: NT,RIGHT
+  real(kind=8) :: C(0:RIGHT,NT),CD_1(NT,0:RIGHT)
+!Local variables 
+  integer :: i,i2,il2,it,it0,j,ji2,len_2,lenc
+  integer, parameter :: m=8
+  integer :: mod_left,mod_right,ncount1,ncount2,ncount_max,ncount_rate,nflop
+  real(kind=8) :: cgj,chj,ci,ci_0,ci_1,ci_2,ci_3,ci_4,ci_5,ci_6,ci_7,di,di_0,di_1
+  real(kind=8) :: di_2,di_3,di_4,di_5,di_6,di_7,tel,cg(-8:9),ch(-8:9)
+  integer, allocatable :: MOD_MY(:)
 !       Daubechy S16
         data ch  /  0.d0 , -0.0033824159510050025955D0, & 
                 -0.00054213233180001068935D0, 0.031695087811525991431D0, & 
