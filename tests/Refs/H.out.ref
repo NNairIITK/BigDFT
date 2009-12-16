@@ -52,7 +52,7 @@
  occup(1)= 1.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1      H  7.00000E+00  7.00000E+00  7.00000E+00       16.000    16.000    16.000
-    Shift of=  0.00000E+00  0.00000E+00  0.00000E+00 Grid Spacings=  0.44  0.44  0.44
+    Shift of=  0.00000E+00  0.00000E+00  0.00000E+00 H grids=  0.4375  0.4375  0.4375
    Box Sizes=  1.40000E+01  1.40000E+01  1.40000E+01           31        31        31
        Extremes for the high resolution grid points:        14<18     14<18     14<18
  wavelet localization is ON
