@@ -81,7 +81,7 @@ program test_forces
      if (units.eq.'angstroem') then
         ! if Angstroem convert to Bohr
         do i=1,3 
-           rxyz(i,iat)=rxyz(i,iat)/.529177d0 
+           rxyz(i,iat)=rxyz(i,iat)/bohr2ang
         end do
      else if  (units.eq.'atomic' .or. units.eq.'bohr') then
      else

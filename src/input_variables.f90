@@ -1178,7 +1178,6 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   real(gp), dimension(3,atoms%nat), intent(out) :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_atomic_positions'
-  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   character(len=2) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
@@ -1268,9 +1267,9 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   !convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
-     atoms%alat1=alat1d0/bohr
-     atoms%alat2=alat2d0/bohr
-     atoms%alat3=alat3d0/bohr
+     atoms%alat1=alat1d0/bohr2ang
+     atoms%alat2=alat2d0/bohr2ang
+     atoms%alat3=alat3d0/bohr2ang
   else if  (atoms%units=='atomic' .or. atoms%units=='bohr'  .or.&
        atoms%units== 'atomicd0' .or. atoms%units== 'bohrd0') then
      atoms%alat1=alat1d0
@@ -1341,7 +1340,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
      if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
         ! if Angstroem convert to Bohr
         do i=1,3 
-           rxyz(i,iat)=rxyz(i,iat)/bohr
+           rxyz(i,iat)=rxyz(i,iat)/bohr2ang
         enddo
      else if (atoms%units == 'reduced') then 
         rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
@@ -1559,7 +1558,6 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_ascii_positions'
-  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   character(len=2) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
@@ -1689,9 +1687,9 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   !convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
-     atoms%alat1 = atoms%alat1 / bohr
-     atoms%alat2 = atoms%alat2 / bohr
-     atoms%alat3 = atoms%alat3 / bohr
+     atoms%alat1 = atoms%alat1 / bohr2ang
+     atoms%alat2 = atoms%alat2 / bohr2ang
+     atoms%alat3 = atoms%alat3 / bohr2ang
   endif
 
   atoms%ntypes=0
@@ -1750,7 +1748,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
         if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
            ! if Angstroem convert to Bohr
            do j=1,3 
-              rxyz(j,iat)=rxyz(j,iat)/bohr
+              rxyz(j,iat)=rxyz(j,iat) / bohr2ang
            enddo
         else if (atoms%units == 'reduced') then 
            rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
@@ -1822,7 +1820,6 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !local variables
-  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   character(len=2) :: symbol
   character(len=10) :: name
   character(len=11) :: units
@@ -1841,7 +1838,7 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
      zmax=max(rxyz(3,iat),zmax)
   enddo
   if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
-     factor=bohr
+     factor=bohr2ang
      units='angstroemd0'
   else
      factor=1.0_gp
@@ -1888,7 +1885,6 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !local variables
-  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   character(len=2) :: symbol
   character(len=50) :: extra
   character(len=10) :: name
@@ -1906,7 +1902,7 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
      zmax=max(rxyz(3,iat),zmax)
   enddo
   if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
-     factor=bohr
+     factor=bohr2ang
   else
      factor=1.0_gp
   end if

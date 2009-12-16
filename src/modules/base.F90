@@ -59,6 +59,9 @@ module module_base
   !inside localize_projectors routines
   logical :: DistProjApply=.true.
 
+  ! Physical constants.
+  real(gp), parameter :: bohr2ang = 0.5291772108_gp !1 AU in angstroem
+
   !interface for MPI_ALLREDUCE routine
   interface mpiallred
      module procedure mpiallred_int,mpiallred_real,mpiallred_double
