@@ -170,11 +170,10 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
 
   !then calculate the number of k-points per processor
   !(assume always one k-point at a time in the on-the-fly stategy)
-  if (DistProjApply) then
+  if (DistProjApply .or. orbs%norbp == 0) then
      nkptsproj=1
   else
-     nkptsproj=max(max((orbs%isorb+orbs%norbp-1),0)/orbs%norb -&
-          max((orbs%isorb-1)/orbs%norb,0),1)
+     nkptsproj=orbs%iokpt(orbs%norbp)-orbs%iokpt(1)+1
   end if
 
   nlpspd%nprojel=nkptsproj*nlpspd%nprojel
@@ -183,6 +182,8 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   !NOTE: for the moment we double this for each projector, but there is no need to
   !      do this for real k-points
   if (cmplxprojs) nlpspd%nprojel=2*nlpspd%nprojel
+
+  !print *,'iproc,nlpspd%nprojel',iproc,nlpspd%nprojel,nkptsproj
 
   if (iproc.eq.0) then
      if (DistProjApply) then
@@ -212,7 +213,7 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
   !local variables
   integer, parameter :: nterm_max=20 !if GTH nterm_max=4
-  integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,nkptsp
+  integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,iekpt
 
   if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) write(*,'(1x,a)',advance='no') &
        'Calculating wavelets expansion of projectors...'
@@ -222,17 +223,16 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir
   istart_c=1
 
   !create projectors for any of the k-point hosted by the processor
-  !how many kpoints on this processor
-  nkptsp=max(max((orbs%isorb+orbs%norbp-1),0)/orbs%norb -&
-       max((orbs%isorb-1)/orbs%norb,0),1)
   !starting kpoint
-  if (nkptsp /=0) then
+  if (orbs%norbp > 0) then
      iskpt=orbs%iokpt(1)
+     iekpt=orbs%iokpt(orbs%norbp)
   else
      iskpt=1
+     iekpt=1
   end if
 
-  do ikpt=iskpt,nkptsp
+  do ikpt=iskpt,iekpt
      iproj=0
      do iat=1,at%nat
         !this routine is defined to uniformise the call for on-the-fly application
@@ -242,7 +242,8 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir
      if (iproj /= nlpspd%nproj) stop 'incorrect number of projectors created'
      ! projector part finished
   end do
-  
+  if (istart_c-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp generation'
+ 
   if (iproc == 0 .and. nlpspd%nproj /=0 .and. idir == 0) then
      if (nwarnings == 0) then
         write(*,'(1x,a)')'done.'

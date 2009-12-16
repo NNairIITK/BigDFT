@@ -359,7 +359,7 @@ lanczos.o : lanczos_base.o lanczos_interface.o
 
 BigDFT_API.o : scfloop_API.o
 
-distances.o : BigDFT_API.o
+distances.o global.o : BigDFT_API.o
 
 ab6_moldyn.o ABINIT-moldyn/ab6_moldyn.o : scfloop_API.o \
 	ABINIT-moldyn/ab6_moldyn.F90 \

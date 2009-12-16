@@ -37,7 +37,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX
   integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
-  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
+  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi,istart_ca
   real(gp) :: eproj,eexctX
   real(gp), dimension(3,2) :: wrkallred
   real(wp), dimension(:), pointer :: pot
@@ -160,8 +160,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
         ispsi_k=ispsi
      end do loop_kpt
 
-     if (istart_c-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp application'
-
+     if (istart_ck-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp application'
+     if (ispsi-1 /= (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) stop 'incorrect V_nl psi application'
   end if
 
   call timing(iproc,'ApplyProj     ','OF')

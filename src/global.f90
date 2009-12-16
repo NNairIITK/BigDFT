@@ -2,7 +2,7 @@
 !!
 !! DESCRIPTION
 !!  Main program fro the minima hopping
-!!
+!!  New modified version 17th Nov 2009 Sandip De  
 !! COPYRIGHT
 !!    Copyright (C) 2008 UNIBAS
 !!    This file is not freely distributed.
@@ -12,8 +12,9 @@
 !!
 program MINHOP
 
-  !this will include also mpif.h
-  use BigDFT_API
+  use module_base
+  use module_types
+  use module_interfaces
   use ab6_symmetry
 
   implicit real(kind=8) (a-h,o-z)
@@ -24,35 +25,22 @@ program MINHOP
   type(atoms_data) :: atoms
   type(input_variables) :: inputs_opt, inputs_md
   type(restart_objects) :: rst
-  ! some variable definitions are not needed anymore due to the new restart variable type
-  ! type(wavefunctions_descriptors) :: wfd
-
-!  logical, dimension(:), allocatable :: lfrztyp
-  !  real(kind=8), dimension(:,:), allocatable :: rxyz_old
-
-  !  real(kind=8), dimension(:), pointer :: eval
-  !  real(kind=8), dimension(:), pointer :: psi
-
+  character(len=20), dimension(:), allocatable :: atomnames
   integer, parameter :: npminx=200
   !C parameters for minima hopping
-  integer, parameter :: mdmin=4
+  integer, parameter :: mdmin=2
   real(kind=8), parameter :: beta1=1.10d0,beta2=1.10d0,beta3=1.d0/1.10d0
   real(kind=8), parameter :: alpha1=1.d0/1.10d0,alpha2=1.10d0
-  integer, parameter :: nbuf=1000
-  ! interval for writing intermediate results
-  integer, parameter :: minter=1
-  real(kind=8) :: elocmin(npminx),abuf(nbuf)
-  real(kind=8), allocatable, dimension(:,:) :: pos,ff,wpos,vxyz,gg,earr
-  real(kind=8), allocatable, dimension(:,:,:) :: poslocmin
-
+  real(kind=8) :: elocmin(npminx)
+  real(kind=8), allocatable, dimension(:,:) ::ff,wpos,vxyz,gg,earr
+  real(kind=8),allocatable, dimension(:,:,:):: poslocmin
+  real(kind=8), dimension(:,:), pointer :: pos
+  integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
   character(len=4) :: fn4
   character(len=5) :: fn5
   character(len=50) :: comment
-  integer :: ierr
-
-  !include 'mpif.h'
 
   ! Start MPI version
   call MPI_INIT(ierr)
@@ -64,7 +52,7 @@ program MINHOP
   call memocc(0,iproc,'count','start')
 
   if (iproc.eq.0)then
-     write(*,'(23x,a)')' '
+     write(*,'(23x,a)')' NEW '
      write(*,'(23x,a)')'      __  __ _ _  _ _   _  __  ___ '
      write(*,'(23x,a)')'     |  \/  |_| \| | |_| |/  \| _ \ '
      write(*,'(23x,a)')'     | |\/| |-|    |  _  | <> |  _/ '
@@ -79,8 +67,6 @@ program MINHOP
 
   open(unit=67,file='global.out')
 
-!  write(filename,'(A,i3.3,a)')'latest.pos.force.',iproc,'.dat'
-!  open(unit=111,file=filename)
 
 
   if (iproc.eq.0) write(67,'(a,3(1x,1pe11.4))') 'beta1,beta2,beta3',beta1,beta2,beta3
@@ -104,7 +90,7 @@ program MINHOP
   read(12,*) accur
   if (iproc.eq.0) write(67,*) 'accuracy for rounding=',accur
   if (nlmin.gt.nlminx) stop 'nlmin>nlminx'
-  allocate(earr(0:nlminx+nbuf,2+ndebug),stat=i_stat)
+  allocate(earr(0:nlminx,2+ndebug),stat=i_stat)
   call memocc(i_stat,earr,'earr',subname)
   earr(0,1)=-1.d100
   if (nlmin.eq.0) then 
@@ -122,38 +108,27 @@ program MINHOP
   endif
   close(12)
 
-  filename = 'poscur.xyz'
-  open(unit=99,file=filename,status='old')
-  if (nlmin.eq.0) then 
-     read(99,*) atoms%nat,atoms%units
-     tre_pos=1000.d0
-  else
-     read(99,*) atoms%nat,atoms%units,tre_pos
-  endif
-  if (iproc.eq.0) write(67,*) 'nat=',atoms%nat
-  if (iproc.eq.0) write(*,*) '#nat=',atoms%nat
-
-  allocate(pos(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,pos,'pos',subname)
-
-  if (iproc.eq.0) write(67,'(a,a)') 'reading positions from ',filename
-  if (iproc.eq.0) write(*,'(a,a)') ' # reading positions from ',filename
-
-  atoms%format='xyz'
-  call read_atomic_positions(iproc,99,atoms,pos)
-  close(unit=99)
+  call read_atomic_file('poscur',iproc,atoms,pos)
   !Read input parameters for geometry optimization 
   call dft_input_variables(iproc,'input.dft',inputs_opt,atoms%symObj)
-  call kpt_input_variables(iproc,'input.kpt',inputs_opt,atoms)
   call geopt_input_variables(iproc,'input.geopt',inputs_opt)
+  call kpt_input_variables(iproc,'input.kpt',inputs_opt,atoms)
 
   call dft_input_variables(iproc,'mdinput.dft',inputs_md,atoms%symObj)
-  call kpt_input_variables(iproc,'input.kpt',inputs_md,atoms)
   call geopt_input_variables(iproc,'mdinput.geopt',inputs_md)
+  call kpt_input_variables(iproc,'input.kpt',inputs_md,atoms)
 
 
-!!!  call read_input_variables(iproc,'input.dat',inputs_opt)
-!!!  call read_input_variables(iproc,'mdinput.dat',inputs_md)
+ do iat=1,atoms%nat
+        if (atoms%ifrztyp(iat) == 0) then
+           call random_number(tt)
+           pos(1,iat)=pos(1,iat)+inputs_opt%randdis*tt
+           call random_number(tt)
+           pos(2,iat)=pos(2,iat)+inputs_opt%randdis*tt
+           call random_number(tt)
+           pos(3,iat)=pos(3,iat)+inputs_opt%randdis*tt
+        end if
+ enddo
 
   ! allocate other arrays
   allocate(ff(3,atoms%nat+ndebug),stat=i_stat)
@@ -166,68 +141,25 @@ program MINHOP
   call memocc(i_stat,gg,'gg',subname)
   allocate(poslocmin(3,atoms%nat,npminx+ndebug),stat=i_stat)
   call memocc(i_stat,poslocmin,'poslocmin',subname)
-  !        allocate(rxyz_old(3,atoms%nat+ndebug),stat=i_stat)
-  !        call memocc(i_stat,rxyz_old,'rxyz_old','BigDFT')
-
-
-  ! read input parameters
-  open(unit=11,file='ioput',status='old')
-  if (iproc.eq.0) write(67,'(a,a)') 'reading input from ',filename
-  if (iproc.eq.0) write(*,'(a,a)') ' # reading input from ',filename
-  read(11,*) ediff,ekinetic,dt,nsoften
-  read(11,*,iostat=ierr)irestart
-  if(ierr/=0)irestart=0
-  read(11,*,iostat=ierr)av_ekinetic
-  if(ierr==0)then
-     if (iproc.eq.0) write(*,'(a,a)') ' # reading full restart variables'
-     read(11,*)av_ediff
-     read(11,*)escape
-     read(11,*)escape_sam
-     read(11,*)escape_old
-     read(11,*)escape_new
-     read(11,*)hopp
-     read(11,*)hopp_acc
-     read(11,*)hopp_rej
-     read(11,*)egap
-     read(11,*)esep
-     read(11,*)count_sd
-     read(11,*)count_cg
-     read(11,*)count_md
-     read(11,*)nputback
-  else
-     if (iproc.eq.0) write(*,'(a,a)') ' # initialize counter variables'
-     !C first local minimum
-     av_ekinetic=0.d0
-     av_ediff=0.d0
-     escape=0.d0
-     escape_sam=0.d0
-     escape_old=0.d0
-     escape_new=0.d0
-     hopp=0.d0
-     hopp_acc=0.d0
-     hopp_rej=0.d0
-     egap=1.d100
-     esep=0.d0
-     count_sd=0.d0
-     count_cg=0.d0
-     count_md=0.d0
-     nputback=0
-  end if
+ 
+! read random offset
+  open(unit=11,file='rand.inp')
+  read(11,'(i3)') nrandoff
+  !        write(*,*) 'nrandoff ',nrandoff
   close(11)
+  do  i=1,nrandoff
+     call random_number(ts)
+  enddo
+  
+  ! read input parameters
+  write(filename,'(a6,i3.3)') 'ioput'   !,iproc
+  open(unit=11,file='ioput',status='old')
+  read(11,*) ediff,ekinetic,dt,nsoften
+  close(11)
+  !write(*,'(a,1x,i3,3(1x,e10.3),1x,i4)') 'In :iproc,ediff,ekinetic,dt,nsoften',iproc,ediff,ekinetic,dt,nsoften
+  if (iproc == 0) write(*,'(a,1x,3(1x,e10.3),1x,i4)') 'In :ediff,ekinetic,dt,nsoften',ediff,ekinetic,dt,nsoften
 
   if (iproc ==0 ) open(unit=16,file='geopt.mon',status='unknown')
-
-  open(unit=11,file='rand.inp',status='old')
-  read(11,*) nrandoff
-  close(11)
-  if (iproc == 0) write(*,*) '# nrandoff ',nrandoff
-
-  do  i=1,nrandoff
-     call random_number(tts)
-  enddo
-  if (iproc == 0) write(67,'(a,1x,3(1x,1pe10.3))') 'In :ediff,ekinetic,dt',ediff,ekinetic,dt
-  if (iproc == 0) write(*,'(a,1x,3(1x,1pe10.3))') ' # In :ediff,ekinetic,dt',ediff,ekinetic,dt
-
 
   ! If restart run read previously found energies
   nlmin_l=0
@@ -247,7 +179,7 @@ program MINHOP
         end if
         read(9,*) natp,units,elocmin(nlmin_l)
         if (atoms%nat.ne.natp) stop   'nat <> natp'
-        read(9,*) 
+        read(9,*)
         do iat=1,atoms%nat
            read(9,*) atmn,poslocmin(1,iat,nlmin_l),poslocmin(2,iat,nlmin_l),poslocmin(3,iat,nlmin_l)
         enddo
@@ -260,67 +192,68 @@ program MINHOP
      if (iproc.eq.0) write(*,*) '# read ',nlmin_l,'poslow files'
   endif
 
-  ! open output files
-  if (iproc.eq.0) then
-     !write(fn,'(i3.3)') iproc
-     filename = 'global.mon'
-     write(67,*) 'iteration results written in:',filename
-     write(*,*) '# iteration results written in:',filename
-     open(unit=2,file=filename,status='unknown',access='append')
-  endif
 
-  ! (un)comment the correct 2 lines
-  !        alphax=2.d-2  ! Si
-  !        if (iproc.eq.0) write(67,*) alphax,'optimal stepsize for Si systems'
-  !        alphax=1.d-3  ! LJ
-  !       if (iproc.eq.0) write(67,*) alphax,'optimal stepsize for LJ systems'
+! open output files
+         if (iproc==0) open(unit=2,file='global.mon',status='unknown',position='append')
+
+ 	av_ekinetic=0.d0
+        av_ediff=0.d0
+        escape=0.d0
+        escape_sam=0.d0
+        escape_old=0.d0
+        escape_new=0.d0
+        hopp=0.d0
+        hopp_acc=0.d0
+        hopp_rej=0.d0
+        egap=1.d100
+        esep=0.d0
+
+!C first local minimum
+        count_sd=0.d0
+        count_cg=0.d0
+        count_soft=0.d0
+        count_md=0.d0
+        nputback=0
+
+ do iat=1,atoms%nat
+        if (atoms%geocode == 'P') then
+           pos(1,iat)=modulo(pos(1,iat),atoms%alat1)
+           pos(2,iat)=modulo(pos(2,iat),atoms%alat2)
+           pos(3,iat)=modulo(pos(3,iat),atoms%alat3)
+        else if (atoms%geocode == 'S') then
+           pos(1,iat)=modulo(pos(1,iat),atoms%alat1)
+           pos(3,iat)=modulo(pos(3,iat),atoms%alat3)
+        end if
+ end do
+
 
   inputs_opt%inputPsiId=0
-
-
   call init_restart_objects(atoms,rst,subname)
-  ! new way of initializing data
-
-  if (atoms%geocode.eq.'P') & 
-       call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,pos)
-  call call_bigdft(nproc,iproc,atoms,pos,inputs_opt,e_pos,ff,rst,infocode)
-
+  call call_bigdft(nproc,iproc,atoms,pos,inputs_md,e_pos,ff,rst,infocode)
 
   write(17,*) 'ENERGY ',e_pos
   energyold=1.d100
   ncount_bigdft=0
 
-
-  !        if(irestart>0)then
-  !          if (iproc.eq.0) write(*,*)&
-  !              ' # WARNING: This version skips relaxation of poscur.xyz! '
-  !           if (iproc.eq.0) write(*,*)&
-  !              ' # Ready to continue an aborted optimization. Reading posout file ',irestart
-  !           call rdposout(irestart,wpos,atoms%nat)
-  !           ncout_cluster=irestart
-  !           re_sm=earr(1,1)
-  !           goto 5556
-  !        end if
-
   if (iproc.eq.0) write(*,*)'# calling conjgrad for the first time here. energy ',e_pos
 
-  if (atoms%geocode.eq.'P') & 
-       call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,pos)
+!  if (atoms%geocode.eq.'P') & 
+!       call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,pos)
+
+    call geopt(nproc,iproc,pos,atoms,ff,e_pos,rst,inputs_md,ncount_bigdft)
+      if (iproc.eq.0) write(67,*) ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
+      if (iproc.eq.0) write(*,*)'# ', ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
 
     call geopt(nproc,iproc,pos,atoms,ff,e_pos,rst,inputs_opt,ncount_bigdft)
+      if (iproc.eq.0) write(67,*) ncount_bigdft,' Wvfnctn Opt. steps for accurate initial conf'
+      if (iproc.eq.0) write(*,*)'# ', ncount_bigdft,' Wvfnctn Opt. steps for accurate initial conf'
 
-  if (iproc.eq.0) write(67,*) ncount_bigdft,' Wvfnctn Opt. steps for accurate initial conf'
-  if (iproc.eq.0) write(*,*)'# ', ncount_bigdft,' Wvfnctn Opt. steps for accurate initial conf'
   nconjgr=0
   if (iproc == 0) then 
      tt=dnrm2(3*atoms%nat,ff,1)
-
-     !call wtlmin(nconjgr,atoms%nat,e_pos-eref,tt,pos,atoms%iatype,atoms%atomnames,atoms%natpol)
-
      write(fn4,'(i4.4)') nconjgr
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
-     call wtxyz('poslocm_'//fn4,e_pos-eref,pos,atoms,trim(comment))
-
+     call write_atomic_file('poslocm_'//fn4,e_pos-eref,pos,atoms,trim(comment))
   endif
   nconjgr=nconjgr+1
 
@@ -330,10 +263,8 @@ program MINHOP
 
 
   if (nlmin.gt.0) then
-     if (iproc.eq.0) write(67,'(a,2(1x,1pe24.17))') 'new/old energy for input file',re_pos,tre_pos
-     if (iproc.eq.0) write(*,'(a,2(1x,1pe24.17))') '# new/old energy for input file',re_pos,tre_pos
-     if (re_pos.ne.tre_pos .and. iproc.eq.0) write(67,*) 'WARNING: new/old energies for input file differ'
-     if (re_pos.ne.tre_pos .and. iproc.eq.0) write(*,*) '# WARNING: new/old energies for input file differ'
+     if (iproc.eq.0) write(67,'(a,2(1x,1pe24.17))') 'new/old energy for input file',re_pos
+     if (iproc.eq.0) write(*,'(a,2(1x,1pe24.17))') '# new/old energy for input file',re_pos
   endif
   k_e_wpos=1
   if (nlmin.eq.0) then
@@ -352,82 +283,43 @@ program MINHOP
   if (iproc.eq.0) write(67,*) 'iproc,initial re_sm',iproc,re_sm
   if (iproc.eq.0) write(*,*) '# iproc,initial re_sm',iproc,re_sm
   if (iproc.eq.0) write(2,'(2(1x,f10.0),1x,1pe21.14,2(1x,1pe10.3))') hopp,escape,e_pos-eref,ediff,ekinetic
-  !        write(200+iproc,'(2(1x,f10.0),1x,1pe24.17,2(1x,1pe10.3))') hopp,escape,e_pos-eref,ediff,ekinetic
 
-
-  if(irestart>0)then
-     if (iproc.eq.0) write(*,*)&
-          ' # Ready to continue an aborted optimization. Reading posout file ',irestart
-     !presumably better to use read_atomic_positions
-     call rdposout(irestart,wpos,atoms%nat)
-     ncount_bigdft=irestart
-     inputs_opt%inputPsiId=0  !ALEX notices we need an input guess for the aborted geo
-     goto 5556
-  end if
-  
-  
-  do iat=1,atoms%nat
-     wpos(1,iat)=pos(1,iat) 
-     wpos(2,iat)=pos(2,iat) 
-     wpos(3,iat)=pos(3,iat)
-  end do
   nlmin_old=nlmin
 
   !C outer (hopping) loop
-  hopping_loop: do
-     !1000 continue
-     irestart=0! we can restart from a local minimum
-!     rewind(111)
-!     write(111,*)'*** process monitor file for nlmin',nlmin
-     ! check whether other processes send local minima data
+!  hopping_loop: do
+1000 continue
      if (nlmin >= nlminx) then 
         write(67,*)iproc,'has  nlminx collected',nlmin
         write(*,*)'#:process', iproc,'has  nlminx collected',nlmin
         !             do i=1,nlmin ;  write(*,*) earr(i,1) ; enddo
-        !goto 3000
-        exit hopping_loop 
+        goto 3000
      endif
      !            Energy has reached taregt eref and global minimum is presumably found
      if (re_sm <= 1.d-3) then
         write(*,*)'# process', iproc,'success: relative energy < 0.001'
-        !goto 3000
-        exit hopping_loop 
+        goto 3000
      endif
 
-     ! write intermediate results
-     irestart=0
-     if (nlmin-nlmin_old.ge.minter) then
-        if (iproc == 0) then 
-           write(67,*) ' Writing intermediate results at',nlmin_l,nlmin
-           write(*,*) '#  Writing intermediate results at',nlmin_l,nlmin
-        endif
-        call winter(iproc,atoms,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
-             earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
-        nlmin_old=nlmin
-     endif
-
-     ! check whether global minimum was found
-     if (re_sm.le.1.d-3) then
-        write(*,*) iproc,'SUCCESS success'
-        write(*,*)'# process', iproc,'success: relative energy < 0.001'
-        !goto 3000
-        exit hopping_loop 
-     endif
-
-     if(iproc==0)then
-        call timeleft(tt)
-        write(*,*) '# CPU time hours left',tt
-     end if
-     !call MPI_BCAST(tt,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-     !if (tt<0) then
-     !write(*,*) '# CPU time limit exceeded for process',iproc
-     !goto 3000
-     !endif
-     ! Escape loop
 5555 continue
 
-     if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)  
-     !         sometimes, syncronization errors occured, so let's try this ^^^
+!C check whether CPU time exceeded
+        tleft=1.d100
+        if(iproc==0)then
+          open(unit=55,file='CPUlimit_global',status='unknown')
+          read(55,*,end=555) cpulimit ; cpulimit=cpulimit*3600
+          write(*,'(a,i5,i3,2(1x,e9.2))') 'iproc,nlmin,tcpu2-tcpu1,cpulimit',iproc,nlmin,tcpu2-tcpu1,cpulimit
+          close(55)
+          call cpu_time(tcpu2)
+          tleft=cpulimit-(tcpu2-tcpu1)
+        end if
+555       continue
+          call MPI_BCAST(tleft,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+          if (tleft < 0.d0) then
+          write(*,*) 'CPU time exceeded',tleft
+          goto 3000
+          endif
+
      do iat=1,atoms%nat
         wpos(1,iat)=pos(1,iat)
         wpos(2,iat)=pos(2,iat) 
@@ -440,50 +332,22 @@ program MINHOP
 
      call fix_fragmentation(iproc,atoms,wpos,nputback)
 
-     if(iproc==0)call  timeleft(tt)
-     if(iproc==0)write(*,*)'# CPU time hours left',tt
      av_ekinetic=av_ekinetic+ekinetic
      ncount_bigdft=0
 
-5556 continue ! entry point for restart of optimization at cluster step irestart+1
-     if (atoms%geocode.eq.'P') & 
-          call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,wpos)
-
-      call geopt(nproc,iproc,wpos,atoms,ff,e_wpos,rst,inputs_md,ncount_bigdft)
-
-     if(iproc==0)then
-        call timeleft(tt)
-        write(*,*) '# CPU time hours left',tt
-     end if
-     call MPI_BCAST(tt,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-     if (tt<0) then
-        write(*,*)&
-             '# CPU time exceeded during approximate geometry relaxation, process',iproc
-        ! allows to continue the next run by relaxing the aborted escape attempt
-        irestart=ncount_bigdft  
-        exit hopping_loop 
-     end if
+!5556 continue ! entry point for restart of optimization at cluster step irestart+1
+!     if (atoms%geocode.eq.'P') & 
+!        call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,wpos)
+     call geopt(nproc,iproc,wpos,atoms,ff,e_wpos,rst,inputs_md,ncount_bigdft)
 
      if (iproc.eq.0) write(67,*) ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
      if (iproc.eq.0) write(*,*)'# ', ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
      !ncount_bigdft=0
      !ncount_cluster=0
-     if (atoms%geocode.eq.'P') & 
-          call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,wpos)
+!     if (atoms%geocode.eq.'P') & 
+!          call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,wpos)
       call geopt(nproc,iproc,wpos,atoms,ff,e_wpos,rst,inputs_opt,ncount_bigdft)
 
-     if(iproc==0)then
-        call timeleft(tt)
-        write(*,*) '# CPU time hours left',tt
-     end if
-     call MPI_BCAST(tt,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-     if (tt<0) then
-        !if (iproc.eq.0) write(*,*) '# CPU time exceeded during accurate geometry relaxation'
-        write(*,*) '# CPU time exceeded during accurate geometry relaxation, process',iproc
-        irestart=ncount_bigdft  ! allows to continue the next run by relaxing the aborted escape attempt
-        !goto 3000
-        exit hopping_loop 
-     end if
      if (iproc.eq.0) write(67,*) ncount_bigdft,' Wvfnctn Opt. steps for accurate geo. rel of MD conf.'
      if (iproc.eq.0) write(*,*)'# ', ncount_bigdft,' Wvfnctn Opt. steps for accurate geo. rel of MD conf.'
      if (iproc == 0) then 
@@ -491,21 +355,14 @@ program MINHOP
         !call wtlmin(nconjgr,atoms%nat,e_wpos-eref,tt,wpos,atoms%iatype,atoms%atomnames,atoms%natpol)
         write(fn4,'(i4.4)') nconjgr
         write(comment,'(a,1pe10.3)')'fnrm= ',tt
-        call wtxyz('poslocm_'//fn4,e_wpos-eref,wpos,atoms,trim(comment))
-
-
+	call write_atomic_file('poslocm_'//fn4,e_wpos-eref,wpos,atoms,trim(comment))
      endif
   nconjgr=nconjgr+1
   re_wpos=round(e_wpos-eref,accur)
   if (iproc.eq.0) write(67,'(a,i3,i3,4(1x,1pe14.7))')  & 
-       'nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos', & 
-       nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos
+       'nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos', nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos
   if (iproc.eq.0) write(*,'(a,i3,i3,4(1x,1pe14.7))')  & 
-       '# nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos', & 
-       nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos
-  !          write(200+iproc,'(a,i3,i3,4(1x,1pe14.7))')  & 
-  !                    'nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos', & 
-  !                     nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos
+       '# nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos', nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos
   !C not escaped
   if (re_pos.eq.re_wpos) then
      escape_sam=escape_sam+1.d0
@@ -515,11 +372,6 @@ program MINHOP
      if (iproc.eq.0) write(2,'(2(1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a)')  &
           hopp,escape,e_wpos-eref,ediff,ekinetic, &
           escape_sam/escape,escape_old/escape,escape_new/escape,'   S'
-     !           write(200+iproc,'(2(1x,f10.0),1x,1pe24.17,2(1x,1pe10.3),3(1x,0pf5.2),a)')  &
-     !                       hopp,escape,e_wpos-eref,ediff,ekinetic, &
-     !                       escape_sam/escape,escape_old/escape,escape_new/escape,'   S'
-     !write(100+iproc,*) 'SAME:re_pos,re_wpos ',re_pos,re_wpos
-     !write(100+iproc,*) 'SAME ',e_wpos-eref,ediff,ekinetic
      if (iproc.eq.0) write(*,'(a)')' # no escape from current minimum.'
      goto 5555
   endif
@@ -528,7 +380,7 @@ program MINHOP
 
   !C continue since escaped
   !C  check whether new minimum
-  call hunt(earr(1,1),min(nlmin,nlminx+nbuf),re_wpos,k_e_wpos)
+  call hunt(earr(1,1),min(nlmin,nlminx),re_wpos,k_e_wpos)
   if (re_wpos.eq.earr(k_e_wpos,1)) then
      if (iproc.eq.0) write(67,'(a,i3,i3,i4,1x,1pe14.7)')  & 
           'nlmin_l,nlmin,k_e_wpos,re_wpos=earr',nlmin_l,nlmin,k_e_wpos,re_wpos
@@ -560,9 +412,7 @@ program MINHOP
         if (iproc == 0) then 
            write(67,'(a,i7,1x,1pe24.17,1x,i2)') 'new lowest ',nlmin,re_wpos,iproc
            write(*,'(a,i7,1x,1pe24.17,1x,i2)') '# new lowest ',nlmin,re_wpos,iproc
-           !call wtbest(atoms%nat,re_wpos,wpos, &
-           !     atoms%iatype,atoms%atomnames,atoms%natpol)
-           call wtxyz('posbest',re_wpos,wpos,atoms,'')
+           call write_atomic_file('posbest',re_wpos,wpos,atoms,'')
         endif
      else
         if (iproc.eq.0) write(*,'(a,i3)')' # New local minimum, lower are ',k_e_wpos 
@@ -575,12 +425,6 @@ program MINHOP
   !write(67,*) 'e_wpos,e_pos',e_wpos,e_pos
   if(e_wpos-e_pos.lt.ediff) then
      !C          local minima accepted -------------------------------------------------------
-     if (iproc.eq.0) write(2,'(2(1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),l3,a)')  &
-          hopp,escape,e_wpos-eref,ediff,ekinetic, &
-          escape_sam/escape,escape_old/escape,escape_new/escape,newmin,' A '
-     !           write(200+iproc,'(2(1x,f10.0),1x,1pe24.17,2(1x,1pe10.3),3(1x,0pf5.2),l,a)')  &
-     !                       hopp,escape,e_wpos-eref,ediff,ekinetic, &
-     !                       escape_sam/escape,escape_old/escape,escape_new/escape,newmin,' A '
      hopp_acc=hopp_acc+1.d0
      ediff=ediff*alpha1
      if (iproc.eq.0) call wtioput(ediff,ekinetic,dt,nsoften)
@@ -597,69 +441,52 @@ program MINHOP
         nlmin=nlmin+1
         nlmin_l=nlmin_l+1
         !C            add minimum to history list
-        call insert(nlminx,nbuf,nlmin,k_e_wpos,re_wpos,earr(0,1))
+        call insert(nlminx,nlmin,k_e_wpos,re_wpos,earr(0,1))
         !                write(67,*) iproc,'EARR'
         !                do i=1,nlmin ;  write(*,*) earr(i,1),earr(i,2) ; enddo
         !C            save configuration if it is among the lowest ones in energy
         call save_low_conf(atoms%nat,nlmin_l,npminx,re_wpos,pos,elocmin,poslocmin)
+        k_e_wpos=k_e_wpos+1   ! update for the writing statement below
      else
         !C            old minimum revisited
         earr(k_e_wpos,2)=earr(k_e_wpos,2)+1.d0
      endif
-     !goto 1000
+      if (iproc == 0) then
+     write(2,'(2(1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),l3,a,i5)')  &
+          hopp,escape,e_wpos-eref,ediff,ekinetic, &
+          escape_sam/escape,escape_old/escape,escape_new/escape,newmin,' A ', int(earr(k_e_wpos,2))
+! write intermediate results
+      write(*,*) 'WINTER'
+      call winter(atoms,re_pos,pos,npminx,nlminx,nlmin,nlmin_l,accur, & 
+           earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
+      end if
+      goto 1000
   else
      !C          local minima rejected -------------------------------------------------------
      inputs_opt%inputPsiId=0  !ALEX says: Better do an input guess for the next escape
-     if (iproc.eq.0) write(2,'(2(1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),l3,a)')  &
+     if (iproc.eq.0) write(2,'(2(1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),l3,a,i5)')  &
           hopp,escape,e_wpos-eref,ediff,ekinetic, &
-          escape_sam/escape,escape_old/escape,escape_new/escape,newmin,' R '
+          escape_sam/escape,escape_old/escape,escape_new/escape,newmin,' R ', int(earr(k_e_wpos,2))
      if (iproc.eq.0) write(*,'(a,1pe21.14)')' # rejected: ew-e>ediff ',e_wpos-e_pos
 
-     !           write(200+iproc,'(2(1x,f10.0),1x,1pe24.17,2(1x,1pe10.3),3(1x,0pf5.2),l,a)')  &
-     !                       hopp,escape,e_wpos-eref,ediff,ekinetic, &
-     !                       escape_sam/escape,escape_old/escape,escape_new/escape,newmin,' R '
      hopp_rej=hopp_rej+1.d0
      ediff=ediff*alpha2
      if (iproc.eq.0) call wtioput(ediff,ekinetic,dt,nsoften)
-     !goto 1000
+     goto 1000
      !C                          ------------------------------------------------------------
   endif
 
-end do hopping_loop
+!end do hopping_loop
 
-!3000 continue
+3000 continue
 
   if (iproc == 0) then
      write(67,*) 'writing final results'
      write(*,*) '# writing final results'
-  end if
-  call winter(iproc,atoms,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
-       earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
-  if (iproc == 0) then
      write(67,*) ' found ',nlmin_l,nlmin,' minima'
      write(*,*) '# found ',nlmin_l,nlmin,' minima'
-     !this section could be put in wtioput. However, here we only put
-     !these variables when the progam exited nicely. Otherwise,
-     !the counters here will be reinitialized on restart.
-!     open(11,file='ioput',position='append')
-!     write(11,*)irestart      ,'irestart for aborted geometry optimization'
-!     write(11,*)av_ekinetic   ,'av_ekinetic'
-!     write(11,*)av_ediff      ,'av_ediff   '
-!     write(11,*)escape        ,'escape     '
-!     write(11,*)escape_sam    ,'escape_sam '
-!     write(11,*)escape_old    ,'escape_old '
-!     write(11,*)escape_new    ,'escape_new '
-!     write(11,*)hopp          ,'hopp       '
-!     write(11,*)hopp_acc      ,'hopp_acc   '
-!     write(11,*)hopp_rej      ,'hopp_rej   '
-!     write(11,*)egap          ,'egap       '
-!     write(11,*)esep          ,'esep       '
-!     write(11,*)count_sd      ,'count_sd   '
-!     write(11,*)count_cg      ,'count_cg   '
-!     write(11,*)count_md      ,'count_md   '
-!     write(11,*)nputback      ,'nputback   '
-!     close(11)
   endif
+
 
   call cpu_time(tcpu2)
   if (iproc.eq.0) then
@@ -692,21 +519,27 @@ end do hopping_loop
   i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
   deallocate(atoms%ifrztyp,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
+
   i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
   deallocate(atoms%iatype,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%iatype',subname)
+
   i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
   deallocate(atoms%natpol,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%natpol',subname)
+
   i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
   deallocate(atoms%atomnames,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%atomnames',subname)
+
   i_all=-product(shape(atoms%amu))*kind(atoms%amu)
   deallocate(atoms%amu,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%amu',subname)
   if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
 
   call free_restart_objects(rst,subname)
+  call free_input_variables(inputs_opt)
+  call free_input_variables(inputs_md)
 
 
   ! deallocation of global's variables
@@ -715,45 +548,37 @@ end do hopping_loop
   i_all=-product(shape(pos))*kind(pos)
   deallocate(pos,stat=i_stat)
   call memocc(i_stat,i_all,'pos',subname)
+
   i_all=-product(shape(earr))*kind(earr)
   deallocate(earr,stat=i_stat)
   call memocc(i_stat,i_all,'earr',subname)
+
   i_all=-product(shape(ff))*kind(ff)
   deallocate(ff,stat=i_stat)
   call memocc(i_stat,i_all,'ff',subname)
+
   i_all=-product(shape(wpos))*kind(wpos)
   deallocate(wpos,stat=i_stat)
   call memocc(i_stat,i_all,'wpos',subname)
+
   i_all=-product(shape(vxyz))*kind(vxyz)
   deallocate(vxyz,stat=i_stat)
   call memocc(i_stat,i_all,'vxyz',subname)
+
   i_all=-product(shape(gg))*kind(gg)
   deallocate(gg,stat=i_stat)
   call memocc(i_stat,i_all,'gg',subname)
+
   i_all=-product(shape(poslocmin))*kind(poslocmin)
   deallocate(poslocmin,stat=i_stat)
   call memocc(i_stat,i_all,'poslocmin',subname)
 
   if (iproc.eq.0) write(67,'(a,1x,3(1x,1pe10.3))') 'Out:ediff,ekinetic,dt',ediff,ekinetic,dt
+  if (iproc.eq.0) write(*,'(a,1x,3(1x,1pe10.3))') '# Out:ediff,ekinetic,dt',ediff,ekinetic,dt
   close(2) 
-
-  call free_input_variables(inputs_opt)
-  call free_input_variables(inputs_md)
-
-  !  call deallocate_wfd(wfd,subname)
-  !  i_all=-product(shape(psi))*kind(psi)
-  !  deallocate(psi,stat=i_stat)
-  !  call memocc(i_stat,i_all,'psi',subname)
-  !  i_all=-product(shape(eval))*kind(eval)
-  !  deallocate(eval,stat=i_stat)
-  !  call memocc(i_stat,i_all,'eval',subname)
-  !  i_all=-product(shape(rxyz_old))*kind(rxyz_old)
-  !  deallocate(rxyz_old,stat=i_stat)
-  !  call memocc(i_stat,i_all,'rxyz_old',subname)
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
-!  close(111)
   if (nproc > 1) call MPI_FINALIZE(ierr)
 
 
@@ -765,6 +590,7 @@ contains
     use module_base
     use module_types
     use module_interfaces
+    use ab6_symmetry
     implicit real*8 (a-h,o-z)
     type(atoms_data) :: atoms
     type(restart_objects) :: rst
@@ -774,20 +600,10 @@ contains
     !type(wavefunctions_descriptors), intent(inout) :: wfd
     !real(kind=8), pointer :: psi(:), eval(:)
 
-    if(iproc==0) write(*,*) '# MINHOP start soften '
+    if(iproc==0) write(*,*) '# MINHOP start soften ',nsoften
 
     !C initialize positions,velocities, forces
     call randdist(atoms%nat,rxyz,vxyz)
-!    open(unit=78,file='possoft_0050.xyz',status='old')
-!    read(78,*)         
-!    read(78,*)         
-!    do iat=1,atoms%nat
-!    read(78,*) name,t1,t2,t3        
-!    vxyz(1,iat)=t1*1.8897265d0-rxyz(1,iat)
-!    vxyz(2,iat)=t2*1.8897265d0-rxyz(2,iat)
-!    vxyz(3,iat)=t3*1.8897265d0-rxyz(3,iat)
-!    enddo
-!!    close(78)
     inputs_md%inputPsiId=1
     !if(iproc==0)write(*,*)' #  no softening'
     call soften(nsoften,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
@@ -803,7 +619,7 @@ contains
     en0000=0.d0
     econs_max=-1.d100
     econs_min=1.d100
-    md_loop: do istep=1,300
+    md_loop: do istep=1,200
 
        !C      Evolution of the system according to 'VELOCITY VERLET' algorithm
 !!       rkin=0.d0
@@ -842,11 +658,11 @@ contains
        if (istep > 2) inputs_md%itermax=50
        call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,e_rxyz,ff,rst,infocode)
 
-       !call wtmd(istep,atoms%nat,e_rxyz,rxyz,atoms%iatype,atoms%atomnames,atoms%natpol)
+write(100+iproc,*) 'EXIT bigdft'
+
        if (iproc == 0) then
-!          write(fn,'(i4.4)') istep+int(count_md)
           write(fn,'(i4.4)') istep
-          call wtxyz('posmd_'//fn,e_rxyz,rxyz,atoms,'')
+          call write_atomic_file('posmd_'//fn,e_rxyz,rxyz,atoms,'')
        end if
 
        en0000=e_rxyz-e_pos
@@ -880,7 +696,7 @@ contains
           gg(3,iat) = at3
        end do
     end do md_loop
-    if (istep >=1000) then
+    if (istep >=200) then
        if (iproc == 0) write(67,*) 'TOO MANY MD STEPS'
        dt=2.d0*dt
     end if
@@ -896,7 +712,7 @@ contains
     if (iproc == 0) &
          write(66,'(a,2(1x,1pe11.4),1x,i5)')&
          'MD devcon ',devcon,devcon/ekinetic,istep
-    if (devcon/ekinetic.lt.7.d-2) then
+    if (devcon/ekinetic.lt.10.d-2) then
        if (iproc == 0) write(66,*) 'MD:old,new dt',dt,dt*1.05d0
        dt=dt*1.05d0
     else
@@ -906,12 +722,14 @@ contains
     
   end subroutine mdescape
   
+  
 
   subroutine soften(nsoften,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
        nproc,iproc,atoms,rst,inputs_md)! &
     use module_base
     use module_types
     use module_interfaces
+    use ab6_symmetry
     implicit real*8 (a-h,o-z)
     type(atoms_data) :: atoms
     dimension fxyz(3*atoms%nat),gg(3*atoms%nat),vxyz(3*atoms%nat),rxyz(3*atoms%nat),rxyz_old(3*atoms%nat)
@@ -1001,7 +819,7 @@ contains
 
      write(fn4,'(i4.4)') it
      write(comment,'(a,1pe10.3)')'res= ',res
-     call wtxyz('possoft_'//fn4,etot,wpos,atoms,trim(comment))
+      if (iproc == 0) call write_atomic_file('possoft_'//fn4,etot,wpos,atoms,trim(comment))
 
        if(iproc==0)write(*,'(a,i3,5(f12.5),f10.3)')'# soften it, curv, fd2,dE,res,eps_vxyz:',&
             it, curv, fd2,etot-etot0,res,eps_vxyz
@@ -1035,8 +853,7 @@ contains
           vxyz(i)=wpos(i)-rxyz(i)
        end do
      write(comment,'(a,1pe10.3)')'curv= ',curv
-     call wtxyz('posvxyz',0.d0,vxyz,atoms,trim(comment))
-
+      if (iproc == 0) call write_atomic_file('posvxyz',0.d0,vxyz,atoms,trim(comment))
        call  elim_moment(atoms%nat,vxyz)
        call  elim_torque(atoms%nat,rxyz,vxyz)
 
@@ -1062,17 +879,16 @@ contains
   end subroutine soften
 
 
-
 end program
 !!***
 
 
 
 
-subroutine insert(nlminx,nbuf,nlmin,k_e_wpos,re_wpos,earr)
+subroutine insert(nlminx,nlmin,k_e_wpos,re_wpos,earr)
   ! inserts the energy re_wpos at position k_e_wpos and shifts up all other energies
   implicit real*8 (a-h,o-z)
-  dimension earr(0:nlminx+nbuf,2)
+  dimension earr(0:nlminx,2)
   do k=nlmin-1,k_e_wpos+1,-1
      earr(k+1,1)=earr(k,1)
      earr(k+1,2)=earr(k,2)
@@ -1188,6 +1004,7 @@ subroutine velopt(at,rxyz,ekinetic,vxyz)
   !     assigns initial velocities for the MD escape part
   use module_base
   use module_types
+  use ab6_symmetry
   implicit none
   !implicit real*8 (a-h,o-z)
   real(gp), intent(in) :: ekinetic
@@ -1210,7 +1027,7 @@ subroutine velopt(at,rxyz,ekinetic,vxyz)
   !        to be implemented
 
   ! Soften previous velocity distribution
-  !call soften(nsoften,??iproc,nat,rxyz,vxyz,rayl0,rayl,res,it)
+  !call soften(iproc,nat,rxyz,vxyz,rayl0,rayl,res,it)
   !^^^^^^^^^^^^^^^^^^^^^^
   !IMPORTANT: This is done at the level of mdescape in this version! 
 
@@ -1524,6 +1341,7 @@ end subroutine elim_moment
 subroutine fix_fragmentation(iproc,at,rxyz,nputback)
   use module_base
   use module_types
+  use ab6_symmetry
   implicit none
   !implicit real*8 (a-h,o-z)
   integer, intent(in) :: iproc
@@ -1585,6 +1403,7 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
               write(444,*) ' LJ  ',rxyz(1,kat),rxyz(2,kat),rxyz(3,kat)
            enddo
         endif
+
 
         ! make sure the part that flew away is smaller than the cluster
         if (ncluster <= at%nat/2) then
@@ -1649,44 +1468,42 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
            enddo
         endif
         nloop=nloop+1
-     if (nloop.gt.4) call MPI_ABORT(MPI_COMM_WORLD,ierr)  
+     if (nloop.gt.4) call MPI_ABORT(MPI_COMM_WORLD,ierr)
      endif
   end do fragment_loop
 
 end subroutine fix_fragmentation
 
 
-subroutine winter(iproc,at,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
+subroutine winter(at,re_pos,pos,npminx,nlminx,nlmin,nlmin_l,accur, & 
      earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
   use module_base
   use module_types
+  use ab6_symmetry
   implicit none
   !implicit real*8 (a-h,o-z)
-  integer, intent(in) :: npminx,nlminx,nbuf,nlmin,nlmin_l,iproc,nsoften
+  integer, intent(in) :: npminx,nlminx,nlmin,nlmin_l,nsoften
   real(gp), intent(in) :: re_pos,eref,ediff,ekinetic,dt,accur
   type(atoms_data), intent(in) :: at
   real(gp), dimension(npminx), intent(in) :: elocmin
   real(gp), dimension(3,at%nat), intent(in) :: pos
-  real(gp), dimension(0:nlminx+nbuf,2), intent(in) :: earr
+  real(gp), dimension(0:nlminx,2), intent(in) :: earr
   real(gp), dimension(3,at%nat,npminx), intent(in) :: poslocmin
   !local variables
   character(len=5) :: fn
   character(len=20) :: filename
   integer :: mm,k
 
-  if (iproc == 0) then
-     call wtxyz('poscur',re_pos,pos,at,'')
+     call write_atomic_file('poscur',re_pos,pos,at,'')
      write(*,*) ' wrote poscur.xyz for  RESTART'
-  end if
      
-  call wtpos(iproc,at,npminx,nlminx,nbuf,nlmin,nlmin_l,poslocmin,earr,elocmin)
+  call wtpos(at,npminx,nlminx,nlmin,nlmin_l,poslocmin,earr,elocmin)
 
-  if (iproc == 0) then
      write(*,*) ' wrote poslow files'
      
      open(unit=12,file='earr.dat',status='unknown')
-     mm=min(nlmin,nlminx+nbuf)
-     write(12,'(2(i10),a)') mm,mm+1,&
+     mm=min(nlmin,nlminx)
+     write(12,'(2(i10),a)') mm,mm+10,&
           ' # of minima already found, # of minima to be found in consecutive run'
      write(12,'(e24.17,1x,a)') eref,'   eref'
      write(12,'(e24.17,1x,a)') accur,'   accur'
@@ -1698,7 +1515,6 @@ subroutine winter(iproc,at,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, &
      
      call  wtioput(ediff,ekinetic,dt,nsoften)
      write(*,*) ' wrote ioput for  RESTART'
-  end if
 
 end subroutine winter
 
@@ -1706,112 +1522,50 @@ end subroutine winter
 subroutine wtioput(ediff,ekinetic,dt,nsoften)
   implicit real*8 (a-h,o-z)
   open(unit=11,file='ioput',status='unknown')
-  write(11,'(3(1x,1pe24.17)1x,i4,a)') ediff,ekinetic,dt,nsoften,' ediff, ekinetic,dt,nsoften'
+  write(11,'(3(1x,1pe24.17)1x,i4,a)') ediff,ekinetic,dt,nsoften,' ediff, ekinetic dt and nsoften'
   close(11)
 end subroutine wtioput
 
 
-subroutine wtbest(nat,energy,pos,iatype,atomnames,natpol)
-  implicit real*8 (a-h,o-z)
-  character(len=41) :: filename
-  character(len=20) :: atomnames
-  character(len=3) :: fn
-  dimension pos(3,nat),iatype(nat),atomnames(100)
-  integer, dimension(nat), intent(in) :: natpol
-
-  !Generate filename and open files
-  filename = 'posbest.xyz'
-  open(unit=9,file=filename,status='unknown')
-  write(9,'(i4,2x,a,1pe24.17)') nat,'  atomic', energy
-  write(9,'(e24.17)') energy
-  do iat=1,nat
-     write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)') atomnames(iatype(iat)),&
-          pos(1,iat),pos(2,iat),pos(3,iat),natpol(iat)-100
-  enddo
-  close(unit=9)
-end subroutine wtbest
-
-subroutine wtmd(istep,nat,energy,pos,iatype,atomnames,natpol)
-  implicit real*8 (a-h,o-z)
-  character(len=20) :: filename
-  character(len=20) :: atomnames(100)
-  character(len=4) :: fn
-  dimension pos(3,nat),iatype(nat)
-  integer, dimension(nat):: natpol
-
-  !C generate filename and open files
-  write(fn,'(i4.4)') istep
-  filename = 'posmd_'//fn//'.xyz'
-  open(unit=9,file=filename,status='unknown')
-  write(9,'(i4,2x,a,1x,1pe24.17)') nat,'  atomic',energy
-  write(9,'(e24.17)') energy
-  do iat=1,nat
-     write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)') atomnames(iatype(iat)),&
-          pos(1,iat),pos(2,iat),pos(3,iat),natpol(iat)-100
-  enddo
-  close(9)
-  return
-end subroutine wtmd
-
-
-
-subroutine wtlmin(nconjgr,nat,energy,fnrm,pos,iatype,atomnames,natpol)
-  implicit real*8 (a-h,o-z)
-  character(len=20) :: filename
-  character(len=20) :: atomnames(100)
-  character(len=4) :: fn
-  dimension pos(3,nat),iatype(nat)
-  integer, dimension(nat):: natpol
-
-  !C generate filename and open files
-  write(fn,'(i4.4)') nconjgr
-  filename = 'poslocm_'//fn//'.xyz'
-  open(unit=9,file=filename,status='unknown')
-  write(9,'(i4,2x,a,1x,1pe24.17)') nat,'  atomic',energy
-  write(9,'(e24.17,1x,1pe10.3)') energy,fnrm
-  do iat=1,nat
-     write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)') atomnames(iatype(iat)),&
-          pos(1,iat),pos(2,iat),pos(3,iat),natpol(iat)-100
-  enddo
-  close(9)
-
-end subroutine wtlmin
-
-
-
-subroutine wtpos(iproc,at,npminx,nlminx,nbuf,nlmin,nlmin_l,pos,earr,elocmin)
+subroutine wtpos(at,npminx,nlminx,nlmin,nlmin_l,pos,earr,elocmin)
   use module_base
   use module_types
+  use ab6_symmetry
   implicit none
   !implicit real*8 (a-h,o-z)
-  integer, intent(in) :: npminx,nlminx,nbuf,nlmin,nlmin_l,iproc
+  integer, intent(in) :: npminx,nlminx,nlmin,nlmin_l
   type(atoms_data), intent(in) :: at
   real(gp), dimension(npminx), intent(in) :: elocmin
-  real(gp), dimension(0:nlminx+nbuf,2), intent(in) :: earr
+  real(gp), dimension(0:nlminx,2), intent(in) :: earr
   real(gp), dimension(3,at%nat,npminx), intent(in) :: pos
   !local variables
   character(len=5) :: fn
   character(len=17) :: filename
   character(len=20) :: atomnames
-  integer :: k,kk
+  integer :: k,kk,i
 
-  !	do i=1,min(40,nlmin,nlminx+nbuf)
-  !	write(*,*) i,earr(i,1)
-  !        enddo
+       write(*,*) 'nlmin,nlminx,nlmin_l,npminx',nlmin,nlminx,nlmin_l,npminx
+       do i=1,min(40,nlmin,nlminx)
+         write(*,'(i4,e24.17)') i,earr(i,1)
+       enddo
 
   do k=1,min(nlmin_l,npminx)
-     !        write(*,*) 'k,elocmin(k)',k,elocmin(k)
+             write(*,'(a,i4,e24.17)') 'k,elocmin(k)',k,elocmin(k)
 
 
      !C Classify the configuration in the global ranking
      kk=0
      find_kk : do
         kk=kk+1
-        if (kk > min(nlmin,nlminx+nbuf)) then 
-           if (iproc == 0) write(*,*) 'ranking error for',k
+        if (kk > min(nlmin,nlminx)) then 
+           write(*,*) 'ranking error for',k
            stop 
         endif
-        if (earr(kk,1) == elocmin(k)) exit find_kk
+!        if (earr(kk,1) == elocmin(k)) exit find_kk
+        if (abs(earr(kk,1) - elocmin(k)) .lt. 1.d-12 ) then 
+             write(*,*) 'match ',abs(earr(kk,1) - elocmin(k))
+             exit find_kk
+        endif
      end do find_kk
 
      if (kk <= npminx) then
@@ -1819,10 +1573,8 @@ subroutine wtpos(iproc,at,npminx,nlminx,nbuf,nlmin,nlmin_l,pos,earr,elocmin)
         !        write(*,'(a,i2,i4,i4,1x,1pe21.14)') 'k,kk,elocmin(k)',k,kk,elocmin(k)
 
         !C generate filename and open files
-        if (iproc == 0) then
            write(fn,'(i5.5)') kk
-           call wtxyz('poslow'//fn,elocmin(k),pos(1,1,k),at,'')
-        end if
+           call  write_atomic_file('poslow'//fn,elocmin(k),pos(1,1,k),at,'')
      endif
 
   end do
@@ -1853,26 +1605,26 @@ end function round
 
 
 
-subroutine rdposout(igeostep,rxyz,nat)
-  implicit none
-  integer, intent(in) :: igeostep,nat
-  real(kind=8), dimension(3,nat), intent(out) :: rxyz
-  !local variables
-  character(len=3) :: fn
-  character(len=20) :: filename
-  integer :: iat
-  write(fn,'(i3.3)') igeostep
-  !filename = 'posout_'//fn//'.ascii'
-  filename = 'posout_'//fn//'.xyz'
-  ! write(*,*)'# reading unrelaxed structure from ',filename
-  open(unit=9,file=filename,status='old')
-  read(9,*)fn!no need for header
-  read(9,*)fn!same
-  do iat=1,nat
-     read(9,*)fn,rxyz(:,iat)!we know the atom types already
-  enddo
-  close(unit=9)
-end subroutine rdposout
+!subroutine rdposout(igeostep,rxyz,nat)
+!  implicit none
+!  integer, intent(in) :: igeostep,nat
+!  real(kind=8), dimension(3,nat), intent(out) :: rxyz
+!  !local variables
+!  character(len=3) :: fn
+!  character(len=20) :: filename
+!  integer :: iat
+!  write(fn,'(i3.3)') igeostep
+!  !filename = 'posout_'//fn//'.ascii'
+!  filename = 'posout_'//fn//'.xyz'
+!  ! write(*,*)'# reading unrelaxed structure from ',filename
+!  open(unit=9,file=filename,status='old')
+!  read(9,*)fn!no need for header
+!  read(9,*)fn!same
+!  do iat=1,nat
+!     read(9,*)fn,rxyz(:,iat)!we know the atom types already
+!  enddo
+!  close(unit=9)
+!end subroutine rdposout
 
 !routine for adjusting the dimensions with the center of mass in the middle
 subroutine adjustrxyz(nat,alat1,alat2,alat3,rxyz)

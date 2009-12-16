@@ -36,8 +36,9 @@ module module_types
      integer :: iabscalc_type   ! 0 non calc, 1 cheb ,  2 lanc
      integer :: iat_absorber, L_absorber
      real(gp), pointer:: Gabs_coeffs(:)
-     logical :: c_absorbtion , abscalc_alterpot, abscalc_eqdiff 
-     integer :: potshortcut
+     logical ::  c_absorbtion , abscalc_alterpot, abscalc_eqdiff 
+     integer ::  potshortcut
+     integer ::  nsteps
      
      ! kpoints related input variables
      integer :: nkpt
@@ -401,6 +402,33 @@ contains
     call memocc(i_stat,i_all,'ndsplt',subname)
   end subroutine deallocate_comms
 !!***
+
+!!****f* module_types/deallocate_abscalc_input
+!! FUNCTION
+!!  
+!! SOURCE
+!!
+  subroutine deallocate_abscalc_input(in, subname)
+    use module_base
+    implicit none
+    type(input_variables) :: in
+    character(len=*), intent(in) :: subname
+
+
+    !local variables
+    integer :: i_all,i_stat
+
+    i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
+    deallocate(in%Gabs_coeffs, stat=i_stat)
+    call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
+
+  end subroutine deallocate_abscalc_input
+!!***
+
+
+
+
+
 
 !!****f* module_types/deallocate_orbs
 !! FUNCTION

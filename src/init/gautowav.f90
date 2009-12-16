@@ -566,6 +566,411 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
 
 end subroutine gaussians_to_wavelets
 
+subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors), intent(in) :: lr
+  type(orbitals_data), intent(in) :: orbs
+  type(gaussian_basis), intent(in) :: G
+  real(wp), dimension(G%ncoeff,orbs%nspinor,orbs%norbp), intent(in) :: wfn_gau
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
+  !local variables
+  integer :: iat,iorb,ierr,ispinor,ncplx
+  real(dp) :: normdev,tt,scpr,totnorm
+  real(gp) :: kx,ky,kz
+
+  if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
+       'Writing wavefunctions in wavelet form...'
+
+  normdev=0.0_dp
+  tt=0.0_dp
+  do iorb=1,orbs%norbp
+     !features of the k-point ikpt
+     kx=orbs%kpts(1,orbs%iokpt(iorb))
+     ky=orbs%kpts(2,orbs%iokpt(iorb))
+     kz=orbs%kpts(3,orbs%iokpt(iorb))
+
+     !evaluate the complexity of the k-point
+     if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
+        ncplx=1
+     else
+        ncplx=2
+     end if
+     totnorm=0.0_dp
+     do ispinor=1,orbs%nspinor,ncplx
+        !print *,'start',ispinor,ncplx,iorb,orbs%nspinor
+        !the Block wavefunctions are exp(-Ikr) psi(r) (with MINUS k)
+        call gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,&
+             wfn_gau(1,ispinor,iorb),psi(1,ispinor,iorb))
+        !print *,'end',ispinor,ncplx,iorb,orbs%nspinor
+        call wnrm_wrap(ncplx,lr%wfd%nvctr_c,lr%wfd%nvctr_f,psi(1,ispinor,iorb),scpr) 
+        totnorm=totnorm+scpr
+     end do
+     !write(*,'(1x,a,i5,1pe14.7,i3)')'norm of orbital ',iorb,totnorm,ncplx
+     do ispinor=1,orbs%nspinor
+        call wscal_wrap(lr%wfd%nvctr_c,lr%wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),&
+             psi(1,ispinor,iorb))
+     end do
+     tt=max(tt,abs(1.0_dp-totnorm))
+
+  end do
+
+  if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
+  !renormalize the orbitals
+  !calculate the deviation from 1 of the orbital norm
+  if (nproc > 1) then
+     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  else
+     normdev=tt
+  end if
+  if (iproc ==0) write(*,'(1x,a,1pe12.2)')&
+       'Deviation from normalization of the imported orbitals',normdev
+
+end subroutine gaussians_to_wavelets_new
+
+
+subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ncplx
+  real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
+  type(locreg_descriptors), intent(in) :: lr
+  type(gaussian_basis), intent(in) :: G
+  real(wp), dimension(G%ncoeff), intent(in) :: wfn_gau
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(out) :: psi
+  !local variables
+  character(len=*), parameter :: subname='gaussians_to_wavelets_orb'
+  integer, parameter :: nterm_max=3,maxsizeKB=2048,nw=32000
+  logical :: perx,pery,perz
+  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,i,nterm,ierr,ig
+  integer :: nterms_max,nterms,iscoeff,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3
+  real(gp) :: rx,ry,rz,gau_a
+  integer, dimension(nterm_max) :: lx,ly,lz
+  real(gp), dimension(nterm_max) :: fac_arr
+  real(wp), dimension(0:nw,2,2) :: work
+  real(wp), allocatable, dimension(:,:,:,:) :: wx,wy,wz
+
+  !calculate nterms_max:
+  !allows only maxsizeKB per one-dimensional array
+  !(for a grid of dimension 100 nterms_max=655)
+  !bu with at least ngx*nterm_max ~= 100 elements
+  nterms_max=max(maxsizeKB*1024/(2*ncplx*max(lr%d%n1,lr%d%n2,lr%d%n3)),100)
+
+  allocate(wx(ncplx,0:lr%d%n1,2,nterms_max+ndebug),stat=i_stat)
+  call memocc(i_stat,wx,'wx',subname)
+  allocate(wy(ncplx,0:lr%d%n2,2,nterms_max+ndebug),stat=i_stat)
+  call memocc(i_stat,wy,'wy',subname)
+  allocate(wz(ncplx,0:lr%d%n3,2,nterms_max+ndebug),stat=i_stat)
+  call memocc(i_stat,wz,'wz',subname)
+
+  !conditions for periodicity in the three directions
+  perx=(lr%geocode /= 'F')
+  pery=(lr%geocode == 'P')
+  perz=(lr%geocode /= 'F')
+
+  !initialize the wavefunction
+  call razero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx,psi)
+  !this can be changed to be passed only once to all the gaussian basis
+  !eks=0.d0
+
+  !calculate the number of terms for this orbital
+  nterms=0
+  !loop over the atoms
+  ishell=0
+  iexpo=1
+  icoeff=1
+  iscoeff=1
+  iterm=1
+  do iat=1,G%nat
+     rx=G%rxyz(1,iat)
+     ry=G%rxyz(2,iat)
+     rz=G%rxyz(3,iat)
+     !loop over the number of shells of the atom type
+     do isat=1,G%nshell(iat)
+        ishell=ishell+1
+        !the degree of contraction of the basis function
+        !is the same as the ng value of the createAtomicOrbitals routine
+        ng=G%ndoc(ishell)
+        !angular momentum of the basis set(shifted for compatibility with BigDFT routines
+        l=G%nam(ishell)
+        !print *,iproc,iat,ishell,G%nam(ishell),G%nshell(iat)
+        !multiply the values of the gaussian contraction times the orbital coefficient
+
+        do m=1,2*l-1
+           call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
+           !control whether the basis element may be
+           !contribute to some of the orbital of the processor
+           if (wfn_gau(icoeff) /= 0.0_wp) then
+              if (nterms + nterm*ng > nterms_max) then
+                 !accumulate wavefuncton
+                 call wfn_from_tensprod(lr,ncplx,nterms,wx,wy,wz,psi)
+                 iterm=1
+                 nterms=0
+              end if
+              !assign the arrays
+              !make sure that the coefficients returned by 
+              !gauss_to_daub are zero outside [ml:mr] 
+              do ig=1,ng
+                 do i=1,nterm
+                    !print *,iat,ig,i,fac_arr(i),wfn_gau(icoeff),G%xp(iexpo+ig-1)
+                    gau_a=G%xp(iexpo+ig-1)
+                    n_gau=lx(i)
+                    !print *,'x',nterm,ncplx,kx,ky,kz
+                    call gauss_to_daub_k(hx,kx*hx,ncplx,fac_arr(i),rx,gau_a,n_gau,&
+                         lr%d%n1,ml1,mu1,&
+                         wx(1,0,1,iterm),work,nw,perx) 
+                    n_gau=ly(i)
+                    !print *,'y' 
+                    call gauss_to_daub_k(hy,ky*hy,ncplx,wfn_gau(icoeff),ry,gau_a,n_gau,&
+                         lr%d%n2,ml2,mu2,&
+                         wy(1,0,1,iterm),work,nw,pery) 
+                    n_gau=lz(i) 
+                    !print *,'z'
+                    call gauss_to_daub_k(hz,kz*hz,ncplx,G%psiat(iexpo+ig-1),rz,gau_a,n_gau,&
+                         lr%d%n3,ml3,mu3,&
+                         wz(1,0,1,iterm),work,nw,perz) 
+                    iterm=iterm+1
+                 end do
+              end do
+              nterms=nterms+nterm*ng
+           end if
+           icoeff=icoeff+1
+        end do
+        iexpo=iexpo+ng
+     end do
+  end do
+
+  call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
+
+  !accumulate wavefuncton
+  call wfn_from_tensprod(lr,ncplx,nterms,wx,wy,wz,psi)
+
+  i_all=-product(shape(wx))*kind(wx)
+  deallocate(wx,stat=i_stat)
+  call memocc(i_stat,i_all,'wx',subname)
+  i_all=-product(shape(wy))*kind(wy)
+  deallocate(wy,stat=i_stat)
+  call memocc(i_stat,i_all,'wy',subname)
+  i_all=-product(shape(wz))*kind(wz)
+  deallocate(wz,stat=i_stat)
+  call memocc(i_stat,i_all,'wz',subname)
+
+
+end subroutine gaussians_to_wavelets_orb
+
+!accumulate 3d wavefunction in complex form from a tensor produc decomposition
+!universal routine which should be used for all gautowav operations
+subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ncplx,nterm
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(ncplx,0:lr%d%n1,2,nterm), intent(in) :: wx
+  real(wp), dimension(ncplx,0:lr%d%n2,2,nterm), intent(in) :: wy
+  real(wp), dimension(ncplx,0:lr%d%n3,2,nterm), intent(in) :: wz
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: psi
+  !local variables
+  integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
+  real(wp) :: re_cmplx_prod,im_cmplx_prod
+
+  !the filling of the wavefunction should be different if ncplx==1 or 2
+  !split such as to avoid intensive call to if statements
+  
+  !$omp parallel default(private) shared(lr%nseg_c,lr%wfd%keyv,lr%wfd%keyg,lr%d) &
+  !$omp shared(psi,wx,wy,wz,lr%wfd%nvctr_c) &
+  !$omp shared(nterm,lr%wfd%nvctr_f,lr%wfd%nseg_f)
+  !$	ithread=omp_get_thread_num()
+  !$	nthread=omp_get_num_threads()
+  if (ncplx == 1) then
+
+     !$  if(ithread .eq. 0) then
+     ! Other terms: coarse projector components
+     ! coarse part
+     nvctr=0
+     do iseg=1,lr%wfd%nseg_c
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_c=i-i0+jj
+           do iterm=1,nterm
+              psi(ind_c)=psi(ind_c)+&
+                   wx(1,i,1,iterm)*wy(1,i2,1,iterm)*wz(1,i3,1,iterm)
+           end do
+           nvctr=nvctr+1
+        end do
+     end do
+
+     if (nvctr /=  lr%wfd%nvctr_c) then
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
+        stop
+     end if
+     !$  end if
+
+     !$  if(ithread .eq. 1 .or. nthread .eq. 1) then
+     ! Other terms: fine projector components
+     nvctr=0
+     do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
+           do iterm=1,nterm
+              psi(ind_f+1)=psi(ind_f+1)+&
+                   wx(1,i,2,iterm)*wy(1,i2,1,iterm)*wz(1,i3,1,iterm)
+              psi(ind_f+2)=psi(ind_f+2)+&
+                   wx(1,i,1,iterm)*wy(1,i2,2,iterm)*wz(1,i3,1,iterm)
+              psi(ind_f+3)=psi(ind_f+3)+&
+                   wx(1,i,2,iterm)*wy(1,i2,2,iterm)*wz(1,i3,1,iterm)
+              psi(ind_f+4)=psi(ind_f+4)+&
+                   wx(1,i,1,iterm)*wy(1,i2,1,iterm)*wz(1,i3,2,iterm)
+              psi(ind_f+5)=psi(ind_f+5)+&
+                   wx(1,i,2,iterm)*wy(1,i2,1,iterm)*wz(1,i3,2,iterm)
+              psi(ind_f+6)=psi(ind_f+6)+&
+                   wx(1,i,1,iterm)*wy(1,i2,2,iterm)*wz(1,i3,2,iterm)
+              psi(ind_f+7)=psi(ind_f+7)+&
+                   wx(1,i,2,iterm)*wy(1,i2,2,iterm)*wz(1,i3,2,iterm)
+           end do
+           nvctr=nvctr+1
+        end do
+     end do
+     if (nvctr /= lr%wfd%nvctr_f) then
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
+        stop 
+     end if
+     !$  end if
+  else if (ncplx ==2) then
+
+     !part with real and imaginary part
+     !modify the openMP statements such as to benefit from parallelisation
+
+     !$  if(ithread .eq. 0) then
+     ! Other terms: coarse projector components
+     ! coarse part
+     nvctr=0
+     do iseg=1,lr%wfd%nseg_c
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_c=i-i0+jj
+           do iterm=1,nterm
+              psi(ind_c)=psi(ind_c)+re_cmplx_prod(&
+                   wx(1,i,1,iterm),wy(1,i2,1,iterm),wz(1,i3,1,iterm))
+           end do
+           nvctr=nvctr+1
+        end do
+     end do
+     if (nvctr /=  lr%wfd%nvctr_c) then
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
+        stop
+     end if
+     !$  end if
+
+     !$  if(ithread .eq. 1 .or. nthread .eq. 1) then
+     ! Other terms: fine projector components
+     nvctr=0
+     do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
+           do iterm=1,nterm
+              psi(ind_f+1)=psi(ind_f+1)+re_cmplx_prod(&
+                   wx(1,i,2,iterm),wy(1,i2,1,iterm),wz(1,i3,1,iterm))
+              psi(ind_f+2)=psi(ind_f+2)+re_cmplx_prod(&
+                   wx(1,i,1,iterm),wy(1,i2,2,iterm),wz(1,i3,1,iterm))
+              psi(ind_f+3)=psi(ind_f+3)+re_cmplx_prod(&
+                   wx(1,i,2,iterm),wy(1,i2,2,iterm),wz(1,i3,1,iterm))
+              psi(ind_f+4)=psi(ind_f+4)+re_cmplx_prod(&
+                   wx(1,i,1,iterm),wy(1,i2,1,iterm),wz(1,i3,2,iterm))
+              psi(ind_f+5)=psi(ind_f+5)+re_cmplx_prod(&
+                   wx(1,i,2,iterm),wy(1,i2,1,iterm),wz(1,i3,2,iterm))
+              psi(ind_f+6)=psi(ind_f+6)+re_cmplx_prod(&
+                   wx(1,i,1,iterm),wy(1,i2,2,iterm),wz(1,i3,2,iterm))
+              psi(ind_f+7)=psi(ind_f+7)+re_cmplx_prod(&
+                   wx(1,i,2,iterm),wy(1,i2,2,iterm),wz(1,i3,2,iterm))
+           end do
+           nvctr=nvctr+1
+        end do
+     end do
+     if (nvctr /= lr%wfd%nvctr_f) then
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
+        stop 
+     end if
+     !$  end if
+     
+     !now the imaginary part
+     
+     !$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then 
+     ! Other terms: coarse projector components
+     ! coarse part
+     do iseg=1,lr%wfd%nseg_c
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_c=lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+i-i0+jj
+           do iterm=1,nterm
+              psi(ind_c)=psi(ind_c)+im_cmplx_prod(&
+                   wx(1,i,1,iterm),wy(1,i2,1,iterm),wz(1,i3,1,iterm))
+           end do
+        end do
+     end do
+
+     !$  end if
+
+     !$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
+     ! Other terms: fine projector components
+     do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_f=lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+lr%wfd%nvctr_c+7*(i-i0+jj-1)
+           do iterm=1,nterm
+              psi(ind_f+1)=psi(ind_f+1)+im_cmplx_prod(&
+                   wx(1,i,2,iterm),wy(1,i2,1,iterm),wz(1,i3,1,iterm))
+              psi(ind_f+2)=psi(ind_f+2)+im_cmplx_prod(&
+                   wx(1,i,1,iterm),wy(1,i2,2,iterm),wz(1,i3,1,iterm))
+              psi(ind_f+3)=psi(ind_f+3)+im_cmplx_prod(&
+                   wx(1,i,2,iterm),wy(1,i2,2,iterm),wz(1,i3,1,iterm))
+              psi(ind_f+4)=psi(ind_f+4)+im_cmplx_prod(&
+                   wx(1,i,1,iterm),wy(1,i2,1,iterm),wz(1,i3,2,iterm))
+              psi(ind_f+5)=psi(ind_f+5)+im_cmplx_prod(&
+                   wx(1,i,2,iterm),wy(1,i2,1,iterm),wz(1,i3,2,iterm))
+              psi(ind_f+6)=psi(ind_f+6)+im_cmplx_prod(&
+                   wx(1,i,1,iterm),wy(1,i2,2,iterm),wz(1,i3,2,iterm))
+              psi(ind_f+7)=psi(ind_f+7)+im_cmplx_prod(&
+                   wx(1,i,2,iterm),wy(1,i2,2,iterm),wz(1,i3,2,iterm))
+           end do
+        end do
+     end do
+     !$  end if
+  end if
+
+  !$omp end parallel
+
+end subroutine wfn_from_tensprod
+
+subroutine segments_to_grid(keyv,keyg,grid,i0,i1,i2,i3,jj)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: keyv
+  integer, dimension(2), intent(in) :: keyg
+  type(grid_dimensions), intent(in) :: grid
+  integer, intent(out) :: i0,i1,i2,i3,jj
+  !local variables
+  integer :: j0,j1,ii
+
+  jj=keyv
+  j0=keyg(1)
+  j1=keyg(2)
+  ii=j0-1
+  i3=ii/((grid%n1+1)*(grid%n2+1))
+  ii=ii-i3*(grid%n1+1)*(grid%n2+1)
+  i2=ii/(grid%n1+1)
+  i0=ii-i2*(grid%n1+1)
+  i1=i0+j1-j0
+end subroutine segments_to_grid
+
+
 
 !temporary creation, better to put in standby
 !!!subroutine sumrho_gaussians(geocode,iproc,nproc,norb,norbp,nspin,nspinor,&

@@ -259,8 +259,8 @@ program frequencies
   call solve(hessian,3*atoms%nat,eigen_r,eigen_i,vector_l,vector_r)
 
   if (iproc==0) then
-     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r
-     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i
+     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(1:3*atoms%nat)
+     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i(1:3*atoms%nat)
      do i=1,3*atoms%nat
         if (eigen_r(i)<0.0_dp) then
            eigen_r(i)=-sqrt(-eigen_r(i))
@@ -268,8 +268,8 @@ program frequencies
            eigen_r(i)= sqrt( eigen_r(i))
        end if
      end do
-     write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r
-     write(*,'(1x,a,1x,100(f13.2))') '=F: frequencies (cm-1)      =',eigen_r*Ha_cmm1
+     write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r(1:3*atoms%nat)
+     write(*,'(1x,a,1x,100(f13.2))') '=F: frequencies (cm-1)      =',eigen_r(1:3*atoms%nat)*Ha_cmm1
      !Build frequencies.xyz
      open(unit=15,file='frequencies.xyz',status="unknown")
      do i=1,3*atoms%nat
