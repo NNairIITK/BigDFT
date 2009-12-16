@@ -2133,13 +2133,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
      infocode=0
  
      if(in%iabscalc_type==2) then
-        call lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
+        call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
              , in%iat_absorber  , .false., orbs%norb,   psit , orbs%eval , in )
         
      else
-        call  chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
+        call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
              , in%iat_absorber, in)

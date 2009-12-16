@@ -1,6 +1,6 @@
 
 
-subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
+subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
      doorthoocc,Occ_norb,Occ_psit,Occ_eval,&
@@ -10,7 +10,7 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   use lanczos_interface
   use lanczos_base
   ! per togliere il bug 
-  use module_interfaces ,except_this_one => lanczos
+  use module_interfaces ,except_this_one => xabs_lanczos
 
 
   implicit none
@@ -230,9 +230,9 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   call deallocate_abscalc_input(in, subname)
 
 
-end subroutine lanczos
+end subroutine xabs_lanczos
 
-subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
+subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
   use module_base
@@ -240,7 +240,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   use lanczos_interface
   use lanczos_base
   ! per togliere il bug 
-  use module_interfaces, except_this_one => chebychev
+  use module_interfaces, except_this_one => xabs_chebychev
   
 
   implicit none
@@ -532,5 +532,5 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 !!$  endif
 
 
-end subroutine chebychev
+end subroutine xabs_chebychev
 

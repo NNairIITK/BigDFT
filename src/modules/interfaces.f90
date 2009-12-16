@@ -722,7 +722,7 @@ module module_interfaces
        real(dp), dimension(:), pointer :: pkernel_ref,pkernel
      end subroutine correct_hartree_potential
 
-     subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
+     subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
           radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
           ekin_sum,epot_sum,eproj_sum,nspin,GPU, in_iat_absorber, doorthoocc, Occ_norb, Occ_psit, Occ_eval, in )
        use module_base
@@ -750,10 +750,10 @@ module module_interfaces
        type(input_variables),intent(in) :: in
 
 
-     end subroutine lanczos
+     end subroutine xabs_lanczos
 
 
-     subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
+     subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
           radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
           ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
        use module_base
@@ -777,7 +777,7 @@ module module_interfaces
 
        type(input_variables),intent(in) :: in
 
-     end subroutine chebychev
+     end subroutine xabs_chebychev
 
 
 
