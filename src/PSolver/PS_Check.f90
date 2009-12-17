@@ -2,22 +2,16 @@
 !! FUNCTION
 !!    Performs a check of the Poisson Solver suite by running with different regimes
 !!    and for different choices of the XC functionals
-!!
 !! COPYRIGHT
-!!    Copyright (C) 2002-2007 BigDFT group 
+!!    Copyright (C) 2002-2009 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
 !! AUTHOR
 !!    Luigi Genovese
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007 CEA
 !! CREATION DATE
 !!    February 2007
-!!
 !! SOURCE
 !!
 program PS_Check
@@ -137,8 +131,9 @@ program PS_Check
           offset,ehartree,eexcu,vexcu,&
           density,potential,pot_ion,xc_pot,pkernel)
 
-     !test for the serial solver
-     if (iproc == 0 .and. nproc > 1 ) then
+     !test for the serial solver (always done to have a simpler comparison)
+     !if (iproc == 0 .and. nproc > 1 ) then
+     if (iproc == 0) then
         i_all=-product(shape(pkernel))*kind(pkernel)
         deallocate(pkernel,stat=i_stat)
         call memocc(i_stat,i_all,'pkernel',subname)
