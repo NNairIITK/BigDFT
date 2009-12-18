@@ -1,5 +1,15 @@
-
-
+!!****f* BigDFT/lanczos
+!! FUNCTION
+!!   Lanczos diagonalization
+!! COPYRIGHT
+!!    Copyright (C) 2009 ESRF (AM, LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
@@ -50,8 +60,6 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   real(wp),  pointer, dimension(:,:)  :: dum_coeffs
   character(len=800) :: filename
   logical :: projeexists
-
-
 
 
   if(iproc==0) print *, " IN ROUTINE LANCZOS "
@@ -198,8 +206,6 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      call LB_de_allocate_for_lanczos( )
 
 
-     
-
   endif
   
   call deallocate_comms(ha%comms,subname)
@@ -231,7 +237,14 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
 end subroutine lanczos
+!!***
 
+
+!!****f* BigDFT/chebychev
+!! FUNCTION
+!!   Chebychev polynomials to calculate the density of states
+!! SOURCE
+!!
 subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
@@ -242,7 +255,6 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ! per togliere il bug 
   use module_interfaces, except_this_one => chebychev
   
-
   implicit none
   integer  :: iproc,nproc,ndimpot,nspin
   real(gp)  :: hx,hy,hz
@@ -259,11 +271,9 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   type(GPU_pointers), intent(inout) , target :: GPU
   integer, intent(in) :: in_iat_absorber
   
-
   type(input_variables),intent(in) :: in
 
-
-  !local variables
+  !Local variables
   character(len=*), parameter :: subname='chebychev'
   integer :: i_stat,i_all
   type(lanczos_args) :: ha
@@ -281,10 +291,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   real(gp) Pi
 
 
-
-
   if (iproc==0) print *, " IN ROUTINE  chebychev  "
-
 
   Pi=acos(-1.0_gp)
 
@@ -436,10 +443,8 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   endif
 
 
-
   cheb_shift=0.5*(eval_min+ eval_max) 
   fact_cheb = (2-0.0001)/(eval_max-eval_min)
-     
         
      
   if(.true.) then
@@ -533,4 +538,4 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
 end subroutine chebychev
-
+!!***
