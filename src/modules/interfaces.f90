@@ -118,6 +118,18 @@ module module_interfaces
        type(locreg_descriptors), intent(out) :: Glr
      end subroutine system_size
 
+     subroutine read_input_variables(iproc,posinp, dft, kpt, geopt, in,atoms,rxyz)
+       use module_base
+       use module_types
+       implicit none
+       character(len=*), intent(in) :: posinp
+       character(len=*), intent(in) :: dft, geopt, kpt
+       integer, intent(in) :: iproc
+       type(input_variables), intent(out) :: in
+       type(atoms_data), intent(out) :: atoms
+       real(gp), dimension(:,:), pointer :: rxyz
+     end subroutine read_input_variables
+
      subroutine read_atomic_file(file,iproc,at,rxyz)
        use module_base
        use module_types

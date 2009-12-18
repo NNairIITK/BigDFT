@@ -25,7 +25,7 @@ program memguess
   integer, parameter :: ngx=31
   character(len=20) :: tatonam
   character(len=40) :: comment
-  logical :: optimise,GPUtest,convert=.false.,exists
+  logical :: optimise,GPUtest,convert=.false.
   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: norbgpu,nspin_ig
@@ -46,8 +46,7 @@ program memguess
   integer, dimension(:), allocatable :: ng
   real(kind=8), dimension(:), allocatable :: locrad
   !! By Ali
-  integer ::iline,ierror
-  character :: Dummy
+  integer ::ierror
 ! Get arguments
 
   call getarg(1,tatonam)
@@ -146,31 +145,18 @@ program memguess
   !welcome screen
   call print_logo()
 
-  !read number of atoms
-  call read_atomic_file('posinp',0,atoms,rxyz)
-
   if (convert) then
-     call read_input_variables(0,'input.dat',in)
+     !read number of atoms
+     call read_atomic_file('posinp',0,atoms,rxyz)
+
+     call read_input_variables_old(0,'input.dat',in)
      write(*,'(a)',advance='NO')' Conversion of the input file...'
      call dft_input_converter(in)
      write(*,*)' ...done'
   else
-     call dft_input_variables(0,'input.dft',in,atoms%symObj)
-
-     ! read k-points input variables (if given)
-     call kpt_input_variables(0,'input.kpt',in,atoms)
-
-     !read geometry optimsation input variables
-     !inquire for the file needed for geometry optimisation
-     !if not present, perform a simple geometry optimisation
-     inquire(file="input.geopt",exist=exists)
-     if (exists) then
-        call geopt_input_variables(0,'input.geopt',in)
-     else
-        call geopt_input_variables_default(in)
-     end if
+     call read_input_variables(0, "posinp", "input.dft", "input.kpt", &
+          & "input.geopt", in, atoms, rxyz)
   end if
-
 
   call print_input_parameters(in,atoms)
 
