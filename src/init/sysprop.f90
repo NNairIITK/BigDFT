@@ -544,7 +544,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
   allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
-  orbs%kpts(:, 1:nkpt) = kpt(:,:)
+  orbs%kpts(:,1:nkpt) = kpt(:,:)
   orbs%kwgts(1:nkpt) = wkpt(:)
 
   ! Change the wavefunctions to complex if k-points are used (except gamma).
@@ -625,7 +625,14 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   allocate(orbs%spinsgn(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
   orbs%occup(1:orbs%norb*orbs%nkpts)=1.0_gp 
-  orbs%spinsgn(1:orbs%norb*orbs%nkpts)=1.0_gp
+  do ikpt=1,orbs%nkpts
+     do iorb=1,orbs%norbu
+        orbs%spinsgn(iorb+(ikpt-1)*orbs%norb)=1.0_gp
+     end do
+     do iorb=1,orbs%norbd
+        orbs%spinsgn(iorb+orbs%norbu+(ikpt-1)*orbs%norb)=-1.0_gp
+     end do
+  end do
 
   !allocate the array which assign the k-point to processor in transposed version
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
