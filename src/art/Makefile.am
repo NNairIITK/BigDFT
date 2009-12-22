@@ -1,4 +1,5 @@
-EXTRA_DIST = README
+EXTRA_DIST = README \
+	bart.sh
 
 art_source = bigdft_forces.f90 \
 	defs.f90 \

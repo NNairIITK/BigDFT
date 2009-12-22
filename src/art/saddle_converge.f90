@@ -49,7 +49,6 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
   endif
 
   if ( (.not. restart) .and. NEW_EVENT ) then 
-     write(*,*) "me=",iproc, " entrée"
 
      eigenvalue = 0.0d0
      call calcforce(NATOMS,type,pos,boxl,force,current_energy)
@@ -67,7 +66,6 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
      
      new_projection = .true.     !! COSMIN
      do kter = kter_init, MAXKTER
-        write(*,*) "me=",iproc, " kter=",kter
         
         k = 0
         k_rejected = 0
@@ -75,7 +73,6 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
         eigen_rejected = 0
         ! We relax perpendicularly using a simple variable-step steepest descent 
         do 
-           write(*,*) "me=",iproc, " interne"
            posb = pos + step * perp_force
            
            call calcforce(NATOMS,type,posb,boxl,forceb,total_energy)
@@ -119,7 +116,6 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
 
         
         ! We start checking of negative eigenvalues only after a few steps
-        write(*,*) "me=",iproc, " lanczos", kter, KTER_MIN
         if( kter>= KTER_MIN ) then 
            new_projection = .true.    ! We do not  use previously computed lowest direction as see
            maxvec = NVECTOR_LANCZOS
@@ -139,7 +135,7 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
         endif
 
         state_restart = 1
-        call save_state(state_restart, kter+1, initial_direction)
+        if (iproc .eq. 0 ) call save_state(state_restart, kter+1, initial_direction)
 
         if(eigenvalue <  EIGEN_THRESH) exit
      end do
@@ -192,8 +188,8 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
        
         if (iproc .eq. 0 ) write(*,*) 'Restart = 2'
         restart = .false.
-  else if (.not.NEW_EVENT) then       ! This is a convergence event
-              ! We must compute the eigenvector with precision
+  else if (.not.new_event) then       ! This is a convergence event
+                                      ! We must compute the eigenvector with precision
 
      posref = pos
 
@@ -308,71 +304,83 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
 
     saddle_energy = current_energy
     if ( (abs(fpar)+fperp)< EXITTHRESH)  then
-       if (iproc .eq. 0 ) then
-          open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
-          write(FLOG,*) "Call DIIS"
-          close(FLOG)
-       endif
 
-       call apply_diis(current_energy,ftot)
-       if (iproc.eq.0) print *, 'current energy ', current_energy
-       saddle_energy = current_energy
+       if (USE_DIIS) then 
+          if (iproc .eq. 0 ) then
+             open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
+             write(FLOG,*) "Call DIIS"
+             close(FLOG)
+          endif
 
-       if (DIIS_CHECK_EIGENVEC) then
-          new_projection = .true.
-          maxvec = NVECTOR_LANCZOS
-          do i=1, 4
-             call lanczos(maxvec,new_projection)
-             if (iproc.eq.0) then 
-                write(6,*) 'i: ', i, 'eigenvalue: ', eigenvalue," energy:",total_energy
-                open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
-                write(FLOG,*) 'i: ', i, 'eigenvalue: ', eigenvalue," energy:",total_energy
-                close(FLOG) 
+          call apply_diis(current_energy,ftot)
+          if (iproc.eq.0) print *, 'current energy ', current_energy
+          saddle_energy = current_energy
+
+          if (DIIS_CHECK_EIGENVEC) then
+             new_projection = .true.
+             maxvec = NVECTOR_LANCZOS
+             do i=1, 4
+                call lanczos(maxvec,new_projection)
+                if (iproc.eq.0) then 
+                   write(6,*) 'i: ', i, 'eigenvalue: ', eigenvalue," energy:",total_energy
+                   open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',&
+                        & iostat=ierror)
+                   write(FLOG,*) 'i: ', i, 'eigenvalue: ', eigenvalue," energy:",total_energy
+                   close(FLOG) 
+                endif
+                new_projection = .false.
+                if (eigenvalue .lt. 0.0d0 ) exit
+             end do
+             if (eigenvalue .ge. 0.0 .or. ftot .gt. DIIS_FORCE_THRESHOLD) then
+                ret = 60000 + iter
+             else
+                ret = 20000 + iter
              endif
-             new_projection = .false.
-             if (eigenvalue .lt. 0.0d0 ) exit
-          end do
-          if (eigenvalue .ge. 0.0 .or. ftot .gt. DIIS_FORCE_THRESHOLD) then
-             ret = 60000 + iter
           else
              ret = 20000 + iter
+             if (ftot .gt. DIIS_FORCE_THRESHOLD) ret = 70000+iter
           endif
        else
           ret = 20000 + iter
-          if (ftot .gt. DIIS_FORCE_THRESHOLD) ret = 70000+iter
        endif
        exit
     else if ( (abs(fpar)<0.1*EXITTHRESH) .and. (fperp<EXITTHRESH) ) then
-       if (iproc.eq. 0) then 
-          open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
-          write(FLOG,*) "Call DIIS (2)"
-          close(FLOG)
-       endif
-       call apply_diis(current_energy,ftot)
-       saddle_energy = current_energy
 
-       if (DIIS_CHECK_EIGENVEC) then
-          new_projection = .true.
-          maxvec = NVECTOR_LANCZOS
-          do i=1, 4
-             call lanczos(maxvec,new_projection)
-             if ( iproc.eq. 0) then
-                write(6,*) 'i: ', i, 'eigenvalue: ', eigenvalue," energy:",total_energy
-                open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
-                write(FLOG,*) 'i: ', i, 'eigenvalue: ', eigenvalue," energy:",total_energy
-                close(FLOG) 
+       if (USE_DIIS) then
+          if (iproc.eq. 0) then 
+             open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
+             write(FLOG,*) "Call DIIS (2)"
+             close(FLOG)
+          endif
+          call apply_diis(current_energy,ftot)
+          saddle_energy = current_energy
+
+          if (DIIS_CHECK_EIGENVEC) then
+             new_projection = .true.
+             maxvec = NVECTOR_LANCZOS
+             do i=1, 4
+                call lanczos(maxvec,new_projection)
+                if ( iproc.eq. 0) then
+                   write(6,*) 'i: ', i, 'eigenvalue: ', eigenvalue," energy:",total_energy
+                   open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',&
+                        & iostat=ierror)
+                   write(FLOG,*) 'i: ', i, 'eigenvalue: ', eigenvalue," energy:",total_energy
+                   close(FLOG) 
+                endif
+                new_projection = .false.
+                if (eigenvalue .lt. 0.0d0 ) exit
+             end do
+             if (eigenvalue .ge. 0.0 .or. ftot .gt. DIIS_FORCE_THRESHOLD) then
+                ret = 60000 + iter
+             else
+                ret = 10000 + iter
              endif
-             new_projection = .false.
-             if (eigenvalue .lt. 0.0d0 ) exit
-          end do
-          if (eigenvalue .ge. 0.0 .or. ftot .gt. DIIS_FORCE_THRESHOLD) then
-             ret = 60000 + iter
           else
              ret = 10000 + iter
+             if (ftot .gt. DIIS_FORCE_THRESHOLD) ret = 70000+iter
           endif
        else
-          ret = 10000 + iter
-          if (ftot .gt. DIIS_FORCE_THRESHOLD) ret = 70000+iter
+          ret = 0000 + iter
        endif
        exit
     else if (eigenvalue>0.0) then
