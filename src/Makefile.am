@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces memguess NEB frequencies MDanalisys $(minima_hopping_sources) 
+binaries_sources = cluster test_forces memguess NEB frequencies MDanalisys $(minima_hopping_sources) bart
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -55,7 +55,7 @@ global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules convolutions lib $(sub_dirs_ps) profiling $(sub_dirs_cuda)
+SUBDIRS = modules convolutions lib $(sub_dirs_ps) profiling $(sub_dirs_cuda) art
 
 EXTRA_DIST = \
 	wavelib/intots.inc \
@@ -322,6 +322,17 @@ frequencies_SOURCES = frequencies.f90  \
 	$(mpi_source)
 frequencies_LDFLAGS = 
 frequencies_LDADD = libbigdft.a \
+	PSolver/libpoissonsolver.a \
+	PSolver/ABINIT-common/libABINIT.a \
+	$(LMPI) \
+	@MPI_LIBS@ \
+	$(libs_cuda)
+
+bart_SOURCES = art.f90
+bart_FCFLAGS = -Iart
+bart_LDFLAGS = 
+bart_LDADD = art/libart.a \
+	libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
 	$(LMPI) \
