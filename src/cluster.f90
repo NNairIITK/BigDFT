@@ -48,7 +48,7 @@
        real(wp), dimension(:), pointer :: psi
        real(wp), dimension(:,:), pointer :: gaucoeffs
      end subroutine cluster 
-     subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
+     subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
           psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,infocode)
        use module_base
        use module_types
@@ -64,7 +64,6 @@
        real(gp), intent(out) :: energy
        real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
        real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
-       real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
        real(wp), dimension(:), pointer :: psi
        real(wp), dimension(:,:), pointer :: gaucoeffs
      end subroutine abscalc 
@@ -99,10 +98,10 @@
              rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,infocode)
 
      else
-        
-        call abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
+        call abscalc(nproc,iproc,atoms,rxyz,energy,&
              rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
              rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,infocode)
+        fxyz(:,:) = 0.d0
      endif
 
 
@@ -732,6 +731,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !end of the initialization part
   call timing(iproc,'INIT','PR')
 
+  !Davidson is set to false first because used in deallocate_before_exiting
+  DoDavidson= .false.
+
   wfn_loop: do iter=1,itermax
 
      if( in%potshortcut>0) then
@@ -895,7 +897,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !analyse the possiblity to calculate Davidson treatment
   !(nvirt > 0 .and. in%inputPsiId == 0)
-  DoDavidson= in%nvirt > 0 .and. infocode==0 .or. in%nrepmax == 1
+  DoDavidson= in%nvirt > 0 .and. (infocode==0 .or. in%nrepmax == 1)
   if (in%potshortcut==0) then
 
      call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
@@ -1519,7 +1521,7 @@ END SUBROUTINE cluster
 
 
 
-subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
+subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
      psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,infocode)
   ! inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
   ! inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
@@ -1554,7 +1556,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
   integer, intent(out) :: infocode
   real(gp), intent(out) :: energy
-  real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
   real(wp), dimension(:), pointer :: psi
   real(wp), dimension(:,:), pointer :: gaucoeffs
   !local variables

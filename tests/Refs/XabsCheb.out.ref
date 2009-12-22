@@ -58,7 +58,7 @@
  occup(1:8)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1     Fe  1.13384E+01  1.13384E+01  1.13384E+01       27.000    27.000    27.000
-    Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 Grid Spacings=  0.42  0.42  0.42
+    Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 H grids=  0.4199  0.4199  0.4199
    Box Sizes=  2.26767E+01  2.26767E+01  2.26767E+01           53        53        53
        Extremes for the high resolution grid points:        23<31     23<31     23<31
  wavelet localization is ON
@@ -225,7 +225,7 @@
  occup(1:8)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1     Fe  1.13384E+01  1.13384E+01  1.13384E+01       27.000    27.000    27.000
-    Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 Grid Spacings=  0.42  0.42  0.42
+    Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 H grids=  0.4199  0.4199  0.4199
    Box Sizes=  2.26767E+01  2.26767E+01  2.26767E+01           53        53        53
        Extremes for the high resolution grid points:        23<31     23<31     23<31
  wavelet localization is ON
@@ -404,7 +404,7 @@
  occup(1:8)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1     Fe  1.13384E+01  1.13384E+01  1.13384E+01       27.000    27.000    27.000
-    Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 Grid Spacings=  0.42  0.42  0.42
+    Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 H grids=  0.4199  0.4199  0.4199
    Box Sizes=  2.26767E+01  2.26767E+01  2.26767E+01           53        53        53
        Extremes for the high resolution grid points:        23<31     23<31     23<31
  wavelet localization is ON

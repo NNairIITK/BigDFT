@@ -9,8 +9,8 @@ EXTRA_DIST = \
 PPFILES = \
 	psppar.Si
 
-CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* SiBulk.out posout* *.prc \
-			 fldiff.report
+CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* SiBulk.out \
+	posout* *.prc fldiff.report
 
 #dependencies
 $(PPFILES):
