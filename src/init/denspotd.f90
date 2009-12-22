@@ -213,10 +213,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   end do
   !some checks
   if (orbs%norb /= 0) then
-!!!     if (ikpts /= orbs%nkpts) then
-!!!        write(*,*)' ERROR:ikpts not correct, orbitals:',ikpts,orbs%nkpts
-!!!        stop
-!!!     end if
      !check the distribution
      do ikpts=1,orbs%nkpts
         !print *,'partition',ikpts,orbs%nkpts,'ikpts',norb_par(:,ikpts)
@@ -231,6 +227,11 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      end do
   end if
 
+  !print the distribution scheme ussed for this set of orbital
+  !in the case of multiple k-points
+  if (iproc == 0 .and. verbose > 1 .and. orbs%nkpts > 1) then
+     call print_distribution_schemes(nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
+  end if
 
   !allocate communication arrays
   allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
@@ -246,9 +247,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
 
-
-  !if (iproc == 0) print *,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,'nvctrp',comms%nvctr_par(:)
-
   !assign the partition of the k-points to the communication array
   do ikpts=1,orbs%nkptsp
      ikpt=orbs%iskpts+ikpts
@@ -260,8 +258,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   !with this distribution the orbitals and the components are ordered following k-points
   !there must be no overlap for the components
   !here we will print out the k-points components distribution, in the transposed and in the direct way
-
-  !print *,'iproc,nvctr_par,norb_par',iproc,nvctr_par(:,:),norb_par(:,:)
 
   do jproc=0,nproc-1
      comms%ncntd(jproc)=0
@@ -311,11 +307,103 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 end subroutine orbitals_communicators
 
 
-!!subroutine print_distribution_schemes(iproc,nproc,nkpts,norb_par,nvctr_par)
-!!  use module_base
-!!  implicit none
-!!  integer, intent(in) :: iproc,nproc,nkpts
-!!  integer, dimension(0:nproc-1,nkpts), intent(in) :: norb_par,nvctr_par
-!!  !local variables
-!!  
-!!end subroutine print_distribution_schemes
+subroutine print_distribution_schemes(nproc,nkpts,norb_par,nvctr_par)
+  use module_base
+  implicit none
+  integer, intent(in) :: nproc,nkpts
+  integer, dimension(0:nproc-1,nkpts), intent(in) :: norb_par,nvctr_par
+  !local variables
+  integer :: jproc,ikpt,norbp,kproc,isorb,ieorb,isko,ieko,nvctrp,ispsi,iepsi,iekc,iskc
+  integer :: iko,ikc,nko,nkc
+
+  write(*,'(1x,a,a)')repeat('-',47),'Direct and transposed data repartition'
+  write(*,'(1x,8(a))')'| proc |',' N. Orbitals | K-pt |  Orbitals   ',&
+       '|| No. Components | K-pt |    Components   |'
+  do jproc=0,nproc-1
+     call start_end_distribution(nproc,nkpts,jproc,norb_par,isko,ieko,norbp)
+     call start_end_distribution(nproc,nkpts,jproc,nvctr_par,iskc,iekc,nvctrp)
+     iko=isko
+     ikc=iskc
+     nko=ieko-isko+1
+     nkc=iekc-iskc+1
+     !print total number of orbitals and components
+     write(*,'(1x,a,i4,a,i8,a,i14,a)')'| ',jproc,' |',norbp,&
+          repeat(' ',5)//'|'//repeat('-',6)//'|'//repeat('-',13)//'||',&
+          nvctrp,&
+          repeat(' ',2)//'|'//repeat('-',6)//'|'//repeat('-',17)//'|'
+     do ikpt=1,min(nko,nkc)
+        call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
+        call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
+        write(*,'(a,i4,a,i5,a,i5,a,i4,a,i8,a,i8,a)')&
+             ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
+             iko,'  |',isorb,'-',ieorb,&
+             '  ||'//repeat(' ',16)//'|',&
+             ikc,'  |',ispsi,'-',iepsi,'|'
+        iko=iko+1
+        ikc=ikc+1
+     end do
+     if (nko > nkc) then
+        do ikpt=nkc+1,nko
+           call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
+           write(*,'(10x,i4,i8,a,i8)')iko,isorb,'-',ieorb
+           iko=iko+1
+        end do
+     else if (nkc > nko) then
+        do ikpt=nko+1,nkc
+           call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
+           write(*,'(a,i4,a,i8,a,i8,a)')&
+                ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|'//repeat(' ',4)//'  |'//&
+                repeat(' ',13)//'|| '//repeat(' ',15)//'|',&
+                ikc,'  |',ispsi,'-',iepsi,'|'
+           ikc=ikc+1
+        end do
+     end if
+  end do
+  
+end subroutine print_distribution_schemes
+
+subroutine start_end_distribution(nproc,nkpts,jproc,ndist,is,ie,norbp)
+  implicit none
+  integer, intent(in) :: nproc,nkpts,jproc
+  integer, dimension(0:nproc-1,nkpts), intent(in) :: ndist
+  integer, intent(out) :: is,ie,norbp
+  !local variables
+  integer :: ikpt
+  norbp=0
+  do ikpt=1,nkpts
+     norbp=norbp+ndist(jproc,ikpt)
+  end do
+  if (norbp == 0) then
+     is=nkpts
+     ie=nkpts
+  end if
+  loop_is: do ikpt=1,nkpts
+     if (ndist(jproc,ikpt) /= 0) then
+        is=ikpt
+        exit loop_is
+     end if
+  end do loop_is
+  loop_ie: do ikpt=nkpts,1,-1
+     if (ndist(jproc,ikpt) /= 0) then
+        ie=ikpt
+        exit loop_ie
+     end if
+  end do loop_ie
+end subroutine start_end_distribution
+
+subroutine start_end_comps(nproc,jproc,ndist,is,ie)
+  implicit none
+  integer, intent(in) :: nproc,jproc
+  integer, dimension(0:nproc-1), intent(in) :: ndist
+  integer, intent(out) :: is,ie
+  !local variables
+  integer :: kproc
+
+  is=1
+  do kproc=0,jproc-1
+     is=is+ndist(kproc)
+  end do
+  ie=is+ndist(jproc)-1
+  
+end subroutine start_end_comps
+

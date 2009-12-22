@@ -895,7 +895,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !analyse the possiblity to calculate Davidson treatment
   !(nvirt > 0 .and. in%inputPsiId == 0)
-  DoDavidson= in%nvirt > 0 .and. infocode==0 .or. in%nrepmax == 1
+  DoDavidson= in%nvirt > 0 .and. (infocode==0 .or. in%nrepmax == 1)
   if (in%potshortcut==0) then
 
      call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
@@ -1444,6 +1444,9 @@ contains
     i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
     deallocate(atoms%iasctype,stat=i_stat)
     call memocc(i_stat,i_all,'iasctype',subname)
+    i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
+    deallocate(atoms%aocc,stat=i_stat)
+    call memocc(i_stat,i_all,'aocc',subname)
     i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
     deallocate(atoms%nzatom,stat=i_stat)
     call memocc(i_stat,i_all,'nzatom',subname)
@@ -2065,7 +2068,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
         call memocc(i_stat,i_all,'intfunc_y',subname)
         print *," exiting b2B"
   
-        call deallocate_atoms(atoms_b2B) 
+        call deallocate_atoms(atoms_b2B,subname)
 
         i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
         deallocate(rxyz_b2B,stat=i_stat)
@@ -2083,7 +2086,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
         hpot_a = 3.0
 
 
-        allocate(radpot(30000 ,2 ))
+        allocate(radpot(30000 ,2+ndebug ))
         radpotcount=30000
 
         open(unit=22,file='pot.dat', status='old')
@@ -2298,6 +2301,9 @@ contains
     i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
     deallocate(atoms%iasctype,stat=i_stat)
     call memocc(i_stat,i_all,'iasctype',subname)
+    i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
+    deallocate(atoms%aocc,stat=i_stat)
+    call memocc(i_stat,i_all,'aocc',subname)
     i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
     deallocate(atoms%nzatom,stat=i_stat)
     call memocc(i_stat,i_all,'nzatom',subname)

@@ -166,9 +166,7 @@ program BigDFT
         end if
      endif
 
-
-
-     call deallocate_atoms(atoms ) 
+     call deallocate_atoms(atoms,subname) 
 
      call free_restart_objects(rst,subname)
 

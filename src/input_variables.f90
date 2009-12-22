@@ -1127,22 +1127,17 @@ end subroutine read_atomic_file
 !!***
 
 
-subroutine deallocate_atoms(atoms ) 
-
+subroutine deallocate_atoms(atoms,subname) 
   use module_base
   use module_types
-  use module_interfaces
   use ab6_symmetry
-
   implicit none
-
-  character(len=*), parameter :: subname='deallocate_atoms'
+  character(len=*), intent(in) :: subname
+  type(atoms_data), intent(inout) :: atoms
+  !local variables
   integer :: i_stat, i_all
 
-
-  type(atoms_data), intent(inout) :: atoms
   !deallocations
-
   i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
   deallocate(atoms%ifrztyp,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
@@ -1159,6 +1154,7 @@ subroutine deallocate_atoms(atoms )
   deallocate(atoms%amu,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%amu',subname)
   if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
+
 end subroutine deallocate_atoms
 
 

@@ -54,7 +54,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
-
+  
 end subroutine system_properties
 !!***
 
@@ -79,7 +79,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   !local variables
   character(len=*), parameter :: subname='read_system_variables'
-  !real(kind=8), parameter :: eps_mach=1.d-12
+  integer, parameter :: nelecmax=32,nmax=6,lmax=4
   logical :: exists
   character(len=2) :: symbol
   character(len=24) :: message
@@ -91,7 +91,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
   real(gp) :: rcov,rprb,ehomo,radfine,minrad,maxrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr
-  integer, dimension(6,0:3) :: neleconf
+  integer, dimension(nmax,0:lmax-1) :: neleconf
 
   !allocate atoms data variables
   ! store PSP parameters
@@ -104,8 +104,10 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
   call memocc(i_stat,atoms%npspcode,'atoms%npspcode',subname)
   allocate(atoms%nzatom(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nzatom,'atoms%nzatom',subname)
-  allocate(atoms%iasctype(atoms%ntypes+ndebug),stat=i_stat)
+  allocate(atoms%iasctype(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%iasctype,'atoms%iasctype',subname)
+  allocate(atoms%aocc(nelecmax,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -178,37 +180,9 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
         stop
      end if
      !see whether the atom is semicore or not
+     !and consider the ground state electronic configuration
      call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
-          neleconf,atoms%iasctype(ityp),mxpl,mxchg,atoms%amu(ityp))
-     !if you want no semicore input guess electrons, uncomment the following line
-     !atoms%iasctype(ityp)=0
-
-     !here we must check of the input guess polarisation
-     !control if the values are compatible with the atom configuration
-     !do this for all atoms belonging to a given type
-     !control the maximum polarisation allowed: consider only non-closed shells   
-
-     do iat=1,atoms%nat
-        if (atoms%iatype(iat) == ityp) then
-           call charge_and_spol(atoms%natpol(iat),ichg,ispol)
-           if (abs(ispol) > mxpl) then
-              !if (iproc ==0) 
-                      write(*,'(1x,a,i0,a,a,2(a,i0))')&
-                   'ERROR: Input polarisation of atom No.',iat,&
-                   ' (',trim(atoms%atomnames(ityp)),') must be <=',mxpl,&
-                   ', while found ',ispol
-                      stop
-           end if
-           if (abs(ichg) > mxchg) then
-              !if (iproc ==0) 
-                   write(*,'(1x,a,i0,a,a,2(a,i0))')&
-                   'ERROR: Input charge of atom No.',iat,&
-                   ' (',trim(atoms%atomnames(ityp)),') must be <=',mxchg,&
-                   ', while found ',ichg
-                   stop
-           end if
-        end if
-     end do
+          neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
 
      !control the hardest and the softest gaussian
      minrad=1.e10_gp
@@ -271,7 +245,11 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
              '. At your own risk!'
      end if
 
+     call atomic_occupation_numbers(ityp,in%nspin,atoms,nmax,lmax,nelecmax,neleconf,&
+          nsccode,mxpl,mxchg)
+
   enddo
+  !print *,'iatsctype',atOMS%iasctype(:)
 
   !print the pseudopotential matrices
   if (iproc == 0) then
@@ -362,13 +340,17 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
   do iat=1,atoms%nat
      ityp=atoms%iatype(iat)
      nelec=nelec+atoms%nelpsp(ityp)
-     nsccode=atoms%iasctype(ityp)
-     call charge_and_spol(atoms%natpol(iat),ichg,ispol)
-     if (ichg /=0) then
-        call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
-             neleconf,atoms%iasctype(ityp),mxpl,mxchg,atoms%amu(ityp))
-        call correct_semicore(atoms%atomnames(ityp),6,3,ichg,neleconf,nsccode)
-     end if
+     nsccode=atoms%iasctype(iat)
+
+     !print *,'nsccode,iat2',nsccode
+     !this part should be removed one the occupation number has been passed
+     !call charge_and_spol(atoms%natpol(iat),ichg,ispol)
+     !if (ichg /=0) then
+     !   call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
+     !        neleconf,atoms%iasctype(ityp),mxpl,mxchg,atoms%amu(ityp))
+     !   call correct_semicore(atoms%atomnames(ityp),6,3,ichg,neleconf,nsccode)
+     !end if
+     !end of part to be removed
      if (nsccode/= 0) atoms%natsc=atoms%natsc+1
   enddo
   nelec=nelec-in%ncharge
@@ -441,7 +423,6 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
 
   end if
 
-
   ! Test if the file 'occup.dat exists
   inquire(file='occup.dat',exist=exists)
   iunit=0
@@ -512,6 +493,144 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
 
 end subroutine read_system_variables
 !!***
+
+!fix all the atomic occupation numbers of the atoms which has the same type
+!look also at the input polarisation and spin
+!look at the file of the input occupation numbers and, if exists, modify the 
+!occupations accordingly
+subroutine atomic_occupation_numbers(ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ityp,mxpl,mxchg,nspin,nmax,lmax,nelecmax,nsccode
+  type(atoms_data), intent(inout) :: at
+  integer, dimension(nmax,lmax), intent(in) :: neleconf
+  !local variables
+  integer, parameter :: noccmax=2
+  character(len=100) :: string
+  logical :: exists,found
+  integer :: iat,ichg,ispol,nsp,nspinor,ierror,jat,l,iocc,icoll,noncoll,ispin,nl,inl,m
+  real(gp) :: elec
+  real(gp), dimension(nmax,lmax) :: eleconf
+
+  !control the spin
+  select case(nspin)
+     case(1)
+        nsp=1
+        nspinor=1
+        noncoll=1
+     case(2)
+        nsp=2
+        nspinor=1
+        noncoll=1
+     case(4)
+        nsp=1
+        nspinor=4
+        noncoll=2
+     case default
+        write(*,*)' ERROR: nspin not valid:',nspin
+        stop
+  end select
+
+  inquire(file='input.occup',exist=exists)
+
+  !search the corresponding atom
+  if (exists) then
+     open(unit=91,file='input.occup',status='old',iostat=ierror)
+     !Check the open statement
+     if (ierror /= 0) then
+        write(*,*)'Failed to open the existing  file input.occup'
+        stop
+     end if
+  end if
+
+       
+  !here we must check of the input guess polarisation
+  !control if the values are compatible with the atom configuration
+  !do this for all atoms belonging to a given type
+  !control the maximum polarisation allowed: consider only non-closed shells   
+  do iat=1,at%nat
+     !control the atomic input guess occupation number
+     !if you want no semicore input guess electrons, uncomment the following line
+     !at%iasctype(iat)=0
+     if (at%iatype(iat) == ityp) then
+        !see whether the input.occup file contains the given atom
+        found=.false.
+        if (exists) then
+           rewind(unit=91)
+           parse_inocc: do
+              read(91,'(a100)',iostat=ierror)string
+              if (ierror /= 0) exit parse_inocc !file ends
+              read(string,*,iostat=ierror)jat
+              if (ierror /=0) stop 'error reading line'
+              if (jat==iat ) then
+                 found=.true.
+                 exit parse_inocc
+              end if
+           end do parse_inocc
+        end if
+        call charge_and_spol(at%natpol(iat),ichg,ispol)
+        if (found) then
+           call read_eleconf(string,nsp,nspinor,noccmax,nelecmax,lmax,&
+                at%aocc(1,iat),at%iasctype(iat))
+        else
+           at%iasctype(iat)=nsccode
+           if (abs(ispol) > mxpl+abs(ichg)) then
+              !if (iproc ==0) 
+              write(*,'(1x,a,i0,a,a,2(a,i0))')&
+                   'ERROR: Input polarisation of atom No.',iat,&
+                   ' (',trim(at%atomnames(ityp)),') must be <=',mxpl,&
+                   ', while found ',ispol
+              stop 
+           end if
+           if (abs(ichg) > mxchg) then
+              !if (iproc ==0) 
+              write(*,'(1x,a,i0,a,a,2(a,i0))')&
+                   'ERROR: Input charge of atom No.',iat,&
+                   ' (',trim(at%atomnames(ityp)),') must be <=',mxchg,&
+                   ', while found ',ichg
+              stop
+           end if
+           !correct the electronic configuration in case there is a charge
+           !if (ichg /=0) then
+           call correct_semicore(at%atomnames(ityp),nmax,lmax-1,ichg,&
+                neleconf,eleconf,at%iasctype(iat))
+           !end if
+
+           call at_occnums(ispol,nsp,nspinor,nmax,lmax,nelecmax,&
+                eleconf,at%aocc(1,iat))
+        end if
+
+        !check the total number of electrons
+        elec=0.0_gp
+        iocc=0
+        do l=1,lmax
+           iocc=iocc+1
+           nl=nint(at%aocc(iocc,iat))
+           do inl=1,nl
+              do ispin=1,nsp
+                 do m=1,2*l-1
+                    do icoll=1,noncoll !non-trivial only for nspinor=4
+                       iocc=iocc+1
+                       elec=elec+at%aocc(iocc,iat)
+                    end do
+                 end do
+              end do
+           end do
+        end do
+        if (nint(elec) /= at%nelpsp(ityp) + ichg) then
+           write(*,*)'ERROR: the total atomic charge ',elec,&
+                ' is different from the PSP charge ',at%nelpsp(ityp),&
+                ' plus the charge ',ichg
+           stop
+        end if
+     end if
+  end do
+
+  if (exists) close(unit=91)
+
+end subroutine atomic_occupation_numbers
+
 
 
 !!****f* BigDFT/orbitals_descriptors

@@ -356,7 +356,7 @@ cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o ab6_mol
 
 lanczos.o : lanczos_base.o lanczos_interface.o
 
-BigDFT_API.o : scfloop_API.o
+BigDFT_API.o : scfloop_API.o ab6_moldyn.o
 
 distances.o global.o : BigDFT_API.o
 

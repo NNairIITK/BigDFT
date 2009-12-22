@@ -1019,6 +1019,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
 
   anoise=1.e-4_gp
   fluctsum=0._gp 
+  fluct=0._gp
   nfluct=0
 
      beta=in%betax
