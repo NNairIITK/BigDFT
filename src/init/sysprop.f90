@@ -618,10 +618,10 @@ subroutine atomic_occupation_numbers(ityp,nspin,at,nmax,lmax,nelecmax,neleconf,n
               end do
            end do
         end do
-        if (nint(elec) /= at%nelpsp(ityp) + ichg) then
+        if (nint(elec) /= at%nelpsp(ityp) - ichg) then
            write(*,*)'ERROR: the total atomic charge ',elec,&
                 ' is different from the PSP charge ',at%nelpsp(ityp),&
-                ' plus the charge ',ichg
+                ' plus the charge ',-ichg
            stop
         end if
      end if
