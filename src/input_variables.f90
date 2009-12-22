@@ -595,7 +595,7 @@ subroutine abscalc_input_variables(iproc,filename,in)
   call check()
 
   allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)
-  call memocc(i_stat,in%Gabs_coeffs,'in%Gabs_coeff',subname)
+  call memocc(i_stat,in%Gabs_coeffs,'Gabs_coeffs',subname)
 
   read(111,*,iostat=ierror)  (in%Gabs_coeffs(i+ndebug), i=1,2*in%L_absorber +1 )
   call check()

@@ -1897,7 +1897,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
                 n1,n2,n3,n1i,n2i,n3i,n3p,&
                 atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
         else
-           call plot_density_cube(atoms%geocode,'local_potential',iproc,nproc,&
+           call plot_density_cube(atoms%geocode,'local_potentialb2B.cube',iproc,nproc,&
                 n1,n2,n3,n1i,n2i,n3i,n3p,&
                 in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1+i3xcsh,1))
         endif
@@ -1941,9 +1941,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
               hy_old = 2*alat2_bB / (n2i_bB)
               hz_old = 2*alat3_bB / (n3i_bB)
            else
-              hx_old = 2*alat1_bB / (n1i_bB-1)
-              hy_old = 2*alat2_bB / (n2i_bB-1)
-              hz_old = 2*alat3_bB / (n3i_bB-1)
+              hx_old = 2*alat1_bB / (n1i_bB-2)
+              hy_old = 2*alat2_bB / (n2i_bB-2)
+              hz_old = 2*alat3_bB / (n3i_bB-2)
            endif
         endif
 
@@ -1995,7 +1995,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
         do j=-10,10
            do k=1,3
-              potcoors(:,j+11,k)= rxyz_b2B(:,1)
+              potcoors(:,j+11,k)= rxyz_b2B(:,33)
               potcoors(k,j+11,k) = potcoors(k,j+11,k)+j*0.1
            enddo
         enddo
@@ -2045,7 +2045,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
         
 
         allocate(auxint(n1i+n2i+n3i+ndebug),stat=i_stat)
-        call memocc(i_stat,pot,'auxint',subname)
+        call memocc(i_stat,auxint,'auxint',subname)
 
         do iz_bB = 1,n3i_bB-1
            do iy_bB=1,n2i_bB
@@ -2126,7 +2126,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
  
         i_all=-product(shape(pot_bB))*kind(pot_bB)
         deallocate(pot_bB,stat=i_stat)
-        call memocc(i_stat,i_all,'pot_bB',subname)
+        call memocc(i_stat,i_all,'rho',subname)
         
         i_all=-product(shape(intfunc_y))*kind(intfunc_y)
         deallocate(intfunc_y,stat=i_stat)
@@ -2137,7 +2137,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
         i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
         deallocate(rxyz_b2B,stat=i_stat)
-        call memocc(i_stat,i_all,'rxyz_b2B',subname)
+        call memocc(i_stat,i_all,'rxyz',subname)
               
      endif
      
