@@ -848,6 +848,20 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   real(gp), pointer :: rho(:)
 end subroutine read_potfile4b2B
 
+subroutine read_density_cube(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxyz,  rho)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  integer, intent(out) ::  n1i,n2i,n3i
+  integer, intent(in) :: nspin
+  real(gp), intent(out) :: hxh,hyh,hzh
+  real(gp), pointer :: rxyz(:,:)
+  real(dp), dimension(:), pointer :: rho
+  integer, intent(out) ::  nat
+end subroutine read_density_cube
+
+
 end interface
 
 end module module_interfaces

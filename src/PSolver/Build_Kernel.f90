@@ -1214,35 +1214,40 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
     loop_gauss1: do i_gauss=n_gauss,1,-1
        !Gaussian
        pgauss = p_gauss(i_gauss)
-       !We calculate the number of iterations to go from pgauss to p0_ref
-       n_iter = nint((log(pgauss) - log(p0_cell))/log(4.d0))
-       if (n_iter <= 0)then
-          n_iter = 0
-          p0gauss = pgauss
-       else
-          p0gauss = pgauss/4.d0**n_iter
-       end if
 
-       !Stupid integration
-       !Do the integration with the exponential centered in i_kern
-       kernel_scf(:,1) = 0.d0
-       do i_kern=0,n_range
-          kern = 0.d0
-          do i=0,n_scf
-             absci = x_scf(i) - real(i_kern,kind=8)
-             absci = absci*absci*hgrid**2
-             kern = kern + y_scf(i)*dexp(-p0gauss*absci)
-          end do
-          kernel_scf(i_kern,1) = kern*dx
-          kernel_scf(-i_kern,1) = kern*dx
-          if (abs(kern) < 1.d-18) then
-             !Too small not useful to calculate
-             exit
-          end if
-       end do
+       !this routine can be substituted by the wofz calculation
+       call gauss_conv_scf(itype_scf,pgauss,hgrid,n_range,n_scf,x_scf,y_scf,&
+            kernel_scf,kern_1_scf)
 
-       !Start the iteration to go from p0gauss to pgauss
-       call scf_recursion(itype_scf,n_iter,n_range,kernel_scf,kern_1_scf)
+!!$       !We calculate the number of iterations to go from pgauss to p0_ref
+!!$       n_iter = nint((log(pgauss) - log(p0_cell))/log(4.d0))
+!!$       if (n_iter <= 0)then
+!!$          n_iter = 0
+!!$          p0gauss = pgauss
+!!$       else
+!!$          p0gauss = pgauss/4.d0**n_iter
+!!$       end if
+!!$
+!!$       !Stupid integration
+!!$       !Do the integration with the exponential centered in i_kern
+!!$       kernel_scf(:,1) = 0.d0
+!!$       do i_kern=0,n_range
+!!$          kern = 0.d0
+!!$          do i=0,n_scf
+!!$             absci = x_scf(i) - real(i_kern,kind=8)
+!!$             absci = absci*absci*hgrid**2
+!!$             kern = kern + y_scf(i)*dexp(-p0gauss*absci)
+!!$          end do
+!!$          kernel_scf(i_kern,1) = kern*dx
+!!$          kernel_scf(-i_kern,1) = kern*dx
+!!$          if (abs(kern) < 1.d-18) then
+!!$             !Too small not useful to calculate
+!!$             exit
+!!$          end if
+!!$       end do
+!!$
+!!$       !Start the iteration to go from p0gauss to pgauss
+!!$       call scf_recursion(itype_scf,n_iter,n_range,kernel_scf,kern_1_scf)
 
        !Add to the kernel (only the local part)
 
@@ -1365,6 +1370,59 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 
 end subroutine Free_Kernel
 !!***
+
+subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,n_range,n_scf,x_scf,y_scf,kernel_scf,work)
+  use module_base
+  implicit none
+  integer, intent(in) :: n_range,n_scf,itype_scf
+  real(dp), intent(in) :: pgauss,hgrid
+  real(dp), dimension(0:n_scf), intent(in) :: x_scf
+  real(dp), dimension(0:n_scf), intent(in) :: y_scf
+  real(dp), dimension(-n_range:n_range), intent(inout) :: work
+  real(dp), dimension(-n_range:n_range), intent(out) :: kernel_scf
+  !local variables
+  real(dp), parameter :: p0_ref = 1.0_dp  
+  integer :: n_iter,i_kern,i
+  real(dp) :: p0_cell,p0gauss,absci,dx,kern
+
+  !Step grid for the integration
+  dx = real(n_range,dp)/real(n_scf,dp)
+
+  !To have a correct integration
+  p0_cell = p0_ref/(hgrid*hgrid)
+    
+  !We calculate the number of iterations to go from pgauss to p0_ref
+  n_iter = nint((log(pgauss) - log(p0_cell))/log(4.0_dp))
+  if (n_iter <= 0)then
+     n_iter = 0
+     p0gauss = pgauss
+  else
+     p0gauss = pgauss/4.d0**n_iter
+  end if
+
+  !Stupid integration
+  !Do the integration with the exponential centered in i_kern
+  kernel_scf(:) = 0.0_dp
+  do i_kern=0,n_range
+     kern = 0.0_dp
+     do i=0,n_scf
+        absci = x_scf(i) - real(i_kern,dp)
+        absci = absci*absci*hgrid**2
+        kern = kern + y_scf(i)*dexp(-p0gauss*absci)
+     end do
+     kernel_scf(i_kern) = kern*dx
+     kernel_scf(-i_kern) = kern*dx
+     if (abs(kern) < 1.e-18_dp) then
+        !Too small not useful to calculate
+        exit
+     end if
+  end do
+  
+  !Start the iteration to go from p0gauss to pgauss
+  call scf_recursion(itype_scf,n_iter,n_range,kernel_scf,work)
+  
+end subroutine gauss_conv_scf
+
 
 subroutine inserthalf(n1,n3,lot,nfft,i1,zf,zw)
   implicit none
