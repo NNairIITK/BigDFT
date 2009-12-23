@@ -1000,8 +1000,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      deallocate(pot_ion,stat=i_stat)
      call memocc(i_stat,i_all,'pot_ion',subname)
 
-
-
      !------------------------------------------------------------------------
      ! here we start the calculation of the forces
      if (iproc.eq.0) then
@@ -1244,7 +1242,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         call memocc(i_stat,i_all,'rhoref',subname)
      end if
      
-     
      !pass hx instead of hgrid since we are only in free BC
      call CalculateTailCorrection(iproc,nproc,atoms,rbuf,orbs,&
           Glr,nlpspd,ncongt,pot,hx,rxyz,radii_cf,crmult,frmult,in%nspin,&
@@ -1369,7 +1366,6 @@ contains
        i_all=-product(shape(fdisp))*kind(fdisp)
        deallocate(fdisp,stat=i_stat)
        call memocc(i_stat,i_all,'fdisp',subname)
-       
        
     end if
     !deallocate wavefunction for virtual orbitals

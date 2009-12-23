@@ -112,6 +112,12 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
 END SUBROUTINE geopt
 !!***
 
+
+!!****f* BigDFT/ab6md
+!! FUNCTION
+!!  Molecular Dynamics
+!! SOURCE
+!!
 subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
@@ -203,6 +209,8 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   fail = (iexit == 0)
 end subroutine ab6md
+!!***
+
 
 !!****f* BigDFT/bfgs
 !! FUNCTION
@@ -420,6 +428,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 END SUBROUTINE bfgs
 !!***
 
+
 subroutine timeleft(tt)
   use module_base
   implicit none
@@ -439,6 +448,12 @@ subroutine timeleft(tt)
   tt=timelimit-real(tcpu,gp)/3600._gp ! in hours
 end subroutine timeleft
 
+
+!!****f* BigDFT/conjgrad
+!! FUNCTION
+!!  Conjugate gradient method
+!! SOURCE
+!!
 subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   use module_base
   use module_types
@@ -462,7 +477,6 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   logical::check
   character*4 fn4
   character*40 comment
-
 
   allocate(tpos(3,at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,tpos,'tpos',subname)
@@ -623,7 +637,6 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
         if (fmax < 3.d-1) call updatefluctsum(at,fxyz,nfluct,fluctsum,fluct)
 
-
         call atomic_dot(at,gpf,gpf,unten)
         call atomic_dot(at,gpf,fxyz,oben1)
         call atomic_dot(at,fxyz,fxyz,oben2)
@@ -736,7 +749,14 @@ contains
   end subroutine close_and_deallocate
 
 end subroutine conjgrad
+!!***
 
+
+!!****f* BigDFT/steepdes
+!! FUNCTION
+!!  Steepedt descent method
+!! SOURCE
+!!
 subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
      nfluct,fnrm,in,forcemax_sw,nitsd,fluct)
   use module_base
@@ -984,6 +1004,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
   call memocc(i_stat,i_all,'tpos',subname)
 
 END SUBROUTINE steepdes
+!!***
 
 
 subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)

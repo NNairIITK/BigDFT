@@ -63,6 +63,14 @@ end subroutine createDensPotDescriptors
 !!   Partition the orbitals between processors to ensure load balancing
 !!   the criterion will depend on GPU computation
 !!   and/or on the sizes of the different localisation region
+!! DESCRIPTION
+!!   Calculate the number of elements to be sent to each process
+!!   and the array of displacements
+!!   Cubic strategy: 
+!!      - the components are equally distributed among the wavefunctions
+!!      - each processor has all the orbitals in transposed form
+!!      - each wavefunction is equally distributed in its transposed form
+!!      - this holds for each k-point, which regroups different processors
 !!
 !! SOURCE
 !!
@@ -81,13 +89,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   logical, dimension(:), allocatable :: GPU_for_comp
   integer, dimension(:,:), allocatable :: nvctr_par,norb_par !for all the components and orbitals (with k-pts)
   
-  !calculate the number of elements to be sent to each process
-  !and the array of displacements
-  !cubic strategy: -the components are equally distributed among the wavefunctions
-  !                -each processor has all the orbitals in transposed form
-  !                -each wavefunction is equally distributed in its transposed form
-  !                -this holds for each k-point, which regroups different processors
-
   !check of allocation of important arrays
   if (.not. associated(orbs%norb_par)) then
      write(*,*)'ERROR: norb_par array not allocated'

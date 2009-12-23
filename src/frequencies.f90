@@ -83,7 +83,7 @@ program frequencies
         call random_number(tt)
         rxyz(3,iat)=rxyz(3,iat)+inputs%randdis*tt
      end if
-  enddo
+  end do
 
   ! atoms inside the box (this can be inserted inside call_bigdft routine)
   do iat=1,atoms%nat
@@ -114,14 +114,14 @@ program frequencies
         sumx=sumx+fxyz(1,iat)
         sumy=sumy+fxyz(2,iat)
         sumz=sumz+fxyz(3,iat)
-     enddo
+     end do
      if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
         write(*,'(1x,a)')'the sum of the forces is'
         write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
         write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
         write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
      end if
-  endif
+  end if
 
   allocate(rpos(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rpos,'rpos',subname)
