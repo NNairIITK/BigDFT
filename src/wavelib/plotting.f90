@@ -738,7 +738,7 @@ end subroutine plot_density_cube
 
 
 
-subroutine read_density_cube(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, rxyz,  rho)
+subroutine read_density_cube(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxyz,  rho)
   use module_base
   use module_types
   implicit none
@@ -747,13 +747,14 @@ subroutine read_density_cube(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, rxyz,  r
   integer, intent(in) :: nspin
   real(gp), intent(out) :: hxh,hyh,hzh
   real(gp), pointer :: rxyz(:,:)
-  real(dp), dimension(:,:), pointer :: rho
-
-
+  real(dp), dimension(:), pointer :: rho
+  integer, intent(out) ::  nat
+ 
   !local variables
   character(len=*), parameter :: subname='read_density_cube'
   character(len=5) :: suffix
   character(len=15) :: message
+  character(len=3) :: advancestring
   integer i_all,i_stat,i1,i2,i3,ind,ierr,icount,j,iat,ia,ib
 
 
@@ -779,8 +780,7 @@ subroutine read_density_cube(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, rxyz,  r
 contains
 
   subroutine cubefile_read
-        integer nat
-        real(dp) dum1,dum2, dum3
+       real(dp) dum1,dum2, dum3
         integer idum
         open(unit=22,file=filename//trim(suffix)//'.cube',status='old')
         read(22,*)! 'CUBE file for charge density'
@@ -810,7 +810,7 @@ contains
            call memocc(i_stat,i_all,'rho',subname)
         end if
         if(ia==1) then
-           allocate(rho(n1i*n2i*n3i, nspin+ndebug) ,stat=i_stat)
+           allocate(rho(n1i*n2i*n3i+ndebug) ,stat=i_stat)
            call memocc(i_stat,rho,'rho',subname)
         endif
 
@@ -821,11 +821,19 @@ contains
 
         do i1=1,n1i
            do i2=1,n2i
+              icount=0
               do i3=1,n3i
+                 icount=icount+1
+                 if (icount == 6 ) then
+                    advancestring='yes'
+                    icount=0
+                 else
+                    advancestring='no'
+                 end if
 
                  ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                 read(22,'(1x,1pe13.6)' )  rho(ind,ia)
 
+                 read(22,'(1x,1pe13.6)',advance=advancestring)  rho(ind) 
               end do
            end do
         end do

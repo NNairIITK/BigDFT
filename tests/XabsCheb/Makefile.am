@@ -58,7 +58,7 @@ Xabsb2B.out: $(top_builddir)/src/cluster $(PPFILES)
 	fi
 	$(top_builddir)/src/cluster > del.del
 	if ! test x"$srcdir" = x"." ; then \
-	  mv -f local_potentialb2B.pot b2B_xanes.pot ; \
+	  mv -f local_potentialb2B.cube  b2B_xanes.cube ; \
 	  cp posinp.xyz  b2B_xanes.xyz ; \
 	  rm -f input.dft ; \
 	  rm -f posinp.xyz ; \
@@ -78,7 +78,7 @@ Xabsb2B.out: $(top_builddir)/src/cluster $(PPFILES)
 	  rm -f input.abscalc ; \
 	  rm -f gproje_Fe_1s_1 ; \
 	  rm -f  b2B_xanes.xyz ; \
-	  rm -f  b2B_xanes.pot ; \
+	  rm -f  b2B_xanes.cube ; \
 	fi
 
 

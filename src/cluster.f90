@@ -1625,7 +1625,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(gp)  rx_bB, ry_bB, rz_bB
   integer nrange
   real(gp), pointer :: auxint(:)
-  logical exists ; 
+  logical exists 
+  integer nat_b2B
+
   ! ----------------------------------
   ! per monitorare il minimo del pot letto in b2B attorno al 1 atomo
   real(gp)  potx(21,3), potcoors(3,21,3)
@@ -1897,7 +1899,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
                 n1,n2,n3,n1i,n2i,n3i,n3p,&
                 atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
         else
-           call plot_density_cube(atoms%geocode,'local_potentialb2B.cube',iproc,nproc,&
+           call plot_density_cube(atoms%geocode,'local_potentialb2B',iproc,nproc,&
                 n1,n2,n3,n1i,n2i,n3i,n3p,&
                 in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1+i3xcsh,1))
         endif
@@ -1915,8 +1917,17 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
         inquire(file="b2B_xanes.cube",exist=exists)
         if(exists) then
 
-           stop " non ancora implementato "
+           call read_density_cube("b2B_xanes", n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
+           hx_old=hx_old*2
+           hy_old=hy_old*2
+           hz_old=hz_old*2
 
+
+           if( atoms%nat/= nat_b2B ) then
+              if(iproc==0) write(*,*)  "   b2B_xanes cube  is not compatible with actual positions" 
+              if(nproc>1) call MPI_Finalize(ierr)
+              stop '      b2B_xanes cube  is not compatible with actual positions          '
+           end if
 
         else
            print  *, " reading atomic positions from file ","b2B_xanes.xyz"
@@ -1931,10 +1942,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
            call  read_potfile4b2B("b2B_xanes.pot",n1i_bB,n2i_bB,n3i_bB, pot_bB, alat1_bB, alat2_bB, alat3_bB)
            print  *, " reading OK "
            
-           if(  n1i_bB > n1i .or.  n2i_bB > n2i .or.   n3i_bB > n3i    ) then
-              if(nproc>1) call MPI_Finalize(ierr)
-              stop '  b2B potential mast be defined on a smaller ( in number of points  ) source grid then the target grid    '
-           endif
            
            if( atoms_b2B%geocode/='F') then
               hx_old = 2*alat1_bB / (n1i_bB)
@@ -1945,8 +1952,15 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
               hy_old = 2*alat2_bB / (n2i_bB-2)
               hz_old = 2*alat3_bB / (n3i_bB-2)
            endif
+
+           call deallocate_atoms(atoms_b2B) 
+
         endif
 
+        if(  n1i_bB > n1i .or.  n2i_bB > n2i .or.   n3i_bB > n3i    ) then
+           if(nproc>1) call MPI_Finalize(ierr)
+           stop '  b2B potential mast be defined on a smaller ( in number of points  ) source grid then the target grid    '
+        endif
 
         do j=1,3
            shift_b2B(j) = rxyz(j,1) - rxyz_b2B(j,1) 
@@ -1995,7 +2009,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
         do j=-10,10
            do k=1,3
-              potcoors(:,j+11,k)= rxyz_b2B(:,33)
+              potcoors(:,j+11,k)= rxyz_b2B(:,1)
               potcoors(k,j+11,k) = potcoors(k,j+11,k)+j*0.1
            enddo
         enddo
@@ -2133,7 +2147,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
         call memocc(i_stat,i_all,'intfunc_y',subname)
         print *," exiting b2B"
   
-        call deallocate_atoms(atoms_b2B) 
 
         i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
         deallocate(rxyz_b2B,stat=i_stat)
