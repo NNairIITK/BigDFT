@@ -237,12 +237,16 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
   type(gaussian_basis), intent(out) :: G
   !local variables
   character(len=*), parameter :: subname='gaussian_pswf_basis'
-  integer, parameter :: ngx=31
+  integer, parameter :: ngx=31,noccmax=2,lmax=4,nmax=6,nelecmax=32
+  logical :: occeq
   integer :: i_stat,i_all,iat,ityp,ishell,iexpo,l,i,ig,isat,ictotpsi,norbe,norbsc,ishltmp
+  integer :: ityx,ntypesx,ng,nspin,nspinor,jat
   real(gp) :: ek
+  integer, dimension(lmax) :: nl
+  real(gp), dimension(noccmax,lmax) :: occup
   logical, dimension(:,:,:), allocatable :: scorb
-  integer, dimension(:), allocatable :: ng
-  integer, dimension(:,:), allocatable :: nl,norbsc_arr
+  integer, dimension(:), allocatable :: iatypex
+  integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: psiatn,locrad
   real(gp), dimension(:,:), allocatable :: xpt,occupat
   real(gp), dimension(:,:,:), allocatable :: psiat  
@@ -253,34 +257,24 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
      return
   end if
 
-  allocate(xpt(ngx,at%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,xpt,'xpt',subname)
-  allocate(psiat(ngx,5,at%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,psiat,'psiat',subname)
-  allocate(occupat(5,at%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,occupat,'occupat',subname)
-  allocate(ng(at%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,ng,'ng',subname)
-  allocate(nl(4,at%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,nl,'nl',subname)
   allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)
   call memocc(i_stat,scorb,'scorb',subname)
   allocate(norbsc_arr(at%natsc+1,1+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
-  allocate(psiatn(ngx+ndebug),stat=i_stat)
-  call memocc(i_stat,psiatn,'psiatn',subname)
   allocate(locrad(at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,locrad,'locrad',subname)
 
+  nspin=1
+  nspinor=1
 
-  !Generate the input guess via the inguess_generator
-  call readAtomicOrbitals(iproc,ngx,xpt,psiat,occupat,ng,nl,at,norbe,norbsc,1,&
-       scorb,norbsc_arr,locrad)
+  call readAtomicOrbitals(iproc,at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
 
   i_all=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=i_stat)
   call memocc(i_stat,i_all,'locrad',subname)
 
+  !Generate the input guess via the inguess_generator
+  !take also into account the IG polarisations
 
   !the number of gaussian centers are thus nat
   G%nat=at%nat
@@ -290,34 +284,91 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
   !count also the total number of shells
   allocate(G%nshell(at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,G%nshell,'G%nshell',subname)
+
+  !calculate the number of atom types by taking into account the occupation
+  allocate(iatypex(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,iatypex,'iatypex',subname)
   
+  ntypesx=0
   G%nshltot=0
-  do iat=1,at%nat
+  count_shells: do iat=1,at%nat
      ityp=at%iatype(iat)
-     G%nshell(iat)=nl(1,ityp)+nl(2,ityp)+nl(3,ityp)+nl(4,ityp)
+     call count_atomic_shells(nmax,lmax,noccmax,nelecmax,nspin,nspinor,&
+          at%aocc(1,iat),occup,nl)
+     G%nshell(iat)=(nl(1)+nl(2)+nl(3)+nl(4))
      G%nshltot=G%nshltot+G%nshell(iat)
-  end do
+     !check the occupation numbers and the atoms type
+     !once you find something equal exit the procedure
+     do jat=1,iat-1
+        if (at%iatype(jat) == ityp) then
+           occeq=.true.
+           do i=1,nelecmax
+              occeq = occeq .and. (at%aocc(i,jat) == at%aocc(i,iat))
+           end do
+           !have found another similar atoms
+           if (occeq) then
+              iatypex(iat)=iatypex(jat)
+              cycle count_shells
+           end if
+        end if
+     end do
+     ntypesx=ntypesx+1
+     iatypex(iat)=ntypesx
+  end do count_shells
 
   allocate(G%ndoc(G%nshltot+ndebug),stat=i_stat)
   call memocc(i_stat,G%ndoc,'G%ndoc',subname)
   allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
   call memocc(i_stat,G%nam,'G%nam',subname)
 
+
+  !the default value for the gaussians is chosen to be 21
+  ng=21
+  allocate(xpt(ng,ntypesx+ndebug),stat=i_stat)
+  call memocc(i_stat,xpt,'xpt',subname)
+  allocate(psiat(ng,5,ntypesx+ndebug),stat=i_stat)
+  call memocc(i_stat,psiat,'psiat',subname)
+  allocate(psiatn(ng+ndebug),stat=i_stat)
+  call memocc(i_stat,psiatn,'psiatn',subname)
+
+
   !assign shell IDs and count the number of exponents and coefficients
   G%nexpo=0
   G%ncoeff=0
   ishell=0
+  ntypesx=0
   do iat=1,at%nat
      ityp=at%iatype(iat)
+     ityx=iatypex(iat)
      ishltmp=0
+     call count_atomic_shells(nmax,lmax,noccmax,nelecmax,nspin,nspinor,&
+          at%aocc(1,iat),occup,nl)
+     if (ityx > ntypesx) then
+        if (iproc == 0 .and. verbose > 1) then
+           write(*,'(1x,a,a6,a)',advance='no')&
+                'Generation of input wavefunction data for atom ',&
+                trim(at%atomnames(ityp)),&
+                ' ...'
+        end if
+
+        call iguess_generator(iproc,at%nzatom(ityp),at%nelpsp(ityp),&
+             real(at%nelpsp(ityp),gp),at%psppar(0,0,ityp),&
+             at%npspcode(ityp),&
+             ng-1,nl,5,noccmax,lmax,occup,xpt(1,ityx),&
+             psiat(1,1,ityx))
+        ntypesx=ntypesx+1
+        if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
+     end if
+
      do l=1,4
-        do i=1,nl(l,ityp)
+        do i=1,nl(l)
            ishell=ishell+1
            ishltmp=ishltmp+1
-           G%ndoc(ishell)=ng(ityp)
+           G%ndoc(ishell)=ng!(ity)
            G%nam(ishell)=l
-           G%nexpo=G%nexpo+ng(ityp)
+           G%nexpo=G%nexpo+ng!(ity)
            G%ncoeff=G%ncoeff+2*l-1
+           !print *,'iat,i,l',iat,i,l,norbe,G%ncoeff
         end do
      end do
      if (ishltmp /= G%nshell(iat)) then
@@ -336,12 +387,15 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
   iexpo=0
   do iat=1,at%nat
      ityp=at%iatype(iat)
+     ityx=iatypex(iat)
+     call count_atomic_shells(nmax,lmax,noccmax,nelecmax,nspin,nspinor,&
+          at%aocc(1,iat),occup,nl)
      ictotpsi=0
      do l=1,4
-        do i=1,nl(l,ityp)
+        do i=1,nl(l)
            ishell=ishell+1
            ictotpsi=ictotpsi+1
-           call atomkin(l-1,ng(ityp),xpt(1,ityp),psiat(1,ictotpsi,ityp),psiatn,ek)
+           call atomkin(l-1,ng,xpt(1,ityx),psiat(1,ictotpsi,ityx),psiatn,ek)
            do ig=1,G%ndoc(ishell)
               iexpo=iexpo+1
               G%psiat(iexpo)=psiatn(ig)
@@ -364,186 +418,17 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
   i_all=-product(shape(psiat))*kind(psiat)
   deallocate(psiat,stat=i_stat)
   call memocc(i_stat,i_all,'psiat',subname)
-  i_all=-product(shape(occupat))*kind(occupat)
-  deallocate(occupat,stat=i_stat)
-  call memocc(i_stat,i_all,'occupat',subname)
-  i_all=-product(shape(ng))*kind(ng)
-  deallocate(ng,stat=i_stat)
-  call memocc(i_stat,i_all,'ng',subname)
-  i_all=-product(shape(nl))*kind(nl)
-  deallocate(nl,stat=i_stat)
-  call memocc(i_stat,i_all,'nl',subname)
   i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
   deallocate(norbsc_arr,stat=i_stat)
   call memocc(i_stat,i_all,'norbsc_arr',subname)
   i_all=-product(shape(psiatn))*kind(psiatn)
   deallocate(psiatn,stat=i_stat)
   call memocc(i_stat,i_all,'psiatn',subname)
+  i_all=-product(shape(iatypex))*kind(iatypex)
+  deallocate(iatypex,stat=i_stat)
+  call memocc(i_stat,i_all,'iatypex',subname)
 
 end subroutine gaussian_pswf_basis
-!!***
-
-
-!!****f* BigDFT/gaussian_ext_pswf_basis
-!! FUNCTION
-!!   Gaussian section
-!!   Create gaussian structure from input guess pseudo wavefunctions
-!!   extend the basis to all the different gaussians
-!!
-!! SOURCE
-!!
-subroutine gaussian_ext_pswf_basis(iproc,at,rxyz,G)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
-  type(gaussian_basis), intent(out) :: G
-  !local variables
-  character(len=*), parameter :: subname='gaussian_pswf_basis'
-  integer, parameter :: ngx=31
-  integer :: i_stat,i_all,iat,ityp,ishell,iexpo,l,i,ig,isat,ictotpsi,norbe,norbsc,ishltmp
-  real(gp) :: ek
-  logical, dimension(:,:,:), allocatable :: scorb
-  integer, dimension(:), allocatable :: ng
-  integer, dimension(:,:), allocatable :: nl,norbsc_arr
-  real(gp), dimension(:), allocatable :: psiatn,locrad
-  real(gp), dimension(:,:), allocatable :: xpt,occupat
-  real(gp), dimension(:,:,:), allocatable :: psiat
-
-
-  allocate(xpt(ngx,at%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,xpt,'xpt',subname)
-  allocate(psiat(ngx,5,at%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,psiat,'psiat',subname)
-  allocate(occupat(5,at%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,occupat,'occupat',subname)
-  allocate(ng(at%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,ng,'ng',subname)
-  allocate(nl(4,at%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,nl,'nl',subname)
-  allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)
-  call memocc(i_stat,scorb,'scorb',subname)
-  allocate(norbsc_arr(at%natsc+1,1+ndebug),stat=i_stat)
-  call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
-  allocate(psiatn(ngx+ndebug),stat=i_stat)
-  call memocc(i_stat,psiatn,'psiatn',subname)
-  allocate(locrad(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,locrad,'locrad',subname)
-
-
-  !Generate the input guess via the inguess_generator
-  call readAtomicOrbitals(iproc,ngx,xpt,psiat,occupat,ng,nl,at,norbe,norbsc,1,&
-       scorb,norbsc_arr,locrad)
-
-  i_all=-product(shape(locrad))*kind(locrad)
-  deallocate(locrad,stat=i_stat)
-  call memocc(i_stat,i_all,'locrad',subname)
-
-
-  !the number of gaussian centers are thus nat
-  G%nat=at%nat
-  G%rxyz => rxyz
-  !copy the parsed values in the gaussian structure
-  !count also the total number of shells
-  allocate(G%nshell(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,G%nshell,'G%nshell',subname)
-  
-
-  G%nshltot=0
-  do iat=1,at%nat
-     ityp=at%iatype(iat)
-     G%nshell(iat)=ng(ityp)*(nl(1,ityp)+nl(2,ityp)+nl(3,ityp)+nl(4,ityp))
-     G%nshltot=G%nshltot+G%nshell(iat)
-  end do
-
-  allocate(G%ndoc(G%nshltot+ndebug),stat=i_stat)
-  call memocc(i_stat,G%ndoc,'G%ndoc',subname)
-  allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
-  call memocc(i_stat,G%nam,'G%nam',subname)
-
-  !assign shell IDs and count the number of exponents and coefficients
-  G%nexpo=0
-  G%ncoeff=0
-  ishell=0
-  do iat=1,at%nat
-     ityp=at%iatype(iat)
-     ishltmp=0
-     do l=1,4
-        do i=1,nl(l,ityp)
-           do ig=1,ng(ityp)
-              ishell=ishell+1
-              ishltmp=ishltmp+1
-              G%ndoc(ishell)=1
-              G%nam(ishell)=l
-              G%nexpo=G%nexpo+1
-              G%ncoeff=G%ncoeff+2*l-1
-           end do
-        end do
-     end do
-     if (ishltmp /= G%nshell(iat)) then
-        write(*,*)'ERROR: ishelltmp <> nshell',ishell,G%nshell(iat)
-        stop 
-     end if
-  end do
-
-  !allocate and assign the exponents and the coefficients
-  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
-  call memocc(i_stat,G%psiat,'G%psiat',subname)
-  allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
-  call memocc(i_stat,G%xp,'G%xp',subname)
-
-  ishell=0
-  iexpo=0
-  do iat=1,at%nat
-     ityp=at%iatype(iat)
-     ictotpsi=0
-     do l=1,4
-        do i=1,nl(l,ityp)
-           ictotpsi=ictotpsi+1
-           do ig=1,ng(ityp)
-              call atomkin(l-1,1,xpt(ig,ityp),psiat(ig,ictotpsi,ityp),psiatn,ek)
-              ishell=ishell+1
-              iexpo=iexpo+1
-              G%psiat(iexpo)=psiatn(1)
-              G%xp(iexpo)=xpt(ig,ityp)
-           end do
-        end do
-     end do
-  end do
-  if (iexpo /= G%nexpo) then
-     write(*,*)'ERROR: iexpo <> nexpo',iexpo,G%nexpo
-     stop 
-  end if
-
-
-  i_all=-product(shape(scorb))*kind(scorb)
-  deallocate(scorb,stat=i_stat)
-  call memocc(i_stat,i_all,'scorb',subname)
-  i_all=-product(shape(xpt))*kind(xpt)
-  deallocate(xpt,stat=i_stat)
-  call memocc(i_stat,i_all,'xpt',subname)
-  i_all=-product(shape(psiat))*kind(psiat)
-  deallocate(psiat,stat=i_stat)
-  call memocc(i_stat,i_all,'psiat',subname)
-  i_all=-product(shape(occupat))*kind(occupat)
-  deallocate(occupat,stat=i_stat)
-  call memocc(i_stat,i_all,'occupat',subname)
-  i_all=-product(shape(ng))*kind(ng)
-  deallocate(ng,stat=i_stat)
-  call memocc(i_stat,i_all,'ng',subname)
-  i_all=-product(shape(nl))*kind(nl)
-  deallocate(nl,stat=i_stat)
-  call memocc(i_stat,i_all,'nl',subname)
-  i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-  deallocate(norbsc_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'norbsc_arr',subname)
-  i_all=-product(shape(psiatn))*kind(psiatn)
-  deallocate(psiatn,stat=i_stat)
-  call memocc(i_stat,i_all,'psiatn',subname)
-
-end subroutine gaussian_ext_pswf_basis
 !!***
 
 
@@ -552,8 +437,7 @@ end subroutine gaussian_ext_pswf_basis
 !!   Extract the pseudopotential basis
 !! WARNING
 !!   This is not the complete PSP basis set. 
-!!   the radial power term is lacking in the gaussian descriptors 
-!!   should be added if needed
+!!   The radial power term is lacking in the gaussian descriptors should be added if needed
 !! SOURCE
 !!
 subroutine gaussian_psp_basis(at,rxyz,G)
@@ -627,6 +511,7 @@ subroutine gaussian_psp_basis(at,rxyz,G)
 
 end subroutine gaussian_psp_basis
 !!***
+
 
 subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
   use module_base
@@ -833,6 +718,7 @@ function gauinth(a,l)
   sh=-0.5d0*real(p,gp)
   p=l/2
   tt=xfac(1,p,sh)
+
   !final result
   gauinth=prefac*tt
   

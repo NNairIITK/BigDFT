@@ -193,7 +193,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   real(dp), intent(out) :: scprsum
   !local variables
   character(len=*), parameter :: subname='orthoconstraint'
-  integer :: i_stat,i_all,ierr,info,iorb
+  integer :: i_stat,i_all,ierr,info,iorb,ise
   integer :: istart,ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   real(dp) :: occ,tt
   integer, dimension(:,:), allocatable :: ndimovrlp
@@ -282,23 +282,24 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
 
         !calculate the scprsum if the k-point is associated to this processor
         if (orbs%ikptproc(ikpt) == iproc) then
-
+           if (ispin==1) ise=0
            if(nspinor == 1) then
               do iorb=1,norb
-                 occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb),dp)
+                 occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb+ise),dp)
                  scprsum=scprsum+&
                       occ*real(alag(ndimovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs,1),dp)
               enddo
            else if (nspinor == 4 .or. nspinor == 2) then
               !not sure about the imaginary part of the diagonal
               do iorb=1,norb
-                 occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb),dp)
+                 occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb+ise),dp)
                  scprsum=scprsum+&
                       occ*real(alag(ndimovrlp(ispin,ikpt-1)+2*iorb-1+(iorb-1)*norbs,1),dp)
                  scprsum=scprsum+&
                       occ*real(alag(ndimovrlp(ispin,ikpt-1)+2*iorb+(iorb-1)*norbs,1),dp)
               enddo
            end if
+           ise=norb
         end if
 
         if(nspinor==1 .and. nvctrp /= 0) then
