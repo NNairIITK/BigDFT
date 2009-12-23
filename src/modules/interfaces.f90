@@ -118,6 +118,18 @@ module module_interfaces
        type(locreg_descriptors), intent(out) :: Glr
      end subroutine system_size
 
+     subroutine read_input_variables(iproc,posinp, dft, kpt, geopt, in,atoms,rxyz)
+       use module_base
+       use module_types
+       implicit none
+       character(len=*), intent(in) :: posinp
+       character(len=*), intent(in) :: dft, geopt, kpt
+       integer, intent(in) :: iproc
+       type(input_variables), intent(out) :: in
+       type(atoms_data), intent(out) :: atoms
+       real(gp), dimension(:,:), pointer :: rxyz
+     end subroutine read_input_variables
+
      subroutine read_atomic_file(file,iproc,at,rxyz)
        use module_base
        use module_types
@@ -717,7 +729,7 @@ module module_interfaces
        real(dp), dimension(:), pointer :: pkernel_ref,pkernel
      end subroutine correct_hartree_potential
 
-     subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
+     subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
           radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
           ekin_sum,epot_sum,eproj_sum,nspin,GPU, in_iat_absorber, doorthoocc, Occ_norb, Occ_psit, Occ_eval, in )
        use module_base
@@ -745,10 +757,10 @@ module module_interfaces
        type(input_variables),intent(in) :: in
 
 
-     end subroutine lanczos
+     end subroutine xabs_lanczos
 
 
-     subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
+     subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
           radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
           ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
        use module_base
@@ -772,7 +784,7 @@ module module_interfaces
 
        type(input_variables),intent(in) :: in
 
-     end subroutine chebychev
+     end subroutine xabs_chebychev
 
 
 

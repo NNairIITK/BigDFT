@@ -47,6 +47,75 @@ subroutine print_logo()
 end subroutine print_logo
 !!***
 
+!!****f* BigDFT/read_input_variables
+!! FUNCTION
+!!    Do all initialisation for all different files of
+!!    BigDFT. Set default values if not any.
+!! SOURCE
+!!
+subroutine read_input_variables(iproc,posinp, file_dft, file_kpt, &
+     & file_geopt, in,atoms,rxyz)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => read_input_variables
+
+  implicit none
+
+  character(len=*), intent(in) :: posinp
+  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt
+  integer, intent(in) :: iproc
+  type(input_variables), intent(out) :: in
+  type(atoms_data), intent(out) :: atoms
+  real(gp), dimension(:,:), pointer :: rxyz
+
+  logical :: exists
+  real(gp) :: tt
+  integer :: iat
+  
+  !read atomic file
+  call read_atomic_file(posinp,iproc,atoms,rxyz)
+
+  ! read dft input variables
+  call dft_input_variables(iproc,file_dft,in,atoms%symObj)
+
+  ! read k-points input variables (if given)
+  call kpt_input_variables(iproc,file_kpt,in,atoms)
+
+  ! read geometry optimisation option
+  inquire(file=file_geopt,exist=exists)
+  if (exists) then
+     call geopt_input_variables(iproc,file_geopt,in)
+  else
+     call geopt_input_variables_default(in)
+  end if
+
+  ! Chake atoms if required.
+  if (in%randdis > 0.d0) then
+     do iat=1,atoms%nat
+        if (atoms%ifrztyp(iat) == 0) then
+           call random_number(tt)
+           rxyz(1,iat)=rxyz(1,iat)+in%randdis*tt
+           call random_number(tt)
+           rxyz(2,iat)=rxyz(2,iat)+in%randdis*tt
+           call random_number(tt)
+           rxyz(3,iat)=rxyz(3,iat)+in%randdis*tt
+        end if
+     enddo
+  end if
+
+  !atoms inside the box.
+  do iat=1,atoms%nat
+     if (atoms%geocode == 'P') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+        rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     else if (atoms%geocode == 'S') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     end if
+  end do
+end subroutine read_input_variables
+
 !!****f* BigDFT/dft_input_variables
 !! FUNCTION
 !!    Read the input variables needed for the DFT calculation
@@ -746,10 +815,10 @@ end subroutine dft_input_converter
 
 !!****f* BigDFT/read_input_variables
 !! FUNCTION
-!!    Read the input variables in the file 'input.dft'
+!!    Read the input variables in the file 'input.dat', old format.
 !! SOURCE
 !!
-subroutine read_input_variables(iproc,filename,in)
+subroutine read_input_variables_old(iproc,filename,in)
   use module_base
   use module_types
   implicit none
@@ -935,7 +1004,7 @@ contains
     end if
   end subroutine check
 
-end subroutine read_input_variables
+end subroutine read_input_variables_old
 !!***
 
 
@@ -1174,7 +1243,6 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   real(gp), dimension(3,atoms%nat), intent(out) :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_atomic_positions'
-  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   character(len=2) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
@@ -1264,9 +1332,9 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   !convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
-     atoms%alat1=alat1d0/bohr
-     atoms%alat2=alat2d0/bohr
-     atoms%alat3=alat3d0/bohr
+     atoms%alat1=alat1d0/bohr2ang
+     atoms%alat2=alat2d0/bohr2ang
+     atoms%alat3=alat3d0/bohr2ang
   else if  (atoms%units=='atomic' .or. atoms%units=='bohr'  .or.&
        atoms%units== 'atomicd0' .or. atoms%units== 'bohrd0') then
      atoms%alat1=alat1d0
@@ -1337,7 +1405,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
      if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
         ! if Angstroem convert to Bohr
         do i=1,3 
-           rxyz(i,iat)=rxyz(i,iat)/bohr
+           rxyz(i,iat)=rxyz(i,iat)/bohr2ang
         enddo
      else if (atoms%units == 'reduced') then 
         rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
@@ -1555,7 +1623,6 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_ascii_positions'
-  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   character(len=2) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
@@ -1600,7 +1667,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
      write(line, "(a150)") adjustl(lines(i))
      if (line(1:1) /= '#' .and. line(1:1) /= '!' .and. len(trim(line)) /= 0) then
         atoms%nat = atoms%nat + 1
-     else if (line(1:9) == "#keyword:" .or. line(1:9) == "!keyword:") then
+     else if (line(1:8) == "#keyword" .or. line(1:8) == "!keyword") then
         if (index(line, 'bohr') > 0)        write(atoms%units, "(A)") "bohr"
         if (index(line, 'bohrd0') > 0)      write(atoms%units, "(A)") "bohrd0"
         if (index(line, 'atomic') > 0)      write(atoms%units, "(A)") "atomicd0"
@@ -1612,7 +1679,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
         if (index(line, 'freeBC') > 0)   atoms%geocode = 'F'
      end if
   end do
-  
+
   allocate(atoms%iatype(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%iatype,'atoms%iatype',subname)
   allocate(atoms%ifrztyp(atoms%nat+ndebug),stat=i_stat)
@@ -1685,9 +1752,9 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   !convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
-     atoms%alat1 = atoms%alat1 / bohr
-     atoms%alat2 = atoms%alat2 / bohr
-     atoms%alat3 = atoms%alat3 / bohr
+     atoms%alat1 = atoms%alat1 / bohr2ang
+     atoms%alat2 = atoms%alat2 / bohr2ang
+     atoms%alat3 = atoms%alat3 / bohr2ang
   endif
 
   atoms%ntypes=0
@@ -1746,7 +1813,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
         if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
            ! if Angstroem convert to Bohr
            do j=1,3 
-              rxyz(j,iat)=rxyz(j,iat)/bohr
+              rxyz(j,iat)=rxyz(j,iat) / bohr2ang
            enddo
         else if (atoms%units == 'reduced') then 
            rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
@@ -1818,7 +1885,6 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !local variables
-  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   character(len=2) :: symbol
   character(len=10) :: name
   character(len=11) :: units
@@ -1837,7 +1903,7 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
      zmax=max(rxyz(3,iat),zmax)
   enddo
   if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
-     factor=bohr
+     factor=bohr2ang
      units='angstroemd0'
   else
      factor=1.0_gp
@@ -1884,7 +1950,6 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !local variables
-  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   character(len=2) :: symbol
   character(len=50) :: extra
   character(len=10) :: name
@@ -1902,7 +1967,7 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
      zmax=max(rxyz(3,iat),zmax)
   enddo
   if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
-     factor=bohr
+     factor=bohr2ang
   else
      factor=1.0_gp
   end if

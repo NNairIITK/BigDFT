@@ -48,7 +48,7 @@
        real(wp), dimension(:), pointer :: psi
        real(wp), dimension(:,:), pointer :: gaucoeffs
      end subroutine cluster 
-     subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
+     subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
           psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,infocode)
        use module_base
        use module_types
@@ -64,7 +64,6 @@
        real(gp), intent(out) :: energy
        real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
        real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
-       real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
        real(wp), dimension(:), pointer :: psi
        real(wp), dimension(:,:), pointer :: gaucoeffs
      end subroutine abscalc 
@@ -99,10 +98,10 @@
              rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,infocode)
 
      else
-        
-        call abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
+        call abscalc(nproc,iproc,atoms,rxyz,energy,&
              rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
              rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,infocode)
+        fxyz(:,:) = 0.d0
      endif
 
 
@@ -731,6 +730,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !end of the initialization part
   call timing(iproc,'INIT','PR')
+
+  !Davidson is set to false first because used in deallocate_before_exiting
+  DoDavidson= .false.
 
   wfn_loop: do iter=1,itermax
 
@@ -1522,7 +1524,7 @@ END SUBROUTINE cluster
 
 
 
-subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
+subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
      psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,infocode)
   ! inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
   ! inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
@@ -1557,7 +1559,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
   integer, intent(out) :: infocode
   real(gp), intent(out) :: energy
-  real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
   real(wp), dimension(:), pointer :: psi
   real(wp), dimension(:,:), pointer :: gaucoeffs
   !local variables
@@ -2136,13 +2137,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,fxyz,&
      infocode=0
  
      if(in%iabscalc_type==2) then
-        call lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
+        call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
              , in%iat_absorber  , .false., orbs%norb,   psit , orbs%eval , in )
         
      else
-        call  chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
+        call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
              , in%iat_absorber, in)

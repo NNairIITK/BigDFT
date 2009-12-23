@@ -47,7 +47,7 @@ module module_base
 
   !Memory limit value in GB. It stops EVERYTHING if some process passes such limit
   !For no memory limit, leave it to zero
-  real(kind=4), parameter :: memorylimit=0.e0
+  real(kind=4), parameter :: memorylimit = MEMORY_LIMIT
 
   !flag for GPU computing, if CUDA libraries are present
   !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
@@ -58,6 +58,9 @@ module module_base
   !if the projector allocation passes the memorylimit this is switched to true
   !inside localize_projectors routines
   logical :: DistProjApply=.true.
+
+  ! Physical constants.
+  real(gp), parameter :: bohr2ang = 0.5291772108_gp !1 AU in angstroem
 
   !interface for MPI_ALLREDUCE routine
   interface mpiallred

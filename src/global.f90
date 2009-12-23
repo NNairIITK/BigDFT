@@ -1178,9 +1178,6 @@ subroutine localdist(nat,rxyz,vxyz)
   return
 end subroutine localdist
 
-
-
-
 subroutine torque(nat,rxyz,vxyz)
   implicit real*8 (a-h,o-z)
   dimension rxyz(3,nat),vxyz(3,nat)
@@ -1203,7 +1200,6 @@ subroutine torque(nat,rxyz,vxyz)
   enddo
   write(*,'(a,3(1pe11.3))') 'torque',tx,ty,tz
 
-  return
 end subroutine torque
 
 
@@ -1274,7 +1270,6 @@ subroutine elim_torque(nat,rxyz,vxyz)
   enddo
   write(*,'(a,3(1pe11.3))') 'WARNING REMAINING TORQUE',t
 
-  return
 end subroutine elim_torque
 
 
@@ -1291,7 +1286,6 @@ subroutine moment(nat,vxyz)
   enddo
   write(*,'(a,3(1pe11.3))') 'momentum',sx,sy,sz
 
-  return
 end subroutine moment
 
 
@@ -1312,7 +1306,6 @@ subroutine elim_moment(nat,vxyz)
      vxyz(3,iat)=vxyz(3,iat)-sz
   enddo
 
-  return
 end subroutine elim_moment
 
 
