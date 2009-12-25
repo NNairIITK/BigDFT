@@ -1216,7 +1216,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
        pgauss = p_gauss(i_gauss)
 
        !this routine can be substituted by the wofz calculation
-       call gauss_conv_scf(itype_scf,pgauss,hgrid,n_range,n_scf,x_scf,y_scf,&
+       call gauss_conv_scf(itype_scf,pgauss,hgrid,dx,n_range,n_scf,x_scf,y_scf,&
             kernel_scf,kern_1_scf)
 
 !!$       !We calculate the number of iterations to go from pgauss to p0_ref
@@ -1262,8 +1262,6 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
              end do
           end do
        end do
-
-
     end do loop_gauss1
 
  else
@@ -1371,28 +1369,27 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 end subroutine Free_Kernel
 !!***
 
-subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,n_range,n_scf,x_scf,y_scf,kernel_scf,work)
-  use module_base
+subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,dx,n_range,n_scf,x_scf,y_scf,kernel_scf,work)
   implicit none
   integer, intent(in) :: n_range,n_scf,itype_scf
-  real(dp), intent(in) :: pgauss,hgrid
-  real(dp), dimension(0:n_scf), intent(in) :: x_scf
-  real(dp), dimension(0:n_scf), intent(in) :: y_scf
-  real(dp), dimension(-n_range:n_range), intent(inout) :: work
-  real(dp), dimension(-n_range:n_range), intent(out) :: kernel_scf
+  real(kind=8), intent(in) :: pgauss,hgrid,dx
+  real(kind=8), dimension(0:n_scf), intent(in) :: x_scf
+  real(kind=8), dimension(0:n_scf), intent(in) :: y_scf
+  real(kind=8), dimension(-n_range:n_range), intent(inout) :: work
+  real(kind=8), dimension(-n_range:n_range), intent(inout) :: kernel_scf
   !local variables
-  real(dp), parameter :: p0_ref = 1.0_dp  
+  real(kind=8), parameter :: p0_ref = 1.0d0
   integer :: n_iter,i_kern,i
-  real(dp) :: p0_cell,p0gauss,absci,dx,kern
+  real(kind=8) :: p0_cell,p0gauss,absci,kern
 
   !Step grid for the integration
-  dx = real(n_range,dp)/real(n_scf,dp)
+  !dx = real(n_range,kind=8)/real(n_scf,kind=8)
 
   !To have a correct integration
   p0_cell = p0_ref/(hgrid*hgrid)
     
   !We calculate the number of iterations to go from pgauss to p0_ref
-  n_iter = nint((log(pgauss) - log(p0_cell))/log(4.0_dp))
+  n_iter = nint((log(pgauss) - log(p0_cell))/log(4.0d0))
   if (n_iter <= 0)then
      n_iter = 0
      p0gauss = pgauss
@@ -1402,17 +1399,17 @@ subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,n_range,n_scf,x_scf,y_scf,kerne
 
   !Stupid integration
   !Do the integration with the exponential centered in i_kern
-  kernel_scf(:) = 0.0_dp
+  kernel_scf(:) = 0.0d0
   do i_kern=0,n_range
-     kern = 0.0_dp
+     kern = 0.0d0
      do i=0,n_scf
-        absci = x_scf(i) - real(i_kern,dp)
+        absci = x_scf(i) - real(i_kern,kind=8)
         absci = absci*absci*hgrid**2
         kern = kern + y_scf(i)*dexp(-p0gauss*absci)
      end do
      kernel_scf(i_kern) = kern*dx
      kernel_scf(-i_kern) = kern*dx
-     if (abs(kern) < 1.e-18_dp) then
+     if (abs(kern) < 1.d-18) then
         !Too small not useful to calculate
         exit
      end if
