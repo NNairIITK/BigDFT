@@ -202,7 +202,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
      end if
   end if
 
-  !now the varaibles which are to be used only for the last run
+  !now the variables which are to be used only for the last run
   read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
   call check()
   !project however the wavefunction on gaussians if asking to write them on disk
@@ -221,14 +221,13 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   call check()
 
   !x-absorber treatment
-  read(1,*,iostat=ierror) in%iabscalc_type
+  read(1,*,iostat=ierror) in%iat_absorber
   call check()
-
 
   !read absorption-calculation input variables
   !inquire for the needed file 
   !if not present, set default ( no absorption calculation)
-  if ( in%iabscalc_type/= 0) then
+  if (in%iat_absorber /= 0) then
      inquire(file="input.abscalc",exist=exists)
      if (.not. exists) then
         if (iproc == 0) write(*,*)'ERROR: need file input.abscalc for x-ray absorber treatment.'
@@ -477,13 +476,6 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
 
   ! Set default values.
   in%nkpt = 1
-
-  !check also the GPU activation in relation to the boundary conditions
-  if (GPUconv .and. atoms%geocode /= 'P') then
-     if (iproc==0) write(*,*)&
-          ' ERROR: the CUDA convolutions are ported only for 3D periodic boundary conditions, cannot proceed...'
-     stop
-  end if
 
   inquire(file=trim(filename),exist=exists)
   if (.not. exists) then

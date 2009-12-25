@@ -48,7 +48,6 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
   end if
 
-
   !assign to each k-point the same occupation number
   do ikpts=1,orbs%nkpts
      call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&

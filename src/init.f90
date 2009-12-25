@@ -428,6 +428,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   use module_types
   use Poisson_Solver
   implicit none
+  !Arguments
   integer, intent(in) :: iproc,nproc,ixc
   integer, intent(inout) :: nspin,nvirt
   real(gp), intent(in) :: hx,hy,hz

@@ -1,16 +1,29 @@
-!create the descriptors for the density and the potential
+!!****f* BigDFT/createDensPotDescriptors
+!! FUNCTION
+!!   Create the descriptors for the density and the potential
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA (LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc,&
      n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
 
   use Poisson_Solver
 
   implicit none
+  !Arguments
   character(len=1), intent(in) :: geocode,datacode
   integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,ixc
   integer, intent(out) ::  n3d,n3p,n3pi,i3xcsh,i3s
   integer, dimension(0:nproc-1,4), intent(out) :: nscatterarr
   integer, dimension(0:nproc-1,2), intent(out) :: ngatherarr
-  !local variables
+  !Local variables
   integer :: jproc
 
   if (datacode == 'D') then
@@ -43,11 +56,24 @@ subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc
   ngatherarr(:,2)=n1i*n2i*nscatterarr(:,3)
 
 end subroutine createDensPotDescriptors
+!!***
 
-
-!partition the orbitals between processors to ensure load balancing
-!the criterion will depend on GPU computation
-!and/or on the sizes of the different localisation region
+!!****f* BigDFT/orbitals_communicators
+!! FUNCTION
+!!   Partition the orbitals between processors to ensure load balancing
+!!   the criterion will depend on GPU computation
+!!   and/or on the sizes of the different localisation region
+!! DESCRIPTION
+!!   Calculate the number of elements to be sent to each process
+!!   and the array of displacements
+!!   Cubic strategy: 
+!!      - the components are equally distributed among the wavefunctions
+!!      - each processor has all the orbitals in transposed form
+!!      - each wavefunction is equally distributed in its transposed form
+!!      - this holds for each k-point, which regroups different processors
+!!
+!! SOURCE
+!!
 subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   use module_base
   use module_types
@@ -81,7 +107,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   call memocc(i_stat,nvctr_par,'nvctr_par',subname)
   allocate(norb_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,norb_par,'norb_par',subname)
-
 
   !initialise the arrays
   do ikpts=0,orbs%nkpts
@@ -305,6 +330,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 
 
 end subroutine orbitals_communicators
+!!***
 
 
 subroutine print_distribution_schemes(nproc,nkpts,norb_par,nvctr_par)

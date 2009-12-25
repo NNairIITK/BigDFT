@@ -2,7 +2,7 @@
 !! FUNCTION
 !!   Routines to use bigdft as a blackbox
 !! COPYRIGHT
-!!   Copyright (C) 2005-2008 BigDFT group 
+!!   Copyright (C) 2005-2009 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -158,41 +158,32 @@
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
 end subroutine call_bigdft
-
-
 !!***
+
+
 !!****f* BigDFT/cluster
-!!
 !! FUNCTION
 !!  Main routine which does self-consistent loop.
 !!  Does not parse input file and no geometry optimization.
-!!
-!! COPYRIGHT
-!! Copyright (C) 2005-2008 BigDFT group 
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~/COPYING file
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the list of contributors, see ~/AUTHORS 
-!!
-!!
+!! DESCRIPTION
+!!   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
+!!   inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
+!!                    as definition of the previous system.
+!!   inputPsiId = 2 : read waves from disk
+!!   does an electronic structure calculation. Output is the total energy and the forces 
+!!   psi, keyg, keyv and eval should be freed after use outside of the routine.
+!!   infocode -> encloses some information about the status of the run
+!!            =0 run succesfully succeded
+!!            =1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
+!!               forces may be meaningless   
+!!            =2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
+!!               the second iteration OR grnm 1st >2.
+!!               Input wavefunctions need to be recalculated. Routine exits.
+!!            =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
 !! SOURCE
 !!
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,infocode)
-  ! inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
-  ! inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
-  !                  as definition of the previous system.
-  ! inputPsiId = 2 : read waves from disk
-  ! does an electronic structure calculation. Output is the total energy and the forces 
-  ! psi, keyg, keyv and eval should be freed after use outside of the routine.
-  ! infocode -> encloses some information about the status of the run
-  !          =0 run succesfully succeded
-  !          =1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
-  !             forces may be meaningless   
-  !          =2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
-  !             the second iteration OR grnm 1st >2.
-  !             Input wavefunctions need to be recalculated. Routine exits.
-  !          =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
   use module_base
   use module_types
   use module_interfaces
@@ -473,9 +464,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,rhopot,'rhopot',subname)
   end if
 
-
   !check the communication distribution
   call check_communications(iproc,nproc,orbs,Glr,comms)
+
 
   !avoid allocation of the eigenvalues array in case of restart
   if (in%inputPsiId /= 1 .and. in%inputPsiId /= 11) then
@@ -503,7 +494,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         end if
      end do
   end if
-   
+
   ! INPUT WAVEFUNCTIONS, added also random input guess
   select case(inputpsi)
   case(-2)
@@ -812,7 +803,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
      energy=energybs-ehart+eexcu-vexcu+eion+edisp
- 
+
      !check for convergence or whether max. numb. of iterations exceeded
      if (endloop) then 
         if (iproc.eq.0) then 
@@ -835,6 +826,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      !control the previous value of idsx_actual
      idsx_actual_before=idsx_actual
+     
 
      call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
           iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
@@ -1009,8 +1001,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      i_all=-product(shape(pot_ion))*kind(pot_ion)
      deallocate(pot_ion,stat=i_stat)
      call memocc(i_stat,i_all,'pot_ion',subname)
-
-
 
      !------------------------------------------------------------------------
      ! here we start the calculation of the forces
@@ -1254,7 +1244,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         call memocc(i_stat,i_all,'rhoref',subname)
      end if
      
-     
      !pass hx instead of hgrid since we are only in free BC
      call CalculateTailCorrection(iproc,nproc,atoms,rbuf,orbs,&
           Glr,nlpspd,ncongt,pot,hx,rxyz,radii_cf,crmult,frmult,in%nspin,&
@@ -1379,7 +1368,6 @@ contains
        i_all=-product(shape(fdisp))*kind(fdisp)
        deallocate(fdisp,stat=i_stat)
        call memocc(i_stat,i_all,'fdisp',subname)
-       
        
     end if
     !deallocate wavefunction for virtual orbitals

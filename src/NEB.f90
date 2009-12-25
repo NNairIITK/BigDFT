@@ -1,5 +1,5 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!          Copyright (C) 2003 Carlo Sbraccia.                       !!
+!!          COPYRIGHT (C) 2003 Carlo Sbraccia.                       !!
 !!                   modifications: 2009 Damien Caliste (DC)                  !!
 !!          This file is distributed under the terms                 !!
 !!          of the GNU General Public License.                       !!
