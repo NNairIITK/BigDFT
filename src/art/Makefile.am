@@ -30,6 +30,14 @@ noinst_LIBRARIES = libart.a
 
 libart_a_SOURCES = $(art_source)
 
+mpif.h:
+	touch mpif.h &&\
+	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
+	 echo "integer :: MPI_STATUSES_IGNORE, MPI_LOGICAL, MPI_REAL8" >> mpif.h &&\
+	 echo "integer :: MPI_MIN, MPI_MAX,MPI_CHARACTER" >> mpif.h
+
+
 #dependencies
 read_parameters.o: defs.o lanczos.o
 

@@ -76,7 +76,7 @@ program PS_Check
   hy=acell/real(n02,kind=8)
   hz=acell/real(n03,kind=8)
 
-  !order of the scaling functions choosed
+  !order of the scaling functions chosen
   itype_scf=16
 
   !calculate the kernel in parallel for each processor
