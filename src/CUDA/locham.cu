@@ -444,9 +444,8 @@ int completelocalhamiltonian(int n1,int n2, int n3,
 template<typename T>
 int fulllocalhamiltonian(int n1,int n2, int n3,
 			 T h1,T h2,T h3,
-			 T *psiw,T *hpsiw,T *pot,int *keys,
+			 T *psiw,T *pot,int *keys,
 			 T *psi,T *out, 
-			 T *psifscf,
 			 T *vpsifscf,
 			 T *epot,T *ekinpot)
 {
@@ -489,18 +488,18 @@ int fulllocalhamiltonian(int n1,int n2, int n3,
   //start the hamiltonian calculation
   waveletstosf<T>(n1,n2,n3,gridWT1,gridWT2,gridWT3,
 		  threadsWT1,threadsWT2,threadsWT3,
-		  psi,psifscf);
+		  psi,psiw);
 
 
   potentialapplication<T>(n1,n2,n3,gridMF1,gridMF2,gridMF3,
 			  threadsMF1,threadsMF2,threadsMF3,
-			  psifscf,vpsifscf,pot,epot,
+			  psiw,vpsifscf,pot,epot,
 			  out); //work array
 
   kineticapplication<T>(n1,n2,n3,h1,h2,h3,
 			gridK1,gridK2,gridK3,
 			threadsK1,threadsK2,threadsK3,
-			psifscf,vpsifscf,psi,
+			psiw,vpsifscf,psi,
 			out); //work array
 
   //calculate potential+kinetic energy
@@ -514,7 +513,7 @@ int fulllocalhamiltonian(int n1,int n2, int n3,
 
 
   //recompress
-  compresscoarsefine<T> <<< gridC, threadsC >>>(n1,n2,n3,out,hpsiw,keys);
+  compresscoarsefine<T> <<< gridC, threadsC >>>(n1,n2,n3,out,psiw,keys);
   check_cuda_error<cuda_error>();
   cudaThreadSynchronize();
 
@@ -640,17 +639,16 @@ void gpulocham_(int *n1,int *n2, int *n3,
 extern "C" 
 void gpufulllocham_(int *n1,int *n2, int *n3,
 		    double *h1,double *h2,double *h3,
-		    double **psiw,double **hpsiw,double **pot,int **keys, 
+		    double **psiw,double **pot,int **keys, 
 		    double **psi,double **out,
 		    double **work,
-		    double **work2,
 		    double *epot,double *ekinpot)
 {
 
   
   if(fulllocalhamiltonian<double>(*n1+1,*n2+1,*n3+1,
 				  *h1,*h2,*h3,
-				  *psiw, *hpsiw, *pot, *keys,*psi,*out,*work,*work2,
+				  *psiw,*pot, *keys,*psi,*out,*work,
 				  epot,ekinpot)!= 0) 
     {
       printf("ERROR: GPU fulllocalhamiltonian\n ");

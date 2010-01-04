@@ -34,103 +34,131 @@
 !!
 program fft_check
 
-   implicit real(kind=8) (a-h,o-z)
-
-   integer :: count1,count2,count_rate,count_max
-
-!  dimension parameters
-   integer, parameter :: n1=128, n2=128, n3=128   
-!  parameters for FFT
-   integer, parameter :: nd1=n1+1, nd2=n2+1, nd3=n3+1
-
-! general array
-   real(kind=8) :: zin(2,n1*n2*n3)
-! arrays for FFT 
-   real(kind=8) :: z(2,nd1*nd2*nd3,2)
-  
-   print *,'                    '
-   print *,'                    '
-   write(6,'(a,3(i4),3x,i3)') 'FFT TEST for n1 ,n2 ,n3 =',n1,n2,n3
-   write(6,*) 'nd1 ,nd2 ,nd3=', nd1 ,nd2 ,nd3
-   print *,'                    '
-  
-   do i=1,nd1*nd2*nd3
-      z(1,i,1)=0.d0
-      z(2,i,1)=0.d0
-      z(1,i,2)=0.d0
-      z(2,i,2)=0.d0
-   end do
- 
-
-  call init(n1,n2,n3,nd1,nd2,nd3,zin,z)
-
-  i_sign=-1
-  inzee=1
-  call fft(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
-
-  call cpu_time(t1)
-  call system_clock(count1,count_rate,count_max)      
-
-  i_sign=1
-  call fft(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
-
-  call cpu_time(t2)
-  call system_clock(count2,count_rate,count_max)      
-  time=(t2-t1)
-  tela=(count2-count1)/real(count_rate,kind=8)
-
-  call vgl(n1,n2,n3,nd1,nd2,nd3,z(1,1,inzee), &
-                 n1,n2,n3,zin,1.d0/(n1*n2*n3),tta,ttm)
-  print*,'Backw<>Forw:ttm=,tta=',ttm,tta
-  if (ttm.gt.1.d-8) print*, 'WARNING'
-
-  write(6,'(a,2(x,e11.4),x,i4)')  'Time (CPU,ELA) per FFT call (sec):' ,time,tela,ntime
-  flops=5*n1*n2*n3*log(1.d0*n1*n2*n3)/log(2.d0)
-  write(6,*) 'Estimated floating point operations per FFT call',flops
-  print*, 'CPU:  Mflops:' ,1.d-6*flops/time
-  print*, 'ELAP: Mflops:' ,1.d-6*flops/tela
-  
+   use module_fft_sg
+   implicit none
+   !integer :: i
+   write(*,'(a)') 'FFT test: (n1,n2,n3)'
+   !do i=1,ndata
+   !   call do_fft(i_data(i), 3, 3)
+   !end do
+   call do_fft(  7, 16,128)
+   call do_fft(  3, 16,128)
+   call do_fft(128,128,128)
 
 contains
 
+   subroutine do_fft(n1,n2,n3)
 
-    subroutine init(n1,n2,n3,nd1,nd2,nd3,zin,z)
-       implicit real*8 (a-h,o-z)
-       !Arguments
-       integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3
-       real*8 :: zin(2,n1,n2,n3),z(2,nd1,nd2,nd3)
-       !Local variables
-       integer :: i1,i2,i3
-       do i3=1,n3
-          do i2=1,n2
-             do i1=1,n1
-                zin(1,i1,i2,i3) = cos(1.23*real(i1*111 + i2*11 + i3,kind=8))
-                zin(2,i1,i2,i3) = sin(3.21*real(i3*111 + i2*11 + i1,kind=8))
-                z(1,i1,i2,i3) = zin(1,i1,i2,i3) 
-                z(2,i1,i2,i3) = zin(2,i1,i2,i3) 
-             end do
-          end do
-       end do
-    end subroutine init
+      implicit none
+
+      ! dimension parameters
+      integer, intent(in) :: n1, n2, n3   
+      ! Local variables
+      integer :: count1,count2,count_rate,count_max,i,inzee,i_sign
+      real(kind=8) :: ttm,tta,t1,t2,tela,time,flops
+      ! parameters for FFT
+      integer :: nd1, nd2, nd3
+      ! general array
+      real(kind=8), allocatable :: zin(:,:)
+      ! arrays for FFT 
+      real(kind=8), allocatable :: z(:,:,:)
+      character(len=10) :: message
+
+      nd1=n1+1
+      nd2=n2+1
+      nd3=n3+1
+      write(6,'(3(i5))',advance='no') n1,n2,n3
+
+      ! Allocations
+      allocate(zin(2,n1*n2*n3))
+      allocate(z(2,nd1*nd2*nd3,2))
+
+      do i=1,nd1*nd2*nd3
+         z(1,i,1)=0.d0
+         z(2,i,1)=0.d0
+         z(1,i,2)=0.d0
+         z(2,i,2)=0.d0
+      end do
+
+        call init(n1,n2,n3,nd1,nd2,nd3,zin,z)
+
+        i_sign=-1
+        inzee=1
+        call fft(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
+
+        call cpu_time(t1)
+        call system_clock(count1,count_rate,count_max)      
+
+        i_sign=1
+        call fft(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
+
+        call cpu_time(t2)
+        call system_clock(count2,count_rate,count_max)      
+        time=(t2-t1)
+        tela=(count2-count1)/real(count_rate,kind=8)
+
+        call vgl(n1,n2,n3,nd1,nd2,nd3,z(1,1,inzee), &
+                       n1,n2,n3,zin,1.d0/real(n1*n2*n3,kind=8),tta,ttm)
+        if (ttm.gt.1.d-10) then
+           message = 'Failed'
+        else
+           message = 'Succeeded'
+        end if
+        flops=5*n1*n2*n3*log(1.d0*n1*n2*n3)/log(2.d0)
+        !write(6,'(a,2(x,e11.4),x,i4)')  'Time (CPU,ELA) per FFT call (sec):' ,time,tela
+        !write(6,*) 'Estimated floating point operations per FFT call',flops
+        !write(6,*) 'CPU MFlops',1.d-6*flops/time
+        write(6,'(1x,a,2(1pg9.2),1x,a)') 'Backw<>Forw:ttm=,tta=',ttm,tta,message
+
+        ! De-allocations
+        deallocate(z)
+        deallocate(zin)
+
+   end subroutine do_fft
+
+   subroutine init(n1,n2,n3,nd1,nd2,nd3,zin,z)
+      implicit none
+      !Arguments
+      integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3
+      real*8 :: zin(2,n1,n2,n3),z(2,nd1,nd2,nd3)
+      !Local variables
+      integer :: i1,i2,i3
+      do i3=1,n3
+         do i2=1,n2
+            do i1=1,n1
+               zin(1,i1,i2,i3) = cos(1.23d0*real(i1*111 + i2*11 + i3,kind=8))
+               zin(2,i1,i2,i3) = sin(3.21d0*real(i3*111 + i2*11 + i1,kind=8))
+               z(1,i1,i2,i3) = zin(1,i1,i2,i3) 
+               z(2,i1,i2,i3) = zin(2,i1,i2,i3) 
+            end do
+         end do
+      end do
+   end subroutine init
 
 
-    subroutine vgl(n1,n2,n3,nd1,nd2,nd3,x,md1,md2,md3,y,scale,tta,ttm)
-       implicit real*8 (a-h,o-z)
-       dimension x(2,nd1,nd2,nd3),y(2,md1,md2,md3)
-       ttm=0.d0
-       tta=0.d0
-       do i3=1,n3
-          do i2=1,n2
-             do i1=1,n1
-                ttr=abs(x(1,i1,i2,i3)*scale-y(1,i1,i2,i3))/abs(y(1,i1,i2,i3))
-                tti=abs(x(2,i1,i2,i3)*scale-y(2,i1,i2,i3))/abs(y(2,i1,i2,i3))
-                ttm=max(ttr,tti,ttm)
-                tta=tta+ttr+tti
-             end do
-          end do
-       end do
-       tta=tta/(n1*n2*n3)
-    end subroutine vgl
+   subroutine vgl(n1,n2,n3,nd1,nd2,nd3,x,md1,md2,md3,y,scale,tta,ttm)
+      implicit none
+      !Arguments
+      integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3
+      real(kind=8), intent(in) :: x(2,nd1,nd2,nd3),y(2,md1,md2,md3)
+      real(kind=8), intent(in) :: scale
+      !Local variables
+      real(kind=8) :: ttm,tta,ttr,tti
+      integer :: i1,i2,i3
+      ttm=0.d0
+      tta=0.d0
+      do i3=1,n3
+         do i2=1,n2
+            do i1=1,n1
+               ttr=abs(x(1,i1,i2,i3)*scale-y(1,i1,i2,i3))/abs(y(1,i1,i2,i3))
+               tti=abs(x(2,i1,i2,i3)*scale-y(2,i1,i2,i3))/abs(y(2,i1,i2,i3))
+               ttm=max(ttr,tti,ttm)
+               tta=tta+ttr+tti
+            end do
+         end do
+      end do
+      tta=tta/(n1*n2*n3)
+   end subroutine vgl
 
 end program fft_check
 !!***

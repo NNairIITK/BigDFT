@@ -1,5 +1,5 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!          Copyright (C) 2003 Carlo Sbraccia.                       !!
+!!          COPYRIGHT (C) 2003 Carlo Sbraccia.                       !!
 !!                   modifications: 2009 Damien Caliste (DC)                  !!
 !!          This file is distributed under the terms                 !!
 !!          of the GNU General Public License.                       !!
@@ -493,9 +493,9 @@ MODULE NEB_routines
 
       END IF
  
-!!$      IF ( restart ) THEN
-!!$         num_of_images = num_of_images - 2
-!!$      END IF
+!!!      IF ( restart ) THEN
+!!!         num_of_images = num_of_images - 2
+!!!      END IF
 
       IF ( minimization_scheme == "steepest_descent" ) THEN
 
@@ -566,12 +566,12 @@ MODULE NEB_routines
 
       END IF
 
-      IF ( minval(abs(acell2 - acell1)) /= 0.d0 ) THEN
+      IF ( maxval(abs(acell2 - acell1)) > 1.d-6 ) THEN
       
          WRITE(*,'(T2,"read_input: box size is not constant")')
-         WRITE(*,'(T2,"            Lx = ", F9.4, F9.4 )') acell1(1), acell2(1)
-         WRITE(*,'(T2,"            Ly = ", F9.4, F9.4 )') acell1(2), acell2(2)
-         WRITE(*,'(T2,"            Lz = ", F9.4, F9.4 )') acell1(3), acell2(3)
+         WRITE(*,'(T2,"           dLx = ", F10.6 )') acell1(1) - acell2(1)
+         WRITE(*,'(T2,"           dLy = ", F10.6 )') acell1(2) - acell2(2)
+         WRITE(*,'(T2,"           dLz = ", F10.6 )') acell1(3) - acell2(3)
          STOP  
 
       END IF
@@ -684,7 +684,7 @@ MODULE NEB_routines
               ! a : the current ratio.
               ! We copy i to j if a < r, otherwise we create a new
               ! linear approximant.
-              if (a < r) then
+              if (a <= r) then
                  pos(:, j) = pos(:, i)
                  i = i - 1
                  ! We create the new linear approx. replicas between j and j0.
@@ -741,32 +741,32 @@ MODULE NEB_routines
       
         ALLOCATE( d_R(dim) )           
 
-!!$        OPEN( UNIT = unit, FILE = first_config, STATUS = "OLD", &
-!!$              ACTION = "READ" )
-!!$    
-!!$          DO i = 1, dim, 3 
-!!$       
-!!$            READ(unit,fmt2) pos(i,1),     & 
-!!$                            pos((i+1),1), &
-!!$                            pos((i+2),1)
-!!$      
-!!$          END DO
-!!$
-!!$        CLOSE( UNIT = unit )
+!!!        OPEN( UNIT = unit, FILE = first_config, STATUS = "OLD", &
+!!!              ACTION = "READ" )
+!!!    
+!!!          DO i = 1, dim, 3 
+!!!       
+!!!            READ(unit,fmt2) pos(i,1),     & 
+!!!                            pos((i+1),1), &
+!!!                            pos((i+2),1)
+!!!      
+!!!          END DO
+!!!
+!!!        CLOSE( UNIT = unit )
         pos(:, 1) = reshape(xcart1, (/ dim /))
 
-!!$        OPEN( UNIT = unit, FILE = last_config, STATUS = "OLD", &
-!!$              ACTION = "READ" )
-!!$
-!!$          DO i = 1, dim, 3 
-!!$ 
-!!$            READ(unit,fmt2) pos(i,num_of_images),     &
-!!$                            pos((i+1),num_of_images), &
-!!$                            pos((i+2),num_of_images)
-!!$      
-!!$          END DO
-!!$
-!!$        CLOSE( UNIT = unit )
+!!!        OPEN( UNIT = unit, FILE = last_config, STATUS = "OLD", &
+!!!              ACTION = "READ" )
+!!!
+!!!          DO i = 1, dim, 3 
+!!! 
+!!!            READ(unit,fmt2) pos(i,num_of_images),     &
+!!!                            pos((i+1),num_of_images), &
+!!!                            pos((i+2),num_of_images)
+!!!      
+!!!          END DO
+!!!
+!!!        CLOSE( UNIT = unit )
         pos(:, num_of_images) = reshape(xcart2, (/ dim /))
   
         d_R = ( pos(:,num_of_images) - pos(:,1) ) / &

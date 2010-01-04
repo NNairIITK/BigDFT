@@ -261,15 +261,15 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   end do
 
 
-!!$  !print the found values
-!!$  do ityp=1,ntypes
-!!$     do ishell=1,nshell(ityp)
-!!$        print *,'ityp=',ityp,'ishell=',ishell,'l=',nam(ishell,ityp),'ndoc=',ndoc(ishell,ityp)
-!!$        do ipg=1,ndoc(ishell,ityp)
-!!$           print *,'expo=',expo(ipg,ishell,ityp),'coeff=',contcoeff(ipg,ishell,ityp)
-!!$        end do
-!!$     end do
-!!$  end do
+!!!  !print the found values
+!!!  do ityp=1,ntypes
+!!!     do ishell=1,nshell(ityp)
+!!!        print *,'ityp=',ityp,'ishell=',ishell,'l=',nam(ishell,ityp),'ndoc=',ndoc(ishell,ityp)
+!!!        do ipg=1,ndoc(ishell,ityp)
+!!!           print *,'expo=',expo(ipg,ishell,ityp),'coeff=',contcoeff(ipg,ishell,ityp)
+!!!        end do
+!!!     end do
+!!!  end do
 
 
   i_all=-product(shape(contcoeff))*kind(contcoeff)
@@ -305,8 +305,8 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   end do read_line1
   nend=nst+ipar-1
 
-!!$  nst=1
-!!$  nend=4
+!!!  nst=1
+!!!  nend=4
   jat=0
   ishell=1
   jbas=0
@@ -367,15 +367,15 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   end do store_coeff
   close(36)
 
-!!$  !print the found values
-!!$  do iat=1,nat
-!!$     ityp=iatype(iat)
-!!$     do ishell=1,nshell(ityp)
-!!$        do jbas=1,2*nam(ishell,ityp)+1
-!!$           print *,iat,ishell,nam(ishell,ityp),jbas,(cimu(jbas,ishell,iat,iorb),iorb=1,norb)
-!!$        end do
-!!$     end do
-!!$  end do
+!!!  !print the found values
+!!!  do iat=1,nat
+!!!     ityp=iatype(iat)
+!!!     do ishell=1,nshell(ityp)
+!!!        do jbas=1,2*nam(ishell,ityp)+1
+!!!           print *,iat,ishell,nam(ishell,ityp),jbas,(cimu(jbas,ishell,iat,iorb),iorb=1,norb)
+!!!        end do
+!!!     end do
+!!!  end do
 
   !allocate and assign the coefficients of each orbital
   allocate(wfn_cp2k(CP2K%ncoeff,orbs%norbp+ndebug),stat=i_stat)
@@ -535,7 +535,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
         jorb=iorb-orbs%isorb
         totnorm=0.0_dp
        do ispinor=1,orbs%nspinor !to be verified in case of nspinor=4
-          call wnrm_wrap(wfd%nvctr_c,wfd%nvctr_f,psi(1,ispinor,jorb),scpr) 
+          call wnrm_wrap(1,wfd%nvctr_c,wfd%nvctr_f,psi(1,ispinor,jorb),scpr) 
            totnorm=totnorm+scpr
 
            !print *,'AAA',iproc,iorb,ispinor,scpr,jorb
@@ -566,210 +566,615 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
 
 end subroutine gaussians_to_wavelets
 
+subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors), intent(in) :: lr
+  type(orbitals_data), intent(in) :: orbs
+  type(gaussian_basis), intent(in) :: G
+  real(wp), dimension(G%ncoeff,orbs%nspinor,orbs%norbp), intent(in) :: wfn_gau
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
+  !local variables
+  integer :: iat,iorb,ierr,ispinor,ncplx
+  real(dp) :: normdev,tt,scpr,totnorm
+  real(gp) :: kx,ky,kz
+
+  if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
+       'Writing wavefunctions in wavelet form...'
+
+  normdev=0.0_dp
+  tt=0.0_dp
+  do iorb=1,orbs%norbp
+     !features of the k-point ikpt
+     kx=orbs%kpts(1,orbs%iokpt(iorb))
+     ky=orbs%kpts(2,orbs%iokpt(iorb))
+     kz=orbs%kpts(3,orbs%iokpt(iorb))
+
+     !evaluate the complexity of the k-point
+     if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
+        ncplx=1
+     else
+        ncplx=2
+     end if
+     totnorm=0.0_dp
+     do ispinor=1,orbs%nspinor,ncplx
+        !print *,'start',ispinor,ncplx,iorb,orbs%nspinor
+        !the Block wavefunctions are exp(-Ikr) psi(r) (with MINUS k)
+        call gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,&
+             wfn_gau(1,ispinor,iorb),psi(1,ispinor,iorb))
+        !print *,'end',ispinor,ncplx,iorb,orbs%nspinor
+        call wnrm_wrap(ncplx,lr%wfd%nvctr_c,lr%wfd%nvctr_f,psi(1,ispinor,iorb),scpr) 
+        totnorm=totnorm+scpr
+     end do
+     !write(*,'(1x,a,i5,1pe14.7,i3)')'norm of orbital ',iorb,totnorm,ncplx
+     do ispinor=1,orbs%nspinor
+        call wscal_wrap(lr%wfd%nvctr_c,lr%wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),&
+             psi(1,ispinor,iorb))
+     end do
+     tt=max(tt,abs(1.0_dp-totnorm))
+
+  end do
+
+  if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
+  !renormalize the orbitals
+  !calculate the deviation from 1 of the orbital norm
+  if (nproc > 1) then
+     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  else
+     normdev=tt
+  end if
+  if (iproc ==0) write(*,'(1x,a,1pe12.2)')&
+       'Deviation from normalization of the imported orbitals',normdev
+
+end subroutine gaussians_to_wavelets_new
+
+
+subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ncplx
+  real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
+  type(locreg_descriptors), intent(in) :: lr
+  type(gaussian_basis), intent(in) :: G
+  real(wp), dimension(G%ncoeff), intent(in) :: wfn_gau
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(out) :: psi
+  !local variables
+  character(len=*), parameter :: subname='gaussians_to_wavelets_orb'
+  integer, parameter :: nterm_max=3,maxsizeKB=2048,nw=32000
+  logical :: perx,pery,perz
+  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,i,nterm,ierr,ig
+  integer :: nterms_max,nterms,iscoeff,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3
+  real(gp) :: rx,ry,rz,gau_a
+  integer, dimension(nterm_max) :: lx,ly,lz
+  real(gp), dimension(nterm_max) :: fac_arr
+  real(wp), dimension(0:nw,2,2) :: work
+  real(wp), allocatable, dimension(:,:,:,:) :: wx,wy,wz
+
+  !calculate nterms_max:
+  !allows only maxsizeKB per one-dimensional array
+  !(for a grid of dimension 100 nterms_max=655)
+  !bu with at least ngx*nterm_max ~= 100 elements
+  nterms_max=max(maxsizeKB*1024/(2*ncplx*max(lr%d%n1,lr%d%n2,lr%d%n3)),100)
+
+  allocate(wx(ncplx,0:lr%d%n1,2,nterms_max+ndebug),stat=i_stat)
+  call memocc(i_stat,wx,'wx',subname)
+  allocate(wy(ncplx,0:lr%d%n2,2,nterms_max+ndebug),stat=i_stat)
+  call memocc(i_stat,wy,'wy',subname)
+  allocate(wz(ncplx,0:lr%d%n3,2,nterms_max+ndebug),stat=i_stat)
+  call memocc(i_stat,wz,'wz',subname)
+
+  !conditions for periodicity in the three directions
+  perx=(lr%geocode /= 'F')
+  pery=(lr%geocode == 'P')
+  perz=(lr%geocode /= 'F')
+
+  !initialize the wavefunction
+  call razero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx,psi)
+  !this can be changed to be passed only once to all the gaussian basis
+  !eks=0.d0
+
+  !calculate the number of terms for this orbital
+  nterms=0
+  !loop over the atoms
+  ishell=0
+  iexpo=1
+  icoeff=1
+  iscoeff=1
+  iterm=1
+  do iat=1,G%nat
+     rx=G%rxyz(1,iat)
+     ry=G%rxyz(2,iat)
+     rz=G%rxyz(3,iat)
+     !loop over the number of shells of the atom type
+     do isat=1,G%nshell(iat)
+        ishell=ishell+1
+        !the degree of contraction of the basis function
+        !is the same as the ng value of the createAtomicOrbitals routine
+        ng=G%ndoc(ishell)
+        !angular momentum of the basis set(shifted for compatibility with BigDFT routines
+        l=G%nam(ishell)
+        !print *,iproc,iat,ishell,G%nam(ishell),G%nshell(iat)
+        !multiply the values of the gaussian contraction times the orbital coefficient
+
+        do m=1,2*l-1
+           call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
+           !control whether the basis element may be
+           !contribute to some of the orbital of the processor
+           if (wfn_gau(icoeff) /= 0.0_wp) then
+              if (nterms + nterm*ng > nterms_max) then
+                 !accumulate wavefuncton
+                 call wfn_from_tensprod(lr,ncplx,nterms,wx,wy,wz,psi)
+                 iterm=1
+                 nterms=0
+              end if
+              !assign the arrays
+              !make sure that the coefficients returned by 
+              !gauss_to_daub are zero outside [ml:mr] 
+              do ig=1,ng
+                 do i=1,nterm
+                    !print *,iat,ig,i,fac_arr(i),wfn_gau(icoeff),G%xp(iexpo+ig-1)
+                    gau_a=G%xp(iexpo+ig-1)
+                    n_gau=lx(i)
+                    !print *,'x',nterm,ncplx,kx,ky,kz
+                    call gauss_to_daub_k(hx,kx*hx,ncplx,fac_arr(i),rx,gau_a,n_gau,&
+                         lr%d%n1,ml1,mu1,&
+                         wx(1,0,1,iterm),work,nw,perx) 
+                    n_gau=ly(i)
+                    !print *,'y' 
+                    call gauss_to_daub_k(hy,ky*hy,ncplx,wfn_gau(icoeff),ry,gau_a,n_gau,&
+                         lr%d%n2,ml2,mu2,&
+                         wy(1,0,1,iterm),work,nw,pery) 
+                    n_gau=lz(i) 
+                    !print *,'z'
+                    call gauss_to_daub_k(hz,kz*hz,ncplx,G%psiat(iexpo+ig-1),rz,gau_a,n_gau,&
+                         lr%d%n3,ml3,mu3,&
+                         wz(1,0,1,iterm),work,nw,perz) 
+                    iterm=iterm+1
+                 end do
+              end do
+              nterms=nterms+nterm*ng
+           end if
+           icoeff=icoeff+1
+        end do
+        iexpo=iexpo+ng
+     end do
+  end do
+
+  call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
+
+  !accumulate wavefuncton
+  call wfn_from_tensprod(lr,ncplx,nterms,wx,wy,wz,psi)
+
+  i_all=-product(shape(wx))*kind(wx)
+  deallocate(wx,stat=i_stat)
+  call memocc(i_stat,i_all,'wx',subname)
+  i_all=-product(shape(wy))*kind(wy)
+  deallocate(wy,stat=i_stat)
+  call memocc(i_stat,i_all,'wy',subname)
+  i_all=-product(shape(wz))*kind(wz)
+  deallocate(wz,stat=i_stat)
+  call memocc(i_stat,i_all,'wz',subname)
+
+
+end subroutine gaussians_to_wavelets_orb
+
+!accumulate 3d wavefunction in complex form from a tensor produc decomposition
+!universal routine which should be used for all gautowav operations
+subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ncplx,nterm
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(ncplx,0:lr%d%n1,2,nterm), intent(in) :: wx
+  real(wp), dimension(ncplx,0:lr%d%n2,2,nterm), intent(in) :: wy
+  real(wp), dimension(ncplx,0:lr%d%n3,2,nterm), intent(in) :: wz
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: psi
+  !local variables
+  integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
+  real(wp) :: re_cmplx_prod,im_cmplx_prod
+
+  !the filling of the wavefunction should be different if ncplx==1 or 2
+  !split such as to avoid intensive call to if statements
+  
+  !$omp parallel default(private) shared(lr%nseg_c,lr%wfd%keyv,lr%wfd%keyg,lr%d) &
+  !$omp shared(psi,wx,wy,wz,lr%wfd%nvctr_c) &
+  !$omp shared(nterm,lr%wfd%nvctr_f,lr%wfd%nseg_f)
+  !$	ithread=omp_get_thread_num()
+  !$	nthread=omp_get_num_threads()
+  if (ncplx == 1) then
+
+     !$  if(ithread .eq. 0) then
+     ! Other terms: coarse projector components
+     ! coarse part
+     nvctr=0
+     do iseg=1,lr%wfd%nseg_c
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_c=i-i0+jj
+           do iterm=1,nterm
+              psi(ind_c)=psi(ind_c)+&
+                   wx(1,i,1,iterm)*wy(1,i2,1,iterm)*wz(1,i3,1,iterm)
+           end do
+           nvctr=nvctr+1
+        end do
+     end do
+
+     if (nvctr /=  lr%wfd%nvctr_c) then
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
+        stop
+     end if
+     !$  end if
+
+     !$  if(ithread .eq. 1 .or. nthread .eq. 1) then
+     ! Other terms: fine projector components
+     nvctr=0
+     do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
+           do iterm=1,nterm
+              psi(ind_f+1)=psi(ind_f+1)+&
+                   wx(1,i,2,iterm)*wy(1,i2,1,iterm)*wz(1,i3,1,iterm)
+              psi(ind_f+2)=psi(ind_f+2)+&
+                   wx(1,i,1,iterm)*wy(1,i2,2,iterm)*wz(1,i3,1,iterm)
+              psi(ind_f+3)=psi(ind_f+3)+&
+                   wx(1,i,2,iterm)*wy(1,i2,2,iterm)*wz(1,i3,1,iterm)
+              psi(ind_f+4)=psi(ind_f+4)+&
+                   wx(1,i,1,iterm)*wy(1,i2,1,iterm)*wz(1,i3,2,iterm)
+              psi(ind_f+5)=psi(ind_f+5)+&
+                   wx(1,i,2,iterm)*wy(1,i2,1,iterm)*wz(1,i3,2,iterm)
+              psi(ind_f+6)=psi(ind_f+6)+&
+                   wx(1,i,1,iterm)*wy(1,i2,2,iterm)*wz(1,i3,2,iterm)
+              psi(ind_f+7)=psi(ind_f+7)+&
+                   wx(1,i,2,iterm)*wy(1,i2,2,iterm)*wz(1,i3,2,iterm)
+           end do
+           nvctr=nvctr+1
+        end do
+     end do
+     if (nvctr /= lr%wfd%nvctr_f) then
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
+        stop 
+     end if
+     !$  end if
+  else if (ncplx ==2) then
+
+     !part with real and imaginary part
+     !modify the openMP statements such as to benefit from parallelisation
+
+     !$  if(ithread .eq. 0) then
+     ! Other terms: coarse projector components
+     ! coarse part
+     nvctr=0
+     do iseg=1,lr%wfd%nseg_c
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_c=i-i0+jj
+           do iterm=1,nterm
+              psi(ind_c)=psi(ind_c)+re_cmplx_prod(&
+                   wx(1,i,1,iterm),wy(1,i2,1,iterm),wz(1,i3,1,iterm))
+           end do
+           nvctr=nvctr+1
+        end do
+     end do
+     if (nvctr /=  lr%wfd%nvctr_c) then
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
+        stop
+     end if
+     !$  end if
+
+     !$  if(ithread .eq. 1 .or. nthread .eq. 1) then
+     ! Other terms: fine projector components
+     nvctr=0
+     do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
+           do iterm=1,nterm
+              psi(ind_f+1)=psi(ind_f+1)+re_cmplx_prod(&
+                   wx(1,i,2,iterm),wy(1,i2,1,iterm),wz(1,i3,1,iterm))
+              psi(ind_f+2)=psi(ind_f+2)+re_cmplx_prod(&
+                   wx(1,i,1,iterm),wy(1,i2,2,iterm),wz(1,i3,1,iterm))
+              psi(ind_f+3)=psi(ind_f+3)+re_cmplx_prod(&
+                   wx(1,i,2,iterm),wy(1,i2,2,iterm),wz(1,i3,1,iterm))
+              psi(ind_f+4)=psi(ind_f+4)+re_cmplx_prod(&
+                   wx(1,i,1,iterm),wy(1,i2,1,iterm),wz(1,i3,2,iterm))
+              psi(ind_f+5)=psi(ind_f+5)+re_cmplx_prod(&
+                   wx(1,i,2,iterm),wy(1,i2,1,iterm),wz(1,i3,2,iterm))
+              psi(ind_f+6)=psi(ind_f+6)+re_cmplx_prod(&
+                   wx(1,i,1,iterm),wy(1,i2,2,iterm),wz(1,i3,2,iterm))
+              psi(ind_f+7)=psi(ind_f+7)+re_cmplx_prod(&
+                   wx(1,i,2,iterm),wy(1,i2,2,iterm),wz(1,i3,2,iterm))
+           end do
+           nvctr=nvctr+1
+        end do
+     end do
+     if (nvctr /= lr%wfd%nvctr_f) then
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
+        stop 
+     end if
+     !$  end if
+     
+     !now the imaginary part
+     
+     !$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then 
+     ! Other terms: coarse projector components
+     ! coarse part
+     do iseg=1,lr%wfd%nseg_c
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_c=lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+i-i0+jj
+           do iterm=1,nterm
+              psi(ind_c)=psi(ind_c)+im_cmplx_prod(&
+                   wx(1,i,1,iterm),wy(1,i2,1,iterm),wz(1,i3,1,iterm))
+           end do
+        end do
+     end do
+
+     !$  end if
+
+     !$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
+     ! Other terms: fine projector components
+     do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
+        call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_f=lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+lr%wfd%nvctr_c+7*(i-i0+jj-1)
+           do iterm=1,nterm
+              psi(ind_f+1)=psi(ind_f+1)+im_cmplx_prod(&
+                   wx(1,i,2,iterm),wy(1,i2,1,iterm),wz(1,i3,1,iterm))
+              psi(ind_f+2)=psi(ind_f+2)+im_cmplx_prod(&
+                   wx(1,i,1,iterm),wy(1,i2,2,iterm),wz(1,i3,1,iterm))
+              psi(ind_f+3)=psi(ind_f+3)+im_cmplx_prod(&
+                   wx(1,i,2,iterm),wy(1,i2,2,iterm),wz(1,i3,1,iterm))
+              psi(ind_f+4)=psi(ind_f+4)+im_cmplx_prod(&
+                   wx(1,i,1,iterm),wy(1,i2,1,iterm),wz(1,i3,2,iterm))
+              psi(ind_f+5)=psi(ind_f+5)+im_cmplx_prod(&
+                   wx(1,i,2,iterm),wy(1,i2,1,iterm),wz(1,i3,2,iterm))
+              psi(ind_f+6)=psi(ind_f+6)+im_cmplx_prod(&
+                   wx(1,i,1,iterm),wy(1,i2,2,iterm),wz(1,i3,2,iterm))
+              psi(ind_f+7)=psi(ind_f+7)+im_cmplx_prod(&
+                   wx(1,i,2,iterm),wy(1,i2,2,iterm),wz(1,i3,2,iterm))
+           end do
+        end do
+     end do
+     !$  end if
+  end if
+
+  !$omp end parallel
+
+end subroutine wfn_from_tensprod
+
+subroutine segments_to_grid(keyv,keyg,grid,i0,i1,i2,i3,jj)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: keyv
+  integer, dimension(2), intent(in) :: keyg
+  type(grid_dimensions), intent(in) :: grid
+  integer, intent(out) :: i0,i1,i2,i3,jj
+  !local variables
+  integer :: j0,j1,ii
+
+  jj=keyv
+  j0=keyg(1)
+  j1=keyg(2)
+  ii=j0-1
+  i3=ii/((grid%n1+1)*(grid%n2+1))
+  ii=ii-i3*(grid%n1+1)*(grid%n2+1)
+  i2=ii/(grid%n1+1)
+  i0=ii-i2*(grid%n1+1)
+  i1=i0+j1-j0
+end subroutine segments_to_grid
+
+
 
 !temporary creation, better to put in standby
-!!$subroutine sumrho_gaussians(geocode,iproc,nproc,norb,norbp,nspin,nspinor,&
-!!$     n1i,n2i,n3i,n3d,i3s,hxh,hyh,hzh,G,gaucoeff,occup,spinsgn,rho)
-!!$  use module_base
-!!$  use module_types
-!!$  implicit none
-!!$  character(len=1), intent(in) :: geocode
-!!$  integer, intent(in) :: iproc,nproc,norb,norbp,n1i,n2i,n3i 
-!!$  real(gp), intent(in) :: hx,hy,hz
-!!$  type(wavefunctions_descriptors), intent(in) :: wfd
-!!$  type(gaussian_basis), intent(in) :: G
-!!$  real(wp), dimension(G%ncoeff,norbp), intent(in) :: wfn_gau
-!!$  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: psi
-!!$
-!!$  !local variables
-!!$  character(len=*), parameter :: subname='gaussians_to_wavelets'
-!!$  integer, parameter :: nterm_max=3
-!!$  logical :: myorbital
-!!$  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,i,nterm,ierr,ig
-!!$  real(dp) :: normdev,tt,scpr
-!!$  real(gp) :: rx,ry,rz
-!!$  integer, dimension(nterm_max) :: lx,ly,lz
-!!$  real(gp), dimension(nterm_max) :: fac_arr
-!!$  real(wp), dimension(:), allocatable :: tpsi
-!!$
-!!$  if(iproc == 0) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
-!!$
-!!$  allocate(tpsi(wfd%nvctr_c+7*wfd%nvctr_f+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,tpsi,'tpsi',subname)
-!!$
-!!$  !initialize the wavefunction
-!!$  call razero((wfd%nvctr_c+7*wfd%nvctr_f)*norbp,psi)
-!!$  !this can be changed to be passed only once to all the gaussian basis
-!!$  !eks=0.d0
-!!$  !loop over the atoms
-!!$  ishell=0
-!!$  iexpo=1
-!!$  icoeff=1
-!!$  do iat=1,G%nat
-!!$     rx=G%rxyz(1,iat)
-!!$     ry=G%rxyz(2,iat)
-!!$     rz=G%rxyz(3,iat)
-!!$     !loop over the number of shells of the atom type
-!!$     do isat=1,G%nshell(iat)
-!!$        ishell=ishell+1
-!!$        !the degree of contraction of the basis function
-!!$        !is the same as the ng value of the createAtomicOrbitals routine
-!!$        ng=G%ndoc(ishell)
-!!$        !angular momentum of the basis set(shifted for compatibility with BigDFT routines
-!!$        l=G%nam(ishell)
-!!$        !multiply the values of the gaussian contraction times the orbital coefficient
-!!$        do m=1,2*l-1
-!!$           call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
+!!!subroutine sumrho_gaussians(geocode,iproc,nproc,norb,norbp,nspin,nspinor,&
+!!!     n1i,n2i,n3i,n3d,i3s,hxh,hyh,hzh,G,gaucoeff,occup,spinsgn,rho)
+!!!  use module_base
+!!!  use module_types
+!!!  implicit none
+!!!  character(len=1), intent(in) :: geocode
+!!!  integer, intent(in) :: iproc,nproc,norb,norbp,n1i,n2i,n3i 
+!!!  real(gp), intent(in) :: hx,hy,hz
+!!!  type(wavefunctions_descriptors), intent(in) :: wfd
+!!!  type(gaussian_basis), intent(in) :: G
+!!!  real(wp), dimension(G%ncoeff,norbp), intent(in) :: wfn_gau
+!!!  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: psi
+!!!
+!!!  !local variables
+!!!  character(len=*), parameter :: subname='gaussians_to_wavelets'
+!!!  integer, parameter :: nterm_max=3
+!!!  logical :: myorbital
+!!!  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,i,nterm,ierr,ig
+!!!  real(dp) :: normdev,tt,scpr
+!!!  real(gp) :: rx,ry,rz
+!!!  integer, dimension(nterm_max) :: lx,ly,lz
+!!!  real(gp), dimension(nterm_max) :: fac_arr
+!!!  real(wp), dimension(:), allocatable :: tpsi
+!!!
+!!!  if(iproc == 0) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
+!!!
+!!!  allocate(tpsi(wfd%nvctr_c+7*wfd%nvctr_f+ndebug),stat=i_stat)
+!!!  call memocc(i_stat,tpsi,'tpsi',subname)
+!!!
+!!!  !initialize the wavefunction
+!!!  call razero((wfd%nvctr_c+7*wfd%nvctr_f)*norbp,psi)
+!!!  !this can be changed to be passed only once to all the gaussian basis
+!!!  !eks=0.d0
+!!!  !loop over the atoms
+!!!  ishell=0
+!!!  iexpo=1
+!!!  icoeff=1
+!!!  do iat=1,G%nat
+!!!     rx=G%rxyz(1,iat)
+!!!     ry=G%rxyz(2,iat)
+!!!     rz=G%rxyz(3,iat)
+!!!     !loop over the number of shells of the atom type
+!!!     do isat=1,G%nshell(iat)
+!!!        ishell=ishell+1
+!!!        !the degree of contraction of the basis function
+!!!        !is the same as the ng value of the createAtomicOrbitals routine
+!!!        ng=G%ndoc(ishell)
+!!!        !angular momentum of the basis set(shifted for compatibility with BigDFT routines
+!!!        l=G%nam(ishell)
+!!!        !multiply the values of the gaussian contraction times the orbital coefficient
+!!!        do m=1,2*l-1
+!!!           call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
            !this kinetic energy is not reliable
 !!eks=eks+ek*occup(iorb)*cimu(m,ishell,iat,iorb)
-!!$           call crtonewave(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,G%xp(iexpo),G%psiat(iexpo),&
-!!$                rx,ry,rz,hx,hy,hz,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
-!!$                wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,wfd%nseg_f,wfd%nvctr_f,&
-!!$                wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
-!!$                tpsi(1),tpsi(wfd%nvctr_c+1))
-!!$           !sum the result inside the orbital wavefunction
-!!$           !loop over the orbitals
-!!$           do iorb=1,norb
-!!$              if (myorbital(iorb,norb,iproc,nproc)) then
-!!$                 jorb=iorb-iproc*norbp
-!!$                 do i=1,wfd%nvctr_c+7*wfd%nvctr_f
-!!$                    !for this also daxpy BLAS can be used
-!!$                    psi(i,jorb)=psi(i,jorb)+wfn_gau(icoeff,jorb)*tpsi(i)
-!!$                 end do
-!!$              end if
-!!$           end do
-!!$           icoeff=icoeff+1
-!!$        end do
-!!$        iexpo=iexpo+ng
-!!$     end do
-!!$     if (iproc == 0) then
-!!$        write(*,'(a)',advance='no') &
-!!$             repeat('.',(iat*40)/G%nat-((iat-1)*40)/G%nat)
-!!$     end if
-!!$  end do
-!!$
-!!$  call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
-!!$
-!!$  if (iproc ==0 ) write(*,'(1x,a)')'done.'
-!!$  !renormalize the orbitals
-!!$  !calculate the deviation from 1 of the orbital norm
-!!$  normdev=0.0_dp
-!!$  tt=0.0_dp
-!!$  do iorb=1,norb
-!!$     if (myorbital(iorb,norb,iproc,nproc)) then
-!!$        jorb=iorb-iproc*norbp
-!!$        call wnrm(wfd%nvctr_c,wfd%nvctr_f,psi(1,jorb),psi(wfd%nvctr_c+1,jorb),scpr) 
-!!$        call wscal(wfd%nvctr_c,wfd%nvctr_f,real(1.0_dp/sqrt(scpr),wp),psi(1,jorb),psi(wfd%nvctr_c+1,jorb))
-!!$        !print *,'norm of orbital ',iorb,scpr
-!!$        tt=max(tt,abs(1.0_dp-scpr))
-!!$     end if
-!!$  end do
-!!$  if (nproc > 1) then
-!!$     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-!!$  else
-!!$     normdev=tt
-!!$  end if
-!!$  if (iproc ==0 ) write(*,'(1x,a,1pe12.2)')&
-!!$       'Deviation from normalization of the imported orbitals',normdev
-!!$
-!!$  i_all=-product(shape(tpsi))*kind(tpsi)
-!!$  deallocate(tpsi,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'tpsi',subname)
-!!$
-!!$
-!!$  !Creates charge density arising from the ionic PSP cores
-!!$  if (n3pi >0 ) then
-!!$
-!!$     !conditions for periodicity in the three directions
-!!$     perx=(geocode /= 'F')
-!!$     pery=(geocode == 'P')
-!!$     perz=(geocode /= 'F')
-!!$
-!!$     call ext_buffers(perx,nbl1,nbr1)
-!!$     call ext_buffers(pery,nbl2,nbr2)
-!!$     call ext_buffers(perz,nbl3,nbr3)
-!!$
-!!$     call razero(n1i*n2i*n3pi,pot_ion)
-!!$
-!!$     do iat=1,nat
-!!$        ityp=iatype(iat)
-!!$        rx=rxyz(1,iat) 
-!!$        ry=rxyz(2,iat)
-!!$        rz=rxyz(3,iat)
-!!$
-!!$        rloc=psppar(0,0,ityp)
-!!$        charge=real(nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
-!!$        cutoff=10.d0*rloc
-!!$
-!!$        isx=floor((rx-cutoff)/hxh)
-!!$        isy=floor((ry-cutoff)/hyh)
-!!$        isz=floor((rz-cutoff)/hzh)
-!!$
-!!$        iex=ceiling((rx+cutoff)/hxh)
-!!$        iey=ceiling((ry+cutoff)/hyh)
-!!$        iez=ceiling((rz+cutoff)/hzh)
-!!$
-!!$        !these nested loops will be used also for the actual ionic forces, to be recalculated
-!!$        do i3=isz,iez
-!!$           z=real(i3,kind=8)*hzh-rz
-!!$           call ind_positions(perz,i3,n3,j3,goz) 
-!!$           j3=j3+nbl3+1
-!!$           do i2=isy,iey
-!!$              y=real(i2,kind=8)*hyh-ry
-!!$              call ind_positions(pery,i2,n2,j2,goy)
-!!$              do i1=isx,iex
-!!$                 x=real(i1,kind=8)*hxh-rx
-!!$                 call ind_positions(perx,i1,n1,j1,gox)
-!!$                 r2=x**2+y**2+z**2
-!!$                 arg=r2/rloc**2
-!!$                 xp=exp(-.5d0*arg)
-!!$                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-!!$                    ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-!!$                    pot_ion(ind)=pot_ion(ind)-xp*charge
-!!$                 else if (.not. goz ) then
-!!$                    rholeaked=rholeaked+xp*charge
-!!$                 endif
-!!$              enddo
-!!$           enddo
-!!$        enddo
-!!$
-!!$     enddo
-!!$
-!!$  end if
-!!$
-!!$  ! Check
-!!$  tt=0.d0
-!!$  do j3=1,n3pi
-!!$     do i2= -nbl2,2*n2+1+nbr2
-!!$        do i1= -nbl1,2*n1+1+nbr1
-!!$           ind=i1+1+nbl1+(i2+nbl2)*n1i+(j3-1)*n1i*n2i
-!!$           tt=tt+pot_ion(ind)
-!!$        enddo
-!!$     enddo
-!!$  enddo
-!!$
-!!$  tt=tt*hxh*hyh*hzh
-!!$  rholeaked=rholeaked*hxh*hyh*hzh
-!!$
-!!$  !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
-!!$
-!!$  if (nproc > 1) then
-!!$     charges_mpi(1)=tt
-!!$     charges_mpi(2)=rholeaked
-!!$     call MPI_ALLREDUCE(charges_mpi(1),charges_mpi(3),2,MPI_double_precision,  &
-!!$          MPI_SUM,MPI_COMM_WORLD,ierr)
-!!$     tt_tot=charges_mpi(3)
-!!$     rholeaked_tot=charges_mpi(4)
-!!$  else
-!!$     tt_tot=tt
-!!$     rholeaked_tot=rholeaked
-!!$  end if
-!!$
-!!$  if (iproc.eq.0) write(*,'(1x,a,f26.12,2x,1pe10.3)') &
-!!$       'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
-!!$
-!!$
-!!$end subroutine sumrho_gaussians
+!!!           call crtonewave(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,G%xp(iexpo),G%psiat(iexpo),&
+!!!                rx,ry,rz,hx,hy,hz,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+!!!                wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,wfd%nseg_f,wfd%nvctr_f,&
+!!!                wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
+!!!                tpsi(1),tpsi(wfd%nvctr_c+1))
+!!!           !sum the result inside the orbital wavefunction
+!!!           !loop over the orbitals
+!!!           do iorb=1,norb
+!!!              if (myorbital(iorb,norb,iproc,nproc)) then
+!!!                 jorb=iorb-iproc*norbp
+!!!                 do i=1,wfd%nvctr_c+7*wfd%nvctr_f
+!!!                    !for this also daxpy BLAS can be used
+!!!                    psi(i,jorb)=psi(i,jorb)+wfn_gau(icoeff,jorb)*tpsi(i)
+!!!                 end do
+!!!              end if
+!!!           end do
+!!!           icoeff=icoeff+1
+!!!        end do
+!!!        iexpo=iexpo+ng
+!!!     end do
+!!!     if (iproc == 0) then
+!!!        write(*,'(a)',advance='no') &
+!!!             repeat('.',(iat*40)/G%nat-((iat-1)*40)/G%nat)
+!!!     end if
+!!!  end do
+!!!
+!!!  call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
+!!!
+!!!  if (iproc ==0 ) write(*,'(1x,a)')'done.'
+!!!  !renormalize the orbitals
+!!!  !calculate the deviation from 1 of the orbital norm
+!!!  normdev=0.0_dp
+!!!  tt=0.0_dp
+!!!  do iorb=1,norb
+!!!     if (myorbital(iorb,norb,iproc,nproc)) then
+!!!        jorb=iorb-iproc*norbp
+!!!        call wnrm(wfd%nvctr_c,wfd%nvctr_f,psi(1,jorb),psi(wfd%nvctr_c+1,jorb),scpr) 
+!!!        call wscal(wfd%nvctr_c,wfd%nvctr_f,real(1.0_dp/sqrt(scpr),wp),psi(1,jorb),psi(wfd%nvctr_c+1,jorb))
+!!!        !print *,'norm of orbital ',iorb,scpr
+!!!        tt=max(tt,abs(1.0_dp-scpr))
+!!!     end if
+!!!  end do
+!!!  if (nproc > 1) then
+!!!     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+!!!  else
+!!!     normdev=tt
+!!!  end if
+!!!  if (iproc ==0 ) write(*,'(1x,a,1pe12.2)')&
+!!!       'Deviation from normalization of the imported orbitals',normdev
+!!!
+!!!  i_all=-product(shape(tpsi))*kind(tpsi)
+!!!  deallocate(tpsi,stat=i_stat)
+!!!  call memocc(i_stat,i_all,'tpsi',subname)
+!!!
+!!!
+!!!  !Creates charge density arising from the ionic PSP cores
+!!!  if (n3pi >0 ) then
+!!!
+!!!     !conditions for periodicity in the three directions
+!!!     perx=(geocode /= 'F')
+!!!     pery=(geocode == 'P')
+!!!     perz=(geocode /= 'F')
+!!!
+!!!     call ext_buffers(perx,nbl1,nbr1)
+!!!     call ext_buffers(pery,nbl2,nbr2)
+!!!     call ext_buffers(perz,nbl3,nbr3)
+!!!
+!!!     call razero(n1i*n2i*n3pi,pot_ion)
+!!!
+!!!     do iat=1,nat
+!!!        ityp=iatype(iat)
+!!!        rx=rxyz(1,iat) 
+!!!        ry=rxyz(2,iat)
+!!!        rz=rxyz(3,iat)
+!!!
+!!!        rloc=psppar(0,0,ityp)
+!!!        charge=real(nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
+!!!        cutoff=10.d0*rloc
+!!!
+!!!        isx=floor((rx-cutoff)/hxh)
+!!!        isy=floor((ry-cutoff)/hyh)
+!!!        isz=floor((rz-cutoff)/hzh)
+!!!
+!!!        iex=ceiling((rx+cutoff)/hxh)
+!!!        iey=ceiling((ry+cutoff)/hyh)
+!!!        iez=ceiling((rz+cutoff)/hzh)
+!!!
+!!!        !these nested loops will be used also for the actual ionic forces, to be recalculated
+!!!        do i3=isz,iez
+!!!           z=real(i3,kind=8)*hzh-rz
+!!!           call ind_positions(perz,i3,n3,j3,goz) 
+!!!           j3=j3+nbl3+1
+!!!           do i2=isy,iey
+!!!              y=real(i2,kind=8)*hyh-ry
+!!!              call ind_positions(pery,i2,n2,j2,goy)
+!!!              do i1=isx,iex
+!!!                 x=real(i1,kind=8)*hxh-rx
+!!!                 call ind_positions(perx,i1,n1,j1,gox)
+!!!                 r2=x**2+y**2+z**2
+!!!                 arg=r2/rloc**2
+!!!                 xp=exp(-.5d0*arg)
+!!!                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+!!!                    ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+!!!                    pot_ion(ind)=pot_ion(ind)-xp*charge
+!!!                 else if (.not. goz ) then
+!!!                    rholeaked=rholeaked+xp*charge
+!!!                 endif
+!!!              enddo
+!!!           enddo
+!!!        enddo
+!!!
+!!!     enddo
+!!!
+!!!  end if
+!!!
+!!!  ! Check
+!!!  tt=0.d0
+!!!  do j3=1,n3pi
+!!!     do i2= -nbl2,2*n2+1+nbr2
+!!!        do i1= -nbl1,2*n1+1+nbr1
+!!!           ind=i1+1+nbl1+(i2+nbl2)*n1i+(j3-1)*n1i*n2i
+!!!           tt=tt+pot_ion(ind)
+!!!        enddo
+!!!     enddo
+!!!  enddo
+!!!
+!!!  tt=tt*hxh*hyh*hzh
+!!!  rholeaked=rholeaked*hxh*hyh*hzh
+!!!
+!!!  !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
+!!!
+!!!  if (nproc > 1) then
+!!!     charges_mpi(1)=tt
+!!!     charges_mpi(2)=rholeaked
+!!!     call MPI_ALLREDUCE(charges_mpi(1),charges_mpi(3),2,MPI_double_precision,  &
+!!!          MPI_SUM,MPI_COMM_WORLD,ierr)
+!!!     tt_tot=charges_mpi(3)
+!!!     rholeaked_tot=charges_mpi(4)
+!!!  else
+!!!     tt_tot=tt
+!!!     rholeaked_tot=rholeaked
+!!!  end if
+!!!
+!!!  if (iproc.eq.0) write(*,'(1x,a,f26.12,2x,1pe10.3)') &
+!!!       'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
+!!!
+!!!
+!!!end subroutine sumrho_gaussians
 
 subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
@@ -922,54 +1327,54 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   end do
 
 
-!!$  !print the found values
-!!$  do ityp=1,ntypes
-!!$     do ishell=1,nshell(ityp)
-!!$        print *,'ityp=',ityp,'ishell=',ishell,'l=',nam(ishell,ityp),'ndoc=',ndoc(ishell,ityp)
-!!$        do ipg=1,ndoc(ishell,ityp)
-!!$           print *,'expo=',expo(ipg,ishell,ityp),'coeff=',contcoeff(ipg,ishell,ityp)
-!!$        end do
-!!$     end do
-!!$  end do
+!!!  !print the found values
+!!!  do ityp=1,ntypes
+!!!     do ishell=1,nshell(ityp)
+!!!        print *,'ityp=',ityp,'ishell=',ishell,'l=',nam(ishell,ityp),'ndoc=',ndoc(ishell,ityp)
+!!!        do ipg=1,ndoc(ishell,ityp)
+!!!           print *,'expo=',expo(ipg,ishell,ityp),'coeff=',contcoeff(ipg,ishell,ityp)
+!!!        end do
+!!!     end do
+!!!  end do
 
-!!$  !here we can start calculate the overlap matrix between the different basis functions
-!!$  !as an example we can try to calculate the overlap in one shell
-!!$  allocate(iw(18),stat=i_stat)
-!!$  call memocc(i_stat,product(shape(iw))*kind(iw),'iw','gautowav')
-!!$  allocate(rw(6),stat=i_stat)
-!!$  call memocc(i_stat,product(shape(rw))*kind(rw),'rw','gautowav')
-!!$
-!!$  do ityp=1,ntypes
-!!$     do ishell=1,nshell(ityp)
-!!$        !perform the scalar product internally to the shell
-!!$        do m1=1,2*nam(ishell,ityp)+1
-!!$           do m2=1,2*nam(ishell,ityp)+1
-!!$              call gbasovrlp(expo(1,ishell,ityp),contcoeff(1,ishell,ityp),&
-!!$                   expo(1,ishell,ityp),contcoeff(1,ishell,ityp),&
-!!$                   ndoc(ishell,ityp),ndoc(ishell,ityp),&
-!!$                   nam(ishell,ityp)+1,m1,nam(ishell,ityp)+1,m2,&
-!!$                   0.d0,0.d0,0.d0,&
-!!$                   18,6,iw,rw,ovrlp)
-!!$              if (iproc==0) then
-!!$                 print *,ityp,ishell,nam(ishell,ityp),m1,m2,ovrlp!&
-!!$                      !contcoeff(1:ndoc(ishell,ityp),ishell,ityp),ovrlp
-!!$              end if
-!!$           end do
-!!$        end do
-!!$     end do
-!!$  end do
-!!$
-!!$  i_all=-product(shape(iw))*kind(iw)
-!!$  deallocate(iw,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'iw','gautowav')
-!!$  i_all=-product(shape(rw))*kind(rw)
-!!$  deallocate(rw,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'rw','gautowav')
+!!!  !here we can start calculate the overlap matrix between the different basis functions
+!!!  !as an example we can try to calculate the overlap in one shell
+!!!  allocate(iw(18),stat=i_stat)
+!!!  call memocc(i_stat,product(shape(iw))*kind(iw),'iw','gautowav')
+!!!  allocate(rw(6),stat=i_stat)
+!!!  call memocc(i_stat,product(shape(rw))*kind(rw),'rw','gautowav')
+!!!
+!!!  do ityp=1,ntypes
+!!!     do ishell=1,nshell(ityp)
+!!!        !perform the scalar product internally to the shell
+!!!        do m1=1,2*nam(ishell,ityp)+1
+!!!           do m2=1,2*nam(ishell,ityp)+1
+!!!              call gbasovrlp(expo(1,ishell,ityp),contcoeff(1,ishell,ityp),&
+!!!                   expo(1,ishell,ityp),contcoeff(1,ishell,ityp),&
+!!!                   ndoc(ishell,ityp),ndoc(ishell,ityp),&
+!!!                   nam(ishell,ityp)+1,m1,nam(ishell,ityp)+1,m2,&
+!!!                   0.d0,0.d0,0.d0,&
+!!!                   18,6,iw,rw,ovrlp)
+!!!              if (iproc==0) then
+!!!                 print *,ityp,ishell,nam(ishell,ityp),m1,m2,ovrlp!&
+!!!                      !contcoeff(1:ndoc(ishell,ityp),ishell,ityp),ovrlp
+!!!              end if
+!!!           end do
+!!!        end do
+!!!     end do
+!!!  end do
+!!!
+!!!  i_all=-product(shape(iw))*kind(iw)
+!!!  deallocate(iw,stat=i_stat)
+!!!  call memocc(i_stat,i_all,'iw','gautowav')
+!!!  i_all=-product(shape(rw))*kind(rw)
+!!!  deallocate(rw,stat=i_stat)
+!!!  call memocc(i_stat,i_all,'rw','gautowav')
 
-!!$subroutine basis_ovrlp(nat,norb,nbx,ngx,lmax,ntypes,nam,ndoc,contcoeff,expo,cimu)
-!!$  
-!!$  
-!!$end subroutine basis_ovrlp
+!!!subroutine basis_ovrlp(nat,norb,nbx,ngx,lmax,ntypes,nam,ndoc,contcoeff,expo,cimu)
+!!!  
+!!!  
+!!!end subroutine basis_ovrlp
 
 
 
@@ -998,8 +1403,8 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   end do read_line1
   nend=nst+ipar-1
 
-!!$  nst=1
-!!$  nend=4
+!!!  nst=1
+!!!  nend=4
   jat=0
   ishell=1
   jbas=0
@@ -1060,15 +1465,15 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   end do store_coeff
   close(36)
 
-!!$  !print the found values
-!!$  do iat=1,nat
-!!$     ityp=iatype(iat)
-!!$     do ishell=1,nshell(ityp)
-!!$        do jbas=1,2*nam(ishell,ityp)+1
-!!$           print *,iat,ishell,nam(ishell,ityp),jbas,(cimu(jbas,ishell,iat,iorb),iorb=1,norb)
-!!$        end do
-!!$     end do
-!!$  end do
+!!!  !print the found values
+!!!  do iat=1,nat
+!!!     ityp=iatype(iat)
+!!!     do ishell=1,nshell(ityp)
+!!!        do jbas=1,2*nam(ishell,ityp)+1
+!!!           print *,iat,ishell,nam(ishell,ityp),jbas,(cimu(jbas,ishell,iat,iorb),iorb=1,norb)
+!!!        end do
+!!!     end do
+!!!  end do
 
   i_all=-product(shape(ctmp))*kind(ctmp)
   deallocate(ctmp,stat=i_stat)
@@ -1120,8 +1525,8 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
         !multiply the values of the gaussian contraction times the orbital coefficient
         do m=1,2*l-1
            call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
-!!$           !this kinetic energy is not reliable
-!!$           eks=eks+ek*occup(iorb)*cimu(m,ishell,iat,iorb)
+!!!           !this kinetic energy is not reliable
+!!!           eks=eks+ek*occup(iorb)*cimu(m,ishell,iat,iorb)
            call crtonewave(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiatn,&
                 rx,ry,rz,hx,hy,hz,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
                 nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,&

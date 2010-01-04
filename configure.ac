@@ -1,4 +1,4 @@
-dnl Process this file with autoconf to produce a configure script.
+
 
 AC_PREREQ(2.59)
 
@@ -90,7 +90,7 @@ fi
 
 dnl Enable or not MPI.
 ac_use_mpi="yes"
-AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enable by default).]),
+AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enabled by default).]),
               ac_use_mpi=$enableval, ac_use_mpi="yes")
 if test "$ac_use_mpi" = "yes"; then
   dnl We set all flags by hand
@@ -169,6 +169,29 @@ AM_CONDITIONAL(USE_MPI, test "$ac_use_mpi" = "yes")
 AC_SUBST(MPI_LIBS)
 AC_SUBST(MPI_INCLUDE)
 AC_SUBST(MPI_LDFLAGS)
+
+dnl Enable ndebug variable (disabled by default)
+ac_use_debug="no"
+AC_MSG_CHECKING([for debugging options])
+AC_ARG_ENABLE(debug, AS_HELP_STRING([--enable-debug], [Debugging options (disabled by default)]),
+              ac_use_debug=$enableval, ac_use_debug="no")
+if test x"$ac_use_debug" = x"yes" ; then
+  AC_DEFINE([HAVE_DEBUG], [1], [compile the code with debugging options])
+fi
+AC_MSG_RESULT([$ac_use_debug])
+
+dnl Setup memory limit value (disabled by default)
+ac_with_memory_limit="no"
+AC_MSG_CHECKING([for memory limit in GB])
+AC_ARG_WITH(memory-limit, AS_HELP_STRING([--with-memory-limit], [Memory limit value in GB. It stops EVERYTHING if some process passes such limit (disabled by default).]),
+              ac_with_memory_limit=$withval, ac_with_memory_limit="no")
+if test "${ac_with_memory_limit//\.*/}" -ge "0" 2> /dev/null ; then
+  ac_memory_limit=$ac_with_memory_limit
+else
+  ac_memory_limit="0.e0"
+fi
+AC_MSG_RESULT([$ac_memory_limit])
+AC_DEFINE_UNQUOTED([MEMORY_LIMIT], [$ac_memory_limit], [Value in GB to stop processing.])
 
 
 dnl Use the simple or the optimised convolution code.
@@ -420,6 +443,8 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
+src/lib/Makefile
+src/lib/fft/Makefile
 src/modules/Makefile
 src/profiling/Makefile
 src/PSolver/ABINIT-common/Makefile
@@ -427,6 +452,7 @@ src/PSolver/Makefile
 src/convolutions/Makefile
 src/CUDA/Makefile
 src/CUDA/S_GPU/Makefile
+src/art/Makefile
 utils/Makefile
 utils/PSPfiles/Makefile
 doc/Makefile
@@ -449,6 +475,7 @@ tests/H2-freq/Makefile
 tests/NEB/Makefile
 tests/NEB/input
 tests/NEB/NEB_include.sh
+tests/XabsCheb/Makefile
 ])
 if test x"$ac_build_libxc" = x"yes" ; then
   # Call libXC ./configure script recursively.
@@ -473,6 +500,7 @@ Build:
   Minima hopping binary:     $ac_build_bin_minima_hopping
 
 Options:
+  Debug version:             $ac_use_debug		
   With MPI:                  $ac_use_mpi
    | Include dir.:           $MPI_INCLUDE
    | Linker flags:           $MPI_LDFLAGS

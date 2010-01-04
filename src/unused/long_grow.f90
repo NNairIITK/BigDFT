@@ -126,8 +126,8 @@ subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
                  y3=0.d0
                  y4=0.d0
                  y5=0.d0
-!!$                 y6=0.d0
-!!$                 y7=0.d0
+!!!                 y6=0.d0
+!!!                 y7=0.d0
 
                  do t=i-8,i+7+3 !this 3 must be discussed(does it depend on the loop unrolling?)
                     y0=y0+fil2(2*(i-t)+0,icf)*x(t,l)
@@ -136,8 +136,8 @@ subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
                     y3=y3+fil2(2*(i-t)+3,icf)*x(t,l)
                     y4=y4+fil2(2*(i-t)+4,icf)*x(t,l)
                     y5=y5+fil2(2*(i-t)+5,icf)*x(t,l)
-!!$                    y6=y6+fil2(2*(i-t)+6,icf)*x(t,l)
-!!$                    y7=y7+fil2(2*(i-t)+7,icf)*x(t,l)
+!!!                    y6=y6+fil2(2*(i-t)+6,icf)*x(t,l)
+!!!                    y7=y7+fil2(2*(i-t)+7,icf)*x(t,l)
                  enddo
 
                  y(l,2*i+0)=y0
@@ -146,8 +146,8 @@ subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
                  y(l,2*i+3)=y3
                  y(l,2*i+4)=y4
                  y(l,2*i+5)=y5
-!!$                 y(l,2*i+6)=y6
-!!$                 y(l,2*i+7)=y7
+!!!                 y(l,2*i+6)=y6
+!!!                 y(l,2*i+7)=y7
               enddo
               icur=i
            else

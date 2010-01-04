@@ -12,7 +12,7 @@
 #   [all free_only] [job_name] [workdir] [first_config]
 # OUTPUTS:
 #   [gen_output_file]
-DEBUG="yes"
+DEBUG="no"
 
 INCLUDED="yes"
 source NEB_include.sh

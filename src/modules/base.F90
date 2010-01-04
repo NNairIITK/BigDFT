@@ -14,8 +14,13 @@
 module module_base 
   !use MPI
   implicit none  
+#ifdef HAVE_DEBUG
   !buffer to be added at the end of the last dimension of an array to control bounds_check
+  integer, parameter :: ndebug=3
+#else
+  !disable debug case
   integer, parameter :: ndebug=0
+#endif
 
   !verbosity of the output, control the level of writing (minimal by default)
   integer :: verbose=2
@@ -42,7 +47,7 @@ module module_base
 
   !Memory limit value in GB. It stops EVERYTHING if some process passes such limit
   !For no memory limit, leave it to zero
-  real(kind=4), parameter :: memorylimit=0.e0
+  real(kind=4), parameter :: memorylimit = MEMORY_LIMIT
 
   !flag for GPU computing, if CUDA libraries are present
   !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
@@ -53,6 +58,16 @@ module module_base
   !if the projector allocation passes the memorylimit this is switched to true
   !inside localize_projectors routines
   logical :: DistProjApply=.true.
+
+  ! Physical constants.
+  real(gp), parameter :: bohr2ang = 0.5291772108_gp !1 AU in angstroem
+
+  !interface for MPI_ALLREDUCE routine
+  interface mpiallred
+     module procedure mpiallred_int,mpiallred_real,mpiallred_double
+  end interface
+
+
 
   !interfaces for LAPACK routines
   interface potrf
@@ -131,6 +146,100 @@ module module_base
   end interface
 
   contains
+    
+    !interface for MPI_ALLREDUCE operations
+    subroutine mpiallred_int(buffer,ntot,mpi_op,mpi_comm,ierr)
+      implicit none
+      integer, intent(in) :: ntot,mpi_op,mpi_comm
+      integer, intent(in) :: buffer
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI2
+      !case with MPI_IN_PLACE
+      call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
+           MPI_INTEGER,mpi_op,mpi_comm,ierr)
+#else
+      !local variables
+      character(len=*), parameter :: subname='mpi_allred'
+      integer :: i_all,i_stat
+      integer, dimension(:), allocatable :: copybuf
+
+      !case without mpi_in_place
+      allocate(copybuf(ntot+ndebug),stat=i_stat)
+      call memocc(i_stat,copybuf,'copybuf',subname)
+
+      !not appropriate for integers, to be seen if it works
+      call scopy(ntot,buffer,1,copybuf,1) 
+
+      call MPI_ALLREDUCE(copybuf,buffer,ntot,&
+           MPI_INTEGER,mpi_op,mpi_comm,ierr)
+      
+      i_all=-product(shape(copybuf))*kind(copybuf)
+      deallocate(copybuf,stat=i_stat)
+      call memocc(i_stat,i_all,'copybuf',subname)
+#endif
+    end subroutine mpiallred_int
+
+    subroutine mpiallred_real(buffer,ntot,mpi_op,mpi_comm,ierr)
+      implicit none
+      integer, intent(in) :: ntot,mpi_op,mpi_comm
+      real(kind=4), intent(in) :: buffer
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI2
+      !case with MPI_IN_PLACE
+      call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
+           MPI_REAL,mpi_op,mpi_comm,ierr)
+#else
+      !local variables
+      character(len=*), parameter :: subname='mpi_allred'
+      integer :: i_all,i_stat
+      real(kind=4), dimension(:), allocatable :: copybuf
+
+      !case without mpi_in_place
+      allocate(copybuf(ntot+ndebug),stat=i_stat)
+      call memocc(i_stat,copybuf,'copybuf',subname)
+      
+      call scopy(ntot,buffer,1,copybuf,1) 
+
+      call MPI_ALLREDUCE(copybuf,buffer,ntot,&
+           MPI_REAL,mpi_op,mpi_comm,ierr)
+      
+      i_all=-product(shape(copybuf))*kind(copybuf)
+      deallocate(copybuf,stat=i_stat)
+      call memocc(i_stat,i_all,'copybuf',subname)
+#endif
+    end subroutine mpiallred_real
+
+    subroutine mpiallred_double(buffer,ntot,mpi_op,mpi_comm,ierr)
+      implicit none
+      integer, intent(in) :: ntot,mpi_op,mpi_comm
+      real(kind=8), intent(in) :: buffer
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI2
+      !case with MPI_IN_PLACE
+      call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
+           MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+#else
+      !local variables
+      character(len=*), parameter :: subname='mpi_allred'
+      integer :: i_all,i_stat
+      real(kind=8), dimension(:), allocatable :: copybuf
+
+      !case without mpi_in_place
+      allocate(copybuf(ntot+ndebug),stat=i_stat)
+      call memocc(i_stat,copybuf,'copybuf',subname)
+      
+      call dcopy(ntot,buffer,1,copybuf,1) 
+
+      call MPI_ALLREDUCE(copybuf,buffer,ntot,&
+           MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+      
+      i_all=-product(shape(copybuf))*kind(copybuf)
+      deallocate(copybuf,stat=i_stat)
+      call memocc(i_stat,i_all,'copybuf',subname)
+#endif
+    end subroutine mpiallred_double
+    
+
 
     !interfaces for LAPACK routines
     !WARNING: in these interfaces the input arrays are declared as scalars,

@@ -157,8 +157,8 @@ subroutine timing(iproc,category,action)
 
      if (action.eq.'ON') then  ! ON
         if (init.neqv..false.) then
-!!$           print *, cats(ii),': TIMING INITIALIZED BEFORE READ'
-!!$           stop 
+!!!           print *, cats(ii),': TIMING INITIALIZED BEFORE READ'
+!!!           stop 
            !some other category was initalized before, taking that one
            return
         endif
@@ -234,10 +234,10 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
      do i=1,ncat+1
         timetot(i)=timesum(i)
      end do
-!!$     do i=1,ncat+1
-!!$        timemax(i)=timesum(i)
-!!$        timemin(i)=timesum(i)
-!!$     enddo
+!!!     do i=1,ncat+1
+!!!        timemax(i)=timesum(i)
+!!!        timemin(i)=timesum(i)
+!!!     enddo
   endif
   !total=real(timemax(ncat+1),kind=4)
 

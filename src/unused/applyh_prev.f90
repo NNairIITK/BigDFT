@@ -1,3 +1,299 @@
+subroutine applylocpotkinone_per(n1,n2,n3, & 
+     hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
+     psir,psi_in,psi_out,psi,pot,hpsi,epot,ekin,npot,nspinor)
+  !  Applies the local potential and kinetic energy operator to one wavefunction 
+  ! Input: pot,psi
+  ! Output: hpsi,epot,ekin
+  use module_base
+  use module_interfaces
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f,npot,nspinor
+  real(gp), intent(in) :: hx,hy,hz
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2),npot), intent(in) :: pot
+  real(wp), dimension(nvctr_c+7*nvctr_f,nspinor), intent(in) :: psi
+  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2),nspinor), intent(inout) :: psir,psi_in,psi_out
+  real(gp), intent(out) :: epot,ekin
+  real(wp), dimension(nvctr_c+7*nvctr_f,nspinor), intent(out) :: hpsi
+  !local variables
+  character(len=*), parameter :: subname='applylocpotkinone_per'
+  integer :: i,i_stat,i_all,idx
+  real(wp) :: tt
+  real(gp) :: v,p,epot_p
+  real(gp), dimension(3) :: hgridh
+
+  ! Initialisation of potential energy  
+!!  epot=0.0_gp
+  ekin=0.0_gp
+
+  hgridh(1)=hx*.5_gp
+  hgridh(2)=hy*.5_gp
+  hgridh(3)=hz*.5_gp
+
+
+  ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
+  do idx=1,nspinor
+     call uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+          nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+          psi(1,idx),psi(nvctr_c+1,idx),psi_in(1,idx),psir(1,idx))
+
+     ! psir serves as a work array	   
+     call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psi_in(1,idx),psir(1,idx),psi_out(1,idx)) 
+  end do
+
+  call apply_potential(n1,n2,n3,0,0,0,0,nspinor,npot,psir,pot,epot)
+
+!!  !$omp parallel default(private)&
+!!  !$omp shared(pot,psir,n1,n2,n3,epot)
+!!
+!!  epot_p=0._gp
+!!  !$omp do
+!!  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+!!     v=real(pot(i),gp)
+!!     p=real(psir(i),gp)
+!!     tt=pot(i)*psir(i)
+!!     epot_p=epot_p+p*v*p
+!!     psir(i)=tt
+!!  enddo
+!!  !$omp end do
+!!
+!!  !$omp critical
+!!  epot=epot+epot_p
+!!  !$omp end critical
+!!
+!!  !$omp end parallel
+
+  do idx=1,nspinor
+     call convolut_magic_t_per_self(2*n1+1,2*n2+1,2*n3+1,psir(1,idx),psi_out(1,idx))
+
+     ! compute the kinetic part and add  it to psi_out
+     ! the kinetic energy is calculated at the same time
+     !here we should insert the treatment for k-points
+     call convolut_kinetic_per_t(2*n1+1,2*n2+1,2*n3+1,hgridh,psi_in(1,idx),psi_out(1,idx),ekin)
+
+     call compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
+          nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
+          psi_out(1,idx),hpsi(1,idx),hpsi(nvctr_c+1,idx),psir(1,idx))
+  end do
+
+
+END SUBROUTINE applylocpotkinone_per
+
+
+subroutine applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+     hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
+     psir,psi,pot,hpsi,epot,ekin,bounds,nspinor,npot)
+  !  Applies the local potential and kinetic energy operator to one wavefunction 
+  ! Input: pot,psi
+  ! Output: hpsi,epot,ekin
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+  type(convolutions_bounds),intent(in):: bounds
+  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f,nspinor,npot
+  integer,intent(in):: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
+  real(gp), intent(in) :: hx,hy,hz
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2),npot), intent(in) :: pot
+  real(wp), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
+  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(inout) :: psir
+  real(gp), intent(out) :: epot,ekin
+  real(wp), dimension(nvctr_c+7*nvctr_f), intent(out) :: hpsi
+  !local variables
+  integer :: i
+  integer nf
+  real(wp) :: tt
+  real(gp) :: v,p
+  real(gp), dimension(3) :: hgridh,hgrid
+  real(wp),allocatable::x_f(:,:,:,:),x_c(:,:,:)
+  real(wp),allocatable,dimension(:)::x_f1,x_f2,x_f3
+  real(wp),allocatable,dimension(:,:,:)::y_c
+  real(wp),allocatable,dimension(:,:,:,:)::y_f
+  real(wp),allocatable,dimension(:)::w,ww
+ 
+
+  integer i_stat,i_all
+  integer nw,nww,i2,i3
+  
+
+  !these allocation should be rised up by a level
+  !for the moment do not allow hybrid BC for nspinor/=1/=npot
+  if (nspinor /= 1 .or. npot /=1) stop 'Complex functions not allowed for hybrid BC'
+
+  ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
+  nf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+  nw=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
+  nw=max(nw,2*(n3+1)*(n1+1)*(n2+1))	   ! for the comb_shrink_hyb_c
+  nw=max(nw,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
+  allocate(w(nw+ndebug),stat=i_stat)
+  call memocc(i_stat,w,'w','applylocpotkinone_hyb')
+  
+  nww=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
+  nww=max(nww,4*(n2+1)*(n3+1)*(n1+1))	! for the comb_shrink_hyb_c   
+  nww=max(nww,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
+  allocate(ww(nww+ndebug),stat=i_stat)
+  call memocc(i_stat,ww,'ww','applylocpotkinone_hyb')
+
+   allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
+   call memocc(i_stat,x_f,'x_f','applylocpotkinone_hyb')
+   allocate(x_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+   call memocc(i_stat,x_c,'x_c ','applylocpotkinone_hyb')
+   allocate(x_f1(nf+ndebug),stat=i_stat)
+   call memocc(i_stat,x_f1,'x_f1','applylocpotkinone_hyb')
+   allocate(x_f2(nf+ndebug),stat=i_stat)
+   call memocc(i_stat,x_f2,'x_f2','applylocpotkinone_hyb')
+   allocate(x_f3(nf+ndebug),stat=i_stat)
+   call memocc(i_stat,x_f3,'x_f3','applylocpotkinone_hyb')
+	 
+   allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
+   call memocc(i_stat,y_f,'y_f','applylocpotkinone_hyb')
+   allocate(y_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+   call memocc(i_stat,y_c,'y_c','applylocpotkinone_hyb')
+
+  call uncompress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+       psi(1),psi(nvctr_c+1),x_c,x_f,x_f1,x_f2,x_f3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+
+! x_c: input, psir1: output
+! psir: work array
+  call comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw,nww,&
+       w,ww,x_c,x_f,psir,bounds%gb)
+  
+  call apply_potential(n1,n2,n3,0,0,0,0,nspinor,npot,psir,pot,epot)
+
+!!  epot=0.0_gp
+!!  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+!!     v=real(pot(i),gp)
+!!     p=real(psir(i),gp)
+!!     tt=pot(i)*psir(i)
+!!     epot=epot+p*v*p
+!!     psir(i)=tt
+!!  enddo
+
+! y_c has the scfunction output of the kinetic energy operator  
+!psir  : input, y_c: output, psi_in:work
+ call comb_shrink_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ww,w,psir,y_c,y_f,bounds%sb)
+
+  hgrid(1)=hx
+  hgrid(2)=hy
+  hgrid(3)=hz
+
+! compute the kinetic part and add  it to psi_out
+! the kinetic energy is calculated at the same time
+  
+  call convolut_kinetic_hyb_T(n1,n2,n3, &
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+     hgrid,x_c,x_f,y_c,y_f,ekin,x_f1,x_f2,x_f3,bounds%kb%ibyz_f,&
+	bounds%kb%ibxz_f,bounds%kb%ibxy_f)
+
+  call compress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
+       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), & 
+     y_c,y_f,hpsi(1),hpsi(nvctr_c+1),nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
+
+     i_all=-product(shape(y_c))*kind(y_c)
+     deallocate(y_c,stat=i_stat)
+     call memocc(i_stat,i_all,'y_c','applylocpotkinone_hyb')
+     i_all=-product(shape(x_c))*kind(x_c)
+     deallocate(x_c,stat=i_stat)
+     call memocc(i_stat,i_all,'x_c','applylocpotkinone_hyb')
+
+     i_all=-product(shape(x_f1))*kind(x_f1)
+     deallocate(x_f1,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f1','applylocpotkinone_hyb')
+     i_all=-product(shape(x_f2))*kind(x_f2)
+     deallocate(x_f2,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f2','applylocpotkinone_hyb')
+     i_all=-product(shape(x_f3))*kind(x_f3)
+     deallocate(x_f3,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f3','applylocpotkinone_hyb')
+     i_all=-product(shape(y_f))*kind(y_f)
+     deallocate(y_f,stat=i_stat)
+     call memocc(i_stat,i_all,'y_f','applylocpotkinone_hyb')
+     i_all=-product(shape(x_f))*kind(x_f)
+     deallocate(x_f,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f','applylocpotkinone_hyb')
+     i_all=-product(shape(w))*kind(w)
+     deallocate(w,stat=i_stat)
+     call memocc(i_stat,i_all,'w','applylocpotkinone_hyb')
+     i_all=-product(shape(ww))*kind(ww)
+     deallocate(ww,stat=i_stat)
+     call memocc(i_stat,i_all,'ww','applylocpotkinone_hyb')
+	   
+END SUBROUTINE applylocpotkinone_hyb
+
+
+
+subroutine applylocpotkinone_slab(n1,n2,n3, & 
+     hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
+     psir,psi_in,psi_out,psi,pot,hpsi,epot,ekin,nspinor,npot)
+  !  Applies the local potential and kinetic energy operator to one wavefunction 
+  ! Input: pot,psi
+  ! Output: hpsi,epot,ekin
+  use module_base
+  use module_interfaces
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f,nspinor,npot
+  real(gp), intent(in) :: hx,hy,hz
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  real(wp), dimension((2*n1+2)*(2*n2+31)*(2*n3+2),npot), intent(in) :: pot
+  real(wp), dimension(nvctr_c+7*nvctr_f,nspinor), intent(in) :: psi
+  real(wp), dimension((2*n1+2)*(2*n2+16)*(2*n3+2),nspinor), intent(inout) :: psi_in
+  real(wp), dimension((2*n1+2)*(2*n2+31)*(2*n3+2),nspinor), intent(inout) :: psir,psi_out
+  real(gp), intent(out) :: epot,ekin
+  real(wp), dimension(nvctr_c+7*nvctr_f,nspinor), intent(out) :: hpsi
+  !local variables
+  integer :: i,idx
+  real(wp) :: tt
+  real(gp) :: v,p
+  real(gp), dimension(3) :: hgridh
+
+! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
+!	psir serves as a work array	   
+
+  hgridh(1)=hx*.5_gp
+  hgridh(2)=hy*.5_gp
+  hgridh(3)=hz*.5_gp
+
+  do idx=1,nspinor
+     call uncompress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+          nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+          psi(1,idx),psi(nvctr_c+1,idx),psi_in(1,idx),psir(1,idx))
+     
+     !	psi_out serves as a work array	   
+     call convolut_magic_n_slab(2*n1+1,2*n2+15,2*n3+1,psi_in(1,idx),psir(1,idx),psi_out(1,idx)) 
+  end do
+  
+  call apply_potential(n1,n2,n3,0,1,0,0,nspinor,npot,psir,pot,epot)
+
+!!  epot=0.0_gp
+!!  do i=1,(2*n1+2)*(2*n2+31)*(2*n3+2)
+!!     v=real(pot(i),gp)
+!!     p=real(psir(i),gp)
+!!     tt=pot(i)*psir(i)
+!!     epot=epot+p*v*p
+!!     psir(i)=tt
+!!  enddo
+
+  do idx=1,nspinor
+     call convolut_magic_t_slab_self(2*n1+1,2*n2+15,2*n3+1,psir(1,idx),psi_out(1,idx))
+
+     ! compute the kinetic part and add  it to psi_out
+     ! the kinetic energy is calculated at the same time
+     call convolut_kinetic_slab_T(2*n1+1,2*n2+15,2*n3+1,hgridh,psi_in(1,idx),psi_out(1,idx),ekin)
+  
+     call compress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
+          nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
+          psi_out(1,idx),hpsi(1,idx),hpsi(nvctr_c+1,idx),psir(1,idx))
+  end do
+
+END SUBROUTINE applylocpotkinone_slab
+
+
 subroutine applylocpotkinone_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
      hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
      ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 

@@ -198,22 +198,22 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               end do
            end do
         end do
-!!$        do i3=1,nxt
-!!$           do i2=1,m3
-!!$              do i1=1,m1
-!!$                 i=i1+(i2-1)*m1+(i3-1)*m1*m3+m1*m3*nxt
-!!$                 j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+n01*n02*n03
-!!$                 rhopot_G(i)=rhopot(j)
-!!$              end do
-!!$           end do
-!!$        end do
-!!$
-!!$        do i1=1,m1*m3*nxt
-!!$           rhopot_G(i1)=rhopot(n01*n02*(i3start-1)+i1)
-!!$        end do
-!!$        do i1=1,m1*m3*nxt
-!!$           rhopot_G(i1+m1*m3*nxt)=rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)
-!!$        end do
+!!        do i3=1,nxt
+!!           do i2=1,m3
+!!              do i1=1,m1
+!!                 i=i1+(i2-1)*m1+(i3-1)*m1*m3+m1*m3*nxt
+!!                 j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+n01*n02*n03
+!!                 rhopot_G(i)=rhopot(j)
+!!              end do
+!!           end do
+!!        end do
+!!
+!!        do i1=1,m1*m3*nxt
+!!           rhopot_G(i1)=rhopot(n01*n02*(i3start-1)+i1)
+!!        end do
+!!        do i1=1,m1*m3*nxt
+!!           rhopot_G(i1+m1*m3*nxt)=rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)
+!!        end do
      end if
   else if (datacode == 'D') then
      !distributed i/o
@@ -231,8 +231,8 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      nlim=n2/2
   end if
 
-!!$  print *,'density must go from',min(istart+1,m2),'to',iend,'with n2/2=',n2/2
-!!$  print *,'        it goes from',i3start+nwbl+nxcl-1,'to',i3start+nxc-1
+!!  print *,'density must go from',min(istart+1,m2),'to',iend,'with n2/2=',n2/2
+!!  print *,'        it goes from',i3start+nwbl+nxcl-1,'to',i3start+nxc-1
 
   if (istart+1 <= m2) then 
        if(datacode=='G' .and. &
@@ -252,12 +252,12 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
                 end do
              end do
           end do
-!!$          do i1=1,m1*m3*nxt
-!!$             rhopot(n01*n02*(i3start-1)+i1)=rhopot_G(i1)
-!!$          end do
-!!$          do i1=1,m1*m3*nxt
-!!$             rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)=rhopot_G(i1+m1*m3*nxt)
-!!$          end do
+!!          do i1=1,m1*m3*nxt
+!!             rhopot(n01*n02*(i3start-1)+i1)=rhopot_G(i1)
+!!          end do
+!!          do i1=1,m1*m3*nxt
+!!             rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)=rhopot_G(i1+m1*m3*nxt)
+!!          end do
           i_all=-product(shape(rhopot_G))*kind(rhopot_G)
           deallocate(rhopot_G,stat=i_stat)
           call memocc(i_stat,i_all,'rhopot_g',subname)
@@ -802,8 +802,8 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
      stop 'PS_dim4allocation: data code not admitted'
   end if
 
-!!$  print *,'P4,iproc',iproc,'nxc,ncxl,ncxr,nwbl,nwbr',nxc,nxcl,nxcr,nwbl,nwbr,&
-!!$       'ixc,n3d,n3p,i3xcsh,i3s',ixc,n3d,n3p,i3xcsh,i3s
+!!  print *,'P4,iproc',iproc,'nxc,ncxl,ncxr,nwbl,nwbr',nxc,nxcl,nxcr,nwbl,nwbr,&
+!!       'ixc,n3d,n3p,i3xcsh,i3s',ixc,n3d,n3p,i3xcsh,i3s
 
 end subroutine PS_dim4allocation
 !!***

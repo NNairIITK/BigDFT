@@ -25,7 +25,7 @@ program memguess
   integer, parameter :: ngx=31
   character(len=20) :: tatonam
   character(len=40) :: comment
-  logical :: optimise,GPUtest,convert=.false.,exists
+  logical :: optimise,GPUtest,convert=.false.
   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: norbgpu,nspin_ig
@@ -46,8 +46,7 @@ program memguess
   integer, dimension(:), allocatable :: ng
   real(kind=8), dimension(:), allocatable :: locrad
   !! By Ali
-  integer ::iline,ierror
-  character :: Dummy
+  integer ::ierror
 ! Get arguments
 
   call getarg(1,tatonam)
@@ -117,26 +116,26 @@ program memguess
      end if
   end if
 
-!!$  open(unit=1,file='input.memguess',status='old')
-!!$  
-!!$  !line number, to control the input values
-!!$  iline=0
-!!$  
-!!$  !number of MPI proccessors
-!!$  read(1,*) nproc
-!!$  write(*,*) 'Number of mpi processes is: ',nproc
-!!$  
-!!$  read(1,*) optimise
-!!$  if (optimise) write(*,*) 'Molecule will be rotated to minimize simulation box size and workarrays in BigDFT'
-!!$  
-!!$  !    "T"  If the system grid is to be displayed in the "grid.xyz" file
-!!$  read(1,*) output_grid
-!!$  write(*,*)  'output_grid= ',output_grid
-!!$  
-!!$  !    "T"   'Perform the test with GPU, if present.'   
-!!$  read(1,*) GPUtest
-!!$  if (GPUtest) write(*,*) 'Perform the test with GPU'
-!!$!!! END of By Ali
+!!!  open(unit=1,file='input.memguess',status='old')
+!!!  
+!!!  !line number, to control the input values
+!!!  iline=0
+!!!  
+!!!  !number of MPI proccessors
+!!!  read(1,*) nproc
+!!!  write(*,*) 'Number of mpi processes is: ',nproc
+!!!  
+!!!  read(1,*) optimise
+!!!  if (optimise) write(*,*) 'Molecule will be rotated to minimize simulation box size and workarrays in BigDFT'
+!!!  
+!!!  !    "T"  If the system grid is to be displayed in the "grid.xyz" file
+!!!  read(1,*) output_grid
+!!!  write(*,*)  'output_grid= ',output_grid
+!!!  
+!!!  !    "T"   'Perform the test with GPU, if present.'   
+!!!  read(1,*) GPUtest
+!!!  if (GPUtest) write(*,*) 'Perform the test with GPU'
+!!!!!! END of By Ali
 
 
 
@@ -146,27 +145,18 @@ program memguess
   !welcome screen
   call print_logo()
 
-  !read number of atoms
-  call read_atomic_file('posinp',0,atoms,rxyz)
-
   if (convert) then
-     call read_input_variables(0,'input.dat',in)
+     !read number of atoms
+     call read_atomic_file('posinp',0,atoms,rxyz)
+
+     call read_input_variables_old(0,'input.dat',in)
      write(*,'(a)',advance='NO')' Conversion of the input file...'
      call dft_input_converter(in)
      write(*,*)' ...done'
   else
-     call dft_input_variables(0,'input.dft',in,atoms%symObj)
-     !read geometry optimsation input variables
-     !inquire for the file needed for geometry optimisation
-     !if not present, perform a simple geometry optimisation
-     inquire(file="input.geopt",exist=exists)
-     if (exists) then
-        call geopt_input_variables(0,'input.geopt',in)
-     else
-        call geopt_input_variables_default(in)
-     end if
+     call read_input_variables(0, "posinp", "input.dft", "input.kpt", &
+          & "input.geopt", in, atoms, rxyz)
   end if
-
 
   call print_input_parameters(in,atoms)
 
@@ -198,16 +188,6 @@ program memguess
   !in the case in which the number of orbitals is not "trivial" check whether they are too many
   if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0)) then
      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
-     allocate(xp(ngx,atoms%ntypes+ndebug),stat=i_stat)
-     call memocc(i_stat,xp,'xp',subname)
-     allocate(psiat(ngx,5,atoms%ntypes+ndebug),stat=i_stat)
-     call memocc(i_stat,psiat,'psiat',subname)
-     allocate(occupat(5,atoms%ntypes+ndebug),stat=i_stat)
-     call memocc(i_stat,occupat,'occupat',subname)
-     allocate(ng(atoms%ntypes+ndebug),stat=i_stat)
-     call memocc(i_stat,ng,'ng',subname)
-     allocate(nl(4,atoms%ntypes+ndebug),stat=i_stat)
-     call memocc(i_stat,nl,'nl',subname)
      allocate(scorb(4,2,atoms%natsc+ndebug),stat=i_stat)
      call memocc(i_stat,scorb,'scorb',subname)
      allocate(norbsc_arr(atoms%natsc+1,in%nspin+ndebug),stat=i_stat)
@@ -221,9 +201,8 @@ program memguess
         nspin_ig=in%nspin
      end if
 
-
      ! Read the inguess.dat file or generate the input guess via the inguess_generator
-     call readAtomicOrbitals(0,ngx,xp,psiat,occupat,ng,nl,atoms,norbe,norbsc,nspin_ig,&
+     call readAtomicOrbitals(0,atoms,norbe,norbsc,nspin_ig,orbs%nspinor,&
           scorb,norbsc_arr,locrad)
 
      if (in%nspin==4) then
@@ -235,21 +214,6 @@ program memguess
      i_all=-product(shape(locrad))*kind(locrad)
      deallocate(locrad,stat=i_stat)
      call memocc(i_stat,i_all,'locrad',subname)
-     i_all=-product(shape(xp))*kind(xp)
-     deallocate(xp,stat=i_stat)
-     call memocc(i_stat,i_all,'xp',subname)
-     i_all=-product(shape(psiat))*kind(psiat)
-     deallocate(psiat,stat=i_stat)
-     call memocc(i_stat,i_all,'psiat',subname)
-     i_all=-product(shape(occupat))*kind(occupat)
-     deallocate(occupat,stat=i_stat)
-     call memocc(i_stat,i_all,'occupat',subname)
-     i_all=-product(shape(ng))*kind(ng)
-     deallocate(ng,stat=i_stat)
-     call memocc(i_stat,i_all,'ng',subname)
-     i_all=-product(shape(nl))*kind(nl)
-     deallocate(nl,stat=i_stat)
-     call memocc(i_stat,i_all,'nl',subname)
      i_all=-product(shape(scorb))*kind(scorb)
      deallocate(scorb,stat=i_stat)
      call memocc(i_stat,i_all,'scorb',subname)
@@ -289,9 +253,6 @@ program memguess
   hz=in%hz
 
   call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Glr)
-
-  ! De-allocations
-  call deallocate_orbs(orbs,subname)
 
   if (GPUtest .and. .not. GPUconv) then
      write(*,*)' ERROR: you can not put a GPUtest flag is there is no GPUrun.'
@@ -354,7 +315,7 @@ program memguess
   call memocc(i_stat,logrid,'logrid',subname)
 
   call localize_projectors(0,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,&
-       in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,nlpspd)
+       in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,orbs,nlpspd)
 
   i_all=-product(shape(logrid))*kind(logrid)
   deallocate(logrid,stat=i_stat)
@@ -371,12 +332,6 @@ program memguess
   i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
   deallocate(nlpspd%nboxp_f,stat=i_stat)
   call memocc(i_stat,i_all,'nlpspd%nboxp_f',subname)
-  i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
-  deallocate(atoms%ifrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
-  i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
-  deallocate(atoms%natpol,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%natpol',subname)
   i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
   deallocate(atoms%psppar,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%psppar',subname)
@@ -393,6 +348,10 @@ program memguess
   i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
   deallocate(atoms%iasctype,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%iasctype',subname)
+  i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
+  deallocate(atoms%aocc,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%aocc',subname)
+
 
 
   call MemoryEstimator(atoms%geocode,nproc,in%idsx,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
@@ -402,25 +361,19 @@ program memguess
 
   !add the comparison between cuda hamiltonian and normal one if it is the case
 
+  call deallocate_atoms(atoms,subname)
 
-  i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
-  deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%atomnames',subname)
   i_all=-product(shape(radii_cf))*kind(radii_cf)
   deallocate(radii_cf,stat=i_stat)
   call memocc(i_stat,i_all,'radii_cf',subname)
   i_all=-product(shape(rxyz))*kind(rxyz)
   deallocate(rxyz,stat=i_stat)
   call memocc(i_stat,i_all,'rxyz',subname)
-  i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
-  deallocate(atoms%iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%iatype',subname)
-  i_all=-product(shape(atoms%amu))*kind(atoms%amu)
-  deallocate(atoms%amu,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%amu',subname)
-  if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
 
+  ! De-allocations
+  call deallocate_orbs(orbs,subname)
   call free_input_variables(in)
+
 
   !finalize memory counting
   call memocc(0,0,'count','stop')

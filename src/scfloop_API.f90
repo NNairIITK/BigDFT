@@ -1,7 +1,21 @@
+!!****m* BigDFT/scfloop_API
+!! FUNCTION
+!!  Self-Consistent Loop API
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 module scfloop_API
 
-  use BigDFT_API
+  use module_base
   use module_types
+  use module_interfaces
 
   implicit none
 
@@ -17,7 +31,7 @@ module scfloop_API
   public :: scfloop_init
   public :: scfloop_main
   public :: scfloop_output
-!!$  public :: scfloop_finalise
+!!!  public :: scfloop_finalise
 contains
 
   subroutine scfloop_init(nproc_, at_, in_, rst_)
@@ -63,7 +77,7 @@ contains
 
     in%inputPsiId=1
     ! need to transform xred into xcart
-    allocate(xcart(3, at%nat),stat=i_stat)
+    allocate(xcart(3, at%nat+ndebug),stat=i_stat)
     call memocc(i_stat,xcart,'xcart',subname)
     do i = 1, at%nat, 1
        xcart(:, i) = xred(:, i) * acell(:)
@@ -106,7 +120,7 @@ contains
 
     fnrm = real(0, dp)
     ! need to transform xred into xcart
-    allocate(xcart(3, at%nat),stat=i_stat)
+    allocate(xcart(3, at%nat+ndebug),stat=i_stat)
     call memocc(i_stat,xcart,'xcart',subname)
     do i = 1, at%nat, 1
        xcart(:, i) = xred(:, i) * acell(:)
@@ -124,6 +138,7 @@ contains
     call memocc(i_stat,i_all,'xcart',subname)
   end subroutine scfloop_output
 
-!!$  subroutine scfloop_finalise()
-!!$  end subroutine scfloop_finalise
+!!!  subroutine scfloop_finalise()
+!!!  end subroutine scfloop_finalise
 end module scfloop_API
+!!***

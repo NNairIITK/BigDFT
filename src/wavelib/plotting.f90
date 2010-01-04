@@ -346,17 +346,17 @@ subroutine plot_cube_full(at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   write(22,*)orbname
   write(22,*)'CUBE file for orbital wavefunction'
   !number of atoms
-  if (at%geocode=='P') then
-     write(22,'(i5,3(f12.6))') at%nat,0.0_gp,0.0_gp,0.0_gp
-  else if (at%geocode=='S') then
-     write(22,'(i5,3(f12.6))') at%nat,0.0_gp,-hyh,0.0_gp
-  else if (at%geocode=='F') then
-     write(22,'(i5,3(f12.6))') at%nat,-hxh,-hyh,-hzh
-  end if
+!  if (at%geocode=='P') then
+     write(22,'(i5,3(f12.6),a)') at%nat,0.0_gp,0.0_gp,0.0_gp,' modified origin'
+!  else if (at%geocode=='S') then
+!     write(22,'(i5,3(f12.6))') at%nat,0.0_gp,-hyh,0.0_gp
+!  else if (at%geocode=='F') then
+!     write(22,'(i5,3(f12.6))') at%nat,-hxh,-hyh,-hzh
+!  end if
   !grid and grid spacings
-  write(22,'(i5,3(f12.6))') 2*n1+2,hxh,0.0_gp,0.0_gp
-  write(22,'(i5,3(f12.6))') 2*n2+2,0.0_gp,hyh,0.0_gp
-  write(22,'(i5,3(f12.6))') 2*n3+2,0.0_gp,0.0_gp,hzh
+  write(22,'(i5,3(f19.12))') 2*n1+2,hxh,0.0_gp,0.0_gp
+  write(22,'(i5,3(f19.12))') 2*n2+2,0.0_gp,hyh,0.0_gp
+  write(22,'(i5,3(f19.12))') 2*n3+2,0.0_gp,0.0_gp,hzh
   !atomic number and positions
   do iat=1,at%nat
      write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
@@ -694,13 +694,13 @@ contains
         write(22,*)'CUBE file for charge density'
         write(22,*)'Case for '//trim(message)
         !number of atoms
-        if (geocode=='P') then
-           write(22,'(i5,3(f12.6))') at%nat,0.0_gp,0.0_gp,0.0_gp
-        else if (geocode=='S') then
-           write(22,'(i5,3(f12.6))') at%nat,0.0_gp,-hyh,0.0_gp
-        else if (geocode=='F') then
-           write(22,'(i5,3(f12.6))') at%nat,-hxh,-hyh,-hzh
-        end if
+!        if (geocode=='P') then
+           write(22,'(i5,3(f12.6),a)') at%nat,0.0_gp,0.0_gp,0.0_gp,' modified'
+!        else if (geocode=='S') then
+!           write(22,'(i5,3(f12.6))') at%nat,0.0_gp,-hyh,0.0_gp
+!        else if (geocode=='F') then
+!           write(22,'(i5,3(f12.6))') at%nat,-hxh,-hyh,-hzh
+!        end if
         !grid and grid spacings
         write(22,'(i5,3(f12.6))') 2*n1+2,hxh,0.0_gp,0.0_gp
         write(22,'(i5,3(f12.6))') 2*n2+2,0.0_gp,hyh,0.0_gp
@@ -735,4 +735,110 @@ contains
 
 end subroutine plot_density_cube
 
+
+
+
+subroutine read_density_cube(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxyz,  rho)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  integer, intent(out) ::  n1i,n2i,n3i
+  integer, intent(in) :: nspin
+  real(gp), intent(out) :: hxh,hyh,hzh
+  real(gp), pointer :: rxyz(:,:)
+  real(dp), dimension(:), pointer :: rho
+  integer, intent(out) ::  nat
+ 
+  !local variables
+  character(len=*), parameter :: subname='read_density_cube'
+  character(len=5) :: suffix
+  character(len=15) :: message
+  character(len=3) :: advancestring
+  integer i_all,i_stat,i1,i2,i3,ind,ierr,icount,j,iat,ia,ib
+
+
+
+  if (nspin /=2) then
+     suffix=''
+     message='total spin'
+     ia=1
+     call cubefile_read
+  else
+     suffix='-up'
+     message='spin up'
+     ia=1
+     call cubefile_read
+     
+     suffix='-down'
+     message='spin down'
+     ia=2
+     call cubefile_read
+     
+  end if
+
+contains
+
+  subroutine cubefile_read
+       real(dp) dum1,dum2, dum3
+        integer idum
+        open(unit=22,file=filename//trim(suffix)//'.cube',status='old')
+        read(22,*)! 'CUBE file for charge density'
+        read(22,*)! 'Case for '//trim(message)
+
+        read(22,'(i5,3(f12.6),a)')  nat , dum1, dum2, dum3 ! ,0.0_gp,0.0_gp,0.0_gp,' modified'
+           
+
+        read(22,'(i5,3(f12.6))') n1i , hxh,   dum1 ,dum2
+        read(22,'(i5,3(f12.6))') n2i ,dum1 , hyh  ,  dum2
+        read(22,'(i5,3(f12.6))') n3i ,dum1 , dum2 , hzh
+        !atomic number and positions
+
+        if( associated(rxyz) ) then
+           i_all=-product(shape(rxyz))*kind(rxyz)
+           deallocate(rxyz,stat=i_stat)
+           call memocc(i_stat,i_all,'rxyz',subname)
+        end if
+        
+        allocate(rxyz(3,nat+ndebug),stat=i_stat)
+        call memocc(i_stat,rxyz,'rxyz',subname)
+        
+
+        if( associated(rho ).and. ia==1 ) then
+           i_all=-product(shape(rho))*kind(rho)
+           deallocate(rho,stat=i_stat)
+           call memocc(i_stat,i_all,'rho',subname)
+        end if
+        if(ia==1) then
+           allocate(rho(n1i*n2i*n3i+ndebug) ,stat=i_stat)
+           call memocc(i_stat,rho,'rho',subname)
+        endif
+
+        do iat=1,nat
+           read(22,'(i5,4(f12.6))') idum , dum1 , (rxyz(j,iat),j=1,3)
+           ! write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
+        end do
+
+        do i1=1,n1i
+           do i2=1,n2i
+              icount=0
+              do i3=1,n3i
+                 icount=icount+1
+                 if (icount == 6 ) then
+                    advancestring='yes'
+                    icount=0
+                 else
+                    advancestring='no'
+                 end if
+
+                 ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+
+                 read(22,'(1x,1pe13.6)',advance=advancestring)  rho(ind) 
+              end do
+           end do
+        end do
+        close(22)
+  end subroutine cubefile_read
+
+end subroutine read_density_cube
 

@@ -26,13 +26,12 @@ program frequencies
   character(len=2) :: cc
   !File units
   integer, parameter :: u_restart=10,u_hessian=20
-  integer :: iproc,nproc,iat,jat,ityp,i,j,i_stat,i_all,ierr,infocode,ity
-  real(gp) :: etot,etot_m,etot_p,sumx,sumy,sumz,tt,alat,alpha,dd,rmass
+  integer :: iproc,nproc,iat,jat,i,j,i_stat,i_all,ierr,infocode,ity
+  real(gp) :: etot,etot_m,etot_p,sumx,sumy,sumz,alat,alpha,dd,rmass
   !input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
   type(restart_objects) :: rst
-  character(len=20), dimension(:), allocatable :: atomnames
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz,rpos,fpos_m,fpos_p
   real(gp), dimension(:,:), pointer :: rxyz
@@ -43,7 +42,7 @@ program frequencies
   logical, dimension(:,:,:), allocatable :: moves
   real(gp), dimension(:,:,:,:), allocatable :: forces
   real(gp), dimension(3) :: h_grid
-  integer :: npr,iam,jm
+  integer :: jm
  
   ! Start MPI in parallel version
   !in the case of MPIfake libraries the number of processors is automatically adjusted
@@ -57,45 +56,13 @@ program frequencies
   !welcome screen
   if (iproc==0) call print_logo()
 
-  !read atomic file
-  call read_atomic_file('posinp',iproc,atoms,rxyz)
+  ! Read all input files.
+  call read_input_variables(iproc, "posinp", "input.dft", "input.kpt", &
+       & "input.geopt", inputs, atoms, rxyz)
 
   ! allocations
   allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fxyz,'fxyz',subname)
-
-  ! read dft input variables
-  call dft_input_variables(iproc,'input.dft',inputs,atoms%symObj)
-  !call read_input_variables(iproc,'input.dat',inputs)
-
-  ! read k-points input variables (if given)
-  call kpt_input_variables(iproc,'input.kpt',inputs,atoms)
-
-  !fake geopt variables
-  call geopt_input_variables_default(inputs)
- 
-  do iat=1,atoms%nat
-     if (atoms%ifrztyp(iat) == 0) then
-        call random_number(tt)
-        rxyz(1,iat)=rxyz(1,iat)+inputs%randdis*tt
-        call random_number(tt)
-        rxyz(2,iat)=rxyz(2,iat)+inputs%randdis*tt
-        call random_number(tt)
-        rxyz(3,iat)=rxyz(3,iat)+inputs%randdis*tt
-     end if
-  enddo
-
-  ! atoms inside the box (this can be inserted inside call_bigdft routine)
-  do iat=1,atoms%nat
-     if (atoms%geocode == 'P') then
-        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
-        rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
-        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
-     else if (atoms%geocode == 'S') then
-        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
-        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
-     end if
-  end do
 
   call init_restart_objects(atoms,rst,subname)
 
@@ -114,14 +81,14 @@ program frequencies
         sumx=sumx+fxyz(1,iat)
         sumy=sumy+fxyz(2,iat)
         sumz=sumz+fxyz(3,iat)
-     enddo
+     end do
      if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
         write(*,'(1x,a)')'the sum of the forces is'
         write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
         write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
         write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
      end if
-  endif
+  end if
 
   allocate(rpos(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rpos,'rpos',subname)
@@ -129,11 +96,11 @@ program frequencies
   call memocc(i_stat,fpos_m,'fpos_m',subname)
   allocate(fpos_p(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fpos_p,'fpos_p',subname)
-  allocate(hessian(3*atoms%nat,3*atoms%nat),stat=i_stat)
+  allocate(hessian(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,hessian,'hessian',subname)
-  allocate(moves(2,3,atoms%nat),stat=i_stat)
+  allocate(moves(2,3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,moves,'moves',subname)
-  allocate(forces(2,3,atoms%nat,3*atoms%nat),stat=i_stat)
+  allocate(forces(2,3,atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,forces,'forces',subname)
 
   !initialise the moves to false
@@ -246,21 +213,21 @@ program frequencies
   call memocc(i_stat,i_all,'fpos_p',subname)
 
   !allocations
-  allocate(eigen_r(3*atoms%nat),stat=i_stat)
+  allocate(eigen_r(3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,eigen_r,'eigen_r',subname)
-  allocate(eigen_i(3*atoms%nat),stat=i_stat)
+  allocate(eigen_i(3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,eigen_i,'eigen_i',subname)
-  allocate(vector_r(3*atoms%nat,3*atoms%nat),stat=i_stat)
+  allocate(vector_r(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,vector_r,'vector_r',subname)
-  allocate(vector_l(3*atoms%nat,3*atoms%nat),stat=i_stat)
+  allocate(vector_l(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,vector_l,'vector_l',subname)
 
   !Diagonalise the hessian matrix
   call solve(hessian,3*atoms%nat,eigen_r,eigen_i,vector_l,vector_r)
 
   if (iproc==0) then
-     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r
-     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i
+     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(1:3*atoms%nat)
+     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i(1:3*atoms%nat)
      do i=1,3*atoms%nat
         if (eigen_r(i)<0.0_dp) then
            eigen_r(i)=-sqrt(-eigen_r(i))
@@ -268,8 +235,8 @@ program frequencies
            eigen_r(i)= sqrt( eigen_r(i))
        end if
      end do
-     write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r
-     write(*,'(1x,a,1x,100(f13.2))') '=F: frequencies (cm-1)      =',eigen_r*Ha_cmm1
+     write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r(1:3*atoms%nat)
+     write(*,'(1x,a,1x,100(f13.2))') '=F: frequencies (cm-1)      =',eigen_r(1:3*atoms%nat)*Ha_cmm1
      !Build frequencies.xyz
      open(unit=15,file='frequencies.xyz',status="unknown")
      do i=1,3*atoms%nat
@@ -356,7 +323,7 @@ contains
     real(gp), dimension(:), allocatable :: work
 
     lwork=6*n
-    allocate(work(lwork),stat=i_stat)
+    allocate(work(lwork+ndebug),stat=i_stat)
     call memocc(i_stat,work,'work',subname)
 
     call dgeev('V','V',n,hessian,n,eigen_r,eigen_i,vector_l,n,vector_r,n,work,lwork,info)

@@ -162,13 +162,13 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
 
   call timing(iproc,'GramS_comput  ','OF')
 
-!!$
-!!$call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc),wfd%nvctr_c+7*wfd%nvctr_f,&
-!!$    psi,orbs%nspinor) 
-!!$if(orbs%norbd > 0) then
-!!$  call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc),wfd%nvctr_c+7*wfd%nvctr_f,&
-!!$       psi(1+comms%nvctr_par(iproc)*orbs%norbu),orbs%nspinor) 
-!!$end if
+!!
+!!call orthon_p(iproc,nproc,orbs%norbu,comms%nvctr_par(iproc),wfd%nvctr_c+7*wfd%nvctr_f,&
+!!    psi,orbs%nspinor) 
+!!if(orbs%norbd > 0) then
+!!  call orthon_p(iproc,nproc,orbs%norbd,comms%nvctr_par(iproc),wfd%nvctr_c+7*wfd%nvctr_f,&
+!!       psi(1+comms%nvctr_par(iproc)*orbs%norbu),orbs%nspinor) 
+!!end if
 
 END SUBROUTINE orthogonalize
 !!***
@@ -193,7 +193,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   real(dp), intent(out) :: scprsum
   !local variables
   character(len=*), parameter :: subname='orthoconstraint'
-  integer :: i_stat,i_all,ierr,info,iorb
+  integer :: i_stat,i_all,ierr,info,iorb,ise
   integer :: istart,ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   real(dp) :: occ,tt
   integer, dimension(:,:), allocatable :: ndimovrlp
@@ -282,23 +282,24 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
 
         !calculate the scprsum if the k-point is associated to this processor
         if (orbs%ikptproc(ikpt) == iproc) then
-
+           if (ispin==1) ise=0
            if(nspinor == 1) then
               do iorb=1,norb
-                 occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb),dp)
+                 occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb+ise),dp)
                  scprsum=scprsum+&
                       occ*real(alag(ndimovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs,1),dp)
               enddo
            else if (nspinor == 4 .or. nspinor == 2) then
               !not sure about the imaginary part of the diagonal
               do iorb=1,norb
-                 occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb),dp)
+                 occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb+ise),dp)
                  scprsum=scprsum+&
                       occ*real(alag(ndimovrlp(ispin,ikpt-1)+2*iorb-1+(iorb-1)*norbs,1),dp)
                  scprsum=scprsum+&
                       occ*real(alag(ndimovrlp(ispin,ikpt-1)+2*iorb+(iorb-1)*norbs,1),dp)
               enddo
            end if
+           ise=norb
         end if
 
         if(nspinor==1 .and. nvctrp /= 0) then
@@ -473,24 +474,24 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
            !if (iproc.eq.0) write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
         enddo
 
-!!$        ! Transform to KS orbitals
-!!$        ! dgemm can be used instead of daxpy
-!!$        if(nspinor==1) then
-!!$           do iorb=1,norb
-!!$              call razero(nvctrp,psitt(1,iorb))
-!!$              do jorb=1,norb
-!!$                 alpha=hamks(jorb,iorb,1)
-!!$                 call axpy(nvctrp,alpha,psit(1,jorb),1,psitt(1,iorb),1)
-!!$              enddo
-!!$           enddo
-!!$        else
-!!$           do iorb=1,norb
-!!$              call razero(nvctrp*nspinor,psitt(1,iorb))
-!!$              do jorb=1,norb
-!!$                 call c_axpy(ncomp*nvctrp,hamks(2*jorb-1,iorb,1),psit(1,jorb),1,psitt(1,iorb),1)
-!!$              enddo
-!!$           enddo
-!!$        end if
+!!        ! Transform to KS orbitals
+!!        ! dgemm can be used instead of daxpy
+!!        if(nspinor==1) then
+!!           do iorb=1,norb
+!!              call razero(nvctrp,psitt(1,iorb))
+!!              do jorb=1,norb
+!!                 alpha=hamks(jorb,iorb,1)
+!!                 call axpy(nvctrp,alpha,psit(1,jorb),1,psitt(1,iorb),1)
+!!              enddo
+!!           enddo
+!!        else
+!!           do iorb=1,norb
+!!              call razero(nvctrp*nspinor,psitt(1,iorb))
+!!              do jorb=1,norb
+!!                 call c_axpy(ncomp*nvctrp,hamks(2*jorb-1,iorb,1),psit(1,jorb),1,psitt(1,iorb),1)
+!!              enddo
+!!           enddo
+!!        end if
 
         !sample of dgemm
         if (nspinor == 1) then
@@ -615,6 +616,8 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
         
         norbv=orbsv%norbu
         if (ispin==2) norbv=orbsv%norbd
+
+        !print *,'nvctrp',iproc,commsv%nvctr_par(iproc,ikptp),nvctrp,ikpt,orbs%nkpts,orbsv%nkpts,norbs,norbv,orbsv%nkptsp,orbs%nkptsp
 
         !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nvctrp,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
 
@@ -1023,20 +1026,20 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
      if(nspinor==1) then
         call syrk('L','T',norb,nvctrp,1.0_wp,psit(1,1),max(1,nvctrp),0.0_wp,ovrlp(1,1,istart),norb)
      else
-!!$        ovrlp=0.0d0
-!!$        do iorb=1,norb
-!!$           do jorb=1,norb
-!!$              ttr=ddot(nvctrp*nspinor,psit(1,iorb),1,psit(1,jorb),1)
-!!$              tti=ddot(nvctrp,psit(1,iorb),1,psit(nvctrp+1,jorb),1)
-!!$              tti=tti-ddot(nvctrp,psit(nvctrp+1,iorb),1,psit(1,jorb),1)
-!!$              tti=tti-ddot(nvctrp,psit(3*nvctrp+1,iorb),1,psit(2*nvctrp+1,jorb),1)
-!!$              tti=tti+ddot(nvctrp,psit(2*nvctrp+1,iorb),1,psit(3*nvctrp+1,jorb),1)
-!!$              ovrlp(2*iorb-1,jorb,1)=ttr
-!!$              ovrlp(2*iorb,jorb,1)=tti*0.0d0
-!!$              print *,iorb,norb,ttr,tti
-!!$           end do
-!!$        end do
-!!$        stop
+!!        ovrlp=0.0d0
+!!        do iorb=1,norb
+!!           do jorb=1,norb
+!!              ttr=ddot(nvctrp*nspinor,psit(1,iorb),1,psit(1,jorb),1)
+!!              tti=ddot(nvctrp,psit(1,iorb),1,psit(nvctrp+1,jorb),1)
+!!              tti=tti-ddot(nvctrp,psit(nvctrp+1,iorb),1,psit(1,jorb),1)
+!!              tti=tti-ddot(nvctrp,psit(3*nvctrp+1,iorb),1,psit(2*nvctrp+1,jorb),1)
+!!              tti=tti+ddot(nvctrp,psit(2*nvctrp+1,iorb),1,psit(3*nvctrp+1,jorb),1)
+!!              ovrlp(2*iorb-1,jorb,1)=ttr
+!!              ovrlp(2*iorb,jorb,1)=tti*0.0d0
+!!              print *,iorb,norb,ttr,tti
+!!           end do
+!!        end do
+!!        stop
         call herk('L','C',norb,ncomp*nvctrp,1.0_wp,psit(1,1),max(1,ncomp*nvctrp),&
              0.0_wp,ovrlp(1,1,istart),norb)
      end if
@@ -1050,12 +1053,12 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
         call timing(iproc,'GramS_comput  ','ON')
      end if
      
-!!$     if (iproc==0) then
-!!$        write(*,*) 'parallel ovrlp'
-!!$        do i=1,norbs,min(2,nspinor)
-!!$           write(*,'(10(1x,1pe10.3))') (ovrlp(i,j,1),j=1,norb)
-!!$        enddo
-!!$     end if
+!!     if (iproc==0) then
+!!        write(*,*) 'parallel ovrlp'
+!!        do i=1,norbs,min(2,nspinor)
+!!           write(*,'(10(1x,1pe10.3))') (ovrlp(i,j,1),j=1,norb)
+!!        enddo
+!!     end if
 
      !to be excluded if nvctrp==0
      if(nspinor==1) then
@@ -1076,32 +1079,32 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
      else
 
        ! Cholesky factorization
-!!$        do i=1,norb
-!!$           if(iproc==0) then
-!!$              write(*,*) 'parallel ovrlp',i
-!!$              write(*,'(10f10.3)') (ovrlp(j,i,1), j=1,norbs)
-!!$           end if
-!!$        end do
+!!        do i=1,norb
+!!           if(iproc==0) then
+!!              write(*,*) 'parallel ovrlp',i
+!!              write(*,'(10f10.3)') (ovrlp(j,i,1), j=1,norbs)
+!!           end if
+!!        end do
         call c_potrf( 'L',norb,ovrlp(1,1,1),norb,info )
         if (info /= 0) then
            write(*,*) 'info Cholesky factorization',info
         end if
         
         ! calculate L^{-1}
-!!$         do i=1,norb
-!!$           if(iproc==0) then
-!!$              write(*,*) 'parallel ovrlp2',i
-!!$              write(*,'(10f10.3)') (ovrlp(j,i,1), j=1,norbs)
-!!$           end if
-!!$        end do
+!!         do i=1,norb
+!!           if(iproc==0) then
+!!              write(*,*) 'parallel ovrlp2',i
+!!              write(*,'(10f10.3)') (ovrlp(j,i,1), j=1,norbs)
+!!           end if
+!!        end do
        call c_trtri( 'L','N',norb,ovrlp(1,1,1),norb,info)
         if (info.ne.0) write(6,*) 'info L^-1',info
         
-!!$        do i=1,norb
-!!$           if(iproc==0) then
-!!$              write(*,'(10f10.3)') (ovrlp(j,i,1), j=1,norbs)
-!!$           end if
-!!$        end do
+!!        do i=1,norb
+!!           if(iproc==0) then
+!!              write(*,'(10f10.3)') (ovrlp(j,i,1), j=1,norbs)
+!!           end if
+!!        end do
        ! new vectors   !!check if third argument should be transpose or conjugate
         call c_trmm ('R','L','C','N',ncomp*nvctrp,norb,(1.0_wp,0.0_wp),&
              ovrlp(1,1,1),norb,psit(1,1),max(1,ncomp*nvctrp))

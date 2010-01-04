@@ -44,8 +44,9 @@ CLEANFILES = \
 
 #dependencies
 
-interfaces_14_hidewrite.o interfaces_16_hideleave.o interfaces_56_xc.o m_libxc_functionals.o: defs_basis.o
+interfaces_14_hidewrite.o interfaces_16_hideleave.o interfaces_56_xc.o m_libxc_functionals.o defs_parameters.o : defs_basis.o
 
+m_libxc_functionals.o : interfaces_16_hideleave.o 
 
 defs_datatypes.o: defs_datatypes.F90 \
 	defs_parameters.o \
@@ -68,15 +69,18 @@ drivexc.o: drivexc.F90 \
 	interfaces_14_hidewrite.o
 
 invcb.o: invcb.F90 \
+	interfaces_16_hideleave.o \
 	defs_basis.o
 
 size_dvxc.o: size_dvxc.F90 \
 	defs_basis.o
 
 xchcth.o: xchcth.F90 \
-	defs_basis.o
+	defs_basis.o \
+	interfaces_14_hidewrite.o
 
 xchelu.o: xchelu.F90 \
+	interfaces_16_hideleave.o \
 	defs_basis.o
 
 xclb.o: xclb.F90 \
@@ -86,17 +90,22 @@ xcpbe.o: xcpbe.F90 \
 	defs_basis.o
 
 xcpzca.o: xcpzca.F90 \
-	defs_basis.o
+	interfaces_16_hideleave.o \
+	defs_basis.o 
 
 xcspol.o: xcspol.F90 \
 	defs_basis.o \
 	defs_xc.o
 
 xctetr.o: xctetr.F90 \
-	defs_basis.o
+	defs_basis.o \
+	interfaces_14_hidewrite.o
 
 xcwign.o: xcwign.F90 \
-	defs_basis.o
+	defs_basis.o \
+	interfaces_14_hidewrite.o
 
 xcxalp.o: xcxalp.F90 \
-	defs_basis.o
+	defs_basis.o \
+	interfaces_16_hideleave.o \
+	interfaces_14_hidewrite.o

@@ -1,0 +1,522 @@
+                             TTTT         F       DDDDD    
+                            T    T               D         
+                           T     T        F     D          
+                           T    T         F     D        D 
+                           TTTTT          F     D         D
+                           T    T         F     D         D
+                           T     T        F     D         D
+                           T      T       F     D         D
+                           T     T     FFFF     D         D
+                           T TTTT         F      D        D
+                           T             F        D      D 
+                       TTTTTTTTT    FFFFF          DDDDDD  
+                         gggggg          iiiii    BBBBBBBBB
+                        g      g        i             B    
+                       g        g      i         BBBB B    
+                       g         g     iiii     B     B    
+                       g         g     i       B      B    
+                       g         g     i        B     B    
+                       g         g     i         B    B    
+                       g         g     i          BBBBB    
+                        g        g     i         B    B    
+                                 g     i        B     B    
+                                g               B    B     
+                           ggggg       i         BBBB                 (Ver 1.3.0-dev)
+ ------------------------------------------------------------------------------------
+ |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
+ ------------------------------------------------------------------------------------
+                                   The Journal of Chemical Physics 129, 014109 (2008)
+ Number of atoms     =     1
+ Number of atom types=     1
+ Number of symmetries=    48 | point group=  m-3m
+ Atoms of type 1 are Fe
+ Spin-polarised calculation:  NO 
+ ===================== BigDFT XANE calculation =============== inputPsiId= 0
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.=45.00 | Wavefns Conv.= 2.0E-04 | Calculate=   T
+        XC id=      1 |    Fine Wfs.= 9.00 | Max. N. Iter.=   50x10 | Extension= 5.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       0
+   Geom. Code=    P   |   Box Sizes (Bohr) =  2.26767E+01  2.26767E+01  2.26767E+01
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+     Fe         16       3            1.58919  0.22302  0.44878         X              
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+       Fe   0.36000   5.39251  -0.03007
+     l=0      rl        h1j       h2j       h3j 
+            0.26927  10.19372   2.64718
+                               -6.83498
+     l=1      rl        h1j       h2j       h3j 
+            0.24769   0.14561   2.21217
+                               -5.23495
+     l=2      rl        h1j       h2j       h3j 
+            0.22302 -12.02694
+ Total Number of Electrons       16
+ Total Number of Orbitals         8
+ occup(1:8)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1     Fe  1.13384E+01  1.13384E+01  1.13384E+01       27.000    27.000    27.000
+    Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 H grids=  0.4199  0.4199  0.4199
+   Box Sizes=  2.26767E+01  2.26767E+01  2.26767E+01           53        53        53
+       Extremes for the high resolution grid points:        23<31     23<31     23<31
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=       2916 points=    157464
+   Fine resolution grid: Number of segments=         69 points=       461
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1      Fe               1                   13
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                   13
+ Total number of components =                90610
+ Percent of zero components =                   18
+ ------------------------------------------------------------------ Memory Estimation
+ Number of atoms=    1 Number of orbitals=     8 Sim. Box Dimensions=    53   53   53
+ Estimation performed for 1 processors.
+ Memory occupation for principal arrays:
+               Poisson Solver Kernel (K):     9 MB   902 KB
+              Poisson Solver Density (D):     9 MB   626 KB
+     Single Wavefunction for one orbital:     1 MB   232 KB
+    All Wavefunctions for each processor:    19 MB   631 KB
+       Wavefunctions + DIIS per proc (W):    19 MB   631 KB
+     Nonlocal Pseudopotential Arrays (P):     0 MB   708 KB
+    Arrays of full uncompressed grid (U):     1 MB   140 KB
+ Estimation of Memory requirements for principal code sections:
+  Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
+       ~11*K         |     ~W+(~3)*U+P      |   ~8*D+K+W+P   |       ~W+(~3)*U+P 
+       108MB         |        33MB          |      107MB     |            34MB
+ The overall memory requirement needed for this calculation is thus: 108 MB
+ By reducing the DIIS history and/or increasing the number of processors the amount of
+  memory can be reduced but for this system it will never be less than 10 MB
+ Wavefunctions memory occupation for root processor (Bytes): 10284224
+ ------------------------------------------------------------ Poisson Kernel Creation
+ Poisson solver for periodic BC, no kernel calculation...done.
+ Memory occ. per proc. (Bytes):  Density=10077696  Kernel=1331000
+                                 Full Grid Arrays=10077696
+ ion-ion interaction energy -1.59920646116928E+01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge           -16.000000000000   0.000E+00
+ PSolver, periodic BC, dimensions:   108  108  108   proc    1   ixc:  0 ...done.
+ ------------------------------------------------------- Input Wavefunctions Creation
+ Generating 10 Atomic Input Orbitals
+   of which 4 are semicore orbitals
+ Wavefunctions memory occupation for root processor (Bytes): 0
+ Calculating AIO wavefunctions: 
+ Generation of input wavefunction data for atom     Fe: 
+   Elec. Configuration: [s] 2.00 , [p] 2.00 2.00 2.00 , d 6/5 6/5 6/5 6/5 6/5 , s 2.00 , ... done.
+ Wavefunctions memory occupation for root processor (Bytes): 12855280
+ Writing wavefunctions in wavelet form... done.
+ Deviation from normalization of the imported orbitals    7.47E-05
+ Calculation of charge density... done. Total electronic charge=      15.999983273238
+ PSolver, periodic BC, dimensions:   108  108  108   proc    1   ixc:  1 ...done.
+  going to calculate spectra 
+  IN ROUTINE  chebychev  
+ Wavefunctions memory occupation for root processor (Bytes): 1285528
+ reading  precalculated  projection on pseudofunctions
+ for 1s of atom number  1  ( atomname = Fe                   )
+ After application of a 2*L-pole  with L=  1
+  from file gproje_Fe_1s_1                                                                  
+ OK 
+ OK 1
+ OK 2
+  for atoms  26
+ OK 4
+ OK 45
+ OK 5
+ Writing wavefunctions in wavelet form ........................................ done.
+ Deviation from normalization of the imported orbitals    0.00E+00
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+  writing spectra to cheb_spectra_39                                                                                                                                                                                         
+  done 
+ Hamiltonian application...  done 
+ coefficients from Chebychev 
+   40 1.6735726182760826E+02 5.8204693553767584E-03
+ ... 
+ 3.0156633242032962E-05
+-7.1407692535039192E-05
+ 9.0131889803573943E-05
+-8.1654380684437764E-05
+ 6.0664234217980284E-05
+-5.8526266284675450E-05
+ 1.0568901092011937E-04
+-1.9372860858431033E-04
+ 2.6012592511032531E-04
+-2.4316831465410376E-04
+ CPU time/ELAPSED time for root process     0        17.79        17.80
+ Final values of the Forces for each atom
+     1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
+ the sum of the forces is
+      x direction     0.00000000E+00
+      y direction     0.00000000E+00
+      z direction     0.00000000E+00
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 1244 allocations and 1244 deallocations, remaining memory(B):0
+ memory occupation peak: 82 MB
+ for the array  wz in the routine gaussians_to_wavelets_orb
+                             TTTT         F       DDDDD    
+                            T    T               D         
+                           T     T        F     D          
+                           T    T         F     D        D 
+                           TTTTT          F     D         D
+                           T    T         F     D         D
+                           T     T        F     D         D
+                           T      T       F     D         D
+                           T     T     FFFF     D         D
+                           T TTTT         F      D        D
+                           T             F        D      D 
+                       TTTTTTTTT    FFFFF          DDDDDD  
+                         gggggg          iiiii    BBBBBBBBB
+                        g      g        i             B    
+                       g        g      i         BBBB B    
+                       g         g     iiii     B     B    
+                       g         g     i       B      B    
+                       g         g     i        B     B    
+                       g         g     i         B    B    
+                       g         g     i          BBBBB    
+                        g        g     i         B    B    
+                                 g     i        B     B    
+                                g               B    B     
+                           ggggg       i         BBBB                 (Ver 1.3.0-dev)
+ ------------------------------------------------------------------------------------
+ |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
+ ------------------------------------------------------------------------------------
+                                   The Journal of Chemical Physics 129, 014109 (2008)
+ Number of atoms     =     1
+ Number of atom types=     1
+ Number of symmetries=    48 | point group=  m-3m
+ Atoms of type 1 are Fe
+ Spin-polarised calculation:  NO 
+ ===================== BigDFT XANE calculation =============== inputPsiId= 0
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.=45.00 | Wavefns Conv.= 2.0E-04 | Calculate=   T
+        XC id=      1 |    Fine Wfs.= 9.00 | Max. N. Iter.=   50x10 | Extension= 5.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       0
+   Geom. Code=    P   |   Box Sizes (Bohr) =  2.26767E+01  2.26767E+01  2.26767E+01
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+     Fe         16       3            1.58919  0.22302  0.44878         X              
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+       Fe   0.36000   5.39251  -0.03007
+     l=0      rl        h1j       h2j       h3j 
+            0.26927  10.19372   2.64718
+                               -6.83498
+     l=1      rl        h1j       h2j       h3j 
+            0.24769   0.14561   2.21217
+                               -5.23495
+     l=2      rl        h1j       h2j       h3j 
+            0.22302 -12.02694
+ Total Number of Electrons       16
+ Total Number of Orbitals         8
+ occup(1:8)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1     Fe  1.13384E+01  1.13384E+01  1.13384E+01       27.000    27.000    27.000
+    Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 H grids=  0.4199  0.4199  0.4199
+   Box Sizes=  2.26767E+01  2.26767E+01  2.26767E+01           53        53        53
+       Extremes for the high resolution grid points:        23<31     23<31     23<31
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=       2916 points=    157464
+   Fine resolution grid: Number of segments=         69 points=       461
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1      Fe               1                   13
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                   13
+ Total number of components =                90610
+ Percent of zero components =                   18
+ ------------------------------------------------------------------ Memory Estimation
+ Number of atoms=    1 Number of orbitals=     8 Sim. Box Dimensions=    53   53   53
+ Estimation performed for 1 processors.
+ Memory occupation for principal arrays:
+               Poisson Solver Kernel (K):     9 MB   902 KB
+              Poisson Solver Density (D):     9 MB   626 KB
+     Single Wavefunction for one orbital:     1 MB   232 KB
+    All Wavefunctions for each processor:    19 MB   631 KB
+       Wavefunctions + DIIS per proc (W):    19 MB   631 KB
+     Nonlocal Pseudopotential Arrays (P):     0 MB   708 KB
+    Arrays of full uncompressed grid (U):     1 MB   140 KB
+ Estimation of Memory requirements for principal code sections:
+  Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
+       ~11*K         |     ~W+(~3)*U+P      |   ~8*D+K+W+P   |       ~W+(~3)*U+P 
+       108MB         |        33MB          |      107MB     |            34MB
+ The overall memory requirement needed for this calculation is thus: 108 MB
+ By reducing the DIIS history and/or increasing the number of processors the amount of
+  memory can be reduced but for this system it will never be less than 10 MB
+ Wavefunctions memory occupation for root processor (Bytes): 10284224
+ ------------------------------------------------------------ Poisson Kernel Creation
+ Poisson solver for periodic BC, no kernel calculation...done.
+ Memory occ. per proc. (Bytes):  Density=10077696  Kernel=1331000
+                                 Full Grid Arrays=10077696
+ ion-ion interaction energy -1.59920646116928E+01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge           -16.000000000000   0.000E+00
+ PSolver, periodic BC, dimensions:   108  108  108   proc    1   ixc:  0 ...done.
+ ------------------------------------------------------- Input Wavefunctions Creation
+ Generating 10 Atomic Input Orbitals
+   of which 4 are semicore orbitals
+ Wavefunctions memory occupation for root processor (Bytes): 0
+ Calculating AIO wavefunctions: 
+ Generation of input wavefunction data for atom     Fe: 
+   Elec. Configuration: [s] 2.00 , [p] 2.00 2.00 2.00 , d 6/5 6/5 6/5 6/5 6/5 , s 2.00 , ... done.
+ Wavefunctions memory occupation for root processor (Bytes): 12855280
+ Writing wavefunctions in wavelet form... done.
+ Deviation from normalization of the imported orbitals    7.47E-05
+ Calculation of charge density... done. Total electronic charge=      15.999983273238
+ PSolver, periodic BC, dimensions:   108  108  108   proc    1   ixc:  1 ...done.
+  going to calculate spectra 
+  IN ROUTINE LANCZOS 
+ Wavefunctions memory occupation for root processor (Bytes): 1285528
+ reading  precalculated  projection on pseudofunctions
+ for 1s of atom number  1  ( atomname = Fe                   )
+ After application of a 2*L-pole  with L=  1
+  from file gproje_Fe_1s_1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+ Writing wavefunctions in wavelet form ........................................ done.
+ Deviation from normalization of the imported orbitals    0.00E+00
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+  starting GramSchmidt  15
+ GramSchmidt done 
+ Hamiltonian application...  done 
+  starting GramSchmidt  16
+ GramSchmidt done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+  alpha and beta from lanczos 
+   20 1.7562530507505252E-03
+ 4.6367176497141834E+01 4.6854586541482277E+01
+ 1.1070200087401743E+02 6.6843275871319179E+01
+ 1.4012733872842517E+02 7.7668910309474683E+01
+ 1.5515439706358342E+02 8.1978527003579146E+01
+ 1.6202146082219429E+02 8.3225919541584091E+01
+ 1.6347576981223321E+02 8.3689229430736503E+01
+ 1.6520956102295071E+02 8.3714612022203340E+01
+ 1.6458234736421986E+02 8.2928345714907906E+01
+ 1.6249982934072489E+02 8.1634089675380466E+01
+ 1.5995985716171961E+02 8.0587272898735009E+01
+ 1.6189714557890920E+02 8.2699908753817567E+01
+ 1.6476485774115017E+02 8.3304154426189868E+01
+ 1.6625821420349877E+02 8.2753375490318390E+01
+ 1.6363483954859899E+02 8.2795831040871576E+01
+ 1.6191549704645377E+02 8.1202038340193624E+01
+ 1.6186495853321466E+02 7.9126926656164017E+01
+ 1.6111621324290459E+02 8.0369732062818471E+01
+ 1.5225934446109150E+02 7.8766290640403440E+01
+ 1.5689912593807315E+02 7.4476439338186410E+01
+ 1.4926424466875875E+02 7.4740068926014615E+01
+ CPU time/ELAPSED time for root process     0        17.93        17.93
+ Final values of the Forces for each atom
+     1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
+ the sum of the forces is
+      x direction     0.00000000E+00
+      y direction     0.00000000E+00
+      z direction     0.00000000E+00
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 1276 allocations and 1276 deallocations, remaining memory(B):0
+ memory occupation peak: 82 MB
+ for the array  wz in the routine gaussians_to_wavelets_orb
+                             TTTT         F       DDDDD    
+                            T    T               D         
+                           T     T        F     D          
+                           T    T         F     D        D 
+                           TTTTT          F     D         D
+                           T    T         F     D         D
+                           T     T        F     D         D
+                           T      T       F     D         D
+                           T     T     FFFF     D         D
+                           T TTTT         F      D        D
+                           T             F        D      D 
+                       TTTTTTTTT    FFFFF          DDDDDD  
+                         gggggg          iiiii    BBBBBBBBB
+                        g      g        i             B    
+                       g        g      i         BBBB B    
+                       g         g     iiii     B     B    
+                       g         g     i       B      B    
+                       g         g     i        B     B    
+                       g         g     i         B    B    
+                       g         g     i          BBBBB    
+                        g        g     i         B    B    
+                                 g     i        B     B    
+                                g               B    B     
+                           ggggg       i         BBBB                 (Ver 1.3.0-dev)
+ ------------------------------------------------------------------------------------
+ |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
+ ------------------------------------------------------------------------------------
+                                   The Journal of Chemical Physics 129, 014109 (2008)
+ Number of atoms     =     1
+ Number of atom types=     1
+ Number of symmetries=    48 | point group=  m-3m
+ Atoms of type 1 are Fe
+ Spin-polarised calculation:  NO 
+ ===================== BigDFT XANE calculation =============== inputPsiId= 0
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.=45.00 | Wavefns Conv.= 2.0E-04 | Calculate=   T
+        XC id=      1 |    Fine Wfs.= 9.00 | Max. N. Iter.=   50x10 | Extension= 5.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       0
+   Geom. Code=    P   |   Box Sizes (Bohr) =  2.26767E+01  2.26767E+01  2.26767E+01
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+     Fe         16       3            1.58919  0.22302  0.44878         X              
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+       Fe   0.36000   5.39251  -0.03007
+     l=0      rl        h1j       h2j       h3j 
+            0.26927  10.19372   2.64718
+                               -6.83498
+     l=1      rl        h1j       h2j       h3j 
+            0.24769   0.14561   2.21217
+                               -5.23495
+     l=2      rl        h1j       h2j       h3j 
+            0.22302 -12.02694
+ Total Number of Electrons       16
+ Total Number of Orbitals         8
+ occup(1:8)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1     Fe  1.13384E+01  1.13384E+01  1.13384E+01       27.000    27.000    27.000
+    Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 H grids=  0.4199  0.4199  0.4199
+   Box Sizes=  2.26767E+01  2.26767E+01  2.26767E+01           53        53        53
+       Extremes for the high resolution grid points:        23<31     23<31     23<31
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=       2916 points=    157464
+   Fine resolution grid: Number of segments=         69 points=       461
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1      Fe               1                   13
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                   13
+ Total number of components =                90610
+ Percent of zero components =                   18
+ ------------------------------------------------------------------ Memory Estimation
+ Number of atoms=    1 Number of orbitals=     8 Sim. Box Dimensions=    53   53   53
+ Estimation performed for 1 processors.
+ Memory occupation for principal arrays:
+               Poisson Solver Kernel (K):     9 MB   902 KB
+              Poisson Solver Density (D):     9 MB   626 KB
+     Single Wavefunction for one orbital:     1 MB   232 KB
+    All Wavefunctions for each processor:    19 MB   631 KB
+       Wavefunctions + DIIS per proc (W):    19 MB   631 KB
+     Nonlocal Pseudopotential Arrays (P):     0 MB   708 KB
+    Arrays of full uncompressed grid (U):     1 MB   140 KB
+ Estimation of Memory requirements for principal code sections:
+  Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
+       ~11*K         |     ~W+(~3)*U+P      |   ~8*D+K+W+P   |       ~W+(~3)*U+P 
+       108MB         |        33MB          |      107MB     |            34MB
+ The overall memory requirement needed for this calculation is thus: 108 MB
+ By reducing the DIIS history and/or increasing the number of processors the amount of
+  memory can be reduced but for this system it will never be less than 10 MB
+ Wavefunctions memory occupation for root processor (Bytes): 10284224
+ ------------------------------------------------------------ Poisson Kernel Creation
+ Poisson solver for periodic BC, no kernel calculation...done.
+ Memory occ. per proc. (Bytes):  Density=10077696  Kernel=1331000
+                                 Full Grid Arrays=10077696
+ ion-ion interaction energy -1.59920646116928E+01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge           -16.000000000000   0.000E+00
+ PSolver, periodic BC, dimensions:   108  108  108   proc    1   ixc:  0 ...done.
+  going to calculate spectra 
+ SHIFT  0.944862749961537 0.944862749961537 0.944862749961537
+  scaling function for interpolation 
+ writing NEW local_potential.pot
+  exiting b2B
+  IN ROUTINE  chebychev  
+ Wavefunctions memory occupation for root processor (Bytes): 1285528
+ reading  precalculated  projection on pseudofunctions
+ for 1s of atom number  1  ( atomname = Fe                   )
+ After application of a 2*L-pole  with L=  1
+  from file gproje_Fe_1s_1                                                                  
+ OK 
+ OK 1
+ OK 2
+  for atoms  26
+ OK 4
+ OK 45
+ OK 5
+ Writing wavefunctions in wavelet form ........................................ done.
+ Deviation from normalization of the imported orbitals    0.00E+00
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+ Hamiltonian application...  done 
+  writing spectra to cheb_spectra_39                                                                                                                                                                                         
+  done 
+ Hamiltonian application...  done 
+ coefficients from Chebychev 
+   40 1.6735726182760826E+02 5.8204693553767584E-03
+ ... 
+ 3.0823097442640463E-05
+-7.2055529220623827E-05
+ 9.0732744125421273E-05
+-8.2196962425025184E-05
+ 6.1157122832421152E-05
+-5.8988718900833664E-05
+ 1.0611849119143788E-04
+-1.9406591809033443E-04
+ 2.6027413252027319E-04
+-2.4307110674193894E-04
+ CPU time/ELAPSED time for root process     0        23.95        23.95
+ Final values of the Forces for each atom
+     1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
+ the sum of the forces is
+      x direction     0.00000000E+00
+      y direction     0.00000000E+00
+      z direction     0.00000000E+00
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 1139 allocations and 1139 deallocations, remaining memory(B):0
+ memory occupation peak: 43 MB
+ for the array  zmpi2 in the routine P_Poisson_Solver

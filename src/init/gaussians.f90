@@ -1,4 +1,16 @@
-!perform a set of non-blocking send-receive operations
+!!****f* BigDFT/nonblocking_transposition
+!! FUNCTION
+!!    Perform a set of non-blocking send-receive operations
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA (LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
      psi,norb_par,mpirequests)
   use module_base
@@ -29,6 +41,7 @@ subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
   end do
   
 end subroutine nonblocking_transposition
+!!***
 
 subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovrlp,orbs,&
      norbsc_arr,psi,hpsi,ovrlp)
@@ -483,62 +496,62 @@ subroutine potential_overlap(A,B,pot,n1,n2,n3,hx,hy,hz,ovrlp)
 end subroutine potential_overlap
 
 
-!!$!calculate the potential overlap via a successive application of a one dimensional
-!!$!integration. Store the values for the remaining dimensions in the work array
-!!$subroutine onedim_potovrlp
-!!$  use module_base
-!!$  implicit none
-!!$  integer, intent(in) :: n,dat
-!!$  
-!!$  !local variables
-!!$  ovrlp=0.d0
-!!$  do ii1=1,ng1
-!!$     a1=expo1(ii1)
-!!$     a1=0.5_gp/a1**2
-!!$     c1=coeff1(ii1)
-!!$     do ii2=1,ng2
-!!$        a2=expo2(ii2)
-!!$        a2=0.5_gp/a2**2
-!!$        c2=coeff2(ii2)
-!!$        !calculate overall factor given by product of gaussian
-!!$        exp_new=a1*a2/(a1+a2)
-!!$        expn=exp_new*(ra-rb)**2
-!!$        factor=c1*c2*exp(-expn)
-!!$        ovrlp=0.0_gp
-!!$        if (factor > 1.e-8_gp) then
-!!$           xmean=rmean(a1,a2,ra,rb)
-!!$           cutoff=5._gp*sqrt(0.5_gp/(a1+a2))
-!!$           !limits for integration of the potential
-!!$           is=floor((xmean-cutoff)/hgrid)
-!!$           ie=ceiling((xmean+cutoff)/hgrid)
-!!$        
-!!$           povrlp=0.0_gp
-!!$           do i=is,ie
-!!$              call ind_gauss(.false.,i,0,n,j,go)
-!!$              if (gox) then
-!!$                 x=real(i,gp)*hgrid-xmean
-!!$                 xa=real(i,gp)*hgrid-ra
-!!$                 xb=real(i,gp)*hgrid-rb
-!!$                 prodgaus=exp(-(a1+a2)*x**2)
-!!$                 polb=0.0_gp
-!!$                 do iii2=1,n2
-!!$                    polb=polb+fb*(xb**q)
-!!$                 end do
-!!$                 pola=0.0_gp
-!!$                 do iii1=1,n1
-!!$                    pola=pola+fa*(xa**p)
-!!$                 end do
-!!$                 prodgaus=prodgaus*pola*polb
-!!$                 povrlp=povrlp+pot(j1,j2,j3)*prodgaus
-!!$              end if
-!!$           enddo
-!!$        end if
-!!$        ovrlp=ovrlp+factor*povrlp
-!!$     end do
-!!$  end do
-!!$  
-!!$
-!!$end subroutine onedim_potovrlp
+!!!!calculate the potential overlap via a successive application of a one dimensional
+!!!!integration. Store the values for the remaining dimensions in the work array
+!!!subroutine onedim_potovrlp
+!!!  use module_base
+!!!  implicit none
+!!!  integer, intent(in) :: n,dat
+!!!  
+!!!  !local variables
+!!!  ovrlp=0.d0
+!!!  do ii1=1,ng1
+!!!     a1=expo1(ii1)
+!!!     a1=0.5_gp/a1**2
+!!!     c1=coeff1(ii1)
+!!!     do ii2=1,ng2
+!!!        a2=expo2(ii2)
+!!!        a2=0.5_gp/a2**2
+!!!        c2=coeff2(ii2)
+!!!        !calculate overall factor given by product of gaussian
+!!!        exp_new=a1*a2/(a1+a2)
+!!!        expn=exp_new*(ra-rb)**2
+!!!        factor=c1*c2*exp(-expn)
+!!!        ovrlp=0.0_gp
+!!!        if (factor > 1.e-8_gp) then
+!!!           xmean=rmean(a1,a2,ra,rb)
+!!!           cutoff=5._gp*sqrt(0.5_gp/(a1+a2))
+!!!           !limits for integration of the potential
+!!!           is=floor((xmean-cutoff)/hgrid)
+!!!           ie=ceiling((xmean+cutoff)/hgrid)
+!!!        
+!!!           povrlp=0.0_gp
+!!!           do i=is,ie
+!!!              call ind_gauss(.false.,i,0,n,j,go)
+!!!              if (gox) then
+!!!                 x=real(i,gp)*hgrid-xmean
+!!!                 xa=real(i,gp)*hgrid-ra
+!!!                 xb=real(i,gp)*hgrid-rb
+!!!                 prodgaus=exp(-(a1+a2)*x**2)
+!!!                 polb=0.0_gp
+!!!                 do iii2=1,n2
+!!!                    polb=polb+fb*(xb**q)
+!!!                 end do
+!!!                 pola=0.0_gp
+!!!                 do iii1=1,n1
+!!!                    pola=pola+fa*(xa**p)
+!!!                 end do
+!!!                 prodgaus=prodgaus*pola*polb
+!!!                 povrlp=povrlp+pot(j1,j2,j3)*prodgaus
+!!!              end if
+!!!           enddo
+!!!        end if
+!!!        ovrlp=ovrlp+factor*povrlp
+!!!     end do
+!!!  end do
+!!!  
+!!!
+!!!end subroutine onedim_potovrlp
 
 subroutine locpotovrlp(n1i,n2i,n3i,pot,hx,hy,hz,expo1,coeff1,expo2,coeff2,&
      ng1,ng2,l1,m1,l2,m2,rxa,rya,rza,rxb,ryb,rzb,niw,nrw,iw,rw,ovrlp)

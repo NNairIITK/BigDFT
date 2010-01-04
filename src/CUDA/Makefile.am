@@ -1,6 +1,5 @@
 EXTRA_DIST = \
 	Makefile.standalone \
-	dynamicGPU/read_conf_file.h \
 	GPUparameters.h \
 	kernels_compress.hcu \
 	kernels_locpot.hcu \
@@ -13,22 +12,7 @@ EXTRA_DIST = \
 	kinetic.h \
 	locpot.h \
 	commonDef.h \
-	dynamicGPU/exceptions.h \
-	dynamicGPU/init_network.h \
-	dynamicGPU/message.h \
-	dynamicGPU/localqueu.h \
-	dynamicGPU/fct_call.h \
-	dynamicGPU/manage_gpu.h \
-	dynamicGPU/gpu_control.h \
-	dynamicGPU/class_utils.h \
-	dynamicGPU/convolution_fct_call.h \
-	dynamicGPU/cudafct.h \
 	read_conf_exception.h \
-	dynamicGPU/trace_exec.h \
-	dynamicGPU/manage_cpu_affinity.h \
-	dynamicGPU/check_card/checker.h \
-	dynamicGPU/set_repartition.h \
-	dynamicGPU/manage_global_var.h \
 	cpp_utils.h \
 	$(SOURCES_CONV_CHECK)
 
@@ -60,7 +44,7 @@ SUFFIXES = .cu
 
 if USE_CUDA_GPU
 sub_dirs_cuda=CUDA
-libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a S_GPU/libs_gpu.a
 #cutil is used for CUDA timer
 #libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a @LIB_CUTIL_PATH@/libcutil.a
 
@@ -70,7 +54,8 @@ libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a
 #bin_PROGRAMS = 
 #endif
 
-check_PROGRAMS = conv_check GPUham
+check_PROGRAMS = conv_check 
+#	GPUham
 
 else
 check_PROGRAMS = 
@@ -92,12 +77,14 @@ AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir)
 conv_check_SOURCES = conv_check.f90  ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
 conv_check_LDFLAGS =
 conv_check_LDADD = ../libbigdft.a \
+	../PSolver/libpoissonsolver.a \
+	../PSolver/ABINIT-common/libABINIT.a \
 	$(libs_cuda)
 
-GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
-GPUham_LDFLAGS =
-GPUham_LDADD = ../libbigdft.a \
-	$(libs_cuda)
+#GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
+#GPUham_LDFLAGS =
+#GPUham_LDADD = ../libbigdft.a \
+#	$(libs_cuda)
 
 .cu.o:
 	$(NVCC) $(CUDA_FLAGS) $(AM_CPPFLAGS) -c $< -o $@

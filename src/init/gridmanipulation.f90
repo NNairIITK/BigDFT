@@ -5,7 +5,6 @@
 !!   Assign these values to the global localisation region descriptor.
 !! SOURCE
 !!
-!!***
 subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
   use module_base
   use module_types
@@ -19,7 +18,7 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
   type(locreg_descriptors), intent(out) :: Glr
   !local variables
   integer, parameter :: lupfil=14
-  real(gp), parameter ::eps_mach=1.e-12_gp,onem=1.0_gp-eps_mach
+  real(gp), parameter ::eps_mach=1.e-12_gp
   integer :: iat,j,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
   real(gp) :: rad,cxmin,cxmax,cymin,cymax,czmin,czmax,alatrue1,alatrue2,alatrue3
 
@@ -54,13 +53,14 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
      czmin=min(czmin,rxyz(3,iat)-rad)
   enddo
 
-  cxmax=cxmax+eps_mach 
-  cymax=cymax+eps_mach  
-  czmax=czmax+eps_mach  
-
-  cxmin=cxmin-eps_mach
-  cymin=cymin-eps_mach
-  czmin=czmin-eps_mach
+!eliminate epsilon form the grid size calculation
+!!  cxmax=cxmax+eps_mach 
+!!  cymax=cymax+eps_mach  
+!!  czmax=czmax+eps_mach  
+!!
+!!  cxmin=cxmin-eps_mach
+!!  cymin=cymin-eps_mach
+!!  czmin=czmin-eps_mach
 
 
   !define the box sizes for free BC, and calculate dimensions for the fine grid with ISF
@@ -71,8 +71,11 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
 
      ! grid sizes n1,n2,n3
      n1=int(atoms%alat1/hx)
+!if (mod(n1,2)==1) n1=n1+1
      n2=int(atoms%alat2/hy)
+!if (mod(n2,2)==1) n2=n2+1
      n3=int(atoms%alat3/hz)
+!if (mod(n3,2)==1) n3=n3+1
      alatrue1=real(n1,gp)*hx
      alatrue2=real(n2,gp)*hy
      alatrue3=real(n3,gp)*hz
@@ -197,8 +200,8 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
              iat,trim(atoms%atomnames(atoms%iatype(iat))),&
              (rxyz(j,iat),j=1,3),rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz
      enddo
-     write(*,'(1x,a,3(1x,1pe12.5),a,3(1x,0pf5.2))') &
-          '   Shift of=',-cxmin,-cymin,-czmin,' Grid Spacings=',hx,hy,hz
+     write(*,'(1x,a,3(1x,1pe12.5),a,3(1x,0pf7.4))') &
+          '   Shift of=',-cxmin,-cymin,-czmin,' H grids=',hx,hy,hz
      write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
           '  Box Sizes=',atoms%alat1,atoms%alat2,atoms%alat3,n1,n2,n3
      write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
@@ -230,15 +233,15 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
   Glr%hybrid_on=(Glr%hybrid_on.and.(nfu2-nfl2+lupfil < n2+1))
   Glr%hybrid_on=(Glr%hybrid_on.and.(nfu3-nfl3+lupfil < n3+1))
 
-
   if (Glr%hybrid_on) then
      if (iproc == 0) write(*,*)'wavelet localization is ON'
   else
      if (iproc == 0) write(*,*)'wavelet localization is OFF'
   endif
 
-
 end subroutine system_size
+!!***
+
 
 !!****f* BigDFT/correct_grid
 !! FUNCTION
@@ -246,7 +249,6 @@ end subroutine system_size
 !!   allow the fft for the preconditioner and for Poisson Solver
 !! SOURCE
 !!
-!!***
 subroutine correct_grid(a,h,n)
   use module_base
   use Poisson_Solver
@@ -266,30 +268,36 @@ subroutine correct_grid(a,h,n)
      !control if the double of this dimension is compatible with the FFT
      call fourier_dim(2*m,m2)
      !if this check is passed both the preconditioner and the PSolver works
-     if (m2==2*m) exit
+     if (m2==2*m   .and. mod(m,2) ==0  ) exit
 
      nt=m+1
   end do
   n=m-1
 
-!!$  !here the dimensions should be corrected in order to 
-!!$  !allow the fft for the preconditioner
-!!$  m=2*n+2
-!!$  do 
-!!$     call fourier_dim(m,m)
-!!$     if ((m/2)*2==m) then
-!!$        n=(m-2)/2
-!!$        exit
-!!$     else
-!!$        m=m+1
-!!$     end if
-!!$  end do
+!!!  !here the dimensions should be corrected in order to 
+!!!  !allow the fft for the preconditioner
+!!!  m=2*n+2
+!!!  do 
+!!!     call fourier_dim(m,m)
+!!!     if ((m/2)*2==m) then
+!!!        n=(m-2)/2
+!!!        exit
+!!!     else
+!!!        m=m+1
+!!!     end if
+!!!  end do
 
   h=a/real(n+1,gp)
   
 end subroutine correct_grid
+!!***
 
-! Calculates the length of the keys describing a wavefunction data structure
+
+!!****f* BigDFT/num_segkeys
+!! FUNCTION
+!!   Calculates the length of the keys describing a wavefunction data structure
+!! SOURCE
+!!
 subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
   implicit none
   integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3
@@ -341,8 +349,14 @@ nend=nend+nendi
   mseg=nend
   
 end subroutine num_segkeys
+!!***
 
-! Calculates the keys describing a wavefunction data structure
+
+!!****f* BigDFT/segkeys
+!! FUNCTION
+!!   Calculates the keys describing a wavefunction data structure
+!! SOURCE
+!!
 subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
   !implicit real(kind=8) (a-h,o-z)
   implicit none
@@ -388,11 +402,18 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
   endif
   !mseg=nend
 end subroutine segkeys
+!!***
 
+
+!!****f* BigDFT/fill_logrid
+!! FUNCTION
+!!   set up an array logrid(i1,i2,i3) that specifies whether the grid point
+!!   i1,i2,i3 is the center of a scaling function/wavelet
+!!
+!! SOURCE
+!!
 subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
      ntypes,iatype,rxyz,radii,rmult,hx,hy,hz,logrid)
-  ! set up an array logrid(i1,i2,i3) that specifies whether the grid point
-  ! i1,i2,i3 is the center of a scaling function/wavelet
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
@@ -403,7 +424,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
   real(gp), dimension(3,nat), intent(in) :: rxyz
   logical, dimension(0:n1,0:n2,0:n3), intent(out) :: logrid
   !local variables
-  real(kind=8), parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
+  real(kind=8), parameter :: eps_mach=1.d-12
   integer :: i1,i2,i3,iat,ml1,ml2,ml3,mu1,mu2,mu3,j1,j2,j3
   real(gp) :: dx,dy2,dz2,rad
 
@@ -482,7 +503,14 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
   enddo
 
 END SUBROUTINE fill_logrid
+!!***
 
+
+!!****f* BigDFT/make_bounds
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -537,7 +565,6 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
      end do
   end do
 
-
   do i2=0,n2 
      do i1=0,n1 
         ibxy(1,i1,i2)= 1000
@@ -560,4 +587,5 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
   end do
 
 end subroutine make_bounds
+!!***
 

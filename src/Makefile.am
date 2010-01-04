@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces memguess NEB frequencies $(minima_hopping_sources) 
+binaries_sources = cluster test_forces memguess NEB frequencies MDanalysis $(minima_hopping_sources) bart
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -55,10 +55,9 @@ global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda)
+SUBDIRS = modules convolutions lib $(sub_dirs_ps) profiling $(sub_dirs_cuda) art
 
 EXTRA_DIST = \
-	Makefile.standalone \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
@@ -74,7 +73,8 @@ EXTRA_DIST = \
 	ABINIT-moldyn/others.F90 \
 	ABINIT-moldyn/quenched.F90
 
-AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common -I$(srcdir)/ABINIT-moldyn
+AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common \
+			 -I$(srcdir)/PSolver -I$(srcdir)/ABINIT-moldyn @LIBXC_INCLUDE@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)
@@ -284,6 +284,14 @@ cluster_LDADD = libbigdft.a \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
+MDanalysis_SOURCES = distances.f90 
+MDanalysis_LDFLAGS = 
+MDanalysis_LDADD = libbigdft.a \
+	PSolver/libpoissonsolver.a \
+	PSolver/ABINIT-common/libABINIT.a \
+	$(LMPI) \
+	@MPI_LIBS@ \
+	$(libs_cuda)
 
 
 test_forces_SOURCES = test_forces.f90
@@ -321,6 +329,17 @@ frequencies_LDADD = libbigdft.a \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
+bart_SOURCES = art.f90
+bart_FCFLAGS = -Iart
+bart_LDFLAGS = 
+bart_LDADD = art/libart.a \
+	libbigdft.a \
+	PSolver/libpoissonsolver.a \
+	PSolver/ABINIT-common/libABINIT.a \
+	$(LMPI) \
+	@MPI_LIBS@ \
+	$(libs_cuda)
+
 
 CLEANFILES = \
 	ab6_symmetry.@MODULE_EXT@ AB6_SYMMETRY.@MODULE_EXT@ \
@@ -345,11 +364,13 @@ CLEANFILES = \
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
 
-cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o ab6_moldyn.o
+cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o ab6_moldyn.o 
 
 lanczos.o : lanczos_base.o lanczos_interface.o
 
-scfloop_API.o : BigDFT_API.o
+BigDFT_API.o : scfloop_API.o ab6_moldyn.o
+
+distances.o global.o : BigDFT_API.o
 
 ab6_moldyn.o ABINIT-moldyn/ab6_moldyn.o : scfloop_API.o \
 	ABINIT-moldyn/ab6_moldyn.F90 \

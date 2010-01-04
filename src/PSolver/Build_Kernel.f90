@@ -1,227 +1,3 @@
-!!****f* BigDFT/createKernel
-!! FUNCTION
-!!    Allocate a pointer which corresponds to the zero-padded FFT slice needed for
-!!    calculating the convolution with the kernel expressed in the interpolating scaling
-!!    function basis. The kernel pointer is unallocated on input, allocated on output.
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2002-2007 BigDFT group 
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SYNOPSIS
-!!    geocode  Indicates the boundary conditions (BC) of the problem:
-!!            'F' free BC, isolated systems.
-!!                The program calculates the solution as if the given density is
-!!                "alone" in R^3 space.
-!!            'S' surface BC, isolated in y direction, periodic in xz plane                
-!!                The given density is supposed to be periodic in the xz plane,
-!!                so the dimensions in these direction mus be compatible with the FFT
-!!                Beware of the fact that the isolated direction is y!
-!!            'P' periodic BC.
-!!                The density is supposed to be periodic in all the three directions,
-!!                then all the dimensions must be compatible with the FFT.
-!!                No need for setting up the kernel.
-!!    iproc,nproc number of process, number of processes
-!!    n01,n02,n03 dimensions of the real space grid to be hit with the Poisson Solver
-!!    itype_scf   order of the interpolating scaling functions used in the decomposition
-!!    hx,hy,hz    grid spacings. For the isolated BC case for the moment they are supposed to 
-!!                be equal in the three directions
-!!    kernel      pointer for the kernel FFT. Unallocated on input, allocated on output.
-!!                Its dimensions are equivalent to the region of the FFT space for which the
-!!                kernel is injective. This will divide by two each direction, 
-!!                since the kernel for the zero-padded convolution is real and symmetric.
-!!
-!! WARNING
-!!    Due to the fact that the kernel dimensions are unknown before the calling, the kernel
-!!    must be declared as pointer in input of this routine.
-!!    To avoid that, one can properly define the kernel dimensions by adding 
-!!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
-!!    declaration.
-!!
-!! AUTHOR
-!!    Luigi Genovese
-!! CREATION DATE
-!!    February 2007
-!!
-!! SOURCE
-!!
-subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,&
-     quiet) !optional arguments
-  use module_base, only: ndebug
-  implicit none
-  include 'mpif.h'
-  character(len=1), intent(in) :: geocode
-  integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
-  real(kind=8), intent(in) :: hx,hy,hz
-  real(kind=8), pointer :: kernel(:)
-  character(len=3), intent(in), optional :: quiet
-  !local variables
-  character(len=*), parameter :: subname='createKernel'
-  logical :: wrtmsg
-  integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_stat
-  integer :: jproc,nlimd,nlimk,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
-  real(kind=8) :: hgrid
-
-  call timing(iproc,'PSolvKernel   ','ON')
-
-  !do not write anything on screen if quiet is set to yes
-  if (present(quiet)) then
-     if(quiet == 'yes' .or. quiet == 'YES') then
-        wrtmsg=.false.
-     else if(quiet == 'no' .or. quiet == 'NO') then
-        wrtmsg=.true.
-     else
-        write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
-        stop
-     end if
-  else
-     wrtmsg=.true.
-  end if
-
-  hgrid=max(hx,hy,hz)
-
-  if (iproc==0 .and. wrtmsg) write(*,'(1x,a)')&
-          '------------------------------------------------------------ Poisson Kernel Creation'
-
-  if (geocode == 'P') then
-     
-     if (iproc==0 .and. wrtmsg) write(*,'(1x,a)',advance='no')&
-          'Poisson solver for periodic BC, no kernel calculation...'
-     
-     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
-
-     allocate(kernel(nd1*nd2*nd3/nproc+ndebug),stat=i_stat)
-     call memocc(i_stat,kernel,'kernel',subname)
-
-     call Periodic_Kernel(n1,n2,n3,nd1,nd2,nd3,hx,hy,hz,itype_scf,kernel,iproc,nproc)
-
-     nlimd=n2
-     nlimk=n3/2+1
-
-  else if (geocode == 'S') then
-     
-     if (iproc==0 .and. wrtmsg) write(*,'(1x,a)',advance='no')&
-          'Calculating Poisson solver kernel, surfaces BC...'
-
-     !Build the Kernel
-     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
-
-     allocate(kernel(nd1*nd2*nd3/nproc+ndebug),stat=i_stat)
-     call memocc(i_stat,kernel,'kernel',subname)
-
-     !the kernel must be built and scattered to all the processes
-     call Surfaces_Kernel(n1,n2,n3,m3,nd1,nd2,nd3,hx,hz,hy,itype_scf,kernel,iproc,nproc)
-
-     !last plane calculated for the density and the kernel
-     nlimd=n2
-     nlimk=n3/2+1
-
-  else if (geocode == 'F') then
-
-     if (iproc==0 .and. wrtmsg) write(*,'(1x,a)',advance='no')&
-          'Calculating Poisson solver kernel, free BC...'
-
-     !Build the Kernel
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
-     allocate(kernel(nd1*nd2*nd3/nproc+ndebug),stat=i_stat)
-     call memocc(i_stat,kernel,'kernel',subname)
-
-     !the kernel must be built and scattered to all the processes
-
-     call Free_Kernel(n01,n02,n03,n1,n2,n3,nd1,nd2,nd3,hx,hy,hz,itype_scf,iproc,nproc,kernel)
-
-     !last plane calculated for the density and the kernel
-     nlimd=n2/2
-     nlimk=n3/2+1
-
-  else
-     
-     !if (iproc==0) 
-     write(*,'(1x,a,3a)')'createKernel, geocode not admitted',geocode
-
-     stop
-  end if
-
-  if (iproc==0 .and. wrtmsg) then
-     write(*,'(a)')'done.'
-     !if (geocode /= 'P') then 
-        write(*,'(1x,2(a,i0))')&
-             'Memory occ. per proc. (Bytes):  Density=',md1*md3*md2/nproc*8,&
-             '  Kernel=',nd1*nd2*nd3/nproc*8
-     !else
-     !   write(*,'(1x,2(a,i0))')&
-     !        'Memory occ. per proc. (Bytes):  Density=',md1*md3*md2/nproc*8,&
-     !        '  Kernel=',8
-     !end if
-     write(*,'(1x,a,i0)')&
-          '                                Full Grid Arrays=',n01*n02*n03*8
-     !print the load balancing of the different dimensions on screen
-     if (nproc > 1) then
-        write(*,'(1x,a)')&
-             'Load Balancing for Poisson Solver related operations:'
-        jhd=1000
-        jzd=1000
-        npd=0
-        load_balancing: do jproc=0,nproc-1
-           !print *,'jproc,jfull=',jproc,jproc*md2/nproc,(jproc+1)*md2/nproc
-           if ((jproc+1)*md2/nproc <= nlimd) then
-              jfd=jproc
-           else if (jproc*md2/nproc <= nlimd) then
-              jhd=jproc
-              npd=nint(real(nlimd-(jproc)*md2/nproc,kind=8)/real(md2/nproc,kind=8)*100.d0)
-           else
-              jzd=jproc
-              exit load_balancing
-           end if
-        end do load_balancing
-        write(*,'(1x,a,i3,a)')&
-             'LB_density        : processors   0  -',jfd,' work at 100%'
-        if (jfd < nproc-1) write(*,'(1x,a,i3,a,i3,1a)')&
-             '                    processor     ',jhd,&
-             '   works at ',npd,'%'
-        if (jhd < nproc-1) write(*,'(1x,a,i3,1a,i3,a)')&
-             '                    processors ',&
-             jzd,'  -',nproc-1,' work at   0%'
-        jhk=1000
-        jzk=1000
-        npk=0
-        if (geocode /= 'P') then
-           load_balancingk: do jproc=0,nproc-1
-              !print *,'jproc,jfull=',jproc,jproc*nd3/nproc,(jproc+1)*nd3/nproc
-              if ((jproc+1)*nd3/nproc <= nlimk) then
-                 jfk=jproc
-              else if (jproc*nd3/nproc <= nlimk) then
-                 jhk=jproc
-                 npk=nint(real(nlimk-(jproc)*nd3/nproc,kind=8)/real(nd3/nproc,kind=8)*100.d0)
-              else
-                 jzk=jproc
-                 exit load_balancingk
-              end if
-           end do load_balancingk
-           write(*,'(1x,a,i3,a)')&
-                ' LB_kernel        : processors   0  -',jfk,' work at 100%'
-           if (jfk < nproc-1) write(*,'(1x,a,i3,a,i3,1a)')&
-                '                    processor     ',jhk,&
-                '   works at ',npk,'%'
-           if (jhk < nproc-1) write(*,'(1x,a,i3,1a,i3,a)')&
-                '                    processors ',jzk,'  -',nproc-1,&
-                ' work at   0%'
-        end if
-        write(*,'(1x,a)')&
-             'Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel'
-     end if
-
-  end if
-
-  call timing(iproc,'PSolvKernel   ','OF')
-
-end subroutine createKernel
-!!***
-
-
 !!****f* BigDFT/Periodic_Kernel
 !! FUNCTION
 !!    Build the kernel of the Poisson operator with
@@ -245,19 +21,18 @@ end subroutine createKernel
 !! SOURCE
 !!
 subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc)
-  use module_base, only: ndebug
+  use module_base
   implicit none
-  include 'mpif.h'
   !Arguments
   integer, intent(in) :: n1,n2,n3,nker1,nker2,nker3,itype_scf,iproc,nproc
-  real(kind=8), intent(in) :: h1,h2,h3
-  real(kind=8), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
+  real(dp), intent(in) :: h1,h2,h3
+  real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
   !Local variables 
   character(len=*), parameter :: subname='Periodic_Kernel'
-  real(kind=8), parameter :: pi=3.14159265358979323846d0
+  real(dp), parameter :: pi=3.14159265358979323846_dp
   integer :: i1,i2,i3,j3,i_all,i_stat
-  real(kind=8) :: p1,p2,mu3,ker
-  real(kind=8), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
+  real(dp) :: p1,p2,mu3,ker
+  real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
 
 
   !first control that the domain is not shorter than the scaling function
@@ -279,32 +54,32 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   call fourtrans_isf(n2/2,fourISFy)
   call fourtrans_isf(n3/2,fourISFz)
 
-!!$  fourISFx=0.d0
-!!$  fourISFy=0.d0
-!!$  fourISFz=0.d0
+!!  fourISFx=0._dp
+!!  fourISFy=0._dp
+!!  fourISFz=0._dp
 
   !calculate directly the reciprocal space components of the kernel function
   do i3=1,nker3/nproc
      j3=iproc*(nker3/nproc)+i3
      if (j3 <= n3/2+1) then
-        mu3=real(j3-1,kind=8)/real(n3,kind=8)
+        mu3=real(j3-1,dp)/real(n3,dp)
         mu3=(mu3/h2)**2 !beware of the exchanged dimension
         do i2=1,nker2
-           p2=real(i2-1,kind=8)/real(n2,kind=8)
+           p2=real(i2-1,dp)/real(n2,dp)
            do i1=1,nker1
-              p1=real(i1-1,kind=8)/real(n1,kind=8)
+              p1=real(i1-1,dp)/real(n1,dp)
               ker=pi*((p1/h1)**2+(p2/h3)**2+mu3)!beware of the exchanged dimension
-              if (ker/=0.d0) then
-                 karray(i1,i2,i3)=1.d0/ker*fourISFx(i1-1)*fourISFy(i2-1)*fourISFz(j3-1)
+              if (ker/=0._dp) then
+                 karray(i1,i2,i3)=1._dp/ker*fourISFx(i1-1)*fourISFy(i2-1)*fourISFz(j3-1)
               else
-                 karray(i1,i2,i3)=0.d0
+                 karray(i1,i2,i3)=0._dp
               end if
            end do
         end do
      else
         do i2=1,nker2
            do i1=1,nker1
-              karray(i1,i2,i3)=0.d0
+              karray(i1,i2,i3)=0._dp
            end do
         end do
      end if
@@ -325,9 +100,10 @@ end subroutine Periodic_Kernel
 
 !calculate the fourier transform
 !suppose the output symmetric and real
-subroutine fourtrans_isf(n,ftisf)
+subroutine fourtrans_isf_2(n,ftisf,ndom)
+  use module_base
   implicit none
-  integer, intent(in) :: n
+  integer, intent(in) :: n,ndom
   real(kind=8), dimension(0:n), intent(out) :: ftisf
   !local variables
   real(kind=8), parameter :: twopi=6.28318530717958647688d0
@@ -342,7 +118,7 @@ subroutine fourtrans_isf(n,ftisf)
      if (2*(i/2) == i) then
         cycle loop_points
      end if
-     p=real(i,kind=8)*twopi/real(2*n,kind=8)
+     p=real(i,kind=8)*twopi/real(2*ndom,kind=8)
      !calculate the values of the given point
      pointval=1.d0
      q=p
@@ -370,27 +146,80 @@ subroutine fourtrans_isf(n,ftisf)
      end do loop_dyadic
   end do loop_points
 
+  
+end subroutine fourtrans_isf_2
+
+
+!calculate the fourier transform
+!suppose the output symmetric and real
+subroutine fourtrans_isf(n,ftisf)
+  use module_base
+  implicit none
+  integer, intent(in) :: n
+  real(dp), dimension(0:n), intent(out) :: ftisf
+  !local variables
+  real(dp), parameter :: twopi=6.28318530717958647688_dp
+  integer :: i,j
+  real(dp) :: p,pointval,hval,q,htp
+
+  !zero fourier component
+  ftisf(0)=1._dp
+  !non-zero components, use the previous calculated values for powers of two
+  loop_points: do i=1,n
+     !do nothing if the point can be divided by two
+     if (2*(i/2) == i) then
+        cycle loop_points
+     end if
+     p=real(i,dp)*twopi/real(2*n,dp)
+     !calculate the values of the given point
+     pointval=1._dp
+     q=p
+     loop_calc: do
+        q=0.5_dp*q
+        call fourtrans(q,htp)
+        hval=htp
+        if (abs(hval - 1._dp) <= 1.d-16) then
+           exit loop_calc
+        end if
+        pointval=pointval*hval
+     end do loop_calc
+     ftisf(i)=pointval
+     !calculate the other points on a dyadic grid until needed
+     j=i
+     q=p
+     loop_dyadic: do
+        j=2*j
+        if (j > n) then
+           exit loop_dyadic
+        end if
+        call fourtrans(q,htp)
+        ftisf(j)=htp*ftisf(j/2)
+        q=2._dp*q
+     end do loop_dyadic
+  end do loop_points
+
 end subroutine fourtrans_isf
 
 !transform the wavelet filters
 subroutine fourtrans(p,htp)
+  use module_base
   implicit none
-  real(kind=8), intent(in) :: p
-  real(kind=8), intent(out) :: htp
+  real(dp), intent(in) :: p
+  real(dp), intent(out) :: htp
   !local variables
   integer :: i,j
-  real(kind=8) :: cp,x
+  real(dp) :: cp,x
   !include the filters for a given scaling function
   include 'lazy_16.inc'
 
-  htp=0.d0
+  htp=0._dp
   do j=m-3,1,-2
-     x=real(j,kind=8)
+     x=real(j,dp)
      cp=cos(p*x)
      htp=htp+ch(j)*cp
   end do
   !this is the value divided by two
-  htp=0.5d0+htp
+  htp=0.5_dp+htp
 
 end subroutine fourtrans
 
@@ -420,16 +249,15 @@ end subroutine fourtrans
 !!
 subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc)
   
-  use module_base, only: ndebug
+  use module_base
 
   implicit none
-  include 'mpif.h'
   include 'perfdata.inc'
   
   !Arguments
   integer, intent(in) :: n1,n2,n3,m3,nker1,nker2,nker3,itype_scf,iproc,nproc
-  real(kind=8), intent(in) :: h1,h2,h3
-  real(kind=8), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
+  real(dp), intent(in) :: h1,h2,h3
+  real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
   
   !Local variables 
   character(len=*), parameter :: subname='Surfaces_Kernel'
@@ -438,58 +266,58 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   !Maximum number of points for FFT (should be same number in fft3d routine)
   integer, parameter :: nfft_max=24000
   
-  real(kind=8), dimension(:), allocatable :: kernel_scf
-  real(kind=8), dimension(:), allocatable :: x_scf ,y_scf
+  real(dp), dimension(:), allocatable :: kernel_scf
+  real(dp), dimension(:), allocatable :: x_scf ,y_scf
   !FFT arrays
-  real(kind=8), dimension(:,:,:), allocatable :: halfft_cache,kernel
-  real(kind=8), dimension(:,:,:,:), allocatable :: kernel_mpi
-  real(kind=8), dimension(:,:), allocatable :: cossinarr,btrig
+  real(dp), dimension(:,:,:), allocatable :: halfft_cache,kernel
+  real(dp), dimension(:,:,:,:), allocatable :: kernel_mpi
+  real(dp), dimension(:,:), allocatable :: cossinarr,btrig
   integer, dimension(:), allocatable :: after,now,before
   
-  real(kind=8) :: pi,dx,mu1,ponx,pony
-  real(kind=8) :: a,b,c,d,feR,feI,foR,foI,fR,cp,sp,pion,x,value,diff
+  real(dp) :: pi,dx,mu1,ponx,pony
+  real(dp) :: a,b,c,d,feR,feI,foR,foI,fR,cp,sp,pion,x,value,diff
   integer :: n_scf,ncache,imu,ierr
   integer :: n_range,n_cell,num_of_mus,shift,istart,iend,ireim,jreim,j2st,j2nd,nact2
   integer :: i,i1,i2,i3,i_stat,i_all
   integer :: j2,ind1,ind2,jnd1,ic,inzee,nfft,ipolyord,jp2
 
   !coefficients for the polynomial interpolation
-  real(kind=8), dimension(9,8) :: cpol
+  real(dp), dimension(9,8) :: cpol
   !assign the values of the coefficients  
-  cpol(:,:)=1.d0
+  cpol(:,:)=1._dp
 
-  cpol(1,2)=.25d0
+  cpol(1,2)=.25_dp
   
-  cpol(1,3)=1.d0/3.d0
+  cpol(1,3)=1._dp/3._dp
   
-  cpol(1,4)=7.d0/12.d0
-  cpol(2,4)=8.d0/3.d0
+  cpol(1,4)=7._dp/12._dp
+  cpol(2,4)=8._dp/3._dp
   
-  cpol(1,5)=19.d0/50.d0
-  cpol(2,5)=3.d0/2.d0
+  cpol(1,5)=19._dp/50._dp
+  cpol(2,5)=3._dp/2._dp
   
-  cpol(1,6)=41.d0/272.d0
-  cpol(2,6)=27.d0/34.d0
-  cpol(3,6)=27.d0/272.d0
+  cpol(1,6)=41._dp/272._dp
+  cpol(2,6)=27._dp/34._dp
+  cpol(3,6)=27._dp/272._dp
   
-  cpol(1,7)=751.d0/2989.d0
-  cpol(2,7)=73.d0/61.d0
-  cpol(3,7)=27.d0/61.d0
+  cpol(1,7)=751._dp/2989._dp
+  cpol(2,7)=73._dp/61._dp
+  cpol(3,7)=27._dp/61._dp
   
-  cpol(1,8)=-989.d0/4540.d0
-  cpol(2,8)=-1472.d0/1135.d0
-  cpol(3,8)=232.d0/1135.d0
-  cpol(4,8)=-2624.d0/1135.d0
+  cpol(1,8)=-989._dp/4540._dp
+  cpol(2,8)=-1472._dp/1135._dp
+  cpol(3,8)=232._dp/1135._dp
+  cpol(4,8)=-2624._dp/1135._dp
 
   !renormalize values
-  cpol(1,1)=.5d0*cpol(1,1)
-  cpol(1:2,2)=2.d0/3.d0*cpol(1:2,2)
-  cpol(1:2,3)=3.d0/8.d0*cpol(1:2,3)
-  cpol(1:3,4)=2.d0/15.d0*cpol(1:3,4)
-  cpol(1:3,5)=25.d0/144.d0*cpol(1:3,5)
-  cpol(1:4,6)=34.d0/105.d0*cpol(1:4,6)
-  cpol(1:4,7)=2989.d0/17280.d0*cpol(1:4,7)
-  cpol(1:5,8)=-454.d0/2835.d0*cpol(1:5,8)
+  cpol(1,1)=.5_dp*cpol(1,1)
+  cpol(1:2,2)=2._dp/3._dp*cpol(1:2,2)
+  cpol(1:2,3)=3._dp/8._dp*cpol(1:2,3)
+  cpol(1:3,4)=2._dp/15._dp*cpol(1:3,4)
+  cpol(1:3,5)=25._dp/144._dp*cpol(1:3,5)
+  cpol(1:4,6)=34._dp/105._dp*cpol(1:4,6)
+  cpol(1:4,7)=2989._dp/17280._dp*cpol(1:4,7)
+  cpol(1:5,8)=-454._dp/2835._dp*cpol(1:5,8)
   
   !assign the complete values
   cpol(2,1)=cpol(1,1)
@@ -530,8 +358,8 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   !Build the scaling function
   call scaling_function(itype_scf,n_scf,n_range,x_scf,y_scf)
   !Step grid for the integration
-  dx = real(n_range,kind=8)/real(n_scf,kind=8)
-  !Extend the range (no more calculations because fill in by 0.d0)
+  dx = real(n_range,dp)/real(n_scf,dp)
+  !Extend the range (no more calculations because fill in by 0._dp)
   n_cell = m3
   n_range = max(n_cell,n_range)
 
@@ -574,27 +402,27 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
 
 
   !constants
-  pi=4.d0*datan(1.d0)
+  pi=4._dp*datan(1._dp)
 
   !arrays for the halFFT
   call ctrig_sg(n3/2,btrig,after,before,now,1,ic)
 
  
   !build the phases for the HalFFT reconstruction 
-  pion=2.d0*pi/real(n3,kind=8)
+  pion=2._dp*pi/real(n3,dp)
   do i3=2,n3/2
-     x=real(i3-1,kind=8)*pion
+     x=real(i3-1,dp)*pion
      cossinarr(1,i3-1)= dcos(x)
      cossinarr(2,i3-1)=-dsin(x)
   end do
-  !kernel=0.d0
-  !kernel_mpi=0.d0
+  !kernel=0._dp
+  !kernel_mpi=0._dp
 
   !calculate the limits of the FFT calculations
   !that can be performed in a row remaining inside the cache
   num_of_mus=ncache/(2*n3)
 
-  diff=0.d0
+  diff=0._dp
   !order of the polynomial to be used for integration (must be a power of two)
   ipolyord=8 !this part should be incorporated inside the numerical integration
   !here we have to choice the piece of the x-y grid to cover
@@ -610,7 +438,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
      shift=0
 
      !initialization of the interesting part of the cache array
-     halfft_cache(:,:,:)=0.d0
+     halfft_cache(:,:,:)=0._dp
 
      if (istart == 1) then
         !i2=1
@@ -620,11 +448,11 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
              cpol(1,ipolyord),dx,kernel_scf)
 
         !copy of the first zero value
-        halfft_cache(1,1,1)=0.d0
+        halfft_cache(1,1,1)=0._dp
 
         do i3=1,m3
 
-           value=0.5d0*h3*kernel_scf(i3)
+           value=0.5_dp*h3*kernel_scf(i3)
            !index in where to copy the value of the kernel
            call indices(ireim,num_of_mus,n3/2+i3,1,ind1)
            !index in where to copy the symmetric value
@@ -647,10 +475,10 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
         i1=mod(imu,n1/2+1)
         if (i1==0) i1=n1/2+1
         i2=(imu-i1)/(n1/2+1)+1
-        ponx=real(i1-1,kind=8)/real(n1,kind=8)
-        pony=real(i2-1,kind=8)/real(n2,kind=8)
+        ponx=real(i1-1,dp)/real(n1,dp)
+        pony=real(i2-1,dp)/real(n2,dp)
         
-        mu1=2.d0*pi*sqrt((ponx/h1)**2+(pony/h2)**2)*h3
+        mu1=2._dp*pi*sqrt((ponx/h1)**2+(pony/h2)**2)*h3
 
         call calculates_green_opt(n_range,n_scf,itype_scf,ipolyord,x_scf,y_scf,&
              cpol(1,ipolyord),mu1,dx,kernel_scf)
@@ -658,9 +486,9 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
         !readjust the coefficient and define the final kernel
 
         !copy of the first zero value
-        halfft_cache(1,imu-istart+1,1) = 0.d0
+        halfft_cache(1,imu-istart+1,1) = 0._dp
         do i3=1,m3
-           value=-0.5d0*h3/mu1*kernel_scf(i3)
+           value=-0.5_dp*h3/mu1*kernel_scf(i3)
            !write(80,*)mu1,i3,kernel_scf(i03)
            !index in where to copy the value of the kernel
            call indices(ireim,num_of_mus,n3/2+i3,imu-istart+1,ind1)
@@ -705,10 +533,10 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
            b=halfft_cache(2,ind1,inzee)
            c=halfft_cache(1,jnd1,inzee)
            d=halfft_cache(2,jnd1,inzee)
-           feR=.5d0*(a+c)
-           feI=.5d0*(b-d)
-           foR=.5d0*(a-c)
-           foI=.5d0*(b+d) 
+           feR=.5_dp*(a+c)
+           feI=.5_dp*(b-d)
+           foR=.5_dp*(a-c)
+           foI=.5_dp*(b+d) 
            fR=feR+cp*foI-sp*foR
            kernel(i1,j2,i3)=fR
         end do
@@ -728,29 +556,29 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
           kernel_mpi,nker1*(nact2/nproc)*(nker3/nproc), &
           MPI_double_precision,MPI_COMM_WORLD,ierr)
 
-!!$     !Maximum difference
-!!$     max_diff = 0.d0
-!!$     i1_max = 1
-!!$     i2_max = 1
-!!$     i3_max = 1
-!!$     do i3=1,nker3/nproc
-!!$        do i2=1,nact2/nproc
-!!$           do i1=1,nker1
-!!$              factor=abs(kernel(i1,i2,i3+iproc*(nker3/nproc))&
-!!$                   -kernel_mpi(i1,i2,i3,iproc+1))
-!!$              if (max_diff < factor) then
-!!$                 max_diff = factor
-!!$                 i1_max = i1
-!!$                 i2_max = i2
-!!$                 i3_max = i3
-!!$              end if
-!!$           end do
-!!$        end do
-!!$     end do
-!!$     write(*,*) '------------------'
-!!$     print *,'iproc=',iproc,'difference post-mpi, at',i1_max,i2_max,i3_max
-!!$     write(unit=*,fmt="(1x,a,1pe12.4)") 'Max diff: ',max_diff,&
-!!$          'calculated',kernel(i1_max,i2_max,i3_max+iproc*(nker3/nproc)),'post-mpi',kernel_mpi(i1_max,i2_max,i3_max,iproc+1)
+!!     !Maximum difference
+!!     max_diff = 0._dp
+!!     i1_max = 1
+!!     i2_max = 1
+!!     i3_max = 1
+!!     do i3=1,nker3/nproc
+!!        do i2=1,nact2/nproc
+!!           do i1=1,nker1
+!!              factor=abs(kernel(i1,i2,i3+iproc*(nker3/nproc))&
+!!                   -kernel_mpi(i1,i2,i3,iproc+1))
+!!              if (max_diff < factor) then
+!!                 max_diff = factor
+!!                 i1_max = i1
+!!                 i2_max = i2
+!!                 i3_max = i3
+!!              end if
+!!           end do
+!!        end do
+!!     end do
+!!     write(*,*) '------------------'
+!!     print *,'iproc=',iproc,'difference post-mpi, at',i1_max,i2_max,i3_max
+!!     write(unit=*,fmt="(1x,a,1pe12.4)") 'Max diff: ',max_diff,&
+!!          'calculated',kernel(i1_max,i2_max,i3_max+iproc*(nker3/nproc)),'post-mpi',kernel_mpi(i1_max,i2_max,i3_max,iproc+1)
 
      do jp2=1,nproc
         do i3=1,nker3/nproc
@@ -808,19 +636,19 @@ end subroutine Surfaces_Kernel
 
 
 subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g_mu)
-  use module_base, only: ndebug
+  use module_base
   implicit none
-  real(kind=8), parameter :: mu_max=0.2d0
+  real(dp), parameter :: mu_max=0.2_dp
   integer, intent(in) :: n,n_scf,intorder,itype_scf
-  real(kind=8), intent(in) :: hres,mu
-  real(kind=8), dimension(0:n_scf), intent(in) :: xval,yval
-  real(kind=8), dimension(intorder+1), intent(in) :: c
-  real(kind=8), dimension(n), intent(out) :: g_mu
+  real(dp), intent(in) :: hres,mu
+  real(dp), dimension(0:n_scf), intent(in) :: xval,yval
+  real(dp), dimension(intorder+1), intent(in) :: c
+  real(dp), dimension(n), intent(out) :: g_mu
   !local variables
   character(len=*), parameter :: subname='calculates_green_opt'
   integer :: izero,ivalue,i,iend,ikern,n_iter,nrec,i_all,i_stat
-  real(kind=8) :: f,x,filter,gleft,gright,gltmp,grtmp,fl,fr,x0,x1,ratio,mu0
-  real(kind=8), dimension(:), allocatable :: green,green1
+  real(dp) :: f,x,filter,gleft,gright,gltmp,grtmp,fl,fr,x0,x1,ratio,mu0
+  real(dp), dimension(:), allocatable :: green,green1
 
 
   !We calculate the number of iterations to go from mu0 to mu0_ref
@@ -830,7 +658,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   else
      n_iter=1
      loop_iter: do
-        ratio=real(2**n_iter,kind=8)
+        ratio=real(2**n_iter,dp)
         mu0=mu/ratio
         if (mu0 <= mu_max) then
            exit loop_iter
@@ -850,19 +678,19 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   ikern=0
   izero=0
   initialization: do
-     if (xval(izero)>=real(ikern,kind=8) .or. izero==n_scf) exit initialization
+     if (xval(izero)>=real(ikern,dp) .or. izero==n_scf) exit initialization
      izero=izero+1
   end do initialization
-  green=0.d0
+  green=0._dp
   !now perform the interpolation in right direction
   ivalue=izero
-  gright=0.d0
+  gright=0._dp
   loop_right: do
      if(ivalue >= n_scf-intorder-1) exit loop_right
      do i=1,intorder+1
-        x=xval(ivalue)-real(ikern,kind=8)
+        x=xval(ivalue)-real(ikern,dp)
         f=yval(ivalue)*dexp(-mu0*x)
-        filter=real(intorder,kind=8)*c(i)
+        filter=real(intorder,dp)*c(i)
         gright=gright+filter*f
         ivalue=ivalue+1
      end do
@@ -870,9 +698,9 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   end do loop_right
   iend=n_scf-ivalue
   do i=1,iend
-     x=xval(ivalue)-real(ikern,kind=8)
+     x=xval(ivalue)-real(ikern,dp)
      f=yval(ivalue)*dexp(-mu0*x)
-     filter=real(intorder,kind=8)*c(i)
+     filter=real(intorder,dp)*c(i)
      gright=gright+filter*f
      ivalue=ivalue+1
   end do
@@ -885,8 +713,8 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
 
   !now the loop until the last value
   do ikern=1,nrec
-     gltmp=0.d0
-     grtmp=0.d0
+     gltmp=0._dp
+     grtmp=0._dp
      ivalue=izero
      x0=xval(izero)
      loop_integration: do
@@ -895,11 +723,11 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
            x=xval(ivalue)
            fl=yval(ivalue)*dexp(mu0*x)
            fr=yval(ivalue)*dexp(-mu0*x)
-           filter=real(intorder,kind=8)*c(i)
+           filter=real(intorder,dp)*c(i)
            gltmp=gltmp+filter*fl
            grtmp=grtmp+filter*fr
            ivalue=ivalue+1
-           if (xval(izero)>=real(ikern,kind=8) .or. izero==n_scf) then
+           if (xval(izero)>=real(ikern,dp) .or. izero==n_scf) then
               x1=xval(izero)
               exit loop_integration
            end if
@@ -908,11 +736,11 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
         ivalue=ivalue-1
         izero=izero-1
      end do loop_integration
-     gleft=dexp(-mu0)*(gleft+hres*dexp(-mu0*real(ikern-1,kind=8))*gltmp)
+     gleft=dexp(-mu0)*(gleft+hres*dexp(-mu0*real(ikern-1,dp))*gltmp)
      if (izero == n_scf) then
-        gright=0.d0
+        gright=0._dp
      else
-        gright=dexp(mu0)*(gright-hres*dexp(mu0*real(ikern-1,kind=8))*grtmp)
+        gright=dexp(mu0)*(gright-hres*dexp(mu0*real(ikern-1,dp))*grtmp)
      end if
      green(ikern)=gleft+gright
      green(-ikern)=gleft+gright
@@ -932,7 +760,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
      g_mu(i)=green(i-1)
   end do
   do i=min(n,nrec)+1,n
-     g_mu(i)=0.d0
+     g_mu(i)=0._dp
   end do
   
 
@@ -947,35 +775,36 @@ end subroutine calculates_green_opt
 
 
 subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
+  use module_base
   implicit none
   integer, intent(in) :: n,n_scf,intorder
-  real(kind=8), intent(in) :: hres
-  real(kind=8), dimension(0:n_scf), intent(in) :: xval,yval
-  real(kind=8), dimension(intorder+1), intent(in) :: c
-  real(kind=8), dimension(n), intent(out) :: green
+  real(dp), intent(in) :: hres
+  real(dp), dimension(0:n_scf), intent(in) :: xval,yval
+  real(dp), dimension(intorder+1), intent(in) :: c
+  real(dp), dimension(n), intent(out) :: green
   !local variables
   character(len=*), parameter :: subname='calculates_green_opt_muzero'
   integer :: izero,ivalue,i,iend,ikern
-  real(kind=8) :: x,y,filter,gl0,gl1,gr0,gr1,c0,c1
-
+  real(dp) :: x,y,filter,gl0,gl1,gr0,gr1,c0,c1
+ 
   !initialization of the branching value
   ikern=0
   izero=0
   initialization: do
-     if (xval(izero)>=real(ikern,kind=8) .or. izero==n_scf) exit initialization
+     if (xval(izero)>=real(ikern,dp) .or. izero==n_scf) exit initialization
      izero=izero+1
   end do initialization
-  green=0.d0
+  green=0._dp
   !first case, ikern=0
   !now perform the interpolation in right direction
   ivalue=izero
-  gr1=0.d0
+  gr1=0._dp
   loop_right: do
      if(ivalue >= n_scf-intorder-1) exit loop_right
      do i=1,intorder+1
         x=xval(ivalue)
         y=yval(ivalue)
-        filter=real(intorder,kind=8)*c(i)
+        filter=real(intorder,dp)*c(i)
         gr1=gr1+filter*x*y
         ivalue=ivalue+1
      end do
@@ -985,33 +814,33 @@ subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
   do i=1,iend
      x=xval(ivalue)
      y=yval(ivalue)
-     filter=real(intorder,kind=8)*c(i)
+     filter=real(intorder,dp)*c(i)
      gr1=gr1+filter*x*y
      ivalue=ivalue+1
   end do
   gr1=hres*gr1
   !the scaling function is symmetric
   gl1=-gr1
-  gl0=0.5d0
-  gr0=0.5d0
+  gl0=0.5_dp
+  gr0=0.5_dp
 
-  green(1)=2.d0*gr1
+  green(1)=2._dp*gr1
 
   !now the loop until the last value
   do ikern=1,n-1
-     c0=0.d0
-     c1=0.d0
+     c0=0._dp
+     c1=0._dp
      ivalue=izero
      loop_integration: do
         if (izero==n_scf)  exit loop_integration
         do i=1,intorder+1
            x=xval(ivalue)
            y=yval(ivalue)
-           filter=real(intorder,kind=8)*c(i)
+           filter=real(intorder,dp)*c(i)
            c0=c0+filter*y
            c1=c1+filter*y*x
            ivalue=ivalue+1
-           if (xval(izero)>=real(ikern,kind=8) .or. izero==n_scf) then
+           if (xval(izero)>=real(ikern,dp) .or. izero==n_scf) then
               exit loop_integration
            end if
            izero=izero+1
@@ -1027,7 +856,7 @@ subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
      gr0=gr0-c0
      gr1=gr1-c1
      !general case
-     green(ikern+1)=real(ikern,kind=8)*(gl0-gr0)+gr1-gl1
+     green(ikern+1)=real(ikern,dp)*(gl0-gr0)+gr1-gl1
      !print *,ikern,izero,n_scf,gltmp,grtmp,gleft,gright,x0,x1,green(ikern)
   end do
 
@@ -1077,20 +906,22 @@ end subroutine indices
 !!    T. Deutsch, L. Genovese
 !! CREATION DATE
 !!    February 2006
+!! MODIFICATION
+!!    Different calculation of the gaussian times ISF integral, LG, Dec 2009
 !!
 !! SOURCE
 !!
 subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
      hx,hy,hz,itype_scf,iproc,nproc,karray)
 
- use module_base, only: ndebug
+ use module_base
 
  implicit none
 
  !Arguments
  integer, intent(in) :: n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,itype_scf,iproc,nproc
- real(kind=8), intent(in) :: hx,hy,hz
- real(kind=8), dimension(n1k,n2k,n3k/nproc), intent(out) :: karray
+ real(dp), intent(in) :: hx,hy,hz
+ real(dp), dimension(n1k,n2k,n3k/nproc), intent(out) :: karray
 
  !Local variables
  character(len=*), parameter :: subname='Free_Kernel'
@@ -1101,19 +932,20 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 
  !Better p_gauss for calculation
  !(the support of the exponential should be inside [-n_range/2,n_range/2])
- real(kind=8), parameter :: p0_ref = 1.d0
- real(kind=8), dimension(n_gauss) :: p_gauss,w_gauss
+ real(dp), parameter :: p0_ref = 1._dp
+ real(dp), dimension(n_gauss) :: p_gauss,w_gauss
 
- real(kind=8), dimension(:), allocatable :: kern_1_scf,x_scf ,y_scf
- real(kind=8), dimension(:,:), allocatable :: kernel_scf
- real(kind=8), dimension(:,:,:), allocatable :: kp
+ real(dp), dimension(:), allocatable :: kern_1_scf,x_scf,y_scf,fwork,kfft1,kfft2,kfft3
+ real(dp), dimension(:,:), allocatable :: kernel_scf
+ real(dp), dimension(:,:,:), allocatable :: kp,kfftc1,kfftc2,kfftc3
 
-
- real(kind=8) :: ur_gauss,dr_gauss,acc_gauss,pgauss,kern,a_range
- real(kind=8) :: factor,factor2,dx,absci,p0gauss,p0_cell,u1,u2,u3
- real(kind=8) :: a1,a2,a3,hgrid,pref1,pref2,pref3,p01,p02,p03,kern1,kern2,kern3
+ real :: t0,t1
+ integer :: ntimes=10,itimes
+ real(dp) :: ur_gauss,dr_gauss,acc_gauss,pgauss,kern,a_range,told,tnew
+ real(dp) :: factor,factor2,dx,absci,p0gauss,p0_cell,u1,u2,u3,maxdiff
+ real(dp) :: a1,a2,a3,hgrid,pref1,pref2,pref3,p01,p02,p03,kern1,kern2,kern3
  integer :: n_scf,nker1,nker2,nker3
- integer :: i_gauss,n_range,n_cell,istart,iend,istart1
+ integer :: i_gauss,n_range,n_cell,istart,iend,istart1,inzee
  integer :: i,n_iter,i1,i2,i3,i_kern,i_stat,i_all
  integer :: i01,i02,i03,n1h,n2h,n3h,nit1,nit2,nit3
 
@@ -1168,16 +1000,15 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  !Build the scaling function
  call scaling_function(itype_scf,n_scf,n_range,x_scf,y_scf)
  !Step grid for the integration
- dx = real(n_range,kind=8)/real(n_scf,kind=8)
- !Extend the range (no more calculations because fill in by 0.d0)
+ dx = real(n_range,dp)/real(n_scf,dp)
+ !Extend the range (no more calculations because fill in by 0._dp)
  n_cell = max(n01,n02,n03)
  n_range = max(n_cell,n_range)
 
  !Lengthes of the box (use FFT dimension)
- a1 = hx * real(n01,kind=8)
- a2 = hy * real(n02,kind=8)
- a3 = hz * real(n03,kind=8)
-
+ a1 = hx * real(n01,dp)
+ a2 = hy * real(n02,dp)
+ a3 = hz * real(n03,dp)
 
  !Initialization of the gaussian (Beylkin)
  call gequad(p_gauss,w_gauss,ur_gauss,dr_gauss,acc_gauss)
@@ -1185,9 +1016,9 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  !(biggest length in the cube)
  !We divide the p_gauss by a_range**2 and a_gauss by a_range
  a_range = sqrt(a1*a1+a2*a2+a3*a3)
- factor = 1.d0/a_range
+ factor = 1._dp/a_range
  !factor2 = factor*factor
- factor2 = 1.d0/(a1*a1+a2*a2+a3*a3)
+ factor2 = 1._dp/(a1*a1+a2*a2+a3*a3)
  do i_gauss=1,n_gauss
     p_gauss(i_gauss) = factor2*p_gauss(i_gauss)
  end do
@@ -1195,12 +1026,41 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
     w_gauss(i_gauss) = factor*w_gauss(i_gauss)
  end do
 
- kp(:,:,:)=0.d0
+ kp(:,:,:)=0._dp
 
  !Allocations
  allocate(kern_1_scf(-n_range:n_range+ndebug),stat=i_stat)
  call memocc(i_stat,kern_1_scf,'kern_1_scf',subname)
- !add the treatment for inhomogeneous hgrids
+
+ allocate(fwork(-itype_scf:n_range+itype_scf+ndebug),stat=i_stat)
+ call memocc(i_stat,fwork,'fwork',subname)
+
+ !treatment for homogeneous and inhomogeneous hgrids
+
+ allocate(kfftc1(2,nfft1,2+ndebug),stat=i_stat)
+ call memocc(i_stat,kfftc1,'kfftc1',subname)
+ allocate(kfftc2(2,nfft2,2+ndebug),stat=i_stat)
+ call memocc(i_stat,kfftc2,'kfftc2',subname)
+ allocate(kfftc3(2,nfft2,2+ndebug),stat=i_stat)
+ call memocc(i_stat,kfftc3,'kfftc3',subname)
+
+
+ !the first one is allocated bigger such as to host all the real space components
+ allocate(kfft1(n1k+ndebug),stat=i_stat)
+ call memocc(i_stat,kfft1,'kfft1',subname)
+ allocate(kfft2(n2k+ndebug),stat=i_stat)
+ call memocc(i_stat,kfft2,'kfft2',subname)
+ allocate(kfft3(n3k+ndebug),stat=i_stat)
+ call memocc(i_stat,kfft3,'kfft3',subname)
+
+ do i3=1,n3k/nproc
+    do i2=1,n2k
+       do i1=1,n1k
+          karray(i1,i2,i3) = 0.0_dp
+       end do
+    end do
+ end do
+
  if (hx == hy .and. hy == hz) then
     allocate(kernel_scf(-n_range:n_range,1+ndebug),stat=i_stat)
     call memocc(i_stat,kernel_scf,'kernel_scf',subname)
@@ -1214,37 +1074,88 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
     loop_gauss1: do i_gauss=n_gauss,1,-1
        !Gaussian
        pgauss = p_gauss(i_gauss)
-       !We calculate the number of iterations to go from pgauss to p0_ref
-       n_iter = nint((log(pgauss) - log(p0_cell))/log(4.d0))
-       if (n_iter <= 0)then
-          n_iter = 0
-          p0gauss = pgauss
-       else
-          p0gauss = pgauss/4.d0**n_iter
-       end if
 
-       !Stupid integration
-       !Do the integration with the exponential centered in i_kern
-       kernel_scf(:,1) = 0.d0
-       do i_kern=0,n_range
-          kern = 0.d0
-          do i=0,n_scf
-             absci = x_scf(i) - real(i_kern,kind=8)
-             absci = absci*absci*hgrid**2
-             kern = kern + y_scf(i)*dexp(-p0gauss*absci)
-          end do
-          kernel_scf(i_kern,1) = kern*dx
-          kernel_scf(-i_kern,1) = kern*dx
-          if (abs(kern) < 1.d-18) then
-             !Too small not useful to calculate
-             exit
-          end if
-       end do
+       !the two method can be compared, but first the kernel must be symmetrised
+!!$       call analytic_integral(sqrt(pgauss)*hx,n_range,itype_scf,fwork,kernel_scf)
+       call gauss_conv_scf(itype_scf,pgauss,hx,dx,n_range,n_scf,x_scf,y_scf,&
+               kernel_scf,kern_1_scf)
 
-       !Start the iteration to go from p0gauss to pgauss
-       call scf_recursion(itype_scf,n_iter,n_range,kernel_scf,kern_1_scf)
+!!$       !take the timings
+!!$       call cpu_time(t0)
+!!$       do itimes=1,ntimes
+!!$          !this routine can be substituted by the wofz calculation
+!!$          call gauss_conv_scf(itype_scf,pgauss,hgrid,dx,n_range,n_scf,x_scf,y_scf,&
+!!$               kernel_scf,kern_1_scf)
+!!$       end do
+!!$       call cpu_time(t1)
+!!$       told=real(t1-t0,dp)/real(ntimes,dp)
+!!$
+!!$       !take the timings
+!!$       call cpu_time(t0)
+!!$       do itimes=1,ntimes
+!!$          call analytic_integral_2(sqrt(pgauss)*hgrid,n_range,itype_scf,4*itype_scf,&
+!!$               fourISF,fwork,kern_1_scf(0))
+!!$       end do
+!!$       call cpu_time(t1)
+!!$       tnew=real(t1-t0,dp)/real(ntimes,dp)
+!!$
+!!$       !calculate maxdiff
+!!$       maxdiff=0.0_dp
+!!$       do i=-n_range,n_range
+!!$          !write(17,*)i,kernel_scf(i,1),kern_1_scf(i)
+!!$          maxdiff=max(maxdiff,abs(kernel_scf(i,1)-kern_1_scf(i)))
+!!$       end do
+!!$
+!!$       do i=-n_range,n_range
+!!$          write(18,*)i,kernel_scf(i,1),kern_1_scf(i)
+!!$       end do
+!!$       if (maxdiff > 1e-2) then
+!!$          write(*,'(1x,a,i3,1pe12.5,1pe24.17)')'time,i_gauss',i_gauss,&
+!!$               real(t1-t0,dp)/real(ntimes,dp),maxdiff,'<<< TOOHIGH,exit!'
+!!$          stop
+!!$       end if
+!!$       
+!!$       write(*,'(1x,a,i3,2(1pe12.5),1pe24.17)')'time,i_gauss',i_gauss,told,tnew,maxdiff
+!!$       stop
+
+       !copy the values to the fft array
+       kfftc1=0.0_dp
+       call dcopy(min(2*n_range+1,nfft1),kernel_scf,1,&
+            kfftc1(1,nfft1/2+1-min(n_range,nfft1/2),1),2)
+       call fft_1d_ctoc(1,1,nfft1,kfftc1,inzee)
+       call dcopy(n1k,kfftc1(1,1,inzee),2,kfft1,1)
+
+       kfftc2=0.0_dp
+       call dcopy(min(2*n_range+1,nfft2),kernel_scf,1,&
+            kfftc2(1,nfft2/2+1-min(n_range,nfft2/2),1),2)
+       call fft_1d_ctoc(1,1,nfft2,kfftc2,inzee)
+       call dcopy(n2k,kfftc2(1,1,inzee),2,kfft2,1)
+
+       kfftc3=0.0_dp
+       call dcopy(min(2*n_range+1,nfft3),kernel_scf,1,&
+            kfftc3(1,nfft3/2+1-min(n_range,nfft3/2),1),2)
+       call fft_1d_ctoc(1,1,nfft3,kfftc3,inzee)
+       call dcopy(n3k,kfftc3(1,1,inzee),2,kfft3,1)
 
        !Add to the kernel (only the local part)
+       do i3=1,nker3/nproc  
+          if (iproc*(nker3/nproc)+i3  <= nfft3/2+1) then
+             i03=iproc*(nker3/nproc)+i3
+             do i2=1,n2k
+                do i1=1,n1k
+                   karray(i1,i2,i3) = karray(i1,i2,i3) + w_gauss(i_gauss)* &
+                        kfft1(i1)*kfft2(i2)*kfft3(i03)
+                end do
+             end do
+	  end if
+       end do
+       !write(14,'(1pe24.17)')kfft1(:)
+       !write(13,*)'kfft1',kfft1(:)
+       !write(13,*)'kfft2',kfft2(:)
+       !write(13,*)'kfft3',kfft3(:)
+       !print *,'wgauss',w_gauss(i_gauss),w_gauss(i_gauss)* &
+       !     kfft1(1)*kfft2(1)*kfft3(1),karray(1,1,1)
+
 
        do i3=istart1,iend
           i03 = i3 - n2h -1
@@ -1257,8 +1168,6 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
              end do
           end do
        end do
-
-
     end do loop_gauss1
 
  else
@@ -1275,49 +1184,58 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
     loop_gauss: do i_gauss=n_gauss,1,-1
        !Gaussian
        pgauss = p_gauss(i_gauss)
-       !We calculate the number of iterations to go from pgauss to p0_ref
-       nit1 = max(nint((log(pgauss) - log(pref1))/log(4.d0)),0)
-       nit2 = max(nint((log(pgauss) - log(pref2))/log(4.d0)),0)
-       nit3 = max(nint((log(pgauss) - log(pref3))/log(4.d0)),0)
-       p01=pgauss/4.d0**nit1
-       p02=pgauss/4.d0**nit2
-       p03=pgauss/4.d0**nit3
 
-       !Stupid integration
-       !Do the integration with the exponential centered in i_kern
-       kernel_scf(:,:) = 0.d0
-       do i_kern=0,n_range
-          kern1=0.d0
-          kern2=0.d0
-          kern3=0.d0
-          do i=0,n_scf
-             absci = x_scf(i) - real(i_kern,kind=8)
-             u1=-p01*absci*absci*hx**2
-             u2=-p02*absci*absci*hy**2
-             u3=-p03*absci*absci*hz**2
-             u1=dexp(u1)
-             u2=dexp(u2)
-             u3=dexp(u3)
-             kern1=kern1+y_scf(i)*u1
-             kern2=kern2+y_scf(i)*u2
-             kern3=kern3+y_scf(i)*u3
-          end do
-          kernel_scf(i_kern,1) = kern1*dx
-          kernel_scf(-i_kern,1) = kern1*dx
-          kernel_scf(i_kern,2) = kern2*dx
-          kernel_scf(-i_kern,2) = kern2*dx
-          kernel_scf(i_kern,3) = kern3*dx
-          kernel_scf(-i_kern,3) = kern3*dx
-          if (abs(kern1)+abs(kern2)+abs(kern3) < 3.d-18) then
-             !Too small not useful to calculate
-             exit
-          end if
-       end do
+       call gauss_conv_scf(itype_scf,pgauss,hx,dx,n_range,n_scf,x_scf,y_scf,&
+               kernel_scf(-n_range,1),kern_1_scf)
+       call gauss_conv_scf(itype_scf,pgauss,hy,dx,n_range,n_scf,x_scf,y_scf,&
+               kernel_scf(-n_range,2),kern_1_scf)
+       call gauss_conv_scf(itype_scf,pgauss,hz,dx,n_range,n_scf,x_scf,y_scf,&
+               kernel_scf(-n_range,3),kern_1_scf)
 
-       !Start the iteration to go from p0gauss to pgauss
-       call scf_recursion(itype_scf,nit1,n_range,kernel_scf(-n_range,1),kern_1_scf)
-       call scf_recursion(itype_scf,nit2,n_range,kernel_scf(-n_range,2),kern_1_scf)
-       call scf_recursion(itype_scf,nit3,n_range,kernel_scf(-n_range,3),kern_1_scf)
+
+!!$       !We calculate the number of iterations to go from pgauss to p0_ref
+!!$       nit1 = max(nint((log(pgauss) - log(pref1))/log(4._dp)),0)
+!!$       nit2 = max(nint((log(pgauss) - log(pref2))/log(4._dp)),0)
+!!$       nit3 = max(nint((log(pgauss) - log(pref3))/log(4._dp)),0)
+!!$       p01=pgauss/4._dp**nit1
+!!$       p02=pgauss/4._dp**nit2
+!!$       p03=pgauss/4._dp**nit3
+!!$
+!!$       !Stupid integration
+!!$       !Do the integration with the exponential centered in i_kern
+!!$       kernel_scf(:,:) = 0._dp
+!!$       do i_kern=0,n_range
+!!$          kern1=0._dp
+!!$          kern2=0._dp
+!!$          kern3=0._dp
+!!$          do i=0,n_scf
+!!$             absci = x_scf(i) - real(i_kern,dp)
+!!$             u1=-p01*absci*absci*hx**2
+!!$             u2=-p02*absci*absci*hy**2
+!!$             u3=-p03*absci*absci*hz**2
+!!$             u1=dexp(u1)
+!!$             u2=dexp(u2)
+!!$             u3=dexp(u3)
+!!$             kern1=kern1+y_scf(i)*u1
+!!$             kern2=kern2+y_scf(i)*u2
+!!$             kern3=kern3+y_scf(i)*u3
+!!$          end do
+!!$          kernel_scf(i_kern,1) = kern1*dx
+!!$          kernel_scf(-i_kern,1) = kern1*dx
+!!$          kernel_scf(i_kern,2) = kern2*dx
+!!$          kernel_scf(-i_kern,2) = kern2*dx
+!!$          kernel_scf(i_kern,3) = kern3*dx
+!!$          kernel_scf(-i_kern,3) = kern3*dx
+!!$          if (abs(kern1)+abs(kern2)+abs(kern3) < 3.d-18) then
+!!$             !Too small not useful to calculate
+!!$             exit
+!!$          end if
+!!$       end do
+!!$
+!!$       !Start the iteration to go from p0gauss to pgauss
+!!$       call scf_recursion(itype_scf,nit1,n_range,kernel_scf(-n_range,1),kern_1_scf)
+!!$       call scf_recursion(itype_scf,nit2,n_range,kernel_scf(-n_range,2),kern_1_scf)
+!!$       call scf_recursion(itype_scf,nit3,n_range,kernel_scf(-n_range,3),kern_1_scf)
 
        !Add to the kernel (only the local part)
 
@@ -1338,12 +1256,35 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  end if
 
  !De-allocations
- i_all=-product(shape(kernel_scf))*kind(kernel_scf)
+ i_all=-product(shape(kfft1))*kind(kfft1)
+ deallocate(kfft1,stat=i_stat)
+ call memocc(i_stat,i_all,'kfft1',subname)
+ i_all=-product(shape(kfft2))*kind(kfft2)
+ deallocate(kfft2,stat=i_stat)
+ call memocc(i_stat,i_all,'kfft2',subname)
+ i_all=-product(shape(kfft3))*kind(kfft3)
+ deallocate(kfft3,stat=i_stat)
+ call memocc(i_stat,i_all,'kfft3',subname)
+
+ i_all=-product(shape(kfftc1))*kind(kfftc1)
+ deallocate(kfftc1,stat=i_stat)
+ call memocc(i_stat,i_all,'kfftc1',subname)
+ i_all=-product(shape(kfftc2))*kind(kfftc2)
+ deallocate(kfftc2,stat=i_stat)
+ call memocc(i_stat,i_all,'kfftc2',subname)
+ i_all=-product(shape(kfftc3))*kind(kfftc3)
+ deallocate(kfftc3,stat=i_stat)
+ call memocc(i_stat,i_all,'kfftc3',subname)
+
+  i_all=-product(shape(kernel_scf))*kind(kernel_scf)
  deallocate(kernel_scf,stat=i_stat)
  call memocc(i_stat,i_all,'kernel_scf',subname)
  i_all=-product(shape(kern_1_scf))*kind(kern_1_scf)
  deallocate(kern_1_scf,stat=i_stat)
  call memocc(i_stat,i_all,'kern_1_scf',subname)
+ i_all=-product(shape(fwork))*kind(fwork)
+ deallocate(fwork,stat=i_stat)
+ call memocc(i_stat,i_all,'fwork',subname)
  i_all=-product(shape(x_scf))*kind(x_scf)
  deallocate(x_scf,stat=i_stat)
  call memocc(i_stat,i_all,'x_scf',subname)
@@ -1353,11 +1294,13 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 
 !!!!END KERNEL CONSTRUCTION
 
-!!$ if(iproc .eq. 0) print *,"Do a 3D PHalFFT for the kernel"
-
+!! if(iproc .eq. 0) print *,"Do a 3D PHalFFT for the kernel"
+ !write(15,'(1pe24.17)')karray(:,n2k/2,n3k/2)
  call kernelfft(nfft1,nfft2,nfft3,nker1,nker2,nker3,n1k,n2k,n3k,nproc,iproc,&
       kp,karray)
 
+ !write(16,'(1pe24.17)')karray(:,n2k/2,n3k/2)
+ !stop
  !De-allocations
  i_all=-product(shape(kp))*kind(kp)
  deallocate(kp,stat=i_stat)
@@ -1366,11 +1309,202 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 end subroutine Free_Kernel
 !!***
 
+!here alpha correspondes to sqrtalpha in mathematica
+subroutine analytic_integral(alpha,ntot,m,fwork,integral)
+  use module_base
+  implicit none
+  integer, intent(in) :: ntot,m
+  real(dp), intent(in) :: alpha
+  real(dp), dimension(-m:ntot+m), intent(inout) :: fwork
+  real(dp), dimension(-ntot:ntot), intent(out) :: integral
+  !local variables
+  integer, parameter :: nf=64
+  real(dp), parameter :: pi=3.1415926535897932384_dp
+  logical :: flag,flag1,flag2
+  integer :: j,q
+  real(dp) :: if,r1,r2,rese,reso,y,xe,xo,expv,factor,re,ro
+  !fourier transform, from mathematica
+  real(dp), dimension(0:nf) :: fISF = (/&
+       1._dp,&
+       0.99999999999999999284235222189_dp,&
+       0.99999999999956013105290196791_dp,&
+       0.99999999974047362436549957134_dp,&
+       0.999999977723831277163111033987_dp,&
+       0.999999348120402080917750802356_dp,&
+       0.99999049783895018128985387648_dp,&
+       0.99991555832357702478243846513_dp,&
+       0.999483965311871663439701778468_dp,&
+       0.997656434461567612067080906608_dp,&
+       0.99166060711872037183053190362_dp,&
+       0.975852499662821752376101449171_dp,&
+       0.941478752030026285801304437187_dp,&
+       0.878678036869166599071794039064_dp,&
+       0.780993377358505853552754551915_dp,&
+       0.65045481899429616671929018797_dp,&
+       0.499741982655935831719850889234_dp,&
+       0.349006378709142477173505869256_dp,&
+       0.218427566876086979858296964531_dp,&
+       0.120744342131771503808889607743_dp,&
+       0.0580243447291221387538310922609_dp,&
+       0.0237939962805936437124240819547_dp,&
+       0.00813738655512823360783743450662_dp,&
+       0.00225348982730563717615393684127_dp,&
+       0.000485814732465831887324674087566_dp,&
+       0.0000771922718944619737021087074916_dp,&
+       8.34911217930991992166687474335e-6_dp,&
+       5.4386155057958302499753464285e-7_dp,&
+       1.73971967107293590801788194389e-8_dp,&
+       1.8666847551067074314481563463e-10_dp,&
+       2.8611022063937216744058802299e-13_dp,&
+       4.12604249873737563657665492649e-18_dp,&
+       0._dp,&
+       3.02775647387618521868673172298e-18_dp,&
+       1.53514570268556433704096392259e-13_dp,&
+       7.27079116834250613985176986757e-11_dp,&
+       4.86563325394873292266790060414e-9_dp,&
+       1.0762051057772619178393861559e-7_dp,&
+       1.1473008487467664271213583755e-6_dp,&
+       7.20032699735536213944939155489e-6_dp,&
+       0.0000299412827430274803875806741358_dp,&
+       0.00008893448268856997565968618255_dp,&
+       0.000198412101719649392215603405001_dp,&
+       0.000344251643242443482702827827289_dp,&
+       0.000476137217995145280942423549555_dp,&
+       0.000534463964629735808538669640174_dp,&
+       0.000493380569658768192772778551283_dp,&
+       0.000378335841074046383032625565151_dp,&
+       0.000242907366232915943662337043783_dp,&
+       0.000131442744929435769666863922254_dp,&
+       0.0000602917442687924479053419936816_dp,&
+       0.0000235549783294245003536257246338_dp,&
+       7.86058640769338837604478652921e-6_dp,&
+       2.23813489015410093932264202671e-6_dp,&
+       5.39326427012172337715252302537e-7_dp,&
+       1.07974438850159507475448146609e-7_dp,&
+       1.73882195410933428198534789337e-8_dp,&
+       2.14124508643951633300134563969e-9_dp,&
+       1.86666701805198449182670610067e-10_dp,&
+       1.02097507219447295331839243873e-11_dp,&
+       2.86110214266058470148547621716e-13_dp,&
+       2.81016133980507633418466387683e-15_dp,&
+       4.12604249873556074813981250712e-18_dp,&
+       5.97401377952175312560963543305e-23_dp,&
+       0._dp&
+     /)
+
+  flag=.false.
+  factor=pi/real(2*m,dp)/alpha
+  !fill work array
+  do j=-m,ntot+m
+     y=alpha*real(j,dp)
+     r2=-y*y
+     expv=1.0_dp!exp(r2)
+     !assume nf even
+     rese=0._dp
+     reso=0._dp
+     do q=nf,2,-2
+        xe=factor*real(q,dp)
+        xo=factor*real(q-1,dp)
+        call wofz_mod(-xe,-y,r1,if,flag1)
+        call wofz_mod(xe,-y,r2,if,flag2)
+        re=r1+r2
+        flag=flag1 .or. flag2 .or. flag
+        !if (flag) then
+        !   print *,'here',xe,y,q,j
+        !   stop 
+        !end if
+        call wofz_mod(-xo,-y,r1,if,flag1)
+        call wofz_mod(xo,-y,r2,if,flag2)
+        ro=r1+r2
+        flag=flag1 .or. flag2 .or. flag
+        !if (flag) then
+        !   print *,'there',xo,y
+        !   stop 
+        !end if
+        re=re*fISF(q)
+        ro=ro*fISF(q-1)
+        rese=rese+expv*re
+        reso=reso+expv*ro
+     end do
+     !q=0
+     fwork(j)=derf(y)+rese-reso
+  end do
+
+  !check flag
+  if (flag) then
+     write (*,*)'value of alpha',alpha
+     stop 'problem occurred in wofz'
+  end if
+
+  !once the work array is filled, calculate the result
+  factor=sqrt(pi)/alpha/real(4*m,dp)
+  do j=0,ntot
+     integral(j)=factor*(fwork(j+m)-fwork(j-m))
+     integral(-j)=integral(j)
+  end do
+ 
+end subroutine analytic_integral
+
+
+subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,dx,n_range,n_scf,x_scf,y_scf,kernel_scf,work)
+  use module_base
+  implicit none
+  integer, intent(in) :: n_range,n_scf,itype_scf
+  real(dp), intent(in) :: pgauss,hgrid,dx
+  real(dp), dimension(0:n_scf), intent(in) :: x_scf
+  real(dp), dimension(0:n_scf), intent(in) :: y_scf
+  real(dp), dimension(-n_range:n_range), intent(inout) :: work
+  real(dp), dimension(-n_range:n_range), intent(inout) :: kernel_scf
+  !local variables
+  real(dp), parameter :: p0_ref = 1.0_dp
+  integer :: n_iter,i_kern,i
+  real(dp) :: p0_cell,p0gauss,absci,kern
+
+  !Step grid for the integration
+  !dx = real(n_range,dp)/real(n_scf,dp)
+
+  !To have a correct integration
+  p0_cell = p0_ref/(hgrid*hgrid)
+    
+  !We calculate the number of iterations to go from pgauss to p0_ref
+  n_iter = nint((log(pgauss) - log(p0_cell))/log(4.0_dp))
+  if (n_iter <= 0)then
+     n_iter = 0
+     p0gauss = pgauss
+  else
+     p0gauss = pgauss/4._dp**n_iter
+  end if
+
+  !Stupid integration
+  !Do the integration with the exponential centered in i_kern
+  kernel_scf(:) = 0.0_dp
+  do i_kern=0,n_range
+     kern = 0.0_dp
+     do i=0,n_scf
+        absci = x_scf(i) - real(i_kern,dp)
+        absci = absci*absci*hgrid**2
+        kern = kern + y_scf(i)*dexp(-p0gauss*absci)
+     end do
+     kernel_scf(i_kern) = kern*dx
+     kernel_scf(-i_kern) = kern*dx
+     if (abs(kern) < 1.d-18) then
+        !Too small not useful to calculate
+        exit
+     end if
+  end do
+
+  !Start the iteration to go from p0gauss to pgauss
+  call scf_recursion(itype_scf,n_iter,n_range,kernel_scf,work)
+  
+end subroutine gauss_conv_scf
+
+
 subroutine inserthalf(n1,n3,lot,nfft,i1,zf,zw)
+  use module_base
   implicit none
   integer, intent(in) :: n1,n3,lot,nfft,i1
-  real(kind=8), dimension(n1/2+1,n3/2+1), intent(in) :: zf
-  real(kind=8), dimension(2,lot,n3/2), intent(out) :: zw
+  real(dp), dimension(n1/2+1,n3/2+1), intent(in) :: zf
+  real(dp), dimension(2,lot,n3/2), intent(out) :: zw
   !local variables
   integer :: l1,l3,i01,i03r,i03i,i3
 
@@ -1423,30 +1557,29 @@ end subroutine inserthalf
 !! SOURCE
 !!
 subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
-  use module_base, only: ndebug
+  use module_base
   implicit none
-  include 'mpif.h'
   include 'perfdata.inc'
   !Arguments
   integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc
-  real(kind=8), dimension(n1/2+1,n3/2+1,nd2/nproc), intent(in) :: zf
-  real(kind=8), dimension(nk1,nk2,nk3/nproc), intent(inout) :: zr
+  real(dp), dimension(n1/2+1,n3/2+1,nd2/nproc), intent(in) :: zf
+  real(dp), dimension(nk1,nk2,nk3/nproc), intent(inout) :: zr
   !Local variables
   character(len=*), parameter :: subname='kernelfft'
   !Maximum number of points for FFT (should be same number in fft3d routine)
   integer, parameter :: nfft_max=24000
   integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2st,J2st
   integer :: j2,j3,i1,i3,i,j,inzee,ierr,i_all,i_stat
-  real(kind=8) :: twopion
+  real(dp) :: twopion
   !work arrays for transpositions
-  real(kind=8), dimension(:,:,:), allocatable :: zt
+  real(dp), dimension(:,:,:), allocatable :: zt
   !work arrays for MPI
-  real(kind=8), dimension(:,:,:,:,:), allocatable :: zmpi1
-  real(kind=8), dimension(:,:,:,:), allocatable :: zmpi2
+  real(dp), dimension(:,:,:,:,:), allocatable :: zmpi1
+  real(dp), dimension(:,:,:,:), allocatable :: zmpi2
   !cache work array
-  real(kind=8), dimension(:,:,:), allocatable :: zw
+  real(dp), dimension(:,:,:), allocatable :: zw
   !FFT work arrays
-  real(kind=8), dimension(:,:), allocatable :: trig1,trig2,trig3,cosinarr
+  real(dp), dimension(:,:), allocatable :: trig1,trig2,trig3,cosinarr
   integer, dimension(:), allocatable :: after1,now1,before1, & 
        after2,now2,before2,after3,now3,before3
 
@@ -1511,10 +1644,10 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   call ctrig_sg(n2,trig2,after2,before2,now2,1,ic2)
   
   !Calculating array of phases for HalFFT decoding
-  twopion=8.d0*datan(1.d0)/real(n3,kind=8)
+  twopion=8._dp*datan(1._dp)/real(n3,dp)
   do i3=1,n3/2
-     cosinarr(1,i3)= dcos(twopion*real(i3-1,kind=8))
-     cosinarr(2,i3)=-dsin(twopion*real(i3-1,kind=8))
+     cosinarr(1,i3)= dcos(twopion*real(i3-1,dp))
+     cosinarr(2,i3)=-dsin(twopion*real(i3-1,dp))
   end do
   
   !transform along z axis
@@ -1694,10 +1827,11 @@ end subroutine kernelfft
 
 
 subroutine realcopy(lot,nfft,n2,nk1,nk2,zin,zout)
+  use module_base
   implicit none
   integer, intent(in) :: nfft,lot,n2,nk1,nk2
-  real(kind=8), dimension(2,lot,n2), intent(in) :: zin
-  real(kind=8), dimension(nk1,nk2), intent(out) :: zout
+  real(dp), dimension(2,lot,n2), intent(in) :: zin
+  real(dp), dimension(nk1,nk2), intent(out) :: zout
   !local variables
   integer :: i,j
  
@@ -1711,10 +1845,11 @@ end subroutine realcopy
 
 
 subroutine switch(nfft,n2,lot,n1,lzt,zt,zw)
+  use module_base
   implicit none
 !Arguments
   integer, intent(in) :: nfft,n2,lot,n1,lzt
-  real(kind=8) :: zw(2,lot,n2),zt(2,lzt,n1)
+  real(dp) :: zw(2,lot,n2),zt(2,lzt,n1)
 !Local variables
   integer :: i,j
 
@@ -1729,11 +1864,12 @@ end subroutine switch
 
 
 subroutine mpiswitch(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw)
+  use module_base
   implicit none
 !Arguments
   integer, intent(in) :: j3,nfft,lot,n1,nd2,nd3,nproc
   integer, intent(inout) :: Jp2st,J2st
-  real(kind=8) :: zmpi1(2,n1,nd2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
+  real(dp) :: zmpi1(2,n1,nd2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
 !Local variables
   integer :: mfft,Jp2,J2,I1
   mfft=0
@@ -1756,13 +1892,15 @@ subroutine mpiswitch(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw)
 end subroutine mpiswitch
 
 
+!the conversion from d0 to dp type should be finished
 subroutine gequad(p,w,urange,drange,acc)
 ! 
+  use module_base
   implicit none
 
 !Arguments
-  real(kind=8), intent(out) :: urange,drange,acc
-  real(kind=8), intent(out) :: p(*),w(*)
+  real(dp), intent(out) :: urange,drange,acc
+  real(dp), intent(out) :: p(*),w(*)
 !
 !       range [10^(-9),1] and accuracy ~10^(-8);
 !
@@ -1827,34 +1965,34 @@ subroutine gequad(p,w,urange,drange,acc)
   p(59)=3.116998193057466d6
   p(60)=1.87560993870024029d6
   p(61)=1.12862197183979562d6
-  p(62)=679132.441326077231d0
-  p(63)=408658.421279877969d0
-  p(64)=245904.473450669789d0
-  p(65)=147969.568088321005d0
-  p(66)=89038.612357311147d0
-  p(67)=53577.7362552358895d0
-  p(68)=32239.6513926914668d0
-  p(69)=19399.7580852362791d0
-  p(70)=11673.5323603058634d0
-  p(71)=7024.38438577707758d0
-  p(72)=4226.82479307685999d0
-  p(73)=2543.43254175354295d0
-  p(74)=1530.47486269122675d0
-  p(75)=920.941785160749482d0
-  p(76)=554.163803906291646d0
-  p(77)=333.46029740785694d0
-  p(78)=200.6550575335041d0
-  p(79)=120.741366914147284d0
-  p(80)=72.6544243200329916d0
-  p(81)=43.7187810415471025d0
-  p(82)=26.3071631447061043d0
-  p(83)=15.8299486353816329d0
-  p(84)=9.52493152341244004d0
-  p(85)=5.72200417067776041d0
-  p(86)=3.36242234070940928d0
-  p(87)=1.75371394604499472d0
-  p(88)=0.64705932650658966d0
-  p(89)=0.072765905943708247d0
+  p(62)=679132.441326077231_dp
+  p(63)=408658.421279877969_dp
+  p(64)=245904.473450669789_dp
+  p(65)=147969.568088321005_dp
+  p(66)=89038.612357311147_dp
+  p(67)=53577.7362552358895_dp
+  p(68)=32239.6513926914668_dp
+  p(69)=19399.7580852362791_dp
+  p(70)=11673.5323603058634_dp
+  p(71)=7024.38438577707758_dp
+  p(72)=4226.82479307685999_dp
+  p(73)=2543.43254175354295_dp
+  p(74)=1530.47486269122675_dp
+  p(75)=920.941785160749482_dp
+  p(76)=554.163803906291646_dp
+  p(77)=333.46029740785694_dp
+  p(78)=200.6550575335041_dp
+  p(79)=120.741366914147284_dp
+  p(80)=72.6544243200329916_dp
+  p(81)=43.7187810415471025_dp
+  p(82)=26.3071631447061043_dp
+  p(83)=15.8299486353816329_dp
+  p(84)=9.52493152341244004_dp
+  p(85)=5.72200417067776041_dp
+  p(86)=3.36242234070940928_dp
+  p(87)=1.75371394604499472_dp
+  p(88)=0.64705932650658966_dp
+  p(89)=0.072765905943708247_dp
 !
   w(1)=47.67445484528304247d10
   w(2)=11.37485774750442175d9
@@ -1885,69 +2023,362 @@ subroutine gequad(p,w,urange,drange,acc)
   w(27)=1.71256191589205524d6
   w(28)=1.32843556197737076d6
   w(29)=1.0304731275955989d6
-  w(30)=799345.206572271448d0
-  w(31)=620059.354143595343d0
-  w(32)=480986.704107449333d0
-  w(33)=373107.167700228515d0
-  w(34)=289424.08337412132d0
-  w(35)=224510.248231581788d0
-  w(36)=174155.825690028966d0
-  w(37)=135095.256919654065d0
-  w(38)=104795.442776800312d0
-  w(39)=81291.4458222430418d0
-  w(40)=63059.0493649328682d0
-  w(41)=48915.9040455329689d0
-  w(42)=37944.8484018048756d0
-  w(43)=29434.4290473253969d0
-  w(44)=22832.7622054490044d0
-  w(45)=17711.743950151233d0
-  w(46)=13739.287867104177d0
-  w(47)=10657.7895710752585d0
-  w(48)=8267.42141053961834d0
-  w(49)=6413.17397520136448d0
-  w(50)=4974.80402838654277d0
-  w(51)=3859.03698188553047d0
-  w(52)=2993.51824493299154d0
-  w(53)=2322.1211966811754d0
-  w(54)=1801.30750964719641d0
-  w(55)=1397.30379659817038d0
-  w(56)=1083.91149143250697d0
-  w(57)=840.807939169209188d0
-  w(58)=652.228524366749422d0
-  w(59)=505.944376983506128d0
-  w(60)=392.469362317941064d0
-  w(61)=304.444930257324312d0
-  w(62)=236.162932842453601d0
-  w(63)=183.195466078603525d0
-  w(64)=142.107732186551471d0
-  w(65)=110.23530215723992d0
-  w(66)=85.5113346705382257d0
-  w(67)=66.3325469806696621d0
-  w(68)=51.4552463353841373d0
-  w(69)=39.9146798429449273d0
-  w(70)=30.9624728409162095d0
-  w(71)=24.018098812215013d0
-  w(72)=18.6312338024296588d0
-  w(73)=14.4525541233150501d0
-  w(74)=11.2110836519105938d0
-  w(75)=8.69662175848497178d0
-  w(76)=6.74611236165731961d0
-  w(77)=5.23307018057529994d0
-  w(78)=4.05937850501539556d0
-  w(79)=3.14892659076635714d0
-  w(80)=2.44267408211071604d0
-  w(81)=1.89482240522855261d0
-  w(82)=1.46984505907050079d0
-  w(83)=1.14019261330527007d0
-  w(84)=0.884791217422925293d0
-  w(85)=0.692686387080616483d0
-  w(86)=0.585244576897023282d0
-  w(87)=0.576182522545327589d0
-  w(88)=0.596688817388997178d0
-  w(89)=0.607879901151108771d0
+  w(30)=799345.206572271448_dp
+  w(31)=620059.354143595343_dp
+  w(32)=480986.704107449333_dp
+  w(33)=373107.167700228515_dp
+  w(34)=289424.08337412132_dp
+  w(35)=224510.248231581788_dp
+  w(36)=174155.825690028966_dp
+  w(37)=135095.256919654065_dp
+  w(38)=104795.442776800312_dp
+  w(39)=81291.4458222430418_dp
+  w(40)=63059.0493649328682_dp
+  w(41)=48915.9040455329689_dp
+  w(42)=37944.8484018048756_dp
+  w(43)=29434.4290473253969_dp
+  w(44)=22832.7622054490044_dp
+  w(45)=17711.743950151233_dp
+  w(46)=13739.287867104177_dp
+  w(47)=10657.7895710752585_dp
+  w(48)=8267.42141053961834_dp
+  w(49)=6413.17397520136448_dp
+  w(50)=4974.80402838654277_dp
+  w(51)=3859.03698188553047_dp
+  w(52)=2993.51824493299154_dp
+  w(53)=2322.1211966811754_dp
+  w(54)=1801.30750964719641_dp
+  w(55)=1397.30379659817038_dp
+  w(56)=1083.91149143250697_dp
+  w(57)=840.807939169209188_dp
+  w(58)=652.228524366749422_dp
+  w(59)=505.944376983506128_dp
+  w(60)=392.469362317941064_dp
+  w(61)=304.444930257324312_dp
+  w(62)=236.162932842453601_dp
+  w(63)=183.195466078603525_dp
+  w(64)=142.107732186551471_dp
+  w(65)=110.23530215723992_dp
+  w(66)=85.5113346705382257_dp
+  w(67)=66.3325469806696621_dp
+  w(68)=51.4552463353841373_dp
+  w(69)=39.9146798429449273_dp
+  w(70)=30.9624728409162095_dp
+  w(71)=24.018098812215013_dp
+  w(72)=18.6312338024296588_dp
+  w(73)=14.4525541233150501_dp
+  w(74)=11.2110836519105938_dp
+  w(75)=8.69662175848497178_dp
+  w(76)=6.74611236165731961_dp
+  w(77)=5.23307018057529994_dp
+  w(78)=4.05937850501539556_dp
+  w(79)=3.14892659076635714_dp
+  w(80)=2.44267408211071604_dp
+  w(81)=1.89482240522855261_dp
+  w(82)=1.46984505907050079_dp
+  w(83)=1.14019261330527007_dp
+  w(84)=0.884791217422925293_dp
+  w(85)=0.692686387080616483_dp
+  w(86)=0.585244576897023282_dp
+  w(87)=0.576182522545327589_dp
+  w(88)=0.596688817388997178_dp
+  w(89)=0.607879901151108771_dp
 !
-  urange = 1.d0
+  urange = 1._dp
   drange=1d-08
   acc   =1d-08
 !
 end subroutine gequad
+
+!1-dim complex-complex FFT routine
+!the array in input is the first part, the output is the inzee
+!the input is destroyed
+subroutine fft_1d_ctoc(isign,nfft,n,zinout,inzee)
+  use module_base
+  use module_fft_sg
+  implicit none
+  integer, intent(in) :: n,nfft,isign
+  integer, intent(out) :: inzee
+  real(dp), dimension(2,nfft*n,2), intent(inout) :: zinout
+  !local variables
+  integer :: ic,i
+  !automatic arrays for the FFT
+  integer, dimension(n_factors) :: after,now,before
+  real(dp), dimension(2,nfft_max) :: trig
+  
+  !arrays for the FFT (to be halved)
+  call ctrig_sg(n,trig,after,before,now,isign,ic)
+  !perform the FFT 
+  inzee=1
+  !write(15,*)halfft_cache(:,:,inzee)
+  do i=1,ic
+     call fftstp_sg(nfft,nfft,n,nfft,n,&
+          zinout(1,1,inzee),zinout(1,1,3-inzee),&
+          trig,after(i),now(i),before(i),1)
+     inzee=3-inzee
+  enddo
+
+end subroutine fft_1d_ctoc
+
+subroutine accumulate_fft(n1,nk1,nfft,ncacheff,halfft_cache,kernelfour)
+  use module_base
+  use module_fft_sg
+  implicit none
+  integer, intent(in) :: n1,nfft,ncacheff,nk1
+  real(dp), dimension(2,ncacheff,2), intent(inout) :: halfft_cache
+  real(dp), dimension(nk1,nfft), intent(out) :: kernelfour
+  !local variables
+  character(len=*), parameter :: subname='accumulate_fft'
+  integer :: nsize_fft,ic,i_stat,i_all,i,inzee,j,ifft
+  real(dp), dimension(:,:), allocatable :: trig
+  integer, dimension(:), allocatable :: after,now,before
+
+!!$  allocate(cossinarr(2,n3/2-1+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,cossinarr,'cossinarr',subname)
+
+  !dimension of the fft_sizes
+  nsize_fft=max(n1*nfft*4,ncache)
+
+  allocate(trig(2,nfft_max+ndebug),stat=i_stat)
+  call memocc(i_stat,trig,'trig',subname)
+  allocate(after(n_factors+ndebug),stat=i_stat)
+  call memocc(i_stat,after,'after',subname)
+  allocate(now(n_factors+ndebug),stat=i_stat)
+  call memocc(i_stat,now,'now',subname)
+  allocate(before(n_factors+ndebug),stat=i_stat)
+  call memocc(i_stat,before,'before',subname)
+
+  !arrays for the FFT (to be halved)
+  call ctrig_sg(n1,trig,after,before,now,1,ic)
+
+!!$  !copy the input in the real part of the fft array
+!!$  halfft_cache=0.0_dp
+!!$  !call razero(nsize_fft,halfft_cache)
+!!$
+!!$  call fill_halfft(n1,n_range,nfft,kernelreal,halfft_cache)
+!!$
+!!$  halfft_cache=halfft_cache/real(n1,dp)
+
+  !now perform the FFT of the array in cache
+  inzee=1
+  !write(15,*)halfft_cache(:,:,inzee)
+  do i=1,ic
+     call fftstp_sg(nfft,nfft,n1,nfft,n1,&
+          halfft_cache(1,1,inzee),halfft_cache(1,1,3-inzee),&
+          trig,after(i),now(i),before(i),1)
+     inzee=3-inzee
+  enddo
+  !if (i==1) 
+  !write(16,*)halfft_cache(:,:,inzee)
+!!$  !then the BACK fft to check purposes
+!!$  do j=1,n1
+!!$     trig(1,j)= trig(1,j)
+!!$     trig(2,j)=-trig(2,j)
+!!$  enddo
+!!$
+!!$
+!!$  do i=1,ic
+!!$     call fftstp_sg(nfft,nfft,n1,nfft,n1,&
+!!$          halfft_cache(1,1,inzee),halfft_cache(1,1,3-inzee),&
+!!$          trig,after(i),now(i),before(i),-1)
+!!$     inzee=3-inzee
+!!$  enddo
+!!$
+!!$  write(17,*)halfft_cache(:,:,inzee)
+  !copy the real part of the fft array in the output
+  call copyreal(n1,nk1,nfft,halfft_cache,kernelfour)
+    !write(17,*)kernelfour
+!!$  !build the phases for the HalFFT reconstruction 
+!!$  !constants
+!!$  pi=4._dp*datan(1._dp)
+!!$  pion=2._dp*pi/real(n3,dp)
+!!$  do i3=2,n3/2
+!!$     x=real(i3-1,dp)*pion
+!!$     cossinarr(1,i3-1)= dcos(x)
+!!$     cossinarr(2,i3-1)=-dsin(x)
+!!$  end do
+
+!!$  !calculate the limits of the FFT calculations
+!!$  !that can be performed in a row remaining inside the cache
+!!$  num_of_mus=ncache/(2*n3)
+!!$
+!!$  !let us now calculate the fraction of mu that will be considered 
+!!$  j2st=iproc*(nact2/nproc)
+!!$  j2nd=min((iproc+1)*(nact2/nproc),n2/2+1)
+!!$
+!!$  do ind2=(n1/2+1)*j2st+1,(n1/2+1)*j2nd,num_of_mus
+!!$     istart=ind2
+!!$     iend=min(ind2+(num_of_mus-1),(n1/2+1)*j2nd)
+!!$     nfft=iend-istart+1
+!!$     shift=0
+!!$
+!!$     !initialization of the interesting part of the cache array
+!!$     halfft_cache(:,:,:)=0._dp
+!!$
+!!$     if (istart == 1) then
+!!$        !i2=1
+!!$        shift=1
+!!$        
+!!$        !here kernel_scf is calculated
+!!$
+!!$        call calculates_green_opt_muzero(n_range,n_scf,ipolyord,x_scf,y_scf,&
+!!$             cpol(1,ipolyord),dx,kernel_scf)
+!!$
+!!$        !copy of the first zero value
+!!$        halfft_cache(1,1,1)=0._dp
+!!$
+!!$        do i3=1,m3
+!!$
+!!$           value=0.5_dp*h3*kernel_scf(i3)
+!!$           !index in where to copy the value of the kernel
+!!$           call indices(ireim,num_of_mus,n3/2+i3,1,ind1)
+!!$           !index in where to copy the symmetric value
+!!$           call indices(jreim,num_of_mus,n3/2+2-i3,1,jnd1)
+!!$           halfft_cache(ireim,ind1,1) = value
+!!$           halfft_cache(jreim,jnd1,1) = value
+!!$
+!!$        end do
+!!$
+!!$     end if
+!!$
+!!$     loopimpulses : do imu=istart+shift,iend
+!!$
+!!$        !here there is the value of mu associated to hgrid
+!!$        !note that we have multiplicated mu for hgrid to be comparable 
+!!$        !with mu0ref
+!!$
+!!$        !calculate the proper value of mu taking into account the periodic dimensions
+!!$        !corresponding value of i1 and i2
+!!$        i1=mod(imu,n1/2+1)
+!!$        if (i1==0) i1=n1/2+1
+!!$        i2=(imu-i1)/(n1/2+1)+1
+!!$        ponx=real(i1-1,dp)/real(n1,dp)
+!!$        pony=real(i2-1,dp)/real(n2,dp)
+!!$        
+!!$        mu1=2._dp*pi*sqrt((ponx/h1)**2+(pony/h2)**2)*h3
+!!$
+!!$        call calculates_green_opt(n_range,n_scf,itype_scf,ipolyord,x_scf,y_scf,&
+!!$             cpol(1,ipolyord),mu1,dx,kernel_scf)
+!!$
+!!$        !readjust the coefficient and define the final kernel
+!!$
+!!$        !copy of the first zero value
+!!$        halfft_cache(1,imu-istart+1,1) = 0._dp
+!!$        do i3=1,m3
+!!$           value=-0.5_dp*h3/mu1*kernel_scf(i3)
+!!$           !write(80,*)mu1,i3,kernel_scf(i03)
+!!$           !index in where to copy the value of the kernel
+!!$           call indices(ireim,num_of_mus,n3/2+i3,imu-istart+1,ind1)
+!!$           !index in where to copy the symmetric value
+!!$           call indices(jreim,num_of_mus,n3/2+2-i3,imu-istart+1,jnd1)
+!!$           halfft_cache(ireim,ind1,1)=value
+!!$           halfft_cache(jreim,jnd1,1)=value
+!!$        end do
+!!$
+!!$     end do loopimpulses
+!!$
+!!$     !now perform the FFT of the array in cache
+!!$     inzee=1
+!!$     do i=1,ic
+!!$        call fftstp_sg(num_of_mus,nfft,n3/2,num_of_mus,n3/2,&
+!!$             halfft_cache(1,1,inzee),halfft_cache(1,1,3-inzee),&
+!!$             trig,after(i),now(i),before(i),1)
+!!$        inzee=3-inzee
+!!$     enddo
+!!$     !assign the values of the FFT array
+!!$     !and compare with the good results
+!!$     do imu=istart,iend
+!!$
+!!$        !corresponding value of i1 and i2
+!!$        i1=mod(imu,n1/2+1)
+!!$        if (i1==0) i1=n1/2+1
+!!$        i2=(imu-i1)/(n1/2+1)+1
+!!$
+!!$        j2=i2-j2st
+!!$
+!!$        a=halfft_cache(1,imu-istart+1,inzee)
+!!$        b=halfft_cache(2,imu-istart+1,inzee)
+!!$        kernel(i1,j2,1)=a+b
+!!$        kernel(i1,j2,n3/2+1)=a-b
+!!$
+!!$        do i3=2,n3/2
+!!$           ind1=imu-istart+1+num_of_mus*(i3-1)
+!!$           jnd1=imu-istart+1+num_of_mus*(n3/2+2-i3-1)
+!!$           cp=cossinarr(1,i3-1)
+!!$           sp=cossinarr(2,i3-1)
+!!$           a=halfft_cache(1,ind1,inzee)
+!!$           b=halfft_cache(2,ind1,inzee)
+!!$           c=halfft_cache(1,jnd1,inzee)
+!!$           d=halfft_cache(2,jnd1,inzee)
+!!$           feR=.5_dp*(a+c)
+!!$           feI=.5_dp*(b-d)
+!!$           foR=.5_dp*(a-c)
+!!$           foI=.5_dp*(b+d) 
+!!$           fR=feR+cp*foI-sp*foR
+!!$           kernel(i1,j2,i3)=fR
+!!$        end do
+!!$     end do
+!!$
+!!$  end do
+!!$
+!!$  i_all=-product(shape(cossinarr))*kind(cossinarr)
+!!$  deallocate(cossinarr,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'cossinarr',subname)
+
+  !De-allocations
+  i_all=-product(shape(trig))*kind(trig)
+  deallocate(trig,stat=i_stat)
+  call memocc(i_stat,i_all,'trig',subname)
+  i_all=-product(shape(after))*kind(after)
+  deallocate(after,stat=i_stat)
+  call memocc(i_stat,i_all,'after',subname)
+  i_all=-product(shape(now))*kind(now)
+  deallocate(now,stat=i_stat)
+  call memocc(i_stat,i_all,'now',subname)
+  i_all=-product(shape(before))*kind(before)
+  deallocate(before,stat=i_stat)
+  call memocc(i_stat,i_all,'before',subname)
+
+end subroutine accumulate_fft
+
+
+subroutine fill_halfft(nreal,n1,n_range,nfft,kernelreal,halfft)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n_range,nfft,nreal
+  real(dp), dimension(nreal,nfft), intent(in) :: kernelreal
+  real(dp), dimension(2,n1,nfft), intent(out) :: halfft
+  !local variables
+  integer :: i,ifft,j,ntot
+
+  ntot=min(n1/2,n_range)
+  halfft(:,:,:)=0.0_dp
+  !if (n1 > 2*n_range+1) stop 'n1 > 2*n_range+1'
+  do ifft=1,nfft
+     do i=0,ntot
+        !print *,n1/2+i+1,n1,n_range
+        halfft(1,n1/2+i+1,ifft)=kernelreal(i+1,ifft)/real(n1,dp)
+     end do
+     do i=1,ntot
+        !print *,n1/2-i+1,n1,n_range
+        halfft(1,n1/2-i+1,ifft)=kernelreal(i+1,ifft)/real(n1,dp)
+     end do
+     if (ifft==39) halfft(1,:,ifft)=11.0_dp
+  end do
+
+end subroutine fill_halfft
+
+subroutine copyreal(n1,nk1,nfft,halfft,kernelfour)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,nk1,nfft
+  real(dp), dimension(2,n1,nfft), intent(in) :: halfft
+  real(dp), dimension(nk1,nfft), intent(out) :: kernelfour
+  !local varaibles
+  integer :: ifft
+  
+  do ifft=1,nfft
+     if (ifft==39) write(130,'(1pe24.17)')halfft(1,:,ifft)
+    call dcopy(nk1,halfft(1,1,ifft),2,kernelfour(1,ifft),1)  
+  enddo
+end subroutine copyreal
