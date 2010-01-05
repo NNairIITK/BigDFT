@@ -70,7 +70,7 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
 subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory arguments

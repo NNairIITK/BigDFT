@@ -38,7 +38,7 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
 subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)

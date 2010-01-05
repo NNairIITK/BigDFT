@@ -36,7 +36,7 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
 subroutine size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)

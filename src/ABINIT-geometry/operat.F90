@@ -46,7 +46,7 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
 subroutine operat(natom,natrd,nsym,spinat,symafm,symrel,tnons,typat,xred)

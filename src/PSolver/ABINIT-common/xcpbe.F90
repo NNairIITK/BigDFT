@@ -105,11 +105,11 @@
 !!
 !! SOURCE
 !!$#if defined HAVE_CONFIG_H
-!!$#include "config.h"
+!!$#include "config.inc"
 !!$#endif
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
 subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci, & !Mandatory Arguments

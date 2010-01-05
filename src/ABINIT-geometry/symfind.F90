@@ -56,7 +56,7 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  subroutine symfind(berryopt,efield,gprimd,jellslab,msym,natom,noncoll,nptsym,nspden,nspinor,nsym,pawspnorb,ptsymrel,&

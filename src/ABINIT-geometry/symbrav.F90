@@ -67,7 +67,7 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
 subroutine symbrav(berryopt,bravais,msym,nptsym,ptsymrel,rmet,rprimd,tolsym)

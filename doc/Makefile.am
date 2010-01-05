@@ -16,6 +16,11 @@ doc_DATA = \
 	cluster.pdf \
 	halFFT.pdf \
 	manual.pdf
+else
+pdfs =
+endif
+
+doc_DATA = $(pdfs)
 
 robodoc:
 	export OLDPWD=`pwd`; cd $(top_srcdir); \

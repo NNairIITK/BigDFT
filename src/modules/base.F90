@@ -11,6 +11,10 @@
 !!
 !! SOURCE
 !! 
+#if defined HAVE_CONFIG_H
+#include <config.inc>
+#endif
+
 module module_base 
   !use MPI
   implicit none  

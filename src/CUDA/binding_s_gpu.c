@@ -64,7 +64,7 @@ void sg_callback_precondprecond(void *param)
 {
   sg_param_precondprecond_t *locpar = ((sg_param_precondprecond_t*)(param));
  
-  precond_preconditioner_wrapper__(&(locpar->hybrid_on),
+  FC_FUNC(precond_preconditioner_wrapper,PRECOND_PRECONDITIONER_WRAPPER)(&(locpar->hybrid_on),
 				 &(locpar->n1),&(locpar->n2),&(locpar->n3),
 				 &(locpar->nvctr_c),&(locpar->nvctr_f),
 				 &(locpar->nseg_c),&(locpar->nseg_f),
@@ -94,7 +94,7 @@ void sg_callback_intprecond(void *param)
 }
 
 
-void sg_precond_adapter__(int *n1,int *n2, int *n3,int *npsi,
+void FC_FUNC(sg_precond_adapter,SG_PRECOND_ADAPTER)(int *n1,int *n2, int *n3,int *npsi,
 			  double *h1,double *h2,double *h3,
 			  double **x,int **keys, 
 			  double **r,double **b,double **d,
@@ -127,7 +127,7 @@ void sg_precond_adapter__(int *n1,int *n2, int *n3,int *npsi,
   sg_calc(&sg_callback_precond,&param,sizeof(sg_param_precond_t),*stream);
 }
 
-void sg_intprecond_adapter__(int *n1,int *n2, int *n3,int *npsi,
+void FC_FUNC(sg_intprecond_adapter,SG_INTPRECOND_ADAPTER)(int *n1,int *n2, int *n3,int *npsi,
 			     double *h1,double *h2,double *h3,
 			     double **x,int **keys, 
 			     double **r,double **b,double **d,
@@ -158,7 +158,7 @@ void sg_intprecond_adapter__(int *n1,int *n2, int *n3,int *npsi,
   sg_calc(&sg_callback_intprecond,&param,sizeof(sg_param_intprecond_t),*stream);
 }
 
-void sg_precond_preconditioner_adapter__(int *hybrid_on,int *n1, int *n2,int *n3,
+void FC_FUNC(sg_precond_preconditioner_adapter,SG_PRECOND_PRECONDITIONER_ADAPTER)(int *hybrid_on,int *n1, int *n2,int *n3,
 					 int *nvctr_c,int *nvctr_f,
 					 int *nseg_c,int *nseg_f,int *ncplx,
 					 double *cprecr,
@@ -266,7 +266,7 @@ void sg_callback_fulllocham(void *param)
 }
 
 
-void sg_locham_adapter__(int *n1,int *n2, int *n3,
+void FC_FUNC(sg_locham_adapter,SG_LOCHAM_ADAPTER)(int *n1,int *n2, int *n3,
 			double *h1,double *h2,double *h3,
 			double **psi,double **pot,int **keys, 
 			double **work1,double **work2,double **work3,
@@ -299,7 +299,7 @@ void sg_locham_adapter__(int *n1,int *n2, int *n3,
 }
 
 
-void sg_fulllocham_adapter__(int *n1,int *n2, int *n3,
+void FC_FUNC(sg_fulllocham_adapter,SG_FULLLOCHAM_ADAPTER)(int *n1,int *n2, int *n3,
 			double *h1,double *h2,double *h3,
 			double **psi,double **pot,int **keys, 
 			double **work1,double **work2,double **work3,
@@ -363,7 +363,7 @@ void sg_callback_locden(void *param)
 }
 
 
-void  sg_locden_adapter__(int *n1,int *n2, int *n3,int *norbp,int *nspin,
+void  FC_FUNC(sg_locden_adapter,SG_LOCDEN_ADAPTER)(int *n1,int *n2, int *n3,int *norbp,int *nspin,
 			  double *h1,double *h2,double *h3,
 			  double *occup,double *spinsgn,
 			  double **psi,int **keys, 

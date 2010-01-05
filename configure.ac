@@ -14,8 +14,8 @@ AC_INIT([BigDFT - DFT over wavelets],[1.3.0-dev],[Damien.Caliste@cea.fr],[bigdft
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
 AC_CONFIG_AUX_DIR(config)
-dnl Use a config.h file to store macro definitions
-dnl AM_CONFIG_HEADER(config.h)
+dnl Use a config.h file to store macro definitions, required for CUDA.
+AM_CONFIG_HEADER(config.h)
 AC_CONFIG_MACRO_DIR([config/m4])
 
 dnl Init something, don't know exactly what...
@@ -232,6 +232,8 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   dnl if `echo $FCFLAGS | grep -qvs -- "-fno-second-underscore"` ; then
   dnl    FCFLAGS=$FCFLAGS" -fno-second-underscore"
   dnl fi
+  dnl Instead of second underscoring, test the compiler behaviour.
+  AC_FC_WRAPPERS()
   dnl Optional Cuda installation dir.
   AC_ARG_WITH(cuda-path, AS_HELP_STRING([--with-cuda-path], [give the path to the NVidia Cuda tools (default is /usr/local/cuda).]),
                          [ac_with_cuda_path=$withval], [ac_with_cuda_path="/usr/local/cuda"])
@@ -427,6 +429,9 @@ if test x"$ac_use_libxc" = x"yes" ; then
   LIBS="-lxc $LIBS"
 fi
 
+dnl Test for the documentation.
+AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes])
+AM_CONDITIONAL(BUILD_PDFDOC, test x"$ac_have_pdflatex" = x"yes")
 dnl default installation directories
 AC_ARG_WITH(moduledir,
             AS_HELP_STRING([--with-moduledir],
@@ -534,3 +539,7 @@ if test x"$ac_use_mpi" = x"Warning" ; then
   MPI:                       disabled by tests
 "
 fi
+
+dnl Do not touch this line. On the Cray machine in Basel, the preprocessor
+dnl in Fortran sources does not allow C comments (/*  */), so we remove them.
+sed -n '1h;1!H;${;g;s%/\*[[^*]]*\*/%%g;p;}' config.h > config.inc
