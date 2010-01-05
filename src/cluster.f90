@@ -48,25 +48,6 @@
        real(wp), dimension(:), pointer :: psi
        real(wp), dimension(:,:), pointer :: gaucoeffs
      end subroutine cluster 
-     subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
-          psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,infocode)
-       use module_base
-       use module_types
-       implicit none
-       integer, intent(in) :: nproc,iproc
-       integer, intent(out) :: infocode
-       real(gp), intent(inout) :: hx_old,hy_old,hz_old
-       type(input_variables), intent(in) :: in
-       type(locreg_descriptors), intent(inout) :: Glr
-       type(atoms_data), intent(inout) :: atoms
-       type(gaussian_basis), intent(inout) :: gbd
-       type(orbitals_data), intent(inout) :: orbs
-       real(gp), intent(out) :: energy
-       real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
-       real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
-       real(wp), dimension(:), pointer :: psi
-       real(wp), dimension(:,:), pointer :: gaucoeffs
-     end subroutine abscalc 
   end interface
 
   !put a barrier for all the processes

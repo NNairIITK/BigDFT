@@ -39,7 +39,7 @@ mpif.h:
 
 
 #dependencies
-read_parameters.o: defs.o lanczos.o
+read_parameters.o: defs.o lanczos.o find_saddle.o
 
 bigdft_forces.o: defs.o
 
