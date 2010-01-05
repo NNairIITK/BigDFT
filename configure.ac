@@ -188,11 +188,11 @@ AC_ARG_WITH(memory-limit, AS_HELP_STRING([--with-memory-limit], [Memory limit va
               ac_with_memory_limit=$withval, ac_with_memory_limit="no")
 if test "${ac_with_memory_limit//\.*/}" -ge "0" 2> /dev/null ; then
   ac_memory_limit=$ac_with_memory_limit
+  AC_DEFINE_UNQUOTED([MEMORY_LIMIT], [$ac_memory_limit], [Value in GB to stop processing.])
 else
-  ac_memory_limit="0.e0"
+  ac_memory_limit="undefined"
 fi
 AC_MSG_RESULT([$ac_memory_limit])
-AC_DEFINE_UNQUOTED([MEMORY_LIMIT], [$ac_memory_limit], [Value in GB to stop processing.])
 
 
 dnl Use the simple or the optimised convolution code.
