@@ -1,12 +1,5 @@
 ## Process this file with automake to produce Makefile.in
 
-if BUILD_LIB_ABINIT
-sub_dirs_xc = ABINIT-common
-else
-sub_dirs_xc = 
-endif
-
-
 SOURCES_MOD = PSolver_Main.f90 \
 	createKernel.f90 \
 	xcenergy.f90 \
@@ -63,8 +56,6 @@ module_DATA = POISSON_SOLVER.@MODULE_EXT@
 else
 module_DATA = poisson_solver.@MODULE_EXT@
 endif
-
-SUBDIRS = $(sub_dirs_xc) 
 
 check_PROGRAMS = PS_Check PS_Program PS_Exercise
 
