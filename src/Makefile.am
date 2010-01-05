@@ -194,7 +194,6 @@ low_level = init/projectors.f90  \
 if BUILD_LIB_ABINIT
 abinit_low = ABINIT-ewald/ewald.F90 \
 	ABINIT-ewald/matr3inv.F90 \
-	ABINIT-ewald/derfc.F90 \
 	ABINIT-geometry/sort_dp.F90 \
 	ABINIT-geometry/mati3inv.F90 \
 	ABINIT-geometry/canon9.F90 \

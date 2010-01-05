@@ -76,7 +76,7 @@ program PS_Check
   hy=acell/real(n02,kind=8)
   hz=acell/real(n03,kind=8)
 
-  !order of the scaling functions choosed
+  !order of the scaling functions chosen
   itype_scf=16
 
   !calculate the kernel in parallel for each processor
@@ -420,7 +420,7 @@ contains
 ! the poisson solver, in order to have a reliable analytic comparison.
 ! The parameters of the functions must be adjusted in order to have a sufficiently localized
 ! function in the isolated direction and an explicitly periodic function in the periodic ones.
-! Beware of the high-frequency components that may falsify the results when hgrid is too high.
+! Beware of the high-frequency components that may false the results when hgrid is too high.
   subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,&
        density,potential,rhopot,pot_ion,offset)
     implicit none

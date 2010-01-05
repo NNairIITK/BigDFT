@@ -1555,17 +1555,6 @@ subroutine wtpos(at,npminx,nlminx,nlmin,nlmin_l,pos,earr,elocmin)
 end subroutine wtpos
 
 
-
-subroutine zero(n,x)
-  implicit real*8 (a-h,o-z)
-  dimension x(n)
-  do j=1,n
-     x(j)=0.d0
-  end do
-  return
-end subroutine zero
-
-
 real*8 function round(enerd,accur)
   implicit none
   real*8 enerd,accur

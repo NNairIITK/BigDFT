@@ -69,7 +69,7 @@ module module_fft_sg
 !   But if you care about performance find the optimal value of ncache yourself!
 !       On all vector machines: ncache=0
 
-   integer, parameter :: ncache = 0 !6*1024
+   integer, parameter :: ncache = 8*1024
    !To have all available dimensions, ncache should be a multiple of 4*nfft_max (T.D.)
    !integer, parameter :: ncache = (4*nfft_max)
    !Vectorial computer
