@@ -139,7 +139,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   character(len=7) :: cudagpu
   character(len=100) :: line
   logical :: exists
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj
+  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj,useGPU
 
   ! default values for geopt and k points in case not call later.
   call geopt_input_variables_default(in)
@@ -179,10 +179,15 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   read(line,*,iostat=ierrfrc) cudagpu
   iline=iline+1
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
-    ! call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-     call sg_init(GPUshare,iconv,iproc,initerror)
-     iconv = 1
-     iblas = 1
+     call sg_init(GPUshare,useGPU,iproc,initerror)
+     if (useGPU == 1) then
+        iconv = 1
+        iblas = 1
+     else
+        iconv = 0
+        iblas = 0
+     end if
+
      if (initerror == 1) then
         write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
         call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
@@ -820,7 +825,7 @@ subroutine read_input_variables_old(iproc,filename,in)
   !local variables
   character(len=7) :: cudagpu
   character(len=100) :: line
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
+  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,useGPU
 
   ! Read the input variables.
   open(unit=1,file=filename,status='old')
@@ -830,10 +835,15 @@ subroutine read_input_variables_old(iproc,filename,in)
   read(1,'(a100)')line
   read(line,*,iostat=ierrfrc) cudagpu
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
-!     call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-!     call sg_init(GPUshare,iconv,iproc,initerror)
-iconv = 1
-iblas = 1
+     call sg_init(GPUshare,useGPU,iproc,initerror)
+     if (useGPU == 1) then
+        iconv = 1
+        iblas = 1
+     else
+        iconv = 0
+        iblas = 0
+     end if
+
      if (initerror == 1) then
 
         write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'

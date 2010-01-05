@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include <S_GPU/include/sg_common_def.h>
+#include <sg_common_def.h>
 
 
 
@@ -100,7 +100,7 @@ void sg_precond_adapter__(int *n1,int *n2, int *n3,int *npsi,
 			  double **r,double **b,double **d,
 			  double **work1,double **work2,double **work3,
 			  double *c,int *ncong, double *gnrm,
-			  sg_stream_ptr *stream)
+			  sg_stream_ptr_t *stream)
 {
   sg_param_precond_t param;
 
@@ -124,7 +124,7 @@ void sg_precond_adapter__(int *n1,int *n2, int *n3,int *npsi,
   param.gnrm = gnrm;
   
 
-  sg_calc(&sg_callback_precond,&param,sizeof(sg_param_precond_t),*stream);
+  sg_gpu_send_calc(&sg_callback_precond,&param,sizeof(sg_param_precond_t),*stream);
 }
 
 void sg_intprecond_adapter__(int *n1,int *n2, int *n3,int *npsi,
@@ -133,7 +133,7 @@ void sg_intprecond_adapter__(int *n1,int *n2, int *n3,int *npsi,
 			     double **r,double **b,double **d,
 			     double **work1,double **work2,double **work3,
 			     double *c,int *ncong,
-			     sg_stream_ptr *stream)
+			     sg_stream_ptr_t *stream)
 {
   sg_param_intprecond_t param;
 
@@ -155,7 +155,7 @@ void sg_intprecond_adapter__(int *n1,int *n2, int *n3,int *npsi,
   param.c = *c;
   param.ncong = *ncong;  
 
-  sg_calc(&sg_callback_intprecond,&param,sizeof(sg_param_intprecond_t),*stream);
+  sg_gpu_send_calc(&sg_callback_intprecond,&param,sizeof(sg_param_intprecond_t),*stream);
 }
 
 void sg_precond_preconditioner_adapter__(int *hybrid_on,int *n1, int *n2,int *n3,
@@ -171,7 +171,7 @@ void sg_precond_preconditioner_adapter__(int *hybrid_on,int *n1, int *n2,int *n3
 					 double **kern_k3,double **z1,double **z3,
 					 double **x_c,double **psifscf,double **ww,
 					 double **x,double **b,
-					 sg_stream_ptr *stream)
+					 sg_stream_ptr_t *stream)
 {
   sg_param_precondprecond_t param;
 
@@ -207,7 +207,7 @@ void sg_precond_preconditioner_adapter__(int *hybrid_on,int *n1, int *n2,int *n3
   param.ww = ww;
   param.x = x;
   param.b = b;
-  sg_calc(&sg_callback_precondprecond,&param,sizeof(sg_param_precondprecond_t),*stream);
+  sg_gpu_send_calc(&sg_callback_precondprecond,&param,sizeof(sg_param_precondprecond_t),*stream);
 }
 
 
@@ -272,7 +272,7 @@ void sg_locham_adapter__(int *n1,int *n2, int *n3,
 			double **work1,double **work2,double **work3,
 			double *epot_sum,double *ekin_sum,
 			double *occup_gpu,
-			sg_stream_ptr *stream)
+			sg_stream_ptr_t *stream)
 {
   sg_param_locham_t param;
 
@@ -295,7 +295,7 @@ void sg_locham_adapter__(int *n1,int *n2, int *n3,
   param.occup_gpu = *occup_gpu;
 
   
-  sg_calc(&sg_callback_locham,&param,sizeof(sg_param_locham_t),*stream);
+  sg_gpu_send_calc(&sg_callback_locham,&param,sizeof(sg_param_locham_t),*stream);
 }
 
 
@@ -305,7 +305,7 @@ void sg_fulllocham_adapter__(int *n1,int *n2, int *n3,
 			double **work1,double **work2,double **work3,
 			double *epot_sum,double *ekin_sum,
 			double *occup_gpu,
-			sg_stream_ptr *stream)
+			sg_stream_ptr_t *stream)
 {
   sg_param_locham_t param;
 
@@ -328,7 +328,7 @@ void sg_fulllocham_adapter__(int *n1,int *n2, int *n3,
   param.occup_gpu = *occup_gpu;
 
   
-  sg_calc(&sg_callback_fulllocham,&param,sizeof(sg_param_locham_t),*stream);
+  sg_gpu_send_calc(&sg_callback_fulllocham,&param,sizeof(sg_param_locham_t),*stream);
 }
 
 
@@ -369,7 +369,7 @@ void  sg_locden_adapter__(int *n1,int *n2, int *n3,int *norbp,int *nspin,
 			  double **psi,int **keys, 
 			  double **work1,double **work2,
 			  double **rho,
-			  sg_stream_ptr *stream)
+			  sg_stream_ptr_t *stream)
 {
   
   sg_param_locden_t param;
@@ -390,5 +390,5 @@ void  sg_locden_adapter__(int *n1,int *n2, int *n3,int *norbp,int *nspin,
   param.work2 = work2;
   param.rho = rho;
 
-sg_calc(&sg_callback_locden,&param,sizeof(sg_param_locden_t),*stream);
+  sg_gpu_send_calc(&sg_callback_locden,&param,sizeof(sg_param_locden_t),*stream);
 }

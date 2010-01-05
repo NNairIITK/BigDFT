@@ -265,12 +265,6 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   fi  
   AC_SUBST(LIB_CUTIL_PATH)
 
-  if test -n "$GCC41HACK" ; then
-    INC_GCC41CUDA="--compiler-bindir="$GCC41HACK
-  else
-    INC_GCC41CUDA="--compiler-bindir=/usr/bin"
-  fi
-  AC_SUBST(INC_GCC41CUDA)
 fi
 
 
@@ -509,7 +503,6 @@ Options:
   With Cuda GPU conv.:       $ac_use_cuda_gpu
    | NVidia Cuda Compiler:   $NVCC
    | Cuda flags:             $CUDA_FLAGS
-   | GCC41HACK (gcc path):   $GCC41HACK
    | ext. cutil library:     $ac_with_lib_cutils
    |      cutil path:        $LIB_CUTIL_PATH
   With libXC:                $ac_use_libxc
