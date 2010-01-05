@@ -221,7 +221,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   call check()
 
   !x-absorber treatment
-  read(1,*,iostat=ierror) in%iat_absorber
+  read(1,*,iostat=ierror) in%iabscalc_type
   call check()
 
   !read absorption-calculation input variables

@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces memguess NEB frequencies MDanalysis $(minima_hopping_sources) bart
+binaries_sources = cluster test_forces memguess NEB frequencies MDanalysis $(minima_hopping_sources) bart abscalc
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -286,6 +286,15 @@ cluster_LDADD = libbigdft.a \
 MDanalysis_SOURCES = distances.f90 
 MDanalysis_LDFLAGS = 
 MDanalysis_LDADD = libbigdft.a \
+	PSolver/libpoissonsolver.a \
+	PSolver/ABINIT-common/libABINIT.a \
+	$(LMPI) \
+	@MPI_LIBS@ \
+	$(libs_cuda)
+
+abscalc_SOURCES = abscalc.f90 
+abscalc_LDFLAGS = 
+abscalc_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
 	$(LMPI) \
