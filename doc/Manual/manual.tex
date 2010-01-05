@@ -32,6 +32,13 @@ The compilation and installation of BigDFT relies on the GNU standard building c
 \section{Building the executables}
 
 \subsection{Configure}
+BigDFT build system is based on standard GNU autotools. The end
+user does not need to have the Autotools package installed on his
+computer, the \texttt{configure} script provided in BigDFT package
+will to the job to create the \texttt{Makefile} and set the
+options, like the optimisation level, the associated libraries to link
+with...
+
 After the package has been untared, the sources should be configured, depending on the system we want to run on. Thanks to the autotools, it is possible to generate several builds from the same source tree. It is adviced to create a compilation directory, either inside or outside the source tree. Lets call this directory \texttt{compile-gfortran} for instance. One starts the configure from there \texttt{'source tree path'/configure}.
 
 The following modularities during compilation are available:
@@ -47,6 +54,10 @@ One can tune the compilation environnement using the following options:
   \item \texttt{--with-ext-linalg}: Give the name of the libraries replacing Blas and Lapack (default = none specified). Use the -l before the name(s).
   \item \texttt{--with-ext-linalg-path}: Give the path of the other linear algebra libraries (default = \texttt{-L/usr/lib}). Use the -L before the path(es).
   \item \texttt{FC}: Specify the compiler.
+  \item \texttt{FCFLAGS}: Specify the flags, like the
+optimisation flags, to pass to the compiler (default are \texttt{-g
+-O2} for GNU compilers).
+  \item \texttt{--prefix=DIR}: Specify your installation directory (\texttt{/usr/local} is default).
 \end{itemize}
 
 A example of compilation using the MKL from Intel instead of basic Blas and Lapack installation:\\
@@ -386,7 +397,9 @@ This file is used to specify a set of $k$ points. If this file does not exist, o
   \item  if \textbf{kptopt = 'manual'}: several additionnal lines. The first contains \textbf{nkpt}, an integer giving the number of manually defined $k$ points. Then \textbf{nkpt} lines follow, whith four real values each, the three firsts being the coordinates in reciprocal space (in $[0;0.5]$) and the fourth bing the weigth. If the sum of all weigths does not equal to one, weight values are renormalised.
 \end{itemize}
 
-\chapter{ \bf Running Bigdft}
+\chapter{ Running Bigdft executables}
+
+\section{Doing a single point or a geometry optimization: \texttt{cluster}}
 The MPI version is executed on most machines with the mpirun command followed by the name of the executable which is 
 cluster in our case.
 The treatment of each orbital can be speeded up by using the mixed MPI/OpenMP implementation 
@@ -396,10 +409,309 @@ export OMP\_NUM\_THREADS=4 if 4 threads are for instance desired.
 
 \noindent
 The Bigdft program monitors during a run the memory utilization and the time spent in various subroutines. Detailed information 
-is written in the files malloc.prc and time.prc. The the end the program checks whether the number of deallocations was equal 
-to the number of allocations and whwther the total memory went back to zero. If this should not the case please send a bug report 
-to the develpers of BigDFT. 
+is written in the files malloc.prc and time.prc. At the end the program checks whether the number of deallocations was equal 
+to the number of allocations and whether the total memory went back to zero. If this should not be the case please send a bug report to the develpers of BigDFT.
+
+\section{Doing a path minimization: \texttt{NEB}}
+A NEB implementation is present in the BigDFT package, thanks to the initial routines provided by Carlos Sbraccia. This implementation is launched with the help of the \texttt{NEB} executable. This program is responsible for initialising the path from the two minima and then to run the path minimisation, using BigDFT to compute the forces. Each replica is launched by an instance of \texttt{cluster} and not in the same program \texttt{NEB}. This allow to run the NEB algorithm on a super computer with a queue system. Each replica going separatly in the queue. The process of running the different \texttt{cluster} instances, in different directories and wait for their completions is done by two shell scripts: \texttt{NEB\_driver.sh} and \texttt{NEB\_include.sh}. The first one is very generic and should not be touched by users. It is provided in the \texttt{src/} directory of the package. The second one must be adapted by users to suit to their running machine. One example one is provided in the \texttt{tests/NEB/} directory of the package.
+
+The \texttt{NEB} executable can be run from everywhere but \texttt{NEB\_driver.sh} and \texttt{NEB\_include.sh} must be in the same directory. It takes arguments from the command line, using a redirection from a file is good practice. See the \texttt{tests/NEB} directory of the package:
+\begin{center}
+  \texttt{./NEB < input}
+\end{center}
+The file \texttt{input} contains a list of variables relevant to the NEB algorithm. Some of them are explained here:
+\begin{itemize}
+  \item \texttt{scratch\_dir} is where the \texttt{NEB\_driver.sh} script will create the directories where to run the \texttt{cluster} instances. It is usually on a local disk.
+  \item \texttt{job\_name} a name that will be used to named all generated files and directories.
+  \item \texttt{climbing} when set to \texttt{.TRUE.}, the highest replica follow opposite parallel forces in addition to the usual perpendicular ones.
+  \item \texttt{optimization} when set to \texttt{.TRUE.}, try to optimize the geometry of the first and last replicas (if not local minima already).
+  \item \texttt{minimization\_scheme} possible values are 'steepest\_descent', 'fletcher-reeves', 'polak-ribiere', 'quick-min', 'damped-verlet' and 'sim-annealing'.
+  \item \texttt{tolerence} is a criterion not to take into account in the list of moving atoms the ones that move less than this value between the first and the last replica.
+  \item \texttt{convergence} is the stop criterion on perpendicular forces, in eV/\AA.
+  \item \texttt{num\_of\_images} is the number of desired replicas.
+  \item \texttt{*\_config} the file describing the first and the last replica (in BigDFT 1.3, the file extension .xyz must be omitted).
+\end{itemize}
+
+At each NEB iteration, the driver script is runned. It creates the directories for forces calculations if needed, create the input files using the include script, run the jobs, grep the energy and the forces and return. The script file \texttt{NEB\_include.sh} must contain the following shell functions:
+\begin{itemize}
+  \item \texttt{init\_jobs()}, run once after directory creation. It can be used.
+  \item \texttt{finalise\_jobs()}, run once after all jobs have finished.
+  \item \texttt{wait\_jobs()}, run each time the script poll all replicas for completion.
+  \item \texttt{make\_input()}, run once in each scratch directories to create the posinp.xyz file from the NEB restart file and the initial ones.
+  \item \texttt{run\_job()}, run once in each scratch directories to start the force calculations. In the example, it runs the replicas directly on the host machine, but in this shell function, a submission file may be created instead and submitted to the queue system for later run.
+  \item \texttt{check\_job()} is used periodically by the driver system to check if a job is finished or not. It must return different values: -1 if the job is still not started (maybe be still in the queue for instance), 0 if the job is running but not finished yet, 1 if it exited with success and 2 if it exited with a failure.
+  \item \texttt{grep\_forces()} is runned once after job termination to get the energy and the forces. Energy must be in hartree and forces in hartree per bohr.
+  \end{itemize}
+For NEB purposes, users of BigDFT usually have only to modify the \texttt{run\_job()} functions from the examples to adapt it to their machine.
+
+The output files are:
+\begin{itemize}
+  \item \texttt{job\_name.NEB.dat}: a three column file containing for each replica a reaction coordinate, the energy in eV and the maximum value of remaining perpendicular forces. This file is updated at each iteration.
+  \item \texttt{job\_name.NEB.log}: a file, giving for each NEB iteration the value of the highest replica in eV and the value of the maximum perpendicular forces on all atoms and replicas.
+  \item \texttt{job\_name.NEB.restart}: a file with the coordinates of each replicas. This file is generated by the \texttt{NEB} executable at each iteration and used be the driver script to generate the posinp files.
+\end{itemize}
 
 
+\chapter{ Xanes calculations}
+
+\section{abstract} 
+We have implemented an original procedure for calculating XANES spectra within the BigDFT code. Our approach consists firstly in  projecting the photoelectron wave-function onto the pseudopotential functions basis with the help of a reversed PAW projector\cite{Taillefumier} and, then, propagating this initial state by iterative applications of the Hamiltonian. The Hamiltonian is the one provided by the BigDft code. The obtained spectra therefore correspond exactly to the electronic structure of the self consistent ground state.The spectra are built by obtaining at each new application of the Hamiltonian a new coefficient of the spectral decomposition in Chebyshev polynomials. The method therefore systematically improves the calculated spectra resolution at each step and can be stopped once the required resolution is reached. Moreover, the Chebyshev polynomials have a higher nodes' density at the extrema of the spectral range  than in the middle. For practical applications this makes convergence even faster because the broadening due to lifetime is narrow near the edge and large elsewhere. The execution times represent a break-through for this kind of calculations and reflect the exceptional features of the BigDft code. For a cluster contained in a 25A side cube, the spectra are obtained within half an hour, running on a single processor.
+
+
+\section{INTRODUCTION}
+
+
+
+The interaction between matter and  a photon described by a wave vector ${ k}$ and polarisation ${ \epsilon}$,
+  is written, discarding elastic Thomson scattering ( the $ A^2(r)$ term in the Schroedinger equation which becomes dominant off-resonance),discarding also the spin-magnetic field interaction~\cite{blume} , and using CGS units,  as :
+\begin{eqnarray}
+&H_{int} =  \\
+& \left( \frac{2 \pi \hbar c^2 }{ \omega V}\right)^{1/2}
+({  a^\dagger }_{ k,\epsilon} exp(-i {{\bf k} \cdot {\bf r}} )+a_{k ,\epsilon} exp(i { {\bf k} \cdot {\bf  r}} ))\frac{e}{ m c} {  {\bf p} \cdot  {\bf \epsilon} } \label{fondamentale} \nonumber
+\end{eqnarray}
+
+where ${ r}$ is the electron coordinate, ${ p}$ the kinetic moment, ${  a^\dagger }_{ k,\epsilon}$, $a_{ k ,\epsilon}$ 
+are creation annihilation photon operators, $\omega= kc $, and $V$ is the space volume.
+
+The photon absorption is  a first  order perturbative process whose probability  per unit of time $w(\omega)$, 
+for photon with polarization  $\epsilon$  state, 
+is obtained from  $H_{int}$  matrix elements by the Fermi golden rule. For one photon in the $V$ volume :
+\begin{equation}
+  w(\hbar \omega) = \frac{(2 \pi)^2 e^2 \hbar }{\hbar \omega  V m^2 }  \sum_n  |\left< n |  exp(i { {\bf k} \cdot {\bf  r}} ) { {\bf  p} \cdot  {\bf \epsilon} } | 0 \right>|^2   \delta( \hbar \omega-E_n) 
+\end{equation}
+where $<n|$ is a complete set of eigenstates of matter, $<0|$  being the initial state, $ E_n$ is the energy difference between $<n|$ and $<0|$  and we have retained only the resonating denominator. 
+The absorption cross section is the quantity directly observable in experiment. It is obtained from the above equation dividing by the photon flux  $c/V$ :
+\begin{equation}
+  \sigma(\hbar \omega) = \frac{(2 \pi)^2 e^2 \hbar }{\hbar \omega   m^2 c }  \sum_n  |\left< n |  exp(i { {\bf k} \cdot {\bf  r}} ) { {\bf  p} \cdot  {\bf \epsilon} } | 0 \right>|^2   \delta( \hbar \omega-E_n) 
+\end{equation}
+
+The matrix element can be simplified in terms of ${\bf r}$ by using the following identity for  ${\bf p}$  :
+\begin{eqnarray}
+ &exp(i {  k \cdot r} ) {  p \cdot  \epsilon }
+\simeq ( 1 + i    k \cdot  r + ...  ) \frac{i m}{\hbar} [ H, {  r \cdot  \epsilon }]
+ \\ 
+& =
+  \frac{i m}{\hbar} ([ H, {  r \cdot  \epsilon }] + i [ H, {  k \cdot r}  {  r \cdot  \epsilon }] /2 + ...) \label{expansion} \nonumber
+\end{eqnarray} 
+
+Such substitution leads to :
+
+\begin{eqnarray}
+  \sigma(\hbar \omega) =& (2 \pi)^2  \alpha_0   \hbar \omega    f(\hbar \omega)
+\end{eqnarray}
+
+with 
+
+\begin{eqnarray}
+  f(\hbar \omega)  =  \sum_n  | < n | i > |^2   \delta( \hbar \omega-E_n) \nonumber
+\end{eqnarray}
+
+
+where 
+
+\begin{eqnarray}
+  |i> =   { {\bf  r} \cdot  {\bf \epsilon} }  +& i\frac{( { \bf k \cdot r})(  {\bf  r \cdot  \epsilon })}{2} +... | 0 > 
+\end{eqnarray}
+is the state resulting from the application of the interaction operator on the ground state.
+
+ The $f(\hbar \omega)$ is formally determined by its distribution moments
+which can be computed by iterative applications of the Hamiltonian :
+\begin{eqnarray}
+  \int  f(E) E^n d E =     < i | H^n| i > |
+\end{eqnarray}
+To avoid numerical ill-conditioning coming from the numerical linear dependence of  high order powers we proceed as explained in \cite{weiss}.
+ The $H$ hamiltonian is rescaled  and shifted to a  new $H'$     whose  spectra
+is comprised within $]-1,1[$ :
+$$   < n | H' | n > \in      ]-1,1[   $$.
+The overlap integrals between the spectra and Chebychev polynomia $T_n(x)$ is calculated by  recurrency.
+The Chebychev polynomia $T_n(x)$ are :
+$$       T_n(x) = cos( n arccos(x)) $$
+and satisfy the recurrency relation :
+
+$$ T_{m+1}(x) = 2 x T_m(x) ¡Ý T_{m¡Ý1} (x)$$.
+
+The overlap integral are :
+$$   \mu_n =  \int  f'(x) T_n(x)  =     < i |  T_n(H') | i > |         $$
+
+and can be obtained by applying  the recurrency relation to the left side of $|i>$ state :
+
+$$ T_{m+1}(H')| i > = 2 H' T_m(H')| i > ¡Ý T_{m¡Ý1} (H')| i >  $$.
+and then obtaining  the scalar product. The spectra is finally recovered as 
+
+$$  f( b+a x) = \frac{  (\mu_0+ 2 \sum_{n=1}^{\inf} \mu_n T_n(x)) }{a \pi \sqrt{1 - x^2} }            $$
+
+(mi manca il fattore a al denominatore nel programma, controllare
+anche il fattore 2 )
+where $b$ and $a$ are the shift and the scaling factor respectively, involved in the $ H' \rightarrow H $ transformation.
+The spectra can be obtained up to an arbitrary degree of resolution by
+applying iteratively the recurrency relation for a sufficent number of times. To avoid oscillation
+due to the truncation of the summation, a convolution is applied multiplying the $\mu_n$ 
+components by the Jackson kernel \cite{weiss}. 
+
+
+
+\section{Use of the code}
+
+The binary executable for absorption spectra calculation is named {\it abscalc}.
+ Besides the usual files which  are needed for
+a basic BigDFT calculation,  {\it abscalc} needs to find, 
+ in the current  work directory, at least the file  {\it input.abscalc}. 
+This file is specific to absorption calculations and 
+its structure will be explained  here.
+The  usual files needed for a basic BigDFT calculation and by {\it
+  abscalc} are, we recall it here : {\it input.dft},
+{\it posinp.xyz}, and the pseudopotential files {\it psppar.XX} for
+all the elements entering in the structure.
+
+Others files may be needed when one selects the option of importing
+the self consistent potential from a previous SCF calculation, as will
+be explained later. 
+
+Concerning {\it posinp.xyz} we suggest, for a good result,
+to set a large box diameter of about $25A$ or more, and periodic
+boundary conditions.
+
+The structure of the file   {\it input.abscalc} is the following.
+
+
+\begin{itemize}
+\item The input parameter {\it in\%iabscalc\_type} which can be equal to  $1$
+or $2$. In the first case the spectra is calculated as a serie of
+Tchebytchev polynomials, while in the second case the Lanczos
+tridiagonalisation is applied. We suggest the first option
+because the Lanczos method requires, in order to keep othogonality,
+ that all the vectors of the tridiagonal base be stored in memory
+and this limits the number of steps that one can perform.
+
+\item The  parameter {\it in\%iat\_absorber}, an integer number,
+is the position (starting from one) in  the {\it posinp.xyz} file
+ of the absorber atom. ({\it WARNING levare gnrm che non serve piu} )
+
+\item  {\it in\%L\_absorber} : this parameter is the angular moment
+of the multipole component of the interaction operator that 
+one wants to consider. It is $1$ for dipole interaction, $2$ for
+quadrupolar ...
+
+\item {\it in\%Gabs\_coeffs(i), i=1,2*in\%L\_absorber +1}.
+
+This are the components of the interaction operator, in cartesian
+coordinates. These correspond to the BigDFT internal representation 
+of tensors, which is based on spherical tensor. 
+({\it aggiunger un link o una spiegazione per il caso di L  generico })
+For dipolar interaction these will be therefore the three $x,y,z$
+components. In this present version the input are real numbers.
+Entry for the imaginary parts will have to be added in the future versions 
+for magnetic dichroism.
+
+\item   {\it in\%potshortcut } : This parameter determines how the 
+local potential is obtained. If it is set to $1$ the potential is
+obtained from the superposition of atomic charges.
+If it is set to $2$ the potential is read from a previous SCF
+calculation. In this case the program seaches, in the current work directory,
+the file {\it b2B\_xanes.cube}. Such file contains the atomic positions
+and the local potential of a previous SCF run and can be created
+setting the parameter {\it in\%output\_grid} to $-2$ in
+the file {\it input.dft}. The SCF potential is interpolated, using
+interpolants wavelets, to get the potential on the target grid.
+The SCF grid of the previous run must have less points than the target
+grid.
+This is easily the case, because in xanes calculations one usually
+sets a large diameter for the box. The fact of choosing a large box 
+ limits the spurious oscillations due to bands effects and to interference with the replica
+of the absorber atom in the other Bravais cells. 
+
+\item {\it in\%nsteps } : this is the total number of Hamiltonian
+  applications. The larger this number, the better the resolution you get
+  in the calculated spectra.
+
+\end{itemize}
+
+
+\subsection{Note about the absorber pseudopotential}
+ In the actual version of the code ($1.4$) for the absorber
+psudopotential one must use a $Z+1$ approximation.
+For future versions of the code the developpment of on-the fly
+pseudopotentials, corresponding to the excited electronic structure,
+is foreseen. {\it verificare che non saranno invece tabulati } 
+
+
+\section{Description of the output}
+
+In case of  {\it in\%iabscalc\_type} equal to  $1$, the spectra
+is written, in the current work directory, with the name :
+{\it  cheb\_spectra\_NUM  } where {\it NUM } is the number of 
+Chebychev components. The number of components increases
+at each Hamiltonian application and ,during the calculation,
+ several partial results, with increasing number of components,
+ are written.
+
+ % 320 4399475 
+
+
+\section{The reversed PAW method}
+
+The BigDFT code, in the actual version as well as in the previous
+ones, uses a norm-conserving pseudo-potential.
+From this pseudo-potential we extract the corresponding
+PAW projector.
+This is the reverse of the PAW method. In the PAW method 
+the projector determines the pseudopotential. In our case
+instead, the PAW projector is a function of the pseudo-potential.
+The implementation of such function is detailed here.
+We need to construct the projector for the absorber atom only
+because the core orbitals dont overlap other atoms.
+For the absorber atom we proceed by calculating 
+the SCF solution in the isolated atom case, once using pseudo-potentials,
+and another using the all-electrons potential.
+Then, for these potentials, we calculate an almost-complete set 
+of eigen-functions which will be the basis for the projector.
+We need to do this only for selected angular moments.
+For example for the $K$ edge and dipolar interaction
+only $l=1$ eigen-functions are calculated.
+
+To calculated the almost-complete set of eigen-functions
+we solve the radial Schroedinger equation in the interval $[0,R_c]$
+for the lowest $N_c$ eigenvalues. The radius $R_c$ must be large
+enough to contain the core orbitals. We have hard-coded it to the
+value of $5au$. We have set $N_c=200$. With this choice of parameters
+the maximum eigenvalue of the almost-complete basis is of the order
+of $XXX Hartree$. We can compare this value with the maximum
+eigenvalue representable with wavelets on a grid with spacing
+$d=0.3au$, for a typical BigDFT calculation,  which is $Emax = XXXX$.
+Our almost-complete basis is indeed
+complete, after this comparison, because 
+it covers completely the BigDFT spectra. 
+Naming   $\tilde \psi_{nlm}$ and $\psi_{nlm}$ 
+the solutions for the pseudo-potential and the all-electrons case
+respectively, 
+the projector is thus written :
+$$   P= \sum_{nlm} |\tilde \psi_{nlm}><\psi_{n+\Delta_l,lm}| $$
+where $\Delta_l$ is the number of core orbitals contained in the
+pseudopotential.
+We show in fig xxx the radial parts 
+ $\tilde \psi_{nl}(r)$ and $\psi_{n+\Delta_l,l}(r)$  for $l=1$
+ in the case of Iron, with a HGH pseudopotential  ( referenza )
+with $Zion=16$, for $n=1,2,xx,xxx$.
+In figure yyy we show the corresponding  pseudo-eigenvalues $\tilde E_{n,l=1}$ and
+the all-electrons ones $ E_{n+\Delta_l,l=1}$.
+We can see that the agreement is within XXX for the first XXx
+eigenvalues and then increase still remaining better than XXX per cent,
+while the agreement between the psuedo-wavefunctions and the
+all-electrons ones remains excellent. 
+
+
+\section{Test against an exactly solvable case.}
+ 
+in progress
+
+
+  
+ \begin{thebibliography}{0}
+\bibitem{Taillefumier}** This reversed PAW procedure, that we describe and document here, looks similar to the one which seems to be  used in Taillefumier et al., Phys. Rev. B 66, 195107 (2002) 
+\bibitem{blume}   M. Blume, in Resonant Anomalous X-Ray Scattering, edited by G. Materlik, J. Sparks and K. Fisher (Elsevier, Amsterdam, 1994), p. 495.
+\bibitem{weiss} A. Weiss, G. Wellein, A. Alvermann and H. Fehske Rev. Mod. Phys. 78, 275 (2006) 
+
+
+ \end{thebibliography}
 
 \end{document}

@@ -376,6 +376,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   else
      noncoll=1
   end if
+  
   if (semicore) then
      if (present(orbsv)) then
         norbi_max=max(noncoll*maxval(norbsc_arr),orbsv%norb)
@@ -436,6 +437,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      ndim_hamovr=2*ndim_hamovr
   end if
 
+
   allocate(hamovr(nspin*ndim_hamovr,n2hamovr,orbsu%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,hamovr,'hamovr',subname)
 
@@ -444,6 +446,13 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Overlap Matrix...'
+
+  !after having applied the hamiltonian to all the atomic orbitals
+  !we split the semicore orbitals from the valence ones
+  !this is possible since the semicore orbitals are the first in the 
+  !order, so the linear algebra on the transposed wavefunctions 
+  !may be splitted
+
 
   ispsi=1
   do ikptp=1,orbsu%nkptsp
@@ -618,7 +627,6 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
   do ispin=1,nspin !this construct assumes that the semicore is identical for both the spins
      do i=1,natsc+1
         norbi=norbsc_arr(i,ispin)
-
         if (nspinor ==1) then
            call gemm('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
                 hpsi(1,iorbst),max(1,nvctrp),&
@@ -961,21 +969,10 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
                 hamovr(imatrst+norbi*norbj),norbi,0.0_wp,psivirt(ispsiv),max(1,nvctrp))
         else
            call c_gemm('N','N',ncomp*nvctrp,nvirte(ispin),norbi,(1.0_wp,0.0_wp),&
-                psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst+norbi*norbj),norbi,&
+                psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst+ncplx*norbi*norbj),norbi,&
                 (0.0_wp,0.0_wp),psivirt(ispsiv),max(1,ncomp*nvctrp))
         end if
         ispsiv=ispsiv+nvctrp*nvirte(ispin)*nspinor
-!tentative example for calculating psivirt distribution
-!        if (nspinor == 1) then
-!           call gemm('N','N',ncoeff,nvirte(ispin),norbi,1.0_wp,&
-!                psigau(1,iorbst),max(1,ncoeff),&
-!                hamovr(imatrst+norbi*norbj),norbi,0.0_wp,psivirt(ispsiv),max(1,ncoeff))
-!        else
-!           call c_gemm('N','N',ncomp*ncoeff,nvirte(ispin),norbi,(1.0_wp,0.0_wp),&
-!                psigau(1,iorbst),max(1,ncomp*ncoeff),hamovr(imatrst+norbi*norbj),norbi,&
-!                (0.0_wp,0.0_wp),psivirt(ispsiv),max(1,ncomp*ncoeff))
-!        end if
-!        ispsiv=ispsiv+ncoeff*nvirte(ispin)*nspinor
      end if
      iorbst=norbi+norbsc+1 !this is equal to norbe+1
      iorbst2=norbu+1
@@ -1000,7 +997,7 @@ subroutine psitospi(iproc,nproc,norbe,norbep,norbsc,&
   integer, intent(in) :: nvctr_c,nvctr_f
   integer, intent(in) :: ntypes
   integer, intent(in) :: norbsc,natsc,nspin
-  integer, dimension(ntypes), intent(in) :: iasctype
+  integer, dimension(nat), intent(in) :: iasctype
   integer, dimension(norbep), intent(in) :: otoa
   integer, dimension(nat), intent(in) :: iatype,natpol
   integer, dimension(norbe*nspin), intent(in) :: spinsgne

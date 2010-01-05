@@ -27,10 +27,9 @@ program BigDFT
   implicit none
   character(len=*), parameter :: subname='BigDFT'
   character(len=20) :: units
-  logical :: exists
   integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode
   integer ::  ncount_bigdft
-  real(gp) :: etot,sumx,sumy,sumz,tt
+  real(gp) :: etot,sumx,sumy,sumz
   logical :: exist_list
   !input variables
   type(atoms_data) :: atoms
@@ -85,51 +84,12 @@ program BigDFT
      !welcome screen
      if (iproc==0) call print_logo()
 
-     !read atomic file
-     call read_atomic_file(trim(arr_posinp(iconfig)),iproc,atoms,rxyz)
+     ! Read all input files.
+     call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
+          & "input.dft", "input.kpt", "input.geopt", inputs, atoms, rxyz)
 
      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fxyz,'fxyz',subname)
-
-     ! read dft input variables
-     call dft_input_variables(iproc,'input.dft',inputs,atoms%symObj)
-     !call read_input_variables(iproc,'input.dat',inputs)
-
-     ! read k-points input variables (if given)
-     call kpt_input_variables(iproc,'input.kpt',inputs,atoms)
-
-     !read geometry optimsation input variables
-     !inquire for the file needed for geometry optimisation
-     !if not present, perform a simple geometry optimisation
-     inquire(file="input.geopt",exist=exists)
-     if (exists) then
-        call geopt_input_variables(iproc,'input.geopt',inputs)
-     else
-        call geopt_input_variables_default(inputs)
-     end if
-
-     do iat=1,atoms%nat
-        if (atoms%ifrztyp(iat) == 0) then
-           call random_number(tt)
-           rxyz(1,iat)=rxyz(1,iat)+inputs%randdis*tt
-           call random_number(tt)
-           rxyz(2,iat)=rxyz(2,iat)+inputs%randdis*tt
-           call random_number(tt)
-           rxyz(3,iat)=rxyz(3,iat)+inputs%randdis*tt
-        end if
-     enddo
-
-     !atoms inside the box (this can be insertedindise call_bigdft routine
-     do iat=1,atoms%nat
-        if (atoms%geocode == 'P') then
-           rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
-           rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
-           rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
-        else if (atoms%geocode == 'S') then
-           rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
-           rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
-        end if
-     end do
 
      call init_restart_objects(atoms,rst,subname)
 
@@ -166,9 +126,7 @@ program BigDFT
         end if
      endif
 
-
-
-     call deallocate_atoms(atoms ) 
+     call deallocate_atoms(atoms,subname) 
 
      call free_restart_objects(rst,subname)
 

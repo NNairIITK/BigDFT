@@ -11,7 +11,7 @@
 !!
 !! SOURCE
 !!
-module minimization
+module minpar
   implicit none
   type parameterminimization
      !general parameters for all methods
@@ -36,7 +36,7 @@ module minimization
      real(8)::xtol=1.d-10  !epsilon(1.d0)
      real(8)::betax 
   end type parameterminimization
-end module minimization
+end module minpar
 !!***
 
 
@@ -49,7 +49,7 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   use module_base
   use module_interfaces, except_this_one => geopt
   use module_types
-  use minimization, only: parameterminimization
+  use minpar, only: parameterminimization
   implicit none
   integer, intent(in) :: nproc,iproc
   type(atoms_data), intent(inout) :: at
@@ -112,6 +112,12 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
 END SUBROUTINE geopt
 !!***
 
+
+!!****f* BigDFT/ab6md
+!! FUNCTION
+!!  Molecular Dynamics
+!! SOURCE
+!!
 subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
@@ -203,6 +209,8 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   fail = (iexit == 0)
 end subroutine ab6md
+!!***
+
 
 !!****f* BigDFT/bfgs
 !! FUNCTION
@@ -212,7 +220,7 @@ end subroutine ab6md
 subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
-  use minimization, only:parameterminimization
+  use minpar, only:parameterminimization
   implicit none
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
@@ -420,6 +428,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 END SUBROUTINE bfgs
 !!***
 
+
 subroutine timeleft(tt)
   use module_base
   implicit none
@@ -439,6 +448,12 @@ subroutine timeleft(tt)
   tt=timelimit-real(tcpu,gp)/3600._gp ! in hours
 end subroutine timeleft
 
+
+!!****f* BigDFT/conjgrad
+!! FUNCTION
+!!  Conjugate gradient method
+!! SOURCE
+!!
 subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   use module_base
   use module_types
@@ -462,7 +477,6 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   logical::check
   character*4 fn4
   character*40 comment
-
 
   allocate(tpos(3,at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,tpos,'tpos',subname)
@@ -623,7 +637,6 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
         if (fmax < 3.d-1) call updatefluctsum(at,fxyz,nfluct,fluctsum,fluct)
 
-
         call atomic_dot(at,gpf,gpf,unten)
         call atomic_dot(at,gpf,fxyz,oben1)
         call atomic_dot(at,fxyz,fxyz,oben2)
@@ -736,7 +749,14 @@ contains
   end subroutine close_and_deallocate
 
 end subroutine conjgrad
+!!***
 
+
+!!****f* BigDFT/steepdes
+!! FUNCTION
+!!  Steepedt descent method
+!! SOURCE
+!!
 subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
      nfluct,fnrm,in,forcemax_sw,nitsd,fluct)
   use module_base
@@ -984,6 +1004,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
   call memocc(i_stat,i_all,'tpos',subname)
 
 END SUBROUTINE steepdes
+!!***
 
 
 subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
@@ -1019,6 +1040,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
 
   anoise=1.e-4_gp
   fluctsum=0._gp 
+  fluct=0._gp
   nfluct=0
 
      beta=in%betax
@@ -1314,7 +1336,7 @@ END SUBROUTINE transforce_forfluct
 subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
   use module_base
   use module_types
-  use minimization, only: parameterminimization
+  use minpar, only: parameterminimization
   implicit none
   integer :: n,m,iproc,iwrite
   type(atoms_data), intent(in) :: at
@@ -1481,7 +1503,7 @@ END SUBROUTINE lbfgs
 subroutine init_lbfgs(at,n,m,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
   use module_base
   use module_types
-  use minimization, only:parameterminimization
+  use minpar, only:parameterminimization
   implicit none
   type(atoms_data), intent(in) :: at
   type(parameterminimization)::parmin
@@ -1554,7 +1576,7 @@ end subroutine init_lbfgs
 !! SOURCE
 !!
 subroutine lb1(nfun,gnorm,n,m,x,f,g,a_t,finish,parmin)
-  use minimization, only: parameterminimization
+  use minpar, only: parameterminimization
   implicit none
   type(parameterminimization) :: parmin
   integer::nfun,n,m,i
@@ -1617,7 +1639,7 @@ END SUBROUTINE lb1
 subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin)
   use module_base
   use module_types
-  use minimization, only: parameterminimization
+  use minpar, only: parameterminimization
   implicit none
   type(atoms_data), intent(in) :: at
   type(parameterminimization)::parmin
@@ -1756,7 +1778,7 @@ END SUBROUTINE mcsrch
 !!***
 
 subroutine mcstep(a_l,fx,dx,a_u,fy,dy,a_t,fp,dp,brackt,stpmin,stpmax,info) !,parmin)
-  use minimization, only:parameterminimization
+  use minpar, only:parameterminimization
   implicit none
 !  type(parameterminimization) :: parmin
   integer::info

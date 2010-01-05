@@ -1,5 +1,15 @@
-
-
+!!****m* BigDFT/lanczos_base
+!! FUNCTION
+!!   Module to handle diagonalization scheme
+!! COPYRIGHT
+!!    Copyright (C) 2009 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 module lanczos_base
   use module_base
   implicit none
@@ -164,7 +174,6 @@ contains
     oldalpha(:m-1)=LB_eval(:m-1)
 
   end function converged
-
 
 
   subroutine diago(k,m)
@@ -519,26 +528,18 @@ contains
           call EP_add_from_vect_with_fact( p, i-1  ,   -LB_beta (i-1) )
        endif
        
-       
-
        LB_beta(i)=sqrt(EP_scalare(p,p))
-
-
        
        omega(i,i)=1.
        
        max0 = 0.0
 
-
-       
        if( LB_beta(i).ne.0.0) then
           do j=0,i
              omega(i+1,j) = eusn
 
              if( j.lt.k) then
                 
-
-
                 add = 2 * eusn + abs( LB_alpha(j)-LB_alpha(i)) * abs(omega(i,j))
                 
                 if(i.ne.k) then
@@ -598,8 +599,6 @@ contains
              max0 = max0+ omega(i+1,j)**2
           enddo
        endif
-       
-
 
        
        if ( LB_beta(i).eq.0.0 .or.  max0.gt.eu  ) then
@@ -1201,14 +1200,6 @@ contains
       RETURN
       END SUBROUTINE R8TX
 
-
-
-
-
-
-
-
   
 end module lanczos_base
-
-
+!!***

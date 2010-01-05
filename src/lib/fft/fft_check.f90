@@ -36,11 +36,11 @@ program fft_check
 
    use module_fft_sg
    implicit none
-   integer :: i
+   !integer :: i
    write(*,'(a)') 'FFT test: (n1,n2,n3)'
-   do i=1,ndata
-      call do_fft(i_data(i), 3, 3)
-   end do
+   !do i=1,ndata
+   !   call do_fft(i_data(i), 3, 3)
+   !end do
    call do_fft(  7, 16,128)
    call do_fft(  3, 16,128)
    call do_fft(128,128,128)
