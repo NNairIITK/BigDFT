@@ -163,6 +163,7 @@ end
   LDFLAGS="$LDFLAGS_OLD"
   FCFLAGS="$FCFLAGS_OLD"
 else
+  dnl We put an include in case of no MPI to have access to mpi fake.
   MPI_INCLUDE='-I$(top_builddir)/src/modules'
 fi
 AM_CONDITIONAL(USE_MPI, test "$ac_use_mpi" = "yes")

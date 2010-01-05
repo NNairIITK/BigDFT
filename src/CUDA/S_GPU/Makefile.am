@@ -36,7 +36,7 @@ INCLUDE_S_GPU = -I$(top_srcdir)/src/CUDA/S_GPU/include/  -I$(top_srcdir)/src/CUD
 noinst_LIBRARIES = libs_gpu.a
 
 libs_gpu_a_SOURCES = $(S_GPU_SOURCES) $(S_GPU_SOURCES_CUDA)
-AM_CPPFLAGS = $(INCLUDE_S_GPU) 
+AM_CPPFLAGS = $(INCLUDE_S_GPU) -I$(top_builddir)
 AM_CFLAGS = $(INCLUDE_S_GPU) 
 
 

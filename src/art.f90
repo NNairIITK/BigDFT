@@ -149,7 +149,7 @@ program art90
        open(unit=FLIST,file=EVENTSLIST,status='unknown',action='write',position='append',iostat=ierror)
     endif
 
-    if (iproc .eq. 0 ) random_number = ran(3)
+    if (iproc .eq. 0 ) random_number = ran3()
     call MPI_Bcast(random_number,1,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
 
 

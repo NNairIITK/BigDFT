@@ -1,14 +1,14 @@
 #include "s_gpu.h"
+#include <config.h>
 
-
-void sg_init__(int *GPUshare, int *useGPU,int *iproc,int *error)
+void FC_FUNC(sg_init,SG_INIT)(int *GPUshare, int *useGPU,int *iproc,int *error)
 {
   *error = sg_init(GPUshare,useGPU,*iproc);
 }
 
 //=========================
 
-void sg_end__()
+void FC_FUNC(sg_end,SG_END)()
 {
   sg_end();
 }
@@ -17,20 +17,20 @@ void sg_end__()
 //=========================
 
 
-void sg_create_stream__(sg_stream_ptr *stream)
+void FC_FUNC(sg_create_stream,SG_CREATE_STREAM)(sg_stream_ptr *stream)
 {
   *stream = sg_create_stream();
 }
 
 //=========================
 
-void sg_launch_all_streams__()
+void FC_FUNC(sg_launch_all_streams,SG_LAUNCH_ALL_STREAMS)()
 {
   sg_launch_all_streams();
 }
 //=========================
 
-void sg_gpu_pi_send__(GPU_ptr *dest_GPU_pointer,
+void FC_FUNC(sg_gpu_pi_send,SG_GPU_PI_SEND)(GPU_ptr *dest_GPU_pointer,
 		      void **src_CPU_pointer, 
 		      int *nsize,
 		      int *precision,
@@ -44,7 +44,7 @@ void sg_gpu_pi_send__(GPU_ptr *dest_GPU_pointer,
 //=========================
 
 
-void sg_gpu_pi_recv__(void **dest_CPU_pointer,
+void FC_FUNC(sg_gpu_pi_recv,SG_GPU_PI_RECV)(void **dest_CPU_pointer,
 		       GPU_ptr *src_GPU_pointer, 
 		       int *nsize,
 		       int *precision,
@@ -60,7 +60,7 @@ void sg_gpu_pi_recv__(void **dest_CPU_pointer,
 //=========================
 
 
-void sg_memcpy_f_to_c__(void **dest,
+void FC_FUNC(sg_memcpy_f_to_c,SG_MEMCPY_F_TO_C)(void **dest,
 			void *srcFortran,
 			int *nsize,
 			int *precision,
@@ -76,7 +76,7 @@ void sg_memcpy_f_to_c__(void **dest,
 
 //=========================
 
-void sg_memcpy_c_to_f__(void *destFortran,
+void FC_FUNC(sg_memcpy_c_to_f,SG_MEMCPY_C_TO_F)(void *destFortran,
 			void **src,
 			int *nsize,
 			int *precision,
@@ -102,7 +102,7 @@ void sg_memcpy_c_to_f__(void *destFortran,
 //=========================
 
 
-/*void sg_calc__(sg_callback_ptr *f_call, void **param, sg_stream_ptr *stream, int *ierr)
+/*void FC_FUNC(sg_calc,SG_CALC)(sg_callback_ptr *f_call, void **param, sg_stream_ptr *stream, int *ierr)
 {
 
 

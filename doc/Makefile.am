@@ -12,7 +12,8 @@ EXTRA_DIST = \
 	Manual/manual.tex \
 	Manual/sym_16.pdf
 
-doc_DATA = \
+if BUILD_PDFDOC
+pdfs = \
 	cluster.pdf \
 	halFFT.pdf \
 	manual.pdf

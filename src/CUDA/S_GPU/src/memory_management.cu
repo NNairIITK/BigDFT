@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include "exceptions.h"  
 
+#include <config.h>
+
 //functions for allocate / deallocate / send memory to GPU
 
 

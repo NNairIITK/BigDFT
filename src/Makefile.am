@@ -328,8 +328,18 @@ frequencies_LDADD = libbigdft.a \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
-bart_SOURCES = art.f90
-bart_FCFLAGS = -Iart
+bart_SOURCES = \
+	art/bigdft_forces.f90 \
+	art/diis.f90 \
+	art/initialize_potential.f90 \
+	art/lanczos.f90 \
+	art/find_saddle.f90 \
+	art/min_converge.f90 \
+	art/saddle_converge.f90 \
+	art/initialize.f90 \
+	art/read_parameters.f90 \
+	art.f90
+bart_FCFLAGS = -I. -Iart -Imodules
 bart_LDFLAGS = 
 bart_LDADD = art/libart.a \
 	libbigdft.a \
@@ -355,8 +365,7 @@ CLEANFILES = \
 	miscellany.@MODULE_EXT@ MISCELLANY.@MODULE_EXT@ \
 	neb_routines.@MODULE_EXT@ NEB_ROUTINES.@MODULE_EXT@ \
 	numeric.@MODULE_EXT@ NUMERIC.@MODULE_EXT@ \
-	minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
-	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
+	geopt_minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
 	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@ \
 	scfloop_api.@MODULE_EXT@ SCFLOOP_API.@MODULE_EXT@
 
@@ -402,3 +411,21 @@ $(modules_objects) : $(mpi_include)
 #	interfaces.o
 
 #memguess.o: base.o types.o
+
+art/bigdft_forces.o: BigDFT_API.o
+
+art/find_saddle.o: art/defs.f90 art/lanczos.o
+
+art/initialize_potential.o: art/defs.f90 art/bigdft_forces.o
+
+art/lanczos.o: art/defs.f90 art/random.o art/bigdft_forces.o
+
+art/min_converge.o: art/defs.f90 art/bigdft_forces.o
+
+art/saddle_converge.o: art/defs.f90 art/bigdft_forces.o
+
+art/diis.o: art/defs.f90 art/bigdft_forces.o art/random.o
+
+art/initialize.o: art/defs.f90 art/lanczos.o
+
+art/read_parameters.o: art/defs.f90 art/lanczos.o

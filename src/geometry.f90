@@ -11,7 +11,7 @@
 !!
 !! SOURCE
 !!
-module minimization
+module geopt_minimization
   implicit none
   type parameterminimization
      !general parameters for all methods
@@ -36,7 +36,7 @@ module minimization
      real(8)::xtol=1.d-10  !epsilon(1.d0)
      real(8)::betax 
   end type parameterminimization
-end module minimization
+end module geopt_minimization
 !!***
 
 
@@ -49,7 +49,7 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   use module_base
   use module_interfaces, except_this_one => geopt
   use module_types
-  use minimization, only: parameterminimization
+  use geopt_minimization, only: parameterminimization
   implicit none
   integer, intent(in) :: nproc,iproc
   type(atoms_data), intent(inout) :: at
@@ -212,7 +212,7 @@ end subroutine ab6md
 subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
-  use minimization, only:parameterminimization
+  use geopt_minimization, only:parameterminimization
   implicit none
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
@@ -1314,7 +1314,7 @@ END SUBROUTINE transforce_forfluct
 subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
   use module_base
   use module_types
-  use minimization, only: parameterminimization
+  use geopt_minimization, only: parameterminimization
   implicit none
   integer :: n,m,iproc,iwrite
   type(atoms_data), intent(in) :: at
@@ -1481,7 +1481,7 @@ END SUBROUTINE lbfgs
 subroutine init_lbfgs(at,n,m,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
   use module_base
   use module_types
-  use minimization, only:parameterminimization
+  use geopt_minimization, only:parameterminimization
   implicit none
   type(atoms_data), intent(in) :: at
   type(parameterminimization)::parmin
@@ -1554,7 +1554,7 @@ end subroutine init_lbfgs
 !! SOURCE
 !!
 subroutine lb1(nfun,gnorm,n,m,x,f,g,a_t,finish,parmin)
-  use minimization, only: parameterminimization
+  use geopt_minimization, only: parameterminimization
   implicit none
   type(parameterminimization) :: parmin
   integer::nfun,n,m,i
@@ -1617,7 +1617,7 @@ END SUBROUTINE lb1
 subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin)
   use module_base
   use module_types
-  use minimization, only: parameterminimization
+  use geopt_minimization, only: parameterminimization
   implicit none
   type(atoms_data), intent(in) :: at
   type(parameterminimization)::parmin
@@ -1756,7 +1756,7 @@ END SUBROUTINE mcsrch
 !!***
 
 subroutine mcstep(a_l,fx,dx,a_u,fy,dy,a_t,fp,dp,brackt,stpmin,stpmax,info) !,parmin)
-  use minimization, only:parameterminimization
+  use geopt_minimization, only:parameterminimization
   implicit none
 !  type(parameterminimization) :: parmin
   integer::info

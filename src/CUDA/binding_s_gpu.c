@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <config.h>
 
 #include <S_GPU/include/sg_common_def.h>
 
