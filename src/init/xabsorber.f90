@@ -2882,7 +2882,7 @@ function GetBottom(  atoms, iproc)
   
   
 
-  abs_final_L = 1
+  abs_final_L = 0
 
 
 
@@ -2891,6 +2891,7 @@ function GetBottom(  atoms, iproc)
   psp_modifier=0;
 
   do ity=1, atoms%ntypes
+     print *, " for atoms " , atoms%nzatom(ity)
      call abs_generator_modified(iproc,atoms%nzatom(ity), atoms%nelpsp(ity),atoms%psppar(0,0,ity),&
           atoms%npspcode(ity),ng-1 ,noccmax , lmax , expo,psi,aeval, occup , psp_modifier , &
           Nsol, abs_final_L , Ngrid,Egrid,  rgrid , psigrid )

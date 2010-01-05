@@ -100,13 +100,14 @@
  total ionic charge, leaked charge           -16.000000000000   0.000E+00
  PSolver, periodic BC, dimensions:   108  108  108   proc    1   ixc:  0 ...done.
  ------------------------------------------------------- Input Wavefunctions Creation
- Input wavefunction data for atom     Fe NOT found, automatic generation... done.
  Generating 10 Atomic Input Orbitals
    of which 4 are semicore orbitals
  Wavefunctions memory occupation for root processor (Bytes): 0
- Calculating AIO wavefunctions... done.
+ Calculating AIO wavefunctions: 
+ Generation of input wavefunction data for atom     Fe: 
+   Elec. Configuration: [s] 2.00 , [p] 2.00 2.00 2.00 , d 6/5 6/5 6/5 6/5 6/5 , s 2.00 , ... done.
  Wavefunctions memory occupation for root processor (Bytes): 12855280
- Writing wavefunctions in wavelet form  done.
+ Writing wavefunctions in wavelet form... done.
  Deviation from normalization of the imported orbitals    7.47E-05
  Calculation of charge density... done. Total electronic charge=      15.999983273238
  PSolver, periodic BC, dimensions:   108  108  108   proc    1   ixc:  1 ...done.
@@ -117,6 +118,13 @@
  for 1s of atom number  1  ( atomname = Fe                   )
  After application of a 2*L-pole  with L=  1
   from file gproje_Fe_1s_1                                                                  
+ OK 
+ OK 1
+ OK 2
+  for atoms  26
+ OK 4
+ OK 45
+ OK 5
  Writing wavefunctions in wavelet form ........................................ done.
  Deviation from normalization of the imported orbitals    0.00E+00
  Hamiltonian application...  done 
@@ -144,17 +152,17 @@
  coefficients from Chebychev 
    40 1.6735726182760826E+02 5.8204693553767584E-03
  ... 
- 3.0156633242033612E-05
--7.1407692535040493E-05
+ 3.0156633242032962E-05
+-7.1407692535039192E-05
  9.0131889803573943E-05
--8.1654380684439282E-05
- 6.0664234217982236E-05
--5.8526266284675884E-05
- 1.0568901092012002E-04
--1.9372860858431098E-04
- 2.6012592511032574E-04
--2.4316831465410397E-04
- CPU time/ELAPSED time for root process     0        18.14        18.14
+-8.1654380684437764E-05
+ 6.0664234217980284E-05
+-5.8526266284675450E-05
+ 1.0568901092011937E-04
+-1.9372860858431033E-04
+ 2.6012592511032531E-04
+-2.4316831465410376E-04
+ CPU time/ELAPSED time for root process     0        17.79        17.80
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is
@@ -162,9 +170,9 @@
       y direction     0.00000000E+00
       z direction     0.00000000E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1268 allocations and 1268 deallocations, remaining memory(B):-16
- memory occupation peak: 72 MB
- for the array  vxci in the routine xc_energy
+ 1244 allocations and 1244 deallocations, remaining memory(B):0
+ memory occupation peak: 82 MB
+ for the array  wz in the routine gaussians_to_wavelets_orb
                              TTTT         F       DDDDD    
                             T    T               D         
                            T     T        F     D          
@@ -267,13 +275,14 @@
  total ionic charge, leaked charge           -16.000000000000   0.000E+00
  PSolver, periodic BC, dimensions:   108  108  108   proc    1   ixc:  0 ...done.
  ------------------------------------------------------- Input Wavefunctions Creation
- Input wavefunction data for atom     Fe NOT found, automatic generation... done.
  Generating 10 Atomic Input Orbitals
    of which 4 are semicore orbitals
  Wavefunctions memory occupation for root processor (Bytes): 0
- Calculating AIO wavefunctions... done.
+ Calculating AIO wavefunctions: 
+ Generation of input wavefunction data for atom     Fe: 
+   Elec. Configuration: [s] 2.00 , [p] 2.00 2.00 2.00 , d 6/5 6/5 6/5 6/5 6/5 , s 2.00 , ... done.
  Wavefunctions memory occupation for root processor (Bytes): 12855280
- Writing wavefunctions in wavelet form  done.
+ Writing wavefunctions in wavelet form... done.
  Deviation from normalization of the imported orbitals    7.47E-05
  Calculation of charge density... done. Total electronic charge=      15.999983273238
  PSolver, periodic BC, dimensions:   108  108  108   proc    1   ixc:  1 ...done.
@@ -314,26 +323,26 @@
   alpha and beta from lanczos 
    20 1.7562530507505252E-03
  4.6367176497141834E+01 4.6854586541482277E+01
- 1.1070200087401739E+02 6.6843275871319179E+01
- 1.4012733872842523E+02 7.7668910309474697E+01
- 1.5515439706358336E+02 8.1978527003579131E+01
- 1.6202146082219443E+02 8.3225919541584091E+01
- 1.6347576981223307E+02 8.3689229430736489E+01
- 1.6520956102295091E+02 8.3714612022203383E+01
- 1.6458234736421960E+02 8.2928345714907891E+01
- 1.6249982934072500E+02 8.1634089675380466E+01
- 1.5995985716171958E+02 8.0587272898735023E+01
- 1.6189714557890920E+02 8.2699908753817596E+01
- 1.6476485774115011E+02 8.3304154426189783E+01
- 1.6625821420349916E+02 8.2753375490318405E+01
- 1.6363483954859856E+02 8.2795831040871633E+01
- 1.6191549704645382E+02 8.1202038340193610E+01
- 1.6186495853321455E+02 7.9126926656164017E+01
- 1.6111621324290468E+02 8.0369732062818500E+01
- 1.5225934446109125E+02 7.8766290640403398E+01
- 1.5689912593807364E+02 7.4476439338186367E+01
- 1.4926424466875827E+02 7.4740068926014644E+01
- CPU time/ELAPSED time for root process     0        18.23        18.23
+ 1.1070200087401743E+02 6.6843275871319179E+01
+ 1.4012733872842517E+02 7.7668910309474683E+01
+ 1.5515439706358342E+02 8.1978527003579146E+01
+ 1.6202146082219429E+02 8.3225919541584091E+01
+ 1.6347576981223321E+02 8.3689229430736503E+01
+ 1.6520956102295071E+02 8.3714612022203340E+01
+ 1.6458234736421986E+02 8.2928345714907906E+01
+ 1.6249982934072489E+02 8.1634089675380466E+01
+ 1.5995985716171961E+02 8.0587272898735009E+01
+ 1.6189714557890920E+02 8.2699908753817567E+01
+ 1.6476485774115017E+02 8.3304154426189868E+01
+ 1.6625821420349877E+02 8.2753375490318390E+01
+ 1.6363483954859899E+02 8.2795831040871576E+01
+ 1.6191549704645377E+02 8.1202038340193624E+01
+ 1.6186495853321466E+02 7.9126926656164017E+01
+ 1.6111621324290459E+02 8.0369732062818471E+01
+ 1.5225934446109150E+02 7.8766290640403440E+01
+ 1.5689912593807315E+02 7.4476439338186410E+01
+ 1.4926424466875875E+02 7.4740068926014615E+01
+ CPU time/ELAPSED time for root process     0        17.93        17.93
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is
@@ -341,9 +350,9 @@
       y direction     0.00000000E+00
       z direction     0.00000000E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1300 allocations and 1300 deallocations, remaining memory(B):-16
- memory occupation peak: 72 MB
- for the array  psir in the routine local_hamiltonian
+ 1276 allocations and 1276 deallocations, remaining memory(B):0
+ memory occupation peak: 82 MB
+ for the array  wz in the routine gaussians_to_wavelets_orb
                              TTTT         F       DDDDD    
                             T    T               D         
                            T     T        F     D          
@@ -446,18 +455,9 @@
  total ionic charge, leaked charge           -16.000000000000   0.000E+00
  PSolver, periodic BC, dimensions:   108  108  108   proc    1   ixc:  0 ...done.
   going to calculate spectra 
-  reading atomic positions from file b2B_xanes.xyz
- Number of atoms     =     1
- Number of atom types=     1
- Number of symmetries=    48 | point group=  m-3m
- Atoms of type 1 are Fe
- SHIFT  0.9448630624967933 0.9448630624967933 0.9448630624967933
+ SHIFT  0.944862749961537 0.944862749961537 0.944862749961537
   scaling function for interpolation 
-  reading potential from file b2B_xanes.pot
-  allocation for rho for  n1i,n2i,n3i  96 96 96
-  going to read all pot points 
-  closing file  
-  reading OK 
+ writing NEW local_potential.pot
   exiting b2B
   IN ROUTINE  chebychev  
  Wavefunctions memory occupation for root processor (Bytes): 1285528
@@ -465,6 +465,13 @@
  for 1s of atom number  1  ( atomname = Fe                   )
  After application of a 2*L-pole  with L=  1
   from file gproje_Fe_1s_1                                                                  
+ OK 
+ OK 1
+ OK 2
+  for atoms  26
+ OK 4
+ OK 45
+ OK 5
  Writing wavefunctions in wavelet form ........................................ done.
  Deviation from normalization of the imported orbitals    0.00E+00
  Hamiltonian application...  done 
@@ -492,17 +499,17 @@
  coefficients from Chebychev 
    40 1.6735726182760826E+02 5.8204693553767584E-03
  ... 
- 3.0981533389936840E-05
--7.2193506779322410E-05
- 9.0843163766145350E-05
--8.2282316568681136E-05
- 6.1226718162119128E-05
--5.9048116611427675E-05
- 1.0616104568850161E-04
--1.9407346693632935E-04
- 2.6022842939088194E-04
--2.4297086143258814E-04
- CPU time/ELAPSED time for root process     0        17.59        17.59
+ 3.0823097442640463E-05
+-7.2055529220623827E-05
+ 9.0732744125421273E-05
+-8.2196962425025184E-05
+ 6.1157122832421152E-05
+-5.8988718900833664E-05
+ 1.0611849119143788E-04
+-1.9406591809033443E-04
+ 2.6027413252027319E-04
+-2.4307110674193894E-04
+ CPU time/ELAPSED time for root process     0        23.95        23.95
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is
@@ -510,6 +517,6 @@
       y direction     0.00000000E+00
       z direction     0.00000000E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1145 allocations and 1146 deallocations, remaining memory(B):-2592
+ 1139 allocations and 1139 deallocations, remaining memory(B):0
  memory occupation peak: 43 MB
  for the array  zmpi2 in the routine P_Poisson_Solver

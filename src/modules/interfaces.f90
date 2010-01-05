@@ -682,22 +682,17 @@ module module_interfaces
        real(wp), dimension(:,:,:), pointer :: psigau
      end subroutine inputguess_gaussian_orbitals
 
-     subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
-          ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,iorbtolr)
+     subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,&
+          nspin,eks,scorb,G,gaucoeff,iorbtolr)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: norbe,ngx,iproc,nproc
+       integer, intent(in) :: norbe,iproc,nproc
        integer, intent(in) :: norbsc,nspin
        type(atoms_data), intent(in) :: at
        logical, dimension(4,2,at%natsc), intent(in) :: scorb
        real(gp), dimension(3,at%nat), intent(in), target :: rxyz
        type(orbitals_data), intent(inout) :: orbse
-       integer, dimension(at%ntypes), intent(inout) :: ng
-       integer, dimension(4,at%ntypes), intent(inout) :: nl
-       real(gp), dimension(ngx,at%ntypes), intent(inout) :: xp
-       real(gp), dimension(5,at%ntypes), intent(inout) :: occupat
-       real(gp), dimension(ngx,5,at%ntypes), intent(inout) :: psiat
        type(gaussian_basis), intent(out) :: G
        real(gp), intent(out) :: eks
        integer, dimension(orbse%norbp), intent(out) :: iorbtolr !assign the localisation region
@@ -852,6 +847,20 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   ! real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
   real(gp), pointer :: rho(:)
 end subroutine read_potfile4b2B
+
+subroutine read_density_cube(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxyz,  rho)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  integer, intent(out) ::  n1i,n2i,n3i
+  integer, intent(in) :: nspin
+  real(gp), intent(out) :: hxh,hyh,hzh
+  real(gp), pointer :: rxyz(:,:)
+  real(dp), dimension(:), pointer :: rho
+  integer, intent(out) ::  nat
+end subroutine read_density_cube
+
 
 end interface
 

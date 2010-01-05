@@ -13,7 +13,7 @@
 !!
 subroutine scaling_function(itype,nd,nrange,a,x)
 
-  use module_base, only: ndebug
+  use module_base
   implicit none
   !Arguments
   !Type of interpolating functions
@@ -106,7 +106,7 @@ end subroutine scaling_function
 !!
 subroutine wavelet_function(itype,nd,a,x)
 
-  use module_base, only: ndebug
+  use module_base
   implicit none
   !Arguments
   !Type of the interpolating scaling function

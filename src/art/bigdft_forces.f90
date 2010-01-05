@@ -1,9 +1,9 @@
 module bigdft_forces
 
-  use module_base, only : gp,wp,dp,bohr2ang
+  use module_base!, only : gp,wp,dp,bohr2ang
   use module_types
   use module_interfaces
-  use BigDFT_API
+  !use BigDFT_API
 
   implicit none
 

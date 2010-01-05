@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces memguess NEB frequencies MDanalisys $(minima_hopping_sources) bart
+binaries_sources = cluster test_forces memguess NEB frequencies MDanalysis $(minima_hopping_sources) bart abscalc
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -73,7 +73,8 @@ EXTRA_DIST = \
 	ABINIT-moldyn/others.F90 \
 	ABINIT-moldyn/quenched.F90
 
-AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common -I$(srcdir)/ABINIT-moldyn @LIBXC_INCLUDE@
+AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common \
+			 -I$(srcdir)/PSolver -I$(srcdir)/ABINIT-moldyn @LIBXC_INCLUDE@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)
@@ -193,7 +194,6 @@ low_level = init/projectors.f90  \
 if BUILD_LIB_ABINIT
 abinit_low = ABINIT-ewald/ewald.F90 \
 	ABINIT-ewald/matr3inv.F90 \
-	ABINIT-ewald/derfc.F90 \
 	ABINIT-geometry/sort_dp.F90 \
 	ABINIT-geometry/mati3inv.F90 \
 	ABINIT-geometry/canon9.F90 \
@@ -283,9 +283,18 @@ cluster_LDADD = libbigdft.a \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
-MDanalisys_SOURCES = distances.f90 
-MDanalisys_LDFLAGS = 
-MDanalisys_LDADD = libbigdft.a \
+MDanalysis_SOURCES = distances.f90 
+MDanalysis_LDFLAGS = 
+MDanalysis_LDADD = libbigdft.a \
+	PSolver/libpoissonsolver.a \
+	PSolver/ABINIT-common/libABINIT.a \
+	$(LMPI) \
+	@MPI_LIBS@ \
+	$(libs_cuda)
+
+abscalc_SOURCES = abscalc.f90 
+abscalc_LDFLAGS = 
+abscalc_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
 	$(LMPI) \
@@ -376,7 +385,7 @@ cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o ab6_mol
 
 lanczos.o : lanczos_base.o lanczos_interface.o
 
-BigDFT_API.o : scfloop_API.o
+BigDFT_API.o : scfloop_API.o ab6_moldyn.o
 
 distances.o global.o : BigDFT_API.o
 

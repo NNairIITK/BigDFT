@@ -57,7 +57,7 @@ subroutine read_input_variables(iproc,posinp, file_dft, file_kpt, &
      & file_geopt, in,atoms,rxyz)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => read_input_variables
 
   implicit none
 
@@ -202,7 +202,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
      end if
   end if
 
-  !now the varaibles which are to be used only for the last run
+  !now the variables which are to be used only for the last run
   read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
   call check()
   !project however the wavefunction on gaussians if asking to write them on disk
@@ -224,11 +224,10 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   read(1,*,iostat=ierror) in%iabscalc_type
   call check()
 
-
   !read absorption-calculation input variables
   !inquire for the needed file 
   !if not present, set default ( no absorption calculation)
-  if ( in%iabscalc_type/= 0) then
+  if (in%iat_absorber /= 0) then
      inquire(file="input.abscalc",exist=exists)
      if (.not. exists) then
         if (iproc == 0) write(*,*)'ERROR: need file input.abscalc for x-ray absorber treatment.'
@@ -478,13 +477,6 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   ! Set default values.
   in%nkpt = 1
 
-  !check also the GPU activation in relation to the boundary conditions
-  if (GPUconv .and. atoms%geocode /= 'P') then
-     if (iproc==0) write(*,*)&
-          ' ERROR: the CUDA convolutions are ported only for 3D periodic boundary conditions, cannot proceed...'
-     stop
-  end if
-
   inquire(file=trim(filename),exist=exists)
   if (.not. exists) then
      ! Set only the gamma point.
@@ -669,7 +661,7 @@ subroutine abscalc_input_variables(iproc,filename,in)
   call check()
 
   allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)
-  call memocc(i_stat,in%Gabs_coeffs,'in%Gabs_coeff',subname)
+  call memocc(i_stat,in%Gabs_coeffs,'Gabs_coeffs',subname)
 
   read(111,*,iostat=ierror)  (in%Gabs_coeffs(i+ndebug), i=1,2*in%L_absorber +1 )
   call check()
@@ -1196,22 +1188,17 @@ end subroutine read_atomic_file
 !!***
 
 
-subroutine deallocate_atoms(atoms ) 
-
+subroutine deallocate_atoms(atoms,subname) 
   use module_base
   use module_types
-  use module_interfaces
   use ab6_symmetry
-
   implicit none
-
-  character(len=*), parameter :: subname='deallocate_atoms'
+  character(len=*), intent(in) :: subname
+  type(atoms_data), intent(inout) :: atoms
+  !local variables
   integer :: i_stat, i_all
 
-
-  type(atoms_data), intent(inout) :: atoms
   !deallocations
-
   i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
   deallocate(atoms%ifrztyp,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
@@ -1228,6 +1215,7 @@ subroutine deallocate_atoms(atoms )
   deallocate(atoms%amu,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%amu',subname)
   if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
+
 end subroutine deallocate_atoms
 
 
