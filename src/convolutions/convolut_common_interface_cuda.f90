@@ -177,15 +177,11 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
   call sg_gpu_malloc(GPU%d,(2*n1+2)*(2*n2+2)*(2*n3+2),8,i_stat)
 
   
-  if(GPUshare .and. GPUconv) then
-     !gpu sharing is enabled, we need pinned memory and set useDynamic on the GPU_pointer structure
-     call sg_cpu_malloc_pinned(GPU%pinned_in,(2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor,8,i_stat)
-     call sg_cpu_malloc_pinned(GPU%pinned_out,(2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor,8,i_stat)
+
+  call sg_cpu_malloc_pinned(GPU%pinned_in,(2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor,8,i_stat)
+  call sg_cpu_malloc_pinned(GPU%pinned_out,(2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor,8,i_stat)
      
-     GPU%useDynamic = .true.
-  else
-     GPU%useDynamic = .false.
-  end if
+  
   
   !at the starting point do not use full_locham
   GPU%full_locham = .false.
