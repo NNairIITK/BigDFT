@@ -438,6 +438,8 @@ else
   moduledir=${includedir}/${fc_type}
 fi
 AC_SUBST(moduledir)
+docdir="${docdir}"
+AC_SUBST(docdir)
 
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
@@ -524,6 +526,7 @@ Installation paths:
   Binaries:                  $bindir
   Static libraries:          $libdir
   Fortran modules:           $moduledir
+  Documentation:             $docdir
 "
 
 if test x"$ac_use_mpi" = x"Warning" ; then
