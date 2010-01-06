@@ -15,7 +15,7 @@
 
 
 extern "C" 
-void FC_FUNC(sg_cpu_pinned_alloc,SG_CPU_PINNED_ALLOC)(void **CPU_pointer,
+void FC_FUNC_(sg_cpu_pinned_alloc,SG_CPU_PINNED_ALLOC)(void **CPU_pointer,
 			   int *nsize, //memory size
 			   int *precision,
 			   int *ierr) // error code, 1 if failure
@@ -40,7 +40,7 @@ void FC_FUNC(sg_cpu_pinned_alloc,SG_CPU_PINNED_ALLOC)(void **CPU_pointer,
 
 
 extern "C" 
-void FC_FUNC(sg_cpu_pinned_free,SG_CPU_PINNED_FREE)(void **CPU_pointer,
+void FC_FUNC_(sg_cpu_pinned_free,SG_CPU_PINNED_FREE)(void **CPU_pointer,
 			  int *ierr) // error code, 1 if failure
 {
   *ierr=0;
@@ -68,7 +68,7 @@ void FC_FUNC(sg_cpu_pinned_free,SG_CPU_PINNED_FREE)(void **CPU_pointer,
 
 
 extern "C" 
-void FC_FUNC(sg_gpu_alloc,SG_GPU_ALLOC)(void **GPU_pointer, // pointer indicating the GPU address
+void FC_FUNC_(sg_gpu_alloc,SG_GPU_ALLOC)(void **GPU_pointer, // pointer indicating the GPU address
 		    int *nsize, //memory size
 		    int *precision,
 		    int *ierr) // error code, 1 if failure
@@ -96,7 +96,7 @@ void FC_FUNC(sg_gpu_alloc,SG_GPU_ALLOC)(void **GPU_pointer, // pointer indicatin
 
 
 extern "C" 
-void FC_FUNC(sg_gpu_free,SG_GPU_FREE)(void **GPU_pointer, // pointer indicating the GPU address
+void FC_FUNC_(sg_gpu_free,SG_GPU_FREE)(void **GPU_pointer, // pointer indicating the GPU address
 		   int *ierr) // error code, 1 if failure
 {
 
@@ -119,7 +119,7 @@ void FC_FUNC(sg_gpu_free,SG_GPU_FREE)(void **GPU_pointer, // pointer indicating 
 
 
 extern "C"
-void FC_FUNC(sg_gpu_imm_send,SG_GPU_IMM_SEND)(void **GPU_pointer,
+void FC_FUNC_(sg_gpu_imm_send,SG_GPU_IMM_SEND)(void **GPU_pointer,
 		       void *CPU_pointer, 
 		       int *nsize,
 		       int *precision,
@@ -148,7 +148,7 @@ void FC_FUNC(sg_gpu_imm_send,SG_GPU_IMM_SEND)(void **GPU_pointer,
 
 
 extern "C" 
-void FC_FUNC(sg_gpu_imm_recv,SG_GPU_IMM_RECV)(void *CPU_pointer, 
+void FC_FUNC_(sg_gpu_imm_recv,SG_GPU_IMM_RECV)(void *CPU_pointer, 
 		       void **GPU_pointer,
 		       int *nsize,
 		       int *precision,
