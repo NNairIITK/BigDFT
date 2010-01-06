@@ -48,25 +48,6 @@
        real(wp), dimension(:), pointer :: psi
        real(wp), dimension(:,:), pointer :: gaucoeffs
      end subroutine cluster 
-     subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
-          psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,infocode)
-       use module_base
-       use module_types
-       implicit none
-       integer, intent(in) :: nproc,iproc
-       integer, intent(out) :: infocode
-       real(gp), intent(inout) :: hx_old,hy_old,hz_old
-       type(input_variables), intent(in) :: in
-       type(locreg_descriptors), intent(inout) :: Glr
-       type(atoms_data), intent(inout) :: atoms
-       type(gaussian_basis), intent(inout) :: gbd
-       type(orbitals_data), intent(inout) :: orbs
-       real(gp), intent(out) :: energy
-       real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
-       real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
-       real(wp), dimension(:), pointer :: psi
-       real(wp), dimension(:,:), pointer :: gaucoeffs
-     end subroutine abscalc 
   end interface
 
   !put a barrier for all the processes
@@ -91,17 +72,10 @@
         call deallocate_wfd(rst%Glr%wfd,subname)
      end if
 
-     if(.not. in%c_absorbtion) then 
-
-        call cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
-             rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
-             rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,infocode)
-
-     else
-
-        stop 'ERROR, X-Ray absorbtion treatment is in abscalc executable'
-
-     endif
+     call cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
+          rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
+          rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,infocode)
+     
 
 
      if (in%inputPsiId==1 .and. infocode==2) then
@@ -248,29 +222,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! arrays for DIIS convergence accelerator
   real(kind=8), dimension(:,:,:), pointer :: ads
   
-  !for xabsorber
-  integer lpot_a, ix, iy, iz
-  real(gp) rpot_a, spot_a, hpot_a, espo, harmo, r, rx, ry, rz, minrx, maxrx,   minry, maxry,   minrz, maxrz, minr  
-  real(gp), pointer :: radpot(:,:)
-  integer radpotcount, igrid
 
-  type(atoms_data) :: atoms_b2B
-  real(gp), dimension(:,:), pointer :: rxyz_b2B
-  real(gp) :: shift_b2B(3)
-  integer itype, nd
-  integer n1i_bB,n2i_bB,n3i_bB
-  real(gp), dimension(:), pointer :: pot_bB
-  real(gp) alat1_bB, alat2_bB, alat3_bB
-  real(gp), dimension(:), pointer ::  intfunc_x, intfunc_y
-  real(gp) factx, facty, factz
-  character(len=80) :: comment
-  integer idelta
-  integer ix_bB, iy_bB, iz_bB
-  integer maxX_B, maxY_B, maxZ_B
-  integer minX_B, minY_B, minZ_B
-  real(gp)  rx_bB, ry_bB, rz_bB
-  integer nrange
-  real(gp), pointer :: auxint(:)
+
+
+
+
 
   ! ----------------------------------
   
@@ -738,12 +694,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      endif
      !control whether the minimisation iterations ended
      endloop= gnrm <= gnrm_cv .or. iter == itermax
-     if(endloop) then
-        if(in%iat_absorber>0) then
-           gnrm_cv = in%absorber_gnrm
-           endloop=.false.
-        end if
-     endif
+
      
      !control how many times the DIIS has switched into SD
      if (idsx_actual /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
@@ -1115,8 +1066,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
 
-     !refill projectors for tails, davidson or x-absorbtion procedures
-     refill_proj=in%calc_tail .or. DoDavidson .or. in%c_absorbtion 
+     !refill projectors for tails, davidson
+     refill_proj=in%calc_tail .or. DoDavidson 
 
      call nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,atoms,rxyz,&
           orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
@@ -1189,7 +1140,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   
   
   !------------------------------------------------------------------------
-  if (in%calc_tail .and. atoms%geocode == 'F' .and. .not. in%c_absorbtion ) then
+  if (in%calc_tail .and. atoms%geocode == 'F' ) then
      call timing(iproc,'Tail          ','ON')
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential

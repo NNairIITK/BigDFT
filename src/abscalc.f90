@@ -44,6 +44,7 @@ program abscalc_main
   integer :: npr,iam,iconfig,nconfig
   integer  :: nfluct
   real(gp) :: fluctsum
+  logical :: exists
 
  
   ! Start MPI in parallel version
@@ -87,6 +88,28 @@ program abscalc_main
      ! Read all input files.
      call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
           & "input.dft", "input.kpt", "input.geopt", inputs, atoms, rxyz)
+
+
+     
+     !read absorption-calculation input variables
+     !inquire for the needed file 
+     !if not present, set default ( no absorption calculation)
+          
+     inquire(file="input.abscalc",exist=exists)
+     if (.not. exists) then
+        if (iproc == 0) write(*,*)'ERROR: need file input.abscalc for x-ray absorber treatment.'
+        if(nproc/=0)   call MPI_FINALIZE(ierr)
+        stop
+     end if
+     call abscalc_input_variables(iproc,'input.abscalc',inputs)
+     if( inputs%iat_absorber <1 .or. inputs%iat_absorber > atoms%nat) then
+        if (iproc == 0) write(*,*)'ERROR: inputs%iat_absorber  must .ge. 1 and .le. number_of_atoms '
+        if(nproc/=0)   call MPI_FINALIZE(ierr)
+        stop
+     endif
+
+
+
 
      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fxyz,'fxyz',subname)
