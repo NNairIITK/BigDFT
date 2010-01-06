@@ -74,6 +74,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
   use module_base, only: ndebug
   use libxc_functionals
+  use interfaces_56_xc
 
   implicit none
 
