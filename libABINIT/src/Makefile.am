@@ -79,12 +79,12 @@ libabinit_a_SOURCES = \
 	42_geometry/symzat.F90 \
 	42_geometry/xredxcart.F90 \
 	50_abitypes_defs/defs_abitypes.F90 \
-	50_abitypes_defs/defs_xc.F90 \
 	56_recipspace/getkgrid.F90 \
 	56_recipspace/smpbz.F90 \
 	56_recipspace/symkpt.F90 \
 	56_recipspace/testkgrid.F90 \
 	56_recipspace/ab6_symmetry_f90.f90 \
+	56_xc/interfaces_56_xc.F90 \
 	56_xc/drivexc.F90 \
 	56_xc/invcb.F90 \
 	56_xc/m_libxc_functionals.F90 \
@@ -176,7 +176,6 @@ CLEANFILES = $(mpi_include) \
 42_geometry/xredxcart.F90: defs_basis.o
 
 50_abitypes_defs/defs_abitypes.F90: defs_basis.o defs_datatypes.o
-50_abitypes_defs/defs_xc.F90: defs_basis.o
 
 56_recipspace/getkgrid.F90: defs_basis.o
 56_recipspace/smpbz.F90: defs_basis.o
@@ -184,11 +183,12 @@ CLEANFILES = $(mpi_include) \
 56_recipspace/testkgrid.F90: defs_basis.o
 56_recipspace/ab6_symmetry_f90.f90: defs_basis.o
 
+56_xc/interfaces_56_xc.F90: defs_basis.o
 56_xc/m_libxc_functionals.F90: defs_basis.o
 56_xc/drivexc.F90: defs_basis.o \
 	defs_datatypes.o \
-	defs_xc.o \
-	m_libxc_functionals.o
+	m_libxc_functionals.o \
+	interfaces_56_xc.o
 56_xc/invcb.F90: defs_basis.o
 56_xc/size_dvxc.F90: defs_basis.o $(mpi_include)
 56_xc/xchcth.F90: defs_basis.o
@@ -196,17 +196,16 @@ CLEANFILES = $(mpi_include) \
 56_xc/xclb.F90: defs_basis.o
 56_xc/xcpbe.F90: defs_basis.o
 56_xc/xcpzca.F90: defs_basis.o 
-56_xc/xcspol.F90: defs_basis.o \
-	defs_xc.o
+56_xc/xcspol.F90: defs_basis.o
 56_xc/xctetr.F90: defs_basis.o
 56_xc/xcwign.F90: defs_basis.o
 56_xc/xcxalp.F90: defs_basis.o
 
-67_common/fconv.F90 : defs_basis.o
-67_common/prtxvf.F90 : defs_basis.o
+67_common/ewald.F90: defs_basis.o
+67_common/fconv.F90: defs_basis.o
+67_common/prtxvf.F90: defs_basis.o
 
-
-72_geomoptim/ab6_moldyn.F90: defs_basis.o defs_datatypes.o
+72_geomoptim/ab6_moldyn.F90: defs_basis.o defs_datatypes.o defs_abitypes.o
 
 mpif.h:
 	touch mpif.h &&\
