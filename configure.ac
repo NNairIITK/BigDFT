@@ -14,8 +14,8 @@ AC_INIT([BigDFT - DFT over wavelets],[1.3.0-dev],[Damien.Caliste@cea.fr],[bigdft
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
 AC_CONFIG_AUX_DIR(config)
-dnl Use a config.h file to store macro definitions
-dnl AM_CONFIG_HEADER(config.h)
+dnl Use a config.h file to store macro definitions, required for CUDA.
+AM_CONFIG_HEADER(config.h)
 AC_CONFIG_MACRO_DIR([config/m4])
 
 dnl Init something, don't know exactly what...
@@ -163,6 +163,7 @@ end
   LDFLAGS="$LDFLAGS_OLD"
   FCFLAGS="$FCFLAGS_OLD"
 else
+  dnl We put an include in case of no MPI to have access to mpi fake.
   MPI_INCLUDE='-I$(top_builddir)/src/modules'
 fi
 AM_CONDITIONAL(USE_MPI, test "$ac_use_mpi" = "yes")
@@ -187,11 +188,11 @@ AC_ARG_WITH(memory-limit, AS_HELP_STRING([--with-memory-limit], [Memory limit va
               ac_with_memory_limit=$withval, ac_with_memory_limit="no")
 if test "${ac_with_memory_limit//\.*/}" -ge "0" 2> /dev/null ; then
   ac_memory_limit=$ac_with_memory_limit
+  AC_DEFINE_UNQUOTED([MEMORY_LIMIT], [$ac_memory_limit], [Value in GB to stop processing.])
 else
-  ac_memory_limit="0.e0"
+  ac_memory_limit="undefined"
 fi
 AC_MSG_RESULT([$ac_memory_limit])
-AC_DEFINE_UNQUOTED([MEMORY_LIMIT], [$ac_memory_limit], [Value in GB to stop processing.])
 
 
 dnl Use the simple or the optimised convolution code.
@@ -232,6 +233,8 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   dnl if `echo $FCFLAGS | grep -qvs -- "-fno-second-underscore"` ; then
   dnl    FCFLAGS=$FCFLAGS" -fno-second-underscore"
   dnl fi
+  dnl Instead of second underscoring, test the compiler behaviour.
+  AC_FC_WRAPPERS()
   dnl Optional Cuda installation dir.
   AC_ARG_WITH(cuda-path, AS_HELP_STRING([--with-cuda-path], [give the path to the NVidia Cuda tools (default is /usr/local/cuda).]),
                          [ac_with_cuda_path=$withval], [ac_with_cuda_path="/usr/local/cuda"])
@@ -427,6 +430,9 @@ if test x"$ac_use_libxc" = x"yes" ; then
   LIBS="-lxc $LIBS"
 fi
 
+dnl Test for the documentation.
+AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes])
+AM_CONDITIONAL(BUILD_PDFDOC, test x"$ac_have_pdflatex" = x"yes")
 dnl default installation directories
 AC_ARG_WITH(moduledir,
             AS_HELP_STRING([--with-moduledir],
@@ -438,6 +444,8 @@ else
   moduledir=${includedir}/${fc_type}
 fi
 AC_SUBST(moduledir)
+docdir="${docdir}"
+AC_SUBST(docdir)
 
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
@@ -524,6 +532,7 @@ Installation paths:
   Binaries:                  $bindir
   Static libraries:          $libdir
   Fortran modules:           $moduledir
+  Documentation:             $docdir
 "
 
 if test x"$ac_use_mpi" = x"Warning" ; then
@@ -531,3 +540,7 @@ if test x"$ac_use_mpi" = x"Warning" ; then
   MPI:                       disabled by tests
 "
 fi
+
+dnl Do not touch this line. On the Cray machine in Basel, the preprocessor
+dnl in Fortran sources does not allow C comments (/*  */), so we remove them.
+sed -n '1h;1!H;${;g;s%/\*[[^*]]*\*/%%g;p;}' config.h > config.inc

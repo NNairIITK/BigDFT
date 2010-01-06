@@ -91,7 +91,7 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
 subroutine symplanes(center,iholohedry,isym,isymrelconv,itnonsconv,type_axis)

@@ -45,11 +45,11 @@
 !!
 !! SOURCE
 !!$#if defined HAVE_CONFIG_H
-!!$#include "config.h"
+!!$#include "config.inc"
 !!$#endif
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
 subroutine xclb(grho2_updn,npts,nspden,rho_updn,vxci)

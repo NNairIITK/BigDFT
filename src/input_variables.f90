@@ -220,14 +220,14 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   read(1,*,iostat=ierror) in%nvirt,in%nplot
   call check()
 
-  !x-absorber treatment
+  !x-absorber treatment (to be eliminated, put c_absorbtion to false)
   read(1,*,iostat=ierror) in%iabscalc_type
   call check()
 
   !read absorption-calculation input variables
   !inquire for the needed file 
   !if not present, set default ( no absorption calculation)
-  if (in%iat_absorber /= 0) then
+  if (in%iabscalc_type /= 0) then
      inquire(file="input.abscalc",exist=exists)
      if (.not. exists) then
         if (iproc == 0) write(*,*)'ERROR: need file input.abscalc for x-ray absorber treatment.'

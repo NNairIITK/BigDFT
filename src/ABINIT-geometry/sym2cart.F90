@@ -28,7 +28,7 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
 subroutine sym2cart(gprimd,nsym,rprimd,symrel,symcart)

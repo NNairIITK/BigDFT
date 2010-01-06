@@ -52,7 +52,7 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
 subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&

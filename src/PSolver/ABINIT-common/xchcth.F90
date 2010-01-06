@@ -57,7 +57,7 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
 subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&

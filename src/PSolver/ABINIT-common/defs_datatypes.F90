@@ -83,7 +83,7 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
 module defs_datatypes
@@ -164,7 +164,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type bandstructure_type
@@ -237,7 +237,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type bcp_type
@@ -277,7 +277,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type datafiles_type
@@ -402,7 +402,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type dens_sym_operator_type
@@ -504,7 +504,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type efield_type
@@ -601,7 +601,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type energies_type
@@ -683,7 +683,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type gs_hamiltonian_type
@@ -922,7 +922,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type hdr_type
@@ -1007,7 +1007,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type mttk_type
@@ -1093,7 +1093,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type pawang_type
@@ -1186,7 +1186,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type pawfgr_type
@@ -1255,7 +1255,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type pawfgrtab_type
@@ -1354,7 +1354,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type pawrad_type
@@ -1426,7 +1426,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type pawtab_type
@@ -1722,7 +1722,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type paw_an_type
@@ -1862,7 +1862,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type paw_ij_type
@@ -2305,7 +2305,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type pseudopotential_gth_type
@@ -2363,7 +2363,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type pseudopotential_type
@@ -2601,7 +2601,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type pspheader_paw_type
@@ -2634,7 +2634,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type pspheader_type
@@ -2719,7 +2719,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type results_gs_type
@@ -2825,7 +2825,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type results_out_type
@@ -2877,7 +2877,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type scf_history_type
@@ -2967,7 +2967,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type sigma_results
@@ -3157,7 +3157,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type wffile_type

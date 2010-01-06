@@ -39,7 +39,7 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
 subroutine symlist_prim(additional_info,brvltt,nsym,n_axes,spgroup)
