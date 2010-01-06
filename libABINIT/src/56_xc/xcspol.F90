@@ -80,8 +80,8 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+! use interfaces_14_hidewrite
+! use interfaces_16_hideleave
 !End of the abilint section
 
  implicit none

@@ -47,8 +47,8 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 
 !This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
 #ifdef HAVE_FORTRAN_INTERFACES
- use interfaces_01manage_mpi
- use interfaces_11util
+! use interfaces_01manage_mpi
+! use interfaces_11util
 #endif
 !End of the abilint section
 

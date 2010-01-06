@@ -120,9 +120,9 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
- use interfaces_56_xc, except_this_one => drivexc
+! use interfaces_14_hidewrite
+! use interfaces_16_hideleave
+! use interfaces_56_xc, except_this_one => drivexc
 !End of the abilint section
 
  implicit none

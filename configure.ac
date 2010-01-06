@@ -289,20 +289,6 @@ ac_build_bin_cluster="yes"
 
 
 dnl disable different build
-dnl The ABINIT common XC library
-AC_ARG_ENABLE(libabinit, AS_HELP_STRING([--disable-libabinit], [build the ABINIT library from ABINIT code (default = yes).]), ac_build_lib_ABINIT=$enableval, ac_build_lib_ABINIT="yes")
-AM_CONDITIONAL(BUILD_LIB_ABINIT, test "$ac_build_lib_ABINIT" = "yes")
-AC_MSG_CHECKING([for ABINIT library internal build])
-AC_MSG_RESULT([$ac_build_lib_ABINIT])
-if test x"$ac_build_lib_ABINIT" = x"yes" ; then
-  xc_path='$(top_builddir)/src/PSolver/ABINIT-common'
-else
-  dnl Required path for ABINIT module inclusion
-  AC_ARG_WITH(xc-module-path, AS_HELP_STRING([--with-xc-module-path],
-              [give the path to the module file defining XC (default = $(top_builddir)/src/PSolver/ABINIT-common).]),
-              xc_path=$withval, xc_path=)
-fi
-AC_SUBST(XC_INCLUDE, "-I"$xc_path)
 dnl The PSolver library
 AC_ARG_ENABLE(libpoissonsolver, AS_HELP_STRING([--disable-libpoissonsolver], [build the Poisson's solver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
 AM_CONDITIONAL(BUILD_LIB_PSOLVER, test "$ac_build_lib_PSolver" = "yes")
@@ -426,8 +412,41 @@ else
 fi
 AM_CONDITIONAL(BUILD_LIBXC, test x"$ac_build_libxc" = x"yes")
 if test x"$ac_use_libxc" = x"yes" ; then
-  AC_DEFINE([HAVE_LIBXC], [1], [compile the libXC section in the ABINIT code.])
+  AC_DEFINE([HAVE_LIBXC], [1], [use libXC in BigDFT.])
   LIBS="-lxc $LIBS"
+fi
+
+dnl Test the ABINIT library
+internallibabinit="yes"
+AC_ARG_ENABLE(internal-libabinit, AS_HELP_STRING([--disable-internal-libabinit], [Do not build and link with internal libABINIT library (default = yes).]), internallibabinit=$enval, internallibabinit="yes")
+AC_ARG_WITH(libabinit-path, AS_HELP_STRING([--with-libabinit-path], [Give the path for an external libABINIT library, lib and module files (default = None).]),
+            ac_libabinit_dir=$withval, ac_libabinit_dir=)
+ac_use_libabinit="no"
+ac_build_libabinit="no"
+if test "$internallibabinit" = "yes" ; then
+  ac_build_libabinit="yes"
+  ac_use_libabinit="yes"
+  AC_SUBST(LIBABINIT_INCLUDE, "-I\$(top_builddir)"/libABINIT/src)
+  LDFLAGS="$LDFLAGS -L\$(top_builddir)/libABINIT/src"
+else
+  if test -n "$ac_libabinit_dir" ; then
+    LDFLAGS="$LDFLAGS -L$ac_libabinit_dir/lib"
+    
+    dnl Test the given implementation of libabinit.
+    AC_CHECK_LIB(abinit, symbrav, withlibabinit=yes, withlibabinit=no)
+    AC_CHECK_FILE($ac_libabinit_dir/include/ab6_moldyn.$capitalize_module_ext, moldyn="yes", moldyn="no")
+    AC_CHECK_FILE($ac_libabinit_dir/include/ab6_symmetry.$capitalize_module_ext, sym="yes", sym="no")
+    AC_CHECK_FILE($ac_libabinit_dir/include/libxc_functionals.$capitalize_module_ext, libxc="yes", libxc="no")
+    if test "$withlibabinit" = "yes" -a "$moldyn" = "yes" -a "$sym" = "yes" -a "$libxc" = "yes"; then
+      ac_use_libabinit="yes"
+      AC_SUBST(LIBABINIT_INCLUDE, "-I"$ac_libabinit_dir/include)
+    fi
+  fi
+fi
+AM_CONDITIONAL(BUILD_LIBABINIT, test x"$ac_build_libabinit" = x"yes")
+if test x"$ac_use_libabinit" = x"yes" ; then
+  AC_DEFINE([HAVE_LIBABINIT], [1], [use libABINIT in BigDFT.])
+  LIBS="-labinit $LIBS"
 fi
 
 dnl Test for the documentation.
@@ -450,12 +469,12 @@ AC_SUBST(docdir)
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
+libABINIT/src/Makefile
 src/Makefile
 src/lib/Makefile
 src/lib/fft/Makefile
 src/modules/Makefile
 src/profiling/Makefile
-src/PSolver/ABINIT-common/Makefile
 src/PSolver/Makefile
 src/convolutions/Makefile
 src/CUDA/Makefile
@@ -524,6 +543,9 @@ Options:
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE
+  With libABINIT:            $ac_use_libabinit
+   | internal built:         $ac_build_libabinit
+   | include dir.:           $LIBABINIT_INCLUDE
 
 Installation paths:
   Source code location:      ${srcdir}

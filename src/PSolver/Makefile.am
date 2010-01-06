@@ -1,12 +1,5 @@
 ## Process this file with automake to produce Makefile.in
 
-if BUILD_LIB_ABINIT
-sub_dirs_xc = ABINIT-common
-else
-sub_dirs_xc = 
-endif
-
-
 SOURCES_MOD = PSolver_Main.f90 \
 	createKernel.f90 \
 	xcenergy.f90 \
@@ -64,11 +57,9 @@ else
 module_DATA = poisson_solver.@MODULE_EXT@
 endif
 
-SUBDIRS = $(sub_dirs_xc) 
-
 check_PROGRAMS = PS_Check PS_Program PS_Exercise
 
-AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ @LIBXC_INCLUDE@
+AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 
 if USE_MPI
@@ -102,7 +93,6 @@ PS_Check_LDFLAGS =
 PS_Check_LDADD = libpoissonsolver.a \
 	../modules/libmodules.a \
 	../profiling/libprofiling.a \
-	ABINIT-common/libABINIT.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
@@ -113,7 +103,6 @@ PS_Program_LDFLAGS =
 PS_Program_LDADD = libpoissonsolver.a \
 	../modules/libmodules.a \
 	../profiling/libprofiling.a \
-	ABINIT-common/libABINIT.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda) 
@@ -122,12 +111,12 @@ PS_Exercise_SOURCES = PS_Exercise.f90 $(mpi_source)
 PS_Exercise_LDADD =	libpoissonsolver.a \
 	../modules/libmodules.a \
 	../profiling/libprofiling.a \
-	ABINIT-common/libABINIT.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
 CLEANFILES = malloc.prc time.prc PS_Check.out \
+	module_fft_sg.@MODULE_EXT@ MODULE_FFT_SG.@MODULE_EXT@ \
 	POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@ module_base.@MODULE_EXT@
 
 #dependencies
@@ -135,6 +124,7 @@ poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 
 Poisson_Solver.o: ../modules/base.o $(SOURCES_MOD)
 
+Build_Kernel.o: fft3d.o
 
 check:
 	$(run_parallel) ./PS_Check 57 48 63  0 F  > PS_Check.out
