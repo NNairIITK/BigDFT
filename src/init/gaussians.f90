@@ -1,4 +1,16 @@
-!perform a set of non-blocking send-receive operations
+!!****f* BigDFT/nonblocking_transposition
+!! FUNCTION
+!!    Perform a set of non-blocking send-receive operations
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA (LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
      psi,norb_par,mpirequests)
   use module_base
@@ -29,6 +41,7 @@ subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
   end do
   
 end subroutine nonblocking_transposition
+!!***
 
 subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovrlp,orbs,&
      norbsc_arr,psi,hpsi,ovrlp)

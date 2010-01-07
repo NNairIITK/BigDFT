@@ -527,27 +527,7 @@ program MINHOP
   endif
 
   !deallocations as in BigDFT
-  i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
-  deallocate(atoms%ifrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
-
-  i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
-  deallocate(atoms%iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%iatype',subname)
-
-  i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
-  deallocate(atoms%natpol,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%natpol',subname)
-
-  i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
-  deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%atomnames',subname)
-
-  i_all=-product(shape(atoms%amu))*kind(atoms%amu)
-  deallocate(atoms%amu,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%amu',subname)
-  if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
-
+  call deallocate_atoms(atoms,subname)
   call free_restart_objects(rst,subname)
   call free_input_variables(inputs_opt)
   call free_input_variables(inputs_md)
@@ -1207,9 +1187,6 @@ subroutine localdist(nat,rxyz,vxyz)
   return
 end subroutine localdist
 
-
-
-
 subroutine torque(nat,rxyz,vxyz)
   implicit real*8 (a-h,o-z)
   dimension rxyz(3,nat),vxyz(3,nat)
@@ -1232,7 +1209,6 @@ subroutine torque(nat,rxyz,vxyz)
   enddo
   write(*,'(a,3(1pe11.3))') 'torque',tx,ty,tz
 
-  return
 end subroutine torque
 
 
@@ -1303,7 +1279,6 @@ subroutine elim_torque(nat,rxyz,vxyz)
   enddo
   write(*,'(a,3(1pe11.3))') 'WARNING REMAINING TORQUE',t
 
-  return
 end subroutine elim_torque
 
 
@@ -1320,7 +1295,6 @@ subroutine moment(nat,vxyz)
   enddo
   write(*,'(a,3(1pe11.3))') 'momentum',sx,sy,sz
 
-  return
 end subroutine moment
 
 
@@ -1341,7 +1315,6 @@ subroutine elim_moment(nat,vxyz)
      vxyz(3,iat)=vxyz(3,iat)-sz
   enddo
 
-  return
 end subroutine elim_moment
 
 
@@ -1589,17 +1562,6 @@ subroutine wtpos(at,npminx,nlminx,nlmin,nlmin_l,pos,earr,elocmin)
   end do
 
 end subroutine wtpos
-
-
-
-subroutine zero(n,x)
-  implicit real*8 (a-h,o-z)
-  dimension x(n)
-  do j=1,n
-     x(j)=0.d0
-  end do
-  return
-end subroutine zero
 
 
 real*8 function round(enerd,accur)

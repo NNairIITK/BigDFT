@@ -1622,6 +1622,7 @@ end select
   end if
 
   !calculate the maximum spin polarisation and the maximum charge to be placed on the atom
+
   mxpl=0
   do l=0,lmax
      do i=1,nmax
@@ -1640,14 +1641,25 @@ end subroutine eleconf
 !!   Correct the electronic configuration for a given atomic charge
 !! SOURCE
 !!
-subroutine correct_semicore(symbol,nmax,lmax,ichg,neleconf,nsccode)
+subroutine correct_semicore(symbol,nmax,lmax,ichg,neleconf,eleconf,nsccode)
+  use module_base
   implicit none
   character(len=2), intent(in) :: symbol
   integer, intent(in) :: nmax,lmax,ichg
-  integer, dimension(nmax,0:lmax), intent(inout) :: neleconf
+  integer, dimension(nmax,0:lmax), intent(in) :: neleconf
+  real(gp), dimension(nmax,0:lmax), intent(out) :: eleconf
   integer, intent(inout) :: nsccode
   !local variables
-  integer :: i,l,isccode,itmp,nchgres,ichgp
+  logical :: inocc
+  integer :: i,l,isccode,itmp,nchgres,ichgp,nlsc
+  real(gp) :: atchg
+
+  !convert the array in real numbers
+  do i=1,nmax
+     do l=0,lmax
+        eleconf(i,l)=real(neleconf(i,l),gp)
+     end do
+  end do
 
   nchgres=ichg !residual charge
   if (ichg >0) then
@@ -1657,14 +1669,24 @@ subroutine correct_semicore(symbol,nmax,lmax,ichg,neleconf,nsccode)
            if (neleconf(i,l) /= 2*(2*l+1) .and. neleconf(i,l) /= 0) then
               ichgp=min(neleconf(i,l),nchgres)
               nchgres=nchgres-ichgp
-              neleconf(i,l)=neleconf(i,l)-ichgp
+              eleconf(i,l)=eleconf(i,l)-real(ichgp,gp)
            end if
         end do
      end do
      if (nchgres /= 0) then
-        !charge only unoccupied shells 
-        print *,'Atom ',symbol,': cannot charge occupied shells for the moment'
-        stop
+        !localise the highest occupied shell and charge it
+        do i=nmax,1,-1
+           do l=lmax,0,-1
+              if (nint(eleconf(i,l)) == 2*(2*l+1)) then
+                 ichgp=min(nint(eleconf(i,l)),nchgres)
+                 nchgres=nchgres-ichgp
+                 eleconf(i,l)=eleconf(i,l)-real(ichgp,gp)
+              end if
+           end do
+        end do
+!!        !charge only unoccupied shells 
+!!        print *,'Atom ',symbol,': cannot charge occupied shells for the moment'
+!!        stop
      end if
   else if (ichg < 0) then
      !place the charge on the atom starting from the non closed shells
@@ -1673,17 +1695,52 @@ subroutine correct_semicore(symbol,nmax,lmax,ichg,neleconf,nsccode)
            if (neleconf(i,l) /= 0) then
               ichgp=min(2*(2*l+1)-neleconf(i,l),-nchgres)
               nchgres=nchgres+ichgp
-              neleconf(i,l)=neleconf(i,l)+ichgp
+              eleconf(i,l)=eleconf(i,l)+real(ichgp,gp)
            end if
         end do
      end do
      if (nchgres /= 0) then
-        !charge only occupied shells 
-        print *,'Atom ',symbol,': cannot charge unoccupied shells for the moment'
-        stop
+        !localise the highest unoccupied shell and charge it
+        inocc=.false.
+        do i=1,nmax
+           do l=0,lmax
+              !once found the first occupied shell search for the first unoccpied
+              if (inocc .and. nint(eleconf(i,l)) == 0) then
+                 ichgp=min(2*(2*l+1),-nchgres)
+                 nchgres=nchgres+ichgp
+                 eleconf(i,l)=eleconf(i,l)+real(ichgp,gp)
+              end if
+              inocc=eleconf(i,l) /= 0.0_gp
+           end do
+        end do
+!!        !charge only occupied shells 
+!!        print *,'Atom ',symbol,': cannot charge unoccupied shells for the moment'
+!!        stop
      end if
      
   end if
+
+  atchg=0.0_gp
+  if (ichg /= 0) then
+     !correct the semicore informations for a charged atom
+     nsccode=0
+     do l=0,lmax
+        nlsc=0
+        do i=1,nmax
+           atchg=atchg+eleconf(i,l)
+           if (eleconf(i,l) == real(2*(2*l+1),gp)) then
+              nlsc=nlsc+1
+              !if (nlsc <= 2) nsccode=nsccode+4**l
+           end if
+        end do
+     end do
+     if (atchg==0.0_gp) then
+        write(*,*)'ERROR: an Atom must have input charge'
+        stop
+     end if
+  end if
+
+  
 
 !!!  !if the atom has only closed shells we can treat it as semicore atom (commented)
 !!!  isccode=nsccode

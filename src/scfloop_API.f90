@@ -1,3 +1,16 @@
+!!****m* BigDFT/scfloop_API
+!! FUNCTION
+!!  Self-Consistent Loop API
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 module scfloop_API
 
   use module_base
@@ -128,3 +141,4 @@ contains
 !!!  subroutine scfloop_finalise()
 !!!  end subroutine scfloop_finalise
 end module scfloop_API
+!!***

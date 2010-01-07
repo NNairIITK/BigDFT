@@ -26,13 +26,12 @@ program frequencies
   character(len=2) :: cc
   !File units
   integer, parameter :: u_restart=10,u_hessian=20
-  integer :: iproc,nproc,iat,jat,ityp,i,j,i_stat,i_all,ierr,infocode,ity
-  real(gp) :: etot,etot_m,etot_p,sumx,sumy,sumz,tt,alat,alpha,dd,rmass
+  integer :: iproc,nproc,iat,jat,i,j,i_stat,i_all,ierr,infocode,ity
+  real(gp) :: etot,etot_m,etot_p,sumx,sumy,sumz,alat,alpha,dd,rmass
   !input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
   type(restart_objects) :: rst
-  character(len=20), dimension(:), allocatable :: atomnames
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz,rpos,fpos_m,fpos_p
   real(gp), dimension(:,:), pointer :: rxyz
@@ -43,7 +42,7 @@ program frequencies
   logical, dimension(:,:,:), allocatable :: moves
   real(gp), dimension(:,:,:,:), allocatable :: forces
   real(gp), dimension(3) :: h_grid
-  integer :: npr,iam,jm
+  integer :: jm
  
   ! Start MPI in parallel version
   !in the case of MPIfake libraries the number of processors is automatically adjusted
@@ -57,45 +56,13 @@ program frequencies
   !welcome screen
   if (iproc==0) call print_logo()
 
-  !read atomic file
-  call read_atomic_file('posinp',iproc,atoms,rxyz)
+  ! Read all input files.
+  call read_input_variables(iproc, "posinp", "input.dft", "input.kpt", &
+       & "input.geopt", inputs, atoms, rxyz)
 
   ! allocations
   allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fxyz,'fxyz',subname)
-
-  ! read dft input variables
-  call dft_input_variables(iproc,'input.dft',inputs,atoms%symObj)
-  !call read_input_variables(iproc,'input.dat',inputs)
-
-  ! read k-points input variables (if given)
-  call kpt_input_variables(iproc,'input.kpt',inputs,atoms)
-
-  !fake geopt variables
-  call geopt_input_variables_default(inputs)
- 
-  do iat=1,atoms%nat
-     if (atoms%ifrztyp(iat) == 0) then
-        call random_number(tt)
-        rxyz(1,iat)=rxyz(1,iat)+inputs%randdis*tt
-        call random_number(tt)
-        rxyz(2,iat)=rxyz(2,iat)+inputs%randdis*tt
-        call random_number(tt)
-        rxyz(3,iat)=rxyz(3,iat)+inputs%randdis*tt
-     end if
-  enddo
-
-  ! atoms inside the box (this can be inserted inside call_bigdft routine)
-  do iat=1,atoms%nat
-     if (atoms%geocode == 'P') then
-        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
-        rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
-        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
-     else if (atoms%geocode == 'S') then
-        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
-        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
-     end if
-  end do
 
   call init_restart_objects(atoms,rst,subname)
 
@@ -114,14 +81,14 @@ program frequencies
         sumx=sumx+fxyz(1,iat)
         sumy=sumy+fxyz(2,iat)
         sumz=sumz+fxyz(3,iat)
-     enddo
+     end do
      if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
         write(*,'(1x,a)')'the sum of the forces is'
         write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
         write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
         write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
      end if
-  endif
+  end if
 
   allocate(rpos(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rpos,'rpos',subname)

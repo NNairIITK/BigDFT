@@ -1,6 +1,16 @@
-
-
-subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
+!!****f* BigDFT/lanczos
+!! FUNCTION
+!!   Lanczos diagonalization
+subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
+!! COPYRIGHT
+!!    Copyright (C) 2009 ESRF (AM, LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
      doorthoocc,Occ_norb,Occ_psit,Occ_eval,&
@@ -10,7 +20,7 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   use lanczos_interface
   use lanczos_base
   ! per togliere il bug 
-  use module_interfaces ,except_this_one => lanczos
+  use module_interfaces ,except_this_one => xabs_lanczos
 
 
   implicit none
@@ -52,8 +62,6 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   logical :: projeexists
 
 
-
-
   if(iproc==0) print *, " IN ROUTINE LANCZOS "
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
@@ -75,7 +83,7 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   call orbitals_communicators(iproc,nproc,lr,ha%orbs,ha%comms)  
 
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
-  call memocc(i_stat,Gabs_coeffs,'Gabs_coeff',subname)
+  call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
  
   write(filename,'(A,A,A,I1)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
   
@@ -198,8 +206,6 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      call LB_de_allocate_for_lanczos( )
 
 
-     
-
   endif
   
   call deallocate_comms(ha%comms,subname)
@@ -224,15 +230,21 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
   deallocate(Gabs_coeffs,stat=i_stat)
-  call memocc(i_stat,i_all,'Gabs_coeff',subname)
+  call memocc(i_stat,i_all,'Gabs_coeffs',subname)
 
 
   call deallocate_abscalc_input(in, subname)
 
 
-end subroutine lanczos
+end subroutine xabs_lanczos
+!!***
+subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
-subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
+!!****f* BigDFT/chebychev
+!! FUNCTION
+!!   Chebychev polynomials to calculate the density of states
+!! SOURCE
+!!
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
   use module_base
@@ -240,9 +252,8 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   use lanczos_interface
   use lanczos_base
   ! per togliere il bug 
-  use module_interfaces, except_this_one => chebychev
+  use module_interfaces, except_this_one => xabs_chebychev
   
-
   implicit none
   integer  :: iproc,nproc,ndimpot,nspin
   real(gp)  :: hx,hy,hz
@@ -259,11 +270,9 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   type(GPU_pointers), intent(inout) , target :: GPU
   integer, intent(in) :: in_iat_absorber
   
-
   type(input_variables),intent(in) :: in
 
-
-  !local variables
+  !Local variables
   character(len=*), parameter :: subname='chebychev'
   integer :: i_stat,i_all
   type(lanczos_args) :: ha
@@ -281,10 +290,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   real(gp) Pi
 
 
-
-
   if (iproc==0) print *, " IN ROUTINE  chebychev  "
-
 
   Pi=acos(-1.0_gp)
 
@@ -307,7 +313,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   call orbitals_communicators(iproc,nproc,lr,ha%orbs,ha%comms)  
 
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
-  call memocc(i_stat,Gabs_coeffs,'Gabs_coeff',subname)
+  call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
  
 
   write(filename,'(A,A,A,I1)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
@@ -370,7 +376,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      
   endif
   
-
+  print *, "OK "
   !associate hamapp_arg pointers
   ha%iproc=iproc
   ha%nproc=nproc
@@ -396,8 +402,12 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%Gabs_coeffs=>Gabs_coeffs
  
   call EP_inizializza(ha)  
-  
+  print *, "OK 1"
+ 
   call  EP_memorizza_stato(Gabsorber) 
+
+   print *, "OK 2"
+ 
 
   if(.false.) then
 
@@ -436,24 +446,28 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   endif
 
 
-
   cheb_shift=0.5*(eval_min+ eval_max) 
   fact_cheb = (2-0.0001)/(eval_max-eval_min)
-     
         
      
+       print *, "OK 4"
+ 
   if(.true.) then
      
      call EP_memorizza_stato(Gabsorber) ! se uno stato e' memorizzato EP_initialize_start usa quello, se no random
      LB_nsteps = in%nsteps
      
+  print *, "OK 45"
+ 
+
      call LB_allocate_for_chebychev( )
      call EP_allocate_for_eigenprob(3) ! invece di nsteps, giusto qualche vettore per fare i calcoli
      call EP_make_dummy_vectors(2)
   
 
      call set_EP_shift(-cheb_shift) 
-     
+       print *, "OK 5"
+ 
      call LB_passeggia_Chebychev (LB_nsteps, cheb_shift,  fact_cheb,     get_EP_dim, EP_initialize_start , EP_normalizza,&
           EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy,   EP_mat_mult, &
           EP_scalare,EP_add_from_vect_with_fact  , EP_multbyfact  )
@@ -491,7 +505,7 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   
   i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
   deallocate(Gabs_coeffs,stat=i_stat)
-  call memocc(i_stat,i_all,'Gabs_coeff',subname)
+  call memocc(i_stat,i_all,'Gabs_coeffs',subname)
 
 
   call deallocate_orbs(ha%orbs,subname)
@@ -532,5 +546,5 @@ subroutine chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 !!$  endif
 
 
-end subroutine chebychev
-
+end subroutine xabs_chebychev
+!!***

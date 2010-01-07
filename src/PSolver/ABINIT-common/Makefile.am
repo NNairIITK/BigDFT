@@ -32,7 +32,8 @@ libABINIT_a_SOURCES = \
         xclb.F90 \
         xcpbe.F90 \
         invcb.F90 \
-	size_dvxc.F90
+	size_dvxc.F90 \
+	derfc.F90
 
 CLEANFILES = \
 	defs_abitypes.@MODULE_EXT@ DEFS_ABITYPES.@MODULE_EXT@ \
@@ -54,6 +55,7 @@ defs_datatypes.o: defs_datatypes.F90 \
 
 defs_abitypes.o: defs_abitypes.F90 \
 	defs_datatypes.o
+derfc.o : defs_basis.o
 
 defs_xc.o: defs_xc.F90 \
 	defs_basis.o \

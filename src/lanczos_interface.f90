@@ -1,3 +1,15 @@
+!!****m* BigDFT/lanczos_interface
+!! FUNCTION
+!!   Interface for routines which handle diagonalization
+!! COPYRIGHT
+!!    Copyright (C) 2009 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 module lanczos_interface
   use module_base
   use module_types
@@ -484,11 +496,6 @@ contains
        deallocate(scalstot,stat=i_stat)
        call memocc(i_stat,i_all,'scalstot',subname)
     endif
-
-
-
-
-
 
 
 !!!    call untranspose_v(ha%iproc,ha%nproc,ha%orbs%norbp,ha%orbs%nspinor,ha%lr%wfd,ha%comms,&
@@ -988,3 +995,4 @@ end subroutine EP_initialize_start
  
  
 end module lanczos_interface
+!!***

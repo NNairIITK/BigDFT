@@ -49,7 +49,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   exctX = libxc_functionals_exctXfac() /= 0.d0
 
-  call timing(iproc,'ApplyLocPotKin','ON')
+  call timing(iproc,'Rho_commun    ','ON')
 
   ! local potential and kinetic energy for all orbitals belonging to iproc
   if (iproc==0 .and. verbose > 1) then
@@ -92,17 +92,17 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      end if
      ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+1
   end if
+  call timing(iproc,'Rho_commun    ','OF') 
 
- 
   !fill the rest of the potential with the exact-exchange terms
   if (present(pkernel) .and. exctX) then
-     call timing(iproc,'ApplyLocPotKin','OF')
      n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
      call exact_exchange_potential(iproc,nproc,at%geocode,lr,orbs,ngatherarr(0,1),n3p,&
           0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
      !print *,'iproc,eexctX',iproc,eexctX
-     call timing(iproc,'ApplyLocPotKin','ON')
   end if
+
+  call timing(iproc,'ApplyLocPotKin','ON')
 
   !apply the local hamiltonian for each of the orbitals
   !given to each processor

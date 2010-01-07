@@ -2,22 +2,16 @@
 !! FUNCTION
 !!    Performs a check of the Poisson Solver suite by running with different regimes
 !!    and for different choices of the XC functionals
-!!
 !! COPYRIGHT
-!!    Copyright (C) 2002-2007 BigDFT group 
+!!    Copyright (C) 2002-2009 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
 !! AUTHOR
 !!    Luigi Genovese
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007 CEA
 !! CREATION DATE
 !!    February 2007
-!!
 !! SOURCE
 !!
 program PS_Check
@@ -82,7 +76,7 @@ program PS_Check
   hy=acell/real(n02,kind=8)
   hz=acell/real(n03,kind=8)
 
-  !order of the scaling functions choosed
+  !order of the scaling functions chosen
   itype_scf=16
 
   !calculate the kernel in parallel for each processor
@@ -137,8 +131,9 @@ program PS_Check
           offset,ehartree,eexcu,vexcu,&
           density,potential,pot_ion,xc_pot,pkernel)
 
-     !test for the serial solver
-     if (iproc == 0 .and. nproc > 1 ) then
+     !test for the serial solver (always done to have a simpler comparison)
+     !if (iproc == 0 .and. nproc > 1 ) then
+     if (iproc == 0) then
         i_all=-product(shape(pkernel))*kind(pkernel)
         deallocate(pkernel,stat=i_stat)
         call memocc(i_stat,i_all,'pkernel',subname)
@@ -425,7 +420,7 @@ contains
 ! the poisson solver, in order to have a reliable analytic comparison.
 ! The parameters of the functions must be adjusted in order to have a sufficiently localized
 ! function in the isolated direction and an explicitly periodic function in the periodic ones.
-! Beware of the high-frequency components that may falsify the results when hgrid is too high.
+! Beware of the high-frequency components that may false the results when hgrid is too high.
   subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,&
        density,potential,rhopot,pot_ion,offset)
     implicit none

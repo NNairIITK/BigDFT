@@ -5,11 +5,11 @@ program fft_factors
   implicit none
 
 !Maximal combination of factorisation with m_radix numbers
-  integer, parameter :: n_max=2000
+  integer, parameter :: n_max=24000
 !Number of available radix
-  integer, parameter :: n_radix_max = 6
+  integer, parameter :: n_radix_max = 8
 !Number of radix for the decomposition: m_radix
-  integer, parameter :: n_decomp_max = 6
+  integer, parameter :: n_decomp_max = 7
 
   integer, dimension(:,:), allocatable :: factor,selected
   integer, dimension(:), allocatable :: results,indexes
@@ -25,10 +25,12 @@ program fft_factors
 
 !Possible radix
   radix(1)=1
-  radix(2)=3
-  radix(3)=4
-  radix(4)=5
-  radix(5)=8
+  radix(2)=2
+  radix(3)=3
+  radix(4)=4
+  radix(5)=5
+  radix(6)=7
+  radix(7)=8
   radix(n_radix_max)=6
 
   print *, "Build all factorisations"

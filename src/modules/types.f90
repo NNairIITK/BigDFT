@@ -151,8 +151,9 @@ module module_types
      character(len=20), dimension(:), pointer :: atomnames
      real(gp) :: alat1,alat2,alat3
      integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom,ifrztyp
-     real(gp), dimension(:,:,:), pointer :: psppar
      real(gp), dimension(:), pointer :: amu
+     real(gp), dimension(:,:), pointer :: aocc
+     real(gp), dimension(:,:,:), pointer :: psppar
      ! The symmetry object from ABINIT
      integer :: symObj
      ! AMmodif

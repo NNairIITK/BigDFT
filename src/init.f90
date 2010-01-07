@@ -428,6 +428,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   use module_types
   use Poisson_Solver
   implicit none
+  !Arguments
   integer, intent(in) :: iproc,nproc,ixc
   integer, intent(inout) :: nspin,nvirt
   real(gp), intent(in) :: hx,hy,hz
@@ -460,7 +461,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
   type(locreg_descriptors), dimension(:), allocatable :: Llr
   real(wp), dimension(:,:,:), pointer :: psigau
   integer i,j,k
-
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -719,21 +719,10 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !!!  deallocate(hpsigau,stat=i_stat)
 !!!  call memocc(i_stat,i_all,'hpsigau',subname)
 
-
-
-  !after having applied the hamiltonian to all the atomic orbitals
-  !we split the semicore orbitals from the valence ones
-  !this is possible since the semicore orbitals are the first in the 
-  !order, so the linear algebra on the transposed wavefunctions 
-  !may be splitted
-
-
   !free GPU if it is the case
   if (GPUconv) then
      call free_gpu(GPU,orbse%norbp)
   end if
-
-
 
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Input Wavefunctions Orthogonalization:'
