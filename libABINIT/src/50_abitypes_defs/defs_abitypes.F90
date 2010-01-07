@@ -36,7 +36,7 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
 module defs_abitypes
@@ -63,7 +63,7 @@ module defs_abitypes
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type aim_dataset_type
@@ -115,7 +115,7 @@ module defs_abitypes
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type anaddb_dataset_type
@@ -190,7 +190,7 @@ module defs_abitypes
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type dataset_type
@@ -322,7 +322,7 @@ module defs_abitypes
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type bandfft_kpt_type
@@ -391,7 +391,7 @@ module defs_abitypes
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type MPI_type
