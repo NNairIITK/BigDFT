@@ -778,7 +778,7 @@ contains
     print *, " done " 
     
 !!$    res =res/Pi/sqrt(1-Xs*Xs)
-    cfftreal(0:Nbar-1) =2*cfftreal(0:Nbar-1)/Pi/sqrt(1-Xs*Xs)
+    cfftreal(0:Nbar-1) =2*cfftreal(0:Nbar-1)/Pi/sqrt(1-Xs*Xs)*fact_cheb
     
     
     open(unit=22,file=filename)
