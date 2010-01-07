@@ -11,6 +11,10 @@
 !!
 !! SOURCE
 !! 
+#if defined HAVE_CONFIG_H
+#include <config.inc>
+#endif
+
 module module_base 
   !use MPI
   implicit none  
@@ -47,7 +51,11 @@ module module_base
 
   !Memory limit value in GB. It stops EVERYTHING if some process passes such limit
   !For no memory limit, leave it to zero
+#ifdef MEMORY_LIMIT
   real(kind=4), parameter :: memorylimit = MEMORY_LIMIT
+#else
+  real(kind=4), parameter :: memorylimit = 0.e0
+#endif
 
   !flag for GPU computing, if CUDA libraries are present
   !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation

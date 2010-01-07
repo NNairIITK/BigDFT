@@ -2,6 +2,7 @@
 \pagestyle{plain}
 \usepackage{pslatex}
 \usepackage[usenames]{color}
+\usepackage{graphicx}
 \textwidth=16cm
 \textheight=26.0cm
 \topmargin 0.2in
@@ -71,9 +72,7 @@ The picture below shows a global grid for a silicon cluster
 \begin{figure}[h]             % produce figure
 \begin{center}
 \setlength{\unitlength}{1cm}
-\begin{picture}( 11.,10.0)           % figure dimensions
-\put(-1.,-.5){\special{psfile=figrid.ps}}   % VAX
-\end{picture}
+\includegraphics[width=0.5\textwidth]{figrid.pdf}
 \caption{ \label{grid} Grid around a silicon cluster. Atoms are big green spheres, 
 grid points in the fine resolution region are shown in red, coarse resolution grid points 
 in black.}
@@ -90,9 +89,7 @@ carrying no basis functions are eliminated by compressing the data as shown belo
 \begin{figure}[h]             % produce figure
 \begin{center}
 \setlength{\unitlength}{1cm}
-\begin{picture}( 10.,10.0)           % figure dimensions
-\put(-3.,-4.5){\special{psfile=compress.ps}}   % VAX
-\end{picture}
+\includegraphics[width=0.5\textwidth]{compress.pdf}
 \caption{ \label{compress} The data compression scheme. The subscripts \_c has to be replaced 
 by \_f for the fine part.}
 \end{center}
