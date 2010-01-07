@@ -347,7 +347,7 @@ subroutine read_parameters()
         read(temporary,*) DIIS_CHECK_EIGENVEC
      endif
 
-     call getenv('DIIS_Step_Size',temporary)
+     call getenv('DIIS_Step_size',temporary)
      if (temporary .eq. '') then
         DIIS_STEP = 0.01d0
      else
