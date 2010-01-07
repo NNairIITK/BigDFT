@@ -692,9 +692,11 @@ contains
     real(gp) cheb_shift, fact_cheb
     integer Nu
 
-    real(gp), pointer :: Xs(:), res(:), cfftreal(:), cfftimag(:)
+    real(gp), pointer :: Xs(:), res(:), cfftreal(:), cfftimag(:), zinout(:,:,:)
     complex(kind=8), pointer :: alphas(:), expn(:)
     complex(kind=8) ctemp
+    integer inzee
+
 
     integer Nbar
     integer i,n
@@ -737,6 +739,9 @@ contains
     allocate(cfftimag(0:2*Nbar-1+ndebug) , stat=i_stat)
     call memocc(i_stat,cfftimag,'cfftimag',subname)
     
+    allocate(zinout (2,2*Nbar,2+ndebug) , stat=i_stat)
+    call memocc(i_stat,zinout,'zinout',subname)
+    
 
 
     cfftreal=0
@@ -765,7 +770,22 @@ contains
     enddo
 
 
-    call FFT842(0, 2*Nbar, cfftreal(0:), cfftimag(0:) )
+    if(.true.) then
+       
+       zinout=0.0
+
+       zinout(1,1:2*Nbar,1) = cfftreal(:)
+       zinout(2,1:2*Nbar,1) = cfftimag(:)
+       call fft_1d_ctoc(1 ,1, 2*Nbar ,zinout(1,1,1) ,inzee)
+       cfftreal(:)  =   zinout(1,1:2*Nbar,inzee)   
+       cfftimag(:)  =   zinout(2,1:2*Nbar,inzee)    
+    else
+       call FFT842(0, 2*Nbar, cfftreal(0:), cfftimag(0:) )       
+    endif
+
+
+
+
     cfftreal=cfftreal-LB_alpha(0)*0.5
 
 !!$    do n=1,Nu-1
@@ -813,6 +833,11 @@ contains
     i_all=-product(shape(cfftimag))*kind(cfftimag)
     deallocate(cfftimag)
     call memocc(i_stat,i_all,'cfftimag',subname)
+    
+
+    i_all=-product(shape(zinout))*kind(zinout)
+    deallocate(zinout)
+    call memocc(i_stat,i_all,'zinout',subname)
     
 
 
