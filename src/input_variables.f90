@@ -220,23 +220,6 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   read(1,*,iostat=ierror) in%nvirt,in%nplot
   call check()
 
-  !x-absorber treatment (to be eliminated, put c_absorbtion to false)
-  read(1,*,iostat=ierror) in%iabscalc_type
-  call check()
-
-  !read absorption-calculation input variables
-  !inquire for the needed file 
-  !if not present, set default ( no absorption calculation)
-  if (in%iabscalc_type /= 0) then
-     inquire(file="input.abscalc",exist=exists)
-     if (.not. exists) then
-        if (iproc == 0) write(*,*)'ERROR: need file input.abscalc for x-ray absorber treatment.'
-        stop
-     end if
-     call abscalc_input_variables(iproc,'input.abscalc',in)
-  else
-     call abscalc_input_variables_default(in)
-  end if
 
 
   !electrostatic treatment of the vacancy (experimental)
@@ -655,7 +638,11 @@ subroutine abscalc_input_variables(iproc,filename,in)
 
   !x-adsorber treatment (in progress)
 
-  read(111,*,iostat=ierror)  in%iat_absorber, in%absorber_gnrm
+  read(111,*,iostat=ierror) in%iabscalc_type
+  call check()
+
+
+  read(111,*,iostat=ierror)  in%iat_absorber
   call check()
   read(111,*,iostat=ierror)  in%L_absorber
   call check()
@@ -663,7 +650,7 @@ subroutine abscalc_input_variables(iproc,filename,in)
   allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)
   call memocc(i_stat,in%Gabs_coeffs,'Gabs_coeffs',subname)
 
-  read(111,*,iostat=ierror)  (in%Gabs_coeffs(i+ndebug), i=1,2*in%L_absorber +1 )
+  read(111,*,iostat=ierror)  (in%Gabs_coeffs(i), i=1,2*in%L_absorber +1 )
   call check()
 
   read(111,*,iostat=ierror)  in%potshortcut

@@ -14,3 +14,4 @@ CUDAGPU  write "CUDAGPU" on this line to use GPU acceleration (GPU.config file i
   0 x-ray absorber treatment
  0 .false. .false. 0.d0 vacancy: atom no., read_ref_den, correct_offset, gnrm_sw
 2 verbosity
+
