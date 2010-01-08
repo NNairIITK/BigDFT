@@ -20,7 +20,10 @@
 \item Stefan.Goedecker@unibas.ch \\
 http://www.unibas.ch/comphys/comphys \\
 \item Luigi.Genovese@esrf.fr \\
-\item Damien.Caliste@cea.fr
+\item Damien.Caliste@cea.fr \\
+\item alessandro.mirone@esrf.fr \\
+
+
 \end{itemize}
 \normalsize
 \tableofcontents
@@ -519,34 +522,35 @@ which can be computed by iterative applications of the Hamiltonian :
 \begin{eqnarray}
   \int  f(E) E^n d E =     < i | H^n| i > |
 \end{eqnarray}
+
 To avoid numerical ill-conditioning coming from the numerical linear dependence of  high order powers we proceed as explained in \cite{weiss}.
  The $H$ hamiltonian is rescaled  and shifted to a  new $H'$     whose  spectra
 is comprised within $]-1,1[$ :
 $$   < n | H' | n > \in      ]-1,1[   $$.
 The overlap integrals between the spectra and Chebychev polynomia $T_n(x)$ is calculated by  recurrency.
 The Chebychev polynomia $T_n(x)$ are :
-$$       T_n(x) = cos( n arccos(x)) $$
+$$       T_n(x) = cos( n * arccos(x)) $$
 and satisfy the recurrency relation :
 
-$$ T_{m+1}(x) = 2 x T_m(x) ¡Ý T_{m¡Ý1} (x)$$.
+$$ T_{m+1}(x) = 2 x T_m(x) - T_{m-1} (x)$$.
 
 The overlap integral are :
 $$   \mu_n =  \int  f'(x) T_n(x)  =     < i |  T_n(H') | i > |         $$
 
 and can be obtained by applying  the recurrency relation to the left side of $|i>$ state :
 
-$$ T_{m+1}(H')| i > = 2 H' T_m(H')| i > ¡Ý T_{m¡Ý1} (H')| i >  $$.
+$$ T_{m+1}(H')| i > = 2 H' T_m(H')| i > - T_{m-1} (H')| i >  $$.
 and then obtaining  the scalar product. The spectra is finally recovered as 
 
 $$  f( b+a x) = \frac{  (\mu_0+ 2 \sum_{n=1}^{\inf} \mu_n T_n(x)) }{a \pi \sqrt{1 - x^2} }            $$
 
-(mi manca il fattore a al denominatore nel programma, controllare
-anche il fattore 2 )
+
 where $b$ and $a$ are the shift and the scaling factor respectively, involved in the $ H' \rightarrow H $ transformation.
 The spectra can be obtained up to an arbitrary degree of resolution by
 applying iteratively the recurrency relation for a sufficent number of times. To avoid oscillation
 due to the truncation of the summation, a convolution is applied multiplying the $\mu_n$ 
 components by the Jackson kernel \cite{weiss}. 
+
 
 
 
