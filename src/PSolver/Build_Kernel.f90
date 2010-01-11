@@ -1919,7 +1919,6 @@ subroutine fft_1d_ctoc(isign,nfft,n,zinout,inzee)
   !automatic arrays for the FFT
   integer, dimension(n_factors) :: after,now,before
   real(dp), dimension(2,nfft_max) :: trig
-  
   !arrays for the FFT (to be halved)
   call ctrig_sg(n,trig,after,before,now,isign,ic)
   !perform the FFT 
@@ -1931,7 +1930,6 @@ subroutine fft_1d_ctoc(isign,nfft,n,zinout,inzee)
           trig,after(i),now(i),before(i),1)
      inzee=3-inzee
   enddo
-
 end subroutine fft_1d_ctoc
 
 subroutine accumulate_fft(n1,nk1,nfft,ncacheff,halfft_cache,kernelfour)
