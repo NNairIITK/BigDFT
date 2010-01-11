@@ -35,7 +35,7 @@ subroutine print_logo()
   write(*,'(23x,a)')' g        g     i         B    B    '  
   write(*,'(23x,a)')'          g     i        B     B    ' 
   write(*,'(23x,a)')'         g               B    B     '
-  write(*,'(23x,a)')'    ggggg       i         BBBB                 (Ver 1.3.0-dev)'
+  write(*,'(23x,a)')'    ggggg       i         BBBB                 (Ver 1.3.99)'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'
   write(*,'(1x,a)')&
@@ -46,6 +46,75 @@ subroutine print_logo()
        '                                  The Journal of Chemical Physics 129, 014109 (2008)'
 end subroutine print_logo
 !!***
+
+!!****f* BigDFT/read_input_variables
+!! FUNCTION
+!!    Do all initialisation for all different files of
+!!    BigDFT. Set default values if not any.
+!! SOURCE
+!!
+subroutine read_input_variables(iproc,posinp, file_dft, file_kpt, &
+     & file_geopt, in,atoms,rxyz)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => read_input_variables
+
+  implicit none
+
+  character(len=*), intent(in) :: posinp
+  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt
+  integer, intent(in) :: iproc
+  type(input_variables), intent(out) :: in
+  type(atoms_data), intent(out) :: atoms
+  real(gp), dimension(:,:), pointer :: rxyz
+
+  logical :: exists
+  real(gp) :: tt
+  integer :: iat
+  
+  !read atomic file
+  call read_atomic_file(posinp,iproc,atoms,rxyz)
+
+  ! read dft input variables
+  call dft_input_variables(iproc,file_dft,in,atoms%symObj)
+
+  ! read k-points input variables (if given)
+  call kpt_input_variables(iproc,file_kpt,in,atoms)
+
+  ! read geometry optimisation option
+  inquire(file=file_geopt,exist=exists)
+  if (exists) then
+     call geopt_input_variables(iproc,file_geopt,in)
+  else
+     call geopt_input_variables_default(in)
+  end if
+
+  ! Chake atoms if required.
+  if (in%randdis > 0.d0) then
+     do iat=1,atoms%nat
+        if (atoms%ifrztyp(iat) == 0) then
+           call random_number(tt)
+           rxyz(1,iat)=rxyz(1,iat)+in%randdis*tt
+           call random_number(tt)
+           rxyz(2,iat)=rxyz(2,iat)+in%randdis*tt
+           call random_number(tt)
+           rxyz(3,iat)=rxyz(3,iat)+in%randdis*tt
+        end if
+     enddo
+  end if
+
+  !atoms inside the box.
+  do iat=1,atoms%nat
+     if (atoms%geocode == 'P') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+        rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     else if (atoms%geocode == 'S') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     end if
+  end do
+end subroutine read_input_variables
 
 !!****f* BigDFT/dft_input_variables
 !! FUNCTION
@@ -150,25 +219,6 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   !davidson treatment
   read(1,*,iostat=ierror) in%nvirt,in%nplot
   call check()
-
-  !x-absorber treatment
-  read(1,*,iostat=ierror) in%iat_absorber
-  call check()
-
-  !read absorption-calculation input variables
-  !inquire for the needed file 
-  !if not present, set default ( no absorption calculation)
-  if (in%iat_absorber /= 0) then
-     inquire(file="input.abscalc",exist=exists)
-     if (.not. exists) then
-        if (iproc == 0) write(*,*)'ERROR: need file input.abscalc for x-ray absorber treatment.'
-        stop
-     end if
-     call abscalc_input_variables(iproc,'input.abscalc',in)
-  else
-     call abscalc_input_variables_default(in)
-  end if
-
 
   !electrostatic treatment of the vacancy (experimental)
   read(1,*,iostat=ierror)  in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
@@ -586,15 +636,19 @@ subroutine abscalc_input_variables(iproc,filename,in)
 
   !x-adsorber treatment (in progress)
 
-  read(111,*,iostat=ierror)  in%iat_absorber, in%absorber_gnrm
+  read(111,*,iostat=ierror) in%iabscalc_type
+  call check()
+
+
+  read(111,*,iostat=ierror)  in%iat_absorber
   call check()
   read(111,*,iostat=ierror)  in%L_absorber
   call check()
 
   allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)
-  call memocc(i_stat,in%Gabs_coeffs,'in%Gabs_coeff',subname)
+  call memocc(i_stat,in%Gabs_coeffs,'Gabs_coeffs',subname)
 
-  read(111,*,iostat=ierror)  (in%Gabs_coeffs(i+ndebug), i=1,2*in%L_absorber +1 )
+  read(111,*,iostat=ierror)  (in%Gabs_coeffs(i), i=1,2*in%L_absorber +1 )
   call check()
 
   read(111,*,iostat=ierror)  in%potshortcut
@@ -629,307 +683,6 @@ contains
 
 end subroutine abscalc_input_variables
 !!***
-
-
-!!****f* BigDFT/dft_input_converter
-!! FUNCTION
-!!  Convert the format of input variables
-!! SOURCE
-!!
-subroutine dft_input_converter(in)
-  use module_base
-  use module_types
-  implicit none
-  type(input_variables), intent(in) :: in
-  !local variables
-  character(len=100) :: line
-  integer :: iline
-
-  ! Read the input variables.
-  open(unit=1,file='input_convert.dft',status='new')
-
-  !line number, to control the input values
-  iline=0
-  !grid spacings
-  line=''
-  line=' hx,hy,hz: grid spacing in the three directions'
-  write(1,'(3(f6.3),a)') in%hx,in%hy,in%hz,trim(line)
-  !coarse and fine radii around atoms
-  line=''
-  line=' crmult, frmult: c(f)rmult*radii_cf(*,1(2)) gives the coarse (fine)radius around each atom'
-  write(1,'(2(1x,f4.1),a)') in%crmult,in%frmult,trim(line)
-  line=''
-  line=' ixc: exchange-correlation parameter (LDA=1,PBE=11)'
-  !XC functional (ABINIT XC codes)
-  write(1,'(i3,a)') in%ixc,trim(line)
-
-  line=''
-  line=' ncharge: charge of the system, Electric field'
-  write(1,'(i3,1(f6.3),a)') in%ncharge,in%elecfield,trim(line)
-
-  line=''
-  line=' nspin=1 non-spin polarization, mpol=total magnetic moment'
-  write(1,'(2(i3),a)') in%nspin,in%mpol,trim(line)
-
-  line=''
-  line=' gnrm_cv: convergence criterion gradient'
-  write(1,'(1pe7.0,a)') in%gnrm_cv,trim(line)
-  
-  line=''
-  line=' itermax,nrepmax: maximum number of wavefunction optimizations and of re-diagonalised runs'
-  write(1,'(2(i3),a)') in%itermax,in%nrepmax,trim(line)
-  
-  line=''
-  line=' ncong, idsx: # CG iterations for the preconditioning equation, length of the diis history'
-  write(1,'(2(i3),a)') in%ncong,in%idsx,trim(line)
-  
-  line=''
-  line=' dispersion correction functional (values 1,2,3), 0=no correction'
-  write(1,'(i3,a)') in%dispersion,trim(line)
-  
-  line=''
-  line=' write "CUDAGPU" on this line to use GPU acceleration (GPU.config file is needed)'
-  write(1,'(a)') trim(line)
-
-  !now the varaibles which are to be used only for the last run
-  line=''
-  line=' InputPsiId, output_wf, output_grid'
-  write(1,*) in%inputPsiId,in%output_wf,in%output_grid,trim(line)
-  
-
-  line=''
-  line=' calc_tail, rbuf, ncongt: calculate tails,length of the tail (AU),# tail CG iterations'
-  if (in%calc_tail) then
-     write(1,'(f4.1,i4,a)') in%rbuf,in%ncongt,trim(line)
-  else
-     write(1,'(f4.1,i4,a)') 0.0_gp,in%ncongt,trim(line)
-  end if
-
-
-  !davidson treatment
-  line=''
-  line=' davidson treatment, no. of virtual orbitals, no of plotted orbitals'
-  write(1,'(2(i3),a)') in%nvirt,in%nplot,trim(line)
-  
-  line=''
-  line=' x-ray adsorber treatment'
-  !x-adsorber treatment (in progress)
-  write(1,'(i3,a)')  in%iat_absorber,trim(line)
-  
-
-  line=''
-  line='0 .false. .false. 0.d0 vacancy: atom no., read_ref_den, correct_offset, gnrm_sw'
-  !electrostatic treatment of the vacancy (experimental)
-  write(1,*) trim(line)
-
-
-  line=''
-  line=' 2   verbosity of the output 0=low, 2=high'
-  !electrostatic treatment of the vacancy (experimental)
-  write(1,*) trim(line)
-   
-  close(unit=1)
-end subroutine dft_input_converter
-!!***
-
-
-
-
-
-!!****f* BigDFT/read_input_variables
-!! FUNCTION
-!!    Read the input variables in the file 'input.dft'
-!! SOURCE
-!!
-subroutine read_input_variables(iproc,filename,in)
-  use module_base
-  use module_types
-  implicit none
-  character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc
-  type(input_variables), intent(out) :: in
-  !local variables
-  character(len=7) :: cudagpu
-  character(len=100) :: line
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
-
-  ! Read the input variables.
-  open(unit=1,file=filename,status='old')
-
-  iline=0
-  !read the line for force the CUDA GPU calculation for all processors
-  read(1,'(a100)')line
-  read(line,*,iostat=ierrfrc) cudagpu
-  if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
-!     call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-!     call sg_init(GPUshare,iconv,iproc,initerror)
-iconv = 1
-iblas = 1
-     if (initerror == 1) then
-
-        write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
-        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
-
-
-
-     
-     end if
-    ! GPUshare=.true.
-     if (iconv == 1) then
-        !change the value of the GPU convolution flag defined in the module_base
-        GPUconv=.true.
-     end if
-     if (iblas == 1) then
-        !change the value of the GPU convolution flag defined in the module_base
-        GPUblas=.true.
-     end if
-     read(1,*,iostat=ierror) in%ncount_cluster_x
-     call check()
-  else
-     read(line,*,iostat=ierror) in%ncount_cluster_x
-     call check()
-  end if
-
-  read(1,'(a100)')line
-  read(line,*,iostat=ierrfrc) in%frac_fluct,in%forcemax
-  if (ierrfrc /= 0) then
-     read(line,*,iostat=ierror) in%frac_fluct
-     in%forcemax=0.0_gp
-  end if
-  call check()
-  read(1,*,iostat=ierror) in%randdis
-  call check()
-  read(1,*,iostat=ierror) in%betax
-  call check()
-  read(1,*,iostat=ierror) in%hx,in%hy,in%hz
-  call check()
-  read(1,*,iostat=ierror) in%crmult
-  call check()
-  read(1,*,iostat=ierror) in%frmult
-  call check()
-
-  read(1,*,iostat=ierror) in%ixc
-  call check()
-  read(1,*,iostat=ierror) in%elecfield
-  call check()
-  read(1,*,iostat=ierror) in%gnrm_cv
-  call check()
-  read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%itermax,in%nrepmax
-  if (ierror == 0) then
-     !read(line,*,iostat=ierror) in%ncharge,in%elecfield
-  else
-     read(line,*,iostat=ierror)in%itermax
-     in%nrepmax=10
-  end if
-  call check()
-  read(1,*,iostat=ierror) in%ncong
-  call check()
-  read(1,*,iostat=ierror) in%idsx
-  call check()
-  read(1,*,iostat=ierror) in%calc_tail
-  call check()
-  read(1,*,iostat=ierror) in%rbuf
-  call check()
-  read(1,*,iostat=ierror) in%ncongt
-  call check()
-  read(1,*,iostat=ierror) in%nspin,in%mpol
-  call check()
-  read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
-  call check()
-
-  !project however the wavefunction on gaussians if asking to write them on disk
-  in%gaussian_help=(in%inputPsiId >= 10)! commented .or. in%output_wf 
-  !switch on the gaussian auxiliary treatment 
-  !and the zero of the forces
-  if (in%inputPsiId == 10) then
-     in%inputPsiId=0
-  end if
-
-  ! qoh: Try to read dispersion input variable
-  read(1,'(a100)',iostat=ierror)line
-  if (ierror == 0) then
-     if (index(line,"dispersion") /= 0) then 
-        read(line,*,iostat=ierror) in%dispersion
-        !add reading lines for Davidson treatment 
-        !(optional for backward compatibility)
-        read(1,*,iostat=ierror) in%nvirt, in%nplot
-     else 
-        in%dispersion = 0
-        read(line,*,iostat=ierror) in%nvirt, in%nplot
-     endif   
-     ! add reading for absorbing atom. iat_absorber=0 ( default ) means no absorption calculation
-     if(ierror==0) then
-        read(1,*,iostat=ierror)  in%iat_absorber
-        if(ierror/=0) then
-           in%iat_absorber=0
-        endif
-     else
-        in%iat_absorber=0
-     endif
-
-  ! AMmodif end
-
-  else
-     in%dispersion = 0
-     in%nvirt=0
-     in%nplot=0
-     in%iat_absorber=0
- end if
-
-  !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
-  !systems
-  if (in%nspin/=1 .and. in%nvirt/=0) then
-     !if (iproc==0) then
-        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
-     !end if
-     stop
-  end if
- 
-  close(unit=1,iostat=ierror)
-
-  if (iproc == 0) then
-     write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x
-     write(*,'(1x,a,1pe10.2)') 'Convergence criterion for forces: fraction of noise ',&
-          in%frac_fluct
-     write(*,'(1x,a,1pe10.2)') '                                : maximal component ',&
-          in%forcemax
-     write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',in%randdis
-     write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
-     if (in%nvirt > 0) then
-        !read virtual orbital and plotting request
-        write(*,'(1x,a,i0)')'Virtual orbitals ',in%nvirt
-        write(*,'(1x,a,i0,a)')'Output for density plots is requested for ',abs(in%nplot),' orbitals'
-     end if
-  end if
-
-     if (in%nspin==4) then
-        if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Non-collinear)'
-     else if (in%nspin==2) then
-        if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Collinear)'
-     else if (in%nspin==1) then
-        if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation:  NO '
-     else
-        !if (iproc == 0) 
-        write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
-        stop
-     end if
-
-contains
-
-  subroutine check()
-    iline=iline+1
-    if (ierror/=0) then
-       !if (iproc == 0) 
-            write(*,'(1x,a,a,a,i3)') &
-            'Error while reading the file "',trim(filename),'", line=',iline
-       stop
-    end if
-  end subroutine check
-
-end subroutine read_input_variables
-!!***
-
 
 !!****f* BigDFT/print_input_parameters
 !! FUNCTION
@@ -1166,7 +919,6 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   real(gp), dimension(3,atoms%nat), intent(out) :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_atomic_positions'
-  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   character(len=2) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
@@ -1256,9 +1008,9 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   !convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
-     atoms%alat1=alat1d0/bohr
-     atoms%alat2=alat2d0/bohr
-     atoms%alat3=alat3d0/bohr
+     atoms%alat1=alat1d0/bohr2ang
+     atoms%alat2=alat2d0/bohr2ang
+     atoms%alat3=alat3d0/bohr2ang
   else if  (atoms%units=='atomic' .or. atoms%units=='bohr'  .or.&
        atoms%units== 'atomicd0' .or. atoms%units== 'bohrd0') then
      atoms%alat1=alat1d0
@@ -1329,7 +1081,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
      if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
         ! if Angstroem convert to Bohr
         do i=1,3 
-           rxyz(i,iat)=rxyz(i,iat)/bohr
+           rxyz(i,iat)=rxyz(i,iat)/bohr2ang
         enddo
      else if (atoms%units == 'reduced') then 
         rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
@@ -1547,7 +1299,6 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_ascii_positions'
-  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   character(len=2) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
@@ -1592,7 +1343,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
      write(line, "(a150)") adjustl(lines(i))
      if (line(1:1) /= '#' .and. line(1:1) /= '!' .and. len(trim(line)) /= 0) then
         atoms%nat = atoms%nat + 1
-     else if (line(1:9) == "#keyword:" .or. line(1:9) == "!keyword:") then
+     else if (line(1:8) == "#keyword" .or. line(1:8) == "!keyword") then
         if (index(line, 'bohr') > 0)        write(atoms%units, "(A)") "bohr"
         if (index(line, 'bohrd0') > 0)      write(atoms%units, "(A)") "bohrd0"
         if (index(line, 'atomic') > 0)      write(atoms%units, "(A)") "atomicd0"
@@ -1604,7 +1355,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
         if (index(line, 'freeBC') > 0)   atoms%geocode = 'F'
      end if
   end do
-  
+
   allocate(atoms%iatype(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%iatype,'atoms%iatype',subname)
   allocate(atoms%ifrztyp(atoms%nat+ndebug),stat=i_stat)
@@ -1677,9 +1428,9 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   !convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
-     atoms%alat1 = atoms%alat1 / bohr
-     atoms%alat2 = atoms%alat2 / bohr
-     atoms%alat3 = atoms%alat3 / bohr
+     atoms%alat1 = atoms%alat1 / bohr2ang
+     atoms%alat2 = atoms%alat2 / bohr2ang
+     atoms%alat3 = atoms%alat3 / bohr2ang
   endif
 
   atoms%ntypes=0
@@ -1738,7 +1489,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
         if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
            ! if Angstroem convert to Bohr
            do j=1,3 
-              rxyz(j,iat)=rxyz(j,iat)/bohr
+              rxyz(j,iat)=rxyz(j,iat) / bohr2ang
            enddo
         else if (atoms%units == 'reduced') then 
            rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
@@ -1810,7 +1561,6 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !local variables
-  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   character(len=2) :: symbol
   character(len=10) :: name
   character(len=11) :: units
@@ -1829,7 +1579,7 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
      zmax=max(rxyz(3,iat),zmax)
   enddo
   if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
-     factor=bohr
+     factor=bohr2ang
      units='angstroemd0'
   else
      factor=1.0_gp
@@ -1876,7 +1626,6 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !local variables
-  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   character(len=2) :: symbol
   character(len=50) :: extra
   character(len=10) :: name
@@ -1894,7 +1643,7 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
      zmax=max(rxyz(3,iat),zmax)
   enddo
   if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
-     factor=bohr
+     factor=bohr2ang
   else
      factor=1.0_gp
   end if

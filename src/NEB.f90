@@ -566,12 +566,12 @@ MODULE NEB_routines
 
       END IF
 
-      IF ( minval(abs(acell2 - acell1)) /= 0.d0 ) THEN
+      IF ( maxval(abs(acell2 - acell1)) > 1.d-6 ) THEN
       
          WRITE(*,'(T2,"read_input: box size is not constant")')
-         WRITE(*,'(T2,"            Lx = ", F9.4, F9.4 )') acell1(1), acell2(1)
-         WRITE(*,'(T2,"            Ly = ", F9.4, F9.4 )') acell1(2), acell2(2)
-         WRITE(*,'(T2,"            Lz = ", F9.4, F9.4 )') acell1(3), acell2(3)
+         WRITE(*,'(T2,"           dLx = ", F10.6 )') acell1(1) - acell2(1)
+         WRITE(*,'(T2,"           dLy = ", F10.6 )') acell1(2) - acell2(2)
+         WRITE(*,'(T2,"           dLz = ", F10.6 )') acell1(3) - acell2(3)
          STOP  
 
       END IF
@@ -684,7 +684,7 @@ MODULE NEB_routines
               ! a : the current ratio.
               ! We copy i to j if a < r, otherwise we create a new
               ! linear approximant.
-              if (a < r) then
+              if (a <= r) then
                  pos(:, j) = pos(:, i)
                  i = i - 1
                  ! We create the new linear approx. replicas between j and j0.

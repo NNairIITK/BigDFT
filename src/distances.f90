@@ -346,7 +346,7 @@ print *,'nat',nat
        do i=1,nat
           iatype(i)=atoms%iatype(i)
        enddo
-       factor=atoms%alat1*0.5291772108d0 
+       factor=atoms%alat1 * bohr2ang
 
        deallocate(atoms%ifrztyp)
        deallocate(atoms%iatype)
