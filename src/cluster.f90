@@ -496,7 +496,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call input_wf_diag(iproc,nproc,atoms,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut)
+          nscatterarr,ngatherarr,nspin,0)
 
   case(1)
      !these parts should be reworked for the non-collinear spin case
@@ -681,11 +681,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   DoDavidson= .false.
 
   wfn_loop: do iter=1,itermax
-
-     if( in%potshortcut>0) then
-         if(iproc==0) print *, " exiting sc loop " 
-        exit wfn_loop 
-     endif
 
      if (iproc == 0 .and. verbose > 0) then 
         write( *,'(1x,a,i0)')&
