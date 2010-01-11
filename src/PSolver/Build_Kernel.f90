@@ -946,7 +946,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
     w_gauss(i_gauss) = factor*w_gauss(i_gauss)
  end do
 
- allocate(fwork(-itype_scf:n_range+itype_scf+ndebug),stat=i_stat)
+ allocate(fwork(0:n_range+ndebug),stat=i_stat)
  call memocc(i_stat,fwork,'fwork',subname)
  allocate(fftwork(2,max(nfft1,nfft2,nfft3)*2+ndebug),stat=i_stat)
  call memocc(i_stat,fftwork,'fftwork',subname)
@@ -961,8 +961,8 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 
 !!$ allocate(kern_1_scf(-n_range:n_range+ndebug),stat=i_stat)
 !!$ call memocc(i_stat,kern_1_scf,'kern_1_scf',subname)
-!!$
-!!$
+
+
  allocate(kernel_scf(max(n1k,n2k,n3k),3+ndebug),stat=i_stat)
  call memocc(i_stat,kernel_scf,'kernel_scf',subname)
 !!$ allocate(kernel_scf(-n_range:n_range,3+ndebug),stat=i_stat)
@@ -972,7 +972,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
     !Gaussian
     pgauss = p_gauss(i_gauss)
     
-!!$    if (i_gauss == 59 .or. .true.) then
+!!$    if (i_gauss == 71 .or. .true.) then
 !!$       print *,'pgauss,wgauss',pgauss,w_gauss(i_gauss)
 !!$       !take the timings
 !!$       call cpu_time(t0)
@@ -996,17 +996,17 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 !!$       maxdiff=0.0_dp
 !!$       do i=0,n_range
 !!$          !write(17,*)i,kernel_scf(i,1),kern_1_scf(i)
-!!$          maxdiff=max(maxdiff,abs(kernel_scf(i,1)-(fwork(i+itype_scf)-fwork(i-itype_scf))))
+!!$          maxdiff=max(maxdiff,abs(kernel_scf(i,1)-(fwork(i))))
 !!$       end do
 !!$
-!!$       do i=-itype_scf,n_range
-!!$          write(18,'(i4,3(1pe25.17))')i,kernel_scf(i,1),(fwork(abs(i)+itype_scf)-fwork(abs(i)-itype_scf)),fwork(i)
+!!$       do i=0,n_range
+!!$          write(18,'(i4,3(1pe25.17))')i,kernel_scf(i,1),fwork(i)
 !!$       end do
 !!$       
 !!$       write(*,'(1x,a,i3,2(1pe12.5),1pe24.17)')'time,i_gauss',i_gauss,told,tnew,maxdiff
 !!$       !stop
 !!$    end if
-
+!!$    !STOP
     call gauconv_ffts(itype_scf,pgauss,hx,hy,hz,nfft1,nfft2,nfft3,n1k,n2k,n3k,n_range,&
          fwork,fftwork,kernel_scf)
 
@@ -1022,8 +1022,9 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
           end do
        end if
     end do
+!!$
  end do
-
+!!$stop
 !!$
 
 !!$ !De-allocations
@@ -1052,7 +1053,7 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
   implicit none
   integer, intent(in) :: itype_scf,n1,n2,n3,nk1,nk2,nk3,n_range
   real(dp), intent(in) :: pgauss,hx,hy,hz
-  real(dp), dimension(-itype_scf:n_range+itype_scf), intent(inout) :: fwork
+  real(dp), dimension(0:n_range), intent(inout) :: fwork
   real(dp), dimension(2,max(n1,n2,n3)*2), intent(inout) :: fftwork
   real(dp), dimension(max(nk1,nk2,nk3),3), intent(out) :: kffts
   !local variables
@@ -1085,7 +1086,7 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
         !copy the values on the real part of the fftwork array
         fftwork=0.0_dp
         do j=0,min(n_range,n/2)
-           fftwork(1,n/2+1+j)=fwork(j+itype_scf)-fwork(j-itype_scf)
+           fftwork(1,n/2+1+j)=fwork(j)
            fftwork(1,n/2+1-j)=fftwork(1,n/2+1+j)
         end do
         !calculate the fft 
@@ -1104,7 +1105,7 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
         !copy the values on the real part of the fftwork array
         fftwork=0.0_dp
         do j=0,min(n_range,n/2)
-           fftwork(1,n/2+1+j)=fwork(j+itype_scf)-fwork(j-itype_scf)
+           fftwork(1,n/2+1+j)=fwork(j)
            fftwork(1,n/2+1-j)=fftwork(1,n/2+1+j)
         end do
         !calculate the fft 
@@ -1124,13 +1125,13 @@ subroutine analytic_integral(alpha,ntot,m,fwork)
   implicit none
   integer, intent(in) :: ntot,m
   real(dp), intent(in) :: alpha
-  real(dp), dimension(-m:ntot+m), intent(inout) :: fwork
+  real(dp), dimension(0:ntot), intent(inout) :: fwork
   !local variables
   integer, parameter :: nf=64
   real(dp), parameter :: pi=3.1415926535897932384_dp
   logical :: flag,flag1,flag2
-  integer :: j,q
-  real(dp) :: if,r1,r2,rese,reso,y,xe,xo,erfcsgn,factor,re,ro,factorend
+  integer :: j,q,jz
+  real(dp) :: if,r1,r2,res,ypm,ymm,erfcpm,erfcmm,factor,re,ro,factorend
   !fourier transform, from mathematica
   real(dp), dimension(0:nf) :: fISF = (/&
        1._dp,&
@@ -1206,43 +1207,54 @@ subroutine analytic_integral(alpha,ntot,m,fwork)
   !fill work array
   !the calculation for j=0 can be separated from the rest
   !since it only contains error functions
-  do j=-m,ntot+m
-     y=alpha*real(j,dp)
-     call derfcsgn(erfcsgn,y)
+  loop_nonzero: do j=0,ntot
+     ypm=alpha*real(j+m,dp)
+     ymm=alpha*real(j-m,dp)
+     call derfcf(erfcpm,ypm)
+     call derfcf(erfcmm,ymm)
      !assume nf even
-     rese=0._dp
-     reso=0._dp
+     res=0._dp
+     !reso=0._dp
      do q=nf,2,-2
-        xe=factor*real(q,dp)
-        xo=factor*real(q-1,dp)
-        call wofz_mod(-xe,-y,r1,if,flag1)
-        call wofz_mod(xe,-y,r2,if,flag2)
-        re=r1+r2
+        !the sign of q only influences the imaginary part
+        !so we can multiply by a factor of two
+        
+        !call wofz_mod(alpha,m,-q,-j,r1,if,flag1)
+        call wofz_mod(alpha,m,q,-j-m,r1,if,flag1)
+        call wofz_mod(alpha,m,q,-j+m,r2,if,flag2)
+!!$        call wofz_mod(-xe,-y,r1,if,flag1)
+!!$        call wofz_mod(xe,-y,r2,if,flag2)
+        re=r1-r2
         flag=flag1 .or. flag2 .or. flag
         !if (flag) then
         !   print *,'here',xe,y,q,j
         !   stop 
         !end if
-        call wofz_mod(-xo,-y,r1,if,flag1)
-        call wofz_mod(xo,-y,r2,if,flag2)
-        ro=r1+r2
+        !call wofz_mod(alpha,m,-q+1,-j,r1,if,flag1)
+        call wofz_mod(alpha,m,q-1,-j-m,r1,if,flag1)
+        call wofz_mod(alpha,m,q-1,-j+m,r2,if,flag2)
+!!$        call wofz_mod(-xo,-y,r1,if,flag1)
+!!$        call wofz_mod(xo,-y,r2,if,flag2)
+        ro=r1-r2
         flag=flag1 .or. flag2 .or. flag
         !if (flag) then
         !   print *,'there',xo,y
         !   stop 
         !end if
+        !write(16,'(2(i4),6(1pe15.7))')j,q,re,ro,erfcmm-erfcpm
         re=re*fISF(q)
         ro=ro*fISF(q-1)
-        rese=rese+re
-        reso=reso+ro
-        !write(16,'(2(i4),6(1pe15.7))')j,q,re,ro,rese,
+        res=res+re-ro
      end do
      !q=0 
-     fwork(j)=derf(y)+rese-reso
+     !fwork(j)=derf(y)+rese-reso
+     fwork(j)=erfcmm-erfcpm+2.0_dp*res!e-reso
      fwork(j)=factorend*fwork(j)
+     !exit form the loop if it is close to zero
+     if (abs(fwork(j)) < 1.e-25_dp) exit loop_nonzero
      !write(17,'(i4,8(1pe15.7))')j,derf(y),erfcsgn,rese,reso,derf(y)+rese-reso,&
      !     -erfcsgn+rese-reso,erfcsgn+rese-reso
-  end do
+  end do loop_nonzero
 
   !check flag
   if (flag) then
@@ -1250,12 +1262,10 @@ subroutine analytic_integral(alpha,ntot,m,fwork)
      stop 'problem occurred in wofz'
   end if
 
-!!$  !once the work array is filled, calculate the result
-!!$  factor=
-!!$  do j=0,ntot
-!!$     integral(j)=factor*(fwork(j+m)-fwork(j-m))
-!!$     integral(-j)=integral(j)
-!!$  end do
+  !put to zero the rest
+  do jz=j+1,ntot
+     fwork(jz)=0.0_dp
+  end do
  
 end subroutine analytic_integral
 
@@ -1919,7 +1929,6 @@ subroutine fft_1d_ctoc(isign,nfft,n,zinout,inzee)
   !automatic arrays for the FFT
   integer, dimension(n_factors) :: after,now,before
   real(dp), dimension(2,nfft_max) :: trig
-  
   !arrays for the FFT (to be halved)
   call ctrig_sg(n,trig,after,before,now,isign,ic)
   !perform the FFT 
@@ -1931,7 +1940,6 @@ subroutine fft_1d_ctoc(isign,nfft,n,zinout,inzee)
           trig,after(i),now(i),before(i),1)
      inzee=3-inzee
   enddo
-
 end subroutine fft_1d_ctoc
 
 subroutine accumulate_fft(n1,nk1,nfft,ncacheff,halfft_cache,kernelfour)

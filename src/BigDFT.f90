@@ -17,12 +17,9 @@ program BigDFT
   use module_types
   use module_interfaces
   use ab6_symmetry
-!  use minimization, only: parameterminimization 
 
-  !implicit real(kind=8) (a-h,o-z)
-  !as a general policy, I will put "implicit none" by assuming the same
+  !as a general policy, we'll have "implicit none" by assuming the same
   !name convention as "implicit real(kind=8) (a-h,o-z)"
-  !such that the implicit statement can be commented at will
 
   implicit none
   character(len=*), parameter :: subname='BigDFT'
@@ -83,6 +80,9 @@ program BigDFT
 
      !welcome screen
      if (iproc==0) call print_logo()
+
+     !no abscalc procedure, only in the abscalc executable
+     call abscalc_input_variables_default(inputs)
 
      ! Read all input files.
      call read_input_variables(iproc,trim(arr_posinp(iconfig)), &

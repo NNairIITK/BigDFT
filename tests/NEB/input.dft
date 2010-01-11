@@ -11,6 +11,6 @@ fake CUDAGPU cudagpu     : write "CUDAGPU" to use GPU acceleration (GPU.config f
 0 F 0        iPsi,outWf,outGrid: InputPsiId, output_wf, output_grid
 0. 30        rtail,ncongt: length of the tail (AU), tail CG iterations
 0 0          dav,outOrb  : davidson treatment, no. of virtual orbitals, no of plotted orbitals
-0            xray        : x-ray adsorber treatment
 0 F F 0      ivac,readRef,offset,gnrm_sw: vacancy: atom no., read_ref_den, correct_offset, gnrm_sw
 2            verbose     : verbosity
+

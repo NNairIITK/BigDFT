@@ -206,6 +206,8 @@ CLEANFILES = $(mpi_include) \
 67_common/prtxvf.F90: defs_basis.o
 
 72_geomoptim/ab6_moldyn.F90: defs_basis.o defs_datatypes.o defs_abitypes.o
+72_geomoptim/xfpack.F90 : defs_basis.o
+
 
 mpif.h:
 	touch mpif.h &&\

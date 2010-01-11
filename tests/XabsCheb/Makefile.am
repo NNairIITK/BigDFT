@@ -35,8 +35,8 @@ XabsCheb.out: $(top_builddir)/src/abscalc $(PPFILES)
 
 XabsLanc.out: $(top_builddir)/src/abscalc $(PPFILES)
 	if ! test x"$srcdir" = x"." ; then \
-	  ln -fs $(srcdir)/inputLanc.dft input.dft  ; \
-	  ln -fs $(srcdir)/input.abscalc ; \
+	  ln -fs $(srcdir)/input.dft input.dft  ; \
+	  ln -fs $(srcdir)/input.abscalcLanc input.abscalc ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
 	  ln -fs $(srcdir)/gproje_Fe_1s_1 ; \
 	fi
