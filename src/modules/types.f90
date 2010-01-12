@@ -42,9 +42,10 @@ module module_types
      ! kpoints related input variables
      integer :: nkpt
      real(gp), pointer :: kpt(:,:), wkpt(:)
+
      ! Geometry variables from *.geopt
      character(len=10) :: geopt_approach
-     integer :: ncount_cluster_x
+     integer :: ncount_cluster_x, history
      real(gp) :: betax,forcemax,randdis
      integer :: optcell, ionmov, nnos
      real(gp) :: dtion, mditemp, mdftemp, noseinert, friction, mdwall
