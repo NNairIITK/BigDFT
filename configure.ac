@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.3.0-dev],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.0],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -187,12 +187,13 @@ AC_MSG_CHECKING([for memory limit in GB])
 AC_ARG_WITH(memory-limit, AS_HELP_STRING([--with-memory-limit], [Memory limit value in GB. It stops EVERYTHING if some process passes such limit (disabled by default).]),
               ac_with_memory_limit=$withval, ac_with_memory_limit="no")
 if test "${ac_with_memory_limit//\.*/}" -ge "0" 2> /dev/null ; then
-  ac_memory_limit=$ac_with_memory_limit
-  AC_DEFINE_UNQUOTED([MEMORY_LIMIT], [$ac_memory_limit], [Value in GB to stop processing.])
+  MEMORY_LIMIT=$ac_with_memory_limit
 else
-  ac_memory_limit="undefined"
+  ac_with_memory_limit="undefined"
+  MEMORY_LIMIT=0
 fi
-AC_MSG_RESULT([$ac_memory_limit])
+AC_SUBST(MEMORY_LIMIT)
+AC_MSG_RESULT([$ac_with_memory_limit])
 
 
 dnl Use the simple or the optimised convolution code.
@@ -474,6 +475,7 @@ src/Makefile
 src/lib/Makefile
 src/lib/fft/Makefile
 src/modules/Makefile
+src/modules/configure.inc
 src/profiling/Makefile
 src/PSolver/Makefile
 src/convolutions/Makefile

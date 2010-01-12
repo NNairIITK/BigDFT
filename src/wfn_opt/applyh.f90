@@ -350,7 +350,6 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      if (exctXcoeff /= 0.0_gp) then
         ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
         !add to the psir function the part of the potential coming from the exact exchange
-        !the coefficient is miltiplied by -2 to restore the correct definition
         call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
      end if
 

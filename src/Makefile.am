@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces-$(PACKAGE_VERSION) memguess NEB frequencies MDanalysis $(minima_hopping_sources) bart abscalc
+binaries_sources = cluster test_forces memguess NEB frequencies MDanalysis $(minima_hopping_sources) bart abscalc
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
