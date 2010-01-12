@@ -824,7 +824,7 @@ contains
               icount=0
               do i3=1,n3i
                  icount=icount+1
-                 if (icount == 6 ) then
+                 if (icount == 6  .or. i3==n3i  ) then
                     advancestring='yes'
                     icount=0
                  else

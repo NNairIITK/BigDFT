@@ -463,7 +463,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type macro_uj_type
@@ -1061,7 +1061,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type nuclear_type
@@ -2157,7 +2157,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type pawrhoij_type
@@ -2253,7 +2253,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type cprj_type
@@ -2677,7 +2677,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type rdm_parameters
@@ -3362,7 +3362,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type Epsilonm1_results
@@ -3438,7 +3438,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type :: Jpt_gwpc_2D
@@ -3463,7 +3463,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type :: Jpt_gwpc_3D
@@ -3488,7 +3488,7 @@ end type wvl_internalVars_type
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
  type PPmodel_type

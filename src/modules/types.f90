@@ -32,7 +32,6 @@ module module_types
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf 
      integer :: nvacancy,verbosity
      real(gp) :: elecfield
-     real(gp):: absorber_gnrm
      integer :: iabscalc_type   ! 0 non calc, 1 cheb ,  2 lanc
      integer :: iat_absorber, L_absorber
      real(gp), pointer:: Gabs_coeffs(:)
@@ -43,9 +42,10 @@ module module_types
      ! kpoints related input variables
      integer :: nkpt
      real(gp), pointer :: kpt(:,:), wkpt(:)
+
      ! Geometry variables from *.geopt
      character(len=10) :: geopt_approach
-     integer :: ncount_cluster_x
+     integer :: ncount_cluster_x, history
      real(gp) :: betax,forcemax,randdis
      integer :: optcell, ionmov, nnos
      real(gp) :: dtion, mditemp, mdftemp, noseinert, friction, mdwall

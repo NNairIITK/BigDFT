@@ -503,8 +503,8 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   if (ncplx == 1) then
 
      !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
-     !$omp shared(n1,proj_c,wprojx,wprojy,wprojz,mvctr_c) &
-     !$omp shared(proj_f,nterm,mvctr_f,mseg_f)
+     !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
+     !$omp shared(nterm,mvctr_f,mseg_f)
      !$	ithread=omp_get_thread_num()
      !$	nthread=omp_get_num_threads()
 
@@ -648,8 +648,8 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   else if (ncplx ==2) then
 
      !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
-     !$omp shared(n1,proj_c,wprojx,wprojy,wprojz,mvctr_c) &
-     !$omp shared(proj_f,nterm,mvctr_f,mseg_f)
+     !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
+     !$omp shared(nterm,mvctr_f,mseg_f)
      !$	ithread=omp_get_thread_num()
      !$	nthread=omp_get_num_threads()
 
