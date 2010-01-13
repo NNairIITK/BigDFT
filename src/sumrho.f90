@@ -78,8 +78,12 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
      call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   else
      !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
-     !call razero(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p)
-     call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p,nproc)
+     !otherwise use libXC routine
+     if (libxc_functionals_isgga()) then
+        call razero(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p)
+     else
+        call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p,nproc)
+     end if
 
      !for each of the orbitals treated by the processor build the partial densities
      call local_partial_density(iproc,nproc,rsflag,nscatterarr,&

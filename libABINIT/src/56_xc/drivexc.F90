@@ -572,14 +572,18 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
   if (libxc_functionals_isgga()) then
    do ipts=1,npts
     call libxc_functionals_getvxc(exc(ipts),nspden,rho_updn(ipts,1:nspden),&
-&    vxc(ipts,1:nspden),grho2_updn(ipts,1:ngr2),vxcgr(ipts,1:3))
-   end do
+         &    vxc(ipts,1:nspden),grho2_updn(ipts,1:ngr2),vxcgr(ipts,1:3))
+!!    if (exc(ipts) /= 0.0_dp) then
+!!       if (exc(ipts)/exc(ipts) /= 1.0_dp) &
+!!            write(18,'(i8,5(1pe24.17))')ipts,rho_updn(ipts,1:nspden),&
+!!            exc(ipts),grho2_updn(ipts,1:ngr2),vxc(ipts,1:nspden)
+!!    end if
+ end do
   else
    do ipts=1,npts
     call libxc_functionals_getvxc(exc(ipts),nspden,rho_updn(ipts,1:nspden),vxc(ipts,1:nspden))
    end do
   end if
-
 #else
   write(message, '(5a)' )ch10,&
 &  ' drivexc : ERROR -',ch10,&

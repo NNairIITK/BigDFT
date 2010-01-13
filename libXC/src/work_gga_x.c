@@ -100,7 +100,6 @@ work_gga_x(const void *p_, const FLOAT *rho, const FLOAT *sigma,
 	
     }
   }
-
   if(zk != NULL && (p->info->provides & XC_PROVIDES_EXC))
     *zk /= dens; /* we want energy per particle */
 }
