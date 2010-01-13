@@ -418,6 +418,15 @@ contains
           vxcgr(3) = vxcgr(3) + vsigma(2)
         end if
 
+!!        if (exctmp/exctmp /= 1.0_dp .and. exctmp /= 0.0_dp) then
+!!           write(17,'(i8,5(1pe15.7))')i,rhotmp(:),sigma(:),exctmp,vxctmp(:),vsigma(:)
+!!           rhotmp(:)=zero
+!!           !sigma(:)=zero
+!!           call xc_f90_hyb_gga_vxc(funcs(i)%conf,rhotmp(1),sigma(1),exctmp,vxctmp(1),vsigma(1))
+!!           write(17,'(a,5(1pe15.7))')'again',rhotmp(:),sigma(:),exctmp,vxctmp(:),vsigma(:)
+!!        end if
+
+
       end select
       exc=exc+exctmp
       vxc(1:nspden)=vxc(1:nspden)+vxctmp(1:nspden)
@@ -432,6 +441,9 @@ contains
 #endif
 
   end subroutine libxc_functionals_getvxc
+
+
+
 
 end module 
 !!***

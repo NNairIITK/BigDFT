@@ -78,7 +78,6 @@ conv_check_SOURCES = conv_check.f90  ../profiling/memory.f90 ../modules/base.F90
 conv_check_LDFLAGS =
 conv_check_LDADD = ../libbigdft.a \
 	../PSolver/libpoissonsolver.a \
-	../PSolver/ABINIT-common/libABINIT.a \
 	$(libs_cuda)
 
 #GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)

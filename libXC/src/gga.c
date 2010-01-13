@@ -126,9 +126,10 @@ XC(gga_input_init)(const XC(func_info_type) *info, int nspin, const FLOAT *rho,
   }
 
   /* check if density is larger than threshold */
-  dens = rho[0];
-  if(nspin == XC_POLARIZED) dens += rho[1];
-  return (dens > MIN_DENS);
+  /*dens = rho[0]; */
+  /*if(nspin == XC_POLARIZED) dens += rho[1]; */
+  /*return (dens > MIN_DENS); */
+  return(rho[0] > MIN_DENS || ((nspin == XC_POLARIZED) && rho[1] > MIN_DENS));
  
 }
 

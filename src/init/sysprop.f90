@@ -773,8 +773,9 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
   integer, intent(in) :: nelec,nspin,mpol,iproc,norb,norbu,norbd,iunit
   real(gp), dimension(norb), intent(out) :: occup,spinsgn
 ! Local variables
-  integer :: iorb,nt,ne,it,ierror,iorb1
+  integer :: iorb,nt,ne,it,ierror,iorb1,i
   real(gp) :: rocc,rup,rdown
+  character(len=8) :: string
   character(len=100) :: line
 
 
@@ -815,7 +816,35 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
   if (iunit /= 0) then
      nt=0
      do
-        read(unit=iunit,fmt=*,iostat=ierror) iorb,rocc
+        read(unit=iunit,fmt='(a100)',iostat=ierror) line
+        
+        if (ierror /= 0) then
+           exit
+        end if
+        !transform the line in case there are slashes(to ease the parsing
+        do i=1,100
+           if (line(i:i) == '/') then
+              line(i:i) = ':'
+           end if
+        end do
+        read(line,*,iostat=ierror) iorb,rocc
+        if (ierror /= 0) then
+           string=repeat(' ',8)
+           read(line,*,iostat=ierror) iorb,string
+           if (ierror == 0) then
+              if (string(2:2)==':') then
+                 call read_fraction_string(1,string,rocc)
+              else if (string(3:3)==':') then
+                 call read_fraction_string(4,string,rocc)
+              else
+                 print *,'wrong format of the string: '//string
+                 stop
+              end if
+           else
+              exit
+           end if
+        end if
+
         if (ierror/=0) then
            exit
         else

@@ -1988,7 +1988,7 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   real(gp), dimension(nelecmax), intent(in) :: aocc
   !local variables
   character(len=10) :: tmp
-  character(len=100) :: string
+  character(len=150) :: string
   integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp
   logical, dimension(4,2) :: scorb
 
@@ -2011,7 +2011,7 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   end if
 
   !initalise string
-  string=repeat(' ',100)
+  string=repeat(' ',150)
 
   is=1
   do i=1,noccmax

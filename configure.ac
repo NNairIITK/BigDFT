@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.0],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.1],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -506,6 +506,7 @@ tests/NEB/Makefile
 tests/NEB/input
 tests/NEB/NEB_include.sh
 tests/XabsCheb/Makefile
+tests/FeHyb/Makefile
 ])
 if test x"$ac_build_libxc" = x"yes" ; then
   # Call libXC ./configure script recursively.
