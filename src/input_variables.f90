@@ -10,7 +10,14 @@
 !! SOURCE
 !!
 subroutine print_logo()
+  use module_base
   implicit none
+  integer :: length
+  character(len = 64) :: fmt
+
+  length = 26 - 6 - len(package_version)
+  write(fmt, "(A,I0,A)") "(23x,a,", length, "x,a)"
+
   write(*,'(23x,a)')'      TTTT         F       DDDDD    '
   write(*,'(23x,a)')'     T    T               D         '
   write(*,'(23x,a)')'    T     T        F     D          '
@@ -35,7 +42,8 @@ subroutine print_logo()
   write(*,'(23x,a)')' g        g     i         B    B    '  
   write(*,'(23x,a)')'          g     i        B     B    ' 
   write(*,'(23x,a)')'         g               B    B     '
-  write(*,'(23x,a)')'    ggggg       i         BBBB                 (Ver 1.3.99)'
+  write(*,fmt)      '    ggggg       i         BBBB      ', &
+       & '(Ver ' // package_version // ')'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'
   write(*,'(1x,a)')&
