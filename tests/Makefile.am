@@ -36,7 +36,7 @@ else
 mpirun_message=
 endif
 
-head_message:
+head_message: all-recursive
 	@echo "=============================================="
 	@echo "Type 'make check' in the directory tests      "
 
