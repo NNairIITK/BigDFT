@@ -52,17 +52,17 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
         if (scpr /= 0.0_wp) then
            !value of the cpreconditioner
-              cprecr=-(orbs%eval(orbs%isorb+iorb)-eval_zero)+.10d0
-write(*,*) 'cprecr:',iorb,cprecr,orbs%eval(orbs%isorb+iorb)
-!           select case(lr%geocode)
-!           case('F')
-!              cprecr=-orbs%eval(orbs%isorb+iorb)
-!           case('S')
-!              cprecr=0.5_wp
-!           case('P')
-!              cprecr=0.5_wp
-!           end select
-
+           !cprecr=-(orbs%eval(orbs%isorb+iorb)-eval_zero)+.10d0
+           !write(*,*) 'cprecr:',iorb,cprecr,orbs%eval(orbs%isorb+iorb)
+           select case(lr%geocode)
+           case('F')
+              cprecr=-orbs%eval(orbs%isorb+iorb)
+           case('S')
+              cprecr=0.5_wp
+           case('P')
+              cprecr=0.5_wp
+           end select
+           
 
            !cases with no CG iterations, diagonal preconditioning
            !for Free BC it is incorporated in the standard procedure

@@ -318,20 +318,16 @@ $(modules_objects) : $(mpi_include)
 
 #memguess.o: base.o types.o
 
-art/bigdft_forces.o: BigDFT_API.o
-
-art/find_saddle.o: art/defs.f90 art/lanczos.o
-
-art/initialize_potential.o: art/defs.f90 art/bigdft_forces.o
-
-art/lanczos.o: art/defs.f90 art/random.o art/bigdft_forces.o
-
-art/min_converge.o: art/defs.f90 art/bigdft_forces.o
-
-art/saddle_converge.o: art/defs.f90 art/bigdft_forces.o
-
-art/diis.o: art/defs.f90 art/bigdft_forces.o art/random.o
-
-art/initialize.o: art/defs.f90 art/lanczos.o
-
-art/read_parameters.o: art/defs.f90 art/lanczos.o
+# Dependencies for ART.
+art.f90: art/defs.o art/random.o bart-lanczos.o
+art/bigdft_forces.f90: BigDFT_API.o
+art/find_saddle.f90: art/defs.o art/random.o bart-lanczos.o
+art/initialize_potential.f90: art/defs.o bart-bigdft_forces.o
+art/lanczos.f90: art/defs.o art/random.o bart-bigdft_forces.o
+art/min_converge.f90: art/defs.o bart-bigdft_forces.o
+art/saddle_converge.f90: art/defs.o bart-bigdft_forces.o bart-find_saddle.o art/random.o bart-lanczos.o
+art/diis.f90: art/defs.o bart-bigdft_forces.o art/random.o
+art/initialize.f90: art/defs.o bart-lanczos.o
+art/read_parameters.f90: art/defs.o bart-lanczos.o bart-find_saddle.o
+art/utils.f90: art/defs.o
+art/write_refconfig.f90: art/defs.o

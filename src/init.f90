@@ -719,6 +719,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !!!  deallocate(hpsigau,stat=i_stat)
 !!!  call memocc(i_stat,i_all,'hpsigau',subname)
 
+
   !free GPU if it is the case
   if (GPUconv) then
      call free_gpu(GPU,orbse%norbp)
