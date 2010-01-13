@@ -9,6 +9,10 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+!! TODO
+!!  Restart mechanisms
+!!  Add an input file input.freq with alpha, the order of integration, ...
+!!  Maybe possibility to use Lanczos to determine lowest frequencies
 !!
 !! SOURCE
 !!
@@ -40,7 +44,7 @@ program frequencies
   real(gp), dimension(:), allocatable :: eigen_r,eigen_i
   ! logical: .true. if already calculated
   logical, dimension(:,:,:), allocatable :: moves
-  real(gp), dimension(:,:,:,:), allocatable :: forces
+  real(gp), dimension(:,:,:,:,:), allocatable :: forces
   real(gp), dimension(3) :: h_grid
   integer :: jm
  
@@ -100,11 +104,11 @@ program frequencies
   call memocc(i_stat,hessian,'hessian',subname)
   allocate(moves(2,3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,moves,'moves',subname)
-  allocate(forces(2,3,atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
+  allocate(forces(2,3,atoms%nat,3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,forces,'forces',subname)
 
-  !initialise the moves to false
-  moves=.false.
+  !Initialise the moves using a restart file if present
+  call frequencies_restart(atoms%nat,moves,forces)
 
 ! Move to alpha*h_grid
   alpha=1.d0/real(64,kind(1.d0))
@@ -147,7 +151,9 @@ program frequencies
            !-1-> 1, 1 -> 2, y = ( x + 3 ) / 2
            jm = (j+3)/2
            if (moves(jm,i,iat)) then
-               !This move is already done.
+               !This move is already done. We use the values from the restart file.
+               fpos_m = forces(1,i,iat,:,:)
+               fpos_p = forces(2,i,iat,:,:)
                cycle
            end if
            if (j==-1) then
@@ -336,6 +342,50 @@ contains
     call memocc(i_stat,i_all,'work',subname)
 
   END SUBROUTINE solve
+
+
+  subroutine frequencies_restart(nat,moves,forces)
+  implicit none
+  !Arguments
+  integer, intent(in) :: nat
+  logical, dimension(2,3,nat), intent(out) :: moves
+  real(gp), dimension(2,3,nat,3,nat), intent(out) :: forces
+  !Local variables
+  logical :: exists
+  integer, parameter :: iunit = 15
+  real(gp), dimension(:,:), allocatable :: fpos
+  integer :: ierror,imoves,j,i,iat
+  !Initialize by default to false
+  moves = .false.
+  !Test if the file does exist.
+  inquire(file='frequencies.res', exist=exists)
+  if (.not.exists) then
+     !There is no restart file.
+     write(*,'(1x,a)') 'No "frequencies.res" file present.'
+     return
+  end if
+  !Allocation
+  allocate(fpos(3,nat))
+  !We read the file
+  open(unit=iunit,file='frequencies.res',status='old',form='unformatted')
+  imoves=0
+  do
+    read(unit=iunit,iostat=ierror) j,i,iat,fpos
+    if (ierror /= 0) then
+       !Read error, we stop
+       exit
+    end if
+    imoves = imoves + 1
+    forces(j,i,iat,:,:) = fpos
+    moves(j,i,iat) = .true.
+  end do
+  close(unit=iunit)
+  !Deallocation
+  deallocate(fpos)
+  !Message
+  write(*,'(1x,a,i6,a,i6,a)') &
+       'There are', imoves, ' moves already calculated over', 3*2*nat,' frequencies.'
+  END SUBROUTINE frequencies_restart
 
 END PROGRAM frequencies
 !!***
