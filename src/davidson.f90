@@ -86,7 +86,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   logical :: msg !extended output
   integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,ind,i1,i2,norb,nspinor
   integer :: ise,jnd,j,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
-  real(kind=8) :: tt,gnrm,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,gnrm_fake
+  real(gp) :: tt,gnrm,eks,eexcu,vexcu,epot_sum,eexctX,ekin_sum,ehart,eproj_sum,etol,gnrm_fake
   type(communications_arrays) :: commsv
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: work,work_rp,hamovr
@@ -174,7 +174,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   
   call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
        nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
-       rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
+       rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU)
 
   !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
 
@@ -429,7 +429,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
-          rhopot(1+i3xcsh*n1i*n2i),g,hg,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
+          rhopot(1+i3xcsh*n1i*n2i),g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU)
 
      !transpose  g and hg
      call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
@@ -677,7 +677,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
-          rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
+          rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU)
 
      !transpose  v and hv
      call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,v,work=psiw)
