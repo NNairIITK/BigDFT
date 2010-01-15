@@ -114,133 +114,139 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,lr,orbs,n3parr,n3p,&
   !build the partial densities for the poisson solver, calculate the partial potential
   !and accumulate the result
   !do it for different spins
-  !for spin-polarised systems there is a factor of two
-  !do not work for non-collinear spin
+  !for non spin-polarised systems there is a factor of two
+  !non-collinear spin not yet implemented
   if (orbs%norbd > 0) then
      nspin=2
-     sfac=2.0_gp
+     sfac=0.5_gp
   else
      nspin=1
-     sfac=1.0_gp
+     sfac=0.5_gp
   end if
 
-  do ispin=1,nspin
-     if (ispin==1) then
-        iorb=1
-        jorb=1
-        norb=orbs%norbu
-        sign=1.0_gp
-     else
-        iorb=orbs%norbu+1
-        jorb=orbs%norbu+1
-        norb=orbs%norb
-        sign=-1.0_gp
-     end if
-     orbital_loop: do
-        iorbs=iorb
-        jorbs=jorb
-        hfac=1/(hxh*hyh*hzh)
-        do igran=1,ngran
-           if (iorb > norb) exit orbital_loop
-           if (orbs%spinsgn(iorb) == sign .and. orbs%spinsgn(jorb) == sign) then
-              !calculate partial density (real functions), no spin-polarisation
-              do i3p=1,n3p
-                 ind3=(i3p-1)*lr%d%n1i*lr%d%n2i
-                 do i2=1,lr%d%n2i
-                    ind2=(i2-1)*lr%d%n1i+ind3
-                    do i1=1,lr%d%n1i
-                       ind1i=i1+ind2+(iorb-1)*lr%d%n1i*lr%d%n2i*n3p
-                       ind1j=i1+ind2+(jorb-1)*lr%d%n1i*lr%d%n2i*n3p
-                       rp_ij(i1,i2,i3p,igran)=hfac*psiw(ind1i)*psiw(ind1j)
-                    end do
+  !number of orbitals, all quantum numbers
+  norb=orbs%norb!*orbs%nkpts, for the future
+  iorb=1
+  jorb=1
+
+  ! do ispin=1,nspin
+  !    if (ispin==1) then
+  !       iorb=1
+  !       jorb=1
+  !       norb=orbs%norbu
+  !       sign=1.0_gp
+  !    else
+  !       iorb=orbs%norbu+1
+  !       jorb=orbs%norbu+1
+  !       norb=orbs%norb
+  !       sign=-1.0_gp
+  !    end if
+  orbital_loop: do
+     iorbs=iorb
+     jorbs=jorb
+     hfac=1/(hxh*hyh*hzh)
+     do igran=1,ngran
+        if (iorb > norb) exit orbital_loop
+        !if (orbs%spinsgn(iorb) == sign .and. orbs%spinsgn(jorb) == sign) then
+        !calculate partial density (real functions), no spin-polarisation
+        do i3p=1,n3p
+           ind3=(i3p-1)*lr%d%n1i*lr%d%n2i
+           do i2=1,lr%d%n2i
+              ind2=(i2-1)*lr%d%n1i+ind3
+              do i1=1,lr%d%n1i
+                 ind1i=i1+ind2+(iorb-1)*lr%d%n1i*lr%d%n2i*n3p
+                 ind1j=i1+ind2+(jorb-1)*lr%d%n1i*lr%d%n2i*n3p
+                 rp_ij(i1,i2,i3p,igran)=hfac*psiw(ind1i)*psiw(ind1j)
+              end do
+           end do
+        end do
+        !end if
+        jorb=jorb+1
+        if (jorb > norb) then
+           iorb=iorb+1
+           jorb=iorb
+        end if
+     end do
+     jorb=jorbs
+     iorb=iorbs
+     do igran=1,ngran
+        if (iorb > norb) exit orbital_loop
+        !if (orbs%spinsgn(iorb) == sign .and. orbs%spinsgn(jorb) == sign) then
+        !this factor is only valid with one k-point
+        !can be easily generalised to the k-point case
+        hfac=sfac*orbs%occup(iorb)*orbs%occup(jorb)
+
+        !print *,'test',iproc,iorb,jorb,sum(rp_ij(:,:,:,igran))
+        !partial exchange term for each partial density
+        if (iproc == 0 .and. verbose > 1) then
+           write(*,*)'Exact exchange calculation, orbitals:',iorb,jorb
+        end if
+        call PSolver(geocode,'D',iproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+             0,hxh,hyh,hzh,rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,zero,zero,&
+             0.d0,.false.,1,quiet='YES')
+        if (iorb==jorb) then
+           eexctX=eexctX+hfac*real(ehart,gp)
+        else
+           eexctX=eexctX+2.0_gp*hfac*real(ehart,gp)
+        end if
+        !print *,'PSOLVER,ehart,iproc',iproc,ehart,hfac
+        !end if
+        jorb=jorb+1
+        if (jorb > norb) then
+           iorb=iorb+1
+           jorb=iorb
+        end if
+     end do
+     jorb=jorbs
+     iorb=iorbs
+     do igran=1,ngran
+        if (iorb > norb) exit orbital_loop
+        !if (orbs%spinsgn(iorb) == sign .and. orbs%spinsgn(jorb) == sign) then
+        !this factor is only valid with one k-point
+        !we have to correct with the kwgts if we want more than one k-point
+        hfaci=-sfac*orbs%occup(jorb)
+        hfacj=-sfac*orbs%occup(iorb)
+
+        if (iorb /= jorb) then
+           !accumulate the results for each of the wavefunctions concerned
+           do i3p=1,n3p
+              ind3=(i3p-1)*lr%d%n1i*lr%d%n2i
+              do i2=1,lr%d%n2i
+                 ind2=(i2-1)*lr%d%n1i+ind3
+                 do i1=1,lr%d%n1i
+                    ind1i=i1+ind2+(iorb-1)*lr%d%n1i*lr%d%n2i*n3p
+                    ind1j=i1+ind2+(jorb-1)*lr%d%n1i*lr%d%n2i*n3p
+                    psir(ind1i)=psir(ind1i)+hfaci*rp_ij(i1,i2,i3p,igran)*psiw(ind1j)
+                    psir(ind1j)=psir(ind1j)+hfacj*rp_ij(i1,i2,i3p,igran)*psiw(ind1i)
                  end do
               end do
-           end if
-           jorb=jorb+1
-           if (jorb > norb) then
-              iorb=iorb+1
-              jorb=iorb
-           end if
-        end do
-        jorb=jorbs
-        iorb=iorbs
-        do igran=1,ngran
-           if (iorb > norb) exit orbital_loop
-           if (orbs%spinsgn(iorb) == sign .and. orbs%spinsgn(jorb) == sign) then
-              !this factor is only valid with one k-point
-              hfac=sfac*orbs%occup(iorb)*orbs%occup(jorb)
-              
-              !print *,'test',iproc,iorb,jorb,sum(rp_ij(:,:,:,igran))
-              !partial exchange term for each partial density
-              if (iproc == 0 .and. verbose > 1) then
-                 write(*,*)'Exact exchange calculation. spin, orbitals:',ispin,iorb,jorb
-              end if
-              call PSolver(geocode,'D',iproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-                   0,hxh,hyh,hzh,rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,zero,zero,&
-                   0.d0,.false.,1,quiet='YES')
-              if (iorb==jorb) then
-                 eexctX=eexctX+hfac*real(ehart,gp)
-              else
-                 eexctX=eexctX+2.0_gp*hfac*real(ehart,gp)
-              end if
-              !print *,'PSOLVER,ehart,iproc',iproc,ehart,hfac
-           end if
-           jorb=jorb+1
-           if (jorb > norb) then
-              iorb=iorb+1
-              jorb=iorb
-           end if
-        end do
-        jorb=jorbs
-        iorb=iorbs
-        do igran=1,ngran
-           if (iorb > norb) exit orbital_loop
-           if (orbs%spinsgn(iorb) == sign .and. orbs%spinsgn(jorb) == sign) then
-              !this factor is only valid with one k-point
-              !we have to correct with the kwgts if we want more than one k-point
-              hfaci=-0.25_gp*sfac*orbs%occup(jorb)
-              hfacj=-0.25_gp*sfac*orbs%occup(iorb)
-              
-              if (iorb /= jorb) then
-                 !accumulate the results for each of the wavefunctions concerned
-                 do i3p=1,n3p
-                    ind3=(i3p-1)*lr%d%n1i*lr%d%n2i
-                    do i2=1,lr%d%n2i
-                       ind2=(i2-1)*lr%d%n1i+ind3
-                       do i1=1,lr%d%n1i
-                          ind1i=i1+ind2+(iorb-1)*lr%d%n1i*lr%d%n2i*n3p
-                          ind1j=i1+ind2+(jorb-1)*lr%d%n1i*lr%d%n2i*n3p
-                          psir(ind1i)=psir(ind1i)+hfaci*rp_ij(i1,i2,i3p,igran)*psiw(ind1j)
-                          psir(ind1j)=psir(ind1j)+hfacj*rp_ij(i1,i2,i3p,igran)*psiw(ind1i)
-                       end do
-                    end do
-                 end do
-              else
+           end do
+        else
            !accumulate the results for each of the wavefunctions concerned
-                 do i3p=1,n3p
-                    ind3=(i3p-1)*lr%d%n1i*lr%d%n2i
-                    do i2=1,lr%d%n2i
-                       ind2=(i2-1)*lr%d%n1i+ind3
-                       do i1=1,lr%d%n1i
-                          ind1i=i1+ind2+(iorb-1)*lr%d%n1i*lr%d%n2i*n3p
-                          ind1j=i1+ind2+(jorb-1)*lr%d%n1i*lr%d%n2i*n3p
-                          psir(ind1i)=psir(ind1i)+hfacj*rp_ij(i1,i2,i3p,igran)*psiw(ind1j)
-                       end do
-                    end do
+           do i3p=1,n3p
+              ind3=(i3p-1)*lr%d%n1i*lr%d%n2i
+              do i2=1,lr%d%n2i
+                 ind2=(i2-1)*lr%d%n1i+ind3
+                 do i1=1,lr%d%n1i
+                    ind1i=i1+ind2+(iorb-1)*lr%d%n1i*lr%d%n2i*n3p
+                    ind1j=i1+ind2+(jorb-1)*lr%d%n1i*lr%d%n2i*n3p
+                    psir(ind1i)=psir(ind1i)+hfacj*rp_ij(i1,i2,i3p,igran)*psiw(ind1j)
                  end do
-              end if
-           end if
-           jorb=jorb+1
-           if (jorb > norb) then
-              iorb=iorb+1
-              jorb=iorb
-           end if
-        end do
-     end do orbital_loop
-  end do
+              end do
+           end do
+        end if
+        !end if
+        jorb=jorb+1
+        if (jorb > norb) then
+           iorb=iorb+1
+           jorb=iorb
+        end if
+     end do
+  end do orbital_loop
+  !end do
 
   !the exact exchange energy is half the Hartree energy (which already has another half)
-  eexctX=-0.5_gp*exctXfac*eexctX
+  eexctX=-exctXfac*eexctX
 
   if (iproc == 0) write(*,'(a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
 

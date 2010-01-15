@@ -193,9 +193,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   integer :: i1,i2,i3,ind,iat,i_all,i_stat,iter,ierr,jproc,ispin,inputpsi
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
-  real(kind=8) :: peakmem,energy_old,sumz
-  real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum,sumx,sumy
-  real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min,psoffset
+  real(gp) :: peakmem,energy_old,sumz,evsum,sumx,sumy
+  real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,alpha,gnrm
+  real(gp) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min,psoffset
   real(kind=8) :: ttsum
   real(gp) :: edisp ! Dispersion energy
   type(wavefunctions_descriptors) :: wfd_old
@@ -743,11 +743,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
           nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
-          rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU,pkernel)
+          rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
+          in%nspin,GPU,pkernel)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
-     energy=energybs-ehart+eexcu-vexcu+eion+edisp
+     energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
 
      !check for convergence or whether max. numb. of iterations exceeded
      if (endloop) then 
