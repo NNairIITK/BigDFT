@@ -2022,6 +2022,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      allocate(solution(maxter+1+ndebug),stat=i_stat)
      call memocc(i_stat,solution,'solution',subname)
      allocate(matrice(maxter+1, maxter+1))
+     call memocc(i_stat,matrice,'matrice',subname)
 
      ! If lter is greater than maxvec, we move the previous solution up by one
      if (lter .gt. maxter) then
