@@ -16,8 +16,8 @@ SUBDIRS = \
 	  H2-freq \
 	  NEB \
 	  NH3 \
-	  XabsCheb 
-
+	  XabsCheb \
+	  FeHyb
 
 
 #This will run the automatic tests also for GPU
