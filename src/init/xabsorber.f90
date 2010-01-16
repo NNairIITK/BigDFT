@@ -2582,7 +2582,7 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   if(iproc.eq.0) print * , " routine GetExcitedOrbitalAsG  , generate  atom to  extract 1S " 
   psp_modifier=1
   
-  call abs_generator_modified(iproc,atoms%nzatom(ity), atoms%nelpsp(ity),atoms%psppar(0,0,ity),&
+  call abs_generator_modified(iproc,atoms%nzatom(ity)-1, atoms%nelpsp(ity),atoms%psppar(0,0,ity),&
        atoms%npspcode(ity),ng-1 ,noccmax , lmax , expo,psi,aeval, occup , psp_modifier  , &
        Nsol, abs_initial_L , Ngrid,Egrid,  rgrid , psigrid  )
   
