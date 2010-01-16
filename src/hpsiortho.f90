@@ -97,7 +97,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !fill the rest of the potential with the exact-exchange terms
   if (present(pkernel) .and. exctX) then
      n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
-     call exact_exchange_potential(iproc,nproc,at%geocode,lr,orbs,ngatherarr(0,1),n3p,&
+     call exact_exchange_potential(iproc,nproc,at%geocode,nspin,lr,orbs,ngatherarr(0,1),n3p,&
           0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
      !print *,'iproc,eexctX',iproc,eexctX
   end if
@@ -181,7 +181,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !up to this point, the value of the potential energy is 
   !only taking into account the local potential part
   !whereas it should consider also the value coming from the 
-  !exact exchange operator (twice the exact exchange energy
+  !exact exchange operator (twice the exact exchange energy)
   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
 
 END SUBROUTINE HamiltonianApplication
