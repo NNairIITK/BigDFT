@@ -1682,7 +1682,7 @@ subroutine ctrig_sg(n,trig,after,before,now,i_sign,ic)
    do i=1,ndata
       if (n.eq.ij_data(1,i)) then
          ic=0
-         do j=1,6
+         do j=1,7
             itt=ij_data(1+j,i)
             if (itt.gt.1) then
                ic=ic+1
@@ -3311,7 +3311,7 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,i_sign)
 ! End of radix 7
 
    else 
-      write(*,'(a,i4)') 'Error fftstp_sg: radix not defined ',now
+      write(*,'(a,i6)') 'Error fftstp_sg: radix not defined ',now
       stop
    end if !end of now
 
