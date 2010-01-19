@@ -774,6 +774,7 @@ contains
     
     zinout(1,1:2*Nbar,1) = cfftreal(:)
     zinout(2,1:2*Nbar,1) = cfftimag(:)
+    print *, " trasformata per 2*Nbar = " , 2*Nbar
     call fft_1d_ctoc(1 ,1, 2*Nbar ,zinout(1,1,1) ,inzee)
     cfftreal(:)  =   zinout(1,1:2*Nbar,inzee)   
     cfftimag(:)  =   zinout(2,1:2*Nbar,inzee)    

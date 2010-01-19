@@ -58,7 +58,7 @@ module module_fft_sg
    implicit none
 
    ! Maximum number of points for FFT (should be same number in fft3d routine)
-   integer, parameter :: nfft_max=24000
+   integer, parameter :: nfft_max=2097152
    ! Number of factors in the decomposition
    integer, parameter :: n_factors = 7
    integer :: i_d,j_d
