@@ -775,8 +775,8 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   integer :: symAfm(AB6_MAX_SYMMETRIES)
   real(gp) :: transNon(3, AB6_MAX_SYMMETRIES)
   real(gp) :: genAfm(3)
-  character(len=5) :: pointGroup
-  integer :: spaceGroup, pointGroupMagn
+  character(len=15) :: spaceGroup
+  integer :: spaceGroupId, pointGroupMagn
 
   file_exists = .false.
 
@@ -867,16 +867,16 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   if (iproc.eq.0) then
      if (atoms%geocode /= 'F') then
         call ab6_symmetry_get_matrices(atoms%symObj, nSym, sym, transNon, symAfm, ierr)
-        call ab6_symmetry_get_group(atoms%symObj, pointGroup, spaceGroup, &
-             & pointGroupMagn, genAfm, ierr)
-        if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(pointGroup, "(A)") "!prim"
+        call ab6_symmetry_get_group(atoms%symObj, spaceGroup, &
+             & spaceGroupId, pointGroupMagn, genAfm, ierr)
+        if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "!primitive"
      end if
 
      write(*,'(1x,a,i5)')        'Number of atoms     = ',atoms%nat
      write(*,'(1x,a,i5)')        'Number of atom types= ',atoms%ntypes
      if (atoms%geocode /= 'F') then
         write(*,'(1x,a,i5,a,1x,a)') 'Number of symmetries= ',nSym, &
-             & " | point group=", pointGroup
+             & " | space group=", spaceGroup
      end if
 
      do ityp=1,atoms%ntypes

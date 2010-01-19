@@ -257,9 +257,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   hy=in%hy
   hz=in%hz
 
-  if (ixc < 0) then
-     call libxc_functionals_init(ixc, nspin)
-  end if
+  call libxc_functionals_init(ixc, nspin)
 
   !character string for quieting the Poisson solver
   if (verbose >1) then

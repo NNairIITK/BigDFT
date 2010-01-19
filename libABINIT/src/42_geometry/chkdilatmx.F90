@@ -47,8 +47,9 @@ subroutine chkdilatmx(dilatmx,rprimd,rprimd_orig)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
- !use interfaces_01manage_mpi
-!use interfaces_11util
+ use interfaces_14_hidewrite
+ use interfaces_16_hideleave
+ use interfaces_32_util
 !End of the abilint section
 
  implicit none
@@ -81,20 +82,20 @@ subroutine chkdilatmx(dilatmx,rprimd,rprimd_orig)
 !Find the matrix that transform an original xcart to xred, then
 !to the new xcart
  do mu=1,3
-  old_to_new(mu,:)=rprimd(mu,1)*gprimd_orig(:,1)+&
-&  rprimd(mu,2)*gprimd_orig(:,2)+&
-&  rprimd(mu,3)*gprimd_orig(:,3)
+   old_to_new(mu,:)=rprimd(mu,1)*gprimd_orig(:,1)+&
+&   rprimd(mu,2)*gprimd_orig(:,2)+&
+&   rprimd(mu,3)*gprimd_orig(:,3)
  end do
 
 !The largest increase in length will be obtained thanks
 !to the diagonalization of the corresponding metric matrix :
 !it is the square root of its largest eigenvalue.
  do ii=1,3
-  do jj=1,3
-   met(ii,jj)=old_to_new(1,ii)*old_to_new(1,jj)+&
-&   old_to_new(2,ii)*old_to_new(2,jj)+&
-&   old_to_new(3,ii)*old_to_new(3,jj)
-  end do
+   do jj=1,3
+     met(ii,jj)=old_to_new(1,ii)*old_to_new(1,jj)+&
+&     old_to_new(2,ii)*old_to_new(2,jj)+&
+&     old_to_new(3,ii)*old_to_new(3,jj)
+   end do
  end do
 !DEBUG
 !write(6,*)' met=',met
@@ -104,15 +105,15 @@ subroutine chkdilatmx(dilatmx,rprimd,rprimd_orig)
  dilatmx_new=sqrt(maxval(eigval(:)))
 
  if(dilatmx_new>dilatmx+tol6)then
-  write(message,'(10a,es16.6,2a)') ch10,&
-&  ' chkdilatmx: ERROR -',ch10,&
-&  '  The new primitive vectors rprimd (an evolving quantity)',ch10,&
-&  '  are too large with respect to the old rprimd and the accompanying dilatmx :',ch10,&
-&  '  this large change of unit cell parameters is not allowed by the present value of dilatmx.',ch10,&
-&  '  You need at least dilatmx=',dilatmx_new+tol6,ch10,&
-&  '  Action : increase the input variable dilatmx.'
-  call wrtout(06,message,'COLL')
-  call leave_new('COLL')
+   write(message,'(10a,es16.6,2a)') ch10,&
+&   ' chkdilatmx: ERROR -',ch10,&
+&   '  The new primitive vectors rprimd (an evolving quantity)',ch10,&
+&   '  are too large with respect to the old rprimd and the accompanying dilatmx :',ch10,&
+&   '  this large change of unit cell parameters is not allowed by the present value of dilatmx.',ch10,&
+&   '  You need at least dilatmx=',dilatmx_new+tol6,ch10,&
+&   '  Action : increase the input variable dilatmx.'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
  end if
 
 !DEBUG

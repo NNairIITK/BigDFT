@@ -22,7 +22,7 @@
 !!  rspts(npts)=inverse cubic root of rhoarr
 !!
 !! PARENTS
-!!      calc_lifetime,calc_xc_ep,drivexc,xchcth,xcpbe
+!!      drivexc,gammapositron,xchcth,xcpbe,xcpositron
 !!
 !! CHILDREN
 !!      leave_new,wrtout
@@ -39,8 +39,8 @@
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-! use interfaces_14_hidewrite
-! use interfaces_16_hideleave
+ use interfaces_14_hidewrite
+ use interfaces_16_hideleave
 !End of the abilint section
 
  implicit none
@@ -75,35 +75,35 @@
  rhom1=one/rhoarr(1)
  rspts(1)=rhomtrd
  do ipts=2,npts
-! write(6,*)
-! write(6,*)rhoarr(ipts),rspts(ipts)
-  rho=rhoarr(ipts)
-  prod=rho*rhom1
-! If the previous point is too far ...
-  if(prod < 0.01_dp .or. prod > 10._dp )then
-   rhomtrd=sign( (abs(rho))**m1thrd , rho )
-   rhom1=one/rho
-  else
-   del=prod-one
-   do ii=1,5
-!   Choose one of the two next lines, the last one is more accurate
-!   rhomtrd=((one+third*del)/(one+two_thirds*del))*rhomtrd
-    rhomtrd=((one+c5_9*del)/(one+del*(c8_9+c2_27*del)))*rhomtrd
-    rhom1=rhomtrd*rhomtrd*rhomtrd
-    del=rho*rhom1-one
-!   write(6,*)rhomtrd,del
-    test = del*del < 1.0e-24_dp
-    if(test) exit
-   end do
-   if( .not. test) then
-    write(message,'(a,a,a,a)' ) ch10,&
-&    ' invcb : BUG -',ch10,&
-&    '  Fast computation of inverse cubic root failed. '
-    call wrtout(6,message,'COLL')
-    call leave_new('COLL')
+!  write(6,*)
+!  write(6,*)rhoarr(ipts),rspts(ipts)
+   rho=rhoarr(ipts)
+   prod=rho*rhom1
+!  If the previous point is too far ...
+   if(prod < 0.01_dp .or. prod > 10._dp )then
+     rhomtrd=sign( (abs(rho))**m1thrd , rho )
+     rhom1=one/rho
+   else
+     del=prod-one
+     do ii=1,5
+!      Choose one of the two next lines, the last one is more accurate
+!      rhomtrd=((one+third*del)/(one+two_thirds*del))*rhomtrd
+       rhomtrd=((one+c5_9*del)/(one+del*(c8_9+c2_27*del)))*rhomtrd
+       rhom1=rhomtrd*rhomtrd*rhomtrd
+       del=rho*rhom1-one
+!      write(6,*)rhomtrd,del
+       test = del*del < 1.0e-24_dp
+       if(test) exit
+     end do
+     if( .not. test) then
+       write(message,'(a,a,a,a)' ) ch10,&
+&       ' invcb : BUG -',ch10,&
+&       '  Fast computation of inverse cubic root failed. '
+       call wrtout(std_out,message,'COLL')
+       call leave_new('COLL')
+     end if
    end if
-  end if
-  rspts(ipts)=rhomtrd
+   rspts(ipts)=rhomtrd
  end do
 
  end subroutine invcb

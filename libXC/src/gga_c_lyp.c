@@ -2,16 +2,16 @@
  Copyright (C) 2006-2007 M.A.L. Marques
 
  This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation; either version 3 of the License, or
  (at your option) any later version.
   
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+ GNU Lesser General Public License for more details.
   
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
@@ -40,21 +40,18 @@ void XC(gga_c_lyp_init)(void *p_)
   params = (gga_c_lyp_params *) (p->params);
 
   /* values of constants in standard LYP functional */
-  XC(gga_c_lyp_set_params)(p, 0.04918, 0.132, 0.2533, 0.349);
+  XC(gga_c_lyp_set_params_)(p, 0.04918, 0.132, 0.2533, 0.349);
 }
 
 
-static void
-gga_c_lyp_end(void *p_)
+void XC(gga_c_lyp_set_params)(XC(func_type) *p, FLOAT A, FLOAT B, FLOAT c, FLOAT d)
 {
-  XC(gga_type) *p = (XC(gga_type) *)p_;
-
-  assert(p->params != NULL);
-  free(p->params);
+  assert(p != NULL && p->gga != NULL);
+  XC(gga_c_lyp_set_params_)(p->gga, A, B, c, d);
 }
 
 
-void XC(gga_c_lyp_set_params)(XC(gga_type) *p, FLOAT A, FLOAT B, FLOAT c, FLOAT d)
+void XC(gga_c_lyp_set_params_)(XC(gga_type) *p, FLOAT A, FLOAT B, FLOAT c, FLOAT d)
 {
   gga_c_lyp_params *params;
 
@@ -68,8 +65,9 @@ void XC(gga_c_lyp_set_params)(XC(gga_type) *p, FLOAT A, FLOAT B, FLOAT c, FLOAT 
 }
 
 
-static void gga_c_lyp(void *p_, FLOAT *rho_, FLOAT *sigma_,
-	       FLOAT *e, FLOAT *vrho, FLOAT *vsigma)
+static void 
+my_gga_c_lyp(const void *p_, const FLOAT *rho_, const FLOAT *sigma_,
+	     FLOAT *e, FLOAT *vrho, FLOAT *vsigma)
 {
   XC(gga_type) *p = (XC(gga_type) *)p_;
   gga_c_lyp_params *params;
@@ -110,6 +108,8 @@ static void gga_c_lyp(void *p_, FLOAT *rho_, FLOAT *sigma_,
     sigmat   = sigma_[0];    
   }
 
+  if(rhot < MIN_DENS) return;
+
   /* some handy functions of the total density */
   rhot13   = POW(rhot, 1.0/3.0);
   rhot43   = rhot*rhot13;
@@ -135,10 +135,12 @@ static void gga_c_lyp(void *p_, FLOAT *rho_, FLOAT *sigma_,
 
     t1 = aux1*rho[0]*rho[1]*ZZ;
 
-    for(is=0; is<p->nspin; is++){
-      int js = (is==0) ? 1 : 0;
+    if(vrho != NULL){
+      for(is=0; is<p->nspin; is++){
+	int js = (is==0) ? 1 : 0;
 
-      vrho[is] = aux1*(rho[js]*ZZ - rho[0]*rho[1]*(ZZ/rhot - dZZdr));
+	vrho[is] = aux1*(rho[js]*ZZ - rho[0]*rho[1]*(ZZ/rhot - dZZdr));
+      }
     }
   }
 
@@ -154,23 +156,25 @@ static void gga_c_lyp(void *p_, FLOAT *rho_, FLOAT *sigma_,
 
     t2 = aux1*omega*sigmat*(aux2*aux3 - aux4);
 
-    for(is=0; is<p->nspin; is++){
-      int js = (is==0) ? 1 : 0;
+    if(vrho != NULL){
+      for(is=0; is<p->nspin; is++){
+	int js = (is==0) ? 1 : 0;
 
-      vrho[is] += aux1*
-	(domegadr*sigmat*(aux2*aux3 - aux4) +
-	 omega*sigmat*(rho[js]*aux3 - aux2*7.0/18.0*ddeltadr - 4.0/3.0*rhot));
-    }
+	vrho[is] += aux1*
+	  (domegadr*sigmat*(aux2*aux3 - aux4) +
+	   omega*sigmat*(rho[js]*aux3 - aux2*7.0/18.0*ddeltadr - 4.0/3.0*rhot));
+      }
 
-    {
-      FLOAT aux5 = aux1*omega*(aux2*aux3 - aux4);
+      {
+	FLOAT aux5 = aux1*omega*(aux2*aux3 - aux4);
 
-      vsigma[0] += aux5/sfact;
-      if(p->nspin == XC_POLARIZED){
-	vsigma[1] += 2.0*aux5;
-	vsigma[2] +=     aux5;
-      }else{
-	vsigma[0] += aux5/2.0;
+	vsigma[0] += aux5/sfact;
+	if(p->nspin == XC_POLARIZED){
+	  vsigma[1] += 2.0*aux5;
+	  vsigma[2] +=     aux5;
+	}else{
+	  vsigma[0] += aux5/2.0;
+	}
       }
     }
   }
@@ -183,12 +187,15 @@ static void gga_c_lyp(void *p_, FLOAT *rho_, FLOAT *sigma_,
     aux2 = ee*(rho83[0] + rho83[1]);
 
     t3 = aux1*omega*rho[0]*rho[1]*aux2;
-    for(is=0; is<p->nspin; is++){
-      int js = (is==0) ? 1 : 0;
 
-      vrho[is] += aux1*domegadr*rho[0]*rho[1]*aux2;
-      vrho[is] += aux1* omega * ee
-	* rho[js]*(11.0/3.0*rho83[is] + rho83[js]);
+    if(vrho != NULL){
+      for(is=0; is<p->nspin; is++){
+	int js = (is==0) ? 1 : 0;
+
+	vrho[is] += aux1*domegadr*rho[0]*rho[1]*aux2;
+	vrho[is] += aux1* omega * ee
+	  * rho[js]*(11.0/3.0*rho83[is] + rho83[js]);
+      }
     }
   }
 
@@ -204,20 +211,22 @@ static void gga_c_lyp(void *p_, FLOAT *rho_, FLOAT *sigma_,
 
     t4 = aux1*omega*aux2*aux3*aux4;
 
-    for(is=0; is<p->nspin; is++){
-      int js = (is==0) ? 1 : 0;
+    if(vrho != NULL){
+      for(is=0; is<p->nspin; is++){
+	int js = (is==0) ? 1 : 0;
       
-      vrho[is] += aux1*aux4*
-	(domegadr*aux2*aux3 + omega*rho[js]*aux3 -
-	 omega*aux2*ddeltadr/18.0);
-    }
+	vrho[is] += aux1*aux4*
+	  (domegadr*aux2*aux3 + omega*rho[js]*aux3 -
+	   omega*aux2*ddeltadr/18.0);
+      }
 
-    {
-      FLOAT aux5 = aux1*omega*aux2*aux3;
+      {
+	FLOAT aux5 = aux1*omega*aux2*aux3;
 
-      vsigma[0] += aux5/sfact;
-      if(p->nspin == XC_POLARIZED)
-	vsigma[2] += aux5;
+	vsigma[0] += aux5/sfact;
+	if(p->nspin == XC_POLARIZED)
+	  vsigma[2] += aux5;
+      }
     }
   }
 
@@ -233,14 +242,16 @@ static void gga_c_lyp(void *p_, FLOAT *rho_, FLOAT *sigma_,
 
     t5 = aux1*omega*aux2*aux3*aux4;
 
-    for(is=0; is<p->nspin; is++){
-      int js = (is==0) ? 1 : 0;
+    if(vrho != NULL){
+      for(is=0; is<p->nspin; is++){
+	int js = (is==0) ? 1 : 0;
 
-      vrho[is] += aux1*
-	((domegadr*aux2 + omega*(rho[js]*rhot - rho[0]*rho[1])/(9.0*rhot*rhot))*aux3*aux4 +
-	 omega*aux2*(ddeltadr*aux4 + aux3*sigma[is]));
+	vrho[is] += aux1*
+	  ((domegadr*aux2 + omega*(rho[js]*rhot - rho[0]*rho[1])/(9.0*rhot*rhot))*aux3*aux4 +
+	   omega*aux2*(ddeltadr*aux4 + aux3*sigma[is]));
 
-      vsigma[is==0 ? 0 : 2] += aux1*omega*aux2*aux3*rho[is]/sfact;
+	vsigma[is==0 ? 0 : 2] += aux1*omega*aux2*aux3*rho[is]/sfact;
+      }
     }
   }
 
@@ -254,14 +265,17 @@ static void gga_c_lyp(void *p_, FLOAT *rho_, FLOAT *sigma_,
     aux3 = rho[0]*rho[0]*sigma[1] + rho[1]*rho[1]*sigma[0];
 
     t6 = aux1*omega*(aux2 - aux3);
-    for(is=0; is<p->nspin; is++){
-      int js = (is==0) ? 1 : 0;
 
-      vrho[is] += aux1*
-	(domegadr*(aux2 - aux3) + 
-	 omega*(4.0/3.0*rhot*(sigma[0] + sigma[1]) - 2*rho[is]*sigma[js]));
+    if(vrho != NULL){
+      for(is=0; is<p->nspin; is++){
+	int js = (is==0) ? 1 : 0;
 
-      vsigma[is==0 ? 0 : 2] += aux1*omega*(2.0/3.0*rhot*rhot - rho[js]*rho[js])/sfact;
+	vrho[is] += aux1*
+	  (domegadr*(aux2 - aux3) + 
+	   omega*(4.0/3.0*rhot*(sigma[0] + sigma[1]) - 2*rho[is]*sigma[js]));
+
+	vsigma[is==0 ? 0 : 2] += aux1*omega*(2.0/3.0*rhot*rhot - rho[js]*rho[js])/sfact;
+      }
     }
   }
 
@@ -269,6 +283,36 @@ static void gga_c_lyp(void *p_, FLOAT *rho_, FLOAT *sigma_,
   *e = (t1 + t2 + t3 + t4 + t5 + t6)/rhot;
 }
 
+static void
+gga_c_lyp(const void *p_, int np, const FLOAT *rho, const FLOAT *sigma,
+	  FLOAT *zk, FLOAT *vrho, FLOAT *vsigma,
+	  FLOAT *v2rho2, FLOAT *v2rhosigma, FLOAT *v2sigma2)
+{
+  int ip;
+  const XC(gga_type) *p = p_;
+
+  for(ip=0; ip<np; ip++){
+    my_gga_c_lyp(p_, rho, sigma, zk, vrho, vsigma);
+
+    /* increment pointers */
+    rho   += p->n_rho;
+    sigma += p->n_sigma;
+    
+    if(zk != NULL)
+      zk += p->n_zk;
+    
+    if(vrho != NULL){
+      vrho   += p->n_vrho;
+      vsigma += p->n_vsigma;
+    }
+
+    if(v2rho2 != NULL){
+      v2rho2     += p->n_v2rho2;
+      v2rhosigma += p->n_v2rhosigma;
+      v2sigma2   += p->n_v2sigma2;
+    }
+  }
+}
 
 const XC(func_info_type) XC(func_info_gga_c_lyp) = {
   XC_GGA_C_LYP,
@@ -279,7 +323,7 @@ const XC(func_info_type) XC(func_info_gga_c_lyp) = {
   "B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC,
   XC(gga_c_lyp_init), 
-  gga_c_lyp_end, 
+  NULL,
   NULL,
   gga_c_lyp
 };

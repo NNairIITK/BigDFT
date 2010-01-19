@@ -2,16 +2,16 @@
  Copyright (C) 2006-2007 M.A.L. Marques
 
  This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation; either version 3 of the License, or
  (at your option) any later version.
   
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+ GNU Lesser General Public License for more details.
   
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
@@ -44,8 +44,10 @@ static void gga_c_pw91_init(void *p_)
 {
   XC(gga_type) *p = (XC(gga_type) *)p_;
 
-  p->lda_aux = (XC(lda_type) *) malloc(sizeof(XC(lda_type)));
-  XC(lda_init)(p->lda_aux, XC_LDA_C_PW, p->nspin);
+  p->func_aux    = (XC(func_type) **) malloc(1*sizeof(XC(func_type) *));
+  p->func_aux[0] = (XC(func_type) *)  malloc(  sizeof(XC(func_type)));
+
+  XC(func_init)(p->func_aux[0], XC_LDA_C_PW, p->nspin);
 
   pw91_nu   = 16.0/M_PI * POW(3.0*M_PI*M_PI, 1.0/3.0);
   pw91_beta = pw91_nu*pw91_C_c0;
@@ -56,7 +58,8 @@ static void gga_c_pw91_end(void *p_)
 {
   XC(gga_type) *p = (XC(gga_type) *)p_;
 
-  free(p->lda_aux);
+  free(p->func_aux[0]);
+  free(p->func_aux);
 }
 
 
@@ -182,24 +185,61 @@ ec_eq9(FLOAT   ec, FLOAT   rs, FLOAT   t, FLOAT   g, FLOAT   ks, FLOAT   kf, FLO
 }
 
 static void 
-gga_c_pw91(const void *p_, const FLOAT *rho, const FLOAT *sigma,
+my_gga_c_pw91(const void *p_, const FLOAT *rho, const FLOAT *sigma,
 	   FLOAT *e, FLOAT *vrho, FLOAT *vsigma,
 	   FLOAT *v2rho2, FLOAT *v2rhosigma, FLOAT *v2sigma2)
 {
+  int order;
   XC(gga_type) *p = (XC(gga_type) *)p_;
   XC(perdew_t) pt;
 
-  XC(perdew_params)(p, rho, sigma, 1, &pt);
-  
+  order = 0;
+  if(vrho   != NULL) order = 1;
+
+  XC(perdew_params)(p, rho, sigma, order, &pt);
+  if(pt.dens < MIN_DENS) return;
+
   ec_eq9(pt.ecunif, pt.rs, pt.t, pt.phi, pt.ks, pt.kf, e,
 	 &pt.decunif, &pt.drs, &pt.dt, &pt.dphi, &pt.dks, &pt.dkf);
 
-  XC(perdew_potentials)(&pt, rho, *e, 1, vrho, vsigma, v2rho2, v2rhosigma, v2sigma2);
+  XC(perdew_potentials)(&pt, rho, *e, order, vrho, vsigma, v2rho2, v2rhosigma, v2sigma2);
+}
+
+/* Warning: this is a workaround to support blocks while waiting for the next interface */
+static void 
+gga_c_pw91(const void *p_, int np, const FLOAT *rho, const FLOAT *sigma,
+	  FLOAT *zk, FLOAT *vrho, FLOAT *vsigma,
+	  FLOAT *v2rho2, FLOAT *v2rhosigma, FLOAT *v2sigma2)
+{
+  int ip;
+  const XC(gga_type) *p = p_;
+
+  for(ip=0; ip<np; ip++){
+    my_gga_c_pw91(p_, rho, sigma, zk, vrho, vsigma, v2rho2, v2rhosigma, v2sigma2);
+
+    /* increment pointers */
+    rho   += p->n_rho;
+    sigma += p->n_sigma;
+    
+    if(zk != NULL)
+      zk += p->n_zk;
+    
+    if(vrho != NULL){
+      vrho   += p->n_vrho;
+      vsigma += p->n_vsigma;
+    }
+
+    if(v2rho2 != NULL){
+      v2rho2     += p->n_v2rho2;
+      v2rhosigma += p->n_v2rhosigma;
+      v2sigma2   += p->n_v2sigma2;
+    }
+  }
 }
 
 const XC(func_info_type) XC(func_info_gga_c_pw91) = {
   XC_GGA_C_PW91,
-  XC_EXCHANGE,
+  XC_CORRELATION,
   "Perdew & Wang 91",
   XC_FAMILY_GGA,
   "JP Perdew, JA Chevary, SH Vosko, KA Jackson, MR Pederson, DJ Singh, and C Fiolhais, Phys. Rev. B 46, 6671 (1992)\n"

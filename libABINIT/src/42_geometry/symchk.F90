@@ -73,50 +73,51 @@ subroutine symchk(difmin,eatom,natom,tratom,transl,trtypat,typat,xred)
 
 !Loop through atoms--
 !when types agree, check for agreement after primitive translation
+ jatom=1
  do iatom=1,natom
-  if (trtypat/=typat(iatom)) cycle
+   if (trtypat/=typat(iatom)) cycle
 
-! Check all three components
-  test1=tratom(1)-xred(1,iatom)
-  test2=tratom(2)-xred(2,iatom)
-  test3=tratom(3)-xred(3,iatom)
-! Find nearest integer part of difference
-  trans1=nint(test1)
-  trans2=nint(test2)
-  trans3=nint(test3)
-! Check whether, after translation, they agree
-  test1=test1-dble(trans1)
-  test2=test2-dble(trans2)
-  test3=test3-dble(trans3)
+!  Check all three components
+   test1=tratom(1)-xred(1,iatom)
+   test2=tratom(2)-xred(2,iatom)
+   test3=tratom(3)-xred(3,iatom)
+!  Find nearest integer part of difference
+   trans1=nint(test1)
+   trans2=nint(test2)
+   trans3=nint(test3)
+!  Check whether, after translation, they agree
+   test1=test1-dble(trans1)
+   test2=test2-dble(trans2)
+   test3=test3-dble(trans3)
 
-  test=abs(test1)+abs(test2)+abs(test3)
-  if (test<tol10) then
-!  Note that abs() is not taken here
-   difmin(1)=test1
-   difmin(2)=test2
-   difmin(3)=test3
-   jatom=iatom
-   transl(1)=trans1
-   transl(2)=trans2
-   transl(3)=trans3
-!  Break out of loop when agreement is within tolerance
-   exit
-  else
-!  Keep track of smallest difference if greater than tol10
-   if (test<testmn) then
-    testmn=test
-!   Note that abs() is not taken here
-    difmin(1)=test1
-    difmin(2)=test2
-    difmin(3)=test3
-    jatom=iatom
-    transl(1)=trans1
-    transl(2)=trans2
-    transl(3)=trans3
+   test=abs(test1)+abs(test2)+abs(test3)
+   if (test<tol10) then
+!    Note that abs() is not taken here
+     difmin(1)=test1
+     difmin(2)=test2
+     difmin(3)=test3
+     jatom=iatom
+     transl(1)=trans1
+     transl(2)=trans2
+     transl(3)=trans3
+!    Break out of loop when agreement is within tolerance
+     exit
+   else
+!    Keep track of smallest difference if greater than tol10
+     if (test<testmn) then
+       testmn=test
+!      Note that abs() is not taken here
+       difmin(1)=test1
+       difmin(2)=test2
+       difmin(3)=test3
+       jatom=iatom
+       transl(1)=trans1
+       transl(2)=trans2
+       transl(3)=trans3
+     end if
    end if
-  end if
 
-! End loop over iatom. Note a "cycle" and an "exit" inside the loop
+!  End loop over iatom. Note a "cycle" and an "exit" inside the loop
  end do
 
  eatom=jatom

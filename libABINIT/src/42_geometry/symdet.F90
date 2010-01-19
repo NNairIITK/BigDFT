@@ -39,8 +39,8 @@ subroutine symdet(determinant,nsym,sym)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-! use interfaces_14_hidewrite
-! use interfaces_16_hideleave
+ use interfaces_14_hidewrite
+ use interfaces_16_hideleave
 !End of the abilint section
 
  implicit none
@@ -60,23 +60,23 @@ subroutine symdet(determinant,nsym,sym)
 ! *************************************************************************
 
  do isym=1,nsym
-  det=sym(1,1,isym)*sym(2,2,isym)*sym(3,3,isym)+&
-&  sym(2,1,isym)*sym(3,2,isym)*sym(1,3,isym)+&
-&  sym(1,2,isym)*sym(2,3,isym)*sym(3,1,isym) - &
-&  (sym(3,1,isym)*sym(2,2,isym)*sym(1,3,isym)+&
-&  sym(2,1,isym)*sym(1,2,isym)*sym(3,3,isym)+&
-&  sym(3,2,isym)*sym(2,3,isym)*sym(1,1,isym))
-  if (abs(det)/=1) then
-   write(message, '(a,a,a,a,i5,a,i10,a,a,a,a,a)' ) ch10,&
-&   ' symdet: ERROR -',ch10,&
-&   '  Abs(determinant) for symmetry number',isym,&
-&   ' is',det,' .',ch10,&
-&   '  For a legitimate symmetry, abs(determinant) must be 1.',ch10,&
-&   '  Action : check your symmetry operations (symrel) in input file.'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
-  end if
-  determinant(isym)=det
+   det=sym(1,1,isym)*sym(2,2,isym)*sym(3,3,isym)+&
+&   sym(2,1,isym)*sym(3,2,isym)*sym(1,3,isym)+&
+&   sym(1,2,isym)*sym(2,3,isym)*sym(3,1,isym) - &
+&   (sym(3,1,isym)*sym(2,2,isym)*sym(1,3,isym)+&
+&   sym(2,1,isym)*sym(1,2,isym)*sym(3,3,isym)+&
+&   sym(3,2,isym)*sym(2,3,isym)*sym(1,1,isym))
+   if (abs(det)/=1) then
+     write(message, '(a,a,a,a,i5,a,i10,a,a,a,a,a)' ) ch10,&
+&     ' symdet: ERROR -',ch10,&
+&     '  Abs(determinant) for symmetry number',isym,&
+&     ' is',det,' .',ch10,&
+&     '  For a legitimate symmetry, abs(determinant) must be 1.',ch10,&
+&     '  Action : check your symmetry operations (symrel) in input file.'
+     call wrtout(std_out,message,'COLL')
+     call leave_new('COLL')
+   end if
+   determinant(isym)=det
  end do
 
 end subroutine symdet

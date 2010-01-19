@@ -2,16 +2,16 @@
  Copyright (C) 2008 Lara Ferrigni, Georg Madsen, M.A.L. Marques
 
  This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation; either version 3 of the License, or
  (at your option) any later version.
   
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+ GNU Lesser General Public License for more details.
   
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
@@ -38,21 +38,15 @@ mgga_x_m06l_init(void *p_)
 {
   XC(mgga_type) *p = (XC(mgga_type) *)p_;
 
-  p->gga_aux1 = (XC(gga_type) *) malloc(sizeof(XC(gga_type)));
-  XC(gga_init)(p->gga_aux1, XC_GGA_X_PBE, p->nspin);
+  p->n_func_aux  = 1;
+  p->func_aux    = (XC(func_type) **) malloc(sizeof(XC(func_type) *)*p->n_func_aux);
+  p->func_aux[0] = (XC(func_type) *)  malloc(sizeof(XC(func_type)));
+
+  XC(func_init)(p->func_aux[0], XC_GGA_X_PBE, p->nspin);
 
   CFermi = (3.0/5.0) * POW(6.0*M_PI*M_PI, 2.0/3.0);
 }
 
-
-static void
-mgga_x_m06l_end(void *p_)
-{
-  XC(mgga_type) *p = (XC(mgga_type) *)p_;
-
-  XC(gga_end)(p->gga_aux1);
-  free(p->gga_aux1);
-}
 
 /* Eq. (8) */
 static void 
@@ -85,8 +79,8 @@ x_m06l_fw(int order, FLOAT t, FLOAT *fw, FLOAT *dfwdt)
 
 
 static void 
-func(const XC(mgga_type) *pt, FLOAT x, FLOAT t, int order,
-     FLOAT *f, FLOAT *dfdx, FLOAT *dfdt,
+func(const XC(mgga_type) *pt, FLOAT x, FLOAT t, FLOAT u, int order,
+     FLOAT *f, FLOAT *vrho0, FLOAT *dfdx, FLOAT *dfdt, FLOAT *dfdu,
      FLOAT *d2fdx2, FLOAT *d2fdxt, FLOAT *d2fdt2)
 {
   const FLOAT d[6] = {0.6012244, 0.004748822, -0.008635108, -0.000009308062, 0.00004482811, 0.0};
@@ -95,7 +89,7 @@ func(const XC(mgga_type) *pt, FLOAT x, FLOAT t, int order,
   FLOAT f_pbe, dfdx_pbe, ldfdx_pbe;
   FLOAT h, dhdx, dhdz, fw, dfwdt;
 
-  XC(gga_x_pbe_enhance)(pt->gga_aux1, x, order, &f_pbe, &dfdx_pbe, &ldfdx_pbe, NULL);
+  XC(gga_x_pbe_enhance)(pt->func_aux[0]->gga, x, order, &f_pbe, &dfdx_pbe, &ldfdx_pbe, NULL);
 
   x_m06l_fw(order, t, &fw, &dfwdt);
 
@@ -123,7 +117,7 @@ const XC(func_info_type) XC(func_info_mgga_x_m06l) = {
   "Y Zhao and DG Truhlar, Theor. Chem. Account 120, 215 (2008)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC,
   mgga_x_m06l_init,
-  mgga_x_m06l_end,
+  NULL,
   NULL, NULL,        /* this is not an LDA                   */
   work_mgga_x,
 };

@@ -1,3 +1,84 @@
+2009-05-26 09:23  marques
+
+	* [r5495] ChangeLog: *) Added a MemoryLimit variable. Octopus will
+	  stop if this variable is set and if the total memory depasses its
+	  value
+	  *) Octopus was not compiling in 4D due to array mismatches
+
+2009-05-18 08:25  marques
+
+	* [r5417] ChangeLog, src/libxc_master.F90, src/xc_f.c: Changes
+	  necessary to compile octopus in single precision more. Alberto,
+	  I guess I made a disaster in your opt-control code (that now will
+	  not
+	  wortk in single precision). The problem are the minimizing
+	  routines that
+	  do not have interfaces in single precision more. One should add
+	  it...
+
+2009-05-13 10:54  marques
+
+	* [r5380] src/gga_c_pbe.c, src/gga_x_pbe.c: Added a couple of
+	  reparametrizations of the PBE by the group of Klaus Capelle. Note
+	  that all the other combinations present in the paper can be
+	  obatined by combining the already existing exchanges and
+	  correlations of PBE and PBE_SOL. For example: GCGX = x_PBE_SOL +
+	  c_PBE
+
+2009-04-21 07:52  marques
+
+	* [r5297] testsuite/Makefile.am: I implemented the inversion of the
+	  Kohn-Sham equations (static). It seems to work in simple cases,
+	  but the iterative procedure does lack stability, and fails to
+	  converge for more complicated densities...
+
+2009-04-17 12:56  marques
+
+	* [r5257] ChangeLog, Makefile.am, configure.ac, m4/acx.m4,
+	  m4/fcflags.m4, src/Makefile.am, src/functionals.c,
+	  src/get_funcs.pl, src/gga.c, src/gga_c_am05.c, src/gga_c_lm.c,
+	  src/gga_c_lyp.c, src/gga_c_p86.c, src/gga_c_pbe.c,
+	  src/gga_c_pw91.c, src/gga_perdew.c, src/gga_x_2d_b86_mgc.c,
+	  src/gga_x_am05.c, src/gga_x_b86.c, src/gga_x_b86_mgc.c,
+	  src/gga_x_b88.c, src/gga_x_bayesian.c, src/gga_x_dk87.c,
+	  src/gga_x_ft97.c, src/gga_x_g96.c, src/gga_x_lg93.c,
+	  src/gga_x_mpbe.c, src/gga_x_optx.c, src/gga_x_pbe.c,
+	  src/gga_x_pbea.c, src/gga_x_pw86.c, src/gga_x_pw91.c,
+	  src/gga_x_rpbe.c, src/gga_x_wc.c, src/gga_xc_1w.c,
+	  src/gga_xc_b97.c, src/gga_xc_edf1.c, src/gga_xc_lb.c,
+	  src/gga_xc_xlyp.c, src/hyb_gga.c, src/hyb_gga_xc_b1wc.c,
+	  src/hyb_gga_xc_b3lyp.c, src/hyb_gga_xc_b97.c,
+	  src/hyb_gga_xc_o3lyp.c, src/hyb_gga_xc_pbeh.c, src/lca.c,
+	  src/lca_lch.c, src/lca_omc.c, src/lda.c, src/lda_c_1d_csc.c,
+	  src/lda_c_2d_amgb.c, src/lda_c_2d_prm.c, src/lda_c_hl.c,
+	  src/lda_c_pw.c, src/lda_c_pz.c, src/lda_c_rpa.c, src/lda_c_vwn.c,
+	  src/lda_c_wigner.c, src/lda_c_xalpha.c, src/lda_x.c,
+	  src/lda_x_2d.c, src/lda_xc_teter93.c, src/libxc_master.F90,
+	  src/mgga.c, src/mgga_c_tpss.c, src/mgga_x_lta.c,
+	  src/mgga_x_m06l.c, src/mgga_x_tau_hcth.c, src/mgga_x_tpss.c,
+	  src/mgga_xc_vsxc.c, src/mix_func.c, src/special_functions.c,
+	  src/string_f.h, src/test.c, src/util.c, src/util.h,
+	  src/work_gga_becke.c, src/work_gga_x.c, src/work_gga_x_2d.c,
+	  src/work_lda.c, src/work_mgga_c.c, src/work_mgga_x.c, src/xc.h,
+	  src/xc_f.c, src/xc_s.h, testsuite/Makefile.am,
+	  testsuite/xc-consistency.c, testsuite/xc-get_data.c,
+	  testsuite/xc-reference.pl, testsuite/xc-run_testsuite: Changed
+	  the license with the script that Tobias sent. Thanks Tobias.
+
+2009-04-13 22:25  xavier
+
+	* [r5202] Makefile.am: This fixes the problem with make distcheck.
+
+2009-03-31 09:29  marques
+
+	* [r5133] ChangeLog, Makefile.am, src/Makefile.am: A couple more
+	  fixes to the make environment
+
+2009-03-31 09:09  marques
+
+	* [r5131] AUTHORS, NEWS, README, src/lda_x.c: Little corrections to
+	  some stupid files
+
 2009-03-26 10:27  marques
 
 	* [r5116] ChangeLog, Makefile.am, PACKAGING, configure.ac,

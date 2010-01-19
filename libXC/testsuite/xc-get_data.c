@@ -2,16 +2,16 @@
  Copyright (C) 2006-2007 M.A.L. Marques
 
  This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation; either version 3 of the License, or
  (at your option) any later version.
   
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+ GNU Lesser General Public License for more details.
   
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
@@ -112,10 +112,7 @@ void print_values(xc_values_type *xc)
 int main(int argc, char *argv[])
 {
   xc_values_type xc;
-  xc_lda_type lda_func;
-  xc_gga_type gga_func;
-  xc_hyb_gga_type hyb_gga_func;
-  xc_mgga_type mgga_func;
+  xc_func_type func;
   const xc_func_info_type *info;
   FLOAT *pv2rho = NULL;
 
@@ -132,58 +129,33 @@ int main(int argc, char *argv[])
     xc.sigma[0] += 2.0*xc.sigma[1] + xc.sigma[2];
   }
 
-  info = NULL;
-  switch(xc_family_from_id(xc.functional))
-    {
-    case XC_FAMILY_LDA:
-      if(xc.functional == XC_LDA_X)
-	xc_lda_x_init(&lda_func, xc.nspin, 3, 0);
-      else
-	xc_lda_init(&lda_func, xc.functional, xc.nspin);
-      info = lda_func.info;
-      break;
-    case XC_FAMILY_GGA:
-      xc_gga_init(&gga_func, xc.functional, xc.nspin);
-      info = gga_func.info;
-      break;
-    case XC_FAMILY_HYB_GGA:
-      xc_hyb_gga_init(&hyb_gga_func, xc.functional, xc.nspin);
-      info = hyb_gga_func.info;
-      break;
-    case XC_FAMILY_MGGA:
-      xc_mgga_init(&mgga_func, xc.functional, xc.nspin);
-      info = mgga_func.info;
-      break;
-    default:
-      fprintf(stderr, "Functional '%d' not found\n", xc.functional);
-      exit(1);  
-    }
+  if(xc_func_init(&func, xc.functional, xc.nspin) != 0){
+    fprintf(stderr, "Functional '%d' not found\n", xc.functional);
+    exit(1);  
+  }
+  info = func.info;
 
   if(info->provides & XC_PROVIDES_FXC){
     pv2rho = xc.v2rho;
   }
 
-  switch(xc_family_from_id(xc.functional))
+  switch(func.info->family)
     {
     case XC_FAMILY_LDA:
-      xc_lda(&lda_func, xc.rho, &xc.zk, xc.vrho, pv2rho, NULL);
+      xc_lda(&func, 1, xc.rho, &xc.zk, xc.vrho, pv2rho, NULL);
       break;
     case XC_FAMILY_GGA:
-      xc_gga(&gga_func, xc.rho, xc.sigma, &xc.zk, 
-	     xc.vrho, xc.vsigma, pv2rho, xc.v2rhosigma, xc.v2sigma);
-      xc_gga_end(&gga_func);
-      break;
     case XC_FAMILY_HYB_GGA:
-      xc_hyb_gga(&hyb_gga_func, xc.rho, xc.sigma, &xc.zk, 
-		 xc.vrho, xc.vsigma, pv2rho, xc.v2rhosigma, xc.v2sigma);
-      xc_hyb_gga_end(&hyb_gga_func);
+      xc_gga(&func, 1, xc.rho, xc.sigma, &xc.zk, 
+	     xc.vrho, xc.vsigma, pv2rho, xc.v2rhosigma, xc.v2sigma);
       break;
     case XC_FAMILY_MGGA:
-      xc_mgga(&mgga_func, xc.rho, xc.sigma, xc.tau, &xc.zk, 
-	      xc.vrho, xc.vsigma, xc.vtau, pv2rho, xc.v2rhosigma, xc.v2sigma, NULL, NULL, NULL);
-      xc_mgga_end(&mgga_func);
+      //xc_mgga(&func, xc.rho, xc.sigma, xc.tau, &xc.zk, 
+      //      xc.vrho, xc.vsigma, xc.vtau, pv2rho, xc.v2rhosigma, xc.v2sigma, NULL, NULL, NULL);
       break;
     }
+
+  xc_func_end(&func);
 
   if(xc.nspin == 1){
     xc.vrho[1] = xc.vrho[0];

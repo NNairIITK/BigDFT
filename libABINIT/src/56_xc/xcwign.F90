@@ -20,7 +20,6 @@
 !! INPUTS
 !!  npt=number of real space points on which density is provided
 !!  order=gives the maximal derivative of Exc computed.
-!!  rhor(npt)=electron number density (bohr^-3)
 !!  rspts(npt)=corresponding Wigner-Seitz radii, precomputed
 !!
 !! OUTPUT
@@ -40,15 +39,15 @@
 #include "config.inc"
 #endif
 
-subroutine xcwign(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
+subroutine xcwign(exc,npt,order,rspts,vxc,& !Mandatory arguments
 &                dvxc)                           !Optional arguments
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-! use interfaces_14_hidewrite
-! use interfaces_16_hideleave
+ use interfaces_14_hidewrite
+ use interfaces_16_hideleave
 !End of the abilint section
 
  implicit none
@@ -57,7 +56,7 @@ subroutine xcwign(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 !scalars
  integer,intent(in) :: npt,order
 !arrays
- real(dp),intent(in) :: rhor(npt),rspts(npt)
+ real(dp),intent(in) :: rspts(npt)
  real(dp),intent(out) :: exc(npt),vxc(npt)
  real(dp),intent(out),optional :: dvxc(npt)
 
@@ -74,23 +73,23 @@ subroutine xcwign(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 
 !Checks the values of order
  if(order<0 .or. order>2)then
-  write(message, '(a,a,a,a,a,a,i3,a)' )ch10,&
-&  ' xcwign : BUG -',ch10,&
-&  '  With Wigner xc functional, the only',ch10,&
-&  '  allowed values for order are 0, 1 or 2, while it is found to be',&
-&  order,'.'
-  call wrtout(6,message,'COLL')
-  call leave_new('COLL')
+   write(message, '(a,a,a,a,a,a,i3,a)' )ch10,&
+&   ' xcwign : BUG -',ch10,&
+&   '  With Wigner xc functional, the only',ch10,&
+&   '  allowed values for order are 0, 1 or 2, while it is found to be',&
+&   order,'.'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
  end if
 !Checks the compatibility between the order and the presence of the optional arguments
  if(order <= 1 .and. present(dvxc))then
-  write(message, '(a,a,a,a,a,a,i3,a)' )ch10,&
-&  ' xcwign : BUG -',ch10,&
-&  '  The order chosen does not need the presence',ch10,&
-&  '  of the vector dvxc, that is needed only with order=2 , while we have',&
-&  order,'.'
-  call wrtout(6,message,'COLL')
-  call leave_new('COLL')
+   write(message, '(a,a,a,a,a,a,i3,a)' )ch10,&
+&   ' xcwign : BUG -',ch10,&
+&   '  The order chosen does not need the presence',ch10,&
+&   '  of the vector dvxc, that is needed only with order=2 , while we have',&
+&   order,'.'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
  end if
 
 !Compute vfac=(3/(2*Pi))^(2/3)
@@ -102,34 +101,34 @@ subroutine xcwign(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 
 !separate cases with respect to order
  if (order==2) then
-  
-! Loop over grid points
-  do ipt=1,npt
-   rs=rspts(ipt)
-   rsm1=1.0_dp/rs
-   rsc2m1=1.0_dp/(rs+c2)
-!  compute energy density (hartree)
-   exc(ipt)=-c1*rsc2m1-efac*rsm1
-   vxcnum=-(c4_3*rs+c2)*c1
-!  compute potential (hartree)
-   vxc(ipt)=vxcnum*rsc2m1**2-vfac*rsm1
-!  compute d(vxc)/d(rho) (hartree*bohr^3)
-   dvxc(ipt)=-(c8_27*pi)*(c1*rs**4)*(rs+rs+c2)*rsc2m1**3-dfac*rs**2
-  end do
+   
+!  Loop over grid points
+   do ipt=1,npt
+     rs=rspts(ipt)
+     rsm1=1.0_dp/rs
+     rsc2m1=1.0_dp/(rs+c2)
+!    compute energy density (hartree)
+     exc(ipt)=-c1*rsc2m1-efac*rsm1
+     vxcnum=-(c4_3*rs+c2)*c1
+!    compute potential (hartree)
+     vxc(ipt)=vxcnum*rsc2m1**2-vfac*rsm1
+!    compute d(vxc)/d(rho) (hartree*bohr^3)
+     dvxc(ipt)=-(c8_27*pi)*(c1*rs**4)*(rs+rs+c2)*rsc2m1**3-dfac*rs**2
+   end do
  else
-  
-! Loop over grid points
-  do ipt=1,npt
-   rs=rspts(ipt)
-   rsm1=1.0_dp/rs
-   rsc2m1=1.0_dp/(rs+c2)
-!  compute energy density (hartree)
-   exc(ipt)=-c1*rsc2m1-efac*rsm1
-   vxcnum=-(c4_3*rs+c2)*c1
-!  compute potential (hartree)
-   vxc(ipt)=vxcnum*rsc2m1**2-vfac*rsm1
-  end do
-  
+   
+!  Loop over grid points
+   do ipt=1,npt
+     rs=rspts(ipt)
+     rsm1=1.0_dp/rs
+     rsc2m1=1.0_dp/(rs+c2)
+!    compute energy density (hartree)
+     exc(ipt)=-c1*rsc2m1-efac*rsm1
+     vxcnum=-(c4_3*rs+c2)*c1
+!    compute potential (hartree)
+     vxc(ipt)=vxcnum*rsc2m1**2-vfac*rsm1
+   end do
+   
  end if
 !
 end subroutine xcwign
