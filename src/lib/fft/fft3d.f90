@@ -1593,11 +1593,7 @@ subroutine ctrig_sg(n,trig,after,before,now,i_sign,ic)
    do i=1,ndata
       if (n.eq.ij_data(1,i)) then
          ic=0
-<<<<<<< TREE
-         do j=1,7
-=======
          do j=1,n_factors
->>>>>>> MERGE-SOURCE
             itt=ij_data(1+j,i)
             if (itt.gt.1) then
                ic=ic+1
