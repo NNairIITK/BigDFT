@@ -1,7 +1,7 @@
-# 1 "/scisoft/users/mirone/src/bigdft-1.3.0-dev/libXC/src/libxc_master.F90"
+# 1 "./libxc_master.F90"
 # 1 "<built-in>"
-# 1 "<command line>"
-# 1 "/scisoft/users/mirone/src/bigdft-1.3.0-dev/libXC/src/libxc_master.F90"
+# 1 "<command-line>"
+# 1 "./libxc_master.F90"
 !! Copyright (C) 2003-2006 M. Marques, A. Castro, A. Rubio, G. Bertsch
 !!
 !! This program is free software; you can redistribute it and/or modify

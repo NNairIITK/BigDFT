@@ -35,7 +35,7 @@ INC_CUDA = -I@LIB_CUTIL_PATH@
 noinst_LIBRARIES = libGPU.a
 
 libGPU_a_SOURCES = $(SOURCES_CU_CONV1) $(SOURCES_SHARED)  $(SOURCES_CONV)
-AM_CPPFLAGS = $(INC_CUDA) -I. -I@CUDA_PATH@/include/ 
+AM_CPPFLAGS = $(INC_CUDA) -I. -I$(top_builddir) -I@CUDA_PATH@/include/ 
 AM_CFLAGS = $(INC_CUDA) -I. -I@CUDA_PATH@/include/ -DCUBLAS_USE_THUNKING 
 
 NVCC = @NVCC@
@@ -78,7 +78,6 @@ conv_check_SOURCES = conv_check.f90  ../profiling/memory.f90 ../modules/base.F90
 conv_check_LDFLAGS =
 conv_check_LDADD = ../libbigdft.a \
 	../PSolver/libpoissonsolver.a \
-	../PSolver/ABINIT-common/libABINIT.a \
 	$(libs_cuda)
 
 #GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)

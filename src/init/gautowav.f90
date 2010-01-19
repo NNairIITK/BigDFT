@@ -777,13 +777,15 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
   !local variables
   integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
   real(wp) :: re_cmplx_prod,im_cmplx_prod
+  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
 
   !the filling of the wavefunction should be different if ncplx==1 or 2
   !split such as to avoid intensive call to if statements
-  
+
   !$omp parallel default(private) shared(lr%nseg_c,lr%wfd%keyv,lr%wfd%keyg,lr%d) &
   !$omp shared(psi,wx,wy,wz,lr%wfd%nvctr_c) &
   !$omp shared(nterm,lr%wfd%nvctr_f,lr%wfd%nseg_f)
+
   !$	ithread=omp_get_thread_num()
   !$	nthread=omp_get_num_threads()
   if (ncplx == 1) then

@@ -49,6 +49,7 @@
 #include <stdint.h>
 #endif /* __GNUC__ */
 #include "cublas.h"   /* CUBLAS public header file  */
+#include <config.h>
 
 #define imin(a,b) (((a)<(b))?(a):(b))
 #define imax(a,b) (((a)<(b))?(b):(a))
@@ -469,37 +470,37 @@ typedef int devptr_t;
 #if defined(__cplusplus)
 extern "C" {
 #endif /* __cplusplus */
-int CUBLAS_INIT (void);
-int CUBLAS_SHUTDOWN (void);
-int CUBLAS_ALLOC (const int *n, const int *elemSize, devptr_t *devicePtr);
-int CUBLAS_FREE (const devptr_t *devicePtr);
-int CUBLAS_SET_VECTOR (const int *n, const int *elemSize, const void *x,
+int FC_FUNC_(cublas_init,CUBLAS_INIT) (void);
+int FC_FUNC_(cublas_shutdown,CUBLAS_SHUTDOWN) (void);
+int FC_FUNC_(cublas_alloc,CUBLAS_ALLOC) (const int *n, const int *elemSize, devptr_t *devicePtr);
+int FC_FUNC_(cublas_free,CUBLAS_FREE) (const devptr_t *devicePtr);
+int FC_FUNC_(cublas_set_vector,CUBLAS_SET_VECTOR) (const int *n, const int *elemSize, const void *x,
                        const int *incx, const devptr_t *y, const int *incy);
-int CUBLAS_GET_VECTOR (const int *n, const int *elemSize, const devptr_t *x,
+int FC_FUNC_(cublas_get_vector,CUBLAS_GET_VECTOR) (const int *n, const int *elemSize, const devptr_t *x,
                        const int *incx, void *y, const int *incy);
-int CUBLAS_SET_MATRIX (const int *rows, const int *cols, const int *elemSize,
+int FC_FUNC_(cublas_set_matrix,CUBLAS_SET_MATRIX) (const int *rows, const int *cols, const int *elemSize,
                        const void *A, const int *lda, const int *B, 
                        const int *ldb);
-int CUBLAS_GET_MATRIX (const int *rows, const int *cols, const int *elemSize,
+int FC_FUNC_(cublas_get_matrix,CUBLAS_GET_MATRIX) (const int *rows, const int *cols, const int *elemSize,
                        const int *A, const int *lda, void *B, const int *ldb);
 
 /* BLAS util */
-void CUBLAS_XERBLA (const char *srName, int *info);
+void FC_FUNC_(cublas_xerbla,CUBLAS_XERBLA) (const char *srName, int *info);
 #if defined(__cplusplus)
 }
 #endif /* __cplusplus */
 
-int CUBLAS_INIT (void) 
+int FC_FUNC_(cublas_init,CUBLAS_INIT) (void) 
 {
     return (int)cublasInit ();
 }
 
-int CUBLAS_SHUTDOWN (void) 
+int FC_FUNC_(cublas_shutdown,CUBLAS_SHUTDOWN) (void) 
 {
     return (int)cublasShutdown ();
 }
 
-int CUBLAS_ALLOC (const int *n, const int *elemSize, devptr_t *devicePtr)
+int FC_FUNC_(cublas_alloc,CUBLAS_ALLOC) (const int *n, const int *elemSize, devptr_t *devicePtr)
 {    
     void *tPtr;
     int retVal;
@@ -508,28 +509,28 @@ int CUBLAS_ALLOC (const int *n, const int *elemSize, devptr_t *devicePtr)
     return retVal;
 }
 
-int CUBLAS_FREE (const devptr_t *devicePtr)
+int FC_FUNC_(cublas_free,CUBLAS_FREE) (const devptr_t *devicePtr)
 {
     void *tPtr;
     tPtr = (void *)(uintptr_t)(*devicePtr);
     return (int)cublasFree (tPtr);
 }
 
-int CUBLAS_SET_VECTOR (const int *n, const int *elemSize, const void *x,
+int FC_FUNC_(cublas_set_vector,CUBLAS_SET_VECTOR) (const int *n, const int *elemSize, const void *x,
                        const int *incx, const devptr_t *y, const int *incy)
 {
     void *tPtr = (void *)(uintptr_t)(*y);
     return (int)cublasSetVector (*n, *elemSize, x, *incx, tPtr, *incy);
 }
 
-int CUBLAS_GET_VECTOR (const int *n, const int *elemSize, const devptr_t *x,
+int FC_FUNC_(cublas_get_vector,CUBLAS_GET_VECTOR) (const int *n, const int *elemSize, const devptr_t *x,
                        const int *incx, void *y, const int *incy)
 {
     const void *tPtr = (const void *)(uintptr_t)(*x);
     return (int)cublasGetVector (*n, *elemSize, tPtr, *incx, y, *incy);
 }
 
-int CUBLAS_SET_MATRIX (const int *rows, const int *cols, const int *elemSize,
+int FC_FUNC_(cublas_set_matrix,CUBLAS_SET_MATRIX) (const int *rows, const int *cols, const int *elemSize,
                        const void *A, const int *lda, const devptr_t *B, 
                        const int *ldb)
 {
@@ -537,7 +538,7 @@ int CUBLAS_SET_MATRIX (const int *rows, const int *cols, const int *elemSize,
     return (int)cublasSetMatrix (*rows, *cols, *elemSize, A, *lda, tPtr,*ldb);
 }
 
-int CUBLAS_GET_MATRIX (const int *rows, const int *cols, const int *elemSize,
+int FC_FUNC_(cublas_get_matrix,CUBLAS_GET_MATRIX) (const int *rows, const int *cols, const int *elemSize,
                        const devptr_t *A, const int *lda, void *B, 
                        const int *ldb)
 {
@@ -545,12 +546,12 @@ int CUBLAS_GET_MATRIX (const int *rows, const int *cols, const int *elemSize,
     return (int)cublasGetMatrix (*rows, *cols, *elemSize, tPtr, *lda, B, *ldb);
 }
 
-int CUBLAS_GET_ERROR (void)
+int FC_FUNC_(cublas_get_error,CUBLAS_GET_ERROR) (void)
 {
     return (int)cublasGetError();
 }
 
-void CUBLAS_XERBLA (const char *srName, int *info)
+void FC_FUNC_(cublas_xerbla,CUBLAS_XERBLA) (const char *srName, int *info)
 {
     cublasXerbla (srName, *info);
 }
@@ -568,210 +569,210 @@ extern "C" {
 #endif /* __cplusplus */
 /* BLAS1 */
 #if CUBLAS_FORTRAN_COMPILER==CUBLAS_G77
-double CUBLAS_SDOT (const int *n, const float *x, const int *incx, float *y, 
+double FC_FUNC_(cublas_sdot,CUBLAS_SDOT) (const int *n, const float *x, const int *incx, float *y, 
                     const int *incy);
-double CUBLAS_SASUM (const int *n, const float *x, const int *incx);
-double CUBLAS_SNRM2 (const int *n, const float *x, const int *incx);
-double CUBLAS_SCASUM (const int *n, const cuComplex *x, const int *incx);
-double CUBLAS_SCNRM2 (const int *n, const cuComplex *x, const int *incx);
+double FC_FUNC_(cublas_sasum,CUBLAS_SASUM) (const int *n, const float *x, const int *incx);
+double FC_FUNC_(cublas_snrm2,CUBLAS_SNRM2) (const int *n, const float *x, const int *incx);
+double FC_FUNC_(cublas_scasum,CUBLAS_SCASUM) (const int *n, const cuComplex *x, const int *incx);
+double FC_FUNC_(cublas_scnrm2,CUBLAS_SCNRM2) (const int *n, const cuComplex *x, const int *incx);
 #else
-float CUBLAS_SDOT (const int *n, const float *x, const int *incx, float *y, 
+float FC_FUNC_(cublas_sdot,CUBLAS_SDOT) (const int *n, const float *x, const int *incx, float *y, 
                    const int *incy);
-float CUBLAS_SASUM (const int *n, const float *x, const int *incx);
-float CUBLAS_SNRM2 (const int *n, const float *x, const int *incx);
-float CUBLAS_SCASUM (const int *n, const cuComplex *x, const int *incx);
-float CUBLAS_SCNRM2 (const int *n, const cuComplex *x, const int *incx);
+float FC_FUNC_(cublas_sasum,CUBLAS_SASUM) (const int *n, const float *x, const int *incx);
+float FC_FUNC_(cublas_snrm2,CUBLAS_SNRM2) (const int *n, const float *x, const int *incx);
+float FC_FUNC_(cublas_scasum,CUBLAS_SCASUM) (const int *n, const cuComplex *x, const int *incx);
+float FC_FUNC_(cublas_scnrm2,CUBLAS_SCNRM2) (const int *n, const cuComplex *x, const int *incx);
 #endif
-int CUBLAS_ISAMAX (const int *n, const float *x, const int *incx);
-int CUBLAS_ISAMIN (const int *n, const float *x, const int *incx);
-void CUBLAS_SAXPY (const int *n, const float *alpha, const float *x, 
+int FC_FUNC_(cublas_isamax,CUBLAS_ISAMAX) (const int *n, const float *x, const int *incx);
+int FC_FUNC_(cublas_isamin,CUBLAS_ISAMIN) (const int *n, const float *x, const int *incx);
+void FC_FUNC_(cublas_saxpy,CUBLAS_SAXPY) (const int *n, const float *alpha, const float *x, 
                    const int *incx, float *y, const int *incy);
-void CUBLAS_SCOPY (const int *n, const float *x, const int *incx, float *y, 
+void FC_FUNC_(cublas_scopy,CUBLAS_SCOPY) (const int *n, const float *x, const int *incx, float *y, 
                    const int *incy);
-void CUBLAS_SROT (const int *n, float *x, const int *incx, float *y, 
+void FC_FUNC_(cublas_srot,CUBLAS_SROT) (const int *n, float *x, const int *incx, float *y, 
                   const int *incy, const float *sc, const float *ss);
-void CUBLAS_SROTG (float *sa, float *sb, float *sc, float *ss);
-void CUBLAS_SROTM (const int *n, float *x, const int *incx, float *y,
+void FC_FUNC_(cublas_srotg,CUBLAS_SROTG) (float *sa, float *sb, float *sc, float *ss);
+void FC_FUNC_(cublas_srotm,CUBLAS_SROTM) (const int *n, float *x, const int *incx, float *y,
                    const int *incy, const float* sparam);
-void CUBLAS_SROTMG (float *sd1, float *sd2, float *sx1, const float *sy1, 
+void FC_FUNC_(cublas_srotmg,CUBLAS_SROTMG) (float *sd1, float *sd2, float *sx1, const float *sy1, 
                     float* sparam);
-void CUBLAS_SSCAL (const int *n, const float *alpha, float *x,
+void FC_FUNC_(cublas_sscal,CUBLAS_SSCAL) (const int *n, const float *alpha, float *x,
                    const int *incx);
-void CUBLAS_SSWAP(const int *n, float *x, const int *incx, float *y,
+void FC_FUNC_(cublas_sswap,CUBLAS_SSWAP)(const int *n, float *x, const int *incx, float *y,
                   const int *incy);
 
-void CUBLAS_CAXPY (const int *n, const cuComplex *alpha, const cuComplex *x, 
+void FC_FUNC_(cublas_caxpy,CUBLAS_CAXPY) (const int *n, const cuComplex *alpha, const cuComplex *x, 
                    const int *incx, cuComplex *y, const int *incy);
-void CUBLAS_CCOPY (const int *n, const cuComplex *x, const int *incx, 
+void FC_FUNC_(cublas_ccopy,CUBLAS_CCOPY) (const int *n, const cuComplex *x, const int *incx, 
                    cuComplex *y, const int *incy);
-void CUBLAS_CROT (const int *n, cuComplex *x, const int *incx, cuComplex *y, 
+void FC_FUNC_(cublas_crot,CUBLAS_CROT) (const int *n, cuComplex *x, const int *incx, cuComplex *y, 
                   const int *incy, const float *sc, const cuComplex *cs);
-void CUBLAS_CROTG (cuComplex *ca, const cuComplex *cb, float *sc, 
+void FC_FUNC_(cublas_crotg,CUBLAS_CROTG) (cuComplex *ca, const cuComplex *cb, float *sc, 
                    cuComplex *cs);
-void CUBLAS_CSCAL (const int *n, const cuComplex *alpha, cuComplex *x, 
+void FC_FUNC_(cublas_cscal,CUBLAS_CSCAL) (const int *n, const cuComplex *alpha, cuComplex *x, 
                    const int *incx);
-void CUBLAS_CSROT (const int *n, cuComplex *x, const int *incx, cuComplex *y, 
+void FC_FUNC_(cublas_csrot,CUBLAS_CSROT) (const int *n, cuComplex *x, const int *incx, cuComplex *y, 
                    const int *incy, const float *sc, const float *ss);
-void CUBLAS_CSSCAL (const int *n, const float *alpha, cuComplex *x,
+void FC_FUNC_(cublas_csscal,CUBLAS_CSSCAL) (const int *n, const float *alpha, cuComplex *x,
                     const int *incx);
-void CUBLAS_CSWAP (const int *n, cuComplex *x, const int *incx, cuComplex *y,
+void FC_FUNC_(cublas_cswap,CUBLAS_CSWAP) (const int *n, cuComplex *x, const int *incx, cuComplex *y,
                    const int *incy);
-void CUBLAS_CDOTU (cuComplex *retVal, const int *n, const cuComplex *x, 
+void FC_FUNC_(cublas_cdotu,CUBLAS_CDOTU) (cuComplex *retVal, const int *n, const cuComplex *x, 
                    const int *incx, const cuComplex *y, const int *incy);
-void CUBLAS_CDOTC (cuComplex *retVal,const int *n, const cuComplex *x, 
+void FC_FUNC_(cublas_cdotc,CUBLAS_CDOTC) (cuComplex *retVal,const int *n, const cuComplex *x, 
                    const int *incx, const cuComplex *y, const int *incy);
-int CUBLAS_ICAMAX (const int *n, const cuComplex *x, const int *incx);
-int CUBLAS_ICAMIN (const int *n, const cuComplex *x, const int *incx);
+int FC_FUNC_(cublas_icamax,CUBLAS_ICAMAX) (const int *n, const cuComplex *x, const int *incx);
+int FC_FUNC_(cublas_icamin,CUBLAS_ICAMIN) (const int *n, const cuComplex *x, const int *incx);
 
 /* BLAS2 */
-void CUBLAS_SGBMV (const char *trans, const int *m, const int *n, 
+void FC_FUNC_(cublas_sgbmv,CUBLAS_SGBMV) (const char *trans, const int *m, const int *n, 
                    const int *kl, const int *ku, const float *alpha, 
                    const float *A, const int *lda, const float *x,
                    const int *incx, const float *beta, float *y, 
                    const int *incy);
-void CUBLAS_SGEMV (const char *trans, const int *m, const int *n,
+void FC_FUNC_(cublas_sgemv,CUBLAS_SGEMV) (const char *trans, const int *m, const int *n,
                    const float *alpha, const float *A, const int *lda,
                    const float *x, const int *incx, const float *beta, 
                    float *y, const int *incy);
-void CUBLAS_SGER (const int *m, const int *n, const float *alpha,
+void FC_FUNC_(cublas_sger,CUBLAS_SGER) (const int *m, const int *n, const float *alpha,
                   const float *x, const int *incx, const float *y,
                   const int *incy, float *A, const int *lda);
-void CUBLAS_SSBMV (const char *uplo, const int *n, const int *k, 
+void FC_FUNC_(cublas_ssbmv,CUBLAS_SSBMV) (const char *uplo, const int *n, const int *k, 
                    const float *alpha, const float *A, const int *lda,
                    const float *x, const int *incx, const float *beta,
                    float *y, const int *incy);
-void CUBLAS_SSPMV (const char *uplo, const int *n, const float *alpha, 
+void FC_FUNC_(cublas_sspmv,CUBLAS_SSPMV) (const char *uplo, const int *n, const float *alpha, 
                    const float *AP, const float *x, const int *incx, 
                    const float *beta, float *y, const int *incy);
-void CUBLAS_SSPR (const char *uplo, const int *n, const float *alpha,
+void FC_FUNC_(cublas_sspr,CUBLAS_SSPR) (const char *uplo, const int *n, const float *alpha,
                   const float *x, const int *incx, float *AP);
-void CUBLAS_SSPR2 (const char *uplo, const int *n, const float *alpha,
+void FC_FUNC_(cublas_sspr2,CUBLAS_SSPR2) (const char *uplo, const int *n, const float *alpha,
                    const float *x, const int *incx, const float *y,
                    const int *incy, float *AP);
-void CUBLAS_SSYMV (const char *uplo, const int *n, const float *alpha,
+void FC_FUNC_(cublas_ssymv,CUBLAS_SSYMV) (const char *uplo, const int *n, const float *alpha,
                    const float *A, const int *lda, const float *x,
                    const int *incx, const float *beta, float *y, 
                    const int *incy);
-void CUBLAS_SSYR (const char *uplo, const int *n, const float *alpha,
+void FC_FUNC_(cublas_ssyr,CUBLAS_SSYR) (const char *uplo, const int *n, const float *alpha,
                   const float *x, const int *incx, float *A, const int *lda);
-void CUBLAS_SSYR2 (const char *uplo, const int *n, const float *alpha,
+void FC_FUNC_(cublas_ssyr2,CUBLAS_SSYR2) (const char *uplo, const int *n, const float *alpha,
                    const float *x, const int *incx, const float *y,
                    const int *incy, float *A, const int *lda);
-void CUBLAS_STBMV (const char *uplo, const char *trans, const char *diag, 
+void FC_FUNC_(cublas_stbmv,CUBLAS_STBMV) (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const int *k, const float *A, const int *lda, 
                    float *x, const int *incx);
-void CUBLAS_STBSV (const char *uplo, const char *trans, const char *diag, 
+void FC_FUNC_(cublas_stbsv,CUBLAS_STBSV) (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const int *k, const float *A, const int *lda, 
                    float *x, const int *incx);
-void CUBLAS_STPMV (const char *uplo, const char *trans, const char *diag, 
+void FC_FUNC_(cublas_stpmv,CUBLAS_STPMV) (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const float *AP, float *x, const int *incx);
-void CUBLAS_STPSV (const char *uplo, const char *trans, const char *diag, 
+void FC_FUNC_(cublas_stpsv,CUBLAS_STPSV) (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const float *AP, float *x, const int *incx);
-void CUBLAS_STRMV (const char *uplo, const char *trans, const char *diag, 
+void FC_FUNC_(cublas_strmv,CUBLAS_STRMV) (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const float *A, const int *lda, float *x, 
                    const int *incx);
-void CUBLAS_STRSV (const char *uplo, const char *trans, const char *diag, 
+void FC_FUNC_(cublas_strsv,CUBLAS_STRSV) (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const float *A, const int *lda, float *x, 
                    const int *incx);
 
 /* BLAS3 */
-void CUBLAS_SGEMM (const char *transa, const char *transb, const int *m,
+void FC_FUNC_(cublas_sgemm,CUBLAS_SGEMM) (const char *transa, const char *transb, const int *m,
                    const int *n, const int *k, const float *alpha, 
                    const float *A, const int *lda, const float *B, 
                    const int *ldb, const float *beta, float *C, 
                    const int *ldc);
-void CUBLAS_SSYMM (const char *side, const char *uplo, const int *m,
+void FC_FUNC_(cublas_ssymm,CUBLAS_SSYMM) (const char *side, const char *uplo, const int *m,
                    const int *n, const float *alpha, const float *A,
                    const int *lda, const float *B, const int *ldb, 
                    const float *beta, float *C, const int *ldc);
-void CUBLAS_SSYR2K (const char *uplo, const char *trans, const int *n, 
+void FC_FUNC_(cublas_ssyr2k,CUBLAS_SSYR2K) (const char *uplo, const char *trans, const int *n, 
                     const int *k, const float *alpha, const float *A,
                     const int *lda,const float *B, const int *ldb, 
                     const float *beta, float *C, const int *ldc);
-void CUBLAS_SSYRK (const char *uplo, const char *trans, const int *n,
+void FC_FUNC_(cublas_ssyrk,CUBLAS_SSYRK) (const char *uplo, const char *trans, const int *n,
                    const int *k, const float *alpha, const float *A,
                    const int *lda, const float *beta, float *C,
                    const int *ldc);
-void CUBLAS_STRMM (const char *side, const char *uplo, const char *transa, 
+void FC_FUNC_(cublas_strmm,CUBLAS_STRMM) (const char *side, const char *uplo, const char *transa, 
                    const char *diag, const int *m, const int *n,
                    const float *alpha, const float *A, const int *lda,
                    float *B, const int *ldb);
-void CUBLAS_STRSM (const char *side, const char *uplo, const char *transa, 
+void FC_FUNC_(cublas_strsm,CUBLAS_STRSM) (const char *side, const char *uplo, const char *transa, 
                    const char *diag, const int *m, const int *n,
                    const float *alpha, const float *A, const int *lda,
                    float *B, const int *ldb);
 
-void CUBLAS_CGEMM (const char *transa, const char *transb, const int *m,
+void FC_FUNC_(cublas_cgemm,CUBLAS_CGEMM) (const char *transa, const char *transb, const int *m,
                    const int *n, const int *k, const cuComplex *alpha,
                    const cuComplex *A, const int *lda, const cuComplex *B,
                    const int *ldb, const cuComplex *beta, cuComplex *C, 
                    const int *ldc);
 
 /* DP BLAS1 */
-double CUBLAS_DDOT (const int *n, const double *x, const int *incx, double *y, 
+double FC_FUNC_(cublas_ddot,CUBLAS_DDOT) (const int *n, const double *x, const int *incx, double *y, 
                    const int *incy);
-double CUBLAS_DASUM (const int *n, const double *x, const int *incx);
-double CUBLAS_DNRM2 (const int *n, const double *x, const int *incx);
-int CUBLAS_IDAMAX (const int *n, const double *x, const int *incx);
-int CUBLAS_IDAMIN (const int *n, const double *x, const int *incx);
-void CUBLAS_DAXPY (const int *n, const double *alpha, const double *x, 
+double FC_FUNC_(cublas_dasum,CUBLAS_DASUM) (const int *n, const double *x, const int *incx);
+double FC_FUNC_(cublas_dnrm2,CUBLAS_DNRM2) (const int *n, const double *x, const int *incx);
+int FC_FUNC_(cublas_idamax,CUBLAS_IDAMAX) (const int *n, const double *x, const int *incx);
+int FC_FUNC_(cublas_idamin,CUBLAS_IDAMIN) (const int *n, const double *x, const int *incx);
+void FC_FUNC_(cublas_daxpy,CUBLAS_DAXPY) (const int *n, const double *alpha, const double *x, 
                    const int *incx, double *y, const int *incy);
-void CUBLAS_DCOPY (const int *n, const double *x, const int *incx, double *y, 
+void FC_FUNC_(cublas_dcopy,CUBLAS_DCOPY) (const int *n, const double *x, const int *incx, double *y, 
                    const int *incy);
-void CUBLAS_DROT (const int *n, double *x, const int *incx, double *y, 
+void FC_FUNC_(cublas_drot,CUBLAS_DROT) (const int *n, double *x, const int *incx, double *y, 
                   const int *incy, const double *sc, const double *ss);
-void CUBLAS_DROTG (double *sa, double *sb, double *sc, double *ss);
-void CUBLAS_DROTM (const int *n, double *x, const int *incx, double *y,
+void FC_FUNC_(cublas_drotg,CUBLAS_DROTG) (double *sa, double *sb, double *sc, double *ss);
+void FC_FUNC_(cublas_drotm,CUBLAS_DROTM) (const int *n, double *x, const int *incx, double *y,
                    const int *incy, const double* sparam);
-void CUBLAS_DROTMG (double *sd1, double *sd2, double *sx1, const double *sy1, 
+void FC_FUNC_(cublas_drotmg,CUBLAS_DROTMG) (double *sd1, double *sd2, double *sx1, const double *sy1, 
                     double* sparam);
-void CUBLAS_DSCAL (const int *n, const double *alpha, double *x,
+void FC_FUNC_(cublas_dscal,CUBLAS_DSCAL) (const int *n, const double *alpha, double *x,
                    const int *incx);
-void CUBLAS_DSWAP(const int *n, double *x, const int *incx, double *y,
+void FC_FUNC_(cublas_dswap,CUBLAS_DSWAP)(const int *n, double *x, const int *incx, double *y,
                   const int *incy);
 
 /* DP BLAS2 */
-void CUBLAS_DGEMV (const char *trans, const int *m, const int *n,
+void FC_FUNC_(cublas_dgemv,CUBLAS_DGEMV) (const char *trans, const int *m, const int *n,
                    const double *alpha, const double *A, const int *lda,
                    const double *x, const int *incx, const double *beta, 
                    double *y, const int *incy);
-void CUBLAS_DGER (const int *m, const int *n, const double *alpha,
+void FC_FUNC_(cublas_dger,CUBLAS_DGER) (const int *m, const int *n, const double *alpha,
                   const double *x, const int *incx, const double *y,
                   const int *incy, double *A, const int *lda);
-void CUBLAS_DSYR (const char *uplo, const int *n, const double *alpha,
+void FC_FUNC_(cublas_dsyr,CUBLAS_DSYR) (const char *uplo, const int *n, const double *alpha,
                   const double *x, const int *incx, double *A, const int *lda);
-void CUBLAS_DTRSV (const char *uplo, const char *trans, const char *diag, 
+void FC_FUNC_(cublas_dtrsv,CUBLAS_DTRSV) (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const double *A, const int *lda, double *x, 
                    const int *incx);
 
 /* DP BLAS3 */
-void CUBLAS_DGEMM (const char *transa, const char *transb, const int *m,
+void FC_FUNC_(cublas_dgemm,CUBLAS_DGEMM) (const char *transa, const char *transb, const int *m,
                    const int *n, const int *k, const double *alpha, 
                    const double *A, const int *lda, const double *B, 
                    const int *ldb, const double *beta, double *C, 
                    const int *ldc);
-void CUBLAS_DSYMM (const char *side, const char *uplo, const int *m,
+void FC_FUNC_(cublas_dsymm,CUBLAS_DSYMM) (const char *side, const char *uplo, const int *m,
                    const int *n, const double *alpha, const double *A,
                    const int *lda, const double *B, const int *ldb, 
                    const double *beta, double *C, const int *ldc);
-void CUBLAS_DSYR2K (const char *uplo, const char *trans, const int *n, 
+void FC_FUNC_(cublas_dsyr2k,CUBLAS_DSYR2K) (const char *uplo, const char *trans, const int *n, 
                     const int *k, const double *alpha, const double *A,
                     const int *lda,const double *B, const int *ldb, 
                     const double *beta, double *C, const int *ldc);
-void CUBLAS_DSYRK (const char *uplo, const char *trans, const int *n,
+void FC_FUNC_(cublas_dsyrk,CUBLAS_DSYRK) (const char *uplo, const char *trans, const int *n,
                    const int *k, const double *alpha, const double *A,
                    const int *lda, const double *beta, double *C,
                    const int *ldc);
-void CUBLAS_DTRMM (const char *side, const char *uplo, const char *transa, 
+void FC_FUNC_(cublas_dtrmm,CUBLAS_DTRMM) (const char *side, const char *uplo, const char *transa, 
                    const char *diag, const int *m, const int *n,
                    const double *alpha, const double *A, const int *lda,
                    double *B, const int *ldb);
-void CUBLAS_DTRSM (const char *side, const char *uplo, const char *transa, 
+void FC_FUNC_(cublas_dtrsm,CUBLAS_DTRSM) (const char *side, const char *uplo, const char *transa, 
                    const char *diag, const int *m, const int *n,
                    const double *alpha, const double *A, const int *lda,
                    double *B, const int *ldb);
 
-void CUBLAS_ZGEMM (const char *transa, const char *transb, const int *m,
+void FC_FUNC_(cublas_zgemm,CUBLAS_ZGEMM) (const char *transa, const char *transb, const int *m,
                    const int *n, const int *k, const cuDoubleComplex *alpha,
                    const cuDoubleComplex *A, const int *lda, 
                    const cuDoubleComplex *B, const int *ldb, 
@@ -807,7 +808,7 @@ static void wrapperError (const char *funcName, int error)
 /*---------------------------------- BLAS1 ----------------------------------*/
 /*---------------------------------------------------------------------------*/
 
-int CUBLAS_ISAMAX (const int *n, const float *x, const int *incx)
+int FC_FUNC_(cublas_isamax,CUBLAS_ISAMAX) (const int *n, const float *x, const int *incx)
 {
     float *devPtrx = 0;
     int retVal = 0;
@@ -830,7 +831,7 @@ int CUBLAS_ISAMAX (const int *n, const float *x, const int *incx)
     return retVal;
 }
 
-int CUBLAS_ISAMIN (const int *n, const float *x, const int *incx)
+int FC_FUNC_(cublas_isamin,CUBLAS_ISAMIN) (const int *n, const float *x, const int *incx)
 {
     float *devPtrx = 0;
     int retVal = 0;
@@ -854,9 +855,9 @@ int CUBLAS_ISAMIN (const int *n, const float *x, const int *incx)
 }
 
 #if CUBLAS_FORTRAN_COMPILER==CUBLAS_G77
-double CUBLAS_SASUM (const int *n, const float *x, const int *incx)
+double FC_FUNC_(cublas_sasum,CUBLAS_SASUM) (const int *n, const float *x, const int *incx)
 #else
-float CUBLAS_SASUM (const int *n, const float *x, const int *incx)
+float FC_FUNC_(cublas_sasum,CUBLAS_SASUM) (const int *n, const float *x, const int *incx)
 #endif
 {
     float *devPtrx = 0;
@@ -881,7 +882,7 @@ float CUBLAS_SASUM (const int *n, const float *x, const int *incx)
     return retVal;
 }
 
-void CUBLAS_SAXPY (const int *n, const float *alpha, const float *x, 
+void FC_FUNC_(cublas_saxpy,CUBLAS_SAXPY) (const int *n, const float *alpha, const float *x, 
                    const int *incx, float *y, const int *incy)
 {
     float *devPtrx = 0, *devPtry = 0;
@@ -913,7 +914,7 @@ void CUBLAS_SAXPY (const int *n, const float *alpha, const float *x,
     cublasFree (devPtry);
 }
 
-void CUBLAS_SCOPY (const int *n, const float *x, const int *incx, float *y,
+void FC_FUNC_(cublas_scopy,CUBLAS_SCOPY) (const int *n, const float *x, const int *incx, float *y,
                    const int *incy)
 {
     float *devPtrx = 0, *devPtry = 0;
@@ -946,10 +947,10 @@ void CUBLAS_SCOPY (const int *n, const float *x, const int *incx, float *y,
 }
 
 #if CUBLAS_FORTRAN_COMPILER==CUBLAS_G77
-double CUBLAS_SDOT (const int *n, const float *x, const int *incx, float *y,
+double FC_FUNC_(cublas_sdot,CUBLAS_SDOT) (const int *n, const float *x, const int *incx, float *y,
                     const int *incy)
 #else
-float CUBLAS_SDOT (const int *n, const float *x, const int *incx, float *y,
+float FC_FUNC_(cublas_sdot,CUBLAS_SDOT) (const int *n, const float *x, const int *incx, float *y,
                    const int *incy)
 #endif
 {
@@ -980,9 +981,9 @@ retVal = cublasSdot (*n, devPtrx, *incx, devPtry, *incy);
 }
 
 #if CUBLAS_FORTRAN_COMPILER==CUBLAS_G77
-double CUBLAS_SNRM2 (const int *n, const float *x, const int *incx)
+double FC_FUNC_(cublas_snrm2,CUBLAS_SNRM2) (const int *n, const float *x, const int *incx)
 #else
-float CUBLAS_SNRM2 (const int *n, const float *x, const int *incx)
+float FC_FUNC_(cublas_snrm2,CUBLAS_SNRM2) (const int *n, const float *x, const int *incx)
 #endif
 {
     float *devPtrx = 0;
@@ -1005,7 +1006,7 @@ float CUBLAS_SNRM2 (const int *n, const float *x, const int *incx)
     return retVal;
 }
 
-void CUBLAS_SROT (const int *n, float *x, const int *incx, float *y, 
+void FC_FUNC_(cublas_srot,CUBLAS_SROT) (const int *n, float *x, const int *incx, float *y, 
                   const int *incy, const float *sc, const float *ss)
 {
     float *devPtrx = 0, *devPtry = 0;
@@ -1038,12 +1039,12 @@ void CUBLAS_SROT (const int *n, float *x, const int *incx, float *y,
     cublasFree (devPtry);
 }
 
-void CUBLAS_SROTG (float *sa, float *sb, float *sc, float *ss)
+void FC_FUNC_(cublas_srotg,CUBLAS_SROTG) (float *sa, float *sb, float *sc, float *ss)
 {
     cublasSrotg (sa, sb, sc, ss);
 }
 
-void CUBLAS_SROTM (const int *n, float *x, const int *incx, float *y, 
+void FC_FUNC_(cublas_srotm,CUBLAS_SROTM) (const int *n, float *x, const int *incx, float *y, 
                    const int *incy, const float* sparam)
 {
     float *devPtrx = 0, *devPtry = 0;
@@ -1076,13 +1077,13 @@ void CUBLAS_SROTM (const int *n, float *x, const int *incx, float *y,
     cublasFree (devPtry);
 }
 
-void CUBLAS_SROTMG (float *sd1, float *sd2, float *sx1, const float *sy1,
+void FC_FUNC_(cublas_srotmg,CUBLAS_SROTMG) (float *sd1, float *sd2, float *sx1, const float *sy1,
                     float* sparam)
 {
     cublasSrotmg (sd1, sd2, sx1, sy1, sparam);
 }
 
-void CUBLAS_SSCAL (const int *n, const float *alpha, float *x, const int *incx)
+void FC_FUNC_(cublas_sscal,CUBLAS_SSCAL) (const int *n, const float *alpha, float *x, const int *incx)
 {
     float *devPtrx = 0;
     cublasStatus stat;
@@ -1107,7 +1108,7 @@ void CUBLAS_SSCAL (const int *n, const float *alpha, float *x, const int *incx)
     cublasFree (devPtrx); 
 }
 
-void CUBLAS_SSWAP (const int *n, float *x, const int *incx, float *y, 
+void FC_FUNC_(cublas_sswap,CUBLAS_SSWAP) (const int *n, float *x, const int *incx, float *y, 
                    const int *incy)
 {
     float *devPtrx = 0, *devPtry = 0;
@@ -1140,7 +1141,7 @@ void CUBLAS_SSWAP (const int *n, float *x, const int *incx, float *y,
     cublasFree (devPtry);
 }
 
-void CUBLAS_CAXPY (const int *n, const cuComplex *alpha, const cuComplex *x, 
+void FC_FUNC_(cublas_caxpy,CUBLAS_CAXPY) (const int *n, const cuComplex *alpha, const cuComplex *x, 
                    const int *incx, cuComplex *y, const int *incy)
 {
     cuComplex *devPtrx = 0, *devPtry = 0;
@@ -1172,7 +1173,7 @@ void CUBLAS_CAXPY (const int *n, const cuComplex *alpha, const cuComplex *x,
     cublasFree (devPtry);
 }
 
-void CUBLAS_CCOPY (const int *n, const cuComplex *x, const int *incx, 
+void FC_FUNC_(cublas_ccopy,CUBLAS_CCOPY) (const int *n, const cuComplex *x, const int *incx, 
                    cuComplex *y, const int *incy)
 {
     cuComplex *devPtrx = 0, *devPtry = 0;
@@ -1204,7 +1205,7 @@ void CUBLAS_CCOPY (const int *n, const cuComplex *x, const int *incx,
     cublasFree (devPtry);
 }
 
-void CUBLAS_CROT (const int *n, cuComplex *x, const int *incx, cuComplex *y, 
+void FC_FUNC_(cublas_crot,CUBLAS_CROT) (const int *n, cuComplex *x, const int *incx, cuComplex *y, 
                   const int *incy, const float *sc, const cuComplex *cs)
 {
     cuComplex *devPtrx = 0, *devPtry = 0;
@@ -1237,13 +1238,13 @@ void CUBLAS_CROT (const int *n, cuComplex *x, const int *incx, cuComplex *y,
     cublasFree (devPtry);
 }
 
-void CUBLAS_CROTG (cuComplex *ca, const cuComplex *cb, float *sc,
+void FC_FUNC_(cublas_crotg,CUBLAS_CROTG) (cuComplex *ca, const cuComplex *cb, float *sc,
                    cuComplex *cs)
 {
     cublasCrotg (ca, *cb, sc, cs);
 }
 
-void CUBLAS_CSCAL (const int *n, const cuComplex *alpha, cuComplex *x, 
+void FC_FUNC_(cublas_cscal,CUBLAS_CSCAL) (const int *n, const cuComplex *alpha, cuComplex *x, 
                    const int *incx)
 {
     cuComplex *devPtrx = 0;
@@ -1268,7 +1269,7 @@ void CUBLAS_CSCAL (const int *n, const cuComplex *alpha, cuComplex *x,
     cublasFree (devPtrx); 
 }
 
-void CUBLAS_CSROT (const int *n, cuComplex *x, const int *incx, cuComplex *y, 
+void FC_FUNC_(cublas_csrot,CUBLAS_CSROT) (const int *n, cuComplex *x, const int *incx, cuComplex *y, 
                    const int *incy, const float *sc, const float *ss)
 {
     cuComplex *devPtrx = 0, *devPtry = 0;
@@ -1300,7 +1301,7 @@ void CUBLAS_CSROT (const int *n, cuComplex *x, const int *incx, cuComplex *y,
     cublasFree (devPtry);
 }
 
-void CUBLAS_CSSCAL (const int *n, const float *alpha, cuComplex *x, 
+void FC_FUNC_(cublas_csscal,CUBLAS_CSSCAL) (const int *n, const float *alpha, cuComplex *x, 
                     const int *incx)
 {
     cuComplex *devPtrx = 0;
@@ -1327,7 +1328,7 @@ void CUBLAS_CSSCAL (const int *n, const float *alpha, cuComplex *x,
     cublasFree (devPtrx); 
 }
 
-void CUBLAS_CSWAP (const int *n, cuComplex *x, const int *incx, cuComplex *y,
+void FC_FUNC_(cublas_cswap,CUBLAS_CSWAP) (const int *n, cuComplex *x, const int *incx, cuComplex *y,
                    const int *incy)
 {
     cuComplex *devPtrx = 0, *devPtry = 0;
@@ -1360,7 +1361,7 @@ void CUBLAS_CSWAP (const int *n, cuComplex *x, const int *incx, cuComplex *y,
     cublasFree (devPtry);
 }
 
-void CUBLAS_CDOTU (cuComplex *retVal, const int *n, const cuComplex *x, 
+void FC_FUNC_(cublas_cdotu,CUBLAS_CDOTU) (cuComplex *retVal, const int *n, const cuComplex *x, 
                    const int *incx, const cuComplex *y, const int *incy)
 {
     cuComplex *devPtrx = 0, *devPtry = 0;
@@ -1389,7 +1390,7 @@ void CUBLAS_CDOTU (cuComplex *retVal, const int *n, const cuComplex *x,
     cublasFree (devPtry);
 }
 
-void CUBLAS_CDOTC (cuComplex *retVal, const int *n, const cuComplex *x, 
+void FC_FUNC_(cublas_cdotc,CUBLAS_CDOTC) (cuComplex *retVal, const int *n, const cuComplex *x, 
                    const int *incx, const cuComplex *y, const int *incy)
 {
     cuComplex *devPtrx = 0, *devPtry = 0;
@@ -1418,7 +1419,7 @@ void CUBLAS_CDOTC (cuComplex *retVal, const int *n, const cuComplex *x,
     cublasFree (devPtry);
 }
 
-int CUBLAS_ICAMAX (const int *n, const cuComplex *x, const int *incx)
+int FC_FUNC_(cublas_icamax,CUBLAS_ICAMAX) (const int *n, const cuComplex *x, const int *incx)
 {
     cuComplex *devPtrx = 0;
     int retVal = 0;
@@ -1441,7 +1442,7 @@ int CUBLAS_ICAMAX (const int *n, const cuComplex *x, const int *incx)
     return retVal;
 }
 
-int CUBLAS_ICAMIN (const int *n, const cuComplex *x, const int *incx)
+int FC_FUNC_(cublas_icamin,CUBLAS_ICAMIN) (const int *n, const cuComplex *x, const int *incx)
 {
     cuComplex *devPtrx = 0;
     int retVal = 0;
@@ -1465,9 +1466,9 @@ int CUBLAS_ICAMIN (const int *n, const cuComplex *x, const int *incx)
 }
 
 #if CUBLAS_FORTRAN_COMPILER==CUBLAS_G77
-double CUBLAS_SCASUM (const int *n, const cuComplex *x, const int *incx)
+double FC_FUNC_(cublas_scasum,CUBLAS_SCASUM) (const int *n, const cuComplex *x, const int *incx)
 #else
-float CUBLAS_SCASUM (const int *n, const cuComplex *x, const int *incx)
+float FC_FUNC_(cublas_scasum,CUBLAS_SCASUM) (const int *n, const cuComplex *x, const int *incx)
 #endif
 {
     cuComplex *devPtrx = 0;
@@ -1492,9 +1493,9 @@ float CUBLAS_SCASUM (const int *n, const cuComplex *x, const int *incx)
 }
 
 #if CUBLAS_FORTRAN_COMPILER==CUBLAS_G77
-double CUBLAS_SCNRM2 (const int *n, const cuComplex *x, const int *incx)
+double FC_FUNC_(cublas_scnrm2,CUBLAS_SCNRM2) (const int *n, const cuComplex *x, const int *incx)
 #else
-float CUBLAS_SCNRM2 (const int *n, const cuComplex *x, const int *incx)
+float FC_FUNC_(cublas_scnrm2,CUBLAS_SCNRM2) (const int *n, const cuComplex *x, const int *incx)
 #endif
 {
     cuComplex *devPtrx = 0;
@@ -1518,7 +1519,7 @@ float CUBLAS_SCNRM2 (const int *n, const cuComplex *x, const int *incx)
     return retVal;
 }
 
-int CUBLAS_IDAMAX (const int *n, const double *x, const int *incx)
+int FC_FUNC_(cublas_idamax,CUBLAS_IDAMAX) (const int *n, const double *x, const int *incx)
 {
     double *devPtrx = 0;
     int retVal = 0;
@@ -1541,7 +1542,7 @@ int CUBLAS_IDAMAX (const int *n, const double *x, const int *incx)
     return retVal;
 }
 
-int CUBLAS_IDAMIN (const int *n, const double *x, const int *incx)
+int FC_FUNC_(cublas_idamin,CUBLAS_IDAMIN) (const int *n, const double *x, const int *incx)
 {
     double *devPtrx = 0;
     int retVal = 0;
@@ -1564,7 +1565,7 @@ int CUBLAS_IDAMIN (const int *n, const double *x, const int *incx)
     return retVal;
 }
 
-double CUBLAS_DASUM (const int *n, const double *x, const int *incx)
+double FC_FUNC_(cublas_dasum,CUBLAS_DASUM) (const int *n, const double *x, const int *incx)
 {
     double *devPtrx = 0;
     double retVal = 0;
@@ -1587,7 +1588,7 @@ double CUBLAS_DASUM (const int *n, const double *x, const int *incx)
     return retVal;
 }
 
-void CUBLAS_DAXPY (const int *n, const double *alpha, const double *x, 
+void FC_FUNC_(cublas_daxpy,CUBLAS_DAXPY) (const int *n, const double *alpha, const double *x, 
                    const int *incx, double *y, const int *incy)
 {
     double *devPtrx = 0, *devPtry = 0;
@@ -1619,7 +1620,7 @@ void CUBLAS_DAXPY (const int *n, const double *alpha, const double *x,
     cublasFree (devPtry);
 }
 
-void CUBLAS_DCOPY (const int *n, const double *x, const int *incx, double *y,
+void FC_FUNC_(cublas_dcopy,CUBLAS_DCOPY) (const int *n, const double *x, const int *incx, double *y,
                    const int *incy)
 {
     double *devPtrx = 0, *devPtry = 0;
@@ -1651,7 +1652,7 @@ void CUBLAS_DCOPY (const int *n, const double *x, const int *incx, double *y,
     cublasFree (devPtry);
 }
 
-double CUBLAS_DDOT (const int *n, const double *x, const int *incx, double *y,
+double FC_FUNC_(cublas_ddot,CUBLAS_DDOT) (const int *n, const double *x, const int *incx, double *y,
                     const int *incy)
 {
     double *devPtrx = 0, *devPtry = 0;
@@ -1681,7 +1682,7 @@ double CUBLAS_DDOT (const int *n, const double *x, const int *incx, double *y,
     return retVal;
 }
 
-double CUBLAS_DNRM2 (const int *n, const double *x, const int *incx)
+double FC_FUNC_(cublas_dnrm2,CUBLAS_DNRM2) (const int *n, const double *x, const int *incx)
 {
     double *devPtrx = 0;
     double retVal = 0.0;
@@ -1703,7 +1704,7 @@ double CUBLAS_DNRM2 (const int *n, const double *x, const int *incx)
     return retVal;
 }
 
-void CUBLAS_DROT (const int *n, double *x, const int *incx, double *y, 
+void FC_FUNC_(cublas_drot,CUBLAS_DROT) (const int *n, double *x, const int *incx, double *y, 
                   const int *incy, const double *sc, const double *ss)
 {
     double *devPtrx = 0, *devPtry = 0;
@@ -1739,12 +1740,12 @@ void CUBLAS_DROT (const int *n, double *x, const int *incx, double *y,
     cublasFree (devPtry);
 }
 
-void CUBLAS_DROTG (double *sa, double *sb, double *sc, double *ss)
+void FC_FUNC_(cublas_drotg,CUBLAS_DROTG) (double *sa, double *sb, double *sc, double *ss)
 {
     cublasDrotg (sa, sb, sc, ss);
 }
 
-void CUBLAS_DROTM (const int *n, double *x, const int *incx, double *y, 
+void FC_FUNC_(cublas_drotm,CUBLAS_DROTM) (const int *n, double *x, const int *incx, double *y, 
                    const int *incy, const double* sparam)
 {
     double *devPtrx = 0, *devPtry = 0;
@@ -1780,13 +1781,13 @@ void CUBLAS_DROTM (const int *n, double *x, const int *incx, double *y,
     cublasFree (devPtry);
 }
 
-void CUBLAS_DROTMG (double *sd1, double *sd2, double *sx1, const double *sy1,
+void FC_FUNC_(cublas_drotmg,CUBLAS_DROTMG) (double *sd1, double *sd2, double *sx1, const double *sy1,
                     double* sparam)
 {
     cublasDrotmg (sd1, sd2, sx1, sy1, sparam);
 }
 
-void CUBLAS_DSCAL (const int *n, const double *alpha, double *x, 
+void FC_FUNC_(cublas_dscal,CUBLAS_DSCAL) (const int *n, const double *alpha, double *x, 
                    const int *incx)
 {
     double *devPtrx = 0;
@@ -1812,7 +1813,7 @@ void CUBLAS_DSCAL (const int *n, const double *alpha, double *x,
     cublasFree (devPtrx); 
 }
 
-void CUBLAS_DSWAP (const int *n, double *x, const int *incx, double *y, 
+void FC_FUNC_(cublas_dswap,CUBLAS_DSWAP) (const int *n, double *x, const int *incx, double *y, 
                    const int *incy)
 {
     double *devPtrx = 0, *devPtry = 0;
@@ -1850,7 +1851,7 @@ void CUBLAS_DSWAP (const int *n, double *x, const int *incx, double *y,
 /*---------------------------------- BLAS2 ----------------------------------*/
 /*---------------------------------------------------------------------------*/
 
-void CUBLAS_SGBMV (const char *trans, const int *m, const int *n, 
+void FC_FUNC_(cublas_sgbmv,CUBLAS_SGBMV) (const char *trans, const int *m, const int *n, 
                    const int *kl, const int *ku, const float *alpha, 
                    const float *A, const int *lda, const float *x, 
                    const int *incx, const float *beta, float *y, 
@@ -1923,7 +1924,7 @@ void CUBLAS_SGBMV (const char *trans, const int *m, const int *n,
     cublasFree (devPtrA);
 }
 
-void CUBLAS_SGEMV (const char *trans, const int *m, const int *n,
+void FC_FUNC_(cublas_sgemv,CUBLAS_SGEMV) (const char *trans, const int *m, const int *n,
                    const float *alpha, const float *A, const int *lda,
                    const float *x, const int *incx, const float *beta,
                    float *y, const int *incy)
@@ -1994,7 +1995,7 @@ void CUBLAS_SGEMV (const char *trans, const int *m, const int *n,
     cublasFree (devPtrA);
 }
 
-void CUBLAS_SGER (const int *m, const int *n, const float *alpha, 
+void FC_FUNC_(cublas_sger,CUBLAS_SGER) (const int *m, const int *n, const float *alpha, 
                   const float *x, const int *incx, const float *y,
                   const int *incy, float *A, const int *lda)
 {
@@ -2045,7 +2046,7 @@ void CUBLAS_SGER (const int *m, const int *n, const float *alpha,
     cublasFree (devPtrA);
 }
 
-void CUBLAS_SSBMV (const char *uplo, const int *n, const int *k, 
+void FC_FUNC_(cublas_ssbmv,CUBLAS_SSBMV) (const char *uplo, const int *n, const int *k, 
                    const float *alpha, const float *A, const int *lda,
                    const float *x, const int *incx, const float *beta, 
                    float *y, const int *incy)
@@ -2100,7 +2101,7 @@ void CUBLAS_SSBMV (const char *uplo, const int *n, const int *k,
     cublasFree (devPtrA);
 }
 
-void CUBLAS_SSPMV (const char *uplo, const int *n, const float *alpha,
+void FC_FUNC_(cublas_sspmv,CUBLAS_SSPMV) (const char *uplo, const int *n, const float *alpha,
                    const float *AP, const float *x, const int *incx, 
                    const float *beta, float *y, const int *incy)
 {
@@ -2153,7 +2154,7 @@ void CUBLAS_SSPMV (const char *uplo, const int *n, const float *alpha,
     cublasFree (devPtrAP);
 }
 
-void CUBLAS_SSPR (const char *uplo, const int *n, const float *alpha, 
+void FC_FUNC_(cublas_sspr,CUBLAS_SSPR) (const char *uplo, const int *n, const float *alpha, 
                   const float *x, const int *incx, float *AP)
 {
     float *devPtrAP = 0, *devPtrx = 0;
@@ -2193,7 +2194,7 @@ void CUBLAS_SSPR (const char *uplo, const int *n, const float *alpha,
     cublasFree (devPtrAP);
 }
 
-void CUBLAS_SSPR2 (const char *uplo, const int *n, const float *alpha,
+void FC_FUNC_(cublas_sspr2,CUBLAS_SSPR2) (const char *uplo, const int *n, const float *alpha,
                    const float *x, const int *incx, const float *y, 
                    const int *incy, float *AP)
 {
@@ -2245,7 +2246,7 @@ void CUBLAS_SSPR2 (const char *uplo, const int *n, const float *alpha,
     cublasFree (devPtrAP);
 }
 
-void CUBLAS_SSYMV (const char *uplo, const int *n, const float *alpha,
+void FC_FUNC_(cublas_ssymv,CUBLAS_SSYMV) (const char *uplo, const int *n, const float *alpha,
                    const float *A, const int *lda, const float *x, 
                    const int *incx, const float *beta, float *y, 
                    const int *incy)
@@ -2301,7 +2302,7 @@ void CUBLAS_SSYMV (const char *uplo, const int *n, const float *alpha,
     cublasFree (devPtrA);
 }
 
-void CUBLAS_SSYR (const char *uplo, const int *n, const float *alpha, 
+void FC_FUNC_(cublas_ssyr,CUBLAS_SSYR) (const char *uplo, const int *n, const float *alpha, 
                   const float *x, const int *incx, float *A, const int *lda)
 {
     float *devPtrA = 0, *devPtrx = 0;
@@ -2344,7 +2345,7 @@ void CUBLAS_SSYR (const char *uplo, const int *n, const float *alpha,
     cublasFree (devPtrA);
 }
 
-void CUBLAS_SSYR2 (const char *uplo, const int *n, const float *alpha,
+void FC_FUNC_(cublas_ssyr2,CUBLAS_SSYR2) (const char *uplo, const int *n, const float *alpha,
                    const float *x, const int *incx, const float *y,
                    const int *incy, float *A, const int *lda)
 {
@@ -2398,7 +2399,7 @@ void CUBLAS_SSYR2 (const char *uplo, const int *n, const float *alpha,
     cublasFree (devPtrA);
 }
 
-void CUBLAS_STBMV (const char *uplo, const char *trans, const char *diag,
+void FC_FUNC_(cublas_stbmv,CUBLAS_STBMV) (const char *uplo, const char *trans, const char *diag,
                    const int *n, const int *k, const float *A, const int *lda,
                    float *x, const int *incx)
 {
@@ -2442,7 +2443,7 @@ void CUBLAS_STBMV (const char *uplo, const char *trans, const char *diag,
     cublasFree (devPtrA);
 }
 
-void CUBLAS_STBSV (const char *uplo, const char *trans, const char *diag,
+void FC_FUNC_(cublas_stbsv,CUBLAS_STBSV) (const char *uplo, const char *trans, const char *diag,
                    const int *n, const int *k, const float *A, const int *lda,
                    float *x, const int *incx)
 {
@@ -2486,7 +2487,7 @@ void CUBLAS_STBSV (const char *uplo, const char *trans, const char *diag,
     cublasFree (devPtrA);
 }
 
-void CUBLAS_STPMV (const char *uplo, const char *trans, const char *diag,
+void FC_FUNC_(cublas_stpmv,CUBLAS_STPMV) (const char *uplo, const char *trans, const char *diag,
                    const int *n, const float *AP, float *x, const int *incx)
 {
     float *devPtrAP = 0, *devPtrx = 0;
@@ -2526,7 +2527,7 @@ void CUBLAS_STPMV (const char *uplo, const char *trans, const char *diag,
     cublasFree (devPtrAP);
 }
 
-void CUBLAS_STPSV (const char *uplo, const char *trans, const char *diag,
+void FC_FUNC_(cublas_stpsv,CUBLAS_STPSV) (const char *uplo, const char *trans, const char *diag,
                    const int *n, const float *AP, float *x, const int *incx)
 {
     float *devPtrAP = 0, *devPtrx = 0;
@@ -2566,7 +2567,7 @@ void CUBLAS_STPSV (const char *uplo, const char *trans, const char *diag,
     cublasFree (devPtrAP);
 }
 
-void CUBLAS_STRMV (const char *uplo, const char *trans,
+void FC_FUNC_(cublas_strmv,CUBLAS_STRMV) (const char *uplo, const char *trans,
                             const char *diag, const int *n, const float *A,
                             const int *lda, float *x, const int *incx)
 {
@@ -2608,7 +2609,7 @@ void CUBLAS_STRMV (const char *uplo, const char *trans,
     cublasFree (devPtrx);
 }
 
-void CUBLAS_STRSV (const char *uplo, const char *trans, const char *diag, 
+void FC_FUNC_(cublas_strsv,CUBLAS_STRSV) (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const float *A, const int *lda, float *x, 
                    const int *incx)
 {
@@ -2652,7 +2653,7 @@ void CUBLAS_STRSV (const char *uplo, const char *trans, const char *diag,
     cublasFree (devPtrA);
 }
 
-void CUBLAS_DGEMV (const char *trans, const int *m, const int *n,
+void FC_FUNC_(cublas_dgemv,CUBLAS_DGEMV) (const char *trans, const int *m, const int *n,
                    const double *alpha, const double *A, const int *lda,
                    const double *x, const int *incx, const double *beta,
                    double *y, const int *incy)
@@ -2724,7 +2725,7 @@ void CUBLAS_DGEMV (const char *trans, const int *m, const int *n,
     cublasFree (devPtry);
 }
 
-void CUBLAS_DGER (const int *m, const int *n, const double *alpha, 
+void FC_FUNC_(cublas_dger,CUBLAS_DGER) (const int *m, const int *n, const double *alpha, 
                   const double *x, const int *incx, const double *y,
                   const int *incy, double *A, const int *lda)
 {
@@ -2777,7 +2778,7 @@ void CUBLAS_DGER (const int *m, const int *n, const double *alpha,
     cublasFree (devPtrA);
 }
 
-void CUBLAS_DSYR (const char *uplo, const int *n, const double *alpha, 
+void FC_FUNC_(cublas_dsyr,CUBLAS_DSYR) (const char *uplo, const int *n, const double *alpha, 
                   const double *x, const int *incx, double *A, const int *lda)
 {
     double *devPtrA = 0, *devPtrx = 0;
@@ -2820,7 +2821,7 @@ void CUBLAS_DSYR (const char *uplo, const int *n, const double *alpha,
     cublasFree (devPtrA);
 }
 
-void CUBLAS_DTRSV (const char *uplo, const char *trans, const char *diag, 
+void FC_FUNC_(cublas_dtrsv,CUBLAS_DTRSV) (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const double *A, const int *lda, double *x, 
                    const int *incx)
 {
@@ -2864,62 +2865,62 @@ void CUBLAS_DTRSV (const char *uplo, const char *trans, const char *diag,
     cublasFree (devPtrA);
 }
 
-void CUBLAS_DSPR2 (void)
+void FC_FUNC_(cublas_dspr2,CUBLAS_DSPR2) (void)
 {
     wrapperError ("Dspr2", CUBLAS_WRAPPER_ERROR_STUB);
 }
 
-void CUBLAS_DSYR2 (void)
+void FC_FUNC_(cublas_dsyr2,CUBLAS_DSYR2) (void)
 {
     wrapperError ("Dsyr2", CUBLAS_WRAPPER_ERROR_STUB);
 }
 
-void CUBLAS_DSPR (void)
+void FC_FUNC_(cublas_dspr,CUBLAS_DSPR) (void)
 {
     wrapperError ("Dspr", CUBLAS_WRAPPER_ERROR_STUB);
 }
 
-void CUBLAS_DTPSV (void)
+void FC_FUNC_(cublas_dtpsv,CUBLAS_DTPSV) (void)
 {
     wrapperError ("Dtpsv", CUBLAS_WRAPPER_ERROR_STUB);
 }
 
-void CUBLAS_DTBSV (void)
+void FC_FUNC_(cublas_dtbsv,CUBLAS_DTBSV) (void)
 {
     wrapperError ("Dtbsv", CUBLAS_WRAPPER_ERROR_STUB);
 }
 
-void CUBLAS_DTPMV (void)
+void FC_FUNC_(cublas_dtpmv,CUBLAS_DTPMV) (void)
 {
     wrapperError ("Dtpmv", CUBLAS_WRAPPER_ERROR_STUB);
 }
 
-void CUBLAS_DTBMV (void)
+void FC_FUNC_(cublas_dtbmv,CUBLAS_DTBMV) (void)
 {
     wrapperError ("Dtbmv", CUBLAS_WRAPPER_ERROR_STUB);
 }
 
-void CUBLAS_DTRMV (void)
+void FC_FUNC_(cublas_dtrmv,CUBLAS_DTRMV) (void)
 {
     wrapperError ("Dtrmv", CUBLAS_WRAPPER_ERROR_STUB);
 }
 
-void CUBLAS_DSPMV (void)
+void FC_FUNC_(cublas_dspmv,CUBLAS_DSPMV) (void)
 {
     wrapperError ("Dspmv", CUBLAS_WRAPPER_ERROR_STUB); 
 }
 
-void CUBLAS_DSBMV (void)
+void FC_FUNC_(cublas_dsbmv,CUBLAS_DSBMV) (void)
 {
     wrapperError ("Dsbmv", CUBLAS_WRAPPER_ERROR_STUB); 
 } 
 
-void CUBLAS_DSYMV (void)
+void FC_FUNC_(cublas_dsymv,CUBLAS_DSYMV) (void)
 {
     wrapperError ("Dsymv", CUBLAS_WRAPPER_ERROR_STUB); 
 }
 
-void CUBLAS_DGBMV (void)
+void FC_FUNC_(cublas_dgbmv,CUBLAS_DGBMV) (void)
 {
     wrapperError ("Dgbmv", CUBLAS_WRAPPER_ERROR_STUB);
 }
@@ -2928,7 +2929,7 @@ void CUBLAS_DGBMV (void)
 /*---------------------------------- BLAS3 ----------------------------------*/
 /*---------------------------------------------------------------------------*/
 
-void CUBLAS_SGEMM (const char *transa, const char *transb, const int *m,
+void FC_FUNC_(cublas_sgemm,CUBLAS_SGEMM) (const char *transa, const char *transb, const int *m,
                    const int *n, const int *k, const float *alpha,
                    const float *A, const int *lda, const float *B,
                    const int *ldb, const float *beta, float *C, const int *ldc)
@@ -3002,7 +3003,7 @@ void CUBLAS_SGEMM (const char *transa, const char *transb, const int *m,
     cublasFree (devPtrC);
 }
 
-void CUBLAS_SSYMM (const char *side, const char *uplo, const int *m, 
+void FC_FUNC_(cublas_ssymm,CUBLAS_SSYMM) (const char *side, const char *uplo, const int *m, 
                    const int *n, const float *alpha, const float *A, 
                    const int *lda, const float *B, const int *ldb, 
                    const float *beta, float *C, const int *ldc)
@@ -3063,7 +3064,7 @@ void CUBLAS_SSYMM (const char *side, const char *uplo, const int *m,
     cublasFree (devPtrC);
 }
 
-void CUBLAS_SSYR2K (const char *uplo, const char *trans, const int *n,
+void FC_FUNC_(cublas_ssyr2k,CUBLAS_SSYR2K) (const char *uplo, const char *trans, const int *n,
                     const int *k, const float *alpha, const float *A, 
                     const int *lda, const float *B, const int *ldb, 
                     const float *beta, float *C, const int *ldc)
@@ -3131,7 +3132,7 @@ void CUBLAS_SSYR2K (const char *uplo, const char *trans, const int *n,
     cublasFree (devPtrC);
 }
 
-void CUBLAS_SSYRK (const char *uplo, const char *trans, const int *n, 
+void FC_FUNC_(cublas_ssyrk,CUBLAS_SSYRK) (const char *uplo, const char *trans, const int *n, 
                    const int *k, const float *alpha, const float *A, 
                    const int *lda, const float *beta, float *C, const int *ldc)
 {
@@ -3183,7 +3184,7 @@ void CUBLAS_SSYRK (const char *uplo, const char *trans, const int *n,
     cublasFree (devPtrC);
 }
 
-void CUBLAS_STRMM (const char *side, const char *uplo, const char *transa,
+void FC_FUNC_(cublas_strmm,CUBLAS_STRMM) (const char *side, const char *uplo, const char *transa,
                    const char *diag, const int *m, const int *n,
                    const float *alpha, const float *A, const int *lda,
                    float *B, const int *ldb)
@@ -3234,7 +3235,7 @@ void CUBLAS_STRMM (const char *side, const char *uplo, const char *transa,
     cublasFree (devPtrB);
 }
 
-void CUBLAS_STRSM (const char *side, const char *uplo, const char *transa, 
+void FC_FUNC_(cublas_strsm,CUBLAS_STRSM) (const char *side, const char *uplo, const char *transa, 
                    const char *diag, const int *m, const int *n, 
                    const float *alpha, const float *A, const int *lda,
                    float *B, const int *ldb)
@@ -3282,7 +3283,7 @@ void CUBLAS_STRSM (const char *side, const char *uplo, const char *transa,
     cublasFree (devPtrB);
 }
 
-void CUBLAS_CGEMM (const char *transa, const char *transb, const int *m,
+void FC_FUNC_(cublas_cgemm,CUBLAS_CGEMM) (const char *transa, const char *transb, const int *m,
                    const int *n, const int *k, const cuComplex *alpha,
                    const cuComplex *A, const int *lda, const cuComplex *B,
                    const int *ldb, const cuComplex *beta, cuComplex *C, 
@@ -3357,40 +3358,40 @@ void CUBLAS_CGEMM (const char *transa, const char *transb, const int *m,
     cublasFree (devPtrC);
 }
 
-void CUBLAS_CHEMM (void)
+void FC_FUNC_(cublas_chemm,CUBLAS_CHEMM) (void)
 {
     wrapperError ("Chemm", CUBLAS_WRAPPER_ERROR_STUB);
 }
-void CUBLAS_CSYMM (void)
+void FC_FUNC_(cublas_csymm,CUBLAS_CSYMM) (void)
 {
     wrapperError ("Csymm", CUBLAS_WRAPPER_ERROR_STUB);
 }
-void CUBLAS_CTRMM (void)
+void FC_FUNC_(cublas_ctrmm,CUBLAS_CTRMM) (void)
 {
     wrapperError ("Ctrmm", CUBLAS_WRAPPER_ERROR_STUB);
 }
-void CUBLAS_CTRSM (void)
+void FC_FUNC_(cublas_ctrsm,CUBLAS_CTRSM) (void)
 {
     wrapperError ("Ctrsm", CUBLAS_WRAPPER_ERROR_STUB);
 }
-void CUBLAS_CHERK (void)
+void FC_FUNC_(cublas_cherk,CUBLAS_CHERK) (void)
 {
     wrapperError ("CHerk", CUBLAS_WRAPPER_ERROR_STUB);
 }
-void CUBLAS_CSYRK (void)
+void FC_FUNC_(cublas_csyrk,CUBLAS_CSYRK) (void)
 {
     wrapperError ("CSyrk", CUBLAS_WRAPPER_ERROR_STUB);
 }
-void CUBLAS_CHER2K (void)
+void FC_FUNC_(cublas_cher2k,CUBLAS_CHER2K) (void)
 {
     wrapperError ("CHer2k", CUBLAS_WRAPPER_ERROR_STUB);
 }
-void CUBLAS_CSYR2K (void)
+void FC_FUNC_(cublas_csyr2k,CUBLAS_CSYR2K) (void)
 {
     wrapperError ("CSyr2k", CUBLAS_WRAPPER_ERROR_STUB);
 }
 
-void CUBLAS_DGEMM (const char *transa, const char *transb, const int *m,
+void FC_FUNC_(cublas_dgemm,CUBLAS_DGEMM) (const char *transa, const char *transb, const int *m,
                    const int *n, const int *k, const double *alpha,
                    const double *A, const int *lda, const double *B,
                    const int *ldb, const double *beta, double *C,
@@ -3465,7 +3466,7 @@ void CUBLAS_DGEMM (const char *transa, const char *transb, const int *m,
     cublasFree (devPtrC);
 }
 
-void CUBLAS_DSYMM (const char *side, const char *uplo, const int *m, 
+void FC_FUNC_(cublas_dsymm,CUBLAS_DSYMM) (const char *side, const char *uplo, const int *m, 
                    const int *n, const double *alpha, const double *A, 
                    const int *lda, const double *B, const int *ldb, 
                    const double *beta, double *C, const int *ldc)
@@ -3526,7 +3527,7 @@ void CUBLAS_DSYMM (const char *side, const char *uplo, const int *m,
     cublasFree (devPtrC);
 }
 
-void CUBLAS_DSYR2K (const char *uplo, const char *trans, const int *n,
+void FC_FUNC_(cublas_dsyr2k,CUBLAS_DSYR2K) (const char *uplo, const char *trans, const int *n,
                     const int *k, const double *alpha, const double *A, 
                     const int *lda, const double *B, const int *ldb, 
                     const double *beta, double *C, const int *ldc)
@@ -3594,7 +3595,7 @@ void CUBLAS_DSYR2K (const char *uplo, const char *trans, const int *n,
     cublasFree (devPtrC);
 }
 
-void CUBLAS_DSYRK (const char *uplo, const char *trans, const int *n, 
+void FC_FUNC_(cublas_dsyrk,CUBLAS_DSYRK) (const char *uplo, const char *trans, const int *n, 
                    const int *k, const double *alpha, const double *A, 
                    const int *lda, const double *beta, double *C, 
                    const int *ldc)
@@ -3647,7 +3648,7 @@ void CUBLAS_DSYRK (const char *uplo, const char *trans, const int *n,
     cublasFree (devPtrC);
 }
 
-void CUBLAS_DTRMM (const char *side, const char *uplo, const char *transa,
+void FC_FUNC_(cublas_dtrmm,CUBLAS_DTRMM) (const char *side, const char *uplo, const char *transa,
                    const char *diag, const int *m, const int *n,
                    const double *alpha, const double *A, const int *lda,
                    double *B, const int *ldb)
@@ -3698,7 +3699,7 @@ void CUBLAS_DTRMM (const char *side, const char *uplo, const char *transa,
     cublasFree (devPtrB);
 }
 
-void CUBLAS_DTRSM (const char *side, const char *uplo, const char *transa, 
+void FC_FUNC_(cublas_dtrsm,CUBLAS_DTRSM) (const char *side, const char *uplo, const char *transa, 
                    const char *diag, const int *m, const int *n, 
                    const double *alpha, const double *A, const int *lda,
                    double *B, const int *ldb)
@@ -3746,7 +3747,7 @@ void CUBLAS_DTRSM (const char *side, const char *uplo, const char *transa,
     cublasFree (devPtrB);
 }
 
-void CUBLAS_ZGEMM (const char *transa, const char *transb, const int *m,
+void FC_FUNC_(cublas_zgemm,CUBLAS_ZGEMM) (const char *transa, const char *transb, const int *m,
                    const int *n, const int *k, const cuDoubleComplex *alpha,
                    const cuDoubleComplex *A, const int *lda, 
                    const cuDoubleComplex *B, const int *ldb, 
@@ -3822,35 +3823,35 @@ void CUBLAS_ZGEMM (const char *transa, const char *transb, const int *m,
     cublasFree (devPtrC);
 }
 
-void CUBLAS_ZHEMM (void)
+void FC_FUNC_(cublas_zhemm,CUBLAS_ZHEMM) (void)
 {
     wrapperError ("ZHemm", CUBLAS_WRAPPER_ERROR_STUB);
 }
-void CUBLAS_ZSYMM (void)
+void FC_FUNC_(cublas_zsymm,CUBLAS_ZSYMM) (void)
 {
     wrapperError ("ZSymm", CUBLAS_WRAPPER_ERROR_STUB);
 }
-void CUBLAS_ZTRMM (void)
+void FC_FUNC_(cublas_ztrmm,CUBLAS_ZTRMM) (void)
 {
     wrapperError ("ZTrmm", CUBLAS_WRAPPER_ERROR_STUB);
 }
-void CUBLAS_ZTRSM (void)
+void FC_FUNC_(cublas_ztrsm,CUBLAS_ZTRSM) (void)
 {
     wrapperError ("ZTrsm", CUBLAS_WRAPPER_ERROR_STUB);
 }
-void CUBLAS_ZHERK (void)
+void FC_FUNC_(cublas_zherk,CUBLAS_ZHERK) (void)
 {
     wrapperError ("ZHerk", CUBLAS_WRAPPER_ERROR_STUB);
 }
-void CUBLAS_ZSYRK (void)
+void FC_FUNC_(cublas_zsyrk,CUBLAS_ZSYRK) (void)
 {
     wrapperError ("ZSyrk", CUBLAS_WRAPPER_ERROR_STUB);
 }
-void CUBLAS_ZHER2K (void)
+void FC_FUNC_(cublas_zher2k,CUBLAS_ZHER2K) (void)
 {
     wrapperError ("ZHer2k", CUBLAS_WRAPPER_ERROR_STUB);
 }
-void CUBLAS_ZSYR2K (void)
+void FC_FUNC_(cublas_zsyr2k,CUBLAS_ZSYR2K) (void)
 {
     wrapperError ("ZSyr2k", CUBLAS_WRAPPER_ERROR_STUB);
 }
@@ -3865,229 +3866,229 @@ void CUBLAS_ZSYR2K (void)
 extern "C" {
 #endif /* __cplusplus */
 #if CUBLAS_FORTRAN_COMPILER==CUBLAS_G77
-double CUBLAS_SDOT (const int *n, const devptr_t *devPtrx, const int *incx, 
+double FC_FUNC_(cublas_sdot,CUBLAS_SDOT) (const int *n, const devptr_t *devPtrx, const int *incx, 
                     const devptr_t *devPtry, const int *incy);
-double CUBLAS_SASUM (const int *n, const devptr_t *devPtrx, const int *incx);
-double CUBLAS_SNRM2 (const int *n, const devptr_t *devPtrx, const int *incx);
-double CUBLAS_SCASUM (const int *n, const devptr_t *devPtrx, const int *incx);
-double CUBLAS_SCNRM2 (const int *n, const devptr_t *devPtrx, const int *incx);
+double FC_FUNC_(cublas_sasum,CUBLAS_SASUM) (const int *n, const devptr_t *devPtrx, const int *incx);
+double FC_FUNC_(cublas_snrm2,CUBLAS_SNRM2) (const int *n, const devptr_t *devPtrx, const int *incx);
+double FC_FUNC_(cublas_scasum,CUBLAS_SCASUM) (const int *n, const devptr_t *devPtrx, const int *incx);
+double FC_FUNC_(cublas_scnrm2,CUBLAS_SCNRM2) (const int *n, const devptr_t *devPtrx, const int *incx);
 #else
-float CUBLAS_SDOT (const int *n, const devptr_t *devPtrx, const int *incx, 
+float FC_FUNC_(cublas_sdot,CUBLAS_SDOT) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy);
-float CUBLAS_SASUM (const int *n, const devptr_t *devPtrx, const int *incx);
-float CUBLAS_SNRM2 (const int *n, const devptr_t *devPtrx, const int *incx);
-float CUBLAS_SCASUM (const int *n, const devptr_t *devPtrx, const int *incx);
-float CUBLAS_SCNRM2 (const int *n, const devptr_t *devPtrx, const int *incx);
+float FC_FUNC_(cublas_sasum,CUBLAS_SASUM) (const int *n, const devptr_t *devPtrx, const int *incx);
+float FC_FUNC_(cublas_snrm2,CUBLAS_SNRM2) (const int *n, const devptr_t *devPtrx, const int *incx);
+float FC_FUNC_(cublas_scasum,CUBLAS_SCASUM) (const int *n, const devptr_t *devPtrx, const int *incx);
+float FC_FUNC_(cublas_scnrm2,CUBLAS_SCNRM2) (const int *n, const devptr_t *devPtrx, const int *incx);
 #endif
 
-int CUBLAS_ISAMAX (const int *n, const devptr_t *devPtrx, const int *incx);
-int CUBLAS_ISAMIN (const int *n, const devptr_t *devPtrx, const int *incx);
-void CUBLAS_SAXPY (const int *n, const float *alpha, const devptr_t *devPtrx, 
+int FC_FUNC_(cublas_isamax,CUBLAS_ISAMAX) (const int *n, const devptr_t *devPtrx, const int *incx);
+int FC_FUNC_(cublas_isamin,CUBLAS_ISAMIN) (const int *n, const devptr_t *devPtrx, const int *incx);
+void FC_FUNC_(cublas_saxpy,CUBLAS_SAXPY) (const int *n, const float *alpha, const devptr_t *devPtrx, 
                    const int *incx, const devptr_t *devPtry, const int *incy);
-void CUBLAS_SCOPY (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_scopy,CUBLAS_SCOPY) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy);
-void CUBLAS_SROT (const int *n, const devptr_t *devPtrX, const int *incx, 
+void FC_FUNC_(cublas_srot,CUBLAS_SROT) (const int *n, const devptr_t *devPtrX, const int *incx, 
                   const devptr_t *devPtrY, const int *incy, const float *sc, 
                   const float *ss);
-void CUBLAS_SROTG (float *sa, float *sb, float *sc, float *ss);
-void CUBLAS_SROTM (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_srotg,CUBLAS_SROTG) (float *sa, float *sb, float *sc, float *ss);
+void FC_FUNC_(cublas_srotm,CUBLAS_SROTM) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy, 
                    const float* sparam);
-void CUBLAS_SROTMG (float *sd1, float *sd2, float *sx1, const float *sy1, 
+void FC_FUNC_(cublas_srotmg,CUBLAS_SROTMG) (float *sd1, float *sd2, float *sx1, const float *sy1, 
                     float* sparam);
-void CUBLAS_SSCAL (const int *n, const float *alpha, const devptr_t *devPtrx,
+void FC_FUNC_(cublas_sscal,CUBLAS_SSCAL) (const int *n, const float *alpha, const devptr_t *devPtrx,
                    const int *incx);
-void CUBLAS_SSWAP (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_sswap,CUBLAS_SSWAP) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy);
 
-void CUBLAS_CAXPY (const int *n, const cuComplex *alpha,
+void FC_FUNC_(cublas_caxpy,CUBLAS_CAXPY) (const int *n, const cuComplex *alpha,
                    const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy);
-void CUBLAS_CCOPY (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_ccopy,CUBLAS_CCOPY) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy);
-void CUBLAS_CROT (const int *n, const devptr_t *devPtrX, const int *incx, 
+void FC_FUNC_(cublas_crot,CUBLAS_CROT) (const int *n, const devptr_t *devPtrX, const int *incx, 
                   const devptr_t *devPtrY, const int *incy, const float *sc, 
                   const cuComplex *cs);
-void CUBLAS_CROTG (cuComplex *ca, const cuComplex *cb, float *sc,
+void FC_FUNC_(cublas_crotg,CUBLAS_CROTG) (cuComplex *ca, const cuComplex *cb, float *sc,
                    cuComplex *cs);
-void CUBLAS_CSCAL (const int *n, const cuComplex *alpha, 
+void FC_FUNC_(cublas_cscal,CUBLAS_CSCAL) (const int *n, const cuComplex *alpha, 
                    const devptr_t *devPtrx, const int *incx);
-void CUBLAS_CSROT (const int *n, const devptr_t *devPtrX, const int *incx, 
+void FC_FUNC_(cublas_csrot,CUBLAS_CSROT) (const int *n, const devptr_t *devPtrX, const int *incx, 
                    const devptr_t *devPtrY, const int *incy, const float *sc, 
                    const float *ss);
-void CUBLAS_CSSCAL (const int *n, const float *alpha, const devptr_t *devPtrx, 
+void FC_FUNC_(cublas_csscal,CUBLAS_CSSCAL) (const int *n, const float *alpha, const devptr_t *devPtrx, 
                     const int *incx);
-void CUBLAS_CSWAP (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_cswap,CUBLAS_CSWAP) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy);
-void CUBLAS_CDOTU (cuComplex *retVal, const int *n, const devptr_t *devPtrx, 
+void FC_FUNC_(cublas_cdotu,CUBLAS_CDOTU) (cuComplex *retVal, const int *n, const devptr_t *devPtrx, 
                    const int *incx, const devptr_t *devPtry, const int *incy);
-void CUBLAS_CDOTC (cuComplex *retVal, const int *n, const devptr_t *devPtrx, 
+void FC_FUNC_(cublas_cdotc,CUBLAS_CDOTC) (cuComplex *retVal, const int *n, const devptr_t *devPtrx, 
                    const int *incx, const devptr_t *devPtry, const int *incy);
-int CUBLAS_ICAMAX (const int *n, const devptr_t *devPtrx, const int *incx);
-int CUBLAS_ICAMIN (const int *n, const devptr_t *devPtrx, const int *incx);
-double CUBLAS_DDOT (const int *n, const devptr_t *devPtrx, const int *incx, 
+int FC_FUNC_(cublas_icamax,CUBLAS_ICAMAX) (const int *n, const devptr_t *devPtrx, const int *incx);
+int FC_FUNC_(cublas_icamin,CUBLAS_ICAMIN) (const int *n, const devptr_t *devPtrx, const int *incx);
+double FC_FUNC_(cublas_ddot,CUBLAS_DDOT) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy);
-double CUBLAS_DASUM (const int *n, const devptr_t *devPtrx, const int *incx);
-double CUBLAS_DNRM2 (const int *n, const devptr_t *devPtrx, const int *incx);
-int CUBLAS_IDAMAX (const int *n, const devptr_t *devPtrx, const int *incx);
-int CUBLAS_IDAMIN (const int *n, const devptr_t *devPtrx, const int *incx);
-void CUBLAS_DAXPY (const int *n, const double *alpha, const devptr_t *devPtrx, 
+double FC_FUNC_(cublas_dasum,CUBLAS_DASUM) (const int *n, const devptr_t *devPtrx, const int *incx);
+double FC_FUNC_(cublas_dnrm2,CUBLAS_DNRM2) (const int *n, const devptr_t *devPtrx, const int *incx);
+int FC_FUNC_(cublas_idamax,CUBLAS_IDAMAX) (const int *n, const devptr_t *devPtrx, const int *incx);
+int FC_FUNC_(cublas_idamin,CUBLAS_IDAMIN) (const int *n, const devptr_t *devPtrx, const int *incx);
+void FC_FUNC_(cublas_daxpy,CUBLAS_DAXPY) (const int *n, const double *alpha, const devptr_t *devPtrx, 
                    const int *incx, const devptr_t *devPtry, const int *incy);
-void CUBLAS_DCOPY (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_dcopy,CUBLAS_DCOPY) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy);
-void CUBLAS_DROT (const int *n, const devptr_t *devPtrX, const int *incx, 
+void FC_FUNC_(cublas_drot,CUBLAS_DROT) (const int *n, const devptr_t *devPtrX, const int *incx, 
                   const devptr_t *devPtrY, const int *incy, const double *sc, 
                   const double *ss);
-void CUBLAS_DROTG (double *sa, double *sb, double *sc, double *ss);
-void CUBLAS_DROTM (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_drotg,CUBLAS_DROTG) (double *sa, double *sb, double *sc, double *ss);
+void FC_FUNC_(cublas_drotm,CUBLAS_DROTM) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy, 
                    const double* sparam);
-void CUBLAS_DROTMG (double *sd1, double *sd2, double *sx1, const double *sy1, 
+void FC_FUNC_(cublas_drotmg,CUBLAS_DROTMG) (double *sd1, double *sd2, double *sx1, const double *sy1, 
                     double* sparam);
-void CUBLAS_DSCAL (const int *n, const double *alpha, const devptr_t *devPtrx,
+void FC_FUNC_(cublas_dscal,CUBLAS_DSCAL) (const int *n, const double *alpha, const devptr_t *devPtrx,
                    const int *incx);
-void CUBLAS_DSWAP (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_dswap,CUBLAS_DSWAP) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy);
 
 
 /* BLAS2 */
-void CUBLAS_SGBMV (const char *trans, const int *m, const int *n,
+void FC_FUNC_(cublas_sgbmv,CUBLAS_SGBMV) (const char *trans, const int *m, const int *n,
                    const int *kl, const int *ku, const float *alpha, 
                    const devptr_t *devPtrA, const int *lda, 
                    const devptr_t *devPtrx, const int *incx, const float *beta,
                    const devptr_t *devPtry, const int *incy);
-void CUBLAS_SGEMV (const char *trans, const int *m, const int *n,
+void FC_FUNC_(cublas_sgemv,CUBLAS_SGEMV) (const char *trans, const int *m, const int *n,
                    const float *alpha, const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrx, const int *incx, const float *beta,
                    const devptr_t *devPtry, const int *incy);
-void CUBLAS_SGER (const int *m, const int *n, const float *alpha, 
+void FC_FUNC_(cublas_sger,CUBLAS_SGER) (const int *m, const int *n, const float *alpha, 
                   const devptr_t *devPtrx, const int *incx, 
                   const devptr_t *devPtry, const int *incy, 
                   const devptr_t *devPtrA, const int *lda);
-void CUBLAS_SSBMV (const char *uplo, const int *n, const int *k, 
+void FC_FUNC_(cublas_ssbmv,CUBLAS_SSBMV) (const char *uplo, const int *n, const int *k, 
                    const float *alpha, const devptr_t *devPtrA, const int *lda, 
                    const devptr_t *devPtrx, const int *incx, const float *beta,
                    const devptr_t *devPtry, const int *incy);
-void CUBLAS_SSPMV (const char *uplo, const int *n, const float *alpha, 
+void FC_FUNC_(cublas_sspmv,CUBLAS_SSPMV) (const char *uplo, const int *n, const float *alpha, 
                    const devptr_t *devPtrAP, const devptr_t *devPtrx, 
                    const int *incx, const float *beta, const devptr_t *devPtry,
                    const int *incy);
-void CUBLAS_SSPR (const char *uplo, const int *n, const float *alpha,
+void FC_FUNC_(cublas_sspr,CUBLAS_SSPR) (const char *uplo, const int *n, const float *alpha,
                   const devptr_t *devPtrx, const int *incx,
                   const devptr_t *devPtrAP);
-void CUBLAS_SSPR2 (const char *uplo, const int *n, const float *alpha, 
+void FC_FUNC_(cublas_sspr2,CUBLAS_SSPR2) (const char *uplo, const int *n, const float *alpha, 
                    const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy, 
                    const devptr_t *devPtrAP);
-void CUBLAS_SSYMV (const char *uplo, const int *n, const float *alpha, 
+void FC_FUNC_(cublas_ssymv,CUBLAS_SSYMV) (const char *uplo, const int *n, const float *alpha, 
                    const devptr_t *devPtrA, const int *lda, 
                    const devptr_t *devPtrx, const int *incx, const float *beta,
                    const devptr_t *devPtry, const int *incy);
-void CUBLAS_SSYR (const char *uplo, const int *n, const float *alpha,
+void FC_FUNC_(cublas_ssyr,CUBLAS_SSYR) (const char *uplo, const int *n, const float *alpha,
                   const devptr_t *devPtrx, const int *incx, 
                   const devptr_t *devPtrA, const int *lda);
-void CUBLAS_SSYR2 (const char *uplo, const int *n, const float *alpha, 
+void FC_FUNC_(cublas_ssyr2,CUBLAS_SSYR2) (const char *uplo, const int *n, const float *alpha, 
                    const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy, 
                    const devptr_t *devPtrA, const int *lda);
-void CUBLAS_STBMV (const char *uplo, const char *trans, const char *diag, 
+void FC_FUNC_(cublas_stbmv,CUBLAS_STBMV) (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const int *k, const devptr_t *devPtrA,
                    const int *lda, const devptr_t *devPtrx, const int *incx);
-void CUBLAS_STBSV (const char *uplo, const char *trans, const char *diag, 
+void FC_FUNC_(cublas_stbsv,CUBLAS_STBSV) (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const int *k, const devptr_t *devPtrA, 
                    const int *lda, const devptr_t *devPtrx, const int *incx);
-void CUBLAS_STPMV (const char *uplo, const char *trans, const char *diag, 
+void FC_FUNC_(cublas_stpmv,CUBLAS_STPMV) (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const devptr_t *devPtrAP, 
                    const devptr_t *devPtrx, const int *incx);
-void CUBLAS_STPSV (const char *uplo, const char *trans, const char *diag, 
+void FC_FUNC_(cublas_stpsv,CUBLAS_STPSV) (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const devptr_t *devPtrAP, 
                    const devptr_t *devPtrx, const int *incx);
-void CUBLAS_STRMV (const char *uplo, const char *trans, const char *diag, 
+void FC_FUNC_(cublas_strmv,CUBLAS_STRMV) (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrx, const int *incx);
-void CUBLAS_STRSV (const char *uplo, const char *trans, const char *diag, 
+void FC_FUNC_(cublas_strsv,CUBLAS_STRSV) (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrx, const int *incx);
-void CUBLAS_DGEMV (const char *trans, const int *m, const int *n,
+void FC_FUNC_(cublas_dgemv,CUBLAS_DGEMV) (const char *trans, const int *m, const int *n,
                    const double *alpha, const devptr_t *devPtrA, 
                    const int *lda, const devptr_t *devPtrx, const int *incx, 
                    const double *beta, const devptr_t *devPtry, 
                    const int *incy);
-void CUBLAS_DGER (const int *m, const int *n, const double *alpha, 
+void FC_FUNC_(cublas_dger,CUBLAS_DGER) (const int *m, const int *n, const double *alpha, 
                   const devptr_t *devPtrx, const int *incx, 
                   const devptr_t *devPtry, const int *incy, 
                   const devptr_t *devPtrA, const int *lda);
-void CUBLAS_DSYR (const char *uplo, const int *n, const double *alpha,
+void FC_FUNC_(cublas_dsyr,CUBLAS_DSYR) (const char *uplo, const int *n, const double *alpha,
                   const devptr_t *devPtrx, const int *incx, 
                   const devptr_t *devPtrA, const int *lda);
-void CUBLAS_DTRSV (const char *uplo, const char *trans, const char *diag, 
+void FC_FUNC_(cublas_dtrsv,CUBLAS_DTRSV) (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrx, const int *incx);
 
 /* BLAS 3 */
-void CUBLAS_SGEMM (const char *transa, const char *transb, const int *m,
+void FC_FUNC_(cublas_sgemm,CUBLAS_SGEMM) (const char *transa, const char *transb, const int *m,
                    const int *n, const int *k, const float *alpha, 
                    const devptr_t *A, const int *lda, const devptr_t *B, 
                    const int *ldb, const float *beta, const devptr_t *C, 
                    const int *ldc);
-void CUBLAS_SSYMM (const char *side, const char *uplo, const int *m,
+void FC_FUNC_(cublas_ssymm,CUBLAS_SSYMM) (const char *side, const char *uplo, const int *m,
                    const int *n, const float *alpha, const devptr_t *devPtrA,
                    const int *lda, const devptr_t *devPtrB, const int *ldb,
                    const float *beta, const devptr_t *devPtrC, const int *ldc);
-void CUBLAS_SSYR2K (const char *uplo, const char *trans, const int *n,
+void FC_FUNC_(cublas_ssyr2k,CUBLAS_SSYR2K) (const char *uplo, const char *trans, const int *n,
                     const int *k, const float *alpha, const devptr_t *devPtrA,
                     const int *lda, const devptr_t *devPtrB, const int *ldb,
                     const float *beta, const devptr_t *devPtrC, const int *ldc);
-void CUBLAS_SSYRK (const char *uplo, const char *trans, const int *n,
+void FC_FUNC_(cublas_ssyrk,CUBLAS_SSYRK) (const char *uplo, const char *trans, const int *n,
                    const int *k, const float *alpha, const devptr_t *devPtrA,
                    const int *lda, const float *beta, const devptr_t *devPtrC,
                    const int *ldc);
-void CUBLAS_STRMM (const char *side, const char *uplo, const char *transa, 
+void FC_FUNC_(cublas_strmm,CUBLAS_STRMM) (const char *side, const char *uplo, const char *transa, 
                    const char *diag, const int *m, const int *n,
                    const float *alpha, const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrB, const int *ldb);
-void CUBLAS_STRSM (const char *side, const char *uplo, const char *transa, 
+void FC_FUNC_(cublas_strsm,CUBLAS_STRSM) (const char *side, const char *uplo, const char *transa, 
                    const char *diag, const int *m, const int *n, 
                    const float *alpha, const devptr_t *devPtrA, const int *lda, 
                    const devptr_t *devPtrB, const int *ldb);
 
-void CUBLAS_CGEMM (const char *transa, const char *transb, const int *m,
+void FC_FUNC_(cublas_cgemm,CUBLAS_CGEMM) (const char *transa, const char *transb, const int *m,
                    const int *n, const int *k, const cuComplex *alpha,
                    const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrB, const int *ldb, 
                    const cuComplex *beta, const devptr_t *devPtrC,
                    const int *ldc);
 
-void CUBLAS_DGEMM (const char *transa, const char *transb, const int *m,
+void FC_FUNC_(cublas_dgemm,CUBLAS_DGEMM) (const char *transa, const char *transb, const int *m,
                    const int *n, const int *k, const double *alpha, 
                    const devptr_t *A, const int *lda, const devptr_t *B, 
                    const int *ldb, const double *beta, const devptr_t *C, 
                    const int *ldc);
-void CUBLAS_DSYMM (const char *side, const char *uplo, const int *m,
+void FC_FUNC_(cublas_dsymm,CUBLAS_DSYMM) (const char *side, const char *uplo, const int *m,
                    const int *n, const double *alpha, const devptr_t *devPtrA,
                    const int *lda, const devptr_t *devPtrB, const int *ldb,
                    const double *beta, const devptr_t *devPtrC,
                    const int *ldc);
-void CUBLAS_DSYR2K (const char *uplo, const char *trans, const int *n,
+void FC_FUNC_(cublas_dsyr2k,CUBLAS_DSYR2K) (const char *uplo, const char *trans, const int *n,
                     const int *k, const double *alpha, const devptr_t *devPtrA,
                     const int *lda, const devptr_t *devPtrB, const int *ldb,
                     const double *beta, const devptr_t *devPtrC, 
                     const int *ldc);
-void CUBLAS_DSYRK (const char *uplo, const char *trans, const int *n,
+void FC_FUNC_(cublas_dsyrk,CUBLAS_DSYRK) (const char *uplo, const char *trans, const int *n,
                    const int *k, const double *alpha, const devptr_t *devPtrA,
                    const int *lda, const double *beta, const devptr_t *devPtrC,
                    const int *ldc);
-void CUBLAS_DTRMM (const char *side, const char *uplo, const char *transa, 
+void FC_FUNC_(cublas_dtrmm,CUBLAS_DTRMM) (const char *side, const char *uplo, const char *transa, 
                    const char *diag, const int *m, const int *n,
                    const double *alpha, const devptr_t *devPtrA, 
                    const int *lda,
                    const devptr_t *devPtrB, const int *ldb);
-void CUBLAS_DTRSM (const char *side, const char *uplo, const char *transa, 
+void FC_FUNC_(cublas_dtrsm,CUBLAS_DTRSM) (const char *side, const char *uplo, const char *transa, 
                    const char *diag, const int *m, const int *n, 
                    const double *alpha, const devptr_t *devPtrA, 
                    const int *lda, const devptr_t *devPtrB, const int *ldb);
 
-void CUBLAS_ZGEMM (const char *transa, const char *transb, const int *m,
+void FC_FUNC_(cublas_zgemm,CUBLAS_ZGEMM) (const char *transa, const char *transb, const int *m,
                    const int *n, const int *k, const cuDoubleComplex *alpha,
                    const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrB, const int *ldb, 
@@ -4102,7 +4103,7 @@ void CUBLAS_ZGEMM (const char *transa, const char *transb, const int *m,
 /*---------------------------------- BLAS1 ----------------------------------*/
 /*---------------------------------------------------------------------------*/
 
-int CUBLAS_ISAMAX (const int *n, const devptr_t *devPtrx, const int *incx)
+int FC_FUNC_(cublas_isamax,CUBLAS_ISAMAX) (const int *n, const devptr_t *devPtrx, const int *incx)
 {
     float *x = (float *)(uintptr_t)(*devPtrx);
     int retVal;
@@ -4110,7 +4111,7 @@ int CUBLAS_ISAMAX (const int *n, const devptr_t *devPtrx, const int *incx)
     return retVal;
 }
 
-int CUBLAS_ISAMIN (const int *n, const devptr_t *devPtrx, const int *incx)
+int FC_FUNC_(cublas_isamin,CUBLAS_ISAMIN) (const int *n, const devptr_t *devPtrx, const int *incx)
 {
     float *x = (float *)(uintptr_t)(*devPtrx);
     int retVal;
@@ -4119,9 +4120,9 @@ int CUBLAS_ISAMIN (const int *n, const devptr_t *devPtrx, const int *incx)
 }
 
 #if CUBLAS_FORTRAN_COMPILER==CUBLAS_G77
-double CUBLAS_SASUM (const int *n, const devptr_t *devPtrx, const int *incx)
+double FC_FUNC_(cublas_sasum,CUBLAS_SASUM) (const int *n, const devptr_t *devPtrx, const int *incx)
 #else
-float CUBLAS_SASUM (const int *n, const devptr_t *devPtrx, const int *incx)
+float FC_FUNC_(cublas_sasum,CUBLAS_SASUM) (const int *n, const devptr_t *devPtrx, const int *incx)
 #endif
 {
     float *x = (float *)(uintptr_t)(*devPtrx);
@@ -4130,7 +4131,7 @@ float CUBLAS_SASUM (const int *n, const devptr_t *devPtrx, const int *incx)
     return retVal;
 }
 
-void CUBLAS_SAXPY (const int *n, const float *alpha, const devptr_t *devPtrx, 
+void FC_FUNC_(cublas_saxpy,CUBLAS_SAXPY) (const int *n, const float *alpha, const devptr_t *devPtrx, 
                    const int *incx, const devptr_t *devPtry, const int *incy)
 {
     float *x = (float *)(uintptr_t)(*devPtrx);
@@ -4138,7 +4139,7 @@ void CUBLAS_SAXPY (const int *n, const float *alpha, const devptr_t *devPtrx,
     cublasSaxpy (*n, *alpha, x, *incx, y, *incy);
 }
 
-void CUBLAS_SCOPY (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_scopy,CUBLAS_SCOPY) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy)
 {
     float *x = (float *)(uintptr_t)(*devPtrx);
@@ -4147,10 +4148,10 @@ void CUBLAS_SCOPY (const int *n, const devptr_t *devPtrx, const int *incx,
 }
 
 #if CUBLAS_FORTRAN_COMPILER==CUBLAS_G77
-double CUBLAS_SDOT (const int *n, const devptr_t *devPtrx, const int *incx, 
+double FC_FUNC_(cublas_sdot,CUBLAS_SDOT) (const int *n, const devptr_t *devPtrx, const int *incx, 
                     const devptr_t *devPtry, const int *incy)
 #else
-float CUBLAS_SDOT (const int *n, const devptr_t *devPtrx, const int *incx, 
+float FC_FUNC_(cublas_sdot,CUBLAS_SDOT) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy)
 #endif
 {
@@ -4160,16 +4161,16 @@ float CUBLAS_SDOT (const int *n, const devptr_t *devPtrx, const int *incx,
 }
 
 #if CUBLAS_FORTRAN_COMPILER==CUBLAS_G77
-double CUBLAS_SNRM2 (const int *n, const devptr_t *devPtrx, const int *incx)
+double FC_FUNC_(cublas_snrm2,CUBLAS_SNRM2) (const int *n, const devptr_t *devPtrx, const int *incx)
 #else
-float CUBLAS_SNRM2 (const int *n, const devptr_t *devPtrx, const int *incx)
+float FC_FUNC_(cublas_snrm2,CUBLAS_SNRM2) (const int *n, const devptr_t *devPtrx, const int *incx)
 #endif
 {
     float *x = (float *)(uintptr_t)(*devPtrx);
     return cublasSnrm2 (*n, x, *incx);
 }
 
-void CUBLAS_SROT (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_srot,CUBLAS_SROT) (const int *n, const devptr_t *devPtrx, const int *incx, 
                   const devptr_t *devPtry, const int *incy, const float *sc, 
                   const float *ss)
 {
@@ -4178,12 +4179,12 @@ void CUBLAS_SROT (const int *n, const devptr_t *devPtrx, const int *incx,
     cublasSrot (*n, x, *incx, y, *incy, *sc, *ss);
 }
 
-void CUBLAS_SROTG (float *sa, float *sb, float *sc, float *ss)
+void FC_FUNC_(cublas_srotg,CUBLAS_SROTG) (float *sa, float *sb, float *sc, float *ss)
 {
     cublasSrotg (sa, sb, sc, ss);
 }
 
-void CUBLAS_SROTM (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_srotm,CUBLAS_SROTM) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy, 
                    const float* sparam) 
 {
@@ -4192,20 +4193,20 @@ void CUBLAS_SROTM (const int *n, const devptr_t *devPtrx, const int *incx,
     cublasSrotm (*n, x, *incx, y, *incy, sparam);
 }
 
-void CUBLAS_SROTMG (float *sd1, float *sd2, float *sx1, const float *sy1,
+void FC_FUNC_(cublas_srotmg,CUBLAS_SROTMG) (float *sd1, float *sd2, float *sx1, const float *sy1,
                     float* sparam)
 {
     cublasSrotmg (sd1, sd2, sx1, sy1, sparam);
 }
 
-void CUBLAS_SSCAL (const int *n, const float *alpha, const devptr_t *devPtrx,
+void FC_FUNC_(cublas_sscal,CUBLAS_SSCAL) (const int *n, const float *alpha, const devptr_t *devPtrx,
                    const int *incx)
 {
     float *x = (float *)(uintptr_t)(*devPtrx);
     cublasSscal (*n, *alpha, x, *incx);
 }
 
-void CUBLAS_SSWAP (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_sswap,CUBLAS_SSWAP) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy)
 {
     float *x = (float *)(uintptr_t)(*devPtrx);
@@ -4213,7 +4214,7 @@ void CUBLAS_SSWAP (const int *n, const devptr_t *devPtrx, const int *incx,
     cublasSswap (*n, x, *incx, y, *incy);
 }
 
-void CUBLAS_CAXPY (const int *n, const cuComplex *alpha, 
+void FC_FUNC_(cublas_caxpy,CUBLAS_CAXPY) (const int *n, const cuComplex *alpha, 
                    const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy)
 {
@@ -4222,7 +4223,7 @@ void CUBLAS_CAXPY (const int *n, const cuComplex *alpha,
     cublasCaxpy (*n, *alpha, x, *incx, y, *incy);
 }
 
-void CUBLAS_CCOPY (const int *n, const devptr_t *devPtrx, const int *incx,
+void FC_FUNC_(cublas_ccopy,CUBLAS_CCOPY) (const int *n, const devptr_t *devPtrx, const int *incx,
                    const devptr_t *devPtry, const int *incy)
 {
     cuComplex *x = (cuComplex *)(uintptr_t)(*devPtrx);
@@ -4230,7 +4231,7 @@ void CUBLAS_CCOPY (const int *n, const devptr_t *devPtrx, const int *incx,
     cublasCcopy (*n, x, *incx, y, *incy);
 }
 
-void CUBLAS_CROT (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_crot,CUBLAS_CROT) (const int *n, const devptr_t *devPtrx, const int *incx, 
                   const devptr_t *devPtry, const int *incy, const float *sc, 
                   const cuComplex *cs)
 {
@@ -4239,20 +4240,20 @@ void CUBLAS_CROT (const int *n, const devptr_t *devPtrx, const int *incx,
     cublasCrot (*n, x, *incx, y, *incy, *sc, *cs);
 }
 
-void CUBLAS_CROTG (cuComplex *ca, const cuComplex *cb, float *sc,
+void FC_FUNC_(cublas_crotg,CUBLAS_CROTG) (cuComplex *ca, const cuComplex *cb, float *sc,
                    cuComplex *cs)
 {
     cublasCrotg (ca, *cb, sc, cs);
 }
 
-void CUBLAS_CSCAL (const int *n, const cuComplex *alpha, 
+void FC_FUNC_(cublas_cscal,CUBLAS_CSCAL) (const int *n, const cuComplex *alpha, 
                    const devptr_t *devPtrx, const int *incx)
 {
     cuComplex *x = (cuComplex *)(uintptr_t)(*devPtrx);
     cublasCscal (*n, *alpha, x, *incx);
 }
 
-void CUBLAS_CSROT (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_csrot,CUBLAS_CSROT) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy, const float *sc, 
                    const float *ss)
 {
@@ -4261,14 +4262,14 @@ void CUBLAS_CSROT (const int *n, const devptr_t *devPtrx, const int *incx,
     cublasCsrot (*n, x, *incx, y, *incy, *sc, *ss);
 }
 
-void CUBLAS_CSSCAL (const int *n, const float *alpha, const devptr_t *devPtrx,
+void FC_FUNC_(cublas_csscal,CUBLAS_CSSCAL) (const int *n, const float *alpha, const devptr_t *devPtrx,
                     const int *incx)
 {
     cuComplex *x = (cuComplex *)(uintptr_t)(*devPtrx);
     cublasCsscal (*n, *alpha, x, *incx);
 }
 
-void CUBLAS_CSWAP (const int *n, const devptr_t *devPtrx, const int *incx,
+void FC_FUNC_(cublas_cswap,CUBLAS_CSWAP) (const int *n, const devptr_t *devPtrx, const int *incx,
                    const devptr_t *devPtry, const int *incy)
 {
     cuComplex *x = (cuComplex *)(uintptr_t)(*devPtrx);
@@ -4276,7 +4277,7 @@ void CUBLAS_CSWAP (const int *n, const devptr_t *devPtrx, const int *incx,
     cublasCswap (*n, x, *incx, y, *incy);
 }
 
-void CUBLAS_CDOTU (cuComplex *retVal, const int *n, const devptr_t *devPtrx,
+void FC_FUNC_(cublas_cdotu,CUBLAS_CDOTU) (cuComplex *retVal, const int *n, const devptr_t *devPtrx,
                    const int *incx, const devptr_t *devPtry,const int *incy)
 {
     cuComplex *x = (cuComplex *)(uintptr_t)(*devPtrx);
@@ -4284,7 +4285,7 @@ void CUBLAS_CDOTU (cuComplex *retVal, const int *n, const devptr_t *devPtrx,
     *retVal = cublasCdotu (*n, x, *incx, y, *incy);
 }
 
-void CUBLAS_CDOTC (cuComplex *retVal, const int *n, const devptr_t *devPtrx,
+void FC_FUNC_(cublas_cdotc,CUBLAS_CDOTC) (cuComplex *retVal, const int *n, const devptr_t *devPtrx,
                    const int *incx, const devptr_t *devPtry, const int *incy)
 {
     cuComplex *x = (cuComplex *)(uintptr_t)(*devPtrx);
@@ -4292,22 +4293,22 @@ void CUBLAS_CDOTC (cuComplex *retVal, const int *n, const devptr_t *devPtrx,
     *retVal = cublasCdotc (*n, x, *incx, y, *incy);
 }
 
-int CUBLAS_ICAMAX (const int *n, const devptr_t *devPtrx, const int *incx)
+int FC_FUNC_(cublas_icamax,CUBLAS_ICAMAX) (const int *n, const devptr_t *devPtrx, const int *incx)
 {
     cuComplex *x = (cuComplex *)(uintptr_t)(*devPtrx);
     return cublasIcamax (*n, x, *incx);
 }
 
-int CUBLAS_ICAMIN (const int *n, const devptr_t *devPtrx, const int *incx)
+int FC_FUNC_(cublas_icamin,CUBLAS_ICAMIN) (const int *n, const devptr_t *devPtrx, const int *incx)
 {
     cuComplex *x = (cuComplex *)(uintptr_t)(*devPtrx);
     return cublasIcamin (*n, x, *incx);
 }
 
 #if CUBLAS_FORTRAN_COMPILER==CUBLAS_G77
-double CUBLAS_SCASUM (const int *n, const devptr_t *devPtrx, const int *incx)
+double FC_FUNC_(cublas_scasum,CUBLAS_SCASUM) (const int *n, const devptr_t *devPtrx, const int *incx)
 #else
-float CUBLAS_SCASUM (const int *n, const devptr_t *devPtrx, const int *incx)
+float FC_FUNC_(cublas_scasum,CUBLAS_SCASUM) (const int *n, const devptr_t *devPtrx, const int *incx)
 #endif
 {
     cuComplex *x = (cuComplex *)(uintptr_t)(*devPtrx);
@@ -4315,16 +4316,16 @@ float CUBLAS_SCASUM (const int *n, const devptr_t *devPtrx, const int *incx)
 }
 
 #if CUBLAS_FORTRAN_COMPILER==CUBLAS_G77
-double CUBLAS_SCNRM2 (const int *n, const devptr_t *devPtrx, const int *incx)
+double FC_FUNC_(cublas_scnrm2,CUBLAS_SCNRM2) (const int *n, const devptr_t *devPtrx, const int *incx)
 #else
-float CUBLAS_SCNRM2 (const int *n, const devptr_t *devPtrx, const int *incx)
+float FC_FUNC_(cublas_scnrm2,CUBLAS_SCNRM2) (const int *n, const devptr_t *devPtrx, const int *incx)
 #endif
 {
     cuComplex *x = (cuComplex *)(uintptr_t)(*devPtrx);
     return cublasScnrm2 (*n, x, *incx);
 }
 
-int CUBLAS_IDAMAX (const int *n, const devptr_t *devPtrx, const int *incx)
+int FC_FUNC_(cublas_idamax,CUBLAS_IDAMAX) (const int *n, const devptr_t *devPtrx, const int *incx)
 {
     double *x = (double *)(uintptr_t)(*devPtrx);
     int retVal;
@@ -4332,7 +4333,7 @@ int CUBLAS_IDAMAX (const int *n, const devptr_t *devPtrx, const int *incx)
     return retVal;
 }
 
-int CUBLAS_IDAMIN (const int *n, const devptr_t *devPtrx, const int *incx)
+int FC_FUNC_(cublas_idamin,CUBLAS_IDAMIN) (const int *n, const devptr_t *devPtrx, const int *incx)
 {
     double *x = (double *)(uintptr_t)(*devPtrx);
     int retVal;
@@ -4340,7 +4341,7 @@ int CUBLAS_IDAMIN (const int *n, const devptr_t *devPtrx, const int *incx)
     return retVal;
 }
 
-double CUBLAS_DASUM (const int *n, const devptr_t *devPtrx, const int *incx)
+double FC_FUNC_(cublas_dasum,CUBLAS_DASUM) (const int *n, const devptr_t *devPtrx, const int *incx)
 {
     double *x = (double *)(uintptr_t)(*devPtrx);
     double retVal;
@@ -4348,7 +4349,7 @@ double CUBLAS_DASUM (const int *n, const devptr_t *devPtrx, const int *incx)
     return retVal;
 }
 
-void CUBLAS_DAXPY (const int *n, const double *alpha, const devptr_t *devPtrx, 
+void FC_FUNC_(cublas_daxpy,CUBLAS_DAXPY) (const int *n, const double *alpha, const devptr_t *devPtrx, 
                    const int *incx, const devptr_t *devPtry, const int *incy)
 {
     double *x = (double *)(uintptr_t)(*devPtrx);
@@ -4356,7 +4357,7 @@ void CUBLAS_DAXPY (const int *n, const double *alpha, const devptr_t *devPtrx,
     cublasDaxpy (*n, *alpha, x, *incx, y, *incy);
 }
 
-void CUBLAS_DCOPY (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_dcopy,CUBLAS_DCOPY) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy)
 {
     double *x = (double *)(uintptr_t)(*devPtrx);
@@ -4364,7 +4365,7 @@ void CUBLAS_DCOPY (const int *n, const devptr_t *devPtrx, const int *incx,
     cublasDcopy (*n, x, *incx, y, *incy);
 }
 
-double CUBLAS_DDOT (const int *n, const devptr_t *devPtrx, const int *incx, 
+double FC_FUNC_(cublas_ddot,CUBLAS_DDOT) (const int *n, const devptr_t *devPtrx, const int *incx, 
                     const devptr_t *devPtry, const int *incy)
 {
     double *x = (double *)(uintptr_t)(*devPtrx);
@@ -4372,13 +4373,13 @@ double CUBLAS_DDOT (const int *n, const devptr_t *devPtrx, const int *incx,
     return cublasDdot (*n, x, *incx, y, *incy);
 }
 
-double CUBLAS_DNRM2 (const int *n, const devptr_t *devPtrx, const int *incx)
+double FC_FUNC_(cublas_dnrm2,CUBLAS_DNRM2) (const int *n, const devptr_t *devPtrx, const int *incx)
 {
     double *x = (double *)(uintptr_t)(*devPtrx);
     return cublasDnrm2 (*n, x, *incx);
 }
 
-void CUBLAS_DROT (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_drot,CUBLAS_DROT) (const int *n, const devptr_t *devPtrx, const int *incx, 
                   const devptr_t *devPtry, const int *incy, const double *sc, 
                   const double *ss)
 {
@@ -4387,12 +4388,12 @@ void CUBLAS_DROT (const int *n, const devptr_t *devPtrx, const int *incx,
     cublasDrot (*n, x, *incx, y, *incy, *sc, *ss);
 }
 
-void CUBLAS_DROTG (double *sa, double *sb, double *sc, double *ss)
+void FC_FUNC_(cublas_drotg,CUBLAS_DROTG) (double *sa, double *sb, double *sc, double *ss)
 {
     cublasDrotg (sa, sb, sc, ss);
 }
 
-void CUBLAS_DROTM (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_drotm,CUBLAS_DROTM) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy, 
                    const double* sparam) 
 {
@@ -4401,20 +4402,20 @@ void CUBLAS_DROTM (const int *n, const devptr_t *devPtrx, const int *incx,
     cublasDrotm (*n, x, *incx, y, *incy, sparam);
 }
 
-void CUBLAS_DROTMG (double *sd1, double *sd2, double *sx1, const double *sy1,
+void FC_FUNC_(cublas_drotmg,CUBLAS_DROTMG) (double *sd1, double *sd2, double *sx1, const double *sy1,
                     double* sparam)
 {
     cublasDrotmg (sd1, sd2, sx1, sy1, sparam);
 }
 
-void CUBLAS_DSCAL (const int *n, const double *alpha, const devptr_t *devPtrx,
+void FC_FUNC_(cublas_dscal,CUBLAS_DSCAL) (const int *n, const double *alpha, const devptr_t *devPtrx,
                    const int *incx)
 {
     double *x = (double *)(uintptr_t)(*devPtrx);
     cublasDscal (*n, *alpha, x, *incx);
 }
 
-void CUBLAS_DSWAP (const int *n, const devptr_t *devPtrx, const int *incx, 
+void FC_FUNC_(cublas_dswap,CUBLAS_DSWAP) (const int *n, const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy)
 {
     double *x = (double *)(uintptr_t)(*devPtrx);
@@ -4427,7 +4428,7 @@ void CUBLAS_DSWAP (const int *n, const devptr_t *devPtrx, const int *incx,
 /*---------------------------------- BLAS2 ----------------------------------*/
 /*---------------------------------------------------------------------------*/
 
-void CUBLAS_SGBMV (const char *trans, const int *m, const int *n, 
+void FC_FUNC_(cublas_sgbmv,CUBLAS_SGBMV) (const char *trans, const int *m, const int *n, 
                    const int *kl, const int *ku, const float *alpha,
                    const devptr_t *devPtrA, const int *lda, 
                    const devptr_t *devPtrx, const int *incx, const float *beta,
@@ -4440,7 +4441,7 @@ void CUBLAS_SGBMV (const char *trans, const int *m, const int *n,
                  y, *incy);
 }
 
-void CUBLAS_SGEMV (const char *trans, const int *m, const int *n, 
+void FC_FUNC_(cublas_sgemv,CUBLAS_SGEMV) (const char *trans, const int *m, const int *n, 
                    const float *alpha, const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrx, const int *incx, const float *beta,
                    const devptr_t *devPtry, const int *incy)
@@ -4451,7 +4452,7 @@ void CUBLAS_SGEMV (const char *trans, const int *m, const int *n,
     cublasSgemv (trans[0], *m, *n, *alpha, A, *lda, x, *incx, *beta, y, *incy);
 }
 
-void CUBLAS_SGER (const int *m, const int *n, const float *alpha, 
+void FC_FUNC_(cublas_sger,CUBLAS_SGER) (const int *m, const int *n, const float *alpha, 
                   const devptr_t *devPtrx, const int *incx,
                   const devptr_t *devPtry, const int *incy,
                   const devptr_t *devPtrA, const int *lda)
@@ -4462,7 +4463,7 @@ void CUBLAS_SGER (const int *m, const int *n, const float *alpha,
     cublasSger (*m, *n, *alpha, x, *incx, y, *incy, A, *lda);
 }
 
-void CUBLAS_SSBMV (const char *uplo, const int *n, const int *k,
+void FC_FUNC_(cublas_ssbmv,CUBLAS_SSBMV) (const char *uplo, const int *n, const int *k,
                    const float *alpha, const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrx, const int *incx, const float *beta,
                    const devptr_t *devPtry, const int *incy)
@@ -4473,7 +4474,7 @@ void CUBLAS_SSBMV (const char *uplo, const int *n, const int *k,
     cublasSsbmv (uplo[0], *n, *k, *alpha, A, *lda, x, *incx, *beta, y, *incy);
 }
 
-void CUBLAS_SSPMV (const char *uplo, const int *n, const float *alpha,
+void FC_FUNC_(cublas_sspmv,CUBLAS_SSPMV) (const char *uplo, const int *n, const float *alpha,
                    const devptr_t *devPtrAP, const devptr_t *devPtrx,
                    const int *incx, const float *beta, const devptr_t *devPtry,
                    const int *incy)
@@ -4484,7 +4485,7 @@ void CUBLAS_SSPMV (const char *uplo, const int *n, const float *alpha,
     cublasSspmv (uplo[0], *n, *alpha, AP, x, *incx, *beta, y, *incy);
 }
 
-void CUBLAS_SSPR (const char *uplo, const int *n, const float *alpha, 
+void FC_FUNC_(cublas_sspr,CUBLAS_SSPR) (const char *uplo, const int *n, const float *alpha, 
                   const devptr_t *devPtrx, const int *incx,
                   const devptr_t *devPtrAP)
 {
@@ -4493,7 +4494,7 @@ void CUBLAS_SSPR (const char *uplo, const int *n, const float *alpha,
     cublasSspr (uplo[0], *n, *alpha, x, *incx, AP);
 }
 
-void CUBLAS_SSPR2 (const char *uplo, const int *n, const float *alpha,
+void FC_FUNC_(cublas_sspr2,CUBLAS_SSPR2) (const char *uplo, const int *n, const float *alpha,
                    const devptr_t *devPtrx, const int *incx, 
                    const devptr_t *devPtry, const int *incy,
                    const devptr_t *devPtrAP)
@@ -4504,7 +4505,7 @@ void CUBLAS_SSPR2 (const char *uplo, const int *n, const float *alpha,
     cublasSspr2 (uplo[0], *n, *alpha, x, *incx, y, *incy, AP);
 }
 
-void CUBLAS_SSYMV (const char *uplo, const int *n, const float *alpha,
+void FC_FUNC_(cublas_ssymv,CUBLAS_SSYMV) (const char *uplo, const int *n, const float *alpha,
                    const devptr_t *devPtrA, const int *lda, 
                    const devptr_t *devPtrx, const int *incx, const float *beta,
                    const devptr_t *devPtry,
@@ -4516,7 +4517,7 @@ void CUBLAS_SSYMV (const char *uplo, const int *n, const float *alpha,
     cublasSsymv (uplo[0], *n, *alpha, A, *lda, x, *incx, *beta, y, *incy);
 }
 
-void CUBLAS_SSYR (const char *uplo, const int *n, const float *alpha,
+void FC_FUNC_(cublas_ssyr,CUBLAS_SSYR) (const char *uplo, const int *n, const float *alpha,
                   const devptr_t *devPtrx, const int *incx,
                   const devptr_t *devPtrA, const int *lda)
 {
@@ -4525,7 +4526,7 @@ void CUBLAS_SSYR (const char *uplo, const int *n, const float *alpha,
     cublasSsyr (uplo[0], *n, *alpha, x, *incx, A, *lda);
 }
 
-void CUBLAS_SSYR2 (const char *uplo, const int *n, const float *alpha,
+void FC_FUNC_(cublas_ssyr2,CUBLAS_SSYR2) (const char *uplo, const int *n, const float *alpha,
                    const devptr_t *devPtrx, const int *incx,
                    const devptr_t *devPtry, const int *incy, 
                    const devptr_t *devPtrA, const int *lda)
@@ -4536,7 +4537,7 @@ void CUBLAS_SSYR2 (const char *uplo, const int *n, const float *alpha,
     cublasSsyr2 (uplo[0], *n, *alpha, x, *incx, y, *incy, A, *lda);
 }
 
-void CUBLAS_STBMV (const char *uplo, const char *trans, const char *diag,
+void FC_FUNC_(cublas_stbmv,CUBLAS_STBMV) (const char *uplo, const char *trans, const char *diag,
                    const int *n, const int *k, const devptr_t *devPtrA, 
                    const int *lda, const devptr_t *devPtrx, const int *incx)
 {
@@ -4545,7 +4546,7 @@ void CUBLAS_STBMV (const char *uplo, const char *trans, const char *diag,
     cublasStbmv (uplo[0], trans[0], diag[0], *n, *k, A, *lda, x, *incx);
 }
 
-void CUBLAS_STBSV (const char *uplo, const char *trans, const char *diag,
+void FC_FUNC_(cublas_stbsv,CUBLAS_STBSV) (const char *uplo, const char *trans, const char *diag,
                    const int *n, const int *k, const devptr_t *devPtrA, 
                    const int *lda, const devptr_t *devPtrx, const int *incx)
 {
@@ -4554,7 +4555,7 @@ void CUBLAS_STBSV (const char *uplo, const char *trans, const char *diag,
     cublasStbsv (uplo[0], trans[0], diag[0], *n, *k, A, *lda, x, *incx);
 }
 
-void CUBLAS_STPMV (const char *uplo, const char *trans, const char *diag,
+void FC_FUNC_(cublas_stpmv,CUBLAS_STPMV) (const char *uplo, const char *trans, const char *diag,
                    const int *n,  const devptr_t *devPtrAP, 
                    const devptr_t *devPtrx, const int *incx)
 {
@@ -4563,7 +4564,7 @@ void CUBLAS_STPMV (const char *uplo, const char *trans, const char *diag,
     cublasStpmv (uplo[0], trans[0], diag[0], *n, AP, x, *incx);
 }
 
-void CUBLAS_STPSV (const char *uplo, const char *trans, const char *diag,
+void FC_FUNC_(cublas_stpsv,CUBLAS_STPSV) (const char *uplo, const char *trans, const char *diag,
                    const int *n, const devptr_t *devPtrAP, 
                    const devptr_t *devPtrx, const int *incx)
 {
@@ -4572,7 +4573,7 @@ void CUBLAS_STPSV (const char *uplo, const char *trans, const char *diag,
     cublasStpsv (uplo[0], trans[0], diag[0], *n, AP, x, *incx);
 }
 
-void CUBLAS_STRMV (const char *uplo, const char *trans, const char *diag,
+void FC_FUNC_(cublas_strmv,CUBLAS_STRMV) (const char *uplo, const char *trans, const char *diag,
                    const int *n, const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrx, const int *incx)
 {
@@ -4581,7 +4582,7 @@ void CUBLAS_STRMV (const char *uplo, const char *trans, const char *diag,
     cublasStrmv (uplo[0], trans[0], diag[0], *n, A, *lda, x, *incx);
 }
 
-void CUBLAS_STRSV (const char *uplo, const char *trans, const char *diag,
+void FC_FUNC_(cublas_strsv,CUBLAS_STRSV) (const char *uplo, const char *trans, const char *diag,
                    const int *n, const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrx, const int *incx)
 {
@@ -4590,7 +4591,7 @@ void CUBLAS_STRSV (const char *uplo, const char *trans, const char *diag,
     cublasStrsv (uplo[0], trans[0], diag[0], *n, A, *lda, x, *incx);
 }
 
-void CUBLAS_DGEMV (const char *trans, const int *m, const int *n, 
+void FC_FUNC_(cublas_dgemv,CUBLAS_DGEMV) (const char *trans, const int *m, const int *n, 
                    const double *alpha, const devptr_t *devPtrA,
                    const int *lda, const devptr_t *devPtrx, const int *incx,
                    const double *beta, const devptr_t *devPtry,
@@ -4602,7 +4603,7 @@ void CUBLAS_DGEMV (const char *trans, const int *m, const int *n,
     cublasDgemv (trans[0], *m, *n, *alpha, A, *lda, x, *incx, *beta, y, *incy);
 }
 
-void CUBLAS_DGER (const int *m, const int *n, const double *alpha, 
+void FC_FUNC_(cublas_dger,CUBLAS_DGER) (const int *m, const int *n, const double *alpha, 
                   const devptr_t *devPtrx, const int *incx,
                   const devptr_t *devPtry, const int *incy,
                   const devptr_t *devPtrA, const int *lda)
@@ -4613,7 +4614,7 @@ void CUBLAS_DGER (const int *m, const int *n, const double *alpha,
     cublasDger (*m, *n, *alpha, x, *incx, y, *incy, A, *lda);
 }
 
-void CUBLAS_DSYR (const char *uplo, const int *n, const double *alpha,
+void FC_FUNC_(cublas_dsyr,CUBLAS_DSYR) (const char *uplo, const int *n, const double *alpha,
                   const devptr_t *devPtrx, const int *incx,
                   const devptr_t *devPtrA, const int *lda)
 {
@@ -4622,7 +4623,7 @@ void CUBLAS_DSYR (const char *uplo, const int *n, const double *alpha,
     cublasDsyr (uplo[0], *n, *alpha, x, *incx, A, *lda);
 }
 
-void CUBLAS_DTRSV (const char *uplo, const char *trans, const char *diag,
+void FC_FUNC_(cublas_dtrsv,CUBLAS_DTRSV) (const char *uplo, const char *trans, const char *diag,
                    const int *n, const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrx, const int *incx)
 {
@@ -4635,7 +4636,7 @@ void CUBLAS_DTRSV (const char *uplo, const char *trans, const char *diag,
 /*---------------------------------- BLAS3 ----------------------------------*/
 /*---------------------------------------------------------------------------*/
 
-void CUBLAS_SGEMM (const char *transa, const char *transb, const int *m,
+void FC_FUNC_(cublas_sgemm,CUBLAS_SGEMM) (const char *transa, const char *transb, const int *m,
                    const int *n, const int *k, const float *alpha,
                    const devptr_t *devPtrA, const int *lda, 
                    const devptr_t *devPtrB, const int *ldb, const float *beta,
@@ -4648,7 +4649,7 @@ void CUBLAS_SGEMM (const char *transa, const char *transb, const int *m,
                  B, *ldb, *beta, C, *ldc);
 }
 
-void CUBLAS_SSYMM (const char *side, const char *uplo, const int *m, 
+void FC_FUNC_(cublas_ssymm,CUBLAS_SSYMM) (const char *side, const char *uplo, const int *m, 
                    const int *n, const float *alpha, const devptr_t *devPtrA,
                    const int *lda, const devptr_t *devPtrB, const int *ldb, 
                    const float *beta, const devptr_t *devPtrC, const int *ldc)
@@ -4660,7 +4661,7 @@ void CUBLAS_SSYMM (const char *side, const char *uplo, const int *m,
                  *ldc);
 }
 
-void CUBLAS_SSYR2K (const char *uplo, const char *trans, const int *n,
+void FC_FUNC_(cublas_ssyr2k,CUBLAS_SSYR2K) (const char *uplo, const char *trans, const int *n,
                     const int *k, const float *alpha, const devptr_t *devPtrA,
                     const int *lda, const devptr_t *devPtrB, const int *ldb, 
                     const float *beta, const devptr_t *devPtrC, const int *ldc)
@@ -4672,7 +4673,7 @@ void CUBLAS_SSYR2K (const char *uplo, const char *trans, const int *n,
                   C, *ldc);
 }
 
-void CUBLAS_SSYRK (const char *uplo, const char *trans, const int *n, 
+void FC_FUNC_(cublas_ssyrk,CUBLAS_SSYRK) (const char *uplo, const char *trans, const int *n, 
                    const int *k, const float *alpha, const devptr_t *devPtrA, 
                    const int *lda, const float *beta, const devptr_t *devPtrC,
                    const int *ldc)
@@ -4682,7 +4683,7 @@ void CUBLAS_SSYRK (const char *uplo, const char *trans, const int *n,
     cublasSsyrk (*uplo, *trans, *n, *k, *alpha, A, *lda, *beta, C, *ldc);
 }
 
-void CUBLAS_STRMM (const char *side, const char *uplo, const char *transa,
+void FC_FUNC_(cublas_strmm,CUBLAS_STRMM) (const char *side, const char *uplo, const char *transa,
                    const char *diag, const int *m, const int *n,
                    const float *alpha, const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrB, const int *ldb)
@@ -4693,7 +4694,7 @@ void CUBLAS_STRMM (const char *side, const char *uplo, const char *transa,
                  *ldb);
 }
 
-void CUBLAS_STRSM (const char *side, const char *uplo, const char *transa,
+void FC_FUNC_(cublas_strsm,CUBLAS_STRSM) (const char *side, const char *uplo, const char *transa,
                    const char *diag, const int *m, const int *n, 
                    const float *alpha, const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrB, const int *ldb)
@@ -4704,7 +4705,7 @@ void CUBLAS_STRSM (const char *side, const char *uplo, const char *transa,
                  A, *lda, B, *ldb);
 }
 
-void CUBLAS_CGEMM (const char *transa, const char *transb, const int *m,
+void FC_FUNC_(cublas_cgemm,CUBLAS_CGEMM) (const char *transa, const char *transb, const int *m,
                    const int *n, const int *k, const cuComplex *alpha,
                    const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrB, const int *ldb, 
@@ -4718,40 +4719,40 @@ void CUBLAS_CGEMM (const char *transa, const char *transb, const int *m,
                  *beta, C, *ldc);
 }
 
-void CUBLAS_CHEMM (void)
+void FC_FUNC_(cublas_chemm,CUBLAS_CHEMM) (void)
 {
     printf ("CUBLAS_CHEMM stub\n");
 }
-void CUBLAS_CSYMM (void)
+void FC_FUNC_(cublas_csymm,CUBLAS_CSYMM) (void)
 {
     printf ("CUBLAS_CSYMM stub\n");
 }
-void CUBLAS_CTRMM (void)
+void FC_FUNC_(cublas_ctrmm,CUBLAS_CTRMM) (void)
 {
     printf ("CUBLAS_CTRMM stub\n");
 }
-void CUBLAS_CTRSM (void)
+void FC_FUNC_(cublas_ctrsm,CUBLAS_CTRSM) (void)
 {
     printf ("CUBLAS_CTRSM stub\n");
 }
-void CUBLAS_CHERK (void)
+void FC_FUNC_(cublas_cherk,CUBLAS_CHERK) (void)
 {
     printf ("CUBLAS_CHERK stub\n");
 }
-void CUBLAS_CSYRK (void)
+void FC_FUNC_(cublas_csyrk,CUBLAS_CSYRK) (void)
 {
     printf ("CUBLAS_CSYRK stub\n");
 }
-void CUBLAS_CHER2K (void)
+void FC_FUNC_(cublas_cher2k,CUBLAS_CHER2K) (void)
 {
     printf ("CUBLAS_CHER2K stub\n");
 }
-void CUBLAS_CSYR2K (void)
+void FC_FUNC_(cublas_csyr2k,CUBLAS_CSYR2K) (void)
 {
     printf ("CUBLAS_CSYR2K stub\n");
 }
 
-void CUBLAS_DGEMM (const char *transa, const char *transb, const int *m,
+void FC_FUNC_(cublas_dgemm,CUBLAS_DGEMM) (const char *transa, const char *transb, const int *m,
                    const int *n, const int *k, const double *alpha,
                    const devptr_t *devPtrA, const int *lda, 
                    const devptr_t *devPtrB, const int *ldb, const double *beta,
@@ -4764,7 +4765,7 @@ void CUBLAS_DGEMM (const char *transa, const char *transb, const int *m,
                  B, *ldb, *beta, C, *ldc);
 }
 
-void CUBLAS_DSYMM (const char *side, const char *uplo, const int *m, 
+void FC_FUNC_(cublas_dsymm,CUBLAS_DSYMM) (const char *side, const char *uplo, const int *m, 
                    const int *n, const double *alpha, const devptr_t *devPtrA,
                    const int *lda, const devptr_t *devPtrB, const int *ldb, 
                    const double *beta, const devptr_t *devPtrC, const int *ldc)
@@ -4776,7 +4777,7 @@ void CUBLAS_DSYMM (const char *side, const char *uplo, const int *m,
                  *ldc);
 }
 
-void CUBLAS_DSYR2K (const char *uplo, const char *trans, const int *n,
+void FC_FUNC_(cublas_dsyr2k,CUBLAS_DSYR2K) (const char *uplo, const char *trans, const int *n,
                     const int *k, const double *alpha, const devptr_t *devPtrA,
                     const int *lda, const devptr_t *devPtrB, const int *ldb, 
                     const double *beta, const devptr_t *devPtrC,
@@ -4789,7 +4790,7 @@ void CUBLAS_DSYR2K (const char *uplo, const char *trans, const int *n,
                   C, *ldc);
 }
 
-void CUBLAS_DSYRK (const char *uplo, const char *trans, const int *n, 
+void FC_FUNC_(cublas_dsyrk,CUBLAS_DSYRK) (const char *uplo, const char *trans, const int *n, 
                    const int *k, const double *alpha, const devptr_t *devPtrA, 
                    const int *lda, const double *beta, const devptr_t *devPtrC,
                    const int *ldc)
@@ -4799,7 +4800,7 @@ void CUBLAS_DSYRK (const char *uplo, const char *trans, const int *n,
     cublasDsyrk (*uplo, *trans, *n, *k, *alpha, A, *lda, *beta, C, *ldc);
 }
 
-void CUBLAS_DTRMM (const char *side, const char *uplo, const char *transa,
+void FC_FUNC_(cublas_dtrmm,CUBLAS_DTRMM) (const char *side, const char *uplo, const char *transa,
                    const char *diag, const int *m, const int *n,
                    const double *alpha, const devptr_t *devPtrA, 
                    const int *lda, const devptr_t *devPtrB, const int *ldb)
@@ -4810,7 +4811,7 @@ void CUBLAS_DTRMM (const char *side, const char *uplo, const char *transa,
                  *ldb);
 }
 
-void CUBLAS_DTRSM (const char *side, const char *uplo, const char *transa,
+void FC_FUNC_(cublas_dtrsm,CUBLAS_DTRSM) (const char *side, const char *uplo, const char *transa,
                    const char *diag, const int *m, const int *n, 
                    const double *alpha, const devptr_t *devPtrA,
                    const int *lda, const devptr_t *devPtrB, const int *ldb)
@@ -4821,7 +4822,7 @@ void CUBLAS_DTRSM (const char *side, const char *uplo, const char *transa,
                  A, *lda, B, *ldb);
 }
 
-void CUBLAS_ZGEMM (const char *transa, const char *transb, const int *m,
+void FC_FUNC_(cublas_zgemm,CUBLAS_ZGEMM) (const char *transa, const char *transb, const int *m,
                    const int *n, const int *k, const cuDoubleComplex *alpha,
                    const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrB, const int *ldb, 

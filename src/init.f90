@@ -304,7 +304,7 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
   !local variables
   character(len=*), parameter :: subname='import_gaussians'
   integer :: i_stat,i_all
-  real(gp) :: hxh,hyh,hzh,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum
+  real(gp) :: hxh,hyh,hzh,eexcu,vexcu,epot_sum,eexctX,ekin_sum,ehart,eproj_sum
   type(gaussian_basis) :: CP2K
   type(GPU_pointers) :: GPU !added for interface compatibility, not working here
   real(wp), dimension(:,:), pointer :: wfn_cp2k
@@ -391,7 +391,7 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
        nlpspd,proj,Glr,ngatherarr,&
        Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
        rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,GPU)
+       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,1,GPU)
 
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,(f19.10))') 'done. ekin_sum',ekin_sum
 
@@ -452,7 +452,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   integer, parameter :: ngx=31
   logical :: switchGPUconv
   integer :: i_stat,i_all,iat,nspin_ig
-  real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,accurex
+  real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,etol,accurex
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
   type(GPU_pointers) :: GPU
@@ -677,7 +677,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
        rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,GPU,pkernel)
+       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel)
 
 !!!  !calculate the overlap matrix knowing that the original functions are gaussian-based
 !!!  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
@@ -718,6 +718,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !!!  i_all=-product(shape(hpsigau))*kind(hpsigau)
 !!!  deallocate(hpsigau,stat=i_stat)
 !!!  call memocc(i_stat,i_all,'hpsigau',subname)
+
 
   !free GPU if it is the case
   if (GPUconv) then
