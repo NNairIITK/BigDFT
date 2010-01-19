@@ -99,7 +99,8 @@ program PS_Check
   do ispden=1,2
      if (iproc == 0) write(unit=*,fmt="(1x,a,i0)")  '===================== nspden:  ',ispden
      !then assign the value of the analytic density and the potential
-     allocate(rhopot(n01*n02*n03*ispden+ndebug),stat=i_stat)
+     !allocate the rhopot also for complex routines
+     allocate(rhopot(n01*n02*n03*2+ndebug),stat=i_stat)
      call memocc(i_stat,rhopot,'rhopot',subname)
   
      call test_functions(geocode,ixc,n01,n02,n03,ispden,acell,a_gauss,hx,hy,hz,&
@@ -118,6 +119,12 @@ program PS_Check
      !if the latter test pass, we have a reference for all the other calculations
      !build the reference quantities (based on the numerical result, not the analytic)
      potential(:)=rhopot(1:n01*n02*n03)
+
+     !now there is room for the complex calculation
+     !this is performed always without XC since a complex
+     !charge density makes no sense
+     call dcopy(2*n01*n02*n03,density,1,rhopot,1)
+
      !now the parallel calculation part
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)

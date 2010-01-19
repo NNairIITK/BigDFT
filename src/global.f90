@@ -120,17 +120,17 @@ program MINHOP
   call kpt_input_variables(iproc,'input.kpt',inputs_md,atoms)
 
 
- do iat=1,atoms%nat
-        if (atoms%ifrztyp(iat) == 0) then
-           call random_number(tt)
-           pos(1,iat)=pos(1,iat)+inputs_opt%randdis*tt
-           call random_number(tt)
-           pos(2,iat)=pos(2,iat)+inputs_opt%randdis*tt
-           call random_number(tt)
-           pos(3,iat)=pos(3,iat)+inputs_opt%randdis*tt
-        end if
- enddo
-
+  do iat=1,atoms%nat
+     if (atoms%ifrztyp(iat) == 0) then
+        call random_number(tt)
+        pos(1,iat)=pos(1,iat)+inputs_opt%randdis*tt
+        call random_number(tt)
+        pos(2,iat)=pos(2,iat)+inputs_opt%randdis*tt
+        call random_number(tt)
+        pos(3,iat)=pos(3,iat)+inputs_opt%randdis*tt
+     end if
+  enddo
+  
   ! allocate other arrays
   allocate(ff(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,ff,'ff',subname)
@@ -251,8 +251,8 @@ program MINHOP
 !  if (atoms%geocode.eq.'P') & 
 !       call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,pos)
 
-    call geopt(nproc,iproc,pos,atoms,ff,e_pos,rst,inputs_md,ncount_bigdft)
-      if (iproc.eq.0) write(67,*) ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
+  call geopt(nproc,iproc,pos,atoms,ff,e_pos,rst,inputs_md,ncount_bigdft)
+  if (iproc.eq.0) write(67,*) ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
       if (iproc.eq.0) write(*,*)'# ', ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
 
     call geopt(nproc,iproc,pos,atoms,ff,e_pos,rst,inputs_opt,ncount_bigdft)

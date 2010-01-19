@@ -1050,6 +1050,7 @@ end subroutine Free_Kernel
 
 subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,fwork,fftwork,kffts)
   use module_base
+  use module_fft_sg
   implicit none
   integer, intent(in) :: itype_scf,n1,n2,n3,nk1,nk2,nk3,n_range
   real(dp), intent(in) :: pgauss,hx,hy,hz
@@ -1913,34 +1914,6 @@ subroutine gequad(p,w,urange,drange,acc)
   acc   =1d-08
 !
 end subroutine gequad
-
-!1-dim complex-complex FFT routine
-!the array in input is the first part, the output is the inzee
-!the input is destroyed
-subroutine fft_1d_ctoc(isign,nfft,n,zinout,inzee)
-  use module_base
-  use module_fft_sg
-  implicit none
-  integer, intent(in) :: n,nfft,isign
-  integer, intent(out) :: inzee
-  real(dp), dimension(2,nfft*n,2), intent(inout) :: zinout
-  !local variables
-  integer :: ic,i
-  !automatic arrays for the FFT
-  integer, dimension(n_factors) :: after,now,before
-  real(dp), dimension(2,nfft_max) :: trig
-  !arrays for the FFT (to be halved)
-  call ctrig_sg(n,trig,after,before,now,isign,ic)
-  !perform the FFT 
-  inzee=1
-  !write(15,*)halfft_cache(:,:,inzee)
-  do i=1,ic
-     call fftstp_sg(nfft,nfft,n,nfft,n,&
-          zinout(1,1,inzee),zinout(1,1,3-inzee),&
-          trig,after(i),now(i),before(i),1)
-     inzee=3-inzee
-  enddo
-end subroutine fft_1d_ctoc
 
 subroutine accumulate_fft(n1,nk1,nfft,ncacheff,halfft_cache,kernelfour)
   use module_base

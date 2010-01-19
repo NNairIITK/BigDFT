@@ -58,7 +58,7 @@ module module_fft_sg
    implicit none
 
    ! Maximum number of points for FFT (should be same number in fft3d routine)
-   integer, parameter :: nfft_max=24000
+   integer, parameter :: nfft_max=2097152
    ! Number of factors in the decomposition
    integer, parameter :: n_factors = 7
    integer :: i_d,j_d
@@ -333,6 +333,33 @@ subroutine dimensions_fft(n1,n2,n3,nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd
    nd3b=n3b+1
 end subroutine dimensions_fft
 !!***
+
+!1-dim complex-complex FFT routine
+!the array in input is the first part, the output is the inzee
+!the input is destroyed
+subroutine fft_1d_ctoc(isign,nfft,n,zinout,inzee)
+  use module_fft_sg
+  implicit none
+  integer, intent(in) :: n,nfft,isign
+  integer, intent(out) :: inzee
+  real(kind=8), dimension(2,nfft*n,2), intent(inout) :: zinout
+  !local variables
+  integer :: ic,i
+  !automatic arrays for the FFT
+  integer, dimension(n_factors) :: after,now,before
+  real(kind=8), dimension(2,nfft_max) :: trig
+  !arrays for the FFT (to be halved)
+  call ctrig_sg(n,trig,after,before,now,isign,ic)
+  !perform the FFT 
+  inzee=1
+  !write(15,*)halfft_cache(:,:,inzee)
+  do i=1,ic
+     call fftstp_sg(nfft,nfft,n,nfft,n,&
+          zinout(1,1,inzee),zinout(1,1,3-inzee),&
+          trig,after(i),now(i),before(i),isign)
+     inzee=3-inzee
+  enddo
+end subroutine fft_1d_ctoc
 
 
 !!****f* fft3d/FFT
@@ -1566,7 +1593,7 @@ subroutine ctrig_sg(n,trig,after,before,now,i_sign,ic)
    do i=1,ndata
       if (n.eq.ij_data(1,i)) then
          ic=0
-         do j=1,6
+         do j=1,n_factors
             itt=ij_data(1+j,i)
             if (itt.gt.1) then
                ic=ic+1
