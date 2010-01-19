@@ -58,7 +58,7 @@ module module_fft_sg
    implicit none
 
    ! Maximum number of points for FFT (should be same number in fft3d routine)
-   integer, parameter :: nfft_max=24000
+   integer, parameter :: nfft_max=2097152
    ! Number of factors in the decomposition
    integer, parameter :: n_factors = 7
    integer :: i_d,j_d
@@ -1682,7 +1682,7 @@ subroutine ctrig_sg(n,trig,after,before,now,i_sign,ic)
    do i=1,ndata
       if (n.eq.ij_data(1,i)) then
          ic=0
-         do j=1,6
+         do j=1,7
             itt=ij_data(1+j,i)
             if (itt.gt.1) then
                ic=ic+1
@@ -3311,7 +3311,7 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,i_sign)
 ! End of radix 7
 
    else 
-      write(*,'(a,i4)') 'Error fftstp_sg: radix not defined ',now
+      write(*,'(a,i6)') 'Error fftstp_sg: radix not defined ',now
       stop
    end if !end of now
 
