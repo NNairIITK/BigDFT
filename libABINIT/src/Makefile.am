@@ -118,17 +118,34 @@ libabinit_a_SOURCES = \
 	72_geomoptim/ab6_moldyn.F90 \
 	72_geomoptim/xfpack.F90
 
-CLEANFILES = $(mpi_include) \
+CLEANFILES = mpif.h \
 	defs_abitypes.@MODULE_EXT@ DEFS_ABITYPES.@MODULE_EXT@ \
 	defs_basis.@MODULE_EXT@ DEFS_BASIS.@MODULE_EXT@ \
 	defs_datatypes.@MODULE_EXT@ DEFS_DATATYPES.@MODULE_EXT@ \
 	defs_parameters.@MODULE_EXT@ DEFS_PARAMETERS.@MODULE_EXT@ \
 	defs_xc.@MODULE_EXT@ DEFS_XC.@MODULE_EXT@ \
 	libxc_functionals.@MODULE_EXT@ LIBXC_FUNCTIONALS.@MODULE_EXT@ \
+	interfaces_14_hidewrite.@MODULE_EXT@ INTERFACES_14_HIDEWRITE.@MODULE_EXT@ \
+	interfaces_16_hideleave.@MODULE_EXT@ INTERFACES_16_HIDELEAVE.@MODULE_EXT@ \
+	interfaces_18_timing.@MODULE_EXT@ INTERFACES_18_TIMING.@MODULE_EXT@ \
+	interfaces_28_numeric_noabirule.@MODULE_EXT@ INTERFACES_28_NUMERIC_NOABIRULE.@MODULE_EXT@ \
+	interfaces_32_util.@MODULE_EXT@ INTERFACES_32_UTIL.@MODULE_EXT@ \
+	interfaces_42_geometry.@MODULE_EXT@ INTERFACES_42_GEOMETRY.@MODULE_EXT@ \
+	interfaces_56_recipspace.@MODULE_EXT@ INTERFACES_56_RECIPSPACE.@MODULE_EXT@ \
+	interfaces_56_xc.@MODULE_EXT@ INTERFACES_56_XC.@MODULE_EXT@ \
+	interfaces_linalg.@MODULE_EXT@ INTERFACES_LINALG.@MODULE_EXT@ \
 	ab6_moldyn.@MODULE_EXT@ AB6_MOLDYN.@MODULE_EXT@ \
 	ab6_symmetry.@MODULE_EXT@ AB6_SYMMETRY.@MODULE_EXT@
 
 #dependencies
+mpif.h:
+	touch mpif.h &&\
+	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
+	 echo "integer :: MPI_STATUSES_IGNORE, MPI_LOGICAL" >> mpif.h &&\
+	 echo "integer :: MPI_MIN, MPI_MAX,MPI_CHARACTER,MPI_REAL8" >> mpif.h
+
+# Automatic ones...
 32_util/matr3inv.F90: \
 	defs_basis.o
 
@@ -147,85 +164,11 @@ CLEANFILES = $(mpi_include) \
 	interfaces_16_hideleave.o
 
 32_util/derfc.F90: \
-	defs_basis.o \
-	defs_basis.o \
 	defs_basis.o
 
 32_util/interfaces_32_util.F90: \
 	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o
+	defs_datatypes.o
 
 32_util/wrap2_pmhalf.F90: \
 	defs_basis.o
@@ -247,34 +190,26 @@ CLEANFILES = $(mpi_include) \
 	interfaces_16_hideleave.o
 
 28_numeric_noabirule/interfaces_28_numeric_noabirule.F90: \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
 	defs_basis.o
 
 72_geomoptim/ab6_moldyn.F90: \
 	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o
+	72_geomoptim/isokinetic.F90 \
+	72_geomoptim/isotemp.F90 \
+	72_geomoptim/isothermal.F90 \
+	72_geomoptim/langevin.F90 \
+	72_geomoptim/moldyn.F90 \
+	72_geomoptim/nose.F90 \
+	72_geomoptim/quenched.F90 \
+	72_geomoptim/velocity_verlet.F90
 
 72_geomoptim/isokinetic.F90: \
-	defs_basis.o \
 	defs_basis.o
 
 72_geomoptim/isotemp.F90: \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_datatypes.o \
 	defs_abitypes.o \
 	defs_basis.o \
-	defs_datatypes.o \
-	defs_abitypes.o
+	defs_datatypes.o
 
 72_geomoptim/isothermal.F90: \
 	defs_basis.o \
@@ -288,8 +223,6 @@ CLEANFILES = $(mpi_include) \
 	defs_datatypes.o
 
 72_geomoptim/nose.F90: \
-	defs_basis.o \
-	defs_basis.o \
 	defs_basis.o
 
 72_geomoptim/quenched.F90: \
@@ -333,40 +266,14 @@ CLEANFILES = $(mpi_include) \
 	interfaces_42_geometry.o \
 	interfaces_56_recipspace.o
 
+56_recipspace/ab6_symmetry_f90.f90: \
+	defs_basis.o \
+	interfaces_32_util.o \
+	interfaces_42_geometry.o \
+	interfaces_56_recipspace.o
+
 56_recipspace/interfaces_56_recipspace.F90: \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
 	defs_abitypes.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_abitypes.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_abitypes.o \
-	defs_basis.o \
-	defs_abitypes.o \
-	defs_basis.o \
-	defs_abitypes.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
 	defs_basis.o
 
 42_geometry/symlatt.F90: \
@@ -591,52 +498,6 @@ CLEANFILES = $(mpi_include) \
 	interfaces_32_util.o
 
 42_geometry/interfaces_42_geometry.F90: \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
 	defs_basis.o
 
 42_geometry/symptgroup.F90: \
@@ -658,60 +519,15 @@ CLEANFILES = $(mpi_include) \
 
 56_xc/drivexc.F90: \
 	defs_basis.o \
-	m_libxc_functionals.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
-	interfaces_56_xc.o
+	interfaces_56_xc.o \
+	m_libxc_functionals.o
 
 56_xc/interfaces_56_xc.F90: \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
 	defs_abitypes.o \
 	defs_basis.o \
-	defs_basis.o \
-	defs_abitypes.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_abitypes.o \
-	defs_basis.o \
-	defs_abitypes.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_abitypes.o \
-	defs_basis.o \
-	defs_abitypes.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_abitypes.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o \
-	defs_basis.o
+	defs_datatypes.o
 
 56_xc/invcb.F90: \
 	defs_basis.o \
@@ -772,11 +588,10 @@ CLEANFILES = $(mpi_include) \
 	interfaces_16_hideleave.o
 
 14_hidewrite/wrtout.F90: \
-	defs_basis.o
+	defs_basis.o \
+	$(mpi_include)
 
 18_timing/interfaces_18_timing.F90: \
-	defs_basis.o \
-	defs_basis.o \
 	defs_basis.o
 
 18_timing/timab.F90: \
@@ -785,9 +600,3 @@ CLEANFILES = $(mpi_include) \
 	interfaces_16_hideleave.o \
 	interfaces_18_timing.o
 
-mpif.h:
-	touch mpif.h &&\
-	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
-	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
-	 echo "integer :: MPI_STATUSES_IGNORE, MPI_LOGICAL" >> mpif.h &&\
-	 echo "integer :: MPI_MIN, MPI_MAX,MPI_CHARACTER,MPI_REAL8" >> mpif.h
