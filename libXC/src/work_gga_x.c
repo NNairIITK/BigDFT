@@ -58,7 +58,8 @@ work_gga_x(const void *p_, int np, const FLOAT *rho, const FLOAT *sigma,
 
   for(ip = 0; ip < np; ip++){
     dens = (p->nspin == XC_UNPOLARIZED) ? rho[0] : rho[0] + rho[1];
-    if(rho[0] < MIN_DENS && p->nspin == XC_POLARIZED && rho[1] < MIN_DENS) goto end_ip_loop;
+    if((p->nspin != XC_POLARIZED && rho[0] < MIN_DENS) ||
+       (p->nspin == XC_POLARIZED && rho[0] < MIN_DENS && rho[1] < MIN_DENS)) goto end_ip_loop;
 
     for(is=0; is<p->nspin; is++){
       FLOAT gdm, ds, rho1D;

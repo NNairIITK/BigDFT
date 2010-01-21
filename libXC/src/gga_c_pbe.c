@@ -166,7 +166,8 @@ my_gga_c_pbe(const void *p_, const FLOAT *rho, const FLOAT *sigma,
   if(v2rho2 != NULL) order = 2;
 
   XC(perdew_params)(p, rho, sigma, order, &pt);
-  if(rho[0] < MIN_DENS && p->nspin == XC_POLARIZED && rho[1] < MIN_DENS) return;
+  if((p->nspin != XC_POLARIZED && rho[0] < MIN_DENS) ||
+     (p->nspin == XC_POLARIZED && rho[0] < MIN_DENS && rho[1] < MIN_DENS)) return;
 
   pbe_eq8(func, order, pt.ecunif, pt.phi,
 	  &A, &dAdec, &dAdphi, &d2Adec2, &d2Adecphi, &d2Adphi2);
