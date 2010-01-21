@@ -563,6 +563,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
        n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
 
   !allocate ionic potential
+  print *, " allocate ionic potential " 
   if (n3pi > 0) then
      allocate(pot_ion(n1i*n2i*n3pi+ndebug),stat=i_stat)
      call memocc(i_stat,pot_ion,'pot_ion',subname)
@@ -580,6 +581,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel,&
        quiet=PSquiet)
 
+  print *, " IonicEnergyandForces  " 
 
   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,&
        psoffset,in%nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
@@ -610,6 +612,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   !check the communication distribution
   !call check_communications(iproc,nproc,orbs,Glr,comms)
 
+  print *, " QUA   " 
+
 
   if(in%potshortcut/=2) then
 
@@ -625,7 +629,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut )
 
+     print *, " QUA 2  " 
 
+  
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)
      call memocc(i_stat,i_all,'psi',subname)
