@@ -198,22 +198,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               end do
            end do
         end do
-!!        do i3=1,nxt
-!!           do i2=1,m3
-!!              do i1=1,m1
-!!                 i=i1+(i2-1)*m1+(i3-1)*m1*m3+m1*m3*nxt
-!!                 j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+n01*n02*n03
-!!                 rhopot_G(i)=rhopot(j)
-!!              end do
-!!           end do
-!!        end do
-!!
-!!        do i1=1,m1*m3*nxt
-!!           rhopot_G(i1)=rhopot(n01*n02*(i3start-1)+i1)
-!!        end do
-!!        do i1=1,m1*m3*nxt
-!!           rhopot_G(i1+m1*m3*nxt)=rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)
-!!        end do
      end if
   else if (datacode == 'D') then
      !distributed i/o
@@ -301,7 +285,8 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      !call F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
      !     scal)!,hgrid)!,ehartreeLOC)
   end if
-  call G_PoissonSolver(geocode,iproc,nproc,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,zf(1,1,1),&
+  !here the case ncplx/= 1 should be added
+  call G_PoissonSolver(geocode,iproc,nproc,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,zf(1,1,1),&
        scal,hx,hy,hz,offset)
   
   call timing(iproc,'PSolv_comput  ','ON')

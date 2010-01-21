@@ -208,6 +208,7 @@ end subroutine hit_with_kernel
 !!   SOURCE
 !!
 subroutine make_kernel(n1,hgrid,kern)
+  use module_fft_sg
   use module_base
   implicit none
   integer,intent(in)::n1
@@ -255,7 +256,7 @@ subroutine make_kernel(n1,hgrid,kern)
 ! fourier transform the kernel
 
   nd1=n1+2
-  allocate(trig(2,1024))
+  allocate(trig(2,nd1))
   allocate(z(2,nd1,2))
 
   inzee=1
@@ -276,9 +277,9 @@ subroutine make_kernel(n1,hgrid,kern)
   enddo
 
   isign=1
-  call ctrig_sg(n1+1,trig,after,before,now,isign,ic)
+  call ctrig_sg(n1+1,nd1,trig,after,before,now,isign,ic)
   do i=1,ic
-    call fftstp_sg(1,1,nd1,1,nd1,z(1,1,inzee),z(1,1,3-inzee),trig,after(i),now(i),before(i),isign)
+    call fftstp_sg(1,1,nd1,1,nd1,z(1,1,inzee),z(1,1,3-inzee),nd1,trig,after(i),now(i),before(i),isign)
     inzee=3-inzee
   enddo
 
