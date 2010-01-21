@@ -51,7 +51,8 @@ XC(perdew_params)(const XC(gga_type) *gga_p, const FLOAT *rho, const FLOAT *sigm
 
   /* get gdmt = |nabla n| */
   pt->gdmt = sigma[0];
-  if(pt->nspin == XC_POLARIZED) pt->gdmt += max(2.0*sigma[1] + sigma[2], 0.0);
+  if(pt->nspin == XC_POLARIZED) pt->gdmt += 2.0*sigma[1] + sigma[2];
+  if(pt->gdmt < MIN_GRAD*MIN_GRAD) pt->gdmt = MIN_GRAD*MIN_GRAD;
   pt->gdmt = sqrt(pt->gdmt);
 
   pt->t = pt->gdmt/(2.0 * pt->phi * pt->ks * pt->dens);
