@@ -141,6 +141,9 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   logical :: exists
   integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj
 
+  !default abscalc variables
+  call abscalc_input_variables_default(in)
+
   ! default values for geopt and k points in case not call later.
   call geopt_input_variables_default(in)
   nullify(in%kpt)
