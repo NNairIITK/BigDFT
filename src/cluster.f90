@@ -1194,12 +1194,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)
      call memocc(i_stat,i_all,'rhopot',subname)
-     i_all=-product(shape(irrzon))*kind(irrzon)
-     deallocate(irrzon,stat=i_stat)
-     call memocc(i_stat,i_all,'irrzon',subname)
-     i_all=-product(shape(phnons))*kind(phnons)
-     deallocate(phnons,stat=i_stat)
-     call memocc(i_stat,i_all,'phnons',subname)
+     if (allocated(irrzon)) then
+        i_all=-product(shape(irrzon))*kind(irrzon)
+        deallocate(irrzon,stat=i_stat)
+        call memocc(i_stat,i_all,'irrzon',subname)
+     end if
+     if (allocated(phnons)) then
+        i_all=-product(shape(phnons))*kind(phnons)
+        deallocate(phnons,stat=i_stat)
+        call memocc(i_stat,i_all,'phnons',subname)
+     end if
      
      if (in%read_ref_den) then
         i_all=-product(shape(rhoref))*kind(rhoref)
