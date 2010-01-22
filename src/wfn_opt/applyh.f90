@@ -114,6 +114,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
      call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psiw,1)
   end if
 
+  !this is the array of the actions of the X potential on psi
   call razero(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir)
 
   !build the partial densities for the poisson solver, calculate the partial potential

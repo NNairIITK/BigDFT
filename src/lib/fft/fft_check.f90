@@ -36,14 +36,68 @@ program fft_check
 
    use module_fft_sg
    implicit none
-   !integer :: i
+   real(kind=8), dimension(:,:), allocatable :: reference
+   real(kind=8), dimension(:,:,:), allocatable :: zinout
+   integer :: i,ndim,j,inzee,ii
+   real(kind=4) :: tt
+   real(kind=8) :: maxdiff
    write(*,'(a)') 'FFT test: (n1,n2,n3)'
    !do i=1,ndata
    !   call do_fft(i_data(i), 3, 3)
    !end do
+
+   !test several dimensions of the FFT
+   do i=1,ndata
+
+      ndim=i_data(i)
+      allocate(zinout(2,ndim,2),reference(2,ndim))
+      do j=1,ndim
+         call random_number(tt)
+         reference(1,j)=real(tt,kind=8)
+         reference(2,j)=0.d0!real(tt,kind=8)
+      end do
+      
+      call dcopy(2*ndim,reference(1,1),1,zinout(1,1,1),1)
+
+      !forward FFT
+      call fft_1d_ctoc(1,1,ndim,zinout,inzee)
+      !copy the results in the first part
+      if (inzee == 2) then
+         call dcopy(2*ndim,zinout(1,1,inzee),1,zinout(1,1,1),1)
+      end if
+
+      !backward FFT
+      call fft_1d_ctoc(-1,1,ndim,zinout,inzee)
+
+      call dscal(2*ndim,1.d0/real(ndim,kind=8),zinout(1,1,inzee),1)
+
+      !check
+      maxdiff=0.d0
+      do j=1,ndim
+         do ii=1,2
+            maxdiff=max(maxdiff,abs(reference(ii,j)-zinout(ii,j,inzee)))
+         end do
+      end do
+   
+      if (maxdiff < 1.d-15) then
+         write(*,'(a,i8,1pe25.17)') 'FFT test: dimension, maxdiff:',&
+              ndim,maxdiff
+      else
+         write(*,'(a,i8,1pe25.17,a)') 'FFT test: dimension, maxdiff:',&
+              ndim,maxdiff,' <<<<WARNING'
+      end if
+
+      
+   deallocate(zinout,reference)
+
+   end do
+
    call do_fft(  7, 16,128)
    call do_fft(  3, 16,128)
    call do_fft(128,128,128)
+
+
+
 
 contains
 

@@ -144,7 +144,7 @@ contains
       integer, intent(inout) :: inzee
       real(kind=8), intent(inout) :: z(2,nddat*nd3,2)
       !Local variables
-      real(kind=8), dimension(2,nfft_max) :: trig
+      real(kind=8), dimension(:,:), allocatable :: trig
       integer, dimension(n_factors) :: after,now,before
       real(kind=8), allocatable, dimension(:,:,:) :: zw  
 
@@ -153,6 +153,9 @@ contains
          stop
       end if
 
+      ntrig=n3
+      allocate(trig(2,ntrig))
+
       ! check whether input values are reasonable
       if (inzee.le.0 .or. inzee.ge.3) stop 'wrong inzee'
       if (i_sign.ne.1 .and. i_sign.ne.-1) stop 'wrong i_sign'
@@ -160,17 +163,17 @@ contains
        
       ! vector computer with memory banks:
       if (ncache.eq.0) then
-         call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
+         call ctrig_sg(n3,ntrig,trig,after,before,now,i_sign,ic)
          nfft=ndat
          mm=nddat
          do i=1,ic-1
             call fftstp_sg(mm,nfft,nd3,mm,nd3,z(1,1,inzee),z(1,1,3-inzee), &
-                           trig,after(i),now(i),before(i),i_sign)
+                           ntrig,trig,after(i),now(i),before(i),i_sign)
             inzee=3-inzee
          end do
          i=ic
          call fftrot_sg(mm,nfft,nd3,mm,nd3,z(1,1,inzee),z(1,1,3-inzee), &
-                        trig,after(i),now(i),before(i),i_sign)
+              ntrig,trig,after(i),now(i),before(i),i_sign)
          inzee=3-inzee
 
 
@@ -203,7 +206,7 @@ contains
             stop 'ncache1'
          end if
 
-         call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
+         call ctrig_sg(n3,ntrig,trig,after,before,now,i_sign,ic)
 
          if (ic.eq.1) then
             i=ic
@@ -214,7 +217,7 @@ contains
             j=ma
             jj=j*nd3-nd3+1
             call fftrot_sg(mm,nfft,m,mm,m,z(1,j,inzet),z(1,jj,3-inzet), &
-                           trig,after(i),now(i),before(i),i_sign)
+                           ntrig,trig,after(i),now(i),before(i),i_sign)
 
          else
 
@@ -230,17 +233,17 @@ contains
                i=1
                inzeep=2
                call fftstp_sg(mm,nfft,m,nn,n,z(1,j,inzet),zw(1,1,3-inzeep), &
-                              trig,after(i),now(i),before(i),i_sign)
+                              ntrig,trig,after(i),now(i),before(i),i_sign)
                inzeep=1
               
                do i=2,ic-1
                   call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                                 trig,after(i),now(i),before(i),i_sign)
+                                 ntrig,trig,after(i),now(i),before(i),i_sign)
                   inzeep=3-inzeep
                end do
                i=ic
                call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z(1,jj,3-inzet), &
-                              trig,after(i),now(i),before(i),i_sign)
+                              ntrig,trig,after(i),now(i),before(i),i_sign)
             end do
          end if
 
@@ -252,6 +255,8 @@ contains
          if (iam.eq.0) inzee=inzet
 
       end if
+      deallocate(trig)
+
    end subroutine fft1
 
 

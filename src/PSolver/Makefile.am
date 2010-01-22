@@ -81,7 +81,7 @@ libpoissonsolver_a_SOURCES = \
 	Poisson_Solver.f90 \
 	Build_Kernel.f90 \
 	scaling_function.f90 \
-	PSolver_Base.f90 \
+	PSolver_Base_new.f90 \
 	wofz.f90 \
 	../lib/fft/fft3d.f90 \
 	../profiling/time.f90 

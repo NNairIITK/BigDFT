@@ -99,7 +99,8 @@ program PS_Check
   do ispden=1,2
      if (iproc == 0) write(unit=*,fmt="(1x,a,i0)")  '===================== nspden:  ',ispden
      !then assign the value of the analytic density and the potential
-     allocate(rhopot(n01*n02*n03*ispden+ndebug),stat=i_stat)
+     !allocate the rhopot also for complex routines
+     allocate(rhopot(n01*n02*n03*2+ndebug),stat=i_stat)
      call memocc(i_stat,rhopot,'rhopot',subname)
   
      call test_functions(geocode,ixc,n01,n02,n03,ispden,acell,a_gauss,hx,hy,hz,&
@@ -118,6 +119,7 @@ program PS_Check
      !if the latter test pass, we have a reference for all the other calculations
      !build the reference quantities (based on the numerical result, not the analytic)
      potential(:)=rhopot(1:n01*n02*n03)
+
      !now the parallel calculation part
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)
@@ -153,6 +155,15 @@ program PS_Check
      if (ixc == 0) exit
   end do
 
+  if (ixc == 0) then
+     !compare the calculations in complex
+     call compare_cplx_calculations(iproc,nproc,geocode,'G',n01,n02,n03,hx,hy,hz,ehartree,&
+          density,potential,pkernel)
+     
+     call compare_cplx_calculations(iproc,nproc,geocode,'D',n01,n02,n03,hx,hy,hz,ehartree,&
+          density,potential,pkernel)
+  end if
+
   i_all=-product(shape(pkernel))*kind(pkernel)
   deallocate(pkernel,stat=i_stat)
   call memocc(i_stat,i_all,'pkernel',subname)
@@ -180,6 +191,93 @@ program PS_Check
 
 
 contains
+
+  subroutine compare_cplx_calculations(iproc,nproc,geocode,distcode,n01,n02,n03,hx,hy,hz,ehref,&
+       density,potential,pkernel)
+    use module_base
+    use Poisson_Solver
+    implicit none
+    character(len=1), intent(in) :: geocode,distcode
+    integer, intent(in) :: iproc,nproc,n01,n02,n03
+    real(kind=8), intent(in) :: hx,hy,hz,ehref
+    real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
+    real(kind=8), dimension(n01*n02*n03*2), intent(in) :: density
+    real(kind=8), dimension(:), pointer :: pkernel
+    !local varaibles
+    character(len=*), parameter :: subname='compare_cplx_calculations'
+    character(len=20) :: message
+    integer :: n3d,n3p,n3pi,i3xcsh,i3s,i3sd,i3,i2,i1,istden,istpot,isp,i
+    real(kind=8) :: eexcu,vexcu,ehartree,offset
+    real(kind=8), dimension(:,:,:,:), allocatable :: rhopot
+
+    offset=0.d0
+
+    !this is performed always without XC since a complex
+    !charge density makes no sense
+    write(message,'(1x,a,1x,a)') geocode,distcode
+
+    call PS_dim4allocation(geocode,distcode,iproc,nproc,n01,n02,n03,0,&
+         n3d,n3p,n3pi,i3xcsh,i3s)
+
+    !starting point of the three-dimensional arrays
+    if (distcode == 'D') then
+       istden=n01*n02*(i3s-1)+1
+       istpot=n01*n02*(i3s+i3xcsh-1)+1
+       i3sd=i3s
+    else if (distcode == 'G') then
+       istden=1
+       istpot=1
+       i3sd=1
+    end if
+
+    !input poisson solver, complex distribution
+    allocate(rhopot(n01,n02,n3d,2+ndebug),stat=i_stat)
+    call memocc(i_stat,rhopot,'rhopot',subname)
+
+    !do isp=1,2
+       isp=1
+       do i3=1,n3d
+          do i2=1,n02
+             do i1=1,n01
+                i=i1+(i2-1)*n01+(modulo(i3sd+i3-2,n03))*n01*n02!+(isp-1)*n01*n02*n03
+                rhopot(i1,i2,i3,isp)=density(i)
+             end do
+          end do
+       end do
+    !end do
+   
+    !perform the calculation in complex, with distributed and gathered distribution
+    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,0,hx,hy,hz,&
+         rhopot,pkernel,rhopot,ehartree,eexcu,vexcu,offset,.false.,1,quiet='YES')
+
+    call compare(iproc,-1,n01,n02,n3d,1,potential(istpot),rhopot,'CPLXREAL'//trim(message))
+
+       isp=2
+       do i3=1,n3d
+          do i2=1,n02
+             do i1=1,n01
+                i=i1+(i2-1)*n01+(modulo(i3sd+i3-2,n03))*n01*n02!+(isp-1)*n01*n02*n03
+                rhopot(i1,i2,i3,isp)=density(i)
+             end do
+          end do
+       end do
+
+    !perform the calculation in complex, with distributed and gathered distribution
+    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,0,hx,hy,hz,&
+         rhopot(1,1,1,2),pkernel,rhopot,ehartree,eexcu,vexcu,offset,.false.,1,quiet='YES')
+    
+    call compare(iproc,-1,n01,n02,n3d,1,potential(istpot),rhopot(1,1,1,2),'CPLXIMAG'//trim(message))
+
+
+    if (iproc==0) write(unit=*,fmt="(1x,a,1pe20.12)")'Energy diff:',ehref-ehartree
+
+    
+    i_all=-product(shape(rhopot))*kind(rhopot)
+    deallocate(rhopot,stat=i_stat)
+    call memocc(i_stat,i_all,'rhopot',subname)
+    
+  end subroutine compare_cplx_calculations
+
 
 
   subroutine compare_with_reference(iproc,nproc,geocode,distcode,n01,n02,n03,&

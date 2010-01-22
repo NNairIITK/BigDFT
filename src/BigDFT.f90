@@ -81,9 +81,6 @@ program BigDFT
      !welcome screen
      if (iproc==0) call print_logo()
 
-     !no abscalc procedure, only in the abscalc executable
-     call abscalc_input_variables_default(inputs)
-
      ! Read all input files.
      call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
           & "input.dft", "input.kpt", "input.geopt", inputs, atoms, rxyz)
