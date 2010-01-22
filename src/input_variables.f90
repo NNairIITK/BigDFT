@@ -922,8 +922,9 @@ subroutine deallocate_atoms(atoms,subname)
   i_all=-product(shape(atoms%amu))*kind(atoms%amu)
   deallocate(atoms%amu,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%amu',subname)
-  if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
-
+  if (atoms%symObj >= 0) then
+     call ab6_symmetry_free(atoms%symObj)
+  end if
 end subroutine deallocate_atoms
 
 

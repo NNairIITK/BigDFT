@@ -32,6 +32,7 @@ libabinit_a_SOURCES = \
 	18_timing/timab.F90 \
 	28_numeric_noabirule/interfaces_28_numeric_noabirule.F90 \
 	28_numeric_noabirule/sort_dp.F90 \
+	28_numeric_noabirule/sort_int.F90 \
 	28_numeric_noabirule/uniformrandom.F90 \
 	32_util/interfaces_32_util.F90 \
 	32_util/canon9.F90 \
@@ -93,6 +94,7 @@ libabinit_a_SOURCES = \
 	42_geometry/xredxcart.F90 \
 	50_abitypes_defs/defs_abitypes.F90 \
 	56_recipspace/interfaces_56_recipspace.F90 \
+	56_recipspace/irrzg.F90 \
 	56_recipspace/getkgrid.F90 \
 	56_recipspace/smpbz.F90 \
 	56_recipspace/symkpt.F90 \
@@ -254,6 +256,13 @@ mpif.h:
 
 56_recipspace/symkpt.F90: \
 	defs_basis.o \
+	interfaces_14_hidewrite.o \
+	interfaces_16_hideleave.o \
+	interfaces_28_numeric_noabirule.o
+
+56_recipspace/irrzg.F90: \
+	defs_basis.o \
+	defs_datatypes.o \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o \
 	interfaces_28_numeric_noabirule.o

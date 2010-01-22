@@ -164,6 +164,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   use libxc_functionals
   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces
   use esatto
+  use ab6_symmetry
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -221,6 +222,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(:), pointer :: proj
   ! arrays for DIIS convergence accelerator
   real(kind=8), dimension(:,:,:), pointer :: ads
+  ! Arrays for the symmetrisation.
+  integer, dimension(:,:,:), allocatable :: irrzon
+  real(dp), dimension(:,:,:), allocatable :: phnons
   
 
 
@@ -378,6 +382,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !these descriptors should take into account the localisation regions
   call createDensPotDescriptors(iproc,nproc,atoms%geocode,'D',n1i,n2i,n3i,ixc,&
        n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
+  !calculate the irreductible zone, if necessary.
+  if (atoms%symObj >= 0) then
+     ! Current third dimension is set to 1 always
+     ! since nspin == nsppol always in BigDFT
+     allocate(irrzon(n1i*n2i*n3i,2,1+ndebug),stat=i_stat)
+     call memocc(i_stat,irrzon,'irrzon',subname)
+     allocate(phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
+     call memocc(i_stat,phnons,'phnons',subname)
+     call ab6_symmetry_get_irreductible_zone(atoms%symObj, irrzon, phnons, &
+          & n1i, n2i, n3i, in%nspin, in%nspin, i_stat)
+  end if
 
   !allocate ionic potential
   if (n3pi > 0) then
@@ -485,8 +500,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !import gaussians form CP2K (data in files gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
      call import_gaussians(iproc,nproc,atoms,orbs,comms,&
-          Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj, &
-          pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,in%nspin)
+          & Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj, &
+          & pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,in%nspin,&
+          & atoms%symObj, irrzon, phnons)
 
   case(0)
      nspin=in%nspin
@@ -494,7 +510,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call input_wf_diag(iproc,nproc,atoms,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
-          nscatterarr,ngatherarr,nspin,0)
+          nscatterarr,ngatherarr,nspin,0,atoms%symObj, irrzon, phnons)
 
   case(1)
      !these parts should be reworked for the non-collinear spin case
@@ -700,7 +716,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      ! Potential from electronic charge density
      call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-          n1i*n2i*n3d,nscatterarr,in%nspin,GPU)
+          n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
 
      if(orbs%nspinor==4) then
         !this wrapper can be inserted inside the poisson solver 
@@ -974,7 +990,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         call memocc(i_stat,rho,'rho',subname)
      end if
      call sumrho(iproc,nproc,orbs,Glr,0,hxh,hyh,hzh,psi,rho,n1i*n2i*n3p,&
-          nscatterarr,in%nspin,GPU)
+          nscatterarr,in%nspin,GPU, atoms%symObj, irrzon, phnons)
 
      !plot the density on the density.pot file
      if (abs(in%output_grid) .ge. 1 .or. in%nvacancy /=0) then
@@ -1181,6 +1197,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)
      call memocc(i_stat,i_all,'rhopot',subname)
+     i_all=-product(shape(irrzon))*kind(irrzon)
+     deallocate(irrzon,stat=i_stat)
+     call memocc(i_stat,i_all,'irrzon',subname)
+     i_all=-product(shape(phnons))*kind(phnons)
+     deallocate(phnons,stat=i_stat)
+     call memocc(i_stat,i_all,'phnons',subname)
      
      if (in%read_ref_den) then
         i_all=-product(shape(rhoref))*kind(rhoref)

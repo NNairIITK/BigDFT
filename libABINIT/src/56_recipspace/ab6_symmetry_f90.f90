@@ -45,9 +45,9 @@ module ab6_symmetry
      integer :: bravais(11), bravSym(3, 3, AB6_MAX_SYMMETRIES)
      ! The symmetry matrices
      integer  :: nSym
-     integer  :: sym(3, 3, AB6_MAX_SYMMETRIES)
-     real(dp) :: transNon(3, AB6_MAX_SYMMETRIES)
-     integer  :: symafm(AB6_MAX_SYMMETRIES)
+     integer, pointer  :: sym(:,:,:)
+     real(dp), pointer :: transNon(:,:)
+     integer, pointer  :: symAfm(:)
      ! Some additional information
      integer          :: multiplicity
      real(dp)         :: genAfm(3)
@@ -75,6 +75,7 @@ module ab6_symmetry
   public :: ab6_symmetry_set_tolerance
   public :: ab6_symmetry_set_lattice
   public :: ab6_symmetry_set_structure
+  public :: ab6_symmetry_set_collinear_spin
   public :: ab6_symmetry_set_spin
   public :: ab6_symmetry_set_spin_orbit
   public :: ab6_symmetry_set_field
@@ -86,10 +87,12 @@ module ab6_symmetry
   public :: ab6_symmetry_get_multiplicity
   public :: ab6_symmetry_get_bravais
   public :: ab6_symmetry_get_matrices
+  public :: ab6_symmetry_get_matrices_p
   public :: ab6_symmetry_get_group
   public :: ab6_symmetry_get_equivalent_atom
   public :: ab6_symmetry_get_mp_k_grid
   public :: ab6_symmetry_get_auto_k_grid
+  public :: ab6_symmetry_get_irreductible_zone
 
   public :: ab6_symmetry_binding_mp_k_1
   public :: ab6_symmetry_binding_mp_k_2
@@ -200,10 +203,13 @@ contains
     nullify(sym%typeAt)
     sym%tolsym   = tol8
     sym%nSym     = -1
+    nullify(sym%sym)
+    nullify(sym%symAfm)
+    nullify(sym%transNon)
     sym%nBravSym = -1
     sym%withField   = .false.
     sym%withJellium = .false.
-    sym%withSpin = 0
+    sym%withSpin = 1
     sym%withSpinOrbit = .false.
     sym%multiplicity = -1
     nullify(sym%indexingAtoms)
@@ -221,6 +227,9 @@ contains
     if (associated(sym%spinAt)) deallocate(sym%spinAt)
     if (associated(sym%typeAt)) deallocate(sym%typeAt)
     if (associated(sym%indexingAtoms)) deallocate(sym%indexingAtoms)
+    if (associated(sym%sym)) deallocate(sym%sym)
+    if (associated(sym%symAfm)) deallocate(sym%symAfm)
+    if (associated(sym%transNon)) deallocate(sym%transNon)
   end subroutine free_symmetry
 
 
@@ -669,12 +678,15 @@ contains
     integer, intent(out) :: errno
 
     integer :: berryopt, jellslab, noncol, shubnikov, isym, problem
-    integer :: nsym_nomagn, isym_nomagn, nspden, use_inversion
+    integer :: nsym_nomagn, isym_nomagn, use_inversion
     integer, allocatable :: sym_nomagn(:,:,:)
     integer :: identity(3,3)
     real(dp), allocatable :: transNon_nomagn(:,:)
     real(dp), pointer :: spinAt_(:,:)
     character(len=5) :: ptgroupha
+    integer  :: sym_(3, 3, AB6_MAX_SYMMETRIES)
+    real(dp) :: transNon_(3, AB6_MAX_SYMMETRIES)
+    integer  :: symAfm_(AB6_MAX_SYMMETRIES)
 
     errno = AB6_NO_ERROR
 
@@ -694,15 +706,12 @@ contains
        jellslab = 0
     end if
     if (sym%withSpin == 4) then
-       nspden = 4
        noncol = 1
        spinAt_ => sym%spinAt
     else if (sym%withSpin == 2) then
-       nspden = 2
        noncol = 0
        spinAt_ => sym%spinAt
     else
-       nspden = 1
        noncol = 0
        allocate(spinAt_(3, sym%nAtoms))
        spinAt_ = 0
@@ -716,20 +725,30 @@ contains
     if (AB_DBG) write(0,*) "AB symmetry: call ABINIT symfind."
     call symfind(berryopt, sym%field, sym%gprimd, jellslab, AB6_MAX_SYMMETRIES, &
          & sym%nAtoms, noncol, sym%nBravSym, sym%nSym, sym%bravSym, spinAt_, &
-         & sym%symafm, sym%sym, sym%transNon, sym%tolsym, sym%typeAt, &
+         & symAfm_, sym_, transNon_, sym%tolsym, sym%typeAt, &
          & use_inversion, sym%xRed)
     if (AB_DBG) write(0,*) "AB symmetry: call ABINIT OK."
     if (AB_DBG) write(0, "(A,I3)") "  nSym:", sym%nSym
+    if (associated(sym%sym)) deallocate(sym%sym)
+    if (associated(sym%symAfm)) deallocate(sym%symAfm)
+    if (associated(sym%transNon)) deallocate(sym%transNon)
+    allocate(sym%sym(3, 3, sym%nSym))
+    sym%sym(:,:,:) = sym_(:,:, 1:sym%nSym)
+    allocate(sym%symAfm(sym%nSym))
+    sym%symAfm(:) = symAfm_(1:sym%nSym)
+    allocate(sym%transNon(3, sym%nSym))
+    sym%transNon(:,:) = transNon_(:, 1:sym%nSym)
 
-    if (sym%withSpin == 0) then
+    if (sym%withSpin == 1) then
        deallocate(spinAt_)
     end if
 
     if (AB_DBG) write(0,*) "AB symmetry: call ABINIT symanal."
     call symanal(sym%bravais, 0, sym%genAfm, AB6_MAX_SYMMETRIES, sym%nSym, &
-         & sym%pointGroupMagn, sym%rprimd, sym%spaceGroup, sym%symafm, &
-         & sym%sym, sym%transNon, sym%tolsym)
+         & sym%pointGroupMagn, sym%rprimd, sym%spaceGroup, symAfm_, &
+         & sym_, transNon_, sym%tolsym)
     if (AB_DBG) write(0,*) "AB symmetry: call ABINIT OK."
+    sym%transNon(:,:) = transNon_(:, 1:sym%nSym)
 
     if (sym%bravais(1) < 0) then
        sym%multiplicity = 2
@@ -801,10 +820,46 @@ contains
     end if
 
     nSym                = token%data%nSym
-    sym(:, :, 1:nSym)   = token%data%sym(:, :, 1:nSym)
-    symAfm(1:nSym)      = token%data%symAfm(1:nSym)
-    transNon(:, 1:nSym) = token%data%transNon(:, 1:nSym)
+    sym(:, :, 1:nSym)   = token%data%sym(:, :,:)
+    symAfm(1:nSym)      = token%data%symAfm(:)
+    transNon(:, 1:nSym) = token%data%transNon(:,:)
   end subroutine ab6_symmetry_get_matrices
+
+  subroutine ab6_symmetry_get_matrices_p(id, nSym, sym, transNon, symAfm, errno)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+!End of the abilint section
+
+    integer, intent(in) :: id
+    integer, intent(out) :: errno
+    integer, intent(out) :: nSym
+    integer, pointer  :: sym(:,:,:)
+    integer, pointer  :: symAfm(:)
+    real(dp), pointer :: transNon(:,:)
+
+    type(symmetry_list), pointer :: token
+
+    if (AB_DBG) write(0,*) "AB symmetry: call get matrices as pointers."
+
+    errno = AB6_NO_ERROR
+    call get_item(token, id)
+    if (.not. associated(token)) then
+       errno = AB6_ERROR_OBJ
+       return
+    end if
+
+    if (token%data%nSym < 0) then
+       ! We do the computation of the matrix part.
+       call compute_matrices(token%data, errno)
+    end if
+
+    nSym     =  token%data%nSym
+    sym      => token%data%sym
+    symAfm   => token%data%symAfm
+    transNon => token%data%transNon
+  end subroutine ab6_symmetry_get_matrices_p
 
   subroutine ab6_symmetry_get_multiplicity(id, multiplicity, errno)
 
@@ -881,6 +936,39 @@ contains
     spaceGroupId   = token%data%spaceGroup
     genAfm         = token%data%genAfm
   end subroutine ab6_symmetry_get_group
+
+  subroutine ab6_symmetry_get_irreductible_zone(id, irrzon, phnons, &
+       & n1, n2, n3, nsppol, nspden, errno)
+    integer, intent(in)            :: id
+    integer, intent(out)           :: errno
+    integer, intent(in)            :: n1, n2, n3, nsppol, nspden
+    integer, intent(out)           :: irrzon(n1*n2*n3,2,(nspden/nsppol)-3*(nspden/4))
+    real(dp), intent(out)          :: phnons(2,n1*n2*n3,(nspden/nsppol)-3*(nspden/4))
+
+    type(symmetry_list), pointer  :: token
+
+    if (AB_DBG) write(0,*) "AB symmetry: call get irreductible zone."
+
+    errno = AB6_NO_ERROR
+    call get_item(token, id)
+    if (.not. associated(token)) then
+       errno = AB6_ERROR_OBJ
+       return
+    end if
+
+    if (token%data%withSpin /= nspden) then
+       errno = AB6_ERROR_ARG
+       return
+    end if
+
+    if (token%data%nSym < 0) then
+       ! We do the computation of the matrix part.
+       call compute_matrices(token%data, errno)
+    end if
+
+    call irrzg(irrzon, nspden, nsppol, token%data%nSym, n1, n2, n3, phnons, &
+         & token%data%symAfm, token%data%sym, token%data%transNon)
+  end subroutine ab6_symmetry_get_irreductible_zone
 
   subroutine compute_equivalent_atoms(sym)
 

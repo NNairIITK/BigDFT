@@ -384,6 +384,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   real(kind=8), dimension(:), pointer :: proj
   ! arrays for DIIS convergence accelerator
   real(kind=8), dimension(:,:,:), pointer :: ads
+  ! Arrays for the symmetrisation, not used here...
+  integer, dimension(:,:,:), allocatable :: irrzon
+  real(dp), dimension(:,:,:), allocatable :: phnons
   
   !for xabsorber
   logical in_refinement
@@ -623,7 +626,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
      call input_wf_diag(iproc,nproc,atoms,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut )
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons)
 
 
      i_all=-product(shape(psi))*kind(psi)
