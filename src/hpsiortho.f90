@@ -47,6 +47,9 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
 !  real(kind=8) :: stream_ptr_first_trsf
 
+  !initialise exact exchange energy 
+  eexctX=0.0_gp
+
   exctX = libxc_functionals_exctXfac() /= 0.0_gp
 
   call timing(iproc,'Rho_commun    ','ON')

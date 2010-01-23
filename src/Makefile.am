@@ -166,6 +166,7 @@ low_level = init/projectors.f90  \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
+	wfn_opt/exctX.f90 \
 	wfn_opt/precond_per_optim.f90 \
 	wfn_opt/precond_hyb.f90 \
 	wfn_opt/precond_slab.f90 \
