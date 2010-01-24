@@ -19,13 +19,12 @@
 !! msym = default number of symmetry operations
 !! nogenaf = number of generators, number of operations to be applied onto themselves
 !! nsym = number of symmetry operations
+!! symafm = (anti)ferromagnetic part of symmetry operations
 !! symrel = 3D matrix containg symmetry operations
 !! symrel_magn = 3D matrix containg magnetic symmetry generators
 !! tnons = 2D matrix containing translations associated
 !!
 !! OUTPUT
-!!
-!!
 !! symrel = 3D matrix containg symmetry operations
 !! tnons = 2D matrix containing translations associated
 !!
@@ -36,6 +35,7 @@
 !!
 !!
 !! PARENTS
+!! None
 !!
 !! CHILDREN
 !!
@@ -79,35 +79,35 @@ subroutine bldgrpaf(msym,nogenaf,nsym,symafm,symrel,symrel_magn,tnons)
 
 !Find the magnetic generators within the nonmagnetic group operations
  do ii=1,nogenaf
-  do jj=1,nsym
-   if(sum(abs(symrel(:,:,jj)-symrel_magn(:,:,ii)))==0) then
-    symafm(jj)=-1
-    exit
-   end if
-  end do
+   do jj=1,nsym
+     if(sum(abs(symrel(:,:,jj)-symrel_magn(:,:,ii)))==0) then
+       symafm(jj)=-1
+       exit
+     end if
+   end do
  end do
 
  do ii=1,nsym
-  do jj=1,nsym
-   if (symafm(ii)*symafm(jj)==-1) then
+   do jj=1,nsym
+     if (symafm(ii)*symafm(jj)==-1) then
 
-!   Computes the new symmetry opreration, like:
-!   !   $ { R1 | v1 }{ R2 | v2 } = { R1.R2 | v1+R1.v2 } $
-    matrintoper(:,:) = matmul(symrel(:,:,ii),symrel(:,:,jj))
-    matrinttransl(:) = tnons(:,ii)+matmul(symrel(:,:,ii),tnons(:,jj))
+!      Computes the new symmetry opreration, like:
+!      !   $ { R1 | v1 }{ R2 | v2 } = { R1.R2 | v1+R1.v2 } $
+       matrintoper(:,:) = matmul(symrel(:,:,ii),symrel(:,:,jj))
+       matrinttransl(:) = tnons(:,ii)+matmul(symrel(:,:,ii),tnons(:,jj))
 
-    do kk=1,nsym
-     if( (sum(abs(symrel(:,:,kk)-matrintoper(:,:)))==0).and.&
-&     (abs(tnons(1,kk)-matrinttransl(1))+&
-&     abs(tnons(2,kk)-matrinttransl(2))+&
-&     abs(tnons(3,kk)-matrinttransl(3)))<nastyzero ) then
-      symafm(kk)=-1
-      exit
+       do kk=1,nsym
+         if( (sum(abs(symrel(:,:,kk)-matrintoper(:,:)))==0).and.&
+&         (abs(tnons(1,kk)-matrinttransl(1))+&
+&         abs(tnons(2,kk)-matrinttransl(2))+&
+&         abs(tnons(3,kk)-matrinttransl(3)))<nastyzero ) then
+           symafm(kk)=-1
+           exit
+         end if
+       end do
+
      end if
-    end do
-
-   end if
-  end do
+   end do
  end do
 
 

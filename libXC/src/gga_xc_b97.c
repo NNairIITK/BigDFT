@@ -2,16 +2,16 @@
  Copyright (C) 2006-2007 M.A.L. Marques
 
  This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation; either version 3 of the License, or
  (at your option) any later version.
   
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+ GNU Lesser General Public License for more details.
   
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
@@ -189,7 +189,7 @@ const XC(func_info_type) XC(func_info_gga_xc_b97) = {
   "AD Becke, J. Chem. Phys. 107, 8554 (1997)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   work_gga_becke_init, 
-  work_gga_becke_end, 
+  NULL,
   NULL,
   work_gga_becke
 };
@@ -202,7 +202,7 @@ const XC(func_info_type) XC(func_info_gga_xc_b97_1) = {
   "FA Hamprecht, AJ Cohen, DJ Tozer, and NC Handy, J. Chem. Phys. 109, 6264 (1998)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   work_gga_becke_init,
-  work_gga_becke_end, 
+  NULL,
   NULL,
   work_gga_becke
 };
@@ -215,7 +215,7 @@ const XC(func_info_type) XC(func_info_gga_xc_b97_2) = {
   "PJ Wilson, TJ Bradley, and DJ Tozer, J. Chem. Phys. 115, 9233 (2001)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   work_gga_becke_init, 
-  work_gga_becke_end, 
+  NULL,
   NULL,
   work_gga_becke
 };
@@ -228,7 +228,7 @@ const XC(func_info_type) XC(func_info_gga_xc_b97_d) = {
   "S Grimme, J. Comput. Chem. 27, 1787 (2006)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   work_gga_becke_init, 
-  work_gga_becke_end, 
+  NULL,
   NULL,
   work_gga_becke
 };
@@ -241,7 +241,7 @@ const XC(func_info_type) XC(func_info_gga_xc_b97_k) = {
   "AD Boese and JML Martin, J. Chem. Phys., Vol. 121, 3405 (2004)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   work_gga_becke_init, 
-  work_gga_becke_end, 
+  NULL,
   NULL,
   work_gga_becke
 };
@@ -254,7 +254,7 @@ const XC(func_info_type) XC(func_info_gga_xc_b97_3) = {
   "TW Keal and DJ Tozer, J. Chem. Phys. 123, 121103 (2005)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   work_gga_becke_init, 
-  work_gga_becke_end, 
+  NULL,
   NULL,
   work_gga_becke
 };
@@ -267,7 +267,7 @@ const XC(func_info_type) XC(func_info_gga_xc_hcth_93) = {
   "FA Hamprecht, AJ Cohen, DJ Tozer, and NC Handy, J. Chem. Phys. 109, 6264 (1998)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   work_gga_becke_init, 
-  work_gga_becke_end, 
+  NULL,
   NULL,
   work_gga_becke
 };
@@ -280,7 +280,7 @@ const XC(func_info_type) XC(func_info_gga_xc_hcth_120) = {
   "AD Boese, NL Doltsinis, NC Handy, and M Sprik, J. Chem. Phys. 112, 1670 (2000)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   work_gga_becke_init, 
-  work_gga_becke_end, 
+  NULL,
   NULL,
   work_gga_becke
 };
@@ -293,7 +293,7 @@ const XC(func_info_type) XC(func_info_gga_xc_hcth_147) = {
   "AD Boese, NL Doltsinis, NC Handy, and M Sprik, J. Chem. Phys. 112, 1670 (2000)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   work_gga_becke_init, 
-  work_gga_becke_end, 
+  NULL,
   NULL,
   work_gga_becke
 };
@@ -306,7 +306,7 @@ const XC(func_info_type) XC(func_info_gga_xc_hcth_407) = {
   "AD Boese and NC Handy, J. Chem. Phys. 114, 5497 (2001)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   work_gga_becke_init, 
-  work_gga_becke_end, 
+  NULL,
   NULL,
   work_gga_becke
 };
@@ -319,7 +319,7 @@ const XC(func_info_type) XC(func_info_gga_xc_sb98_1a) = {
   "HL Schmider and AD Becke, J. Chem. Phys. 108, 9624 (1998)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   work_gga_becke_init, 
-  work_gga_becke_end, 
+  NULL,
   NULL,
   work_gga_becke
 };
@@ -332,7 +332,7 @@ const XC(func_info_type) XC(func_info_gga_xc_sb98_1b) = {
   "HL Schmider and AD Becke, J. Chem. Phys. 108, 9624 (1998)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   work_gga_becke_init, 
-  work_gga_becke_end, 
+  NULL,
   NULL,
   work_gga_becke
 };
@@ -345,7 +345,7 @@ const XC(func_info_type) XC(func_info_gga_xc_sb98_1c) = {
   "HL Schmider and AD Becke, J. Chem. Phys. 108, 9624 (1998)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   work_gga_becke_init, 
-  work_gga_becke_end, 
+  NULL,
   NULL,
   work_gga_becke
 };
@@ -358,7 +358,7 @@ const XC(func_info_type) XC(func_info_gga_xc_sb98_2a) = {
   "HL Schmider and AD Becke, J. Chem. Phys. 108, 9624 (1998)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   work_gga_becke_init, 
-  work_gga_becke_end, 
+  NULL,
   NULL,
   work_gga_becke
 };
@@ -371,7 +371,7 @@ const XC(func_info_type) XC(func_info_gga_xc_sb98_2b) = {
   "HL Schmider and AD Becke, J. Chem. Phys. 108, 9624 (1998)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   work_gga_becke_init, 
-  work_gga_becke_end, 
+  NULL,
   NULL,
   work_gga_becke
 };
@@ -384,7 +384,7 @@ const XC(func_info_type) XC(func_info_gga_xc_sb98_2c) = {
   "HL Schmider and AD Becke, J. Chem. Phys. 108, 9624 (1998)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   work_gga_becke_init, 
-  work_gga_becke_end, 
+  NULL,
   NULL,
   work_gga_becke
 };

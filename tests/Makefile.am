@@ -15,9 +15,9 @@ SUBDIRS = \
 	  Davidson-SiH4 \
 	  H2-freq \
 	  NEB \
-	  FeHyb \
-	  XabsCheb 
-
+	  NH3 \
+	  XabsCheb \
+	  FeHyb
 
 
 #This will run the automatic tests also for GPU
@@ -36,14 +36,14 @@ else
 mpirun_message=
 endif
 
-head_message:
+head_message: all-recursive
 	@echo "=============================================="
 	@echo "Type 'make check' in the directory tests      "
 
-foot_message:
+foot_message: $(mpirun_message) head_message
 	@echo "=============================================="
 
-mpirun:
+mpirun: head_message
 	@echo "     Use the environment variable run_parallel"
 	@echo "     ex: export run_parallel='mpirun -np 2'  "
 

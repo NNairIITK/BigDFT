@@ -84,21 +84,21 @@ subroutine xclb(grho2_updn,npts,nspden,rho_updn,vxci)
 
  do ispden=1,nspden
 
-  do ipts=1,npts
+   do ipts=1,npts
 
-   density= scaling_factor * rho_updn(ipts,ispden)
-   density_gradient= scaling_factor * sqrt(grho2_updn(ipts,ispden))
+     density= scaling_factor * rho_updn(ipts,ispden)
+     density_gradient= scaling_factor * sqrt(grho2_updn(ipts,ispden))
 
-   density_t13= density**third
-   scaled_gradient= density_gradient/max(density*density_t13,1.e-12_dp)
+     density_t13= density**third
+     scaled_gradient= density_gradient/max(density*density_t13,1.e-12_dp)
 
-   s_g_sq= scaled_gradient*scaled_gradient
+     s_g_sq= scaled_gradient*scaled_gradient
 
-   vx_lb= -beta*density_t13 * s_g_sq/ &
-&   (one+3.d0*beta* scaled_gradient*log(scaled_gradient+sqrt(one+s_g_sq*s_g_sq)))
+     vx_lb= -beta*density_t13 * s_g_sq/ &
+&     (one+3.d0*beta* scaled_gradient*log(scaled_gradient+sqrt(one+s_g_sq*s_g_sq)))
 
-   vxci(ipts,ispden)=vxci(ipts,ispden)+vx_lb
-  end do
+     vxci(ipts,ispden)=vxci(ipts,ispden)+vx_lb
+   end do
 
  end do
 

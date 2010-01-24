@@ -2,16 +2,16 @@
  Copyright (C) 2006-2007 M.A.L. Marques
 
  This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation; either version 3 of the License, or
  (at your option) any later version.
   
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+ GNU Lesser General Public License for more details.
   
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
@@ -19,197 +19,231 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #include "util.h"
 #include "funcs_lda.c"
 
 
 /* initialization */
-int XC(lda_init)(XC(lda_type) *p, int functional, int nspin)
+int 
+XC(lda_init)(XC(func_type) *p, const XC(func_info_type) *info, int nspin)
 {
-  int i;
+  XC(lda_type) *func;
 
-  assert(p != NULL);
+  assert(p != NULL && p->lda != NULL);
+  func = p->lda;
 
-  /* let us first find out if we know the functional */
-  for(i=0; XC(lda_known_funct)[i]!=NULL; i++){
-    if(XC(lda_known_funct)[i]->number == functional) break;
-  }
-  assert(XC(lda_known_funct)[i] != NULL);
-  if(XC(lda_known_funct)[i] == NULL) return -1; /* functional not found */
-  
   /* initialize structure */
-  p->params = NULL;
-  p->info   = XC(lda_known_funct)[i];
+  func->info   = info;
+  func->nspin  = nspin;
+  func->params = NULL;
+  func->func   = 0;
 
-  assert(nspin==XC_UNPOLARIZED || nspin==XC_POLARIZED);
-  p->nspin = nspin;
-  p->relativistic = 0;
+  /* initialize spin counters */
+  func->n_rho = func->n_vrho = func->nspin;
+  func->n_zk  = 1;
+  if(func->nspin == XC_UNPOLARIZED){
+    func->n_v2rho2 = func->n_v3rho3 = 1;
+  }else{
+    func->n_v2rho2 = 3;
+    func->n_v3rho3 = 4;
+  }
 
   /* see if we need to initialize the functional */
-  if(p->info->init != NULL)
-    p->info->init(p);
+  if(func->info->init != NULL)
+    func->info->init(func);
   return 0;
 }
 
 
 /* termination */
-void XC(lda_end)(XC(lda_type) *p)
+void 
+XC(lda_end)(XC(func_type) *p)
 {
-  assert(p != NULL);
+  XC(lda_type) *func;
 
-  if(p->info->end != NULL)
-    p->info->end(p);
+  assert(p != NULL && p->lda != NULL);
+  func = p->lda;
+
+  if(func->info->end != NULL)
+    func->info->end(func);
+
+  /* deallocate any used parameter */
+  if(func->params != NULL){
+    free(func->params);
+    func->params = NULL;
+  }
 }
 
 
 /* get the lda functional */
-void XC(lda)(const XC(lda_type) *p, const FLOAT *rho, 
-	    FLOAT *zk, FLOAT *vrho, FLOAT *v2rho2, FLOAT *v3rho3)
+void 
+XC(lda)(const XC(func_type) *p, int np, const FLOAT *rho, 
+	FLOAT *zk, FLOAT *vrho, FLOAT *v2rho2, FLOAT *v3rho3)
 {
-  FLOAT dens;
+  XC(lda_type) *func;
 
-  assert(p!=NULL);
-  
+  assert(p != NULL && p->lda != NULL);
+  func = p->lda;
+
   /* sanity check */
-  if(zk != NULL && !(p->info->provides & XC_PROVIDES_EXC)){
+  if(zk != NULL && !(func->info->provides & XC_PROVIDES_EXC)){
     fprintf(stderr, "Functional '%s' does not provide an implementation of Exc",
-	    p->info->name);
+	    func->info->name);
     exit(1);
   }
 
-  if(vrho != NULL && !(p->info->provides & XC_PROVIDES_VXC)){
+  if(vrho != NULL && !(func->info->provides & XC_PROVIDES_VXC)){
     fprintf(stderr, "Functional '%s' does not provide an implementation of vxc",
-	    p->info->name);
+	    func->info->name);
     exit(1);
   }
 
-  { /* initialize output to zero */
-    int i;
-
-    if(zk != NULL) *zk = 0.0;
-
-    if(vrho != NULL){
-      for(i=0; i<p->nspin; i++)
-    	vrho[i] = 0.0;
-    }
-
-    if(v2rho2 != NULL){
-      int n = (p->nspin == XC_UNPOLARIZED) ? 1 : 3;
-      for(i=0; i<n; i++)
-	v2rho2[i] = 0.0;
-    }
-
-    if(v3rho3 != NULL){
-      int n = (p->nspin == XC_UNPOLARIZED) ? 1 : 4;
-      for(i=0; i<n; i++)
-    	v3rho3[i] = 0.0;
-    }
+  if(v2rho2 != NULL && !(func->info->provides & XC_PROVIDES_FXC)){
+    fprintf(stderr, "Functional '%s' does not provide an implementation of fxc",
+	    func->info->name);
+    exit(1);
   }
 
-  dens = rho[0];
-  if(p->nspin == XC_POLARIZED) dens += rho[1];
+  if(v3rho3 != NULL && !(func->info->provides & XC_PROVIDES_KXC)){
+    fprintf(stderr, "Functional '%s' does not provide an implementation of kxc",
+	    func->info->name);
+    exit(1);
+  }
 
-  if(dens <= MIN_DENS)
-    return;
+  /* initialize output */
+  if(zk != NULL)
+    memset(zk,     0, np*sizeof(FLOAT)*func->n_zk);
 
-  assert(p->info!=NULL && p->info->lda!=NULL);
+  if(vrho != NULL)
+    memset(vrho,   0, np*sizeof(FLOAT)*func->n_vrho);
+
+  if(v2rho2 != NULL)
+    memset(v2rho2, 0, np*sizeof(FLOAT)*func->n_v2rho2);
+
+  if(v3rho3 != NULL)
+    memset(v3rho3, 0, np*sizeof(FLOAT)*func->n_v3rho3);
+
+
+  assert(func->info!=NULL && func->info->lda!=NULL);
 
   /* call the LDA routines */
-  p->info->lda(p, rho, zk, vrho, v2rho2, v3rho3);
-
-  /* if necessary, call the finite difference routines */
-  if(v2rho2 != NULL && !(p->info->provides & XC_PROVIDES_FXC))
-    XC(lda_fxc_fd)(p, rho, v2rho2);
-  
-  if(v3rho3 != NULL && !(p->info->provides & XC_PROVIDES_KXC))
-    XC(lda_kxc_fd)(p, rho, v3rho3);
+  func->info->lda(func, np, rho, zk, vrho, v2rho2, v3rho3);
 }
 
 
 /* especializations */
-inline void XC(lda_exc)(const XC(lda_type) *p, const FLOAT *rho, FLOAT *zk)
+inline void 
+XC(lda_exc)(const XC(func_type) *p, int np, const FLOAT *rho, FLOAT *zk)
 {
-  XC(lda)(p, rho, zk, NULL, NULL, NULL);
+  XC(lda)(p, np, rho, zk, NULL, NULL, NULL);
 }
 
-inline void XC(lda_vxc)(const XC(lda_type) *p, const FLOAT *rho, FLOAT *zk, FLOAT *vrho)
+inline void 
+XC(lda_exc_vxc)(const XC(func_type) *p, int np, const FLOAT *rho, FLOAT *zk, FLOAT *vrho)
 {
-  XC(lda)(p, rho, zk, vrho, NULL, NULL);
+  XC(lda)(p, np, rho, zk, vrho, NULL, NULL);
 }
 
-inline void XC(lda_fxc)(const XC(lda_type) *p, const FLOAT *rho, FLOAT *v2rho2)
+inline void 
+XC(lda_vxc)(const XC(func_type) *p, int np, const FLOAT *rho, FLOAT *vrho)
 {
-  XC(lda)(p, rho, NULL, NULL, v2rho2, NULL);
+  XC(lda)(p, np, rho, NULL, vrho, NULL, NULL);
 }
 
-inline void XC(lda_kxc)(const XC(lda_type) *p, const FLOAT *rho, FLOAT *v3rho3)
+inline void 
+XC(lda_fxc)(const XC(func_type) *p, int np, const FLOAT *rho, FLOAT *v2rho2)
 {
-  XC(lda)(p, rho, NULL, NULL, NULL, v3rho3);
+  XC(lda)(p, np, rho, NULL, NULL, v2rho2, NULL);
 }
 
+inline void 
+XC(lda_kxc)(const XC(func_type) *p, int np, const FLOAT *rho, FLOAT *v3rho3)
+{
+  XC(lda)(p, np, rho, NULL, NULL, NULL, v3rho3);
+}
+
+
+#ifdef SINGLE_PRECISION
+#  define DELTA_RHO 1e-4
+#else
+#  define DELTA_RHO 1e-6
+#endif
 
 /* get the xc kernel through finite differences */
-void XC(lda_fxc_fd)(const XC(lda_type) *p, const FLOAT *rho, FLOAT *fxc)
+void 
+XC(lda_fxc_fd)(const XC(func_type) *p, int np, const FLOAT *rho, FLOAT *v2rho2)
 {
-#ifdef SINGLE_PRECISION
-  static const FLOAT delta_rho = 1e-8;
-#else
-  static const FLOAT delta_rho = 1e-6;
-#endif
-  int i;
+  XC(lda_type) *func;
+  int i, ip;
 
-  for(i=0; i<p->nspin; i++){
-    FLOAT rho2[2], e, vc1[2], vc2[2];
-    int j, js;
+  assert(p != NULL && p->lda != NULL);
+  func = p->lda;
 
-    j  = (i+1) % 2;
-    js = (i==0) ? 0 : 2;
-
-    rho2[i] = rho[i] + delta_rho;
-    rho2[j] = (p->nspin == XC_POLARIZED) ? rho[j] : 0.0;
-    XC(lda_vxc)(p, rho2, &e, vc1);
-
-    if(rho[i]<2.0*delta_rho){ /* we have to use a forward difference */
-      XC(lda_vxc)(p, rho, &e, vc2);
-	
-      fxc[js] = (vc1[i] - vc2[i])/(delta_rho);
-      if(p->nspin == XC_POLARIZED && i==0)
-	fxc[1] = (vc1[j] - vc2[j])/(delta_rho);
-	
-    }else{                    /* centered difference (more precise)  */
-      rho2[i] = rho[i] - delta_rho;
-      XC(lda_vxc)(p, rho2, &e, vc2);
+  for(ip=0; ip<np; ip++){
+    for(i=0; i<func->nspin; i++){
+      FLOAT rho2[2], vc1[2], vc2[2];
+      int j, js;
       
-      fxc[js] = (vc1[i] - vc2[i])/(2.0*delta_rho);
-      if(p->nspin == XC_POLARIZED && i==0)
-	fxc[1] = (vc1[j] - vc2[j])/(2.0*delta_rho);
+      j  = (i+1) % 2;
+      js = (i==0) ? 0 : 2;
+      
+      rho2[i] = rho[i] + DELTA_RHO;
+      rho2[j] = (func->nspin == XC_POLARIZED) ? rho[j] : 0.0;
+      XC(lda_vxc)(p, 1, rho2, vc1);
+      
+      if(rho[i]<2.0*DELTA_RHO){ /* we have to use a forward difference */
+	XC(lda_vxc)(p, 1, rho, vc2);
+	
+	v2rho2[js] = (vc1[i] - vc2[i])/(DELTA_RHO);
+	if(func->nspin == XC_POLARIZED && i==0)
+	  v2rho2[1] = (vc1[j] - vc2[j])/(DELTA_RHO);
+	
+      }else{                    /* centered difference (more precise)  */
+	rho2[i] = rho[i] - DELTA_RHO;
+	XC(lda_vxc)(p, 1, rho2, vc2);
+      
+	v2rho2[js] = (vc1[i] - vc2[i])/(2.0*DELTA_RHO);
+	if(func->nspin == XC_POLARIZED && i==0)
+	  v2rho2[1] = (vc1[j] - vc2[j])/(2.0*DELTA_RHO);
+      }
     }
-    
-  }
+
+    rho    += func->n_rho;
+    v2rho2 += func->n_v2rho2;
+  } /* for(ip) */
 }
 
 
-void XC(lda_kxc_fd)(const XC(lda_type) *p, const FLOAT *rho, FLOAT *kxc)
+void
+XC(lda_kxc_fd)(const XC(func_type) *p, int np, const FLOAT *rho, FLOAT *v3rho3)
 {
   /* Kxc, this is a third order tensor with respect to the densities */
+  XC(lda_type) *func;
+  int ip, i, j, n;
 
-  int i, j, n;
-  const FLOAT delta_rho = 1e-4;
+  assert(p != NULL && p->lda != NULL);
+  func = p->lda;
 
-  for(i=0; i<p->nspin; i++){
-    FLOAT rho2[2], e, vc1[2], vc2[2], vc3[2];
+  for(ip=0; ip<np; ip++){
+    for(i=0; i<func->nspin; i++){
+      FLOAT rho2[2], vc1[2], vc2[2], vc3[2];
 
-    for(n=0; n<p->nspin; n++) rho2[n] = rho[n];
-    XC(lda_vxc)(p, rho , &e, vc2);
+      for(n=0; n<func->nspin; n++) rho2[n] = rho[n];
+      XC(lda_vxc)(p, 1, rho, vc2);
 
-    rho2[i] += delta_rho;
-    XC(lda_vxc)(p, rho2, &e, vc1);
+      rho2[i] += DELTA_RHO;
+      XC(lda_vxc)(p, 1, rho2, vc1);
 	
-    rho2[i] -= 2.0*delta_rho;
-    XC(lda_vxc)(p, rho2, &e, vc3);    
+      rho2[i] -= 2.0*DELTA_RHO;
+      XC(lda_vxc)(p, 1, rho2, vc3);    
     
-    for(j=0; j<p->nspin; j++)
-      kxc[i*p->nspin + j] = (vc1[j] - 2.0*vc2[j] + vc3[j])/(delta_rho*delta_rho);
-  }
+      for(j=0; j<func->nspin; j++)
+	v3rho3[i*func->nspin + j] = (vc1[j] - 2.0*vc2[j] + vc3[j])/(DELTA_RHO*DELTA_RHO);
+    }
+    
+    rho    += func->n_rho;
+    v3rho3 += func->n_v3rho3;
+  } /* for(ip) */
 }

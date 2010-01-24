@@ -2,16 +2,16 @@
  Copyright (C) 2006-2007 M.A.L. Marques
 
  This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation; either version 3 of the License, or
  (at your option) any later version.
   
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+ GNU Lesser General Public License for more details.
   
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
@@ -32,39 +32,31 @@
 #define XC_GGA_C_PBE          130 /* Perdew, Burke & Ernzerhof correlation          */
 #define XC_GGA_C_PBE_SOL      133 /* Perdew, Burke & Ernzerhof correlation SOL      */
 #define XC_GGA_C_XPBE         136 /* xPBE reparametrization by Xu & Goddard         */
+#define XC_GGA_C_PBE_JRGX     138 /* JRGX reparametrization by Pedroza, Silva & Capelle */
 
-static const FLOAT beta[3]  = {
-  0.06672455060314922,  /* original PBE */
-  0.046,                /* PBE sol      */
-  0.089809
+static const FLOAT beta[4]  = {
+  0.06672455060314922,       /* original PBE */
+  0.046,                     /* PBE sol      */
+  0.089809,                  /* xPBE */
+  3.0*10.0/(81.0*M_PI*M_PI)  /* PBE_JRGX */
 };
-static FLOAT gamm[3];
+static FLOAT gamm[4];
 
 
 static void gga_c_pbe_init(void *p_)
 {
+  int ii;
+
   XC(gga_type) *p = (XC(gga_type) *)p_;
 
-  p->lda_aux = (XC(lda_type) *) malloc(sizeof(XC(lda_type)));
-  XC(lda_init)(p->lda_aux, XC_LDA_C_PW_MOD, p->nspin);
+  p->func_aux    = (XC(func_type) **) malloc(1*sizeof(XC(func_type) *));
+  p->func_aux[0] = (XC(func_type) *)  malloc(  sizeof(XC(func_type)));
 
-  switch(p->info->number){
-  case XC_GGA_C_XPBE:
-    gamm[2] = beta[2]*beta[2]/(2.0*0.197363);
-    break;
-  case XC_GGA_C_PBE_SOL:
-  default: /* the original PBE */
-    gamm[0] = gamm[1] = (1.0 - log(2.0))/(M_PI*M_PI);
-    break;
-  }  
-}
+  XC(func_init)(p->func_aux[0], XC_LDA_C_PW_MOD, p->nspin);
 
-
-static void gga_c_pbe_end(void *p_)
-{
-  XC(gga_type) *p = (XC(gga_type) *)p_;
-
-  free(p->lda_aux);
+  for(ii=0; ii<4; ii++)
+    gamm[ii] = (1.0 - log(2.0))/(M_PI*M_PI);
+  gamm[2] = beta[2]*beta[2]/(2.0*0.197363);
 }
 
 
@@ -150,7 +142,7 @@ pbe_eq7(int func, int order, FLOAT phi, FLOAT t, FLOAT A,
 }
 
 static void 
-gga_c_pbe(const void *p_, const FLOAT *rho, const FLOAT *sigma,
+my_gga_c_pbe(const void *p_, const FLOAT *rho, const FLOAT *sigma,
 	  FLOAT *e, FLOAT *vrho, FLOAT *vsigma,
 	  FLOAT *v2rho2, FLOAT *v2rhosigma, FLOAT *v2sigma2)
 {
@@ -163,9 +155,10 @@ gga_c_pbe(const void *p_, const FLOAT *rho, const FLOAT *sigma,
   FLOAT H, dHdphi, dHdt, dHdA, d2Hdphi2, d2Hdphit, d2HdphiA, d2Hdt2, d2HdtA, d2HdA2;
 
   switch(p->info->number){
-  case XC_GGA_C_PBE_SOL: func = 1; break;
-  case XC_GGA_C_XPBE:    func = 2; break;
-  default:               func = 0; /* original PBE */
+  case XC_GGA_C_PBE_SOL:  func = 1; break;
+  case XC_GGA_C_XPBE:     func = 2; break;
+  case XC_GGA_C_PBE_JRGX: func = 3; break;
+  default:                func = 0; /* original PBE */
   }
 
   order = 0;
@@ -173,6 +166,8 @@ gga_c_pbe(const void *p_, const FLOAT *rho, const FLOAT *sigma,
   if(v2rho2 != NULL) order = 2;
 
   XC(perdew_params)(p, rho, sigma, order, &pt);
+  if((p->nspin != XC_POLARIZED && rho[0] < MIN_DENS) ||
+     (p->nspin == XC_POLARIZED && rho[0] < MIN_DENS && rho[1] < MIN_DENS)) return;
 
   pbe_eq8(func, order, pt.ecunif, pt.phi,
 	  &A, &dAdec, &dAdphi, &d2Adec2, &d2Adecphi, &d2Adphi2);
@@ -203,6 +198,37 @@ gga_c_pbe(const void *p_, const FLOAT *rho, const FLOAT *sigma,
   XC(perdew_potentials)(&pt, rho, me, order, vrho, vsigma, v2rho2, v2rhosigma, v2sigma2);
 }
 
+/* Warning: this is a workaround to support blocks while waiting for the next interface */
+static void 
+gga_c_pbe(const void *p_, int np, const FLOAT *rho, const FLOAT *sigma,
+	  FLOAT *zk, FLOAT *vrho, FLOAT *vsigma,
+	  FLOAT *v2rho2, FLOAT *v2rhosigma, FLOAT *v2sigma2)
+{
+  int ip;
+  const XC(gga_type) *p = p_;
+
+  for(ip=0; ip<np; ip++){
+    my_gga_c_pbe(p_, rho, sigma, zk, vrho, vsigma, v2rho2, v2rhosigma, v2sigma2);
+
+    /* increment pointers */
+    rho   += p->n_rho;
+    sigma += p->n_sigma;
+    
+    if(zk != NULL)
+      zk += p->n_zk;
+    
+    if(vrho != NULL){
+      vrho   += p->n_vrho;
+      vsigma += p->n_vsigma;
+    }
+
+    if(v2rho2 != NULL){
+      v2rho2     += p->n_v2rho2;
+      v2rhosigma += p->n_v2rhosigma;
+      v2sigma2   += p->n_v2sigma2;
+    }
+  }
+}
 
 const XC(func_info_type) XC(func_info_gga_c_pbe) = {
   XC_GGA_C_PBE,
@@ -213,7 +239,7 @@ const XC(func_info_type) XC(func_info_gga_c_pbe) = {
   "JP Perdew, K Burke, and M Ernzerhof, Phys. Rev. Lett. 78, 1396(E) (1997)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   gga_c_pbe_init,
-  gga_c_pbe_end,
+  NULL,
   NULL,            /* this is not an LDA                   */
   gga_c_pbe,
 };
@@ -226,7 +252,7 @@ const XC(func_info_type) XC(func_info_gga_c_pbe_sol) = {
   "JP Perdew, et al, Phys. Rev. Lett. 100, 136406 (2008)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   gga_c_pbe_init,
-  gga_c_pbe_end,
+  NULL,
   NULL,            /* this is not an LDA                   */
   gga_c_pbe,
 };
@@ -239,7 +265,20 @@ const XC(func_info_type) XC(func_info_gga_c_xpbe) = {
   "X Xu and WA Goddard III, J. Chem. Phys. 121, 4068 (2004)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
   gga_c_pbe_init,
-  gga_c_pbe_end,
+  NULL,
+  NULL,            /* this is not an LDA                   */
+  gga_c_pbe,
+};
+
+const XC(func_info_type) XC(func_info_gga_c_pbe_jrgx) = {
+  XC_GGA_C_PBE_JRGX,
+  XC_CORRELATION,
+  "Reparametrized PBE by Pedroza, Silva & Capelle",
+  XC_FAMILY_GGA,
+  "LS Pedroza, AJR da Silva, and K. Capelle, arxiv:0905.1925",
+  XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC,
+  gga_c_pbe_init,
+  NULL,
   NULL,            /* this is not an LDA                   */
   gga_c_pbe,
 };

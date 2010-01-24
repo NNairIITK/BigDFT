@@ -2,16 +2,16 @@
  Copyright (C) 2006-2007 M.A.L. Marques
 
  This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation; either version 3 of the License, or
  (at your option) any later version.
   
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+ GNU Lesser General Public License for more details.
   
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
@@ -99,7 +99,13 @@ lda_c_vwn_init(void *p_)
 }
 
 
-void XC(lda_c_vwn_set_params)(const XC(lda_type) *p, int spin_interpolation)
+void XC(lda_c_vwn_set_params)(XC(func_type) *p, int spin_interpolation)
+{
+  assert(p != NULL && p->lda != NULL);
+  XC(lda_c_vwn_set_params_)(p->lda, spin_interpolation);
+}
+
+void XC(lda_c_vwn_set_params_)(XC(lda_type) *p, int spin_interpolation)
 {
   lda_c_vwn_params *params;
 

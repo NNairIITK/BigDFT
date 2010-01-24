@@ -306,8 +306,9 @@ in cases where one has near degenercy between the homo and lumo orbitals. 50 and
                                   'ionic\_potential.pot', 'local\_potential.pot', 'hartree\_potential.pot'.
        \item {\bf output\_density} = -2, same as {\bf output\_density} = 2, but all files are written in the .cube format
       \end{itemize}
-\item {\bf calc\_tail} , {\bf rbuf}, {\bf ncongt}:  Far reaching tails of the wavefunctions decaying into the vacuum are  
-                                      added in a perturbative treatment if the variable {\bf calc\_tail} is set to .true.. 
+\item {\bf rbuf}, {\bf ncongt}:  Far reaching tails of the wavefunctions decaying into the vacuum are  
+                                      added in a perturbative
+treatment if the variable {\bf rbuf} is set to a strictly positive value. 
                                       This allows to do a calculation with some moderate 
                                       value of {\bf crmult} and then to extrapolate to the limit of large  {\bf crmult}. 
                                       This procedure is not variational and gives too low energies. The true energy is 

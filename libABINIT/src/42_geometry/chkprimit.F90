@@ -32,7 +32,7 @@
 !
 !!
 !! PARENTS
-!!      ingeo
+!!      ingeo,ab6_symmetry_f90
 !!
 !! CHILDREN
 !!      leave_new,wrtout
@@ -49,7 +49,8 @@ subroutine chkprimit(chkprim,multi,nsym,symafm,symrel)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
- !use interfaces_01manage_mpi
+ use interfaces_14_hidewrite
+ use interfaces_16_hideleave
 !End of the abilint section
 
  implicit none
@@ -73,38 +74,38 @@ subroutine chkprimit(chkprim,multi,nsym,symafm,symrel)
 !without change of sign of the spin
  multi=0
  do isym=1,nsym
-  if( abs(symrel(1,1,isym)-1)+&
-&  abs(symrel(2,2,isym)-1)+&
-&  abs(symrel(3,3,isym)-1)+&
-&  abs(symrel(1,2,isym))+abs(symrel(2,1,isym))+&
-&  abs(symrel(2,3,isym))+abs(symrel(3,2,isym))+&
-&  abs(symrel(3,1,isym))+abs(symrel(1,3,isym))+&
-&  abs(symafm(isym)-1)                           ==0 )then
-   multi=multi+1
-  end if
+   if( abs(symrel(1,1,isym)-1)+&
+&   abs(symrel(2,2,isym)-1)+&
+&   abs(symrel(3,3,isym)-1)+&
+&   abs(symrel(1,2,isym))+abs(symrel(2,1,isym))+&
+&   abs(symrel(2,3,isym))+abs(symrel(3,2,isym))+&
+&   abs(symrel(3,1,isym))+abs(symrel(1,3,isym))+&
+&   abs(symafm(isym)-1)                           ==0 )then
+     multi=multi+1
+   end if
  end do
 
 !Check whether the cell is primitive
  if(multi>1)then
-  if(chkprim/=0)then
-   write(message,'(a,a,a,a,a,a,i3,a,a,a,a,a,a,a,a,a)') ch10,&
-&   ' chkprimit : ERROR -',ch10,&
-&   '  According to the symmetry finder, the unit cell is',ch10,&
-&   '  NOT primitive. The multiplicity is',multi,' .',ch10,&
-&   '  The use of non-primitive unit cells is allowed',ch10,&
-&   '  only when the input variable chkprim is 0.',ch10,&
-&   '  Action : either change your unit cell (rprim or angdeg),',ch10,&
-&   '  or set chkprim to 0.'
-   call wrtout(6,message,'COLL')
-   call leave_new('COLL')
-  else
-   write(message,'(a,a,a,a,a,a,i3,a,a,a)') ch10,&
-&   ' chkprimit : COMMENT -',ch10,&
-&   '  According to the symmetry finder, the unit cell is',ch10,&
-&   '  not primitive, with multiplicity=',multi,'.',ch10,&
-&   '  This is allowed, as the input variable chkprim is 0.'
-   call wrtout(6,message,'COLL')
-  end if
+   if(chkprim/=0)then
+     write(message,'(a,a,a,a,a,a,i3,a,a,a,a,a,a,a,a,a)') ch10,&
+&     ' chkprimit : ERROR -',ch10,&
+&     '  According to the symmetry finder, the unit cell is',ch10,&
+&     '  NOT primitive. The multiplicity is',multi,' .',ch10,&
+&     '  The use of non-primitive unit cells is allowed',ch10,&
+&     '  only when the input variable chkprim is 0.',ch10,&
+&     '  Action : either change your unit cell (rprim or angdeg),',ch10,&
+&     '  or set chkprim to 0.'
+     call wrtout(std_out,message,'COLL')
+     call leave_new('COLL')
+   else
+     write(message,'(a,a,a,a,a,a,i3,a,a,a)') ch10,&
+&     ' chkprimit : COMMENT -',ch10,&
+&     '  According to the symmetry finder, the unit cell is',ch10,&
+&     '  not primitive, with multiplicity=',multi,'.',ch10,&
+&     '  This is allowed, as the input variable chkprim is 0.'
+     call wrtout(std_out,message,'COLL')
+   end if
  end if
 
 end subroutine chkprimit

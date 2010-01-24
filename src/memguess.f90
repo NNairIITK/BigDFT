@@ -1303,7 +1303,7 @@ subroutine dft_input_converter(in)
   
 
   line=''
-  line=' calc_tail, rbuf, ncongt: calculate tails,length of the tail (AU),# tail CG iterations'
+  line=' rbuf, ncongt: length of the tail (AU),# tail CG iterations'
   if (in%calc_tail) then
      write(1,'(f4.1,i4,a)') in%rbuf,in%ncongt,trim(line)
   else

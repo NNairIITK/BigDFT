@@ -92,9 +92,6 @@ module defs_parameters
 &                                                "differential equation  ", &
 &                                                "self-consistent problem"/)
 
-!- Possible values for macro_uj
- integer,parameter :: ndtpawuj=4
-
 end module defs_parameters
 
 !!***
