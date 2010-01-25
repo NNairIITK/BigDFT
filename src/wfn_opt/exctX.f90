@@ -298,7 +298,6 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
 
 end subroutine exact_exchange_potential
 
-
 subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
   use module_base
   use module_types

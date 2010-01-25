@@ -13,7 +13,7 @@
 !!
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel)
+     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc)
   use module_base
   use module_types
   use libxc_functionals
@@ -33,6 +33,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
   real(dp), dimension(*), optional :: pkernel
+  type(orbitals_data), intent(in), optional :: orbsocc
+  real(wp), dimension(*), intent(in), optional :: psirocc
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX
@@ -100,8 +102,15 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !fill the rest of the potential with the exact-exchange terms
   if (present(pkernel) .and. exctX) then
      n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
-     call exact_exchange_potential(iproc,nproc,at%geocode,nspin,lr,orbs,ngatherarr(0,1),n3p,&
-          0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+     !exact exchange for virtual orbitals (needs psirocc)
+     if (present(psirocc) .and. present(orbsocc)) then
+        call exact_exchange_potential_virt(iproc,nproc,at%geocode,nspin,lr,orbsocc,orbs,ngatherarr(0,1),n3p,&
+             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi,pot(ispot))
+        eexctX = 0._gp
+     else
+        call exact_exchange_potential(iproc,nproc,at%geocode,nspin,lr,orbs,ngatherarr(0,1),n3p,&
+             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+     end if
   else
      eexctX = 0._gp
      !print *,'iproc,eexctX',iproc,eexctX

@@ -225,11 +225,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! Arrays for the symmetrisation.
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
-  
-
-
-
-
 
 
   ! ----------------------------------
@@ -502,7 +497,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call import_gaussians(iproc,nproc,atoms,orbs,comms,&
           & Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj, &
           & pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,in%nspin,&
-          & atoms%symObj, irrzon, phnons)
+          & atoms%symObj,irrzon,phnons)
 
   case(0)
      nspin=in%nspin
@@ -510,7 +505,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call input_wf_diag(iproc,nproc,atoms,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
-          nscatterarr,ngatherarr,nspin,0,atoms%symObj, irrzon, phnons)
+          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons)
 
   case(1)
      !these parts should be reworked for the non-collinear spin case
@@ -758,7 +753,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
           nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
           rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
-          in%nspin,GPU,pkernel)
+          in%nspin,GPU,pkernel=pkernel)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
@@ -1194,16 +1189,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)
      call memocc(i_stat,i_all,'rhopot',subname)
-     if (allocated(irrzon)) then
-        i_all=-product(shape(irrzon))*kind(irrzon)
-        deallocate(irrzon,stat=i_stat)
-        call memocc(i_stat,i_all,'irrzon',subname)
-     end if
-     if (allocated(phnons)) then
-        i_all=-product(shape(phnons))*kind(phnons)
-        deallocate(phnons,stat=i_stat)
-        call memocc(i_stat,i_all,'phnons',subname)
-     end if
      
      if (in%read_ref_den) then
         i_all=-product(shape(rhoref))*kind(rhoref)
@@ -1346,6 +1331,18 @@ contains
        call memocc(i_stat,i_all,'psivirt',subname)
     end if
     
+    if (allocated(irrzon)) then
+       i_all=-product(shape(irrzon))*kind(irrzon)
+       deallocate(irrzon,stat=i_stat)
+       call memocc(i_stat,i_all,'irrzon',subname)
+    end if
+    if (allocated(phnons)) then
+       i_all=-product(shape(phnons))*kind(phnons)
+       deallocate(phnons,stat=i_stat)
+       call memocc(i_stat,i_all,'phnons',subname)
+    end if
+
+
     if (atoms%geocode == 'F') then
        call deallocate_bounds(Glr%bounds,subname)
     end if
