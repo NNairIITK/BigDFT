@@ -58,42 +58,46 @@ size_t i = get_group_id(0);\n\
 size_t j = get_group_id(1);\n\
 size_t i2 = get_local_id(0);\n\
 size_t j2 = get_local_id(1);\n\
+size_t is = get_local_size(0);\n\
+size_t js = get_local_size(1);\n\
+size_t joff = j*js+j2;\n\
 size_t ib;\n\
-//load first matrix of size BLOCK_SIZE²\n\
+//load first matrix of size BLOCK_SIZE_I*BLOCK_SIZE_J\n\
 if(i==0) ib = get_num_groups(0)-1;\n\
 else ib = i-1;\n\
-tmp[i2][j2]=psi[j*get_local_size(1)+j2+(ib*get_local_size(0)+i2)*ndat];\n\
+tmp[i2][j2]=psi[joff+(ib*is+i2)*ndat];\n\
 //load second matrix\n\
-tmp[get_local_size(0)+i2][j2]=psi[j*get_local_size(1)+j2+(i*get_local_size(0)+i2)*ndat];\n\
+tmp[is+i2][j2]=psi[joff+(i*is+i2)*ndat];\n\
 if(i==get_num_groups(0)-1) ib = 0;\n\
 else ib = i+1;\n\
-tmp[get_local_size(0)*2+i2][j2]=psi[j*get_local_size(1)+j2+(ib*get_local_size(0)+i2)*ndat];\n\
+tmp[is*2+i2][j2]=psi[joff+(ib*is+i2)*ndat];\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
 float *filt = filter + 8;\n\
 float tt = 0.0;\n\
-size_t base_i = i2+get_local_size(0);\n\
-for( int l=-8; l<=7; l++){\n\
-    tt = tt + tmp[base_i+l][j2] * filt[l];\n\
+size_t base_i = i2+is;\n\
+for( int l=-8,m=7; l<0; l++,m--){\n\
+    tt += tmp[base_i+l][j2] * filt[l];\n\
+    tt += tmp[base_i+m][j2] * filt[m];\n\
 }\n\
 //above loop unrolled:\n\
-//tt = tt + tmp[base_i ][j2]*filt[0];\n\
-//tt = tt + tmp[base_i-1 ][j2]*filt[-1];\n\
-//tt = tt + tmp[base_i+1 ][j2]*filt[1];\n\
-//tt = tt + tmp[base_i-2 ][j2]*filt[-2];\n\
-//tt = tt + tmp[base_i+2 ][j2]*filt[2];\n\
-//tt = tt + tmp[base_i-3 ][j2]*filt[-3];\n\
-//tt = tt + tmp[base_i+3 ][j2]*filt[3];\n\
-//tt = tt + tmp[base_i-4 ][j2]*filt[-4];\n\
-//tt = tt + tmp[base_i+4 ][j2]*filt[4];\n\
-//tt = tt + tmp[base_i-5 ][j2]*filt[-5];\n\
-//tt = tt + tmp[base_i+5 ][j2]*filt[5];\n\
-//tt = tt + tmp[base_i-6 ][j2]*filt[-6];\n\
-//tt = tt + tmp[base_i+6 ][j2]*filt[6];\n\
-//tt = tt + tmp[base_i-7 ][j2]*filt[-7];\n\
-//tt = tt + tmp[base_i+7 ][j2]*filt[7];\n\
 //tt = tt + tmp[base_i-8 ][j2]*filt[-8];\n\
-out[(j*get_local_size(1) + j2)*n+(i*get_local_size(0) + i2)]=tt;\n\
+//tt = tt + tmp[base_i+7 ][j2]*filt[7];\n\
+//tt = tt + tmp[base_i-7 ][j2]*filt[-7];\n\
+//tt = tt + tmp[base_i+6 ][j2]*filt[6];\n\
+//tt = tt + tmp[base_i-6 ][j2]*filt[-6];\n\
+//tt = tt + tmp[base_i+5 ][j2]*filt[5];\n\
+//tt = tt + tmp[base_i-5 ][j2]*filt[-5];\n\
+//tt = tt + tmp[base_i+4 ][j2]*filt[4];\n\
+//tt = tt + tmp[base_i-4 ][j2]*filt[-4];\n\
+//tt = tt + tmp[base_i+3 ][j2]*filt[3];\n\
+//tt = tt + tmp[base_i-3 ][j2]*filt[-3];\n\
+//tt = tt + tmp[base_i+2 ][j2]*filt[2];\n\
+//tt = tt + tmp[base_i-2 ][j2]*filt[-2];\n\
+//tt = tt + tmp[base_i+1 ][j2]*filt[1];\n\
+//tt = tt + tmp[base_i-1 ][j2]*filt[-1];\n\
+//tt = tt + tmp[base_i ][j2]*filt[0];\n\
+out[(joff)*n+(i*is + i2)]=tt;\n\
 };\
 ";
 
