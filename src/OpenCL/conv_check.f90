@@ -66,6 +66,7 @@ program conv_check
      stop
   end if
 
+  ntimes=100
   call ocl_create_gpu_context(context)
   call ocl_create_command_queue(queue,context)
   call ocl_build_kernels(context)
@@ -151,7 +152,7 @@ program conv_check
            !call system_clock(it0,count_rate,count_max)
            call cpu_time(t0)
            do i=1,ntimes
-              call convrot_n_per_t(n1-1,ndat,psi_in,psi_out)
+              call convrot_n_per(n1-1,ndat,psi_in,psi_out)
            end do
            call cpu_time(t1)
            !call system_clock(it1,count_rate,count_max)
@@ -200,12 +201,11 @@ program conv_check
            call cpu_time(t0)
            do i=1,ntimes
 !!!              call magicfilter1d(n1-1,ndat,work_GPU,psi_GPU)
-              call magicfilter1d_l(queue,n1,ndat,work_GPU,psi_GPU)
-           call ocl_enqueue_barrier(queue);
+              call magicfilter1d_l_optim(queue,n1,ndat,work_GPU,psi_GPU)
+              call ocl_enqueue_barrier(queue);
            end do
-           call cpu_time(t1)
-           call magicfilter1d_check(n1, ndat, v_cuda, psi_cuda)
            call ocl_enqueue_read_buffer(queue, psi_GPU, n1*ndat*4, psi_cuda_l)
+           call cpu_time(t1)
            GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
