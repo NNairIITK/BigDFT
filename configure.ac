@@ -481,6 +481,7 @@ src/PSolver/Makefile
 src/convolutions/Makefile
 src/CUDA/Makefile
 src/CUDA/S_GPU/Makefile
+src/OpenCL/Makefile
 src/art/Makefile
 utils/Makefile
 utils/PSPfiles/Makefile
