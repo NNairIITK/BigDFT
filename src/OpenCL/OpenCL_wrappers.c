@@ -37,74 +37,59 @@ out[j*n+i]=tt;\n\
 char * magicfilter1_program_optim="\
 #define BLOCK_SIZE_I 16\n\
 #define BLOCK_SIZE_J 8\n\
-__kernel void magicfilter1dKernel_l_optim(size_t n, size_t ndat, __global const float *psi, __global float *out, __local float tmp[3*BLOCK_SIZE_I][BLOCK_SIZE_J]){\n\
-const float filter[]={8.4334247333529341094733325815816e-7,\
-		-0.1290557201342060969516786758559028e-4,\
-		0.8762984476210559564689161894116397e-4,\
-                -0.30158038132690463167163703826169879e-3,\
-                0.174723713672993903449447812749852942e-2,\
-                -0.942047030201080385922711540948195075e-2,\
-                0.2373821463724942397566389712597274535e-1,\
-                0.612625895831207982195380597e-1,\
-                0.9940415697834003993178616713,\
-                -0.604895289196983516002834636e-1,\
-                -0.2103025160930381434955489412839065067e-1,\
-                0.1337263414854794752733423467013220997e-1,\
-                -0.344128144493493857280881509686821861e-2,\
-                0.49443227688689919192282259476750972e-3,\
-                -0.5185986881173432922848639136911487e-4,\
-                2.72734492911979659657715313017228e-6};\n\
+__kernel void magicfilter1dKernel_l_optim(size_t n, size_t ndat, __global const float *psi, __global float *out, __local float tmp[BLOCK_SIZE_J][3*BLOCK_SIZE_I]){\n\
 size_t i = get_group_id(0);\n\
 size_t j = get_group_id(1);\n\
 size_t i2 = get_local_id(0);\n\
 size_t j2 = get_local_id(1);\n\
 size_t is = get_local_size(0);\n\
 size_t js = get_local_size(1);\n\
-size_t joff = j*js+j2;\n\
+size_t ig = get_global_id(0);\n\
+size_t jg = get_global_id(1);\n\
 size_t ib;\n\
 //load first matrix of size BLOCK_SIZE_I*BLOCK_SIZE_J\n\
 if(i==0) ib = get_num_groups(0)-1;\n\
 else ib = i-1;\n\
-tmp[i2][j2]=psi[joff+(ib*is+i2)*ndat];\n\
+tmp[j2][i2]=psi[jg+(ib*is+i2)*ndat];\n\
 //load second matrix\n\
-tmp[is+i2][j2]=psi[joff+(i*is+i2)*ndat];\n\
+tmp[j2][is+i2]=psi[jg+ig*ndat];\n\
 if(i==get_num_groups(0)-1) ib = 0;\n\
 else ib = i+1;\n\
-tmp[is*2+i2][j2]=psi[joff+(ib*is+i2)*ndat];\n\
+tmp[j2][is*2+i2]=psi[jg+(ib*is+i2)*ndat];\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-float *filt = filter + 8;\n\
+//float *filt = filter + 8;\n\
 float tt = 0.0;\n\
 size_t base_i = i2+is;\n\
-for( int l=-8,m=7; l<0; l++,m--){\n\
-    tt += tmp[base_i+l][j2] * filt[l];\n\
-    tt += tmp[base_i+m][j2] * filt[m];\n\
-}\n\
-out[(joff)*n+(i*is + i2)]=tt;\n\
+//for( int l=-8,m=7; l<0; l++,m--){\n\
+//    tt += tmp[j2][base_i+l] * filt[l];\n\
+//    tt += tmp[j2][base_i+m] * filt[m];\n\
+//}\n\
+tt += tmp[j2][base_i-8] * 8.4334247333529341094733325815816e-7;\n\
+tt += tmp[j2][base_i+7] * 2.72734492911979659657715313017228e-6;\n\
+tt += tmp[j2][base_i-7] * -0.1290557201342060969516786758559028e-4;\n\
+tt += tmp[j2][base_i+6] * -0.5185986881173432922848639136911487e-4;\n\
+tt += tmp[j2][base_i-6] * 0.8762984476210559564689161894116397e-4;\n\
+tt += tmp[j2][base_i-5] * -0.30158038132690463167163703826169879e-3;\n\
+tt += tmp[j2][base_i+5] * 0.49443227688689919192282259476750972e-3;\n\
+tt += tmp[j2][base_i-4] * 0.174723713672993903449447812749852942e-2;\n\
+tt += tmp[j2][base_i+4] * -0.344128144493493857280881509686821861e-2;\n\
+tt += tmp[j2][base_i-3] * -0.942047030201080385922711540948195075e-2;\n\
+tt += tmp[j2][base_i+3] * 0.1337263414854794752733423467013220997e-1;\n\
+tt += tmp[j2][base_i+2] * -0.2103025160930381434955489412839065067e-1;\n\
+tt += tmp[j2][base_i-2] * 0.2373821463724942397566389712597274535e-1;\n\
+tt += tmp[j2][base_i+1] * -0.604895289196983516002834636e-1;\n\
+tt += tmp[j2][base_i-1] * 0.612625895831207982195380597e-1;\n\
+tt += tmp[j2][base_i] * 0.9940415697834003993178616713;\n\
+out[jg*n+ig]=tt;\n\
 };\
 ";
 
 char * magicfilter1_program_optim_new="\
 #define FILTER_WIDTH 16\n\
-#define BLOCK_SIZE_I 16\n\
-#define BLOCK_SIZE_J 8\n\
-__kernel void magicfilter1dKernel_l_optim_new(size_t n, size_t ndat, __global const float *psi, __global float *out, __local float tmp[FILTER_WIDTH+BLOCK_SIZE_I][BLOCK_SIZE_J]){\n\
-const float filter[]={8.4334247333529341094733325815816e-7,\
-		-0.1290557201342060969516786758559028e-4,\
-		0.8762984476210559564689161894116397e-4,\
-                -0.30158038132690463167163703826169879e-3,\
-                0.174723713672993903449447812749852942e-2,\
-                -0.942047030201080385922711540948195075e-2,\
-                0.2373821463724942397566389712597274535e-1,\
-                0.612625895831207982195380597e-1,\
-                0.9940415697834003993178616713,\
-                -0.604895289196983516002834636e-1,\
-                -0.2103025160930381434955489412839065067e-1,\
-                0.1337263414854794752733423467013220997e-1,\
-                -0.344128144493493857280881509686821861e-2,\
-                0.49443227688689919192282259476750972e-3,\
-                -0.5185986881173432922848639136911487e-4,\
-                2.72734492911979659657715313017228e-6};\n\
+#define BLOCK_SIZE_I 64\n\
+#define BLOCK_SIZE_J 4\n\
+__kernel void magicfilter1dKernel_l_optim_new(size_t n, size_t ndat, __global const float *psi, __global float *out, __local float tmp[BLOCK_SIZE_J][FILTER_WIDTH+BLOCK_SIZE_I]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 size_t i2 = get_local_id(0);\n\
@@ -115,7 +100,7 @@ size_t it;\n\
 size_t base_i;\n\
 base_i = FILTER_WIDTH/2+i2;\n\
 //Load the element I am to calculate\n\
-tmp[base_i][j2]=psi[jg+ig*ndat];\n\
+tmp[j2][base_i]=psi[jg+ig*ndat];\n\
 \
 //If I'm on the outside, select a border elements to load\n\
 if(i2 < FILTER_WIDTH/2)\n\
@@ -123,23 +108,41 @@ if(i2 < FILTER_WIDTH/2)\n\
     if (ig < FILTER_WIDTH/2)\n\
       { ib =  n + i2 - FILTER_WIDTH/2; }\n\
     else { ib = ig - FILTER_WIDTH/2; }\n\
+    tmp[j2][it]=psi[jg+ib*ndat];\n\
   }\n\
 else if (i2 >= (is - FILTER_WIDTH/2))\n\
   { it = i2 + FILTER_WIDTH;\n\
     if (ig >= n - FILTER_WIDTH/2)\n\
       { ib = ig - n + FILTER_WIDTH/2; }\n\
     else { ib = ig + FILTER_WIDTH/2; }\n\
+    tmp[j2][it]=psi[jg+ib*ndat];\n\
   }\n\
-if( ( i2 < FILTER_WIDTH/2 ) || (i2 >= (is - FILTER_WIDTH/2)))\n\
-  tmp[it][j2]=psi[jg+ib*ndat];\n\
+//if( ( i2 < FILTER_WIDTH/2 ) || (i2 >= (is - FILTER_WIDTH/2)))\n\
+//  tmp[j2][it]=psi[jg+ib*ndat];\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-float *filt = filter + 8;\n\
+//float *filt = filter + 8;\n\
 float tt = 0.0;\n\
-for( int l=-8,m=7; l<0; l++,m--){\n\
-    tt += tmp[base_i+l][j2] * filt[l];\n\
-    tt += tmp[base_i+m][j2] * filt[m];\n\
-}\n\
+//for( int l=-8,m=7; l<0; l++,m--){\n\
+//    tt += tmp[j2][base_i+l] * filt[l];\n\
+//    tt += tmp[j2][base_i+m] * filt[m];\n\
+//}\n\
+tt += tmp[j2][base_i-8] * 8.4334247333529341094733325815816e-7;\n\
+tt += tmp[j2][base_i+7] * 2.72734492911979659657715313017228e-6;\n\
+tt += tmp[j2][base_i-7] * -0.1290557201342060969516786758559028e-4;\n\
+tt += tmp[j2][base_i+6] * -0.5185986881173432922848639136911487e-4;\n\
+tt += tmp[j2][base_i-6] * 0.8762984476210559564689161894116397e-4;\n\
+tt += tmp[j2][base_i-5] * -0.30158038132690463167163703826169879e-3;\n\
+tt += tmp[j2][base_i+5] * 0.49443227688689919192282259476750972e-3;\n\
+tt += tmp[j2][base_i-4] * 0.174723713672993903449447812749852942e-2;\n\
+tt += tmp[j2][base_i+4] * -0.344128144493493857280881509686821861e-2;\n\
+tt += tmp[j2][base_i-3] * -0.942047030201080385922711540948195075e-2;\n\
+tt += tmp[j2][base_i+3] * 0.1337263414854794752733423467013220997e-1;\n\
+tt += tmp[j2][base_i+2] * -0.2103025160930381434955489412839065067e-1;\n\
+tt += tmp[j2][base_i-2] * 0.2373821463724942397566389712597274535e-1;\n\
+tt += tmp[j2][base_i+1] * -0.604895289196983516002834636e-1;\n\
+tt += tmp[j2][base_i-1] * 0.612625895831207982195380597e-1;\n\
+tt += tmp[j2][base_i] * 0.9940415697834003993178616713;\n\
 out[(jg*n+ig)]=tt;\n\
 };\
 ";
@@ -420,8 +423,10 @@ void FC_FUNC_(magicfilter1d_check,MAGICFILTER1D_CHECK)(size_t *n,size_t *ndat,vo
 
 }
 
-#define BLOCK_SIZE_I 16
-#define BLOCK_SIZE_J 8
+#define BLOCK_SIZE_I 64
+#define BLOCK_SIZE_J 4
+#define FILTER_WIDTH 16
+
 void FC_FUNC_(magicfilter1d_l,MAGICFILTER1D_L)(cl_command_queue *command_queue, size_t *n,size_t *ndat,cl_mem *psi,cl_mem *out){
     cl_int ciErrNum;
 #if DEBUG
@@ -468,7 +473,6 @@ void FC_FUNC_(magicfilter1d_l_optim,MAGICFILTER1D_L_OPTIM)(cl_command_queue *com
     }   
 }
 
-#define FILTER_WIDTH 16
 
 void FC_FUNC_(magicfilter1d_l_optim_new,MAGICFILTER1D_L_OPTIM_NEW)(cl_command_queue *command_queue, size_t *n,size_t *ndat,cl_mem *psi,cl_mem *out){
     cl_int ciErrNum;
