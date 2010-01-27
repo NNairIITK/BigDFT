@@ -38,7 +38,7 @@ char * magicfilter1_program_optim="\
 #define BLOCK_SIZE_I 16\n\
 #define BLOCK_SIZE_J 8\n\
 __kernel void magicfilter1dKernel_l_optim(size_t n, size_t ndat, __global const float *psi, __global float *out, __local float tmp[3*BLOCK_SIZE_I][BLOCK_SIZE_J]){\n\
-float filter[]={8.4334247333529341094733325815816e-7,\
+const float filter[]={8.4334247333529341094733325815816e-7,\
 		-0.1290557201342060969516786758559028e-4,\
 		0.8762984476210559564689161894116397e-4,\
                 -0.30158038132690463167163703826169879e-3,\
@@ -80,29 +80,76 @@ for( int l=-8,m=7; l<0; l++,m--){\n\
     tt += tmp[base_i+l][j2] * filt[l];\n\
     tt += tmp[base_i+m][j2] * filt[m];\n\
 }\n\
-//above loop unrolled:\n\
-//tt = tt + tmp[base_i-8 ][j2]*filt[-8];\n\
-//tt = tt + tmp[base_i+7 ][j2]*filt[7];\n\
-//tt = tt + tmp[base_i-7 ][j2]*filt[-7];\n\
-//tt = tt + tmp[base_i+6 ][j2]*filt[6];\n\
-//tt = tt + tmp[base_i-6 ][j2]*filt[-6];\n\
-//tt = tt + tmp[base_i+5 ][j2]*filt[5];\n\
-//tt = tt + tmp[base_i-5 ][j2]*filt[-5];\n\
-//tt = tt + tmp[base_i+4 ][j2]*filt[4];\n\
-//tt = tt + tmp[base_i-4 ][j2]*filt[-4];\n\
-//tt = tt + tmp[base_i+3 ][j2]*filt[3];\n\
-//tt = tt + tmp[base_i-3 ][j2]*filt[-3];\n\
-//tt = tt + tmp[base_i+2 ][j2]*filt[2];\n\
-//tt = tt + tmp[base_i-2 ][j2]*filt[-2];\n\
-//tt = tt + tmp[base_i+1 ][j2]*filt[1];\n\
-//tt = tt + tmp[base_i-1 ][j2]*filt[-1];\n\
-//tt = tt + tmp[base_i ][j2]*filt[0];\n\
 out[(joff)*n+(i*is + i2)]=tt;\n\
 };\
 ";
 
+char * magicfilter1_program_optim_new="\
+#define FILTER_WIDTH 16\n\
+#define BLOCK_SIZE_I 16\n\
+#define BLOCK_SIZE_J 8\n\
+__kernel void magicfilter1dKernel_l_optim_new(size_t n, size_t ndat, __global const float *psi, __global float *out, __local float tmp[FILTER_WIDTH+BLOCK_SIZE_I][BLOCK_SIZE_J]){\n\
+const float filter[]={8.4334247333529341094733325815816e-7,\
+		-0.1290557201342060969516786758559028e-4,\
+		0.8762984476210559564689161894116397e-4,\
+                -0.30158038132690463167163703826169879e-3,\
+                0.174723713672993903449447812749852942e-2,\
+                -0.942047030201080385922711540948195075e-2,\
+                0.2373821463724942397566389712597274535e-1,\
+                0.612625895831207982195380597e-1,\
+                0.9940415697834003993178616713,\
+                -0.604895289196983516002834636e-1,\
+                -0.2103025160930381434955489412839065067e-1,\
+                0.1337263414854794752733423467013220997e-1,\
+                -0.344128144493493857280881509686821861e-2,\
+                0.49443227688689919192282259476750972e-3,\
+                -0.5185986881173432922848639136911487e-4,\
+                2.72734492911979659657715313017228e-6};\n\
+size_t ig = get_global_id(0);\n\
+size_t jg = get_global_id(1);\n\
+size_t i2 = get_local_id(0);\n\
+size_t j2 = get_local_id(1);\n\
+size_t is = get_local_size(0);\n\
+size_t ib;\n\
+size_t it;\n\
+size_t base_i;\n\
+base_i = FILTER_WIDTH/2+i2;\n\
+//Load the element I am to calculate\n\
+tmp[base_i][j2]=psi[jg+ig*ndat];\n\
+\
+//If I'm on the outside, select a border elements to load\n\
+if(i2 < FILTER_WIDTH/2)\n\
+  { it = i2;\n\
+    if (ig < FILTER_WIDTH/2)\n\
+      { ib =  n + i2 - FILTER_WIDTH/2; }\n\
+    else { ib = ig - FILTER_WIDTH/2; }\n\
+  }\n\
+else if (i2 >= (is - FILTER_WIDTH/2))\n\
+  { it = i2 + FILTER_WIDTH;\n\
+    if (ig >= n - FILTER_WIDTH/2)\n\
+      { ib = ig - n + FILTER_WIDTH/2; }\n\
+    else { ib = ig + FILTER_WIDTH/2; }\n\
+  }\n\
+if( ( i2 < FILTER_WIDTH/2 ) || (i2 >= (is - FILTER_WIDTH/2)))\n\
+  tmp[it][j2]=psi[jg+ib*ndat];\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+\
+float *filt = filter + 8;\n\
+float tt = 0.0;\n\
+for( int l=-8,m=7; l<0; l++,m--){\n\
+    tt += tmp[base_i+l][j2] * filt[l];\n\
+    tt += tmp[base_i+m][j2] * filt[m];\n\
+}\n\
+out[(jg*n+ig)]=tt;\n\
+};\
+";
+
+#define oclErrorCheck(errorCode,message) if(errorCode!=CL_SUCCESS) { fprintf(stderr,"Error(%i) (%s: %s): %s\n", errorCode,__FILE__,__func__,message);exit(1);} 
+
+
 cl_kernel magicfilter1d_kernel_l;
 cl_kernel magicfilter1d_kernel_l_optim;
+cl_kernel magicfilter1d_kernel_l_optim_new;
 
 cl_device_id oclGetFirstDev(cl_context cxGPUContext)
 {
@@ -174,6 +221,22 @@ void FC_FUNC_(ocl_build_kernels,OCL_BUILD_KERNELS)(cl_context * context) {
         exit(1);
     }
 
+
+    ciErrNum = CL_SUCCESS;
+    cl_program magicfilter1dProgram_optim_new = clCreateProgramWithSource(*context,1,(const char**) &magicfilter1_program_optim_new, NULL, &ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create program!");
+    ciErrNum = clBuildProgram(magicfilter1dProgram_optim_new, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error: Failed to build program!\n");
+        char cBuildLog[10240];
+        clGetProgramBuildInfo(magicfilter1dProgram_optim_new, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+	fprintf(stderr,"%s\n",cBuildLog);
+        exit(1);
+    }
+    ciErrNum = CL_SUCCESS;
+    magicfilter1d_kernel_l_optim_new=clCreateKernel(magicfilter1dProgram_optim_new,"magicfilter1dKernel_l_optim_new",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create new optim kernel!");
 }
 
 
@@ -403,6 +466,42 @@ void FC_FUNC_(magicfilter1d_l_optim,MAGICFILTER1D_L_OPTIM)(cl_command_queue *com
         fprintf(stderr,"globalWorkSize = { %d, %d}\n",globalWorkSize[0],globalWorkSize[1]);
         exit(1);
     }   
+}
+
+#define FILTER_WIDTH 16
+
+void FC_FUNC_(magicfilter1d_l_optim_new,MAGICFILTER1D_L_OPTIM_NEW)(cl_command_queue *command_queue, size_t *n,size_t *ndat,cl_mem *psi,cl_mem *out){
+    cl_int ciErrNum;
+#if DEBUG
+    printf("%s %s\n", __func__, __FILE__);
+    printf("command queue: %p, dimension n: %d, dimension dat: %d, psi: %p, out: %p\n",*command_queue, *n, *ndat, *psi, *out);
+#endif
+    cl_uint i = 0;
+    clSetKernelArg(magicfilter1d_kernel_l_optim_new, i++,sizeof(*n), (void*)n);
+    clSetKernelArg(magicfilter1d_kernel_l_optim_new, i++,sizeof(*ndat), (void*)ndat);
+    clSetKernelArg(magicfilter1d_kernel_l_optim_new, i++,sizeof(*psi), (void*)psi);
+    clSetKernelArg(magicfilter1d_kernel_l_optim_new, i++,sizeof(*out), (void*)out);
+    clSetKernelArg(magicfilter1d_kernel_l_optim_new, i++,sizeof(float)*BLOCK_SIZE_J*(BLOCK_SIZE_I+FILTER_WIDTH), 0);
+    size_t localWorkSize[] = { BLOCK_SIZE_I,BLOCK_SIZE_J };
+    size_t globalWorkSize[] ={ shrRoundUp(BLOCK_SIZE_I,*n), shrRoundUp(BLOCK_SIZE_J,*ndat)};
+
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, magicfilter1d_kernel_l_optim_new, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error %d: Failed to enqueue optim kernel!\n",ciErrNum);
+        fprintf(stderr,"globalWorkSize = { %d, %d}\n",globalWorkSize[0],globalWorkSize[1]);
+        exit(1);
+    }   
+}
+
+void FC_FUNC_(ocl_finish,OCL_FINISH)(cl_command_queue *command_queue){
+    cl_int ciErrNum;
+    ciErrNum = clFinish(*command_queue);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error: Failed to finish!\n");
+        exit(1);
+    }
 }
 
 void FC_FUNC_(ocl_enqueue_barrier,OCL_ENQUEUE_BARRIER)(cl_command_queue *command_queue){

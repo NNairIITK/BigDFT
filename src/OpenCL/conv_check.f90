@@ -201,10 +201,9 @@ program conv_check
            call cpu_time(t0)
            do i=1,ntimes
 !!!              call magicfilter1d(n1-1,ndat,work_GPU,psi_GPU)
-              call magicfilter1d_l_optim(queue,n1,ndat,work_GPU,psi_GPU)
-              call ocl_enqueue_barrier(queue);
+              call magicfilter1d_l_optim_new(queue,n1,ndat,work_GPU,psi_GPU)
            end do
-           call ocl_enqueue_read_buffer(queue, psi_GPU, n1*ndat*4, psi_cuda_l)
+           call ocl_finish(queue);
            call cpu_time(t1)
            GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
 
@@ -212,6 +211,7 @@ program conv_check
                 GPUtime*1.d3/real(ntimes,kind=8),&
                 real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 !!! for float
+           call ocl_enqueue_read_buffer(queue, psi_GPU, n1*ndat*4, psi_cuda_l)
            call ocl_release_mem_object(psi_GPU)
            call ocl_release_mem_object(work_GPU)
 !!! for double
