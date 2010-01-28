@@ -202,6 +202,7 @@ program conv_check
            do i=1,ntimes
 !!!              call magicfilter1d(n1-1,ndat,work_GPU,psi_GPU)
               call magicfilter1d_l_optim_new(queue,n1,ndat,work_GPU,psi_GPU)
+!!!               call magicfilter1d_check(n1,ndat,v_cuda,psi_cuda)
            end do
            call ocl_finish(queue);
            call cpu_time(t1)
