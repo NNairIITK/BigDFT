@@ -1042,11 +1042,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
   end if
 
-  !better to deallocate this after davidson
-  i_all=-product(shape(pkernel))*kind(pkernel)
-  deallocate(pkernel,stat=i_stat)
-  call memocc(i_stat,i_all,'kernel',subname)
-
   if (in%read_ref_den) then
      i_all=-product(shape(pkernel_ref))*kind(pkernel_ref)
      deallocate(pkernel_ref,stat=i_stat)
@@ -1139,6 +1134,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj, &
           pkernel,psi,psivirt,ngatherarr,GPU)
   end if
+
+
+  i_all=-product(shape(pkernel))*kind(pkernel)
+  deallocate(pkernel,stat=i_stat)
+  call memocc(i_stat,i_all,'kernel',subname)
 
 
   !------------------------------------------------------------------------

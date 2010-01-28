@@ -145,6 +145,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
              '         contains a PSP generated with an XC id=',&
              ixcpsp,' while for this run ixc=',in%ixc
      end if
+
      atoms%psppar(:,:,ityp)=0._gp
      if (atoms%npspcode(ityp) == 2) then !GTH case
         read(11,*) (atoms%psppar(0,j,ityp),j=0,4)

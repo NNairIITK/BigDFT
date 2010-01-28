@@ -317,6 +317,8 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
   integer, dimension(:,:), allocatable :: ncommocc
   real(wp), dimension(:), allocatable :: psiwocc
 
+  call initialize_work_arrays_sumrho(lr,w)
+
   allocate(psiwocc(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,n3parr(0)*orbsocc%norb),1)+ndebug),stat=i_stat)
   call memocc(i_stat,psiwocc,'psiwocc',subname)
 
@@ -326,7 +328,7 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
 
   !uncompress the wavefunction in the real grid
   !and switch the values of the function
-  
+
   !occupied orbitals
   ispinor=1
   ispsiw=1
@@ -348,6 +350,7 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
         end if
      end do
   end do
+  call deallocate_work_arrays_sumrho(w)
 
   !communicate them between processors
   !occupied orbitals
@@ -356,7 +359,6 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
      !valid only for one k-point for the moment
      !and only real functions (nspinor=1)
      !this distribution is in principle valid also for k-points
-
      allocate(ncommocc(0:nproc-1,4+ndebug),stat=i_stat)
      call memocc(i_stat,ncommocc,'ncommocc',subname)
 
@@ -381,11 +383,9 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
 
      call MPI_ALLTOALLV(psiwocc,ncommocc(0,1),ncommocc(0,2),mpidtypw, &
           psirocc,ncommocc(0,3),ncommocc(0,4),mpidtypw,MPI_COMM_WORLD,ierr)
-
   else
      call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbsocc%norb,psiwocc,1,psirocc,1)
   end if
-
   i_all=-product(shape(psiwocc))*kind(psiwocc)
   deallocate(psiwocc,stat=i_stat)
   call memocc(i_stat,i_all,'psiwocc',subname)

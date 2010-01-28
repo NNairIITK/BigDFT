@@ -341,8 +341,8 @@ module module_interfaces
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
        real(dp), dimension(max(nrho,1),nspin), intent(out), target :: rho
        type(GPU_pointers), intent(inout) :: GPU
-       integer, dimension(:,:,:), intent(in) :: irrzon
-       real(dp), dimension(:,:,:), intent(in) :: phnons
+       integer, dimension(*), intent(in) :: irrzon
+       real(dp), dimension(*), intent(in) :: phnons
      end subroutine sumrho
 
      subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&

@@ -104,11 +104,13 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
      !exact exchange for virtual orbitals (needs psirocc)
      if (present(psirocc) .and. present(orbsocc)) then
-        call exact_exchange_potential_virt(iproc,nproc,at%geocode,nspin,lr,orbsocc,orbs,ngatherarr(0,1),n3p,&
+        call exact_exchange_potential_virt(iproc,nproc,at%geocode,nspin,&
+             lr,orbsocc,orbs,ngatherarr(0,1),n3p,&
              0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi,pot(ispot))
         eexctX = 0._gp
      else
-        call exact_exchange_potential(iproc,nproc,at%geocode,nspin,lr,orbs,ngatherarr(0,1),n3p,&
+        call exact_exchange_potential(iproc,nproc,at%geocode,nspin,&
+             lr,orbs,ngatherarr(0,1),n3p,&
              0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
      end if
   else

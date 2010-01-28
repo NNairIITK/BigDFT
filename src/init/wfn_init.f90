@@ -744,29 +744,29 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
         
      end if
 
-!!!     if (iproc == 0) then
-!!!        !write the matrices on a file
-!!!        open(12)
-!!!        do jjorb=1,norbi
-!!!           do jiorb=1,norbi
-!!!              write(12,'(1x,2(i0,1x),2(1pe24.17,1x))')jjorb,jiorb,&
-!!!                   hamovr(jjorb+norbi*(jiorb-1),1),hamovr(jjorb+norbi*(jiorb-1),2)
-!!!           end do
-!!!        end do
-!!!        close(12)
-!!!        !open(33+2*(i-1))
-!!!        !write(33+2*(i-1),'(2000(1pe10.2))')&
-!!!        !        (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
-!!!        !end do
-!!!        !close(33+2*(i-1))
-!!!        !open(34+2*(i-1))
-!!!        !do jjorb=1,norbi
-!!!        !   write(34+2*(i-1),'(2000(1pe10.2))')&
-!!!        !        (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,2),jiorb=1,norbi)
-!!!        !end do
-!!!        !close(34+2*(i-1))
-!!!
-!!!     end if
+     if (iproc == 0) then
+        !write the matrices on a file
+        !open(12)
+        do jjorb=1,norbi
+        !   do jiorb=1,norbi
+        !      write(12,'(1x,2(i0,1x),200(1pe24.17,1x))')jjorb,jiorb,&
+        !           hamovr(jjorb+norbi*(jiorb-1),1),hamovr(jjorb+norbi*(jiorb-1),2)
+        !   end do
+        !end do
+        !close(12)
+        open(33+2*(i-1))
+        write(33+2*(i-1),'(2000(1pe10.2))')&
+                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
+        end do
+        close(33+2*(i-1))
+        open(34+2*(i-1))
+        do jjorb=1,norbi
+           write(34+2*(i-1),'(2000(1pe10.2))')&
+                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,2),jiorb=1,norbi)
+        end do
+        close(34+2*(i-1))
+
+     end if
 
      !writing rules, control if the last eigenvector is degenerate
      !do this for each spin
