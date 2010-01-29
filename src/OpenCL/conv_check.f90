@@ -201,7 +201,7 @@ program conv_check
            call cpu_time(t0)
            do i=1,ntimes
 !!!              call magicfilter1d(n1-1,ndat,work_GPU,psi_GPU)
-              call magicfilter1d_l_optim_new(queue,n1,ndat,work_GPU,psi_GPU)
+              call magicfilter1d_l(queue,n1,ndat,work_GPU,psi_GPU)
 !!!               call magicfilter1d_check(n1,ndat,v_cuda,psi_cuda)
            end do
            call ocl_finish(queue);
@@ -405,14 +405,23 @@ program conv_check
               !now the CUDA part
               !take timings
 
+              call ocl_create_write_buffer(context, n1*ndat*4, psi_GPU)
+              call ocl_create_read_buffer(context, n1*ndat*4, work_GPU)
+              call ocl_enqueue_write_buffer(queue, work_GPU, n1*ndat*4, v_cuda_l)
+
               write(*,'(a,i6,i6)')'GPU Analysis, dimensions:',n1,ndat
 
               call cpu_time(t0)
               do i=1,ntimes
-!!!                 call ana1d(n1/2-1,ndat,work_GPU,psi_GPU)
+                 call ana1d_l(queue,n1/2,ndat,work_GPU,psi_GPU)
               end do
+              call ocl_finish(queue);
               call cpu_time(t1)
               GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+              call ocl_enqueue_read_buffer(queue, psi_GPU, n1*ndat*4, psi_cuda_l)
+              call ocl_release_mem_object(psi_GPU)
+              call ocl_release_mem_object(work_GPU)
 
               write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                    GPUtime*1.d3/real(ntimes,kind=8),&
@@ -431,7 +440,7 @@ program conv_check
                  do i1=1,n1
                     !write(17,'(2(i6),2(1pe24.17))')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
                     !write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
-                    comp=abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8))
+                    comp=abs(psi_out(i,i1,1)-real(psi_cuda_l(i1,i,1),kind=8))
                     !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
                     if (comp > maxdiff) then
                        maxdiff=comp
