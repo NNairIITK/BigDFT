@@ -207,7 +207,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(GPU_pointers) :: GPU
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: rho
-  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
+  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi,dualcoeffs
   real(gp), dimension(:,:),allocatable :: fdisp
   ! Charge density/potential,ionic potential, pkernel
   real(kind=8), dimension(:), allocatable :: pot_ion
@@ -219,7 +219,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! before reformatting if useFormattedInput is .true.
   real(kind=8), dimension(:), pointer :: hpsi,psit,psi_old,psivirt,psidst,hpsidst
   ! PSP projectors 
-  real(kind=8), dimension(:), pointer :: proj
+  real(kind=8), dimension(:), pointer :: proj,gbd_occ
   ! arrays for DIIS convergence accelerator
   real(kind=8), dimension(:,:,:), pointer :: ads
   ! Arrays for the symmetrisation.
@@ -870,7 +870,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !!!     end if
 
      !extract the gaussian basis from the pseudowavefunctions
-     call gaussian_pswf_basis(iproc,atoms,rxyz,gbd)
+     call gaussian_pswf_basis(iproc,in%nspin,atoms,rxyz,gbd,gbd_occ)
 
      if (.not. associated(gaucoeffs)) then
         allocate(gaucoeffs(gbd%ncoeff,orbs%norbp+ndebug),stat=i_stat)
@@ -903,15 +903,28 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         !write the coefficients and the basis on a file
         call write_gaussian_information(iproc,nproc,orbs,gbd,gaucoeffs,'wavefunctions.gau')
 
+        allocate(dualcoeffs(gbd%ncoeff,orbs%norbp+ndebug),stat=i_stat)
+        call memocc(i_stat,dualcoeffs,'dualcoeffs',subname)
+        call dcopy(gbd%ncoeff*orbs%norbp,gaucoeffs,1,dualcoeffs,1)
         !build dual coefficients
-        call dual_gaussian_coefficients(orbs%norbp,gbd,gaucoeffs)
+        call dual_gaussian_coefficients(orbs%norbp,gbd,dualcoeffs)
+
+        !here we can calculate the Mulliken charge population
+        !for any of the elements of the basis, ordered by angular momentum
+        call mulliken_charge_population(iproc,nproc,orbs,gbd_occ,gbd,gaucoeffs,dualcoeffs)
+
         !control the accuracy of the expansion
-        call check_gaussian_expansion(iproc,nproc,orbs,Glr,hx,hy,hz,psi,gbd,gaucoeffs)
+        call check_gaussian_expansion(iproc,nproc,orbs,Glr,hx,hy,hz,psi,gbd,dualcoeffs)
 
         call deallocate_gwf(gbd,subname)
         i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
         deallocate(gaucoeffs,stat=i_stat)
         call memocc(i_stat,i_all,'gaucoeffs',subname)
+
+        i_all=-product(shape(dualcoeffs))*kind(dualcoeffs)
+        deallocate(dualcoeffs,stat=i_stat)
+        call memocc(i_stat,i_all,'dualcoeffs',subname)
+
         nullify(gbd%rxyz)
 
      else
@@ -919,6 +932,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         if (verbose >0) write( *,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
      end if
   end if
+
+  if (in%gaussian_help) then
+     i_all=-product(shape(gbd_occ))*kind(gbd_occ)
+     deallocate(gbd_occ,stat=i_stat)
+     call memocc(i_stat,i_all,'gbd_occ',subname)
+  end if
+
 
   !plot the ionic potential, if required by output_grid
   if (abs(in%output_grid)==2) then

@@ -678,11 +678,12 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   real(wp), dimension(:,:,:,:), allocatable :: pot,rho
   real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
   real(wp), dimension(:,:,:), allocatable :: overlap
+  real(wp), dimension(:), pointer :: gbd_occ
 
   !nullify the G%rxyz pointer
   nullify(G%rxyz)
   !extract the gaussian basis from the pseudowavefunctions
-  call gaussian_pswf_basis(iproc,at,rxyz,G)
+  call gaussian_pswf_basis(iproc,nspin,at,rxyz,G,gbd_occ)
   
   allocate(gaucoeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
@@ -711,6 +712,11 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
   deallocate(gaucoeffs,stat=i_stat)
   call memocc(i_stat,i_all,'gaucoeffs',subname)
+
+  i_all=-product(shape(gbd_occ))*kind(gbd_occ)
+  deallocate(gbd_occ,stat=i_stat)
+  call memocc(i_stat,i_all,'gbd_occ',subname)
+
 
   !deallocate the gaussian basis descriptors
   call deallocate_gwf(G,subname)

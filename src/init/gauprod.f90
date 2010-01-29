@@ -227,20 +227,21 @@ end subroutine write_gaussian_information
 !!
 !! SOURCE
 !!
-subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
+subroutine gaussian_pswf_basis(iproc,nspin,at,rxyz,G,Gocc)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc,nspin
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
   type(gaussian_basis), intent(out) :: G
+  real(wp), dimension(:), pointer :: Gocc
   !local variables
   character(len=*), parameter :: subname='gaussian_pswf_basis'
   integer, parameter :: ngx=31,noccmax=2,lmax=4,nmax=6,nelecmax=32
   logical :: occeq
   integer :: i_stat,i_all,iat,ityp,ishell,iexpo,l,i,ig,isat,ictotpsi,norbe,norbsc,ishltmp
-  integer :: ityx,ntypesx,ng,nspin,nspinor,jat
+  integer :: ityx,ntypesx,ng,nspinor,jat,noncoll,icoeff,iocc,nlo,ispin,m,icoll
   real(gp) :: ek
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
@@ -264,8 +265,15 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
   allocate(locrad(at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,locrad,'locrad',subname)
 
-  nspin=1
+  !for the moment, only collinear
   nspinor=1
+  !if non-collinear it is like nspin=1 but with the double of orbitals
+  if (nspinor == 4) then
+     noncoll=2
+  else
+     noncoll=1
+  end if
+
 
   call readAtomicOrbitals(iproc,at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
 
@@ -345,10 +353,12 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
           at%aocc(1,iat),occup,nl)
      if (ityx > ntypesx) then
         if (iproc == 0 .and. verbose > 1) then
-           write(*,'(1x,a,a6,a)',advance='no')&
+           write(*,'(1x,a,a6,a)')&
                 'Generation of input wavefunction data for atom ',&
                 trim(at%atomnames(ityp)),&
-                ' ...'
+                ':'
+           call print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,&
+                at%aocc(1,iat),at%iasctype(iat))
         end if
 
         call iguess_generator(iproc,at%nzatom(ityp),at%nelpsp(ityp),&
@@ -377,6 +387,15 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
      end if
   end do
 
+  !up to here the code of this section is identical to the 
+  !atomic orbitals part in inputguess.f90
+
+  !now we have to allocate the array of the "occupation numbers"
+  !of the molecular orbitals
+  allocate(Gocc(G%ncoeff+ndebug),stat=i_stat)
+  call memocc(i_stat,Gocc,'Gocc',subname)
+  call razero(G%ncoeff,Gocc)
+
   !allocate and assign the exponents and the coefficients
   allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%psiat,'G%psiat',subname)
@@ -385,13 +404,17 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
 
   ishell=0
   iexpo=0
+  icoeff=1
   do iat=1,at%nat
      ityp=at%iatype(iat)
      ityx=iatypex(iat)
      call count_atomic_shells(nmax,lmax,noccmax,nelecmax,nspin,nspinor,&
           at%aocc(1,iat),occup,nl)
      ictotpsi=0
+     iocc=0
      do l=1,4
+        iocc=iocc+1
+        nlo=nint(at%aocc(iocc,iat)) !just to increase the counting 
         do i=1,nl(l)
            ishell=ishell+1
            ictotpsi=ictotpsi+1
@@ -401,6 +424,20 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
               G%psiat(iexpo)=psiatn(ig)
               G%xp(iexpo)=xpt(ig,ityp)
            end do
+
+           do ispin=1,nspin
+              do m=1,2*l-1
+                 !each orbital has two electrons in the case of the 
+                 !non-collinear case
+                 do icoll=1,noncoll !non-trivial only for nspinor=4
+                    iocc=iocc+1
+                    Gocc(icoeff)=Gocc(icoeff)+at%aocc(iocc,iat)
+                 end do
+                 icoeff=icoeff+1
+              end do
+              icoeff=icoeff-(2*l-1)
+           end do
+           icoeff=icoeff+(2*l-1)
         end do
      end do
   end do
@@ -616,7 +653,7 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   real(gp), dimension(G%ncoeff,norbp), intent(inout) :: coeffs !warning: the precision here should be wp
   !local variables
   character(len=*), parameter :: subname='dual_gaussian_coefficients'
-  integer :: nwork,info,i_stat,i_all,iorb
+  integer :: nwork,info,i_stat,i_all,iorb,icoeff,jcoeff
   integer, dimension(:), allocatable :: iwork
   real(gp), dimension(:), allocatable :: ovrlp,work
   
@@ -643,6 +680,13 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
 
   
   call gaussian_overlap(G,G,ovrlp)
+
+!!  !overlap matrix, print it for convenience
+  do icoeff=1,G%ncoeff
+     write(30,'(1x,200(1pe12.3))')&
+          (ovrlp(jcoeff+(icoeff-1)*G%ncoeff),jcoeff=1,G%ncoeff)
+  end do
+
   if (norbp > 0) then
      call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
           G%ncoeff,work,nwork,info)
@@ -663,6 +707,190 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
 !!!  end do
   
 end subroutine dual_gaussian_coefficients
+
+subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  type(orbitals_data), intent(in) :: orbs
+  type(gaussian_basis), intent(in) :: G
+  real(gp), dimension(G%ncoeff), intent(in) :: Gocc
+  real(wp), dimension(G%ncoeff,orbs%norbp), intent(in) :: coeff,duals
+  !local variables
+  character(len=*), parameter :: subname='mulliken_charge_population'
+  character(len=11) :: shname
+  integer :: icoeff,i_all,i_stat,ierr,ishell,iexpo,iat,l,ng,iorb,isat,m,ispin,ig,nchannels
+  real(wp) :: msum,rad,radnorm,r,netpol,sumch
+  real(wp), dimension(2) :: msumiat
+  real(wp), dimension(:,:), allocatable :: mchg
+  
+  !allocate both for spins up and down
+  allocate(mchg(G%ncoeff,2+ndebug),stat=i_stat)
+  call memocc(i_stat,mchg,'mchg',subname)
+
+  !for any of the orbitals calculate the Mulliken charge
+  do icoeff=1,G%ncoeff
+     mchg(icoeff,1)=0.0_wp
+     mchg(icoeff,2)=0.0_wp
+     !print '(a,100(1pe12.5))','icoeff,iorb',coeff(icoeff,:)
+     !print '(a,100(1pe12.5))','idualc,iorb',duals(icoeff,:)
+     do iorb=1,orbs%norbp
+        if (orbs%spinsgn(orbs%isorb+iorb) == 1.0_gp) then
+           ispin=1
+        else
+           ispin=2
+        end if
+        mchg(icoeff,ispin)=mchg(icoeff,ispin)+&
+             orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*&
+             coeff(icoeff,iorb)*duals(icoeff,iorb)
+             !duals(icoeff,iorb)**2
+     end do
+  end do
+
+  !reduce the results
+  if (nproc > 1) then
+     call mpiallred(mchg(1,1),2*G%ncoeff,MPI_SUM,MPI_COMM_WORLD,ierr)
+  end if
+
+  if (iproc == 0) then
+     write(*,'(1x,a)')repeat('-',48)//' Mulliken Charge Population Analysis'
+     write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) | Net Pol  | Gross Chg'
+  end if
+
+!  do iorb=1,orbs%norbp  
+!     msum=0.0_wp
+!     do icoeff=1,G%ncoeff
+!        msum=msum+coeff(icoeff,iorb)*duals(icoeff,iorb)
+!     end do
+!     print *,'total sum,iorb',iorb,msum,&
+!          orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)
+!  end do
+
+
+  !print the results as a function of the shell
+  ishell=0
+  iexpo=1
+  icoeff=1
+  msum=0.0_wp
+  do iat=1,G%nat
+     msumiat(1)=0.0_wp
+     msumiat(2)=0.0_wp
+     nchannels=0
+     sumch=0.0_gp
+     do isat=1,G%nshell(iat)
+        ishell=ishell+1
+        ng=G%ndoc(ishell)
+        l=G%nam(ishell)
+        !calculate mean radius (a.u.)
+        rad=0.0_wp
+        radnorm=0.0_wp
+        do ig=1,ng
+           r=sqrt(0.5_wp/G%xp(iexpo))
+           rad=rad+(G%psiat(iexpo))**2*r
+           radnorm=radnorm+(G%psiat(iexpo))**2
+           iexpo=iexpo+1
+        end do
+        rad=rad/radnorm
+        do m=1,2*l-1
+           call shell_name(l,m,shname)
+           msumiat(1)=msumiat(1)+mchg(icoeff,1)
+           msumiat(2)=msumiat(2)+mchg(icoeff,2)
+           if (iproc == 0) then
+              write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),2(a,f8.5))')&
+                   iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',&
+                   mchg(icoeff,1)-mchg(icoeff,2),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
+           end if
+           sumch=sumch+Gocc(icoeff)
+           icoeff=icoeff+1
+           nchannels=nchannels+1
+        end do
+     end do
+     if (iproc == 0) write(*,'(15x,a,2("|",1x,f8.5,1x),2(a,f8.5))')&
+          '  Center Quantities : ',&
+          (msumiat(ispin),ispin=1,2),'  | ',msumiat(1)-msumiat(2),' | ',&
+          sumch-(msumiat(1)+msumiat(2))
+     msum=msum+msumiat(1)+msumiat(2)
+     if (iproc == 0) write(*,'(1x,a)')repeat('-',82)
+  end do
+
+  if (iproc == 0) write(*,'(24x,a,f21.12)')'Total Charge considered on the centers: ',msum
+   
+  call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
+
+  i_all=-product(shape(mchg))*kind(mchg)
+  deallocate(mchg,stat=i_stat)
+  call memocc(i_stat,i_all,'mchg',subname)
+  
+end subroutine mulliken_charge_population
+
+subroutine shell_name(l,m,name)
+  implicit none
+  integer, intent(in) :: l,m
+  character(len=11), intent(out) :: name
+  
+  select case(l)
+  case(1)
+     name(1:1)='s'
+     select case(m)
+     case(1)
+        name(2:11)='          '
+     case default
+        stop 'wrong m'
+     end select
+  case(2)
+     name(1:1)='p'
+     select case(m)
+     case(1)
+        name(2:11)='x         '
+     case(2)
+        name(2:11)='y         '
+     case(3)
+        name(2:11)='z         '
+     case default
+        stop 'wrong m'
+     end select
+  case(3)
+     name(1:1)='d'        
+     select case(m)
+     case(1)
+        name(2:11)='yz        '
+     case(2)
+        name(2:11)='xz        '
+     case(3)
+        name(2:11)='xy        '
+     case(4)
+        name(2:11)='x2-y2     '
+     case(5)
+        name(2:11)='2z2-r2    '
+     case default
+        stop 'wrong m'
+     end select
+  case(4)
+     name(1:1)='f'        
+     select case(m)
+     case(1)
+        name(2:11)='x(r2-5z2) '
+     case(2)
+        name(2:11)='y(r2-5z2) '
+     case(3)
+        name(2:11)='z(3r2-5z2)'
+     case(4)
+        name(2:11)='x(x2-3y2) '
+     case(5)
+        name(2:11)='y(y2-3x2) '
+     case(6)
+        name(2:11)='z(x2-y2)  '
+     case(7)
+        name(2:11)='xyz       '
+     case default
+        stop 'wrong m'
+     end select
+  case default
+     stop 'l not recognized'
+  end select
+
+end subroutine shell_name
 
 
 !normalize a given atomic shell following the angular momentum
@@ -1269,7 +1497,10 @@ subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,
           wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
           psi(1),psi(wfd%nvctr_c+1),coeffs(m))
 
+     !print '(a,2(i4),5(1pe12.5))','l,m,rxyz,coeffs(m)',l,m,rxyz(:),coeffs(m)
   end do
+
+
 
   !here we should modify the coefficients following the direction of the axis
   call lsh_rotation(l-1,thetaphi(1),thetaphi(2),coeffs)
