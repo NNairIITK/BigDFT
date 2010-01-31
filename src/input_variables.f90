@@ -791,6 +791,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   end if
 
   open(unit=99,file=trim(filename),status='old')
+  if (iproc.eq.0) write(*,*) 'Reading atomic input positions from file:',trim(filename) 
 
   if (atoms%format == "xyz") then
      read(99,*) atoms%nat,atoms%units
