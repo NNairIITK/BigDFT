@@ -224,12 +224,82 @@ out[(jg*(2*n)+ig*2+1)]=so;\n\
 };\n\
 ";
 
+char * c_initialize_program="\
+__kernel void c_initializeKernel_l(int n, int ndat, __global const float * x_in, __global float * y_in, float c) {\n\
+size_t ig = get_global_id(0);\n\
+size_t jg = get_global_id(1);\n\
+if( jg >= ndat ) return;\n\
+ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+size_t pos = jg+ig*ndat;\n\
+y_in[pos] = x_in[pos] * c;\n\
+};\n\
+";
+
+char * kinetic1d_program="\
+#define FILTER_WIDTH 30\n\
+__kernel void kinetic1dKernel_l(int n, int ndat, float scale, __global const float * x_in, __global float * x_out, __global const float * y_in, __global float * y_out, __local float * tmp) {\n\
+size_t ig = get_global_id(0);\n\
+size_t jg = get_global_id(1);\n\
+size_t i2 = get_local_id(0);\n\
+size_t j2 = get_local_id(1);\n\
+size_t is = get_local_size(0);\n\
+size_t ib;\n\
+size_t it;\n\
+size_t base_i;\n\
+//if data are ill dimentioned last block recomputes part of the data\n\
+if( jg >= ndat ) return;\n\
+ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+__local float * tmp_o = tmp + j2*(is+FILTER_WIDTH);\n\
+base_i = FILTER_WIDTH/2+i2;\n\
+//If I'm on the outside, select a border element to load\n\
+if(i2 < FILTER_WIDTH/2)\n\
+  { it = i2;\n\
+    if (ig < FILTER_WIDTH/2)\n\
+      { ib =  n + i2 - FILTER_WIDTH/2; }\n\
+    else { ib = ig - FILTER_WIDTH/2; }\n\
+    tmp_o[it]=x_in[jg+ib*ndat];\n\
+  }\n\
+if (i2 >= (is - FILTER_WIDTH/2) || (ig >= n - FILTER_WIDTH/2))\n\
+  { it = i2 + FILTER_WIDTH;\n\
+    if (ig >= n - FILTER_WIDTH/2)\n\
+      { ib = ig - n + FILTER_WIDTH/2; }\n\
+    else { ib = ig + FILTER_WIDTH/2; }\n\
+    tmp_o[it]=x_in[jg+ib*ndat];\n\
+  }\n\
+//check boundaries\
+//Load the element I am to calculate\n\
+tmp_o[base_i]=x_in[jg+ig*ndat];\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+tmp_o = tmp_o + base_i;\n\
+float conv = 0.0;\n\
+conv += (tmp_o[14] + tmp_o[-14]) * -6.924474940639200152025730585882e-18;\n\
+conv += (tmp_o[13] + tmp_o[-13]) *  2.70800493626319438269856689037647576e-13;\n\
+conv += (tmp_o[12] + tmp_o[-12]) * -5.813879830282540547959250667e-11;\n\
+conv += (tmp_o[11] + tmp_o[-11]) * -1.05857055496741470373494132287e-8;\n\
+conv += (tmp_o[10] + tmp_o[-10]) * -3.7230763047369275848791496973044e-7;\n\
+conv += (tmp_o[ 9] + tmp_o[ -9]) *  2.0904234952920365957922889447361e-6;\n\
+conv += (tmp_o[ 8] + tmp_o[ -8]) * -0.2398228524507599670405555359023135e-4;\n\
+conv += (tmp_o[ 7] + tmp_o[ -7]) *  0.45167920287502235349480037639758496e-3;\n\
+conv += (tmp_o[ 6] + tmp_o[ -6]) * -0.409765689342633823899327051188315485e-2;\n\
+conv += (tmp_o[ 5] + tmp_o[ -5]) *  0.02207029188482255523789911295638968409e0;\n\
+conv += (tmp_o[ 4] + tmp_o[ -4]) * -0.0822663999742123340987663521e0;\n\
+conv += (tmp_o[ 3] + tmp_o[ -3]) *  0.2371780582153805636239247476e0;\n\
+conv += (tmp_o[ 2] + tmp_o[ -2]) * -0.6156141465570069496314853949e0;\n\
+conv += (tmp_o[ 1] + tmp_o[ -1]) *  2.2191465938911163898794546405e0;\n\
+conv +=  tmp_o[ 0]             * -3.5536922899131901941296809374e0;\n\
+y_out[jg*n + ig] = y_in[jg + ig*ndat] - scale * conv;\n\
+x_out[jg*n + ig] = tmp[0];\n\
+};\n\
+";
+
 #define oclErrorCheck(errorCode,message) if(errorCode!=CL_SUCCESS) { fprintf(stderr,"Error(%i) (%s: %s): %s\n", errorCode,__FILE__,__func__,message);exit(1);} 
 
 
 cl_kernel magicfilter1d_kernel_l;
 cl_kernel ana1d_kernel_l;
 cl_kernel syn1d_kernel_l;
+cl_kernel kinetic1d_kernel_l;
+cl_kernel c_initialize_kernel_l;
 
 cl_device_id oclGetFirstDev(cl_context cxGPUContext)
 {
@@ -294,7 +364,37 @@ void FC_FUNC_(ocl_build_kernels,OCL_BUILD_KERNELS)(cl_context * context) {
     ciErrNum = CL_SUCCESS;
     syn1d_kernel_l=clCreateKernel(syn1dProgram,"syn1dKernel_l",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-  
+
+    cl_program c_initializeProgram = clCreateProgramWithSource(*context,1,(const char**) &c_initialize_program, NULL, &ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create program!");
+    ciErrNum = clBuildProgram(c_initializeProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error: Failed to build c_initialize program!\n");
+        char cBuildLog[10240];
+        clGetProgramBuildInfo(c_initializeProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+	fprintf(stderr,"%s\n",cBuildLog);
+        exit(1);
+    }
+    ciErrNum = CL_SUCCESS;
+    c_initialize_kernel_l=clCreateKernel(c_initializeProgram,"c_initializeKernel_l",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+
+    cl_program kinetic1dProgram = clCreateProgramWithSource(*context,1,(const char**) &kinetic1d_program, NULL, &ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create program!");
+    ciErrNum = clBuildProgram(kinetic1dProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error: Failed to build kinetic1d program!\n");
+        char cBuildLog[10240];
+        clGetProgramBuildInfo(kinetic1dProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+	fprintf(stderr,"%s\n",cBuildLog);
+        exit(1);
+    }
+    ciErrNum = CL_SUCCESS;
+    kinetic1d_kernel_l=clCreateKernel(kinetic1dProgram,"kinetic1dKernel_l",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+ 
 }
 
 
@@ -327,6 +427,16 @@ void FC_FUNC_(ocl_create_read_buffer,OCL_CREATE_READ_BUFFER)(cl_context *context
     printf("contexte address: %p, memory address: %p, size: %d\n",*context,*buff_ptr,*size);
 #endif
     oclErrorCheck(ciErrNum,"Failed to create read buffer!");
+}
+
+void FC_FUNC_(ocl_create_read_write_buffer,OCL_CREATE_READ_WRITE_BUFFER)(cl_context *context, size_t *size, cl_mem *buff_ptr) {
+    cl_int ciErrNum = CL_SUCCESS;
+    *buff_ptr = clCreateBuffer( *context, CL_MEM_READ_WRITE, *size, NULL, &ciErrNum);
+#if DEBUG
+    printf("%s %s\n", __func__, __FILE__);
+    printf("contexte address: %p, memory address: %p, size: %d\n",*context,*buff_ptr,*size);
+#endif
+    oclErrorCheck(ciErrNum,"Failed to create read_write buffer!");
 }
 
 void FC_FUNC_(ocl_create_read_buffer_and_copy,OCL_CREATE_READ_BUFFER_AND_COPY)(cl_context *context, size_t *size, void *host_ptr, cl_mem *buff_ptr) {
@@ -525,8 +635,8 @@ void FC_FUNC_(syn1d_l,SYN1D_L)(cl_command_queue *command_queue, size_t *n,size_t
     clSetKernelArg(syn1d_kernel_l, i++,sizeof(*ndat), (void*)ndat);
     clSetKernelArg(syn1d_kernel_l, i++,sizeof(*psi), (void*)psi);
     clSetKernelArg(syn1d_kernel_l, i++,sizeof(*out), (void*)out);
-    clSetKernelArg(syn1d_kernel_l, i++,sizeof(float)*block_size_j*(block_size_i+FILTER_WIDTH), 0);
-    clSetKernelArg(syn1d_kernel_l, i++,sizeof(float)*block_size_j*(block_size_i+FILTER_WIDTH), 0);
+    clSetKernelArg(syn1d_kernel_l, i++,sizeof(float)*block_size_j*(block_size_i+FILTER_WIDTH), NULL);
+    clSetKernelArg(syn1d_kernel_l, i++,sizeof(float)*block_size_j*(block_size_i+FILTER_WIDTH), NULL);
     size_t localWorkSize[] = { block_size_i,block_size_j };
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, syn1d_kernel_l, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
@@ -537,6 +647,54 @@ void FC_FUNC_(syn1d_l,SYN1D_L)(cl_command_queue *command_queue, size_t *n,size_t
         fprintf(stderr,"localWorkSize = { %d, %d}\n",localWorkSize[0],localWorkSize[1]);
         exit(1);
     }  
+}
+
+void FC_FUNC_(kinetic1d_l,KINETIC1D_L)(cl_command_queue *command_queue, size_t *n,size_t *ndat, float *h, float*c, cl_mem *x, cl_mem *y, cl_mem *workx, cl_mem *worky,float *ekin){
+    cl_int ciErrNum;
+#if DEBUG     
+    printf("%s %s\n", __func__, __FILE__);
+    printf("command queue: %p, dimension n: %d, dimension dat: %d, h: %f, c: %f, x: %p, workx: %p, y: %p, worky: %p\n",*command_queue, *n, *ndat, *h, *c, *x, *workx, *y, *worky);
+#endif
+    int FILTER_WIDTH = 30;
+    if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
+    size_t block_size_i=32, block_size_j=256/32;
+    while (*n > block_size_i >= 1 && block_size_j > 4)
+        { block_size_i *= 2; block_size_j /= 2;}
+    cl_uint i = 0;
+    clSetKernelArg(c_initialize_kernel_l, i++,sizeof(*n), (void*)n);
+    clSetKernelArg(c_initialize_kernel_l, i++,sizeof(*ndat), (void*)ndat);
+    clSetKernelArg(c_initialize_kernel_l, i++,sizeof(*x), (void*)x);
+    clSetKernelArg(c_initialize_kernel_l, i++,sizeof(*worky), (void*)worky);
+    clSetKernelArg(c_initialize_kernel_l, i++,sizeof(*c), (void*)c);
+    size_t localWorkSize[] = { block_size_i,block_size_j };
+    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, c_initialize_kernel_l, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error %d: Failed to enqueue c_initialize_l kernel!\n",ciErrNum);
+        fprintf(stderr,"globalWorkSize = { %d, %d}\n",globalWorkSize[0],globalWorkSize[1]);
+        fprintf(stderr,"localWorkSize = { %d, %d}\n",localWorkSize[0],localWorkSize[1]);
+        exit(1);
+    }
+    i = 0;
+    float scale = 0.5 / ( *h * (*h) );
+    clSetKernelArg(kinetic1d_kernel_l, i++,sizeof(*n), (void*)n);
+    clSetKernelArg(kinetic1d_kernel_l, i++,sizeof(*ndat), (void*)ndat);
+    clSetKernelArg(kinetic1d_kernel_l, i++,sizeof(scale), (void*)&scale);
+    clSetKernelArg(kinetic1d_kernel_l, i++,sizeof(*x), (void*)x);
+    clSetKernelArg(kinetic1d_kernel_l, i++,sizeof(*workx), (void*)workx);
+    clSetKernelArg(kinetic1d_kernel_l, i++,sizeof(*worky), (void*)worky);
+    clSetKernelArg(kinetic1d_kernel_l, i++,sizeof(*y), (void*)y);
+    clSetKernelArg(kinetic1d_kernel_l, i++,sizeof(float)*block_size_j*(block_size_i+FILTER_WIDTH), NULL);
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kinetic1d_kernel_l, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error %d: Failed to enqueue kinetic1d_l kernel!\n",ciErrNum);
+        fprintf(stderr,"globalWorkSize = { %d, %d}\n",globalWorkSize[0],globalWorkSize[1]);
+        fprintf(stderr,"localWorkSize = { %d, %d}\n",localWorkSize[0],localWorkSize[1]);
+        exit(1);
+    }
 }
 
 void FC_FUNC_(ocl_finish,OCL_FINISH)(cl_command_queue *command_queue){

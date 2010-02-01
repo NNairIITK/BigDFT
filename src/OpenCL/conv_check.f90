@@ -306,6 +306,12 @@ program conv_check
 
            print *,'ekin',ekin
 
+              call ocl_create_write_buffer(context, n1*ndat*4, psi_GPU)
+              call ocl_create_read_buffer(context, n1*ndat*4, work_GPU)
+              call ocl_create_write_buffer(context, n1*ndat*4, work2_GPU)
+              call ocl_create_read_write_buffer(context, n1*ndat*4, v_GPU)
+              call ocl_enqueue_write_buffer(queue, work_GPU, n1*ndat*4, v_cuda_l)
+
 !!!           call sg_gpu_alloc(psi_GPU,n1*ndat,8,i_stat)
 !!!           call sg_gpu_alloc(work_GPU,n1*ndat,8,i_stat)
 !!!           call sg_gpu_alloc(work2_GPU,n1*ndat,8,i_stat)
@@ -320,9 +326,10 @@ program conv_check
 
            call cpu_time(t0)
            do i=1,ntimes
-!!!              call kinetic1d(n1-1,ndat,hx,0.d0,&
-!!!                   work_GPU,psi_GPU,work2_GPU,v_GPU,ekinGPUd)
+              call kinetic1d_l(queue,n1,ndat,real(hx,kind=4),real(0.d0,kind=4),&
+                   work_GPU,psi_GPU,work2_GPU,v_GPU,ekinGPU)
            end do
+           call ocl_finish(queue)
            call cpu_time(t1)
 
            GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
@@ -331,6 +338,12 @@ program conv_check
                 GPUtime*1.d3/real(ntimes,kind=8),&
                 real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 
+           call ocl_enqueue_read_buffer(queue, psi_GPU, n1*ndat*4, psi_cuda_l)
+           call ocl_release_mem_object(psi_GPU)
+           call ocl_release_mem_object(work_GPU)
+           call ocl_release_mem_object(work2_GPU)
+           call ocl_release_mem_object(v_GPU)
+
 !!!           call sg_gpu_imm_recv(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
 
 !!!           call sg_gpu_free(v_GPU,i_stat)
@@ -338,7 +351,7 @@ program conv_check
 !!!           call sg_gpu_free(work_GPU,i_stat)
 !!!           call sg_gpu_free(work2_GPU,i_stat)
 
-           print *,'ekinGPU',ekinGPUd
+           print *,'ekinGPU',ekinGPU
 
            !check the differences between the results
            maxdiff=0.d0
@@ -348,7 +361,8 @@ program conv_check
               do i1=1,n1
                  !write(17,'(2(i6),2(1pe24.17))')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
                  !write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
-                 comp=abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8))
+                 comp=abs(psi_out(i,i1,1)-real(psi_cuda_l(i1,i,1),kind=8))
+!                 write(*,*),psi_out(i,i1,1), psi_cuda_l(i1,i,1)
                  !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
                  if (comp > maxdiff) then
                     maxdiff=comp
