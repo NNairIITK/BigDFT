@@ -122,6 +122,12 @@ subroutine read_input_variables(iproc,posinp, file_dft, file_kpt, &
         rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
      end if
   end do
+
+  !stop the code if it is trying to run GPU with non-periodic boundary conditions
+  if (atoms%geocode /= 'P' .and. GPUconv) then
+     stop 'GPU calculation allowed only in periodic boundary conditions'
+  end if
+
 end subroutine read_input_variables
 
 !!****f* BigDFT/dft_input_variables
@@ -173,7 +179,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   call check()
   !charged system, electric field (intensity and start-end points)
   call check()
-  read(1,*,iostat=ierror)  in%ncharge,in%elecfield
+  read(1,*,iostat=ierror) in%ncharge,in%elecfield
   call check()
   read(1,*,iostat=ierror) in%nspin,in%mpol
   call check()
@@ -228,15 +234,19 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   in%calc_tail=(in%rbuf > 0.0_gp)
 
   !davidson treatment
-  read(1,*,iostat=ierror) in%nvirt,in%nplot
+  read(1,*,iostat=ierror) in%norbv,in%nvirt,in%nplot
   call check()
 
   !electrostatic treatment of the vacancy (experimental)
-  read(1,*,iostat=ierror)  in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
-  call check()
+  !read(1,*,iostat=ierror) in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
+  !call check()
+  in%nvacancy=0
+  in%read_ref_den=.false.
+  in%correct_offset=.false.
+  in%gnrm_sw=0.0_gp
 
   !verbosity of the output
-  read(1,*,iostat=ierror)  ivrbproj
+  read(1,*,iostat=ierror) ivrbproj
   call check()
 
   !if the verbosity is bigger than 10 apply the projectors
@@ -898,7 +908,6 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
 end subroutine read_atomic_file
 !!***
 
-
 subroutine deallocate_atoms(atoms,subname) 
   use module_base
   use module_types
@@ -930,6 +939,34 @@ subroutine deallocate_atoms(atoms,subname)
   end if
 end subroutine deallocate_atoms
 
+subroutine deallocate_atoms_scf(atoms,subname) 
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: subname
+  type(atoms_data), intent(inout) :: atoms
+  !local variables
+  integer :: i_stat, i_all
+  !semicores useful only for the input guess
+  i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
+  deallocate(atoms%iasctype,stat=i_stat)
+  call memocc(i_stat,i_all,'iasctype',subname)
+  i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
+  deallocate(atoms%aocc,stat=i_stat)
+  call memocc(i_stat,i_all,'aocc',subname)
+  i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
+  deallocate(atoms%nzatom,stat=i_stat)
+  call memocc(i_stat,i_all,'nzatom',subname)
+  i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
+  deallocate(atoms%psppar,stat=i_stat)
+  call memocc(i_stat,i_all,'psppar',subname)
+  i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
+  deallocate(atoms%nelpsp,stat=i_stat)
+  call memocc(i_stat,i_all,'nelpsp',subname)
+  i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
+  deallocate(atoms%npspcode,stat=i_stat)
+  call memocc(i_stat,i_all,'npspcode',subname)
+end subroutine deallocate_atoms_scf
 
 
 

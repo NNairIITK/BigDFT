@@ -784,15 +784,15 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
   !the filling of the wavefunction should be different if ncplx==1 or 2
   !split such as to avoid intensive call to if statements
 
-  !$omp parallel default(private) shared(lr%nseg_c,lr%wfd%keyv,lr%wfd%keyg,lr%d) &
-  !$omp shared(psi,wx,wy,wz,lr%wfd%nvctr_c) &
-  !$omp shared(nterm,lr%wfd%nvctr_f,lr%wfd%nseg_f)
+  !!$omp parallel default(private) shared(lr%nseg_c,lr%wfd%keyv,lr%wfd%keyg,lr%d) &
+  !!$omp shared(psi,wx,wy,wz,lr%wfd%nvctr_c) &
+  !!$omp shared(nterm,lr%wfd%nvctr_f,lr%wfd%nseg_f)
 
-  !$	ithread=omp_get_thread_num()
-  !$	nthread=omp_get_num_threads()
+  !!$	ithread=omp_get_thread_num()
+  !!$	nthread=omp_get_num_threads()
   if (ncplx == 1) then
 
-     !$  if(ithread .eq. 0) then
+     !!$  if(ithread .eq. 0) then
      ! Other terms: coarse projector components
      ! coarse part
      nvctr=0
@@ -812,9 +812,9 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
         stop
      end if
-     !$  end if
+     !!$  end if
 
-     !$  if(ithread .eq. 1 .or. nthread .eq. 1) then
+     !!$  if(ithread .eq. 1 .or. nthread .eq. 1) then
      ! Other terms: fine projector components
      nvctr=0
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
@@ -844,13 +844,13 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
         stop 
      end if
-     !$  end if
+     !!$  end if
   else if (ncplx ==2) then
 
      !part with real and imaginary part
      !modify the openMP statements such as to benefit from parallelisation
 
-     !$  if(ithread .eq. 0) then
+     !!$  if(ithread .eq. 0) then
      ! Other terms: coarse projector components
      ! coarse part
      nvctr=0
@@ -869,9 +869,9 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
         stop
      end if
-     !$  end if
+     !!$  end if
 
-     !$  if(ithread .eq. 1 .or. nthread .eq. 1) then
+     !!$  if(ithread .eq. 1 .or. nthread .eq. 1) then
      ! Other terms: fine projector components
      nvctr=0
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
@@ -901,11 +901,11 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
         stop 
      end if
-     !$  end if
+     !!$  end if
      
      !now the imaginary part
      
-     !$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then 
+     !!$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then 
      ! Other terms: coarse projector components
      ! coarse part
      do iseg=1,lr%wfd%nseg_c
@@ -919,9 +919,9 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         end do
      end do
 
-     !$  end if
+     !!$  end if
 
-     !$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
+     !!$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
      ! Other terms: fine projector components
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
         call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
@@ -945,10 +945,10 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
            end do
         end do
      end do
-     !$  end if
+     !!$  end if
   end if
 
-  !$omp end parallel
+  !!$omp end parallel
 
 end subroutine wfn_from_tensprod
 

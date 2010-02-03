@@ -35,6 +35,7 @@ program memguess
   type(orbitals_data) :: orbs,orbstst
   type(locreg_descriptors) :: Glr
   type(nonlocal_psp_descriptors) :: nlpspd
+  real(gp), dimension(3) :: shift
   logical, dimension(:,:,:), allocatable :: logrid
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:,:), pointer :: rxyz
@@ -252,7 +253,7 @@ program memguess
   hy=in%hy
   hz=in%hz
 
-  call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Glr)
+  call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Glr,shift)
 
   if (GPUtest .and. .not. GPUconv) then
      write(*,*)' ERROR: you can not put a GPUtest flag is there is no GPUrun.'
@@ -403,12 +404,13 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
   integer :: iat,i_all,i_stat,it,i
   real(gp) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax
   type(locreg_descriptors) :: Glr
+  real(gp), dimension(3) :: shift
   real(gp), dimension(3,3) :: urot
   real(gp), dimension(:,:), allocatable :: txyz
 
   allocate(txyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,txyz,'txyz',subname)
-  call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
+  call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
   !call volume(nat,rxyz,vol)
   vol=atoms%alat1*atoms%alat2*atoms%alat3
   write(*,'(1x,a,1pe16.8)')'Initial volume (Bohr^3)',vol
@@ -459,7 +461,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
         txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
      enddo
 
-     call system_size(1,atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
+     call system_size(1,atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
      tvol=atoms%alat1*atoms%alat2*atoms%alat3
      !call volume(nat,txyz,tvol)
      if (tvol < vol) then
