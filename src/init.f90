@@ -683,7 +683,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
        rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel)
+       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernel)
 
 !!!  !calculate the overlap matrix knowing that the original functions are gaussian-based
 !!!  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)

@@ -383,7 +383,7 @@ contains
   !Deallocation
   deallocate(fpos)
   !Message
-  write(*,'(1x,a,i6,a,i6,a)') &
+  if (iproc ==0) write(*,'(1x,a,i6,a,i6,a)') &
        'There are', imoves, ' moves already calculated over', 3*2*nat,' frequencies.'
   END SUBROUTINE frequencies_restart
 

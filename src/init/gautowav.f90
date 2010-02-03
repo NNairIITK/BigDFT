@@ -31,8 +31,10 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   allocate(workpsi((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,workpsi,'workpsi',subname)
 
-  call gaussians_to_wavelets(iproc,nproc,lr%geocode,orbs,lr%d,hx,hy,hz,&
-       lr%wfd,G,coeffs,workpsi)
+  !call gaussians_to_wavelets(iproc,nproc,lr%geocode,orbs,lr%d,hx,hy,hz,&
+  !     lr%wfd,G,coeffs,workpsi)
+
+  call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,coeffs,workpsi)
 
   maxdiffp=0.0_wp
   do iorb=1,orbs%norbp
@@ -615,7 +617,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
              psi(1,ispinor,iorb))
      end do
      tt=max(tt,abs(1.0_dp-totnorm))
-
+     !print *,'iorb,norm',totnorm
   end do
 
   if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'

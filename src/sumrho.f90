@@ -27,8 +27,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
   real(dp), dimension(max(nrho,1),nspin), intent(out), target :: rho
   type(GPU_pointers), intent(inout) :: GPU
-  integer, dimension(:,:,:), intent(in) :: irrzon
-  real(dp), dimension(:,:,:), intent(in) :: phnons
+  integer, dimension(*), intent(in) :: irrzon
+  real(dp), dimension(*), intent(in) :: phnons
   !local variables
   character(len=*), parameter :: subname='sumrho'
   logical :: rsflag
@@ -532,8 +532,8 @@ subroutine symmetrise_density(iproc, nproc, n1, n2, n3, nscatterarr, nspin, nrho
   integer, intent(in) :: iproc,nproc,nrho,symObj,nspin, n1, n2, n3
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(dp), dimension(nrho, nspin), intent(inout) :: rho
-  integer, dimension(:,:,:), intent(in) :: irrzon
-  real(dp), dimension(:,:,:), intent(in) :: phnons
+  integer, dimension(n1,n2,n3), intent(in) :: irrzon !to be changed, fake
+  real(dp), dimension(n1,n2,n3), intent(in) :: phnons !fake dimensions
 
   integer :: errno, ispden, nsym_used, nSym, isym, imagn, r2
   integer :: nd2, izone_max, numpt, izone, rep, nup, iup, ind, j, j1, j2, j3

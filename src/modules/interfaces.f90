@@ -341,13 +341,13 @@ module module_interfaces
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
        real(dp), dimension(max(nrho,1),nspin), intent(out), target :: rho
        type(GPU_pointers), intent(inout) :: GPU
-       integer, dimension(:,:,:), intent(in) :: irrzon
-       real(dp), dimension(:,:,:), intent(in) :: phnons
+       integer, dimension(*), intent(in) :: irrzon
+       real(dp), dimension(*), intent(in) :: phnons
      end subroutine sumrho
 
      subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel)
+          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc)
        use module_base
        use module_types
        implicit none
@@ -366,6 +366,8 @@ module module_interfaces
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
        real(dp), dimension(*), optional :: pkernel
+       type(orbitals_data), intent(in), optional :: orbsocc
+       real(wp), dimension(*), intent(in), optional :: psirocc
      end subroutine HamiltonianApplication
 
      subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
@@ -797,79 +799,89 @@ module module_interfaces
 
 
 
-function GetBottom(  atoms, iproc)
-  use module_base
-  use module_types
-  implicit none
-  type(atoms_data), intent(in) :: atoms
-  integer iproc
-  real(gp) GetBottom
-end function GetBottom
+     function GetBottom(  atoms, iproc)
+       use module_base
+       use module_types
+       implicit none
+       type(atoms_data), intent(in) :: atoms
+       integer iproc
+       real(gp) GetBottom
+     end function GetBottom
 
 
-subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
-  use module_base
-  use module_types
-  implicit none
-  character(len=10) :: comment
-  character(len=11) :: orbname
-  type(atoms_data), intent(in) :: at
-  real(gp), intent(in) :: hx,hy,hz
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension(*) :: psi
-end subroutine plot_wf_cube
+     subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
+       use module_base
+       use module_types
+       implicit none
+       character(len=10) :: comment
+       character(len=11) :: orbname
+       type(atoms_data), intent(in) :: at
+       real(gp), intent(in) :: hx,hy,hz
+       real(gp), dimension(3,at%nat), intent(in) :: rxyz
+       type(locreg_descriptors), intent(in) :: lr
+       real(wp), dimension(*) :: psi
+     end subroutine plot_wf_cube
 
-subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
-  implicit none
-  integer, intent(in) :: nzatom,nvalelec
-  character(len=2), intent(out) :: symbol
-  real(kind=8), intent(out) :: rcov,rprb,ehomo,amu
-  integer, parameter :: nmax=6,lmax=3
-  integer, intent(out) :: neleconf(nmax,0:lmax)
-  integer, intent(out) :: nsccode,mxpl,mxchg
-end subroutine eleconf
+     subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
+       implicit none
+       integer, intent(in) :: nzatom,nvalelec
+       character(len=2), intent(out) :: symbol
+       real(kind=8), intent(out) :: rcov,rprb,ehomo,amu
+       integer, parameter :: nmax=6,lmax=3
+       integer, intent(out) :: neleconf(nmax,0:lmax)
+       integer, intent(out) :: nsccode,mxpl,mxchg
+     end subroutine eleconf
 
-subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alpha,&
-     hpsit,psidst,hpsidst,psit)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc,nproc,ids,mids,idsx
-  real(gp), intent(in) :: energy,energy_old
-  type(orbitals_data), intent(in) :: orbs
-  type(communications_arrays), intent(in) :: comms
-  real(gp), intent(inout) :: alpha
-  real(wp), dimension(:), pointer :: psit,hpsit,psidst,hpsidst
-  real(wp), dimension(:,:,:), pointer :: ads
-end subroutine psimix
-
-
-subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
-  use module_base
-  implicit none
-  character(len=*), intent(in) :: filename
-  integer, intent(out) :: n1i,n2i,n3i
-  real(gp) alat1, alat2, alat3, dum, dum1
-  ! real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
-  real(gp), pointer :: rho(:)
-end subroutine read_potfile4b2B
-
-subroutine read_density_cube(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxyz,  rho)
-  use module_base
-  use module_types
-  implicit none
-  character(len=*), intent(in) :: filename
-  integer, intent(out) ::  n1i,n2i,n3i
-  integer, intent(in) :: nspin
-  real(gp), intent(out) :: hxh,hyh,hzh
-  real(gp), pointer :: rxyz(:,:)
-  real(dp), dimension(:), pointer :: rho
-  integer, intent(out) ::  nat
-end subroutine read_density_cube
+     subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alpha,&
+          hpsit,psidst,hpsidst,psit)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,nproc,ids,mids,idsx
+       real(gp), intent(in) :: energy,energy_old
+       type(orbitals_data), intent(in) :: orbs
+       type(communications_arrays), intent(in) :: comms
+       real(gp), intent(inout) :: alpha
+       real(wp), dimension(:), pointer :: psit,hpsit,psidst,hpsidst
+       real(wp), dimension(:,:,:), pointer :: ads
+     end subroutine psimix
 
 
-end interface
+     subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
+       use module_base
+       implicit none
+       character(len=*), intent(in) :: filename
+       integer, intent(out) :: n1i,n2i,n3i
+       real(gp) alat1, alat2, alat3, dum, dum1
+       ! real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
+       real(gp), pointer :: rho(:)
+     end subroutine read_potfile4b2B
+
+     subroutine read_density_cube(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxyz,  rho)
+       use module_base
+       use module_types
+       implicit none
+       character(len=*), intent(in) :: filename
+       integer, intent(out) ::  n1i,n2i,n3i
+       integer, intent(in) :: nspin
+       real(gp), intent(out) :: hxh,hyh,hzh
+       real(gp), pointer :: rxyz(:,:)
+       real(dp), dimension(:), pointer :: rho
+       integer, intent(out) ::  nat
+     end subroutine read_density_cube
+
+     subroutine gaussian_pswf_basis(iproc,nspin,at,rxyz,G,Gocc)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,nspin
+       type(atoms_data), intent(in) :: at
+       real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
+       type(gaussian_basis), intent(out) :: G
+       real(wp), dimension(:), pointer :: Gocc
+     end subroutine gaussian_pswf_basis
+
+  end interface
 
 end module module_interfaces
 !!***

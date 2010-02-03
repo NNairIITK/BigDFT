@@ -64,6 +64,7 @@ module module_base
 
   ! Physical constants.
   real(gp), parameter :: bohr2ang = 0.5291772108_gp !1 AU in angstroem
+  real(gp), parameter :: ha2ev = 27.21138386_gp !1 ha in eV
 
   !interface for MPI_ALLREDUCE routine
   interface mpiallred

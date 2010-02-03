@@ -207,7 +207,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(GPU_pointers) :: GPU
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: rho
-  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
+  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi,dualcoeffs
   real(gp), dimension(:,:),allocatable :: fdisp
   ! Charge density/potential,ionic potential, pkernel
   real(kind=8), dimension(:), allocatable :: pot_ion
@@ -219,17 +219,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! before reformatting if useFormattedInput is .true.
   real(kind=8), dimension(:), pointer :: hpsi,psit,psi_old,psivirt,psidst,hpsidst
   ! PSP projectors 
-  real(kind=8), dimension(:), pointer :: proj
+  real(kind=8), dimension(:), pointer :: proj,gbd_occ
   ! arrays for DIIS convergence accelerator
   real(kind=8), dimension(:,:,:), pointer :: ads
   ! Arrays for the symmetrisation.
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
-  
-
-
-
-
 
 
   ! ----------------------------------
@@ -502,7 +497,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call import_gaussians(iproc,nproc,atoms,orbs,comms,&
           & Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj, &
           & pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,in%nspin,&
-          & atoms%symObj, irrzon, phnons)
+          & atoms%symObj,irrzon,phnons)
 
   case(0)
      nspin=in%nspin
@@ -510,7 +505,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call input_wf_diag(iproc,nproc,atoms,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
-          nscatterarr,ngatherarr,nspin,0,atoms%symObj, irrzon, phnons)
+          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons)
 
   case(1)
      !these parts should be reworked for the non-collinear spin case
@@ -758,7 +753,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
           nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
           rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
-          in%nspin,GPU,pkernel)
+          in%nspin,GPU,pkernel=pkernel)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
@@ -875,7 +870,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !!!     end if
 
      !extract the gaussian basis from the pseudowavefunctions
-     call gaussian_pswf_basis(iproc,atoms,rxyz,gbd)
+     call gaussian_pswf_basis(iproc,in%nspin,atoms,rxyz,gbd,gbd_occ)
 
      if (.not. associated(gaucoeffs)) then
         allocate(gaucoeffs(gbd%ncoeff,orbs%norbp+ndebug),stat=i_stat)
@@ -908,15 +903,28 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         !write the coefficients and the basis on a file
         call write_gaussian_information(iproc,nproc,orbs,gbd,gaucoeffs,'wavefunctions.gau')
 
+        allocate(dualcoeffs(gbd%ncoeff,orbs%norbp+ndebug),stat=i_stat)
+        call memocc(i_stat,dualcoeffs,'dualcoeffs',subname)
+        call dcopy(gbd%ncoeff*orbs%norbp,gaucoeffs,1,dualcoeffs,1)
         !build dual coefficients
-        call dual_gaussian_coefficients(orbs%norbp,gbd,gaucoeffs)
+        call dual_gaussian_coefficients(orbs%norbp,gbd,dualcoeffs)
+
+        !here we can calculate the Mulliken charge population
+        !for any of the elements of the basis, ordered by angular momentum
+        call mulliken_charge_population(iproc,nproc,orbs,gbd_occ,gbd,gaucoeffs,dualcoeffs)
+
         !control the accuracy of the expansion
-        call check_gaussian_expansion(iproc,nproc,orbs,Glr,hx,hy,hz,psi,gbd,gaucoeffs)
+        call check_gaussian_expansion(iproc,nproc,orbs,Glr,hx,hy,hz,psi,gbd,dualcoeffs)
 
         call deallocate_gwf(gbd,subname)
         i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
         deallocate(gaucoeffs,stat=i_stat)
         call memocc(i_stat,i_all,'gaucoeffs',subname)
+
+        i_all=-product(shape(dualcoeffs))*kind(dualcoeffs)
+        deallocate(dualcoeffs,stat=i_stat)
+        call memocc(i_stat,i_all,'dualcoeffs',subname)
+
         nullify(gbd%rxyz)
 
      else
@@ -924,6 +932,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         if (verbose >0) write( *,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
      end if
   end if
+
+  if (in%gaussian_help) then
+     i_all=-product(shape(gbd_occ))*kind(gbd_occ)
+     deallocate(gbd_occ,stat=i_stat)
+     call memocc(i_stat,i_all,'gbd_occ',subname)
+  end if
+
 
   !plot the ionic potential, if required by output_grid
   if (abs(in%output_grid)==2) then
@@ -1047,11 +1062,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
   end if
 
-  !better to deallocate this after davidson
-  i_all=-product(shape(pkernel))*kind(pkernel)
-  deallocate(pkernel,stat=i_stat)
-  call memocc(i_stat,i_all,'kernel',subname)
-
   if (in%read_ref_den) then
      i_all=-product(shape(pkernel_ref))*kind(pkernel_ref)
      deallocate(pkernel_ref,stat=i_stat)
@@ -1146,6 +1156,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
 
 
+  i_all=-product(shape(pkernel))*kind(pkernel)
+  deallocate(pkernel,stat=i_stat)
+  call memocc(i_stat,i_all,'kernel',subname)
+
+
   !------------------------------------------------------------------------
   if (in%calc_tail .and. atoms%geocode == 'F' ) then
      call timing(iproc,'Tail          ','ON')
@@ -1194,16 +1209,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)
      call memocc(i_stat,i_all,'rhopot',subname)
-     if (allocated(irrzon)) then
-        i_all=-product(shape(irrzon))*kind(irrzon)
-        deallocate(irrzon,stat=i_stat)
-        call memocc(i_stat,i_all,'irrzon',subname)
-     end if
-     if (allocated(phnons)) then
-        i_all=-product(shape(phnons))*kind(phnons)
-        deallocate(phnons,stat=i_stat)
-        call memocc(i_stat,i_all,'phnons',subname)
-     end if
      
      if (in%read_ref_den) then
         i_all=-product(shape(rhoref))*kind(rhoref)
@@ -1346,6 +1351,18 @@ contains
        call memocc(i_stat,i_all,'psivirt',subname)
     end if
     
+    if (allocated(irrzon)) then
+       i_all=-product(shape(irrzon))*kind(irrzon)
+       deallocate(irrzon,stat=i_stat)
+       call memocc(i_stat,i_all,'irrzon',subname)
+    end if
+    if (allocated(phnons)) then
+       i_all=-product(shape(phnons))*kind(phnons)
+       deallocate(phnons,stat=i_stat)
+       call memocc(i_stat,i_all,'phnons',subname)
+    end if
+
+
     if (atoms%geocode == 'F') then
        call deallocate_bounds(Glr%bounds,subname)
     end if
