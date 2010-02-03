@@ -249,11 +249,11 @@ module module_interfaces
 
      subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
           Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj,& 
-          pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin)
+          pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin,symObj,irrzon,phnons)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,ixc,nspin
+       integer, intent(in) :: iproc,nproc,ixc,nspin,symObj
        real(gp), intent(in) :: hx,hy,hz
        type(atoms_data), intent(in) :: at
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -268,16 +268,18 @@ module module_interfaces
        real(dp), dimension(*), intent(inout) :: rhopot
        real(wp), dimension(*), intent(inout) :: pot_ion
        real(wp), dimension(:), pointer :: psi,psit,hpsi
+       integer, dimension(:,:,:), intent(in) :: irrzon
+       real(dp), dimension(:,:,:), intent(in) :: phnons
      end subroutine import_gaussians
 
      subroutine input_wf_diag(iproc,nproc,at,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
-          nscatterarr,ngatherarr,nspin,potshortcut)
+          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,ixc
+       integer, intent(in) :: iproc,nproc,ixc,symObj
        integer, intent(inout) :: nspin,nvirt
        real(gp), intent(in) :: hx,hy,hz
        type(atoms_data), intent(in) :: at
@@ -295,6 +297,8 @@ module module_interfaces
        type(gaussian_basis), intent(out) :: G 
        real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
        integer, intent(in) :: potshortcut
+       integer, dimension(:,:,:), intent(in) :: irrzon
+       real(dp), dimension(:,:,:), intent(in) :: phnons
      end subroutine input_wf_diag
 
      subroutine reformatmywaves(iproc,orbs,at,&
@@ -324,11 +328,12 @@ module module_interfaces
        real(wp), dimension(:) , pointer :: psi,hpsi,psit
      end subroutine first_orthon
 
-     subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,nspin,GPU)
+     subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho, &
+          & nscatterarr,nspin,GPU,symObj,irrzon,phnons)
        use module_base!, only: gp,dp,wp,ndebug,memocc
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,nrho,nspin,ixc
+       integer, intent(in) :: iproc,nproc,nrho,nspin,ixc,symObj
        real(gp), intent(in) :: hxh,hyh,hzh
        type(orbitals_data), intent(in) :: orbs
        type(locreg_descriptors), intent(in) :: lr 
@@ -336,6 +341,8 @@ module module_interfaces
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
        real(dp), dimension(max(nrho,1),nspin), intent(out), target :: rho
        type(GPU_pointers), intent(inout) :: GPU
+       integer, dimension(:,:,:), intent(in) :: irrzon
+       real(dp), dimension(:,:,:), intent(in) :: phnons
      end subroutine sumrho
 
      subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&

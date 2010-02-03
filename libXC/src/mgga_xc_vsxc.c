@@ -2,16 +2,16 @@
  Copyright (C) 2008 M.A.L. Marques
 
  This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation; either version 3 of the License, or
  (at your option) any later version.
   
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+ GNU Lesser General Public License for more details.
   
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
@@ -56,8 +56,8 @@ void XC(mgga_x_gvt4_func)(int order, FLOAT x, FLOAT z, FLOAT alpha, const FLOAT 
 static const FLOAT vsxc_CFermi = 9.115599744691194274576327519198610717031;
 
 static void 
-func(const XC(mgga_type) *pt, FLOAT x, FLOAT t, int order,
-     FLOAT *f, FLOAT *dfdx, FLOAT *dfdt,
+func(const XC(mgga_type) *pt, FLOAT x, FLOAT t, FLOAT u, int order,
+     FLOAT *f, FLOAT *vrho0, FLOAT *dfdx, FLOAT *dfdt, FLOAT *dfdu,
      FLOAT *d2fdx2, FLOAT *d2fdxt, FLOAT *d2fdt2)
 {
   static const FLOAT abcd[6] = {-0.9800, -0.003557, 0.006250, -0.00002354, -0.0001283, 0.0003575};
@@ -74,8 +74,8 @@ func(const XC(mgga_type) *pt, FLOAT x, FLOAT t, int order,
 }
 
 static void 
-func_c_parallel(const XC(mgga_type) *pt, FLOAT x, FLOAT t, int order,
-		FLOAT *f, FLOAT *dfdx, FLOAT *dfdt,
+func_c_parallel(const XC(mgga_type) *pt, FLOAT x, FLOAT t, FLOAT u, int order,
+		FLOAT *f, FLOAT *dfdx, FLOAT *dfdt, FLOAT *dfdu,
 		FLOAT *d2fdx2, FLOAT *d2fdxt, FLOAT *d2fdt2)
 {
   static const FLOAT abcd[6] = {0.3271, -0.03229, -0.02942, 0.002134, -0.005452, 0.01578};
@@ -94,8 +94,8 @@ func_c_parallel(const XC(mgga_type) *pt, FLOAT x, FLOAT t, int order,
 }
 
 static void 
-func_c_opposite(const XC(mgga_type) *pt, FLOAT x, FLOAT t, int order,
-		FLOAT *f, FLOAT *dfdx, FLOAT *dfdt,
+func_c_opposite(const XC(mgga_type) *pt, FLOAT x, FLOAT t, FLOAT u, int order,
+		FLOAT *f, FLOAT *dfdx, FLOAT *dfdt, FLOAT *dfdu,
 		FLOAT *d2fdx2, FLOAT *d2fdxt, FLOAT *d2fdt2)
 {
   static const FLOAT abcd[6] = {0.7035, 0.007695, 0.05153, 0.00003394, -0.001269, 0.001296};
@@ -128,7 +128,7 @@ const XC(func_info_type) XC(func_info_mgga_c_vsxc) = {
   "T Van Voorhis and GE Scuseria, JCP 109, 400 (1998)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC,
   work_mgga_c_init,
-  work_mgga_c_end,
+  NULL,
   NULL, NULL,        /* this is not an LDA                   */
   work_mgga_c,
 };

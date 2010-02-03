@@ -19,13 +19,13 @@ $(PPFILES):
 	ln -fs $(top_srcdir)/utils/PSPfiles/HGH-K/$@
 
 SiH4.out: $(top_builddir)/src/cluster $(PPFILES)
-	if ! test x"$srcdir" = x"." ; then \
+	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.ascii ; \
 	  ln -fs $(srcdir)/input.geopt ; \
         fi
 	$(run_parallel) $(top_builddir)/src/cluster > $@
-	if ! test x"$srcdir" = x"." ; then \
+	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.ascii ; \
 	  rm -f input.geopt ; \

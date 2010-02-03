@@ -23,7 +23,7 @@ if  version < [2,3,0]:
     sys.exit(1)
 
 #Match the version number ex. 1.1.9
-re_version = re.compile("[(]ver[ ]+[0-9.]+[)]",re.IGNORECASE)
+re_version = re.compile("[(]ver[ ]+[0-9.\-a-z]+[)]",re.IGNORECASE)
 #Match a floating number
 re_float = re.compile("([- ]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
 

@@ -5,6 +5,7 @@
 !!
 !! FUNCTION
 !! Routine called by the program optic
+!! Convert to symmetry matrice in cartesian coordinates
 !!
 !! COPYRIGHT
 !! Copyright (C) 2002-2009 ABINIT group (SSharma,MVer,VRecoules,TD)
@@ -14,10 +15,13 @@
 !! For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
 !!
 !! INPUTS
-!!
+!!	gprimd(3,3)=dimensional primitive translations for reciprocal space
+!!	nsym=number of symmetries in group
+!!	rprimd(3,3)=dimensional real space primitive translations (bohr)
+!!	symrel(3,3,nsym)=symmetry matrices in terms of real space
 !!
 !! OUTPUT
-!!
+!!	symcart(3,3)=symmetry matrice in cartesian coordinates (reals)
 !!
 !! PARENTS
 !!      optic
@@ -37,7 +41,7 @@ subroutine sym2cart(gprimd,nsym,rprimd,symrel,symcart)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-! use interfaces_linalg
+ use interfaces_linalg
 !End of the abilint section
 
  implicit none
@@ -61,12 +65,12 @@ subroutine sym2cart(gprimd,nsym,rprimd,symrel,symcart)
 ! *************************************************************************
 
  do isym=1,nsym
-  rsym(:,:) = dble(symrel(:,:,isym))
-! write (*,*) 'rsym = ',rsym
-  call dgemm('N','N',3,3,3,one,rprimd,3,rsym,  3,zero,tmp,     3)
-  call dgemm('N','N',3,3,3,one,tmp,   3,gprimd,3,zero,rsymcart,3)
-! write (*,*) 'rsymcart = ',rsymcart
-  symcart(:,:,isym) = rsymcart(:,:)
+   rsym(:,:) = dble(symrel(:,:,isym))
+!  write (*,*) 'rsym = ',rsym
+   call dgemm('N','N',3,3,3,one,rprimd,3,rsym,  3,zero,tmp,     3)
+   call dgemm('N','N',3,3,3,one,tmp,   3,gprimd,3,zero,rsymcart,3)
+!  write (*,*) 'rsymcart = ',rsymcart
+   symcart(:,:,isym) = rsymcart(:,:)
  end do
 
 end subroutine sym2cart

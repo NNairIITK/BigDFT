@@ -51,7 +51,8 @@ subroutine mati3inv(mm,mit)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-! use interfaces_01manage_mpi
+ use interfaces_14_hidewrite
+ use interfaces_16_hideleave
 !End of the abilint section
 
  implicit none
@@ -82,14 +83,14 @@ subroutine mati3inv(mm,mit)
  dd  = mm(1,1) * tt(1,1) + mm(2,1) * tt(2,1) + mm(3,1) * tt(3,1)
 !Make sure matrix is not singular
  if (dd/=0) then
-  mit(:,:)=tt(:,:)/dd
+   mit(:,:)=tt(:,:)/dd
  else
-  write(message, '(5a,2x,9i5,a)' ) ch10,&
-&  ' mati3inv : BUG -',ch10,&
-&  '  Attempting to invert integer array',ch10,&
-&  mm(:,:),'   ==> determinant is zero.'
-  call wrtout(06,message,'COLL')
-  call leave_new('COLL')
+   write(message, '(5a,2x,9i5,a)' ) ch10,&
+&   ' mati3inv : BUG -',ch10,&
+&   '  Attempting to invert integer array',ch10,&
+&   mm(:,:),'   ==> determinant is zero.'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
  end if
 
 end subroutine mati3inv

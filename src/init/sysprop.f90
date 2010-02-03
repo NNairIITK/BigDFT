@@ -53,7 +53,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
-  
+
 end subroutine system_properties
 !!***
 
@@ -70,6 +70,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
      nelec,norb,norbu,norbd,iunit)
   use module_base
   use module_types
+  use ab6_symmetry
   implicit none
   type(input_variables), intent(in) :: in
   integer, intent(in) :: iproc,nproc
@@ -483,6 +484,17 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
         else
            norbd=ntd
         end if
+     end if
+  end if
+
+  ! We modify the symmetry object with respect to the spin.
+  if (atoms%symObj >= 0) then
+     if (in%nspin == 2) then
+        call ab6_symmetry_set_collinear_spin(atoms%symObj, atoms%nat, &
+             & atoms%natpol, ierror)
+!!$     else if (in%nspin == 4) then
+!!$        call ab6_symmetry_set_spin(atoms%symObj, atoms%nat, &
+!!$             & atoms%natpol, ierror)
      end if
   end if
 

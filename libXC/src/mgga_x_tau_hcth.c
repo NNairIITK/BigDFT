@@ -2,16 +2,16 @@
  Copyright (C) 2008 M.A.L. Marques
 
  This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation; either version 3 of the License, or
  (at your option) any later version.
   
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+ GNU Lesser General Public License for more details.
   
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
@@ -61,8 +61,8 @@ eq_29(int order, FLOAT x, FLOAT *ux, FLOAT *duxdx)
 }
 
 static void 
-func(const XC(mgga_type) *pt, FLOAT x, FLOAT t, int order,
-     FLOAT *f, FLOAT *dfdx, FLOAT *dfdt,
+func(const XC(mgga_type) *pt, FLOAT x, FLOAT t, FLOAT u, int order,
+     FLOAT *f, FLOAT *vrho0, FLOAT *dfdx, FLOAT *dfdt, FLOAT *dfdu,
      FLOAT *d2fdx2, FLOAT *d2fdxt, FLOAT *d2fdt2)
 {
   const FLOAT cx_local [4] = {1.10734, -1.0534, 6.3491, -2.5531};

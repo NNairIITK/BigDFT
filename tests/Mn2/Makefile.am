@@ -18,26 +18,26 @@ $(PPFILES):
 	ln -fs $(top_srcdir)/utils/PSPfiles/$@
 
 Mn2.out: $(top_builddir)/src/cluster $(PPFILES)
-	if ! test x"$srcdir" = x"." ; then \
+	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
 	  ln -fs $(srcdir)/moments ; \
         fi
 	$(run_parallel) $(top_builddir)/src/cluster > $@
-	if ! test x"$srcdir" = x"." ; then \
+	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.xyz ; \
 	  rm -f moments ; \
         fi
 
 Mn2.memguess: $(top_builddir)/src/memguess $(PPFILES)
-	if ! test x"$srcdir" = x"." ; then \
+	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
 	  ln -fs $(srcdir)/moments ; \
         fi
 	$(top_builddir)/src/memguess 1 > $@
-	if ! test x"$srcdir" = x"." ; then \
+	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.xyz ; \
 	  rm -f moments ; \

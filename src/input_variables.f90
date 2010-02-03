@@ -10,7 +10,14 @@
 !! SOURCE
 !!
 subroutine print_logo()
+  use module_base
   implicit none
+  integer :: length
+  character(len = 64) :: fmt
+
+  length = 26 - 6 - len(package_version)
+  write(fmt, "(A,I0,A)") "(23x,a,", length, "x,a)"
+
   write(*,'(23x,a)')'      TTTT         F       DDDDD    '
   write(*,'(23x,a)')'     T    T               D         '
   write(*,'(23x,a)')'    T     T        F     D          '
@@ -35,7 +42,8 @@ subroutine print_logo()
   write(*,'(23x,a)')' g        g     i         B    B    '  
   write(*,'(23x,a)')'          g     i        B     B    ' 
   write(*,'(23x,a)')'         g               B    B     '
-  write(*,'(23x,a)')'    ggggg       i         BBBB                 (Ver 1.3.99)'
+  write(*,fmt)      '    ggggg       i         BBBB      ', &
+       & '(Ver ' // package_version // ')'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'
   write(*,'(1x,a)')&
@@ -309,6 +317,7 @@ subroutine geopt_input_variables_default(in)
   in%forcemax=0.0_gp
   in%randdis=0.0_gp
   in%betax=2.0_gp
+  in%history = 0
   in%ionmov = -1
   nullify(in%qmass)
 
@@ -331,6 +340,7 @@ subroutine geopt_input_variables(iproc,filename,in)
   type(input_variables), intent(inout) :: in
   !local variables
   character(len=*), parameter :: subname='geopt_input_variables'
+  character(len = 128) :: line
   integer :: i_stat,ierror,ierrfrc,iline
 
   ! Read the input variables.
@@ -344,7 +354,12 @@ subroutine geopt_input_variables(iproc,filename,in)
   read(1,*,iostat=ierror) in%ncount_cluster_x
   call check()
   in%forcemax = 0.d0
-  read(1,*,iostat=ierrfrc) in%frac_fluct,in%forcemax
+  read(1, "(A128)", iostat = ierror) line
+  if (ierror == 0) then
+     read(line,*,iostat=ierror) in%frac_fluct,in%forcemax
+     if (ierror /= 0) read(line,*,iostat=ierror) in%frac_fluct
+     if (ierror == 0 .and. max(in%frac_fluct, in%forcemax) <= 0.d0) ierror = 1
+  end if
   call check()
   read(1,*,iostat=ierror) in%randdis
   call check()
@@ -378,6 +393,9 @@ subroutine geopt_input_variables(iproc,filename,in)
         read(1,*,iostat=ierror) in%bmass, in%vmass
         call check()
      end if
+  else if (trim(in%geopt_approach) == "DIIS") then
+     read(1,*,iostat=ierror) in%betax, in%history
+     call check()
   else
      read(1,*,iostat=ierror) in%betax
      call check()
@@ -398,9 +416,15 @@ subroutine geopt_input_variables(iproc,filename,in)
           & "       algorithm=", in%geopt_approach, "|", &
           & "  Max. in forces=", in%forcemax,       "|", &
           & "           dtion=", in%dtion
-     write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,1x,a)", advance="no") &
-          & "random at.displ.=", in%randdis, "|", &
-          & "  steep. descent=", in%betax,   "|"
+     if (trim(in%geopt_approach) /= "DIIS") then
+        write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,1x,a)", advance="no") &
+             & "random at.displ.=", in%randdis, "|", &
+             & "  steep. descent=", in%betax,   "|"
+     else
+        write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,2x,a,1I2,1x,a)", advance="no") &
+             & "random at.displ.=", in%randdis,           "|", &
+             & "step=", in%betax, "history=", in%history, "|"
+     end if
      if (in%ionmov > 7) then
         write(*, "(1x,a,1f5.0,1x,a,1f5.0)") &
              & "start T=", in%mditemp, "stop T=", in%mdftemp
@@ -435,7 +459,7 @@ contains
 end subroutine geopt_input_variables
 !!***
 
-!!****f* BigDFT/geopt_input_variables
+!!****f* BigDFT/kpt_input_variables
 !! FUNCTION
 !!    Read the input variables needed for the geometry optimisation
 !!    Every argument should be considered as mandatory
@@ -754,8 +778,8 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   integer :: symAfm(AB6_MAX_SYMMETRIES)
   real(gp) :: transNon(3, AB6_MAX_SYMMETRIES)
   real(gp) :: genAfm(3)
-  character(len=5) :: pointGroup
-  integer :: spaceGroup, pointGroupMagn
+  character(len=15) :: spaceGroup
+  integer :: spaceGroupId, pointGroupMagn
 
   file_exists = .false.
 
@@ -846,16 +870,16 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   if (iproc.eq.0) then
      if (atoms%geocode /= 'F') then
         call ab6_symmetry_get_matrices(atoms%symObj, nSym, sym, transNon, symAfm, ierr)
-        call ab6_symmetry_get_group(atoms%symObj, pointGroup, spaceGroup, &
-             & pointGroupMagn, genAfm, ierr)
-        if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(pointGroup, "(A)") "!prim"
+        call ab6_symmetry_get_group(atoms%symObj, spaceGroup, &
+             & spaceGroupId, pointGroupMagn, genAfm, ierr)
+        if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "!primitive"
      end if
 
      write(*,'(1x,a,i5)')        'Number of atoms     = ',atoms%nat
      write(*,'(1x,a,i5)')        'Number of atom types= ',atoms%ntypes
      if (atoms%geocode /= 'F') then
         write(*,'(1x,a,i5,a,1x,a)') 'Number of symmetries= ',nSym, &
-             & " | point group=", pointGroup
+             & " | space group=", spaceGroup
      end if
 
      do ityp=1,atoms%ntypes
@@ -901,8 +925,9 @@ subroutine deallocate_atoms(atoms,subname)
   i_all=-product(shape(atoms%amu))*kind(atoms%amu)
   deallocate(atoms%amu,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%amu',subname)
-  if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
-
+  if (atoms%symObj >= 0) then
+     call ab6_symmetry_free(atoms%symObj)
+  end if
 end subroutine deallocate_atoms
 
 

@@ -78,41 +78,41 @@ subroutine symzat(indsym,natom,nsym,symrel,tnons,xred)
 !if not then simply return
  if (nsym>1) then
 
-! loop over atoms
-  allocate(xredsym(3,natom))
-  do iatom=1,natom
-   tsum(1)=0.0d0
-   tsum(2)=0.0d0
-   tsum(3)=0.0d0
-!  
-!  loop over symmetries
-   do isym=1,nsym
-!   atom ib is atom into which iatom is rotated by inverse of
-!   symmetry isym (inverse of symrel(mu,nu,isym))
-    ib=indsym(4,isym,iatom)
-!   Find the reduced coordinates after translation=t(indsym)+transl
-    fc1=xred(1,ib)+dble(indsym(1,isym,iatom))
-    fc2=xred(2,ib)+dble(indsym(2,isym,iatom))
-    fc3=xred(3,ib)+dble(indsym(3,isym,iatom))
-!   Compute [S * (x(indsym)+transl) ] + tnonsymmorphic
-    tt(:)=dble(symrel(:,1,isym))*fc1+&
-&    dble(symrel(:,2,isym))*fc2+&
-&    dble(symrel(:,3,isym))*fc3+ tnons(:,isym)
+!  loop over atoms
+   allocate(xredsym(3,natom))
+   do iatom=1,natom
+     tsum(1)=0.0d0
+     tsum(2)=0.0d0
+     tsum(3)=0.0d0
+!    
+!    loop over symmetries
+     do isym=1,nsym
+!      atom ib is atom into which iatom is rotated by inverse of
+!      symmetry isym (inverse of symrel(mu,nu,isym))
+       ib=indsym(4,isym,iatom)
+!      Find the reduced coordinates after translation=t(indsym)+transl
+       fc1=xred(1,ib)+dble(indsym(1,isym,iatom))
+       fc2=xred(2,ib)+dble(indsym(2,isym,iatom))
+       fc3=xred(3,ib)+dble(indsym(3,isym,iatom))
+!      Compute [S * (x(indsym)+transl) ] + tnonsymmorphic
+       tt(:)=dble(symrel(:,1,isym))*fc1+&
+&       dble(symrel(:,2,isym))*fc2+&
+&       dble(symrel(:,3,isym))*fc3+ tnons(:,isym)
 
-!   Average over nominally equivalent atomic positions
-    tsum(:)=tsum(:)+tt(:)
+!      Average over nominally equivalent atomic positions
+       tsum(:)=tsum(:)+tt(:)
+     end do
+!    
+!    Set symmetrized result to sum over number of terms
+     xredsym(:,iatom)=tsum(:)/dble(nsym)
+
+!    End loop over iatom
    end do
-!  
-!  Set symmetrized result to sum over number of terms
-   xredsym(:,iatom)=tsum(:)/dble(nsym)
 
-!  End loop over iatom
-  end do
+   xred(:,:)=xredsym(:,:)
+   deallocate(xredsym)
 
-  xred(:,:)=xredsym(:,:)
-  deallocate(xredsym)
-
-! End condition of nsym/=1
+!  End condition of nsym/=1
  end if
 
 end subroutine symzat

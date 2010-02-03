@@ -17,12 +17,12 @@ $(PPFILES):
 	cp $(top_srcdir)/utils/PSPfiles/$@ .
 
 H2-freq.out: $(top_builddir)/src/frequencies $(PPFILES) 
-	if ! test x"$srcdir" = x"." ; then \
+	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
         fi
 	$(run_parallel) $(top_builddir)/src/frequencies > $@
-	if ! test x"$srcdir" = x"." ; then \
+	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.xyz ; \
         fi
