@@ -97,7 +97,7 @@ subroutine read_input_variables(iproc,posinp, file_dft, file_kpt, &
      call geopt_input_variables_default(in)
   end if
 
-  ! Chake atoms if required.
+  ! Shake atoms if required.
   if (in%randdis > 0.d0) then
      do iat=1,atoms%nat
         if (atoms%ifrztyp(iat) == 0) then
@@ -579,6 +579,8 @@ contains
   end subroutine check
 end subroutine kpt_input_variables
 !!***
+
+
 !!****f* BigDFT/free_input_variables
 !! FUNCTION
 !!  Free all dynamically allocated memory from the input variable structure.
@@ -615,6 +617,8 @@ subroutine free_input_variables(in)
 
 end subroutine free_input_variables
 !!***
+
+
 !!****f* BigDFT/abscalc_input_variables_default
 !! FUNCTION
 !!    Assign default values for ABSCALC variables

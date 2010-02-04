@@ -478,9 +478,10 @@ end subroutine deallocate_orbs
   subroutine init_restart_objects(atoms,rst,subname)
     use module_base
     implicit none
+    !Arguments
     character(len=*), intent(in) :: subname
-    type(atoms_data) :: atoms
-    type(restart_objects) :: rst
+    type(atoms_data), intent(in) :: atoms
+    type(restart_objects), intent(out) :: rst
     !local variables
     integer :: i_stat
 

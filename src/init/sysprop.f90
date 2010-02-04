@@ -506,10 +506,15 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
 end subroutine read_system_variables
 !!***
 
-!fix all the atomic occupation numbers of the atoms which has the same type
-!look also at the input polarisation and spin
-!look at the file of the input occupation numbers and, if exists, modify the 
-!occupations accordingly
+
+!!****f* BigDFT/atomic_occupation_numbers
+!! FUNCTION
+!!   Fix all the atomic occupation numbers of the atoms which has the same type
+!!   look also at the input polarisation and spin
+!!   look at the file of the input occupation numbers and, if exists, modify the 
+!!   occupations accordingly
+!! SOURCE
+!!
 subroutine atomic_occupation_numbers(ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
   use module_base
   use module_types
@@ -556,7 +561,6 @@ subroutine atomic_occupation_numbers(ityp,nspin,at,nmax,lmax,nelecmax,neleconf,n
      end if
   end if
 
-       
   !here we must check of the input guess polarisation
   !control if the values are compatible with the atom configuration
   !do this for all atoms belonging to a given type
@@ -642,7 +646,7 @@ subroutine atomic_occupation_numbers(ityp,nspin,at,nmax,lmax,nelecmax,neleconf,n
   if (exists) close(unit=91)
 
 end subroutine atomic_occupation_numbers
-
+!!***
 
 
 !!****f* BigDFT/orbitals_descriptors
@@ -687,7 +691,6 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   do jproc=0,nproc-1
      orbs%norb_par(jproc)=0 !size 0 nproc-1
   end do
-
 
   !create an array which indicate which processor has a GPU associated 
   !from the viewpoint of the BLAS routines
