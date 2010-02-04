@@ -225,7 +225,7 @@ out[(jg*(2*n)+ig*2+1)]=so;\n\
 ";
 
 char * c_initialize_program="\
-__kernel void c_initializeKernel_l(int n, int ndat, __global const float * x_in, __global float * y_in, float c) {\n\
+__kernel void c_initializeKernel_l(size_t n, size_t ndat, __global const float * x_in, __global float * y_in, float c) {\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 if( jg >= ndat ) return;\n\
@@ -233,11 +233,17 @@ ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) 
 size_t pos = jg+ig*ndat;\n\
 y_in[pos] = x_in[pos] * c;\n\
 };\n\
+__kernel void v_initializeKernel_l(size_t n, __global float * y_in, float v) {\n\
+size_t ig = get_global_id(0);\n\
+ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+y_in[ig] = v;\n\
+};\n\
 ";
+
 
 char * kinetic1d_program="\
 #define FILTER_WIDTH 30\n\
-__kernel void kinetic1dKernel_l(int n, int ndat, float scale, __global const float * x_in, __global float * x_out, __global const float * y_in, __global float * y_out, __local float * tmp) {\n\
+__kernel void kinetic1dKernel_l(size_t n, size_t ndat, float scale, __global const float * x_in, __global float * x_out, __global const float * y_in, __global float * y_out, __local float * tmp) {\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 size_t i2 = get_local_id(0);\n\
@@ -292,6 +298,87 @@ x_out[jg*n + ig] = tmp[0];\n\
 };\n\
 ";
 
+char * uncompress_program="\
+__kernel void uncompress_coarseKernel_l(size_t n1, size_t n2, size_t n3, size_t nseg_c, size_t nvctr_c, __global const size_t * keyg_c, __global const size_t const * keyv_c, __global const float * psi_c, __global float * psi_g) {\n\
+size_t ig = get_global_id(0);\n\
+ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_c ) : ig;\n\
+size_t length = nseg_c;\n\
+__global const size_t * first;\n\
+__global const size_t * middle;\n\
+size_t half;\n\
+first = keyv_c;\n\
+while ( length > 0) {\n\
+  half = length / 2;\n\
+  middle = first + half;\n\
+  if( *middle-1 <= ig ) {\n\
+    first = middle+1;\n\
+    length = length - half - 1;\n\
+  } else {\n\
+    length = half;\n\
+  }\n\
+}\n\
+first--;\n\
+size_t iseg = first - keyv_c;\n\
+size_t jj,j0,j1,ii,i1,i2,i3;\n\
+jj=keyv_c[iseg];\n\
+j0=keyg_c[iseg*2];\n\
+j1=keyg_c[iseg*2+1];\n\
+ii=j0-1;\n\
+i3=ii/((n1)*(n2));\n\
+ii=ii-i3*(n1)*(n2);\n\
+i2=ii/(n1);\n\
+i1=ii-i2*(n1)+ig-(*first-1);\n\
+//psi_g(i1,1,i2,1,i3,1)=psi_c[ig]\n\
+psi_g[ ( ( ( (0 * n3 + i3 ) * 2 + 0 ) * n2 + i2 ) * 2 + 0 ) * n1  + i1] = psi_c[ig];\n\
+};\n\
+\n\
+__kernel void uncompress_fineKernel_l(size_t n1, size_t n2, size_t n3, size_t nseg_f, size_t nvctr_f, __global const size_t * keyg_f, __global const size_t const * keyv_f, __global const float * psi_f, __global float * psi_g) {\n\
+size_t ig = get_global_id(0);\n\
+ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_f ) : ig;\n\
+size_t length = nseg_f;\n\
+__global const size_t * first;\n\
+__global const size_t * middle;\n\
+size_t half;\n\
+first = keyv_f;\n\
+while ( length > 0) {\n\
+  half = length / 2;\n\
+  middle = first + half;\n\
+  if( *middle-1 <= ig ) {\n\
+    first = middle+1;\n\
+    length = length - half - 1;\n\
+  } else {\n\
+    length = half;\n\
+  }\n\
+}\n\
+first--;\n\
+size_t iseg = first - keyv_f;\n\
+size_t jj,j0,j1,ii,i1,i2,i3;\n\
+jj=keyv_f[iseg];\n\
+j0=keyg_f[iseg*2];\n\
+j1=keyg_f[iseg*2+1];\n\
+ii=j0-1;\n\
+i3=ii/((n1)*(n2));\n\
+ii=ii-i3*(n1)*(n2);\n\
+i2=ii/(n1);\n\
+i1=ii-i2*(n1)+ig-(*first-1);\n\
+/*\n\
+ psig(i1,2,i2,1,i3,1)=psi_f(1,i-i0+jj)\n\
+ psig(i1,1,i2,2,i3,1)=psi_f(2,i-i0+jj)\n\
+ psig(i1,2,i2,2,i3,1)=psi_f(3,i-i0+jj)\n\
+ psig(i1,1,i2,1,i3,2)=psi_f(4,i-i0+jj)\n\
+ psig(i1,2,i2,1,i3,2)=psi_f(5,i-i0+jj)\n\
+ psig(i1,1,i2,2,i3,2)=psi_f(6,i-i0+jj)\n\
+ psig(i1,2,i2,2,i3,2)=psi_f(7,i-i0+jj)*/\n\
+psi_g[ ( ( ( (0 * n3 + i3 ) * 2 + 0 ) * n2 + i2 ) * 2 + 1 ) * n1  + i1] = psi_f[ig*7 + 0];\n\
+psi_g[ ( ( ( (0 * n3 + i3 ) * 2 + 1 ) * n2 + i2 ) * 2 + 0 ) * n1  + i1] = psi_f[ig*7 + 1];\n\
+psi_g[ ( ( ( (0 * n3 + i3 ) * 2 + 1 ) * n2 + i2 ) * 2 + 1 ) * n1  + i1] = psi_f[ig*7 + 2];\n\
+psi_g[ ( ( ( (1 * n3 + i3 ) * 2 + 0 ) * n2 + i2 ) * 2 + 0 ) * n1  + i1] = psi_f[ig*7 + 3];\n\
+psi_g[ ( ( ( (1 * n3 + i3 ) * 2 + 0 ) * n2 + i2 ) * 2 + 1 ) * n1  + i1] = psi_f[ig*7 + 4];\n\
+psi_g[ ( ( ( (1 * n3 + i3 ) * 2 + 1 ) * n2 + i2 ) * 2 + 0 ) * n1  + i1] = psi_f[ig*7 + 5];\n\
+psi_g[ ( ( ( (1 * n3 + i3 ) * 2 + 1 ) * n2 + i2 ) * 2 + 1 ) * n1  + i1] = psi_f[ig*7 + 6];\n\
+};\n\
+";
+
 #define oclErrorCheck(errorCode,message) if(errorCode!=CL_SUCCESS) { fprintf(stderr,"Error(%i) (%s: %s): %s\n", errorCode,__FILE__,__func__,message);exit(1);} 
 
 
@@ -300,6 +387,9 @@ cl_kernel ana1d_kernel_l;
 cl_kernel syn1d_kernel_l;
 cl_kernel kinetic1d_kernel_l;
 cl_kernel c_initialize_kernel_l;
+cl_kernel v_initialize_kernel_l;
+cl_kernel uncompress_coarse_kernel_l;
+cl_kernel uncompress_fine_kernel_l;
 
 cl_device_id oclGetFirstDev(cl_context cxGPUContext)
 {
@@ -379,6 +469,8 @@ void FC_FUNC_(ocl_build_kernels,OCL_BUILD_KERNELS)(cl_context * context) {
     ciErrNum = CL_SUCCESS;
     c_initialize_kernel_l=clCreateKernel(c_initializeProgram,"c_initializeKernel_l",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    v_initialize_kernel_l=clCreateKernel(c_initializeProgram,"v_initializeKernel_l",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
 
     cl_program kinetic1dProgram = clCreateProgramWithSource(*context,1,(const char**) &kinetic1d_program, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
@@ -394,7 +486,24 @@ void FC_FUNC_(ocl_build_kernels,OCL_BUILD_KERNELS)(cl_context * context) {
     ciErrNum = CL_SUCCESS;
     kinetic1d_kernel_l=clCreateKernel(kinetic1dProgram,"kinetic1dKernel_l",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
- 
+
+    cl_program uncompressProgram = clCreateProgramWithSource(*context,1,(const char**) &uncompress_program, NULL, &ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create program!");
+    ciErrNum = clBuildProgram(uncompressProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error: Failed to build uncompress program!\n");
+        char cBuildLog[10240];
+        clGetProgramBuildInfo(uncompressProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+	fprintf(stderr,"%s\n",cBuildLog);
+        exit(1);
+    }
+    ciErrNum = CL_SUCCESS;
+    uncompress_coarse_kernel_l=clCreateKernel(uncompressProgram,"uncompress_coarseKernel_l",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    uncompress_fine_kernel_l=clCreateKernel(uncompressProgram,"uncompress_fineKernel_l",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+
 }
 
 
@@ -695,6 +804,86 @@ void FC_FUNC_(kinetic1d_l,KINETIC1D_L)(cl_command_queue *command_queue, size_t *
         fprintf(stderr,"localWorkSize = { %d, %d}\n",localWorkSize[0],localWorkSize[1]);
         exit(1);
     }
+}
+
+void FC_FUNC_(uncompress_l,UNCOMPRESS_L)(cl_command_queue *command_queue, size_t *n1, size_t *n2, size_t *n3,
+                                       size_t *nseg_c, size_t *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
+                                       size_t *nseg_f, size_t *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+				       cl_mem *psi_c, cl_mem *psi_f, cl_mem * psi_out) {
+    cl_int ciErrNum;
+#if DEBUG     
+    printf("%s %s\n", __func__, __FILE__);
+    printf("command queue: %p, dimension n1: %d, dimension n2: %d, dimension n3: %d,\n\
+nseg_c: %d, nvctr_c: %d, keyg_c: %p, keyv_c: %p,\n\
+nseg_f: %d, nvctr_f: %d, keyg_f: %p, keyv_f: %p,\n\
+psi_c: %p, psi_f: %p, psi_out: %p\n",
+*command_queue, *n1, *n2, *n3,
+*nseg_c, *nvctr_c, *keyg_c, *keyv_c,
+*nseg_f, *nvctr_f, *keyg_f, *keyv_f,
+*psi_c, *psi_f, *psi_out);
+#endif
+    size_t block_size_i=64;
+    size_t full_size = *n1 * *n2 * *n3 * 8;
+    float init = 0.0;
+    while ( block_size_i > full_size ) block_size_i /= 2;
+    cl_uint i = 0;
+    clSetKernelArg(v_initialize_kernel_l, i++, sizeof(full_size), (void*)&full_size);
+    clSetKernelArg(v_initialize_kernel_l, i++, sizeof(*psi_out), (void*)psi_out);
+    clSetKernelArg(v_initialize_kernel_l, i++, sizeof(init), (void*)&init);
+    size_t localWorkSize[] = { block_size_i };
+    size_t globalWorkSize[] ={ shrRoundUp(block_size_i, full_size) };
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, v_initialize_kernel_l, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error %d: Failed to enqueue v_initialize_l kernel!\n",ciErrNum);
+        exit(1);
+    } 
+
+    block_size_i=64;
+    while ( block_size_i > *nvctr_c ) block_size_i /= 2;
+    i = 0;
+    clSetKernelArg(uncompress_coarse_kernel_l, i++, sizeof(*n1), (void*)n1);
+    clSetKernelArg(uncompress_coarse_kernel_l, i++, sizeof(*n2), (void*)n2);
+    clSetKernelArg(uncompress_coarse_kernel_l, i++, sizeof(*n3), (void*)n3);
+    clSetKernelArg(uncompress_coarse_kernel_l, i++, sizeof(*nseg_c), (void*)nseg_c);
+    clSetKernelArg(uncompress_coarse_kernel_l, i++, sizeof(*nvctr_c), (void*)nvctr_c);
+    clSetKernelArg(uncompress_coarse_kernel_l, i++, sizeof(*keyg_c), (void*)keyg_c);
+    clSetKernelArg(uncompress_coarse_kernel_l, i++, sizeof(*keyv_c), (void*)keyv_c);
+    clSetKernelArg(uncompress_coarse_kernel_l, i++, sizeof(*psi_c), (void*)psi_c);
+    clSetKernelArg(uncompress_coarse_kernel_l, i++, sizeof(*psi_out), (void*)psi_out);
+    localWorkSize[0]= block_size_i ;
+    globalWorkSize[0] = shrRoundUp(block_size_i, *nvctr_c) ;
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, uncompress_coarse_kernel_l, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error %d: Failed to enqueue uncompress_coarse_l kernel!\n",ciErrNum);
+        fprintf(stderr,"globalWorkSize = { %d }\n",globalWorkSize[0]);
+        fprintf(stderr,"localWorkSize = { %d }\n",localWorkSize[0]);
+        exit(1);
+    }
+
+    block_size_i=64;
+    while ( block_size_i > *nvctr_f ) block_size_i /= 2;
+    clSetKernelArg(uncompress_fine_kernel_l, i++, sizeof(*n1), (void*)n1);
+    clSetKernelArg(uncompress_fine_kernel_l, i++, sizeof(*n2), (void*)n2);
+    clSetKernelArg(uncompress_fine_kernel_l, i++, sizeof(*n3), (void*)n3);
+    clSetKernelArg(uncompress_fine_kernel_l, i++, sizeof(*nseg_f), (void*)nseg_f);
+    clSetKernelArg(uncompress_fine_kernel_l, i++, sizeof(*nvctr_f), (void*)nvctr_f);
+    clSetKernelArg(uncompress_fine_kernel_l, i++, sizeof(*keyg_f), (void*)keyg_f);
+    clSetKernelArg(uncompress_fine_kernel_l, i++, sizeof(*keyv_f), (void*)keyv_f);
+    clSetKernelArg(uncompress_fine_kernel_l, i++, sizeof(*psi_f), (void*)psi_f);
+    clSetKernelArg(uncompress_fine_kernel_l, i++, sizeof(*psi_out), (void*)psi_out);
+    localWorkSize[0]= block_size_i ;
+    globalWorkSize[0] = shrRoundUp(block_size_i, *nvctr_f) ;
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, uncompress_fine_kernel_l, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error %d: Failed to enqueue uncompress_fine_l kernel!\n",ciErrNum);
+        fprintf(stderr,"globalWorkSize = { %d }\n",globalWorkSize[0]);
+        fprintf(stderr,"localWorkSize = { %d }\n",localWorkSize[0]);
+        exit(1);
+    }
+
 }
 
 void FC_FUNC_(ocl_finish,OCL_FINISH)(cl_command_queue *command_queue){
