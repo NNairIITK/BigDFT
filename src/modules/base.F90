@@ -772,7 +772,6 @@ module module_base
       call ZHERK(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
     end subroutine herk_double
 
-
     !routine used for deallocations
     subroutine memocc_internal(istat,isize,array,routine)
       implicit none

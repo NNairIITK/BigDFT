@@ -53,7 +53,7 @@ program abscalc_main
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-  ! find out which input files will be used
+  ! Find out which input files will be used
   inquire(file="list_posinp",exist=exist_list)
   if (exist_list) then
      open(54,file="list_posinp")

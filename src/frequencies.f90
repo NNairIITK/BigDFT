@@ -4,7 +4,7 @@
 !!  Use a file 'frequencies.res' to restart calculations.
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2009 CEA, UNIBAS
+!!    Copyright (C) 2010 CEA, UNIBAS
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -46,9 +46,8 @@ program frequencies
   ! logical: .true. if already calculated
   logical, dimension(:,:,:), allocatable :: moves
   real(gp), dimension(:,:,:,:,:), allocatable :: forces
-  real(kind=8), dimension(:,:), allocatable :: radii_cf
   real(gp), dimension(3) :: h_grid
-  integer :: jm,imoves,nelec
+  integer :: jm,nelec
  
   ! Start MPI in parallel version
   !in the case of MPIfake libraries the number of processors is automatically adjusted
@@ -56,10 +55,10 @@ program frequencies
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-  !initialize memory counting
+  ! Initialize memory counting
   call memocc(0,iproc,'count','start')
 
-  !welcome screen
+  ! Welcome screen
   if (iproc==0) call print_logo()
 
   ! Read all input files.
@@ -94,23 +93,14 @@ program frequencies
   call init_restart_objects(atoms,rst,subname)
 
   !Initialise the moves using a restart file if present
-  call frequencies_read_restart(atoms%nat,moves,forces,etot,imoves)
-
-  if (imoves == 3*2*atoms%nat) then
-     !All frequencies are already calculated
-     allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
-     call memocc(i_stat,radii_cf,'radii_cf',subname)
-     call system_properties(iproc,nproc,inputs,atoms,orbs,radii_cf,nelec)
-     deallocate(radii_cf,stat=i_stat)
-     call memocc(i_stat,i_all,'radii_cf',subname)
-  end if
+  call frequencies_read_restart(atoms%nat,moves,forces,etot,atoms%amu)
 
   !Reference state
   if (moves(1,1,0)) then
      fxyz = forces(:,:,1,1,0)
   else
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
-     call frequencies_write_restart(iproc,0,0,0,fxyz,etot=etot)
+     call frequencies_write_restart(iproc,0,0,0,fxyz,amu=atoms%amu,etot=etot)
      moves(:,:,0) = .true.
      call restart_inputs(inputs)
   end if
@@ -137,7 +127,7 @@ program frequencies
      end if
   end if
 
-  if (iproc ==0 ) then
+  if (iproc == 0) then
      !This file contains the hessian for post-processing: it is regenerated each time.
      open(unit=u_hessian,file='hessian.dat',status="unknown")
      write(u_hessian,'(a,3(1pe20.10))') '#step=',alpha*inputs%hx,alpha*inputs%hy,alpha*inputs%hz
@@ -368,20 +358,20 @@ contains
   END SUBROUTINE solve
 
 
-  subroutine frequencies_read_restart(nat,moves,forces,etot,imoves)
+  subroutine frequencies_read_restart(nat,moves,forces,etot,amu)
     implicit none
     !Arguments
     integer, intent(in) :: nat
     logical, dimension(2,3,0:nat), intent(out) :: moves
     real(gp), dimension(3,nat,2,3,0:nat), intent(out) :: forces
     real(gp), intent(out) :: etot
-    integer, intent(out) :: imoves
+    real(gp), dimension(:), intent(out) :: amu
     !Local variables
     logical :: exists
     integer, parameter :: iunit = 15
     character(len=*), parameter :: freq_form = '(1x,"=F=> ",a)'
     real(gp), dimension(:,:), allocatable :: fpos
-    integer :: ierror,j,i,iat
+    integer :: ierror,j,i,iat,imoves
     !Initialize by default to false
     moves = .false.
     !Test if the file does exist.
@@ -400,7 +390,7 @@ contains
     !We read the file
     open(unit=iunit,file='frequencies.res',status='old',form='unformatted')
     !Read the reference state
-    read(unit=iunit,iostat=ierror) iat,etot,fpos
+    read(unit=iunit,iostat=ierror) iat,etot,amu,fpos
     if (ierror /= 0 .or. iat /= 0) then
        !Read error, we stop
        if (iproc == 0) then
@@ -433,11 +423,12 @@ contains
     end if
   END SUBROUTINE frequencies_read_restart
 
-  subroutine frequencies_write_restart(iproc,j,i,iat,forces,etot)
+  subroutine frequencies_write_restart(iproc,j,i,iat,forces,amu,etot)
     implicit none
     !Arguments
     integer, intent(in) :: iproc,j,i,iat
     real(gp), dimension(:,:), intent(in) :: forces
+    real(gp), dimension(:), intent(in), optional :: amu
     real(gp), intent(in), optional :: etot
     !Local variables
     integer, parameter :: iunit = 15
@@ -446,7 +437,7 @@ contains
        !This file is used as a restart
        open(unit=iunit,file='frequencies.res',status="unknown",form="unformatted",position="append")
        if (present(etot)) then
-          write(unit=iunit) 0,etot,forces
+          write(unit=iunit) 0,etot,amu,forces
        else
           write(unit=iunit) j,i,iat,forces
        end if

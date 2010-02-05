@@ -5,7 +5,7 @@
 !! AUTHOR
 !!    Luigi Genovese
 !! COPYRIGHT
-!!    Copyright (C) 2008 CEA
+!!    Copyright (C) 2008-2010 CEA, ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -523,17 +523,23 @@ end subroutine deallocate_orbs
 
     call deallocate_wfd(rst%Glr%wfd,subname)
 
-    i_all=-product(shape(rst%psi))*kind(rst%psi)
-    deallocate(rst%psi,stat=i_stat)
-    call memocc(i_stat,i_all,'psi',subname)
-    i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
-    deallocate(rst%orbs%eval,stat=i_stat)
-    call memocc(i_stat,i_all,'eval',subname)
-    i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
-    deallocate(rst%rxyz_old,stat=i_stat)
-    call memocc(i_stat,i_all,'rxyz_old',subname)
+    if (associated(rst%psi)) then
+       i_all=-product(shape(rst%psi))*kind(rst%psi)
+       deallocate(rst%psi,stat=i_stat)
+       call memocc(i_stat,i_all,'psi',subname)
+    end if
+    if (associated(rst%orbs%eval)) then
+       i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
+       deallocate(rst%orbs%eval,stat=i_stat)
+       call memocc(i_stat,i_all,'eval',subname)
+    end if
+    if (associated(rst%rxyz_old)) then
+       i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
+       deallocate(rst%rxyz_old,stat=i_stat)
+       call memocc(i_stat,i_all,'rxyz_old',subname)
+    end if
 
-    !the gaussian basis descriptors are always allocated together
+    !The gaussian basis descriptors are always allocated together
     !with the gaussian coefficients
     if (associated(rst%gbd%rxyz)) then
        nullify(rst%gbd%rxyz)
@@ -542,7 +548,6 @@ end subroutine deallocate_orbs
        i_all=-product(shape(rst%gaucoeffs))*kind(rst%gaucoeffs)
        deallocate(rst%gaucoeffs,stat=i_stat)
        call memocc(i_stat,i_all,'gaucoeffs',subname)
-
     end if
 
   end subroutine free_restart_objects
@@ -581,13 +586,16 @@ end subroutine deallocate_orbs
     !local variables
     integer :: i_all,i_stat
 
-    i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
-    deallocate(wfd%keyg,stat=i_stat)
-    call memocc(i_stat,i_all,'wfd%keyg',subname)
-    i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
-    deallocate(wfd%keyv,stat=i_stat)
-    call memocc(i_stat,i_all,'wfd%keyv',subname)
-
+    if (associated(wfd%keyg)) then
+       i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
+       deallocate(wfd%keyg,stat=i_stat)
+       call memocc(i_stat,i_all,'wfd%keyg',subname)
+    end if
+    if (associated(wfd%keyv)) then
+       i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
+       deallocate(wfd%keyv,stat=i_stat)
+       call memocc(i_stat,i_all,'wfd%keyv',subname)
+    end if
   end subroutine deallocate_wfd
 !!***
 
