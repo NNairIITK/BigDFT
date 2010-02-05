@@ -764,6 +764,7 @@ program conv_check
                               nseg, nvctr_cf, keyg_GPU, keyv_GPU,&
                               psi_c_GPU, psi_f_GPU, work_GPU)
            end do
+           call ocl_finish(queue);
            call cpu_time(t1)
            GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
 
