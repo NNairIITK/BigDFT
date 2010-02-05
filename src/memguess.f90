@@ -35,6 +35,7 @@ program memguess
   type(orbitals_data) :: orbs,orbstst
   type(locreg_descriptors) :: Glr
   type(nonlocal_psp_descriptors) :: nlpspd
+  real(gp), dimension(3) :: shift
   logical, dimension(:,:,:), allocatable :: logrid
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:,:), pointer :: rxyz
@@ -252,7 +253,7 @@ program memguess
   hy=in%hy
   hz=in%hz
 
-  call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Glr)
+  call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Glr,shift)
 
   if (GPUtest .and. .not. GPUconv) then
      write(*,*)' ERROR: you can not put a GPUtest flag is there is no GPUrun.'
@@ -403,12 +404,13 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
   integer :: iat,i_all,i_stat,it,i
   real(gp) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax
   type(locreg_descriptors) :: Glr
+  real(gp), dimension(3) :: shift
   real(gp), dimension(3,3) :: urot
   real(gp), dimension(:,:), allocatable :: txyz
 
   allocate(txyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,txyz,'txyz',subname)
-  call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
+  call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
   !call volume(nat,rxyz,vol)
   vol=atoms%alat1*atoms%alat2*atoms%alat3
   write(*,'(1x,a,1pe16.8)')'Initial volume (Bohr^3)',vol
@@ -459,7 +461,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
         txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
      enddo
 
-     call system_size(1,atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
+     call system_size(1,atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
      tvol=atoms%alat1*atoms%alat2*atoms%alat3
      !call volume(nat,txyz,tvol)
      if (tvol < vol) then
@@ -678,11 +680,12 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   real(wp), dimension(:,:,:,:), allocatable :: pot,rho
   real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
   real(wp), dimension(:,:,:), allocatable :: overlap
+  real(wp), dimension(:), pointer :: gbd_occ
 
   !nullify the G%rxyz pointer
   nullify(G%rxyz)
   !extract the gaussian basis from the pseudowavefunctions
-  call gaussian_pswf_basis(iproc,at,rxyz,G)
+  call gaussian_pswf_basis(iproc,nspin,at,rxyz,G,gbd_occ)
   
   allocate(gaucoeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
@@ -711,6 +714,11 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
   deallocate(gaucoeffs,stat=i_stat)
   call memocc(i_stat,i_all,'gaucoeffs',subname)
+
+  i_all=-product(shape(gbd_occ))*kind(gbd_occ)
+  deallocate(gbd_occ,stat=i_stat)
+  call memocc(i_stat,i_all,'gbd_occ',subname)
+
 
   !deallocate the gaussian basis descriptors
   call deallocate_gwf(G,subname)
@@ -1040,3 +1048,293 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
 
 
 end subroutine compare_data_and_gflops
+
+!!****f* BigDFT/read_input_variables
+!! FUNCTION
+!!    Read the input variables in the file 'input.dat', old format.
+!! SOURCE
+!!
+subroutine read_input_variables_old(iproc,filename,in)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc
+  type(input_variables), intent(out) :: in
+  !local variables
+  character(len=7) :: cudagpu
+  character(len=100) :: line
+  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
+
+  ! Read the input variables.
+  open(unit=1,file=filename,status='old')
+
+  iline=0
+  !read the line for force the CUDA GPU calculation for all processors
+  read(1,'(a100)')line
+  read(line,*,iostat=ierrfrc) cudagpu
+  if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
+!     call init_lib(iproc,initerror,iconv,iblas,GPUshare)
+!     call sg_init(GPUshare,iconv,iproc,initerror)
+iconv = 1
+iblas = 1
+     if (initerror == 1) then
+
+        write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
+        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
+
+
+
+     
+     end if
+    ! GPUshare=.true.
+     if (iconv == 1) then
+        !change the value of the GPU convolution flag defined in the module_base
+        GPUconv=.true.
+     end if
+     if (iblas == 1) then
+        !change the value of the GPU convolution flag defined in the module_base
+        GPUblas=.true.
+     end if
+     read(1,*,iostat=ierror) in%ncount_cluster_x
+     call check()
+  else
+     read(line,*,iostat=ierror) in%ncount_cluster_x
+     call check()
+  end if
+
+  read(1,'(a100)')line
+  read(line,*,iostat=ierrfrc) in%frac_fluct,in%forcemax
+  if (ierrfrc /= 0) then
+     read(line,*,iostat=ierror) in%frac_fluct
+     in%forcemax=0.0_gp
+  end if
+  call check()
+  read(1,*,iostat=ierror) in%randdis
+  call check()
+  read(1,*,iostat=ierror) in%betax
+  call check()
+  read(1,*,iostat=ierror) in%hx,in%hy,in%hz
+  call check()
+  read(1,*,iostat=ierror) in%crmult
+  call check()
+  read(1,*,iostat=ierror) in%frmult
+  call check()
+
+  read(1,*,iostat=ierror) in%ixc
+  call check()
+  read(1,*,iostat=ierror) in%elecfield
+  call check()
+  read(1,*,iostat=ierror) in%gnrm_cv
+  call check()
+  read(1,'(a100)')line
+  read(line,*,iostat=ierror) in%itermax,in%nrepmax
+  if (ierror == 0) then
+     !read(line,*,iostat=ierror) in%ncharge,in%elecfield
+  else
+     read(line,*,iostat=ierror)in%itermax
+     in%nrepmax=10
+  end if
+  call check()
+  read(1,*,iostat=ierror) in%ncong
+  call check()
+  read(1,*,iostat=ierror) in%idsx
+  call check()
+  read(1,*,iostat=ierror) in%calc_tail
+  call check()
+  read(1,*,iostat=ierror) in%rbuf
+  call check()
+  read(1,*,iostat=ierror) in%ncongt
+  call check()
+  read(1,*,iostat=ierror) in%nspin,in%mpol
+  call check()
+  read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
+  call check()
+
+  !project however the wavefunction on gaussians if asking to write them on disk
+  in%gaussian_help=(in%inputPsiId >= 10)! commented .or. in%output_wf 
+  !switch on the gaussian auxiliary treatment 
+  !and the zero of the forces
+  if (in%inputPsiId == 10) then
+     in%inputPsiId=0
+  end if
+
+  ! qoh: Try to read dispersion input variable
+  read(1,'(a100)',iostat=ierror)line
+  if (ierror == 0) then
+     if (index(line,"dispersion") /= 0) then 
+        read(line,*,iostat=ierror) in%dispersion
+        !add reading lines for Davidson treatment 
+        !(optional for backward compatibility)
+        read(1,*,iostat=ierror) in%nvirt, in%nplot
+     else 
+        in%dispersion = 0
+        read(line,*,iostat=ierror) in%nvirt, in%nplot
+     endif   
+     ! add reading for absorbing atom. iat_absorber=0 ( default ) means no absorption calculation
+     if(ierror==0) then
+        read(1,*,iostat=ierror)  in%iat_absorber
+        if(ierror/=0) then
+           in%iat_absorber=0
+        endif
+     else
+        in%iat_absorber=0
+     endif
+
+  ! AMmodif end
+
+  else
+     in%dispersion = 0
+     in%nvirt=0
+     in%nplot=0
+     in%iat_absorber=0
+ end if
+
+  !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
+  !systems
+  if (in%nspin/=1 .and. in%nvirt/=0) then
+     !if (iproc==0) then
+        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
+     !end if
+     stop
+  end if
+ 
+  close(unit=1,iostat=ierror)
+
+  if (iproc == 0) then
+     write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x
+     write(*,'(1x,a,1pe10.2)') 'Convergence criterion for forces: fraction of noise ',&
+          in%frac_fluct
+     write(*,'(1x,a,1pe10.2)') '                                : maximal component ',&
+          in%forcemax
+     write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',in%randdis
+     write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
+     if (in%nvirt > 0) then
+        !read virtual orbital and plotting request
+        write(*,'(1x,a,i0)')'Virtual orbitals ',in%nvirt
+        write(*,'(1x,a,i0,a)')'Output for density plots is requested for ',abs(in%nplot),' orbitals'
+     end if
+  end if
+
+     if (in%nspin==4) then
+        if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Non-collinear)'
+     else if (in%nspin==2) then
+        if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Collinear)'
+     else if (in%nspin==1) then
+        if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation:  NO '
+     else
+        !if (iproc == 0) 
+        write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
+        stop
+     end if
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  end subroutine check
+
+end subroutine read_input_variables_old
+!!***
+
+
+!!****f* BigDFT/dft_input_converter
+!! FUNCTION
+!!  Convert the format of input variables
+!! SOURCE
+!!
+subroutine dft_input_converter(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(in) :: in
+  !local variables
+  character(len=100) :: line
+  integer :: iline
+
+  ! Read the input variables.
+  open(unit=1,file='input_convert.dft',status='new')
+
+  !line number, to control the input values
+  iline=0
+  !grid spacings
+  line=''
+  line=' hx,hy,hz: grid spacing in the three directions'
+  write(1,'(3(f6.3),a)') in%hx,in%hy,in%hz,trim(line)
+  !coarse and fine radii around atoms
+  line=''
+  line=' crmult, frmult: c(f)rmult*radii_cf(*,1(2)) gives the coarse (fine)radius around each atom'
+  write(1,'(2(1x,f4.1),a)') in%crmult,in%frmult,trim(line)
+  line=''
+  line=' ixc: exchange-correlation parameter (LDA=1,PBE=11)'
+  !XC functional (ABINIT XC codes)
+  write(1,'(i3,a)') in%ixc,trim(line)
+
+  line=''
+  line=' ncharge: charge of the system, Electric field'
+  write(1,'(i3,1(f6.3),a)') in%ncharge,in%elecfield,trim(line)
+
+  line=''
+  line=' nspin=1 non-spin polarization, mpol=total magnetic moment'
+  write(1,'(2(i3),a)') in%nspin,in%mpol,trim(line)
+
+  line=''
+  line=' gnrm_cv: convergence criterion gradient'
+  write(1,'(1pe7.0,a)') in%gnrm_cv,trim(line)
+  
+  line=''
+  line=' itermax,nrepmax: maximum number of wavefunction optimizations and of re-diagonalised runs'
+  write(1,'(2(i3),a)') in%itermax,in%nrepmax,trim(line)
+  
+  line=''
+  line=' ncong, idsx: # CG iterations for the preconditioning equation, length of the diis history'
+  write(1,'(2(i3),a)') in%ncong,in%idsx,trim(line)
+  
+  line=''
+  line=' dispersion correction functional (values 1,2,3), 0=no correction'
+  write(1,'(i3,a)') in%dispersion,trim(line)
+  
+  line=''
+  line=' write "CUDAGPU" on this line to use GPU acceleration (GPU.config file is needed)'
+  write(1,'(a)') trim(line)
+
+  !now the varaibles which are to be used only for the last run
+  line=''
+  line=' InputPsiId, output_wf, output_grid'
+  write(1,*) in%inputPsiId,in%output_wf,in%output_grid,trim(line)
+  
+
+  line=''
+  line=' rbuf, ncongt: length of the tail (AU),# tail CG iterations'
+  if (in%calc_tail) then
+     write(1,'(f4.1,i4,a)') in%rbuf,in%ncongt,trim(line)
+  else
+     write(1,'(f4.1,i4,a)') 0.0_gp,in%ncongt,trim(line)
+  end if
+
+
+  !davidson treatment
+  line=''
+  line=' davidson treatment, no. of virtual orbitals, no of plotted orbitals'
+  write(1,'(2(i3),a)') in%nvirt,in%nplot,trim(line)
+  
+  line=''
+  line='0 .false. .false. 0.d0 vacancy: atom no., read_ref_den, correct_offset, gnrm_sw'
+  !electrostatic treatment of the vacancy (experimental)
+  write(1,*) trim(line)
+
+
+  line=''
+  line=' 2   verbosity of the output 0=low, 2=high'
+  !electrostatic treatment of the vacancy (experimental)
+  write(1,*) trim(line)
+   
+  close(unit=1)
+end subroutine dft_input_converter
+!!***

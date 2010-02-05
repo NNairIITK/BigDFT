@@ -135,18 +135,18 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
      if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i3,a)',advance='no')&
-          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'S') then
      if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i3,a)',advance='no')&
-          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'F') then
      if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i3,a)',advance='no')&
-          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else
      stop 'PSolver: geometry code not admitted'
@@ -198,22 +198,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               end do
            end do
         end do
-!!        do i3=1,nxt
-!!           do i2=1,m3
-!!              do i1=1,m1
-!!                 i=i1+(i2-1)*m1+(i3-1)*m1*m3+m1*m3*nxt
-!!                 j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+n01*n02*n03
-!!                 rhopot_G(i)=rhopot(j)
-!!              end do
-!!           end do
-!!        end do
-!!
-!!        do i1=1,m1*m3*nxt
-!!           rhopot_G(i1)=rhopot(n01*n02*(i3start-1)+i1)
-!!        end do
-!!        do i1=1,m1*m3*nxt
-!!           rhopot_G(i1+m1*m3*nxt)=rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)
-!!        end do
      end if
   else if (datacode == 'D') then
      !distributed i/o
@@ -235,37 +219,37 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 !!  print *,'        it goes from',i3start+nwbl+nxcl-1,'to',i3start+nxc-1
 
   if (istart+1 <= m2) then 
-       if(datacode=='G' .and. &
-            ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
-        !allocation of an auxiliary array for avoiding the shift of the de ) then
-          call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-               ixc,hx,hy,hz,rhopot_G,pot_ion,sumpion,zf,zfionxc,&
-               eexcuLOC,vexcuLOC,nproc,nspin)
-          do ispin=1,nspin
-             do i3=1,nxt
-                do i2=1,m3
-                   do i1=1,m1
-                      i=i1+(i2-1)*m1+(i3-1)*m1*m3+(ispin-1)*m1*m3*nxt
-                      j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+(ispin-1)*n01*n02*n03
-                      rhopot(j)=rhopot_G(i)
-                   end do
-                end do
-             end do
-          end do
-!!          do i1=1,m1*m3*nxt
-!!             rhopot(n01*n02*(i3start-1)+i1)=rhopot_G(i1)
-!!          end do
-!!          do i1=1,m1*m3*nxt
-!!             rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)=rhopot_G(i1+m1*m3*nxt)
-!!          end do
-          i_all=-product(shape(rhopot_G))*kind(rhopot_G)
-          deallocate(rhopot_G,stat=i_stat)
-          call memocc(i_stat,i_all,'rhopot_g',subname)
-       else
-          call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-               ixc,hx,hy,hz,rhopot(1+n01*n02*(i3start-1)),pot_ion,sumpion,zf,zfionxc,&
-               eexcuLOC,vexcuLOC,nproc,nspin)
-       end if
+     if(datacode=='G' .and. &
+          ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
+        !allocation of an auxiliary array for avoiding the shift 
+        call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
+             ixc,hx,hy,hz,rhopot_G,pot_ion,sumpion,zf,zfionxc,&
+             eexcuLOC,vexcuLOC,nproc,nspin)
+        do ispin=1,nspin
+           do i3=1,nxt
+              do i2=1,m3
+                 do i1=1,m1
+                    i=i1+(i2-1)*m1+(i3-1)*m1*m3+(ispin-1)*m1*m3*nxt
+                    j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+(ispin-1)*n01*n02*n03
+                    rhopot(j)=rhopot_G(i)
+                 end do
+              end do
+           end do
+        end do
+        !!          do i1=1,m1*m3*nxt
+        !!             rhopot(n01*n02*(i3start-1)+i1)=rhopot_G(i1)
+        !!          end do
+        !!          do i1=1,m1*m3*nxt
+        !!             rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)=rhopot_G(i1+m1*m3*nxt)
+        !!          end do
+        i_all=-product(shape(rhopot_G))*kind(rhopot_G)
+        deallocate(rhopot_G,stat=i_stat)
+        call memocc(i_stat,i_all,'rhopot_g',subname)
+     else
+        call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
+             ixc,hx,hy,hz,rhopot(1+n01*n02*(i3start-1)),pot_ion,sumpion,zf,zfionxc,&
+             eexcuLOC,vexcuLOC,nproc,nspin)
+     end if
   else if (istart+1 <= nlim) then !this condition ensures we have performed good zero padding
      do i2=istart+1,min(nlim,istart+md2/nproc)
         j2=i2-istart
@@ -283,25 +267,27 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   end if
 
   call timing(iproc,'Exchangecorr  ','OF')
-
   !this routine builds the values for each process of the potential (zf), multiplying by scal 
   if(geocode == 'P') then
      !no powers of hgrid because they are incorporated in the plane wave treatment
      scal=1.0_dp/real(n1*n2*n3,dp)
-     call P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
-          scal,hx,hy,hz,offset)
+     !call P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
+     !     scal,hx,hy,hz,offset)
   else if (geocode == 'S') then
      !only one power of hgrid 
      !factor of -4*pi for the definition of the Poisson equation
      scal=-16.0_dp*atan(1.0_dp)*real(hy,dp)/real(n1*n2*n3,dp)
-     call S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
-          scal) !,hx,hy,hz,ehartreeLOC)
+     !call S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
+     !     scal) !,hx,hy,hz,ehartreeLOC)
   else if (geocode == 'F') then
      !hgrid=max(hx,hy,hz)
      scal=hx*hy*hz/real(n1*n2*n3,dp)
-     call F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
-          scal)!,hgrid)!,ehartreeLOC)
+     !call F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
+     !     scal)!,hgrid)!,ehartreeLOC)
   end if
+  !here the case ncplx/= 1 should be added
+  call G_PoissonSolver(geocode,iproc,nproc,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,zf(1,1,1),&
+       scal,hx,hy,hz,offset)
   
   call timing(iproc,'PSolv_comput  ','ON')
   

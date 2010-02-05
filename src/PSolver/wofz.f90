@@ -210,22 +210,28 @@ END SUBROUTINE WOFZ
 
 
 !the same function as above multiplied by exp(-yi**2), to protect against overflows
-subroutine wofz_mod(xi,yi,u,v,flag)
+subroutine wofz_mod(alpha,m,q,jm,u,v,flag)
   use module_base
   implicit none
-  real(dp), intent(in) :: xi,yi
+  real(dp), intent(in) :: alpha
+  integer, intent(in) :: q,m,jm
   logical, intent(out) :: flag
   real(dp), intent(out) :: u,v
   !local variables
   real(dp), parameter :: factor=1.12837916709551257388_dp,rmaxreal=0.5e+154_dp
   real(dp), parameter :: rmaxexp=708.503061461606_dp,rmaxgoni=3.53711887601422e+15_dp
+  real(dp), parameter :: pi=3.1415926535897932384_dp
   logical :: a,b
   integer :: j,n,i,kapn,nu,np1
   real(dp) :: xabs,yabs,x,y,qrho,xquad,yquad,xsum,ysum,xaux,u1,v1,u2,v2,daux,h,qlambda,h2
-  real(dp) :: rx,ry,sx,sy,tx,ty,c,w1,xabsq
+  real(dp) :: rx,ry,sx,sy,tx,ty,c,w1,xabsq,xi,yi,fac,yquadmod
 
   flag = .false.
 
+  fac=pi/real(2*m,dp)/alpha
+
+  xi=fac*real(q,dp)
+  yi=alpha*real(jm,dp)
   xabs = dabs(xi)
   yabs = dabs(yi)
   x    = xabs/6.3_dp
@@ -244,6 +250,8 @@ subroutine wofz_mod(xi,yi,u,v,flag)
   xabsq = xabs**2
   xquad = xabsq - yabs**2
   yquad = 2*xabs*yabs
+  !yquad to be passed to trigonometric functions
+  yquadmod = real(modulo(abs(q*jm),2*m),dp)/real(m,dp)*pi
 
   a = qrho < 0.085264_dp
 
@@ -267,9 +275,12 @@ subroutine wofz_mod(xi,yi,u,v,flag)
      u1   = -factor*(xsum*yabs + ysum*xabs) + 1.0_dp
      v1   =  factor*(xsum*xabs - ysum*yabs)
      !MODIFICATION: the exponent is corrected, yabs disappears
-     daux =  exp(-xquad-yabs**2)
-     u2   =  daux*dcos(yquad)
-     v2   = -daux*dsin(yquad)
+     daux = fac**2
+     daux = exp(-daux)
+     daux = daux**(q**2)
+     !daux =  exp(-xquad-yabs**2)
+     u2   =  daux*dcos(yquadmod)
+     v2   = -daux*dsin(yquadmod)
 
      u    = u1*u2 - v1*v2
      v    = u1*v2 + v1*u2
@@ -304,6 +315,8 @@ subroutine wofz_mod(xi,yi,u,v,flag)
 
      b = (h > 0.0_dp)
 
+
+
      if (b) qlambda = h2**kapn
 
      rx = 0.0_dp
@@ -324,6 +337,7 @@ subroutine wofz_mod(xi,yi,u,v,flag)
            sy = ry*tx + rx*sy
            qlambda = qlambda/h2
         endif
+        !print *,'nu,yabs,xabs,tx,ty,rx,ry',n,nu,yabs,xabs,tx,ty,rx,ry
      end do
 
      if (h == 0.0_dp) then
@@ -349,7 +363,7 @@ subroutine wofz_mod(xi,yi,u,v,flag)
   !  evaluation of w(z) in the other quadrants
   !
 
-  if (yi < 0.0_dp) then
+  if (jm < 0) then
 
      if (a) then
         !no modification is needed
@@ -360,24 +374,27 @@ subroutine wofz_mod(xi,yi,u,v,flag)
 
         !the following if-statement protects 2*exp(-z**2)
         !against overflow, taking into account the modification
-
-        if ((yquad > rmaxgoni).or. &
-             (xquad-yabs**2 > rmaxexp)) then
+        if (xquad-yabs**2 > rmaxexp) then
            flag = .true.
            !print *,'bbb',xi,yi,yquad,xquad,rmaxgoni,rmaxexp
            return
         end if
 
-        w1 =  2*dexp(xquad-yabs**2)
-        u2  =  w1*dcos(yquad)
-        v2  = -w1*dsin(yquad)
+        daux = fac**2
+        daux = exp(-daux)
+        w1 = 2.0_dp*daux**(q**2)
+        !w1 =  2*dexp(xquad-yabs**2)
+        u2  =  w1*dcos(yquadmod)
+        v2  = -w1*dsin(yquadmod)
+        !print *,'w1,u2,v2',yquad,yquadmod,xquad,yabs**2,xquad-yabs**2,w1,u2,v2
      end if
 
      u = u2 - u
      v = v2 - v
-     if (xi > 0.0_dp) v = -v
+     !print *,u,v
+     if (q > 0) v = -v
   else
-     if (xi < 0.0_dp) v = -v
+     if (q < 0) v = -v
   end if
 
 end subroutine wofz_mod

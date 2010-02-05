@@ -70,8 +70,8 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
         !Check for max number of virtual orbitals
         !the unoccupied orbitals available as a LCAO
         !this is well defined only for closed-shell systems
-        if (ispin == 1) nvirte=noncoll*norbe-orbs%norbu
-        if (ispin == 2) nvirte=noncoll*norbe-orbs%norbd
+        if (ispin == 1) nvirte=min(noncoll*norbe-orbs%norbu,nvirt)
+        if (ispin == 2) nvirte=min(noncoll*norbe-orbs%norbd,nvirt)
         if(nvirt == nvirte .and. nvirt/=0 .and. iproc==0) then
            write(*,'(1x,a)')&
                 "WARNING: A smaller number of virtual orbitals may be needed for better convergence."
@@ -691,6 +691,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,&
               icoeff=icoeff-(2*l-1)
            end do
            icoeff=icoeff+(2*l-1)
+
         end do
      end do
 
@@ -956,7 +957,7 @@ subroutine iguess_generator(iproc,izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
   integer :: l,i,j,iocc,il,lwrite,i_all,i_stat
   real(gp) :: alpz,alpl,amu,rprb,rij,a,a0,a0in,tt,ehomo,rcov
   integer, dimension(6,4) :: neleconf
-  real(gp), dimension(3) :: gpot
+  real(gp), dimension(4) :: gpot
   real(gp), dimension(noccmax,lmax+1) :: aeval,chrg,res
   real(gp), dimension(:), allocatable :: xp,alps
   real(gp), dimension(:,:), allocatable :: vh,hsep,ofdcoef
@@ -983,7 +984,7 @@ subroutine iguess_generator(iproc,izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
   alpz=psppar(0,0)
   alpl=psppar(0,0)
   alps(1:lpx+1)=psppar(1:lpx+1,0)
-  gpot(1:3)=psppar(0,1:3)
+  gpot(1:4)=psppar(0,1:4)
 
   !assignation of the coefficents for the nondiagonal terms
   if (npspcode == 2) then !GTH case
@@ -1151,7 +1152,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
   dimension psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
        hh(0:ng,0:ng),ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
        aux(2*ng+2),&
-       gpot(3),hsep(6,lpx+1),rmt(n_int,0:ng,0:ng,lmax+1),&
+       gpot(4),hsep(6,lpx+1),rmt(n_int,0:ng,0:ng,lmax+1),&
        pp1(0:ng,lpx+1),pp2(0:ng,lpx+1),pp3(0:ng,lpx+1),alps(lpx+1),&
        potgrd(n_int),&
        rho(0:ng,0:ng,lmax+1),rhoold(0:ng,0:ng,lmax+1),xcgrd(n_int),&
@@ -1305,7 +1306,8 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
               tt=alpl**2/(.5_gp+d*alpl**2)
               hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
                    + (gpot(2)/alpl**2)*.5_gp*gamma(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
-                   + (gpot(3)/alpl**4)*.5_gp*gamma(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))
+                   + (gpot(3)/alpl**4)*.5_gp*gamma(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))&
+                   + (gpot(4)/alpl**6)*.5_gp*gamma(4.5_gp+real(l,gp))*tt**(4.5_gp+real(l,gp))
 ! separable terms
               if (l.le.lpx) then
                  hh(i,j)=hh(i,j) + pp1(i,l+1)*hsep(1,l+1)*pp1(j,l+1)&
@@ -1507,7 +1509,7 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
   implicit real(gp) (a-h,o-z)
   logical :: noproj
   dimension psi(0:ng,noccmax,lmax+1),rho(0:ng,0:ng,lmax+1),&
-       gpot(3),pp1(0:ng,lmax+1),pp2(0:ng,lmax+1),pp3(0:ng,lmax+1),&
+       gpot(4),pp1(0:ng,lmax+1),pp2(0:ng,lmax+1),pp3(0:ng,lmax+1),&
        alps(lmax+1),hsep(6,lmax+1),res(noccmax,lmax+1),xp(0:ng),&
        xcgrd(n_int),aeval(noccmax,lmax+1),potgrd(n_int)
   real(gp) :: derf_val
@@ -1520,7 +1522,7 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
      potgrd(k)= .5_gp*(r/rprb**2)**2 - &
           zion*derf_val/r &
           + exp(-.5_gp*(r/alpl)**2)*&
-          ( gpot(1) + gpot(2)*(r/alpl)**2 + gpot(3)*(r/alpl)**4 )&
+          ( gpot(1) + gpot(2)*(r/alpl)**2 + gpot(3)*(r/alpl)**4 + gpot(4)*(r/alpl)**6  )&
           + xcgrd(k)/r**2
      do j=0,ng
         do i=0,ng
@@ -1987,7 +1989,7 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   real(gp), dimension(nelecmax), intent(in) :: aocc
   !local variables
   character(len=10) :: tmp
-  character(len=100) :: string
+  character(len=150) :: string
   integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp
   logical, dimension(4,2) :: scorb
 
@@ -2010,7 +2012,7 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   end if
 
   !initalise string
-  string=repeat(' ',100)
+  string=repeat(' ',150)
 
   is=1
   do i=1,noccmax

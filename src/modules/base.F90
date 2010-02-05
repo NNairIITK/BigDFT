@@ -11,6 +11,10 @@
 !!
 !! SOURCE
 !! 
+#if defined HAVE_CONFIG_H
+#include <config.inc>
+#endif
+
 module module_base 
   !use MPI
   implicit none  
@@ -21,6 +25,9 @@ module module_base
   !disable debug case
   integer, parameter :: ndebug=0
 #endif
+
+  ! Include variables set from configure.
+  include 'configure.inc'
 
   !verbosity of the output, control the level of writing (minimal by default)
   integer :: verbose=2
@@ -45,10 +52,6 @@ module module_base
 #endif
   !integer, parameter :: mpidtypw=MPI_REAL,mpidtypd=MPI_REAL !in case of single precision
 
-  !Memory limit value in GB. It stops EVERYTHING if some process passes such limit
-  !For no memory limit, leave it to zero
-  real(kind=4), parameter :: memorylimit = MEMORY_LIMIT
-
   !flag for GPU computing, if CUDA libraries are present
   !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !this value can be changed in the read_input_variables routine
@@ -61,6 +64,7 @@ module module_base
 
   ! Physical constants.
   real(gp), parameter :: bohr2ang = 0.5291772108_gp !1 AU in angstroem
+  real(gp), parameter :: ha2ev = 27.21138386_gp !1 ha in eV
 
   !interface for MPI_ALLREDUCE routine
   interface mpiallred

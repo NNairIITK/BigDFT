@@ -2,16 +2,16 @@
  Copyright (C) 2006-2007 M.A.L. Marques
 
  This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation; either version 3 of the License, or
  (at your option) any later version.
   
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+ GNU Lesser General Public License for more details.
   
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
@@ -35,30 +35,13 @@ mgga_c_tpss_init(void *p_)
 {
   XC(mgga_type) *p = (XC(mgga_type) *)p_;
 
-  p->gga_aux1 = (XC(gga_type) *) malloc(sizeof(XC(gga_type)));
-  XC(gga_init)(p->gga_aux1, XC_GGA_C_PBE, p->nspin);
+  p->n_func_aux  = 2;
+  p->func_aux    = (XC(func_type) **) malloc(sizeof(XC(func_type) *)*p->n_func_aux);
+  p->func_aux[0] = (XC(func_type) *)  malloc(sizeof(XC(func_type)));
+  p->func_aux[1] = (XC(func_type) *)  malloc(sizeof(XC(func_type)));
 
-  if(p->nspin == XC_UNPOLARIZED){
-    p->gga_aux2 = (XC(gga_type) *) malloc(sizeof(XC(gga_type)));
-    XC(gga_init)(p->gga_aux2, XC_GGA_C_PBE, XC_POLARIZED);
-  }else{
-    p->gga_aux2 = p->gga_aux1;
-  }
-}
-
-
-static void
-mgga_c_tpss_end(void *p_)
-{
-  XC(mgga_type) *p = (XC(mgga_type) *)p_;
-
-  XC(gga_end)(p->gga_aux1);
-  free(p->gga_aux1);
-
-  if(p->nspin == XC_UNPOLARIZED) {
-    XC(gga_end)(p->gga_aux2);
-    free(p->gga_aux2);
-  }
+  XC(func_init)(p->func_aux[0], XC_GGA_C_PBE, p->nspin);
+  XC(func_init)(p->func_aux[1], XC_GGA_C_PBE, XC_POLARIZED);
 }
 
 
@@ -118,9 +101,9 @@ static void eq_12(const XC(mgga_type) *p, int order, const FLOAT *rho, const FLO
 
   /* let us get the PBE stuff */
   if(order == 0)
-    XC(gga_exc)(p->gga_aux1, rho, sigma, &f_PBE);
+    XC(gga_exc)(p->func_aux[0], 1, rho, sigma, &f_PBE);
   else
-    XC(gga_vxc)(p->gga_aux1, rho, sigma, &f_PBE, vrho_PBE, vsigma_PBE);
+    XC(gga_exc_vxc)(p->func_aux[0], 1, rho, sigma, &f_PBE, vrho_PBE, vsigma_PBE);
     
   for(is=0; is<p->nspin; is++){
     FLOAT r1[2], sigma1[3], f1, vrho1[2], vsigma1[3];
@@ -137,9 +120,9 @@ static void eq_12(const XC(mgga_type) *p, int order, const FLOAT *rho, const FLO
 
     /* call (polarized) PBE */
     if(order == 0)
-      XC(gga_exc)(p->gga_aux2, r1, sigma1, &f1);
+      XC(gga_exc)(p->func_aux[1], 1, r1, sigma1, &f1);
     else{
-      XC(gga_vxc)(p->gga_aux2, r1, sigma1, &f1, vrho1, vsigma1);
+      XC(gga_exc_vxc)(p->func_aux[1], 1, r1, sigma1, &f1, vrho1, vsigma1);
 
       if(f1 > f_PBE){
 	if(rho[is] > MIN_DENS){
@@ -261,8 +244,9 @@ static void eq_12(const XC(mgga_type) *p, int order, const FLOAT *rho, const FLO
 
 
 static void 
-mgga_c_tpss(const void *p_, const FLOAT *rho, const FLOAT *sigma, const FLOAT *tau,
-	    FLOAT *zk, FLOAT *vrho, FLOAT *vsigma, FLOAT *vtau,
+mgga_c_tpss(const void *p_, 
+	    const FLOAT *rho, const FLOAT *sigma, const FLOAT *lapl_rho, const FLOAT *tau,
+	    FLOAT *zk, FLOAT *vrho, FLOAT *vsigma, FLOAT *vlapl_rho, FLOAT *vtau,
 	    FLOAT *v2rho2, FLOAT *v2rhosigma, FLOAT *v2sigma2, FLOAT *v2rhotau, FLOAT *v2tausigma, FLOAT *v2tau2)
 {
   const XC(mgga_type) *p = p_;
@@ -340,7 +324,7 @@ XC(func_info_type) XC(func_info_mgga_c_tpss) = {
   "JP Perdew, J Tao, VN Staroverov, and G Scuseria, J. Chem. Phys. 120, 6898 (2004)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC,
   mgga_c_tpss_init,
-  mgga_c_tpss_end,
+  NULL,
   NULL, NULL,        /* this is not an LDA                   */
   mgga_c_tpss,
 };

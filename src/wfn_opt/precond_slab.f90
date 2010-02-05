@@ -261,7 +261,10 @@ subroutine prec_fft_slab_fast(n1,n2,n3, &
      call wscal_f(nvctr_f,hpsi(nvctr_c+1),hx,hy,hz,cprecr)
   end if
 
+
+
   call make_kernel(n1,hx,kern_k1)
+
   call make_kernel(n3,hz,kern_k3)
 
   call uncompress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)

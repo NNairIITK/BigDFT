@@ -21,6 +21,8 @@ mod_bigdft = module_base.@MODULE_EXT@ \
 endif
 module_DATA = $(mod_bigdft)
 
+EXTRA_DIST = configure.inc.in
+
 modules_source = base.F90 \
 	types.f90 \
 	interfaces.f90 \
@@ -38,7 +40,7 @@ CLEANFILES = mpif.h MODULE_BASE.@MODULE_EXT@ module_base.@MODULE_EXT@ \
 #dependencies
 interfaces.o: base.o types.o
 types.o: base.o
-base.o: $(mpi_include)
+base.o: $(mpi_include) configure.inc
 
 $(mod_bigdft) : base.o types.o interfaces.o
 
@@ -48,4 +50,4 @@ mpif.h:
 	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
 	 echo "integer :: MPI_STATUSES_IGNORE, MPI_LOGICAL" >> mpif.h &&\
-	 echo "integer :: MPI_MIN, MPI_MAX,MPI_CHARACTER" >> mpif.h
+	 echo "integer :: MPI_MIN, MPI_MAX,MPI_CHARACTER,MPI_REAL8" >> mpif.h

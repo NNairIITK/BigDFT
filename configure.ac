@@ -9,13 +9,13 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.3.0-dev],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.3],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
 AC_CONFIG_AUX_DIR(config)
-dnl Use a config.h file to store macro definitions
-dnl AM_CONFIG_HEADER(config.h)
+dnl Use a config.h file to store macro definitions, required for CUDA.
+AM_CONFIG_HEADER(config.h)
 AC_CONFIG_MACRO_DIR([config/m4])
 
 dnl Init something, don't know exactly what...
@@ -163,6 +163,7 @@ end
   LDFLAGS="$LDFLAGS_OLD"
   FCFLAGS="$FCFLAGS_OLD"
 else
+  dnl We put an include in case of no MPI to have access to mpi fake.
   MPI_INCLUDE='-I$(top_builddir)/src/modules'
 fi
 AM_CONDITIONAL(USE_MPI, test "$ac_use_mpi" = "yes")
@@ -186,12 +187,13 @@ AC_MSG_CHECKING([for memory limit in GB])
 AC_ARG_WITH(memory-limit, AS_HELP_STRING([--with-memory-limit], [Memory limit value in GB. It stops EVERYTHING if some process passes such limit (disabled by default).]),
               ac_with_memory_limit=$withval, ac_with_memory_limit="no")
 if test "${ac_with_memory_limit//\.*/}" -ge "0" 2> /dev/null ; then
-  ac_memory_limit=$ac_with_memory_limit
+  MEMORY_LIMIT=$ac_with_memory_limit
 else
-  ac_memory_limit="0.e0"
+  ac_with_memory_limit="undefined"
+  MEMORY_LIMIT=0
 fi
-AC_MSG_RESULT([$ac_memory_limit])
-AC_DEFINE_UNQUOTED([MEMORY_LIMIT], [$ac_memory_limit], [Value in GB to stop processing.])
+AC_SUBST(MEMORY_LIMIT)
+AC_MSG_RESULT([$ac_with_memory_limit])
 
 
 dnl Use the simple or the optimised convolution code.
@@ -232,6 +234,8 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   dnl if `echo $FCFLAGS | grep -qvs -- "-fno-second-underscore"` ; then
   dnl    FCFLAGS=$FCFLAGS" -fno-second-underscore"
   dnl fi
+  dnl Instead of second underscoring, test the compiler behaviour.
+  AC_FC_WRAPPERS()
   dnl Optional Cuda installation dir.
   AC_ARG_WITH(cuda-path, AS_HELP_STRING([--with-cuda-path], [give the path to the NVidia Cuda tools (default is /usr/local/cuda).]),
                          [ac_with_cuda_path=$withval], [ac_with_cuda_path="/usr/local/cuda"])
@@ -280,20 +284,6 @@ ac_build_bin_cluster="yes"
 
 
 dnl disable different build
-dnl The ABINIT common XC library
-AC_ARG_ENABLE(libabinit, AS_HELP_STRING([--disable-libabinit], [build the ABINIT library from ABINIT code (default = yes).]), ac_build_lib_ABINIT=$enableval, ac_build_lib_ABINIT="yes")
-AM_CONDITIONAL(BUILD_LIB_ABINIT, test "$ac_build_lib_ABINIT" = "yes")
-AC_MSG_CHECKING([for ABINIT library internal build])
-AC_MSG_RESULT([$ac_build_lib_ABINIT])
-if test x"$ac_build_lib_ABINIT" = x"yes" ; then
-  xc_path='$(top_builddir)/src/PSolver/ABINIT-common'
-else
-  dnl Required path for ABINIT module inclusion
-  AC_ARG_WITH(xc-module-path, AS_HELP_STRING([--with-xc-module-path],
-              [give the path to the module file defining XC (default = $(top_builddir)/src/PSolver/ABINIT-common).]),
-              xc_path=$withval, xc_path=)
-fi
-AC_SUBST(XC_INCLUDE, "-I"$xc_path)
 dnl The PSolver library
 AC_ARG_ENABLE(libpoissonsolver, AS_HELP_STRING([--disable-libpoissonsolver], [build the Poisson's solver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
 AM_CONDITIONAL(BUILD_LIB_PSOLVER, test "$ac_build_lib_PSolver" = "yes")
@@ -417,10 +407,46 @@ else
 fi
 AM_CONDITIONAL(BUILD_LIBXC, test x"$ac_build_libxc" = x"yes")
 if test x"$ac_use_libxc" = x"yes" ; then
-  AC_DEFINE([HAVE_LIBXC], [1], [compile the libXC section in the ABINIT code.])
+  AC_DEFINE([HAVE_LIBXC], [1], [use libXC in BigDFT.])
   LIBS="-lxc $LIBS"
 fi
 
+dnl Test the ABINIT library
+internallibabinit="yes"
+AC_ARG_ENABLE(internal-libabinit, AS_HELP_STRING([--disable-internal-libabinit], [Do not build and link with internal libABINIT library (default = yes).]), internallibabinit=$enval, internallibabinit="yes")
+AC_ARG_WITH(libabinit-path, AS_HELP_STRING([--with-libabinit-path], [Give the path for an external libABINIT library, lib and module files (default = None).]),
+            ac_libabinit_dir=$withval, ac_libabinit_dir=)
+ac_use_libabinit="no"
+ac_build_libabinit="no"
+if test "$internallibabinit" = "yes" ; then
+  ac_build_libabinit="yes"
+  ac_use_libabinit="yes"
+  AC_SUBST(LIBABINIT_INCLUDE, "-I\$(top_builddir)"/libABINIT/src)
+  LDFLAGS="$LDFLAGS -L\$(top_builddir)/libABINIT/src"
+else
+  if test -n "$ac_libabinit_dir" ; then
+    LDFLAGS="$LDFLAGS -L$ac_libabinit_dir/lib"
+    
+    dnl Test the given implementation of libabinit.
+    AC_CHECK_LIB(abinit, symbrav, withlibabinit=yes, withlibabinit=no)
+    AC_CHECK_FILE($ac_libabinit_dir/include/ab6_moldyn.$capitalize_module_ext, moldyn="yes", moldyn="no")
+    AC_CHECK_FILE($ac_libabinit_dir/include/ab6_symmetry.$capitalize_module_ext, sym="yes", sym="no")
+    AC_CHECK_FILE($ac_libabinit_dir/include/libxc_functionals.$capitalize_module_ext, libxc="yes", libxc="no")
+    if test "$withlibabinit" = "yes" -a "$moldyn" = "yes" -a "$sym" = "yes" -a "$libxc" = "yes"; then
+      ac_use_libabinit="yes"
+      AC_SUBST(LIBABINIT_INCLUDE, "-I"$ac_libabinit_dir/include)
+    fi
+  fi
+fi
+AM_CONDITIONAL(BUILD_LIBABINIT, test x"$ac_build_libabinit" = x"yes")
+if test x"$ac_use_libabinit" = x"yes" ; then
+  AC_DEFINE([HAVE_LIBABINIT], [1], [use libABINIT in BigDFT.])
+  LIBS="-labinit $LIBS"
+fi
+
+dnl Test for the documentation.
+AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes])
+AM_CONDITIONAL(BUILD_PDFDOC, test x"$ac_have_pdflatex" = x"yes")
 dnl default installation directories
 AC_ARG_WITH(moduledir,
             AS_HELP_STRING([--with-moduledir],
@@ -432,16 +458,19 @@ else
   moduledir=${includedir}/${fc_type}
 fi
 AC_SUBST(moduledir)
+docdir="${docdir}"
+AC_SUBST(docdir)
 
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
+libABINIT/src/Makefile
 src/Makefile
 src/lib/Makefile
 src/lib/fft/Makefile
 src/modules/Makefile
+src/modules/configure.inc
 src/profiling/Makefile
-src/PSolver/ABINIT-common/Makefile
 src/PSolver/Makefile
 src/convolutions/Makefile
 src/CUDA/Makefile
@@ -465,10 +494,12 @@ tests/Davidson-SiH4/Makefile
 tests/GPU/Makefile
 tests/MINHOP/Makefile
 tests/H2-freq/Makefile
+tests/NH3/Makefile
 tests/NEB/Makefile
 tests/NEB/input
 tests/NEB/NEB_include.sh
 tests/XabsCheb/Makefile
+tests/FeHyb/Makefile
 ])
 if test x"$ac_build_libxc" = x"yes" ; then
   # Call libXC ./configure script recursively.
@@ -508,6 +539,9 @@ Options:
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE
+  With libABINIT:            $ac_use_libabinit
+   | internal built:         $ac_build_libabinit
+   | include dir.:           $LIBABINIT_INCLUDE
 
 Installation paths:
   Source code location:      ${srcdir}
@@ -516,6 +550,7 @@ Installation paths:
   Binaries:                  $bindir
   Static libraries:          $libdir
   Fortran modules:           $moduledir
+  Documentation:             $docdir
 "
 
 if test x"$ac_use_mpi" = x"Warning" ; then
@@ -523,3 +558,7 @@ if test x"$ac_use_mpi" = x"Warning" ; then
   MPI:                       disabled by tests
 "
 fi
+
+dnl Do not touch this line. On the Cray machine in Basel, the preprocessor
+dnl in Fortran sources does not allow C comments (/*  */), so we remove them.
+sed -n '1h;1!H;${;g;s%/\*[[^*]]*\*/%%g;p;}' config.h > config.inc

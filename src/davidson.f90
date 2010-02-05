@@ -58,6 +58,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   use module_base
   use module_types
   use module_interfaces, except_this_one => davidson
+  use libxc_functionals
   implicit none
   integer, intent(in) :: iproc,nproc,n1i,n2i,n3i
   integer, intent(in) :: i3xcsh
@@ -82,15 +83,15 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   !local variables
   character(len=*), parameter :: subname='davidson'
   character(len=10) :: comment
-  character(len=11) :: orbname
-  logical :: msg !extended output
+  character(len=11) :: orbname,denname
+  logical :: msg,exctX !extended output
   integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,ind,i1,i2,norb,nspinor
   integer :: ise,jnd,j,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
-  real(kind=8) :: tt,gnrm,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,gnrm_fake
+  real(gp) :: tt,gnrm,eks,eexcu,vexcu,epot_sum,eexctX,ekin_sum,ehart,eproj_sum,etol,gnrm_fake
   type(communications_arrays) :: commsv
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: work,work_rp,hamovr
-  real(wp), dimension(:), allocatable :: hv,g,hg,ew
+  real(wp), dimension(:), allocatable :: hv,g,hg,ew,psirocc
   real(wp), dimension(:,:,:), allocatable :: e
   real(wp), dimension(:), pointer :: psiw
 
@@ -105,6 +106,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   
   GPU%full_locham=.true.
   
+  !verify whether the calculation of the exact exchange term
+  !should be preformed
+  exctX = libxc_functionals_exctXfac() /= 0.0_gp
 
   !last index of e and hamovr are for mpi_allreduce. 
   !e (eigenvalues) is also used as 2 work arrays
@@ -118,8 +122,18 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   !if(msg)write(*,*)'shape(v)',shape(v),'size(v)',size(v)
 
 
+  !before transposition, create the array of the occupied
+  !wavefunctions in real space, for exact exchange calculations
+  if (exctX) then
+     allocate(psirocc(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,&
+          ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
+     call memocc(i_stat,psirocc,'psirocc',subname)
+
+     call prepare_psirocc(iproc,nproc,lr,orbs,n3p,ngatherarr(0,1),psi,psirocc)
+  end if
+
+
   !n2virt=2*orbsv%norb! the dimension of the subspace
-  !to be modified for complex wavefunctions
 
   !disassociate work array for transposition in serial
   if (nproc > 1) then
@@ -174,7 +188,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   
   call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
        nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
-       rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
+       rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+       pkernel,orbs,psirocc) ! optional arguments
 
   !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
 
@@ -429,7 +444,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
-          rhopot(1+i3xcsh*n1i*n2i),g,hg,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
+          rhopot(1+i3xcsh*n1i*n2i),g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+          pkernel,orbs,psirocc) ! optional argument
 
      !transpose  g and hg
      call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
@@ -677,7 +693,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
-          rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
+          rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+          pkernel,orbs,psirocc) !optional arguments
 
      !transpose  v and hv
      call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,v,work=psiw)
@@ -693,10 +710,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
      end if
 
   end do davidson_loop
-
-  i_all=-product(shape(orbsv%eval))*kind(orbsv%eval)
-  deallocate(orbsv%eval,stat=i_stat)
-  call memocc(i_stat,i_all,'eval',subname)
 
   i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
   deallocate(ndimovrlp,stat=i_stat)
@@ -714,6 +727,14 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   deallocate(ew,stat=i_stat)
   call memocc(i_stat,i_all,'ew',subname)
 
+  !deallocate real array of wavefunctions
+  if(exctX)then
+     i_all=-product(shape(psirocc))*kind(psirocc)
+     deallocate(psirocc,stat=i_stat)
+     call memocc(i_stat,i_all,'psirocc',subname)
+  end if
+
+
   if(iter <=in%itermax) then
      if(iproc==0)write(*,'(1x,a,i3,a)')&
           'Davidsons method: Convergence after ',iter-1,' iterations.'
@@ -728,8 +749,10 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
               write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',&
                    orbs%eval(iorb+(ikpt-1)*orbs%norb)
            end do
-           write(*,'(1x,a,1pe21.14)')&
-                'HOMO LUMO gap   =',e(1,ikpt,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb)
+           write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
+                'HOMO LUMO gap   =',e(1,ikpt,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb),&
+                ' (',ha2ev*(e(1,ikpt,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb)),&
+                ' eV)'
            do iorb=1,orbsv%norb
               write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_virtual(',iorb,')=',e(iorb,ikpt,1)
            end do
@@ -754,10 +777,15 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
                       'e_occ(',iorb-orbs%norbu,',d)=',orbs%eval(iorb+(ikpt-1)*orbs%norb)
               end do
            end if
-           write(*,'(1x,a,1x,1pe21.14,14x,a,1x,1pe21.14)') &
+           write(*,'(1x,a,1x,1pe21.14,a,0pf8.4,a,a,1x,1pe21.14,a,0pf8.4,a)') &
                 'HOMO LUMO gap, u =',&
                 e(1,ikpt,1)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb),&
-                ',d =',e(orbsv%norbu+1,ikpt,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb)
+                ' (',ha2ev*(e(1,ikpt,1)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb)),&
+                ' eV)',&
+                ',d =',e(orbsv%norbu+1,ikpt,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb),&
+                ' (',&
+                ha2ev*(e(orbsv%norbu+1,ikpt,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb)),&
+                ' eV)'
            do iorb=1,min(orbsv%norbu,orbsv%norbd)
               jorb=orbsv%norbu+iorb
               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
@@ -829,27 +857,36 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
         exit 
      end if
      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
+     !plot the orbital and the density
      write(orbname,'(A,i3.3)')'virtual',iorb+orbsv%isorb
+     write(denname,'(A,i3.3)')'denvirt',iorb+orbsv%isorb
      write(comment,'(1pe10.3)')e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
      !choose the way of plotting the wavefunctions
      if (in%nplot > 0) then
-        call plot_wf('POT',orbname,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
      else if (in%nplot < 0) then
-        call plot_wf('CUBE',orbname,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
      end if
   end do
 
   do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
-     if(modulo(orbs%norb-iorb-orbs%isorb-1+nvirt-1,orbs%norb)+1 > abs(in%nplot))exit! we have written nplot pot files
+     if(modulo(orbs%norb-iorb-orbs%isorb-1,orbs%norb)+1 > abs(in%nplot)) then
+        exit! we have written nplot pot files
+     end if
      !address
      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
      write(orbname,'(A,i3.3)')'orbital',iorb+orbs%isorb
+     write(denname,'(A,i3.3)')'densocc',iorb+orbs%isorb
      write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
      !choose the way of plotting the wavefunctions
      if (in%nplot > 0) then
-        call plot_wf('POT',orbname,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
      else if (in%nplot < 0) then
-        call plot_wf('CUBE',orbname,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
      end if
 
   end do
@@ -858,8 +895,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   i_all=-product(shape(e))*kind(e)
   deallocate(e,stat=i_stat)
   call memocc(i_stat,i_all,'e',subname)
-
-  call deallocate_orbs(orbsv,subname)
 
   if (GPUconv) then
      call free_gpu(GPU,orbsv%norbp)

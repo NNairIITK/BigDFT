@@ -26,13 +26,13 @@ module module_types
 !!
   type, public :: input_variables
      logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
-     integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,nvirt,nplot
+     integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol
+     integer :: norbv,nvirt,nplot
      integer :: output_grid, dispersion
      real(gp) :: frac_fluct,gnrm_sw
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf 
      integer :: nvacancy,verbosity
      real(gp) :: elecfield
-     real(gp):: absorber_gnrm
      integer :: iabscalc_type   ! 0 non calc, 1 cheb ,  2 lanc
      integer :: iat_absorber, L_absorber
      real(gp), pointer:: Gabs_coeffs(:)
@@ -43,9 +43,10 @@ module module_types
      ! kpoints related input variables
      integer :: nkpt
      real(gp), pointer :: kpt(:,:), wkpt(:)
+
      ! Geometry variables from *.geopt
      character(len=10) :: geopt_approach
-     integer :: ncount_cluster_x
+     integer :: ncount_cluster_x, history
      real(gp) :: betax,forcemax,randdis
      integer :: optcell, ionmov, nnos
      real(gp) :: dtion, mditemp, mdftemp, noseinert, friction, mdwall
@@ -323,7 +324,7 @@ module module_types
      !arguments for the hamiltonian
      integer :: iproc,nproc,ndimpot,nspin
      real(gp) :: hx,hy,hz
-     real(gp) :: ekin_sum,epot_sum,eproj_sum
+     real(gp) :: ekin_sum,epot_sum,eexctX,eproj_sum
      type(atoms_data), pointer :: at
      type(orbitals_data) :: orbs
      type(communications_arrays) :: comms

@@ -5,7 +5,7 @@
 !!   Assign these values to the global localisation region descriptor.
 !! SOURCE
 !!
-subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
+subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
   use module_base
   use module_types
   implicit none
@@ -16,6 +16,7 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   real(gp), intent(inout) :: hx,hy,hz
   type(locreg_descriptors), intent(out) :: Glr
+  real(gp), dimension(3), intent(out) :: shift
   !local variables
   integer, parameter :: lupfil=14
   real(gp), parameter ::eps_mach=1.e-12_gp
@@ -135,10 +136,15 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
      czmin=0.0_gp
   end if
 
+  !assign the shift to the atomic positions
+  shift(1)=cxmin
+  shift(2)=cymin
+  shift(3)=czmin
+
   do iat=1,atoms%nat
-     rxyz(1,iat)=rxyz(1,iat)-cxmin
-     rxyz(2,iat)=rxyz(2,iat)-cymin
-     rxyz(3,iat)=rxyz(3,iat)-czmin
+     rxyz(1,iat)=rxyz(1,iat)-shift(1)
+     rxyz(2,iat)=rxyz(2,iat)-shift(2)
+     rxyz(3,iat)=rxyz(3,iat)-shift(3)
   enddo
 
   ! fine grid size (needed for creation of input wavefunction, preconditioning)

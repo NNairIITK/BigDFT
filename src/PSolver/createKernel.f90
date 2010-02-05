@@ -63,7 +63,6 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
   logical :: wrtmsg
   integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_stat
   integer :: jproc,nlimd,nlimk,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
-  real(kind=8) :: hgrid
 
   call timing(iproc,'PSolvKernel   ','ON')
 
@@ -80,8 +79,6 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
   else
      wrtmsg=.true.
   end if
-
-  hgrid=max(hx,hy,hz)
 
   if (iproc==0 .and. wrtmsg) write(*,'(1x,a)')&
           '------------------------------------------------------------ Poisson Kernel Creation'

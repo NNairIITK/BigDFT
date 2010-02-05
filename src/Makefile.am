@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces memguess NEB frequencies MDanalysis $(minima_hopping_sources) bart
+binaries_sources = cluster test_forces memguess NEB frequencies MDanalysis $(minima_hopping_sources) bart abscalc
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -45,7 +45,6 @@ global_SOURCES = # Should be global.f90, but see below.
 global_LDFLAGS = 
 global_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	PSolver/ABINIT-common/libABINIT.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
@@ -62,19 +61,10 @@ EXTRA_DIST = \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
 	lib \
-	NEB_driver.sh \
-	ABINIT-moldyn/velocity_verlet.F90 \
-	ABINIT-moldyn/isokinetic.F90 \
-	ABINIT-moldyn/isotemp.F90 \
-	ABINIT-moldyn/isothermal.F90 \
-	ABINIT-moldyn/langevin.F90 \
-	ABINIT-moldyn/moldyn.F90 \
-	ABINIT-moldyn/nose.F90 \
-	ABINIT-moldyn/others.F90 \
-	ABINIT-moldyn/quenched.F90
+	NEB_driver.sh
 
-AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common \
-			 -I$(srcdir)/PSolver -I$(srcdir)/ABINIT-moldyn @LIBXC_INCLUDE@
+AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver @LIBABINIT_INCLUDE@ \
+	@LIBXC_INCLUDE@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)
@@ -149,6 +139,7 @@ high_level = cluster.f90 \
 	restart.f90 \
 	geometry.f90 \
 	davidson.f90 \
+	pdos.f90 \
 	vdwcorrection.f90 \
 	lanczos_interface.f90 \
 	lanczos_base.f90 \
@@ -176,6 +167,7 @@ low_level = init/projectors.f90  \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
+	wfn_opt/exctX.f90 \
 	wfn_opt/precond_per_optim.f90 \
 	wfn_opt/precond_hyb.f90 \
 	wfn_opt/precond_slab.f90 \
@@ -191,83 +183,11 @@ low_level = init/projectors.f90  \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90
 
-if BUILD_LIB_ABINIT
-abinit_low = ABINIT-ewald/ewald.F90 \
-	ABINIT-ewald/matr3inv.F90 \
-	ABINIT-ewald/derfc.F90 \
-	ABINIT-geometry/sort_dp.F90 \
-	ABINIT-geometry/mati3inv.F90 \
-	ABINIT-geometry/canon9.F90 \
-	ABINIT-geometry/ab6_symmetry_f90.f90 \
-	ABINIT-geometry/bldgrpaf.F90 \
-	ABINIT-geometry/bldgrp.F90 \
-	ABINIT-geometry/chkdilatmx.F90 \
-	ABINIT-geometry/chkgrp.F90 \
-	ABINIT-geometry/chkorthsy.F90 \
-	ABINIT-geometry/chkprimit.F90 \
-	ABINIT-geometry/gensymshub4.F90 \
-	ABINIT-geometry/gensymshub.F90 \
-	ABINIT-geometry/gensymspgr.F90 \
-	ABINIT-geometry/getptgroupma.F90 \
-	ABINIT-geometry/getspinrot.F90 \
-	ABINIT-geometry/gridgcart.F90 \
-	ABINIT-geometry/holocell.F90 \
-	ABINIT-geometry/metric.F90 \
-	ABINIT-geometry/mkrdim.F90 \
-	ABINIT-geometry/operat.F90 \
-	ABINIT-geometry/prtspgroup.F90 \
-	ABINIT-geometry/ptgmadata.F90 \
-	ABINIT-geometry/smallprim.F90 \
-	ABINIT-geometry/spgdata.F90 \
-	ABINIT-geometry/strainsym.F90 \
-	ABINIT-geometry/strconv.F90 \
-	ABINIT-geometry/stresssym.F90 \
-	ABINIT-geometry/sym2cart.F90 \
-	ABINIT-geometry/symanal.F90 \
-	ABINIT-geometry/symatm.F90 \
-	ABINIT-geometry/symaxes.F90 \
-	ABINIT-geometry/symbrav.F90 \
-	ABINIT-geometry/symchk.F90 \
-	ABINIT-geometry/symdet.F90 \
-	ABINIT-geometry/symfind.F90 \
-	ABINIT-geometry/symlist_bcc.F90 \
-	ABINIT-geometry/symlist_fcc.F90 \
-	ABINIT-geometry/symlist_others.F90 \
-	ABINIT-geometry/symlist_prim.F90 \
-	ABINIT-geometry/symmultsg.F90 \
-	ABINIT-geometry/symplanes.F90 \
-	ABINIT-geometry/symredcart.F90 \
-	ABINIT-geometry/symrelrot.F90 \
-	ABINIT-geometry/symsgcube.F90 \
-	ABINIT-geometry/symsghexa.F90 \
-	ABINIT-geometry/symsgmono.F90 \
-	ABINIT-geometry/symsgortho.F90 \
-	ABINIT-geometry/symsgtetra.F90 \
-	ABINIT-geometry/symspgr.F90 \
-	ABINIT-geometry/symzat.F90 \
-	ABINIT-geometry/xredxcart.F90 \
-	ABINIT-geometry/smpbz.F90 \
-	ABINIT-geometry/symkpt.F90 \
-	ABINIT-geometry/getkgrid.F90 \
-	ABINIT-geometry/testkgrid.F90
-abinit_high = ABINIT-moldyn/ab6_moldyn.F90 \
-	ABINIT-moldyn/xfpack.F90 \
-	ABINIT-moldyn/prtxvf.F90 \
-	ABINIT-moldyn/fconv.F90 \
-	ABINIT-moldyn/uniformrandom.F90 \
-	ABINIT-moldyn/matrginv.F90
-else
-abinit_low = 
-abinit_high = 
-endif
-
 libbigdft_a_SOURCES = \
-	$(abinit_low) \
 	$(mpi_source) \
 	BigDFT_API.f90 \
 	$(low_level) \
-	$(high_level) \
-	$(abinit_high)
+	$(high_level)
 
 libbigdft_a_LIBADD = profiling/time.o \
 	profiling/memory.o \
@@ -279,7 +199,6 @@ cluster_SOURCES = BigDFT.f90
 cluster_LDFLAGS = 
 cluster_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	PSolver/ABINIT-common/libABINIT.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
@@ -288,7 +207,14 @@ MDanalysis_SOURCES = distances.f90
 MDanalysis_LDFLAGS = 
 MDanalysis_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	PSolver/ABINIT-common/libABINIT.a \
+	$(LMPI) \
+	@MPI_LIBS@ \
+	$(libs_cuda)
+
+abscalc_SOURCES = abscalc.f90 
+abscalc_LDFLAGS = 
+abscalc_LDADD = libbigdft.a \
+	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
@@ -298,7 +224,6 @@ test_forces_SOURCES = test_forces.f90
 test_forces_LDFLAGS = 
 test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	PSolver/ABINIT-common/libABINIT.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
@@ -307,14 +232,12 @@ NEB_SOURCES = NEB.f90 \
 	$(mpi_source)
 NEB_LDFLAGS = 
 NEB_LDADD = libbigdft.a \
-	PSolver/ABINIT-common/libABINIT.a \
 	$(libs_cuda)
 
 memguess_SOURCES = memguess.f90 \
 	$(mpi_source)
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	PSolver/ABINIT-common/libABINIT.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
@@ -324,26 +247,32 @@ frequencies_SOURCES = frequencies.f90  \
 frequencies_LDFLAGS = 
 frequencies_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	PSolver/ABINIT-common/libABINIT.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
-bart_SOURCES = art.f90
-bart_FCFLAGS = -Iart
+bart_SOURCES = \
+	art/bigdft_forces.f90 \
+	art/diis.f90 \
+	art/initialize_potential.f90 \
+	art/lanczos.f90 \
+	art/find_saddle.f90 \
+	art/min_converge.f90 \
+	art/saddle_converge.f90 \
+	art/initialize.f90 \
+	art/read_parameters.f90 \
+	art.f90
+bart_FCFLAGS = -I. -Iart -Imodules
 bart_LDFLAGS = 
 bart_LDADD = art/libart.a \
 	libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	PSolver/ABINIT-common/libABINIT.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
 
 CLEANFILES = \
-	ab6_symmetry.@MODULE_EXT@ AB6_SYMMETRY.@MODULE_EXT@ \
-	ab6_moldyn.@MODULE_EXT@ AB6_MOLDYN.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@ BIGDFT_API.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@ MODULE_INTERFACES.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@ \
@@ -356,33 +285,20 @@ CLEANFILES = \
 	miscellany.@MODULE_EXT@ MISCELLANY.@MODULE_EXT@ \
 	neb_routines.@MODULE_EXT@ NEB_ROUTINES.@MODULE_EXT@ \
 	numeric.@MODULE_EXT@ NUMERIC.@MODULE_EXT@ \
-	minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
-	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
+	geopt_minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
 	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@ \
 	scfloop_api.@MODULE_EXT@ SCFLOOP_API.@MODULE_EXT@
 
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
 
-cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o ab6_moldyn.o 
+cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o
 
 lanczos.o : lanczos_base.o lanczos_interface.o
 
-BigDFT_API.o : scfloop_API.o ab6_moldyn.o
+BigDFT_API.o : scfloop_API.o
 
 distances.o global.o : BigDFT_API.o
-
-ab6_moldyn.o ABINIT-moldyn/ab6_moldyn.o : scfloop_API.o \
-	ABINIT-moldyn/ab6_moldyn.F90 \
-	ABINIT-moldyn/velocity_verlet.F90 \
-	ABINIT-moldyn/isokinetic.F90 \
-	ABINIT-moldyn/isotemp.F90 \
-	ABINIT-moldyn/isothermal.F90 \
-	ABINIT-moldyn/langevin.F90 \
-	ABINIT-moldyn/moldyn.F90 \
-	ABINIT-moldyn/nose.F90 \
-	ABINIT-moldyn/others.F90 \
-	ABINIT-moldyn/quenched.F90
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
@@ -403,3 +319,17 @@ $(modules_objects) : $(mpi_include)
 #	interfaces.o
 
 #memguess.o: base.o types.o
+
+# Dependencies for ART.
+art.f90: art/defs.o art/random.o bart-lanczos.o
+art/bigdft_forces.f90: BigDFT_API.o
+art/find_saddle.f90: art/defs.o art/random.o bart-lanczos.o
+art/initialize_potential.f90: art/defs.o bart-bigdft_forces.o
+art/lanczos.f90: art/defs.o art/random.o bart-bigdft_forces.o
+art/min_converge.f90: art/defs.o bart-bigdft_forces.o
+art/saddle_converge.f90: art/defs.o bart-bigdft_forces.o bart-find_saddle.o art/random.o bart-lanczos.o
+art/diis.f90: art/defs.o bart-bigdft_forces.o art/random.o
+art/initialize.f90: art/defs.o bart-lanczos.o
+art/read_parameters.f90: art/defs.o bart-lanczos.o bart-find_saddle.o
+art/utils.f90: art/defs.o
+art/write_refconfig.f90: art/defs.o

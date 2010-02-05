@@ -13,7 +13,7 @@
 !!
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
-     ekin_sum,epot_sum,eproj_sum,nspin,GPU,pkernel)
+     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc)
   use module_base
   use module_types
   use libxc_functionals
@@ -29,16 +29,18 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
-  real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
+  real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
   real(dp), dimension(*), optional :: pkernel
+  type(orbitals_data), intent(in), optional :: orbsocc
+  real(wp), dimension(*), intent(in), optional :: psirocc
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX
   integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi,istart_ca
-  real(gp) :: eproj,eexctX
+  real(gp) :: eproj
   real(gp), dimension(3,2) :: wrkallred
   real(wp), dimension(:), pointer :: pot
   integer,parameter::lupfil=14
@@ -47,9 +49,12 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
 !  real(kind=8) :: stream_ptr_first_trsf
 
-  exctX = libxc_functionals_exctXfac() /= 0.d0
+  !initialise exact exchange energy 
+  eexctX=0.0_gp
 
-  call timing(iproc,'ApplyLocPotKin','ON')
+  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+
+  call timing(iproc,'Rho_commun    ','ON')
 
   ! local potential and kinetic energy for all orbitals belonging to iproc
   if (iproc==0 .and. verbose > 1) then
@@ -92,17 +97,28 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      end if
      ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+1
   end if
+  call timing(iproc,'Rho_commun    ','OF') 
 
- 
   !fill the rest of the potential with the exact-exchange terms
   if (present(pkernel) .and. exctX) then
-     call timing(iproc,'ApplyLocPotKin','OF')
      n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
-     call exact_exchange_potential(iproc,nproc,at%geocode,lr,orbs,ngatherarr(0,1),n3p,&
-          0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+     !exact exchange for virtual orbitals (needs psirocc)
+     if (present(psirocc) .and. present(orbsocc)) then
+        call exact_exchange_potential_virt(iproc,nproc,at%geocode,nspin,&
+             lr,orbsocc,orbs,ngatherarr(0,1),n3p,&
+             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi,pot(ispot))
+        eexctX = 0._gp
+     else
+        call exact_exchange_potential(iproc,nproc,at%geocode,nspin,&
+             lr,orbs,ngatherarr(0,1),n3p,&
+             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+     end if
+  else
+     eexctX = 0._gp
      !print *,'iproc,eexctX',iproc,eexctX
-     call timing(iproc,'ApplyLocPotKin','ON')
   end if
+
+  call timing(iproc,'ApplyLocPotKin','ON')
 
   !apply the local hamiltonian for each of the orbitals
   !given to each processor
@@ -178,7 +194,11 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      eproj_sum=wrkallred(3,1) 
   endif
 
-  if (exctX) epot_sum=epot_sum+eexctX
+  !up to this point, the value of the potential energy is 
+  !only taking into account the local potential part
+  !whereas it should consider also the value coming from the 
+  !exact exchange operator (twice the exact exchange energy)
+  if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
 
 END SUBROUTINE HamiltonianApplication
 !!***
