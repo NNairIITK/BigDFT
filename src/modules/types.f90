@@ -18,6 +18,7 @@ module module_types
   implicit none
 !!***
 
+
 !!****t* module_types/input_variables
 !! DESCRIPTION
 !!   Input variable structure
@@ -32,13 +33,19 @@ module module_types
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf 
      integer :: nvacancy,verbosity
      real(gp) :: elecfield
+
+     ! For absorption calculations
      integer :: iabscalc_type   ! 0 non calc, 1 cheb ,  2 lanc
      integer :: iat_absorber, L_absorber
      real(gp), pointer:: Gabs_coeffs(:)
      logical ::  c_absorbtion , abscalc_alterpot, abscalc_eqdiff 
      integer ::  potshortcut
      integer ::  nsteps
-     
+
+     ! For Frequencies calculations (finite difference)
+     real(gp) :: freq_alpha
+     integer :: freq_method
+
      ! kpoints related input variables
      integer :: nkpt
      real(gp), pointer :: kpt(:,:), wkpt(:)
@@ -52,8 +59,10 @@ module module_types
      real(gp) :: bmass, vmass, strprecon, strfact
      real(gp) :: strtarget(6)
      real(gp), pointer :: qmass(:)
+
   end type input_variables
 !!***
+
 
 !!****t* convolution_bounds/kinetic_bounds
 !! DESCRIPTION
@@ -67,6 +76,7 @@ module module_types
   end type kinetic_bounds
 !!***
 
+
 !!****t* convolution_bounds/shrink_bounds
 !! DESCRIPTION
 !!   Bounds to compress the wavefunctions
@@ -79,6 +89,7 @@ module module_types
   end type shrink_bounds
 !!***
 
+
 !!****t* convolution_bounds/grow_bounds
 !! DESCRIPTION
 !!   Bounds to uncompress the wavefunctions
@@ -90,6 +101,7 @@ module module_types
      integer, dimension(:,:,:), pointer :: ibyz_ff,ibzxx_f,ibxxyy_f
   end type grow_bounds
 !!***
+
 
 !!****t* module_types/convolutions_bounds
 !! DESCRIPTION
@@ -104,7 +116,8 @@ module module_types
      integer, dimension(:,:,:), pointer :: ibyyzz_r ! real space border
   end type convolutions_bounds
 !!***
-  
+
+
 !!****t* module_types/wavefunctions_descriptors
 !! DESCRIPTION
 !!   Used for lookup table for compressed wavefunctions
@@ -116,6 +129,7 @@ module module_types
      integer, dimension(:), pointer :: keyv
   end type wavefunctions_descriptors
 !!***
+
 
 !!****t* module_types/nonlocal_psp_descriptors
 !! DESCRIPTION
@@ -132,6 +146,7 @@ module module_types
      integer, dimension(:,:,:), pointer :: nboxp_c,nboxp_f
   end type nonlocal_psp_descriptors
 !!***
+
 
 !!****t* module_types/atoms_data
 !! DESCRIPTION
@@ -162,6 +177,7 @@ module module_types
   end type atoms_data
 !!***
 
+
 !!****t* module_types/grid_dimensions
 !! DESCRIPTION
 !!   Grid dimensions in old different wavelet basis
@@ -171,6 +187,7 @@ module module_types
      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
   end type grid_dimensions
 !!***
+
 
 !!****t* module_types/gaussian_basis
 !! DESCRIPTION
@@ -184,6 +201,7 @@ module module_types
      real(gp), dimension(:,:), pointer :: rxyz
   end type gaussian_basis
 !!***
+
 
 !!****t* module_types/orbitals_data
 !! DESCRIPTION
@@ -201,6 +219,7 @@ module module_types
   end type orbitals_data
 !!***
 
+
 !!****t* module_types/locreg_descriptors
 !! DESCRIPTION
 !! Contains the information needed for describing completely a
@@ -216,6 +235,7 @@ module module_types
      type(convolutions_bounds) :: bounds
   end type locreg_descriptors
 !!***
+
 
 !!****t* module_types/restart_objects
 !! DESCRIPTION
@@ -235,6 +255,7 @@ module module_types
   end type restart_objects
 !!***
 
+
 !!****t* module_types/communications_arrays
 !! DESCRIPTION
 !! Contains the information needed for communicating the wavefunctions
@@ -247,6 +268,7 @@ module module_types
      integer, dimension(:,:), pointer :: nvctr_par
   end type communications_arrays
 !!***
+
 
 !!****t* module_types/GPU_pointers
 !! DESCRIPTION
@@ -296,6 +318,7 @@ module module_types
   end type workarr_locham
 !!***
 
+
 !!****t* module_types/workarr_precond
 !! DESCRIPTION
 !! Contains the work arrays needed for th preconditioner with all the BC
@@ -312,6 +335,7 @@ module module_types
      real(wp), dimension(:,:,:,:,:), pointer :: z1,z3 ! work array for FFT
   end type workarr_precond
 !!***
+
 
 !!****t* module_types/lanczos_args
 !! DESCRIPTION
@@ -373,6 +397,7 @@ contains
   end subroutine allocate_comms
 !!***
 
+
 !!****f* module_types/deallocate_comms
 !! FUNCTION
 !!   De-Allocate communications_arrays
@@ -404,6 +429,7 @@ contains
   end subroutine deallocate_comms
 !!***
 
+
 !!****f* module_types/deallocate_abscalc_input
 !! FUNCTION
 !!  
@@ -425,10 +451,6 @@ contains
 
   end subroutine deallocate_abscalc_input
 !!***
-
-
-
-
 
 
 !!****f* module_types/deallocate_orbs
@@ -467,8 +489,9 @@ subroutine deallocate_orbs(orbs,subname)
     deallocate(orbs%ikptproc,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%ikptproc',subname)
 
-
 end subroutine deallocate_orbs
+!!***
+
 
 !!****f* module_types/init_restart_objects
 !! FUNCTION
@@ -507,6 +530,7 @@ end subroutine deallocate_orbs
 
   end subroutine init_restart_objects
 !!***
+
 
 !!****f* module_types/free_restart_objects
 !! FUNCTION
@@ -553,6 +577,7 @@ end subroutine deallocate_orbs
   end subroutine free_restart_objects
 !!***
 
+
 !!****f* module_types/allocate_wfd
 !! FUNCTION
 !!   Allocate wavefunctions_descriptors
@@ -572,6 +597,7 @@ end subroutine deallocate_orbs
     call memocc(i_stat,wfd%keyv,'keyv',subname)
   end subroutine allocate_wfd
 !!***
+
 
 !!****f* module_types/deallocate_wfd
 !! FUNCTION
@@ -598,6 +624,7 @@ end subroutine deallocate_orbs
     end if
   end subroutine deallocate_wfd
 !!***
+
 
 !!****f* module_types/deallocate_gwf
 !! FUNCTION

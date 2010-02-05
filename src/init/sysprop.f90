@@ -1,6 +1,14 @@
 !!****f* BigDFT/system_properties
+!!
 !! FUNCTION
 !!  Calculate the important objects related to the physical properties of the system
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 !!
 !! SOURCE
 !!
@@ -833,12 +841,11 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
      nt=0
      do
         read(unit=iunit,fmt='(a100)',iostat=ierror) line
-        
         if (ierror /= 0) then
            exit
         end if
-        !transform the line in case there are slashes(to ease the parsing
-        do i=1,100
+        !Transform the line in case there are slashes (to ease the parsing)
+        do i=1,len(line)
            if (line(i:i) == '/') then
               line(i:i) = ':'
            end if

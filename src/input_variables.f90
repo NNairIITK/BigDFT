@@ -55,6 +55,7 @@ subroutine print_logo()
 end subroutine print_logo
 !!***
 
+
 !!****f* BigDFT/read_input_variables
 !! FUNCTION
 !!    Do all initialisation for all different files of
@@ -80,16 +81,16 @@ subroutine read_input_variables(iproc,posinp, file_dft, file_kpt, &
   real(gp) :: tt
   integer :: iat
   
-  !read atomic file
+  ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
 
-  ! read dft input variables
+  ! Read dft input variables
   call dft_input_variables(iproc,file_dft,in,atoms%symObj)
 
   ! read k-points input variables (if given)
   call kpt_input_variables(iproc,file_kpt,in,atoms)
 
-  ! read geometry optimisation option
+  ! Read geometry optimisation option
   inquire(file=file_geopt,exist=exists)
   if (exists) then
      call geopt_input_variables(iproc,file_geopt,in)
@@ -123,6 +124,8 @@ subroutine read_input_variables(iproc,posinp, file_dft, file_kpt, &
      end if
   end do
 end subroutine read_input_variables
+!!***
+
 
 !!****f* BigDFT/dft_input_variables
 !! FUNCTION
@@ -149,10 +152,13 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   logical :: exists
   integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj
 
-  !default abscalc variables
+  ! Default abscalc variables
   call abscalc_input_variables_default(in)
 
-  ! default values for geopt and k points in case not call later.
+  ! Default frequencies variables
+  call frequencies_input_variables_default(in)
+
+  ! Default values for geopt and k points in case not call later.
   call geopt_input_variables_default(in)
   nullify(in%kpt)
   nullify(in%wkpt)
@@ -199,12 +205,9 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
         call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
      end if
 
-   
     ! GPUshare=.true.
      if (iconv == 1) then
         !change the value of the GPU convolution flag defined in the module_base
-       
-
         GPUconv=.true.
      end if
      if (iblas == 1) then
@@ -249,7 +252,6 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   end if
 !!  !temporary correction
 !!  DistProjApply=.false.
-  
 
 
 !  if (in%nspin/=1 .and. in%nvirt/=0) then
@@ -298,6 +300,7 @@ contains
 
 end subroutine dft_input_variables
 !!***
+
 
 !!****f* BigDFT/geopt_input_variables_default
 !! FUNCTION
@@ -401,7 +404,6 @@ subroutine geopt_input_variables(iproc,filename,in)
      call check()
   end if
 
- 
   close(unit=1,iostat=ierror)
 
   if (iproc == 0) then
@@ -458,6 +460,7 @@ contains
 
 end subroutine geopt_input_variables
 !!***
+
 
 !!****f* BigDFT/kpt_input_variables
 !! FUNCTION
@@ -567,7 +570,9 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
              & in%kpt(:, i), in%wkpt(i)
      end do
   end if
+
 contains
+
   subroutine check()
     iline=iline+1
     if (ierror/=0) then
@@ -577,6 +582,7 @@ contains
        stop
     end if
   end subroutine check
+
 end subroutine kpt_input_variables
 !!***
 
@@ -665,7 +671,7 @@ subroutine abscalc_input_variables(iproc,filename,in)
   !line number, to control the input values
   iline=0
 
-  !x-adsorber treatment (in progress)
+  !x-absorber treatment (in progress)
 
   read(111,*,iostat=ierror) in%iabscalc_type
   call check()
@@ -713,6 +719,94 @@ contains
   end subroutine check
 
 end subroutine abscalc_input_variables
+!!***
+
+
+!!****f* BigDFT/frequencies_input_variables_default
+!! FUNCTION
+!!    Assign default values for frequencies variables
+!! DESCRIPTION
+!!    freq_alpha: frequencies step for finite difference = alpha*hx, alpha*hy, alpha*hz
+!!    freq_method: 1 - 2 points finite difference
+!! SOURCE
+!!
+subroutine frequencies_input_variables_default(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(out) :: in
+
+  in%freq_alpha=1.d0/real(64,kind(1.d0))
+  in%freq_method=1
+
+end subroutine frequencies_input_variables_default
+!!***
+
+
+!!****f* BigDFT/frequencies_input_variables
+!! FUNCTION
+!!    Read the input variables needed for the frequencies calculation.
+!!    Every argument should be considered as mandatory.
+!! SOURCE
+!!
+subroutine frequencies_input_variables(iproc,filename,in)
+  use module_base
+  use module_types
+  implicit none
+  !Arguments
+  type(input_variables), intent(inout) :: in
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc
+  !Local variables
+  character(len=100) :: line,string
+  integer :: ierror,iline,i
+
+  ! Read the input variables.
+  open(unit=111,file=filename,status='old')
+  !Line number, to control the input values
+  iline=0
+  !Read in%freq_alpha (possible 1/64)
+  read(111,*,iostat=ierror) line
+  !Transform the line in case there are slashes (to ease the parsing)
+  do i=1,len(line)
+     if (line(i:i) == '/') then
+        line(i:i) = ':'
+     end if
+  end do
+  read(line,*,iostat=ierror) in%freq_alpha
+  if (ierror /= 0) then
+     string=repeat(' ',8)
+     read(line,*,iostat=ierror) string
+     if (ierror == 0) then
+        if (string(2:2)==':') then
+           call read_fraction_string(1,string,in%freq_alpha)
+        else if (string(3:3)==':') then
+           call read_fraction_string(4,string,in%freq_alpha)
+        else
+           print *,'wrong format of the string: '//string
+           ierror=1
+        end if
+     end if
+  end if
+  call check()
+  !Read the index of the method
+  read(111,*,iostat=ierror)  in%freq_method
+  call check()
+
+  close(unit=111)
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  end subroutine check
+
+end subroutine frequencies_input_variables
 !!***
 
 !!****f* BigDFT/print_input_parameters

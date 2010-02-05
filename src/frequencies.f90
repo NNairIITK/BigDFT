@@ -1,4 +1,5 @@
 !!****p* BigDFT/frequencies
+!!
 !! DESCRIPTION
 !!  Calculate vibrational frequencies by frozen phonon approximation.
 !!  Use a file 'frequencies.res' to restart calculations.
@@ -9,9 +10,8 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+!!
 !! TODO
-!!  Restart mechanisms
-!!  Add an input file input.freq with alpha, the order of integration, ...
 !!  Maybe possibility to use Lanczos to determine lowest frequencies
 !!
 !! SOURCE
@@ -31,7 +31,7 @@ program frequencies
   !File units
   integer, parameter :: u_hessian=20
   integer :: iproc,nproc,iat,jat,i,j,i_stat,i_all,ierr,infocode,ity
-  real(gp) :: etot,etot_m,etot_p,sumx,sumy,sumz,alat,alpha,dd,rmass
+  real(gp) :: etot,etot_m,etot_p,sumx,sumy,sumz,alat,dd,rmass
   !input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
@@ -46,8 +46,9 @@ program frequencies
   ! logical: .true. if already calculated
   logical, dimension(:,:,:), allocatable :: moves
   real(gp), dimension(:,:,:,:,:), allocatable :: forces
-  real(gp), dimension(3) :: h_grid
+  real(gp), dimension(3) :: freq_step
   integer :: jm,nelec
+  logical :: exists
  
   ! Start MPI in parallel version
   !in the case of MPIfake libraries the number of processors is automatically adjusted
@@ -61,9 +62,18 @@ program frequencies
   ! Welcome screen
   if (iproc==0) call print_logo()
 
+
   ! Read all input files.
+  inquire(file="input.freq",exist=exists)
+  if (.not. exists) then
+     if (iproc == 0) write(*,*)'ERROR: need file input.freq for vibrational frequencies calculations.'
+     if(nproc/=0)   call MPI_FINALIZE(ierr)
+     stop
+  end if
+  call frequencies_input_variables(iproc,'input.freq',inputs)
   call read_input_variables(iproc, "posinp", "input.dft", "input.kpt", &
        & "input.geopt", inputs, atoms, rxyz)
+
 
   ! Allocations
   allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
@@ -81,14 +91,12 @@ program frequencies
   allocate(hessian(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,hessian,'hessian',subname)
 
-! Move to alpha*h_grid
-  alpha=1.d0/real(64,kind(1.d0))
 ! Initialize the hessian
   hessian = 0.d0
-! Initialize h_grid
-  h_grid(1) = inputs%hx
-  h_grid(2) = inputs%hy
-  h_grid(3) = inputs%hz
+! Initialize freq_step (step to move atomes)
+  freq_step(1) = inputs%freq_alpha*inputs%hx
+  freq_step(2) = inputs%freq_alpha*inputs%hy
+  freq_step(3) = inputs%freq_alpha*inputs%hz
 
   call init_restart_objects(atoms,rst,subname)
 
@@ -130,8 +138,8 @@ program frequencies
   if (iproc == 0) then
      !This file contains the hessian for post-processing: it is regenerated each time.
      open(unit=u_hessian,file='hessian.dat',status="unknown")
-     write(u_hessian,'(a,3(1pe20.10))') '#step=',alpha*inputs%hx,alpha*inputs%hy,alpha*inputs%hz
-     write(u_hessian,'(a,100(1pe20.10))') '#--',etot,alpha*inputs%hx,alpha*inputs%hy,alpha*inputs%hz,fxyz
+     write(u_hessian,'(a,3(1pe20.10))') '#step=',freq_step(:)
+     write(u_hessian,'(a,100(1pe20.10))') '#--',etot,fxyz
   end if
 
   if (iproc == 0) then
@@ -175,7 +183,7 @@ program frequencies
               cc(1:1)='+'
            end if
            !Displacement
-           dd=real(j,gp)*alpha*h_grid(i)
+           dd=real(j,gp)*freq_step(i)
            !We copy atomic positions
            rpos=rxyz
            if (iproc==0) then
@@ -209,7 +217,7 @@ program frequencies
            rmass = amu_emass*sqrt(atoms%amu(atoms%iatype(iat))*atoms%amu(atoms%iatype(jat)))
            do j=1,3
               !force is -dE/dR
-              dd = - (fpos_p(j,jat) - fpos_m(j,jat))/(2.d0*alpha*h_grid(i))
+              dd = - (fpos_p(j,jat) - fpos_m(j,jat))/(2.d0*freq_step(i))
               !if (abs(dd).gt.1.d-10) then
               hessian(3*(jat-1)+j,3*(iat-1)+i) = dd/rmass
               !end if
