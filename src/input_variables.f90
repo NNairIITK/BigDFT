@@ -253,7 +253,6 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
 !!  !temporary correction
 !!  DistProjApply=.false.
 
-
 !  if (in%nspin/=1 .and. in%nvirt/=0) then
 !     !if (iproc==0) then
 !        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
@@ -727,7 +726,8 @@ end subroutine abscalc_input_variables
 !!    Assign default values for frequencies variables
 !! DESCRIPTION
 !!    freq_alpha: frequencies step for finite difference = alpha*hx, alpha*hy, alpha*hz
-!!    freq_method: 1 - 2 points finite difference
+!!    freq_order; order of the finite difference (2 or 3 i.e. 2 or 4 points)
+!!    freq_method: 1 - systematic moves of atoms over each direction
 !! SOURCE
 !!
 subroutine frequencies_input_variables_default(in)
@@ -737,6 +737,7 @@ subroutine frequencies_input_variables_default(in)
   type(input_variables), intent(out) :: in
 
   in%freq_alpha=1.d0/real(64,kind(1.d0))
+  in%freq_order=2
   in%freq_method=1
 
 end subroutine frequencies_input_variables_default
@@ -789,8 +790,18 @@ subroutine frequencies_input_variables(iproc,filename,in)
      end if
   end if
   call check()
+  !Read the order of finite difference scheme
+  read(111,*,iostat=ierror)  in%freq_order
+  if (in%freq_order /= 2 .and. in%freq_order /= 3) then
+      if (iproc==0) write (*,'(1x,a)') 'Only 2 or 3 is possible for the order scheme'
+      stop
+  end if
   !Read the index of the method
   read(111,*,iostat=ierror)  in%freq_method
+  if (in%freq_method /= 1) then
+      if (iproc==0) write (*,'(1x,a)') '1 for the method to calculate frequencies.'
+      stop
+  end if
   call check()
 
   close(unit=111)
@@ -808,6 +819,7 @@ contains
 
 end subroutine frequencies_input_variables
 !!***
+
 
 !!****f* BigDFT/print_input_parameters
 !! FUNCTION
@@ -847,6 +859,7 @@ subroutine print_input_parameters(in,atoms)
   end if
 end subroutine print_input_parameters
 !!***
+
 
 !!****f* BigDFT/read_atomic_file
 !! FUNCTION
@@ -997,6 +1010,11 @@ end subroutine read_atomic_file
 !!***
 
 
+!!****f* BigDFT/deallocate_atoms
+!! FUNCTION
+!!    Deallocate the structure atoms_data.
+!! SOURCE
+!!
 subroutine deallocate_atoms(atoms,subname) 
   use module_base
   use module_types
@@ -1027,8 +1045,7 @@ subroutine deallocate_atoms(atoms,subname)
      call ab6_symmetry_free(atoms%symObj)
   end if
 end subroutine deallocate_atoms
-
-
+!!***
 
 
 !!****f* BigDFT/read_atomic_positions
@@ -1411,6 +1428,7 @@ contains
 end subroutine parse_extra_info
 !!***
 
+
 !!****f* BigDFT/read_ascii_positions
 !! FUNCTION
 !!    Read atomic positions of ascii files.
@@ -1659,6 +1677,12 @@ subroutine charge_and_spol(natpol,nchrg,nspol)
 end subroutine charge_and_spol
 !!***
 
+
+!!****f* BigDFT/write_atomic_file
+!! FUNCTION
+!!    Write an atomic file
+!! SOURCE
+!!
 subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
   use module_base
   use module_types
@@ -1677,7 +1701,14 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
      stop
   end if
 end subroutine write_atomic_file
+!!***
 
+
+!!****f* BigDFT/wtxyz
+!! FUNCTION
+!!   Write xyz atomic file.
+!! SOURCE
+!!
 subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   use module_base
   use module_types
@@ -1712,7 +1743,6 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
      units='atomicd0'
   end if
 
-
   write(9,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%nat,trim(units),energy,comment
 
   if (atoms%geocode == 'P') then
@@ -1742,7 +1772,14 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   close(unit=9)
 
 end subroutine wtxyz
+!!***
 
+
+!!****f* BigDFT/wtascii
+!! FUNCTION
+!!   Write ascii file (atomic position). 
+!! SOURCE
+!!
 subroutine wtascii(filename,energy,rxyz,atoms,comment)
   use module_base
   use module_types
@@ -1803,8 +1840,14 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   close(unit=9)
 
 end subroutine wtascii
+!!***
 
-!write the extra info necessary for the output file
+
+!!****f* BigDFT/write_extra_info
+!! FUNCTION
+!!   Write the extra info necessary for the output file
+!! SOURCE
+!!
 subroutine write_extra_info(extra,natpol,ifrztyp)
   use module_base
   implicit none 
@@ -1830,7 +1873,14 @@ subroutine write_extra_info(extra,natpol,ifrztyp)
   end if
   
 end subroutine write_extra_info
+!!***
 
+
+!!****f* BigDFT/frozen_itof
+!! FUNCTION
+!!    
+!! SOURCE
+!!
 subroutine frozen_itof(ifrztyp,frzchain)
   implicit none
   integer, intent(in) :: ifrztyp
@@ -1847,7 +1897,14 @@ subroutine frozen_itof(ifrztyp,frzchain)
   end if
         
 end subroutine frozen_itof
+!!***
 
+
+!!****f* BigDFT/valid_frzchain
+!! FUNCTION
+!!    
+!! SOURCE
+!!
 subroutine valid_frzchain(frzchain,go)
   implicit none
   character(len=*), intent(in) :: frzchain
@@ -1858,7 +1915,14 @@ subroutine valid_frzchain(frzchain,go)
        trim(frzchain) == 'fxz'
   
 end subroutine valid_frzchain
+!!***
 
+
+!!****f* BigDFT/frozen_ftoi
+!! FUNCTION
+!!    
+!! SOURCE
+!!
 subroutine frozen_ftoi(frzchain,ifrztyp)
   implicit none
   character(len=4), intent(in) :: frzchain
@@ -1875,8 +1939,14 @@ subroutine frozen_ftoi(frzchain,ifrztyp)
   end if
         
 end subroutine frozen_ftoi
+!!***
 
-!calculate the coefficient for moving atoms following the ifrztyp
+
+!!****f* BigDFT/frozen_alpha
+!! FUNCTION
+!!   Calculate the coefficient for moving atoms following the ifrztyp
+!! SOURCE
+!!
 subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
   use module_base
   implicit none
@@ -1893,12 +1963,18 @@ subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
   end if
  
 end subroutine frozen_alpha
+!!***
 
-!routine for moving atomic positions, takes into account the 
-!frozen atoms and the size of the cell
-!synopsis: rxyz=txyz+alpha*sxyz
-!all the shift are inserted into the box if there are periodic directions
-!if the atom are frozen they are not moved
+
+!!****f* BigDFT/atomic_axpy
+!! FUNCTION
+!!   Routine for moving atomic positions, takes into account the 
+!!   frozen atoms and the size of the cell
+!!   synopsis: rxyz=txyz+alpha*sxyz
+!!   all the shift are inserted into the box if there are periodic directions
+!!   if the atom are frozen they are not moved
+!! SOURCE
+!!
 subroutine atomic_axpy(atoms,txyz,alpha,sxyz,rxyz)
   use module_base
   use module_types
@@ -1933,12 +2009,18 @@ subroutine atomic_axpy(atoms,txyz,alpha,sxyz,rxyz)
   end do
 
 end subroutine atomic_axpy
+!!***
 
-!routine for moving atomic positions, takes into account the 
-!frozen atoms and the size of the cell
-!synopsis: fxyz=txyz+alpha*sxyz
-!update the forces taking into account the frozen atoms
-!do not apply the modulo operation on forces
+
+!!****f* BigDFT/atomic_axpy_forces
+!! FUNCTION
+!!   Routine for moving atomic positions, takes into account the 
+!!   frozen atoms and the size of the cell
+!!   synopsis: fxyz=txyz+alpha*sxyz
+!!   update the forces taking into account the frozen atoms
+!!   do not apply the modulo operation on forces 
+!! SOURCE
+!!
 subroutine atomic_axpy_forces(atoms,txyz,alpha,sxyz,fxyz)
   use module_base
   use module_types
@@ -1963,10 +2045,15 @@ subroutine atomic_axpy_forces(atoms,txyz,alpha,sxyz,fxyz)
   end do
   
 end subroutine atomic_axpy_forces
+!!***
 
 
-!calculate the scalar product between atomic positions by considering
-!only non-blocked atoms
+!!****f* BigDFT/atomic_dot
+!! FUNCTION
+!!   Calculate the scalar product between atomic positions by considering
+!!   only non-blocked atoms
+!! SOURCE
+!!
 subroutine atomic_dot(atoms,x,y,scpr)
   use module_base
   use module_types
@@ -1992,8 +2079,14 @@ subroutine atomic_dot(atoms,x,y,scpr)
   end do
   
 end subroutine atomic_dot
+!!***
 
-!z=alpha*A*x + beta* y
+
+!!****f* BigDFT/atomic_gemv
+!! FUNCTION
+!!   z=alpha*A*x + beta* y
+!! SOURCE
+!!
 subroutine atomic_gemv(atoms,m,alpha,A,x,beta,y,z)
   use module_base
   use module_types
@@ -2021,8 +2114,14 @@ subroutine atomic_gemv(atoms,m,alpha,A,x,beta,y,z)
   end do
 
 end subroutine atomic_gemv
+!!***
 
-!the function which controls all the moving positions
+
+!!****f* BigDFT/move_this_coordinate
+!! FUNCTION
+!!  The function which controls all the moving positions
+!! SOURCE
+!!
 function move_this_coordinate(ifrztyp,ixyz)
   use module_base
   implicit none
@@ -2035,8 +2134,14 @@ function move_this_coordinate(ifrztyp,ixyz)
        (ifrztyp == 3 .and. ixyz ==2)
        
 end function move_this_coordinate
+!!***
 
-!synopsis: rxyz=txyz+alpha*sxyz
+
+!!****f* BigDFT/
+!! FUNCTION
+!!   rxyz=txyz+alpha*sxyz
+!! SOURCE
+!!
 subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
   use module_base
   use module_types
@@ -2073,3 +2178,4 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
   end if
 
 end subroutine atomic_coordinate_axpy
+!!***

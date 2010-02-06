@@ -44,6 +44,7 @@ module module_types
 
      ! For Frequencies calculations (finite difference)
      real(gp) :: freq_alpha
+     integer :: freq_order
      integer :: freq_method
 
      ! kpoints related input variables

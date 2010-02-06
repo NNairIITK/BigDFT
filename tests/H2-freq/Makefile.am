@@ -3,6 +3,7 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
+	input.freq \
 	input.dft \
 	posinp.xyz
 
@@ -10,6 +11,7 @@ PPFILES = \
 	psppar.H
 
 CLEANFILES = $(PPFILES) H2-freq.out \
+			 frequencies.res frequencies.xyz hessian.dat \
 			 *.prc fldiff.report $(EXTRA_DIST)
 
 #dependencies
@@ -18,11 +20,13 @@ $(PPFILES):
 
 H2-freq.out: $(top_builddir)/src/frequencies $(PPFILES) 
 	if ! test x"$(srcdir)" = x"." ; then \
+	  ln -fs $(srcdir)/input.freq ; \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
         fi
 	$(run_parallel) $(top_builddir)/src/frequencies > $@
 	if ! test x"$(srcdir)" = x"." ; then \
+	  rm -f input.freq ; \
 	  rm -f input.dft ; \
 	  rm -f posinp.xyz ; \
         fi

@@ -12,6 +12,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 !!
 !! TODO
+!!  Add higher order for finite difference
 !!  Maybe possibility to use Lanczos to determine lowest frequencies
 !!
 !! SOURCE
@@ -24,30 +25,33 @@ program frequencies
   use ab6_symmetry
 
   implicit none
-  real(dp), parameter :: Ha_cmm1=219474.6313705_dp  ! 1 Hartree, in cm^-1 (from abinit 5.7.x)
+
+  real(dp), parameter :: Ha_cmm1=219474.6313705_dp                ! 1 Hartree, in cm^-1 (from abinit 5.7.x)
   real(dp), parameter :: amu_emass=1.660538782d-27/9.10938215d-31 ! 1 atomic mass unit, in electronic mass
   character(len=*), parameter :: subname='frequencies'
-  character(len=2) :: cc
-  !File units
+  character(len=4) :: cc
+  !File unit
   integer, parameter :: u_hessian=20
   integer :: iproc,nproc,iat,jat,i,j,i_stat,i_all,ierr,infocode,ity
   real(gp) :: etot,etot_m,etot_p,sumx,sumy,sumz,alat,dd,rmass
-  !input variables
+  !Input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
   type(restart_objects) :: rst
   type(orbitals_data) :: orbs
-  ! atomic coordinates, forces
-  real(gp), dimension(:,:), allocatable :: fxyz,rpos,fpos_m,fpos_p
+  !Atomic coordinates, forces
+  real(gp), dimension(:), allocatable :: fxyz
+  real(gp), dimension(:,:), allocatable :: rpos
+  real(gp), dimension(:,:), allocatable :: fpos
   real(gp), dimension(:,:), pointer :: rxyz
   ! hessian, eigenvectors
   real(gp), dimension(:,:), allocatable :: hessian,vector_l,vector_r
   real(gp), dimension(:), allocatable :: eigen_r,eigen_i
   ! logical: .true. if already calculated
-  logical, dimension(:,:,:), allocatable :: moves
-  real(gp), dimension(:,:,:,:,:), allocatable :: forces
+  logical, dimension(:,:), allocatable :: moves
+  real(gp), dimension(:,:,:), allocatable :: forces
   real(gp), dimension(3) :: freq_step
-  integer :: jm,nelec
+  integer :: k,km,nelec,ii,jj,imoves,order,n_order
   logical :: exists
  
   ! Start MPI in parallel version
@@ -60,8 +64,7 @@ program frequencies
   call memocc(0,iproc,'count','start')
 
   ! Welcome screen
-  if (iproc==0) call print_logo()
-
+  if (iproc == 0) call print_logo()
 
   ! Read all input files.
   inquire(file="input.freq",exist=exists)
@@ -74,24 +77,32 @@ program frequencies
   call read_input_variables(iproc, "posinp", "input.dft", "input.kpt", &
        & "input.geopt", inputs, atoms, rxyz)
 
+  !Order of the finite difference scheme
+  order = inputs%freq_order
+  if (order == 2) then
+     n_order = 2
+  else if (order == 3) then
+     n_order = 4
+  else
+     print *, "Frequencies: This order",order," is not implemented!"
+     stop
+  end if
 
   ! Allocations
-  allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
+  allocate(fxyz(3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fxyz,'fxyz',subname)
-  allocate(moves(2,3,0:atoms%nat+ndebug),stat=i_stat)
+  allocate(moves(n_order,0:3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,moves,'moves',subname)
-  allocate(forces(3,atoms%nat,2,3,0:atoms%nat+ndebug),stat=i_stat)
+  allocate(forces(3*atoms%nat,n_order,0:3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,forces,'forces',subname)
   allocate(rpos(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rpos,'rpos',subname)
-  allocate(fpos_m(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,fpos_m,'fpos_m',subname)
-  allocate(fpos_p(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,fpos_p,'fpos_p',subname)
+  allocate(fpos(3*atoms%nat,n_order+ndebug),stat=i_stat)
+  call memocc(i_stat,fpos,'fpos',subname)
   allocate(hessian(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,hessian,'hessian',subname)
 
-! Initialize the hessian
+! Initialize the Hessian
   hessian = 0.d0
 ! Initialize freq_step (step to move atomes)
   freq_step(1) = inputs%freq_alpha*inputs%hx
@@ -100,32 +111,39 @@ program frequencies
 
   call init_restart_objects(atoms,rst,subname)
 
-  !Initialise the moves using a restart file if present
-  call frequencies_read_restart(atoms%nat,moves,forces,etot,atoms%amu)
+  !Initialize the moves using a restart file if present
+  call frequencies_read_restart(atoms%nat,moves,imoves,n_order,forces,freq_step,atoms%amu,etot)
+  !Message
+  if (iproc == 0) then
+     write(*,'(1x,a,i6,a,i6,a)') '=F=> There are', imoves, ' moves already calculated over', &
+                                 n_order*3*atoms%nat,' frequencies.'
+     write(*,*)
+  end if
 
   !Reference state
-  if (moves(1,1,0)) then
-     fxyz = forces(:,:,1,1,0)
+  if (moves(1,0)) then
+     fxyz = forces(:,1,0)
   else
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
-     call frequencies_write_restart(iproc,0,0,0,fxyz,amu=atoms%amu,etot=etot)
-     moves(:,:,0) = .true.
+     call frequencies_write_restart(iproc,0,0,0,rxyz,fxyz,&
+                                    n_order=n_order,freq_step=freq_step,amu=atoms%amu,etot=etot)
+     moves(:,0) = .true.
      call restart_inputs(inputs)
   end if
 
-  if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+  if (iproc == 0) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
 
-  if (iproc.eq.0) then
+  if (iproc == 0) then
      sumx=0.d0
      sumy=0.d0
      sumz=0.d0
      write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
      do iat=1,atoms%nat
         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-             iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3)
-        sumx=sumx+fxyz(1,iat)
-        sumy=sumy+fxyz(2,iat)
-        sumz=sumz+fxyz(3,iat)
+             iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(i+3*(iat-1)),i=1,3)
+        sumx=sumx+fxyz(1 + 3*(iat-1))
+        sumy=sumy+fxyz(2 + 3*(iat-1))
+        sumz=sumz+fxyz(3 + 3*(iat-1))
      end do
      if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
         write(*,'(1x,a)')'the sum of the forces is'
@@ -144,51 +162,46 @@ program frequencies
 
   if (iproc == 0) then
      write(*,*)
-     write(*,'(1x,a,60("="))') '=Frequencies calculation '
+     write(*,'(1x,a,59("="))') '=Frequencies calculation '
   end if
 
   do iat=1,atoms%nat
 
      if (atoms%ifrztyp(iat) == 1) then
-        if (iproc==0) write(*,"(1x,a,i0,a)") '=F:The atom ',iat,' is frozen.'
+        if (iproc == 0) write(*,"(1x,a,i0,a)") '=F:The atom ',iat,' is frozen.'
         cycle
      end if
 
      do i=1,3
+        ii = i+3*(iat-1)
         if (i==1) then
            alat=atoms%alat1
-           cc(2:2)='x'
+           cc(3:4)='*x'
         else if (i==2) then
            alat=atoms%alat2
-           cc(2:2)='y'
+           cc(3:4)='*y'
         else
            alat=atoms%alat3
-           cc(2:2)='z'
+           cc(3:4)='*z'
         end if
-        do j=-1,1,2
+        km = 0
+        do k=-order+1,order-1
+           if (k == 0) cycle
            !-1-> 1, 1 -> 2, y = ( x + 3 ) / 2
-           jm = (j+3)/2
-           if (moves(jm,i,iat)) then
+           km = km + 1
+           if (moves(km,ii)) then
               !This move is already done. We use the values from the restart file.
-              if (j == -1) then
-                 fpos_m = forces(:,:,1,i,iat)
-              else
-                 fpos_p = forces(:,:,2,i,iat)
-              end if
+              fpos(:,km) = forces(:,km,ii)
               cycle
            end if
-           if (j==-1) then
-              cc(1:1)='-'
-           else
-              cc(1:1)='+'
-           end if
+           write(cc(1:2),"(i2)") k
            !Displacement
-           dd=real(j,gp)*freq_step(i)
+           dd=real(k,gp)*freq_step(i)
            !We copy atomic positions
            rpos=rxyz
-           if (iproc==0) then
+           if (iproc == 0) then
                write(*,"(1x,a,i0,a,a,a,1pe20.10,a)") &
-               '=F:Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
+               '=F Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
            end if
            if (atoms%geocode == 'P') then
               rpos(i,iat)=modulo(rxyz(i,iat)+dd,alat)
@@ -197,33 +210,30 @@ program frequencies
            else
               rpos(i,iat)=rxyz(i,iat)+dd
            end if
-           if (j==-1) then
-              call call_bigdft(nproc,iproc,atoms,rpos,inputs,etot_m,fpos_m,rst,infocode)
-              call frequencies_write_restart(iproc,1,i,iat,fpos_m)
-              moves(1,i,iat) = .true.
-           else
-              call call_bigdft(nproc,iproc,atoms,rpos,inputs,etot_p,fpos_p,rst,infocode)
-              call frequencies_write_restart(iproc,2,i,iat,fpos_p)
-              moves(2,i,iat) = .true.
-           end if
+           call call_bigdft(nproc,iproc,atoms,rpos,inputs,etot_m,fpos(:,km),rst,infocode)
+           call frequencies_write_restart(iproc,km,i,iat,rpos,fpos(:,km))
+           moves(km,ii) = .true.
            call restart_inputs(inputs)
            if (iproc == 0) then
-              write(*,'(1x,a,82("="))') '=F '
+              write(*,'(1x,a,81("="))') '=F '
               write(*,*)
            end if
         end do
-        ! Build the hessian
+        ! Build the Hessian
         do jat=1,atoms%nat
            rmass = amu_emass*sqrt(atoms%amu(atoms%iatype(iat))*atoms%amu(atoms%iatype(jat)))
            do j=1,3
-              !force is -dE/dR
-              dd = - (fpos_p(j,jat) - fpos_m(j,jat))/(2.d0*freq_step(i))
+              jj = j+3*(jat-1)
+              !Force is -dE/dR
+              if (order == 2) then
+                 dd = - (fpos(jj,2) - fpos(jj,1))/(2.d0*freq_step(i))
+              end if
               !if (abs(dd).gt.1.d-10) then
-              hessian(3*(jat-1)+j,3*(iat-1)+i) = dd/rmass
+              hessian(jj,ii) = dd/rmass
               !end if
            end do
         end do
-        if (iproc == 0) write(u_hessian,'(i0,1x,i0,1x,100(1pe20.10))') i,iat,hessian(:,3*(iat-1)+i)
+        if (iproc == 0) write(u_hessian,'(i0,1x,i0,1x,100(1pe20.10))') i,iat,hessian(:,ii)
      end do
   end do
 
@@ -233,12 +243,9 @@ program frequencies
   i_all=-product(shape(rpos))*kind(rpos)
   deallocate(rpos,stat=i_stat)
   call memocc(i_stat,i_all,'rpos',subname)
-  i_all=-product(shape(fpos_m))*kind(fpos_m)
-  deallocate(fpos_m,stat=i_stat)
-  call memocc(i_stat,i_all,'fpos_m',subname)
-  i_all=-product(shape(fpos_p))*kind(fpos_p)
-  deallocate(fpos_p,stat=i_stat)
-  call memocc(i_stat,i_all,'fpos_p',subname)
+  i_all=-product(shape(fpos))*kind(fpos)
+  deallocate(fpos,stat=i_stat)
+  call memocc(i_stat,i_all,'fpos',subname)
 
   !allocations
   allocate(eigen_r(3*atoms%nat+ndebug),stat=i_stat)
@@ -253,7 +260,7 @@ program frequencies
   !Diagonalise the hessian matrix
   call solve(hessian,3*atoms%nat,eigen_r,eigen_i,vector_l,vector_r)
 
-  if (iproc==0) then
+  if (iproc == 0) then
      write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(1:3*atoms%nat)
      write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i(1:3*atoms%nat)
      do i=1,3*atoms%nat
@@ -334,7 +341,7 @@ program frequencies
 
   call free_input_variables(inputs)
 
-  !finalize memory counting
+  !Finalize memory counting
   call memocc(0,0,'count','stop')
 
   if (nproc > 1) call MPI_FINALIZE(ierr)
@@ -347,6 +354,7 @@ contains
     real(gp), intent(inout) :: hessian(n,n)
     real(gp), intent(out) :: eigen_r(n),eigen_i(n),vector_l(n,n),vector_r(n,n)
     !Local variables
+    character(len=*), parameter :: subname = "solve"
     integer :: info,lwork
     real(gp), dimension(:), allocatable :: work
 
@@ -359,6 +367,8 @@ contains
     if (info /= 0) then
        write(*,'(1x,a,i0)') 'Error from the routine dgeev: info=',info
     end if
+
+    !De-allocation
     i_all=-product(shape(work))*kind(work)
     deallocate(work,stat=i_stat)
     call memocc(i_stat,i_all,'work',subname)
@@ -366,20 +376,24 @@ contains
   END SUBROUTINE solve
 
 
-  subroutine frequencies_read_restart(nat,moves,forces,etot,amu)
+  subroutine frequencies_read_restart(nat,moves,imoves,n_order,forces,freq_step,amu,etot)
     implicit none
     !Arguments
-    integer, intent(in) :: nat
-    logical, dimension(2,3,0:nat), intent(out) :: moves
-    real(gp), dimension(3,nat,2,3,0:nat), intent(out) :: forces
+    integer, intent(in) :: nat,n_order
+    logical, dimension(n_order,0:3*nat), intent(out) :: moves
+    real(gp), dimension(3*nat,n_order,0:1+3*nat), intent(out) :: forces
+    real(gp), intent(in) :: freq_step(3)
+    integer, intent(out) :: imoves
     real(gp), intent(out) :: etot
     real(gp), dimension(:), intent(out) :: amu
     !Local variables
+    character(len=*), parameter :: subname = "frequencies_read_restart"
     logical :: exists
     integer, parameter :: iunit = 15
     character(len=*), parameter :: freq_form = '(1x,"=F=> ",a)'
-    real(gp), dimension(:,:), allocatable :: fpos
-    integer :: ierror,j,i,iat,imoves
+    real(gp) :: steps(3)
+    real(gp), dimension(:), allocatable :: rxyz,fxyz
+    integer :: ierror,km,i,iat,ii,i_order
     !Initialize by default to false
     moves = .false.
     !Test if the file does exist.
@@ -393,65 +407,108 @@ contains
        if (iproc == 0) write(*,freq_form) 'No "frequencies.res" file present.'
        return
     end if
-    !Allocation
-    allocate(fpos(3,nat))
+
+    !Allocations
+    allocate(rxyz(3*nat))
+    call memocc(i_stat,rxyz,'rxyz',subname)
+    allocate(fxyz(3*nat))
+    call memocc(i_stat,fxyz,'fxyz',subname)
+
+    imoves=0
     !We read the file
     open(unit=iunit,file='frequencies.res',status='old',form='unformatted')
-    !Read the reference state
-    read(unit=iunit,iostat=ierror) iat,etot,amu,fpos
-    if (ierror /= 0 .or. iat /= 0) then
-       !Read error, we stop
+    !First line is data for coherency of the calculation
+    read(unit=iunit,iostat=ierror) i_order,steps,amu
+    if (ierror /= 0) then
+       !Read error, we clean the file.
        if (iproc == 0) then
-          write(*,freq_form) 'The reference state is not calculated in "frequencies.res" file.'
-       else
-          write(*,freq_form) 'The reference state is already calculated.'
+          close(unit=iunit)
+          write(*,freq_form) 'Erase the file "frequencies.res".'
+          open(unit=iunit,file='frequencies.res',status='old',form='unformatted')
+          write(iunit)
+          close(unit=iunit)
        end if
+       return
     else
-      forces(:,:,1,1,iat) = fpos
-      moves(:,:,0) = .true.
+       if (steps(1) /= freq_step(1) .or. &
+           steps(2) /= freq_step(2) .or. &
+           steps(3) /= freq_step(3)) then
+          if (iproc == 0) write(*,freq_form) 'The step to calculate frequencies is not the same: stop.'
+          stop
+       end if
+       if (i_order > n_order) then
+          if (iproc == 0) then 
+             write(*,freq_form) 'The number of points per direction is bigger in the "frequencies.res" file.'
+             write(*,freq_form) 'Increase the order of the finite difference scheme'
+          end if
+          stop
+       end if
     end if
-    imoves=0
+    !Read the reference state
+    read(unit=iunit,iostat=ierror) iat,etot,rxyz,fxyz
+    if (ierror /= 0 .or. iat /= 0) then
+       !Read error, we assume that it is not calculated
+       if (iproc == 0) write(*,freq_form) 'The reference state is not calculated in "frequencies.res" file.'
+    else
+       if (iproc == 0) write(*,freq_form) 'The reference state is already calculated.'
+       forces(:,1,0) = fxyz
+       moves(:,0) = .true.
+    end if
     do
-      read(unit=iunit,iostat=ierror) j,i,iat,fpos
-      if (ierror /= 0) then
-         !Read error, we stop
-         exit
-      end if
-      imoves = imoves + 1
-      forces(:,:,j,i,iat) = fpos
-      moves(j,i,iat) = .true.
+       read(unit=iunit,iostat=ierror) km,i,iat,rxyz,fxyz
+       if (ierror /= 0) then
+          !Read error, we exit
+          exit
+       end if
+       ii = i + 3*(iat-1)
+       imoves = imoves + 1
+       forces(:,km,ii) = fxyz
+       moves(km,ii) = .true.
     end do
     close(unit=iunit)
-    !Deallocation
-    deallocate(fpos)
-    !Message
-    if (iproc == 0) then
-       write(*,'(1x,a,i6,a,i6,a)') '=F=> There are', imoves, ' moves already calculated over', 3*2*nat,' frequencies.'
-       write(*,*)
-    end if
+
+    !Deallocations
+    i_all=-product(shape(rxyz))*kind(rxyz)
+    deallocate(rxyz)
+    call memocc(i_stat,i_all,'rxyz',subname)
+    i_all=-product(shape(fxyz))*kind(fxyz)
+    deallocate(fxyz)
+    call memocc(i_stat,i_all,'fxyz',subname)
+
   END SUBROUTINE frequencies_read_restart
 
-  subroutine frequencies_write_restart(iproc,j,i,iat,forces,amu,etot)
+
+  subroutine frequencies_write_restart(iproc,km,i,iat,rxyz,fxyz,n_order,freq_step,amu,etot)
     implicit none
     !Arguments
-    integer, intent(in) :: iproc,j,i,iat
-    real(gp), dimension(:,:), intent(in) :: forces
+    integer, intent(in) :: iproc,km,i,iat
+    real(gp), dimension(:,:), intent(in) :: rxyz
+    real(gp), dimension(:), intent(in) :: fxyz
+    integer, intent(in), optional :: n_order
+    real(gp), intent(in), optional :: freq_step(3)
     real(gp), dimension(:), intent(in), optional :: amu
     real(gp), intent(in), optional :: etot
     !Local variables
     integer, parameter :: iunit = 15
     real(gp), dimension(:,:), allocatable :: fpos
+    if (km == 0 .and. &
+        .not.(present(n_order).and.present(freq_step).and.present(amu).and.present(etot))) then
+        if (iproc == 0) write(*,*) "Bug for use of frequencies_write_restart"
+        stop
+    end if
     if (iproc ==0 ) then
        !This file is used as a restart
        open(unit=iunit,file='frequencies.res',status="unknown",form="unformatted",position="append")
-       if (present(etot)) then
-          write(unit=iunit) 0,etot,amu,forces
+       if (km == 0) then
+          write(unit=iunit) n_order,freq_step,amu
+          write(unit=iunit) 0,etot,rxyz,fxyz
        else
-          write(unit=iunit) j,i,iat,forces
+          write(unit=iunit) km,i,iat,rxyz,fxyz
        end if
        close(unit=iunit)
     end if
   END SUBROUTINE frequencies_write_restart
+
 
   subroutine restart_inputs(inputs)
     implicit none
