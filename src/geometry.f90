@@ -189,7 +189,10 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         iatfix(2, iat) = 0
      end if
   end do
-  vel(:,:) = zero
+
+  !read the velocities from input file, if present
+  call read_velocities(iproc,'velocities.xyz',at,vel)
+  !vel(:,:) = zero
 
   ! Call the ABINIT routine.
   ! currently, we force optcell == 0
