@@ -1,12 +1,13 @@
-subroutine plot_wf(kindplot,orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
+subroutine plot_wf(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
   implicit none
   character(len=*) :: kindplot
   character(len=10) :: comment
   character(len=11) :: orbname
-  type(atoms_data), intent(in) :: at
+  integer, intent(in) :: nexpo
   real(gp), intent(in) :: hx,hy,hz
+  type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
@@ -51,10 +52,10 @@ subroutine plot_wf(kindplot,orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
 
   if (trim(kindplot)=='POT') then
      !call plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,psir)
-     call plot_pot_full(hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+     call plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
           nl1,nl2,nl3,orbname,psir,comment)
   else if (trim(kindplot)=='CUBE') then
-     call plot_cube_full(at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+     call plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
           nl1,nl2,nl3,orbname,psir,comment)
   else
      stop 'ERROR: plotting format not recognized'
@@ -218,7 +219,7 @@ subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
   !call plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,psir)
 !HU  call plot_pot_full(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
 !HU       nl1,nl2,nl3,orbname,psir,comment)
-  call plot_cube_full(at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+  call plot_cube_full(1,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
        nl1,nl2,nl3,orbname,psir,comment)
 
   i_all=-product(shape(psir))*kind(psir)
@@ -276,12 +277,12 @@ subroutine plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,po
 
 end subroutine plot_pot
 
-subroutine plot_pot_full(hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+subroutine plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
   use module_base
   implicit none
   character(len=10), intent(in) :: orbname,comment
-  integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,n1i,n2i,n3i
+  integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,n1i,n2i,n3i,nexpo
   real(gp), intent(in) :: hx,hy,hz
   real(dp), dimension(*), intent(in) :: pot
   !local variables
@@ -308,7 +309,7 @@ subroutine plot_pot_full(hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      do i2=0,2*n2+1
         do i1=0,2*n1+1
            ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-           write(22,*)pot(ind)
+           write(22,*)pot(ind)**nexpo
         end do
      end do
   end do
@@ -317,7 +318,7 @@ subroutine plot_pot_full(hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
 
 end subroutine plot_pot_full
 
-subroutine plot_cube_full(at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
   use module_base
   use module_types
@@ -327,7 +328,7 @@ subroutine plot_cube_full(at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   character(len=11), intent(in) :: orbname
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,n1i,n2i,n3i
+  integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,n1i,n2i,n3i,nexpo
   real(gp), intent(in) :: hx,hy,hz
   real(dp), dimension(*), intent(in) :: pot
   !local variables
@@ -378,7 +379,7 @@ subroutine plot_cube_full(at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
            end if
 
            ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-           write(22,'(1x,1pe13.6)',advance=advancestring) pot(ind)
+           write(22,'(1x,1pe13.6)',advance=advancestring) pot(ind)**nexpo
         end do
      end do
   end do

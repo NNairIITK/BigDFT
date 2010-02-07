@@ -7,7 +7,6 @@
 !!  - call_cluster
 !!  - conjgrad
 !!  - copy_old_wavefunctions
-!!  - read_system_variables
 !!  - input_occup
 !!  - system_size
 !!  - MemoryEstimator
@@ -105,7 +104,7 @@ module module_interfaces
        real(gp), dimension(at%ntypes,3), intent(out) :: radii_cf
      end subroutine system_properties
 
-     subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
+     subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
        use module_base
        use module_types
        implicit none
@@ -116,6 +115,7 @@ module module_interfaces
        real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
        real(gp), intent(inout) :: hx,hy,hz
        type(locreg_descriptors), intent(out) :: Glr
+       real(gp), dimension(3), intent(out) :: shift
      end subroutine system_size
 
      subroutine read_input_variables(iproc,posinp, dft, kpt, geopt, in,atoms,rxyz)
@@ -606,15 +606,16 @@ module module_interfaces
        real(wp), intent(out), optional :: outadd
      end subroutine untranspose_v
 
-     subroutine plot_wf(kindplot,orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
+     subroutine plot_wf(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
        use module_base
        use module_types
        implicit none
        character(len=*) :: kindplot
        character(len=10) :: comment
        character(len=11) :: orbname
-       type(atoms_data), intent(in) :: at
+       integer, intent(in) :: nexpo
        real(gp), intent(in) :: hx,hy,hz
+       type(atoms_data), intent(in) :: at
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        type(locreg_descriptors), intent(in) :: lr
        real(wp), dimension(*) :: psi
@@ -764,8 +765,6 @@ module module_interfaces
        real(wp), dimension(:), pointer :: Occ_eval
 
        type(input_variables),intent(in) :: in
-
-
      end subroutine xabs_lanczos
 
 
@@ -795,10 +794,6 @@ module module_interfaces
 
      end subroutine xabs_chebychev
 
-
-
-
-
      function GetBottom(  atoms, iproc)
        use module_base
        use module_types
@@ -807,20 +802,6 @@ module module_interfaces
        integer iproc
        real(gp) GetBottom
      end function GetBottom
-
-
-     subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
-       use module_base
-       use module_types
-       implicit none
-       character(len=10) :: comment
-       character(len=11) :: orbname
-       type(atoms_data), intent(in) :: at
-       real(gp), intent(in) :: hx,hy,hz
-       real(gp), dimension(3,at%nat), intent(in) :: rxyz
-       type(locreg_descriptors), intent(in) :: lr
-       real(wp), dimension(*) :: psi
-     end subroutine plot_wf_cube
 
      subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
        implicit none
@@ -880,6 +861,18 @@ module module_interfaces
        type(gaussian_basis), intent(out) :: G
        real(wp), dimension(:), pointer :: Gocc
      end subroutine gaussian_pswf_basis
+
+     subroutine local_analysis(iproc,nproc,hx,hy,hz,shift,lr,orbs,orbsv,psi,psivirt)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,nproc
+       real(gp), intent(in) :: hx,hy,hz
+       type(locreg_descriptors), intent(in) :: lr
+       type(orbitals_data), intent(in) :: orbs,orbsv
+       real(gp), dimension(3),intent(in) :: shift
+       real(wp), dimension(:), pointer :: psi,psivirt
+     end subroutine local_analysis
 
   end interface
 

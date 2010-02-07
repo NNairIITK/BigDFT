@@ -402,6 +402,7 @@ contains
     real(gp), dimension(:), allocatable :: rxyz,fxyz
     integer :: ierror,km,i,iat,ii,i_order
     !Initialize by default to false
+    imoves=0
     moves = .false.
     !Test if the file does exist.
     if (iproc == 0) then
@@ -421,7 +422,6 @@ contains
     allocate(fxyz(3*nat))
     call memocc(i_stat,fxyz,'fxyz',subname)
 
-    imoves=0
     !We read the file
     open(unit=iunit,file='frequencies.res',status='old',form='unformatted')
     !First line is data for coherency of the calculation
@@ -533,12 +533,15 @@ END PROGRAM frequencies
 !!***
 
 
-subroutine integrate_forces(energies,forces,n_moves,nat)
+subroutine integrate_forces(iproc,energies,forces,n_moves,nat)
+
+  use module_base
+
   implicit none
   !Arguments
-  integer, intent(in) :: n_moves,nat
-  real(gp), intent(in) :: energies(imoves)
-  real(gp), intent(in) :: forces(3*nat,imoves)
+  integer, intent(in) :: iproc,n_moves,nat
+  real(gp), intent(in) :: energies(n_moves)
+  real(gp), intent(in) :: forces(3*nat,n_moves)
   !Local variables
   character(len=*), parameter :: subname = "integrate_forces"
   real(gp), dimension(:), allocatable :: weight
@@ -564,7 +567,7 @@ subroutine integrate_forces(energies,forces,n_moves,nat)
 
   !Start integration
   path = 0_gp
-  do i=1,n
+  do i=1,n_moves
   end do
 
   !De-allocation

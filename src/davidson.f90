@@ -83,7 +83,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   !local variables
   character(len=*), parameter :: subname='davidson'
   character(len=10) :: comment
-  character(len=11) :: orbname
+  character(len=11) :: orbname,denname
   logical :: msg,exctX !extended output
   integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,ind,i1,i2,norb,nspinor
   integer :: ise,jnd,j,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
@@ -106,7 +106,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   
   GPU%full_locham=.true.
   
-
   !verify whether the calculation of the exact exchange term
   !should be preformed
   exctX = libxc_functionals_exctXfac() /= 0.0_gp
@@ -712,10 +711,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
   end do davidson_loop
 
-  i_all=-product(shape(orbsv%eval))*kind(orbsv%eval)
-  deallocate(orbsv%eval,stat=i_stat)
-  call memocc(i_stat,i_all,'eval',subname)
-
   i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
   deallocate(ndimovrlp,stat=i_stat)
   call memocc(i_stat,i_all,'ndimovrlp',subname)
@@ -862,27 +857,36 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
         exit 
      end if
      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
+     !plot the orbital and the density
      write(orbname,'(A,i3.3)')'virtual',iorb+orbsv%isorb
+     write(denname,'(A,i3.3)')'denvirt',iorb+orbsv%isorb
      write(comment,'(1pe10.3)')e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
      !choose the way of plotting the wavefunctions
      if (in%nplot > 0) then
-        call plot_wf('POT',orbname,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
      else if (in%nplot < 0) then
-        call plot_wf('CUBE',orbname,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
      end if
   end do
 
   do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
-     if(modulo(orbs%norb-iorb-orbs%isorb-1+nvirt-1,orbs%norb)+1 > abs(in%nplot))exit! we have written nplot pot files
+     if(modulo(orbs%norb-iorb-orbs%isorb-1,orbs%norb)+1 > abs(in%nplot)) then
+        exit! we have written nplot pot files
+     end if
      !address
      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
      write(orbname,'(A,i3.3)')'orbital',iorb+orbs%isorb
+     write(denname,'(A,i3.3)')'densocc',iorb+orbs%isorb
      write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
      !choose the way of plotting the wavefunctions
      if (in%nplot > 0) then
-        call plot_wf('POT',orbname,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
      else if (in%nplot < 0) then
-        call plot_wf('CUBE',orbname,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
      end if
 
   end do
@@ -891,8 +895,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   i_all=-product(shape(e))*kind(e)
   deallocate(e,stat=i_stat)
   call memocc(i_stat,i_all,'e',subname)
-
-  call deallocate_orbs(orbsv,subname)
 
   if (GPUconv) then
      call free_gpu(GPU,orbsv%norbp)

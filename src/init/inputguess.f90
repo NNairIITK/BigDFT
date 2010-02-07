@@ -697,6 +697,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,&
               icoeff=icoeff-(2*l-1)
            end do
            icoeff=icoeff+(2*l-1)
+
         end do
      end do
 

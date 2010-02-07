@@ -43,15 +43,9 @@ user does not need to have the autotools package installed on his
 computer, the \texttt{configure} script provided in BigDFT package
 will do the job to create the \texttt{Makefile} and set the
 options, like the optimisation level, the associated libraries to link
-with...
+with, and so on.
 
 After the package has been untared, the sources should be configured, depending on the system we want to run on. Thanks to the autotools, it is possible to generate several builds from the same source tree. It is adviced to create a compilation directory, either inside or outside the source tree. Lets call this directory \texttt{compile-gfortran} for instance. One starts the configure from there \texttt{'source tree path'/configure}.
-
-The following modularities during compilation are available:
-\begin{itemize}
-  \item \texttt{--disable-mpi}: Force not to use MPI during build. By default the configure will try to detect if the compiler has some native MPI capabilities. If not MPI will be automatically disabled.
-  \item \texttt{--enable-cuda-gpu}: Compile the CUDA parts to run on NVidia GPUs. This options requires to add some other one to find the CUDA environment, see the \texttt{--with} options later.
-\end{itemize}
 
 One can tune the compilation environment using the following options:
 \begin{itemize}
@@ -83,6 +77,16 @@ An other example, compiling CUDA parts:\\
                      -lmkl\_intel\_lp64 -lmkl\_lapack -lmkl\_sequential -lmkl\_core"\\
   --enable-cuda-gpu --with-cuda-path=/applications/cuda-2.2}
 
+The other options available can be browsed via the \texttt{-- help} option.
+Some of them are listed here (and they can be of course combined with each other, when it does make sense):
+\begin{itemize}
+  \item \texttt{--disable-mpi}: Force not to use MPI during build. By default the configure will try to detect if the compiler has some native MPI capabilities. If not MPI will be automatically disabled.
+  \item \texttt{--enable-cuda-gpu}: Compile the CUDA parts to run on NVidia GPUs. This options requires to add some other one to find the CUDA environment, see the \texttt{--with} options later.
+\item \texttt{--enable-debug}: Creates a slower version of the executable in which any of the array allocated is filled by \texttt{NaN} after its boundaries. Useful to detect runtime errors during developments
+\item \texttt{--with-memory-limit=<mem>}: Creates a version of the executable which abort the run if one of the processes allocates more memory than \texttt{<mem>} (in Gb). This version is not necessarily slower that traditional copilation.
+\end{itemize}
+
+
 \subsection{Make}
 Make the package and create the 'cluster' executable, issuing \texttt{make}. The GNU option \texttt{-j$n$} is working with whatever value of $n$ (tested up to 16).
 
@@ -103,7 +107,8 @@ and input parameters it returns the total energy and the forces acting on the nu
 calls the \texttt{call\_bigdft} routine and can also do a geometry optimization by calling the \texttt{geopt} routine (which in turn calls 
 again \texttt{call\_bigdft}). For other standard applications other main programs exist.
 At present main programs to do a vibrational analysis, saddle point search and global optimization have been developed.
-Users are however encouraged to write their own main programs for specific applications. 
+Users are encouraged to write their own main programs for specific applications. 
+The BigDFT API will be the object of a forthcoming chapter.
 \section{The basis set}
 The maximally symmetric Daubechies family of degree 16 is used to represent 
 the Kohn-Sham orbitals. The two fundamental functions of this family, 
@@ -117,7 +122,7 @@ To form a basis set these functions have to be centered on the nodes of a regula
 \label{sym_16}
 \caption{Daubechies Scaling Function and Wavelet of order 16}
 \end{figure}
-\section{Wavelet basis sets in three dimensions}
+\section{Wavelet basis sets in three dimensions and BigDFT input variables}
 A 3-dim wavelet basis is made by products of 1-dim functions.
  {\color{red} 1  scaling function} and {\color{blue} 7 wavelets} 
 can be centered on the nodes (i,j,k) of a regular 3-dim cartesian grid.
@@ -137,14 +142,17 @@ to the high resolution region. In the low resolution region a grid point carries
 a single {\color{red} scaling function}. In the high resolution region, the resolution is doubled 
 in each diretion with respect to the low resolution region. The grid spacing is specified by the parameters
 {\bf hgridx}, {\bf hgridy}, {\bf hgridz}. The low resolution region is constructed in the following way. Around each 
-atom one draws a sphere whose radii are the 'size of the atom' times the parameter {\bf crmult}. All the grid 
+atom one draws a sphere whose radii are the 'size of the atom' times the adimensional parameter {\bf crmult}. All the grid 
 points being contained in the union of all these spheres form the low resolution region. The high resolution is 
 constructed in a similar way. One draws spheres whose radii are the 'size of the bonding region' times the 
 parameter {\bf frmult} around each atom.  All the grid points being contained in the union of all these spheres 
 form the high resolution region. Default values for the 'size of the atom' and  the 'size of the bonding region' 
 are contained in the package. The user can however choose different values and these values can be specified by 
 adding an additional line at the end of the pseudopotential parameter files which contain first the alternative 
-values of {\bf crmult} and then {\bf frmult}. The grid can be visualized by calling the 'memguess' program 
+values of {\bf crmult} and then {\bf frmult}.
+
+\subsection{Visualizing the simulation grid with V\_Sim package}
+The grid can be visualized by calling the \texttt{memguess} program 
 with the the keywords {\bf output\_grid}=1 in the input file. Then the output file 'grid.xyz' contains the atomic positions and in addition 
 the grid points which denoted by 'g' if the are in the coarse region and by 'G' if they are in the fine region. 
 Whereas the total number of basis functions is nearly independent of the orientation of the molecule, the size of some 
@@ -168,16 +176,21 @@ frmult=12 crmult=6 hgrid=.5 & frmult=12 crmult=6 hgrid=.3
 \caption{Illustration of the grid and its parameters}
 \end{figure}
 
-\section{Input/Output files for atomic coordinates } 
-By default the atomic input coordinates are in the file 'posinp.xyz'. If the same operation (e.g. geometry optimization) 
+\section{Format of Input/Output files for atomic coordinates} 
+BigDFT supports atomic files which are of two types.
+The first one is a particular generalisation of the traditional \texttt{.xyz} format and can be obtained from this via simple modifications.
+The second one (\texttt{.ascii}) is peculiar of BigDFT and V\_Sim. Both formats work with the two codes.
+\subsection{The \texttt{.xyz} format}
+By default the atomic input coordinates are in the file \texttt{posinp.xyz}.
+If the same operation (e.g. geometry optimization) 
 has to be done for several structures one can also give a list of input files whose names (without the .xyz extension) 
-have to be contained in a file 'list\_posinp'. The first line in the 'list\_posinp' file has to be the number of input 
+have to be contained in a file '\texttt{list\_posinp}'. The first line in the '\texttt{list\_posinp}' file has to be the number of input 
 files and each consecutive line contains then one filename.
 
-All the input and output files for atomic coordinates are in the .xyz format, i.e they can be visualized with any 
+All the input and output files for atomic coordinates are in the \texttt{.xyz} format, i.e they can be visualized with any 
 standard visualization package and in particular with V\_sim. The first line contains the number of atoms 
 and then the units, which are specified by 'atomic', 'atomicd0' or 'bohr' if atomic units are used or by 
-'angstroem' or 'angstroemd0' if the angstr\"om unit is used. 'd0' formats (e24.17) guarantee that not a single bit is 
+'angstroem' or 'angstroemd0' if the angstr\"om unit is used. 'd0' formats (\texttt{1pe24.17} in fortran) guarantee that not a single bit is 
 lost during write and read of the numbers.
 
 The second line contains the boundary conditions specified by the keywords 'free' for free boundary 
@@ -196,7 +209,7 @@ BigDFT supports the GTH and HGH pseudopotentials in the format which can be down
 In the case of spin-polarized calculation the polarization in the region around the atom can 
 be given by an integer. In addition the charge in the region around the atom can be specified.
 Finally it can be specified if the atom is fully or partially fixed during a geometry optimization.
-'F' stands for completely frozen, 'FXZ' if the atom can only move along the y axis and 'FY' if the atom 
+'\texttt{f}' stands for completely frozen, '\texttt{fxz}' if the atom can only move along the y axis and '\texttt{fy}' if the atom 
 can only move in the XY plane. Below are some examples:
 
 This hydrogen atom is frozen during the geometry optimization
@@ -211,15 +224,15 @@ This hydrogen atom has a spin up poarization
 
 This chlorine atom has an additional electron and no spin polarization
 \begin{verbatim}
-  Cl  1.2  3.4  5.6   0  -1.
+  Cl  1.2  3.4  5.6   0  -1
 \end{verbatim}
 
 Same as above, but also frozen
 \begin{verbatim}
-  Cl  1.2  3.4  5.6   0  -1.   f
+  Cl  1.2  3.4  5.6   0  -1   f
 \end{verbatim}
 
-\pagebreak
+%\pagebreak
 \section{The input file 'input.memguess'}
 Before running BigDFT, it is recommended to run the 'memguess' program. If it runs correctly all input files are available 
 (this routine needs a posinp.xyz and does not accept a list\_posinp file). It then allows to estimate the required memory and to 
@@ -240,7 +253,7 @@ have at least 2 to 4 orbitals.
 \section{The input file 'input.dft'}
 This file contains all the parameters required for a single wavefunction calculations:
 \begin{itemize}
-\item {\bf hgridx}, {\bf hgridy}, {\bf hgridz}: The grid spacing of the cartesian grid. As 
+\item {\bf hgridx}, {\bf hgridy}, {\bf hgridz}: The grid spacing of the cartesian grid, in bohr . As 
        described above the nodes of this grid serve as the centers for the scaling function/ wavelet basis. 
        Values are in most cases between $.3$ and $.6$.
 
@@ -256,7 +269,8 @@ This file contains all the parameters required for a single wavefunction calcula
       {$11$}      & PBE from Abinit XC library;\\
       {$-020$}    & Pade LDA from libXC;\\
       {$-101130$} & PBE from  libXC;\\
-      {$-116133$} & PBEsol from libXC.
+      {$-116133$} & PBEsol from libXC; \\ 
+      {$-406$}    & PBE0 Hybrid functional (local part from libXC).
       \end{tabular}
 \item {\bf ncharge}, {\bf elecfield}: Total charge of the system and constant electric field along the y direction in units of Ha/bohr. 
       A positive {\bf ncharge} means that electrons are taken away.
@@ -270,9 +284,9 @@ This file contains all the parameters required for a single wavefunction calcula
       and maximum number of cycles. At the end of each cycle a subspace diagonalization is done which helps 
 in cases where one has near degeneracy between the homo and lumo orbitals. $50$ and $2$ are usually sufficient.
 \item {\bf ncong}, {\bf idsx}: ncong gives the number of iterations in the solution of the preconditioning equation.
-      For free boundary conditions $5$ is a good value for periodic boundary condition 0 to 2 is sufficient and for 
-      periodic boundary conditions ??. Large values of {\bf ncong} lead to a smaller number of iterations in 
-      the wavefunction optimization, but each iteration is more costly. So an optimal compromise value has to be found.
+      For free boundary conditions $5$ is a good value whereas for other  boundary condition a value from 0 to 2 is in general sufficient. 
+      Large values of {\bf ncong} lead to a smaller number of iterations in 
+      the wavefunction optimization and better forces, but each iteration is more costly. So an optimal compromise value has to be found.
       {\bf idsx} gives the history length of the DIIS convergence acceleration in the wavefunction optimization.
       6 is usually a good value for fast convergence.\\
       In case of convergence problems it can be advantageous 
@@ -290,7 +304,9 @@ in cases where one has near degeneracy between the homo and lumo orbitals. $50$ 
       \begin{itemize}
        \item {\bf InputPsiId } = -2: Random numbers are used as input guess. This is of course a poor input guess which will 
                                     need many iterations of the wavefunction oprimization and might even lead to divergencies.
-       \item {\bf InputPsiId } = -1: The input wavefunction is imported from the CP2K code which uses Gaussians.
+       \item {\bf InputPsiId } = -1: The input wavefunction is imported from the CP2K code which uses Gaussians. 
+                                    The basis set should be contained in a file named \texttt{gaubasis.dat} whereas the coefficients should appear in the
+                                     \texttt{gaucoeff.dat} file. Both files are the output files of CP2K code. See the H2O-CP2K test for an example.
        \item {\bf InputPsiId } = 0: A subspace diagonalization in a minimal atomic basis set is used. This input guess 
                                     should be used in general if one starts a new calculation. 
        \item {\bf InputPsiId } = 1: The previously calculated wavefunctions (for instance from the previous 
@@ -301,8 +317,9 @@ in cases where one has near degeneracy between the homo and lumo orbitals. $50$ 
                                     scaling function and wavelet coefficients. In case some parameters such as {\bf hgridx} 
                                     or {\bf crmult} have changed, compared to the previous run, the wavefunctions will be 
                                     also transformed to the new parameter set.
+       \item {\bf InputPsiId } = 10: The same as 0 but activates the 'gaussian help': after convergence the wavefunctions are projected onto the localised basis set used for the input guess, and Mulliken Charge Population Analysis (MCPA) is performed on this basis. The user has the possiblity to perform MCPA with separate basis set (functionality to be added)
        \item {\bf InputPsiId } = 11: Restart with Gaussian approximation contained in the 'restart' data structure.
-       \item {\bf InputPsiId } = 12: The input wavefunction is read from the 'wave.gaus'  file, which contains an 
+       \item {\bf InputPsiId } = 12: The input wavefunction is read from the 'wavefunctions.gau'  file, which contains an 
                                     approximation in a minimal Gaussian basis set of the previously calculated wavefunctions.
        \item {\bf output\_wf} : If \texttt{.TRUE.} the output wavefunction is written at the end of the wavefunction optimization 
                                into files. If {\bf InputPsiId } was greater than 10 the wavefunction will be written 
@@ -324,24 +341,21 @@ treatment if the variable {\bf rbuf} is set to a strictly positive value.
                                       This procedure is not variational and gives too low energies. The true energy is 
                                       in between the two energies and in general much closer to the extrapolated energy. 
                                       This procedure can also be used to judge whether the chosen value of  {\bf crmult} is 
-                                      large enough for a certain required precision. 
+                                      large enough for a certain required precision.
                                       {\bf rbuf} gives the amount by which the radii for the coarse resolution region 
                                       are increased in atomic units. {\bf ncongt} gives the number of iterations used 
                                       in the pertubation calculation. Reasonable values for {\bf ncongt} are around 30.  
 
-\item {\bf nvirt}, {\bf  nplot}: Usually virtual (unoccupied) orbitals are not calculated since they are not needed for 
+\item {\bf norbv},{\bf nvirt}, {\bf  nplot}: Usually unoccupied orbitals are not calculated since they are not needed for 
                                  the total energy and other physical properties of the electronic ground state. 
-                                 Putting  {\bf nvirt} to a non-zero 
-                                 value will result in the calculation of {\bf nvirt} virtual orbitals in a postprocessing 
-                                 routine after the occupied orbitals have been calculated. {\bf nplot}  of these 
+                                 Putting  {\bf norbv} to  a non-zero 
+                                 value will result in the calculation of {\bf norbv} virtual orbitals in a postprocessing 
+                                 routine after the occupied orbitals have been calculated, which uses Davidson iterative treatment . {\bf nplot}  of these 
                                  orbitals will be written in the 'virtual.*.pot' files and {\bf nplot} (if that many exist) 
                                  of the highest occupied orbitals will be  written in the 'orbital.*.pot' file
-                                 The Kohn Sham eigenvalues are written in the ordinary output file. 
- 
+                                 The Kohn Sham eigenvalues are written in the ordinary output file.  {\bf nvirt} corresponds to the actual number of orbitals the convergence process is taking care of during the Davidson iterations.
 
-\item {\bf iat\_absorber}: X\_ray absorber treatment????
-\item {\bf atom no., read\_ref\_den, correct\_offset, gnrm\_sw}: Vacancy?????
-\item {\bf verbosity}: Determines the amount of output from little (0) to detailed (2).
+\item {\bf verbosity}: Determines the amount of output from little (0) to detailed (2). By adding 10 to its value it switch on the once-and-for-all strategy for calcuylating the PSP projectors, which is faster but more memory demanding (considered by memguess).
 \end{itemize}
 
 \section{The input file 'input.geopt'}
