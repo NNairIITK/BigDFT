@@ -944,9 +944,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
         ! exactly resolvable case 
 
         lpot_a=1
-        rpot_a = 6.0
-        spot_a = 1.0
-        hpot_a = 3.0
+        rpot_a = 6.0d0
+        spot_a = 1.0d0
+        hpot_a = 3.0d0
 
 
         allocate(radpot(30000 ,2+ndebug ))
@@ -1013,17 +1013,16 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
      endif
      
   end if
-  
-
 
   !    No tail calculation
   if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
- 
 
   call deallocate_before_exiting
-  
+
+
 contains
-  
+
+
   !routine which deallocate the pointers and the arrays before exiting 
   subroutine deallocate_before_exiting
     

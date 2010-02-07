@@ -33,7 +33,7 @@ program frequencies
   !File unit
   integer, parameter :: u_hessian=20
   integer :: iproc,nproc,iat,jat,i,j,i_stat,i_all,ierr,infocode,ity
-  real(gp) :: etot,etot_m,etot_p,sumx,sumy,sumz,alat,dd,rmass
+  real(gp) :: etot,sumx,sumy,sumz,alat,dd,rmass
   !Input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
@@ -49,6 +49,7 @@ program frequencies
   real(gp), dimension(:), allocatable :: eigen_r,eigen_i
   ! logical: .true. if already calculated
   logical, dimension(:,:), allocatable :: moves
+  real(gp), dimension(:,:), allocatable :: energies
   real(gp), dimension(:,:,:), allocatable :: forces
   real(gp), dimension(3) :: freq_step
   integer :: k,km,nelec,ii,jj,imoves,order,n_order
@@ -93,6 +94,8 @@ program frequencies
   call memocc(i_stat,fxyz,'fxyz',subname)
   allocate(moves(n_order,0:3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,moves,'moves',subname)
+  allocate(energies(n_order,0:3*atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,energies,'energies',subname)
   allocate(forces(3*atoms%nat,n_order,0:3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,forces,'forces',subname)
   allocate(rpos(3,atoms%nat+ndebug),stat=i_stat)
@@ -112,7 +115,7 @@ program frequencies
   call init_restart_objects(atoms,rst,subname)
 
   !Initialize the moves using a restart file if present
-  call frequencies_read_restart(atoms%nat,moves,imoves,n_order,forces,freq_step,atoms%amu,etot)
+  call frequencies_read_restart(atoms%nat,n_order,imoves,moves,energies,forces,freq_step,atoms%amu,etot)
   !Message
   if (iproc == 0) then
      write(*,'(1x,a,i6,a,i6,a)') '=F=> There are', imoves, ' moves already calculated over', &
@@ -125,8 +128,8 @@ program frequencies
      fxyz = forces(:,1,0)
   else
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
-     call frequencies_write_restart(iproc,0,0,0,rxyz,fxyz,&
-                                    n_order=n_order,freq_step=freq_step,amu=atoms%amu,etot=etot)
+     call frequencies_write_restart(iproc,0,0,0,rxyz,etot,fxyz,&
+                                    n_order=n_order,freq_step=freq_step,amu=atoms%amu)
      moves(:,0) = .true.
      call restart_inputs(inputs)
   end if
@@ -210,8 +213,8 @@ program frequencies
            else
               rpos(i,iat)=rxyz(i,iat)+dd
            end if
-           call call_bigdft(nproc,iproc,atoms,rpos,inputs,etot_m,fpos(:,km),rst,infocode)
-           call frequencies_write_restart(iproc,km,i,iat,rpos,fpos(:,km))
+           call call_bigdft(nproc,iproc,atoms,rpos,inputs,etot,fpos(:,km),rst,infocode)
+           call frequencies_write_restart(iproc,km,i,iat,rpos,etot,fpos(:,km))
            moves(km,ii) = .true.
            call restart_inputs(inputs)
            if (iproc == 0) then
@@ -335,6 +338,9 @@ program frequencies
   i_all=-product(shape(moves))*kind(moves)
   deallocate(moves,stat=i_stat)
   call memocc(i_stat,i_all,'moves',subname)
+  i_all=-product(shape(energies))*kind(energies)
+  deallocate(energies,stat=i_stat)
+  call memocc(i_stat,i_all,'energies',subname)
   i_all=-product(shape(forces))*kind(forces)
   deallocate(forces,stat=i_stat)
   call memocc(i_stat,i_all,'forces',subname)
@@ -376,11 +382,12 @@ contains
   END SUBROUTINE solve
 
 
-  subroutine frequencies_read_restart(nat,moves,imoves,n_order,forces,freq_step,amu,etot)
+  subroutine frequencies_read_restart(nat,n_order,imoves,moves,energies,forces,freq_step,amu,etot)
     implicit none
     !Arguments
     integer, intent(in) :: nat,n_order
     logical, dimension(n_order,0:3*nat), intent(out) :: moves
+    real(gp), dimension(n_order,0:3*nat), intent(out) :: energies
     real(gp), dimension(3*nat,n_order,0:1+3*nat), intent(out) :: forces
     real(gp), intent(in) :: freq_step(3)
     integer, intent(out) :: imoves
@@ -451,17 +458,19 @@ contains
        if (iproc == 0) write(*,freq_form) 'The reference state is not calculated in "frequencies.res" file.'
     else
        if (iproc == 0) write(*,freq_form) 'The reference state is already calculated.'
+       energies(:,0) = etot
        forces(:,1,0) = fxyz
        moves(:,0) = .true.
     end if
     do
-       read(unit=iunit,iostat=ierror) km,i,iat,rxyz,fxyz
+       read(unit=iunit,iostat=ierror) km,i,iat,rxyz,etot,fxyz
        if (ierror /= 0) then
           !Read error, we exit
           exit
        end if
        ii = i + 3*(iat-1)
        imoves = imoves + 1
+       energies(km,ii) = etot
        forces(:,km,ii) = fxyz
        moves(km,ii) = .true.
     end do
@@ -478,21 +487,21 @@ contains
   END SUBROUTINE frequencies_read_restart
 
 
-  subroutine frequencies_write_restart(iproc,km,i,iat,rxyz,fxyz,n_order,freq_step,amu,etot)
+  subroutine frequencies_write_restart(iproc,km,i,iat,rxyz,etot,fxyz,n_order,freq_step,amu)
     implicit none
     !Arguments
     integer, intent(in) :: iproc,km,i,iat
     real(gp), dimension(:,:), intent(in) :: rxyz
+    real(gp), intent(in) :: etot
     real(gp), dimension(:), intent(in) :: fxyz
     integer, intent(in), optional :: n_order
     real(gp), intent(in), optional :: freq_step(3)
     real(gp), dimension(:), intent(in), optional :: amu
-    real(gp), intent(in), optional :: etot
     !Local variables
     integer, parameter :: iunit = 15
     real(gp), dimension(:,:), allocatable :: fpos
     if (km == 0 .and. &
-        .not.(present(n_order).and.present(freq_step).and.present(amu).and.present(etot))) then
+        .not.(present(n_order).and.present(freq_step).and.present(amu))) then
         if (iproc == 0) write(*,*) "Bug for use of frequencies_write_restart"
         stop
     end if
@@ -503,7 +512,7 @@ contains
           write(unit=iunit) n_order,freq_step,amu
           write(unit=iunit) 0,etot,rxyz,fxyz
        else
-          write(unit=iunit) km,i,iat,rxyz,fxyz
+          write(unit=iunit) km,i,iat,etot,rxyz,fxyz
        end if
        close(unit=iunit)
     end if
@@ -519,5 +528,48 @@ contains
     inputs%output_wf=.false.
   END SUBROUTINE restart_inputs
 
+
 END PROGRAM frequencies
 !!***
+
+
+subroutine integrate_forces(energies,forces,n_moves,nat)
+  implicit none
+  !Arguments
+  integer, intent(in) :: n_moves,nat
+  real(gp), intent(in) :: energies(imoves)
+  real(gp), intent(in) :: forces(3*nat,imoves)
+  !Local variables
+  character(len=*), parameter :: subname = "integrate_forces"
+  real(gp), dimension(:), allocatable :: weight
+  real(gp) :: path
+  integer :: i,i_stat,i_all
+
+  !Allocation
+  allocate(weight(n_moves+ndebug),stat=i_stat)
+  call memocc(i_stat,weight,'weight',subname)
+
+  !Prepare the array of the correct weights of the iteration steps
+  if (mod(n_moves,2).ne.1) then
+     if (iproc == 0) write(*,*) 'the number of iteration steps has to be odd'
+     stop
+  end if
+  weight(1)=1.d0/3.d0
+  weight(2)=4.d0/3.d0
+  do i=3,n_moves-2,2
+     weight(i)=2.d0/3.d0
+     weight(i+1)=4.d0/3.d0
+  enddo
+  weight(n_moves)=1.d0/3.d0
+
+  !Start integration
+  path = 0_gp
+  do i=1,n
+  end do
+
+  !De-allocation
+  i_all=-product(shape(weight))*kind(weight)
+  deallocate(weight,stat=i_stat)
+  call memocc(i_stat,i_all,'weight',subname)
+
+END SUBROUTINE integrate_forces
