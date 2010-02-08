@@ -3,7 +3,8 @@ EXTRA_DIST = \
 	MagicFilter.h \
 	Uncompress.h \
 	Wavelet.h \
-	OpenCL_wrappers.h
+	Initialize.h \
+	OpenCL_wrappers.h \
 	$(SOURCES_CONV_CHECK)
 
 SOURCES_CONV_CHECK =
@@ -14,7 +15,7 @@ check_PROGRAMS = conv_check
 noinst_LIBRARIES = libbasef.a libbasec.a
 
 libbasef_a_SOURCES = ../profiling/memory.f90 ../modules/base.F90 ../modules/cublas_fake.f90 $(mpi_source)
-libbasec_a_SOURCES = OpenCL_wrappers.c MagicFilter.c Kinetic.c Wavelet.c
+libbasec_a_SOURCES = OpenCL_wrappers.c MagicFilter.c Kinetic.c Wavelet.c Uncompress.c Initialize.c
 
 if USE_MPI
 mpi_source =

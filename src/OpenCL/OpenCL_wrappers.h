@@ -28,6 +28,10 @@ extern cl_kernel compress_fine_kernel_l;
 void build_magicfilter_kernels(cl_context * context);
 void build_kinetic_kernels(cl_context * context);
 void build_wavelet_kernels(cl_context * context);
+void build_uncompress_kernels(cl_context * context);
+void build_initialize_kernels(cl_context * context);
+
 cl_device_id oclGetFirstDev(cl_context cxGPUContext);
+size_t shrRoundUp(size_t group_size, size_t global_size);
 
 #endif
