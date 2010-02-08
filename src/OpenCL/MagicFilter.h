@@ -2,6 +2,7 @@
 #define MAGICFILTER_H
 
 
+
 char * magicfilter1d_program="\
 #define FILTER_WIDTH 16\n\
 //n is supposed to be greater or equal than get_local_size(0)\n\
