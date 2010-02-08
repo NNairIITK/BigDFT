@@ -1,4 +1,9 @@
-EXTRA_DIST = $(SOURCES_CONV_CHECK)
+EXTRA_DIST = \
+	Kinetic.h \
+	MagicFilter.h \
+	Uncompress.h \
+	Wavelet.h \
+	$(SOURCES_CONV_CHECK)
 
 SOURCES_CONV_CHECK =
 SOURCES_SHARED =
