@@ -1,6 +1,4 @@
 #include "OpenCL_wrappers.h"
-#include "Wavelet.h"
-#include "Kinetic.h"
 #include "Uncompress.h"
 
 char * c_initialize_program="\
@@ -19,9 +17,6 @@ y_in[ig] = v;\n\
 };\n\
 ";
 
-cl_kernel ana1d_kernel_l;
-cl_kernel syn1d_kernel_l;
-cl_kernel kinetic1d_kernel_l;
 cl_kernel c_initialize_kernel_l;
 cl_kernel v_initialize_kernel_l;
 cl_kernel uncompress_coarse_kernel_l;
@@ -48,37 +43,10 @@ cl_device_id oclGetFirstDev(cl_context cxGPUContext)
 
 void FC_FUNC_(ocl_build_kernels,OCL_BUILD_KERNELS)(cl_context * context) {
     build_magicfilter_kernels(context);
+    build_kinetic_kernels(context);
+    build_wavelet_kernels(context);
 
     cl_int ciErrNum = CL_SUCCESS;
-    cl_program ana1dProgram = clCreateProgramWithSource(*context,1,(const char**) &ana1d_program, NULL, &ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create program!");
-    ciErrNum = clBuildProgram(ana1dProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
-    if (ciErrNum != CL_SUCCESS)
-    {
-        fprintf(stderr,"Error: Failed to build ana1d program!\n");
-        char cBuildLog[10240];
-        clGetProgramBuildInfo(ana1dProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
-	fprintf(stderr,"%s\n",cBuildLog);
-        exit(1);
-    }
-    ciErrNum = CL_SUCCESS;
-    ana1d_kernel_l=clCreateKernel(ana1dProgram,"ana1dKernel_l",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-
-    cl_program syn1dProgram = clCreateProgramWithSource(*context,1,(const char**) &syn1d_program, NULL, &ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create program!");
-    ciErrNum = clBuildProgram(syn1dProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
-    if (ciErrNum != CL_SUCCESS)
-    {
-        fprintf(stderr,"Error: Failed to build syn1d program!\n");
-        char cBuildLog[10240];
-        clGetProgramBuildInfo(syn1dProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
-	fprintf(stderr,"%s\n",cBuildLog);
-        exit(1);
-    }
-    ciErrNum = CL_SUCCESS;
-    syn1d_kernel_l=clCreateKernel(syn1dProgram,"syn1dKernel_l",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
 
     cl_program c_initializeProgram = clCreateProgramWithSource(*context,1,(const char**) &c_initialize_program, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
@@ -95,21 +63,6 @@ void FC_FUNC_(ocl_build_kernels,OCL_BUILD_KERNELS)(cl_context * context) {
     c_initialize_kernel_l=clCreateKernel(c_initializeProgram,"c_initializeKernel_l",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     v_initialize_kernel_l=clCreateKernel(c_initializeProgram,"v_initializeKernel_l",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-
-    cl_program kinetic1dProgram = clCreateProgramWithSource(*context,1,(const char**) &kinetic1d_program, NULL, &ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create program!");
-    ciErrNum = clBuildProgram(kinetic1dProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
-    if (ciErrNum != CL_SUCCESS)
-    {
-        fprintf(stderr,"Error: Failed to build kinetic1d program!\n");
-        char cBuildLog[10240];
-        clGetProgramBuildInfo(kinetic1dProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
-	fprintf(stderr,"%s\n",cBuildLog);
-        exit(1);
-    }
-    ciErrNum = CL_SUCCESS;
-    kinetic1d_kernel_l=clCreateKernel(kinetic1dProgram,"kinetic1dKernel_l",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
 
     cl_program uncompressProgram = clCreateProgramWithSource(*context,1,(const char**) &uncompress_program, NULL, &ciErrNum);
@@ -267,114 +220,6 @@ size_t shrRoundUp(size_t group_size, size_t global_size)
 }
 
 
-
-void FC_FUNC_(ana1d_l,ANA1D_L)(cl_command_queue *command_queue, size_t *n,size_t *ndat,cl_mem *psi,cl_mem *out){
-    cl_int ciErrNum;
-#if DEBUG     
-    printf("%s %s\n", __func__, __FILE__);
-    printf("command queue: %p, dimension n: %d, dimension dat: %d, psi: %p, out: %p\n",*command_queue, *n, *ndat, *psi, *out);
-#endif
-    int FILTER_WIDTH = 16;
-    if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
-    size_t block_size_i=FILTER_WIDTH, block_size_j=256/FILTER_WIDTH;
-    while (*n > block_size_i >= 1 && block_size_j > 8)
-        { block_size_i *= 2; block_size_j /= 2;}
-    cl_uint i = 0;
-    clSetKernelArg(ana1d_kernel_l, i++,sizeof(*n), (void*)n);
-    clSetKernelArg(ana1d_kernel_l, i++,sizeof(*ndat), (void*)ndat);
-    clSetKernelArg(ana1d_kernel_l, i++,sizeof(*psi), (void*)psi);
-    clSetKernelArg(ana1d_kernel_l, i++,sizeof(*out), (void*)out);
-    clSetKernelArg(ana1d_kernel_l, i++,sizeof(float)*block_size_j*(block_size_i*2+FILTER_WIDTH), 0);
-    size_t localWorkSize[] = { block_size_i,block_size_j };
-    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
-    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, ana1d_kernel_l, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-    if (ciErrNum != CL_SUCCESS)
-    {
-        fprintf(stderr,"Error %d: Failed to enqueue ana1d_l kernel!\n",ciErrNum);
-        fprintf(stderr,"globalWorkSize = { %d, %d}\n",globalWorkSize[0],globalWorkSize[1]);
-        fprintf(stderr,"localWorkSize = { %d, %d}\n",localWorkSize[0],localWorkSize[1]);
-        exit(1);
-    }
-
-}
-
-void FC_FUNC_(syn1d_l,SYN1D_L)(cl_command_queue *command_queue, size_t *n,size_t *ndat,cl_mem *psi,cl_mem *out){
-    cl_int ciErrNum;
-#if DEBUG     
-    printf("%s %s\n", __func__, __FILE__);
-    printf("command queue: %p, dimension n: %d, dimension dat: %d, psi: %p, out: %p\n",*command_queue, *n, *ndat, *psi, *out);
-#endif
-    int FILTER_WIDTH = 16;
-    if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
-    size_t block_size_i=FILTER_WIDTH, block_size_j=256/FILTER_WIDTH;
-    while (*n > block_size_i >= 1 && block_size_j > 8)
-        { block_size_i *= 2; block_size_j /= 2;}
-    cl_uint i = 0;
-    clSetKernelArg(syn1d_kernel_l, i++,sizeof(*n), (void*)n);
-    clSetKernelArg(syn1d_kernel_l, i++,sizeof(*ndat), (void*)ndat);
-    clSetKernelArg(syn1d_kernel_l, i++,sizeof(*psi), (void*)psi);
-    clSetKernelArg(syn1d_kernel_l, i++,sizeof(*out), (void*)out);
-    clSetKernelArg(syn1d_kernel_l, i++,sizeof(float)*block_size_j*(block_size_i+FILTER_WIDTH), NULL);
-    clSetKernelArg(syn1d_kernel_l, i++,sizeof(float)*block_size_j*(block_size_i+FILTER_WIDTH), NULL);
-    size_t localWorkSize[] = { block_size_i,block_size_j };
-    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
-    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, syn1d_kernel_l, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-    if (ciErrNum != CL_SUCCESS)
-    {         
-        fprintf(stderr,"Error %d: Failed to enqueue syn1d_l kernel!\n",ciErrNum);
-        fprintf(stderr,"globalWorkSize = { %d, %d}\n",globalWorkSize[0],globalWorkSize[1]);
-        fprintf(stderr,"localWorkSize = { %d, %d}\n",localWorkSize[0],localWorkSize[1]);
-        exit(1);
-    }  
-}
-
-void FC_FUNC_(kinetic1d_l,KINETIC1D_L)(cl_command_queue *command_queue, size_t *n,size_t *ndat, float *h, float*c, cl_mem *x, cl_mem *y, cl_mem *workx, cl_mem *worky,float *ekin){
-    cl_int ciErrNum;
-#if DEBUG     
-    printf("%s %s\n", __func__, __FILE__);
-    printf("command queue: %p, dimension n: %d, dimension dat: %d, h: %f, c: %f, x: %p, workx: %p, y: %p, worky: %p\n",*command_queue, *n, *ndat, *h, *c, *x, *workx, *y, *worky);
-#endif
-    int FILTER_WIDTH = 30;
-    if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
-    size_t block_size_i=32, block_size_j=256/32;
-    while (*n > block_size_i >= 1 && block_size_j > 4)
-        { block_size_i *= 2; block_size_j /= 2;}
-    cl_uint i = 0;
-    clSetKernelArg(c_initialize_kernel_l, i++,sizeof(*n), (void*)n);
-    clSetKernelArg(c_initialize_kernel_l, i++,sizeof(*ndat), (void*)ndat);
-    clSetKernelArg(c_initialize_kernel_l, i++,sizeof(*x), (void*)x);
-    clSetKernelArg(c_initialize_kernel_l, i++,sizeof(*worky), (void*)worky);
-    clSetKernelArg(c_initialize_kernel_l, i++,sizeof(*c), (void*)c);
-    size_t localWorkSize[] = { block_size_i,block_size_j };
-    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
-    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, c_initialize_kernel_l, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-    
-    if (ciErrNum != CL_SUCCESS)
-    {
-        fprintf(stderr,"Error %d: Failed to enqueue c_initialize_l kernel!\n",ciErrNum);
-        fprintf(stderr,"globalWorkSize = { %d, %d}\n",globalWorkSize[0],globalWorkSize[1]);
-        fprintf(stderr,"localWorkSize = { %d, %d}\n",localWorkSize[0],localWorkSize[1]);
-        exit(1);
-    }
-    i = 0;
-    float scale = 0.5 / ( *h * (*h) );
-    clSetKernelArg(kinetic1d_kernel_l, i++,sizeof(*n), (void*)n);
-    clSetKernelArg(kinetic1d_kernel_l, i++,sizeof(*ndat), (void*)ndat);
-    clSetKernelArg(kinetic1d_kernel_l, i++,sizeof(scale), (void*)&scale);
-    clSetKernelArg(kinetic1d_kernel_l, i++,sizeof(*x), (void*)x);
-    clSetKernelArg(kinetic1d_kernel_l, i++,sizeof(*workx), (void*)workx);
-    clSetKernelArg(kinetic1d_kernel_l, i++,sizeof(*worky), (void*)worky);
-    clSetKernelArg(kinetic1d_kernel_l, i++,sizeof(*y), (void*)y);
-    clSetKernelArg(kinetic1d_kernel_l, i++,sizeof(float)*block_size_j*(block_size_i+FILTER_WIDTH), NULL);
-    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kinetic1d_kernel_l, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-    if (ciErrNum != CL_SUCCESS)
-    {
-        fprintf(stderr,"Error %d: Failed to enqueue kinetic1d_l kernel!\n",ciErrNum);
-        fprintf(stderr,"globalWorkSize = { %d, %d}\n",globalWorkSize[0],globalWorkSize[1]);
-        fprintf(stderr,"localWorkSize = { %d, %d}\n",localWorkSize[0],localWorkSize[1]);
-        exit(1);
-    }
-}
 
 void FC_FUNC_(uncompress_l,UNCOMPRESS_L)(cl_command_queue *command_queue, size_t *n1, size_t *n2, size_t *n3,
                                        size_t *nseg_c, size_t *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 

@@ -14,7 +14,7 @@ check_PROGRAMS = conv_check
 noinst_LIBRARIES = libbasef.a libbasec.a
 
 libbasef_a_SOURCES = ../profiling/memory.f90 ../modules/base.F90 ../modules/cublas_fake.f90 $(mpi_source)
-libbasec_a_SOURCES = OpenCL_wrappers.c MagicFilter.c
+libbasec_a_SOURCES = OpenCL_wrappers.c MagicFilter.c Kinetic.c Wavelet.c
 
 if USE_MPI
 mpi_source =
