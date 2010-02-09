@@ -1194,16 +1194,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)
      call memocc(i_stat,i_all,'rhopot',subname)
-     if (allocated(irrzon)) then
-        i_all=-product(shape(irrzon))*kind(irrzon)
-        deallocate(irrzon,stat=i_stat)
-        call memocc(i_stat,i_all,'irrzon',subname)
-     end if
-     if (allocated(phnons)) then
-        i_all=-product(shape(phnons))*kind(phnons)
-        deallocate(phnons,stat=i_stat)
-        call memocc(i_stat,i_all,'phnons',subname)
-     end if
      
      if (in%read_ref_den) then
         i_all=-product(shape(rhoref))*kind(rhoref)
@@ -1442,6 +1432,17 @@ contains
     i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
     deallocate(atoms%npspcode,stat=i_stat)
     call memocc(i_stat,i_all,'npspcode',subname)
+
+    if (allocated(irrzon)) then
+       i_all=-product(shape(irrzon))*kind(irrzon)
+       deallocate(irrzon,stat=i_stat)
+       call memocc(i_stat,i_all,'irrzon',subname)
+    end if
+    if (allocated(phnons)) then
+       i_all=-product(shape(phnons))*kind(phnons)
+       deallocate(phnons,stat=i_stat)
+       call memocc(i_stat,i_all,'phnons',subname)
+    end if
 
     ! Free the libXC stuff if necessary.
     if (ixc < 0) then
