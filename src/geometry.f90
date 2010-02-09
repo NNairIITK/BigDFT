@@ -156,7 +156,7 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   ! Prepare the objects used by ABINIT.
   allocate(amass(at%nat))
-  allocate(xfhist(3, at%nat + 4, 2, in%ncount_cluster_x))
+  allocate(xfhist(3, at%nat + 4, 2, in%ncount_cluster_x+1))
   allocate(vel(3, at%nat))
   allocate(xred(3, at%nat))
   allocate(iatfix(3, at%nat))
@@ -189,11 +189,14 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         iatfix(2, iat) = 0
      end if
   end do
-  vel(:,:) = zero
+
+  !read the velocities from input file, if present
+  call read_velocities(iproc,'velocities.xyz',at,vel)
+  !vel(:,:) = zero
 
   ! Call the ABINIT routine.
   ! currently, we force optcell == 0
-  call moldyn(acell, amass, iproc, in%ncount_cluster_x, nxfh, at%nat, &
+  call moldyn(acell, amass, iproc, in%ncount_cluster_x+1, nxfh, at%nat, &
        & rprim, epot, iexit, &
        & 0, in%ionmov, in%ncount_cluster_x, in%dtion, in%noseinert, &
        & in%mditemp, in%mdftemp, in%friction, in%mdwall, in%nnos, &
@@ -2010,7 +2013,11 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   previous_forces(1,:) = f(:)
   previous_pos(1,:) = x(:)
 
-  x(:) = x(:) + in%betax * f(:)
+  !x(:) = x(:) + in%betax * f(:)
+  !always better to use the atomic_* routines to move atoms
+  !it performs modulo operation as well as constrained search
+  call atomic_axpy(at,x,in%betax,f,x)
+
   do lter = 2, in%ncount_cluster_x
 
      maxter = min(lter, in%history)
@@ -2081,6 +2088,8 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      do i = 1, maxter
         x(:) = x(:) + solution(i) * previous_pos(i,:)
      end do
+     !reput the modulo operation on the atoms
+     call atomic_axpy(at,x,0.0_gp,x,x)
 
      i_all=-product(shape(solution))*kind(solution)
      deallocate(solution,stat=i_stat)
@@ -2118,12 +2127,14 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      endif
 
      if(ncount_bigdft>in%ncount_cluster_x-1)  then 
-      if (iproc==0)  write(16,*) 'DIIS exited before the geometry optimization converged because more than ',& 
+      if (iproc==0)  &
+           write(16,*) 'DIIS exited before the geometry optimization converged because more than ',& 
                             in%ncount_cluster_x,' wavefunction optimizations were required'
       exit
      endif
 
-     x(:) = x(:) + in%betax * f(:)
+     !x(:) = x(:) + in%betax * f(:)
+     call atomic_axpy(at,x,in%betax,f,x)
   end do
 
   i_all=-product(shape(previous_forces))*kind(previous_forces)

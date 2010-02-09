@@ -75,8 +75,6 @@
      call cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
           rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,infocode)
-     
-
 
      if (in%inputPsiId==1 .and. infocode==2) then
         if (in%gaussian_help) then
@@ -931,10 +929,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
   end if
 
-  if (in%gaussian_help) then
- end if
-
-
   !plot the ionic potential, if required by output_grid
   if (abs(in%output_grid)==2) then
      if (in%output_grid==2) then
@@ -1153,7 +1147,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !perform here the mulliken charge and density of states
   !localise them on the basis of gatom of a number of atoms
-  if (in%gaussian_help) then
+  if (in%gaussian_help .and. .false.) then
      call local_analysis(iproc,nproc,hx,hy,hz,shift,Glr,orbs,orbsv,psi,psivirt)
   end if
 
