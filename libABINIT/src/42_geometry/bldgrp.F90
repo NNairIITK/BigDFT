@@ -3,7 +3,6 @@
 !! NAME bldgrp
 !! bldgrp
 !!
-!!
 !! FUNCTION
 !! Yields all the symmetry operations starting from the generators.
 !! Applies all the generators onto themselves, and obtains all the other operations.
@@ -54,7 +53,8 @@ subroutine bldgrp(msym,nogen,nsym,symafm,symrel,tnons)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
- !use interfaces_01manage_mpi
+ use interfaces_14_hidewrite
+ use interfaces_16_hideleave
 !End of the abilint section
 
  implicit none
@@ -74,7 +74,7 @@ subroutine bldgrp(msym,nogen,nsym,symafm,symrel,tnons)
 !      the obtained operation and the already existent ones
 !ii,ijk,ijkl,jjj,kk = counters in the cycles
 !scalars
- integer :: flagop,flagtr,ii,ijk,ijkl,jj,jjj,kk,matrintsymafm,nogen_new
+ integer :: flagop,flagtr,ii,ijk,ijkl,jjj,kk,matrintsymafm,nogen_new
  real(dp) :: nastyzero
  character(len=500) :: message
 !arrays
@@ -92,21 +92,21 @@ subroutine bldgrp(msym,nogen,nsym,symafm,symrel,tnons)
 !ENDDEBUG
 
  if (nogen<1) then
-  write(message, '(a,a,a,a,i4,a,a,a,a,a)' ) ch10,&
-&  ' abinit : BUG -',ch10,&
-&  ' bldgrp :  The number of generators nogen is ',nogen,&
-&  '  and it should be greater than one',ch10,&
-&  '  This is not allowed.  ',ch10,&
-&  '  Action : Contact ABINIT group '
-  call wrtout(06,  message,'COLL')
-  call leave_new('COLL')
+   write(message, '(a,a,a,a,i4,a,a,a,a,a)' ) ch10,&
+&   ' abinit : BUG -',ch10,&
+&   ' bldgrp :  The number of generators nogen is ',nogen,&
+&   '  and it should be greater than one',ch10,&
+&   '  This is not allowed.  ',ch10,&
+&   '  Action : Contact ABINIT group '
+   call wrtout(std_out,  message,'COLL')
+   call leave_new('COLL')
  end if
 
 !Transfer the generators to bcksymrel
  do ii=1,nogen
-  bcksymrel(:,:,ii)=symrel(:,:,ii)
-  bcktnons(:,ii)=tnons(:,ii)
-  bcksymafm(ii)=symafm(ii)
+   bcksymrel(:,:,ii)=symrel(:,:,ii)
+   bcktnons(:,ii)=tnons(:,ii)
+   bcksymafm(ii)=symafm(ii)
  end do
 !DEBUG
 !write(6,*)' Describe the different generators (index,symrel,tnons,symafm)'
@@ -118,85 +118,85 @@ subroutine bldgrp(msym,nogen,nsym,symafm,symrel,tnons)
 !Simply iterate until the group is complete
  do ijkl=1,nsym
 
-! DEBUG
-! write(6,*)' bldgrp : in loop, ijkl,nogen=',ijkl,nogen
-! ENDDEBUG
+!  DEBUG
+!  write(6,*)' bldgrp : in loop, ijkl,nogen=',ijkl,nogen
+!  ENDDEBUG
 
-  nogen_new=nogen
+   nogen_new=nogen
 
-  do jjj=2,nogen
-   do kk=2,nogen
+   do jjj=2,nogen
+     do kk=2,nogen
 
-!   Computing block of the new symmetry operation according to:
-!   !   $ { R1 | v1 }{ R2 | v2 } = { R1.R2 | v1+R1.v2 } $
-    matrintoper(:,:) = matmul(bcksymrel(:,:,jjj),bcksymrel(:,:,kk))
-    matrinttransl(:) = bcktnons(:,jjj)+matmul(bcksymrel(:,:,jjj),bcktnons(:,kk))
-    matrintsymafm    = bcksymafm(jjj)*bcksymafm(kk)
+!      Computing block of the new symmetry operation according to:
+!      !   $ { R1 | v1 }{ R2 | v2 } = { R1.R2 | v1+R1.v2 } $
+       matrintoper(:,:) = matmul(bcksymrel(:,:,jjj),bcksymrel(:,:,kk))
+       matrinttransl(:) = bcktnons(:,jjj)+matmul(bcksymrel(:,:,jjj),bcktnons(:,kk))
+       matrintsymafm    = bcksymafm(jjj)*bcksymafm(kk)
 
-!   Rescaling translation between 0 and 1
-    do ii=1,3
-     if (matrinttransl(ii)>=0.9) then
-      do while (matrinttransl(ii)>=0.9)
-       matrinttransl(ii)=matrinttransl(ii)-1.0
-      end do
-     end if
-     if (matrinttransl(ii)<0.0) then
-      do while (matrinttransl(ii)<0.0)
-       matrinttransl(ii)=matrinttransl(ii)+1.0
-      end do
-     end if
-     if ( abs(matrinttransl(ii))<nastyzero) matrinttransl(ii)=0.0
-     if ( abs(matrinttransl(ii)-1.0)<nastyzero) matrinttransl(ii)=0.0
-    end do
+!      Rescaling translation between 0 and 1
+       do ii=1,3
+         if (matrinttransl(ii)>=0.9) then
+           do while (matrinttransl(ii)>=0.9)
+             matrinttransl(ii)=matrinttransl(ii)-1.0
+           end do
+         end if
+         if (matrinttransl(ii)<0.0) then
+           do while (matrinttransl(ii)<0.0)
+             matrinttransl(ii)=matrinttransl(ii)+1.0
+           end do
+         end if
+         if ( abs(matrinttransl(ii))<nastyzero) matrinttransl(ii)=0.0
+         if ( abs(matrinttransl(ii)-1.0)<nastyzero) matrinttransl(ii)=0.0
+       end do
 
-!   Cheking block to validate the new symmetry operation
-    do ijk=1,nogen_new
+!      Cheking block to validate the new symmetry operation
+       do ijk=1,nogen_new
 
-     flagop=0 ; flagtr=0
+         flagop=0 ; flagtr=0
 
-!    Check for rotation similarity
-     if(sum((matrintoper-bcksymrel(:,:,ijk))**2)==0)flagop=1
+!        Check for rotation similarity
+         if(sum((matrintoper-bcksymrel(:,:,ijk))**2)==0)flagop=1
 
-!    Check for translation similarity
-     if(maxval((matrinttransl-bcktnons(:,ijk))**2)<nastyzero**2)flagtr=1
+!        Check for translation similarity
+         if(maxval((matrinttransl-bcktnons(:,ijk))**2)<nastyzero**2)flagtr=1
 
-     if(flagop+flagtr==2)exit
+         if(flagop+flagtr==2)exit
 
-    end do
+       end do
 
-!   Add the new determined symmetry if it is unique
-    if (flagtr+flagop<2) then
-     nogen_new=nogen_new+1
-!    DEBUG
-!    write(6,*)' added one more symmetry : nogen_new=',nogen_new
-!    ENDDEBUG
-     bcksymrel(:,:,nogen_new)=matrintoper(:,:)
-     bcktnons(:,nogen_new)=matrinttransl(:)
-     bcksymafm(nogen_new)=matrintsymafm
-    end if
+!      Add the new determined symmetry if it is unique
+       if (flagtr+flagop<2) then
+         nogen_new=nogen_new+1
+!        DEBUG
+!        write(6,*)' added one more symmetry : nogen_new=',nogen_new
+!        ENDDEBUG
+         bcksymrel(:,:,nogen_new)=matrintoper(:,:)
+         bcktnons(:,nogen_new)=matrinttransl(:)
+         bcksymafm(nogen_new)=matrintsymafm
+       end if
 
+     end do
    end do
-  end do
 
-  nogen=nogen_new
+   nogen=nogen_new
 
-  if(nogen==nsym)exit
+   if(nogen==nsym)exit
 
  end do
 
 !Transfer of the calculated symmetry to the routine output
  if (nogen==nsym) then
-  symrel(:,:,1:nsym)=bcksymrel(:,:,1:nsym)
-  tnons(:,1:nsym)=bcktnons(:,1:nsym)
-  symafm(1:nsym)=bcksymafm(1:nsym)
+   symrel(:,:,1:nsym)=bcksymrel(:,:,1:nsym)
+   tnons(:,1:nsym)=bcktnons(:,1:nsym)
+   symafm(1:nsym)=bcksymafm(1:nsym)
  else
-! Problem with the generation of the symmetry operations
-  write(message, '(a,a,a,a,i7,a,a,i7)' ) ch10,&
-&  ' bldgrp : BUG -',ch10,&
-&  '  The symmetries obtained are  ',nogen,ch10,&
-&  '  and they should be ',nsym
-  call wrtout(06,  message,'COLL')
-  call leave_new('COLL')
+!  Problem with the generation of the symmetry operations
+   write(message, '(a,a,a,a,i7,a,a,i7)' ) ch10,&
+&   ' bldgrp : BUG -',ch10,&
+&   '  The symmetries obtained are  ',nogen,ch10,&
+&   '  and they should be ',nsym
+   call wrtout(std_out,  message,'COLL')
+   call leave_new('COLL')
  end if
 
 !DEBUG

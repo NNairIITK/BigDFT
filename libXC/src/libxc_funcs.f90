@@ -8,7 +8,7 @@ module libxc_funcs_m
   integer, parameter :: XC_LDA_C_RPA         =   3  !  Random Phase Approximation   
   integer, parameter :: XC_LDA_C_HL          =   4  !  Hedin & Lundqvist            
   integer, parameter :: XC_LDA_C_GL          =   5  !  Gunnarson & Lundqvist        
-  integer, parameter :: XC_LDA_C_XALPHA      =   6  !  Slater's Xalpha              
+  integer, parameter :: XC_LDA_C_XALPHA      =   6  !  Slater Xalpha                
   integer, parameter :: XC_LDA_C_VWN         =   7  !  Vosko, Wilk, & Nussair       
   integer, parameter :: XC_LDA_C_VWN_RPA     =   8  !  Vosko, Wilk, & Nussair (RPA) 
   integer, parameter :: XC_LDA_C_PZ          =   9  !  Perdew & Zunger              
@@ -23,6 +23,7 @@ module libxc_funcs_m
   integer, parameter :: XC_LDA_C_1D_CSC      =  18  !  Casula, Sorella, and Senatore 1D correlation     
   integer, parameter :: XC_LDA_X_2D          =  19  !  Exchange in 2D 
   integer, parameter :: XC_LDA_XC_TETER93    =  20  !  Teter 93 parametrization                
+  integer, parameter :: XC_LDA_X_1D          =  21  !  Exchange in 1D     
   integer, parameter :: XC_GGA_X_PBE         = 101  !  Perdew, Burke & Ernzerhof exchange             
   integer, parameter :: XC_GGA_X_PBE_R       = 102  !  Perdew, Burke & Ernzerhof exchange (revised)   
   integer, parameter :: XC_GGA_X_B86         = 103  !  Becke 86 Xalfa,beta,gamma                      
@@ -48,6 +49,10 @@ module libxc_funcs_m
   integer, parameter :: XC_GGA_X_XPBE        = 123  !  xPBE reparametrization by Xu & Goddard         
   integer, parameter :: XC_GGA_X_2D_B86_MGC  = 124  !  Becke 86 MGC for 2D systems 
   integer, parameter :: XC_GGA_X_BAYESIAN    = 125  !  Bayesian best fit for the enhancement factor 
+  integer, parameter :: XC_GGA_X_PBE_JSJR    = 126  !  JSJR reparametrization by Pedroza, Silva & Capelle 
+  integer, parameter :: XC_GGA_X_2D_B88      = 127  !  Becke 88 in 2D 
+  integer, parameter :: XC_GGA_X_2D_B86      = 128  !  Becke 86 Xalfa,beta,gamma                      
+  integer, parameter :: XC_GGA_X_2D_PBE      = 129  !  Perdew, Burke & Ernzerhof exchange in 2D          
   integer, parameter :: XC_GGA_C_PBE         = 130  !  Perdew, Burke & Ernzerhof correlation          
   integer, parameter :: XC_GGA_C_LYP         = 131  !  Lee, Yang & Parr 
   integer, parameter :: XC_GGA_C_P86         = 132  !  Perdew 86 
@@ -56,6 +61,10 @@ module libxc_funcs_m
   integer, parameter :: XC_GGA_C_AM05        = 135  !  Armiento & Mattsson 05 correlation             
   integer, parameter :: XC_GGA_C_XPBE        = 136  !  xPBE reparametrization by Xu & Goddard         
   integer, parameter :: XC_GGA_C_LM          = 137  !  Langreth and Mehl correlation          
+  integer, parameter :: XC_GGA_C_PBE_JRGX    = 138  !  JRGX reparametrization by Pedroza, Silva & Capelle 
+  integer, parameter :: XC_GGA_X_OPTB88_VDW  = 139  !  Becke 88 reoptimized to be used with vdW functional of Dion et al
+  integer, parameter :: XC_GGA_X_PBEK1_VDW   = 140  !  PBE reparametrization for vdW 
+  integer, parameter :: XC_GGA_X_OPTPBE_VDW  = 141  !  PBE reparametrization for vdW 
   integer, parameter :: XC_GGA_XC_LB         = 160  !  van Leeuwen & Baerends 
   integer, parameter :: XC_GGA_XC_HCTH_93    = 161  !  HCTH functional fitted to  93 molecules  
   integer, parameter :: XC_GGA_XC_HCTH_120   = 162  !  HCTH functional fitted to 120 molecules  
@@ -107,6 +116,10 @@ module libxc_funcs_m
   integer, parameter :: XC_MGGA_X_M06L       = 203  !  Zhao, Truhlar exchange 
   integer, parameter :: XC_MGGA_X_GVT4       = 204  !  GVT4 from Van Voorhis and Scuseria (exchange part)    
   integer, parameter :: XC_MGGA_X_TAU_HCTH   = 205  !  tau-HCTH from Boese and Handy 
+  integer, parameter :: XC_MGGA_X_BR89       = 206  !  Becke-Roussel 89  
+  integer, parameter :: XC_MGGA_X_BJ06       = 207  !  Becke & Johnson correction to Becke-Roussel 89  
+  integer, parameter :: XC_MGGA_X_TB09       = 208  !  Tran & Blaha correction to Becke & Johnson  
+  integer, parameter :: XC_MGGA_X_RPP09      = 209  !  Rasanen, Pittalis, and Proetto correction to Becke & Johnson  
   integer, parameter :: XC_MGGA_C_TPSS       = 231  !  Perdew, Tao, Staroverov & Scuseria correlation 
   integer, parameter :: XC_MGGA_C_VSXC       = 232  !  VSxc from Van Voorhis and Scuseria (correlation part) 
   integer, parameter :: XC_LCA_OMC           = 301  !  Orestes, Marcasso & Capelle  

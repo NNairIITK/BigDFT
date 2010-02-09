@@ -280,13 +280,13 @@ END SUBROUTINE createProjectorsArrays
 
 subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
      Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj,& 
-     pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin)
+     pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin,symObj,irrzon,phnons)
   use module_base
   use module_interfaces, except_this_one_A => import_gaussians
   use module_types
   use Poisson_Solver
   implicit none
-  integer, intent(in) :: iproc,nproc,ixc,nspin
+  integer, intent(in) :: iproc,nproc,ixc,nspin,symObj
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -301,6 +301,8 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
   real(dp), dimension(*), intent(inout) :: rhopot
   real(wp), dimension(*), intent(inout) :: pot_ion
   real(wp), dimension(:), pointer :: psi,psit,hpsi
+  integer, dimension(:,:,:), intent(in) :: irrzon
+  real(dp), dimension(:,:,:), intent(in) :: phnons
   !local variables
   character(len=*), parameter :: subname='import_gaussians'
   integer :: i_stat,i_all
@@ -378,7 +380,8 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
   call memocc(i_stat,i_all,'wfn_cp2k',subname)
 
   call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-       Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,1,GPU)
+       & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,1,GPU,&
+       & symObj,irrzon,phnons)
 
   call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,1)
@@ -419,7 +422,7 @@ END SUBROUTINE import_gaussians
 subroutine input_wf_diag(iproc,nproc,at,&
      orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
      nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
-     nscatterarr,ngatherarr,nspin,potshortcut)
+     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -429,7 +432,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   use Poisson_Solver
   implicit none
   !Arguments
-  integer, intent(in) :: iproc,nproc,ixc
+  integer, intent(in) :: iproc,nproc,ixc,symObj
   integer, intent(inout) :: nspin,nvirt
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
@@ -447,6 +450,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
   type(gaussian_basis), intent(out) :: G !basis for davidson IG
   real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
   integer, intent(in) ::potshortcut
+  integer, dimension(:,:,:), intent(in) :: irrzon
+  real(dp), dimension(:,:,:), intent(in) :: phnons
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   integer, parameter :: ngx=31
@@ -555,7 +560,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
   !application of the hamiltonian for gaussian based treatment
   call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-       Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU)
+       & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
+       & symObj, irrzon, phnons)
   
   if(orbs%nspinor==4) then
      !this wrapper can be inserted inside the poisson solver 
@@ -677,7 +683,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
        rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel)
+       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernel)
 
 !!!  !calculate the overlap matrix knowing that the original functions are gaussian-based
 !!!  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
@@ -737,7 +743,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   deallocate(norbsc_arr,stat=i_stat)
   call memocc(i_stat,i_all,'norbsc_arr',subname)
 
-  if (iproc == 0 .and. verbose > 1) then
+  if (iproc == 0) then
      write(*,'(1x,a)')'done.'
      !gaussian estimation valid only for Free BC
      if (at%geocode == 'F') then
@@ -761,7 +767,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
      !call deallocate_gwf(G,subname)
      call deallocate_orbs(orbsv,subname)
   end if
-
 
   call deallocate_orbs(orbse,subname)
      

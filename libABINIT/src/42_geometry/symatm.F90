@@ -44,19 +44,21 @@
 !! natom=number of atoms in cell.
 !! nsym=number of space group symmetries.
 !! symrec(3,3,nsym)=symmetries expressed in terms of their action on
-!!   reciprocal space primitive translations (integer).
+!!                  reciprocal space primitive translations (integer).
 !! tnons(3,nsym)=nonsymmorphic translations for each symmetry (would
-!!   be 0 0 0 each for a symmorphic space group)
+!!               be 0 0 0 each for a symmorphic space group)
 !! typat(natom)=integer identifying type of atom.
 !! xred(3,natom)=reduced coordinates of atoms in terms of real space
-!!   primitive translations
+!!               primitive translations
+!! tolsym=tolerance for the symmetries
 !!
 !! OUTPUT
 !! indsym(4,nsym,natom)=indirect indexing array described above: for each
-!! isym,iatom, fourth element is label of atom into which iatom is sent by
-!! INVERSE of symmetry operation isym; first three elements are the primitive
-!! translations which must be subtracted after the transformation to get back
-!! to the original unit cell.
+!!                      isym,iatom, fourth element is label of atom into
+!!                      which iatom is sent by INVERSE of symmetry operation
+!!                      isym; first three elements are the primitive
+!!                      translations which must be subtracted after the
+!!                      transformation to get back to the original unit cell.
 !!
 !! PARENTS
 !!      m_crystal,rdddb9,setsym
@@ -76,9 +78,9 @@ subroutine symatm(indsym,natom,nsym,symrec,tnons,tolsym,typat,xred)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-! use interfaces_14_hidewrite
-! use interfaces_16_hideleave
-! use interfaces_42_geometry, except_this_one => symatm
+ use interfaces_14_hidewrite
+ use interfaces_16_hideleave
+ use interfaces_42_geometry, except_this_one => symatm
 !End of the abilint section
 
  implicit none
@@ -107,82 +109,82 @@ subroutine symatm(indsym,natom,nsym,symrec,tnons,tolsym,typat,xred)
  errout=0
 
  do isym=1,nsym
-  do iatom=1,natom
+   do iatom=1,natom
 
-   do mu=1,3
-!   Apply inverse transformation to original coordinates
-!   note transpose of symrec :
-    tratom(mu) = dble(symrec(1,mu,isym))*(xred(1,iatom)-tnons(1,isym))&
-&    +dble(symrec(2,mu,isym))*(xred(2,iatom)-tnons(2,isym))&
-&    +dble(symrec(3,mu,isym))*(xred(3,iatom)-tnons(3,isym))
+     do mu=1,3
+!      Apply inverse transformation to original coordinates
+!      note transpose of symrec :
+       tratom(mu) = dble(symrec(1,mu,isym))*(xred(1,iatom)-tnons(1,isym))&
+&       +dble(symrec(2,mu,isym))*(xred(2,iatom)-tnons(2,isym))&
+&       +dble(symrec(3,mu,isym))*(xred(3,iatom)-tnons(3,isym))
+     end do
+!    
+!    Find symmetrically equivalent atom
+     call symchk(difmin,eatom,natom,tratom,transl,typat(iatom),typat,xred)
+!    
+!    Put information into array indsym: translations and label
+     indsym(1,isym,iatom)=transl(1)
+     indsym(2,isym,iatom)=transl(2)
+     indsym(3,isym,iatom)=transl(3)
+     indsym(4,isym,iatom)=eatom
+!    
+!    Keep track of maximum difference between transformed coordinates and
+!    nearest "target" coordinate
+     difmax=max(abs(difmin(1)),abs(difmin(2)),abs(difmin(3)))
+     err=max(err,difmax)
+!    Print warnings if differences exceed tolerance
+     if (difmax>tolsym) then
+       write(message, '(6a,i3,a,i4,a,i3,a,a,3es12.4,4a)' ) ch10,&
+&       ' symatm : WARNING -',ch10,&
+&       '  Trouble finding symmetrically equivalent atoms',ch10,&
+&       '  Applying inv of symm number',isym,&
+&       ' to atom number',iatom,'  of typat',typat(iatom),ch10,&
+&       '  gives tratom=',tratom(1:3),'.',ch10,&
+&       '  This is further away from every atom in crystal than',&
+&       ' the allowed tolerance.'
+       call wrtout(std_out,message,'COLL')
+       write(message, '(a,3i3,a,a,3i3,a,a,3i3)' ) &
+&       '  The inverse symmetry matrix is',symrec(1,1:3,isym),ch10,&
+&       '                                ',symrec(2,1:3,isym),ch10,&
+&       '                                ',symrec(3,1:3,isym)
+       call wrtout(std_out,message,'COLL')
+       write(message, '(a,3f13.7)' ) &
+&       '  and the nonsymmorphic transl. tnons =',&
+&       (tnons(mu,isym),mu=1,3)
+       call wrtout(std_out,message,'COLL')
+       write(message, '(a,1p,3e11.3,a,a,i5)' ) &
+&       '  The nearest coordinate differs by',difmin(1:3),ch10,&
+&       '  for indsym(nearest atom)=',indsym(4,isym,iatom)
+       call wrtout(std_out,message,'COLL')
+!      
+!      Use errout to reduce volume of error diagnostic output
+       if (errout==0) then
+         write(message, '(a,a,a,a,a,a,a,a,a)' ) ch10,&
+&         '  This indicates that when symatm attempts to find atoms',&
+&         ' symmetrically',ch10, &
+&         '  related to a given atom, the nearest candidate is further',&
+&         ' away than some',ch10,&
+&         '  tolerance.  Should check atomic coordinates', &
+&         ' and symmetry group input data.'
+         call wrtout(std_out,message,'COLL')
+         errout=1
+       end if
+!      End difmax>tol
+     end if
+!    End loop over iatom
    end do
-!  
-!  Find symmetrically equivalent atom
-   call symchk(difmin,eatom,natom,tratom,transl,typat(iatom),typat,xred)
-!  
-!  Put information into array indsym: translations and label
-   indsym(1,isym,iatom)=transl(1)
-   indsym(2,isym,iatom)=transl(2)
-   indsym(3,isym,iatom)=transl(3)
-   indsym(4,isym,iatom)=eatom
-!  
-!  Keep track of maximum difference between transformed coordinates and
-!  nearest "target" coordinate
-   difmax=max(abs(difmin(1)),abs(difmin(2)),abs(difmin(3)))
-   err=max(err,difmax)
-!  Print warnings if differences exceed tolerance
-   if (difmax>tolsym) then
-    write(message, '(6a,i3,a,i4,a,i3,a,a,3es12.4,4a)' ) ch10,&
-&    ' symatm : WARNING -',ch10,&
-&    '  Trouble finding symmetrically equivalent atoms',ch10,&
-&    '  Applying inv of symm number',isym,&
-&    ' to atom number',iatom,'  of typat',typat(iatom),ch10,&
-&    '  gives tratom=',tratom(1:3),'.',ch10,&
-&    '  This is further away from every atom in crystal than',&
-&    ' the allowed tolerance.'
-    call wrtout(std_out,message,'COLL')
-    write(message, '(a,3i3,a,a,3i3,a,a,3i3)' ) &
-&    '  The inverse symmetry matrix is',symrec(1,1:3,isym),ch10,&
-&    '                                ',symrec(2,1:3,isym),ch10,&
-&    '                                ',symrec(3,1:3,isym)
-    call wrtout(std_out,message,'COLL')
-    write(message, '(a,3f13.7)' ) &
-&    '  and the nonsymmorphic transl. tnons =',&
-&    (tnons(mu,isym),mu=1,3)
-    call wrtout(std_out,message,'COLL')
-    write(message, '(a,1p,3e11.3,a,a,i5)' ) &
-&    '  The nearest coordinate differs by',difmin(1:3),ch10,&
-&    '  for indsym(nearest atom)=',indsym(4,isym,iatom)
-    call wrtout(std_out,message,'COLL')
-!   
-!   Use errout to reduce volume of error diagnostic output
-    if (errout==0) then
-     write(message, '(a,a,a,a,a,a,a,a,a)' ) ch10,&
-&     '  This indicates that when symatm attempts to find atoms',&
-&     ' symmetrically',ch10, &
-&     '  related to a given atom, the nearest candidate is further',&
-&     ' away than some',ch10,&
-&     '  tolerance.  Should check atomic coordinates', &
-&     ' and symmetry group input data.'
-     call wrtout(std_out,message,'COLL')
-     errout=1
-    end if
-!   End difmax>tol
-   end if
-!  End loop over iatom
-  end do
-! End loop over isym
+!  End loop over isym
  end do
 !
  do iatom=1,natom
-  write(message, '(a,i5,a)' ) &
-&  ' symatm: atom number',iatom,' is reached starting at atom'
-  call wrtout(std_out,message,'COLL')
-  do ii=1,(nsym-1)/24+1
-   write(message, '(1x,24i3)' ) &
-&   (indsym(4,isym,iatom),isym=1+(ii-1)*24,min(nsym,ii*24))
+   write(message, '(a,i5,a)' ) &
+&   ' symatm: atom number',iatom,' is reached starting at atom'
    call wrtout(std_out,message,'COLL')
-  end do
+   do ii=1,(nsym-1)/24+1
+     write(message, '(1x,24i3)' ) &
+&     (indsym(4,isym,iatom),isym=1+(ii-1)*24,min(nsym,ii*24))
+     call wrtout(std_out,message,'COLL')
+   end do
  end do
 
 !DEBUG
@@ -191,21 +193,21 @@ subroutine symatm(indsym,natom,nsym,symrec,tnons,tolsym,typat,xred)
 !ENDDEBUG
 
  if (err>tolsym) then
-  write(message, '(1x,a,1p,e14.5,a,e12.4)' ) &
-&  'symatm: maximum (delta t)=',err,' is larger than tol=',tolsym
-  call wrtout(std_out,message,'COLL')
+   write(message, '(1x,a,1p,e14.5,a,e12.4)' ) &
+&   'symatm: maximum (delta t)=',err,' is larger than tol=',tolsym
+   call wrtout(std_out,message,'COLL')
  end if
 
 !Stop execution if error is really big
  if (err>0.01d0) then
-  write(message, '(a,a,a,a,a,a,a,a,a)' ) ch10,&
-&  ' symatm : ERROR -',ch10,&
-&  '  Largest error (above) is so large (0.01) that either input',&
-&  '  atomic coordinates (xred)',ch10,&
-&  '  are wrong or space group symmetry data is wrong.',ch10,&
-&  '  Action : correct your input file.'
-  call wrtout(std_out,message,'COLL')
-  call leave_new('COLL')
+   write(message, '(a,a,a,a,a,a,a,a,a)' ) ch10,&
+&   ' symatm : ERROR -',ch10,&
+&   '  Largest error (above) is so large (0.01) that either input',&
+&   '  atomic coordinates (xred)',ch10,&
+&   '  are wrong or space group symmetry data is wrong.',ch10,&
+&   '  Action : correct your input file.'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
  end if
 !
 end subroutine symatm

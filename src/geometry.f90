@@ -23,6 +23,8 @@ module minpar
      logical::converged
      !parameters for L-BFGS
      logical::diagco
+     !parameters for DIIS
+     integer::history
      !parameters for print information
      integer::mp=6
      integer::lp=6
@@ -58,7 +60,7 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   real(gp), intent(inout) :: epot
   integer, intent(inout) :: ncount_bigdft
   real(gp), dimension(3*at%nat), intent(inout) :: pos
-  real(gp), dimension(3*at%nat), intent(out) :: fxyz
+  real(gp), dimension(3*at%nat), intent(inout) :: fxyz
   !local variables
   logical :: fail
 
@@ -98,6 +100,11 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
  
      if (iproc ==0) write(*,*) '# ENTERING VSSD'
      call vstepsd(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
+
+  else if(trim(parmin%approach)=='DIIS') then
+ 
+     if (iproc ==0) write(*,*) '# ENTERING DIIS'
+     call rundiis(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
 
   else if(trim(parmin%approach)=='AB6MD') then
  
@@ -149,7 +156,7 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   ! Prepare the objects used by ABINIT.
   allocate(amass(at%nat))
-  allocate(xfhist(3, at%nat + 4, 2, in%ncount_cluster_x))
+  allocate(xfhist(3, at%nat + 4, 2, in%ncount_cluster_x+1))
   allocate(vel(3, at%nat))
   allocate(xred(3, at%nat))
   allocate(iatfix(3, at%nat))
@@ -182,11 +189,14 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         iatfix(2, iat) = 0
      end if
   end do
-  vel(:,:) = zero
+
+  !read the velocities from input file, if present
+  call read_velocities(iproc,'velocities.xyz',at,vel)
+  !vel(:,:) = zero
 
   ! Call the ABINIT routine.
   ! currently, we force optcell == 0
-  call moldyn(acell, amass, iproc, in%ncount_cluster_x, nxfh, at%nat, &
+  call moldyn(acell, amass, iproc, in%ncount_cluster_x+1, nxfh, at%nat, &
        & rprim, epot, iexit, &
        & 0, in%ionmov, in%ncount_cluster_x, in%dtion, in%noseinert, &
        & in%mditemp, in%mdftemp, in%friction, in%mdwall, in%nnos, &
@@ -1953,3 +1963,190 @@ subroutine cal_a_c_3(a_l,fx,dx,a_t,fp,dp,stpmin,stpmax,a_c)
 END SUBROUTINE cal_a_c_3
 !*****************************************************************************************
 
+!!****f* BigDFT/rundiis
+!! FUNCTION
+!!  DIIS relax. Original source from ART from N. Mousseau.
+!!  Adaptations to BigDFT by D. Caliste.
+!! SOURCE
+!!
+subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nproc,iproc
+  integer, intent(inout) :: ncount_bigdft
+  type(atoms_data), intent(inout) :: at
+  type(input_variables), intent(inout) :: in
+  type(restart_objects), intent(inout) :: rst
+  real(gp), intent(inout) :: epot
+  real(gp), dimension(3*at%nat), intent(inout) :: x
+  logical, intent(out) :: fail
+  real(gp), dimension(3*at%nat), intent(out) :: f
+  !local variables
+  character(len=*), parameter :: subname='rundiis'
+  real(gp), dimension(:,:), allocatable  :: previous_forces
+  real(gp), dimension(:,:), allocatable  :: previous_pos
+  real(gp), dimension(:,:), allocatable :: product_matrix
+  integer :: lter, maxter, i, i_err, n, nrhs, lwork, infocode, j, i_stat, i_all,nfluct
+  real(gp) :: sumx, sumy, sumz, fluctsum, fluct, fmax, fnrm
+  character(len = 4) :: fn4
+  character(len = 40) :: comment
+  ! Local variables for Lapack.
+  integer, dimension(:), allocatable :: interchanges
+  real(8), dimension(:), allocatable :: work
+  real(8), dimension(:), allocatable :: solution
+  real(8), dimension(:,:), allocatable :: matrice
+  logical :: check
+
+  ! We save pointers on data used to call bigdft() routine.
+  allocate(previous_forces(in%history, AT%NAT * 3+ndebug),stat=i_stat)
+  call memocc(i_stat,previous_forces,'previous_forces',subname)
+  allocate(previous_pos(in%history, AT%NAT * 3+ndebug),stat=i_stat)
+  call memocc(i_stat,previous_pos,'previous_pos',subname)
+  allocate(product_matrix(in%history, in%history+ndebug),stat=i_stat)
+  call memocc(i_stat,product_matrix,'product_matrix',subname)
+
+  fluctsum = 0._gp
+  nfluct = 0
+
+  ! We set the first step and move to the second
+  previous_forces(1,:) = f(:)
+  previous_pos(1,:) = x(:)
+
+  !x(:) = x(:) + in%betax * f(:)
+  !always better to use the atomic_* routines to move atoms
+  !it performs modulo operation as well as constrained search
+  call atomic_axpy(at,x,in%betax,f,x)
+
+  do lter = 2, in%ncount_cluster_x
+
+     maxter = min(lter, in%history)
+
+     allocate(interchanges(maxter+1+ndebug),stat=i_stat)
+     call memocc(i_stat,interchanges,'interchanges',subname)
+     allocate(work((maxter+1) * (maxter+1)+ndebug),stat=i_stat)
+     call memocc(i_stat,work,'work',subname)
+     allocate(solution(maxter+1+ndebug),stat=i_stat)
+     call memocc(i_stat,solution,'solution',subname)
+     allocate(matrice(maxter+1, maxter+1))
+     call memocc(i_stat,matrice,'matrice',subname)
+
+     ! If lter is greater than maxvec, we move the previous solution up by one
+     if (lter .gt. maxter) then
+        do i=2, maxter
+           previous_forces(i-1,:) = previous_forces(i,:)
+           previous_pos(i-1,:)    = previous_pos(i,:)
+           do j=2, maxter
+              product_matrix(i-1,j-1) = product_matrix(i,j)
+           end do
+        end do
+     end if
+
+     ! we first add the force to the previous_force vector and the
+     ! position to the previous_pos vector
+     previous_forces(maxter,:) = f(:)
+     previous_pos(maxter,:) = x(:)
+
+     ! And we add the scalar products to the matrix
+     do i = 1, maxter
+        product_matrix(i,maxter) = dot_product(previous_forces(i,:),f(:))
+        product_matrix(maxter,i) = product_matrix(i,maxter)
+     end do
+
+     matrice(1:maxter,1:maxter) = product_matrix(1:maxter, 1:maxter)
+     matrice(1:maxter,maxter+1) = 1.0d0
+     matrice(maxter+1,1:maxter) = 1.0d0
+     matrice(maxter+1,maxter+1) = 0.0d0
+
+     solution(1:maxter) = 0.0d0
+     solution(maxter+1) = 1.0d0
+
+     ! We now need the routines from Lapack. We define a few values
+     i_err = 0
+
+     ! We call the routine for diagonalizing a tridiagonal  matrix
+     n = maxter+1
+     nrhs = 1    ! Number of right-hand arguments in B (Ax=B)
+     lwork = n*n
+
+     ! We prepare the upper triangular matrix for lapack
+     call dsysv('U',n, nrhs, matrice, n, interchanges, solution,n,work,lwork,i_err)
+
+     i_all=-product(shape(interchanges))*kind(interchanges)
+     deallocate(interchanges,stat=i_stat)
+     call memocc(i_stat,i_all,'interchanges',subname)
+     i_all=-product(shape(work))*kind(work)
+     deallocate(work,stat=i_stat)
+     call memocc(i_stat,i_all,'work',subname)
+     i_all=-product(shape(matrice))*kind(matrice)
+     deallocate(matrice,stat=i_stat)
+     call memocc(i_stat,i_all,'matrice',subname)
+
+     ! The solution that interests us is made of two parts
+
+     x(:) = 0.0d0
+     do i = 1, maxter
+        x(:) = x(:) + solution(i) * previous_pos(i,:)
+     end do
+     !reput the modulo operation on the atoms
+     call atomic_axpy(at,x,0.0_gp,x,x)
+
+     i_all=-product(shape(solution))*kind(solution)
+     deallocate(solution,stat=i_stat)
+     call memocc(i_stat,i_all,'solution',subname)
+
+     in%inputPsiId=1
+     call call_bigdft(nproc,iproc,at,x,in,epot,f,rst,infocode)
+
+     if (iproc == 0) then
+        call transforce(at,f,sumx,sumy,sumz)
+        write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
+        write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
+        write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
+     end if
+
+     ncount_bigdft=ncount_bigdft+1
+
+     call fnrmandforcemax(f,fnrm,fmax,at)
+     if (fmax < 3.d-1) call updatefluctsum(at,f,nfluct,fluctsum,fluct)
+
+     if (iproc==0) then 
+        write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=', &
+             & fmax,'fnrm=',    fnrm    ,'fluct=', fluct
+        write(fn4,'(i4.4)') ncount_bigdft
+        write(comment,'(a,1pe10.3)')'DIIS:fnrm= ',sqrt(fnrm)
+        call write_atomic_file('posout_'//fn4,epot,x,at,trim(comment))
+     endif
+
+     call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
+
+     if(check)then
+        if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*in%frac_fluct,fluct
+        if (iproc==0) write(16,*) 'DIIS converged'
+        exit
+     endif
+
+     if(ncount_bigdft>in%ncount_cluster_x-1)  then 
+      if (iproc==0)  &
+           write(16,*) 'DIIS exited before the geometry optimization converged because more than ',& 
+                            in%ncount_cluster_x,' wavefunction optimizations were required'
+      exit
+     endif
+
+     !x(:) = x(:) + in%betax * f(:)
+     call atomic_axpy(at,x,in%betax,f,x)
+  end do
+
+  i_all=-product(shape(previous_forces))*kind(previous_forces)
+  deallocate(previous_forces,stat=i_stat)
+  call memocc(i_stat,i_all,'previous_forces',subname)
+  i_all=-product(shape(previous_pos))*kind(previous_pos)
+  deallocate(previous_pos,stat=i_stat)
+  call memocc(i_stat,i_all,'previous_pos',subname)
+  i_all=-product(shape(product_matrix))*kind(product_matrix)
+  deallocate(product_matrix,stat=i_stat)
+  call memocc(i_stat,i_all,'product_matrix',subname)
+
+  fail = (ncount_bigdft>in%ncount_cluster_x-1)
+end subroutine rundiis
+!!***

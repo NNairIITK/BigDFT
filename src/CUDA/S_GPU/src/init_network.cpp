@@ -128,7 +128,6 @@ void local_network::init(manage_cpu_affinity& mca,const set_repartition* set_r,i
 		    }
 		  ++lu;
 
-
 		}
 	    }
 	  while (lectOK == 1 && fgetc(es) != EOF);

@@ -75,8 +75,6 @@
      call cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
           rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,infocode)
-     
-
 
      if (in%inputPsiId==1 .and. infocode==2) then
         if (in%gaussian_help) then
@@ -164,6 +162,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   use libxc_functionals
   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces
   use esatto
+  use ab6_symmetry
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -186,7 +185,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   character(len=50) :: filename
   logical :: endloop,potion_overwritten=.false.,allfiles,onefile,refill_proj,DoDavidson
   integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before
-  integer :: nvirt,ndiis_sd_sw
+  integer :: nvirt,ndiis_sd_sw,norbv
   integer :: nelec,ndegree_ip,j,i,iorb
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i,i03,i04
@@ -204,6 +203,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(orbitals_data) :: orbsv
   type(gaussian_basis) :: Gvirt
   type(GPU_pointers) :: GPU
+  real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: rho
   real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
@@ -218,14 +218,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! before reformatting if useFormattedInput is .true.
   real(kind=8), dimension(:), pointer :: hpsi,psit,psi_old,psivirt,psidst,hpsidst
   ! PSP projectors 
-  real(kind=8), dimension(:), pointer :: proj
+  real(kind=8), dimension(:), pointer :: proj,gbd_occ
   ! arrays for DIIS convergence accelerator
   real(kind=8), dimension(:,:,:), pointer :: ads
-  
-
-
-
-
+  ! Arrays for the symmetrisation.
+  integer, dimension(:,:,:), allocatable :: irrzon
+  real(dp), dimension(:,:,:), allocatable :: phnons
 
 
   ! ----------------------------------
@@ -251,15 +249,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ncongt=in%ncongt
   nspin=in%nspin
 
+  norbv=in%norbv
   nvirt=in%nvirt
 
   hx=in%hx
   hy=in%hy
   hz=in%hz
 
-  if (ixc < 0) then
-     call libxc_functionals_init(ixc, nspin)
-  end if
+  call libxc_functionals_init(ixc, nspin)
 
   !character string for quieting the Poisson solver
   if (verbose >1) then
@@ -325,7 +322,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
-  call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
+  call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
 
   !variables substitution for the PSolver part
   hxh=0.5d0*hx
@@ -380,6 +377,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !these descriptors should take into account the localisation regions
   call createDensPotDescriptors(iproc,nproc,atoms%geocode,'D',n1i,n2i,n3i,ixc,&
        n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
+  !calculate the irreductible zone, if necessary.
+  if (atoms%symObj >= 0) then
+     ! Current third dimension is set to 1 always
+     ! since nspin == nsppol always in BigDFT
+     allocate(irrzon(n1i*n2i*n3i,2,1+ndebug),stat=i_stat)
+     call memocc(i_stat,irrzon,'irrzon',subname)
+     allocate(phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
+     call memocc(i_stat,phnons,'phnons',subname)
+     call ab6_symmetry_get_irreductible_zone(atoms%symObj, irrzon, phnons, &
+          & n1i, n2i, n3i, in%nspin, in%nspin, i_stat)
+  end if
 
   !allocate ionic potential
   if (n3pi > 0) then
@@ -487,16 +495,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !import gaussians form CP2K (data in files gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
      call import_gaussians(iproc,nproc,atoms,orbs,comms,&
-          Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj, &
-          pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,in%nspin)
+          & Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj, &
+          & pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,in%nspin,&
+          & atoms%symObj,irrzon,phnons)
 
   case(0)
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,atoms,&
-          orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
+          orbs,orbsv,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
-          nscatterarr,ngatherarr,nspin,0)
+          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons)
 
   case(1)
      !these parts should be reworked for the non-collinear spin case
@@ -702,7 +711,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      ! Potential from electronic charge density
      call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-          n1i*n2i*n3d,nscatterarr,in%nspin,GPU)
+          n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
 
      if(orbs%nspinor==4) then
         !this wrapper can be inserted inside the poisson solver 
@@ -744,7 +753,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
           nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
           rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
-          in%nspin,GPU,pkernel)
+          in%nspin,GPU,pkernel=pkernel)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
@@ -835,7 +844,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !analyse the possiblity to calculate Davidson treatment
   !(nvirt > 0 .and. in%inputPsiId == 0)
-  DoDavidson= in%nvirt > 0 .and. (infocode==0 .or. in%nrepmax == 1)
+  DoDavidson= in%norbv > 0 .and. (infocode==0 .or. in%nrepmax == 1)
   
   call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
        comms,psi,hpsi,psit,evsum)
@@ -861,7 +870,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !!!     end if
 
      !extract the gaussian basis from the pseudowavefunctions
-     call gaussian_pswf_basis(iproc,atoms,rxyz,gbd)
+     call gaussian_pswf_basis(iproc,in%nspin,atoms,rxyz,gbd,gbd_occ)
+
+     if (associated(gbd_occ)) then
+        i_all=-product(shape(gbd_occ))*kind(gbd_occ)
+        deallocate(gbd_occ,stat=i_stat)
+        call memocc(i_stat,i_all,'gbd_occ',subname)
+        nullify(gbd_occ)
+     end if
+
 
      if (.not. associated(gaucoeffs)) then
         allocate(gaucoeffs(gbd%ncoeff,orbs%norbp+ndebug),stat=i_stat)
@@ -896,6 +913,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
         !build dual coefficients
         call dual_gaussian_coefficients(orbs%norbp,gbd,gaucoeffs)
+
         !control the accuracy of the expansion
         call check_gaussian_expansion(iproc,nproc,orbs,Glr,hx,hy,hz,psi,gbd,gaucoeffs)
 
@@ -975,7 +993,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,rho,'rho',subname)
   end if
   call sumrho(iproc,nproc,orbs,Glr,0,hxh,hyh,hzh,psi,rho,n1i*n2i*n3p,&
-       nscatterarr,in%nspin,GPU)
+          nscatterarr,in%nspin,GPU, atoms%symObj, irrzon, phnons)
 
   !plot the density on the density.pot file
   if (abs(in%output_grid) .ge. 1 .or. in%nvacancy /=0) then
@@ -1032,11 +1050,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
              in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot)
      end if
   end if
-
-  !better to deallocate this after davidson
-  i_all=-product(shape(pkernel))*kind(pkernel)
-  deallocate(pkernel,stat=i_stat)
-  call memocc(i_stat,i_all,'kernel',subname)
 
   if (in%read_ref_den) then
      i_all=-product(shape(pkernel_ref))*kind(pkernel_ref)
@@ -1130,6 +1143,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj, &
           pkernel,psi,psivirt,ngatherarr,GPU)
   end if
+
+
+  !perform here the mulliken charge and density of states
+  !localise them on the basis of gatom of a number of atoms
+  if (in%gaussian_help .and. .false.) then
+     call local_analysis(iproc,nproc,hx,hy,hz,shift,Glr,orbs,orbsv,psi,psivirt)
+  end if
+
+
+  i_all=-product(shape(pkernel))*kind(pkernel)
+  deallocate(pkernel,stat=i_stat)
+  call memocc(i_stat,i_all,'kernel',subname)
 
 
   !------------------------------------------------------------------------
@@ -1317,11 +1342,30 @@ contains
     !if it is the case
     if (DoDavidson) then
        !call deallocate_gwf(Gvirt,subname)
+
+       call deallocate_orbs(orbsv,subname)
+
+       i_all=-product(shape(orbsv%eval))*kind(orbsv%eval)
+       deallocate(orbsv%eval,stat=i_stat)
+       call memocc(i_stat,i_all,'eval',subname)
+
        i_all=-product(shape(psivirt))*kind(psivirt)
        deallocate(psivirt,stat=i_stat)
        call memocc(i_stat,i_all,'psivirt',subname)
     end if
     
+    if (allocated(irrzon)) then
+       i_all=-product(shape(irrzon))*kind(irrzon)
+       deallocate(irrzon,stat=i_stat)
+       call memocc(i_stat,i_all,'irrzon',subname)
+    end if
+    if (allocated(phnons)) then
+       i_all=-product(shape(phnons))*kind(phnons)
+       deallocate(phnons,stat=i_stat)
+       call memocc(i_stat,i_all,'phnons',subname)
+    end if
+
+
     if (atoms%geocode == 'F') then
        call deallocate_bounds(Glr%bounds,subname)
     end if
@@ -1372,17 +1416,13 @@ contains
     
 
     call deallocate_orbs(orbs,subname)
+    call deallocate_atoms_scf(atoms,subname) 
     
-    !semicores useful only for the input guess
-    i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
-    deallocate(atoms%iasctype,stat=i_stat)
-    call memocc(i_stat,i_all,'iasctype',subname)
-    i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
-    deallocate(atoms%aocc,stat=i_stat)
-    call memocc(i_stat,i_all,'aocc',subname)
-    i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
-    deallocate(atoms%nzatom,stat=i_stat)
-    call memocc(i_stat,i_all,'nzatom',subname)
+    i_all=-product(shape(radii_cf))*kind(radii_cf)
+    deallocate(radii_cf,stat=i_stat)
+    call memocc(i_stat,i_all,'radii_cf',subname)
+
+
     i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
     deallocate(nlpspd%nboxp_c,stat=i_stat)
     call memocc(i_stat,i_all,'nboxp_c',subname)
@@ -1405,19 +1445,6 @@ contains
     i_all=-product(shape(proj))*kind(proj)
     deallocate(proj,stat=i_stat)
     call memocc(i_stat,i_all,'proj',subname)
-
-    i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
-    deallocate(atoms%psppar,stat=i_stat)
-    call memocc(i_stat,i_all,'psppar',subname)
-    i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
-    deallocate(atoms%nelpsp,stat=i_stat)
-    call memocc(i_stat,i_all,'nelpsp',subname)
-    i_all=-product(shape(radii_cf))*kind(radii_cf)
-    deallocate(radii_cf,stat=i_stat)
-    call memocc(i_stat,i_all,'radii_cf',subname)
-    i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
-    deallocate(atoms%npspcode,stat=i_stat)
-    call memocc(i_stat,i_all,'npspcode',subname)
 
     ! Free the libXC stuff if necessary.
     if (ixc < 0) then

@@ -1,40 +1,34 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # Copyright (C) 2006-2007 M.A.L. Marques
 #
 # This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #  
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU Lesser General Public License for more details.
 #  
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 use Getopt::Std;
 
-getopts("hf:");
+getopts("hf:s:b:");
 $opt_h && usage();
 $opt_f || usage();
 
 # Handle options
-$opt_f =~ s/(.*)/\L$1\E/;
-
-my $data_dir;
-if($ENV{srcdir}) {
-  $data_dir = $ENV{srcdir};
-}
-else {
-  $data_dir = ".";
-}
+$top_srcdir   = ($opt_s ? $opt_s : "..");
+$top_builddir = ($opt_b ? $opt_b : "..");
+$opt_f        =~ s/(.*)/\L$1\E/;
 
 my $tmp_file =  "/tmp/xc.tmp.$$";
-my $exec_cmd = "./xc-get_data";
+my $exec_cmd = "$top_builddir/testsuite/xc-get_data";
 
 # start by reading xc.h to get a list of the defined constants
 my %constants;
@@ -42,7 +36,7 @@ read_xc_h(\%constants);
 $constants{"$opt_f"} || die "Functional '$opt_f' not found";
 
 # check if we have a data file
-my $data_file = "$data_dir/$opt_f.data";
+my $data_file = "$top_srcdir/testsuite/$opt_f.data";
 (-f $data_file && -r $data_file) || die "Could not read data file '$data_file'";
 open DATA, "<$data_file";
 
@@ -121,8 +115,10 @@ sub usage {
 
 Usage: $0 [options] -f functional
 
-    -h        this usage
-    -f        functional to test
+    -h    This help message
+    -f    Functional to test
+    -b    The top level build tree directory, ../ if omitted
+    -s    The top level source tree directory, ../ if omitted
 
 Report bugs to <marques\@tddft.org>.
 EndOfUsage
@@ -134,7 +130,7 @@ EndOfUsage
 sub read_xc_h {
   my $c = shift;
 
-  open FILE, "<$data_dir/../src/xc_funcs.h";
+  open FILE, "<$top_builddir/src/xc_funcs.h";
   while($_ = <FILE>){
     if(/^#define +(\S*) +(\S*)/){
       my $name = $1;

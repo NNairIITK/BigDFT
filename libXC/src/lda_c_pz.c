@@ -2,16 +2,16 @@
  Copyright (C) 2006-2007 M.A.L. Marques
 
  This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation; either version 3 of the License, or
  (at your option) any later version.
   
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+ GNU Lesser General Public License for more details.
   
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
@@ -22,7 +22,7 @@
 #include "util.h"
 
 /************************************************************************
- Correlation energy per-particle and potential of a HEG as parameterized 
+ Correlation energy per particle and potential of a HEG as parametrized 
  by 
    Perdew & Zunger
    Ortiz & Ballone
@@ -63,7 +63,7 @@ pz_consts[3] = {
     { 0.27358,   0.18797},
     { 0.031091,  0.015545},
     {-0.046644, -0.025599},
-    { 0.00419,   0.00329},  /* the sign of c[0] and c[1] is diferent from [2], but is consistent
+    { 0.00419,   0.00329},  /* the sign of c[0] and c[1] is different from [2], but is consistent
 			       with PWSCF. There is nothing in [3] about this, but I assume that PWSCF 
 			       is correct as it has the same sign as the PZ parametrizations */
     {-0.00983,  -0.00300}
@@ -220,7 +220,7 @@ const XC(func_info_type) XC(func_info_lda_c_pz_mod) = {
   "Perdew & Zunger (Modified)",
   XC_FAMILY_LDA,
   "Perdew and Zunger, Phys. Rev. B 23, 5048 (1981)\n"
-  "Modified to improve the matching between the low and high rs parts",
+  "Modified to improve the matching between the low- and high-rs parts",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC | XC_PROVIDES_FXC | XC_PROVIDES_KXC,
   NULL,     /* init */
   NULL,     /* end  */

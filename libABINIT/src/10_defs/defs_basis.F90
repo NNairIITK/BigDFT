@@ -38,6 +38,7 @@ module defs_basis
  integer, parameter :: i1b=selected_int_kind(2)
  integer, parameter :: i2b=selected_int_kind(4)
  integer, parameter :: i4b=selected_int_kind(9)
+ integer, parameter :: i8b=selected_int_kind(18)
 
 !nb of bytes related to default simple-precision real/complex subtypes
 !(= 4 for many machine architectures, = 8 for Cray T3E for instance)
@@ -78,8 +79,8 @@ module defs_basis
  integer, parameter :: strlen=2000000 ! maximum length of input string
 
 !Some constants:
- integer, parameter :: integer_not_used=0
- logical, parameter :: logical_not_used=.true.
+ !integer, parameter :: integer_not_used=0
+ !logical, parameter :: logical_not_used=.true.
 
 !UNIX unit numbers : standard input, standard output, ab_out, and a number
 !for temporary access to a file.
@@ -167,7 +168,8 @@ module defs_basis
  real(dp), parameter :: sqrthalf=0.70710678118654752440084436210484697_dp
 
 !Conversion factors of common use, not directly related to physical quantities.
- real(dp), parameter :: b2Mb=one/1024.0_dp**2  ! conversion factor byte --> Mbyte
+ real(dp), parameter :: b2Mb=one/1024.0_dp**2  ! conversion factor bytes --> Mbytes
+ real(dp), parameter :: b2Gb=b2Mb/1000.0_dp    ! conversion factor bytes --> Gbytes
 
 !Real physical constants
 !Revised fundamental constants from http://physics.nist.gov/cuu/Constants/index.html
@@ -204,7 +206,6 @@ module defs_basis
 
 !Define fake communicator for sequential abinit
  integer, parameter :: abinit_comm_serial = -12345
- integer, parameter :: abinit_offset = 8
 
  ! Error codes used by the bindings.
  integer, parameter, public :: AB6_NO_ERROR                = 0
@@ -214,6 +215,105 @@ module defs_basis
  integer, parameter, public :: AB6_ERROR_INVARS_ID         = 4
  integer, parameter, public :: AB6_ERROR_INVARS_SIZE       = 5
  integer, parameter, public :: AB6_ERROR_SYM_NOT_PRIMITIVE = 6
+ integer, parameter, public :: AB6_ERROR_SYM_BRAVAIS_XRED  = 7
+
+! Values of optdriver corresponding to the different run-levels. 
+ integer, parameter, public :: RUNL_GSTATE     = 0
+ integer, parameter, public :: RUNL_RESPFN     = 1
+ integer, parameter, public :: RUNL_SUSCEP     = 2
+ integer, parameter, public :: RUNL_SCREENING  = 3
+ integer, parameter, public :: RUNL_SIGMA      = 4
+ integer, parameter, public :: RUNL_NONLINEAR  = 5
+ integer, parameter, public :: RUNL_RDM        = 7
+ integer, parameter, public :: RUNL_SCGW       = 8 
+ integer, parameter, public :: RUNL_BSE        = 99 !9
+
+! Flags defining the method used for performing IO (input variable accesswff)
+ integer, parameter, public :: IO_MODE_FORTRAN = 0
+ integer, parameter, public :: IO_MODE_MPI     = 1
+ integer, parameter, public :: IO_MODE_NETCDF  = 2 ! Only for legacy code, should not be used for new implementations.
+ integer, parameter, public :: IO_MODE_ETSF    = 3
+
+CONTAINS  !=========================================================================================================================
+!!***
+
+!!****f* defs_basis/get_reclen
+!! NAME
+!!  get_reclen
+!!
+!! FUNCTION
+!!  Return the record lenght used to store a variable of particular type and kind in processor-dependent units.
+!!  The returned value can be used as the value of the lenght to be supplied to a RECL= specifier.
+!!
+!! INPUTS
+!!  rcl=string defining the type and kind of the variable. Possible values are:
+!!   i1b, i2b, i4b, dp, gwp, spc, dpc, gwpc (and corresponding capital versions).
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+function get_reclen(str) result(rcl)
+
+
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
+ character(len=*),intent(in) :: str
+ integer :: rcl
+
+!Local variables ------------------------------
+!scalars
+ integer(i1b)  :: v_i1b 
+ integer(i2b)  :: v_i2b
+ integer(i4b)  :: v_i4b 
+ !real(sp)    :: v_sp 
+ real(dp)      :: v_dp 
+ real(gwp)     :: v_gwp
+ complex(spc)  :: v_spc 
+ complex(dpc)  :: v_dpc 
+ complex(gwpc) :: v_gwpc
+
+!************************************************************************
+
+ SELECT CASE (str)
+
+ CASE ("i1b","I1B")
+  inquire(iolength=rcl) v_i1b
+
+ CASE ("i2b","I2B")
+  inquire(iolength=rcl) v_i2b
+
+ CASE ("i4b","I4B")
+  inquire(iolength=rcl) v_i4b
+
+ !CASE ("sp","SP")
+ ! inquire(iolength=rcl) v_sp
+
+ CASE ("dp","DP")
+  inquire(iolength=rcl) v_dp
+
+ CASE ("gwp","GWP")
+  inquire(iolength=rcl) v_gwp
+
+ CASE ("spc","SPC")
+  inquire(iolength=rcl) v_spc
+
+ CASE ("dpc","DPC")
+  inquire(iolength=rcl) v_dpc
+
+ CASE ("gwpc","GWPC")
+  inquire(iolength=rcl) v_gwpc
+
+ CASE DEFAULT
+  write(*,*)" Unknown kind: "//TRIM(str)
+  STOP
+ END SELECT
+
+end function get_reclen
 
 end module defs_basis
 !!***

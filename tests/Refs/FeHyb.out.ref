@@ -29,7 +29,7 @@
  Number of atoms     =     1
  Number of atom types=     1
  Atoms of type 1 are Fe
- Spin-polarised calculation:  NO 
+ Spin-polarised calculation: YES (Collinear)
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -37,6 +37,7 @@
         XC id=   -406 |    Fine Wfs.= 8.00 | Max. N. Iter.=    1x 1 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ Polarisation=      4 |
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
  WARNING: The pseudopotential file "psppar.Fe"
@@ -54,12 +55,11 @@
      l=2      rl        h1j       h2j       h3j 
             0.22302 -12.02694
  Total Number of Electrons       16
- Processes from 0 to 1 treat 2 orbitals 
- Processes from 2 to 7 treat 1 orbitals 
- The occupation numbers are read from the file "occup.dat" (5 lines read)
- Total Number of Orbitals        10
- occup(1:5)= 2.0000
- occup(6:10)= 1.2000
+ Spin-polarized calculation
+ Processes from 0 to 7 treat 2 orbitals 
+ The occupation numbers are read from the file "occup.dat" (0 lines read)
+ Total Number of Orbitals        16
+ occup(1:16)= 1.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1     Fe  7.87500E+00  7.87500E+00  7.87500E+00       17.500    17.500    17.500
     Shift of=  7.87500E+00  7.87500E+00  7.87500E+00 H grids=  0.4500  0.4500  0.4500
@@ -87,209 +87,284 @@
  Total number of components =                64688
  Percent of zero components =                   18
  ------------------------------------------------------------------ Memory Estimation
- Number of atoms=    1 Number of orbitals=    10 Sim. Box Dimensions=    35   35   35
+ Number of atoms=    1 Number of orbitals=    16 Sim. Box Dimensions=    35   35   35
  Estimation performed for 8 processors.
  Memory occupation for principal arrays:
                Poisson Solver Kernel (K):     1 MB   205 KB
-              Poisson Solver Density (D):     1 MB   217 KB
+              Poisson Solver Density (D):     2 MB   433 KB
      Single Wavefunction for one orbital:     0 MB   195 KB
     All Wavefunctions for each processor:     1 MB   141 KB
        Wavefunctions + DIIS per proc (W):     5 MB   702 KB
      Nonlocal Pseudopotential Arrays (P):     0 MB   506 KB
-    Arrays of full uncompressed grid (U):     7 MB   882 KB
+    Arrays of full uncompressed grid (U):    15 MB   739 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
        ~19*K         |     W+(~4)*U+D+K+P   |   ~12*D+K+W+P  |    ~W+(~5)*U+D+K+P 
-        22MB         |        33MB          |       21MB     |            36MB
- The overall memory requirement needed for this calculation is thus: 36 MB
+        22MB         |        59MB          |       36MB     |            65MB
+ The overall memory requirement needed for this calculation is thus: 65 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
-  memory can be reduced but for this system it will never be less than 29 MB
+  memory can be reduced but for this system it will never be less than 58 MB
  Wavefunctions memory occupation for root processor (Bytes): 397440
  ion-ion interaction energy  0.00000000000000E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -16.000000000000   0.000E+00
  PSolver, free  BC, dimensions:   101  101  101   proc    8   ixc:    0 ...done.
  ------------------------------------------------------- Input Wavefunctions Creation
- Generating 10 Atomic Input Orbitals
-   of which 4 are semicore orbitals
+ Generating 20 Atomic Input Orbitals
+   of which 8 are semicore orbitals
  Wavefunctions memory occupation for root processor (Bytes): 0
- Processes from 0 to 1 treat 2 inguess orbitals 
- Processes from 2 to 7 treat 1 inguess orbitals 
+ Processes from 0 to 3 treat 3 inguess orbitals 
+ Processes from 4 to 7 treat 2 inguess orbitals 
  Calculating AIO wavefunctions: 
  Generation of input wavefunction data for atom     Fe: 
-   Elec. Configuration: [s] 2.00 , [p] 2.00 2.00 2.00 , d 6/5 6/5 6/5 6/5 6/5 , s 2.00 , ... done.
- Wavefunctions memory occupation for root processor (Bytes): 397440
+   Elec. Configuration: [s] 1.00 1.00 , [p] 1.00 1.00 1.00 1.00 1.00 1.00 , d 1.00 1.00 1.00 1.00 1.00 1.00 0.00 0.00 0.00 0.00 , s 1.00 1.00 , ... done.
+ Wavefunctions memory occupation for root processor (Bytes): 596160
  Writing wavefunctions in wavelet form... done.
  Deviation from normalization of the imported orbitals    1.20E-03
- Calculation of charge density... done. Total electronic charge=      15.999965119592
+ Calculation of charge density... done. Total electronic charge=      15.999967536148
  PSolver, free  BC, dimensions:   101  101  101   proc    8   ixc: -406 ...done.
- Hamiltonian application... Exact exchange calculation. spin, orbitals:
+ Hamiltonian application... Exact exchange calculation: spin, orbitals:
            1           1           1
- Exact exchange calculation. spin, orbitals:           1           1           2
- Exact exchange calculation. spin, orbitals:           1           1           3
- Exact exchange calculation. spin, orbitals:           1           1           4
- Exact exchange calculation. spin, orbitals:           1           1           5
- Exact exchange calculation. spin, orbitals:           1           1           6
- Exact exchange calculation. spin, orbitals:           1           1           7
- Exact exchange calculation. spin, orbitals:           1           1           8
- Exact exchange calculation. spin, orbitals:           1           1           9
- Exact exchange calculation. spin, orbitals:           1           1          10
- Exact exchange calculation. spin, orbitals:           1           2           2
- Exact exchange calculation. spin, orbitals:           1           2           3
- Exact exchange calculation. spin, orbitals:           1           2           4
- Exact exchange calculation. spin, orbitals:           1           2           5
- Exact exchange calculation. spin, orbitals:           1           2           6
- Exact exchange calculation. spin, orbitals:           1           2           7
- Exact exchange calculation. spin, orbitals:           1           2           8
- Exact exchange calculation. spin, orbitals:           1           2           9
- Exact exchange calculation. spin, orbitals:           1           2          10
- Exact exchange calculation. spin, orbitals:           1           3           3
- Exact exchange calculation. spin, orbitals:           1           3           4
- Exact exchange calculation. spin, orbitals:           1           3           5
- Exact exchange calculation. spin, orbitals:           1           3           6
- Exact exchange calculation. spin, orbitals:           1           3           7
- Exact exchange calculation. spin, orbitals:           1           3           8
- Exact exchange calculation. spin, orbitals:           1           3           9
- Exact exchange calculation. spin, orbitals:           1           3          10
- Exact exchange calculation. spin, orbitals:           1           4           4
- Exact exchange calculation. spin, orbitals:           1           4           5
- Exact exchange calculation. spin, orbitals:           1           4           6
- Exact exchange calculation. spin, orbitals:           1           4           7
- Exact exchange calculation. spin, orbitals:           1           4           8
- Exact exchange calculation. spin, orbitals:           1           4           9
- Exact exchange calculation. spin, orbitals:           1           4          10
- Exact exchange calculation. spin, orbitals:           1           5           5
- Exact exchange calculation. spin, orbitals:           1           5           6
- Exact exchange calculation. spin, orbitals:           1           5           7
- Exact exchange calculation. spin, orbitals:           1           5           8
- Exact exchange calculation. spin, orbitals:           1           5           9
- Exact exchange calculation. spin, orbitals:           1           5          10
- Exact exchange calculation. spin, orbitals:           1           6           6
- Exact exchange calculation. spin, orbitals:           1           6           7
- Exact exchange calculation. spin, orbitals:           1           6           8
- Exact exchange calculation. spin, orbitals:           1           6           9
- Exact exchange calculation. spin, orbitals:           1           6          10
- Exact exchange calculation. spin, orbitals:           1           7           7
- Exact exchange calculation. spin, orbitals:           1           7           8
- Exact exchange calculation. spin, orbitals:           1           7           9
- Exact exchange calculation. spin, orbitals:           1           7          10
- Exact exchange calculation. spin, orbitals:           1           8           8
- Exact exchange calculation. spin, orbitals:           1           8           9
- Exact exchange calculation. spin, orbitals:           1           8          10
- Exact exchange calculation. spin, orbitals:           1           9           9
- Exact exchange calculation. spin, orbitals:           1           9          10
- Exact exchange calculation. spin, orbitals:           1          10          10
-Exact Exchange Energy: -2.79631292358E+00
- done. ekin_sum,eks:      67.2407447502      67.1769441307
- ekin_sum,epot_sum,eproj_sum  6.72407447502E+01 -6.65029519041E+01 -2.15306807782E+01
-    ehart,   eexcu,    vexcu  1.05202723232E+02 -9.84568348616E+00 -1.28083552843E+01
+ Exact exchange calculation: spin, orbitals:           1           1           2
+ Exact exchange calculation: spin, orbitals:           1           1           3
+ Exact exchange calculation: spin, orbitals:           1           1           4
+ Exact exchange calculation: spin, orbitals:           1           1           5
+ Exact exchange calculation: spin, orbitals:           1           1           6
+ Exact exchange calculation: spin, orbitals:           1           1           7
+ Exact exchange calculation: spin, orbitals:           1           1           8
+ Exact exchange calculation: spin, orbitals:           1           1           9
+ Exact exchange calculation: spin, orbitals:           1           1          10
+ Exact exchange calculation: spin, orbitals:           1           2           2
+ Exact exchange calculation: spin, orbitals:           1           2           3
+ Exact exchange calculation: spin, orbitals:           1           2           4
+ Exact exchange calculation: spin, orbitals:           1           2           5
+ Exact exchange calculation: spin, orbitals:           1           2           6
+ Exact exchange calculation: spin, orbitals:           1           2           7
+ Exact exchange calculation: spin, orbitals:           1           2           8
+ Exact exchange calculation: spin, orbitals:           1           2           9
+ Exact exchange calculation: spin, orbitals:           1           2          10
+ Exact exchange calculation: spin, orbitals:           1           3           3
+ Exact exchange calculation: spin, orbitals:           1           3           4
+ Exact exchange calculation: spin, orbitals:           1           3           5
+ Exact exchange calculation: spin, orbitals:           1           3           6
+ Exact exchange calculation: spin, orbitals:           1           3           7
+ Exact exchange calculation: spin, orbitals:           1           3           8
+ Exact exchange calculation: spin, orbitals:           1           3           9
+ Exact exchange calculation: spin, orbitals:           1           3          10
+ Exact exchange calculation: spin, orbitals:           1           4           4
+ Exact exchange calculation: spin, orbitals:           1           4           5
+ Exact exchange calculation: spin, orbitals:           1           4           6
+ Exact exchange calculation: spin, orbitals:           1           4           7
+ Exact exchange calculation: spin, orbitals:           1           4           8
+ Exact exchange calculation: spin, orbitals:           1           4           9
+ Exact exchange calculation: spin, orbitals:           1           4          10
+ Exact exchange calculation: spin, orbitals:           1           5           5
+ Exact exchange calculation: spin, orbitals:           1           5           6
+ Exact exchange calculation: spin, orbitals:           1           5           7
+ Exact exchange calculation: spin, orbitals:           1           5           8
+ Exact exchange calculation: spin, orbitals:           1           5           9
+ Exact exchange calculation: spin, orbitals:           1           5          10
+ Exact exchange calculation: spin, orbitals:           1           6           6
+ Exact exchange calculation: spin, orbitals:           1           6           7
+ Exact exchange calculation: spin, orbitals:           1           6           8
+ Exact exchange calculation: spin, orbitals:           1           6           9
+ Exact exchange calculation: spin, orbitals:           1           6          10
+ Exact exchange calculation: spin, orbitals:           1           7           7
+ Exact exchange calculation: spin, orbitals:           1           7           8
+ Exact exchange calculation: spin, orbitals:           1           7           9
+ Exact exchange calculation: spin, orbitals:           1           7          10
+ Exact exchange calculation: spin, orbitals:           1           8           8
+ Exact exchange calculation: spin, orbitals:           1           8           9
+ Exact exchange calculation: spin, orbitals:           1           8          10
+ Exact exchange calculation: spin, orbitals:           1           9           9
+ Exact exchange calculation: spin, orbitals:           1           9          10
+ Exact exchange calculation: spin, orbitals:           1          10          10
+ Exact exchange calculation: spin, orbitals:           2          11          11
+ Exact exchange calculation: spin, orbitals:           2          11          12
+ Exact exchange calculation: spin, orbitals:           2          11          13
+ Exact exchange calculation: spin, orbitals:           2          11          14
+ Exact exchange calculation: spin, orbitals:           2          11          15
+ Exact exchange calculation: spin, orbitals:           2          11          16
+ Exact exchange calculation: spin, orbitals:           2          11          17
+ Exact exchange calculation: spin, orbitals:           2          11          18
+ Exact exchange calculation: spin, orbitals:           2          11          19
+ Exact exchange calculation: spin, orbitals:           2          11          20
+ Exact exchange calculation: spin, orbitals:           2          12          12
+ Exact exchange calculation: spin, orbitals:           2          12          13
+ Exact exchange calculation: spin, orbitals:           2          12          14
+ Exact exchange calculation: spin, orbitals:           2          12          15
+ Exact exchange calculation: spin, orbitals:           2          12          16
+ Exact exchange calculation: spin, orbitals:           2          12          17
+ Exact exchange calculation: spin, orbitals:           2          12          18
+ Exact exchange calculation: spin, orbitals:           2          12          19
+ Exact exchange calculation: spin, orbitals:           2          12          20
+ Exact exchange calculation: spin, orbitals:           2          13          13
+ Exact exchange calculation: spin, orbitals:           2          13          14
+ Exact exchange calculation: spin, orbitals:           2          13          15
+ Exact exchange calculation: spin, orbitals:           2          13          16
+ Exact exchange calculation: spin, orbitals:           2          13          17
+ Exact exchange calculation: spin, orbitals:           2          13          18
+ Exact exchange calculation: spin, orbitals:           2          13          19
+ Exact exchange calculation: spin, orbitals:           2          13          20
+ Exact exchange calculation: spin, orbitals:           2          14          14
+ Exact exchange calculation: spin, orbitals:           2          14          15
+ Exact exchange calculation: spin, orbitals:           2          14          16
+ Exact exchange calculation: spin, orbitals:           2          14          17
+ Exact exchange calculation: spin, orbitals:           2          14          18
+ Exact exchange calculation: spin, orbitals:           2          14          19
+ Exact exchange calculation: spin, orbitals:           2          14          20
+ Exact exchange calculation: spin, orbitals:           2          15          15
+ Exact exchange calculation: spin, orbitals:           2          15          16
+ Exact exchange calculation: spin, orbitals:           2          15          17
+ Exact exchange calculation: spin, orbitals:           2          15          18
+ Exact exchange calculation: spin, orbitals:           2          15          19
+ Exact exchange calculation: spin, orbitals:           2          15          20
+ Exact exchange calculation: spin, orbitals:           2          16          16
+ Exact exchange calculation: spin, orbitals:           2          16          17
+ Exact exchange calculation: spin, orbitals:           2          16          18
+ Exact exchange calculation: spin, orbitals:           2          16          19
+ Exact exchange calculation: spin, orbitals:           2          16          20
+ Exact exchange calculation: spin, orbitals:           2          17          17
+ Exact exchange calculation: spin, orbitals:           2          17          18
+ Exact exchange calculation: spin, orbitals:           2          17          19
+ Exact exchange calculation: spin, orbitals:           2          17          20
+ Exact exchange calculation: spin, orbitals:           2          18          18
+ Exact exchange calculation: spin, orbitals:           2          18          19
+ Exact exchange calculation: spin, orbitals:           2          18          20
+ Exact exchange calculation: spin, orbitals:           2          19          19
+ Exact exchange calculation: spin, orbitals:           2          19          20
+ Exact exchange calculation: spin, orbitals:           2          20          20
+Exact Exchange Energy: -3.08074093273E+00
+ done. ekin_sum,eks:      67.2368749486      67.1769441307
+ ekin_sum,epot_sum,eproj_sum  6.72368749486E+01 -6.99863510523E+01 -2.15327773296E+01
+    ehart,   eexcu,    vexcu  1.05228491322E+02 -9.97170173143E+00 -1.29776453512E+01
  Input Wavefunctions Orthogonalization: Overlap Matrix... Linear Algebra...
- evale(1)= -3.41049223533268E+00
- evale(2)= -2.12743498985437E+00
- evale(3)= -2.12743498985436E+00
- evale(4)= -2.12740673878985E+00
- evale(5)= -1.62506065033634E-01 <-
- evale(6)= -1.53358986976866E-01 <-
- evale(7)= -1.53358986976864E-01 <-
- evale(8)= -1.53326331544767E-01 <-
- evale(9)= -1.37618637183696E-01 <-
- evale(10)= -1.37618637183694E-01 <- Last eigenvalue for input wavefunctions
+ evale(   1,u)= -3.77935367778299E+00            evale(   1,d)= -3.56587442572683E+00
+ evale(   2,u)= -2.51918550031900E+00            evale(   2,d)= -2.24397797071073E+00
+ evale(   3,u)= -2.44281988818674E+00            evale(   3,d)= -2.23541555091234E+00
+ evale(   4,u)= -2.44280113271548E+00            evale(   4,d)= -2.23539631024305E+00
+ evale(   5,u)= -4.46173584833491E-01            evale(   5,d)= -2.90805001710594E-01
+ evale(   6,u)= -4.46151832267971E-01    Last->  evale(   6,d)= -1.90802788593373E-01
+ evale(   7,u)= -4.39575323016582E-01            evale(   7,d)= -8.89659511615385E-02
+ evale(   8,u)= -4.02217681634795E-01            evale(   8,d)= -8.89440814291894E-02
+ evale(   9,u)= -3.76019430172718E-01            evale(   9,d)= -8.60409377062289E-02
+ evale(  10,u)= -2.25683441046358E-01  <-Last    evale(  10,d)= -3.21957542818893E-02
  Building orthogonal Wavefunctions... done.
- expected accuracy in energy  6.38E-02
- expected accuracy in energy per orbital  6.38E-03
+ expected accuracy in energy  5.99E-02
+ expected accuracy in energy per orbital  3.75E-03
  ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      15.999965119590
+ Calculation of charge density... done. Total electronic charge=      15.999967536137
  PSolver, free  BC, dimensions:   101  101  101   proc    8   ixc: -406 ...done.
- Hamiltonian application... Exact exchange calculation. spin, orbitals:
+ Hamiltonian application... Exact exchange calculation: spin, orbitals:
            1           1           1
- Exact exchange calculation. spin, orbitals:           1           1           2
- Exact exchange calculation. spin, orbitals:           1           1           3
- Exact exchange calculation. spin, orbitals:           1           1           4
- Exact exchange calculation. spin, orbitals:           1           1           5
- Exact exchange calculation. spin, orbitals:           1           1           6
- Exact exchange calculation. spin, orbitals:           1           1           7
- Exact exchange calculation. spin, orbitals:           1           1           8
- Exact exchange calculation. spin, orbitals:           1           1           9
- Exact exchange calculation. spin, orbitals:           1           1          10
- Exact exchange calculation. spin, orbitals:           1           2           2
- Exact exchange calculation. spin, orbitals:           1           2           3
- Exact exchange calculation. spin, orbitals:           1           2           4
- Exact exchange calculation. spin, orbitals:           1           2           5
- Exact exchange calculation. spin, orbitals:           1           2           6
- Exact exchange calculation. spin, orbitals:           1           2           7
- Exact exchange calculation. spin, orbitals:           1           2           8
- Exact exchange calculation. spin, orbitals:           1           2           9
- Exact exchange calculation. spin, orbitals:           1           2          10
- Exact exchange calculation. spin, orbitals:           1           3           3
- Exact exchange calculation. spin, orbitals:           1           3           4
- Exact exchange calculation. spin, orbitals:           1           3           5
- Exact exchange calculation. spin, orbitals:           1           3           6
- Exact exchange calculation. spin, orbitals:           1           3           7
- Exact exchange calculation. spin, orbitals:           1           3           8
- Exact exchange calculation. spin, orbitals:           1           3           9
- Exact exchange calculation. spin, orbitals:           1           3          10
- Exact exchange calculation. spin, orbitals:           1           4           4
- Exact exchange calculation. spin, orbitals:           1           4           5
- Exact exchange calculation. spin, orbitals:           1           4           6
- Exact exchange calculation. spin, orbitals:           1           4           7
- Exact exchange calculation. spin, orbitals:           1           4           8
- Exact exchange calculation. spin, orbitals:           1           4           9
- Exact exchange calculation. spin, orbitals:           1           4          10
- Exact exchange calculation. spin, orbitals:           1           5           5
- Exact exchange calculation. spin, orbitals:           1           5           6
- Exact exchange calculation. spin, orbitals:           1           5           7
- Exact exchange calculation. spin, orbitals:           1           5           8
- Exact exchange calculation. spin, orbitals:           1           5           9
- Exact exchange calculation. spin, orbitals:           1           5          10
- Exact exchange calculation. spin, orbitals:           1           6           6
- Exact exchange calculation. spin, orbitals:           1           6           7
- Exact exchange calculation. spin, orbitals:           1           6           8
- Exact exchange calculation. spin, orbitals:           1           6           9
- Exact exchange calculation. spin, orbitals:           1           6          10
- Exact exchange calculation. spin, orbitals:           1           7           7
- Exact exchange calculation. spin, orbitals:           1           7           8
- Exact exchange calculation. spin, orbitals:           1           7           9
- Exact exchange calculation. spin, orbitals:           1           7          10
- Exact exchange calculation. spin, orbitals:           1           8           8
- Exact exchange calculation. spin, orbitals:           1           8           9
- Exact exchange calculation. spin, orbitals:           1           8          10
- Exact exchange calculation. spin, orbitals:           1           9           9
- Exact exchange calculation. spin, orbitals:           1           9          10
- Exact exchange calculation. spin, orbitals:           1          10          10
-Exact Exchange Energy: -2.79631337683E+00
+ Exact exchange calculation: spin, orbitals:           1           1           2
+ Exact exchange calculation: spin, orbitals:           1           1           3
+ Exact exchange calculation: spin, orbitals:           1           1           4
+ Exact exchange calculation: spin, orbitals:           1           1           5
+ Exact exchange calculation: spin, orbitals:           1           1           6
+ Exact exchange calculation: spin, orbitals:           1           1           7
+ Exact exchange calculation: spin, orbitals:           1           1           8
+ Exact exchange calculation: spin, orbitals:           1           1           9
+ Exact exchange calculation: spin, orbitals:           1           1          10
+ Exact exchange calculation: spin, orbitals:           1           2           2
+ Exact exchange calculation: spin, orbitals:           1           2           3
+ Exact exchange calculation: spin, orbitals:           1           2           4
+ Exact exchange calculation: spin, orbitals:           1           2           5
+ Exact exchange calculation: spin, orbitals:           1           2           6
+ Exact exchange calculation: spin, orbitals:           1           2           7
+ Exact exchange calculation: spin, orbitals:           1           2           8
+ Exact exchange calculation: spin, orbitals:           1           2           9
+ Exact exchange calculation: spin, orbitals:           1           2          10
+ Exact exchange calculation: spin, orbitals:           1           3           3
+ Exact exchange calculation: spin, orbitals:           1           3           4
+ Exact exchange calculation: spin, orbitals:           1           3           5
+ Exact exchange calculation: spin, orbitals:           1           3           6
+ Exact exchange calculation: spin, orbitals:           1           3           7
+ Exact exchange calculation: spin, orbitals:           1           3           8
+ Exact exchange calculation: spin, orbitals:           1           3           9
+ Exact exchange calculation: spin, orbitals:           1           3          10
+ Exact exchange calculation: spin, orbitals:           1           4           4
+ Exact exchange calculation: spin, orbitals:           1           4           5
+ Exact exchange calculation: spin, orbitals:           1           4           6
+ Exact exchange calculation: spin, orbitals:           1           4           7
+ Exact exchange calculation: spin, orbitals:           1           4           8
+ Exact exchange calculation: spin, orbitals:           1           4           9
+ Exact exchange calculation: spin, orbitals:           1           4          10
+ Exact exchange calculation: spin, orbitals:           1           5           5
+ Exact exchange calculation: spin, orbitals:           1           5           6
+ Exact exchange calculation: spin, orbitals:           1           5           7
+ Exact exchange calculation: spin, orbitals:           1           5           8
+ Exact exchange calculation: spin, orbitals:           1           5           9
+ Exact exchange calculation: spin, orbitals:           1           5          10
+ Exact exchange calculation: spin, orbitals:           1           6           6
+ Exact exchange calculation: spin, orbitals:           1           6           7
+ Exact exchange calculation: spin, orbitals:           1           6           8
+ Exact exchange calculation: spin, orbitals:           1           6           9
+ Exact exchange calculation: spin, orbitals:           1           6          10
+ Exact exchange calculation: spin, orbitals:           1           7           7
+ Exact exchange calculation: spin, orbitals:           1           7           8
+ Exact exchange calculation: spin, orbitals:           1           7           9
+ Exact exchange calculation: spin, orbitals:           1           7          10
+ Exact exchange calculation: spin, orbitals:           1           8           8
+ Exact exchange calculation: spin, orbitals:           1           8           9
+ Exact exchange calculation: spin, orbitals:           1           8          10
+ Exact exchange calculation: spin, orbitals:           1           9           9
+ Exact exchange calculation: spin, orbitals:           1           9          10
+ Exact exchange calculation: spin, orbitals:           1          10          10
+ Exact exchange calculation: spin, orbitals:           2          11          11
+ Exact exchange calculation: spin, orbitals:           2          11          12
+ Exact exchange calculation: spin, orbitals:           2          11          13
+ Exact exchange calculation: spin, orbitals:           2          11          14
+ Exact exchange calculation: spin, orbitals:           2          11          15
+ Exact exchange calculation: spin, orbitals:           2          11          16
+ Exact exchange calculation: spin, orbitals:           2          12          12
+ Exact exchange calculation: spin, orbitals:           2          12          13
+ Exact exchange calculation: spin, orbitals:           2          12          14
+ Exact exchange calculation: spin, orbitals:           2          12          15
+ Exact exchange calculation: spin, orbitals:           2          12          16
+ Exact exchange calculation: spin, orbitals:           2          13          13
+ Exact exchange calculation: spin, orbitals:           2          13          14
+ Exact exchange calculation: spin, orbitals:           2          13          15
+ Exact exchange calculation: spin, orbitals:           2          13          16
+ Exact exchange calculation: spin, orbitals:           2          14          14
+ Exact exchange calculation: spin, orbitals:           2          14          15
+ Exact exchange calculation: spin, orbitals:           2          14          16
+ Exact exchange calculation: spin, orbitals:           2          15          15
+ Exact exchange calculation: spin, orbitals:           2          15          16
+ Exact exchange calculation: spin, orbitals:           2          16          16
+Exact Exchange Energy: -3.08074060411E+00
  done. 1 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   6.72407537769E+01 -6.65029491199E+01 -2.15306806953E+01
- final ehart, eexcu,  vexcu   1.05202735619E+02 -9.84568469809E+00 -1.28083568513E+01
- FINAL iter,total energy,gnrm     1  -1.23032939503605220E+02  1.00E+10
+ final  ekin,  epot,  eproj   6.72368890710E+01 -6.99863474949E+01 -2.15327794803E+01
+ final ehart, eexcu,  vexcu   1.05228506059E+02 -9.97170094469E+00 -1.29776437727E+01
+ FINAL iter,total energy,gnrm     1  -1.23424060530797831E+02  1.00E+10
  No convergence within the allowed number of minimization steps
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1)= -3.41051378541436E+00
- eval(   2)= -2.12743397413866E+00
- eval(   3)= -2.12743397413865E+00
- eval(   4)= -2.12740607507661E+00
- eval(   5)= -1.62483482457341E-01
- eval(   6)= -1.53358609802868E-01
- eval(   7)= -1.53358609802865E-01
- eval(   8)= -1.53324902201460E-01
- eval(   9)= -1.37617892007613E-01
- eval(  10)= -1.37617892007611E-01
- Difference:evsum,energybs -2.0792876069438E+01 -2.0792876038320E+01
+ eval(   1,u)= -3.78023354768658E+00              eval(   1,d)= -3.56587925614673E+00
+ eval(   2,u)= -2.51919040729548E+00              eval(   2,d)= -2.24396693404700E+00
+ eval(   3,u)= -2.44281624761647E+00              eval(   3,d)= -2.23541893362066E+00
+ eval(   4,u)= -2.44279571267152E+00              eval(   4,d)= -2.23539935289891E+00
+ eval(   5,u)= -4.46171568967780E-01              eval(   5,d)= -2.90804640611770E-01
+ eval(   6,u)= -4.46149194343313E-01              eval(   6,d)= -1.90797603897860E-01
+ eval(   7,u)= -4.38777013597641E-01
+ eval(   8,u)= -4.02218887257589E-01
+ eval(   9,u)= -3.76021110246081E-01
+ eval(  10,u)= -2.25597493274443E-01
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      15.999965119583
+ Calculation of charge density... done. Total electronic charge=      15.999967536137
  PSolver, free  BC, dimensions:   101  101  101   proc    8   ixc:    0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- CPU time/ELAPSED time for root process     0        15.63        13.69
+ CPU time/ELAPSED time for root process     0        20.57        19.99
   WARNING: Wavefunctions not converged after cycle           1
   restart after diagonalisation
  Final values of the Forces for each atom
-     1     Fe -4.65763E-03 -4.65763E-03 -4.65763E-03
+     1     Fe -3.04262E-03 -5.64842E-04 -5.64842E-04
  the sum of the forces is
-      x direction    -4.65762654E-03
-      y direction    -4.65762654E-03
-      z direction    -4.65762654E-03
+      x direction    -3.04261960E-03
+      y direction    -5.64841704E-04
+      z direction    -5.64841705E-04
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 3109 allocations and 3109 deallocations, remaining memory(B):0
- memory occupation peak: 64 MB
- for the array  zmpi1 in the routine F_Poisson_Solver
+ 4860 allocations and 4860 deallocations, remaining memory(B):0
+ memory occupation peak: 84 MB
+ for the array  zmpi1 in the routine G_Poisson_Solver

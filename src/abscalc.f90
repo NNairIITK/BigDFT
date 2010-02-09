@@ -354,6 +354,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i,i03,i04
   integer :: i1,i2,i3,ind,iat,i_all,i_stat,iter,ierr,jproc,ispin,inputpsi
   real :: tcpu0,tcpu1
+  real(gp), dimension(3) :: shift
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(kind=8) :: peakmem,energy_old,sumz
   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum,sumx,sumy
@@ -384,6 +385,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   real(kind=8), dimension(:), pointer :: proj
   ! arrays for DIIS convergence accelerator
   real(kind=8), dimension(:,:,:), pointer :: ads
+  ! Arrays for the symmetrisation, not used here...
+  integer, dimension(:,:,:), allocatable :: irrzon
+  real(dp), dimension(:,:,:), allocatable :: phnons
   
   !for xabsorber
   logical in_refinement
@@ -505,7 +509,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
 
-  call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
+  call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
 
   
 
@@ -627,7 +631,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
      call input_wf_diag(iproc,nproc,atoms,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut )
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons)
 
      print *, " QUA 2  " 
 
@@ -749,7 +753,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
 
         if(  n1i_bB > n1i .or.  n2i_bB > n2i .or.   n3i_bB > n3i    ) then
            if(nproc>1) call MPI_Finalize(ierr)
-           stop '  b2B potential mast be defined on a smaller ( in number of points  ) source grid then the target grid    '
+           stop '  b2B potential must be defined on a smaller ( in number of points  ) source grid then the target grid    '
         endif
 
         do j=1,3

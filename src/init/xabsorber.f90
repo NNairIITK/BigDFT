@@ -850,7 +850,7 @@ function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
      enddo
   endif
   
-  ! //------------ Propagation de   I   � rinf --------------------------
+  ! //------------ Propagation de I rinf --------------------------
   
   do i=N,N-1,-1 
      y(i)=N-i    ! //y[i]=exp(-sqrt(-2*E)*r[i]);
@@ -1124,16 +1124,6 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
 
    return
  end subroutine schro
-
-
-
-
-
-
-
-
-
-
 
 subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
@@ -1478,12 +1468,6 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
 ! End of the big loop
 
 
-
-
-  
-
-
-
   do igrid=1, ngrid
      r=rgrid(igrid)
      potgrid(igrid)=potgrid(igrid)+ 0.5_gp*labs*(labs+1.0_gp)/r/r
@@ -1529,9 +1513,6 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
         H(i,j)=H(i,j)+dumgrid2(Ngrid)
      enddo
   enddo
-  
-
-
 
   call DSYEV('V','U', Nsol, H, Nsol,Egrid , WORK, Nsol*Nsol*2, INFO)
   
@@ -1540,10 +1521,6 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
   call resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,ng,res,&
              zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
              potgrd,xcgrd,noproj)
-
-
-
-
 
 ! charge up to radius rcov
   if (lmax.gt.3) stop 'cannot calculate chrg'
@@ -1662,21 +1639,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
         if (rk > 6.28_gp/rprb-.5_gp*dr) exit
      end do
   end if
-
-
-
 END SUBROUTINE gatom_modified
-
-
-
-
-
-
-
-
-
-
-
 
 
 !! this routine solves exactly a reference model
@@ -2250,9 +2213,6 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
         H(i,j)=H(i,j)+dumgrid2(Ngrid)
      enddo
   enddo
-  
-
-
 
   call DSYEV('V','U', Nsol, H, Nsol,Egrid , WORK, Nsol*Nsol*2, INFO)
   
@@ -2261,10 +2221,6 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
   call resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,ng,res,&
              zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
              potgrd,xcgrd,noproj)
-
-
-
-
 
 ! charge up to radius rcov
   if (lmax.gt.3) stop 'cannot calculate chrg'
@@ -2793,10 +2749,6 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   return
 end subroutine GetExcitedOrbitalAsG
 
-
-
-
-
 function GetBottom(  atoms, iproc)
   
   use module_base
@@ -2842,14 +2794,10 @@ function GetBottom(  atoms, iproc)
   noccmax = 5 
   lmax=3
   
-  
   Nsol=2
   Ngrid=3000
   
   cradius=5.0 !!!!!!!! ATTENZIONE
-  
-
-
     
   allocate(expo(ng +ndebug  ), stat=i_stat)
   call memocc(i_stat,expo,'expo',subname)
@@ -2932,14 +2880,6 @@ function GetBottom(  atoms, iproc)
   
 
 end function GetBottom
-
-
-
-
-
-
-
-
 
 subroutine zero4b2B(n,x)
   implicit none

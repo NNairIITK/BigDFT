@@ -9,7 +9,8 @@
 !!    For the list of contributors, see ~/AUTHORS 
 !! SOURCE
 !!
-subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,nspin,GPU)
+subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
+     & nscatterarr,nspin,GPU,symObj,irrzon,phnons)
   ! Calculates the charge density by summing the square of all orbitals
   ! Input: psi
   ! Output: rho
@@ -18,7 +19,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   use libxc_functionals
 
   implicit none
-  integer, intent(in) :: iproc,nproc,nrho,nspin,ixc
+  integer, intent(in) :: iproc,nproc,nrho,nspin,ixc,symObj
   real(gp), intent(in) :: hxh,hyh,hzh
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr 
@@ -26,6 +27,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
   real(dp), dimension(max(nrho,1),nspin), intent(out), target :: rho
   type(GPU_pointers), intent(inout) :: GPU
+  integer, dimension(*), intent(in) :: irrzon
+  real(dp), dimension(*), intent(in) :: phnons
   !local variables
   character(len=*), parameter :: subname='sumrho'
   logical :: rsflag
@@ -126,6 +129,11 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
            end do
         end do
      end if
+  end if
+
+  ! Symmetrise density, TODO...
+  if (symObj >= 0 .and. .false.) then
+     call symmetrise_density(iproc, nproc, n1i, n2i, n3i, nscatterarr, nspin, nrho, rho, symObj, irrzon, phnons)
   end if
 
   ! Check
@@ -516,3 +524,145 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
 
 end subroutine partial_density_free
 
+subroutine symmetrise_density(iproc, nproc, n1, n2, n3, nscatterarr, nspin, nrho, rho, symObj, irrzon, phnons)
+  use module_base!, only: gp,dp,wp,ndebug,memocc
+  use ab6_symmetry
+
+  implicit none
+  integer, intent(in) :: iproc,nproc,nrho,symObj,nspin, n1, n2, n3
+  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  real(dp), dimension(nrho, nspin), intent(inout) :: rho
+  integer, dimension(n1,n2,n3), intent(in) :: irrzon !to be changed, fake
+  real(dp), dimension(n1,n2,n3), intent(in) :: phnons !fake dimensions
+
+  integer :: errno, ispden, nsym_used, nSym, isym, imagn, r2
+  integer :: nd2, izone_max, numpt, izone, rep, nup, iup, ind, j, j1, j2, j3
+  real(dp) :: rhosu1, rhosu2
+  real(dp), dimension(:), allocatable :: work, rhosu1_arr, rhosu2_arr
+  real(dp), dimension(:,:), allocatable :: rhog
+  integer, pointer :: sym(:,:,:)
+  integer, pointer :: symAfm(:)
+  real(gp), pointer :: transNon(:,:)
+
+  call ab6_symmetry_get_matrices_p(symObj, nSym, sym, transNon, symAfm, errno)
+  if (nSym == 1) return
+
+  allocate(work(nrho))
+  allocate(rhog(2, nrho))
+
+  ! Here imagn doesn't change since nspin == nsppol in BigDFT.
+  imagn = 1
+
+  !  Treat either full density, spin-up density or magnetization
+  !  Note the decrease of ispden to the value 1, in order to finish
+  !  with rhog of the total density (and not the spin-up density or magnetization)
+  do ispden=nspin,1,-1
+
+     !    Prepare the density to be symmetrized, in the reciprocal space
+     nsym_used=0
+     do isym=1,nSym
+        if(symAfm(isym)==1)nsym_used=nsym_used+1
+     end do
+
+     !    rhor -fft-> rhog    (rhog is used as work space)
+     !    Note : it should be possible to reuse rhog in the antiferromagnetic case
+     !    this would avoid one FFT
+     work(:)=rho(:,ispden)
+!!$     call fourdp(cplex,rhog,work,-1,mpi_enreg,nfft,ngfft,paral_kgb,0)
+
+     nd2=n2/nproc
+
+     !    The following is only valid for total, up or dn density
+     !    -------------------------------------------------------
+
+     !    Get maxvalue of izone
+     izone_max=count(irrzon(:,2,imagn)>0)
+     allocate(rhosu1_arr(izone_max),rhosu2_arr(izone_max))
+
+     numpt=0
+     do izone=1,nrho
+
+        !      Get repetition number
+        rep=irrzon(izone,2,imagn)
+        if(rep==0)exit
+
+        !      Compute number of unique points in this symm class:
+        nup=nsym_used/rep
+
+        !      Accumulate charge over equivalent points
+        rhosu1=0._dp
+        rhosu2=0._dp
+        do iup=1,nup
+           ind=irrzon(iup+numpt,1,imagn)
+           j=ind-1;j1=modulo(j,n1);j2=modulo(j/n1,n2);j3=j/(n1*n2);r2=modulo(j2,nd2)
+           if(modulo(j/n1,n2)/nd2==iproc) then ! this ind is to be treated by me_fft
+              ind=n1*(nd2*j3+r2)+j1+1 !this is ind in the current proc
+              rhosu1=rhosu1+rhog(1,ind)*phnons(1,iup+numpt,imagn)&
+                   &           -rhog(2,ind)*phnons(2,iup+numpt,imagn)
+              rhosu2=rhosu2+rhog(2,ind)*phnons(1,iup+numpt,imagn)&
+                   &           +rhog(1,ind)*phnons(2,iup+numpt,imagn)
+           end if
+
+        end do
+        rhosu1=rhosu1/dble(nup)
+        rhosu2=rhosu2/dble(nup)
+        rhosu1_arr(izone)=rhosu1
+        rhosu2_arr(izone)=rhosu2
+        !      Keep index of how many points have been considered:
+        numpt=numpt+nup
+
+        !      End loop over izone
+     end do
+
+     !    Reduction in case of FFT parallelization
+!!$     if(mpi_enreg%mode_para=='b')then
+!!$        old_paral_level=mpi_enreg%paral_level
+!!$        mpi_enreg%paral_level=3
+!!$        spaceComm=mpi_enreg%comm_fft
+!!$        call xsum_mpi(rhosu1_arr,spaceComm,ier)
+!!$        call xsum_mpi(rhosu2_arr,spaceComm,ier)
+!!$        mpi_enreg%paral_level=old_paral_level
+!!$     end if
+
+     !    Now symmetrize the density
+     numpt=0
+     do izone=1,nrho
+
+        !      Get repetition number
+        rep=irrzon(izone,2,imagn)
+        if(rep==0)exit
+
+        !      Compute number of unique points in this symm class:
+        nup=nsym_used/rep
+
+        !      Define symmetrized rho(G) at equivalent points:
+        do iup=1,nup
+           ind=irrzon(iup+numpt,1,imagn)
+           !        decompose ind-1=n1(n2 j3+ j2)+j1
+           j=ind-1;j1=modulo(j,n1);j2=modulo(j/n1,n2);j3=j/(n1*n2);r2=modulo(j2,nd2)
+           if(modulo(j/n1,n2)/nd2==iproc) then ! this ind is to be treated by me_fft
+              !          ind in the proc ind-1=n1(nd2 j3+ r2)+j1
+              ind=n1*(nd2*j3+r2)+j1+1 !this is ind in the current proc
+              rhog(1,ind)=rhosu1_arr(izone)*phnons(1,iup+numpt,imagn)&
+                   &           +rhosu2_arr(izone)*phnons(2,iup+numpt,imagn)
+              rhog(2,ind)=rhosu2_arr(izone)*phnons(1,iup+numpt,imagn)&
+                   &           -rhosu1_arr(izone)*phnons(2,iup+numpt,imagn)
+           end if
+        end do
+
+        !      Keep index of how many points have been considered:
+        numpt=numpt+nup
+
+        !      End loop over izone
+     end do
+     deallocate(rhosu1_arr,rhosu2_arr)
+
+     !    Pull out full or spin up density, now symmetrized
+!!$     call fourdp(cplex,rhog,work,1,mpi_enreg,nfft,ngfft,paral_kgb,0)
+     rho(:,ispden)=work(:)
+
+  end do ! ispden
+
+  deallocate(work)
+  deallocate(rhog)
+end subroutine symmetrise_density

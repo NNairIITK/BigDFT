@@ -16,26 +16,26 @@
 !!
 !! INPUTS
 !! center=type of bravais lattice centering
-!!   center=0        no centering
-!!   center=-1       body-centered
-!!   center=-3       face-centered
-!!   center=1        A-face centered
-!!   center=2        B-face centered
-!!   center=3        C-face centered
+!!   	  center=0        no centering
+!!        center=-1       body-centered
+!!        center=-3       face-centered
+!!        center=1        A-face centered
+!!        center=2        B-face centered
+!!        center=3        C-face centered
 !! iholohedry=type of holohedry
-!!   iholohedry=1   triclinic      1bar
-!!   iholohedry=2   monoclinic     2/m
-!!   iholohedry=3   orthorhombic   mmm
-!!   iholohedry=4   tetragonal     4/mmm
-!!   iholohedry=5   trigonal       3bar m  (rhombohedral Bravais latt)
-!!   iholohedry=6   hexagonal      6/mmm
-!!   iholohedry=7   cubic          m3bar m
+!!            iholohedry=1   triclinic      1bar
+!!            iholohedry=2   monoclinic     2/m
+!!            iholohedry=3   orthorhombic   mmm
+!!            iholohedry=4   tetragonal     4/mmm
+!!            iholohedry=5   trigonal       3bar m  (rhombohedral Bravais latt)
+!!            iholohedry=6   hexagonal      6/mmm
+!!            iholohedry=7   cubic          m3bar m
 !! isym=number of the symmetry operation that is currently analyzed
 !! isymrelconv=symrel matrix for the particular operation, in conv. axes
 !! ordersym=order of the symmetry operation
 !! tnons_order=order of the screw translation
 !! trialt(3)=screw translation associated with the symmetry operation
-!!   in conventional axes (all components in the range ]-1/2,1/2] )
+!!           in conventional axes (all components in the range ]-1/2,1/2] )
 !!
 !! OUTPUT
 !! type_axis=type of the symmetry operation
@@ -125,7 +125,7 @@ subroutine symaxes(center,iholohedry,&
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-! use interfaces_14_hidewrite
+ use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -155,167 +155,167 @@ subroutine symaxes(center,iholohedry,&
 
  select case(ordersym)
 
-  case(2)                       ! point symmetry 2
-!  Must characterize directiontype for cP, tP, tI, and hP Bravais lattices
-   directiontype=1
-   if( iholohedry==4 .or. iholohedry==7) then ! tP or cP Bravais lattices
-    if(abs(isymrelconv(1,1))+ &
-&    abs(isymrelconv(2,2))+ &
-&    abs(isymrelconv(3,3))  ==1) directiontype=3
-   else if(iholohedry==6)then   ! hP Bravais lattice
-    if(sum(isymrelconv(:,:))/=-1 )directiontype=2
-    if(sum(isymrelconv(:,:))==0 .or. sum(isymrelconv(:,:))==-3 )&
-&    directiontype=3
-!   directiontype=1 corresponds to a primary axis
-!   directiontype=2 corresponds to a tertiary axis
-!   directiontype=3 corresponds to a secondary axis
-   end if
-
-!  DEBUG
-!  write(6,*)' directiontype=',directiontype
-!  write(6, '(a,3i6)' )' isymrelconv(1:3)=',isymrelconv(:,1)
-!  write(6, '(a,3i6)' )' isymrelconv(4:6)=',isymrelconv(:,2)
-!  write(6, '(a,3i6)' )' isymrelconv(7:9)=',isymrelconv(:,3)
-!  write(6, '(a,i)' )' tnons_order=',tnons_order
-!  ENDDEBUG
-
-!  Now, classify the 2 axes
-   if(directiontype==2)then
-    type_axis=4                 ! secondary 2  (only in the hP Bravais latt case)
-    write(message,'(a,i3,a)') &
-&    ' symaxes : the symmetry operation no. ',isym,' is a secondary 2-axis '
-    
-   else if(directiontype==3 .and. iholohedry==4)then
-    type_axis=21                ! tertiary 2
-    write(message,'(a,i3,a)') &
-&    ' symaxes : the symmetry operation no. ',isym,' is a tertiary 2-axis '
-   else if(directiontype==3 .and. &
-&    center==0 .and. (iholohedry==6.or.iholohedry==7) )then
-    type_axis=21                ! tertiary 2
-    write(message,'(a,i3,a)') &
-&    ' symaxes : the symmetry operation no. ',isym,' is a tertiary 2-axis '
-   else if(tnons_order==1 .or. (iholohedry==4 .and. center==-1) .or. &
-&    iholohedry==5)then
-    type_axis=9                 ! 2
-    write(message,'(a,i3,a)') &
-&    ' symaxes : the symmetry operation no. ',isym,' is a 2-axis '
-   else
-    type_axis=20                ! 2_1
-    write(message,'(a,i3,a)') &
-&    ' symaxes : the symmetry operation no. ',isym,' is a 2_1-axis '
-   end if
-   call wrtout(6,message,'COLL')
-
-  case(3)                       ! point symmetry 3
-   if(tnons_order==1)then
-    type_axis=10                ! 3
-    write(message,'(a,i3,a)') &
-&    ' symaxes : the symmetry operation no. ',isym,' is a 3-axis '
-   else if(iholohedry==5 .or. iholohedry==7)then
-!   This is a special situation : in the same family of parallel 3-axis,
-!   one will have an equal number of 3, 3_1 and 3_2 axes, so that
-!   it is non-sense to try to classify one of them.
-    type_axis=10                ! 3, 3_1 or 3_2, undistinguishable
-    write(message,'(a,i3,a)') &
-&    ' symaxes : the symmetry operation no. ',isym,' is a 3, 3_1 or 3_2 axis '
-   else
-!   DEBUG
-!   write(6,*)'isymrelconv=',isymrelconv(:,:)
-!   write(6,*)'trialt=',trialt(:)
-!   ENDDEBUG
-!   Must recognize 3_1 or 3_2
-    if(isymrelconv(1,1)==0)then  ! 3+
-     if(abs(trialt(3)-third)<nzero)type_axis=22   ! 3_1
-     if(abs(trialt(3)+third)<nzero)type_axis=23   ! 3_2
-    else if(isymrelconv(1,1)==-1)then  ! 3-
-     if(abs(trialt(3)-third)<nzero)type_axis=23   ! 3_2
-     if(abs(trialt(3)+third)<nzero)type_axis=22   ! 3_1
-    end if
-    write(message,'(a,i3,a)') &
-&    ' symaxes : the symmetry operation no. ',isym,' is a 3_1 or 3_2-axis '
-   end if
-   call wrtout(6,message,'COLL')
-
-  case(4)                       ! point symmetry 4
-   if(tnons_order==1)then
-    type_axis=12                ! 4
-    write(message,'(a,i3,a)') &
-&    ' symaxes : the symmetry operation no. ',isym,' is a 4-axis '
-   else if(tnons_order==2)then
-    type_axis=25                ! 4_2
-    write(message,'(a,i3,a)') &
-&    ' symaxes : the symmetry operation no. ',isym,' is a 4_2-axis '
-   else if(center/=0)then
-    type_axis=24                ! 4_1 or 4_3
-    write(message,'(a,i3,a)') &
-&    ' symaxes : the symmetry operation no. ',isym,' is a 4_1 or 4_3-axis '
-   else
-!   DEBUG
-!   write(6,*)'isymrelconv=',isymrelconv(:,:)
-!   write(6,*)'trialt=',trialt(:)
-!   ENDDEBUG
-!   Must recognize 4_1 or 4_3, along the three primary directions
-    do direction=1,3
-     if(isymrelconv(direction,direction)==1)then  !
-      if( (direction==1 .and. isymrelconv(2,3)==-1) .or. &
-&      (direction==2 .and. isymrelconv(3,1)==-1) .or. &
-&      (direction==3 .and. isymrelconv(1,2)==-1)       )then ! 4+
-       if(abs(trialt(direction)-quarter)<nzero)type_axis=24    ! 4_1
-       if(abs(trialt(direction)+quarter)<nzero)type_axis=26    ! 4_3
-      else if( (direction==1 .and. isymrelconv(2,3)==1) .or. &
-&       (direction==2 .and. isymrelconv(3,1)==1) .or. &
-&       (direction==3 .and. isymrelconv(1,2)==1)       )then ! 4-
-       if(abs(trialt(direction)-quarter)<nzero)type_axis=26    ! 4_3
-       if(abs(trialt(direction)+quarter)<nzero)type_axis=24    ! 4_1
-      end if
+   case(2)                       ! point symmetry 2
+!    Must characterize directiontype for cP, tP, tI, and hP Bravais lattices
+     directiontype=1
+     if( iholohedry==4 .or. iholohedry==7) then ! tP or cP Bravais lattices
+       if(abs(isymrelconv(1,1))+ &
+&       abs(isymrelconv(2,2))+ &
+&       abs(isymrelconv(3,3))  ==1) directiontype=3
+     else if(iholohedry==6)then   ! hP Bravais lattice
+       if(sum(isymrelconv(:,:))/=-1 )directiontype=2
+       if(sum(isymrelconv(:,:))==0 .or. sum(isymrelconv(:,:))==-3 )&
+&       directiontype=3
+!      directiontype=1 corresponds to a primary axis
+!      directiontype=2 corresponds to a tertiary axis
+!      directiontype=3 corresponds to a secondary axis
      end if
-    end do
-    write(message,'(a,i3,a)') &
-&    ' symaxes : the symmetry operation no. ',isym,' is a 4_1 or 4_3-axis '
-   end if
-   call wrtout(6,message,'COLL')
 
-  case(6)                       ! point symmetry 6
-   if(tnons_order==1)then
-    type_axis=14                ! 6
-    write(message,'(a,i3,a)') &
-&    ' symaxes : the symmetry operation no. ',isym,' is a 6-axis '
-   else if(tnons_order==2)then
-    type_axis=29                ! 6_3
-    write(message,'(a,i3,a)') &
-&    ' symaxes : the symmetry operation no. ',isym,' is a 6_3-axis '
-   else if(tnons_order==3)then
-!   DEBUG
-!   write(6,*)'isymrelconv=',isymrelconv(:,:)
-!   write(6,*)'trialt=',trialt(:)
-!   ENDDEBUG
-!   Must recognize 6_2 or 6_4
-    if(isymrelconv(1,1)==1)then  ! 6+
-     if(abs(trialt(3)-third)<nzero)type_axis=28   ! 6_2
-     if(abs(trialt(3)+third)<nzero)type_axis=30   ! 6_4
-    else if(isymrelconv(1,1)==0)then  ! 6-
-     if(abs(trialt(3)-third)<nzero)type_axis=30   ! 6_4
-     if(abs(trialt(3)+third)<nzero)type_axis=28   ! 6_2
-    end if
-    write(message,'(a,i3,a)') &
-&    ' symaxes : the symmetry operation no. ',isym,' is a 6_2 or 6_4-axis '
-   else
-!   DEBUG
-!   write(6,*)'isymrelconv=',isymrelconv(:,:)
-!   write(6,*)'trialt=',trialt(:)
-!   ENDDEBUG
-!   Must recognize 6_1 or 6_5
-    if(isymrelconv(1,1)==1)then  ! 6+
-     if(abs(trialt(3)-sixth)<nzero)type_axis=27   ! 6_1
-     if(abs(trialt(3)+sixth)<nzero)type_axis=31   ! 6_5
-    else if(isymrelconv(1,1)==0)then  ! 6-
-     if(abs(trialt(3)-sixth)<nzero)type_axis=31   ! 6_5
-     if(abs(trialt(3)+sixth)<nzero)type_axis=27   ! 6_1
-    end if
-    write(message,'(a,i3,a)') &
-&    ' symaxes : the symmetry operation no. ',isym,' is a 6_1 or 6_5-axis '
-   end if
-   call wrtout(6,message,'COLL')
+!    DEBUG
+!    write(6,*)' directiontype=',directiontype
+!    write(6, '(a,3i6)' )' isymrelconv(1:3)=',isymrelconv(:,1)
+!    write(6, '(a,3i6)' )' isymrelconv(4:6)=',isymrelconv(:,2)
+!    write(6, '(a,3i6)' )' isymrelconv(7:9)=',isymrelconv(:,3)
+!    write(6, '(a,i)' )' tnons_order=',tnons_order
+!    ENDDEBUG
+
+!    Now, classify the 2 axes
+     if(directiontype==2)then
+       type_axis=4                 ! secondary 2  (only in the hP Bravais latt case)
+       write(message,'(a,i3,a)') &
+&       ' symaxes : the symmetry operation no. ',isym,' is a secondary 2-axis '
+
+     else if(directiontype==3 .and. iholohedry==4)then
+       type_axis=21                ! tertiary 2
+       write(message,'(a,i3,a)') &
+&       ' symaxes : the symmetry operation no. ',isym,' is a tertiary 2-axis '
+     else if(directiontype==3 .and. &
+&       center==0 .and. (iholohedry==6.or.iholohedry==7) )then
+       type_axis=21                ! tertiary 2
+       write(message,'(a,i3,a)') &
+&       ' symaxes : the symmetry operation no. ',isym,' is a tertiary 2-axis '
+     else if(tnons_order==1 .or. (iholohedry==4 .and. center==-1) .or. &
+&       iholohedry==5)then
+       type_axis=9                 ! 2
+       write(message,'(a,i3,a)') &
+&       ' symaxes : the symmetry operation no. ',isym,' is a 2-axis '
+     else
+       type_axis=20                ! 2_1
+       write(message,'(a,i3,a)') &
+&       ' symaxes : the symmetry operation no. ',isym,' is a 2_1-axis '
+     end if
+     call wrtout(6,message,'COLL')
+
+   case(3)                       ! point symmetry 3
+     if(tnons_order==1)then
+       type_axis=10                ! 3
+       write(message,'(a,i3,a)') &
+&       ' symaxes : the symmetry operation no. ',isym,' is a 3-axis '
+     else if(iholohedry==5 .or. iholohedry==7)then
+!      This is a special situation : in the same family of parallel 3-axis,
+!      one will have an equal number of 3, 3_1 and 3_2 axes, so that
+!      it is non-sense to try to classify one of them.
+       type_axis=10                ! 3, 3_1 or 3_2, undistinguishable
+       write(message,'(a,i3,a)') &
+&       ' symaxes : the symmetry operation no. ',isym,' is a 3, 3_1 or 3_2 axis '
+     else
+!      DEBUG
+!      write(6,*)'isymrelconv=',isymrelconv(:,:)
+!      write(6,*)'trialt=',trialt(:)
+!      ENDDEBUG
+!      Must recognize 3_1 or 3_2
+       if(isymrelconv(1,1)==0)then  ! 3+
+         if(abs(trialt(3)-third)<nzero)type_axis=22   ! 3_1
+         if(abs(trialt(3)+third)<nzero)type_axis=23   ! 3_2
+       else if(isymrelconv(1,1)==-1)then  ! 3-
+         if(abs(trialt(3)-third)<nzero)type_axis=23   ! 3_2
+         if(abs(trialt(3)+third)<nzero)type_axis=22   ! 3_1
+       end if
+       write(message,'(a,i3,a)') &
+&       ' symaxes : the symmetry operation no. ',isym,' is a 3_1 or 3_2-axis '
+     end if
+     call wrtout(6,message,'COLL')
+
+   case(4)                       ! point symmetry 4
+     if(tnons_order==1)then
+       type_axis=12                ! 4
+       write(message,'(a,i3,a)') &
+&       ' symaxes : the symmetry operation no. ',isym,' is a 4-axis '
+     else if(tnons_order==2)then
+       type_axis=25                ! 4_2
+       write(message,'(a,i3,a)') &
+&       ' symaxes : the symmetry operation no. ',isym,' is a 4_2-axis '
+     else if(center/=0)then
+       type_axis=24                ! 4_1 or 4_3
+       write(message,'(a,i3,a)') &
+&       ' symaxes : the symmetry operation no. ',isym,' is a 4_1 or 4_3-axis '
+     else
+!      DEBUG
+!      write(6,*)'isymrelconv=',isymrelconv(:,:)
+!      write(6,*)'trialt=',trialt(:)
+!      ENDDEBUG
+!      Must recognize 4_1 or 4_3, along the three primary directions
+       do direction=1,3
+         if(isymrelconv(direction,direction)==1)then  !
+           if( (direction==1 .and. isymrelconv(2,3)==-1) .or. &
+&           (direction==2 .and. isymrelconv(3,1)==-1) .or. &
+&           (direction==3 .and. isymrelconv(1,2)==-1)       )then ! 4+
+             if(abs(trialt(direction)-quarter)<nzero)type_axis=24    ! 4_1
+             if(abs(trialt(direction)+quarter)<nzero)type_axis=26    ! 4_3
+           else if( (direction==1 .and. isymrelconv(2,3)==1) .or. &
+&             (direction==2 .and. isymrelconv(3,1)==1) .or. &
+&             (direction==3 .and. isymrelconv(1,2)==1)       )then ! 4-
+             if(abs(trialt(direction)-quarter)<nzero)type_axis=26    ! 4_3
+             if(abs(trialt(direction)+quarter)<nzero)type_axis=24    ! 4_1
+           end if
+         end if
+       end do
+       write(message,'(a,i3,a)') &
+&       ' symaxes : the symmetry operation no. ',isym,' is a 4_1 or 4_3-axis '
+     end if
+     call wrtout(6,message,'COLL')
+
+   case(6)                       ! point symmetry 6
+     if(tnons_order==1)then
+       type_axis=14                ! 6
+       write(message,'(a,i3,a)') &
+&       ' symaxes : the symmetry operation no. ',isym,' is a 6-axis '
+     else if(tnons_order==2)then
+       type_axis=29                ! 6_3
+       write(message,'(a,i3,a)') &
+&       ' symaxes : the symmetry operation no. ',isym,' is a 6_3-axis '
+     else if(tnons_order==3)then
+!      DEBUG
+!      write(6,*)'isymrelconv=',isymrelconv(:,:)
+!      write(6,*)'trialt=',trialt(:)
+!      ENDDEBUG
+!      Must recognize 6_2 or 6_4
+       if(isymrelconv(1,1)==1)then  ! 6+
+         if(abs(trialt(3)-third)<nzero)type_axis=28   ! 6_2
+         if(abs(trialt(3)+third)<nzero)type_axis=30   ! 6_4
+       else if(isymrelconv(1,1)==0)then  ! 6-
+         if(abs(trialt(3)-third)<nzero)type_axis=30   ! 6_4
+         if(abs(trialt(3)+third)<nzero)type_axis=28   ! 6_2
+       end if
+       write(message,'(a,i3,a)') &
+&       ' symaxes : the symmetry operation no. ',isym,' is a 6_2 or 6_4-axis '
+     else
+!      DEBUG
+!      write(6,*)'isymrelconv=',isymrelconv(:,:)
+!      write(6,*)'trialt=',trialt(:)
+!      ENDDEBUG
+!      Must recognize 6_1 or 6_5
+       if(isymrelconv(1,1)==1)then  ! 6+
+         if(abs(trialt(3)-sixth)<nzero)type_axis=27   ! 6_1
+         if(abs(trialt(3)+sixth)<nzero)type_axis=31   ! 6_5
+       else if(isymrelconv(1,1)==0)then  ! 6-
+         if(abs(trialt(3)-sixth)<nzero)type_axis=31   ! 6_5
+         if(abs(trialt(3)+sixth)<nzero)type_axis=27   ! 6_1
+       end if
+       write(message,'(a,i3,a)') &
+&       ' symaxes : the symmetry operation no. ',isym,' is a 6_1 or 6_5-axis '
+     end if
+     call wrtout(6,message,'COLL')
 
  end select
 

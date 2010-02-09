@@ -4,7 +4,8 @@ SUBDIRS =
 
 EXTRA_DIST = \
 	input.dft \
-	posinp.xyz 
+	posinp.xyz \
+	input.geopt
 
 
 PPFILES = \
@@ -12,21 +13,23 @@ PPFILES = \
 	psppar.O
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat *.pot *.pot_avg* *xyz H2O-slab.out posout* \
-	*prc fldiff.report
+	*prc fldiff.report velocities.xyz
 
 #dependencies
 $(PPFILES):
 	ln -fs $(top_srcdir)/utils/PSPfiles/HGH-K/$@
 
 H2O-slab.out: $(top_builddir)/src/cluster $(PPFILES)
-	if ! test x"$srcdir" = x"." ; then \
-	  ln -fs $(srcdir)/input.dft ; \
-	  ln -fs $(srcdir)/posinp.xyz ; \
+	@if ! test x"$(srcdir)" = x"." ; then \
+	  for file in $(EXTRA_DIST); do \
+	    ln -fs $(srcdir)/$$file ; \
+	  done ; \
         fi
 	$(run_parallel) $(top_builddir)/src/cluster > $@
-	if ! test x"$srcdir" = x"." ; then \
-	  rm -f input.dft ; \
-	  rm -f posinp.xyz ; \
+	@if ! test x"$(srcdir)" = x"." ; then \
+	  for file in $(EXTRA_DIST); do \
+	    rm -f $$file ; \
+	  done ; \
         fi
 
 check: H2O-slab.out
