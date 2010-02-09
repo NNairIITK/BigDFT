@@ -15,6 +15,7 @@ SUBDIRS = \
 	  Davidson-SiH4 \
 	  H2-freq \
 	  NEB \
+	  FeHyb \
 	  XabsCheb 
 
 

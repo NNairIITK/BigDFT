@@ -442,8 +442,9 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   else
      eval_min = GetBottom(  at, iproc)-1.0
-     eval_max = 4.0*Pi*Pi*(1.0/hx/hx + 1.0/hy/hy + 1.0/hz/hz  )/2.0*1.01
+     eval_max = 4.0*Pi*Pi*(1.0/hx/hx + 1.0/hy/hy + 1.0/hz/hz  )/2.0*1.01+1
   endif
+
 
 
   cheb_shift=0.5*(eval_min+ eval_max) 

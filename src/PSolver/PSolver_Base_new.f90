@@ -12,7 +12,7 @@
 !!
 !! SOURCE
 !!
-subroutine G_PoissonSolver(geocode,iproc,nproc,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,&
+subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,&
              scal,hx,hy,hz,offset)
   use module_base
   implicit none
@@ -20,17 +20,16 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,
   include 'perfdata.inc'
   !Arguments
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc
+  integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,ncplx
   real(gp), intent(in) :: scal,hx,hy,hz,offset
   real(dp), dimension(nd1,nd2,nd3/nproc), intent(in) :: pot
-  real(dp), dimension(md1,md3,md2/nproc), intent(inout) :: zf
+  real(dp), dimension(ncplx,md1,md3,md2/nproc), intent(inout) :: zf
   !Local variables
   character(len=*), parameter :: subname='G_Poisson_Solver'
   logical :: perx,pery,perz,halffty,cplx
   !Maximum number of points for FFT (should be same number in fft3d routine)
-  integer, parameter :: nfft_max=24000
   integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
-  integer :: j2,j3,i1,i3,i,j,inzee,ierr,i_all,i_stat,n1dim,n2dim,n3dim
+  integer :: j2,j3,i1,i3,i,j,inzee,ierr,i_all,i_stat,n1dim,n2dim,n3dim,ntrig
   real(kind=8) :: twopion
   !work arrays for transpositions
   real(kind=8), dimension(:,:,:), allocatable :: zt
@@ -50,8 +49,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,
   pery=(geocode == 'P')
   perz=(geocode /= 'F')
 
-  !for the moment no complex input
-  cplx=.false.
+  cplx= (ncplx ==2)
 
 
   !also for complex input this should be eliminated
@@ -100,10 +98,12 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,
   if (mod(n2dim,2) == 0) lzt=lzt+1
   if (mod(n2dim,4) == 0) lzt=lzt+1 !maybe this is useless
   
+  ntrig=max(n3dim,n1,n2)
+
   !Allocations
-  allocate(btrig1(2,nfft_max+ndebug),stat=i_stat)
+  allocate(btrig1(2,ntrig+ndebug),stat=i_stat)
   call memocc(i_stat,btrig1,'btrig1',subname)
-  allocate(ftrig1(2,nfft_max+ndebug),stat=i_stat)
+  allocate(ftrig1(2,ntrig+ndebug),stat=i_stat)
   call memocc(i_stat,ftrig1,'ftrig1',subname)
   allocate(after1(7+ndebug),stat=i_stat)
   call memocc(i_stat,after1,'after1',subname)
@@ -111,9 +111,9 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,
   call memocc(i_stat,now1,'now1',subname)
   allocate(before1(7+ndebug),stat=i_stat)
   call memocc(i_stat,before1,'before1',subname)
-  allocate(btrig2(2,nfft_max+ndebug),stat=i_stat)
+  allocate(btrig2(2,ntrig+ndebug),stat=i_stat)
   call memocc(i_stat,btrig2,'btrig2',subname)
-  allocate(ftrig2(2,nfft_max+ndebug),stat=i_stat)
+  allocate(ftrig2(2,ntrig+ndebug),stat=i_stat)
   call memocc(i_stat,ftrig2,'ftrig2',subname)
   allocate(after2(7+ndebug),stat=i_stat)
   call memocc(i_stat,after2,'after2',subname)
@@ -121,9 +121,9 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,
   call memocc(i_stat,now2,'now2',subname)
   allocate(before2(7+ndebug),stat=i_stat)
   call memocc(i_stat,before2,'before2',subname)
-  allocate(btrig3(2,nfft_max+ndebug),stat=i_stat)
+  allocate(btrig3(2,ntrig+ndebug),stat=i_stat)
   call memocc(i_stat,btrig3,'btrig3',subname)
-  allocate(ftrig3(2,nfft_max+ndebug),stat=i_stat)
+  allocate(ftrig3(2,ntrig+ndebug),stat=i_stat)
   call memocc(i_stat,ftrig3,'ftrig3',subname)
   allocate(after3(7+ndebug),stat=i_stat)
   call memocc(i_stat,after3,'after3',subname)
@@ -149,9 +149,9 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,
   end if
 
   !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
-  call ctrig_sg(n3dim,btrig3,after3,before3,now3,1,ic3)
-  call ctrig_sg(n1,btrig1,after1,before1,now1,1,ic1)
-  call ctrig_sg(n2,btrig2,after2,before2,now2,1,ic2)
+  call ctrig_sg(n3dim,ntrig,btrig3,after3,before3,now3,1,ic3)
+  call ctrig_sg(n1,ntrig,btrig1,after1,before1,now1,1,ic1)
+  call ctrig_sg(n2,ntrig,btrig2,after2,before2,now2,1,ic2)
   do  j=1,n1
      ftrig1(1,j)= btrig1(1,j)
      ftrig1(2,j)=-btrig1(2,j)
@@ -201,9 +201,12 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,
            
            if (halffty) then
               !inserting real data into complex array of half lenght
-              call halfill_upcorn(md1,md3,lot,nfft,n3,zf(i1,1,j2),zw(1,1,1))
+              call halfill_upcorn(md1,md3,lot,nfft,n3,zf(1,i1,1,j2),zw(1,1,1))
+           else if (cplx) then
+              !zf should have four indices
+              call C_fill_upcorn(md1,md3,lot,nfft,n3,zf(1,i1,1,j2),zw(1,1,1))
            else
-              call P_fill_upcorn(md1,md3,lot,nfft,n3,zf(i1,1,j2),zw(1,1,1))
+              call P_fill_upcorn(md1,md3,lot,nfft,n3,zf(1,i1,1,j2),zw(1,1,1))
            end if
                       
            !performing FFT
@@ -211,7 +214,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,
            inzee=1
            do i=1,ic3
               call fftstp_sg(lot,nfft,n3dim,lot,n3dim,zw(1,1,inzee),zw(1,1,3-inzee), &
-                   btrig3,after3(i),now3(i),before3(i),1)
+                   ntrig,btrig3,after3(i),now3(i),before3(i),1)
               inzee=3-inzee
            enddo
            
@@ -286,14 +289,14 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,
            inzee=1
            do i=1,ic1-1
               call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
-                   btrig1,after1(i),now1(i),before1(i),1)
+                   ntrig,btrig1,after1(i),now1(i),before1(i),1)
               inzee=3-inzee
            enddo
 
            !storing the last step into zt array
            i=ic1
            call fftstp_sg(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1), & 
-                btrig1,after1(i),now1(i),before1(i),1)           
+                ntrig,btrig1,after1(i),now1(i),before1(i),1)           
            !output: I2,i1,j3,(jp3)
         end do
 
@@ -322,7 +325,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,
            inzee=1
            do i=1,ic2
               call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
-                   btrig2,after2(i),now2(i),before2(i),1)
+                   ntrig,btrig2,after2(i),now2(i),before2(i),1)
               inzee=3-inzee
            enddo
            !output: i1,i2,j3,(jp3)
@@ -343,7 +346,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,
            !input: i1,i2,j3,(jp3)
            do i=1,ic2
               call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
-                   ftrig2,after2(i),now2(i),before2(i),-1)
+                   ntrig,ftrig2,after2(i),now2(i),before2(i),-1)
               inzee=3-inzee
            end do
 
@@ -364,12 +367,12 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,
            !performing FFT
            i=1
            call fftstp_sg(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1), &
-                ftrig1,after1(i),now1(i),before1(i),-1)
+                ntrig,ftrig1,after1(i),now1(i),before1(i),-1)
            
            inzee=1
            do i=2,ic1
               call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
-                   ftrig1,after1(i),now1(i),before1(i),-1)
+                   ntrig,ftrig1,after1(i),now1(i),before1(i),-1)
               inzee=3-inzee
            enddo
            !output: I2,I1,j3,(jp3)
@@ -429,17 +432,19 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,
            inzee=1
            do i=1,ic3
               call fftstp_sg(lot,nfft,n3dim,lot,n3dim,zw(1,1,inzee),zw(1,1,3-inzee), &
-                   ftrig3,after3(i),now3(i),before3(i),-1)
+                   ntrig,ftrig3,after3(i),now3(i),before3(i),-1)
               inzee=3-inzee
            enddo
            !output: I1,I3,J2,(Jp2)
 
            !rebuild the output array
            if (halffty) then
-              call unfill_downcorn(md1,md3,lot,nfft,n3,zw(1,1,inzee),zf(i1,1,j2)&
+              call unfill_downcorn(md1,md3,lot,nfft,n3,zw(1,1,inzee),zf(1,i1,1,j2)&
                    ,scal)!,ehartreetmp)
+           else if (cplx) then
+              call C_unfill_downcorn(md1,md3,lot,nfft,n3,zw(1,1,inzee),zf(1,i1,1,j2),scal)
            else
-              call P_unfill_downcorn(md1,md3,lot,nfft,n3,zw(1,1,inzee),zf(i1,1,j2),scal)
+              call P_unfill_downcorn(md1,md3,lot,nfft,n3,zw(1,1,inzee),zf(1,i1,1,j2),scal)
            end if
 
            !integrate local pieces together
@@ -640,6 +645,31 @@ subroutine P_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
 end subroutine P_unfill_downcorn
 !!***
 
+!complex output
+subroutine C_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
+  implicit none
+  !Arguments
+  integer, intent(in) :: md1,md3,lot,nfft,n3
+  real(kind=8), dimension(2,lot,n3), intent(in) :: zw
+  real(kind=8), dimension(2,md1,md3),intent(inout) :: zf
+  real(kind=8), intent(in) :: scal
+  !Local variables
+  integer :: i3,i1
+  real(kind=8) :: pot1,pot2
+
+  !axpy can be used here, if the dimensions were equal
+  do i3=1,n3
+     do i1=1,nfft
+        pot1 = scal*zw(1,i1,i3)
+        pot2 = scal*zw(2,i1,i3)
+        zf(1,i1,i3)= pot1 
+        zf(2,i1,i3)= pot2 
+     end do
+  end do
+
+end subroutine C_unfill_downcorn
+!!***
+
 subroutine P_fill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
   implicit none
   integer, intent(in) :: md1,md3,lot,nfft,n3
@@ -657,6 +687,25 @@ subroutine P_fill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
 
 end subroutine P_fill_upcorn
 !!***
+
+!to be ussed for complex input
+subroutine C_fill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
+  implicit none
+  integer, intent(in) :: md1,md3,lot,nfft,n3
+  real(kind=8), dimension(2,md1,md3), intent(in) :: zf
+  real(kind=8), dimension(2,lot,n3), intent(out) :: zw
+  !local variables
+  integer :: i1,i3
+
+  do i3=1,n3
+     do i1=1,nfft
+        zw(1,i1,i3)=zf(1,i1,i3)
+      zw(2,i1,i3)=zf(2,i1,i3)
+     end do
+  end do
+
+end subroutine C_fill_upcorn
+
 
 
 !!****f* PSolver/scramble_P

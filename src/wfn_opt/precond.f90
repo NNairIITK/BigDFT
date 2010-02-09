@@ -17,9 +17,6 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   ! Preconditions all orbitals belonging to iproc
   !and calculate the norm of the residue
 
-
-
-
   ! norm of gradient
   gnrm=0.0_dp
   do iorb=1,orbs%norbp
