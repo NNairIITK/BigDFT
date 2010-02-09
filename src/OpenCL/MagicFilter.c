@@ -34,7 +34,7 @@ void build_magicfilter_kernels(cl_context * context){
 }
 
 
-void magicfilter1dKernelCheck(size_t n, size_t ndat, double *psi, double *out){
+void magicfilter1dKernelCheck(cl_uint n, cl_uint ndat, double *psi, double *out){
 double filter[]={8.4334247333529341094733325815816e-7,
                 -0.1290557201342060969516786758559028e-4,
                 0.8762984476210559564689161894116397e-4,
@@ -69,17 +69,17 @@ for(j = 0; j < ndat; j++) {
 }
 }
 
-void FC_FUNC_(magicfilter1d_check,MAGICFILTER1D_CHECK)(size_t *n,size_t *ndat,void *psi,void *out){
+void FC_FUNC_(magicfilter1d_check,MAGICFILTER1D_CHECK)(cl_uint *n,cl_uint *ndat,void *psi,void *out){
 
 	magicfilter1dKernelCheck(*n, *ndat, psi, out);
 
 }
 
-void FC_FUNC_(magicfilter1d_l,MAGICFILTER1D_L)(cl_command_queue *command_queue, size_t *n,size_t *ndat,cl_mem *psi,cl_mem *out){
+void FC_FUNC_(magicfilter1d_l,MAGICFILTER1D_L)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     cl_int ciErrNum;
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
-    printf("command queue: %p, dimension n: %d, dimension dat: %d, psi: %p, out: %p\n",*command_queue, *n, *ndat, *psi, *out);
+    printf("command queue: %p, dimension n: %lu, dimension dat: %lu, psi: %p, out: %p\n",*command_queue, (long unsigned)*n, (long unsigned)*ndat, *psi, *out);
 #endif
     int FILTER_WIDTH = 16;
     if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
@@ -88,28 +88,33 @@ void FC_FUNC_(magicfilter1d_l,MAGICFILTER1D_L)(cl_command_queue *command_queue, 
 	{ block_size_i *= 2; block_size_j /= 2;}
 
     cl_uint i = 0;
-    clSetKernelArg(magicfilter1d_kernel_l, i++,sizeof(*n), (void*)n);
-    clSetKernelArg(magicfilter1d_kernel_l, i++,sizeof(*ndat), (void*)ndat);
-    clSetKernelArg(magicfilter1d_kernel_l, i++,sizeof(*psi), (void*)psi);
-    clSetKernelArg(magicfilter1d_kernel_l, i++,sizeof(*out), (void*)out);
-    clSetKernelArg(magicfilter1d_kernel_l, i++,sizeof(float)*block_size_j*(block_size_i+FILTER_WIDTH), 0);
+    ciErrNum = clSetKernelArg(magicfilter1d_kernel_l, i++,sizeof(*n), (void*)n);
+    oclErrorCheck(ciErrNum,"Failed to set arg n!");
+    ciErrNum = clSetKernelArg(magicfilter1d_kernel_l, i++,sizeof(*ndat), (void*)ndat);
+    oclErrorCheck(ciErrNum,"Failed to set arg ndat!");
+    ciErrNum = clSetKernelArg(magicfilter1d_kernel_l, i++,sizeof(*psi), (void*)psi);
+    oclErrorCheck(ciErrNum,"Failed to set arg psi!");
+    ciErrNum = clSetKernelArg(magicfilter1d_kernel_l, i++,sizeof(*out), (void*)out);
+    oclErrorCheck(ciErrNum,"Failed to set arg out!");
+    ciErrNum = clSetKernelArg(magicfilter1d_kernel_l, i++,sizeof(float)*block_size_j*(block_size_i+FILTER_WIDTH), 0);
+    oclErrorCheck(ciErrNum,"Failed to set arg local block!");
     size_t localWorkSize[] = { block_size_i,block_size_j };
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, magicfilter1d_kernel_l, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error %d: Failed to enqueue magicfilter1d_l kernel!\n",ciErrNum);
-        fprintf(stderr,"globalWorkSize = { %d, %d}\n",globalWorkSize[0],globalWorkSize[1]);
-        fprintf(stderr,"localWorkSize = { %d, %d}\n",localWorkSize[0],localWorkSize[1]);
+        fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize[0],(long unsigned)globalWorkSize[1]);
+        fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize[0],(long unsigned)localWorkSize[1]);
         exit(1);
     }   
 }
 
-void FC_FUNC_(magicfilter1d_t_l,MAGICFILTER1D_T_L)(cl_command_queue *command_queue, size_t *n,size_t *ndat,cl_mem *psi,cl_mem *out){
+void FC_FUNC_(magicfilter1d_t_l,MAGICFILTER1D_T_L)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     cl_int ciErrNum;
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
-    printf("command queue: %p, dimension n: %d, dimension dat: %d, psi: %p, out: %p\n",*command_queue, *n, *ndat, *psi, *out);
+    printf("command queue: %p, dimension n: %lu, dimension dat: %lu, psi: %p, out: %p\n",*command_queue, (long unsigned)*n, (long unsigned)*ndat, *psi, *out);
 #endif
     int FILTER_WIDTH = 16;
     if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
@@ -129,17 +134,17 @@ void FC_FUNC_(magicfilter1d_t_l,MAGICFILTER1D_T_L)(cl_command_queue *command_que
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error %d: Failed to enqueue magicfilter1d_t_l kernel!\n",ciErrNum);
-        fprintf(stderr,"globalWorkSize = { %d, %d}\n",globalWorkSize[0],globalWorkSize[1]);
-        fprintf(stderr,"localWorkSize = { %d, %d}\n",localWorkSize[0],localWorkSize[1]);
+        fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize[0],(long unsigned)globalWorkSize[1]);
+        fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize[0],(long unsigned)localWorkSize[1]);
         exit(1);
     }   
 }
 
-void FC_FUNC_(magicfilter1d_den_l,MAGICFILTER1D_DEN_L)(cl_command_queue *command_queue, size_t *n,size_t *ndat,cl_mem *psi,cl_mem *out){
+void FC_FUNC_(magicfilter1d_den_l,MAGICFILTER1D_DEN_L)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat,cl_mem *psi,cl_mem *out){
     cl_int ciErrNum;
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
-    printf("command queue: %p, dimension n: %d, dimension dat: %d, psi: %p, out: %p\n",*command_queue, *n, *ndat, *psi, *out);
+    printf("command queue: %p, dimension n: %lu, dimension dat: %lu, psi: %p, out: %p\n",*command_queue, (long unsigned)*n, (long unsigned)*ndat, *psi, *out);
 #endif
     int FILTER_WIDTH = 16;
     if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
@@ -159,17 +164,17 @@ void FC_FUNC_(magicfilter1d_den_l,MAGICFILTER1D_DEN_L)(cl_command_queue *command
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error %d: Failed to enqueue magicfilter1d_den_l kernel!\n",ciErrNum);
-        fprintf(stderr,"globalWorkSize = { %d, %d}\n",globalWorkSize[0],globalWorkSize[1]);
-        fprintf(stderr,"localWorkSize = { %d, %d}\n",localWorkSize[0],localWorkSize[1]);
+        fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize[0],(long unsigned)globalWorkSize[1]);
+        fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize[0],(long unsigned)localWorkSize[1]);
         exit(1);
     }   
 }
 
-void FC_FUNC_(magicfilter1d_pot_l,MAGICFILTER1D_POT_L)(cl_command_queue *command_queue, size_t *n,size_t *ndat, cl_mem *psi, float *p, cl_mem *out){
+void FC_FUNC_(magicfilter1d_pot_l,MAGICFILTER1D_POT_L)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, cl_mem *psi, float *p, cl_mem *out){
     cl_int ciErrNum;
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
-    printf("command queue: %p, dimension n: %d, dimension dat: %d, psi: %p, pot: %f, out: %p\n",*command_queue, *n, *ndat, *psi, *p, *out);
+    printf("command queue: %p, dimension n: %lu, dimension dat: %lu, psi: %p, pot: %f, out: %p\n",*command_queue, (long unsigned)*n, (long unsigned)*ndat, *psi, *p, *out);
 #endif
     int FILTER_WIDTH = 16;
     if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
@@ -190,8 +195,8 @@ void FC_FUNC_(magicfilter1d_pot_l,MAGICFILTER1D_POT_L)(cl_command_queue *command
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error %d: Failed to enqueue magicfilter1d_pot_l kernel!\n",ciErrNum);
-        fprintf(stderr,"globalWorkSize = { %d, %d}\n",globalWorkSize[0],globalWorkSize[1]);
-        fprintf(stderr,"localWorkSize = { %d, %d}\n",localWorkSize[0],localWorkSize[1]);
+        fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize[0],(long unsigned)globalWorkSize[1]);
+        fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize[0],(long unsigned)localWorkSize[1]);
         exit(1);
     }   
 }

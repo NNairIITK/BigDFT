@@ -40,11 +40,11 @@ void build_wavelet_kernels(cl_context * context){
 }
 
 
-void FC_FUNC_(ana1d_l,ANA1D_L)(cl_command_queue *command_queue, size_t *n,size_t *ndat,cl_mem *psi,cl_mem *out){
+void FC_FUNC_(ana1d_l,ANA1D_L)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     cl_int ciErrNum;
 #if DEBUG     
     printf("%s %s\n", __func__, __FILE__);
-    printf("command queue: %p, dimension n: %d, dimension dat: %d, psi: %p, out: %p\n",*command_queue, *n, *ndat, *psi, *out);
+    printf("command queue: %p, dimension n: %lu, dimension dat: %lu, psi: %p, out: %p\n",*command_queue, (long unsigned)*n, (long unsigned)*ndat, *psi, *out);
 #endif
     int FILTER_WIDTH = 16;
     if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
@@ -63,18 +63,18 @@ void FC_FUNC_(ana1d_l,ANA1D_L)(cl_command_queue *command_queue, size_t *n,size_t
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error %d: Failed to enqueue ana1d_l kernel!\n",ciErrNum);
-        fprintf(stderr,"globalWorkSize = { %d, %d}\n",globalWorkSize[0],globalWorkSize[1]);
-        fprintf(stderr,"localWorkSize = { %d, %d}\n",localWorkSize[0],localWorkSize[1]);
+        fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize[0],(long unsigned)globalWorkSize[1]);
+        fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize[0],(long unsigned)localWorkSize[1]);
         exit(1);
     }
 
 }
 
-void FC_FUNC_(syn1d_l,SYN1D_L)(cl_command_queue *command_queue, size_t *n,size_t *ndat,cl_mem *psi,cl_mem *out){
+void FC_FUNC_(syn1d_l,SYN1D_L)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat,cl_mem *psi,cl_mem *out){
     cl_int ciErrNum;
 #if DEBUG     
     printf("%s %s\n", __func__, __FILE__);
-    printf("command queue: %p, dimension n: %d, dimension dat: %d, psi: %p, out: %p\n",*command_queue, *n, *ndat, *psi, *out);
+    printf("command queue: %p, dimension n: %lu, dimension dat: %lu, psi: %p, out: %p\n",*command_queue, (long unsigned)*n, (long unsigned)*ndat, *psi, *out);
 #endif
     int FILTER_WIDTH = 16;
     if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
@@ -94,8 +94,8 @@ void FC_FUNC_(syn1d_l,SYN1D_L)(cl_command_queue *command_queue, size_t *n,size_t
     if (ciErrNum != CL_SUCCESS)
     {         
         fprintf(stderr,"Error %d: Failed to enqueue syn1d_l kernel!\n",ciErrNum);
-        fprintf(stderr,"globalWorkSize = { %d, %d}\n",globalWorkSize[0],globalWorkSize[1]);
-        fprintf(stderr,"localWorkSize = { %d, %d}\n",localWorkSize[0],localWorkSize[1]);
+        fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize[0],(long unsigned)globalWorkSize[1]);
+        fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize[0],(long unsigned)localWorkSize[1]);
         exit(1);
     }  
 }

@@ -22,11 +22,11 @@ void build_kinetic_kernels(cl_context * context){
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
 }
 
-void FC_FUNC_(kinetic1d_l,KINETIC1D_L)(cl_command_queue *command_queue, size_t *n,size_t *ndat, float *h, float*c, cl_mem *x, cl_mem *y, cl_mem *workx, cl_mem *worky,float *ekin){
+void FC_FUNC_(kinetic1d_l,KINETIC1D_L)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, float *h, float*c, cl_mem *x, cl_mem *y, cl_mem *workx, cl_mem *worky,float *ekin){
     cl_int ciErrNum;
 #if DEBUG     
     printf("%s %s\n", __func__, __FILE__);
-    printf("command queue: %p, dimension n: %d, dimension dat: %d, h: %f, c: %f, x: %p, workx: %p, y: %p, worky: %p\n",*command_queue, *n, *ndat, *h, *c, *x, *workx, *y, *worky);
+    printf("command queue: %p, dimension n: %lu, dimension dat: %lu, h: %f, c: %f, x: %p, workx: %p, y: %p, worky: %p\n",*command_queue, (long unsigned)*n, (long unsigned)*ndat, *h, *c, *x, *workx, *y, *worky);
 #endif
     int FILTER_WIDTH = 30;
     if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
@@ -46,8 +46,8 @@ void FC_FUNC_(kinetic1d_l,KINETIC1D_L)(cl_command_queue *command_queue, size_t *
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error %d: Failed to enqueue c_initialize_l kernel!\n",ciErrNum);
-        fprintf(stderr,"globalWorkSize = { %d, %d}\n",globalWorkSize[0],globalWorkSize[1]);
-        fprintf(stderr,"localWorkSize = { %d, %d}\n",localWorkSize[0],localWorkSize[1]);
+        fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize[0],(long unsigned)globalWorkSize[1]);
+        fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize[0],(long unsigned)localWorkSize[1]);
         exit(1);
     }
     i = 0;
@@ -64,8 +64,8 @@ void FC_FUNC_(kinetic1d_l,KINETIC1D_L)(cl_command_queue *command_queue, size_t *
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error %d: Failed to enqueue kinetic1d_l kernel!\n",ciErrNum);
-        fprintf(stderr,"globalWorkSize = { %d, %d}\n",globalWorkSize[0],globalWorkSize[1]);
-        fprintf(stderr,"localWorkSize = { %d, %d}\n",localWorkSize[0],localWorkSize[1]);
+        fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize[0],(long unsigned)globalWorkSize[1]);
+        fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize[0],(long unsigned)localWorkSize[1]);
         exit(1);
     }
 }

@@ -49,38 +49,38 @@ void FC_FUNC_(ocl_create_cpu_context,OCL_CREATE_CPU_CONTEXT)(cl_context * contex
     oclErrorCheck(ciErrNum,"Failed to create CPU context!");
 }
 
-void FC_FUNC_(ocl_create_read_buffer,OCL_CREATE_READ_BUFFER)(cl_context *context, size_t *size, cl_mem *buff_ptr) {
+void FC_FUNC_(ocl_create_read_buffer,OCL_CREATE_READ_BUFFER)(cl_context *context, cl_uint *size, cl_mem *buff_ptr) {
     cl_int ciErrNum = CL_SUCCESS;
     *buff_ptr = clCreateBuffer( *context, CL_MEM_READ_ONLY, *size, NULL, &ciErrNum);
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
-    printf("contexte address: %p, memory address: %p, size: %d\n",*context,*buff_ptr,*size);
+    printf("contexte address: %p, memory address: %p, size: %lu\n",*context,*buff_ptr,(long unsigned)*size);
 #endif
     oclErrorCheck(ciErrNum,"Failed to create read buffer!");
 }
 
-void FC_FUNC_(ocl_create_read_write_buffer,OCL_CREATE_READ_WRITE_BUFFER)(cl_context *context, size_t *size, cl_mem *buff_ptr) {
+void FC_FUNC_(ocl_create_read_write_buffer,OCL_CREATE_READ_WRITE_BUFFER)(cl_context *context, cl_uint *size, cl_mem *buff_ptr) {
     cl_int ciErrNum = CL_SUCCESS;
     *buff_ptr = clCreateBuffer( *context, CL_MEM_READ_WRITE, *size, NULL, &ciErrNum);
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
-    printf("contexte address: %p, memory address: %p, size: %d\n",*context,*buff_ptr,*size);
+    printf("contexte address: %p, memory address: %p, size: %lu\n",*context,*buff_ptr,(long unsigned)*size);
 #endif
     oclErrorCheck(ciErrNum,"Failed to create read_write buffer!");
 }
 
-void FC_FUNC_(ocl_create_read_buffer_and_copy,OCL_CREATE_READ_BUFFER_AND_COPY)(cl_context *context, size_t *size, void *host_ptr, cl_mem *buff_ptr) {
+void FC_FUNC_(ocl_create_read_buffer_and_copy,OCL_CREATE_READ_BUFFER_AND_COPY)(cl_context *context, cl_uint *size, void *host_ptr, cl_mem *buff_ptr) {
     cl_int ciErrNum = CL_SUCCESS;
     *buff_ptr = clCreateBuffer( *context, CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, *size, host_ptr, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create initialized read buffer!");
 }
 
-void FC_FUNC_(ocl_create_write_buffer,OCL_CREATE_WRITE_BUFFER)(cl_context *context, size_t *size, cl_mem *buff_ptr) {
+void FC_FUNC_(ocl_create_write_buffer,OCL_CREATE_WRITE_BUFFER)(cl_context *context, cl_uint *size, cl_mem *buff_ptr) {
     cl_int ciErrNum = CL_SUCCESS;
     *buff_ptr = clCreateBuffer( *context, CL_MEM_WRITE_ONLY, *size, NULL, &ciErrNum);
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
-    printf("contexte address: %p, memory address: %p, size: %d\n",*context,*buff_ptr,*size);
+    printf("contexte address: %p, memory address: %p, size: %lu\n",*context,*buff_ptr,(long unsigned)*size);
 #endif
     oclErrorCheck(ciErrNum,"Failed to create write buffer!");
 }
@@ -94,19 +94,19 @@ void FC_FUNC_(ocl_release_mem_object,OCL_RELEASE_MEM_OBJECT)(cl_mem *buff_ptr) {
     oclErrorCheck(ciErrNum,"Failed to release buffer!");
 }
 
-void FC_FUNC_(ocl_enqueue_read_buffer,OCL_ENQUEUE_READ_BUFFER)(cl_command_queue *command_queue, cl_mem *buffer, size_t *size, void *ptr){
+void FC_FUNC_(ocl_enqueue_read_buffer,OCL_ENQUEUE_READ_BUFFER)(cl_command_queue *command_queue, cl_mem *buffer, cl_uint *size, void *ptr){
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
-    printf("command queue: %p, memory address: %p, size: %d, target: %p\n",*command_queue,*buffer,*size, ptr);
+    printf("command queue: %p, memory address: %p, size: %lu, target: %p\n",*command_queue,*buffer,(long unsigned)*size, ptr);
 #endif
     cl_int ciErrNum = clEnqueueReadBuffer( *command_queue, *buffer, CL_TRUE, 0, *size, ptr, 0, NULL, NULL);
     oclErrorCheck(ciErrNum,"Failed to enqueue read buffer!");
 }
 
-void FC_FUNC_(ocl_enqueue_write_buffer,OCL_ENQUEUE_WRITE_BUFFER)(cl_command_queue *command_queue, cl_mem *buffer, size_t *size,	const void *ptr){
+void FC_FUNC_(ocl_enqueue_write_buffer,OCL_ENQUEUE_WRITE_BUFFER)(cl_command_queue *command_queue, cl_mem *buffer, cl_uint *size, const void *ptr){
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
-    printf("command queue: %p, memory address: %p, size: %d, source: %p\n",*command_queue,*buffer,*size, ptr);
+    printf("command queue: %p, memory address: %p, size: %lu, source: %p\n",*command_queue,*buffer,(long unsigned)*size, ptr);
 #endif
     cl_int ciErrNum = clEnqueueWriteBuffer( *command_queue, *buffer, CL_TRUE, 0, *size, ptr, 0, NULL, NULL);
     oclErrorCheck(ciErrNum,"Failed to enqueue write buffer!");
