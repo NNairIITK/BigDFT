@@ -500,33 +500,38 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
   real(dp), dimension(n1i*n2i*n3p), target, intent(in) :: rho
   !local variables
   character(len=*), parameter :: subname='plot_density'
-  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr
+  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,nbxz,nby
   real(dp) :: later_avg
   real(dp), dimension(:), pointer :: pot_ion
-
-  if (iproc == 0) then
-     open(unit=22,file=filename,status='unknown')
-     write(22,*)'normalised density'
-     write(22,*) 2*n1+2,2*n2+2,2*n3+2
-     write(22,*) alat1,' 0. ',alat2
-     write(22,*) ' 0. ',' 0. ',alat3
-     write(22,*)'xyz   periodic' !not true in general but needed in the case
-  end if
 
   !conditions for periodicity in the three directions
   !value of the buffer in the x and z direction
   if (geocode /= 'F') then
      nl1=1
      nl3=1
+     nbxz = 1
   else
      nl1=15
      nl3=15
+     nbxz = 0
   end if
   !value of the buffer in the y direction
   if (geocode == 'P') then
      nl2=1
+     nby = 1
   else
      nl2=15
+     nby = 0
+  end if
+
+  if (iproc == 0) then
+     open(unit=22,file=filename,status='unknown')
+     write(22,*)'normalised density'
+     write(22,*) 2*(n1+nbxz),2*(n2+nby),2*(n3+nbxz)
+     write(22,*) alat1,' 0. ',alat2
+     write(22,*) ' 0. ',' 0. ',alat3
+     
+     write(22,*)'xyz   periodic' !not true in general but needed in the case
   end if
 
   if (nproc > 1) then
@@ -543,9 +548,9 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
 
 
   if (iproc == 0) then
-     do i3=0,2*n3+1
-        do i2=0,2*n2+1
-           do i1=0,2*n1+1
+     do i3=0,2*(n3+nbxz)-1
+        do i2=0,2*(n2+nby)-1
+           do i1=0,2*(n1+nbxz)-1
               ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
               write(22,*)pot_ion(ind)
            end do
@@ -596,7 +601,7 @@ subroutine plot_density_cube(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n
   character(len=3) :: advancestring
   character(len=5) :: suffix
   character(len=15) :: message
-  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,icount,j,iat,ia,ib
+  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,icount,j,iat,ia,ib,nbxz,nby
   real(dp) :: a,b
   real(dp), dimension(:,:), pointer :: pot_ion
 
@@ -605,15 +610,19 @@ subroutine plot_density_cube(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n
   if (at%geocode /= 'F') then
      nl1=1
      nl3=1
+     nbxz = 1
   else
      nl1=15
      nl3=15
+     nbxz = 0
   end if
   !value of the buffer in the y direction
   if (at%geocode == 'P') then
      nl2=1
+     nby = 1
   else
      nl2=15
+     nby = 0
   end if
 
   if (nproc > 1) then
@@ -702,9 +711,9 @@ contains
 !           write(22,'(i5,3(f12.6))') at%nat,-hxh,-hyh,-hzh
 !        end if
         !grid and grid spacings
-        write(22,'(i5,3(f12.6))') 2*n1+2,hxh,0.0_gp,0.0_gp
-        write(22,'(i5,3(f12.6))') 2*n2+2,0.0_gp,hyh,0.0_gp
-        write(22,'(i5,3(f12.6))') 2*n3+2,0.0_gp,0.0_gp,hzh
+        write(22,'(i5,3(f12.6))') 2*(n1+nbxz),hxh,0.0_gp,0.0_gp
+        write(22,'(i5,3(f12.6))') 2*(n2+nby) ,0.0_gp,hyh,0.0_gp
+        write(22,'(i5,3(f12.6))') 2*(n3+nbxz),0.0_gp,0.0_gp,hzh
         !atomic number and positions
         do iat=1,at%nat
            write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
@@ -712,12 +721,12 @@ contains
 
         !the loop is reverted for a cube file
         !charge normalised to the total charge
-        do i1=0,2*n1+1
-           do i2=0,2*n2+1
+        do i1=0,2*(n1+nbxz) - 1
+           do i2=0,2*(n2+nby) - 1
               icount=0
-              do i3=0,2*n3+1
+              do i3=0,2*(n3+nbxz) - 1
                  icount=icount+1
-                 if (icount == 6 .or. i3==2*n3+1) then
+                 if (icount == 6 .or. i3==2*(n3+nbxz) - 1) then
                     advancestring='yes'
                     icount=0
                  else
