@@ -247,9 +247,11 @@ while not EOF:
                     print_context = True
                 print line1,
                 print line2,
-        else:
+        elif (maximum < 99):
             print "%s the number of floating point differs" % context[:-1]
-            maximum = 1
+            context_discrepancy = " (line %s)" % context.split(",")[0][4:]
+            context_lines = "\n"+context_discrepancy[1:]+"\n"+line1+line2
+            maximum = 99
     #Add lines if necessary
     while i1 < n1-1:
         i1 += 1
