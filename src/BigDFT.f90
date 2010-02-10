@@ -90,6 +90,12 @@ program BigDFT
 
      call init_restart_objects(atoms,rst,subname)
 
+     !if other steps are supposed to be done leave the last_run to minus one
+     !otherwise put it to one
+     if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1) then
+        inputs%last_run = 1
+     end if
+
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
 
      if (inputs%ncount_cluster_x > 1) then
@@ -100,6 +106,12 @@ program BigDFT
         call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
         filename=trim('final_'//trim(arr_posinp(iconfig)))
         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,' ')
+     end if
+
+     !if there is a last run to be performed do it now before stopping
+     if (inputs%last_run == -1) then
+        inputs%last_run = 1
+        call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
      end if
 
 

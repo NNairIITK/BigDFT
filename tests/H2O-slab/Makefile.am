@@ -5,7 +5,8 @@ SUBDIRS =
 EXTRA_DIST = \
 	input.dft \
 	posinp.xyz \
-	input.geopt
+	input.geopt \
+	velocities.xyz
 
 
 PPFILES = \
@@ -13,7 +14,7 @@ PPFILES = \
 	psppar.O
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat *.pot *.pot_avg* *xyz H2O-slab.out posout* \
-	*prc fldiff.report velocities.xyz
+	*prc fldiff.report 
 
 #dependencies
 $(PPFILES):

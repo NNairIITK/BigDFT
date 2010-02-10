@@ -567,6 +567,8 @@ subroutine symmetrise_density(iproc, nproc, n1, n2, n3, nscatterarr, nspin, nrho
      !    rhor -fft-> rhog    (rhog is used as work space)
      !    Note : it should be possible to reuse rhog in the antiferromagnetic case
      !    this would avoid one FFT
+     !here dcopy should be used
+
      work(:)=rho(:,ispden)
 !!$     call fourdp(cplex,rhog,work,-1,mpi_enreg,nfft,ngfft,paral_kgb,0)
 
@@ -594,7 +596,12 @@ subroutine symmetrise_density(iproc, nproc, n1, n2, n3, nscatterarr, nspin, nrho
         rhosu2=0._dp
         do iup=1,nup
            ind=irrzon(iup+numpt,1,imagn)
-           j=ind-1;j1=modulo(j,n1);j2=modulo(j/n1,n2);j3=j/(n1*n2);r2=modulo(j2,nd2)
+           j=ind-1
+           j1=modulo(j,n1)
+           j2=modulo(j/n1,n2)
+           j3=j/(n1*n2)
+           r2=modulo(j2,nd2)
+           !here we should insert the condition that the planes should belong to iproc
            if(modulo(j/n1,n2)/nd2==iproc) then ! this ind is to be treated by me_fft
               ind=n1*(nd2*j3+r2)+j1+1 !this is ind in the current proc
               rhosu1=rhosu1+rhog(1,ind)*phnons(1,iup+numpt,imagn)&
@@ -613,6 +620,9 @@ subroutine symmetrise_density(iproc, nproc, n1, n2, n3, nscatterarr, nspin, nrho
 
         !      End loop over izone
      end do
+
+
+!reduction of the rho dimension to be discussed
 
      !    Reduction in case of FFT parallelization
 !!$     if(mpi_enreg%mode_para=='b')then

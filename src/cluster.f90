@@ -615,8 +615,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   end select
 
-
-
   !save the new atomic positions in the rxyz_old array
   do iat=1,atoms%nat
      rxyz_old(1,iat)=rxyz(1,iat)
@@ -781,7 +779,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      !control the previous value of idsx_actual
      idsx_actual_before=idsx_actual
-     
 
      call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
           iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
@@ -844,7 +841,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !analyse the possiblity to calculate Davidson treatment
   !(nvirt > 0 .and. in%inputPsiId == 0)
-  DoDavidson= in%norbv > 0 .and. (infocode==0 .or. in%nrepmax == 1)
+  DoDavidson= in%norbv > 0 .and. (infocode==0 .or. in%nrepmax == 1) .and. in%last_run == 1
   
   call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
        comms,psi,hpsi,psit,evsum)
@@ -899,9 +896,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   end if
 
-
   !  write all the wavefunctions into files
-  if (in%output_wf) then
+  if (in%output_wf .and. in%last_run==1) then
      !add flag for writing waves in the gaussian basis form
      if (in%gaussian_help) then
 
@@ -930,7 +926,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
 
   !plot the ionic potential, if required by output_grid
-  if (abs(in%output_grid)==2) then
+  if (abs(in%output_grid)==2 .and. in%last_run==1) then
      if (in%output_grid==2) then
         if (iproc == 0) write(*,*) 'writing ionic_potential.pot'
         call plot_density(atoms%geocode,'ionic_potential.pot',iproc,nproc,&
@@ -953,8 +949,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
 
 
-  if (in%output_grid==3) then
-!!$        print *,'here'
+  if (in%output_grid==3 .and. in%last_run==1) then
 !!$        call plot_density(atoms%geocode,'b2B_xanes.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,1,&
 !!$             atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
 !!$        write(comment,'(a)')'this file to check the positions and calculate shift '
@@ -996,7 +991,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           nscatterarr,in%nspin,GPU, atoms%symObj, irrzon, phnons)
 
   !plot the density on the density.pot file
-  if (abs(in%output_grid) .ge. 1 .or. in%nvacancy /=0) then
+  if ((abs(in%output_grid) >= 1 .or. in%nvacancy /=0) .and. in%last_run==1) then
      if (in%output_grid .ge. 0) then
         if (in%nspin == 2 ) then
            if(iproc==0) write(*,*) 'ERROR: density cannot be plotted in .pot format for a spin-polarised calculation'
@@ -1039,7 +1034,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !here nspin=1 since ixc=0
 
   !plot also the electrostatic potential
-  if (abs(in%output_grid) == 2) then
+  if (abs(in%output_grid) == 2 .and. in%last_run==1) then
      if (in%output_grid == 2) then
         if (iproc.eq.0) write(*,*) 'writing hartree_potential.pot'
         call plot_density(atoms%geocode,'hartree_potential.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -1075,7 +1070,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
 
   !refill projectors for tails, davidson
-  refill_proj=in%calc_tail .or. DoDavidson 
+  refill_proj=(in%calc_tail .or. DoDavidson) .and. in%last_run==1
 
   call nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,atoms,rxyz,&
        orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
@@ -1147,7 +1142,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !perform here the mulliken charge and density of states
   !localise them on the basis of gatom of a number of atoms
-  if (in%gaussian_help .and. .false.) then
+  if (in%gaussian_help .and. in%last_run==1) then
      call local_analysis(iproc,nproc,hx,hy,hz,shift,Glr,orbs,orbsv,psi,psivirt)
   end if
 
@@ -1158,7 +1153,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
 
   !------------------------------------------------------------------------
-  if (in%calc_tail .and. atoms%geocode == 'F' ) then
+  if (in%calc_tail .and. atoms%geocode == 'F' .and. in%last_run==1 ) then
      call timing(iproc,'Tail          ','ON')
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential
