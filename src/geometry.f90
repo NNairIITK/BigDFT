@@ -2039,8 +2039,8 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   real(gp), dimension(:,:), allocatable  :: previous_forces
   real(gp), dimension(:,:), allocatable  :: previous_pos
   real(gp), dimension(:,:), allocatable :: product_matrix
-  integer :: lter, maxter, i, i_err, n, nrhs, lwork, infocode, j, i_stat, i_all
-  real(gp) :: sumx, sumy, sumz, fluctsum, nfluct, fluct, fmax, fnrm
+  integer :: lter, maxter, i, i_err, n, nrhs, lwork, infocode, j, i_stat, i_all,nfluct
+  real(gp) :: sumx, sumy, sumz, fluctsum, fluct, fmax, fnrm
   character(len = 4) :: fn4
   character(len = 40) :: comment
   ! Local variables for Lapack.

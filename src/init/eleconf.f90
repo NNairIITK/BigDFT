@@ -175,6 +175,19 @@ neleconf(2,0)=2
 neleconf(2,1)=4
 amu=15.9994d0
 
+!special case: Test PSP with all electrons
+! -----------------------          10b
+! O            8           8     Symbol, Z, Zion
+case(8*1000+8)
+symbol = "O"
+rcov=1.38d0
+rprb=2.75d0
+ehomo=-0.338381d0
+neleconf(1,0)=2
+neleconf(2,0)=2
+neleconf(2,1)=4
+amu=15.9994d0
+
 case(9*1000+7)
 ! -----------------------          11
 ! F            9           7     Symbol, Z, Zion

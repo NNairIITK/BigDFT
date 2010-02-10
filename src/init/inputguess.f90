@@ -70,8 +70,8 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
         !Check for max number of virtual orbitals
         !the unoccupied orbitals available as a LCAO
         !this is well defined only for closed-shell systems
-        if (ispin == 1) nvirte=noncoll*norbe-orbs%norbu
-        if (ispin == 2) nvirte=noncoll*norbe-orbs%norbd
+        if (ispin == 1) nvirte=min(noncoll*norbe-orbs%norbu,nvirt)
+        if (ispin == 2) nvirte=min(noncoll*norbe-orbs%norbd,nvirt)
         if(nvirt == nvirte .and. nvirt/=0 .and. iproc==0) then
            write(*,'(1x,a)')&
                 "WARNING: A smaller number of virtual orbitals may be needed for better convergence."
@@ -691,6 +691,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,&
               icoeff=icoeff-(2*l-1)
            end do
            icoeff=icoeff+(2*l-1)
+
         end do
      end do
 

@@ -18,7 +18,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,i_all,i_stat,jproc,ikpts
 
-  call read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,&
+  call read_system_variables('input.occup',iproc,nproc,in,atoms,radii_cf,nelec,&
        norb,norbu,norbd,iunit)
 
   if(in%nspin==4) then
@@ -66,12 +66,13 @@ end subroutine system_properties
 !!   The pointer in atoms structure have to be associated or nullify.
 !! SOURCE
 !!
-subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
+subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
      nelec,norb,norbu,norbd,iunit)
   use module_base
   use module_types
   use ab6_symmetry
   implicit none
+  character (len=*), intent(in) :: fileocc
   type(input_variables), intent(in) :: in
   integer, intent(in) :: iproc,nproc
   type(atoms_data), intent(inout) :: atoms
@@ -145,6 +146,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
              '         contains a PSP generated with an XC id=',&
              ixcpsp,' while for this run ixc=',in%ixc
      end if
+
      atoms%psppar(:,:,ityp)=0._gp
      if (atoms%npspcode(ityp) == 2) then !GTH case
         read(11,*) (atoms%psppar(0,j,ityp),j=0,4)
@@ -245,8 +247,8 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
              '. At your own risk!'
      end if
 
-     call atomic_occupation_numbers(ityp,in%nspin,atoms,nmax,lmax,nelecmax,neleconf,&
-          nsccode,mxpl,mxchg)
+     call atomic_occupation_numbers(fileocc,ityp,in%nspin,atoms,nmax,lmax,nelecmax,&
+          neleconf,nsccode,mxpl,mxchg)
 
   enddo
   !print *,'iatsctype',atOMS%iasctype(:)
@@ -509,10 +511,11 @@ end subroutine read_system_variables
 !look also at the input polarisation and spin
 !look at the file of the input occupation numbers and, if exists, modify the 
 !occupations accordingly
-subroutine atomic_occupation_numbers(ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
+subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
   use module_base
   use module_types
   implicit none
+  character(len=*), intent(in) :: filename
   integer, intent(in) :: ityp,mxpl,mxchg,nspin,nmax,lmax,nelecmax,nsccode
   type(atoms_data), intent(inout) :: at
   integer, dimension(nmax,lmax), intent(in) :: neleconf
@@ -543,14 +546,14 @@ subroutine atomic_occupation_numbers(ityp,nspin,at,nmax,lmax,nelecmax,neleconf,n
         stop
   end select
 
-  inquire(file='input.occup',exist=exists)
+  inquire(file=filename,exist=exists)
 
   !search the corresponding atom
   if (exists) then
-     open(unit=91,file='input.occup',status='old',iostat=ierror)
+     open(unit=91,file=filename,status='old',iostat=ierror)
      !Check the open statement
      if (ierror /= 0) then
-        write(*,*)'Failed to open the existing  file input.occup'
+        write(*,*)'Failed to open the existing  file: '//filename
         stop
      end if
   end if

@@ -227,20 +227,21 @@ end subroutine write_gaussian_information
 !!
 !! SOURCE
 !!
-subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
+subroutine gaussian_pswf_basis(iproc,nspin,at,rxyz,G,Gocc)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc,nspin
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
   type(gaussian_basis), intent(out) :: G
+  real(wp), dimension(:), pointer :: Gocc
   !local variables
   character(len=*), parameter :: subname='gaussian_pswf_basis'
   integer, parameter :: ngx=31,noccmax=2,lmax=4,nmax=6,nelecmax=32
   logical :: occeq
   integer :: i_stat,i_all,iat,ityp,ishell,iexpo,l,i,ig,isat,ictotpsi,norbe,norbsc,ishltmp
-  integer :: ityx,ntypesx,ng,nspin,nspinor,jat
+  integer :: ityx,ntypesx,ng,nspinor,jat,noncoll,icoeff,iocc,nlo,ispin,m,icoll
   real(gp) :: ek
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
@@ -264,8 +265,15 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
   allocate(locrad(at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,locrad,'locrad',subname)
 
-  nspin=1
+  !for the moment, only collinear
   nspinor=1
+  !if non-collinear it is like nspin=1 but with the double of orbitals
+  if (nspinor == 4) then
+     noncoll=2
+  else
+     noncoll=1
+  end if
+
 
   call readAtomicOrbitals(iproc,at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
 
@@ -345,10 +353,12 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
           at%aocc(1,iat),occup,nl)
      if (ityx > ntypesx) then
         if (iproc == 0 .and. verbose > 1) then
-           write(*,'(1x,a,a6,a)',advance='no')&
+           write(*,'(1x,a,a6,a)')&
                 'Generation of input wavefunction data for atom ',&
                 trim(at%atomnames(ityp)),&
-                ' ...'
+                ':'
+           call print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,&
+                at%aocc(1,iat),at%iasctype(iat))
         end if
 
         call iguess_generator(iproc,at%nzatom(ityp),at%nelpsp(ityp),&
@@ -377,6 +387,15 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
      end if
   end do
 
+  !up to here the code of this section is identical to the 
+  !atomic orbitals part in inputguess.f90
+
+  !now we have to allocate the array of the "occupation numbers"
+  !of the molecular orbitals
+  allocate(Gocc(G%ncoeff+ndebug),stat=i_stat)
+  call memocc(i_stat,Gocc,'Gocc',subname)
+  call razero(G%ncoeff,Gocc)
+
   !allocate and assign the exponents and the coefficients
   allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%psiat,'G%psiat',subname)
@@ -385,13 +404,17 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
 
   ishell=0
   iexpo=0
+  icoeff=1
   do iat=1,at%nat
      ityp=at%iatype(iat)
      ityx=iatypex(iat)
      call count_atomic_shells(nmax,lmax,noccmax,nelecmax,nspin,nspinor,&
           at%aocc(1,iat),occup,nl)
      ictotpsi=0
+     iocc=0
      do l=1,4
+        iocc=iocc+1
+        nlo=nint(at%aocc(iocc,iat)) !just to increase the counting 
         do i=1,nl(l)
            ishell=ishell+1
            ictotpsi=ictotpsi+1
@@ -401,6 +424,20 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
               G%psiat(iexpo)=psiatn(ig)
               G%xp(iexpo)=xpt(ig,ityp)
            end do
+
+           do ispin=1,nspin
+              do m=1,2*l-1
+                 !each orbital has two electrons in the case of the 
+                 !non-collinear case
+                 do icoll=1,noncoll !non-trivial only for nspinor=4
+                    iocc=iocc+1
+                    Gocc(icoeff)=Gocc(icoeff)+at%aocc(iocc,iat)
+                 end do
+                 icoeff=icoeff+1
+              end do
+              icoeff=icoeff-(2*l-1)
+           end do
+           icoeff=icoeff+(2*l-1)
         end do
      end do
   end do
@@ -616,7 +653,7 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   real(gp), dimension(G%ncoeff,norbp), intent(inout) :: coeffs !warning: the precision here should be wp
   !local variables
   character(len=*), parameter :: subname='dual_gaussian_coefficients'
-  integer :: nwork,info,i_stat,i_all,iorb
+  integer :: nwork,info,i_stat,i_all,iorb,icoeff,jcoeff
   integer, dimension(:), allocatable :: iwork
   real(gp), dimension(:), allocatable :: ovrlp,work
   
@@ -643,6 +680,13 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
 
   
   call gaussian_overlap(G,G,ovrlp)
+
+!!  !overlap matrix, print it for convenience
+  do icoeff=1,G%ncoeff
+     write(30,'(1x,200(1pe12.3))')&
+          (ovrlp(jcoeff+(icoeff-1)*G%ncoeff),jcoeff=1,G%ncoeff)
+  end do
+
   if (norbp > 0) then
      call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
           G%ncoeff,work,nwork,info)
@@ -663,7 +707,6 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
 !!!  end do
   
 end subroutine dual_gaussian_coefficients
-
 
 !normalize a given atomic shell following the angular momentum
 subroutine normalize_shell(ng,l,expo,coeff)
@@ -1175,7 +1218,7 @@ subroutine wavelets_to_gaussians(geocode,norbp,nspinor,n1,n2,n3,G,thetaphi,hx,hy
         call orbital_projection(geocode,n1,n2,n3,G%nat,G%rxyz,thetaphi,&
              G%nshell,G%ndoc,G%nam,G%xp,G%psiat,G%nshltot,G%nexpo,G%ncoeff,&
              hx,hy,hz,wfd,psi(1,ispinor,iorb),coeffs(1,ispinor,iorb))
-        !print *,'iorb, coeffs',iorb,coeffs(:,iorb)
+        !print *,'iorb, coeffs',iorb,coeffs(:,1,iorb)
      end do
   end do
   
@@ -1269,7 +1312,10 @@ subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,
           wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
           psi(1),psi(wfd%nvctr_c+1),coeffs(m))
 
+     !print '(a,2(i4),5(1pe12.5))','l,m,rxyz,coeffs(m)',l,m,rxyz(:),coeffs(m)
   end do
+
+
 
   !here we should modify the coefficients following the direction of the axis
   call lsh_rotation(l-1,thetaphi(1),thetaphi(2),coeffs)

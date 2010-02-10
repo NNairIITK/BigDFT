@@ -5,7 +5,8 @@ SUBDIRS =
 EXTRA_DIST = \
 	input.dft \
 	posinp.xyz \
-	occup.dat
+	occup.dat \
+	input.occup
 
 PPFILES = \
 	psppar.Fe
