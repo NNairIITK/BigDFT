@@ -31,22 +31,24 @@ re_float = re.compile("([- ]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
 max_discrepancy = 1.1e-10
 
 def usage():
-    print "fldiff.py [--bigdft] [--discrepancy=d] [--help] file1 file2"
-    print "  --bigdft to compare 'bigdft' output files"
+    print "fldiff.py [--mode=m] [--discrepancy=d] [--help] file1 file2"
+    print "  --mode=[bigdft,neb] to compare 'bigdft' or 'NEB' output files"
     print "  --discrepancy=%7.1e Maximal discrepancy between results" % max_discrepancy
     print "  --help   display this message"
     sys.exit(1)
 
 #Check arguments
 try:
-    optlist, args = getopt.getopt(sys.argv[1:],"bd:h",["bigdft","discrepancy=","help"])
+    optlist, args = getopt.getopt(sys.argv[1:],"md:h",["mode=","discrepancy=","help"])
 except getopt.error:
     sys.stderr.write("Error in arguments\n")
     usage()
 bigdft = False
+neb    = False
 for opt,arg in optlist:
-    if opt == "-b" or opt == "--bigdft":
-        bigdft = True
+    if opt == "-m" or opt == "--mode":
+        bigdft = (arg == "bigdft")
+        neb    = (arg == "neb")
     elif opt == "-d" or opt == "--discrepancy":
         max_discrepancy=float(arg)
     elif opt == "-h" or opt == "--help":
@@ -76,6 +78,13 @@ if bigdft:
             or "allocation" in line \
             or "~W" in line \
             or "for the array" in line
+elif neb:
+    # Test if the line should not be compared (NEB output)
+    def line_junk(line):
+        "True if the line must not be compared"
+        return re_version.search(line) \
+            or "datadir" in line \
+            or "workdir" in line
 else:
     def line_junk(line):
         "Always False"

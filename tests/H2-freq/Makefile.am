@@ -10,7 +10,8 @@ PPFILES = \
 	psppar.H
 
 CLEANFILES = $(PPFILES) H2-freq.out \
-			 *.prc fldiff.report $(EXTRA_DIST)
+	*.prc fldiff.report \
+	hessian.dat frequencies.xyz frequencies.res
 
 #dependencies
 $(PPFILES):
@@ -28,4 +29,4 @@ H2-freq.out: $(top_builddir)/src/frequencies $(PPFILES)
         fi
 
 check : H2-freq.out
-	python $(top_srcdir)/tests/fldiff.py --bigdft H2-freq.out $(top_srcdir)/tests/Refs/H2-freq.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H2-freq.out $(top_srcdir)/tests/Refs/H2-freq.out.ref | tee fldiff.report

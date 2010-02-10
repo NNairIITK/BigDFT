@@ -28,4 +28,4 @@ H-spin.out: $(top_builddir)/src/cluster $(PPFILES)
         fi
 
 check: H-spin.out
-	python $(top_srcdir)/tests/fldiff.py --bigdft H-spin.out $(top_srcdir)/tests/Refs/H-spin.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H-spin.out $(top_srcdir)/tests/Refs/H-spin.out.ref | tee fldiff.report

@@ -32,5 +32,5 @@ Ca2.out: $(top_builddir)/src/cluster $(PPFILES)
 
 #Use 4.0e-10 to test fldiff.py and also difference betwen 1 (gfortran) and many cores (g95) (TD)
 check: inguess.dat Ca2.out
-	python $(top_srcdir)/tests/fldiff.py --bigdft --discrepancy=4.e-10 Ca2.out \
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft --discrepancy=4.e-10 Ca2.out \
 		$(top_srcdir)/tests/Refs/Ca2.out.ref | tee fldiff.report

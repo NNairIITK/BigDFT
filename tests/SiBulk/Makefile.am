@@ -28,4 +28,4 @@ SiBulk.out: $(top_builddir)/src/cluster $(PPFILES)
         fi
 
 check: SiBulk.out
-	python $(top_srcdir)/tests/fldiff.py --bigdft SiBulk.out $(top_srcdir)/tests/Refs/SiBulk.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft --discrepancy=1.5e-10 SiBulk.out $(top_srcdir)/tests/Refs/SiBulk.out.ref | tee fldiff.report
