@@ -294,6 +294,15 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
      call ab6_symmetry_set_field(symObj, (/ 0._gp, in%elecfield, 0._gp /), ierror)
   end if
 
+
+  !define whether there should be a last_run after geometry optimization
+  !also the mulliken charge population should be inserted
+  if (in%calc_tail .or. in%output_wf .or. in%output_grid /= 0 .or. in%norbv /= 0) then
+     in%last_run=-1 !last run to be done depending of the external conditions
+  else
+     in%last_run=0
+  end if
+
 contains
 
   subroutine check()

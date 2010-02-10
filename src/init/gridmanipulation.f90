@@ -141,6 +141,7 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
   shift(2)=cymin
   shift(3)=czmin
 
+  !here we can put a modulo operation for periodic directions
   do iat=1,atoms%nat
      rxyz(1,iat)=rxyz(1,iat)-shift(1)
      rxyz(2,iat)=rxyz(2,iat)-shift(2)
@@ -488,13 +489,13 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
         !what follows works always provided the check before
 !$omp parallel default(shared) private(i3,dz2,j3,i2,dy2,j2,i1,j1,dx)
 !$omp do
-        do i3=ml3,mu3
+        do i3=max(ml3,-n3/2-1),min(mu3,n3+n3/2+1)
            dz2=(real(i3,gp)*hz-rxyz(3,iat))**2
            j3=modulo(i3,n3+1)
-           do i2=ml2,mu2
+           do i2=max(ml2,-n2/2-1),min(mu2,n2+n2/2+1)
               dy2=(real(i2,gp)*hy-rxyz(2,iat))**2
               j2=modulo(i2,n2+1)
-              do i1=ml1,mu1
+              do i1=max(ml1,-n1/2-1),min(mu1,n1+n1/2+1)
                  j1=modulo(i1,n1+1)
                  dx=real(i1,gp)*hx-rxyz(1,iat)
                  if (dx**2+(dy2+dz2) <= rad**2) then 

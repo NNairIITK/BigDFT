@@ -1322,12 +1322,12 @@ subroutine dft_input_converter(in)
   !davidson treatment
   line=''
   line=' davidson treatment, no. of virtual orbitals, no of plotted orbitals'
-  write(1,'(2(i3),a)') in%nvirt,in%nplot,trim(line)
+  write(1,'(3(i3),a)') in%nvirt, in%nvirt,in%nplot,trim(line)
   
-  line=''
-  line='0 .false. .false. 0.d0 vacancy: atom no., read_ref_den, correct_offset, gnrm_sw'
-  !electrostatic treatment of the vacancy (experimental)
-  write(1,*) trim(line)
+!  line=''
+!  line='0 .false. .false. 0.d0 vacancy: atom no., read_ref_den, correct_offset, gnrm_sw'
+!  !electrostatic treatment of the vacancy (experimental)
+!  write(1,*) trim(line)
 
 
   line=''

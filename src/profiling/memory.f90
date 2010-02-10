@@ -31,7 +31,7 @@
 !!
 subroutine memory_occupation(istat,isize,array,routine)
 
-  use module_base, only: memorylimit
+  use module_base, only: memorylimit,verbose
 
   implicit none
 
@@ -73,7 +73,7 @@ subroutine memory_occupation(istat,isize,array,routine)
 
         iproc=isize
         !open the writing file for the root process
-        if (iproc == 0) then
+        if (iproc == 0 .and. verbose >= 2) then
            open(unit=98,file='malloc.prc',status='unknown')
            if (memdebug) then
               write(98,'(a,t40,a,t70,4(1x,a12))')&
@@ -87,12 +87,14 @@ subroutine memory_occupation(istat,isize,array,routine)
         end if
         initOK = .true.
      else if (routine=='stop' .and. iproc==0) then
-        write(98,'(a,t40,a,t70,4(1x,i12))')&
+        if (verbose >= 2) then
+           write(98,'(a,t40,a,t70,4(1x,i12))')&
              trim(loc%routine),trim(loc%array),&
              loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
              tot%memory/int(1024,kind=8),&
              (tot%peak+loc%peak-loc%memory)/int(1024,kind=8)
-        close(unit=98)
+           close(unit=98)
+        end if
         write(*,'(1x,a)')&
              '-------------------------MEMORY CONSUMPTION REPORT-----------------------------'
         write(*,'(1x,2(i0,a),i0)')&
@@ -105,7 +107,7 @@ subroutine memory_occupation(istat,isize,array,routine)
         !memory allocation problem, and which eliminates it for a successful run
         if (.not.memdebug .and. nalloc == ndealloc .and. tot%memory==int(0,kind=8)) then
            !clean the malloc file
-           if (iproc==0) then
+           if (iproc==0 .and. verbose >= 2) then
               open(unit=98,file='malloc.prc',status='unknown')
               write(98,*)
               close(unit=98)
@@ -155,13 +157,13 @@ subroutine memory_occupation(istat,isize,array,routine)
 
      select case(iproc)
      case (0)
-        if (memdebug) then
+        if (memdebug .and. verbose >= 2) then
            !to be used for inspecting an array which is not deallocated
            write(98,'(a,t40,a,t70,4(1x,i12))')trim(routine),trim(array),isize,tot%memory
         else
            !Compact format
            if (trim(loc%routine) /= routine) then
-              if (loc%memory /= int(0,kind=8)) then
+              if (loc%memory /= int(0,kind=8) .and. verbose >= 2) then
                  write(98,'(a,t40,a,t70,4(1x,i12))')&
                       trim(loc%routine),trim(loc%array),&
                       loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
