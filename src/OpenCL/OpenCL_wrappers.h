@@ -8,6 +8,7 @@
 #include <math.h>
 
 #define DEBUG 0
+#define PROFILING 1
 
 #define oclErrorCheck(errorCode,message) if(errorCode!=CL_SUCCESS) { fprintf(stderr,"Error(%i) (%s: %s): %s\n", errorCode,__FILE__,__func__,message);exit(1);} 
 
@@ -33,5 +34,16 @@ void build_initialize_kernels(cl_context * context);
 
 cl_device_id oclGetFirstDev(cl_context cxGPUContext);
 size_t shrRoundUp(size_t group_size, size_t global_size);
+
+typedef struct {
+	cl_event e;
+	char *comment;
+} event;
+
+void FC_FUNC(init_event_list,INIT_EVENT_LIST)();
+int addToEventList (event ev);
+extern event * event_list;
+extern size_t event_number;
+void FC_FUNC(print_event_list,PRINT_EVENT_LIST)();
 
 #endif

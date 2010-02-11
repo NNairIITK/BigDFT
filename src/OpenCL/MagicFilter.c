@@ -13,7 +13,7 @@ void build_magicfilter_kernels(cl_context * context){
     ciErrNum = clBuildProgram(magicfilter1dProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
-        fprintf(stderr,"Error: Failed to build magicfilter1d program!\n");
+        fprintf(stderr,"Error %d: Failed to build magicfilter1d program!\n",ciErrNum);
         char cBuildLog[10240];
         clGetProgramBuildInfo(magicfilter1dProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
@@ -77,6 +77,7 @@ void FC_FUNC_(magicfilter1d_check,MAGICFILTER1D_CHECK)(cl_uint *n,cl_uint *ndat,
 
 void FC_FUNC_(magicfilter1d_l,MAGICFILTER1D_L)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     cl_int ciErrNum;
+    cl_event e;
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
     printf("command queue: %p, dimension n: %lu, dimension dat: %lu, psi: %p, out: %p\n",*command_queue, (long unsigned)*n, (long unsigned)*ndat, *psi, *out);
@@ -89,18 +90,19 @@ void FC_FUNC_(magicfilter1d_l,MAGICFILTER1D_L)(cl_command_queue *command_queue, 
 
     cl_uint i = 0;
     ciErrNum = clSetKernelArg(magicfilter1d_kernel_l, i++,sizeof(*n), (void*)n);
-    oclErrorCheck(ciErrNum,"Failed to set arg n!");
     ciErrNum = clSetKernelArg(magicfilter1d_kernel_l, i++,sizeof(*ndat), (void*)ndat);
-    oclErrorCheck(ciErrNum,"Failed to set arg ndat!");
     ciErrNum = clSetKernelArg(magicfilter1d_kernel_l, i++,sizeof(*psi), (void*)psi);
-    oclErrorCheck(ciErrNum,"Failed to set arg psi!");
     ciErrNum = clSetKernelArg(magicfilter1d_kernel_l, i++,sizeof(*out), (void*)out);
-    oclErrorCheck(ciErrNum,"Failed to set arg out!");
     ciErrNum = clSetKernelArg(magicfilter1d_kernel_l, i++,sizeof(float)*block_size_j*(block_size_i+FILTER_WIDTH), 0);
-    oclErrorCheck(ciErrNum,"Failed to set arg local block!");
     size_t localWorkSize[] = { block_size_i,block_size_j };
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
-    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, magicfilter1d_kernel_l, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, magicfilter1d_kernel_l, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, &e);
+#if PROFILING
+    event ev;
+    ev.e = e;
+    ev.comment = __func__;
+    addToEventList(ev);
+#endif
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error %d: Failed to enqueue magicfilter1d_l kernel!\n",ciErrNum);

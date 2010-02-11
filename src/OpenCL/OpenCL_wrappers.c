@@ -119,7 +119,11 @@ void FC_FUNC_(ocl_create_command_queue,OCL_CREATE_COMMAND_QUEUE)(cl_command_queu
     cl_device_id * aDevices = (cl_device_id *) malloc(nContextDescriptorSize);
     clGetContextInfo(*context, CL_CONTEXT_DEVICES, nContextDescriptorSize, aDevices, 0);
     // create a command queue for first device the context reported
+#if PROFILING
+    *hCmdQueue = clCreateCommandQueue(*context, aDevices[0], CL_QUEUE_PROFILING_ENABLE, &ciErrNum);
+#else
     *hCmdQueue = clCreateCommandQueue(*context, aDevices[0], 0, &ciErrNum);
+#endif
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
     printf("contexte address: %p, command queue: %p\n",*context, *hCmdQueue);

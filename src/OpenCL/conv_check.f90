@@ -72,6 +72,7 @@ program conv_check
   call ocl_create_gpu_context(context)
   call ocl_create_command_queue(queue,context)
   call ocl_build_kernels(context)
+  call init_event_list
 
   hx=0.1e0_gp
   hy=0.1e0_gp
@@ -848,6 +849,7 @@ program conv_check
   else 
      print *,'wrong ndim',ndim
   end if
+  call print_event_list
 
 contains
 
