@@ -465,8 +465,8 @@ fi
 if test x"$ac_use_cuda_gpu" = "xyes" ; then
   dnl Test S_GPU library.
   internalsgpu="yes"
-  AC_ARG_ENABLE(internal-sgpu, AS_HELP_STRING([--disable-internal-sgpu], [Do not build and link with internal S_GPU library (default = yes).]), internalsgpu=$enval, internalsgpu="yes")
-  AC_ARG_WITH(sgpu-path, AS_HELP_STRING([--with-sgpu-path], [Give the path for an external S_GPU library, lib and module files (default = None).]),
+  AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), internalsgpu=$enval, internalsgpu="yes")
+  AC_ARG_WITH(libsgpu-path, AS_HELP_STRING([--with-libsgpu-path], [Give the path for an external S_GPU library, lib and module files (default = None).]),
             ac_libsgpu_dir=$withval, ac_libsgpu_dir=)
   ac_use_libsgpu="no"
   ac_build_libsgpu="no"
