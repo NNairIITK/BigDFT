@@ -32,4 +32,4 @@ for file in glob.glob("*/fldiff.report"):
             Exit = 1
         print "%s%-13s %s%s" % (start,dir,state,end)
 #Error code
-sys.exit(1)
+sys.exit(Exit)
