@@ -285,12 +285,6 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   LIB_CUTIL_PATH=$ac_with_lib_cutils
   AC_SUBST(LIB_CUTIL_PATH)
 
-  if test -n "$GCC41HACK" ; then
-    INC_GCC41CUDA="--compiler-bindir="$GCC41HACK
-  else
-    INC_GCC41CUDA="--compiler-bindir=/usr/bin"
-  fi
-  AC_SUBST(INC_GCC41CUDA)
 
   LIBCUDA_LIBS="-L$ac_cuda_lib_path -lcudart -lcublas $ac_with_lib_cutils/libcutil.a"
 fi
@@ -478,7 +472,7 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   if test "$internalsgpu" = "yes" ; then
     ac_build_libsgpu="yes"
     ac_use_libsgpu="yes"
-    AC_SUBST(LIBSGPU_INCLUDE, "-I\$(top_builddir)"/S_GPU/src)
+    AC_SUBST(LIBSGPU_INCLUDE, "-I\$(top_srcdir)"/S_GPU/src)
     LDFLAGS="$LDFLAGS -L\$(top_builddir)/S_GPU/src/.libs"
   else
     if test -n "$ac_libsgpu_dir" ; then
@@ -496,12 +490,16 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
   if test x"$ac_use_libsgpu" = x"yes" ; then
     AC_DEFINE([HAVE_LIBSGPU], [1], [use S_GPU in BigDFT.])
-    LIBSGPU_LIBS="-ls_gpu"
+    if test "$internalsgpu" = "yes" ; then
+      LIBSGPU_LIBS="\$(top_builddir)/S_GPU/src/.libs/libs_gpu.a"
+    else
+      LIBSGPU_LIBS="-ls_gpu"
+    fi
   fi
 fi
 
 dnl Agregate all the optional libs.
-LIBS="$LIBXC_LIBS $LIBABINIT_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBS"
+LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBS"
 
 dnl Test for the documentation.
 AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes])
@@ -533,7 +531,6 @@ src/profiling/Makefile
 src/PSolver/Makefile
 src/convolutions/Makefile
 src/CUDA/Makefile
-src/CUDA/S_GPU/Makefile
 src/art/Makefile
 utils/Makefile
 utils/PSPfiles/Makefile
@@ -602,7 +599,6 @@ Options:
   With Cuda GPU conv.:       $ac_use_cuda_gpu
    | NVidia Cuda Compiler:   $NVCC
    | Cuda flags:             $CUDA_FLAGS
-   | GCC41HACK (gcc path):   $GCC41HACK
    | ext. cutil library:     $ac_with_lib_cutils
    |      cutil path:        $LIB_CUTIL_PATH
   With libXC:                $ac_use_libxc
