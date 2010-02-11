@@ -353,7 +353,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   real(wp), intent(out) :: evsum
   !local variables
   character(len=*), parameter :: subname='subspace_diagonalisation'
-  integer :: i_stat,i_all,ierr,info,iorb,n_lp,n_rp,npsiw,isorb
+  integer :: i_stat,i_all,ierr,info,iorb,n_lp,n_rp,npsiw,isorb,ise
   integer :: istart,ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   real(wp) :: occ,evsumtmp
   integer, dimension(:,:), allocatable :: ndimovrlp
@@ -468,11 +468,23 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
         end if
 
         !here we have to add evsum and the KS orbitals written in terms of linear algebra
-        do iorb=1,norb
-           occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb),wp)
-           evsum=evsum+orbs%eval(isorb+iorb-1+(ikpt-1)*orbs%norb)*occ
-           !if (iproc.eq.0) write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
-        enddo
+        !evsum should be corrected like the scprsum above
+
+        !calculate the scprsum if the k-point is associated to this processor
+        if (orbs%ikptproc(ikpt) == iproc) then
+           if (ispin==1) ise=0
+           do iorb=1,norb
+              occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb+ise),dp)
+              evsum=evsum+orbs%eval(isorb+iorb-1+(ikpt-1)*orbs%norb)*occ
+           enddo
+           ise=norb
+        end if
+
+        !!do iorb=1,norb
+        !!   occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb),wp)
+        !!   evsum=evsum+orbs%eval(isorb+iorb-1+(ikpt-1)*orbs%norb)*occ
+        !!   !if (iproc.eq.0) write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
+        !!enddo
 
 !!        ! Transform to KS orbitals
 !!        ! dgemm can be used instead of daxpy

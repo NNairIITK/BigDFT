@@ -426,7 +426,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    real(kind=8), dimension(:,:), allocatable :: trig
 
    if (max(n1,n2,n3).gt.nfft_max) then
-      write(*,*) 'Dimension bigger than ', nfft_max
+      write(*,*) 'One of the dimensions:',n1,n2,n3,' is bigger than ',nfft_max
       stop
    end if
 

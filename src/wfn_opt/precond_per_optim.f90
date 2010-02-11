@@ -265,6 +265,7 @@ subroutine prec_fft(n1,n2,n3, &
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   real(wp), intent(inout) ::  hpsi(nvctr_c+7*nvctr_f)
   !local variables
+  character(len=*), parameter :: subname='prec_fft'
   integer nd1,nd2,nd3,i_stat,i_all
   real(gp), dimension(:), allocatable :: kern_k1,kern_k2,kern_k3
   real(wp), dimension(:,:,:), allocatable :: x_c! in and out of Fourier preconditioning
@@ -299,42 +300,42 @@ subroutine prec_fft(n1,n2,n3, &
 contains
   subroutine allocate_all
     allocate(kern_k1(0:n1+ndebug),stat=i_stat)
-    call memocc(i_stat,kern_k1,'kern_k1','prec_fft')
+    call memocc(i_stat,kern_k1,'kern_k1',subname)
     allocate(kern_k2(0:n2+ndebug),stat=i_stat)
-    call memocc(i_stat,kern_k2,'kern_k2','prec_fft')
+    call memocc(i_stat,kern_k2,'kern_k2',subname)
     allocate(kern_k3(0:n3+ndebug),stat=i_stat)
-    call memocc(i_stat,kern_k3,'kern_k3','prec_fft')
+    call memocc(i_stat,kern_k3,'kern_k3',subname)
     allocate(z1(2,nd1b,nd2,nd3,2+ndebug),stat=i_stat) ! work array for fft
-    call memocc(i_stat,z1,'z1','prec_fft')
+    call memocc(i_stat,z1,'z1',subname)
     allocate(z3(2,nd1,nd2,nd3f,2+ndebug),stat=i_stat) ! work array for fft
-    call memocc(i_stat,z3,'z3','prec_fft')
+    call memocc(i_stat,z3,'z3',subname)
     allocate(x_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-    call memocc(i_stat,x_c,'x_c','prec_fft')
+    call memocc(i_stat,x_c,'x_c',subname)
   end subroutine allocate_all
   subroutine deallocate_all
     i_all=-product(shape(z1))*kind(z1)
     deallocate(z1,stat=i_stat)
-    call memocc(i_stat,i_all,'z1','last_orthon')
+    call memocc(i_stat,i_all,'z1',subname)
 
     i_all=-product(shape(z3))*kind(z3)
     deallocate(z3,stat=i_stat)
-    call memocc(i_stat,i_all,'z3','last_orthon')
+    call memocc(i_stat,i_all,'z3',subname)
 
     i_all=-product(shape(kern_k1))*kind(kern_k1)
     deallocate(kern_k1,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k1','last_orthon')
+    call memocc(i_stat,i_all,'kern_k1',subname)
 
     i_all=-product(shape(kern_k2))*kind(kern_k2)
     deallocate(kern_k2,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k2','last_orthon')
+    call memocc(i_stat,i_all,'kern_k2',subname)
 
     i_all=-product(shape(kern_k3))*kind(kern_k3)
     deallocate(kern_k3,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k3','last_orthon')
+    call memocc(i_stat,i_all,'kern_k3',subname)
 
     i_all=-product(shape(x_c))*kind(x_c)
     deallocate(x_c,stat=i_stat)
-    call memocc(i_stat,i_all,'x_c','last_orthon')
+    call memocc(i_stat,i_all,'x_c',subname)
 
   end subroutine deallocate_all
 end subroutine prec_fft
