@@ -236,6 +236,8 @@ fi
 ##   Examples building   #
 ##=======================#
 #
+ac_enable_build_examples="no"
+AM_CONDITIONAL([BUILD_EXAMPLES], [test $ac_enable_build_examples = yes])
 #AC_MSG_CHECKING([wether to build examples for this library])
 #AC_ARG_ENABLE([build-examples], AS_HELP_STRING([--enable-build-examples], [Build the examples for this library (default no).]),
 #[ac_enable_build_examples=$enableval], [ac_enable_build_examples="no"])

@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 //#include <cuda.h>
-#include <s_gpu.h>
+#include "s_gpu.h"
 #include <mpi.h>
 
 

@@ -2,17 +2,27 @@ include ../../Makefile.examples.am
 
 examplesdir=@prefix@/examples/c/add_array
 
+if BUILD_EXAMPLES
+buildexe = add_array
+endif
+
 examples_DATA = \
-GPU.config \
-add_array.c \
-type.h \
-add_kernel.cu \
-Makefile.standalone \
-add_array
+	GPU.config \
+	add_array.c \
+	type.h \
+	add_kernel.cu \
+	Makefile.standalone \
+	$(buildexe)
+
+EXTRA_DIST = \
+	GPU.config \
+	add_array.c \
+	type.h \
+	add_kernel.cu
 
 MPICC = mpicc
 
-all: add_array
+#all: add_array
 
 add_array: add_array.o add_kernel.o
 	$(MPICC) add_array.o add_kernel.o -o $@ $(MYLDFLAGS) $(MYLIBS)
