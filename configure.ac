@@ -275,18 +275,19 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   fi
   AC_SUBST(CUDA_FLAGS)
 
+  dnl Not used anymore, to be removed.
   dnl Test if Cuda utils is installed.
-  AC_ARG_WITH(lib-cutils, AS_HELP_STRING([--with-lib-cutils], [specifiy the directory for libcutil library (default is '$(top_srcdir)/src/lib/CUDA').]),
-                         [ac_with_lib_cutils=$withval],
-                         [ac_with_lib_cutils="no"])
-  if test x"$ac_with_lib_cutils" = x"no" ; then
-    ac_with_lib_cutils='$(top_srcdir)/src/lib/CUDA'
-  fi  
-  LIB_CUTIL_PATH=$ac_with_lib_cutils
-  AC_SUBST(LIB_CUTIL_PATH)
+  dnl AC_ARG_WITH(lib-cutils, AS_HELP_STRING([--with-lib-cutils], [specifiy the directory for libcutil library (default is '$(top_srcdir)/src/lib/CUDA').]),
+  dnl                        [ac_with_lib_cutils=$withval],
+  dnl                        [ac_with_lib_cutils="no"])
+  dnl if test x"$ac_with_lib_cutils" = x"no" ; then
+  dnl   ac_with_lib_cutils='$(top_srcdir)/src/lib/CUDA'
+  dnl fi  
+  dnl LIB_CUTIL_PATH=$ac_with_lib_cutils
+  dnl AC_SUBST(LIB_CUTIL_PATH)
 
-
-  LIBCUDA_LIBS="-L$ac_cuda_lib_path -lcudart -lcublas $ac_with_lib_cutils/libcutil.a"
+  dnl Add if necessary $ac_with_lib_cutils/libcutil.a
+  LIBCUDA_LIBS="-L$ac_cuda_lib_path -lcudart -lcublas"
 fi
 
 dnl AM_CONDITIONAL for the different libraries, set default values.
@@ -599,8 +600,6 @@ Options:
   With Cuda GPU conv.:       $ac_use_cuda_gpu
    | NVidia Cuda Compiler:   $NVCC
    | Cuda flags:             $CUDA_FLAGS
-   | ext. cutil library:     $ac_with_lib_cutils
-   |      cutil path:        $LIB_CUTIL_PATH
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE

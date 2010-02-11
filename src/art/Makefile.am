@@ -19,6 +19,9 @@ art_source = \
 
 AM_FCFLAGS = -I. -I$(srcdir) -I../modules @MPI_INCLUDE@
 
+CLEANFILES = defs.@MODULE_EXT@ DEFS.@MODULE_EXT@ \
+	random.@MODULE_EXT@ RANDOM.@MODULE_EXT@
+
 noinst_LIBRARIES = libart.a
 
 libart_a_SOURCES = $(art_source)

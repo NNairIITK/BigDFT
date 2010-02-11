@@ -287,7 +287,14 @@ CLEANFILES = \
 	numeric.@MODULE_EXT@ NUMERIC.@MODULE_EXT@ \
 	geopt_minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
 	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@ \
-	scfloop_api.@MODULE_EXT@ SCFLOOP_API.@MODULE_EXT@
+	scfloop_api.@MODULE_EXT@ SCFLOOP_API.@MODULE_EXT@ \
+	minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
+	bigdft_forces.@MODULE_EXT@ BIGDFT_FORCES.@MODULE_EXT@ \
+	diis_defs.@MODULE_EXT@ DIIS_DEFS.@MODULE_EXT@ \
+	lanczos_defs.@MODULE_EXT@ LANCZOS_DEFS.@MODULE_EXT@ \
+	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
+	minpar.@MODULE_EXT@ MINPAR.@MODULE_EXT@ \
+	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@
 
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)

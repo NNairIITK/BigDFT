@@ -34,7 +34,8 @@ SOURCES_SHARED = binding_s_gpu.c \
 	commonDef.cpp  \
 	fortran.c
 
-INC_CUDA = -I@LIB_CUTIL_PATH@
+# Not used anymore, to be removed
+#INC_CUDA = -I@LIB_CUTIL_PATH@
 
 noinst_LIBRARIES = libGPU.a
 
@@ -46,12 +47,8 @@ CUDA_FLAGS =  -arch sm_13 @CUDA_FLAGS@
 SUFFIXES = .cu
 
 if USE_CUDA_GPU
-libs_cuda=libGPU.a
-#cutil is used for CUDA timer
-#libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a @LIB_CUTIL_PATH@/libcutil.a
 check_PROGRAMS = conv_check 
 #	GPUham
-
 else
 check_PROGRAMS = 
 endif
@@ -70,7 +67,7 @@ conv_check_SOURCES = conv_check.f90  ../profiling/memory.f90 ../modules/base.F90
 conv_check_LDFLAGS =
 conv_check_LDADD = ../libbigdft.a \
 	../PSolver/libpoissonsolver.a \
-	$(libs_cuda)
+	libGPU.a
 
 #GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
 #GPUham_LDFLAGS =
