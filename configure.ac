@@ -274,19 +274,6 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
     fi
   fi
   AC_SUBST(CUDA_FLAGS)
-
-  dnl Not used anymore, to be removed.
-  dnl Test if Cuda utils is installed.
-  dnl AC_ARG_WITH(lib-cutils, AS_HELP_STRING([--with-lib-cutils], [specifiy the directory for libcutil library (default is '$(top_srcdir)/src/lib/CUDA').]),
-  dnl                        [ac_with_lib_cutils=$withval],
-  dnl                        [ac_with_lib_cutils="no"])
-  dnl if test x"$ac_with_lib_cutils" = x"no" ; then
-  dnl   ac_with_lib_cutils='$(top_srcdir)/src/lib/CUDA'
-  dnl fi  
-  dnl LIB_CUTIL_PATH=$ac_with_lib_cutils
-  dnl AC_SUBST(LIB_CUTIL_PATH)
-
-  dnl Add if necessary $ac_with_lib_cutils/libcutil.a
   LIBCUDA_LIBS="-L$ac_cuda_lib_path -lcudart -lcublas"
 fi
 
@@ -462,14 +449,14 @@ if test x"$ac_use_libabinit" = x"yes" ; then
   LIBABINIT_LIBS="-labinit"
 fi
 
+ac_build_libsgpu="no"
+ac_use_libsgpu="no"
 if test x"$ac_use_cuda_gpu" = "xyes" ; then
   dnl Test S_GPU library.
   internalsgpu="yes"
   AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), internalsgpu=$enval, internalsgpu="yes")
   AC_ARG_WITH(libsgpu-path, AS_HELP_STRING([--with-libsgpu-path], [Give the path for an external S_GPU library, lib and module files (default = None).]),
             ac_libsgpu_dir=$withval, ac_libsgpu_dir=)
-  ac_use_libsgpu="no"
-  ac_build_libsgpu="no"
   if test "$internalsgpu" = "yes" ; then
     ac_build_libsgpu="yes"
     ac_use_libsgpu="yes"
@@ -488,7 +475,6 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
       fi
     fi
   fi
-  AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
   if test x"$ac_use_libsgpu" = x"yes" ; then
     AC_DEFINE([HAVE_LIBSGPU], [1], [use S_GPU in BigDFT.])
     if test "$internalsgpu" = "yes" ; then
@@ -498,6 +484,7 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
     fi
   fi
 fi
+AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
 dnl Agregate all the optional libs.
 LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBS"
