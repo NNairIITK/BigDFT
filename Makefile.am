@@ -15,6 +15,12 @@ else
 libXC_dir = 
 endif
 
+if BUILD_LIBSGPU
+libSGPU_dir = S_GPU
+else
+libSGPU_dir = 
+endif
+
 if BUILD_BINARIES
 tests_dir = tests
 else
@@ -22,6 +28,7 @@ tests_dir =
 endif
 
 SUBDIRS = $(libXC_dir) \
+	$(libSGPU_dir) \
 	$(libABINIT_dir) \
 	src \
 	doc \

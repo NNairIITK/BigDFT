@@ -48,11 +48,15 @@ subroutine memory_occupation(istat,isize,array,routine)
 
   include 'mpif.h'
 
+  logical, save :: initOK = .false.
   type(memstat), save :: loc,tot
   integer, save :: nalloc,ndealloc,iproc
   integer :: ierr
 
   !print *,iproc,array,routine
+
+  ! Don't use memory profiling if not initialised.
+  if (.not.initOK .and. (array /= 'count' .or. routine /= 'start')) return
 
   select case(array)
   case('count')
@@ -81,6 +85,7 @@ subroutine memory_occupation(istat,isize,array,routine)
                    'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
            end if
         end if
+        initOK = .true.
      else if (routine=='stop' .and. iproc==0) then
         if (verbose >= 2) then
            write(98,'(a,t40,a,t70,4(1x,i12))')&

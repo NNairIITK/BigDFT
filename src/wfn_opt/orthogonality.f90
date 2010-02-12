@@ -470,7 +470,8 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
         !here we have to add evsum and the KS orbitals written in terms of linear algebra
         !evsum should be corrected like the scprsum above
 
-        !calculate the scprsum if the k-point is associated to this processor
+        !calculate the evsum if the k-point is associated to this processor
+        print *,'here,proc,ikptproc',iproc,ikpt,orbs%ikptproc(ikpt)
         if (orbs%ikptproc(ikpt) == iproc) then
            if (ispin==1) ise=0
            do iorb=1,norb
@@ -522,12 +523,9 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
      end do
   end do
 
-  !if there are more kpoints than the number treated by this processor
-  !the value of evsum must be reduced
-  if (orbs%nkpts /= 1 .and. nproc > 1) then
-     evsumtmp=evsum
-     call MPI_ALLREDUCE(evsumtmp,evsum,1,mpidtypw, &
-          MPI_SUM,MPI_COMM_WORLD,ierr)
+  if (nproc > 1) then
+     !evsumtmp=evsum
+     call mpiallred(evsum,1,MPI_SUM,MPI_COMM_WORLD,ierr)
   end if
 
   i_all=-product(shape(psiw))*kind(psiw)

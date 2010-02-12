@@ -108,7 +108,7 @@ program frequencies
   call memocc(i_stat,forces,'forces',subname)
 
   !Initialise the moves using a restart file if present
-  call frequencies_restart(atoms%nat,moves,forces)
+  call frequencies_restart(iproc,atoms%nat,moves,forces)
 
 ! Move to alpha*h_grid
   alpha=1.d0/real(64,kind(1.d0))
@@ -344,10 +344,10 @@ contains
   END SUBROUTINE solve
 
 
-  subroutine frequencies_restart(nat,moves,forces)
+  subroutine frequencies_restart(iproc,nat,moves,forces)
   implicit none
   !Arguments
-  integer, intent(in) :: nat
+  integer, intent(in) :: nat, iproc
   logical, dimension(2,3,nat), intent(out) :: moves
   real(gp), dimension(2,3,nat,3,nat), intent(out) :: forces
   !Local variables
@@ -361,7 +361,7 @@ contains
   inquire(file='frequencies.res', exist=exists)
   if (.not.exists) then
      !There is no restart file.
-     write(*,'(1x,a)') 'No "frequencies.res" file present.'
+     if (iproc == 0) write(*,'(1x,a)') 'No "frequencies.res" file present.'
      return
   end if
   !Allocation

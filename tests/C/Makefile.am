@@ -34,4 +34,4 @@ C.out: $(top_builddir)/src/cluster $(PPFILES)
         fi
 
 check: inguess.dat C.out
-	python $(top_srcdir)/tests/fldiff.py --bigdft C.out $(top_srcdir)/tests/Refs/C.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft C.out $(top_srcdir)/tests/Refs/C.out.ref | tee fldiff.report
