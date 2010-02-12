@@ -33,6 +33,7 @@ int main(){
   ocl_create_read_buffer_(&context, &size, &work_GPU);
   ocl_enqueue_write_buffer_(&queue, &work_GPU, &size, in);
 //  for(i=0;i<10;i++)
+    magicfilter1d_l_(&queue,&size_x,&size_y,&work_GPU,&psi_GPU);
     magicfilter1d_s_l_(&queue,&size_x,&size_y,&work_GPU,&psi_GPU);
   ocl_finish_(&queue);
   ocl_enqueue_read_buffer_(&queue, &psi_GPU, &size, out);
