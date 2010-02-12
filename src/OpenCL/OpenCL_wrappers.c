@@ -162,3 +162,28 @@ void FC_FUNC_(ocl_enqueue_barrier,OCL_ENQUEUE_BARRIER)(cl_command_queue *command
     ciErrNum = clEnqueueBarrier(*command_queue);
     oclErrorCheck(ciErrNum,"Failed to enqueue barrier!");
 }
+
+
+void FC_FUNC_(ocl_clean,OCL_CLEAN)(cl_command_queue *command_queue, cl_context *context){
+  size_t i;
+  clReleaseKernel(magicfilter1d_kernel_l);
+  clReleaseKernel(magicfilter1d_kernel_s_l);
+  clReleaseKernel(magicfilter1d_t_kernel_l);
+  clReleaseKernel(magicfilter1d_pot_kernel_l);
+  clReleaseKernel(magicfilter1d_den_kernel_l);
+  clReleaseKernel(ana1d_kernel_l);
+  clReleaseKernel(syn1d_kernel_l);
+  clReleaseKernel(kinetic1d_kernel_l);
+  clReleaseKernel(c_initialize_kernel_l);
+  clReleaseKernel(v_initialize_kernel_l);
+  clReleaseKernel(uncompress_coarse_kernel_l);
+  clReleaseKernel(uncompress_fine_kernel_l);
+  clReleaseKernel(compress_coarse_kernel_l);
+  clReleaseKernel(compress_fine_kernel_l);
+  
+  for(i=0;i<event_number;i++){
+    clReleaseEvent(event_list[i].e);
+  }
+  clReleaseCommandQueue(*command_queue);
+  clReleaseContext(*context);
+}

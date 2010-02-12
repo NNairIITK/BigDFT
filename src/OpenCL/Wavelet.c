@@ -21,6 +21,8 @@ void build_wavelet_kernels(cl_context * context){
     ciErrNum = CL_SUCCESS;
     ana1d_kernel_l=clCreateKernel(ana1dProgram,"ana1dKernel_l",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = clReleaseProgram(ana1dProgram);
+    oclErrorCheck(ciErrNum,"Failed to release program!");
 
     cl_program syn1dProgram = clCreateProgramWithSource(*context,1,(const char**) &syn1d_program, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
@@ -36,6 +38,8 @@ void build_wavelet_kernels(cl_context * context){
     ciErrNum = CL_SUCCESS;
     syn1d_kernel_l=clCreateKernel(syn1dProgram,"syn1dKernel_l",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = clReleaseProgram(syn1dProgram);
+    oclErrorCheck(ciErrNum,"Failed to release program!");
 
 }
 

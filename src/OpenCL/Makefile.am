@@ -10,7 +10,7 @@ EXTRA_DIST = \
 SOURCES_CONV_CHECK =
 SOURCES_SHARED =
 
-check_PROGRAMS = conv_check 
+check_PROGRAMS = conv_check conv_check_c
 
 noinst_LIBRARIES = libbasef.a libbasec.a
 
@@ -31,7 +31,11 @@ conv_check_SOURCES = conv_check.f90
 conv_check_LDFLAGS = -lOpenCL
 conv_check_LDADD = libbasec.a libbasef.a ../libbigdft.a \
 	../PSolver/libpoissonsolver.a 
+conv_check_c_SOURCES = conv_check_c.c
+conv_check_c_LDFLAGS = -lOpenCL
+conv_check_c_LDADD = libbasec.a
 
 check:
 	echo 1 64 64 2048 2048 1 > fort.1
 	$(top_builddir)/src/OpenCL/conv_check
+	$(top_builddir)/src/OpenCL/conv_check_c

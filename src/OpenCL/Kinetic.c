@@ -20,6 +20,8 @@ void build_kinetic_kernels(cl_context * context){
     ciErrNum = CL_SUCCESS;
     kinetic1d_kernel_l=clCreateKernel(kinetic1dProgram,"kinetic1dKernel_l",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = clReleaseProgram(kinetic1dProgram);
+    oclErrorCheck(ciErrNum,"Failed to release program!");
 }
 
 void FC_FUNC_(kinetic1d_l,KINETIC1D_L)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, float *h, float*c, cl_mem *x, cl_mem *y, cl_mem *workx, cl_mem *worky,float *ekin){

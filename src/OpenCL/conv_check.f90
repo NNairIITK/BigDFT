@@ -68,7 +68,7 @@ program conv_check
      stop
   end if
 
-  ntimes=100
+  ntimes=10
   call ocl_create_gpu_context(context)
   call ocl_create_command_queue(queue,context)
   call ocl_build_kernels(context)

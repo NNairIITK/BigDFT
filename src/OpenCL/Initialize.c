@@ -24,5 +24,7 @@ void build_initialize_kernels(cl_context * context){
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     v_initialize_kernel_l=clCreateKernel(c_initializeProgram,"v_initializeKernel_l",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = clReleaseProgram(c_initializeProgram);
+    oclErrorCheck(ciErrNum,"Failed to release program!");
 }
 

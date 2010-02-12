@@ -24,6 +24,8 @@ void build_uncompress_kernels(cl_context * context){
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     uncompress_fine_kernel_l=clCreateKernel(uncompressProgram,"uncompress_fineKernel_l",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = clReleaseProgram(uncompressProgram);
+    oclErrorCheck(ciErrNum,"Failed to release program!");
 
     cl_program compressProgram = clCreateProgramWithSource(*context,1,(const char**) &compress_program, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
@@ -41,6 +43,8 @@ void build_uncompress_kernels(cl_context * context){
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     compress_fine_kernel_l=clCreateKernel(compressProgram,"compress_fineKernel_l",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = clReleaseProgram(compressProgram);
+    oclErrorCheck(ciErrNum,"Failed to release program!");
 }
 
 

@@ -46,6 +46,7 @@ int addToEventList (event ev)
 }
 
 void FC_FUNC_(print_event_list,PRINT_EVENT_LIST)() {
+#if PROFILING
   FILE * f;
   size_t i;
   cl_ulong  queued,submit,start,end;
@@ -72,4 +73,5 @@ void FC_FUNC_(print_event_list,PRINT_EVENT_LIST)() {
   }
   fprintf(f,"...\n");
   fclose(f);
+#endif
 }
