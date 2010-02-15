@@ -166,11 +166,7 @@ void FC_FUNC_(ocl_enqueue_barrier,OCL_ENQUEUE_BARRIER)(cl_command_queue *command
 
 void FC_FUNC_(ocl_clean,OCL_CLEAN)(cl_command_queue *command_queue, cl_context *context){
   size_t i;
-  clReleaseKernel(magicfilter1d_kernel_l);
-  clReleaseKernel(magicfilter1d_kernel_s_l);
-  clReleaseKernel(magicfilter1d_t_kernel_l);
-  clReleaseKernel(magicfilter1d_pot_kernel_l);
-  clReleaseKernel(magicfilter1d_den_kernel_l);
+  clean_magicfilter_kernels();
   clReleaseKernel(ana1d_kernel_l);
   clReleaseKernel(syn1d_kernel_l);
   clReleaseKernel(kinetic1d_kernel_l);

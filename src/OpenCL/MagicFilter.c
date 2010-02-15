@@ -2,6 +2,7 @@
 #include "MagicFilter.h"
 
 cl_kernel magicfilter1d_kernel_l;
+cl_kernel magicfilter1d_kernel_d;
 cl_kernel magicfilter1d_kernel_s_l;
 cl_kernel magicfilter1d_t_kernel_l;
 cl_kernel magicfilter1d_pot_kernel_l;
@@ -20,6 +21,9 @@ void build_magicfilter_kernels(cl_context * context){
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
+    ciErrNum = CL_SUCCESS;
+    magicfilter1d_kernel_d=clCreateKernel(magicfilter1dProgram,"magicfilter1dKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
     ciErrNum = CL_SUCCESS;
     magicfilter1d_kernel_l=clCreateKernel(magicfilter1dProgram,"magicfilter1dKernel_l",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
@@ -79,6 +83,43 @@ void FC_FUNC_(magicfilter1d_check,MAGICFILTER1D_CHECK)(cl_uint *n,cl_uint *ndat,
 
 	magicfilter1dKernelCheck(*n, *ndat, psi, out);
 
+}
+
+void FC_FUNC_(magicfilter1d_d,MAGICFILTER1D_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
+    cl_int ciErrNum;
+    cl_event e;
+#if DEBUG
+    printf("%s %s\n", __func__, __FILE__);
+    printf("command queue: %p, dimension n: %lu, dimension dat: %lu, psi: %p, out: %p\n",*command_queue, (long unsigned)*n, (long unsigned)*ndat, *psi, *out);
+#endif
+    int FILTER_WIDTH = 16;
+    if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
+    size_t block_size_i=FILTER_WIDTH, block_size_j=256/FILTER_WIDTH;
+    while (*n > block_size_i >= 1 && block_size_j > 16)
+	{ block_size_i *= 2; block_size_j /= 2;}
+
+    cl_uint i = 0;
+    ciErrNum = clSetKernelArg(magicfilter1d_kernel_d, i++,sizeof(*n), (void*)n);
+    ciErrNum = clSetKernelArg(magicfilter1d_kernel_d, i++,sizeof(*ndat), (void*)ndat);
+    ciErrNum = clSetKernelArg(magicfilter1d_kernel_d, i++,sizeof(*psi), (void*)psi);
+    ciErrNum = clSetKernelArg(magicfilter1d_kernel_d, i++,sizeof(*out), (void*)out);
+    ciErrNum = clSetKernelArg(magicfilter1d_kernel_d, i++,sizeof(cl_double)*block_size_j*(block_size_i+FILTER_WIDTH), 0);
+    size_t localWorkSize[] = { block_size_i,block_size_j };
+    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, magicfilter1d_kernel_d, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, &e);
+#if PROFILING
+    event ev;
+    ev.e = e;
+    ev.comment = __func__;
+    addToEventList(ev);
+#endif
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error %d: Failed to enqueue magicfilter1d_d kernel!\n",ciErrNum);
+        fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize[0],(long unsigned)globalWorkSize[1]);
+        fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize[0],(long unsigned)localWorkSize[1]);
+        exit(1);
+    }   
 }
 
 void FC_FUNC_(magicfilter1d_l,MAGICFILTER1D_L)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
@@ -247,4 +288,11 @@ void FC_FUNC_(magicfilter1d_pot_l,MAGICFILTER1D_POT_L)(cl_command_queue *command
 }
 
 
-
+void clean_magicfilter_kernels(){
+  clReleaseKernel(magicfilter1d_kernel_l);
+  clReleaseKernel(magicfilter1d_kernel_d);
+  clReleaseKernel(magicfilter1d_kernel_s_l);
+  clReleaseKernel(magicfilter1d_t_kernel_l);
+  clReleaseKernel(magicfilter1d_pot_kernel_l);
+  clReleaseKernel(magicfilter1d_den_kernel_l);
+}

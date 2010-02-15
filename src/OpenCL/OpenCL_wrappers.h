@@ -13,6 +13,7 @@
 #define oclErrorCheck(errorCode,message) if(errorCode!=CL_SUCCESS) { fprintf(stderr,"Error(%i) (%s: %s): %s\n", errorCode,__FILE__,__func__,message);exit(1);} 
 
 extern cl_kernel magicfilter1d_kernel_l;
+extern cl_kernel magicfilter1d_kernel_d;
 extern cl_kernel magicfilter1d_kernel_s_l;
 extern cl_kernel magicfilter1d_t_kernel_l;
 extern cl_kernel magicfilter1d_pot_kernel_l;
@@ -28,6 +29,7 @@ extern cl_kernel compress_coarse_kernel_l;
 extern cl_kernel compress_fine_kernel_l;
 
 void build_magicfilter_kernels(cl_context * context);
+void clean_magicfilter_kernels();
 void build_kinetic_kernels(cl_context * context);
 void build_wavelet_kernels(cl_context * context);
 void build_uncompress_kernels(cl_context * context);

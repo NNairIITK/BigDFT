@@ -36,6 +36,6 @@ conv_check_c_LDFLAGS = -lOpenCL
 conv_check_c_LDADD = libbasec.a
 
 check:
-	echo 1 64 64 2048 2048 1 > fort.1
+	echo 1 64 64 2048 2048 1000 > fort.1
 	$(top_builddir)/src/OpenCL/conv_check
 	$(top_builddir)/src/OpenCL/conv_check_c
