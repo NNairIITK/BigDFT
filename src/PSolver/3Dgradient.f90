@@ -7,7 +7,7 @@
 !! Works either in parallel or in serial, by proper adjustation of the arguments
 !!
 !! COPYRIGHT
-!! Copyright (C) 2002-2007 BigDFT group 
+!! Copyright (C) 2002-2010 BigDFT group 
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~/COPYING file
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -35,13 +35,13 @@ subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
  real(dp), dimension(n1,n2,n3,nspden), intent(inout) :: wb_vxc
  !Local variables
  integer :: i1,i2,i3,ispden
- !filters of finite difference derivative for order 4
+ !Filters of finite difference derivative for order 4
  real(dp), parameter :: a1=0.8d0, a2=-0.2d0
  real(dp), parameter :: a3=0.038095238095238095238d0, a4=-0.0035714285714285714286d0
  real(dp) :: derx,dery,derz,c1,c2,c3,c4
  !Body
 
- !some check
+ !Some check
  if ((n3 /= n3grad + wbl + wbr -2)) then
     print *,'wb_correction:incompatibility of the dimensions, n3=',n3,'n3grad=',n3grad,&
          'wbl=',wbl,'wbr=',wbr
@@ -589,7 +589,6 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
  real(dp) :: derx,dery,derz
  real(dp), dimension(:,:,:), allocatable :: density
  !Body
-
 
  !some check
  if (n3 /= n3grad + deltaleft + deltaright) then

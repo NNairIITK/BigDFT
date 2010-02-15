@@ -5,7 +5,7 @@
 !! AUTHOR
 !!    Luigi Genovese
 !! COPYRIGHT
-!!    Copyright (C) 2008 CEA
+!!    Copyright (C) 2008-2010 CEA, ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -17,6 +17,7 @@ module module_types
   use module_base, only : gp,wp,dp
   implicit none
 !!***
+
 
 !!****t* module_types/input_variables
 !! DESCRIPTION
@@ -33,13 +34,20 @@ module module_types
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf 
      integer :: nvacancy,verbosity
      real(gp) :: elecfield
+
+     ! For absorption calculations
      integer :: iabscalc_type   ! 0 non calc, 1 cheb ,  2 lanc
      integer :: iat_absorber, L_absorber
      real(gp), pointer:: Gabs_coeffs(:)
      logical ::  c_absorbtion , abscalc_alterpot, abscalc_eqdiff 
      integer ::  potshortcut
      integer ::  nsteps
-     
+
+     ! For Frequencies calculations (finite difference)
+     real(gp) :: freq_alpha
+     integer :: freq_order
+     integer :: freq_method
+
      ! kpoints related input variables
      integer :: nkpt
      real(gp), pointer :: kpt(:,:), wkpt(:)
@@ -53,8 +61,10 @@ module module_types
      real(gp) :: bmass, vmass, strprecon, strfact
      real(gp) :: strtarget(6)
      real(gp), pointer :: qmass(:)
+
   end type input_variables
 !!***
+
 
 !!****t* convolution_bounds/kinetic_bounds
 !! DESCRIPTION
@@ -68,6 +78,7 @@ module module_types
   end type kinetic_bounds
 !!***
 
+
 !!****t* convolution_bounds/shrink_bounds
 !! DESCRIPTION
 !!   Bounds to compress the wavefunctions
@@ -80,6 +91,7 @@ module module_types
   end type shrink_bounds
 !!***
 
+
 !!****t* convolution_bounds/grow_bounds
 !! DESCRIPTION
 !!   Bounds to uncompress the wavefunctions
@@ -91,6 +103,7 @@ module module_types
      integer, dimension(:,:,:), pointer :: ibyz_ff,ibzxx_f,ibxxyy_f
   end type grow_bounds
 !!***
+
 
 !!****t* module_types/convolutions_bounds
 !! DESCRIPTION
@@ -105,7 +118,8 @@ module module_types
      integer, dimension(:,:,:), pointer :: ibyyzz_r ! real space border
   end type convolutions_bounds
 !!***
-  
+
+
 !!****t* module_types/wavefunctions_descriptors
 !! DESCRIPTION
 !!   Used for lookup table for compressed wavefunctions
@@ -117,6 +131,7 @@ module module_types
      integer, dimension(:), pointer :: keyv
   end type wavefunctions_descriptors
 !!***
+
 
 !!****t* module_types/nonlocal_psp_descriptors
 !! DESCRIPTION
@@ -133,6 +148,7 @@ module module_types
      integer, dimension(:,:,:), pointer :: nboxp_c,nboxp_f
   end type nonlocal_psp_descriptors
 !!***
+
 
 !!****t* module_types/atoms_data
 !! DESCRIPTION
@@ -163,6 +179,7 @@ module module_types
   end type atoms_data
 !!***
 
+
 !!****t* module_types/grid_dimensions
 !! DESCRIPTION
 !!   Grid dimensions in old different wavelet basis
@@ -172,6 +189,7 @@ module module_types
      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
   end type grid_dimensions
 !!***
+
 
 !!****t* module_types/gaussian_basis
 !! DESCRIPTION
@@ -185,6 +203,7 @@ module module_types
      real(gp), dimension(:,:), pointer :: rxyz
   end type gaussian_basis
 !!***
+
 
 !!****t* module_types/orbitals_data
 !! DESCRIPTION
@@ -202,6 +221,7 @@ module module_types
   end type orbitals_data
 !!***
 
+
 !!****t* module_types/locreg_descriptors
 !! DESCRIPTION
 !! Contains the information needed for describing completely a
@@ -217,6 +237,7 @@ module module_types
      type(convolutions_bounds) :: bounds
   end type locreg_descriptors
 !!***
+
 
 !!****t* module_types/restart_objects
 !! DESCRIPTION
@@ -236,6 +257,7 @@ module module_types
   end type restart_objects
 !!***
 
+
 !!****t* module_types/communications_arrays
 !! DESCRIPTION
 !! Contains the information needed for communicating the wavefunctions
@@ -248,6 +270,7 @@ module module_types
      integer, dimension(:,:), pointer :: nvctr_par
   end type communications_arrays
 !!***
+
 
 !!****t* module_types/GPU_pointers
 !! DESCRIPTION
@@ -297,6 +320,7 @@ module module_types
   end type workarr_locham
 !!***
 
+
 !!****t* module_types/workarr_precond
 !! DESCRIPTION
 !! Contains the work arrays needed for th preconditioner with all the BC
@@ -313,6 +337,7 @@ module module_types
      real(wp), dimension(:,:,:,:,:), pointer :: z1,z3 ! work array for FFT
   end type workarr_precond
 !!***
+
 
 !!****t* module_types/lanczos_args
 !! DESCRIPTION
@@ -374,6 +399,7 @@ contains
   end subroutine allocate_comms
 !!***
 
+
 !!****f* module_types/deallocate_comms
 !! FUNCTION
 !!   De-Allocate communications_arrays
@@ -405,6 +431,7 @@ contains
   end subroutine deallocate_comms
 !!***
 
+
 !!****f* module_types/deallocate_abscalc_input
 !! FUNCTION
 !!  
@@ -426,10 +453,6 @@ contains
 
   end subroutine deallocate_abscalc_input
 !!***
-
-
-
-
 
 
 !!****f* module_types/deallocate_orbs
@@ -468,8 +491,9 @@ subroutine deallocate_orbs(orbs,subname)
     deallocate(orbs%ikptproc,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%ikptproc',subname)
 
-
 end subroutine deallocate_orbs
+!!***
+
 
 !!****f* module_types/init_restart_objects
 !! FUNCTION
@@ -479,9 +503,10 @@ end subroutine deallocate_orbs
   subroutine init_restart_objects(atoms,rst,subname)
     use module_base
     implicit none
+    !Arguments
     character(len=*), intent(in) :: subname
-    type(atoms_data) :: atoms
-    type(restart_objects) :: rst
+    type(atoms_data), intent(in) :: atoms
+    type(restart_objects), intent(out) :: rst
     !local variables
     integer :: i_stat
 
@@ -508,6 +533,7 @@ end subroutine deallocate_orbs
   end subroutine init_restart_objects
 !!***
 
+
 !!****f* module_types/free_restart_objects
 !! FUNCTION
 !!   De-Allocate restart_objects
@@ -523,17 +549,23 @@ end subroutine deallocate_orbs
 
     call deallocate_wfd(rst%Glr%wfd,subname)
 
-    i_all=-product(shape(rst%psi))*kind(rst%psi)
-    deallocate(rst%psi,stat=i_stat)
-    call memocc(i_stat,i_all,'psi',subname)
-    i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
-    deallocate(rst%orbs%eval,stat=i_stat)
-    call memocc(i_stat,i_all,'eval',subname)
-    i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
-    deallocate(rst%rxyz_old,stat=i_stat)
-    call memocc(i_stat,i_all,'rxyz_old',subname)
+    if (associated(rst%psi)) then
+       i_all=-product(shape(rst%psi))*kind(rst%psi)
+       deallocate(rst%psi,stat=i_stat)
+       call memocc(i_stat,i_all,'psi',subname)
+    end if
+    if (associated(rst%orbs%eval)) then
+       i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
+       deallocate(rst%orbs%eval,stat=i_stat)
+       call memocc(i_stat,i_all,'eval',subname)
+    end if
+    if (associated(rst%rxyz_old)) then
+       i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
+       deallocate(rst%rxyz_old,stat=i_stat)
+       call memocc(i_stat,i_all,'rxyz_old',subname)
+    end if
 
-    !the gaussian basis descriptors are always allocated together
+    !The gaussian basis descriptors are always allocated together
     !with the gaussian coefficients
     if (associated(rst%gbd%rxyz)) then
        nullify(rst%gbd%rxyz)
@@ -542,11 +574,11 @@ end subroutine deallocate_orbs
        i_all=-product(shape(rst%gaucoeffs))*kind(rst%gaucoeffs)
        deallocate(rst%gaucoeffs,stat=i_stat)
        call memocc(i_stat,i_all,'gaucoeffs',subname)
-
     end if
 
   end subroutine free_restart_objects
 !!***
+
 
 !!****f* module_types/allocate_wfd
 !! FUNCTION
@@ -568,6 +600,7 @@ end subroutine deallocate_orbs
   end subroutine allocate_wfd
 !!***
 
+
 !!****f* module_types/deallocate_wfd
 !! FUNCTION
 !!   De-Allocate wavefunctions_descriptors
@@ -581,15 +614,19 @@ end subroutine deallocate_orbs
     !local variables
     integer :: i_all,i_stat
 
-    i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
-    deallocate(wfd%keyg,stat=i_stat)
-    call memocc(i_stat,i_all,'wfd%keyg',subname)
-    i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
-    deallocate(wfd%keyv,stat=i_stat)
-    call memocc(i_stat,i_all,'wfd%keyv',subname)
-
+    if (associated(wfd%keyg)) then
+       i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
+       deallocate(wfd%keyg,stat=i_stat)
+       call memocc(i_stat,i_all,'wfd%keyg',subname)
+    end if
+    if (associated(wfd%keyv)) then
+       i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
+       deallocate(wfd%keyv,stat=i_stat)
+       call memocc(i_stat,i_all,'wfd%keyv',subname)
+    end if
   end subroutine deallocate_wfd
 !!***
+
 
 !!****f* module_types/deallocate_gwf
 !! FUNCTION

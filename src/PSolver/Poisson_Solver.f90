@@ -76,7 +76,7 @@ module Poisson_Solver
   !wrapper to the poisson solver for allowing non-collinear densities
   public :: PSolverNC
   !calculate the allocation dimensions
-  public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions!,fourier_dim
+  public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions
 
 contains
 

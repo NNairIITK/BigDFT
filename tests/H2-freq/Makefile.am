@@ -3,6 +3,7 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
+	input.freq \
 	input.dft \
 	posinp.xyz
 

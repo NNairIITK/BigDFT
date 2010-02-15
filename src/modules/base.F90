@@ -7,7 +7,11 @@
 !!    Luigi Genovese
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2008 CEA
+!!    Copyright (C) 2008-2010 CEA, ESRF
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 !!
 !! SOURCE
 !! 
@@ -29,15 +33,15 @@ module module_base
   ! Include variables set from configure.
   include 'configure.inc'
 
-  !verbosity of the output, control the level of writing (minimal by default)
+  ! Verbosity of the output, control the level of writing (minimal by default)
   integer :: verbose=2
 
-  !general precision, density and the wavefunctions types
+  ! General precision, density and the wavefunctions types
   integer, parameter :: gp=kind(1.0d0)  !general-type precision
   integer, parameter :: dp=kind(1.0d0)  !density-type precision
   integer, parameter :: wp=kind(1.0d0)  !wavefunction-type precision
 
-  !MPI definitions and datatypes for density and wavefunctions
+  ! MPI definitions and datatypes for density and wavefunctions
   include 'mpif.h'
   integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION,mpidtypd=MPI_DOUBLE_PRECISION
   integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
@@ -52,12 +56,12 @@ module module_base
 #endif
   !integer, parameter :: mpidtypw=MPI_REAL,mpidtypd=MPI_REAL !in case of single precision
 
-  !flag for GPU computing, if CUDA libraries are present
+  !Flag for GPU computing, if CUDA libraries are present
   !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !this value can be changed in the read_input_variables routine
   logical :: GPUconv=.false.,GPUblas=.false.,GPUshare=.true.
 
-  !logical parameter for the projectors application strategy (true for distributed way)
+  !Logical parameter for the projectors application strategy (true for distributed way)
   !if the projector allocation passes the memorylimit this is switched to true
   !inside localize_projectors routines
   logical :: DistProjApply=.true.
@@ -70,7 +74,6 @@ module module_base
   interface mpiallred
      module procedure mpiallred_int,mpiallred_real,mpiallred_double
   end interface
-
 
 
   !interfaces for LAPACK routines
@@ -771,7 +774,6 @@ module module_base
       !call to BLAS routine
       call ZHERK(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
     end subroutine herk_double
-
 
     !routine used for deallocations
     subroutine memocc_internal(istat,isize,array,routine)

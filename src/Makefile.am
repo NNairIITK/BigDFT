@@ -232,6 +232,7 @@ NEB_SOURCES = NEB.f90 \
 	$(mpi_source)
 NEB_LDFLAGS = 
 NEB_LDADD = libbigdft.a \
+	PSolver/libpoissonsolver.a \
 	$(libs_cuda)
 
 memguess_SOURCES = memguess.f90 \

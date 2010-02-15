@@ -471,7 +471,6 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
         !evsum should be corrected like the scprsum above
 
         !calculate the evsum if the k-point is associated to this processor
-        print *,'here,proc,ikptproc',iproc,ikpt,orbs%ikptproc(ikpt)
         if (orbs%ikptproc(ikpt) == iproc) then
            if (ispin==1) ise=0
            do iorb=1,norb

@@ -354,7 +354,6 @@ program memguess
   call memocc(i_stat,i_all,'atoms%aocc',subname)
 
 
-
   call MemoryEstimator(atoms%geocode,nproc,in%idsx,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
        atoms%alat1,atoms%alat2,atoms%alat3,&
        hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,in%crmult,in%frmult,&
@@ -374,7 +373,6 @@ program memguess
   ! De-allocations
   call deallocate_orbs(orbs,subname)
   call free_input_variables(in)
-
 
   !finalize memory counting
   call memocc(0,0,'count','stop')

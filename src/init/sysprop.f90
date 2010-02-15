@@ -1,6 +1,14 @@
 !!****f* BigDFT/system_properties
+!!
 !! FUNCTION
 !!  Calculate the important objects related to the physical properties of the system
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 !!
 !! SOURCE
 !!
@@ -507,10 +515,15 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
 end subroutine read_system_variables
 !!***
 
-!fix all the atomic occupation numbers of the atoms which has the same type
-!look also at the input polarisation and spin
-!look at the file of the input occupation numbers and, if exists, modify the 
-!occupations accordingly
+
+!!****f* BigDFT/atomic_occupation_numbers
+!! FUNCTION
+!!   Fix all the atomic occupation numbers of the atoms which has the same type
+!!   look also at the input polarisation and spin
+!!   look at the file of the input occupation numbers and, if exists, modify the 
+!!   occupations accordingly
+!! SOURCE
+!!
 subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
   use module_base
   use module_types
@@ -558,7 +571,6 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
      end if
   end if
 
-       
   !here we must check of the input guess polarisation
   !control if the values are compatible with the atom configuration
   !do this for all atoms belonging to a given type
@@ -644,7 +656,7 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
   if (exists) close(unit=91)
 
 end subroutine atomic_occupation_numbers
-
+!!***
 
 
 !!****f* BigDFT/orbitals_descriptors
@@ -689,7 +701,6 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   do jproc=0,nproc-1
      orbs%norb_par(jproc)=0 !size 0 nproc-1
   end do
-
 
   !create an array which indicate which processor has a GPU associated 
   !from the viewpoint of the BLAS routines
@@ -832,12 +843,11 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
      nt=0
      do
         read(unit=iunit,fmt='(a100)',iostat=ierror) line
-        
         if (ierror /= 0) then
            exit
         end if
-        !transform the line in case there are slashes(to ease the parsing
-        do i=1,100
+        !Transform the line in case there are slashes (to ease the parsing)
+        do i=1,len(line)
            if (line(i:i) == '/') then
               line(i:i) = ':'
            end if
