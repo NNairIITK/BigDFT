@@ -309,11 +309,11 @@ program conv_check
 
            print *,'ekin',ekin
 
-              call ocl_create_write_buffer(context, n1*ndat*4, psi_GPU)
-              call ocl_create_read_buffer(context, n1*ndat*4, work_GPU)
-              call ocl_create_write_buffer(context, n1*ndat*4, work2_GPU)
-              call ocl_create_read_write_buffer(context, n1*ndat*4, v_GPU)
-              call ocl_enqueue_write_buffer(queue, work_GPU, n1*ndat*4, v_cuda_l)
+              call ocl_create_write_buffer(context, n1*ndat*8, psi_GPU)
+              call ocl_create_read_buffer(context, n1*ndat*8, work_GPU)
+              call ocl_create_write_buffer(context, n1*ndat*8, work2_GPU)
+              call ocl_create_read_write_buffer(context, n1*ndat*8, v_GPU)
+              call ocl_enqueue_write_buffer(queue, work_GPU, n1*ndat*8, v_cuda)
 
            !now the CUDA part
            !take timings
@@ -321,8 +321,8 @@ program conv_check
 
            call cpu_time(t0)
            do i=1,ntimes
-              call kinetic1d_l(queue,n1,ndat,real(hx,kind=4),real(0.d0,kind=4),&
-                   work_GPU,psi_GPU,work2_GPU,v_GPU,ekinGPU)
+              call kinetic1d_d(queue,n1,ndat,real(hx,kind=8),real(0.d0,kind=8),&
+                   work_GPU,psi_GPU,work2_GPU,v_GPU,ekinGPUd)
            end do
            call ocl_finish(queue)
            call cpu_time(t1)
@@ -333,7 +333,7 @@ program conv_check
                 GPUtime*1.d3/real(ntimes,kind=8),&
                 real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 
-           call ocl_enqueue_read_buffer(queue, psi_GPU, n1*ndat*4, psi_cuda_l)
+           call ocl_enqueue_read_buffer(queue, psi_GPU, n1*ndat*8, psi_cuda)
            call ocl_release_mem_object(psi_GPU)
            call ocl_release_mem_object(work_GPU)
            call ocl_release_mem_object(work2_GPU)
@@ -349,7 +349,7 @@ program conv_check
               do i1=1,n1
                  !write(17,'(2(i6),2(1pe24.17))')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
                  !write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
-                 comp=abs(psi_out(i,i1,1)-real(psi_cuda_l(i1,i,1),kind=8))
+                 comp=abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8))
 !                 write(*,*),psi_out(i,i1,1), psi_cuda_l(i1,i,1)
                  !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
                  if (comp > maxdiff) then

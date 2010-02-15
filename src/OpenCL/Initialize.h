@@ -2,12 +2,21 @@
 #define INITIALIZE_H
 
 char * c_initialize_program="\
+#pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
+__kernel void c_initializeKernel_d(size_t n, size_t ndat, __global const double * x_in, __global double * y_in, double c) {\n\
+size_t ig = get_global_id(0);\n\
+size_t jg = get_global_id(1);\n\
+if( jg >= ndat ) return;\n\
+ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+size_t pos = jg*n+ig;\n\
+y_in[pos] = x_in[pos] * c;\n\
+};\n\
 __kernel void c_initializeKernel_l(size_t n, size_t ndat, __global const float * x_in, __global float * y_in, float c) {\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 if( jg >= ndat ) return;\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
-size_t pos = jg+ig*ndat;\n\
+size_t pos = jg*n+ig;\n\
 y_in[pos] = x_in[pos] * c;\n\
 };\n\
 __kernel void v_initializeKernel_l(size_t n, __global float * y_in, float v) {\n\

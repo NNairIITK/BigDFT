@@ -2,6 +2,7 @@
 #include "Initialize.h"
 
 cl_kernel c_initialize_kernel_l;
+cl_kernel c_initialize_kernel_d;
 cl_kernel v_initialize_kernel_l;
 
 
@@ -20,8 +21,12 @@ void build_initialize_kernels(cl_context * context){
         exit(1);
     }
     ciErrNum = CL_SUCCESS;
+    c_initialize_kernel_d=clCreateKernel(c_initializeProgram,"c_initializeKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = CL_SUCCESS;
     c_initialize_kernel_l=clCreateKernel(c_initializeProgram,"c_initializeKernel_l",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = CL_SUCCESS;
     v_initialize_kernel_l=clCreateKernel(c_initializeProgram,"v_initializeKernel_l",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     ciErrNum = clReleaseProgram(c_initializeProgram);
