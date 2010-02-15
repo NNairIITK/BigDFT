@@ -168,16 +168,10 @@ void FC_FUNC_(ocl_clean,OCL_CLEAN)(cl_command_queue *command_queue, cl_context *
   size_t i;
   clean_magicfilter_kernels();
   clean_kinetic_kernels();
-  clReleaseKernel(ana1d_kernel_l);
-  clReleaseKernel(syn1d_kernel_l);
-  clReleaseKernel(c_initialize_kernel_l);
-  clReleaseKernel(c_initialize_kernel_d);
-  clReleaseKernel(v_initialize_kernel_l);
-  clReleaseKernel(uncompress_coarse_kernel_l);
-  clReleaseKernel(uncompress_fine_kernel_l);
-  clReleaseKernel(compress_coarse_kernel_l);
-  clReleaseKernel(compress_fine_kernel_l);
-  
+  clean_initialize_kernels();
+  clean_wavelet_kernels();
+  clean_uncompress_kernels();  
+
   for(i=0;i<event_number;i++){
     clReleaseEvent(event_list[i].e);
   }

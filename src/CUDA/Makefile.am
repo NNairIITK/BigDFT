@@ -44,7 +44,7 @@ SUFFIXES = .cu
 
 if USE_CUDA_GPU
 sub_dirs_cuda=CUDA
-libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a S_GPU/libs_gpu.a
+libs_cuda=-L@CUDA_PATH@/lib64/ -lcudart -lcublas libGPU.a S_GPU/libs_gpu.a
 #cutil is used for CUDA timer
 #libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a @LIB_CUTIL_PATH@/libcutil.a
 
@@ -111,5 +111,5 @@ compress.o : commonDef.h kernels_compress.hcu
 read_conf_file.cpp : read_conf_file.h
 
 check:
-	echo 1 64 64 2048 2048 1 > fort.1
+	echo 1 64 64 2048 2048 1000 > fort.1
 	$(top_builddir)/src/CUDA/conv_check

@@ -4,6 +4,7 @@
 cl_kernel c_initialize_kernel_l;
 cl_kernel c_initialize_kernel_d;
 cl_kernel v_initialize_kernel_l;
+cl_kernel v_initialize_kernel_d;
 
 
 void build_initialize_kernels(cl_context * context){
@@ -27,9 +28,18 @@ void build_initialize_kernels(cl_context * context){
     c_initialize_kernel_l=clCreateKernel(c_initializeProgram,"c_initializeKernel_l",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     ciErrNum = CL_SUCCESS;
+    v_initialize_kernel_d=clCreateKernel(c_initializeProgram,"v_initializeKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = CL_SUCCESS;
     v_initialize_kernel_l=clCreateKernel(c_initializeProgram,"v_initializeKernel_l",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     ciErrNum = clReleaseProgram(c_initializeProgram);
     oclErrorCheck(ciErrNum,"Failed to release program!");
 }
 
+void clean_initialize_kernels(){
+  clReleaseKernel(c_initialize_kernel_l);
+  clReleaseKernel(c_initialize_kernel_d);
+  clReleaseKernel(v_initialize_kernel_l);
+  clReleaseKernel(v_initialize_kernel_d);
+}
