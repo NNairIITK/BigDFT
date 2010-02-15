@@ -91,7 +91,7 @@ void FC_FUNC_(magicfilter1d_l,MAGICFILTER1D_L)(cl_command_queue *command_queue, 
     int FILTER_WIDTH = 16;
     if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
     size_t block_size_i=FILTER_WIDTH, block_size_j=256/FILTER_WIDTH;
-    while (*n > block_size_i >= 1 && block_size_j > 4)
+    while (*n > block_size_i >= 1 && block_size_j > 16)
 	{ block_size_i *= 2; block_size_j /= 2;}
 
     cl_uint i = 0;
