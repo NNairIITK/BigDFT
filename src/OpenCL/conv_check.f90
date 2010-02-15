@@ -634,7 +634,7 @@ program conv_check
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
-                real(8*nvctr_cf*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+                real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9)
 
               call ocl_create_read_buffer(context, nvctr_cf*8, psi_c_GPU)
               call ocl_create_read_buffer(context, 7*nvctr_cf*8, psi_f_GPU)
@@ -661,7 +661,7 @@ program conv_check
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
                 GPUtime*1.d3/real(ntimes,kind=8),&
-                real(8*nvctr_cf*ntimes,kind=8)*32d0/(GPUtime*1.d9)
+                real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
 
               call ocl_enqueue_read_buffer(queue, work_GPU, (2*n1+2)*(2*n1+2)*(2*n1+2)*8, psi_cuda)
               call ocl_release_mem_object(psi_c_GPU)
@@ -700,17 +700,17 @@ program conv_check
                    'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1,ndat,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(8*nvctr_cf*ntimes,kind=8)*32d0/(CPUtime*1.d9),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(8*nvctr_cf*ntimes,kind=8)*32d0/(GPUtime*1.d9)
+                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
            else
               write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
                    'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1,ndat,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(8*nvctr_cf*ntimes,kind=8)*32d0/(CPUtime*1.d9),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(8*nvctr_cf*ntimes,kind=8)*32d0/(GPUtime*1.d9),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9),&
                    '<<<< WARNING' 
            end if
 
@@ -730,7 +730,7 @@ program conv_check
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
-                real(8*nvctr_cf*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+                real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9)
 
 
            !now the CUDA part
@@ -767,7 +767,7 @@ program conv_check
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
                 GPUtime*1.d3/real(ntimes,kind=8),&
-                real(8*nvctr_cf*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
 
               call ocl_enqueue_read_buffer(queue, psi_c_GPU, nvctr_cf*8, psi_d)
               call ocl_enqueue_read_buffer(queue, psi_f_GPU, 7*nvctr_cf*8, psi_d(nvctr_cf+1))
@@ -804,17 +804,17 @@ program conv_check
                    'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1,ndat,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(8*nvctr_cf*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(8*nvctr_cf*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
            else
               write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
                    'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1,ndat,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(8*nvctr_cf*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(8*nvctr_cf*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9),&
                    '<<<< WARNING' 
            end if
 
