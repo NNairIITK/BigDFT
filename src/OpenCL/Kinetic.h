@@ -7,37 +7,36 @@ char * kinetic1d_program="\
 __kernel void kinetic1dKernel_d(size_t n, size_t ndat, double scale, __global const double * x_in, __global double * x_out, __global const double * y_in, __global double * y_out, __local double * tmp) {\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
-size_t i2 = get_local_id(0);\n\
-size_t j2 = get_local_id(1);\n\
-size_t is = get_local_size(0);\n\
-size_t ib;\n\
-size_t it;\n\
-size_t base_i;\n\
+const size_t i2 = get_local_id(0);\n\
+const size_t j2 = get_local_id(1);\n\
+size_t igt = get_group_id(0);\n\
+size_t jgt = get_group_id(1);\n\
+size_t jb;\n\
+const size_t j2t = j2 + 16 * (i2/16);\n\
+const size_t i2t = i2 % 16;\n\
 //if data are ill dimentioned last block recomputes part of the data\n\
-if( jg >= ndat ) return;\n\
-ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
-__local double * tmp_o = tmp + j2*(is+FILTER_WIDTH);\n\
-base_i = FILTER_WIDTH/2+i2;\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+igt = ig - i2 + j2t;\n\
+jgt = jg - j2 + i2t;\n\
 //If I'm on the outside, select a border element to load\n\
-if(i2 < FILTER_WIDTH/2)\n\
-  { it = i2;\n\
-    if (ig < FILTER_WIDTH/2)\n\
-      { ib =  n + i2 - FILTER_WIDTH/2; }\n\
-    else { ib = ig - FILTER_WIDTH/2; }\n\
-    tmp_o[it]=x_in[jg+ib*ndat];\n\
+if(j2t < FILTER_WIDTH/2)\n\
+  { if (igt < FILTER_WIDTH/2)\n\
+      { jb =  n + j2t - FILTER_WIDTH/2; }\n\
+    else { jb = igt - FILTER_WIDTH/2; }\n\
+    tmp[i2t * (2 * 32 + 1) + j2t]=x_in[jgt+jb*ndat];\n\
   }\n\
-if (i2 >= (is - FILTER_WIDTH/2) || (ig >= n - FILTER_WIDTH/2))\n\
-  { it = i2 + FILTER_WIDTH;\n\
-    if (ig >= n - FILTER_WIDTH/2)\n\
-      { ib = ig - n + FILTER_WIDTH/2; }\n\
-    else { ib = ig + FILTER_WIDTH/2; }\n\
-    tmp_o[it]=x_in[jg+ib*ndat];\n\
+if (j2t >= 32 - FILTER_WIDTH/2)\n\
+  { if (igt >= n - FILTER_WIDTH/2)\n\
+      { jb = igt - n + FILTER_WIDTH/2; }\n\
+    else { jb = igt + FILTER_WIDTH/2; }\n\
+    tmp[i2t * (2 * 32 + 1) + j2t + FILTER_WIDTH]=x_in[jgt+jb*ndat];\n\
   }\n\
 //check boundaries\
 //Load the element I am to calculate\n\
-tmp_o[base_i]=x_in[jg+ig*ndat];\n\
+tmp[i2t * (2 * 32 + 1) + j2t + FILTER_WIDTH/2]=x_in[jgt+igt*ndat];\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
-tmp_o = tmp_o + base_i;\n\
+__local double * tmp_o = tmp + j2*(2*32 + 1) + FILTER_WIDTH/2+i2;\n\
 double conv = 0.0;\n\
 conv += (tmp_o[14] + tmp_o[-14]) * -6.924474940639200152025730585882e-18;\n\
 conv += (tmp_o[13] + tmp_o[-13]) *  2.70800493626319438269856689037647576e-13;\n\
