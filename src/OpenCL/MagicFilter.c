@@ -94,16 +94,14 @@ void FC_FUNC_(magicfilter1d_d,MAGICFILTER1D_D)(cl_command_queue *command_queue, 
 #endif
     int FILTER_WIDTH = 16;
     if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
-    size_t block_size_i=FILTER_WIDTH, block_size_j=256/FILTER_WIDTH;
-    while (*n > block_size_i >= 1 && block_size_j > 4)
-	{ block_size_i *= 2; block_size_j /= 2;}
+    size_t block_size_i=FILTER_WIDTH, block_size_j=FILTER_WIDTH;
 
     cl_uint i = 0;
     ciErrNum = clSetKernelArg(magicfilter1d_kernel_d, i++,sizeof(*n), (void*)n);
     ciErrNum = clSetKernelArg(magicfilter1d_kernel_d, i++,sizeof(*ndat), (void*)ndat);
     ciErrNum = clSetKernelArg(magicfilter1d_kernel_d, i++,sizeof(*psi), (void*)psi);
     ciErrNum = clSetKernelArg(magicfilter1d_kernel_d, i++,sizeof(*out), (void*)out);
-    ciErrNum = clSetKernelArg(magicfilter1d_kernel_d, i++,sizeof(cl_double)*block_size_j*(block_size_i+FILTER_WIDTH), 0);
+    ciErrNum = clSetKernelArg(magicfilter1d_kernel_d, i++,sizeof(cl_double)*block_size_j*(block_size_i+FILTER_WIDTH+1), 0);
     size_t localWorkSize[] = { block_size_i,block_size_j };
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, magicfilter1d_kernel_d, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, &e);
@@ -131,9 +129,7 @@ void FC_FUNC_(magicfilter1d_l,MAGICFILTER1D_L)(cl_command_queue *command_queue, 
 #endif
     int FILTER_WIDTH = 16;
     if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
-    size_t block_size_i=FILTER_WIDTH, block_size_j=256/FILTER_WIDTH;
-    while (*n > block_size_i >= 1 && block_size_j > 16)
-	{ block_size_i *= 2; block_size_j /= 2;}
+    size_t block_size_i=FILTER_WIDTH, block_size_j=FILTER_WIDTH;
 
     cl_uint i = 0;
     ciErrNum = clSetKernelArg(magicfilter1d_kernel_l, i++,sizeof(*n), (void*)n);

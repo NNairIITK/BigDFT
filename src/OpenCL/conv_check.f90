@@ -218,10 +218,6 @@ program conv_check
            call ocl_enqueue_read_buffer(queue, psi_GPU, n1*ndat*8, psi_cuda)
            call ocl_release_mem_object(psi_GPU)
            call ocl_release_mem_object(work_GPU)
-!!! for double
-!!!           call ocl_enqueue_read_buffer(queue, psi_GPU, n1*ndat*8, psi_cuda)
-!!!           call ocl_release_mem_object(psi_GPU)
-!!!           call ocl_release_mem_object(work_GPU)
 !!! for cuda
 !!!           call sg_gpu_imm_recv(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
 !!!           call sg_gpu_free(psi_GPU,i_stat)
