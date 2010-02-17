@@ -7,40 +7,37 @@ char * ana1d_program="\
 __kernel void ana1dKernel_d(size_t n, size_t ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
-size_t i2 = get_local_id(0);\n\
-size_t j2 = get_local_id(1);\n\
-size_t is = get_local_size(0);\n\
-size_t ib;\n\
-size_t it;\n\
-size_t base_i;\n\
+const size_t i2 = get_local_id(0);\n\
+const size_t j2 = get_local_id(1);\n\
+size_t igt = get_group_id(0);\n\
+size_t jgt = get_group_id(1);\n\
+size_t jb;\n\
 //if data are ill dimentioned last block recomputes part of the data\n\
-if( jg >= ndat ) return;\n\
-ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
-__local double * tmp_o = tmp + j2*(2*is+FILTER_WIDTH);\n\
-base_i = FILTER_WIDTH/2+2*i2;\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+igt = ig - i2 + j2;\n\
+jgt = jg - j2 + i2;\n\
 //If I'm on the outside, select a border element to load\n\
-if(i2 < FILTER_WIDTH/2)\n\
-  { it = i2;\n\
-    if (ig < FILTER_WIDTH/2)\n\
-      { ib = 2 * n  - ( FILTER_WIDTH/2 - i2 ); }\n\
-    else { ib =  2 * ig - i2 - FILTER_WIDTH/2; }// 2 * ( ig - i2 ) - ( FILTER_WIDTH/2 - i2 )\n\
-    tmp_o[it]=psi[jg+ib*ndat];\n\
+if(j2 < FILTER_WIDTH/2)\n\
+  { if (igt < FILTER_WIDTH/2)\n\
+      { jb = 2 * n  - ( FILTER_WIDTH/2 - j2 ); }\n\
+    else { jb =  2 * igt - j2 - FILTER_WIDTH/2; }\n\
+    tmp[i2 * (3 * FILTER_WIDTH + 1) + j2]=psi[jgt+jb*ndat];\n\
   }\n\
-if (i2 >= (is - FILTER_WIDTH/2) || (ig >= n - FILTER_WIDTH/2))\n\
-  { it = is + i2 + FILTER_WIDTH;\n\
-    if (ig >= n - FILTER_WIDTH/2)\n\
-      { ib = ig - n + FILTER_WIDTH/2; }\n\
-    else { ib = 2 * ig +  is - i2 + FILTER_WIDTH/2; }// 2 * ( ig + is - i2 ) + ( FILTER_WIDTH/2 - ( is - i2 ) )\n\
-    tmp_o[it]=psi[jg+ib*ndat];\n\
+if (j2 >= FILTER_WIDTH/2)\n\
+  { if (igt >= n - FILTER_WIDTH/2)\n\
+      { jb = igt - n + FILTER_WIDTH/2; }\n\
+    else { jb = 2 * igt + FILTER_WIDTH - j2 + FILTER_WIDTH/2; }\n\
+    tmp[i2 * (3 * FILTER_WIDTH + 1)  + j2 + 2 * FILTER_WIDTH]=psi[jgt+jb*ndat];\n\
   }\n\
 //Load the elements I am to calculate\n\
-tmp_o[base_i]=psi[jg+ig*2*ndat];\n\
-tmp_o[base_i+1]=psi[jg+(ig*2+1)*ndat];\n\
+tmp[i2 * (3 * FILTER_WIDTH + 1) + 2 * j2 + FILTER_WIDTH/2]=psi[jgt+igt*2*ndat];\n\
+tmp[i2 * (3 * FILTER_WIDTH + 1) + 2 * j2 + FILTER_WIDTH/2 + 1]=psi[jgt+(igt*2+1)*ndat];\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
 double ci = 0.0;\n\
 double di = 0.0;\n\
-tmp_o = tmp_o + base_i;\n\
+__local double * tmp_o = tmp + j2*(3*FILTER_WIDTH+1) + FILTER_WIDTH/2+2*i2;\n\
 ci += tmp_o[ 7] * -0.00030292051472413308126;\n\
 di += tmp_o[ 7] *  0.00054213233180001068935;\n\
 di += tmp_o[-6] * -0.00030292051472413308126;\n\
@@ -81,40 +78,37 @@ out[(jg*(2*n)+ig+n)]=di;\n\
 __kernel void ana1dKernel_l(size_t n, size_t ndat, __global const float *psi, __global float *out, __local float tmp[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
-size_t i2 = get_local_id(0);\n\
-size_t j2 = get_local_id(1);\n\
-size_t is = get_local_size(0);\n\
-size_t ib;\n\
-size_t it;\n\
-size_t base_i;\n\
+const size_t i2 = get_local_id(0);\n\
+const size_t j2 = get_local_id(1);\n\
+size_t igt = get_group_id(0);\n\
+size_t jgt = get_group_id(1);\n\
+size_t jb;\n\
 //if data are ill dimentioned last block recomputes part of the data\n\
-if( jg >= ndat ) return;\n\
-ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
-__local float * tmp_o = tmp + j2*(2*is+FILTER_WIDTH);\n\
-base_i = FILTER_WIDTH/2+2*i2;\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+igt = ig - i2 + j2;\n\
+jgt = jg - j2 + i2;\n\
 //If I'm on the outside, select a border element to load\n\
-if(i2 < FILTER_WIDTH/2)\n\
-  { it = i2;\n\
-    if (ig < FILTER_WIDTH/2)\n\
-      { ib = 2 * n  - ( FILTER_WIDTH/2 - i2 ); }\n\
-    else { ib =  2 * ig - i2 - FILTER_WIDTH/2; }// 2 * ( ig - i2 ) - ( FILTER_WIDTH/2 - i2 )\n\
-    tmp_o[it]=psi[jg+ib*ndat];\n\
+if(j2 < FILTER_WIDTH/2)\n\
+  { if (igt < FILTER_WIDTH/2)\n\
+      { jb = 2 * n  - ( FILTER_WIDTH/2 - j2 ); }\n\
+    else { jb =  2 * igt - j2 - FILTER_WIDTH/2; }\n\
+    tmp[i2 * (3 * FILTER_WIDTH + 1) + j2]=psi[jgt+jb*ndat];\n\
   }\n\
-if (i2 >= (is - FILTER_WIDTH/2) || (ig >= n - FILTER_WIDTH/2))\n\
-  { it = is + i2 + FILTER_WIDTH;\n\
-    if (ig >= n - FILTER_WIDTH/2)\n\
-      { ib = ig - n + FILTER_WIDTH/2; }\n\
-    else { ib = 2 * ig +  is - i2 + FILTER_WIDTH/2; }// 2 * ( ig + is - i2 ) + ( FILTER_WIDTH/2 - ( is - i2 ) )\n\
-    tmp_o[it]=psi[jg+ib*ndat];\n\
+if (j2 >= FILTER_WIDTH/2)\n\
+  { if (igt >= n - FILTER_WIDTH/2)\n\
+      { jb = igt - n + FILTER_WIDTH/2; }\n\
+    else { jb = 2 * igt + FILTER_WIDTH - j2 + FILTER_WIDTH/2; }\n\
+    tmp[i2 * (3 * FILTER_WIDTH + 1)  + j2 + 2 * FILTER_WIDTH]=psi[jgt+jb*ndat];\n\
   }\n\
 //Load the elements I am to calculate\n\
-tmp_o[base_i]=psi[jg+ig*2*ndat];\n\
-tmp_o[base_i+1]=psi[jg+(ig*2+1)*ndat];\n\
+tmp[i2 * (3 * FILTER_WIDTH + 1) + 2 * j2 + FILTER_WIDTH/2]=psi[jgt+igt*2*ndat];\n\
+tmp[i2 * (3 * FILTER_WIDTH + 1) + 2 * j2 + FILTER_WIDTH/2 + 1]=psi[jgt+(igt*2+1)*ndat];\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
 float ci = 0.0;\n\
 float di = 0.0;\n\
-tmp_o = tmp_o + base_i;\n\
+__local float * tmp_o = tmp + j2*(3*FILTER_WIDTH+1) + FILTER_WIDTH/2+2*i2;\n\
 ci += tmp_o[ 7] * -0.00030292051472413308126;\n\
 di += tmp_o[ 7] *  0.00054213233180001068935;\n\
 di += tmp_o[-6] * -0.00030292051472413308126;\n\
