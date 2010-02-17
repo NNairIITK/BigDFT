@@ -87,14 +87,13 @@ void FC_FUNC_(syn1d_d,SYN1D_D)(cl_command_queue *command_queue, cl_uint *n, cl_u
 #endif
     int FILTER_WIDTH = 16;
     if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
-    size_t block_size_i=FILTER_WIDTH, block_size_j=FILTER_WIDTH;
+    size_t block_size_i=16, block_size_j=16;
     cl_uint i = 0;
     clSetKernelArg(syn1d_kernel_d, i++,sizeof(*n), (void*)n);
     clSetKernelArg(syn1d_kernel_d, i++,sizeof(*ndat), (void*)ndat);
     clSetKernelArg(syn1d_kernel_d, i++,sizeof(*psi), (void*)psi);
     clSetKernelArg(syn1d_kernel_d, i++,sizeof(*out), (void*)out);
-    clSetKernelArg(syn1d_kernel_d, i++,sizeof(double)*block_size_j*(block_size_i+FILTER_WIDTH + 1), NULL);
-    clSetKernelArg(syn1d_kernel_d, i++,sizeof(double)*block_size_j*(block_size_i+FILTER_WIDTH + 1), NULL);
+    clSetKernelArg(syn1d_kernel_d, i++,sizeof(double)*block_size_j*(block_size_i*2+FILTER_WIDTH*2+1), NULL);
     size_t localWorkSize[] = { block_size_i,block_size_j };
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, syn1d_kernel_d, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
