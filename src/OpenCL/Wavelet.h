@@ -154,41 +154,40 @@ char * syn1d_program="\
 __kernel void syn1dKernel_d(size_t n, size_t ndat, __global const double *psi, __global double *out, __local double tmp_1[], __local double tmp_2[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
-size_t i2 = get_local_id(0);\n\
-size_t j2 = get_local_id(1);\n\
-size_t is = get_local_size(0);\n\
-size_t ib;\n\
-size_t it;\n\
-size_t base_i;\n\
-if( jg >= ndat ) return;\n\
+const size_t i2 = get_local_id(0);\n\
+const size_t j2 = get_local_id(1);\n\
+size_t igt = get_group_id(0);\n\
+size_t jgt = get_group_id(1);\n\
+size_t jb;\n\
+size_t ioff;\n\
 //if data are ill dimentioned last block recomputes part of the data\n\
-ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
-base_i = FILTER_WIDTH/2+i2;\n\
-__local double * tmp_o_1 = tmp_1 + j2*(is+FILTER_WIDTH);\n\
-__local double * tmp_o_2 = tmp_2 + j2*(is+FILTER_WIDTH);\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+igt = ig - i2 + j2;\n\
+jgt = jg - j2 + i2;\n\
 //If I'm on the outside, select a border element to load\n\
-if(i2 < FILTER_WIDTH/2)\n\
-  { it = i2;\n\
-    if (ig < FILTER_WIDTH/2)\n\
-      { ib = n - ( FILTER_WIDTH/2 - i2 ); }\n\
-    else { ib = ig - FILTER_WIDTH/2; }\n\
-    tmp_o_1[it]=psi[jg+ib*ndat];\n\
-    tmp_o_2[it]=psi[jg+(ib+n)*ndat];\n\
+ioff = i2*(2*FILTER_WIDTH+1) + j2;\n\
+if(j2 < FILTER_WIDTH/2)\n\
+  { if (igt < FILTER_WIDTH/2)\n\
+      { jb = n - ( FILTER_WIDTH/2 - j2 ); }\n\
+    else { jb = igt - FILTER_WIDTH/2; }\n\
+    tmp_1[ioff]=psi[jgt+jb*ndat];\n\
+    tmp_2[ioff]=psi[jgt+(jb+n)*ndat];\n\
   }\n\
-if (i2 >= (is - FILTER_WIDTH/2) || (ig >= n - FILTER_WIDTH/2))\n\
-  { it = i2 + FILTER_WIDTH;\n\
-    if (ig >= n - FILTER_WIDTH/2)\n\
-      { ib = ig - n + FILTER_WIDTH/2; }\n\
-    else { ib = ig + FILTER_WIDTH/2; }\n\
-    tmp_o_1[it]=psi[jg+ib*ndat];\n\
-    tmp_o_2[it]=psi[jg+(ib+n)*ndat];\n\
+if (j2 >= FILTER_WIDTH/2)\n\
+  { if (igt >= n - FILTER_WIDTH/2)\n\
+      { jb = igt - n + FILTER_WIDTH/2; }\n\
+    else { jb = igt + FILTER_WIDTH/2; }\n\
+    tmp_1[ioff+FILTER_WIDTH]=psi[jgt+jb*ndat];\n\
+    tmp_2[ioff+FILTER_WIDTH]=psi[jgt+(jb+n)*ndat];\n\
   }\n\
 //Load the elements I am to calculate\n\
-tmp_o_1 = tmp_o_1 + base_i;\n\
-tmp_o_2 = tmp_o_2 + base_i;\n\
-tmp_o_1[0]=psi[jg+ig*ndat];\n\
-tmp_o_2[0]=psi[jg+(ig+n)*ndat];\n\
+tmp_1[ioff+FILTER_WIDTH/2]=psi[jgt+igt*ndat];\n\
+tmp_2[ioff+FILTER_WIDTH/2]=psi[jgt+(igt+n)*ndat];\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
+ioff = j2*(2*FILTER_WIDTH+1) + FILTER_WIDTH/2+i2;\n\
+__local double * tmp_o_1 = tmp_1 + ioff;\n\
+__local double * tmp_o_2 = tmp_2 + ioff;\n\
 double se = 0.0;\n\
 double so = 0.0;\n\
 se += tmp_o_2[ 3] * -0.00030292051472413308126;\n\
