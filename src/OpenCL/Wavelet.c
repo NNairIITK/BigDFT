@@ -106,8 +106,6 @@ void FC_FUNC_(syn1d_d,SYN1D_D)(cl_command_queue *command_queue, cl_uint *n, cl_u
     }  
 }
 
-
-
 void FC_FUNC_(ana1d_l,ANA1D_L)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     cl_int ciErrNum;
 #if DEBUG     

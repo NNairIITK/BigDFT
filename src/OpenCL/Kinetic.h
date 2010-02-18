@@ -2,9 +2,9 @@
 #define KINETIC_H
 
 char * kinetic1d_program="\
-#define FILTER_WIDTH 30\n\
+#define FILTER_WIDTH 32\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
-__kernel void kinetic1dKernel_d(size_t n, size_t ndat, double scale, __global const double * x_in, __global double * x_out, __global const double * y_in, __global double * y_out, __local double * tmp) {\n\
+__kernel void kinetic1dKernel_d(size_t n, size_t ndat, double scale, __global const double * x_in, __global double * x_out, __global const double * y_in, __global double * y_out, __local double * tmp, __local double * tmp2) {\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -12,8 +12,8 @@ const size_t j2 = get_local_id(1);\n\
 size_t igt = get_group_id(0);\n\
 size_t jgt = get_group_id(1);\n\
 size_t jb;\n\
-const size_t j2t = j2 + 16 * (i2/16);\n\
-const size_t i2t = i2 % 16;\n\
+const size_t j2t = 2*j2 + i2/16;\n\
+const size_t i2t = i2 - 16 * (i2 / 16);\n\
 //if data are ill dimentioned last block recomputes part of the data\n\
 jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
 ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
@@ -21,13 +21,15 @@ igt = ig - i2 + j2t;\n\
 jgt = jg - j2 + i2t;\n\
 //If I'm on the outside, select a border element to load\n\
 if(j2t < FILTER_WIDTH/2)\n\
-  { if (igt < FILTER_WIDTH/2)\n\
+  {\n\
+    if (igt < FILTER_WIDTH/2)\n\
       { jb =  n + j2t - FILTER_WIDTH/2; }\n\
     else { jb = igt - FILTER_WIDTH/2; }\n\
     tmp[i2t * (2 * 32 + 1) + j2t]=x_in[jgt+jb*ndat];\n\
   }\n\
 if (j2t >= 32 - FILTER_WIDTH/2)\n\
-  { if (igt >= n - FILTER_WIDTH/2)\n\
+  {\n\
+    if (igt >= n - FILTER_WIDTH/2)\n\
       { jb = igt - n + FILTER_WIDTH/2; }\n\
     else { jb = igt + FILTER_WIDTH/2; }\n\
     tmp[i2t * (2 * 32 + 1) + j2t + FILTER_WIDTH]=x_in[jgt+jb*ndat];\n\
@@ -35,6 +37,7 @@ if (j2t >= 32 - FILTER_WIDTH/2)\n\
 //check boundaries\
 //Load the element I am to calculate\n\
 tmp[i2t * (2 * 32 + 1) + j2t + FILTER_WIDTH/2]=x_in[jgt+igt*ndat];\n\
+tmp2[i2t * (32 + 1) + j2t] = y_in[jgt+igt*ndat];\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 __local double * tmp_o = tmp + j2*(2*32 + 1) + FILTER_WIDTH/2+i2;\n\
 double conv = 0.0;\n\
@@ -53,10 +56,13 @@ conv += (tmp_o[ 3] + tmp_o[ -3]) *  0.2371780582153805636239247476e0;\n\
 conv += (tmp_o[ 2] + tmp_o[ -2]) * -0.6156141465570069496314853949e0;\n\
 conv += (tmp_o[ 1] + tmp_o[ -1]) *  2.2191465938911163898794546405e0;\n\
 conv +=  tmp_o[ 0]             * -3.5536922899131901941296809374e0;\n\
-y_out[jg*n + ig] = y_in[jg + ig*ndat] - scale * conv;\n\
+//y_out[jg*n + ig] = y_in[jg + ig*ndat] - scale * conv;\n\
+y_out[jg*n + ig] = tmp2[j2*(32+1) + i2] - scale * conv;\n\
 x_out[jg*n + ig] = tmp[0];\n\
 };\n\
 \n\
+#undef FILTER_WIDTH\n\
+#define FILTER_WIDTH 30\n\
 __kernel void kinetic1dKernel_l(size_t n, size_t ndat, float scale, __global const float * x_in, __global float * x_out, __global const float * y_in, __global float * y_out, __local float * tmp) {\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\

@@ -67,6 +67,7 @@ void FC_FUNC_(kinetic1d_d,KINETIC1D_D)(cl_command_queue *command_queue, cl_uint 
     clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*worky), (void*)worky);
     clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*y), (void*)y);
     clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(double)*block_size_j2*(block_size_i2+FILTER_WIDTH+3), NULL);
+    clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(double)*block_size_j2*(block_size_i2+1), NULL);
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kinetic1d_kernel_d, 2, NULL, globalWorkSize2, localWorkSize2, 0, NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
