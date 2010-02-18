@@ -43,6 +43,7 @@ module vdwcorrection
 
   public :: vdwcorrection_calculate_energy
   public :: vdwcorrection_calculate_forces
+  public :: vdwcorrection_warnings
 
   ! qoh: Share array of Van der Waals parameters accross module
 
@@ -699,7 +700,6 @@ contains
        enddo
 
        if (iproc == 0) then
-          call vdwcorrection_warnings(atoms,in) 
           write(*,'(1x,a, e12.5,1x,a)') &
                'Dispersion Correction Energy: ', dispersion_energy, 'Hartree'
        end if
@@ -818,7 +818,6 @@ contains
     type(atoms_data),        intent(in) :: atoms
     type(input_variables),   intent(in) :: in
 
-    logical, save      :: already_warned = .false.
     integer            :: itype ! Type counter
     ! qoh: Atomic numbers of elements with unoptimised dispersion parameters:
     integer, parameter :: unoptimised(4) = (/9,15,17,35/)
@@ -827,27 +826,25 @@ contains
     ! qoh: XC functionals with optimised parameters:
     integer, parameter :: xcfoptimised(4) = (/11,14,15,200/)
 
-    if ( already_warned ) return
+    if (in%dispersion /= 0) then 
 
-    ! qoh: Loop over types to check we have parameters
-    do itype=1,atoms%ntypes
-       if (any(unoptimised == atoms%nzatom(itype)) .and. &
-            any(xcfoptimised == in%ixc)) then 
-          write(*,'(a,a2)') 'WARNING: Unoptimised dispersion &
-               &parameters used for ', atoms%atomnames(itype)
-       elseif (.not. any(optimised == atoms%nzatom(itype)) .and. &
-            .not. any(unoptimised == atoms%nzatom(itype))) then
-          write(*,'(a,a2)') 'WARNING: No dispersion parameters &
-               &available for ', atoms%atomnames(itype) 
-       end if
-    end do
+       ! qoh: Loop over types to check we have parameters
+       do itype=1,atoms%ntypes
+          if (any(unoptimised == atoms%nzatom(itype)) .and. &
+               any(xcfoptimised == in%ixc)) then 
+             write(*,'(a,a2)') 'WARNING: Unoptimised dispersion &
+                  &parameters used for ', atoms%atomnames(itype)
+          elseif (.not. any(optimised == atoms%nzatom(itype)) .and. &
+               .not. any(unoptimised == atoms%nzatom(itype))) then
+             write(*,'(a,a2)') 'WARNING: No dispersion parameters &
+                  &available for ', atoms%atomnames(itype) 
+          end if
+       end do
 
-    if (.not. any(xcfoptimised == in%ixc)) &
-         write(*,'(a,i2)') 'WARNING: No optimised dispersion parameters &
-         &available for ixc=', in%ixc
-
-    already_warned = .true.
-
+       if (.not. any(xcfoptimised == in%ixc)) &
+            write(*,'(a,i2)') 'WARNING: No optimised dispersion parameters &
+            &available for ixc=', in%ixc
+    end if
   end subroutine vdwcorrection_warnings
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -323,7 +323,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   use module_interfaces
   use Poisson_Solver
   use libxc_functionals
-  use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces
+  use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
   use esatto
   implicit none
   integer, intent(in) :: nproc,iproc
@@ -576,7 +576,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   allocate(fion(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fion,'fion',subname)
 
- 
+  ! A message about dispersion forces.
+  if (iproc == 0) call vdwcorrection_warnings(atoms, in)
+
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   ndegree_ip=16 !default value 
   call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel,&
