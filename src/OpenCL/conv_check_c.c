@@ -19,6 +19,7 @@ int main(){
   int i;
   cl_uint size = SIZE_X * SIZE_Y * sizeof(double);
   cl_uint size_x = SIZE_X;
+  cl_uint size_x2 = SIZE_X/2;
   cl_uint size_y = SIZE_Y;
   in = (double*) malloc(size);
   out = (double*) malloc(size);
@@ -36,7 +37,6 @@ int main(){
   ocl_create_read_buffer_(&context, &size, &work_GPU);
   ocl_enqueue_write_buffer_(&queue, &work_GPU, &size, in);
   magicfilter1d_d_(&queue,&size_x,&size_y,&work_GPU,&psi_GPU);
-  magicfilter1d_d_ref_(&queue,&size_x,&size_y,&work_GPU,&psi_GPU);
   ocl_finish_(&queue);
   ocl_enqueue_read_buffer_(&queue, &psi_GPU, &size, out);
   ocl_release_mem_object_(&psi_GPU);
@@ -54,6 +54,25 @@ int main(){
   ocl_release_mem_object_(&work_GPU);
   ocl_release_mem_object_(&work2_GPU);
   ocl_release_mem_object_(&v_GPU);
+
+  ocl_create_write_buffer_(&context, &size, &psi_GPU);
+  ocl_create_read_buffer_(&context, &size, &work_GPU);
+  ocl_enqueue_write_buffer_(&queue, &work_GPU, &size, in);
+  ana1d_d_(&queue,&size_x2,&size_y,&work_GPU,&psi_GPU);
+  ocl_finish_(&queue);
+  ocl_enqueue_read_buffer_(&queue, &psi_GPU, &size, out);
+  ocl_release_mem_object_(&psi_GPU);
+  ocl_release_mem_object_(&work_GPU);
+
+  ocl_create_write_buffer_(&context, &size, &psi_GPU);
+  ocl_create_read_buffer_(&context, &size, &work_GPU);
+  ocl_enqueue_write_buffer_(&queue, &work_GPU, &size, in);
+  syn1d_d_(&queue, &size_x2,&size_y,&work_GPU,&psi_GPU);
+  ocl_finish_(&queue);
+  ocl_enqueue_read_buffer_(&queue, &psi_GPU, &size, out);
+  ocl_release_mem_object_(&psi_GPU);
+  ocl_release_mem_object_(&work_GPU);
+
 
 
   print_event_list_();

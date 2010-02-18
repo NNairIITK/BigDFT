@@ -85,8 +85,8 @@ void FC_FUNC_(syn1d_d,SYN1D_D)(cl_command_queue *command_queue, cl_uint *n, cl_u
     printf("%s %s\n", __func__, __FILE__);
     printf("command queue: %p, dimension n: %lu, dimension dat: %lu, psi: %p, out: %p\n",*command_queue, (long unsigned)*n, (long unsigned)*ndat, *psi, *out);
 #endif
-    int FILTER_WIDTH = 16;
-    if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
+    int FILTER_WIDTH = 8;
+    if(*n<16) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
     size_t block_size_i=16, block_size_j=16;
     cl_uint i = 0;
     clSetKernelArg(syn1d_kernel_d, i++,sizeof(*n), (void*)n);
