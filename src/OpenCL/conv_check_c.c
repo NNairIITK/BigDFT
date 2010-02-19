@@ -63,7 +63,7 @@ int main(){
   }
   psi_in = (double *)malloc(SIZE_X*SIZE_X*SIZE_X* sizeof(double)*8);
   psi_out = (double *)malloc(SIZE_X*SIZE_X*SIZE_X* sizeof(double)*8);
-  printf("nvctr_cf : %d\n",nvctr_cf);
+  //printf("nvctr_cf : %d\n",nvctr_cf);
 
   in = (double*) malloc(size);
   out = (double*) malloc(size);
@@ -76,7 +76,7 @@ int main(){
   ocl_create_command_queue_(&queue,&context);
   ocl_build_kernels_(&context);
   init_event_list_();
-/*
+
 
   ocl_create_write_buffer_(&context, &size, &psi_GPU);
   ocl_create_read_buffer_(&context, &size, &work_GPU);
@@ -117,8 +117,8 @@ int main(){
   ocl_enqueue_read_buffer_(&queue, &psi_GPU, &size, out);
   ocl_release_mem_object_(&psi_GPU);
   ocl_release_mem_object_(&work_GPU);
-*/  
-  cl_uint data_size=4;
+  
+//  cl_uint data_size=4;
   size = nvctr_cf*sizeof(double);
   ocl_create_read_buffer_(&context, &size, &psi_c_GPU);
   ocl_enqueue_write_buffer_(&queue, &psi_c_GPU, &size, psi);
@@ -148,6 +148,36 @@ int main(){
   ocl_release_mem_object_(&keyg_GPU);
   ocl_release_mem_object_(&keyv_GPU);
   ocl_release_mem_object_(&work_GPU);
+
+  size = nvctr_cf*sizeof(double);
+  ocl_create_write_buffer_(&context, &size, &psi_c_GPU);
+  size = nvctr_cf*sizeof(double)*7;
+  ocl_create_write_buffer_(&context, &size, &psi_f_GPU);
+  size = SIZE_X*SIZE_X*sizeof(cl_uint)*2;
+  ocl_create_read_buffer_(&context, &size, &keyg_GPU);
+  ocl_enqueue_write_buffer_(&queue, &keyg_GPU, &size, keyg);
+  size = SIZE_X*SIZE_X*sizeof(cl_uint);
+  ocl_create_read_buffer_(&context, &size, &keyv_GPU);
+  ocl_enqueue_write_buffer_(&queue, &keyv_GPU, &size, keyv);
+  size = SIZE_X*SIZE_X*SIZE_X*sizeof(double)*8;
+  ocl_create_read_buffer_(&context, &size, &work_GPU);
+  ocl_enqueue_write_buffer_(&queue, &work_GPU, &size, psi_out);
+  compress_d_(&queue , &size_x, &size_x, &size_x,
+              &nseg, &nvctr_cf, &keyg_GPU, &keyv_GPU,
+              &nseg, &nvctr_cf, &keyg_GPU, &keyv_GPU,
+              &psi_c_GPU, &psi_f_GPU, &work_GPU);
+  ocl_finish_(&queue);
+  size = nvctr_cf*sizeof(double);
+  ocl_enqueue_read_buffer_(&queue, &psi_c_GPU, &size, psi);
+  size = nvctr_cf*sizeof(double)*7;
+  ocl_enqueue_read_buffer_(&queue, &psi_f_GPU, &size, psi + nvctr_cf);
+  ocl_release_mem_object_(&psi_c_GPU);
+  ocl_release_mem_object_(&psi_f_GPU);
+  ocl_release_mem_object_(&keyg_GPU);
+  ocl_release_mem_object_(&keyv_GPU);
+  ocl_release_mem_object_(&work_GPU);
+
+
 
 for(i=0;i<2*size_x;i++)
   for(j=0;j<2*size_x;j++)
