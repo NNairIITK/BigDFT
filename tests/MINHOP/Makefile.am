@@ -53,5 +53,5 @@ MINHOP.out: $(top_builddir)/src/global $(PPFILES)
         fi
 
 check: MINHOP.out
-	python $(top_srcdir)/tests/fldiff.py --discrepancy=5.e-9 --bigdft MINHOP.out \
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=5.e-9 --mode=bigdft MINHOP.out \
 	$(top_srcdir)/tests/Refs/MINHOP.out.ref | tee fldiff.report

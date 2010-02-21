@@ -156,7 +156,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   character(len=7) :: cudagpu
   character(len=100) :: line
   logical :: exists
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj
+  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj,useGPU
 
   ! Default abscalc variables
   call abscalc_input_variables_default(in)
@@ -202,16 +202,20 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   read(line,*,iostat=ierrfrc) cudagpu
   iline=iline+1
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
-    ! call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-     call sg_init(GPUshare,iconv,iproc,initerror)
-     iconv = 1
-     iblas = 1
-     if (initerror == 1) then
-        write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
-        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
+     call sg_init(GPUshare,useGPU,iproc,initerror)
+     if (useGPU == 1) then
+        iconv = 1
+        iblas = 1
+     else
+        iconv = 0
+        iblas = 0
      end if
 
-    ! GPUshare=.true.
+     if (initerror == 1) then
+        write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
+        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
+     end if
+       
      if (iconv == 1) then
         !change the value of the GPU convolution flag defined in the module_base
         GPUconv=.true.
@@ -293,6 +297,15 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   ! Add the electric field to the symmetry object.
   if (in%elecfield /= 0) then
      call ab6_symmetry_set_field(symObj, (/ 0._gp, in%elecfield, 0._gp /), ierror)
+  end if
+
+
+  !define whether there should be a last_run after geometry optimization
+  !also the mulliken charge population should be inserted
+  if (in%calc_tail .or. in%output_wf .or. in%output_grid /= 0 .or. in%norbv /= 0) then
+     in%last_run=-1 !last run to be done depending of the external conditions
+  else
+     in%last_run=0
   end if
 
 contains

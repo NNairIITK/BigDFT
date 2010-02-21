@@ -7,29 +7,31 @@ EXTRA_DIST = \
 	input.dft \
 	posinp.xyz
 
-PPFILES = \
-	psppar.H
+EXTRA_CLEAN = hessian.dat frequencies.xyz frequencies.res
 
-CLEANFILES = $(PPFILES) H2-freq.out \
-			 frequencies.res frequencies.xyz hessian.dat \
-			 *.prc fldiff.report $(EXTRA_DIST)
+PPFILES = psppar.H
+
+CLEANFILES = H2-freq.out *.prc fldiff.report $(EXTRA_CLEAN) $(PPFILES)
 
 #dependencies
 $(PPFILES):
-	cp $(top_srcdir)/utils/PSPfiles/$@ .
+	@cp $(top_srcdir)/utils/PSPfiles/$@ .
 
 H2-freq.out: $(top_builddir)/src/frequencies $(PPFILES) 
-	if ! test x"$(srcdir)" = x"." ; then \
-	  ln -fs $(srcdir)/input.freq ; \
-	  ln -fs $(srcdir)/input.dft ; \
-	  ln -fs $(srcdir)/posinp.xyz ; \
+	@if ! test x"$(srcdir)" = x"." ; then \
+	  for i in $(EXTRA_DIST) ; do \
+	    ln -fs $(srcdir)/$$i ; \
+	  done ; \
         fi
 	$(run_parallel) $(top_builddir)/src/frequencies > $@
-	if ! test x"$(srcdir)" = x"." ; then \
-	  rm -f input.freq ; \
-	  rm -f input.dft ; \
-	  rm -f posinp.xyz ; \
+	@if ! test x"$(srcdir)" = x"." ; then \
+	  for i in $(EXTRA_DIST) ; do \
+	    rm -f $$i ; \
+	  done ; \
         fi
+	@for i in $(EXTRA_CLEAN) ; do \
+	  rm -f $$i ; \
+	done
 
 check : H2-freq.out
-	python $(top_srcdir)/tests/fldiff.py --bigdft H2-freq.out $(top_srcdir)/tests/Refs/H2-freq.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H2-freq.out $(top_srcdir)/tests/Refs/H2-freq.out.ref | tee fldiff.report

@@ -71,11 +71,10 @@ LMPI =
 endif
 
 if USE_CUDA_GPU
-libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas ../CUDA/libGPU.a @LIB_CUTIL_PATH@/libcutil.a
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas ../CUDA/libGPU.a 
 else
 libs_cuda=
 endif
-
 
 libpoissonsolver_a_SOURCES = \
 	Poisson_Solver.f90 \

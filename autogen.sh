@@ -11,3 +11,6 @@ echo "Creating required files for autotools."
 automake --add-missing --copy
 echo "Autotoolize the libXC source tree."
 cd libXC; autoreconf; cd -
+echo "Autotoolize the S_GPU source tree."
+cd S_GPU; ./autogen.sh; cd -
+

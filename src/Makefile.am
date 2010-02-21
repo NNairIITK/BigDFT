@@ -25,9 +25,9 @@ scripts_sources =
 endif
 
 if USE_CUDA_GPU
-sub_dirs_cuda=CUDA CUDA/S_GPU
+sub_dirs_cuda=CUDA
 GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90
-libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas CUDA/libGPU.a @LIB_CUTIL_PATH@/libcutil.a CUDA/S_GPU/libs_gpu.a
+libs_cuda=CUDA/libGPU.a
 GPU_BLAS=
 else
 sub_dirs_cuda=
@@ -288,7 +288,14 @@ CLEANFILES = \
 	numeric.@MODULE_EXT@ NUMERIC.@MODULE_EXT@ \
 	geopt_minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
 	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@ \
-	scfloop_api.@MODULE_EXT@ SCFLOOP_API.@MODULE_EXT@
+	scfloop_api.@MODULE_EXT@ SCFLOOP_API.@MODULE_EXT@ \
+	minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
+	bigdft_forces.@MODULE_EXT@ BIGDFT_FORCES.@MODULE_EXT@ \
+	diis_defs.@MODULE_EXT@ DIIS_DEFS.@MODULE_EXT@ \
+	lanczos_defs.@MODULE_EXT@ LANCZOS_DEFS.@MODULE_EXT@ \
+	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
+	minpar.@MODULE_EXT@ MINPAR.@MODULE_EXT@ \
+	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@
 
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)

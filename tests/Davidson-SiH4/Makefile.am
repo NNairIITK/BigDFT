@@ -29,4 +29,4 @@ Davidson-SiH4.out: $(top_builddir)/src/cluster $(PPFILES)
         fi
 
 check: Davidson-SiH4.out
-	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.e-9 --bigdft Davidson-SiH4.out $(top_srcdir)/tests/Refs/Davidson-SiH4.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.e-9 --mode=bigdft Davidson-SiH4.out $(top_srcdir)/tests/Refs/Davidson-SiH4.out.ref | tee fldiff.report

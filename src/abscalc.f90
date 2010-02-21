@@ -745,7 +745,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
 
         if(  n1i_bB > n1i .or.  n2i_bB > n2i .or.   n3i_bB > n3i    ) then
            if(nproc>1) call MPI_Finalize(ierr)
-           stop '  b2B potential mast be defined on a smaller ( in number of points  ) source grid then the target grid    '
+           stop '  b2B potential must be defined on a smaller ( in number of points  ) source grid then the target grid    '
         endif
 
         do j=1,3

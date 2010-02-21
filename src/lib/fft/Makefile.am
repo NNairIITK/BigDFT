@@ -11,7 +11,8 @@ fft_check_LDFLAGS =
 fft_check_LDADD =
 
 CLEANFILES = fft_check.out fft_cache.out fft_cache.dat fft_columns.dat fft_perf.dat \
-			 fft_cache-temp.f90 fft3d-temp.f90 fft_cache
+	fft_cache-temp.f90 fft3d-temp.f90 fft_cache \
+	module_fft_sg.@MODULE_EXT@ MODULE_FFT_SG.@MODULE_EXT@
 
 fft_check.o: fft3d.o
 

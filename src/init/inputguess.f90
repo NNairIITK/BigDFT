@@ -586,7 +586,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,&
                        jorb=ikorb-orbse%isorb
                        orbse%occup(ikorb)=at%aocc(iocc,iat)
 
-                       eks=eks+ek*at%aocc(iocc,iat)
+                       eks=eks+ek*at%aocc(iocc,iat)*orbse%kwgts(ikpts)
                        !print *,'iat',iat,l,m,icoll,orbse%occup(ikorb),orbpol_nc
                        if (orbse%isorb < ikorb .and. ikorb <= orbse%isorb+orbse%norbp) then
                           if (orbse%nspinor == 1) then

@@ -768,7 +768,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call deallocate_orbs(orbsv,subname)
   end if
 
-
   call deallocate_orbs(orbse,subname)
      
 end subroutine input_wf_diag

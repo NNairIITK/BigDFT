@@ -25,6 +25,7 @@ subroutine initialize_potential()
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
   call bigdft_init(nat_test,typa,posa,box, nproc, iproc)
+  call geopt_set_verbosity(0)
   if (nat_test /= NATOMS) stop "NAT"
   ! todo: test nat_test and nat
   type(:) = typa(:)

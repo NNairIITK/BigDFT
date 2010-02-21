@@ -29,7 +29,7 @@ module module_types
      logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol
      integer :: norbv,nvirt,nplot
-     integer :: output_grid, dispersion
+     integer :: output_grid, dispersion,last_run
      real(gp) :: frac_fluct,gnrm_sw
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf 
      integer :: nvacancy,verbosity
