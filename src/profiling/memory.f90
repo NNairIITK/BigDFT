@@ -26,7 +26,9 @@
 !! COPYRIGHT
 !!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2010
 !!    This file is distributed under the terms of the
-!!    GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 !! SOURCE
 !!
 subroutine memory_occupation(istat,isize,array,routine)

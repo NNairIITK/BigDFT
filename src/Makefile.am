@@ -54,7 +54,7 @@ global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules convolutions lib profiling $(sub_dirs_ps) $(sub_dirs_cuda) art
+SUBDIRS = modules convolutions lib $(sub_dirs_ps) profiling $(sub_dirs_cuda) art
 
 EXTRA_DIST = \
 	wavelib/intots.inc \
