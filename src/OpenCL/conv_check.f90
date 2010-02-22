@@ -788,7 +788,7 @@ program conv_check
            do i1=1,8*nvctr_cf
               !write(17,'(i6,2(1pe24.17))')i1,psi(i1),psi_cuda(i1,1,1)
               comp=abs(psi(i1)-real(psi_d(i1),kind=8))
-
+!              write(*,'(i9,f9.1,f9.1)')modulo(i1,nvctr_cf),psi(i1),psi_d(i1)
               if (comp > maxdiff) then
                  maxdiff=comp
                  i1_max=i1

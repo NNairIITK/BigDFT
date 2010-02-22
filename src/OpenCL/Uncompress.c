@@ -49,6 +49,15 @@ void build_uncompress_kernels(cl_context * context){
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
+//    FILE * f = fopen("compress.bin","w");
+//    size_t prog_size;
+//    clGetProgramInfo( compressProgram,CL_PROGRAM_BINARY_SIZES,sizeof(prog_size),&prog_size,NULL);
+//    printf("binary_size %lu\n",(long unsigned int) prog_size);
+//    char * bin[1];
+//    bin[0] = (char*)malloc(prog_size*sizeof(char));
+//    clGetProgramInfo( compressProgram,CL_PROGRAM_BINARIES,prog_size,bin,NULL);
+//    fwrite(bin[0],sizeof(char),prog_size,f);
+//    fclose(f);
     ciErrNum = CL_SUCCESS;
     compress_coarse_kernel_d=clCreateKernel(compressProgram,"compress_coarseKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
@@ -265,7 +274,7 @@ psi_c: %p, psi_f: %p, psi: %p\n",
     }
 
     block_size_i=64;
-    while ( block_size_i > *nvctr_f ) block_size_i /= 2;
+//    while ( block_size_i > *nvctr_f ) block_size_i /= 2;
     clSetKernelArg(compress_fine_kernel_d, i++, sizeof(*n1), (void*)n1);
     clSetKernelArg(compress_fine_kernel_d, i++, sizeof(*n2), (void*)n2);
     clSetKernelArg(compress_fine_kernel_d, i++, sizeof(*n3), (void*)n3);
@@ -275,6 +284,7 @@ psi_c: %p, psi_f: %p, psi: %p\n",
     clSetKernelArg(compress_fine_kernel_d, i++, sizeof(*keyv_f), (void*)keyv_f);
     clSetKernelArg(compress_fine_kernel_d, i++, sizeof(*psi_f), (void*)psi_f);
     clSetKernelArg(compress_fine_kernel_d, i++, sizeof(*psi), (void*)psi);
+    clSetKernelArg(compress_fine_kernel_d, i++, sizeof(double)*block_size_i*7, NULL);
     localWorkSize[0]= block_size_i ;
     globalWorkSize[0] = shrRoundUp(block_size_i, *nvctr_f) ;
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, compress_fine_kernel_d, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
