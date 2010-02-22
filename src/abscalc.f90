@@ -344,9 +344,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   character(len=3) :: PSquiet
   character(len=4) :: f4
   character(len=50) :: filename
-  logical :: endloop,potion_overwritten=.false.,allfiles,onefile
+  logical :: endloop,allfiles
   integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before
-  integer :: nvirt,ndiis_sd_sw
+  integer :: nvirt
   integer :: nelec,ndegree_ip,j,i,k, iorb
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i,i03,i04
@@ -354,12 +354,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   real :: tcpu0,tcpu1
   real(gp), dimension(3) :: shift
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
-  real(kind=8) :: peakmem,energy_old,sumz
-  real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum,sumx,sumy
-  real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min,psoffset
-  real(kind=8) :: ttsum
+  real(kind=8) :: peakmem,energy_old
+  real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,alpha,gnrm
+  real(kind=8) :: energybs,tel,eexcu_fake,ehart_fake,energy_min,psoffset
   real(gp) :: edisp ! Dispersion energy
-  type(wavefunctions_descriptors) :: wfd_old
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
   type(orbitals_data) :: orbsv
@@ -367,18 +365,17 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   type(GPU_pointers) :: GPU
 
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
-  real(kind=8), dimension(:), allocatable :: rho
-  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
+  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion
   real(gp), dimension(:,:),allocatable :: fdisp
   ! Charge density/potential,ionic potential, pkernel
   real(kind=8), dimension(:), allocatable :: pot_ion
-  real(kind=8), dimension(:,:,:,:), allocatable :: rhopot,pot,rhoref
-  real(kind=8), dimension(:), pointer :: pkernel,pkernel_ref
+  real(kind=8), dimension(:,:,:,:), allocatable :: rhopot,pot
+  real(kind=8), dimension(:), pointer :: pkernel
   !wavefunction gradients, hamiltonian on vavefunction
   !transposed  wavefunction
   ! Pointers and variables to store the last psi
   ! before reformatting if useFormattedInput is .true.
-  real(kind=8), dimension(:), pointer :: hpsi,psit,psi_old,psivirt,psidst,hpsidst
+  real(kind=8), dimension(:), pointer :: hpsi,psit,psivirt,psidst,hpsidst
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj
   ! arrays for DIIS convergence accelerator

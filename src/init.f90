@@ -181,6 +181,12 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
 end subroutine createWavefunctionsDescriptors
 !!***
 
+
+!!****f* BigDFT/createProjectorsArrays
+!! FUNCTION
+!!   Determine localization region for all projectors, but do not yet fill the descriptor arrays
+!! SOURCE
+!!
 subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
      radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   use module_base
@@ -277,7 +283,14 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   end if
 
 END SUBROUTINE createProjectorsArrays
+!!***
 
+
+!!****f* BigDFT/import_gaussians
+!! FUNCTION
+!!   Import gaussians
+!! SOURCE
+!!
 subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
      Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj,& 
      pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin,symObj,irrzon,phnons)
@@ -418,7 +431,14 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
 
 END SUBROUTINE import_gaussians
+!!***
 
+
+!!****f* BigDFT/input_wf_diag
+!! FUNCTION
+!!   input guess wavefunction diagonalization
+!! SOURCE
+!!
 subroutine input_wf_diag(iproc,nproc,at,&
      orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
      nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
@@ -465,7 +485,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
   real(gp), dimension(:), allocatable :: locrad
   type(locreg_descriptors), dimension(:), allocatable :: Llr
   real(wp), dimension(:,:,:), pointer :: psigau
-  integer i,j,k
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -507,7 +526,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !!!
 !!!  call nonblocking_transposition(iproc,nproc,G%ncoeff,orbse%isorb+orbse%norbp,&
 !!!       orbse%nspinor,psigau,orbse%norb_par,mpirequests)
-
 
   !experimental part for building the localisation regions
   if (at%geocode == 'F') then
@@ -574,8 +592,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
           ixc,hxh,hyh,hzh,&
           rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
   end if
-
-
 
 !!!  if (nproc == 1) then
 !!!     !calculate the overlap matrix as well as the kinetic overlap
@@ -649,7 +665,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !!!     call memocc(i_stat,i_all,'smat',subname)
 !!!  end if
 
-
   if(potshortcut>0) then
 !!$    if (GPUconv) then
 !!$       call free_gpu(GPU,orbs%norbp)
@@ -702,7 +717,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !!!  deallocate(thetaphi,stat=i_stat)
 !!!  call memocc(i_stat,i_all,'thetaphi',subname)
 
-
   accurex=abs(eks-ekin_sum)
   !tolerance for comparing the eigenvalues in the case of degeneracies
   etol=accurex/real(orbse%norbu,gp)
@@ -724,7 +738,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !!!  i_all=-product(shape(hpsigau))*kind(hpsigau)
 !!!  deallocate(hpsigau,stat=i_stat)
 !!!  call memocc(i_stat,i_all,'hpsigau',subname)
-
 
   !free GPU if it is the case
   if (GPUconv) then
@@ -771,5 +784,4 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call deallocate_orbs(orbse,subname)
      
 end subroutine input_wf_diag
-
- 
+!!***

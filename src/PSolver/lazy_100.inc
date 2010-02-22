@@ -1,6 +1,6 @@
 !!****h* PSolver/lazy_100
 !! FUNCTION
-!!   Filters for interpolating scaling functions (order 60)
+!!   Filters for interpolating scaling functions (order 100)
 !!
 !! SOURCE
 !!

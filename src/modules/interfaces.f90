@@ -32,7 +32,11 @@
 !!    Luigi Genovese, Damien Caliste
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007 CEA
+!!    Copyright (C) 2007-2010 CEA
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 !!
 !! SOURCE
 !!
@@ -58,7 +62,6 @@ module module_interfaces
 
 
      subroutine geopt(nproc,iproc,x,at,f,epot,rst,in,ncount_bigdft)
-
 
        !    use module_base
        !    use module_interfaces, except_this_one => geopt

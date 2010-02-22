@@ -538,7 +538,7 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho
   real(dp), dimension(2,n1i*n2i*n3i,1), intent(in) :: phnons 
   !local variables
   character(len=*), parameter :: subname='symmetrise_density'
-  integer :: errno, ispden, nsym_used, nSym, isym, imagn, r2,i_stat,i_all,inzee,isign,ierr
+  integer :: errno, ispden, nsym_used, nSym, isym, imagn, r2,i_stat,i_all,inzee,isign
   integer :: nd2, izone_max, numpt, izone, rep, nup, iup, ind, j, j1, j2, j3,i1,i2,i3
   real(dp) :: rhosu1, rhosu2
   real(dp), dimension(:,:), allocatable :: rhosu12

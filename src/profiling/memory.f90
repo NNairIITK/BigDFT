@@ -24,7 +24,7 @@
 !!                a routine at the end parses the file
 !!     == .false. compact format
 !! COPYRIGHT
-!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2009
+!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2010
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
 !! SOURCE
