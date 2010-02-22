@@ -131,7 +131,8 @@ psi_c: %p, psi_f: %p, psi_out: %p\n",
     }
 
     block_size_i=64;
-    while ( block_size_i > *nvctr_f ) block_size_i /= 2;
+//    while ( block_size_i > *nvctr_f ) block_size_i /= 2;
+    i=0;
     clSetKernelArg(uncompress_fine_kernel_d, i++, sizeof(*n1), (void*)n1);
     clSetKernelArg(uncompress_fine_kernel_d, i++, sizeof(*n2), (void*)n2);
     clSetKernelArg(uncompress_fine_kernel_d, i++, sizeof(*n3), (void*)n3);
@@ -141,6 +142,7 @@ psi_c: %p, psi_f: %p, psi_out: %p\n",
     clSetKernelArg(uncompress_fine_kernel_d, i++, sizeof(*keyv_f), (void*)keyv_f);
     clSetKernelArg(uncompress_fine_kernel_d, i++, sizeof(*psi_f), (void*)psi_f);
     clSetKernelArg(uncompress_fine_kernel_d, i++, sizeof(*psi_out), (void*)psi_out);
+    clSetKernelArg(uncompress_fine_kernel_d, i++, sizeof(double)*block_size_i*7, NULL);
     localWorkSize[0]= block_size_i ;
     globalWorkSize[0] = shrRoundUp(block_size_i, *nvctr_f) ;
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, uncompress_fine_kernel_d, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
@@ -210,8 +212,10 @@ psi_c: %p, psi_f: %p, psi_out: %p\n",
         exit(1);
     }
 
+
     block_size_i=64;
     while ( block_size_i > *nvctr_f ) block_size_i /= 2;
+    i=0;
     clSetKernelArg(uncompress_fine_kernel_l, i++, sizeof(*n1), (void*)n1);
     clSetKernelArg(uncompress_fine_kernel_l, i++, sizeof(*n2), (void*)n2);
     clSetKernelArg(uncompress_fine_kernel_l, i++, sizeof(*n3), (void*)n3);
@@ -273,6 +277,7 @@ psi_c: %p, psi_f: %p, psi: %p\n",
         exit(1);
     }
 
+    i = 0;
     block_size_i=64;
 //    while ( block_size_i > *nvctr_f ) block_size_i /= 2;
     clSetKernelArg(compress_fine_kernel_d, i++, sizeof(*n1), (void*)n1);
@@ -336,7 +341,7 @@ psi_c: %p, psi_f: %p, psi: %p\n",
         fprintf(stderr,"localWorkSize = { %lu }\n",(long unsigned)localWorkSize[0]);
         exit(1);
     }
-
+    i=0;
     block_size_i=64;
     while ( block_size_i > *nvctr_f ) block_size_i /= 2;
     clSetKernelArg(compress_fine_kernel_l, i++, sizeof(*n1), (void*)n1);
