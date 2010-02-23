@@ -374,7 +374,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   real(gp), dimension(:,:),allocatable :: fdisp
   ! Charge density/potential,ionic potential, pkernel
   real(kind=8), dimension(:), allocatable :: pot_ion
-  real(kind=8), dimension(:,:,:,:), allocatable :: rhopot,pot,rhoref
+  real(kind=8), dimension(:,:,:,:), allocatable :: rhopot,pot,rhoref, rhopottmp
   real(kind=8), dimension(:), pointer :: pkernel,pkernel_ref
   !wavefunction gradients, hamiltonian on vavefunction
   !transposed  wavefunction
@@ -751,10 +751,16 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
 
         endif
 
-        if(  n1i_bB > n1i .or.  n2i_bB > n2i .or.   n3i_bB > n3i    ) then
-           if(nproc>1) call MPI_Finalize(ierr)
-           stop '  b2B potential must be defined on a smaller ( in number of points  ) source grid then the target grid    '
-        endif
+
+        allocate(rhopottmp( max(n1i_bB,n1i),max(n2i_bB,n2i),max(n3i_bB,n3d),in%nspin+ndebug),stat=i_stat)
+        call memocc(i_stat,rhopottmp,'rhopottmp',subname)
+
+
+
+!!$        if(  n1i_bB > n1i .or.  n2i_bB > n2i .or.   n3i_bB > n3i    ) then
+!!$           if(nproc>1) call MPI_Finalize(ierr)
+!!$           stop '  b2B potential must be defined on a smaller ( in number of points  ) source grid then the target grid    '
+!!$        endif
 
         do j=1,3
            shift_b2B(j) = rxyz(j,1) - rxyz_b2B(j,1) 
@@ -799,7 +805,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
         ! x variable given in units of the old  grids intfunc_y(( x+16) *2**15)
 
         rhopot=0.0_gp
-
+        rhopottmp=0.0_gp
+        
 
         do j=-10,10
            do k=1,3
@@ -812,42 +819,44 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
         do iz_bB = 1,n3i_bB
            do iy_bB=1,n2i_bB
               do ix_bB=1,n1i_bB
-                 rhopot(ix_bB,iy_bB,iz_bB +i3xcsh,1) =  pot_bB(ix_bB  + (iy_bB-1)*n1i_bB  + (iz_bB-1)*n1i_bB*n2i_bB)
+                 rhopottmp(ix_bB,iy_bB,iz_bB +i3xcsh,1) =  pot_bB(ix_bB  + (iy_bB-1)*n1i_bB  + (iz_bB-1)*n1i_bB*n2i_bB)
                  
-                 do j=-10,10
-                    do k=1,3
-                       rx_bB = hx_old*(ix_bB-1)           /2.0   - potcoors(1,j+11,k)
-                       ry_bB = hy_old*(iy_bB-1)           /2.0   - potcoors(2,j+11,k)
-                       rz_bB = hz_old*(iz_bB-1)           /2.0   - potcoors(3,j+11,k)
+!!$                 do j=-10,10
+!!$                    do k=1,3
+!!$                       rx_bB = hx_old*(ix_bB-1)           /2.0   - potcoors(1,j+11,k)
+!!$                       ry_bB = hy_old*(iy_bB-1)           /2.0   - potcoors(2,j+11,k)
+!!$                       rz_bB = hz_old*(iz_bB-1)           /2.0   - potcoors(3,j+11,k)
+!!$
+!!$                       idelta = (NINT((rx_bB)*2**15/(hx_old/2)))  + nd/2
+!!$                       if(idelta<nd .and. idelta>0 ) then 
+!!$                          factx = intfunc_y(idelta)
+!!$                          
+!!$                          idelta =  abs(NINT((ry_bB)*2**15/(hy_old/2)) ) + nd/2
+!!$                          if(idelta<nd) then 
+!!$                             facty = intfunc_y(idelta)
+!!$                             
+!!$                             idelta = abs( NINT((rz_bB)*2**15/(hz_old/2)) ) + nd/2
+!!$                             if(idelta<nd) then 
+!!$                                factz = intfunc_y(idelta)
+!!$                                
+!!$                                potx(j+11 ,k) =potx(j+11,k)+factx*facty*factz*rhopottmp(ix_bB,iy_bB,iz_bB +i3xcsh,1)
+!!$                             end if
+!!$                          end if
+!!$                       end if
+!!$                    end do
+!!$                 end do
 
-                       idelta = (NINT((rx_bB)*2**15/(hx_old/2)))  + nd/2
-                       if(idelta<nd .and. idelta>0 ) then 
-                          factx = intfunc_y(idelta)
-                          
-                          idelta =  abs(NINT((ry_bB)*2**15/(hy_old/2)) ) + nd/2
-                          if(idelta<nd) then 
-                             facty = intfunc_y(idelta)
-                             
-                             idelta = abs( NINT((rz_bB)*2**15/(hz_old/2)) ) + nd/2
-                             if(idelta<nd) then 
-                                factz = intfunc_y(idelta)
-                                
-                                potx(j+11 ,k) =potx(j+11,k)+factx*facty*factz*rhopot(ix_bB,iy_bB,iz_bB +i3xcsh,1)
-                             end if
-                          end if
-                       end if
-                    end do
-                 end do
+
               enddo
            enddo
         enddo
         
 
-        open(unit=22,file='potx.dat', status='unknown')
-        do j=1,21
-           write(22,*)  (potx(j,k), k=1,3)
-        enddo
-        close(unit=22)
+!!$        open(unit=22,file='potx.dat', status='unknown')
+!!$        do j=1,21
+!!$           write(22,*)  (potx(j,k), k=1,3)
+!!$        enddo
+!!$        close(unit=22)
         
 
         
@@ -868,11 +877,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
                     factx = intfunc_y(nd/2+idelta)
 !!$                    print *, rx, rx_bB, ix, ix_bB      , factx
                     auxint(ix) = auxint(ix) + &
-                         factx * rhopot(ix_bB,iy_bB,iz_bB+i3xcsh,1)
+                         factx * rhopottmp(ix_bB,iy_bB,iz_bB+i3xcsh,1)
                  enddo
-!!$                 print *, auxint(ix_bB) ,  rhopot(ix_bB,iy_bB,iz_bB+i3xcsh,1)
+!!$                 print *, auxint(ix_bB) ,  rhopottmp(ix_bB,iy_bB,iz_bB+i3xcsh,1)
               enddo
-              rhopot(:,iy_bB,iz_bB+i3xcsh,1)=auxint(1:n1i)
+              rhopottmp(:,iy_bB,iz_bB+i3xcsh,1)=auxint(1:n1i)
            enddo
         enddo
 
@@ -888,10 +897,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
                     idelta = NINT((ry-ry_bB)*2**15/(hy_old/2))
                     facty = intfunc_y(nd/2+idelta)
                     auxint(iy) = auxint(iy) + &
-                         facty * rhopot(ix_bB,iy_bB,iz_bB+i3xcsh,1)
+                         facty * rhopottmp(ix_bB,iy_bB,iz_bB+i3xcsh,1)
                  enddo
               enddo
-              rhopot(ix_bB ,:,iz_bB+i3xcsh,1)=auxint(1:n2i)
+              rhopottmp(ix_bB ,:,iz_bB+i3xcsh,1)=auxint(1:n2i)
            enddo
         enddo
  
@@ -909,24 +918,22 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
                     idelta = NINT((rz-rz_bB)*2**15/(hz_old/2.0))     
                     factz = intfunc_y(nd/2+idelta)
                     auxint(iz+i3xcsh) = auxint(iz+i3xcsh) + &
-                         factz * rhopot(ix_bB,iy_bB,iz_bB+i3xcsh,1)
+                         factz * rhopottmp(ix_bB,iy_bB,iz_bB+i3xcsh,1)
                  enddo
               enddo
               rhopot(ix_bB ,iy_bB, : ,1)=auxint(1:n3i)
            enddo
         enddo
+        
+        i_all=-product(shape(rhopottmp))*kind(rhopottmp)
+        deallocate(rhopottmp,stat=i_stat)
+        call memocc(i_stat,i_all,'rhopottmp',subname)
 
         if (iproc == 0) write(*,*) 'writing NEW local_potential.pot'
-
-
 
         call plot_density(atoms%geocode,'local_potentialb2BNEW.pot',iproc,nproc,&
              n1,n2,n3,n1i,n2i,n3i,n3p,&
              atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
-
-
-
-
 
         i_all=-product(shape(auxint))*kind(auxint)
         deallocate(auxint,stat=i_stat)
