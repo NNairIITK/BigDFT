@@ -11,6 +11,7 @@ SOURCES_CONV_CHECK =
 SOURCES_SHARED =
 
 check_PROGRAMS = conv_check conv_check_c
+noinst_PROGRAMS = bench_conv
 
 noinst_LIBRARIES = libbasef.a libbasec.a
 
@@ -34,6 +35,12 @@ conv_check_LDADD = libbasec.a libbasef.a ../libbigdft.a \
 conv_check_c_SOURCES = conv_check_c.c
 conv_check_c_LDFLAGS = -lOpenCL
 conv_check_c_LDADD = libbasec.a
+bench_conv_SOURCES = bench_conv.c
+bench_conv_LDFLAGS = -lOpenCL
+bench_conv_LDADD = libbasec.a
+
+bench: bench_conv
+	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='profile.conf' $(top_builddir)/src/OpenCL/bench_conv
 
 check:
 	echo 1 64 64 2048 2048 1000 > fort.1
