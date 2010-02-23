@@ -65,7 +65,14 @@ subroutine tenminustwenty(n,x,nproc)
 END SUBROUTINE tenminustwenty
 !!***
 
+! To be used in the following function.
+module randomData
+  integer, parameter :: ntab=32
 
+  logical :: start = .true.
+  integer :: iy = 0
+  integer, dimension(NTAB) :: iv
+end module randomData
 
 !!****f* BigDFT/builtin_rand
 !! FUNCTION
@@ -75,17 +82,21 @@ END SUBROUTINE tenminustwenty
 !! SOURCE
 !!
 function builtin_rand(idum)
+  use randomData, only : ntab, iy, iv, start
+
   implicit none
+
   integer, intent(inout) :: idum
   real(kind=4) :: builtin_rand
   !local variables
-  integer, parameter :: ia=16807,im=2147483647,iq=127773,ir=2836,ntab=32,ndiv=1+(im-1)/ntab
+  integer, parameter :: ia=16807,im=2147483647,iq=127773,ir=2836,ndiv=1+(im-1)/ntab
   real(kind=4), parameter :: am=1.e0/im,eps=1.2e-7,rnmx=1.-eps
   integer :: j,k
-  integer , save :: iy
-  integer , dimension(NTAB), save :: iv
-  data iv /NTAB*0/, iy /0/
 
+  if (start) then
+     iv(:) = 0
+     start = .false.
+  end if
   if (idum <= 0.or. iy == 0) then
      idum=max(-idum,1)
      do j=ntab+8,1,-1

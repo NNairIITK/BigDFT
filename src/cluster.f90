@@ -160,7 +160,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   use module_interfaces
   use Poisson_Solver
   use libxc_functionals
-  use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces
+  use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
   use esatto
   use ab6_symmetry
   implicit none
@@ -335,6 +335,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   n1=Glr%d%n1
   n2=Glr%d%n2
   n3=Glr%d%n3
+
+  ! A message about dispersion forces.
+  if (iproc == 0) call vdwcorrection_warnings(atoms, in)
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   ndegree_ip=16 !default value 

@@ -546,16 +546,16 @@ tests/NEB/NEB_include.sh
 tests/XabsCheb/Makefile
 tests/FeHyb/Makefile
 ])
-if test x"$ac_build_libxc" = x"yes" ; then
+dnl if test x"$ac_build_libxc" = x"yes" ; then
   # Call libXC ./configure script recursively.
   ac_configure_args=$ac_configure_args" --enable-fortran"
   AC_CONFIG_SUBDIRS([libXC])
-fi
-if test x"$ac_build_libsgpu" = x"yes" ; then
+dnl fi
+dnl if test x"$ac_build_libsgpu" = x"yes" ; then
   # Call S_GPU ./configure script recursively.
   ac_configure_args=$ac_configure_args" --with-cuda-path=$ac_with_cuda_path"
   AC_CONFIG_SUBDIRS([S_GPU])
-fi
+dnl fi
 AC_OUTPUT
 
 echo "

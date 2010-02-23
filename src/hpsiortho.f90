@@ -203,6 +203,12 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 END SUBROUTINE HamiltonianApplication
 !!***
 
+! This module is here to avoid save variables inside
+! hpsitopsi().
+module wavefunctionDIIS
+  logical :: switchSD
+  integer :: idiistol,mids,ids  
+end module wavefunctionDIIS
 
 !!****f* BigDFT/hpsitopsi
 !! FUNCTION
@@ -216,6 +222,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => hpsitopsi
+  use wavefunctionDIIS
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
   real(gp), intent(in) :: hx,hy,hz,energy,energy_old
@@ -231,8 +238,6 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='hpsitopsi'
-  logical, save :: switchSD
-  integer, save :: idiistol,mids,ids
   integer :: ierr,iorb,k,i_stat,i_all
   real(dp) :: tt,scprpart
   real(wp), dimension(:,:,:), allocatable :: mom_vec
