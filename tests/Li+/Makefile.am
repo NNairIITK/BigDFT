@@ -28,4 +28,4 @@ Li+.out: $(top_builddir)/src/cluster $(PPFILES)
         fi
 
 check: Li+.out
-	python $(top_srcdir)/tests/fldiff.py --bigdft Li+.out $(top_srcdir)/tests/Refs/Li+.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft Li+.out $(top_srcdir)/tests/Refs/Li+.out.ref | tee fldiff.report

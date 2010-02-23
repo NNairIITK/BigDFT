@@ -5,7 +5,8 @@ SUBDIRS =
 EXTRA_DIST = \
 	input.dft \
 	posinp.xyz \
-	input.geopt
+	input.geopt \
+	velocities.ref
 
 
 PPFILES = \
@@ -24,6 +25,7 @@ H2O-slab.out: $(top_builddir)/src/cluster $(PPFILES)
 	  for file in $(EXTRA_DIST); do \
 	    ln -fs $(srcdir)/$$file ; \
 	  done ; \
+	  cp velocities.ref velocities.xyz ; \
         fi
 	$(run_parallel) $(top_builddir)/src/cluster > $@
 	@if ! test x"$(srcdir)" = x"." ; then \
@@ -33,4 +35,4 @@ H2O-slab.out: $(top_builddir)/src/cluster $(PPFILES)
         fi
 
 check: H2O-slab.out
-	python $(top_srcdir)/tests/fldiff.py --bigdft H2O-slab.out $(top_srcdir)/tests/Refs/H2O-slab.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H2O-slab.out $(top_srcdir)/tests/Refs/H2O-slab.out.ref | tee fldiff.report

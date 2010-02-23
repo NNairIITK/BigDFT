@@ -3,6 +3,14 @@
 !!   Calculates the overall size of the simulation cell 
 !!   and shifts the atoms such that their position is the most symmetric possible.
 !!   Assign these values to the global localisation region descriptor.
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
 !! SOURCE
 !!
 subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
@@ -28,7 +36,6 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
      write(*,'(1x,a)')'ERROR: The values of the grid spacings must be equal in the Free BC case'
      stop
   end if
-
 
   !calculate the extremes of the boxes taking into account the spheres around the atoms
   cxmax=-1.e10_gp 
@@ -275,7 +282,7 @@ subroutine correct_grid(a,h,n)
      !control if the double of this dimension is compatible with the FFT
      call fourier_dim(2*m,m2)
      !if this check is passed both the preconditioner and the PSolver works
-     if (m2==2*m   .and. mod(m,2) ==0  ) exit
+     if (m2==2*m .and. mod(m,2) ==0) exit !only even dimensions are considered so far
 
      nt=m+1
   end do

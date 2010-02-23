@@ -3,7 +3,7 @@
 !!   Generate the input guess via the inguess_generator
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 (LG)
+!!    Copyright (C) 2007-2010 (LG) BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -160,6 +160,12 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
 END SUBROUTINE inputguess_gaussian_orbitals
 !!***
 
+
+!!****f* BigDFT/count_atomic_shells
+!! FUNCTION
+!!   Count the number of atomic shells
+!! SOURCE
+!!
 subroutine count_atomic_shells(nmax,lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occup,nl)
   use module_base
   implicit none
@@ -198,15 +204,14 @@ subroutine count_atomic_shells(nmax,lmax,noccmax,nelecmax,nspin,nspinor,elecorbs
         end do
      end do
   end do
-  
+
 end subroutine count_atomic_shells
-  
+!!***
 
 
 !!****f* BigDFT/readAtomicOrbitals
 !! FUNCTION
 !!   Read atomic orbitals
-!!
 !! SOURCE
 !!
 subroutine readAtomicOrbitals(iproc,at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
@@ -242,7 +247,7 @@ subroutine readAtomicOrbitals(iproc,at,norbe,norbsc,nspin,nspinor,scorb,norbsc_a
      call count_atomic_shells(nmax,lmax+1,noccmax,nelecmax,nspin,nspinor,&
           at%aocc(1,iat),occup,nl)
      norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
-  
+
      norbe=norbe+norbat
      !print *,'iat',iat,l,norbe,norbat,nl(:)
      !calculate the localisation radius for the input orbitals 
@@ -285,6 +290,7 @@ subroutine readAtomicOrbitals(iproc,at,norbe,norbsc,nspin,nspinor,scorb,norbsc_a
 
 END SUBROUTINE readAtomicOrbitals
 !!***
+
 
 !!****f* BigDFT/AtomicOrbitals
 !! FUNCTION
@@ -580,7 +586,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,&
                        jorb=ikorb-orbse%isorb
                        orbse%occup(ikorb)=at%aocc(iocc,iat)
 
-                       eks=eks+ek*at%aocc(iocc,iat)
+                       eks=eks+ek*at%aocc(iocc,iat)*orbse%kwgts(ikpts)
                        !print *,'iat',iat,l,m,icoll,orbse%occup(ikorb),orbpol_nc
                        if (orbse%isorb < ikorb .and. ikorb <= orbse%isorb+orbse%norbp) then
                           if (orbse%nspinor == 1) then
@@ -814,6 +820,7 @@ subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
 
 end subroutine atomkin
 !!***
+
 
 !!****f* BigDFT/calc_coeff_inguess
 !! FUNCTION
@@ -1138,8 +1145,8 @@ END SUBROUTINE iguess_generator
 
 !!****f* BigDFT/gatom
 !! FUNCTION
-!!   
-!!
+!!  Calculates the solution of the radial Schroedinger equation for a given
+!!  pseudoptential.
 !! SOURCE
 !!
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
@@ -1498,7 +1505,7 @@ END SUBROUTINE gatom
 
 !!****f* BigDFT/resid
 !! FUNCTION
-!!   
+!!
 !!
 !! SOURCE
 !!
@@ -1603,7 +1610,6 @@ END SUBROUTINE resid
 
 !!****f* BigDFT/crtvh
 !! FUNCTION
-!!   
 !!
 !! SOURCE
 !!
@@ -1844,9 +1850,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
      end do
   end do
 
- 
   call razero(nvctr*nspin*norbep,psi)
-  
 
   do iorb=1,norbe
      jorb=iorb-iproc*norbep
@@ -1875,8 +1879,15 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
   end if
 
 END SUBROUTINE psitospi0
+!!***
 
-!calculate the occupation number for any of the orbitals
+
+!!****f* BigDFT/at_occnums
+!! FUNCTION
+!!  Calculate the occupation number for any of the orbitals
+!!
+!! SOURCE
+!!
 subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
   use module_base
   implicit none
@@ -1980,8 +1991,14 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
      end do
   end do
 end subroutine at_occnums
+!!***
 
-!print the electronic configuration, with the semicore orbitals
+
+!!****f* BigDFT/print_eleconf
+!! FUNCTION
+!!   Print the electronic configuration, with the semicore orbitals
+!! SOURCE
+!!
 subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   use module_base
   implicit none
@@ -2069,7 +2086,14 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   write(*,'(2x,a,1x,a,1x,a)',advance='no')' Elec. Configuration:',trim(string),'...'
 
 end subroutine print_eleconf
+!!***
 
+!!****f* BigDFT/write_fraction_string
+!! FUNCTION
+!!  Control whether the occupation number can be rounded by a shell-dependent fraction 
+!!  denominator
+!! SOURCE
+!!
 subroutine write_fraction_string(l,occ,string,nstring)
   use module_base
   implicit none
@@ -2082,9 +2106,6 @@ subroutine write_fraction_string(l,occ,string,nstring)
   integer :: num,den
   real(gp) :: check
   
-  
-  !control whether the occupation number can be rounded by a shell-dependent fraction 
-  !denominator
   den=(2*l-1)
   check=occ*real(den,gp)
   !find the numerator
@@ -2105,8 +2126,14 @@ subroutine write_fraction_string(l,occ,string,nstring)
   end if
 
 end subroutine write_fraction_string
+!!***
 
-!here the fraction is indicated by the :
+
+!!****f* BigDFT/read_fraction_string
+!! FUNCTION
+!!  Here the fraction is indicated by the :
+!! SOURCE
+!!
 subroutine read_fraction_string(l,string,occ)
   use module_base
   implicit none
@@ -2130,9 +2157,14 @@ subroutine read_fraction_string(l,string,occ)
      read(string,*)occ
   end if
 end subroutine read_fraction_string
+!!***
 
 
-!read the electronic configuration, with the semicore orbitals
+!!****f* BigDFT/read_eleconf
+!! FUNCTION
+!!   Read the electronic configuration, with the semicore orbitals
+!! SOURCE
+!!
 subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   use module_base
   implicit none
@@ -2153,7 +2185,6 @@ subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
         string(i:i) = ':'
      end if
   end do
-
 
   !if non-collinear it is like nspin=1 but with the double of orbitals
   if (nspinor == 4) then
@@ -2229,3 +2260,4 @@ subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   end do
 
 end subroutine read_eleconf
+!!***

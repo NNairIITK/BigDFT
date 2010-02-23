@@ -40,7 +40,7 @@ subroutine lanczos(maxvec,new_projection)
 
   boxl = box * scala
 ! à modifier l'increment
-  increment = 0.10   ! Increment, in angstroems
+  increment = 0.10d0   ! Increment, in angstroems
 
   ! We now take the current position as the reference point and will make 
   ! a displacement in a random direction or using the previous direction as

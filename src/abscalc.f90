@@ -53,10 +53,10 @@ program abscalc_main
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-  ! find out which input files will be used
+  ! Find out which input files will be used
   inquire(file="list_posinp",exist=exist_list)
   if (exist_list) then
-     open(54,file="list_posinp")
+     open(unit=54,file="list_posinp")
      read(54,*) nconfig
      if (nconfig > 0) then 
         !allocation not referenced since memocc count not initialised
@@ -70,7 +70,7 @@ program abscalc_main
         allocate(arr_posinp(1:1))
         arr_posinp(1)='posinp'
      endif
-     close(54)
+     close(unit=54)
   else
      nconfig=1
      allocate(arr_posinp(1:1))
@@ -79,21 +79,20 @@ program abscalc_main
 
   do iconfig=1,nconfig
 
-     !initialize memory counting
+     !Initialize memory counting
      call memocc(0,iproc,'count','start')
 
-     !welcome screen
+     !Welcome screen
      if (iproc==0) call print_logo()
 
      ! Read all input files.
      call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
           & "input.dft", "input.kpt", "input.geopt", inputs, atoms, rxyz)
 
-
      
-     !read absorption-calculation input variables
+     !Read absorption-calculation input variables
      !inquire for the needed file 
-     !if not present, set default ( no absorption calculation)
+     !if not present, set default (no absorption calculation)
           
      inquire(file="input.abscalc",exist=exists)
      if (.not. exists) then
@@ -107,8 +106,6 @@ program abscalc_main
         if(nproc/=0)   call MPI_FINALIZE(ierr)
         stop
      endif
-
-
 
 
      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
@@ -165,11 +162,12 @@ program abscalc_main
 end program abscalc_main
 !!***
 
-!!****f* BigDFT/call_bigdft
+
+!!****f* BigDFT/call_abscalc
 !! FUNCTION
-!!   Routines to use bigdft as a blackbox
+!!   Routines to use abscalc as a blackbox
 !! COPYRIGHT
-!!   Copyright (C) 2005-2009 BigDFT group 
+!!   Copyright (C) 2005-2010 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -960,9 +958,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
         ! exactly resolvable case 
 
         lpot_a=1
-        rpot_a = 6.0
-        spot_a = 1.0
-        hpot_a = 3.0
+        rpot_a = 6.0d0
+        spot_a = 1.0d0
+        hpot_a = 3.0d0
 
 
         allocate(radpot(30000 ,2+ndebug ))
@@ -1029,17 +1027,16 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
      endif
      
   end if
-  
-
 
   !    No tail calculation
   if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
- 
 
   call deallocate_before_exiting
-  
+
+
 contains
-  
+
+
   !routine which deallocate the pointers and the arrays before exiting 
   subroutine deallocate_before_exiting
     

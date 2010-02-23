@@ -743,7 +743,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   deallocate(norbsc_arr,stat=i_stat)
   call memocc(i_stat,i_all,'norbsc_arr',subname)
 
-  if (iproc == 0) then
+  if (iproc == 0 .and. verbose > 1) then
      write(*,'(1x,a)')'done.'
      !gaussian estimation valid only for Free BC
      if (at%geocode == 'F') then

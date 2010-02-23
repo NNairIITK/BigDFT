@@ -1,3 +1,14 @@
+!!****m* bart/bigdft_forces
+!! FUNCTION
+!!   Module which contains information for bigdft run inside art
+!! COPYRIGHT
+!!   Copyright (C) 2010 BigDFT group, Normand Mousseau
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+!! SOURCE
+!!
 module bigdft_forces
 
   use module_base!, only : gp,wp,dp,bohr2ang
@@ -22,9 +33,20 @@ module bigdft_forces
   public :: mingeo
 !!$  public :: bigdft_output
   public :: bigdft_finalise
-contains
 
+contains
+!!***
+
+
+!!****f* bigdft_forces/bigdft_init
+!! FUNCTION
+!!   Routine to initialize all BigDFT stuff
+!! SOURCE
+!!
   subroutine bigdft_init(nat,typa,posa,boxl, nproc_, me_)
+
+    implicit none
+
     integer, intent(in) :: nproc_, me_
     integer, intent(out) :: nat
     integer, pointer :: typa(:)
@@ -39,6 +61,9 @@ contains
 
     nproc = nproc_
     me = me_
+
+    ! Initialize memory counting
+    call memocc(0,me,'count','start')
 
     call read_input_variables(me_, "posinp", "input.dft", "input.kpt", &
          & "input.geopt", in, at, rxyz)
@@ -69,8 +94,17 @@ contains
 
     initialised = .true.
   end subroutine bigdft_init
+!!***
 
+!!****f* bigdft_forces/calcforce
+!! FUNCTION
+!!   Calculation of forces
+!! SOURCE
+!!
   subroutine calcforce(nat,typa,posa,boxl,forca,energy)
+
+    implicit none
+
     integer, intent(in) :: nat
     integer, intent(in), dimension(nat) :: typa
     real*8, intent(in), dimension(3*nat),target :: posa
@@ -80,7 +114,6 @@ contains
 
     integer :: infocode, i, ierror
     real(dp), allocatable :: xcart(:,:), fcart(:,:)
-
 
     if (.not. initialised) then
        write(0,*) "No previous call to bigdft_init(). On strike, refuse to work."
@@ -114,8 +147,18 @@ contains
     deallocate(xcart)
     deallocate(fcart)
   end subroutine calcforce
+!!***
 
+
+!!****f* bigdft_forces/mingeo
+!! FUNCTION
+!!   Minimise geometry
+!! SOURCE
+!!
   subroutine mingeo(nat, boxl, posa, evalf_number, forca, total_energy)
+
+    implicit none
+
     integer, intent(in) :: nat
     real*8, intent(in) :: boxl
     real*8, intent(out) :: total_energy
@@ -125,7 +168,6 @@ contains
 
     integer :: i, ierror
     real(dp), allocatable :: xcart(:,:), fcart(:,:)
-
 
     if (.not. initialised) then
        write(0,*) "No previous call to bigdft_init(). On strike, refuse to work."
@@ -159,11 +201,28 @@ contains
     deallocate(xcart)
     deallocate(fcart)
   end subroutine mingeo
+!!***
 
+
+!!****f* bigdft_forces/bigdft_finalise
+!! FUNCTION
+!!   Routine to finalise all BigDFT stuff
+!! SOURCE
+!!
   subroutine bigdft_finalise()
+
+    implicit none
+    !Local variable
     character(len=*), parameter :: subname='bigdft_finalise'
 
     call free_restart_objects(rst,subname)
     ! To be completed
+
+    !Finalize memory counting
+    call memocc(0,0,'count','stop')
+
   end subroutine bigdft_finalise
+
+
 end module bigdft_forces
+!!***

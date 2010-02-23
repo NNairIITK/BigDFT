@@ -354,7 +354,6 @@ program memguess
   call memocc(i_stat,i_all,'atoms%aocc',subname)
 
 
-
   call MemoryEstimator(atoms%geocode,nproc,in%idsx,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
        atoms%alat1,atoms%alat2,atoms%alat3,&
        hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,in%crmult,in%frmult,&
@@ -374,7 +373,6 @@ program memguess
   ! De-allocations
   call deallocate_orbs(orbs,subname)
   call free_input_variables(in)
-
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
@@ -1324,10 +1322,10 @@ subroutine dft_input_converter(in)
   line=' davidson treatment, no. of virtual orbitals, no of plotted orbitals'
   write(1,'(3(i3),a)') in%nvirt, in%nvirt,in%nplot,trim(line)
   
-  line=''
-  line='0 .false. .false. 0.d0 vacancy: atom no., read_ref_den, correct_offset, gnrm_sw'
-  !electrostatic treatment of the vacancy (experimental)
-  write(1,*) trim(line)
+!  line=''
+!  line='0 .false. .false. 0.d0 vacancy: atom no., read_ref_den, correct_offset, gnrm_sw'
+!  !electrostatic treatment of the vacancy (experimental)
+!  write(1,*) trim(line)
 
 
   line=''
