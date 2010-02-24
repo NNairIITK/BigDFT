@@ -19,6 +19,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   use libxc_functionals
 
   implicit none
+  !Arguments
   integer, intent(in) :: iproc,nproc,nrho,nspin,ixc,symObj
   real(gp), intent(in) :: hxh,hyh,hzh
   type(orbitals_data), intent(in) :: orbs
@@ -29,7 +30,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   type(GPU_pointers), intent(inout) :: GPU
   integer, dimension(*), intent(in) :: irrzon
   real(dp), dimension(*), intent(in) :: phnons
-  !local variables
+  !Local variables
   character(len=*), parameter :: subname='sumrho'
   logical :: rsflag
   integer :: nw1,nw2,nrhotot,n3d,nxc,nxf,itmred
