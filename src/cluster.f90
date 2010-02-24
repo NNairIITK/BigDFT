@@ -390,6 +390,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,phnons,'phnons',subname)
      call ab6_symmetry_get_irreductible_zone(atoms%symObj, irrzon, phnons, &
           & n1i, n2i, n3i, in%nspin, in%nspin, i_stat)
+  else
+     allocate(irrzon(1,2,1+ndebug),stat=i_stat)
+     call memocc(i_stat,irrzon,'irrzon',subname)
+     allocate(phnons(2,1,1+ndebug),stat=i_stat)
+     call memocc(i_stat,phnons,'phnons',subname)
   end if
 
   !allocate ionic potential
