@@ -7,8 +7,8 @@ MAX_N3=256
 N1_STEP=64
 N2_STEP=64
 N3_STEP=64
-N1_URANGE=8 
-N2_URANGE=8 
+N1_URANGE=16 
+N2_URANGE=16 
 N3_URANGE=0
 N1_USTEP=8
 N2_USTEP=1
@@ -76,7 +76,7 @@ times.each{ |key,value|
     [ x[1], x[4] ] <=> [ y[1], y[4] ]
   }
   value.each { |val|
-    f.puts "#{val[1]} #{val[4]} #{val[0]}"
+    f.puts "#{val[1]} #{val[4]} #{val[0]} #{val[5]/val[0]}"
   }
   f.close
 }

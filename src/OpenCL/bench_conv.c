@@ -69,6 +69,7 @@ void bench_ana1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) 
   cl_uint n = n1;
   cl_uint ndat = n2*n3;
   cl_uint size = n*ndat*sizeof(double);
+  n = n1/2;
 
   ocl_create_write_buffer_(&context, &size, &psi_GPU);
   ocl_create_read_buffer_(&context, &size, &work_GPU);
@@ -85,6 +86,7 @@ void bench_syn1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) 
   cl_uint n = n1;
   cl_uint ndat = n2*n3;
   cl_uint size = n*ndat*sizeof(double);
+  n = n1/2;
 
   ocl_create_write_buffer_(&context, &size, &psi_GPU);
   ocl_create_read_buffer_(&context, &size, &work_GPU);
@@ -165,8 +167,8 @@ void bench_uncompress(cl_uint n1, cl_uint n2, cl_uint n3, cl_uint nseg, cl_uint 
 #define N1_STEP 64
 #define N2_STEP 64
 #define N3_STEP 64
-#define N1_URANGE 8 
-#define N2_URANGE 8 
+#define N1_URANGE 16 
+#define N2_URANGE 16 
 #define N3_URANGE 0
 #define N1_USTEP 8
 #define N2_USTEP 1
@@ -200,8 +202,8 @@ int main(){
             for( un3 = n3 - N3_URANGE; un3 <= n3 + N3_URANGE; un3 += N3_USTEP){
               bench_magicfilter1d(un1,un2,un3,in,out);
               bench_kinetic1d(un1,un2,un3,in,out);
-//              bench_ana1d(un1,un2,un3,in,out);
-//              bench_syn1d(un1,un2,un3,in,out);
+              bench_ana1d(un1,un2,un3,in,out);
+              bench_syn1d(un1,un2,un3,in,out);
             }
           }
         }
