@@ -3,8 +3,10 @@
 
 cl_kernel ana1d_kernel_l;
 cl_kernel ana1d_kernel_d;
+cl_kernel anashrink1d_kernel_d;
 cl_kernel syn1d_kernel_l;
 cl_kernel syn1d_kernel_d;
+cl_kernel syngrow1d_kernel_d;
 
 
 void build_wavelet_kernels(cl_context * context){
@@ -20,6 +22,9 @@ void build_wavelet_kernels(cl_context * context){
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
+    ciErrNum = CL_SUCCESS;
+    anashrink1d_kernel_d=clCreateKernel(ana1dProgram,"anashrink1dKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
     ciErrNum = CL_SUCCESS;
     ana1d_kernel_d=clCreateKernel(ana1dProgram,"ana1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
@@ -41,6 +46,9 @@ void build_wavelet_kernels(cl_context * context){
         exit(1);
     }
     ciErrNum = CL_SUCCESS;
+    syngrow1d_kernel_d=clCreateKernel(syn1dProgram,"syngrow1dKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = CL_SUCCESS;
     syn1d_kernel_d=clCreateKernel(syn1dProgram,"syn1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     ciErrNum = CL_SUCCESS;
@@ -48,6 +56,34 @@ void build_wavelet_kernels(cl_context * context){
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     ciErrNum = clReleaseProgram(syn1dProgram);
     oclErrorCheck(ciErrNum,"Failed to release program!");
+
+}
+
+void FC_FUNC_(anashrink1d_d,ANASHRINK1D_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
+    cl_int ciErrNum;
+#if DEBUG     
+    printf("%s %s\n", __func__, __FILE__);
+    printf("command queue: %p, dimension n: %lu, dimension dat: %lu, psi: %p, out: %p\n",*command_queue, (long unsigned)*n, (long unsigned)*ndat, *psi, *out);
+#endif
+    int FILTER_WIDTH = 16;
+    if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
+    size_t block_size_i=FILTER_WIDTH, block_size_j=FILTER_WIDTH;
+    cl_uint i = 0;
+    clSetKernelArg(anashrink1d_kernel_d, i++,sizeof(*n), (void*)n);
+    clSetKernelArg(anashrink1d_kernel_d, i++,sizeof(*ndat), (void*)ndat);
+    clSetKernelArg(anashrink1d_kernel_d, i++,sizeof(*psi), (void*)psi);
+    clSetKernelArg(anashrink1d_kernel_d, i++,sizeof(*out), (void*)out);
+    clSetKernelArg(anashrink1d_kernel_d, i++,sizeof(double)*block_size_j*(block_size_i*2+FILTER_WIDTH + 1), 0);
+    size_t localWorkSize[] = { block_size_i,block_size_j };
+    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, anashrink1d_kernel_d, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error %d: Failed to enqueue anashrink1d_d kernel!\n",ciErrNum);
+        fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize[0],(long unsigned)globalWorkSize[1]);
+        fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize[0],(long unsigned)localWorkSize[1]);
+        exit(1);
+    }
 
 }
 
@@ -77,6 +113,34 @@ void FC_FUNC_(ana1d_d,ANA1D_D)(cl_command_queue *command_queue, cl_uint *n,cl_ui
         exit(1);
     }
 
+}
+
+void FC_FUNC_(syngrow1d_d,SYNGROW1D_D)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat,cl_mem *psi,cl_mem *out){
+    cl_int ciErrNum;
+#if DEBUG     
+    printf("%s %s\n", __func__, __FILE__);
+    printf("command queue: %p, dimension n: %lu, dimension dat: %lu, psi: %p, out: %p\n",*command_queue, (long unsigned)*n, (long unsigned)*ndat, *psi, *out);
+#endif
+    int FILTER_WIDTH = 8;
+    cl_uint n1 = *n+7;
+    if(n1<16) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
+    size_t block_size_i=16, block_size_j=16;
+    cl_uint i = 0;
+    clSetKernelArg(syngrow1d_kernel_d, i++,sizeof(n1), (void*)&n1);
+    clSetKernelArg(syngrow1d_kernel_d, i++,sizeof(*ndat), (void*)ndat);
+    clSetKernelArg(syngrow1d_kernel_d, i++,sizeof(*psi), (void*)psi);
+    clSetKernelArg(syngrow1d_kernel_d, i++,sizeof(*out), (void*)out);
+    clSetKernelArg(syngrow1d_kernel_d, i++,sizeof(double)*block_size_j*(block_size_i*2+FILTER_WIDTH*2+1), NULL);
+    size_t localWorkSize[] = { block_size_i,block_size_j };
+    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,n1), shrRoundUp(block_size_j,*ndat)};
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, syngrow1d_kernel_d, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {         
+        fprintf(stderr,"Error %d: Failed to enqueue syngrow1d_d kernel!\n",ciErrNum);
+        fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize[0],(long unsigned)globalWorkSize[1]);
+        fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize[0],(long unsigned)localWorkSize[1]);
+        exit(1);
+    }  
 }
 
 void FC_FUNC_(syn1d_d,SYN1D_D)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat,cl_mem *psi,cl_mem *out){
@@ -167,5 +231,7 @@ void clean_wavelet_kernels(){
   clReleaseKernel(ana1d_kernel_l);
   clReleaseKernel(syn1d_kernel_l);
   clReleaseKernel(ana1d_kernel_d);
+  clReleaseKernel(anashrink1d_kernel_d);
   clReleaseKernel(syn1d_kernel_d);
+  clReleaseKernel(syngrow1d_kernel_d);
 }
