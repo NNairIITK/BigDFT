@@ -1357,17 +1357,13 @@ contains
        call memocc(i_stat,i_all,'psivirt',subname)
     end if
     
-    if (allocated(irrzon)) then
-       i_all=-product(shape(irrzon))*kind(irrzon)
-       deallocate(irrzon,stat=i_stat)
-       call memocc(i_stat,i_all,'irrzon',subname)
-    end if
-    if (allocated(phnons)) then
-       i_all=-product(shape(phnons))*kind(phnons)
-       deallocate(phnons,stat=i_stat)
-       call memocc(i_stat,i_all,'phnons',subname)
-    end if
+    i_all=-product(shape(irrzon))*kind(irrzon)
+    deallocate(irrzon,stat=i_stat)
+    call memocc(i_stat,i_all,'irrzon',subname)
 
+    i_all=-product(shape(phnons))*kind(phnons)
+    deallocate(phnons,stat=i_stat)
+    call memocc(i_stat,i_all,'phnons',subname)
 
     if (atoms%geocode == 'F') then
        call deallocate_bounds(Glr%bounds,subname)

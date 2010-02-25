@@ -163,7 +163,7 @@ subroutine fill_random(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
-		call random_number(x) 
+      call random_number(x) 
         psig_c(i,i2,i3)=x
      enddo
   enddo
@@ -180,10 +180,10 @@ subroutine fill_random(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
-		 do l=1,7
-			 call random_number(x)
-			 psig_f(l,i,i2,i3)=x
-		 enddo
+       do l=1,7
+          call random_number(x)
+          psig_f(l,i,i2,i3)=x
+       enddo
      enddo
   enddo
 
@@ -1369,15 +1369,15 @@ subroutine uncompress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
-		
-		x_f(1,i,i2,i3)=psi_f(1,i-i0+jj)
-		x_f(2,i,i2,i3)=psi_f(2,i-i0+jj)
-		x_f(3,i,i2,i3)=psi_f(3,i-i0+jj)
-		x_f(4,i,i2,i3)=psi_f(4,i-i0+jj)
-		x_f(5,i,i2,i3)=psi_f(5,i-i0+jj)
-		x_f(6,i,i2,i3)=psi_f(6,i-i0+jj)
-		x_f(7,i,i2,i3)=psi_f(7,i-i0+jj)
-		
+      
+      x_f(1,i,i2,i3)=psi_f(1,i-i0+jj)
+      x_f(2,i,i2,i3)=psi_f(2,i-i0+jj)
+      x_f(3,i,i2,i3)=psi_f(3,i-i0+jj)
+      x_f(4,i,i2,i3)=psi_f(4,i-i0+jj)
+      x_f(5,i,i2,i3)=psi_f(5,i-i0+jj)
+      x_f(6,i,i2,i3)=psi_f(6,i-i0+jj)
+      x_f(7,i,i2,i3)=psi_f(7,i-i0+jj)
+      
         x_f1(i,i2,i3)=psi_f(1,i-i0+jj)
         x_f2(i2,i,i3)=psi_f(2,i-i0+jj)
         x_f3(i3,i,i2)=psi_f(4,i-i0+jj)
@@ -1440,14 +1440,14 @@ subroutine uncompress_per_f_short(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
-		
-		x_f(1,i,i2,i3)=psi_f(1,i-i0+jj)
-		x_f(2,i,i2,i3)=psi_f(2,i-i0+jj)
-		x_f(3,i,i2,i3)=psi_f(3,i-i0+jj)
-		x_f(4,i,i2,i3)=psi_f(4,i-i0+jj)
-		x_f(5,i,i2,i3)=psi_f(5,i-i0+jj)
-		x_f(6,i,i2,i3)=psi_f(6,i-i0+jj)
-		x_f(7,i,i2,i3)=psi_f(7,i-i0+jj)
+      
+      x_f(1,i,i2,i3)=psi_f(1,i-i0+jj)
+      x_f(2,i,i2,i3)=psi_f(2,i-i0+jj)
+      x_f(3,i,i2,i3)=psi_f(3,i-i0+jj)
+      x_f(4,i,i2,i3)=psi_f(4,i-i0+jj)
+      x_f(5,i,i2,i3)=psi_f(5,i-i0+jj)
+      x_f(6,i,i2,i3)=psi_f(6,i-i0+jj)
+      x_f(7,i,i2,i3)=psi_f(7,i-i0+jj)
      enddo
   enddo
 

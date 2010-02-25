@@ -258,6 +258,7 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir
 
 end subroutine fill_projectors
 
+
 subroutine atom_projector(iproc,ikpt,iat,idir,istart_c,iproj,&
      n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
   use module_base
@@ -372,7 +373,7 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
         end do
      end if
      
-     call crtproj(geocode,iproc,nterm,n1,n2,n3,hx,hy,hz,kx,ky,kz,ncplx,&
+     call crtproj(geocode,nterm,n1,n2,n3,hx,hy,hz,kx,ky,kz,ncplx,&
           gau_a,factors,rx,ry,rz,lx,ly,lz,&
           mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c))
 
@@ -440,7 +441,7 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
 
 end subroutine numb_proj
 
-subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, & 
+subroutine crtproj(geocode,nterm,n1,n2,n3, & 
      hx,hy,hz,kx,ky,kz,ncplx,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
      mvctr_c,mvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj)
   ! returns the compressed form of a Gaussian projector 
@@ -449,7 +450,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nterm,n1,n2,n3,mvctr_c,mvctr_f,mseg_c,mseg_f,ncplx
+  integer, intent(in) :: nterm,n1,n2,n3,mvctr_c,mvctr_f,mseg_c,mseg_f,ncplx
   real(gp), intent(in) :: hx,hy,hz,gau_a,rx,ry,rz,kx,ky,kz
   integer, dimension(nterm), intent(in) :: lx,ly,lz
   real(gp), dimension(nterm), intent(in) :: fac_arr
@@ -461,12 +462,12 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   integer, parameter :: nw=32000
   logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3
-  integer :: mvctr,i_all,i_stat,j1,j2,j3,ithread,nthread,i0,j0,jj,ii,i,iseg,ind_f,ind_c
+  integer :: mvctr,i_all,i_stat,j1,i0,j0,jj,ii,i,iseg,ind_f,ind_c
   real(wp) :: re_cmplx_prod,im_cmplx_prod
-  real(gp) :: factor,err_norm,dz2,dy2,dx2,te
+  real(gp) :: factor,err_norm
   real(wp), dimension(0:nw,2,2) :: work !always use complex value
   real(wp), allocatable, dimension(:,:,:,:) :: wprojx,wprojy,wprojz
-  integer omp_get_thread_num,omp_get_num_threads
+!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
 
   allocate(wprojx(ncplx,0:n1,2,nterm+ndebug),stat=i_stat)
   call memocc(i_stat,wprojx,'wprojx',subname)
@@ -910,6 +911,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   call memocc(i_stat,i_all,'wprojz',subname)
 
 end subroutine crtproj
+
 
 !real part of the complex product
 function re_cmplx_prod(a,b,c)

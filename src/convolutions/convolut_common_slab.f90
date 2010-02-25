@@ -188,8 +188,8 @@ subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
   !local variables
   character(len=*), parameter :: subname='convolut_magic_n_per'
   integer, parameter :: lowfil=-8,lupfil=7 !for GPU computation
-  integer :: ndat,i_stat,i_all
-  real(kind=4), dimension(:,:,:), allocatable :: wx,wy !these are used for copy in GPU case
+  integer :: ndat
+  !real(kind=4), dimension(:,:,:), allocatable :: wx,wy !these are used for copy in GPU case
   real(kind=4) filCUDA(lowfil:lupfil) !array of filters to be passed to CUDA interface
   data filCUDA / &
        8.4334247333529341094733325815816e-7_4,&
@@ -244,9 +244,9 @@ subroutine convolut_magic_n_slab(n1,n2,n3,x,y,ww)
   !local variables
   character(len=*), parameter :: subname='convolut_magic_n_per'
   integer, parameter :: lowfil=-8,lupfil=7 !for GPU computation
-  integer :: ndat,i_stat,i_all
+  integer :: ndat
   real(wp), dimension(0:n1,-7:n2+8,0:n3):: ww ! work array
-  real(kind=4), dimension(:,:,:), allocatable :: wx,wy !these are used for copy in GPU case
+  !real(kind=4), dimension(:,:,:), allocatable :: wx,wy !these are used for copy in GPU case
   real(kind=4) filCUDA(lowfil:lupfil) !array of filters to be passed to CUDA interface
   data filCUDA / &
        8.4334247333529341094733325815816e-7_4,&
@@ -301,8 +301,8 @@ subroutine convolut_magic_t_slab_self(n1,n2,n3,x,y)
   !local variables
   character(len=*), parameter :: subname='convolut_magic_t_per'
   integer, parameter :: lowfil=-7,lupfil=8
-  integer :: ndat,i_stat,i_all
-  real(kind=4), dimension(:,:,:), allocatable :: wx,wy !these are used for copy in GPU case
+  integer :: ndat
+  !real(kind=4), dimension(:,:,:), allocatable :: wx,wy !these are used for copy in GPU case
   real(kind=4) filCUDA(lowfil:lupfil) !array of filters to be passed to CUDA interface
   data filCUDA / &
        2.72734492911979659657715313017228e-6_4,&
@@ -351,25 +351,24 @@ subroutine convolut_kinetic_slab_sdc(n1,n2,n3,hgrid,x,y,cprecr,modul1,modul3,a,b
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
-  real(gp),intent(in)::cprecr
+  real(gp),intent(in) :: cprecr
   real(gp), dimension(3), intent(in) :: hgrid
   real(wp), dimension(8,0:n1,0:n2,0:n3), intent(in) :: x
   real(wp), dimension(8,0:n1,0:n2,0:n3), intent(out) :: y
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  integer :: i1,i2,i3,i,l,j
+  integer :: i1,i2,i3,l,j
   real(wp) :: tt111,tt112,tt121,tt122,tt211,tt212,tt221,tt222
-  real(wp), dimension(3) :: scale
-integer,intent(in)::modul1(lowfil:n1+lupfil)
-integer,intent(in)::modul3(lowfil:n3+lupfil)
-real(gp),intent(in)::a(lowfil:lupfil,3)
-real(gp),intent(in)::b(lowfil:lupfil,3)
-real(gp),intent(in)::c(lowfil:lupfil,3)
-real(gp),intent(in)::e(lowfil:lupfil,3)
+  integer,intent(in) :: modul1(lowfil:n1+lupfil)
+  integer,intent(in) :: modul3(lowfil:n3+lupfil)
+  real(gp),intent(in) :: a(lowfil:lupfil,3)
+  real(gp),intent(in) :: b(lowfil:lupfil,3)
+  real(gp),intent(in) :: c(lowfil:lupfil,3)
+  real(gp),intent(in) :: e(lowfil:lupfil,3)
   
-!  real(gp)::tel
-!  integer::ncount0,ncount1,ncount2,ncount_rate,ncount_max
-!  integer::mflop1,mflop3
+!  real(gp) :: tel
+!  integer :: ncount0,ncount1,ncount2,ncount_rate,ncount_max
+!  integer :: mflop1,mflop3
   
   ! filter length:29
   ! 8: wavelets+scfunction

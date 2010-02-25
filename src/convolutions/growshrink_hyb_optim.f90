@@ -36,7 +36,7 @@ real(wp), dimension(            0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(inout) :: y
 !local variables
 integer :: l1,l2,i,t
 integer :: ii,ii1
-real(wp) :: y2i__0,y2i__1,y2i1_0,y2i1_1,y2i,y2i1
+real(wp) :: y2i,y2i1
 integer :: modul(-14+2*nfl3:2*nfu3+16)
 integer :: mfl3,mfu3
 include 'v_17.inc'
@@ -89,17 +89,17 @@ subroutine comb_rot_grow_ib_2(n1,n2,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ibzxx,ibxx
 !  the size of the data is allowed to grow
 use module_base
 implicit none
-integer,intent(in)::n1,n2
+integer,intent(in) :: n1,n2
 integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 integer,intent(in)::ibzxx(2,      nfl3:nfu3,0:2*n1+1)
 integer,intent(in)::ibxxyy(2,               0:2*n1+1,0:2*n2+1)
 real(wp), dimension(2,2,nfl2:nfu2,nfl3:nfu3,0:2*n1+1), intent(in) :: x
 real(wp), dimension(2,            nfl3:nfu3,0:2*n1+1,0:2*n2+1), intent(out) :: y
-integer l1,l3,i,t,l2
+integer :: l1,l3,i,t,l2
 integer :: ii,ii1
-real(wp) y2i__1,y2i__2,y2i1_1,y2i1_2
-integer::modul(-14+2*nfl2:2*nfu2+16)
-integer::mfl3,mfu3,mfl2,mfu2
+real(wp) :: y2i__1,y2i__2,y2i1_1,y2i1_2
+integer :: modul(-14+2*nfl2:2*nfu2+16)
+integer :: mfl3,mfu3,mfl2,mfu2
 
 include 'v_17.inc'
 call fill_mod_arr(modul,-14+2*nfl2,2*nfu2+16,2*n2+2)
@@ -415,7 +415,7 @@ real(wp), dimension(0:2*n1+1,ndat), intent(in) :: x
 real(wp), dimension(2,ndat,nfl1:nfu1), intent(out) :: y
 !local variables
 integer, parameter :: lowfil2=-14,lupfil2=16
-integer :: nflop,i,j,l,icur,ll
+integer :: i,j,l,ll
 real(wp) :: ci1,ci2
 integer::modul(lowfil2+2*nfl1:2*nfu1+lupfil2)
 include 'v.inc'
@@ -456,7 +456,7 @@ integer,intent(in)::ib(2,ndat)
 real(wp), dimension(2,0:2*n1+1,ndat), intent(in) :: x
 real(wp), dimension(2,2,ndat,nfl:nfu), intent(out) :: y
 !local variables
-integer :: nflop,j,i,l,icur,ll
+integer :: j,i,l,ll
 real(wp) :: ci11,ci12,ci21,ci22
 integer::modul(lowfil2+2*nfl:2*nfu+lupfil2)
 include 'v.inc'
@@ -559,7 +559,7 @@ integer, intent(in) :: ndat,n1
 real(wp), dimension(0:2*n1+1,ndat), intent(in) :: x
 real(wp), dimension(ndat,0:n1), intent(out) :: y
 !local variables
-integer :: j,l,i,icur,ll
+integer :: j,l,i,ll
 real(wp) :: ci,ci1,ci2,ci3,ci4,ci5,ci6,ci7,ci8,ci9,ci10,ci11,ci12
 integer::modul(lowfil2:2*n1+lupfil2)
 include 'v.inc'

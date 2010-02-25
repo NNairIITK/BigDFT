@@ -1,7 +1,19 @@
+!!****m* art/lanczos_def
+!! FUNCTION
+!!  Module to use lanczos inside art
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 module lanczos_defs
   use defs
   implicit none
-  save
 
   logical :: first_time = .true., reject= .false.
   real(8) :: eigenvalue, old_eigenvalue, produit
@@ -10,17 +22,25 @@ module lanczos_defs
   ! Projection direction based on lanczos computations of lowest eigenvalues
   real(8), dimension(:), allocatable :: old_projection, projection, first_projection
 end module lanczos_defs
-  
+!!***
+
+
+!!****f* art/lanczos
+!! FUNCTION
+!!  Lanczos routine to determine lowest frequencies
+!! SOURCE
+!!
 subroutine lanczos(maxvec,new_projection)
+
   use defs
   use lanczos_defs
   use random
   use bigdft_forces
+
   implicit none
 
   integer, intent(in) :: maxvec
   logical, intent(in) ::  new_projection
-  integer, dimension(maxvec) :: iscratch
   real(8), dimension( 2 * maxvec -1 ) :: scratcha
   real(8), dimension(maxvec) :: diag
   real(8), dimension(maxvec-1) :: offdiag
@@ -29,8 +49,8 @@ subroutine lanczos(maxvec,new_projection)
   real(8):: sum_forcenew, sum_force
   ! Vectors used to build the matrix for Lanzcos algorithm 
   real(8), dimension(:), pointer :: z0, z1, z2
- 
-  integer :: i,j,k, i_err, scratcha_size,ivec, ierror, nat
+
+  integer :: i,k, i_err, scratcha_size,ivec, ierror, nat
 
   real(8) :: a1,a0,b2,b1,increment
   real(8) :: boxl, excited_energy,c1,norm
@@ -45,7 +65,6 @@ subroutine lanczos(maxvec,new_projection)
   ! We now take the current position as the reference point and will make 
   ! a displacement in a random direction or using the previous direction as
   ! the starting point.
-  34 continue
   call calcforce(NATOMS,type,pos,boxl,ref_force,total_energy)
   evalf_number = evalf_number + 1
   z0 => lanc(:,1)
@@ -102,7 +121,7 @@ subroutine lanczos(maxvec,new_projection)
 
   call calcforce(NATOMS,type,newpos,boxl,newforce,excited_energy)
   evalf_number = evalf_number + 1
-  
+
   ! We extract lanczos(1)
   newforce = newforce - ref_force  
 
@@ -124,7 +143,7 @@ subroutine lanczos(maxvec,new_projection)
 
   invsum = 1.0d0 / sqrt ( b1 )
   z1 = z1 * invsum           ! Vectorial operation
-  
+
   ! We can now repeat this game for the next vectors
   do ivec = 2, maxvec-1
     z1 => lanc(:,ivec)
@@ -181,16 +200,16 @@ subroutine lanczos(maxvec,new_projection)
    
    ! We now have everything we need in order to diagonalise and find the
    ! eigenvectors.
-   
+
    diag = -1.0d0 * diag
    offdiag = -1.0d0 * offdiag
-   
+
    ! We now need the routines from Lapack. We define a few values
    i_err = 0
-  
+
    ! We call the routine for diagonalizing a tridiagonal  matrix
    call dstev('V',maxvec,diag,offdiag,vector,maxvec,scratcha,i_err)
-  
+
    ! We now reconstruct the eigenvectors in the real space
    ! Of course, we need only the first maxvec elements of vec
 
@@ -204,38 +223,37 @@ subroutine lanczos(maxvec,new_projection)
    do i=1, vecsize
       c1 = c1 + projection(i) * projection(i)
    end do
-   
+
    norm = 1.0/sqrt(c1)
    projection = projection *norm 
-   
+
    ! The following lines are probably not needed.
    newpos = pos + projection * increment   ! Vectorial operation
    call calcforce(NATOMS,type,newpos,boxl,newforce,excited_energy)
    evalf_number = evalf_number + 1
    newforce = newforce - ref_force
-   
+
    eigenvalue=diag(1)/increment
    do i=1, 4
       eigenvals(i) = diag(i) / increment
    end do
-   
+
    a1=0.0d0
    b1=0.0d0
    do i=1, VECSIZE
       a1 = a1 + old_projection(i) * projection(i)
       b1 = b1 + projection(i) * projection(i)
       c1 = c1 + old_projection(i) * old_projection(i)
-      
+
    end do
-   
-   
+
    ! Condition on the scalar product: we reject the point where we loose the eigenvalue and try to reduce the step size
    if(abs(a1)<=0.2) reject = .true. 
-   
+
    if (iproc .eq. 0) write(*,*) 'the scalar product between the two eigen directions',a1
-   
+
    if(a1<0.0d0) projection = -1.0d0 * projection 
-  
+
    produit = a1     
    call center(projection,VECSIZE)
 
@@ -245,3 +263,4 @@ subroutine lanczos(maxvec,new_projection)
   call MPI_Bcast(projection,nat,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
 
 end subroutine lanczos
+!!***

@@ -32,18 +32,18 @@ subroutine precong_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 
   call prepare_sdc_slab(n1,n2,n3,modul1,modul3,af,bf,cf,ef,hx,hy,hz)
 
-  !	initializes the wavelet scaling coefficients	
+  !   initializes the wavelet scaling coefficients   
   call wscal_init_per(scal,hx,hy,hz,cprecr)
   !b=x
   call dcopy(nvctr_c+7*nvctr_f,x,1,b,1) 
 
-  !	compute the input guess x via a Fourier transform in a cubic box.
-  !	Arrays psifscf and ww serve as work arrays for the Fourier
+  !   compute the input guess x via a Fourier transform in a cubic box.
+  !   Arrays psifscf and ww serve as work arrays for the Fourier
   call prec_fft_slab_fast(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        cprecr,hx,hy,hz,x,&
        psifscf(1),psifscf(n1+2),ww(1),ww(2*((n1+1)/2+1)*(n2+1)*(n3+1)+1))
 
-  !	call apply_hp_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
+  !   call apply_hp_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   !     cprecr,hx,hy,hz,x,d,psifscf,ww) ! d:=Ax
   call apply_hp_slab_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        cprecr,hx,hy,hz,x,d,psifscf,ww,modul1,modul3,af,bf,cf,ef) ! d:=Ax
@@ -55,8 +55,8 @@ subroutine precong_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   do i=1,ncong 
      !write(*,*)i,rmr
 
-     !		call apply_hp_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-     !	     cprecr,hx,hy,hz,d,b,psifscf,ww) ! b:=Ad
+     !      call apply_hp_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
+     !        cprecr,hx,hy,hz,d,b,psifscf,ww) ! b:=Ad
      call apply_hp_slab_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
           cprecr,hx,hy,hz,d,b,psifscf,ww,modul1,modul3,af,bf,cf,ef) ! b:=Ad
 
@@ -155,8 +155,8 @@ end subroutine precong_slab
 subroutine apply_hp_slab(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psifscf,ww)
-  !	Applies the operator (KE+cprecr*I)*x=y
-  !	array x is input, array y is output
+  !   Applies the operator (KE+cprecr*I)*x=y
+  !   array x is input, array y is output
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -167,7 +167,7 @@ subroutine apply_hp_slab(n1,n2,n3, &
   real(wp), intent(in) ::  x(nvctr_c+7*nvctr_f)  
   real(wp), intent(out) ::  y(nvctr_c+7*nvctr_f)
 
-  real(gp) hgridh(3)	
+  real(gp) hgridh(3)   
   real(wp),dimension((2*n1+2)*(2*n2+16)*(2*n3+2))::ww,psifscf
 
   ! x: input, ww:work
@@ -193,8 +193,8 @@ end subroutine apply_hp_slab
 subroutine apply_hp_slab_sd(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psifscf,ww,modul1,modul3,a,b,c,e)
-  !	Applies the operator (KE+cprecr*I)*x=y
-  !	array x is input, array y is output
+  !   Applies the operator (KE+cprecr*I)*x=y
+  !   array x is input, array y is output
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -206,7 +206,7 @@ subroutine apply_hp_slab_sd(n1,n2,n3, &
   real(wp), intent(out) ::  y(nvctr_c+7*nvctr_f)
   integer, parameter :: lowfil=-14,lupfil=14
 
-  real(gp) hgrid(3)	
+  real(gp) hgrid(3)   
   real(wp),dimension((2*n1+2)*(2*n2+16)*(2*n3+2))::ww,psifscf
 
   integer,intent(in)::modul1(lowfil:n1+lupfil)
@@ -225,7 +225,7 @@ subroutine apply_hp_slab_sd(n1,n2,n3, &
   hgrid(2)=hy
   hgrid(3)=hz
   ! psifscf: input, ww: output
-  !  	call convolut_kinetic_slab_c(2*n1+1,2*n2+15,2*n3+1,hgridh,psifscf,ww,cprecr)
+  !     call convolut_kinetic_slab_c(2*n1+1,2*n2+15,2*n3+1,hgridh,psifscf,ww,cprecr)
   call convolut_kinetic_slab_sdc(n1,n2,n3,hgrid,psifscf,ww,cprecr,modul1,modul3,a,b,c,e)
 
   ! ww:intput
@@ -269,8 +269,8 @@ subroutine prec_fft_slab_fast(n1,n2,n3, &
 
   call uncompress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
-  !	solve the helmholtz equation for the scfunction part  
-  call hit_with_kernel_slab(x_c,z,kern_k1,kern_k3,n1,n2,n3,cprecr,hy)	
+  !   solve the helmholtz equation for the scfunction part  
+  call hit_with_kernel_slab(x_c,z,kern_k1,kern_k3,n1,n2,n3,cprecr,hy)   
 
   call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
@@ -306,8 +306,8 @@ subroutine prec_fft_slab(n1,n2,n3, &
 
   call uncompress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
-  !	solve the helmholtz equation for the scfunction part  
-  call hit_with_kernel_slab(x_c,z,kern_k1,kern_k3,n1,n2,n3,cprecr,hy)	
+  !   solve the helmholtz equation for the scfunction part  
+  call hit_with_kernel_slab(x_c,z,kern_k1,kern_k3,n1,n2,n3,cprecr,hy)   
 
   call   compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
@@ -402,9 +402,9 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
 
   ! hit the fourier transform of x with the kernel
   do i3=0,n3
-     !	do i1=0,n1
+     !   do i1=0,n1
      do i1=0,(n1+1)/2
-        !		ct=kern_k1(i1)+kern_k3(i3)+c
+        !      ct=kern_k1(i1)+kern_k3(i3)+c
         ct=(kern_k1(i1)+kern_k3(i3)+c)*(n1+1)*(n3+1)
 
         ! ab has to be reinitialized each time
@@ -421,7 +421,7 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
            b(i2,2)=zx(2,i1,i2,i3)
         enddo
 
-        !		call DGBSV( N, KL, KU, NRHS, ab , LDAB, IPIV, b, LDB, INFO )
+        !      call DGBSV( N, KL, KU, NRHS, ab , LDAB, IPIV, b, LDB, INFO )
         call DPBSV( 'U', N, KD, NRHS, AB, LDAB, B, LDB, INFO )
         if (info.ne.0) stop 'error in matrix inversion'
 
