@@ -81,6 +81,26 @@ void bench_ana1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) 
   ocl_release_mem_object_(&work_GPU);
 }
 
+void bench_anashrink1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
+  cl_mem psi_GPU,work_GPU;
+  cl_uint n = n1;
+  cl_uint ndat = n2*n3;
+  cl_uint size_o = n*ndat*sizeof(double);
+  cl_uint size_f = (n-14)*ndat*sizeof(double);
+  n = n1/2-7;
+
+
+  ocl_create_write_buffer_(&context, &size_f, &psi_GPU);
+  ocl_create_read_buffer_(&context, &size_o, &work_GPU);
+  ocl_enqueue_write_buffer_(&queue, &work_GPU, &size_o, in);
+  anashrink1d_d_(&queue, &n, &ndat, &work_GPU, &psi_GPU);
+  ocl_finish_(&queue);
+  ocl_enqueue_read_buffer_(&queue, &psi_GPU, &size_f, out);
+  ocl_release_mem_object_(&psi_GPU);
+  ocl_release_mem_object_(&work_GPU);
+
+}
+
 void bench_syn1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
   cl_mem psi_GPU,work_GPU;
   cl_uint n = n1;
@@ -97,6 +117,24 @@ void bench_syn1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) 
   ocl_release_mem_object_(&psi_GPU);
   ocl_release_mem_object_(&work_GPU);
 
+}
+
+void bench_syngrow1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
+  cl_mem psi_GPU,work_GPU;
+  cl_uint n = n1;
+  cl_uint ndat = n2*n3;
+  cl_uint size_f = n*ndat*sizeof(double);
+  cl_uint size_o = (n-14)*ndat*sizeof(double);
+  n = n1/2-7;
+
+  ocl_create_write_buffer_(&context, &size_f, &psi_GPU);
+  ocl_create_read_buffer_(&context, &size_o, &work_GPU);
+  ocl_enqueue_write_buffer_(&queue, &work_GPU, &size_o, in);
+  syngrow1d_d_(&queue, &n, &ndat, &work_GPU, &psi_GPU);
+  ocl_finish_(&queue);
+  ocl_enqueue_read_buffer_(&queue, &psi_GPU, &size_f, out);
+  ocl_release_mem_object_(&psi_GPU);
+  ocl_release_mem_object_(&work_GPU);
 }
 
 void bench_uncompress(cl_uint n1, cl_uint n2, cl_uint n3, cl_uint nseg, cl_uint nvctr_cf, cl_uint * keyg, cl_uint * keyv, double * psi_in, double * psi_out) {
@@ -203,7 +241,9 @@ int main(){
               bench_magicfilter1d(un1,un2,un3,in,out);
               bench_kinetic1d(un1,un2,un3,in,out);
               bench_ana1d(un1,un2,un3,in,out);
+              bench_anashrink1d(un1,un2,un3,in,out);
               bench_syn1d(un1,un2,un3,in,out);
+              bench_syngrow1d(un1,un2,un3,in,out);
             }
           }
         }
