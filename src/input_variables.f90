@@ -1506,7 +1506,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
-  logical :: lpsdbl
+  logical :: lpsdbl, reduced
   integer :: iat,ityp,i,i_stat,j,nlines
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3,alat4,alat5,alat6
@@ -1540,6 +1540,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
 
   ! Try to determine the number atoms and the keywords.
   write(atoms%units, "(A)") "bohr"
+  reduced = .false.
   atoms%geocode = 'P'
   atoms%nat     = 0
   do i = 4, nlines, 1
@@ -1552,7 +1553,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
         if (index(line, 'atomic') > 0)      write(atoms%units, "(A)") "atomicd0"
         if (index(line, 'angstroem') > 0)   write(atoms%units, "(A)") "angstroem"
         if (index(line, 'angstroemd0') > 0) write(atoms%units, "(A)") "angstroemd0"
-        if (index(line, 'reduced') > 0)     write(atoms%units, "(A)") "reduced"
+        if (index(line, 'reduced') > 0)     reduced = .true.
         if (index(line, 'periodic') > 0) atoms%geocode = 'P'
         if (index(line, 'surface') > 0)  atoms%geocode = 'S'
         if (index(line, 'freeBC') > 0)   atoms%geocode = 'F'
@@ -1623,7 +1624,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   end if
   
   !reduced coordinates are possible only with periodic units
-  if (atoms%units == 'reduced' .and. atoms%geocode /= 'P') then
+  if (reduced .and. atoms%geocode /= 'P') then
      if (iproc==0) write(*,'(1x,a)')&
           'ERROR: Reduced coordinates are only allowed with fully periodic BC'
   end if
@@ -1664,7 +1665,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
            rxyz(3,iat)=real(rz,gp)
         end if
 
-        if (atoms%units == 'reduced') then !add treatment for reduced coordinates
+        if (reduced) then !add treatment for reduced coordinates
            rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
            rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
            rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
@@ -1689,15 +1690,15 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
         atoms%iatype(iat)=atoms%ntypes
 200     continue
 
-        if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
+        if (reduced) then
+           rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
+           rxyz(2,iat)=rxyz(2,iat)*atoms%alat2
+           rxyz(3,iat)=rxyz(3,iat)*atoms%alat3
+        else if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
            ! if Angstroem convert to Bohr
            do j=1,3 
               rxyz(j,iat)=rxyz(j,iat) / bohr2ang
            enddo
-        else if (atoms%units == 'reduced') then 
-           rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
-           rxyz(2,iat)=rxyz(2,iat)*atoms%alat2
-           rxyz(3,iat)=rxyz(3,iat)*atoms%alat3
         endif
         iat = iat + 1
      end if
