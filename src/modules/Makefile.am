@@ -47,7 +47,7 @@ $(mod_bigdft) : base.o types.o interfaces.o
 
 mpif.h:
 	touch mpif.h &&\
-	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_SUM=1, MPI_COMM_WORLD=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
-	 echo "integer :: MPI_STATUSES_IGNORE, MPI_LOGICAL" >> mpif.h &&\
-	 echo "integer :: MPI_MIN, MPI_MAX,MPI_CHARACTER,MPI_REAL8" >> mpif.h
+	 echo "integer, parameter :: MPI_STATUSES_IGNORE=1, MPI_LOGICAL=1" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_MIN=1, MPI_MAX=1,MPI_CHARACTER=1,MPI_REAL8=1" >> mpif.h
