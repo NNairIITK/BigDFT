@@ -1127,7 +1127,7 @@ end subroutine fft_for
 !!  S_(j1,j2,j3) EXP(i_sign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
 !! SOURCE
 !!
-subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z1,z3,inzee)
+subroutine FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,y,z1,z3,inzee)
 
    use module_fft_sg
    implicit real(kind=8) (a-h,o-z)
@@ -1143,7 +1143,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
 
    !Arguments
    integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3
-   integer :: n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b
+   integer, intent(in) :: n1b,n3f,n3b,nd1b,nd3f,nd3b
    real(kind=8),intent(out) :: y(n1,n2,n3)
    real(kind=8),intent(inout) :: z3(2,nd1*nd2*nd3b,2)
    real(kind=8)                :: z1(2,nd1b*nd2*nd3,2) ! work array

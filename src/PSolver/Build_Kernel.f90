@@ -18,6 +18,13 @@
 !! CREATION DATE
 !!    October 2006
 !!
+!! COPYRIGHT
+!!    Copyright (C) 2006-2010 CEA, ESRF
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
 !! SOURCE
 !!
 subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc)
@@ -33,7 +40,6 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   integer :: i1,i2,i3,j3,i_all,i_stat
   real(dp) :: p1,p2,mu3,ker
   real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
-
 
   !first control that the domain is not shorter than the scaling function
   !add also a temporary flag for the allowed ISF types for the kernel
@@ -98,8 +104,13 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
 end subroutine Periodic_Kernel
 !!***
 
-!calculate the fourier transform
-!suppose the output symmetric and real
+
+!!****f* BigDFT/fourtrans_isf
+!! FUNCTION
+!!  Calculate the fourier transform
+!!  Suppose the output symmetric and real
+!! SOURCE
+!!
 subroutine fourtrans_isf(n,ftisf)
   use module_base
   implicit none
@@ -147,8 +158,14 @@ subroutine fourtrans_isf(n,ftisf)
   end do loop_points
 
 end subroutine fourtrans_isf
+!!***
 
-!transform the wavelet filters
+
+!!****f* BigDFT/fourtrans
+!! FUNCTION
+!!   Transform the wavelet filters
+!! SOURCE
+!!
 subroutine fourtrans(p,htp)
   use module_base
   implicit none
@@ -170,6 +187,7 @@ subroutine fourtrans(p,htp)
   htp=0.5_dp+htp
 
 end subroutine fourtrans
+!!***
 
 
 !!****f* BigDFT/Surfaces_Kernel
@@ -348,7 +366,6 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   call memocc(i_stat,now,'now',subname)
   allocate(before(7+ndebug),stat=i_stat)
   call memocc(i_stat,before,'before',subname)
-
 
   !constants
   pi=4._dp*datan(1._dp)
@@ -583,6 +600,11 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
 end subroutine Surfaces_Kernel
 !!***
 
+
+!!****f* BigDFT/calculates_green_opt
+!! FUNCTION
+!! SOURCE
+!!
 subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g_mu)
   use module_base
   implicit none
@@ -597,7 +619,6 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   integer :: izero,ivalue,i,iend,ikern,n_iter,nrec,i_all,i_stat
   real(dp) :: f,x,filter,gleft,gright,gltmp,grtmp,fl,fr,x0,x1,ratio,mu0
   real(dp), dimension(:), allocatable :: green,green1
-
 
   !We calculate the number of iterations to go from mu0 to mu0_ref
   if (mu <= mu_max) then
@@ -720,8 +741,13 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   call memocc(i_stat,i_all,'green1',subname)
 
 end subroutine calculates_green_opt
+!!***
 
 
+!!****f* BigDFT/calculates_green_opt_muzero
+!! FUNCTION
+!! SOURCE
+!!
 subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
   use module_base
   implicit none
@@ -809,11 +835,16 @@ subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
   end do
 
 end subroutine calculates_green_opt_muzero
+!!***
 
 
+!!****f* BigDFT/indices
+!! FUNCTION
+!! SOURCE
+!!
 subroutine indices(nimag,nelem,intrn,extrn,nindex)
-
   implicit none
+  !arguments
   integer, intent(in) :: intrn,extrn,nelem
   integer, intent(out) :: nimag,nindex
   !local
@@ -828,8 +859,8 @@ subroutine indices(nimag,nelem,intrn,extrn,nindex)
   end if
   !complete index to be assigned
   nindex=extrn+nelem*(i-1)
-
 end subroutine indices
+!!***
 
 
 !!****f* BigDFT/Free_Kernel
@@ -876,18 +907,15 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  !Better p_gauss for calculation
  !(the support of the exponential should be inside [-n_range/2,n_range/2])
  real(dp), dimension(n_gauss) :: p_gauss,w_gauss
- real(dp), dimension(:), allocatable :: kern_1_scf,x_scf,y_scf,fwork,kfft1,kfft2,kfft3
+ real(dp), dimension(:), allocatable :: fwork
  real(dp), dimension(:,:), allocatable :: kernel_scf,fftwork
- real(dp), dimension(:,:,:), allocatable :: kp,kfftc1,kfftc2,kfftc3
- real :: t0,t1
- integer :: ntimes=1,itimes
- real(dp) :: ur_gauss,dr_gauss,acc_gauss,pgauss,kern,a_range,told,tnew
- real(dp) :: factor,factor2,dx,absci,p0gauss,p0_cell,u1,u2,u3,maxdiff
+ real(dp) :: ur_gauss,dr_gauss,acc_gauss,pgauss,a_range
+ real(dp) :: factor,factor2,dx
  real(dp) :: a1,a2,a3
  integer :: n_scf,nker1,nker2,nker3
- integer :: i_gauss,n_range,n_cell,istart,iend,istart1,inzee
- integer :: i,n_iter,i1,i2,i3,i_kern,i_stat,i_all
- integer :: i01,i02,i03,n1h,n2h,n3h,nit1,nit2,nit3
+ integer :: i_gauss,n_range,n_cell
+ integer :: i1,i2,i3,i_stat,i_all
+ integer :: i03
 
  !Number of integration points : 2*itype_scf*n_points
  n_scf=2*itype_scf*n_points
@@ -1925,7 +1953,7 @@ subroutine fill_halfft(nreal,n1,n_range,nfft,kernelreal,halfft)
   real(dp), dimension(nreal,nfft), intent(in) :: kernelreal
   real(dp), dimension(2,n1,nfft), intent(out) :: halfft
   !local variables
-  integer :: i,ifft,j,ntot
+  integer :: i,ifft,ntot
 
   ntot=min(n1/2,n_range)
   halfft(:,:,:)=0.0_dp

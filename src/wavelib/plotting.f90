@@ -304,7 +304,7 @@ subroutine plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   !here there can be shifts in visualising periodic objects (n1 -> n1+1)
   write(22,*) n1*hx,' 0. ',n2*hy
   write(22,*) ' 0. ',' 0. ',n3*hz
-  write(22,*)'xyz '//comment
+  write(22,*)'xyz periodic '//comment
   do i3=0,2*n3+1
      do i2=0,2*n2+1
         do i1=0,2*n1+1

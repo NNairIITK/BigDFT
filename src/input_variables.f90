@@ -155,7 +155,6 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   !local variables
   character(len=7) :: cudagpu
   character(len=100) :: line
-  logical :: exists
   integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj,useGPU
 
   ! Default abscalc variables
@@ -366,7 +365,7 @@ subroutine geopt_input_variables(iproc,filename,in)
   !local variables
   character(len=*), parameter :: subname='geopt_input_variables'
   character(len = 128) :: line
-  integer :: i_stat,ierror,ierrfrc,iline
+  integer :: i_stat,ierror,iline
 
   ! Read the input variables.
   open(unit=1,file=filename,status='old')

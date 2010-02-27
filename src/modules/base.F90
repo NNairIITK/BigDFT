@@ -141,6 +141,15 @@ module module_base
      module procedure c_axpy_simple,c_axpy_double
   end interface
 
+  type :: memstat
+     character(len=36) :: routine,array
+     integer(kind=8) :: memory,peak
+  end type memstat
+
+  ! Save values for memocc.
+  logical :: meminit = .false.
+  type(memstat) :: memloc,memtot
+  integer :: memalloc,memdealloc,memproc
 
   !interface for the memory allocation control, depends on ndebug
   interface memocc

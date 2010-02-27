@@ -66,8 +66,8 @@ subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fil
   !local variables
   character(len=*), parameter :: subname='read_gaussian_information'
   logical :: exists
-  integer :: jproc,i_stat,i_all,ierr,jexpo,iexpo,iat,iorb,jat,icoeff,jcoeff,jorb,j
-  real(gp) :: rx,ry,rz
+  integer :: i_stat,jexpo,iexpo,iat,iorb,jat,icoeff,jcoeff,jorb,j
+  real(gp) :: rx,ry
   real(gp), dimension(4) :: coeff
   logical fillrxyz
 
@@ -157,7 +157,7 @@ subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   real(wp), dimension(G%ncoeff,orbs%norbp*orbs%nspinor), intent(in) :: coeffs
   !local variables
   character(len=*), parameter :: subname='write_gaussian_information'
-  integer :: jproc,i_stat,i_all,ierr,jexpo,iexpo,iat,iorb,jat,icoeff,jcoeff,jorb,j,norb_tot
+  integer :: jproc,i_stat,i_all,ierr,iexpo,iat,iorb,icoeff,jorb,j,norb_tot
   integer, dimension(:,:), allocatable :: gatherarr
   real(gp), dimension(:,:), allocatable :: gaupsi
 
@@ -240,7 +240,7 @@ subroutine gaussian_pswf_basis(iproc,nspin,at,rxyz,G,Gocc)
   character(len=*), parameter :: subname='gaussian_pswf_basis'
   integer, parameter :: ngx=31,noccmax=2,lmax=4,nmax=6,nelecmax=32
   logical :: occeq
-  integer :: i_stat,i_all,iat,ityp,ishell,iexpo,l,i,ig,isat,ictotpsi,norbe,norbsc,ishltmp
+  integer :: i_stat,i_all,iat,ityp,ishell,iexpo,l,i,ig,ictotpsi,norbe,norbsc,ishltmp
   integer :: ityx,ntypesx,ng,nspinor,jat,noncoll,icoeff,iocc,nlo,ispin,m,icoll
   real(gp) :: ek
   integer, dimension(lmax) :: nl
@@ -249,7 +249,7 @@ subroutine gaussian_pswf_basis(iproc,nspin,at,rxyz,G,Gocc)
   integer, dimension(:), allocatable :: iatypex
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: psiatn,locrad
-  real(gp), dimension(:,:), allocatable :: xpt,occupat
+  real(gp), dimension(:,:), allocatable :: xpt
   real(gp), dimension(:,:,:), allocatable :: psiat  
 
   !quick return if possible
@@ -486,7 +486,7 @@ subroutine gaussian_psp_basis(at,rxyz,G)
   type(gaussian_basis), intent(out) :: G  
   !local variables
   character(len=*), parameter :: subname='gaussian_psp_basis'
-  integer :: iat,nshell,ityp,iexpo,l,i,isat,ishell,ig,i_stat,i_all
+  integer :: iat,nshell,ityp,iexpo,l,ishell,i_stat
 
   G%nat=at%nat
   G%rxyz => rxyz
@@ -653,7 +653,7 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   real(gp), dimension(G%ncoeff,norbp), intent(inout) :: coeffs !warning: the precision here should be wp
   !local variables
   character(len=*), parameter :: subname='dual_gaussian_coefficients'
-  integer :: nwork,info,i_stat,i_all,iorb,icoeff,jcoeff
+  integer :: nwork,info,i_stat,i_all,icoeff,jcoeff
   integer, dimension(:), allocatable :: iwork
   real(gp), dimension(:), allocatable :: ovrlp,work
   
@@ -750,7 +750,7 @@ function gauinth(a,l)
   !local variables
   real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
   integer :: p
-  real(gp) :: xfac,prefac,tt,firstprod,sh
+  real(gp) :: xfac,prefac,tt,sh
   !build the prefactor
   prefac=sqrt(a)
   prefac=1.d0/prefac
@@ -780,10 +780,8 @@ subroutine gprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
   real(gp), intent(out) :: ovrlp
   !local variables
   integer, parameter :: nx=3
-  integer :: n1,n2,i1,i2,px,py,pz,qx,qy,qz,i
-  integer :: lx1,lx2,lx3,ly1,ly2,ly3,lz1,lz2,lz3
-  integer :: mx1,mx2,mx3,my1,my2,my3,mz1,mz2,mz3
-  real(gp) :: fx,fy,fz,fa,fb,govrlp,f1,f2,f3,g1,g2,g3
+  integer :: n1,n2,i1,i2,px,py,pz,qx,qy,qz
+  real(gp) :: fx,fy,fz,fa,fb,govrlp
 
   !calculates the number of different couples
   call calc_coeff_inguess(l1,m1,nx,n1,&
@@ -827,7 +825,7 @@ subroutine kinprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
   real(gp), intent(out) :: ovrlp
   !local variables
   integer, parameter :: nx=3
-  integer :: n1,n2,i1,i2,px,py,pz,qx,qy,qz,i
+  integer :: n1,n2,i1,i2,px,py,pz,qx,qy,qz
   real(gp) :: fx,fy,fz,fa,fb,govrlp,kinovrlp,d2fx,d2fy,d2fz
 
   !calculates the number of different couples
@@ -871,7 +869,6 @@ function kinovrlp(a1,a2,d,l1,l2)
   real(gp), intent(in) :: a1,a2,d
   real(gp) :: kinovrlp
   !local variables
-  integer :: p
   real(gp) :: govrlp,fac,ovrlp
 
   !case l1+2
@@ -955,7 +952,7 @@ function gauint(a,c,l)
   !local variables
   real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
   integer :: p
-  real(gp) :: rfac,prefac,xsum,stot,fsum,tt,firstprod
+  real(gp) :: rfac,prefac,stot,fsum,tt,firstprod
   !build the prefactor
   prefac=sqrt(a)
   prefac=1.d0/prefac
@@ -1016,7 +1013,7 @@ function gauint0(a,l)
   !local variables
   real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
   integer :: p
-  real(gp) :: xfac,prefac,tt,firstprod
+  real(gp) :: xfac,prefac,tt
   !build the prefactor
   prefac=sqrt(a)
   prefac=1.d0/prefac
@@ -1148,7 +1145,7 @@ function secondprod1(p,l)
   integer, intent(in) :: p,l
   real(gp) :: secondprod1
   !local variables
-  integer :: i
+  !integer :: i
   real(gp) :: tt,part1,rfac
   part1=rfac(p+1,2*p)
   !divide by the last value
@@ -1169,7 +1166,7 @@ function secondprod2(p,l)
   integer, intent(in) :: p,l
   real(gp) :: secondprod2
   !local variables
-  integer :: i
+  !integer :: i
   real(gp) :: tt,part1,rfac
   part1=rfac(p+1,l-2*p)
   !divide by the last value

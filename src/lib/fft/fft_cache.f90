@@ -73,7 +73,6 @@ contains
       real(kind=8), allocatable :: zin(:,:)
       ! arrays for FFT 
       real(kind=8), allocatable :: z(:,:,:)
-      character(len=10) :: message
 
       nd3=n3+1
       nddat=ndat+1

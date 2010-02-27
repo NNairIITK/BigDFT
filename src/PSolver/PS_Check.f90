@@ -27,14 +27,13 @@ program PS_Check
   real(kind=8), parameter :: acell = 10.d0
   character(len=50) :: chain
   character(len=1) :: geocode
-  character(len=1) :: datacode
   real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
   real(kind=8), pointer :: pkernel(:)
-  real(kind=8) :: hx,hy,hz,max_diff,length,eh,exc,vxc,hgrid,diff_parser,offset
-  real(kind=8) :: ehartree,eexcu,vexcu,diff_par,diff_ser
+  real(kind=8) :: hx,hy,hz,offset
+  real(kind=8) :: ehartree,eexcu,vexcu
   integer :: n01,n02,n03,itype_scf,i_all,i_stat
-  integer :: i1_max,i2_max,i3_max,iproc,nproc,ierr,ispden
-  integer :: n_cell,ixc,n3d,n3p,n3pi,i3xcsh,i3s
+  integer :: iproc,nproc,ierr,ispden
+  integer :: n_cell,ixc
   integer, dimension(4) :: nxyz
 
   call MPI_INIT(ierr)
@@ -306,9 +305,9 @@ contains
     !local variables
     character(len=*), parameter :: subname='compare_with_reference'
     character(len=100) :: message
-    integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,i1_max,i2_max,i3_max,i_all,i_stat,istpoti,i
+    integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,i_all,i_stat,istpoti,i
     integer :: istxc,i1,i2,i3,isp,i3sd
-    real(kind=8) :: eexcu,vexcu,max_diff,ehartree,tt
+    real(kind=8) :: eexcu,vexcu,ehartree
     real(kind=8), dimension(:), allocatable :: test,test_xc
     real(kind=8), dimension(:,:,:,:), allocatable :: rhopot
     real(kind=8), dimension(:), pointer :: xc_temp
@@ -572,9 +571,9 @@ contains
     real(kind=8), dimension(n01,n02,n03), intent(out) :: pot_ion,potential
     real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: density,rhopot
     !local variables
-    integer :: i1,i2,i3,nu,ifx,ify,ifz,i
-    real(kind=8) :: x,x1,x2,x3,y,length,denval,pi,a2,derf,hgrid,factor,r,r2
-    real(kind=8) :: fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt,potion_fac
+    integer :: i1,i2,i3,ifx,ify,ifz,i
+    real(kind=8) :: x1,x2,x3,length,denval,pi,a2,derf,factor,r,r2
+    real(kind=8) :: fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt
 
     if (trim(geocode) == 'P') then
        !parameters for the test functions

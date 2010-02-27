@@ -9,14 +9,14 @@ EXTRA_DIST = \
 PPFILES = \
 	psppar.H
 
-CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* H-spin.out posout* *.prc \
+CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* H2-spin.out posout* *.prc \
 			 fldiff.report
 
 #dependencies
 $(PPFILES): 
 	ln -fs $(top_srcdir)/utils/PSPfiles/HGH/$@
 
-H-spin.out: $(top_builddir)/src/cluster $(PPFILES)
+H2-spin.out: $(top_builddir)/src/cluster $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
@@ -27,5 +27,5 @@ H-spin.out: $(top_builddir)/src/cluster $(PPFILES)
 	  rm -f posinp.xyz ; \
         fi
 
-check: H-spin.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H-spin.out $(top_srcdir)/tests/Refs/H-spin.out.ref | tee fldiff.report
+check: H2-spin.out
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H2-spin.out $(top_srcdir)/tests/Refs/H2-spin.out.ref | tee fldiff.report

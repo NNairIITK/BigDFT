@@ -43,6 +43,18 @@ module minpar
   end type parameterminimization
 
   type(parameterminimization) :: parmin
+
+  ! To be used in lbfgs()
+  real(8) ::ys,a_t
+  integer ::bound,info,nfun,nfev,point,iypt,ispt
+  logical ::finish,new
+
+  ! To be used in mcsrch()
+  integer::infoc
+  logical::brackt,stage1
+  real(8)::dg,dginit,dgtest,dgx,dgy,finit,fx,fy
+  real(8)::a_l,a_u,stmin,stmax,width,width1
+
 end module minpar
 !!***
 
@@ -1401,7 +1413,8 @@ END SUBROUTINE transforce_forfluct
 subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
   use module_base
   use module_types
-  use minpar, only: parameterminimization
+  use minpar, only: parameterminimization,ys,a_t,bound, &
+       & info,nfun,nfev,point,iypt,ispt,finish,new
   implicit none
   integer :: n,m,iproc,iwrite
   type(atoms_data), intent(in) :: at
@@ -1409,10 +1422,8 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
   real(8)::x(n),xc(n),g(n),diag(n),w(n*(2*m+1)+2*m),f
   real(8)::one,zero,gnorm,stp1,xnorm,beta,yr,sq,yy
   integer::npt,cp,i,inmc,iycn,iscn
-  real(8), save::ys,a_t
-  integer, save::bound,info,nfun,nfev,point,iypt,ispt
-  logical, save::finish,new
   data one,zero/1.0d+0,0.0d+0/
+
   if(parmin%iflag==0) then
      call init_lbfgs(at,n,m,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
   endif
@@ -1641,7 +1652,7 @@ end subroutine init_lbfgs
 !! SOURCE
 !!
 subroutine lb1(nfun,gnorm,n,m,x,f,g,a_t,finish,parmin_)
-  use minpar
+  use minpar, only: parameterminimization
   implicit none
   type(parameterminimization) :: parmin_
   integer::nfun,n,m,i
@@ -1704,19 +1715,19 @@ END SUBROUTINE lb1
 subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin)
   use module_base
   use module_types
-  use minpar, only: parameterminimization
+  use minpar, only: parameterminimization,infoc,brackt,stage1,dg,&
+       & dginit,dgtest,dgx,dgy,finit,fx,fy,a_l,a_u,stmin,stmax,width,width1
   implicit none
   type(atoms_data), intent(in) :: at
-  type(parameterminimization)::parmin
-  integer::n,info,nfev
-  real(8)::f,a_t
-  real(8)::x(n),g(n),s(n),wa(n)
-  save
-  integer::infoc,j
-  logical::brackt,stage1,yes
-  real(8)::dg,dgm,dginit,dgtest,dgx,dgxm,dgy,dgym,finit,ftest1,fm,fx,fxm,fy,fym,p5,p66
-  real(8)::a_l,a_u,stmin,stmax,width,width1,xtrapf,zero
-  data p5,p66,xtrapf,zero /0.5d0,0.66d0,4.0d0,0.0d0/
+  type(parameterminimization), intent(inout) :: parmin
+  integer, intent(inout) :: n,info,nfev
+  real(8), intent(inout) :: f,a_t
+  real(8), intent(inout) :: x(n),g(n),s(n),wa(n)
+  logical :: yes
+  integer :: j
+  real(8) :: fm, fxm, fym, dgm, dgxm, dgym, ftest1
+  real(8), parameter :: p5 = 0.5d0, p66 = 0.66d0, xtrapf = 4.0d0, zero = 0.d0
+
   yes=.true.
   if(info==-1) yes=.false.
   if(yes) then

@@ -1,24 +1,31 @@
+module timeData
+  integer, parameter :: ncat=23   ! define timimg categories
+
+  integer :: istart, ittime, ncounters, ncaton!, nskip
+  logical :: parallel,init
+  integer, dimension(ncat+1) :: itsum
+  real(kind=8), dimension(ncat+1) :: timesum
+  real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
+  character(len=10), dimension(ncat) :: pcnames !names of the partial counters, to be assigned
+end module timeData
+
 !the same timing routine but with system_clock (in case of a supported specs)
 subroutine timing(iproc,category,action)
+  use timeData
+
   implicit none
+
   include 'mpif.h'
   !Variables
   integer, intent(in) :: iproc
   character(len=*), intent(in) :: category
   character(len=2), intent(in) :: action      ! possibilities: INitialize, ON, OFf, REsults
   !Local variables
-  logical :: parallel,init
-  integer, parameter :: ncat=23   ! define timimg categories
-  integer :: i,ierr,ii,nproc,ncaton!,nskip
-  integer :: istart,iend,count_rate,count_max,ielapsed,ncounters,itime,ittime
+  integer :: i,ierr,ii,nproc
+  integer :: iend,count_rate,count_max,ielapsed,itime
   !cputime routine gives a real
   !real :: total,total0,time,time0
   real(kind=8) :: pc,total_pc,total
-  character(len=10), dimension(ncat) :: pcnames !names of the partial counters, to be assigned
-  integer, dimension(ncat+1) :: itsum
-  real(kind=8), dimension(ncat+1) :: timesum
-  real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
-  save :: init,itsum,istart,timesum,ittime,parallel,pcnames,pctimes,ncounters,ncaton!,nskip
 
   character(len=14), dimension(ncat), parameter :: cats = (/ &
        'ReformatWaves '    ,  &  !  Reformatting of input waves

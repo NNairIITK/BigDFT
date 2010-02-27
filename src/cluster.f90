@@ -160,7 +160,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   use module_interfaces
   use Poisson_Solver
   use libxc_functionals
-  use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces
+  use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
   use esatto
   use ab6_symmetry
   implicit none
@@ -336,6 +336,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   n2=Glr%d%n2
   n3=Glr%d%n3
 
+  ! A message about dispersion forces.
+  if (iproc == 0) call vdwcorrection_warnings(atoms, in)
+
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   ndegree_ip=16 !default value 
   call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel,&
@@ -387,6 +390,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,phnons,'phnons',subname)
      call ab6_symmetry_get_irreductible_zone(atoms%symObj, irrzon, phnons, &
           & n1i, n2i, n3i, in%nspin, in%nspin, i_stat)
+  else
+     allocate(irrzon(1,2,1+ndebug),stat=i_stat)
+     call memocc(i_stat,irrzon,'irrzon',subname)
+     allocate(phnons(2,1,1+ndebug),stat=i_stat)
+     call memocc(i_stat,phnons,'phnons',subname)
   end if
 
   !allocate ionic potential
@@ -1354,17 +1362,13 @@ contains
        call memocc(i_stat,i_all,'psivirt',subname)
     end if
     
-    if (allocated(irrzon)) then
-       i_all=-product(shape(irrzon))*kind(irrzon)
-       deallocate(irrzon,stat=i_stat)
-       call memocc(i_stat,i_all,'irrzon',subname)
-    end if
-    if (allocated(phnons)) then
-       i_all=-product(shape(phnons))*kind(phnons)
-       deallocate(phnons,stat=i_stat)
-       call memocc(i_stat,i_all,'phnons',subname)
-    end if
+    i_all=-product(shape(irrzon))*kind(irrzon)
+    deallocate(irrzon,stat=i_stat)
+    call memocc(i_stat,i_all,'irrzon',subname)
 
+    i_all=-product(shape(phnons))*kind(phnons)
+    deallocate(phnons,stat=i_stat)
+    call memocc(i_stat,i_all,'phnons',subname)
 
     if (atoms%geocode == 'F') then
        call deallocate_bounds(Glr%bounds,subname)

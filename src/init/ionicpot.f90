@@ -30,9 +30,10 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   integer :: iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
   integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
   real(gp) :: ucvol,rloc,twopitothreehalf,pi,atint,shortlength,charge,eself,rx,ry,rz
-  real(gp) :: fxion,fyion,fzion,dist,fxslf,fyslf,fzslf,fxerf,fyerf,fzerf,cutoff,zero
+  real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff,zero
   real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod,evacancy
-  real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart,Mz,cmassy
+  real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart
+  !real(gp) :: Mz,cmassy
   real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
   !other arrays for the ewald treatment
   real(gp), dimension(:,:), allocatable :: fewald,xred,gion
@@ -486,12 +487,12 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   !local variables
   character(len=*), parameter :: subname='createIonicPotential'
   logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.,efwrite,check_potion=.false.
-  integer :: iat,jat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,jtyp,nspin
+  integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,nspin
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
   integer :: n3d_fake,n3p_fake,n3pi_fake,i3xcsh_fake,i3s_fake
-  real(kind=8) :: hgridh,pi,rholeaked,dist,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
-  real(kind=8) :: tt_tot,rholeaked_tot,eself,potxyz,offset
-  real(wp) :: maxdiff,minr
+  real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
+  real(kind=8) :: tt_tot,rholeaked_tot,potxyz,offset
+  real(wp) :: maxdiff
   real(gp) :: ehart,eexcu,vexcu
   real(dp), dimension(4) :: charges_mpi
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -633,7 +634,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
                  !   stop
                  !end if
                  potion_corr(ind)=potion_corr(ind)+potxyz
-                 !write(18,'(3(i6),i12,3(1x,1pe24.17))')i1,i2,i3,ind,potion_corr(ind),pot_ion(ind),minr
+                 !write(18,'(3(i6),i12,3(1x,1pe24.17))')i1,i2,i3,ind,potion_corr(ind),pot_ion(ind)
               end do
            end do
         end do
@@ -1090,7 +1091,7 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
   real(wp), intent(out) :: potxyz
   !local variables
   integer :: iat,ityp
-  real(wp) :: pi,charge,erf
+  real(wp) :: pi,charge
   real(gp) :: r,sq2rl,rx,ry,rz,derf_val
   
   pi=4.0_wp*atan(1.0_wp)
