@@ -150,6 +150,7 @@ subroutine timing(iproc,category,action)
            exit
         endif
      enddo
+     !print *,'find category',ii,trim(category)
      if (ii.eq.100000) then
         print *, 'ACTION  ',action
         stop 'TIMING CATEGORY NOT DEFINED'

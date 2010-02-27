@@ -108,10 +108,15 @@ program PS_Check
      !calculate the Poisson potential in parallel
      !with the global data distribution (also for xc potential)
 
-     call PSolver(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-          rhopot,pkernel,xc_pot,ehartree,eexcu,vexcu,offset,.false.,ispden)
+     call XC_potential(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+          rhopot,eexcu,vexcu,ispden,xc_pot)
+     call H_potential(geocode,'G',iproc,nproc,n01,n02,n03,hx,hy,hz,&
+          rhopot,pkernel,xc_pot,ehartree,offset,.false.) !optional argument
+!!$     call PSolver(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+!!$          rhopot,pkernel,xc_pot,ehartree,eexcu,vexcu,offset,.false.,ispden)
      
      if (iproc == 0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies:',ehartree,eexcu,vexcu
+     !stop
      if (iproc == 0) then
         !compare the values of the analytic results (nproc == -1 indicates that it is serial)
         call compare(0,-1,n01,n02,n03,1,potential,rhopot,'ANALYTIC')
@@ -247,8 +252,10 @@ contains
     !end do
    
     !perform the calculation in complex, with distributed and gathered distribution
-    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,0,hx,hy,hz,&
-         rhopot,pkernel,rhopot,ehartree,eexcu,vexcu,offset,.false.,1,quiet='YES')
+     call H_potential(geocode,distcode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
+          rhopot,pkernel,rhopot,ehartree,offset,.false.,quiet='YES')
+!!$    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,0,hx,hy,hz,&
+!!$         rhopot,pkernel,rhopot,ehartree,eexcu,vexcu,offset,.false.,1,quiet='YES')
 
     call compare(iproc,-1,n01,n02,n3d,1,potential(istpot),rhopot,'CPLXREAL'//trim(message))
 
@@ -262,9 +269,11 @@ contains
           end do
        end do
 
-    !perform the calculation in complex, with distributed and gathered distribution
-    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,0,hx,hy,hz,&
-         rhopot(1,1,1,2),pkernel,rhopot,ehartree,eexcu,vexcu,offset,.false.,1,quiet='YES')
+       !perform the calculation in complex, with distributed and gathered distribution
+       call H_potential(geocode,distcode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
+            rhopot(1,1,1,2),pkernel,rhopot,ehartree,offset,.false.,quiet='YES')
+!!$       call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,0,hx,hy,hz,&
+!!$            rhopot(1,1,1,2),pkernel,rhopot,ehartree,eexcu,vexcu,offset,.false.,1,quiet='YES')
     
     call compare(iproc,-1,n01,n02,n3d,1,potential(istpot),rhopot(1,1,1,2),'CPLXIMAG'//trim(message))
 
@@ -380,12 +389,20 @@ contains
        istxc=istpot
     end if
 
-    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-         rhopot(1,1,1,1),pkernel,test_xc,ehartree,eexcu,vexcu,offset,.false.,nspden,quiet='yes')
-    
-    !compare the values of the analytic results (no dependence on spin)
-    call compare(iproc,nproc,n01,n02,n3p,1,potential(istpot),rhopot(1,1,i3xcsh+1,1),&
-         'ANACOMPLET '//message)
+     call XC_potential(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+          rhopot(1,1,1,1),eexcu,vexcu,nspden,test_xc)
+     call H_potential(geocode,distcode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
+          rhopot(1,1,1,1),pkernel,rhopot,ehartree,offset,.false.,quiet='yes') !optional argument
+     !compare the values of the analytic results (no dependence on spin)
+     call compare(iproc,nproc,n01,n02,n3p,1,potential(istpot),rhopot(1,1,1,1),&
+          'ANACOMPLET '//message)
+
+!!$    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+!!$         rhopot(1,1,1,1),pkernel,test_xc,ehartree,eexcu,vexcu,offset,.false.,nspden,quiet='yes')
+!!$    
+!!$    !compare the values of the analytic results (no dependence on spin)
+!!$    call compare(iproc,nproc,n01,n02,n3p,1,potential(istpot),rhopot(1,1,i3xcsh+1,1),&
+!!$         'ANACOMPLET '//message)
 
     !compare also the xc_potential
     if (ixc/=0) call compare(iproc,nproc,n01,n02,nspden*n3p,1,xc_temp(istxc:),&
@@ -412,12 +429,38 @@ contains
     end if
 
     !now we can try with the sumpotion=.true. variable
-    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-         rhopot(1,1,1,1),pkernel,pot_ion(istpoti),ehartree,eexcu,vexcu,offset,.true.,nspden,quiet='yes')
+    !if (ixc /= 0) then
+       call XC_potential(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+            rhopot(1,1,1,1),eexcu,vexcu,nspden,test_xc)
+    !else
+    !   eexcu=0.0_gp
+    !   vexcu=0.0_gp
+    !   call dscal(n01*n02*n3p*nspden,0.0_dp,test_xc(1),1)
+    !   !call dscal(n01*n02*n3p*nspden,0.5_dp,rhopot(1,1,1,1),1)
+    !end if
 
+    call H_potential(geocode,distcode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
+          rhopot(1,1,1,1),pkernel,pot_ion(istpoti),ehartree,offset,ixc /= 0,quiet='yes') !optional argument
+    !fill the other part, for spin, polarised
+    if (nspden == 2) then
+       !the starting point is not so simple
+       if (n3d > n3p) then
+          call dcopy(n01*n02*n3p,rhopot(1,1,1,1),1,rhopot(1,1,n3p+1,1),1)
+       else
+          call dcopy(n01*n02*n3p,rhopot(1,1,1,1),1,rhopot(1,1,1,nspden),1)
+       end if
+    end if
+    !spin up and down together with the XC part
+    call axpy(n01*n02*n3p*nspden,1.0_dp,test_xc(1),1,rhopot(1,1,1,1),1)
     !then compare again, but the complete result
-    call compare(iproc,nproc,n01,n02,nspden*n3p,1,test(istpot),&
-         rhopot(1,1,i3xcsh+1,1),'COMPLETE   '//message)
+    call compare(iproc,-1,n01,n02,nspden*n3p,1,test(istpot),&
+         rhopot(1,1,1,1),'COMPLETE   '//message)
+
+!!$    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+!!$         rhopot(1,1,1,1),pkernel,pot_ion(istpoti),ehartree,eexcu,vexcu,offset,.true.,nspden,quiet='yes')
+!!$    !then compare again, but the complete result
+!!$    call compare(iproc,nproc,n01,n02,nspden*n3p,1,test(istpot),&
+!!$         rhopot(1,1,i3xcsh+1,1),'COMPLETE   '//message)
     if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") &
          'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
 
