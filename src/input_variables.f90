@@ -766,47 +766,47 @@ subroutine abscalc_input_variables(iproc,filename,in)
   use module_base
   use module_types
   implicit none
+  !Arguments
   type(input_variables), intent(inout) :: in
-
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
-
-  !local variables
+  !Local variables
+  integer, parameter :: iunit = 112
   integer :: ierror,iline, i
 
   character(len=*), parameter :: subname='abscalc_input_variables'
   integer :: i_stat
 
   ! Read the input variables.
-  open(unit=111,file=filename,status='old')
+  open(unit=iunit,file=filename,status='old')
 
   !line number, to control the input values
   iline=0
 
   !x-absorber treatment (in progress)
 
-  read(111,*,iostat=ierror) in%iabscalc_type
+  read(iunit,*,iostat=ierror) in%iabscalc_type
   call check()
 
 
-  read(111,*,iostat=ierror)  in%iat_absorber
+  read(iunit,*,iostat=ierror)  in%iat_absorber
   call check()
-  read(111,*,iostat=ierror)  in%L_absorber
+  read(iunit,*,iostat=ierror)  in%L_absorber
   call check()
 
   allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)
   call memocc(i_stat,in%Gabs_coeffs,'Gabs_coeffs',subname)
 
-  read(111,*,iostat=ierror)  (in%Gabs_coeffs(i), i=1,2*in%L_absorber +1 )
+  read(iunit,*,iostat=ierror)  (in%Gabs_coeffs(i), i=1,2*in%L_absorber +1 )
   call check()
 
-  read(111,*,iostat=ierror)  in%potshortcut
+  read(iunit,*,iostat=ierror)  in%potshortcut
   call check()
   
-  read(111,*,iostat=ierror)  in%nsteps
+  read(iunit,*,iostat=ierror)  in%nsteps
   call check()
   
-  read(111,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
+  read(iunit,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
 
   if(ierror==0) then
      
@@ -817,7 +817,7 @@ subroutine abscalc_input_variables(iproc,filename,in)
 
   in%c_absorbtion=.true.
 
-  close(unit=111)
+  close(unit=iunit)
 
 contains
 
@@ -872,56 +872,53 @@ subroutine frequencies_input_variables(iproc,filename,in)
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
   !Local variables
+  integer, parameter :: iunit=111
   character(len=100) :: line,string
-  integer :: ierror,iline,i
+  integer :: ierror,iline
 
   ! Read the input variables.
-  open(unit=111,file=filename,status='old')
+  open(unit=iunit,file=filename,status='old')
   !Line number, to control the input values
   iline=0
   !Read in%freq_alpha (possible 1/64)
-  read(111,*,iostat=ierror) line
+  read(unit=iunit,fmt="(a)",iostat=ierror) line
   !Transform the line in case there are slashes (to ease the parsing)
-  do i=1,len(line)
-     if (line(i:i) == '/') then
-        line(i:i) = ':'
-     end if
-  end do
-  read(line,*,iostat=ierror) in%freq_alpha
+  call read_fraction_string(line,in%freq_alpha,ierror)
   if (ierror /= 0) then
-     string=repeat(' ',8)
-     read(line,*,iostat=ierror) string
-     if (ierror == 0) then
-        if (string(2:2)==':') then
-           call read_fraction_string(1,string,in%freq_alpha)
-        else if (string(3:3)==':') then
-           call read_fraction_string(4,string,in%freq_alpha)
-        else
-           print *,'wrong format of the string: '//string
-           ierror=1
-        end if
-     end if
+     print *,'wrong format of the string: '//string
+     ierror=1
   end if
-  call check()
+  call check(iline)
   !Read the order of finite difference scheme
-  read(111,*,iostat=ierror)  in%freq_order
+  read(unit=iunit,fmt=*,iostat=ierror)  in%freq_order
   if (in%freq_order /= 2 .and. in%freq_order /= 3) then
       if (iproc==0) write (*,'(1x,a)') 'Only 2 or 3 is possible for the order scheme'
       stop
   end if
   !Read the index of the method
-  read(111,*,iostat=ierror)  in%freq_method
+  read(unit=iunit,fmt=*,iostat=ierror)  in%freq_method
   if (in%freq_method /= 1) then
       if (iproc==0) write (*,'(1x,a)') '1 for the method to calculate frequencies.'
       stop
   end if
-  call check()
+  call check(iline)
 
-  close(unit=111)
+  close(unit=iunit)
+
+  !Message
+  if (iproc == 0) then
+     write(*,*)
+     write(*,'(1x,a,1pg14.6)') '=F= Step size factor',in%freq_alpha
+     write(*,'(1x,a,i10)')     '=F= Order scheme    ',in%freq_order
+     write(*,'(1x,a,i10)')     '=F= Used method     ',in%freq_method
+  end if
 
 contains
 
-  subroutine check()
+  subroutine check(iline)
+    implicit none
+    !Arguments
+    integer, intent(inout) :: iline
     iline=iline+1
     if (ierror/=0) then
        if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
@@ -1334,7 +1331,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
      !print *,'extra',iat,extra
      call find_extra_info(line,extra)
      !print *,'then',iat,extra
-     call parse_extra_info(iproc,iat,extra,atoms)
+     call parse_extra_info(iat,extra,atoms)
 
      tatonam=trim(symbol)
 !!!     end if
@@ -1497,13 +1494,14 @@ end subroutine find_extra_info
 !!
 !! SOURCE
 !!
-subroutine parse_extra_info(iproc,iat,extra,atoms)
+subroutine parse_extra_info(iat,extra,atoms)
   use module_types
   implicit none
+  !Arguments
+  integer, intent(in) :: iat
   character(len=50), intent(in) :: extra
-  integer, intent(in) :: iat,iproc
   type(atoms_data), intent(out) :: atoms
-  !local variables
+  !Local variables
   character(len=4) :: suffix
   logical :: go
   integer :: ierr,ierr1,ierr2,nspol,nchrg,nsgn
@@ -1743,7 +1741,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
            if (i_stat /= 0) read(line,*) rx,ry,rz,symbol
         end if
         call find_extra_info(line,extra)
-        call parse_extra_info(iproc,iat,extra,atoms)
+        call parse_extra_info(iat,extra,atoms)
 
         tatonam=trim(symbol)
 

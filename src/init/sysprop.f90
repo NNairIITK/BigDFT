@@ -24,7 +24,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,i_all,i_stat,jproc,ikpts
+  integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
 
   call read_system_variables('input.occup',iproc,nproc,in,atoms,radii_cf,nelec,&
        norb,norbu,norbd,iunit)
@@ -95,8 +95,8 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
   character(len=27) :: filename
   character(len=50) :: format
   character(len=100) :: line
-  integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all,ixcpsp,ispinsum,mxpl
-  integer :: ispol,mxchg,ichg,natpol,ichgsum,nsccode,ierror1
+  integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,ixcpsp,ispinsum,mxpl
+  integer :: ispol,mxchg,ichg,ichgsum,nsccode,ierror1
   real(gp) :: rcov,rprb,ehomo,radfine,minrad,maxrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr
@@ -800,7 +800,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
   real(gp), dimension(norb), intent(out) :: occup,spinsgn
 ! Local variables
   integer :: iorb,nt,ne,it,ierror,iorb1,i
-  real(gp) :: rocc,rup,rdown
+  real(gp) :: rocc
   character(len=8) :: string
   character(len=100) :: line
 
@@ -852,22 +852,10 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
               line(i:i) = ':'
            end if
         end do
-        read(line,*,iostat=ierror) iorb,rocc
+        read(line,*,iostat=ierror) iorb,string
+        call read_fraction_string(string,rocc,ierror) 
         if (ierror /= 0) then
-           string=repeat(' ',8)
-           read(line,*,iostat=ierror) iorb,string
-           if (ierror == 0) then
-              if (string(2:2)==':') then
-                 call read_fraction_string(1,string,rocc)
-              else if (string(3:3)==':') then
-                 call read_fraction_string(4,string,rocc)
-              else
-                 print *,'wrong format of the string: '//string
-                 stop
-              end if
-           else
-              exit
-           end if
+           exit
         end if
 
         if (ierror/=0) then

@@ -26,8 +26,6 @@ program frequencies
 
   implicit none
 
-  real(dp), parameter :: Ha_cmm1=219474.6313705_dp                ! 1 Hartree, in cm^-1 (from abinit 5.7.x)
-  real(dp), parameter :: amu_emass=1.660538782d-27/9.10938215d-31 ! 1 atomic mass unit, in electronic mass
   character(len=*), parameter :: subname='frequencies'
   character(len=4) :: cc
   !File unit
@@ -406,7 +404,6 @@ contains
     moves = .false.
     !Test if the file does exist.
     if (iproc == 0) then
-       write(*,*)
        write(*,freq_form) 'Check if the file "frequencies.res" is present.'
     end if
     inquire(file='frequencies.res', exist=exists)

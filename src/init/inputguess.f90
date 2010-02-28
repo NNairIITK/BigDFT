@@ -229,9 +229,9 @@ subroutine readAtomicOrbitals(iproc,at,norbe,norbsc,nspin,nspinor,scorb,norbsc_a
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
   character(len=2) :: symbol
   character(len=20) :: pspatomname
-  integer :: ity,i,j,l,ifile,ng_fake,ierror,iatsc,iat,ipow,lsc,inorbsc
-  integer :: ichg,nsccode,ispol,mxpl,mxchg,i_all,i_stat,ityp,ishell,ictotpsi
-  integer :: norbat,iorbsc_count,niasc,nlsc,iexpo,ig,ishltmp
+  integer :: ity,i,j,l,ifile,ng_fake,ierror,iatsc,iat,lsc,inorbsc
+  integer :: ichg,nsccode,ispol,mxpl,mxchg,i_all,i_stat,ityp,ictotpsi
+  integer :: norbat,iorbsc_count,niasc,nlsc,iexpo,ig
   real(gp) :: rcov,rprb,ehomo
   integer, dimension(nmax,lmax+1) :: neleconf
   integer, dimension(lmax+1) :: nl
@@ -1811,6 +1811,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
      iasctype,natsc,natpol,nspin,spinsgne,psi)
   use module_base
   implicit none
+  !Arguments
   integer, intent(in) :: norbe,norbep,iproc,nproc,nat
   integer, intent(in) :: nvctr_c,nvctr_f
   integer, intent(in) :: ntypes
@@ -1819,11 +1820,11 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
   integer, dimension(nat), intent(in) :: iatype,natpol
   integer, dimension(norbe*nspin), intent(in) :: spinsgne
   real(kind=8), dimension(nvctr_c+7*nvctr_f,norbep*nspin), intent(inout) :: psi
-  !local variables
+  !Local variables
   character(len=*), parameter :: subname='psitospi0'
-  logical :: myorbital,polarised
-  integer :: iatsc,i_all,i_stat,ispin,ipolres,ipolorb,nvctr
-  integer :: iorb,jorb,iat,ity,i
+  logical :: myorbital
+  integer :: i_all,i_stat,nvctr
+  integer :: iorb,jorb,iat,i
   real(kind=8) :: facu,facd
   real(kind=8), dimension(:,:), allocatable :: psi_o
   integer, dimension(2) :: iorbsc,iorbv
@@ -1834,7 +1835,6 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
   !used in case of spin-polarisation, ignored otherwise
   iorbsc(2)=norbe
   iorbv(2)=norbsc+norbe
-
 
   if (iproc ==0) then
      write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
@@ -1897,7 +1897,7 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
   real(gp), dimension(nelecmax), intent(out) :: occupIG
   !local variables
   logical :: polarised
-  integer :: iocc,inl,ipolorb,norbpol_nc,i,l,m,noncoll,icoll,ispin
+  integer :: iocc,ipolorb,norbpol_nc,i,l,m,noncoll,icoll,ispin
   real(gp) :: shelloccup,occshell,occres,rnl
   
   !in the non-collinear case the number of orbitals double
@@ -2131,10 +2131,41 @@ end subroutine write_fraction_string
 
 !!****f* BigDFT/read_fraction_string
 !! FUNCTION
+!!  Here the fraction is indicated by the ':' or '/'
+!! SOURCE
+!!
+subroutine read_fraction_string(string,occ,ierror)
+  use module_base
+  implicit none
+  !Arguments
+  character(len=*), intent(in) :: string
+  real(gp), intent(out) :: occ
+  integer, intent(out) :: ierror
+  !Local variables
+  integer :: num,den,pfr
+
+  !see whether there is a fraction in the string
+  pfr = index(string,':')
+  if (pfr == 0) pfr = index(string,'/')
+  if (pfr == 0) then
+     read(string,*,iostat=ierror) occ
+  else
+     read(string(1:pfr-1),*,iostat=ierror) num
+     read(string(pfr+1:),*,iostat=ierror) den
+     if (ierror == 0) occ=real(num,gp)/real(den,gp)
+  end if
+  !Value by defaut
+  if (ierror /= 0) occ = huge(1_gp)
+end subroutine read_fraction_string
+!!***
+
+
+!!****f* BigDFT/read_fraction_string_old
+!! FUNCTION
 !!  Here the fraction is indicated by the :
 !! SOURCE
 !!
-subroutine read_fraction_string(l,string,occ)
+subroutine read_fraction_string_old(l,string,occ)
   use module_base
   implicit none
   integer, intent(in) :: l
@@ -2156,7 +2187,7 @@ subroutine read_fraction_string(l,string,occ)
   else
      read(string,*)occ
   end if
-end subroutine read_fraction_string
+end subroutine read_fraction_string_old
 !!***
 
 
@@ -2174,7 +2205,7 @@ subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   real(gp), dimension(nelecmax), intent(out) :: aocc
   !local variables
   character(len=20), dimension(2*(2*lmax-1)) :: tmp
-  integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,niasc,lsc,j,ist,ierror
+  integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,lsc,j,ist,ierror
   logical, dimension(4,2) :: scorb
   integer, dimension(lmax) :: nl,nlsc
   real(gp), dimension(2*(2*lmax-1),noccmax,lmax) :: allocc
@@ -2224,7 +2255,7 @@ subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
      !read the different atomic occupation numbers
      read(string(ist:min(ist+49,99)),*,iostat=ierror)(tmp(j),j=1,nspin*noncoll*(2*l-1))
      do j=1,nspin*noncoll*(2*l-1)
-        call read_fraction_string(l,tmp(j),allocc(j,nl(l),l))
+        call read_fraction_string_old(l,tmp(j),allocc(j,nl(l),l))
      end do
      if (ierror /= 0) then
         write(*,*)'An error occured while reading the electronic configuration. Check the correct spin value',&

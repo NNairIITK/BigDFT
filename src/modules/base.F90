@@ -67,8 +67,10 @@ module module_base
   logical :: DistProjApply=.true.
 
   ! Physical constants.
-  real(gp), parameter :: bohr2ang = 0.5291772108_gp !1 AU in angstroem
-  real(gp), parameter :: ha2ev = 27.21138386_gp !1 ha in eV
+  real(gp), parameter :: bohr2ang = 0.5291772108_gp                     ! 1 AU in angstroem
+  real(gp), parameter :: ha2ev = 27.21138386_gp                         ! 1 Ha in eV
+  real(gp), parameter :: Ha_cmm1=219474.6313705_gp                      ! 1 Hartree, in cm^-1 (from abinit 5.7.x)
+  real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp ! 1 atomic mass unit, in electronic mass
 
   !Memory profiling
   type :: memstat
