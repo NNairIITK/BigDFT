@@ -38,7 +38,6 @@ program frequencies
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
   type(restart_objects) :: rst
-  type(orbitals_data) :: orbs
   !Atomic coordinates, forces
   real(gp), dimension(:), allocatable :: fxyz
   real(gp), dimension(:,:), allocatable :: rpos
@@ -52,7 +51,7 @@ program frequencies
   real(gp), dimension(:,:), allocatable :: energies
   real(gp), dimension(:,:,:), allocatable :: forces
   real(gp), dimension(3) :: freq_step
-  integer :: k,km,nelec,ii,jj,imoves,order,n_order
+  integer :: k,km,ii,jj,imoves,order,n_order
   logical :: exists
  
   ! Start MPI in parallel version
@@ -61,11 +60,14 @@ program frequencies
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-  ! Initialize memory counting
-  call memocc(0,iproc,'count','start')
-
   ! Welcome screen
   if (iproc == 0) call print_logo()
+
+  ! Initialize memory counting
+  !call memocc(0,iproc,'count','start')
+
+  call read_input_variables(iproc, "posinp", "input.dft", "input.kpt", &
+       & "input.geopt", "input.perf", inputs, atoms, rxyz)
 
   ! Read all input files.
   inquire(file="input.freq",exist=exists)
@@ -75,8 +77,6 @@ program frequencies
      stop
   end if
   call frequencies_input_variables(iproc,'input.freq',inputs)
-  call read_input_variables(iproc, "posinp", "input.dft", "input.kpt", &
-       & "input.geopt", inputs, atoms, rxyz)
 
   !Order of the finite difference scheme
   order = inputs%freq_order
@@ -499,7 +499,7 @@ contains
     real(gp), dimension(:), intent(in), optional :: amu
     !Local variables
     integer, parameter :: iunit = 15
-    real(gp), dimension(:,:), allocatable :: fpos
+
     if (km == 0 .and. &
         .not.(present(n_order).and.present(freq_step).and.present(amu))) then
         if (iproc == 0) write(*,*) "Bug for use of frequencies_write_restart"

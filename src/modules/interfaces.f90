@@ -32,7 +32,7 @@
 !!    Luigi Genovese, Damien Caliste
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2010 CEA
+!!    Copyright (C) 2007-2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -121,14 +121,14 @@ module module_interfaces
        real(gp), dimension(3), intent(out) :: shift
      end subroutine system_size
 
-     subroutine read_input_variables(iproc,posinp, dft, kpt, geopt, in,atoms,rxyz)
+     subroutine read_input_variables(iproc,posinp, file_dft, file_kpt, file_geopt, file_perf, inputs,atoms,rxyz)
        use module_base
        use module_types
        implicit none
        character(len=*), intent(in) :: posinp
-       character(len=*), intent(in) :: dft, geopt, kpt
+       character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_perf
        integer, intent(in) :: iproc
-       type(input_variables), intent(out) :: in
+       type(input_variables), intent(out) :: inputs
        type(atoms_data), intent(out) :: atoms
        real(gp), dimension(:,:), pointer :: rxyz
      end subroutine read_input_variables

@@ -2,7 +2,7 @@
 !! FUNCTION
 !!    Display the logo of BigDFT 
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 BigDFT group 
+!!    Copyright (C) 2007-2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -58,56 +58,61 @@ end subroutine print_logo
 
 !!****f* BigDFT/read_input_variables
 !! FUNCTION
-!!    Do all initialisation for all different files of
-!!    BigDFT. Set default values if not any.
+!!    Do all initialisation for all different files of BigDFT. 
+!!    Set default values if not any.
+!!    Initialize memocc
 !! SOURCE
 !!
-subroutine read_input_variables(iproc,posinp, file_dft, file_kpt, &
-     & file_geopt, in,atoms,rxyz)
+subroutine read_input_variables(iproc,posinp, &
+     & file_dft, file_kpt, file_geopt, file_perf, inputs,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_variables
 
   implicit none
 
+  !Arguments
   character(len=*), intent(in) :: posinp
-  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt
+  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_perf
   integer, intent(in) :: iproc
-  type(input_variables), intent(out) :: in
+  type(input_variables), intent(out) :: inputs
   type(atoms_data), intent(out) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
-
+  !Local variables
   logical :: exists
   real(gp) :: tt
   integer :: iat
   
+  ! Read performance input variables (if given)
+  call perf_input_variables(iproc,file_perf,inputs)
+
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
 
   ! Read dft input variables
-  call dft_input_variables(iproc,file_dft,in,atoms%symObj)
+  call dft_input_variables(iproc,file_dft,inputs,atoms%symObj)
 
-  ! read k-points input variables (if given)
-  call kpt_input_variables(iproc,file_kpt,in,atoms)
+  ! Read k-points input variables (if given)
+  call kpt_input_variables(iproc,file_kpt,inputs,atoms)
 
   ! Read geometry optimisation option
   inquire(file=file_geopt,exist=exists)
   if (exists) then
-     call geopt_input_variables(iproc,file_geopt,in)
+     call geopt_input_variables(iproc,file_geopt,inputs)
   else
-     call geopt_input_variables_default(in)
+     call geopt_input_variables_default(inputs)
   end if
 
   ! Shake atoms if required.
-  if (in%randdis > 0.d0) then
+  if (inputs%randdis > 0.d0) then
      do iat=1,atoms%nat
         if (atoms%ifrztyp(iat) == 0) then
            call random_number(tt)
-           rxyz(1,iat)=rxyz(1,iat)+in%randdis*tt
+           rxyz(1,iat)=rxyz(1,iat)+inputs%randdis*tt
            call random_number(tt)
-           rxyz(2,iat)=rxyz(2,iat)+in%randdis*tt
+           rxyz(2,iat)=rxyz(2,iat)+inputs%randdis*tt
            call random_number(tt)
-           rxyz(3,iat)=rxyz(3,iat)+in%randdis*tt
+           rxyz(3,iat)=rxyz(3,iat)+inputs%randdis*tt
         end if
      enddo
   end if
@@ -155,6 +160,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   !local variables
   character(len=7) :: cudagpu
   character(len=100) :: line
+  logical :: exists
   integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj,useGPU
 
   ! Default abscalc variables
@@ -169,6 +175,13 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   nullify(in%wkpt)
 
   ! Read the input variables.
+  inquire(file=trim(filename),exist=exists)
+  if (.not.exists) then
+      write(*,*) "The file 'input.dft' does not exist!"
+      stop
+  end if
+
+  ! Open the file
   open(unit=1,file=filename,status='old')
 
   !line number, to control the input values
@@ -485,8 +498,7 @@ end subroutine geopt_input_variables
 
 !!****f* BigDFT/kpt_input_variables
 !! FUNCTION
-!!    Read the input variables needed for the geometry optimisation
-!!    Every argument should be considered as mandatory
+!!    Read the input variables needed for the k points generation
 !! SOURCE
 !!
 subroutine kpt_input_variables(iproc,filename,in,atoms)
@@ -605,6 +617,85 @@ contains
   end subroutine check
 
 end subroutine kpt_input_variables
+!!***
+
+
+!!****f* BigDFT/perf_input_variables
+!! FUNCTION
+!!    Read the input variables which can be used for performances
+!! SOURCE
+!!
+subroutine perf_input_variables(iproc,filename,inputs)
+  use module_base
+  use module_types
+  use defs_basis
+  implicit none
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc
+  type(input_variables), intent(inout) :: inputs
+  !local variables
+  character(len=*), parameter :: subname='perf_input_variables'
+  character(len=10) :: line
+  logical :: exists
+  integer :: iline,ierror,ii
+
+  ! Set default values.
+  !Debug option (used for memocc mainly)
+  inputs%debug = .false.
+  memdebug = inputs%debug
+  !Cache size for FFT
+  inputs%ncache_fft = 8*1024
+
+  !Check if the file is present
+  inquire(file=trim(filename),exist=exists)
+  if (.not. exists) then
+     return
+  end if
+
+  !Read the file
+  open(unit=1,file=filename,status='old')
+
+  !line number, to control the input values
+  iline=0
+
+  read(1,*,iostat=ierror) line
+  call check()
+
+  if (trim(line) == "debug" .or. trim(line) == "Debug" .or. trim(line) == "DEBUG") then
+     inputs%debug = .true.
+     memdebug = inputs%debug
+  else if (index(line,"fftcache") /= 0 .or. index(line,"FFTCACHE") /= 0) then
+      ii = index(line,"fftcache")  + index(line,"FFTCACHE") + 8 
+     read(line(ii:),*) inputs%ncache_fft
+  end if
+
+  close(unit=1,iostat=ierror)
+
+  ! Output
+  if (iproc == 0) then
+     write(*,*)
+     write(*, "(1x,a)") "Performance options (file 'input.perf'):"
+     if (inputs%debug) then
+        write(*, "(1x,a,3x,a)") "|","Debug option enable"
+     else
+        write(*, "(1x,a,3x,a)") "|","Debug option disable"
+     end if
+     write(*,*)
+  end if
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  end subroutine check
+
+end subroutine perf_input_variables
 !!***
 
 
@@ -752,15 +843,15 @@ end subroutine abscalc_input_variables
 !!    freq_method: 1 - systematic moves of atoms over each direction
 !! SOURCE
 !!
-subroutine frequencies_input_variables_default(in)
+subroutine frequencies_input_variables_default(inputs)
   use module_base
   use module_types
   implicit none
-  type(input_variables), intent(out) :: in
+  type(input_variables), intent(out) :: inputs
 
-  in%freq_alpha=1.d0/real(64,kind(1.d0))
-  in%freq_order=2
-  in%freq_method=1
+  inputs%freq_alpha=1.d0/real(64,kind(1.d0))
+  inputs%freq_order=2
+  inputs%freq_method=1
 
 end subroutine frequencies_input_variables_default
 !!***
@@ -931,16 +1022,18 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   ! Test the name directly
   if (.not. file_exists) then
      inquire(FILE = file, EXIST = file_exists)
-     if (file_exists) write(filename, "(A)") file
-     l = len(file)
-     if (file(l-3:l) == ".xyz") then
-        write(atoms%format, "(A)") "xyz"
-     else if (file(l-5:l) == ".ascii") then
-        write(atoms%format, "(A)") "ascii"
-     else
-        write(*,*) "Atomic input file '" // trim(file) // "', format not recognised."
-        write(*,*) " File should be *.ascii or *.xyz."
-        stop
+     if (file_exists) then
+         write(filename, "(A)") file
+         l = len(file)
+         if (file(l-3:l) == ".xyz") then
+            write(atoms%format, "(A)") "xyz"
+         else if (file(l-5:l) == ".ascii") then
+            write(atoms%format, "(A)") "ascii"
+         else
+            write(*,*) "Atomic input file '" // trim(file) // "', format not recognised."
+            write(*,*) " File should be *.ascii or *.xyz."
+            stop
+         end if
      end if
   end if
 

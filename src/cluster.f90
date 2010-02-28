@@ -110,6 +110,7 @@
         call memocc(i_stat,i_all,'eval',subname)
 
         call deallocate_wfd(rst%Glr%wfd,subname)
+
         !finalize memory counting (there are still the positions and the forces allocated)
         call memocc(0,0,'count','stop')
 

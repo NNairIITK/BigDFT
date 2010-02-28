@@ -84,7 +84,7 @@ program PSolver_Program
   end if
 
   !initialize memory counting
-  call memocc(0,iproc,'count','start')
+  !call memocc(0,iproc,'count','start')
 
   !Step size
   n_cell = max(n01,n02,n03)

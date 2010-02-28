@@ -41,7 +41,7 @@ program PS_Check
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
   !initialize memory counting and timings
-  call memocc(0,iproc,'count','start')
+  !call memocc(0,iproc,'count','start')
   call timing(iproc,'parallel      ','IN')
 
   !the first proc read the data and then send them to the others

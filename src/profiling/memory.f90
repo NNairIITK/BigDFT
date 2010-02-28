@@ -9,8 +9,7 @@
 !!      i_all=-product(shape(stuff))*kind(stuff)
 !!      deallocate(stuff,stat=i_stat)
 !!      call memocc(i_stat,i_all,'stuff','dosome')
-!!   The counters are initialized with:
-!!      call memocc(0,iproc,'count','start') (iproc = mpi rank, nproc=mpi size)
+!!   The counters are initialized once by the first allocation
 !!   and stopped with:
 !!      call memocc(0,0,'count','stop')
 !!   At the end of the calculation a short report is printed on the screen,
@@ -24,7 +23,7 @@
 !!                a routine at the end parses the file
 !!     == .false. compact format
 !! COPYRIGHT
-!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2010
+!!    Copyright (C) 2007-2010, BigDFT group (Luigi Genovese)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -34,7 +33,7 @@
 subroutine memory_occupation(istat,isize,array,routine)
 
   use module_base, only: memorylimit,verbose,memstat,memloc,memtot,&
-       & memalloc,memdealloc,memproc,meminit
+       & memalloc,memdealloc,memproc,meminit,memdebug
 
   implicit none
 
@@ -43,46 +42,46 @@ subroutine memory_occupation(istat,isize,array,routine)
   character(len=*), intent(in) :: array,routine
 
 ! Local variables
-  logical, parameter :: memdebug=.false.
+  integer :: ierr
 
   include 'mpif.h'
 
-  integer :: ierr
-
   !print *,memproc,array,routine
 
-  ! Don't use memory profiling if not initialised.
-  if (.not.meminit .and. (array /= 'count' .or. routine /= 'start')) return
+  ! Initialised first
+  if (.not.meminit) then
+     memtot%memory=int(0,kind=8)
+     memtot%peak=int(0,kind=8)
+     memalloc=0
+     memdealloc=0
+
+     memloc%routine='routine'
+     memloc%array='array'
+     memloc%memory=int(0,kind=8) !fake initialisation to print the first routine
+     memloc%peak=int(0,kind=8)
+
+     !Use MPI to have the mpi rank
+     call MPI_COMM_RANK(MPI_COMM_WORLD,memproc,ierr)
+
+     !open the writing file for the root process
+     if (memproc == 0 .and. verbose >= 2) then
+        open(unit=98,file='malloc.prc',status='unknown')
+        if (memdebug) then
+           write(98,'(a,t40,a,t70,4(1x,a12))')&
+                '(Data in KB) Routine','Array name    ',&
+                'Array size','Total Memory'
+        else
+           write(98,'(a,t40,a,t70,4(1x,a12))')&
+                '(Data in KB) Routine','Peak Array    ',&
+                'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
+        end if
+     end if
+     meminit = .true.
+  end if
 
   select case(array)
   case('count')
-     if (routine=='start') then
-        memtot%memory=int(0,kind=8)
-        memtot%peak=int(0,kind=8)
-        memalloc=0
-        memdealloc=0
-
-        memloc%routine='routine'
-        memloc%array='array'
-        memloc%memory=int(0,kind=8) !fake initialisation to print the first routine
-        memloc%peak=int(0,kind=8)
-
-        memproc=isize
-        !open the writing file for the root process
-        if (memproc == 0 .and. verbose >= 2) then
-           open(unit=98,file='malloc.prc',status='unknown')
-           if (memdebug) then
-              write(98,'(a,t40,a,t70,4(1x,a12))')&
-                   '(Data in KB) Routine','Array name    ',&
-                   'Array size','Total Memory'
-           else
-              write(98,'(a,t40,a,t70,4(1x,a12))')&
-                   '(Data in KB) Routine','Peak Array    ',&
-                   'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
-           end if
-        end if
-        meminit = .true.
-     else if (routine=='stop' .and. memproc==0) then
+     if (routine=='stop' .and. memproc==0) then
         if (verbose >= 2) then
            write(98,'(a,t40,a,t70,4(1x,i12))')&
              trim(memloc%routine),trim(memloc%array),&
@@ -111,6 +110,10 @@ subroutine memory_occupation(istat,isize,array,routine)
         else
            call memory_malloc_check(memdebug,memalloc,memdealloc)
         end if
+     else
+         write(*,*) "memocc: ",array," ",routine
+         write(*,"(a,i0,a)") "Error[",memproc,"]: Use memocc and the word 'count' only with the word 'stop'."
+         stop
      end if
 
   case default

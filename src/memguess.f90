@@ -40,11 +40,7 @@ program memguess
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:,:), pointer :: rxyz
   real(kind=8), dimension(:,:), allocatable :: radii_cf
-  real(kind=8), dimension(:,:,:), allocatable :: psiat
-  real(kind=8), dimension(:,:), allocatable :: xp, occupat
-  integer, dimension(:,:), allocatable :: nl
   logical, dimension(:,:,:), allocatable :: scorb
-  integer, dimension(:), allocatable :: ng
   real(kind=8), dimension(:), allocatable :: locrad
   !! By Ali
   integer ::ierror
@@ -140,13 +136,13 @@ program memguess
 
 
 
-  !initialize memory counting
-  call memocc(0,0,'count','start')
-
   !welcome screen
   call print_logo()
 
   if (convert) then
+     !initialize memory counting
+     !call memocc(0,0,'count','start')
+
      !read number of atoms
      call read_atomic_file('posinp',0,atoms,rxyz)
 
@@ -156,7 +152,9 @@ program memguess
      write(*,*)' ...done'
   else
      call read_input_variables(0, "posinp", "input.dft", "input.kpt", &
-          & "input.geopt", in, atoms, rxyz)
+          & "input.geopt", "input.dft", in, atoms, rxyz)
+     !initialize memory counting
+     !call memocc(0,0,'count','start')
   end if
 
   call print_input_parameters(in,atoms)
@@ -1047,7 +1045,7 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
 
 end subroutine compare_data_and_gflops
 
-!!****f* BigDFT/read_input_variables
+!!****f* BigDFT/read_input_variables_old
 !! FUNCTION
 !!    Read the input variables in the file 'input.dat', old format.
 !! SOURCE

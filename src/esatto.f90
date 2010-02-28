@@ -163,12 +163,13 @@ contains
   end subroutine inizializza
 
 
-  integer function binary_search( dval, dlist,  len)
-    integer len
-    real(8) dval
+  integer function binary_search(dval, dlist, len)
+    !Arguments
+    integer :: len
+    real(8) :: dval
     real(8) :: dlist(1:len)
-
-    integer  bottom , top , middle, result
+    !Local variables
+    integer :: bottom , top , middle
     
     if (dval < dlist (1) ) then
        binary_search = 0
@@ -251,12 +252,14 @@ contains
 
 
     subroutine RiflettivitaSub( E , Ref, Trasm)
-      real(gp) E 
-      complex(gp) :: Ref(0:nls-1,0:nls-1), Trasm(0:nls-1,0:nls-1)
-
+      !Arguments
+      real(gp) :: E 
+      complex(gp), intent(out) :: Ref(0:nls-1,0:nls-1), Trasm(0:nls-1,0:nls-1)
+      !Local variables
       complex(gp), target ::  K(0:nls-1)
-      integer i,j
-      complex(gp) UIC 
+      integer :: i
+      complex(gp) :: UIC 
+
       UIC=(0.0,1.0_gp)
 
       call getKs(RMts,E,K, .false. )
@@ -324,7 +327,7 @@ contains
      complex(gp) ::  dE_dza(0:nls-1,0:nls-1)
  
      complex(gp) :: K2(0:nls-1)
-     integer i,j
+     integer :: i
 
      hh=(R2-R1)/2.0
      call  getHam2ham(R1 , tf , 2.0_gp ) 

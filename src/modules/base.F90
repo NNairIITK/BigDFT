@@ -70,6 +70,30 @@ module module_base
   real(gp), parameter :: bohr2ang = 0.5291772108_gp !1 AU in angstroem
   real(gp), parameter :: ha2ev = 27.21138386_gp !1 ha in eV
 
+  !Memory profiling
+  type :: memstat
+     character(len=36) :: routine,array
+     integer(kind=8) :: memory,peak
+  end type memstat
+
+  ! Save values for memocc.
+  logical :: meminit = .false.
+  type(memstat) :: memloc,memtot
+  integer :: memalloc,memdealloc,memproc
+  !Debug option for memocc
+  logical :: memdebug=.false.
+
+  !interface for the memory allocation control, depends on ndebug
+  interface memocc
+     module procedure mo_dp1,mo_dp2,mo_dp3,mo_dp4,mo_dp5,mo_dp6,mo_dp7,&
+          mo_sp1,mo_sp2,mo_sp3,mo_sp4,mo_sp5,mo_sp6,mo_sp7,&
+          mo_i1,mo_i2,mo_i3,mo_i4,mo_i5,mo_i6,mo_i7,&
+          mo_l1,mo_l2,mo_l3,mo_l4,mo_l5,mo_l6,mo_l7,&
+          mo_c1, &
+          memocc_internal  !central routine to be used for deallocation
+  end interface
+
+
   !interface for MPI_ALLREDUCE routine
   interface mpiallred
      module procedure mpiallred_int,mpiallred_real,mpiallred_double
@@ -139,26 +163,6 @@ module module_base
   end interface
   interface c_axpy
      module procedure c_axpy_simple,c_axpy_double
-  end interface
-
-  type :: memstat
-     character(len=36) :: routine,array
-     integer(kind=8) :: memory,peak
-  end type memstat
-
-  ! Save values for memocc.
-  logical :: meminit = .false.
-  type(memstat) :: memloc,memtot
-  integer :: memalloc,memdealloc,memproc
-
-  !interface for the memory allocation control, depends on ndebug
-  interface memocc
-     module procedure mo_dp1,mo_dp2,mo_dp3,mo_dp4,mo_dp5,mo_dp6,mo_dp7,&
-          mo_sp1,mo_sp2,mo_sp3,mo_sp4,mo_sp5,mo_sp6,mo_sp7,&
-          mo_i1,mo_i2,mo_i3,mo_i4,mo_i5,mo_i6,mo_i7,&
-          mo_l1,mo_l2,mo_l3,mo_l4,mo_l5,mo_l6,mo_l7,&
-          mo_c1, &
-          memocc_internal  !central routine to be used for deallocation
   end interface
 
   contains

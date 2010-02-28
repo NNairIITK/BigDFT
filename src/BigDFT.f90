@@ -23,8 +23,7 @@ program BigDFT
 
   implicit none
   character(len=*), parameter :: subname='BigDFT'
-  character(len=20) :: units
-  integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode
+  integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
   integer ::  ncount_bigdft
   real(gp) :: etot,sumx,sumy,sumz
   logical :: exist_list
@@ -32,17 +31,13 @@ program BigDFT
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
   type(restart_objects) :: rst
-  character(len=20), dimension(:), allocatable :: atomnames
   character(len=50), dimension(:), allocatable :: arr_posinp
   character(len=60)  :: filename
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
-  integer :: npr,iam,iconfig,nconfig
-  integer  :: nfluct
-  real(gp) :: fluctsum
+  integer :: iconfig,nconfig
 
- 
   ! Start MPI in parallel version
   !in the case of MPIfake libraries the number of processors is automatically adjusted
   call MPI_INIT(ierr)
@@ -75,15 +70,15 @@ program BigDFT
 
   do iconfig=1,nconfig
 
-     !initialize memory counting
-     call memocc(0,iproc,'count','start')
-
      !welcome screen
      if (iproc==0) call print_logo()
 
      ! Read all input files.
      call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
-          & "input.dft", "input.kpt", "input.geopt", inputs, atoms, rxyz)
+          & "input.dft", "input.kpt", "input.geopt", "input.perf", inputs, atoms, rxyz)
+
+     !initialize memory counting
+     !call memocc(0,iproc,'count','start')
 
      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fxyz,'fxyz',subname)
