@@ -215,56 +215,33 @@ size_t jg = get_global_id(1);\n\
 {\n\
 const size_t i2 = get_local_id(0);\n\
 const size_t j2 = get_local_id(1);\n\
-size_t igt = get_group_id(0);\n\
-size_t jgt = get_group_id(1);\n\
-size_t jb;\n\
+ptrdiff_t igt = get_group_id(0);\n\
+ptrdiff_t jgt = get_group_id(1);\n\
+ptrdiff_t jb;\n\
 size_t ioff;\n\
 //if data are ill dimentioned last block recomputes part of the data\n\
 jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
 ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
-igt = ig - i2 + j2;\n\
+igt = ig - i2 + j2 - FILTER_WIDTH/2 - 4;\n\
 jgt = jg - j2 + i2;\n\
 //If I'm on the outside, select a border element to load\n\
 ioff = i2*(2*FILTER_WIDTH+2*SIZE_I+1) + j2;\n\
-if(j2 < FILTER_WIDTH/2)\n\
-  { if (igt < FILTER_WIDTH/2) {\n\
-      tmp_1[ioff]=0.0;\n\
-      tmp_1[ioff+FILTER_WIDTH+SIZE_I]=0.0;\n\
-        }\n\
-    else { \n\
-      jb = igt - FILTER_WIDTH/2 - 4; \n\
-      if (jb < 0) {\n\
-        tmp_1[ioff]=0.0;\n\
-        tmp_1[ioff+FILTER_WIDTH+SIZE_I]=0.0;\n\
-      } else {\n\
-        tmp_1[ioff]=psi[jgt+jb*ndat];\n\
-        tmp_1[ioff+FILTER_WIDTH+SIZE_I]=psi[jgt+(jb+n-7)*ndat];\n\
-      }\n\
-    }\n\
-  }\n\
-if (j2 >= SIZE_I - FILTER_WIDTH/2)\n\
-  { if (igt >= n - FILTER_WIDTH/2){\n\
-      tmp_1[ioff+FILTER_WIDTH]=0.0;\n\
-      tmp_1[ioff+2*FILTER_WIDTH+SIZE_I]=0.0;\n\
-    }\n\
-    else {\n\
-      jb = igt + FILTER_WIDTH/2 - 4 ;\n\
-      if (jb >= n-3) {\n\
-        tmp_1[ioff+FILTER_WIDTH]=0.0;\n\
-        tmp_1[ioff+2*FILTER_WIDTH+SIZE_I]=0.0;\n\
-      } else {\n\
-        tmp_1[ioff+FILTER_WIDTH]=psi[jgt+jb*ndat];\n\
-        tmp_1[ioff+2*FILTER_WIDTH+SIZE_I]=psi[jgt+(jb+n-7)*ndat];\n\
-      }\n\
-    }\n\
-  }\n\
-//Load the elements I am to calculate\n\
-if(igt < 4 || igt >= n - 3) {\n\
-  tmp_1[ioff+FILTER_WIDTH/2]=0.0;\n\
-  tmp_1[ioff+FILTER_WIDTH+SIZE_I+FILTER_WIDTH/2]=0.0;\n\
+if( igt < 0 ) {\n\
+  tmp_1[ioff] = 0.0;\n\
+  tmp_1[ioff+FILTER_WIDTH+SIZE_I] = 0.0;\n\
 } else {\n\
-  tmp_1[ioff+FILTER_WIDTH/2] = psi[jgt+(igt-4)*ndat];\n\
-  tmp_1[ioff+FILTER_WIDTH+SIZE_I+FILTER_WIDTH/2]= psi[jgt+(igt-4+n-7)*ndat];\n\
+  tmp_1[ioff] = psi[jgt+igt*ndat];\n\
+  tmp_1[ioff+FILTER_WIDTH+SIZE_I] = psi[jgt+(igt+n-7)*ndat];\n\
+}\n\
+igt += SIZE_I;\n\
+if( j2 < SIZE_I - FILTER_WIDTH){\n\
+  if ( igt >=n-7 ) {\n\
+    tmp_1[ioff+SIZE_I] = 0.0;\n\
+    tmp_1[ioff+FILTER_WIDTH+2*SIZE_I] = 0.0;\n\
+  } else {\n\
+    tmp_1[ioff+SIZE_I] = psi[jgt+igt*ndat];\n\
+    tmp_1[ioff+FILTER_WIDTH+2*SIZE_I] = psi[jgt+(igt+n-7)*ndat];\n\
+  }\n\
 }\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 ioff = j2*(2*FILTER_WIDTH+2*SIZE_I+1) + FILTER_WIDTH/2+i2;\n\
