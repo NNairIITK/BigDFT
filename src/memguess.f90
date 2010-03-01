@@ -43,7 +43,8 @@ program memguess
   logical, dimension(:,:,:), allocatable :: scorb
   real(kind=8), dimension(:), allocatable :: locrad
   !! By Ali
-  integer ::ierror
+  integer :: ierror
+
 ! Get arguments
 
   call getarg(1,tatonam)
@@ -152,7 +153,7 @@ program memguess
      write(*,*)' ...done'
   else
      call read_input_variables(0, "posinp", "input.dft", "input.kpt", &
-          & "input.geopt", "input.dft", in, atoms, rxyz)
+          & "input.geopt", "input.perf", in, atoms, rxyz)
      !initialize memory counting
      !call memocc(0,0,'count','start')
   end if

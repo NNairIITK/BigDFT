@@ -241,8 +241,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
   scorb(:,:,:)=.false.
   do iat=1,at%nat
      ity=at%iatype(iat)
-     call count_atomic_shells(lmax+1,noccmax,nelecmax,nspin,nspinor,&
-          at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(lmax+1,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
      norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
 
      norbe=norbe+norbat
@@ -359,8 +358,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
   count_shells: do iat=1,at%nat
      !print *,'atom,aocc',iat,at%aocc(1:nelecmax,iat)
      ity=at%iatype(iat)
-     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,orbse%nspinor,&
-          at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,orbse%nspinor,at%aocc(1,iat),occup,nl)
      G%nshell(iat)=(nl(1)+nl(2)+nl(3)+nl(4))
      G%nshltot=G%nshltot+G%nshell(iat)
      !check the occupation numbers and the atoms type
@@ -409,8 +407,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
      ity=at%iatype(iat)
      ityx=iatypex(iat)
      ishltmp=0
-     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,orbse%nspinor,&
-          at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,orbse%nspinor,at%aocc(1,iat),occup,nl)
      if (ityx > ntypesx) then
         if (iproc == 0 .and. verbose > 1) then
            write(*,'(1x,a,a6,a)')&
@@ -507,8 +504,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 
      ity=at%iatype(iat)
      ityx=iatypex(iat)
-     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,orbse%nspinor,&
-          at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,orbse%nspinor,at%aocc(1,iat),occup,nl)
 
      nsccode=at%iasctype(iat)
 

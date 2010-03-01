@@ -635,51 +635,58 @@ subroutine perf_input_variables(iproc,filename,inputs)
   type(input_variables), intent(inout) :: inputs
   !local variables
   character(len=*), parameter :: subname='perf_input_variables'
-  character(len=10) :: line
+  character(len=100) :: line
   logical :: exists
   integer :: iline,ierror,ii
 
   ! Set default values.
   !Debug option (used for memocc mainly)
   inputs%debug = .false.
-  memdebug = inputs%debug
   !Cache size for FFT
   inputs%ncache_fft = 8*1024
 
   !Check if the file is present
   inquire(file=trim(filename),exist=exists)
-  if (.not. exists) then
-     return
+  if (exists) then
+     !Read the file
+     open(unit=1,file=filename,status='old')
+     !line number, to control the input values
+     iline=0
+     do 
+        read(1,fmt='(a)',iostat=ierror) line
+        if (ierror /= 0) then
+           !End of file (normally ierror < 0)
+           exit
+        end if
+        call check()
+        if (trim(line) == "debug" .or. trim(line) == "Debug" .or. trim(line) == "DEBUG") then
+           inputs%debug = .true.
+        else if (index(line,"fftcache") /= 0 .or. index(line,"FFTCACHE") /= 0) then
+            ii = index(line,"fftcache")  + index(line,"FFTCACHE") + 8 
+           read(line(ii:),*) inputs%ncache_fft
+        end if
+     end do
+     close(unit=1,iostat=ierror)
   end if
 
-  !Read the file
-  open(unit=1,file=filename,status='old')
-
-  !line number, to control the input values
-  iline=0
-
-  read(1,*,iostat=ierror) line
-  call check()
-
-  if (trim(line) == "debug" .or. trim(line) == "Debug" .or. trim(line) == "DEBUG") then
-     inputs%debug = .true.
-     memdebug = inputs%debug
-  else if (index(line,"fftcache") /= 0 .or. index(line,"FFTCACHE") /= 0) then
-      ii = index(line,"fftcache")  + index(line,"FFTCACHE") + 8 
-     read(line(ii:),*) inputs%ncache_fft
-  end if
-
-  close(unit=1,iostat=ierror)
+  ! Set performance variables
+  memdebug = inputs%debug
+  call set_cache_size(inputs%ncache_fft)
 
   ! Output
   if (iproc == 0) then
      write(*,*)
-     write(*, "(1x,a)") "Performance options (file 'input.perf'):"
-     if (inputs%debug) then
-        write(*, "(1x,a,3x,a)") "|","Debug option enable"
+     if (exists) then
+        write(*, "(1x,a)") "Performance options (file 'input.perf' used):"
      else
-        write(*, "(1x,a,3x,a)") "|","Debug option disable"
+        write(*, "(1x,a)") "Performance options (file 'input.perf' not present):"
      end if
+     if (inputs%debug) then
+        write(*, "(1x,a,3x,a)") "|","'debug' option enable"
+     else
+        write(*, "(1x,a,3x,a)") "|","'debug' option disable"
+     end if
+     write(*,"(1x,a,3x,a,i0)")  "|","'fftcache' = ",inputs%ncache_fft
      write(*,*)
   end if
 
@@ -888,7 +895,7 @@ subroutine frequencies_input_variables(iproc,filename,in)
      print *,'wrong format of the string: '//string
      ierror=1
   end if
-  call check(iline)
+  call check()
   !Read the order of finite difference scheme
   read(unit=iunit,fmt=*,iostat=ierror)  in%freq_order
   if (in%freq_order /= 2 .and. in%freq_order /= 3) then
@@ -901,7 +908,7 @@ subroutine frequencies_input_variables(iproc,filename,in)
       if (iproc==0) write (*,'(1x,a)') '1 for the method to calculate frequencies.'
       stop
   end if
-  call check(iline)
+  call check()
 
   close(unit=iunit)
 
@@ -915,10 +922,8 @@ subroutine frequencies_input_variables(iproc,filename,in)
 
 contains
 
-  subroutine check(iline)
+  subroutine check()
     implicit none
-    !Arguments
-    integer, intent(inout) :: iline
     iline=iline+1
     if (ierror/=0) then
        if (iproc == 0) write(*,'(1x,a,a,a,i3)') &

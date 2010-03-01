@@ -97,8 +97,6 @@ program fft_check
    call do_fft(128,128,128)
 
 
-
-
 contains
 
    subroutine do_fft(n1,n2,n3)

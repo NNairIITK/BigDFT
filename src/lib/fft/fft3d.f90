@@ -69,7 +69,7 @@ module module_fft_sg
 !   But if you care about performance find the optimal value of ncache yourself!
 !       On all vector machines: ncache=0
 
-   integer, parameter :: ncache = 8*1024
+   integer :: ncache = 8*1024
    !To have all available dimensions, ncache should be a multiple of 4*nfft_max (T.D.)
    !integer, parameter :: ncache = (4*nfft_max)
    !Vectorial computer
@@ -277,6 +277,22 @@ module module_fft_sg
    2097152, 8,   8,   8,   8,   8,   8,   8    /  
 
 end module module_fft_sg
+!!***
+
+
+!!****f* fft3d/set_cache_size
+!! FUNCTION
+!!   Set the cache size for the FFT.
+!! SOURCE
+!!
+subroutine set_cache_size(nc)
+  use module_fft_sg
+  implicit none
+  !Arguments
+  integer, intent(in) :: nc
+  !Local variables
+  ncache = nc
+end subroutine set_cache_size
 !!***
 
 

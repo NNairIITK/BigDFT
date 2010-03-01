@@ -299,8 +299,7 @@ subroutine gaussian_pswf_basis(iproc,nspin,at,rxyz,G,Gocc)
   G%nshltot=0
   count_shells: do iat=1,at%nat
      ityp=at%iatype(iat)
-     call count_atomic_shells(noccmax,nelecmax,nspin,nspinor,&
-          at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
      G%nshell(iat)=(nl(1)+nl(2)+nl(3)+nl(4))
      G%nshltot=G%nshltot+G%nshell(iat)
      !check the occupation numbers and the atoms type
@@ -347,8 +346,7 @@ subroutine gaussian_pswf_basis(iproc,nspin,at,rxyz,G,Gocc)
      ityp=at%iatype(iat)
      ityx=iatypex(iat)
      ishltmp=0
-     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,&
-          at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
      if (ityx > ntypesx) then
         if (iproc == 0 .and. verbose > 1) then
            write(*,'(1x,a,a6,a)')&
@@ -406,8 +404,7 @@ subroutine gaussian_pswf_basis(iproc,nspin,at,rxyz,G,Gocc)
   do iat=1,at%nat
      ityp=at%iatype(iat)
      ityx=iatypex(iat)
-     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,&
-          at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
      ictotpsi=0
      iocc=0
      do l=1,4
