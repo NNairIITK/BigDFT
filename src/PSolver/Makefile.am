@@ -79,6 +79,8 @@ endif
 libpoissonsolver_a_SOURCES = \
 	Poisson_Solver.f90 \
 	Build_Kernel.f90 \
+	xcenergy.f90 \
+	3Dgradient.f90 \
 	scaling_function.f90 \
 	PSolver_Base_new.f90 \
 	wofz.f90 \
@@ -124,6 +126,8 @@ poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 Poisson_Solver.o: ../modules/base.o $(SOURCES_MOD)
 
 Build_Kernel.o: fft3d.o
+
+xcenergy.o : Poisson_Solver.o
 
 check:
 	$(run_parallel) ./PS_Check 57 48 63  0 F  > PS_Check.out
