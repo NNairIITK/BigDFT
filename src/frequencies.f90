@@ -44,12 +44,14 @@ program frequencies
   ! hessian, eigenvectors
   real(gp), dimension(:,:), allocatable :: hessian,vector_l,vector_r
   real(gp), dimension(:), allocatable :: eigen_r,eigen_i
+  !Array which indicates moves to calculate for a given direction
+  integer, dimension(:), allocatable :: kmoves
   ! logical: .true. if already calculated
   logical, dimension(:,:), allocatable :: moves
   real(gp), dimension(:,:), allocatable :: energies
   real(gp), dimension(:,:,:), allocatable :: forces
   real(gp), dimension(3) :: freq_step
-  integer :: k,km,ii,jj,imoves,order,n_order
+  integer :: k,km,ii,jj,ik,imoves,order,n_order
   logical :: exists
  
   ! Start MPI in parallel version
@@ -78,14 +80,27 @@ program frequencies
 
   !Order of the finite difference scheme
   order = inputs%freq_order
-  if (order == 2) then
+  if (order == -1) then
+     n_order = 1
+     allocate(kmoves(n_order),stat=i_stat)
+     kmoves = (/ -1 /)
+  else if (order == 1) then
+     n_order = 1
+     allocate(kmoves(n_order),stat=i_stat)
+     kmoves = (/ 1 /)
+  else if (order == 2) then
      n_order = 2
+     allocate(kmoves(n_order),stat=i_stat)
+     kmoves = (/ -1, 1 /)
   else if (order == 3) then
      n_order = 4
+     allocate(kmoves(n_order),stat=i_stat)
+     kmoves = (/ -2, -1, 1, 2 /)
   else
      print *, "Frequencies: This order",order," is not implemented!"
      stop
   end if
+  call memocc(i_stat,kmoves,'kmoves',subname)
 
   ! Allocations
   allocate(fxyz(3*atoms%nat+ndebug),stat=i_stat)
@@ -186,8 +201,8 @@ program frequencies
            cc(3:4)='*z'
         end if
         km = 0
-        do k=-order+1,order-1
-           if (k == 0) cycle
+        do ik=1,n_order
+           k = kmoves(ik)
            !-1-> 1, 1 -> 2, y = ( x + 3 ) / 2
            km = km + 1
            if (moves(km,ii)) then
@@ -226,8 +241,16 @@ program frequencies
            do j=1,3
               jj = j+3*(jat-1)
               !Force is -dE/dR
-              if (order == 2) then
+              if (order == -1) then
+                 dd = - (fxyz(jj) - fpos(jj,1))/freq_step(i)
+              else if (order == -1) then
+                 dd = - (fpos(jj,1) - fxyz(jj))/freq_step(i)
+              else if (order == 2) then
                  dd = - (fpos(jj,2) - fpos(jj,1))/(2.d0*freq_step(i))
+              else if (order == 4) then
+                 dd = - (fpos(jj,4) + fpos(jj,3) - fpos(jj,2) - fpos(jj,1))/(6.d0*freq_step(i))
+              else
+                 stop "BUG: frequencies this order is not defined"
               end if
               !if (abs(dd).gt.1.d-10) then
               hessian(jj,ii) = dd/rmass
@@ -247,6 +270,9 @@ program frequencies
   i_all=-product(shape(fpos))*kind(fpos)
   deallocate(fpos,stat=i_stat)
   call memocc(i_stat,i_all,'fpos',subname)
+  i_all=-product(shape(kmoves))*kind(kmoves)
+  deallocate(kmoves,stat=i_stat)
+  call memocc(i_stat,i_all,'kmoves',subname)
 
   !allocations
   allocate(eigen_r(3*atoms%nat+ndebug),stat=i_stat)

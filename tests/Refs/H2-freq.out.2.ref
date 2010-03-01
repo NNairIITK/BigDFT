@@ -26,16 +26,24 @@
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
+
+ Performance options (file 'input.perf' not present):
+ |   'debug' option disable
+ |   'fftcache' = 8192
+
  Number of atoms     =     2
  Number of atom types=     1
  Atoms of type 1 are H
  Spin-polarised calculation: YES (Collinear)
 
+ =F= Step size factor  1.562500E-02
+ =F= Order scheme             2
+ =F= Used method              1
  =F=> Check if the file "frequencies.res" is present.
  =F=> The reference state is already calculated.
  =F=> There are    12 moves already calculated over    12 frequencies.
 
- Wavefunction Optimization Finished, exit signal=    1
+ Wavefunction Optimization Finished, exit signal=    0
  Final values of the Forces for each atom
      1      H -8.25708E-04  1.50677E-04  1.50677E-04
      2      H  1.08095E-03  1.64649E-04  1.64649E-04
@@ -45,11 +53,11 @@
       z direction     3.15325544E-04
 
  =Frequencies calculation ===========================================================
- =F: eigenvalues (real)      =     3.6674678067E-04    1.3113498923E-05    1.3291357307E-05   -1.7094971614E-08   -8.1202074330E-10   -1.7088259735E-10
+ =F: eigenvalues (real)      =     3.6674678067E-04    1.3113498923E-05    1.3291357307E-05   -1.7094971626E-08   -8.1202070951E-10   -1.7088259934E-10
  =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00
- =F: frequencies (Hartree)   =     1.9150633950E-02    3.6212565392E-03    3.6457313816E-03   -1.3074774038E-04   -2.8495977669E-05   -1.3072207057E-05
+ =F: frequencies (Hartree)   =     1.9150633950E-02    3.6212565392E-03    3.6457313816E-03   -1.3074774042E-04   -2.8495977076E-05   -1.3072207133E-05
  =F: frequencies (cm-1)      =       4203.08       794.77       800.15       -28.70        -6.25        -2.87
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 23 allocations and 23 deallocations, remaining memory(B):0
+ 24 allocations and 24 deallocations, remaining memory(B):0
  memory occupation peak: 0 MB
  for the array  work in the routine solve

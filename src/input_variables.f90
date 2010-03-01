@@ -898,15 +898,16 @@ subroutine frequencies_input_variables(iproc,filename,in)
   call check()
   !Read the order of finite difference scheme
   read(unit=iunit,fmt=*,iostat=ierror)  in%freq_order
-  if (in%freq_order /= 2 .and. in%freq_order /= 3) then
-      if (iproc==0) write (*,'(1x,a)') 'Only 2 or 3 is possible for the order scheme'
-      stop
+  if (in%freq_order /= -1 .and. in%freq_order /= 1 &
+     & .and. in%freq_order /= 2 .and. in%freq_order /= 3 ) then
+     if (iproc==0) write (*,'(1x,a)') 'Only -1, 1, 2 or 3 are possible for the order scheme'
+     stop
   end if
   !Read the index of the method
   read(unit=iunit,fmt=*,iostat=ierror)  in%freq_method
   if (in%freq_method /= 1) then
-      if (iproc==0) write (*,'(1x,a)') '1 for the method to calculate frequencies.'
-      stop
+     if (iproc==0) write (*,'(1x,a)') '1 for the method to calculate frequencies.'
+     stop
   end if
   call check()
 
