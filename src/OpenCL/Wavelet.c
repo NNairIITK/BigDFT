@@ -66,7 +66,7 @@ void FC_FUNC_(anashrink1d_d,ANASHRINK1D_D)(cl_command_queue *command_queue, cl_u
     printf("command queue: %p, dimension n: %lu, dimension dat: %lu, psi: %p, out: %p\n",*command_queue, (long unsigned)*n, (long unsigned)*ndat, *psi, *out);
 #endif
     int FILTER_WIDTH = 16;
-    if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
+    if(*n<FILTER_WIDTH) { fprintf(stderr,"%s %s : matrix is too small : n = %d!\n", __func__, __FILE__,*n); exit(1);}
     size_t block_size_i=FILTER_WIDTH, block_size_j=FILTER_WIDTH;
     cl_uint i = 0;
     clSetKernelArg(anashrink1d_kernel_d, i++,sizeof(*n), (void*)n);
