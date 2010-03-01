@@ -235,16 +235,16 @@ void bench_uncompress(cl_uint n1, cl_uint n2, cl_uint n3, cl_uint nseg, cl_uint 
 
 }
 
-#define MAX_N1 256
-#define MAX_N2 256
-#define MAX_N3 256
+#define MAX_N1 64
+#define MAX_N2 64
+#define MAX_N3 32
 #define N1_STEP 64
 #define N2_STEP 64
-#define N3_STEP 64
-#define N1_URANGE 16 
-#define N2_URANGE 16 
+#define N3_STEP 32
+#define N1_URANGE 0 
+#define N2_URANGE 0 
 #define N3_URANGE 0
-#define N1_USTEP 8
+#define N1_USTEP 1
 #define N2_USTEP 1
 #define N3_USTEP 1
 
@@ -267,7 +267,6 @@ int main(){
 
   for( n1 = N1_STEP; n1 <= MAX_N1; n1 += N1_STEP ){
     for( un1 = n1 - N1_URANGE; un1 <= n1 + N1_URANGE; un1 += N1_USTEP){
-      printf("%u\n",un1);
       for( n2 = N2_STEP; n2 <= MAX_N2; n2 += N2_STEP ){
         for( un2 = n2 - N2_URANGE; un2 <= n2 + N2_URANGE; un2 += N2_USTEP){
           for( n3 = n2; n3 <= MAX_N3; n3 += N3_STEP ){

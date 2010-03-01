@@ -11,7 +11,7 @@ SOURCES_CONV_CHECK =
 SOURCES_SHARED =
 
 check_PROGRAMS = conv_check
-noinst_PROGRAMS = bench_conv
+noinst_PROGRAMS = bench_conv bench_conv_quick
 
 noinst_LIBRARIES = libbasef.a libbasec.a
 
@@ -35,8 +35,12 @@ conv_check_LDADD = libbasec.a libbasef.a ../libbigdft.a \
 bench_conv_SOURCES = bench_conv.c
 bench_conv_LDFLAGS = -lOpenCL
 bench_conv_LDADD = libbasec.a
+bench_conv_quick_SOURCES = bench_conv_quick.c
+bench_conv_quick_LDFLAGS = -lOpenCL
+bench_conv_quick_LDADD = libbasec.a
 
-bench: bench_conv
+bench: bench_conv bench_conv_quick
+	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='profile.conf' $(top_builddir)/src/OpenCL/bench_conv_quick
 	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='profile.conf' $(top_builddir)/src/OpenCL/bench_conv
 
 check:
