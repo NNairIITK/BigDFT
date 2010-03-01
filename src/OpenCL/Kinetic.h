@@ -9,8 +9,8 @@ size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
 const size_t j2 = get_local_id(1);\n\
-size_t igt = get_group_id(0);\n\
-size_t jgt = get_group_id(1);\n\
+ptrdiff_t igt = get_group_id(0);\n\
+ptrdiff_t jgt = get_group_id(1);\n\
 size_t jb;\n\
 const size_t j2t = 2*j2 + i2/16;\n\
 const size_t i2t = i2 - 16 * (i2 / 16);\n\
@@ -19,25 +19,17 @@ jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
 ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
 igt = ig - i2 + j2t;\n\
 jgt = jg - j2 + i2t;\n\
-//If I'm on the outside, select a border element to load\n\
-if(j2t < FILTER_WIDTH/2)\n\
-  {\n\
-    if (igt < FILTER_WIDTH/2)\n\
-      { jb =  n + j2t - FILTER_WIDTH/2; }\n\
-    else { jb = igt - FILTER_WIDTH/2; }\n\
-    tmp[i2t * (2 * 32 + 1) + j2t]=x_in[jgt+jb*ndat];\n\
-  }\n\
-if (j2t >= 32 - FILTER_WIDTH/2)\n\
-  {\n\
-    if (igt >= n - FILTER_WIDTH/2)\n\
-      { jb = igt - n + FILTER_WIDTH/2; }\n\
-    else { jb = igt + FILTER_WIDTH/2; }\n\
-    tmp[i2t * (2 * 32 + 1) + j2t + FILTER_WIDTH]=x_in[jgt+jb*ndat];\n\
-  }\n\
-//check boundaries\
-//Load the element I am to calculate\n\
-tmp[i2t * (2 * 32 + 1) + j2t + FILTER_WIDTH/2]=x_in[jgt+igt*ndat];\n\
 tmp2[i2t * (32 + 1) + j2t] = y_in[jgt+igt*ndat];\n\
+igt -= FILTER_WIDTH/2;\n\
+if ( igt < 0 ) \n\
+  tmp[i2t * (2 * FILTER_WIDTH + 1) + j2t] = x_in[jgt + ( n + igt ) * ndat];\n\
+else \n\
+  tmp[i2t * (2 * FILTER_WIDTH + 1) + j2t] = x_in[jgt + igt * ndat];\n\
+igt += FILTER_WIDTH;\n\
+if ( igt >= n ) \n\
+  tmp[i2t * (2 * FILTER_WIDTH + 1) + j2t + FILTER_WIDTH] = x_in[jgt + ( igt - n ) * ndat];\n\
+else\n\
+  tmp[i2t * (2 * FILTER_WIDTH + 1) + j2t + FILTER_WIDTH] = x_in[jgt +  igt * ndat];\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 __local double * tmp_o = tmp + j2*(2*32 + 1) + FILTER_WIDTH/2+i2;\n\
 double conv = 0.0;\n\
