@@ -201,7 +201,7 @@ program memguess
      end if
 
      ! Read the inguess.dat file or generate the input guess via the inguess_generator
-     call readAtomicOrbitals(0,atoms,norbe,norbsc,nspin_ig,orbs%nspinor,&
+     call readAtomicOrbitals(atoms,norbe,norbsc,nspin_ig,orbs%nspinor,&
           scorb,norbsc_arr,locrad)
 
      if (in%nspin==4) then

@@ -272,7 +272,6 @@ return
 end subroutine dump_gauwf_on_radgrid
 
 
-
 subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccmax, lmax ,expo,psi, aeval, occup, psp_modifier, &
      Nsol, Labs, Ngrid,Egrid,  rgrid , psigrid  )
   use module_base, only: gp, memocc,ndebug
@@ -291,7 +290,7 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   real(gp), dimension(noccmax,lmax+1  ), intent(out) ::  aeval,occup
   
   !local variables
-  character(len=*), parameter :: subname='iguess_generator'
+  character(len=*), parameter :: subname='abs_generator_modified'
   character(len=2) :: symbol
   real(gp), parameter :: fact=4.0_gp
   integer, dimension(6,4) :: neleconf
@@ -327,7 +326,6 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   call memocc(i_stat,hsep,'hsep',subname)
 
   !assignation of radii and coefficients of the local part
-
 
   if (psp_modifier.ne.0) then
      alpz=0.001_gp
@@ -411,14 +409,12 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
         ott(i)=real(neleconf(i,l+1),gp)
         if (ott(i) > 0.0_gp) then
            iocc=iocc+1
-            if (iocc > noccmax) stop 'iguess_generator: noccmax too small'
+            if (iocc > noccmax) stop 'abs_generator_modified: noccmax too small'
            occup(iocc,l+1)=ott(i)
         endif
      end do
 
   end do
-
-
 
   !allocate arrays for the gatom routine
   allocate(vh(4*(ng+1)**2,4*(ng+1)**2+ndebug),stat=i_stat)
@@ -428,7 +424,6 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   call memocc(i_stat,xp,'xp',subname)
   allocate(rmt(n_int,0:ng,0:ng,lmax+1+ndebug),stat=i_stat)
   call memocc(i_stat,rmt,'rmt',subname)
-
 
   !can be switched on for debugging
   !if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')&
@@ -458,16 +453,11 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
      end do
   end do
 
-
   call crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
-
-
 
 !!!  call gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
 !!!       zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
 !!!       aeval,ng,psi,res,chrg)
-
-
 
   if(psp_modifier==-1) then
      if(iproc==0) print *, " calling gatom_modified_eqdiff"
@@ -482,14 +472,11 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
           aeval,ng,psi,res,chrg,&
           Nsol, Labs, Ngrid,Egrid,  rgrid , psigrid )
   endif
-  
-
 
   !post-treatment of the inguess data
   do i=1,ng+1
      expo(i)=sqrt(0.5_gp/xp(i-1))
   end do
-
 
   do l=0,lmax
      do iocc=1,noccmax
@@ -500,7 +487,6 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
         endif
      enddo
   enddo
-  
 
   i_all=-product(shape(vh))*kind(vh)
   deallocate(vh,stat=i_stat)

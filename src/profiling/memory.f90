@@ -103,8 +103,8 @@ subroutine memory_occupation(istat,isize,array,routine)
         if (.not.memdebug .and. memalloc == memdealloc .and. memtot%memory==int(0,kind=8)) then
            !clean the malloc file
            if (memproc==0 .and. verbose >= 2) then
-              open(unit=98,file='malloc.prc',status='unknown')
-              write(98,*)
+              open(unit=98,file='malloc.prc',status='unknown',action='write')
+              write(unit=98,fmt='()',advance='no')
               close(unit=98)
            end if
         else

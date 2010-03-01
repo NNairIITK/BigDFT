@@ -651,12 +651,11 @@ module module_interfaces
        real(wp), dimension(:,:), pointer :: wfn_cp2k
      end subroutine parse_cp2k_files
 
-     subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fillrxyz)
+     subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
        use module_base
        use module_types
        implicit none
        character(len=*), intent(in) :: filename
-       integer, intent(in) :: iproc,nproc
        type(orbitals_data), intent(in) :: orbs
        type(gaussian_basis), intent(out) :: G
        real(wp), dimension(:,:), pointer :: coeffs
@@ -695,12 +694,12 @@ module module_interfaces
        real(wp), dimension(:,:,:), pointer :: psigau
      end subroutine inputguess_gaussian_orbitals
 
-     subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,&
+     subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
           nspin,eks,scorb,G,gaucoeff,iorbtolr)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: norbe,iproc,nproc
+       integer, intent(in) :: norbe,iproc
        integer, intent(in) :: norbsc,nspin
        type(atoms_data), intent(in) :: at
        logical, dimension(4,2,at%natsc), intent(in) :: scorb
