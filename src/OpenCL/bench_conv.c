@@ -41,6 +41,42 @@ void bench_magicfilter1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double
   ocl_release_mem_object_(&work_GPU);
 }
 
+void bench_magicfiltershrink1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
+  cl_mem psi_GPU,work_GPU;
+  cl_uint n = n1;
+  cl_uint ndat = n2*n3;
+  cl_uint size_i = n*ndat*sizeof(double);
+  cl_uint size_o = (n-15)*ndat*sizeof(double);
+  n = n1 - 15;
+
+  ocl_create_write_buffer_(&context, &size_o, &psi_GPU);
+  ocl_create_read_buffer_(&context, &size_i, &work_GPU);
+  ocl_enqueue_write_buffer_(&queue, &work_GPU, &size_i, in);
+  magicfiltershrink1d_d_(&queue,&n,&ndat,&work_GPU,&psi_GPU);
+  ocl_finish_(&queue);
+  ocl_enqueue_read_buffer_(&queue, &psi_GPU, &size_o, out);
+  ocl_release_mem_object_(&psi_GPU);
+  ocl_release_mem_object_(&work_GPU);
+}
+
+void bench_magicfiltergrow1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
+  cl_mem psi_GPU,work_GPU;
+  cl_uint n = n1;
+  cl_uint ndat = n2*n3;
+  cl_uint size_o = n*ndat*sizeof(double);
+  cl_uint size_i = (n-15)*ndat*sizeof(double);
+  n = n1 - 15;
+
+  ocl_create_write_buffer_(&context, &size_o, &psi_GPU);
+  ocl_create_read_buffer_(&context, &size_i, &work_GPU);
+  ocl_enqueue_write_buffer_(&queue, &work_GPU, &size_i, in);
+  magicfiltergrow1d_d_(&queue,&n,&ndat,&work_GPU,&psi_GPU);
+  ocl_finish_(&queue);
+  ocl_enqueue_read_buffer_(&queue, &psi_GPU, &size_o, out);
+  ocl_release_mem_object_(&psi_GPU);
+  ocl_release_mem_object_(&work_GPU);
+}
+
 void bench_kinetic1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
   cl_mem psi_GPU,work_GPU,work2_GPU,v_GPU;
   cl_uint n = n1;
@@ -239,6 +275,8 @@ int main(){
           for( n3 = n2; n3 <= MAX_N3; n3 += N3_STEP ){
             for( un3 = n3 - N3_URANGE; un3 <= n3 + N3_URANGE; un3 += N3_USTEP){
               bench_magicfilter1d(un1,un2,un3,in,out);
+              bench_magicfiltergrow1d(un1,un2,un3,in,out);
+              bench_magicfiltershrink1d(un1,un2,un3,in,out);
               bench_kinetic1d(un1,un2,un3,in,out);
               bench_ana1d(un1,un2,un3,in,out);
               bench_anashrink1d(un1,un2,un3,in,out);
