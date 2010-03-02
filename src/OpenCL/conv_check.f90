@@ -21,10 +21,11 @@
 program conv_check
   use module_base
   implicit none
-  integer  :: n1,n2,n3,n1bis
+  integer  :: n1,n2,n3,n1bis,n2bis,n3bis
   real(gp) :: hx,hy,hz,r2,sigma2,x,y,z,maxdiff,epot,arg
   real(wp), dimension(:,:,:), allocatable :: pot,psir,psi_in,psi_out,psi_out_s
   real(wp), dimension(:,:,:,:,:), allocatable :: psi_k_in, psi_k_out
+  real(wp), dimension(:,:,:,:), allocatable :: psi_k_in_a, psi_k_out_a
   real(wp), dimension(:,:,:), allocatable :: psi_in_s,psi_out_t,psi_in_t
   !local variables
   character(len=*), parameter :: subname='conv_check'
@@ -41,6 +42,7 @@ program conv_check
   real(kind=4), dimension(:), allocatable :: psi_l !temporary in view of wp 
   real(kind=8), dimension(:,:,:), allocatable :: psi_cuda,v_cuda,psi_cuda_s,v_cuda_s,psi_cuda_t,v_cuda_t !temporary in view of wp 
   real(kind=8), dimension(:,:,:,:,:), allocatable :: psi_cuda_k_in,psi_cuda_k_out,psi_cuda_k_in_bis 
+  real(kind=8), dimension(:,:,:,:), allocatable :: psi_cuda_k_in_a,psi_cuda_k_out_a 
   real(kind=4), dimension(:,:,:), allocatable :: psi_cuda_l,v_cuda_l !temporary in view of wp 
   real(kind=8) :: ekinGPUd
   real(kind=4) :: t0,t1,epotGPU,ekinGPU
@@ -480,23 +482,25 @@ program conv_check
 
            !**************************************************kinetic term
            n1bis = n1/2
-           write(*,'(a,i6,i6,i6)')'CPU Kinetic k, dimensions:',n1bis,n1bis,n1bis
+           n2bis = n1
+           n3bis = n1/2
+           write(*,'(a,i6,i6,i6)')'CPU Kinetic k 3D, dimensions:',n1bis,n2bis,n3bis
 
-           allocate(psi_k_in(2,n1bis,n1bis,n1bis,1+ndebug),stat=i_stat)
+           allocate(psi_k_in(2,n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
            call memocc(i_stat,psi_k_in,'psi_k_in',subname)
-           allocate(psi_cuda_k_in(2,n1bis,n1bis,n1bis,1+ndebug),stat=i_stat)
+           allocate(psi_cuda_k_in(2,n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
            call memocc(i_stat,psi_cuda_k_in,'psi_cuda_k_in',subname)
-           allocate(psi_cuda_k_in_bis(2,n1bis,n1bis,n1bis,1+ndebug),stat=i_stat)
+           allocate(psi_cuda_k_in_bis(2,n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
            call memocc(i_stat,psi_cuda_k_in_bis,'psi_cuda_k_in_bis',subname)
  
-           allocate(psi_k_out(2,n1bis,n1bis,n1bis,1+ndebug),stat=i_stat)
+           allocate(psi_k_out(2,n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
            call memocc(i_stat,psi_k_out,'psi_k_out',subname)
-           allocate(psi_cuda_k_out(2,n1bis,n1bis,n1bis,1+ndebug),stat=i_stat)
+           allocate(psi_cuda_k_out(2,n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
            call memocc(i_stat,psi_k_out,'psi_cuda_k_out',subname)
 
            sigma2=0.25d0*((n1bis*hx)**2)
-           do i3=1,n1bis
-            do i2=1,n1bis
+           do i3=1,n3bis
+            do i2=1,n2bis
               do i1=1,n1bis
                  x=hx*real(i1-n1bis/2-1,kind=8)
                  !tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
@@ -504,18 +508,18 @@ program conv_check
                  arg=0.5d0*r2/sigma2
                  tt=dexp(-arg)
                  psi_k_in(1,i1,i2,i3,1)=tt
-                 psi_cuda_k_in(1,i3,i2,i1,1) = tt;
+                 psi_cuda_k_in(1,i1,i2,i3,1) = tt;
                  arg=0.55d0*r2/sigma2
                  tt=dexp(-arg)
                  psi_k_in(2,i1,i2,i3,1)=tt
-                 psi_cuda_k_in(2,i3,i2,i1,1) = tt;
+                 psi_cuda_k_in(2,i1,i2,i3,1) = tt;
               end do
             end do
            end do
 
            call cpu_time(t0)
            do itimes=1,ntimes
-             call convolut_kinetic_per_c_k(n1bis-1,n1bis-1,n1bis-1,(/0.1d0,.1d0,.1d0/),&
+             call convolut_kinetic_per_c_k(n1bis-1,n2bis-1,n3bis-1,(/0.1d0,.1d0,.1d0/),&
                                   psi_k_in,psi_k_out,0.2d0,0.1d0,0.2d0,0.3d0)
            end do
            call cpu_time(t1)
@@ -524,24 +528,24 @@ program conv_check
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
-                real(2*n1bis*n1bis*n1bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+                real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
 
-           write(*,'(a,i6,i6,i6)')'GPU Kinetic k, dimensions:',n1bis,n1bis,n1bis
+           write(*,'(a,i6,i6,i6)')'GPU Kinetic k 3D, dimensions:',n1bis,n2bis,n3bis
 
 
-           call ocl_create_read_write_buffer(context, 2*n1bis*n1bis*n1bis*8, psi_GPU)
-           call ocl_create_read_write_buffer(context, 2*n1bis*n1bis*n1bis*8, work_GPU)
-           call ocl_create_read_write_buffer(context, 2*n1bis*n1bis*n1bis*8, work2_GPU)
-           call ocl_create_read_write_buffer(context, 2*n1bis*n1bis*n1bis*8, v_GPU)
-           call ocl_enqueue_write_buffer(queue, work_GPU, 2*n1bis*n1bis*n1bis*8, psi_cuda_k_in)
+           call ocl_create_read_write_buffer(context, 2*n1bis*n2bis*n3bis*8, psi_GPU)
+           call ocl_create_read_write_buffer(context, 2*n1bis*n2bis*n3bis*8, work_GPU)
+           call ocl_create_read_write_buffer(context, 2*n1bis*n2bis*n3bis*8, work2_GPU)
+           call ocl_create_read_write_buffer(context, 2*n1bis*n2bis*n3bis*8, v_GPU)
+           call ocl_enqueue_write_buffer(queue, work_GPU, 2*n1bis*n2bis*n3bis*8, psi_cuda_k_in)
            call cpu_time(t0)
            do itimes=1,ntimes
-             call kinetic_k_d(queue,n1bis,n1bis,n1bis,(/0.1d0,.1d0,.1d0/),&
+             call kinetic_k_d(queue,n1bis,n2bis,n3bis,(/0.1d0,.1d0,.1d0/),&
                    work_GPU,psi_GPU,work2_GPU,v_GPU,0.2d0,0.1d0,0.2d0,0.3d0)
            end do
            call cpu_time(t1)
-           call ocl_enqueue_read_buffer(queue, psi_GPU, 2*n1bis*n1bis*n1bis*8, psi_cuda_k_out)
-           call ocl_enqueue_read_buffer(queue, work_GPU, 2*n1bis*n1bis*n1bis*8, psi_cuda_k_in_bis)
+           call ocl_enqueue_read_buffer(queue, psi_GPU, 2*n1bis*n2bis*n3bis*8, psi_cuda_k_out)
+           call ocl_enqueue_read_buffer(queue, work_GPU, 2*n1bis*n2bis*n3bis*8, psi_cuda_k_in_bis)
            call ocl_release_mem_object(psi_GPU)
            call ocl_release_mem_object(work_GPU)
            call ocl_release_mem_object(work2_GPU)
@@ -550,18 +554,18 @@ program conv_check
            GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 GPUtime*1.d3/real(ntimes,kind=8),&
-                real(2*n1bis*n1bis*n1bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 
            maxdiff=0.d0
            i1_max=1
-           do i3=1,n1bis
-            do i2=1,n1bis
+           do i3=1,n3bis
+            do i2=1,n2bis
               do i1=1,n1bis
                  !write(*,*),psi_k_in(1,i1,i2,i3,1), psi_cuda_k_in_bis(1,i2,i3,i1,1),&
                  !           psi_k_in(2,i1,i2,i3,1), psi_cuda_k_in_bis(2,i2,i3,i1,1)
                  !write(17,'(2(i6),2(1pe24.17))')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
                  !write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
-                 comp=abs(psi_k_out(1,i1,i2,i3,1)-psi_cuda_k_out(1,i3,i2,i1,1))
+                 comp=abs(psi_k_out(1,i1,i2,i3,1)-psi_cuda_k_out(1,i1,i2,i3,1))
 !                 write(*,*),psi_k_out(1,i1,i2,i3,1), psi_cuda_k_out(1,i3,i2,i1,1),&
 !                            psi_k_out(2,i1,i2,i3,1), psi_cuda_k_out(2,i3,i2,i1,1)
                  !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
@@ -569,7 +573,7 @@ program conv_check
                     maxdiff=comp
                     i1_max=i1
                  end if
-                 comp=abs(psi_k_out(2,i1,i2,i3,1)-psi_cuda_k_out(2,i3,i2,i1,1))
+                 comp=abs(psi_k_out(2,i1,i2,i3,1)-psi_cuda_k_out(2,i1,i2,i3,1))
                  !write(*,*),psi_k_out(2,i1,i2,i3,1), psi_cuda_k_out(2,i3,i2,i1,1)
                  if (comp > maxdiff) then
                     maxdiff=comp
@@ -581,19 +585,19 @@ program conv_check
            if (maxdiff <= 3.d-4) then
               write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
                    'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                   n1bis,n1bis,n1bis,CPUtime/GPUtime,maxdiff,&
+                   n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(2*n1bis*n1bis*n1bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(2*n1bis*n1bis*n1bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                   real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
            else
               write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
                    'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                   n1bis,n1bis,n1bis,CPUtime/GPUtime,maxdiff,&
+                   n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(2*n1bis*n1bis*n1bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(2*n1bis*n1bis*n1bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+                   real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
                    '<<<< WARNING' 
            end if
 
@@ -604,6 +608,9 @@ program conv_check
            i_all=-product(shape(psi_cuda_k_in))
            deallocate(psi_cuda_k_in,stat=i_stat)
            call memocc(i_stat,i_all,'psi_cuda_k_in',subname)
+           i_all=-product(shape(psi_cuda_k_in_bis))
+           deallocate(psi_cuda_k_in_bis,stat=i_stat)
+           call memocc(i_stat,i_all,'psi_cuda_k_in_bis',subname)
  
            i_all=-product(shape(psi_k_out))
            deallocate(psi_k_out,stat=i_stat)
@@ -729,6 +736,121 @@ program conv_check
 
            !**************************************************wavelet transformations
            if (modulo(n1,2) == 0) then
+           n1bis = n1
+           n2bis = n1
+           n3bis = n1
+           write(*,'(a,i6,i6,i6)')'CPU Analysis 3D, dimensions:',n1bis,n2bis,n3bis
+
+           allocate(psi_k_in_a(n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
+           call memocc(i_stat,psi_k_in_a,'psi_k_in_a',subname)
+           allocate(psi_cuda_k_in_a(n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
+           call memocc(i_stat,psi_cuda_k_in_a,'psi_cuda_k_in_a',subname)
+ 
+           allocate(psi_k_out_a(n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
+           call memocc(i_stat,psi_k_out_a,'psi_k_out_a',subname)
+           allocate(psi_cuda_k_out_a(n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
+           call memocc(i_stat,psi_k_out_a,'psi_cuda_k_out_a',subname)
+
+           sigma2=0.25d0*((n1bis*hx)**2)
+           do i3=1,n3bis
+            do i2=1,n2bis
+              do i1=1,n1bis
+                 x=hx*real(i1-n1bis/2-1,kind=8)
+                 !tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
+                 r2=x**2
+                 arg=0.5d0*r2/sigma2
+                 tt=dexp(-arg)
+                 psi_k_in_a(i1,i2,i3,1)=tt
+                 psi_cuda_k_in_a(i1,i2,i3,1) = tt;
+              end do
+            end do
+           end do
+
+           call cpu_time(t0)
+           do itimes=1,ntimes
+             call analyse_per_self(n1bis/2-1,n2bis/2-1,n3bis/2-1,psi_k_in_a,psi_k_out_a)
+           end do
+           call cpu_time(t1)
+
+           CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+                CPUtime*1.d3/real(ntimes,kind=8),&
+                real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+
+           write(*,'(a,i6,i6,i6)')'GPU Analysis 3D, dimensions:',n1bis,n2bis,n3bis
+
+
+           call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, psi_GPU)
+           call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work_GPU)
+           call ocl_enqueue_write_buffer(queue, work_GPU, n1bis*n2bis*n3bis*8, psi_cuda_k_in_a)
+           call cpu_time(t0)
+           do itimes=1,ntimes
+             call ana_self_d(queue,n1bis/2,n2bis/2,n3bis/2, work_GPU,psi_GPU)
+           end do
+           call cpu_time(t1)
+           call ocl_enqueue_read_buffer(queue, psi_GPU, n1bis*n2bis*n3bis*8, psi_cuda_k_out_a)
+           call ocl_release_mem_object(psi_GPU)
+           call ocl_release_mem_object(work_GPU)
+
+           GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+                GPUtime*1.d3/real(ntimes,kind=8),&
+                real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+
+           maxdiff=0.d0
+           i1_max=1
+           do i3=1,n3bis
+            do i2=1,n2bis
+              do i1=1,n1bis
+                 !write(*,*),psi_k_in(1,i1,i2,i3,1), psi_cuda_k_in_bis(1,i2,i3,i1,1),&
+                 !           psi_k_in(2,i1,i2,i3,1), psi_cuda_k_in_bis(2,i2,i3,i1,1)
+                 !write(17,'(2(i6),2(1pe24.17))')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
+                 !write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
+                 comp=abs(psi_k_out_a(i1,i2,i3,1)-psi_cuda_k_out_a(i1,i2,i3,1))
+!                 write(*,*),psi_k_out(1,i1,i2,i3,1), psi_cuda_k_out(1,i3,i2,i1,1),&
+!                            psi_k_out(2,i1,i2,i3,1), psi_cuda_k_out(2,i3,i2,i1,1)
+                 !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
+                 if (comp > maxdiff) then
+                    maxdiff=comp
+                    i1_max=i1
+                 end if
+              end do
+            end do
+           end do
+           if (maxdiff <= 3.d-4) then
+              write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
+                   'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+           else
+              write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
+                   'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+                   '<<<< WARNING' 
+           end if
+
+
+           i_all=-product(shape(psi_k_in_a))
+           deallocate(psi_k_in_a,stat=i_stat)
+           call memocc(i_stat,i_all,'psi_k_in_a',subname)
+           i_all=-product(shape(psi_cuda_k_in_a))
+           deallocate(psi_cuda_k_in_a,stat=i_stat)
+           call memocc(i_stat,i_all,'psi_cuda_k_in_a',subname)
+ 
+           i_all=-product(shape(psi_k_out_a))
+           deallocate(psi_k_out_a,stat=i_stat)
+           call memocc(i_stat,i_all,'psi_k_out_a',subname)
+           i_all=-product(shape(psi_cuda_k_out_a))
+           deallocate(psi_cuda_k_out_a,stat=i_stat)
+           call memocc(i_stat,i_all,'psi_cuda_k_out_a',subname)
 
               write(*,'(a,i6,i6)')'CPU Analisys, dimensions:',n1,ndat
 

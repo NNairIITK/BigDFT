@@ -79,14 +79,14 @@ void FC_FUNC_(kinetic_k_d,KINETIC_K_D)(cl_command_queue *command_queue, cl_uint 
   size_t block_size_i2=32;
   size_t block_size_j2=8;
   i = 0;
-  double scale_1 = -0.5 / ( h[0] * h[0] );
-  double scale_2 = *k1 / h[0];
+  double scale_1 = -0.5 / ( h[2] * h[2] );
+  double scale_2 = *k3 / h[2];
 //  printf("%lf %lf\n",scale_1,scale_2);
-  ng = *n2 * *n3;
+  ng = *n2 * *n1;
   size_t localWorkSize2[] = { block_size_i2, block_size_j2 };
-  size_t globalWorkSize2[] ={ shrRoundUp(block_size_i2,*n1), shrRoundUp(block_size_j2,ng) };
+  size_t globalWorkSize2[] ={ shrRoundUp(block_size_i2,*n3), shrRoundUp(block_size_j2,ng) };
 //__kernel void kinetic_k1dKernel_d(size_t n, size_t ndat, double scale_1, double scale_2, __global const double * x_in, __global double * x, __global const double * y_in, __global double * y, __local double * tmp, __local double * tmp_y )
-  clSetKernelArg(kinetic_k1d_kernel_d, i++,sizeof(*n1), (void*)n1);
+  clSetKernelArg(kinetic_k1d_kernel_d, i++,sizeof(*n3), (void*)n3);
   clSetKernelArg(kinetic_k1d_kernel_d, i++,sizeof(ng), (void*)&ng);
   clSetKernelArg(kinetic_k1d_kernel_d, i++,sizeof(scale_1), (void*)&scale_1);
   clSetKernelArg(kinetic_k1d_kernel_d, i++,sizeof(scale_2), (void*)&scale_2);
@@ -129,12 +129,12 @@ void FC_FUNC_(kinetic_k_d,KINETIC_K_D)(cl_command_queue *command_queue, cl_uint 
       exit(1);
   }
   i = 0;
-  scale_1 = -0.5 / ( h[2] * h[2] );
-  scale_2 = *k3 / h[2];
-  ng = *n1 * *n2;
+  scale_1 = -0.5 / ( h[0] * h[0] );
+  scale_2 = *k1 / h[0];
+  ng = *n3 * *n2;
   localWorkSize2[0] =  block_size_i2; localWorkSize2[1] = block_size_j2 ;
-  globalWorkSize2[0] = shrRoundUp(block_size_i2,*n3); globalWorkSize2[1] = shrRoundUp(block_size_j2,ng) ;
-  clSetKernelArg(kinetic_k1d_kernel_d, i++,sizeof(*n3), (void*)n3);
+  globalWorkSize2[0] = shrRoundUp(block_size_i2,*n1); globalWorkSize2[1] = shrRoundUp(block_size_j2,ng) ;
+  clSetKernelArg(kinetic_k1d_kernel_d, i++,sizeof(*n1), (void*)n1);
   clSetKernelArg(kinetic_k1d_kernel_d, i++,sizeof(ng), (void*)&ng);
   clSetKernelArg(kinetic_k1d_kernel_d, i++,sizeof(scale_1), (void*)&scale_1);
   clSetKernelArg(kinetic_k1d_kernel_d, i++,sizeof(scale_2), (void*)&scale_2);
