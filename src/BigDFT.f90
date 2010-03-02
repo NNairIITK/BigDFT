@@ -3,7 +3,7 @@
 !!  Main program to calculate electronic structures
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    Copyright (C) 2007-2010 CEA, UNIBAS
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -81,9 +81,6 @@ program BigDFT
      !welcome screen
      if (iproc==0) call print_logo()
 
-     !no abscalc procedure, only in the abscalc executable
-     call abscalc_input_variables_default(inputs)
-
      ! Read all input files.
      call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
           & "input.dft", "input.kpt", "input.geopt", inputs, atoms, rxyz)
@@ -93,6 +90,12 @@ program BigDFT
 
      call init_restart_objects(atoms,rst,subname)
 
+     !if other steps are supposed to be done leave the last_run to minus one
+     !otherwise put it to one
+     if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1) then
+        inputs%last_run = 1
+     end if
+
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
 
      if (inputs%ncount_cluster_x > 1) then
@@ -101,12 +104,18 @@ program BigDFT
         open(unit=16,file='geopt.mon',status='unknown')
         if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
         call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
-        filename=trim('relaxed_'//trim(arr_posinp(iconfig)))
+        filename=trim('final_'//trim(arr_posinp(iconfig)))
         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,' ')
      end if
 
+     !if there is a last run to be performed do it now before stopping
+     if (inputs%last_run == -1) then
+        inputs%last_run = 1
+        call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
+     end if
 
-     if (iproc.eq.0) then
+
+     if (iproc == 0) then
         sumx=0.d0
         sumy=0.d0
         sumz=0.d0

@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.1],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.4],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -230,10 +230,7 @@ AC_ARG_ENABLE(cuda-gpu, AS_HELP_STRING([--enable-cuda-gpu], [Use CUDA implementa
 AM_CONDITIONAL(USE_CUDA_GPU, test "$ac_use_cuda_gpu" = "yes")
 AC_MSG_RESULT([$ac_use_cuda_gpu])
 if test x"$ac_use_cuda_gpu" = "xyes" ; then
-  dnl Add no-second-underscore flag.
-  dnl if `echo $FCFLAGS | grep -qvs -- "-fno-second-underscore"` ; then
-  dnl    FCFLAGS=$FCFLAGS" -fno-second-underscore"
-  dnl fi
+  dnl Local CUDA usage (beside S_GPU).
   dnl Instead of second underscoring, test the compiler behaviour.
   AC_FC_WRAPPERS()
   dnl Optional Cuda installation dir.
@@ -244,6 +241,26 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   dnl Test the existence of things.
   AC_PATH_PROG([NVCC], [nvcc], [$ac_with_nvcc], [$PATH:${ac_with_cuda_path}/bin])
   AC_SUBST(NVCC)
+
+  dnl Test the link on libcudart and libcublas.
+  AC_LANG_PUSH(C)
+  LIBS_OLD=$LIBS
+  ac_cuda_lib_path="$ac_with_cuda_path/lib"
+  LIBS="-L$ac_cuda_lib_path $LIBS"
+  AC_CHECK_LIB(cublas, cublasSsymv, withlibcublas=yes, withlibcublas=no, [-lcudart])
+  if test "$withlibcublas" = "no"; then
+    ac_cuda_lib_path="$ac_with_cuda_path/lib64"
+    LIBS="-L$ac_cuda_lib_path $LIBS_OLD"
+    AC_CHECK_LIB(cublas, cublasScopy, withlibcublas=yes, withlibcublas=no, [-lcudart])
+  fi
+  if test "$withlibcublas" = "no"; then
+    AC_MSG_ERROR(["No 'cublas' library found, link will fail."])
+  else
+    CUDA_LIB_PATH=$ac_cuda_lib_path
+    AC_SUBST(CUDA_LIB_PATH)
+  fi
+  LIBS=$LIBS_OLD
+  AC_LANG_POP(C)
 
   dnl Add the flags.
   AC_ARG_WITH(cuda-cflags, AS_HELP_STRING([--with-cuda-cflags], [specify the flags for the NVidia Cuda Compiler (default is '-O3 --compiler-options -fno-strict-aliasing').]),
@@ -257,26 +274,8 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
     fi
   fi
   AC_SUBST(CUDA_FLAGS)
-
-  dnl Test if Cuda utils is installed.
-  AC_ARG_WITH(lib-cutils, AS_HELP_STRING([--with-lib-cutils], [specifiy the directory for libcutil library (default is '$(top_srcdir)/src/lib/CUDA').]),
-                         [ac_with_lib_cutils=$withval],
-                         [ac_with_lib_cutils="no"])
-  if test x"$ac_with_lib_cutils" = x"no" ; then
-    LIB_CUTIL_PATH='$(top_srcdir)/src/lib/CUDA'
-  else
-    LIB_CUTIL_PATH=$ac_with_lib_cutils
-  fi  
-  AC_SUBST(LIB_CUTIL_PATH)
-
-  if test -n "$GCC41HACK" ; then
-    INC_GCC41CUDA="--compiler-bindir="$GCC41HACK
-  else
-    INC_GCC41CUDA="--compiler-bindir=/usr/bin"
-  fi
-  AC_SUBST(INC_GCC41CUDA)
+  LIBCUDA_LIBS="-L$ac_cuda_lib_path -lcudart -lcublas"
 fi
-
 
 dnl AM_CONDITIONAL for the different libraries, set default values.
 dnl the common routines from ABINIT.
@@ -414,7 +413,7 @@ fi
 AM_CONDITIONAL(BUILD_LIBXC, test x"$ac_build_libxc" = x"yes")
 if test x"$ac_use_libxc" = x"yes" ; then
   AC_DEFINE([HAVE_LIBXC], [1], [use libXC in BigDFT.])
-  LIBS="-lxc $LIBS"
+  LIBXC_LIBS="-lxc"
 fi
 
 dnl Test the ABINIT library
@@ -447,8 +446,48 @@ fi
 AM_CONDITIONAL(BUILD_LIBABINIT, test x"$ac_build_libabinit" = x"yes")
 if test x"$ac_use_libabinit" = x"yes" ; then
   AC_DEFINE([HAVE_LIBABINIT], [1], [use libABINIT in BigDFT.])
-  LIBS="-labinit $LIBS"
+  LIBABINIT_LIBS="-labinit"
 fi
+
+ac_build_libsgpu="no"
+ac_use_libsgpu="no"
+if test x"$ac_use_cuda_gpu" = "xyes" ; then
+  dnl Test S_GPU library.
+  internalsgpu="yes"
+  AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), internalsgpu=$enval, internalsgpu="yes")
+  AC_ARG_WITH(libsgpu-path, AS_HELP_STRING([--with-libsgpu-path], [Give the path for an external S_GPU library, lib and module files (default = None).]),
+            ac_libsgpu_dir=$withval, ac_libsgpu_dir=)
+  if test "$internalsgpu" = "yes" ; then
+    ac_build_libsgpu="yes"
+    ac_use_libsgpu="yes"
+    AC_SUBST(LIBSGPU_INCLUDE, "-I\$(top_srcdir)"/S_GPU/src)
+    LDFLAGS="$LDFLAGS -L\$(top_builddir)/S_GPU/src/.libs"
+  else
+    if test -n "$ac_libsgpu_dir" ; then
+      LDFLAGS="$LDFLAGS -L$ac_libsgpu_dir/lib"
+    
+      dnl Test the given implementation of sgpu.
+      AC_CHECK_LIB(s_gpu, sg_create_stream, withsgpu=yes, withsgpu=no)
+      AC_CHECK_FILE($ac_libsgpu_dir/include/s_gpu.h, header="yes", header="no")
+      if test "$withsgpu" = "yes" -a "$header" = "yes" ; then
+        ac_use_libsgpu="yes"
+        AC_SUBST(LIBSGPU_INCLUDE, "-I"$ac_libsgpu_dir/include)
+      fi
+    fi
+  fi
+  if test x"$ac_use_libsgpu" = x"yes" ; then
+    AC_DEFINE([HAVE_LIBSGPU], [1], [use S_GPU in BigDFT.])
+    if test "$internalsgpu" = "yes" ; then
+      LIBSGPU_LIBS="\$(top_builddir)/S_GPU/src/.libs/libs_gpu.a"
+    else
+      LIBSGPU_LIBS="-ls_gpu"
+    fi
+  fi
+fi
+AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
+
+dnl Agregate all the optional libs.
+LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBS"
 
 dnl Test for the documentation.
 AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes])
@@ -480,7 +519,6 @@ src/profiling/Makefile
 src/PSolver/Makefile
 src/convolutions/Makefile
 src/CUDA/Makefile
-src/CUDA/S_GPU/Makefile
 src/OpenCL/Makefile
 src/art/Makefile
 utils/Makefile
@@ -490,7 +528,7 @@ tests/Makefile
 tests/C/Makefile
 tests/Ca2/Makefile
 tests/H/Makefile
-tests/H-spin/Makefile
+tests/H2-spin/Makefile
 tests/Li+/Makefile
 tests/Mn2/Makefile
 tests/NaCl/Makefile
@@ -502,20 +540,29 @@ tests/Davidson-SiH4/Makefile
 tests/GPU/Makefile
 tests/MINHOP/Makefile
 tests/H2-freq/Makefile
+tests/NH3/Makefile
 tests/NEB/Makefile
 tests/NEB/input
 tests/NEB/NEB_include.sh
 tests/XabsCheb/Makefile
 tests/FeHyb/Makefile
 ])
-if test x"$ac_build_libxc" = x"yes" ; then
+dnl if test x"$ac_build_libxc" = x"yes" ; then
   # Call libXC ./configure script recursively.
   ac_configure_args=$ac_configure_args" --enable-fortran"
   AC_CONFIG_SUBDIRS([libXC])
-fi
+dnl fi
+dnl if test x"$ac_build_libsgpu" = x"yes" ; then
+  # Call S_GPU ./configure script recursively.
+  ac_configure_args=$ac_configure_args" --with-cuda-path=$ac_with_cuda_path"
+  AC_CONFIG_SUBDIRS([S_GPU])
+dnl fi
 AC_OUTPUT
 
 echo "
+BigDFT configure summary:
+========================
+
 Basics:
   Fortran90 compiler:        $FC
   Fortran90 compiler name:   $fc_type
@@ -541,15 +588,15 @@ Options:
   With Cuda GPU conv.:       $ac_use_cuda_gpu
    | NVidia Cuda Compiler:   $NVCC
    | Cuda flags:             $CUDA_FLAGS
-   | GCC41HACK (gcc path):   $GCC41HACK
-   | ext. cutil library:     $ac_with_lib_cutils
-   |      cutil path:        $LIB_CUTIL_PATH
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE
   With libABINIT:            $ac_use_libabinit
    | internal built:         $ac_build_libabinit
    | include dir.:           $LIBABINIT_INCLUDE
+  With libS_GPU:             $ac_use_libsgpu
+   | internal built:         $ac_build_libsgpu
+   | include dir.:           $LIBSGPU_INCLUDE
 
 Installation paths:
   Source code location:      ${srcdir}

@@ -20,14 +20,13 @@
 !! gprimd(3,3)=dimensional primitive translations for reciprocal space (bohr**-1)
 !! nsym=order of group.
 !! sym(3,3,nsym)=symmetry operators (usually symrec=expressed in terms
-!! of action on reciprocal lattice primitive translations); integers.
+!!               of action on reciprocal lattice primitive translations);
+!!               integers.
 !!
 !! OUTPUT
-!!  (see side effects)
+!! stress(6)=stress tensor, in cartesian coordinates, in symmetric storage mode
 !!
 !! SIDE EFFECTS
-!! Input/Output
-!! stress(6)=stress tensor, in cartesian coordinates, in symmetric storage mode
 !!
 !! PARENTS
 !!      forstrnps,insy3,nselt3,pawgrnl,stress
@@ -47,8 +46,8 @@ subroutine stresssym(gprimd,nsym,stress,sym)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-!use interfaces_11util
-!use interfaces_12geometry, except_this_one => stresssym
+ use interfaces_32_util
+ use interfaces_42_geometry, except_this_one => stresssym
 !End of the abilint section
 
  implicit none
@@ -90,25 +89,25 @@ subroutine stresssym(gprimd,nsym,stress,sym)
  tensor(1,2)=tensor(2,1)
 
  do nu=1,3
-  do mu=1,3
-   tt(mu,nu)=tensor(mu,nu)/dble(nsym)
-   tensor(mu,nu)=0.0_dp
-  end do
+   do mu=1,3
+     tt(mu,nu)=tensor(mu,nu)/dble(nsym)
+     tensor(mu,nu)=0.0_dp
+   end do
  end do
 
 !loop over all symmetry operations:
  do isym=1,nsym
-  do mu=1,3
-   do nu=1,3
-    summ=0._dp
-    do ii=1,3
-     tmp=tt(ii,1)*sym(nu,1,isym)+tt(ii,2)*sym(nu,2,isym)+&
-&     tt(ii,3)*sym(nu,3,isym)
-     summ=summ+sym(mu,ii,isym)*tmp
-    end do
-    tensor(mu,nu)=tensor(mu,nu)+summ
+   do mu=1,3
+     do nu=1,3
+       summ=0._dp
+       do ii=1,3
+         tmp=tt(ii,1)*sym(nu,1,isym)+tt(ii,2)*sym(nu,2,isym)+&
+&         tt(ii,3)*sym(nu,3,isym)
+         summ=summ+sym(mu,ii,isym)*tmp
+       end do
+       tensor(mu,nu)=tensor(mu,nu)+summ
+     end do
    end do
-  end do
  end do
 
 !Switch back to symmetric storage mode

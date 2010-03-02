@@ -643,7 +643,8 @@ end subroutine EP_initialize_start
          ha%rxyz,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
          ha%ndimpot, &
-         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,ha%epot_sum,ha%eproj_sum,1,ha%GPU)
+         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
+         ha%epot_sum,ha%eexctX,ha%eproj_sum,1,ha%GPU)
     if(  ha%iproc ==0 ) write(*,*)" done "
 
 

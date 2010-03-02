@@ -4,9 +4,9 @@
    character(len=1) :: solvertype,afunc
    character(len=64) :: chain
    
-   integer :: i1,i2,i3,j1,j2,j3,n1,n2,n3,i1_max,i2_max,i3_max,i,isf_order
+   integer :: i1,i2,i3,n1,n2,n3,i1_max,i2_max,i3_max,isf_order
    real :: t0,t1,t2,t3
-   real(kind=8) :: pi,zero,max_diff,factor
+   real(kind=8) :: pi,zero,max_diff
    real(kind=8) :: sigma,length,hgrid,mu,energy,offset,acell,epot,intrhoS,intrhoF,intpotS,intpotF
    real(kind=8), dimension(:), allocatable :: fake_arr
    real(kind=8), dimension(:,:,:), allocatable :: psi,rhopot,rhoF,rhoS,potF,potS

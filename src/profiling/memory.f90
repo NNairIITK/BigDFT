@@ -24,14 +24,17 @@
 !!                a routine at the end parses the file
 !!     == .false. compact format
 !! COPYRIGHT
-!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2009
+!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2010
 !!    This file is distributed under the terms of the
-!!    GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 !! SOURCE
 !!
 subroutine memory_occupation(istat,isize,array,routine)
 
-  use module_base, only: memorylimit
+  use module_base, only: memorylimit,verbose,memstat,memloc,memtot,&
+       & memalloc,memdealloc,memproc,meminit
 
   implicit none
 
@@ -41,35 +44,32 @@ subroutine memory_occupation(istat,isize,array,routine)
 
 ! Local variables
   logical, parameter :: memdebug=.false.
-  type :: memstat
-     character(len=36) :: routine,array
-     integer(kind=8) :: memory,peak
-  end type memstat
 
   include 'mpif.h'
 
-  type(memstat), save :: loc,tot
-  integer, save :: nalloc,ndealloc,iproc
   integer :: ierr
 
-  !print *,iproc,array,routine
+  !print *,memproc,array,routine
+
+  ! Don't use memory profiling if not initialised.
+  if (.not.meminit .and. (array /= 'count' .or. routine /= 'start')) return
 
   select case(array)
   case('count')
      if (routine=='start') then
-        tot%memory=int(0,kind=8)
-        tot%peak=int(0,kind=8)
-        nalloc=0
-        ndealloc=0
+        memtot%memory=int(0,kind=8)
+        memtot%peak=int(0,kind=8)
+        memalloc=0
+        memdealloc=0
 
-        loc%routine='routine'
-        loc%array='array'
-        loc%memory=int(0,kind=8) !fake initialisation to print the first routine
-        loc%peak=int(0,kind=8)
+        memloc%routine='routine'
+        memloc%array='array'
+        memloc%memory=int(0,kind=8) !fake initialisation to print the first routine
+        memloc%peak=int(0,kind=8)
 
-        iproc=isize
+        memproc=isize
         !open the writing file for the root process
-        if (iproc == 0) then
+        if (memproc == 0 .and. verbose >= 2) then
            open(unit=98,file='malloc.prc',status='unknown')
            if (memdebug) then
               write(98,'(a,t40,a,t70,4(1x,a12))')&
@@ -81,32 +81,35 @@ subroutine memory_occupation(istat,isize,array,routine)
                    'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
            end if
         end if
-     else if (routine=='stop' .and. iproc==0) then
-        write(98,'(a,t40,a,t70,4(1x,i12))')&
-             trim(loc%routine),trim(loc%array),&
-             loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
-             tot%memory/int(1024,kind=8),&
-             (tot%peak+loc%peak-loc%memory)/int(1024,kind=8)
-        close(unit=98)
+        meminit = .true.
+     else if (routine=='stop' .and. memproc==0) then
+        if (verbose >= 2) then
+           write(98,'(a,t40,a,t70,4(1x,i12))')&
+             trim(memloc%routine),trim(memloc%array),&
+             memloc%memory/int(1024,kind=8),memloc%peak/int(1024,kind=8),&
+             memtot%memory/int(1024,kind=8),&
+             (memtot%peak+memloc%peak-memloc%memory)/int(1024,kind=8)
+           close(unit=98)
+        end if
         write(*,'(1x,a)')&
              '-------------------------MEMORY CONSUMPTION REPORT-----------------------------'
         write(*,'(1x,2(i0,a),i0)')&
-             nalloc,' allocations and ',ndealloc,' deallocations, remaining memory(B):',&
-             tot%memory
-        write(*,'(1x,a,i0,a)') 'memory occupation peak: ',tot%peak/int(1048576,kind=8),' MB'
-        write(*,'(4(1x,a))') 'for the array ',trim(tot%array),&
-             'in the routine',trim(tot%routine)
+             memalloc,' allocations and ',memdealloc,' deallocations, remaining memory(B):',&
+             memtot%memory
+        write(*,'(1x,a,i0,a)') 'memory occupation peak: ',memtot%peak/int(1048576,kind=8),' MB'
+        write(*,'(4(1x,a))') 'for the array ',trim(memtot%array),&
+             'in the routine',trim(memtot%routine)
         !here we can add a routine which open the malloc.prc file in case of some 
         !memory allocation problem, and which eliminates it for a successful run
-        if (.not.memdebug .and. nalloc == ndealloc .and. tot%memory==int(0,kind=8)) then
+        if (.not.memdebug .and. memalloc == memdealloc .and. memtot%memory==int(0,kind=8)) then
            !clean the malloc file
-           if (iproc==0) then
+           if (memproc==0 .and. verbose >= 2) then
               open(unit=98,file='malloc.prc',status='unknown')
               write(98,*)
               close(unit=98)
            end if
         else
-           call memory_malloc_check(memdebug,nalloc,ndealloc)
+           call memory_malloc_check(memdebug,memalloc,memdealloc)
         end if
      end if
 
@@ -116,62 +119,62 @@ subroutine memory_occupation(istat,isize,array,routine)
         if (isize>=0) then
            write(*,*)' subroutine ',routine,': problem of allocation of array ',array,&
                 ', error code=',istat,' exiting...'
-           if (iproc == 0) close(unit=98)
+           if (memproc == 0) close(unit=98)
            call MPI_ABORT(MPI_COMM_WORLD,ierr)
         else if (isize<0) then
            write(*,*)' subroutine ',routine,': problem of deallocation of array ',array,&
                 ', error code=',istat,' exiting...'
-           if (iproc == 0) close(unit=98)
+           if (memproc == 0) close(unit=98)
            call MPI_ABORT(MPI_COMM_WORLD,ierr)
         end if
      end if
      !total counter, for all the processes
-     tot%memory=tot%memory+int(isize,kind=8)
-     if (tot%memory > tot%peak) then
-        tot%peak=tot%memory
-        tot%routine=routine
-        tot%array=array
+     memtot%memory=memtot%memory+int(isize,kind=8)
+     if (memtot%memory > memtot%peak) then
+        memtot%peak=memtot%memory
+        memtot%routine=routine
+        memtot%array=array
      end if
      if (isize>0) then
-        nalloc=nalloc+1
+        memalloc=memalloc+1
      else if (isize<0) then
-        ndealloc=ndealloc+1
+        memdealloc=memdealloc+1
      end if
 
      if (memorylimit /= 0.e0 .and. &
-          tot%memory > int(real(memorylimit,kind=8)*1073741824.d0,kind=8)) then !memory limit is in GB
+          memtot%memory > int(real(memorylimit,kind=8)*1073741824.d0,kind=8)) then !memory limit is in GB
         write(*,'(1x,a,f7.3,2(a,i0),a)')&
              'ERROR: Memory limit of ',memorylimit,&
-             ' GB reached for iproc ',iproc,' : total memory is ',tot%memory,' B.'
+             ' GB reached for memproc ',memproc,' : total memory is ',memtot%memory,' B.'
         write(*,'(1x,2(a,i0))')&
-             '       this happened for array '//trim(tot%array)//' in routine '//trim(tot%routine)
+             '       this happened for array '//trim(memtot%array)//' in routine '//trim(memtot%routine)
         call MPI_ABORT(MPI_COMM_WORLD,ierr)
      end if
 
-     select case(iproc)
+     select case(memproc)
      case (0)
-        if (memdebug) then
+        if (memdebug .and. verbose >= 2) then
            !to be used for inspecting an array which is not deallocated
-           write(98,'(a,t40,a,t70,4(1x,i12))')trim(routine),trim(array),isize,tot%memory
+           write(98,'(a,t40,a,t70,4(1x,i12))')trim(routine),trim(array),isize,memtot%memory
         else
            !Compact format
-           if (trim(loc%routine) /= routine) then
-              if (loc%memory /= int(0,kind=8)) then
+           if (trim(memloc%routine) /= routine) then
+              if (memloc%memory /= int(0,kind=8) .and. verbose >= 2) then
                  write(98,'(a,t40,a,t70,4(1x,i12))')&
-                      trim(loc%routine),trim(loc%array),&
-                      loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
-                      tot%memory/int(1024,kind=8),&
-                      (tot%memory+loc%peak-loc%memory)/int(1024,kind=8)
+                      trim(memloc%routine),trim(memloc%array),&
+                      memloc%memory/int(1024,kind=8),memloc%peak/int(1024,kind=8),&
+                      memtot%memory/int(1024,kind=8),&
+                      (memtot%memory+memloc%peak-memloc%memory)/int(1024,kind=8)
               end if
-              loc%routine=routine
-              loc%array=array
-              loc%memory=isize
-              loc%peak=isize
+              memloc%routine=routine
+              memloc%array=array
+              memloc%memory=isize
+              memloc%peak=isize
            else
-              loc%memory=loc%memory+isize
-              if (loc%memory > loc%peak) then
-                 loc%peak=loc%memory
-                 loc%array=array
+              memloc%memory=memloc%memory+isize
+              if (memloc%memory > memloc%peak) then
+                 memloc%peak=memloc%memory
+                 memloc%array=array
               end if
            end if
         end if

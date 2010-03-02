@@ -19,6 +19,10 @@ EXTRA_DIST = \
 SOURCES_CONV = 	cudafct.cu \
 	locham.cu 
 
+EXTRA_DIST += conv_check.f90 \
+	GPUham.f90 \
+	$(SOURCES_CONV)
+
 SOURCES_CONV_CHECK = locpot.cu \
 	kinetic.cu \
 	anasyn.cu \
@@ -30,38 +34,23 @@ SOURCES_SHARED = binding_s_gpu.c \
 	commonDef.cpp  \
 	fortran.c
 
-INC_CUDA = -I@LIB_CUTIL_PATH@
+# Not used anymore, to be removed
+#INC_CUDA = -I@LIB_CUTIL_PATH@
 
 noinst_LIBRARIES = libGPU.a
 
 libGPU_a_SOURCES = $(SOURCES_CU_CONV1) $(SOURCES_SHARED)  $(SOURCES_CONV)
-AM_CPPFLAGS = $(INC_CUDA) -I. -I$(top_builddir) -I@CUDA_PATH@/include/ 
-AM_CFLAGS = $(INC_CUDA) -I. -I@CUDA_PATH@/include/ -DCUBLAS_USE_THUNKING 
+AM_CPPFLAGS = $(INC_CUDA) -I. -I$(top_builddir) -I@CUDA_PATH@/include/ @LIBSGPU_INCLUDE@ -DCUBLAS_USE_THUNKING
 
 NVCC = @NVCC@
-CUDA_FLAGS = @INC_GCC41CUDA@ -arch sm_13 @CUDA_FLAGS@ 
+CUDA_FLAGS =  -arch sm_13 @CUDA_FLAGS@ 
 SUFFIXES = .cu
 
 if USE_CUDA_GPU
-sub_dirs_cuda=CUDA
-libs_cuda=-L@CUDA_PATH@/lib64/ -lcudart -lcublas libGPU.a S_GPU/libs_gpu.a
-#cutil is used for CUDA timer
-#libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a @LIB_CUTIL_PATH@/libcutil.a
-
-#if BUILD_BINARIES
-#bin_PROGRAMS = GPUham
-#else
-#bin_PROGRAMS = 
-#endif
-
 check_PROGRAMS = conv_check 
 #	GPUham
-
 else
 check_PROGRAMS = 
-EXTRA_DIST += conv_check.f90 \
-	GPUham.f90 \
-	$(SOURCES_CONV)
 endif
 
 if USE_MPI
@@ -78,7 +67,7 @@ conv_check_SOURCES = conv_check.f90  ../profiling/memory.f90 ../modules/base.F90
 conv_check_LDFLAGS =
 conv_check_LDADD = ../libbigdft.a \
 	../PSolver/libpoissonsolver.a \
-	$(libs_cuda)
+	libGPU.a
 
 #GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
 #GPUham_LDFLAGS =

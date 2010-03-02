@@ -71,17 +71,18 @@ LMPI =
 endif
 
 if USE_CUDA_GPU
-libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas ../CUDA/libGPU.a @LIB_CUTIL_PATH@/libcutil.a
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas ../CUDA/libGPU.a 
 else
 libs_cuda=
 endif
 
-
 libpoissonsolver_a_SOURCES = \
 	Poisson_Solver.f90 \
 	Build_Kernel.f90 \
+	xcenergy.f90 \
+	3Dgradient.f90 \
 	scaling_function.f90 \
-	PSolver_Base.f90 \
+	PSolver_Base_new.f90 \
 	wofz.f90 \
 	../lib/fft/fft3d.f90 \
 	../profiling/time.f90 
@@ -126,6 +127,8 @@ Poisson_Solver.o: ../modules/base.o $(SOURCES_MOD)
 
 Build_Kernel.o: fft3d.o
 
+xcenergy.o : Poisson_Solver.o
+
 check:
 	$(run_parallel) ./PS_Check 57 48 63  0 F  > PS_Check.out
 	$(run_parallel) ./PS_Check 57 48 63  1 F >> PS_Check.out
@@ -139,4 +142,4 @@ check:
 	$(run_parallel) ./PS_Check 32 64 48  1 S >> PS_Check.out
 	$(run_parallel) ./PS_Check 32 64 48 11 S >> PS_Check.out
 	$(run_parallel) ./PS_Check 32 64 48 13 S >> PS_Check.out
-	python $(top_srcdir)/tests/fldiff.py --discrepancy=2.e-8 PS_Check.out $(top_srcdir)/src/PSolver/PS_Check.out.ref
+	python $(top_srcdir)/tests/fldiff.py --mode=psolver --discrepancy=2.e-8 PS_Check.out $(top_srcdir)/src/PSolver/PS_Check.out.ref

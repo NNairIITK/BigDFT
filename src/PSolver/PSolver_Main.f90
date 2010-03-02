@@ -1,3 +1,322 @@
+!!****f* H_potential/H_potential
+!! FUNCTION
+!!    Calculate the Hartree potential by solving Poisson equation 
+!!       $\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$
+!!    from a given $\rho$, 
+!!    for different boundary conditions an for different data distributions.
+!!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2002-2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SYNOPSIS
+!!    geocode  Indicates the boundary conditions (BC) of the problem:
+!!            'F' free BC, isolated systems.
+!!                The program calculates the solution as if the given density is
+!!                "alone" in R^3 space.
+!!            'S' surface BC, isolated in y direction, periodic in xz plane                
+!!                The given density is supposed to be periodic in the xz plane,
+!!                so the dimensions in these direction mus be compatible with the FFT
+!!                Beware of the fact that the isolated direction is y!
+!!            'P' periodic BC.
+!!                The density is supposed to be periodic in all the three directions,
+!!                then all the dimensions must be compatible with the FFT.
+!!                No need for setting up the kernel.
+!!    datacode Indicates the distribution of the data of the input/output array:
+!!            'G' global data. Each process has the whole array of the density 
+!!                which will be overwritten with the whole array of the potential
+!!            'D' distributed data. Each process has only the needed part of the density
+!!                and of the potential. The data distribution is such that each processor
+!!                has the xy planes needed for the calculation AND for the evaluation of the 
+!!                gradient, needed for XC part, and for the White-Bird correction, which
+!!                may lead up to 8 planes more on each side. Due to this fact, the information
+!!                between the processors may overlap.
+!!    nproc       number of processors
+!!    iproc       label of the process,from 0 to nproc-1
+!!    n01,n02,n03 global dimension in the three directions. They are the same no matter if the 
+!!                datacode is in 'G' or in 'D' position.
+!!    hx,hy,hz    grid spacings. For the isolated BC case for the moment they are supposed to 
+!!                be equal in the three directions
+!!    rhopot      main input/output array.
+!!                On input, it represents the density values on the grid points
+!!                On output, it is the Hartree potential
+!!    karray      kernel of the poisson equation. It is provided in distributed case, with
+!!                dimensions that are related to the output of the PS_dim4allocation routine
+!!                it MUST be created by following the same geocode as the Poisson Solver.
+!!    pot_ion     additional external potential that is added to the output, 
+!!                when the XC parameter ixc/=0 and sumpion=.true.
+!!                When sumpion=.true., it is always provided in the distributed form,
+!!                clearly without the overlapping terms which are needed only for the XC part
+!!    eh          Hartree energy
+!!    offset      Total integral on the supercell of the final potential on output
+!!                To be used only in the periodic case, ignored for other boundary conditions.
+!!    sumpion     logical value which states whether to sum pot_ion to the final result or not
+!!                if sumpion==.true. rhopot will be the Hartree potential + pot_ion+vxci
+!!                                   pot_ion will be untouched
+!!                if sumpion==.false. rhopot will be only the Hartree potential
+!!                                    pot_ion will be the XC potential vxci
+!! WARNING
+!!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
+!!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
+!!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
+!!    Moreover, for the cases with the exchange and correlation the density must be initialised
+!!    to 10^-20 and not to zero.
+!!
+!! AUTHOR
+!!    Luigi Genovese
+!! CREATION DATE
+!!    February 2007
+!!
+!! SOURCE
+!! 
+subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
+     rhopot,karray,pot_ion,eh,offset,sumpion,&
+     quiet) !optional argument
+  use module_base
+  implicit none
+  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: datacode
+  logical, intent(in) :: sumpion
+  integer, intent(in) :: iproc,nproc,n01,n02,n03
+  real(gp), intent(in) :: hx,hy,hz
+  real(dp), intent(in) :: offset
+  real(dp), dimension(*), intent(in) :: karray
+  real(gp), intent(out) :: eh
+  real(dp), dimension(*), intent(inout) :: rhopot
+  real(wp), dimension(*), intent(inout) :: pot_ion
+  character(len=3), intent(in), optional :: quiet
+  !local variables
+  character(len=*), parameter :: subname='H_potential'
+  logical :: wrtmsg
+  integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
+  integer :: i_all,i_stat,ierr,ind,ind2,ind3,indp,ind2p,ind3p,i,j
+  integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,ind2nd
+  integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim,ispin,istden,istglo
+  real(dp) :: scal,ehartreeLOC,pot
+  real(dp), dimension(:,:,:), allocatable :: zf
+  integer, dimension(:,:), allocatable :: gather_arr
+
+  call timing(iproc,'PSolv_comput  ','ON')
+
+  !do not write anything on screen if quiet is set to yes
+  if (present(quiet)) then
+     if(quiet == 'yes' .or. quiet == 'YES') then
+        wrtmsg=.false.
+     else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
+        wrtmsg=.true.
+     else
+        write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
+        stop
+     end if
+  else
+     wrtmsg=.true.
+  end if
+
+  !calculate the dimensions wrt the geocode
+  if (geocode == 'P') then
+     if (iproc==0 .and. wrtmsg) &
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',0,' ... '
+     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+  else if (geocode == 'S') then
+     if (iproc==0 .and. wrtmsg) &
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',0,' ... '
+     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+  else if (geocode == 'F') then
+     if (iproc==0 .and. wrtmsg) &
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',0,' ... '
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+  else
+     stop 'PSolver: geometry code not admitted'
+  end if
+
+  !array allocations
+  allocate(zf(md1,md3,md2/nproc+ndebug),stat=i_stat)
+  call memocc(i_stat,zf,'zf',subname)
+  !initalise to zero the zf array
+  zf=0.0_dp
+  !call razero(md1*md3*md2/nproc,zf)
+
+  !dimension for exchange-correlation (different in the global or distributed case)
+  !let us calculate the dimension of the portion of the rhopot array to be passed 
+  !to the xc routine
+  !this portion will depend on the need of calculating the gradient or not, 
+  !and whether the White-Bird correction must be inserted or not 
+  !(absent only in the LB ixc=13 case)
+  
+  !nxc is the effective part of the third dimension that is being processed
+  !nxt is the dimension of the part of rhopot that must be passed to the gradient routine
+  !nwb is the dimension of the part of rhopot in the wb-postprocessing routine
+  !note: nxc <= nwb <= nxt
+  !the dimension are related by the values of nwbl and nwbr
+  !      nxc+nxcl+nxcr-2 = nwb
+  !      nwb+nwbl+nwbr = nxt
+  istart=iproc*(md2/nproc)
+  iend=min((iproc+1)*md2/nproc,m2)
+  if (istart <= m2-1) then
+     nxc=iend-istart
+  else
+     nxc=0
+  end if
+
+  if (datacode=='G') then
+     !starting address of rhopot in the case of global i/o
+     i3start=istart+1
+  else if (datacode == 'D') then
+     !distributed i/o
+     i3start=1
+  else
+     stop 'PSolver: datacode not admitted'
+  end if
+
+  !this routine builds the values for each process of the potential (zf), multiplying by scal 
+
+  !fill the array with the values of the charge density
+  !no more overlap between planes
+  !still the complex case should be defined
+  do i3=1,nxc
+     do i2=1,m3
+        do i1=1,m1
+           i=i1+(i2-1)*m1+(i3+i3start-2)*m1*m3
+           zf(i1,i2,i3)=rhopot(i)
+        end do
+     end do
+  end do
+
+  if(geocode == 'P') then
+     !no powers of hgrid because they are incorporated in the plane wave treatment
+     scal=1.0_dp/real(n1*n2*n3,dp)
+  else if (geocode == 'S') then
+     !only one power of hgrid 
+     !factor of -4*pi for the definition of the Poisson equation
+     scal=-16.0_dp*atan(1.0_dp)*real(hy,dp)/real(n1*n2*n3,dp)
+  else if (geocode == 'F') then
+     !hgrid=max(hx,hy,hz)
+     scal=hx*hy*hz/real(n1*n2*n3,dp)
+  end if
+  !here the case ncplx/= 1 should be added
+  !eventually one may avoid zf array
+  call timing(iproc,'PSolv_comput  ','OF')
+  call G_PoissonSolver(geocode,iproc,nproc,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,&
+       zf(1,1,1),&
+       scal,hx,hy,hz,offset)
+  call timing(iproc,'PSolv_comput  ','ON')
+
+  
+  !the value of the shift depends on the distributed i/o or not
+  if (datacode=='G') then
+     i3xcsh=istart !beware on the fact that this is not what represents its name!!!
+     is_step=n01*n02*n03
+  else if (datacode=='D') then
+     i3xcsh=0 !shift not needed anymore
+     is_step=m1*m3*nxt
+  end if
+ 
+  !if (iproc == 0) print *,'n03,nxt,nxc,geocode,datacode',n03,nxt,nxc,geocode,datacode
+
+  ehartreeLOC=0.0_dp
+  !recollect the final data
+  !this part can be eventually removed once the zf disappears
+  if (sumpion) then
+     do j2=1,nxc
+        i2=j2+i3xcsh 
+        ind3=(i2-1)*n01*n02
+        ind3p=(j2-1)*n01*n02
+        do i3=1,m3
+           ind2=(i3-1)*n01+ind3
+           ind2p=(i3-1)*n01+ind3p
+           do i1=1,m1
+              ind=i1+ind2
+              indp=i1+ind2p
+              pot=zf(i1,i3,j2)
+              ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
+              rhopot(ind)=real(pot,wp)+real(pot_ion(indp),wp)
+           end do
+        end do
+     end do
+  else
+     do j2=1,nxc
+        i2=j2+i3xcsh 
+        ind3=(i2-1)*n01*n02
+        do i3=1,m3
+           ind2=(i3-1)*n01+ind3
+           do i1=1,m1
+              ind=i1+ind2
+              pot=zf(i1,i3,j2)
+              ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
+              rhopot(ind)=real(pot,wp)
+           end do
+        end do
+     end do
+  end if
+  ehartreeLOC=ehartreeLOC*0.5_dp*hx*hy*hz
+  
+  i_all=-product(shape(zf))*kind(zf)
+  deallocate(zf,stat=i_stat)
+  call memocc(i_stat,i_all,'zf',subname)
+
+  call timing(iproc,'PSolv_comput  ','OF')
+
+  !gathering the data to obtain the distribution array
+  !evaluating the total ehartree
+  eh=real(ehartreeLOC,gp)
+  if (nproc > 1) then
+     call timing(iproc,'PSolv_commun  ','ON')
+
+     eh=ehartreeLOC
+     call mpiallred(eh,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+     call timing(iproc,'PSolv_commun  ','OF')
+
+     if (datacode == 'G') then
+        !building the array of the data to be sent from each process
+        !and the array of the displacement
+
+        call timing(iproc,'PSolv_comput  ','ON')
+        allocate(gather_arr(0:nproc-1,2+ndebug),stat=i_stat)
+        call memocc(i_stat,gather_arr,'gather_arr',subname)
+        do jproc=0,nproc-1
+           istart=min(jproc*(md2/nproc),m2-1)
+           jend=max(min(md2/nproc,m2-md2/nproc*jproc),0)
+           gather_arr(jproc,1)=m1*m3*jend
+           gather_arr(jproc,2)=m1*m3*istart
+        end do
+
+        !gather all the results in the same rhopot array
+        istart=min(iproc*(md2/nproc),m2-1)
+
+        call timing(iproc,'PSolv_comput  ','OF')
+        call timing(iproc,'PSolv_commun  ','ON')
+        istden=1+n01*n02*istart
+        istglo=1
+        call MPI_ALLGATHERV(rhopot(istden),gather_arr(iproc,1),mpidtypw,&
+             rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
+             MPI_COMM_WORLD,ierr)
+        call timing(iproc,'PSolv_commun  ','OF')
+        call timing(iproc,'PSolv_comput  ','ON')
+
+        i_all=-product(shape(gather_arr))*kind(gather_arr)
+        deallocate(gather_arr,stat=i_stat)
+        call memocc(i_stat,i_all,'gather_arr',subname)
+
+        call timing(iproc,'PSolv_comput  ','OF')
+
+     end if
+  end if
+
+  !if(nspin==1 .and. ixc /= 0) eh=eh*2.0_gp
+  if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+
+end subroutine H_potential
+!!***
+
+
 !!****f* PSolver/PSolver
 !! FUNCTION
 !!    Calculate the Poisson equation $\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$
@@ -135,18 +454,18 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
      if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i5,a)',advance='no')&
-          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'S') then
      if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i5,a)',advance='no')&
-          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'F') then
      if (iproc==0 .and. wrtmsg) &
-          write(*,'(1x,a,3(i5),a,i5,a,i5,a)',advance='no')&
-          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else
      stop 'PSolver: geometry code not admitted'
@@ -198,22 +517,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               end do
            end do
         end do
-!!        do i3=1,nxt
-!!           do i2=1,m3
-!!              do i1=1,m1
-!!                 i=i1+(i2-1)*m1+(i3-1)*m1*m3+m1*m3*nxt
-!!                 j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+n01*n02*n03
-!!                 rhopot_G(i)=rhopot(j)
-!!              end do
-!!           end do
-!!        end do
-!!
-!!        do i1=1,m1*m3*nxt
-!!           rhopot_G(i1)=rhopot(n01*n02*(i3start-1)+i1)
-!!        end do
-!!        do i1=1,m1*m3*nxt
-!!           rhopot_G(i1+m1*m3*nxt)=rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)
-!!        end do
      end if
   else if (datacode == 'D') then
      !distributed i/o
@@ -235,37 +538,37 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 !!  print *,'        it goes from',i3start+nwbl+nxcl-1,'to',i3start+nxc-1
 
   if (istart+1 <= m2) then 
-       if(datacode=='G' .and. &
-            ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
-        !allocation of an auxiliary array for avoiding the shift of the de ) then
-          call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-               ixc,hx,hy,hz,rhopot_G,pot_ion,sumpion,zf,zfionxc,&
-               eexcuLOC,vexcuLOC,nproc,nspin)
-          do ispin=1,nspin
-             do i3=1,nxt
-                do i2=1,m3
-                   do i1=1,m1
-                      i=i1+(i2-1)*m1+(i3-1)*m1*m3+(ispin-1)*m1*m3*nxt
-                      j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+(ispin-1)*n01*n02*n03
-                      rhopot(j)=rhopot_G(i)
-                   end do
-                end do
-             end do
-          end do
-!!          do i1=1,m1*m3*nxt
-!!             rhopot(n01*n02*(i3start-1)+i1)=rhopot_G(i1)
-!!          end do
-!!          do i1=1,m1*m3*nxt
-!!             rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)=rhopot_G(i1+m1*m3*nxt)
-!!          end do
-          i_all=-product(shape(rhopot_G))*kind(rhopot_G)
-          deallocate(rhopot_G,stat=i_stat)
-          call memocc(i_stat,i_all,'rhopot_g',subname)
-       else
-          call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-               ixc,hx,hy,hz,rhopot(1+n01*n02*(i3start-1)),pot_ion,sumpion,zf,zfionxc,&
-               eexcuLOC,vexcuLOC,nproc,nspin)
-       end if
+     if(datacode=='G' .and. &
+          ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
+        !allocation of an auxiliary array for avoiding the shift 
+        call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
+             ixc,hx,hy,hz,rhopot_G,pot_ion,sumpion,zf,zfionxc,&
+             eexcuLOC,vexcuLOC,nproc,nspin)
+        do ispin=1,nspin
+           do i3=1,nxt
+              do i2=1,m3
+                 do i1=1,m1
+                    i=i1+(i2-1)*m1+(i3-1)*m1*m3+(ispin-1)*m1*m3*nxt
+                    j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+(ispin-1)*n01*n02*n03
+                    rhopot(j)=rhopot_G(i)
+                 end do
+              end do
+           end do
+        end do
+        !!          do i1=1,m1*m3*nxt
+        !!             rhopot(n01*n02*(i3start-1)+i1)=rhopot_G(i1)
+        !!          end do
+        !!          do i1=1,m1*m3*nxt
+        !!             rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)=rhopot_G(i1+m1*m3*nxt)
+        !!          end do
+        i_all=-product(shape(rhopot_G))*kind(rhopot_G)
+        deallocate(rhopot_G,stat=i_stat)
+        call memocc(i_stat,i_all,'rhopot_g',subname)
+     else
+        call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
+             ixc,hx,hy,hz,rhopot(1+n01*n02*(i3start-1)),pot_ion,sumpion,zf,zfionxc,&
+             eexcuLOC,vexcuLOC,nproc,nspin)
+     end if
   else if (istart+1 <= nlim) then !this condition ensures we have performed good zero padding
      do i2=istart+1,min(nlim,istart+md2/nproc)
         j2=i2-istart
@@ -283,25 +586,27 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   end if
 
   call timing(iproc,'Exchangecorr  ','OF')
-
   !this routine builds the values for each process of the potential (zf), multiplying by scal 
   if(geocode == 'P') then
      !no powers of hgrid because they are incorporated in the plane wave treatment
      scal=1.0_dp/real(n1*n2*n3,dp)
-     call P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
-          scal,hx,hy,hz,offset)
+     !call P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
+     !     scal,hx,hy,hz,offset)
   else if (geocode == 'S') then
      !only one power of hgrid 
      !factor of -4*pi for the definition of the Poisson equation
      scal=-16.0_dp*atan(1.0_dp)*real(hy,dp)/real(n1*n2*n3,dp)
-     call S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
-          scal) !,hx,hy,hz,ehartreeLOC)
+     !call S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
+     !     scal) !,hx,hy,hz,ehartreeLOC)
   else if (geocode == 'F') then
      !hgrid=max(hx,hy,hz)
      scal=hx*hy*hz/real(n1*n2*n3,dp)
-     call F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
-          scal)!,hgrid)!,ehartreeLOC)
+     !call F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
+     !     scal)!,hgrid)!,ehartreeLOC)
   end if
+  !here the case ncplx/= 1 should be added
+  call G_PoissonSolver(geocode,iproc,nproc,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,zf(1,1,1),&
+       scal,hx,hy,hz,offset)
   
   call timing(iproc,'PSolv_comput  ','ON')
   
@@ -895,7 +1200,7 @@ subroutine xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,
         end if
      !this case is also considered below
      !else if (geocode /= 'F' .and. use_gradient .and. nxc == m2) then
-     else !(for the moment GGA is not implemented in the non free BC)
+     else 
         nwbl=0
         nwbr=0
         nxcl=1

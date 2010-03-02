@@ -1,48 +1,48 @@
 !{\src2tex{textfont=tt}}
 !!****f* ABINIT/symanal
+!!
 !! NAME
 !! symanal
 !!
 !! FUNCTION
-!! Derive the name of the point group, from symrel.
-!!
-!! Also,indicate whether the input value
-!! of the holohedry (iholohedry is contained in bravais)
-!! is consistent with
-!! the point group, as iholohedry was determined directly
-!! from the lattice vectors, NOT taking into account
-!! that the atomic positions might have broken the symmetry
-!! of the lattice.
+!! Find the space group, Bravais lattice, including Shubnikov characteristics
+!! from the list of symmetries (including magnetic characteristics), and lattice parameters
+!! Warning : the recognition of the space group might not yet work for the
+!! Shubnikov group of type IV
+!! 
 !!
 !! COPYRIGHT
-!! Copyright (C) 2000-2009 ABINIT group (XG)
+!! Copyright (C) 1998-2009 ABINIT group (XG, RC)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !! For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
 !!
 !! INPUTS
+!! chkprim= if 1 then stop if the cell is not primitive
+!! msym=default maximal number of symmetries
 !! nsym=actual number of symmetries
-!! symrel(3,3,nsym)= nsym symmetry operations in real space in terms
-!! of primitive translations
+!! rprimd(3,3)=dimensional primitive translations for real space (bohr)
+!! symafm(1:msym)=(anti)ferromagnetic part of symmetry operations
+!! symrel(3,3,1:msym)=symmetry operations in real space in terms
+!!  of primitive translations
+!! tnons(3,1:msym)=nonsymmorphic translations for symmetry operations
+!! tolsym=tolerance for the symmetry operations
 !!
 !! OUTPUT
-!! problem= if 1, the holohedry here determined has a lower symmetry
-!!  than the one expected from the Bravais lattice number. Otherwise 0.
+!! bravais(11)=characteristics of Bravais lattice (see symlatt.F90)
+!! genafm(3)=magnetic translation generator (in case of Shubnikov group type IV)
+!! ptgroupma = magnetic point group number
+!! spgroup=symmetry space group
 !!
 !! SIDE EFFECTS
-!! Input/Output
-!! bravais(11): bravais(1)=iholohedry
-!!              bravais(2)=center
-!!              bravais(3:11)=coordinates of rprimd in the axes
-!!              of the conventional bravais lattice (*2 if center/=0)
-!! character(len=5) ptgroup=symmetry point group
+!!
+!! NOTES
 !!
 !! PARENTS
 !!      ingeo
 !!
 !! CHILDREN
-!!      leave_new,symdet,wrtout
 !!
 !! SOURCE
 
@@ -50,278 +50,150 @@
 #include "config.inc"
 #endif
 
-subroutine symanal(bravais,nsym,problem,ptgroup,symrel)
+subroutine symanal(bravais,chkprim,genafm,msym,nsym,ptgroupma,rprimd,spgroup,symafm,symrel,tnons,tolsym)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-! use interfaces_14_hidewrite
-! use interfaces_16_hideleave
-! use interfaces_42_geometry, except_this_one => symanal
+ use interfaces_14_hidewrite
+ use interfaces_42_geometry, except_this_one => symanal
 !End of the abilint section
 
  implicit none
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: nsym
- integer,intent(out) :: problem
- character(len=5),intent(inout) :: ptgroup
+ integer,intent(in) :: chkprim,msym,nsym
+ integer,intent(out) :: ptgroupma,spgroup
+ real(dp),intent(in) :: tolsym
 !arrays
- integer,intent(in) :: symrel(3,3,nsym)
- integer,intent(inout) :: bravais(11)
+ integer,intent(out) :: bravais(11)
+ integer,intent(in) :: symafm(msym),symrel(3,3,msym)
+ real(dp),intent(in) :: rprimd(3,3)
+ real(dp),intent(inout) :: tnons(3,msym)
+ real(dp),intent(out) :: genafm(3)
 
 !Local variables-------------------------------
 !scalars
- integer :: iholohedry,inversion,iorder,isym
+ integer :: iholohedry_nomagn,isym,isym_nomagn,multi
+ integer :: nptsym,nsym_nomagn,shubnikov
+ character(len=5) :: ptgroup,ptgroupha
  character(len=500) :: message
 !arrays
- integer :: identity(3,3),matrix(3,3),n_axes(-6:6),trial(3,3)
- integer,allocatable :: determinant(:),order(:),root_invers(:)
- character(len=2),allocatable :: ptsym(:)
+ integer :: identity(3,3)
+ integer,allocatable :: ptsymrel(:,:,:),symrel_nomagn(:,:,:)
+ real(dp),allocatable :: tnons_nomagn(:,:)
 
-!**************************************************************************
+! *************************************************************************
 
 !DEBUG
-!write(6,*)' symanal : enter'
-!do isym=1,nsym
-!write(6, '(i3,2x,9i3)' )isym,symrel(:,:,isym)
-!end do
+!write(6,*)' symanal : enter '
+!call flush(6)
+!stop
 !ENDDEBUG
 
- identity(:,:)=0
- identity(1,1)=1 ; identity(2,2)=1 ; identity(3,3)=1
- n_axes(:)=0
+!This routine finds the Bravais characteristics, without actually
+!looking at the symmetry operations.
+ allocate(ptsymrel(3,3,msym))
+ call symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
+ deallocate(ptsymrel)
 
- allocate(determinant(nsym),order(nsym),ptsym(nsym),root_invers(nsym))
+!Check whether the cell is primitive or not.
+ call chkprimit(chkprim,multi,nsym,symafm,symrel)
 
-!Get the determinant
- call symdet(determinant,nsym,symrel)
+ spgroup=0 ; ptgroupma=0 ; genafm(:)=zero
+ if(multi>1)then
+!  Modify bravais if the cell is not primitive ; no determination of the space group
+   bravais(1)=-bravais(1)
+ else
 
-!Get the order of each the symmetry operation, as well as the maximal order
-!Also, examine whether each symmetry operation is the inversion, or a root
-!of the inversion (like -3)
-!Finally, decide which kind of point symmetry operation it is
- do isym=1,nsym
+!  The cell is primitive, so that the space group can be
+!  determined. Need to distinguish Fedorov and Shubnikov groups.
+!  Do not distinguish Shubnikov types I and II.
+!  Also identify genafm, in case of Shubnikov type IV
+   identity(:,:)=reshape((/1,0,0,0,1,0,0,0,1/),(/3,3/))
+   shubnikov=1
+   do isym=1,nsym
+     if(symafm(isym)==-1)then
+       shubnikov=3
+       if(sum(abs(symrel(:,:,isym)-identity(:,:)))==0)then
+         shubnikov=4
+         genafm(:)=tnons(:,isym)
+!        DEBUG
+!        write(6,*)' isym=',isym
+!        write(6,*)' symrel(:,:,isym)',symrel(:,:,isym)
+!        write(6,*)' tnons(:,isym)',tnons(:,isym)
+!        write(6,*)' symafm(isym)',symafm(isym)
+!        ENDDEBUG
+         exit
+       end if
+     end if
+   end do
 
-  trial(:,:)=identity(:,:)
-  matrix(:,:)=symrel(:,:,isym)
-  order(isym)=0
-  root_invers(isym)=0
-  do iorder=1,6
-   trial=matmul(matrix,trial)
-   if(sum((trial-identity)**2)==0)then
-    order(isym)=iorder
-    exit
+   if(shubnikov/=1)then
+     if(shubnikov==3)write(message, '(a)' )' Shubnikov space group type III'
+     if(shubnikov==4)write(message, '(a)' )' Shubnikov space group type IV'
+     call wrtout(std_out,message,'COLL')
    end if
-   if(sum((trial+identity)**2)==0)then
-    root_invers(isym)=iorder
-    if(iorder==1)inversion=isym
+
+   if(shubnikov==1 .or. shubnikov==3)then
+!    Find the correct Bravais characteristics and point group
+!    Should also be used for Shubnikov groups of type IV ...
+     call symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
+!    Find the space group
+     call symspgr(bravais,nsym,spgroup,symrel,tnons,tolsym)
    end if
-  end do
-  if(order(isym)==0)then
-   write(message, '(a,a,a,a,i4,a)' ) ch10,&
-&   ' symanal : BUG -',ch10,&
-&   '  The symmetry operation number',isym,' is not a root of unity'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
-  end if
 
-! determinant, order and root_invers are enough to determine the
-! kind of symmetry operation
-  ptsym(isym)='no'
-  select case(order(isym))
-   case(1)
-    ptsym(isym)=' 1' ; n_axes(1)=n_axes(1)+1
-   case(2)
-    if(determinant(isym)== 1)then
-     ptsym(isym)=' 2' ; n_axes(2)=n_axes(2)+1
-    else if(determinant(isym)==-1 .and. root_invers(isym)==1)then
-     ptsym(isym)='-1' ; n_axes(-1)=n_axes(-1)+1
-    else if(determinant(isym)==-1 .and. root_invers(isym)==0)then
-     ptsym(isym)='-2' ; n_axes(-2)=n_axes(-2)+1
-    end if
-   case(3)
-    ptsym(isym)=' 3' ; n_axes(3)=n_axes(3)+1
-   case(4)
-    if(determinant(isym)== 1)then
-     ptsym(isym)=' 4' ; n_axes(4)=n_axes(4)+1
-    else if(determinant(isym)==-1)then
-     ptsym(isym)='-4' ; n_axes(-4)=n_axes(-4)+1
-    end if
-   case(6)
-    if(determinant(isym)== 1)then
-     ptsym(isym)=' 6' ; n_axes(6)=n_axes(6)+1
-    else if(determinant(isym)==-1 .and. root_invers(isym)==3)then
-     ptsym(isym)='-3' ; n_axes(-3)=n_axes(-3)+1
-    else if(determinant(isym)==-1 .and. root_invers(isym)==0)then
-     ptsym(isym)='-6' ; n_axes(-6)=n_axes(-6)+1
-    end if
-  end select
+   if(shubnikov/=1)then
 
-  if(ptsym(isym)=='no')then
-   write(message,'(a,a,a,a,i4,a,a,a,i4,a,a,i4,a,a,i4)' ) ch10,&
-&   ' symanal : BUG -',ch10,&
-&   '  The symmetry operation number',isym,' could not be identified',ch10,&
-&   '  order(isym)      =',order(isym),ch10,&
-&   '  determinant(isym)=',determinant(isym),ch10,&
-&   '  root_invers(isym)=',root_invers(isym)
+!    Determine nonmagnetic symmetry operations
+     nsym_nomagn=nsym/2
+     allocate(symrel_nomagn(3,3,nsym_nomagn),tnons_nomagn(3,nsym_nomagn))
+     isym_nomagn=0
+     do isym=1,nsym
+       if(symafm(isym)==1)then
+         isym_nomagn=isym_nomagn+1
+         symrel_nomagn(:,:,isym_nomagn)=symrel(:,:,isym)
+         tnons_nomagn(:,isym_nomagn)=tnons(:,isym)
+       end if
+     end do
 
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
-  end if
+     if(shubnikov==3)then
 
- end do
+!      DEBUG
+!      write(6,*)' symanal : will enter symbrav with halved symmetry set'
+!      write(6,*)' Describe the different symmetry operations (index,symrel,tnons,symafm)'
+!      do isym=1,nsym_nomagn
+!      write(6,'(i3,2x,9i3,3es12.2,i3)')isym,symrel_nomagn(:,:,isym),tnons_nomagn(:,isym)
+!      end do
+!      ENDDEBUG
 
- iholohedry=0
- if     (sum((n_axes-(/0,0,0,0,0,0, 0 ,1,0,0,0,0,0/))**2)==0)then
-  ptgroup='    1' ; iholohedry=1
- else if(sum((n_axes-(/0,0,0,0,0,1, 0 ,1,0,0,0,0,0/))**2)==0)then
-  ptgroup='   -1' ; iholohedry=1
+!      Find the point group of the halved symmetry set
+       call symptgroup(iholohedry_nomagn,nsym_nomagn,ptgroupha,symrel_nomagn)
 
- else if(sum((n_axes-(/0,0,0,0,0,0, 0 ,1,1,0,0,0,0/))**2)==0)then
-  ptgroup='    2' ; iholohedry=2
- else if(sum((n_axes-(/0,0,0,0,1,0, 0 ,1,0,0,0,0,0/))**2)==0)then
-  ptgroup='   -2' ; iholohedry=2
- else if(sum((n_axes-(/0,0,0,0,1,1, 0 ,1,1,0,0,0,0/))**2)==0)then
-  ptgroup='  2/m' ; iholohedry=2
+!      Deduce the magnetic point group (ptgroupma) from ptgroup and ptgroupha
+       call getptgroupma(ptgroup,ptgroupha,ptgroupma)
 
- else if(sum((n_axes-(/0,0,0,0,0,0, 0 ,1,3,0,0,0,0/))**2)==0)then
-  ptgroup='  222' ; iholohedry=3
- else if(sum((n_axes-(/0,0,0,0,2,0, 0 ,1,1,0,0,0,0/))**2)==0)then
-  ptgroup='  mm2' ; iholohedry=3
- else if(sum((n_axes-(/0,0,0,0,3,1, 0 ,1,3,0,0,0,0/))**2)==0)then
-  ptgroup='  mmm' ; iholohedry=3
+     else if(shubnikov==4)then
 
- else if(sum((n_axes-(/0,0,0,0,0,0, 0 ,1,1,0,2,0,0/))**2)==0)then
-  ptgroup='    4' ; iholohedry=4
- else if(sum((n_axes-(/0,0,2,0,0,0, 0 ,1,1,0,0,0,0/))**2)==0)then
-  ptgroup='   -4' ; iholohedry=4
- else if(sum((n_axes-(/0,0,2,0,1,1, 0 ,1,1,0,2,0,0/))**2)==0)then
-  ptgroup='  4/m' ; iholohedry=4
- else if(sum((n_axes-(/0,0,0,0,0,0, 0 ,1,5,0,2,0,0/))**2)==0)then
-  ptgroup='  422' ; iholohedry=4
- else if(sum((n_axes-(/0,0,0,0,4,0, 0 ,1,1,0,2,0,0/))**2)==0)then
-  ptgroup='  4mm' ; iholohedry=4
- else if(sum((n_axes-(/0,0,2,0,2,0, 0 ,1,3,0,0,0,0/))**2)==0)then
-  ptgroup=' -42m' ; iholohedry=4
- else if(sum((n_axes-(/0,0,2,0,5,1, 0 ,1,5,0,2,0,0/))**2)==0)then
-  ptgroup='4/mmm' ; iholohedry=4
+!      Find the Fedorov space group of the halved symmetry set
+       call symspgr(bravais,nsym_nomagn,spgroup,symrel_nomagn,tnons_nomagn,tolsym)
 
- else if(sum((n_axes-(/0,0,0,0,0,0, 0 ,1,0,2,0,0,0/))**2)==0)then
-  ptgroup='    3' ; iholohedry=5
- else if(sum((n_axes-(/0,0,0,2,0,1, 0 ,1,0,2,0,0,0/))**2)==0)then
-  ptgroup='   -3' ; iholohedry=5
- else if(sum((n_axes-(/0,0,0,0,0,0, 0 ,1,3,2,0,0,0/))**2)==0)then
-  ptgroup='   32' ; iholohedry=5
- else if(sum((n_axes-(/0,0,0,0,3,0, 0 ,1,0,2,0,0,0/))**2)==0)then
-  ptgroup='   3m' ; iholohedry=5
- else if(sum((n_axes-(/0,0,0,2,3,1, 0 ,1,3,2,0,0,0/))**2)==0)then
-  ptgroup='  -3m' ; iholohedry=5
+!      The magnetic translation generator genafm has already been determined
 
- else if(sum((n_axes-(/0,0,0,0,0,0, 0 ,1,1,2,0,0,2/))**2)==0)then
-  ptgroup='    6' ; iholohedry=6
- else if(sum((n_axes-(/2,0,0,0,1,0, 0 ,1,0,2,0,0,0/))**2)==0)then
-  ptgroup='   -6' ; iholohedry=6
- else if(sum((n_axes-(/2,0,0,2,1,1, 0 ,1,1,2,0,0,2/))**2)==0)then
-  ptgroup='  6/m' ; iholohedry=6
- else if(sum((n_axes-(/0,0,0,0,0,0, 0 ,1,7,2,0,0,2/))**2)==0)then
-  ptgroup='  622' ; iholohedry=6
- else if(sum((n_axes-(/0,0,0,0,6,0, 0 ,1,1,2,0,0,2/))**2)==0)then
-  ptgroup='  6mm' ; iholohedry=6
- else if(sum((n_axes-(/2,0,0,0,4,0, 0 ,1,3,2,0,0,0/))**2)==0)then
-  ptgroup=' -62m' ; iholohedry=6
- else if(sum((n_axes-(/2,0,0,2,7,1, 0 ,1,7,2,0,0,2/))**2)==0)then
-  ptgroup='6/mmm' ; iholohedry=6
+!      DEBUG
+!      write(6,*)' genafm =',genafm
+!      write(6,*)' spgroup=',spgroup
+!      ENDDEBUG
 
- else if(sum((n_axes-(/0,0,0,0,0,0, 0 ,1,3,8,0,0,0/))**2)==0)then
-  ptgroup='   23' ; iholohedry=7
- else if(sum((n_axes-(/0,0,0,8,3,1, 0 ,1,3,8,0,0,0/))**2)==0)then
-  ptgroup='  m-3' ; iholohedry=7
- else if(sum((n_axes-(/0,0,0,0,0,0, 0 ,1,9,8,6,0,0/))**2)==0)then
-  ptgroup='  432' ; iholohedry=7
- else if(sum((n_axes-(/0,0,6,0,6,0, 0 ,1,3,8,0,0,0/))**2)==0)then
-  ptgroup=' -43m' ; iholohedry=7
- else if(sum((n_axes-(/0,0,6,8,9,1, 0 ,1,9,8,6,0,0/))**2)==0)then
-  ptgroup=' m-3m' ; iholohedry=7
+     end if
+
+     deallocate(symrel_nomagn,tnons_nomagn)    !  added by MM on Oct.25
+
+   end if ! Shubnikov groups
 
  end if
-
- if(iholohedry==0)then
-  write(message, '(a,a,a,a)' )ch10,&
-&  ' symanal : BUG -',ch10,&
-&  '  Could not find the point group'
-  call wrtout(std_out,message,'COLL')
-  call leave_new('COLL')
- end if
-
-!DEBUG
-!write(6, '(a,13i3)' )' symanal : n_axes(-6:6)=',n_axes(-6:6)
-!write(6,*)' iholohedry, ptgroup=',iholohedry,',',ptgroup
-!ENDDEBUG
-
-!Examine the agreement with bravais(1)
-!Warning : might change Bravais lattice hR to hP, if hexagonal axes
- problem=0
- select case (bravais(1))
-  case(7)
-   if(iholohedry<6)problem=1
-   if(iholohedry==6)problem=2
-  case(6)
-   if(iholohedry<4)problem=1
-   if(iholohedry==7 .or. iholohedry==4)problem=2
-!  Here, change hR into hP
-   if(iholohedry==5)iholohedry=6
-  case(5)
-   if(iholohedry<4)problem=1
-   if(iholohedry==7 .or. iholohedry==6 .or. iholohedry==4)problem=2
-  case(4)
-   if(iholohedry<4)problem=1
-   if(iholohedry>4)problem=2
-  case(3)
-   if(iholohedry<3)problem=1
-   if(iholohedry>3)problem=2
-  case(2)
-   if(iholohedry<2)problem=1
-   if(iholohedry>2)problem=2
-  case(1)
-   if(iholohedry>1)problem=2
- end select
-
- if(problem==1)then
-  write(message, '(a,a,a,a,a,a,i3,a,a,a,i3,a,a,a)' )ch10,&
-&  ' symanal : COMMENT -',ch10,&
-&  '  The Bravais lattice determined only from the primitive',ch10,&
-&  '  vectors, bravais(1)=',bravais(1),', is more symmetric',ch10,&
-&  '  than the real one, iholohedry=',iholohedry,', obtained by taking into',ch10,&
-&  '  account the atomic positions.'
-  call wrtout(std_out,message,'COLL')
- end if
-
- if(problem==2)then
-  write(message, '(6a,i3,3a,i3,7a)' )ch10,&
-&  ' symanal : BUG -',ch10,&
-&  '  The Bravais lattice determined only from the primitive',ch10,&
-&  '  vectors (rprim or angdeg), bravais(1)=',bravais(1),', is not compatible',ch10,&
-&  '  with the real one, iholohedry=',iholohedry,', obtained by taking into',ch10,&
-&  '  account the atomic positions. This might be due to an insufficient',ch10,&
-&  '  number of digits in the specification of rprim (at least 10),',ch10,&
-&  '  or to an erroneous rprim or angdeg. If this is not the case, then ...'
-  call wrtout(std_out,message,'COLL')
-  call leave_new('COLL')
- end if
-
- bravais(1)=iholohedry
-
-!DEBUG
-!do isym=1,nsym
-!write(6, '(a,3i5)' )&
-!&  ' symanal : isym,determinant,order=',isym,determinant(isym),order(isym)
-!end do
-!ENDDEBUG
-
- deallocate(determinant,order,ptsym,root_invers)
 
 end subroutine symanal
 !!***

@@ -9,9 +9,8 @@
   0 dispersion correction functional (values 1,2,3), 0=no correction
  write "CUDAGPU" on this line to use GPU acceleration (GPU.config file is needed)
           0  F           0  InputPsiId, output_wf, output_grid
- 5.0  30 calc_tail, rbuf, ncongt: calculate tails,length of the tail (AU),# tail CG iterations
- 0  0 davidson treatment, no. of virtual orbitals, no of plotted orbitals
-0 .false. .false. 0.d0 vacancy: atom no., read_ref_den, correct_offset, gnrm_sw
+ 5.0  30 rbuf, ncongt: length of the tail (AU),# tail CG iterations
+ 0 0  0 davidson treatment, no. of virtual orbitals, no of plotted orbitals
 2 verbosity
 
 

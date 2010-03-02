@@ -1,6 +1,14 @@
 !!****f* BigDFT/system_properties
+!!
 !! FUNCTION
 !!  Calculate the important objects related to the physical properties of the system
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 !!
 !! SOURCE
 !!
@@ -18,7 +26,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,i_all,i_stat,jproc,ikpts
 
-  call read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,&
+  call read_system_variables('input.occup',iproc,nproc,in,atoms,radii_cf,nelec,&
        norb,norbu,norbd,iunit)
 
   if(in%nspin==4) then
@@ -53,7 +61,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
-  
+
 end subroutine system_properties
 !!***
 
@@ -66,11 +74,13 @@ end subroutine system_properties
 !!   The pointer in atoms structure have to be associated or nullify.
 !! SOURCE
 !!
-subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
+subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
      nelec,norb,norbu,norbd,iunit)
   use module_base
   use module_types
+  use ab6_symmetry
   implicit none
+  character (len=*), intent(in) :: fileocc
   type(input_variables), intent(in) :: in
   integer, intent(in) :: iproc,nproc
   type(atoms_data), intent(inout) :: atoms
@@ -144,6 +154,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
              '         contains a PSP generated with an XC id=',&
              ixcpsp,' while for this run ixc=',in%ixc
      end if
+
      atoms%psppar(:,:,ityp)=0._gp
      if (atoms%npspcode(ityp) == 2) then !GTH case
         read(11,*) (atoms%psppar(0,j,ityp),j=0,4)
@@ -244,8 +255,8 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
              '. At your own risk!'
      end if
 
-     call atomic_occupation_numbers(ityp,in%nspin,atoms,nmax,lmax,nelecmax,neleconf,&
-          nsccode,mxpl,mxchg)
+     call atomic_occupation_numbers(fileocc,ityp,in%nspin,atoms,nmax,lmax,nelecmax,&
+          neleconf,nsccode,mxpl,mxchg)
 
   enddo
   !print *,'iatsctype',atOMS%iasctype(:)
@@ -486,6 +497,17 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
      end if
   end if
 
+  ! We modify the symmetry object with respect to the spin.
+  if (atoms%symObj >= 0) then
+     if (in%nspin == 2) then
+        call ab6_symmetry_set_collinear_spin(atoms%symObj, atoms%nat, &
+             & atoms%natpol, ierror)
+!!$     else if (in%nspin == 4) then
+!!$        call ab6_symmetry_set_spin(atoms%symObj, atoms%nat, &
+!!$             & atoms%natpol, ierror)
+     end if
+  end if
+
 !!!  tt=dble(norb)/dble(nproc)
 !!!  norbp=int((1.d0-eps_mach*tt) + tt)
 !!!  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
@@ -493,14 +515,20 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
 end subroutine read_system_variables
 !!***
 
-!fix all the atomic occupation numbers of the atoms which has the same type
-!look also at the input polarisation and spin
-!look at the file of the input occupation numbers and, if exists, modify the 
-!occupations accordingly
-subroutine atomic_occupation_numbers(ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
+
+!!****f* BigDFT/atomic_occupation_numbers
+!! FUNCTION
+!!   Fix all the atomic occupation numbers of the atoms which has the same type
+!!   look also at the input polarisation and spin
+!!   look at the file of the input occupation numbers and, if exists, modify the 
+!!   occupations accordingly
+!! SOURCE
+!!
+subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
   use module_base
   use module_types
   implicit none
+  character(len=*), intent(in) :: filename
   integer, intent(in) :: ityp,mxpl,mxchg,nspin,nmax,lmax,nelecmax,nsccode
   type(atoms_data), intent(inout) :: at
   integer, dimension(nmax,lmax), intent(in) :: neleconf
@@ -531,19 +559,18 @@ subroutine atomic_occupation_numbers(ityp,nspin,at,nmax,lmax,nelecmax,neleconf,n
         stop
   end select
 
-  inquire(file='input.occup',exist=exists)
+  inquire(file=filename,exist=exists)
 
   !search the corresponding atom
   if (exists) then
-     open(unit=91,file='input.occup',status='old',iostat=ierror)
+     open(unit=91,file=filename,status='old',iostat=ierror)
      !Check the open statement
      if (ierror /= 0) then
-        write(*,*)'Failed to open the existing  file input.occup'
+        write(*,*)'Failed to open the existing  file: '//filename
         stop
      end if
   end if
 
-       
   !here we must check of the input guess polarisation
   !control if the values are compatible with the atom configuration
   !do this for all atoms belonging to a given type
@@ -629,7 +656,7 @@ subroutine atomic_occupation_numbers(ityp,nspin,at,nmax,lmax,nelecmax,neleconf,n
   if (exists) close(unit=91)
 
 end subroutine atomic_occupation_numbers
-
+!!***
 
 
 !!****f* BigDFT/orbitals_descriptors
@@ -674,7 +701,6 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   do jproc=0,nproc-1
      orbs%norb_par(jproc)=0 !size 0 nproc-1
   end do
-
 
   !create an array which indicate which processor has a GPU associated 
   !from the viewpoint of the BLAS routines
@@ -817,12 +843,11 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
      nt=0
      do
         read(unit=iunit,fmt='(a100)',iostat=ierror) line
-        
         if (ierror /= 0) then
            exit
         end if
-        !transform the line in case there are slashes(to ease the parsing
-        do i=1,100
+        !Transform the line in case there are slashes (to ease the parsing)
+        do i=1,len(line)
            if (line(i:i) == '/') then
               line(i:i) = ':'
            end if

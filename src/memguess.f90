@@ -35,6 +35,7 @@ program memguess
   type(orbitals_data) :: orbs,orbstst
   type(locreg_descriptors) :: Glr
   type(nonlocal_psp_descriptors) :: nlpspd
+  real(gp), dimension(3) :: shift
   logical, dimension(:,:,:), allocatable :: logrid
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:,:), pointer :: rxyz
@@ -252,7 +253,7 @@ program memguess
   hy=in%hy
   hz=in%hz
 
-  call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Glr)
+  call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Glr,shift)
 
   if (GPUtest .and. .not. GPUconv) then
      write(*,*)' ERROR: you can not put a GPUtest flag is there is no GPUrun.'
@@ -353,7 +354,6 @@ program memguess
   call memocc(i_stat,i_all,'atoms%aocc',subname)
 
 
-
   call MemoryEstimator(atoms%geocode,nproc,in%idsx,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
        atoms%alat1,atoms%alat2,atoms%alat3,&
        hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,in%crmult,in%frmult,&
@@ -373,7 +373,6 @@ program memguess
   ! De-allocations
   call deallocate_orbs(orbs,subname)
   call free_input_variables(in)
-
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
@@ -403,12 +402,13 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
   integer :: iat,i_all,i_stat,it,i
   real(gp) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax
   type(locreg_descriptors) :: Glr
+  real(gp), dimension(3) :: shift
   real(gp), dimension(3,3) :: urot
   real(gp), dimension(:,:), allocatable :: txyz
 
   allocate(txyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,txyz,'txyz',subname)
-  call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
+  call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
   !call volume(nat,rxyz,vol)
   vol=atoms%alat1*atoms%alat2*atoms%alat3
   write(*,'(1x,a,1pe16.8)')'Initial volume (Bohr^3)',vol
@@ -459,7 +459,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
         txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
      enddo
 
-     call system_size(1,atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
+     call system_size(1,atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
      tvol=atoms%alat1*atoms%alat2*atoms%alat3
      !call volume(nat,txyz,tvol)
      if (tvol < vol) then
@@ -678,11 +678,12 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   real(wp), dimension(:,:,:,:), allocatable :: pot,rho
   real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
   real(wp), dimension(:,:,:), allocatable :: overlap
+  real(wp), dimension(:), pointer :: gbd_occ
 
   !nullify the G%rxyz pointer
   nullify(G%rxyz)
   !extract the gaussian basis from the pseudowavefunctions
-  call gaussian_pswf_basis(iproc,at,rxyz,G)
+  call gaussian_pswf_basis(iproc,nspin,at,rxyz,G,gbd_occ)
   
   allocate(gaucoeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
@@ -711,6 +712,11 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
   deallocate(gaucoeffs,stat=i_stat)
   call memocc(i_stat,i_all,'gaucoeffs',subname)
+
+  i_all=-product(shape(gbd_occ))*kind(gbd_occ)
+  deallocate(gbd_occ,stat=i_stat)
+  call memocc(i_stat,i_all,'gbd_occ',subname)
+
 
   !deallocate the gaussian basis descriptors
   call deallocate_gwf(G,subname)
@@ -1303,7 +1309,7 @@ subroutine dft_input_converter(in)
   
 
   line=''
-  line=' calc_tail, rbuf, ncongt: calculate tails,length of the tail (AU),# tail CG iterations'
+  line=' rbuf, ncongt: length of the tail (AU),# tail CG iterations'
   if (in%calc_tail) then
      write(1,'(f4.1,i4,a)') in%rbuf,in%ncongt,trim(line)
   else
@@ -1314,12 +1320,12 @@ subroutine dft_input_converter(in)
   !davidson treatment
   line=''
   line=' davidson treatment, no. of virtual orbitals, no of plotted orbitals'
-  write(1,'(2(i3),a)') in%nvirt,in%nplot,trim(line)
+  write(1,'(3(i3),a)') in%nvirt, in%nvirt,in%nplot,trim(line)
   
-  line=''
-  line='0 .false. .false. 0.d0 vacancy: atom no., read_ref_den, correct_offset, gnrm_sw'
-  !electrostatic treatment of the vacancy (experimental)
-  write(1,*) trim(line)
+!  line=''
+!  line='0 .false. .false. 0.d0 vacancy: atom no., read_ref_den, correct_offset, gnrm_sw'
+!  !electrostatic treatment of the vacancy (experimental)
+!  write(1,*) trim(line)
 
 
   line=''

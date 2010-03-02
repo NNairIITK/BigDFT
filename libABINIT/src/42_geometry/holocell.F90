@@ -64,9 +64,9 @@ subroutine holocell(cell_base,foundc,iholohedry)
 !**************************************************************************
 
  do ii=1,3
-  metric(:,ii)=cell_base(1,:)*cell_base(1,ii)+&
-&  cell_base(2,:)*cell_base(2,ii)+&
-&  cell_base(3,:)*cell_base(3,ii)
+   metric(:,ii)=cell_base(1,:)*cell_base(1,ii)+&
+&   cell_base(2,:)*cell_base(2,ii)+&
+&   cell_base(3,:)*cell_base(3,ii)
  end do
 
 !Examine the angles and vector lengths

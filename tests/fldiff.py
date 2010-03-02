@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 13/10/2009
+# Date: 24/02/2010
 #----------------------------------------------------------------------------
 
 import difflib
@@ -23,7 +23,7 @@ if  version < [2,3,0]:
     sys.exit(1)
 
 #Match the version number ex. 1.1.9
-re_version = re.compile("[(]ver[ ]+[0-9.]+[)]",re.IGNORECASE)
+re_version = re.compile("[(]ver[ ]+[0-9.\-a-z]+[)]",re.IGNORECASE)
 #Match a floating number
 re_float = re.compile("([- ]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
 
@@ -31,22 +31,27 @@ re_float = re.compile("([- ]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
 max_discrepancy = 1.1e-10
 
 def usage():
-    print "fldiff.py [--bigdft] [--discrepancy=d] [--help] file1 file2"
-    print "  --bigdft to compare 'bigdft' output files"
+    print "fldiff.py [--mode=m] [--discrepancy=d] [--help] file1 file2"
+    print "  --mode=[bigdft,neb,psolver] to compare 'bigdft', 'NEB' or 'PS_Check' output files"
     print "  --discrepancy=%7.1e Maximal discrepancy between results" % max_discrepancy
     print "  --help   display this message"
     sys.exit(1)
 
 #Check arguments
 try:
-    optlist, args = getopt.getopt(sys.argv[1:],"bd:h",["bigdft","discrepancy=","help"])
+    optlist, args = getopt.getopt(sys.argv[1:],"md:h",["mode=","discrepancy=","help"])
 except getopt.error:
     sys.stderr.write("Error in arguments\n")
     usage()
-bigdft = False
+#By default, all modes are False
+bigdft  = False
+neb     = False
+psolver = False
 for opt,arg in optlist:
-    if opt == "-b" or opt == "--bigdft":
-        bigdft = True
+    if opt == "-m" or opt == "--mode":
+        bigdft  = (arg == "bigdft")
+        neb     = (arg == "neb")
+        psolver = (arg == "psolver")
     elif opt == "-d" or opt == "--discrepancy":
         max_discrepancy=float(arg)
     elif opt == "-h" or opt == "--help":
@@ -75,6 +80,26 @@ if bigdft:
             or "Processes" in line \
             or "allocation" in line \
             or "~W" in line \
+            or "for the array" in line
+elif neb:
+    # Test if the line should not be compared (NEB output)
+    def line_junk(line):
+        "True if the line must not be compared"
+        return re_version.search(line) \
+            or "datadir" in line \
+            or "workdir" in line
+elif psolver:
+    #Remove some lines (PS_Check)
+    def line_junk(line):
+        "True if the line must not be compared"
+        return "MEMORY" in line \
+            or "CPLX" in line \
+            or "memory" in line \
+            or "allocation" in line \
+            or "Energy diff" in line \
+            or "original" in line \
+            or "Max diff at" in line \
+            or "result" in line \
             or "for the array" in line
 else:
     def line_junk(line):
@@ -238,9 +263,11 @@ while not EOF:
                     print_context = True
                 print line1,
                 print line2,
-        else:
+        elif (maximum < 99):
             print "%s the number of floating point differs" % context[:-1]
-            maximum = 1
+            context_discrepancy = " (line %s)" % context.split(",")[0][4:]
+            context_lines = "\n"+context_discrepancy[1:]+"\n"+line1+line2
+            maximum = 99
     #Add lines if necessary
     while i1 < n1-1:
         i1 += 1

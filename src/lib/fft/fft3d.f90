@@ -58,7 +58,7 @@ module module_fft_sg
    implicit none
 
    ! Maximum number of points for FFT (should be same number in fft3d routine)
-   integer, parameter :: nfft_max=24000
+   integer, parameter :: nfft_max=2097152
    ! Number of factors in the decomposition
    integer, parameter :: n_factors = 7
    integer :: i_d,j_d
@@ -271,9 +271,9 @@ module module_fft_sg
    21875,   7,   5,   5,   5,   5,   5,   1,    22400,   7,   8,   5,   5,   4,   4,   1,  &
    22500,   6,   5,   5,   5,   5,   3,   2, &
    23040,   8,   8,   8,   5,   3,   3,   1,    24000,   8,   8,   5,   5,   5,   3,   1,  &
-   32768,   8,   8,   8,   8,   8,   1,   1,    65536,   8,   8,   8,   8,   8,   2,   1, &
-   131072,  8,   8,   8,   8,   8,   4,   1,    262144,  8,   8,   8,   8,   8,   8,   1, &
-   524288,  8,   8,   8,   8,   8,   8,   2,    1048576, 8,   8,   8,   8,   8,   8,   4, &
+   32768,   8,   8,   8,   8,   8,   1,   1,    65536,   8,   8,   8,   8,   8,   2,   1,  &
+   131072,  8,   8,   8,   8,   8,   4,   1,    262144,  8,   8,   8,   8,   8,   8,   1,  &
+   524288,  8,   8,   8,   8,   8,   8,   2,    1048576, 8,   8,   8,   8,   8,   8,   4,  &
    2097152, 8,   8,   8,   8,   8,   8,   8    /  
 
 end module module_fft_sg
@@ -334,6 +334,38 @@ subroutine dimensions_fft(n1,n2,n3,nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd
 end subroutine dimensions_fft
 !!***
 
+!1-dim complex-complex FFT routine
+!the array in input is the first part, the output is the inzee
+!the input is destroyed
+subroutine fft_1d_ctoc(isign,nfft,n,zinout,inzee)
+  use module_fft_sg
+  implicit none
+  integer, intent(in) :: n,nfft,isign
+  integer, intent(out) :: inzee
+  real(kind=8), dimension(2,nfft*n,2), intent(inout) :: zinout
+  !local variables
+  integer :: ic,i,ntrig
+  !automatic arrays for the FFT
+  integer, dimension(n_factors) :: after,now,before
+  real(kind=8), dimension(:,:), allocatable :: trig
+
+  ntrig=n
+  allocate(trig(2,ntrig))
+  !arrays for the FFT (to be halved)
+  call ctrig_sg(n,ntrig,trig,after,before,now,isign,ic)
+  !perform the FFT 
+  inzee=1
+  !write(15,*)halfft_cache(:,:,inzee)
+  do i=1,ic
+     call fftstp_sg(nfft,nfft,n,nfft,n,&
+          zinout(1,1,inzee),zinout(1,1,3-inzee),&
+          ntrig,trig,after(i),now(i),before(i),isign)
+     inzee=3-inzee
+  enddo
+
+  deallocate(trig)
+end subroutine fft_1d_ctoc
+
 
 !!****f* fft3d/FFT
 !! FUNCTION
@@ -389,12 +421,12 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    integer, intent(inout) :: inzee
    real(kind=8), intent(inout) :: z(2,nd1*nd2*nd3,2)
    !Local variables
-   real(kind=8), dimension(2,nfft_max) :: trig
    integer, dimension(n_factors) :: after,now,before
    real(kind=8), allocatable, dimension(:,:,:) :: zw  
+   real(kind=8), dimension(:,:), allocatable :: trig
 
    if (max(n1,n2,n3).gt.nfft_max) then
-      write(*,*) 'Dimension bigger than ', nfft_max
+      write(*,*) 'One of the dimensions:',n1,n2,n3,' is bigger than ',nfft_max
       stop
    end if
 
@@ -404,50 +436,53 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    if (n1.gt.nd1) stop 'n1>nd1'
    if (n2.gt.nd2) stop 'n2>nd2'
    if (n3.gt.nd3) stop 'n3>nd3'
+
+   ntrig=max(n1,n2,n3)
+   allocate(trig(2,ntrig))
     
 ! vector computer with memory banks:
    if (ncache.eq.0) then
-      call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
+      call ctrig_sg(n3,ntrig,trig,after,before,now,i_sign,ic)
       nfft=nd1*n2
       mm=nd1*nd2
       do i=1,ic-1
          call fftstp_sg(mm,nfft,nd3,mm,nd3,z(1,1,inzee),z(1,1,3-inzee), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
          inzee=3-inzee
       end do
       i=ic
       call fftrot_sg(mm,nfft,nd3,mm,nd3,z(1,1,inzee),z(1,1,3-inzee), &
-                     trig,after(i),now(i),before(i),i_sign)
+                     ntrig,trig,after(i),now(i),before(i),i_sign)
       inzee=3-inzee
 
       if (n2.ne.n3) then
-         call ctrig_sg(n2,trig,after,before,now,i_sign,ic)
+         call ctrig_sg(n2,ntrig,trig,after,before,now,i_sign,ic)
       end if
       nfft=nd3*n1
       mm=nd3*nd1
       do i=1,ic-1
          call fftstp_sg(mm,nfft,nd2,mm,nd2,z(1,1,inzee),z(1,1,3-inzee), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
          inzee=3-inzee
       end do
       i=ic
       call fftrot_sg(mm,nfft,nd2,mm,nd2,z(1,1,inzee),z(1,1,3-inzee), &
-                     trig,after(i),now(i),before(i),i_sign)
+                     ntrig,trig,after(i),now(i),before(i),i_sign)
       inzee=3-inzee
 
       if (n1.ne.n2) then
-         call ctrig_sg(n1,trig,after,before,now,i_sign,ic)
+         call ctrig_sg(n1,ntrig,trig,after,before,now,i_sign,ic)
       end if
       nfft=nd2*n3
       mm=nd2*nd3
       do i=1,ic-1
          call fftstp_sg(mm,nfft,nd1,mm,nd1,z(1,1,inzee),z(1,1,3-inzee), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
          inzee=3-inzee
       end do
       i=ic
       call fftrot_sg(mm,nfft,nd1,mm,nd1,z(1,1,inzee),z(1,1,3-inzee), &
-                     trig,after(i),now(i),before(i),i_sign)
+                     ntrig,trig,after(i),now(i),before(i),i_sign)
       inzee=3-inzee
 
 ! RISC machine with cache:
@@ -479,7 +514,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
          stop 'ncache1'
       end if
 
-      call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
+      call ctrig_sg(n3,ntrig,trig,after,before,now,i_sign,ic)
 
       if (ic.eq.1) then
          i=ic
@@ -490,7 +525,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
          j=ma
          jj=j*nd3-nd3+1
          call fftrot_sg(mm,nfft,m,mm,m,z(1,j,inzet),z(1,jj,3-inzet), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
 
       else
 
@@ -506,17 +541,17 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
             i=1
             inzeep=2
             call fftstp_sg(mm,nfft,m,nn,n,z(1,j,inzet),zw(1,1,3-inzeep), &
-                           trig,after(i),now(i),before(i),i_sign)
+                           ntrig,trig,after(i),now(i),before(i),i_sign)
             inzeep=1
            
             do i=2,ic-1
                call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                              trig,after(i),now(i),before(i),i_sign)
+                              ntrig,trig,after(i),now(i),before(i),i_sign)
                inzeep=3-inzeep
             end do
             i=ic
             call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z(1,jj,3-inzet), &
-                           trig,after(i),now(i),before(i),i_sign)
+                           ntrig,trig,after(i),now(i),before(i),i_sign)
          end do
       end if
 
@@ -535,7 +570,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
       end if
      
       if (n2.ne.n3) then
-         call ctrig_sg(n2,trig,after,before,now,i_sign,ic)
+         call ctrig_sg(n2,ntrig,trig,after,before,now,i_sign,ic)
       end if
 
       if (ic.eq.1) then
@@ -547,7 +582,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
          j=ma
          jj=j*nd2-nd2+1
          call fftrot_sg(mm,nfft,m,mm,m,z(1,j,inzet),z(1,jj,3-inzet), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
       else
          lotomp=(nd3*n1)/npr+1
          jompa=iam*lotomp+1
@@ -560,16 +595,16 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
             i=1
             inzeep=2
             call fftstp_sg(mm,nfft,m,nn,n,z(1,j,inzet),zw(1,1,3-inzeep), &
-                           trig,after(i),now(i),before(i),i_sign)
+                           ntrig,trig,after(i),now(i),before(i),i_sign)
             inzeep=1
             do i=2,ic-1
                call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                              trig,after(i),now(i),before(i),i_sign)
+                              ntrig,trig,after(i),now(i),before(i),i_sign)
                inzeep=3-inzeep
             end do
             i=ic
             call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z(1,jj,3-inzet), &
-                           trig,after(i),now(i),before(i),i_sign)
+                           ntrig,trig,after(i),now(i),before(i),i_sign)
          end do
       end if
       inzet=3-inzet
@@ -588,7 +623,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
       end if
      
       if (n1.ne.n2) then
-         call ctrig_sg(n1,trig,after,before,now,i_sign,ic)
+         call ctrig_sg(n1,ntrig,trig,after,before,now,i_sign,ic)
       end if
 
       if (ic.eq.1) then
@@ -600,7 +635,7 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
          j=ma
          jj=j*nd1-nd1+1
          call fftrot_sg(mm,nfft,m,mm,m,z(1,j,inzet),z(1,jj,3-inzet), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
       else
 
          lotomp=(nd2*n3)/npr+1
@@ -614,16 +649,16 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
             i=1
             inzeep=2
             call fftstp_sg(mm,nfft,m,nn,n,z(1,j,inzet),zw(1,1,3-inzeep), &
-                           trig,after(i),now(i),before(i),i_sign)
+                           ntrig,trig,after(i),now(i),before(i),i_sign)
             inzeep=1
             do i=2,ic-1
                call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                              trig,after(i),now(i),before(i),i_sign)
+                              ntrig,trig,after(i),now(i),before(i),i_sign)
                inzeep=3-inzeep
             end do
             i=ic
             call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z(1,jj,3-inzet), &
-                           trig,after(i),now(i),before(i),i_sign)
+                           ntrig,trig,after(i),now(i),before(i),i_sign)
          end do
       end if
       inzet=3-inzet
@@ -633,6 +668,8 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
 !!!!!!!!!!$omp end parallel  
 
    end if
+
+   deallocate(trig)
 end subroutine FFT
 !!***
 
@@ -694,8 +731,8 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
    real(kind=8), intent(inout) :: z1(2,nd1f*nd2*nd3,2) ! work array
    !Local variables
    real(kind=8), allocatable, dimension(:,:,:) :: zw  
-   real(kind=8), dimension(2,nfft_max) :: trig
    integer, dimension(n_factors) :: after,now,before
+   real(kind=8), dimension(:,:), allocatable :: trig
    integer::mm,nffta,i_sign=1
 
    if (max(n1,n2,n3).gt.nfft_max) then
@@ -716,51 +753,54 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
    if (n2.gt.nd2) stop 'n2>nd2'
    if (n3.gt.nd3) stop 'n3>nd3'
     
+   ntrig=max(n1,n2,n3)
+   allocate(trig(2,ntrig))
+
 !   call x0_to_z1_simple(x0,z1,inzee)
    call x0_to_z1(x0,z1,inzee)
 
    if (ncache.eq.0) then
 ! vector computer with memory banks:
-      call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
+      call ctrig_sg(n3,ntrig,trig,after,before,now,i_sign,ic)
       mm=nd1f*nd2 
       nffta=nd1f*n2
       do i=1,ic-1
          call fftstp_sg(mm,nffta,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
          inzee=3-inzee
       end do
       i=ic
       call fftrot_sg(mm,nffta,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
-                     trig,after(i),now(i),before(i),i_sign)
+                     ntrig,trig,after(i),now(i),before(i),i_sign)
       inzee=3-inzee
       call z1_to_z3(z1,z3,inzee)
       if (n2.ne.n3) then
-         call ctrig_sg(n2,trig,after,before,now,i_sign,ic)
+         call ctrig_sg(n2,ntrig,trig,after,before,now,i_sign,ic)
       end if
       nfft=nd3f*n1
       mm=nd3f*nd1
       do i=1,ic-1
          call fftstp_sg(mm,nfft,nd2,mm,nd2,z3(1,1,inzee),z3(1,1,3-inzee), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
          inzee=3-inzee
       end do
       i=ic
       call fftrot_sg(mm,nfft,nd2,mm,nd2,z3(1,1,inzee),z3(1,1,3-inzee), &
-                     trig,after(i),now(i),before(i),i_sign)
+                     ntrig,trig,after(i),now(i),before(i),i_sign)
       inzee=3-inzee
       if (n1.ne.n2) then
-         call ctrig_sg(n1,trig,after,before,now,i_sign,ic)
+         call ctrig_sg(n1,ntrig,trig,after,before,now,i_sign,ic)
       end if
       nfft=nd2*n3f
       mm=nd2*nd3f
       do i=1,ic-1
          call fftstp_sg(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
          inzee=3-inzee
       end do 
       i=ic
       call fftrot_sg(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
-                     trig,after(i),now(i),before(i),i_sign)
+                     ntrig,trig,after(i),now(i),before(i),i_sign)
       inzee=3-inzee
 
 ! RISC machine with cache:
@@ -792,7 +832,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
          write(*,*) ncache,lot,n,2*n*lot*2
          stop 'ncache1'
       end if
-      call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
+      call ctrig_sg(n3,ntrig,trig,after,before,now,i_sign,ic)
       if (ic.eq.1) then
          i=ic
          lotomp=(nd1f*n2)/npr+1
@@ -802,7 +842,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
          j=ma
          jj=j*nd3-nd3+1
          call fftrot_sg(mm,nfft,m,mm,m,z1(1,j,inzet),z1(1,jj,3-inzet), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
       else
          lotomp=(nd1f*n2)/npr+1
          jompa=iam*lotomp+1
@@ -815,16 +855,16 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
             i=1
             inzeep=2
             call fftstp_sg(mm,nfft,m,nn,n,z1(1,j,inzet),zw(1,1,3-inzeep), &
-                           trig,after(i),now(i),before(i),i_sign)
+                           ntrig,trig,after(i),now(i),before(i),i_sign)
             inzeep=1
             do i=2,ic-1
                call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                                trig,after(i),now(i),before(i),i_sign)
+                                ntrig,trig,after(i),now(i),before(i),i_sign)
                    inzeep=3-inzeep
             end do
             i=ic
             call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z1(1,jj,3-inzet), &
-                           trig,after(i),now(i),before(i),i_sign)
+                           ntrig,trig,after(i),now(i),before(i),i_sign)
          end do
       end if
      
@@ -844,7 +884,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
          stop 'ncache2'
       end if
       if (n2.ne.n3) then
-         call ctrig_sg(n2,trig,after,before,now,i_sign,ic)
+         call ctrig_sg(n2,ntrig,trig,after,before,now,i_sign,ic)
       end if
       if (ic.eq.1) then
          i=ic
@@ -855,7 +895,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
          j=ma
          jj=j*nd2-nd2+1
          call fftrot_sg(mm,nfft,m,mm,m,z3(1,j,inzet),z3(1,jj,3-inzet), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
       else
          lotomp=(nd3f*n1)/npr+1
          jompa=iam*lotomp+1
@@ -868,16 +908,16 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
             i=1
             inzeep=2
             call fftstp_sg(mm,nfft,m,nn,n,z3(1,j,inzet),zw(1,1,3-inzeep), &
-                           trig,after(i),now(i),before(i),i_sign)
+                           ntrig,trig,after(i),now(i),before(i),i_sign)
             inzeep=1
             do i=2,ic-1
                call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                              trig,after(i),now(i),before(i),i_sign)
+                              ntrig,trig,after(i),now(i),before(i),i_sign)
                inzeep=3-inzeep
             end do
             i=ic
             call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z3(1,jj,3-inzet), &
-                           trig,after(i),now(i),before(i),i_sign)
+                           ntrig,trig,after(i),now(i),before(i),i_sign)
          end do
       end if
       inzet=3-inzet
@@ -895,7 +935,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
          stop 'ncache3'
       end if
       if (n1.ne.n2) then
-         call ctrig_sg(n1,trig,after,before,now,i_sign,ic)
+         call ctrig_sg(n1,ntrig,trig,after,before,now,i_sign,ic)
       end if
       if (ic.eq.1) then
          i=ic
@@ -906,7 +946,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
          j=ma
          jj=j*nd1-nd1+1
          call fftrot_sg(mm,nfft,m,mm,m,z3(1,j,inzet),z3(1,jj,3-inzet), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
       else
          lotomp=(nd2*n3f)/npr+1
          jompa=iam*lotomp+1
@@ -919,16 +959,16 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
             i=1
             inzeep=2
             call fftstp_sg(mm,nfft,m,nn,n,z3(1,j,inzet),zw(1,1,3-inzeep), &
-                           trig,after(i),now(i),before(i),i_sign)
+                           ntrig,trig,after(i),now(i),before(i),i_sign)
             inzeep=1
             do i=2,ic-1
                call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                              trig,after(i),now(i),before(i),i_sign)
+                              ntrig,trig,after(i),now(i),before(i),i_sign)
                inzeep=3-inzeep
             end do
             i=ic
             call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z3(1,jj,3-inzet), &
-                           trig,after(i),now(i),before(i),i_sign)
+                           ntrig,trig,after(i),now(i),before(i),i_sign)
          end do
       end if
       inzet=3-inzet
@@ -937,6 +977,8 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
 !!!!!!!!!$omp end parallel  
 
    end if
+
+   deallocate(trig)
 
 contains
 
@@ -1085,7 +1127,7 @@ end subroutine fft_for
 !!  S_(j1,j2,j3) EXP(i_sign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
 !! SOURCE
 !!
-subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z1,z3,inzee)
+subroutine FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,y,z1,z3,inzee)
 
    use module_fft_sg
    implicit real(kind=8) (a-h,o-z)
@@ -1101,13 +1143,13 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
 
    !Arguments
    integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3
-   integer :: n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b
+   integer, intent(in) :: n1b,n3f,n3b,nd1b,nd3f,nd3b
    real(kind=8),intent(out) :: y(n1,n2,n3)
    real(kind=8),intent(inout) :: z3(2,nd1*nd2*nd3b,2)
    real(kind=8)                :: z1(2,nd1b*nd2*nd3,2) ! work array
    !Local variables
    real(kind=8), allocatable, dimension(:,:,:) :: zw  
-   real(kind=8), dimension(2,nfft_max) :: trig
+   real(kind=8), dimension(:,:), allocatable :: trig
    integer, dimension(n_factors) :: after,now,before
 
    i_sign=-1
@@ -1120,55 +1162,58 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
    if (n2.gt.nd2) stop 'n2>nd2'
    if (n3.gt.nd3) stop 'n3>nd3'
     
+   ntrig=max(n1,n2,n3)
+   allocate(trig(2,ntrig))
+
 !     call z3_to_z1(z3,z1,inzee)
 
    if (ncache.eq.0) then
 ! vector computer with memory banks:
-      call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
+      call ctrig_sg(n3,ntrig,trig,after,before,now,i_sign,ic)
       nfft=nd1b*n2
       mm=nd1b*nd2
       do i=1,ic-1
          call fftstp_sg(mm,nfft,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
          inzee=3-inzee
       end do
       i=ic
       call fftrot_sg(mm,nfft,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
-                     trig,after(i),now(i),before(i),i_sign)
+                     ntrig,trig,after(i),now(i),before(i),i_sign)
 
       inzee=3-inzee
 
       if (n2.ne.n3) then
-         call ctrig_sg(n2,trig,after,before,now,i_sign,ic)
+         call ctrig_sg(n2,ntrig,trig,after,before,now,i_sign,ic)
       end if
       nfft=nd3*n1b
       mm=nd3*nd1b
       do i=1,ic-1
          call fftstp_sg(mm,nfft,nd2,mm,nd2,z1(1,1,inzee),z1(1,1,3-inzee), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
          inzee=3-inzee
       end do
       i=ic
       call fftrot_sg(mm,nfft,nd2,mm,nd2,z1(1,1,inzee),z1(1,1,3-inzee), &
-                     trig,after(i),now(i),before(i),i_sign)
+                     ntrig,trig,after(i),now(i),before(i),i_sign)
       inzee=3-inzee
 
       ! here we transform back from z1 to z3
       call z1_to_z3(z1,z3,inzee)
 
       if (n1.ne.n2) then
-         call ctrig_sg(n1,trig,after,before,now,i_sign,ic)
+         call ctrig_sg(n1,ntrig,trig,after,before,now,i_sign,ic)
       end if
       nfft=nd2*n3b
       mm=nd2*nd3b
       do i=1,ic-1
          call fftstp_sg(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
          inzee=3-inzee
       end do
       i=ic
       call fftrot_sg(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
-                       trig,after(i),now(i),before(i),i_sign)
+                       ntrig,trig,after(i),now(i),before(i),i_sign)
       inzee=3-inzee
 
       call z3_to_y(z3,y,inzee)
@@ -1203,7 +1248,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
          stop 'ncache1'
       end if
 
-      call ctrig_sg(n3,trig,after,before,now,i_sign,ic)
+      call ctrig_sg(n3,ntrig,trig,after,before,now,i_sign,ic)
 
       if (ic.eq.1) then
          i=ic
@@ -1214,7 +1259,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
          j=ma
          jj=j*nd3-nd3+1
          call fftrot_sg(mm,nfft,m,mm,m,z1(1,j,inzet),z1(1,jj,3-inzet), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
       else
 
          lotomp=(nd1b*n2)/npr+1
@@ -1229,17 +1274,17 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
             i=1
             inzeep=2
             call fftstp_sg(mm,nfft,m,nn,n,z1(1,j,inzet),zw(1,1,3-inzeep), &
-                           trig,after(i),now(i),before(i),i_sign)
+                           ntrig,trig,after(i),now(i),before(i),i_sign)
             inzeep=1
             
             do i=2,ic-1
                call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                              trig,after(i),now(i),before(i),i_sign)
+                              ntrig,trig,after(i),now(i),before(i),i_sign)
                inzeep=3-inzeep
              end do
             i=ic
             call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z1(1,jj,3-inzet), &
-                           trig,after(i),now(i),before(i),i_sign)
+                           ntrig,trig,after(i),now(i),before(i),i_sign)
          end do
       end if
 
@@ -1258,7 +1303,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
          stop 'ncache2'
       end if
       if (n2.ne.n3) then
-         call ctrig_sg(n2,trig,after,before,now,i_sign,ic)
+         call ctrig_sg(n2,ntrig,trig,after,before,now,i_sign,ic)
       end if
       
       if (ic.eq.1) then
@@ -1270,7 +1315,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
          j=ma
          jj=j*nd2-nd2+1
          call fftrot_sg(mm,nfft,m,mm,m,z1(1,j,inzet),z1(1,jj,3-inzet), &
-                        trig,after(i),now(i),before(i),i_sign)
+                        ntrig,trig,after(i),now(i),before(i),i_sign)
       else
       
          lotomp=(nd3*n1b)/npr+1
@@ -1285,18 +1330,18 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
             i=1
             inzeep=2
             call fftstp_sg(mm,nfft,m,nn,n,z1(1,j,inzet),zw(1,1,3-inzeep), &
-                             trig,after(i),now(i),before(i),i_sign)
+                             ntrig,trig,after(i),now(i),before(i),i_sign)
             inzeep=1
           
             do i=2,ic-1
                call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                              trig,after(i),now(i),before(i),i_sign)
+                              ntrig,trig,after(i),now(i),before(i),i_sign)
                inzeep=3-inzeep
            end do
           
             i=ic
             call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z1(1,jj,3-inzet), &
-                             trig,after(i),now(i),before(i),i_sign)
+                             ntrig,trig,after(i),now(i),before(i),i_sign)
          end do
       end if
       inzet=3-inzet
@@ -1315,7 +1360,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
          stop 'ncache3'
       end if
       if (n1.ne.n2) then
-         call ctrig_sg(n1,trig,after,before,now,i_sign,ic)
+         call ctrig_sg(n1,ntrig,trig,after,before,now,i_sign,ic)
       end if
       
       if (ic.eq.1) then
@@ -1327,7 +1372,7 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
         j=ma
         jj=j*nd1-nd1+1
         call fftrot_sg(mm,nfft,m,mm,m,z3(1,j,inzet),z3(1,jj,3-inzet), &
-                         trig,after(i),now(i),before(i),i_sign)
+                         ntrig,trig,after(i),now(i),before(i),i_sign)
       
       else
       
@@ -1343,17 +1388,17 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
             i=1
             inzeep=2
             call fftstp_sg(mm,nfft,m,nn,n,z3(1,j,inzet),zw(1,1,3-inzeep), &
-                             trig,after(i),now(i),before(i),i_sign)
+                             ntrig,trig,after(i),now(i),before(i),i_sign)
             inzeep=1
          
             do i=2,ic-1
                call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                              trig,after(i),now(i),before(i),i_sign)
+                              ntrig,trig,after(i),now(i),before(i),i_sign)
                inzeep=3-inzeep
             end do
             i=ic
             call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z3(1,jj,3-inzet), &
-                             trig,after(i),now(i),before(i),i_sign)
+                             ntrig,trig,after(i),now(i),before(i),i_sign)
          end do
       end if
       inzet=3-inzet
@@ -1365,6 +1410,8 @@ subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z
 
 
    end if
+
+   deallocate(trig)
 
 contains
 
@@ -1552,21 +1599,21 @@ end subroutine fft_back
 !!  Factoring 64 as 4*4*4 might for example be faster on some machines than 8*8.
 !! SOURCE
 !!
-subroutine ctrig_sg(n,trig,after,before,now,i_sign,ic)
+subroutine ctrig_sg(n,ntrig,trig,after,before,now,i_sign,ic)
 
-   use module_fft_sg
+  use module_fft_sg
    implicit real(kind=8) (a-h,o-z)
 
 ! Arguments
    integer :: n,i_sign,ic
-   real(kind=8), dimension(2,nfft_max) :: trig
+   real(kind=8), dimension(2,ntrig) :: trig
    integer, dimension(n_factors) :: after,now,before
 ! Local variables
         
    do i=1,ndata
       if (n.eq.ij_data(1,i)) then
          ic=0
-         do j=1,6
+         do j=1,n_factors
             itt=ij_data(1+j,i)
             if (itt.gt.1) then
                ic=ic+1
@@ -1631,14 +1678,15 @@ end subroutine ctrig_sg
 !!****f* fft3d/fftstp_sg
 !! SOURCE
 !!
-subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,i_sign)
+subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,ntrig,trig,after,now,before,i_sign)
 
-   use module_fft_sg
+  !use module_fft_sg, except_this_one_A => fftstp_sg
+
    implicit real(kind=8) (a-h,o-z)
 
 ! Arguments
    integer :: mm,nfft,m,nn,n,after,before,i_sign
-   real(kind=8), intent(in) :: trig(2,nfft_max)
+   real(kind=8), intent(in) :: trig(2,ntrig)
    real(kind=8) :: zin(2,mm,m),zout(2,nn,n)
 ! Local variables
    integer :: atn,atb
@@ -3206,13 +3254,13 @@ end subroutine fftstp_sg
 !!****f* fft3d/fftrot_sg
 !! SOURCE
 !!
-subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,i_sign)
+subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,ntrig,trig,after,now,before,i_sign)
 
    use module_fft_sg
    implicit real(kind=8) (a-h,o-z)
 
    integer :: after,before,atn,atb
-   dimension trig(2,nfft_max),zin(2,mm,m),zout(2,n,nn)
+   dimension trig(2,ntrig),zin(2,mm,m),zout(2,n,nn)
 
    atn=after*now
    atb=after*before

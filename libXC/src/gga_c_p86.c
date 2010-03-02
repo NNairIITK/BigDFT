@@ -2,16 +2,16 @@
  Copyright (C) 2006-2007 M.A.L. Marques
 
  This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation; either version 3 of the License, or
  (at your option) any later version.
   
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+ GNU Lesser General Public License for more details.
   
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
@@ -36,20 +36,16 @@ gga_c_p86_init(void *p_)
 {
   XC(gga_type) *p = (XC(gga_type) *)p_;
 
-  p->lda_aux = (XC(lda_type) *) malloc(sizeof(XC(lda_type)));
-  XC(lda_init)(p->lda_aux, XC_LDA_C_PZ, p->nspin);
+  p->n_func_aux  = 1;
+  p->func_aux    = (XC(func_type) **) malloc(sizeof(XC(func_type) *)*p->n_func_aux);
+  p->func_aux[0] = (XC(func_type) *)  malloc(sizeof(XC(func_type)));
+
+  XC(func_init)(p->func_aux[0], XC_LDA_C_PZ, p->nspin);
 }
 
-static void
-gga_c_p86_end(void *p_)
-{
-  XC(gga_type) *p = (XC(gga_type) *)p_;
-
-  free(p->lda_aux);
-}
 
 static void 
-gga_c_p86(void *p_, FLOAT *rho, FLOAT *sigma,
+my_gga_c_p86(const void *p_, const FLOAT *rho, const FLOAT *sigma,
 	  FLOAT *e, FLOAT *vrho, FLOAT *vsigma)
 {
   XC(gga_type) *p = (XC(gga_type) *)p_;
@@ -58,7 +54,7 @@ gga_c_p86(void *p_, FLOAT *rho, FLOAT *sigma,
   FLOAT rs, DD, dDDdzeta, CC, CCinf, dCCdd;
   FLOAT Phi, dPhidd, dPhidgdmt;
 
-  XC(lda_vxc)(p->lda_aux, rho, &ecunif, vcunif);
+  XC(lda_exc_vxc)(p->func_aux[0], 1, rho, &ecunif, vcunif);
 
   XC(rho2dzeta)(p->nspin, rho, &dens, &zeta);
   dzdd[0] =  (1.0 - zeta)/dens;
@@ -128,16 +124,51 @@ gga_c_p86(void *p_, FLOAT *rho, FLOAT *sigma,
 
     *e = ecunif + f3/(DD*dens);
 
-    vrho[0]   = vcunif[0] + (df3 - (f3/DD)*dDDdzeta*dzdd[0])/DD;
-    vsigma[0] = df3dgdmt/(DD*2.0*gdmt);
+    if(vrho != NULL){
+      vrho[0]   = vcunif[0] + (df3 - (f3/DD)*dDDdzeta*dzdd[0])/DD;
+      vsigma[0] = df3dgdmt/(DD*2.0*gdmt);
 
-    if(p->nspin == XC_POLARIZED){
-      vrho[1]   = vcunif[1] + (df3 - (f3/DD)*dDDdzeta*dzdd[1])/DD;
-      vsigma[1] = 2.0*vsigma[0];
-      vsigma[2] =     vsigma[0];
+      if(p->nspin == XC_POLARIZED){
+	vrho[1]   = vcunif[1] + (df3 - (f3/DD)*dDDdzeta*dzdd[1])/DD;
+	vsigma[1] = 2.0*vsigma[0];
+	vsigma[2] =     vsigma[0];
+      }
     }
   }
 }
+
+/* Warning: this is a workaround to support blocks while waiting for the next interface */
+static void 
+gga_c_p86(const void *p_, int np, const FLOAT *rho, const FLOAT *sigma,
+	  FLOAT *zk, FLOAT *vrho, FLOAT *vsigma,
+	  FLOAT *v2rho2, FLOAT *v2rhosigma, FLOAT *v2sigma2)
+{
+  int ip;
+  const XC(gga_type) *p = p_;
+
+  for(ip=0; ip<np; ip++){
+    my_gga_c_p86(p_, rho, sigma, zk, vrho, vsigma);
+
+    /* increment pointers */
+    rho   += p->n_rho;
+    sigma += p->n_sigma;
+    
+    if(zk != NULL)
+      zk += p->n_zk;
+    
+    if(vrho != NULL){
+      vrho   += p->n_vrho;
+      vsigma += p->n_vsigma;
+    }
+
+    if(v2rho2 != NULL){
+      v2rho2     += p->n_v2rho2;
+      v2rhosigma += p->n_v2rhosigma;
+      v2sigma2   += p->n_v2sigma2;
+    }
+  }
+}
+
 
 const XC(func_info_type) XC(func_info_gga_c_p86) = {
   XC_GGA_C_P86,
@@ -147,7 +178,7 @@ const XC(func_info_type) XC(func_info_gga_c_p86) = {
   "JP Perdew, Phys. Rev. B 33, 8822 (1986)",
   XC_PROVIDES_EXC | XC_PROVIDES_VXC,
   gga_c_p86_init,
-  gga_c_p86_end,   /* we can use the same as exchange here */
-  NULL,            /* this is not an LDA                   */
+  NULL,
+  NULL,
   gga_c_p86
 };

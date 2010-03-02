@@ -36,6 +36,15 @@ module module_base
   !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   logical :: GPUconv=.false.,GPUblas=.false.
 
+  type :: memstat
+     character(len=36) :: routine,array
+     integer(kind=8) :: memory,peak
+  end type memstat
+
+  ! Save values for memocc.
+  type(memstat) :: loc,tot
+  integer :: nalloc,ndealloc,iproc
+
   !interface for the memory allocation control, depends on ndebug
   interface memocc
      module procedure mo_dp1,mo_dp2,mo_dp3,mo_dp4,mo_dp5,mo_dp6,mo_dp7,&
@@ -615,12 +624,9 @@ end module module_base
 !  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
 !  Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007
 subroutine memory_occupation(istat,isize,array,routine)
-  implicit none
+  use module_base, only : memstat,loc,tot,nalloc,ndealloc,iproc
 
-  type :: memstat
-     character(len=36) :: routine,array
-     integer(kind=8) :: memory,peak
-  end type memstat
+  implicit none
 
   character(len=*), intent(in) :: array,routine
   integer, intent(in) :: istat,isize
@@ -629,8 +635,6 @@ subroutine memory_occupation(istat,isize,array,routine)
   !Memory limit value in GB. It stops EVERYTHING if some process passes such limit
   !For no memory limit, leave it to zero
   real(kind=4), parameter :: memorylimit=3.e0
-  type(memstat), save :: loc,tot
-  integer, save :: nalloc,ndealloc,iproc
   integer :: ierr
 
   select case(array)

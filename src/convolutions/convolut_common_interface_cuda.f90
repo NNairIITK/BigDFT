@@ -14,7 +14,7 @@ subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c
   integer :: iseg,i_stat,i_all,segment_elements,nseg_tot,j,nseggpu,nblocks,nseg_block
   integer :: elems_block,nblocks_max,ncuts
   integer, dimension(:,:), allocatable :: keys
-  
+  integer :: stream_send
   call readkeysinfo(elems_block,nblocks_max)
   
   nseg_tot=0
@@ -121,11 +121,12 @@ subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c
   end do
 
   !allocate the gpu pointer and copy the values
-  !!!call GPU_int_allocate(4*nseggpu,keys_GPU,i_stat)
-  call sg_gpu_alloc(keys_GPU,4*nseggpu,4,i_stat)
+  call sg_gpu_malloc(keys_GPU,4*nseggpu,4,i_stat)
 
-!!  call GPU_int_send(4*nseggpu,keys,keys_GPU,i_stat)
-  call  sg_gpu_imm_send(keys_GPU,keys,4*nseggpu,4,i_stat)
+
+!  call  sg_gpu_imm_send(keys_GPU,keys,4*nseggpu,4,i_stat)
+  call sg_send_mem_instantaneously(keys_GPU,keys,4*nseggpu,4,i_stat)
+       
   
   i_all=-product(shape(keys))*kind(keys)
   deallocate(keys,stat=i_stat)
@@ -160,37 +161,30 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
   !allocate space on the card
   !allocate the compressed wavefunctions such as to be used as workspace
   do iorb=1,orbs%norbp
-     call sg_gpu_alloc(GPU%psi(iorb),(2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor,8,i_stat)
+     call sg_gpu_malloc(GPU%psi(iorb),(2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor,8,i_stat)
   end do
 
-  call sg_gpu_alloc(GPU%work1,(2*n1+2)*(2*n2+2)*(2*n3+2),8,i_stat)
-  call sg_gpu_alloc(GPU%work2,(2*n1+2)*(2*n2+2)*(2*n3+2),8,i_stat)
-  call sg_gpu_alloc(GPU%work3,(2*n1+2)*(2*n2+2)*(2*n3+2),8,i_stat)
+  call sg_gpu_malloc(GPU%work1,(2*n1+2)*(2*n2+2)*(2*n3+2),8,i_stat)
+  call sg_gpu_malloc(GPU%work2,(2*n1+2)*(2*n2+2)*(2*n3+2),8,i_stat)
+  call sg_gpu_malloc(GPU%work3,(2*n1+2)*(2*n2+2)*(2*n3+2),8,i_stat)
 
   !here spin value should be taken into account
-  call sg_gpu_alloc(GPU%rhopot,(2*n1+2)*(2*n2+2)*(2*n3+2)*nspin,8,i_stat)
+  call sg_gpu_malloc(GPU%rhopot,(2*n1+2)*(2*n2+2)*(2*n3+2)*nspin,8,i_stat)
 
   !needed for the preconditioning
-  call sg_gpu_alloc(GPU%r,(wfd%nvctr_c+7*wfd%nvctr_f),8,i_stat)
+  call sg_gpu_malloc(GPU%r,(wfd%nvctr_c+7*wfd%nvctr_f),8,i_stat)
 
-  call sg_gpu_alloc(GPU%d,(2*n1+2)*(2*n2+2)*(2*n3+2),8,i_stat)
+  call sg_gpu_malloc(GPU%d,(2*n1+2)*(2*n2+2)*(2*n3+2),8,i_stat)
 
   
-  if(GPUshare .and. GPUconv) then
-     !gpu sharing is enabled, we need pinned memory and set useDynamic on the GPU_pointer structure
-     call sg_cpu_pinned_alloc(GPU%pinned_in,(2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor,8,i_stat)
-     call sg_cpu_pinned_alloc(GPU%pinned_out,(2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor,8,i_stat)
-     
-     GPU%useDynamic = .true.
-  else
-     GPU%useDynamic = .false.
-  end if
+
+  call sg_cpu_malloc_pinned(GPU%pinned_in,(2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor,8,i_stat)
+  call sg_cpu_malloc_pinned(GPU%pinned_out,(2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor,8,i_stat)
   
   !at the starting point do not use full_locham
   GPU%full_locham = .false.
 
 end subroutine prepare_gpu_for_locham
-
 
 
 subroutine free_gpu(GPU,norbp)
@@ -250,94 +244,50 @@ subroutine local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,&
 
 
 
-  if (.not. GPU%useDynamic) then 
-     ! ** GPU are not shared
+  call sg_create_stream(stream_ptr_first_trsf)
+ 
+  
+  call sg_gpu_send_mem(GPU%rhopot,&
+       pot,&
+       GPU%pinned_in,&
+       lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,8,&
+       stream_ptr_first_trsf,i_stat)
 
-     !copy the potential on GPU
-     call sg_gpu_imm_send(GPU%rhopot,pot,lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,8,i_stat)
 
-     !if required copy the wavefunctions on the GPU 
+  call sg_exec_all_streams() !stream are removed after this call, the queue becomes empty
+  
+  do iorb=1,orbs%norbp      
+     
+     !each orbital create one stream
+     call sg_create_stream(tab_stream_ptr(iorb))
+     
      if (GPU%full_locham) then
-        do iorb=1,orbs%norbp
-           call sg_gpu_imm_send(GPU%psi(iorb),&
-                psi(1,(iorb-1)*orbs%nspinor+1),&
-                (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,i_stat)
-        end do
-     end if
+        
+        call sg_gpu_send_mem(GPU%psi(iorb),&
+             psi(1,(iorb-1)*orbs%nspinor+1),&
+             GPU%pinned_in,&
+             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
+             tab_stream_ptr(iorb),i_stat)
+        
 
+     end if
+     
      !calculate the local hamiltonian
      !WARNING: the difference between full_locham and normal locham is inside
-     call gpu_locham(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
+     call gpu_locham_helper_stream(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum,iorb,tab_stream_ptr(iorb))
      
      
-     !copy back the compressed wavefunctions
-     !receive the data of GPU
-     do iorb=1,orbs%norbp
-        call sg_gpu_imm_recv(hpsi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),&
-             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-             i_stat)
-     end do
+     call sg_gpu_recv_mem(hpsi(1,(iorb-1)*orbs%nspinor+1),&
+          GPU%psi(iorb),&
+          GPU%pinned_out,&
+          (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
+          tab_stream_ptr(iorb),i_stat)
      
-  else
-     !GPU are shared
      
-     !print *,'here',GPU%full_locham
-     !copy the potential on GPU
-     call sg_create_stream(stream_ptr_first_trsf)
- 
-     call sg_memcpy_f_to_c(GPU%pinned_in,&
-          pot,&
-          lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,8,&
-          stream_ptr_first_trsf,i_stat)
+  end do
+  call sg_exec_all_streams() !stream are removed after this call, the queue becomes empty
+     
 
-
-     call sg_gpu_pi_send(GPU%rhopot,&
-          GPU%pinned_in,&
-          lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,8,&
-          stream_ptr_first_trsf,i_stat)
-     
-     call sg_launch_all_streams() !stream are removed after this call, the queue becomes empty
-     
-     do iorb=1,orbs%norbp      
-
-        !each orbital create one stream
-        call sg_create_stream(tab_stream_ptr(iorb))
-        
-        if (GPU%full_locham) then
-           call sg_memcpy_f_to_c(GPU%pinned_in,&
-                psi(1,(iorb-1)*orbs%nspinor+1),&
-                (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-                tab_stream_ptr(iorb),i_stat)
-           
-           
-           call sg_gpu_pi_send(GPU%psi(iorb),&
-                GPU%pinned_in,&
-                (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-                tab_stream_ptr(iorb),i_stat)
-        end if
-        
-        !calculate the local hamiltonian
-        !WARNING: the difference between full_locham and normal locham is inside
-        call gpu_locham_helper_stream(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum,iorb,tab_stream_ptr(iorb))
-        
-        
-        !copy back the compressed wavefunctions
-        !receive the data of GPU
-        call sg_gpu_pi_recv(GPU%pinned_out,&
-             GPU%psi(iorb),&
-             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-             tab_stream_ptr(iorb),i_stat)
-
-
-        call sg_memcpy_c_to_f(hpsi(1,(iorb-1)*orbs%nspinor+1),&
-             GPU%pinned_out,&
-             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-             tab_stream_ptr(iorb),i_stat)
-        
-     end do
-     call sg_launch_all_streams() !stream are removed after this call, the queue becomes empty
-     
-  end if
   
   
 end subroutine local_hamiltonian_GPU
@@ -369,97 +319,7 @@ subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
   call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
 
 
-  if (.not. GPU%useDynamic) then
-
-  !arrays for the CG procedure
-  allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),1+ndebug),stat=i_stat)
-  call memocc(i_stat,b,'b',subname)
-
-
-!!$     do iorb=1,orbs%norbp
-!!$        
-!!$        call sg_gpu_imm_send(GPU%psi(iorb),&
-!!$             hpsi(1+((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor)*((iorb-1)*orbs%nspinor)),&
-!!$             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,i_stat)
-!!$     end do
-!!$   
-!!$     call gpu_precond(lr,hx,hy,hz,GPU,orbs%norbp,ncong,&
-!!$          orbs%eval(min(orbs%isorb+1,orbs%norb)),gnrm)
-!!$   
-!!$
-!!$     do iorb=1,orbs%norbp
-!!$  
-!!$        call sg_gpu_imm_recv(hpsi(1+((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor)*((iorb-1)*orbs%nspinor)),&
-!!$             GPU%psi(iorb),&
-!!$             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,i_stat)
-!!$        
-!!$     end do
-     !new preconditioner, takes into account the FFT preconditioning on CPU
-     gnrm=0.0_dp
-     do iorb=1,orbs%norbp
-
-        do inds=1,orbs%nspinor,ncplx
-
-           !the nrm2 function can be replaced here by ddot
-           scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi(1,inds,iorb),1)
-           gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
-
-           call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,0.5_wp,w,&
-                hpsi(1,inds,iorb),b)
-
-           call sg_gpu_imm_send(GPU%psi(iorb),&
-                hpsi(1,inds,iorb),&
-                (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,i_stat)
-
-           !this is the b array
-           call sg_gpu_imm_send(GPU%rhopot,b,&
-                (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,i_stat)
-
-           call gpu_intprecond(lr,hx,hy,hz,GPU,orbs%norbp,ncong,&
-                orbs%eval(min(orbs%isorb+1,orbs%norb)),iorb)
-
-           call sg_gpu_imm_recv(&
-                hpsi(1,inds,iorb),&
-                GPU%psi(iorb),&
-                (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,i_stat)
-           
-        end do
-
-     end do
-
-  else
-
-     !====use dynamic repartition
-
-!!$     do iorb=1,orbs%norbp
-!!$        inds=1
-!!$        call sg_create_stream(tab_stream_ptr(iorb))
-!!$
-!!$        call sg_memcpy_f_to_c(GPU%pinned_in,&
-!!$             hpsi(1,inds,iorb),&
-!!$             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-!!$             tab_stream_ptr(iorb),i_stat)
-!!$
-!!$        call sg_gpu_pi_send(GPU%psi(iorb),&
-!!$             GPU%pinned_in,&
-!!$             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-!!$             tab_stream_ptr(iorb),i_stat)
-!!$
-!!$        call gpu_precond_helper_stream(lr,hx,hy,hz,GPU,orbs%norbp,ncong,&
-!!$             orbs%eval(min(orbs%isorb+1,orbs%norb)),gnrm,iorb,tab_stream_ptr(iorb))
-!!$
-!!$        call sg_gpu_pi_recv(GPU%pinned_out,&  
-!!$             GPU%psi(iorb),&
-!!$             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-!!$             tab_stream_ptr(iorb),i_stat)
-!!$
-!!$        call sg_memcpy_c_to_f(hpsi(1,inds,iorb),&
-!!$             GPU%pinned_out,&
-!!$             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-!!$             tab_stream_ptr(iorb),i_stat)
-!!$
-!!$     end do
-
+ 
      !arrays for the CG procedure
      allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),orbs%norbp+ndebug),stat=i_stat)
      call memocc(i_stat,b,'b',subname)
@@ -477,26 +337,19 @@ subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
 
            call sg_create_stream(tab_stream_ptr(iorb))
 
-!!$           call gpu_precondprecond_helper_stream(lr,hx,hy,hz,0.5_wp,scal,ncplx,w,&
-!!$                hpsi(1,inds,iorb),b(1,iorb),tab_stream_ptr(iorb))
 
-           call sg_memcpy_f_to_c(GPU%pinned_in,&
+
+           call sg_gpu_send_mem(GPU%psi(iorb),&
                 hpsi(1,inds,iorb),&
-                (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-                tab_stream_ptr(iorb),i_stat)
-
-           call sg_gpu_pi_send(GPU%psi(iorb),&
                 GPU%pinned_in,&
                 (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
                 tab_stream_ptr(iorb),i_stat)
+           
 
-           !send also the b array in the rhopot space
-           call sg_memcpy_f_to_c(GPU%pinned_in,&
+
+
+           call sg_gpu_send_mem(GPU%rhopot,&
                 b(1,iorb),&
-                (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-                tab_stream_ptr(iorb),i_stat)
-
-           call sg_gpu_pi_send(GPU%rhopot,&
                 GPU%pinned_in,&
                 (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
                 tab_stream_ptr(iorb),i_stat)
@@ -508,24 +361,23 @@ subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
                 GPU%keys,GPU%r,GPU%rhopot,GPU%d,GPU%work1,GPU%work2,GPU%work3,&
                 0.5_wp,ncong,tab_stream_ptr(iorb))
 
-           call sg_gpu_pi_recv(GPU%pinned_out,&  
-                GPU%psi(iorb),&
-                (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-                tab_stream_ptr(iorb),i_stat)
 
-           call sg_memcpy_c_to_f(hpsi(1,inds,iorb),&
-                GPU%pinned_out,&
-                (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-                tab_stream_ptr(iorb),i_stat)
+
+
+        call sg_gpu_recv_mem(hpsi(1,inds,iorb),&
+             GPU%psi(iorb),&
+             GPU%pinned_out,&  
+             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
+             tab_stream_ptr(iorb),i_stat)
 
         end do
      end do
 
 
-     call sg_launch_all_streams() !stream are removed after this call, the queue becomes empty
+     call sg_exec_all_streams() !stream are removed after this call, the queue becomes empty
 
      !end of dynamic repartition
-  end if
+ 
 
   i_all=-product(shape(b))*kind(b)
   deallocate(b,stat=i_stat)
@@ -557,68 +409,45 @@ subroutine local_partial_density_GPU(iproc,nproc,orbs,&
   real(kind=8) :: stream_ptr
 
 
-  if (.not. GPU%useDynamic) then 
-
-        
-     !copy the wavefunctions on GPU
-     do iorb=1,orbs%norbp
-  
-        call sg_gpu_imm_send(GPU%psi(iorb),&
-             psi(1,(iorb-1)*orbs%nspinor+1),&
-             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,i_stat)
-     end do
-       
-     !calculate the density
-     call gpu_locden(lr,nspin,hxh,hyh,hzh,orbs,GPU)
-     
-  
-     call sg_gpu_imm_recv(rho_p,GPU%rhopot,lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,8,i_stat)
-  else
-     !use dynamic GPU
-     
-     call sg_create_stream(stream_ptr) !only one stream, it could be good to optimize that
-     !copy the wavefunctions on GPU
-     do iorb=1,orbs%norbp
  
-        call sg_memcpy_f_to_c(GPU%pinned_in,&
-             psi(1,(iorb-1)*orbs%nspinor+1),&
-             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-             stream_ptr,i_stat)
-        
- 
-        call sg_gpu_pi_send(GPU%psi(iorb),&
-             GPU%pinned_in,&
-             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-             stream_ptr,i_stat)
+     
+  call sg_create_stream(stream_ptr) !only one stream, it could be good to optimize that
+  !copy the wavefunctions on GPU
+  do iorb=1,orbs%norbp
+     
 
-     end do
+
+
+     call sg_gpu_send_mem(GPU%psi(iorb),&
+          psi(1,(iorb-1)*orbs%nspinor+1),&
+          GPU%pinned_in,&
+          (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
+          stream_ptr,i_stat)
+
+
+
+  end do
      
        
      
-     !calculate the density
-     call gpu_locden_helper_stream(lr,nspin,hxh,hyh,hzh,orbs,GPU,stream_ptr)
-     
-     !copy back the results and leave the uncompressed wavefunctions on the card
-     
-      
-     call sg_gpu_pi_recv(GPU%pinned_out,&
-          GPU%rhopot,&
-          lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,8,&
-          stream_ptr,i_stat)
-     
-     
-      call sg_memcpy_c_to_f(rho_p,&
-          GPU%pinned_out,&
-          lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,8,&
-          stream_ptr,i_stat)
-     
+  !calculate the density
+  call gpu_locden_helper_stream(lr,nspin,hxh,hyh,hzh,orbs,GPU,stream_ptr)
+  
+  !copy back the results and leave the uncompressed wavefunctions on the card
+  
 
      
+  call sg_gpu_recv_mem(rho_p,&
+       GPU%rhopot,&
+       GPU%pinned_out,&
+       lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,8,&
+       stream_ptr,i_stat)
      
-     call sg_launch_all_streams() !stream are removed after this call, the queue becomes empty
+     
+  call sg_exec_all_streams() !stream are removed after this call, the queue becomes empty
      
      
-  end if
+  
   
 
 end subroutine local_partial_density_GPU
@@ -816,7 +645,6 @@ subroutine gpu_precond_helper_stream(lr,hx,hy,hz,GPU,norbp,ncong,eval,gnrm,currO
 
   real(kind=8) :: callback_pointer,callback_param
   gnrm=0.0_wp
-
   
   call sg_precond_adapter(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
        0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&

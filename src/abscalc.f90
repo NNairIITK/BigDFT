@@ -1,9 +1,9 @@
-!!****p* BigDFT/BigDFT
+!!****p* BigDFT/abscalc_main
 !! FUNCTION
-!!  Main program to calculate electronic structures
+!!  Main program for Xanes calculation (absorption calc.)
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    Copyright (C) 2009-2010 ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -26,37 +26,31 @@ program abscalc_main
 
   implicit none
   character(len=*), parameter :: subname='BigDFT'
-  character(len=20) :: units
-  integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode
-  integer ::  ncount_bigdft
+  integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
   real(gp) :: etot,sumx,sumy,sumz
   logical :: exist_list
   !input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
   type(restart_objects) :: rst
-  character(len=20), dimension(:), allocatable :: atomnames
   character(len=50), dimension(:), allocatable :: arr_posinp
-  character(len=60)  :: filename
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
-  integer :: npr,iam,iconfig,nconfig
-  integer  :: nfluct
-  real(gp) :: fluctsum
+  integer :: iconfig,nconfig
   logical :: exists
 
- 
+
   ! Start MPI in parallel version
   !in the case of MPIfake libraries the number of processors is automatically adjusted
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-  ! find out which input files will be used
+  ! Find out which input files will be used
   inquire(file="list_posinp",exist=exist_list)
   if (exist_list) then
-     open(54,file="list_posinp")
+     open(unit=54,file="list_posinp")
      read(54,*) nconfig
      if (nconfig > 0) then 
         !allocation not referenced since memocc count not initialised
@@ -70,7 +64,7 @@ program abscalc_main
         allocate(arr_posinp(1:1))
         arr_posinp(1)='posinp'
      endif
-     close(54)
+     close(unit=54)
   else
      nconfig=1
      allocate(arr_posinp(1:1))
@@ -79,21 +73,20 @@ program abscalc_main
 
   do iconfig=1,nconfig
 
-     !initialize memory counting
+     !Initialize memory counting
      call memocc(0,iproc,'count','start')
 
-     !welcome screen
+     !Welcome screen
      if (iproc==0) call print_logo()
 
      ! Read all input files.
      call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
           & "input.dft", "input.kpt", "input.geopt", inputs, atoms, rxyz)
 
-
      
-     !read absorption-calculation input variables
+     !Read absorption-calculation input variables
      !inquire for the needed file 
-     !if not present, set default ( no absorption calculation)
+     !if not present, set default (no absorption calculation)
           
      inquire(file="input.abscalc",exist=exists)
      if (.not. exists) then
@@ -107,8 +100,6 @@ program abscalc_main
         if(nproc/=0)   call MPI_FINALIZE(ierr)
         stop
      endif
-
-
 
 
      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
@@ -165,15 +156,10 @@ program abscalc_main
 end program abscalc_main
 !!***
 
-!!****f* BigDFT/call_bigdft
+
+!!****f* BigDFT/call_abscalc
 !! FUNCTION
-!!   Routines to use bigdft as a blackbox
-!! COPYRIGHT
-!!   Copyright (C) 2005-2009 BigDFT group 
-!!   This file is distributed under the terms of the
-!!   GNU General Public License, see ~/COPYING file
-!!   or http://www.gnu.org/copyleft/gpl.txt .
-!!   For the list of contributors, see ~/AUTHORS 
+!!   Routines to use abscalc as a blackbox
 !! SOURCE
 !!
  subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
@@ -195,8 +181,8 @@ end program abscalc_main
 
   !temporary interface
   interface
-     subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
-          psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,infocode)
+     subroutine abscalc(nproc,iproc,atoms,rxyz,&
+          psi,Glr,orbs,hx_old,hy_old,hz_old,in,infocode)
        use module_base
        use module_types
        implicit none
@@ -206,13 +192,9 @@ end program abscalc_main
        type(input_variables), intent(in) :: in
        type(locreg_descriptors), intent(inout) :: Glr
        type(atoms_data), intent(inout) :: atoms
-       type(gaussian_basis), intent(inout) :: gbd
        type(orbitals_data), intent(inout) :: orbs
-       real(gp), intent(out) :: energy
-       real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
        real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
        real(wp), dimension(:), pointer :: psi
-       real(wp), dimension(:,:), pointer :: gaucoeffs
      end subroutine abscalc 
   end interface
 
@@ -242,9 +224,9 @@ end program abscalc_main
 
         stop 'ERROR'
      else
-        call abscalc(nproc,iproc,atoms,rxyz,energy,&
-             rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
-             rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,infocode)
+        call abscalc(nproc,iproc,atoms,rxyz,&
+             rst%psi,rst%Glr,rst%orbs,&
+             rst%hx_old,rst%hy_old,rst%hz_old,in,infocode)
         fxyz(:,:) = 0.d0
      endif
 
@@ -304,28 +286,32 @@ end subroutine call_abscalc
 !!***
 
 
-subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
-     psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,infocode)
-  ! inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
-  ! inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
-  !                  as definition of the previous system.
-  ! inputPsiId = 2 : read waves from disk
-  ! does an electronic structure calculation. Output is the total energy and the forces 
-  ! psi, keyg, keyv and eval should be freed after use outside of the routine.
-  ! infocode -> encloses some information about the status of the run
-  !          =0 run succesfully succeded
-  !          =1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
-  !             forces may be meaningless   
-  !          =2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
-  !             the second iteration OR grnm 1st >2.
-  !             Input wavefunctions need to be recalculated. Routine exits.
-  !          =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
+!!****f* BigDFT/abscalc
+!! FUNCTION
+!!   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
+!!   inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid
+!!                    as definition of the previous system.
+!!   inputPsiId = 2 : read waves from disk
+!!   does an electronic structure calculation. Output is the total energy and the forces 
+!!   psi, keyg, keyv and eval should be freed after use outside of the routine.
+!!   infocode -> encloses some information about the status of the run
+!!            =0 run succesfully succeded
+!!            =1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
+!!               forces may be meaningless   
+!!            =2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
+!!               the second iteration OR grnm 1st >2.
+!!               Input wavefunctions need to be recalculated. Routine exits.
+!!            =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
+!! SOURCE
+!!
+subroutine abscalc(nproc,iproc,atoms,rxyz,&
+     psi,Glr,orbs,hx_old,hy_old,hz_old,in,infocode)
   use module_base
   use module_types
   use module_interfaces
   use Poisson_Solver
   use libxc_functionals
-  use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces
+  use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
   use esatto
   implicit none
   integer, intent(in) :: nproc,iproc
@@ -333,34 +319,26 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   type(input_variables), intent(in) :: in
   type(locreg_descriptors), intent(inout) :: Glr
   type(atoms_data), intent(inout) :: atoms
-  type(gaussian_basis), intent(inout) :: gbd
   type(orbitals_data), intent(inout) :: orbs
-  real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
   real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
   integer, intent(out) :: infocode
-  real(gp), intent(out) :: energy
   real(wp), dimension(:), pointer :: psi
-  real(wp), dimension(:,:), pointer :: gaucoeffs
   !local variables
   character(len=*), parameter :: subname='abscalc'
   character(len=3) :: PSquiet
-  character(len=4) :: f4
-  character(len=50) :: filename
-  logical :: endloop,potion_overwritten=.false.,allfiles,onefile
-  integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before
-  integer :: nvirt,ndiis_sd_sw
-  integer :: nelec,ndegree_ip,j,i,k, iorb
-  integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
-  integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i,i03,i04
-  integer :: i1,i2,i3,ind,iat,i_all,i_stat,iter,ierr,jproc,ispin,inputpsi
+  integer :: ixc,ncong,idsx,ncongt,nspin,itermax
+  integer :: nvirt
+  integer :: nelec,ndegree_ip,j,k
+  integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
+  integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
+  integer :: iat,i_all,i_stat,ierr,inputpsi
   real :: tcpu0,tcpu1
+  real(gp), dimension(3) :: shift
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
-  real(kind=8) :: peakmem,energy_old,sumz
-  real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum,sumx,sumy
-  real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min,psoffset
-  real(kind=8) :: ttsum
+  real(kind=8) :: peakmem
+  real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum
+  real(kind=8) :: tel,psoffset
   real(gp) :: edisp ! Dispersion energy
-  type(wavefunctions_descriptors) :: wfd_old
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
   type(orbitals_data) :: orbsv
@@ -368,29 +346,33 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   type(GPU_pointers) :: GPU
 
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
-  real(kind=8), dimension(:), allocatable :: rho
-  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
+  real(kind=8), dimension(:,:), allocatable :: radii_cf,fion
+  !real(kind=8), dimension(:,:), allocatable :: gxyz
   real(gp), dimension(:,:),allocatable :: fdisp
   ! Charge density/potential,ionic potential, pkernel
   real(kind=8), dimension(:), allocatable :: pot_ion
-  real(kind=8), dimension(:,:,:,:), allocatable :: rhopot,pot,rhoref
-  real(kind=8), dimension(:), pointer :: pkernel,pkernel_ref
+  real(kind=8), dimension(:,:,:,:), allocatable :: rhopot
+  !real(kind=8), dimension(:,:,:,:), allocatable :: pot
+  real(kind=8), dimension(:), pointer :: pkernel
   !wavefunction gradients, hamiltonian on vavefunction
   !transposed  wavefunction
   ! Pointers and variables to store the last psi
   ! before reformatting if useFormattedInput is .true.
-  real(kind=8), dimension(:), pointer :: hpsi,psit,psi_old,psivirt,psidst,hpsidst
+  real(kind=8), dimension(:), pointer :: hpsi,psit,psivirt
+  !real(kind=8), dimension(:), pointer :: psidst,hpsidst
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj
   ! arrays for DIIS convergence accelerator
-  real(kind=8), dimension(:,:,:), pointer :: ads
+  !real(kind=8), dimension(:,:,:), pointer :: ads
+  ! Arrays for the symmetrisation, not used here...
+  integer, dimension(:,:,:), allocatable :: irrzon
+  real(dp), dimension(:,:,:), allocatable :: phnons
   
   !for xabsorber
-  logical in_refinement
-  integer lpot_a, ix, iy, iz
-  real(gp) rpot_a, spot_a, hpot_a, espo, harmo, r, rx, ry, rz, minrx, maxrx,   minry, maxry,   minrz, maxrz, minr  
+  integer :: lpot_a, ix, iy, iz
+  real(gp) :: rpot_a,spot_a,hpot_a,espo,harmo,r,rx,ry,rz,minr  
   real(gp), pointer :: radpot(:,:)
-  integer radpotcount, igrid
+  integer :: radpotcount, igrid
 
   type(atoms_data) :: atoms_b2B
   real(gp), dimension(:,:), pointer :: rxyz_b2B
@@ -401,21 +383,19 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   real(gp) alat1_bB, alat2_bB, alat3_bB
   real(gp), dimension(:), pointer ::  intfunc_x, intfunc_y
   real(gp) factx, facty, factz
-  character(len=80) :: comment
-  integer idelta
-  integer ix_bB, iy_bB, iz_bB
-  integer maxX_B, maxY_B, maxZ_B
-  integer minX_B, minY_B, minZ_B
-  real(gp)  rx_bB, ry_bB, rz_bB
-  integer nrange
+  integer :: idelta
+  integer :: ix_bB, iy_bB, iz_bB
+  integer :: maxX_B, maxY_B, maxZ_B
+  integer :: minX_B, minY_B, minZ_B
+  real(gp) :: rx_bB, ry_bB, rz_bB
+  integer :: nrange
   real(gp), pointer :: auxint(:)
-  logical exists 
-  integer nat_b2B
+  logical :: exists 
+  integer :: nat_b2B
 
   ! ----------------------------------
   ! per monitorare il minimo del pot letto in b2B attorno al 1 atomo
-  real(gp)  potx(21,3), potcoors(3,21,3)
-  
+  real(gp) :: potx(21,3), potcoors(3,21,3)
 
   !------------------------------------------
   !copying the input variables for readability
@@ -426,18 +406,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   !reassigned inside the structure
 
 
-
-
-
-  
-
   if (  in%potshortcut==0) then
      if(nproc>1) call MPI_Finalize(ierr)
      stop '   in%potshortcut==0 calculating spectra. Use rather box2Box option      '
   endif
-
-
-
 
   crmult=in%crmult
   frmult=in%frmult
@@ -483,8 +455,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
 
-
- 
   if(nspin/=1 .and. nspin/=2 .and. nspin/=4) nspin=1
 
   ! grid spacing (same in x,y and z direction)
@@ -499,15 +469,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
-
   call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
 
-  call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
-
-  
+  call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
 
   !variables substitution for the PSolver part
   hxh=0.5d0*hx
@@ -532,8 +499,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
 
-
- 
 
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation
@@ -574,12 +539,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   allocate(fion(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fion,'fion',subname)
 
- 
+  ! A message about dispersion forces.
+  if (iproc == 0) call vdwcorrection_warnings(atoms, in)
+
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   ndegree_ip=16 !default value 
   call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel,&
        quiet=PSquiet)
-
 
   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,&
        psoffset,in%nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
@@ -606,41 +572,47 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
      call memocc(i_stat,rhopot,'rhopot',subname)
   end if
 
-
   !check the communication distribution
   !call check_communications(iproc,nproc,orbs,Glr,comms)
 
-
   if(in%potshortcut/=2) then
-
-
 
      inputpsi=in%inputPsiId
 
-
      nspin=in%nspin
+
+     !Fake allocations
+     allocate(irrzon(1,2,1+ndebug),stat=i_stat)
+     call memocc(i_stat,irrzon,'irrzon',subname)
+     allocate(phnons(2,1,1+ndebug),stat=i_stat)
+     call memocc(i_stat,phnons,'phnons',subname)
+
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,atoms,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut )
-
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons)
 
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)
      call memocc(i_stat,i_all,'psi',subname)
 
+     i_all=-product(shape(irrzon))*kind(irrzon)
+     deallocate(irrzon,stat=i_stat)
+     call memocc(i_stat,i_all,'irrzon',subname)
 
-
+     i_all=-product(shape(phnons))*kind(phnons)
+     deallocate(phnons,stat=i_stat)
+     call memocc(i_stat,i_all,'phnons',subname)
 
   end if
-   
+
   if (nproc > 1  ) then
      i_all=-product(shape(hpsi))*kind(hpsi)
      deallocate(hpsi,stat=i_stat)
      call memocc(i_stat,i_all,'hpsi',subname)
   endif
-  
+
   if (nproc > 1  ) then
      i_all=-product(shape(psit))*kind(psit)
      deallocate(psit,stat=i_stat)
@@ -648,8 +620,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   else
      nullify(psit)
   end if
-  
-
 
   i_all=-product(shape(pot_ion))*kind(pot_ion)
   deallocate(pot_ion,stat=i_stat)
@@ -659,17 +629,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
   deallocate(pkernel,stat=i_stat)
   call memocc(i_stat,i_all,'kernel',subname)
 
-
-
-
   ! needs something to let to  bigdft to deallocate
   allocate(psi(2+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
 
-
   allocate(orbs%eval(2+ndebug),stat=i_stat)
   call memocc(i_stat, orbs%eval,'eval',subname)
-
 
   if (in%c_absorbtion ) then
 
@@ -743,7 +708,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
 
         if(  n1i_bB > n1i .or.  n2i_bB > n2i .or.   n3i_bB > n3i    ) then
            if(nproc>1) call MPI_Finalize(ierr)
-           stop '  b2B potential mast be defined on a smaller ( in number of points  ) source grid then the target grid    '
+           stop '  b2B potential must be defined on a smaller ( in number of points ) source grid then the target grid'
         endif
 
         do j=1,3
@@ -752,7 +717,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
               if( abs(shift_b2B(j) - (rxyz(j,iat) - rxyz_b2B(j,iat) )  )>1.0e-4 ) then
                  if(iproc==0) write(*,*)  "   b2B_xanes.xyz  positions are not compatible with actual positions" 
                  if(nproc>1) call MPI_Finalize(ierr)
-                 stop '      b2B_xanes.xyz positions are not compatible with actual positions          '
+                 stop '      b2B_xanes.xyz positions are not compatible with actual positions'
               end if
            enddo
         enddo
@@ -831,16 +796,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
               enddo
            enddo
         enddo
-        
+
 
         open(unit=22,file='potx.dat', status='unknown')
         do j=1,21
            write(22,*)  (potx(j,k), k=1,3)
         enddo
         close(unit=22)
-        
 
-        
 
         allocate(auxint(n1i+n2i+n3i+ndebug),stat=i_stat)
         call memocc(i_stat,auxint,'auxint',subname)
@@ -908,20 +871,15 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
 
         if (iproc == 0) write(*,*) 'writing NEW local_potential.pot'
 
-
-
         call plot_density(atoms%geocode,'local_potentialb2BNEW.pot',iproc,nproc,&
              n1,n2,n3,n1i,n2i,n3i,n3p,&
              atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
 
 
-
-
-
         i_all=-product(shape(auxint))*kind(auxint)
         deallocate(auxint,stat=i_stat)
         call memocc(i_stat,i_all,'auxint',subname)
- 
+
         i_all=-product(shape(pot_bB))*kind(pot_bB)
         deallocate(pot_bB,stat=i_stat)
         call memocc(i_stat,i_all,'rho',subname)
@@ -930,23 +888,21 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
         deallocate(intfunc_y,stat=i_stat)
         call memocc(i_stat,i_all,'intfunc_y',subname)
         print *," exiting b2B"
-  
 
         i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
         deallocate(rxyz_b2B,stat=i_stat)
         call memocc(i_stat,i_all,'rxyz',subname)
-              
+
      endif
-     
+
      if(in%abscalc_alterpot) then
         ! Attention :  modification of the  potential for the  
         ! exactly resolvable case 
 
         lpot_a=1
-        rpot_a = 6.0
-        spot_a = 1.0
-        hpot_a = 3.0
-
+        rpot_a = 6.0d0
+        spot_a = 1.0d0
+        hpot_a = 3.0d0
 
         allocate(radpot(30000 ,2+ndebug ))
         radpotcount=30000
@@ -956,7 +912,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
            read(22,*)  radpot(igrid ,1 ),  radpot(igrid , 2 )
         enddo
         close(unit=22)
-        
+
         minr=1000.0
         do ix=1,n1i
            do iy=1,n2i
@@ -964,9 +920,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
                  rx = hx*(ix-1)           /2.0  -  rxyz(1,in%iat_absorber )
                  ry = hy*(iy-1)           /2.0  -  rxyz(2,in%iat_absorber )
                  rz = hz*(iz-1 +i3xcsh + i3s -1 )/2.0  -  rxyz(3,in%iat_absorber )
-                 
+
                  r  = sqrt( rx*rx+ry*ry+rz*rz)
-                 
+
                  if(r>2.5) then
                     if( r>29) then
                        rhopot(ix,iy,iz+i3xcsh,1)=0.0
@@ -1012,17 +968,16 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,energy,&
      endif
      
   end if
-  
-
 
   !    No tail calculation
   if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
- 
 
   call deallocate_before_exiting
-  
+
+
 contains
-  
+
+
   !routine which deallocate the pointers and the arrays before exiting 
   subroutine deallocate_before_exiting
     
@@ -1151,13 +1106,10 @@ contains
        deallocate(Glr%bounds%gb%ibxxyy_f,stat=i_stat)
        call memocc(i_stat,i_all,'ibxxyy_f',subname)
     endif
-    
-    
+
     call deallocate_comms(comms,subname)
 
-  
     call deallocate_orbs(orbs,subname)
-    
 
     !semicores useful only for the input guess
     i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
@@ -1218,8 +1170,6 @@ contains
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
     if (iproc == 0) &
          write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
-
- 
 
   end subroutine deallocate_before_exiting
 

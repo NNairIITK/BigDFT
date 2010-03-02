@@ -1,0 +1,3 @@
+1/64   #frequency step = alpha*hx, alpha*hy, alpha*hz
+2      #order finite difference scheme (2 or 3)
+1      #1 - systematic moves over each atoms

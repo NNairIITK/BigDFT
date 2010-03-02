@@ -28,7 +28,7 @@ $(PPFILES):
 	ln -fs $(top_srcdir)/utils/PSPfiles/$@
 
 MINHOP.out: $(top_builddir)/src/global $(PPFILES)
-	if ! test x"$srcdir" = x"." ; then \
+	if ! test x"$(srcdir)" = x"." ; then \
 	  cp -f $(srcdir)/CPUlimit .; \
 	  cp -f $(srcdir)/earr.dat .; \
 	  cp -f $(srcdir)/input.dft .; \
@@ -40,7 +40,7 @@ MINHOP.out: $(top_builddir)/src/global $(PPFILES)
 	  cp -f $(srcdir)/poscur.xyz .; \
         fi
 	$(run_parallel) $(top_builddir)/src/global > $@
-	if ! test x"$srcdir" = x"." ; then \
+	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f CPUlimit ; \
 	  rm -f earr.dat ; \
 	  rm -f input.dft ; \
@@ -53,5 +53,5 @@ MINHOP.out: $(top_builddir)/src/global $(PPFILES)
         fi
 
 check: MINHOP.out
-	python $(top_srcdir)/tests/fldiff.py --discrepancy=5.e-9 --bigdft MINHOP.out \
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=5.e-9 --mode=bigdft MINHOP.out \
 	$(top_srcdir)/tests/Refs/MINHOP.out.ref | tee fldiff.report

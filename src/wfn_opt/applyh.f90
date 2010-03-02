@@ -1,294 +1,14 @@
-subroutine exact_exchange_potential(iproc,nproc,geocode,lr,orbs,n3parr,n3p,&
-     hxh,hyh,hzh,pkernel,psi,psir,eexctX)
-  use module_base
-  use module_types
-  use Poisson_Solver
-  use libxc_functionals
-  implicit none
-  character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,n3p
-  real(gp), intent(in) :: hxh,hyh,hzh
-  type(locreg_descriptors), intent(in) :: lr
-  type(orbitals_data), intent(in) :: orbs
-  integer, dimension(0:nproc-1), intent(in) :: n3parr
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
-  real(dp), dimension(*), intent(in) :: pkernel
-  real(gp), intent(out) :: eexctX
-  real(wp), dimension(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,n3parr(0)*orbs%norb)), intent(out) :: psir
-  !local variables
-  character(len=*), parameter :: subname='exact_exchange_potential'
-  integer :: i_all,i_stat,ierr,ispinor,ispsiw,ispin,nspin,norb
-  integer :: i1,i2,i3p,iorb,iorbs,jorb,jorbs,ispsir,ind3,ind2,ind1i,ind1j,jproc,igran,ngran
-  real(gp) :: ehart,zero,hfac,exctXfac,sign,sfac,hfaci,hfacj
-  type(workarr_sumrho) :: w
-  integer, dimension(:,:), allocatable :: ncommarr
-  real(wp), dimension(:), allocatable :: psiw
-  real(wp), dimension(:,:,:,:), allocatable :: rp_ij
-
-  !call timing(iproc,'Exchangecorr  ','ON')
-
-  exctXfac = libxc_functionals_exctXfac()
-
-  eexctX=0.0_gp
-
-  call initialize_work_arrays_sumrho(lr,w)
-  
-  !the granularity of the calculation is set by ngran
-  !for the moment it is irrelevant but if the poisson solver is modified
-  !we may increase this value
-  ngran=1
-
-  !partial densities with a given granularity
-  allocate(rp_ij(lr%d%n1i,lr%d%n2i,n3p,ngran+ndebug),stat=i_stat)
-  call memocc(i_stat,rp_ij,'rp_ij',subname)
-  allocate(psiw(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,n3parr(0)*orbs%norb),1)+ndebug),stat=i_stat)
-  call memocc(i_stat,psiw,'psiw',subname)
-
-  if (geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psiw)
-  end if
-
-
-  !uncompress the wavefunction in the real grid
-  !and switch the values of the function
-  ispinor=1
-  ispsiw=1
-  do iorb=1,orbs%norbp
-     call daub_to_isf(lr,w,psi(1,ispinor,iorb),psiw(ispsiw))
-     ispsir=1+(iorb-1)*n3parr(0)
-     do jproc=0,nproc-1
-        !write(*,'(a,1x,8(i10))'),'iproc,jproc',iproc,jproc,iorb,orbs%norbp,ispsir,ispsiw,&
-        !     lr%d%n1i*lr%d%n2i*max(lr%d%n3i*orbs%norbp,n3p*orbs%norb),n3parr(jproc)
-        call dcopy(n3parr(jproc),psiw(ispsiw),1,psir(ispsir),1)
-        ispsiw=ispsiw+n3parr(jproc)
-        if (jproc /= nproc-1) then
-           do jorb=iorb,orbs%norbp
-              ispsir=ispsir+n3parr(jproc)
-           end do
-           do jorb=1,iorb-1
-              ispsir=ispsir+n3parr(jproc+1)
-           end do
-        end if
-     end do
-  end do
-  call deallocate_work_arrays_sumrho(w)
-
-  !communicate them between processors
-  if (nproc > 1) then
-     !arrays for the communication between processors
-     !valid only for one k-point for the moment
-     !and only real functions (nspinor=1)
-     !this distribution is in principle valid also for k-points
-
-     allocate(ncommarr(0:nproc-1,4+ndebug),stat=i_stat)
-     call memocc(i_stat,ncommarr,'ncommarr',subname)
-
-     !count array for orbitals => components
-     do jproc=0,nproc-1
-        ncommarr(jproc,1)=n3parr(jproc)*orbs%norb_par(iproc)
-     end do
-     !displacement array for orbitals => components
-     ncommarr(0,2)=0
-     do jproc=1,nproc-1
-        ncommarr(jproc,2)=ncommarr(jproc-1,2)+ncommarr(jproc-1,1)
-     end do
-     !count array for components => orbitals
-     do jproc=0,nproc-1
-        ncommarr(jproc,3)=n3parr(iproc)*orbs%norb_par(jproc)
-     end do
-     !displacement array for components => orbitals
-     ncommarr(0,4)=0
-     do jproc=1,nproc-1
-        ncommarr(jproc,4)=ncommarr(jproc-1,4)+ncommarr(jproc-1,3)
-     end do
-
-     call MPI_ALLTOALLV(psir,ncommarr(0,1),ncommarr(0,2),mpidtypw, &
-          psiw,ncommarr(0,3),ncommarr(0,4),mpidtypw,MPI_COMM_WORLD,ierr)
-
-  else
-     call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psiw,1)
-  end if
-
-  call razero(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir)
-
-  !build the partial densities for the poisson solver, calculate the partial potential
-  !and accumulate the result
-  !do it for different spins
-  !for spin-polarised systems there is a factor of two
-  !do not work for non-collinear spin
-  if (orbs%norbd > 0) then
-     nspin=2
-     sfac=2.0_gp
-  else
-     nspin=1
-     sfac=1.0_gp
-  end if
-
-  do ispin=1,nspin
-     if (ispin==1) then
-        iorb=1
-        jorb=1
-        norb=orbs%norbu
-        sign=1.0_gp
-     else
-        iorb=orbs%norbu+1
-        jorb=orbs%norbu+1
-        norb=orbs%norb
-        sign=-1.0_gp
-     end if
-     orbital_loop: do
-        iorbs=iorb
-        jorbs=jorb
-        hfac=1/(hxh*hyh*hzh)
-        do igran=1,ngran
-           if (iorb > norb) exit orbital_loop
-           if (orbs%spinsgn(iorb) == sign .and. orbs%spinsgn(jorb) == sign) then
-              !calculate partial density (real functions), no spin-polarisation
-              do i3p=1,n3p
-                 ind3=(i3p-1)*lr%d%n1i*lr%d%n2i
-                 do i2=1,lr%d%n2i
-                    ind2=(i2-1)*lr%d%n1i+ind3
-                    do i1=1,lr%d%n1i
-                       ind1i=i1+ind2+(iorb-1)*lr%d%n1i*lr%d%n2i*n3p
-                       ind1j=i1+ind2+(jorb-1)*lr%d%n1i*lr%d%n2i*n3p
-                       rp_ij(i1,i2,i3p,igran)=hfac*psiw(ind1i)*psiw(ind1j)
-                    end do
-                 end do
-              end do
-           end if
-           jorb=jorb+1
-           if (jorb > norb) then
-              iorb=iorb+1
-              jorb=iorb
-           end if
-        end do
-        jorb=jorbs
-        iorb=iorbs
-        do igran=1,ngran
-           if (iorb > norb) exit orbital_loop
-           if (orbs%spinsgn(iorb) == sign .and. orbs%spinsgn(jorb) == sign) then
-              !this factor is only valid with one k-point
-              hfac=sfac*orbs%occup(iorb)*orbs%occup(jorb)
-              
-              !print *,'test',iproc,iorb,jorb,sum(rp_ij(:,:,:,igran))
-              !partial exchange term for each partial density
-              if (iproc == 0 .and. verbose > 1) then
-                 write(*,*)'Exact exchange calculation. spin, orbitals:',ispin,iorb,jorb
-              end if
-              call PSolver(geocode,'D',iproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-                   0,hxh,hyh,hzh,rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,zero,zero,&
-                   0.d0,.false.,1,quiet='YES')
-              if (iorb==jorb) then
-                 eexctX=eexctX+hfac*real(ehart,gp)
-              else
-                 eexctX=eexctX+2.0_gp*hfac*real(ehart,gp)
-              end if
-              !print *,'PSOLVER,ehart,iproc',iproc,ehart,hfac
-           end if
-           jorb=jorb+1
-           if (jorb > norb) then
-              iorb=iorb+1
-              jorb=iorb
-           end if
-        end do
-        jorb=jorbs
-        iorb=iorbs
-        do igran=1,ngran
-           if (iorb > norb) exit orbital_loop
-           if (orbs%spinsgn(iorb) == sign .and. orbs%spinsgn(jorb) == sign) then
-              !this factor is only valid with one k-point
-              !we have to correct with the kwgts if we want more than one k-point
-              hfaci=-0.25_gp*sfac*orbs%occup(jorb)
-              hfacj=-0.25_gp*sfac*orbs%occup(iorb)
-              
-              if (iorb /= jorb) then
-                 !accumulate the results for each of the wavefunctions concerned
-                 do i3p=1,n3p
-                    ind3=(i3p-1)*lr%d%n1i*lr%d%n2i
-                    do i2=1,lr%d%n2i
-                       ind2=(i2-1)*lr%d%n1i+ind3
-                       do i1=1,lr%d%n1i
-                          ind1i=i1+ind2+(iorb-1)*lr%d%n1i*lr%d%n2i*n3p
-                          ind1j=i1+ind2+(jorb-1)*lr%d%n1i*lr%d%n2i*n3p
-                          psir(ind1i)=psir(ind1i)+hfaci*rp_ij(i1,i2,i3p,igran)*psiw(ind1j)
-                          psir(ind1j)=psir(ind1j)+hfacj*rp_ij(i1,i2,i3p,igran)*psiw(ind1i)
-                       end do
-                    end do
-                 end do
-              else
-           !accumulate the results for each of the wavefunctions concerned
-                 do i3p=1,n3p
-                    ind3=(i3p-1)*lr%d%n1i*lr%d%n2i
-                    do i2=1,lr%d%n2i
-                       ind2=(i2-1)*lr%d%n1i+ind3
-                       do i1=1,lr%d%n1i
-                          ind1i=i1+ind2+(iorb-1)*lr%d%n1i*lr%d%n2i*n3p
-                          ind1j=i1+ind2+(jorb-1)*lr%d%n1i*lr%d%n2i*n3p
-                          psir(ind1i)=psir(ind1i)+hfacj*rp_ij(i1,i2,i3p,igran)*psiw(ind1j)
-                       end do
-                    end do
-                 end do
-              end if
-           end if
-           jorb=jorb+1
-           if (jorb > norb) then
-              iorb=iorb+1
-              jorb=iorb
-           end if
-        end do
-     end do orbital_loop
-  end do
-
-  !the exact exchange energy is half the Hartree energy (which already has another half)
-  eexctX=-0.5_gp*exctXfac*eexctX
-
-  if (iproc == 0) write(*,'(a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
-
-  !assign the potential for each function
-  if (nproc > 1) then
-     !call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psirt,1)
-     !recommunicate the values in the psir array
-     call MPI_ALLTOALLV(psir,ncommarr(0,3),ncommarr(0,4),mpidtypw, &
-          psiw,ncommarr(0,1),ncommarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
-     !redress the potential
-     ispsiw=1
-     do iorb=1,orbs%norbp
-        ispsir=1+(iorb-1)*n3parr(0)
-        do jproc=0,nproc-1
-           call dcopy(n3parr(jproc),psiw(ispsir),1,psir(ispsiw),1)
-           ispsiw=ispsiw+n3parr(jproc)
-           if (jproc /= nproc-1) then
-              do jorb=iorb,orbs%norbp
-                 ispsir=ispsir+n3parr(jproc)
-              end do
-              do jorb=1,iorb-1
-                 ispsir=ispsir+n3parr(jproc+1)
-              end do
-           end if
-        end do
-     end do
-  end if
-
-  i_all=-product(shape(rp_ij))*kind(rp_ij)
-  deallocate(rp_ij,stat=i_stat)
-  call memocc(i_stat,i_all,'rp_ij',subname)
-  
-  i_all=-product(shape(psiw))*kind(psiw)
-  deallocate(psiw,stat=i_stat)
-  call memocc(i_stat,i_all,'psiw',subname)
-
-
-  if (nproc > 1) then
-     i_all=-product(shape(ncommarr))*kind(ncommarr)
-     deallocate(ncommarr,stat=i_stat)
-     call memocc(i_stat,i_all,'ncommarr',subname)
-  end if
-
-  !call timing(iproc,'Exchangecorr  ','OF')
-
-end subroutine exact_exchange_potential
-
-! calculate the action of the local hamiltonian on the orbitals
+!!****f* BigDFT/local_hamiltonian
+!! FUNCTION
+!!   Calculate the action of the local hamiltonian on the orbitals
+!! COPYRIGHT
+!!   Copyright (C) 2005-2010 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+!! SOURCE
+!!
 subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   use module_base
@@ -307,7 +27,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
-  integer :: i_all,i_stat,ierr,iorb,npot,nsoffset,oidx,ispot
+  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
   real(wp) :: exctXcoeff
   real(gp) :: ekin,epot,kx,ky,kz,etest
   type(workarr_locham) :: wrk_lh
@@ -400,10 +120,16 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   call deallocate_work_arrays_locham(lr,wrk_lh)
 
 end subroutine local_hamiltonian
+!!***
 
-!transpose the wavefunction into a real and imaginary part to be treated with k-points
-!to be used only when nspinor=2 or 4
-!here the dimensions are n1->n1+1
+
+!!****f* BigDFT/transpose_for_kpoints
+!! FUNCTION
+!!   Transpose the wavefunction into a real and imaginary part to be treated with k-points
+!!   to be used only when nspinor=2 or 4
+!!   here the dimensions are n1->n1+1
+!! SOURCE
+!!
 subroutine transpose_for_kpoints(nspinor,n1,n2,n3,x,ww,direct)
   use module_base
   implicit none
@@ -411,7 +137,7 @@ subroutine transpose_for_kpoints(nspinor,n1,n2,n3,x,ww,direct)
   integer, intent(in) :: nspinor,n1,n2,n3
   real(wp), dimension(nspinor*n1*n2*n3), intent(inout) :: x,ww
   !local variables
-  integer :: i1,i2,i3,i,idx,id,id2,id3,isd,ispinor,it
+  integer :: i1,i2,i3,idx,id,id2,id3,isd,ispinor,it
 
   !k-points also admitted in non-collinear case
   if (direct) then
@@ -453,11 +179,16 @@ subroutine transpose_for_kpoints(nspinor,n1,n2,n3,x,ww,direct)
   !for mixed precision code it should be changed
   call dcopy(nspinor*n1*n2*n3,ww,1,x,1)
 end subroutine transpose_for_kpoints
+!!***
 
 
-!routine for applying the local potentials
-!supports the non-collinear case, the buffer for tails and different Boundary Conditions
-!Optimal also for the complex wavefuntion case
+!!****f* BigDFT/apply_potential
+!! FUNCTION
+!!   routine for applying the local potentials
+!!   supports the non-collinear case, the buffer for tails and different Boundary Conditions
+!!   Optimal also for the complex wavefuntion case
+!! SOURCE
+!!
 subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,&
      ibyyzz_r) !optional
   use module_base
@@ -477,9 +208,7 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
   !the Tail treatment is allowed only in the Free BC case
   if (nbuf /= 0 .and. nl1*nl2*nl3 == 0) stop 'NONSENSE: nbuf/=0 only for Free BC'
 
-
   epot=0.0_wp
-
 
 !$omp parallel default(private)&
 !$omp shared(pot,psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
@@ -594,9 +323,14 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
 
 !$omp end parallel
 
-
 end subroutine apply_potential
+!!***
 
+
+!!****f* BigDFT/realspace
+!! FUNCTION
+!! SOURCE
+!!
 subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   use module_base
   implicit none
@@ -621,17 +355,24 @@ subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   enddo
 
 end subroutine realspace
+!!***
 
+
+!!****f* BigDFT/realspace_nbuf
+!! FUNCTION
+!! SOURCE
+!!
 subroutine realspace_nbuf(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
   implicit none
+  !Arguments
   integer,intent(in)::nb1,nb2,nb3,nbuf
   integer,intent(in)::ibyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16)
   real(kind=8),intent(in)::pot(-14:2*nb1+16-4*nbuf,-14:2*nb2+16-4*nbuf,-14:2*nb3+16-4*nbuf)
   real(kind=8),intent(inout)::psir(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
-
   real(kind=8),intent(out)::epot
-  real(kind=8) tt,dnrm2
-  integer i1,i2,i3
+  !Local variables
+  real(kind=8) :: tt
+  integer :: i1,i2,i3
 
   epot=0.d0
   do i3=-14,2*nb3+16
@@ -665,8 +406,13 @@ subroutine realspace_nbuf(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
   enddo
 
 end subroutine realspace_nbuf
+!!***
 
 
+!!****f* BigDFT/realspaceINOUT
+!! FUNCTION
+!! SOURCE
+!!
 subroutine realspaceINOUT(ibyyzz_r,pot,psirIN,psirOUT,epot,n1,n2,n3)
   implicit none
   integer,intent(in)::n1,n2,n3
@@ -692,18 +438,25 @@ subroutine realspaceINOUT(ibyyzz_r,pot,psirIN,psirOUT,epot,n1,n2,n3)
   enddo
 
 end subroutine realspaceINOUT
+!!***
 
+
+!!****f* BigDFT/realspaceINOUT_nbuf
+!! FUNCTION
+!! SOURCE
+!!
 subroutine realspaceINOUT_nbuf(ibyyzz_r,pot,psirIN,psirOUT,epot,nb1,nb2,nb3,nbuf)
   implicit none
-  integer,intent(in)::nb1,nb2,nb3,nbuf
-  integer,intent(in)::ibyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16)
-  real(kind=8),intent(in)::pot(-14:2*nb1+16-4*nbuf,-14:2*nb2+16-4*nbuf,-14:2*nb3+16-4*nbuf)
-  real(kind=8),intent(in)::psirIN(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
-  real(kind=8),intent(out)::psirOUT(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
-
-  real(kind=8),intent(out)::epot
-  real(kind=8) tt,dnrm2
-  integer i1,i2,i3
+  !Arguments
+  integer,intent(in) :: nb1,nb2,nb3,nbuf
+  integer,intent(in) :: ibyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16)
+  real(kind=8),intent(in) :: pot(-14:2*nb1+16-4*nbuf,-14:2*nb2+16-4*nbuf,-14:2*nb3+16-4*nbuf)
+  real(kind=8),intent(in) :: psirIN(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
+  real(kind=8),intent(out) :: psirOUT(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
+  real(kind=8),intent(out) :: epot
+  !Local variables
+  real(kind=8) :: tt
+  integer :: i1,i2,i3
 
   epot=0.d0
   do i3=-14,2*nb3+16
@@ -737,7 +490,13 @@ subroutine realspaceINOUT_nbuf(ibyyzz_r,pot,psirIN,psirOUT,epot,nb1,nb2,nb3,nbuf
   enddo
 
 end subroutine realspaceINOUT_nbuf
+!!***
 
+
+!!****f* BigDFT/realspaceINPLACE
+!! FUNCTION
+!! SOURCE
+!!
 subroutine realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   implicit none
   integer,intent(in)::n1,n2,n3
@@ -791,10 +550,15 @@ subroutine realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   enddo
 
 end subroutine realspaceINPLACE
+!!***
 
 
-!Calculate on-the fly each projector for each atom, then applies the projectors 
-!to all distributed orbitals
+!!****f* BigDFT/applyprojectorsonthefly
+!! FUNCTION
+!!   Calculate on-the fly each projector for each atom, then applies the projectors 
+!!   to all distributed orbitals
+!! SOURCE
+!!
 subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
      rxyz,hx,hy,hz,wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   use module_base
@@ -812,9 +576,8 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
   real(gp), intent(out) :: eproj_sum
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
   !local variables
-  integer :: iat,nwarnings,iproj,iorb,ityp,l,i,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c
-  integer :: istart_c,idir,ispinor,isorb,ieorb,ikpt,nspinor,ispsi_k,ispsi
-  real(gp) :: eproj
+  integer :: iat,nwarnings,iproj,iorb
+  integer :: istart_c,idir,isorb,ieorb,ikpt,nspinor,ispsi_k,ispsi
   
   !put idir=0, no derivative
   idir=0
@@ -870,8 +633,14 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
   end if
 
 end subroutine applyprojectorsonthefly
+!!***
 
-!applies the projector associated on a given atom on a corresponding orbital
+
+!!****f* BigDFT/apply_atproj_iorb
+!! FUNCTION
+!!   Applies the projector associated on a given atom on a corresponding orbital
+!! SOURCE
+!!
 subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,eproj)
   use module_base
   use module_types
@@ -923,7 +692,13 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
           orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_spinor
   end do
 end subroutine apply_atproj_iorb
+!!***
 
+
+!!****f* BigDFT/applyprojector
+!! FUNCTION
+!! SOURCE
+!!
 subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj,psi,hpsi,eproj)
@@ -943,8 +718,8 @@ subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
   !local variables
   integer :: j,m,istart_c,istart_c_i,istart_c_j,icplx
   real(dp), dimension(2) :: scpr,scprp,scpr_i,scprp_i,scpr_j,scprp_j
-  real(gp) :: offdiagcoeff,hij
   real(gp), dimension(2,2,3) :: offdiagarr
+  real(gp) :: hij
 
   !enter the coefficients for the off-diagonal terms (HGH case, npspcode=3)
   offdiagarr(1,1,1)=-0.5_gp*sqrt(3._gp/5._gp)
@@ -1026,7 +801,13 @@ subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
      end do loop_j
   end if
 end subroutine applyprojector
+!!***
 
+
+!!****f* BigDFT/applyprojector_old
+!! FUNCTION
+!! SOURCE
+!!
 subroutine applyprojector_old(l,i,psppar,npspcode,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj,psi,hpsi,eproj)
@@ -1175,8 +956,14 @@ subroutine applyprojector_old(l,i,psppar,npspcode,&
      end do loop_jK
   end if
 end subroutine applyprojector_old
+!!***
 
-!find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
+
+!!****f* BigDFT/orbs_in_kpt
+!! FUNCTION
+!!   Find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
+!! SOURCE
+!!
 subroutine orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
   use module_base
   use module_types
@@ -1207,9 +994,15 @@ subroutine orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
   nspinor=orbs%nspinor
 
 end subroutine orbs_in_kpt
+!!***
 
-!determine whether the k-point is complex of real
-!find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
+
+!!****f* BigDFT/ncplx_kpt
+!! FUNCTION
+!!   Determine whether the k-point is complex of real
+!!   Find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
+!! SOURCE
+!!
 subroutine ncplx_kpt(ikpt,orbs,ncplx)
   use module_base
   use module_types
@@ -1233,4 +1026,4 @@ subroutine ncplx_kpt(ikpt,orbs,ncplx)
   end if
 
 end subroutine ncplx_kpt
-
+!!***
