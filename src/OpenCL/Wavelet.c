@@ -107,6 +107,64 @@ void FC_FUNC_(ana1d_d,ANA1D_D)(cl_command_queue *command_queue, cl_uint *n,cl_ui
 
 }
 
+void FC_FUNC_(ana_d,ANA_D)(cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3,cl_mem *tmp,cl_mem *psi,cl_mem *out){
+    cl_int ciErrNum;
+    int FILTER_WIDTH = 16;
+    if(*n1<FILTER_WIDTH || *n2<FILTER_WIDTH || *n3<FILTER_WIDTH) {fprintf(stderr,"%s %s : matrix is too small!\n", __func__, __FILE__); exit(1);}
+    size_t block_size_i=FILTER_WIDTH, block_size_j=FILTER_WIDTH;
+    cl_uint ndat = *n2 * *n1 * 4;
+    cl_uint i = 0;
+    clSetKernelArg(ana1d_kernel_d, i++,sizeof(*n3), (void*)n3);
+    clSetKernelArg(ana1d_kernel_d, i++,sizeof(ndat), (void*)&ndat);
+    clSetKernelArg(ana1d_kernel_d, i++,sizeof(*psi), (void*)psi);
+    clSetKernelArg(ana1d_kernel_d, i++,sizeof(*out), (void*)out);
+    clSetKernelArg(ana1d_kernel_d, i++,sizeof(double)*block_size_j*(block_size_i*2+FILTER_WIDTH + 1), 0);
+    size_t localWorkSize[] = { block_size_i,block_size_j };
+    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n3), shrRoundUp(block_size_j,ndat)};
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, ana1d_kernel_d, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error %d: Failed to enqueue ana1d_d kernel!\n",ciErrNum);
+        fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize[0],(long unsigned)globalWorkSize[1]);
+        fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize[0],(long unsigned)localWorkSize[1]);
+        exit(1);
+    }
+    ndat = *n1 * *n3 * 4;
+    i = 0;
+    clSetKernelArg(ana1d_kernel_d, i++,sizeof(*n2), (void*)n2);
+    clSetKernelArg(ana1d_kernel_d, i++,sizeof(ndat), (void*)&ndat);
+    clSetKernelArg(ana1d_kernel_d, i++,sizeof(*out), (void*)out);
+    clSetKernelArg(ana1d_kernel_d, i++,sizeof(*tmp), (void*)tmp);
+    clSetKernelArg(ana1d_kernel_d, i++,sizeof(double)*block_size_j*(block_size_i*2+FILTER_WIDTH + 1), 0);
+    localWorkSize[0] =  block_size_i; localWorkSize[1] = block_size_j;
+    globalWorkSize[0] = shrRoundUp(block_size_i,*n2); globalWorkSize[1] = shrRoundUp(block_size_j,ndat);
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, ana1d_kernel_d, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error %d: Failed to enqueue ana1d_d kernel!\n",ciErrNum);
+        fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize[0],(long unsigned)globalWorkSize[1]);
+        fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize[0],(long unsigned)localWorkSize[1]);
+        exit(1);
+    }
+    ndat = *n2 * *n3 * 4;
+    i = 0;
+    clSetKernelArg(ana1d_kernel_d, i++,sizeof(*n1), (void*)n1);
+    clSetKernelArg(ana1d_kernel_d, i++,sizeof(ndat), (void*)&ndat);
+    clSetKernelArg(ana1d_kernel_d, i++,sizeof(*tmp), (void*)tmp);
+    clSetKernelArg(ana1d_kernel_d, i++,sizeof(*out), (void*)out);
+    clSetKernelArg(ana1d_kernel_d, i++,sizeof(double)*block_size_j*(block_size_i*2+FILTER_WIDTH + 1), 0);
+    localWorkSize[0] =  block_size_i; localWorkSize[1] = block_size_j;
+    globalWorkSize[0] = shrRoundUp(block_size_i,*n1); globalWorkSize[1] = shrRoundUp(block_size_j,ndat);
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, ana1d_kernel_d, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error %d: Failed to enqueue ana1d_d kernel!\n",ciErrNum);
+        fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize[0],(long unsigned)globalWorkSize[1]);
+        fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize[0],(long unsigned)localWorkSize[1]);
+        exit(1);
+    }
+}
+
 void FC_FUNC_(ana_self_d,ANA_SELF_D)(cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3,cl_mem *psi,cl_mem *out){
     cl_int ciErrNum;
     int FILTER_WIDTH = 16;
