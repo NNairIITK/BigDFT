@@ -280,7 +280,7 @@ void FC_FUNC_(syn1d_d,SYN1D_D)(cl_command_queue *command_queue, cl_uint *n, cl_u
     }  
 }
 
-void FC_FUNC_(syn_d,SYN_D)(cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3,cl_mem *tmp cl_mem *psi, cl_mem *out){
+void FC_FUNC_(syn_d,SYN_D)(cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3,cl_mem *tmp, cl_mem *psi, cl_mem *out){
     cl_int ciErrNum;
     int FILTER_WIDTH = 8;
     int SIZE_I = 16;
