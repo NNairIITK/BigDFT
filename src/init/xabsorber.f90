@@ -1088,7 +1088,7 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
    enddo
 
    
-   fase  = Phase(Eguess,NGRID, r,v,nonloc,y, l,1 ,  Z  ,0)
+   fase  = Phase(Eguess,NGRID, r,v,nonloc,y, l,1 ,0)
    E=Eguess;
 
    return

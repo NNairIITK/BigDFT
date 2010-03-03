@@ -22,30 +22,33 @@ program memguess
 
   implicit none
   character(len=*), parameter :: subname='memguess'
-  integer, parameter :: ngx=31
   character(len=20) :: tatonam
   character(len=40) :: comment
   logical :: optimise,GPUtest,convert=.false.
   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
-  integer :: norbgpu,nspin_ig
-  real(kind=8) :: peakmem,hx,hy,hz
+  integer :: norbgpu,nspin_ig,ng
+  real(gp) :: peakmem,hx,hy,hz,eks
   type(input_variables) :: in
   type(atoms_data) :: atoms
-  type(orbitals_data) :: orbs,orbstst
+  type(orbitals_data) :: orbs,orbstst,orbse,orbsv
   type(locreg_descriptors) :: Glr
   type(nonlocal_psp_descriptors) :: nlpspd
+  type(gaussian_basis) :: G !basis for davidson IG
   real(gp), dimension(3) :: shift
   logical, dimension(:,:,:), allocatable :: logrid
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:,:), pointer :: rxyz
+  real(wp), dimension(:), allocatable :: rhoexpo
+  real(wp), dimension(:,:), allocatable :: rhocoeff,rhocoeff_AE
   real(kind=8), dimension(:,:), allocatable :: radii_cf
   real(kind=8), dimension(:,:,:), allocatable :: psiat
   real(kind=8), dimension(:,:), allocatable :: xp, occupat
   integer, dimension(:,:), allocatable :: nl
   logical, dimension(:,:,:), allocatable :: scorb
-  integer, dimension(:), allocatable :: ng
   real(kind=8), dimension(:), allocatable :: locrad
+  real(wp), dimension(:,:,:), pointer :: psigau
+  real(gp), dimension(:), pointer :: gbd_occ
   !! By Ali
   integer ::ierror
 ! Get arguments
@@ -184,7 +187,6 @@ program memguess
      !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
 
   end if
-
   
   !in the case in which the number of orbitals is not "trivial" check whether they are too many
   if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0)) then
@@ -196,6 +198,8 @@ program memguess
      allocate(locrad(atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,locrad,'locrad',subname)
 
+     !calculate the inputguess orbitals
+     !spin for inputguess orbitals
      if (in%nspin==4) then
         nspin_ig=1
      else
@@ -317,6 +321,62 @@ program memguess
 
   call localize_projectors(0,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,&
        in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,orbs,nlpspd)
+
+  !here the treatment of the AE Core charge density
+  !number of gaussians
+  ng=31
+  !plot the wavefunctions for the pseudo atom
+  nullify(G%rxyz)
+  call gaussian_pswf_basis(ng,0,in%nspin,atoms,rxyz,G,gbd_occ)
+  !for the moment multiply the number of coefficients for each channel
+  allocate(rhocoeff((ng*(ng+1))/2,4+ndebug),stat=i_stat)
+  call memocc(i_stat,rhocoeff,'rhocoeff',subname)
+  allocate(rhoexpo((ng*(ng+1))/2+ndebug),stat=i_stat)
+  call memocc(i_stat,rhoexpo,'rhoexpo',subname)
+  
+  call plot_gatom_basis('pseudo',1,ng,G,gbd_occ,rhocoeff,rhoexpo)
+
+  if (associated(gbd_occ)) then
+     i_all=-product(shape(gbd_occ))*kind(gbd_occ)
+     deallocate(gbd_occ,stat=i_stat)
+     call memocc(i_stat,i_all,'gbd_occ',subname)
+     nullify(gbd_occ)
+  end if
+  !deallocate the gaussian basis descriptors
+  call deallocate_gwf(G,subname)
+
+!!$  !plot the wavefunctions for the AE atom
+!!$  !not possible, the code should recognize the AE eleconf
+!!$  call razero(35,atoms%psppar(0,0,atoms%iatype(1)))
+!!$  atoms%psppar(0,0,atoms%iatype(1))=0.01_gp
+!!$  nullify(G%rxyz)
+!!$  call gaussian_pswf_basis(ng,0,in%nspin,atoms,rxyz,G,gbd_occ)
+!!$  !for the moment multiply the number of coefficients for each channel
+!!$  allocate(rhocoeff((ng*(ng+1))/2,4+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,rhocoeff,'rhocoeff',subname)
+!!$  allocate(rhoexpo((ng*(ng+1))/2+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,rhoexpo,'rhoexpo',subname)
+!!$  
+!!$  call plot_gatom_basis('all-elec',1,ng,G,gbd_occ,rhocoeff,rhoexpo)
+!!$
+!!$  if (associated(gbd_occ)) then
+!!$     i_all=-product(shape(gbd_occ))*kind(gbd_occ)
+!!$     deallocate(gbd_occ,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'gbd_occ',subname)
+!!$     nullify(gbd_occ)
+!!$  end if
+!!$  !deallocate the gaussian basis descriptors
+!!$  call deallocate_gwf(G,subname)
+
+
+  i_all=-product(shape(rhoexpo))*kind(rhoexpo)
+  deallocate(rhoexpo,stat=i_stat)
+  call memocc(i_stat,i_all,'rhoexpo',subname)
+  i_all=-product(shape(rhocoeff))*kind(rhocoeff)
+  deallocate(rhocoeff,stat=i_stat)
+  call memocc(i_stat,i_all,'rhocoeff',subname)
+  
+
 
   i_all=-product(shape(logrid))*kind(logrid)
   deallocate(logrid,stat=i_stat)
@@ -683,7 +743,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !nullify the G%rxyz pointer
   nullify(G%rxyz)
   !extract the gaussian basis from the pseudowavefunctions
-  call gaussian_pswf_basis(iproc,nspin,at,rxyz,G,gbd_occ)
+  call gaussian_pswf_basis(21,iproc,nspin,at,rxyz,G,gbd_occ)
   
   allocate(gaucoeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)

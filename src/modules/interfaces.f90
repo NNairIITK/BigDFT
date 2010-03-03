@@ -854,11 +854,11 @@ module module_interfaces
        integer, intent(out) ::  nat
      end subroutine read_density_cube
 
-     subroutine gaussian_pswf_basis(iproc,nspin,at,rxyz,G,Gocc)
+     subroutine gaussian_pswf_basis(ng,iproc,nspin,at,rxyz,G,Gocc)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nspin
+       integer, intent(in) :: iproc,nspin,ng
        type(atoms_data), intent(in) :: at
        real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
        type(gaussian_basis), intent(out) :: G
@@ -876,6 +876,18 @@ module module_interfaces
        real(gp), dimension(3),intent(in) :: shift
        real(wp), dimension(:), pointer :: psi,psivirt
      end subroutine local_analysis
+
+     subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
+       use module_base
+       use module_types
+       implicit none
+       character(len=*), intent(in) :: filename
+       integer, intent(in) :: iat,ngx
+       type(gaussian_basis), intent(in) :: G
+       real(wp), dimension(:), pointer :: Gocc
+       real(wp), dimension((ngx*(ngx+1))/2), intent(out) :: rhoexpo
+       real(wp), dimension((ngx*(ngx+1))/2,4), intent(out) :: rhocoeff
+     end subroutine plot_gatom_basis
 
   end interface
 
