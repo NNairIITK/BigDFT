@@ -49,8 +49,8 @@ conv += (tmp_o[ 2] + tmp_o[ -2]) * -0.6156141465570069496314853949e0;\n\
 conv += (tmp_o[ 1] + tmp_o[ -1]) *  2.2191465938911163898794546405e0;\n\
 conv +=  tmp_o[ 0]             * -3.5536922899131901941296809374e0;\n\
 //y_out[jg*n + ig] = y_in[jg + ig*ndat] - scale * conv;\n\
-y_out[jg*n + ig] = tmp2[j2*(32+1) + i2] - scale * conv;\n\
-x_out[jg*n + ig] = tmp[0];\n\
+y_out[jg*n + ig] = tmp2[j2*(32+1) + i2] + scale * conv;\n\
+x_out[jg*n + ig] = tmp_o[0];\n\
 };\n\
 \n\
 ";

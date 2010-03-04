@@ -155,6 +155,81 @@ void FC_FUNC_(kinetic_k_d,KINETIC_K_D)(cl_command_queue *command_queue, cl_uint 
 
 }
 
+void FC_FUNC_(kinetic_d,KINETIC_D)(cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y) {
+  cl_int ciErrNum;
+  
+  int FILTER_WIDTH = 32;
+  size_t block_size_i2=32;
+  size_t block_size_j2=16;
+  cl_uint i = 0;
+  double scale = -0.5 / ( h[2] * h[2] );
+  cl_uint ng = *n2 * *n1;
+  size_t localWorkSize2[] = { block_size_i2, block_size_j2 };
+  size_t globalWorkSize2[] ={ shrRoundUp(block_size_i2,*n3), shrRoundUp(block_size_j2,ng) };
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*n3), (void*)n3);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(ng), (void*)&ng);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(scale), (void*)&scale);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*x), (void*)x);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*work_x), (void*)work_x);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*y), (void*)y);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*work_y), (void*)work_y);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(double)*block_size_j2*(block_size_i2+FILTER_WIDTH+1), NULL);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(double)*block_size_j2*(block_size_i2+1), NULL);
+  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kinetic1d_kernel_d, 2, NULL, globalWorkSize2, localWorkSize2, 0, NULL, NULL);
+  if (ciErrNum != CL_SUCCESS)
+  {
+      fprintf(stderr,"Error %d: Failed to enqueue kinetic1d_d 1 kernel!\n",ciErrNum);
+      fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize2[0],(long unsigned)globalWorkSize2[1]);
+      fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize2[0],(long unsigned)localWorkSize2[1]);
+      exit(1);
+  }
+  i = 0;
+  scale = -0.5 / ( h[1] * h[1] );
+  ng = *n1 * *n3;
+  localWorkSize2[0] =  block_size_i2; localWorkSize2[1] = block_size_j2 ;
+  globalWorkSize2[0] = shrRoundUp(block_size_i2,*n2); globalWorkSize2[1] = shrRoundUp(block_size_j2,ng) ;
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*n2), (void*)n2);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(ng), (void*)&ng);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(scale), (void*)&scale);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*work_x), (void*)work_x);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*x), (void*)x);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*work_y), (void*)work_y);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*y), (void*)y);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(double)*block_size_j2*(block_size_i2+FILTER_WIDTH+1), NULL);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(double)*block_size_j2*(block_size_i2+1), NULL);
+  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kinetic1d_kernel_d, 2, NULL, globalWorkSize2, localWorkSize2, 0, NULL, NULL);
+  if (ciErrNum != CL_SUCCESS)
+  {
+      fprintf(stderr,"Error %d: Failed to enqueue kinetic1d_d 2 kernel!\n",ciErrNum);
+      fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize2[0],(long unsigned)globalWorkSize2[1]);
+      fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize2[0],(long unsigned)localWorkSize2[1]);
+      exit(1);
+  }
+  i = 0;
+  scale = - 0.5 / ( h[0] * h[0] );
+  ng = *n3 * *n2;
+  localWorkSize2[0] =  block_size_i2; localWorkSize2[1] = block_size_j2 ;
+  globalWorkSize2[0] = shrRoundUp(block_size_i2,*n1); globalWorkSize2[1] = shrRoundUp(block_size_j2,ng) ;
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*n1), (void*)n1);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(ng), (void*)&ng);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(scale), (void*)&scale);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*x), (void*)x);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*work_x), (void*)work_x);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*y), (void*)y);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(*work_y), (void*)work_y);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(double)*block_size_j2*(block_size_i2+FILTER_WIDTH+1), NULL);
+  clSetKernelArg(kinetic1d_kernel_d, i++,sizeof(double)*block_size_j2*(block_size_i2+1), NULL);
+  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kinetic1d_kernel_d, 2, NULL, globalWorkSize2, localWorkSize2, 0, NULL, NULL);
+  if (ciErrNum != CL_SUCCESS)
+  {
+      fprintf(stderr,"Error %d: Failed to enqueue kinetic1d_d 3 kernel!\n",ciErrNum);
+      fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize2[0],(long unsigned)globalWorkSize2[1]);
+      fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize2[0],(long unsigned)localWorkSize2[1]);
+      exit(1);
+  }
+
+}
+
 void FC_FUNC_(kinetic1d_d,KINETIC1D_D)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, double *h, double*c, cl_mem *x, cl_mem *y, cl_mem *workx, cl_mem *worky,double *ekin){
     cl_int ciErrNum;
 #if DEBUG     
@@ -180,7 +255,7 @@ void FC_FUNC_(kinetic1d_d,KINETIC1D_D)(cl_command_queue *command_queue, cl_uint 
         exit(1);
     }
     i = 0;
-    double scale = 0.5 / ( *h * (*h) );
+    double scale = - 0.5 / ( *h * (*h) );
     size_t block_size_i2=32;
     size_t block_size_j2=16;
     size_t localWorkSize2[] = { block_size_i2, block_size_j2 };
