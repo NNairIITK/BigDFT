@@ -27,7 +27,7 @@
 !!   Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
 !!   Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1999
 !!   Copyright (C) Stefan Goedecker, CEA Grenoble, 2002
-!!   Copyright (C) 2002-2009 BigDFT group 
+!!   Copyright (C) 2002-2010 BigDFT group 
 !!   The part for radix 7 added by Alexey Neelov, Basel University,  2008
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file

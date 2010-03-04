@@ -277,6 +277,9 @@ contains
 
    end subroutine do_one_fft
 
+!!Stefan convention
+!!Between 1 to n3/2 (0 -> n3/2 - 1)
+!!Between n3/2 to n3 (-n3/2 + 1 -> -1) 
    subroutine init_gaussian(n1,n2,n3,nd1,nd2,nd3,zin,z,zout)
       implicit none
       !Arguments
@@ -285,7 +288,7 @@ contains
       real(kind=8), intent(out)   :: zin(2,n1,n2,n3),zout(2,n1,n2,n3)
       !Local variables
       real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
-      integer :: i1,i2,i3
+      integer :: i1,i2,i3,j1,j2,j3
       real(kind=8) :: pi,pi2,factor,factor_fft
       real(kind=8) :: r2,x1,x2,x3,g2,p1,p2,p3
       !gaussian 1D e^(- x^2/ a^2) : FFT sqrt(a pi) e^(-pi^2 a^2 k^2)
@@ -297,13 +300,17 @@ contains
       !gaussian function
       do i3=1,n3
          x3 = real(i3-n3/2,kind=8)
-         p3 = real(i3-1,kind=8)
+         j3 = i3+(i3/(n3/2+2))*(n3+2-2*i3)
+         p3 = real(j3-1,kind=8)
          do i2=1,n2
             x2 = real(i2-n2/2,kind=8)
-            p2 = real(i2-1,kind=8)
+            j2 = i2+(i2/(n2/2+2))*(n2+2-2*i2)
+            p2 = real(j2-1,kind=8)
             do i1=1,n1
                x1 = real(i1-n1/2,kind=8)
                p1 = real(i1-1,kind=8)
+               j1 = i1+(i1/(n1/2+2))*(n1+2-2*i1)
+               p1 = real(j1-1,kind=8)
                r2 = x1*x1+x2*x2+x3*x3
                g2 = pi*(p1*p1+p2*p2+p3*p3)
                zin(1,i1,i2,i3) = factor*exp(-r2/a2)
@@ -328,6 +335,7 @@ contains
       integer :: i1,i2,i3
       ttm=0.d0
       tta=0.d0
+      open(unit=18,form="formatted")
       do i3=1,n3
          do i2=1,n2
             do i1=1,n1
@@ -335,11 +343,15 @@ contains
                tti=abs(x(2,i1,i2,i3)*scale-y(2,i1,i2,i3))
                ttm=max(ttr,tti,ttm)
                tta=tta+ttr+tti
-               print *,i1,i2,i3,x(:,i1,i2,i3),y(:,i1,i2,i3),ttr,tti,ttm,tta
+               if (i1 == 1 .and. i2 == 1) then
+                  write(18,*) i1,i2,i3,x(1,i1,i2,i3),y(1,i1,i2,i3)
+                  print *,i1,i2,i3,x(:,i1,i2,i3),y(:,i1,i2,i3),ttr,tti,ttm,tta
+               end if
             end do
          end do
       end do
       tta=tta/(n1*n2*n3)
+      close(unit=18)
    end subroutine vgl_gaussian
 
 end program fft_check
