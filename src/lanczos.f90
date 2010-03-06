@@ -100,7 +100,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      nullify(Gabsorber%xp)
      nullify(Gabsorber%psiat)
      
-     call read_gaussian_information (0 ,1 ,ha%orbs,Gabsorber,dum_coeffs , filename, .true. )    
+     call read_gaussian_information (ha%orbs,Gabsorber,dum_coeffs , filename, .true. )    
      Gabsorber%rxyz(:,1)=rxyz(:, in_iat_absorber )
      
      i_all=-product(shape(dum_coeffs))*kind(dum_coeffs)
@@ -332,7 +332,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      nullify(Gabsorber%xp)
      nullify(Gabsorber%psiat)
    
-     call read_gaussian_information(0 ,1 ,ha%orbs,Gabsorber,dum_coeffs , filename, .true. )
+     call read_gaussian_information(ha%orbs,Gabsorber,dum_coeffs , filename, .true. )
      Gabsorber%rxyz(:,1)=rxyz(:, in_iat_absorber )
      
      i_all=-product(shape(dum_coeffs))*kind(dum_coeffs)

@@ -41,7 +41,7 @@ program PS_Check
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
   !initialize memory counting and timings
-  call memocc(0,iproc,'count','start')
+  !call memocc(0,iproc,'count','start')
   call timing(iproc,'parallel      ','IN')
 
   !the first proc read the data and then send them to the others
@@ -551,16 +551,20 @@ contains
     max_diff=diff_par
 
   end subroutine compare
+!!***
 
-
-! this subroutine builds some analytic functions that can be used for 
-! testing the poisson solver.
-! The default choice is already well-tuned for comparison.
-! WARNING: not all the test functions can be used for all the boundary conditions of
-! the poisson solver, in order to have a reliable analytic comparison.
-! The parameters of the functions must be adjusted in order to have a sufficiently localized
-! function in the isolated direction and an explicitly periodic function in the periodic ones.
-! Beware of the high-frequency components that may false the results when hgrid is too high.
+!!****f* PS_Check/test_functions
+!! FUNCTION
+!!    This subroutine builds some analytic functions that can be used for 
+!!    testing the poisson solver.
+!!    The default choice is already well-tuned for comparison.
+!!    WARNING: not all the test functions can be used for all the boundary conditions of
+!!    the poisson solver, in order to have a reliable analytic comparison.
+!!    The parameters of the functions must be adjusted in order to have a sufficiently localized
+!!    function in the isolated direction and an explicitly periodic function in the periodic ones.
+!!    Beware of the high-frequency components that may false the results when hgrid is too high.
+!! SOURCE
+!!
   subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,&
        density,potential,rhopot,pot_ion,offset)
     implicit none

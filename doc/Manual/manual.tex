@@ -424,6 +424,16 @@ This file is used to specify a set of $k$ points. If this file does not exist, o
   \item  if \textbf{kptopt = 'manual'}: Several additional lines. The first contains \textbf{nkpt}, an integer giving the number of manually defined $k$ points. Then \textbf{nkpt} lines follow, with four real values each, the three first being the coordinates in reciprocal space (in $[0;0.5]$) and the fourth bing the weight. If the sum of all weights does not equal to one, weight values are renormalised.
 \end{itemize}
 
+
+\section{The input file 'input.perf'}
+This file is used to specify values in order to optimize the performances of BigDFT. If this file
+does not exist, default values are used. Keywords can specify options as:
+\begin{itemize}
+  \item  \textbf{'debug'}: The debug mode is enable mainly for memory profiling.
+  \item  \textbf{'fftcache' ncache\_size}: Specify the cache sier for FFT in kBytes.
+\end{itemize}
+
+
 \chapter{ Running Bigdft executables}
 
 \section{Single point or geometry optimization: \texttt{cluster}}
@@ -490,7 +500,13 @@ A checkpoint restart is implemented. The file 'frequencies.res' contains the pre
 There are three parameters:
 \begin{itemize}
 \item \texttt{freq\_alpha} to determine the step for frequency step (i.e. alpha*hx, alpha*hy, alpha*hz);
-\item \texttt{freq\_order} which determines the order of the finite difference scheme (2 or 3);
+\item \texttt{freq\_order} which determines the order of the finite difference scheme:
+      \begin{itemize}
+      \item $-1$ calculates $\frac{f(x_0)-f(x_0-h)}{h}$;
+      \item $1$ calculates $\frac{f(x_0+h)-f(x_0)}{h}$;
+      \item $2$ calculates $\frac{f(x_0+h)-f(x_0-h)}{2h}$ (this is the default);
+      \item $3$ calculates $\frac{f(x_0+2h)+f(x_0+h)-f(x_0-h)-f(x_0-2h)}{6h}$.
+      \end{itemize}
 \item \texttt{freq\_method} which determines the method (only 1 at the present stage).
 \end{itemize}
 

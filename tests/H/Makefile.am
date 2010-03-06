@@ -20,23 +20,23 @@ H.out: $(top_builddir)/src/cluster $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
-        fi
+    fi
 	$(run_parallel) $(top_builddir)/src/cluster > $@
 	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.xyz ; \
-        fi
+    fi
 
 H.memguess: $(top_builddir)/src/memguess $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
-        fi
+    fi
 	$(top_builddir)/src/memguess 1 > $@
 	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.xyz ; \
-        fi
+    fi
 
 check: H.memguess H.out
 	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H.memguess $(top_srcdir)/tests/Refs/H.memguess.ref | cat

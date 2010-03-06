@@ -1,4 +1,4 @@
-!!****f* XC_potential
+!!****f* PSolver/XC_potential
 !! FUNCTION
 !! Given a charge density, calculates the exchange-correlation potential
 !!
@@ -411,9 +411,9 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   real(dp), dimension(:,:,:), allocatable :: exci,d2vxci
   real(dp), dimension(:,:,:,:), allocatable :: dvxci,dvxcdgr
   real(dp), dimension(:,:,:,:,:), allocatable :: gradient
-  real(dp) :: elocal,vlocal,rhov,potion,sfactor
+  real(dp) :: elocal,vlocal,rhov,sfactor
   integer :: npts,i_all,order,offset,i_stat,ispden
-  integer :: i1,i2,i3,j1,j2,j3,jp2,jpp2,jppp2
+  integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2
   integer :: ndvxc,nvxcdgr,ngr2,nd2vxc
   logical :: use_gradient
 

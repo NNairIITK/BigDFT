@@ -42,15 +42,13 @@ program memguess
   real(wp), dimension(:), allocatable :: rhoexpo
   real(wp), dimension(:,:), allocatable :: rhocoeff,rhocoeff_AE
   real(kind=8), dimension(:,:), allocatable :: radii_cf
-  real(kind=8), dimension(:,:,:), allocatable :: psiat
-  real(kind=8), dimension(:,:), allocatable :: xp, occupat
-  integer, dimension(:,:), allocatable :: nl
   logical, dimension(:,:,:), allocatable :: scorb
   real(kind=8), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
   real(gp), dimension(:), pointer :: gbd_occ
   !! By Ali
-  integer ::ierror
+  integer :: ierror
+
 ! Get arguments
 
   call getarg(1,tatonam)
@@ -143,13 +141,13 @@ program memguess
 
 
 
-  !initialize memory counting
-  call memocc(0,0,'count','start')
-
   !welcome screen
   call print_logo()
 
   if (convert) then
+     !initialize memory counting
+     !call memocc(0,0,'count','start')
+
      !read number of atoms
      call read_atomic_file('posinp',0,atoms,rxyz)
 
@@ -159,7 +157,9 @@ program memguess
      write(*,*)' ...done'
   else
      call read_input_variables(0, "posinp", "input.dft", "input.kpt", &
-          & "input.geopt", in, atoms, rxyz)
+          & "input.geopt", "input.perf", in, atoms, rxyz)
+     !initialize memory counting
+     !call memocc(0,0,'count','start')
   end if
 
   call print_input_parameters(in,atoms)
@@ -207,7 +207,7 @@ program memguess
      end if
 
      ! Read the inguess.dat file or generate the input guess via the inguess_generator
-     call readAtomicOrbitals(0,atoms,norbe,norbsc,nspin_ig,orbs%nspinor,&
+     call readAtomicOrbitals(atoms,norbe,norbsc,nspin_ig,orbs%nspinor,&
           scorb,norbsc_arr,locrad)
 
      if (in%nspin==4) then
@@ -1107,7 +1107,7 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
 
 end subroutine compare_data_and_gflops
 
-!!****f* BigDFT/read_input_variables
+!!****f* BigDFT/read_input_variables_old
 !! FUNCTION
 !!    Read the input variables in the file 'input.dat', old format.
 !! SOURCE

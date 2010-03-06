@@ -2,7 +2,7 @@
 !! FUNCTION
 !!    Analyse atomic configurations
 !! COPYRIGHT
-!!    Copyright (C) 2009 BigDFT group
+!!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -17,9 +17,8 @@ program find_angles
  integer, parameter :: ntypes=4,nnmax=15,nseg=1800,nsegr=100000
  real(kind=8), parameter :: rstep=0.001d0!factor=12.82,rad=3.2d0/factor
  real(kind=8) :: factor,rad,rij,distance
- integer :: i,nconf,j,istep,k,j1,nat,istart,ityp,iat,nrep,nata,natc
+ integer :: i,j,istep,k,j1,nat,istart,iat,nrep,nata,natc
  real(kind=8) theta,anglemin,anglemax,th,facnorm
- character(len=2), dimension(ntypes) :: symbol
  integer, dimension(nnmax) :: nrstn
  integer, dimension(nseg,nnmax+1) :: isto
  integer, dimension(nsegr,0:nnmax) :: istor
@@ -28,8 +27,6 @@ program find_angles
  real(kind=8), dimension(nnmax+1) :: integrals
  character(len=1) :: whichone
  character(len=4) :: fn4
- character(len=8) :: filename
- character(len=5) :: num
  integer :: icount,ncount,ncountmax,tot,atcenter,atangles,nstep,jr,posout,iunit
  logical :: exists
  character(len=40) :: contcar
@@ -480,8 +477,8 @@ function distance(A,B)
  real(kind=8), dimension(3), intent(inout) :: B
  real(kind=8) :: distance
  !local variables
- integer :: i,ei
- real(kind=8) :: mindist,mini,shift,di
+ integer :: i
+ real(kind=8) :: mindist,shift,di
  !real(kind=8), dimension(3) :: v
 
  !valid for reduced coordinates

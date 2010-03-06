@@ -3,7 +3,7 @@
 !!  Restart from gaussian functions
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA (LG)
+!!    Copyright (C) 2007-2010 CEA (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -53,12 +53,11 @@ end subroutine restart_from_gaussians
 !!
 !! SOURCE
 !!
-subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename, opt_fillrxyz)
+subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
   use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(inout) :: orbs
   type(gaussian_basis), intent(out) :: G
   real(wp), dimension(:,:),   pointer :: coeffs
@@ -274,8 +273,7 @@ subroutine gaussian_pswf_basis(ng,iproc,nspin,at,rxyz,G,Gocc)
      noncoll=1
   end if
 
-
-  call readAtomicOrbitals(iproc,at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
+  call readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
 
   i_all=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=i_stat)
@@ -301,8 +299,7 @@ subroutine gaussian_pswf_basis(ng,iproc,nspin,at,rxyz,G,Gocc)
   G%nshltot=0
   count_shells: do iat=1,at%nat
      ityp=at%iatype(iat)
-     call count_atomic_shells(nmax,lmax,noccmax,nelecmax,nspin,nspinor,&
-          at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
      G%nshell(iat)=(nl(1)+nl(2)+nl(3)+nl(4))
      G%nshltot=G%nshltot+G%nshell(iat)
      !check the occupation numbers and the atoms type
@@ -348,8 +345,7 @@ subroutine gaussian_pswf_basis(ng,iproc,nspin,at,rxyz,G,Gocc)
      ityp=at%iatype(iat)
      ityx=iatypex(iat)
      ishltmp=0
-     call count_atomic_shells(nmax,lmax,noccmax,nelecmax,nspin,nspinor,&
-          at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
      if (ityx > ntypesx) then
         if (iproc == 0 .and. verbose > 1) then
            write(*,'(1x,a,a6,a)')&
@@ -360,7 +356,7 @@ subroutine gaussian_pswf_basis(ng,iproc,nspin,at,rxyz,G,Gocc)
                 at%aocc(1,iat),at%iasctype(iat))
         end if
 
-        call iguess_generator(iproc,at%nzatom(ityp),at%nelpsp(ityp),&
+        call iguess_generator(at%nzatom(ityp),at%nelpsp(ityp),&
              real(at%nelpsp(ityp),gp),at%psppar(0,0,ityp),&
              at%npspcode(ityp),&
              ng-1,nl,5,noccmax,lmax,occup,xpt(1,ityx),&
@@ -407,8 +403,7 @@ subroutine gaussian_pswf_basis(ng,iproc,nspin,at,rxyz,G,Gocc)
   do iat=1,at%nat
      ityp=at%iatype(iat)
      ityx=iatypex(iat)
-     call count_atomic_shells(nmax,lmax,noccmax,nelecmax,nspin,nspinor,&
-          at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
      ictotpsi=0
      iocc=0
      do l=1,4

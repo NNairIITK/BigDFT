@@ -53,36 +53,33 @@ program abscalc_main
      open(unit=54,file="list_posinp")
      read(54,*) nconfig
      if (nconfig > 0) then 
-        !allocation not referenced since memocc count not initialised
-        allocate(arr_posinp(1:nconfig))
-
+        allocate(arr_posinp(1:nconfig),stat=i_stat)
         do iconfig=1,nconfig
            read(54,*) arr_posinp(iconfig)
         enddo
      else
         nconfig=1
-        allocate(arr_posinp(1:1))
+        allocate(arr_posinp(1:1),stat=i_stat)
         arr_posinp(1)='posinp'
      endif
      close(unit=54)
   else
      nconfig=1
-     allocate(arr_posinp(1:1))
+     allocate(arr_posinp(1:1),stat=i_stat)
      arr_posinp(1)='posinp'
   end if
 
   do iconfig=1,nconfig
-
-     !Initialize memory counting
-     call memocc(0,iproc,'count','start')
 
      !Welcome screen
      if (iproc==0) call print_logo()
 
      ! Read all input files.
      call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
-          & "input.dft", "input.kpt", "input.geopt", inputs, atoms, rxyz)
+          & "input.dft", "input.kpt", "input.geopt", "input.perf", inputs, atoms, rxyz)
 
+     !Initialize memory counting
+     !call memocc(0,iproc,'count','start')
      
      !Read absorption-calculation input variables
      !inquire for the needed file 
@@ -149,7 +146,9 @@ program abscalc_main
 
   enddo !loop over iconfig
 
+  i_all=-product(shape(arr_posinp))*kind(arr_posinp)
   deallocate(arr_posinp)
+  call memocc(i_stat,i_all,'arr_posinp',subname)
 
   call MPI_FINALIZE(ierr)
 

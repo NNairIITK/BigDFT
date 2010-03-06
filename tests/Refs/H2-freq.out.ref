@@ -26,11 +26,19 @@
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
+
+ Performance options (file 'input.perf' not present):
+ |   'debug' option disable
+ |   'fftcache' = 8192
+
  Number of atoms     =     2
  Number of atom types=     1
  Atoms of type 1 are H
  Spin-polarised calculation: YES (Collinear)
 
+ =F= Step size factor  1.562500E-02
+ =F= Order scheme             2
+ =F= Used method              1
  =F=> Check if the file "frequencies.res" is present.
  =F=> No "frequencies.res" file present.
  =F=> There are     0 moves already calculated over    12 frequencies.
@@ -88,11 +96,11 @@
  iter,total energy,gnrm     1  -1.02716489510677822E+00  2.41E-01
  iter,total energy,gnrm     2  -1.12641797720133918E+00  1.29E-01
  iter,total energy,gnrm     3  -1.13322887761217994E+00  4.59E-02
- iter,total energy,gnrm     4  -1.13532020677128531E+00  2.83E-02
- iter,total energy,gnrm     5  -1.13682597225025650E+00  1.23E-02
- iter,total energy,gnrm     6  -1.13691624260288582E+00  1.95E-03
- iter,total energy,gnrm     7  -1.13691726035469554E+00  4.45E-04
- iter,total energy,gnrm     8  -1.13691730845774086E+00  9.26E-05
+ iter,total energy,gnrm     4  -1.13532020677128442E+00  2.83E-02
+ iter,total energy,gnrm     5  -1.13682597225025628E+00  1.23E-02
+ iter,total energy,gnrm     6  -1.13691624260288493E+00  1.95E-03
+ iter,total energy,gnrm     7  -1.13691726035469221E+00  4.45E-04
+ iter,total energy,gnrm     8  -1.13691730845774064E+00  9.26E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07939255797E+00 -1.82392899142E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114605742E+00 -6.45403231391E-01 -8.42922165339E-01
@@ -100,7 +108,7 @@
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
  eval(   1,u)= -3.72269089147927E-01              eval(   1,d)= -3.72267344305977E-01
  ----------------------------------------------------------------- Forces Calculation
- CPU time/ELAPSED time for root process     0        10.94        10.86
+ CPU time/ELAPSED time for root process     0        59.03        58.39
  Wavefunction Optimization Finished, exit signal=    0
  Final values of the Forces for each atom
      1      H -8.25708E-04  1.50677E-04  1.50677E-04
@@ -156,18 +164,18 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   2.471923828125E-05 0.000000000000E+00 0.000000000000E+00
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13689474395865786E+00  8.83E-03
- iter,total energy,gnrm     2  -1.13691452815413729E+00  1.93E-03
- iter,total energy,gnrm     3  -1.13691563055172140E+00  2.32E-04
- iter,total energy,gnrm     4  -1.13691563694046693E+00  2.52E-05
+ iter,total energy,gnrm     1  -1.13689474395865830E+00  8.83E-03
+ iter,total energy,gnrm     2  -1.13691452815413685E+00  1.93E-03
+ iter,total energy,gnrm     3  -1.13691563055172007E+00  2.32E-04
+ iter,total energy,gnrm     4  -1.13691563694046516E+00  2.52E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.08271796900E+00 -1.82852933650E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28358325183E+00 -6.46468530783E-01 -8.44325176029E-01
  FINAL iter,total energy,gnrm     5  -1.13691563711063859E+00  2.52E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72905718983621E-01              eval(   1,d)= -3.72905648523187E-01
+ eval(   1,u)= -3.72905718983620E-01              eval(   1,d)= -3.72905648523187E-01
  ----------------------------------------------------------------- Forces Calculation
- CPU time/ELAPSED time for root process     0         5.85         5.80
+ CPU time/ELAPSED time for root process     0        28.14        27.81
  =F =================================================================================
 
  =F Move the atom 1 in the direction  1*x by     7.0312500000E-03 bohr
@@ -216,17 +224,17 @@
     molecule was shifted   9.887695312502E-05 0.000000000000E+00 0.000000000000E+00
  Reformatting... done.
  iter,total energy,gnrm     1  -1.13681883697433506E+00  1.77E-02
- iter,total energy,gnrm     2  -1.13689795974574981E+00  3.85E-03
- iter,total energy,gnrm     3  -1.13690229748048344E+00  4.58E-04
+ iter,total energy,gnrm     2  -1.13689795974574803E+00  3.85E-03
+ iter,total energy,gnrm     3  -1.13690229748048299E+00  4.58E-04
  iter,total energy,gnrm     4  -1.13690232609323738E+00  5.43E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07609993584E+00 -1.81936608835E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.27872228347E+00 -6.44344377726E-01 -8.41527671715E-01
- FINAL iter,total energy,gnrm     5  -1.13690232680357006E+00  5.43E-05
+ FINAL iter,total energy,gnrm     5  -1.13690232680356873E+00  5.43E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.71633077614566E-01              eval(   1,d)= -3.71633074894125E-01
+ eval(   1,u)= -3.71633077614566E-01              eval(   1,d)= -3.71633074894124E-01
  ----------------------------------------------------------------- Forces Calculation
- CPU time/ELAPSED time for root process     0         5.83         5.80
+ CPU time/ELAPSED time for root process     0        28.82        28.53
  =F =================================================================================
 
  =F Move the atom 1 in the direction -1*y by    -7.0312500000E-03 bohr
@@ -274,18 +282,18 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   2.471923828127E-05 2.471923828125E-05 0.000000000000E+00
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13688517402035294E+00  1.20E-02
- iter,total energy,gnrm     2  -1.13691531694298864E+00  2.49E-03
- iter,total energy,gnrm     3  -1.13691704665582627E+00  2.88E-04
- iter,total energy,gnrm     4  -1.13691705951344013E+00  4.54E-05
+ iter,total energy,gnrm     1  -1.13688517402035338E+00  1.20E-02
+ iter,total energy,gnrm     2  -1.13691531694298820E+00  2.49E-03
+ iter,total energy,gnrm     3  -1.13691704665582649E+00  2.88E-04
+ iter,total energy,gnrm     4  -1.13691705951343947E+00  4.54E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938702826E+00 -1.82391894872E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114153708E+00 -6.45401277520E-01 -8.42919592991E-01
- FINAL iter,total energy,gnrm     5  -1.13691705994539971E+00  4.54E-05
+ FINAL iter,total energy,gnrm     5  -1.13691705994540038E+00  4.54E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
  eval(   1,u)= -3.72265960287089E-01              eval(   1,d)= -3.72265960173386E-01
  ----------------------------------------------------------------- Forces Calculation
- CPU time/ELAPSED time for root process     0         5.84         5.83
+ CPU time/ELAPSED time for root process     0        35.75        35.46
  =F =================================================================================
 
  =F Move the atom 1 in the direction  1*y by     7.0312500000E-03 bohr
@@ -333,19 +341,19 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 9.887695312500E-05 0.000000000000E+00
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13687231831107138E+00  1.62E-02
- iter,total energy,gnrm     2  -1.13691440325196180E+00  3.10E-03
- iter,total energy,gnrm     3  -1.13691693501489222E+00  4.02E-04
- iter,total energy,gnrm     4  -1.13691696008441734E+00  1.01E-04
- iter,total energy,gnrm     5  -1.13691696090327454E+00  6.14E-06
+ iter,total energy,gnrm     1  -1.13687231831107272E+00  1.62E-02
+ iter,total energy,gnrm     2  -1.13691440325196158E+00  3.10E-03
+ iter,total energy,gnrm     3  -1.13691693501489177E+00  4.02E-04
+ iter,total energy,gnrm     4  -1.13691696008441645E+00  1.01E-04
+ iter,total energy,gnrm     5  -1.13691696090327410E+00  6.14E-06
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938651659E+00 -1.82391849900E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114134738E+00 -6.45401186592E-01 -8.42919473340E-01
- FINAL iter,total energy,gnrm     6  -1.13691696091523498E+00  6.14E-06
+ FINAL iter,total energy,gnrm     6  -1.13691696091523542E+00  6.14E-06
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72265991202911E-01              eval(   1,d)= -3.72265991207428E-01
+ eval(   1,u)= -3.72265991202911E-01              eval(   1,d)= -3.72265991207429E-01
  ----------------------------------------------------------------- Forces Calculation
- CPU time/ELAPSED time for root process     0         6.66         6.65
+ CPU time/ELAPSED time for root process     0        49.19        48.90
  =F =================================================================================
 
  =F Move the atom 1 in the direction -1*z by    -7.0312500000E-03 bohr
@@ -393,18 +401,18 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 2.471923828125E-05 2.471923828125E-05
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13689473862461976E+00  1.14E-02
- iter,total energy,gnrm     2  -1.13691577728114779E+00  2.20E-03
- iter,total energy,gnrm     3  -1.13691704691462925E+00  2.87E-04
- iter,total energy,gnrm     4  -1.13691705953512145E+00  7.21E-05
+ iter,total energy,gnrm     1  -1.13689473862462109E+00  1.14E-02
+ iter,total energy,gnrm     2  -1.13691577728114690E+00  2.20E-03
+ iter,total energy,gnrm     3  -1.13691704691463014E+00  2.87E-04
+ iter,total energy,gnrm     4  -1.13691705953512101E+00  7.21E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938679050E+00 -1.82391884413E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114138505E+00 -6.45401216950E-01 -8.42919513545E-01
- FINAL iter,total energy,gnrm     5  -1.13691705994986214E+00  7.21E-05
+ FINAL iter,total energy,gnrm     5  -1.13691705994986259E+00  7.21E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72266026810074E-01              eval(   1,d)= -3.72266026812649E-01
+ eval(   1,u)= -3.72266026810073E-01              eval(   1,d)= -3.72266026812648E-01
  ----------------------------------------------------------------- Forces Calculation
- CPU time/ELAPSED time for root process     0         5.78         5.77
+ CPU time/ELAPSED time for root process     0        29.91        29.72
  =F =================================================================================
 
  =F Move the atom 1 in the direction  1*z by     7.0312500000E-03 bohr
@@ -452,19 +460,19 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 0.000000000000E+00 9.887695312500E-05
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13687230837296216E+00  1.62E-02
- iter,total energy,gnrm     2  -1.13691440284506373E+00  3.10E-03
+ iter,total energy,gnrm     1  -1.13687230837296283E+00  1.62E-02
+ iter,total energy,gnrm     2  -1.13691440284506418E+00  3.10E-03
  iter,total energy,gnrm     3  -1.13691693501457336E+00  4.02E-04
- iter,total energy,gnrm     4  -1.13691696008408605E+00  1.01E-04
+ iter,total energy,gnrm     4  -1.13691696008408694E+00  1.01E-04
  iter,total energy,gnrm     5  -1.13691696090324945E+00  6.16E-06
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938651667E+00 -1.82391849901E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114134746E+00 -6.45401186630E-01 -8.42919473390E-01
- FINAL iter,total energy,gnrm     6  -1.13691696091523053E+00  6.16E-06
+ FINAL iter,total energy,gnrm     6  -1.13691696091523187E+00  6.16E-06
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
  eval(   1,u)= -3.72265991167308E-01              eval(   1,d)= -3.72265991167560E-01
  ----------------------------------------------------------------- Forces Calculation
- CPU time/ELAPSED time for root process     0         6.67         6.65
+ CPU time/ELAPSED time for root process     0        31.86        31.65
  =F =================================================================================
 
  =F Move the atom 2 in the direction -1*x by    -7.0312500000E-03 bohr
@@ -512,18 +520,18 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   2.471923828125E-05 0.000000000000E+00 2.471923828125E-05
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13687039443092841E+00  1.20E-02
- iter,total energy,gnrm     2  -1.13690062180864437E+00  2.46E-03
+ iter,total energy,gnrm     1  -1.13687039443092974E+00  1.20E-02
+ iter,total energy,gnrm     2  -1.13690062180864526E+00  2.46E-03
  iter,total energy,gnrm     3  -1.13690231381663587E+00  2.69E-04
- iter,total energy,gnrm     4  -1.13690232642271827E+00  4.53E-05
+ iter,total energy,gnrm     4  -1.13690232642271738E+00  4.53E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07610152792E+00 -1.81936719508E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.27872286874E+00 -6.44344694368E-01 -8.41528088261E-01
- FINAL iter,total energy,gnrm     5  -1.13690232682360026E+00  4.53E-05
+ FINAL iter,total energy,gnrm     5  -1.13690232682359982E+00  4.53E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
  eval(   1,u)= -3.71632833579169E-01              eval(   1,d)= -3.71632833579153E-01
  ----------------------------------------------------------------- Forces Calculation
- CPU time/ELAPSED time for root process     0         5.76         5.76
+ CPU time/ELAPSED time for root process     0        28.44        28.36
  =F =================================================================================
 
  =F Move the atom 2 in the direction  1*x by     7.0312500000E-03 bohr
@@ -571,18 +579,18 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   9.887695312500E-05 0.000000000000E+00 0.000000000000E+00
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13683238141054166E+00  1.76E-02
- iter,total energy,gnrm     2  -1.13691118927375689E+00  3.86E-03
+ iter,total energy,gnrm     1  -1.13683238141054122E+00  1.76E-02
+ iter,total energy,gnrm     2  -1.13691118927375778E+00  3.86E-03
  iter,total energy,gnrm     3  -1.13691561180011491E+00  4.65E-04
- iter,total energy,gnrm     4  -1.13691563641366167E+00  4.93E-05
+ iter,total energy,gnrm     4  -1.13691563641366145E+00  4.93E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.08271865565E+00 -1.82852983748E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28358347592E+00 -6.46468652788E-01 -8.44325336464E-01
- FINAL iter,total energy,gnrm     5  -1.13691563709049070E+00  4.93E-05
+ FINAL iter,total energy,gnrm     5  -1.13691563709049159E+00  4.93E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
  eval(   1,u)= -3.72905590912512E-01              eval(   1,d)= -3.72905590912522E-01
  ----------------------------------------------------------------- Forces Calculation
- CPU time/ELAPSED time for root process     0         5.77         5.76
+ CPU time/ELAPSED time for root process     0        36.35        36.25
  =F =================================================================================
 
  =F Move the atom 2 in the direction -1*y by    -7.0312500000E-03 bohr
@@ -630,18 +638,18 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   2.471923828124E-05 2.471923828125E-05 0.000000000000E+00
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13688483733361578E+00  1.20E-02
- iter,total energy,gnrm     2  -1.13691522637961984E+00  2.50E-03
- iter,total energy,gnrm     3  -1.13691694648393082E+00  2.85E-04
- iter,total energy,gnrm     4  -1.13691696046353852E+00  4.71E-05
+ iter,total energy,gnrm     1  -1.13688483733361489E+00  1.20E-02
+ iter,total energy,gnrm     2  -1.13691522637962028E+00  2.50E-03
+ iter,total energy,gnrm     3  -1.13691694648393216E+00  2.85E-04
+ iter,total energy,gnrm     4  -1.13691696046353896E+00  4.71E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938622103E+00 -1.82391832344E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114120882E+00 -6.45401127152E-01 -8.42919395366E-01
- FINAL iter,total energy,gnrm     5  -1.13691696090420247E+00  4.71E-05
+ FINAL iter,total energy,gnrm     5  -1.13691696090420269E+00  4.71E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72266051208774E-01              eval(   1,d)= -3.72266051208770E-01
+ eval(   1,u)= -3.72266051208773E-01              eval(   1,d)= -3.72266051208770E-01
  ----------------------------------------------------------------- Forces Calculation
- CPU time/ELAPSED time for root process     0         5.76         5.76
+ CPU time/ELAPSED time for root process     0        55.32        54.97
  =F =================================================================================
 
  =F Move the atom 2 in the direction  1*y by     7.0312500000E-03 bohr
@@ -689,19 +697,19 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 9.887695312500E-05 0.000000000000E+00
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13687241824294683E+00  1.62E-02
- iter,total energy,gnrm     2  -1.13691450252325144E+00  3.10E-03
- iter,total energy,gnrm     3  -1.13691703403270439E+00  4.02E-04
- iter,total energy,gnrm     4  -1.13691705911251906E+00  1.02E-04
- iter,total energy,gnrm     5  -1.13691705994420444E+00  6.15E-06
+ iter,total energy,gnrm     1  -1.13687241824294549E+00  1.62E-02
+ iter,total energy,gnrm     2  -1.13691450252325121E+00  3.10E-03
+ iter,total energy,gnrm     3  -1.13691703403270616E+00  4.02E-04
+ iter,total energy,gnrm     4  -1.13691705911251817E+00  1.02E-04
+ iter,total energy,gnrm     5  -1.13691705994420489E+00  6.15E-06
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938678826E+00 -1.82391881284E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114141795E+00 -6.45401229408E-01 -8.42919529859E-01
- FINAL iter,total energy,gnrm     6  -1.13691705995625125E+00  6.15E-06
+ FINAL iter,total energy,gnrm     6  -1.13691705995625236E+00  6.15E-06
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72266012291092E-01              eval(   1,d)= -3.72266012291092E-01
+ eval(   1,u)= -3.72266012291092E-01              eval(   1,d)= -3.72266012291093E-01
  ----------------------------------------------------------------- Forces Calculation
- CPU time/ELAPSED time for root process     0         6.63         6.62
+ CPU time/ELAPSED time for root process     0        39.09        38.94
  =F =================================================================================
 
  =F Move the atom 2 in the direction -1*z by    -7.0312500000E-03 bohr
@@ -749,18 +757,18 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 2.471923828125E-05 2.471923828125E-05
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13689463951659442E+00  1.14E-02
- iter,total energy,gnrm     2  -1.13691567816959327E+00  2.20E-03
- iter,total energy,gnrm     3  -1.13691694788631881E+00  2.86E-04
+ iter,total energy,gnrm     1  -1.13689463951659397E+00  1.14E-02
+ iter,total energy,gnrm     2  -1.13691567816959282E+00  2.20E-03
+ iter,total energy,gnrm     3  -1.13691694788632014E+00  2.86E-04
  iter,total energy,gnrm     4  -1.13691696050021895E+00  7.12E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938652716E+00 -1.82391847925E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114138190E+00 -6.45401200030E-01 -8.42919490984E-01
- FINAL iter,total energy,gnrm     5  -1.13691696090886007E+00  7.12E-05
+ FINAL iter,total energy,gnrm     5  -1.13691696090885874E+00  7.12E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72265976044889E-01              eval(   1,d)= -3.72265976044888E-01
+ eval(   1,u)= -3.72265976044890E-01              eval(   1,d)= -3.72265976044889E-01
  ----------------------------------------------------------------- Forces Calculation
- CPU time/ELAPSED time for root process     0         5.76         5.75
+ CPU time/ELAPSED time for root process     0        28.05        27.96
  =F =================================================================================
 
  =F Move the atom 2 in the direction  1*z by     7.0312500000E-03 bohr
@@ -808,11 +816,11 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 0.000000000000E+00 9.887695312500E-05
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13687240734317641E+00  1.62E-02
- iter,total energy,gnrm     2  -1.13691450201180033E+00  3.10E-03
+ iter,total energy,gnrm     1  -1.13687240734317618E+00  1.62E-02
+ iter,total energy,gnrm     2  -1.13691450201179944E+00  3.10E-03
  iter,total energy,gnrm     3  -1.13691703403006295E+00  4.02E-04
- iter,total energy,gnrm     4  -1.13691705911219176E+00  1.02E-04
- iter,total energy,gnrm     5  -1.13691705994422576E+00  6.18E-06
+ iter,total energy,gnrm     4  -1.13691705911219132E+00  1.02E-04
+ iter,total energy,gnrm     5  -1.13691705994422620E+00  6.18E-06
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938678815E+00 -1.82391881282E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114141785E+00 -6.45401229364E-01 -8.42919529800E-01
@@ -820,14 +828,14 @@
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
  eval(   1,u)= -3.72266012335113E-01              eval(   1,d)= -3.72266012335113E-01
  ----------------------------------------------------------------- Forces Calculation
- CPU time/ELAPSED time for root process     0         6.63         6.62
+ CPU time/ELAPSED time for root process     0        31.86        31.81
  =F =================================================================================
 
- =F: eigenvalues (real)      =     3.6674678067E-04    1.3113498923E-05    1.3291357307E-05   -1.7094971614E-08   -8.1202074330E-10   -1.7088259735E-10
+ =F: eigenvalues (real)      =     3.6674678067E-04    1.3113498923E-05    1.3291357307E-05   -1.7094971626E-08   -8.1202070951E-10   -1.7088259934E-10
  =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00
- =F: frequencies (Hartree)   =     1.9150633950E-02    3.6212565392E-03    3.6457313816E-03   -1.3074774038E-04   -2.8495977669E-05   -1.3072207057E-05
+ =F: frequencies (Hartree)   =     1.9150633950E-02    3.6212565392E-03    3.6457313816E-03   -1.3074774042E-04   -2.8495977076E-05   -1.3072207133E-05
  =F: frequencies (cm-1)      =       4203.08       794.77       800.15       -28.70        -6.25        -2.87
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 9404 allocations and 9404 deallocations, remaining memory(B):0
+ 9431 allocations and 9431 deallocations, remaining memory(B):0
  memory occupation peak: 81 MB
  for the array  cosinarr in the routine G_Poisson_Solver

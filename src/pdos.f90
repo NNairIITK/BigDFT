@@ -29,7 +29,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,shift,lr,orbs,orbsv,psi,psivirt)
   end if
 
   !define the local basis starting from the input files
-  call read_input_variables(iproc,'posinp','input.dft','','',inc,atc,cxyz)
+  call read_input_variables(iproc,'posinp','input.dft','','','',inc,atc,cxyz)
 
   allocate(radii_cf_fake(atc%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf_fake,'radii_cf_fake',subname)

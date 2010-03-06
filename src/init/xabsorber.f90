@@ -110,7 +110,7 @@ subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
   integer :: i,j,k,n,INFO, LWORK
   real(gp) :: b1,b2, B, spi, pi
   real(gp) :: W(0:ng), WORK(3*(ng+1)*(ng+1))
-  real(gp) ::  sum, totalpow, ggg, gamma
+  real(gp) ::  sum, totalpow, ggg, gamma_restricted
 
 
   lwork= 3*(ng+1)*(ng+1)
@@ -127,7 +127,7 @@ subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
         
         B=b1+b2
         
-        ggg= gamma( (1.0_gp+totalpow)/2.0_gp   )
+        ggg= gamma_restricted( (1.0_gp+totalpow)/2.0_gp   )
         Soverlap(i,j)=0.5_gp* ggg * B**(-(1.0D0+totalpow)/2 )
      enddo
      do k=1, Ngrid
@@ -272,7 +272,6 @@ return
 end subroutine dump_gauwf_on_radgrid
 
 
-
 subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccmax, lmax ,expo,psi, aeval, occup, psp_modifier, &
      Nsol, Labs, Ngrid,Egrid,  rgrid , psigrid  )
   use module_base, only: gp, memocc,ndebug
@@ -291,7 +290,7 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   real(gp), dimension(noccmax,lmax+1  ), intent(out) ::  aeval,occup
   
   !local variables
-  character(len=*), parameter :: subname='iguess_generator'
+  character(len=*), parameter :: subname='abs_generator_modified'
   character(len=2) :: symbol
   real(gp), parameter :: fact=4.0_gp
   integer, dimension(6,4) :: neleconf
@@ -327,7 +326,6 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   call memocc(i_stat,hsep,'hsep',subname)
 
   !assignation of radii and coefficients of the local part
-
 
   if (psp_modifier.ne.0) then
      alpz=0.001_gp
@@ -411,14 +409,12 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
         ott(i)=real(neleconf(i,l+1),gp)
         if (ott(i) > 0.0_gp) then
            iocc=iocc+1
-            if (iocc > noccmax) stop 'iguess_generator: noccmax too small'
+            if (iocc > noccmax) stop 'abs_generator_modified: noccmax too small'
            occup(iocc,l+1)=ott(i)
         endif
      end do
 
   end do
-
-
 
   !allocate arrays for the gatom routine
   allocate(vh(4*(ng+1)**2,4*(ng+1)**2+ndebug),stat=i_stat)
@@ -428,7 +424,6 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   call memocc(i_stat,xp,'xp',subname)
   allocate(rmt(n_int,0:ng,0:ng,lmax+1+ndebug),stat=i_stat)
   call memocc(i_stat,rmt,'rmt',subname)
-
 
   !can be switched on for debugging
   !if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')&
@@ -458,16 +453,11 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
      end do
   end do
 
-
   call crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
-
-
 
 !!!  call gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
 !!!       zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
 !!!       aeval,ng,psi,res,chrg)
-
-
 
   if(psp_modifier==-1) then
      if(iproc==0) print *, " calling gatom_modified_eqdiff"
@@ -482,14 +472,11 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
           aeval,ng,psi,res,chrg,&
           Nsol, Labs, Ngrid,Egrid,  rgrid , psigrid )
   endif
-  
-
 
   !post-treatment of the inguess data
   do i=1,ng+1
      expo(i)=sqrt(0.5_gp/xp(i-1))
   end do
-
 
   do l=0,lmax
      do iocc=1,noccmax
@@ -500,7 +487,6 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
         endif
      enddo
   enddo
-  
 
   i_all=-product(shape(vh))*kind(vh)
   deallocate(vh,stat=i_stat)
@@ -1142,10 +1128,10 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
 ! projectors, just in case
   if ( .not. noproj) then
      do l=0,lpx
-        gml1=sqrt( gamma(real(l,gp)+1.5_gp) / (2._gp*alps(l+1)**(2*l+3)) )
-        gml2=sqrt( gamma(real(l,gp)+3.5_gp) / (2._gp*alps(l+1)**(2*l+7)) )&
+        gml1=sqrt( gamma_restricted(real(l,gp)+1.5_gp) / (2._gp*alps(l+1)**(2*l+3)) )
+        gml2=sqrt( gamma_restricted(real(l,gp)+3.5_gp) / (2._gp*alps(l+1)**(2*l+7)) )&
             /(real(l,gp)+2.5_gp)
-        gml3=sqrt( gamma(real(l,gp)+5.5_gp) / (2._gp*alps(l+1)**(2*l+11)) )&
+        gml3=sqrt( gamma_restricted(real(l,gp)+5.5_gp) / (2._gp*alps(l+1)**(2*l+11)) )&
             /((real(l,gp)+3.5_gp)*(real(l,gp)+4.5_gp))
         tt=1._gp/(2._gp*alps(l+1)**2)
         do i=0,ng
@@ -1316,7 +1302,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
  
 
      loop_l: do l=0,lmax
-        gml=.5_gp*gamma(.5_gp+real(l,gp))
+        gml=.5_gp*gamma_restricted(.5_gp+real(l,gp))
 
 !  lower triangles only
         loop_i: do i=0,ng
@@ -1353,9 +1339,9 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
 ! potential from repulsive gauss potential
               tt=alpl**2/(.5_gp+d*alpl**2)
               if (1.eq.1) then
-              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
-                   + (gpot(2)/alpl**2)*.5_gp*gamma(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
-                   + (gpot(3)/alpl**4)*.5_gp*gamma(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))
+              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma_restricted(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
+                   + (gpot(2)/alpl**2)*.5_gp*gamma_restricted(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
+                   + (gpot(3)/alpl**4)*.5_gp*gamma_restricted(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))
            endif
 ! separable terms
               if (1.eq.1 .and. l.le.lpx) then
@@ -1668,10 +1654,10 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 ! projectors, just in case
   if ( .not. noproj) then
      do l=0,lpx
-        gml1=sqrt( gamma(real(l,gp)+1.5_gp) / (2._gp*alps(l+1)**(2*l+3)) )
-        gml2=sqrt( gamma(real(l,gp)+3.5_gp) / (2._gp*alps(l+1)**(2*l+7)) )&
+        gml1=sqrt( gamma_restricted(real(l,gp)+1.5_gp) / (2._gp*alps(l+1)**(2*l+3)) )
+        gml2=sqrt( gamma_restricted(real(l,gp)+3.5_gp) / (2._gp*alps(l+1)**(2*l+7)) )&
             /(real(l,gp)+2.5_gp)
-        gml3=sqrt( gamma(real(l,gp)+5.5_gp) / (2._gp*alps(l+1)**(2*l+11)) )&
+        gml3=sqrt( gamma_restricted(real(l,gp)+5.5_gp) / (2._gp*alps(l+1)**(2*l+11)) )&
             /((real(l,gp)+3.5_gp)*(real(l,gp)+4.5_gp))
         tt=1._gp/(2._gp*alps(l+1)**2)
         do i=0,ng
@@ -1842,7 +1828,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
  
 
      loop_l: do l=0,lmax
-        gml=.5_gp*gamma(.5_gp+real(l,gp))
+        gml=.5_gp*gamma_restricted(.5_gp+real(l,gp))
 
 !  lower triangles only
         loop_i: do i=0,ng
@@ -1879,9 +1865,9 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 ! potential from repulsive gauss potential
               tt=alpl**2/(.5_gp+d*alpl**2)
               if (1.eq.1) then
-              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
-                   + (gpot(2)/alpl**2)*.5_gp*gamma(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
-                   + (gpot(3)/alpl**4)*.5_gp*gamma(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))
+              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma_restricted(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
+                   + (gpot(2)/alpl**2)*.5_gp*gamma_restricted(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
+                   + (gpot(3)/alpl**4)*.5_gp*gamma_restricted(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))
            endif
 ! separable terms
               if (1.eq.1 .and. l.le.lpx) then

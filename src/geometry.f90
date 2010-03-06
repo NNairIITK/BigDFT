@@ -1364,7 +1364,6 @@ subroutine transforce(at,fxyz,sumx,sumy,sumz)
   real(gp),intent(in):: fxyz(3,at%nat)
   real(gp), intent(out) :: sumx,sumy,sumz
   integer :: iat
-  real(gp) :: alphax,alphay,alphaz
 
   !atomic_dot with one
   sumx=0._gp 
