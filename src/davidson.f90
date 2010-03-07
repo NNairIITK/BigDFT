@@ -44,7 +44,7 @@
 !!   (retranspose v and psi)
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2010 CEA, UNIBAS
+!!    Copyright (C) 2007-2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -52,7 +52,7 @@
 !!
 !! SOURCE
 !!
-subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
+subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      orbs,orbsv,nvirt,lr,comms,&
      hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
   use module_base
@@ -60,7 +60,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   use module_interfaces, except_this_one => davidson
   use libxc_functionals
   implicit none
-  integer, intent(in) :: iproc,nproc,n1i,n2i,n3i
+  integer, intent(in) :: iproc,nproc,n1i,n2i
   integer, intent(in) :: i3xcsh
   integer, intent(in) :: nvirt,n3p
   type(input_variables), intent(in) :: in
@@ -85,9 +85,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   character(len=10) :: comment
   character(len=11) :: orbname,denname
   logical :: msg,exctX !extended output
-  integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,ind,i1,i2,norb,nspinor
-  integer :: ise,jnd,j,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
-  real(gp) :: tt,gnrm,eks,eexcu,vexcu,epot_sum,eexctX,ekin_sum,ehart,eproj_sum,etol,gnrm_fake
+  integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,ind,norb,nspinor
+  integer :: ise,j,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
+  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,gnrm_fake
   type(communications_arrays) :: commsv
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: work,work_rp,hamovr
@@ -904,7 +904,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 END SUBROUTINE davidson
 !!***
 
-!generate upper triangular matrix in the subspace of Davidson algorithm
+
+!!****f* BigDFT/Davidson_subspace_hamovr
+!! FUNCTION
+!!   Generate upper triangular matrix in the subspace of Davidson algorithm
+!! SOURCE
+!!
 subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
   use module_base
   implicit none
@@ -913,7 +918,7 @@ subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
   real(wp), dimension(ncplx,2*norb,2*norb,2), intent(out) :: hamovr
   !local variables
   character(len=*), parameter :: subname='Davidson_subspace_hamovr'
-  integer :: iorb,jorb,icplx,ncomp,i_stat,i_all
+  integer :: iorb,jorb,icplx,ncomp
 
   if (nspinor == 4) then
      ncomp=2
@@ -1021,6 +1026,8 @@ subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
   enddo
 
 end subroutine Davidson_subspace_hamovr
+!!***
+
 
 subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
   use module_base
@@ -1032,7 +1039,7 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
   real(wp), dimension(ncplx,2*norb,2*norb), intent(out) :: hamovr
   !local variables
   character(len=*), parameter :: subname='update_psivirt'
-  integer :: iorb,jorb,icplx,ncomp,i_stat,i_all
+  integer :: ncomp
 
   if (nspinor == 4) then
      ncomp=2

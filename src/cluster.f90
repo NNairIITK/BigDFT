@@ -874,14 +874,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !extract the gaussian basis from the pseudowavefunctions
 !!!     if (in%inputPsiId == 11) then
 !!!        !extract the gaussian basis from the pseudowavefunctions
-!!!        call gaussian_pswf_basis(iproc,atoms,rxyz,gbd)
+!!!        call gaussian_pswf_basis(21,iproc,atoms,rxyz,gbd)
 !!!     else if (in%inputPsiId == 12) then
 !!!        !extract the gaussian basis from the pseudopotential
 !!!        call gaussian_psp_basis(atoms,rxyz,gbd)
 !!!     end if
 
      !extract the gaussian basis from the pseudowavefunctions
-     call gaussian_pswf_basis(iproc,in%nspin,atoms,rxyz,gbd,gbd_occ)
+     call gaussian_pswf_basis(21,iproc,in%nspin,atoms,rxyz,gbd,gbd_occ)
 
      if (associated(gbd_occ)) then
         i_all=-product(shape(gbd_occ))*kind(gbd_occ)
@@ -1147,7 +1147,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !if (nvirt > 0 .and. in%inputPsiId == 0) then
   if (DoDavidson) then
-     call davidson(iproc,nproc,n1i,n2i,n3i,in,atoms,&
+     call davidson(iproc,nproc,n1i,n2i,in,atoms,&
           orbs,orbsv,nvirt,Glr,comms,&
           hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj, &
           pkernel,psi,psivirt,ngatherarr,GPU)

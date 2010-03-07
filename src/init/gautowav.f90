@@ -3,7 +3,7 @@
 !!  Control the accuracy of the expansion in gaussian
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA (LG)
+!!    Copyright (C) 2007-2010 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -83,12 +83,12 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   character(len=6) :: string,symbol
   character(len=100) :: line
   integer, parameter :: nterm_max=3
-  integer :: ngx,nbx,npgf,nst,nend,ng,lshell,num,mmax,myshift,icbas,isbas,nbas,nco,i,ipar,ipg,jat
-  integer :: iorb,jorb,iat,ityp,l,m,nterm,i_all,i_stat,ibas,ig,iset,jbas,iterm,ishell,lmax,m1,m2
-  integer :: ierr,isat,iexpo,icoeff,iam
-  real(dp) :: tt,normdev
+  integer :: ngx,nbx,nst,nend,num,mmax,myshift,i,ipar,ipg,jat
+  integer :: iorb,jorb,iat,ityp,i_all,i_stat,ibas,ig,iset,jbas,ishell,lmax
+  integer :: isat,iexpo,icoeff,iam
+  real(dp) :: tt
   real(gp) :: exponent,coefficient
-  integer, dimension(:), allocatable :: nshell,iorbtmp,iw
+  integer, dimension(:), allocatable :: nshell,iorbtmp
   integer, dimension(:,:), allocatable :: nam,ndoc
   real(gp), dimension(:), allocatable :: ctmp
   real(gp), dimension(:,:,:), allocatable :: contcoeff,expo
@@ -440,8 +440,8 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   !local variables
   character(len=*), parameter :: subname='gaussians_to_wavelets'
   integer, parameter :: nterm_max=3
-  logical :: myorbital,maycalc
-  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,i,nterm,ierr,ig,ispinor
+  logical :: maycalc
+  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,nterm,ierr,ispinor
   real(dp) :: normdev,tt,scpr,totnorm
   real(gp) :: rx,ry,rz
   integer, dimension(nterm_max) :: lx,ly,lz
@@ -580,7 +580,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
   real(wp), dimension(G%ncoeff,orbs%nspinor,orbs%norbp), intent(in) :: wfn_gau
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
   !local variables
-  integer :: iat,iorb,ierr,ispinor,ncplx
+  integer :: iorb,ierr,ispinor,ncplx
   real(dp) :: normdev,tt,scpr,totnorm
   real(gp) :: kx,ky,kz
 
@@ -648,7 +648,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   character(len=*), parameter :: subname='gaussians_to_wavelets_orb'
   integer, parameter :: nterm_max=3,maxsizeKB=2048,nw=32000
   logical :: perx,pery,perz
-  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,i,nterm,ierr,ig
+  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,i,nterm,ig
   integer :: nterms_max,nterms,iscoeff,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3
   real(gp) :: rx,ry,rz,gau_a
   integer, dimension(nterm_max) :: lx,ly,lz
@@ -779,7 +779,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
   !local variables
   integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
   real(wp) :: re_cmplx_prod,im_cmplx_prod
-  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
 
   !the filling of the wavefunction should be different if ncplx==1 or 2
   !split such as to avoid intensive call to if statements
@@ -1203,15 +1203,15 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   character(len=6) :: string,symbol
   character(len=100) :: line
   integer, parameter :: nterm_max=3
-  integer :: ngx,nbx,npgf,nst,nend,ng,lshell,num,mmax,myshift,icbas,isbas,nbas,nco,i,ipar,ipg,jat
-  integer :: iorb,jorb,iat,ityp,l,m,nterm,i_all,i_stat,ibas,ig,iset,jbas,iterm,ishell,lmax,m1,m2
+  integer :: ngx,nbx,nst,nend,ng,num,mmax,myshift,i,ipar,ipg,jat
+  integer :: iorb,jorb,iat,ityp,l,m,nterm,i_all,i_stat,ibas,ig,iset,jbas,ishell,lmax
   integer :: ierr
   real(dp) :: tt,normdev
   real(gp) :: rx,ry,rz
-  real(gp) :: exponent,coefficient,scpr,ek
+  real(gp) :: exponent,coefficient,scpr
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
-  integer, dimension(:), allocatable :: nshell,iorbtmp,iw
+  integer, dimension(:), allocatable :: nshell,iorbtmp
   integer, dimension(:,:), allocatable :: nam,ndoc
   real(wp), dimension(:), allocatable :: tpsi,ctmp
   real(gp), dimension(:), allocatable :: psiatn,xp

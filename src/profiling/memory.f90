@@ -61,7 +61,10 @@ subroutine memory_occupation(istat,isize,array,routine)
      memloc%peak=int(0,kind=8)
 
      !Use MPI to have the mpi rank
-     call MPI_COMM_RANK(MPI_COMM_WORLD,memproc,ierr)
+     call MPI_INITIALIZED(memproc,ierr)
+     if (memproc /= 0) then
+        call MPI_COMM_RANK(MPI_COMM_WORLD,memproc,ierr)
+     end if
 
      !open the writing file for the root process
      if (memproc == 0 .and. verbose >= 2) then
@@ -81,7 +84,7 @@ subroutine memory_occupation(istat,isize,array,routine)
 
   select case(array)
   case('count')
-     if (routine=='stop' .and. memproc==0) then
+     if (trim(routine)=='stop' .and. memproc==0) then
         if (verbose >= 2) then
            write(98,'(a,t40,a,t70,4(1x,i12))')&
              trim(memloc%routine),trim(memloc%array),&
@@ -110,7 +113,7 @@ subroutine memory_occupation(istat,isize,array,routine)
         else
            call memory_malloc_check(memdebug,memalloc,memdealloc)
         end if
-     else
+     else if (trim(routine)/='stop') then
          write(*,*) "memocc: ",array," ",routine
          write(*,"(a,i0,a)") "Error[",memproc,"]: Use memocc and the word 'count' only with the word 'stop'."
          stop

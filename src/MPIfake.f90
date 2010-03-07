@@ -119,3 +119,10 @@
         implicit none
         stop 'MPIFAKE: WAITALL'
         end subroutine  MPI_WAITALL
+
+        subroutine MPI_INITIALIZED(init,ierr)
+          implicit none
+          integer, intent(out) :: init,ierr
+          init=1
+          ierr=0
+        end subroutine  MPI_INITIALIZED

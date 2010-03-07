@@ -530,13 +530,13 @@ module module_interfaces
        real(gp), dimension(3,nat), intent(in) :: rxyz
      end subroutine writeonewave
 
-     subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,& 
+     subroutine davidson(iproc,nproc,n1i,n2i,in,at,& 
           orbs,orbsv,nvirt,lr,comms,&
           hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,n1i,n2i,n3i
+       integer, intent(in) :: iproc,nproc,n1i,n2i
        integer, intent(in) :: i3xcsh
        integer, intent(in) :: nvirt,n3p
        type(input_variables), intent(in) :: in
@@ -853,11 +853,11 @@ module module_interfaces
        integer, intent(out) ::  nat
      end subroutine read_density_cube
 
-     subroutine gaussian_pswf_basis(iproc,nspin,at,rxyz,G,Gocc)
+     subroutine gaussian_pswf_basis(ng,iproc,nspin,at,rxyz,G,Gocc)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nspin
+       integer, intent(in) :: iproc,nspin,ng
        type(atoms_data), intent(in) :: at
        real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
        type(gaussian_basis), intent(out) :: G
@@ -875,6 +875,18 @@ module module_interfaces
        real(gp), dimension(3),intent(in) :: shift
        real(wp), dimension(:), pointer :: psi,psivirt
      end subroutine local_analysis
+
+     subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
+       use module_base
+       use module_types
+       implicit none
+       character(len=*), intent(in) :: filename
+       integer, intent(in) :: iat,ngx
+       type(gaussian_basis), intent(in) :: G
+       real(wp), dimension(:), pointer :: Gocc
+       real(wp), dimension((ngx*(ngx+1))/2), intent(out) :: rhoexpo
+       real(wp), dimension((ngx*(ngx+1))/2,4), intent(out) :: rhocoeff
+     end subroutine plot_gatom_basis
 
   end interface
 

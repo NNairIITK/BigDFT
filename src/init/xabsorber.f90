@@ -110,7 +110,7 @@ subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
   integer :: i,j,k,n,INFO, LWORK
   real(gp) :: b1,b2, B, spi, pi
   real(gp) :: W(0:ng), WORK(3*(ng+1)*(ng+1))
-  real(gp) ::  sum, totalpow, ggg, gamma
+  real(gp) ::  sum, totalpow, ggg, gamma_restricted
 
 
   lwork= 3*(ng+1)*(ng+1)
@@ -127,7 +127,7 @@ subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
         
         B=b1+b2
         
-        ggg= gamma( (1.0_gp+totalpow)/2.0_gp   )
+        ggg= gamma_restricted( (1.0_gp+totalpow)/2.0_gp   )
         Soverlap(i,j)=0.5_gp* ggg * B**(-(1.0D0+totalpow)/2 )
      enddo
      do k=1, Ngrid
@@ -1074,7 +1074,7 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
    enddo
 
    
-   fase  = Phase(Eguess,NGRID, r,v,nonloc,y, l,1 ,  Z  ,0)
+   fase  = Phase(Eguess,NGRID, r,v,nonloc,y, l,1 ,0)
    E=Eguess;
 
    return
@@ -1128,10 +1128,10 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
 ! projectors, just in case
   if ( .not. noproj) then
      do l=0,lpx
-        gml1=sqrt( gamma(real(l,gp)+1.5_gp) / (2._gp*alps(l+1)**(2*l+3)) )
-        gml2=sqrt( gamma(real(l,gp)+3.5_gp) / (2._gp*alps(l+1)**(2*l+7)) )&
+        gml1=sqrt( gamma_restricted(real(l,gp)+1.5_gp) / (2._gp*alps(l+1)**(2*l+3)) )
+        gml2=sqrt( gamma_restricted(real(l,gp)+3.5_gp) / (2._gp*alps(l+1)**(2*l+7)) )&
             /(real(l,gp)+2.5_gp)
-        gml3=sqrt( gamma(real(l,gp)+5.5_gp) / (2._gp*alps(l+1)**(2*l+11)) )&
+        gml3=sqrt( gamma_restricted(real(l,gp)+5.5_gp) / (2._gp*alps(l+1)**(2*l+11)) )&
             /((real(l,gp)+3.5_gp)*(real(l,gp)+4.5_gp))
         tt=1._gp/(2._gp*alps(l+1)**2)
         do i=0,ng
@@ -1302,7 +1302,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
  
 
      loop_l: do l=0,lmax
-        gml=.5_gp*gamma(.5_gp+real(l,gp))
+        gml=.5_gp*gamma_restricted(.5_gp+real(l,gp))
 
 !  lower triangles only
         loop_i: do i=0,ng
@@ -1339,9 +1339,9 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
 ! potential from repulsive gauss potential
               tt=alpl**2/(.5_gp+d*alpl**2)
               if (1.eq.1) then
-              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
-                   + (gpot(2)/alpl**2)*.5_gp*gamma(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
-                   + (gpot(3)/alpl**4)*.5_gp*gamma(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))
+              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma_restricted(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
+                   + (gpot(2)/alpl**2)*.5_gp*gamma_restricted(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
+                   + (gpot(3)/alpl**4)*.5_gp*gamma_restricted(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))
            endif
 ! separable terms
               if (1.eq.1 .and. l.le.lpx) then
@@ -1654,10 +1654,10 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 ! projectors, just in case
   if ( .not. noproj) then
      do l=0,lpx
-        gml1=sqrt( gamma(real(l,gp)+1.5_gp) / (2._gp*alps(l+1)**(2*l+3)) )
-        gml2=sqrt( gamma(real(l,gp)+3.5_gp) / (2._gp*alps(l+1)**(2*l+7)) )&
+        gml1=sqrt( gamma_restricted(real(l,gp)+1.5_gp) / (2._gp*alps(l+1)**(2*l+3)) )
+        gml2=sqrt( gamma_restricted(real(l,gp)+3.5_gp) / (2._gp*alps(l+1)**(2*l+7)) )&
             /(real(l,gp)+2.5_gp)
-        gml3=sqrt( gamma(real(l,gp)+5.5_gp) / (2._gp*alps(l+1)**(2*l+11)) )&
+        gml3=sqrt( gamma_restricted(real(l,gp)+5.5_gp) / (2._gp*alps(l+1)**(2*l+11)) )&
             /((real(l,gp)+3.5_gp)*(real(l,gp)+4.5_gp))
         tt=1._gp/(2._gp*alps(l+1)**2)
         do i=0,ng
@@ -1828,7 +1828,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
  
 
      loop_l: do l=0,lmax
-        gml=.5_gp*gamma(.5_gp+real(l,gp))
+        gml=.5_gp*gamma_restricted(.5_gp+real(l,gp))
 
 !  lower triangles only
         loop_i: do i=0,ng
@@ -1865,9 +1865,9 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 ! potential from repulsive gauss potential
               tt=alpl**2/(.5_gp+d*alpl**2)
               if (1.eq.1) then
-              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
-                   + (gpot(2)/alpl**2)*.5_gp*gamma(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
-                   + (gpot(3)/alpl**4)*.5_gp*gamma(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))
+              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma_restricted(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
+                   + (gpot(2)/alpl**2)*.5_gp*gamma_restricted(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
+                   + (gpot(3)/alpl**4)*.5_gp*gamma_restricted(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))
            endif
 ! separable terms
               if (1.eq.1 .and. l.le.lpx) then

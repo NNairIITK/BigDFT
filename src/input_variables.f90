@@ -682,9 +682,9 @@ subroutine perf_input_variables(iproc,filename,inputs)
         write(*, "(1x,a)") "Performance options (file 'input.perf' not present):"
      end if
      if (inputs%debug) then
-        write(*, "(1x,a,3x,a)") "|","'debug' option enable"
+        write(*, "(1x,a,3x,a)") "|","'debug' option enabled"
      else
-        write(*, "(1x,a,3x,a)") "|","'debug' option disable"
+        write(*, "(1x,a,3x,a)") "|","'debug' option disabled"
      end if
      write(*,"(1x,a,3x,a,i0)")  "|","'fftcache' = ",inputs%ncache_fft
      write(*,*)
@@ -1050,12 +1050,13 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
 
   if (atoms%format == "xyz") then
      read(99,*) atoms%nat,atoms%units
- 
+
      allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,rxyz,'rxyz',subname)
 
      !read atomic positions
      call read_atomic_positions(iproc,99,atoms,rxyz)
+
   else if (atoms%format == "ascii") then
      !read atomic positions
      call read_ascii_positions(iproc,99,atoms,rxyz)

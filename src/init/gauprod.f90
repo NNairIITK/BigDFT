@@ -226,21 +226,21 @@ end subroutine write_gaussian_information
 !!
 !! SOURCE
 !!
-subroutine gaussian_pswf_basis(iproc,nspin,at,rxyz,G,Gocc)
+subroutine gaussian_pswf_basis(ng,iproc,nspin,at,rxyz,G,Gocc)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nspin
+  integer, intent(in) :: iproc,nspin,ng
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
   type(gaussian_basis), intent(out) :: G
   real(wp), dimension(:), pointer :: Gocc
   !local variables
   character(len=*), parameter :: subname='gaussian_pswf_basis'
-  integer, parameter :: ngx=31,noccmax=2,lmax=4,nmax=6,nelecmax=32
+  integer, parameter :: noccmax=2,lmax=4,nmax=6,nelecmax=32
   logical :: occeq
   integer :: i_stat,i_all,iat,ityp,ishell,iexpo,l,i,ig,ictotpsi,norbe,norbsc,ishltmp
-  integer :: ityx,ntypesx,ng,nspinor,jat,noncoll,icoeff,iocc,nlo,ispin,m,icoll
+  integer :: ityx,ntypesx,nspinor,jat,noncoll,icoeff,iocc,nlo,ispin,m,icoll
   real(gp) :: ek
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
@@ -328,7 +328,6 @@ subroutine gaussian_pswf_basis(iproc,nspin,at,rxyz,G,Gocc)
 
 
   !the default value for the gaussians is chosen to be 21
-  ng=21
   allocate(xpt(ng,ntypesx+ndebug),stat=i_stat)
   call memocc(i_stat,xpt,'xpt',subname)
   allocate(psiat(ng,5,ntypesx+ndebug),stat=i_stat)

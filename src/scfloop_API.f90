@@ -122,7 +122,7 @@ end subroutine scfloop_main
 !! FUNCTION
 !! SOURCE
 !!
-subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, vel, xred)
+subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel, xred)
   use scfloop_API
   use module_base
   use module_types
@@ -134,11 +134,11 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, vel, xred)
   integer, intent(in) :: natom, itime, me
   real(dp), intent(in) :: epot, ekin
   real(dp), intent(in) :: acell(3)
-  real(dp), intent(in) :: xred(3,natom)
+  real(dp), intent(in) :: rprimd(3,3), xred(3,natom)
   real(dp), intent(in) :: fred(3, natom), vel(3, natom)
   !Local variables
   character(len=*), parameter :: subname='scfloop_output'
-  character(len = 4) :: fn4
+  character(len = 5) :: fn5
   character(len = 40) :: comment
   integer :: i, i_stat, i_all
   real :: fnrm
@@ -157,9 +157,9 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, vel, xred)
           & fred(3, i) * acell(3) * fred(3, i) * acell(3)
   end do
 
-  write(fn4,'(i4.4)') itime+itime_shift_for_restart
+  write(fn5,'(i5.5)') itime+itime_shift_for_restart
   write(comment,'(a,1pe10.3)')'AB6MD:fnrm= ', sqrt(fnrm)
-  call write_atomic_file('posout_'//fn4, epot + ekin, xcart, scfloop_at, trim(comment))
+  call write_atomic_file('posmd_'//fn5, epot + ekin, xcart, scfloop_at, trim(comment))
 
   !write velocities
   write(comment,'(a,i6.6)')'Timestep= ',itime+itime_shift_for_restart
