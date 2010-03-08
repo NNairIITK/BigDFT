@@ -600,12 +600,14 @@ program conv_check
            call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work_GPU)
            call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work2_GPU)
            call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, v_GPU)
+           call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, psi_c_GPU)
+           call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, psi_f_GPU)
            call ocl_enqueue_write_buffer(queue, work_GPU, n1bis*n2bis*n3bis*8, psi_cuda_k_in_a)
            call ocl_enqueue_write_buffer(queue, psi_GPU, n1bis*n2bis*n3bis*8, psi_cuda_k_in_a)
            call cpu_time(t0)
            do itimes=1,ntimes
-             call kinetic_d(queue,n1bis,n2bis,n3bis,(/0.1d0,.1d0,.1d0/),&
-                            work_GPU,psi_GPU,work2_GPU,v_GPU)
+             call kinetic_stable_d(queue,n1bis,n2bis,n3bis,(/0.1d0,.1d0,.1d0/),&
+                            work_GPU,psi_GPU,work2_GPU,v_GPU,psi_c_GPU,psi_f_GPU)
            end do
            call ocl_finish(queue);
            call cpu_time(t1)
@@ -615,6 +617,8 @@ program conv_check
            call ocl_release_mem_object(work_GPU)
            call ocl_release_mem_object(work2_GPU)
            call ocl_release_mem_object(v_GPU)
+           call ocl_release_mem_object(psi_c_GPU)
+           call ocl_release_mem_object(psi_f_GPU)
 
            GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
