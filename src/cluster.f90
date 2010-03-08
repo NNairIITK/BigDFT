@@ -110,6 +110,7 @@
         call memocc(i_stat,i_all,'eval',subname)
 
         call deallocate_wfd(rst%Glr%wfd,subname)
+
         !finalize memory counting (there are still the positions and the forces allocated)
         call memocc(0,0,'count','stop')
 
@@ -595,7 +596,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
-     call read_gaussian_information(iproc,nproc,orbs,gbd,gaucoeffs,'wavefunctions.gau')
+     call read_gaussian_information(orbs,gbd,gaucoeffs,'wavefunctions.gau')
      !associate the new positions, provided that the atom number is good
      if (gbd%nat == atoms%nat) then
         gbd%rxyz=>rxyz
@@ -747,6 +748,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                 in%correct_offset)
 
         else
+
+!!$           !to be inserted once it is tested in the PS_Check procedure
+!!$           call XC_potential(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
+!!$                ixc,hxh,hyh,hzh,rhopot,eexcu,vexcu,nspin,potxc)
+
            call PSolver(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
                 ixc,hxh,hyh,hzh,&
                 rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,in%nspin,&
@@ -868,14 +874,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !extract the gaussian basis from the pseudowavefunctions
 !!!     if (in%inputPsiId == 11) then
 !!!        !extract the gaussian basis from the pseudowavefunctions
-!!!        call gaussian_pswf_basis(iproc,atoms,rxyz,gbd)
+!!!        call gaussian_pswf_basis(21,iproc,atoms,rxyz,gbd)
 !!!     else if (in%inputPsiId == 12) then
 !!!        !extract the gaussian basis from the pseudopotential
 !!!        call gaussian_psp_basis(atoms,rxyz,gbd)
 !!!     end if
 
      !extract the gaussian basis from the pseudowavefunctions
-     call gaussian_pswf_basis(iproc,in%nspin,atoms,rxyz,gbd,gbd_occ)
+     call gaussian_pswf_basis(21,iproc,in%nspin,atoms,rxyz,gbd,gbd_occ)
 
      if (associated(gbd_occ)) then
         i_all=-product(shape(gbd_occ))*kind(gbd_occ)
@@ -1357,17 +1363,13 @@ contains
        call memocc(i_stat,i_all,'psivirt',subname)
     end if
     
-    if (allocated(irrzon)) then
-       i_all=-product(shape(irrzon))*kind(irrzon)
-       deallocate(irrzon,stat=i_stat)
-       call memocc(i_stat,i_all,'irrzon',subname)
-    end if
-    if (allocated(phnons)) then
-       i_all=-product(shape(phnons))*kind(phnons)
-       deallocate(phnons,stat=i_stat)
-       call memocc(i_stat,i_all,'phnons',subname)
-    end if
+    i_all=-product(shape(irrzon))*kind(irrzon)
+    deallocate(irrzon,stat=i_stat)
+    call memocc(i_stat,i_all,'irrzon',subname)
 
+    i_all=-product(shape(phnons))*kind(phnons)
+    deallocate(phnons,stat=i_stat)
+    call memocc(i_stat,i_all,'phnons',subname)
 
     if (atoms%geocode == 'F') then
        call deallocate_bounds(Glr%bounds,subname)

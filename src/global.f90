@@ -49,8 +49,11 @@ program MINHOP
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
   !call system('echo $HOSTNAME')
 
+  ! Read performance inputs if present
+  call perf_input_variables(iproc,'input.perf',inputs_opt)
+
   ! Initialize memory counting
-  call memocc(0,iproc,'count','start')
+  !call memocc(0,iproc,'count','start')
 
   if (iproc == 0)then
      write(*,'(23x,a)')' NEW '
@@ -114,6 +117,7 @@ program MINHOP
   call geopt_input_variables(iproc,'input.geopt',inputs_opt)
   call kpt_input_variables(iproc,'input.kpt',inputs_opt,atoms)
 
+  !read input parameters for molecular dynamics
   call dft_input_variables(iproc,'mdinput.dft',inputs_md,atoms%symObj)
   call geopt_input_variables(iproc,'mdinput.geopt',inputs_md)
   call kpt_input_variables(iproc,'input.kpt',inputs_md,atoms)

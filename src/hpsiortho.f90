@@ -39,8 +39,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX
   integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
-  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi,istart_ca
-  real(gp) :: eproj
+  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
   real(gp), dimension(3,2) :: wrkallred
   real(wp), dimension(:), pointer :: pot
   integer,parameter::lupfil=14
@@ -239,7 +238,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   !local variables
   character(len=*), parameter :: subname='hpsitopsi'
   integer :: ierr,iorb,k,i_stat,i_all
-  real(dp) :: tt,scprpart
+  real(dp) :: tt
   real(wp), dimension(:,:,:), allocatable :: mom_vec
 
   !stream ptr array
@@ -500,9 +499,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   character(len=*), parameter :: subname='last_orthon'
   logical :: dowrite !write the screen output
   integer :: i_all,i_stat,iorb,jorb,md
-  real(wp) :: evpart
   real(wp), dimension(:,:,:), allocatable :: mom_vec
-
 
   
   if (present(opt_keeppsit)) then

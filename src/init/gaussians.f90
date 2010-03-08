@@ -1,3 +1,209 @@
+!plot all the elements of the gaussian basis for a given diffusion center
+!provide also the basis set in which the atomic density is expressed
+!attention: it works only when the exponenets are always of the same type
+!           which is typical of gatom
+! no good, they have to be converted shell-by-shell
+subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iat,ngx
+  type(gaussian_basis), intent(in) :: G
+  real(wp), dimension(:), pointer :: Gocc
+  real(wp), dimension((ngx*(ngx+1))/2), intent(out) :: rhoexpo
+  real(wp), dimension((ngx*(ngx+1))/2,4), intent(out) :: rhocoeff
+  !local variables
+  integer, parameter :: nterm_max=3,nshell_max=10,ngrid_points=5000
+  integer :: jat,ishell,iexpo,icoeff,isat,ng,l,m,jshell,jexpo,jsat,ig,igrid
+  integer :: kshell,kexpo,jg,kg,ngk,ksat,ngj,jcoeff,irexpo
+  real(gp) :: mexpo,hg,x,scalprod,charge,occ,combine_exponents,tt
+  integer, dimension(nterm_max) :: lx,ly,lz
+  real(gp), dimension(nterm_max) :: fac_arr
+  real(gp), dimension(nshell_max+1) :: shells
+    
+  open(unit=79,file=filename,status='unknown')
+
+  ishell=0
+  iexpo=1
+  icoeff=1
+  do jat=1,G%nat
+     if (jat == iat) then
+        jshell=ishell
+        jexpo=iexpo
+        !control whether the number of elements of the shell is too large
+        if (G%nshell(jat) > nshell_max) then
+           write(*,*)'ERROR: nshell_max not big enough:',nshell_max,G%nshell(jat)
+           stop
+        end if
+        !calculate the min exponent for the grid mesh
+!!$        mexpo=1.e100_gp
+!!$        do jsat=1,G%nshell(jat)
+!!$           jshell=jshell+1
+!!$           ng=G%ndoc(jshell)
+!!$           do ig=1,ng
+!!$              mexpo=min(mexpo,G%xp(jexpo))
+!!$              jexpo=jexpo+1
+!!$           end do 
+           !take the grid spacing as one fifth of the minimum expo
+        !take the grid spacing little enough
+        hg=0.005_gp
+!!$        end do
+        !construct the array of the wavefunctions
+        write(79,'(a,2x,20(8x,i8))')'# l',(G%nam(jsat)-1,jsat=1,G%nshell(jat))
+        !verify whether there are two angular momentum which are equal
+        !and calculate their scalar product
+        jshell=ishell
+        jexpo=iexpo
+        jcoeff=icoeff
+        call razero((ngx*(ngx+1))/2*4,rhocoeff)
+        do jsat=1,G%nshell(jat)
+           jshell=jshell+1
+           ngj=G%ndoc(jshell)
+           l=G%nam(jshell)
+           !occupation number of this shell (spherical approx)
+           occ=0.0_gp
+           do m=1,2*l-1
+              occ=occ+Gocc(jcoeff+m-1)
+           end do
+           jcoeff=jcoeff+2*l-1
+           kshell=jshell
+           kexpo=jexpo+ngj
+           do ksat=jsat+1,G%nshell(jat)
+              kshell=kshell+1
+              ngk=G%ndoc(kshell)
+              if (G%nam(jshell) == G%nam(kshell)) then
+                 !if it is the case, calculate the scalar product, in units of sqrt(pi)/4
+                 scalprod=0.0_gp
+                 do jg=1,ngj
+                    do kg=1,ngk
+                       tt=combine_exponents(G%xp(jexpo+jg-1),G%xp(kexpo+kg-1))
+                       scalprod=scalprod+&
+                            G%psiat(jexpo+jg-1)*G%psiat(kexpo+kg-1)*tt**3
+                    end do
+                 end do
+                 !restore the correct normalisation
+                 scalprod=0.5_gp*sqrt(8.0_gp*atan(1.0_dp))*scalprod
+                 write(*,'(1x,a,i3,a,i3,a,i3,a,1pe15.7)')&
+                      ' Orthogonality of shells: ',jshell,' and ',kshell,&
+                      ' (l=',G%nam(jshell)-1,')=',scalprod
+              end if
+              kexpo=kexpo+ngk
+           end do
+           !define the exponents
+           if (jsat == 1) then
+              irexpo=0
+              do jg=1,ngj
+                 do kg=jg,ngj
+                    irexpo=irexpo+1
+                    rhoexpo(irexpo)=combine_exponents(G%xp(jexpo+jg-1),G%xp(jexpo+kg-1))
+                 end do
+              end do
+           end if
+           !define the coefficients of the density
+           irexpo=0
+           do jg=1,ngj
+              irexpo=irexpo+1
+              rhocoeff(irexpo,l)=rhocoeff(irexpo,l)+occ*G%psiat(jexpo+jg-1)**2
+              do kg=jg+1,ngj
+                 irexpo=irexpo+1
+                 rhocoeff(irexpo,l)=rhocoeff(irexpo,l)+&
+                      2.0_gp*occ*G%psiat(jexpo+jg-1)*G%psiat(jexpo+kg-1)
+              end do
+           end do
+           jexpo=jexpo+ngj
+        end do
+
+        !total charge
+        charge=0.0_gp
+        do igrid=1,ngrid_points
+           x=hg*real(igrid-1,gp)
+           jshell=ishell
+           jexpo=iexpo
+           jcoeff=icoeff
+           !charge density
+           shells(G%nshell(jat)+1)=0.0_gp
+           !analytic version
+           shells(G%nshell(jat)+2)=0.0_gp
+           do jsat=1,G%nshell(jat)
+              jshell=jshell+1
+              shells(jsat)=0.0_gp
+              ng=G%ndoc(jshell)
+              l=G%nam(jshell)
+              !occupation number of this shell (spherical approx)
+              occ=0.0_gp
+              do m=1,2*l-1
+                 occ=occ+Gocc(jcoeff+m-1)
+              end do
+              do ig=1,ng
+                 shells(jsat)=shells(jsat)+&
+                      G%psiat(jexpo)*exp(-0.5_gp/(G%xp(jexpo)**2)*x**2)
+                 jexpo=jexpo+1
+              end do
+              if (l>1) shells(jsat)=x**(l-1)*shells(jsat)
+              !calculate the charge density
+              shells(G%nshell(jat)+1)=shells(G%nshell(jat)+1)+occ*shells(jsat)**2
+              jcoeff=jcoeff+2*l-1
+           end do
+           !calculate the density with the analytic version
+           do ig=1,(ngx*(ngx+1))/2
+              shells(G%nshell(jat)+2)=shells(G%nshell(jat)+2)+&
+                   (rhocoeff(ig,1)+x**2*rhocoeff(ig,2)+x**4*rhocoeff(ig,3)+x**6*rhocoeff(ig,4))*&
+                   exp(-0.5_gp/(rhoexpo(ig)**2)*x**2)
+           end do
+
+           !shells(G%nshell(jat)+1)=shells(G%nshell(jat)+1)
+           charge=charge+x**2*shells(G%nshell(jat)+1)
+           !write file
+           write(79,'(20(1x,1pe15.7))')x,(shells(jsat),jsat=1,G%nshell(jat)+2)
+        end do
+        write(*,*)' Total charge density: ',charge*hg
+        !calculation of total charge density in the analytic sense
+        !to be done again
+        charge=0.0_gp
+        do ig=1,(ng*(ng+1))/2
+           charge=charge+rhocoeff(ig,1)*rhoexpo(ig)**3
+        end do
+        !correct normalisation
+        charge=0.5_gp*sqrt(8.0_gp*atan(1.0_dp))*charge
+        write(*,*)' Total charge density, analytic (not supposed to work): ',charge
+     end if
+     do isat=1,G%nshell(jat)
+        !construct the values of the wavefunctions in the grid points
+        ishell=ishell+1
+        ng=G%ndoc(ishell)
+        l=G%nam(ishell)
+        iexpo=iexpo+ng
+!!$        !calculate coefficients for a given shell
+!!$        do m=1,2*l-1
+!!$           print *,jat,'shell',ishell,'occnum',Gocc(icoeff+m-1)
+!!$        end do
+        icoeff=icoeff+2*l-1
+     end do
+  end do
+
+  call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
+
+  close(unit=79)
+
+end subroutine plot_gatom_basis
+
+function combine_exponents(sa,sb)
+  use module_base
+  implicit none
+  real(gp), intent(in) :: sa,sb
+  real(gp) :: combine_exponents
+  !local variables
+  real(gp) :: alpha
+  
+  alpha=sa**2
+  alpha=alpha+sb**2
+  alpha=sqrt(1.0_gp/alpha)
+  alpha=sa*alpha
+  combine_exponents=sb*alpha
+  
+end function combine_exponents
+
 !!****f* BigDFT/nonblocking_transposition
 !! FUNCTION
 !!    Perform a set of non-blocking send-receive operations

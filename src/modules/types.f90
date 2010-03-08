@@ -43,7 +43,7 @@ module module_types
      integer ::  potshortcut
      integer ::  nsteps
 
-     ! For Frequencies calculations (finite difference)
+     ! Frequencies calculations (finite difference)
      real(gp) :: freq_alpha
      integer :: freq_order
      integer :: freq_method
@@ -61,6 +61,12 @@ module module_types
      real(gp) :: bmass, vmass, strprecon, strfact
      real(gp) :: strtarget(6)
      real(gp), pointer :: qmass(:)
+
+     ! Performance variables from input.perf
+     ! Debug option (used by memocc)
+     logical :: debug
+     ! Cache size for FFT
+     integer :: ncache_fft
 
   end type input_variables
 !!***

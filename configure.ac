@@ -527,7 +527,7 @@ tests/Makefile
 tests/C/Makefile
 tests/Ca2/Makefile
 tests/H/Makefile
-tests/H-spin/Makefile
+tests/H2-spin/Makefile
 tests/Li+/Makefile
 tests/Mn2/Makefile
 tests/NaCl/Makefile

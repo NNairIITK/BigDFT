@@ -1,6 +1,14 @@
-!!****p* BigDFT/fft_check
+!!****p* BigDFT/fft_cache
 !!
 !! DESCRIPTION
+!!   Check the best cache size
+!!
+!! COPYRIGHT
+!!   Copyright (C) Stefan Goedecker, CEA Grenoble, 2002, Basel University, 2009
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
+!!
+!! SYNOPSIS
 !!   3-dimensional complex-complex FFT routine: 
 !!   When compared to the best vendor implementations on RISC architectures 
 !!   it gives close to optimal performance (perhaps loosing 20 percent in speed)
@@ -9,26 +17,12 @@
 !!   On all vector machines tested so far (Cray, NEC, Fujitsu) is 
 !!   was significantly faster than the vendor routines
 !!
-!! The theoretical background is described in :
-!! 1) S. Goedecker: Rotating a three-dimensional array in optimal
-!! positions for vector processing: Case study for a three-dimensional Fast
-!! Fourier Transform, Comp. Phys. Commun. \underline{76}, 294 (1993)
-!! Citing of this reference is greatly appreciated if the routines are used 
-!! for scientific work.
-!!
-!! COPYRIGHT
-!!   Copyright (C) Stefan Goedecker, CEA Grenoble, 2002, Basel University, 2009
-!!   This file is distributed under the terms of the
-!!   GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! SYNOPSIS
-!!   Presumably good compiler flags:
-!!   IBM, serial power 2: xlf -qarch=pwr2 -O2 -qmaxmem=-1
-!!   with OpenMP: IBM: xlf_r -qfree -O4 -qarch=pwr3 -qtune=pwr3 -qsmp=omp -qmaxmem=-1 ; 
-!!                     a.out
-!!   DEC: f90 -O3 -arch ev67 -pipeline
-!!   with OpenMP: DEC: f90 -O3 -arch ev67 -pipeline -omp -lelan ; 
-!!                     prun -N1 -c4 a.out
+!!  The theoretical background is described in :
+!!  1) S. Goedecker: Rotating a three-dimensional array in optimal
+!!  positions for vector processing: Case study for a three-dimensional Fast
+!!  Fourier Transform, Comp. Phys. Commun. \underline{76}, 294 (1993)
+!!  Citing of this reference is greatly appreciated if the routines are used 
+!!  for scientific work.
 !!
 !! SOURCE
 !!
@@ -38,8 +32,27 @@ program fft_cache
    implicit none
    integer, parameter :: nsize_dat = 20000000
    integer, parameter :: iunit=21
+   character (len=100) :: tatonam
    integer :: ip,jp,n3,ndat,ntime
    real(kind=8) :: time,tela
+
+! Get arguments
+
+  call getarg(1,tatonam)
+
+  if(trim(tatonam)=='') then
+     write(*,'(1x,a)')&
+          'Usage: ./fft_cache <cache_size>'
+     write(*,'(1x,a)')&
+          'Indicate the cache size in kB for FFT test'
+     stop
+  else
+     !Read the cache size
+     read(unit=tatonam,fmt=*) ncache
+     ncache = ncache*1024
+     write(unit=6,fmt="(a,i0,a)",advance="no") "Cache size=",ncache,":"
+  end if
+
    open(unit=iunit,file="fft_cache.dat",status="unknown",position="append")
    do ip=1,ndata,10
       n3 = i_data(ip)
@@ -49,11 +62,12 @@ program fft_cache
       do jp=1,ntime
          call do_fft(ndat, n3, time, tela)
       end do
-      write(unit=6,fmt="(a,i0,a)",advance="no") "(",n3,")"
+      write(unit=6,fmt="(a,i0,a)",advance="no") "[",n3,"]"
       write(unit=iunit,fmt=*) ncache,n3,ndat,time,tela
    end do
-   write(unit=iunit,fmt=*) 
+   write(unit=iunit,fmt=*)
    close(unit=iunit)
+   write(unit=6,fmt="(a)") 
 
 contains
 
@@ -73,7 +87,6 @@ contains
       real(kind=8), allocatable :: zin(:,:)
       ! arrays for FFT 
       real(kind=8), allocatable :: z(:,:,:)
-      character(len=10) :: message
 
       nd3=n3+1
       nddat=ndat+1

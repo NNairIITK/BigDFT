@@ -29,7 +29,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,shift,lr,orbs,orbsv,psi,psivirt)
   end if
 
   !define the local basis starting from the input files
-  call read_input_variables(iproc,'posinp','input.dft','','',inc,atc,cxyz)
+  call read_input_variables(iproc,'posinp','input.dft','','','',inc,atc,cxyz)
 
   allocate(radii_cf_fake(atc%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf_fake,'radii_cf_fake',subname)
@@ -47,7 +47,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,shift,lr,orbs,orbsv,psi,psivirt)
   nullify(G%rxyz)
 
   !extract the gaussian basis from the pseudowavefunctions
-  call gaussian_pswf_basis(iproc,inc%nspin,atc,cxyz,G,Gocc)
+  call gaussian_pswf_basis(21,iproc,inc%nspin,atc,cxyz,G,Gocc)
 
   allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
   call memocc(i_stat,thetaphi,'thetaphi',subname)
@@ -191,7 +191,7 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
         rad=0.0_wp
         radnorm=0.0_wp
         do ig=1,ng
-           r=sqrt(0.5_wp/G%xp(iexpo))
+           r=G%xp(iexpo)
            rad=rad+(G%psiat(iexpo))**2*r
            radnorm=radnorm+(G%psiat(iexpo))**2
            iexpo=iexpo+1

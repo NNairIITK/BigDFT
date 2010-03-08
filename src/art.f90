@@ -1,18 +1,27 @@
+!!****p* BigDFT/art90
+!! FUNCTION
+!!  Main program to use BigDFT with art nouveau method
+!!
+!! COPYRIGHT
+!!    Copyright Normand Mousseau, July 2001
+!!    Copyright (C) 2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 program art90
-! This is the main program for ART nouveau version 2001
-! 
-! This version is made to work with SIESTA 2001
-!
-! Copyright Normand Mousseau, July 2001
-!
+
   use DEFS
   use RANDOM
   use lanczos_defs
+
   implicit none
 
-  integer :: i, ierror
+  integer :: ierror
   integer :: npart             ! Number of atoms participating to the eventt
-  integer :: seed
   real(8) :: del_r
   real(8) :: ran3, random_number
   real(8) :: difpos
@@ -64,14 +73,14 @@ program art90
   ! We define the name of the initial file
   mincounter = mincounter -1
   call convert_to_chain(mincounter,scounter)
-  fname =   FINAL // scounter
+  fname = FINAL // scounter
   conf_initial = fname
   mincounter = mincounter +1
 
   do ievent= ievent_restart, NUMBER_EVENTS         ! Main loop over the events
 
     if (iproc .eq. 0 )  call print_newevent(ievent,temperature)
- 
+
     ! We look for a local saddle point b
 
     ! If it is a restart event for the activation, phase 1 or 2, or it is not a restart event
@@ -85,7 +94,7 @@ program art90
 
     ! If not a new event, then a convergence to the saddle point, We do not go further
     if( .not.NEW_EVENT .and. (eventtype .eq. 'REFINE_SADDLE') ) stop
-    
+
     ! If it is a restart event of type 3, we are starting at the right point
     if ( restart .and. (state_restart .eq. 3) ) then
        if (iproc .eq. 0 )  then
@@ -103,7 +112,7 @@ program art90
 
     ! Push the configuration slightly over the saddle point in order to minimise 
     ! the odds that it falls back into its original state
-    
+
     ! we first compute the displacement
 
     del_pos(:) =  pos(:) - posref(:)
@@ -134,16 +143,15 @@ program art90
 
     conf_final = fname
     mincounter = mincounter+1
-    
 
     ! We write out various information to both screen and file
     if (iproc .eq. 0 )  then
        write(*,*) 'Total energy M: ', total_energy, '  npart: ',npart, &
             'del_r: ',del_r,' Number evaluations: ', evalf_number
-       
+
        write(FLOG,*) 'Total energy M: ', total_energy, '  npart: ',npart, &
             'del_r: ',del_r,' Number evaluations: ', evalf_number
-       
+
        ! Now, we accept or reject this move based on a Boltzmann weight
 
        open(unit=FLIST,file=EVENTSLIST,status='unknown',action='write',position='append',iostat=ierror)
@@ -152,13 +160,11 @@ program art90
     if (iproc .eq. 0 ) random_number = ran3()
     call MPI_Bcast(random_number,1,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
 
-
     if( ( (total_energy - ref_energy) < -temperature * log(ran3()) ) .and. (temperature .ge. 0.0d0) ) then
 
        if (iproc .eq. 0 ) then        
           write(*,*) 'New configuration accepted, mincounter was : ', mincounter-1
           write(FLOG,*) 'New configuration accepted, mincounter was : ', mincounter-1
-          
           write(FLIST,*) conf_initial, conf_saddle, conf_final,'    accepted'
        endif
 
@@ -166,7 +172,7 @@ program art90
       scalaref = scala
       posref= pos          ! This is a vectorial copy
       conf_initial = conf_final
-      
+
       ref_energy = total_energy
 
       if (eventtype .eq. "REFINE_AND_RELAX") then
@@ -194,7 +200,7 @@ program art90
     if (iproc .eq. 0 )  then
        close(FLIST)
        close(FLOG)
-       
+
        open(unit=FCOUNTER,file=COUNTER,status='unknown',action='write',iostat=ierror)
        write(FCOUNTER,'(A12,I6)') 'Counter:    ', mincounter
        close(FCOUNTER)
@@ -204,10 +210,15 @@ program art90
   deallocate(del_pos)
 
   call finalise_potential()
-end program
+end program art90
+!!***
 
 
-! This subroutine prints the initial details for a new events
+!!****f* art/print_newevent
+!! FUNCTION
+!!   This subroutine prints the initial details for a new events
+!! SOURCE
+!!
 subroutine print_newevent(ievent_current,temperat)
   use defs
   implicit none
@@ -227,4 +238,5 @@ subroutine print_newevent(ievent_current,temperat)
   close(FLOG)
 
   return
-end subroutine
+end subroutine print_newevent
+!!***

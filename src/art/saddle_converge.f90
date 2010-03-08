@@ -1,15 +1,24 @@
-! Subroutine saddle_convert
-!
-! This subroutine bring the configuration to a saddle point. It does that
-! by first pushing the configuration outside of the harmonic well, using
-! the initial direction selected in find_saddle. Once outside the harmonic
-! well, as defined by the appearance of a negative eigenvalue (or
-! reasonnable size) the configuration follows the direction corresponding
-! to this eigenvalue until the force components parallel and perpdendicular
-! to the eigendirection become close to zero.
-!
-!  Normand Mousseau, June 2001
-
+!!****f* art/saddle_converge
+!! FUNCTION
+!!    In the art method, converge to the saddle point
+!!    This subroutine bring the configuration to a saddle point. It does that
+!!    by first pushing the configuration outside of the harmonic well, using
+!!    the initial direction selected in find_saddle. Once outside the harmonic
+!!    well, as defined by the appearance of a negative eigenvalue (or
+!!    reasonnable size) the configuration follows the direction corresponding
+!!    to this eigenvalue until the force components parallel and perpdendicular
+!!    to the eigendirection become close to zero.
+!!
+!! COPYRIGHT
+!!    Copyright (C) Normand Mousseau, June 2001
+!!    Copyright (C) 2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
   use random
   use defs
@@ -18,15 +27,16 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
   use bigdft_forces
   implicit none
 
+  !Arguments
   integer, intent(out) :: ret
   real(8), intent(out) :: saddle_energy, fpar, fperp
   logical :: new_projection
-
-  integer :: i, j, k, kter, iter, iperp, k_rejected, eigen_rejected, nat
-  integer :: preafor, maxvec,npart,itry, iter_init, kter_init, ierror
+  !Local variables
+  integer :: i, k, kter, iter, iperp, k_rejected, eigen_rejected, nat
+  integer :: maxvec,npart,itry, iter_init, kter_init, ierror
   real(8) :: fdotinit, fperp2,current_fperp
-  real(8) :: step,delr, diff
-  real(8) :: one = 1.0d0
+  real(8) :: step,delr
+  real(8), parameter :: one = 1.0d0
   real(8) :: boxl, current_energy, ftot
   real(8), dimension(VECSIZE) :: posb, perp_force, forceb,perp_forceb
 
@@ -402,3 +412,4 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
     
   end do
 end subroutine saddle_converge
+!!***

@@ -3,7 +3,7 @@
 !!    Fake functions for MPI in the case of serial version
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 BigDFT group 
+!!    Copyright (C) 2007-2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -13,29 +13,33 @@
 !!
         subroutine  MPI_INIT(ierr)
         implicit none
-        integer :: ierr
+        integer, intent(out) :: ierr
+        ierr=0
         end subroutine MPI_INIT
 !!***
         
         subroutine  MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
         implicit none
-        integer :: MPI_COMM_WORLD,iproc,ierr
+        integer, intent(in) :: MPI_COMM_WORLD
+        integer, intent(out) :: iproc,ierr
         iproc=0
-        ierr=0
+        ierr=MPI_COMM_WORLD*0
         end subroutine MPI_COMM_RANK
 
         subroutine  MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
         implicit none
-        integer :: MPI_COMM_WORLD,nproc,ierr
+        integer, intent(in) :: MPI_COMM_WORLD
+        integer, intent(out) :: nproc,ierr
         nproc=1
-        ierr=0
+        ierr=MPI_COMM_WORLD*0
         end subroutine MPI_COMM_SIZE
 
 !here we have routines which do not transform the argument for nproc==1
 !these routines can be safely called also in the serial version
         subroutine  MPI_FINALIZE(ierr)
         implicit none
-        integer :: ierr
+        integer, intent(out) :: ierr
+        ierr=0
         end subroutine MPI_FINALIZE
 
         subroutine MPI_BCAST()
@@ -44,7 +48,9 @@
 
         subroutine  MPI_BARRIER(MPI_COMM_WORLD,ierr)
         implicit none
-        integer MPI_COMM_WORLD,ierr
+        integer, intent(in) :: MPI_COMM_WORLD
+        integer, intent(out) :: ierr
+        ierr=MPI_COMM_WORLD*0
         end subroutine MPI_BARRIER
 
         subroutine MPI_REDUCE()
@@ -113,3 +119,10 @@
         implicit none
         stop 'MPIFAKE: WAITALL'
         end subroutine  MPI_WAITALL
+
+        subroutine MPI_INITIALIZED(init,ierr)
+          implicit none
+          integer, intent(out) :: init,ierr
+          init=1
+          ierr=0
+        end subroutine  MPI_INITIALIZED

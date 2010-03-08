@@ -95,8 +95,7 @@ program fft_check
    call do_fft(  7, 16,128)
    call do_fft(  3, 16,128)
    call do_fft(128,128,128)
-
-
+   !call do_one_fft(128,128,128)
 
 
 contains
@@ -134,39 +133,39 @@ contains
          z(2,i,2)=0.d0
       end do
 
-        call init(n1,n2,n3,nd1,nd2,nd3,zin,z)
+      call init(n1,n2,n3,nd1,nd2,nd3,zin,z)
 
-        i_sign=-1
-        inzee=1
-        call fft(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
+      i_sign=-1
+      inzee=1
+      call fft(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
 
-        call cpu_time(t1)
-        call system_clock(count1,count_rate,count_max)      
+      call cpu_time(t1)
+      call system_clock(count1,count_rate,count_max)      
 
-        i_sign=1
-        call fft(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
+      i_sign=1
+      call fft(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
 
-        call cpu_time(t2)
-        call system_clock(count2,count_rate,count_max)      
-        time=(t2-t1)
-        tela=(count2-count1)/real(count_rate,kind=8)
+      call cpu_time(t2)
+      call system_clock(count2,count_rate,count_max)      
+      time=(t2-t1)
+      tela=(count2-count1)/real(count_rate,kind=8)
 
-        call vgl(n1,n2,n3,nd1,nd2,nd3,z(1,1,inzee), &
-                       n1,n2,n3,zin,1.d0/real(n1*n2*n3,kind=8),tta,ttm)
-        if (ttm.gt.1.d-10) then
-           message = 'Failed'
-        else
-           message = 'Succeeded'
-        end if
-        flops=5*n1*n2*n3*log(1.d0*n1*n2*n3)/log(2.d0)
-        !write(6,'(a,2(x,e11.4),x,i4)')  'Time (CPU,ELA) per FFT call (sec):' ,time,tela
-        !write(6,*) 'Estimated floating point operations per FFT call',flops
-        !write(6,*) 'CPU MFlops',1.d-6*flops/time
-        write(6,'(1x,a,2(1pg9.2),1x,a)') 'Backw<>Forw:ttm=,tta=',ttm,tta,message
+      call vgl(n1,n2,n3,nd1,nd2,nd3,z(1,1,inzee), &
+                     n1,n2,n3,zin,1.d0/real(n1*n2*n3,kind=8),tta,ttm)
+      if (ttm.gt.1.d-10) then
+         message = 'Failed'
+      else
+         message = 'Succeeded'
+      end if
+      flops=5*n1*n2*n3*log(1.d0*n1*n2*n3)/log(2.d0)
+      !write(6,'(a,2(x,e11.4),x,i4)')  'Time (CPU,ELA) per FFT call (sec):' ,time,tela
+      !write(6,*) 'Estimated floating point operations per FFT call',flops
+      !write(6,*) 'CPU MFlops',1.d-6*flops/time
+      write(6,'(1x,a,2(1pg9.2),1x,a)') 'Backw<>Forw:ttm=,tta=',ttm,tta,message
 
-        ! De-allocations
-        deallocate(z)
-        deallocate(zin)
+      ! De-allocations
+      deallocate(z)
+      deallocate(zin)
 
    end subroutine do_fft
 
@@ -174,7 +173,7 @@ contains
       implicit none
       !Arguments
       integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3
-      real*8 :: zin(2,n1,n2,n3),z(2,nd1,nd2,nd3)
+      real(kind=8) :: zin(2,n1,n2,n3),z(2,nd1,nd2,nd3)
       !Local variables
       integer :: i1,i2,i3
       do i3=1,n3
@@ -188,7 +187,6 @@ contains
          end do
       end do
    end subroutine init
-
 
    subroutine vgl(n1,n2,n3,nd1,nd2,nd3,x,md1,md2,md3,y,scale,tta,ttm)
       implicit none
@@ -213,6 +211,136 @@ contains
       end do
       tta=tta/(n1*n2*n3)
    end subroutine vgl
+
+   subroutine do_one_fft(n1,n2,n3)
+
+      implicit none
+
+      ! dimension parameters
+      integer, intent(in) :: n1, n2, n3   
+      ! Local variables
+      integer :: count1,count2,count_rate,count_max,i,inzee,i_sign
+      real(kind=8) :: ttm,tta,t1,t2,tela,time
+      ! parameters for FFT
+      integer :: nd1, nd2, nd3
+      ! general array
+      real(kind=8), allocatable :: zin(:,:),zout(:,:)
+      ! arrays for FFT 
+      real(kind=8), allocatable :: z(:,:,:)
+      character(len=10) :: message
+
+      nd1=n1+1
+      nd2=n2+1
+      nd3=n3+1
+      write(6,'(3(i5))',advance='no') n1,n2,n3
+
+      ! Allocations
+      allocate(zout(2,n1*n2*n3))
+      allocate(zin(2,n1*n2*n3))
+      allocate(z(2,nd1*nd2*nd3,2))
+
+      do i=1,nd1*nd2*nd3
+         z(1,i,1)=0.d0
+         z(2,i,1)=0.d0
+         z(1,i,2)=0.d0
+         z(2,i,2)=0.d0
+      end do
+
+      call init_gaussian(n1,n2,n3,nd1,nd2,nd3,zin,z,zout)
+
+      call cpu_time(t1)
+      call system_clock(count1,count_rate,count_max)
+
+      i_sign=-1
+      inzee=1
+      call fft(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
+
+      call cpu_time(t2)
+      call system_clock(count2,count_rate,count_max)
+
+      time=(t2-t1)
+      tela=(count2-count1)/real(count_rate,kind=8)
+
+      call vgl_gaussian(n1,n2,n3,nd1,nd2,nd3,z(1,1,inzee), &
+                     n1,n2,n3,zout,1.d0/real(n1*n2*n3,kind=8),tta,ttm)
+      if (ttm.gt.1.d-10) then
+         message = 'Failed'
+      else
+         message = 'Succeeded'
+      end if
+      write(6,'(1x,a,2(1pg9.2),1x,a)') 'Backw<>Forw:ttm=,tta=',ttm,tta,message
+
+      ! De-allocations
+      deallocate(z)
+      deallocate(zin)
+      deallocate(zout)
+
+   end subroutine do_one_fft
+
+   subroutine init_gaussian(n1,n2,n3,nd1,nd2,nd3,zin,z,zout)
+      implicit none
+      !Arguments
+      integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3
+      real(kind=8), intent(inout) :: z(2,nd1,nd2,nd3)
+      real(kind=8), intent(out)   :: zin(2,n1,n2,n3),zout(2,n1,n2,n3)
+      !Local variables
+      real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
+      integer :: i1,i2,i3
+      real(kind=8) :: pi,pi2,factor,factor_fft
+      real(kind=8) :: r2,x1,x2,x3,g2,p1,p2,p3
+      !gaussian 1D e^(- x^2/ a^2) : FFT sqrt(a pi) e^(-pi^2 a^2 k^2)
+      pi = 4.d0*atan(1.d0)
+      pi2 = pi*pi
+      !Normalisation
+      factor = 1.d0/(a_gauss*a2*pi*sqrt(pi))
+      factor_fft = 1.d0
+      !gaussian function
+      do i3=1,n3
+         x3 = real(i3-n3/2,kind=8)
+         p3 = real(i3-1,kind=8)
+         do i2=1,n2
+            x2 = real(i2-n2/2,kind=8)
+            p2 = real(i2-1,kind=8)
+            do i1=1,n1
+               x1 = real(i1-n1/2,kind=8)
+               p1 = real(i1-1,kind=8)
+               r2 = x1*x1+x2*x2+x3*x3
+               g2 = pi*(p1*p1+p2*p2+p3*p3)
+               zin(1,i1,i2,i3) = factor*exp(-r2/a2)
+               zin(2,i1,i2,i3) = 0.d0
+               z(1,i1,i2,i3) = zin(1,i1,i2,i3)
+               z(2,i1,i2,i3) = zin(2,i1,i2,i3)
+               zout(1,i1,i2,i3) = factor_fft*exp(-g2*a2)
+               zout(2,i1,i2,i3) = 0.d0
+            end do
+         end do
+      end do
+   end subroutine init_gaussian
+
+   subroutine vgl_gaussian(n1,n2,n3,nd1,nd2,nd3,x,md1,md2,md3,y,scale,tta,ttm)
+      implicit none
+      !Arguments
+      integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3
+      real(kind=8), intent(in) :: x(2,nd1,nd2,nd3),y(2,md1,md2,md3)
+      real(kind=8), intent(in) :: scale
+      !Local variables
+      real(kind=8) :: ttm,tta,ttr,tti
+      integer :: i1,i2,i3
+      ttm=0.d0
+      tta=0.d0
+      do i3=1,n3
+         do i2=1,n2
+            do i1=1,n1
+               ttr=abs(x(1,i1,i2,i3)*scale-y(1,i1,i2,i3))
+               tti=abs(x(2,i1,i2,i3)*scale-y(2,i1,i2,i3))
+               ttm=max(ttr,tti,ttm)
+               tta=tta+ttr+tti
+               print *,i1,i2,i3,x(:,i1,i2,i3),y(:,i1,i2,i3),ttr,tti,ttm,tta
+            end do
+         end do
+      end do
+      tta=tta/(n1*n2*n3)
+   end subroutine vgl_gaussian
 
 end program fft_check
 !!***

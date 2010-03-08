@@ -1,12 +1,22 @@
+!!****m* art/defs
+!! FUNCTION
+!!    This module defines all variables used accross the program ART01
+!!
+!! COPYRIGHT
+!!    Copyright N. Mousseau, May 2001
+!!    Copyright (C) 2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 module defs
-! This module defines all variables used accross the program ART01
-!
-!  Copyright N. Mousseau, May 2001
 
   implicit none
-  save
 
-  real(8) :: VERSION_NUMBER  = 1.5     ! Version of the code
+  real(8), parameter :: VERSION_NUMBER  = 1.5     ! Version of the code
 
   integer :: iproc, nproc ! MPI proc identificators
 
@@ -27,9 +37,9 @@ module defs
   integer, parameter :: FRESTART     = 9        
   integer, parameter :: XYZ          = 13  
   ! Name of the file storing the current configurations
-  character(len=15) :: conf_initial, conf_saddle, conf_final
+  character(len=20) :: conf_initial, conf_saddle, conf_final
   
-  integer, dimension(:), allocatable         :: type                ! Atomic type
+  integer, dimension(:), allocatable          :: type       ! Atomic type
   real(8), dimension(:), allocatable, target  :: force      ! Working forces on the atoms
   real(8), dimension(:), allocatable, target  :: pos        ! Working positions of the atoms
   real(8), dimension(:), allocatable, target  :: posref     ! Reference position
@@ -37,7 +47,6 @@ module defs
   real(8), dimension(:), allocatable :: initial_direction  ! Initial move for leaving harmonic  well
   character(len=5), dimension(:), allocatable :: Atom
   character(len=5), dimension(5) :: type_name
-
 
   real(8), dimension(:), pointer :: x, y, z   ! Pointers for working position
   real(8), dimension(:), pointer :: xref, yref, zref   ! Pointers for reference position
@@ -92,3 +101,4 @@ module defs
   include 'mpif.h'
 
 end module defs
+!!***

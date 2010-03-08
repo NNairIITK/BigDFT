@@ -81,7 +81,7 @@ subroutine make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   !   (0:n3,0:2*n1+1,0:2*n2+1) from grow
   !   (0:2*n2+1,0:2*n3+1,0:n1) from shrink
 
-  !	for shrink:
+  !   for shrink:
   do i2=nfl2,nfu2
      do i1=nfl1,nfu1
         ibxy_ff(:,i1,i2)=ibxy_f(:,i1,i2)
@@ -95,7 +95,7 @@ subroutine make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   do i2=nfl2,nfu2
      do i3=nfl3,nfu3
         ibyz_ff(:,i2,i3)=ibyz_f(:,i2,i3)
-!		write(9,*) i2,i3,ibyz_ff(1,i2,i3),ibyz_ff(2,i2,i3)
+!      write(9,*) i2,i3,ibyz_ff(1,i2,i3),ibyz_ff(2,i2,i3)
      enddo
   enddo
 
@@ -145,7 +145,7 @@ subroutine ib_to_logrid_inv_per(ib,logrid,n,ndat)
 
   do l=1,ndat
      do i = 2*ib(1,l)-14 , 2*ib(2,l)+16
-		ii=modulo(i,2*n+2) 
+      ii=modulo(i,2*n+2) 
         logrid(ii,l)=.true.
      enddo
   enddo

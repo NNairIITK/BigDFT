@@ -1,6 +1,6 @@
 set term wxt 1
 set logscale x
-set title "FFT Time versus the FFT sizei for different cache size"
+set title "FFT Time versus the FFT size for different cache size"
 set xlabel "FFT size array"
 set ylabel "Time (s)"
 plot "< awk '$1 == 0*1024'    fft_cache.dat" using 2:4 title "no cache"    w lp 1, \
