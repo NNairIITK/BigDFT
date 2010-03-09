@@ -1,5 +1,6 @@
 #ifndef KINETIC_K_H
 #define KINETIC_K_H
+#include "OpenCL_wrappers.h"
 
 char * kinetic_k1d_program="\
 #define FILTER_WIDTH 32\n\
@@ -106,5 +107,28 @@ x[jg*2*n + 2*ig] = tmp_o[0];\n\
 x[jg*2*n + 2*ig + 1] = tmp_o[1];\n\
 }\n\
 ";
+
+inline void kinetic_k_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, double *scale1, double *scale2, cl_mem *x_in, cl_mem *x_out, cl_mem *y_in, cl_mem *y_out) {
+  int FILTER_WIDTH = 32;
+  cl_int ciErrNum;
+  assert(*n>=FILTER_WIDTH);
+  size_t block_size_i=FILTER_WIDTH;
+  size_t block_size_j=8;
+  size_t localWorkSize[] = { block_size_i, block_size_j };
+  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat) };
+  cl_uint i=0;
+  clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+  clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
+  clSetKernelArg(kernel, i++,sizeof(*scale1), (void*)scale1);
+  clSetKernelArg(kernel, i++,sizeof(*scale2), (void*)scale2);
+  clSetKernelArg(kernel, i++,sizeof(*x_in), (void*)x_in);
+  clSetKernelArg(kernel, i++,sizeof(*x_out), (void*)x_out);
+  clSetKernelArg(kernel, i++,sizeof(*y_in), (void*)y_in);
+  clSetKernelArg(kernel, i++,sizeof(*y_out), (void*)y_out);
+  clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*2*(block_size_i+FILTER_WIDTH+1), NULL);
+  clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*2*(block_size_i+1), NULL);
+  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue kinetic_k kernel!");
+} 
 
 #endif
