@@ -6,9 +6,10 @@
 #include <stdlib.h>
 #include <config.h>
 #include <math.h>
+#include <assert.h>
 
 #define DEBUG 0
-#define PROFILING 1
+#define PROFILING 0
 
 #define oclErrorCheck(errorCode,message) if(errorCode!=CL_SUCCESS) { fprintf(stderr,"Error(%i) (%s: %s): %s\n", errorCode,__FILE__,__func__,message);exit(1);} 
 
