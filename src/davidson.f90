@@ -188,7 +188,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   
   call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
        nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
-       rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+       rhopot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
        pkernel,orbs,psirocc) ! optional arguments
 
   !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
@@ -444,7 +444,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
-          rhopot(1+i3xcsh*n1i*n2i),g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+          rhopot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
           pkernel,orbs,psirocc) ! optional argument
 
      !transpose  g and hg
@@ -693,7 +693,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
-          rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+          rhopot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
           pkernel,orbs,psirocc) !optional arguments
 
      !transpose  v and hv

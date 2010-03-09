@@ -343,8 +343,12 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      end if
 
      !now call the Poisson Solver for the global energy forces
-     call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-          pot_ion,pkernel,pot_ion,ehart,zero,zero,-2.0_gp*psoffset,.false.,1)
+     call H_potential(at%geocode,'D',iproc,nproc,&
+          n1i,n2i,n3i,hxh,hyh,hzh,&
+          pot_ion,pkernel,pot_ion,ehart,-2.0_gp*psoffset,.false.)
+
+!!$     call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
+!!$          pot_ion,pkernel,pot_ion,ehart,zero,zero,-2.0_gp*psoffset,.false.,1)
 
      eion=ehart-eself
 
@@ -607,8 +611,13 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      call timing(iproc,'CrtLocPot     ','OF')
      !here the value of the datacode must be kept fixed
      nspin=1
-     call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-          pot_ion,pkernel,pot_ion,ehart,eexcu,vexcu,-psoffset,.false.,nspin)
+
+     call H_potential(geocode,'D',iproc,nproc,&
+          n1i,n2i,n3i,hxh,hyh,hzh,&
+          pot_ion,pkernel,pot_ion,ehart,-psoffset,.false.)
+
+!!$     call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
+!!$          pot_ion,pkernel,pot_ion,ehart,eexcu,vexcu,-psoffset,.false.,nspin)
      call timing(iproc,'CrtLocPot     ','ON')
      
      if (check_potion) then
@@ -831,8 +840,12 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
      call timing(iproc,'CrtLocPot     ','OF')
      !here the value of the datacode must be kept fixed
-     call PSolver('F','G',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-          potion_corr,pkernel_ref,potion_corr,ehart,eexcu,vexcu,0.0_gp,.false.,1)
+     call H_potential('F','G',iproc,nproc,&
+          n1i,n2i,n3i,hxh,hyh,hzh,&
+          potion_corr,pkernel_ref,potion_corr,ehart,0.0_gp,.false.)
+
+!!$     call PSolver('F','G',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
+!!$          potion_corr,pkernel_ref,potion_corr,ehart,eexcu,vexcu,0.0_gp,.false.,1)
      call timing(iproc,'CrtLocPot     ','ON')
 
 

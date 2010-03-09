@@ -464,9 +464,14 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
               if (iproc == 0 .and. verbose > 1) then
                  write(*,*)'Exact exchange calculation: spin, orbitals:',ispin,iorb,jorb
               end if
-              call PSolver(geocode,'D',iproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-                   0,hxh,hyh,hzh,rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,zero,zero,&
-                   0.d0,.false.,1,quiet='YES')
+              call H_potential(geocode,'D',iproc,nproc,&
+                   lr%d%n1i,lr%d%n2i,lr%d%n3i,hxh,hyh,hzh,&
+                   rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,0.0_dp,.false.,&
+                   quiet='YES')
+
+!!$              call PSolver(geocode,'D',iproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+!!$                   0,hxh,hyh,hzh,rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,zero,zero,&
+!!$                   0.d0,.false.,1,quiet='YES')
               if (iorb==jorb) then
                  eexctX=eexctX+hfac*real(ehart,gp)
               else
@@ -857,9 +862,14 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
               if (iproc == 0 .and. verbose > 1) then
                  write(*,*)'Exact exchange calculation: spin, orbitals:',ispin,iorb,jorb
               end if
-              call PSolver(geocode,'D',iproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-                   0,hxh,hyh,hzh,rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,zero,zero,&
-                   0.d0,.false.,1,quiet='YES')
+              call H_potential(geocode,'D',iproc,nproc,&
+                   lr%d%n1i,lr%d%n2i,lr%d%n3i,hxh,hyh,hzh,&
+                   rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,0.0_dp,.false.,&
+                   quiet='YES')
+
+!!$              call PSolver(geocode,'D',iproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+!!$                   0,hxh,hyh,hzh,rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,zero,zero,&
+!!$                   0.d0,.false.,1,quiet='YES')
 
            end if
            jorb=jorb+1

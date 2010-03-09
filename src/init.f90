@@ -322,6 +322,7 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
   real(gp) :: hxh,hyh,hzh,eexcu,vexcu,epot_sum,eexctX,ekin_sum,ehart,eproj_sum
   type(gaussian_basis) :: CP2K
   type(GPU_pointers) :: GPU !added for interface compatibility, not working here
+  real(wp), dimension(:), allocatable :: potxc
   real(wp), dimension(:,:), pointer :: wfn_cp2k
 
   if (iproc.eq.0) then
@@ -349,6 +350,15 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
+  !Allocate XC potential
+  if (nscatterarr(iproc,2) >0) then
+     allocate(potxc(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)+ndebug),stat=i_stat)
+     call memocc(i_stat,potxc,'potxc',subname)
+  else
+     allocate(potxc(1+ndebug),stat=i_stat)
+     call memocc(i_stat,potxc,'potxc',subname)
+  end if
+
 
 
 !!!  !put to zero the value of psi function to control what happens for a complex case
@@ -396,8 +406,24 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
        & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,1,GPU,&
        & symObj,irrzon,phnons)
 
-  call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
-       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,1)
+  call XC_potential(at%geocode,'D',iproc,nproc,&
+       Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
+       rhopot,eexcu,vexcu,1,potxc)
+
+  call H_potential(at%geocode,'D',iproc,nproc,&
+       Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+       rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.)
+
+  !spin up and down together with the XC part
+  call axpy(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),1.0_dp,potxc(1),1,&
+       rhopot(1),1)
+  i_all=-product(shape(potxc))*kind(potxc)
+  deallocate(potxc,stat=i_stat)
+  call memocc(i_stat,i_all,'potxc',subname)
+
+
+!!$  call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
+!!$       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,1)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
@@ -406,7 +432,7 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
   call HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,&
        Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-       rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
+       rhopot,&!(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,1,GPU)
 
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,(f19.10))') 'done. ekin_sum',ekin_sum
@@ -482,6 +508,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   type(communications_arrays) :: commse
   type(GPU_pointers) :: GPU
   integer, dimension(:,:), allocatable :: norbsc_arr
+  real(wp), dimension(:), allocatable :: potxc
   real(gp), dimension(:), allocatable :: locrad
   type(locreg_descriptors), dimension(:), allocatable :: Llr
   real(wp), dimension(:,:,:), pointer :: psigau
@@ -580,6 +607,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
        & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
        & symObj, irrzon, phnons)
+
   
   if(orbs%nspinor==4) then
      !this wrapper can be inserted inside the poisson solver 
@@ -588,9 +616,41 @@ subroutine input_wf_diag(iproc,nproc,at,&
           ixc,hxh,hyh,hzh,&
           rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
   else
-     call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
-          ixc,hxh,hyh,hzh,&
-          rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
+     !Allocate XC potential
+     if (nscatterarr(iproc,2) >0) then
+        allocate(potxc(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)*nspin+ndebug),stat=i_stat)
+        call memocc(i_stat,potxc,'potxc',subname)
+     else
+        allocate(potxc(1+ndebug),stat=i_stat)
+        call memocc(i_stat,potxc,'potxc',subname)
+     end if
+
+     call XC_potential(at%geocode,'D',iproc,nproc,&
+          Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
+          rhopot,eexcu,vexcu,nspin,potxc)
+
+     call H_potential(at%geocode,'D',iproc,nproc,&
+          Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+          rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.)
+
+     !sum the two potentials in rhopot array
+     !fill the other part, for spin, polarised
+     if (nspin == 2) then
+        call dcopy(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),rhopot(1),1,&
+             rhopot(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)+1),1)
+     end if
+     !spin up and down together with the XC part
+     call axpy(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)*nspin,1.0_dp,potxc(1),1,&
+          rhopot(1),1)
+
+
+     i_all=-product(shape(potxc))*kind(potxc)
+     deallocate(potxc,stat=i_stat)
+     call memocc(i_stat,i_all,'potxc',subname)
+
+!!$     call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
+!!$          ixc,hxh,hyh,hzh,&
+!!$          rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
   end if
 
 !!!  if (nproc == 1) then
@@ -697,7 +757,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-       rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
+       rhopot,&!(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernel)
 
 !!!  !calculate the overlap matrix knowing that the original functions are gaussian-based

@@ -427,16 +427,8 @@ contains
        call memocc(i_stat,i_all,'xc_temp',subname)
     end if
 
-    !now we can try with the sumpotion=.true. variable
-    !if (ixc /= 0) then
-       call XC_potential(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+    call XC_potential(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
             rhopot(1,1,1,1),eexcu,vexcu,nspden,test_xc)
-    !else
-    !   eexcu=0.0_gp
-    !   vexcu=0.0_gp
-    !   call dscal(n01*n02*n3p*nspden,0.0_dp,test_xc(1),1)
-    !   !call dscal(n01*n02*n3p*nspden,0.5_dp,rhopot(1,1,1,1),1)
-    !end if
 
     call H_potential(geocode,distcode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
           rhopot(1,1,1,1),pkernel,pot_ion(istpoti),ehartree,offset,ixc /= 0,quiet='yes') !optional argument

@@ -334,7 +334,7 @@ program memguess
   allocate(rhoexpo((ng*(ng+1))/2+ndebug),stat=i_stat)
   call memocc(i_stat,rhoexpo,'rhoexpo',subname)
   
-  call plot_gatom_basis('pseudo',1,ng,G,gbd_occ,rhocoeff,rhoexpo)
+  call plot_gatom_basis('gatom-wfn.dat',1,ng,G,gbd_occ,rhocoeff,rhoexpo)
 
   if (associated(gbd_occ)) then
      i_all=-product(shape(gbd_occ))*kind(gbd_occ)
