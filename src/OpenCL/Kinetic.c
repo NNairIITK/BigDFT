@@ -94,7 +94,6 @@ void FC_FUNC_(kinetic1d_d,KINETIC1D_D)(cl_command_queue *command_queue, cl_uint 
   kinetic_generic(kinetic1d_kernel_d, command_queue, n, ndat, &scale, x, workx, worky, y);
 }
 
-
 void clean_kinetic_kernels(){
   clReleaseKernel(kinetic1d_kernel_d);
   clReleaseKernel(kinetic_k1d_kernel_d);

@@ -178,4 +178,99 @@ psi_f[igr * 7 + i + 6*64] = tmp_o[6*64];\n\
 };\n\
 ";
 
+inline void uncompress_coarse_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3,
+                                    cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
+                                    cl_mem *psi_c, cl_mem * psi_out) {
+    cl_int ciErrNum;
+    size_t block_size_i=64;
+    assert( *nvctr_c >= block_size_i );
+    cl_uint i = 0;
+    clSetKernelArg(kernel, i++, sizeof(*n1), (void*)n1);
+    clSetKernelArg(kernel, i++, sizeof(*n2), (void*)n2);
+    clSetKernelArg(kernel, i++, sizeof(*n3), (void*)n3);
+    clSetKernelArg(kernel, i++, sizeof(*nseg_c), (void*)nseg_c);
+    clSetKernelArg(kernel, i++, sizeof(*nvctr_c), (void*)nvctr_c);
+    clSetKernelArg(kernel, i++, sizeof(*keyg_c), (void*)keyg_c);
+    clSetKernelArg(kernel, i++, sizeof(*keyv_c), (void*)keyv_c);
+    clSetKernelArg(kernel, i++, sizeof(*psi_c), (void*)psi_c);
+    clSetKernelArg(kernel, i++, sizeof(*psi_out), (void*)psi_out);
+    size_t localWorkSize[]= { block_size_i };
+    size_t globalWorkSize[] = { shrRoundUp(block_size_i, *nvctr_c) } ;
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    oclErrorCheck(ciErrNum,"Failed to enqueue uncompress_coarse kernel!");
+
+}
+
+inline void uncompress_fine_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3,
+                                    cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                    cl_mem *psi_f, cl_mem * psi_out) {
+    cl_int ciErrNum;
+    size_t block_size_i=64;
+    assert( *nvctr_f >= block_size_i );
+    cl_uint i = 0;
+    clSetKernelArg(kernel, i++, sizeof(*n1), (void*)n1);
+    clSetKernelArg(kernel, i++, sizeof(*n2), (void*)n2);
+    clSetKernelArg(kernel, i++, sizeof(*n3), (void*)n3);
+    clSetKernelArg(kernel, i++, sizeof(*nseg_f), (void*)nseg_f);
+    clSetKernelArg(kernel, i++, sizeof(*nvctr_f), (void*)nvctr_f);
+    clSetKernelArg(kernel, i++, sizeof(*keyg_f), (void*)keyg_f);
+    clSetKernelArg(kernel, i++, sizeof(*keyv_f), (void*)keyv_f);
+    clSetKernelArg(kernel, i++, sizeof(*psi_f), (void*)psi_f);
+    clSetKernelArg(kernel, i++, sizeof(*psi_out), (void*)psi_out);
+    clSetKernelArg(kernel, i++, sizeof(double)*block_size_i*7, NULL);
+    size_t localWorkSize[]= { block_size_i };
+    size_t globalWorkSize[] = { shrRoundUp(block_size_i, *nvctr_f) } ;
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    oclErrorCheck(ciErrNum,"Failed to enqueue uncompress_fine kernel!");
+
+}
+
+
+inline void compress_coarse_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3,
+                                    cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
+                                    cl_mem *psi_c, cl_mem * psi) {
+    cl_int ciErrNum;
+    size_t block_size_i=64;
+    assert( *nvctr_c >= block_size_i );
+    cl_uint i = 0;
+    clSetKernelArg(kernel, i++, sizeof(*n1), (void*)n1);
+    clSetKernelArg(kernel, i++, sizeof(*n2), (void*)n2);
+    clSetKernelArg(kernel, i++, sizeof(*n3), (void*)n3);
+    clSetKernelArg(kernel, i++, sizeof(*nseg_c), (void*)nseg_c);
+    clSetKernelArg(kernel, i++, sizeof(*nvctr_c), (void*)nvctr_c);
+    clSetKernelArg(kernel, i++, sizeof(*keyg_c), (void*)keyg_c);
+    clSetKernelArg(kernel, i++, sizeof(*keyv_c), (void*)keyv_c);
+    clSetKernelArg(kernel, i++, sizeof(*psi_c), (void*)psi_c);
+    clSetKernelArg(kernel, i++, sizeof(*psi), (void*)psi);
+    size_t localWorkSize[]= { block_size_i };
+    size_t globalWorkSize[] = { shrRoundUp(block_size_i, *nvctr_c) } ;
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    oclErrorCheck(ciErrNum,"Failed to enqueue compress_coarse kernel!");
+
+}
+
+inline void compress_fine_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3,
+                                    cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                    cl_mem *psi_f, cl_mem * psi) {
+    cl_int ciErrNum;
+    size_t block_size_i=64;
+    assert( *nvctr_f >= block_size_i );
+    cl_uint i = 0;
+    clSetKernelArg(kernel, i++, sizeof(*n1), (void*)n1);
+    clSetKernelArg(kernel, i++, sizeof(*n2), (void*)n2);
+    clSetKernelArg(kernel, i++, sizeof(*n3), (void*)n3);
+    clSetKernelArg(kernel, i++, sizeof(*nseg_f), (void*)nseg_f);
+    clSetKernelArg(kernel, i++, sizeof(*nvctr_f), (void*)nvctr_f);
+    clSetKernelArg(kernel, i++, sizeof(*keyg_f), (void*)keyg_f);
+    clSetKernelArg(kernel, i++, sizeof(*keyv_f), (void*)keyv_f);
+    clSetKernelArg(kernel, i++, sizeof(*psi_f), (void*)psi_f);
+    clSetKernelArg(kernel, i++, sizeof(*psi), (void*)psi);
+    clSetKernelArg(kernel, i++, sizeof(double)*block_size_i*7, NULL);
+    size_t localWorkSize[]= { block_size_i };
+    size_t globalWorkSize[] = { shrRoundUp(block_size_i, *nvctr_f) } ;
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    oclErrorCheck(ciErrNum,"Failed to enqueue compress_fine kernel!");
+
+}
+
 #endif
