@@ -1,5 +1,6 @@
 #ifndef WAVELET_H
 #define WAVELET_H
+#include "OpenCL_wrappers.h"
 
 char * ana1d_program="\
 #define FILTER_WIDTH 16\n\
@@ -296,5 +297,40 @@ out[jg*(2*n)+ig*2+1]=so;\n\
 };\n\
 ";
 
+inline void ana_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, cl_mem *psi, cl_mem *out){
+    cl_int ciErrNum;
+    int FILTER_WIDTH = 16;
+    assert(*n>=FILTER_WIDTH);
+    size_t block_size_i=FILTER_WIDTH, block_size_j=FILTER_WIDTH;
+    cl_uint i = 0;
+    clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+    clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
+    clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
+    clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
+    clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*(block_size_i*2+FILTER_WIDTH + 1), 0);
+    size_t localWorkSize[] = { block_size_i,block_size_j };
+    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    oclErrorCheck(ciErrNum,"Failed to enqueue analysis kernel!");
+
+}
+
+inline void syn_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, cl_mem *psi, cl_mem *out) {
+    cl_int ciErrNum;
+    int FILTER_WIDTH = 8;
+    int SIZE_I = 16;
+    assert(*n>=SIZE_I);
+    size_t block_size_i=SIZE_I, block_size_j=SIZE_I;
+    cl_uint i = 0;
+    clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+    clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
+    clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
+    clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
+    clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*(block_size_i*2+FILTER_WIDTH*2+1), NULL);
+    size_t localWorkSize[] = { block_size_i,block_size_j };
+    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    oclErrorCheck(ciErrNum,"Failed to enqueue synthesis kernel!");
+}
 
 #endif
