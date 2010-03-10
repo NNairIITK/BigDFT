@@ -1,6 +1,7 @@
 #!/bin/sh
 
-ABINIT=/local/caliste/abinit-6.0.0-caliste
+#ABINIT=/local/caliste/abinit-6.0.0-caliste
+ABINIT=/local/deutsch/L_Sim/ABINIT/abinit-deutsch-6.1.0-private
 
 for file in `find .` ; do
     tmp=`basename $file`
