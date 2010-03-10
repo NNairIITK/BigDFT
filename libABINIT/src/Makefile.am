@@ -99,7 +99,7 @@ libabinit_a_SOURCES = \
 	56_recipspace/smpbz.F90 \
 	56_recipspace/symkpt.F90 \
 	56_recipspace/testkgrid.F90 \
-	56_recipspace/ab6_symmetry_f90.f90 \
+	56_recipspace/ab6_symmetry_f90.F90 \
 	56_xc/interfaces_56_xc.F90 \
 	56_xc/drivexc.F90 \
 	56_xc/invcb.F90 \
@@ -142,10 +142,10 @@ CLEANFILES = mpif.h \
 #dependencies
 mpif.h:
 	touch mpif.h &&\
-	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_SUM=1, MPI_COMM_WORLD=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
-	 echo "integer :: MPI_STATUSES_IGNORE, MPI_LOGICAL" >> mpif.h &&\
-	 echo "integer :: MPI_MIN, MPI_MAX,MPI_CHARACTER,MPI_REAL8" >> mpif.h
+	 echo "integer, parameter :: MPI_STATUSES_IGNORE=1, MPI_LOGICAL=1" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_MIN=1, MPI_MAX=1,MPI_CHARACTER=1,MPI_REAL8=1" >> mpif.h
 
 # Automatic ones...
 include $(srcdir)/deps

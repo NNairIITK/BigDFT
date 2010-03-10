@@ -12,7 +12,7 @@
 !!
 !!
 !! COPYRIGHT
-!! Copyright (C) 2002-2009 ABINIT group (XG)
+!! Copyright (C) 2002-2010 ABINIT group (XG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -487,10 +487,10 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
      allocate(exci_rpa(npts),vxci_rpa(npts,2))
      optpbe=3
      call xcpbe(exci_rpa,npts,nspden,optpbe,order,rho_updn,vxci_rpa,ndvxc,ngr2,nd2vxc,&
-&      d2vxci=d2vxc,dvxci=dvxc)
+&     d2vxci=d2vxc,dvxci=dvxc)
      optpbe=1
      call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,&
-&      d2vxci=d2vxc,dvxci=dvxc)
+&     d2vxci=d2vxc,dvxci=dvxc)
      exc(:)=exc(:)-exci_rpa(:)
      vxc(:,:)=vxc(:,:)-vxci_rpa(:,:)
      deallocate(exci_rpa,vxci_rpa)

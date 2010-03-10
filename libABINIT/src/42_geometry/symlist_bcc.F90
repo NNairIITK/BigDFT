@@ -8,7 +8,7 @@
 !! BCC case.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2000-2009 ABINIT group (RC)
+!! Copyright (C) 2000-2010 ABINIT group (RC)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
