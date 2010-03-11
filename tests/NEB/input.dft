@@ -12,4 +12,4 @@ fake CUDAGPU cudagpu     : write "CUDAGPU" to use GPU acceleration (GPU.config f
 0. 30        rtail,ncongt: length of the tail (AU), tail CG iterations
 0 0 0          dav,outOrb  : davidson treatment, no. of virtual orbitals, no of plotted orbitals
 2            verbose     : verbosity
-
+F            tuning      : disable the symmetry detection

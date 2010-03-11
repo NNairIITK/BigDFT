@@ -133,6 +133,42 @@ module module_interfaces
        real(gp), dimension(:,:), pointer :: rxyz
      end subroutine read_input_variables
 
+     subroutine dft_input_variables(iproc,filename,in)
+       use module_base
+       use module_types
+       implicit none
+       character(len=*), intent(in) :: filename
+       integer, intent(in) :: iproc
+       type(input_variables), intent(out) :: in
+     end subroutine dft_input_variables
+
+     subroutine geopt_input_variables(filename,in)
+       use module_base
+       use module_types
+       implicit none
+       character(len=*), intent(in) :: filename
+       type(input_variables), intent(inout) :: in
+     end subroutine geopt_input_variables
+
+     subroutine kpt_input_variables(iproc,filename,in,atoms)
+       use module_base
+       use module_types
+       implicit none
+       character(len=*), intent(in) :: filename
+       integer, intent(in) :: iproc
+       type(input_variables), intent(inout) :: in
+       type(atoms_data), intent(in) :: atoms
+     end subroutine kpt_input_variables
+
+     subroutine perf_input_variables(iproc,filename,inputs)
+       use module_base
+       use module_types
+       implicit none
+       character(len=*), intent(in) :: filename
+       integer, intent(in) :: iproc
+       type(input_variables), intent(inout) :: inputs
+     end subroutine perf_input_variables
+
      subroutine read_atomic_file(file,iproc,at,rxyz)
        use module_base
        use module_types
@@ -143,6 +179,15 @@ module module_interfaces
        real(gp), dimension(:,:), pointer :: rxyz
      end subroutine read_atomic_file
 
+     subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,ifile
+       type(atoms_data), intent(inout) :: atoms
+       real(gp), dimension(:,:), pointer :: rxyz
+     end subroutine read_ascii_positions
+
      subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
        use module_base
        use module_types
@@ -152,15 +197,6 @@ module module_interfaces
        real(gp), intent(in) :: energy
        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
      end subroutine write_atomic_file
-
-     subroutine read_ascii_positions(iproc,ifile,at,rxyz)
-       use module_base
-       use module_types
-       implicit none
-       integer, intent(in) :: iproc,ifile
-       type(atoms_data), intent(inout) :: at
-       real(gp), dimension(:,:), pointer :: rxyz
-     end subroutine read_ascii_positions
 
      subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
           iatype,rxyz,radii_cf,crmult,frmult,norb,nprojel,atomnames,output_grid,nspin,peakmem)

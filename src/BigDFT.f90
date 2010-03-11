@@ -76,6 +76,9 @@ program BigDFT
      ! Read all input files.
      call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
           & "input.dft", "input.kpt", "input.geopt", "input.perf", inputs, atoms, rxyz)
+     if (iproc == 0) then
+        call print_general_parameters(inputs,atoms)
+     end if
 
      !initialize memory counting
      !call memocc(0,iproc,'count','start')

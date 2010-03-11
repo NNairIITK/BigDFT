@@ -82,8 +82,8 @@ module module_base
   logical :: meminit = .false.
   type(memstat) :: memloc,memtot
   integer :: memalloc,memdealloc,memproc
-  !Debug option for memocc
-  logical :: memdebug=.false.
+  !Debug option for memocc, set in the input file
+  logical :: memdebug
 
   !interface for the memory allocation control, depends on ndebug
   interface memocc

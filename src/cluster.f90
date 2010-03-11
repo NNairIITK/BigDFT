@@ -185,7 +185,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   character(len=4) :: f4
   character(len=50) :: filename
   logical :: endloop,potion_overwritten=.false.,allfiles,onefile,refill_proj,DoDavidson
-  integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before
+  integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before,nsym
   integer :: nvirt,ndiis_sd_sw,norbv
   integer :: nelec,ndegree_ip,j,i,iorb
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
@@ -270,7 +270,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      write( *,'(1x,a,1x,i0)') &
           '===================== BigDFT Wavefunction Optimization =============== inputPsiId=',&
           in%inputPsiId
-     call print_input_parameters(in,atoms)
+     call print_dft_parameters(in,atoms)
   end if
   if (nproc > 1) then
      call timing(iproc,'parallel     ','IN')
@@ -383,15 +383,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
        n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
   !calculate the irreductible zone, if necessary.
   if (atoms%symObj >= 0) then
-     ! Current third dimension is set to 1 always
-     ! since nspin == nsppol always in BigDFT
-     allocate(irrzon(n1i*n2i*n3i,2,1+ndebug),stat=i_stat)
-     call memocc(i_stat,irrzon,'irrzon',subname)
-     allocate(phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
-     call memocc(i_stat,phnons,'phnons',subname)
-     call ab6_symmetry_get_irreductible_zone(atoms%symObj, irrzon, phnons, &
-          & n1i, n2i, n3i, in%nspin, in%nspin, i_stat)
-  else
+     call ab6_symmetry_get_n_sym(atoms%symObj, nsym, i_stat)
+     if (nsym > 1) then
+        ! Current third dimension is set to 1 always
+        ! since nspin == nsppol always in BigDFT
+        allocate(irrzon(n1i*n2i*n3i,2,1+ndebug),stat=i_stat)
+        call memocc(i_stat,irrzon,'irrzon',subname)
+        allocate(phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
+        call memocc(i_stat,phnons,'phnons',subname)
+        call ab6_symmetry_get_irreductible_zone(atoms%symObj, irrzon, phnons, &
+             & n1i, n2i, n3i, in%nspin, in%nspin, i_stat)
+     end if
+  end if
+  if (.not. allocated(irrzon)) then
+     ! Allocate anyway to small size other size the bounds check does not pass.
      allocate(irrzon(1,2,1+ndebug),stat=i_stat)
      call memocc(i_stat,irrzon,'irrzon',subname)
      allocate(phnons(2,1,1+ndebug),stat=i_stat)

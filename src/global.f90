@@ -113,11 +113,13 @@ program MINHOP
 
   call read_atomic_file('poscur',iproc,atoms,pos)
   !Read input parameters for geometry optimization 
+  call default_input_variables(inputs_opt)
   call dft_input_variables(iproc,'input.dft',inputs_opt,atoms%symObj)
   call geopt_input_variables(iproc,'input.geopt',inputs_opt)
   call kpt_input_variables(iproc,'input.kpt',inputs_opt,atoms)
 
   !read input parameters for molecular dynamics
+  call default_input_variables(inputs_md)
   call dft_input_variables(iproc,'mdinput.dft',inputs_md,atoms%symObj)
   call geopt_input_variables(iproc,'mdinput.geopt',inputs_md)
   call kpt_input_variables(iproc,'input.kpt',inputs_md,atoms)

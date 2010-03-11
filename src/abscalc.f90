@@ -444,7 +444,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      write( *,'(1x,a,1x,i0)') &
           '===================== BigDFT XANE calculation =============== inputPsiId=',&
           in%inputPsiId
-     call print_input_parameters(in,atoms)
+     call print_dft_parameters(in,atoms)
   end if
   if (nproc > 1) then
      call timing(iproc,'parallel     ','IN')
