@@ -369,7 +369,7 @@ program conv_check
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+                real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(CPUtime*1.d9)
 
            write(*,'(a,i6,i6,i6)')'GPU Convolutions 3D, dimensions:',n1bis,n2bis,n3bis
 
@@ -392,7 +392,7 @@ program conv_check
            GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 GPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(GPUtime*1.d9)
 
            maxdiff=0.d0
            i1_max=1
@@ -415,17 +415,17 @@ program conv_check
                    'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(GPUtime*1.d9)
            else
               write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
                    'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(GPUtime*1.d9),&
                    '<<<< WARNING' 
            end if
 
@@ -441,7 +441,7 @@ program conv_check
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+                real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(CPUtime*1.d9)
 
            write(*,'(a,i6,i6,i6)')'GPU Convolutions T 3D, dimensions:',n1bis,n2bis,n3bis
 
@@ -464,7 +464,7 @@ program conv_check
            GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 GPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(GPUtime*1.d9)
 
            maxdiff=0.d0
            i1_max=1
@@ -487,17 +487,17 @@ program conv_check
                    'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(GPUtime*1.d9)
            else
               write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
                    'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(GPUtime*1.d9),&
                    '<<<< WARNING' 
            end if
 
@@ -514,7 +514,7 @@ program conv_check
            CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+                real(n1bis*n2bis*n3bis*ntimes,kind=8)*6*32.d0/(CPUtime*1.d9)
            write(*,'(a,i6,i6,i6)')'GPU Potential, dimensions:',n1bis,n2bis,n3bis
 
 
@@ -539,7 +539,7 @@ program conv_check
            GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 GPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                real(n1bis*n2bis*n3bis*ntimes,kind=8)*6*32.d0/(GPUtime*1.d9)
 
            maxdiff=0.d0
            i1_max=1
@@ -562,17 +562,17 @@ program conv_check
                    'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*6*32.d0/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*6*32.d0/(GPUtime*1.d9)
            else
               write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
                    'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*6*32.d0/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*6*32.d0/(GPUtime*1.d9),&
                    '<<<< WARNING' 
            end if
 
@@ -590,7 +590,7 @@ program conv_check
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+                real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(CPUtime*1.d9)
 
            write(*,'(a,i6,i6,i6)')'GPU Kinetic 3D, dimensions:',n1bis,n2bis,n3bis
 
@@ -623,7 +623,7 @@ program conv_check
            GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 GPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(GPUtime*1.d9)
 
            maxdiff=0.d0
            i1_max=1
@@ -648,17 +648,17 @@ program conv_check
                    'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(GPUtime*1.d9)
            else
               write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
                    'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(GPUtime*1.d9),&
                    '<<<< WARNING' 
            end if
 
@@ -942,7 +942,7 @@ program conv_check
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
-                real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+                real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*2*3*32.d0/(CPUtime*1.d9)
 
            write(*,'(a,i6,i6,i6)')'GPU Kinetic k 3D, dimensions:',n1bis,n2bis,n3bis
 
@@ -969,7 +969,7 @@ program conv_check
            GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 GPUtime*1.d3/real(ntimes,kind=8),&
-                real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*2*3*32.d0/(GPUtime*1.d9)
 
            maxdiff=0.d0
            i1_max=1
@@ -1002,17 +1002,17 @@ program conv_check
                    'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*2*3*32.d0/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                   real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*2*3*32.d0/(GPUtime*1.d9)
            else
               write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
                    'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*2*3*32.d0/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+                   real(2*n1bis*n2bis*n3bis*ntimes,kind=8)*2*3*32.d0/(GPUtime*1.d9),&
                    '<<<< WARNING' 
            end if
 
@@ -1191,7 +1191,7 @@ program conv_check
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+                real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(CPUtime*1.d9)
 
            write(*,'(a,i6,i6,i6)')'GPU Analysis 3D, dimensions:',n1bis,n2bis,n3bis
 
@@ -1214,7 +1214,7 @@ program conv_check
            GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 GPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(GPUtime*1.d9)
 
            maxdiff=0.d0
            i1_max=1
@@ -1241,17 +1241,17 @@ program conv_check
                    'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(GPUtime*1.d9)
            else
               write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
                    'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(GPUtime*1.d9),&
                    '<<<< WARNING' 
            end if
 
@@ -1282,7 +1282,7 @@ program conv_check
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+                real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(CPUtime*1.d9)
 
            write(*,'(a,i6,i6,i6)')'GPU Synthesis 3D, dimensions:',n1bis,n2bis,n3bis
 
@@ -1305,7 +1305,7 @@ program conv_check
            GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 GPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(GPUtime*1.d9)
 
            maxdiff=0.d0
            i1_max=1
@@ -1328,17 +1328,17 @@ program conv_check
                    'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(GPUtime*1.d9)
            else
               write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
                    'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1bis,n2bis,n3bis,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(CPUtime*1.d9),&
                    GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+                   real(n1bis*n2bis*n3bis*ntimes,kind=8)*3*32.d0/(GPUtime*1.d9),&
                    '<<<< WARNING' 
            end if
 
