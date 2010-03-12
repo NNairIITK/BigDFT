@@ -26,8 +26,8 @@ endif
 
 if USE_CUDA_GPU
 sub_dirs_cuda=CUDA
-GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90
-libs_cuda=CUDA/libGPU.a
+GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90 convolutions/convolut_common_interface_ocl.f90
+libs_cuda=CUDA/libGPU.a OpenCL/libOCL.a
 GPU_BLAS=
 else
 sub_dirs_cuda=

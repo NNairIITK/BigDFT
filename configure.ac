@@ -274,7 +274,7 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
     fi
   fi
   AC_SUBST(CUDA_FLAGS)
-  LIBCUDA_LIBS="-L$ac_cuda_lib_path -lcudart -lcublas"
+  LIBCUDA_LIBS="-L$ac_cuda_lib_path -lcudart -lcublas -lOpenCL"
 fi
 
 dnl AM_CONDITIONAL for the different libraries, set default values.
