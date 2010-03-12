@@ -297,6 +297,10 @@ CLEANFILES = \
 	minpar.@MODULE_EXT@ MINPAR.@MODULE_EXT@ \
 	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@
 
+
+check:
+	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
+
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
 

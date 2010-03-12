@@ -15,7 +15,7 @@ fft_cache_LDFLAGS =
 fft_cache_LDADD =
 
 CLEANFILES = fft_check.out fft_cache.out fft_cache.dat fft_columns.dat fft_perf.dat \
-	fft_cache \
+	fft_cache fldiff.report \
 	module_fft_sg.@MODULE_EXT@ MODULE_FFT_SG.@MODULE_EXT@
 
 fft_cache.o: fft3d.o
@@ -23,7 +23,8 @@ fft_check.o: fft3d.o
 
 check:
 	$(run_parallel) ./fft_check > fft_check.out
-	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.e-8 fft_check.out $(top_srcdir)/src/lib/fft/fft_check.out.ref
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.e-8 \
+		fft_check.out $(top_srcdir)/src/lib/fft/fft_check.out.ref | tee fldiff.report
 	@rm -f fft.cache 
 	$(run_parallel) ./fft_cache 0
 	$(run_parallel) ./fft_cache 6
