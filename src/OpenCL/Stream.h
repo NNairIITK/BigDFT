@@ -11,7 +11,7 @@ struct _ocl_stream {
 typedef struct _ocl_stream * ocl_stream;
 
 
-cl_int oclInitStreams(cl_context * context);
+cl_int oclInitStreams(cl_context context);
 cl_int oclEndStreams();
 ocl_stream oclCreateStream(cl_command_queue command_queue, cl_int *errcode_ret);
 cl_int oclReleaseStream(ocl_stream stream);

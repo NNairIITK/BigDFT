@@ -1,16 +1,22 @@
 #include "Stream.h"
+#include <stdio.h>
+#include "OpenCL_wrappers.h"
 
 cl_kernel void_kernel;
 
-cl_int oclInitStreams(cl_context * context){
+cl_int oclInitStreams(cl_context context){
   cl_int ciErrNum = CL_SUCCESS;
-  const char * stream_program ="__kernel void voidKernel() {return;};";
-  cl_program streamProgram = clCreateProgramWithSource(*context,1,(const char**) &stream_program, NULL, &ciErrNum);
+  const char * stream_program ="__kernel void voidKernel(void) {return;};";
+  cl_program streamProgram = clCreateProgramWithSource(context,1,(const char**) &stream_program, NULL, &ciErrNum);
   if( ciErrNum != CL_SUCCESS)
     return ciErrNum;
   ciErrNum = clBuildProgram(streamProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
-  if (ciErrNum != CL_SUCCESS)
+  if (ciErrNum != CL_SUCCESS) {
+    char cBuildLog[10240];
+    clGetProgramBuildInfo(streamProgram, oclGetFirstDev(context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+    fprintf(stderr,"%s\n",cBuildLog);
     return ciErrNum;
+  }
   ciErrNum = CL_SUCCESS;
   void_kernel=clCreateKernel(streamProgram,"voidKernel",&ciErrNum);
   if (ciErrNum != CL_SUCCESS)
