@@ -10,7 +10,8 @@ convolution_includes = 	v.inc \
 #	long_grow.f90
 
 if USE_CUDA_GPU
-GPU_INTERFACE = convolut_common_interface_cuda.f90
+GPU_INTERFACE = convolut_common_interface_cuda.f90 \
+	convolut_common_interface_ocl.f90
 else
 GPU_INTERFACE = interface_cuda_fake.f90
 endif

@@ -14,14 +14,15 @@ void FC_FUNC_(ocl_fulllocham,OCL_FULLLOCHAM)(cl_command_queue *command_queue,
   uncompress_d_(command_queue, n1, n2, n3,
                                nseg_c, nvctr_c, keyg_c, keyv_c,
                                nseg_f, nvctr_f, keyg_f, keyv_f,
-                               psi_c, psi_f, psi);
-  analysis_d_(command_queue, n1, n2, n3, psi, out);
-  potential_application_d_(command_queue, n1, n2, n3, work, out, psi, pot);
-  kinetic_d_(command_queue, n1, n2, n3, h, out, psi, work, kinres);
-  synthesis_d_(command_queue, n1, n2, n3, kinres, out);
+                               psi_c, psi_f, out);
+  syn_self_d_(command_queue, n1, n2, n3, out, psi);
+  potential_application_d_(command_queue, n1, n2, n3, work, psi, out, pot);
+  kinetic_d_(command_queue, n1, n2, n3, h, psi, out, work, kinres);
+  ana_self_d_(command_queue, n1, n2, n3, kinres, psi);
   compress_d_(command_queue, n1, n2, n3,
-                             nseg_c, nvctr_c, keyg_c, keyv_c,
-                             nseg_f, nvctr_f, keyg_f, keyv_f,
-                             psi_c, psi_f, out);
+	      nseg_c, nvctr_c, keyg_c, keyv_c,
+	      nseg_f, nvctr_f, keyg_f, keyv_f,
+	      psi_c, psi_f, psi);
+
   *ekinpot = 0.0;
 }

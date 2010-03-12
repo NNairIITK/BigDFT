@@ -38,11 +38,13 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX
-  integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
+  integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat,i
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi,istart_ca
+  real(wp) :: maxdiff
   real(gp) :: eproj
   real(gp), dimension(3,2) :: wrkallred
   real(wp), dimension(:), pointer :: pot
+  real(wp), dimension(:), allocatable :: hpsi_OCL
   integer,parameter::lupfil=14
 
   !stream ptr array
@@ -122,12 +124,39 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   !apply the local hamiltonian for each of the orbitals
   !given to each processor
-
+  !pot=0.d0
+  !psi=1.d0
   !switch between GPU/CPU treatment
+!  do i=1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
+!       call random_number(psi(i))
+!  end do
   if (GPUconv) then
      call local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
   else
      call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
+  end if
+
+  !test part to check the results wrt OCL convolutions
+  if (OCLconv) then
+
+     allocate(hpsi_OCL((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
+     call memocc(i_stat,hpsi_OCL,'hpsi_OCL',subname)
+     print *,'fulllocam',GPU%full_locham
+     
+     call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi_OCL,ekin_sum,epot_sum,GPU)
+     maxdiff=0.0_wp
+     do i=1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
+        maxdiff=max(maxdiff,abs(hpsi(i)-hpsi_OCL(i)))
+     end do
+     print *,'maxdiff',maxdiff
+     i_all=-product(shape(hpsi_OCL))*kind(hpsi_OCL)
+     deallocate(hpsi_OCL,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsi_OCL',subname)
+
+     call free_gpu_OCL(GPU,orbs%norbp)
+
+     stop
+
   end if
 
   

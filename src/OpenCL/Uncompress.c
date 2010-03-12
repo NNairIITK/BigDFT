@@ -57,6 +57,7 @@ void FC_FUNC_(uncompress_d,UNCOMPRESS_D)(cl_command_queue *command_queue, cl_uin
     double init = 0.0;
     v_initialize_generic(v_initialize_kernel_d, command_queue, &full_size, psi_out, &init);
     uncompress_coarse_generic(uncompress_coarse_kernel_d, command_queue, n1, n2, n3, nseg_c, nvctr_c, keyg_c, keyv_c, psi_c, psi_out);
+    if(nvctr_f == 0) return;
     uncompress_fine_generic(uncompress_fine_kernel_d, command_queue, n1, n2, n3, nseg_f, nvctr_f, keyg_f, keyv_f, psi_f, psi_out);
 }
 
@@ -65,6 +66,7 @@ void FC_FUNC_(compress_d,COMPRESS_D)(cl_command_queue *command_queue, cl_uint *n
                                      cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                      cl_mem *psi_c, cl_mem *psi_f, cl_mem * psi) {
     compress_coarse_generic(compress_coarse_kernel_d, command_queue, n1, n2, n3, nseg_c, nvctr_c, keyg_c, keyv_c, psi_c, psi);
+    if(nvctr_f == 0) return;
     compress_fine_generic(compress_fine_kernel_d, command_queue, n1, n2, n3, nseg_f, nvctr_f, keyg_f, keyv_f, psi_f, psi);
 }
 

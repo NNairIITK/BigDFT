@@ -505,9 +505,9 @@ program conv_check
 
            call cpu_time(t0)
            do itimes=1,ntimes
-             call convolut_magic_n_per(n1bis-1,n2bis-1,n3bis-1,psi_k_in_a,psi_k_out_a,psi_cuda_k_out_a)
-             psi_cuda_k_out_a = psi_k_out_a * pot_a
-             call convolut_magic_t_per_self(n1bis-1,n2bis-1,n3bis-1,psi_cuda_k_out_a,psi_k_out_a)
+              call convolut_magic_n_per(n1bis-1,n2bis-1,n3bis-1,psi_k_in_a,psi_k_out_a,psi_cuda_k_out_a)             
+              psi_cuda_k_out_a = psi_k_out_a * pot_a
+              call convolut_magic_t_per_self(n1bis-1,n2bis-1,n3bis-1,psi_cuda_k_out_a,psi_k_out_a)
            end do
            call cpu_time(t1)
 
@@ -548,7 +548,7 @@ program conv_check
               do i1=1,n1bis
                  comp=abs(psi_k_out_a(i1,i2,i3,1)-psi_cuda_k_out_a(i1,i2,i3,1))
                  if(comp > 3.d-4) then
-                   write(*,*)i3,i2,i1,psi_k_out_a(i1,i2,i3,1),psi_cuda_k_out_a(i1,i2,i3,1)
+                    write(*,*)i3,i2,i1,psi_k_out_a(i1,i2,i3,1),psi_cuda_k_out_a(i1,i2,i3,1)
                  endif
                  if (comp > maxdiff) then
                     maxdiff=comp
@@ -606,7 +606,7 @@ program conv_check
            call ocl_enqueue_write_buffer(queue, psi_GPU, n1bis*n2bis*n3bis*8, psi_cuda_k_in_a)
            call cpu_time(t0)
            do itimes=1,ntimes
-             call kinetic_stable_d(queue,n1bis,n2bis,n3bis,(/0.1d0,.1d0,.1d0/),&
+             call kinetic_stable_d(queue,n1bis/2,n2bis/2,n3bis/2,(/0.1d0,.1d0,.1d0/),&
                             work_GPU,psi_GPU,work2_GPU,v_GPU,psi_c_GPU,psi_f_GPU)
            end do
            call ocl_finish(queue);
@@ -895,9 +895,9 @@ program conv_check
 
 
            !**************************************************kinetic term
-           n1bis = n1/2
+           n1bis = n1
            n2bis = n1
-           n3bis = n1/2
+           n3bis = n1
            write(*,'(a,i6,i6,i6)')'CPU Kinetic k 3D, dimensions:',n1bis,n2bis,n3bis
 
            allocate(psi_k_in(2,n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)

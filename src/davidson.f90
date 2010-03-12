@@ -105,7 +105,14 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   end if
   
   GPU%full_locham=.true.
-  
+
+  !initialisation of the OCL routines, temporary
+  OCLconv=.true.
+  call ocl_create_gpu_context(GPU%context)
+  call ocl_create_command_queue(GPU%queue,GPU%context)
+  call ocl_build_kernels(GPU%context)
+  call init_event_list
+  call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,hx,hy,hz,lr%wfd,orbsv,GPU)
   !verify whether the calculation of the exact exchange term
   !should be preformed
   exctX = libxc_functionals_exctXfac() /= 0.0_gp

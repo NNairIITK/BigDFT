@@ -65,26 +65,32 @@ void FC_FUNC_(kinetic_k_d,KINETIC_K_D)(cl_command_queue *command_queue, cl_uint 
 
 void FC_FUNC_(kinetic_stable_d,KINETIC_STABLE_D)(cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y, cl_mem *tmp_x, cl_mem *tmp_y) {
   double scale = -0.5 / ( h[2] * h[2] );
-  cl_uint ng = *n2 * *n1;
-  kinetic_generic(kinetic1d_kernel_d, command_queue, n3, &ng, &scale, x, work_x, y, work_y);
+  cl_uint ng = *n2 * *n1 * 4;
+  cl_uint n = 2 * *n3;
+  kinetic_generic(kinetic1d_kernel_d, command_queue, &n, &ng, &scale, x, work_x, y, work_y);
   scale = -0.5 / ( h[1] * h[1] );
-  ng = *n1 * *n3;
-  kinetic_generic(kinetic1d_kernel_d, command_queue, n2, &ng, &scale, work_x, tmp_x, work_y, tmp_y);
+  n = 2 * *n2;
+  ng = *n1 * *n3 * 4;
+  kinetic_generic(kinetic1d_kernel_d, command_queue, &n, &ng, &scale, work_x, tmp_x, work_y, tmp_y);
   scale = -0.5 / ( h[0] * h[0] );
-  ng = *n3 * *n2;
-  kinetic_generic(kinetic1d_kernel_d, command_queue, n1, &ng, &scale, tmp_x, work_x, tmp_y, work_y);
+  n = 2 * *n1;
+  ng = *n3 * *n2 * 4;
+  kinetic_generic(kinetic1d_kernel_d, command_queue, &n, &ng, &scale, tmp_x, work_x, tmp_y, work_y);
 }
 
 void FC_FUNC_(kinetic_d,KINETIC_D)(cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y) {
   double scale = -0.5 / ( h[2] * h[2] );
-  cl_uint ng = *n2 * *n1;
-  kinetic_generic(kinetic1d_kernel_d, command_queue, n3, &ng, &scale, x, work_x, y, work_y);
+  cl_uint ng = *n2 * *n1 * 4;
+  cl_uint n = 2 * *n3;
+  kinetic_generic(kinetic1d_kernel_d, command_queue, &n, &ng, &scale, x, work_x, y, work_y);
   scale = -0.5 / ( h[1] * h[1] );
-  ng = *n1 * *n3;
-  kinetic_generic(kinetic1d_kernel_d, command_queue, n2, &ng, &scale, work_x, x, work_y, y);
+  n = 2 * *n2;
+  ng = *n1 * *n3 * 4;
+  kinetic_generic(kinetic1d_kernel_d, command_queue, &n, &ng, &scale, work_x, x, work_y, y);
   scale = -0.5 / ( h[0] * h[0] );
-  ng = *n3 * *n2;
-  kinetic_generic(kinetic1d_kernel_d, command_queue, n1, &ng, &scale, x, work_x, y, work_y);
+  n = 2 * *n1;
+  ng = *n3 * *n2 * 4;
+  kinetic_generic(kinetic1d_kernel_d, command_queue, &n, &ng, &scale, x, work_x, y, work_y);
 }
 
 void FC_FUNC_(kinetic1d_d,KINETIC1D_D)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, double *h, double*c, cl_mem *x, cl_mem *y, cl_mem *workx, cl_mem *worky,double *ekin){
