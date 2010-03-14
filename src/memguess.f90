@@ -24,7 +24,7 @@ program memguess
   character(len=*), parameter :: subname='memguess'
   character(len=20) :: tatonam
   character(len=40) :: comment
-  logical :: optimise,GPUtest,convert=.false.
+  logical :: optimise,GPUtest,atwf,convert=.false.
   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: norbgpu,nspin_ig,ng
@@ -49,31 +49,36 @@ program memguess
   !! By Ali
   integer :: ierror
 
-! Get arguments
+  ! Get arguments
 
   call getarg(1,tatonam)
 
   optimise=.false.
   GPUtest=.false.
+  atwf=.false.
   if(trim(tatonam)=='') then
      write(*,'(1x,a)')&
-          'Usage: ./memguess <nproc> [y]'
+          'Usage: ./memguess <nproc> [option]'
      write(*,'(1x,a)')&
           'Indicate the number of processes after the executable'
      write(*,'(1x,a)')&
-          'You can put a "y" in the second argument (optional) if you want the '
+          '[option] can be the following: '
      write(*,'(1x,a)')&
-          '  grid to be plotted with V_Sim'
+          '"y": grid to be plotted with V_Sim'
      write(*,'(1x,a)')&
-          'You can also put an "o" if you want to rotate the molecule such that'
+          '"o" rotate the molecule such that the volume of the simulation box is optimised'
      write(*,'(1x,a)')&
-          '  the volume of the simulation box is optimised'
+          '"GPUtest <nrep>" case of a CUDAGPU calculation, to test the speed of 3d operators'
      write(*,'(1x,a)')&
-          'In the case of a CUDAGPU calculation you can put "GPUtest" after the'
+          '         <nrep> is the number of repeats'
      write(*,'(1x,a)')&
-          '  number of processors, followed by the number of repeats'
+          '"convert" converts input files older than 1.2 into actual format'
      write(*,'(1x,a)')&
-          'You can also put "convert" keyword for converting input file into 1.3 format'
+          '"atwf" <ng> calculates the atomic wavefuntions of the first atom in the gatom basis and write their expression '
+     write(*,'(1x,a)')&
+          '            in the "gatom-wfn.dat" file '
+     write(*,'(1x,a)')&
+          '           <ng> is the number of gaussians used for the gatom calculation'
      stop
   else
      read(unit=tatonam,fmt=*) nproc
@@ -107,13 +112,23 @@ program memguess
         convert=.true.
         write(*,'(1x,a)')&
              'convert the input.dat file in the "input_convert.dft" (1.3 format)'
+     else if (trim(tatonam)=='atwf') then
+        atwf=.true.
+        write(*,'(1x,a)')&
+             'Perform the calculation of aomic wavefunction of the first atom'
+        call getarg(3,tatonam)
+        read(tatonam,*,iostat=ierror)ng
+        write(*,'(1x,a,i0,a)')&
+             'Use gaussian basis of',ng,' elements.'
      else
         write(*,'(1x,a)')&
              'Usage: ./memguess <nproc> [y]'
         write(*,'(1x,a)')&
              'Indicate the number of processes after the executable'
         write(*,'(1x,a)')&
-             'ERROR: The only second argument which is accepted are "y", "o", "convert" or "GPUtest"'
+             'ERROR: The only second argument which is accepted are "y", "o", "convert" "GPUtest" or "atwf" ' 
+        write(*,'(1x,a)')&
+             '       (type "memguess" without arguments to have an help)'
         stop
      end if
   end if
@@ -167,7 +182,7 @@ program memguess
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
- 
+
 
   ! store PSP parameters
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
@@ -187,7 +202,7 @@ program memguess
      !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
 
   end if
-  
+
   !in the case in which the number of orbitals is not "trivial" check whether they are too many
   if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0)) then
      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
@@ -251,8 +266,8 @@ program memguess
 
   end if
 
-! Determine size alat of overall simulation cell and shift atom positions
-! then calculate the size in units of the grid space
+  ! Determine size alat of overall simulation cell and shift atom positions
+  ! then calculate the size in units of the grid space
   hx=in%hx
   hy=in%hy
   hz=in%hz
@@ -292,10 +307,10 @@ program memguess
 
      call createWavefunctionsDescriptors(0,hx,hy,hz,&
           atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst)
-     
+
      call compare_cpu_gpu_hamiltonian(0,1,atoms,orbstst,nspin,in%ncong,in%ixc,&
           Glr,hx,hy,hz,rxyz,ntimes)
-     
+
      call deallocate_wfd(Glr%wfd,subname)
 
      call deallocate_orbs(orbstst,subname)
@@ -321,29 +336,31 @@ program memguess
 
   call localize_projectors(0,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,&
        in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,orbs,nlpspd)
-
-  !here the treatment of the AE Core charge density
-  !number of gaussians
-  ng=31
-  !plot the wavefunctions for the pseudo atom
-  nullify(G%rxyz)
-  call gaussian_pswf_basis(ng,0,in%nspin,atoms,rxyz,G,gbd_occ)
-  !for the moment multiply the number of coefficients for each channel
-  allocate(rhocoeff((ng*(ng+1))/2,4+ndebug),stat=i_stat)
-  call memocc(i_stat,rhocoeff,'rhocoeff',subname)
-  allocate(rhoexpo((ng*(ng+1))/2+ndebug),stat=i_stat)
-  call memocc(i_stat,rhoexpo,'rhoexpo',subname)
   
-  call plot_gatom_basis('gatom-wfn.dat',1,ng,G,gbd_occ,rhocoeff,rhoexpo)
+  if (atwf) then
+     !here the treatment of the AE Core charge density
+     !number of gaussians defined in the input of memguess
+     !ng=31
+     !plot the wavefunctions for the pseudo atom
+     nullify(G%rxyz)
+     call gaussian_pswf_basis(ng,0,in%nspin,atoms,rxyz,G,gbd_occ)
+     !for the moment multiply the number of coefficients for each channel
+     allocate(rhocoeff((ng*(ng+1))/2,4+ndebug),stat=i_stat)
+     call memocc(i_stat,rhocoeff,'rhocoeff',subname)
+     allocate(rhoexpo((ng*(ng+1))/2+ndebug),stat=i_stat)
+     call memocc(i_stat,rhoexpo,'rhoexpo',subname)
 
-  if (associated(gbd_occ)) then
-     i_all=-product(shape(gbd_occ))*kind(gbd_occ)
-     deallocate(gbd_occ,stat=i_stat)
-     call memocc(i_stat,i_all,'gbd_occ',subname)
-     nullify(gbd_occ)
-  end if
-  !deallocate the gaussian basis descriptors
-  call deallocate_gwf(G,subname)
+     call plot_gatom_basis('gatom',1,ng,G,gbd_occ,rhocoeff,rhoexpo)
+
+     if (associated(gbd_occ)) then
+        i_all=-product(shape(gbd_occ))*kind(gbd_occ)
+        deallocate(gbd_occ,stat=i_stat)
+        call memocc(i_stat,i_all,'gbd_occ',subname)
+        nullify(gbd_occ)
+     end if
+     !deallocate the gaussian basis descriptors
+     call deallocate_gwf(G,subname)
+
 
 !!$  !plot the wavefunctions for the AE atom
 !!$  !not possible, the code should recognize the AE eleconf
@@ -368,15 +385,14 @@ program memguess
 !!$  !deallocate the gaussian basis descriptors
 !!$  call deallocate_gwf(G,subname)
 
+     i_all=-product(shape(rhoexpo))*kind(rhoexpo)
+     deallocate(rhoexpo,stat=i_stat)
+     call memocc(i_stat,i_all,'rhoexpo',subname)
+     i_all=-product(shape(rhocoeff))*kind(rhocoeff)
+     deallocate(rhocoeff,stat=i_stat)
+     call memocc(i_stat,i_all,'rhocoeff',subname)
 
-  i_all=-product(shape(rhoexpo))*kind(rhoexpo)
-  deallocate(rhoexpo,stat=i_stat)
-  call memocc(i_stat,i_all,'rhoexpo',subname)
-  i_all=-product(shape(rhocoeff))*kind(rhocoeff)
-  deallocate(rhocoeff,stat=i_stat)
-  call memocc(i_stat,i_all,'rhocoeff',subname)
-  
-
+  end if
 
   i_all=-product(shape(logrid))*kind(logrid)
   deallocate(logrid,stat=i_stat)

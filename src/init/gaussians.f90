@@ -14,15 +14,16 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
   real(wp), dimension((ngx*(ngx+1))/2), intent(out) :: rhoexpo
   real(wp), dimension((ngx*(ngx+1))/2,4), intent(out) :: rhocoeff
   !local variables
-  integer, parameter :: nterm_max=3,nshell_max=10,ngrid_points=5000
+  integer, parameter :: nterm_max=3,nshell_max=10
+  real(gp), parameter :: range=3.0_gp !in atomic units
   integer :: jat,ishell,iexpo,icoeff,isat,ng,l,m,jshell,jexpo,jsat,ig,igrid
-  integer :: kshell,kexpo,jg,kg,ngk,ksat,ngj,jcoeff,irexpo
+  integer :: kshell,kexpo,jg,kg,ngk,ksat,ngj,jcoeff,irexpo,ngrid_points
   real(gp) :: mexpo,hg,x,scalprod,charge,occ,combine_exponents,tt
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
   real(gp), dimension(nshell_max+1) :: shells
     
-  open(unit=79,file=filename,status='unknown')
+  open(unit=79,file=filename//'-wfn.dat',status='unknown')
 
   ishell=0
   iexpo=1
@@ -37,18 +38,20 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
            stop
         end if
         !calculate the min exponent for the grid mesh
-!!$        mexpo=1.e100_gp
-!!$        do jsat=1,G%nshell(jat)
-!!$           jshell=jshell+1
-!!$           ng=G%ndoc(jshell)
-!!$           do ig=1,ng
-!!$              mexpo=min(mexpo,G%xp(jexpo))
-!!$              jexpo=jexpo+1
-!!$           end do 
+        mexpo=1.e100_gp
+        do jsat=1,G%nshell(jat)
+           jshell=jshell+1
+           ng=G%ndoc(jshell)
+           do ig=1,ng
+              mexpo=min(mexpo,G%xp(jexpo))
+              jexpo=jexpo+1
+           end do 
            !take the grid spacing as one fifth of the minimum expo
         !take the grid spacing little enough
-        hg=0.005_gp
-!!$        end do
+        hg=0.2_gp*mexpo
+        !calculate the number of grid points
+        ngrid_points=nint(range/hg)
+        end do
         !construct the array of the wavefunctions
         write(79,'(a,2x,20(8x,i8))')'# l',(G%nam(jsat)-1,jsat=1,G%nshell(jat))
         !verify whether there are two angular momentum which are equal
@@ -159,14 +162,27 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
         end do
         write(*,*)' Total charge density: ',charge*hg
         !calculation of total charge density in the analytic sense
-        !to be done again
         charge=0.0_gp
+        !s-channel
         do ig=1,(ng*(ng+1))/2
            charge=charge+rhocoeff(ig,1)*rhoexpo(ig)**3
         end do
+        !p-channel
+        do ig=1,(ng*(ng+1))/2
+           charge=charge+3.0_gp*rhocoeff(ig,2)*rhoexpo(ig)**5
+        end do
+        !d-channel
+        do ig=1,(ng*(ng+1))/2
+           charge=charge+15.0_gp*rhocoeff(ig,3)*rhoexpo(ig)**7
+        end do
+        !f-channel
+        do ig=1,(ng*(ng+1))/2
+           charge=charge+105.0_gp*rhocoeff(ig,4)*rhoexpo(ig)**9
+        end do
         !correct normalisation
-        charge=0.5_gp*sqrt(8.0_gp*atan(1.0_dp))*charge
-        write(*,*)' Total charge density, analytic (not supposed to work): ',charge
+        charge=sqrt(2.0_gp*atan(1.0_dp))*charge
+
+        write(*,*)' Total charge density, analytic: ',charge
      end if
      do isat=1,G%nshell(jat)
         !construct the values of the wavefunctions in the grid points
@@ -184,6 +200,15 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
 
   call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
+  close(unit=79)
+
+  !write the coefficients of the density in the gaussian basis
+  !and the corresponding exponents
+  open(unit=79,file=filename//'-rho.gau',status='unknown')
+  write(79,'((1x,i0))')ng
+  do ig=1,(ng*(ng+1))/2
+     write(79,'(5(1x,1pe25.17))')rhoexpo(ig),(rhocoeff(ig,jsat),jsat=1,4)
+  end do
   close(unit=79)
 
 end subroutine plot_gatom_basis

@@ -425,19 +425,19 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      end do
 
      if (nproc > 1) then
-        allocate(gion(3,at%nat+ndebug),stat=i_stat)
-        call memocc(i_stat,gion,'gion',subname)
-        do iat=1,at%nat
-           gion(1,iat)=fion(1,iat)
-           gion(2,iat)=fion(2,iat)
-           gion(3,iat)=fion(3,iat)
-        end do
+!!$        allocate(gion(3,at%nat+ndebug),stat=i_stat)
+!!$        call memocc(i_stat,gion,'gion',subname)
+!!$        do iat=1,at%nat
+!!$           gion(1,iat)=fion(1,iat)
+!!$           gion(2,iat)=fion(2,iat)
+!!$           gion(3,iat)=fion(3,iat)
+!!$        end do
 
-        call MPI_ALLREDUCE(gion,fion,3*at%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(fion(1,1),3*at%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-        i_all=-product(shape(gion))*kind(gion)
-        deallocate(gion,stat=i_stat)
-        call memocc(i_stat,i_all,'gion',subname)
+!!$        i_all=-product(shape(gion))*kind(gion)
+!!$        deallocate(gion,stat=i_stat)
+!!$        call memocc(i_stat,i_all,'gion',subname)
 
      end if
 
@@ -498,7 +498,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz,offset
   real(wp) :: maxdiff
   real(gp) :: ehart,eexcu,vexcu
-  real(dp), dimension(4) :: charges_mpi
+  real(dp), dimension(2) :: charges_mpi
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(dp), dimension(:), allocatable :: potion_corr
   real(dp), dimension(:), pointer :: pkernel_ref
@@ -594,11 +594,10 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
-     call MPI_ALLREDUCE(charges_mpi(1),charges_mpi(3),2,mpidtypd, &
-          MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(charges_mpi(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-     tt_tot=charges_mpi(3)
-     rholeaked_tot=charges_mpi(4)
+     tt_tot=charges_mpi(1)
+     rholeaked_tot=charges_mpi(2)
   else
      tt_tot=tt
      rholeaked_tot=rholeaked

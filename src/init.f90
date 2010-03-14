@@ -292,7 +292,7 @@ END SUBROUTINE createProjectorsArrays
 !! SOURCE
 !!
 subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
-     Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj,& 
+     Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,nlpspd,proj,& 
      pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin,symObj,irrzon,phnons)
   use module_base
   use module_interfaces, except_this_one_A => import_gaussians
@@ -313,7 +313,7 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
   type(orbitals_data), intent(inout) :: orbs
   real(dp), dimension(*), intent(inout) :: rhopot
   real(wp), dimension(*), intent(inout) :: pot_ion
-  real(wp), dimension(:), pointer :: psi,psit,hpsi
+  real(wp), dimension(:), pointer :: psi,psit,hpsi,rhocore
   integer, dimension(:,:,:), intent(in) :: irrzon
   real(dp), dimension(:,:,:), intent(in) :: phnons
   !local variables
@@ -408,7 +408,7 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
 
   call XC_potential(at%geocode,'D',iproc,nproc,&
        Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
-       rhopot,eexcu,vexcu,1,potxc)
+       rhopot,eexcu,vexcu,1,rhocore,potxc)
 
   call H_potential(at%geocode,'D',iproc,nproc,&
        Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
@@ -466,7 +466,7 @@ END SUBROUTINE import_gaussians
 !! SOURCE
 !!
 subroutine input_wf_diag(iproc,nproc,at,&
-     orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
+     orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
      nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
      nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
@@ -494,7 +494,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
   type(orbitals_data), intent(out) :: orbsv
   type(gaussian_basis), intent(out) :: G !basis for davidson IG
-  real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
+  real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt,rhocore
   integer, intent(in) ::potshortcut
   integer, dimension(:,:,:), intent(in) :: irrzon
   real(dp), dimension(:,:,:), intent(in) :: phnons
@@ -627,7 +627,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
      call XC_potential(at%geocode,'D',iproc,nproc,&
           Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
-          rhopot,eexcu,vexcu,nspin,potxc)
+          rhopot,eexcu,vexcu,nspin,rhocore,potxc)
 
      call H_potential(at%geocode,'D',iproc,nproc,&
           Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&

@@ -97,7 +97,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   ! Symmetrise density, TODO...
   !after validation this point can be deplaced after the allreduce such as to reduce the number of operations
   if (symObj >= 0 .and. .false.) then
-     call symmetrise_density(0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,nscatterarr,nspin,lr%d%n1i*lr%d%n2i*lr%d%n3i,&
+     call symmetrise_density(0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,nscatterarr,nspin,&
+          lr%d%n1i*lr%d%n2i*lr%d%n3i,&
           rho_p,symObj,irrzon,phnons)
   end if
 
@@ -306,7 +307,15 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
 
         end do
      end if
+
+!!$     open(70+iorb+orbs%isorb)
+!!$     do i_all=1,lr%d%n1i
+!!$        write(70+iorb+orbs%isorb,*)i_all,psir(i_all+(160-1)*lr%d%n1i+(160-1)*lr%d%n1i*lr%d%n2i,1)
+!!$     end do
+!!$     close(70+iorb+orbs%isorb)
+
   enddo
+
 
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)

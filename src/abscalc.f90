@@ -357,7 +357,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   !transposed  wavefunction
   ! Pointers and variables to store the last psi
   ! before reformatting if useFormattedInput is .true.
-  real(kind=8), dimension(:), pointer :: hpsi,psit,psivirt
+  real(kind=8), dimension(:), pointer :: hpsi,psit,psivirt,rhocore
   !real(kind=8), dimension(:), pointer :: psidst,hpsidst
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj
@@ -571,6 +571,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call memocc(i_stat,rhopot,'rhopot',subname)
   end if
 
+  nullify(rhocore)
+
   !check the communication distribution
   !call check_communications(iproc,nproc,orbs,Glr,comms)
 
@@ -588,7 +590,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,atoms,&
-          orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
+          orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons)
 

@@ -251,7 +251,7 @@ module module_interfaces
      end subroutine createIonicPotential
 
      subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
-          Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj,& 
+          Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,nlpspd,proj,& 
           pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin,symObj,irrzon,phnons)
        use module_base
        use module_types
@@ -270,13 +270,13 @@ module module_interfaces
        type(orbitals_data), intent(inout) :: orbs
        real(dp), dimension(*), intent(inout) :: rhopot
        real(wp), dimension(*), intent(inout) :: pot_ion
-       real(wp), dimension(:), pointer :: psi,psit,hpsi
+       real(wp), dimension(:), pointer :: psi,psit,hpsi,rhocore
        integer, dimension(:,:,:), intent(in) :: irrzon
        real(dp), dimension(:,:,:), intent(in) :: phnons
      end subroutine import_gaussians
 
      subroutine input_wf_diag(iproc,nproc,at,&
-          orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
+          orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
           nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons)
        use module_base
@@ -298,7 +298,7 @@ module module_interfaces
        real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
        type(orbitals_data), intent(out) :: orbsv
        type(gaussian_basis), intent(out) :: G 
-       real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
+       real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt,rhocore
        integer, intent(in) :: potshortcut
        integer, dimension(:,:,:), intent(in) :: irrzon
        real(dp), dimension(:,:,:), intent(in) :: phnons
@@ -887,6 +887,32 @@ module module_interfaces
        real(wp), dimension((ngx*(ngx+1))/2), intent(out) :: rhoexpo
        real(wp), dimension((ngx*(ngx+1))/2,4), intent(out) :: rhocoeff
      end subroutine plot_gatom_basis
+
+     subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,i3s,n3d,i3xcsh,n3p
+       real(gp), intent(in) :: hxh,hyh,hzh
+       type(atoms_data), intent(in) :: at
+       type(grid_dimensions), intent(in) :: d
+       real(gp), dimension(3,at%nat), intent(in) :: rxyz
+       real(wp), dimension(:), pointer :: rhocore
+     end subroutine calculate_rhocore
+
+     subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+          rho,exc,vxc,nspin,rhocore,potxc)
+       use module_base
+       implicit none
+       character(len=1), intent(in) :: geocode
+       character(len=1), intent(in) :: datacode
+       integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
+       real(gp), intent(in) :: hx,hy,hz
+       real(gp), intent(out) :: exc,vxc
+       real(dp), dimension(*), intent(inout) :: rho
+       real(wp), dimension(:), pointer :: rhocore !associated if useful
+       real(wp), dimension(*), intent(out) :: potxc
+     end subroutine XC_potential
 
   end interface
 

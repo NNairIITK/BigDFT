@@ -219,7 +219,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! before reformatting if useFormattedInput is .true.
   real(kind=8), dimension(:), pointer :: hpsi,psit,psi_old,psivirt,psidst,hpsidst
   ! PSP projectors 
-  real(kind=8), dimension(:), pointer :: proj,gbd_occ
+  real(kind=8), dimension(:), pointer :: proj,gbd_occ,rhocore
   ! arrays for DIIS convergence accelerator
   real(kind=8), dimension(:,:,:), pointer :: ads
   ! Arrays for the symmetrisation.
@@ -444,6 +444,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,potxc,'potxc',subname)
   end if
 
+  !check if non-linear core correction should be applied, and allocate the 
+  !pointer if it is the case
+  call calculate_rhocore(iproc,atoms,Glr%d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
 
   !check the communication distribution
   call check_communications(iproc,nproc,orbs,Glr,comms)
@@ -513,7 +516,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !import gaussians form CP2K (data in files gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
      call import_gaussians(iproc,nproc,atoms,orbs,comms,&
-          & Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj, &
+          & Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,nlpspd,proj, &
           & pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,in%nspin,&
           & atoms%symObj,irrzon,phnons)
 
@@ -521,7 +524,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,atoms,&
-          orbs,orbsv,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
+          orbs,orbsv,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
           nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons)
 
@@ -728,6 +731,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      ! Potential from electronic charge density
      call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
           n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+!!$
+!!$     open(78)
+!!$     do i_stat=1,n3d
+!!$        if (i3s+i3xcsh+i_stat-1 == 160) then
+!!$           do i_all=1,n1i
+!!$              write(78,*)i_all,rhopot(i_all,160,i_stat,1)!,rhopot(i_all,160,i_stat,2)
+!!$           end do
+!!$        end if
+!!$     end do
+!!$     close(78)
+
 
      if(orbs%nspinor==4) then
         !this wrapper can be inserted inside the poisson solver 
@@ -760,7 +774,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
            call XC_potential(atoms%geocode,'D',iproc,nproc,&
                 Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
-                rhopot,eexcu,vexcu,in%nspin,potxc)
+                rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
 
            call H_potential(atoms%geocode,'D',iproc,nproc,&
                 Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
@@ -1036,20 +1050,34 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !plot the density on the density.pot file
   if ((abs(in%output_grid) >= 1 .or. in%nvacancy /=0) .and. in%last_run==1) then
-     if (in%output_grid .ge. 0) then
+     if (in%output_grid >= 0) then
         if (in%nspin == 2 ) then
            if(iproc==0) write(*,*) 'ERROR: density cannot be plotted in .pot format for a spin-polarised calculation'
         else
-           if (iproc.eq.0) write(*,*) 'writing electronic_density.pot'
+           if (iproc == 0) write(*,*) 'writing electronic_density.pot'
            call plot_density(atoms%geocode,'electronic_density.pot',&
                 iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
                 atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rho)
+           if (associated(rhocore)) then
+              if (iproc == 0) write(*,*) 'writing grid core_density.pot'
+              call plot_density(atoms%geocode,'core_density.pot',&
+                   iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+                   atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,&
+                   rhocore(1+n1i*n2i*i3xcsh))
+           end if
+
         end if
      else 
-        if (iproc.eq.0) write(*,*) 'writing electronic_density.cube'
+        if (iproc == 0) write(*,*) 'writing electronic_density.cube'
         call plot_density_cube(atoms%geocode,'electronic_density',&
              iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
              in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+        if (associated(rhocore)) then
+           if (iproc == 0) write(*,*) 'writing grid core_density.cube'
+           call plot_density_cube(atoms%geocode,'core_density',&
+                iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
+                1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhocore(1+n1i*n2i*i3xcsh))
+        end if
      endif
   end if
   !calculate the total density in the case of nspin==2
@@ -1493,6 +1521,13 @@ contains
     i_all=-product(shape(proj))*kind(proj)
     deallocate(proj,stat=i_stat)
     call memocc(i_stat,i_all,'proj',subname)
+
+    !deallocate the core density if it has been allocated
+    if(associated(rhocore)) then
+       i_all=-product(shape(rhocore))*kind(rhocore)
+       deallocate(rhocore,stat=i_stat)
+       call memocc(i_stat,i_all,'rhocore',subname)
+    end if
 
     ! Free the libXC stuff if necessary.
     if (ixc < 0) then
