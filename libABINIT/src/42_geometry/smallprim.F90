@@ -13,7 +13,7 @@
 !! with the original vectors in order.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2000-2009 ABINIT group (XG)
+!! Copyright (C) 2000-2010 ABINIT group (XG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -140,26 +140,26 @@ subroutine smallprim(metmin,minim,rprimd)
 !comprised between 90 and 120 degrees. It might still be that minus the vector
 !that is the sum of the three vectors is smaller than the longest of these vectors
  do
- 
+   
 !  Will exit if minimal=1 is still valid after a trial
 !  to replace each of the three vectors by minus the summ of the three vectors
    minimal=1
    metsum=sum(metmin(:,:))
    do itrial=1,3
-    ia=nvecta(itrial) ; ib=nvectb(itrial)
-    if(metmin(ia,ia)>metsum+tol8)then
-      minim(:,ia)=-minim(:,1)-minim(:,2)-minim(:,3)
-      metmin(ia,ib)=-sum(metmin(:,ib))
-      metmin(ia,itrial)=-sum(metmin(:,itrial))
-      metmin(ia,ia)=metsum
-      metmin(ib,ia)=metmin(ia,ib)
-      metmin(itrial,ia)=metmin(ia,itrial)
-      minimal=0      
-    endif
-   enddo
+     ia=nvecta(itrial) ; ib=nvectb(itrial)
+     if(metmin(ia,ia)>metsum+tol8)then
+       minim(:,ia)=-minim(:,1)-minim(:,2)-minim(:,3)
+       metmin(ia,ib)=-sum(metmin(:,ib))
+       metmin(ia,itrial)=-sum(metmin(:,itrial))
+       metmin(ia,ia)=metsum
+       metmin(ib,ia)=metmin(ia,ib)
+       metmin(itrial,ia)=metmin(ia,itrial)
+       minimal=0      
+     end if
+   end do
 
    if(minimal==1)exit
- 
+   
  end do
 
 !DEBUG

@@ -566,13 +566,13 @@ module module_interfaces
        real(gp), dimension(3,nat), intent(in) :: rxyz
      end subroutine writeonewave
 
-     subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,& 
+     subroutine davidson(iproc,nproc,n1i,n2i,in,at,& 
           orbs,orbsv,nvirt,lr,comms,&
           hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,n1i,n2i,n3i
+       integer, intent(in) :: iproc,nproc,n1i,n2i
        integer, intent(in) :: i3xcsh
        integer, intent(in) :: nvirt,n3p
        type(input_variables), intent(in) :: in

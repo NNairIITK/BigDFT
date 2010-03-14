@@ -607,7 +607,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
        & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
        & symObj, irrzon, phnons)
-
   
   if(orbs%nspinor==4) then
      !this wrapper can be inserted inside the poisson solver 

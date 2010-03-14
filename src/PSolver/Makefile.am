@@ -94,6 +94,7 @@ PS_Check_LDFLAGS =
 PS_Check_LDADD = libpoissonsolver.a \
 	../modules/libmodules.a \
 	../profiling/libprofiling.a \
+	../libbigdft.a
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
@@ -116,7 +117,7 @@ PS_Exercise_LDADD =	libpoissonsolver.a \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
-CLEANFILES = malloc.prc time.prc PS_Check.out \
+CLEANFILES = malloc.prc time.prc PS_Check.out fldiff.report \
 	module_fft_sg.@MODULE_EXT@ MODULE_FFT_SG.@MODULE_EXT@ \
 	POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@ module_base.@MODULE_EXT@
 
@@ -142,4 +143,5 @@ check:
 	$(run_parallel) ./PS_Check 32 64 48  1 S >> PS_Check.out
 	$(run_parallel) ./PS_Check 32 64 48 11 S >> PS_Check.out
 	$(run_parallel) ./PS_Check 32 64 48 13 S >> PS_Check.out
-	python $(top_srcdir)/tests/fldiff.py --mode=psolver --discrepancy=2.e-8 PS_Check.out $(top_srcdir)/src/PSolver/PS_Check.out.ref
+	python $(top_srcdir)/tests/fldiff.py --mode=psolver --discrepancy=2.e-8 \
+		PS_Check.out $(top_srcdir)/src/PSolver/PS_Check.out.ref | tee fldiff.report

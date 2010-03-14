@@ -23,7 +23,7 @@
 !! take into account the factor strfact
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2009 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2010 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -50,7 +50,7 @@
 !!  at output : iexit=  0 if not below tolerance, 1 if below tolerance
 !!
 !! PARENTS
-!!      brdmin,delocint,gstate,moldyn
+!!      brdmin,delocint,diisrelax,gstate,gstateimg,moldyn
 !!
 !! CHILDREN
 !!      wrtout

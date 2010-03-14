@@ -1213,7 +1213,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !if (nvirt > 0 .and. in%inputPsiId == 0) then
   if (DoDavidson) then
-     call davidson(iproc,nproc,n1i,n2i,n3i,in,atoms,&
+     call davidson(iproc,nproc,n1i,n2i,in,atoms,&
           orbs,orbsv,nvirt,Glr,comms,&
           hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj, &
           pkernel,psi,psivirt,ngatherarr,GPU)

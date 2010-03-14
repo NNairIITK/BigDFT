@@ -10,7 +10,7 @@
 !! as well as the point group.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2000-2009 ABINIT group (XG)
+!! Copyright (C) 2000-2010 ABINIT group (XG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -170,10 +170,10 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
 !  as the lattice+atoms (+electric field + ...)
    if(problem==0)exit
 
-!DEBUG
+!  DEBUG
 !  write(6,*)' Start real testing : problem=',problem
 !  stop
-!ENDDEBUG
+!  ENDDEBUG
 
    if(problem==2)then
      if(iaxis==0)then
@@ -198,7 +198,7 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
        call wrtout(std_out,message,'COLL')
        call leave_new('COLL')
      end if
-   endif
+   end if
 
    if(problem==1)then
 !    One is left with the problem=1 case, basically iholohedry is lower than bravais(1)
@@ -230,9 +230,9 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
 &         '  iholohedry=',iholohedry
          call wrtout(std_out,message,'COLL')
          call leave_new('COLL')
-       endif
-     endif
-   endif ! problem==1
+       end if
+     end if
+   end if ! problem==1
 
    if(next_stage==1)then
      bravais1now=bravais(1)
@@ -249,9 +249,9 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
        iaxis=14
      else
        iaxis=8
-     endif
+     end if
      next_stage=0
-   endif
+   end if
 
    iaxis=iaxis-1
    do jaxis=iaxis,1,-1
@@ -259,33 +259,33 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
        axis_trial(:)=ortho_axes(:,jaxis)
      else
        axis_trial(:)=hexa_axes(:,jaxis)
-     endif
-!DEBUG
+     end if
+!    DEBUG
 !    write(6,*)' symbrav : try jaxis=',jaxis
 !    write(6,*)' axis_trial=',axis_trial
-!ENDDEBUG
+!    ENDDEBUG
      invariant=1
 !    Examine whether all symmetry operations leave the axis invariant (might be reversed, though)
      do isym=1,nsym
        if(sum(abs(matmul(symrelconv(:,:,isym),axis_trial)-axis_trial(:)))/=0 .and. &
-&         sum(abs(matmul(symrelconv(:,:,isym),axis_trial)+axis_trial(:)))/=0 )invariant=0
-     enddo
+&       sum(abs(matmul(symrelconv(:,:,isym),axis_trial)+axis_trial(:)))/=0 )invariant=0
+     end do
      if(invariant==1)then
        iaxis=jaxis
        write(message, '(2a,i3)' )ch10,&
 &       ' symbrav : found invariant axis, jaxis=',iaxis
        call wrtout(std_out,message,'COLL')
        exit
-     endif
-   enddo
+     end if
+   end do
 
    if(invariant==0)then
-!  Not a single axis was invariant with respect to all operations ?!
-!DEBUG
+!    Not a single axis was invariant with respect to all operations ?!
+!    DEBUG
 !    do isym=1,nsym
-!      write(6, '(a,10i4)' )' isym,symrelconv=',isym,symrelconv(:,:,isym)
+!    write(6, '(a,10i4)' )' isym,symrelconv=',isym,symrelconv(:,:,isym)
 !    enddo 
-!ENDDEBUG
+!    ENDDEBUG
      write(message, '(6a,3i3,2a,i3,2a,i3)' )ch10,&
 &     ' symbrav : BUG -',ch10,&
 &     '  Could not succeed to determine the bravais lattice (not a single invariant)',ch10,&
@@ -294,24 +294,24 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
 &     '  iholohedry=',iholohedry
      call wrtout(std_out,message,'COLL')
      call leave_new('COLL')
-   endif
+   end if
 
    call matr3inv(rprimdconv,rprimdconv_invt)
    axis_red(:)=axis_trial(1)*rprimdconv_invt(1,:)+ &
-&              axis_trial(2)*rprimdconv_invt(2,:)+ &
-&              axis_trial(3)*rprimdconv_invt(3,:)
+&   axis_trial(2)*rprimdconv_invt(2,:)+ &
+&   axis_trial(3)*rprimdconv_invt(3,:)
    axis_cart(:)=axis_red(1)*rprimdnow(:,1)+ &
-&               axis_red(2)*rprimdnow(:,2)+ &
-&               axis_red(3)*rprimdnow(:,3)
+&   axis_red(2)*rprimdnow(:,2)+ &
+&   axis_red(3)*rprimdnow(:,3)
    norm=sum(axis_cart(:)**2)
 !  Expand by a uniform, quite arbitrary, dilatation, along the invariant axis
 !  Note : make these dilatation different, according to ideform 
    do ii=1,3
      scprod=axis_cart(1)*rprimdnow(1,ii)+axis_cart(2)*rprimdnow(2,ii)+axis_cart(3)*rprimdnow(3,ii) 
      rprimdtry(:,ii)=rprimdnow(:,ii)+ideform*(tol3-tol6)*scprod/norm*axis_cart(:)
-   enddo
+   end do
 
- enddo ! ideform
+ end do ! ideform
 
  if(bravais(1)/=iholohedry)then
    write(message, '(6a,3i3,2a,i3,2a,i3)' )ch10,&
@@ -321,7 +321,7 @@ subroutine symbrav(bravais,msym,nsym,ptgroup,rprimd,symrel,tolsym)
 &   '  iholohedry=',iholohedry
    call wrtout(std_out,message,'COLL')
    call leave_new('COLL')
- endif
+ end if
 
  deallocate(symrelconv)
 

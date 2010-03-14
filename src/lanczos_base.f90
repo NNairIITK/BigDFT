@@ -2,7 +2,7 @@
 !! FUNCTION
 !!   Module to handle diagonalization scheme
 !! COPYRIGHT
-!!    Copyright (C) 2009 BigDFT group
+!!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -21,20 +21,20 @@ module lanczos_base
   
   character(len=*), parameter :: subname='lanczos_base'
 
+  real(kind=8), pointer :: LB_alpha(:)
+  real(kind=8), pointer :: LB_beta(:)
+  real(kind=8), pointer :: omega(:,:)
+  real(kind=8), pointer :: evect(:,:)
+  real(kind=8), pointer :: LB_eval(:)
+  real(kind=8), pointer :: oldalpha(:)
+  real(kind=8), pointer :: diagwork(:)
+  real(kind=8) :: LB_shift
+  real(kind=8) :: LANCZOS_tol
+  integer :: LB_nsteps
+  integer :: hasoldalpha
+  integer :: i_stat,i_all
+  integer :: LB_iproc, LB_nproc
 
-  real(8), pointer :: LB_alpha(:)
-  real(8), pointer :: LB_beta(:)
-  real(8), pointer :: omega(:,:)
-  real(8), pointer :: evect(:,:)
-  real(8), pointer :: LB_eval(:)
-  real(8), pointer :: oldalpha(:)
-  real(8), pointer :: diagwork(:)
-  real(8) LB_shift
-  real(8) LANCZOS_tol
-  integer LB_nsteps
-  integer hasoldalpha
-  integer i_stat,i_all
-  integer LB_iproc, LB_nproc
 contains
 
   subroutine LB_allocate_for_chebychev( )
@@ -139,7 +139,7 @@ contains
     integer, intent(in):: m
 ! ::::::::::::::::::::::::::::::::::::::::::
     integer j,i,k
-    real(8) dum, dumvect(0:LB_nsteps )
+    real(kind=8) dum, dumvect(0:LB_nsteps )
     do j=1, m-1
        do i=0, m-j-1
           if( abs(LB_eval(i) ) .lt. abs(LB_eval(i+1) ) ) then
@@ -178,10 +178,9 @@ contains
 
   subroutine diago(k,m)
     implicit none
-    integer, intent(in):: k,m
-! :::::::::::::::::::::::::::::::::::::::::::
-    integer i,j
-    integer info, lwork
+    integer, intent(in) :: k,m
+    integer :: i
+    integer :: info, lwork
     
     evect(:,:)=0.0D0
     do i=0, m-1
@@ -225,11 +224,11 @@ contains
     implicit none
 
     integer, intent(IN) :: nd
-    real(8), intent(IN) :: shift
-    real(8), intent(IN) :: tol
+    real(kind=8), intent(IN) :: shift
+    real(kind=8), intent(IN) :: tol
     interface
        subroutine set_EP_shift(shift)
-         real(8) shift
+         real(kind=8) shift
        end subroutine set_EP_shift
 
        subroutine  EP_allocate_for_eigenprob(nsteps)
@@ -252,12 +251,12 @@ contains
        subroutine EP_Moltiplica(i,j)
          integer i,j
        end subroutine 
-       real(8) function EP_scalare(i,j)
+       real(kind=8) function EP_scalare(i,j)
          integer i,j
        end function 
        subroutine EP_add_from_vect_with_fact( i, j  ,   a )
          integer i,j
-         real(8) a
+         real(kind=8) a
        end subroutine 
        subroutine EP_GramSchmidt(i,j)
          integer i,j
@@ -270,17 +269,15 @@ contains
        end subroutine
        subroutine EP_mat_mult(m,k ,  EV )
          integer  m,k
-         real(8)  EV(1 )
+         real(kind=8)  EV(1 )
        end subroutine        
 
     end interface
 
     integer , optional :: accontentati_di_n
 
-! :::::::::::::::::::::::::::::::::::::::::::::::::::
-    integer k,nc,m
-    integer n_converged_cercati
-    real(8) dum
+    integer :: k,nc,m
+    integer :: n_converged_cercati
 
     LANCZOS_tol=tol
     call set_EP_shift(shift)
@@ -355,7 +352,7 @@ contains
   integer function notzero(k, tol)
     implicit none
     integer, intent(in) :: k
-    real(8), intent(in) :: tol
+    real(kind=8), intent(in) :: tol
     !::::::::::::::::::::::::::::::`
     integer i
     notzero=0
@@ -380,27 +377,19 @@ contains
        end subroutine EP_copy
        subroutine EP_mat_mult(m,k ,  EV )
          integer  m,k
-         real(8)  EV(1 )
+         real(kind=8)  EV(1 )
        end subroutine EP_mat_mult
     end interface
     
-! :::::::::::::::::::::::::::::::::::::
-    integer i
-    real(8), pointer :: dumomega(:,:), dumomega2(:,:)
-    real(8) acoeff, bcoeff
-    integer lda, ldb, ldc
-
-
-
+    integer :: i
+    real(kind=8), pointer :: dumomega(:,:), dumomega2(:,:)
+    real(kind=8) :: acoeff, bcoeff
 
     LB_alpha(0:k-1)=LB_eval(0:k-1)
 
     LB_beta(0:k-1) = LB_beta(m-1)*evect(m-1, 0:k-1)
 
-
-
     call EP_mat_mult(m,k,  evect(0:, 0:  )   ) 
-
 
     do i=0, k-1
        call EP_normalizza(-i-1)
@@ -408,18 +397,13 @@ contains
        call EP_copy(i, -i-1 )
     enddo
 
-
     call EP_copy(k, m )
-    
   
     allocate(dumomega(0:m-1,0:m-1+ndebug))
     allocate(dumomega2(0:m-1,0:m-1+ndebug))
-    
 
     acoeff=1.0D0
     bcoeff =0.0D0
-    
-
 
     call dgemm('N','N',m,m,m,acoeff,omega(0,0) ,LB_nsteps+1,  evect(0,0) ,LB_nsteps,bcoeff,dumomega(0,0),m)
 
@@ -443,17 +427,16 @@ contains
        EP_scalare,EP_add_from_vect_with_fact )
 
     implicit none
-    integer, intent(in)::k
-    integer, intent(in)::m
-    ! ::::::::::::::::::::::::::::::::::::::::
-    real(8) sn,eu,eusn,eq
-    real(8) max0
-    integer pvect
-    integer i,l,j, w
+    integer, intent(in) :: k
+    integer, intent(in) :: m
+    real(kind=8) :: sn,eu,eusn,eq
+    real(kind=8) :: max0
+    integer :: i,l,j, w
+
     interface
        subroutine EP_mat_mult(m,k ,  EV )
          integer  m,k
-         real(8)  EV(1 )
+         real(kind=8)  EV(1 )
        end subroutine  
        integer function get_EP_dim()
        end function
@@ -465,12 +448,12 @@ contains
        subroutine EP_Moltiplica(i,j)
          integer i,j
        end subroutine 
-       real(8) function EP_scalare(i,j)
+       real(kind=8) function EP_scalare(i,j)
          integer i,j
        end function 
        subroutine EP_add_from_vect_with_fact( i, j  ,   a )
          integer i,j
-         real(8) a
+         real(kind=8) a
        end subroutine 
        subroutine EP_GramSchmidt(i,j)
          integer i,j
@@ -482,19 +465,20 @@ contains
          integer i,j
        end subroutine
     end interface
-    integer p
-    real(8) add
-    real(8) condition
-    integer ipa
 
-    p =-1
+    integer :: p
+    real(kind=8) :: add
+    real(kind=8) :: condition
+    integer :: ipa
+
+    p = -1
         
     sn   = sqrt(get_EP_dim()*1.0D0 )
     eu   = 1.1D-15
     eusn = eu*sn
     eq   = sqrt(eu)
 
-    if (k.eq.0) then
+    if (k == 0) then
        call EP_initialize_start()
        call EP_normalizza(0)
     endif
@@ -694,17 +678,14 @@ contains
 
     real(gp), pointer :: Xs(:), res(:), cfftreal(:), cfftimag(:), zinout(:,:,:)
     complex(kind=8), pointer :: alphas(:), expn(:)
-    complex(kind=8) ctemp
-    integer inzee
+    complex(kind=8) :: ctemp
+    integer :: inzee
 
-
-    integer Nbar
-    integer i,n
-    real(gp) Pi
-    character(200)  filename, saux
-    real(gp) fact
-
-
+    integer :: Nbar
+    integer :: i
+    real(gp) :: Pi
+    character(len=200) :: filename
+    real(gp) :: fact
 
     write(filename,'(a,i0)') "cheb_spectra_" , Nu
     print *, " writing spectra to " , filename 
@@ -715,8 +696,6 @@ contains
        Nbar=Nbar*2
     enddo
     Nbar=Nbar*2   
-
-
     
     allocate(Xs(0:Nbar-1+ndebug) , stat=i_stat)
     call memocc(i_stat,Xs,'Xs',subname)
@@ -834,9 +813,6 @@ contains
     i_all=-product(shape(zinout))*kind(zinout)
     deallocate(zinout)
     call memocc(i_stat,i_all,'zinout',subname)
-    
-
-
 
   end subroutine CalcolaSpettroChebychev
   
@@ -846,60 +822,54 @@ contains
        EP_scalare,EP_add_from_vect_with_fact , EP_multbyfact)
     use module_base
     implicit none
-    integer, intent(in)::m
-    ! ::::::::::::::::::::::::::::::::::::::::
-    real(8) sn,eu,eusn,eq
-    real(8) max0
-    real(gp) cheb_shift,  fact_cheb
-    integer pvect
-    integer i,l,j, w
+    integer, intent(in) :: m
+    real(gp) :: cheb_shift, fact_cheb
+    integer :: i
     interface
        subroutine EP_mat_mult(m,k ,  EV )
-         integer  m,k
-         real(8)  EV(1 )
+         integer  :: m,k
+         real(kind=8) :: EV(1 )
        end subroutine  
        integer function get_EP_dim()
        end function
        subroutine EP_initialize_start()
        end subroutine 
        subroutine EP_normalizza(i)
-         integer i
+         integer :: i
        end subroutine 
        subroutine EP_Moltiplica(i,j)
-         integer i,j
+         integer :: i,j
        end subroutine 
-       real(8) function EP_scalare(i,j)
-         integer i,j
+       real(kind=8) function EP_scalare(i,j)
+         integer :: i,j
        end function 
        subroutine EP_add_from_vect_with_fact( i, j  ,   a )
-         integer i,j
-         real(8) a
+         integer :: i,j
+         real(kind=8) :: a
        end subroutine 
        subroutine EP_GramSchmidt(i,j)
-         integer i,j
+         integer :: i,j
        end subroutine 
        subroutine EP_set_all_random(i)
-         integer i
+         integer :: i
        end subroutine 
        subroutine EP_copy(i,j)
-         integer i,j
+         integer :: i,j
        end subroutine
        subroutine EP_multbyfact(j, fact)
          use module_base
          implicit none
-         integer, intent(in)::j
-         real(gp) fact
+         integer, intent(in) :: j
+         real(gp) :: fact
          ! ::::::::::::::::::::::::::::::::::::::
 
        end subroutine EP_multbyfact
        
-
     end interface
-    integer p
-    real(8) add
-    real(8) condition
-    integer ipa
-    integer tmp1, attuale, precedente
+
+
+    integer :: ipa
+    integer :: tmp1, attuale, precedente
 
     tmp1 = 1
     attuale= 2
@@ -910,7 +880,7 @@ contains
     call EP_copy(precedente,0)
     LB_alpha(0)=EP_scalare(attuale,attuale)
     
-    DO i=0, m-1
+    do i=0, m-1
        if(LB_iproc==0 .and. modulo( m-1-i   ,100)==0 ) then
           open(unit=22,file="coeffs_chebychev")
           write(22,*) 2*i+1,  cheb_shift, fact_cheb

@@ -7,7 +7,7 @@
 !! Checks that a set of input symmetries constitutes a group.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2009 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2010 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -31,7 +31,7 @@
 !! SHOULD ALSO CHECK THE tnons !
 !!
 !! PARENTS
-!!      chkinp,gensymspgr,setsym,m_bands_sym,m_bz_mesh
+!!      chkinp,gensymspgr,m_bands_sym,m_bz_mesh,setsym
 !!
 !! CHILDREN
 !!      leave_new,wrtout

@@ -7,7 +7,7 @@
 !! Invert and transpose orthogonal 3x3 matrix of INTEGER elements.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2009 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2010 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -32,9 +32,9 @@
 !! TODO
 !!
 !! PARENTS
-!!      anascr,bands_classification,crystal_methods,debug_tools,get_full_kgrid
-!!      getkgrid,invars2m,mrgscr,nstdy3,optic,outscfcv,rdddb9,rdkss,read_gkk
-!!      setsym,setup_FFT_rotation,strainsym,symdyma,wfconv
+!!      ab6_symmetry_f90,debug_tools,get_full_kgrid,getkgrid,ingeo,invars2m
+!!      m_bands_sym,m_crystal,m_fft_mesh,m_io_kss,nstdy3,optic,outscfcv,rdddb9
+!!      read_gkk,setsym,strainsym,symdij,symdyma,wfconv
 !!
 !! CHILDREN
 !!      leave_new,wrtout

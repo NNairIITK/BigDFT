@@ -21,7 +21,7 @@
 !!   err_norm        normalisation error
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA (LG)
+!!    Copyright (C) 2007-2010 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -287,8 +287,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
   real(wp), dimension(ncplx,0:nmax,2), intent(out) :: c
   !local variables
   integer :: rightx,leftx,right_t,i0,i,k,length,j,icplx
-  real(gp) :: a,z0,h,theor_norm2,x,r,coeff,r2,error,fac,rk
-  real(dp) :: cn2,tt
+  real(gp) :: a,z0,h,x,r,coeff,r2,fac,rk
   real(wp) :: func,cval,sval
   integer, dimension(0:4) :: lefts,rights
   !include the convolutions filters

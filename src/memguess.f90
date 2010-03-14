@@ -5,7 +5,7 @@
 !! AUTHOR
 !!    Luigi Genovese
 !! COPYRIGHT
-!!   Copyright (C) 2007-2009 CEA
+!!   Copyright (C) 2007-2010 BigDFT group
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -28,10 +28,10 @@ program memguess
   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: norbgpu,nspin_ig,ng
-  real(gp) :: peakmem,hx,hy,hz,eks
+  real(gp) :: peakmem,hx,hy,hz
   type(input_variables) :: in
   type(atoms_data) :: atoms
-  type(orbitals_data) :: orbs,orbstst,orbse,orbsv
+  type(orbitals_data) :: orbs,orbstst
   type(locreg_descriptors) :: Glr
   type(nonlocal_psp_descriptors) :: nlpspd
   type(gaussian_basis) :: G !basis for davidson IG
@@ -40,11 +40,10 @@ program memguess
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:,:), pointer :: rxyz
   real(wp), dimension(:), allocatable :: rhoexpo
-  real(wp), dimension(:,:), allocatable :: rhocoeff,rhocoeff_AE
+  real(wp), dimension(:,:), allocatable :: rhocoeff
   real(kind=8), dimension(:,:), allocatable :: radii_cf
   logical, dimension(:,:,:), allocatable :: scorb
   real(kind=8), dimension(:), allocatable :: locrad
-  real(wp), dimension(:,:,:), pointer :: psigau
   real(gp), dimension(:), pointer :: gbd_occ
   !! By Ali
   integer :: ierror
