@@ -55,7 +55,6 @@ subroutine print_logo()
 end subroutine print_logo
 !!***
 
-
 !!****f* BigDFT/read_input_variables
 !! FUNCTION
 !!    Do all initialisation for all different files of BigDFT. 
@@ -79,29 +78,24 @@ subroutine read_input_variables(iproc,posinp, &
   type(atoms_data), intent(out) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
   !Local variables
-  logical :: exists
   real(gp) :: tt
   integer :: iat
-  
-  ! Read performance input variables (if given)
-  call perf_input_variables(iproc,file_perf,inputs)
+
+  ! Default
+  call default_input_variables(inputs)
 
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
 
+  ! Read performance input variables (if given)
+  call perf_input_variables(iproc,file_perf,inputs)
   ! Read dft input variables
-  call dft_input_variables(iproc,file_dft,inputs,atoms%symObj)
-
+  call dft_input_variables(iproc,file_dft,inputs)
+  call update_symmetries(inputs, atoms, rxyz)
   ! Read k-points input variables (if given)
   call kpt_input_variables(iproc,file_kpt,inputs,atoms)
-
   ! Read geometry optimisation option
-  inquire(file=file_geopt,exist=exists)
-  if (exists) then
-     call geopt_input_variables(iproc,file_geopt,inputs)
-  else
-     call geopt_input_variables_default(inputs)
-  end if
+  call geopt_input_variables(file_geopt,inputs)
 
   ! Shake atoms if required.
   if (inputs%randdis > 0.d0) then
@@ -137,6 +131,23 @@ subroutine read_input_variables(iproc,posinp, &
 end subroutine read_input_variables
 !!***
 
+subroutine default_input_variables(inputs)
+  use module_base
+  use module_types
+  implicit none
+
+  type(input_variables), intent(out) :: inputs
+
+  ! Default values.
+  nullify(inputs%kpt)
+  nullify(inputs%wkpt)
+  ! Default abscalc variables
+  call abscalc_input_variables_default(inputs)
+  ! Default frequencies variables
+  call frequencies_input_variables_default(inputs)
+  ! Default values for geopt.
+  call geopt_input_variables_default(inputs)  
+end subroutine default_input_variables
 
 !!****f* BigDFT/dft_input_variables
 !! FUNCTION
@@ -148,31 +159,18 @@ end subroutine read_input_variables
 !!    Every argument should be considered as mandatory
 !! SOURCE
 !!
-subroutine dft_input_variables(iproc,filename,in,symObj)
+subroutine dft_input_variables(iproc,filename,in)
   use module_base
   use module_types
-  use ab6_symmetry
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
   type(input_variables), intent(out) :: in
-  integer, intent(inout) :: symObj
   !local variables
-  character(len=7) :: cudagpu
+  character(len=7) :: string
   character(len=100) :: line
   logical :: exists
   integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj,useGPU
-
-  ! Default abscalc variables
-  call abscalc_input_variables_default(in)
-
-  ! Default frequencies variables
-  call frequencies_input_variables_default(in)
-
-  ! Default values for geopt and k points in case not call later.
-  call geopt_input_variables_default(in)
-  nullify(in%kpt)
-  nullify(in%wkpt)
 
   ! Read the input variables.
   inquire(file=trim(filename),exist=exists)
@@ -211,9 +209,9 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   call check()
   !read the line for force the CUDA GPU calculation for all processors
   read(1,'(a100)')line
-  read(line,*,iostat=ierrfrc) cudagpu
+  read(line,*,iostat=ierrfrc) string
   iline=iline+1
-  if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
+  if (ierrfrc == 0 .and. string=='CUDAGPU') then
      call sg_init(GPUshare,useGPU,iproc,initerror)
      if (useGPU == 1) then
         iconv = 1
@@ -279,6 +277,10 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
 !!  !temporary correction
 !!  DistProjApply=.false.
 
+  ! Line to disable automatic behaviours (currently only symmetries).
+  read(1,*,iostat=ierror) in%disableSym
+  call check()
+
 !  if (in%nspin/=1 .and. in%nvirt/=0) then
 !     !if (iproc==0) then
 !        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
@@ -288,29 +290,10 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
 ! 
   close(unit=1,iostat=ierror)
 
-  if (in%nvirt > 0 .and. iproc ==0) then
-     !read virtual orbital and plotting request
-     write(*,'(1x,a,i0)')'Virtual orbitals ',in%nvirt
-     write(*,'(1x,a,i0,a)')'Output for density plots is requested for ',abs(in%nplot),&
-          ' orbitals'
-  end if
-  if (in%nspin==4) then
-     if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Non-collinear)'
-  else if (in%nspin==2) then
-     if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Collinear)'
-  else if (in%nspin==1) then
-     if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation:  NO '
-  else
-     !if (iproc == 0) 
+  if (in%nspin/=4 .and. in%nspin/=2 .and. in%nspin/=1) then
      write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
      stop
   end if
-
-  ! Add the electric field to the symmetry object.
-  if (in%elecfield /= 0) then
-     call ab6_symmetry_set_field(symObj, (/ 0._gp, in%elecfield, 0._gp /), ierror)
-  end if
-
 
   !define whether there should be a last_run after geometry optimization
   !also the mulliken charge population should be inserted
@@ -368,17 +351,23 @@ end subroutine geopt_input_variables_default
 !!    Every argument should be considered as mandatory
 !! SOURCE
 !!
-subroutine geopt_input_variables(iproc,filename,in)
+subroutine geopt_input_variables(filename,in)
   use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: in
   !local variables
   character(len=*), parameter :: subname='geopt_input_variables'
   character(len = 128) :: line
   integer :: i_stat,ierror,iline
+  logical :: exists
+
+  inquire(file=filename,exist=exists)
+  if (.not. exists) then
+     in%ncount_cluster_x=0
+     return
+  end if
 
   ! Read the input variables.
   open(unit=1,file=filename,status='old')
@@ -440,46 +429,6 @@ subroutine geopt_input_variables(iproc,filename,in)
 
   close(unit=1,iostat=ierror)
 
-  if (iproc == 0) then
-     write(*,'(1x,a)') '--------------------------------------------------------------Geopt Input Parameters'
-     write(*, "(A)")   "       Generic param.              Geo. optim.                MD param."
-
-     write(*, "(1x,a,i7,1x,a,1x,a,1pe7.1,1x,a,1x,a,i7)") &
-          & "      Max. steps=", in%ncount_cluster_x, "|", &
-          & "Fluct. in forces=", in%frac_fluct,       "|", &
-          & "          ionmov=", in%ionmov
-     write(*, "(1x,a,a7,1x,a,1x,a,1pe7.1,1x,a,1x,a,0pf7.0)") &
-          & "       algorithm=", in%geopt_approach, "|", &
-          & "  Max. in forces=", in%forcemax,       "|", &
-          & "           dtion=", in%dtion
-     if (trim(in%geopt_approach) /= "DIIS") then
-        write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,1x,a)", advance="no") &
-             & "random at.displ.=", in%randdis, "|", &
-             & "  steep. descent=", in%betax,   "|"
-     else
-        write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,2x,a,1I2,1x,a)", advance="no") &
-             & "random at.displ.=", in%randdis,           "|", &
-             & "step=", in%betax, "history=", in%history, "|"
-     end if
-     if (in%ionmov > 7) then
-        write(*, "(1x,a,1f5.0,1x,a,1f5.0)") &
-             & "start T=", in%mditemp, "stop T=", in%mdftemp
-     else
-        write(*,*)
-     end if
-     
-     if (in%ionmov == 8) then
-        write(*,*) "TODO: pretty printing!", in%noseinert
-     else if (in%ionmov == 9) then
-        write(*,*) "TODO: pretty printing!", in%friction
-        write(*,*) "TODO: pretty printing!", in%mdwall
-     else if (in%ionmov == 13) then
-        write(*,*) "TODO: pretty printing!", in%nnos
-        write(*,*) "TODO: pretty printing!", in%qmass
-        write(*,*) "TODO: pretty printing!", in%bmass, in%vmass
-     end if
-  end if
-
 contains
 
   subroutine check()
@@ -495,6 +444,77 @@ contains
 end subroutine geopt_input_variables
 !!***
 
+subroutine update_symmetries(in, atoms, rxyz)
+  use module_base
+  use module_types
+  use defs_basis
+  use ab6_symmetry
+  implicit none
+  type(input_variables), intent(in) :: in
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  !local variables
+  character(len=*), parameter :: subname='update_symmetries'
+  integer :: i_stat, ierr, i_all
+  real(gp) :: rprimd(3, 3)
+  real(gp), dimension(:,:), allocatable :: xRed
+
+  ! Calculate the symmetries, if needed
+  if (atoms%geocode /= 'F') then
+     if (.not. in%disableSym) then
+        if (atoms%symObj < 0) then
+           call ab6_symmetry_new(atoms%symObj)
+        end if
+        ! New values
+        rprimd(:,:) = 0
+        rprimd(1,1) = atoms%alat1
+        rprimd(2,2) = atoms%alat2
+        if (atoms%geocode == 'S') rprimd(2,2) = 1000._gp
+        rprimd(3,3) = atoms%alat3
+        call ab6_symmetry_set_lattice(atoms%symObj, rprimd, ierr)
+        allocate(xRed(3, atoms%nat+ndebug),stat=i_stat)
+        call memocc(i_stat,xRed,'xRed',subname)
+        xRed(1,:) = modulo(rxyz(1, :) / rprimd(1,1), 1._gp)
+        xRed(2,:) = modulo(rxyz(2, :) / rprimd(2,2), 1._gp)
+        xRed(3,:) = modulo(rxyz(3, :) / rprimd(3,3), 1._gp)
+        call ab6_symmetry_set_structure(atoms%symObj, atoms%nat, atoms%iatype, xRed, ierr)
+        i_all=-product(shape(xRed))*kind(xRed)
+        deallocate(xRed,stat=i_stat)
+        call memocc(i_stat,i_all,'xRed',subname)
+        if (atoms%geocode == 'S') then
+           call ab6_symmetry_set_periodicity(atoms%symObj, &
+                & (/ .true., .false., .true. /), ierr)
+        else if (atoms%geocode == 'F') then
+           call ab6_symmetry_set_periodicity(atoms%symObj, &
+                & (/ .false., .false., .false. /), ierr)
+        end if
+        if (in%elecfield /= 0) then
+           call ab6_symmetry_set_field(atoms%symObj, (/ 0._gp, in%elecfield, 0._gp /), ierr)
+        end if
+     else
+        if (atoms%symObj >= 0) then
+           call ab6_symmetry_free(atoms%symObj)
+        end if
+        call ab6_symmetry_new(atoms%symObj)
+        rprimd(1,1) = 0.5d0
+        rprimd(2,1) = 1d0
+        rprimd(3,1) = 1d0
+        rprimd(1,2) = 2d0
+        rprimd(2,2) = 0d0
+        rprimd(3,2) = 1d0
+        rprimd(1,3) = 3d0
+        rprimd(2,3) = 0d0
+        rprimd(3,3) = 1d0
+        call ab6_symmetry_set_lattice(atoms%symObj, rprimd, ierr)
+        call ab6_symmetry_set_structure(atoms%symObj, 3, (/ 1,2,3 /), rprimd / 4.d0, ierr)
+     end if
+  else
+     if (atoms%symObj >= 0) then
+        call ab6_symmetry_free(atoms%symObj)
+     end if
+     atoms%symObj = -1
+  end if
+end subroutine update_symmetries
 
 !!****f* BigDFT/kpt_input_variables
 !! FUNCTION
@@ -550,10 +570,16 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   if (trim(type) == "auto" .or. trim(type) == "Auto" .or. trim(type) == "AUTO") then
      read(1,*,iostat=ierror) kptrlen
      call check()
-     
+
      call ab6_symmetry_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
-     if (ierror /= AB6_NO_ERROR) stop
+     if (ierror /= AB6_NO_ERROR) then
+        if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
+        stop
+     end if
+     ! in%kpt and in%wkpt will be allocated by ab6_symmetry routine.
+     call memocc(0,in%kpt,'in%kpt',subname)
+     call memocc(0,in%wkpt,'in%wkpt',subname)
   else if (trim(type) == "MPgrid" .or. trim(type) == "mpgrid") then
      read(1,*,iostat=ierror) ngkpt
      call check()
@@ -566,7 +592,13 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
 
      call ab6_symmetry_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
-     if (ierror /= AB6_NO_ERROR) stop
+     if (ierror /= AB6_NO_ERROR) then
+        if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
+        stop
+     end if
+     ! in%kpt and in%wkpt will be allocated by ab6_symmetry routine.
+     call memocc(0,in%kpt,'in%kpt',subname)
+     call memocc(0,in%wkpt,'in%wkpt',subname)
   else if (trim(type) == "manual" .or. trim(type) == "Manual") then
      read(1,*,iostat=ierror) in%nkpt
      call check()
@@ -583,7 +615,6 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
      
      ! We normalise the weights.
      in%wkpt(:) = in%wkpt / norm
-
   end if
 
   close(unit=1,iostat=ierror)
@@ -592,17 +623,6 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   do i = 1, in%nkpt, 1
      in%kpt(:, i) = in%kpt(:, i) / (/ atoms%alat1, atoms%alat2, atoms%alat3 /) * two_pi
   end do
-
-  ! Output
-  if (iproc == 0) then
-     write(*, "(1x,a,i6)") "Number of k-points  =", in%nkpt
-     write(*, "(1x,a)")    "k-point       red. coordinates             BZ coordinates            weight"
-     do i = 1, in%nkpt, 1
-        write(*, "(3x,i3,1x,3f9.5,2x,3f9.5,4x,f9.5)") i, &
-             & in%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
-             & in%kpt(:, i), in%wkpt(i)
-     end do
-  end if
 
 contains
 
@@ -628,7 +648,6 @@ end subroutine kpt_input_variables
 subroutine perf_input_variables(iproc,filename,inputs)
   use module_base
   use module_types
-  use defs_basis
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
@@ -936,47 +955,6 @@ contains
 end subroutine frequencies_input_variables
 !!***
 
-
-!!****f* BigDFT/print_input_parameters
-!! FUNCTION
-!!    Print all input parameters
-!! SOURCE
-!!
-subroutine print_input_parameters(in,atoms)
-  use module_types
-  implicit none
-  type(input_variables), intent(in) :: in
-  type(atoms_data), intent(in) :: atoms
-
-  write(*,'(1x,a)')&
-       '------------------------------------------------------------------- Input Parameters'
-  write(*,'(1x,a)')&
-       '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
-  write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
-       'Max. hgrid  =',in%hx,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
-       '| Calculate=',in%calc_tail
-  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i5,a,i2,1x,a,f4.1)')&
-       '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
-       'x',in%nrepmax,'| Extension=',in%rbuf
-  write(*,'(1x,a,i7,1x,a,1x,a,i8,1x,a,i4)')&
-       'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
-       '|  CG Steps=',in%ncongt
-  write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
-       ' elec. field=',in%elecfield,'|                   ','| DIIS Hist. N.=',in%idsx
-  if (in%nspin>=2) then
-     write(*,'(1x,a,i7,1x,a)')&
-          'Polarisation=',2*in%mpol, '|'
-  end if
-  if (atoms%geocode /= 'F') then
-     write(*,'(1x,a,1x,a,3(1x,1pe12.5))')&
-          '  Geom. Code=    '//atoms%geocode//'   |',&
-          '  Box Sizes (Bohr) =',atoms%alat1,atoms%alat2,atoms%alat3
-
-  end if
-end subroutine print_input_parameters
-!!***
-
-
 !!****f* BigDFT/read_atomic_file
 !! FUNCTION
 !!    Read atomic file
@@ -986,7 +964,6 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_atomic_file
-  use defs_basis
   use ab6_symmetry
   implicit none
   character(len=*), intent(in) :: file
@@ -995,18 +972,9 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_atomic_file'
-  integer :: i_stat, l, ierr, i_all, iat, ityp
+  integer :: i_stat, l
   logical :: file_exists
   character(len = 128) :: filename
-  real(gp) :: rprimd(3, 3)
-  real(gp), dimension(:,:), allocatable :: xRed
-  integer :: nSym
-  integer :: sym(3, 3, AB6_MAX_SYMMETRIES)
-  integer :: symAfm(AB6_MAX_SYMMETRIES)
-  real(gp) :: transNon(3, AB6_MAX_SYMMETRIES)
-  real(gp) :: genAfm(3)
-  character(len=15) :: spaceGroup
-  integer :: spaceGroupId, pointGroupMagn
 
   file_exists = .false.
 
@@ -1067,64 +1035,9 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   !control atom positions
   call check_atoms_positions(iproc,atoms,rxyz)
 
-  ! Prepare the symmetry object.
-  if (atoms%geocode /= 'F') then
-     call ab6_symmetry_new(atoms%symObj)
-     rprimd(:,:) = 0
-     rprimd(1,1) = atoms%alat1
-     rprimd(2,2) = atoms%alat2
-     if (atoms%geocode == 'S') rprimd(2,2) = 1000._gp
-     rprimd(3,3) = atoms%alat3
-     call ab6_symmetry_set_lattice(atoms%symObj, rprimd, ierr)
-     allocate(xRed(3, atoms%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,xRed,'xRed',subname)
-     xRed(1,:) = modulo(rxyz(1, :) / rprimd(1,1), 1._gp)
-     xRed(2,:) = modulo(rxyz(2, :) / rprimd(2,2), 1._gp)
-     xRed(3,:) = modulo(rxyz(3, :) / rprimd(3,3), 1._gp)
-     call ab6_symmetry_set_structure(atoms%symObj, atoms%nat, atoms%iatype, xRed, ierr)
-     i_all=-product(shape(xRed))*kind(xRed)
-     deallocate(xRed,stat=i_stat)
-     call memocc(i_stat,i_all,'xRed',subname)
-     if (atoms%geocode == 'S') then
-        call ab6_symmetry_set_periodicity(atoms%symObj, &
-             & (/ .true., .false., .true. /), ierr)
-     else   if (atoms%geocode == 'F') then
-        call ab6_symmetry_set_periodicity(atoms%symObj, &
-             & (/ .false., .false., .false. /), ierr)
-     end if
-  else
-     atoms%symObj = -1
-  end if
+  ! We delay the calculation of the symmetries.
+  atoms%symObj = -1
 
-  ! Output...
-  if (iproc.eq.0) then
-     if (atoms%geocode /= 'F') then
-        call ab6_symmetry_get_matrices(atoms%symObj, nSym, sym, transNon, symAfm, ierr)
-        call ab6_symmetry_get_group(atoms%symObj, spaceGroup, &
-             & spaceGroupId, pointGroupMagn, genAfm, ierr)
-        if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "!primitive"
-     end if
-
-     write(*,'(1x,a,i5)')        'Number of atoms     = ',atoms%nat
-     write(*,'(1x,a,i5)')        'Number of atom types= ',atoms%ntypes
-     if (atoms%geocode /= 'F') then
-        write(*,'(1x,a,i5,a,1x,a)') 'Number of symmetries= ',nSym, &
-             & " | space group=", spaceGroup
-     end if
-
-     do ityp=1,atoms%ntypes
-        write(*,'(1x,a,i0,a,a)') 'Atoms of type ',ityp,' are ', &
-             & trim(atoms%atomnames(ityp))
-     enddo
-
-     do iat=1,atoms%nat
-        if (atoms%ifrztyp(iat)/=0) &
-             write(*,'(1x,a,i0,a,a,a,i3)') &
-             'FIXED Atom N.:',iat,', Name: ', &
-             & trim(atoms%atomnames(atoms%iatype(iat))),&
-             ', ifrztyp= ',atoms%ifrztyp(iat)
-     enddo
-  end if
 end subroutine read_atomic_file
 !!***
 
@@ -1834,7 +1747,6 @@ subroutine charge_and_spol(natpol,nchrg,nspol)
 end subroutine charge_and_spol
 !!***
 
-
 !!****f* BigDFT/write_atomic_file
 !! FUNCTION
 !!    Write an atomic file
@@ -2122,6 +2034,211 @@ subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
 end subroutine frozen_alpha
 !!***
 
+!!****f* BigDFT/print_general_parameters
+!! FUNCTION
+!!    Print all general parameters
+!! SOURCE
+!!
+subroutine print_general_parameters(in,atoms)
+  use module_types
+  use defs_basis
+  use ab6_symmetry
+  implicit none
+  type(input_variables), intent(in) :: in
+  type(atoms_data), intent(in) :: atoms
+
+  integer :: nSym, ierr, ityp, iat, i, lg
+  integer :: sym(3, 3, AB6_MAX_SYMMETRIES)
+  integer :: symAfm(AB6_MAX_SYMMETRIES)
+  real(gp) :: transNon(3, AB6_MAX_SYMMETRIES)
+  real(gp) :: genAfm(3)
+  character(len=15) :: spaceGroup
+  integer :: spaceGroupId, pointGroupMagn
+  integer, parameter :: maxLen = 50, width = 24
+  character(len = width) :: at(maxLen), fixed(maxLen), add(maxLen)
+
+  ! Output for atoms and k-points
+  write(*,'(1x,a)') '---------------------------------------------------------------- Input atomic system'
+  write(*, "(A)")   "   Atomic system                  Fixed positions           Additional data"
+  do i = 1, maxLen
+     write(at(i), "(a)") " "
+     write(fixed(i), "(a)") " "
+     write(add(i), "(a)") " "
+  end do
+  write(fixed(1), '(a)') "No fixed atom"
+  write(add(1), '(a)') "No symmetry for open BC"
+  
+  ! The atoms column
+  write(at(1), '(a,a)')  "Bound. C.= ", atoms%geocode
+  write(at(2), '(a,i5)') "N. types = ", atoms%ntypes
+  write(at(3), '(a,i5)') "N. atoms = ", atoms%nat
+  lg = 12
+  i = 4
+  write(at(i),'(a)' )    "Types    = "
+  do ityp=1,atoms%ntypes - 1
+     if (lg + 4 + len(trim(atoms%atomnames(ityp))) >= width) then
+        i = i + 1
+        lg = 12
+        write(at(i),'(a)') "           "
+     end if
+     write(at(i)(lg:),'(3a)') "'", trim(atoms%atomnames(ityp)), "', "
+     lg = lg + 4 + len(trim(atoms%atomnames(ityp)))
+  enddo
+  if (lg + 2 + len(trim(atoms%atomnames(ityp))) >= width) then
+     i = i + 1
+     lg = 12
+     write(at(i),'(a)') "           "
+  end if
+  write(at(i)(lg:),'(3a)') "'", trim(atoms%atomnames(ityp)), "'"
+
+  ! The fixed atom column
+  i = 1
+  do iat=1,atoms%nat
+     if (atoms%ifrztyp(iat)/=0) then
+        if (i > maxLen) exit
+        write(fixed(i),'(a,i4,a,a,a,i3)') &
+             "at.", iat,' (', &
+             & trim(atoms%atomnames(atoms%iatype(iat))),&
+             ') ',atoms%ifrztyp(iat)
+        i = i + 1
+     end if
+  enddo
+  if (i > maxLen) write(fixed(maxLen), '(a)') " (...)"
+
+  ! The additional data column
+  if (atoms%geocode /= 'F' .and. .not. in%disableSym) then
+     call ab6_symmetry_get_matrices(atoms%symObj, nSym, sym, transNon, symAfm, ierr)
+     call ab6_symmetry_get_group(atoms%symObj, spaceGroup, &
+          & spaceGroupId, pointGroupMagn, genAfm, ierr)
+     if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
+     write(add(1), '(a,i0)')       "N. sym.     = ", nSym
+     write(add(2), '(a,a)')        "Space group = ", trim(spaceGroup)
+  else if (atoms%geocode /= 'F' .and. in%disableSym) then
+     write(add(1), '(a)')          "N. sym.     = disabled"
+     write(add(2), '(a)')          "Space group = disabled"
+  else
+     write(add(1), '(a)')          "N. sym.     = free BC"
+     write(add(2), '(a)')          "Space group = free BC"
+  end if
+  i = 3
+  if (in%nvirt > 0) then
+     write(add(i), '(a,i5,a)')     "Virtual orb.= ", in%nvirt, " orb."
+     write(add(i + 1), '(a,i5,a)') "Plot dens.  = ", abs(in%nplot), " orb."
+  else
+     write(add(i), '(a)')          "Virtual orb.= none"
+     write(add(i + 1), '(a)')      "Plot dens.  = none"
+  end if
+  i = i + 2
+  if (in%nspin==4) then
+     write(add(i),'(a)')           "Spin pol.   = non-coll."
+  else if (in%nspin==2) then
+     write(add(i),'(a)')           "Spin pol.   = collinear"
+  else if (in%nspin==1) then
+     write(add(i),'(a)')           "Spin pol.   = no"
+  end if
+
+  ! Printing
+  do i = 1, maxLen
+     if (len(trim(at(i))) > 0 .or. len(trim(fixed(i))) > 0 .or. len(trim(add(i))) > 0) then
+        write(*,"(1x,a,1x,a,1x,a,1x,a,1x,a)") at(i), "|", fixed(i), "|", add(i)
+     end if
+  end do
+
+  if (atoms%geocode /= 'F') then
+     write(*,'(1x,a)') '--------------------------------------------------------------------------- k-points'
+     if (in%disableSym .and. in%nkpt > 1) then
+        write(*, "(1x,A)") "WARNING: symmetries have been disabled, k points are not irreductible."
+     end if
+     write(*, "(1x,a)")    "       red. coordinates         weight      id         BZ coordinates"
+     do i = 1, in%nkpt, 1
+        write(*, "(1x,3f9.5,2x,f9.5,5x,I3,2x,3f9.5)") &
+             & in%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
+             & in%wkpt(i), i, in%kpt(:, i)
+     end do
+  end if
+
+  if (in%ncount_cluster_x > 0) then
+     write(*,'(1x,a)') '------------------------------------------------------------- Geopt Input Parameters'
+     write(*, "(A)")   "       Generic param.              Geo. optim.                MD param."
+
+     write(*, "(1x,a,i7,1x,a,1x,a,1pe7.1,1x,a,1x,a,i7)") &
+          & "      Max. steps=", in%ncount_cluster_x, "|", &
+          & "Fluct. in forces=", in%frac_fluct,       "|", &
+          & "          ionmov=", in%ionmov
+     write(*, "(1x,a,a7,1x,a,1x,a,1pe7.1,1x,a,1x,a,0pf7.0)") &
+          & "       algorithm=", in%geopt_approach, "|", &
+          & "  Max. in forces=", in%forcemax,       "|", &
+          & "           dtion=", in%dtion
+     if (trim(in%geopt_approach) /= "DIIS") then
+        write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,1x,a)", advance="no") &
+             & "random at.displ.=", in%randdis, "|", &
+             & "  steep. descent=", in%betax,   "|"
+     else
+        write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,2x,a,1I2,1x,a)", advance="no") &
+             & "random at.displ.=", in%randdis,           "|", &
+             & "step=", in%betax, "history=", in%history, "|"
+     end if
+     if (in%ionmov > 7) then
+        write(*, "(1x,a,1f5.0,1x,a,1f5.0)") &
+             & "start T=", in%mditemp, "stop T=", in%mdftemp
+     else
+        write(*,*)
+     end if
+     
+     if (in%ionmov == 8) then
+        write(*,*) "TODO: pretty printing!", in%noseinert
+     else if (in%ionmov == 9) then
+        write(*,*) "TODO: pretty printing!", in%friction
+        write(*,*) "TODO: pretty printing!", in%mdwall
+     else if (in%ionmov == 13) then
+        write(*,*) "TODO: pretty printing!", in%nnos
+        write(*,*) "TODO: pretty printing!", in%qmass
+        write(*,*) "TODO: pretty printing!", in%bmass, in%vmass
+     end if
+  end if
+end subroutine print_general_parameters
+!!***
+
+!!****f* BigDFT/print_input_parameters
+!! FUNCTION
+!!    Print all input parameters
+!! SOURCE
+!!
+subroutine print_dft_parameters(in,atoms)
+  use module_types
+  use defs_basis
+  use ab6_symmetry
+  implicit none
+  type(input_variables), intent(in) :: in
+  type(atoms_data), intent(in) :: atoms
+
+  write(*,'(1x,a)')&
+       '------------------------------------------------------------------- Input Parameters'
+  write(*,'(1x,a)')&
+       '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
+  write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
+       'Max. hgrid  =',in%hx,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
+       '| Calculate=',in%calc_tail
+  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i5,a,i2,1x,a,f4.1)')&
+       '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
+       'x',in%nrepmax,'| Extension=',in%rbuf
+  write(*,'(1x,a,i7,1x,a,1x,a,i8,1x,a,i4)')&
+       'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
+       '|  CG Steps=',in%ncongt
+  write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
+       ' elec. field=',in%elecfield,'|                   ','| DIIS Hist. N.=',in%idsx
+  if (in%nspin>=2) then
+     write(*,'(1x,a,i7,1x,a)')&
+          'Polarisation=',2*in%mpol, '|'
+  end if
+  if (atoms%geocode /= 'F') then
+     write(*,'(1x,a,1x,a,3(1x,1pe12.5))')&
+          '  Geom. Code=    '//atoms%geocode//'   |',&
+          '  Box Sizes (Bohr) =',atoms%alat1,atoms%alat2,atoms%alat3
+
+  end if
+end subroutine print_dft_parameters
+!!***
 
 !!****f* BigDFT/atomic_axpy
 !! FUNCTION

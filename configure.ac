@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.4],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.5],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -263,17 +263,17 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   AC_LANG_POP(C)
 
   dnl Add the flags.
-  AC_ARG_WITH(cuda-cflags, AS_HELP_STRING([--with-cuda-cflags], [specify the flags for the NVidia Cuda Compiler (default is '-O3 --compiler-options -fno-strict-aliasing').]),
-                         [ac_with_cuda_cflags=$withval],
-                         [ac_with_cuda_cflags="no"])
-  if test x"$ac_with_cuda_cflags" != x"no" ; then
-    CUDA_FLAGS="$ac_with_cuda_cflags"
+  AC_ARG_WITH(cuda-cflags, AS_HELP_STRING([--with-nvcc-flags], [specify the flags for the NVidia Cuda Compiler (default is '-O3 --compiler-options -fno-strict-aliasing').]),
+                         [ac_with_nvcc_flags=$withval],
+                         [ac_with_nvcc_flags="no"])
+  if test x"$ac_with_nvcc_flags" != x"no" ; then
+    NVCC_FLAGS="$ac_with_nvcc_flags"
   else
-    if test -z "$CUDA_FLAGS" ; then
-      CUDA_FLAGS="-O3 --compiler-options -fno-strict-aliasing"
+    if test -z "NVCC_FLAGS" ; then
+      NVCC_FLAGS="-O3 --compiler-options -fno-strict-aliasing"
     fi
   fi
-  AC_SUBST(CUDA_FLAGS)
+  AC_SUBST(NVCC_FLAGS)
   LIBCUDA_LIBS="-L$ac_cuda_lib_path -lcudart -lcublas"
 fi
 
@@ -546,16 +546,12 @@ tests/NEB/NEB_include.sh
 tests/XabsCheb/Makefile
 tests/FeHyb/Makefile
 ])
-dnl if test x"$ac_build_libxc" = x"yes" ; then
-  # Call libXC ./configure script recursively.
-  ac_configure_args=$ac_configure_args" --enable-fortran"
-  AC_CONFIG_SUBDIRS([libXC])
-dnl fi
-dnl if test x"$ac_build_libsgpu" = x"yes" ; then
-  # Call S_GPU ./configure script recursively.
-  ac_configure_args=$ac_configure_args" --with-cuda-path=$ac_with_cuda_path"
-  AC_CONFIG_SUBDIRS([S_GPU])
-dnl fi
+
+# Call libXC ./configure script recursively.
+# Call S_GPU ./configure script recursively.
+ac_configure_args=$ac_configure_args" --enable-fortran"
+AC_CONFIG_SUBDIRS([libXC S_GPU])
+
 AC_OUTPUT
 
 echo "

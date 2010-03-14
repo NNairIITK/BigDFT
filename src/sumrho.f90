@@ -96,9 +96,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
 
   ! Symmetrise density, TODO...
   !after validation this point can be deplaced after the allreduce such as to reduce the number of operations
-  if (symObj >= 0 .and. .false.) then
-     call symmetrise_density(0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,nscatterarr,nspin,&
-          lr%d%n1i*lr%d%n2i*lr%d%n3i,&
+  if (symObj >= 0) then
+     call symmetrise_density(0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,nscatterarr,nspin,lr%d%n1i*lr%d%n2i*lr%d%n3i,&
           rho_p,symObj,irrzon,phnons)
   end if
 
@@ -307,15 +306,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
 
         end do
      end if
-
-!!$     open(70+iorb+orbs%isorb)
-!!$     do i_all=1,lr%d%n1i
-!!$        write(70+iorb+orbs%isorb,*)i_all,psir(i_all+(160-1)*lr%d%n1i+(160-1)*lr%d%n1i*lr%d%n2i,1)
-!!$     end do
-!!$     close(70+iorb+orbs%isorb)
-
   enddo
-
 
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
@@ -702,14 +693,14 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho
            j2=modulo(j/n1i,n2i)
            j3=j/(n1i*n2i)
            r2=modulo(j2,nd2)
-!!$           if(modulo(j/n1i,n2i)/nd2==iproc) then ! this ind is to be treated by me_fft
-!!$              !          ind in the proc ind-1=n1(nd2 j3+ r2)+j1
-!!$              ind=n1i*(nd2*j3+r2)+j1+1 !this is ind in the current proc
-!!$              rhog(1,j1+1,r2+1,j3+1,inzee)=rhosu12(1,izone)*phnons(1,iup+numpt,imagn)&
-!!$                   +rhosu12(2,izone)*phnons(2,iup+numpt,imagn)
-!!$              rhog(2,j1+1,r2+1,j3+1,inzee)=rhosu12(2,izone)*phnons(1,iup+numpt,imagn)&
-!!$                   -rhosu12(1,izone)*phnons(2,iup+numpt,imagn)
-!!$           end if
+           if(modulo(j/n1i,n2i)/nd2==iproc) then ! this ind is to be treated by me_fft
+              !          ind in the proc ind-1=n1(nd2 j3+ r2)+j1
+              ind=n1i*(nd2*j3+r2)+j1+1 !this is ind in the current proc
+              rhog(1,j1+1,r2+1,j3+1,inzee)=rhosu12(1,izone)*phnons(1,iup+numpt,imagn)&
+                   +rhosu12(2,izone)*phnons(2,iup+numpt,imagn)
+              rhog(2,j1+1,r2+1,j3+1,inzee)=rhosu12(2,izone)*phnons(1,iup+numpt,imagn)&
+                   -rhosu12(1,izone)*phnons(2,iup+numpt,imagn)
+           end if
         end do
 
         !      Keep index of how many points have been considered:

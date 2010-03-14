@@ -177,8 +177,8 @@ program memguess
      !call memocc(0,0,'count','start')
   end if
 
-  call print_input_parameters(in,atoms)
-
+  call print_general_parameters(in,atoms)
+  call print_dft_parameters(in,atoms)
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
@@ -1408,6 +1408,11 @@ subroutine dft_input_converter(in)
   line=' 2   verbosity of the output 0=low, 2=high'
   !electrostatic treatment of the vacancy (experimental)
   write(1,*) trim(line)
+
+  line=''
+  line='disable the symmetry detection'
+  !Disable automatic capabilities...
+  write(1,*) in%disableSym, trim(line)
    
   close(unit=1)
 end subroutine dft_input_converter
