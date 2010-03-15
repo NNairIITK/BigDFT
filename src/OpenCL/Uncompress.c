@@ -322,25 +322,25 @@ void build_uncompress_kernels(cl_context * context){
     oclErrorCheck(ciErrNum,"Failed to release program!");
 }
 
-void FC_FUNC_(uncompress_d,UNCOMPRESS_D)(cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3,
+void FC_FUNC_(uncompress_d,UNCOMPRESS_D)(cl_command_queue *command_queue, cl_uint *dimensions,
                                        cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
                                        cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
 				       cl_mem *psi_c, cl_mem *psi_f, cl_mem * psi_out) {
-    cl_uint full_size = *n1 * *n2 * *n3 * 8;
+    cl_uint full_size = dimensions[0] * dimensions[1] * dimensions[2] * 8;
     double init = 0.0;
     v_initialize_generic(v_initialize_kernel_d, command_queue, &full_size, psi_out, &init);
-    uncompress_coarse_generic(uncompress_coarse_kernel_d, command_queue, n1, n2, n3, nseg_c, nvctr_c, keyg_c, keyv_c, psi_c, psi_out);
+    uncompress_coarse_generic(uncompress_coarse_kernel_d, command_queue, dimensions, dimensions+1, dimensions+2, nseg_c, nvctr_c, keyg_c, keyv_c, psi_c, psi_out);
     if(nvctr_f == 0) return;
-    uncompress_fine_generic(uncompress_fine_kernel_d, command_queue, n1, n2, n3, nseg_f, nvctr_f, keyg_f, keyv_f, psi_f, psi_out);
+    uncompress_fine_generic(uncompress_fine_kernel_d, command_queue, dimensions, dimensions+1, dimensions+2, nseg_f, nvctr_f, keyg_f, keyv_f, psi_f, psi_out);
 }
 
-void FC_FUNC_(compress_d,COMPRESS_D)(cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3,
+void FC_FUNC_(compress_d,COMPRESS_D)(cl_command_queue *command_queue, cl_uint *dimensions,
                                      cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
                                      cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                      cl_mem *psi_c, cl_mem *psi_f, cl_mem * psi) {
-    compress_coarse_generic(compress_coarse_kernel_d, command_queue, n1, n2, n3, nseg_c, nvctr_c, keyg_c, keyv_c, psi_c, psi);
+    compress_coarse_generic(compress_coarse_kernel_d, command_queue, dimensions, dimensions+1, dimensions+2, nseg_c, nvctr_c, keyg_c, keyv_c, psi_c, psi);
     if(nvctr_f == 0) return;
-    compress_fine_generic(compress_fine_kernel_d, command_queue, n1, n2, n3, nseg_f, nvctr_f, keyg_f, keyv_f, psi_f, psi);
+    compress_fine_generic(compress_fine_kernel_d, command_queue, dimensions, dimensions+1, dimensions+2, nseg_f, nvctr_f, keyg_f, keyv_f, psi_f, psi);
 }
 
 void clean_uncompress_kernels(){

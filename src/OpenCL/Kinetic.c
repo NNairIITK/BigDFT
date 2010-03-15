@@ -285,6 +285,26 @@ void FC_FUNC_(kinetic_stable_d,KINETIC_STABLE_D)(cl_command_queue *command_queue
   kinetic_generic(kinetic1d_kernel_d, command_queue, &n, &ng, &scale, tmp_x, work_x, tmp_y, work_y);
 }
 
+void FC_FUNC_(kinetic_d_generic,KINETIC_D_GENERIC)(cl_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y) {
+  double scale;
+  cl_uint n, ng;
+  cl_uint n1 = dimensions[0] * 2;             
+  cl_uint n2 = dimensions[1] * 2;
+  cl_uint n3 = dimensions[2] * 2;
+  if( !periodic[0] ) n1 += 2*7 + 15;
+  if( !periodic[1] ) n2 += 2*7 + 15;
+  if( !periodic[2] ) n3 += 2*7 + 15;
+  scale = -0.5 / ( h[2] * h[2] );
+  ng = n1 * n2;
+  kinetic_generic(kinetic1d_kernel_d, command_queue, &n3, &ng, &scale, x, work_x, y, work_y);
+  scale = -0.5 / ( h[1] * h[1] );
+  ng = n1 * n3;
+  kinetic_generic(kinetic1d_kernel_d, command_queue, &n2, &ng, &scale, work_x, x, work_y, y);
+  scale = -0.5 / ( h[0] * h[0] );
+  ng = n2 * n3;
+  kinetic_generic(kinetic1d_kernel_d, command_queue, &n1, &ng, &scale, x, work_x, y, work_y);
+}
+
 void FC_FUNC_(kinetic_d,KINETIC_D)(cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y) {
   double scale = -0.5 / ( h[2] * h[2] );
   cl_uint ng = *n2 * *n1 * 4;

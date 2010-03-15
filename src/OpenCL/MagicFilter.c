@@ -49,6 +49,50 @@ tt += tmp_o[+4] * -0.344128144493493857280881509686821861e-2\n\
     + tmp_o[+0] *  0.9940415697834003993178616713;\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
+__kernel void magicfiltergrow1d_potKernel_d(size_t n, size_t ndat, __global const double *psi, __global const double *pot, __global double *out, __local double tmp[]){\n\
+size_t ig = get_global_id(0);\n\
+size_t jg = get_global_id(1);\n\
+const size_t i2 = get_local_id(0);\n\
+const size_t j2 = get_local_id(1);\n\
+ptrdiff_t igt = get_group_id(0);\n\
+ptrdiff_t jgt = get_group_id(1);\n\
+//if data are ill dimentioned last block recomputes part of the data\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+igt = ig - i2 + j2 - FILTER_WIDTH/2 - 7;\n\
+jgt = jg - j2 + i2;\n\
+//If I'm on the outside, select a border element to load\n\
+if ( igt < 0 ) \n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = 0.0;\n\
+else \n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + igt * ndat];\n\
+igt += FILTER_WIDTH;\n\
+if ( igt >= n - 15 ) \n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = 0.0;\n\
+else\n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+\
+double tt = 0.0;\n\
+__local double * tmp_o = tmp + j2*(2*FILTER_WIDTH+1) + FILTER_WIDTH/2+i2;\n\
+tt += tmp_o[-8] *  8.4334247333529341094733325815816e-7\n\
+    + tmp_o[+7] *  2.72734492911979659657715313017228e-6\n\
+    + tmp_o[-7] * -0.1290557201342060969516786758559028e-4\n\
+    + tmp_o[+6] * -0.5185986881173432922848639136911487e-4\n\
+    + tmp_o[-6] *  0.8762984476210559564689161894116397e-4\n\
+    + tmp_o[-5] * -0.30158038132690463167163703826169879e-3\n\
+    + tmp_o[+5] *  0.49443227688689919192282259476750972e-3\n\
+    + tmp_o[-4] *  0.174723713672993903449447812749852942e-2;\n\
+tt += tmp_o[+4] * -0.344128144493493857280881509686821861e-2\n\
+    + tmp_o[-3] * -0.942047030201080385922711540948195075e-2\n\
+    + tmp_o[+3] *  0.1337263414854794752733423467013220997e-1\n\
+    + tmp_o[+2] * -0.2103025160930381434955489412839065067e-1\n\
+    + tmp_o[-2] *  0.2373821463724942397566389712597274535e-1\n\
+    + tmp_o[+1] * -0.604895289196983516002834636e-1\n\
+    + tmp_o[-1] *  0.612625895831207982195380597e-1\n\
+    + tmp_o[+0] *  0.9940415697834003993178616713;\n\
+out[(jg*n+ig)]=tt*pot[(jg*n+ig)];\n\
+};\n\
 __kernel void magicfiltershrink1dKernel_d(size_t n, size_t ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
@@ -237,7 +281,6 @@ inline void magicfilter_generic(cl_kernel kernel, cl_command_queue *command_queu
     cl_int ciErrNum;
     int FILTER_WIDTH=16;
     assert(*n>=FILTER_WIDTH);
-    cl_event e;
     size_t block_size_i=FILTER_WIDTH, block_size_j=FILTER_WIDTH;
     cl_uint i = 0;
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
@@ -247,8 +290,26 @@ inline void magicfilter_generic(cl_kernel kernel, cl_command_queue *command_queu
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(cl_double)*block_size_j*(block_size_i+FILTER_WIDTH+1), 0);
     size_t localWorkSize[] = { block_size_i,block_size_j };
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
-    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, &e);
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
     oclErrorCheck(ciErrNum,"Failed to enqueue magic filter kernel!");
+}
+
+inline void magicfilter_pot_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, cl_mem *psi, cl_mem *pot, cl_mem *out) {
+    cl_int ciErrNum;
+    int FILTER_WIDTH = 16;
+    assert(*n>=FILTER_WIDTH);
+    size_t block_size_i=FILTER_WIDTH, block_size_j=FILTER_WIDTH;
+    cl_uint i = 0;
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*pot), (void*)pot);
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(cl_double)*block_size_j*(block_size_i+FILTER_WIDTH+1), 0);
+    size_t localWorkSize[] = { block_size_i,block_size_j };
+    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    oclErrorCheck(ciErrNum,"Failed to enqueue magic filter pot kernel!");
 }
 
 cl_kernel magicfilter1d_kernel_d;
@@ -256,6 +317,7 @@ cl_kernel magicfilter1d_pot_kernel_d;
 cl_kernel magicfilter1d_t_kernel_d;
 cl_kernel magicfiltershrink1d_kernel_d;
 cl_kernel magicfiltergrow1d_kernel_d;
+cl_kernel magicfiltergrow1d_pot_kernel_d;
 
 void build_magicfilter_kernels(cl_context * context){
     cl_int ciErrNum = CL_SUCCESS;
@@ -272,6 +334,9 @@ void build_magicfilter_kernels(cl_context * context){
     }
     ciErrNum = CL_SUCCESS;
     magicfiltergrow1d_kernel_d=clCreateKernel(magicfilter1dProgram,"magicfiltergrow1dKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = CL_SUCCESS;
+    magicfiltergrow1d_pot_kernel_d=clCreateKernel(magicfilter1dProgram,"magicfiltergrow1d_potKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     ciErrNum = CL_SUCCESS;
     magicfiltershrink1d_kernel_d=clCreateKernel(magicfilter1dProgram,"magicfiltershrink1dKernel_d",&ciErrNum);
@@ -295,42 +360,15 @@ void FC_FUNC_(magicfiltershrink1d_d,MAGICFILTERSHRINK1D_D)(cl_command_queue *com
 
 void FC_FUNC_(magicfiltergrow1d_d,MAGICFILTERGROW1D_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     cl_uint n1 = *n + 15;
-    magicfilter_generic(magicfiltergrow1d_kernel_d,command_queue,&n1,ndat,psi,out);
+    magicfilter_generic(magicfiltergrow1d_kernel_d, command_queue, &n1, ndat, psi, out);
 }
 
 void FC_FUNC_(magicfilter1d_d,MAGICFILTER1D_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
-    magicfilter_generic(magicfilter1d_kernel_d,command_queue,n,ndat,psi,out);
+    magicfilter_generic(magicfilter1d_kernel_d, command_queue, n, ndat, psi, out);
 }
 
 void FC_FUNC_(magicfilter1d_pot_d,MAGICFILTER1D_POT_D)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, cl_mem *psi, cl_mem *pot, cl_mem *out){
-    cl_int ciErrNum;
-    cl_event e;
-    int FILTER_WIDTH = 16;
-    assert(*n>=FILTER_WIDTH);
-    size_t block_size_i=FILTER_WIDTH, block_size_j=FILTER_WIDTH;
-    cl_uint i = 0;
-    ciErrNum = clSetKernelArg(magicfilter1d_pot_kernel_d, i++,sizeof(*n), (void*)n);
-    ciErrNum = clSetKernelArg(magicfilter1d_pot_kernel_d, i++,sizeof(*ndat), (void*)ndat);
-    ciErrNum = clSetKernelArg(magicfilter1d_pot_kernel_d, i++,sizeof(*psi), (void*)psi);
-    ciErrNum = clSetKernelArg(magicfilter1d_pot_kernel_d, i++,sizeof(*pot), (void*)pot);
-    ciErrNum = clSetKernelArg(magicfilter1d_pot_kernel_d, i++,sizeof(*out), (void*)out);
-    ciErrNum = clSetKernelArg(magicfilter1d_pot_kernel_d, i++,sizeof(cl_double)*block_size_j*(block_size_i+FILTER_WIDTH+1), 0);
-    size_t localWorkSize[] = { block_size_i,block_size_j };
-    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
-    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, magicfilter1d_pot_kernel_d, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, &e);
-#if PROFILING
-    event ev;
-    ev.e = e;
-    ev.comment = __func__;
-    addToEventList(ev);
-#endif
-    if (ciErrNum != CL_SUCCESS)
-    {
-        fprintf(stderr,"Error %d: Failed to enqueue magicfilter1d_pot_d kernel!\n",ciErrNum);
-        fprintf(stderr,"globalWorkSize = { %lu, %lu}\n",(long unsigned)globalWorkSize[0],(long unsigned)globalWorkSize[1]);
-        fprintf(stderr,"localWorkSize = { %lu, %lu}\n",(long unsigned)localWorkSize[0],(long unsigned)localWorkSize[1]);
-        exit(1);
-    }
+    magicfilter_pot_generic(magicfilter1d_pot_kernel_d, command_queue, n, ndat, psi, pot, out);
 }
 
 
@@ -374,6 +412,59 @@ void FC_FUNC_(magicfilter_t_d,MAGICFILTER_T_D)(cl_command_queue *command_queue, 
     magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, n1, &ndat, tmp, out);
 }
 
+void FC_FUNC_(potential_application_d_generic,POTENTIAL_APPLICATION_D_GENERIC)(cl_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *psi, cl_mem *out, cl_mem *pot) {
+  cl_uint ndat;
+  cl_uint n1, n2, n3;
+  n1 = dimensions[0] * 2;
+  n2 = dimensions[1] * 2;
+  n3 = dimensions[2] * 2;
+  if( !periodic[0] ) n1 += 14;
+  if( !periodic[1] ) n2 += 14;
+  if( !periodic[2] ) n3 += 14;
+  ndat = n1 * n2;
+  if( periodic[2] ) {
+    magicfilter_generic(magicfilter1d_kernel_d, command_queue,  &n3, &ndat, psi, tmp);
+  } else {
+    n3 += 15;
+    magicfilter_generic(magicfiltergrow1d_kernel_d, command_queue, &n3, &ndat, psi, tmp);
+  }
+  ndat = n1 * n3;
+  if( periodic[1] ) {
+    magicfilter_generic(magicfilter1d_kernel_d, command_queue,  &n2, &ndat, tmp, out);
+  } else {
+    n2 += 15;
+    magicfilter_generic(magicfiltergrow1d_kernel_d, command_queue, &n2, &ndat, tmp, out);
+  }
+  ndat =  n2 * n3;
+  if( periodic[0] ) {
+    magicfilter_pot_generic(magicfilter1d_pot_kernel_d, command_queue,  &n1, &ndat, out, pot, tmp);
+  } else {
+    n1 += 15;
+    magicfilter_pot_generic(magicfiltergrow1d_pot_kernel_d, command_queue, &n1, &ndat, out, pot, tmp);
+  }
+  ndat = n1 * n2;
+  if( periodic[2] ) {
+    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue,  &n3, &ndat, tmp, out);
+  } else {
+    n3 -= 15;
+    magicfilter_generic(magicfiltershrink1d_kernel_d, command_queue,  &n3, &ndat, tmp, out);
+  }
+  ndat = n1 * n3;
+  if( periodic[1] ) {
+    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue,  &n2, &ndat, out, tmp);
+  } else {
+    n2 -= 15;
+    magicfilter_generic(magicfiltershrink1d_kernel_d, command_queue,  &n2, &ndat, out, tmp);
+  }
+  ndat = n2 * n3;
+  if( periodic[0] ) {
+    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue,  &n1, &ndat, tmp, out);
+  } else {
+    n1 -= 15;
+    magicfilter_generic(magicfiltershrink1d_kernel_d, command_queue,  &n1, &ndat, tmp, out);
+  }
+}
+
 void FC_FUNC_(potential_application_d,POTENTIAL_APPLICATION_D)(cl_command_queue *command_queue, cl_uint *n1,cl_uint *n2,cl_uint *n3, cl_mem *tmp, cl_mem *psi, cl_mem *out, cl_mem *pot) {
     cl_uint n = *n3 * 2;
     cl_uint ndat = *n1 * *n2 * 4;
@@ -401,4 +492,5 @@ void clean_magicfilter_kernels(){
   clReleaseKernel(magicfilter1d_t_kernel_d);
   clReleaseKernel(magicfiltershrink1d_kernel_d);
   clReleaseKernel(magicfiltergrow1d_kernel_d);
+  clReleaseKernel(magicfiltergrow1d_pot_kernel_d);
 }

@@ -119,7 +119,9 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
      
      !calculate the local hamiltonian
      !WARNING: the difference between full_locham and normal locham is inside
-     call ocl_fulllocham(GPU%queue,lr%d%n1+1,lr%d%n2+1,lr%d%n3+1,hgrids,&
+     call ocl_fulllocham_generic(GPU%queue,(/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
+          (/1,1,1/),&
+          hgrids,&
           lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,& 
           lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,& 
           GPU%psi_c,GPU%psi_f,GPU%rhopot, &

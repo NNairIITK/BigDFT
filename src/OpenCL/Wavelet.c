@@ -390,6 +390,80 @@ void FC_FUNC_(ana1d_d,ANA1D_D)(cl_command_queue *command_queue, cl_uint *n,cl_ui
   ana_generic(ana1d_kernel_d, command_queue, n, ndat, psi, out);
 }
 
+void FC_FUNC_(ana_d_generic,ANA_D_GENERIC)(cl_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *psi, cl_mem *out){
+  cl_uint n, ndat;
+  cl_uint n1 = dimensions[0];
+  cl_uint n2 = dimensions[1];
+  cl_uint n3 = dimensions[2];
+  if( !periodic[0] ) n1 += 7;
+  if( !periodic[1] ) n2 += 7;
+  if( !periodic[2] ) n3 += 7;
+  ndat = n2 * n1 * 4;
+  if( periodic[2] ) {
+    n = n3;
+    ana_generic(ana1d_kernel_d, command_queue, &n, &ndat, psi, out);
+  } else {
+    n3 -= 7;
+    n = n3;
+    ana_generic(anashrink1d_kernel_d, command_queue, &n, &ndat, psi, out);
+  }
+  ndat = n1 * n3 * 4;
+  if( periodic[1] ) {
+    n = n2;
+    ana_generic(ana1d_kernel_d, command_queue, &n, &ndat, out, tmp);
+  } else {
+    n2 -= 7;
+    n = n2;
+    ana_generic(anashrink1d_kernel_d, command_queue, &n, &ndat, out, tmp);
+  }
+  ndat = n2 * n3 * 4;
+  if( periodic[0] ) {
+    n = n1;
+    ana_generic(ana1d_kernel_d, command_queue, &n, &ndat, tmp, out);
+  } else {
+    n1 -= 7;
+    n = n1;
+    ana_generic(anashrink1d_kernel_d, command_queue, &n, &ndat, tmp, out);
+  }
+}
+
+void FC_FUNC_(ana_self_d_generic,ANA_SELF_D_GENERIC)(cl_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *psi, cl_mem *out){
+  cl_uint n, ndat;
+  cl_uint n1 = dimensions[0];
+  cl_uint n2 = dimensions[1];
+  cl_uint n3 = dimensions[2];
+  if( !periodic[0] ) n1 += 7;
+  if( !periodic[1] ) n2 += 7;
+  if( !periodic[2] ) n3 += 7;
+  ndat = n2 * n1 * 4;
+  if( periodic[2] ) {
+    n = n3;
+    ana_generic(ana1d_kernel_d, command_queue, &n, &ndat, psi, out);
+  } else {
+    n3 -= 7;
+    n = n3;
+    ana_generic(anashrink1d_kernel_d, command_queue, &n, &ndat, psi, out);
+  }
+  ndat = n1 * n3 * 4;
+  if( periodic[1] ) {
+    n = n2;
+    ana_generic(ana1d_kernel_d, command_queue, &n, &ndat, out, psi);
+  } else {
+    n2 -= 7;
+    n = n2;
+    ana_generic(anashrink1d_kernel_d, command_queue, &n, &ndat, out, psi);
+  }
+  ndat = n2 * n3 * 4;
+  if( periodic[0] ) {
+    n = n1;
+    ana_generic(ana1d_kernel_d, command_queue, &n, &ndat, psi, out);
+  } else {
+    n1 -= 7;
+    n = n1;
+    ana_generic(anashrink1d_kernel_d, command_queue, &n, &ndat, psi, out);
+  }
+}
+
 void FC_FUNC_(ana_d,ANA_D)(cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3,cl_mem *tmp,cl_mem *psi,cl_mem *out){
     cl_uint ndat = *n2 * *n1 * 4;
     ana_generic(ana1d_kernel_d, command_queue, n3, &ndat, psi, out);
@@ -415,6 +489,74 @@ void FC_FUNC_(syngrow1d_d,SYNGROW1D_D)(cl_command_queue *command_queue, cl_uint 
 
 void FC_FUNC_(syn1d_d,SYN1D_D)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat,cl_mem *psi,cl_mem *out){
     syn_generic(syn1d_kernel_d, command_queue, n, ndat, psi, out);
+}
+
+void FC_FUNC_(syn_d_generic,SYN_D_GENERIC)(cl_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *psi, cl_mem *out){
+  cl_uint n, ndat;
+  cl_uint n1 = dimensions[0];
+  cl_uint n2 = dimensions[1];
+  cl_uint n3 = dimensions[2];
+  ndat = n2 * n1 * 4;
+  if( periodic[2] ) {
+    n = n3;
+    syn_generic(syn1d_kernel_d, command_queue, &n, &ndat, psi, out);
+  } else {
+    n3 += 7;
+    n = n3;
+    syn_generic(syngrow1d_kernel_d, command_queue, &n, &ndat, psi, out);
+  }
+  ndat = n1 * n3 * 4;
+  if( periodic[1] ) {
+    n = n2;
+    syn_generic(syn1d_kernel_d, command_queue, &n, &ndat, out, tmp);
+  } else {
+    n2 += 7;
+    n = n2;
+    syn_generic(syngrow1d_kernel_d, command_queue, &n, &ndat, out, tmp);
+  }
+  ndat = n2 * n3 * 4;
+  if( periodic[0] ) {
+    n = n1;
+    syn_generic(syn1d_kernel_d, command_queue, &n, &ndat, tmp, out);
+  } else {
+    n1 += 7;
+    n = n1;
+    syn_generic(syngrow1d_kernel_d, command_queue, &n, &ndat, tmp, out);
+  }
+}
+
+void FC_FUNC_(syn_self_d_generic,SYN_SELF_D_GENERIC)(cl_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *psi, cl_mem *out){
+  cl_uint n, ndat;
+  cl_uint n1 = dimensions[0];
+  cl_uint n2 = dimensions[1];
+  cl_uint n3 = dimensions[2];
+  ndat = n2 * n1 * 4;
+  if( periodic[2] ) {
+    n = n3;
+    syn_generic(syn1d_kernel_d, command_queue, &n, &ndat, psi, out);
+  } else {
+    n3 += 7;
+    n = n3;
+    syn_generic(syngrow1d_kernel_d, command_queue, &n, &ndat, psi, out);
+  }
+  ndat = n1 * n3 * 4;
+  if( periodic[1] ) {
+    n = n2;
+    syn_generic(syn1d_kernel_d, command_queue, &n, &ndat, out, psi);
+  } else {
+    n2 += 7;
+    n = n2;
+    syn_generic(syngrow1d_kernel_d, command_queue, &n, &ndat, out, psi);
+  }
+  ndat = n2 * n3 * 4;
+  if( periodic[0] ) {
+    n = n1;
+    syn_generic(syn1d_kernel_d, command_queue, &n, &ndat, psi, out);
+  } else {
+    n1 += 7;
+    n = n1;
+    syn_generic(syngrow1d_kernel_d, command_queue, &n, &ndat, psi, out);
+  }
 }
 
 void FC_FUNC_(syn_d,SYN_D)(cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3,cl_mem *tmp, cl_mem *psi, cl_mem *out){

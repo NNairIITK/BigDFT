@@ -191,7 +191,8 @@ void bench_uncompress(cl_uint n1, cl_uint n2, cl_uint n3, cl_uint nseg, cl_uint 
   ocl_enqueue_write_buffer_(&queue, &keyv_GPU, &size, keyv);
   size = n1*n2*n3*sizeof(double)*8;
   ocl_create_write_buffer_(&context, &size, &work_GPU);
-  uncompress_d_(&queue , &n1, &n2, &n3,
+  cl_uint dimensions[] = { n1, n2, n3};
+  uncompress_d_(&queue , dimensions,
                 &nseg, &nvctr_cf, &keyg_GPU, &keyv_GPU,
                 &nseg, &nvctr_cf, &keyg_GPU, &keyv_GPU,
                 &psi_c_GPU, &psi_f_GPU, &work_GPU);
@@ -217,7 +218,7 @@ void bench_uncompress(cl_uint n1, cl_uint n2, cl_uint n3, cl_uint nseg, cl_uint 
   size = n1*n2*n3*sizeof(double)*8;
   ocl_create_read_buffer_(&context, &size, &work_GPU);
   ocl_enqueue_write_buffer_(&queue, &work_GPU, &size, psi_out);
-  compress_d_(&queue , &n1, &n2, &n3,
+  compress_d_(&queue , dimensions,
               &nseg, &nvctr_cf, &keyg_GPU, &keyv_GPU,
               &nseg, &nvctr_cf, &keyg_GPU, &keyv_GPU,
               &psi_c_GPU, &psi_f_GPU, &work_GPU);

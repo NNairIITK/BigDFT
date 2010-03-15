@@ -1843,7 +1843,7 @@ program conv_check
 
            call cpu_time(t0)
            do i=1,ntimes
-              call uncompress_d(queue , n1+1, n1+1, n1+1,&
+              call uncompress_d(queue , (/n1+1,n1+1,n1+1/),&
                                 nseg, nvctr_cf, keyg_GPU, keyv_GPU,&
                                 nseg, nvctr_cf, keyg_GPU, keyv_GPU,&
                                 psi_c_GPU, psi_f_GPU, work_GPU)
@@ -1949,7 +1949,7 @@ program conv_check
 
            call cpu_time(t0)
            do i=1,ntimes
-              call compress_d(queue , n1+1, n1+1, n1+1,&
+              call compress_d(queue , (/n1+1, n1+1, n1+1/),&
                               nseg, nvctr_cf, keyg_GPU, keyv_GPU,&
                               nseg, nvctr_cf, keyg_GPU, keyv_GPU,&
                               psi_c_GPU, psi_f_GPU, work_GPU)
