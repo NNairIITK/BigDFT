@@ -94,6 +94,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   real(wp), dimension(:), allocatable :: hv,g,hg,ew,psirocc
   real(wp), dimension(:,:,:), allocatable :: e
   real(wp), dimension(:), pointer :: psiw
+  integer, dimension(3) :: periodic
 
   !in the GPU case, the wavefunction should be copied to the card 
   !at each HamiltonianApplication
@@ -112,7 +113,22 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
   call ocl_create_command_queue(GPU%queue,GPU%context)
   call ocl_build_kernels(GPU%context)
   call init_event_list
-  call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,hx,hy,hz,lr%wfd,orbsv,GPU)
+  if (at%geocode /= 'F') then
+    periodic(1) = 1
+  else
+    periodic(1) = 0
+  endif
+  if (at%geocode == 'P') then
+    periodic(2) = 1
+  else
+    periodic(2) = 0
+  endif 
+  if (at%geocode /= 'F') then
+    periodic(3) = 1
+  else
+    periodic(3) = 0
+  endif
+  call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,periodic,in%nspin,hx,hy,hz,lr%wfd,orbsv,GPU)
   !verify whether the calculation of the exact exchange term
   !should be preformed
   exctX = libxc_functionals_exctXfac() /= 0.0_gp

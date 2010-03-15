@@ -40,6 +40,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   logical :: exctX
   integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat,i
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi,istart_ca
+  integer, dimension(3) :: periodic
   real(wp) :: maxdiff
   real(gp) :: eproj
   real(gp), dimension(3,2) :: wrkallred
@@ -142,8 +143,22 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      allocate(hpsi_OCL((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
      call memocc(i_stat,hpsi_OCL,'hpsi_OCL',subname)
      print *,'fulllocam',GPU%full_locham
-     
-     call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi_OCL,ekin_sum,epot_sum,GPU)
+      if (at%geocode /= 'F') then
+        periodic(1) = 1
+      else
+        periodic(1) = 0
+      endif
+      if (at%geocode == 'P') then
+        periodic(2) = 1
+      else
+        periodic(2) = 0
+      endif
+      if (at%geocode /= 'F') then
+        periodic(3) = 1
+      else
+        periodic(3) = 0
+      endif
+      call local_hamiltonian_OCL(iproc,orbs,periodic,lr,hx,hy,hz,nspin,pot,psi,hpsi_OCL,ekin_sum,epot_sum,GPU)
      maxdiff=0.0_wp
      do i=1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
         maxdiff=max(maxdiff,abs(hpsi(i)-hpsi_OCL(i)))

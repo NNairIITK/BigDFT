@@ -1,4 +1,4 @@
-subroutine allocate_data_OCL(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
+subroutine allocate_data_OCL(n1,n2,n3,periodic,nspin,hx,hy,hz,wfd,orbs,GPU)
   use module_base
   use module_types
   implicit none
@@ -7,9 +7,25 @@ subroutine allocate_data_OCL(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(in) :: orbs
   type(GPU_pointers), intent(out) :: GPU
+  integer, dimension(3), intent(in) :: periodic
   !local variables
   character(len=*), parameter :: subname='prepare_gpu_for_locham'
   integer :: i_stat,iorb
+  integer :: n1b, n2b, n3b
+
+  n1b = (n1+1) * 2
+  n2b = (n2+1) * 2
+  n3b = (n3+1) * 2
+  if (periodic(1)==0) then
+    n1b = n1b + 2*7 + 15
+  endif
+  if (periodic(2)==0) then
+    n2b = n2b + 2*7 + 15
+  endif
+  if (periodic(3)==0) then
+    n3b = n3b + 2*7 + 15
+  endif
+
 
   !allocate the number of GPU pointers for the wavefunctions
   !allocate(GPU%psi(orbs%norbp+ndebug),stat=i_stat)
@@ -19,12 +35,12 @@ subroutine allocate_data_OCL(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
   !allocate the compressed wavefunctions such as to be used as workspace
   call ocl_create_read_write_buffer(GPU%context,wfd%nvctr_c*8,GPU%psi_c);
   call ocl_create_read_write_buffer(GPU%context,7*wfd%nvctr_f*8,GPU%psi_f);
-  call ocl_create_read_write_buffer(GPU%context,(2*n1+2)*(2*n2+2)*(2*n3+2)*8,GPU%work1)
-  call ocl_create_read_write_buffer(GPU%context,(2*n1+2)*(2*n2+2)*(2*n3+2)*8,GPU%work2)
-  call ocl_create_read_write_buffer(GPU%context,(2*n1+2)*(2*n2+2)*(2*n3+2)*8,GPU%work3)
+  call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*8,GPU%work1)
+  call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*8,GPU%work2)
+  call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*8,GPU%work3)
   !here spin value should be taken into account
-  call ocl_create_read_write_buffer(GPU%context,(2*n1+2)*(2*n2+2)*(2*n3+2)*nspin*8,GPU%rhopot)
-  call ocl_create_read_write_buffer(GPU%context,(2*n1+2)*(2*n2+2)*(2*n3+2)*8,GPU%d)
+  call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*nspin*8,GPU%rhopot)
+  call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*8,GPU%d)
 
   !allocate and copy the compression-decompression keys
   call ocl_create_read_buffer(GPU%context,wfd%nseg_c*4*2,GPU%keyg_c)
@@ -67,12 +83,13 @@ subroutine free_gpu_OCL(GPU,norbp)
 end subroutine free_gpu_OCL
 
 
-subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
+subroutine local_hamiltonian_OCL(iproc,orbs,periodic,lr,hx,hy,hz,&
      nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nspin
+  integer, dimension(3), intent(in) :: periodic
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
@@ -89,9 +106,22 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
   !stream ptr array
   real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
   real(kind=8) :: stream_ptr_first_trsf
+  integer :: n1, n2, n3
+  
+  n1 = (lr%d%n1+1) * 2
+  n2 = (lr%d%n2+1) * 2
+  n3 = (lr%d%n3+1) * 2
+  if (periodic(1)==0) then
+    n1 = n1 + 2*7 + 15
+  endif
+  if (periodic(2)==0) then
+    n2 = n2 + 2*7 + 15
+  endif
+  if (periodic(3)==0) then
+    n3 = n3 + 2*7 + 15
+  endif
 
-
-  call ocl_enqueue_write_buffer(GPU%queue,GPU%rhopot,2*(lr%d%n1+1)*2*(lr%d%n2+1)*2*(lr%d%n3+1)*8,pot) 
+  call ocl_enqueue_write_buffer(GPU%queue,GPU%rhopot,n1*n2*n3*8,pot) 
  
   if (lr%wfd%nvctr_f > 0) then
      isf=lr%wfd%nvctr_c+1
@@ -112,7 +142,6 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
              psi(1,iorb)) 
         call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*orbs%nspinor*8,&
              psi(isf,iorb))
-!         call ocl_enqueue_write_buffer(GPU%queue,GPU%work1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*8,psi(1,iorb))
      else
         stop 'ONLY FULL LOCHAM IS IMPLEMENTED!'
      end if
@@ -120,7 +149,7 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
      !calculate the local hamiltonian
      !WARNING: the difference between full_locham and normal locham is inside
      call ocl_fulllocham_generic(GPU%queue,(/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
-          (/1,1,1/),&
+          (/periodic(1),periodic(2),periodic(3)/),&
           hgrids,&
           lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,& 
           lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,& 
