@@ -24,6 +24,7 @@ inline void magicfilter_generic_stream(cl_kernel kernel, ocl_stream stream, cl_u
 int main() {
   int i,j;
   size_t size;
+  cl_uint n, ndat;
   cl_context context;
   cl_command_queue queue;
 
@@ -86,6 +87,29 @@ int main() {
     oclErrorCheck(ciErrNum,"Failed to finish stream!");
   }
   printf("Streams finished.\n");
+  printf("Enqueuing writes...\n");
+  for(i=0; i<NB_STREAM; i++) {
+    ciErrNum = clEnqueueWriteBuffer(queue, input[i], CL_FALSE, 0, size, data[i],0,NULL,NULL);
+    oclErrorCheck(ciErrNum,"Failed to enqueue write buffer!");
+  }
+  printf("Enqueuing kernels...\n");
+  n = SIZE_I;
+  ndat = SIZE_I * SIZE_I;
+  for(i=0; i<NB_STREAM; i++) {
+    for(j=0; j<500; j++){
+       magicfilter_generic(magicfilter1d_kernel_d, &queue, &n, &ndat, &(input[i]), &(output[i]));
+       magicfilter_generic(magicfilter1d_kernel_d, &queue, &n, &ndat, &(output[i]), &(input[i]));
+    }
+  }
+  printf("Enqueuing reads...\n");
+  for(i=0; i<NB_STREAM; i++) {
+    ciErrNum = clEnqueueReadBuffer(queue, output[i], CL_FALSE, 0, size, results[i],0,NULL,NULL);
+    oclErrorCheck(ciErrNum,"Failed to enqueue read buffer!");
+  }
+  printf("Waiting for kernels to finish...\n");
+  ciErrNum = clFinish(queue);
+  oclErrorCheck(ciErrNum,"Failed to finish queue!");
+  printf("Queue finished.\n");
   for(i=0; i<NB_STREAM; i++) { 
     ciErrNum = oclReleaseStream(streams[i]);
     oclErrorCheck(ciErrNum,"Failed to release stream!");
