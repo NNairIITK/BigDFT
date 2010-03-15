@@ -37,7 +37,7 @@ module ab6_symmetry
 
      logical :: withSpinOrbit
 
-     integer :: vaccum(3)
+     integer :: vacuum(3)
 
      ! The output characteristics
      ! The bravais parameters
@@ -213,7 +213,7 @@ contains
     sym%withSpinOrbit = .false.
     sym%multiplicity = -1
     nullify(sym%indexingAtoms)
-    sym%vaccum = 0
+    sym%vacuum = 0
   end subroutine new_symmetry
 
   subroutine free_symmetry(sym)
@@ -567,10 +567,10 @@ contains
        return
     end if
 
-    token%data%vaccum = 0
-    if (.not. periodic(1)) token%data%vaccum = 1
-    if (.not. periodic(2)) token%data%vaccum = 1
-    if (.not. periodic(3)) token%data%vaccum = 1
+    token%data%vacuum = 0
+    if (.not. periodic(1)) token%data%vacuum(1) = 1
+    if (.not. periodic(2)) token%data%vacuum(2) = 1
+    if (.not. periodic(3)) token%data%vacuum(3) = 1
   end subroutine ab6_symmetry_set_periodicity
 
 
@@ -906,8 +906,8 @@ contains
 
     type(symmetry_list), pointer  :: token
     integer :: sporder
-    character(len=1) :: brvsb
-    character(len=15) :: ptintsb,ptschsb,schsb
+    character(len=1)  :: brvLattice
+    character(len=15) :: ptintsb,ptschsb,schsb,spgrp
     character(len=35) :: intsbl
 
     if (AB_DBG) write(0,*) "AB symmetry: call get group."
@@ -929,9 +929,10 @@ contains
        return
     end if
 
-    call spgdata(brvsb,spaceGroup,intsbl,ptintsb,ptschsb,&
+    call spgdata(brvLattice,spgrp,intsbl,ptintsb,ptschsb,&
          &  schsb,1,token%data%spaceGroup,sporder,1)
 
+    write(spaceGroup, "(3A)") brvLattice, " ", trim(spgrp(1:13))
     pointGroupMagn = token%data%pointGroupMagn
     spaceGroupId   = token%data%spaceGroup
     genAfm         = token%data%genAfm
@@ -1081,7 +1082,7 @@ contains
     call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
          & AB6_MAX_SYMMETRIES, 0, nkpt, nshiftk, token%data%nSym, &
          & token%data%rprimd, shiftk, token%data%symAfm, token%data%sym, &
-         & token%data%vaccum, wkpt)
+         & token%data%vacuum, wkpt)
   end subroutine ab6_symmetry_binding_mp_k_1
 
   subroutine ab6_symmetry_binding_mp_k_2(id, nkpt, kpt, wkpt, &
@@ -1123,7 +1124,7 @@ contains
     call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
          & AB6_MAX_SYMMETRIES, nkpt, nkpt_, nshiftk, token%data%nSym, &
          & token%data%rprimd, shiftk, token%data%symAfm, token%data%sym, &
-         & token%data%vaccum, wkpt)
+         & token%data%vacuum, wkpt)
   end subroutine ab6_symmetry_binding_mp_k_2
 
   subroutine ab6_symmetry_get_mp_k_grid(id, nkpt, kpt, wkpt, &
@@ -1199,13 +1200,13 @@ contains
     !  kptrlatt, nshiftk, shiftk.
     call testkgrid(token%data%bravais,6,kptrlatt,kptrlen,&
          & AB6_MAX_SYMMETRIES,nshiftk,token%data%nSym,0,token%data%rprimd,&
-         & shiftk,token%data%symAfm,token%data%sym,token%data%vaccum)
+         & shiftk,token%data%symAfm,token%data%sym,token%data%vacuum)
     if (AB_DBG) write(0,*) "AB symmetry: testkgrid -> kptrlatt=", kptrlatt
 
     call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
          & AB6_MAX_SYMMETRIES, 0, nkpt, nshiftk, token%data%nSym, &
          & token%data%rprimd, shiftk, token%data%symAfm, token%data%sym, &
-         & token%data%vaccum, wkpt)
+         & token%data%vacuum, wkpt)
     if (AB_DBG) write(0,*) "AB symmetry: getkgrid -> nkpt=", nkpt
   end subroutine ab6_symmetry_binding_auto_k_1
 
@@ -1243,7 +1244,7 @@ contains
     call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
          & AB6_MAX_SYMMETRIES, nkpt, nkpt_, nshiftk, token%data%nSym, &
          & token%data%rprimd, shiftk, token%data%symAfm, token%data%sym, &
-         & token%data%vaccum, wkpt)
+         & token%data%vacuum, wkpt)
   end subroutine ab6_symmetry_binding_auto_k_2
 
   subroutine ab6_symmetry_get_auto_k_grid(id, nkpt, kpt, wkpt, &

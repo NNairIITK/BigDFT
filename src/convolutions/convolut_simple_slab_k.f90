@@ -139,7 +139,7 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
   real(gp),intent(in)::k1,k2,k3
   real(gp), dimension(3), intent(in) :: hgrid
   real(wp), dimension(2,0:n1,0:n2,0:n3), intent(in) :: x
-  real(wp), dimension(2,0:n1,0:n2,0:n3), intent(out) :: y
+  real(wp), dimension(2,0:n1,0:n2,0:n3), intent(inout) :: y
   real(wp), intent(out) :: ener
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14

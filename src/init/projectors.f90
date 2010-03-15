@@ -164,8 +164,9 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   cmplxprojs=.false.
   do iorb=1,orbs%norbp
      ikpt=orbs%iokpt(iorb)
-     cmplxprojs = (orbs%kpts(1,ikpt)**2+orbs%kpts(1,ikpt)**2+orbs%kpts(1,ikpt)**2 >0 .and.&
-          orbs%nspinor > 1)
+     cmplxprojs = cmplxprojs .or. &
+          & (orbs%kpts(1,ikpt)**2+orbs%kpts(2,ikpt)**2+orbs%kpts(3,ikpt)**2 >0 .and. &
+          &  orbs%nspinor > 1)
   end do
 
   !then calculate the number of k-points per processor

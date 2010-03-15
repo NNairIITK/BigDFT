@@ -394,9 +394,9 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
         end do
 
         !Transposition of the work arrays (use psir as workspace)
-        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+16,2*lr%d%n3+2,&
+        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
              w%x_c,psir,.true.)
-        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+16,2*lr%d%n3+2,&
+        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
              w%y_c,psir,.true.)
 
         ! compute the kinetic part and add  it to psi_out
@@ -409,7 +409,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
         end do
 
         !re-Transposition of the work arrays (use psir as workspace)
-        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+16,2*lr%d%n3+2,&
+        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
              w%y_c,psir,.false.)
 
         do idx=1,nspinor
