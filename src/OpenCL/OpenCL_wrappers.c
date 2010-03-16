@@ -25,6 +25,7 @@ void FC_FUNC_(ocl_build_kernels,OCL_BUILD_KERNELS)(cl_context * context) {
     build_wavelet_kernels(context);
     build_uncompress_kernels(context);
     build_initialize_kernels(context);
+    build_reduction_kernels(context);
 }
 
 
@@ -171,6 +172,7 @@ void FC_FUNC_(ocl_clean,OCL_CLEAN)(cl_command_queue *command_queue, cl_context *
   clean_initialize_kernels();
   clean_wavelet_kernels();
   clean_uncompress_kernels();  
+  clean_reduction_kernels();  
 
   for(i=0;i<event_number;i++){
     clReleaseEvent(event_list[i].e);

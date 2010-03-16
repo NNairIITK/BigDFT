@@ -325,6 +325,66 @@ program conv_check
                    '<<<< WARNING' 
            end if
 
+           write(*,'(a,i6)')'CPU Reduction, dimensions:',n1*ndat
+
+           !take timings
+           !call system_clock(it0,count_rate,count_max)
+           call cpu_time(t0)
+           do i=1,ntimes
+              ekin = sum(psi_in)
+           end do
+           call cpu_time(t1)
+           !call system_clock(it1,count_rate,count_max)
+
+           CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+                CPUtime*1.d3/real(ntimes,kind=8),&
+                real(n1*ndat*ntimes,kind=8)*1.d0/(CPUtime*1.d9)
+
+           write(*,'(a,i6)')'GPU Reduction, dimensions:',n1*ndat
+
+           call ocl_create_read_buffer(context, n1*ndat*8, psi_GPU)
+           call ocl_create_read_write_buffer(context, n1*ndat*8, work_GPU)
+           call ocl_create_read_write_buffer(context, n1*ndat*8, work2_GPU)
+           call ocl_enqueue_write_buffer(queue, psi_GPU, n1*ndat*8, v_cuda)
+
+           call cpu_time(t0)
+           do i=1,ntimes
+              call reduction_d(queue, n1*ndat, psi_GPU, work_GPU, work2_GPU, ekinGPUd )
+           end do
+           call ocl_finish(queue);
+           call cpu_time(t1)
+           GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+                GPUtime*1.d3/real(ntimes,kind=8),&
+                real(n1*ndat*ntimes,kind=8)*1.d0/(GPUtime*1.d9)
+
+           call ocl_release_mem_object(psi_GPU)
+           call ocl_release_mem_object(work_GPU)
+           call ocl_release_mem_object(work2_GPU)
+
+           maxdiff=abs(ekin/real(n1*ndat,kind=8) - ekinGPUd/real(n1*ndat,kind=8))
+
+           if (maxdiff <= 3.d-7) then
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
+                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),&
+                   real(n1*ndat*ntimes,kind=8)*1.d0/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),&
+                   real(n1*ndat*ntimes,kind=8)*1.d0/(GPUtime*1.d9)
+           else
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
+                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),&
+                   real(n1*ndat*ntimes,kind=8)*1.d0/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),&
+                   real(n1*ndat*ntimes,kind=8)*1.d0/(GPUtime*1.d9),&
+                   '<<<< WARNING'
+           end if
 
 
            n1bis = n1

@@ -6,6 +6,7 @@ EXTRA_DIST = \
 	Initialize.h \
 	OpenCL_wrappers.h \
 	Stream.h \
+	Reduction.h \
 	$(SOURCES_CONV_CHECK)
 
 SOURCES_CONV_CHECK =
@@ -17,7 +18,7 @@ noinst_PROGRAMS = bench_conv bench_conv_quick stream_check
 noinst_LIBRARIES = libbasef.a libbasec.a libOCL.a libStream.a
 
 libbasef_a_SOURCES = ../profiling/memory.f90 ../modules/base.F90 ../modules/cublas_fake.f90 $(mpi_source)
-libbasec_a_SOURCES = OpenCL_wrappers.c MagicFilter.c Kinetic.c Wavelet.c Uncompress.c Initialize.c Profiling.c Hamiltonian.c
+libbasec_a_SOURCES = OpenCL_wrappers.c MagicFilter.c Kinetic.c Wavelet.c Uncompress.c Initialize.c Profiling.c Hamiltonian.c Reduction.c
 libOCL_a_SOURCES = $(libbasec_a_SOURCES)
 libStream_a_SOURCES = Stream.c
 

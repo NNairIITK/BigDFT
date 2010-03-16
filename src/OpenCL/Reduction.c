@@ -1,0 +1,105 @@
+#include "OpenCL_wrappers.h"
+
+char * reduction_program="\
+//group_size is supposed to be 32\n\
+#pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
+__kernel void reductionKernel_d( size_t n, __global const double *x, __global double *y, __local double *tmp ) {\n\
+  size_t i = get_local_id(0);\n\
+  size_t g = get_global_id(0);\n\
+  if(g<n) {\n\
+    tmp[i] = x[g];\n\
+  } else {\n\
+    tmp[i] = 0.0;\n\
+  }\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  if( i<16 )\n\
+    tmp[i] = tmp[i] + tmp[i+16];\n\
+  if( i<8 )\n\
+    tmp[i] = tmp[i] + tmp[i+8];\n\
+  if( i<4 )\n\
+    tmp[i] = tmp[i] + tmp[i+4];\n\
+  if( i<2 )\n\
+    tmp[i] = tmp[i] + tmp[i+2];\n\
+  if( i==0 )\n\
+    y[get_group_id(0)] = tmp[0]+tmp[1];\n\
+}\n\
+";
+
+void inline reduction_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *out) {
+  cl_int ciErrNum;
+  size_t block_size_i=32;
+  cl_uint i=0;
+  clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
+  clSetKernelArg(kernel, i++,sizeof(*in), (void*)in);
+  clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
+  clSetKernelArg(kernel, i++,sizeof(double)*block_size_i, NULL);
+  size_t localWorkSize[] = { block_size_i };
+  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*ndat) };
+  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue reduction kernel!");
+}
+
+cl_kernel reduction_kernel_d;
+
+void FC_FUNC_(reduction_self_d,REDUCTION_SELF_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, double *out) {
+  assert(*ndat>0);
+  cl_uint n = *ndat;
+  cl_mem *input = in;
+  cl_mem *output = work;
+  cl_mem *tmp;
+  do {
+    reduction_generic(reduction_kernel_d, command_queue, &n, input, output);
+    tmp = input;
+    input = output;
+    output = tmp;
+    n = shrRoundUp(32,n)/32;
+  } while(n>1);
+  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(double), out, 0, NULL, NULL);
+}
+
+void FC_FUNC_(reduction_d,REDUCTION_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, double *out) {
+  assert(*ndat>0);
+  cl_uint n = *ndat;
+  cl_mem *input = in;
+  cl_mem *output = work1;
+  cl_mem *tmp;
+  reduction_generic(reduction_kernel_d, command_queue, &n, input, output);
+  input = work1;
+  output = work2;
+  n = shrRoundUp(32,n)/32;
+  if(n>1) {
+    do {
+      reduction_generic(reduction_kernel_d, command_queue, &n, input, output);
+      tmp = input;
+      input = output;
+      output = tmp;
+      n = shrRoundUp(32,n)/32;
+    } while(n>1);
+  }
+  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(double), out, 0, NULL, NULL);
+}
+
+void build_reduction_kernels(cl_context * context){
+    cl_int ciErrNum = CL_SUCCESS;
+
+    cl_program reductionProgram = clCreateProgramWithSource(*context,1,(const char**) &reduction_program, NULL, &ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create program!");
+    ciErrNum = clBuildProgram(reductionProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error: Failed to build reduction program!\n");
+        char cBuildLog[10240];
+        clGetProgramBuildInfo(reductionProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        fprintf(stderr,"%s\n",cBuildLog);
+        exit(1);
+    }
+    ciErrNum = CL_SUCCESS;
+    reduction_kernel_d=clCreateKernel(reductionProgram,"reductionKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = clReleaseProgram(reductionProgram);
+    oclErrorCheck(ciErrNum,"Failed to release program!");
+}
+
+void clean_reduction_kernels(){
+  clReleaseKernel(reduction_kernel_d);
+}
