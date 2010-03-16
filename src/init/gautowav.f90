@@ -1381,7 +1381,6 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
 !!!end subroutine basis_ovrlp
 
 
-
   mmax=2*lmax+1
   !now read the coefficients of the gaussian converged orbitals
   open(unit=36,file='gaucoeff.dat',action='read')

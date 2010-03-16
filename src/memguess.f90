@@ -779,7 +779,6 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   call razero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
 
-
   !convert the gaussians in wavelets
   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbs,lr%d,&
        hx,hy,hz,lr%wfd,G,gaucoeffs,psi)
@@ -791,7 +790,6 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   i_all=-product(shape(gbd_occ))*kind(gbd_occ)
   deallocate(gbd_occ,stat=i_stat)
   call memocc(i_stat,i_all,'gbd_occ',subname)
-
 
   !deallocate the gaussian basis descriptors
   call deallocate_gwf(G,subname)

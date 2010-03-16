@@ -132,7 +132,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      call prepare_psirocc(iproc,nproc,lr,orbs,n3p,ngatherarr(0,1),psi,psirocc)
   end if
 
-
   !n2virt=2*orbsv%norb! the dimension of the subspace
 
   !disassociate work array for transposition in serial
@@ -155,6 +154,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   !allocate communications arrays for virtual orbitals
   call orbitals_communicators(iproc,nproc,lr,orbsv,commsv)  
 
+  !prepare the v array starting from a set of gaussians
+  call psivirt_from_gaussians(iproc,nproc,at,orbsv,lr,commsv,rxyz,hx,hy,hz,in%nspin,v)
+
   if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
   !project v such that they are orthogonal to all occupied psi
   !Orthogonalize before and afterwards.
@@ -170,10 +172,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
   call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
 
-
   !retranspose v
   if(nproc > 1)then
-     !reallocate the work array with the good sizeXS
+     !reallocate the work array with the good size
      allocate(psiw(orbsv%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psiw,'psiw',subname)
   end if
@@ -1078,3 +1079,88 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
   call dcopy(nspinor*nvctrp*norb,work(1),1,v(1),1)
 
 end subroutine update_psivirt
+
+subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nspin,psivirt)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+  integer, intent(in) :: iproc,nproc,nspin
+  real(gp), intent(in) :: hx,hy,hz
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: lr
+  type(communications_arrays), intent(in) :: comms
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(wp), dimension(orbs%npsidim), intent(out) :: psivirt
+  !local variables
+  character(len=*), parameter :: subname='psivirt_from_gaussians'
+  integer :: iorb,icoeff,i_all,i_stat,jproc
+  real(kind=4) :: tt
+  real(wp), dimension(:,:), allocatable :: gaucoeffs
+  type(gaussian_basis) :: G
+  real(wp), dimension(:), pointer :: gbd_occ,psiw
+
+
+  !initialise some coefficients in the gaussian basis
+  !nullify the G%rxyz pointer
+  nullify(G%rxyz)
+  !extract the gaussian basis from the pseudowavefunctions
+  !use a better basis than the input guess
+  call gaussian_pswf_basis(31,iproc,nspin,at,rxyz,G,gbd_occ)
+
+  allocate(gaucoeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
+  call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
+
+  !fill randomly the gaussian coefficients for the orbitals considered
+  do iorb=1,orbs%norbp*orbs%nspinor
+     do icoeff=1,G%ncoeff
+        !be sure to call always a different random number
+        do jproc=0,iproc-1
+           call random_number(tt)
+        end do
+        call random_number(tt)
+        gaucoeffs(icoeff,iorb)=real(tt,wp)
+        do jproc=iproc+1,nproc-1
+           call random_number(tt)
+        end do
+     end do
+  end do
+
+  !othogonalise the gaussian basis (wrong with k-points)
+  !call gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
+
+  call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,&
+       gaucoeffs,psivirt)
+
+  !deallocate the gaussian basis descriptors
+  call deallocate_gwf(G,subname)
+
+  !deallocate gaussian array
+  i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
+  deallocate(gaucoeffs,stat=i_stat)
+  call memocc(i_stat,i_all,'gaucoeffs',subname)
+  i_all=-product(shape(gbd_occ))*kind(gbd_occ)
+  deallocate(gbd_occ,stat=i_stat)
+  call memocc(i_stat,i_all,'gbd_occ',subname)
+
+
+  !transpose v
+  if(nproc > 1)then
+     !reallocate the work array with the good size
+     allocate(psiw(orbs%npsidim+ndebug),stat=i_stat)
+     call memocc(i_stat,psiw,'psiw',subname)
+  end if
+
+  !transpose the wavefunction in wavelet basis
+  call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psivirt,work=psiw)
+
+  if(nproc > 1)then
+     i_all=-product(shape(psiw))*kind(psiw)
+     deallocate(psiw,stat=i_stat)
+     call memocc(i_stat,i_all,'psiw',subname)
+  end if
+
+  
+end subroutine psivirt_from_gaussians
+

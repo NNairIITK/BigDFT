@@ -591,10 +591,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
   end if
 
   !use only the part of the arrays for building the hamiltonian matrix
-  !call gaussians_to_wavelets(iproc,nproc,at%geocode,orbse,Glr%d,&
-  !     hx,hy,hz,Glr%wfd,G,psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
-
-  !use only the part of the arrays for building the hamiltonian matrix
   call gaussians_to_wavelets_new(iproc,nproc,Glr,orbse,hx,hy,hz,G,&
        psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
 
@@ -806,8 +802,14 @@ subroutine input_wf_diag(iproc,nproc,at,&
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Input Wavefunctions Orthogonalization:'
 
+  !psivirt can be eliminated here, since it will be allocated before davidson
+  !with a gaussian basis
+!!$  call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
+!!$       psi,hpsi,psit,orbse,commse,etol,norbsc_arr,orbsv,psivirt)
+
   call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
-       psi,hpsi,psit,orbse,commse,etol,norbsc_arr,orbsv,psivirt)
+       psi,hpsi,psit,orbse,commse,etol,norbsc_arr)
+
  
   call deallocate_comms(commse,subname)
 
@@ -815,8 +817,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
   deallocate(norbsc_arr,stat=i_stat)
   call memocc(i_stat,i_all,'norbsc_arr',subname)
 
-  if (iproc == 0 .and. verbose > 1) then
-     write(*,'(1x,a)')'done.'
+  if (iproc == 0) then
+     if (verbose > 1) write(*,'(1x,a)')'done.'
      !gaussian estimation valid only for Free BC
      if (at%geocode == 'F') then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
