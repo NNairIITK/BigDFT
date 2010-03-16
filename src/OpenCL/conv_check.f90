@@ -331,7 +331,7 @@ program conv_check
            !call system_clock(it0,count_rate,count_max)
            call cpu_time(t0)
            do i=1,ntimes
-              ekin = sum(psi_in)
+              ekin = sum(psi_in*psi_in)
            end do
            call cpu_time(t1)
            !call system_clock(it1,count_rate,count_max)
@@ -351,7 +351,7 @@ program conv_check
 
            call cpu_time(t0)
            do i=1,ntimes
-              call reduction_d(queue, n1*ndat, psi_GPU, work_GPU, work2_GPU, ekinGPUd )
+              call reduction_dot_d(queue, n1*ndat, psi_GPU, work_GPU, work2_GPU, ekinGPUd )
            end do
            call ocl_finish(queue);
            call cpu_time(t1)
@@ -366,7 +366,6 @@ program conv_check
            call ocl_release_mem_object(work2_GPU)
 
            maxdiff=abs(ekin/real(n1*ndat,kind=8) - ekinGPUd/real(n1*ndat,kind=8))
-
            if (maxdiff <= 3.d-7) then
               write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
                    'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
