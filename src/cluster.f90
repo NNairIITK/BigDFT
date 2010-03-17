@@ -1231,7 +1231,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psivirt,'psivirt',subname)
 
-
      call davidson(iproc,nproc,n1i,n2i,in,atoms,&
           orbs,orbsv,nvirt,Glr,comms,&
           hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj, &

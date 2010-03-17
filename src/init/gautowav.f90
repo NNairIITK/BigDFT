@@ -646,7 +646,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(out) :: psi
   !local variables
   character(len=*), parameter :: subname='gaussians_to_wavelets_orb'
-  integer, parameter :: nterm_max=3,maxsizeKB=2048,nw=32000
+  integer, parameter :: nterm_max=3,maxsizeKB=2048,nw=65536
   logical :: perx,pery,perz
   integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,i,nterm,ig
   integer :: nterms_max,nterms,iscoeff,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3
@@ -721,7 +721,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
                     !print *,iat,ig,i,fac_arr(i),wfn_gau(icoeff),G%xp(iexpo+ig-1)
                     gau_a=G%xp(iexpo+ig-1)
                     n_gau=lx(i)
-                    !print *,'x',nterm,ncplx,kx,ky,kz
+                    !print *,'x',gau_a!nterm,ncplx,kx,ky,kz
                     call gauss_to_daub_k(hx,kx*hx,ncplx,fac_arr(i),rx,gau_a,n_gau,&
                          lr%d%n1,ml1,mu1,&
                          wx(1,0,1,iterm),work,nw,perx) 

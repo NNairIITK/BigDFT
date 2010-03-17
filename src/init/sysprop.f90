@@ -787,6 +787,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   ! Change the wavefunctions to complex if k-points are used (except gamma).
   if (nspinor == 1) then
      if (maxval(abs(orbs%kpts)) > 0._gp) nspinor = 2
+     !nspinor=2 !fake, used for testing with gamma
   end if
 
   !initialise the array

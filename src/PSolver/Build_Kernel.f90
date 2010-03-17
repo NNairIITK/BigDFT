@@ -954,7 +954,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  n_cell = max(n01,n02,n03)
  n_range = max(n_cell,n_range)
 
- !Lengthes of the box (use FFT dimension)
+ !Lengthes of the box (use box dimension)
  a1 = hx * real(n01,dp)
  a2 = hy * real(n02,dp)
  a3 = hz * real(n03,dp)

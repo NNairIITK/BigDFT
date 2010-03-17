@@ -216,10 +216,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   do ikptp=1,orbsv%nkptsp
      ikpt=ikptp+orbsv%iskpts
      nvctrp=commsv%nvctr_par(iproc,ikptp)
+     nspinor=orbsv%nspinor
      do iorb=1,orbsv%norb ! temporary variables 
-        e(iorb,ikpt,1)= dot(nvctrp,v(ispsi+nvctrp*(iorb-1)),1,&
-             hv(ispsi+nvctrp*(iorb-1)),1)          != <psi|H|psi> 
-        e(iorb,ikpt,2)= nrm2(nvctrp,v(ispsi+nvctrp*(iorb-1)),1)**2   != <psi|psi> 
+        !for complex wavefunctions the diagonal is always real
+        e(iorb,ikpt,1)= dot(nvctrp*nspinor,v(ispsi+nvctrp*nspinor*(iorb-1)),1,&
+             hv(ispsi+nvctrp*nspinor*(iorb-1)),1)          != <psi|H|psi> 
+        e(iorb,ikpt,2)= nrm2(nvctrp*nspinor,v(ispsi+nvctrp*nspinor*(iorb-1)),1)**2   != <psi|psi> 
      end do
      ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
   end do
@@ -306,13 +308,14 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      do ikptp=1,orbsv%nkptsp
         ikpt=ikptp+orbsv%iskpts
         nvctrp=commsv%nvctr_par(iproc,ikptp)
+        nspinor=orbsv%nspinor
         do iorb=1,orbsv%norb
            !gradient = hv-e*v
-           call axpy(nvctrp,-e(iorb,ikpt,1),v(ispsi+nvctrp*(iorb-1)),1,&
-                g(ispsi+nvctrp*(iorb-1)),1)
+           call axpy(nvctrp*nspinor,-e(iorb,ikpt,1),v(ispsi+nvctrp*nspinor*(iorb-1)),1,&
+                g(ispsi+nvctrp*nspinor*(iorb-1)),1)
 
            !local contribution to the square norm
-           e(iorb,ikpt,2)= nrm2(nvctrp,g(ispsi+nvctrp*(iorb-1)),1)**2
+           e(iorb,ikpt,2)= nrm2(nvctrp*nspinor,g(ispsi+nvctrp*nspinor*(iorb-1)),1)**2
         end do
         ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
      end do
@@ -368,9 +371,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      do ikptp=1,orbsv%nkptsp
         ikpt=ikptp+orbsv%iskpts
         nvctrp=commsv%nvctr_par(iproc,ikptp)
-
+        nspinor=orbsv%nspinor
         do iorb=1,orbsv%norb
-           e(iorb,ikpt,2)= nrm2(nvctrp,g(ispsi+nvctrp*(iorb-1)),1)**2
+           e(iorb,ikpt,2)= nrm2(nvctrp*nspinor,g(ispsi+nvctrp*nspinor*(iorb-1)),1)**2
         end do
 
         ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
@@ -473,11 +476,10 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      do ikptp=1,orbsv%nkptsp
         ikpt=ikptp+orbsv%iskpts
         nvctrp=commsv%nvctr_par(iproc,ikptp)
-
+        nspinor=orbsv%nspinor
         do iorb=1,orbsv%norb
-           e(iorb,ikpt,2)=nrm2(nvctrp,g(ispsi+nvctrp*(iorb-1)),1)**2
+           e(iorb,ikpt,2)=nrm2(nvctrp*nspinor,g(ispsi+nvctrp*nspinor*(iorb-1)),1)**2
         end do
-
         ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
      end do
      
@@ -1118,7 +1120,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   nullify(G%rxyz)
   !extract the gaussian basis from the pseudowavefunctions
   !use a better basis than the input guess
-  call gaussian_pswf_basis(31,iproc,nspin,at,rxyz,G,gbd_occ)
+  call gaussian_pswf_basis(21,iproc,nspin,at,rxyz,G,gbd_occ)
 
   allocate(gaucoeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
