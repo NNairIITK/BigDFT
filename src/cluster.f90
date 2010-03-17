@@ -902,7 +902,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,i_all,'ads',subname)
   end if
 
-  !analyse the possiblity to calculate Davidson treatment
+  !analyse the possiblity to calculate Davidson rteatment
   !(nvirt > 0 .and. in%inputPsiId == 0)
   DoDavidson= in%norbv > 0 .and. (infocode==0 .or. in%nrepmax == 1) .and. in%last_run == 1
   
@@ -1213,9 +1213,24 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !if (nvirt > 0 .and. in%inputPsiId == 0) then
   if (DoDavidson) then
-     !allocate psivirt pointer
+
+!!$     !allocate the virtual orbitals descriptors
+!!$     !allocated previously
+!!$     call deallocate_orbs(orbsv,subname)
+!!$     
+!!$     !create orbitals equal to the other
+!!$     call orbitals_descriptors(iproc,nproc,orbs%norb,orbs%norbu,orbs%norbd, &
+!!$          & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
+!!$     nvirt=orbs%norb !temporary
+!!$
+!!$     !allocate psivirt pointer (note the orbs dimension)
+!!$     allocate(psivirt(orbs%npsidim+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,psivirt,'psivirt',subname)
+
+     !allocate psivirt pointer (note the orbs dimension)
      allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psivirt,'psivirt',subname)
+
 
      call davidson(iproc,nproc,n1i,n2i,in,atoms,&
           orbs,orbsv,nvirt,Glr,comms,&

@@ -84,7 +84,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   character(len=*), parameter :: subname='davidson'
   character(len=10) :: comment
   character(len=11) :: orbname,denname
-  logical :: msg,exctX !extended output
+  logical :: msg,exctX,occorbs !extended output
   integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,ind,norb,nspinor
   integer :: ise,j,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
   real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,gnrm_fake
@@ -94,6 +94,10 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   real(wp), dimension(:), allocatable :: hv,g,hg,ew,psirocc
   real(wp), dimension(:,:,:), allocatable :: e
   real(wp), dimension(:), pointer :: psiw
+
+  !logical flag which control to othogonalise wrt the occupied orbitals or not
+  !occorbs=.false.
+  occorbs=.true.
 
   !in the GPU case, the wavefunction should be copied to the card 
   !at each HamiltonianApplication
@@ -167,10 +171,11 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   !this is the same also in serial
   call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
 
-  call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
-
-  !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
-  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
+  if (occorbs) then
+     call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
+     !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
+     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
+  end if
 
   !retranspose v
   if(nproc > 1)then
@@ -350,7 +355,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
      !project g such that they are orthogonal to all occupied psi. 
      !Gradients do not need orthogonality.
-     call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,g,msg)
+     if (occorbs) then
+        call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,g,msg)
+     end if
 
      call timing(iproc,'Davidson      ','ON')
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
@@ -433,8 +440,10 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      !transpose  g 
      call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
 
-     !project g such that they are orthogonal to all occupied psi
-     call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,g,msg)
+     if (occorbs) then
+        !project g such that they are orthogonal to all occupied psi
+        call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,g,msg)
+     end if
      !retranspose the gradient g
      call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
 
@@ -681,10 +690,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
      !these routines should work both in parallel or in serial
      call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
-     call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
 
+     if (occorbs) then
+        call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
      !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
-     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
+        call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
+     end if
 
      !retranspose v
      call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,v,work=psiw)
