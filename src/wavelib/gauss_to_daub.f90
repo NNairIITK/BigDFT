@@ -306,6 +306,8 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
   !at level 0, positions shifted by i0 
   right_t= ceiling(15.d0*a)
 
+  !print *,'a,right_t',a,right_t,gau_a,hgrid
+
   !to rescale back the coefficients
   fac=hgrid**n_gau*sqrt(hgrid)*factor
 

@@ -1,16 +1,29 @@
-! This contains a series of utilities that could be used by a number
-! of program. They suppose very little.
-
-! The subroutine convert_to_chain takes an integer and transforms it into a
-! chain of character.
-
+!!****f* art/utils
+!! FUNCTION
+!!   This contains a series of utilities that could be used by a number
+!!   of program. They suppose very little.
+!!   The subroutine convert_to_chain takes an integer and transforms it into a
+!!   chain of character.
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2001 Normand Mousseau
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 subroutine convert_to_chain(init_number,chain)
+  implicit none
+  !Arguments
   integer, intent(in) :: init_number
   character(len=4), intent(out) :: chain
-  character(len=10) :: digits = '0123456789'
+  !Local variables
+  character(len=10), parameter :: digits = '0123456789'
   
   integer :: i, decades, divider, remainder,number
-
 
   number = init_number
   decades = log10( 1.0d0 * number) + 1
@@ -31,15 +44,17 @@ subroutine convert_to_chain(init_number,chain)
 
   write(*,*) 'Chain :', init_number, chain
 end subroutine     
+!!***
+
 
 ! The subroutine center places the center of mass of a 3D vector at (0,0,0)
 subroutine center(vector,vecsize)
   integer, intent(IN) :: vecsize
-  real(8), dimension(vecsize),intent(inout), target :: vector
+  real(kind=8), dimension(vecsize),intent(inout), target :: vector
 
   integer :: i, natoms
-  real(8), dimension(:), pointer :: x, y, z     ! Pointers for coordinates
-  real(8) :: xtotal, ytotal, ztotal
+  real(kind=8), dimension(:), pointer :: x, y, z     ! Pointers for coordinates
+  real(kind=8) :: xtotal, ytotal, ztotal
 
   natoms = vecsize / 3
 
@@ -77,16 +92,16 @@ subroutine displacement(posa, posb, delr,npart)
   use defs
   implicit none
 
-  real(8), parameter :: THRESHOLD = 0.1  ! In Angstroems
+  real(kind=8), parameter :: THRESHOLD = 0.1  ! In Angstroems
   
-  real(8), dimension(vecsize), intent(in), target :: posa, posb
+  real(kind=8), dimension(vecsize), intent(in), target :: posa, posb
   integer, intent(out) :: npart
-  real(8), intent(out) :: delr
+  real(kind=8), intent(out) :: delr
 
-  real(8), dimension(:), pointer :: xa, ya, za, xb, yb, zb
+  real(kind=8), dimension(:), pointer :: xa, ya, za, xb, yb, zb
 
-  integer :: i, j
-  real(8) :: delx, dely, delz, dr, dr2, delr2, thresh
+  integer :: i
+  real(kind=8) :: delx, dely, delz, dr, dr2, delr2, thresh
 
   ! We first set-up pointers for the x, y, z components for posa and posb
   xa => posa(1:NATOMS)
@@ -120,19 +135,24 @@ subroutine displacement(posa, posb, delr,npart)
 
 end subroutine
 
-! Subroutine store
-! This subroutine stores the configurations at minima and activated points
-! By definition, it uses pos, box and scala
-!
+!!****f* art/store
+!! FUNCTION
+!!   Subroutine store
+!!   This subroutine stores the configurations at minima and activated points
+!!   By definition, it uses pos, box and scala
+!! SOURCE
+!! 
 subroutine store(fname)
   use defs
   implicit none
+  !Arguments
   character(len=7 ), intent(in) :: fname
-  character(len=20) :: fnamexyz, extension
+  !Local variables
+  character(len=*), parameter :: extension = ".xyz"
+  character(len=20) :: fnamexyz
   integer ierror
-  real(8) :: boxl
-  integer i, i_ind, j, j_ind, k, jj
-  real(8) :: xi, yi, zi, xij, yij, zij, rij2
+  real(kind=8) :: boxl
+  integer :: i
 
   ! We first set-up pointers for the x, y, z components for posa and posb
 
@@ -140,8 +160,7 @@ subroutine store(fname)
  
   write(*,*) 'Writing to file : ', FCONF
 ! added by Fedwa El-Mellouhi July 2002, writes the configuration in jmol format 
-  extension = '.xyz'
-  fnamexyz = fname // extension
+  fnamexyz = trim(fname) // extension
 
   write(*,*) 'Fname     : ', fname
   write(*,*) 'Fname.xyz : ', fnamexyz
@@ -164,5 +183,5 @@ subroutine store(fname)
   close(FCONF)
   close(XYZ)
   
-  return
 end subroutine store
+!!***

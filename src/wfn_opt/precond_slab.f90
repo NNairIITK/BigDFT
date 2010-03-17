@@ -1,15 +1,26 @@
+!!****f* BigDFT/precong_slab
+!! FUNCTION
+!!   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!!   x is the right hand side on input and the solution on output
+!!   This subroutine is almost similar to precong_per
+!!   with minor differences: 
+!!  
+!!   -the convolutions are in the surface BC
+!!   -the work arrays psifscf and ww are slightly bigger
+!!   -the work array z is smaller now
+!!   -the Fourier preconditioner is in the surface version
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 subroutine precong_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hx,hy,hz,x)
   use module_base
-  ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-  ! x is the right hand side on input and the solution on output
-  ! This subroutine is almost similar to precong_per
-  ! with minor differences: 
-  !
-  ! -the convolutions are in the surface BC
-  ! -the work arrays psifscf and ww are slightly bigger
-  ! -the work array z is smaller now
-  ! -the Fourier preconditioner is in the surface version
   implicit none
   integer, intent(in) :: n1,n2,n3,ncong
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
@@ -76,6 +87,7 @@ subroutine precong_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   call deallocate_all
 
 contains
+
   subroutine allocate_all
 
     allocate(modul1(lowfil:n1+lupfil+ndebug),stat=i_stat)
@@ -150,7 +162,10 @@ contains
     deallocate(d,stat=i_stat)
     call memocc(i_stat,i_all,'d','last_orthon')
   end subroutine deallocate_all
+
 end subroutine precong_slab
+!!***
+
 
 subroutine apply_hp_slab(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
@@ -251,17 +266,14 @@ subroutine prec_fft_slab_fast(n1,n2,n3, &
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   real(wp), intent(inout) ::  hpsi(nvctr_c+7*nvctr_f)
   !local variables
-  integer i_stat,i_all
-  real(gp)::kern_k1(0:n1),kern_k3(0:n3)
-  real(wp)::x_c(0:n1,0:n2,0:n3)! in and out of Fourier preconditioning
-  real(wp)::z(2,0:(n1+1)/2,0:n2,0:n3)! work array for FFT
+  real(gp) :: kern_k1(0:n1),kern_k3(0:n3)
+  real(wp) :: x_c(0:n1,0:n2,0:n3)! in and out of Fourier preconditioning
+  real(wp) :: z(2,0:(n1+1)/2,0:n2,0:n3)! work array for FFT
 
   ! diagonally precondition the wavelet part  
   if (nvctr_f > 0) then
      call wscal_f(nvctr_f,hpsi(nvctr_c+1),hx,hy,hz,cprecr)
   end if
-
-
 
   call make_kernel(n1,hx,kern_k1)
 
@@ -342,7 +354,9 @@ contains
     call memocc(i_stat,i_all,'x_c','last_orthon')
 
   end subroutine deallocate_all
+
 end subroutine prec_fft_slab
+
 
 subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   ! solve the discretized equation
@@ -350,23 +364,22 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   ! for all k1,k3 via Lapack
   use module_base
   implicit none
-  integer,intent(in)::n1,n2,n3
-  real(wp),intent(in)::kern_k1(0:n1)
-  real(wp),intent(in)::kern_k3(0:n3)
-  real(gp),intent(in)::c,hgrid
-  real(wp),intent(inout)::zx(2,0:(n1+1)/2,0:n2,0:n3)
+  integer,intent(in) :: n1,n2,n3
+  real(wp),intent(in) :: kern_k1(0:n1)
+  real(wp),intent(in) :: kern_k3(0:n3)
+  real(gp),intent(in) :: c,hgrid
+  real(wp),intent(inout) :: zx(2,0:(n1+1)/2,0:n2,0:n3)
 
-  real(gp) ct
-  real(gp),allocatable,dimension(:,:)::ab
-  real(wp) b(0:n2,2)
+  real(gp) :: ct
+  real(gp),allocatable,dimension(:,:) :: ab
+  real(wp) :: b(0:n2,2)
   !     .. Scalar Arguments ..
-  INTEGER::INFO, Kd, LDAB, LDB, NRHS=2,n
-  integer ipiv(n2+1)
-  integer i1,i2,i3,i,j
+  INTEGER :: INFO, Kd, LDAB, LDB, NRHS=2,n
+  integer :: i1,i2,i3,i,j
 
-  integer,parameter::lowfil=-14,lupfil=14
-  real(gp) scale
-  real(gp)::fil(lowfil:lupfil)
+  integer,parameter :: lowfil=-14,lupfil=14
+  real(gp) :: scale
+  real(gp) :: fil(lowfil:lupfil)
 
   scale=-.5_gp/hgrid**2
 

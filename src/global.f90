@@ -19,7 +19,7 @@ program MINHOP
 
   implicit real(kind=8) (a-h,o-z)
   real(kind=4) :: tts
-  logical :: newmin
+  logical :: newmin,CPUcheck
   character(len=20) :: unitsp,units,atmn
   character(len=80) :: line
   type(atoms_data) :: atoms
@@ -113,13 +113,15 @@ program MINHOP
 
   call read_atomic_file('poscur',iproc,atoms,pos)
   !Read input parameters for geometry optimization 
-  call dft_input_variables(iproc,'input.dft',inputs_opt,atoms%symObj)
-  call geopt_input_variables(iproc,'input.geopt',inputs_opt)
+  call default_input_variables(inputs_opt)
+  call dft_input_variables(iproc,'input.dft',inputs_opt)
+  call geopt_input_variables('input.geopt',inputs_opt)
   call kpt_input_variables(iproc,'input.kpt',inputs_opt,atoms)
 
   !read input parameters for molecular dynamics
-  call dft_input_variables(iproc,'mdinput.dft',inputs_md,atoms%symObj)
-  call geopt_input_variables(iproc,'mdinput.geopt',inputs_md)
+  call default_input_variables(inputs_md)
+  call dft_input_variables(iproc,'mdinput.dft',inputs_md)
+  call geopt_input_variables('mdinput.geopt',inputs_md)
   call kpt_input_variables(iproc,'input.kpt',inputs_md,atoms)
 
 
@@ -148,7 +150,7 @@ program MINHOP
  
 ! read random offset
   open(unit=11,file='rand.inp')
-  read(11,'(i3)') nrandoff
+  read(11,*) nrandoff
   !        write(*,*) 'nrandoff ',nrandoff
   close(11)
   do i=1,nrandoff
@@ -183,7 +185,8 @@ program MINHOP
         end if
         read(9,*) natp,unitsp,elocmin(nlmin_l)
         if (atoms%nat.ne.natp) stop   'nat <> natp'
-        if (trim(unitsp).ne.trim(units)) write(*,*) '# different units in poslow and poscur file:',trim(unitsp),(units)
+        if (trim(unitsp).ne.trim(atoms%units) .and. iproc.eq.0) write(*,*)  & 
+                 '# different units in poslow and poscur file: ',trim(unitsp),' ',trim(atoms%units)
         read(9,*)
         do iat=1,atoms%nat
           read(9,*) atmn,t1,t2,t3
@@ -307,6 +310,7 @@ program MINHOP
   end if
 
   nlmin_old=nlmin
+  CPUcheck=.false.
 
   !C outer (hopping) loop
 !  hopping_loop: do
@@ -327,7 +331,7 @@ program MINHOP
 
 !C check whether CPU time exceeded
      tleft=1.d100
-     if (iproc == 0)then
+        if(iproc==0 .and. CPUcheck)then
         open(unit=55,file='CPUlimit_global',status='unknown')
         read(55,*,end=555) cpulimit ; cpulimit=cpulimit*3600
         write(*,'(a,i5,i3,2(1x,e9.2))') 'iproc,nlmin,tcpu2-tcpu1,cpulimit',iproc,nlmin,tcpu2-tcpu1,cpulimit
@@ -341,6 +345,7 @@ program MINHOP
        write(*,*) 'CPU time exceeded',tleft
        goto 3000
        endif
+          CPUcheck=.true.
 
      do iat=1,atoms%nat
         wpos(1,iat)=pos(1,iat)

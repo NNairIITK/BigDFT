@@ -464,20 +464,24 @@ subroutine rhoswitch_waves(nlr,norbp,nvctr_c,nvctr_f,nseg_tot,nvctr_tot,nseglr,k
 end subroutine rhoswitch_waves
 
 
-!this subroutine define other wavefunctions descriptors starting from the original descriptors 
-!and the limits of a given localisation region
-!it also returns an array which is used to mask the compressed wavefunction into the new one
-! INPUTS
-! ilocreg               localisation region to be considered
-! nlocreg               total number of localisation regions
-! n1,n2,n3              original dimensions of the global box
-! lrlims                array of limits of the localisation regions (global system coordinates)
-! wfdg                  global wavefunction descriptors structure
-! OUTPUT
-! wfdl                  local wavefunction descriptors structure in local system coordinates
-! keymask               mask array for traducing the wavefunction in compressed form
-!                       to the wavefunction in compressed form for the local system
-! ncountlocreg          array of elements for each localisation region
+!!****f* BigDFT/loc_wfd
+!! FUNCTION
+!!   This subroutine define other wavefunctions descriptors starting from the original descriptors 
+!!   and the limits of a given localisation region
+!!   it also returns an array which is used to mask the compressed wavefunction into the new one
+!! INPUTS
+!!   ilocreg               localisation region to be considered
+!!   nlocreg               total number of localisation regions
+!!   n1,n2,n3              original dimensions of the global box
+!!   lrlims                array of limits of the localisation regions (global system coordinates)
+!!   wfdg                  global wavefunction descriptors structure
+!! OUTPUT
+!!   wfdl                  local wavefunction descriptors structure in local system coordinates
+!!   keymask               mask array for traducing the wavefunction in compressed form
+!!                         to the wavefunction in compressed form for the local system
+!!   ncountlocreg          array of elements for each localisation region
+!! SOURCE
+!! 
 subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocreg)
   use module_base
   use module_types
@@ -490,7 +494,7 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocre
   integer, dimension(:), pointer :: keymask
   !local variables
   character(len=*), parameter :: subname='loc_wfd'
-  integer :: i_stat,i_all
+  integer :: i_stat
   integer :: iloc,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nvctr_c,nseg_c,nseg_f,nvctr_f,ndimkey
 
   !calculate the number of segments of the new descriptors for each localisation region
@@ -562,6 +566,8 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocre
 !!!  end if
 
 end subroutine loc_wfd
+!!***
+
 
 subroutine build_keymask(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,keyg,keyv,&
      nseg_loc,keymask)
@@ -572,7 +578,7 @@ subroutine build_keymask(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,keyg,ke
   integer, dimension(2,nseg_loc), intent(out) :: keymask
   !local variables
   logical :: go,lseg
-  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,j,nsrt,nend
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,nsrt,nend
 
   !start and end points
   nsrt=0
@@ -632,7 +638,7 @@ subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,ke
   integer, dimension(2,nseg_loc), intent(out) :: keyg_loc!,keymask
   !local variables
   logical :: go,lseg
-  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,j,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l
   integer :: ngridp
 
   !dimensions of the localisation region (O:nIl)
@@ -699,6 +705,7 @@ subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,ke
 
 end subroutine segkeys_loc
 
+
 subroutine num_segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
      nseg_loc,nvctr_loc)
   implicit none
@@ -708,7 +715,7 @@ subroutine num_segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,key
   integer, intent(out) :: nseg_loc,nvctr_loc
   !local variables
   logical :: go,lseg
-  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,j,nsrt,nend,nvctr_check
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,nsrt,nend,nvctr_check
 
   nvctr_loc=0
   !control variable

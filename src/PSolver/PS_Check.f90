@@ -17,6 +17,7 @@
 program PS_Check
 
   use module_base
+  use module_interfaces
   use Poisson_Solver
 
   implicit none
@@ -35,6 +36,7 @@ program PS_Check
   integer :: iproc,nproc,ierr,ispden
   integer :: n_cell,ixc
   integer, dimension(4) :: nxyz
+  real(wp), dimension(:), pointer :: rhocore
 
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
@@ -95,6 +97,8 @@ program PS_Check
   allocate(xc_pot(n01*n02*n03*2+ndebug),stat=i_stat)
   call memocc(i_stat,xc_pot,'xc_pot',subname)
 
+  nullify(rhocore)
+
   do ispden=1,2
      if (iproc == 0) write(unit=*,fmt="(1x,a,i0)")  '===================== nspden:  ',ispden
      !then assign the value of the analytic density and the potential
@@ -108,7 +112,7 @@ program PS_Check
      !with the global data distribution (also for xc potential)
 
      call XC_potential(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-          rhopot,eexcu,vexcu,ispden,xc_pot)
+          rhopot,eexcu,vexcu,ispden,rhocore,xc_pot)
      call H_potential(geocode,'G',iproc,nproc,n01,n02,n03,hx,hy,hz,&
           rhopot,pkernel,xc_pot,ehartree,offset,.false.) !optional argument
 !!$     call PSolver(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
@@ -310,7 +314,9 @@ contains
     real(kind=8) :: eexcu,vexcu,ehartree
     real(kind=8), dimension(:), allocatable :: test,test_xc
     real(kind=8), dimension(:,:,:,:), allocatable :: rhopot
-    real(kind=8), dimension(:), pointer :: xc_temp
+    real(kind=8), dimension(:), pointer :: xc_temp,rhocore
+
+    nullify(rhocore)
 
     call PS_dim4allocation(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,&
          n3d,n3p,n3pi,i3xcsh,i3s)
@@ -389,7 +395,7 @@ contains
     end if
 
      call XC_potential(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-          rhopot(1,1,1,1),eexcu,vexcu,nspden,test_xc)
+          rhopot(1,1,1,1),eexcu,vexcu,nspden,rhocore,test_xc)
      call H_potential(geocode,distcode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
           rhopot(1,1,1,1),pkernel,rhopot,ehartree,offset,.false.,quiet='yes') !optional argument
      !compare the values of the analytic results (no dependence on spin)
@@ -427,16 +433,8 @@ contains
        call memocc(i_stat,i_all,'xc_temp',subname)
     end if
 
-    !now we can try with the sumpotion=.true. variable
-    !if (ixc /= 0) then
-       call XC_potential(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-            rhopot(1,1,1,1),eexcu,vexcu,nspden,test_xc)
-    !else
-    !   eexcu=0.0_gp
-    !   vexcu=0.0_gp
-    !   call dscal(n01*n02*n3p*nspden,0.0_dp,test_xc(1),1)
-    !   !call dscal(n01*n02*n3p*nspden,0.5_dp,rhopot(1,1,1,1),1)
-    !end if
+    call XC_potential(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+            rhopot(1,1,1,1),eexcu,vexcu,nspden,rhocore,test_xc)
 
     call H_potential(geocode,distcode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
           rhopot(1,1,1,1),pkernel,pot_ion(istpoti),ehartree,offset,ixc /= 0,quiet='yes') !optional argument

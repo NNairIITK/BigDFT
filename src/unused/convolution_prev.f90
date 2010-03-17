@@ -1,3 +1,6 @@
+!!****f* BigDFT/comb_grow_all_prev
+!! SOURCE
+!! 
 subroutine comb_grow_all_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
      ,w2,w1,xc,xf,y,ibyz_c,ibzxx_c,ibxxyy_c,&
      ibyz_f,ibzxx_f,ibxxyy_f)
@@ -30,6 +33,7 @@ subroutine comb_grow_all_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
        ,w1,w2,xf,y,ibyz_f,ibzxx_f,ibxxyy_f)    
   
 end subroutine comb_grow_all_prev
+!!***
 
 
 subroutine comb_grow_tree_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&

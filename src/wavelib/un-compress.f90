@@ -1,4 +1,15 @@
-! Compresses a psig wavefunction into psi_c,psi_f form
+!!****f* BigDFT/
+!! FUNCTION
+!!    Compresses a psig wavefunction into psi_c,psi_f form
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3, & 
      mseg_c,mvctr_c,keyg_c,keyv_c,  & 
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
@@ -62,6 +73,8 @@ subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3, &
   !$omp end parallel
 
 end subroutine compress
+!!***
+
 
 subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
@@ -1133,7 +1146,6 @@ subroutine compress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   real(wp), dimension(7,nvctr_f), intent(out) :: psi_f
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
-  real(wp),allocatable:: ww(:)
 
   ! decompose wavelets into coarse scaling functions and wavelets
 
@@ -1179,6 +1191,7 @@ subroutine compress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
 
 end subroutine compress_slab
 
+
 subroutine uncompress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psi_c,psi_f,psifscf,psig)
@@ -1197,7 +1210,6 @@ subroutine uncompress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   real(wp), dimension((2*n1+2)*(2*n2+16)*(2*n3+2)), intent(out) :: psifscf
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
-  real(wp),allocatable:: ww(:)
 
   call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
 

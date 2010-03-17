@@ -1,4 +1,15 @@
-! Calls the preconditioner for each orbital treated by the processor
+!!****f* BigDFT/preconditionall
+!! FUNCTION
+!!    Calls the preconditioner for each orbital treated by the processor
+!! COPYRIGHT
+!!    Copyright (C) 2005-2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   use module_base
   use module_types
@@ -10,7 +21,7 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   real(dp), intent(out) :: gnrm
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
-  integer :: iorb,inds,indo,ncplx
+  integer :: iorb,inds,ncplx
   real(wp) :: cprecr,scpr,eval_zero
   real(gp) :: kx,ky,kz
 
@@ -91,6 +102,8 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   enddo
 
 end subroutine preconditionall
+!!***
+
 
 !routine used for the k-points, eventually to be used for all cases
 subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
@@ -108,7 +121,7 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
   character(len=*), parameter :: subname='precondition_residue'
   real(gp), dimension(0:7) :: scal
   real(wp) :: rmr_old,rmr_new,alpha,beta
-  integer :: i,i_stat,i_all,icong,idx
+  integer :: i_stat,i_all,icong
   type(workarr_precond) :: w
   real(wp), dimension(:), allocatable :: b,r,d
 
@@ -150,7 +163,7 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
 
      if (icong==ncong) exit
 
-     rmr_old=rmr_new	
+     rmr_old=rmr_new
 
      call calculate_rmr_new(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,r,b,rmr_new)
 
@@ -187,7 +200,6 @@ subroutine finalise_precond_residue(geocode,hybrid_on,ncplx,wfd,scal,x)
   real(gp), dimension(0:7), intent(in) :: scal
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,ncplx), intent(inout) :: x
   !local variables
-  logical :: noscal
   integer :: idx
 
   if (geocode == 'F') then
@@ -255,10 +267,10 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
   logical, parameter :: inguess_on=.true.
   !       wavelet and scaling function second derivative filters
   real(wp), parameter :: b2=24.8758460293923314_wp, a2=3.55369228991319019_wp
-  integer :: nd1,nd2,nd3,idx,i
+  integer :: nd1,nd2,nd3,idx
   integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b 
   real(gp) :: fac
-  real(wp) :: fac_h,h0,h1,h2,h3,alpha1
+  real(wp) :: fac_h,h0,h1,h2,h3
     
   if (lr%geocode == 'F') then
      !using hx instead of hgrid for isolated bc
@@ -407,9 +419,9 @@ subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
   !local variables
   character(len=*), parameter :: subname='allocate_work_arrays'
   integer, parameter :: lowfil=-14,lupfil=14
-  integer :: i_stat,i_all
+  integer :: i_stat
   integer :: nd1,nd2,nd3
-  integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b	
+  integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
   integer :: nf
 
 
@@ -686,6 +698,7 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
            call apply_hp_per_k(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
                 lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                !cprecr,hx,hy,hz,0.0_gp,0.0_gp,0.0_gp,x,y,w%psifscf,w%ww,scal) 
                 cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww,scal) 
         end if
      end if
@@ -991,7 +1004,7 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   integer :: i,icong,i_stat,i_all
   real(wp) :: fac_h,h0,h1,h2,h3,tt,alpha1,alpha2,alpha,beta1,beta2,beta
   real(wp), dimension(0:3) :: scal
-  real(wp), dimension(:), allocatable :: rpsi,ppsi,wpsi,spsi
+  real(wp), dimension(:), allocatable :: rpsi,ppsi,wpsi
   real(wp), dimension(:,:,:,:), allocatable :: xpsig_f,ypsig_f
   real(wp), dimension(:,:,:), allocatable :: xpsig_c,ypsig_c,x_f1,x_f2,x_f3
 

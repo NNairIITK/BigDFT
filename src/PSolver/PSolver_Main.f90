@@ -92,10 +92,10 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='H_potential'
   logical :: wrtmsg
-  integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
-  integer :: i_all,i_stat,ierr,ind,ind2,ind3,indp,ind2p,ind3p,i,j
-  integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,ind2nd
-  integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim,ispin,istden,istglo
+  integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
+  integer :: i_all,i_stat,ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
+  integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
+  integer :: nxc,istden,istglo
   real(dp) :: scal,ehartreeLOC,pot
   real(dp), dimension(:,:,:), allocatable :: zf
   integer, dimension(:,:), allocatable :: gather_arr
@@ -120,17 +120,17 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   if (geocode == 'P') then
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',0,' ... '
+          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',0,' ... '
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'S') then
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',0,' ... '
+          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',0,' ... '
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'F') then
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',0,' ... '
+          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',0,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else
      stop 'PSolver: geometry code not admitted'
@@ -151,12 +151,10 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   !(absent only in the LB ixc=13 case)
   
   !nxc is the effective part of the third dimension that is being processed
-  !nxt is the dimension of the part of rhopot that must be passed to the gradient routine
   !nwb is the dimension of the part of rhopot in the wb-postprocessing routine
-  !note: nxc <= nwb <= nxt
+  !note: nxc <= nwb
   !the dimension are related by the values of nwbl and nwbr
   !      nxc+nxcl+nxcr-2 = nwb
-  !      nwb+nwbl+nwbr = nxt
   istart=iproc*(md2/nproc)
   iend=min((iproc+1)*md2/nproc,m2)
   if (istart <= m2-1) then
@@ -212,13 +210,12 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   !the value of the shift depends on the distributed i/o or not
   if (datacode=='G') then
      i3xcsh=istart !beware on the fact that this is not what represents its name!!!
-     is_step=n01*n02*n03
+     !is_step=n01*n02*n03
   else if (datacode=='D') then
      i3xcsh=0 !shift not needed anymore
-     is_step=m1*m3*nxt
   end if
  
-  !if (iproc == 0) print *,'n03,nxt,nxc,geocode,datacode',n03,nxt,nxc,geocode,datacode
+  !if (iproc == 0) print *,'n03,nxc,geocode,datacode',n03,nxc,geocode,datacode
 
   ehartreeLOC=0.0_dp
   !recollect the final data
@@ -435,7 +432,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(gp), dimension(:), allocatable :: energies_mpi
 
   call timing(iproc,'Exchangecorr  ','ON')
-
 
   !do not write anything on screen if quiet is set to yes
   if (present(quiet)) then

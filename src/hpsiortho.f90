@@ -688,7 +688,7 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   !local variables
   character(len=*), parameter :: subname='correct_hartree_potential'
   integer :: i_all,i_stat,ierr,i1,i2,i3,ispin
-  real(gp) :: ehart_fake,eexcu_fake,vexcu_fake,ehartA,ehartB,tt,offset
+  real(gp) :: ehart_fake,ehartA,ehartB,tt,offset
   real(dp), dimension(:,:,:,:), allocatable :: potref,drho,vxc
 
   allocate(potref(n1i,n2i,max(n3d,1),nspin+ndebug),stat=i_stat)
@@ -735,19 +735,29 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   if (iproc==0) print *,'charge deltarho',offset*hxh*hyh*hzh
 
   !rho_tot -> VH_tot & VXC_tot 
-  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
-       ixc,hxh,hyh,hzh,&
-       rhopot,pkernel,vxc,ehart,eexcu,vexcu,0.d0,.false.,nspin,&
+  call H_potential(at%geocode,'D',iproc,nproc,&
+       n1i,n2i,n3i,hxh,hyh,hzh,&
+       rhopot,pkernel,vxc,ehart,0.0_dp,.false.,&
        quiet=PSquiet)
+
+!!$  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
+!!$       ixc,hxh,hyh,hzh,&
+!!$       rhopot,pkernel,vxc,ehart,eexcu,vexcu,0.d0,.false.,nspin,&
+!!$       quiet=PSquiet)
 
   !calculate the reference Hartree potential
   !here the offset should be specified for charged systems
   call dcopy(n1i*n2i*n3d,rhoref,1,potref,1) 
   !Rho_ref -> VH_ref
-  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
-       0,hxh,hyh,hzh,&
-       potref,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+  call H_potential(at%geocode,'D',iproc,nproc,&
+       n1i,n2i,n3i,hxh,hyh,hzh,&
+       potref,pkernel,pot_ion,ehart_fake,0.0_dp,.false.,&
        quiet=PSquiet)
+
+!!$  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
+!!$       0,hxh,hyh,hzh,&
+!!$       potref,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+!!$       quiet=PSquiet)
   
   !save the total density in rhopot
   do ispin=1,nspin
@@ -774,10 +784,15 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   !calculate the vacancy hartree potential
   !Delta rho -> VH_drho(I)
   !use global distribution scheme for deltarho
-  call PSolver('F','G',iproc,nproc,n1i,n2i,n3i,&
-       0,hxh,hyh,hzh,&
-       drho,pkernel_ref,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+  call H_potential('F','G',iproc,nproc,&
+       n1i,n2i,n3i,hxh,hyh,hzh,&
+       drho,pkernel_ref,pot_ion,ehart_fake,0.0_dp,.false.,&
        quiet=PSquiet)
+
+!!$  call PSolver('F','G',iproc,nproc,n1i,n2i,n3i,&
+!!$       0,hxh,hyh,hzh,&
+!!$       drho,pkernel_ref,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+!!$       quiet=PSquiet)
 
 !!!  call plot_density(at%geocode,'VHdeltarho.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
 !!!       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,1+i3xcsh,1))

@@ -1,8 +1,20 @@
+!!****f* BigDFT/precong_per
+!! FUNCTION
+!!   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!!   x is the right hand side on input and the solution on output
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hx,hy,hz,x)
   use module_base
-  ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-  ! x is the right hand side on input and the solution on output
   implicit none
   integer, intent(in) :: n1,n2,n3,ncong
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
@@ -18,7 +30,7 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   real(wp), allocatable :: b(:),r(:),d(:)
   real(wp), allocatable :: psifscf(:),ww(:)
   integer :: nd1,nd2,nd3
-  integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b	
+  integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
   real(gp), allocatable, dimension(:,:) :: af,bf,cf,ef
   integer, allocatable, dimension(:) :: modul1,modul2,modul3
 
@@ -77,7 +89,7 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 
      if (icong==ncong) exit
 
-     rmr_old=rmr_new	
+     rmr_old=rmr_new
      rmr_new=dot(nvctr_c+7*nvctr_f,r(1),1,r(1),1)
 
      beta=rmr_new/rmr_old
@@ -171,25 +183,31 @@ contains
     deallocate(d,stat=i_stat)
     call memocc(i_stat,i_all,'d','last_orthon')
   end subroutine deallocate_all
+
 end subroutine precong_per
 
+
+!!****f* BigDFT/prec_fft_c
+!! FUNCTION
+!!   Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
+!!   x_c is the right hand side on input and the solution on output
+!!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
+!! SOURCE
+!! 
 subroutine prec_fft_c(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,hpsi,&
      kern_k1,kern_k2,kern_k3,z1,z3,x_c,&
      nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,fac)
-  ! Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
-  ! x_c is the right hand side on input and the solution on output
-  ! This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
   use module_base
   implicit none 
   integer, intent(in) :: n1,n2,n3
-  integer,intent(in)::nd1,nd2,nd3
-  integer,intent(in)::n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b	
+  integer,intent(in) :: nd1,nd2,nd3
+  integer,intent(in) :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
   real(gp), intent(in) :: hx,hy,hz,cprecr,fac
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  real(wp), intent(inout) ::  hpsi(nvctr_c+7*nvctr_f) 
+  real(wp), intent(inout) :: hpsi(nvctr_c+7*nvctr_f) 
 
   !work arrays
   real(gp):: kern_k1(0:n1),kern_k2(0:n2),kern_k3(0:n3)
@@ -209,19 +227,25 @@ subroutine prec_fft_c(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
 end subroutine prec_fft_c
+!!***
 
+
+!!****f* BigDFT/prec_fft_fast
+!! FUNCTION
+!!   Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
+!!   x_c is the right hand side on input and the solution on output
+!!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
+!! SOURCE
+!! 
 subroutine prec_fft_fast(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,hpsi,&
      kern_k1,kern_k2,kern_k3,z1,z3,x_c,&
      nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b)
-  ! Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
-  ! x_c is the right hand side on input and the solution on output
-  ! This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
   use module_base
   implicit none 
   integer, intent(in) :: n1,n2,n3
   integer,intent(in)::nd1,nd2,nd3
-  integer,intent(in)::n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b	
+  integer,intent(in)::n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
   real(gp), intent(in) :: hx,hy,hz,cprecr
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
@@ -250,6 +274,8 @@ subroutine prec_fft_fast(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
 end subroutine prec_fft_fast
+!!***
+
 
 subroutine prec_fft(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
@@ -263,14 +289,14 @@ subroutine prec_fft(n1,n2,n3, &
   real(gp), intent(in) :: hx,hy,hz,cprecr
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  real(wp), intent(inout) ::  hpsi(nvctr_c+7*nvctr_f)
+  real(wp), intent(inout) :: hpsi(nvctr_c+7*nvctr_f)
   !local variables
   character(len=*), parameter :: subname='prec_fft'
-  integer nd1,nd2,nd3,i_stat,i_all
+  integer :: nd1,nd2,nd3,i_stat,i_all
   real(gp), dimension(:), allocatable :: kern_k1,kern_k2,kern_k3
   real(wp), dimension(:,:,:), allocatable :: x_c! in and out of Fourier preconditioning
-  real(wp), dimension(:,:,:,:,:), allocatable::z1,z3 ! work array for FFT
-  integer::n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b	
+  real(wp), dimension(:,:,:,:,:), allocatable :: z1,z3 ! work array for FFT
+  integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
 
   ! Array sizes for the real-to-complex FFT: note that n1(there)=n1(here)+1
   ! and the same for n2,n3.
@@ -298,6 +324,7 @@ subroutine prec_fft(n1,n2,n3, &
   call deallocate_all
 
 contains
+
   subroutine allocate_all
     allocate(kern_k1(0:n1+ndebug),stat=i_stat)
     call memocc(i_stat,kern_k1,'kern_k1',subname)
@@ -312,6 +339,7 @@ contains
     allocate(x_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
     call memocc(i_stat,x_c,'x_c',subname)
   end subroutine allocate_all
+
   subroutine deallocate_all
     i_all=-product(shape(z1))*kind(z1)
     deallocate(z1,stat=i_stat)
@@ -338,6 +366,7 @@ contains
     call memocc(i_stat,i_all,'x_c',subname)
 
   end subroutine deallocate_all
+
 end subroutine prec_fft
 
 
@@ -353,11 +382,11 @@ subroutine apply_hp(n1,n2,n3, &
   real(gp), intent(in) :: hx,hy,hz,cprecr
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  real(wp), intent(in) ::  x(nvctr_c+7*nvctr_f)  
-  real(wp), intent(out) ::  y(nvctr_c+7*nvctr_f)
+  real(wp), intent(in) :: x(nvctr_c+7*nvctr_f)  
+  real(wp), intent(out) :: y(nvctr_c+7*nvctr_f)
 
-  real(gp) hgridh(3)	
-  real(wp),dimension((2*n1+2)*(2*n2+2)*(2*n3+2))::ww,psifscf
+  real(gp) :: hgridh(3)
+  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)) :: ww,psifscf
 
   call uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
@@ -390,8 +419,7 @@ subroutine apply_hp_slab_k(n1,n2,n3, &
   real(wp), dimension((2*n1+2)*(2*n2+16)*(2*n3+2),2) :: ww,psifscf
   !local variables
   integer :: idx
-  real(gp) hgridh(3)	
-
+  real(gp) :: hgridh(3)
 
   ! x: input, ww:work
   ! psifscf: output
@@ -444,7 +472,7 @@ subroutine apply_hp_per_k(n1,n2,n3, &
   real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2),2) :: ww,psifscf
   !local variables
   integer :: idx
-  real(gp) hgridh(3)	
+  real(gp) :: hgridh(3)
   
   do idx=1,2
      call uncompress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &

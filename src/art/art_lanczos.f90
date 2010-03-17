@@ -45,12 +45,12 @@ subroutine lanczos(maxvec,new_projection)
   real(8), dimension(maxvec) :: diag
   real(8), dimension(maxvec-1) :: offdiag
   real(8), dimension(maxvec, maxvec) :: vector
-  real(8), dimension(VECSIZE, maxvec), target :: lanc, proj
+  real(8), dimension(VECSIZE, maxvec), target :: lanc
   real(8):: sum_forcenew, sum_force
   ! Vectors used to build the matrix for Lanzcos algorithm 
   real(8), dimension(:), pointer :: z0, z1, z2
 
-  integer :: i,k, i_err, scratcha_size,ivec, ierror, nat
+  integer :: i,k, i_err, ivec, ierror, nat
 
   real(8) :: a1,a0,b2,b1,increment
   real(8) :: boxl, excited_energy,c1,norm

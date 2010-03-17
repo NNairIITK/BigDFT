@@ -1,3 +1,13 @@
+!!****f* BigDFT/plot_wf
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 subroutine plot_wf(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
@@ -13,7 +23,7 @@ subroutine plot_wf(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
   !local variables
   character(len=*), parameter :: subname='plot_wf'
-  integer :: i_stat,i_all,i
+  integer :: i_stat,i_all
   integer :: nl1,nl2,nl3,n1i,n2i,n3i,n1,n2,n3
   type(workarr_sumrho) :: w
   real(wp), dimension(:), allocatable :: psir
@@ -67,6 +77,8 @@ subroutine plot_wf(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE plot_wf
+!!***
+
 
 subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
@@ -437,6 +449,7 @@ subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
 
 end subroutine plot_psifscf
 
+
 subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   use module_base
   implicit none
@@ -445,7 +458,7 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   integer, intent(in) :: n1i,n2i,n3i,n3d,n1,n2,n3,i3s
   real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
   !local variables
-  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,j1,j2,j3
+  integer :: nl1,nl2,nl3,i1,i2,i3,ind
   real(dp) :: value
 
   open(unit=22,file=filename,status='unknown')
@@ -765,9 +778,7 @@ subroutine read_density_cube(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxy
   character(len=5) :: suffix
   character(len=15) :: message
   character(len=3) :: advancestring
-  integer i_all,i_stat,i1,i2,i3,ind,ierr,icount,j,iat,ia,ib
-
-
+  integer :: i_all,i_stat,i1,i2,i3,ind,icount,j,iat,ia
 
   if (nspin /=2) then
      suffix=''

@@ -94,6 +94,7 @@ PS_Check_LDFLAGS =
 PS_Check_LDADD = libpoissonsolver.a \
 	../modules/libmodules.a \
 	../profiling/libprofiling.a \
+	../libbigdft.a
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)

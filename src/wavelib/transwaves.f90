@@ -1,3 +1,13 @@
+!!****f* BigDFT/psitransspi
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 subroutine psitransspi(nvctrp,orbs,psi,forward)
   use module_base
   use module_types
@@ -8,7 +18,7 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
   real(wp), dimension(orbs%nspinor*nvctrp,orbs%norb,orbs%nkpts), intent(inout) :: psi
   !local variables
   character(len=*), parameter :: subname='psitransspi'
-  integer :: i,iorb,ij,isp,i_all,i_stat,ikpts
+  integer :: i,iorb,isp,i_all,i_stat,ikpts
   real(wp), dimension(:,:,:,:), allocatable :: tpsit
 
   allocate(tpsit(nvctrp,orbs%nspinor,orbs%norb,orbs%nkpts+ndebug),stat=i_stat)
@@ -84,6 +94,7 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
   deallocate(tpsit,stat=i_stat)
   call memocc(i_stat,i_all,'tpsit',subname)
 end subroutine psitransspi
+!!***
 
 
 !transposition of the arrays, variable version (non homogeneous)

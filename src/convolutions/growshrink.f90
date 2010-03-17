@@ -19,7 +19,7 @@ subroutine comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
        2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))), intent(inout) :: w2 ! work
   real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(out) :: y
 
-  call comb_grow_c(n1,n2,n3,w1,w2,xc,y,ibyz_c,ibzxx_c,ibxxyy_c,ibyyzz_r)
+  call comb_grow_c(n1,n2,n3,w1,w2,xc,y,ibyz_c,ibzxx_c,ibxxyy_c)
 
   call comb_grow_tree(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        w1,w2,xf,y,ibyz_f,ibzxx_f,ibxxyy_f)                
@@ -27,7 +27,7 @@ subroutine comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
 end subroutine comb_grow_all
 
 
-subroutine comb_grow_c(n1,n2,n3,w1,w2,x,y,ibyz,ibzxx,ibxxyy,ibyyzz_r)
+subroutine comb_grow_c(n1,n2,n3,w1,w2,x,y,ibyz,ibzxx,ibxxyy)
   ! In 3d,            
   ! Applies synthesis wavelet transformation 
   ! then convolves with magic filter
@@ -42,7 +42,6 @@ subroutine comb_grow_c(n1,n2,n3,w1,w2,x,y,ibyz,ibzxx,ibxxyy,ibyyzz_r)
   integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz
   integer, dimension(2,0:n3,-14:2*n1+16), intent(in) :: ibzxx
   integer, dimension(2,-14:2*n1+16,-14:2*n2+16), intent(in) ::  ibxxyy
-  integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in):: ibyyzz_r
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
   real(wp), dimension(0:n2,0:n3,-14:2*n1+16), intent(inout) :: w1
   real(wp), dimension(0:n3,-14:2*n1+16,-14:2*n2+16), intent(inout) :: w2

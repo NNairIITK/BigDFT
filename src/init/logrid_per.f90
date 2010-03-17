@@ -1,3 +1,14 @@
+!!****f* BigDFT/make_bounds_per
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
   use module_base
   use module_types
@@ -8,7 +19,7 @@ subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
 
   logical,allocatable,dimension(:,:,:) :: logrid
   character(len=*), parameter :: subname='make_bounds'
-  integer :: i_stat,i_all,nseg_c,i2,i3
+  integer :: i_stat,i_all,nseg_c
 
   allocate(bounds%kb%ibyz_f(2,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,bounds%kb%ibyz_f,'bounds%kb%ibyz_f',subname)
@@ -46,6 +57,7 @@ subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
   call memocc(i_stat,i_all,'logrid',subname)
 
 end subroutine make_bounds_per
+!!***
 
 subroutine make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&
@@ -54,7 +66,7 @@ subroutine make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   use module_base
   implicit none
   integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  integer i1,i2,i3,nt,m1,m2,m3,i_stat,i_all
+  integer :: i1,i2,i3,m1,m2,m3,i_stat,i_all
 
   integer,intent(in):: ibyz_f(2,0:n2,0:n3+ndebug),ibxy_f(2,0:n1,0:n2+ndebug)
 
@@ -107,6 +119,7 @@ subroutine make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   call memocc(i_stat,i_all,'logrid_big',subname)
 
 end subroutine make_all_ib_per
+!!***
 
 
 subroutine make_ib_inv_per(logrid_big,ibxy,ibzzx,ibyyzz,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)

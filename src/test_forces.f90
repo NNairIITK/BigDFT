@@ -34,9 +34,6 @@ program test_forces
   logical :: parallel=.true.
   real(kind=8), pointer :: psi(:,:), eval(:)
   integer :: norb, norbp, n1, n2, n3,i_all,i_stat,infocode
-  real(kind=8) :: hgrid
-  integer :: ixc,ncharge,itermax,ncong,idsx,ncongt
-  real(kind=8) :: crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf
   type(input_variables) :: inputs
   type(wavefunctions_descriptors) :: wfd
 
