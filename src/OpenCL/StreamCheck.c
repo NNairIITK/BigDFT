@@ -27,9 +27,12 @@ int main() {
   cl_uint n, ndat;
   cl_context context;
   cl_command_queue queue;
+  cl_platform_id platform_id;
+  clGetPlatformIDs(1, &platform_id, NULL);
+  cl_context_properties properties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, 0 };
 
   cl_int ciErrNum = CL_SUCCESS;
-  context = clCreateContextFromType(0, CL_DEVICE_TYPE_GPU, NULL, NULL, &ciErrNum);
+  context = clCreateContextFromType(properties, CL_DEVICE_TYPE_GPU, NULL, NULL, &ciErrNum);
   oclErrorCheck(ciErrNum,"Failed to create GPU context!");
 
   size_t nContextDescriptorSize;
