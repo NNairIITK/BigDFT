@@ -561,8 +561,8 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
      !laterally averaged potential following the isolated direction in surfaces case
      !if (geocode == 'S') then
         open(unit=23,file=filename//'_avg'//geocode,status='unknown')
-        later_avg=0.0_dp
         do i2=0,2*n2+1
+           later_avg=0.0_dp
            do i3=0,2*n3+1
               do i1=0,2*n1+1
                  ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i

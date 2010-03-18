@@ -262,7 +262,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
-          'done, orthoconstraint...'
+          'done,  orthoconstraint...'
   end if
 
   !transpose the hpsi wavefunction
@@ -284,7 +284,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   call timing(iproc,'Precondition  ','ON')
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
-          'done, preconditioning...'
+          'done,  preconditioning...'
   end if
 
   !Preconditions all orbitals belonging to iproc
