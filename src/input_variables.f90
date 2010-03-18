@@ -2,7 +2,7 @@
 !! FUNCTION
 !!    Display the logo of BigDFT 
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 BigDFT group 
+!!    Copyright (C) 2007-2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -58,56 +58,61 @@ end subroutine print_logo
 
 !!****f* BigDFT/read_input_variables
 !! FUNCTION
-!!    Do all initialisation for all different files of
-!!    BigDFT. Set default values if not any.
+!!    Do all initialisation for all different files of BigDFT. 
+!!    Set default values if not any.
+!!    Initialize memocc
 !! SOURCE
 !!
-subroutine read_input_variables(iproc,posinp, file_dft, file_kpt, &
-     & file_geopt, in,atoms,rxyz)
+subroutine read_input_variables(iproc,posinp, &
+     & file_dft, file_kpt, file_geopt, file_perf, inputs,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_variables
 
   implicit none
 
+  !Arguments
   character(len=*), intent(in) :: posinp
-  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt
+  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_perf
   integer, intent(in) :: iproc
-  type(input_variables), intent(out) :: in
+  type(input_variables), intent(out) :: inputs
   type(atoms_data), intent(out) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
-
+  !Local variables
   logical :: exists
   real(gp) :: tt
   integer :: iat
   
+  ! Read performance input variables (if given)
+  call perf_input_variables(iproc,file_perf,inputs)
+
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
 
   ! Read dft input variables
-  call dft_input_variables(iproc,file_dft,in,atoms%symObj)
+  call dft_input_variables(iproc,file_dft,inputs,atoms%symObj)
 
-  ! read k-points input variables (if given)
-  call kpt_input_variables(iproc,file_kpt,in,atoms)
+  ! Read k-points input variables (if given)
+  call kpt_input_variables(iproc,file_kpt,inputs,atoms)
 
   ! Read geometry optimisation option
   inquire(file=file_geopt,exist=exists)
   if (exists) then
-     call geopt_input_variables(iproc,file_geopt,in)
+     call geopt_input_variables(iproc,file_geopt,inputs)
   else
-     call geopt_input_variables_default(in)
+     call geopt_input_variables_default(inputs)
   end if
 
   ! Shake atoms if required.
-  if (in%randdis > 0.d0) then
+  if (inputs%randdis > 0.d0) then
      do iat=1,atoms%nat
         if (atoms%ifrztyp(iat) == 0) then
            call random_number(tt)
-           rxyz(1,iat)=rxyz(1,iat)+in%randdis*tt
+           rxyz(1,iat)=rxyz(1,iat)+inputs%randdis*tt
            call random_number(tt)
-           rxyz(2,iat)=rxyz(2,iat)+in%randdis*tt
+           rxyz(2,iat)=rxyz(2,iat)+inputs%randdis*tt
            call random_number(tt)
-           rxyz(3,iat)=rxyz(3,iat)+in%randdis*tt
+           rxyz(3,iat)=rxyz(3,iat)+inputs%randdis*tt
         end if
      enddo
   end if
@@ -170,6 +175,13 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   nullify(in%wkpt)
 
   ! Read the input variables.
+  inquire(file=trim(filename),exist=exists)
+  if (.not.exists) then
+      write(*,*) "The file 'input.dft' does not exist!"
+      stop
+  end if
+
+  ! Open the file
   open(unit=1,file=filename,status='old')
 
   !line number, to control the input values
@@ -366,7 +378,7 @@ subroutine geopt_input_variables(iproc,filename,in)
   !local variables
   character(len=*), parameter :: subname='geopt_input_variables'
   character(len = 128) :: line
-  integer :: i_stat,ierror,ierrfrc,iline
+  integer :: i_stat,ierror,iline
 
   ! Read the input variables.
   open(unit=1,file=filename,status='old')
@@ -486,8 +498,7 @@ end subroutine geopt_input_variables
 
 !!****f* BigDFT/kpt_input_variables
 !! FUNCTION
-!!    Read the input variables needed for the geometry optimisation
-!!    Every argument should be considered as mandatory
+!!    Read the input variables needed for the k points generation
 !! SOURCE
 !!
 subroutine kpt_input_variables(iproc,filename,in,atoms)
@@ -609,6 +620,92 @@ end subroutine kpt_input_variables
 !!***
 
 
+!!****f* BigDFT/perf_input_variables
+!! FUNCTION
+!!    Read the input variables which can be used for performances
+!! SOURCE
+!!
+subroutine perf_input_variables(iproc,filename,inputs)
+  use module_base
+  use module_types
+  use defs_basis
+  implicit none
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc
+  type(input_variables), intent(inout) :: inputs
+  !local variables
+  character(len=*), parameter :: subname='perf_input_variables'
+  character(len=100) :: line
+  logical :: exists
+  integer :: iline,ierror,ii
+
+  ! Set default values.
+  !Debug option (used for memocc mainly)
+  inputs%debug = .false.
+  !Cache size for FFT
+  inputs%ncache_fft = 8*1024
+
+  !Check if the file is present
+  inquire(file=trim(filename),exist=exists)
+  if (exists) then
+     !Read the file
+     open(unit=1,file=filename,status='old')
+     !line number, to control the input values
+     iline=0
+     do 
+        read(1,fmt='(a)',iostat=ierror) line
+        if (ierror /= 0) then
+           !End of file (normally ierror < 0)
+           exit
+        end if
+        call check()
+        if (trim(line) == "debug" .or. trim(line) == "Debug" .or. trim(line) == "DEBUG") then
+           inputs%debug = .true.
+        else if (index(line,"fftcache") /= 0 .or. index(line,"FFTCACHE") /= 0) then
+            ii = index(line,"fftcache")  + index(line,"FFTCACHE") + 8 
+           read(line(ii:),*) inputs%ncache_fft
+        end if
+     end do
+     close(unit=1,iostat=ierror)
+  end if
+
+  ! Set performance variables
+  memdebug = inputs%debug
+  call set_cache_size(inputs%ncache_fft)
+
+  ! Output
+  if (iproc == 0) then
+     write(*,*)
+     if (exists) then
+        write(*, "(1x,a)") "Performance options (file 'input.perf' used):"
+     else
+        write(*, "(1x,a)") "Performance options (file 'input.perf' not present):"
+     end if
+     if (inputs%debug) then
+        write(*, "(1x,a,3x,a)") "|","'debug' option enabled"
+     else
+        write(*, "(1x,a,3x,a)") "|","'debug' option disabled"
+     end if
+     write(*,"(1x,a,3x,a,i0)")  "|","'fftcache' = ",inputs%ncache_fft
+     write(*,*)
+  end if
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  end subroutine check
+
+end subroutine perf_input_variables
+!!***
+
+
 !!****f* BigDFT/free_input_variables
 !! FUNCTION
 !!  Free all dynamically allocated memory from the input variable structure.
@@ -676,47 +773,47 @@ subroutine abscalc_input_variables(iproc,filename,in)
   use module_base
   use module_types
   implicit none
+  !Arguments
   type(input_variables), intent(inout) :: in
-
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
-
-  !local variables
+  !Local variables
+  integer, parameter :: iunit = 112
   integer :: ierror,iline, i
 
   character(len=*), parameter :: subname='abscalc_input_variables'
   integer :: i_stat
 
   ! Read the input variables.
-  open(unit=111,file=filename,status='old')
+  open(unit=iunit,file=filename,status='old')
 
   !line number, to control the input values
   iline=0
 
   !x-absorber treatment (in progress)
 
-  read(111,*,iostat=ierror) in%iabscalc_type
+  read(iunit,*,iostat=ierror) in%iabscalc_type
   call check()
 
 
-  read(111,*,iostat=ierror)  in%iat_absorber
+  read(iunit,*,iostat=ierror)  in%iat_absorber
   call check()
-  read(111,*,iostat=ierror)  in%L_absorber
+  read(iunit,*,iostat=ierror)  in%L_absorber
   call check()
 
   allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)
   call memocc(i_stat,in%Gabs_coeffs,'Gabs_coeffs',subname)
 
-  read(111,*,iostat=ierror)  (in%Gabs_coeffs(i), i=1,2*in%L_absorber +1 )
+  read(iunit,*,iostat=ierror)  (in%Gabs_coeffs(i), i=1,2*in%L_absorber +1 )
   call check()
 
-  read(111,*,iostat=ierror)  in%potshortcut
+  read(iunit,*,iostat=ierror)  in%potshortcut
   call check()
   
-  read(111,*,iostat=ierror)  in%nsteps
+  read(iunit,*,iostat=ierror)  in%nsteps
   call check()
   
-  read(111,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
+  read(iunit,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
 
   if(ierror==0) then
      
@@ -727,7 +824,7 @@ subroutine abscalc_input_variables(iproc,filename,in)
 
   in%c_absorbtion=.true.
 
-  close(unit=111)
+  close(unit=iunit)
 
 contains
 
@@ -753,15 +850,15 @@ end subroutine abscalc_input_variables
 !!    freq_method: 1 - systematic moves of atoms over each direction
 !! SOURCE
 !!
-subroutine frequencies_input_variables_default(in)
+subroutine frequencies_input_variables_default(inputs)
   use module_base
   use module_types
   implicit none
-  type(input_variables), intent(out) :: in
+  type(input_variables), intent(out) :: inputs
 
-  in%freq_alpha=1.d0/real(64,kind(1.d0))
-  in%freq_order=2
-  in%freq_method=1
+  inputs%freq_alpha=1.d0/real(64,kind(1.d0))
+  inputs%freq_order=2
+  inputs%freq_method=1
 
 end subroutine frequencies_input_variables_default
 !!***
@@ -782,56 +879,52 @@ subroutine frequencies_input_variables(iproc,filename,in)
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
   !Local variables
+  integer, parameter :: iunit=111
   character(len=100) :: line,string
-  integer :: ierror,iline,i
+  integer :: ierror,iline
 
   ! Read the input variables.
-  open(unit=111,file=filename,status='old')
+  open(unit=iunit,file=filename,status='old')
   !Line number, to control the input values
   iline=0
   !Read in%freq_alpha (possible 1/64)
-  read(111,*,iostat=ierror) line
+  read(unit=iunit,fmt="(a)",iostat=ierror) line
   !Transform the line in case there are slashes (to ease the parsing)
-  do i=1,len(line)
-     if (line(i:i) == '/') then
-        line(i:i) = ':'
-     end if
-  end do
-  read(line,*,iostat=ierror) in%freq_alpha
+  call read_fraction_string(line,in%freq_alpha,ierror)
   if (ierror /= 0) then
-     string=repeat(' ',8)
-     read(line,*,iostat=ierror) string
-     if (ierror == 0) then
-        if (string(2:2)==':') then
-           call read_fraction_string(1,string,in%freq_alpha)
-        else if (string(3:3)==':') then
-           call read_fraction_string(4,string,in%freq_alpha)
-        else
-           print *,'wrong format of the string: '//string
-           ierror=1
-        end if
-     end if
+     print *,'wrong format of the string: '//string
+     ierror=1
   end if
   call check()
   !Read the order of finite difference scheme
-  read(111,*,iostat=ierror)  in%freq_order
-  if (in%freq_order /= 2 .and. in%freq_order /= 3) then
-      if (iproc==0) write (*,'(1x,a)') 'Only 2 or 3 is possible for the order scheme'
-      stop
+  read(unit=iunit,fmt=*,iostat=ierror)  in%freq_order
+  if (in%freq_order /= -1 .and. in%freq_order /= 1 &
+     & .and. in%freq_order /= 2 .and. in%freq_order /= 3 ) then
+     if (iproc==0) write (*,'(1x,a)') 'Only -1, 1, 2 or 3 are possible for the order scheme'
+     stop
   end if
   !Read the index of the method
-  read(111,*,iostat=ierror)  in%freq_method
+  read(unit=iunit,fmt=*,iostat=ierror)  in%freq_method
   if (in%freq_method /= 1) then
-      if (iproc==0) write (*,'(1x,a)') '1 for the method to calculate frequencies.'
-      stop
+     if (iproc==0) write (*,'(1x,a)') '1 for the method to calculate frequencies.'
+     stop
   end if
   call check()
 
-  close(unit=111)
+  close(unit=iunit)
+
+  !Message
+  if (iproc == 0) then
+     write(*,*)
+     write(*,'(1x,a,1pg14.6)') '=F= Step size factor',in%freq_alpha
+     write(*,'(1x,a,i10)')     '=F= Order scheme    ',in%freq_order
+     write(*,'(1x,a,i10)')     '=F= Used method     ',in%freq_method
+  end if
 
 contains
 
   subroutine check()
+    implicit none
     iline=iline+1
     if (ierror/=0) then
        if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
@@ -932,16 +1025,18 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   ! Test the name directly
   if (.not. file_exists) then
      inquire(FILE = file, EXIST = file_exists)
-     if (file_exists) write(filename, "(A)") file
-     l = len(file)
-     if (file(l-3:l) == ".xyz") then
-        write(atoms%format, "(A)") "xyz"
-     else if (file(l-5:l) == ".ascii") then
-        write(atoms%format, "(A)") "ascii"
-     else
-        write(*,*) "Atomic input file '" // trim(file) // "', format not recognised."
-        write(*,*) " File should be *.ascii or *.xyz."
-        stop
+     if (file_exists) then
+         write(filename, "(A)") file
+         l = len(file)
+         if (file(l-3:l) == ".xyz") then
+            write(atoms%format, "(A)") "xyz"
+         else if (file(l-5:l) == ".ascii") then
+            write(atoms%format, "(A)") "ascii"
+         else
+            write(*,*) "Atomic input file '" // trim(file) // "', format not recognised."
+            write(*,*) " File should be *.ascii or *.xyz."
+            stop
+         end if
      end if
   end if
 
@@ -955,12 +1050,13 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
 
   if (atoms%format == "xyz") then
      read(99,*) atoms%nat,atoms%units
- 
+
      allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,rxyz,'rxyz',subname)
 
      !read atomic positions
      call read_atomic_positions(iproc,99,atoms,rxyz)
+
   else if (atoms%format == "ascii") then
      !read atomic positions
      call read_ascii_positions(iproc,99,atoms,rxyz)
@@ -1242,7 +1338,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
      !print *,'extra',iat,extra
      call find_extra_info(line,extra)
      !print *,'then',iat,extra
-     call parse_extra_info(iproc,iat,extra,atoms)
+     call parse_extra_info(iat,extra,atoms)
 
      tatonam=trim(symbol)
 !!!     end if
@@ -1405,13 +1501,14 @@ end subroutine find_extra_info
 !!
 !! SOURCE
 !!
-subroutine parse_extra_info(iproc,iat,extra,atoms)
+subroutine parse_extra_info(iat,extra,atoms)
   use module_types
   implicit none
+  !Arguments
+  integer, intent(in) :: iat
   character(len=50), intent(in) :: extra
-  integer, intent(in) :: iat,iproc
   type(atoms_data), intent(out) :: atoms
-  !local variables
+  !Local variables
   character(len=4) :: suffix
   logical :: go
   integer :: ierr,ierr1,ierr2,nspol,nchrg,nsgn
@@ -1506,7 +1603,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
-  logical :: lpsdbl
+  logical :: lpsdbl, reduced
   integer :: iat,ityp,i,i_stat,j,nlines
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3,alat4,alat5,alat6
@@ -1540,6 +1637,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
 
   ! Try to determine the number atoms and the keywords.
   write(atoms%units, "(A)") "bohr"
+  reduced = .false.
   atoms%geocode = 'P'
   atoms%nat     = 0
   do i = 4, nlines, 1
@@ -1552,7 +1650,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
         if (index(line, 'atomic') > 0)      write(atoms%units, "(A)") "atomicd0"
         if (index(line, 'angstroem') > 0)   write(atoms%units, "(A)") "angstroem"
         if (index(line, 'angstroemd0') > 0) write(atoms%units, "(A)") "angstroemd0"
-        if (index(line, 'reduced') > 0)     write(atoms%units, "(A)") "reduced"
+        if (index(line, 'reduced') > 0)     reduced = .true.
         if (index(line, 'periodic') > 0) atoms%geocode = 'P'
         if (index(line, 'surface') > 0)  atoms%geocode = 'S'
         if (index(line, 'freeBC') > 0)   atoms%geocode = 'F'
@@ -1623,7 +1721,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   end if
   
   !reduced coordinates are possible only with periodic units
-  if (atoms%units == 'reduced' .and. atoms%geocode /= 'P') then
+  if (reduced .and. atoms%geocode /= 'P') then
      if (iproc==0) write(*,'(1x,a)')&
           'ERROR: Reduced coordinates are only allowed with fully periodic BC'
   end if
@@ -1650,7 +1748,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
            if (i_stat /= 0) read(line,*) rx,ry,rz,symbol
         end if
         call find_extra_info(line,extra)
-        call parse_extra_info(iproc,iat,extra,atoms)
+        call parse_extra_info(iat,extra,atoms)
 
         tatonam=trim(symbol)
 
@@ -1664,7 +1762,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
            rxyz(3,iat)=real(rz,gp)
         end if
 
-        if (atoms%units == 'reduced') then !add treatment for reduced coordinates
+        if (reduced) then !add treatment for reduced coordinates
            rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
            rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
            rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
@@ -1689,15 +1787,15 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
         atoms%iatype(iat)=atoms%ntypes
 200     continue
 
-        if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
+        if (reduced) then
+           rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
+           rxyz(2,iat)=rxyz(2,iat)*atoms%alat2
+           rxyz(3,iat)=rxyz(3,iat)*atoms%alat3
+        else if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
            ! if Angstroem convert to Bohr
            do j=1,3 
               rxyz(j,iat)=rxyz(j,iat) / bohr2ang
            enddo
-        else if (atoms%units == 'reduced') then 
-           rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
-           rxyz(2,iat)=rxyz(2,iat)*atoms%alat2
-           rxyz(3,iat)=rxyz(3,iat)*atoms%alat3
         endif
         iat = iat + 1
      end if

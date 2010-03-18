@@ -28,7 +28,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   character(len=*), parameter :: subname='CalculateTailCorrection'
   integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat,nbuf,ispin
   integer :: nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3
-  integer :: n1,n2,n3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,istart_c
+  integer :: n1,n2,n3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
   real(kind=8) :: alatb1,alatb2,alatb3,ekin,epot,eproj,tt,cprecr,sum_tail,ekin1,epot1,eproj1
   type(orbitals_data) :: orbsb
   type(wavefunctions_descriptors) :: wfdb
@@ -819,8 +819,8 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   real(gp), intent(out) :: epot,ekin
   real(wp), dimension(nvctr_c+7*nvctr_f,nspinor), intent(out) :: hpsi
   !local variables
-  integer :: i,idx,ispinor
-  real(gp) :: ekino,epots
+  integer :: i,idx
+  real(gp) :: ekino
   real(wp), dimension(0:3) :: scal
 
   do i=0,3
@@ -907,7 +907,7 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
   real(wp), dimension(nvctr_c+7*nvctr_f), intent(inout) :: hpsi
   real(gp), intent(out) :: eproj
   !local variables
-  integer :: i,l,m,iat,iproj,istart_c,mbseg_c,mbseg_f,jseg_c,jseg_f,mbvctr_c,mbvctr_f,ityp
+  integer :: i,l,iat,iproj,istart_c,mbseg_c,mbseg_f,jseg_c,jseg_f,mbvctr_c,mbvctr_f,ityp
 
   ! loop over all projectors
   iproj=0

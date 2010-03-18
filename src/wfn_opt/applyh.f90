@@ -1,4 +1,14 @@
-! calculate the action of the local hamiltonian on the orbitals
+!!****f* BigDFT/local_hamiltonian
+!! FUNCTION
+!!   Calculate the action of the local hamiltonian on the orbitals
+!! COPYRIGHT
+!!   Copyright (C) 2005-2010 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+!! SOURCE
+!!
 subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   use module_base
@@ -17,7 +27,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
-  integer :: i_all,i_stat,ierr,iorb,npot,nsoffset,oidx,ispot
+  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
   real(wp) :: exctXcoeff
   real(gp) :: ekin,epot,kx,ky,kz,etest
   type(workarr_locham) :: wrk_lh
@@ -110,10 +120,16 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   call deallocate_work_arrays_locham(lr,wrk_lh)
 
 end subroutine local_hamiltonian
+!!***
 
-!transpose the wavefunction into a real and imaginary part to be treated with k-points
-!to be used only when nspinor=2 or 4
-!here the dimensions are n1->n1+1
+
+!!****f* BigDFT/transpose_for_kpoints
+!! FUNCTION
+!!   Transpose the wavefunction into a real and imaginary part to be treated with k-points
+!!   to be used only when nspinor=2 or 4
+!!   here the dimensions are n1->n1+1
+!! SOURCE
+!!
 subroutine transpose_for_kpoints(nspinor,n1,n2,n3,x,ww,direct)
   use module_base
   implicit none
@@ -121,7 +137,7 @@ subroutine transpose_for_kpoints(nspinor,n1,n2,n3,x,ww,direct)
   integer, intent(in) :: nspinor,n1,n2,n3
   real(wp), dimension(nspinor*n1*n2*n3), intent(inout) :: x,ww
   !local variables
-  integer :: i1,i2,i3,i,idx,id,id2,id3,isd,ispinor,it
+  integer :: i1,i2,i3,idx,id,id2,id3,isd,ispinor,it
 
   !k-points also admitted in non-collinear case
   if (direct) then
@@ -163,11 +179,16 @@ subroutine transpose_for_kpoints(nspinor,n1,n2,n3,x,ww,direct)
   !for mixed precision code it should be changed
   call dcopy(nspinor*n1*n2*n3,ww,1,x,1)
 end subroutine transpose_for_kpoints
+!!***
 
 
-!routine for applying the local potentials
-!supports the non-collinear case, the buffer for tails and different Boundary Conditions
-!Optimal also for the complex wavefuntion case
+!!****f* BigDFT/apply_potential
+!! FUNCTION
+!!   routine for applying the local potentials
+!!   supports the non-collinear case, the buffer for tails and different Boundary Conditions
+!!   Optimal also for the complex wavefuntion case
+!! SOURCE
+!!
 subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,&
      ibyyzz_r) !optional
   use module_base
@@ -187,9 +208,7 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
   !the Tail treatment is allowed only in the Free BC case
   if (nbuf /= 0 .and. nl1*nl2*nl3 == 0) stop 'NONSENSE: nbuf/=0 only for Free BC'
 
-
   epot=0.0_wp
-
 
 !$omp parallel default(private)&
 !$omp shared(pot,psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
@@ -304,9 +323,14 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
 
 !$omp end parallel
 
-
 end subroutine apply_potential
+!!***
 
+
+!!****f* BigDFT/realspace
+!! FUNCTION
+!! SOURCE
+!!
 subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   use module_base
   implicit none
@@ -331,17 +355,24 @@ subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   enddo
 
 end subroutine realspace
+!!***
 
+
+!!****f* BigDFT/realspace_nbuf
+!! FUNCTION
+!! SOURCE
+!!
 subroutine realspace_nbuf(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
   implicit none
+  !Arguments
   integer,intent(in)::nb1,nb2,nb3,nbuf
   integer,intent(in)::ibyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16)
   real(kind=8),intent(in)::pot(-14:2*nb1+16-4*nbuf,-14:2*nb2+16-4*nbuf,-14:2*nb3+16-4*nbuf)
   real(kind=8),intent(inout)::psir(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
-
   real(kind=8),intent(out)::epot
-  real(kind=8) tt,dnrm2
-  integer i1,i2,i3
+  !Local variables
+  real(kind=8) :: tt
+  integer :: i1,i2,i3
 
   epot=0.d0
   do i3=-14,2*nb3+16
@@ -375,8 +406,13 @@ subroutine realspace_nbuf(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
   enddo
 
 end subroutine realspace_nbuf
+!!***
 
 
+!!****f* BigDFT/realspaceINOUT
+!! FUNCTION
+!! SOURCE
+!!
 subroutine realspaceINOUT(ibyyzz_r,pot,psirIN,psirOUT,epot,n1,n2,n3)
   implicit none
   integer,intent(in)::n1,n2,n3
@@ -402,18 +438,25 @@ subroutine realspaceINOUT(ibyyzz_r,pot,psirIN,psirOUT,epot,n1,n2,n3)
   enddo
 
 end subroutine realspaceINOUT
+!!***
 
+
+!!****f* BigDFT/realspaceINOUT_nbuf
+!! FUNCTION
+!! SOURCE
+!!
 subroutine realspaceINOUT_nbuf(ibyyzz_r,pot,psirIN,psirOUT,epot,nb1,nb2,nb3,nbuf)
   implicit none
-  integer,intent(in)::nb1,nb2,nb3,nbuf
-  integer,intent(in)::ibyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16)
-  real(kind=8),intent(in)::pot(-14:2*nb1+16-4*nbuf,-14:2*nb2+16-4*nbuf,-14:2*nb3+16-4*nbuf)
-  real(kind=8),intent(in)::psirIN(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
-  real(kind=8),intent(out)::psirOUT(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
-
-  real(kind=8),intent(out)::epot
-  real(kind=8) tt,dnrm2
-  integer i1,i2,i3
+  !Arguments
+  integer,intent(in) :: nb1,nb2,nb3,nbuf
+  integer,intent(in) :: ibyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16)
+  real(kind=8),intent(in) :: pot(-14:2*nb1+16-4*nbuf,-14:2*nb2+16-4*nbuf,-14:2*nb3+16-4*nbuf)
+  real(kind=8),intent(in) :: psirIN(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
+  real(kind=8),intent(out) :: psirOUT(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
+  real(kind=8),intent(out) :: epot
+  !Local variables
+  real(kind=8) :: tt
+  integer :: i1,i2,i3
 
   epot=0.d0
   do i3=-14,2*nb3+16
@@ -447,7 +490,13 @@ subroutine realspaceINOUT_nbuf(ibyyzz_r,pot,psirIN,psirOUT,epot,nb1,nb2,nb3,nbuf
   enddo
 
 end subroutine realspaceINOUT_nbuf
+!!***
 
+
+!!****f* BigDFT/realspaceINPLACE
+!! FUNCTION
+!! SOURCE
+!!
 subroutine realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   implicit none
   integer,intent(in)::n1,n2,n3
@@ -501,10 +550,15 @@ subroutine realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   enddo
 
 end subroutine realspaceINPLACE
+!!***
 
 
-!Calculate on-the fly each projector for each atom, then applies the projectors 
-!to all distributed orbitals
+!!****f* BigDFT/applyprojectorsonthefly
+!! FUNCTION
+!!   Calculate on-the fly each projector for each atom, then applies the projectors 
+!!   to all distributed orbitals
+!! SOURCE
+!!
 subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
      rxyz,hx,hy,hz,wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   use module_base
@@ -522,9 +576,8 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
   real(gp), intent(out) :: eproj_sum
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
   !local variables
-  integer :: iat,nwarnings,iproj,iorb,ityp,l,i,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c
-  integer :: istart_c,idir,ispinor,isorb,ieorb,ikpt,nspinor,ispsi_k,ispsi
-  real(gp) :: eproj
+  integer :: iat,nwarnings,iproj,iorb
+  integer :: istart_c,idir,isorb,ieorb,ikpt,nspinor,ispsi_k,ispsi
   
   !put idir=0, no derivative
   idir=0
@@ -580,8 +633,14 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
   end if
 
 end subroutine applyprojectorsonthefly
+!!***
 
-!applies the projector associated on a given atom on a corresponding orbital
+
+!!****f* BigDFT/apply_atproj_iorb
+!! FUNCTION
+!!   Applies the projector associated on a given atom on a corresponding orbital
+!! SOURCE
+!!
 subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,eproj)
   use module_base
   use module_types
@@ -633,7 +692,13 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
           orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_spinor
   end do
 end subroutine apply_atproj_iorb
+!!***
 
+
+!!****f* BigDFT/applyprojector
+!! FUNCTION
+!! SOURCE
+!!
 subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj,psi,hpsi,eproj)
@@ -653,8 +718,8 @@ subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
   !local variables
   integer :: j,m,istart_c,istart_c_i,istart_c_j,icplx
   real(dp), dimension(2) :: scpr,scprp,scpr_i,scprp_i,scpr_j,scprp_j
-  real(gp) :: offdiagcoeff,hij
   real(gp), dimension(2,2,3) :: offdiagarr
+  real(gp) :: hij
 
   !enter the coefficients for the off-diagonal terms (HGH case, npspcode=3)
   offdiagarr(1,1,1)=-0.5_gp*sqrt(3._gp/5._gp)
@@ -736,7 +801,13 @@ subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
      end do loop_j
   end if
 end subroutine applyprojector
+!!***
 
+
+!!****f* BigDFT/applyprojector_old
+!! FUNCTION
+!! SOURCE
+!!
 subroutine applyprojector_old(l,i,psppar,npspcode,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj,psi,hpsi,eproj)
@@ -885,8 +956,14 @@ subroutine applyprojector_old(l,i,psppar,npspcode,&
      end do loop_jK
   end if
 end subroutine applyprojector_old
+!!***
 
-!find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
+
+!!****f* BigDFT/orbs_in_kpt
+!! FUNCTION
+!!   Find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
+!! SOURCE
+!!
 subroutine orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
   use module_base
   use module_types
@@ -917,9 +994,15 @@ subroutine orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
   nspinor=orbs%nspinor
 
 end subroutine orbs_in_kpt
+!!***
 
-!determine whether the k-point is complex of real
-!find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
+
+!!****f* BigDFT/ncplx_kpt
+!! FUNCTION
+!!   Determine whether the k-point is complex of real
+!!   Find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
+!! SOURCE
+!!
 subroutine ncplx_kpt(ikpt,orbs,ncplx)
   use module_base
   use module_types
@@ -943,4 +1026,4 @@ subroutine ncplx_kpt(ikpt,orbs,ncplx)
   end if
 
 end subroutine ncplx_kpt
-
+!!***

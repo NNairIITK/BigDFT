@@ -1,7 +1,7 @@
 !!****f* BigDFT/find_pfproj
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2009 BigDFT group
+!!    Copyright (C) 2009-2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -9,18 +9,19 @@
 !!
 !! SOURCE
 !!
-subroutine find_pfproj( Nsol,Ngrid,rgrid,  psi1s, psigrid, real_start, psigrid_pseudo, dump_functions)
+subroutine find_pfproj( Nsol,Ngrid,rgrid, psi1s, psigrid, real_start, psigrid_pseudo, dump_functions)
   use module_base
   implicit none
- 
+  !Arguments
   integer, intent(in) :: Nsol,Ngrid, real_start
   real(gp), intent(in) :: psi1s(Ngrid), rgrid(Ngrid)
   real(gp), intent(inout) :: psigrid(Ngrid,Nsol),psigrid_pseudo(Ngrid,Nsol)
   integer :: dump_functions
-  ! ------------------------------------------------------------------------------------
-  real(gp) dumgrid(Ngrid), coeffs(Nsol), dumgrid2(Ngrid), mass, mass_pseudo
-  integer segno(Nsol), segno_pseudo(Nsol)
-  integer i,k
+  !Local variables
+  real(gp) :: dumgrid(Ngrid), coeffs(Nsol), dumgrid2(Ngrid), mass, mass_pseudo
+  integer :: segno(Nsol), segno_pseudo(Nsol)
+  integer :: i,k
+
   do i=1, Nsol
      do k=1, Ngrid
         dumgrid(k)=psigrid(k,i)*psi1s(k)
@@ -58,7 +59,6 @@ subroutine find_pfproj( Nsol,Ngrid,rgrid,  psi1s, psigrid, real_start, psigrid_p
            exit
         endif
      enddo
-
 
      do k=Ngrid, 1,-1
         if( abs(psigrid_pseudo(k,i))>mass_pseudo*0.01) then
@@ -110,8 +110,7 @@ subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
   integer :: i,j,k,n,INFO, LWORK
   real(gp) :: b1,b2, B, spi, pi
   real(gp) :: W(0:ng), WORK(3*(ng+1)*(ng+1))
-  real(gp)::  sum, totalpow, ggg, gamma
-
+  real(gp) ::  sum, totalpow, ggg, gamma_restricted
 
 
   lwork= 3*(ng+1)*(ng+1)
@@ -128,7 +127,7 @@ subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
         
         B=b1+b2
         
-        ggg= gamma( (1.0_gp+totalpow)/2.0_gp   )
+        ggg= gamma_restricted( (1.0_gp+totalpow)/2.0_gp   )
         Soverlap(i,j)=0.5_gp* ggg * B**(-(1.0D0+totalpow)/2 )
      enddo
      do k=1, Ngrid
@@ -220,21 +219,20 @@ function  value_at_r(r, ng , expo,psi     )
   enddo
   value_at_r=sum
 
-  return 
 end function value_at_r
 
 
-subroutine dump_gauwf_on_radgrid(prefix  ,ng ,noccmax , lmax , expo,psi,aeval, occup     )
+subroutine dump_gauwf_on_radgrid(prefix, ng, noccmax, lmax, expo, psi)
   use module_base, only: gp
   implicit none
- 
+
+  !Arguments
   character(*) , intent(in) ::  prefix
   integer, intent(in) :: ng,noccmax, lmax
   real(gp), dimension(ng+1), intent(in) :: expo
   real(gp), dimension(0:ng,noccmax,lmax+1), intent(in) :: psi
-  real(gp), dimension(noccmax,lmax+1  ), intent(in) ::  aeval,occup
 
-  ! local
+  !Local variables
   integer, parameter :: n_int=100
   character(200)  filename
   integer l,i,k,ig
@@ -274,7 +272,6 @@ return
 end subroutine dump_gauwf_on_radgrid
 
 
-
 subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccmax, lmax ,expo,psi, aeval, occup, psp_modifier, &
      Nsol, Labs, Ngrid,Egrid,  rgrid , psigrid  )
   use module_base, only: gp, memocc,ndebug
@@ -293,7 +290,7 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   real(gp), dimension(noccmax,lmax+1  ), intent(out) ::  aeval,occup
   
   !local variables
-  character(len=*), parameter :: subname='iguess_generator'
+  character(len=*), parameter :: subname='abs_generator_modified'
   character(len=2) :: symbol
   real(gp), parameter :: fact=4.0_gp
   integer, dimension(6,4) :: neleconf
@@ -329,7 +326,6 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   call memocc(i_stat,hsep,'hsep',subname)
 
   !assignation of radii and coefficients of the local part
-
 
   if (psp_modifier.ne.0) then
      alpz=0.001_gp
@@ -413,14 +409,12 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
         ott(i)=real(neleconf(i,l+1),gp)
         if (ott(i) > 0.0_gp) then
            iocc=iocc+1
-            if (iocc > noccmax) stop 'iguess_generator: noccmax too small'
+            if (iocc > noccmax) stop 'abs_generator_modified: noccmax too small'
            occup(iocc,l+1)=ott(i)
         endif
      end do
 
   end do
-
-
 
   !allocate arrays for the gatom routine
   allocate(vh(4*(ng+1)**2,4*(ng+1)**2+ndebug),stat=i_stat)
@@ -430,7 +424,6 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   call memocc(i_stat,xp,'xp',subname)
   allocate(rmt(n_int,0:ng,0:ng,lmax+1+ndebug),stat=i_stat)
   call memocc(i_stat,rmt,'rmt',subname)
-
 
   !can be switched on for debugging
   !if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')&
@@ -460,16 +453,11 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
      end do
   end do
 
-
   call crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
-
-
 
 !!!  call gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
 !!!       zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
 !!!       aeval,ng,psi,res,chrg)
-
-
 
   if(psp_modifier==-1) then
      if(iproc==0) print *, " calling gatom_modified_eqdiff"
@@ -484,14 +472,11 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
           aeval,ng,psi,res,chrg,&
           Nsol, Labs, Ngrid,Egrid,  rgrid , psigrid )
   endif
-  
-
 
   !post-treatment of the inguess data
   do i=1,ng+1
      expo(i)=sqrt(0.5_gp/xp(i-1))
   end do
-
 
   do l=0,lmax
      do iocc=1,noccmax
@@ -502,7 +487,6 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
         endif
      enddo
   enddo
-  
 
   i_all=-product(shape(vh))*kind(vh)
   deallocate(vh,stat=i_stat)
@@ -604,31 +588,27 @@ function pow(x,n)
   pow=x**n
 end function pow
 
-function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
+function phase(E, N, rgrid, V, nonloc, y, l, normalize, onlyout)
   use module_base, only: gp,wp
   implicit none
-  integer N, normalize, onlyout
-  real(gp) E,rgrid(N),V(N), nonloc(N), Z, y(N),l
-  ! ----------------------------------------------
-  integer ii, i,j
-  real(gp)  ypi
+  !Arguments
+  integer :: N, normalize, onlyout
+  real(gp) :: E,rgrid(N),V(N), nonloc(N), y(N),l
   real(gp) :: phase
+  !Local variables
+  integer :: ii, i,j
+  real(gp) :: ypi
   
-  integer yNcross, yflag
-  real(gp)  dh,dl,dh2,dl2,dp,dl3,dhdl2,dh2dl,dh3,add1,add2,deno,num
-  real(gp)  Gh,Gl,G0,Nlc,Nla,Nlb
-  real(gp)  ca,cb,ep,em,y1,y2
+  integer :: yNcross, yflag
+  real(gp)  :: dh,dl,dh2,dl2,dp,dl3,dhdl2,dh2dl,dh3,add1,add2,deno,num
+  real(gp)  :: Gh,Gl,G0,Nlc,Nla,Nlb
   
-  real(gp) Ga,Gb,Gc
-  real(gp) ya,yb,yc
-  real(gp) r, PI
+  real(gp) :: Ga,Gb,Gc
+  real(gp) :: ya,yb,yc
+  real(gp) :: r, PI
   
-  real(gp) fact,norm, func(N), funcdum(N), pow
-  integer count
-  
- 
-
-
+  real(gp) :: fact,norm, func(N), funcdum(N), pow
+  integer :: count
 
   PI=4*atan(1.0d0)
   
@@ -807,14 +787,14 @@ function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
   ! //  6*h*(h + l)*(-12 + (h^2 + h*l - l^2)*Gc)
   
   deno= 6*dh*(dh + dl)*(-12 + (dh*dh + dh*dl - dl*dl)*Gc)
-	    
+       
   num=  6*dl*dl*dl*Nlc&
        +Nla*(-12*dh*dh*dl-6*dh*dl*dl+dh*dh*dh*dl*(dh + dl)*Gc)&
        +Nlb*(-24*dh*dh*dl - 30*dh*dl*dl - &
        6*dl*dl*dl+2*dh*dh*dh*dl*(dh + dl)*Gc +3*dh*dh*dl*dl*(dh+dl)*Gc)
 
   ypI=ypI+num/deno
-	    
+       
   
   if( onlyout.eq.1) then
      ypI = ypI+ dh*(  y(ii)*Gb  +y(ii+1)*Gc )/2 
@@ -823,8 +803,6 @@ function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
   endif
 
 
-	  
-	  
   if(dabs(y(ii)) .gt. dabs( ypI ) ) then
      phase=-atan(ypI/y(ii))
   else
@@ -837,8 +815,6 @@ function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
   endif
 
 
-
-  
   if( dabs(y(ii) ) .gt. dabs(ypI)) then
      y(ii+1)=y(ii+1)/y(ii)
      do i=1, ii
@@ -872,9 +848,9 @@ function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
         
         Nlc=nonloc(i-1)
         Nla=nonloc(i+1)
-		  
+
         R  = dh2 + dl2 + dp 
-		  
+
         dh3=dh2*dh
         dhdl2=dl*dp
         dh2dl=dh*dp
@@ -894,7 +870,7 @@ function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
         
         add2=( dh3*(-Nla  + Nlb ) + dl3*(Nlb  - Nlc) + &
              dh2dl*(Nla  + 4*Nlb + Nlc ) + dhdl2*(Nla + 4*Nlb + Nlc) )/deno
-		  
+
         y(i-1) = y(i)+add1+add2
         
         ! /*  
@@ -907,8 +883,7 @@ function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
         print *, "needs taking smaller steps in the grid for the schroedinger equation  , in phase "
         stop
      endif
- 
-     
+
 
      if(dabs(y(i-1)).gt.1.0D8) then 
         fact= 1./dabs(y(i-1)) 
@@ -943,8 +918,8 @@ function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
   Nlc=nonloc(i+1)
   Nla=nonloc(i-1)
   Nlb=nonloc(i)
-  
-  
+
+
   Gb = 2*(V(i)  -E)
   if(dabs(G0*dh*dl).gt.1.0) then
      print *, " problem with fabs(G0*dh*dl)>1.0 in calculation di yp in I , in phase"
@@ -956,7 +931,7 @@ function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
   ya=y(ii-1)
   yb=y(ii)
   yc=y(ii+1)
-	    
+
   ypI=(dh*(Ga*pow(dl,2)*(-12*dh + Gc*pow(dh,3) - 6*dl + &
        Gc*pow(dh,2)*dl) - &
        6*(-12*dh + Gc*pow(dh,3) - 12*dl + 2*Gc*pow(dh,2)*dl))*ya + &
@@ -965,33 +940,32 @@ function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
        6*(-12*dh + Gc*pow(dh,3) + Gc*pow(dh,2)*dl - &
        Gc*dh*pow(dl,2) + Gc*pow(dl,3)))*yb)/&
        (6.*dh*dl*(dh + dl)*(-12 + Gc*(pow(dh,2) + dh*dl - pow(dl,2)))) 
-	    
+
   ! // *****************************************************************************
-  !	    // ** Termine aggiuntivo
-  !	    // **
-  !	    // 6*l^3*Nlc + 
-  !	    // Nla*(-12*h^2*l - 6*h*l^2 + h^3*l*(h + l)*Gc) + 
-  !	    // Nlb*(-24*h^2*l - 30*h*l^2 - 6*l^3 +      2*h^3*l*(h + l)*Gc + 3*h^2*l^2*(h + l)*Gc)
-  !	    // / al denominatore
-  !	    //
-  !	    //  6*h*(h + l)*(-12 + (h^2 + h*l - l^2)*Gc)
-	    
+  !    // ** Termine aggiuntivo
+  !    // **
+  !    // 6*l^3*Nlc + 
+  !    // Nla*(-12*h^2*l - 6*h*l^2 + h^3*l*(h + l)*Gc) + 
+  !    // Nlb*(-24*h^2*l - 30*h*l^2 - 6*l^3 +      2*h^3*l*(h + l)*Gc + 3*h^2*l^2*(h + l)*Gc)
+  !    // / al denominatore
+  !    //
+  !    //  6*h*(h + l)*(-12 + (h^2 + h*l - l^2)*Gc)
+
   deno= 6*dh*(dh + dl)*(-12 + (dh*dh + dh*dl - dl*dl)*Gc)
-	    
+
   num=  6*dl*dl*dl*Nlc &
        +Nla*(-12*dh*dh*dl-6*dh*dl*dl+dh*dh*dh*dl*(dh + dl)*Gc)&
        +Nlb*(-24*dh*dh*dl - 30*dh*dl*dl - &
        6*dl*dl*dl+2*dh*dh*dh*dl*(dh + dl)*Gc +3*dh*dh*dl*dl*(dh+dl)*Gc&
        )
-	    
-  ypI=ypI+num/deno
-	    
-  !}
-	
-  phase=phase+PI*yNcross 
-	
 
- 
+  ypI=ypI+num/deno
+
+  !}
+
+  phase=phase+PI*yNcross 
+
+
   if(dabs(y(ii)) .gt. dabs( ypI ) ) Then
      phase =phase+atan(ypI/y(ii))
   else
@@ -1002,8 +976,8 @@ function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
         phase = phase+ ( - PI/2. - atan( r ))
      endif
   endif
-	  
-	  
+
+
   if( dabs(y(ii)) .gt. dabs(ypI)) then
      y(ii-1)=y(ii-1)/y(ii)
      do i=N,ii,-1
@@ -1014,8 +988,8 @@ function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
         y(i)=y(i)/ypI
      enddo
   endif
-	  
-	  
+
+
   ! //------------------------------------------------------------------------------
   if(normalize.eq.1) then
      do i=1,N
@@ -1031,7 +1005,6 @@ function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
   return 
 end function phase
 
- 
 
 subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
   use module_base, only: gp,wp
@@ -1044,11 +1017,9 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
   ! -------------------------------
   real(gp) Elow, Ehigh, Eguess
   real(gp) pathh, pathl, fase
-  integer i, igrid
-  real(gp) Phase, but
-  real(gp) PI
-
-
+  integer :: i
+  real(gp) :: Phase, but
+  real(gp) :: PI
 
   PI=4.0*atan(1.0)
   Elow=0;
@@ -1061,14 +1032,8 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
 
   Ehigh = 0.0;
 
-  
-
-  
-
-
-  
-  pathh = Phase(Ehigh,NGRID,r,v,nonloc,y,  l ,0, Z,0);
-  pathl = Phase(Elow ,NGRID, r,v,nonloc,y,  l ,0,  Z,0);
+  pathh = Phase(Ehigh,NGRID,r,v,nonloc,y,  l ,0, 0);
+  pathl = Phase(Elow ,NGRID, r,v,nonloc,y,  l ,0, 0);
  
 
 !!!  print *, Ehigh, pathh
@@ -1077,8 +1042,6 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
   but= PI*(nsol-l-1)
 
 !!!  print *, " Z " , Z
-
-
 
   if( pathl.gt.but)  then
      print *, " pathl>but " 
@@ -1090,22 +1053,16 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
       
   if(but .gt. pathh) then
      Ehigh = (but+1)*(but+1)/r(NGRID-1)/r(NGRID-1)
-     do while( but .gt. Phase(Ehigh ,NGRID, r,V,nonloc,y,  l , 0, Z,0 )	 )
+     do while( but .gt. Phase(Ehigh ,NGRID, r,V,nonloc,y,  l , 0, 0 ) )
          Ehigh =2*Ehigh;
       enddo
    endif
-   
 
- 
    do while(1.gt.0) 
 
       Eguess = (Elow+Ehigh)/2
 
-
-      fase=  Phase(Eguess ,NGRID, r,V,nonloc,y,  l , 0, Z ,0)
-      
-
-
+      fase=  Phase(Eguess ,NGRID, r,V,nonloc,y,  l , 0, 0)
 
       if( fase.gt.but) then
          Ehigh=Eguess
@@ -1117,13 +1074,13 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
    enddo
 
    
-   fase  = Phase(Eguess,NGRID, r,v,nonloc,y, l,1 ,  Z  ,0)
+   fase  = Phase(Eguess,NGRID, r,v,nonloc,y, l,1 ,0)
    E=Eguess;
 
-
-
    return
- end subroutine schro
+
+end subroutine schro
+
 
 subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
@@ -1137,7 +1094,6 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
   integer, parameter :: n_int=100
   dimension psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
        hh(0:ng,0:ng),ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
-       aux(2*ng+2),&
        gpot(3),hsep(6,lpx+1),rmt(n_int,0:ng,0:ng,lmax+1),&
        pp1(0:ng,lpx+1),pp2(0:ng,lpx+1),pp3(0:ng,lpx+1),alps(lpx+1),&
        potgrd(n_int),&
@@ -1146,19 +1102,15 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
        vh(0:ng,0:ng,4,0:ng,0:ng,4),&
        res(noccmax,lmax+1),xp(0:ng),& 
        psigrid(Ngrid, Nsol),psigrid_naked(Ngrid,Nsol), projgrid(Ngrid,3), &
-       rhogrid(Ngrid), potgrid(Ngrid),  newpotgrid(Ngrid), &
+       rhogrid(Ngrid), potgrid(Ngrid), &
        vxcgrid(Ngrid), &
        Egrid(nsol), ppgrid(Nsol,3), work(nsol*nsol*2), &
        H(Nsol, Nsol)
-  
-  real(gp) Ediff, Rdiff, rpot_a,spot_a,hpot_a, Rinf_a
 
   real(gp) :: rgrid(Ngrid)
-  real(gp), target :: dumgrid1(Ngrid),dumgrid2(Ngrid) ,dumgrid3(Ngrid) 
-
+  real(gp), target :: dumgrid1(Ngrid),dumgrid2(Ngrid)
 
   if (nintp.ne.n_int) stop 'n_int><nintp'
-
 
   do l=0,lmax
      if (occup(1,l+1).gt.0._gp) lcx=l
@@ -1176,10 +1128,10 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
 ! projectors, just in case
   if ( .not. noproj) then
      do l=0,lpx
-        gml1=sqrt( gamma(real(l,gp)+1.5_gp) / (2._gp*alps(l+1)**(2*l+3)) )
-        gml2=sqrt( gamma(real(l,gp)+3.5_gp) / (2._gp*alps(l+1)**(2*l+7)) )&
+        gml1=sqrt( gamma_restricted(real(l,gp)+1.5_gp) / (2._gp*alps(l+1)**(2*l+3)) )
+        gml2=sqrt( gamma_restricted(real(l,gp)+3.5_gp) / (2._gp*alps(l+1)**(2*l+7)) )&
             /(real(l,gp)+2.5_gp)
-        gml3=sqrt( gamma(real(l,gp)+5.5_gp) / (2._gp*alps(l+1)**(2*l+11)) )&
+        gml3=sqrt( gamma_restricted(real(l,gp)+5.5_gp) / (2._gp*alps(l+1)**(2*l+11)) )&
             /((real(l,gp)+3.5_gp)*(real(l,gp)+4.5_gp))
         tt=1._gp/(2._gp*alps(l+1)**2)
         do i=0,ng
@@ -1350,7 +1302,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
  
 
      loop_l: do l=0,lmax
-        gml=.5_gp*gamma(.5_gp+real(l,gp))
+        gml=.5_gp*gamma_restricted(.5_gp+real(l,gp))
 
 !  lower triangles only
         loop_i: do i=0,ng
@@ -1387,9 +1339,9 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
 ! potential from repulsive gauss potential
               tt=alpl**2/(.5_gp+d*alpl**2)
               if (1.eq.1) then
-              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
-                   + (gpot(2)/alpl**2)*.5_gp*gamma(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
-                   + (gpot(3)/alpl**4)*.5_gp*gamma(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))
+              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma_restricted(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
+                   + (gpot(2)/alpl**2)*.5_gp*gamma_restricted(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
+                   + (gpot(3)/alpl**4)*.5_gp*gamma_restricted(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))
            endif
 ! separable terms
               if (1.eq.1 .and. l.le.lpx) then
@@ -1655,7 +1607,6 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
   integer, parameter :: n_int=100
   dimension psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
        hh(0:ng,0:ng),ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
-       aux(2*ng+2),&
        gpot(3),hsep(6,lpx+1),rmt(n_int,0:ng,0:ng,lmax+1),&
        pp1(0:ng,lpx+1),pp2(0:ng,lpx+1),pp3(0:ng,lpx+1),alps(lpx+1),&
        potgrd(n_int),&
@@ -1699,14 +1650,15 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
      noproj = noproj .and. (alps(l) .eq. 0._gp)
   end do
   
+  noproj=.true.
 
 ! projectors, just in case
   if ( .not. noproj) then
      do l=0,lpx
-        gml1=sqrt( gamma(real(l,gp)+1.5_gp) / (2._gp*alps(l+1)**(2*l+3)) )
-        gml2=sqrt( gamma(real(l,gp)+3.5_gp) / (2._gp*alps(l+1)**(2*l+7)) )&
+        gml1=sqrt( gamma_restricted(real(l,gp)+1.5_gp) / (2._gp*alps(l+1)**(2*l+3)) )
+        gml2=sqrt( gamma_restricted(real(l,gp)+3.5_gp) / (2._gp*alps(l+1)**(2*l+7)) )&
             /(real(l,gp)+2.5_gp)
-        gml3=sqrt( gamma(real(l,gp)+5.5_gp) / (2._gp*alps(l+1)**(2*l+11)) )&
+        gml3=sqrt( gamma_restricted(real(l,gp)+5.5_gp) / (2._gp*alps(l+1)**(2*l+11)) )&
             /((real(l,gp)+3.5_gp)*(real(l,gp)+4.5_gp))
         tt=1._gp/(2._gp*alps(l+1)**2)
         do i=0,ng
@@ -1877,7 +1829,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
  
 
      loop_l: do l=0,lmax
-        gml=.5_gp*gamma(.5_gp+real(l,gp))
+        gml=.5_gp*gamma_restricted(.5_gp+real(l,gp))
 
 !  lower triangles only
         loop_i: do i=0,ng
@@ -1914,9 +1866,9 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 ! potential from repulsive gauss potential
               tt=alpl**2/(.5_gp+d*alpl**2)
               if (1.eq.1) then
-              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
-                   + (gpot(2)/alpl**2)*.5_gp*gamma(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
-                   + (gpot(3)/alpl**4)*.5_gp*gamma(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))
+              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma_restricted(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
+                   + (gpot(2)/alpl**2)*.5_gp*gamma_restricted(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
+                   + (gpot(3)/alpl**4)*.5_gp*gamma_restricted(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))
            endif
 ! separable terms
               if (1.eq.1 .and. l.le.lpx) then
@@ -2094,7 +2046,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
                  dumgrid2 (igrid)=dumgrid2 (igrid)+ 0.5_gp*(2.0_gp*l)/rgrid(igrid)/rgrid(igrid)
               enddo
            endif
-           d_r(l)=phase( Ediff, Nrdiff, rgrid,dumgrid2  , dumgrid1 , psigrid(1,2+l) , l*1.0_gp ,0,zion, 1)
+           d_r(l)=phase( Ediff, Nrdiff, rgrid,dumgrid2  , dumgrid1 , psigrid(1,2+l) , l*1.0_gp ,0, 1)
            y_r(l)= psigrid(Nrdiff,2+l)
            
         enddo
@@ -2124,7 +2076,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
            hpot_a = 3.0_gp
            Rinf_a=100.0_gp
            nstesp_coarse=1000
-           nsteps_fine  = 4
+           nsteps_fine  = 40
                      
 !!!           print *, y_r,d_r
 !!!           print *, " A  y_r(1) " , y_r(1), d_r(1)
@@ -2140,7 +2092,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 !!!           do igrid=1,Ngrid
 !!!              dumgrid2 (igrid)=potgrid(igrid)+vxcgrid(igrid)+ 0.5_gp*(2.0_gp)/rgrid(igrid)/rgrid(igrid)
 !!!           enddo
-!!!           d_r(1)=phase( Ediff, Ngrid, rgrid,dumgrid2  , dumgrid1 , psigrid(1,2+1) , 1*1.0_gp ,0,zion, 1)
+!!!           d_r(1)=phase( Ediff, Ngrid, rgrid,dumgrid2  , dumgrid1 , psigrid(1,2+1) , 1*1.0_gp ,0, 1)
 !!!           y_r(1)= psigrid(Ngrid,2+1)
 !!!
 !!!           print *,"C2 ", Ediff, 4*fattore*fattore/(   y_r(1)*y_r(1) +  d_r(1)*d_r(1)/2.0/Ediff   )
@@ -2369,16 +2321,12 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   integer :: ity, ng , noccmax, lmax, j, ierr, i_all
   real(gp) , pointer :: expo(:), psi(:,:,:), aeval(:,:), occup(:,:), gcoeffs(:)
   integer :: psp_modifier
-  integer :: ig, nord, iocc, iexpo
+  integer :: ig, iocc, iexpo
 
   integer ::  abs_initial_L
   integer, parameter :: Norder=4, dump_functions=0
-  real(gp) :: Scoeffs(Norder)
-  integer :: iocc_for_j(  Norder )
-  real(gp) :: ene_for_j(  Norder )
   real(gp) , parameter :: sphere_radius=3.0
   real(gp) , pointer:: psi1s(:) 
-  integer :: iw
   integer :: real_start
   real(gp) :: cradius
   
@@ -2454,7 +2402,7 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
 !!!     rgrid(igrid) = igrid*1.0_gp/Ngrid * cradius
 !!!  enddo
 
-  rzero = 1.0_gp/Ngrid * cradius 
+  rzero = 1.0D-5/Ngrid * cradius 
   do igrid=1, Ngrid
      rgrid(igrid) = rzero*  exp( igrid*   1.0_gp/Ngrid * log( cradius/rzero ))
   enddo
@@ -2518,9 +2466,9 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
 
   if(iproc.eq.0 .and. dump_functions.eq.1) then
      if(psp_modifier.eq.0) then
-        call dump_gauwf_on_radgrid("pseudo_wf_radgrid", ng-1 ,noccmax , lmax , expo,psi,aeval, occup     )
+        call dump_gauwf_on_radgrid("pseudo_wf_radgrid", ng-1,noccmax,lmax,expo,psi)
      else
-        call dump_gauwf_on_radgrid("real_wf_radgrid", ng-1 ,noccmax , lmax , expo,psi,aeval, occup     )
+        call dump_gauwf_on_radgrid("real_wf_radgrid",   ng-1,noccmax,lmax,expo,psi)
      endif
   endif
   
@@ -2586,9 +2534,9 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
 
   if(iproc.eq.0 .and. dump_functions.eq.1) then
      if(psp_modifier.eq.0) then
-        call dump_gauwf_on_radgrid("pseudo_wf_radgrid", ng-1 ,noccmax , lmax , expo,psi,aeval, occup     )
+        call dump_gauwf_on_radgrid("pseudo_wf_radgrid", ng-1,noccmax,lmax,expo,psi)
      else
-        call dump_gauwf_on_radgrid("real_wf_radgrid", ng-1 ,noccmax , lmax , expo,psi,aeval, occup     )
+        call dump_gauwf_on_radgrid("real_wf_radgrid",   ng-1,noccmax,lmax,expo,psi)
      endif
   endif
   
@@ -2749,90 +2697,78 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   return
 end subroutine GetExcitedOrbitalAsG
 
-function GetBottom(  atoms, iproc)
+
+!!****f* BigDFT/GetBottom
+!! FUNCTION
+!! SOURCE
+!!
+function GetBottom( atoms, iproc)
   
   use module_base
   use module_types
   use module_interfaces,except_this_one => GetBottom
 
   implicit none
+  !Arguments
   type(atoms_data), intent(in) :: atoms
-  real(gp) GetBottom
-  integer iproc
-
-  ! -----------------------------------------------------------
-  
-  integer abs_final_L
-
-  integer :: ity, ng , noccmax, lmax, j, ierr, i_all
-  real(gp) , pointer :: expo(:), psi(:,:,:), aeval(:,:), occup(:,:), gcoeffs(:)
+  real(gp) :: GetBottom
+  integer :: iproc
+  !Local variables
+  character(len=*), parameter :: subname='GetBottom'
+  integer :: abs_final_L
+  integer :: ity, ng , noccmax, lmax, i_all
+  real(gp) , pointer :: expo(:), psi(:,:,:), aeval(:,:), occup(:,:)
   integer :: psp_modifier
-  integer :: ig, nord, iocc, iexpo
 
   integer, parameter :: Norder=4, dump_functions=0
-  real(gp) :: Scoeffs(Norder)
-  integer :: iocc_for_j(  Norder )
-  real(gp) :: ene_for_j(  Norder )
   real(gp) , parameter :: sphere_radius=3.0
-  real(gp) , pointer:: psi1s(:) 
-  integer :: iw
-  integer :: real_start
   real(gp) :: cradius
-  
+
   integer ::  Nsol , Ngrid, igrid
 
-
-  real(gp), pointer :: Egrid(:) ,  rgrid(:) , psigrid (:,:) , Egrid_pseudo(:) 
-  integer i_stat
-  character(len=*), parameter :: subname='GetExcitedOrbitalAsG'
-  real(gp) rzero
+  real(gp), pointer :: Egrid(:) ,  rgrid(:) , psigrid (:,:)
+  integer :: i_stat
+  real(gp) :: rzero
 
   ! if (in_iat_absorber.ne.0) then
-
 
   ng  = 21
   noccmax = 5 
   lmax=3
-  
+
   Nsol=2
   Ngrid=3000
-  
+
   cradius=5.0 !!!!!!!! ATTENZIONE
-    
+
   allocate(expo(ng +ndebug  ), stat=i_stat)
   call memocc(i_stat,expo,'expo',subname)
-  
+
   allocate(psi ( 0:ng-1  ,noccmax,lmax+1+ndebug ), stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
-  
 
   allocate(aeval ( noccmax  ,lmax+1+ndebug ), stat=i_stat)
   call memocc(i_stat,aeval,'aeval',subname)
-  
+
   allocate(occup ( noccmax  ,lmax+1+ndebug ), stat=i_stat)
   call memocc(i_stat,occup,'occup',subname)
-  
+
   allocate( Egrid(Nsol +ndebug ), stat=i_stat)
   call memocc(i_stat,Egrid,'Egrid',subname)
-  
+
   allocate( rgrid(Ngrid +ndebug ), stat=i_stat)
   call memocc(i_stat,rgrid,'rgrid',subname)
-  
+
   allocate( psigrid(Ngrid  , Nsol +ndebug ), stat=i_stat)
   call memocc(i_stat,psigrid,'psigrid',subname)
-  
 
 
-  rzero = 1.0_gp/Ngrid * cradius 
+  rzero = 1.0D-2/Ngrid * cradius 
   do igrid=1, Ngrid
      rgrid(igrid) = rzero*  exp( igrid*   1.0_gp/Ngrid * log( cradius/rzero ))
   enddo
   
-  
-
   abs_final_L = 0
-
-
 
   GetBottom=1.0D4
 
@@ -2846,7 +2782,7 @@ function GetBottom(  atoms, iproc)
      ! if(aeval(1,1)<GetBottom) GetBottom=aeval(1,1)
      if( minval(aeval) <GetBottom) GetBottom=minval(aeval)
   enddo
-  
+
   i_all=-product(shape(Egrid))*kind(Egrid)
   deallocate(Egrid,stat=i_stat)
   call memocc(i_stat,i_all,'Egrid',subname)
@@ -2854,32 +2790,30 @@ function GetBottom(  atoms, iproc)
   i_all=-product(shape(psigrid))*kind(psigrid)
   deallocate(psigrid,stat=i_stat)
   call memocc(i_stat,i_all,'psigrid',subname)
-  
- 
+
   i_all=-product(shape(occup))*kind(occup)
   deallocate(occup,stat=i_stat)
   call memocc(i_stat,i_all,'occup',subname)
-  
+
   i_all=-product(shape(aeval))*kind(aeval)
   deallocate(aeval,stat=i_stat)
   call memocc(i_stat,i_all,'aeval',subname)
 
-
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
   call memocc(i_stat,i_all,'psi',subname) 
-  
+
   i_all=-product(shape(expo))*kind(expo)
   deallocate(expo,stat=i_stat)
   call memocc(i_stat,i_all,'expo',subname)
-    
 
   i_all=-product(shape(rgrid))*kind(rgrid)
   deallocate(rgrid,stat=i_stat)
   call memocc(i_stat,i_all,'rgrid',subname)
-  
 
 end function GetBottom
+!!***
+
 
 subroutine zero4b2B(n,x)
   implicit none
@@ -3079,7 +3013,7 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   ! real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
   real(gp), pointer :: rho(:)
   !local variables
-  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,j1,j2,j3
+  integer :: nl1,nl2,nl3,i_stat,i1,i2,i3,ind
   real(gp) :: value
   character(len=*), parameter :: subname='read_potfile4b2B'
 

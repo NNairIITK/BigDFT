@@ -30,8 +30,8 @@ endif
 SUBDIRS = $(libXC_dir) \
 	$(libSGPU_dir) \
 	$(libABINIT_dir) \
-	src \
 	doc \
+	src \
 	utils \
 	$(tests_dir)
 

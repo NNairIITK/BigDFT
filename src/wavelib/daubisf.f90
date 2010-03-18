@@ -7,7 +7,7 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
   type(workarr_locham), intent(out) :: w
   !local variables
   character(len=*), parameter :: subname='initialize_work_arrays_locham'
-  integer :: i_all,i_stat
+  integer :: i_stat
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,nw,nww,nf
 
   n1=lr%d%n1
@@ -100,11 +100,11 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
         nf=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
 
         nw=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
-        nw=max(nw,2*(n3+1)*(n1+1)*(n2+1))	   ! for the comb_shrink_hyb_c
+        nw=max(nw,2*(n3+1)*(n1+1)*(n2+1))      ! for the comb_shrink_hyb_c
         nw=max(nw,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
 
         nww=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
-        nww=max(nww,4*(n2+1)*(n3+1)*(n1+1))	! for the comb_shrink_hyb_c   
+        nww=max(nww,4*(n2+1)*(n3+1)*(n1+1))   ! for the comb_shrink_hyb_c   
         nww=max(nww,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
 
         w%nw1=nw
@@ -587,11 +587,11 @@ subroutine initialize_work_arrays_sumrho(lr,w)
         w%nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
 
         w%nw1=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
-        w%nw1=max(w%nw1,2*(n3+1)*(n1+1)*(n2+1))	   ! for the comb_shrink_hyb_c
+        w%nw1=max(w%nw1,2*(n3+1)*(n1+1)*(n2+1))      ! for the comb_shrink_hyb_c
         w%nw1=max(w%nw1,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
 
         w%nw2=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
-        w%nw2=max(w%nw2,4*(n2+1)*(n3+1)*(n1+1))	! for the comb_shrink_hyb_c   
+        w%nw2=max(w%nw2,4*(n2+1)*(n3+1)*(n1+1))   ! for the comb_shrink_hyb_c   
         w%nw2=max(w%nw2,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
      else
         !dimension of the work arrays, fully periodic case

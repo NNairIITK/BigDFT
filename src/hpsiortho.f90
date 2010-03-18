@@ -39,8 +39,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX
   integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
-  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi,istart_ca
-  real(gp) :: eproj
+  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
   real(gp), dimension(3,2) :: wrkallred
   real(wp), dimension(:), pointer :: pot
   integer,parameter::lupfil=14
@@ -203,6 +202,12 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 END SUBROUTINE HamiltonianApplication
 !!***
 
+! This module is here to avoid save variables inside
+! hpsitopsi().
+module wavefunctionDIIS
+  logical :: switchSD
+  integer :: idiistol,mids,ids  
+end module wavefunctionDIIS
 
 !!****f* BigDFT/hpsitopsi
 !! FUNCTION
@@ -216,6 +221,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => hpsitopsi
+  use wavefunctionDIIS
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
   real(gp), intent(in) :: hx,hy,hz,energy,energy_old
@@ -231,10 +237,8 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='hpsitopsi'
-  logical, save :: switchSD
-  integer, save :: idiistol,mids,ids
   integer :: ierr,iorb,k,i_stat,i_all
-  real(dp) :: tt,scprpart
+  real(dp) :: tt
   real(wp), dimension(:,:,:), allocatable :: mom_vec
 
   !stream ptr array
@@ -495,9 +499,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   character(len=*), parameter :: subname='last_orthon'
   logical :: dowrite !write the screen output
   integer :: i_all,i_stat,iorb,jorb,md
-  real(wp) :: evpart
   real(wp), dimension(:,:,:), allocatable :: mom_vec
-
 
   
   if (present(opt_keeppsit)) then
@@ -733,19 +735,29 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   if (iproc==0) print *,'charge deltarho',offset*hxh*hyh*hzh
 
   !rho_tot -> VH_tot & VXC_tot 
-  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
-       ixc,hxh,hyh,hzh,&
-       rhopot,pkernel,vxc,ehart,eexcu,vexcu,0.d0,.false.,nspin,&
+  call H_potential(at%geocode,'D',iproc,nproc,&
+       n1i,n2i,n3i,hxh,hyh,hzh,&
+       rhopot,pkernel,vxc,ehart,0.0_dp,.false.,&
        quiet=PSquiet)
+
+!!$  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
+!!$       ixc,hxh,hyh,hzh,&
+!!$       rhopot,pkernel,vxc,ehart,eexcu,vexcu,0.d0,.false.,nspin,&
+!!$       quiet=PSquiet)
 
   !calculate the reference Hartree potential
   !here the offset should be specified for charged systems
   call dcopy(n1i*n2i*n3d,rhoref,1,potref,1) 
   !Rho_ref -> VH_ref
-  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
-       0,hxh,hyh,hzh,&
-       potref,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+  call H_potential(at%geocode,'D',iproc,nproc,&
+       n1i,n2i,n3i,hxh,hyh,hzh,&
+       potref,pkernel,pot_ion,ehart_fake,0.0_dp,.false.,&
        quiet=PSquiet)
+
+!!$  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
+!!$       0,hxh,hyh,hzh,&
+!!$       potref,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+!!$       quiet=PSquiet)
   
   !save the total density in rhopot
   do ispin=1,nspin
@@ -772,10 +784,15 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   !calculate the vacancy hartree potential
   !Delta rho -> VH_drho(I)
   !use global distribution scheme for deltarho
-  call PSolver('F','G',iproc,nproc,n1i,n2i,n3i,&
-       0,hxh,hyh,hzh,&
-       drho,pkernel_ref,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+  call H_potential('F','G',iproc,nproc,&
+       n1i,n2i,n3i,hxh,hyh,hzh,&
+       drho,pkernel_ref,pot_ion,ehart_fake,0.0_dp,.false.,&
        quiet=PSquiet)
+
+!!$  call PSolver('F','G',iproc,nproc,n1i,n2i,n3i,&
+!!$       0,hxh,hyh,hzh,&
+!!$       drho,pkernel_ref,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+!!$       quiet=PSquiet)
 
 !!!  call plot_density(at%geocode,'VHdeltarho.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
 !!!       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,1+i3xcsh,1))

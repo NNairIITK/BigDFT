@@ -31,8 +31,6 @@ program PSolver_Program
   !integer, parameter :: itype_scf=8
   character(len=*), parameter :: subname='Poisson_Solver'
   real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
-  !Error function
-  real(kind=8) :: derf
   !Length of the box
   real(kind=8), parameter :: acell = 10.d0
   character(len=50) :: chain
@@ -40,11 +38,11 @@ program PSolver_Program
   character(len=1) :: datacode
   real(kind=8), dimension(:,:,:), allocatable :: density, rhopot,potential,pot_ion
   real(kind=8), pointer :: karray(:)
-  real(kind=8) :: hx,hy,hz,max_diff,length,eh,exc,vxc,hgrid,diff_parser,offset
+  real(kind=8) :: hx,hy,hz,max_diff,eh,exc,vxc,hgrid,diff_parser,offset
   real(kind=8) :: ehartree,eexcu,vexcu,diff_par,diff_ser
-  integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,n1,n2,n3,itype_scf,i_all,i_stat
+  integer :: n01,n02,n03,itype_scf,i_all,i_stat
   integer :: i1,i2,i3,j1,j2,j3,i1_max,i2_max,i3_max,iproc,nproc,ierr,i3sd,ncomp
-  integer :: n_cell,i_allocated,l1,nsp1,nsp2,nsp3,ixc,n3d,n3p,n3pi,i3xcsh,i3s
+  integer :: n_cell,ixc,n3d,n3p,n3pi,i3xcsh,i3s
   logical :: alsoserial,onlykernel
   
   !Use arguments
@@ -86,7 +84,7 @@ program PSolver_Program
   end if
 
   !initialize memory counting
-  call memocc(0,iproc,'count','start')
+  !call memocc(0,iproc,'count','start')
 
   !Step size
   n_cell = max(n01,n02,n03)
@@ -268,9 +266,9 @@ program PSolver_Program
      i2=i2_max
      do i3=1,n03
         do i1=1,n01
-           j1=n1/2+1-abs(n1/2+1-i1)
-           j2=n2/2+1-abs(n2/2+1-i2)
-           j3=n3/2+1-abs(n3/2+1-i3)
+           j1=n01/2+1-abs(n01/2+1-i1)
+           j2=n02/2+1-abs(n02/2+1-i2)
+           j3=n03/2+1-abs(n03/2+1-i3)
            write(11,*)i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3),&
                 density(i1,i2,i3)
         end do
@@ -278,9 +276,9 @@ program PSolver_Program
      i3=i3_max
      do i2=1,n02
         do i1=1,n01
-           j1=n1/2+1-abs(n1/2+1-i1)
-           j2=n2/2+1-abs(n2/2+1-i2)
-           j3=n3/2+1-abs(n3/2+1-i3)
+           j1=n01/2+1-abs(n01/2+1-i1)
+           j2=n02/2+1-abs(n02/2+1-i2)
+           j3=n03/2+1-abs(n03/2+1-i3)
            write(12,*)i1,i2,rhopot(i1,i2,i3),potential(i1,i2,i3),&
                 density(i1,i2,i3)
         end do
@@ -386,8 +384,8 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   real(kind=8), dimension(n01,n02,n03), intent(out) :: density,potential,rhopot,pot_ion
 
   !local variables
-  integer :: i1,i2,i3,nu,ifx,ify,ifz
-  real(kind=8) :: x,x1,x2,x3,y,length,denval,pi,a2,derf,hgrid,factor,r,r2
+  integer :: i1,i2,i3,ifx,ify,ifz
+  real(kind=8) :: x,x1,x2,x3,y,length,denval,pi,a2,derf,factor,r,r2
   real(kind=8) :: fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt,potion_fac
 
   if (trim(geocode) == 'P') then
@@ -472,8 +470,8 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      !parameters of the test functions
      ax=length
      az=length
-     bx=real(nu,kind=8)
-     bz=real(nu,kind=8)
+     bx=2.d0!real(nu,kind=8)
+     bz=2.d0!real(nu,kind=8)
      !non-periodic dimension
      ay=length!4.d0*a
      by=a

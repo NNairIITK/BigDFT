@@ -111,9 +111,9 @@ subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
   !local variables
 !!    integer ncount0,ncount1,ncount2,ncount_rate,ncount_max,nflop
 !!    real(kind=8) tel,t0,t1
-  integer i,t,l2,l3,l1
-  integer ll1,ll3,l10,l11,l30,l31,ll2,l21
-  real(wp) y2i__11, y2i__12, y2i1_11, y2i1_12, y2i__21, y2i__22, y2i1_21, y2i1_22,y2i,y2i1
+  integer :: i,t,l1,l2,l3
+  integer :: ll3,l31,ll2,l21
+  real(wp) :: y2i__11, y2i__12, y2i1_11, y2i1_12, y2i__21, y2i__22, y2i1_21, y2i1_22,y2i,y2i1
   include 'v_17.inc'
 
   !    open(unit=10,file='zero.square')
@@ -146,11 +146,11 @@ subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
 
   !$omp do ! switched off because does not improve the performance.  
   do l1=-14,2*n1+16
-	  do l3=0,n3 
-		  do l2=ib2(1,l3,l1),ib2(2,l3,l1)
-			 y(l2,l3,l1)=0._wp 
-		  enddo
-	  enddo
+     do l3=0,n3 
+        do l2=ib2(1,l3,l1),ib2(2,l3,l1)
+          y(l2,l3,l1)=0._wp 
+        enddo
+     enddo
   enddo
    !$omp enddo
    !$omp barrier
@@ -295,9 +295,9 @@ subroutine comb_rot_grow_loc_square_3(n1,n2,n3,x,y,ib)
   !local variables
 !!    integer ncount0,ncount1,ncount2,ncount_rate,ncount_max,nflop
 !!    real(kind=8) tel,t0,t1
-  integer i,t,l2,l3,l1
-  integer ll1,ll3,l10,l11,l30,l31,ll2,l21
-  real(wp) y2i__11, y2i__12, y2i1_11, y2i1_12, y2i__21, y2i__22, y2i1_21, y2i1_22,y2i,y2i1
+  integer :: i,t,l2,l3
+  integer :: ll3,l31,ll2,l21
+  real(wp) :: y2i__11, y2i__12, y2i1_11, y2i1_12, y2i__21, y2i__22, y2i1_21, y2i1_22,y2i,y2i1
   include 'v_17.inc'
 
   !    open(unit=10,file='zero.square')

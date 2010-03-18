@@ -81,7 +81,7 @@ fi
 
 dnl After all, if nvcc command has not been found, configure stops with an error
 if test -z "$NVCC"; then
-	AC_MSG_ERROR([CUDA compiler not found. Use --with-cuda-path or --with-cuda-path-bin or check your CUDA installation.])
+  AC_MSG_WARN([CUDA compiler not found. Use --with-cuda-path or --with-cuda-path-bin or check your CUDA installation.])
 fi
 
 dnl Copy value into Makefiles: $NVCC = @NVCC@
@@ -137,7 +137,8 @@ AC_SUBST(NVCCFLAGS)
 
 ##### Check for nvcc compilation (and execution?) #####
 
-AC_MSG_CHECKING([for nvcc compilation])
+if test -n "$NVCC" ; then
+  AC_MSG_CHECKING([for nvcc compilation])
 ac_compile_nvcc=no
     cat>conftest.cu<<EOF
     __global__ static void test_cuda() {
@@ -153,9 +154,10 @@ EOF
 #    rm -f conftest.c conftest.o conftest.what conftest.ever
     AC_MSG_RESULT([$ac_compile_nvcc])
 
-if test "x$ac_compile_nvcc" = "xno" 
-then
-	AC_MSG_ERROR([CUDA compiler seems to have problem. Maybe check the gcc used for nvcc.])
+  if test "x$ac_compile_nvcc" = "xno" 
+  then
+    AC_MSG_ERROR([CUDA compiler seems to have problem. Maybe check the gcc used for nvcc.])
+  fi
 fi
 
 dnl Add the variables at the configure of configure --help

@@ -355,14 +355,14 @@ subroutine symmetry_break()
   use random
   use saddles
 
-  integer                          :: i, j, that, k, i_id, j_id, m
+  integer                          :: i, k, i_id
   real(8)                          :: lcutoff2    ! Cut-off for local moves, squared
   real(8), dimension(VECSIZE), target :: dr
   real(8), dimension(:), pointer   :: dx, dy, dz
   real(8)                          :: dr2, dxi, dyi, dzi, dxij, dyij, dzij
   real(8)                          :: boxl, invbox
   real(8)                          :: xsum, ysum, zsum, xnorm, ynorm, znorm, norm
-  real(8) :: ran3, Numb, inf, sup
+  real(8) :: ran3, Numb
 
   ! We assign a few pointers 
   dx => dr(1:NATOMS)
