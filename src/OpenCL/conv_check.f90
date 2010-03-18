@@ -351,7 +351,7 @@ program conv_check
 
            call cpu_time(t0)
            do i=1,ntimes
-              call reduction_dot_d(queue, n1*ndat, psi_GPU, work_GPU, work2_GPU, ekinGPUd )
+              call nrm2sq_d(queue, n1*ndat, psi_GPU, work_GPU, work2_GPU, ekinGPUd )
            end do
            call ocl_finish(queue);
            call cpu_time(t1)

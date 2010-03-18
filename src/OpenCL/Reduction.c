@@ -3,7 +3,7 @@
 char * reduction_program="\
 //group_size is supposed to be 512\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
-__kernel void reductionKernel_d( size_t n, __global const double *x, __global double *y, __local double *tmp ) {\n\
+__kernel void reductionKernel_d( uint n, __global const double *x, __global double *y, __local double *tmp ) {\n\
   size_t i = get_local_id(0);\n\
   size_t g = get_group_id(0)*1024+i;\n\
   if(g<n) {\n\
@@ -42,7 +42,7 @@ __kernel void reductionKernel_d( size_t n, __global const double *x, __global do
   if( i==0 )\n\
     y[get_group_id(0)] = tmp[0]+tmp[1];\n\
 }\n\
-__kernel void reduction_dotKernel_d( size_t n, __global const double *x, __global double *y, __local double *tmp ) {\n\
+__kernel void reduction_dotKernel_d( uint n, __global const double *x, __global double *y, __local double *tmp ) {\n\
   size_t i = get_local_id(0);\n\
   size_t g = get_group_id(0)*1024+i;\n\
   double tt;\n\
@@ -84,7 +84,46 @@ __kernel void reduction_dotKernel_d( size_t n, __global const double *x, __globa
   if( i==0 )\n\
     y[get_group_id(0)] = tmp[0]+tmp[1];\n\
 }\n\
+__kernel void axpyKernel_d( uint n, double alpha, __global const double *x, __global double *y) {\n\
+  size_t ig = get_global_id(0);\n\
+  if( ig < n)\n\
+    y[ig] += alpha * x[ig];\n\
+}\n\
+__kernel void scalKernel_d( uint n, double alpha, __global const double *x, __global double *y) {\n\
+  size_t ig = get_global_id(0);\n\
+  if( ig < n)\n\
+    y[ig] = alpha * x[ig];\n\
+}\n\
+\n\
 ";
+
+void inline scal_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *inout) {
+  cl_int ciErrNum;
+  size_t block_size_i=64;
+  cl_uint i=0;
+  clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+  clSetKernelArg(kernel, i++,sizeof(*alpha), (void*)alpha);
+  clSetKernelArg(kernel, i++,sizeof(*in), (void*)in);
+  clSetKernelArg(kernel, i++,sizeof(*inout), (void*)inout);
+  size_t localWorkSize[] = { block_size_i };
+  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n) };
+  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue scal kernel!");
+}
+
+void inline axpy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *inout) {
+  cl_int ciErrNum;
+  size_t block_size_i=64;
+  cl_uint i=0;
+  clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+  clSetKernelArg(kernel, i++,sizeof(*alpha), (void*)alpha);
+  clSetKernelArg(kernel, i++,sizeof(*in), (void*)in);
+  clSetKernelArg(kernel, i++,sizeof(*inout), (void*)inout);
+  size_t localWorkSize[] = { block_size_i };
+  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n) };
+  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue axpy kernel!");
+}
 
 void inline reduction_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *out) {
   cl_int ciErrNum;
@@ -102,9 +141,32 @@ void inline reduction_generic(cl_kernel kernel, cl_command_queue *command_queue,
 
 cl_kernel reduction_kernel_d;
 cl_kernel reduction_dot_kernel_d;
+cl_kernel axpy_kernel_d;
+cl_kernel scal_kernel_d;
 
-void FC_FUNC_(reduction_self_d,REDUCTION_SELF_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, double *out) {
-  assert(*ndat>0);
+void FC_FUNC_(scal_self_d,SCAL_SELF_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *inout){
+  if(*n==0)
+    return;
+  scal_generic(scal_kernel_d, command_queue, n, alpha, inout, inout);
+}
+
+void FC_FUNC_(scal_d,SCAL_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *out){
+  if(*n==0)
+    return;
+  scal_generic(scal_kernel_d, command_queue, n, alpha, in, out);
+}
+
+void FC_FUNC_(axpy_d,AXPY_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *inout){
+  if(*n==0)
+    return;
+  axpy_generic(axpy_kernel_d, command_queue, n, alpha, in, inout);
+}
+
+void FC_FUNC_(asum_self_d,ASUM_SELF_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, double *out) {
+  if(*ndat==0){
+    *out = 0.0;
+    return;
+  }
   cl_uint n = *ndat;
   cl_mem *input = in;
   cl_mem *output = work;
@@ -119,8 +181,11 @@ void FC_FUNC_(reduction_self_d,REDUCTION_SELF_D)(cl_command_queue *command_queue
   clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(double), out, 0, NULL, NULL);
 }
 
-void FC_FUNC_(reduction_dot_self_d,REDUCTION_SELF_DOT_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, double *out) {
-  assert(*ndat>0);
+void FC_FUNC_(nrm2sq_self_d,NRM2SQ_SELF_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, double *out) {
+  if(*ndat==0){
+   *out = 0.0;
+   return;
+  }
   cl_uint n = *ndat;
   cl_mem *input = in;
   cl_mem *output = work;
@@ -141,8 +206,11 @@ void FC_FUNC_(reduction_dot_self_d,REDUCTION_SELF_DOT_D)(cl_command_queue *comma
   clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(double), out, 0, NULL, NULL);
 }
 
-void FC_FUNC_(reduction_d,REDUCTION_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, double *out) {
-  assert(*ndat>0);
+void FC_FUNC_(asum_d,ASUM_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, double *out) {
+  if(*ndat==0){
+   *out = 0.0;
+   return;
+  }
   cl_uint n = *ndat;
   cl_mem *input = in;
   cl_mem *output = work1;
@@ -163,8 +231,11 @@ void FC_FUNC_(reduction_d,REDUCTION_D)(cl_command_queue *command_queue, cl_uint 
   clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(double), out, 0, NULL, NULL);
 }
 
-void FC_FUNC_(reduction_dot_d,REDUCTION_DOT_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, double *out) {
-  assert(*ndat>0);
+void FC_FUNC_(nrm2sq_d,NRM2SQ_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, double *out) {
+  if(*ndat==0){
+   *out = 0.0;
+   return;
+  }
   cl_uint n = *ndat;
   cl_mem *input = in;
   cl_mem *output = work1;
@@ -200,6 +271,12 @@ void build_reduction_kernels(cl_context * context){
         exit(1);
     }
     ciErrNum = CL_SUCCESS;
+    axpy_kernel_d=clCreateKernel(reductionProgram,"axpyKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = CL_SUCCESS;
+    axpy_kernel_d=clCreateKernel(reductionProgram,"scalKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = CL_SUCCESS;
     reduction_kernel_d=clCreateKernel(reductionProgram,"reductionKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     ciErrNum = CL_SUCCESS;
@@ -212,4 +289,6 @@ void build_reduction_kernels(cl_context * context){
 void clean_reduction_kernels(){
   clReleaseKernel(reduction_kernel_d);
   clReleaseKernel(reduction_dot_kernel_d);
+  clReleaseKernel(axpy_kernel_d);
+  clReleaseKernel(scal_kernel_d);
 }

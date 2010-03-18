@@ -4,7 +4,7 @@
 char * ana1d_program="\
 #define FILTER_WIDTH 16\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
-__kernel void anashrink1dKernel_d(size_t n, size_t ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void anashrink1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -72,7 +72,7 @@ ci += tmp[ 0] *  0.77718575169962802862;\n\
 out[(jg*(2*n)+ig)]=ci;\n\
 out[(jg*(2*n)+ig+n)]=di;\n\
 };\n\
-__kernel void ana1dKernel_d(size_t n, size_t ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void ana1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -143,7 +143,7 @@ char * syn1d_program="\
 #define FILTER_WIDTH 8\n\
 #define SIZE_I 16\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
-__kernel void syngrow1dKernel_d(size_t n, size_t ndat, __global const double *psi, __global double *out, __local double tmp_1[]){\n\
+__kernel void syngrow1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp_1[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 {\n\
@@ -219,7 +219,7 @@ se += tmp_1[FILTER_WIDTH+SIZE_I - 3] * -0.0033824159510050025955;\n\
 out[jg*2*n+2*ig]=so;\n\
 out[jg*2*n+2*ig+1]=se;\n\
 };\n\
-__kernel void syn1dKernel_d(size_t n, size_t ndat, __global const double *psi, __global double *out, __local double tmp_1[]){\n\
+__kernel void syn1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp_1[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 {\n\

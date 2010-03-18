@@ -32,7 +32,10 @@ void FC_FUNC_(ocl_build_kernels,OCL_BUILD_KERNELS)(cl_context * context) {
 
 void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(cl_context * context) {
     cl_int ciErrNum = CL_SUCCESS;
-    *context = clCreateContextFromType(0, CL_DEVICE_TYPE_GPU, NULL, NULL, &ciErrNum);
+    cl_platform_id platform_id;
+    clGetPlatformIDs(1, &platform_id, NULL);
+    cl_context_properties properties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, 0 };
+    *context = clCreateContextFromType( properties , CL_DEVICE_TYPE_GPU, NULL, NULL, &ciErrNum);
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
     printf("contexte address: %p\n",*context);

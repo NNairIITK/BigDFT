@@ -5,7 +5,7 @@ char * magicfilter1d_program="\
 #define FILTER_WIDTH 16\n\
 //n is supposed to be greater or equal than get_local_size(0)\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
-__kernel void magicfiltergrow1dKernel_d(size_t n, size_t ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void magicfiltergrow1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -49,7 +49,7 @@ tt += tmp_o[+4] * -0.344128144493493857280881509686821861e-2\n\
     + tmp_o[+0] *  0.9940415697834003993178616713;\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
-__kernel void magicfiltergrow1d_potKernel_d(size_t n, size_t ndat, __global const double *psi, __global const double *pot, __global double *out, __local double tmp[]){\n\
+__kernel void magicfiltergrow1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global const double *pot, __global double *out, __local double tmp[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -93,7 +93,7 @@ tt += tmp_o[+4] * -0.344128144493493857280881509686821861e-2\n\
     + tmp_o[+0] *  0.9940415697834003993178616713;\n\
 out[(jg*n+ig)]=tt*pot[(jg*n+ig)];\n\
 };\n\
-__kernel void magicfiltershrink1dKernel_d(size_t n, size_t ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void magicfiltershrink1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -141,7 +141,7 @@ tt += tmp_o[-5] * -0.344128144493493857280881509686821861e-2\n\
     + tmp_o[-1] *  0.9940415697834003993178616713;\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
-__kernel void magicfilter1d_potKernel_d(size_t n, size_t ndat, __global const double *psi, __global double *pot, __global double *out, __local double tmp[]){\n\
+__kernel void magicfilter1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global double *pot, __global double *out, __local double tmp[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -186,7 +186,7 @@ tt += tmp_o[+4] * -0.344128144493493857280881509686821861e-2\n\
     + tmp_o[+0] *  0.9940415697834003993178616713;\n\
 out[(jg*n+ig)]=tt*pot[jg*n+ig];\n\
 };\n\
-__kernel void magicfilter1dKernel_d(size_t n, size_t ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void magicfilter1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -230,7 +230,7 @@ tt += tmp_o[+4] * -0.344128144493493857280881509686821861e-2\n\
     + tmp_o[+0] *  0.9940415697834003993178616713;\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
-__kernel void magicfilter1d_tKernel_d(size_t n, size_t ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void magicfilter1d_tKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\

@@ -5,7 +5,7 @@
 char * kinetic1d_program="\
 #define FILTER_WIDTH 32\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
-__kernel void kinetic1dKernel_d(size_t n, size_t ndat, double scale, __global const double * x_in, __global double * x_out, __global const double * y_in, __global double * y_out, __local double * tmp, __local double * tmp2) {\n\
+__kernel void kinetic1dKernel_d(uint n, uint ndat, double scale, __global const double * x_in, __global double * x_out, __global const double * y_in, __global double * y_out, __local double * tmp, __local double * tmp2) {\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -54,7 +54,7 @@ y_out[jg*n + ig] = tmp2[j2*(32+1) + i2] + scale * conv;\n\
 x_out[jg*n + ig] = tmp_o[0];\n\
 };\n\
 \n\
-__kernel void kinetic1d_fKernel_d(size_t n, size_t ndat, double scale, __global const double * x_in, __global double * x_out, __global const double * y_in, __global double * y_out, __local double * tmp, __local double * tmp2) {\n\
+__kernel void kinetic1d_fKernel_d(uint n, uint ndat, double scale, __global const double * x_in, __global double * x_out, __global const double * y_in, __global double * y_out, __local double * tmp, __local double * tmp2) {\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -130,7 +130,7 @@ inline void kinetic_generic(cl_kernel kernel, cl_command_queue *command_queue, c
 char * kinetic_k1d_program="\
 #define FILTER_WIDTH 32\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
-__kernel void kinetic_k1dKernel_d(size_t n, size_t ndat, double scale_1, double scale_2, __global const double * x_in, __global double * x, __global const double * y_in, __global double * y, __local double * tmp, __local double * tmp_y ) {\n\
+__kernel void kinetic_k1dKernel_d(uint n, uint ndat, double scale_1, double scale_2, __global const double * x_in, __global double * x, __global const double * y_in, __global double * y, __local double * tmp, __local double * tmp_y ) {\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
