@@ -511,8 +511,6 @@ AC_CONFIG_FILES([
 Makefile
 libABINIT/src/Makefile
 src/Makefile
-src/lib/Makefile
-src/lib/fft/Makefile
 src/modules/Makefile
 src/modules/configure.inc
 src/profiling/Makefile
@@ -524,6 +522,7 @@ utils/Makefile
 utils/PSPfiles/Makefile
 doc/Makefile
 tests/Makefile
+tests/fft/Makefile
 tests/C/Makefile
 tests/Ca2/Makefile
 tests/H/Makefile

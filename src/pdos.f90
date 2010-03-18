@@ -1,4 +1,16 @@
-!perform all the projection associated to local variables
+!!****f* BigDFT/local_analysis
+!! FUNCTION
+!!    Perform all the projection associated to local variables
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine local_analysis(iproc,nproc,hx,hy,hz,shift,lr,orbs,orbsv,psi,psivirt)
   use module_base
   use module_types
@@ -79,7 +91,6 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,shift,lr,orbs,orbsv,psi,psivirt)
 
   !also partial density of states can be analysed here
 
-
   call deallocate_gwf(G,subname)
   nullify(G%rxyz)
 
@@ -94,7 +105,6 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,shift,lr,orbs,orbsv,psi,psivirt)
   i_all=-product(shape(thetaphi))*kind(thetaphi)
   deallocate(thetaphi,stat=i_stat)
   call memocc(i_stat,i_all,'thetaphi',subname)
-
 
   !deallocate the auxiliary structures for the calculations
   call deallocate_atoms(atc,subname) 
@@ -111,7 +121,12 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,shift,lr,orbs,orbsv,psi,psivirt)
   call memocc(i_stat,i_all,'Gocc',subname)
   
 end subroutine local_analysis
+!!***
 
+
+!!****f* BigDFT/mulliken_charge_population
+!! SOURCE
+!! 
 subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   use module_base
   use module_types
@@ -125,7 +140,7 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   character(len=*), parameter :: subname='mulliken_charge_population'
   character(len=11) :: shname
   integer :: icoeff,i_all,i_stat,ierr,ishell,iexpo,iat,l,ng,iorb,isat,m,ispin,ig,nchannels
-  real(wp) :: msum,rad,radnorm,r,netpol,sumch
+  real(wp) :: msum,rad,radnorm,r,sumch
   real(wp), dimension(2) :: msumiat
   real(wp), dimension(:,:), allocatable :: mchg
   
@@ -171,7 +186,6 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
 !     print *,'total sum,iorb',iorb,msum,&
 !          orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)
 !  end do
-
 
   !print the results as a function of the shell
   ishell=0
@@ -228,7 +242,12 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   call memocc(i_stat,i_all,'mchg',subname)
   
 end subroutine mulliken_charge_population
+!!***
 
+
+!!****f* BigDFT/shell_name
+!! SOURCE
+!! 
 subroutine shell_name(l,m,name)
   implicit none
   integer, intent(in) :: l,m
@@ -296,3 +315,4 @@ subroutine shell_name(l,m,name)
   end select
 
 end subroutine shell_name
+!!***

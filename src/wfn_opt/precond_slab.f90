@@ -39,9 +39,9 @@ subroutine precong_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   real(gp), allocatable,dimension(:,:) :: af,bf,cf,ef
   integer,allocatable,dimension(:)::modul1,modul3
 
-  call allocate_all
+  call allocate_all()
 
-  call prepare_sdc_slab(n1,n2,n3,modul1,modul3,af,bf,cf,ef,hx,hy,hz)
+  call prepare_sdc_slab(n1,n3,modul1,modul3,af,bf,cf,ef,hx,hy,hz)
 
   !   initializes the wavelet scaling coefficients   
   call wscal_init_per(scal,hx,hy,hz,cprecr)
@@ -84,7 +84,7 @@ subroutine precong_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      rmr=rmr_new
   enddo
 
-  call deallocate_all
+  call deallocate_all()
 
 contains
 
@@ -241,7 +241,7 @@ subroutine apply_hp_slab_sd(n1,n2,n3, &
   hgrid(3)=hz
   ! psifscf: input, ww: output
   !     call convolut_kinetic_slab_c(2*n1+1,2*n2+15,2*n3+1,hgridh,psifscf,ww,cprecr)
-  call convolut_kinetic_slab_sdc(n1,n2,n3,hgrid,psifscf,ww,cprecr,modul1,modul3,a,b,c,e)
+  call convolut_kinetic_slab_sdc(n1,n2,n3,psifscf,ww,cprecr,modul1,modul3,a,b,c,e)
 
   ! ww:intput
   ! y:output
@@ -249,7 +249,6 @@ subroutine apply_hp_slab_sd(n1,n2,n3, &
        nseg_f,nvctr_f,keyg(1,nseg_c+min(1,nseg_f)),keyv(nseg_c+min(1,nseg_f)),& 
        ww,y(1),y(nvctr_c+min(1,nvctr_f)))
 end subroutine apply_hp_slab_sd
-
 
 
 subroutine prec_fft_slab_fast(n1,n2,n3, &

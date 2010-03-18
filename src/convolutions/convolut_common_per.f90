@@ -1,7 +1,16 @@
-
+!!****f* BigDFT/analyse_per
+!! FUNCTION
+!!   Analysis wavelet transformation in periodic BC
+!!   The input array y is NOT overwritten
+!! COPYRIGHT
+!!    Copyright (C) 2007-2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!! SOURCE
+!!
 subroutine analyse_per(n1,n2,n3,ww,y,x)
-  ! Analysis wavelet transformation in periodic BC
-  ! The input array y is NOT overwritten
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -22,6 +31,8 @@ subroutine analyse_per(n1,n2,n3,ww,y,x)
   call  ana_rot_per(n3,nt,ww,x)
 
 end subroutine analyse_per
+!!***
+
 
 subroutine analyse_per_self(n1,n2,n3,y,x)
   ! Analysis wavelet transformation  in periodic BC
@@ -108,7 +119,7 @@ subroutine convolut_magic_n_per(n1,n2,n3,x,y,ww)
   !local variables
   character(len=*), parameter :: subname='convolut_magic_n_per'
   integer, parameter :: lowfil=-8,lupfil=7 !for GPU computation
-  integer :: ndat,i_stat,i_all
+  integer :: ndat
   real(wp), dimension(0:n1,0:n2,0:n3):: ww ! work array
   
   !  (i1,i2*i3) -> (i2*i3,I1)
@@ -135,7 +146,7 @@ subroutine convolut_magic_n_per_self(n1,n2,n3,x,y)
   !local variables
   character(len=*), parameter :: subname='convolut_magic_n_per'
   integer, parameter :: lowfil=-8,lupfil=7 !for GPU computation
-  integer :: ndat,i_stat,i_all
+  integer :: ndat
 
   !  (i1,i2*i3) -> (i2*i3,I1)
   ndat=(n2+1)*(n3+1)
@@ -162,7 +173,7 @@ subroutine convolut_magic_t_per_self(n1,n2,n3,x,y)
   !local variables
   character(len=*), parameter :: subname='convolut_magic_t_per'
   integer, parameter :: lowfil=-7,lupfil=8
-  integer :: ndat,i_stat,i_all
+  integer :: ndat
   
   !  (I1,I2*I3) -> (I2*I3,i1)
   ndat=(n2+1)*(n3+1)

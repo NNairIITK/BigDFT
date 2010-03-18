@@ -383,7 +383,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
   else if (lr%geocode == 'S') then
 
      if (ncplx == 1) then
-        call prepare_sdc_slab(lr%d%n1,lr%d%n2,lr%d%n3,w%modul1,w%modul3,&
+        call prepare_sdc_slab(lr%d%n1,lr%d%n3,w%modul1,w%modul3,&
           w%af,w%bf,w%cf,w%ef,hx,hy,hz)
      end if
     

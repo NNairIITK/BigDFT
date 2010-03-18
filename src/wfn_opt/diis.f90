@@ -1,3 +1,13 @@
+!!****f* BigDFT/psimix
+!! FUNCTION
+!! COPYRIGHT
+!!    Copyright (C) 2007-2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!! SOURCE
+!!
 subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alpha,&
      hpsit,psidst,hpsidst,psit)
   use module_base
@@ -59,6 +69,8 @@ subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alp
   endif
 
 end subroutine psimix
+!!***
+
 
 ! diis subroutine:
 ! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
@@ -79,7 +91,6 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
   character(len=*), parameter :: subname='diisstp'
   integer :: i,j,ist,jst,mi,iorb,info,jj,mj,k,i_all,i_stat,ierr
   integer :: ikptp,ikpt,ispsi,ispsidst,nvctrp
-  real(kind=8) :: tt
   integer, dimension(:), allocatable :: ipiv
   real(dp), dimension(:,:), allocatable :: rds
 

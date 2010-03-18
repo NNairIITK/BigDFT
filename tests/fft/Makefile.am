@@ -6,11 +6,11 @@ EXTRA_DIST = fft_check.out.ref fft_cache.gnuplot
 
 check_PROGRAMS = fft_check fft_cache
 
-fft_check_SOURCES = fft_check.f90 fft3d.f90 $(mpi_source)
+fft_check_SOURCES = fft_check.f90 $(top_srcdir)/src/lib/fft/fft3d.f90 $(mpi_source)
 fft_check_LDFLAGS =
 fft_check_LDADD =
 
-fft_cache_SOURCES = fft_cache.f90 fft3d.f90 $(mpi_source)
+fft_cache_SOURCES = fft_cache.f90 $(top_srcdir)/src/lib/fft/fft3d.f90 $(mpi_source)
 fft_cache_LDFLAGS =
 fft_cache_LDADD =
 
@@ -24,7 +24,7 @@ fft_check.o: fft3d.o
 check:
 	$(run_parallel) ./fft_check > fft_check.out
 	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.e-8 \
-		fft_check.out $(top_srcdir)/src/lib/fft/fft_check.out.ref | tee fldiff.report
+		fft_check.out $(top_srcdir)/tests/fft/fft_check.out.ref | tee fldiff.report
 	@rm -f fft.cache 
 	$(run_parallel) ./fft_cache 0
 	$(run_parallel) ./fft_cache 6
@@ -33,5 +33,5 @@ check:
 	$(run_parallel) ./fft_cache 50
 	$(run_parallel) ./fft_cache 75
 	$(run_parallel) ./fft_cache 100
-	python $(top_srcdir)/src/lib/fft/fft_cache.py
+	python $(top_srcdir)/tests/fft/fft_cache.py
 	
