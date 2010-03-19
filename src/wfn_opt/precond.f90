@@ -986,13 +986,13 @@ END SUBROUTINE precond_proper
 !!
 !! SOURCE
 !!
-subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
   use module_base
   implicit none
   !implicit real(kind=8) (a-h,o-z)
-  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f,ncong
   real(gp), intent(in) :: hgrid
   real(dp), intent(in) :: cprecr
