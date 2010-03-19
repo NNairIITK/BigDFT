@@ -363,7 +363,7 @@ print *,'nat',nat
        end do
     end do
 
-  end subroutine box_features
+  END SUBROUTINE box_features
 
 
 end program find_angles
@@ -448,7 +448,7 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
      end do
   end if
 
-end subroutine read_pos
+END SUBROUTINE read_pos
 
 function theta(A,O,B)
  implicit none

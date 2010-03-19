@@ -6,8 +6,14 @@
 !!    In the absence of norbe parameters, it simply diagonalize the hamiltonian in the given
 !!    orbital basis set.
 !!    Works for wavefunctions given in a Gaussian basis set provided bt the structure G
+!!
 !! COPYRIGHT
-!!    Copyright (C) 2009-2010 ESRF Grenoble
+!!    Copyright (C) 2010 BigDFT group (LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
 !! AUTHOR
 !!    Luigi Genovese
 !! CREATION DATE
@@ -204,7 +210,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
 !!!     nullify(psit)
 !!!  end if
 
-end subroutine Gaussian_DiagHam
+END SUBROUTINE Gaussian_DiagHam
 !!***
 
 
@@ -589,7 +595,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      nullify(psit)
   end if
 
-end subroutine DiagHam
+END SUBROUTINE DiagHam
 !!***
 
 subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
@@ -656,8 +662,12 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
      end do
   end do
 
-end subroutine overlap_matrices
+END SUBROUTINE overlap_matrices
 
+
+!!****f* BigDFT/solve_eigensystem
+!! SOURCE
+!!
 subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
      natsc,nspin,nspinor,etol,&
      norbsc_arr,hamovr,eval)
@@ -699,7 +709,6 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
      allocate(work_rp(3*norbi_max+1+ndebug),stat=i_stat)
      call memocc(i_stat,work_rp,'work_rp',subname)
   end if
-
 
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'Linear Algebra...'
 
@@ -882,7 +891,9 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
   deallocate(evale,stat=i_stat)
   call memocc(i_stat,i_all,'evale',subname)
 
-end subroutine solve_eigensystem
+END SUBROUTINE solve_eigensystem
+!!***
+
 
 subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
      ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,nvirte,psivirt)
@@ -928,8 +939,6 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
 !!$     !copy the values of the original array
 !!$     call dcopy(ncoeff,psivirt,1,psigau(
 !!$  end if
-  
-
 
   !perform the vector-matrix multiplication for building the input wavefunctions
   ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
@@ -995,28 +1004,25 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
      imatrst=ndim_hamovr+1
   end do
 
-end subroutine build_eigenvectors
+END SUBROUTINE build_eigenvectors
 
-!  call psitospi(iproc,nproc,norbe,norbep,norbsc,nat,&
-!       wfd%nvctr_c,wfd%nvctr_f,at%iatype,at%ntypes,&
-!       at%iasctype,at%natsc,at%natpol,nspin,spinsgne,otoa,psi)
-! Reads magnetic moments from file ('moments') and transforms the
-! atomic orbitals to spinors 
-! warning: Does currently not work for mx<0
-!
-subroutine psitospi(iproc,nproc,norbe,norbep,norbsc,&
-     & nvctr_c,nvctr_f,nat,iatype,ntypes, &
-     iasctype,natsc,natpol,nspin,spinsgne,otoa,psi)
+
+!!****f* BigDFT/psitospi
+!! FUNCTION
+!! Reads magnetic moments from file ('moments') and transforms the
+!! atomic orbitals to spinors 
+!! warning: Does currently not work for mx<0
+!!
+!! SOURCE
+!!
+subroutine psitospi(iproc,nproc,norbe,norbep,norbsc, &
+     & nvctr_c,nvctr_f,nat,nspin,spinsgne,otoa,psi)
   use module_base
   implicit none
   !Arguments
-  integer, intent(in) :: norbe,norbep,iproc,nproc,nat
+  integer, intent(in) :: norbe,norbep,norbsc,iproc,nproc,nat,nspin
   integer, intent(in) :: nvctr_c,nvctr_f
-  integer, intent(in) :: ntypes
-  integer, intent(in) :: norbsc,natsc,nspin
-  integer, dimension(nat), intent(in) :: iasctype
   integer, dimension(norbep), intent(in) :: otoa
-  integer, dimension(nat), intent(in) :: iatype,natpol
   integer, dimension(norbe*nspin), intent(in) :: spinsgne
   real(kind=8), dimension(nvctr_c+7*nvctr_f,4*norbep), intent(out) :: psi
   !local variables
@@ -1034,7 +1040,6 @@ subroutine psitospi(iproc,nproc,norbe,norbep,norbsc,&
   !used in case of spin-polarisation, ignored otherwise
   iorbsc(2)=norbe
   iorbv(2)=norbsc+norbe
-
 
   if (iproc ==0) then
      write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
@@ -1090,4 +1095,4 @@ subroutine psitospi(iproc,nproc,norbe,norbep,norbsc,&
   end if
 
 END SUBROUTINE psitospi
-
+!!***

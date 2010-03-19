@@ -86,7 +86,7 @@ contains
        enddo
     enddo
 
-  end subroutine forward_fft
+  END SUBROUTINE forward_fft
 
   subroutine backward_fft
     implicit none
@@ -131,7 +131,7 @@ contains
        enddo
     enddo
 
-  end subroutine backward_fft
+  END SUBROUTINE backward_fft
 
-end subroutine hit_with_kernel_slab
+END SUBROUTINE hit_with_kernel_slab
 !!***

@@ -231,7 +231,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   call deallocate_abscalc_input(in, subname)
 
 
-end subroutine xabs_lanczos
+END SUBROUTINE xabs_lanczos
 !!***
 
 
@@ -532,5 +532,5 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 !!$     call memocc(i_stat,i_all,'Gabsorber%rxyz',subname)
 !!$  endif
 
-end subroutine xabs_chebychev
+END SUBROUTINE xabs_chebychev
 !!***

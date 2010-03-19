@@ -93,7 +93,7 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
   i_all=-product(shape(tpsit))*kind(tpsit)
   deallocate(tpsit,stat=i_stat)
   call memocc(i_stat,i_all,'tpsit',subname)
-end subroutine psitransspi
+END SUBROUTINE psitransspi
 !!***
 
 
@@ -144,7 +144,7 @@ subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
 
   call timing(iproc,'Un-TransSwitch','OF')
 
-end subroutine transpose_v
+END SUBROUTINE transpose_v
 
 subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
      work,outadd) !optional
@@ -191,7 +191,7 @@ subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
   end if
 
   call timing(iproc,'Un-TransSwitch','OF')
-end subroutine untranspose_v
+END SUBROUTINE untranspose_v
 
 
 subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
@@ -278,7 +278,7 @@ subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
      !and starting point for psi
      ispsi=ispsi+orbs%nspinor*nvctr*norbp_kpt
   end do
-end subroutine switch_waves_v
+END SUBROUTINE switch_waves_v
 
 subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
   use module_base
@@ -366,4 +366,4 @@ subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
      ispsi=ispsi+orbs%nspinor*nvctr*norbp_kpt
   end do
   
-end subroutine unswitch_waves_v
+END SUBROUTINE unswitch_waves_v

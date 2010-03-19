@@ -262,5 +262,5 @@ subroutine lanczos(maxvec,new_projection)
   call MPI_Bcast(eigenvalue,1,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
   call MPI_Bcast(projection,nat,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
 
-end subroutine lanczos
+END SUBROUTINE lanczos
 !!***

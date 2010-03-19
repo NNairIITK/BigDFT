@@ -100,7 +100,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   deallocate(logrid_big,stat=i_stat)
   call memocc(i_stat,i_all,'logrid_big',subname)
 
-end subroutine make_all_ib
+END SUBROUTINE make_all_ib
 !!***
 
 
@@ -130,7 +130,7 @@ subroutine make_ib_inv(logrid_big,ibxy,ibzzx,ibyyzz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
   nt=(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31)
   call ib_from_logrid_inv( ibyyzz,logrid_big,nfl1,nfu1,nt)
 
-end subroutine make_ib_inv
+END SUBROUTINE make_ib_inv
 !!***
 
 
@@ -149,7 +149,7 @@ subroutine ib_to_logrid_inv(ib,logrid,nfl,nfu,ndat)
      enddo
   enddo
 
-end subroutine ib_to_logrid_inv
+END SUBROUTINE ib_to_logrid_inv
 
 subroutine ib_from_logrid_inv(ib,logrid,ml1,mu1,ndat)
   ! mimics the bounds subroutine    
@@ -178,7 +178,7 @@ subroutine ib_from_logrid_inv(ib,logrid,ml1,mu1,ndat)
      enddo inner2
   enddo
 
-end subroutine ib_from_logrid_inv
+END SUBROUTINE ib_from_logrid_inv
 
 
 subroutine make_ib_c(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,n3)
@@ -207,7 +207,7 @@ subroutine make_ib_c(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,n3)
   call ib_from_logrid(ibxxyy,logrid_big,0,n3,nt)
   call squares(ibxxyy,2*n1+30,2*n2+30)
 
-end subroutine make_ib_c
+END SUBROUTINE make_ib_c
 
 
 subroutine make_ib(logrid_big,ibyz,ibzxx,ibxxyy,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
@@ -232,7 +232,7 @@ subroutine make_ib(logrid_big,ibyz,ibzxx,ibxxyy,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
   nt=(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31)
   call ib_from_logrid(ibxxyy,logrid_big,nfl3,nfu3,nt)
 
-end subroutine make_ib
+END SUBROUTINE make_ib
 
 subroutine ib_to_logrid_rot(ib,logrid,nfl,nfu,ndat)
   ! This one mimics the comb_rot_grow_f_loc
@@ -249,7 +249,7 @@ subroutine ib_to_logrid_rot(ib,logrid,nfl,nfu,ndat)
      enddo
   enddo
 
-end subroutine ib_to_logrid_rot
+END SUBROUTINE ib_to_logrid_rot
 
 subroutine ib_from_logrid(ib,logrid,ml1,mu1,ndat)
   ! mimics the bounds subroutine    
@@ -278,7 +278,7 @@ subroutine ib_from_logrid(ib,logrid,ml1,mu1,ndat)
      enddo inner2
   enddo
 
-end subroutine ib_from_logrid
+END SUBROUTINE ib_from_logrid
 
 
 !!****f* BigDFT/squares_1d
@@ -311,7 +311,7 @@ subroutine squares_1d(ib,nfl2,nfu2,nfl3,nfu3)
         ib(2,ii2+1,i3)=ibmax
      enddo
   enddo
-end subroutine squares_1d
+END SUBROUTINE squares_1d
 !!***
 
 
@@ -350,7 +350,7 @@ subroutine squares(ib,n2,n3)
         ib(2,ii2+1,ii3+1)=ibmax
      enddo
   enddo
-end subroutine squares
+END SUBROUTINE squares
 !!***
 
 
@@ -416,4 +416,4 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
   end if
 
 
-end subroutine wfd_to_logrids
+END SUBROUTINE wfd_to_logrids

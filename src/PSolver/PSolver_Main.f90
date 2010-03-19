@@ -310,7 +310,7 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   !if(nspin==1 .and. ixc /= 0) eh=eh*2.0_gp
   if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
 
-end subroutine H_potential
+END SUBROUTINE H_potential
 !!***
 
 
@@ -794,7 +794,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   if(nspin==1 .and. ixc /= 0) eh=eh*2.0_gp
   if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
 
-end subroutine PSolver
+END SUBROUTINE PSolver
 !!***
 
 
@@ -984,7 +984,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
           rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
   end if
 
-end subroutine PSolverNC
+END SUBROUTINE PSolverNC
 !!***
 
 
@@ -1106,7 +1106,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
 !!  print *,'P4,iproc',iproc,'nxc,ncxl,ncxr,nwbl,nwbr',nxc,nxcl,nxcr,nwbl,nwbr,&
 !!       'ixc,n3d,n3p,i3xcsh,i3s',ixc,n3d,n3p,i3xcsh,i3s
 
-end subroutine PS_dim4allocation
+END SUBROUTINE PS_dim4allocation
 !!***
 
 
@@ -1213,7 +1213,7 @@ subroutine xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,
      i3xcsh=0
      i3s=m2
   end if
-end subroutine xc_dimensions
+END SUBROUTINE xc_dimensions
 !!***
 
 
@@ -1309,7 +1309,7 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
     goto 250
  endif
 
-end subroutine P_FFT_dimensions
+END SUBROUTINE P_FFT_dimensions
 !!***
 
 
@@ -1412,7 +1412,7 @@ subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
     goto 250
  endif
 
-end subroutine S_FFT_dimensions
+END SUBROUTINE S_FFT_dimensions
 !!***
 
 
@@ -1508,5 +1508,5 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
     goto 250
  endif
 
-end subroutine F_FFT_dimensions
+END SUBROUTINE F_FFT_dimensions
 !!***

@@ -30,7 +30,7 @@ subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
      scpr=scpr+scalp
   end if
   
-end subroutine wnrm_wrap
+END SUBROUTINE wnrm_wrap
 !!***
 
 
@@ -100,7 +100,7 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
 !$omp end parallel
 
 
-end subroutine wnrm
+END SUBROUTINE wnrm
 
 
 !wrapper for simplifying the call
@@ -117,7 +117,7 @@ subroutine wscal_wrap(mvctr_c,mvctr_f,scal,psi)
  
   call wscal(mvctr_c,mvctr_f,scal,psi,psi(mvctr_c+i_f))
   
-end subroutine wscal_wrap
+END SUBROUTINE wscal_wrap
 
 ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scalar (scal)
 subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
@@ -148,7 +148,7 @@ subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
 !$omp enddo
 !$omp end parallel
 
-end subroutine wscal
+END SUBROUTINE wscal
 
 !wrapper for simplifying the call
 subroutine wscalv_wrap(mvctr_c,mvctr_f,scal,psi)
@@ -164,7 +164,7 @@ subroutine wscalv_wrap(mvctr_c,mvctr_f,scal,psi)
  
   call wscalv(mvctr_c,mvctr_f,scal,psi,psi(mvctr_c+i_f))
   
-end subroutine wscalv_wrap
+END SUBROUTINE wscalv_wrap
 
 
 ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
@@ -195,7 +195,7 @@ subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   enddo
 !$omp enddo
 !$omp end parallel
-end subroutine wscalv
+END SUBROUTINE wscalv
 
 ! initializes a wavefunction to zero
 subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
@@ -227,7 +227,7 @@ subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
   enddo
 !$omp enddo
 !$omp end parallel
-end subroutine wzero
+END SUBROUTINE wzero
 
 
 !wrapper of wpdot to avoid boundary problems in absence of wavelets
@@ -281,7 +281,7 @@ subroutine wpdot_wrap(ncplx,mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi, 
      stop
   end if
 
-end subroutine wpdot_wrap
+END SUBROUTINE wpdot_wrap
 
 !this function must be generalized for the linear scaling code
 ! calculates the dot product between a wavefunctions apsi and a projector bpsi (both in compressed form)
@@ -463,7 +463,7 @@ subroutine wpdot(  &
   !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'wpdot:',tel
   !  close(97)
 
-end subroutine wpdot
+END SUBROUTINE wpdot
 
 !wrapper of waxpy for complex Ax+y and for no fine grid cases
 !WARNING: in complex cases, it acts with y = Conj(A) *x +y, with the complex conjugate
@@ -545,7 +545,7 @@ subroutine waxpy_wrap(ncplx,scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,b
 
 
 
-end subroutine waxpy_wrap
+END SUBROUTINE waxpy_wrap
 
 
 ! rank 1 update of wavefunction a with wavefunction b: apsi=apsi+scpr*bpsi
@@ -683,7 +683,7 @@ subroutine waxpy(  &
   !  close(97)
 
 
-end subroutine waxpy
+END SUBROUTINE waxpy
 
 
 

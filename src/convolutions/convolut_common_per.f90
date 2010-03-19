@@ -30,7 +30,7 @@ subroutine analyse_per(n1,n2,n3,ww,y,x)
   nt=(2*n1+2)*(2*n2+2)
   call  ana_rot_per(n3,nt,ww,x)
 
-end subroutine analyse_per
+END SUBROUTINE analyse_per
 !!***
 
 
@@ -55,7 +55,7 @@ subroutine analyse_per_self(n1,n2,n3,y,x)
   nt=(2*n1+2)*(2*n2+2)
   call  ana_rot_per(n3,nt,y,x)
 
-end subroutine analyse_per_self
+END SUBROUTINE analyse_per_self
 
 
 subroutine synthese_per(n1,n2,n3,ww,x,y)
@@ -80,7 +80,7 @@ subroutine synthese_per(n1,n2,n3,ww,x,y)
   nt=(2*n1+2)*(2*n2+2)
   call  syn_rot_per(n3,nt,ww,y)
 
-end subroutine synthese_per
+END SUBROUTINE synthese_per
 
 
 subroutine synthese_per_self(n1,n2,n3,x,y)
@@ -104,7 +104,7 @@ subroutine synthese_per_self(n1,n2,n3,x,y)
   nt=(2*n1+2)*(2*n2+2)
   call  syn_rot_per(n3,nt,x,y)
 
-end subroutine synthese_per_self
+END SUBROUTINE synthese_per_self
 
 
 ! Applies the magic filter matrix in periodic BC ( no transposition)
@@ -131,7 +131,7 @@ subroutine convolut_magic_n_per(n1,n2,n3,x,y,ww)
      !  (i3,I1*I2) -> (iI*I2,I3)
      ndat=(n1+1)*(n2+1)
      call convrot_n_per(n3,ndat,ww,y)
-end subroutine convolut_magic_n_per
+END SUBROUTINE convolut_magic_n_per
 
 
 ! Applies the magic filter matrix in periodic BC ( no transposition)
@@ -158,7 +158,7 @@ subroutine convolut_magic_n_per_self(n1,n2,n3,x,y)
   ndat=(n1+1)*(n2+1)
   call convrot_n_per(n3,ndat,x,y)
 
-end subroutine convolut_magic_n_per_self
+END SUBROUTINE convolut_magic_n_per_self
 
 
 ! Applies the magic filter matrix transposed in periodic BC 
@@ -185,7 +185,7 @@ subroutine convolut_magic_t_per_self(n1,n2,n3,x,y)
   ndat=(n1+1)*(n2+1)
   call convrot_t_per(n3,ndat,x,y)
 
-end subroutine convolut_magic_t_per_self
+END SUBROUTINE convolut_magic_t_per_self
 
 
 
@@ -223,5 +223,5 @@ subroutine convolut_magic_t_per(n1,n2,n3,x,y)
   deallocate(ww,stat=i_stat)
   call memocc(i_stat,i_all,'ww',subname)
 
-end subroutine convolut_magic_t_per
+END SUBROUTINE convolut_magic_t_per
 

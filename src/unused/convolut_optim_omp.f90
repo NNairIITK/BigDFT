@@ -312,7 +312,7 @@ subroutine convolut_kinetic(n1,n2,n3,hgrid,x,y)
   return
 
 
-end subroutine convolut_kinetic
+END SUBROUTINE convolut_kinetic
 
 
 subroutine convrot_grow(n1,ndat,x,y)
@@ -431,7 +431,7 @@ subroutine convrot_grow(n1,ndat,x,y)
   enddo
 !$omp end parallel do
   return
-end subroutine convrot_grow
+END SUBROUTINE convrot_grow
 
 
 subroutine convrot_shrink(n1,ndat,x,y)
@@ -493,7 +493,7 @@ subroutine convrot_shrink(n1,ndat,x,y)
 !$omp end parallel do
   
   return
-end subroutine convrot_shrink
+END SUBROUTINE convrot_shrink
 
 
 subroutine syn_rot_grow(n,nt,x,y)
@@ -659,7 +659,7 @@ subroutine syn_rot_grow(n,nt,x,y)
            
   return
   
-end subroutine syn_rot_grow
+END SUBROUTINE syn_rot_grow
 
 
 
@@ -769,5 +769,5 @@ subroutine ana_rot_shrink(n,nt,x,y)
 !$omp end parallel do
 
   return
-end subroutine ana_rot_shrink
+END SUBROUTINE ana_rot_shrink
 

@@ -72,7 +72,7 @@ subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3, &
   !$omp enddo
   !$omp end parallel
 
-end subroutine compress
+END SUBROUTINE compress
 !!***
 
 
@@ -142,7 +142,7 @@ subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp enddo
 
   !$omp end parallel
-end subroutine uncompress
+END SUBROUTINE uncompress
 
 
 subroutine fill_random(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
@@ -200,7 +200,7 @@ subroutine fill_random(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      enddo
   enddo
 
-end subroutine fill_random
+END SUBROUTINE fill_random
 
 ! Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
 subroutine uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
@@ -263,7 +263,7 @@ subroutine uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
      enddo
   enddo
 
-end subroutine uncompress_forstandard_short
+END SUBROUTINE uncompress_forstandard_short
 
 ! Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
 subroutine uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
@@ -339,7 +339,7 @@ subroutine uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
  !$omp enddo
  !$omp end parallel
 
-end subroutine uncompress_forstandard
+END SUBROUTINE uncompress_forstandard
 
 
 subroutine uncompress_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
@@ -379,7 +379,7 @@ subroutine uncompress_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
   enddo
 
 
-end subroutine uncompress_f
+END SUBROUTINE uncompress_f
 
 subroutine compress_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
@@ -417,7 +417,7 @@ subroutine compress_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      enddo
   enddo
 
-end subroutine compress_f
+END SUBROUTINE compress_f
 
 
 ! Compresses a psig wavefunction into psi_c,psi_f form
@@ -484,7 +484,7 @@ subroutine compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
   !$omp enddo
   !$omp end parallel
 
-end subroutine compress_forstandard
+END SUBROUTINE compress_forstandard
 
 ! Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
 ! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
@@ -554,7 +554,7 @@ subroutine compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp enddo
 
   !$omp end parallel
-end subroutine compress_per
+END SUBROUTINE compress_per
 
 ! Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
 ! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
@@ -625,7 +625,7 @@ subroutine compress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp enddo
 
   !$omp end parallel
-end subroutine compress_per_scal
+END SUBROUTINE compress_per_scal
 
 subroutine uncompress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
@@ -701,7 +701,7 @@ subroutine uncompress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   ! calculate fine scaling functions
   call synthese_per_self(n1,n2,n3,psig,psifscf)
 
-end subroutine uncompress_per_scal
+END SUBROUTINE uncompress_per_scal
 
 subroutine uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
@@ -776,7 +776,7 @@ subroutine uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   ! calculate fine scaling functions
   call synthese_per_self(n1,n2,n3,psig,psifscf)
 
-end subroutine uncompress_per
+END SUBROUTINE uncompress_per
 
 subroutine uncompress_sd_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
@@ -848,7 +848,7 @@ subroutine uncompress_sd_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
 
   !$omp end parallel
 
-end subroutine uncompress_sd_scal
+END SUBROUTINE uncompress_sd_scal
 
 subroutine compress_sd_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
@@ -913,7 +913,7 @@ subroutine compress_sd_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp enddo
   !$omp end parallel
 
-end subroutine compress_sd_scal
+END SUBROUTINE compress_sd_scal
 
 
 subroutine uncompress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -985,7 +985,7 @@ subroutine uncompress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
 
   !$omp end parallel
 
-end subroutine uncompress_sd
+END SUBROUTINE uncompress_sd
 
 subroutine compress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
@@ -1049,7 +1049,7 @@ subroutine compress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp enddo
   !$omp end parallel
 
-end subroutine compress_sd
+END SUBROUTINE compress_sd
 
 
 
@@ -1091,7 +1091,7 @@ subroutine uncompress_c(hpsi,x_c,keyg_c,keyv_c,nseg_c,nvctr_c,n1,n2,n3)
   !$omp enddo
   !$omp end parallel
   
-end subroutine uncompress_c
+END SUBROUTINE uncompress_c
 
 subroutine compress_c(hpsi,y_c,keyg_c,keyv_c,nseg_c,nvctr_c,n1,n2,n3)
   use module_base
@@ -1125,7 +1125,7 @@ subroutine compress_c(hpsi,y_c,keyg_c,keyv_c,nseg_c,nvctr_c,n1,n2,n3)
   !$omp enddo
 
   !$omp end parallel
-end subroutine compress_c
+END SUBROUTINE compress_c
 
 
 ! Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
@@ -1189,7 +1189,7 @@ subroutine compress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
      enddo
   enddo
 
-end subroutine compress_slab
+END SUBROUTINE compress_slab
 
 
 subroutine uncompress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -1255,7 +1255,7 @@ subroutine uncompress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   
   call synthese_slab_self(n1,n2,n3,psig,psifscf)
 
-end subroutine uncompress_slab
+END SUBROUTINE uncompress_slab
 
 
 
@@ -1319,7 +1319,7 @@ subroutine compress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
      enddo
   enddo
 
-end subroutine compress_per_f
+END SUBROUTINE compress_per_f
 
 
 subroutine uncompress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -1396,7 +1396,7 @@ subroutine uncompress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
      enddo
   enddo
 
-end subroutine uncompress_per_f
+END SUBROUTINE uncompress_per_f
 
 
 subroutine uncompress_per_f_short(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -1463,6 +1463,6 @@ subroutine uncompress_per_f_short(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
      enddo
   enddo
 
-end subroutine uncompress_per_f_short
+END SUBROUTINE uncompress_per_f_short
 
 

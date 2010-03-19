@@ -63,7 +63,7 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   deallocate(workpsi,stat=i_stat)
   call memocc(i_stat,i_all,'workpsi',subname)
 
-end subroutine check_gaussian_expansion
+END SUBROUTINE check_gaussian_expansion
 !!***
 
 subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,rxyz,&
@@ -421,7 +421,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
      write(*,'(1x,a)')'done.'
   end if
 
-end subroutine parse_cp2k_files
+END SUBROUTINE parse_cp2k_files
 
 subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wfn_gau,psi)
   use module_base
@@ -566,7 +566,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   deallocate(tpsi,stat=i_stat)
   call memocc(i_stat,i_all,'tpsi',subname)
 
-end subroutine gaussians_to_wavelets
+END SUBROUTINE gaussians_to_wavelets
 
 subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
   use module_base
@@ -631,7 +631,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
   if (iproc ==0) write(*,'(1x,a,1pe12.2)')&
        'Deviation from normalization of the imported orbitals',normdev
 
-end subroutine gaussians_to_wavelets_new
+END SUBROUTINE gaussians_to_wavelets_new
 
 
 subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
@@ -762,7 +762,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   call memocc(i_stat,i_all,'wz',subname)
 
 
-end subroutine gaussians_to_wavelets_orb
+END SUBROUTINE gaussians_to_wavelets_orb
 
 !accumulate 3d wavefunction in complex form from a tensor produc decomposition
 !universal routine which should be used for all gautowav operations
@@ -950,7 +950,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
 
   !!$omp end parallel
 
-end subroutine wfn_from_tensprod
+END SUBROUTINE wfn_from_tensprod
 
 subroutine segments_to_grid(keyv,keyg,grid,i0,i1,i2,i3,jj)
   use module_base
@@ -972,7 +972,7 @@ subroutine segments_to_grid(keyv,keyg,grid,i0,i1,i2,i3,jj)
   i2=ii/(grid%n1+1)
   i0=ii-i2*(grid%n1+1)
   i1=i0+j1-j0
-end subroutine segments_to_grid
+END SUBROUTINE segments_to_grid
 
 
 
@@ -1178,7 +1178,8 @@ end subroutine segments_to_grid
 !!!       'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
 !!!
 !!!
-!!!end subroutine sumrho_gaussians
+!!!END SUBROUTINE sumrho_gaussians
+
 
 subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
@@ -1378,7 +1379,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
 !!!subroutine basis_ovrlp(nat,norb,nbx,ngx,lmax,ntypes,nam,ndoc,contcoeff,expo,cimu)
 !!!  
 !!!  
-!!!end subroutine basis_ovrlp
+!!!END SUBROUTINE basis_ovrlp
 
 
   mmax=2*lmax+1
@@ -1607,7 +1608,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   deallocate(psiatn,stat=i_stat)
   call memocc(i_stat,i_all,'psiatn',subname)
 
-end subroutine gautowav
+END SUBROUTINE gautowav
 
 !calculate the shift between the spherical harmonics of CP2K and the one of BigDFT
 function myshift(symbol)

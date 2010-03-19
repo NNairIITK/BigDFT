@@ -53,7 +53,7 @@ subroutine  comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
   !    tel=dble(ncount1-ncount0)/dble(ncount_rate)
   !
   !    write(20,*) tel, 1.d-6*nflop/tel
-end subroutine comb_rot_grow_loc_3
+END SUBROUTINE comb_rot_grow_loc_3
 
 subroutine comb_rot_grow_loc_square_1(n1,n2,n3,x,y,ib,ib2,loczero)
   ! In one dimesnion,
@@ -126,7 +126,7 @@ subroutine comb_rot_grow_loc_square_1(n1,n2,n3,x,y,ib,ib2,loczero)
   !    tel=dble(ncount2-ncount0)/dble(ncount_rate)
   !
   !    write(10,'(3f10.3,f10.0)') t0,t1,tel, 1.d-6*nflop/tel
-end subroutine comb_rot_grow_loc_square_1
+END SUBROUTINE comb_rot_grow_loc_square_1
 
 subroutine make_loczero(n1,n2,n3,ib2,y)
 !   initialize the y array with zeroes
@@ -147,4 +147,4 @@ subroutine make_loczero(n1,n2,n3,ib2,y)
                 enddo
             enddo
         enddo
-end subroutine make_loczero
+END SUBROUTINE make_loczero

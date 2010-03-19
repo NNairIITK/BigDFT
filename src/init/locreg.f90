@@ -29,7 +29,7 @@ subroutine create_Glr(geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
   if (geocode == 'F') then
      Glr%bounds=bounds
   end if
-end subroutine create_Glr
+END SUBROUTINE create_Glr
 
 !determine a set of localisation regions from the centers and the radii.
 !cut in cubes the global reference system
@@ -251,7 +251,7 @@ subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
   !after all localisation regions are determined draw them
   !call draw_locregs(nlr,hx,hy,hz,Llr)
 
-end subroutine determine_locreg
+END SUBROUTINE determine_locreg
 
 subroutine draw_locregs(nlr,hx,hy,hz,Llr)
   use module_base
@@ -321,7 +321,7 @@ subroutine draw_locregs(nlr,hx,hy,hz,Llr)
 
   !close file for writing
   close(unit=22)  
-end subroutine draw_locregs
+END SUBROUTINE draw_locregs
 
 subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   !calculates the bounds arrays needed for convolutions
@@ -403,7 +403,7 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
        bounds%kb%ibyz_f,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,&
        bounds%ibyyzz_r)
 
-end subroutine locreg_bounds
+END SUBROUTINE locreg_bounds
 
 
 
@@ -461,7 +461,7 @@ subroutine rhoswitch_waves(nlr,norbp,nvctr_c,nvctr_f,nseg_tot,nvctr_tot,nseglr,k
      jsh=jsh+ncount(ilr)
      jsegsh=jsegsh+j
   end do
-end subroutine rhoswitch_waves
+END SUBROUTINE rhoswitch_waves
 
 
 !!****f* BigDFT/loc_wfd
@@ -565,7 +565,7 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocre
 !!!     stop
 !!!  end if
 
-end subroutine loc_wfd
+END SUBROUTINE loc_wfd
 !!***
 
 
@@ -626,7 +626,7 @@ subroutine build_keymask(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,keyg,ke
      stop
   end if
 
-end subroutine build_keymask
+END SUBROUTINE build_keymask
 
 subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
      nseg_loc,nvctr_loc,keyg_loc,keyv_loc)!,keymask)
@@ -703,7 +703,7 @@ subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,ke
      stop
   end if
 
-end subroutine segkeys_loc
+END SUBROUTINE segkeys_loc
 
 
 subroutine num_segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
@@ -769,7 +769,7 @@ subroutine num_segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,key
      stop
   end if
     
-end subroutine num_segkeys_loc
+END SUBROUTINE num_segkeys_loc
 
 !conversion of the global bounds into a given localisation region
 subroutine make_bounds_loc(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
@@ -804,7 +804,7 @@ subroutine make_bounds_loc(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        0,2*i1sc,2*i1ec+30,-14+2*i2sc,2*i2ec+16,-14+2*i3sc,2*i3ec+16,&
        bounds%ibyyzz_r,bounds_loc%ibyyzz_r)
 
-end subroutine make_bounds_loc
+END SUBROUTINE make_bounds_loc
 
 !convert the kinetic bounds
 subroutine kb_conversion(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,kb,kb_loc)
@@ -856,7 +856,7 @@ subroutine kb_conversion(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,kb,kb_loc)
        0,i3sc,i3ec,i1sc,i1ec,i2sc,i2ec,&
        kb%ibxy_f,kb_loc%ibxy_f)
   
-end subroutine kb_conversion
+END SUBROUTINE kb_conversion
 
 !convert the shrink bounds
 subroutine sb_conversion(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
@@ -916,7 +916,7 @@ subroutine sb_conversion(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        nfl3l,nfl3l,nfu3l,nfl1l,nfu1l,nfl2l,nfu2l,&
        sb%ibyyzz_c,sb_loc%ibyyzz_c)
  
-end subroutine sb_conversion
+END SUBROUTINE sb_conversion
 
 
 !convert the grow bounds
@@ -976,7 +976,7 @@ subroutine gb_conversion(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        nfl3l,nfl3l,nfu3l,2*nfl1l-14,2*nfu1l+16,2*nfl2l-14,2*nfu2l+16,&
        gb%ibxxyy_f,gb_loc%ibxxyy_f)
   
-end subroutine gb_conversion
+END SUBROUTINE gb_conversion
 
 
 !with this subroutine we should convert a bound array from its global version to 
@@ -1021,5 +1021,5 @@ subroutine bound_conversion(nl2,nu2,nl3,nu3,nl1_loc,i1s,i1e,i2s,i2e,i3s,i3e,ib,i
      end do
   end if
 
-end subroutine bound_conversion
+END SUBROUTINE bound_conversion
 

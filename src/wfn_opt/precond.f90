@@ -101,7 +101,7 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
      end do
   enddo
 
-end subroutine preconditionall
+END SUBROUTINE preconditionall
 !!***
 
 
@@ -187,7 +187,7 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
 
   call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
 
-end subroutine precondition_residue
+END SUBROUTINE precondition_residue
 
 subroutine finalise_precond_residue(geocode,hybrid_on,ncplx,wfd,scal,x)
   use module_base
@@ -216,7 +216,7 @@ subroutine finalise_precond_residue(geocode,hybrid_on,ncplx,wfd,scal,x)
      end do
   else
   end if
-end subroutine finalise_precond_residue
+END SUBROUTINE finalise_precond_residue
 
 
 subroutine calculate_rmr_new(geocode,hybrid_on,ncplx,wfd,scal,r,b,rmr_new)
@@ -249,7 +249,7 @@ subroutine calculate_rmr_new(geocode,hybrid_on,ncplx,wfd,scal,r,b,rmr_new)
      rmr_new=dot(ncplx*(wfd%nvctr_c+7*wfd%nvctr_f),r(1,1),1,b(1,1),1)
   end if
 
-end subroutine calculate_rmr_new
+END SUBROUTINE calculate_rmr_new
 
 
 subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
@@ -405,7 +405,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
   end if
   
-end subroutine precondition_preconditioner
+END SUBROUTINE precondition_preconditioner
 
 subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
   use module_base
@@ -529,7 +529,7 @@ subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
 
   end if
 
-end subroutine allocate_work_arrays
+END SUBROUTINE allocate_work_arrays
 
 subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
   use module_base
@@ -641,7 +641,7 @@ subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
 
   end if
 
-end subroutine deallocate_work_arrays
+END SUBROUTINE deallocate_work_arrays
 
 subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
      cprecr,x,y,w,scal)! y:=Ax
@@ -717,7 +717,7 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
 
      end if
    end if
-end subroutine precond_locham
+END SUBROUTINE precond_locham
 
 ! ypsi = (1/2) \Nabla^2 xpsi + cprecr xpsi
 subroutine calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
@@ -765,7 +765,7 @@ subroutine calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
        scal,ypsig_c,ypsig_f,ypsi_c,ypsi_f)
 
-end subroutine calc_grad_reza
+END SUBROUTINE calc_grad_reza
 
 
 subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
@@ -882,7 +882,7 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
   deallocate(hpsip,stat=i_stat)
   call memocc(i_stat,i_all,'hpsip',subname)
 
-end subroutine prec_diag
+END SUBROUTINE prec_diag
 
 subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
   use module_base
@@ -976,17 +976,23 @@ subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
 
   enddo
 
-end subroutine precond_proper
+END SUBROUTINE precond_proper
 
-subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+
+!!****f* BigDFT/precong
+!! FUNCTION
+!!   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!!   hpsi is the right hand side on input and the solution on output
+!!
+!! SOURCE
+!!
+subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
-  ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-  ! hpsi is the right hand side on input and the solution on output
   use module_base
   implicit none
   !implicit real(kind=8) (a-h,o-z)
-  integer, intent(in) :: iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f,ncong
   real(gp), intent(in) :: hgrid
   real(dp), intent(in) :: cprecr
@@ -1225,4 +1231,5 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   deallocate(x_f3,stat=i_stat)
   call memocc(i_stat,i_all,'x_f3',subname)
      
-end subroutine precong
+END SUBROUTINE precong
+!!***

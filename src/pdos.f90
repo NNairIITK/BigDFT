@@ -46,7 +46,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,shift,lr,orbs,orbsv,psi,psivirt)
   allocate(radii_cf_fake(atc%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf_fake,'radii_cf_fake',subname)
 
-  call read_system_variables('input.occup',iproc,nproc,inc,atc,radii_cf_fake,nelec,&
+  call read_system_variables('input.occup',iproc,inc,atc,radii_cf_fake,nelec,&
        norb,norbu,norbd,iunit)
 
   !shift the positions with the same value of the original positions
@@ -120,7 +120,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,shift,lr,orbs,orbsv,psi,psivirt)
   deallocate(Gocc,stat=i_stat)
   call memocc(i_stat,i_all,'Gocc',subname)
   
-end subroutine local_analysis
+END SUBROUTINE local_analysis
 !!***
 
 
@@ -241,7 +241,7 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   deallocate(mchg,stat=i_stat)
   call memocc(i_stat,i_all,'mchg',subname)
   
-end subroutine mulliken_charge_population
+END SUBROUTINE mulliken_charge_population
 !!***
 
 
@@ -314,5 +314,5 @@ subroutine shell_name(l,m,name)
      stop 'l not recognized'
   end select
 
-end subroutine shell_name
+END SUBROUTINE shell_name
 !!***

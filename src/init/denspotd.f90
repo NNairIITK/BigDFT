@@ -55,7 +55,7 @@ subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc
   ngatherarr(:,1)=n1i*n2i*nscatterarr(:,2)
   ngatherarr(:,2)=n1i*n2i*nscatterarr(:,3)
 
-end subroutine createDensPotDescriptors
+END SUBROUTINE createDensPotDescriptors
 !!***
 
 !!****f* BigDFT/orbitals_communicators
@@ -327,7 +327,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
        'Wavefunctions memory occupation for root processor (Bytes): ',&
        orbs%npsidim*8
 
-end subroutine orbitals_communicators
+END SUBROUTINE orbitals_communicators
 !!***
 
 
@@ -385,7 +385,7 @@ subroutine print_distribution_schemes(nproc,nkpts,norb_par,nvctr_par)
      end if
   end do
   
-end subroutine print_distribution_schemes
+END SUBROUTINE print_distribution_schemes
 
 subroutine start_end_distribution(nproc,nkpts,jproc,ndist,is,ie,norbp)
   implicit none
@@ -414,7 +414,7 @@ subroutine start_end_distribution(nproc,nkpts,jproc,ndist,is,ie,norbp)
         exit loop_ie
      end if
   end do loop_ie
-end subroutine start_end_distribution
+END SUBROUTINE start_end_distribution
 
 subroutine start_end_comps(nproc,jproc,ndist,is,ie)
   implicit none
@@ -430,5 +430,5 @@ subroutine start_end_comps(nproc,jproc,ndist,is,ie)
   end do
   ie=is+ndist(jproc)-1
   
-end subroutine start_end_comps
+END SUBROUTINE start_end_comps
 

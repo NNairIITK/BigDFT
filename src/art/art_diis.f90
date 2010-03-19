@@ -78,7 +78,7 @@ subroutine apply_diis(current_energy, ftot)
   deallocate(tildeforce)
 
   return
-end subroutine apply_diis
+END SUBROUTINE apply_diis
 !!***
 
 
@@ -168,5 +168,5 @@ subroutine diis(lter,maxvec, newpos)
   evalf_number = evalf_number + 1
   newpos(:) = tildepos(:) + DIIS_STEP * tildeforce(:)
 
-end subroutine diis
+END SUBROUTINE diis
 !!***

@@ -58,7 +58,7 @@ contains
 !!!    real(8), intent(inout), TARGET :: p(:,:)
 !!!    passed_matrix => p 
 !!!    return
-!!!  end subroutine settapointer
+!!!  END SUBROUTINE settapointer
 
 !!!  subroutine testapointer()
 !!!    integer i,j
@@ -69,7 +69,7 @@ contains
 !!!       print *, (passed_matrix(i,j), j=1, size(passed_matrix,2))
 !!!    enddo
 !!!    return
-!!!  end subroutine testapointer
+!!!  END SUBROUTINE testapointer
 
   
 
@@ -82,7 +82,7 @@ contains
     real(8) shift
     EP_shift=shift
     return
-  end subroutine set_EP_shift
+  END SUBROUTINE set_EP_shift
 
   subroutine EP_inizializza(ha_actual)
     implicit none
@@ -111,7 +111,7 @@ contains
     EP_norb=0
     EP_doorthoocc=.false.
 
-  end subroutine EP_inizializza
+  END SUBROUTINE EP_inizializza
   
 
   subroutine EP_mat_mult( m,k ,  EV   ) ! usare i dumvectors a partire da -1
@@ -135,7 +135,7 @@ contains
 !!!       enddo
 !!!    enddo
 
-  end subroutine EP_mat_mult
+  END SUBROUTINE EP_mat_mult
   
 
   !allocate the wavefunctions in the transposed form, for lancsoz
@@ -176,7 +176,7 @@ contains
        call memocc(i_stat,i_all,'EP_occprojections',subname)
     endif
 
-  end subroutine EP_free
+  END SUBROUTINE EP_free
 
 
   subroutine  EP_allocate_for_eigenprob(nsteps)
@@ -194,7 +194,7 @@ contains
          stat=i_stat)
     call memocc(i_stat,Qvect,'Qvect',subname)
 
-  end subroutine EP_allocate_for_eigenprob
+  END SUBROUTINE EP_allocate_for_eigenprob
 
 
   subroutine EP_make_dummy_vectors(nd)
@@ -210,7 +210,7 @@ contains
     allocate(dumQvect(EP_dim,0:nd+1+ndebug),&
          stat=i_stat)
     call memocc(i_stat,dumQvect,'dumQvect',subname)
-  end subroutine EP_make_dummy_vectors
+  END SUBROUTINE EP_make_dummy_vectors
 
   subroutine EP_store_occupied_orbitals(iproc, nproc, norb, Occ_psit )
     implicit none
@@ -224,7 +224,7 @@ contains
     allocate(EP_occprojections(EP_norb+ndebug) , stat=i_stat )
     call memocc(i_stat,EP_occprojections,'EP_occprojections',subname)
 
-  end subroutine EP_store_occupied_orbitals
+  END SUBROUTINE EP_store_occupied_orbitals
 
 
   subroutine EP_normalizza(j)
@@ -237,7 +237,7 @@ contains
        call EP_normalizza_interno( dumQvect(1:,-j) )
     endif
     return 
-  end subroutine EP_normalizza
+  END SUBROUTINE EP_normalizza
     
 
   subroutine EP_multbyfact(j, fact)
@@ -251,7 +251,7 @@ contains
        call EP_multbyfact_interno( dumQvect(1,-j), fact )
     endif
     return 
-  end subroutine EP_multbyfact
+  END SUBROUTINE EP_multbyfact
     
 
 
@@ -274,7 +274,7 @@ contains
 
     call vscal(EP_dim,sump, Q(1), 1  ) 
 
-  end subroutine EP_normalizza_interno
+  END SUBROUTINE EP_normalizza_interno
 
 
   subroutine EP_multbyfact_interno(Q, fact)
@@ -285,7 +285,7 @@ contains
 
     call vscal(EP_dim,fact, Q, 1  ) 
 
-  end subroutine EP_multbyfact_interno
+  END SUBROUTINE EP_multbyfact_interno
 
 
   subroutine EP_copy(i,j)
@@ -307,7 +307,7 @@ contains
        !dumQvect(:,-i)=dumQvect(:,-j)
     endif
 
-  end subroutine EP_copy
+  END SUBROUTINE EP_copy
   
 
   real(8) function   EP_scalare(i,j)
@@ -383,7 +383,7 @@ contains
        enddo
     endif
 
-  end subroutine EP_copia_per_prova
+  END SUBROUTINE EP_copia_per_prova
 
 
   subroutine EP_memorizza_stato(Gabsorber)
@@ -393,7 +393,7 @@ contains
   
     EP_Gabsorber => Gabsorber
     
-  end subroutine EP_memorizza_stato
+  END SUBROUTINE EP_memorizza_stato
 
 
   subroutine EP_initialize_start_0( Gabsorber)
@@ -421,7 +421,7 @@ contains
        enddo
     endif
 
-   end subroutine EP_initialize_start_0
+   END SUBROUTINE EP_initialize_start_0
 
 
   subroutine EP_initialize_start()
@@ -497,7 +497,7 @@ contains
 
     EP_norma2_initialized_state= EP_scalare(0,0)
 
-end subroutine EP_initialize_start
+END SUBROUTINE EP_initialize_start
 
      
 subroutine EP_set_all_random(i)
@@ -511,7 +511,7 @@ subroutine EP_set_all_random(i)
       call EP_set_random_interna(dumQvect(1:,-i))
    endif
 
-end subroutine EP_set_all_random
+END SUBROUTINE EP_set_all_random
 
 
 subroutine EP_set_random_interna(Q)
@@ -525,7 +525,7 @@ subroutine EP_set_random_interna(Q)
       call random_number(rand)
       Q(i)=real(rand,wp)
    enddo
-end subroutine EP_set_random_interna
+END SUBROUTINE EP_set_random_interna
   
 
   subroutine EP_GramSchmidt(i,n)
@@ -539,7 +539,7 @@ end subroutine EP_set_random_interna
        call EP_GramSchmidt_interna(dumQvect(1:,-i),n)
     endif
 
-  end subroutine EP_GramSchmidt
+  END SUBROUTINE EP_GramSchmidt
 
 
   subroutine EP_GramSchmidt_interna(Q,n)
@@ -588,7 +588,7 @@ end subroutine EP_set_random_interna
        print *, "GramSchmidt done "
     endif
 
-  end subroutine EP_GramSchmidt_interna
+  END SUBROUTINE EP_GramSchmidt_interna
  
 
   subroutine EP_Moltiplica(p,i)
@@ -667,7 +667,7 @@ end subroutine EP_set_random_interna
       endif
    endif
    return 
- end subroutine EP_Moltiplica
+ END SUBROUTINE EP_Moltiplica
  
  
  subroutine EP_add_from_vect_with_fact(p,i, fact)
@@ -690,7 +690,7 @@ end subroutine EP_set_random_interna
 !!!       dumQvect(k,-p) = dumQvect(k,-p)+fact*Qvect(k,i)
 !!!    enddo
    
- end subroutine EP_add_from_vect_with_fact
+ END SUBROUTINE EP_add_from_vect_with_fact
  
  
  
@@ -836,7 +836,7 @@ end subroutine EP_set_random_interna
    deallocate(tpsi,stat=i_stat)
    call memocc(i_stat,i_all,'tpsi',subname)
 
- end subroutine gaussians_to_wavelets_nonorm
+ END SUBROUTINE gaussians_to_wavelets_nonorm
 
 
  subroutine lowpass_projector(n1,n2,n3,nvctr,psi)
@@ -970,7 +970,7 @@ end subroutine EP_set_random_interna
 
    call synthese_per_self(n1/2,n2/2,n3/2,psi_gross,psi)
 
- end subroutine lowpass_projector
+ END SUBROUTINE lowpass_projector
  
  
 end module lanczos_interface

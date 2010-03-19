@@ -145,7 +145,7 @@ subroutine calc_rhocore_iat(iproc,geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
         
         
   
-end subroutine calc_rhocore_iat
+END SUBROUTINE calc_rhocore_iat
 !!***
 
 
@@ -482,7 +482,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
   if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
 
-end subroutine XC_potential
+END SUBROUTINE XC_potential
 !!***
 
 
@@ -798,7 +798,7 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   deallocate(exci,stat=i_stat)
   call memocc(i_stat,i_all,'exci',subname)
 
-end subroutine xc_energy_new
+END SUBROUTINE xc_energy_new
 !!***
 
 
@@ -1287,7 +1287,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
   end if
 
-end subroutine xc_energy
+END SUBROUTINE xc_energy
 !!***
 
 
@@ -1394,5 +1394,5 @@ subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gr
   deallocate(f_i,stat=i_stat)
   call memocc(i_stat,i_all,'f_i',subname)
 
-end subroutine vxcpostprocessing
+END SUBROUTINE vxcpostprocessing
 !!***

@@ -97,7 +97,7 @@ subroutine hit_with_kernel_fac(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,
 
   call FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,x,z1,z3,inzee)
 
-end subroutine hit_with_kernel_fac
+END SUBROUTINE hit_with_kernel_fac
 !!***
 
 
@@ -194,7 +194,7 @@ subroutine hit_with_kernel(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,
 
   call FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,x,z1,z3,inzee)
 
-end subroutine hit_with_kernel
+END SUBROUTINE hit_with_kernel
 !!***
 
 
@@ -287,5 +287,5 @@ subroutine make_kernel(n1,hgrid,kern)
   enddo
 
   deallocate(trig,z)
-end subroutine make_kernel
+END SUBROUTINE make_kernel
 !!***

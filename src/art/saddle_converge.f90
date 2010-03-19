@@ -411,5 +411,5 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
     if (iproc .eq. 0 ) call save_state(state_restart, iter+1, projection)
     
   end do
-end subroutine saddle_converge
+END SUBROUTINE saddle_converge
 !!***

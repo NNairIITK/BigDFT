@@ -144,7 +144,7 @@ subroutine find_saddle(success)
 
   deallocate(atom_displaced)       
 
-end subroutine find_saddle
+END SUBROUTINE find_saddle
 !!***
 
 
@@ -283,7 +283,7 @@ subroutine local_move()
   initial_direction  = initial_direction * norm
   
   if (iproc .eq. 0 ) write(*,*) 'Number of displaced atoms initially: ',natom_displaced
-end subroutine local_move
+END SUBROUTINE local_move
 !!***
 
 
@@ -361,7 +361,7 @@ subroutine global_move()
   norm = 1.0 / sqrt (norm)
   initial_direction  = initial_direction * norm
 
-end subroutine global_move
+END SUBROUTINE global_move
 !!***
 
 
@@ -471,5 +471,5 @@ subroutine symmetry_break()
      close(flog)
   endif
 
- end subroutine symmetry_break
+ END SUBROUTINE symmetry_break
  !!***

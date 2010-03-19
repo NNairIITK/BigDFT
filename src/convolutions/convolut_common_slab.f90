@@ -224,7 +224,7 @@ subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
   else
      stop 'the GPU part is not yet written'
   end if
-end subroutine convolut_magic_n_slab_self
+END SUBROUTINE convolut_magic_n_slab_self
 !!***
 
 
@@ -498,7 +498,7 @@ subroutine convolut_kinetic_slab_sdc(n1,n2,n3,x,y,cprecr,modul1,modul3,a,b,c,e)
 !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'z:',tel,1.d-6*mflop3/tel
 !  close(97)
 
-end subroutine convolut_kinetic_slab_sdc
+END SUBROUTINE convolut_kinetic_slab_sdc
 !!***
 
 
@@ -607,5 +607,5 @@ subroutine prepare_sdc_slab(n1,n3,modul1,modul3,a,b,c,e,hx,hy,hz)
   do i=1,14
      e(-i,:)=e(i,:)
   enddo
-end subroutine prepare_sdc_slab
+END SUBROUTINE prepare_sdc_slab
 !!***

@@ -205,7 +205,7 @@ subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old
   deallocate(ww,stat=i_stat)
   call memocc(i_stat,i_all,'ww',subname)
 
-end subroutine reformatonewave
+END SUBROUTINE reformatonewave
 !!***
 
 
@@ -250,7 +250,7 @@ subroutine ext_buffers_coarse(periodic,nb)
   else
      nb=7
   end if
-end subroutine ext_buffers_coarse
+END SUBROUTINE ext_buffers_coarse
 
 
 subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
@@ -397,7 +397,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
   endif
 
-end subroutine readonewave
+END SUBROUTINE readonewave
 
 subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
      nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -489,4 +489,4 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
   write(*,'(1x,i0,a)') iorb,'th wavefunction written'
 
 
-end subroutine writeonewave
+END SUBROUTINE writeonewave

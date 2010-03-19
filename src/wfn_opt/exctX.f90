@@ -291,7 +291,7 @@
 !!$
 !!$  !call timing(iproc,'Exchangecorr  ','OF')
 !!$
-!!$end subroutine exact_exchange_potential
+!!$END SUBROUTINE exact_exchange_potential
 
 
 subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p,&
@@ -597,7 +597,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
 
   !call timing(iproc,'Exchangecorr  ','OF')
 
-end subroutine exact_exchange_potential
+END SUBROUTINE exact_exchange_potential
 !!***
 
 
@@ -701,7 +701,7 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
      call memocc(i_stat,i_all,'ncommocc',subname)
   end if
 
-end subroutine prepare_psirocc
+END SUBROUTINE prepare_psirocc
 !!***
 
 
@@ -977,5 +977,5 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      call memocc(i_stat,i_all,'ncommvirt',subname)
   end if
 
-end subroutine exact_exchange_potential_virt
+END SUBROUTINE exact_exchange_potential_virt
 !!***

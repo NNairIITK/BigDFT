@@ -93,7 +93,7 @@ contains
     in%inputPsiId=1
 
     initialised = .true.
-  end subroutine bigdft_init
+  END SUBROUTINE bigdft_init
 !!***
 
 
@@ -146,7 +146,7 @@ contains
     
     deallocate(xcart)
     deallocate(fcart)
-  end subroutine calcforce
+  END SUBROUTINE calcforce
 !!***
 
 
@@ -200,7 +200,7 @@ contains
     
     deallocate(xcart)
     deallocate(fcart)
-  end subroutine mingeo
+  END SUBROUTINE mingeo
 !!***
 
 
@@ -221,7 +221,7 @@ contains
     !Finalize memory counting
     call memocc(0,0,'count','stop')
 
-  end subroutine bigdft_finalise
+  END SUBROUTINE bigdft_finalise
 
 
 end module bigdft_forces

@@ -1,4 +1,14 @@
-
+!!****f* BigDFT/ana_rot_per
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine ana_rot_per(n,ndat,x,y)
   use module_base
   implicit none
@@ -133,8 +143,8 @@ subroutine ana_rot_per(n,ndat,x,y)
 !call system_clock(iend_test,count_rate_test,count_max_test)
 !write(*,*) 'elapsed time on ana rot per',(iend_test-istart_test)/(1.d0*count_rate_test)
 
-
-end subroutine ana_rot_per
+END SUBROUTINE ana_rot_per
+!!***
 
 
 subroutine syn_rot_per(n,ndat,x,y)
@@ -293,7 +303,8 @@ subroutine syn_rot_per(n,ndat,x,y)
 !call system_clock(iend_test,count_rate_test,count_max_test)
 !write(*,*) 'elapsed time on syn rot per',(iend_test-istart_test)/(1.d0*count_rate_test)
 
-end subroutine syn_rot_per
+END SUBROUTINE syn_rot_per
+
 
 subroutine convrot_n_per(n1,ndat,x,y)
   use module_base
@@ -419,13 +430,12 @@ subroutine convrot_n_per(n1,ndat,x,y)
 !call system_clock(iend_test,count_rate_test,count_max_test)
 !write(*,*) 'elapsed time on convrot n per',(iend_test-istart_test)/(1.d0*count_rate_test)
 
-end subroutine convrot_n_per
+END SUBROUTINE convrot_n_per
 
 
 subroutine convrot_t_per(n1,ndat,x,y)
   use module_base
   implicit none
-
 
 !dee
 !  integer :: iend_test,count_rate_test,count_max_test,istart_test
@@ -544,24 +554,23 @@ subroutine convrot_t_per(n1,ndat,x,y)
 !call system_clock(iend_test,count_rate_test,count_max_test)
 !write(*,*) 'elapsed time on comb',(iend_test-istart_test)/(1.d0*count_rate_test)
 
-end subroutine convrot_t_per
-
+END SUBROUTINE convrot_t_per
 
 
 !!!!!commented out as this routine is not used 
 subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
-!  !   applies the kinetic energy operator onto x to get y. Works for periodic BC
-!  use module_base
-!  implicit none
-!
-!
-!  integer, intent(in) :: n1,n2,n3
-!  real(gp),intent(in)::c
-!  real(gp), dimension(3), intent(in) :: hgrid
-!  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
-!  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y
+!   applies the kinetic energy operator onto x to get y. Works for periodic BC
+  use module_base
+  implicit none
+
+  integer, intent(in) :: n1,n2,n3
+  real(gp),intent(in)::c
+  real(gp), dimension(3), intent(in) :: hgrid
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y
 !
   stop 'convolut_kinetic_per_c should never be called'
+  write(*,*) n1,n2,n3,hgrid,x,y,c
 !
 !  !local variables
 !  integer, parameter :: lowfil=-14,lupfil=14
@@ -666,7 +675,7 @@ subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
 !       enddo
 !    enddo
 !!$omp  end do
-!  end subroutine conv_kin_y
+!  END SUBROUTINE conv_kin_y
 !
 !
 !  subroutine conv_kin_x(x,y,ndat)
@@ -736,7 +745,7 @@ subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
 !       enddo
 !    enddo
 !!$omp  end do
-!  end subroutine conv_kin_x
+!  END SUBROUTINE conv_kin_x
 !
 !  subroutine conv_kin_z(x,y,ndat)
 !    implicit none
@@ -806,11 +815,9 @@ subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
 !       enddo
 !    enddo
 !!$omp  end do
-!  end subroutine conv_kin_z
+!  END SUBROUTINE conv_kin_z
 !
-!
-!
-end subroutine convolut_kinetic_per_c
+END SUBROUTINE convolut_kinetic_per_c
 
 
 subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin_out)
@@ -892,7 +899,7 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin_out)
 !!$end do
 !  close(97)
 
-end subroutine convolut_kinetic_per_T
+END SUBROUTINE convolut_kinetic_per_T
 
 
 subroutine conv_kin_x(x,y,n1,n2,n3,ekin,fil,mod_arr1)
@@ -970,7 +977,7 @@ subroutine conv_kin_x(x,y,n1,n2,n3,ekin,fil,mod_arr1)
        enddo
     enddo
    !$omp end do
-end subroutine conv_kin_x
+END SUBROUTINE conv_kin_x
 
 
 subroutine conv_kin_y(x,y,n1,n2,n3,ekin,fil,mod_arr2)
@@ -1040,7 +1047,7 @@ subroutine conv_kin_y(x,y,n1,n2,n3,ekin,fil,mod_arr2)
      enddo
   enddo
   !$omp end do
-end subroutine conv_kin_y
+END SUBROUTINE conv_kin_y
 
 
 subroutine conv_kin_z(x,y,n1,n2,n3,ekin,fil,mod_arr3)
@@ -1119,7 +1126,7 @@ subroutine conv_kin_z(x,y,n1,n2,n3,ekin,fil,mod_arr3)
      enddo
   enddo
   !$omp end do
-end subroutine conv_kin_z
+END SUBROUTINE conv_kin_z
 
 
 subroutine fill_mod_arr(arr,nleft,nright,n)
@@ -1151,5 +1158,5 @@ subroutine fill_mod_arr(arr,nleft,nright,n)
         arr(i)=modulo(i,n)
      enddo
   endif
-end subroutine fill_mod_arr
+END SUBROUTINE fill_mod_arr
 

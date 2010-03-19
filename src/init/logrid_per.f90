@@ -47,7 +47,7 @@ subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
 
   nseg_c=wfd%nseg_c
   call make_logrid_f(n1,n2,n3, & 
-       wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,nseg_c+min(1,wfd%nseg_f)),wfd%keyv(nseg_c+min(1,wfd%nseg_f)),  & 
+       wfd%nseg_f,wfd%keyg(1,nseg_c+min(1,wfd%nseg_f)),wfd%keyv(nseg_c+min(1,wfd%nseg_f)),  & 
        logrid)
 
   call make_bounds(n1,n2,n3,logrid,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
@@ -56,7 +56,7 @@ subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
   deallocate(logrid,stat=i_stat)
   call memocc(i_stat,i_all,'logrid',subname)
 
-end subroutine make_bounds_per
+END SUBROUTINE make_bounds_per
 !!***
 
 subroutine make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
@@ -111,14 +111,14 @@ subroutine make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      enddo
   enddo
 
-  call make_ib_per(logrid_big,ibyz_ff,ibzxx_f,ibxxyy_f,n1,n2,n3,&
-       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+  call make_ib_per(logrid_big,ibyz_ff,ibzxx_f,ibxxyy_f,n1,n2,&
+       nfl2,nfu2,nfl3,nfu3)
 
   i_all=-product(shape(logrid_big))*kind(logrid_big)
   deallocate(logrid_big,stat=i_stat)
   call memocc(i_stat,i_all,'logrid_big',subname)
 
-end subroutine make_all_ib_per
+END SUBROUTINE make_all_ib_per
 !!***
 
 
@@ -144,7 +144,7 @@ subroutine make_ib_inv_per(logrid_big,ibxy,ibzzx,ibyyzz,n1,n2,n3,nfl1,nfu1,nfl2,
   nt=(2*n2+2)*(2*n3+2)
   call ib_from_logrid_inv( ibyyzz,logrid_big,nfl1,nfu1,nt)
 
-end subroutine make_ib_inv_per
+END SUBROUTINE make_ib_inv_per
 
 
 subroutine ib_to_logrid_inv_per(ib,logrid,n,ndat)
@@ -163,17 +163,22 @@ subroutine ib_to_logrid_inv_per(ib,logrid,n,ndat)
      enddo
   enddo
 
-end subroutine ib_to_logrid_inv_per
+END SUBROUTINE ib_to_logrid_inv_per
 
 
-subroutine make_ib_per(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
-  !    This subroutine mimics the comb_grow_f one
+!!****f* BigDFT/make_ib_per
+!! FUNCTION
+!!    This subroutine mimics the comb_grow_f one
+!!
+!! SOURCE
+!!
+subroutine make_ib_per(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,nfl2,nfu2,nfl3,nfu3)
   implicit none
-  integer nt,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1,n2,n3
-  integer ibyz(  2,nfl2:nfu2,nfl3:nfu3)! input
-  integer ibzxx( 2,          nfl3:nfu3,0:2*n1+1)!output
-  integer ibxxyy(2,                    0:2*n1+1,0:2*n2+1)!output
-  logical logrid_big(        nfl3:nfu3,0:2*n1+1,0:2*n2+1)! work array
+  integer :: nt,nfl2,nfu2,nfl3,nfu3,n1,n2
+  integer :: ibyz(  2,nfl2:nfu2,nfl3:nfu3)! input
+  integer :: ibzxx( 2,          nfl3:nfu3,0:2*n1+1)!output
+  integer :: ibxxyy(2,                    0:2*n1+1,0:2*n2+1)!output
+  logical :: logrid_big(        nfl3:nfu3,0:2*n1+1,0:2*n2+1)! work array
 
   ! i1,i2,i3 -> i2,i3,I1
   nt=(nfu2-nfl2+1)*(nfu3-nfl3+1)
@@ -188,10 +193,17 @@ subroutine make_ib_per(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,n3,nfl1,nfu1,nfl2,nfu2
   nt=(2*n1+2)*(2*n2+2)
   call ib_from_logrid(ibxxyy,logrid_big,nfl3,nfu3,nt)
 
-end subroutine make_ib_per
+END SUBROUTINE make_ib_per
+!!***
 
+
+!!****f* BigDFT/ib_to_logrid_rot_per
+!! FUNCTION
+!!   This one mimics the comb_rot_grow_f_loc
+!!
+!! SOURCE
+!!
 subroutine ib_to_logrid_rot_per(ib,logrid,n,ndat)
-  ! This one mimics the comb_rot_grow_f_loc
   implicit none
   integer ndat,n,l,i,ii
   integer ib(2,ndat)! input
@@ -206,18 +218,22 @@ subroutine ib_to_logrid_rot_per(ib,logrid,n,ndat)
      enddo
   enddo
 
-end subroutine ib_to_logrid_rot_per
+END SUBROUTINE ib_to_logrid_rot_per
+!!***
 
+
+!!****f* BigDFT/make_logrid_f
+!! SOURCE
+!!
 subroutine make_logrid_f(n1,n2,n3, & 
-     mseg_f,mvctr_f,keyg_f,keyv_f,  & 
+     mseg_f,keyg_f,keyv_f,&
      logrid)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
-  integer, intent(in) :: mseg_f,mvctr_f
+  integer, intent(in) :: mseg_f
   integer, dimension(mseg_f), intent(in) :: keyv_f
   integer, dimension(2,mseg_f), intent(in) :: keyg_f
-
   logical,intent(out),dimension(0:n1,0:n2,0:n3)::logrid
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
@@ -239,3 +255,4 @@ subroutine make_logrid_f(n1,n2,n3, &
   enddo
 
 END SUBROUTINE make_logrid_f
+!!***

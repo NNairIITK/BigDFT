@@ -92,4 +92,4 @@ subroutine min_converge
 !!$  deallocate(posb)
 !!$  deallocate(forceb)
   call mingeo(NATOMS, box * scala, pos, evalf_number, force, total_energy)
-end subroutine min_converge
+END SUBROUTINE min_converge

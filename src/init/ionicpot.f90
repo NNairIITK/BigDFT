@@ -462,7 +462,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
         close(unit=22)
      end if
   end if
-end subroutine IonicEnergyandForces
+END SUBROUTINE IonicEnergyandForces
 !!***
 
 
@@ -1053,7 +1053,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
   call timing(iproc,'CrtLocPot     ','OF')
 
-end subroutine createIonicPotential
+END SUBROUTINE createIonicPotential
 !!***
 
 !!****f* BigDFT/sum_erfcr
@@ -1082,7 +1082,7 @@ subroutine ind_positions(periodic,i,n,j,go)
      end if
   end if
 
-end subroutine ind_positions
+END SUBROUTINE ind_positions
 !!***
 
 
@@ -1133,7 +1133,7 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
 
   end do
 
-end subroutine sum_erfcr
+END SUBROUTINE sum_erfcr
 !!***
 
 
@@ -1154,7 +1154,7 @@ subroutine ext_buffers(periodic,nl,nr)
      nl=14
      nr=15
   end if
-end subroutine ext_buffers
+END SUBROUTINE ext_buffers
 !!***
 
 

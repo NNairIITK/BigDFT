@@ -43,7 +43,7 @@ subroutine convert_to_chain(init_number,chain)
   enddo
 
   write(*,*) 'Chain :', init_number, chain
-end subroutine     
+END SUBROUTINE     
 !!***
 
 
@@ -82,7 +82,7 @@ subroutine center(vector,vecsize)
     y(i) = y(i) - ytotal
     z(i) = z(i) - ztotal
   end do
-end subroutine
+END SUBROUTINE
 
 
 ! This subroutine computes the distance between two configurations and 
@@ -133,7 +133,7 @@ subroutine displacement(posa, posb, delr,npart)
 
   delr = sqrt(delr2)
 
-end subroutine
+END SUBROUTINE
 
 !!****f* art/store
 !! FUNCTION
@@ -183,5 +183,5 @@ subroutine store(fname)
   close(FCONF)
   close(XYZ)
   
-end subroutine store
+END SUBROUTINE store
 !!***

@@ -113,7 +113,7 @@ contains
     call memocc(i_stat,psifscf,'psifscf','precong_per')
     allocate( ww((2*n1+2)*(2*n2+16)*(2*n3+2)+ndebug) ,stat=i_stat)
     call memocc(i_stat,ww,'ww','precong_per')
-  end subroutine allocate_all
+  END SUBROUTINE allocate_all
 
   subroutine deallocate_all
 
@@ -161,17 +161,22 @@ contains
     i_all=-product(shape(d))*kind(d)
     deallocate(d,stat=i_stat)
     call memocc(i_stat,i_all,'d','last_orthon')
-  end subroutine deallocate_all
+  END SUBROUTINE deallocate_all
 
-end subroutine precong_slab
+END SUBROUTINE precong_slab
 !!***
 
 
+!!****f* BigDFT/apply_hp_slab
+!! FUNCTION
+!!   Applies the operator (KE+cprecr*I)*x=y
+!!   array x is input, array y is output
+!!
+!! SOURCE
+!!
 subroutine apply_hp_slab(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psifscf,ww)
-  !   Applies the operator (KE+cprecr*I)*x=y
-  !   array x is input, array y is output
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -202,14 +207,20 @@ subroutine apply_hp_slab(n1,n2,n3, &
   call compress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),& 
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),& 
        ww,y(1),y(nvctr_c+1),psifscf)
-end subroutine apply_hp_slab
+END SUBROUTINE apply_hp_slab
+!!***
 
 
+!!****f* BigDFT/apply_hp_slab_sd
+!! FUNCTION
+!!   Applies the operator (KE+cprecr*I)*x=y
+!!   array x is input, array y is output
+!!
+!! SOURCE
+!!
 subroutine apply_hp_slab_sd(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psifscf,ww,modul1,modul3,a,b,c,e)
-  !   Applies the operator (KE+cprecr*I)*x=y
-  !   array x is input, array y is output
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -248,14 +259,20 @@ subroutine apply_hp_slab_sd(n1,n2,n3, &
   call compress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),& 
        nseg_f,nvctr_f,keyg(1,nseg_c+min(1,nseg_f)),keyv(nseg_c+min(1,nseg_f)),& 
        ww,y(1),y(nvctr_c+min(1,nvctr_f)))
-end subroutine apply_hp_slab_sd
+END SUBROUTINE apply_hp_slab_sd
+!!***
 
 
+!!****f* BigDFT/prec_fft_slab_fast
+!! FUNCTION
+!!   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!!   hpsi is the right hand side on input and the solution on output
+!!
+!! SOURCE
+!!
 subroutine prec_fft_slab_fast(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,hpsi,kern_k1,kern_k3,z,x_c)
-  ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-  ! hpsi is the right hand side on input and the solution on output
   use module_base
   implicit none 
   integer, intent(in) :: n1,n2,n3
@@ -285,14 +302,20 @@ subroutine prec_fft_slab_fast(n1,n2,n3, &
 
   call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
-end subroutine prec_fft_slab_fast
+END SUBROUTINE prec_fft_slab_fast
+!!***
 
 
+!!****f* BigDFT/prec_fft_slab
+!! FUNCTION
+!!   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!!   hpsi is the right hand side on input and the solution on output
+!!
+!! SOURCE
+!!
 subroutine prec_fft_slab(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,hpsi)
-  ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-  ! hpsi is the right hand side on input and the solution on output
   use module_base
   implicit none 
   integer, intent(in) :: n1,n2,n3
@@ -325,6 +348,7 @@ subroutine prec_fft_slab(n1,n2,n3, &
   call deallocate_all
 
 contains
+
   subroutine allocate_all
     allocate(kern_k1(0:n1+ndebug),stat=i_stat)
     call memocc(i_stat,kern_k1,'kern_k1','prec_fft')
@@ -334,7 +358,8 @@ contains
     call memocc(i_stat,z,'z','prec_fft')
     allocate(x_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
     call memocc(i_stat,x_c,'x_c','prec_fft')
-  end subroutine allocate_all
+  END SUBROUTINE allocate_all
+
   subroutine deallocate_all
     i_all=-product(shape(z))*kind(z)
     deallocate(z,stat=i_stat)
@@ -352,15 +377,21 @@ contains
     deallocate(x_c,stat=i_stat)
     call memocc(i_stat,i_all,'x_c','last_orthon')
 
-  end subroutine deallocate_all
+  END SUBROUTINE deallocate_all
 
-end subroutine prec_fft_slab
+END SUBROUTINE prec_fft_slab
+!!***
 
 
+!!****f* BigDFT/segment_invert
+!! FUNCTION
+!!   Solve the discretized equation
+!!   (-d^2/dy^2+ct(k1,k3)) zx(output) = zx(input)
+!!   for all k1,k3 via Lapack
+!!
+!! SOURCE
+!!
 subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
-  ! solve the discretized equation
-  ! (-d^2/dy^2+ct(k1,k3)) zx(output) = zx(input)
-  ! for all k1,k3 via Lapack
   use module_base
   implicit none
   integer,intent(in) :: n1,n2,n3
@@ -446,10 +477,5 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   enddo
 
   deallocate(ab)
-end subroutine segment_invert
-
-
-
-
-
-
+END SUBROUTINE segment_invert
+!!***

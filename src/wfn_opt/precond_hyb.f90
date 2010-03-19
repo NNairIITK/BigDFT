@@ -129,7 +129,7 @@ contains
     allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
     call memocc(i_stat,y_f,'y_f','precong_per')
 
-  end subroutine allocate_all
+  END SUBROUTINE allocate_all
 
   subroutine deallocate_all
 
@@ -193,8 +193,8 @@ contains
     deallocate(y_f,stat=i_stat)
     call memocc(i_stat,i_all,'y_f','precong_per')
 
-  end subroutine deallocate_all
-end subroutine precong_per_hyb
+  END SUBROUTINE deallocate_all
+END SUBROUTINE precong_per_hyb
 
 
 subroutine apply_hp_hyb(n1,n2,n3, &
@@ -238,5 +238,5 @@ subroutine apply_hp_hyb(n1,n2,n3, &
   call compress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
        nseg_f,nvctr_f,keyg(1,nseg_c+min(1,nseg_f)),keyv(nseg_c+min(1,nseg_f)), & 
        y_c,y_f,y(1),y(nvctr_c+min(1,nvctr_f)),nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
-end subroutine apply_hp_hyb
+END SUBROUTINE apply_hp_hyb
 

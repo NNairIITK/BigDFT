@@ -722,7 +722,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
 
   call timing(iproc,'LagrM_comput  ','OF')
 
-end subroutine orthon_virt_occup
+END SUBROUTINE orthon_virt_occup
 !!***
 
 subroutine complex_components(nspinor,norb,norbs,ncomp)
@@ -741,7 +741,7 @@ subroutine complex_components(nspinor,norb,norbs,ncomp)
      ncomp=2
   end if
   
-end subroutine complex_components
+END SUBROUTINE complex_components
 
 subroutine orbitals_and_components(iproc,ikptp,ispin,orbs,comms,nvctrp,norb,norbs,ncomp,nspinor)
   use module_base
@@ -759,7 +759,7 @@ subroutine orbitals_and_components(iproc,ikptp,ispin,orbs,comms,nvctrp,norb,norb
 
   call complex_components(nspinor,norb,norbs,ncomp)
 
-end subroutine orbitals_and_components
+END SUBROUTINE orbitals_and_components
 
 subroutine dimension_ovrlp(nspin,orbs,ndimovrlp)
   use module_base
@@ -801,7 +801,7 @@ subroutine dimension_ovrlp(nspin,orbs,ndimovrlp)
      end if
   end do
 
-end subroutine dimension_ovrlp
+END SUBROUTINE dimension_ovrlp
 
 subroutine dimension_ovrlp_virt(nspin,orbs,orbsv,ndimovrlp)
   use module_base
@@ -850,7 +850,7 @@ subroutine dimension_ovrlp_virt(nspin,orbs,orbsv,ndimovrlp)
      end if
   end do
 
-end subroutine dimension_ovrlp_virt
+END SUBROUTINE dimension_ovrlp_virt
 
 
 subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,nspinor)
@@ -954,7 +954,7 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
 
   call timing(iproc,'LagrM_comput  ','OF')
 
-end subroutine orthoconstraint_p
+END SUBROUTINE orthoconstraint_p
 
 subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
   ! Gram-Schmidt orthogonalisation

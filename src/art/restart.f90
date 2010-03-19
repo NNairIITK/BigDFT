@@ -49,7 +49,7 @@ subroutine restart_states(istatus,ieventcurrent, iterations)
   ! Initialise the potential if needed 
   ! call init_potential()
 
-end subroutine
+END SUBROUTINE
 !!***
 
 !!****f* art/save_state
@@ -79,5 +79,5 @@ subroutine save_state(istatus,iter,direction)
   write(FRESTART,'(2x,3f20.8)') (dx(i),dy(i),dz(i),i=1,NATOMS)
   close(FRESTART)
 
-end subroutine
+END SUBROUTINE
 !!***

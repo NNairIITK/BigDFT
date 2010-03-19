@@ -41,10 +41,10 @@ contains
     scfloop_rst => rst_
 
     scfloop_initialised = .true.
-  end subroutine scfloop_init
+  END SUBROUTINE scfloop_init
 
 !!!  subroutine scfloop_finalise()
-!!!  end subroutine scfloop_finalise
+!!!  END SUBROUTINE scfloop_finalise
 end module scfloop_API
 !!***
 
@@ -114,7 +114,7 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   i_all=-product(shape(xcart))*kind(xcart)
   deallocate(xcart,stat=i_stat)
   call memocc(i_stat,i_all,'xcart',subname)
-end subroutine scfloop_main
+END SUBROUTINE scfloop_main
 !!***
 
 
@@ -122,7 +122,7 @@ end subroutine scfloop_main
 !! FUNCTION
 !! SOURCE
 !!
-subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel, xred)
+subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, vel, xred)
   use scfloop_API
   use module_base
   use module_types
@@ -134,7 +134,7 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
   integer, intent(in) :: natom, itime, me
   real(dp), intent(in) :: epot, ekin
   real(dp), intent(in) :: acell(3)
-  real(dp), intent(in) :: rprimd(3,3), xred(3,natom)
+  real(dp), intent(in) :: xred(3,natom)
   real(dp), intent(in) :: fred(3, natom), vel(3, natom)
   !Local variables
   character(len=*), parameter :: subname='scfloop_output'
@@ -168,7 +168,7 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
   i_all=-product(shape(xcart))*kind(xcart)
   deallocate(xcart,stat=i_stat)
   call memocc(i_stat,i_all,'xcart',subname)
-end subroutine scfloop_output
+END SUBROUTINE scfloop_output
 !!***
 
 
@@ -275,7 +275,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   enddo
 
   close(unit=99)
-end subroutine read_velocities
+END SUBROUTINE read_velocities
 !!***
 
 
@@ -332,5 +332,5 @@ subroutine wtvel(filename,vxyz,atoms,comment)
   enddo
 
   close(unit=9)
-end subroutine wtvel
+END SUBROUTINE wtvel
 !!***

@@ -158,7 +158,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
     deallocate(ibzzyy_f,stat=i_stat)
     call memocc(i_stat,i_all,'ibzzyy_f','make_all_ib')
 
-end subroutine make_all_ib
+END SUBROUTINE make_all_ib
 
 subroutine make_ib_c(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,n3)
 !    This subroutine mimics the comb_grow_f one
@@ -186,7 +186,7 @@ subroutine make_ib_c(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,n3)
         call ib_from_logrid(ibxxyy,logrid_big,0,n3,nt)
         call squares(ibxxyy,2*n1+30,2*n2+30)
     
-end subroutine make_ib_c
+END SUBROUTINE make_ib_c
 
 
 subroutine make_ib(logrid_big,ibyz,ibzxx,ibxxyy,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
@@ -211,7 +211,7 @@ subroutine make_ib(logrid_big,ibyz,ibzxx,ibxxyy,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
         nt=(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31)
         call ib_from_logrid(ibxxyy,logrid_big,nfl3,nfu3,nt)
     
-end subroutine make_ib
+END SUBROUTINE make_ib
 
 subroutine ib_transpose(ib,ib_t,n1,n2)
     implicit none
@@ -225,7 +225,7 @@ subroutine ib_transpose(ib,ib_t,n1,n2)
         enddo
     enddo
 
-end subroutine ib_transpose
+END SUBROUTINE ib_transpose
 
 !!!subroutine make_logrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,logrid)
 !!!    implicit none
@@ -262,7 +262,7 @@ end subroutine ib_transpose
 !!!        enddo
 !!!    enddo
 !!!    
-!!!end subroutine make_logrid
+!!!END SUBROUTINE make_logrid
 
 subroutine ib_to_logrid_rot(ib,logrid,nfl,nfu,ndat)
 ! This one mimics the comb_rot_grow_f_loc
@@ -279,7 +279,7 @@ subroutine ib_to_logrid_rot(ib,logrid,nfl,nfu,ndat)
         enddo
     enddo
 
-end subroutine ib_to_logrid_rot
+END SUBROUTINE ib_to_logrid_rot
 
 subroutine ibyz_to_logrid(n1,n2,n3,logrid,ibyz)
     implicit none
@@ -298,7 +298,7 @@ subroutine ibyz_to_logrid(n1,n2,n3,logrid,ibyz)
         enddo
     enddo
 
-end subroutine ibyz_to_logrid
+END SUBROUTINE ibyz_to_logrid
 
 subroutine ib_from_logrid(ib,logrid,ml1,mu1,ndat)
     ! mimics the bounds subroutine    
@@ -327,7 +327,7 @@ subroutine ib_from_logrid(ib,logrid,ml1,mu1,ndat)
         enddo inner2
     enddo
 
-end subroutine ib_from_logrid
+END SUBROUTINE ib_from_logrid
 
 subroutine check_ibyz(n1,n2,n3,logrid,logrid1,ibyz)
     implicit none
@@ -351,7 +351,7 @@ subroutine check_ibyz(n1,n2,n3,logrid,logrid1,ibyz)
     write(*,*)'flag=',flag
     stop
 
-end subroutine check_ibyz
+END SUBROUTINE check_ibyz
 
 subroutine squares_1d(ib,nfl2,nfu2,nfl3,nfu3)
     ! modifies the ib array 
@@ -379,7 +379,7 @@ subroutine squares_1d(ib,nfl2,nfu2,nfl3,nfu3)
             ib(2,ii2+1,i3)=ibmax
          enddo
      enddo
-end subroutine squares_1d
+END SUBROUTINE squares_1d
 
 
 subroutine squares(ib,n2,n3)
@@ -413,4 +413,4 @@ subroutine squares(ib,n2,n3)
             ib(2,ii2+1,ii3+1)=ibmax
          enddo
      enddo
-end subroutine squares
+END SUBROUTINE squares

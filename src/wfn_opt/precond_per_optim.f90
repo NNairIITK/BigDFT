@@ -130,7 +130,7 @@ contains
     call memocc(i_stat,psifscf,'psifscf','precong_per')
     allocate( ww((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug) ,stat=i_stat)
     call memocc(i_stat,ww,'ww','precong_per')
-  end subroutine allocate_all
+  END SUBROUTINE allocate_all
 
   subroutine deallocate_all
 
@@ -182,9 +182,9 @@ contains
     i_all=-product(shape(d))*kind(d)
     deallocate(d,stat=i_stat)
     call memocc(i_stat,i_all,'d','last_orthon')
-  end subroutine deallocate_all
+  END SUBROUTINE deallocate_all
 
-end subroutine precong_per
+END SUBROUTINE precong_per
 
 
 !!****f* BigDFT/prec_fft_c
@@ -226,7 +226,7 @@ subroutine prec_fft_c(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 
   call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
-end subroutine prec_fft_c
+END SUBROUTINE prec_fft_c
 !!***
 
 
@@ -273,7 +273,7 @@ subroutine prec_fft_fast(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 
   call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
-end subroutine prec_fft_fast
+END SUBROUTINE prec_fft_fast
 !!***
 
 
@@ -338,7 +338,7 @@ contains
     call memocc(i_stat,z3,'z3',subname)
     allocate(x_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
     call memocc(i_stat,x_c,'x_c',subname)
-  end subroutine allocate_all
+  END SUBROUTINE allocate_all
 
   subroutine deallocate_all
     i_all=-product(shape(z1))*kind(z1)
@@ -365,16 +365,20 @@ contains
     deallocate(x_c,stat=i_stat)
     call memocc(i_stat,i_all,'x_c',subname)
 
-  end subroutine deallocate_all
+  END SUBROUTINE deallocate_all
 
-end subroutine prec_fft
+END SUBROUTINE prec_fft
 
 
+!!****f* BigDFT/apply_hp
+!! FUNCTION
+!!  Applies the operator (KE+cprecr*I)*x=y
+!!  array x is input, array y is output
+!! SOURCE
+!!
 subroutine apply_hp(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psifscf,ww)
-  !	Applies the operator (KE+cprecr*I)*x=y
-  !	array x is input, array y is output
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -400,7 +404,9 @@ subroutine apply_hp(n1,n2,n3, &
   call compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
        ww,y(1),y(nvctr_c+1),psifscf)
-end subroutine apply_hp
+END SUBROUTINE apply_hp
+!!***
+
 
 subroutine apply_hp_slab_k(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
@@ -451,7 +457,7 @@ subroutine apply_hp_slab_k(n1,n2,n3, &
           ww(1,idx),y(1,idx),y(nvctr_c+1,idx),psifscf(1,idx))
   end do
 
-end subroutine apply_hp_slab_k
+END SUBROUTINE apply_hp_slab_k
 
 
 subroutine apply_hp_per_k(n1,n2,n3, &
@@ -498,7 +504,7 @@ subroutine apply_hp_per_k(n1,n2,n3, &
           nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
           ww(1,idx),y(1,idx),y(nvctr_c+1,idx),psifscf(1,idx),scal)
   end do
-end subroutine apply_hp_per_k
+END SUBROUTINE apply_hp_per_k
 
 
 
@@ -538,7 +544,7 @@ subroutine wscal_f(mvctr_f,psi_f,hx,hy,hz,c)
      psi_f(7,i)=psi_f(7,i)*scal(7)       !  2 2 2
   enddo
 
-end subroutine wscal_f
+END SUBROUTINE wscal_f
 
 subroutine wscal_per_self(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
@@ -564,7 +570,7 @@ subroutine wscal_per_self(mvctr_c,mvctr_f,scal,psi_c,psi_f)
      psi_f(7,i)=psi_f(7,i)*scal(7)       !  2 2 2
   enddo
 
-end subroutine wscal_per_self
+END SUBROUTINE wscal_per_self
 
 subroutine wscal_per(mvctr_c,mvctr_f,scal,psi_c_in,psi_f_in,psi_c_out,psi_f_out)
   ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
@@ -591,7 +597,7 @@ subroutine wscal_per(mvctr_c,mvctr_f,scal,psi_c_in,psi_f_in,psi_c_out,psi_f_out)
      psi_f_out(7,i)=psi_f_in(7,i)*scal(7)       !  2 2 2
   enddo
 
-end subroutine wscal_per
+END SUBROUTINE wscal_per
 
 
 subroutine wscal_init_per(scal,hx,hy,hz,c)
@@ -617,6 +623,6 @@ subroutine wscal_init_per(scal,hx,hy,hz,c)
   scal(6)=1._wp/sqrt(a2*hh(1)+b2*hh(2)+b2*hh(3)+c)       !  1 2 2
   scal(7)=1._wp/sqrt(b2*hh(1)+b2*hh(2)+b2*hh(3)+c)       !  2 2 2
 
-end subroutine wscal_init_per
+END SUBROUTINE wscal_init_per
 
 

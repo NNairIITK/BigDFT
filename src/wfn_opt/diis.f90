@@ -68,7 +68,7 @@ subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alp
 
   endif
 
-end subroutine psimix
+END SUBROUTINE psimix
 !!***
 
 
