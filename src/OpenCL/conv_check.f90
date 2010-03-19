@@ -36,6 +36,7 @@ program conv_check
   real(wp) :: tt,scale
   real(gp) :: v,p,CPUtime,GPUtime,comp,ekin
   real(gp), dimension(3) :: hgridh
+  real(gp), dimension(8) :: scal
   integer, dimension(:), allocatable :: keyv,modarr
   integer, dimension(:,:), allocatable :: keyg
   real(kind=8), dimension(:), allocatable :: psi, psi_d !temporary in view of wp 
@@ -1861,6 +1862,8 @@ program conv_check
 
            allocate(psi_in((2*n1+2),(2*n1+2),(2*n1+2)+ndebug),stat=i_stat)
            call memocc(i_stat,psi_in,'psi_in',subname)
+           allocate(psi_out((2*n1+2),(2*n1+2),(2*n1+2)+ndebug),stat=i_stat)
+           call memocc(i_stat,psi_in,'psi_out',subname)
 
            allocate(psi_cuda((2*n1+2),(2*n1+2),(2*n1+2)+ndebug),stat=i_stat)
            call memocc(i_stat,psi_cuda,'psi_cuda',subname)
@@ -1966,8 +1969,6 @@ program conv_check
                    '<<<< WARNING' 
            end if
 
-           i_all=-product(shape(psi_cuda))
-
            write(*,'(a,3(i6))')'CPU Compress, dimensions:',n1,n1,n1
 
            !take timings
@@ -2069,6 +2070,207 @@ program conv_check
                    real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9),&
                    '<<<< WARNING' 
            end if
+
+           write(*,'(a,3(i6))')'CPU Uncompress Scal, dimensions:',n1,n1,n1
+
+           !take timings
+           call cpu_time(t0)
+           call wscal_init_per(scal,0.1d0,0.2d0,0.3d0,0.4d0)
+           do i=1,ntimes
+              call uncompress_scal(n1,n1,n1,nseg,nvctr_cf,keyg,keyv,  & 
+                   nseg,nvctr_cf,keyg,keyv,psi(1),psi(nvctr_cf+1),psi_in,scal)
+
+              !call compress(n1,n1,n1,0,n1,0,n1,0,n1,nseg,mvctr_cf,keyg,keyv,  & 
+              !     nseg,mvctr_cf,keyg,keyv,psi_in,psi(1),psi(nvctr_cf+1))
+           end do
+           call cpu_time(t1)
+
+           CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
+                CPUtime*1.d3/real(ntimes,kind=8),&
+                real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9)
+
+              call ocl_create_read_buffer(context, nvctr_cf*8, psi_c_GPU)
+              call ocl_create_read_buffer(context, 7*nvctr_cf*8, psi_f_GPU)
+              call ocl_create_read_buffer(context, nseg*4*2, keyg_GPU)
+              call ocl_create_read_buffer(context, nseg*4, keyv_GPU)
+              call ocl_create_write_buffer(context, (2*n1+2)*(2*n1+2)*(2*n1+2)*8, work_GPU)
+              call ocl_enqueue_write_buffer(queue, psi_c_GPU, nvctr_cf*8, psi)
+              call ocl_enqueue_write_buffer(queue, psi_f_GPU, 7*nvctr_cf*8, psi(nvctr_cf+1))
+              call ocl_enqueue_write_buffer(queue, keyg_GPU, nseg*2*4, keyg)
+              call ocl_enqueue_write_buffer(queue, keyv_GPU, nseg*4, keyv)
+
+           write(*,'(a,3(i6))')'GPU Uncompress Scal, dimensions:',n1,n1,n1
+
+           call cpu_time(t0)
+           do i=1,ntimes
+              call uncompress_scale_d(queue , (/n1+1,n1+1,n1+1/),(/0.1d0,0.2d0,0.3d0/),0.4d0,&
+                                nseg, nvctr_cf, keyg_GPU, keyv_GPU,&
+                                nseg, nvctr_cf, keyg_GPU, keyv_GPU,&
+                                psi_c_GPU, psi_f_GPU, work_GPU)
+           end do
+           call ocl_finish(queue);
+           call cpu_time(t1)
+           GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+           call ocl_finish(queue);
+           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
+                GPUtime*1.d3/real(ntimes,kind=8),&
+                real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
+
+              call ocl_enqueue_read_buffer(queue, work_GPU, (2*n1+2)*(2*n1+2)*(2*n1+2)*8, psi_cuda)
+              call ocl_release_mem_object(psi_c_GPU)
+              call ocl_release_mem_object(psi_f_GPU)
+              call ocl_release_mem_object(keyg_GPU)
+              call ocl_release_mem_object(keyv_GPU)
+              call ocl_release_mem_object(work_GPU)
+
+!!!           call sg_gpu_free(psi_GPU,i_stat)
+!!!           call sg_gpu_free(work_GPU,i_stat)
+!!!           call sg_gpu_free(keys_GPU,i_stat)
+
+
+           !check the differences between the results
+           maxdiff=0.d0
+           i1_max=1
+           i_max=1
+           do i3=1,2*n1+2
+              do i2=1,2*n1+2
+                 do i1=1,2*n1+2
+                    !write(17,'(3(i6),2(1pe24.17))')i1,i2,i3,&
+                    !     psi_in(i1,i2,i3),psi_cuda(i1,i2,i3)
+                 !comp=abs(psi_in(i1,i2,i3)-real(psi_cuda(i1,i2,i3),kind=8))
+                 comp=abs(psi_in(i1,i2,i3)-real(psi_cuda(i1,i2,i3),kind=8))
+!                 print *,psi_in(i1,i2,i3), psi_cuda(i1,i2,i3)
+                 !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
+                 if (comp > maxdiff) then
+                    maxdiff=comp
+                    i1_max=i1
+                    i_max=i
+                 end if
+                 end do
+              end do
+           end do
+           if (maxdiff <= 1.d-12) then
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
+                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
+           else
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
+                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9),&
+                   '<<<< WARNING' 
+           end if
+           write(*,'(a,3(i6))')'CPU Compress Scal, dimensions:',n1,n1,n1
+
+           !take timings
+           call cpu_time(t0)
+           do i=1,ntimes
+              call compress_scal(n1,n1,n1,nseg,nvctr_cf,keyg,keyv,  & 
+                   nseg,nvctr_cf,keyg,keyv,psi_in,psi(1),psi(nvctr_cf+1),scal)
+           end do
+           call cpu_time(t1)
+
+           CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
+                CPUtime*1.d3/real(ntimes,kind=8),&
+                real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9)
+
+
+           !now the CUDA part
+!!!           call sg_gpu_alloc(psi_GPU,8*nvctr_cf,8,i_stat)
+!!!           call sg_gpu_alloc(work_GPU,(2*n1+2)*(2*n1+2)*(2*n1+2),8,i_stat)
+
+!!!           call sg_gpu_imm_send(work_GPU,psi_in,(2*n1+2)*(2*n1+2)*(2*n1+2),8,i_stat)
+
+!!!           call adjust_keys_for_gpu(nseg,nseg,keyv,keyg,keyv,keyg,nvctr_cf,keys_GPU)
+
+           !now the CUDA part
+           !take timings
+              call ocl_create_write_buffer(context, nvctr_cf*8, psi_c_GPU)
+              call ocl_create_write_buffer(context, 7*nvctr_cf*8, psi_f_GPU)
+              call ocl_create_read_buffer(context, nseg*8*2, keyg_GPU)
+              call ocl_create_read_buffer(context, nseg*8, keyv_GPU)
+              call ocl_create_read_buffer(context, (2*n1+2)*(2*n1+2)*(2*n1+2)*8, work_GPU)
+              call ocl_enqueue_write_buffer(queue, keyg_GPU, nseg*2*4, keyg)
+              call ocl_enqueue_write_buffer(queue, keyv_GPU, nseg*4, keyv)
+              call ocl_enqueue_write_buffer(queue, work_GPU, (2*n1+2)*(2*n1+2)*(2*n1+2)*8, psi_cuda)
+
+           write(*,'(a,3(i6))')'GPU Compress Scal, dimensions:',n1,n1,n1
+
+           call cpu_time(t0)
+           do i=1,ntimes
+              call compress_scale_d(queue , (/n1+1, n1+1, n1+1/),(/0.1d0,0.2d0,0.3d0/),0.4d0,&
+                              nseg, nvctr_cf, keyg_GPU, keyv_GPU,&
+                              nseg, nvctr_cf, keyg_GPU, keyv_GPU,&
+                              psi_c_GPU, psi_f_GPU, work_GPU)
+           end do
+           call ocl_finish(queue);
+           call cpu_time(t1)
+           GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
+                GPUtime*1.d3/real(ntimes,kind=8),&
+                real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
+
+              call ocl_enqueue_read_buffer(queue, psi_c_GPU, nvctr_cf*8, psi_d)
+              call ocl_enqueue_read_buffer(queue, psi_f_GPU, 7*nvctr_cf*8, psi_d(nvctr_cf+1))
+              call ocl_release_mem_object(psi_c_GPU)
+              call ocl_release_mem_object(psi_f_GPU)
+              call ocl_release_mem_object(keyg_GPU)
+              call ocl_release_mem_object(keyv_GPU)
+              call ocl_release_mem_object(work_GPU)
+
+
+!!!           call sg_gpu_imm_recv(psi_cuda,psi_GPU,8*nvctr_cf,8,i_stat)
+
+!!!           call sg_gpu_free(psi_GPU,i_stat)
+!!!           call sg_gpu_free(work_GPU,i_stat)
+!!!           call sg_gpu_free(keys_GPU,i_stat)
+
+
+           !check the differences between the results
+           maxdiff=0.d0
+           i1_max=1
+           i_max=1
+           do i1=1,8*nvctr_cf
+              !write(17,'(i6,2(1pe24.17))')i1,psi(i1),psi_cuda(i1,1,1)
+              comp=abs(psi(i1)-real(psi_d(i1),kind=8))
+!              write(*,'(i9,f9.1,f9.1)')modulo(i1,nvctr_cf),psi(i1),psi_d(i1)
+              if (comp > maxdiff) then
+                 maxdiff=comp
+                 i1_max=i1
+                 i_max=i
+              end if
+           end do
+           if (maxdiff <= 1.d-12) then
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
+                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
+           else
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
+                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9),&
+                   '<<<< WARNING' 
+           end if
+
 
            i_all=-product(shape(psi))
            deallocate(psi,stat=i_stat)

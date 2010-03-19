@@ -1,7 +1,7 @@
 #include "OpenCL_wrappers.h"
 #include "Stream.h"
 #include "MagicFilter.h"
-#define SIZE_I 64
+#define SIZE_I 128
 #define NB_STREAM 8
 
 inline void magicfilter_generic_stream(cl_kernel kernel, ocl_stream stream, cl_uint n,cl_uint ndat, cl_mem psi, cl_mem out){
