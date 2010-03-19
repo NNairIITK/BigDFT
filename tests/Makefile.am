@@ -2,6 +2,7 @@
 
 SUBDIRS = \
 	  fft \
+	  PSolver \
 	  H \
 	  H2-spin \
 	  Li+ \

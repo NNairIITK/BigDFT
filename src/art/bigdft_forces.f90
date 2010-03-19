@@ -50,8 +50,8 @@ contains
     integer, intent(in) :: nproc_, me_
     integer, intent(out) :: nat
     integer, pointer :: typa(:)
-    real*8, pointer :: posa(:)
-    real*8, intent(out) :: boxl
+    real(kind=8), pointer :: posa(:)
+    real(kind=8), intent(out) :: boxl
 
     character(len=*), parameter :: subname='bigdft_init'
     real(gp), dimension(:,:), pointer :: rxyz
@@ -96,21 +96,21 @@ contains
   end subroutine bigdft_init
 !!***
 
+
 !!****f* bigdft_forces/calcforce
 !! FUNCTION
 !!   Calculation of forces
 !! SOURCE
 !!
-  subroutine calcforce(nat,typa,posa,boxl,forca,energy)
+  subroutine calcforce(nat,posa,boxl,forca,energy)
 
     implicit none
 
     integer, intent(in) :: nat
-    integer, intent(in), dimension(nat) :: typa
-    real*8, intent(in), dimension(3*nat),target :: posa
-    real*8, intent(in) :: boxl
-    real*8, intent(out), dimension(3*nat),target :: forca
-    real*8, intent(out) :: energy
+    real(kind=8), intent(in), dimension(3*nat),target :: posa
+    real(kind=8), intent(in) :: boxl
+    real(kind=8), intent(out), dimension(3*nat),target :: forca
+    real(kind=8), intent(out) :: energy
 
     integer :: infocode, i, ierror
     real(dp), allocatable :: xcart(:,:), fcart(:,:)
@@ -160,11 +160,11 @@ contains
     implicit none
 
     integer, intent(in) :: nat
-    real*8, intent(in) :: boxl
-    real*8, intent(out) :: total_energy
-    real*8, intent(inout), dimension(3*nat) :: posa
+    real(kind=8), intent(in) :: boxl
+    real(kind=8), intent(out) :: total_energy
+    real(kind=8), intent(inout), dimension(3*nat) :: posa
     integer, intent(out) :: evalf_number
-    real*8, intent(out), dimension(3*nat) :: forca
+    real(kind=8), intent(out), dimension(3*nat) :: forca
 
     integer :: i, ierror
     real(dp), allocatable :: xcart(:,:), fcart(:,:)

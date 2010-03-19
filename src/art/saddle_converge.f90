@@ -61,7 +61,7 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
   if ( (.not. restart) .and. NEW_EVENT ) then 
 
      eigenvalue = 0.0d0
-     call calcforce(NATOMS,type,pos,boxl,force,current_energy)
+     call calcforce(NATOMS,pos,boxl,force,current_energy)
      
      ! We now project out the direction of the initial displacement from the
      ! minimum from the force vector so that we can minimize the energy in
@@ -85,7 +85,7 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
         do 
            posb = pos + step * perp_force
            
-           call calcforce(NATOMS,type,posb,boxl,forceb,total_energy)
+           call calcforce(NATOMS,posb,boxl,forceb,total_energy)
            evalf_number = evalf_number + 1
            
            fdotinit= 0.0d0
@@ -181,7 +181,7 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
   else if (restart .and. (state_restart == 2) ) then
         iter_init = iter_restart
         projection = direction_restart
-        call calcforce(NATOMS,type,pos,boxl,force,current_energy)
+        call calcforce(NATOMS,pos,boxl,force,current_energy)
 
         fpar= 0.0d0
         do i=1, VECSIZE
@@ -210,7 +210,7 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
         new_projection = .false.
      end do
 
-     call calcforce(NATOMS,type,pos,boxl,force,current_energy)
+     call calcforce(NATOMS,pos,boxl,force,current_energy)
      fpar = dot_product(force,projection)
      if(fpar > 0.0d0 ) projection = -1.0d0 * projection
 
@@ -240,7 +240,7 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
        posb = pos + step * perp_force
        call displacement(posb, pos, delr,npart)
 
-       call calcforce(NATOMS,type,posb,boxl,forceb,total_energy)
+       call calcforce(NATOMS,posb,boxl,forceb,total_energy)
        evalf_number = evalf_number + 1
        
        fpar= 0.0d0
@@ -398,7 +398,7 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
       exit
     endif
 
-    call calcforce(NATOMS,type,pos,boxl,force,total_energy)  !! COSMIN
+    call calcforce(NATOMS,pos,boxl,force,total_energy)  !! COSMIN
     perp_force  = forceb - fpar * projection  ! Vectorial force
     fperp2 = 0.0d0
     do i=1, VECSIZE

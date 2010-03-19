@@ -523,6 +523,7 @@ utils/PSPfiles/Makefile
 doc/Makefile
 tests/Makefile
 tests/fft/Makefile
+tests/PSolver/Makefile
 tests/C/Makefile
 tests/Ca2/Makefile
 tests/H/Makefile

@@ -65,7 +65,7 @@ subroutine lanczos(maxvec,new_projection)
   ! We now take the current position as the reference point and will make 
   ! a displacement in a random direction or using the previous direction as
   ! the starting point.
-  call calcforce(NATOMS,type,pos,boxl,ref_force,total_energy)
+  call calcforce(NATOMS,pos,boxl,ref_force,total_energy)
   evalf_number = evalf_number + 1
   z0 => lanc(:,1)
 
@@ -119,7 +119,7 @@ subroutine lanczos(maxvec,new_projection)
 
   newpos = pos + z0 * increment   ! Vectorial operation
 
-  call calcforce(NATOMS,type,newpos,boxl,newforce,excited_energy)
+  call calcforce(NATOMS,newpos,boxl,newforce,excited_energy)
   evalf_number = evalf_number + 1
 
   ! We extract lanczos(1)
@@ -148,7 +148,7 @@ subroutine lanczos(maxvec,new_projection)
   do ivec = 2, maxvec-1
     z1 => lanc(:,ivec)
     newpos = pos + z1 * increment
-    call calcforce(NATOMS,type,newpos,boxl,newforce,excited_energy)
+    call calcforce(NATOMS,newpos,boxl,newforce,excited_energy)
     evalf_number = evalf_number + 1
     newforce = newforce - ref_force  
 
@@ -179,7 +179,7 @@ subroutine lanczos(maxvec,new_projection)
   ivec = maxvec
   z1 => lanc(:,maxvec)
   newpos = pos + z1 * increment    ! Vectorial operation
-  call calcforce(NATOMS,type,newpos,boxl,newforce,excited_energy)
+  call calcforce(NATOMS,newpos,boxl,newforce,excited_energy)
   evalf_number = evalf_number + 1
     sum_force = 0.0 
     sum_forcenew = 0.0
@@ -229,7 +229,7 @@ subroutine lanczos(maxvec,new_projection)
 
    ! The following lines are probably not needed.
    newpos = pos + projection * increment   ! Vectorial operation
-   call calcforce(NATOMS,type,newpos,boxl,newforce,excited_energy)
+   call calcforce(NATOMS,newpos,boxl,newforce,excited_energy)
    evalf_number = evalf_number + 1
    newforce = newforce - ref_force
 

@@ -44,7 +44,7 @@ subroutine apply_diis(current_energy, ftot)
   allocate(product_matrix(DIIS_MEMORY,DIIS_MEMORY))
   allocate(tildeforce(VECSIZE))
 
-  call calcforce(NATOMS,type,pos,boxl,tildeforce,total_energy)
+  call calcforce(NATOMS,pos,boxl,tildeforce,total_energy)
   evalf_number = evalf_number + 1
 
   ! We set the first step and move to the second
@@ -164,7 +164,7 @@ subroutine diis(lter,maxvec, newpos)
      tildepos(:) = tildepos(:) + solution(i) * previous_pos(i,:)
   end do
 
-  call calcforce(NATOMS,type,tildepos,boxl,tildeforce,total_energy)
+  call calcforce(NATOMS,tildepos,boxl,tildeforce,total_energy)
   evalf_number = evalf_number + 1
   newpos(:) = tildepos(:) + DIIS_STEP * tildeforce(:)
 
