@@ -74,7 +74,7 @@ CLEANFILES = malloc.prc time.prc PS_Check.out fldiff.report \
 	module_fft_sg.@MODULE_EXT@ MODULE_FFT_SG.@MODULE_EXT@ \
 	POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@ module_base.@MODULE_EXT@
 
-check:
+PS_Check.out: PS_Check PS_Program PS_Exercise
 	$(run_parallel) ./PS_Check 57 48 63  0 F  > PS_Check.out
 	$(run_parallel) ./PS_Check 57 48 63  1 F >> PS_Check.out
 	$(run_parallel) ./PS_Check 57 48 63 11 F >> PS_Check.out
@@ -87,5 +87,7 @@ check:
 	$(run_parallel) ./PS_Check 32 64 48  1 S >> PS_Check.out
 	$(run_parallel) ./PS_Check 32 64 48 11 S >> PS_Check.out
 	$(run_parallel) ./PS_Check 32 64 48 13 S >> PS_Check.out
+
+check: PS_Check.out
 	python $(top_srcdir)/tests/fldiff.py --mode=psolver --discrepancy=2.e-8 \
 		PS_Check.out $(top_srcdir)/tests/PSolver/PS_Check.out.ref | tee fldiff.report
