@@ -2,7 +2,7 @@
 !! FUNCTION
 !!   Routines to use bigdft as a blackbox
 !! COPYRIGHT
-!!   Copyright (C) 2005-2009 BigDFT group 
+!!   Copyright (C) 2005-2010 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -786,6 +786,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                 rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
                 quiet=PSquiet) !optional argument
 
+!!$           if (endloop .and. .false.) then
+!!$              !calculation of the atomic charges to compare wrt Mulliken
+!!$              !radii to be defined
+!!$              call atomic_charges(iproc,nproc,atoms%geocode,rxyz,radii,&
+!!$                   atoms%alat1,atoms%alat2,atoms%alat3,nelec,atoms%nat,Glr%d,&
+!!$                   hxh,hyh,hzh,n3p,i3s+i3xcsh,rhopot,C)
+!!$           end if
+
            !sum the two potentials in rhopot array
            !fill the other part, for spin, polarised
            if (in%nspin == 2) then
@@ -801,11 +809,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
            !spin up and down together with the XC part
            call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
                 rhopot(1,1,1,1),1)
-
-!!$           call PSolver(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
-!!$                ixc,hxh,hyh,hzh,&
-!!$                rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,in%nspin,&
-!!$                quiet=PSquiet)
 
         end if
 
@@ -998,7 +1001,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         if (iproc == 0) write(*,*) 'writing local_potential.pot'
         call plot_density(atoms%geocode,'local_potential.pot',iproc,nproc,&
              n1,n2,n3,n1i,n2i,n3i,n3p,&
-             atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+             atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
      else
         if (iproc == 0) write(*,*) 'writing ionic_potential.cube'
         call plot_density_cube(atoms%geocode,'ionic_potential',iproc,nproc,&
@@ -1007,7 +1010,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         if (iproc == 0) write(*,*) 'writing local_potential.cube'
         call plot_density_cube(atoms%geocode,'local_potential',iproc,nproc,&
              n1,n2,n3,n1i,n2i,n3i,n3p,&
-             in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+             in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1,1))
      endif
   end if
 
@@ -1259,14 +1262,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,pot,'pot',subname)
      
      if (nproc > 1) then
-        call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh,1),n1i*n2i*n3p,&
+        call MPI_ALLGATHERV(rhopot(1,1,1,1),n1i*n2i*n3p,&
              mpidtypd,pot(1,1,1,1),ngatherarr(0,1),ngatherarr(0,2), & 
              mpidtypd,MPI_COMM_WORLD,ierr)
         !print '(a,2f12.6)','RHOup',sum(abs(rhopot(:,:,:,1))),sum(abs(pot(:,:,:,1)))
         if(in%nspin==2) then
            !print '(a,2f12.6)','RHOdw',sum(abs(rhopot(:,:,:,2))),sum(abs(pot(:,:,:,2)))
            if (n3d /= n3p) then
-              i03=1+i3xcsh+n3p
+              i03=1+n3p
               i04=1
            else
               i03=1

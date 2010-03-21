@@ -139,6 +139,7 @@ high_level = cluster.f90 \
 	geometry.f90 \
 	davidson.f90 \
 	pdos.f90 \
+	rism.f90 \
 	vdwcorrection.f90 \
 	lanczos_interface.f90 \
 	lanczos_base.f90 \
