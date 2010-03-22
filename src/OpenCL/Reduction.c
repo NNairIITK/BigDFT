@@ -84,6 +84,43 @@ __kernel void reduction_dotKernel_d( uint n, __global const double *x, __global 
   if( i==0 )\n\
     y[get_group_id(0)] = tmp[0]+tmp[1];\n\
 }\n\
+__kernel void dotKernel_d( uint n, __global const double *x, __global double *y, __global double *z, __local double *tmp ) {\n\
+  size_t i = get_local_id(0);\n\
+  size_t g = get_group_id(0)*1024+i;\n\
+  if(g<n)\n\
+    tmp[i] = x[g]*y[g];\n\
+  else\n\
+    tmp[i] = 0.0;\n\
+  if(g+512<n)\n\
+    tmp[i+512] = x[g+512]*y[g+512];\n\
+  else\n\
+    tmp[i+512] = 0.0;\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  tmp[i] = tmp[i] + tmp[i+512];\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  if( i<256 )\n\
+    tmp[i] = tmp[i] + tmp[i+256];\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  if( i<128 )\n\
+    tmp[i] = tmp[i] + tmp[i+128];\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  if( i<64 )\n\
+    tmp[i] = tmp[i] + tmp[i+64];\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  if( i<32 )\n\
+    tmp[i] = tmp[i] + tmp[i+32];\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  if( i<16 )\n\
+    tmp[i] = tmp[i] + tmp[i+16];\n\
+  if( i<8 )\n\
+    tmp[i] = tmp[i] + tmp[i+8];\n\
+  if( i<4 )\n\
+    tmp[i] = tmp[i] + tmp[i+4];\n\
+  if( i<2 )\n\
+    tmp[i] = tmp[i] + tmp[i+2];\n\
+  if( i==0 )\n\
+    y[get_group_id(0)] = tmp[0]+tmp[1];\n\
+}\n\
 __kernel void axpyKernel_d( uint n, double alpha, __global const double *x, __global double *y) {\n\
   size_t ig = get_global_id(0);\n\
   if( ig < n)\n\
@@ -94,17 +131,48 @@ __kernel void scalKernel_d( uint n, double alpha, __global const double *x, __gl
   if( ig < n)\n\
     y[ig] = alpha * x[ig];\n\
 }\n\
+__kernel void copyKernel_d( uint n, __global const double *x, __global double *y) {\n\
+  size_t ig = get_global_id(0);\n\
+  if( ig < n)\n\
+    y[ig] = x[ig];\n\
+}\n\
 \n\
 ";
+void inline dot_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_mem *x, cl_mem *y, cl_mem *out) {
+  cl_int ciErrNum;
+  size_t block_size_i=64;
+  cl_uint i=0;
+  clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+  clSetKernelArg(kernel, i++,sizeof(*x), (void*)x);
+  clSetKernelArg(kernel, i++,sizeof(*y), (void*)y);
+  clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
+  size_t localWorkSize[] = { block_size_i };
+  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n) };
+  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue dot kernel!");
+}
 
-void inline scal_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *inout) {
+void inline copy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out) {
+  cl_int ciErrNum;
+  size_t block_size_i=64;
+  cl_uint i=0;
+  clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+  clSetKernelArg(kernel, i++,sizeof(*in), (void*)in);
+  clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
+  size_t localWorkSize[] = { block_size_i };
+  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n) };
+  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue copy kernel!");
+}
+
+void inline scal_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *out) {
   cl_int ciErrNum;
   size_t block_size_i=64;
   cl_uint i=0;
   clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
   clSetKernelArg(kernel, i++,sizeof(*alpha), (void*)alpha);
   clSetKernelArg(kernel, i++,sizeof(*in), (void*)in);
-  clSetKernelArg(kernel, i++,sizeof(*inout), (void*)inout);
+  clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
   size_t localWorkSize[] = { block_size_i };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n) };
   ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
@@ -143,6 +211,13 @@ cl_kernel reduction_kernel_d;
 cl_kernel reduction_dot_kernel_d;
 cl_kernel axpy_kernel_d;
 cl_kernel scal_kernel_d;
+cl_kernel copy_kernel_d;
+cl_kernel dot_kernel_d;
+
+void FC_FUNC_(copy_d,COPY_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out){
+  if(*n==0) return;
+  copy_generic(copy_kernel_d, command_queue, n, in, out);
+}
 
 void FC_FUNC_(scal_self_d,SCAL_SELF_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *inout){
   if(*n==0)
@@ -237,12 +312,33 @@ void FC_FUNC_(nrm2sq_d,NRM2SQ_D)(cl_command_queue *command_queue, cl_uint *ndat,
    return;
   }
   cl_uint n = *ndat;
-  cl_mem *input = in;
-  cl_mem *output = work1;
+  reduction_generic(reduction_dot_kernel_d, command_queue, &n, in, work1);
+  cl_mem *input = work1;
+  cl_mem *output = work2;
   cl_mem *tmp;
-  reduction_generic(reduction_dot_kernel_d, command_queue, &n, input, output);
-  input = work1;
-  output = work2;
+  n = shrRoundUp(1024,n)/1024;
+  if(n>1) {
+    do {
+      reduction_generic(reduction_kernel_d, command_queue, &n, input, output);
+      tmp = input;
+      input = output;
+      output = tmp;
+      n = shrRoundUp(1024,n)/1024;
+    } while(n>1);
+  }
+  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(double), out, 0, NULL, NULL);
+}
+
+void FC_FUNC_(dot_d,DOT_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *x, cl_mem *y, cl_mem *work1, cl_mem *work2, double *out) {
+  if(*ndat==0){
+   *out = 0.0;
+   return;
+  }
+  cl_uint n = *ndat;
+  dot_generic(dot_kernel_d, command_queue, &n, x, y, work1);
+  cl_mem *input=work1;
+  cl_mem *output=work2;
+  cl_mem *tmp;
   n = shrRoundUp(1024,n)/1024;
   if(n>1) {
     do {
@@ -282,6 +378,12 @@ void build_reduction_kernels(cl_context * context){
     ciErrNum = CL_SUCCESS;
     reduction_dot_kernel_d=clCreateKernel(reductionProgram,"reduction_dotKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = CL_SUCCESS;
+    copy_kernel_d=clCreateKernel(reductionProgram,"copyKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = CL_SUCCESS;
+    dot_kernel_d=clCreateKernel(reductionProgram,"dotKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
     ciErrNum = clReleaseProgram(reductionProgram);
     oclErrorCheck(ciErrNum,"Failed to release program!");
 }
@@ -291,4 +393,6 @@ void clean_reduction_kernels(){
   clReleaseKernel(reduction_dot_kernel_d);
   clReleaseKernel(axpy_kernel_d);
   clReleaseKernel(scal_kernel_d);
+  clReleaseKernel(copy_kernel_d);
+  clReleaseKernel(dot_kernel_d);
 }

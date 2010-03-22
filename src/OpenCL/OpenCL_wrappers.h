@@ -102,6 +102,8 @@ void FC_FUNC_(nrm2sq_d,NRM2SQ_D)(cl_command_queue *command_queue, cl_uint *ndat,
 void FC_FUNC_(axpy_d,AXPY_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *inout);
 void FC_FUNC_(scal_d,scal_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *out);
 void FC_FUNC_(scal_self_d,scal_self_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *inout);
+void FC_FUNC_(dot_d,DOT_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *x, cl_mem *y, cl_mem *work1, cl_mem *work2, double *out);
+
 
 void FC_FUNC_(uncompress_d,UNCOMPRESS_D)(cl_command_queue *command_queue, cl_uint *dimensions,
                                        cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
@@ -136,4 +138,16 @@ void FC_FUNC_(ocl_fulllocham_generic,OCL_FULLLOCHAM_GENERIC)(cl_command_queue *c
                                           cl_mem *work, cl_mem *kinres,
                                           double *epot,double *ekinpot);
 
+void FC_FUNC_(ocl_preconditioner,OCL_PRECONDITIONER)(cl_command_queue *command_queue,
+                                          cl_uint *dimensions,
+                                          double *h,
+                                          double *c,
+                                          cl_uint *ncong,
+                                          cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
+                                          cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                          cl_mem *psi_c, cl_mem *psi_f,
+                                          cl_mem *psi_c_r, cl_mem *psi_f_r,
+                                          cl_mem *psi_c_b, cl_mem *psi_f_b,
+                                          cl_mem *psi_c_d, cl_mem *psi_f_d,
+                                          cl_mem *work1, cl_mem *work2, cl_mem *work3, cl_mem *work4);
 #endif
