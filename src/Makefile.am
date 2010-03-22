@@ -54,13 +54,12 @@ global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules convolutions lib $(sub_dirs_ps) profiling $(sub_dirs_cuda) art
+SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) art
 
 EXTRA_DIST = \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
-	lib \
 	NEB_driver.sh
 
 AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver @LIBABINIT_INCLUDE@ \

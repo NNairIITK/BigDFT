@@ -20,7 +20,7 @@ subroutine analyse_shrink(n1,n2,n3,ww,y,x)
   nt=(2*n1+2)*(2*n2+2)
   call  ana_rot_shrink(n3,nt,y,x)
 
-end subroutine analyse_shrink
+END SUBROUTINE analyse_shrink
 
 subroutine synthese_grow(n1,n2,n3,ww,x,y)
   ! A synthesis wavelet transformation where the size of the data is allowed to grow
@@ -44,7 +44,7 @@ subroutine synthese_grow(n1,n2,n3,ww,x,y)
   nt=(2*n1+16)*(2*n2+16)
   call  syn_rot_grow(n3,nt,ww,y)
 
-end subroutine synthese_grow
+END SUBROUTINE synthese_grow
 
 
 
@@ -91,7 +91,7 @@ subroutine ana_rot_shrink(n,ndat,x,y)
      enddo
   enddo
 
-end subroutine ana_rot_shrink
+END SUBROUTINE ana_rot_shrink
 
 
 subroutine syn_rot_grow(n,ndat,x,y)
@@ -153,7 +153,7 @@ subroutine syn_rot_grow(n,ndat,x,y)
 
   enddo
 
-end subroutine syn_rot_grow
+END SUBROUTINE syn_rot_grow
 
 
 
@@ -200,7 +200,7 @@ subroutine convrot_grow(n1,ndat,x,y)
      enddo
   enddo
 
-end subroutine convrot_grow
+END SUBROUTINE convrot_grow
 
 ! Simple non-optimized version of the major convolution routines
 
@@ -247,5 +247,5 @@ subroutine convrot_shrink(n1,ndat,x,y)
      enddo
   enddo
 
-end subroutine convrot_shrink
+END SUBROUTINE convrot_shrink
 

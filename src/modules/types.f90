@@ -403,7 +403,7 @@ contains
     call memocc(i_stat,comms%ndspld,'ndspld',subname)
     allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
     call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
-  end subroutine allocate_comms
+  END SUBROUTINE allocate_comms
 !!***
 
 
@@ -435,7 +435,7 @@ contains
     i_all=-product(shape(comms%ndsplt))*kind(comms%ndsplt)
     deallocate(comms%ndsplt,stat=i_stat)
     call memocc(i_stat,i_all,'ndsplt',subname)
-  end subroutine deallocate_comms
+  END SUBROUTINE deallocate_comms
 !!***
 
 
@@ -458,7 +458,7 @@ contains
     deallocate(in%Gabs_coeffs, stat=i_stat)
     call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
 
-  end subroutine deallocate_abscalc_input
+  END SUBROUTINE deallocate_abscalc_input
 !!***
 
 
@@ -498,7 +498,7 @@ subroutine deallocate_orbs(orbs,subname)
     deallocate(orbs%ikptproc,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%ikptproc',subname)
 
-end subroutine deallocate_orbs
+END SUBROUTINE deallocate_orbs
 !!***
 
 
@@ -537,7 +537,7 @@ end subroutine deallocate_orbs
     nullify(rst%gbd%psiat)
     nullify(rst%gbd%rxyz)
 
-  end subroutine init_restart_objects
+  END SUBROUTINE init_restart_objects
 !!***
 
 
@@ -583,7 +583,7 @@ end subroutine deallocate_orbs
        call memocc(i_stat,i_all,'gaucoeffs',subname)
     end if
 
-  end subroutine free_restart_objects
+  END SUBROUTINE free_restart_objects
 !!***
 
 
@@ -604,7 +604,7 @@ end subroutine deallocate_orbs
     call memocc(i_stat,wfd%keyg,'keyg',subname)
     allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keyv,'keyv',subname)
-  end subroutine allocate_wfd
+  END SUBROUTINE allocate_wfd
 !!***
 
 
@@ -631,7 +631,7 @@ end subroutine deallocate_orbs
        deallocate(wfd%keyv,stat=i_stat)
        call memocc(i_stat,i_all,'wfd%keyv',subname)
     end if
-  end subroutine deallocate_wfd
+  END SUBROUTINE deallocate_wfd
 !!***
 
 
@@ -666,7 +666,7 @@ end subroutine deallocate_orbs
     deallocate(G%xp,stat=i_stat)
     call memocc(i_stat,i_all,'xp',subname)
 
-  end subroutine deallocate_gwf
+  END SUBROUTINE deallocate_gwf
 !!***
 
 
@@ -738,7 +738,7 @@ end subroutine deallocate_orbs
     deallocate(bounds%ibyyzz_r,stat=i_stat)
     call memocc(i_stat,i_all,'bounds%ibyyzz_r',subname)
 
-  end subroutine deallocate_bounds
+  END SUBROUTINE deallocate_bounds
 
 end module module_types
 !!***

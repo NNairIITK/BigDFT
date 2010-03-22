@@ -1,7 +1,7 @@
 !!****f* BigDFT/IonicEnergyandForces
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 (LG)
+!!    Copyright (C) 2007-2010 (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -30,13 +30,13 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   integer :: iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
   integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
   real(gp) :: ucvol,rloc,twopitothreehalf,pi,atint,shortlength,charge,eself,rx,ry,rz
-  real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff,zero
+  real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
   real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod,evacancy
   real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart
   !real(gp) :: Mz,cmassy
   real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
   !other arrays for the ewald treatment
-  real(gp), dimension(:,:), allocatable :: fewald,xred,gion
+  real(gp), dimension(:,:), allocatable :: fewald,xred
 
   pi=4.d0*datan(1.d0)
 
@@ -462,7 +462,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
         close(unit=22)
      end if
   end if
-end subroutine IonicEnergyandForces
+END SUBROUTINE IonicEnergyandForces
 !!***
 
 
@@ -497,7 +497,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz,offset
   real(wp) :: maxdiff
-  real(gp) :: ehart,eexcu,vexcu
+  real(gp) :: ehart
   real(dp), dimension(2) :: charges_mpi
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(dp), dimension(:), allocatable :: potion_corr
@@ -1053,7 +1053,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
   call timing(iproc,'CrtLocPot     ','OF')
 
-end subroutine createIonicPotential
+END SUBROUTINE createIonicPotential
 !!***
 
 !!****f* BigDFT/sum_erfcr
@@ -1082,7 +1082,7 @@ subroutine ind_positions(periodic,i,n,j,go)
      end if
   end if
 
-end subroutine ind_positions
+END SUBROUTINE ind_positions
 !!***
 
 
@@ -1133,7 +1133,7 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
 
   end do
 
-end subroutine sum_erfcr
+END SUBROUTINE sum_erfcr
 !!***
 
 
@@ -1154,7 +1154,7 @@ subroutine ext_buffers(periodic,nl,nr)
      nl=14
      nr=15
   end if
-end subroutine ext_buffers
+END SUBROUTINE ext_buffers
 !!***
 
 

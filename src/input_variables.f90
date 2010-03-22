@@ -52,7 +52,7 @@ subroutine print_logo()
        '------------------------------------------------------------------------------------'
   write(*,'(1x,a)')&
        '                                  The Journal of Chemical Physics 129, 014109 (2008)'
-end subroutine print_logo
+END SUBROUTINE print_logo
 !!***
 
 !!****f* BigDFT/read_input_variables
@@ -128,7 +128,7 @@ subroutine read_input_variables(iproc,posinp, &
      stop 'GPU calculation allowed only in periodic boundary conditions'
   end if
 
-end subroutine read_input_variables
+END SUBROUTINE read_input_variables
 !!***
 
 subroutine default_input_variables(inputs)
@@ -147,7 +147,7 @@ subroutine default_input_variables(inputs)
   call frequencies_input_variables_default(inputs)
   ! Default values for geopt.
   call geopt_input_variables_default(inputs)  
-end subroutine default_input_variables
+END SUBROUTINE default_input_variables
 
 !!****f* BigDFT/dft_input_variables
 !! FUNCTION
@@ -313,9 +313,9 @@ contains
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
-  end subroutine check
+  END SUBROUTINE check
 
-end subroutine dft_input_variables
+END SUBROUTINE dft_input_variables
 !!***
 
 
@@ -341,7 +341,7 @@ subroutine geopt_input_variables_default(in)
   in%ionmov = -1
   nullify(in%qmass)
 
-end subroutine geopt_input_variables_default
+END SUBROUTINE geopt_input_variables_default
 !!***
 
 
@@ -439,9 +439,9 @@ contains
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
-  end subroutine check
+  END SUBROUTINE check
 
-end subroutine geopt_input_variables
+END SUBROUTINE geopt_input_variables
 !!***
 
 subroutine update_symmetries(in, atoms, rxyz)
@@ -514,7 +514,7 @@ subroutine update_symmetries(in, atoms, rxyz)
      end if
      atoms%symObj = -1
   end if
-end subroutine update_symmetries
+END SUBROUTINE update_symmetries
 
 !!****f* BigDFT/kpt_input_variables
 !! FUNCTION
@@ -634,9 +634,9 @@ contains
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
-  end subroutine check
+  END SUBROUTINE check
 
-end subroutine kpt_input_variables
+END SUBROUTINE kpt_input_variables
 !!***
 
 
@@ -719,9 +719,9 @@ contains
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
-  end subroutine check
+  END SUBROUTINE check
 
-end subroutine perf_input_variables
+END SUBROUTINE perf_input_variables
 !!***
 
 
@@ -759,7 +759,7 @@ subroutine free_input_variables(in)
 !!$     call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
 !!$  end if
 
-end subroutine free_input_variables
+END SUBROUTINE free_input_variables
 !!***
 
 
@@ -778,7 +778,7 @@ subroutine abscalc_input_variables_default(in)
   in%potshortcut=0
   in%iat_absorber=0
 
-end subroutine abscalc_input_variables_default
+END SUBROUTINE abscalc_input_variables_default
 !!***
 
 
@@ -854,9 +854,9 @@ contains
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
-  end subroutine check
+  END SUBROUTINE check
 
-end subroutine abscalc_input_variables
+END SUBROUTINE abscalc_input_variables
 !!***
 
 
@@ -879,7 +879,7 @@ subroutine frequencies_input_variables_default(inputs)
   inputs%freq_order=2
   inputs%freq_method=1
 
-end subroutine frequencies_input_variables_default
+END SUBROUTINE frequencies_input_variables_default
 !!***
 
 
@@ -950,9 +950,9 @@ contains
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
-  end subroutine check
+  END SUBROUTINE check
 
-end subroutine frequencies_input_variables
+END SUBROUTINE frequencies_input_variables
 !!***
 
 !!****f* BigDFT/read_atomic_file
@@ -1039,7 +1039,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   ! We delay the calculation of the symmetries.
   atoms%symObj = -1
 
-end subroutine read_atomic_file
+END SUBROUTINE read_atomic_file
 !!***
 
 
@@ -1077,7 +1077,7 @@ subroutine deallocate_atoms(atoms,subname)
   if (atoms%symObj >= 0) then
      call ab6_symmetry_free(atoms%symObj)
   end if
-end subroutine deallocate_atoms
+END SUBROUTINE deallocate_atoms
 !!***
 
 
@@ -1113,7 +1113,7 @@ subroutine deallocate_atoms_scf(atoms,subname)
   i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
   deallocate(atoms%npspcode,stat=i_stat)
   call memocc(i_stat,i_all,'npspcode',subname)
-end subroutine deallocate_atoms_scf
+END SUBROUTINE deallocate_atoms_scf
 !!***
 
 
@@ -1306,7 +1306,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   allocate(atoms%atomnames(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%atomnames,'atoms%atomnames',subname)
   atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
-end subroutine read_atomic_positions
+END SUBROUTINE read_atomic_positions
 !!***
 
 
@@ -1365,7 +1365,7 @@ subroutine check_atoms_positions(iproc,atoms,rxyz)
      end if
      stop 'check_atoms_positions'
   end if
-end subroutine check_atoms_positions
+END SUBROUTINE check_atoms_positions
 !!***
 
 
@@ -1405,7 +1405,7 @@ subroutine find_extra_info(line,extra)
      i=i+1
   end do find_space
 
-end subroutine find_extra_info
+END SUBROUTINE find_extra_info
 !!***
 
 
@@ -1493,9 +1493,9 @@ contains
            ': after 4th column you can put the input polarisation(s) or the frzchain: f,fxz,fy'
    !end if
    stop
- end subroutine error
+ END SUBROUTINE error
   
-end subroutine parse_extra_info
+END SUBROUTINE parse_extra_info
 !!***
 
 
@@ -1719,7 +1719,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   allocate(atoms%atomnames(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%atomnames,'atoms%atomnames',subname)
   atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
-end subroutine read_ascii_positions
+END SUBROUTINE read_ascii_positions
 !!***
 
 
@@ -1745,7 +1745,7 @@ subroutine charge_and_spol(natpol,nchrg,nspol)
 
   nspol=natpol-1000*nchrg-nsgn*100
 
-end subroutine charge_and_spol
+END SUBROUTINE charge_and_spol
 !!***
 
 !!****f* BigDFT/write_atomic_file
@@ -1770,7 +1770,7 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
      write(*,*) "Error, unknown file format."
      stop
   end if
-end subroutine write_atomic_file
+END SUBROUTINE write_atomic_file
 !!***
 
 
@@ -1841,7 +1841,7 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   enddo
   close(unit=9)
 
-end subroutine wtxyz
+END SUBROUTINE wtxyz
 !!***
 
 
@@ -1909,7 +1909,7 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   end do
   close(unit=9)
 
-end subroutine wtascii
+END SUBROUTINE wtascii
 !!***
 
 
@@ -1942,7 +1942,7 @@ subroutine write_extra_info(extra,natpol,ifrztyp)
      write(extra,'(2x,a4)') ''
   end if
   
-end subroutine write_extra_info
+END SUBROUTINE write_extra_info
 !!***
 
 
@@ -1966,7 +1966,7 @@ subroutine frozen_itof(ifrztyp,frzchain)
      frzchain=' fxz'
   end if
         
-end subroutine frozen_itof
+END SUBROUTINE frozen_itof
 !!***
 
 
@@ -1984,7 +1984,7 @@ subroutine valid_frzchain(frzchain,go)
        trim(frzchain) == 'fy' .or. &
        trim(frzchain) == 'fxz'
   
-end subroutine valid_frzchain
+END SUBROUTINE valid_frzchain
 !!***
 
 
@@ -2008,7 +2008,7 @@ subroutine frozen_ftoi(frzchain,ifrztyp)
      ifrztyp = 3
   end if
         
-end subroutine frozen_ftoi
+END SUBROUTINE frozen_ftoi
 !!***
 
 
@@ -2032,7 +2032,7 @@ subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
      alphai=0.0_gp
   end if
  
-end subroutine frozen_alpha
+END SUBROUTINE frozen_alpha
 !!***
 
 !!****f* BigDFT/print_general_parameters
@@ -2197,7 +2197,7 @@ subroutine print_general_parameters(in,atoms)
         write(*,*) "TODO: pretty printing!", in%bmass, in%vmass
      end if
   end if
-end subroutine print_general_parameters
+END SUBROUTINE print_general_parameters
 !!***
 
 !!****f* BigDFT/print_input_parameters
@@ -2238,7 +2238,7 @@ subroutine print_dft_parameters(in,atoms)
           '  Box Sizes (Bohr) =',atoms%alat1,atoms%alat2,atoms%alat3
 
   end if
-end subroutine print_dft_parameters
+END SUBROUTINE print_dft_parameters
 !!***
 
 !!****f* BigDFT/atomic_axpy
@@ -2283,7 +2283,7 @@ subroutine atomic_axpy(atoms,txyz,alpha,sxyz,rxyz)
      end if
   end do
 
-end subroutine atomic_axpy
+END SUBROUTINE atomic_axpy
 !!***
 
 
@@ -2319,7 +2319,7 @@ subroutine atomic_axpy_forces(atoms,txyz,alpha,sxyz,fxyz)
      fxyz(3,iat)=txyz(3,iat)+alphaz*sxyz(3,iat)
   end do
   
-end subroutine atomic_axpy_forces
+END SUBROUTINE atomic_axpy_forces
 !!***
 
 
@@ -2353,7 +2353,7 @@ subroutine atomic_dot(atoms,x,y,scpr)
      scpr=scpr+scpr1+scpr2+scpr3
   end do
   
-end subroutine atomic_dot
+END SUBROUTINE atomic_dot
 !!***
 
 
@@ -2388,7 +2388,7 @@ subroutine atomic_gemv(atoms,m,alpha,A,x,beta,y,z)
      z(i)=alpha*mv+beta*y(i)
   end do
 
-end subroutine atomic_gemv
+END SUBROUTINE atomic_gemv
 !!***
 
 
@@ -2452,5 +2452,5 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
      r=t+alphai
   end if
 
-end subroutine atomic_coordinate_axpy
+END SUBROUTINE atomic_coordinate_axpy
 !!***

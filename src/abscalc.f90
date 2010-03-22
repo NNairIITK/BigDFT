@@ -194,7 +194,7 @@ end program abscalc_main
        type(orbitals_data), intent(inout) :: orbs
        real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
        real(wp), dimension(:), pointer :: psi
-     end subroutine abscalc 
+     END SUBROUTINE abscalc 
   end interface
 
   !put a barrier for all the processes
@@ -281,7 +281,7 @@ end program abscalc_main
   !put a barrier for all the processes
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
-end subroutine call_abscalc
+END SUBROUTINE call_abscalc
 !!***
 
 
@@ -1164,7 +1164,7 @@ contains
     if (iproc == 0) &
          write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
 
-  end subroutine deallocate_before_exiting
+  END SUBROUTINE deallocate_before_exiting
 
 END SUBROUTINE abscalc
 !!***

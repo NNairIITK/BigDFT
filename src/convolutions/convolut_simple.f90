@@ -79,7 +79,7 @@ subroutine ana_rot_shrink(n,ndat,x,y)
   enddo
 
   return
-end subroutine ana_rot_shrink
+END SUBROUTINE ana_rot_shrink
 
 
 subroutine syn_rot_grow(n,ndat,x,y)
@@ -136,7 +136,7 @@ subroutine syn_rot_grow(n,ndat,x,y)
   enddo
 
   return
-end subroutine syn_rot_grow
+END SUBROUTINE syn_rot_grow
 
 
 ! Simple non-optimized version of the major convolution routines
@@ -182,7 +182,7 @@ subroutine convrot_grow(n1,ndat,x,y)
   enddo
 
   return
-end subroutine convrot_grow
+END SUBROUTINE convrot_grow
 
 ! Simple non-optimized version of the major convolution routines
 subroutine convrot_shrink(n1,ndat,x,y)
@@ -225,5 +225,5 @@ subroutine convrot_shrink(n1,ndat,x,y)
   enddo
 
   return
-end subroutine convrot_shrink
+END SUBROUTINE convrot_shrink
 

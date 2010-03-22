@@ -3,7 +3,7 @@
 !!    Performs a check of the Poisson Solver suite by running with different regimes
 !!    and for different choices of the XC functionals
 !! COPYRIGHT
-!!    Copyright (C) 2002-2009 BigDFT group 
+!!    Copyright (C) 2002-2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -215,7 +215,7 @@ contains
     character(len=*), parameter :: subname='compare_cplx_calculations'
     character(len=20) :: message
     integer :: n3d,n3p,n3pi,i3xcsh,i3s,i3sd,i3,i2,i1,istden,istpot,isp,i
-    real(kind=8) :: eexcu,vexcu,ehartree,offset
+    real(kind=8) :: ehartree,offset
     real(kind=8), dimension(:,:,:,:), allocatable :: rhopot
 
     offset=0.d0

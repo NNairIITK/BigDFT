@@ -2,7 +2,7 @@
 !! FUNCTION
 !!   Routines to use bigdft as a blackbox
 !! COPYRIGHT
-!!   Copyright (C) 2005-2009 BigDFT group 
+!!   Copyright (C) 2005-2010 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -47,7 +47,7 @@
        real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
        real(wp), dimension(:), pointer :: psi
        real(wp), dimension(:,:), pointer :: gaucoeffs
-     end subroutine cluster 
+     END SUBROUTINE cluster 
   end interface
 
   !put a barrier for all the processes
@@ -129,7 +129,7 @@
   !put a barrier for all the processes
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
-end subroutine call_bigdft
+END SUBROUTINE call_bigdft
 !!***
 
 
@@ -195,7 +195,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(gp) :: peakmem,energy_old,sumz,evsum,sumx,sumy
   real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,alpha,gnrm
-  real(gp) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min,psoffset
+  real(gp) :: scprsum,energybs,tt,tel,ehart_fake,energy_min,psoffset
   real(kind=8) :: ttsum
   real(gp) :: edisp ! Dispersion energy
   type(wavefunctions_descriptors) :: wfd_old
@@ -1562,7 +1562,7 @@ contains
     if (iproc == 0) &
          write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
 
-  end subroutine deallocate_before_exiting
+  END SUBROUTINE deallocate_before_exiting
 
 END SUBROUTINE cluster
 !!***

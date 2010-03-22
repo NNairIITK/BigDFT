@@ -32,7 +32,7 @@ subroutine synthese_per_old(nd1,nd2,nd3,x,y,ww)
   nt=(nd1+1)*(nd2+1)
   call  syn_rot_per_old(nd3,nt,ww,y)
 
-end subroutine synthese_per_old
+END SUBROUTINE synthese_per_old
 !!***
 
 
@@ -62,7 +62,7 @@ subroutine synthese_per_old_self(nd1,nd2,nd3,x,y,ww)
   nt=(nd1+1)*(nd2+1)
   call  syn_rot_per_old(nd3,nt,ww,x)
 
-end subroutine synthese_per_old_self
+END SUBROUTINE synthese_per_old_self
 !!***
 
 
@@ -92,7 +92,7 @@ subroutine analyse_per_old(nd1,nd2,nd3,y,x,ww)
   nt=(nd1+1)*(nd2+1)
   call  ana_rot_per_old(nd3,nt,ww,x)
 
-end subroutine analyse_per_old
+END SUBROUTINE analyse_per_old
 !!***
 
 
@@ -122,7 +122,7 @@ subroutine analyse_per_old_self(nd1,nd2,nd3,y,x,ww)
   nt=(nd1+1)*(nd2+1)
   call  ana_rot_per_old(nd3,nt,ww,y)
 
-end subroutine analyse_per_old_self
+END SUBROUTINE analyse_per_old_self
 !!***
 
 
@@ -218,7 +218,7 @@ subroutine syn_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
 
   endif
 
-end subroutine syn_repeated_per
+END SUBROUTINE syn_repeated_per
 !!***
 
 
@@ -308,5 +308,5 @@ subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
      call memocc(i_stat,i_all,'yy',subname)
   endif
 
-end subroutine ana_repeated_per
+END SUBROUTINE ana_repeated_per
 !!***

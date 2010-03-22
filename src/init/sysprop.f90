@@ -26,7 +26,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
 
-  call read_system_variables('input.occup',iproc,nproc,in,atoms,radii_cf,nelec,&
+  call read_system_variables('input.occup',iproc,in,atoms,radii_cf,nelec,&
        norb,norbu,norbd,iunit)
 
   if(in%nspin==4) then
@@ -58,12 +58,13 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
   !assign to each k-point the same occupation number
   do ikpts=1,orbs%nkpts
-     call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
+     call input_occup(iproc,iunit,nelec,norb,norbu,in%nspin,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
 
-end subroutine system_properties
+END SUBROUTINE system_properties
 !!***
+
 
 !!****f* BigDFT/calculate_rhocore
 !! FUNCTION
@@ -151,11 +152,9 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
      !No NLCC needed, nullify the pointer 
      nullify(rhocore)
   end if
-  
 
-end subroutine calculate_rhocore
-
-
+END SUBROUTINE calculate_rhocore
+!!***
 
 
 !!****f* BigDFT/read_system_variables
@@ -166,7 +165,7 @@ end subroutine calculate_rhocore
 !!   The pointer in atoms structure have to be associated or nullified.
 !! SOURCE
 !!
-subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
+subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      nelec,norb,norbu,norbd,iunit)
   use module_base
   use module_types
@@ -174,7 +173,7 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
   implicit none
   character (len=*), intent(in) :: fileocc
   type(input_variables), intent(in) :: in
-  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: iproc
   type(atoms_data), intent(inout) :: atoms
   integer, intent(out) :: nelec,norb,norbu,norbd,iunit
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
@@ -450,7 +449,7 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
      !if (ichg /=0) then
      !   call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
      !        neleconf,atoms%iasctype(ityp),mxpl,mxchg,atoms%amu(ityp))
-     !   call correct_semicore(atoms%atomnames(ityp),6,3,ichg,neleconf,nsccode)
+     !   call correct_semicore(6,3,ichg,neleconf,nsccode)
      !end if
      !end of part to be removed
      if (nsccode/= 0) atoms%natsc=atoms%natsc+1
@@ -604,7 +603,7 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
 !!!  norbp=int((1.d0-eps_mach*tt) + tt)
 !!!  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
 
-end subroutine read_system_variables
+END SUBROUTINE read_system_variables
 !!***
 
 
@@ -711,7 +710,7 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
            end if
            !correct the electronic configuration in case there is a charge
            !if (ichg /=0) then
-           call correct_semicore(at%atomnames(ityp),nmax,lmax-1,ichg,&
+           call correct_semicore(nmax,lmax-1,ichg,&
                 neleconf,eleconf,at%iasctype(iat))
            !end if
 
@@ -747,7 +746,7 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
 
   if (exists) close(unit=91)
 
-end subroutine atomic_occupation_numbers
+END SUBROUTINE atomic_occupation_numbers
 !!***
 
 
@@ -875,7 +874,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
 
-end subroutine orbitals_descriptors
+END SUBROUTINE orbitals_descriptors
 !!***
 
 
@@ -885,11 +884,11 @@ end subroutine orbitals_descriptors
 !!    if iunit /=0 this means that the file 'occup.dat' does exist and it opens
 !! SOURCE
 !!
-subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinsgn)
+subroutine input_occup(iproc,iunit,nelec,norb,norbu,nspin,occup,spinsgn)
   use module_base
   implicit none
 ! Arguments
-  integer, intent(in) :: nelec,nspin,mpol,iproc,norb,norbu,norbd,iunit
+  integer, intent(in) :: nelec,nspin,iproc,norb,norbu,iunit
   real(gp), dimension(norb), intent(out) :: occup,spinsgn
 ! Local variables
   integer :: iorb,nt,ne,it,ierror,iorb1,i
@@ -1028,5 +1027,5 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
      end if
   endif
 
-end subroutine input_occup
+END SUBROUTINE input_occup
 !!***

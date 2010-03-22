@@ -628,7 +628,7 @@ contains
     vdwparams%neff(17)=5.10_GP
     vdwparams%neff(35)=6.00_GP
 
-  end subroutine vdwcorrection_initializeparams
+  END SUBROUTINE vdwcorrection_initializeparams
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -705,7 +705,7 @@ contains
        end if
     end if
 
-  end subroutine vdwcorrection_calculate_energy
+  END SUBROUTINE vdwcorrection_calculate_energy
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -795,7 +795,7 @@ contains
     end if
 
 
-  end subroutine vdwcorrection_calculate_forces
+  END SUBROUTINE vdwcorrection_calculate_forces
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -845,7 +845,7 @@ contains
             write(*,'(a,i2)') 'WARNING: No optimised dispersion parameters &
             &available for ixc=', in%ixc
     end if
-  end subroutine vdwcorrection_warnings
+  END SUBROUTINE vdwcorrection_warnings
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

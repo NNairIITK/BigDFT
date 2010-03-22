@@ -202,7 +202,7 @@ subroutine count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occu
      end do
   end do
 
-end subroutine count_atomic_shells
+END SUBROUTINE count_atomic_shells
 !!***
 
 
@@ -807,7 +807,7 @@ subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
      psiatn(i)=psiat(i)*tt
   enddo
 
-end subroutine atomkin
+END SUBROUTINE atomkin
 !!***
 
 
@@ -1793,7 +1793,7 @@ end function gamma_restricted
 !!
 !! SOURCE
 !!
-!  call psitospi(iproc,nproc,norbe,norbep,norbsc,&
+!  call psitospi0(iproc,nproc,norbe,norbep,norbsc,&
 !       wfd%nvctr_c,wfd%nvctr_f,nspin,spinsgne,psi)
 subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,&
      & nvctr_c,nvctr_f,nspin,spinsgne,psi)
@@ -1975,7 +1975,7 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
         end if
      end do
   end do
-end subroutine at_occnums
+END SUBROUTINE at_occnums
 !!***
 
 
@@ -2070,7 +2070,7 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
 
   write(*,'(2x,a,1x,a,1x,a)',advance='no')' Elec. Configuration:',trim(string),'...'
 
-end subroutine print_eleconf
+END SUBROUTINE print_eleconf
 !!***
 
 !!****f* BigDFT/write_fraction_string
@@ -2110,7 +2110,7 @@ subroutine write_fraction_string(l,occ,string,nstring)
      write(string,'(1x,f4.2)')occ
   end if
 
-end subroutine write_fraction_string
+END SUBROUTINE write_fraction_string
 !!***
 
 
@@ -2141,7 +2141,7 @@ subroutine read_fraction_string(string,occ,ierror)
   end if
   !Value by defaut
   if (ierror /= 0) occ = huge(1_gp)
-end subroutine read_fraction_string
+END SUBROUTINE read_fraction_string
 !!***
 
 
@@ -2172,7 +2172,7 @@ subroutine read_fraction_string_old(l,string,occ)
   else
      read(string,*)occ
   end if
-end subroutine read_fraction_string_old
+END SUBROUTINE read_fraction_string_old
 !!***
 
 
@@ -2275,5 +2275,5 @@ subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
      end do
   end do
 
-end subroutine read_eleconf
+END SUBROUTINE read_eleconf
 !!***

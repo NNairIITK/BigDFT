@@ -568,7 +568,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
   deallocate(txyz,stat=i_stat)
   call memocc(i_stat,i_all,'txyz',subname)
 
-end subroutine optimise_volume
+END SUBROUTINE optimise_volume
 !!***
 
 !!****f* BigDFT/shift_periodic_directions
@@ -678,7 +678,7 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
   deallocate(txyz,stat=i_stat)
   call memocc(i_stat,i_all,'txyz',subname)
 
-end subroutine shift_periodic_directions
+END SUBROUTINE shift_periodic_directions
 !!***
 
 subroutine calc_vol(geocode,nat,rxyz,vol)
@@ -720,7 +720,7 @@ subroutine calc_vol(geocode,nat,rxyz,vol)
      vol=(cxmax-cxmin)*(czmax-czmin)
   end if
 
-end subroutine calc_vol
+END SUBROUTINE calc_vol
 
 
 subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
@@ -1073,7 +1073,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   write(*,'(1x,a,5(1x,f7.3))')'Ratios:',Rden,Rham,Rgemm,Rsyrk,Rprec
   
-end subroutine compare_cpu_gpu_hamiltonian
+END SUBROUTINE compare_cpu_gpu_hamiltonian
 
 
 subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
@@ -1118,7 +1118,7 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
   end if
 
 
-end subroutine compare_data_and_gflops
+END SUBROUTINE compare_data_and_gflops
 
 !!****f* BigDFT/read_input_variables_old
 !! FUNCTION
@@ -1309,9 +1309,9 @@ contains
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
-  end subroutine check
+  END SUBROUTINE check
 
-end subroutine read_input_variables_old
+END SUBROUTINE read_input_variables_old
 !!***
 
 
@@ -1412,5 +1412,5 @@ subroutine dft_input_converter(in)
   write(1,*) in%disableSym, trim(line)
    
   close(unit=1)
-end subroutine dft_input_converter
+END SUBROUTINE dft_input_converter
 !!***

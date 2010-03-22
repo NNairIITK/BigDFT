@@ -101,7 +101,7 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   deallocate(fourISFz,stat=i_stat)
   call memocc(i_stat,i_all,'fourISFz',subname)
 
-end subroutine Periodic_Kernel
+END SUBROUTINE Periodic_Kernel
 !!***
 
 
@@ -157,7 +157,7 @@ subroutine fourtrans_isf(n,ftisf)
      end do loop_dyadic
   end do loop_points
 
-end subroutine fourtrans_isf
+END SUBROUTINE fourtrans_isf
 !!***
 
 
@@ -186,7 +186,7 @@ subroutine fourtrans(p,htp)
   !this is the value divided by two
   htp=0.5_dp+htp
 
-end subroutine fourtrans
+END SUBROUTINE fourtrans
 !!***
 
 
@@ -597,7 +597,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   deallocate(y_scf,stat=i_stat)
   call memocc(i_stat,i_all,'y_scf',subname)
 
-end subroutine Surfaces_Kernel
+END SUBROUTINE Surfaces_Kernel
 !!***
 
 
@@ -740,7 +740,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   deallocate(green1,stat=i_stat)
   call memocc(i_stat,i_all,'green1',subname)
 
-end subroutine calculates_green_opt
+END SUBROUTINE calculates_green_opt
 !!***
 
 
@@ -834,7 +834,7 @@ subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
      !print *,ikern,izero,n_scf,gltmp,grtmp,gleft,gright,x0,x1,green(ikern)
   end do
 
-end subroutine calculates_green_opt_muzero
+END SUBROUTINE calculates_green_opt_muzero
 !!***
 
 
@@ -859,7 +859,7 @@ subroutine indices(nimag,nelem,intrn,extrn,nindex)
   end if
   !complete index to be assigned
   nindex=extrn+nelem*(i-1)
-end subroutine indices
+END SUBROUTINE indices
 !!***
 
 
@@ -1074,7 +1074,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 !!$ deallocate(y_scf,stat=i_stat)
 !!$ call memocc(i_stat,i_all,'y_scf',subname)
 
-end subroutine Free_Kernel
+END SUBROUTINE Free_Kernel
 !!***
 
 subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,fwork,fftwork,kffts)
@@ -1145,7 +1145,7 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
         !write(17+idir-1,'(1pe24.17)')kffts(:,idir)
      end do
   end if
-end subroutine gauconv_ffts
+END SUBROUTINE gauconv_ffts
 
 
 !here alpha correspondes to sqrtalpha in mathematica
@@ -1297,7 +1297,7 @@ subroutine analytic_integral(alpha,ntot,m,fwork)
      fwork(jz)=0.0_dp
   end do
  
-end subroutine analytic_integral
+END SUBROUTINE analytic_integral
 
 
 subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,dx,n_range,n_scf,x_scf,y_scf,kernel_scf,work)
@@ -1350,7 +1350,7 @@ subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,dx,n_range,n_scf,x_scf,y_scf,ke
   !Start the iteration to go from p0gauss to pgauss
   call scf_recursion(itype_scf,n_iter,n_range,kernel_scf,work)
   
-end subroutine gauss_conv_scf
+END SUBROUTINE gauss_conv_scf
 
 
 subroutine inserthalf(n1,n3,lot,nfft,i1,zf,zw)
@@ -1374,7 +1374,7 @@ subroutine inserthalf(n1,n3,lot,nfft,i1,zf,zw)
      end do
   end do
 
-end subroutine inserthalf
+END SUBROUTINE inserthalf
 
 
 !!****f* BigDFT/kernelfft
@@ -1677,7 +1677,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
      call memocc(i_stat,i_all,'zmpi1',subname)
   end if
 
-end subroutine kernelfft
+END SUBROUTINE kernelfft
 !!***
 
 
@@ -1696,7 +1696,7 @@ subroutine realcopy(lot,nfft,n2,nk1,nk2,zin,zout)
      end do
   end do
 
-end subroutine realcopy
+END SUBROUTINE realcopy
 
 
 subroutine switch(nfft,n2,lot,n1,lzt,zt,zw)
@@ -1715,7 +1715,7 @@ subroutine switch(nfft,n2,lot,n1,lzt,zt,zw)
      end do
   end do
 
-end subroutine switch
+END SUBROUTINE switch
 
 
 subroutine mpiswitch(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw)
@@ -1744,7 +1744,7 @@ subroutine mpiswitch(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw)
      J2st=1
   end do
 
-end subroutine mpiswitch
+END SUBROUTINE mpiswitch
 
 
 !the conversion from d0 to dp type should be finished
@@ -1943,7 +1943,7 @@ subroutine gequad(p,w,urange,drange,acc)
   drange=1d-08
   acc   =1d-08
 !
-end subroutine gequad
+END SUBROUTINE gequad
 
 
 subroutine fill_halfft(nreal,n1,n_range,nfft,kernelreal,halfft)
@@ -1970,7 +1970,7 @@ subroutine fill_halfft(nreal,n1,n_range,nfft,kernelreal,halfft)
      if (ifft==39) halfft(1,:,ifft)=11.0_dp
   end do
 
-end subroutine fill_halfft
+END SUBROUTINE fill_halfft
 
 subroutine copyreal(n1,nk1,nfft,halfft,kernelfour)
   use module_base
@@ -1985,4 +1985,4 @@ subroutine copyreal(n1,nk1,nfft,halfft,kernelfour)
      if (ifft==39) write(130,'(1pe24.17)')halfft(1,:,ifft)
     call dcopy(nk1,halfft(1,1,ifft),2,kernelfour(1,ifft),1)  
   enddo
-end subroutine copyreal
+END SUBROUTINE copyreal

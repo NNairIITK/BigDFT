@@ -43,7 +43,7 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
 
   nullify(G%rxyz)
 
-end subroutine restart_from_gaussians
+END SUBROUTINE restart_from_gaussians
 !!***
 
 
@@ -135,7 +135,7 @@ subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
   end do
   close(99)
  
-end subroutine read_gaussian_information
+END SUBROUTINE read_gaussian_information
 !!***
 
 
@@ -215,7 +215,7 @@ subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   deallocate(gaupsi,stat=i_stat)
   call memocc(i_stat,i_all,'gaupsi',subname)
   
-end subroutine write_gaussian_information
+END SUBROUTINE write_gaussian_information
 !!***
 
 
@@ -459,7 +459,7 @@ subroutine gaussian_pswf_basis(ng,iproc,nspin,at,rxyz,G,Gocc)
   deallocate(iatypex,stat=i_stat)
   call memocc(i_stat,i_all,'iatypex',subname)
 
-end subroutine gaussian_pswf_basis
+END SUBROUTINE gaussian_pswf_basis
 !!***
 
 
@@ -540,7 +540,7 @@ subroutine gaussian_psp_basis(at,rxyz,G)
      end do
   end do
 
-end subroutine gaussian_psp_basis
+END SUBROUTINE gaussian_psp_basis
 !!***
 
 
@@ -636,7 +636,7 @@ subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
   deallocate(gaupsi,stat=i_stat)
   call memocc(i_stat,i_all,'gaupsi',subname)
 
-end subroutine gaussian_orthogonality
+END SUBROUTINE gaussian_orthogonality
 
 subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   use module_base
@@ -700,7 +700,7 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
 !!!     print *,'iorb, dual,coeffs',iorb,coeffs(:,iorb)
 !!!  end do
   
-end subroutine dual_gaussian_coefficients
+END SUBROUTINE dual_gaussian_coefficients
 
 !normalize a given atomic shell following the angular momentum
 subroutine normalize_shell(ng,l,expo,coeff)
@@ -732,7 +732,7 @@ subroutine normalize_shell(ng,l,expo,coeff)
 
   !print *,'l=',l,'norm=',norm
 
-end subroutine normalize_shell
+END SUBROUTINE normalize_shell
 
 !calculates \int_0^\infty \exp^{-a*x^2} x^l dx
 function gauinth(a,l)
@@ -803,7 +803,7 @@ subroutine gprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
      end do
   end do
  
-end subroutine gprod
+END SUBROUTINE gprod
 
 !kinetic overlap between gaussians, based on cartesian coordinates
 !calculates a dot product between two differents gaussians times spherical harmonics
@@ -852,7 +852,7 @@ subroutine kinprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
      end do
   end do
  
-end subroutine kinprod
+END SUBROUTINE kinprod
 
 !calculates \int d^2/dx^2(\exp^{-a1*x^2} x^l1) \exp^{-a2*(x-d)^2} (x-d)^l2 dx
 !in terms of the govrlp function below
@@ -1213,7 +1213,7 @@ subroutine wavelets_to_gaussians(geocode,norbp,nspinor,n1,n2,n3,G,thetaphi,hx,hy
      end do
   end do
   
-end subroutine wavelets_to_gaussians
+END SUBROUTINE wavelets_to_gaussians
 
 !calculate the projection of a given orbital on a gaussian basis centered on 
 !a set of points
@@ -1253,7 +1253,7 @@ subroutine orbital_projection(geocode,n1,n2,n3,nat,rxyz,thetaphi,nshell,ndoc,nam
 
   call gaudim_check(iexpo,icoeff,ishell,nexpo,ncoeff,nshltot)
   
-end subroutine orbital_projection
+END SUBROUTINE orbital_projection
 
 subroutine gaudim_check(iexpo,icoeff,ishell,nexpo,ncoeff,nshltot)
   implicit none
@@ -1269,7 +1269,7 @@ subroutine gaudim_check(iexpo,icoeff,ishell,nexpo,ncoeff,nshltot)
      write(*,*)' ERROR: nshltot <> ishell',nshltot,ishell
      stop
   end if
-end subroutine gaudim_check
+END SUBROUTINE gaudim_check
 
 
 !calculate the projection of a gaussian for a given eigenspace of spherical harmonics
@@ -1311,7 +1311,7 @@ subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,
   !here we should modify the coefficients following the direction of the axis
   call lsh_rotation(l-1,thetaphi(1),thetaphi(2),coeffs)
 
-end subroutine lsh_projection
+END SUBROUTINE lsh_projection
 
 subroutine lsh_rotation(l,theta,phi,coeffs)
   use module_base
@@ -1352,7 +1352,7 @@ subroutine lsh_rotation(l,theta,phi,coeffs)
      coeffs(m)=real(res,wp)
   end do
   
-end subroutine lsh_rotation
+END SUBROUTINE lsh_rotation
 
 
 !!****f* BigDFT/wavetogau
@@ -1488,7 +1488,7 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
   deallocate(wprojz,stat=i_stat)
   call memocc(i_stat,i_all,'wprojz',subname)
 
-end subroutine wavetogau
+END SUBROUTINE wavetogau
 !!***
 
 
@@ -1607,4 +1607,4 @@ subroutine rotation_matrix(l,t,p,hrot)
      write(*,*)'ERROR: rotation matrix for angular momentum l=',l,'not implemented'
      stop
   end if
-end subroutine rotation_matrix
+END SUBROUTINE rotation_matrix

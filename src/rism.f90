@@ -1,3 +1,13 @@
+!!****f* BigDFT/two_center_two_electrons
+!! FUNCTION
+!! COPYRIGHT
+!!   Copyright (C) 2010 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+!! SOURCE
+!!
 subroutine two_center_two_electrons(nat,a1,a2,a3,rxyz,radii,H)
   use module_base
   implicit none
@@ -10,7 +20,7 @@ subroutine two_center_two_electrons(nat,a1,a2,a3,rxyz,radii,H)
   integer, parameter :: n_gauss = 89
   real(gp), parameter :: oneosqrtpi=0.564189583547756286948079451_gp
   integer :: iat,jat,i_gauss
-  real(dp) :: ur_gauss,dr_gauss,acc_gauss,pgauss,factor,factor2
+  real(dp) :: ur_gauss,dr_gauss,acc_gauss,factor,factor2
   real(gp) :: a_range,ra2,ra2pb2,rab2,oneopk,oneoexpo,expo,oneofac,fac,ra
   real(gp), dimension(3) :: A
   real(dp), dimension(n_gauss) :: p_gauss,w_gauss
@@ -73,8 +83,15 @@ subroutine two_center_two_electrons(nat,a1,a2,a3,rxyz,radii,H)
      end do
   end do
 
-end subroutine two_center_two_electrons
+END SUBROUTINE two_center_two_electrons
+!!***
 
+
+!!****f* BigDFT/calculate_rho
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine calculate_rho(iproc,nproc,geocode,nat,radii,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pot,rhoarr)
   use module_base
@@ -90,13 +107,12 @@ subroutine calculate_rho(iproc,nproc,geocode,nat,radii,rxyz,hxh,hyh,hzh,&
   real(gp), dimension(nat), intent(out) :: rhoarr
   !Local variables---------
   logical :: perx,pery,perz,gox,goy,goz
-  real(gp) :: pi,prefactor,cutoff,rloc,Vel,rhoel
-  real(gp) :: rx,ry,rz,x,y,z,arg,r2,xp,tt,charge
-  integer :: i1,i2,i3,ind,iat,ityp,nloc,iloc,ierr
+  real(gp) :: pi,prefactor,cutoff,rloc,Vel
+  real(gp) :: rx,ry,rz,x,y,z,arg,r2,xp,charge
+  integer :: i1,i2,i3,ind,iat,ierr
   integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
   
   pi=4.d0*atan(1.d0)
-
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -174,12 +190,18 @@ subroutine calculate_rho(iproc,nproc,geocode,nat,radii,rxyz,hxh,hyh,hzh,&
 
   if (iproc == 0) write(*,*)'Charge:',charge
 
-end subroutine calculate_rho
+END SUBROUTINE calculate_rho
 !!***
 
-!calculate atomic charges using Lee, York and Yang method 
-!Ref: J.Chem.Phys. 102(19),7549 (1995)
-!use a basis of error functions centered on the atoms, with atom-defined radii
+
+!!****f* BigDFT/atomic_charges
+!! FUNCTION
+!!   calculate atomic charges using Lee, York and Yang method 
+!!   Ref: J.Chem.Phys. 102(19),7549 (1995)
+!!   use a basis of error functions centered on the atoms, with atom-defined radii
+!!
+!! SOURCE
+!!
 subroutine atomic_charges(iproc,nproc,geocode,rxyz,radii,alat1,alat2,alat3,nelec,nat,grid,&
      hxh,hyh,hzh,n3p,i3s,pot,C)
   use module_base
@@ -219,7 +241,6 @@ subroutine atomic_charges(iproc,nproc,geocode,rxyz,radii,alat1,alat2,alat3,nelec
   call memocc(i_stat,u,'u',subname)
   allocate(v(nat+ndebug),stat=i_stat)
   call memocc(i_stat,v,'v',subname)
-
 
   !calculate H matrix
   call two_center_two_electrons(nat,alat1,alat2,alat3,rxyz,radii,H)
@@ -329,7 +350,6 @@ subroutine atomic_charges(iproc,nproc,geocode,rxyz,radii,alat1,alat2,alat3,nelec
   deallocate(Hwork,stat=i_stat)
   call memocc(i_stat,i_all,'Hwork',subname)
 
-
   i_all=-product(shape(H))*kind(H)
   deallocate(H,stat=i_stat)
   call memocc(i_stat,i_all,'H',subname)
@@ -346,8 +366,8 @@ subroutine atomic_charges(iproc,nproc,geocode,rxyz,radii,alat1,alat2,alat3,nelec
   deallocate(v,stat=i_stat)
   call memocc(i_stat,i_all,'v',subname)
 
-
-end subroutine atomic_charges
+END SUBROUTINE atomic_charges
+!!***
 
 
 subroutine assign_atomic_radii(at,radii)

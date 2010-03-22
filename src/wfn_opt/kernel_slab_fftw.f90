@@ -79,5 +79,5 @@ subroutine hit_with_kernel_slab(x,z  ,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
 
 	deallocate(x2,y2)
 
-end subroutine hit_with_kernel_slab
+END SUBROUTINE hit_with_kernel_slab
 

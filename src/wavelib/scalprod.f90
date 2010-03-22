@@ -1,4 +1,15 @@
-!wrapper for simplifying the call
+!!****f* BigDFT/wnrm_wrap
+!! FUNCTION
+!!    Wrapper for simplifying the call
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
   use module_base
   implicit none
@@ -19,21 +30,24 @@ subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
      scpr=scpr+scalp
   end if
   
-end subroutine wnrm_wrap
+END SUBROUTINE wnrm_wrap
+!!***
+
 
 ! calculates the norm SQUARED (scpr) of a wavefunction (in vector form)
 subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   use module_base
   implicit none
+  !Arguments
   integer, intent(in) :: mvctr_c,mvctr_f
   real(wp), dimension(mvctr_c), intent(in) :: psi_c
   real(wp), dimension(7,mvctr_f), intent(in) :: psi_f
   real(dp), intent(out) :: scpr
   !local variables
-  integer :: i,ithread,nthread
+  integer :: i
   real(dp) :: pc,pf1,pf2,pf3,pf4,pf5,pf6,pf7
   real(dp) :: scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7
-  integer :: omp_get_thread_num,omp_get_num_threads
+!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
 
    scpr=0.0_dp
 !$omp parallel default(private) shared(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
@@ -86,7 +100,7 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
 !$omp end parallel
 
 
-end subroutine wnrm
+END SUBROUTINE wnrm
 
 
 !wrapper for simplifying the call
@@ -103,7 +117,7 @@ subroutine wscal_wrap(mvctr_c,mvctr_f,scal,psi)
  
   call wscal(mvctr_c,mvctr_f,scal,psi,psi(mvctr_c+i_f))
   
-end subroutine wscal_wrap
+END SUBROUTINE wscal_wrap
 
 ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scalar (scal)
 subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
@@ -134,7 +148,7 @@ subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
 !$omp enddo
 !$omp end parallel
 
-end subroutine wscal
+END SUBROUTINE wscal
 
 !wrapper for simplifying the call
 subroutine wscalv_wrap(mvctr_c,mvctr_f,scal,psi)
@@ -150,7 +164,7 @@ subroutine wscalv_wrap(mvctr_c,mvctr_f,scal,psi)
  
   call wscalv(mvctr_c,mvctr_f,scal,psi,psi(mvctr_c+i_f))
   
-end subroutine wscalv_wrap
+END SUBROUTINE wscalv_wrap
 
 
 ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
@@ -181,7 +195,7 @@ subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   enddo
 !$omp enddo
 !$omp end parallel
-end subroutine wscalv
+END SUBROUTINE wscalv
 
 ! initializes a wavefunction to zero
 subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
@@ -213,7 +227,7 @@ subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
   enddo
 !$omp enddo
 !$omp end parallel
-end subroutine wzero
+END SUBROUTINE wzero
 
 
 !wrapper of wpdot to avoid boundary problems in absence of wavelets
@@ -267,7 +281,7 @@ subroutine wpdot_wrap(ncplx,mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi, 
      stop
   end if
 
-end subroutine wpdot_wrap
+END SUBROUTINE wpdot_wrap
 
 !this function must be generalized for the linear scaling code
 ! calculates the dot product between a wavefunctions apsi and a projector bpsi (both in compressed form)
@@ -295,10 +309,10 @@ subroutine wpdot(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f
   real(dp), intent(out) :: scpr
   !local variables
-  integer :: iaseg,ibseg,llc,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,llf,i,ithread,nthread
+  integer :: iaseg,ibseg,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,i
   real(dp) :: pac,paf1,paf2,paf3,paf4,paf5,paf6,paf7,pbc,pbf1,pbf2,pbf3,pbf4,pbf5,pbf6,pbf7
   real(dp) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
-  integer :: omp_get_thread_num,omp_get_num_threads
+!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
   !  integer :: ncount0,ncount2,ncount_rate,ncount_max
   !  real(gp) :: tel
 
@@ -449,7 +463,7 @@ subroutine wpdot(  &
   !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'wpdot:',tel
   !  close(97)
 
-end subroutine wpdot
+END SUBROUTINE wpdot
 
 !wrapper of waxpy for complex Ax+y and for no fine grid cases
 !WARNING: in complex cases, it acts with y = Conj(A) *x +y, with the complex conjugate
@@ -531,7 +545,7 @@ subroutine waxpy_wrap(ncplx,scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,b
 
 
 
-end subroutine waxpy_wrap
+END SUBROUTINE waxpy_wrap
 
 
 ! rank 1 update of wavefunction a with wavefunction b: apsi=apsi+scpr*bpsi
@@ -556,11 +570,12 @@ subroutine waxpy(  &
   real(wp), dimension(mavctr_c), intent(inout) :: apsi_c
   real(wp), dimension(7,mavctr_f), intent(inout) :: apsi_f
   !local variables
-  integer :: iaseg,ibseg,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,i,ithread,nthread
+  integer :: iaseg,ibseg,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,i
   !  integer :: ncount0,ncount2,ncount_rate,ncount_max
   !  real(gp) :: tel 
   real(wp) :: scprwp
-  integer :: omp_get_thread_num,omp_get_num_threads
+!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+
   !dee
   !  open(unit=97,file='time_waxpy',status='unknown')
   !  call system_clock(ncount0,ncount_rate,ncount_max)
@@ -668,7 +683,7 @@ subroutine waxpy(  &
   !  close(97)
 
 
-end subroutine waxpy
+END SUBROUTINE waxpy
 
 
 

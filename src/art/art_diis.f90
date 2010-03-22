@@ -1,13 +1,28 @@
+!!****m* art/diis_def
+!! COPYRIGHT
+!!    Copyright (C) 2001 Normand Mousseau
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 module diis_defs
   use defs
   implicit none
-  save
   real(8), dimension(:,:), allocatable  :: previous_forces
   real(8), dimension(:,:), allocatable  :: previous_pos
   real(8), dimension(:,:), allocatable :: product_matrix
   real(8), dimension(:), allocatable :: tildeforce
 end module diis_defs
-  
+!!***
+
+
+!!****f* art/apply_diis
+!! SOURCE
+!! 
 subroutine apply_diis(current_energy, ftot)
   use defs
   use diis_defs
@@ -29,7 +44,7 @@ subroutine apply_diis(current_energy, ftot)
   allocate(product_matrix(DIIS_MEMORY,DIIS_MEMORY))
   allocate(tildeforce(VECSIZE))
 
-  call calcforce(NATOMS,type,pos,boxl,tildeforce,total_energy)
+  call calcforce(NATOMS,pos,boxl,tildeforce,total_energy)
   evalf_number = evalf_number + 1
 
   ! We set the first step and move to the second
@@ -63,17 +78,21 @@ subroutine apply_diis(current_energy, ftot)
   deallocate(tildeforce)
 
   return
-end subroutine apply_diis
+END SUBROUTINE apply_diis
+!!***
 
+
+!!****f* art/diis
+!! FUNCTION
+!!   This program implement the direct inversion in iterative subspace
+!!   method which allows one to converge rapidly to a saddle point when
+!!   we are in its vicinity.
+!!
+!!   maxvec is the iteration number. The matrix computed has one more dimension
+!!
+!! SOURCE
+!! 
 subroutine diis(lter,maxvec, newpos)
-  !******************************************************************
-  ! This program implement the direct inversion in iterative subspace
-  ! method which allows one to converge rapidly to a saddle point when
-  ! we are in its viccinity.
-  !
-  ! maxvec is the iteration number. The matrix computed has one more
-  ! dimension
-  ! *****************************************************************
   use defs
   use diis_defs
   use random
@@ -90,7 +109,7 @@ subroutine diis(lter,maxvec, newpos)
   real(8), dimension(maxvec+1) :: solution
   real(8), dimension(maxvec+1, maxvec+1) :: matrice
  
-  integer :: i,j,k, i_err, lwork, n, nrhs
+  integer :: i,j,i_err,lwork,n,nrhs
   real(8) :: boxl
 
   boxl = box * scala
@@ -145,9 +164,9 @@ subroutine diis(lter,maxvec, newpos)
      tildepos(:) = tildepos(:) + solution(i) * previous_pos(i,:)
   end do
 
-  call calcforce(NATOMS,type,tildepos,boxl,tildeforce,total_energy)
+  call calcforce(NATOMS,tildepos,boxl,tildeforce,total_energy)
   evalf_number = evalf_number + 1
   newpos(:) = tildepos(:) + DIIS_STEP * tildeforce(:)
 
-  return
-end subroutine diis
+END SUBROUTINE diis
+!!***

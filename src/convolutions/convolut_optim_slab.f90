@@ -112,7 +112,7 @@ subroutine ana_rot_shrink(n,ndat,x,y)
   enddo
 !$omp enddo
 !$omp end parallel
-end subroutine ana_rot_shrink
+END SUBROUTINE ana_rot_shrink
 
 
 subroutine syn_rot_grow(n,ndat,x,y)
@@ -308,7 +308,7 @@ subroutine syn_rot_grow(n,ndat,x,y)
 !  tel=dble(ncount2-ncount1)/dble(ncount_rate)
 !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'syn_rot_grow:',tel
 !  close(97)
-end subroutine syn_rot_grow
+END SUBROUTINE syn_rot_grow
 
 
 
@@ -416,7 +416,7 @@ subroutine convrot_grow(n1,ndat,x,y)
 !$omp enddo
 !$omp end parallel
 
-end subroutine convrot_grow
+END SUBROUTINE convrot_grow
 
 
 
@@ -528,7 +528,7 @@ subroutine convrot_shrink(n1,ndat,x,y)
 !$omp end parallel
 
   return
-end subroutine convrot_shrink
+END SUBROUTINE convrot_shrink
 
 
 subroutine convolut_kinetic_slab_c(n1,n2,n3,hgrid,x,y,c)
@@ -637,7 +637,7 @@ contains
          enddo
       enddo
 !$omp enddo
-   end subroutine conv_kin_y
+   END SUBROUTINE conv_kin_y
 
    
    subroutine conv_kin_x(x,y,ndat)
@@ -705,7 +705,7 @@ contains
            enddo
       enddo
 !$omp enddo
-   end subroutine conv_kin_x
+   END SUBROUTINE conv_kin_x
    
    subroutine conv_kin_z(x,y,ndat)
       implicit none
@@ -773,9 +773,9 @@ contains
            enddo
       enddo
 !$omp enddo
-   end subroutine conv_kin_z
+   END SUBROUTINE conv_kin_z
   
-end subroutine convolut_kinetic_slab_c
+END SUBROUTINE convolut_kinetic_slab_c
 
 
 
@@ -897,7 +897,7 @@ contains
            enddo
       enddo
 !$omp enddo
-   end subroutine conv_kin_x
+   END SUBROUTINE conv_kin_x
    
    subroutine conv_kin_y
       implicit none
@@ -953,7 +953,7 @@ contains
          enddo
       enddo
 !$omp enddo
-   end subroutine conv_kin_y
+   END SUBROUTINE conv_kin_y
 
    subroutine conv_kin_z(x,y,ndat)
       implicit none
@@ -1021,8 +1021,8 @@ contains
            enddo
       enddo
 !$omp enddo
-   end subroutine conv_kin_z
+   END SUBROUTINE conv_kin_z
   
-end subroutine convolut_kinetic_slab_T
+END SUBROUTINE convolut_kinetic_slab_T
 
 

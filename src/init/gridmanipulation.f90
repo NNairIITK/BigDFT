@@ -253,7 +253,7 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
      if (iproc == 0) write(*,*)'wavelet localization is OFF'
   endif
 
-end subroutine system_size
+END SUBROUTINE system_size
 !!***
 
 
@@ -303,7 +303,7 @@ subroutine correct_grid(a,h,n)
 
   h=a/real(n+1,gp)
   
-end subroutine correct_grid
+END SUBROUTINE correct_grid
 !!***
 
 
@@ -362,7 +362,7 @@ nend=nend+nendi
   endif
   mseg=nend
   
-end subroutine num_segkeys
+END SUBROUTINE num_segkeys
 !!***
 
 
@@ -415,7 +415,7 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
      stop 'nend <> nsrt'
   endif
   !mseg=nend
-end subroutine segkeys
+END SUBROUTINE segkeys
 !!***
 
 
@@ -600,6 +600,6 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
      end do
   end do
 
-end subroutine make_bounds
+END SUBROUTINE make_bounds
 !!***
 

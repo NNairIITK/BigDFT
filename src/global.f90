@@ -725,7 +725,7 @@ contains
        dt=dt*(1.d0/1.05d0)
     endif
     
-  end subroutine mdescape
+  END SUBROUTINE mdescape
   
   
 
@@ -879,7 +879,7 @@ contains
  
 
     !        deallocate(wpos,fxyz)
-  end subroutine soften
+  END SUBROUTINE soften
 
 
 end program MINHOP
@@ -898,7 +898,7 @@ subroutine insert(nlminx,nlmin,k_e_wpos,re_wpos,earr)
   earr(k_e_wpos+1,1)=re_wpos
   earr(k_e_wpos+1,2)=1.d0
   return
-end subroutine insert
+END SUBROUTINE insert
 
 
 subroutine save_low_conf(nat,nlmin_l,npminx,e_wpos,pos,elocmin,poslocmin)
@@ -936,7 +936,7 @@ subroutine save_low_conf(nat,nlmin_l,npminx,e_wpos,pos,elocmin,poslocmin)
 
 
   return
-end subroutine save_low_conf
+END SUBROUTINE save_low_conf
 
 
 subroutine hunt(xx,n,x,jlo)
@@ -1054,7 +1054,7 @@ subroutine velopt(at,rxyz,ekinetic,vxyz)
 !     end if
   end do
 
-end subroutine velopt
+END SUBROUTINE velopt
 
 
 subroutine randdist(nat,rxyz,vxyz)
@@ -1076,7 +1076,7 @@ subroutine randdist(nat,rxyz,vxyz)
 
   call elim_moment(nat,vxyz)
   call elim_torque(nat,rxyz,vxyz)
-end subroutine randdist
+END SUBROUTINE randdist
 
 
 subroutine gausdist(nat,rxyz,vxyz)
@@ -1106,7 +1106,7 @@ subroutine gausdist(nat,rxyz,vxyz)
   call elim_moment(nat,vxyz)
   call  elim_torque(nat,rxyz,vxyz)
   return
-end subroutine gausdist
+END SUBROUTINE gausdist
 
 
 subroutine expdist(nat,rxyz,vxyz)
@@ -1127,7 +1127,7 @@ subroutine expdist(nat,rxyz,vxyz)
   call  elim_torque(nat,rxyz,vxyz)
 
   return
-end subroutine expdist
+END SUBROUTINE expdist
 
 
 subroutine localdist(nat,rxyz,vxyz)
@@ -1196,7 +1196,7 @@ subroutine localdist(nat,rxyz,vxyz)
   !        write(*,'(i3,3(1pe12.4))') jat,(rxyz(i,jat)+.5d0*vxyz(i,jat),i=1,3)
 
   return
-end subroutine localdist
+END SUBROUTINE localdist
 
 
 subroutine torque(nat,rxyz,vxyz)
@@ -1221,7 +1221,7 @@ subroutine torque(nat,rxyz,vxyz)
   enddo
   write(*,'(a,3(1pe11.3))') 'torque',tx,ty,tz
 
-end subroutine torque
+END SUBROUTINE torque
 
 
 subroutine elim_torque(nat,rxyz,vxyz)
@@ -1290,7 +1290,7 @@ subroutine elim_torque(nat,rxyz,vxyz)
   enddo
   write(*,'(a,3(1pe11.3))') 'WARNING REMAINING TORQUE',t
 
-end subroutine elim_torque
+END SUBROUTINE elim_torque
 
 
 subroutine moment(nat,vxyz)
@@ -1305,7 +1305,7 @@ subroutine moment(nat,vxyz)
   enddo
   write(*,'(a,3(1pe11.3))') 'momentum',sx,sy,sz
 
-end subroutine moment
+END SUBROUTINE moment
 
 
 subroutine elim_moment(nat,vxyz)
@@ -1325,7 +1325,7 @@ subroutine elim_moment(nat,vxyz)
      vxyz(3,iat)=vxyz(3,iat)-sz
   enddo
 
-end subroutine elim_moment
+END SUBROUTINE elim_moment
 
 
 subroutine fix_fragmentation(iproc,at,rxyz,nputback)
@@ -1462,7 +1462,7 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
      endif
   end do fragment_loop
 
-end subroutine fix_fragmentation
+END SUBROUTINE fix_fragmentation
 
 
 subroutine winter(at,re_pos,pos,npminx,nlminx,nlmin,nlmin_l,accur, & 
@@ -1506,7 +1506,7 @@ subroutine winter(at,re_pos,pos,npminx,nlminx,nlmin,nlmin_l,accur, &
      call  wtioput(ediff,ekinetic,dt,nsoften)
      write(*,*) ' wrote ioput for  RESTART'
 
-end subroutine winter
+END SUBROUTINE winter
 
 
 subroutine wtioput(ediff,ekinetic,dt,nsoften)
@@ -1514,7 +1514,7 @@ subroutine wtioput(ediff,ekinetic,dt,nsoften)
   open(unit=11,file='ioput',status='unknown')
   write(11,'(3(1x,1pe24.17)1x,i4,a)') ediff,ekinetic,dt,nsoften,' ediff, ekinetic dt and nsoften'
   close(11)
-end subroutine wtioput
+END SUBROUTINE wtioput
 
 
 subroutine wtpos(at,npminx,nlminx,nlmin,nlmin_l,pos,earr,elocmin)
@@ -1569,7 +1569,7 @@ subroutine wtpos(at,npminx,nlminx,nlmin,nlmin_l,pos,earr,elocmin)
 
   end do
 
-end subroutine wtpos
+END SUBROUTINE wtpos
 
 
 real*8 function round(enerd,accur)
@@ -1602,7 +1602,7 @@ end function round
 !     read(9,*)fn,rxyz(:,iat)!we know the atom types already
 !  enddo
 !  close(unit=9)
-!end subroutine rdposout
+!END SUBROUTINE rdposout
 
 
 !routine for adjusting the dimensions with the center of mass in the middle
@@ -1636,4 +1636,4 @@ subroutine adjustrxyz(nat,alat1,alat2,alat3,rxyz)
      rxyz(2,iat)=rxyz(2,iat)-cent(2)+alat2*.5_gp
      rxyz(3,iat)=rxyz(3,iat)-cent(3)+alat3*.5_gp
   enddo
-end subroutine adjustrxyz
+END SUBROUTINE adjustrxyz
