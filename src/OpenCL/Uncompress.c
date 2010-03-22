@@ -1,5 +1,6 @@
 #include "OpenCL_wrappers.h"
 #include "Uncompress.h"
+#include "Initialize.h"
 #include <math.h>
 
 char * uncompress_program="\

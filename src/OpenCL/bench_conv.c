@@ -174,7 +174,7 @@ void bench_syngrow1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * o
 }
 
 void bench_uncompress(cl_uint n1, cl_uint n2, cl_uint n3, cl_uint nseg, cl_uint nvctr_cf, cl_uint * keyg, cl_uint * keyv, double * psi_in, double * psi_out) {
-  cl_mem psi_GPU,work_GPU,work2_GPU,v_GPU,psi_c_GPU,psi_f_GPU,keyg_GPU, keyv_GPU ;
+  cl_mem work_GPU,psi_c_GPU,psi_f_GPU,keyg_GPU, keyv_GPU ;
   cl_uint size;
 
   size = nvctr_cf*sizeof(double);
@@ -290,4 +290,5 @@ int main(){
 
   print_event_list_();
   ocl_clean_(&queue, &context);
+  return 0;
 }

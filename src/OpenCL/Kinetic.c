@@ -1,3 +1,4 @@
+#include "Initialize.h"
 #include "Kinetic.h"
 #include "Kinetic_k.h"
 #include "OpenCL_wrappers.h"
@@ -343,7 +344,7 @@ void FC_FUNC_(kinetic_stable_d,KINETIC_STABLE_D)(cl_command_queue *command_queue
 
 void FC_FUNC_(kinetic_d_generic,KINETIC_D_GENERIC)(cl_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y) {
   double scale;
-  cl_uint n, ng;
+  cl_uint ng;
   cl_uint n1 = dimensions[0] * 2;             
   cl_uint n2 = dimensions[1] * 2;
   cl_uint n3 = dimensions[2] * 2;

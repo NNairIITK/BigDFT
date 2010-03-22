@@ -19,7 +19,7 @@ void apply_hp(cl_command_queue *command_queue,
   scal_d_(command_queue, &n, c, psi, out);
   kinetic_d_(command_queue, dimensions, h, psi, out, work, kinres);
   ana_self_d_(command_queue, dimensions, kinres, psi);
-  uncompress_scale_d_(command_queue, dimensions, h, c,
+  compress_scale_d_(command_queue, dimensions, h, c,
                       nseg_c, nvctr_c, keyg_c, keyv_c,
                       nseg_f, nvctr_f, keyg_f, keyv_f,
                       psi_c_out, psi_f_out, out);
@@ -45,7 +45,7 @@ void FC_FUNC_(ocl_preconditioner,OCL_PRECONDITIONER)(cl_command_queue *command_q
            psi_c_d, psi_f_d,
            work1, work2, work3, work4);
   cl_uint nvctr_f_7 = *nvctr_f*7;
-  double dot, alpha, beta, val;
+  double alpha, beta, val;
   val = -1.0;
   axpy_d_(command_queue, nvctr_c, &val, psi_c_b, psi_c_d);
   axpy_d_(command_queue, &nvctr_f_7, &val, psi_f_b, psi_f_d);
@@ -81,11 +81,11 @@ void FC_FUNC_(ocl_preconditioner,OCL_PRECONDITIONER)(cl_command_queue *command_q
       val = 1.0/beta;
       axpy_d_(command_queue, nvctr_c, &val, psi_c_r, psi_c_d);
       axpy_d_(command_queue, &nvctr_f_7, &val, psi_f_r, psi_f_d);
-      scla_self_d(command_queue, nvctr_c, &beta, psi_c_d);
-      scla_self_d(command_queue, &nvctr_f_7, &beta, psi_f_d);
+      scal_self_d_(command_queue, nvctr_c, &beta, psi_c_d);
+      scal_self_d_(command_queue, &nvctr_f_7, &beta, psi_f_d);
       norm_sq = norm_sq_c + norm_sq_f;
     }
   }
-  scale_psi_d(command_queue, nvctr_c, nvctr_f, h, c, psi_c,  psi_f);
+  scale_psi_d_(command_queue, nvctr_c, nvctr_f, h, c, psi_c,  psi_f);
 }
 

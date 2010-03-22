@@ -128,5 +128,6 @@ int main() {
   oclErrorCheck(ciErrNum,"Failed to release command queue!");
   ciErrNum = clReleaseContext(context);
   oclErrorCheck(ciErrNum,"Failed to release context!");
+  return 0;
 }
 

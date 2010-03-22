@@ -34,6 +34,8 @@ void build_uncompress_kernels(cl_context * context);
 void clean_uncompress_kernels();
 void build_initialize_kernels(cl_context * context);
 void clean_initialize_kernels();
+void build_reduction_kernels(cl_context * context);
+void clean_reduction_kernels();
 
 cl_device_id oclGetFirstDev(cl_context cxGPUContext);
 size_t shrRoundUp(size_t group_size, size_t global_size);
@@ -47,8 +49,8 @@ int addToEventList (event ev);
 extern event * event_list;
 extern size_t event_number;
 
-void FC_FUNC(init_event_list,INIT_EVENT_LIST)();
-void FC_FUNC(print_event_list,PRINT_EVENT_LIST)();
+void FC_FUNC_(init_event_list,INIT_EVENT_LIST)();
+void FC_FUNC_(print_event_list,PRINT_EVENT_LIST)();
 void FC_FUNC_(ocl_build_kernels,OCL_BUILD_KERNELS)(cl_context * context);
 void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(cl_context * context);
 void FC_FUNC_(ocl_create_cpu_context,OCL_CREATE_CPU_CONTEXT)(cl_context * context);
@@ -100,10 +102,10 @@ void FC_FUNC_(nrm2sq_self_d,NRM2SQ_SELF_D)(cl_command_queue *command_queue, cl_u
 void FC_FUNC_(asum_d,ASUM_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, double *out);
 void FC_FUNC_(nrm2sq_d,NRM2SQ_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, double *out);
 void FC_FUNC_(axpy_d,AXPY_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *inout);
-void FC_FUNC_(scal_d,scal_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *out);
-void FC_FUNC_(scal_self_d,scal_self_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *inout);
+void FC_FUNC_(scal_d,SCAL_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *out);
+void FC_FUNC_(scal_self_d,SCAL_SELF_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *inout);
 void FC_FUNC_(dot_d,DOT_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *x, cl_mem *y, cl_mem *work1, cl_mem *work2, double *out);
-
+void FC_FUNC_(copy_d,COPY_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out);
 
 void FC_FUNC_(uncompress_d,UNCOMPRESS_D)(cl_command_queue *command_queue, cl_uint *dimensions,
                                        cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
@@ -114,6 +116,14 @@ void FC_FUNC_(compress_d,COMPRESS_D)(cl_command_queue *command_queue, cl_uint *d
                                      cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                      cl_mem *psi_c, cl_mem *psi_f, cl_mem * psi);
 void FC_FUNC_(scale_psi_d,SCALE_PSI_D)(cl_command_queue *command_queue, cl_uint *nvctr_c, cl_uint *nvctr_f, double *h, double *c, cl_mem *psi_c,  cl_mem *psi_f);
+void FC_FUNC_(uncompress_scale_d,UNCOMPRESS_SCALE_D)(cl_command_queue *command_queue, cl_uint *dimensions, double *h, double *c,
+                                       cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
+                                       cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                       cl_mem *psi_c, cl_mem *psi_f, cl_mem * psi_out);
+void FC_FUNC_(compress_scale_d,COMPRESS_SCALE_D)(cl_command_queue *command_queue, cl_uint *dimensions, double *h, double *c,
+                                     cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
+                                     cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                     cl_mem *psi_c, cl_mem *psi_f, cl_mem * psi);
 
 void FC_FUNC_(ocl_fulllocham,OCL_FULLLOCHAM)(cl_command_queue *command_queue,
                                           cl_uint *dimensions,
