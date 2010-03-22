@@ -464,22 +464,28 @@ void FC_FUNC_(ana_self_d_generic,ANA_SELF_D_GENERIC)(cl_command_queue *command_q
   }
 }
 
-void FC_FUNC_(ana_d,ANA_D)(cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3,cl_mem *tmp,cl_mem *psi,cl_mem *out){
-    cl_uint ndat = *n2 * *n1 * 4;
-    ana_generic(ana1d_kernel_d, command_queue, n3, &ndat, psi, out);
-    ndat = *n1 * *n3 * 4;
-    ana_generic(ana1d_kernel_d, command_queue, n2, &ndat, out, tmp);
-    ndat = *n2 * *n3 * 4;
-    ana_generic(ana1d_kernel_d, command_queue, n1, &ndat, tmp, out);
+void FC_FUNC_(ana_d,ANA_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out){
+  cl_uint n1 = dimensions[0];
+  cl_uint n2 = dimensions[1];
+  cl_uint n3 = dimensions[2];
+  cl_uint ndat = n2 * n1 * 4;
+  ana_generic(ana1d_kernel_d, command_queue, &n3, &ndat, psi, out);
+  ndat = n1 * n3 * 4;
+  ana_generic(ana1d_kernel_d, command_queue, &n2, &ndat, out, tmp);
+  ndat = n2 * n3 * 4;
+  ana_generic(ana1d_kernel_d, command_queue, &n1, &ndat, tmp, out);
 }
 
-void FC_FUNC_(ana_self_d,ANA_SELF_D)(cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3,cl_mem *psi,cl_mem *out){
-    cl_uint ndat = *n2 * *n1 * 4;
-    ana_generic(ana1d_kernel_d, command_queue, n3, &ndat, psi, out);
-    ndat = *n1 * *n3 * 4;
-    ana_generic(ana1d_kernel_d, command_queue, n2, &ndat, out, psi);
-    ndat = *n2 * *n3 * 4;
-    ana_generic(ana1d_kernel_d, command_queue, n1, &ndat, psi, out);
+void FC_FUNC_(ana_self_d,ANA_SELF_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *psi, cl_mem *out){
+  cl_uint n1 = dimensions[0];
+  cl_uint n2 = dimensions[1];
+  cl_uint n3 = dimensions[2];
+  cl_uint ndat = n2 * n1 * 4;
+  ana_generic(ana1d_kernel_d, command_queue, &n3, &ndat, psi, out);
+  ndat = n1 * n3 * 4;
+  ana_generic(ana1d_kernel_d, command_queue, &n2, &ndat, out, psi);
+  ndat = n2 * n3 * 4;
+  ana_generic(ana1d_kernel_d, command_queue, &n1, &ndat, psi, out);
 }
 
 void FC_FUNC_(syngrow1d_d,SYNGROW1D_D)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat,cl_mem *psi,cl_mem *out){
@@ -559,21 +565,27 @@ void FC_FUNC_(syn_self_d_generic,SYN_SELF_D_GENERIC)(cl_command_queue *command_q
   }
 }
 
-void FC_FUNC_(syn_d,SYN_D)(cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3,cl_mem *tmp, cl_mem *psi, cl_mem *out){
-    cl_uint ndat = *n2 * *n1 * 4;
-    syn_generic(syn1d_kernel_d, command_queue, n3, &ndat, psi, out);
-    ndat = *n1 * *n3 * 4;
-    syn_generic(syn1d_kernel_d, command_queue, n2, &ndat, out, tmp);
-    ndat = *n2 * *n3 * 4;
-    syn_generic(syn1d_kernel_d, command_queue, n1, &ndat, tmp, out);
+void FC_FUNC_(syn_d,SYN_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out){
+  cl_uint n1 = dimensions[0];
+  cl_uint n2 = dimensions[1];
+  cl_uint n3 = dimensions[2];
+  cl_uint ndat = n2 * n1 * 4;
+  syn_generic(syn1d_kernel_d, command_queue, &n3, &ndat, psi, out);
+  ndat = n1 * n3 * 4;
+  syn_generic(syn1d_kernel_d, command_queue, &n2, &ndat, out, tmp);
+  ndat = n2 * n3 * 4;
+  syn_generic(syn1d_kernel_d, command_queue, &n1, &ndat, tmp, out);
 }
-void FC_FUNC_(syn_self_d,SYN_SELF_D)(cl_command_queue *command_queue, cl_uint *n1, cl_uint *n2, cl_uint *n3, cl_mem *psi, cl_mem *out){
-    cl_uint ndat = *n2 * *n1 * 4;
-    syn_generic(syn1d_kernel_d, command_queue, n3, &ndat, psi, out);
-    ndat = *n1 * *n3 * 4;
-    syn_generic(syn1d_kernel_d, command_queue, n2, &ndat, out, psi);
-    ndat = *n2 * *n3 * 4;
-    syn_generic(syn1d_kernel_d, command_queue, n1, &ndat, psi, out);
+void FC_FUNC_(syn_self_d,SYN_SELF_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *psi, cl_mem *out){
+  cl_uint n1 = dimensions[0];
+  cl_uint n2 = dimensions[1];
+  cl_uint n3 = dimensions[2];
+  cl_uint ndat = n2 * n1 * 4;
+  syn_generic(syn1d_kernel_d, command_queue, &n3, &ndat, psi, out);
+  ndat = n1 * n3 * 4;
+  syn_generic(syn1d_kernel_d, command_queue, &n2, &ndat, out, psi);
+  ndat = n2 * n3 * 4;
+  syn_generic(syn1d_kernel_d, command_queue, &n1, &ndat, psi, out);
 }
 
 void clean_wavelet_kernels(){

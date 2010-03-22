@@ -376,40 +376,52 @@ void FC_FUNC_(magicfilter1d_t_d,MAGICFILTER1D_T_D)(cl_command_queue *command_que
     magicfilter_generic(magicfilter1d_t_kernel_d,command_queue,n,ndat,psi,out);
 }
 
-void FC_FUNC_(magicfilter_n_self_d,MAGICFILTER_N_SELF_D)(cl_command_queue *command_queue, cl_uint *n1,cl_uint *n2,cl_uint *n3,cl_mem *psi,cl_mem *out){
-    cl_uint ndat = *n1 * *n2;
-    magicfilter_generic(magicfilter1d_kernel_d, command_queue, n3, &ndat, psi, out);
-    ndat = *n1 * *n3;
-    magicfilter_generic(magicfilter1d_kernel_d, command_queue, n2, &ndat, out, psi);
-    ndat = *n2 * *n3;
-    magicfilter_generic(magicfilter1d_kernel_d, command_queue, n1, &ndat, psi, out);
+void FC_FUNC_(magicfilter_n_self_d,MAGICFILTER_N_SELF_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *psi, cl_mem *out){
+    cl_uint n1 = dimensions[0];
+    cl_uint n2 = dimensions[1];
+    cl_uint n3 = dimensions[2];
+    cl_uint ndat = n1 * n2;
+    magicfilter_generic(magicfilter1d_kernel_d, command_queue, &n3, &ndat, psi, out);
+    ndat = n1 * n3;
+    magicfilter_generic(magicfilter1d_kernel_d, command_queue, &n2, &ndat, out, psi);
+    ndat = n2 * n3;
+    magicfilter_generic(magicfilter1d_kernel_d, command_queue, &n1, &ndat, psi, out);
 }
 
-void FC_FUNC_(magicfilter_n_d,MAGICFILTER_N_D)(cl_command_queue *command_queue, cl_uint *n1,cl_uint *n2,cl_uint *n3,cl_mem *tmp,cl_mem *psi,cl_mem *out){
-    cl_uint ndat = *n1 * *n2;
-    magicfilter_generic(magicfilter1d_kernel_d, command_queue, n3, &ndat, psi, out);
-    ndat = *n1 * *n3;
-    magicfilter_generic(magicfilter1d_kernel_d, command_queue, n2, &ndat, out, tmp);
-    ndat = *n2 * *n3;
-    magicfilter_generic(magicfilter1d_kernel_d, command_queue, n1, &ndat, tmp, out);
+void FC_FUNC_(magicfilter_n_d,MAGICFILTER_N_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out){
+    cl_uint n1 = dimensions[0];
+    cl_uint n2 = dimensions[1];
+    cl_uint n3 = dimensions[2];
+    cl_uint ndat = n1 * n2;
+    magicfilter_generic(magicfilter1d_kernel_d, command_queue, &n3, &ndat, psi, out);
+    ndat = n1 * n3;
+    magicfilter_generic(magicfilter1d_kernel_d, command_queue, &n2, &ndat, out, tmp);
+    ndat = n2 * n3;
+    magicfilter_generic(magicfilter1d_kernel_d, command_queue, &n1, &ndat, tmp, out);
 }
 
-void FC_FUNC_(magicfilter_t_self_d,MAGICFILTER_T_SELF_D)(cl_command_queue *command_queue, cl_uint *n1,cl_uint *n2,cl_uint *n3,cl_mem *psi,cl_mem *out){
-    cl_uint ndat = *n1 * *n2;
-    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, n3, &ndat, psi, out);
-    ndat = *n1 * *n3;
-    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, n2, &ndat, out, psi);
-    ndat = *n2 * *n3;
-    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, n1, &ndat, psi, out);
+void FC_FUNC_(magicfilter_t_self_d,MAGICFILTER_T_SELF_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *psi, cl_mem *out){
+    cl_uint n1 = dimensions[0];
+    cl_uint n2 = dimensions[1];
+    cl_uint n3 = dimensions[2];
+    cl_uint ndat = n1 * n2;
+    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, &n3, &ndat, psi, out);
+    ndat = n1 * n3;
+    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, &n2, &ndat, out, psi);
+    ndat = n2 * n3;
+    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, &n1, &ndat, psi, out);
 }
 
-void FC_FUNC_(magicfilter_t_d,MAGICFILTER_T_D)(cl_command_queue *command_queue, cl_uint *n1,cl_uint *n2,cl_uint *n3,cl_mem *tmp,cl_mem *psi,cl_mem *out){
-    cl_uint ndat = *n1 * *n2;
-    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, n3, &ndat, psi, out);
-    ndat = *n1 * *n3;
-    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, n2, &ndat, out, tmp);
-    ndat = *n2 * *n3;
-    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, n1, &ndat, tmp, out);
+void FC_FUNC_(magicfilter_t_d,MAGICFILTER_T_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out){
+    cl_uint n1 = dimensions[0];
+    cl_uint n2 = dimensions[1];
+    cl_uint n3 = dimensions[2];
+    cl_uint ndat = n1 * n2;
+    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, &n3, &ndat, psi, out);
+    ndat = n1 * n3;
+    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, &n2, &ndat, out, tmp);
+    ndat = n2 * n3;
+    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, &n1, &ndat, tmp, out);
 }
 
 void FC_FUNC_(potential_application_d_generic,POTENTIAL_APPLICATION_D_GENERIC)(cl_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *psi, cl_mem *out, cl_mem *pot) {
@@ -465,25 +477,22 @@ void FC_FUNC_(potential_application_d_generic,POTENTIAL_APPLICATION_D_GENERIC)(c
   }
 }
 
-void FC_FUNC_(potential_application_d,POTENTIAL_APPLICATION_D)(cl_command_queue *command_queue, cl_uint *n1,cl_uint *n2,cl_uint *n3, cl_mem *tmp, cl_mem *psi, cl_mem *out, cl_mem *pot) {
-    cl_uint n = *n3 * 2;
-    cl_uint ndat = *n1 * *n2 * 4;
-    magicfilter_generic(magicfilter1d_kernel_d, command_queue, &n, &ndat, psi, tmp);
-    n = *n2 * 2;
-    ndat = *n1 * *n3 * 4;
-    magicfilter_generic(magicfilter1d_kernel_d, command_queue, &n, &ndat, tmp, out);
-    n = *n1 * 2;
-    ndat = *n2 * *n3 * 4;
-    magicfilter1d_pot_d_(command_queue, &n, &ndat, out, pot, tmp);
-    n = *n3 * 2;
-    ndat = *n1 * *n2 * 4;
-    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, &n, &ndat, tmp, out);
-    n = *n2 * 2;
-    ndat = *n1 * *n3 * 4;
-    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, &n, &ndat, out, tmp);
-    n = *n1 * 2;
-    ndat = *n2 * *n3 * 4;
-    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, &n, &ndat, tmp, out);
+void FC_FUNC_(potential_application_d,POTENTIAL_APPLICATION_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out, cl_mem *pot) {
+    cl_uint n1 = dimensions[0] * 2;
+    cl_uint n2 = dimensions[1] * 2;
+    cl_uint n3 = dimensions[2] * 2;
+    cl_uint ndat = n1 * n2;
+    magicfilter_generic(magicfilter1d_kernel_d, command_queue, &n3, &ndat, psi, tmp);
+    ndat = n1 * n3;
+    magicfilter_generic(magicfilter1d_kernel_d, command_queue, &n2, &ndat, tmp, out);
+    ndat = n2 * n3;
+    magicfilter1d_pot_d_(command_queue, &n1, &ndat, out, pot, tmp);
+    ndat = n1 * n2;
+    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, &n3, &ndat, tmp, out);
+    ndat = n1 * n3;
+    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, &n2, &ndat, out, tmp);
+    ndat = n2 * n3;
+    magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, &n1, &ndat, tmp, out);
 }
 
 void clean_magicfilter_kernels(){

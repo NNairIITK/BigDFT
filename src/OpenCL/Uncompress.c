@@ -367,9 +367,9 @@ psi_f[igr * 7 + i + 6*64] = tmp_o[6*64];\n\
 #define A2 3.55369228991319019
 #define B2 24.8758460293923314
 inline void scale_psi_coarse_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *nvctr_c, double *h, double *c, cl_mem *psi_c) {
-  double hh1 = 0.5/(h[0]*h[0]);
-  double hh2 = 0.5/(h[1]*h[1]);
-  double hh3 = 0.5/(h[2]*h[2]);
+  double hh1 = 0.125/(h[0]*h[0]);
+  double hh2 = 0.125/(h[1]*h[1]);
+  double hh3 = 0.125/(h[2]*h[2]);
   double GPUscal0 = 1/sqrt(A2*hh1 + A2*hh2 + A2*hh3 + *c);
   cl_int ciErrNum;
   size_t block_size_i=64;
@@ -386,9 +386,9 @@ inline void scale_psi_coarse_generic(cl_kernel kernel, cl_command_queue *command
 inline void un_compress_scale_coarse_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *dimensions, double *h, double *c,
                                     cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
                                     cl_mem *psi_c, cl_mem * psi) {
-  double hh1 = 0.5/(h[0]*h[0]);
-  double hh2 = 0.5/(h[1]*h[1]);
-  double hh3 = 0.5/(h[2]*h[2]);
+  double hh1 = 0.125/(h[0]*h[0]);
+  double hh2 = 0.125/(h[1]*h[1]);
+  double hh3 = 0.125/(h[2]*h[2]);
   double GPUscal0 = 1.0/sqrt(A2*hh1 + A2*hh2 + A2*hh3 + *c);
     cl_int ciErrNum;
     size_t block_size_i=64;
@@ -412,9 +412,9 @@ inline void un_compress_scale_coarse_generic(cl_kernel kernel, cl_command_queue 
 }
 
 inline void scale_psi_fine_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *nvctr_f, double *h, double *c, cl_mem *psi_f) {
-  double hh1 = 0.5/(h[0]*h[0]);
-  double hh2 = 0.5/(h[1]*h[1]);
-  double hh3 = 0.5/(h[2]*h[2]);
+  double hh1 = 0.125/(h[0]*h[0]);
+  double hh2 = 0.125/(h[1]*h[1]);
+  double hh3 = 0.125/(h[2]*h[2]);
   double GPUscal1 = 1.0/sqrt(B2*hh1 + A2*hh2 + A2*hh3 + *c);
   double GPUscal2 = 1.0/sqrt(A2*hh1 + B2*hh2 + A2*hh3 + *c);
   double GPUscal3 = 1.0/sqrt(B2*hh1 + B2*hh2 + A2*hh3 + *c);
@@ -443,9 +443,9 @@ inline void scale_psi_fine_generic(cl_kernel kernel, cl_command_queue *command_q
 inline void un_compress_scale_fine_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *dimensions, double *h, double *c,
                                     cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                     cl_mem *psi_f, cl_mem * psi) {
-  double hh1 = 0.5/(h[0]*h[0]);
-  double hh2 = 0.5/(h[1]*h[1]);
-  double hh3 = 0.5/(h[2]*h[2]);
+  double hh1 = 0.125/(h[0]*h[0]);
+  double hh2 = 0.125/(h[1]*h[1]);
+  double hh3 = 0.125/(h[2]*h[2]);
   double GPUscal1 = 1.0/sqrt(B2*hh1 + A2*hh2 + A2*hh3 + *c);
   double GPUscal2 = 1.0/sqrt(A2*hh1 + B2*hh2 + A2*hh3 + *c);
   double GPUscal3 = 1.0/sqrt(B2*hh1 + B2*hh2 + A2*hh3 + *c);

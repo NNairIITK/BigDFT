@@ -440,7 +440,7 @@ program conv_check
            call ocl_enqueue_write_buffer(queue, work_GPU, n1bis*n2bis*n3bis*8, psi_cuda_k_in_a)
            call cpu_time(t0)
            do itimes=1,ntimes
-             call magicfilter_n_d(queue,n1bis,n2bis,n3bis,work2_GPU, work_GPU,psi_GPU)
+             call magicfilter_n_d(queue,(/n1bis,n2bis,n3bis/),work2_GPU, work_GPU,psi_GPU)
            end do
            call ocl_finish(queue);
            call cpu_time(t1)
@@ -512,7 +512,7 @@ program conv_check
            call ocl_enqueue_write_buffer(queue, work_GPU, n1bis*n2bis*n3bis*8, psi_cuda_k_in_a)
            call cpu_time(t0)
            do itimes=1,ntimes
-             call magicfilter_t_d(queue,n1bis,n2bis,n3bis,work2_GPU, work_GPU,psi_GPU)
+             call magicfilter_t_d(queue,(/n1bis,n2bis,n3bis/),work2_GPU, work_GPU,psi_GPU)
            end do
            call ocl_finish(queue);
            call cpu_time(t1)
@@ -586,7 +586,7 @@ program conv_check
            call ocl_enqueue_write_buffer(queue, v_GPU, n1bis*n2bis*n3bis*8, pot_a)
            call cpu_time(t0)
            do itimes=1,ntimes
-             call potential_application_d(queue,n1bis/2,n2bis/2,n3bis/2,work2_GPU, work_GPU,psi_GPU,v_GPU)
+             call potential_application_d(queue,(/n1bis/2,n2bis/2,n3bis/2/),work2_GPU, work_GPU,psi_GPU,v_GPU)
            end do
            call ocl_finish(queue);
            call cpu_time(t1)
@@ -666,7 +666,7 @@ program conv_check
            call ocl_enqueue_write_buffer(queue, psi_GPU, n1bis*n2bis*n3bis*8, psi_cuda_k_in_a)
            call cpu_time(t0)
            do itimes=1,ntimes
-             call kinetic_stable_d(queue,n1bis/2,n2bis/2,n3bis/2,(/0.1d0,.1d0,.1d0/),&
+             call kinetic_stable_d(queue,(/n1bis/2,n2bis/2,n3bis/2/),(/0.1d0,.1d0,.1d0/),&
                             work_GPU,psi_GPU,work2_GPU,v_GPU,psi_c_GPU,psi_f_GPU)
            end do
            call ocl_finish(queue);
@@ -1014,8 +1014,8 @@ program conv_check
            call ocl_enqueue_write_buffer(queue, work_GPU, 2*n1bis*n2bis*n3bis*8, psi_cuda_k_in)
            call cpu_time(t0)
            do itimes=1,ntimes
-             call kinetic_k_d(queue,n1bis,n2bis,n3bis,(/0.1d0,.1d0,.1d0/),&
-                   work_GPU,psi_GPU,work2_GPU,v_GPU,0.2d0,0.1d0,0.2d0,0.3d0)
+             call kinetic_k_d(queue,(/n1bis,n2bis,n3bis/),(/0.1d0,.1d0,.1d0/),&
+                   work_GPU,psi_GPU,work2_GPU,v_GPU,0.2d0,(/0.1d0,0.2d0,0.3d0/))
            end do
            call ocl_finish(queue);
            call cpu_time(t1)
@@ -1262,7 +1262,7 @@ program conv_check
            call ocl_enqueue_write_buffer(queue, work_GPU, n1bis*n2bis*n3bis*8, psi_cuda_k_in_a)
            call cpu_time(t0)
            do itimes=1,ntimes
-             call ana_d(queue,n1bis/2,n2bis/2,n3bis/2, work2_GPU, work_GPU,psi_GPU)
+             call ana_d(queue,(/n1bis/2,n2bis/2,n3bis/2/), work2_GPU, work_GPU,psi_GPU)
            end do
            call ocl_finish(queue);
            call cpu_time(t1)
@@ -1353,7 +1353,7 @@ program conv_check
            call ocl_enqueue_write_buffer(queue, work_GPU, n1bis*n2bis*n3bis*8, psi_cuda_k_in_a)
            call cpu_time(t0)
            do itimes=1,ntimes
-             call syn_d(queue,n1bis/2,n2bis/2,n3bis/2, work2_GPU, work_GPU, psi_GPU)
+             call syn_d(queue,(/n1bis/2,n2bis/2,n3bis/2/), work2_GPU, work_GPU, psi_GPU)
            end do
            call ocl_finish(queue);
            call cpu_time(t1)
@@ -2105,7 +2105,7 @@ program conv_check
 
            call cpu_time(t0)
            do i=1,ntimes
-              call uncompress_scale_d(queue , (/n1+1,n1+1,n1+1/),(/0.1d0,0.2d0,0.3d0/),0.4d0,&
+              call uncompress_scale_d(queue , (/n1+1,n1+1,n1+1/),(/0.1d0/2.0d0,0.2d0/2.0d0,0.3d0/2.0d0/),0.4d0,&
                                 nseg, nvctr_cf, keyg_GPU, keyv_GPU,&
                                 nseg, nvctr_cf, keyg_GPU, keyv_GPU,&
                                 psi_c_GPU, psi_f_GPU, work_GPU)
@@ -2209,7 +2209,7 @@ program conv_check
 
            call cpu_time(t0)
            do i=1,ntimes
-              call compress_scale_d(queue , (/n1+1, n1+1, n1+1/),(/0.1d0,0.2d0,0.3d0/),0.4d0,&
+              call compress_scale_d(queue , (/n1+1, n1+1, n1+1/),(/0.1d0/2.0d0,0.2d0/2.0d0,0.3d0/2.0d0/),0.4d0,&
                               nseg, nvctr_cf, keyg_GPU, keyv_GPU,&
                               nseg, nvctr_cf, keyg_GPU, keyv_GPU,&
                               psi_c_GPU, psi_f_GPU, work_GPU)
