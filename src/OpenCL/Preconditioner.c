@@ -15,10 +15,10 @@ void apply_hp(cl_command_queue *command_queue,
                       nseg_f, nvctr_f, keyg_f, keyv_f,
                       psi_c, psi_f, out);
   syn_self_d_(command_queue, dimensions, out, psi);
-  cl_uint n = dimensions[0] * dimensions[1] * dimensions[3] * 8;
+  cl_uint n = dimensions[0] * dimensions[1] * dimensions[2] * 8;
   scal_d_(command_queue, &n, c, psi, out);
   kinetic_d_(command_queue, dimensions, h, psi, out, work, kinres);
-  ana_self_d_(command_queue, dimensions, kinres, psi);
+  ana_self_d_(command_queue, dimensions, kinres, out);
   compress_scale_d_(command_queue, dimensions, h, c,
                       nseg_c, nvctr_c, keyg_c, keyv_c,
                       nseg_f, nvctr_f, keyg_f, keyv_f,
