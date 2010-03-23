@@ -3,7 +3,7 @@
 !!   A analysis wavelet transformation where the size of the data is forced to shrink
 !!   The input array y is overwritten
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    Copyright (C) 2007-2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -74,9 +74,9 @@ subroutine analyse_slab(n1,n2,n3,ww,y,x)
   implicit none
   !Arguments
   integer, intent(in) :: n1,n2,n3
-  real*8 :: x(0:n1,2,0:n2,2,0:n3,2)
-  real*8 :: y (0:2*n1+1,-7:2*n2+8,0:2*n3+1)
-  real*8 :: ww(0:2*n1+1,-7:2*n2+8,0:2*n3+1)
+  real(kind=8) :: x(0:n1,2,0:n2,2,0:n3,2)
+  real(kind=8) :: y (0:2*n1+1,-7:2*n2+8,0:2*n3+1)
+  real(kind=8) :: ww(0:2*n1+1,-7:2*n2+8,0:2*n3+1)
   !Local variables
   integer :: nt
 
@@ -102,9 +102,9 @@ END SUBROUTINE analyse_slab
 !!
 subroutine synthese_slab(n1,n2,n3,ww,x,y)
   implicit real(kind=8) (a-h,o-z)
-  real*8 x(0:n1,2,0:n2,2,0:n3,2)
-  real*8 y (0:2*n1+1,-7:2*n2+8,0:2*n3+1)
-  real*8 ww(0:2*n1+1,-7:2*n2+8,0:2*n3+1)
+  real(kind=8) :: x(0:n1,2,0:n2,2,0:n3,2)
+  real(kind=8) :: y (0:2*n1+1,-7:2*n2+8,0:2*n3+1)
+  real(kind=8) :: ww(0:2*n1+1,-7:2*n2+8,0:2*n3+1)
 
   ! i1,i2,i3 -> i2,i3,i1
   nt=(2*n2+2)*(2*n3+2)
@@ -129,7 +129,7 @@ END SUBROUTINE synthese_slab
 subroutine analyse_slab_self(n1,n2,n3,y,x)
   implicit none
   integer,intent(in)::n1,n2,n3
-  real*8,dimension((2*n1+2)*(2*n2+16)*(2*n3+2))::x,y
+  real(kind=8),dimension((2*n1+2)*(2*n2+16)*(2*n3+2))::x,y
   integer nt
 
   ! i1,I2,i3 -> I2,i3,i1
@@ -155,7 +155,7 @@ END SUBROUTINE analyse_slab_self
 subroutine synthese_slab_self(n1,n2,n3,x,y)
   implicit none
   integer,intent(in)::n1,n2,n3
-  real*8,dimension((2*n1+2)*(2*n2+16)*(2*n3+2))::x,y
+  real(kind=8),dimension((2*n1+2)*(2*n2+16)*(2*n3+2))::x,y
   integer nt
 
   ! i1,i2,i3 -> i2,i3,i1
@@ -224,7 +224,7 @@ subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
   else
      stop 'the GPU part is not yet written'
   end if
-end subroutine convolut_magic_n_slab_self
+END SUBROUTINE convolut_magic_n_slab_self
 !!***
 
 
@@ -347,12 +347,11 @@ END SUBROUTINE convolut_magic_t_slab_self
 !!   Applies the kinetic energy operator onto x to get y. Works for periodic BC
 !! SOURCE
 !!
-subroutine convolut_kinetic_slab_sdc(n1,n2,n3,hgrid,x,y,cprecr,modul1,modul3,a,b,c,e)
+subroutine convolut_kinetic_slab_sdc(n1,n2,n3,x,y,cprecr,modul1,modul3,a,b,c,e)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp),intent(in) :: cprecr
-  real(gp), dimension(3), intent(in) :: hgrid
   real(wp), dimension(8,0:n1,0:n2,0:n3), intent(in) :: x
   real(wp), dimension(8,0:n1,0:n2,0:n3), intent(out) :: y
   !local variables
@@ -499,31 +498,31 @@ subroutine convolut_kinetic_slab_sdc(n1,n2,n3,hgrid,x,y,cprecr,modul1,modul3,a,b
 !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'z:',tel,1.d-6*mflop3/tel
 !  close(97)
 
-end subroutine convolut_kinetic_slab_sdc
+END SUBROUTINE convolut_kinetic_slab_sdc
 !!***
 
 
 !!****f* BigDFT/prepare_sdc_slab
 !! SOURCE
 !!
-subroutine prepare_sdc_slab(n1,n2,n3,modul1,modul3,a,b,c,e,hx,hy,hz)
-use module_base
-implicit none
-integer,intent(in)::n1,n2,n3
-real(gp),intent(in)::hx,hy,hz
-
-integer, parameter :: lowfil=-14,lupfil=14
-
-integer,intent(out)::modul1(lowfil:n1+lupfil)
-integer,intent(out)::modul3(lowfil:n3+lupfil)
-real(gp),intent(out)::a(lowfil:lupfil,3)
-real(gp),intent(out)::b(lowfil:lupfil,3)
-real(gp),intent(out)::c(lowfil:lupfil,3)
-real(gp),intent(out)::e(lowfil:lupfil,3)
-
-real(gp)::hgrid(3)
-integer::i
-real(gp)::scale(3)
+subroutine prepare_sdc_slab(n1,n3,modul1,modul3,a,b,c,e,hx,hy,hz)
+  use module_base
+  implicit none
+  integer,intent(in)::n1,n3
+  real(gp),intent(in)::hx,hy,hz
+  
+  integer, parameter :: lowfil=-14,lupfil=14
+  
+  integer,intent(out)::modul1(lowfil:n1+lupfil)
+  integer,intent(out)::modul3(lowfil:n3+lupfil)
+  real(gp),intent(out)::a(lowfil:lupfil,3)
+  real(gp),intent(out)::b(lowfil:lupfil,3)
+  real(gp),intent(out)::c(lowfil:lupfil,3)
+  real(gp),intent(out)::e(lowfil:lupfil,3)
+  
+  real(gp)::hgrid(3)
+  integer::i
+  real(gp)::scale(3)
 
   call fill_mod_arr(modul1,lowfil,n1+lupfil,n1+1)
   call fill_mod_arr(modul3,lowfil,n3+lupfil,n3+1)
@@ -608,5 +607,5 @@ real(gp)::scale(3)
   do i=1,14
      e(-i,:)=e(i,:)
   enddo
-end subroutine prepare_sdc_slab
+END SUBROUTINE prepare_sdc_slab
 !!***

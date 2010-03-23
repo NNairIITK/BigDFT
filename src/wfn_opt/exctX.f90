@@ -1,3 +1,20 @@
+!!****f* BigDFT/exact_exchange_potential
+!! FUNCTION
+!!    Calculate the exact exchange potential
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2009-2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! AUTHOR
+!!    Luigi Genovese
+!!
+!! SOURCE
+!! 
+
 !!$!second version, with MPI non-blocking communications
 !!$subroutine exact_exchange_potentialI(iproc,nproc,geocode,nspin,lr,orbs,&
 !!$     hxh,hyh,hzh,pkernelseq,psi,psir,eexctX)
@@ -274,7 +291,7 @@
 !!$
 !!$  !call timing(iproc,'Exchangecorr  ','OF')
 !!$
-!!$end subroutine exact_exchange_potential
+!!$END SUBROUTINE exact_exchange_potential
 
 
 subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p,&
@@ -298,7 +315,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   character(len=*), parameter :: subname='exact_exchange_potential'
   integer :: i_all,i_stat,ierr,ispinor,ispsiw,ispin,norb
   integer :: i1,i2,i3p,iorb,iorbs,jorb,jorbs,ispsir,ind3,ind2,ind1i,ind1j,jproc,igran,ngran
-  real(gp) :: ehart,zero,hfac,exctXfac,sign,sfac,hfaci,hfacj,kerneloff
+  real(gp) :: ehart,hfac,exctXfac,sign,sfac,hfaci,hfacj
   type(workarr_sumrho) :: w
   integer, dimension(:,:), allocatable :: ncommarr
   real(wp), dimension(:), allocatable :: psiw
@@ -464,9 +481,14 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
               if (iproc == 0 .and. verbose > 1) then
                  write(*,*)'Exact exchange calculation: spin, orbitals:',ispin,iorb,jorb
               end if
-              call PSolver(geocode,'D',iproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-                   0,hxh,hyh,hzh,rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,zero,zero,&
-                   0.d0,.false.,1,quiet='YES')
+              call H_potential(geocode,'D',iproc,nproc,&
+                   lr%d%n1i,lr%d%n2i,lr%d%n3i,hxh,hyh,hzh,&
+                   rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,0.0_dp,.false.,&
+                   quiet='YES')
+
+!!$              call PSolver(geocode,'D',iproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+!!$                   0,hxh,hyh,hzh,rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,zero,zero,&
+!!$                   0.d0,.false.,1,quiet='YES')
               if (iorb==jorb) then
                  eexctX=eexctX+hfac*real(ehart,gp)
               else
@@ -575,8 +597,13 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
 
   !call timing(iproc,'Exchangecorr  ','OF')
 
-end subroutine exact_exchange_potential
+END SUBROUTINE exact_exchange_potential
+!!***
 
+
+!!****f* BigDFT/prepare_psirocc
+!! SOURCE
+!! 
 subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
   use module_base
   use module_types
@@ -589,9 +616,8 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
   real(wp), dimension(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,n3parr(0)*orbsocc%norb)), intent(out) :: psirocc
   !local variables
   character(len=*), parameter :: subname='prepare_psirocc'
-  integer :: i_all,i_stat,ierr,ispinor,ispsiw,ispin,norbocc,norbvirt
-  integer :: i1,i2,i3p,iorb,iorbs,jorb,jorbs,ispsir,ind3,ind2,ind1i,ind1j,jproc,igran,ngran
-  real(gp) :: ehart,zero,hfac,exctXfac,sign,sfac,hfaci,hfacj,kerneloff
+  integer :: i_all,i_stat,ierr,ispinor,ispsiw
+  integer :: iorb,jorb,ispsir,jproc
   type(workarr_sumrho) :: w
   integer, dimension(:,:), allocatable :: ncommocc
   real(wp), dimension(:), allocatable :: psiwocc
@@ -675,10 +701,17 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
      call memocc(i_stat,i_all,'ncommocc',subname)
   end if
 
-end subroutine prepare_psirocc
-!calculate the exact exchange potential only on virtual orbitals
-!by knowing the occupied orbitals and their distribution
-!both sets of orbitals are to be 
+END SUBROUTINE prepare_psirocc
+!!***
+
+
+!!****f* BigDFT/prepare_psirocc
+!! FUNCTION
+!!   Calculate the exact exchange potential only on virtual orbitals
+!!   by knowing the occupied orbitals and their distribution
+!!   both sets of orbitals are to be 
+!! SOURCE
+!! 
 subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,n3parr,n3p,&
      hxh,hyh,hzh,pkernel,psirocc,psivirt,psirvirt)
   use module_base
@@ -699,7 +732,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
   character(len=*), parameter :: subname='exact_exchange_potential_virt'
   integer :: i_all,i_stat,ierr,ispinor,ispsiw,ispin,norbocc,norbvirt
   integer :: i1,i2,i3p,iorb,iorbs,jorb,jorbs,ispsir,ind3,ind2,ind1i,ind1j,jproc,igran,ngran
-  real(gp) :: ehart,zero,hfac,exctXfac,sign,sfac,hfaci,hfacj,kerneloff
+  real(gp) :: ehart,hfac,sign,sfac,hfaci
   type(workarr_sumrho) :: w
   integer, dimension(:,:), allocatable :: ncommvirt
   real(wp), dimension(:), allocatable :: psiwvirt
@@ -857,9 +890,14 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
               if (iproc == 0 .and. verbose > 1) then
                  write(*,*)'Exact exchange calculation: spin, orbitals:',ispin,iorb,jorb
               end if
-              call PSolver(geocode,'D',iproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-                   0,hxh,hyh,hzh,rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,zero,zero,&
-                   0.d0,.false.,1,quiet='YES')
+              call H_potential(geocode,'D',iproc,nproc,&
+                   lr%d%n1i,lr%d%n2i,lr%d%n3i,hxh,hyh,hzh,&
+                   rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,0.0_dp,.false.,&
+                   quiet='YES')
+
+!!$              call PSolver(geocode,'D',iproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+!!$                   0,hxh,hyh,hzh,rp_ij(1,1,1,igran),pkernel,rp_ij,ehart,zero,zero,&
+!!$                   0.d0,.false.,1,quiet='YES')
 
            end if
            jorb=jorb+1
@@ -939,4 +977,5 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      call memocc(i_stat,i_all,'ncommvirt',subname)
   end if
 
-end subroutine exact_exchange_potential_virt
+END SUBROUTINE exact_exchange_potential_virt
+!!***

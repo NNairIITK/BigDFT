@@ -1,6 +1,6 @@
 !* * Fortran90 source file *
 !*
-!* Copyright (c) 2008-2009 ABINIT Group (Damien Caliste)
+!* Copyright (c) 2008-2010 ABINIT Group (Damien Caliste)
 !* All rights reserved.
 !*
 !* This file is part of the ABINIT software package. For license information,
@@ -677,13 +677,9 @@ contains
     type(symmetry), intent(inout) :: sym
     integer, intent(out) :: errno
 
-    integer :: berryopt, jellslab, noncol, shubnikov, isym, problem
-    integer :: nsym_nomagn, isym_nomagn, use_inversion
-    integer, allocatable :: sym_nomagn(:,:,:)
-    integer :: identity(3,3)
-    real(dp), allocatable :: transNon_nomagn(:,:)
+    integer :: berryopt, jellslab, noncol
+    integer :: use_inversion
     real(dp), pointer :: spinAt_(:,:)
-    character(len=5) :: ptgroupha
     integer  :: sym_(3, 3, AB6_MAX_SYMMETRIES)
     real(dp) :: transNon_(3, AB6_MAX_SYMMETRIES)
     integer  :: symAfm_(AB6_MAX_SYMMETRIES)

@@ -1,29 +1,40 @@
+!!****f* BigDFT/convolut_kinetic_per_c_k
+!! FUNCTION
+!!   Applies the modified kinetic energy operator onto x to get y. 
+!!   Works for periodic BC.
+!!   Modified kinetic energy operator:
+!!   A=-1/2 exp(Ikr) Delta exp(-Ikr)+C
+!!   where k=(k1,k2,k3); r=(x,y,z)
+!!   We apply the Galerkin matrix of this operator
+!!   in the scaling function basis phi(x/h1-i1)phi(y/h2-i2)phi(z/h3-i3)
+!!   The only difference from the case k=0 is the first derivative operator
+!!   2I( kx d/dx + ...+ kz d/dz)
+!!   for which we need the 1-dimensional Galerkin matrix
+!!   1/h\int phi(x/h) d/dx phi(x/h-i) dx 
+!!   that is stored in the arrays fil(2,:,1)..fil(2,:,3)
+!!   multiplied by the factor scale1.
+!!   The second derivative operator is stored in the arrays
+!!   fil(1,:,1)..fil(1,..3) in the usual way.
+!!   The whole array fil actually stores the full complex Galerkin matrix 
+!!   of the operator A.
+!!
+!!   One can check (I did that) that the Galerkin matrix (almost) annihilates the array
+!!   c_j=\int exp(Ikx) phi(x/h-j)dx that is the wavelet projection
+!!   of the plane wave exp(Ikx), if the plane wave is periodic in the simulation
+!!   box. 
+!!   The annihilation accuracy improves with decreasing grid constant h, as expected,
+!!   but the numerical noise spoils the convergence after some point.
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2005-2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 subroutine convolut_kinetic_per_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
-! Applies the modified kinetic energy operator onto x to get y. 
-! Works for periodic BC.
-! Modified kinetic energy operator:
-! A=-1/2 exp(Ikr) Delta exp(-Ikr)+C
-! where k=(k1,k2,k3); r=(x,y,z)
-! We apply the Galerkin matrix of this operator
-! in the scaling function basis phi(x/h1-i1)phi(y/h2-i2)phi(z/h3-i3)
-! The only difference from the case k=0 is the first derivative operator
-! 2I( kx d/dx + ...+ kz d/dz)
-! for which we need the 1-dimensional Galerkin matrix
-! 1/h\int phi(x/h) d/dx phi(x/h-i) dx 
-! that is stored in the arrays fil(2,:,1)..fil(2,:,3)
-! multiplied by the factor scale1.
-! The second derivative operator is stored in the arrays
-! fil(1,:,1)..fil(1,..3) in the usual way.
-! The whole array fil actually stores the full complex Galerkin matrix 
-! of the operator A.
-!
-! One can check (I did that) that the Galerkin matrix (almost) annihilates the array
-! c_j=\int exp(Ikx) phi(x/h-j)dx that is the wavelet projection
-! of the plane wave exp(Ikx), if the plane wave is periodic in the simulation
-! box. 
-!The annihilation accuracy improves with decreasing grid constant h, as expected,
-! but the numerical noise spoils the convergence after some point.
-
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -141,16 +152,21 @@ subroutine convolut_kinetic_per_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
   enddo
 !$omp enddo
 !$omp end parallel  
-end subroutine convolut_kinetic_per_c_k
+END SUBROUTINE convolut_kinetic_per_c_k
+!!***
 
+
+!!****f* BigDFT/convolut_kinetic_per_T_k
+!! FUNCTION
+!!   Applies the modified kinetic energy operator onto x to get y. 
+!!   Computes the kinetic energy too.
+!!   Works for periodic BC.
+!!   Modified kinetic energy operator:
+!!   A=-1/2 exp(Ikr) Delta exp(-Ikr)
+!!   where k=(k1,k2,k3); r=(x,y,z)
+!! SOURCE
+!! 
 subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
-! Applies the modified kinetic energy operator onto x to get y. 
-! Computes the kinetic energy too.
-! Works for periodic BC.
-! Modified kinetic energy operator:
-! A=-1/2 exp(Ikr) Delta exp(-Ikr)
-! where k=(k1,k2,k3); r=(x,y,z)
-
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -272,11 +288,12 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            enddo
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
-		   ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+           ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
   enddo
 !$omp enddo
 !  ener=ener*.5_wp
 !$omp end parallel  
-end subroutine convolut_kinetic_per_T_k
+END SUBROUTINE convolut_kinetic_per_T_k
+!!***

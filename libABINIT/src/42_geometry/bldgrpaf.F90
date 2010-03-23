@@ -9,7 +9,7 @@
 !! It applies all the generators onto symrel, it obtains all the other operations.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1999-2009 ABINIT group (RC)
+!! Copyright (C) 1999-2010 ABINIT group (RC)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .

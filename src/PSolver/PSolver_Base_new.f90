@@ -521,7 +521,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
      call memocc(i_stat,i_all,'zmpi1',subname)
   end if
   call timing(iproc,'PSolv_comput  ','OF')
-end subroutine G_PoissonSolver
+END SUBROUTINE G_PoissonSolver
 !!***
 
 !general routine, takes into account the free boundary conditions
@@ -559,7 +559,7 @@ subroutine G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
      J2stb=1
   end do
 
-end subroutine G_mpiswitch_upcorn
+END SUBROUTINE G_mpiswitch_upcorn
 
 subroutine G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt,zw)
   use module_base
@@ -588,7 +588,7 @@ subroutine G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt,zw)
      end do
   end do
 
-end subroutine G_switch_upcorn
+END SUBROUTINE G_switch_upcorn
 
 
 !!****f* PSolver/P_unfill_downcorn
@@ -642,7 +642,7 @@ subroutine P_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
      end do
   end do
 
-end subroutine P_unfill_downcorn
+END SUBROUTINE P_unfill_downcorn
 !!***
 
 !complex output
@@ -667,7 +667,7 @@ subroutine C_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
      end do
   end do
 
-end subroutine C_unfill_downcorn
+END SUBROUTINE C_unfill_downcorn
 !!***
 
 subroutine P_fill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
@@ -685,7 +685,7 @@ subroutine P_fill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
      end do
   end do
 
-end subroutine P_fill_upcorn
+END SUBROUTINE P_fill_upcorn
 !!***
 
 !to be ussed for complex input
@@ -704,7 +704,7 @@ subroutine C_fill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
      end do
   end do
 
-end subroutine C_fill_upcorn
+END SUBROUTINE C_fill_upcorn
 
 
 
@@ -752,7 +752,7 @@ subroutine scramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2)
      end do
   end do
 
-end subroutine scramble_P
+END SUBROUTINE scramble_P
 !!***
 
 
@@ -809,7 +809,7 @@ subroutine unscramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw)
      end do
   end do
 
-end subroutine unscramble_P
+END SUBROUTINE unscramble_P
 !!***
 
 !!****f* PSolver/P_multkernel
@@ -870,7 +870,7 @@ subroutine P_multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset)
         end if
      end do
   end do
-end subroutine P_multkernel
+END SUBROUTINE P_multkernel
 !!***
 
 !!****f* PSolver/multkernel
@@ -947,7 +947,7 @@ subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
      zw(2,j,j2)=zw(2,j,j2)*pot(j1,j2)
   end do
 
-end subroutine multkernel
+END SUBROUTINE multkernel
 !!***
 
 subroutine G_unswitch_downcorn(nfft,n2,n2dim,lot,n1,lzt,zw,zt)
@@ -965,7 +965,7 @@ subroutine G_unswitch_downcorn(nfft,n2,n2dim,lot,n1,lzt,zw,zt)
      end do
   end do
 
-end subroutine G_unswitch_downcorn
+END SUBROUTINE G_unswitch_downcorn
 
 
 subroutine G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,n1dim,md2,nd3,nproc,zw,zmpi1)
@@ -993,7 +993,7 @@ subroutine G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,n1dim,md2,nd3,npro
      end do
      J2stf=1
   end do
-end subroutine G_unmpiswitch_downcorn
+END SUBROUTINE G_unmpiswitch_downcorn
 
 
 !!****f* PSolver/unfill_downcorn
@@ -1057,7 +1057,7 @@ subroutine unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
      enddo
   end do
   
-end subroutine unfill_downcorn
+END SUBROUTINE unfill_downcorn
 !!***
 
 
@@ -1085,7 +1085,7 @@ subroutine halfill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
      end do
   end do
       
-end subroutine halfill_upcorn
+END SUBROUTINE halfill_upcorn
 
 
 !!****f* PSolver/scramble_unpack
@@ -1163,7 +1163,7 @@ subroutine scramble_unpack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2,cosinarr)
      end do
   end do
 
-end subroutine scramble_unpack
+END SUBROUTINE scramble_unpack
 !!***
 
  
@@ -1232,7 +1232,7 @@ subroutine unscramble_pack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw,cosinarr)
      end do
   end do
 
-end subroutine unscramble_pack
+END SUBROUTINE unscramble_pack
 !!***
 
 

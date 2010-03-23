@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 24/02/2010
+# Date: 12/03/2010
 #----------------------------------------------------------------------------
 
 import difflib
@@ -142,7 +142,7 @@ except ValueError:
     p1 = -1
     p2 = -1
 except IndexError:
-    sys.stdout.write("One file is blank!\n")
+    sys.stdout.write("\033[0;31m"+"One file is blank!\n"+"\033[m")
     sys.exit(1)
 
 if p1 >= 0 and p2 >= 0 and p1 != p2:

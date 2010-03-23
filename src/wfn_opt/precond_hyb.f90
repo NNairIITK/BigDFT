@@ -1,3 +1,14 @@
+!!****f* BigDFT/precong_per_hyb
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 subroutine precong_per_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hx,hy,hz,x,ibyz,ibxz,ibxy)
   use module_base
@@ -16,8 +27,6 @@ integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ncong
   real(wp)::rmr,rmr_new,alpha,beta
   integer i,i_stat,i_all
   real(wp),allocatable::b(:),r(:),d(:)
-  real(wp),allocatable::psifscf(:),ww(:)
-  real(wp)::err
 
   !	work arrays for adaptive wavelet data structure
   !	x_c and y_c are taken from the FFT arrays
@@ -30,14 +39,13 @@ integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ncong
   real(wp), dimension(:,:,:), allocatable :: x_c! in and out of Fourier preconditioning
   real(wp), dimension(:,:,:,:,:), allocatable::z1,z3 ! work array for FFT
 
-  integer::nd1,nd2,nd3
-  integer::n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b	
-  integer:: nf
-
+  integer :: nd1,nd2,nd3
+  integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
+  integer :: nf
 
   call dimensions_fft(n1,n2,n3,nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
 
-    nf=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+  nf=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
 
   call allocate_all
 
@@ -121,7 +129,7 @@ contains
     allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
     call memocc(i_stat,y_f,'y_f','precong_per')
 
-  end subroutine allocate_all
+  END SUBROUTINE allocate_all
 
   subroutine deallocate_all
 
@@ -185,8 +193,8 @@ contains
     deallocate(y_f,stat=i_stat)
     call memocc(i_stat,i_all,'y_f','precong_per')
 
-  end subroutine deallocate_all
-end subroutine precong_per_hyb
+  END SUBROUTINE deallocate_all
+END SUBROUTINE precong_per_hyb
 
 
 subroutine apply_hp_hyb(n1,n2,n3, &
@@ -197,22 +205,22 @@ subroutine apply_hp_hyb(n1,n2,n3, &
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
-  integer,intent(in)::ibyz(2,0:n2,0:n3+ndebug),ibxz(2,0:n1,0:n3+ndebug),ibxy(2,0:n1,0:n2+ndebug)
-  integer,intent(in)::nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,nf
+  integer,intent(in) :: ibyz(2,0:n2,0:n3+ndebug),ibxz(2,0:n1,0:n3+ndebug),ibxy(2,0:n1,0:n2+ndebug)
+  integer,intent(in) :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,nf
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
   real(gp), intent(in) :: hx,hy,hz,cprecr
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  real(wp), intent(in) ::  x(nvctr_c+7*nvctr_f)  
-  real(wp), intent(out) ::  y(nvctr_c+7*nvctr_f)
+  real(wp), intent(in) :: x(nvctr_c+7*nvctr_f)  
+  real(wp), intent(out) :: y(nvctr_c+7*nvctr_f)
   !work arrays	
-  real(wp)::x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-  real(wp)::x_c(0:n1,0:n2,0:n3)
-  real(wp)::x_f1(nf),x_f2(nf),x_f3(nf)
-  real(wp)::y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-  real(wp)::y_c(0:n1,0:n2,0:n3)
+  real(wp) :: x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
+  real(wp) :: x_c(0:n1,0:n2,0:n3)
+  real(wp) :: x_f1(nf),x_f2(nf),x_f3(nf)
+  real(wp) :: y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
+  real(wp) :: y_c(0:n1,0:n2,0:n3)
 
-  real(gp) hgrid(3)	
+  real(gp) :: hgrid(3)
 
   call uncompress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
        nseg_f,nvctr_f,keyg(1,nseg_c+min(1,nseg_f)),keyv(nseg_c+min(1,nseg_f)),   &
@@ -230,5 +238,5 @@ subroutine apply_hp_hyb(n1,n2,n3, &
   call compress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
        nseg_f,nvctr_f,keyg(1,nseg_c+min(1,nseg_f)),keyv(nseg_c+min(1,nseg_f)), & 
        y_c,y_f,y(1),y(nvctr_c+min(1,nvctr_f)),nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
-end subroutine apply_hp_hyb
+END SUBROUTINE apply_hp_hyb
 

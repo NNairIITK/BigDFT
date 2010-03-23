@@ -1,96 +1,117 @@
+!!****f* BigDFT/comb_grow_all_hybrid
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw1,nw2&
      ,w1,w2,xc,xf,y,gb)
-use module_base
-use module_types
-implicit none
-type(grow_bounds),intent(in):: gb
-integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw1,nw2
-real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: xc
-real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: xf
-real(wp), dimension(nw1), intent(inout) :: w1 !work
-real(wp), dimension(nw2), intent(inout) :: w2 ! work
-real(wp), dimension(0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(out) :: y
+   use module_base
+   use module_types
+   implicit none
+   type(grow_bounds),intent(in):: gb
+   integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw1,nw2
+   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: xc
+   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: xf
+   real(wp), dimension(nw1), intent(inout) :: w1 !work
+   real(wp), dimension(nw2), intent(inout) :: w2 ! work
+   real(wp), dimension(0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(out) :: y
 
-call comb_grow_c_simple(n1,n2,n3,w1,w2,xc,y)
+   call comb_grow_c_simple(n1,n2,n3,w1,w2,xc,y)
 
-call comb_rot_grow_ib_1(n1      ,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,xf,w1,gb%ibyz_ff,gb%ibzxx_f)
-call comb_rot_grow_ib_2(n1,n2   ,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,gb%ibzxx_f,gb%ibxxyy_f)
-call comb_rot_grow_ib_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w2,y,gb%ibxxyy_f)
+   call comb_rot_grow_ib_1(n1      ,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,xf,w1,gb%ibyz_ff,gb%ibzxx_f)
+   call comb_rot_grow_ib_2(n1,n2   ,          nfl2,nfu2,nfl3,nfu3,w1,w2,gb%ibzxx_f,gb%ibxxyy_f)
+   call comb_rot_grow_ib_3(n1,n2,n3,                    nfl3,nfu3,w2,y,gb%ibxxyy_f)
 
-end subroutine comb_grow_all_hybrid
+END SUBROUTINE comb_grow_all_hybrid
+!!***
 
 
-subroutine  comb_rot_grow_ib_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ibxxyy)
-! In one dimesnion,    
-! with optimised cycles
-! Applies synthesis wavelet transformation 
-! then convolves with magic filter
-! then adds the result to y.
-! The size of the data is allowed to grow
-use module_base
-implicit none
-integer,intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1,n2,n3
-integer,intent(in)::ibxxyy(2,   0:2*n1+1,0:2*n2+1)
-real(wp), dimension(2,nfl3:nfu3,0:2*n1+1,0:2*n2+1), intent(in) :: x
-real(wp), dimension(            0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(inout) :: y
-!local variables
-integer :: l1,l2,i,t
-integer :: ii,ii1
-real(wp) :: y2i,y2i1
-integer :: modul(-14+2*nfl3:2*nfu3+16)
-integer :: mfl3,mfu3
-include 'v_17.inc'
-call fill_mod_arr(modul,-14+2*nfl3,2*nfu3+16,2*n3+2)
+!!****f* BigDFT/comb_rot_grow_ib_3
+!! FUNCTION
+!!   In one dimension,    
+!!   with optimised cycles
+!!   Applies synthesis wavelet transformation 
+!!   then convolves with magic filter
+!!   then adds the result to y.
+!!   The size of the data is allowed to grow
+!!
+!! SOURCE
+!!
+subroutine  comb_rot_grow_ib_3(n1,n2,n3,nfl3,nfu3,x,y,ibxxyy)
+   use module_base
+   implicit none
+   integer,intent(in) :: nfl3,nfu3,n1,n2,n3
+   integer,intent(in)::ibxxyy(2,   0:2*n1+1,0:2*n2+1)
+   real(wp), dimension(2,nfl3:nfu3,0:2*n1+1,0:2*n2+1), intent(in) :: x
+   real(wp), dimension(            0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(inout) :: y
+   !local variables
+   integer :: l1,l2,i,t
+   integer :: ii,ii1
+   real(wp) :: y2i,y2i1
+   integer :: modul(-14+2*nfl3:2*nfu3+16)
+   integer :: mfl3,mfu3
+   include 'v_17.inc'
+   call fill_mod_arr(modul,-14+2*nfl3,2*nfu3+16,2*n3+2)
 
 !$omp parallel default(private)&
 !$omp shared (n2,n1,ibxxyy,modul,x,y,fil2)
 !$omp do
-do l2=0,2*n2+1
-   do l1=0,2*n1+1
-      mfl3=ibxxyy(1,l1,l2)
-      mfu3=ibxxyy(2,l1,l2)
+   do l2=0,2*n2+1
+      do l1=0,2*n1+1
+         mfl3=ibxxyy(1,l1,l2)
+         mfu3=ibxxyy(2,l1,l2)
 
-      if (mfl3.le.mfu3) then
-      
-         ii=modul(2*mfu3+16)
-         y(l1,l2,ii)=y(l1,l2,ii)+fil2(16,1)*x(1,mfu3,l1,l2)+fil2(16,2)*x(2,mfu3,l1,l2)
+         if (mfl3.le.mfu3) then
          
-         do i=mfl3-7,mfu3+7 
-            ii =modul(2*i  )
-            ii1=modul(2*i+1)
+            ii=modul(2*mfu3+16)
+            y(l1,l2,ii)=y(l1,l2,ii)+fil2(16,1)*x(1,mfu3,l1,l2)+fil2(16,2)*x(2,mfu3,l1,l2)
             
-            y2i =y(l1,l2,ii)
-            y2i1=y(l1,l2,ii1)
-   
-            do t=max(i-8,mfl3),min(i+7,mfu3)
-               y2i =y2i +fil2(2*(i-t)  ,1)*x(1,t,l1,l2)+fil2(2*(i-t)  ,2)*x(2,t,l1,l2)
-               y2i1=y2i1+fil2(2*(i-t)+1,1)*x(1,t,l1,l2)+fil2(2*(i-t)+1,2)*x(2,t,l1,l2)
+            do i=mfl3-7,mfu3+7 
+               ii =modul(2*i  )
+               ii1=modul(2*i+1)
+               
+               y2i =y(l1,l2,ii)
+               y2i1=y(l1,l2,ii1)
+      
+               do t=max(i-8,mfl3),min(i+7,mfu3)
+                  y2i =y2i +fil2(2*(i-t)  ,1)*x(1,t,l1,l2)+fil2(2*(i-t)  ,2)*x(2,t,l1,l2)
+                  y2i1=y2i1+fil2(2*(i-t)+1,1)*x(1,t,l1,l2)+fil2(2*(i-t)+1,2)*x(2,t,l1,l2)
+               enddo
+      
+               y(l1,l2,ii)=y2i
+               y(l1,l2,ii1)=y2i1
             enddo
-   
-            y(l1,l2,ii)=y2i
-            y(l1,l2,ii1)=y2i1
-         enddo
-      endif
+         endif
+      enddo
    enddo
-enddo
 !$omp enddo
 !$omp end parallel
 
-end subroutine comb_rot_grow_ib_3
+END SUBROUTINE comb_rot_grow_ib_3
+!!***
 
 
-
-
-subroutine comb_rot_grow_ib_2(n1,n2,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ibzxx,ibxxyy)
-! In one dimesnion,    
-! with optimised cycles
-! Applies synthesis wavelet transformation 
-! then convolves with magic filter
-!  the size of the data is allowed to grow
+!!****f* BigDFT/comb_rot_grow_ib_2
+!! FUNCTION
+!!   In one dimension,    
+!!   with optimised cycles
+!!   Applies synthesis wavelet transformation 
+!!   then convolves with magic filter
+!!   the size of the data is allowed to grow
+!!
+!! SOURCE
+!!
+subroutine comb_rot_grow_ib_2(n1,n2,nfl2,nfu2,nfl3,nfu3,x,y,ibzxx,ibxxyy)
 use module_base
 implicit none
 integer,intent(in) :: n1,n2
-integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+integer, intent(in) :: nfl2,nfu2,nfl3,nfu3
 integer,intent(in)::ibzxx(2,      nfl3:nfu3,0:2*n1+1)
 integer,intent(in)::ibxxyy(2,               0:2*n1+1,0:2*n2+1)
 real(wp), dimension(2,2,nfl2:nfu2,nfl3:nfu3,0:2*n1+1), intent(in) :: x
@@ -156,13 +177,20 @@ enddo
 !$omp enddo
 !$omp end parallel
 END SUBROUTINE comb_rot_grow_ib_2
+!!***
 
+
+!!****f* BigDFT/comb_rot_grow_ib_1
+!! FUNCTION
+!!   In one dimension,    
+!!   with optimised cycles
+!!   Applies synthesis wavelet transformation 
+!!   then convolves with magic filter
+!!   the size of the data is allowed to grow
+!!
+!! SOURCE
+!!
 subroutine comb_rot_grow_ib_1(n1,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ibyz,ibzxx)
-! In one dimesnion,    
-! with optimised cycles
-! Applies synthesis wavelet transformation 
-! then convolves with magic filter
-!  the size of the data is allowed to grow
 use module_base
 implicit none
 integer, intent(in) :: n1,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
@@ -175,8 +203,8 @@ integer :: l2,l3,i,t,l1
 integer :: ii,ii1
 real(wp) y2i__11,y2i__21,y2i1_11,y2i1_21
 real(wp) y2i__12,y2i__22,y2i1_12,y2i1_22
-integer::modul(-14+2*nfl1:2*nfu1+16)
-integer::mfl1,mfu1,mfl2,mfu2
+integer :: modul(-14+2*nfl1:2*nfu1+16)
+integer :: mfl1,mfu1,mfl2,mfu2
 
 include 'v_17.inc'
 call fill_mod_arr(modul,-14+2*nfl1,2*nfu1+16,2*n1+2)
@@ -252,11 +280,11 @@ enddo
 !$omp enddo
 !$omp end parallel
 END SUBROUTINE comb_rot_grow_ib_1
-
+!!***
 
 
 subroutine  comb_rot_grow(n1,ndat,x,y)
-! In one dimesnion,    
+! In one dimension,    
 ! with optimised cycles
 ! Applies synthesis wavelet transformation 
 ! then convolves with magic filter
@@ -357,7 +385,7 @@ do l=(ndat/8)*8+1,ndat
 enddo
 !$omp enddo
 !$omp end parallel
-end subroutine comb_rot_grow
+END SUBROUTINE comb_rot_grow
 
 
 
@@ -401,7 +429,7 @@ integer nt
    nt=(nfu1-nfl1+1)*(nfu2-nfl2+1)
    call comb_rot_shrink_hyb_3_ib(nt,w2,xf,nfl3,nfu3,n3,sb%ibxy_ff)
    
-end subroutine comb_shrink_hyb
+END SUBROUTINE comb_shrink_hyb
 
 subroutine comb_rot_shrink_hyb_1_ib(ndat,n1,nfl1,nfu1,x,y,ib)
 ! In one dimension,    
@@ -440,7 +468,7 @@ do j=1,ndat
 enddo
 !$omp end do
 !$omp end parallel
-end subroutine comb_rot_shrink_hyb_1_ib
+END SUBROUTINE comb_rot_shrink_hyb_1_ib
 
 
 
@@ -489,7 +517,7 @@ enddo
 !$omp enddo
 !$omp end parallel
 
-end subroutine comb_rot_shrink_hyb_2_ib
+END SUBROUTINE comb_rot_shrink_hyb_2_ib
 
 
 subroutine comb_rot_shrink_hyb_3_ib(ndat,x,y,nfl,nfu,n1,ib)
@@ -545,7 +573,7 @@ do j=1,ndat
 enddo
 !$omp enddo
 !$omp end parallel
-end subroutine comb_rot_shrink_hyb_3_ib
+END SUBROUTINE comb_rot_shrink_hyb_3_ib
 
 
 subroutine comb_rot_shrink_hyb(ndat,x,y,n1)
@@ -625,4 +653,4 @@ do j=(ndat/12)*12+1,ndat
 enddo
 !$omp end do
 !$omp end parallel
-end subroutine comb_rot_shrink_hyb
+END SUBROUTINE comb_rot_shrink_hyb

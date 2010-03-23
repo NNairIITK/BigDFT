@@ -29,7 +29,7 @@ subroutine comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
   call comb_grow_tree(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
        ,w1,w2,xf,y,ibyz_f,ibzxx_f,ibxxyy_f)    
   
-end subroutine comb_grow_all
+END SUBROUTINE comb_grow_all
 
 
 subroutine comb_grow_tree(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&

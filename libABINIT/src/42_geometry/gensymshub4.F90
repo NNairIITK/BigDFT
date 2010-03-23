@@ -11,7 +11,7 @@
 !! symrel and tnons are completely determined.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1999-2009 ABINIT group (RC,XG)
+!! Copyright (C) 1999-2010 ABINIT group (RC,XG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .

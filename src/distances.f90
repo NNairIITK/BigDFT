@@ -26,7 +26,7 @@ program find_angles
  real(kind=8), dimension(nsegr) :: nistor
  real(kind=8), dimension(nnmax+1) :: integrals
  character(len=1) :: whichone
- character(len=4) :: fn4
+ character(len=5) :: fn4
  integer :: icount,ncount,ncountmax,tot,atcenter,atangles,nstep,jr,posout,iunit
  logical :: exists
  character(len=40) :: contcar
@@ -65,9 +65,9 @@ program find_angles
     end if
     if (whichone =='B') then
       !initial file to read the box features
-      read(contcar,'(i4)') posout
-      write(fn4,'(i4.4)') posout
-      contcar='posout_'//fn4
+      read(contcar,'(i5)') posout
+      write(fn4,'(i5.5)') posout
+      contcar='posmd_'//fn4
      end if
 
  else
@@ -104,8 +104,8 @@ program find_angles
        xdatcar=contcar
     else if (whichone =='B') then
        !initial file to read the box features
-       write(fn4,'(i4.4)') posout
-       contcar='posout_'//fn4
+       write(fn4,'(i5.5)') posout
+       contcar='posmd_'//fn4
     end if
  end if
  call box_features(whichone,contcar,nrep,nat,ntypes,iatype,pos,factor)
@@ -363,7 +363,7 @@ print *,'nat',nat
        end do
     end do
 
-  end subroutine box_features
+  END SUBROUTINE box_features
 
 
 end program find_angles
@@ -378,7 +378,7 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
   integer, intent(in) :: iunit,nat,nrep
   real(kind=8), dimension(3,nrep**3*nat), intent(out) :: pos
   !local variables
-  character(len=4) :: fn4
+  character(len=5) :: fn4
   integer :: i,iat,ityp,i1,i2,i3
   real(kind=8) :: x,y,z,vx,vy,vz,xlo,xhi,ylo,yhi,zlo,zhi
   type(atoms_data) :: atoms
@@ -405,8 +405,8 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
      enddo
   else if (whichone == 'B') then
      !use the BigDFT call with iunit to control the posout
-     write(fn4,'(i4.4)') iunit
-     call read_atomic_file('posout_'//fn4,0,atoms,rxyz)
+     write(fn4,'(i5.5)') iunit
+     call read_atomic_file('posmd_'//fn4,0,atoms,rxyz)
      !transform the positions in reduced coordinates
      do iat=1,nat
         pos(1,iat)=rxyz(1,iat)/atoms%alat1
@@ -448,7 +448,7 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
      end do
   end if
 
-end subroutine read_pos
+END SUBROUTINE read_pos
 
 function theta(A,O,B)
  implicit none

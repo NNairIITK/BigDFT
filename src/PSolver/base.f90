@@ -63,7 +63,7 @@ module module_base
       character(len=*), intent(in) :: array,routine
       integer, intent(in) :: istat,isize
       call memory_occupation(istat,isize,array,routine) !this routine is in profiling/memory.f90
-    end subroutine memocc_internal
+    END SUBROUTINE memocc_internal
 
     subroutine dp_padding(npaddim,nstart,array)
       implicit none
@@ -75,7 +75,7 @@ module module_base
       do i=1,npaddim*ndebug
          array(nstart+i)= d_nan() !this function is in profiling/memory.f90
       end do
-    end subroutine dp_padding
+    END SUBROUTINE dp_padding
 
     subroutine sp_padding(npaddim,nstart,array)
       implicit none
@@ -87,7 +87,7 @@ module module_base
       do i=1,npaddim*ndebug
          array(nstart+i)= r_nan() !this function is in profiling/memory.f90
       end do
-    end subroutine sp_padding
+    END SUBROUTINE sp_padding
 
     subroutine i_padding(npaddim,nstart,array)
       implicit none
@@ -99,7 +99,7 @@ module module_base
       do i=1,npaddim*ndebug
          array(nstart+i)= r_nan() !this function is in profiling/timem.f90
       end do
-    end subroutine i_padding
+    END SUBROUTINE i_padding
 
     subroutine l_padding(npaddim,nstart,array)
       implicit none
@@ -110,7 +110,7 @@ module module_base
       do i=1,npaddim*ndebug
          array(nstart+i)=.false.
       end do
-    end subroutine l_padding
+    END SUBROUTINE l_padding
 
     subroutine c_padding(npaddim,nstart,array)
       implicit none
@@ -121,7 +121,7 @@ module module_base
       do i=1,npaddim*ndebug
          array(nstart+i)='AAAAAAAAAAAAAAAAAAAA'
       end do
-    end subroutine c_padding
+    END SUBROUTINE c_padding
 
     !beginning of the verbose section
     subroutine mo_dp1(istat,array,aname,rname)
@@ -136,7 +136,7 @@ module module_base
          call dp_padding(1,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_dp1
+    END SUBROUTINE mo_dp1
 
     subroutine mo_dp2(istat,array,aname,rname)
       implicit none
@@ -153,7 +153,7 @@ module module_base
          call dp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_dp2
+    END SUBROUTINE mo_dp2
 
     subroutine mo_dp3(istat,array,aname,rname)
       implicit none
@@ -170,7 +170,7 @@ module module_base
          call dp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_dp3
+    END SUBROUTINE mo_dp3
 
     subroutine mo_dp4(istat,array,aname,rname)
       implicit none
@@ -187,7 +187,7 @@ module module_base
          call dp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_dp4
+    END SUBROUTINE mo_dp4
 
     subroutine mo_dp5(istat,array,aname,rname)
       implicit none
@@ -204,7 +204,7 @@ module module_base
          call dp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_dp5
+    END SUBROUTINE mo_dp5
 
     subroutine mo_dp6(istat,array,aname,rname)
       implicit none
@@ -221,7 +221,7 @@ module module_base
          call dp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_dp6
+    END SUBROUTINE mo_dp6
 
     subroutine mo_dp7(istat,array,aname,rname)
       implicit none
@@ -238,7 +238,7 @@ module module_base
          call dp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_dp7
+    END SUBROUTINE mo_dp7
 
     subroutine mo_sp1(istat,array,aname,rname)
       implicit none
@@ -252,7 +252,7 @@ module module_base
          call sp_padding(1,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_sp1
+    END SUBROUTINE mo_sp1
 
     subroutine mo_sp2(istat,array,aname,rname)
       implicit none
@@ -269,7 +269,7 @@ module module_base
          call sp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_sp2
+    END SUBROUTINE mo_sp2
 
     subroutine mo_sp3(istat,array,aname,rname)
       implicit none
@@ -286,7 +286,7 @@ module module_base
          call sp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_sp3
+    END SUBROUTINE mo_sp3
 
     subroutine mo_sp4(istat,array,aname,rname)
       implicit none
@@ -303,7 +303,7 @@ module module_base
          call sp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_sp4
+    END SUBROUTINE mo_sp4
 
     subroutine mo_sp5(istat,array,aname,rname)
       implicit none
@@ -320,7 +320,7 @@ module module_base
          call sp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_sp5
+    END SUBROUTINE mo_sp5
 
     subroutine mo_sp6(istat,array,aname,rname)
       implicit none
@@ -337,7 +337,7 @@ module module_base
          call sp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_sp6
+    END SUBROUTINE mo_sp6
 
     subroutine mo_sp7(istat,array,aname,rname)
       implicit none
@@ -354,7 +354,7 @@ module module_base
          call sp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_sp7
+    END SUBROUTINE mo_sp7
 
     subroutine mo_i1(istat,array,aname,rname)
       implicit none
@@ -368,7 +368,7 @@ module module_base
          call i_padding(1,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_i1
+    END SUBROUTINE mo_i1
 
     subroutine mo_i2(istat,array,aname,rname)
       implicit none
@@ -385,7 +385,7 @@ module module_base
          call i_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_i2
+    END SUBROUTINE mo_i2
 
     subroutine mo_i3(istat,array,aname,rname)
       implicit none
@@ -402,7 +402,7 @@ module module_base
          call i_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_i3
+    END SUBROUTINE mo_i3
 
     subroutine mo_i4(istat,array,aname,rname)
       implicit none
@@ -419,7 +419,7 @@ module module_base
          call i_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_i4
+    END SUBROUTINE mo_i4
 
     subroutine mo_i5(istat,array,aname,rname)
       implicit none
@@ -436,7 +436,7 @@ module module_base
          call i_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_i5
+    END SUBROUTINE mo_i5
 
     subroutine mo_i6(istat,array,aname,rname)
       implicit none
@@ -453,7 +453,7 @@ module module_base
          call i_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_i6
+    END SUBROUTINE mo_i6
 
     subroutine mo_i7(istat,array,aname,rname)
       implicit none
@@ -470,7 +470,7 @@ module module_base
          call i_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_i7
+    END SUBROUTINE mo_i7
 
     subroutine mo_l1(istat,array,aname,rname)
       implicit none
@@ -484,7 +484,7 @@ module module_base
          call l_padding(1,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_l1
+    END SUBROUTINE mo_l1
 
     subroutine mo_l2(istat,array,aname,rname)
       implicit none
@@ -501,7 +501,7 @@ module module_base
          call l_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_l2
+    END SUBROUTINE mo_l2
 
     subroutine mo_l3(istat,array,aname,rname)
       implicit none
@@ -518,7 +518,7 @@ module module_base
          call l_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_l3
+    END SUBROUTINE mo_l3
 
     subroutine mo_l4(istat,array,aname,rname)
       implicit none
@@ -535,7 +535,7 @@ module module_base
          call l_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_l4
+    END SUBROUTINE mo_l4
 
     subroutine mo_l5(istat,array,aname,rname)
       implicit none
@@ -552,7 +552,7 @@ module module_base
          call l_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_l5
+    END SUBROUTINE mo_l5
 
     subroutine mo_l6(istat,array,aname,rname)
       implicit none
@@ -569,7 +569,7 @@ module module_base
          call l_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_l6
+    END SUBROUTINE mo_l6
 
     subroutine mo_l7(istat,array,aname,rname)
       implicit none
@@ -586,7 +586,7 @@ module module_base
          call l_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_l7
+    END SUBROUTINE mo_l7
 
     subroutine mo_c1(istat,array,aname,rname)
       implicit none
@@ -600,7 +600,7 @@ module module_base
          call c_padding(1,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_c1
+    END SUBROUTINE mo_c1
 
 end module module_base
 !!***

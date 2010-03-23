@@ -1,6 +1,8 @@
 ## Process this file with automake to produce Makefile.in
 
 SUBDIRS = \
+	  fft \
+	  PSolver \
 	  H \
 	  H2-spin \
 	  Li+ \
@@ -59,4 +61,4 @@ CLEANFILES =
 all: head_message $(mpirun_message) foot_message
 
 check:
-	@python $(top_srcdir)/tests/report.py
+	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi

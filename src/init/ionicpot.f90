@@ -1,7 +1,7 @@
 !!****f* BigDFT/IonicEnergyandForces
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 (LG)
+!!    Copyright (C) 2007-2010 (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -30,13 +30,13 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   integer :: iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
   integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
   real(gp) :: ucvol,rloc,twopitothreehalf,pi,atint,shortlength,charge,eself,rx,ry,rz
-  real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff,zero
+  real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
   real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod,evacancy
   real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart
   !real(gp) :: Mz,cmassy
   real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
   !other arrays for the ewald treatment
-  real(gp), dimension(:,:), allocatable :: fewald,xred,gion
+  real(gp), dimension(:,:), allocatable :: fewald,xred
 
   pi=4.d0*datan(1.d0)
 
@@ -343,8 +343,12 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      end if
 
      !now call the Poisson Solver for the global energy forces
-     call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-          pot_ion,pkernel,pot_ion,ehart,zero,zero,-2.0_gp*psoffset,.false.,1)
+     call H_potential(at%geocode,'D',iproc,nproc,&
+          n1i,n2i,n3i,hxh,hyh,hzh,&
+          pot_ion,pkernel,pot_ion,ehart,-2.0_gp*psoffset,.false.)
+
+!!$     call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
+!!$          pot_ion,pkernel,pot_ion,ehart,zero,zero,-2.0_gp*psoffset,.false.,1)
 
      eion=ehart-eself
 
@@ -421,19 +425,19 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      end do
 
      if (nproc > 1) then
-        allocate(gion(3,at%nat+ndebug),stat=i_stat)
-        call memocc(i_stat,gion,'gion',subname)
-        do iat=1,at%nat
-           gion(1,iat)=fion(1,iat)
-           gion(2,iat)=fion(2,iat)
-           gion(3,iat)=fion(3,iat)
-        end do
+!!$        allocate(gion(3,at%nat+ndebug),stat=i_stat)
+!!$        call memocc(i_stat,gion,'gion',subname)
+!!$        do iat=1,at%nat
+!!$           gion(1,iat)=fion(1,iat)
+!!$           gion(2,iat)=fion(2,iat)
+!!$           gion(3,iat)=fion(3,iat)
+!!$        end do
 
-        call MPI_ALLREDUCE(gion,fion,3*at%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(fion(1,1),3*at%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-        i_all=-product(shape(gion))*kind(gion)
-        deallocate(gion,stat=i_stat)
-        call memocc(i_stat,i_all,'gion',subname)
+!!$        i_all=-product(shape(gion))*kind(gion)
+!!$        deallocate(gion,stat=i_stat)
+!!$        call memocc(i_stat,i_all,'gion',subname)
 
      end if
 
@@ -458,7 +462,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
         close(unit=22)
      end if
   end if
-end subroutine IonicEnergyandForces
+END SUBROUTINE IonicEnergyandForces
 !!***
 
 
@@ -493,8 +497,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz,offset
   real(wp) :: maxdiff
-  real(gp) :: ehart,eexcu,vexcu
-  real(dp), dimension(4) :: charges_mpi
+  real(gp) :: ehart
+  real(dp), dimension(2) :: charges_mpi
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(dp), dimension(:), allocatable :: potion_corr
   real(dp), dimension(:), pointer :: pkernel_ref
@@ -590,11 +594,10 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
-     call MPI_ALLREDUCE(charges_mpi(1),charges_mpi(3),2,mpidtypd, &
-          MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(charges_mpi(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-     tt_tot=charges_mpi(3)
-     rholeaked_tot=charges_mpi(4)
+     tt_tot=charges_mpi(1)
+     rholeaked_tot=charges_mpi(2)
   else
      tt_tot=tt
      rholeaked_tot=rholeaked
@@ -607,8 +610,13 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      call timing(iproc,'CrtLocPot     ','OF')
      !here the value of the datacode must be kept fixed
      nspin=1
-     call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-          pot_ion,pkernel,pot_ion,ehart,eexcu,vexcu,-psoffset,.false.,nspin)
+
+     call H_potential(geocode,'D',iproc,nproc,&
+          n1i,n2i,n3i,hxh,hyh,hzh,&
+          pot_ion,pkernel,pot_ion,ehart,-psoffset,.false.)
+
+!!$     call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
+!!$          pot_ion,pkernel,pot_ion,ehart,eexcu,vexcu,-psoffset,.false.,nspin)
      call timing(iproc,'CrtLocPot     ','ON')
      
      if (check_potion) then
@@ -831,8 +839,12 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
      call timing(iproc,'CrtLocPot     ','OF')
      !here the value of the datacode must be kept fixed
-     call PSolver('F','G',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-          potion_corr,pkernel_ref,potion_corr,ehart,eexcu,vexcu,0.0_gp,.false.,1)
+     call H_potential('F','G',iproc,nproc,&
+          n1i,n2i,n3i,hxh,hyh,hzh,&
+          potion_corr,pkernel_ref,potion_corr,ehart,0.0_gp,.false.)
+
+!!$     call PSolver('F','G',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
+!!$          potion_corr,pkernel_ref,potion_corr,ehart,eexcu,vexcu,0.0_gp,.false.,1)
      call timing(iproc,'CrtLocPot     ','ON')
 
 
@@ -1041,7 +1053,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
   call timing(iproc,'CrtLocPot     ','OF')
 
-end subroutine createIonicPotential
+END SUBROUTINE createIonicPotential
 !!***
 
 !!****f* BigDFT/sum_erfcr
@@ -1070,7 +1082,7 @@ subroutine ind_positions(periodic,i,n,j,go)
      end if
   end if
 
-end subroutine ind_positions
+END SUBROUTINE ind_positions
 !!***
 
 
@@ -1121,7 +1133,7 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
 
   end do
 
-end subroutine sum_erfcr
+END SUBROUTINE sum_erfcr
 !!***
 
 
@@ -1142,7 +1154,7 @@ subroutine ext_buffers(periodic,nl,nr)
      nl=14
      nr=15
   end if
-end subroutine ext_buffers
+END SUBROUTINE ext_buffers
 !!***
 
 

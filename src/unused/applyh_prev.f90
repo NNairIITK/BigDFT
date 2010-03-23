@@ -148,7 +148,7 @@ subroutine applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
    call memocc(i_stat,x_f2,'x_f2','applylocpotkinone_hyb')
    allocate(x_f3(nf+ndebug),stat=i_stat)
    call memocc(i_stat,x_f3,'x_f3','applylocpotkinone_hyb')
-	 
+ 
    allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
    call memocc(i_stat,y_f,'y_f','applylocpotkinone_hyb')
    allocate(y_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
@@ -393,7 +393,7 @@ subroutine realspace_prev(ibyyzz_r,pot,psir,epot,n1,n2,n3)
      enddo
   enddo
 
-end subroutine realspace_prev
+END SUBROUTINE realspace_prev
 
 subroutine realspace_nbuf_prev(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
   implicit none
@@ -437,7 +437,7 @@ subroutine realspace_nbuf_prev(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
      endif
   enddo
 
-end subroutine realspace_nbuf_prev
+END SUBROUTINE realspace_nbuf_prev
 
 
 SUBROUTINE CALC_GRAD_REZA_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 

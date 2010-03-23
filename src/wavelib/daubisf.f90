@@ -155,7 +155,7 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
      endif
   end select
 
-end subroutine initialize_work_arrays_locham
+END SUBROUTINE initialize_work_arrays_locham
 
 subroutine deallocate_work_arrays_locham(lr,w)
   use module_base
@@ -206,7 +206,7 @@ subroutine deallocate_work_arrays_locham(lr,w)
   end if
 
   
-end subroutine deallocate_work_arrays_locham
+END SUBROUTINE deallocate_work_arrays_locham
 
 
 !transforms a wavefunction written in Daubechies basis into a 
@@ -254,8 +254,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
              w%w1,w%w2,w%x_c(1,idx),w%x_f(1,idx), & 
              psir(1,idx),lr%bounds%kb%ibyz_c,lr%bounds%gb%ibzxx_c,&
              lr%bounds%gb%ibxxyy_c,lr%bounds%gb%ibyz_ff,&
-             lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f,&
-             lr%bounds%ibyyzz_r)
+             lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f)
 
      end do
      
@@ -309,7 +308,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
      end if
   end select
   
-end subroutine daub_to_isf_locham
+END SUBROUTINE daub_to_isf_locham
 
 subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
   use module_base
@@ -535,7 +534,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
 
   end select
 
-end subroutine isf_to_daub_kinetic
+END SUBROUTINE isf_to_daub_kinetic
 
 subroutine initialize_work_arrays_sumrho(lr,w)
   use module_base
@@ -619,7 +618,7 @@ subroutine initialize_work_arrays_sumrho(lr,w)
   end if
 
 
-end subroutine initialize_work_arrays_sumrho
+END SUBROUTINE initialize_work_arrays_sumrho
 
 subroutine deallocate_work_arrays_sumrho(w)
   use module_base
@@ -643,7 +642,7 @@ subroutine deallocate_work_arrays_sumrho(w)
   deallocate(w%w2,stat=i_stat)
   call memocc(i_stat,i_all,'w2',subname)
   
-end subroutine deallocate_work_arrays_sumrho
+END SUBROUTINE deallocate_work_arrays_sumrho
 
 !transform a daubechies function in compressed form to a function in real space via
 !the Magic Filter operation
@@ -682,8 +681,7 @@ subroutine daub_to_isf(lr,w,psi,psir)
           w%w1,w%w2,w%x_c,w%x_f,  & 
           psir,lr%bounds%kb%ibyz_c,&
           lr%bounds%gb%ibzxx_c,lr%bounds%gb%ibxxyy_c,&
-          lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f,&
-          lr%bounds%ibyyzz_r)
+          lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f)
 
   case('P')
      if (lr%hybrid_on) then
@@ -726,4 +724,4 @@ subroutine daub_to_isf(lr,w,psi,psir)
 
 
 
-end subroutine daub_to_isf
+END SUBROUTINE daub_to_isf

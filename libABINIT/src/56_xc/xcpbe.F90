@@ -23,7 +23,7 @@
 !! If option==7, WC functional of Wu and Cohen, PRB 73, 235116 (2006)
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2009 ABINIT group (XG,MF,LG)
+!! Copyright (C) 1998-2010 ABINIT group (XG,MF,LG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .

@@ -8,7 +8,7 @@
 !! to the real space grid
 !!
 !! COPYRIGHT
-!! Copyright (C) 2007-2009 ABINIT group (JZwanziger)
+!! Copyright (C) 2007-2010 ABINIT group (JZwanziger)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .

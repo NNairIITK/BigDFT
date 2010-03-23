@@ -1,8 +1,9 @@
 !!****f* BigDFT/local_forces
 !! FUNCTION
 !!   Calculates the local forces acting on the atoms belonging to iproc
+!!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    Copyright (C) 2007-2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -262,7 +263,7 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
            do idir=0,3
               !calculate projectors
               istart_c=1
-              call atom_projector(iproc,ikpt,iat,idir,istart_c,iproj,&
+              call atom_projector(ikpt,iat,idir,istart_c,iproj,&
                    n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
 
               !calculate the contribution for each orbital
@@ -477,7 +478,6 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
   i_all=-product(shape(scalprod))*kind(scalprod)
   deallocate(scalprod,stat=i_stat)
   call memocc(i_stat,i_all,'scalprod',subname)
-
 
 END SUBROUTINE nonlocal_forces
 !!***

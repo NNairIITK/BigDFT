@@ -12,7 +12,7 @@
 !! Comp. Phys. Comm. 3, 88 (1972)
 !!
 !! COPYRIGHT
-!! Copyright (C) 2000-2009 ABINIT group (XG)
+!! Copyright (C) 2000-2010 ABINIT group (XG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -323,9 +323,9 @@
 &           ptsymrel(:,3,isym)*spinatred(3,iatom2))
          end if
 
-!DEBUG
+!        DEBUG
 !        write(6, '(a,3f12.4,a,3f12.4)') ' Send atom at xred=',xred(:,iatom2),' to ',symxred2(:)
-!ENDDEBUG
+!        ENDDEBUG
 
 !        Check whether there exists an atom of the same class at the
 !        same location, with the correct spinat

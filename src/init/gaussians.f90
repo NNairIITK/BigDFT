@@ -1,8 +1,20 @@
-!plot all the elements of the gaussian basis for a given diffusion center
-!provide also the basis set in which the atomic density is expressed
-!attention: it works only when the exponenets are always of the same type
-!           which is typical of gatom
-! no good, they have to be converted shell-by-shell
+!!****f* BigDFT/plot_gatom_basis
+!! FUNCTION
+!!   Plot all the elements of the gaussian basis for a given diffusion center
+!!   provide also the basis set in which the atomic density is expressed
+!!   attention: it works only when the exponenets are always of the same type
+!!              which is typical of gatom
+!!    no good, they have to be converted shell-by-shell
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2009-2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
   use module_base
   use module_types
@@ -14,15 +26,14 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
   real(wp), dimension((ngx*(ngx+1))/2), intent(out) :: rhoexpo
   real(wp), dimension((ngx*(ngx+1))/2,4), intent(out) :: rhocoeff
   !local variables
-  integer, parameter :: nterm_max=3,nshell_max=10,ngrid_points=5000
+  integer, parameter :: nterm_max=3,nshell_max=10
+  real(gp), parameter :: range=3.0_gp !in atomic units
   integer :: jat,ishell,iexpo,icoeff,isat,ng,l,m,jshell,jexpo,jsat,ig,igrid
-  integer :: kshell,kexpo,jg,kg,ngk,ksat,ngj,jcoeff,irexpo
-  real(gp) :: mexpo,hg,x,scalprod,charge,occ,combine_exponents,tt
-  integer, dimension(nterm_max) :: lx,ly,lz
-  real(gp), dimension(nterm_max) :: fac_arr
+  integer :: kshell,kexpo,jg,kg,ngk,ksat,ngj,jcoeff,irexpo,ngrid_points
+  real(gp) :: hg,x,scalprod,charge,occ,combine_exponents,tt,mexpo
   real(gp), dimension(nshell_max+1) :: shells
     
-  open(unit=79,file=filename,status='unknown')
+  open(unit=79,file=filename//'-wfn.dat',status='unknown')
 
   ishell=0
   iexpo=1
@@ -37,18 +48,20 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
            stop
         end if
         !calculate the min exponent for the grid mesh
-!!$        mexpo=1.e100_gp
-!!$        do jsat=1,G%nshell(jat)
-!!$           jshell=jshell+1
-!!$           ng=G%ndoc(jshell)
-!!$           do ig=1,ng
-!!$              mexpo=min(mexpo,G%xp(jexpo))
-!!$              jexpo=jexpo+1
-!!$           end do 
+        mexpo=1.e100_gp
+        do jsat=1,G%nshell(jat)
+           jshell=jshell+1
+           ng=G%ndoc(jshell)
+           do ig=1,ng
+              mexpo=min(mexpo,G%xp(jexpo))
+              jexpo=jexpo+1
+           end do 
            !take the grid spacing as one fifth of the minimum expo
         !take the grid spacing little enough
-        hg=0.005_gp
-!!$        end do
+        hg=0.2_gp*mexpo
+        !calculate the number of grid points
+        ngrid_points=nint(range/hg)
+        end do
         !construct the array of the wavefunctions
         write(79,'(a,2x,20(8x,i8))')'# l',(G%nam(jsat)-1,jsat=1,G%nshell(jat))
         !verify whether there are two angular momentum which are equal
@@ -159,14 +172,27 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
         end do
         write(*,*)' Total charge density: ',charge*hg
         !calculation of total charge density in the analytic sense
-        !to be done again
         charge=0.0_gp
+        !s-channel
         do ig=1,(ng*(ng+1))/2
            charge=charge+rhocoeff(ig,1)*rhoexpo(ig)**3
         end do
+        !p-channel
+        do ig=1,(ng*(ng+1))/2
+           charge=charge+3.0_gp*rhocoeff(ig,2)*rhoexpo(ig)**5
+        end do
+        !d-channel
+        do ig=1,(ng*(ng+1))/2
+           charge=charge+15.0_gp*rhocoeff(ig,3)*rhoexpo(ig)**7
+        end do
+        !f-channel
+        do ig=1,(ng*(ng+1))/2
+           charge=charge+105.0_gp*rhocoeff(ig,4)*rhoexpo(ig)**9
+        end do
         !correct normalisation
-        charge=0.5_gp*sqrt(8.0_gp*atan(1.0_dp))*charge
-        write(*,*)' Total charge density, analytic (not supposed to work): ',charge
+        charge=sqrt(2.0_gp*atan(1.0_dp))*charge
+
+        write(*,*)' Total charge density, analytic: ',charge
      end if
      do isat=1,G%nshell(jat)
         !construct the values of the wavefunctions in the grid points
@@ -186,8 +212,22 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
 
   close(unit=79)
 
-end subroutine plot_gatom_basis
+  !write the coefficients of the density in the gaussian basis
+  !and the corresponding exponents
+  open(unit=79,file=filename//'-rho.gau',status='unknown')
+  write(79,'((1x,i0))')ng
+  do ig=1,(ng*(ng+1))/2
+     write(79,'(5(1x,1pe25.17))')rhoexpo(ig),(rhocoeff(ig,jsat),jsat=1,4)
+  end do
+  close(unit=79)
 
+END SUBROUTINE plot_gatom_basis
+!!***
+
+
+!!****f* BigDFT/combine_exponents
+!! SOURCE
+!!
 function combine_exponents(sa,sb)
   use module_base
   implicit none
@@ -203,18 +243,12 @@ function combine_exponents(sa,sb)
   combine_exponents=sb*alpha
   
 end function combine_exponents
+!!***
+
 
 !!****f* BigDFT/nonblocking_transposition
 !! FUNCTION
 !!    Perform a set of non-blocking send-receive operations
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA (LG)
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
 !! SOURCE
 !!
 subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
@@ -246,9 +280,14 @@ subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
           mpidtypw,jproc,jproc+nproc*iproc,MPI_COMM_WORLD,mpirequests(jproc),ierr)
   end do
   
-end subroutine nonblocking_transposition
+END SUBROUTINE nonblocking_transposition
 !!***
 
+
+!!****f* BigDFT/overlap_and_gather
+!! FUNCTION
+!! SOURCE
+!!
 subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovrlp,orbs,&
      norbsc_arr,psi,hpsi,ovrlp)
   use module_base
@@ -401,11 +440,15 @@ subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovr
   deallocate(overlaps,stat=i_stat)
   call memocc(i_stat,i_all,'overlaps',subname)
 
+END SUBROUTINE overlap_and_gather
+!!***
 
-end subroutine overlap_and_gather
 
-
-!overlap matrix between two different basis structures
+!!****f* BigDFT/gaussian_overlap
+!! FUNCTION
+!!   Overlap matrix between two different basis structures
+!! SOURCE
+!!
 subroutine gaussian_overlap(A,B,ovrlp)
   use module_base
   use module_types
@@ -415,8 +458,8 @@ subroutine gaussian_overlap(A,B,ovrlp)
   !only lower triangular part for A%ncoeff=B%ncoeff
   !local variables
   integer, parameter :: niw=18,nrw=6
-  integer :: ishell,iexpo,icoeff,ishellB,iexpoB,icoeffB,iat,jat,isat,isatB,jsat,jshell
-  integer :: jstart,iovrlp,jovrlp,jcoeff,jexpo
+  integer :: ishell,iexpo,icoeff,iat,jat,isat,jsat,jshell
+  integer :: iovrlp,jovrlp,jcoeff,jexpo
   integer :: ngA,ngB,lA,lB,mA,mB
   real(gp) :: dx,dy,dz
   integer, dimension(niw) :: iw
@@ -468,16 +511,21 @@ subroutine gaussian_overlap(A,B,ovrlp)
      end do
   end do
 
-
   call gaudim_check(iexpo,icoeff,ishell,A%nexpo,A%ncoeff,A%nshltot)
   call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
   
-end subroutine gaussian_overlap
+END SUBROUTINE gaussian_overlap
+!!***
 
-!calculates the scalar product between two shells
-!by considering only the nonzero coefficients
-!actual building block for calculating overlap matrix
-!inserted work arrays for calculation
+
+!!****f* BigDFT/gbasovrlp
+!! FUNCTION
+!!   Calculates the scalar product between two shells
+!!   by considering only the nonzero coefficients
+!!   actual building block for calculating overlap matrix
+!!   inserted work arrays for calculation
+!! SOURCE
+!!
 subroutine gbasovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
      niw,nrw,iw,rw,ovrlp)
   use module_base
@@ -509,11 +557,16 @@ subroutine gbasovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
      end do
   end do
   
-end subroutine gbasovrlp
+END SUBROUTINE gbasovrlp
+!!***
 
 
-!overlap kinetic matrix between two different basis structures
-!the kinetic operator is applicated on the A basis structure
+!!****f* BigDFT/kinetic_overlap
+!! FUNCTION
+!!   Overlap kinetic matrix between two different basis structures
+!!   the kinetic operator is applicated on the A basis structure
+!! SOURCE
+!!
 subroutine kinetic_overlap(A,B,ovrlp)
   use module_base
   use module_types
@@ -523,8 +576,8 @@ subroutine kinetic_overlap(A,B,ovrlp)
   !only lower triangular part for A%ncoeff=B%ncoeff
   !local variables
   integer, parameter :: niw=18,nrw=6
-  integer :: ishell,iexpo,icoeff,ishellB,iexpoB,icoeffB,iat,jat,isat,isatB,jsat,jshell
-  integer :: jstart,iovrlp,jovrlp,jcoeff,jexpo
+  integer :: ishell,iexpo,icoeff,iat,jat,isat,jsat,jshell
+  integer :: iovrlp,jovrlp,jcoeff,jexpo
   integer :: ngA,ngB,lA,lB,mA,mB
   real(gp) :: dx,dy,dz
   integer, dimension(niw) :: iw
@@ -576,17 +629,21 @@ subroutine kinetic_overlap(A,B,ovrlp)
      end do
   end do
 
-
-
   call gaudim_check(iexpo,icoeff,ishell,A%nexpo,A%ncoeff,A%nshltot)
   call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
   
-end subroutine kinetic_overlap
+END SUBROUTINE kinetic_overlap
+!!***
 
-!calculates the scalar product between two shells
-!by considering only the nonzero coefficients
-!actual building block for calculating overlap matrix
-!inserted work arrays for calculation
+
+!!****f* BigDFT/kineticovrlp
+!! FUNCTION
+!!   Calculates the scalar product between two shells
+!!   by considering only the nonzero coefficients
+!!   actual building block for calculating overlap matrix
+!!   inserted work arrays for calculation
+!! SOURCE
+!!
 subroutine kineticovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
      niw,nrw,iw,rw,ovrlp)
   use module_base
@@ -618,11 +675,16 @@ subroutine kineticovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
      end do
   end do
   
-end subroutine kineticovrlp
+END SUBROUTINE kineticovrlp
+!!***
 
 
-!overlap kinetic matrix between two different basis structures
-!the kinetic operator is applicated on the A basis structure
+!!****f* BigDFT/potential_overlap
+!! FUNCTION
+!!   Overlap kinetic matrix between two different basis structures
+!!   the kinetic operator is applicated on the A basis structure
+!! SOURCE
+!!
 subroutine potential_overlap(A,B,pot,n1,n2,n3,hx,hy,hz,ovrlp)
   use module_base
   use module_types
@@ -635,8 +697,8 @@ subroutine potential_overlap(A,B,pot,n1,n2,n3,hx,hy,hz,ovrlp)
   !only lower triangular part for A%ncoeff=B%ncoeff
   !local variables 
  integer, parameter :: niw=18,nrw=6
-  integer :: ishell,iexpo,icoeff,ishellB,iexpoB,icoeffB,iat,jat,isat,isatB,jsat,jshell
-  integer :: jstart,iovrlp,jovrlp,jcoeff,jexpo
+  integer :: ishell,iexpo,icoeff,iat,jat,isat,jsat,jshell
+  integer :: iovrlp,jovrlp,jcoeff,jexpo
   integer :: ngA,ngB,lA,lB,mA,mB
   real(gp) :: rxa,rya,rza,rxb,ryb,rzb
   integer, dimension(niw) :: iw
@@ -694,12 +756,11 @@ subroutine potential_overlap(A,B,pot,n1,n2,n3,hx,hy,hz,ovrlp)
      end do
   end do
 
-
-
   call gaudim_check(iexpo,icoeff,ishell,A%nexpo,A%ncoeff,A%nshltot)
   call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
   
-end subroutine potential_overlap
+END SUBROUTINE potential_overlap
+!!***
 
 
 !!!!calculate the potential overlap via a successive application of a one dimensional
@@ -757,7 +818,7 @@ end subroutine potential_overlap
 !!!  end do
 !!!  
 !!!
-!!!end subroutine onedim_potovrlp
+!!!END SUBROUTINE onedim_potovrlp
 
 subroutine locpotovrlp(n1i,n2i,n3i,pot,hx,hy,hz,expo1,coeff1,expo2,coeff2,&
      ng1,ng2,l1,m1,l2,m2,rxa,rya,rza,rxb,ryb,rzb,niw,nrw,iw,rw,ovrlp)
@@ -775,17 +836,15 @@ subroutine locpotovrlp(n1i,n2i,n3i,pot,hx,hy,hz,expo1,coeff1,expo2,coeff2,&
   integer, parameter :: nx=3
   logical :: gox,goy,goz
   integer :: ii1,ii2,j1,j2,j3,i1,i2,i3,isx,isy,isz,iex,iey,iez
-  integer :: iii1,iii2,iii3,px,py,pz,qx,qy,qz,n1,n2
-  real(gp) :: a1,a2,c1,c2,rmean,xmean,ymean,zmean,prodgau,cutoff,xa,ya,za,xb,yb,zb,polynom
-  real(gp) :: pola,polb,prodgaus,rx,ry,rz,nexp,expx,expy,expz,factor,fa,fb,povrlp,x,y,z
-
+  integer :: iii1,iii2,px,py,pz,qx,qy,qz,n1,n2
+  real(gp) :: a1,a2,c1,c2,rmean,xmean,ymean,zmean,cutoff,xa,ya,za,xb,yb,zb,polynom
+  real(gp) :: pola,polb,prodgaus,nexp,expx,expy,expz,factor,fa,fb,povrlp,x,y,z
 
   !calculates the polynomials which multiply each product of gaussians
   call calc_coeff_inguess(l1,m1,nx,n1,&
        iw(1),iw(nx+1),iw(2*nx+1),rw(1))
   call calc_coeff_inguess(l2,m2,nx,n2,&
        iw(3*nx+1),iw(4*nx+1),iw(5*nx+1),rw(n1+1))
-
 
   ovrlp=0.0_gp
   do ii1=1,ng1
@@ -869,7 +928,7 @@ subroutine locpotovrlp(n1i,n2i,n3i,pot,hx,hy,hz,expo1,coeff1,expo2,coeff2,&
      end do
   end do
   
-end subroutine locpotovrlp
+END SUBROUTINE locpotovrlp
 
 function polynom(f,x,y,z,lx,ly,lz)
   use module_base
@@ -928,5 +987,4 @@ subroutine ind_gauss(periodic,i,is,n,j,go)
      end if
   end if
 
-end subroutine ind_gauss
-
+END SUBROUTINE ind_gauss

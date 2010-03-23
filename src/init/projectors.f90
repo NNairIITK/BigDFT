@@ -1,3 +1,15 @@
+!!****f* BigDFT/localize_projectors
+!! FUNCTION
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
      logrid,at,orbs,nlpspd)
   use module_base
@@ -197,10 +209,16 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
      write(*,'(1x,a,i21)') 'Percent of zero components =',nint(100.0_gp*zerovol)
   end if
 
-end subroutine localize_projectors
+END SUBROUTINE localize_projectors
+!!***
 
 
-!fill the proj array with the PSP projectors or their derivatives, following idir value
+!!****f* BigDFT/fill_projectors
+!! FUNCTION
+!!   Fill the proj array with the PSP projectors or their derivatives, following idir value
+!!
+!! SOURCE
+!!
 subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
   use module_base
   use module_types
@@ -237,7 +255,7 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir
      iproj=0
      do iat=1,at%nat
         !this routine is defined to uniformise the call for on-the-fly application
-        call atom_projector(iproc,ikpt,iat,idir,istart_c,iproj,&
+        call atom_projector(ikpt,iat,idir,istart_c,iproj,&
              n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
      enddo
      if (iproj /= nlpspd%nproj) stop 'incorrect number of projectors created'
@@ -256,16 +274,19 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir
      end if
   end if
 
+END SUBROUTINE fill_projectors
+!!***
 
-end subroutine fill_projectors
 
-
-subroutine atom_projector(iproc,ikpt,iat,idir,istart_c,iproj,&
+!!****f* BigDFT/atom_projector
+!! SOURCE
+!!
+subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
      n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iat,idir,n1,n2,n3,iproc,ikpt
+  integer, intent(in) :: iat,idir,n1,n2,n3,ikpt
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -302,7 +323,7 @@ subroutine atom_projector(iproc,ikpt,iat,idir,istart_c,iproj,&
      do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
         if (at%psppar(l,i,ityp) /= 0.0_gp) then
 
-           call projector(at%geocode,at%atomnames(ityp),iproc,iat,idir,l,i,&
+           call projector(at%geocode,at%atomnames(ityp),iat,idir,l,i,&
                 at%psppar(l,0,ityp),rxyz(1,iat),n1,n2,n3,&
                 hx,hy,hz,kx,ky,kz,ncplx,&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
@@ -314,17 +335,21 @@ subroutine atom_projector(iproc,ikpt,iat,idir,istart_c,iproj,&
         endif
      enddo
   enddo
-end subroutine atom_projector
+END SUBROUTINE atom_projector
+!!***
 
 
-subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
+!!****f* BigDFT/projector
+!! SOURCE
+!!
+subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
      hx,hy,hz,kx,ky,kz,ncplx,&
      mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj,nwarnings)
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=20), intent(in) :: atomname
-  integer, intent(in) :: iat,iproc,idir,l,i,n1,n2,n3,mbvctr_c,mbvctr_f,mseg_c,mseg_f,ncplx
+  integer, intent(in) :: iat,idir,l,i,n1,n2,n3,mbvctr_c,mbvctr_f,mseg_c,mseg_f,ncplx
   real(gp), intent(in) :: hx,hy,hz,gau_a,kx,ky,kz
   !integer, dimension(2,3), intent(in) :: nboxp_c,nboxp_f
   integer, dimension(mseg_c+mseg_f), intent(in) :: keyv_p
@@ -411,10 +436,16 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
      !end testing
      istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
   enddo
-end subroutine projector
+END SUBROUTINE projector
+!!***
 
 
-! Determines the number of projectors (valid for GTH and HGH pseudopotentials)
+!!****f* BigDFT/numb_proj
+!! FUNCTION
+!!   Determines the number of projectors (valid for GTH and HGH pseudopotentials)
+!!
+!! SOURCE
+!!
 subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
   use module_base
   implicit none
@@ -440,14 +471,21 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
      enddo
   end if
 
-end subroutine numb_proj
+END SUBROUTINE numb_proj
+!!***
 
+
+!!****f* BigDFT/
+!! FUNCTION
+!!   Returns the compressed form of a Gaussian projector 
+!!   x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 ))
+!!   in the arrays proj_c, proj_f
+!!
+!! SOURCE
+!!
 subroutine crtproj(geocode,nterm,n1,n2,n3, & 
      hx,hy,hz,kx,ky,kz,ncplx,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
      mvctr_c,mvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj)
-  ! returns the compressed form of a Gaussian projector 
-  ! x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 ))
-  ! in the arrays proj_c, proj_f
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
@@ -911,7 +949,8 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
   deallocate(wprojz,stat=i_stat)
   call memocc(i_stat,i_all,'wprojz',subname)
 
-end subroutine crtproj
+END SUBROUTINE crtproj
+!!***
 
 
 !real part of the complex product
@@ -1007,7 +1046,7 @@ subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,
      end if
   end if
 
-end subroutine pregion_size
+END SUBROUTINE pregion_size
 
 subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
   use module_base

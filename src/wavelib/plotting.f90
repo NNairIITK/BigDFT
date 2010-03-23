@@ -1,3 +1,13 @@
+!!****f* BigDFT/plot_wf
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 subroutine plot_wf(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
@@ -13,7 +23,7 @@ subroutine plot_wf(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
   !local variables
   character(len=*), parameter :: subname='plot_wf'
-  integer :: i_stat,i_all,i
+  integer :: i_stat,i_all
   integer :: nl1,nl2,nl3,n1i,n2i,n3i,n1,n2,n3
   type(workarr_sumrho) :: w
   real(wp), dimension(:), allocatable :: psir
@@ -67,6 +77,8 @@ subroutine plot_wf(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE plot_wf
+!!***
+
 
 subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
@@ -165,8 +177,7 @@ subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
      call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,&
           x_c_psifscf,x_f_psig,  & 
           psir(1),lr%bounds%kb%ibyz_c,lr%bounds%gb%ibzxx_c,lr%bounds%gb%ibxxyy_c,&
-          lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f,&
-          lr%bounds%ibyyzz_r)
+          lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f)
      
   case('P')
      call uncompress_per(n1,n2,n3,lr%wfd%nseg_c,&
@@ -275,7 +286,7 @@ subroutine plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,po
   close(iounit+1) 
   close(iounit+2) 
 
-end subroutine plot_pot
+END SUBROUTINE plot_pot
 
 subroutine plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
@@ -316,7 +327,7 @@ subroutine plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   close(unit=22) 
 !  close(unit=23) 
 
-end subroutine plot_pot_full
+END SUBROUTINE plot_pot_full
 
 subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
@@ -385,7 +396,7 @@ subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   end do
   close(22)
 
-end subroutine plot_cube_full
+END SUBROUTINE plot_cube_full
 
 subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
   use module_base
@@ -435,7 +446,8 @@ subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
           real(i1,gp)*hgridh,real(i2,gp)*hgridh,real(i3,gp)*hgridh,psifscf(i1,i2,i3)
   enddo
 
-end subroutine plot_psifscf
+END SUBROUTINE plot_psifscf
+
 
 subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   use module_base
@@ -445,7 +457,7 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   integer, intent(in) :: n1i,n2i,n3i,n3d,n1,n2,n3,i3s
   real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
   !local variables
-  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,j1,j2,j3
+  integer :: nl1,nl2,nl3,i1,i2,i3,ind
   real(dp) :: value
 
   open(unit=22,file=filename,status='unknown')
@@ -486,7 +498,7 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   end do
   close(22)
 
-end subroutine read_potfile
+END SUBROUTINE read_potfile
 
 
 subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -582,7 +594,7 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
      deallocate(pot_ion,stat=i_stat)
      call memocc(i_stat,i_all,'pot_ion',subname)
   end if
-end subroutine plot_density
+END SUBROUTINE plot_density
 
 subroutine plot_density_cube(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
      hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
@@ -741,9 +753,9 @@ contains
            end do
         end do
         close(22)
-  end subroutine cubefile_write
+  END SUBROUTINE cubefile_write
 
-end subroutine plot_density_cube
+END SUBROUTINE plot_density_cube
 
 
 
@@ -765,9 +777,7 @@ subroutine read_density_cube(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxy
   character(len=5) :: suffix
   character(len=15) :: message
   character(len=3) :: advancestring
-  integer i_all,i_stat,i1,i2,i3,ind,ierr,icount,j,iat,ia,ib
-
-
+  integer :: i_all,i_stat,i1,i2,i3,ind,icount,j,iat,ia
 
   if (nspin /=2) then
      suffix=''
@@ -848,7 +858,7 @@ contains
            end do
         end do
         close(22)
-  end subroutine cubefile_read
+  END SUBROUTINE cubefile_read
 
-end subroutine read_density_cube
+END SUBROUTINE read_density_cube
 

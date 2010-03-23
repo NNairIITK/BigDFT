@@ -44,7 +44,7 @@ subroutine min_converge
 !!$  ! We compute at constant volume
 !!$  boxl = box * scala
 !!$
-!!$  call calcforce(NATOMS,type,pos,boxl,force,total_energy)
+!!$  call calcforce(NATOMS,pos,boxl,force,total_energy)
 !!$  evalf_number = evalf_number + 1
 !!$  current_energy = total_energy
 !!$  if (iproc .eq. 0 ) write(*,*)  'current energy :', total_energy
@@ -53,7 +53,7 @@ subroutine min_converge
 !!$  do iter = 1, MAX_ITER
 !!$  
 !!$    posb = pos + step * force
-!!$    call calcforce(NATOMS,type,posb,boxl,forceb,total_energy)
+!!$    call calcforce(NATOMS,posb,boxl,forceb,total_energy)
 !!$    evalf_number = evalf_number + 1
 !!$    
 !!$    ftot2 = 0.0d0
@@ -92,4 +92,4 @@ subroutine min_converge
 !!$  deallocate(posb)
 !!$  deallocate(forceb)
   call mingeo(NATOMS, box * scala, pos, evalf_number, force, total_energy)
-end subroutine min_converge
+END SUBROUTINE min_converge

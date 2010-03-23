@@ -10,7 +10,7 @@
 !!  Also contains basic container datatype for LibXC interfacing.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2008-2009 ABINIT group (MOliveira)
+!! Copyright (C) 2008-2010 ABINIT group (MOliveira)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -80,7 +80,8 @@ contains
 !!      driver
 !!
 !! CHILDREN
-!!      xc_f90_gga_vxc,xc_f90_lda_vxc
+!!      xc_f90_gga_exc_vxc,xc_f90_gga_vxc,xc_f90_lda_exc_vxc,xc_f90_lda_vxc
+!!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc
 !!
 !! SOURCE
 
@@ -178,7 +179,8 @@ contains
 !!      driver
 !!
 !! CHILDREN
-!!      xc_f90_gga_vxc,xc_f90_lda_vxc
+!!      xc_f90_gga_exc_vxc,xc_f90_gga_vxc,xc_f90_lda_exc_vxc,xc_f90_lda_vxc
+!!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc
 !!
 !! SOURCE
   subroutine libxc_functionals_end()
@@ -345,7 +347,8 @@ contains
 !!      drivexc
 !!
 !! CHILDREN
-!!      xc_f90_gga_vxc,xc_f90_lda_vxc
+!!      xc_f90_gga_exc_vxc,xc_f90_gga_vxc,xc_f90_lda_exc_vxc,xc_f90_lda_vxc
+!!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc
 !!
 !! SOURCE
 

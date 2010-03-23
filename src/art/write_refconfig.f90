@@ -23,4 +23,4 @@ subroutine write_refconfig()
    close(FREFCONFIG)
 
    return
-end subroutine
+END SUBROUTINE

@@ -123,7 +123,7 @@ subroutine convolut_kinetic_slab_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
   enddo
 !$omp enddo
 !$omp end parallel  
-end subroutine convolut_kinetic_slab_c_k
+END SUBROUTINE convolut_kinetic_slab_c_k
 
 subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
 ! Applies the modified kinetic energy operator onto x to get y. 
@@ -259,4 +259,4 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
 !$omp enddo
 !  ener=ener*.5_wp
 !$omp end parallel  
-end subroutine convolut_kinetic_slab_T_k
+END SUBROUTINE convolut_kinetic_slab_T_k

@@ -21,7 +21,7 @@ subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,n
 
        call timing(iproc,'Precondition  ','OF')
 
-end subroutine preconditionall
+END SUBROUTINE preconditionall
 
 
 subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
@@ -166,7 +166,7 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         deallocate(wpsi,stat=i_stat)
         call memocc(i_stat,i_all,'wpsi','precong')
 
-end subroutine precong
+END SUBROUTINE precong
 
 
 subroutine wscalv(nvctr_c,nvctr_f,scal,psi_c,psi_f)
@@ -187,7 +187,7 @@ subroutine wscalv(nvctr_c,nvctr_f,scal,psi_c,psi_f)
            psi_f(7,i)=psi_f(7,i)*scal(3)       !  2 2 2
         enddo
 
-end subroutine wscalv
+END SUBROUTINE wscalv
 
 
         SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 

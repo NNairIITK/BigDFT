@@ -54,13 +54,12 @@ global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules convolutions lib $(sub_dirs_ps) profiling $(sub_dirs_cuda) art
+SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) art
 
 EXTRA_DIST = \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
-	lib \
 	NEB_driver.sh
 
 AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver @LIBABINIT_INCLUDE@ \
@@ -140,6 +139,7 @@ high_level = cluster.f90 \
 	geometry.f90 \
 	davidson.f90 \
 	pdos.f90 \
+	rism.f90 \
 	vdwcorrection.f90 \
 	lanczos_interface.f90 \
 	lanczos_base.f90 \
@@ -296,6 +296,10 @@ CLEANFILES = \
 	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
 	minpar.@MODULE_EXT@ MINPAR.@MODULE_EXT@ \
 	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@
+
+
+check:
+	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)

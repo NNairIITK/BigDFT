@@ -9,7 +9,7 @@
 !! Note that nkpt can be computed by calling this routine with nkpt=0, provided that kptopt/=0.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2009 ABINIT group (DCA, XG, GMR, MM)
+!! Copyright (C) 1998-2010 ABINIT group (DCA, XG, GMR, MM)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -416,8 +416,8 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
  call smpbz(brav,iout,kptrlatt2,mkpt,nkpt_fullbz,nshiftk2,option,shiftk2,spkpt)
 
  if (PRESENT(kbz_p)) then ! Returns list of k-points in the Full BZ.
-  allocate(kbz_p(3,nkpt_fullbz))
-  kbz_p(:,:) = spkpt(:,1:nkpt_fullbz)
+   allocate(kbz_p(3,nkpt_fullbz))
+   kbz_p(:,:) = spkpt(:,1:nkpt_fullbz)
  end if
 
 !DEBUG

@@ -79,7 +79,7 @@ subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
   tel=dble(ncount1-ncount0)/dble(ncount_rate)
   ! write(20,*) tel, 1.d-6*nflop/tel
 
-end subroutine comb_rot_shrink_loc_1
+END SUBROUTINE comb_rot_shrink_loc_1
 
 
 subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
@@ -162,7 +162,7 @@ subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
   tel=dble(ncount1-ncount0)/dble(ncount_rate)
   ! write(20,*) tel, 1.d-6*nflop/tel
 
-end subroutine comb_rot_shrink_loc_2
+END SUBROUTINE comb_rot_shrink_loc_2
 
 
 
@@ -214,4 +214,4 @@ subroutine comb_rot_shrink_loc_3(ndat,x,y,nfl,nfu,ib)
   tel=dble(ncount1-ncount0)/dble(ncount_rate)
   ! write(20,*) tel, 1.d-6*nflop/tel
 
-end subroutine comb_rot_shrink_loc_3
+END SUBROUTINE comb_rot_shrink_loc_3

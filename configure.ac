@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.5],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.6],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -511,8 +511,6 @@ AC_CONFIG_FILES([
 Makefile
 libABINIT/src/Makefile
 src/Makefile
-src/lib/Makefile
-src/lib/fft/Makefile
 src/modules/Makefile
 src/modules/configure.inc
 src/profiling/Makefile
@@ -524,6 +522,8 @@ utils/Makefile
 utils/PSPfiles/Makefile
 doc/Makefile
 tests/Makefile
+tests/fft/Makefile
+tests/PSolver/Makefile
 tests/C/Makefile
 tests/Ca2/Makefile
 tests/H/Makefile

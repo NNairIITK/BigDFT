@@ -26,7 +26,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
 
-  call read_system_variables('input.occup',iproc,nproc,in,atoms,radii_cf,nelec,&
+  call read_system_variables('input.occup',iproc,in,atoms,radii_cf,nelec,&
        norb,norbu,norbd,iunit)
 
   if(in%nspin==4) then
@@ -58,11 +58,102 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
   !assign to each k-point the same occupation number
   do ikpts=1,orbs%nkpts
-     call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
+     call input_occup(iproc,iunit,nelec,norb,norbu,in%nspin,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
 
-end subroutine system_properties
+END SUBROUTINE system_properties
+!!***
+
+
+!!****f* BigDFT/calculate_rhocore
+!! FUNCTION
+!!  Check for the need of a core density and fill the rhocore array which
+!!  should be passed at the rhocore pointer
+!! SOURCE
+subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,i3s,n3d,i3xcsh,n3p
+  real(gp), intent(in) :: hxh,hyh,hzh
+  type(atoms_data), intent(in) :: at
+  type(grid_dimensions), intent(in) :: d
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(wp), dimension(:), pointer :: rhocore
+  !local variables
+  character(len=*), parameter :: subname='calculate_rhocore'
+  character(len=27) :: filename
+  logical :: exists,donlcc
+  integer :: ityp,iat,i_stat,j3,i1,i2,ind,ierr
+  real(wp) :: tt
+  real(gp) :: rx,ry,rz,rloc,cutoff
+  
+
+  !check for the need of a nonlinear core correction
+  donlcc=.false.
+  chk_nlcc: do ityp=1,at%ntypes
+     filename = 'nlcc.'//at%atomnames(ityp)
+
+     inquire(file=filename,exist=exists)
+     if (exists) then
+        donlcc=.true.
+        exit chk_nlcc
+     end if
+  end do chk_nlcc
+
+  if (donlcc) then
+     !allocate pointer rhocore
+     allocate(rhocore(d%n1i*d%n2i*n3d+ndebug),stat=i_stat)
+     call memocc(i_stat,rhocore,'rhocore',subname)
+     !initalise it 
+     call razero(d%n1i*d%n2i*n3d,rhocore)
+     !perform the loop on any of the atoms which have this feature
+     do iat=1,at%nat
+        ityp=at%iatype(iat)
+        filename = 'nlcc.'//at%atomnames(ityp)
+        inquire(file=filename,exist=exists)
+        if (exists) then
+           if (iproc == 0) write(*,'(1x,a)',advance='no')&
+                'NLCC: calculate core density for atom: '//&
+                trim(at%atomnames(ityp))//';'
+           rx=rxyz(1,iat) 
+           ry=rxyz(2,iat)
+           rz=rxyz(3,iat)
+
+           rloc=at%psppar(0,0,ityp)
+           cutoff=10.d0*rloc
+
+           call calc_rhocore_iat(iproc,at%geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
+                d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,&
+                i3s,n3d,rhocore)
+
+           if (iproc == 0) write(*,'(1x,a)')'done.'
+        end if
+     end do
+
+     !calculate total core charge in the grid
+     !In general this should be really bad
+     tt=0.0_wp
+     do j3=1,n3p
+        do i2=1,d%n2i
+           do i1=1,d%n1i
+              ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
+              tt=tt+rhocore(ind)
+           enddo
+        enddo
+     enddo
+     call mpiallred(tt,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     tt=tt*hxh*hyh*hzh
+     if (iproc == 0) write(*,'(1x,a,f15.7)') &
+       'Total core charge on the grid (generally bad, overestimated approx.): ',tt
+
+  else
+     !No NLCC needed, nullify the pointer 
+     nullify(rhocore)
+  end if
+
+END SUBROUTINE calculate_rhocore
 !!***
 
 
@@ -71,10 +162,10 @@ end subroutine system_properties
 !!   Assign some of the physical system variables
 !!   Performs also some cross-checks with other variables
 !! DESCRIPTION
-!!   The pointer in atoms structure have to be associated or nullify.
+!!   The pointer in atoms structure have to be associated or nullified.
 !! SOURCE
 !!
-subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
+subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      nelec,norb,norbu,norbd,iunit)
   use module_base
   use module_types
@@ -82,7 +173,7 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
   implicit none
   character (len=*), intent(in) :: fileocc
   type(input_variables), intent(in) :: in
-  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: iproc
   type(atoms_data), intent(inout) :: atoms
   integer, intent(out) :: nelec,norb,norbu,norbd,iunit
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
@@ -358,7 +449,7 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
      !if (ichg /=0) then
      !   call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
      !        neleconf,atoms%iasctype(ityp),mxpl,mxchg,atoms%amu(ityp))
-     !   call correct_semicore(atoms%atomnames(ityp),6,3,ichg,neleconf,nsccode)
+     !   call correct_semicore(6,3,ichg,neleconf,nsccode)
      !end if
      !end of part to be removed
      if (nsccode/= 0) atoms%natsc=atoms%natsc+1
@@ -512,7 +603,7 @@ subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
 !!!  norbp=int((1.d0-eps_mach*tt) + tt)
 !!!  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
 
-end subroutine read_system_variables
+END SUBROUTINE read_system_variables
 !!***
 
 
@@ -619,7 +710,7 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
            end if
            !correct the electronic configuration in case there is a charge
            !if (ichg /=0) then
-           call correct_semicore(at%atomnames(ityp),nmax,lmax-1,ichg,&
+           call correct_semicore(nmax,lmax-1,ichg,&
                 neleconf,eleconf,at%iasctype(iat))
            !end if
 
@@ -655,7 +746,7 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
 
   if (exists) close(unit=91)
 
-end subroutine atomic_occupation_numbers
+END SUBROUTINE atomic_occupation_numbers
 !!***
 
 
@@ -695,6 +786,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   ! Change the wavefunctions to complex if k-points are used (except gamma).
   if (nspinor == 1) then
      if (maxval(abs(orbs%kpts)) > 0._gp) nspinor = 2
+     !nspinor=2 !fake, used for testing with gamma
   end if
 
   !initialise the array
@@ -782,7 +874,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
 
-end subroutine orbitals_descriptors
+END SUBROUTINE orbitals_descriptors
 !!***
 
 
@@ -792,11 +884,11 @@ end subroutine orbitals_descriptors
 !!    if iunit /=0 this means that the file 'occup.dat' does exist and it opens
 !! SOURCE
 !!
-subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinsgn)
+subroutine input_occup(iproc,iunit,nelec,norb,norbu,nspin,occup,spinsgn)
   use module_base
   implicit none
 ! Arguments
-  integer, intent(in) :: nelec,nspin,mpol,iproc,norb,norbu,norbd,iunit
+  integer, intent(in) :: nelec,nspin,iproc,norb,norbu,iunit
   real(gp), dimension(norb), intent(out) :: occup,spinsgn
 ! Local variables
   integer :: iorb,nt,ne,it,ierror,iorb1,i
@@ -935,5 +1027,5 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
      end if
   endif
 
-end subroutine input_occup
+END SUBROUTINE input_occup
 !!***
