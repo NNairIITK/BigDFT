@@ -6,7 +6,8 @@ EXTRA_DIST = \
 	input.dft \
 	posinp.xyz \
 	occup.dat \
-	input.occup
+	input.occup \
+	FeHyb.out.ref
 
 PPFILES = \
 	psppar.Fe
@@ -35,4 +36,5 @@ FeHyb.out: $(top_builddir)/src/cluster $(PPFILES)
 	fi
 
 check: FeHyb.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft FeHyb.out $(top_srcdir)/tests/Refs/FeHyb.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft FeHyb.out \
+		$(top_srcdir)/tests/DFT/FeHyb/FeHyb.out.ref | tee fldiff.report

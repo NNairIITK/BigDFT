@@ -5,7 +5,8 @@ SUBDIRS =
 EXTRA_DIST = \
 	input.dft \
 	posinp.xyz \
-	GPU.config
+	GPU.config \
+	GPU.out.ref
 
 PPFILES = \
 	psppar.Si
@@ -31,4 +32,5 @@ GPU.out: $(top_builddir)/src/cluster $(PPFILES)
         fi
 
 check: GPU.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft GPU.out $(top_srcdir)/tests/Refs/GPU.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft GPU.out \
+		$(top_srcdir)/tests/GPU/GPU.out.ref | tee fldiff.report

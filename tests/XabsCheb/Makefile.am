@@ -6,7 +6,8 @@ EXTRA_DIST = \
 	input.dft \
 	input.abscalc \
 	posinp.xyz \
-	gproje_Fe_1s_1
+	gproje_Fe_1s_1 \
+	XabsCheb.out.ref
 
 PPFILES = \
 	psppar.Fe
@@ -84,4 +85,5 @@ Xabsb2B.out: $(top_builddir)/src/abscalc $(PPFILES)
 
 check: XabsCheb.out  XabsLanc.out Xabsb2B.out
 	cat XabsCheb.out  XabsLanc.out  Xabsb2B.out >  XabsChebLanc.out 
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft XabsChebLanc.out $(top_srcdir)/tests/Refs/XabsCheb.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft XabsChebLanc.out \
+		$(top_srcdir)/tests/XabsCheb/XabsCheb.out.ref | tee fldiff.report

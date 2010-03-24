@@ -3,13 +3,16 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
+	README \
 	input.dft \
-	posinp.xyz
+	occup.dat \
+	posinp.xyz \
+	C.out.ref
 
 PPFILES = \
-	psppar.Ca
+	psppar.C
 
-CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* Ca2.out posout* *.prc\
+CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* C.out posout* *.out *.prc\
 			 fldiff.report
 
 #dependencies
@@ -19,18 +22,18 @@ $(PPFILES):
 inguess.dat:
 	ln -fs $(top_srcdir)/tests/inguess.dat
 
-Ca2.out: $(top_builddir)/src/cluster $(PPFILES)
+C.out: $(top_builddir)/src/cluster $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
+	  ln -fs $(srcdir)/occup.dat ; \
         fi
-	$(run_parallel) $(top_builddir)/src/cluster > $@
+	$(run_parallel) $(top_builddir)/src/cluster > C.out
 	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.xyz ; \
+	  rm -f occup.dat ; \
         fi
 
-#Use 4.0e-10 to test fldiff.py and also difference betwen 1 (gfortran) and many cores (g95) (TD)
-check: inguess.dat Ca2.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft --discrepancy=4.e-10 Ca2.out \
-		$(top_srcdir)/tests/Refs/Ca2.out.ref | tee fldiff.report
+check: inguess.dat C.out
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft C.out $(top_srcdir)/tests/DFT/C/C.out.ref | tee fldiff.report

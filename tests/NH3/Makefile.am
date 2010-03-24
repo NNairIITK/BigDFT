@@ -5,7 +5,8 @@ SUBDIRS =
 EXTRA_DIST = \
 	input.dft \
 	input.geopt \
-	posinp.ascii
+	posinp.ascii \
+	NH3.out.ref
 
 PPFILES = \
 	psppar.H \
@@ -32,4 +33,5 @@ NH3.out: $(top_builddir)/src/cluster $(PPFILES)
         fi
 
 check: NH3.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft NH3.out $(top_srcdir)/tests/Refs/NH3.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft NH3.out \
+		$(top_srcdir)/tests/NH3/NH3.out.ref | tee fldiff.report

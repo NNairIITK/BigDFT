@@ -4,33 +4,31 @@ SUBDIRS =
 
 EXTRA_DIST = \
 	input.dft \
-	input.geopt \
 	posinp.xyz \
-	input.geopt
+	Davidson-SiH4.out.ref
 
 PPFILES = \
-	psppar.Na \
-	psppar.Cl
+	psppar.H \
+	psppar.Si
 
-CLEANFILES = $(PPFILES) NaCl.out posout* geopt.mon *.prc\
+CLEANFILES = $(PPFILES) Davidson-SiH4.out posout* *.pot *.prc\
 			 fldiff.report
 
 #dependencies
 $(PPFILES):
-	ln -fs $(top_srcdir)/utils/PSPfiles/HGH/$@
+	ln -fs $(top_srcdir)/utils/PSPfiles/$@
 
-NaCl.out: $(top_builddir)/src/cluster $(PPFILES)
+Davidson-SiH4.out: $(top_builddir)/src/cluster $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
-	  ln -fs $(srcdir)/input.geopt ; \
         fi
 	$(run_parallel) $(top_builddir)/src/cluster > $@
 	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.xyz ; \
-	  rm -f input.geopt ; \
         fi
 
-check: NaCl.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft --discrepancy=2.e-8 NaCl.out $(top_srcdir)/tests/Refs/NaCl.out.ref | tee fldiff.report
+check: Davidson-SiH4.out
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.e-9 --mode=bigdft Davidson-SiH4.out \
+		$(top_srcdir)/tests/DFT/Davidson-SiH4/Davidson-SiH4.out.ref | tee fldiff.report

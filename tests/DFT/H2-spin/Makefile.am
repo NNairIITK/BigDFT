@@ -4,19 +4,20 @@ SUBDIRS =
 
 EXTRA_DIST = \
 	input.dft \
-	posinp.xyz
+	posinp.xyz \
+	H2-spin.out.ref
 
 PPFILES = \
-	psppar.Li 
+	psppar.H
 
-CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* Li+.out posout* malloc *.prc\
+CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* H2-spin.out posout* *.prc \
 			 fldiff.report
 
 #dependencies
-$(PPFILES):
-	ln -fs $(top_srcdir)/utils/PSPfiles/$@
+$(PPFILES): 
+	ln -fs $(top_srcdir)/utils/PSPfiles/HGH/$@
 
-Li+.out: $(top_builddir)/src/cluster $(PPFILES)
+H2-spin.out: $(top_builddir)/src/cluster $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
@@ -27,5 +28,6 @@ Li+.out: $(top_builddir)/src/cluster $(PPFILES)
 	  rm -f posinp.xyz ; \
         fi
 
-check: Li+.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft Li+.out $(top_srcdir)/tests/Refs/Li+.out.ref | tee fldiff.report
+check: H2-spin.out
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H2-spin.out \
+		$(top_srcdir)/tests/DFT/H2-spin/H2-spin.out.ref | tee fldiff.report

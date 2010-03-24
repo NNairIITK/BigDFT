@@ -2,30 +2,17 @@ The command 'make check' performs the series of tests (optimisation of geometry)
 - C             carbon atom
 - Ca2           dimer of Ca
 - Davidson-SiH4 calculate the Kohn-Sham eigenvalues (diagonalisation)
-- GPU           test using Graphics Processing Units
+- FeHyb         Hybrid functional
 - H             hydrogen atom
 - H-spin        hydrogen atom with Local Spin Density
 - H2O-CP2K      use the output wavefunctions from CP2K
+                (example to import wavefunctions from Gaussian basis sets)
 - H2O-slab      calculation of a slab of H2O molecules (surface boundary conditions)
 - Li+           lithium ion
-- MINHOP        use the minima hopping algorithm (program global from file global.F90)
-                Warning: The file 'global.f90' is not freely distributed
 - Mn2           non-collinear spin
 - NaCl          sodium chloride
-- NEB           nudged elastic band method (EXPERIMENTAL)
-- SiBulk        periodic calculation of silicon
-- SiH4          silane
 - SiBulk        a periodic cell of 8 Si atoms
-                (example to import wavefunctions from Gaussian basis sets)
-
-
-Executables (src directory):
-----------------------------
-- cluster       main executable
-- memguess <nb proc> [y|n]     
-                checks the input files and estimates the required memory fro a given number of processors
-- global        global minimum research
-- frequencies   calculations of frequencies (frozen phonon approximation)
+- SiH4          silane
 
 
 The input files are:

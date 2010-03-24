@@ -6,7 +6,8 @@ EXTRA_DIST = \
 	input.dft \
 	posinp.xyz \
 	input.geopt \
-	velocities.ref
+	velocities.ref \
+	H2O-slab.out.ref
 
 
 PPFILES = \
@@ -35,4 +36,5 @@ H2O-slab.out: $(top_builddir)/src/cluster $(PPFILES)
         fi
 
 check: H2O-slab.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H2O-slab.out $(top_srcdir)/tests/Refs/H2O-slab.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H2O-slab.out \
+		$(top_srcdir)/tests/DFT/H2O-slab/H2O-slab.out.ref | tee fldiff.report
