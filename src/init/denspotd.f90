@@ -264,7 +264,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      end if
   end do
   orbs%nkptsp=max(nkptsp, orbs%nkptsp)
-  orbs%iskpts=max(iskpts, orbs%iskpts)
+  orbs%iskpts=min(iskpts, orbs%iskpts)
 
   !print the distribution scheme ussed for this set of orbital
   !in the case of multiple k-points
