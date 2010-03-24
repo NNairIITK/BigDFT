@@ -465,7 +465,7 @@ END SUBROUTINE import_gaussians
 !!   input guess wavefunction diagonalization
 !! SOURCE
 !!
-subroutine input_wf_diag(iproc,nproc,at,&
+subroutine input_wf_diag(iproc,nproc,radii_cf, cpmult, fpmult,at,&
      orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
      nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
      nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons)
@@ -480,7 +480,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   !Arguments
   integer, intent(in) :: iproc,nproc,ixc,symObj
   integer, intent(inout) :: nspin,nvirt
-  real(gp), intent(in) :: hx,hy,hz
+  real(gp), intent(in) :: hx,hy,hz, cpmult, fpmult
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(inout) :: orbs
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -498,13 +498,15 @@ subroutine input_wf_diag(iproc,nproc,at,&
   integer, intent(in) ::potshortcut
   integer, dimension(:,:,:), intent(in) :: irrzon
   real(dp), dimension(:,:,:), intent(in) :: phnons
+  real(gp), dimension(:,:), intent(in) :: radii_cf
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   integer, parameter :: ngx=31
-  logical :: switchGPUconv
+  logical :: switchGPUconv, useLocalProj
   integer :: i_stat,i_all,iat,nspin_ig
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,etol,accurex
   type(orbitals_data) :: orbse
+  type(nonlocal_psp_descriptors) :: nlpspde
   type(communications_arrays) :: commse
   type(GPU_pointers) :: GPU
   integer, dimension(:,:), allocatable :: norbsc_arr
@@ -512,6 +514,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   real(gp), dimension(:), allocatable :: locrad
   type(locreg_descriptors), dimension(:), allocatable :: Llr
   real(wp), dimension(:,:,:), pointer :: psigau
+  real(gp), dimension(:), pointer :: proje
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -543,6 +546,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
   !check the communication distribution
   call check_communications(iproc,nproc,orbse,Glr,commse)
+
+  ! If using kpoints, need to create specific input guess projectors.
+  useLocalProj = (.not. DistProjApply) .and. (orbse%nkpts > 1)
+  if (useLocalProj) then
+     call createProjectorsArrays(iproc,Glr%d%n1,Glr%d%n2,Glr%d%n3,rxyz,at,orbse,&
+          radii_cf,cpmult,fpmult,hx,hy,hz,nlpspde,proje)
+  end if
 
   !once the wavefunction coefficients are known perform a set 
   !of nonblocking send-receive operations to calculate overlap matrices
@@ -750,10 +760,17 @@ subroutine input_wf_diag(iproc,nproc,at,&
   allocate(hpsi(orbse%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
   
-  call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
-       nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-       rhopot,&!(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernel)
+  if (useLocalProj) then
+     call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
+          nlpspde,proje,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+          rhopot,&!(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
+          psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernel)
+  else
+     call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
+          nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+          rhopot,&!(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
+          psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernel)
+  end if
 
 !!!  !calculate the overlap matrix knowing that the original functions are gaussian-based
 !!!  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
@@ -799,6 +816,15 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call free_gpu(GPU,orbse%norbp)
   end if
 
+  !Free local projectors.
+  if (useLocalProj) then
+     call deallocate_proj_descr(nlpspde,subname)
+     
+     i_all=-product(shape(proje))*kind(proje)
+     deallocate(proje,stat=i_stat)
+     call memocc(i_stat,i_all,'proj',subname)
+  end if
+  
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Input Wavefunctions Orthogonalization:'
 

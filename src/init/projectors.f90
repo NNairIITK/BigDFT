@@ -170,31 +170,27 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   !number of elements of the projectors
   if (.not. DistProjApply) nlpspd%nprojel=istart-1
 
-  !modify nprojel in the case in which at one of the k-points
-  !contained is not zero
-
-  cmplxprojs=.false.
-  do iorb=1,orbs%norbp
-     ikpt=orbs%iokpt(iorb)
-     cmplxprojs = cmplxprojs .or. &
-          & (orbs%kpts(1,ikpt)**2+orbs%kpts(2,ikpt)**2+orbs%kpts(3,ikpt)**2 >0 .and. &
-          &  orbs%nspinor > 1)
-  end do
-
-  !then calculate the number of k-points per processor
-  !(assume always one k-point at a time in the on-the-fly stategy)
-  if (DistProjApply .or. orbs%norbp == 0) then
-     nkptsproj=1
-  else
-     nkptsproj=orbs%iokpt(orbs%norbp)-orbs%iokpt(1)+1
+  !Compute the multiplying coefficient for nprojel in case of imaginary k points.
+  nkptsproj=1
+  if ((.not.DistProjApply) .and. orbs%norbp > 0) then
+     nkptsproj = 0
+     do ikpt = orbs%iokpt(1), orbs%iokpt(orbs%norbp)
+        if (orbs%kpts(1,ikpt)**2+orbs%kpts(2,ikpt)**2+orbs%kpts(3,ikpt)**2 >0 .and. &
+             &  orbs%nspinor > 1) then
+           nkptsproj = nkptsproj + 2
+        else
+           nkptsproj = nkptsproj + 1
+        end if
+     end do
+  else if (DistProjApply) then
+     do ikpt = orbs%iokpt(1), orbs%iokpt(orbs%norbp)
+        if (orbs%kpts(1,ikpt)**2+orbs%kpts(2,ikpt)**2+orbs%kpts(3,ikpt)**2 >0 .and. &
+             &  orbs%nspinor > 1) then
+           nkptsproj = max(nkptsproj, 2)
+        end if
+     end do
   end if
-
   nlpspd%nprojel=nkptsproj*nlpspd%nprojel
-  
-  !if the projectors are complex a real and an imaginary part should exist
-  !NOTE: for the moment we double this for each projector, but there is no need to
-  !      do this for real k-points
-  if (cmplxprojs) nlpspd%nprojel=2*nlpspd%nprojel
 
   !print *,'iproc,nlpspd%nprojel',iproc,nlpspd%nprojel,nkptsproj
 
@@ -331,12 +327,41 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
            iproj=iproj+2*l-1
            istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
            if (istart_c > nlpspd%nprojel+1) stop 'istart_c > nprojel+1'
-
         endif
      enddo
   enddo
 END SUBROUTINE atom_projector
 !!***
+
+subroutine deallocate_proj_descr(nlpspd, subname)
+  use module_base
+  use module_types
+  implicit none
+
+  type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
+  character(len = *), intent(in) :: subname
+
+  integer :: i_all, i_stat
+
+  i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
+  deallocate(nlpspd%nboxp_c,stat=i_stat)
+  call memocc(i_stat,i_all,'nboxp_c',subname)
+  i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
+  deallocate(nlpspd%nboxp_f,stat=i_stat)
+  call memocc(i_stat,i_all,'nboxp_f',subname)
+  i_all=-product(shape(nlpspd%keyg_p))*kind(nlpspd%keyg_p)
+  deallocate(nlpspd%keyg_p,stat=i_stat)
+  call memocc(i_stat,i_all,'keyg_p',subname)
+  i_all=-product(shape(nlpspd%keyv_p))*kind(nlpspd%keyv_p)
+  deallocate(nlpspd%keyv_p,stat=i_stat)
+  call memocc(i_stat,i_all,'keyv_p',subname)
+  i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
+  deallocate(nlpspd%nvctr_p,stat=i_stat)
+  call memocc(i_stat,i_all,'nvctr_p',subname)
+  i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
+  deallocate(nlpspd%nseg_p,stat=i_stat)
+  call memocc(i_stat,i_all,'nseg_p',subname)
+end subroutine deallocate_proj_descr
 
 
 !!****f* BigDFT/projector

@@ -251,6 +251,20 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
         end if
      end do
   end if
+  !Recalculate the number of k-points treated by each processor
+  ! taking max in component or orbital distribution
+  nkptsp=0
+  iskpts=-1
+  do ikpts=1,orbs%nkpts
+     if (norb_par(iproc,ikpts) /= 0) then
+        nkptsp=nkptsp+1
+        if (iskpts == -1) then
+           iskpts=ikpts-1
+        end if
+     end if
+  end do
+  orbs%nkptsp=max(nkptsp, orbs%nkptsp)
+  orbs%iskpts=max(iskpts, orbs%iskpts)
 
   !print the distribution scheme ussed for this set of orbital
   !in the case of multiple k-points

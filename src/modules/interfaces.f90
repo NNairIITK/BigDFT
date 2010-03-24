@@ -311,7 +311,7 @@ module module_interfaces
        real(dp), dimension(:,:,:), intent(in) :: phnons
      END SUBROUTINE import_gaussians
 
-     subroutine input_wf_diag(iproc,nproc,at,&
+     subroutine input_wf_diag(iproc,nproc,radii_cf, cpmult, fpmult,at,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
           nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons)
@@ -320,7 +320,7 @@ module module_interfaces
        implicit none
        integer, intent(in) :: iproc,nproc,ixc,symObj
        integer, intent(inout) :: nspin,nvirt
-       real(gp), intent(in) :: hx,hy,hz
+       real(gp), intent(in) :: hx,hy,hz, cpmult, fpmult
        type(atoms_data), intent(in) :: at
        type(orbitals_data), intent(inout) :: orbs
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -338,6 +338,7 @@ module module_interfaces
        integer, intent(in) :: potshortcut
        integer, dimension(:,:,:), intent(in) :: irrzon
        real(dp), dimension(:,:,:), intent(in) :: phnons
+       real(gp), dimension(:,:), intent(in) :: radii_cf
      END SUBROUTINE input_wf_diag
 
      subroutine reformatmywaves(iproc,orbs,at,&
