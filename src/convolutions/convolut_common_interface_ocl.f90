@@ -9,7 +9,7 @@ subroutine allocate_data_OCL(n1,n2,n3,periodic,nspin,hx,hy,hz,wfd,orbs,GPU)
   type(GPU_pointers), intent(out) :: GPU
   integer, dimension(3), intent(in) :: periodic
   !local variables
-  character(len=*), parameter :: subname='prepare_gpu_for_locham'
+  character(len=*), parameter :: subname='allocate_data_OCL'
   integer :: i_stat,iorb
   integer :: n1b, n2b, n3b
 
@@ -54,6 +54,15 @@ subroutine allocate_data_OCL(n1,n2,n3,periodic,nspin,hx,hy,hz,wfd,orbs,GPU)
      call ocl_enqueue_write_buffer(GPU%queue,GPU%keyv_f,wfd%nseg_f*4,wfd%keyv(wfd%nseg_c+1))
   end if
 
+  !for preconditioner
+  call ocl_create_read_write_buffer(GPU%context,wfd%nvctr_c*8,GPU%psi_c_r);
+  call ocl_create_read_write_buffer(GPU%context,7*wfd%nvctr_f*8,GPU%psi_f_r);
+  call ocl_create_read_write_buffer(GPU%context,wfd%nvctr_c*8,GPU%psi_c_b);
+  call ocl_create_read_write_buffer(GPU%context,7*wfd%nvctr_f*8,GPU%psi_f_b);
+  call ocl_create_read_write_buffer(GPU%context,wfd%nvctr_c*8,GPU%psi_c_d);
+  call ocl_create_read_write_buffer(GPU%context,7*wfd%nvctr_f*8,GPU%psi_f_d);
+
+
 end subroutine allocate_data_OCL
 
 
@@ -63,7 +72,7 @@ subroutine free_gpu_OCL(GPU,norbp)
   implicit none
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  character(len=*), parameter :: subname='free_GPU'
+  character(len=*), parameter :: subname='free_gpu_OCL'
   integer :: i_stat,iorb,norbp,i_all
   
 
@@ -79,6 +88,13 @@ subroutine free_gpu_OCL(GPU,norbp)
   call ocl_release_mem_object(GPU%keyv_f)
   call ocl_release_mem_object(GPU%psi_c)
   call ocl_release_mem_object(GPU%psi_f)
+  !for preconditioner
+  call ocl_release_mem_object(GPU%psi_c_r)
+  call ocl_release_mem_object(GPU%psi_f_r)
+  call ocl_release_mem_object(GPU%psi_c_b)
+  call ocl_release_mem_object(GPU%psi_f_b)
+  call ocl_release_mem_object(GPU%psi_c_d)
+  call ocl_release_mem_object(GPU%psi_f_d)
 
 end subroutine free_gpu_OCL
 
@@ -100,7 +116,7 @@ subroutine local_hamiltonian_OCL(iproc,orbs,periodic,lr,hx,hy,hz,&
 
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
-  character(len=*), parameter :: subname='local_hamiltonian_GPU'
+  character(len=*), parameter :: subname='local_hamiltonian_OCL'
   integer :: i_stat,iorb,isf,i
   real(gp), dimension(3) :: hgrids
   !stream ptr array
@@ -163,3 +179,92 @@ subroutine local_hamiltonian_OCL(iproc,orbs,periodic,lr,hx,hy,hz,&
   end do
   
 end subroutine local_hamiltonian_OCL
+
+subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
+  use module_base
+  use module_types
+  implicit none
+  type(orbitals_data), intent(in) :: orbs
+  integer, intent(in) :: iproc,nproc,ncong
+  real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors), intent(in) :: lr
+  real(dp), intent(out) :: gnrm
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
+  !local variables
+  character(len=*), parameter :: subname='preconditionall_OCL'
+  integer ::  ierr,iorb,i_stat,ncplx,i_all,inds,isf
+  real(wp) :: scpr
+  type(GPU_pointers), intent(inout) :: GPU
+  type(workarr_precond) :: w
+  real(wp), dimension(:,:), allocatable :: b
+  real(gp), dimension(0:7) :: scal
+  !stream ptr array
+  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
+
+  ncplx=1
+  
+  call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
+
+  if (lr%wfd%nvctr_f > 0) then
+     isf=lr%wfd%nvctr_c+1
+  else
+     isf=lr%wfd%nvctr_c
+  end if
+ 
+     !arrays for the CG procedure
+     allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),orbs%norbp+ndebug),stat=i_stat)
+     call memocc(i_stat,b,'b',subname)
+
+     gnrm=0.0_dp
+
+     do iorb=1,orbs%norbp
+        do inds=1,orbs%nspinor,ncplx !the streams should be more if nspinor>1
+           !the nrm2 function can be replaced here by ddot
+           scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi(1,inds,iorb),1)
+           gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+
+        call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,0.5_wp,w,&
+                hpsi(1,inds,iorb),b(1,iorb))
+
+        call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*orbs%nspinor*8,&
+             hpsi(1,inds,iorb))
+        call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*orbs%nspinor*8,&
+             hpsi(isf,inds,iorb))
+
+        call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c_b,lr%wfd%nvctr_c*orbs%nspinor*8,&
+             b(1,iorb))
+        call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f_b,7*lr%wfd%nvctr_f*orbs%nspinor*8,&
+             b(isf,iorb))
+
+        call ocl_preconditioner(GPU%queue,&
+                                (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
+                                (/0.5_gp*hx,0.5_gp*hy,0.5_gp*hz/),&
+                                0.5_wp,&
+                                ncong,&
+                                lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
+                                lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,&
+                                GPU%psi_c,GPU%psi_f,&
+                                GPU%psi_c_r,GPU%psi_f_r,&
+                                GPU%psi_c_b,GPU%psi_f_b,&
+                                GPU%psi_c_d,GPU%psi_f_d,&
+                                GPU%d,GPU%work1,GPU%work2,GPU%work3)
+
+        call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*orbs%nspinor*8,hpsi(1,inds,iorb))
+        call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*orbs%nspinor*8,hpsi(isf,inds,iorb))
+
+        end do
+     end do
+
+
+     !end of dynamic repartition
+ 
+
+  i_all=-product(shape(b))*kind(b)
+  deallocate(b,stat=i_stat)
+  call memocc(i_stat,i_all,'b',subname)
+
+  call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
+
+
+end subroutine preconditionall_OCL
+

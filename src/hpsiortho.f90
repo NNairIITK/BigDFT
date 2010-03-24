@@ -169,7 +169,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      call memocc(i_stat,i_all,'hpsi_OCL',subname)
 
      call free_gpu_OCL(GPU,orbs%norbp)
-
+     call ocl_clean(GPU%queue,GPU%context)
      stop
 
   end if
@@ -282,9 +282,12 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='hpsitopsi'
-  integer :: ierr,iorb,k,i_stat,i_all
+  real(wp), dimension(:), allocatable :: hpsi_OCL
+  integer :: ierr,iorb,k,i_stat,i_all,i
   real(dp) :: tt,scprpart
   real(wp), dimension(:,:,:), allocatable :: mom_vec
+  real(wp) :: maxdiff
+  integer, dimension(3) :: periodic
 
   !stream ptr array
  ! real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
@@ -331,10 +334,37 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      write(*,'(1x,a)',advance='no')&
           'done, preconditioning...'
   end if
+  OCLconv=.true.
+  call ocl_create_gpu_context(GPU%context)
+  call ocl_create_command_queue(GPU%queue,GPU%context)
+  call ocl_build_kernels(GPU%context)
+  call init_event_list
+  if (lr%geocode /= 'F') then
+    periodic(1) = 1
+  else
+    periodic(1) = 0
+  endif
+  if (lr%geocode == 'P') then
+    periodic(2) = 1
+  else
+    periodic(2) = 0
+  endif 
+  if (lr%geocode /= 'F') then
+    periodic(3) = 1
+  else
+    periodic(3) = 0
+  endif
+  call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,periodic,orbs%nspinor,hx,hy,hz,lr%wfd,orbs,GPU)
 
   !Preconditions all orbitals belonging to iproc
   !and calculate the partial norm of the residue
   !switch between CPU and GPU treatment
+  if (OCLconv) then
+     allocate(hpsi_OCL((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
+     call memocc(i_stat,hpsi_OCL,'hpsi_OCL',subname)
+     call dcopy((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp, hpsi, 1, hpsi_OCL, 1)
+  end if
+
   if (GPUconv) then
      call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
           hpsi,gnrm,GPU)
@@ -342,6 +372,22 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   end if
 
+  if (OCLconv) then
+     call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+          hpsi_OCL,gnrm,GPU)
+     maxdiff=0.0_wp
+     do i=1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
+        maxdiff=max(maxdiff,abs(hpsi(i)-hpsi_OCL(i)))
+     end do
+     print *,''
+     print *,'maxdiff',maxdiff
+     i_all=-product(shape(hpsi_OCL))*kind(hpsi_OCL)
+     deallocate(hpsi_OCL,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsi_OCL',subname)
+     call free_gpu_OCL(GPU,orbs%norbp)
+     call ocl_clean(GPU%queue,GPU%context)
+     OCLconv=.false.
+  end if
   !sum over all the partial residues
   if (nproc > 1) then
      tt=gnrm

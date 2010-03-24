@@ -119,12 +119,12 @@ __kernel void dotKernel_d( uint n, __global const double *x, __global double *y,
   if( i<2 )\n\
     tmp[i] = tmp[i] + tmp[i+2];\n\
   if( i==0 )\n\
-    y[get_group_id(0)] = tmp[0]+tmp[1];\n\
+    z[get_group_id(0)] = tmp[0]+tmp[1];\n\
 }\n\
-__kernel void axpyKernel_d( uint n, double alpha, __global const double *x, __global double *y) {\n\
+__kernel void axpyKernel_d( uint n, double alpha, __global const double *x, __global const double *y, __global double *out) {\n\
   size_t ig = get_global_id(0);\n\
   if( ig < n)\n\
-    y[ig] += alpha * x[ig];\n\
+    out[ig] = y[ig] + alpha * x[ig];\n\
 }\n\
 __kernel void scalKernel_d( uint n, double alpha, __global const double *x, __global double *y) {\n\
   size_t ig = get_global_id(0);\n\
@@ -140,12 +140,13 @@ __kernel void copyKernel_d( uint n, __global const double *x, __global double *y
 ";
 void inline dot_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_mem *x, cl_mem *y, cl_mem *out) {
   cl_int ciErrNum;
-  size_t block_size_i=64;
+  size_t block_size_i=512;
   cl_uint i=0;
   clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
   clSetKernelArg(kernel, i++,sizeof(*x), (void*)x);
   clSetKernelArg(kernel, i++,sizeof(*y), (void*)y);
   clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
+  clSetKernelArg(kernel, i++,sizeof(double)*block_size_i*2, NULL);
   size_t localWorkSize[] = { block_size_i };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n) };
   ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
@@ -179,14 +180,15 @@ void inline scal_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_u
   oclErrorCheck(ciErrNum,"Failed to enqueue scal kernel!");
 }
 
-void inline axpy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *inout) {
+void inline axpy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *x, cl_mem *y, cl_mem *out) {
   cl_int ciErrNum;
   size_t block_size_i=64;
   cl_uint i=0;
   clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
   clSetKernelArg(kernel, i++,sizeof(*alpha), (void*)alpha);
-  clSetKernelArg(kernel, i++,sizeof(*in), (void*)in);
-  clSetKernelArg(kernel, i++,sizeof(*inout), (void*)inout);
+  clSetKernelArg(kernel, i++,sizeof(*x), (void*)x);
+  clSetKernelArg(kernel, i++,sizeof(*y), (void*)y);
+  clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
   size_t localWorkSize[] = { block_size_i };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n) };
   ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
@@ -231,10 +233,16 @@ void FC_FUNC_(scal_d,SCAL_D)(cl_command_queue *command_queue, cl_uint *n, double
   scal_generic(scal_kernel_d, command_queue, n, alpha, in, out);
 }
 
-void FC_FUNC_(axpy_d,AXPY_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *inout){
+void FC_FUNC_(axpy_self_d,AXPY_SELF_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *inout){
   if(*n==0)
     return;
-  axpy_generic(axpy_kernel_d, command_queue, n, alpha, in, inout);
+  axpy_generic(axpy_kernel_d, command_queue, n, alpha, in, inout, inout);
+}
+
+void FC_FUNC_(axpy_d,AXPY_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *x, cl_mem *y, cl_mem *z){
+  if(*n==0)
+    return;
+  axpy_generic(axpy_kernel_d, command_queue, n, alpha, x, y, z);
 }
 
 void FC_FUNC_(asum_self_d,ASUM_SELF_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, double *out) {
@@ -370,7 +378,7 @@ void build_reduction_kernels(cl_context * context){
     axpy_kernel_d=clCreateKernel(reductionProgram,"axpyKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     ciErrNum = CL_SUCCESS;
-    axpy_kernel_d=clCreateKernel(reductionProgram,"scalKernel_d",&ciErrNum);
+    scal_kernel_d=clCreateKernel(reductionProgram,"scalKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     ciErrNum = CL_SUCCESS;
     reduction_kernel_d=clCreateKernel(reductionProgram,"reductionKernel_d",&ciErrNum);

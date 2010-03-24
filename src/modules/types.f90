@@ -288,6 +288,7 @@ module module_types
      real(kind=8) :: pinned_in,pinned_out
      real(kind=8), dimension(:), pointer :: psi
      real(kind=8) :: psi_c,psi_f
+     real(kind=8) :: psi_c_r,psi_f_r,psi_c_b,psi_f_b,psi_c_d,psi_f_d
      real(kind=8) :: keyg_c,keyg_f,keyv_c,keyv_f
      real(kind=8) :: context,queue
   end type GPU_pointers
