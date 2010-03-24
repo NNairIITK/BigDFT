@@ -370,7 +370,10 @@ subroutine print_distribution_schemes(nproc,nkpts,norb_par,nvctr_par)
      if (nko > nkc) then
         do ikpt=nkc+1,nko
            call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
-           write(*,'(10x,i4,i8,a,i8)')iko,isorb,'-',ieorb
+           write(*,'(a,i4,a,i5,a,i5,2a)') &
+                & ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
+                & iko,'  |',isorb,'-',ieorb, '  ||'//repeat(' ',16)//'|',&
+                & '      |                 |'
            iko=iko+1
         end do
      else if (nkc > nko) then
