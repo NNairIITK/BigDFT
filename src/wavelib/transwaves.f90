@@ -205,13 +205,15 @@ subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
   real(wp), dimension(orbs%nspinor*nvctr*orbs%norbp), intent(out) :: psiw
   !local variables
   integer :: iorb,i,j,ij,ijproc,ind,it,it1,it2,it3,it4,ikptsp
-  integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt
+  integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt,iskpts, iekpts
 
   isorb=orbs%isorb+1
   isorbp=0
-  ikpt=orbs%iskpts+1
+  ikpt=orbs%iokpt(1) !orbs%iskpts+1
   ispsi=0
-  do ikptsp=1,orbs%nkptsp
+  iskpts = orbs%iokpt(1)          - orbs%iskpts
+  iekpts = orbs%iokpt(orbs%norbp) - orbs%iskpts
+  do ikptsp = iskpts, iekpts !orbs%nkptsp
      !calculate the number of orbitals belonging to k-point ikptstp
      !calculate to which k-point it belongs
      norbp_kpt=min(orbs%norb*ikpt,orbs%isorb+orbs%norbp)-isorb+1
@@ -291,14 +293,16 @@ subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
   real(wp), dimension(nvctr,orbs%nspinor,orbs%norbp), intent(out) :: psi
   !local variables
   integer :: iorb,i,j,ij,ijproc,ind,it,it1,it2,it3,it4,ikptsp
-  integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt
+  integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt,iskpts, iekpts
 
 
   isorb=orbs%isorb+1
   isorbp=0
-  ikpt=orbs%iskpts+1
+  ikpt=orbs%iokpt(1) !orbs%iskpts+1
   ispsi=0
-  do ikptsp=1,orbs%nkptsp
+  iskpts = orbs%iokpt(1)          - orbs%iskpts
+  iekpts = orbs%iokpt(orbs%norbp) - orbs%iskpts
+  do ikptsp = iskpts, iekpts !orbs%nkptsp
      !calculate the number of orbitals belonging to k-point ikptstp
      !calculate to which k-point it belongs
      norbp_kpt=min(orbs%norb*ikpt,orbs%isorb+orbs%norbp)-isorb+1
