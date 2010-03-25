@@ -35,10 +35,13 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   logical :: rsflag
   integer :: nw1,nw2,nrhotot,n3d,nxc,nxf,itmred
   integer :: ind1,ind2,ind3,ind1s,ind2s,ind3s,oidx,sidx,nspinn
-  integer :: i00,i0,i1,i2,i3,i3off,i3s,isjmp,i,ispin,iorb,jproc,i_all,i_stat,ierr,j3,j3p,j
-  real(dp) :: charge,tt
+  integer :: i00,i0,i1,i2,i3,i3off,i3s,isjmp,i,j,ispin,iorb,jproc,i_all,i_stat,ierr,j3,j3p
+  real(dp) :: charge,tt,maxdiff
   real(dp), dimension(:,:), allocatable :: tmred
   real(dp), dimension(:,:), pointer :: rho_p
+  real(dp), dimension(:,:), allocatable :: rho_p_OCL
+  real(dp), dimension(:,:), allocatable :: psi_OCL
+  integer, dimension(3) :: periodic
 
 !  real(kind=8) :: stream_ptr
 
@@ -77,6 +80,36 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      rho_p => rho
   end if
 
+  OCLconv=.true.
+  call ocl_create_gpu_context(GPU%context)
+  call ocl_create_command_queue(GPU%queue,GPU%context)
+  call ocl_build_kernels(GPU%context)
+  call init_event_list
+  if (lr%geocode /= 'F') then
+    periodic(1) = 1
+  else
+    periodic(1) = 0
+  endif
+  if (lr%geocode == 'P') then
+    periodic(2) = 1
+  else
+    periodic(2) = 0
+  endif 
+  if (lr%geocode /= 'F') then
+    periodic(3) = 1
+  else
+    periodic(3) = 0
+  endif
+  call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,periodic,orbs%nspinor,hxh*2.0,hyh*2.0,hzh*2.0,lr%wfd,orbs,GPU)
+
+  if (OCLconv) then
+     allocate(rho_p_OCL(max(nrho,1),nspin),stat=i_stat)
+     call memocc(i_stat,rho_p_OCL,'rho_p_OCL',subname)
+     allocate(psi_OCL((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),orbs%nspinor*orbs%norbp),stat=i_stat)
+     call memocc(i_stat,psi_OCL,'psi_OCL',subname)
+     call dcopy((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp, psi, 1, psi_OCL, 1)
+  end if
+
   !switch between GPU/CPU treatment of the density
   if (GPUconv) then
      call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
@@ -92,6 +125,28 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      !for each of the orbitals treated by the processor build the partial densities
      call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
           nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
+  end if
+
+  if (OCLconv) then
+     call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi_OCL,rho_p_OCL,GPU)
+     maxdiff=0.0_wp
+     maxdiff_psi=0.0_wp
+     do i=1,max(nrho,1)
+       do j=1,nspin
+        maxdiff=max(maxdiff,abs(rho_p(i,j)-rho_p_OCL(i,j)))
+       end do
+     end do
+     print *,''
+     print *,'maxdiff',maxdiff
+     i_all=-product(shape(rho_p_OCL))*kind(rho_p_OCL)
+     deallocate(rho_p_OCL,stat=i_stat)
+     call memocc(i_stat,i_all,'rho_p_OCL',subname)
+     i_all=-product(shape(psi_OCL))*kind(psi_OCL)
+     deallocate(psi_OCL,stat=i_stat)
+     call memocc(i_stat,i_all,'psi_OCL',subname)
+     call free_gpu_OCL(GPU,orbs%norbp)
+     call ocl_clean(GPU%queue,GPU%context)
+     OCLconv=.false.
   end if
 
   ! Symmetrise density, TODO...

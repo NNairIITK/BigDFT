@@ -126,6 +126,11 @@ __kernel void axpyKernel_d( uint n, double alpha, __global const double *x, __gl
   if( ig < n)\n\
     out[ig] = y[ig] + alpha * x[ig];\n\
 }\n\
+__kernel void axpy_offsetKernel_d( uint n, double alpha, uint offset_x, __global const double *x, uint offset_y, __global double *y, uint offset_out, __global double *out) {\n\
+  size_t ig = get_global_id(0);\n\
+  if( ig < n)\n\
+    out[ig+offset_out] = y[ig+offset_y] + alpha * x[ig+offset_x];\n\
+}\n\
 __kernel void scalKernel_d( uint n, double alpha, __global const double *x, __global double *y) {\n\
   size_t ig = get_global_id(0);\n\
   if( ig < n)\n\
@@ -136,8 +141,26 @@ __kernel void copyKernel_d( uint n, __global const double *x, __global double *y
   if( ig < n)\n\
     y[ig] = x[ig];\n\
 }\n\
+__kernel void setKernel_d( uint n, const double val, __global double *x) {\n\
+  size_t ig = get_global_id(0);\n\
+  if( ig < n)\n\
+    x[ig] = val;\n\
+}\n\
 \n\
 ";
+void inline set_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, double *val, cl_mem *x) {
+  cl_int ciErrNum;
+  size_t block_size_i=64;
+  cl_uint i=0;
+  clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+  clSetKernelArg(kernel, i++,sizeof(*val), (void*)val);
+  clSetKernelArg(kernel, i++,sizeof(*x), (void*)x);
+  size_t localWorkSize[] = { block_size_i };
+  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n) };
+  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue set kernel!");
+}
+
 void inline dot_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_mem *x, cl_mem *y, cl_mem *out) {
   cl_int ciErrNum;
   size_t block_size_i=512;
@@ -195,6 +218,27 @@ void inline axpy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_u
   oclErrorCheck(ciErrNum,"Failed to enqueue axpy kernel!");
 }
 
+void inline axpy_offset_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, double *alpha, 
+                                                                                   cl_uint *offset_x, cl_mem *x,
+                                                                                   cl_uint *offset_y, cl_mem *y,
+                                                                                   cl_uint *offset_out, cl_mem *out) {
+  cl_int ciErrNum;
+  size_t block_size_i=64;
+  cl_uint i=0;
+  clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+  clSetKernelArg(kernel, i++,sizeof(*alpha), (void*)alpha);
+  clSetKernelArg(kernel, i++,sizeof(*offset_x), (void*)offset_x);
+  clSetKernelArg(kernel, i++,sizeof(*x), (void*)x);
+  clSetKernelArg(kernel, i++,sizeof(*offset_y), (void*)offset_y);
+  clSetKernelArg(kernel, i++,sizeof(*y), (void*)y);
+  clSetKernelArg(kernel, i++,sizeof(*offset_out), (void*)offset_out);
+  clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
+  size_t localWorkSize[] = { block_size_i };
+  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n) };
+  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue axpy kernel!");
+}
+
 void inline reduction_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *out) {
   cl_int ciErrNum;
   size_t block_size_i=512;
@@ -212,9 +256,16 @@ void inline reduction_generic(cl_kernel kernel, cl_command_queue *command_queue,
 cl_kernel reduction_kernel_d;
 cl_kernel reduction_dot_kernel_d;
 cl_kernel axpy_kernel_d;
+cl_kernel axpy_offset_kernel_d;
 cl_kernel scal_kernel_d;
 cl_kernel copy_kernel_d;
 cl_kernel dot_kernel_d;
+cl_kernel set_kernel_d;
+
+void FC_FUNC_(set_d,SET_D)(cl_command_queue *command_queue, cl_uint *n, double *val, cl_mem *x){
+  if(*n==0) return;
+  set_generic(set_kernel_d, command_queue, n, val, x);
+}
 
 void FC_FUNC_(copy_d,COPY_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out){
   if(*n==0) return;
@@ -243,6 +294,23 @@ void FC_FUNC_(axpy_d,AXPY_D)(cl_command_queue *command_queue, cl_uint *n, double
   if(*n==0)
     return;
   axpy_generic(axpy_kernel_d, command_queue, n, alpha, x, y, z);
+}
+
+void FC_FUNC_(axpy_offset_d,AXPY_OFFSET_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha,
+                                                                            cl_uint *offset_x, cl_mem *x,
+                                                                            cl_uint *offset_y, cl_mem *y,
+                                                                            cl_uint *offset_z, cl_mem *z){
+  if(*n==0)
+    return;
+  axpy_offset_generic(axpy_offset_kernel_d, command_queue, n, alpha, offset_x, x, offset_y, y, offset_z, z);
+}
+
+void FC_FUNC_(axpy_offset_self_d,AXPY_OFFSET_SELF_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha,
+                                                                            cl_uint *offset_x, cl_mem *x,
+                                                                            cl_uint *offset_y, cl_mem *y){
+  if(*n==0)
+    return;
+  axpy_offset_generic(axpy_offset_kernel_d, command_queue, n, alpha, offset_x, x, offset_y, y, offset_y, y);
 }
 
 void FC_FUNC_(asum_self_d,ASUM_SELF_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, double *out) {
@@ -375,6 +443,9 @@ void build_reduction_kernels(cl_context * context){
         exit(1);
     }
     ciErrNum = CL_SUCCESS;
+    axpy_offset_kernel_d=clCreateKernel(reductionProgram,"axpy_offsetKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = CL_SUCCESS;
     axpy_kernel_d=clCreateKernel(reductionProgram,"axpyKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     ciErrNum = CL_SUCCESS;
@@ -392,6 +463,9 @@ void build_reduction_kernels(cl_context * context){
     ciErrNum = CL_SUCCESS;
     dot_kernel_d=clCreateKernel(reductionProgram,"dotKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    ciErrNum = CL_SUCCESS;
+    set_kernel_d=clCreateKernel(reductionProgram,"setKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
     ciErrNum = clReleaseProgram(reductionProgram);
     oclErrorCheck(ciErrNum,"Failed to release program!");
 }
@@ -400,7 +474,9 @@ void clean_reduction_kernels(){
   clReleaseKernel(reduction_kernel_d);
   clReleaseKernel(reduction_dot_kernel_d);
   clReleaseKernel(axpy_kernel_d);
+  clReleaseKernel(axpy_offset_kernel_d);
   clReleaseKernel(scal_kernel_d);
   clReleaseKernel(copy_kernel_d);
   clReleaseKernel(dot_kernel_d);
+  clReleaseKernel(set_kernel_d);
 }

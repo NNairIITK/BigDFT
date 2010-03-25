@@ -268,3 +268,64 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
 
 end subroutine preconditionall_OCL
 
+subroutine local_partial_density_OCL(iproc,nproc,orbs,&
+     nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+  integer, intent(in) :: iproc,nproc,nrhotot
+  type(orbitals_data), intent(in) :: orbs
+  integer, intent(in) :: nspin
+  real(gp), intent(in) :: hxh,hyh,hzh
+  type(locreg_descriptors), intent(in) :: lr
+ 
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
+  real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,max(nspin,orbs%nspinor)), intent(inout) :: rho_p
+  type(GPU_pointers), intent(inout) :: GPU
+  
+  integer:: iorb,i_stat,isf,iaddjmp
+  real(kind=8) :: stream_ptr
+  real(gp) :: hfac
+
+
+  if (lr%wfd%nvctr_f > 0) then
+     isf=lr%wfd%nvctr_c+1
+  else
+     isf=lr%wfd%nvctr_c
+  end if
+
+  call set_d(GPU%queue, lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin , 0.0d0,  GPU%rhopot)
+  !copy the wavefunctions on GPU
+  do iorb=1,orbs%norbp
+     
+    call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*orbs%nspinor*8,&
+             psi(1,(iorb-1)*orbs%nspinor+1)) 
+    call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*orbs%nspinor*8,&
+             psi(isf,(iorb-1)*orbs%nspinor+1))
+ 
+    hfac=orbs%occup(min(orbs%isorb+1,orbs%norb)+iorb-1)/(hxh*hyh*hzh);
+    if (orbs%spinsgn(min(orbs%isorb+1,orbs%norb)+iorb-1) > 0.0) then
+      iaddjmp = 0
+    else
+      iaddjmp = 8*(lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1)
+    endif
+  !calculate the density
+   call ocl_locden(GPU%queue, (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
+                          hfac, iaddjmp,&
+                          lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
+                          lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,&
+                          GPU%psi_c,GPU%psi_f,&
+                          GPU%work1,GPU%work2,GPU%work3,&
+                          GPU%rhopot)
+
+  
+  end do
+  !copy back the results and leave the uncompressed wavefunctions on the card
+  
+
+  call ocl_enqueue_read_buffer(GPU%queue,GPU%rhopot,lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin*8,rho_p)
+
+end subroutine local_partial_density_OCL
+
+
