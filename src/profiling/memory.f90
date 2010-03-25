@@ -188,7 +188,7 @@ subroutine memory_occupation(istat,isize,array,routine)
         return
      end select
   end select
-end subroutine memory_occupation
+END SUBROUTINE memory_occupation
 !!***
 
 
@@ -207,7 +207,7 @@ subroutine memory_malloc_check(memdebug,nalloc,ndealloc)
      write(*,*) &
        "Use the python script 'memcheck.py' in utils/scripts to check 'malloc.prc' file"
   end if
-end subroutine memory_malloc_check
+END SUBROUTINE memory_malloc_check
 !!***
 
 

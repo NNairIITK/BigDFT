@@ -214,5 +214,5 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
 
   call timing(iproc,'PSolvKernel   ','OF')
 
-end subroutine createKernel
+END SUBROUTINE createKernel
 !!***

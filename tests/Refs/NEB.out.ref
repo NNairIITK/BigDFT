@@ -1,9 +1,5 @@
- Number of atoms     =     4
- Number of atom types=     1
- Atoms of type 1 are H
- Number of atoms     =     4
- Number of atom types=     1
- Atoms of type 1 are H
+ Reading atomic input positions from file:../../../../1.4/tests/NEB/start.xyz
+ Reading atomic input positions from file:../../../../1.4/tests/NEB/stop.xyz
 External computation of forces for replicas.
  type     = all
  job_name = triH
@@ -29,7 +25,7 @@ External computation of forces for replicas.
  n_nodes  = 4
  datadir  = /home/gigi/work/binaries/1.4-ifort/tests/NEB
  workdir  = /home/gigi/work/binaries/1.4-ifort/tests/NEB/.
-Current iter is 001.
+Current iter is 002.
 Start job 2.
 Job 2 finished (1/3).
 Start job 3.
@@ -44,7 +40,7 @@ External computation of forces for replicas.
  n_nodes  = 4
  datadir  = /home/gigi/work/binaries/1.4-ifort/tests/NEB
  workdir  = /home/gigi/work/binaries/1.4-ifort/tests/NEB/.
-Current iter is 001.
+Current iter is 003.
 Start job 2.
 Job 2 finished (1/3).
 Start job 3.

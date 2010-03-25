@@ -594,7 +594,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   deallocate(hpsi,stat=i_stat)
   call memocc(i_stat,i_all,'hpsi',subname)
 
-end subroutine last_orthon
+END SUBROUTINE last_orthon
 !!***
 
 
@@ -688,7 +688,7 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   !local variables
   character(len=*), parameter :: subname='correct_hartree_potential'
   integer :: i_all,i_stat,ierr,i1,i2,i3,ispin
-  real(gp) :: ehart_fake,eexcu_fake,vexcu_fake,ehartA,ehartB,tt,offset
+  real(gp) :: ehart_fake,ehartA,ehartB,tt,offset
   real(dp), dimension(:,:,:,:), allocatable :: potref,drho,vxc
 
   allocate(potref(n1i,n2i,max(n3d,1),nspin+ndebug),stat=i_stat)
@@ -921,7 +921,7 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   deallocate(drho,stat=i_stat)
   call memocc(i_stat,i_all,'drho',subname)
 
-end subroutine correct_hartree_potential
+END SUBROUTINE correct_hartree_potential
 
 
 subroutine check_communications(iproc,nproc,orbs,lr,comms)
@@ -1102,4 +1102,4 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
 
 
 
-end subroutine check_communications
+END SUBROUTINE check_communications

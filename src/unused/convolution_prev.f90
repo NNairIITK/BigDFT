@@ -1,3 +1,13 @@
+!!****f* BigDFT/comb_grow_all_prev
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 subroutine comb_grow_all_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
      ,w2,w1,xc,xf,y,ibyz_c,ibzxx_c,ibxxyy_c,&
      ibyz_f,ibzxx_f,ibxxyy_f)
@@ -5,10 +15,10 @@ subroutine comb_grow_all_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
   ! to grow convention
   implicit none
   
-  integer n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   
-  real(kind=8),intent(in) :: xc(0:n1,0:n2,0:n3),  xf(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)! input
-  real(kind=8),intent(out) :: y(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)! output
+  real(kind=8), intent(in) :: xc(0:n1,0:n2,0:n3),  xf(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)! input
+  real(kind=8), intent(out) :: y(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)! output
   
   real(kind=8) :: w1(4,nfl2:nfu2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16)!work
   !   real(kind=8) w2(0:n3,-14:2*n1+16,-14:2*n2+16) ! work
@@ -16,20 +26,21 @@ subroutine comb_grow_all_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
   real(kind=8) :: w2(max((n3+1)*(2*n1+31)*(2*n2+31),&
        2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))) ! work
   
-  integer,intent(in)::ibyz_c(2,0:n2,0:n3)
-  integer,intent(in)::ibzxx_c(2,0:n3,-14:2*n1+16)
-  integer,intent(in)::ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
+  integer, intent(in) :: ibyz_c(2,0:n2,0:n3)
+  integer, intent(in) :: ibzxx_c(2,0:n3,-14:2*n1+16)
+  integer, intent(in) :: ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
   
-  integer,intent(in)::ibyz_f(2,nfl2:nfu2,nfl3:nfu3) 
-  integer,intent(in)::ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
-  integer,intent(in)::ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+  integer, intent(in) :: ibyz_f(2,nfl2:nfu2,nfl3:nfu3) 
+  integer, intent(in) :: ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+  integer, intent(in) :: ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
   
   call comb_grow_c_prev(n1,n2,n3,w2,xc,y,ibyz_c,ibzxx_c,ibxxyy_c)
   
   call comb_grow_tree_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
        ,w1,w2,xf,y,ibyz_f,ibzxx_f,ibxxyy_f)    
   
-end subroutine comb_grow_all_prev
+END SUBROUTINE comb_grow_all_prev
+!!***
 
 
 subroutine comb_grow_tree_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
@@ -272,7 +283,7 @@ subroutine comb_rot_grow_loc_prev(nfl,nfu,ndat,x,y,icf,ib)
   !tel=dble(ncount1-ncount0)/dble(ncount_rate)
 
   !write(10,*) tel, 1.d-6*nflop/tel
-end subroutine comb_rot_grow_loc_prev
+END SUBROUTINE comb_rot_grow_loc_prev
 
 ! subroutine for wavelets
 subroutine  comb_rot_grow_loc_1_prev(nfl,nfu,ndat,x,y,ib)
@@ -394,7 +405,7 @@ subroutine  comb_rot_grow_loc_1_prev(nfl,nfu,ndat,x,y,ib)
   !tel=dble(ncount1-ncount0)/dble(ncount_rate)
 
   !write(20,*) tel, 1.d-6*nflop/tel
-end subroutine comb_rot_grow_loc_1_prev
+END SUBROUTINE comb_rot_grow_loc_1_prev
 
 
 
@@ -489,7 +500,7 @@ subroutine  comb_rot_grow_loc_2_prev(nfl,nfu,ndat,x,y,ib)
   tel=dble(ncount1-ncount0)/dble(ncount_rate)
 
   !write(20,*) tel, 1.d-6*nflop/tel
-end subroutine comb_rot_grow_loc_2_prev
+END SUBROUTINE comb_rot_grow_loc_2_prev
 
 
 
@@ -668,7 +679,7 @@ enddo
 
     !write(20,*) tel, 1.d-6*nflop/tel
 
-end subroutine comb_rot_grow_loc_3_prev
+END SUBROUTINE comb_rot_grow_loc_3_prev
 
 
 subroutine Convolkinetic_prev(n1,n2,n3, &
@@ -1051,7 +1062,7 @@ subroutine Convolkinetic_prev(n1,n2,n3, &
   !            tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
   return
-end subroutine Convolkinetic_prev
+END SUBROUTINE Convolkinetic_prev
 
 
 subroutine ConvolkineticT_prev(n1,n2,n3, &
@@ -1468,7 +1479,7 @@ subroutine ConvolkineticT_prev(n1,n2,n3, &
   !            tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
   return
-end subroutine ConvolkineticT_prev
+END SUBROUTINE ConvolkineticT_prev
 
 subroutine ConvolkineticP_prev(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
@@ -1879,7 +1890,7 @@ subroutine ConvolkineticP_prev(n1,n2,n3, &
   !            tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
   return
-end subroutine ConvolkineticP_prev
+END SUBROUTINE ConvolkineticP_prev
 
 
 

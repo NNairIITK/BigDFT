@@ -209,7 +209,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
 
   call timing(iproc,'Rho_comput    ','OF')
 
-end subroutine sumrho
+END SUBROUTINE sumrho
 !!***
 
 
@@ -314,7 +314,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
 
   call deallocate_work_arrays_sumrho(w)
 
-end subroutine local_partial_density
+END SUBROUTINE local_partial_density
 !!***
 
 
@@ -421,7 +421,7 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      stop
   end if
 
-end subroutine partial_density
+END SUBROUTINE partial_density
 !!***
 
 
@@ -532,7 +532,7 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      stop
   end if
 
-end subroutine partial_density_free
+END SUBROUTINE partial_density_free
 !!***
 
 
@@ -735,5 +735,5 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho
   deallocate(rhog,stat=i_stat)
   call memocc(i_stat,i_all,'rhog',subname)
 
-end subroutine symmetrise_density
+END SUBROUTINE symmetrise_density
 !!***

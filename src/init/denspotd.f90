@@ -3,7 +3,7 @@
 !!   Create the descriptors for the density and the potential
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA (LG)
+!!    Copyright (C) 2007-2010 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -55,7 +55,7 @@ subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc
   ngatherarr(:,1)=n1i*n2i*nscatterarr(:,2)
   ngatherarr(:,2)=n1i*n2i*nscatterarr(:,3)
 
-end subroutine createDensPotDescriptors
+END SUBROUTINE createDensPotDescriptors
 !!***
 
 !!****f* BigDFT/orbitals_communicators
@@ -84,7 +84,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   type(communications_arrays), intent(out) :: comms
   !local variables
   character(len=*), parameter :: subname='orbitals_communicators'
-  integer :: jproc,i,nvctr_tot,j,ikpts,iorbp,iorb,jorb,norb_tot,ikpt,i_stat,i_all
+  integer :: jproc,i,nvctr_tot,j,ikpts,iorbp,jorb,norb_tot,ikpt,i_stat,i_all
   integer :: ncomp_res,iskpts,nkptsp,ierr
   logical, dimension(:), allocatable :: GPU_for_comp
   integer, dimension(:,:), allocatable :: nvctr_par,norb_par !for all the components and orbitals (with k-pts)
@@ -327,19 +327,18 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
        'Wavefunctions memory occupation for root processor (Bytes): ',&
        orbs%npsidim*8
 
-
-
-end subroutine orbitals_communicators
+END SUBROUTINE orbitals_communicators
 !!***
 
 
 subroutine print_distribution_schemes(nproc,nkpts,norb_par,nvctr_par)
   use module_base
   implicit none
+  !Arguments
   integer, intent(in) :: nproc,nkpts
   integer, dimension(0:nproc-1,nkpts), intent(in) :: norb_par,nvctr_par
   !local variables
-  integer :: jproc,ikpt,norbp,kproc,isorb,ieorb,isko,ieko,nvctrp,ispsi,iepsi,iekc,iskc
+  integer :: jproc,ikpt,norbp,isorb,ieorb,isko,ieko,nvctrp,ispsi,iepsi,iekc,iskc
   integer :: iko,ikc,nko,nkc
 
   write(*,'(1x,a,a)')repeat('-',47),'Direct and transposed data repartition'
@@ -386,7 +385,7 @@ subroutine print_distribution_schemes(nproc,nkpts,norb_par,nvctr_par)
      end if
   end do
   
-end subroutine print_distribution_schemes
+END SUBROUTINE print_distribution_schemes
 
 subroutine start_end_distribution(nproc,nkpts,jproc,ndist,is,ie,norbp)
   implicit none
@@ -415,7 +414,7 @@ subroutine start_end_distribution(nproc,nkpts,jproc,ndist,is,ie,norbp)
         exit loop_ie
      end if
   end do loop_ie
-end subroutine start_end_distribution
+END SUBROUTINE start_end_distribution
 
 subroutine start_end_comps(nproc,jproc,ndist,is,ie)
   implicit none
@@ -431,5 +430,5 @@ subroutine start_end_comps(nproc,jproc,ndist,is,ie)
   end do
   ie=is+ndist(jproc)-1
   
-end subroutine start_end_comps
+END SUBROUTINE start_end_comps
 

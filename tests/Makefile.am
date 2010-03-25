@@ -1,6 +1,8 @@
 ## Process this file with automake to produce Makefile.in
 
 SUBDIRS = \
+	  fft \
+	  PSolver \
 	  H \
 	  H2-spin \
 	  Li+ \

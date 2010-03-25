@@ -91,7 +91,7 @@ subroutine find_pfproj( Nsol,Ngrid,rgrid, psi1s, psigrid, real_start, psigrid_ps
   psigrid_pseudo(:,1)=dumgrid2
 
   return
-end subroutine find_pfproj
+END SUBROUTINE find_pfproj
 !!***  
 
 
@@ -158,7 +158,7 @@ subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
   enddo
   
   return 
-end subroutine find_Scoeffs_grid
+END SUBROUTINE find_Scoeffs_grid
 
 
 subroutine   dump_1gauwf_on_radgrid(prefix, ng , expo,psi   ,lpow   )
@@ -193,7 +193,7 @@ subroutine   dump_1gauwf_on_radgrid(prefix, ng , expo,psi   ,lpow   )
   close(unit=22)
 
 return 
-end subroutine dump_1gauwf_on_radgrid
+END SUBROUTINE dump_1gauwf_on_radgrid
 
 function  value_at_r(r, ng , expo,psi     )
   use module_base, only: gp
@@ -269,7 +269,7 @@ subroutine dump_gauwf_on_radgrid(prefix, ng, noccmax, lmax, expo, psi)
      enddo
   enddo
 return
-end subroutine dump_gauwf_on_radgrid
+END SUBROUTINE dump_gauwf_on_radgrid
 
 
 subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccmax, lmax ,expo,psi, aeval, occup, psp_modifier, &
@@ -397,7 +397,7 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   !Now the treatment of the occupation number
 
   if(psp_modifier.ne.0) then
-     call modified_eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
+     call modified_eleconf(izatom,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
   else
      call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
   endif
@@ -576,7 +576,7 @@ subroutine integrate(f,fint,x,Nx)
      
   enddo
   return
-end subroutine integrate
+END SUBROUTINE integrate
 
 
 function pow(x,n)
@@ -1079,7 +1079,7 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
 
    return
 
-end subroutine schro
+END SUBROUTINE schro
 
 
 subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
@@ -2695,7 +2695,7 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   
 
   return
-end subroutine GetExcitedOrbitalAsG
+END SUBROUTINE GetExcitedOrbitalAsG
 
 
 !!****f* BigDFT/GetBottom
@@ -2825,7 +2825,7 @@ subroutine zero4b2B(n,x)
   do i=1,n
      x(i)=0.d0
   end do
-end subroutine zero4b2B
+END SUBROUTINE zero4b2B
 !!***
 
 
@@ -2913,7 +2913,7 @@ subroutine back_trans_14_4b2B(nd,nt,x,y)
      end do
   end do
         
-end subroutine back_trans_14_4b2B
+END SUBROUTINE back_trans_14_4b2B
 
 
 
@@ -3000,7 +3000,7 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
   i_all=-product(shape(y))*kind(y)
   deallocate(y,stat=i_stat)
   call memocc(i_stat,i_all,'y',subname)
-end subroutine scaling_function4b2B
+END SUBROUTINE scaling_function4b2B
 !!***
 
 
@@ -3049,7 +3049,7 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   print *, " closing file  " 
   close(22)
   
-end subroutine read_potfile4b2B
+END SUBROUTINE read_potfile4b2B
 
 
 

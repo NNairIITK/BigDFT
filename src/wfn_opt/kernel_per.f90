@@ -50,7 +50,7 @@ subroutine hit_with_kernel(x,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,c)
      enddo
   enddo
 
-end subroutine hit_with_kernel
+END SUBROUTINE hit_with_kernel
 
 
 
@@ -129,4 +129,4 @@ subroutine make_kernel(n1,hgrid,kern)
   enddo
 
   deallocate(trig,z)
-end subroutine make_kernel
+END SUBROUTINE make_kernel

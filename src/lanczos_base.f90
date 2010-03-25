@@ -64,7 +64,7 @@ contains
    allocate(oldalpha (0: 1 +ndebug )        , stat=i_stat  )
    call memocc(i_stat,oldalpha,'oldalpha',subname)
 
-  end subroutine LB_allocate_for_chebychev
+  END SUBROUTINE LB_allocate_for_chebychev
 
 
   subroutine LB_allocate_for_lanczos( )
@@ -98,7 +98,7 @@ contains
 
    omega(:,:)=0.0D0
 
- end subroutine LB_allocate_for_lanczos
+ END SUBROUTINE LB_allocate_for_lanczos
 
   subroutine LB_de_allocate_for_lanczos( )
 
@@ -132,7 +132,7 @@ contains
     deallocate(oldalpha          )
     call memocc(i_stat,i_all,'oldalpha',subname)
 
-  end subroutine LB_de_allocate_for_lanczos
+  END SUBROUTINE LB_de_allocate_for_lanczos
    
   integer function converged(m)
     implicit none
@@ -214,7 +214,7 @@ contains
        stop
     endif
     return 
-  end subroutine diago
+  END SUBROUTINE diago
 
   integer function  LB_cerca( nd, shift, tol, set_EP_shift, EP_allocate_for_eigenprob,&
        EP_make_dummy_vectors, get_EP_dim, EP_initialize_start , EP_normalizza,&
@@ -229,48 +229,48 @@ contains
     interface
        subroutine set_EP_shift(shift)
          real(kind=8) shift
-       end subroutine set_EP_shift
+       END SUBROUTINE set_EP_shift
 
        subroutine  EP_allocate_for_eigenprob(nsteps)
          implicit none
          integer, intent(in):: nsteps
-       end subroutine
+       END SUBROUTINE
        subroutine EP_make_dummy_vectors(nd)
          implicit none
          integer, intent(in):: nd
          ! :::::::::::::::::::::::    
-       end subroutine
+       END SUBROUTINE
        integer function get_EP_dim()
        end function
 
        subroutine EP_initialize_start()
-       end subroutine 
+       END SUBROUTINE 
        subroutine EP_normalizza(i)
          integer i
-       end subroutine 
+       END SUBROUTINE 
        subroutine EP_Moltiplica(i,j)
          integer i,j
-       end subroutine 
+       END SUBROUTINE 
        real(kind=8) function EP_scalare(i,j)
          integer i,j
        end function 
        subroutine EP_add_from_vect_with_fact( i, j  ,   a )
          integer i,j
          real(kind=8) a
-       end subroutine 
+       END SUBROUTINE 
        subroutine EP_GramSchmidt(i,j)
          integer i,j
-       end subroutine 
+       END SUBROUTINE 
        subroutine EP_set_all_random(i)
          integer i
-       end subroutine 
+       END SUBROUTINE 
        subroutine EP_copy(i,j)
          integer i,j
-       end subroutine
+       END SUBROUTINE
        subroutine EP_mat_mult(m,k ,  EV )
          integer  m,k
          real(kind=8)  EV(1 )
-       end subroutine        
+       END SUBROUTINE        
 
     end interface
 
@@ -371,14 +371,14 @@ contains
     interface
        subroutine EP_normalizza(i)
          integer i
-       end subroutine EP_normalizza
+       END SUBROUTINE EP_normalizza
        subroutine EP_copy(i,j)
          integer i,j
-       end subroutine EP_copy
+       END SUBROUTINE EP_copy
        subroutine EP_mat_mult(m,k ,  EV )
          integer  m,k
          real(kind=8)  EV(1 )
-       end subroutine EP_mat_mult
+       END SUBROUTINE EP_mat_mult
     end interface
     
     integer :: i
@@ -418,7 +418,7 @@ contains
     deallocate( dumomega2)
     
 
-  end subroutine ricipolla
+  END SUBROUTINE ricipolla
 
 
 
@@ -437,33 +437,33 @@ contains
        subroutine EP_mat_mult(m,k ,  EV )
          integer  m,k
          real(kind=8)  EV(1 )
-       end subroutine  
+       END SUBROUTINE  
        integer function get_EP_dim()
        end function
        subroutine EP_initialize_start()
-       end subroutine 
+       END SUBROUTINE 
        subroutine EP_normalizza(i)
          integer i
-       end subroutine 
+       END SUBROUTINE 
        subroutine EP_Moltiplica(i,j)
          integer i,j
-       end subroutine 
+       END SUBROUTINE 
        real(kind=8) function EP_scalare(i,j)
          integer i,j
        end function 
        subroutine EP_add_from_vect_with_fact( i, j  ,   a )
          integer i,j
          real(kind=8) a
-       end subroutine 
+       END SUBROUTINE 
        subroutine EP_GramSchmidt(i,j)
          integer i,j
-       end subroutine 
+       END SUBROUTINE 
        subroutine EP_set_all_random(i)
          integer i
-       end subroutine 
+       END SUBROUTINE 
        subroutine EP_copy(i,j)
          integer i,j
-       end subroutine
+       END SUBROUTINE
     end interface
 
     integer :: p
@@ -670,7 +670,7 @@ contains
 
     enddo
     
-  end subroutine LB_passeggia
+  END SUBROUTINE LB_passeggia
 
 
   subroutine CalcolaSpettroChebychev( cheb_shift, fact_cheb,   Nu ) 
@@ -822,7 +822,7 @@ contains
     deallocate(zinout)
     call memocc(i_stat,i_all,'zinout',subname)
 
-  end subroutine CalcolaSpettroChebychev
+  END SUBROUTINE CalcolaSpettroChebychev
   
   
   subroutine LB_passeggia_Chebychev (  m, cheb_shift,  fact_cheb,  get_EP_dim,  EP_initialize_start , EP_normalizza, &
@@ -837,33 +837,33 @@ contains
        subroutine EP_mat_mult(m,k ,  EV )
          integer  :: m,k
          real(kind=8) :: EV(1 )
-       end subroutine  
+       END SUBROUTINE  
        integer function get_EP_dim()
        end function
        subroutine EP_initialize_start()
-       end subroutine 
+       END SUBROUTINE 
        subroutine EP_normalizza(i)
          integer :: i
-       end subroutine 
+       END SUBROUTINE 
        subroutine EP_Moltiplica(i,j)
          integer :: i,j
-       end subroutine 
+       END SUBROUTINE 
        real(kind=8) function EP_scalare(i,j)
          integer :: i,j
        end function 
        subroutine EP_add_from_vect_with_fact( i, j  ,   a )
          integer :: i,j
          real(kind=8) :: a
-       end subroutine 
+       END SUBROUTINE 
        subroutine EP_GramSchmidt(i,j)
          integer :: i,j
-       end subroutine 
+       END SUBROUTINE 
        subroutine EP_set_all_random(i)
          integer :: i
-       end subroutine 
+       END SUBROUTINE 
        subroutine EP_copy(i,j)
          integer :: i,j
-       end subroutine
+       END SUBROUTINE
        subroutine EP_multbyfact(j, fact)
          use module_base
          implicit none
@@ -871,7 +871,7 @@ contains
          real(gp) :: fact
          ! ::::::::::::::::::::::::::::::::::::::
 
-       end subroutine EP_multbyfact
+       END SUBROUTINE EP_multbyfact
        
     end interface
 
@@ -917,7 +917,7 @@ contains
        
     enddo
     
-  end subroutine LB_passeggia_Chebychev
+  END SUBROUTINE LB_passeggia_Chebychev
 
 
 

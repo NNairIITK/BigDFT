@@ -677,7 +677,7 @@ subroutine Convolkinetic(n1,n2,n3, &
 !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'ALL   PART',  & 
 !  tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-end subroutine Convolkinetic
+END SUBROUTINE Convolkinetic
 
 subroutine ConvolkineticT(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
@@ -1437,5 +1437,5 @@ subroutine ConvolkineticT(n1,n2,n3, &
   !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:ALL   PART',  & 
   !  tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-end subroutine ConvolkineticT
+END SUBROUTINE ConvolkineticT
 

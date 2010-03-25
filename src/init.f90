@@ -178,7 +178,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   !assign geocode and the starting points
   Glr%geocode=atoms%geocode
 
-end subroutine createWavefunctionsDescriptors
+END SUBROUTINE createWavefunctionsDescriptors
 !!***
 
 
@@ -844,5 +844,5 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
   call deallocate_orbs(orbse,subname)
      
-end subroutine input_wf_diag
+END SUBROUTINE input_wf_diag
 !!***

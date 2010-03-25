@@ -198,7 +198,7 @@ subroutine timing(iproc,category,action)
 
   endif
 
-end subroutine timing
+END SUBROUTINE timing
 
 subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
   implicit none
@@ -270,4 +270,4 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
      write(60,*)
   endif
 
-end subroutine sum_results
+END SUBROUTINE sum_results

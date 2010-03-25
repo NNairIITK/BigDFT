@@ -180,7 +180,7 @@ contains
          lefts(1),rights(1),lefts(0),rights(0)) 
 
 
-  end subroutine gauss_to_scf
+  END SUBROUTINE gauss_to_scf
 
   subroutine fold_tail
     ! One of the tails of the Gaussian is folded periodically
@@ -237,10 +237,10 @@ contains
 !!          c(i,2)=ww(i-n_left+length,2)
 !!       enddo
 !!    endif
-  end subroutine fold_tail
+  END SUBROUTINE fold_tail
 
 
-end subroutine gauss_to_daub
+END SUBROUTINE gauss_to_daub
 !!***
 
 !!****f* BigDFT/gauss_to_daub_k
@@ -483,7 +483,7 @@ contains
     end do
 
 
-  end subroutine gauss_to_scf
+  END SUBROUTINE gauss_to_scf
 
   subroutine fold_tail
     ! One of the tails of the Gaussian is folded periodically
@@ -504,10 +504,10 @@ contains
 
     c=fac*c
 
-  end subroutine fold_tail
+  END SUBROUTINE fold_tail
 
 
-end subroutine gauss_to_daub_k
+END SUBROUTINE gauss_to_daub_k
 !!***
 
 
@@ -537,7 +537,7 @@ subroutine apply_w(cx,c,leftx,rightx,left,right,h)
      c(i)=ci*sqh
   enddo
 
-end subroutine apply_w
+END SUBROUTINE apply_w
 
 
 !
@@ -566,7 +566,7 @@ subroutine forward_c(c,c_1,left,right,left_1,right_1)
      c_1(i)=ci
   enddo
 
-end subroutine forward_c
+END SUBROUTINE forward_c
 
 !
 !      CONVENTIONAL FORWARD WAVELET TRANSFORM ("SHRINK")
@@ -597,4 +597,4 @@ subroutine forward(c,cd_1,left,right,left_1,right_1)
      cd_1(i,2)=di
   enddo
 
-end subroutine forward
+END SUBROUTINE forward

@@ -194,7 +194,7 @@ end program abscalc_main
        type(orbitals_data), intent(inout) :: orbs
        real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
        real(wp), dimension(:), pointer :: psi
-     end subroutine abscalc 
+     END SUBROUTINE abscalc 
   end interface
 
   !put a barrier for all the processes
@@ -281,7 +281,7 @@ end program abscalc_main
   !put a barrier for all the processes
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
-end subroutine call_abscalc
+END SUBROUTINE call_abscalc
 !!***
 
 
@@ -607,19 +607,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
   end if
 
-  if (nproc > 1  ) then
-     i_all=-product(shape(hpsi))*kind(hpsi)
-     deallocate(hpsi,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsi',subname)
-  endif
-
-  if (nproc > 1  ) then
-     i_all=-product(shape(psit))*kind(psit)
-     deallocate(psit,stat=i_stat)
-     call memocc(i_stat,i_all,'psit',subname)
-  else
-     nullify(psit)
-  end if
+  nullify(psit)
 
   i_all=-product(shape(pot_ion))*kind(pot_ion)
   deallocate(pot_ion,stat=i_stat)
@@ -638,6 +626,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
   if (in%c_absorbtion ) then
 
+     !put i3xcsh=0 for the moment, should be eliminated from the potential
+     i3xcsh=0
+
 !!$
 !!$     rhopot(10,9,8+i3xcsh,1)=100.0
 
@@ -646,11 +637,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
           if (iproc == 0) write(*,*) 'writing local_potential.pot'
            call plot_density(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
                 n1,n2,n3,n1i,n2i,n3i,n3p,&
-                atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+                atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
         else
            call plot_density_cube(atoms%geocode,'local_potentialb2B',iproc,nproc,&
                 n1,n2,n3,n1i,n2i,n3i,n3p,&
-                in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+                in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1,1))
         endif
      end if
 
@@ -996,18 +987,19 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      end if
      infocode=0
  
-     if(in%iabscalc_type==2) then
+     if (in%iabscalc_type==2) then
         call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
              , in%iat_absorber  , .false., orbs%norb,   psit , orbs%eval , in )
         
-     else
+     else if (in%iabscalc_type==1) then
         call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
              , in%iat_absorber, in)
-        
+     else
+        if (iproc == 0) write(*,*)' iabscalc_type not known, does not perform calculation'
      endif
      
   end if
@@ -1214,7 +1206,7 @@ contains
     if (iproc == 0) &
          write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
 
-  end subroutine deallocate_before_exiting
+  END SUBROUTINE deallocate_before_exiting
 
 END SUBROUTINE abscalc
 !!***

@@ -1,5 +1,17 @@
-!   Applies the operator (KE+cprecr*I)*x=y
-!   array x is input, array y is output
+!!****f* BigDFT/apply_hp_sd
+!! FUNCTION
+!!   Applies the operator (KE+cprecr*I)*x=y
+!!   array x is input, array y is output
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e)
   use module_base
@@ -32,14 +44,18 @@ subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   hgrid(1)=hx
   hgrid(2)=hy
   hgrid(3)=hz
-  call convolut_kinetic_per_sdc(n1,n2,n3,hgrid,psig_in,psig_out,cprecr,modul1,modul2,modul3,a,b,c,e)
+  call convolut_kinetic_per_sdc(n1,n2,n3,psig_in,psig_out,cprecr,modul1,modul2,modul3,a,b,c,e)
 
   call compress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
        psig_out,y(1),y(nvctr_c+1))
-end subroutine apply_hp_sd
+END SUBROUTINE apply_hp_sd
+!!***
 
 
+!!****f* BigDFT/apply_hp_scal
+!! SOURCE
+!!
 subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e,scal)
   use module_base
@@ -52,13 +68,13 @@ subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   real(gp), intent(in) :: hx,hy,hz
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  integer,intent(in)::modul1(lowfil:n1+lupfil)
-  integer,intent(in)::modul2(lowfil:n2+lupfil)
-  integer,intent(in)::modul3(lowfil:n3+lupfil)
-  real(gp),intent(in)::a(lowfil:lupfil,3)
-  real(gp),intent(in)::b(lowfil:lupfil,3)
-  real(gp),intent(in)::c(lowfil:lupfil,3)
-  real(gp),intent(in)::e(lowfil:lupfil,3)
+  integer,intent(in) :: modul1(lowfil:n1+lupfil)
+  integer,intent(in) :: modul2(lowfil:n2+lupfil)
+  integer,intent(in) :: modul3(lowfil:n3+lupfil)
+  real(gp),intent(in) :: a(lowfil:lupfil,3)
+  real(gp),intent(in) :: b(lowfil:lupfil,3)
+  real(gp),intent(in) :: c(lowfil:lupfil,3)
+  real(gp),intent(in) :: e(lowfil:lupfil,3)
   real(wp), intent(in) ::  x(nvctr_c+7*nvctr_f)  
 
   real(wp), intent(out) ::  y(nvctr_c+7*nvctr_f)
@@ -73,21 +89,26 @@ subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   hgrid(1)=hx
   hgrid(2)=hy
   hgrid(3)=hz
-  call convolut_kinetic_per_sdc(n1,n2,n3,hgrid,psig_in,psig_out,cprecr,modul1,modul2,modul3,a,b,c,e)
+  call convolut_kinetic_per_sdc(n1,n2,n3,psig_in,psig_out,cprecr,modul1,modul2,modul3,a,b,c,e)
 
   call compress_sd_scal(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
        psig_out,y(1),y(nvctr_c+1),scal)
-end subroutine apply_hp_scal
+END SUBROUTINE apply_hp_scal
+!!***
 
 
-subroutine convolut_kinetic_per_sdc(n1,n2,n3,hgrid,x,y,cprecr,modul1,modul2,modul3,a,b,c,e)
-!   applies the kinetic energy operator onto x to get y. Works for periodic BC
+!!****f* BigDFT/convolut_kinetic_per_sdc
+!! FUNCTION
+!!   Applies the kinetic energy operator onto x to get y. Works for periodic BC
+!!
+!! SOURCE
+!!
+subroutine convolut_kinetic_per_sdc(n1,n2,n3,x,y,cprecr,modul1,modul2,modul3,a,b,c,e)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp),intent(in)::cprecr
-  real(gp), dimension(3), intent(in) :: hgrid
   real(wp), dimension(8,0:n1,0:n2,0:n3), intent(in) :: x
   real(wp), dimension(8,0:n1,0:n2,0:n3), intent(out) :: y
   !local variables
@@ -235,28 +256,29 @@ subroutine convolut_kinetic_per_sdc(n1,n2,n3,hgrid,x,y,cprecr,modul1,modul2,modu
 !  tel=dble(ncount2-ncount1)/dble(ncount_rate)
 !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'z:',tel,1.d-6*mflop3/tel
 
-end subroutine convolut_kinetic_per_sdc
+END SUBROUTINE convolut_kinetic_per_sdc
+!!***
 
 
 subroutine prepare_sdc(n1,n2,n3,modul1,modul2,modul3,a,b,c,e,hx,hy,hz)
-use module_base
-implicit none
-integer,intent(in)::n1,n2,n3
-real(gp),intent(in)::hx,hy,hz
+  use module_base
+  implicit none
+  integer,intent(in) :: n1,n2,n3
+  real(gp),intent(in) :: hx,hy,hz
 
-integer, parameter :: lowfil=-14,lupfil=14
+  integer, parameter :: lowfil=-14,lupfil=14
 
-integer,intent(out)::modul1(lowfil:n1+lupfil)
-integer,intent(out)::modul2(lowfil:n2+lupfil)
-integer,intent(out)::modul3(lowfil:n3+lupfil)
-real(gp),intent(out)::a(lowfil:lupfil,3)
-real(gp),intent(out)::b(lowfil:lupfil,3)
-real(gp),intent(out)::c(lowfil:lupfil,3)
-real(gp),intent(out)::e(lowfil:lupfil,3)
+  integer,intent(out) :: modul1(lowfil:n1+lupfil)
+  integer,intent(out) :: modul2(lowfil:n2+lupfil)
+  integer,intent(out) :: modul3(lowfil:n3+lupfil)
+  real(gp),intent(out) :: a(lowfil:lupfil,3)
+  real(gp),intent(out) :: b(lowfil:lupfil,3)
+  real(gp),intent(out) :: c(lowfil:lupfil,3)
+  real(gp),intent(out) :: e(lowfil:lupfil,3)
 
-real(gp)::hgrid(3)
-integer::i
-real(gp)::scale(3)
+  real(gp) :: hgrid(3)
+  integer :: i
+  real(gp) :: scale(3)
 
   call fill_mod_arr(modul1,lowfil,n1+lupfil,n1+1)
   call fill_mod_arr(modul2,lowfil,n2+lupfil,n2+1)
@@ -342,7 +364,7 @@ real(gp)::scale(3)
   do i=1,14
      e(-i,:)=e(i,:)
   enddo
-end subroutine prepare_sdc
+END SUBROUTINE prepare_sdc
 
 
 subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
@@ -683,7 +705,7 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
   ekinout=ekinout+ekin1+ekin2+ekin3+ekin4+ekin5+ekin6+ekin7+ekin8+ekin9
 !$omp end critical
 !$omp end parallel
-end subroutine convolut_kinetic_hyb_T
+END SUBROUTINE convolut_kinetic_hyb_T
 
   subroutine conv_kin_x1(x,y,n1,n2,n3,ekin,mod_arr1,a)
   use module_base
@@ -758,7 +780,7 @@ end subroutine convolut_kinetic_hyb_T
        enddo
     enddo
 !$omp enddo
-  end subroutine conv_kin_x1
+  END SUBROUTINE conv_kin_x1
   
   subroutine conv_kin_y1(x,y,n1,n2,n3,ekin,mod_arr2,a)
   use module_base
@@ -823,7 +845,7 @@ end subroutine convolut_kinetic_hyb_T
        enddo
     enddo
 !$omp enddo
-  end subroutine conv_kin_y1
+  END SUBROUTINE conv_kin_y1
 
 
   subroutine conv_kin_z1(x,y,n1,n2,n3,ekin,mod_arr3,a)
@@ -900,7 +922,7 @@ end subroutine convolut_kinetic_hyb_T
        enddo
     enddo
 !$omp enddo
-  end subroutine conv_kin_z1
+  END SUBROUTINE conv_kin_z1
 
 
 subroutine convolut_kinetic_hyb_c(n1,n2,n3, &
@@ -1206,7 +1228,7 @@ subroutine convolut_kinetic_hyb_c(n1,n2,n3, &
   enddo
 !$omp enddo
 !$omp end parallel
-end subroutine convolut_kinetic_hyb_c
+END SUBROUTINE convolut_kinetic_hyb_c
 
   subroutine conv_kin_y2(x,y,n1,n2,n3,mod_arr2,a)
   use module_base
@@ -1269,7 +1291,7 @@ end subroutine convolut_kinetic_hyb_c
        enddo
     enddo
 !$omp enddo
-  end subroutine conv_kin_y2
+  END SUBROUTINE conv_kin_y2
 
 
   subroutine conv_kin_x2(x,y,n1,n2,n3,mod_arr1,a,cprecr)
@@ -1345,7 +1367,7 @@ end subroutine convolut_kinetic_hyb_c
        enddo
     enddo
 !$omp enddo
-  end subroutine conv_kin_x2
+  END SUBROUTINE conv_kin_x2
 
   subroutine conv_kin_z2(x,y,n1,n2,n3,mod_arr3,a)
   use module_base
@@ -1420,4 +1442,4 @@ end subroutine convolut_kinetic_hyb_c
        enddo
     enddo
 !$omp enddo
-end subroutine conv_kin_z2
+END SUBROUTINE conv_kin_z2

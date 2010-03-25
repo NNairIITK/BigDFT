@@ -1,3 +1,13 @@
+!!****f* BigDFT/psitransspi
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 subroutine psitransspi(nvctrp,orbs,psi,forward)
   use module_base
   use module_types
@@ -8,7 +18,7 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
   real(wp), dimension(orbs%nspinor*nvctrp,orbs%norb,orbs%nkpts), intent(inout) :: psi
   !local variables
   character(len=*), parameter :: subname='psitransspi'
-  integer :: i,iorb,ij,isp,i_all,i_stat,ikpts
+  integer :: i,iorb,isp,i_all,i_stat,ikpts
   real(wp), dimension(:,:,:,:), allocatable :: tpsit
 
   allocate(tpsit(nvctrp,orbs%nspinor,orbs%norb,orbs%nkpts+ndebug),stat=i_stat)
@@ -83,7 +93,8 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
   i_all=-product(shape(tpsit))*kind(tpsit)
   deallocate(tpsit,stat=i_stat)
   call memocc(i_stat,i_all,'tpsit',subname)
-end subroutine psitransspi
+END SUBROUTINE psitransspi
+!!***
 
 
 !transposition of the arrays, variable version (non homogeneous)
@@ -133,7 +144,7 @@ subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
 
   call timing(iproc,'Un-TransSwitch','OF')
 
-end subroutine transpose_v
+END SUBROUTINE transpose_v
 
 subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
      work,outadd) !optional
@@ -180,7 +191,7 @@ subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
   end if
 
   call timing(iproc,'Un-TransSwitch','OF')
-end subroutine untranspose_v
+END SUBROUTINE untranspose_v
 
 
 subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
@@ -267,7 +278,7 @@ subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
      !and starting point for psi
      ispsi=ispsi+orbs%nspinor*nvctr*norbp_kpt
   end do
-end subroutine switch_waves_v
+END SUBROUTINE switch_waves_v
 
 subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
   use module_base
@@ -355,4 +366,4 @@ subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
      ispsi=ispsi+orbs%nspinor*nvctr*norbp_kpt
   end do
   
-end subroutine unswitch_waves_v
+END SUBROUTINE unswitch_waves_v

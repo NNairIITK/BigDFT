@@ -49,7 +49,7 @@ subroutine hit_with_kernel_slab(x,zx,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
 
   !deallocations to be reformulated
   deallocate(trig)
-end subroutine hit_with_kernel_slab
+END SUBROUTINE hit_with_kernel_slab
 
 
   subroutine forward_fft(n1,n2,n3,nd1,nd3,x,zx,ntrig,trig)
@@ -89,7 +89,7 @@ end subroutine hit_with_kernel_slab
 !$omp end parallel
 
 
-  end subroutine forward_fft
+  END SUBROUTINE forward_fft
 
   subroutine backward_fft(n1,n2,n3,nd1,nd3,x,zx,ntrig,trig)
   use module_base
@@ -148,7 +148,7 @@ end subroutine hit_with_kernel_slab
 !$omp enddo
   deallocate(z,zw)
 !$omp end parallel
-  end subroutine backward_fft
+  END SUBROUTINE backward_fft
 
 
 

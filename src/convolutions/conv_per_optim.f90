@@ -183,7 +183,7 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
 
 !write(*,*) 'ana_rot_per_old finished'
 
-end subroutine ana_rot_per_old
+END SUBROUTINE ana_rot_per_old
 
 
 subroutine syn_rot_per_old(right1,nt,cd,c1)
@@ -376,7 +376,7 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
   deallocate(mod_my,stat=i_stat) 
   call memocc(i_stat,i_all,'mod_my',subname)
 
-end subroutine syn_rot_per_old
+END SUBROUTINE syn_rot_per_old
 
 
 

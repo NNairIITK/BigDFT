@@ -533,7 +533,7 @@ subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
     !end of the loop over spin components
  end do
 
-end subroutine wb_correction
+END SUBROUTINE wb_correction
 !!***
 
 
@@ -1050,5 +1050,5 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
   deallocate(density,stat=i_stat)
   call memocc(i_stat,i_all,'density',subname)
 
-end subroutine calc_gradient
+END SUBROUTINE calc_gradient
 !!***

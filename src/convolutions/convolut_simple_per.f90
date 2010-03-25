@@ -44,7 +44,7 @@ subroutine ana_rot_per(n,ndat,x,y)
      enddo
 
   enddo
-end subroutine ana_rot_per
+END SUBROUTINE ana_rot_per
 
 
 subroutine syn_rot_per(n,ndat,x,y)
@@ -93,7 +93,7 @@ subroutine syn_rot_per(n,ndat,x,y)
 
   enddo
 
-end subroutine syn_rot_per
+END SUBROUTINE syn_rot_per
 
 subroutine convrot_n_per(n1,ndat,x,y)
   use module_base
@@ -131,14 +131,14 @@ subroutine convrot_n_per(n1,ndat,x,y)
      do i=0,n1
         tt=0.e0_wp
         do l=lowfil,lupfil
-           k=modulo(i+l,n1+1)	
+           k=modulo(i+l,n1+1)   
            tt=tt+x(  k,j)*fil(l)
         enddo
         y(j,i)=tt
      enddo
   enddo
 
-end subroutine convrot_n_per
+END SUBROUTINE convrot_n_per
 
 
 subroutine convrot_t_per(n1,ndat,x,y)
@@ -179,14 +179,15 @@ subroutine convrot_t_per(n1,ndat,x,y)
 
         tt=0.e0_wp
         do l=lowfil,lupfil
-           k=modulo(i+l,n1+1)	
+           k=modulo(i+l,n1+1)
            tt=tt+x(k,j)*fil(l)
         enddo
         y(j,i)=tt
      enddo
   enddo
 
-end subroutine convrot_t_per
+END SUBROUTINE convrot_t_per
+
 
 subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
 !   applies the kinetic energy operator onto x to get y. Works for periodic BC
@@ -268,7 +269,7 @@ subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
      enddo
   enddo
   
-end subroutine convolut_kinetic_per_c
+END SUBROUTINE convolut_kinetic_per_c
 
 
 subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin)
@@ -321,7 +322,7 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin)
               tt=tt+x(j   ,i2,i3)*fil(l,1)
            enddo
            y(i1,i2,i3)=y(i1,i2,i3)+tt
-			ekin=ekin+x(i1,i2,i3)*tt
+           ekin=ekin+x(i1,i2,i3)*tt
         enddo
      enddo
      
@@ -334,7 +335,7 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin)
               tt=tt+x(i1,j   ,i3)*fil(l,2)
            enddo
            y(i1,i2,i3)=y(i1,i2,i3)+tt
-			ekin=ekin+x(i1,i2,i3)*tt
+           ekin=ekin+x(i1,i2,i3)*tt
         enddo
      enddo
      
@@ -350,9 +351,9 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin)
               tt=tt+x(i1,i2,   j)*fil(l,3)
            enddo
            y(i1,i2,i3)=y(i1,i2,i3)+tt
-			ekin=ekin+x(i1,i2,i3)*tt
+           ekin=ekin+x(i1,i2,i3)*tt
         enddo
      enddo
   enddo
   
-end subroutine convolut_kinetic_per_T
+END SUBROUTINE convolut_kinetic_per_T

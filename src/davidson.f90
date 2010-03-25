@@ -1039,7 +1039,7 @@ subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
      enddo
   enddo
 
-end subroutine Davidson_subspace_hamovr
+END SUBROUTINE Davidson_subspace_hamovr
 !!***
 
 
@@ -1091,7 +1091,7 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
 
   call dcopy(nspinor*nvctrp*norb,work(1),1,v(1),1)
 
-end subroutine update_psivirt
+END SUBROUTINE update_psivirt
 
 subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nspin,psivirt)
   use module_base
@@ -1175,5 +1175,5 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   end if
 
   
-end subroutine psivirt_from_gaussians
+END SUBROUTINE psivirt_from_gaussians
 

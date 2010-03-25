@@ -74,7 +74,7 @@ subroutine geopt_init()
   parmin%lp        = 6
   parmin%iprint    = (/1,0/)
   parmin%xtol      = 1.d-10
-end subroutine geopt_init
+END SUBROUTINE geopt_init
 !!***
 
 !!****f* BigDFT/geopt_set_verbosity
@@ -86,7 +86,7 @@ subroutine geopt_set_verbosity(verbosity_)
   use minpar
 
   parmin%verbosity = verbosity_
-end subroutine geopt_set_verbosity
+END SUBROUTINE geopt_set_verbosity
 !!***
 
 !!****f* BigDFT/geopt
@@ -265,7 +265,7 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   deallocate(xfhist)
 
   fail = (iexit == 0)
-end subroutine ab6md
+END SUBROUTINE ab6md
 !!***
 
 
@@ -511,7 +511,7 @@ subroutine timeleft(tt)
   close(55)
   call cpu_time(tcpu)
   tt=timelimit-real(tcpu,gp)/3600._gp ! in hours
-end subroutine timeleft
+END SUBROUTINE timeleft
 
 
 !!****f* BigDFT/conjgrad
@@ -818,9 +818,9 @@ contains
     i_all=-product(shape(hh))*kind(hh)
     deallocate(hh,stat=i_stat)
     call memocc(i_stat,i_all,'hh',subname)
-  end subroutine close_and_deallocate
+  END SUBROUTINE close_and_deallocate
 
-end subroutine conjgrad
+END SUBROUTINE conjgrad
 !!***
 
 
@@ -1641,7 +1641,7 @@ subroutine init_lbfgs(at,n,m,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
 
   !stp1=2.d-2/gnorm  !original convention
   stp1=parmin%betax
-end subroutine init_lbfgs
+END SUBROUTINE init_lbfgs
 
 
 !!****f* BigDFT/lb1
@@ -2213,5 +2213,5 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   call memocc(i_stat,i_all,'product_matrix',subname)
 
   fail = (ncount_bigdft>in%ncount_cluster_x-1)
-end subroutine rundiis
+END SUBROUTINE rundiis
 !!***

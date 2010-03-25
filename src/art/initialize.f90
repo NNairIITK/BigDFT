@@ -113,5 +113,5 @@ subroutine initialize()
   endif
 
   if (iproc .eq. 0 ) close(FLOG)
-end subroutine initialize
+END SUBROUTINE initialize
 !!***

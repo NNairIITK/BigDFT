@@ -221,7 +221,7 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
   end do
   close(unit=79)
 
-end subroutine plot_gatom_basis
+END SUBROUTINE plot_gatom_basis
 !!***
 
 
@@ -280,7 +280,7 @@ subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
           mpidtypw,jproc,jproc+nproc*iproc,MPI_COMM_WORLD,mpirequests(jproc),ierr)
   end do
   
-end subroutine nonblocking_transposition
+END SUBROUTINE nonblocking_transposition
 !!***
 
 
@@ -440,7 +440,7 @@ subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovr
   deallocate(overlaps,stat=i_stat)
   call memocc(i_stat,i_all,'overlaps',subname)
 
-end subroutine overlap_and_gather
+END SUBROUTINE overlap_and_gather
 !!***
 
 
@@ -514,7 +514,7 @@ subroutine gaussian_overlap(A,B,ovrlp)
   call gaudim_check(iexpo,icoeff,ishell,A%nexpo,A%ncoeff,A%nshltot)
   call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
   
-end subroutine gaussian_overlap
+END SUBROUTINE gaussian_overlap
 !!***
 
 
@@ -557,7 +557,7 @@ subroutine gbasovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
      end do
   end do
   
-end subroutine gbasovrlp
+END SUBROUTINE gbasovrlp
 !!***
 
 
@@ -632,7 +632,7 @@ subroutine kinetic_overlap(A,B,ovrlp)
   call gaudim_check(iexpo,icoeff,ishell,A%nexpo,A%ncoeff,A%nshltot)
   call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
   
-end subroutine kinetic_overlap
+END SUBROUTINE kinetic_overlap
 !!***
 
 
@@ -675,7 +675,7 @@ subroutine kineticovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
      end do
   end do
   
-end subroutine kineticovrlp
+END SUBROUTINE kineticovrlp
 !!***
 
 
@@ -759,7 +759,7 @@ subroutine potential_overlap(A,B,pot,n1,n2,n3,hx,hy,hz,ovrlp)
   call gaudim_check(iexpo,icoeff,ishell,A%nexpo,A%ncoeff,A%nshltot)
   call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
   
-end subroutine potential_overlap
+END SUBROUTINE potential_overlap
 !!***
 
 
@@ -818,7 +818,7 @@ end subroutine potential_overlap
 !!!  end do
 !!!  
 !!!
-!!!end subroutine onedim_potovrlp
+!!!END SUBROUTINE onedim_potovrlp
 
 subroutine locpotovrlp(n1i,n2i,n3i,pot,hx,hy,hz,expo1,coeff1,expo2,coeff2,&
      ng1,ng2,l1,m1,l2,m2,rxa,rya,rza,rxb,ryb,rzb,niw,nrw,iw,rw,ovrlp)
@@ -928,7 +928,7 @@ subroutine locpotovrlp(n1i,n2i,n3i,pot,hx,hy,hz,expo1,coeff1,expo2,coeff2,&
      end do
   end do
   
-end subroutine locpotovrlp
+END SUBROUTINE locpotovrlp
 
 function polynom(f,x,y,z,lx,ly,lz)
   use module_base
@@ -987,4 +987,4 @@ subroutine ind_gauss(periodic,i,is,n,j,go)
      end if
   end if
 
-end subroutine ind_gauss
+END SUBROUTINE ind_gauss

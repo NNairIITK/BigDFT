@@ -238,5 +238,5 @@ subroutine print_newevent(ievent_current,temperat)
   close(FLOG)
 
   return
-end subroutine print_newevent
+END SUBROUTINE print_newevent
 !!***
