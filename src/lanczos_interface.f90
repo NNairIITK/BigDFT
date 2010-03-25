@@ -404,9 +404,12 @@ contains
     !Local variables
     integer :: i
 
+    print *, "chiamo gaussians_to_wavelets_nonorm"
+
     call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%lr%geocode,ha%orbs,ha%lr%d,&
          ha%hx,ha%hy,ha%hz,ha%lr%wfd,Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
        
+    print *, "chiamo gaussians_to_wavelets_nonorm  OK "
     if (.not. associated(Qvect)) then
        write(*,*)'ERROR: initialization vector not allocated!'
        stop

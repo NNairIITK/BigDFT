@@ -9,7 +9,7 @@
 !! This is used (see symlist.f) to identify the space group.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2000-2009 ABINIT group (RC, XG)
+!! Copyright (C) 2000-2010 ABINIT group (RC, XG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -206,16 +206,16 @@ subroutine symplanes(center,iholohedry,isym,isymrelconv,itnonsconv,type_axis)
 !it might be that it disappears if itnonsconv is translated by a 
 !lattice vector of the conventional cell
 !if(trialt(1)**2+trialt(2)**2+trialt(3)**2>tol5)then
-! do ii=1,3  
-!   itnonsconv2(:)=itnonsconv(:)
-!   itnonsconv2(ii)=itnonsconv(ii)+one
-!   trialt2(:)=matmul(isymrelconv(:,:),itnonsconv2(:)) +itnonsconv2(:)
-!   trialt2(:)=trialt2(:)*half
-!   trialt2(:)=trialt2(:)-nint(trialt2(:)-nzero)
-!   if(trialt2(1)**2+trialt2(2)**2+trialt2(3)**2<tol5)then
-!     trialt(:)=trialt2(:)
-!   endif
-! enddo
+!do ii=1,3  
+!itnonsconv2(:)=itnonsconv(:)
+!itnonsconv2(ii)=itnonsconv(ii)+one
+!trialt2(:)=matmul(isymrelconv(:,:),itnonsconv2(:)) +itnonsconv2(:)
+!trialt2(:)=trialt2(:)*half
+!trialt2(:)=trialt2(:)-nint(trialt2(:)-nzero)
+!if(trialt2(1)**2+trialt2(2)**2+trialt2(3)**2<tol5)then
+!trialt(:)=trialt2(:)
+!endif
+!enddo
 !endif
 
 !DEBUG
@@ -338,16 +338,16 @@ subroutine symplanes(center,iholohedry,isym,isymrelconv,itnonsconv,type_axis)
      end if
    end if ! directiontype
 
-!else if(iholohedry==7 .and. center==0)then    ! cP
+!  else if(iholohedry==7 .and. center==0)then    ! cP
  else if(iholohedry==7)then    ! cP
 
    if(directiontype==1)then
      if((sum(abs(isymrelconv(:,:)-mirrorx(:,:)))==0 .and.  &
-&      sum(abs(two*abs(trialt(:))-(/zero,half,half/)))<nzero   ).or. &
-&      (sum(abs(isymrelconv(:,:)-mirrory(:,:)))==0 .and.  &
-&      sum(abs(two*abs(trialt(:))-(/half,zero,half/)))<nzero   ).or. &
-&      (sum(abs(isymrelconv(:,:)-mirrorz(:,:)))==0 .and.  &
-&      sum(abs(two*abs(trialt(:))-(/half,half,zero/)))<nzero   )    ) then
+&     sum(abs(two*abs(trialt(:))-(/zero,half,half/)))<nzero   ).or. &
+&     (sum(abs(isymrelconv(:,:)-mirrory(:,:)))==0 .and.  &
+&     sum(abs(two*abs(trialt(:))-(/half,zero,half/)))<nzero   ).or. &
+&     (sum(abs(isymrelconv(:,:)-mirrorz(:,:)))==0 .and.  &
+&     sum(abs(two*abs(trialt(:))-(/half,half,zero/)))<nzero   )    ) then
        type_axis=17     ! d
        write(message,'(a,i3,a)') &
 &       ' symplanes : the symmetry operation no. ',isym,' is a d plane'
@@ -355,14 +355,14 @@ subroutine symplanes(center,iholohedry,isym,isymrelconv,itnonsconv,type_axis)
        type_axis=18    ! primary n
        write(message,'(a,i3,a)') &
 &       ' symplanes : the symmetry operation no. ',isym,' is a primary n plane'
-     endif
+     end if
    else if(directiontype==3)then
      if(sum(abs(two*abs(trialt(:))-(/half,half,half/)))<nzero       )then
        type_axis=17     ! d
        write(message,'(a,i3,a)') &
 &       ' symplanes : the symmetry operation no. ',isym,' is a d plane'
      else if( abs(sum(abs(trialt(:)))-half) < nzero .or. &
-&             abs(sum(abs(trialt(:)))-three*half) < nzero ) then
+&       abs(sum(abs(trialt(:)))-three*half) < nzero ) then
        type_axis=18    ! tertiary n
        write(message,'(a,i3,a)') &
 &       ' symplanes : the symmetry operation no. ',isym,' is a tertiary n plane'
@@ -371,7 +371,7 @@ subroutine symplanes(center,iholohedry,isym,isymrelconv,itnonsconv,type_axis)
        write(message,'(a,i3,a)') &
 &       ' symplanes : the symmetry operation no. ',isym,' is a tertiary m plane'
      end if
-   endif 
+   end if 
 
 !  Now, treat all other cases (including other centered Bravais lattices)
  else if( sum(abs(trialt(:)-(/half,zero,zero/)))<nzero .or. &

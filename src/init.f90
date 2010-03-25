@@ -292,7 +292,7 @@ END SUBROUTINE createProjectorsArrays
 !! SOURCE
 !!
 subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
-     Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj,& 
+     Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,nlpspd,proj,& 
      pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin,symObj,irrzon,phnons)
   use module_base
   use module_interfaces, except_this_one_A => import_gaussians
@@ -313,7 +313,7 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
   type(orbitals_data), intent(inout) :: orbs
   real(dp), dimension(*), intent(inout) :: rhopot
   real(wp), dimension(*), intent(inout) :: pot_ion
-  real(wp), dimension(:), pointer :: psi,psit,hpsi
+  real(wp), dimension(:), pointer :: psi,psit,hpsi,rhocore
   integer, dimension(:,:,:), intent(in) :: irrzon
   real(dp), dimension(:,:,:), intent(in) :: phnons
   !local variables
@@ -408,7 +408,7 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
 
   call XC_potential(at%geocode,'D',iproc,nproc,&
        Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
-       rhopot,eexcu,vexcu,1,potxc)
+       rhopot,eexcu,vexcu,1,rhocore,potxc)
 
   call H_potential(at%geocode,'D',iproc,nproc,&
        Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
@@ -466,7 +466,7 @@ END SUBROUTINE import_gaussians
 !! SOURCE
 !!
 subroutine input_wf_diag(iproc,nproc,at,&
-     orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
+     orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
      nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
      nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
@@ -494,7 +494,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
   type(orbitals_data), intent(out) :: orbsv
   type(gaussian_basis), intent(out) :: G !basis for davidson IG
-  real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
+  real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt,rhocore
   integer, intent(in) ::potshortcut
   integer, dimension(:,:,:), intent(in) :: irrzon
   real(dp), dimension(:,:,:), intent(in) :: phnons
@@ -591,10 +591,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
   end if
 
   !use only the part of the arrays for building the hamiltonian matrix
-  !call gaussians_to_wavelets(iproc,nproc,at%geocode,orbse,Glr%d,&
-  !     hx,hy,hz,Glr%wfd,G,psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
-
-  !use only the part of the arrays for building the hamiltonian matrix
   call gaussians_to_wavelets_new(iproc,nproc,Glr,orbse,hx,hy,hz,G,&
        psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
 
@@ -607,7 +603,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
        & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
        & symObj, irrzon, phnons)
-
   
   if(orbs%nspinor==4) then
      !this wrapper can be inserted inside the poisson solver 
@@ -627,7 +622,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
      call XC_potential(at%geocode,'D',iproc,nproc,&
           Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
-          rhopot,eexcu,vexcu,nspin,potxc)
+          rhopot,eexcu,vexcu,nspin,rhocore,potxc)
 
      call H_potential(at%geocode,'D',iproc,nproc,&
           Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
@@ -807,8 +802,14 @@ subroutine input_wf_diag(iproc,nproc,at,&
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Input Wavefunctions Orthogonalization:'
 
+  !psivirt can be eliminated here, since it will be allocated before davidson
+  !with a gaussian basis
+!!$  call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
+!!$       psi,hpsi,psit,orbse,commse,etol,norbsc_arr,orbsv,psivirt)
+
   call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
-       psi,hpsi,psit,orbse,commse,etol,norbsc_arr,orbsv,psivirt)
+       psi,hpsi,psit,orbse,commse,etol,norbsc_arr)
+
  
   call deallocate_comms(commse,subname)
 
@@ -816,8 +817,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
   deallocate(norbsc_arr,stat=i_stat)
   call memocc(i_stat,i_all,'norbsc_arr',subname)
 
-  if (iproc == 0 .and. verbose > 1) then
-     write(*,'(1x,a)')'done.'
+  if (iproc == 0) then
+     if (verbose > 1) write(*,'(1x,a)')'done.'
      !gaussian estimation valid only for Free BC
      if (at%geocode == 'F') then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex

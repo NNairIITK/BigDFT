@@ -583,9 +583,11 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
                                 gaucoeff(icoeff,ispinor,jorb)=1.0_wp
                              end do
                           else if (orbse%nspinor == 2) then
-                             !we can put a phase for check with the complex wavefunction
-                             gaucoeff(icoeff,1,jorb)=1.0_wp!0.5_wp*sqrt(3.0_wp)
-                             gaucoeff(icoeff,2,jorb)=0.0_wp!0.5_wp
+                             gaucoeff(icoeff,1,jorb)=1.0_wp
+                             gaucoeff(icoeff,2,jorb)=0.0_wp
+!!$                             !we can put a phase for check with the complex wavefunction
+!!$                             gaucoeff(icoeff,1,jorb)=0.5_wp*sqrt(3.0_wp)
+!!$                             gaucoeff(icoeff,2,jorb)=0.5_wp
                           else if (orbse%nspinor == 4) then
                              !assign the input orbitals according to the atomic moments
                              fac=0.5_gp

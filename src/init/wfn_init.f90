@@ -261,10 +261,10 @@ end subroutine Gaussian_DiagHam
 !!    psit   wavefunctions in the transposed form.
 !!           On input: nullified
 !!           on Output: transposed wavefunction but only if nproc>1, nullified otherwise
-!!    psivirt wavefunctions for input guess of the Davidson method in the transposed form.
-!!           On input: nullified
-!!           if nvirte >0: on Output transposed wavefunction (if nproc>1), direct otherwise
-!!           if nvirte=0: nullified
+!!    psivirt wavefunctions for input guess of the Davidson method in gaussian form
+!!           On input, if present: coefficients of the orbitals in the gaussian basis set 
+!!           if nvirte >0: on Output, eigenvectors after input guess
+!!           if nvirte=0: unchanged on output
 !!    eval   array of the first norb eigenvalues       
 !! AUTHOR
 !!    Luigi Genovese
@@ -478,8 +478,11 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
   if (nproc > 1) then
      !reduce the overlap matrix between all the processors
-     call MPI_ALLREDUCE(MPI_IN_PLACE,hamovr(1,1,1),2*nspin*ndim_hamovr*orbsu%nkpts,&
-          mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(hamovr(1,1,1),2*nspin*ndim_hamovr*orbsu%nkpts,&
+          MPI_SUM,MPI_COMM_WORLD,ierr)
+
+!!$     call MPI_ALLREDUCE(MPI_IN_PLACE,hamovr(1,1,1),2*nspin*ndim_hamovr*orbsu%nkpts,&
+!!$          mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
   end if
 
   ispsi=1
@@ -502,6 +505,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      psit => hpsi
   end if
   
+!!$  !not necessary anymore since psivirt is gaussian
   !allocate the pointer for virtual orbitals
   if(present(orbsv) .and. present(psivirt) .and. orbsv%norb > 0) then
      allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
@@ -631,29 +635,31 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
            call gemm('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
                 hpsi(1,iorbst),max(1,nvctrp),&
                 0.0_wp,hamovr(imatrst,1),norbi)
+           !here probably dsyrk can be used
            call gemm('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
                 psi(1,iorbst),max(1,nvctrp),0.0_wp,hamovr(imatrst,2),norbi)
         else
            call c_gemm('C','N',norbi,norbi,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(1,iorbst),&
                 max(1,ncomp*nvctrp),hpsi(1,iorbst),max(1,ncomp*nvctrp),&
                 (0.0_wp,0.0_wp),hamovr(imatrst,1),norbi)
+           !here probably zherk can be used
            call c_gemm('C','N',norbi,norbi,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(1,iorbst),&
                 max(1,ncomp*nvctrp),psi(1,iorbst),max(1,ncomp*nvctrp),&
                 (0.0_wp,0.0_wp),hamovr(imatrst,2),norbi)
-
         end if
-!!!        open(17)
-!!!        open(18)
-!!!        do jorb=1,norbi
-!!!           write(17,'(i0,1x,48(1pe8.1))')jorb,&
-!!!                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,1),icplx=1,ncplx,2),iorb=1,norbi)
-!!!           write(18,'(i0,1x,48(1pe8.1))')jorb,&
-!!!                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,2),icplx=1,ncplx,2),iorb=1,norbi)
-!!!        end do
-!!!
-!!!        close(17)
-!!!        close(18)
-!!!        stop
+!!$        open(17)
+!!$        open(18)
+!!$        print *,'ncplx,nspinor',ncplx,nspinor
+!!$        do jorb=1,8!norbi
+!!$           write(17,'(i0,1x,48(1pe10.1))')jorb,&
+!!$                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,1),icplx=2,ncplx),iorb=1,8)!norbi)
+!!$           write(18,'(i0,1x,48(1pe10.1))')jorb,&
+!!$                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,2),icplx=2,ncplx),iorb=1,8)!norbi)
+!!$        end do
+!!$
+!!$        close(17)
+!!$        close(18)
+!!$        stop
         iorbst=iorbst+norbi
         imatrst=imatrst+ncplx*norbi**2
      end do
@@ -683,6 +689,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
   !WARNING: here nspin=1 for nspinor=4
   if(nspinor == 1) then
      ncplx=1
+     ncomp=1
   elseif(nspinor == 2) then
      ncplx=2
      ncomp=1
@@ -744,30 +751,34 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
         
      end if
 
-!!!     if (iproc == 0) then
-!!!        !write the matrices on a file
-!!!        !open(12)
-!!!        do jjorb=1,norbi
-!!!        !   do jiorb=1,norbi
-!!!        !      write(12,'(1x,2(i0,1x),200(1pe24.17,1x))')jjorb,jiorb,&
-!!!        !           hamovr(jjorb+norbi*(jiorb-1),1),hamovr(jjorb+norbi*(jiorb-1),2)
-!!!        !   end do
-!!!        !end do
-!!!        !close(12)
-!!!        open(33+2*(i-1))
-!!!        write(33+2*(i-1),'(2000(1pe10.2))')&
-!!!                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
-!!!        end do
-!!!        close(33+2*(i-1))
-!!!        open(34+2*(i-1))
-!!!        do jjorb=1,norbi
-!!!           write(34+2*(i-1),'(2000(1pe10.2))')&
-!!!                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,2),jiorb=1,norbi)
-!!!        end do
-!!!        close(34+2*(i-1))
-!!!
-!!!     end if
-!!!
+!!$     if (iproc == 0) then
+!!$        print *,norbi,ncomp,ncplx,imatrst
+!!$        !write the matrices on a file
+!!$        !open(12)
+!!$        do jjorb=1,8!norbi
+!!$        !   do jiorb=1,norbi
+!!$        !      write(12,'(1x,2(i0,1x),200(1pe24.17,1x))')jjorb,jiorb,&
+!!$        !           hamovr(jjorb+norbi*(jiorb-1),1),hamovr(jjorb+norbi*(jiorb-1),2)
+!!$        !   end do
+!!$        !end do
+!!$        !close(12)
+!!$        open(33+2*(i-1))
+!!$        write(33+2*(i-1),'(2000(1pe10.2))')&
+!!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,8*ncomp*ncplx)
+!!$!                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,norbi*ncomp*ncplx)
+!!$        end do
+!!$        close(33+2*(i-1))
+!!$        open(34+2*(i-1))
+!!$        do jjorb=1,8!norbi
+!!$           write(34+2*(i-1),'(2000(1pe10.2))')&
+!!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,2),jiorb=1,8*ncomp*ncplx)
+!!$!                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,2),jiorb=1,norbi*ncomp*ncplx)
+!!$        end do
+!!$        close(34+2*(i-1))
+!!$
+!!$     end if
+!!$     stop
+
      !writing rules, control if the last eigenvector is degenerate
      !do this for each spin
      !for each spin it is supposed that only the last group is not completely passed
@@ -907,6 +918,7 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
   !WARNING: here nspin=1 for nspinor=4
   if(nspinor == 1) then
      ncplx=1
+     ncomp=1
   elseif(nspinor == 2) then
      ncplx=2
      ncomp=1
@@ -914,6 +926,23 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
      ncplx=2
      ncomp=2
   end if
+
+!!$  !if present psivirt allocate an auxiliary array for the gaussians components
+!!$  if (present(psivirt) .and. nspinor /= 1) then
+!!$     
+!!$     if (nspinor == 4) then
+!!$        ncoeff=orbse%norb/2
+!!$     else
+!!$        ncoeff=orbse%norbu
+!!$     end if
+!!$     allocate(psigau(ncplx,ncoeff,ncomp,orbse%norb+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,psigau,'psigau',subname)
+!!$
+!!$     !copy the values of the original array
+!!$     call dcopy(ncoeff,psivirt,1,psigau(
+!!$  end if
+  
+
 
   !perform the vector-matrix multiplication for building the input wavefunctions
   ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
@@ -957,10 +986,10 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
 
         end if
      end if
-     !now store the input wavefunctions for the Davidson treatment
-     !we take the rest of the orbitals which are not assigned
-     !from the group of non-semicore orbitals
-     !the results are orthogonal with each other by construction
+!!$     !now store the input wavefunctions for the Davidson treatment
+!!$     !we take the rest of the orbitals which are not assigned
+!!$     !from the group of non-semicore orbitals
+!!$     !the results are orthogonal with each other by construction
      if (present(nvirte) .and. nvirte(ispin) >0) then
         if (nspinor == 1) then
            !print *,'debug',ispin,nvirte,imatrst+norbi*norbj,nspin*ndim_hamovr

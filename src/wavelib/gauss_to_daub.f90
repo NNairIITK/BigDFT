@@ -21,7 +21,7 @@
 !!   err_norm        normalisation error
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA (LG)
+!!    Copyright (C) 2007-2010 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -62,6 +62,10 @@ subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
   !calculate the array sizes;
   !at level 0, positions shifted by i0 
   right_t= ceiling(15.d0*a)
+
+  ! initialise array
+  c=0.0_gp
+    
 
   if (periodic) then
      !we expand the whole Gaussian in scfunctions and later fold one of its tails periodically
@@ -132,6 +136,9 @@ contains
     leftx = lefts(4)-n
     rightx=rights(4)+n  
 
+    !do not do anything if the gaussian is too extended
+    if (rightx-leftx > nwork) return
+
     !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
   
     !corrected for avoiding 0**0 problem
@@ -172,7 +179,6 @@ contains
     call forward(  ww(:,1),ww(:,2),&
          lefts(1),rights(1),lefts(0),rights(0)) 
 
-    c=0.0_gp
 
   end subroutine gauss_to_scf
 
@@ -287,8 +293,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
   real(wp), dimension(ncplx,0:nmax,2), intent(out) :: c
   !local variables
   integer :: rightx,leftx,right_t,i0,i,k,length,j,icplx
-  real(gp) :: a,z0,h,theor_norm2,x,r,coeff,r2,error,fac,rk
-  real(dp) :: cn2,tt
+  real(gp) :: a,z0,h,x,r,coeff,r2,fac,rk
   real(wp) :: func,cval,sval
   integer, dimension(0:4) :: lefts,rights
   !include the convolutions filters
@@ -307,9 +312,13 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
   !at level 0, positions shifted by i0 
   right_t= ceiling(15.d0*a)
 
+  !print *,'a,right_t',a,right_t,gau_a,hgrid
+
   !to rescale back the coefficients
   fac=hgrid**n_gau*sqrt(hgrid)*factor
 
+  !initialise array
+  c=0.0_gp
 
   if (periodic) then
      !we expand the whole Gaussian in scfunctions and later fold one of its tails periodically
@@ -321,7 +330,6 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
      lefts( 0)=i0-right_t
      rights(0)=i0+right_t
      
-     
      call gauss_to_scf()
      
      ! special for periodic case:
@@ -330,7 +338,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
      ! non-periodic: the Gaussian is bounded by the cell borders
      lefts( 0)=max(i0-right_t,   0)
      rights(0)=min(i0+right_t,nmax)
-     
+
      call gauss_to_scf
      
      !loop for each complex component
@@ -366,6 +374,9 @@ contains
 
     leftx = lefts(4)-n
     rightx=rights(4)+n  
+
+    !do not do anything if the gaussian is too extended
+    if (rightx-leftx > nwork) return
 
     !loop for each complex component
     do icplx=1,ncplx
@@ -471,8 +482,6 @@ contains
 
     end do
 
-
-    c=0.0_gp
 
   end subroutine gauss_to_scf
 

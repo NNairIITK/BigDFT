@@ -3,7 +3,7 @@
 !!  Main program to calculate electronic structures
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2010 CEA, UNIBAS
+!!    Copyright (C) 2007-2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -24,7 +24,7 @@ program BigDFT
   implicit none
   character(len=*), parameter :: subname='BigDFT'
   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
-  integer ::  ncount_bigdft
+  integer :: ncount_bigdft
   real(gp) :: etot,sumx,sumy,sumz
   logical :: exist_list
   !input variables
@@ -32,7 +32,7 @@ program BigDFT
   type(input_variables) :: inputs
   type(restart_objects) :: rst
   character(len=50), dimension(:), allocatable :: arr_posinp
-  character(len=60)  :: filename
+  character(len=60) :: filename
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
@@ -76,6 +76,9 @@ program BigDFT
      ! Read all input files.
      call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
           & "input.dft", "input.kpt", "input.geopt", "input.perf", inputs, atoms, rxyz)
+     if (iproc == 0) then
+        call print_general_parameters(inputs,atoms)
+     end if
 
      !initialize memory counting
      !call memocc(0,iproc,'count','start')

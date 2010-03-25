@@ -10,7 +10,7 @@ PPFILES = \
 	psppar.H
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* H.out posout* \
-			 *.prc H.memguess fldiff.report
+			 *.prc H.memguess memguess.report fldiff.report
 
 #dependencies
 $(PPFILES):
@@ -39,5 +39,5 @@ H.memguess: $(top_builddir)/src/memguess $(PPFILES)
     fi
 
 check: H.memguess H.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H.memguess $(top_srcdir)/tests/Refs/H.memguess.ref | cat
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H.memguess $(top_srcdir)/tests/Refs/H.memguess.ref | tee memguess.report
 	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H.out $(top_srcdir)/tests/Refs/H.out.ref | tee fldiff.report

@@ -686,6 +686,7 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
            call apply_hp_per_k(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
                 lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                !cprecr,hx,hy,hz,0.0_gp,0.0_gp,0.0_gp,x,y,w%psifscf,w%ww,scal) 
                 cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww,scal) 
         end if
      end if

@@ -16,7 +16,7 @@
 !! 3) Generate the symmetry operations of the holohedral group
 !!
 !! COPYRIGHT
-!! Copyright (C) 2000-2009 ABINIT group (XG)
+!! Copyright (C) 2000-2010 ABINIT group (XG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -687,7 +687,7 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
          vin2(:)=2.0d0*(vectb(:)-reduceda*minim(:,itrial))  
          vext(:)=vecta(:)     
          found=1
-       endif
+       end if
 !      Now, vin1 and vin2 are perpendicular to each other, and in the plane that contains the binary vector. 
 !      One of them must be the binary vector if any.
 !      On the other hand, vext is out-of-plane. Might belong to the mediator plane or not.
@@ -723,14 +723,14 @@ subroutine symlatt(bravais,msym,nptsym,ptsymrel,rprimd,tolsym)
              cell_base(:,1)=vin1(:)
              cell_base(:,2)=vin2(:)
              cell_base(:,3)=vext(:)-reduceda*vin2(:)+vin1(:)*half
-           endif
-         endif
+           end if
+         end if
 
          if(found==1)then
            fact=2 ; center=3
            call holocell(cell_base,foundc,iholohedry)
          end if
-       endif
+       end if
      end if
 
 !    DEBUG

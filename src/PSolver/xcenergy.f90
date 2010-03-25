@@ -1,3 +1,139 @@
+!calculate the array of the core density for the atom iat
+subroutine calc_rhocore_iat(iproc,geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
+     n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore)
+  use module_base
+  implicit none
+  character(len=1), intent(in) :: geocode
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc
+  real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
+  real(dp), dimension(n1i*n2i*n3d), intent(inout) :: rhocore
+  !local variables
+  character(len=*), parameter :: subname='calc_rhocore'
+  real(gp), parameter :: oneo4pi=.079577471545947_wp
+  logical :: gox,goy,goz,perx,pery,perz
+  integer :: ig,ngv,ngc,isx,isy,isz,iex,iey,iez
+  integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3
+  integer :: i1,i2,i3,j1,j2,j3,i_stat,i_all,ind,j
+  real(gp) :: x,y,z,r2,rhov,rhoc,arg,chv,chc
+  real(gp), dimension(:), allocatable :: rhovxp,rhocxp
+  real(gp), dimension(:,:), allocatable :: rhovc,rhocc
+
+
+  !read the values of the gaussian for valence and core densities
+  open(unit=79,file=filename,status='unknown')
+  read(79,*)ngv
+
+  allocate(rhovxp((ngv*(ngv+1)/2)+ndebug),stat=i_stat)
+  call memocc(i_stat,rhovxp,'rhovxp',subname)
+  allocate(rhovc((ngv*(ngv+1)/2),4+ndebug),stat=i_stat)
+  call memocc(i_stat,rhovc,'rhovc',subname)
+
+  chv=0.0_gp
+  do ig=1,(ngv*(ngv+1))/2
+     read(79,*)rhovxp(ig),(rhovc(ig,j),j=1,4)
+     chv=chv+rhovc(ig,1)*rhovxp(ig)**3+3.0_gp*rhovc(ig,2)*rhovxp(ig)**5+&
+          15.0_gp*rhovc(ig,3)*rhovxp(ig)**7+105.0_gp*rhovc(ig,4)*rhovxp(ig)**9
+  end do
+  chv=sqrt(2.0_gp*atan(1.0_gp))*chv
+
+  read(79,*)ngc
+
+  allocate(rhocxp((ngc*(ngc+1)/2)+ndebug),stat=i_stat)
+  call memocc(i_stat,rhovxp,'rhocxp',subname)
+  allocate(rhocc((ngc*(ngc+1)/2),4+ndebug),stat=i_stat)
+  call memocc(i_stat,rhovc,'rhocc',subname)
+
+  chc=0.0_gp
+  do ig=1,(ngc*(ngc+1))/2
+     read(79,*)rhocxp(ig),(rhocc(ig,j),j=1,4)
+     chc=chc+rhocc(ig,1)*rhocxp(ig)**3+3.0_gp*rhocc(ig,2)*rhocxp(ig)**5+&
+          15.0_gp*rhocc(ig,3)*rhocxp(ig)**7+105.0_gp*rhocc(ig,4)*rhocxp(ig)**9
+  end do
+  chc=sqrt(2.0_gp*atan(1.0_gp))*chc
+
+  close(unit=79)
+ 
+  if (iproc == 0) write(*,'(1x,a,f12.6)',advance='no')' analytic core charge: ',chc-chv
+
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
+  call ext_buffers(perx,nbl1,nbr1)
+  call ext_buffers(pery,nbl2,nbr2)
+  call ext_buffers(perz,nbl3,nbr3)
+
+  if (n3d >0) then
+
+     isx=floor((rx-cutoff)/hxh)
+     isy=floor((ry-cutoff)/hyh)
+     isz=floor((rz-cutoff)/hzh)
+
+     iex=ceiling((rx+cutoff)/hxh)
+     iey=ceiling((ry+cutoff)/hyh)
+     iez=ceiling((rz+cutoff)/hzh)
+
+     do i3=isz,iez
+        z=real(i3,kind=8)*hzh-rz
+        call ind_positions(perz,i3,n3,j3,goz) 
+        j3=j3+nbl3+1
+        do i2=isy,iey
+           y=real(i2,kind=8)*hyh-ry
+           call ind_positions(pery,i2,n2,j2,goy)
+           do i1=isx,iex
+              x=real(i1,kind=8)*hxh-rx
+              call ind_positions(perx,i1,n1,j1,gox)
+              r2=x**2+y**2+z**2
+              !here we can sum up the gaussians for the
+              !valence density and the core density
+              rhov=0.0_dp
+              do ig=1,(ngv*(ngv+1))/2
+                 arg=r2/rhovxp(ig)**2
+                 rhov=rhov+&
+                      (rhovc(ig,1)+r2*rhovc(ig,2)+r2**2*rhovc(ig,3)+r2**3*rhovc(ig,4))*&
+                      exp(-0.5_gp*arg)
+              end do
+              rhoc=0.0_dp
+              do ig=1,(ngc*(ngc+1))/2
+                 arg=r2/rhocxp(ig)**2
+                 rhoc=rhoc+&
+                      (rhocc(ig,1)+r2*rhocc(ig,2)+r2**2*rhocc(ig,3)+r2**3*rhocc(ig,4))*&
+                      exp(-0.5_gp*arg)
+              end do
+
+              if (j3 >= i3s .and. j3 <= i3s+n3d-1  .and. goy  .and. gox ) then
+                 ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                 rhocore(ind)=rhocore(ind)+oneo4pi*(rhoc-rhov)
+!!$                 !print out the result, to see what happens
+!!$                 if (z==0.0_gp .and. y==0.0_gp) then
+!!$                    write(16,'(3(1x,i0),10(1pe25.17))')j1+1+nbl1,j2+1+nbl2,j3,rhocore(ind),rhoc,rhov,r2,x
+!!$                 end if
+              endif
+           enddo
+        enddo
+     enddo
+  end if
+
+  i_all=-product(shape(rhovxp))*kind(rhovxp)
+  deallocate(rhovxp,stat=i_stat)
+  call memocc(i_stat,i_all,'rhovxp',subname)
+  i_all=-product(shape(rhovc))*kind(rhovc)
+  deallocate(rhovc,stat=i_stat)
+  call memocc(i_stat,i_all,'rhovc',subname)
+  i_all=-product(shape(rhocxp))*kind(rhocxp)
+  deallocate(rhocxp,stat=i_stat)
+  call memocc(i_stat,i_all,'rhocxp',subname)
+  i_all=-product(shape(rhocc))*kind(rhocc)
+  deallocate(rhocc,stat=i_stat)
+  call memocc(i_stat,i_all,'rhocc',subname)
+        
+        
+  
+end subroutine calc_rhocore_iat
+
+
 !!****f* PSolver/XC_potential
 !! FUNCTION
 !! Given a charge density, calculates the exchange-correlation potential
@@ -61,7 +197,7 @@
 !! SOURCE
 !! 
 subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-     rho,exc,vxc,nspin,potxc)
+     rho,exc,vxc,nspin,rhocore,potxc)
   use module_base
   use Poisson_Solver
   implicit none
@@ -71,6 +207,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(gp), intent(in) :: hx,hy,hz
   real(gp), intent(out) :: exc,vxc
   real(dp), dimension(*), intent(inout) :: rho
+  real(wp), dimension(:), pointer :: rhocore !associated if useful
   real(wp), dimension(*), intent(out) :: potxc
   !local variables
   character(len=*), parameter :: subname='XC_potential'
@@ -143,6 +280,18 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      return
   end if
 
+  !if rhocore is associated we should add it on the charge density
+  if (associated(rhocore)) then
+     if (nspin == 1) then
+        !sum the complete core density for non-spin polarised calculations
+        call axpy(m1*m3*nxt,1.0_wp,rhocore(1),1,rho(1),1)
+     else if (nspin==2) then
+        !for spin-polarised calculation consider half per spin index
+        call axpy(m1*m3*nxt,0.5_wp,rhocore(1),1,rho(1),1)
+        call axpy(m1*m3*nxt,0.5_wp,rhocore(1),1,rho(1+m1*m3*nxt),1)
+     end if
+  end if
+
   if (datacode=='G') then
      !starting address of rho in the case of global i/o
      i3start=istart+2-nxcl-nwbl
@@ -211,12 +360,6 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               end do
            end do
         end do
-        !!          do i1=1,m1*m3*nxt
-        !!             rhopot(n01*n02*(i3start-1)+i1)=rhopot_G(i1)
-        !!          end do
-        !!          do i1=1,m1*m3*nxt
-        !!             rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)=rhopot_G(i1+m1*m3*nxt)
-        !!          end do
         i_all=-product(shape(rho_G))*kind(rho_G)
         deallocate(rho_G,stat=i_stat)
         call memocc(i_stat,i_all,'rho_G',subname)
@@ -245,15 +388,24 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
   !recollect the final data, and build the total charge density
   !no spin index anymore
-  if (datacode == 'G')then!.and. .not. (i3start <=0 .or. i3start+nxt-1 > n03)) then
+  if (datacode == 'G') then
      do i3=nxc,1,-1
         do i2=1,n02
            do i1=1,n01
-              rho(i1+(i2-1)*n01+(i3+istart-1)*n01*n02)=rho(i1+(i2-1)*n01+modulo(i3-1-1+i3start,n03)*n01*n02)
+              rho(i1+(i2-1)*n01+(i3+istart-1)*n01*n02)=&
+                   rho(i1+(i2-1)*n01+modulo(i3-1-1+i3start,n03)*n01*n02)
            end do
         end do
      end do
   end if
+
+  !if rhocore is associated we then remove it from the charge density
+  if (associated(rhocore)) then
+     !at this stage the density is not anymore spin-polarised
+     !sum the complete core density for non-spin polarised calculations
+     call axpy(m1*m3*nxc,-1.0_wp,rhocore(1+m1*m3*i3xcsh_fake),1,rho(1),1)
+  end if
+
   call timing(iproc,'Exchangecorr  ','OF')
 
   !gathering the data to obtain the distribution array
@@ -543,7 +695,7 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      !restore the density array in the good position if it was shifted for the parallel GGA
      !operation not necessarily needed, but related to the fact that the array has three
      !indices which make it difficult to treat
-     !one should convert the operations with oune indices arrays
+     !one should convert the operations with one indices arrays
      if (nspden==2 .and. nxt /= nwb) then
         j3=nwb+1
         do i3=nwb-nwbr,1,-1

@@ -65,13 +65,105 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 end subroutine system_properties
 !!***
 
+!!****f* BigDFT/calculate_rhocore
+!! FUNCTION
+!!  Check for the need of a core density and fill the rhocore array which
+!!  should be passed at the rhocore pointer
+!! SOURCE
+subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,i3s,n3d,i3xcsh,n3p
+  real(gp), intent(in) :: hxh,hyh,hzh
+  type(atoms_data), intent(in) :: at
+  type(grid_dimensions), intent(in) :: d
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(wp), dimension(:), pointer :: rhocore
+  !local variables
+  character(len=*), parameter :: subname='calculate_rhocore'
+  character(len=27) :: filename
+  logical :: exists,donlcc
+  integer :: ityp,iat,i_stat,j3,i1,i2,ind,ierr
+  real(wp) :: tt
+  real(gp) :: rx,ry,rz,rloc,cutoff
+  
+
+  !check for the need of a nonlinear core correction
+  donlcc=.false.
+  chk_nlcc: do ityp=1,at%ntypes
+     filename = 'nlcc.'//at%atomnames(ityp)
+
+     inquire(file=filename,exist=exists)
+     if (exists) then
+        donlcc=.true.
+        exit chk_nlcc
+     end if
+  end do chk_nlcc
+
+  if (donlcc) then
+     !allocate pointer rhocore
+     allocate(rhocore(d%n1i*d%n2i*n3d+ndebug),stat=i_stat)
+     call memocc(i_stat,rhocore,'rhocore',subname)
+     !initalise it 
+     call razero(d%n1i*d%n2i*n3d,rhocore)
+     !perform the loop on any of the atoms which have this feature
+     do iat=1,at%nat
+        ityp=at%iatype(iat)
+        filename = 'nlcc.'//at%atomnames(ityp)
+        inquire(file=filename,exist=exists)
+        if (exists) then
+           if (iproc == 0) write(*,'(1x,a)',advance='no')&
+                'NLCC: calculate core density for atom: '//&
+                trim(at%atomnames(ityp))//';'
+           rx=rxyz(1,iat) 
+           ry=rxyz(2,iat)
+           rz=rxyz(3,iat)
+
+           rloc=at%psppar(0,0,ityp)
+           cutoff=10.d0*rloc
+
+           call calc_rhocore_iat(iproc,at%geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
+                d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,&
+                i3s,n3d,rhocore)
+
+           if (iproc == 0) write(*,'(1x,a)')'done.'
+        end if
+     end do
+
+     !calculate total core charge in the grid
+     !In general this should be really bad
+     tt=0.0_wp
+     do j3=1,n3p
+        do i2=1,d%n2i
+           do i1=1,d%n1i
+              ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
+              tt=tt+rhocore(ind)
+           enddo
+        enddo
+     enddo
+     call mpiallred(tt,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     tt=tt*hxh*hyh*hzh
+     if (iproc == 0) write(*,'(1x,a,f15.7)') &
+       'Total core charge on the grid (generally bad, overestimated approx.): ',tt
+
+  else
+     !No NLCC needed, nullify the pointer 
+     nullify(rhocore)
+  end if
+  
+
+end subroutine calculate_rhocore
+
+
+
 
 !!****f* BigDFT/read_system_variables
 !! FUNCTION
 !!   Assign some of the physical system variables
 !!   Performs also some cross-checks with other variables
 !! DESCRIPTION
-!!   The pointer in atoms structure have to be associated or nullify.
+!!   The pointer in atoms structure have to be associated or nullified.
 !! SOURCE
 !!
 subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
@@ -695,6 +787,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   ! Change the wavefunctions to complex if k-points are used (except gamma).
   if (nspinor == 1) then
      if (maxval(abs(orbs%kpts)) > 0._gp) nspinor = 2
+     !nspinor=2 !fake, used for testing with gamma
   end if
 
   !initialise the array

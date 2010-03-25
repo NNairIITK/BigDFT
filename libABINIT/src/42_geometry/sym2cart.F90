@@ -8,7 +8,7 @@
 !! Convert to symmetry matrice in cartesian coordinates
 !!
 !! COPYRIGHT
-!! Copyright (C) 2002-2009 ABINIT group (SSharma,MVer,VRecoules,TD)
+!! Copyright (C) 2002-2010 ABINIT group (SSharma,MVer,VRecoules,TD)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
