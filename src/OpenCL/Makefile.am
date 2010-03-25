@@ -40,18 +40,20 @@ conv_check_LDADD = libbasec.a libbasef.a ../libbigdft.a \
 stream_check_SOURCES = StreamCheck.c
 stream_check_LDFLAGS = -lOpenCL
 stream_check_LDADD = libOCL.a libStream.a
-bench_conv_SOURCES = bench_conv.c
+bench_conv_SOURCES = bench_conv.c bench_lib.c
 bench_conv_LDFLAGS = -lOpenCL
 bench_conv_LDADD = libbasec.a
-bench_conv_quick_SOURCES = bench_conv_quick.c
+bench_conv_quick_SOURCES = bench_conv_quick.c bench_lib.c
 bench_conv_quick_LDFLAGS = -lOpenCL
 bench_conv_quick_LDADD = libbasec.a
 
 stream: stream_check
 
-bench: bench_conv bench_conv_quick
-	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='profile.conf' $(top_builddir)/src/OpenCL/bench_conv_quick
+bench: bench_conv
 	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='profile.conf' $(top_builddir)/src/OpenCL/bench_conv
+
+bench_quick: bench_conv_quick
+	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='profile.conf' $(top_builddir)/src/OpenCL/bench_conv_quick
 
 check:
 	echo 1 64 64 2048 2048 1000 > fort.1

@@ -4,8 +4,8 @@
   0 0.000 0.000 0.000 ncharge: charge of the system, Electric field
   1  0 nspin=1 non-spin polarization, mpol=total magnetic moment
  1.E-04 gnrm_cv: convergence criterion gradient
- 1 1 itermax,nrepmax: maximum number of wavefunction optimizations and of re-diagonalised runs
-  2  6 ncong, idsx: # CG iterations for the preconditioning equation, length of the diis history
+ 10 1 itermax,nrepmax: maximum number of wavefunction optimizations and of re-diagonalised runs
+  3  6 ncong, idsx: # CG iterations for the preconditioning equation, length of the diis history
   0 dispersion correction functional (values 1,2,3), 0=no correction
 noCUDAGPU  write "CUDAGPU" on this line to use GPU acceleration (GPU.config file is needed)
            0 F           0  InputPsiId, output_wf, output_grid
