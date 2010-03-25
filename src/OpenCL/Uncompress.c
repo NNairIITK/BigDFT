@@ -25,8 +25,7 @@ while ( length > 0) {\n\
 }\n\
 first--;\n\
 size_t iseg = first - keyv_c;\n\
-size_t jj,j0,j1,ii,i1,i2,i3;\n\
-jj=keyv_c[iseg];\n\
+size_t j0,j1,ii,i1,i2,i3;\n\
 j0=keyg_c[iseg*2];\n\
 j1=keyg_c[iseg*2+1];\n\
 ii=j0-1;\n\
@@ -58,8 +57,7 @@ do {\n\
 } while (length > 0);\n\
 first--;\n\
 size_t iseg = first - keyv_f;\n\
-size_t jj,j0,ii,i1,i2,i3;\n\
-jj=keyv_f[iseg];\n\
+size_t j0,ii,i1,i2,i3;\n\
 j0=keyg_f[iseg*2];\n\
 ii=j0-1;\n\
 i3=ii/((n1)*(n2));\n\
@@ -119,8 +117,7 @@ while ( length > 0) {\n\
 }\n\
 first--;\n\
 size_t iseg = first - keyv_c;\n\
-size_t jj,j0,j1,ii,i1,i2,i3;\n\
-jj=keyv_c[iseg];\n\
+size_t j0,j1,ii,i1,i2,i3;\n\
 j0=keyg_c[iseg*2];\n\
 j1=keyg_c[iseg*2+1];\n\
 ii=j0-1;\n\
@@ -163,8 +160,7 @@ do {\n\
 } while (length > 0);\n\
 first--;\n\
 size_t iseg = first - keyv_f;\n\
-size_t jj,j0,ii,i1,i2,i3;\n\
-jj=keyv_f[iseg];\n\
+size_t j0,ii,i1,i2,i3;\n\
 j0=keyg_f[iseg*2];\n\
 ii=j0-1;\n\
 i3=ii/((n1)*(n2));\n\
@@ -223,8 +219,7 @@ while ( length > 0) {\n\
 }\n\
 first--;\n\
 size_t iseg = first - keyv_c;\n\
-size_t jj,j0,ii,i1,i2,i3;\n\
-jj=keyv_c[iseg];\n\
+size_t j0,ii,i1,i2,i3;\n\
 j0=keyg_c[iseg*2];\n\
 ii=j0-1;\n\
 i3=ii/((n1)*(n2));\n\
@@ -254,8 +249,7 @@ while ( length > 0) {\n\
 }\n\
 first--;\n\
 size_t iseg = first - keyv_c;\n\
-size_t jj,j0,ii,i1,i2,i3;\n\
-jj=keyv_c[iseg];\n\
+size_t j0,ii,i1,i2,i3;\n\
 j0=keyg_c[iseg*2];\n\
 ii=j0-1;\n\
 i3=ii/((n1)*(n2));\n\
@@ -287,8 +281,7 @@ do {\n\
 } while ( length > 0);\n\
 first--;\n\
 size_t iseg = first - keyv_f;\n\
-size_t jj,j0,ii,i1,i2,i3;\n\
-jj=keyv_f[iseg];\n\
+size_t j0,ii,i1,i2,i3;\n\
 j0=keyg_f[iseg*2];\n\
 ii=j0-1;\n\
 i3=ii/((n1)*(n2));\n\
@@ -335,8 +328,7 @@ do {\n\
 } while ( length > 0);\n\
 first--;\n\
 size_t iseg = first - keyv_f;\n\
-size_t jj,j0,ii,i1,i2,i3;\n\
-jj=keyv_f[iseg];\n\
+size_t j0,ii,i1,i2,i3;\n\
 j0=keyg_f[iseg*2];\n\
 ii=j0-1;\n\
 i3=ii/((n1)*(n2));\n\
