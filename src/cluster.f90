@@ -717,9 +717,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   wfn_loop: do iter=1,itermax
 
      if (iproc == 0 .and. verbose > 0) then 
-        write( *,'(1x,a,i0)')&
-             '---------------------------------------------------------------------------- iter= ',&
-             iter
+        write( *,'(1x,a,i0)') &
+             & repeat('-',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
      endif
      !control whether the minimisation iterations ended
      endloop= gnrm <= gnrm_cv .or. iter == itermax
