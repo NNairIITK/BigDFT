@@ -971,7 +971,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   maxdiff=0.0_wp
   ispsi=0
   do ikptsp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptsp
+     ikpt=orbs%ikptsp(ikptsp)
      valkpt=real(512*ikpt,wp)
      !calculate the starting point for the component distribution
      iscomp=0
@@ -1013,7 +1013,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      open(unit=22,file=trim(filename),status='unknown')
      ispsi=0
      do ikptsp=1,orbs%nkptsp
-        ikpt=orbs%iskpts+ikptsp
+        ikpt=orbs%ikptsp(ikptsp)
         valkpt=real(512*ikpt,wp)
         !calculate the starting point for the component distribution
         iscomp=0

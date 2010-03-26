@@ -220,8 +220,8 @@ module module_types
 !! SOURCE
 !!
   type, public :: orbitals_data
-     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
-     integer, dimension(:), pointer :: norb_par,iokpt,ikptproc
+     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts,nkptsp
+     integer, dimension(:), pointer :: norb_par,iokpt,ikptproc,ikptsp
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
@@ -497,6 +497,9 @@ subroutine deallocate_orbs(orbs,subname)
     i_all=-product(shape(orbs%ikptproc))*kind(orbs%ikptproc)
     deallocate(orbs%ikptproc,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%ikptproc',subname)
+    i_all=-product(shape(orbs%ikptsp))*kind(orbs%ikptsp)
+    deallocate(orbs%ikptsp,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%ikptsp',subname)
 
 END SUBROUTINE deallocate_orbs
 !!***
