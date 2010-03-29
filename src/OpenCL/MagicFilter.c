@@ -1,7 +1,7 @@
 #include "MagicFilter.h"
 #include "OpenCL_wrappers.h"
 
-char * magicfilter1d_program="\
+char * magicfilter_program="\
 #define FILTER_WIDTH 16\n\
 //n is supposed to be greater or equal than get_local_size(0)\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
@@ -363,43 +363,39 @@ cl_kernel magicfilter1d_t_kernel_d;
 cl_kernel magicfiltershrink1d_kernel_d;
 cl_kernel magicfiltergrow1d_kernel_d;
 cl_kernel magicfiltergrow1d_pot_kernel_d;
+cl_program magicfilterProgram;
 
-void build_magicfilter_kernels(cl_context * context){
+void create_magicfilter_kernels(){
     cl_int ciErrNum = CL_SUCCESS;
-    cl_program magicfilter1dProgram = clCreateProgramWithSource(*context,1,(const char**) &magicfilter1d_program, NULL, &ciErrNum);
+    magicfiltergrow1d_kernel_d=clCreateKernel(magicfilterProgram,"magicfiltergrow1dKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create magicfiltergrow1dKernel_d kernel!");
+    magicfiltershrink1d_kernel_d=clCreateKernel(magicfilterProgram,"magicfiltershrink1dKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create magicfiltershrink1dKernel_d kernel!");
+    magicfiltergrow1d_pot_kernel_d=clCreateKernel(magicfilterProgram,"magicfiltergrow1d_potKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create magicfiltergrow1d_potKernel_d kernel!");
+    magicfilter1d_kernel_d=clCreateKernel(magicfilterProgram,"magicfilter1dKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create magicfilter1dKernel_d kernel!");
+    magicfilter1d_den_kernel_d=clCreateKernel(magicfilterProgram,"magicfilter1d_denKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create magicfilter1d_denKernel_d kernel!");
+    magicfilter1d_pot_kernel_d=clCreateKernel(magicfilterProgram,"magicfilter1d_potKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create magicfilter1d_potKernel_d kernel!");
+    magicfilter1d_t_kernel_d=clCreateKernel(magicfilterProgram,"magicfilter1d_tKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create magicfilter1d_tKernel_d kernel!");
+}
+
+void build_magicfilter_programs(cl_context * context){
+    cl_int ciErrNum = CL_SUCCESS;
+    magicfilterProgram = clCreateProgramWithSource(*context,1,(const char**) &magicfilter_program, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
-    ciErrNum = clBuildProgram(magicfilter1dProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    ciErrNum = clBuildProgram(magicfilterProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
-        fprintf(stderr,"Error %d: Failed to build magicfilter1d program!\n",ciErrNum);
+        fprintf(stderr,"Error %d: Failed to build magicfilter program!\n",ciErrNum);
         char cBuildLog[10240];
-        clGetProgramBuildInfo(magicfilter1dProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo(magicfilterProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
-    ciErrNum = CL_SUCCESS;
-    magicfiltergrow1d_kernel_d=clCreateKernel(magicfilter1dProgram,"magicfiltergrow1dKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    magicfiltergrow1d_pot_kernel_d=clCreateKernel(magicfilter1dProgram,"magicfiltergrow1d_potKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    magicfiltershrink1d_kernel_d=clCreateKernel(magicfilter1dProgram,"magicfiltershrink1dKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    magicfilter1d_kernel_d=clCreateKernel(magicfilter1dProgram,"magicfilter1dKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    magicfilter1d_den_kernel_d=clCreateKernel(magicfilter1dProgram,"magicfilter1d_denKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    magicfilter1d_pot_kernel_d=clCreateKernel(magicfilter1dProgram,"magicfilter1d_potKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    magicfilter1d_t_kernel_d=clCreateKernel(magicfilter1dProgram,"magicfilter1d_tKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = clReleaseProgram(magicfilter1dProgram);
-    oclErrorCheck(ciErrNum,"Failed to release program!");
 }
 
 void FC_FUNC_(magicfiltershrink1d_d,MAGICFILTERSHRINK1D_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
@@ -556,11 +552,21 @@ void FC_FUNC_(potential_application_d,POTENTIAL_APPLICATION_D)(cl_command_queue 
 }
 
 void clean_magicfilter_kernels(){
-  clReleaseKernel(magicfilter1d_kernel_d);
-  clReleaseKernel(magicfilter1d_den_kernel_d);
-  clReleaseKernel(magicfilter1d_pot_kernel_d);
-  clReleaseKernel(magicfilter1d_t_kernel_d);
-  clReleaseKernel(magicfiltershrink1d_kernel_d);
-  clReleaseKernel(magicfiltergrow1d_kernel_d);
-  clReleaseKernel(magicfiltergrow1d_pot_kernel_d);
+  cl_int ciErrNum;
+  ciErrNum = clReleaseKernel(magicfilter1d_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(magicfilter1d_den_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(magicfilter1d_pot_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(magicfilter1d_t_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(magicfiltershrink1d_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(magicfiltergrow1d_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(magicfiltergrow1d_pot_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseProgram(magicfilterProgram);
+  oclErrorCheck(ciErrNum,"Failed to release program!");
 }

@@ -1,7 +1,7 @@
 #include "Wavelet.h"
 #include "OpenCL_wrappers.h"
 
-char * ana1d_program="\
+char * ana_program="\
 #define FILTER_WIDTH 16\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
 __kernel void anashrink1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
@@ -139,7 +139,7 @@ out[(jg*(2*n)+ig+n)]=di;\n\
 };\n\
 ";
 
-char * syn1d_program="\
+char * syn_program="\
 #define FILTER_WIDTH 8\n\
 #define SIZE_I 16\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
@@ -336,50 +336,45 @@ cl_kernel ana1d_kernel_d;
 cl_kernel anashrink1d_kernel_d;
 cl_kernel syn1d_kernel_d;
 cl_kernel syngrow1d_kernel_d;
+cl_program anaProgram;
+cl_program synProgram;
 
-
-void build_wavelet_kernels(cl_context * context){
+void create_wavelet_kernels() {
     cl_int ciErrNum = CL_SUCCESS;
-    cl_program ana1dProgram = clCreateProgramWithSource(*context,1,(const char**) &ana1d_program, NULL, &ciErrNum);
+    anashrink1d_kernel_d=clCreateKernel(anaProgram,"anashrink1dKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create anashrink1dKernel_d kernel!");
+    ana1d_kernel_d=clCreateKernel(anaProgram,"ana1dKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create ana1dKernel_d kernel!");
+    syngrow1d_kernel_d=clCreateKernel(synProgram,"syngrow1dKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create syngrow1dKernel_d kernel!");
+    syn1d_kernel_d=clCreateKernel(synProgram,"syn1dKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create syn1dKernel_d kernel!");
+}
+
+void build_wavelet_programs(cl_context * context){
+    cl_int ciErrNum = CL_SUCCESS;
+    anaProgram = clCreateProgramWithSource(*context,1,(const char**) &ana_program, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
-    ciErrNum = clBuildProgram(ana1dProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    ciErrNum = clBuildProgram(anaProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
-        fprintf(stderr,"Error: Failed to build ana1d program!\n");
+        fprintf(stderr,"Error: Failed to build ana program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(ana1dProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo(anaProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
-    ciErrNum = CL_SUCCESS;
-    anashrink1d_kernel_d=clCreateKernel(ana1dProgram,"anashrink1dKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    ana1d_kernel_d=clCreateKernel(ana1dProgram,"ana1dKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = clReleaseProgram(ana1dProgram);
-    oclErrorCheck(ciErrNum,"Failed to release program!");
-
-    cl_program syn1dProgram = clCreateProgramWithSource(*context,1,(const char**) &syn1d_program, NULL, &ciErrNum);
+    synProgram = clCreateProgramWithSource(*context,1,(const char**) &syn_program, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
-    ciErrNum = clBuildProgram(syn1dProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    ciErrNum = clBuildProgram(synProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
-        fprintf(stderr,"Error: Failed to build syn1d program!\n");
+        fprintf(stderr,"Error: Failed to build syn program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(syn1dProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo(synProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
-    ciErrNum = CL_SUCCESS;
-    syngrow1d_kernel_d=clCreateKernel(syn1dProgram,"syngrow1dKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    syn1d_kernel_d=clCreateKernel(syn1dProgram,"syn1dKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = clReleaseProgram(syn1dProgram);
-    oclErrorCheck(ciErrNum,"Failed to release program!");
-
 }
 
 void FC_FUNC_(anashrink1d_d,ANASHRINK1D_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
@@ -589,8 +584,17 @@ void FC_FUNC_(syn_self_d,SYN_SELF_D)(cl_command_queue *command_queue, cl_uint *d
 }
 
 void clean_wavelet_kernels(){
-  clReleaseKernel(ana1d_kernel_d);
-  clReleaseKernel(anashrink1d_kernel_d);
-  clReleaseKernel(syn1d_kernel_d);
-  clReleaseKernel(syngrow1d_kernel_d);
+  cl_int ciErrNum;
+  ciErrNum = clReleaseKernel(ana1d_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(anashrink1d_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(syn1d_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(syngrow1d_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseProgram(anaProgram);
+  oclErrorCheck(ciErrNum,"Failed to release program!");
+  ciErrNum = clReleaseProgram(synProgram);
+  oclErrorCheck(ciErrNum,"Failed to release program!");
 }

@@ -44,7 +44,8 @@ int main() {
 
   ciErrNum = oclInitStreams(context);
   oclErrorCheck(ciErrNum,"Failed to init streams!");
-  build_magicfilter_kernels(&context);
+  build_magicfilter_programs(&context);
+  create_magicfilter_kernels();
 
   double * data[NB_STREAM];
   double * results[NB_STREAM];

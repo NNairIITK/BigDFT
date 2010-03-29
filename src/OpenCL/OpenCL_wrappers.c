@@ -20,12 +20,18 @@ cl_device_id oclGetFirstDev(cl_context cxGPUContext)
 }
 
 void FC_FUNC_(ocl_build_kernels,OCL_BUILD_KERNELS)(cl_context * context) {
-    build_magicfilter_kernels(context);
-    build_kinetic_kernels(context);
-    build_wavelet_kernels(context);
-    build_uncompress_kernels(context);
-    build_initialize_kernels(context);
-    build_reduction_kernels(context);
+    build_magicfilter_programs(context);
+    create_magicfilter_kernels();
+    build_kinetic_programs(context);
+    create_kinetic_kernels();
+    build_wavelet_programs(context);
+    create_wavelet_kernels();
+    build_uncompress_programs(context);
+    create_uncompress_kernels();
+    build_initialize_programs(context);
+    create_initialize_kernels();
+    build_reduction_programs(context);
+    create_reduction_kernels();
 }
 
 

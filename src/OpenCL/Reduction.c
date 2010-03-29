@@ -253,15 +253,6 @@ void inline reduction_generic(cl_kernel kernel, cl_command_queue *command_queue,
   oclErrorCheck(ciErrNum,"Failed to enqueue reduction kernel!");
 }
 
-cl_kernel reduction_kernel_d;
-cl_kernel reduction_dot_kernel_d;
-cl_kernel axpy_kernel_d;
-cl_kernel axpy_offset_kernel_d;
-cl_kernel scal_kernel_d;
-cl_kernel copy_kernel_d;
-cl_kernel dot_kernel_d;
-cl_kernel set_kernel_d;
-
 void FC_FUNC_(set_d,SET_D)(cl_command_queue *command_queue, cl_uint *n, double *val, cl_mem *x){
   if(*n==0) return;
   set_generic(set_kernel_d, command_queue, n, val, x);
@@ -428,10 +419,39 @@ void FC_FUNC_(dot_d,DOT_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_me
   clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(double), out, 0, NULL, NULL);
 }
 
-void build_reduction_kernels(cl_context * context){
-    cl_int ciErrNum = CL_SUCCESS;
+cl_kernel reduction_kernel_d;
+cl_kernel reduction_dot_kernel_d;
+cl_kernel axpy_kernel_d;
+cl_kernel axpy_offset_kernel_d;
+cl_kernel scal_kernel_d;
+cl_kernel copy_kernel_d;
+cl_kernel dot_kernel_d;
+cl_kernel set_kernel_d;
+cl_program reductionProgram;
 
-    cl_program reductionProgram = clCreateProgramWithSource(*context,1,(const char**) &reduction_program, NULL, &ciErrNum);
+void create_reduction_kernels(){
+    cl_int ciErrNum = CL_SUCCESS;
+    axpy_offset_kernel_d=clCreateKernel(reductionProgram,"axpy_offsetKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    axpy_kernel_d=clCreateKernel(reductionProgram,"axpyKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    scal_kernel_d=clCreateKernel(reductionProgram,"scalKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    reduction_kernel_d=clCreateKernel(reductionProgram,"reductionKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    reduction_dot_kernel_d=clCreateKernel(reductionProgram,"reduction_dotKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    copy_kernel_d=clCreateKernel(reductionProgram,"copyKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    dot_kernel_d=clCreateKernel(reductionProgram,"dotKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    set_kernel_d=clCreateKernel(reductionProgram,"setKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+}
+
+void build_reduction_programs(cl_context * context){
+    cl_int ciErrNum = CL_SUCCESS;
+    reductionProgram = clCreateProgramWithSource(*context,1,(const char**) &reduction_program, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(reductionProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
@@ -442,41 +462,26 @@ void build_reduction_kernels(cl_context * context){
         fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
-    ciErrNum = CL_SUCCESS;
-    axpy_offset_kernel_d=clCreateKernel(reductionProgram,"axpy_offsetKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    axpy_kernel_d=clCreateKernel(reductionProgram,"axpyKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    scal_kernel_d=clCreateKernel(reductionProgram,"scalKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    reduction_kernel_d=clCreateKernel(reductionProgram,"reductionKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    reduction_dot_kernel_d=clCreateKernel(reductionProgram,"reduction_dotKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    copy_kernel_d=clCreateKernel(reductionProgram,"copyKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    dot_kernel_d=clCreateKernel(reductionProgram,"dotKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    set_kernel_d=clCreateKernel(reductionProgram,"setKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = clReleaseProgram(reductionProgram);
-    oclErrorCheck(ciErrNum,"Failed to release program!");
 }
 
 void clean_reduction_kernels(){
-  clReleaseKernel(reduction_kernel_d);
-  clReleaseKernel(reduction_dot_kernel_d);
-  clReleaseKernel(axpy_kernel_d);
-  clReleaseKernel(axpy_offset_kernel_d);
-  clReleaseKernel(scal_kernel_d);
-  clReleaseKernel(copy_kernel_d);
-  clReleaseKernel(dot_kernel_d);
-  clReleaseKernel(set_kernel_d);
+  cl_int ciErrNum;
+  ciErrNum = clReleaseKernel(reduction_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(reduction_dot_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(axpy_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(axpy_offset_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(scal_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(copy_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(dot_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(set_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseProgram(reductionProgram);
+  oclErrorCheck(ciErrNum,"Failed to release program!");
 }

@@ -529,10 +529,36 @@ cl_kernel compress_scale_coarse_kernel_d;
 cl_kernel compress_scale_fine_kernel_d;
 cl_kernel scale_psi_fine_kernel_d;
 cl_kernel scale_psi_coarse_kernel_d;
+cl_program uncompressProgram;
+cl_program compressProgram;
 
-void build_uncompress_kernels(cl_context * context){
+void create_uncompress_kernels(){
     cl_int ciErrNum = CL_SUCCESS;
-    cl_program uncompressProgram = clCreateProgramWithSource(*context,1,(const char**) &uncompress_program, NULL, &ciErrNum);
+    uncompress_coarse_kernel_d=clCreateKernel(uncompressProgram,"uncompress_coarseKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel 1!");
+    uncompress_fine_kernel_d=clCreateKernel(uncompressProgram,"uncompress_fineKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel 2!");
+    uncompress_scale_coarse_kernel_d=clCreateKernel(uncompressProgram,"uncompress_scale_coarseKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel 3!");
+    uncompress_scale_fine_kernel_d=clCreateKernel(uncompressProgram,"uncompress_scale_fineKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel 4!");
+    scale_psi_fine_kernel_d=clCreateKernel(uncompressProgram,"scale_psi_fineKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel 5!");
+    scale_psi_coarse_kernel_d=clCreateKernel(uncompressProgram,"scale_psi_coarseKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel 6!");
+    compress_coarse_kernel_d=clCreateKernel(compressProgram,"compress_coarseKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel 7!");
+    compress_fine_kernel_d=clCreateKernel(compressProgram,"compress_fineKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel 8!");
+    compress_scale_coarse_kernel_d=clCreateKernel(compressProgram,"compress_scale_coarseKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel 9!");
+    compress_scale_fine_kernel_d=clCreateKernel(compressProgram,"compress_scale_fineKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel 10!");
+}
+
+void build_uncompress_programs(cl_context * context){
+    cl_int ciErrNum = CL_SUCCESS;
+    uncompressProgram = clCreateProgramWithSource(*context,1,(const char**) &uncompress_program, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(uncompressProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
@@ -543,28 +569,8 @@ void build_uncompress_kernels(cl_context * context){
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
-    ciErrNum = CL_SUCCESS;
-    uncompress_coarse_kernel_d=clCreateKernel(uncompressProgram,"uncompress_coarseKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel 1!");
-    ciErrNum = CL_SUCCESS;
-    uncompress_fine_kernel_d=clCreateKernel(uncompressProgram,"uncompress_fineKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel 2!");
-    ciErrNum = CL_SUCCESS;
-    uncompress_scale_coarse_kernel_d=clCreateKernel(uncompressProgram,"uncompress_scale_coarseKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel 3!");
-    ciErrNum = CL_SUCCESS;
-    uncompress_scale_fine_kernel_d=clCreateKernel(uncompressProgram,"uncompress_scale_fineKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel 4!");
-    ciErrNum = CL_SUCCESS;
-    scale_psi_fine_kernel_d=clCreateKernel(uncompressProgram,"scale_psi_fineKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel 5!");
-    ciErrNum = CL_SUCCESS;
-    scale_psi_coarse_kernel_d=clCreateKernel(uncompressProgram,"scale_psi_coarseKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel 6!");
-    ciErrNum = clReleaseProgram(uncompressProgram);
-    oclErrorCheck(ciErrNum,"Failed to release program!");
 
-    cl_program compressProgram = clCreateProgramWithSource(*context,1,(const char**) &compress_program, NULL, &ciErrNum);
+    compressProgram = clCreateProgramWithSource(*context,1,(const char**) &compress_program, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(compressProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
@@ -575,20 +581,6 @@ void build_uncompress_kernels(cl_context * context){
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
-    ciErrNum = CL_SUCCESS;
-    compress_coarse_kernel_d=clCreateKernel(compressProgram,"compress_coarseKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    compress_fine_kernel_d=clCreateKernel(compressProgram,"compress_fineKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    compress_scale_coarse_kernel_d=clCreateKernel(compressProgram,"compress_scale_coarseKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = CL_SUCCESS;
-    compress_scale_fine_kernel_d=clCreateKernel(compressProgram,"compress_scale_fineKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    ciErrNum = clReleaseProgram(compressProgram);
-    oclErrorCheck(ciErrNum,"Failed to release program!");
 }
 
 void FC_FUNC_(scale_psi_d,SCALE_PSI_D)(cl_command_queue *command_queue, cl_uint *nvctr_c, cl_uint *nvctr_f, double *h, double *c, cl_mem *psi_c,  cl_mem *psi_f) {
@@ -638,14 +630,29 @@ void FC_FUNC_(compress_scale_d,COMPRESS_SCALE_D)(cl_command_queue *command_queue
   un_compress_scale_fine_generic(compress_scale_fine_kernel_d, command_queue, dimensions, h, c, nseg_f, nvctr_f, keyg_f, keyv_f, psi_f, psi);
 }
 void clean_uncompress_kernels(){
-  clReleaseKernel(uncompress_coarse_kernel_d);
-  clReleaseKernel(uncompress_fine_kernel_d);
-  clReleaseKernel(uncompress_scale_coarse_kernel_d);
-  clReleaseKernel(uncompress_scale_fine_kernel_d);
-  clReleaseKernel(compress_coarse_kernel_d);
-  clReleaseKernel(compress_fine_kernel_d);
-  clReleaseKernel(compress_scale_coarse_kernel_d);
-  clReleaseKernel(compress_scale_fine_kernel_d);
-  clReleaseKernel(scale_psi_fine_kernel_d);
-  clReleaseKernel(scale_psi_coarse_kernel_d);
+  cl_int ciErrNum;
+  ciErrNum = clReleaseKernel(uncompress_coarse_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(uncompress_fine_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(uncompress_scale_coarse_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(uncompress_scale_fine_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(compress_coarse_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(compress_fine_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(compress_scale_coarse_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(compress_scale_fine_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(scale_psi_fine_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(scale_psi_coarse_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseProgram(uncompressProgram);
+  oclErrorCheck(ciErrNum,"Failed to release program!");
+  ciErrNum = clReleaseProgram(compressProgram);
+  oclErrorCheck(ciErrNum,"Failed to release program!");
 }
