@@ -259,8 +259,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   call libxc_functionals_init(ixc, nspin)
 
-  print *,'GPUcontext',GPU%context
-
   !character string for quieting the Poisson solver
   if (verbose >1) then
      PSquiet='NO'
@@ -512,8 +510,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   case(0)
      nspin=in%nspin
-
-     print *,'INPUT',GPU%context
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,atoms,&
           orbs,orbsv,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&

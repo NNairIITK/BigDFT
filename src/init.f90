@@ -553,8 +553,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
   allocate(psi(orbse%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
 
-  print *,'GPUcontext',GPU%context
-
   !allocate arrays for the GPU if a card is present
   switchGPUconv=.false.
   switchOCLconv=.false.

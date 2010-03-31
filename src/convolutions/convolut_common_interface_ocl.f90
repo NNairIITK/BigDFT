@@ -14,8 +14,6 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
   integer :: n1b, n2b, n3b
   integer, dimension(3) :: periodic
 
-  print *,'here'
-
   if (geocode /= 'F') then
     periodic(1) = 1
   else
@@ -32,11 +30,10 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
     periodic(3) = 0
   endif
 
-  print *,'there'
   n1b = (n1+1) * 2
   n2b = (n2+1) * 2
   n3b = (n3+1) * 2
-  print *,'hereC'
+
   if (periodic(1)==0) then
     n1b = n1b + 2*7 + 15
   endif
@@ -54,24 +51,17 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
 
   !allocate space on the card
   !allocate the compressed wavefunctions such as to be used as workspace
-  print *,'hereB1'
-  print *,'hereB2',wfd%nvctr_c
-  print *,'hereB3',wfd%nvctr_f
-  print *,'hereB4',GPU%psi_c
-  print *,'hereB5',GPU%context
   call ocl_create_read_write_buffer(GPU%context,wfd%nvctr_c*8,GPU%psi_c);
-  print *,'hereB4'
   call ocl_create_read_write_buffer(GPU%context,7*wfd%nvctr_f*8,GPU%psi_f);
-  print *,'hereB5'
   call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*8,GPU%work1)
   call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*8,GPU%work2)
   call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*8,GPU%work3)
-  print *,'hereB'
+
   !here spin value should be taken into account
   call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*nspin*8,GPU%rhopot)
   call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*8,GPU%d)
 
-  print *,'hereA'
+
 
   !allocate and copy the compression-decompression keys
   call ocl_create_read_buffer(GPU%context,wfd%nseg_c*4*2,GPU%keyg_c)

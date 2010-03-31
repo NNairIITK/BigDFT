@@ -2263,7 +2263,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
            write(*,*)' OpenCL convolutions activated'
         end if
         OCLconv=.true.
-        print *,'GPU%context',GPU%context
+        GPUblas=.true.
      end if
   end if
 

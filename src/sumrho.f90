@@ -80,17 +80,19 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      rho_p => rho
   end if
 
-  if (OCLconv) then
-     allocate(rho_p_OCL(max(nrho,1),nspin),stat=i_stat)
-     call memocc(i_stat,rho_p_OCL,'rho_p_OCL',subname)
-     allocate(psi_OCL((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),orbs%nspinor*orbs%norbp),stat=i_stat)
-     call memocc(i_stat,psi_OCL,'psi_OCL',subname)
-     call dcopy((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp, psi, 1, psi_OCL, 1)
-  end if
+!!$  if (OCLconv) then
+!!$     allocate(rho_p_OCL(max(nrho,1),nspin),stat=i_stat)
+!!$     call memocc(i_stat,rho_p_OCL,'rho_p_OCL',subname)
+!!$     allocate(psi_OCL((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),orbs%nspinor*orbs%norbp),stat=i_stat)
+!!$     call memocc(i_stat,psi_OCL,'psi_OCL',subname)
+!!$     call dcopy((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp, psi, 1, psi_OCL, 1)
+!!$  end if
 
   !switch between GPU/CPU treatment of the density
   if (GPUconv) then
      call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
+  else if (OCLconv) then
+     call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   else
      !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
      !otherwise use libXC routine
@@ -105,23 +107,23 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
           nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   end if
 
-  if (OCLconv) then
-     call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi_OCL,rho_p_OCL,GPU)
-     maxdiff=0.0_wp
-     do i=1,max(nrho,1)
-       do j=1,nspin
-        maxdiff=max(maxdiff,abs(rho_p(i,j)-rho_p_OCL(i,j)))
-       end do
-     end do
-     print *,''
-     print *,'maxdiff',maxdiff
-     i_all=-product(shape(rho_p_OCL))*kind(rho_p_OCL)
-     deallocate(rho_p_OCL,stat=i_stat)
-     call memocc(i_stat,i_all,'rho_p_OCL',subname)
-     i_all=-product(shape(psi_OCL))*kind(psi_OCL)
-     deallocate(psi_OCL,stat=i_stat)
-     call memocc(i_stat,i_all,'psi_OCL',subname)
-  end if
+!!$  if (OCLconv) then
+!!$     call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi_OCL,rho_p_OCL,GPU)
+!!$     maxdiff=0.0_wp
+!!$     do i=1,max(nrho,1)
+!!$       do j=1,nspin
+!!$        maxdiff=max(maxdiff,abs(rho_p(i,j)-rho_p_OCL(i,j)))
+!!$       end do
+!!$     end do
+!!$     print *,''
+!!$     print *,'maxdiff',maxdiff
+!!$     i_all=-product(shape(rho_p_OCL))*kind(rho_p_OCL)
+!!$     deallocate(rho_p_OCL,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'rho_p_OCL',subname)
+!!$     i_all=-product(shape(psi_OCL))*kind(psi_OCL)
+!!$     deallocate(psi_OCL,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'psi_OCL',subname)
+!!$  end if
 
   ! Symmetrise density, TODO...
   !after validation this point can be deplaced after the allreduce such as to reduce the number of operations

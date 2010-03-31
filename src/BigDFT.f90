@@ -90,8 +90,6 @@ program BigDFT
 
      call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
 
-     print *,'GPUcontext',rst%GPU%context
-
      !if other steps are supposed to be done leave the last_run to minus one
      !otherwise put it to one
      if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1) then
