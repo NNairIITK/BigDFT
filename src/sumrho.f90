@@ -130,7 +130,6 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   if (OCLconv) then
      call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi_OCL,rho_p_OCL,GPU)
      maxdiff=0.0_wp
-     maxdiff_psi=0.0_wp
      do i=1,max(nrho,1)
        do j=1,nspin
         maxdiff=max(maxdiff,abs(rho_p(i,j)-rho_p_OCL(i,j)))
