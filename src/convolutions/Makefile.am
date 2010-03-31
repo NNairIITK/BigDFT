@@ -10,11 +10,17 @@ convolution_includes = 	v.inc \
 #	long_grow.f90
 
 if USE_CUDA_GPU
-GPU_INTERFACE = convolut_common_interface_cuda.f90 \
-	convolut_common_interface_ocl.f90
+GPU_INTERFACE = convolut_common_interface_cuda.f90
 else
 GPU_INTERFACE = interface_cuda_fake.f90
 endif
+
+if USE_OCL
+OCL_INTERFACE = convolut_common_interface_ocl.f90
+else
+OCL_INTERFACE = interface_ocl_fake.f90
+endif
+
 
 if USE_OPTI_CONVOLUT
 convolution_source = combined_shrink_optim.f90 \
@@ -32,7 +38,7 @@ convolution_source = combined_shrink_optim.f90 \
 	convolut_optim_slab.f90 \
 	convolut_simple_per_k.f90 \
 	convolut_simple_slab_k.f90 \
-	$(GPU_INTERFACE)
+	$(GPU_INTERFACE) $(OCL_INTERFACE)
 
 else
 convolution_source = combined_shrink_simple.f90 \
@@ -50,7 +56,7 @@ convolution_source = combined_shrink_simple.f90 \
 	convolut_simple_slab.f90 \
 	convolut_simple_per_k.f90 \
 	convolut_simple_slab_k.f90 \
-	$(GPU_INTERFACE)
+	$(GPU_INTERFACE) $(OCL_INTERFACE)
 endif
 
 AM_FCFLAGS = -I. -I$(srcdir) -I../modules -I../

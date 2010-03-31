@@ -25,15 +25,25 @@ scripts_sources =
 endif
 
 if USE_CUDA_GPU
-sub_dirs_cuda=CUDA OpenCL
-GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90 convolutions/convolut_common_interface_ocl.f90
-libs_cuda=CUDA/libGPU.a OpenCL/libOCL.a
+sub_dirs_cuda=CUDA
+GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90
+libs_cuda=CUDA/libGPU.a
 GPU_BLAS=
 else
 sub_dirs_cuda=
 GPU_INTERFACE = convolutions/interface_cuda_fake.f90
 libs_cuda=
 GPU_BLAS = modules/cublas_fake.f90
+endif
+
+if USE_OCL
+sub_dirs_ocl=OpenCL
+OCL_INTERFACE = convolutions/convolut_common_interface_ocl.f90
+libs_ocl=OpenCL/libOCL.a
+else
+sub_dirs_ocl=
+OCL_INTERFACE = convolutions/interface_ocl_fake.f90
+libs_ocl=
 endif
 
 if USE_MINIMA_HOPPING
@@ -47,14 +57,15 @@ global_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda)
+	$(libs_cuda) \
+	$(libs_ocl)
 # Hack to avoid global.f90 inclusion into make dist.
 am_global_OBJECTS = global.$(OBJEXT)
 global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules convolutions lib $(sub_dirs_ps) profiling $(sub_dirs_cuda) art
+SUBDIRS = modules convolutions lib $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) art
 
 EXTRA_DIST = \
 	wavelib/intots.inc \
@@ -96,7 +107,7 @@ convolution_source = convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_optim_slab.f90 \
 	convolutions/convolut_simple_per_k.f90 \
 	convolutions/convolut_simple_slab_k.f90 \
-	$(GPU_INTERFACE)
+	$(GPU_INTERFACE) $(OCL_INTERFACE)
 
 else
 convolution_source = convolutions/combined_shrink_simple.f90 \
@@ -114,7 +125,7 @@ convolution_source = convolutions/combined_shrink_simple.f90 \
 	convolutions/convolut_simple_slab.f90 \
 	convolutions/convolut_simple_per_k.f90 \
 	convolutions/convolut_simple_slab_k.f90 \
-	$(GPU_INTERFACE)
+	$(GPU_INTERFACE) $(OCL_INTERFACE)
 
 endif
 
@@ -201,7 +212,8 @@ cluster_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda)
+	$(libs_cuda) \
+	$(libs_ocl)
 
 MDanalysis_SOURCES = distances.f90 
 MDanalysis_LDFLAGS = 
@@ -209,7 +221,8 @@ MDanalysis_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda)
+	$(libs_cuda) \
+	$(libs_ocl)
 
 abscalc_SOURCES = abscalc.f90 
 abscalc_LDFLAGS = 
@@ -217,7 +230,8 @@ abscalc_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda)
+	$(libs_cuda) \
+	$(libs_ocl)
 
 
 test_forces_SOURCES = test_forces.f90
@@ -226,14 +240,16 @@ test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda)
+	$(libs_cuda) \
+	$(libs_ocl)
 
 NEB_SOURCES = NEB.f90 \
 	$(mpi_source)
 NEB_LDFLAGS = 
 NEB_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	$(libs_cuda)
+	$(libs_cuda) \
+	$(libs_ocl)
 
 memguess_SOURCES = memguess.f90 \
 	$(mpi_source)
@@ -241,7 +257,8 @@ memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda)
+	$(libs_cuda) \
+	$(libs_ocl)
 
 frequencies_SOURCES = frequencies.f90  \
 	$(mpi_source)
@@ -250,7 +267,8 @@ frequencies_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda)
+	$(libs_cuda) \
+	$(libs_ocl)
 
 bart_SOURCES = \
 	art/bigdft_forces.f90 \
@@ -270,7 +288,8 @@ bart_LDADD = art/libart.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda)
+	$(libs_cuda) \
+	$(libs_ocl)
 
 
 CLEANFILES = \
