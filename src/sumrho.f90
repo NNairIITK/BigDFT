@@ -80,28 +80,6 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      rho_p => rho
   end if
 
-  OCLconv=.true.
-  call ocl_create_gpu_context(GPU%context)
-  call ocl_create_command_queue(GPU%queue,GPU%context)
-  call ocl_build_kernels(GPU%context)
-  call init_event_list
-  if (lr%geocode /= 'F') then
-    periodic(1) = 1
-  else
-    periodic(1) = 0
-  endif
-  if (lr%geocode == 'P') then
-    periodic(2) = 1
-  else
-    periodic(2) = 0
-  endif 
-  if (lr%geocode /= 'F') then
-    periodic(3) = 1
-  else
-    periodic(3) = 0
-  endif
-  call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,periodic,orbs%nspinor,hxh*2.0,hyh*2.0,hzh*2.0,lr%wfd,orbs,GPU)
-
   if (OCLconv) then
      allocate(rho_p_OCL(max(nrho,1),nspin),stat=i_stat)
      call memocc(i_stat,rho_p_OCL,'rho_p_OCL',subname)
@@ -143,9 +121,6 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      i_all=-product(shape(psi_OCL))*kind(psi_OCL)
      deallocate(psi_OCL,stat=i_stat)
      call memocc(i_stat,i_all,'psi_OCL',subname)
-     call free_gpu_OCL(GPU,orbs%norbp)
-     call ocl_clean(GPU%queue,GPU%context)
-     OCLconv=.false.
   end if
 
   ! Symmetrise density, TODO...

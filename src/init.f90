@@ -442,7 +442,7 @@ END SUBROUTINE import_gaussians
 subroutine input_wf_diag(iproc,nproc,at,&
      orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
      nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
-     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons)
+     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -460,6 +460,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors), intent(in) :: Glr
   type(communications_arrays), intent(in) :: comms
+  type(GPU_pointers), intent(inout) :: GPU
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -475,12 +476,11 @@ subroutine input_wf_diag(iproc,nproc,at,&
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   integer, parameter :: ngx=31
-  logical :: switchGPUconv
+  logical :: switchGPUconv,switchOCLconv
   integer :: i_stat,i_all,iat,nspin_ig
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,etol,accurex
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
-  type(GPU_pointers) :: GPU
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
   type(locreg_descriptors), dimension(:), allocatable :: Llr
@@ -553,15 +553,27 @@ subroutine input_wf_diag(iproc,nproc,at,&
   allocate(psi(orbse%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
 
+  print *,'GPUcontext',GPU%context
+
   !allocate arrays for the GPU if a card is present
   switchGPUconv=.false.
+  switchOCLconv=.false.
   if (GPUconv .and. potshortcut ==0 ) then
      call prepare_gpu_for_locham(Glr%d%n1,Glr%d%n2,Glr%d%n3,nspin,&
           hx,hy,hz,Glr%wfd,orbse,GPU)
+  else if (OCLconv .and. potshortcut ==0) then
+     call allocate_data_OCL(Glr%d%n1,Glr%d%n2,Glr%d%n3,at%geocode,&
+          nspin,hx,hy,hz,Glr%wfd,orbse,GPU)
+     if (iproc == 0) write(*,*)&
+          'GPU data allocated'
   else if (GPUconv .and. potshortcut >0 ) then
      switchGPUconv=.true.
      GPUconv=.false.
+  else if (OCLconv .and. potshortcut >0 ) then
+     switchOCLconv=.true.
+     OCLconv=.false.
   end if
+
 
   !use only the part of the arrays for building the hamiltonian matrix
   !call gaussians_to_wavelets(iproc,nproc,at%geocode,orbse,Glr%d,&
@@ -672,6 +684,10 @@ subroutine input_wf_diag(iproc,nproc,at,&
      if (switchGPUconv) then
         GPUconv=.true.
      end if
+     if (switchOCLconv) then
+        OCLconv=.true.
+     end if
+
 
      if (nvirt == 0) then
         call deallocate_orbs(orbsv,subname)
@@ -742,6 +758,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
   !free GPU if it is the case
   if (GPUconv) then
      call free_gpu(GPU,orbse%norbp)
+  else if (OCLconv) then
+     call free_gpu_OCL(GPU,orbse%norbp)
   end if
 
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&

@@ -42,7 +42,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi,istart_ca
   integer, dimension(3) :: periodic
   real(wp) :: maxdiff
-  real(gp) :: eproj
+  real(gp) :: eproj,ek_fake,ep_fake
   real(gp), dimension(3,2) :: wrkallred
   real(wp), dimension(:), pointer :: pot
   real(wp), dimension(:), allocatable :: hpsi_OCL
@@ -139,41 +139,21 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   !test part to check the results wrt OCL convolutions
   if (OCLconv) then
-
      allocate(hpsi_OCL((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
      call memocc(i_stat,hpsi_OCL,'hpsi_OCL',subname)
      print *,'fulllocam',GPU%full_locham
-      if (at%geocode /= 'F') then
-        periodic(1) = 1
-      else
-        periodic(1) = 0
-      endif
-      if (at%geocode == 'P') then
-        periodic(2) = 1
-      else
-        periodic(2) = 0
-      endif
-      if (at%geocode /= 'F') then
-        periodic(3) = 1
-      else
-        periodic(3) = 0
-      endif
-      call local_hamiltonian_OCL(iproc,orbs,periodic,lr,hx,hy,hz,nspin,pot,psi,hpsi_OCL,ekin_sum,epot_sum,GPU)
+     call local_hamiltonian_OCL(iproc,orbs,at%geocode,lr,hx,hy,hz,nspin,pot,psi,hpsi_OCL,ek_fake,ep_fake,GPU)
      maxdiff=0.0_wp
      do i=1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
         maxdiff=max(maxdiff,abs(hpsi(i)-hpsi_OCL(i)))
      end do
      print *,'maxdiff',maxdiff
+     print *,'ekin_diff',abs(ek_fake-ekin_sum)
+     print *,'epot_diff',abs(ep_fake-epot_sum)
      i_all=-product(shape(hpsi_OCL))*kind(hpsi_OCL)
      deallocate(hpsi_OCL,stat=i_stat)
      call memocc(i_stat,i_all,'hpsi_OCL',subname)
-
-     call free_gpu_OCL(GPU,orbs%norbp)
-     call ocl_clean(GPU%queue,GPU%context)
-     stop
-
   end if
-
   
   if (nproc > 1 .or. exctX) then
      i_all=-product(shape(pot))*kind(pot)
@@ -334,27 +314,6 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      write(*,'(1x,a)',advance='no')&
           'done, preconditioning...'
   end if
-  OCLconv=.true.
-  call ocl_create_gpu_context(GPU%context)
-  call ocl_create_command_queue(GPU%queue,GPU%context)
-  call ocl_build_kernels(GPU%context)
-  call init_event_list
-  if (lr%geocode /= 'F') then
-    periodic(1) = 1
-  else
-    periodic(1) = 0
-  endif
-  if (lr%geocode == 'P') then
-    periodic(2) = 1
-  else
-    periodic(2) = 0
-  endif 
-  if (lr%geocode /= 'F') then
-    periodic(3) = 1
-  else
-    periodic(3) = 0
-  endif
-  call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,periodic,orbs%nspinor,hx,hy,hz,lr%wfd,orbs,GPU)
 
   !Preconditions all orbitals belonging to iproc
   !and calculate the partial norm of the residue
@@ -384,9 +343,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      i_all=-product(shape(hpsi_OCL))*kind(hpsi_OCL)
      deallocate(hpsi_OCL,stat=i_stat)
      call memocc(i_stat,i_all,'hpsi_OCL',subname)
-     call free_gpu_OCL(GPU,orbs%norbp)
-     call ocl_clean(GPU%queue,GPU%context)
-     OCLconv=.false.
+
   end if
   !sum over all the partial residues
   if (nproc > 1) then

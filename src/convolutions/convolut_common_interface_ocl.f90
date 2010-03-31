@@ -1,21 +1,42 @@
-subroutine allocate_data_OCL(n1,n2,n3,periodic,nspin,hx,hy,hz,wfd,orbs,GPU)
+subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
   use module_base
   use module_types
   implicit none
+  character(len=1), intent (in) :: geocode
   integer, intent(in) :: n1,n2,n3,nspin
   real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(in) :: orbs
   type(GPU_pointers), intent(out) :: GPU
-  integer, dimension(3), intent(in) :: periodic
   !local variables
   character(len=*), parameter :: subname='allocate_data_OCL'
   integer :: i_stat,iorb
   integer :: n1b, n2b, n3b
+  integer, dimension(3) :: periodic
 
+  print *,'here'
+
+  if (geocode /= 'F') then
+    periodic(1) = 1
+  else
+    periodic(1) = 0
+  endif
+  if (geocode == 'P') then
+    periodic(2) = 1
+  else
+    periodic(2) = 0
+  endif 
+  if (geocode /= 'F') then
+    periodic(3) = 1
+  else
+    periodic(3) = 0
+  endif
+
+  print *,'there'
   n1b = (n1+1) * 2
   n2b = (n2+1) * 2
   n3b = (n3+1) * 2
+  print *,'hereC'
   if (periodic(1)==0) then
     n1b = n1b + 2*7 + 15
   endif
@@ -33,14 +54,24 @@ subroutine allocate_data_OCL(n1,n2,n3,periodic,nspin,hx,hy,hz,wfd,orbs,GPU)
 
   !allocate space on the card
   !allocate the compressed wavefunctions such as to be used as workspace
+  print *,'hereB1'
+  print *,'hereB2',wfd%nvctr_c
+  print *,'hereB3',wfd%nvctr_f
+  print *,'hereB4',GPU%psi_c
+  print *,'hereB5',GPU%context
   call ocl_create_read_write_buffer(GPU%context,wfd%nvctr_c*8,GPU%psi_c);
+  print *,'hereB4'
   call ocl_create_read_write_buffer(GPU%context,7*wfd%nvctr_f*8,GPU%psi_f);
+  print *,'hereB5'
   call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*8,GPU%work1)
   call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*8,GPU%work2)
   call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*8,GPU%work3)
+  print *,'hereB'
   !here spin value should be taken into account
   call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*nspin*8,GPU%rhopot)
   call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*8,GPU%d)
+
+  print *,'hereA'
 
   !allocate and copy the compression-decompression keys
   call ocl_create_read_buffer(GPU%context,wfd%nseg_c*4*2,GPU%keyg_c)
@@ -62,6 +93,8 @@ subroutine allocate_data_OCL(n1,n2,n3,periodic,nspin,hx,hy,hz,wfd,orbs,GPU)
   call ocl_create_read_write_buffer(GPU%context,wfd%nvctr_c*8,GPU%psi_c_d);
   call ocl_create_read_write_buffer(GPU%context,7*wfd%nvctr_f*8,GPU%psi_f_d);
 
+  !full_locham stategy (always true for the moment)
+  GPU%full_locham=.true.
 
 end subroutine allocate_data_OCL
 
@@ -99,13 +132,13 @@ subroutine free_gpu_OCL(GPU,norbp)
 end subroutine free_gpu_OCL
 
 
-subroutine local_hamiltonian_OCL(iproc,orbs,periodic,lr,hx,hy,hz,&
+subroutine local_hamiltonian_OCL(iproc,orbs,geocode,lr,hx,hy,hz,&
      nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
   use module_base
   use module_types
   implicit none
+  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nspin
-  integer, dimension(3), intent(in) :: periodic
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
@@ -113,16 +146,34 @@ subroutine local_hamiltonian_OCL(iproc,orbs,periodic,lr,hx,hy,hz,&
   real(wp), dimension(lr%d%n1i,lr%d%n2i,lr%d%n3i,nspin) :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,orbs%norbp), intent(out) :: hpsi
-
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_OCL'
   integer :: i_stat,iorb,isf,i
   real(gp), dimension(3) :: hgrids
+  integer, dimension(3) :: periodic
   !stream ptr array
   real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
   real(kind=8) :: stream_ptr_first_trsf
   integer :: n1, n2, n3
+  real(gp) :: epot, ekin
+
+  if (geocode /= 'F') then
+    periodic(1) = 1
+  else
+    periodic(1) = 0
+  endif
+  if (geocode == 'P') then
+    periodic(2) = 1
+  else
+    periodic(2) = 0
+  endif 
+  if (geocode /= 'F') then
+    periodic(3) = 1
+  else
+    periodic(3) = 0
+  endif
+
   
   n1 = (lr%d%n1+1) * 2
   n2 = (lr%d%n2+1) * 2
@@ -149,6 +200,8 @@ subroutine local_hamiltonian_OCL(iproc,orbs,periodic,lr,hx,hy,hz,&
   hgrids(2)=0.5_gp*hy
   hgrids(3)=0.5_gp*hz
 
+  epot_sum=0.0_gp
+  ekin_sum=0.0_gp
 
   do iorb=1,orbs%norbp
 
@@ -171,7 +224,9 @@ subroutine local_hamiltonian_OCL(iproc,orbs,periodic,lr,hx,hy,hz,&
           lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,& 
           GPU%psi_c,GPU%psi_f,GPU%rhopot, &
           GPU%work1,GPU%work2,GPU%work3,GPU%d,&
-          epot_sum,ekin_sum)
+          epot,ekin)
+     epot_sum = epot_sum + orbs%occup(orbs%isorb+iorb)*epot
+     ekin_sum = ekin_sum + orbs%occup(orbs%isorb+iorb)*ekin
 
      call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*orbs%nspinor*8,hpsi(1,iorb))
      call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*orbs%nspinor*8,hpsi(isf,iorb))

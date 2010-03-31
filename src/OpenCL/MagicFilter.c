@@ -480,7 +480,7 @@ void FC_FUNC_(magicfilter_t_d,MAGICFILTER_T_D)(cl_command_queue *command_queue, 
     magicfilter_generic(magicfilter1d_t_kernel_d, command_queue, &n1, &ndat, tmp, out);
 }
 
-void FC_FUNC_(potential_application_d_generic,POTENTIAL_APPLICATION_D_GENERIC)(cl_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *psi, cl_mem *out, cl_mem *pot) {
+void FC_FUNC_(potential_application_d_generic,POTENTIAL_APPLICATION_D_GENERIC)(cl_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out, cl_mem *pot, double *epot) {
   cl_uint ndat;
   cl_uint n1, n2, n3;
   n1 = dimensions[0] * 2;
@@ -531,6 +531,8 @@ void FC_FUNC_(potential_application_d_generic,POTENTIAL_APPLICATION_D_GENERIC)(c
     n1 -= 15;
     magicfilter_generic(magicfiltershrink1d_kernel_d, command_queue,  &n1, &ndat, tmp, out);
   }
+  ndat = n1*n2*n3;
+  dot_d_(command_queue, &ndat, psi, out, tmp, tmp_dot, epot);
 }
 
 void FC_FUNC_(potential_application_d,POTENTIAL_APPLICATION_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out, cl_mem *pot) {

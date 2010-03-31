@@ -29,7 +29,7 @@
   !temporary interface
   interface
      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
-          psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,infocode)
+          psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
        use module_base
        use module_types
        implicit none
@@ -41,6 +41,7 @@
        type(atoms_data), intent(inout) :: atoms
        type(gaussian_basis), intent(inout) :: gbd
        type(orbitals_data), intent(inout) :: orbs
+       type(GPU_pointers), intent(inout) :: GPU
        real(gp), intent(out) :: energy
        real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
        real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
@@ -74,7 +75,7 @@
 
      call cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
-          rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,infocode)
+          rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
 
      if (in%inputPsiId==1 .and. infocode==2) then
         if (in%gaussian_help) then
@@ -154,7 +155,7 @@ end subroutine call_bigdft
 !! SOURCE
 !!
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
-     psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,infocode)
+     psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
   use module_types
   use module_interfaces
@@ -171,6 +172,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(atoms_data), intent(inout) :: atoms
   type(gaussian_basis), intent(inout) :: gbd
   type(orbitals_data), intent(inout) :: orbs
+  type(GPU_pointers), intent(inout) :: GPU
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
   real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
   integer, intent(out) :: infocode
@@ -202,7 +204,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(communications_arrays) :: comms
   type(orbitals_data) :: orbsv
   type(gaussian_basis) :: Gvirt
-  type(GPU_pointers) :: GPU
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: rho
@@ -257,6 +258,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   hz=in%hz
 
   call libxc_functionals_init(ixc, nspin)
+
+  print *,'GPUcontext',GPU%context
 
   !character string for quieting the Poisson solver
   if (verbose >1) then
@@ -509,11 +512,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   case(0)
      nspin=in%nspin
+
+     print *,'INPUT',GPU%context
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,atoms,&
           orbs,orbsv,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
-          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons)
+          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU)
 
   case(1)
      !these parts should be reworked for the non-collinear spin case
@@ -648,10 +653,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   endif
 
   !allocate arrays for the GPU if a card is present
-  !do this only if the potshortcut treatment is not activated
-  if (GPUconv .and.  in%potshortcut==0) then
+  if (GPUconv) then
      call prepare_gpu_for_locham(Glr%d%n1,Glr%d%n2,Glr%d%n3,in%nspin,&
           hx,hy,hz,Glr%wfd,orbs,GPU)
+  end if
+  !the same with OpenCL, but they cannot exist at same time
+  if (OCLconv) then
+     call allocate_data_OCL(Glr%d%n1,Glr%d%n2,Glr%d%n3,atoms%geocode,&
+          in%nspin,hx,hy,hz,Glr%wfd,orbs,GPU)
   end if
 
   alpha=2.d0
@@ -1306,6 +1315,8 @@ contains
        !free GPU if it is the case
        if (GPUconv .and. .not.(DoDavidson)) then
           call free_gpu(GPU,orbs%norbp)
+       else if (OCLconv .and. .not.(DoDavidson)) then
+          call free_gpu_OCL(GPU,orbs%norbp)
        end if
        
        i_all=-product(shape(pot_ion))*kind(pot_ion)
@@ -1414,6 +1425,8 @@ contains
     !free GPU if it is the case
     if (GPUconv .and. .not.(DoDavidson)) then
        call free_gpu(GPU,orbs%norbp)
+    else if (OCLconv .and. .not.(DoDavidson)) then
+       call free_gpu_OCL(GPU,orbs%norbp)
     end if
     
     call deallocate_comms(comms,subname)

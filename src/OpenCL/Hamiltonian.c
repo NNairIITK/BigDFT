@@ -42,13 +42,20 @@ void FC_FUNC_(ocl_fulllocham_generic,OCL_FULLLOCHAM_GENERIC)(cl_command_queue *c
                                nseg_f, nvctr_f, keyg_f, keyv_f,
                                psi_c, psi_f, out);
   syn_self_d_generic_(command_queue, dimensions, periodic, out, psi);
-  potential_application_d_generic_(command_queue, dimensions, periodic, work, psi, out, pot);
+  potential_application_d_generic_(command_queue, dimensions, periodic, work, kinres, psi, out, pot, epot);
   kinetic_d_generic_(command_queue, dimensions, periodic, h, psi, out, work, kinres);
+  cl_uint n1 = dimensions[0] * 2;             
+  cl_uint n2 = dimensions[1] * 2;
+  cl_uint n3 = dimensions[2] * 2;
+  if( !periodic[0] ) n1 += 2*7;
+  if( !periodic[1] ) n2 += 2*7;
+  if( !periodic[2] ) n3 += 2*7;
+  cl_uint ndat = n1*n2*n3;
+  dot_d_(command_queue,&ndat, work, kinres, psi, out, ekinpot);
+  *ekinpot -= *epot;
   ana_self_d_generic_(command_queue, dimensions, periodic, kinres, psi);
   compress_d_(command_queue, dimensions,
 	      nseg_c, nvctr_c, keyg_c, keyv_c,
 	      nseg_f, nvctr_f, keyg_f, keyv_f,
 	      psi_c, psi_f, psi);
-
-  *ekinpot = 0.0;
 }

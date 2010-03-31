@@ -62,6 +62,12 @@ module module_types
      real(gp) :: strtarget(6)
      real(gp), pointer :: qmass(:)
 
+     ! variable for material acceleration
+     ! values 0: traditional CPU calculation
+     !        1: CUDA acceleration with CUBLAS
+     !        2: OpenCL acceleration (with CUBLAS one day)
+     integer :: iacceleration
+
   end type input_variables
 !!***
 
@@ -239,25 +245,6 @@ module module_types
 !!***
 
 
-!!****t* module_types/restart_objects
-!! DESCRIPTION
-!!  Used to restart a new DFT calculation or to save information 
-!!  for post-treatment
-!! SOURCE
-!!
-  type, public :: restart_objects
-     integer :: n1,n2,n3
-     real(gp) :: hx_old,hy_old,hz_old
-     real(wp), dimension(:), pointer :: psi 
-     real(wp), dimension(:,:), pointer :: gaucoeffs
-     real(gp), dimension(:,:), pointer :: rxyz_old
-     type(locreg_descriptors) :: Glr
-     type(gaussian_basis) :: gbd
-     type(orbitals_data) :: orbs
-  end type restart_objects
-!!***
-
-
 !!****t* module_types/communications_arrays
 !! DESCRIPTION
 !! Contains the information needed for communicating the wavefunctions
@@ -292,6 +279,25 @@ module module_types
      real(kind=8) :: keyg_c,keyg_f,keyv_c,keyv_f
      real(kind=8) :: context,queue
   end type GPU_pointers
+!!***
+
+!!****t* module_types/restart_objects
+!! DESCRIPTION
+!!  Used to restart a new DFT calculation or to save information 
+!!  for post-treatment
+!! SOURCE
+!!
+  type, public :: restart_objects
+     integer :: n1,n2,n3
+     real(gp) :: hx_old,hy_old,hz_old
+     real(wp), dimension(:), pointer :: psi 
+     real(wp), dimension(:,:), pointer :: gaucoeffs
+     real(gp), dimension(:,:), pointer :: rxyz_old
+     type(locreg_descriptors) :: Glr
+     type(gaussian_basis) :: gbd
+     type(orbitals_data) :: orbs
+     type(GPU_pointers) :: GPU
+  end type restart_objects
 !!***
 
 
@@ -504,11 +510,12 @@ end subroutine deallocate_orbs
 !!   Allocate and nullify restart objects
 !! SOURCE
 !!
-  subroutine init_restart_objects(atoms,rst,subname)
+  subroutine init_restart_objects(iproc,iacceleration,atoms,rst,subname)
     use module_base
     implicit none
     !Arguments
     character(len=*), intent(in) :: subname
+    integer, intent(in) :: iproc,iacceleration
     type(atoms_data), intent(in) :: atoms
     type(restart_objects), intent(out) :: rst
     !local variables
@@ -533,6 +540,9 @@ end subroutine deallocate_orbs
     nullify(rst%gbd%xp)
     nullify(rst%gbd%psiat)
     nullify(rst%gbd%rxyz)
+
+    !initialise the acceleration stategy if required
+    call init_material_acceleration(iproc,iacceleration,rst%GPU)
 
   end subroutine init_restart_objects
 !!***
@@ -579,6 +589,9 @@ end subroutine deallocate_orbs
        deallocate(rst%gaucoeffs,stat=i_stat)
        call memocc(i_stat,i_all,'gaucoeffs',subname)
     end if
+
+    !finalise the material accelearion usage
+    call release_material_acceleration(rst%GPU)
 
   end subroutine free_restart_objects
 !!***

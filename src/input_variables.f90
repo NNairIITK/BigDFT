@@ -155,7 +155,7 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   !local variables
   character(len=7) :: cudagpu
   character(len=100) :: line
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj,useGPU
+  integer :: ierror,ierrfrc,iline,ivrbproj
 
   ! Default abscalc variables
   call abscalc_input_variables_default(in)
@@ -196,33 +196,16 @@ subroutine dft_input_variables(iproc,filename,in,symObj)
   call check()
   read(1,*,iostat=ierror) in%dispersion
   call check()
-  !read the line for force the CUDA GPU calculation for all processors
+  !read the line for force the CUDA GPU or OpenCL calculation for all processors
   read(1,'(a100)')line
   read(line,*,iostat=ierrfrc) cudagpu
   iline=iline+1
+  !determine the acceleration strategy
+  in%iacceleration=0 !default
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
-     call sg_init(GPUshare,useGPU,iproc,initerror)
-     if (useGPU == 1) then
-        iconv = 1
-        iblas = 1
-     else
-        iconv = 0
-        iblas = 0
-     end if
-
-     if (initerror == 1) then
-        write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
-        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
-     end if
-       
-     if (iconv == 1) then
-        !change the value of the GPU convolution flag defined in the module_base
-        GPUconv=.true.
-     end if
-     if (iblas == 1) then
-        !change the value of the GPU convolution flag defined in the module_base
-        GPUblas=.true.
-     end if
+     in%iacceleration=1
+  else  if (ierrfrc == 0 .and. cudagpu=='OCLGPU') then
+     in%iacceleration=2
   end if
 
   !now the variables which are to be used only for the last run
@@ -641,7 +624,6 @@ subroutine free_input_variables(in)
 !!$     deallocate(in%Gabs_coeffs,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
 !!$  end if
-
 end subroutine free_input_variables
 !!***
 
@@ -2237,3 +2219,69 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
 
 end subroutine atomic_coordinate_axpy
 !!***
+
+subroutine init_material_acceleration(iproc,iacceleration,GPU)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in):: iacceleration,iproc
+  type(GPU_pointers), intent(out) :: GPU
+  !local variables
+  integer :: iconv,iblas,initerror,ierror,useGPU
+
+  if (iacceleration == 1) then
+     call sg_init(GPUshare,useGPU,iproc,initerror)
+     if (useGPU == 1) then
+        iconv = 1
+        iblas = 1
+     else
+        iconv = 0
+        iblas = 0
+     end if
+     if (initerror == 1) then
+        write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
+        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
+     end if
+
+     if (iconv == 1) then
+        !change the value of the GPU convolution flag defined in the module_base
+        GPUconv=.true.
+     end if
+     if (iblas == 1) then
+        !change the value of the GPU convolution flag defined in the module_base
+        GPUblas=.true.
+     end if
+  else if (iacceleration == 2) then
+     ! OpenCL convolutions are activated
+     !for the moment do not use CUBLAS for the linear algebra
+     if (.not. OCLconv) then
+        call ocl_create_gpu_context(GPU%context)
+        call ocl_create_command_queue(GPU%queue,GPU%context)
+        call ocl_build_kernels(GPU%context)
+        call init_event_list
+        if (iproc == 0) then
+           write(*,*)' OpenCL convolutions activated'
+        end if
+        OCLconv=.true.
+        print *,'GPU%context',GPU%context
+     end if
+  end if
+
+end subroutine init_material_acceleration
+
+subroutine release_material_acceleration(GPU)
+  use module_base
+  use module_types
+  implicit none
+  type(GPU_pointers), intent(out) :: GPU
+  
+  if (GPUconv) then
+     call sg_end()
+  end if
+
+  if (OCLconv) then
+     call ocl_clean(GPU%queue,GPU%context)
+     OCLconv=.false.
+  end if
+
+end subroutine release_material_acceleration

@@ -103,32 +103,13 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
      call free_gpu(GPU,orbs%norbp)
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
           hx,hy,hz,lr%wfd,orbsv,GPU)
+  else if (OCLconv) then
+     call free_gpu_OCL(GPU,orbs%norbp)    
+     call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
+          in%nspin,hx,hy,hz,lr%wfd,orbsv,GPU)
   end if
-  
+ 
   GPU%full_locham=.true.
-
-  !initialisation of the OCL routines, temporary
-  OCLconv=.true.
-  call ocl_create_gpu_context(GPU%context)
-  call ocl_create_command_queue(GPU%queue,GPU%context)
-  call ocl_build_kernels(GPU%context)
-  call init_event_list
-  if (at%geocode /= 'F') then
-    periodic(1) = 1
-  else
-    periodic(1) = 0
-  endif
-  if (at%geocode == 'P') then
-    periodic(2) = 1
-  else
-    periodic(2) = 0
-  endif 
-  if (at%geocode /= 'F') then
-    periodic(3) = 1
-  else
-    periodic(3) = 0
-  endif
-  call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,periodic,in%nspin,hx,hy,hz,lr%wfd,orbsv,GPU)
   !verify whether the calculation of the exact exchange term
   !should be preformed
   exctX = libxc_functionals_exctXfac() /= 0.0_gp
@@ -921,6 +902,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,in,at,&
 
   if (GPUconv) then
      call free_gpu(GPU,orbsv%norbp)
+  else if (OCLconv) then
+     call free_gpu_OCL(GPU,orbsv%norbp)
   end if
 
 
