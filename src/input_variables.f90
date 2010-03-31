@@ -339,6 +339,7 @@ subroutine geopt_input_variables_default(in)
   in%betax=2.0_gp
   in%history = 0
   in%ionmov = -1
+  in%dtion = 0.0_gp
   nullify(in%qmass)
 
 END SUBROUTINE geopt_input_variables_default

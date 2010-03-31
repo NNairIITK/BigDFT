@@ -251,7 +251,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   orbs%nkptsp=nkptsp
   allocate(orbs%ikptsp(orbs%nkptsp+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%ikptsp,'orbs%ikptsp',subname)
-  orbs%ikptsp=mykpts(1:orbs%nkptsp)
+  orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
 
   !print the distribution scheme ussed for this set of orbital
   !in the case of multiple k-points
