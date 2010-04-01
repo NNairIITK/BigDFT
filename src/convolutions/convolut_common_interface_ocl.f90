@@ -1,3 +1,24 @@
+subroutine release_acceleration_OCL(GPU)
+  use module_base
+  use module_types
+  implicit none
+  type(GPU_pointers), intent(out) :: GPU
+
+  call ocl_clean(GPU%queue,GPU%context)
+end subroutine release_acceleration_OCL
+
+subroutine init_acceleration_OCL(GPU)
+  use module_base
+  use module_types
+  implicit none
+  type(GPU_pointers), intent(out) :: GPU
+
+  call ocl_create_gpu_context(GPU%context)
+  call ocl_create_command_queue(GPU%queue,GPU%context)
+  call ocl_build_kernels(GPU%context)
+  call init_event_list
+end subroutine init_acceleration_OCL
+
 subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
   use module_base
   use module_types

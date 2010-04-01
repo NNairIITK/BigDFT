@@ -2255,15 +2255,12 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
      ! OpenCL convolutions are activated
      !for the moment do not use CUBLAS for the linear algebra
      if (.not. OCLconv) then
-        call ocl_create_gpu_context(GPU%context)
-        call ocl_create_command_queue(GPU%queue,GPU%context)
-        call ocl_build_kernels(GPU%context)
-        call init_event_list
+        call init_acceleration_OCL(GPU)
         if (iproc == 0) then
            write(*,*)' OpenCL convolutions activated'
         end if
         OCLconv=.true.
-        GPUblas=.true.
+        GPUblas=.false.
      end if
   end if
 
@@ -2280,7 +2277,7 @@ subroutine release_material_acceleration(GPU)
   end if
 
   if (OCLconv) then
-     call ocl_clean(GPU%queue,GPU%context)
+     call release_acceleration_OCL(GPU)
      OCLconv=.false.
   end if
 

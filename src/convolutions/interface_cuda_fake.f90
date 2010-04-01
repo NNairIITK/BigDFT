@@ -132,18 +132,3 @@
    implicit none
    !stop 'sg_end'
  end subroutine sg_end
-
- subroutine free_gpu_OCL()
-   implicit none
-   stop 'free_gpu_OCL'
- end subroutine free_gpu_OCL
-
- subroutine allocate_data_OCL()
-   implicit none
-   stop 'allocate_data_OCL'
- end subroutine allocate_data_OCL
-
- subroutine local_hamiltonian_OCL()
-   implicit none
-   stop 'local_hamiltonian_OCL'
- end subroutine local_hamiltonian_OCL
