@@ -767,7 +767,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   real(gp), dimension(3,nkpt), intent(in) :: kpt
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all
+  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,n_i,n_ip,rs_i,N_a,N_b,N_c
   logical, dimension(:), allocatable :: GPU_for_orbs
 
   allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
@@ -806,11 +806,54 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
      GPU_for_orbs(0)=GPUconv
   end if
 
-  !cubic-code strategy: balance the orbitals between processors
-  !in the most symmetric way
-  do iorb=1,norb*orbs%nkpts
-     jproc=mod(iorb-1,nproc)
-     orbs%norb_par(jproc)=orbs%norb_par(jproc)+1
+  ! Strategy to divide between k points.
+  ! There is an nproc length to divide into orbs%nkpts segments.
+  ! Segment (ikpt - 1) expand in 0 <= r_i < r_ip <= nproc.
+  ! where r_i and r_ip are real values. There are two possibilities:
+  !  - We can write r_i <= n_i <= n_ip <= r_ip with n_i and n_ip integers ;
+  !  - or r_i <= n_i and n_ip <= r_ip and n_i = n_ip + 1.
+  ! For both case, we can divide norb into the partition (real values):
+  !  - N_a = (n_i - r_i) * norb * orbs%nkpts / nproc;
+  !  - N_b = max((n_ip - n_i) * norb * orbs%nkpts / nproc, 0);
+  !  - N_c = (r_ip - n_ip) * norb * orbs%nkpts / nproc;
+  ! Before going to integer values, we have r_i = (ikpt - 1) * nproc / orbs%nkpts
+  ! So N_a and N_b can be simplified and written instead:
+  !  - N_a = int(norb * (n_i * orbs%nkpts - (ikpt - 1) * nproc) / nproc);
+  !  - N_c = int(norb * ((ikpt - 1) * nproc - n_i * orbs%nkpts) / nproc);
+  !  - N_b = norb - N_a - N_b.
+  ! After, if N_a > 0, we put this quantity to proc n_i - 1, if N_b > 0
+  ! we put its quantity to proc n_ip ; and finally N_b is distributed
+  ! among [n_i;n_ip[ procs.
+  orbs%norb_par(:) = 0
+  do ikpt = 1, orbs%nkpts
+     ! Calculation of n_i and n_ip, rs_i = r_i * orbs%nkpts to avoid rounding.
+     rs_i = (ikpt - 1) * nproc
+     if (mod(rs_i, orbs%nkpts) == 0) then
+        n_i = rs_i / orbs%nkpts
+     else
+        n_i = rs_i / orbs%nkpts + 1
+     end if
+     rs_i = ikpt * nproc
+     n_ip = rs_i / orbs%nkpts
+     ! Calculation of N_a, N_b and N_c from given n_i and n_ip.
+     if (n_ip >= n_i) then
+        N_a = norb * (n_i * orbs%nkpts - (ikpt - 1) * nproc) / nproc
+        N_c = norb * (ikpt * nproc - n_ip * orbs%nkpts) / nproc
+     else
+        N_c = norb / 2
+        N_a = norb - N_c
+     end if
+     N_b = norb - N_a - N_c
+     !if (iproc == 0) write(*,*) ikpt, n_i, n_ip, N_a, N_b, N_c
+     ! Affectation to procs.
+     if (N_a > 0) orbs%norb_par(n_i - 1) = orbs%norb_par(n_i - 1) + N_a
+     if (N_b > 0) then
+        do i_stat = 0, N_b - 1
+           jproc = n_i + mod(i_stat, n_ip - n_i)
+           orbs%norb_par(jproc) = orbs%norb_par(jproc) + 1
+        end do
+     end if
+     if (N_c > 0) orbs%norb_par(n_ip) = orbs%norb_par(n_ip) + N_c
   end do
 
   i_all=-product(shape(GPU_for_orbs))*kind(GPU_for_orbs)
