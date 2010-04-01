@@ -12,5 +12,6 @@ void inline axpy_offset_generic(cl_kernel kernel, cl_command_queue *command_queu
 void inline dot_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_mem *x, cl_mem *y, cl_mem *out);
 void inline copy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out);
 void inline set_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, double *val, cl_mem *x);
+void inline gemm_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *m, cl_uint *n, cl_uint *k, double *alpha, cl_mem *a, cl_mem *b, double *beta, cl_mem *c);
 
 #endif

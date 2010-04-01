@@ -49,6 +49,8 @@ extern cl_kernel ana1d_kernel_d;
 extern cl_kernel anashrink1d_kernel_d;
 extern cl_kernel syn1d_kernel_d;
 extern cl_kernel syngrow1d_kernel_d;
+extern cl_kernel gemm_kernel_d;
+extern cl_kernel gemm_kernel_d_opti;
 
 void create_magicfilter_kernels();
 void build_magicfilter_programs(cl_context * context);
@@ -148,6 +150,8 @@ void FC_FUNC_(axpy_offset_d,AXPY_OFFSET_D)(cl_command_queue *command_queue, cl_u
                                                                             cl_uint *offset_x, cl_mem *x,
                                                                             cl_uint *offset_y, cl_mem *y,
                                                                             cl_uint *offset_z, cl_mem *z);
+void FC_FUNC_(gemm_d,GEMM_D)(cl_command_queue *command_queue,  cl_uint *m, cl_uint *n, cl_uint *k, double *alpha, cl_mem *a, cl_mem *b, double *beta, cl_mem *c);
+void FC_FUNC_(gemm_d_opti,GEMM_D_OPTI)(cl_command_queue *command_queue,  cl_uint *m, cl_uint *n, cl_uint *k, double *alpha, cl_mem *a, cl_mem *b, double *beta, cl_mem *c);
 
 void FC_FUNC_(uncompress_d,UNCOMPRESS_D)(cl_command_queue *command_queue, cl_uint *dimensions,
                                        cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,

@@ -1,5 +1,77 @@
 #include "OpenCL_wrappers.h"
 
+char * dgemm_program="\
+//size is supposed to be 16*16\n\
+#define BUFFER_SIZE 16\n\
+#pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
+__kernel void gemmKernel_d( uint m, uint n, uint k, double alpha, __global const double *a, __global const double *b, double beta, __global double * c, __local double *tmp1, __local double *tmp2){\n\
+  size_t i = get_local_id(0);\n\
+  size_t j = get_local_id(1);\n\
+  size_t ig = get_global_id(0);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t gi = get_group_id(0);\n\
+  size_t gj = get_group_id(1);\n\
+  size_t si = get_local_size(0);\n\
+  size_t sj = get_local_size(1);\n\
+  \n\
+  size_t index = 0;\n\
+  size_t sumi;\n\
+  double result = 0.0;\n\
+  while( index < k) {\n\
+    //load first matrix in tmp1\n\
+    tmp1[j*(BUFFER_SIZE) + i] = (jg < m && (index + i) <  k) ? a[jg*k + index+i] : 0.0;\n\
+    //load second matrix in tmp2\n\
+    tmp2[j*(BUFFER_SIZE) + i] = (ig < n && (index + j) < k) ? b[(index+j)*n + ig] : 0.0;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    //compute partial result (only half bank conlicts removed)\n\
+    #pragma unroll\n\
+    for(sumi=0; sumi<BUFFER_SIZE; sumi++)\n\
+      result += tmp1[j*(BUFFER_SIZE) + sumi] * tmp2[ sumi*(BUFFER_SIZE) + i];\n\
+    index += BUFFER_SIZE;\n\
+  }\n\
+  if(ig < n && jg < m){\n\
+    if( beta != 0.0 )\n\
+      c[jg*n + ig] = alpha * result + beta * c[jg*n + ig];\n\
+    else\n\
+      c[jg*n + ig] = alpha * result;\n\
+  }\n\
+}\n\
+__kernel void gemmKernel_d_opti( uint m, uint n, uint k, double alpha, __global const double *a, __global const double *b, double beta, __global double * c, __local double *tmp1, __local double *tmp2){\n\
+  size_t i = get_local_id(0);\n\
+  size_t j = get_local_id(1);\n\
+  size_t ig = get_global_id(0);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t gi = get_group_id(0);\n\
+  size_t gj = get_group_id(1);\n\
+  size_t si = get_local_size(0);\n\
+  size_t sj = get_local_size(1);\n\
+  size_t jt = (j + i)%BUFFER_SIZE;\n\
+  size_t jgt = jg - j + jt;\n\
+  \n\
+  size_t index = 0;\n\
+  size_t sumi;\n\
+  double result = 0.0;\n\
+  while( index < k) {\n\
+    //load first matrix in tmp1\n\
+    tmp1[j*(BUFFER_SIZE+1) + i] = (jg < m && (index + i) < k) ? a[jg*k + index+i] : 0.0;\n\
+    //load second matrix in tmp2\n\
+    tmp2[j*(BUFFER_SIZE) + i] = (ig < n && (index + j) < k) ? b[(index+j)*n + ig] : 0.0;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    #pragma unroll\n\
+    for(sumi=0; sumi<BUFFER_SIZE; sumi++)\n\
+      result += tmp1[jt*(BUFFER_SIZE+1) + sumi] * tmp2[sumi*(BUFFER_SIZE) + i];\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    index += BUFFER_SIZE;\n\
+  }\n\
+  if(ig < n && jgt < m){\n\
+    if( beta != 0.0 )\n\
+      c[jgt*n + ig] = alpha * result + beta * c[jgt*n + ig];\n\
+    else\n\
+      c[jgt*n + ig] = alpha * result;\n\
+  }\n\
+}\n\
+";
+
 char * reduction_program="\
 //group_size is supposed to be 512\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
@@ -148,6 +220,28 @@ __kernel void setKernel_d( uint n, const double val, __global double *x) {\n\
 }\n\
 \n\
 ";
+
+void inline gemm_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *m, cl_uint *n, cl_uint *k, double *alpha, cl_mem *a, cl_mem *b, double *beta, cl_mem *c) {
+  cl_int ciErrNum;
+  size_t block_size_i=16;
+  size_t block_size_j=16;
+  cl_uint i=0;
+  clSetKernelArg(kernel, i++,sizeof(*m), (void*)m);
+  clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+  clSetKernelArg(kernel, i++,sizeof(*k), (void*)k);
+  clSetKernelArg(kernel, i++,sizeof(*alpha), (void*)alpha);
+  clSetKernelArg(kernel, i++,sizeof(*a), (void*)a);
+  clSetKernelArg(kernel, i++,sizeof(*b), (void*)b);
+  clSetKernelArg(kernel, i++,sizeof(*beta), (void*)beta);
+  clSetKernelArg(kernel, i++,sizeof(*c), (void*)c);
+  clSetKernelArg(kernel, i++,sizeof(double)*(block_size_i+1)*block_size_j, NULL);
+  clSetKernelArg(kernel, i++,sizeof(double)*(block_size_i+1)*block_size_j, NULL);
+  size_t localWorkSize[] = { block_size_i, block_size_j };
+  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*m)  };
+  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue gemm kernel!");
+}
+
 void inline set_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, double *val, cl_mem *x) {
   cl_int ciErrNum;
   size_t block_size_i=64;
@@ -348,6 +442,14 @@ void FC_FUNC_(nrm2sq_self_d,NRM2SQ_SELF_D)(cl_command_queue *command_queue, cl_u
   clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(double), out, 0, NULL, NULL);
 }
 
+void FC_FUNC_(gemm_d,GEMM_D)(cl_command_queue *command_queue,  cl_uint *m, cl_uint *n, cl_uint *k, double *alpha, cl_mem *a, cl_mem *b, double *beta, cl_mem *c) {
+  gemm_generic(gemm_kernel_d, command_queue, m, n, k, alpha, a, b, beta, c);
+}
+
+void FC_FUNC_(gemm_d_opti,GEMM_D_OPTI)(cl_command_queue *command_queue,  cl_uint *m, cl_uint *n, cl_uint *k, double *alpha, cl_mem *a, cl_mem *b, double *beta, cl_mem *c) {
+  gemm_generic(gemm_kernel_d_opti, command_queue, m, n, k, alpha, a, b, beta, c);
+}
+
 void FC_FUNC_(asum_d,ASUM_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, double *out) {
   if(*ndat==0){
    *out = 0.0;
@@ -427,7 +529,10 @@ cl_kernel scal_kernel_d;
 cl_kernel copy_kernel_d;
 cl_kernel dot_kernel_d;
 cl_kernel set_kernel_d;
+cl_kernel gemm_kernel_d;
+cl_kernel gemm_kernel_d_opti;
 cl_program reductionProgram;
+cl_program dgemmProgram;
 
 void create_reduction_kernels(){
     cl_int ciErrNum = CL_SUCCESS;
@@ -447,6 +552,10 @@ void create_reduction_kernels(){
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     set_kernel_d=clCreateKernel(reductionProgram,"setKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    gemm_kernel_d=clCreateKernel(dgemmProgram,"gemmKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    gemm_kernel_d_opti=clCreateKernel(dgemmProgram,"gemmKernel_d_opti",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
 }
 
 void build_reduction_programs(cl_context * context){
@@ -459,6 +568,18 @@ void build_reduction_programs(cl_context * context){
         fprintf(stderr,"Error: Failed to build reduction program!\n");
         char cBuildLog[10240];
         clGetProgramBuildInfo(reductionProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        fprintf(stderr,"%s\n",cBuildLog);
+        exit(1);
+    }
+    ciErrNum = CL_SUCCESS;
+    dgemmProgram = clCreateProgramWithSource(*context,1,(const char**) &dgemm_program, NULL, &ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create program!");
+    ciErrNum = clBuildProgram(dgemmProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error: Failed to build dgemm program!\n");
+        char cBuildLog[10240];
+        clGetProgramBuildInfo(dgemmProgram, oclGetFirstDev(*context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
         fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
@@ -482,6 +603,12 @@ void clean_reduction_kernels(){
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(set_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_kernel_d_opti);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseProgram(reductionProgram);
+  oclErrorCheck(ciErrNum,"Failed to release program!");
+  ciErrNum = clReleaseProgram(dgemmProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
 }
