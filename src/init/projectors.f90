@@ -86,6 +86,9 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
         istart=istart+mvctr*mproj
 
         nprojelat=mvctr*mproj
+
+        !print *,'iat,mvctr',iat,mvctr,mseg,mproj
+
         ! fine grid quantities
         call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
@@ -108,6 +111,9 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
         istart=istart+7*mvctr*mproj
         nprojelat=nprojelat+7*mvctr*mproj
         nlpspd%nprojel=max(nlpspd%nprojel,nprojelat)
+
+        !print *,'iat,nprojelat',iat,nprojelat,mvctr,mseg
+
      else  !(atom has no nonlocal PSP, e.g. H)
         nlpspd%nseg_p(2*iat-1)=nlpspd%nseg_p(2*iat-2) 
         nlpspd%nvctr_p(2*iat-1)=nlpspd%nvctr_p(2*iat-2) 
@@ -176,10 +182,13 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   cmplxprojs=.false.
   do iorb=1,orbs%norbp
      ikpt=orbs%iokpt(iorb)
-     cmplxprojs = (orbs%kpts(1,ikpt)**2+orbs%kpts(1,ikpt)**2+orbs%kpts(1,ikpt)**2 >0 .and.&
+     cmplxprojs = (orbs%kpts(1,ikpt)**2+orbs%kpts(2,ikpt)**2+orbs%kpts(3,ikpt)**2 >0 .and.&
           orbs%nspinor > 1)
   end do
 
+  !activate the complex projector if there are kpoints
+  !TO BE COMMENTED OUT
+  cmplxprojs= (orbs%kpts(1,1)**2+orbs%kpts(2,1)**2+orbs%kpts(3,1)**2 >0) .or. orbs%nkpts>1
   !then calculate the number of k-points per processor
   !(assume always one k-point at a time in the on-the-fly stategy)
   if (DistProjApply .or. orbs%norbp == 0) then
@@ -195,9 +204,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   !      do this for real k-points
   if (cmplxprojs) nlpspd%nprojel=2*nlpspd%nprojel
 
-  !print *,'iproc,nlpspd%nprojel',iproc,nlpspd%nprojel,nkptsproj
-
-  if (iproc.eq.0) then
+  if (iproc == 0) then
      if (DistProjApply) then
         write(*,'(44x,a)') '------   On-the-fly projectors application'
      else
@@ -321,7 +328,6 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
   do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
      do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
         if (at%psppar(l,i,ityp) /= 0.0_gp) then
-
            call projector(at%geocode,at%atomnames(ityp),iat,idir,l,i,&
                 at%psppar(l,0,ityp),rxyz(1,iat),n1,n2,n3,&
                 hx,hy,hz,kx,ky,kz,ncplx,&
@@ -397,7 +403,7 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
            lz(iterm)=lxyz_arr(3,iterm,idir)
         end do
      end if
-     
+
      call crtproj(geocode,nterm,n1,n2,n3,hx,hy,hz,kx,ky,kz,ncplx,&
           gau_a,factors,rx,ry,rz,lx,ly,lz,&
           mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c))
@@ -497,15 +503,18 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
   real(wp), dimension((mvctr_c+7*mvctr_f)*ncplx), intent(out) :: proj
   !local variables
   character(len=*), parameter :: subname='crtproj'
-  integer, parameter :: nw=32000
+  integer, parameter :: nw=65536
   logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3
   integer :: mvctr,i_all,i_stat,j1,i0,j0,jj,ii,i,iseg,ind_f,ind_c
   real(wp) :: re_cmplx_prod,im_cmplx_prod
   real(gp) :: factor,err_norm
-  real(wp), dimension(0:nw,2,2) :: work !always use complex value
+  real(wp), allocatable, dimension(:,:,:) :: work
   real(wp), allocatable, dimension(:,:,:,:) :: wprojx,wprojy,wprojz
 !$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+
+  allocate(work(0:nw,2,2+ndebug),stat=i_stat)  !always use complex value
+  call memocc(i_stat,work,'work',subname)
 
   allocate(wprojx(ncplx,0:n1,2,nterm+ndebug),stat=i_stat)
   call memocc(i_stat,wprojx,'wprojx',subname)
@@ -522,6 +531,7 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
   ! make sure that the coefficients returned by CALL GAUSS_TO_DAUB are zero outside [ml:mr] 
   err_norm=0.0_gp 
   do iterm=1,nterm
+
      factor=fac_arr(iterm)
      n_gau=lx(iterm) 
      call gauss_to_daub_k(hx,kx*hx,ncplx,factor,rx,gau_a,n_gau,n1,ml1,mu1,&
@@ -536,7 +546,6 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
           wprojz(1,0,1,iterm),work,nw,perz) 
 
   end do
-
   !the filling of the projector should be different if ncplx==1 or 2
   !split such as to avoid intensive call to if statements
   if (ncplx == 1) then
@@ -818,9 +827,9 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      end if
 
      !now the imaginary part
-
      !$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then 
      ! coarse part
+     mvctr=0
      do iseg=1,mseg_c
         jj=keyv_p(iseg)
         j0=keyg_p(1,iseg)
@@ -833,12 +842,18 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
         i1=i0+j1-j0
         do i=i0,i1
            ind_c=mvctr_c+7*mvctr_f+i-i0+jj
+           !write(17,*)ind_c,(mvctr_c+7*mvctr_f)*ncplx
            mvctr=mvctr+1
            proj(ind_c)=&
                 im_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
         enddo
      enddo
      !$  end if
+
+     if (mvctr /=  mvctr_c) then
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_c ',mvctr,mvctr_c
+        stop
+     end if
 
      !$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
      ! First term: fine projector components
@@ -866,7 +881,6 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
            proj(ind_f+7)=im_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,2,1),wprojz(1,i3,2,1))
         enddo
      enddo
-
      if (mvctr /= mvctr_f) then
         write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_f ',mvctr,mvctr_f
         stop 
@@ -938,6 +952,7 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      !$omp end parallel
      
   end if
+
   i_all=-product(shape(wprojx))*kind(wprojx)
   deallocate(wprojx,stat=i_stat)
   call memocc(i_stat,i_all,'wprojx',subname)
@@ -947,6 +962,11 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
   i_all=-product(shape(wprojz))*kind(wprojz)
   deallocate(wprojz,stat=i_stat)
   call memocc(i_stat,i_all,'wprojz',subname)
+
+  i_all=-product(shape(work))*kind(work)
+  deallocate(work,stat=i_stat)
+  call memocc(i_stat,i_all,'work',subname)
+
 
 END SUBROUTINE crtproj
 !!***

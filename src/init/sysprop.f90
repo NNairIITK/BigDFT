@@ -326,8 +326,13 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      end if
      close(11)
 
-     !correct the coarse and the fine radius for projectors
-     radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),15.0_gp*maxrad)/in%frmult,radii_cf(ityp,2))
+     !correct the coarse radius for projectors
+     !it is always multiplied by frmult
+     !NOTE this radius is chosen such as to make the projector be defined always on the same sphere
+     !     of the atom. This is clearly too much since such sphere is built to the exp decay of the wavefunction
+     !     and not for the gaussian decaying of the pseudopotential projector
+     !     add a proper varialbe in input.perf
+     radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),in%projrad*maxrad)/in%frmult,radii_cf(ityp,2))
 
      if (maxrad == 0.0_gp) then
         radii_cf(ityp,3)=0.0_gp
@@ -808,6 +813,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
 
   !cubic-code strategy: balance the orbitals between processors
   !in the most symmetric way
+  !here we should change the strategy for k-points distribution
   do iorb=1,norb*orbs%nkpts
      jproc=mod(iorb-1,nproc)
      orbs%norb_par(jproc)=orbs%norb_par(jproc)+1

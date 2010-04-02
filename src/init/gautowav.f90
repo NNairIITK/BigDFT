@@ -653,7 +653,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   real(gp) :: rx,ry,rz,gau_a
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
-  real(wp), dimension(0:nw,2,2) :: work
+  real(wp), allocatable, dimension(:,:,:) :: work
   real(wp), allocatable, dimension(:,:,:,:) :: wx,wy,wz
 
   !calculate nterms_max:
@@ -661,6 +661,9 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   !(for a grid of dimension 100 nterms_max=655)
   !bu with at least ngx*nterm_max ~= 100 elements
   nterms_max=max(maxsizeKB*1024/(2*ncplx*max(lr%d%n1,lr%d%n2,lr%d%n3)),100)
+
+  allocate(work(0:nw,2,2+ndebug),stat=i_stat)
+  call memocc(i_stat,work,'work',subname)
 
   allocate(wx(ncplx,0:lr%d%n1,2,nterms_max+ndebug),stat=i_stat)
   call memocc(i_stat,wx,'wx',subname)
@@ -676,8 +679,6 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
 
   !initialize the wavefunction
   call razero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx,psi)
-  !this can be changed to be passed only once to all the gaussian basis
-  !eks=0.d0
 
   !calculate the number of terms for this orbital
   nterms=0
@@ -721,20 +722,20 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
                     !print *,iat,ig,i,fac_arr(i),wfn_gau(icoeff),G%xp(iexpo+ig-1)
                     gau_a=G%xp(iexpo+ig-1)
                     n_gau=lx(i)
-                    !print *,'x',gau_a!nterm,ncplx,kx,ky,kz
+                    !print *,'x',gau_a,nterm,ncplx,kx,ky,kz,ml1,mu1,lr%d%n1
                     call gauss_to_daub_k(hx,kx*hx,ncplx,fac_arr(i),rx,gau_a,n_gau,&
                          lr%d%n1,ml1,mu1,&
                          wx(1,0,1,iterm),work,nw,perx) 
                     n_gau=ly(i)
-                    !print *,'y' 
+                    !print *,'y',ml2,mu2,lr%d%n2
                     call gauss_to_daub_k(hy,ky*hy,ncplx,wfn_gau(icoeff),ry,gau_a,n_gau,&
                          lr%d%n2,ml2,mu2,&
                          wy(1,0,1,iterm),work,nw,pery) 
                     n_gau=lz(i) 
-                    !print *,'z'
+                    !print *,'z',ml3,mu3,lr%d%n3
                     call gauss_to_daub_k(hz,kz*hz,ncplx,G%psiat(iexpo+ig-1),rz,gau_a,n_gau,&
                          lr%d%n3,ml3,mu3,&
-                         wz(1,0,1,iterm),work,nw,perz) 
+                         wz(1,0,1,iterm),work,nw,perz)
                     iterm=iterm+1
                  end do
               end do
@@ -750,7 +751,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
 
   !accumulate wavefuncton
   call wfn_from_tensprod(lr,ncplx,nterms,wx,wy,wz,psi)
-
+!psi=1.d0
   i_all=-product(shape(wx))*kind(wx)
   deallocate(wx,stat=i_stat)
   call memocc(i_stat,i_all,'wx',subname)
@@ -760,6 +761,11 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   i_all=-product(shape(wz))*kind(wz)
   deallocate(wz,stat=i_stat)
   call memocc(i_stat,i_all,'wz',subname)
+
+  i_all=-product(shape(work))*kind(work)
+  deallocate(work,stat=i_stat)
+  call memocc(i_stat,i_all,'work',subname)
+
 
 
 END SUBROUTINE gaussians_to_wavelets_orb

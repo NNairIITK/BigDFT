@@ -294,7 +294,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal
   integer :: ikptp,ikpt,nvctrp
-  integer :: i,ndim_hamovr,i_all,i_stat,n2hamovr,nsthamovr,ierr,norbi_max,j,noncoll
+  integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll
   integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor,ispsi,ispsie,ispsiv
   real(gp) :: tolerance
   type(orbitals_data), pointer :: orbsu
@@ -350,17 +350,9 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   call transpose_v(iproc,nproc,orbsu,wfd,commu,hpsi,work=psiw)
 
   if (nproc > 1) then
-
      i_all=-product(shape(psiw))*kind(psiw)
      deallocate(psiw,stat=i_stat)
      call memocc(i_stat,i_all,'psiw',subname)
-
-     n2hamovr=2!4
-     nsthamovr=1!3
-  else
-     !allocation values
-     n2hamovr=2
-     nsthamovr=1
   end if
 
   !define the grouping of the orbitals: for the semicore case, follow the semicore atoms,
@@ -435,11 +427,11 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   end if
 
 
-  allocate(hamovr(nspin*ndim_hamovr,n2hamovr,orbsu%nkpts+ndebug),stat=i_stat)
+  allocate(hamovr(nspin*ndim_hamovr,2,orbsu%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,hamovr,'hamovr',subname)
 
   !initialise hamovr
-  call razero(nspin*ndim_hamovr*n2hamovr*orbsu%nkpts,hamovr)
+  call razero(nspin*ndim_hamovr*2*orbsu%nkpts,hamovr)
 
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Overlap Matrix...'
@@ -459,7 +451,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      
      !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nvctrp,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
      call overlap_matrices(norbtot,nvctrp,natsceff,nspin,nspinor,ndim_hamovr,norbgrp,&
-          hamovr(1,nsthamovr,ikpt),psi(ispsi),hpsi(ispsi))
+          hamovr(1,1,ikpt),psi(ispsi),hpsi(ispsi))
      
      ispsi=ispsi+nvctrp*norbtot*orbsu%nspinor
   end do
@@ -477,9 +469,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      !reduce the overlap matrix between all the processors
      call mpiallred(hamovr(1,1,1),2*nspin*ndim_hamovr*orbsu%nkpts,&
           MPI_SUM,MPI_COMM_WORLD,ierr)
-
-!!$     call MPI_ALLREDUCE(MPI_IN_PLACE,hamovr(1,1,1),2*nspin*ndim_hamovr*orbsu%nkpts,&
-!!$          mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
   end if
 
   ispsi=1
@@ -700,7 +689,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
 
   !find the eigenfunctions for each group
   n_lp=max(10,4*norbi_max)
-  allocate(work_lp(n_lp+ndebug),stat=i_stat)
+  allocate(work_lp(ncplx*n_lp+ndebug),stat=i_stat)
   call memocc(i_stat,work_lp,'work_lp',subname)
   allocate(evale(nspin*norbi_max+ndebug),stat=i_stat)
   call memocc(i_stat,evale,'evale',subname)

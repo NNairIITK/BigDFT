@@ -68,6 +68,8 @@ module module_types
      logical :: debug
      ! Cache size for FFT
      integer :: ncache_fft
+     !coarse radius of the projectors in units of the maxrad
+     real(gp) :: projrad
 
   end type input_variables
 !!***
