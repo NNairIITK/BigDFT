@@ -349,7 +349,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call timing(iproc,'CrtDescriptors','ON')
   call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
-       atoms,rxyz,radii_cf,crmult,frmult,Glr,orbs)
+       atoms,rxyz,radii_cf,crmult,frmult,Glr)
   call timing(iproc,'CrtDescriptors','OF')
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
@@ -528,7 +528,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   case(0)
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
-     call input_wf_diag(iproc,nproc,atoms,&
+     call input_wf_diag(iproc,nproc, atoms,&
           orbs,orbsv,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
           nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons)
@@ -716,9 +716,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   wfn_loop: do iter=1,itermax
 
      if (iproc == 0 .and. verbose > 0) then 
-        write( *,'(1x,a,i0)')&
-             '---------------------------------------------------------------------------- iter= ',&
-             iter
+        write( *,'(1x,a,i0)') &
+             & repeat('-',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
      endif
      !control whether the minimisation iterations ended
      endloop= gnrm <= gnrm_cv .or. iter == itermax
@@ -1516,25 +1515,7 @@ contains
     deallocate(radii_cf,stat=i_stat)
     call memocc(i_stat,i_all,'radii_cf',subname)
 
-
-    i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
-    deallocate(nlpspd%nboxp_c,stat=i_stat)
-    call memocc(i_stat,i_all,'nboxp_c',subname)
-    i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
-    deallocate(nlpspd%nboxp_f,stat=i_stat)
-    call memocc(i_stat,i_all,'nboxp_f',subname)
-    i_all=-product(shape(nlpspd%keyg_p))*kind(nlpspd%keyg_p)
-    deallocate(nlpspd%keyg_p,stat=i_stat)
-    call memocc(i_stat,i_all,'keyg_p',subname)
-    i_all=-product(shape(nlpspd%keyv_p))*kind(nlpspd%keyv_p)
-    deallocate(nlpspd%keyv_p,stat=i_stat)
-    call memocc(i_stat,i_all,'keyv_p',subname)
-    i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
-    deallocate(nlpspd%nvctr_p,stat=i_stat)
-    call memocc(i_stat,i_all,'nvctr_p',subname)
-    i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
-    deallocate(nlpspd%nseg_p,stat=i_stat)
-    call memocc(i_stat,i_all,'nseg_p',subname)
+    call deallocate_proj_descr(nlpspd,subname)
 
     i_all=-product(shape(proj))*kind(proj)
     deallocate(proj,stat=i_stat)

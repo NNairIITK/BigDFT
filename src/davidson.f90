@@ -214,8 +214,10 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   !probably this loop can be rewritten using GEMMs
   ispsi=1
   do ikptp=1,orbsv%nkptsp
-     ikpt=ikptp+orbsv%iskpts
+     ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
      nvctrp=commsv%nvctr_par(iproc,ikptp)
+     if (nvctrp == 0) cycle
+
      nspinor=orbsv%nspinor
      do iorb=1,orbsv%norb ! temporary variables 
         !for complex wavefunctions the diagonal is always real
@@ -306,8 +308,10 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      !here we should add the ncomp term for non-collinear case
      ispsi=1
      do ikptp=1,orbsv%nkptsp
-        ikpt=ikptp+orbsv%iskpts
+        ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
         nvctrp=commsv%nvctr_par(iproc,ikptp)
+        if (nvctrp == 0) cycle
+
         nspinor=orbsv%nspinor
         do iorb=1,orbsv%norb
            !gradient = hv-e*v
@@ -369,8 +373,10 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      call razero(orbsv%norb*orbsv%nkpts,e(1,1,2))
      ispsi=1
      do ikptp=1,orbsv%nkptsp
-        ikpt=ikptp+orbsv%iskpts
+        ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
         nvctrp=commsv%nvctr_par(iproc,ikptp)
+        if (nvctrp == 0) cycle
+
         nspinor=orbsv%nspinor
         do iorb=1,orbsv%norb
            e(iorb,ikpt,2)= nrm2(nvctrp*nspinor,g(ispsi+nvctrp*nspinor*(iorb-1)),1)**2
@@ -474,8 +480,10 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
      ispsi=1
      do ikptp=1,orbsv%nkptsp
-        ikpt=ikptp+orbsv%iskpts
+        ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
         nvctrp=commsv%nvctr_par(iproc,ikptp)
+        if (nvctrp == 0) cycle
+
         nspinor=orbsv%nspinor
         do iorb=1,orbsv%norb
            e(iorb,ikpt,2)=nrm2(nvctrp*nspinor,g(ispsi+nvctrp*nspinor*(iorb-1)),1)**2
@@ -513,12 +521,13 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      ! therefore, element (iorb+nvirte,jorb) is transposed to (j,nvirt+iorb)
      ispsi=1
      do ikptp=1,orbsv%nkptsp
-        ikpt=ikptp+orbsv%iskpts
+        ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
 
         do ispin=1,nspin
 
            call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
+           if (nvctrp == 0) cycle
            if (nspinor > 1) then
               ncplx=2
            else
@@ -547,13 +556,14 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
      ispsi=1
      do ikptp=1,orbsv%nkptsp
-        ikpt=ikptp+orbsv%iskpts
+        ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
 
         if(iproc==0)write(*,'(1x,a)',advance='no')"Diagonalization..."
 
         do ispin=1,nspin
            call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
+           if (nvctrp == 0) cycle
 
            if (nspinor /= 1) then
               allocate(work_rp(6*norb+1+ndebug),stat=i_stat)
@@ -636,7 +646,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 !!$
 !!$     ispsi=1
 !!$     do ikptp=1,orbsv%nkptsp
-!!$        ikpt=ikptp+orbsv%iskpts
+!!$        ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
 !!$        nvctrp=commsv%nvctr_par(iproc,ikptp)
 !!$
 !!$        do jorb=1,orbsv%norb! v to update

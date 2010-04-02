@@ -339,6 +339,7 @@ subroutine geopt_input_variables_default(in)
   in%betax=2.0_gp
   in%history = 0
   in%ionmov = -1
+  in%dtion = 0.0_gp
   nullify(in%qmass)
 
 END SUBROUTINE geopt_input_variables_default
@@ -536,7 +537,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   character(len=*), parameter :: subname='kpt_input_variables'
   character(len = 6) :: type
   integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3)
-  real(gp) :: kptrlen, shiftk(3,8), norm
+  real(gp) :: kptrlen, shiftk(3,8), norm, alat(3)
 
   ! Set default values.
   in%nkpt = 1
@@ -620,8 +621,10 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   close(unit=1,iostat=ierror)
 
   ! Convert reduced coordinates into BZ coordinates.
+  alat = (/ atoms%alat1, atoms%alat2, atoms%alat3 /)
+  if (atoms%geocode == 'S') alat(2) = 1.d0
   do i = 1, in%nkpt, 1
-     in%kpt(:, i) = in%kpt(:, i) / (/ atoms%alat1, atoms%alat2, atoms%alat3 /) * two_pi
+     in%kpt(:, i) = in%kpt(:, i) / alat * two_pi
   end do
 
 contains
@@ -2119,30 +2122,30 @@ subroutine print_general_parameters(in,atoms)
      call ab6_symmetry_get_group(atoms%symObj, spaceGroup, &
           & spaceGroupId, pointGroupMagn, genAfm, ierr)
      if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
-     write(add(1), '(a,i0)')       "N. sym.     = ", nSym
-     write(add(2), '(a,a)')        "Space group = ", trim(spaceGroup)
+     write(add(1), '(a,i0)')       "N. sym.   = ", nSym
+     write(add(2), '(a,a,a)')      "Sp. group = ", trim(spaceGroup)
   else if (atoms%geocode /= 'F' .and. in%disableSym) then
-     write(add(1), '(a)')          "N. sym.     = disabled"
-     write(add(2), '(a)')          "Space group = disabled"
+     write(add(1), '(a)')          "N. sym.   = disabled"
+     write(add(2), '(a)')          "Sp. group = disabled"
   else
-     write(add(1), '(a)')          "N. sym.     = free BC"
-     write(add(2), '(a)')          "Space group = free BC"
+     write(add(1), '(a)')          "N. sym.   = free BC"
+     write(add(2), '(a)')          "Sp. group = free BC"
   end if
   i = 3
   if (in%nvirt > 0) then
-     write(add(i), '(a,i5,a)')     "Virtual orb.= ", in%nvirt, " orb."
-     write(add(i + 1), '(a,i5,a)') "Plot dens.  = ", abs(in%nplot), " orb."
+     write(add(i), '(a,i5,a)')     "Virt. orb.= ", in%nvirt, " orb."
+     write(add(i + 1), '(a,i5,a)') "Plot dens.= ", abs(in%nplot), " orb."
   else
-     write(add(i), '(a)')          "Virtual orb.= none"
-     write(add(i + 1), '(a)')      "Plot dens.  = none"
+     write(add(i), '(a)')          "Virt. orb.= none"
+     write(add(i + 1), '(a)')      "Plot dens.= none"
   end if
   i = i + 2
   if (in%nspin==4) then
-     write(add(i),'(a)')           "Spin pol.   = non-coll."
+     write(add(i),'(a)')           "Spin pol. = non-coll."
   else if (in%nspin==2) then
-     write(add(i),'(a)')           "Spin pol.   = collinear"
+     write(add(i),'(a)')           "Spin pol. = collinear"
   else if (in%nspin==1) then
-     write(add(i),'(a)')           "Spin pol.   = no"
+     write(add(i),'(a)')           "Spin pol. = no"
   end if
 
   ! Printing

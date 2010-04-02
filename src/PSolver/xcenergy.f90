@@ -341,7 +341,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      end if
   end if
   !allocate array for XC potential enlarged for the WB procedure
-  allocate(vxci(m1,m3,nwb,nspin+ndebug),stat=i_stat)
+  allocate(vxci(m1,m3,max(1,nwb),nspin+ndebug),stat=i_stat)
   call memocc(i_stat,vxci,'vxci',subname)
 
   if (istart+1 <= m2) then 

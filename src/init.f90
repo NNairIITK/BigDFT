@@ -14,7 +14,7 @@
 !! SOURCE
 !!
 subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-     crmult,frmult,Glr,orbs)
+     crmult,frmult,Glr)
   use module_base
   use module_types
   implicit none
@@ -25,7 +25,6 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   type(locreg_descriptors), intent(inout) :: Glr
-  type(orbitals_data), intent(inout) :: orbs
   !local variables
   character(len=*), parameter :: subname='createWavefunctionsDescriptors'
   integer :: i_all,i_stat

@@ -321,7 +321,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
   semicore=present(norbsc_arr)
 
-
   !assign total orbital number for calculating the overlap matrix and diagonalise the system
 
   if(minimal) then
@@ -442,16 +441,16 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   !order, so the linear algebra on the transposed wavefunctions 
   !may be splitted
 
-
   ispsi=1
   do ikptp=1,orbsu%nkptsp
-     ikpt=orbsu%iskpts+ikptp
+     ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
      
      nvctrp=commu%nvctr_par(iproc,ikptp)
+     if (nvctrp == 0) cycle
      
      !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nvctrp,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
-     call overlap_matrices(norbtot,nvctrp,natsceff,nspin,nspinor,ndim_hamovr,norbgrp,&
-          hamovr(1,1,ikpt),psi(ispsi),hpsi(ispsi))
+     call overlap_matrices(norbtot,nvctrp,natsceff,nspin,nspinor,&
+          & ndim_hamovr,norbgrp,hamovr(1,1,ikpt),psi(ispsi),hpsi(ispsi))
      
      ispsi=ispsi+nvctrp*norbtot*orbsu%nspinor
   end do
@@ -474,8 +473,8 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   ispsi=1
   !it is important that the k-points repartition of the inputguess orbitals
   !coincides with the one of the SCF orbitals
-  do ikptp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptp
+  do ikptp=1,orbsu%nkptsp
+     ikpt=orbsu%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      call solve_eigensystem(iproc,orbs%norb,orbs%norbu,orbs%norbd,norbi_max,&
           ndim_hamovr,natsceff,nspin,nspinor,tolerance,norbgrp,hamovr(1,1,ikpt),&
@@ -508,9 +507,11 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   ispsie=1
   ispsiv=1
   do ikptp=1,orbsu%nkptsp
-     ikpt=orbsu%iskpts+ikptp
+     ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
      
      nvctrp=commu%nvctr_par(iproc,ikptp)
+     if (nvctrp == 0) cycle
+
      if (.not. present(orbsv)) then
         call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
              natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&

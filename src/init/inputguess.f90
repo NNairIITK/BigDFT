@@ -89,7 +89,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
      nvirteu=0
      nvirted=0
   end if
-  
+
   !create the orbitals descriptors, for virtual and inputguess orbitals
   call orbitals_descriptors(iproc,nproc,nvirteu+nvirted,nvirteu,nvirted, &
        & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)

@@ -214,7 +214,7 @@ module module_interfaces
      END SUBROUTINE MemoryEstimator
 
      subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-          crmult,frmult,Glr,orbs)
+          crmult,frmult,Glr)
        use module_base
        use module_types
        implicit none
@@ -225,7 +225,6 @@ module module_interfaces
        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
        real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
        type(locreg_descriptors), intent(inout) :: Glr
-       type(orbitals_data), intent(inout) :: orbs
      END SUBROUTINE createWavefunctionsDescriptors
 
      subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
