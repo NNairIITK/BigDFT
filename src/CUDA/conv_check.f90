@@ -169,11 +169,11 @@ program conv_check
 
 !!!           call GPU_allocate(n1*ndat,psi_GPU,i_stat)
 !!!           call GPU_allocate(n1*ndat,work_GPU,i_stat)
-           call sg_gpu_alloc(psi_GPU,n1*ndat,8,i_stat)
-           call sg_gpu_alloc(work_GPU,n1*ndat,8,i_stat)
+           call sg_gpu_malloc(psi_GPU,n1*ndat,8,i_stat)
+           call sg_gpu_malloc(work_GPU,n1*ndat,8,i_stat)
 
 
-           call  sg_gpu_imm_send(work_GPU,v_cuda,n1*ndat,8,i_stat)
+           call sg_send_mem_instantaneously(work_GPU,v_cuda,n1*ndat,8,i_stat)
            !call GPU_send(n1*ndat,v_cuda,work_GPU,i_stat)
 
            !now the CUDA part
@@ -192,7 +192,7 @@ program conv_check
                 GPUtime*1.d3/real(ntimes,kind=8),&
                 real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 
-           call sg_gpu_imm_recv(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
+           call sg_recv_mem_instantaneously(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
 
            !call GPU_receive(n1*ndat,psi_cuda,psi_GPU,i_stat)
 
@@ -282,10 +282,10 @@ program conv_check
 
            print *,'ekin',ekin
 
-           call sg_gpu_alloc(psi_GPU,n1*ndat,8,i_stat)
-           call sg_gpu_alloc(work_GPU,n1*ndat,8,i_stat)
-           call sg_gpu_alloc(work2_GPU,n1*ndat,8,i_stat)
-           call sg_gpu_alloc(v_GPU,n1*ndat,8,i_stat)
+           call sg_gpu_malloc(psi_GPU,n1*ndat,8,i_stat)
+           call sg_gpu_malloc(work_GPU,n1*ndat,8,i_stat)
+           call sg_gpu_malloc(work2_GPU,n1*ndat,8,i_stat)
+           call sg_gpu_malloc(v_GPU,n1*ndat,8,i_stat)
 
 
 !!!           call GPU_allocate(n1*ndat,psi_GPU,i_stat)
@@ -293,7 +293,7 @@ program conv_check
 !!!           call GPU_allocate(n1*ndat,work2_GPU,i_stat)
 !!!           call GPU_allocate(n1*ndat,v_GPU,i_stat)
 
-           call sg_gpu_imm_send(work_GPU,v_cuda,n1*ndat,8,i_stat)
+           call sg_send_mem_instantaneously(work_GPU,v_cuda,n1*ndat,8,i_stat)
 
            !now the CUDA part
            !take timings
@@ -313,7 +313,7 @@ program conv_check
                 real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 
            !call GPU_receive(n1*ndat,psi_cuda,psi_GPU,i_stat)
-           call sg_gpu_imm_recv(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
+           call sg_recv_mem_instantaneously(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
 
            call sg_gpu_free(v_GPU,i_stat)
            call sg_gpu_free(psi_GPU,i_stat)
@@ -381,11 +381,11 @@ program conv_check
 
 !!!              call GPU_allocate(n1*ndat,psi_GPU,i_stat)
 !!!              call GPU_allocate(n1*ndat,work_GPU,i_stat)
-              call sg_gpu_alloc(psi_GPU,n1*ndat,8,i_stat)
-              call sg_gpu_alloc(work_GPU,n1*ndat,8,i_stat)
+              call sg_gpu_malloc(psi_GPU,n1*ndat,8,i_stat)
+              call sg_gpu_malloc(work_GPU,n1*ndat,8,i_stat)
 
               !call GPU_send(n1*ndat,v_cuda,work_GPU,i_stat)
-              call sg_gpu_imm_send(work_GPU,v_cuda,n1*ndat,8,i_stat)
+              call sg_send_mem_instantaneously(work_GPU,v_cuda,n1*ndat,8,i_stat)
 
               !now the CUDA part
               !take timings
@@ -403,7 +403,7 @@ program conv_check
                    GPUtime*1.d3/real(ntimes,kind=8),&
                    real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 
-              call sg_gpu_imm_recv(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
+              call sg_recv_mem_instantaneously(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
 
               call sg_gpu_free(psi_GPU,i_stat)
               call sg_gpu_free(work_GPU,i_stat)
@@ -467,10 +467,10 @@ program conv_check
 !!!                 end do
 !!!              end do
 
-              call sg_gpu_alloc(psi_GPU,n1*ndat,8,i_stat)
-              call sg_gpu_alloc(work_GPU,n1*ndat,8,i_stat)
+              call sg_gpu_malloc(psi_GPU,n1*ndat,8,i_stat)
+              call sg_gpu_malloc(work_GPU,n1*ndat,8,i_stat)
 
-              call sg_gpu_imm_send(work_GPU,v_cuda,n1*ndat,8,i_stat)
+              call sg_send_mem_instantaneously(work_GPU,v_cuda,n1*ndat,8,i_stat)
 
               !now the CUDA part
               !take timings
@@ -488,7 +488,7 @@ program conv_check
                    GPUtime*1.d3/real(ntimes,kind=8),&
                    real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 
-              call sg_gpu_imm_recv(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
+              call sg_recv_mem_instantaneously(psi_cuda,psi_GPU,n1*ndat,8,i_stat)
 
               call sg_gpu_free(psi_GPU,i_stat)
               call sg_gpu_free(work_GPU,i_stat)
@@ -611,10 +611,10 @@ program conv_check
 
 
            !now the CUDA part
-           call sg_gpu_alloc(psi_GPU,8*nvctr_cf,8,i_stat)
-           call sg_gpu_alloc(work_GPU,(2*n1+2)*(2*n1+2)*(2*n1+2),8,i_stat)
+           call sg_gpu_malloc(psi_GPU,8*nvctr_cf,8,i_stat)
+           call sg_gpu_malloc(work_GPU,(2*n1+2)*(2*n1+2)*(2*n1+2),8,i_stat)
 
-           call sg_gpu_imm_send(psi_GPU,psi,8*nvctr_cf,8,i_stat)
+           call sg_send_mem_instantaneously(psi_GPU,psi,8*nvctr_cf,8,i_stat)
 
            !assign the keys values
            call adjust_keys_for_gpu(nseg,nseg,keyv,keyg,keyv,keyg,nvctr_cf,keys_GPU)
@@ -635,7 +635,7 @@ program conv_check
                 GPUtime*1.d3/real(ntimes,kind=8),&
                 real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
 
-           call sg_gpu_imm_recv(psi_cuda,work_GPU,(2*n1+2)*(2*n1+2)*(2*n1+2),8,i_stat)
+           call sg_recv_mem_instantaneously(psi_cuda,work_GPU,(2*n1+2)*(2*n1+2)*(2*n1+2),8,i_stat)
 
            call sg_gpu_free(psi_GPU,i_stat)
            call sg_gpu_free(work_GPU,i_stat)
@@ -705,10 +705,10 @@ program conv_check
 
 
            !now the CUDA part
-           call sg_gpu_alloc(psi_GPU,8*nvctr_cf,8,i_stat)
-           call sg_gpu_alloc(work_GPU,(2*n1+2)*(2*n1+2)*(2*n1+2),8,i_stat)
+           call sg_gpu_malloc(psi_GPU,8*nvctr_cf,8,i_stat)
+           call sg_gpu_malloc(work_GPU,(2*n1+2)*(2*n1+2)*(2*n1+2),8,i_stat)
 
-           call sg_gpu_imm_send(work_GPU,psi_in,(2*n1+2)*(2*n1+2)*(2*n1+2),8,i_stat)
+           call sg_send_mem_instantaneously(work_GPU,psi_in,(2*n1+2)*(2*n1+2)*(2*n1+2),8,i_stat)
 
            call adjust_keys_for_gpu(nseg,nseg,keyv,keyg,keyv,keyg,nvctr_cf,keys_GPU)
 
@@ -728,7 +728,7 @@ program conv_check
                 GPUtime*1.d3/real(ntimes,kind=8),&
                 real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
 
-           call sg_gpu_imm_recv(psi_cuda,psi_GPU,8*nvctr_cf,8,i_stat)
+           call sg_recv_mem_instantaneously(psi_cuda,psi_GPU,8*nvctr_cf,8,i_stat)
 
            call sg_gpu_free(psi_GPU,i_stat)
            call sg_gpu_free(work_GPU,i_stat)
@@ -865,7 +865,7 @@ contains
        enddo
     enddo
     !$omp end do
-  end subroutine conv_kin_x
+  END SUBROUTINE conv_kin_x
 
  
 end program conv_check

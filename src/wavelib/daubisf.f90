@@ -7,7 +7,7 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
   type(workarr_locham), intent(out) :: w
   !local variables
   character(len=*), parameter :: subname='initialize_work_arrays_locham'
-  integer :: i_all,i_stat
+  integer :: i_stat
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,nw,nww,nf
 
   n1=lr%d%n1
@@ -100,11 +100,11 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
         nf=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
 
         nw=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
-        nw=max(nw,2*(n3+1)*(n1+1)*(n2+1))	   ! for the comb_shrink_hyb_c
+        nw=max(nw,2*(n3+1)*(n1+1)*(n2+1))      ! for the comb_shrink_hyb_c
         nw=max(nw,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
 
         nww=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
-        nww=max(nww,4*(n2+1)*(n3+1)*(n1+1))	! for the comb_shrink_hyb_c   
+        nww=max(nww,4*(n2+1)*(n3+1)*(n1+1))   ! for the comb_shrink_hyb_c   
         nww=max(nww,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
 
         w%nw1=nw
@@ -155,7 +155,7 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
      endif
   end select
 
-end subroutine initialize_work_arrays_locham
+END SUBROUTINE initialize_work_arrays_locham
 
 subroutine deallocate_work_arrays_locham(lr,w)
   use module_base
@@ -206,7 +206,7 @@ subroutine deallocate_work_arrays_locham(lr,w)
   end if
 
   
-end subroutine deallocate_work_arrays_locham
+END SUBROUTINE deallocate_work_arrays_locham
 
 
 !transforms a wavefunction written in Daubechies basis into a 
@@ -254,8 +254,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
              w%w1,w%w2,w%x_c(1,idx),w%x_f(1,idx), & 
              psir(1,idx),lr%bounds%kb%ibyz_c,lr%bounds%gb%ibzxx_c,&
              lr%bounds%gb%ibxxyy_c,lr%bounds%gb%ibyz_ff,&
-             lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f,&
-             lr%bounds%ibyyzz_r)
+             lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f)
 
      end do
      
@@ -309,7 +308,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
      end if
   end select
   
-end subroutine daub_to_isf_locham
+END SUBROUTINE daub_to_isf_locham
 
 subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
   use module_base
@@ -394,9 +393,9 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
         end do
 
         !Transposition of the work arrays (use psir as workspace)
-        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+16,2*lr%d%n3+2,&
+        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
              w%x_c,psir,.true.)
-        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+16,2*lr%d%n3+2,&
+        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
              w%y_c,psir,.true.)
 
         ! compute the kinetic part and add  it to psi_out
@@ -409,7 +408,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
         end do
 
         !re-Transposition of the work arrays (use psir as workspace)
-        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+16,2*lr%d%n3+2,&
+        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
              w%y_c,psir,.false.)
 
         do idx=1,nspinor
@@ -535,7 +534,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
 
   end select
 
-end subroutine isf_to_daub_kinetic
+END SUBROUTINE isf_to_daub_kinetic
 
 subroutine initialize_work_arrays_sumrho(lr,w)
   use module_base
@@ -587,11 +586,11 @@ subroutine initialize_work_arrays_sumrho(lr,w)
         w%nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
 
         w%nw1=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
-        w%nw1=max(w%nw1,2*(n3+1)*(n1+1)*(n2+1))	   ! for the comb_shrink_hyb_c
+        w%nw1=max(w%nw1,2*(n3+1)*(n1+1)*(n2+1))      ! for the comb_shrink_hyb_c
         w%nw1=max(w%nw1,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
 
         w%nw2=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
-        w%nw2=max(w%nw2,4*(n2+1)*(n3+1)*(n1+1))	! for the comb_shrink_hyb_c   
+        w%nw2=max(w%nw2,4*(n2+1)*(n3+1)*(n1+1))   ! for the comb_shrink_hyb_c   
         w%nw2=max(w%nw2,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
      else
         !dimension of the work arrays, fully periodic case
@@ -619,7 +618,7 @@ subroutine initialize_work_arrays_sumrho(lr,w)
   end if
 
 
-end subroutine initialize_work_arrays_sumrho
+END SUBROUTINE initialize_work_arrays_sumrho
 
 subroutine deallocate_work_arrays_sumrho(w)
   use module_base
@@ -643,7 +642,7 @@ subroutine deallocate_work_arrays_sumrho(w)
   deallocate(w%w2,stat=i_stat)
   call memocc(i_stat,i_all,'w2',subname)
   
-end subroutine deallocate_work_arrays_sumrho
+END SUBROUTINE deallocate_work_arrays_sumrho
 
 !transform a daubechies function in compressed form to a function in real space via
 !the Magic Filter operation
@@ -682,8 +681,7 @@ subroutine daub_to_isf(lr,w,psi,psir)
           w%w1,w%w2,w%x_c,w%x_f,  & 
           psir,lr%bounds%kb%ibyz_c,&
           lr%bounds%gb%ibzxx_c,lr%bounds%gb%ibxxyy_c,&
-          lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f,&
-          lr%bounds%ibyyzz_r)
+          lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f)
 
   case('P')
      if (lr%hybrid_on) then
@@ -726,4 +724,4 @@ subroutine daub_to_isf(lr,w,psi,psir)
 
 
 
-end subroutine daub_to_isf
+END SUBROUTINE daub_to_isf

@@ -1,7 +1,17 @@
-
-
-!	Applies the operator (KE+cprecr*I)*x=y
-!	array x is input, array y is output
+!!****f* BigDFT/apply_hp_sd
+!! FUNCTION
+!!   Applies the operator (KE+cprecr*I)*x=y
+!!   array x is input, array y is output
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e)
   use module_base
@@ -34,13 +44,18 @@ subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   hgrid(1)=hx
   hgrid(2)=hy
   hgrid(3)=hz
-  call convolut_kinetic_per_sdc(n1,n2,n3,hgrid,psig_in,psig_out,cprecr,modul1,modul2,modul3,a,b,c,e)
+  call convolut_kinetic_per_sdc(n1,n2,n3,psig_in,psig_out,cprecr,modul1,modul2,modul3,a,b,c,e)
 
   call compress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
        psig_out,y(1),y(nvctr_c+1))
-end subroutine apply_hp_sd
+END SUBROUTINE apply_hp_sd
+!!***
 
+
+!!****f* BigDFT/apply_hp_scal
+!! SOURCE
+!!
 subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e,scal)
   use module_base
@@ -53,13 +68,13 @@ subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   real(gp), intent(in) :: hx,hy,hz
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  integer,intent(in)::modul1(lowfil:n1+lupfil)
-  integer,intent(in)::modul2(lowfil:n2+lupfil)
-  integer,intent(in)::modul3(lowfil:n3+lupfil)
-  real(gp),intent(in)::a(lowfil:lupfil,3)
-  real(gp),intent(in)::b(lowfil:lupfil,3)
-  real(gp),intent(in)::c(lowfil:lupfil,3)
-  real(gp),intent(in)::e(lowfil:lupfil,3)
+  integer,intent(in) :: modul1(lowfil:n1+lupfil)
+  integer,intent(in) :: modul2(lowfil:n2+lupfil)
+  integer,intent(in) :: modul3(lowfil:n3+lupfil)
+  real(gp),intent(in) :: a(lowfil:lupfil,3)
+  real(gp),intent(in) :: b(lowfil:lupfil,3)
+  real(gp),intent(in) :: c(lowfil:lupfil,3)
+  real(gp),intent(in) :: e(lowfil:lupfil,3)
   real(wp), intent(in) ::  x(nvctr_c+7*nvctr_f)  
 
   real(wp), intent(out) ::  y(nvctr_c+7*nvctr_f)
@@ -74,29 +89,33 @@ subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   hgrid(1)=hx
   hgrid(2)=hy
   hgrid(3)=hz
-  call convolut_kinetic_per_sdc(n1,n2,n3,hgrid,psig_in,psig_out,cprecr,modul1,modul2,modul3,a,b,c,e)
+  call convolut_kinetic_per_sdc(n1,n2,n3,psig_in,psig_out,cprecr,modul1,modul2,modul3,a,b,c,e)
 
   call compress_sd_scal(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
        psig_out,y(1),y(nvctr_c+1),scal)
-end subroutine apply_hp_scal
+END SUBROUTINE apply_hp_scal
+!!***
 
 
-
-subroutine convolut_kinetic_per_sdc(n1,n2,n3,hgrid,x,y,cprecr,modul1,modul2,modul3,a,b,c,e)
-!   applies the kinetic energy operator onto x to get y. Works for periodic BC
+!!****f* BigDFT/convolut_kinetic_per_sdc
+!! FUNCTION
+!!   Applies the kinetic energy operator onto x to get y. Works for periodic BC
+!!
+!! SOURCE
+!!
+subroutine convolut_kinetic_per_sdc(n1,n2,n3,x,y,cprecr,modul1,modul2,modul3,a,b,c,e)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp),intent(in)::cprecr
-  real(gp), dimension(3), intent(in) :: hgrid
   real(wp), dimension(8,0:n1,0:n2,0:n3), intent(in) :: x
   real(wp), dimension(8,0:n1,0:n2,0:n3), intent(out) :: y
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  integer :: i1,i2,i3,i,l,j
+  integer :: i1,i2,i3,l,j
   real(wp) :: tt111,tt112,tt121,tt122,tt211,tt212,tt221,tt222
-  real(wp), dimension(3) :: scale
+  !real(wp), dimension(3) :: scale
   integer,intent(in)::modul1(lowfil:n1+lupfil)
   integer,intent(in)::modul2(lowfil:n2+lupfil)
   integer,intent(in)::modul3(lowfil:n3+lupfil)
@@ -105,10 +124,9 @@ subroutine convolut_kinetic_per_sdc(n1,n2,n3,hgrid,x,y,cprecr,modul1,modul2,modu
   real(gp),intent(in)::c(lowfil:lupfil,3)
   real(gp),intent(in)::e(lowfil:lupfil,3)
   
-  real(gp)::tel
-  integer::ncount0,ncount1,ncount2,ncount_rate,ncount_max
-  integer::mflop1,mflop3
-
+  !real(gp) :: tel
+  !integer :: ncount0,ncount1,ncount2,ncount_rate,ncount_max
+  !integer :: mflop1,mflop3
   
   ! filter length:29
   ! 8: wavelets+scfunction
@@ -116,7 +134,6 @@ subroutine convolut_kinetic_per_sdc(n1,n2,n3,hgrid,x,y,cprecr,modul1,modul2,modu
 !  mflop1=(n1+1)*(n2+1)*(n3+1)*29*8*4*2 ! convolution in the x and y direction
 !  mflop3=(n1+1)*(n2+1)*(n3+1)*29*8*4   ! convolution in the z       direction
 !  call system_clock(ncount0,ncount_rate,ncount_max)
-  
   
 !$omp parallel default(private) &
 !$omp shared(x,y,n1,n2,n3,cprecr,modul1,modul2,modul3,a,b,c,e)
@@ -197,7 +214,7 @@ subroutine convolut_kinetic_per_sdc(n1,n2,n3,hgrid,x,y,cprecr,modul1,modul2,modu
 !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
 !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'x,y:',tel,1.d-6*mflop1/tel
  
-!$omp do	
+!$omp do   
   do i2=0,n2
      do i1=0,n1
         do i3=0,n3
@@ -238,29 +255,30 @@ subroutine convolut_kinetic_per_sdc(n1,n2,n3,hgrid,x,y,cprecr,modul1,modul2,modu
 !  call system_clock(ncount2,ncount_rate,ncount_max)
 !  tel=dble(ncount2-ncount1)/dble(ncount_rate)
 !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'z:',tel,1.d-6*mflop3/tel
-  
 
-end subroutine convolut_kinetic_per_sdc
+END SUBROUTINE convolut_kinetic_per_sdc
+!!***
+
 
 subroutine prepare_sdc(n1,n2,n3,modul1,modul2,modul3,a,b,c,e,hx,hy,hz)
-use module_base
-implicit none
-integer,intent(in)::n1,n2,n3
-real(gp),intent(in)::hx,hy,hz
+  use module_base
+  implicit none
+  integer,intent(in) :: n1,n2,n3
+  real(gp),intent(in) :: hx,hy,hz
 
-integer, parameter :: lowfil=-14,lupfil=14
+  integer, parameter :: lowfil=-14,lupfil=14
 
-integer,intent(out)::modul1(lowfil:n1+lupfil)
-integer,intent(out)::modul2(lowfil:n2+lupfil)
-integer,intent(out)::modul3(lowfil:n3+lupfil)
-real(gp),intent(out)::a(lowfil:lupfil,3)
-real(gp),intent(out)::b(lowfil:lupfil,3)
-real(gp),intent(out)::c(lowfil:lupfil,3)
-real(gp),intent(out)::e(lowfil:lupfil,3)
+  integer,intent(out) :: modul1(lowfil:n1+lupfil)
+  integer,intent(out) :: modul2(lowfil:n2+lupfil)
+  integer,intent(out) :: modul3(lowfil:n3+lupfil)
+  real(gp),intent(out) :: a(lowfil:lupfil,3)
+  real(gp),intent(out) :: b(lowfil:lupfil,3)
+  real(gp),intent(out) :: c(lowfil:lupfil,3)
+  real(gp),intent(out) :: e(lowfil:lupfil,3)
 
-real(gp)::hgrid(3)
-integer::i
-real(gp)::scale(3)
+  real(gp) :: hgrid(3)
+  integer :: i
+  real(gp) :: scale(3)
 
   call fill_mod_arr(modul1,lowfil,n1+lupfil,n1+1)
   call fill_mod_arr(modul2,lowfil,n2+lupfil,n2+1)
@@ -346,8 +364,7 @@ real(gp)::scale(3)
   do i=1,14
      e(-i,:)=e(i,:)
   enddo
-end subroutine prepare_sdc
-
+END SUBROUTINE prepare_sdc
 
 
 subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
@@ -369,27 +386,28 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: y_f
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  logical :: firstcall=.true. 
-  integer :: i,t,i1,i2,i3,ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
-  integer :: icur,istart,iend,l
-  real(wp) :: dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
-  real(wp)::scale(3)
-  real(gp):: ekin1,ekin2,ekin3,ekin4,ekin5,ekin6,ekin7,ekin8,ekin9
-  real(kind=8) :: tel
-  real(wp), dimension(lowfil:lupfil,3) :: a,b,c,d,e
-  integer ii1,ii2,ii3 ! for hybrid convolutions
-  integer::ic
-	integer mod_arr1(lowfil:n1+lupfil)	
-	integer mod_arr2(lowfil:n2+lupfil)	
-	integer mod_arr3(lowfil:n3+lupfil)	
+  !logical :: firstcall=.true. 
+  !integer :: ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
+  integer :: i,t,i1,i2,i3
+  integer :: l
+  real(wp) :: dyi,t112,t121,t122,t212,t221,t222,t211
+  real(wp) :: scale(3)
+  real(gp) :: ekin1,ekin2,ekin3,ekin4,ekin5,ekin6,ekin7,ekin8,ekin9
+  !real(kind=8) :: tel
+  real(wp), dimension(lowfil:lupfil,3) :: a,b,c,e
+  integer :: ii1,ii2,ii3 ! for hybrid convolutions
+  integer :: ic
+  integer :: mod_arr1(lowfil:n1+lupfil)
+  integer :: mod_arr2(lowfil:n2+lupfil)
+  integer :: mod_arr3(lowfil:n3+lupfil)
 
   ekinout=0._gp
 !$omp parallel default(private) shared(mod_arr1,mod_arr2,mod_arr3,n1,n2,n3,hgrid,x_c,x_f,x_f1,x_f2,x_f3) &
 !$omp shared(ekinout,y_c,y_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ibyz,ibxz,ibxy)
         ic=1
-	call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
-	call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
-	call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
+   call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
+   call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
+   call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
 
   scale(:)=-.5_wp/hgrid(:)**2
   !---------------------------------------------------------------------------
@@ -491,32 +509,32 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
 !!  ! (1/2) d^2/dx^2
 !$omp do
   do i3=nfl3,nfu3
-	  do i2=nfl2,nfu2
-		  ! wavelet-scaling function:
-		  ! scaling function everywhere, also outside of the box
-		  ! wavelet restricted
+     do i2=nfl2,nfu2
+        ! wavelet-scaling function:
+        ! scaling function everywhere, also outside of the box
+        ! wavelet restricted
             do i1=ibyz(1,i2,i3)-lupfil,ibyz(2,i2,i3)-lowfil
-				ii1=mod_arr1(i1)
+            ii1=mod_arr1(i1)
                 dyi=0._wp
-				do l=max(lowfil,ibyz(1,i2,i3)-i1),min(lupfil,ibyz(2,i2,i3)-i1)
+            do l=max(lowfil,ibyz(1,i2,i3)-i1),min(lupfil,ibyz(2,i2,i3)-i1)
                     dyi=dyi + x_f1(i1+l,i2,i3)*b(l,1)
                 enddo
                 y_c(ii1,i2,i3)=y_c(ii1,i2,i3)+dyi
                 ekin4=ekin4+dyi*x_c(ii1,i2,i3)
             enddo
             
-			! scaling function-wavelet
-			! wavelet restricted, scaling function everywhere
+         ! scaling function-wavelet
+         ! wavelet restricted, scaling function everywhere
             do i1=ibyz(1,i2,i3),ibyz(2,i2,i3)
                t211=0._wp 
-			   do l=lowfil,lupfil
-			       t=mod_arr1(i1+l)
+            do l=lowfil,lupfil
+                t=mod_arr1(i1+l)
                    t211=t211 + x_c(t,i2,i3)*c(l,1)
                enddo
                y_f(1,i1,i2,i3)=y_f(1,i1,i2,i3)+t211
                ekin4=ekin4+t211*x_f(1,i1,i2,i3)
             enddo
-	  enddo
+     enddo
   enddo
 !$omp enddo  
   
@@ -524,13 +542,13 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
 !!  ! + (1/2) d^2/dy^2
 !!
 !$omp do  
-	do i3=nfl3,nfu3
-		do i1=nfl1,nfu1
+   do i3=nfl3,nfu3
+      do i1=nfl1,nfu1
             do i2=ibxz(1,i1,i3)-lupfil,ibxz(2,i1,i3)-lowfil
-				ii2=mod_arr2(i2)
+            ii2=mod_arr2(i2)
                 dyi=0._wp
-				do l=max(lowfil,ibxz(1,i1,i3)-i2),min(lupfil,ibxz(2,i1,i3)-i2)
-                	dyi=dyi + x_f2(i2+l,i1,i3)*b(l,2)
+            do l=max(lowfil,ibxz(1,i1,i3)-i2),min(lupfil,ibxz(2,i1,i3)-i2)
+                   dyi=dyi + x_f2(i2+l,i1,i3)*b(l,2)
                 enddo
                 y_c(i1,ii2,i3)=y_c(i1,ii2,i3)+dyi
                 ekin5=ekin5+dyi*x_c(i1,ii2,i3)
@@ -538,45 +556,45 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
             
             do i2=ibxz(1,i1,i3),ibxz(2,i1,i3)
                 t121=0._wp 
-				do l=lowfil,lupfil
-					t=mod_arr2(i2+l)	
+            do l=lowfil,lupfil
+               t=mod_arr2(i2+l)   
                     t121=t121 + x_c(i1,t,i3)*c(l,2)
                 enddo
                 y_f(2,i1,i2,i3)=y_f(2,i1,i2,i3)+t121
                 ekin5=ekin5+t121*x_f(2,i1,i2,i3)
             enddo
-		enddo
-	enddo
+      enddo
+   enddo
 !$omp enddo  
   
 !!
 !!  ! + (1/2) d^2/dz^2
 !!
 !$omp do  
-	do i2=nfl2,nfu2
-		do i1=nfl1,nfu1
+   do i2=nfl2,nfu2
+      do i1=nfl1,nfu1
             do i3=ibxy(1,i1,i2)-lupfil,ibxy(2,i1,i2)-lowfil
                 dyi=0._wp
-			    ii3=mod_arr3(i3)
-				do l=max(lowfil,ibxy(1,i1,i2)-i3),min(lupfil,ibxy(2,i1,i2)-i3)
-                	dyi=dyi + x_f3(i3+l,i1,i2)*b(l,3)
-            	enddo
+             ii3=mod_arr3(i3)
+            do l=max(lowfil,ibxy(1,i1,i2)-i3),min(lupfil,ibxy(2,i1,i2)-i3)
+                   dyi=dyi + x_f3(i3+l,i1,i2)*b(l,3)
+               enddo
                 y_c(i1,i2,ii3)=y_c(i1,i2,ii3)+dyi
                 ekin6=ekin6+dyi*x_c(i1,i2,ii3)
             enddo
 
             do i3=ibxy(1,i1,i2),ibxy(2,i1,i2)
                 t112=0._wp 
-				do l=lowfil,lupfil
-					t=mod_arr3(i3+l)	
-                	t112=t112 + x_c(i1,i2,t)*c(l,3)
-            	enddo
+            do l=lowfil,lupfil
+               t=mod_arr3(i3+l)   
+                   t112=t112 + x_c(i1,i2,t)*c(l,3)
+               enddo
                 y_f(4,i1,i2,i3)=y_f(4,i1,i2,i3)+t112
                 ekin6=ekin6+t112*x_f(4,i1,i2,i3)
             enddo
-		enddo
-	enddo
-!$omp enddo	
+      enddo
+   enddo
+!$omp enddo   
   
   
   ! wavelet part
@@ -687,7 +705,7 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
   ekinout=ekinout+ekin1+ekin2+ekin3+ekin4+ekin5+ekin6+ekin7+ekin8+ekin9
 !$omp end critical
 !$omp end parallel
-end subroutine convolut_kinetic_hyb_T
+END SUBROUTINE convolut_kinetic_hyb_T
 
   subroutine conv_kin_x1(x,y,n1,n2,n3,ekin,mod_arr1,a)
   use module_base
@@ -735,18 +753,18 @@ end subroutine convolut_kinetic_hyb_T
              tt11=tt11+x(j,i*12+11)*a(l,1)
              tt12=tt12+x(j,i*12+12)*a(l,1)
           enddo
-          y(i1,i*12+1)=y(i1,i*12+1)+tt1;	 ekin=ekin+tt1*x(i1,i*12+1)
-          y(i1,i*12+2)=y(i1,i*12+2)+tt2;	 ekin=ekin+tt2*x(i1,i*12+2)
-          y(i1,i*12+3)=y(i1,i*12+3)+tt3;	 ekin=ekin+tt3*x(i1,i*12+3)
-          y(i1,i*12+4)=y(i1,i*12+4)+tt4;	 ekin=ekin+tt4*x(i1,i*12+4)
-          y(i1,i*12+5)=y(i1,i*12+5)+tt5;	 ekin=ekin+tt5*x(i1,i*12+5)
-          y(i1,i*12+6)=y(i1,i*12+6)+tt6;	 ekin=ekin+tt6*x(i1,i*12+6)
-          y(i1,i*12+7)=y(i1,i*12+7)+tt7;	 ekin=ekin+tt7*x(i1,i*12+7)
-          y(i1,i*12+8)=y(i1,i*12+8)+tt8;	 ekin=ekin+tt8*x(i1,i*12+8)
-          y(i1,i*12+9 )=y(i1,i*12+9 )+tt9 ;	 ekin=ekin+tt9 *x(i1,i*12+9 )
-          y(i1,i*12+10)=y(i1,i*12+10)+tt10;	 ekin=ekin+tt10*x(i1,i*12+10)
-          y(i1,i*12+11)=y(i1,i*12+11)+tt11;	 ekin=ekin+tt11*x(i1,i*12+11)
-          y(i1,i*12+12)=y(i1,i*12+12)+tt12;	 ekin=ekin+tt12*x(i1,i*12+12)
+          y(i1,i*12+1)=y(i1,i*12+1)+tt1;    ekin=ekin+tt1*x(i1,i*12+1)
+          y(i1,i*12+2)=y(i1,i*12+2)+tt2;    ekin=ekin+tt2*x(i1,i*12+2)
+          y(i1,i*12+3)=y(i1,i*12+3)+tt3;    ekin=ekin+tt3*x(i1,i*12+3)
+          y(i1,i*12+4)=y(i1,i*12+4)+tt4;    ekin=ekin+tt4*x(i1,i*12+4)
+          y(i1,i*12+5)=y(i1,i*12+5)+tt5;    ekin=ekin+tt5*x(i1,i*12+5)
+          y(i1,i*12+6)=y(i1,i*12+6)+tt6;    ekin=ekin+tt6*x(i1,i*12+6)
+          y(i1,i*12+7)=y(i1,i*12+7)+tt7;    ekin=ekin+tt7*x(i1,i*12+7)
+          y(i1,i*12+8)=y(i1,i*12+8)+tt8;    ekin=ekin+tt8*x(i1,i*12+8)
+          y(i1,i*12+9 )=y(i1,i*12+9 )+tt9 ;    ekin=ekin+tt9 *x(i1,i*12+9 )
+          y(i1,i*12+10)=y(i1,i*12+10)+tt10;    ekin=ekin+tt10*x(i1,i*12+10)
+          y(i1,i*12+11)=y(i1,i*12+11)+tt11;    ekin=ekin+tt11*x(i1,i*12+11)
+          y(i1,i*12+12)=y(i1,i*12+12)+tt12;    ekin=ekin+tt12*x(i1,i*12+12)
        enddo
     enddo
 !$omp enddo
@@ -762,7 +780,7 @@ end subroutine convolut_kinetic_hyb_T
        enddo
     enddo
 !$omp enddo
-  end subroutine conv_kin_x1
+  END SUBROUTINE conv_kin_x1
   
   subroutine conv_kin_y1(x,y,n1,n2,n3,ekin,mod_arr2,a)
   use module_base
@@ -801,14 +819,14 @@ end subroutine convolut_kinetic_hyb_T
                 tt6=tt6+x(i1,j,i3*8+6)*a(l,2)
                 tt7=tt7+x(i1,j,i3*8+7)*a(l,2)
              enddo
-             y(i1,i2,i3*8+0)=y(i1,i2,i3*8+0)+tt0;	 ekin=ekin+tt0*x(i1,i2,i3*8+0)
-             y(i1,i2,i3*8+1)=y(i1,i2,i3*8+1)+tt1;	 ekin=ekin+tt1*x(i1,i2,i3*8+1)
-             y(i1,i2,i3*8+2)=y(i1,i2,i3*8+2)+tt2;	 ekin=ekin+tt2*x(i1,i2,i3*8+2)
-             y(i1,i2,i3*8+3)=y(i1,i2,i3*8+3)+tt3;	 ekin=ekin+tt3*x(i1,i2,i3*8+3)
-             y(i1,i2,i3*8+4)=y(i1,i2,i3*8+4)+tt4;	 ekin=ekin+tt4*x(i1,i2,i3*8+4)
-             y(i1,i2,i3*8+5)=y(i1,i2,i3*8+5)+tt5;	 ekin=ekin+tt5*x(i1,i2,i3*8+5)
-             y(i1,i2,i3*8+6)=y(i1,i2,i3*8+6)+tt6;	 ekin=ekin+tt6*x(i1,i2,i3*8+6)
-             y(i1,i2,i3*8+7)=y(i1,i2,i3*8+7)+tt7;	 ekin=ekin+tt7*x(i1,i2,i3*8+7)
+             y(i1,i2,i3*8+0)=y(i1,i2,i3*8+0)+tt0;    ekin=ekin+tt0*x(i1,i2,i3*8+0)
+             y(i1,i2,i3*8+1)=y(i1,i2,i3*8+1)+tt1;    ekin=ekin+tt1*x(i1,i2,i3*8+1)
+             y(i1,i2,i3*8+2)=y(i1,i2,i3*8+2)+tt2;    ekin=ekin+tt2*x(i1,i2,i3*8+2)
+             y(i1,i2,i3*8+3)=y(i1,i2,i3*8+3)+tt3;    ekin=ekin+tt3*x(i1,i2,i3*8+3)
+             y(i1,i2,i3*8+4)=y(i1,i2,i3*8+4)+tt4;    ekin=ekin+tt4*x(i1,i2,i3*8+4)
+             y(i1,i2,i3*8+5)=y(i1,i2,i3*8+5)+tt5;    ekin=ekin+tt5*x(i1,i2,i3*8+5)
+             y(i1,i2,i3*8+6)=y(i1,i2,i3*8+6)+tt6;    ekin=ekin+tt6*x(i1,i2,i3*8+6)
+             y(i1,i2,i3*8+7)=y(i1,i2,i3*8+7)+tt7;    ekin=ekin+tt7*x(i1,i2,i3*8+7)
           enddo
        enddo
     enddo
@@ -822,12 +840,12 @@ end subroutine convolut_kinetic_hyb_T
                 j=mod_arr2(i2+l)
                 tt=tt+x(i1,j   ,i3)*a(l,2)
              enddo
-             y(i1,i2,i3)=y(i1,i2,i3)+tt;	ekin=ekin+tt*x(i1,i2,i3)
+             y(i1,i2,i3)=y(i1,i2,i3)+tt;   ekin=ekin+tt*x(i1,i2,i3)
           enddo
        enddo
     enddo
 !$omp enddo
-  end subroutine conv_kin_y1
+  END SUBROUTINE conv_kin_y1
 
 
   subroutine conv_kin_z1(x,y,n1,n2,n3,ekin,mod_arr3,a)
@@ -877,18 +895,18 @@ end subroutine convolut_kinetic_hyb_T
              tt12=tt12+x(i*12+12,j)*a(l,3)
           enddo
 
-          y(i*12+1,i3)=y(i*12+1,i3)+tt1;	 ekin=ekin+tt1*x(i*12+1,i3)
-          y(i*12+2,i3)=y(i*12+2,i3)+tt2;	 ekin=ekin+tt2*x(i*12+2,i3)
-          y(i*12+3,i3)=y(i*12+3,i3)+tt3;	 ekin=ekin+tt3*x(i*12+3,i3)
-          y(i*12+4,i3)=y(i*12+4,i3)+tt4;	 ekin=ekin+tt4*x(i*12+4,i3)
-          y(i*12+5,i3)=y(i*12+5,i3)+tt5;	 ekin=ekin+tt5*x(i*12+5,i3)
-          y(i*12+6,i3)=y(i*12+6,i3)+tt6;	 ekin=ekin+tt6*x(i*12+6,i3)
-          y(i*12+7,i3)=y(i*12+7,i3)+tt7;	 ekin=ekin+tt7*x(i*12+7,i3)
-          y(i*12+8,i3)=y(i*12+8,i3)+tt8;	 ekin=ekin+tt8*x(i*12+8,i3)
-          y(i*12+9 ,i3)=y(i*12+9 ,i3)+tt9 ;	 ekin=ekin+tt9*x(i*12+9 ,i3)
-          y(i*12+10,i3)=y(i*12+10,i3)+tt10;	 ekin=ekin+tt10*x(i*12+10,i3)
-          y(i*12+11,i3)=y(i*12+11,i3)+tt11;	 ekin=ekin+tt11*x(i*12+11,i3)
-          y(i*12+12,i3)=y(i*12+12,i3)+tt12;	 ekin=ekin+tt12*x(i*12+12,i3)
+          y(i*12+1,i3)=y(i*12+1,i3)+tt1;    ekin=ekin+tt1*x(i*12+1,i3)
+          y(i*12+2,i3)=y(i*12+2,i3)+tt2;    ekin=ekin+tt2*x(i*12+2,i3)
+          y(i*12+3,i3)=y(i*12+3,i3)+tt3;    ekin=ekin+tt3*x(i*12+3,i3)
+          y(i*12+4,i3)=y(i*12+4,i3)+tt4;    ekin=ekin+tt4*x(i*12+4,i3)
+          y(i*12+5,i3)=y(i*12+5,i3)+tt5;    ekin=ekin+tt5*x(i*12+5,i3)
+          y(i*12+6,i3)=y(i*12+6,i3)+tt6;    ekin=ekin+tt6*x(i*12+6,i3)
+          y(i*12+7,i3)=y(i*12+7,i3)+tt7;    ekin=ekin+tt7*x(i*12+7,i3)
+          y(i*12+8,i3)=y(i*12+8,i3)+tt8;    ekin=ekin+tt8*x(i*12+8,i3)
+          y(i*12+9 ,i3)=y(i*12+9 ,i3)+tt9 ;    ekin=ekin+tt9*x(i*12+9 ,i3)
+          y(i*12+10,i3)=y(i*12+10,i3)+tt10;    ekin=ekin+tt10*x(i*12+10,i3)
+          y(i*12+11,i3)=y(i*12+11,i3)+tt11;    ekin=ekin+tt11*x(i*12+11,i3)
+          y(i*12+12,i3)=y(i*12+12,i3)+tt12;    ekin=ekin+tt12*x(i*12+12,i3)
        enddo
     enddo
 !$omp enddo
@@ -904,7 +922,7 @@ end subroutine convolut_kinetic_hyb_T
        enddo
     enddo
 !$omp enddo
-  end subroutine conv_kin_z1
+  END SUBROUTINE conv_kin_z1
 
 
 subroutine convolut_kinetic_hyb_c(n1,n2,n3, &
@@ -926,25 +944,26 @@ subroutine convolut_kinetic_hyb_c(n1,n2,n3, &
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  logical :: firstcall=.true. 
-  integer :: i,t,i1,i2,i3,ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
-  integer :: icur,istart,iend,l
-  real(wp) :: dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
+  !logical :: firstcall=.true. 
+  integer :: i,t,i1,i2,i3
+  !integer :: ncount_max,ncount_rate,ncount1,ncount2,ncount3,ncount4,ncount5,ncount6
+  integer :: l
+  real(wp) :: dyi,t112,t121,t122,t212,t221,t222,t211
   real(wp)::scale(3)
-  real(kind=8) :: tel
-  real(wp), dimension(lowfil:lupfil,3) :: a,b,c,d,e
+  !real(kind=8) :: tel
+  real(wp), dimension(lowfil:lupfil,3) :: a,b,c,e
   integer ii1,ii2,ii3 ! for hybrid convolutions
   integer::ic
-	integer mod_arr1(lowfil:n1+lupfil)	
-	integer mod_arr2(lowfil:n2+lupfil)	
-	integer mod_arr3(lowfil:n3+lupfil)	
+  integer :: mod_arr1(lowfil:n1+lupfil)
+  integer :: mod_arr2(lowfil:n2+lupfil)
+  integer :: mod_arr3(lowfil:n3+lupfil)
 !$omp parallel default(private) shared(mod_arr1,mod_arr2,mod_arr3,n1,n2,n3,hgrid,x_c,x_f,x_f1,x_f2,x_f3) &
 !$omp shared(cprecr,y_c,y_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ibyz,ibxz,ibxy)
         ic=1    
 
-	call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
-	call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
-	call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
+  call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
+  call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
+  call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
 
   scale(:)=-.5_wp/hgrid(:)**2
   !---------------------------------------------------------------------------
@@ -1037,85 +1056,85 @@ subroutine convolut_kinetic_hyb_c(n1,n2,n3, &
 !  scaling function-scaling function 
 !$omp do
   do i3=nfl3,nfu3
-	  do i2=nfl2,nfu2
-		  ! wavelet-scaling function:
-		  ! scaling function everywhere, also outside of the box
-		  ! wavelet restricted
-            do i1=ibyz(1,i2,i3)-lupfil,ibyz(2,i2,i3)-lowfil
-				ii1=mod_arr1(i1)
-                dyi=0._wp
-				do l=max(lowfil,ibyz(1,i2,i3)-i1),min(lupfil,ibyz(2,i2,i3)-i1)
-                    dyi=dyi + x_f1(i1+l,i2,i3)*b(l,1)
-                enddo
-                y_c(ii1,i2,i3)=y_c(ii1,i2,i3)+dyi
-            enddo
-            
-			! scaling function-wavelet
-			! wavelet restricted, scaling function everywhere
-            do i1=ibyz(1,i2,i3),ibyz(2,i2,i3)
-               t211=x_f(1,i1,i2,i3)*cprecr
-			   do l=lowfil,lupfil
-			       t=mod_arr1(i1+l)
-                   t211=t211 + x_c(t,i2,i3)*c(l,1)
-               enddo
-               y_f(1,i1,i2,i3)=t211
-            enddo
-	  enddo
+     do i2=nfl2,nfu2
+        ! wavelet-scaling function:
+        ! scaling function everywhere, also outside of the box
+        ! wavelet restricted
+        do i1=ibyz(1,i2,i3)-lupfil,ibyz(2,i2,i3)-lowfil
+           ii1=mod_arr1(i1)
+           dyi=0._wp
+           do l=max(lowfil,ibyz(1,i2,i3)-i1),min(lupfil,ibyz(2,i2,i3)-i1)
+              dyi=dyi + x_f1(i1+l,i2,i3)*b(l,1)
+           enddo
+           y_c(ii1,i2,i3)=y_c(ii1,i2,i3)+dyi
+        enddo
+        
+        ! scaling function-wavelet
+        ! wavelet restricted, scaling function everywhere
+        do i1=ibyz(1,i2,i3),ibyz(2,i2,i3)
+           t211=x_f(1,i1,i2,i3)*cprecr
+           do l=lowfil,lupfil
+              t=mod_arr1(i1+l)
+              t211=t211 + x_c(t,i2,i3)*c(l,1)
+           enddo
+           y_f(1,i1,i2,i3)=t211
+        enddo
+     enddo
   enddo
 !$omp enddo  
 !!
 !!  ! + (1/2) d^2/dy^2
 !!
 !$omp do  
-	do i3=nfl3,nfu3
-		do i1=nfl1,nfu1
-            do i2=ibxz(1,i1,i3)-lupfil,ibxz(2,i1,i3)-lowfil
-				ii2=mod_arr2(i2)
-                dyi=0._wp
-				do l=max(lowfil,ibxz(1,i1,i3)-i2),min(lupfil,ibxz(2,i1,i3)-i2)
-                	dyi=dyi + x_f2(i2+l,i1,i3)*b(l,2)
-                enddo
-                y_c(i1,ii2,i3)=y_c(i1,ii2,i3)+dyi
+   do i3=nfl3,nfu3
+      do i1=nfl1,nfu1
+         do i2=ibxz(1,i1,i3)-lupfil,ibxz(2,i1,i3)-lowfil
+            ii2=mod_arr2(i2)
+            dyi=0._wp
+            do l=max(lowfil,ibxz(1,i1,i3)-i2),min(lupfil,ibxz(2,i1,i3)-i2)
+               dyi=dyi + x_f2(i2+l,i1,i3)*b(l,2)
             enddo
-            
-            do i2=ibxz(1,i1,i3),ibxz(2,i1,i3)
-                t121=x_f(2,i1,i2,i3)*cprecr 
-				do l=lowfil,lupfil
-					t=mod_arr2(i2+l)	
-                    t121=t121 + x_c(i1,t,i3)*c(l,2)
-                enddo
-                y_f(2,i1,i2,i3)=t121
+            y_c(i1,ii2,i3)=y_c(i1,ii2,i3)+dyi
+         enddo
+         
+         do i2=ibxz(1,i1,i3),ibxz(2,i1,i3)
+            t121=x_f(2,i1,i2,i3)*cprecr 
+            do l=lowfil,lupfil
+               t=mod_arr2(i2+l)   
+               t121=t121 + x_c(i1,t,i3)*c(l,2)
             enddo
-		enddo
-	enddo
+            y_f(2,i1,i2,i3)=t121
+         enddo
+      enddo
+   enddo
 !$omp enddo  
   
 !!
 !!  ! + (1/2) d^2/dz^2
 !!
 !$omp do 
-	do i2=nfl2,nfu2
-		do i1=nfl1,nfu1
-            do i3=ibxy(1,i1,i2)-lupfil,ibxy(2,i1,i2)-lowfil
-                dyi=0._wp
-			    ii3=mod_arr3(i3)
-				do l=max(lowfil,ibxy(1,i1,i2)-i3),min(lupfil,ibxy(2,i1,i2)-i3)
-                	dyi=dyi + x_f3(i3+l,i1,i2)*b(l,3)
-            	enddo
-                y_c(i1,i2,ii3)=y_c(i1,i2,ii3)+dyi
+   do i2=nfl2,nfu2
+      do i1=nfl1,nfu1
+         do i3=ibxy(1,i1,i2)-lupfil,ibxy(2,i1,i2)-lowfil
+            dyi=0._wp
+            ii3=mod_arr3(i3)
+            do l=max(lowfil,ibxy(1,i1,i2)-i3),min(lupfil,ibxy(2,i1,i2)-i3)
+               dyi=dyi + x_f3(i3+l,i1,i2)*b(l,3)
             enddo
+            y_c(i1,i2,ii3)=y_c(i1,i2,ii3)+dyi
+         enddo
 
-            do i3=ibxy(1,i1,i2),ibxy(2,i1,i2)
-                t112=x_f(4,i1,i2,i3)*cprecr 
-				do l=lowfil,lupfil
-					t=mod_arr3(i3+l)	
-                	t112=t112 + x_c(i1,i2,t)*c(l,3)
-            	enddo
-                y_f(4,i1,i2,i3)=t112
+         do i3=ibxy(1,i1,i2),ibxy(2,i1,i2)
+            t112=x_f(4,i1,i2,i3)*cprecr 
+            do l=lowfil,lupfil
+               t=mod_arr3(i3+l)   
+               t112=t112 + x_c(i1,i2,t)*c(l,3)
             enddo
-		enddo
-	enddo
-!$omp enddo	
+            y_f(4,i1,i2,i3)=t112
+         enddo
+      enddo
+   enddo
+!$omp enddo   
   
 !  write(20,*) ibyz
 !  stop
@@ -1209,7 +1228,7 @@ subroutine convolut_kinetic_hyb_c(n1,n2,n3, &
   enddo
 !$omp enddo
 !$omp end parallel
-end subroutine convolut_kinetic_hyb_c
+END SUBROUTINE convolut_kinetic_hyb_c
 
   subroutine conv_kin_y2(x,y,n1,n2,n3,mod_arr2,a)
   use module_base
@@ -1272,7 +1291,7 @@ end subroutine convolut_kinetic_hyb_c
        enddo
     enddo
 !$omp enddo
-  end subroutine conv_kin_y2
+  END SUBROUTINE conv_kin_y2
 
 
   subroutine conv_kin_x2(x,y,n1,n2,n3,mod_arr1,a,cprecr)
@@ -1348,7 +1367,7 @@ end subroutine convolut_kinetic_hyb_c
        enddo
     enddo
 !$omp enddo
-  end subroutine conv_kin_x2
+  END SUBROUTINE conv_kin_x2
 
   subroutine conv_kin_z2(x,y,n1,n2,n3,mod_arr3,a)
   use module_base
@@ -1423,6 +1442,4 @@ end subroutine convolut_kinetic_hyb_c
        enddo
     enddo
 !$omp enddo
-  end subroutine conv_kin_z2
-
- 	
+END SUBROUTINE conv_kin_z2

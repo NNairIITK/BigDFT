@@ -32,4 +32,4 @@ SiH4.out: $(top_builddir)/src/cluster $(PPFILES)
         fi
 
 check: SiH4.out
-	python $(top_srcdir)/tests/fldiff.py --bigdft SiH4.out $(top_srcdir)/tests/Refs/SiH4.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft SiH4.out $(top_srcdir)/tests/Refs/SiH4.out.ref | tee fldiff.report

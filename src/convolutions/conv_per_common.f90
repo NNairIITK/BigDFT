@@ -1,10 +1,18 @@
-
-
-
-
+!!****f* BigDFT/synthese_per_old
+!! FUNCTION
+!!    A periodic synthesis (backward) wavelet transformation
+!!    the input array x is not overwritten
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine synthese_per_old(nd1,nd2,nd3,x,y,ww)
-  ! a periodic synthesis (backward) wavelet transformation
-  ! the input array x is not overwritten
   use module_base
   implicit none
   integer, intent(in) :: nd1,nd2,nd3
@@ -24,11 +32,17 @@ subroutine synthese_per_old(nd1,nd2,nd3,x,y,ww)
   nt=(nd1+1)*(nd2+1)
   call  syn_rot_per_old(nd3,nt,ww,y)
 
-end subroutine synthese_per_old
+END SUBROUTINE synthese_per_old
+!!***
 
+
+!!****f* BigDFT/synthese_per_old_self
+!! FUNCTION
+!!   A periodic synthesis (backward) wavelet transformation
+!!   the input array x is not overwritten
+!! SOURCE
+!!
 subroutine synthese_per_old_self(nd1,nd2,nd3,x,y,ww)
-  ! a periodic synthesis (backward) wavelet transformation
-  ! the input array x is not overwritten
   use module_base
   implicit none
   integer, intent(in) :: nd1,nd2,nd3
@@ -48,12 +62,17 @@ subroutine synthese_per_old_self(nd1,nd2,nd3,x,y,ww)
   nt=(nd1+1)*(nd2+1)
   call  syn_rot_per_old(nd3,nt,ww,x)
 
-end subroutine synthese_per_old_self
+END SUBROUTINE synthese_per_old_self
+!!***
 
 
+!!****f* BigDFT/analyse_per_old
+!! FUNCTION
+!!   An analysis (forward) periodic wavelet transformation
+!!   the input array y is not overwritten
+!! SOURCE
+!!
 subroutine analyse_per_old(nd1,nd2,nd3,y,x,ww)
-  ! an analysis (forward) periodic wavelet transformation
-  ! the input array y is not overwritten
   use module_base
   implicit none
   integer, intent(in) :: nd1,nd2,nd3
@@ -73,11 +92,17 @@ subroutine analyse_per_old(nd1,nd2,nd3,y,x,ww)
   nt=(nd1+1)*(nd2+1)
   call  ana_rot_per_old(nd3,nt,ww,x)
 
-end subroutine analyse_per_old
+END SUBROUTINE analyse_per_old
+!!***
 
+
+!!****f* BigDFT/analyse_per_old_self
+!! FUNCTION
+!!   An analysis (forward) periodic wavelet transformation
+!!   the input array y is not overwritten
+!! SOURCE
+!!
 subroutine analyse_per_old_self(nd1,nd2,nd3,y,x,ww)
-  ! an analysis (forward) periodic wavelet transformation
-  ! the input array y is not overwritten
   use module_base
   implicit none
   integer, intent(in) :: nd1,nd2,nd3
@@ -97,8 +122,14 @@ subroutine analyse_per_old_self(nd1,nd2,nd3,y,x,ww)
   nt=(nd1+1)*(nd2+1)
   call  ana_rot_per_old(nd3,nt,ww,y)
 
-end subroutine analyse_per_old_self
+END SUBROUTINE analyse_per_old_self
+!!***
 
+
+!!****f* BigDFT/syn_repeated_per
+!! FUNCTION
+!! SOURCE
+!!
 subroutine syn_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
   use module_base
   implicit none
@@ -187,10 +218,14 @@ subroutine syn_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
 
   endif
 
-end subroutine syn_repeated_per
+END SUBROUTINE syn_repeated_per
+!!***
 
 
-
+!!****f* BigDFT/ana_repeated_per
+!! FUNCTION
+!! SOURCE
+!!
 subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
   use module_base
   implicit none
@@ -199,7 +234,7 @@ subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
   real(wp), dimension(0:nd1,0:nd2,0:nd3), intent(inout) :: x
   !local variables
   character(len=*), parameter :: subname='ana_repeated_per'
-  integer :: nn1,nn2,nn3,i_trans,i_all,i_stat,i1,i2,i3,i
+  integer :: i_trans,i_all,i_stat,i1,i2,i3,i
   real(wp), dimension(:), allocatable :: xx,yy,ww
 
   n1=nd1
@@ -273,4 +308,5 @@ subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
      call memocc(i_stat,i_all,'yy',subname)
   endif
 
-end subroutine ana_repeated_per
+END SUBROUTINE ana_repeated_per
+!!***

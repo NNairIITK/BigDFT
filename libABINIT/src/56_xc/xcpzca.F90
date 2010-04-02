@@ -13,7 +13,7 @@
 !! D.M. Ceperly and B.J. Alder, Phys. Rev. Lett. 45, 566 (1980).
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2009 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2010 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -49,8 +49,8 @@ subroutine xcpzca(exc,npt,order,rhor,rspts,vxc,&  !Mandatory arguments
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-! use interfaces_14_hidewrite
-! use interfaces_16_hideleave
+ use interfaces_14_hidewrite
+ use interfaces_16_hideleave
 !End of the abilint section
 
  implicit none
@@ -84,82 +84,82 @@ subroutine xcpzca(exc,npt,order,rhor,rspts,vxc,&  !Mandatory arguments
 
 !Checks the values of order
  if(order<0 .or. order>2)then
-  write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
-&  ' xcpzca : BUG -',ch10,&
-&  '  With Perdew-Zunger Ceperley-Alder xc functional, the only',ch10,&
-&  '  allowed values for order are 0, 1 or 2, while it is found to be',&
-&  order,'.'
-  call wrtout(6,message,'COLL')
-  call leave_new('COLL')
+   write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
+&   ' xcpzca : BUG -',ch10,&
+&   '  With Perdew-Zunger Ceperley-Alder xc functional, the only',ch10,&
+&   '  allowed values for order are 0, 1 or 2, while it is found to be',&
+&   order,'.'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
  end if
 !Checks the compatibility between the order and the presence of the optional arguments
  if(order <= 1 .and. present(dvxc))then
-  write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
-&  ' xcpzca : BUG -',ch10,&
-&  '  The order chosen does not need the presence',ch10,&
-&  '  of the vector dvxc, that is needed only with order=2 , while we have',&
-&  order,'.'
-  call wrtout(6,message,'COLL')
-  call leave_new('COLL')
+   write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
+&   ' xcpzca : BUG -',ch10,&
+&   '  The order chosen does not need the presence',ch10,&
+&   '  of the vector dvxc, that is needed only with order=2 , while we have',&
+&   order,'.'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
  end if
 
 !separate cases with respect to order
  if(order==2) then
-! Loop over grid points
-  do ipt=1,npt
-   rs=rspts(ipt)
-   rsm1=1.0_dp/rs
-!  Consider two regimes: rs<1 or rs>=1
-   if (rs<1._dp) then
-    logrs=log(rs)
-!   compute energy density exc (hartree)
-    exc(ipt)=(aa+cc*rs)*logrs+dd*rs+bb-efac*rsm1
-!   compute potential vxc=d(rho*exc)/d(rho) (hartree)
-    vxc(ipt)=(aa+two_thirds*cc*rs)*logrs+(dd+dd-cc)*rs*third+&
-&    (bb-aa*third)-vfac*rsm1
-!   compute d(vxc)/d(rho) (hartree*bohr^3)
-    dvxc(ipt)=-(3._dp*aa+(cc+dd+dd)*rs+2._dp*cc*rs*logrs)&
-&    /(9._dp*rhor(ipt))-dfac*rs**2
-   else if (rs<1000._dp) then
-    t1=b1*sqrt(rs)
-    t2=b2*rs
-    den=1._dp/(1._dp+t1+t2)
-    exc(ipt)=ga*den-efac*rsm1
-    vxc(ipt)=ga*(1._dp+c7_6*t1+c4_3*t2)*den**2-vfac*rsm1
-    den3=den**3
-    dvxc(ipt)=(ga*den3/(36._dp*rhor(ipt)))*(5._dp*t1+8._dp*t2+&
-&    7._dp*t1**2+16._dp*t2**2+21._dp*t1*t2)-dfac*rs**2
-   else
-    t1=b1*sqrt(rs)
-    t2=b2*rs
-    den=1._dp/(1._dp+t1+t2)
-    exc(ipt)=ga*den-efac*rsm1
-    vxc(ipt)=ga*(1._dp+c7_6*t1+c4_3*t2)*den**2-vfac*rsm1
-    dvxc(ipt)=0._dp
-   end if
-  end do
+!  Loop over grid points
+   do ipt=1,npt
+     rs=rspts(ipt)
+     rsm1=1.0_dp/rs
+!    Consider two regimes: rs<1 or rs>=1
+     if (rs<1._dp) then
+       logrs=log(rs)
+!      compute energy density exc (hartree)
+       exc(ipt)=(aa+cc*rs)*logrs+dd*rs+bb-efac*rsm1
+!      compute potential vxc=d(rho*exc)/d(rho) (hartree)
+       vxc(ipt)=(aa+two_thirds*cc*rs)*logrs+(dd+dd-cc)*rs*third+&
+&       (bb-aa*third)-vfac*rsm1
+!      compute d(vxc)/d(rho) (hartree*bohr^3)
+       dvxc(ipt)=-(3._dp*aa+(cc+dd+dd)*rs+2._dp*cc*rs*logrs)&
+&       /(9._dp*rhor(ipt))-dfac*rs**2
+     else if (rs<1000._dp) then
+       t1=b1*sqrt(rs)
+       t2=b2*rs
+       den=1._dp/(1._dp+t1+t2)
+       exc(ipt)=ga*den-efac*rsm1
+       vxc(ipt)=ga*(1._dp+c7_6*t1+c4_3*t2)*den**2-vfac*rsm1
+       den3=den**3
+       dvxc(ipt)=(ga*den3/(36._dp*rhor(ipt)))*(5._dp*t1+8._dp*t2+&
+&       7._dp*t1**2+16._dp*t2**2+21._dp*t1*t2)-dfac*rs**2
+     else
+       t1=b1*sqrt(rs)
+       t2=b2*rs
+       den=1._dp/(1._dp+t1+t2)
+       exc(ipt)=ga*den-efac*rsm1
+       vxc(ipt)=ga*(1._dp+c7_6*t1+c4_3*t2)*den**2-vfac*rsm1
+       dvxc(ipt)=0._dp
+     end if
+   end do
  else
-! Loop over grid points
-  do ipt=1,npt
-   rs=rspts(ipt)
-   rsm1=1.0_dp/rs
-!  Consider two regimes: rs<1 or rs>=1
-   if (rs<1._dp) then
-    logrs=log(rs)
-!   compute energy density exc (hartree)
-    exc(ipt)=(aa+cc*rs)*logrs+dd*rs+bb-efac*rsm1
-!   compute potential vxc=d(rho*exc)/d(rho) (hartree)
-    vxc(ipt)=(aa+two_thirds*cc*rs)*logrs+(dd+dd-cc)*rs*third+&
-&    (bb-aa*third)-vfac*rsm1
-!   compute d(vxc)/d(rho) (hartree*bohr^3)
-   else
-    t1=b1*sqrt(rs)
-    t2=b2*rs
-    den=1._dp/(1._dp+t1+t2)
-    exc(ipt)=ga*den-efac*rsm1
-    vxc(ipt)=ga*(1._dp+c7_6*t1+c4_3*t2)*den**2-vfac*rsm1
-   end if
-  end do
+!  Loop over grid points
+   do ipt=1,npt
+     rs=rspts(ipt)
+     rsm1=1.0_dp/rs
+!    Consider two regimes: rs<1 or rs>=1
+     if (rs<1._dp) then
+       logrs=log(rs)
+!      compute energy density exc (hartree)
+       exc(ipt)=(aa+cc*rs)*logrs+dd*rs+bb-efac*rsm1
+!      compute potential vxc=d(rho*exc)/d(rho) (hartree)
+       vxc(ipt)=(aa+two_thirds*cc*rs)*logrs+(dd+dd-cc)*rs*third+&
+&       (bb-aa*third)-vfac*rsm1
+!      compute d(vxc)/d(rho) (hartree*bohr^3)
+     else
+       t1=b1*sqrt(rs)
+       t2=b2*rs
+       den=1._dp/(1._dp+t1+t2)
+       exc(ipt)=ga*den-efac*rsm1
+       vxc(ipt)=ga*(1._dp+c7_6*t1+c4_3*t2)*den**2-vfac*rsm1
+     end if
+   end do
  end if
 !
 end subroutine xcpzca

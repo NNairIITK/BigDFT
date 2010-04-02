@@ -1,3 +1,14 @@
+!!****m* bart/bigdft_forces
+!! FUNCTION
+!!   Module which contains information for bigdft run inside art
+!! COPYRIGHT
+!!   Copyright (C) 2010 BigDFT group, Normand Mousseau
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+!! SOURCE
+!!
 module bigdft_forces
 
   use module_base!, only : gp,wp,dp,bohr2ang
@@ -22,14 +33,25 @@ module bigdft_forces
   public :: mingeo
 !!$  public :: bigdft_output
   public :: bigdft_finalise
-contains
 
+contains
+!!***
+
+
+!!****f* bigdft_forces/bigdft_init
+!! FUNCTION
+!!   Routine to initialize all BigDFT stuff
+!! SOURCE
+!!
   subroutine bigdft_init(nat,typa,posa,boxl, nproc_, me_)
+
+    implicit none
+
     integer, intent(in) :: nproc_, me_
     integer, intent(out) :: nat
     integer, pointer :: typa(:)
-    real*8, pointer :: posa(:)
-    real*8, intent(out) :: boxl
+    real(kind=8), pointer :: posa(:)
+    real(kind=8), intent(out) :: boxl
 
     character(len=*), parameter :: subname='bigdft_init'
     real(gp), dimension(:,:), pointer :: rxyz
@@ -40,8 +62,11 @@ contains
     nproc = nproc_
     me = me_
 
+    ! Initialize memory counting
+    call memocc(0,me,'count','start')
+
     call read_input_variables(me_, "posinp", "input.dft", "input.kpt", &
-         & "input.geopt", in, at, rxyz)
+         & "input.geopt", "input.perf", in, at, rxyz)
 
     ! Transfer at data to ART variables
     nat = at%nat
@@ -68,19 +93,27 @@ contains
     in%inputPsiId=1
 
     initialised = .true.
-  end subroutine bigdft_init
+  END SUBROUTINE bigdft_init
+!!***
 
-  subroutine calcforce(nat,typa,posa,boxl,forca,energy)
+
+!!****f* bigdft_forces/calcforce
+!! FUNCTION
+!!   Calculation of forces
+!! SOURCE
+!!
+  subroutine calcforce(nat,posa,boxl,forca,energy)
+
+    implicit none
+
     integer, intent(in) :: nat
-    integer, intent(in), dimension(nat) :: typa
-    real*8, intent(in), dimension(3*nat),target :: posa
-    real*8, intent(in) :: boxl
-    real*8, intent(out), dimension(3*nat),target :: forca
-    real*8, intent(out) :: energy
+    real(kind=8), intent(in), dimension(3*nat),target :: posa
+    real(kind=8), intent(in) :: boxl
+    real(kind=8), intent(out), dimension(3*nat),target :: forca
+    real(kind=8), intent(out) :: energy
 
     integer :: infocode, i, ierror
     real(dp), allocatable :: xcart(:,:), fcart(:,:)
-
 
     if (.not. initialised) then
        write(0,*) "No previous call to bigdft_init(). On strike, refuse to work."
@@ -113,19 +146,28 @@ contains
     
     deallocate(xcart)
     deallocate(fcart)
-  end subroutine calcforce
+  END SUBROUTINE calcforce
+!!***
 
+
+!!****f* bigdft_forces/mingeo
+!! FUNCTION
+!!   Minimise geometry
+!! SOURCE
+!!
   subroutine mingeo(nat, boxl, posa, evalf_number, forca, total_energy)
+
+    implicit none
+
     integer, intent(in) :: nat
-    real*8, intent(in) :: boxl
-    real*8, intent(out) :: total_energy
-    real*8, intent(inout), dimension(3*nat) :: posa
+    real(kind=8), intent(in) :: boxl
+    real(kind=8), intent(out) :: total_energy
+    real(kind=8), intent(inout), dimension(3*nat) :: posa
     integer, intent(out) :: evalf_number
-    real*8, intent(out), dimension(3*nat) :: forca
+    real(kind=8), intent(out), dimension(3*nat) :: forca
 
     integer :: i, ierror
     real(dp), allocatable :: xcart(:,:), fcart(:,:)
-
 
     if (.not. initialised) then
        write(0,*) "No previous call to bigdft_init(). On strike, refuse to work."
@@ -158,12 +200,29 @@ contains
     
     deallocate(xcart)
     deallocate(fcart)
-  end subroutine mingeo
+  END SUBROUTINE mingeo
+!!***
 
+
+!!****f* bigdft_forces/bigdft_finalise
+!! FUNCTION
+!!   Routine to finalise all BigDFT stuff
+!! SOURCE
+!!
   subroutine bigdft_finalise()
+
+    implicit none
+    !Local variable
     character(len=*), parameter :: subname='bigdft_finalise'
 
     call free_restart_objects(rst,subname)
     ! To be completed
-  end subroutine bigdft_finalise
+
+    !Finalize memory counting
+    call memocc(0,0,'count','stop')
+
+  END SUBROUTINE bigdft_finalise
+
+
 end module bigdft_forces
+!!***

@@ -11,7 +11,7 @@
 !! rs = $(3/(4\pi))^{1/3}* \rho (r)^{-1/3}$.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2009 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2010 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -45,8 +45,8 @@ subroutine xcxalp(exc,npt,order,rspts,vxc, dvxc)  ! dvxc is optional
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-! use interfaces_14_hidewrite
-! use interfaces_16_hideleave
+ use interfaces_14_hidewrite
+ use interfaces_16_hideleave
 !End of the abilint section
 
  implicit none
@@ -71,13 +71,13 @@ subroutine xcxalp(exc,npt,order,rspts,vxc, dvxc)  ! dvxc is optional
 
 !Checks the values of order
  if(order<0 .or. order>2)then
-  write(message, '(a,a,a,a,a,a,i3,a)' )ch10,&
-&  ' xcxalp : BUG -',ch10,&
-&  '  With X-alpha xc functional, the only',ch10,&
-&  '  allowed values for order are 0, 1 or 2, while it is found to be',&
-&  order,'.'
-  call wrtout(6,message,'COLL')
-  call leave_new('COLL')
+   write(message, '(a,a,a,a,a,a,i3,a)' )ch10,&
+&   ' xcxalp : BUG -',ch10,&
+&   '  With X-alpha xc functional, the only',ch10,&
+&   '  allowed values for order are 0, 1 or 2, while it is found to be',&
+&   order,'.'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
  end if
 
 !Compute vfac=(3/(2*Pi))^(2/3)
@@ -89,27 +89,27 @@ subroutine xcxalp(exc,npt,order,rspts,vxc, dvxc)  ! dvxc is optional
 
 !separate cases with respect to order
  if(order==2) then
-! Loop over grid points
-  do ipt=1,npt
-   rs=rspts(ipt)
-   rsm1=1.0_dp/rs
-!  compute energy density (hartree)
-   exc(ipt)=-alpha*efac*rsm1
-!  compute potential (hartree)
-   vxc(ipt)=-alpha*vfac*rsm1
-!  compute d(vxc)/d(rho) (hartree*bohr^3)
-   dvxc(ipt)=-alpha*dfac*rs**2
-  end do
+!  Loop over grid points
+   do ipt=1,npt
+     rs=rspts(ipt)
+     rsm1=1.0_dp/rs
+!    compute energy density (hartree)
+     exc(ipt)=-alpha*efac*rsm1
+!    compute potential (hartree)
+     vxc(ipt)=-alpha*vfac*rsm1
+!    compute d(vxc)/d(rho) (hartree*bohr^3)
+     dvxc(ipt)=-alpha*dfac*rs**2
+   end do
  else
-! Loop over grid points
-  do ipt=1,npt
-   rs=rspts(ipt)
-   rsm1=1.0_dp/rs
-!  compute energy density (hartree)
-   exc(ipt)=-alpha*efac*rsm1
-!  compute potential (hartree)
-   vxc(ipt)=-alpha*vfac*rsm1
-  end do
+!  Loop over grid points
+   do ipt=1,npt
+     rs=rspts(ipt)
+     rsm1=1.0_dp/rs
+!    compute energy density (hartree)
+     exc(ipt)=-alpha*efac*rsm1
+!    compute potential (hartree)
+     vxc(ipt)=-alpha*vfac*rsm1
+   end do
  end if
 !
 end subroutine xcxalp

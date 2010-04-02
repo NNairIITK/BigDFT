@@ -35,4 +35,4 @@ H2O-CP2K.out: $(top_builddir)/src/cluster $(PPFILES)
         fi
 
 check: H2O-CP2K.out
-	python $(top_srcdir)/tests/fldiff.py --bigdft H2O-CP2K.out $(top_srcdir)/tests/Refs/H2O-CP2K.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H2O-CP2K.out $(top_srcdir)/tests/Refs/H2O-CP2K.out.ref | tee fldiff.report

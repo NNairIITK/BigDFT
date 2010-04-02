@@ -1,8 +1,10 @@
 ## Process this file with automake to produce Makefile.in
 
 SUBDIRS = \
+	  fft \
+	  PSolver \
 	  H \
-	  H-spin \
+	  H2-spin \
 	  Li+ \
 	  SiH4 \
 	  NaCl \
@@ -16,8 +18,8 @@ SUBDIRS = \
 	  H2-freq \
 	  NEB \
 	  NH3 \
-	  XabsCheb 
-
+	  XabsCheb \
+	  FeHyb
 
 
 #This will run the automatic tests also for GPU
@@ -36,7 +38,7 @@ else
 mpirun_message=
 endif
 
-head_message:
+head_message: all-recursive
 	@echo "=============================================="
 	@echo "Type 'make check' in the directory tests      "
 
@@ -59,4 +61,4 @@ CLEANFILES =
 all: head_message $(mpirun_message) foot_message
 
 check:
-	@python $(top_srcdir)/tests/report.py
+	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi

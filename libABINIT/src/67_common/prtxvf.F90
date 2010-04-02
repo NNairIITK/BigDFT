@@ -9,7 +9,7 @@
 !! Also compute and print max and rms forces.
 
 !! COPYRIGHT
-!! Copyright (C) 1998-2009 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2010 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -45,7 +45,7 @@ subroutine prtxvf(fcart,iatfix,iout,natom,prtvel,vel,xcart)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-! use interfaces_14_hidewrite
+ use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -73,17 +73,17 @@ subroutine prtxvf(fcart,iatfix,iout,natom,prtvel,vel,xcart)
  write(message, '(a)' ) ' Cartesian coordinates (bohr)'
  call wrtout(iout,message,'COLL')
  do iatom=1,natom
-  write(message, '(1p,3e22.14)' )xcart(:,iatom)
-  call wrtout(iout,message,'COLL')
+   write(message, '(1p,3e22.14)' )xcart(:,iatom)
+   call wrtout(iout,message,'COLL')
  end do
 
  if (prtvel == 1) then
-  write(message, '(a)' ) ' Velocities (bohr/(atomic time unit))'
-  call wrtout(iout,message,'COLL')
-  do iatom=1,natom
-   write(message, '(1p,3e22.14)' ) vel(:,iatom)
+   write(message, '(a)' ) ' Velocities (bohr/(atomic time unit))'
    call wrtout(iout,message,'COLL')
-  end do
+   do iatom=1,natom
+     write(message, '(1p,3e22.14)' ) vel(:,iatom)
+     call wrtout(iout,message,'COLL')
+   end do
  end if
 
 !Compute max |f| and rms f, EXCLUDING the components determined by iatfix
@@ -92,13 +92,13 @@ subroutine prtxvf(fcart,iatfix,iout,natom,prtvel,vel,xcart)
  frms=0.0_dp
  unfixd=0
  do iatom=1,natom
-  do mu=1,3
-   if (iatfix(mu,iatom) /= 1) then
-    unfixd=unfixd+1
-    frms=frms+fcart(mu,iatom)**2
-    fmax=max(fmax,abs(fcart(mu,iatom)))
-   end if
-  end do
+   do mu=1,3
+     if (iatfix(mu,iatom) /= 1) then
+       unfixd=unfixd+1
+       frms=frms+fcart(mu,iatom)**2
+       fmax=max(fmax,abs(fcart(mu,iatom)))
+     end if
+   end do
  end do
  if ( unfixd /= 0 ) frms=sqrt(frms/dble(unfixd))
 
@@ -107,8 +107,8 @@ subroutine prtxvf(fcart,iatfix,iout,natom,prtvel,vel,xcart)
 & ' (free atoms)'
  call wrtout(iout,message,'COLL')
  do iatom=1,natom
-  write(message, '(1p,3e22.14)' )fcart(:,iatom)
-  call wrtout(iout,message,'COLL')
+   write(message, '(1p,3e22.14)' )fcart(:,iatom)
+   call wrtout(iout,message,'COLL')
  end do
 
  write(message, '(a)' ) ' '

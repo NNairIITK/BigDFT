@@ -378,7 +378,7 @@ subroutine Convolkinetic(n1,n2,n3, &
   !            tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
   return
-end subroutine Convolkinetic
+END SUBROUTINE Convolkinetic
 
 
 
@@ -791,7 +791,7 @@ subroutine ConvolkineticP(n1,n2,n3, &
   !            tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
   return
-end subroutine ConvolkineticP
+END SUBROUTINE ConvolkineticP
 
 
 
@@ -1203,7 +1203,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
   !            tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
   return
-end subroutine ConvolkineticT
+END SUBROUTINE ConvolkineticT
 
 
        SUBROUTINE SYN_REPEATED_PER(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3)
@@ -1366,7 +1366,7 @@ subroutine SYNTHESE_PER(nd1,nd2,nd3,x,y,ww)
 ! i3,I1,I2  -> I1,I2,I3
   nt=(nd1+1)*(nd2+1)
   call  SYN_ROT_PER(nd3,nt,ww,y)
-end subroutine SYNTHESE_PER
+END SUBROUTINE SYNTHESE_PER
 
 
 subroutine SYNTHESE_PER_SELF(nd1,nd2,nd3,x,y,ww)
@@ -1430,7 +1430,7 @@ subroutine ANALYSE_PER_SELF(nd1,nd2,nd3,y,x,ww)
         nt=(nd1+1)*(nd2+1)
         call  ANA_ROT_PER(nd3,nt,ww,y)
 
-end subroutine ANALYSE_PER_SELF
+END SUBROUTINE ANALYSE_PER_SELF
 
 
 SUBROUTINE ANA_ROT_PER(RIGHT,NT,C,CD_1)

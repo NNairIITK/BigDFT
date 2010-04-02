@@ -3,7 +3,7 @@
 !!   Generate the input guess via the inguess_generator
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 (LG)
+!!    Copyright (C) 2007-2010 (LG) BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -36,10 +36,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll,nvirteu,nvirted
   type(communications_arrays) :: commsv
   logical, dimension(:,:,:), allocatable :: scorb
-  integer, dimension(:), allocatable :: ng,iorbtolr
-  integer, dimension(:,:), allocatable :: nl
-  real(gp), dimension(:,:), allocatable :: xp,occupat
-  real(gp), dimension(:,:,:), allocatable :: psiat
+  integer, dimension(:), allocatable :: iorbtolr
 
   allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)
   call memocc(i_stat,scorb,'scorb',subname)
@@ -47,7 +44,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   !Generate the input guess via the inguess_generator
   !here we should allocate the gaussian basis descriptors 
   !the prescriptions can be found in the creation of psp basis
-  call readAtomicOrbitals(iproc,at,norbe,norbsc,nspin,orbs%nspinor,&
+  call readAtomicOrbitals(at,norbe,norbsc,nspin,orbs%nspinor,&
        scorb,norbsc_arr,locrad)
 
   !in the non-collinear case the number of orbitals double
@@ -70,8 +67,8 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
         !Check for max number of virtual orbitals
         !the unoccupied orbitals available as a LCAO
         !this is well defined only for closed-shell systems
-        if (ispin == 1) nvirte=noncoll*norbe-orbs%norbu
-        if (ispin == 2) nvirte=noncoll*norbe-orbs%norbd
+        if (ispin == 1) nvirte=min(noncoll*norbe-orbs%norbu,nvirt)
+        if (ispin == 2) nvirte=min(noncoll*norbe-orbs%norbd,nvirt)
         if(nvirt == nvirte .and. nvirt/=0 .and. iproc==0) then
            write(*,'(1x,a)')&
                 "WARNING: A smaller number of virtual orbitals may be needed for better convergence."
@@ -145,7 +142,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   call memocc(i_stat,iorbtolr,'iorbtolr',subname)
 
   !fill just the interesting part of the orbital
-  call AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
+  call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
        psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
        iorbtolr)
 
@@ -160,15 +157,21 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
 END SUBROUTINE inputguess_gaussian_orbitals
 !!***
 
-subroutine count_atomic_shells(nmax,lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occup,nl)
+
+!!****f* BigDFT/count_atomic_shells
+!! FUNCTION
+!!   Count the number of atomic shells
+!! SOURCE
+!!
+subroutine count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occup,nl)
   use module_base
   implicit none
-  integer, intent(in) :: nmax,lmax,noccmax,nelecmax,nspin,nspinor
+  integer, intent(in) :: lmax,noccmax,nelecmax,nspin,nspinor
   real(gp), dimension(nelecmax), intent(in) :: elecorbs
   integer, dimension(lmax), intent(out) :: nl
   real(gp), dimension(noccmax,lmax), intent(out) :: occup
   !local variables
-  integer :: l,i,iocc,noncoll,inl,ispin,icoll,m
+  integer :: l,iocc,noncoll,inl,ispin,icoll,m
 
   !if non-collinear it is like nspin=1 but with the double of orbitals
   if (nspinor == 4) then
@@ -198,22 +201,22 @@ subroutine count_atomic_shells(nmax,lmax,noccmax,nelecmax,nspin,nspinor,elecorbs
         end do
      end do
   end do
-  
-end subroutine count_atomic_shells
-  
+
+END SUBROUTINE count_atomic_shells
+!!***
 
 
 !!****f* BigDFT/readAtomicOrbitals
 !! FUNCTION
 !!   Read atomic orbitals
-!!
 !! SOURCE
 !!
-subroutine readAtomicOrbitals(iproc,at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
+subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nspin,nspinor
+  !Arguments
+  integer, intent(in) :: nspin,nspinor
   integer, intent(out) :: norbe,norbsc
   type(atoms_data), intent(inout) :: at
   logical, dimension(4,2,at%natsc), intent(out) :: scorb
@@ -223,10 +226,9 @@ subroutine readAtomicOrbitals(iproc,at,norbe,norbsc,nspin,nspinor,scorb,norbsc_a
   character(len=*), parameter :: subname='readAtomicOrbitals'
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
   character(len=2) :: symbol
-  character(len=20) :: pspatomname
-  integer :: ity,i,j,l,ifile,ng_fake,ierror,iatsc,iat,ipow,lsc,inorbsc
-  integer :: ichg,nsccode,ispol,mxpl,mxchg,i_all,i_stat,ityp,ishell,ictotpsi
-  integer :: norbat,iorbsc_count,niasc,nlsc,iexpo,ig,ishltmp
+  integer :: ity,i,iatsc,iat,lsc
+  integer :: nsccode,mxpl,mxchg
+  integer :: norbat,iorbsc_count,niasc,nlsc
   real(gp) :: rcov,rprb,ehomo
   integer, dimension(nmax,lmax+1) :: neleconf
   integer, dimension(lmax+1) :: nl
@@ -239,10 +241,9 @@ subroutine readAtomicOrbitals(iproc,at,norbe,norbsc,nspin,nspinor,scorb,norbsc_a
   scorb(:,:,:)=.false.
   do iat=1,at%nat
      ity=at%iatype(iat)
-     call count_atomic_shells(nmax,lmax+1,noccmax,nelecmax,nspin,nspinor,&
-          at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(lmax+1,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
      norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
-  
+
      norbe=norbe+norbat
      !print *,'iat',iat,l,norbe,norbat,nl(:)
      !calculate the localisation radius for the input orbitals 
@@ -286,18 +287,19 @@ subroutine readAtomicOrbitals(iproc,at,norbe,norbsc,nspin,nspinor,scorb,norbsc_a
 END SUBROUTINE readAtomicOrbitals
 !!***
 
+
 !!****f* BigDFT/AtomicOrbitals
 !! FUNCTION
 !!   Generate atomic orbitals
 !!
 !! SOURCE
 !!
-subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,&
+subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
      nspin,eks,scorb,G,gaucoeff,iorbtolr)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: norbe,iproc,nproc
+  integer, intent(in) :: norbe,iproc
   integer, intent(in) :: norbsc,nspin
   type(atoms_data), intent(in) :: at
   logical, dimension(4,2,at%natsc), intent(in) :: scorb
@@ -310,21 +312,15 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,&
   !local variables
   character(len=*), parameter :: subname= 'AtomicOrbitals'
   integer, parameter :: nterm_max=3,noccmax=2,lmax=4,nmax=6,nelecmax=32!actually is 24
-  character(len=2) :: symbol
-  logical :: myorbital,polarised,orbpol_nc,occeq
-  integer :: iatsc,i_all,i_stat,ispin,ipolres,ipolorb,ichg,nsccode,mxpl,mxchg,iexpo,ishltmp
-  integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,nterm,iocc,ictotpsi,ishell,icoeff
-  integer :: noncoll,ig,ispinor,icoll,norbpol_nc,ikpts,ikorb,nlo,ntypesx,ityx,jat,ng
-  real(wp) :: scprw
-  real(dp) :: scpr
-  real(gp) :: rx,ry,rz,ek,occshell,rcov,rprb,ehomo,shelloccup,mx,my,mz,ma,mb,mc,md
-  real(gp) :: mnorm,fac,occres
+  logical :: orbpol_nc,occeq
+  integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp
+  integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,iocc,ictotpsi,ishell,icoeff
+  integer :: noncoll,ig,ispinor,icoll,ikpts,ikorb,nlo,ntypesx,ityx,jat,ng
+  real(gp) :: ek,mx,my,mz,ma,mb,mc,md
+  real(gp) :: mnorm,fac
   logical, dimension(lmax,noccmax) :: semicore
   integer, dimension(2) :: iorbsc,iorbv
-  !integer, dimension(nlevmax,0:(lmax-1)) :: neleconf
-  integer, dimension(nterm_max) :: lx,ly,lz
   integer, dimension(lmax) :: nl
-  real(gp), dimension(nterm_max) :: fac_arr
   real(gp), dimension(noccmax,lmax) :: occup
   integer, dimension(:), allocatable :: iatypex
   real(gp), dimension(:), allocatable :: psiatn
@@ -362,8 +358,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,&
   count_shells: do iat=1,at%nat
      !print *,'atom,aocc',iat,at%aocc(1:nelecmax,iat)
      ity=at%iatype(iat)
-     call count_atomic_shells(nmax,lmax,noccmax,nelecmax,nspin,orbse%nspinor,&
-          at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,orbse%nspinor,at%aocc(1,iat),occup,nl)
      G%nshell(iat)=(nl(1)+nl(2)+nl(3)+nl(4))
      G%nshltot=G%nshltot+G%nshell(iat)
      !check the occupation numbers and the atoms type
@@ -412,8 +407,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,&
      ity=at%iatype(iat)
      ityx=iatypex(iat)
      ishltmp=0
-     call count_atomic_shells(nmax,lmax,noccmax,nelecmax,nspin,orbse%nspinor,&
-          at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,orbse%nspinor,at%aocc(1,iat),occup,nl)
      if (ityx > ntypesx) then
         if (iproc == 0 .and. verbose > 1) then
            write(*,'(1x,a,a6,a)')&
@@ -424,7 +418,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,&
                 at%aocc(1,iat),at%iasctype(iat))
         end if
 
-        call iguess_generator(iproc,at%nzatom(ity),at%nelpsp(ity),&
+        call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
              real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
              at%npspcode(ity),&
              ng-1,nl,5,noccmax,lmax,occup,xp(1,ityx),&
@@ -510,8 +504,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,&
 
      ity=at%iatype(iat)
      ityx=iatypex(iat)
-     call count_atomic_shells(nmax,lmax,noccmax,nelecmax,nspin,orbse%nspinor,&
-          at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,orbse%nspinor,at%aocc(1,iat),occup,nl)
 
      nsccode=at%iasctype(iat)
 
@@ -580,7 +573,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,&
                        jorb=ikorb-orbse%isorb
                        orbse%occup(ikorb)=at%aocc(iocc,iat)
 
-                       eks=eks+ek*at%aocc(iocc,iat)
+                       eks=eks+ek*at%aocc(iocc,iat)*orbse%kwgts(ikpts)
                        !print *,'iat',iat,l,m,icoll,orbse%occup(ikorb),orbpol_nc
                        if (orbse%isorb < ikorb .and. ikorb <= orbse%isorb+orbse%norbp) then
                           if (orbse%nspinor == 1) then
@@ -590,9 +583,11 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,&
                                 gaucoeff(icoeff,ispinor,jorb)=1.0_wp
                              end do
                           else if (orbse%nspinor == 2) then
-                             !we can put a phase for check with the complex wavefunction
-                             gaucoeff(icoeff,1,jorb)=1.0_wp!0.5_wp*sqrt(3.0_wp)
-                             gaucoeff(icoeff,2,jorb)=0.0_wp!0.5_wp
+                             gaucoeff(icoeff,1,jorb)=1.0_wp
+                             gaucoeff(icoeff,2,jorb)=0.0_wp
+!!$                             !we can put a phase for check with the complex wavefunction
+!!$                             gaucoeff(icoeff,1,jorb)=0.5_wp*sqrt(3.0_wp)
+!!$                             gaucoeff(icoeff,2,jorb)=0.5_wp
                           else if (orbse%nspinor == 4) then
                              !assign the input orbitals according to the atomic moments
                              fac=0.5_gp
@@ -691,6 +686,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,&
               icoeff=icoeff-(2*l-1)
            end do
            icoeff=icoeff+(2*l-1)
+
         end do
      end do
 
@@ -762,7 +758,7 @@ subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
   integer :: i,j
   real(gp) :: gml,tt,xpi,xpj,d,sxp,const,hij,sij
 
-  !        gml=.5d0*gamma(.5d0+l)
+  !        gml=.5d0*gamma_restricted(.5d0+l)
   gml = 0.0_gp
   if (l.eq.0) then 
      gml=0.88622692545275801365_gp
@@ -811,8 +807,9 @@ subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
      psiatn(i)=psiat(i)*tt
   enddo
 
-end subroutine atomkin
+END SUBROUTINE atomkin
 !!***
+
 
 !!****f* BigDFT/calc_coeff_inguess
 !! FUNCTION
@@ -934,11 +931,11 @@ END SUBROUTINE calc_coeff_inguess
 !!
 !! SOURCE
 !!
-subroutine iguess_generator(iproc,izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
+subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
      nmax_occ,noccmax,lmax,occup,expo,psiat)
   use module_base
   implicit none
-  integer, intent(in) :: iproc,ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom
+  integer, intent(in) :: ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom
   real(gp), intent(in) :: zion
   integer, dimension(lmax+1), intent(in) :: nl
   real(gp), dimension(0:4,0:6), intent(in) :: psppar
@@ -949,11 +946,9 @@ subroutine iguess_generator(iproc,izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
   character(len=*), parameter :: subname='iguess_generator'
   integer, parameter :: n_int=100
   real(gp), parameter :: fact=4.0_gp
-  character(len=27) :: string 
   character(len=2) :: symbol
-  logical :: exists
-  integer :: lpx,ncount,nsccode,mxpl,mxchg
-  integer :: l,i,j,iocc,il,lwrite,i_all,i_stat
+  integer :: lpx,nsccode,mxpl,mxchg
+  integer :: l,i,j,iocc,i_all,i_stat
   real(gp) :: alpz,alpl,amu,rprb,rij,a,a0,a0in,tt,ehomo,rcov
   integer, dimension(6,4) :: neleconf
   real(gp), dimension(4) :: gpot
@@ -1055,7 +1050,6 @@ subroutine iguess_generator(iproc,izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
 !     nl(l+1)=iocc
 !  end do
 
-
   !allocate arrays for the gatom routine
   allocate(vh(4*(ng+1)**2,4*(ng+1)**2+ndebug),stat=i_stat)
   call memocc(i_stat,vh,'vh',subname)
@@ -1137,8 +1131,8 @@ END SUBROUTINE iguess_generator
 
 !!****f* BigDFT/gatom
 !! FUNCTION
-!!   
-!!
+!!  Calculates the solution of the radial Schroedinger equation for a given
+!!  pseudoptential.
 !! SOURCE
 !!
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
@@ -1150,7 +1144,6 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
   integer, parameter :: n_int=100
   dimension psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
        hh(0:ng,0:ng),ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
-       aux(2*ng+2),&
        gpot(4),hsep(6,lpx+1),rmt(n_int,0:ng,0:ng,lmax+1),&
        pp1(0:ng,lpx+1),pp2(0:ng,lpx+1),pp3(0:ng,lpx+1),alps(lpx+1),&
        potgrd(n_int),&
@@ -1174,10 +1167,10 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
 ! projectors, just in case
   if (.not. noproj) then
      do l=0,lpx
-        gml1=sqrt( gamma(real(l,gp)+1.5_gp) / (2._gp*alps(l+1)**(2*l+3)) )
-        gml2=sqrt( gamma(real(l,gp)+3.5_gp) / (2._gp*alps(l+1)**(2*l+7)) )&
+        gml1=sqrt( gamma_restricted(real(l,gp)+1.5_gp) / (2._gp*alps(l+1)**(2*l+3)) )
+        gml2=sqrt( gamma_restricted(real(l,gp)+3.5_gp) / (2._gp*alps(l+1)**(2*l+7)) )&
             /(real(l,gp)+2.5_gp)
-        gml3=sqrt( gamma(real(l,gp)+5.5_gp) / (2._gp*alps(l+1)**(2*l+11)) )&
+        gml3=sqrt( gamma_restricted(real(l,gp)+5.5_gp) / (2._gp*alps(l+1)**(2*l+11)) )&
             /((real(l,gp)+3.5_gp)*(real(l,gp)+4.5_gp))
         tt=1._gp/(2._gp*alps(l+1)**2)
         do i=0,ng
@@ -1267,7 +1260,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
      end do
 
      loop_l: do l=0,lmax
-        gml=.5_gp*gamma(.5_gp+real(l,gp))
+        gml=.5_gp*gamma_restricted(.5_gp+real(l,gp))
 
 !  lower triangles only
         loop_i: do i=0,ng
@@ -1303,10 +1296,10 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
               end if
 ! potential from repulsive gauss potential
               tt=alpl**2/(.5_gp+d*alpl**2)
-              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
-                   + (gpot(2)/alpl**2)*.5_gp*gamma(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
-                   + (gpot(3)/alpl**4)*.5_gp*gamma(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))&
-                   + (gpot(4)/alpl**6)*.5_gp*gamma(4.5_gp+real(l,gp))*tt**(4.5_gp+real(l,gp))
+              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma_restricted(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
+                   + (gpot(2)/alpl**2)*.5_gp*gamma_restricted(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
+                   + (gpot(3)/alpl**4)*.5_gp*gamma_restricted(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))&
+                   + (gpot(4)/alpl**6)*.5_gp*gamma_restricted(4.5_gp+real(l,gp))*tt**(4.5_gp+real(l,gp))
 ! separable terms
               if (l.le.lpx) then
                  hh(i,j)=hh(i,j) + pp1(i,l+1)*hsep(1,l+1)*pp1(j,l+1)&
@@ -1497,7 +1490,7 @@ END SUBROUTINE gatom
 
 !!****f* BigDFT/resid
 !! FUNCTION
-!!   
+!!
 !!
 !! SOURCE
 !!
@@ -1547,9 +1540,9 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
 
   loop_ll: do ll=0,lmax
      if (ll.le.lpx .and. .not. noproj) then
-        rnrm1=1._gp/sqrt(.5_gp*gamma(real(ll,gp)+1.5_gp)*alps(ll+1)**(2*ll+3))
-        rnrm2=1._gp/sqrt(.5_gp*gamma(real(ll,gp)+3.5_gp)*alps(ll+1)**(2*ll+7))
-        rnrm3=1._gp/sqrt(.5_gp*gamma(real(ll,gp)+5.5_gp)*alps(ll+1)**(2*ll+11))
+        rnrm1=1._gp/sqrt(.5_gp*gamma_restricted(real(ll,gp)+1.5_gp)*alps(ll+1)**(2*ll+3))
+        rnrm2=1._gp/sqrt(.5_gp*gamma_restricted(real(ll,gp)+3.5_gp)*alps(ll+1)**(2*ll+7))
+        rnrm3=1._gp/sqrt(.5_gp*gamma_restricted(real(ll,gp)+5.5_gp)*alps(ll+1)**(2*ll+11))
      end if
      loop_iocc: do iocc=1,noccmax
 ! separable part
@@ -1602,7 +1595,6 @@ END SUBROUTINE resid
 
 !!****f* BigDFT/crtvh
 !! FUNCTION
-!!   
 !!
 !! SOURCE
 !!
@@ -1760,33 +1752,38 @@ end function emuxc
 !!***
 
 
-!!****f* BigDFT/gamma
+!!****f* BigDFT/gamma_restricted
 !! FUNCTION
 !!   Restricted version of the Gamma function
 !!
 !! SOURCE
 !!
-function gamma(x)
+function gamma_restricted(x)
   use module_base, only: gp
-  implicit real(gp) (a-h,o-z)
+  implicit none
+  !Arguments
+  real(gp), intent(in) :: x
+  real(gp) :: gamma_restricted
+  !Local variables
+  integer :: ii,i
 
-  if (x.le.0._gp) stop 'wrong argument for gamma'
+  if (x.le.0._gp) stop 'wrong argument for gamma_restricted'
   if (mod(x,1._gp).eq.0._gp) then
      ii=int(x)
      do i=2,ii
-        gamma=gamma*real(i-1,gp)
+        gamma_restricted=gamma_restricted*real(i-1,gp)
      end do
   else if (mod(x,.5_gp).eq.0._gp) then
      ii=int(x-.5_gp)
-!     gamma=sqrt(3.14159265358979_gp)
-     gamma=1.772453850905516027_gp
+!     gamma_restricted=sqrt(3.14159265358979_gp)
+     gamma_restricted=1.772453850905516027_gp
      do i=1,ii
-        gamma=gamma*(real(i,gp)-.5_gp)
+        gamma_restricted=gamma_restricted*(real(i,gp)-.5_gp)
      end do
   else
-     stop 'wrong argument for gamma'
+     stop 'wrong argument for gamma_restricted'
   end if
-end function gamma
+end function gamma_restricted
 !!***
 
 
@@ -1796,27 +1793,23 @@ end function gamma
 !!
 !! SOURCE
 !!
-!  call psitospi(iproc,nproc,norbe,norbep,norbsc,nat,&
-!       wfd%nvctr_c,wfd%nvctr_f,at%iatype,at%ntypes,&
-!       at%iasctype,at%natsc,at%natpol,nspin,spinsgne,psi)
-subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
-     & nvctr_c,nvctr_f,iatype,ntypes, &
-     iasctype,natsc,natpol,nspin,spinsgne,psi)
+!  call psitospi0(iproc,nproc,norbe,norbep,norbsc,&
+!       wfd%nvctr_c,wfd%nvctr_f,nspin,spinsgne,psi)
+subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,&
+     & nvctr_c,nvctr_f,nspin,spinsgne,psi)
   use module_base
   implicit none
-  integer, intent(in) :: norbe,norbep,iproc,nproc,nat
+  !Arguments
+  integer, intent(in) :: norbe,norbep,iproc,nproc
   integer, intent(in) :: nvctr_c,nvctr_f
-  integer, intent(in) :: ntypes
-  integer, intent(in) :: norbsc,natsc,nspin
-  integer, dimension(ntypes), intent(in) :: iasctype
-  integer, dimension(nat), intent(in) :: iatype,natpol
+  integer, intent(in) :: norbsc,nspin
   integer, dimension(norbe*nspin), intent(in) :: spinsgne
   real(kind=8), dimension(nvctr_c+7*nvctr_f,norbep*nspin), intent(inout) :: psi
-  !local variables
+  !Local variables
   character(len=*), parameter :: subname='psitospi0'
-  logical :: myorbital,polarised
-  integer :: iatsc,i_all,i_stat,ispin,ipolres,ipolorb,nvctr
-  integer :: iorb,jorb,iat,ity,i
+  logical :: myorbital
+  integer :: i_all,i_stat,nvctr
+  integer :: iorb,jorb,i
   real(kind=8) :: facu,facd
   real(kind=8), dimension(:,:), allocatable :: psi_o
   integer, dimension(2) :: iorbsc,iorbv
@@ -1827,7 +1820,6 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
   !used in case of spin-polarisation, ignored otherwise
   iorbsc(2)=norbe
   iorbv(2)=norbsc+norbe
-
 
   if (iproc ==0) then
      write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
@@ -1843,9 +1835,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
      end do
   end do
 
- 
   call razero(nvctr*nspin*norbep,psi)
-  
 
   do iorb=1,norbe
      jorb=iorb-iproc*norbep
@@ -1874,8 +1864,15 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
   end if
 
 END SUBROUTINE psitospi0
+!!***
 
-!calculate the occupation number for any of the orbitals
+
+!!****f* BigDFT/at_occnums
+!! FUNCTION
+!!  Calculate the occupation number for any of the orbitals
+!!
+!! SOURCE
+!!
 subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
   use module_base
   implicit none
@@ -1885,7 +1882,7 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
   real(gp), dimension(nelecmax), intent(out) :: occupIG
   !local variables
   logical :: polarised
-  integer :: iocc,inl,ipolorb,norbpol_nc,i,l,m,noncoll,icoll,ispin
+  integer :: iocc,ipolorb,norbpol_nc,i,l,m,noncoll,icoll,ispin
   real(gp) :: shelloccup,occshell,occres,rnl
   
   !in the non-collinear case the number of orbitals double
@@ -1978,9 +1975,15 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
         end if
      end do
   end do
-end subroutine at_occnums
+END SUBROUTINE at_occnums
+!!***
 
-!print the electronic configuration, with the semicore orbitals
+
+!!****f* BigDFT/print_eleconf
+!! FUNCTION
+!!   Print the electronic configuration, with the semicore orbitals
+!! SOURCE
+!!
 subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   use module_base
   implicit none
@@ -1988,7 +1991,7 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   real(gp), dimension(nelecmax), intent(in) :: aocc
   !local variables
   character(len=10) :: tmp
-  character(len=100) :: string
+  character(len=150) :: string
   integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp
   logical, dimension(4,2) :: scorb
 
@@ -2011,7 +2014,7 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   end if
 
   !initalise string
-  string=repeat(' ',100)
+  string=repeat(' ',150)
 
   is=1
   do i=1,noccmax
@@ -2067,8 +2070,15 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
 
   write(*,'(2x,a,1x,a,1x,a)',advance='no')' Elec. Configuration:',trim(string),'...'
 
-end subroutine print_eleconf
+END SUBROUTINE print_eleconf
+!!***
 
+!!****f* BigDFT/write_fraction_string
+!! FUNCTION
+!!  Control whether the occupation number can be rounded by a shell-dependent fraction 
+!!  denominator
+!! SOURCE
+!!
 subroutine write_fraction_string(l,occ,string,nstring)
   use module_base
   implicit none
@@ -2081,9 +2091,6 @@ subroutine write_fraction_string(l,occ,string,nstring)
   integer :: num,den
   real(gp) :: check
   
-  
-  !control whether the occupation number can be rounded by a shell-dependent fraction 
-  !denominator
   den=(2*l-1)
   check=occ*real(den,gp)
   !find the numerator
@@ -2103,10 +2110,47 @@ subroutine write_fraction_string(l,occ,string,nstring)
      write(string,'(1x,f4.2)')occ
   end if
 
-end subroutine write_fraction_string
+END SUBROUTINE write_fraction_string
+!!***
 
-!here the fraction is indicated by the :
-subroutine read_fraction_string(l,string,occ)
+
+!!****f* BigDFT/read_fraction_string
+!! FUNCTION
+!!  Here the fraction is indicated by the ':' or '/'
+!! SOURCE
+!!
+subroutine read_fraction_string(string,occ,ierror)
+  use module_base
+  implicit none
+  !Arguments
+  character(len=*), intent(in) :: string
+  real(gp), intent(out) :: occ
+  integer, intent(out) :: ierror
+  !Local variables
+  integer :: num,den,pfr
+
+  !see whether there is a fraction in the string
+  pfr = index(string,':')
+  if (pfr == 0) pfr = index(string,'/')
+  if (pfr == 0) then
+     read(string,*,iostat=ierror) occ
+  else
+     read(string(1:pfr-1),*,iostat=ierror) num
+     read(string(pfr+1:),*,iostat=ierror) den
+     if (ierror == 0) occ=real(num,gp)/real(den,gp)
+  end if
+  !Value by defaut
+  if (ierror /= 0) occ = huge(1_gp)
+END SUBROUTINE read_fraction_string
+!!***
+
+
+!!****f* BigDFT/read_fraction_string_old
+!! FUNCTION
+!!  Here the fraction is indicated by the :
+!! SOURCE
+!!
+subroutine read_fraction_string_old(l,string,occ)
   use module_base
   implicit none
   integer, intent(in) :: l
@@ -2128,10 +2172,15 @@ subroutine read_fraction_string(l,string,occ)
   else
      read(string,*)occ
   end if
-end subroutine read_fraction_string
+END SUBROUTINE read_fraction_string_old
+!!***
 
 
-!read the electronic configuration, with the semicore orbitals
+!!****f* BigDFT/read_eleconf
+!! FUNCTION
+!!   Read the electronic configuration, with the semicore orbitals
+!! SOURCE
+!!
 subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   use module_base
   implicit none
@@ -2141,7 +2190,7 @@ subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   real(gp), dimension(nelecmax), intent(out) :: aocc
   !local variables
   character(len=20), dimension(2*(2*lmax-1)) :: tmp
-  integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,niasc,lsc,j,ist,ierror
+  integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,lsc,j,ist,ierror
   logical, dimension(4,2) :: scorb
   integer, dimension(lmax) :: nl,nlsc
   real(gp), dimension(2*(2*lmax-1),noccmax,lmax) :: allocc
@@ -2152,7 +2201,6 @@ subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
         string(i:i) = ':'
      end if
   end do
-
 
   !if non-collinear it is like nspin=1 but with the double of orbitals
   if (nspinor == 4) then
@@ -2192,7 +2240,7 @@ subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
      !read the different atomic occupation numbers
      read(string(ist:min(ist+49,99)),*,iostat=ierror)(tmp(j),j=1,nspin*noncoll*(2*l-1))
      do j=1,nspin*noncoll*(2*l-1)
-        call read_fraction_string(l,tmp(j),allocc(j,nl(l),l))
+        call read_fraction_string_old(l,tmp(j),allocc(j,nl(l),l))
      end do
      if (ierror /= 0) then
         write(*,*)'An error occured while reading the electronic configuration. Check the correct spin value',&
@@ -2227,4 +2275,5 @@ subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
      end do
   end do
 
-end subroutine read_eleconf
+END SUBROUTINE read_eleconf
+!!***

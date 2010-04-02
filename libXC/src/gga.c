@@ -2,136 +2,101 @@
  Copyright (C) 2006-2007 M.A.L. Marques
 
  This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation; either version 3 of the License, or
  (at your option) any later version.
   
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+ GNU Lesser General Public License for more details.
   
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 #include "util.h"
 #include "funcs_gga.c"
-
+#include "funcs_hyb_gga.c"
 
 /* initialization */
-int XC(gga_init)(XC(gga_type) *p, int functional, int nspin)
+int XC(gga_init)(XC(func_type) *p, const XC(func_info_type) *info, int nspin)
 {
-  int i;
+  XC(gga_type) *func;
 
-  assert(p != NULL);
-
-  /* let us first find out if we know the functional */
-  for(i=0; XC(gga_known_funct)[i]!=NULL; i++){
-    if(XC(gga_known_funct)[i]->number == functional) break;
-  }
-  if(XC(gga_known_funct)[i] == NULL) return -1; /* functional not found */
+  assert(p != NULL && p->gga != NULL);
+  func = p->gga;
 
   /* initialize structure */
-  p->mix    = NULL;
-  p->params = NULL;
-  p->info = XC(gga_known_funct)[i];
+  func->info   = info;
+  func->nspin  = nspin;
+  func->params = NULL;
+  func->func   = 0;
 
-  assert(nspin==XC_UNPOLARIZED || nspin==XC_POLARIZED);
-  p->nspin = nspin;
+  func->n_func_aux = 0;
+  func->func_aux   = NULL;
+  func->mix_coef   = NULL;
+  func->exx_coef   = 0.0;
+
+  /* initialize spin counters */
+  func->n_zk  = 1;
+  func->n_rho = func->n_vrho = func->nspin;
+  if(func->nspin == XC_UNPOLARIZED){
+    func->n_sigma  = func->n_vsigma = 1;
+    func->n_v2rho2 = func->n_v2rhosigma = func->n_v2sigma2 = 1;
+  }else{
+    func->n_sigma      = func->n_vsigma = func->n_v2rho2 = 3;
+    func->n_v2rhosigma = func->n_v2sigma2 = 6;
+  }
 
   /* see if we need to initialize the functional */
-  if(p->info->init != NULL)
-    p->info->init(p);
+  if(func->info->init != NULL)
+    func->info->init(func);
   return 0;
 }
 
 
 /* Termination */
-void XC(gga_end)(XC(gga_type) *p)
+void XC(gga_end)(XC(func_type) *p)
 {
-  assert(p != NULL);
+  XC(gga_type) *func;
 
-  if(p->info->end != NULL)
-    p->info->end(p);
+  assert(p != NULL && p->gga != NULL);
+  func = p->gga;
 
-  if(p->mix != NULL)
-    XC(mix_func_free)(p->mix);
-  free(p->mix); p->mix = NULL;
-}
+  /* call internal termination routine */
+  if(func->info->end != NULL)
+    func->info->end(func);
 
+  /* terminate any auxiliary functional */
+  if(func->n_func_aux > 0){
+    int ii;
 
-inline int
-XC(gga_input_init)(const XC(func_info_type) *info, int nspin, const FLOAT *rho,
-		   FLOAT *zk, FLOAT *vrho, FLOAT *vsigma,
-		   FLOAT *v2rho2, FLOAT *v2rhosigma, FLOAT *v2sigma2)
-{
-  FLOAT dens;
-  int i, n;
-
-  /* sanity check */
-  if(zk != NULL && !(info->provides & XC_PROVIDES_EXC)){
-    fprintf(stderr, "Functional '%s' does not provide an implementation of Exc",
-	    info->name);
-    exit(1);
-  }
-
-  if(vrho != NULL && !(info->provides & XC_PROVIDES_VXC)){
-    fprintf(stderr, "Functional '%s' does not provide an implementation of vxc",
-	    info->name);
-    exit(1);
-  }
-
-  if(v2rho2 != NULL && !(info->provides & XC_PROVIDES_FXC)){
-    fprintf(stderr, "Functional '%s' does not provide an implementation of fxc",
-	    info->name);
-    exit(1);
-  }
-
-  /* initialize output to zero */
-  if(zk != NULL){
-    assert(info->provides & XC_PROVIDES_EXC);
-    *zk = 0.0;
-  }
-
-  if(vrho != NULL){
-    assert(info->provides & XC_PROVIDES_VXC);
-    assert(vsigma != NULL);
-    
-    for(i=0; i<nspin; i++) vrho [i] = 0.0;
-    
-    n = (nspin == XC_UNPOLARIZED) ? 1 : 3;
-    for(i=0; i<n; i++)
-      vsigma[i] = 0.0;
-  }
-
-  if(v2rho2 != NULL){
-    assert(info->provides & XC_PROVIDES_FXC);
-    assert(v2rhosigma!=NULL && v2sigma2!=NULL);
-
-    n = (nspin == XC_UNPOLARIZED) ? 1 : 3;
-    for(i=0; i<n; i++)
-      v2rho2[i] = 0.0;
-
-    n = (nspin == XC_UNPOLARIZED) ? 1 : 6;
-    for(i=0; i<n; i++){
-      v2rhosigma[i] = 0.0;
-      v2sigma2[i]   = 0.0;
+    for(ii=0; ii<func->n_func_aux; ii++){
+      XC(func_end)(func->func_aux[ii]);
+      free(func->func_aux[ii]);
     }
+    free(func->func_aux);
+    func->n_func_aux = 0;
   }
 
-  /* check if density is larger than threshold */
-  dens = rho[0];
-  if(nspin == XC_POLARIZED) dens += rho[1];
-  return (dens > MIN_DENS);
- 
-}
+  if(func->mix_coef != NULL){
+    free(func->mix_coef);
+    func->mix_coef = NULL;
+  }
 
+  /* deallocate any used parameter */
+  if(func->params != NULL){
+    free(func->params);
+    func->params = NULL;
+  }
+}
 
 /* Some useful formulas:
 
@@ -156,38 +121,122 @@ if nspin == 2
    v2rhosigma(6) = (u_uu, u_ud, u_dd, d_uu, d_ud, d_dd)
    v2sigma2(6)   = (uu_uu, uu_ud, uu_dd, ud_ud, ud_dd, dd_dd)
 */
-void XC(gga)(const XC(gga_type) *p, const FLOAT *rho, const FLOAT *sigma,
+void XC(gga)(const XC(func_type) *p, int np, const FLOAT *rho, const FLOAT *sigma,
 	     FLOAT *zk, FLOAT *vrho, FLOAT *vsigma,
 	     FLOAT *v2rho2, FLOAT *v2rhosigma, FLOAT *v2sigma2)
 {
-  assert(p!=NULL && p->info!=NULL);
+  XC(gga_type) *func;
+
+  assert(p != NULL && p->gga != NULL);
+  func = p->gga;
   
-  if(!XC(gga_input_init)(p->info, p->nspin, rho, zk, vrho, vsigma,
-			 v2rho2, v2rhosigma, v2sigma2)) return;
+  /* sanity check */
+  if(zk != NULL && !(func->info->provides & XC_PROVIDES_EXC)){
+    fprintf(stderr, "Functional '%s' does not provide an implementation of Exc",
+	    func->info->name);
+    exit(1);
+  }
+
+  if(vrho != NULL && !(func->info->provides & XC_PROVIDES_VXC)){
+    fprintf(stderr, "Functional '%s' does not provide an implementation of vxc",
+	    func->info->name);
+    exit(1);
+  }
+
+  if(v2rho2 != NULL && !(func->info->provides & XC_PROVIDES_FXC)){
+    fprintf(stderr, "Functional '%s' does not provide an implementation of fxc",
+	    func->info->name);
+    exit(1);
+  }
+
+  /* initialize output to zero */
+  if(zk != NULL)
+    memset(zk, 0, func->n_zk*np*sizeof(FLOAT));
+
+  if(vrho != NULL){
+    assert(vsigma != NULL);
+    
+    memset(vrho,   0, func->n_vrho  *np*sizeof(FLOAT));
+    memset(vsigma, 0, func->n_vsigma*np*sizeof(FLOAT));
+  }
+
+  if(v2rho2 != NULL){
+    assert(v2rhosigma!=NULL && v2sigma2!=NULL);
+
+    memset(v2rho2,     0, func->n_v2rho2    *np*sizeof(FLOAT));
+    memset(v2rhosigma, 0, func->n_v2rhosigma*np*sizeof(FLOAT));
+    memset(v2sigma2,   0, func->n_v2sigma2  *np*sizeof(FLOAT));
+  }
 
   /* call functional */
-  if(p->info->gga != NULL)
-    p->info->gga(p, rho, sigma, zk, vrho, vsigma, v2rho2, v2rhosigma, v2sigma2);
+  if(func->info->gga != NULL)
+    func->info->gga(func, np, rho, sigma, zk, vrho, vsigma, v2rho2, v2rhosigma, v2sigma2);
 
-  if(p->mix != NULL)
-    XC(mix_func)(p->mix, rho, sigma, zk, vrho, vsigma, v2rho2, v2rhosigma, v2sigma2);
+  if(func->mix_coef != NULL){
+    XC(mix_func)(p, func->n_func_aux, func->func_aux, func->mix_coef, 
+		 np, rho, sigma, zk, vrho, vsigma, v2rho2, v2rhosigma, v2sigma2);
+  }
 }
 
 /* especializations */
-inline void XC(gga_exc)(const XC(gga_type) *p, const FLOAT *rho, const FLOAT *sigma, 
-			FLOAT *zk)
+/* returns only energy */
+inline void 
+XC(gga_exc)(const XC(func_type) *p, int np, const FLOAT *rho, const FLOAT *sigma, 
+	    FLOAT *zk)
 {
-  XC(gga)(p, rho, sigma, zk, NULL, NULL, NULL, NULL, NULL);
+  XC(gga)(p, np, rho, sigma, zk, NULL, NULL, NULL, NULL, NULL);
 }
 
-inline void XC(gga_vxc)(const XC(gga_type) *p, const FLOAT *rho, const FLOAT *sigma,
-			FLOAT *zk, FLOAT *vrho, FLOAT *vsigma)
+/* returns only potential */
+inline void 
+XC(gga_vxc)(const XC(func_type) *p, int np, const FLOAT *rho, const FLOAT *sigma,
+	    FLOAT *vrho, FLOAT *vsigma)
 {
-  XC(gga)(p, rho, sigma, zk, vrho, vsigma, NULL, NULL, NULL);
+  XC(gga)(p, np, rho, sigma, NULL, vrho, vsigma, NULL, NULL, NULL);
 }
 
-inline void XC(gga_fxc)(const XC(gga_type) *p, const FLOAT *rho, const FLOAT *sigma,
-			FLOAT *v2rho2, FLOAT *v2rhosigma, FLOAT *v2sigma2)
+/* returns both energy and potential (the most common call usually) */
+inline void 
+XC(gga_exc_vxc)(const XC(func_type) *p, int np, const FLOAT *rho, const FLOAT *sigma,
+		FLOAT *zk, FLOAT *vrho, FLOAT *vsigma)
 {
-  XC(gga)(p, rho, sigma, NULL, NULL, NULL, v2rho2, v2rhosigma, v2sigma2);
+  XC(gga)(p, np, rho, sigma, zk, vrho, vsigma, NULL, NULL, NULL);
+}
+
+/* returns second derivatives */
+inline void 
+XC(gga_fxc)(const XC(func_type) *p, int np, const FLOAT *rho, const FLOAT *sigma,
+	    FLOAT *v2rho2, FLOAT *v2rhosigma, FLOAT *v2sigma2)
+{
+  XC(gga)(p, np, rho, sigma, NULL, NULL, NULL, v2rho2, v2rhosigma, v2sigma2);
+}
+
+/* initializes the mixing for GGAs */
+void 
+gga_init_mix(XC(gga_type) *p, int n_funcs, const int *funcs_id, const FLOAT *mix_coef)
+{
+  int ii;
+
+  assert(p != NULL);
+  assert(p->func_aux == NULL && p->mix_coef == NULL);
+
+  /* allocate structures needed for */
+  p->n_func_aux = n_funcs;
+  p->mix_coef   = (FLOAT *) malloc(n_funcs*sizeof(FLOAT));
+  p->func_aux   = (XC(func_type) **) malloc(n_funcs*sizeof(XC(func_type) *));
+
+  for(ii=0; ii<n_funcs; ii++){
+    p->mix_coef[ii] = mix_coef[ii];
+    p->func_aux[ii] = (XC(func_type) *) malloc(sizeof(XC(func_type)));
+    XC(func_init) (p->func_aux[ii], funcs_id[ii], p->nspin);
+  }
+  
+}
+
+/* returns the mixing coefficient for the hybrid GGAs */
+FLOAT XC(hyb_gga_exx_coef)(XC(gga_type) *p)
+{
+  assert(p!=NULL);
+
+  return p->exx_coef;
 }

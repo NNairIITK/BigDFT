@@ -1,4 +1,492 @@
-!!****f* PSolver/xc_energy
+!!****f* PSolver/calc_rhocore_iat
+!! FUNCTION
+!!    Calculate the array of the core density for the atom iat
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2002-2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! AUTHOR
+!!    Luigi Genovese
+!!
+!! SOURCE
+!! 
+subroutine calc_rhocore_iat(iproc,geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
+     n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore)
+  use module_base
+  implicit none
+  character(len=1), intent(in) :: geocode
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc
+  real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
+  real(dp), dimension(n1i*n2i*n3d), intent(inout) :: rhocore
+  !local variables
+  character(len=*), parameter :: subname='calc_rhocore'
+  real(gp), parameter :: oneo4pi=.079577471545947_wp
+  logical :: gox,goy,goz,perx,pery,perz
+  integer :: ig,ngv,ngc,isx,isy,isz,iex,iey,iez
+  integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3
+  integer :: i1,i2,i3,j1,j2,j3,i_stat,i_all,ind,j
+  real(gp) :: x,y,z,r2,rhov,rhoc,arg,chv,chc
+  real(gp), dimension(:), allocatable :: rhovxp,rhocxp
+  real(gp), dimension(:,:), allocatable :: rhovc,rhocc
+
+  !read the values of the gaussian for valence and core densities
+  open(unit=79,file=filename,status='unknown')
+  read(79,*)ngv
+
+  allocate(rhovxp((ngv*(ngv+1)/2)+ndebug),stat=i_stat)
+  call memocc(i_stat,rhovxp,'rhovxp',subname)
+  allocate(rhovc((ngv*(ngv+1)/2),4+ndebug),stat=i_stat)
+  call memocc(i_stat,rhovc,'rhovc',subname)
+
+  chv=0.0_gp
+  do ig=1,(ngv*(ngv+1))/2
+     read(79,*)rhovxp(ig),(rhovc(ig,j),j=1,4)
+     chv=chv+rhovc(ig,1)*rhovxp(ig)**3+3.0_gp*rhovc(ig,2)*rhovxp(ig)**5+&
+          15.0_gp*rhovc(ig,3)*rhovxp(ig)**7+105.0_gp*rhovc(ig,4)*rhovxp(ig)**9
+  end do
+  chv=sqrt(2.0_gp*atan(1.0_gp))*chv
+
+  read(79,*)ngc
+
+  allocate(rhocxp((ngc*(ngc+1)/2)+ndebug),stat=i_stat)
+  call memocc(i_stat,rhovxp,'rhocxp',subname)
+  allocate(rhocc((ngc*(ngc+1)/2),4+ndebug),stat=i_stat)
+  call memocc(i_stat,rhovc,'rhocc',subname)
+
+  chc=0.0_gp
+  do ig=1,(ngc*(ngc+1))/2
+     read(79,*)rhocxp(ig),(rhocc(ig,j),j=1,4)
+     chc=chc+rhocc(ig,1)*rhocxp(ig)**3+3.0_gp*rhocc(ig,2)*rhocxp(ig)**5+&
+          15.0_gp*rhocc(ig,3)*rhocxp(ig)**7+105.0_gp*rhocc(ig,4)*rhocxp(ig)**9
+  end do
+  chc=sqrt(2.0_gp*atan(1.0_gp))*chc
+
+  close(unit=79)
+ 
+  if (iproc == 0) write(*,'(1x,a,f12.6)',advance='no')' analytic core charge: ',chc-chv
+
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
+  call ext_buffers(perx,nbl1,nbr1)
+  call ext_buffers(pery,nbl2,nbr2)
+  call ext_buffers(perz,nbl3,nbr3)
+
+  if (n3d >0) then
+
+     isx=floor((rx-cutoff)/hxh)
+     isy=floor((ry-cutoff)/hyh)
+     isz=floor((rz-cutoff)/hzh)
+
+     iex=ceiling((rx+cutoff)/hxh)
+     iey=ceiling((ry+cutoff)/hyh)
+     iez=ceiling((rz+cutoff)/hzh)
+
+     do i3=isz,iez
+        z=real(i3,kind=8)*hzh-rz
+        call ind_positions(perz,i3,n3,j3,goz) 
+        j3=j3+nbl3+1
+        do i2=isy,iey
+           y=real(i2,kind=8)*hyh-ry
+           call ind_positions(pery,i2,n2,j2,goy)
+           do i1=isx,iex
+              x=real(i1,kind=8)*hxh-rx
+              call ind_positions(perx,i1,n1,j1,gox)
+              r2=x**2+y**2+z**2
+              !here we can sum up the gaussians for the
+              !valence density and the core density
+              rhov=0.0_dp
+              do ig=1,(ngv*(ngv+1))/2
+                 arg=r2/rhovxp(ig)**2
+                 rhov=rhov+&
+                      (rhovc(ig,1)+r2*rhovc(ig,2)+r2**2*rhovc(ig,3)+r2**3*rhovc(ig,4))*&
+                      exp(-0.5_gp*arg)
+              end do
+              rhoc=0.0_dp
+              do ig=1,(ngc*(ngc+1))/2
+                 arg=r2/rhocxp(ig)**2
+                 rhoc=rhoc+&
+                      (rhocc(ig,1)+r2*rhocc(ig,2)+r2**2*rhocc(ig,3)+r2**3*rhocc(ig,4))*&
+                      exp(-0.5_gp*arg)
+              end do
+
+              if (j3 >= i3s .and. j3 <= i3s+n3d-1  .and. goy  .and. gox ) then
+                 ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                 rhocore(ind)=rhocore(ind)+oneo4pi*(rhoc-rhov)
+!!$                 !print out the result, to see what happens
+!!$                 if (z==0.0_gp .and. y==0.0_gp) then
+!!$                    write(16,'(3(1x,i0),10(1pe25.17))')j1+1+nbl1,j2+1+nbl2,j3,rhocore(ind),rhoc,rhov,r2,x
+!!$                 end if
+              endif
+           enddo
+        enddo
+     enddo
+  end if
+
+  i_all=-product(shape(rhovxp))*kind(rhovxp)
+  deallocate(rhovxp,stat=i_stat)
+  call memocc(i_stat,i_all,'rhovxp',subname)
+  i_all=-product(shape(rhovc))*kind(rhovc)
+  deallocate(rhovc,stat=i_stat)
+  call memocc(i_stat,i_all,'rhovc',subname)
+  i_all=-product(shape(rhocxp))*kind(rhocxp)
+  deallocate(rhocxp,stat=i_stat)
+  call memocc(i_stat,i_all,'rhocxp',subname)
+  i_all=-product(shape(rhocc))*kind(rhocc)
+  deallocate(rhocc,stat=i_stat)
+  call memocc(i_stat,i_all,'rhocc',subname)
+        
+        
+  
+END SUBROUTINE calc_rhocore_iat
+!!***
+
+
+!!****f* PSolver/XC_potential
+!! FUNCTION
+!! Given a charge density, calculates the exchange-correlation potential
+!!
+!! SYNOPSIS
+!!    geocode  Indicates the boundary conditions (BC) of the problem, useful for gradients
+!!            'F' free BC, isolated systems.
+!!                The program calculates the solution as if the given density is
+!!                "alone" in R^3 space.
+!!            'S' surface BC, isolated in y direction, periodic in xz plane                
+!!                The given density is supposed to be periodic in the xz plane,
+!!                so the dimensions in these direction mus be compatible with the FFT
+!!                Beware of the fact that the isolated direction is y!
+!!            'P' periodic BC.
+!!                The density is supposed to be periodic in all the three directions,
+!!                then all the dimensions must be compatible with the FFT.
+!!    datacode Indicates the distribution of the data of the input/output array:
+!!            'G' global data. Each process has the whole array of the density 
+!!                and the whole array of the potential
+!!            'D' distributed data. Each process has only the needed part of the density
+!!                and of the potential. 
+!!                The data distribution is such that each processor
+!!                has the xy planes needed for the calculation AND 
+!!                for the evaluation of the 
+!!                gradient, needed for XC part, and for the White-Bird correction, which
+!!                may lead up to 8 planes more on each side. 
+!!                Due to this fact, the information between the processors may overlap.
+!!    nproc       number of processors
+!!    iproc       label of the process,from 0 to nproc-1
+!!    n01,n02,n03 global dimension in the three directions. They are the same no matter if the 
+!!                datacode is in 'G' or in 'D' position.
+!!    ixc         eXchange-Correlation code. Indicates the XC functional to be used 
+!!                for calculating XC energies and potential. 
+!!                ixc=0 indicates that no XC terms are computed. 
+!!                The XC functional codes follow the ABINIT convention.
+!!    hx,hy,hz    grid spacings. For the isolated BC case for the moment they are supposed to 
+!!                be equal in the three directions
+!!    rho         Main input array. it represents the density values on the grid points
+!!    potxc       Main output array, the values on the grid points of the XC potential
+!!    exc,vxc     XC energy and integral of $\rho V_{xc}$ respectively
+!!    nspin       Value of the spin-polarisation
+!! WARNING
+!!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
+!!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
+!!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
+!!    Moreover, for the cases with the exchange and correlation the density must be initialised
+!!    to 10^-20 and not to zero.
+!!
+!! SOURCE
+!! 
+subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+     rho,exc,vxc,nspin,rhocore,potxc)
+  use module_base
+  use Poisson_Solver
+  implicit none
+  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: datacode
+  integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
+  real(gp), intent(in) :: hx,hy,hz
+  real(gp), intent(out) :: exc,vxc
+  real(dp), dimension(*), intent(inout) :: rho
+  real(wp), dimension(:), pointer :: rhocore !associated if useful
+  real(wp), dimension(*), intent(out) :: potxc
+  !local variables
+  character(len=*), parameter :: subname='XC_potential'
+  logical :: wrtmsg
+  integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
+  integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
+  integer :: i_all,i_stat,ierr,i,j
+  integer :: i1,i2,i3,istart,iend,i3start,jend,jproc
+  integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
+  real(dp) :: eexcuLOC,vexcuLOC
+  integer, dimension(:,:), allocatable :: gather_arr
+  real(dp), dimension(:), allocatable :: rho_G
+  real(dp), dimension(:,:,:,:), allocatable :: vxci
+  real(gp), dimension(:), allocatable :: energies_mpi
+
+  call timing(iproc,'Exchangecorr  ','ON')
+
+  wrtmsg=.false.
+  !calculate the dimensions wrt the geocode
+  if (geocode == 'P') then
+     if (iproc==0 .and. wrtmsg) &
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
+     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+  else if (geocode == 'S') then
+     if (iproc==0 .and. wrtmsg) &
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
+     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+  else if (geocode == 'F') then
+     if (iproc==0 .and. wrtmsg) &
+          write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
+          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
+     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+  else
+     stop 'PSolver: geometry code not admitted'
+  end if
+
+  !dimension for exchange-correlation (different in the global or distributed case)
+  !let us calculate the dimension of the portion of the rho array to be passed 
+  !to the xc routine
+  !this portion will depend on the need of calculating the gradient or not, 
+  !and whether the White-Bird correction must be inserted or not 
+  !(absent only in the LB ixc=13 case)
+  
+  !nxc is the effective part of the third dimension that is being processed
+  !nxt is the dimension of the part of rho that must be passed to the gradient routine
+  !nwb is the dimension of the part of rho in the wb-postprocessing routine
+  !note: nxc <= nwb <= nxt
+  !the dimension are related by the values of nwbl and nwbr
+  !      nxc+nxcl+nxcr-2 = nwb
+  !      nwb+nwbl+nwbr = nxt
+  istart=iproc*(md2/nproc)
+  iend=min((iproc+1)*md2/nproc,m2)
+
+  call xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
+  nwb=nxcl+nxc+nxcr-2
+  nxt=nwbr+nwb+nwbl
+
+  !quick return if ixc==0
+  if (ixc == 0) then
+     if (datacode == 'G') then
+        call dscal(n01*n02*n03,0.0_dp,potxc,1)
+     else
+        call dscal(n01*n02*nxc,0.0_dp,potxc,1)
+     end if
+     exc=0.0_gp
+     vxc=0.0_gp
+     call timing(iproc,'Exchangecorr  ','OF')
+     return
+  end if
+
+  !if rhocore is associated we should add it on the charge density
+  if (associated(rhocore)) then
+     if (nspin == 1) then
+        !sum the complete core density for non-spin polarised calculations
+        call axpy(m1*m3*nxt,1.0_wp,rhocore(1),1,rho(1),1)
+     else if (nspin==2) then
+        !for spin-polarised calculation consider half per spin index
+        call axpy(m1*m3*nxt,0.5_wp,rhocore(1),1,rho(1),1)
+        call axpy(m1*m3*nxt,0.5_wp,rhocore(1),1,rho(1+m1*m3*nxt),1)
+     end if
+  end if
+
+  if (datacode=='G') then
+     !starting address of rho in the case of global i/o
+     i3start=istart+2-nxcl-nwbl
+     if((nspin==2 .and. nproc>1) .or. i3start <=0 .or. i3start+nxt-1 > n03 ) then
+        !allocation of an auxiliary array for avoiding the shift of the density
+        allocate(rho_G(m1*m3*nxt*2+ndebug),stat=i_stat)
+        call memocc(i_stat,rho_G,'rho_G',subname)
+        !we cannot use these calls due to non-isolated GGAs
+!!$        call dcopy(m1*m3*nxt,rhopot(1+(i3start-1)*n01*n02),1,&
+!!$             rhopot_G(1),1)
+!!$        call dcopy(m1*m3*nxt,rhopot(1+(i3start-1)*n01*n02+n01*n02*n03),1,&
+!!$             rhopot_G(1+m1*m3*nxt),1)
+        !here we should put the modulo of the results for the non-isolated GGA
+        do ispin=1,nspin
+           do i3=1,nxt
+              do i2=1,m3
+                 do i1=1,m1
+                    i=i1+(i2-1)*m1+(i3-1)*m1*m3+(ispin-1)*m1*m3*nxt
+                    j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+(ispin-1)*n01*n02*n03
+                    rho_G(i)=rho(j)
+                 end do
+              end do
+           end do
+        end do
+     end if
+  else if (datacode == 'D') then
+     !distributed i/o
+     i3start=1
+  else
+     stop 'PSolver: datacode not admitted'
+  end if
+
+  !print *,'density must go from',min(istart+1,m2),'to',iend,'with n2/2=',n2/2
+  !print *,'        it goes from',i3start+nwbl+nxcl-1,'to',i3start+nxc-1
+  !print *,'istart',i3start,nxcl,nwbl,istart,iproc,geocode
+
+  !rescale the density to apply that to ABINIT routines
+
+  if (nspin==1) then !rho_g does not enter here
+     if (datacode=='G' .and. (i3start <=0 .or. i3start+nxt-1 > n03 )) then
+        call vscal(m1*m3*nxt,0.5_dp,rho_G(1),1)
+     else
+        call vscal(m1*m3*nxt,0.5_dp,rho(1+n01*n02*(i3start-1)),1)
+     end if
+  end if
+  !allocate array for XC potential enlarged for the WB procedure
+  allocate(vxci(m1,m3,max(1,nwb),nspin+ndebug),stat=i_stat)
+  call memocc(i_stat,vxci,'vxci',subname)
+
+  if (istart+1 <= m2) then 
+     if(datacode=='G' .and. &
+          ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
+        !allocation of an auxiliary array for avoiding the shift 
+        call xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
+             ixc,hx,hy,hz,rho_G,vxci,&
+             eexcuLOC,vexcuLOC,nproc,nspin)
+        !restoring the density on the original form
+        do ispin=1,nspin
+           do i3=1,nxt
+              do i2=1,m3
+                 do i1=1,m1
+                    i=i1+(i2-1)*m1+(i3-1)*m1*m3+(ispin-1)*m1*m3*nxt
+                    j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+(ispin-1)*n01*n02*n03
+                    rho(j)=rho_G(i)
+                 end do
+              end do
+           end do
+        end do
+        i_all=-product(shape(rho_G))*kind(rho_G)
+        deallocate(rho_G,stat=i_stat)
+        call memocc(i_stat,i_all,'rho_G',subname)
+     else
+        call xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
+             ixc,hx,hy,hz,rho(1+n01*n02*(i3start-1)),vxci,&
+             eexcuLOC,vexcuLOC,nproc,nspin)
+     end if
+  else
+     !presumably the vxc should be initialised
+     call vscal(m1*m3*nwb*nspin,0.0_dp,vxci(1,1,1,1),1)
+     eexcuLOC=0.0_dp
+     vexcuLOC=0.0_dp
+  end if
+   
+  !the value of the shift depends on the distributed i/o or not
+  if ((datacode=='G' .and. nproc == 1) .or. datacode == 'D') then
+     !copy the relevant part of vxci on the output potxc
+     call dcopy(m1*m3*nxc,vxci(1,1,nxcl,1),1,potxc(1),1)
+     if (nspin == 2) then
+        call dcopy(m1*m3*nxc,vxci(1,1,nxcl,2),1,potxc(1+m1*m3*nxc),1)
+     end if
+  end if
+ 
+  !if (iproc == 0) print *,'n03,nxt,nxc,geocode,datacode',n03,nxt,nxc,geocode,datacode
+
+  !recollect the final data, and build the total charge density
+  !no spin index anymore
+  if (datacode == 'G') then
+     do i3=nxc,1,-1
+        do i2=1,n02
+           do i1=1,n01
+              rho(i1+(i2-1)*n01+(i3+istart-1)*n01*n02)=&
+                   rho(i1+(i2-1)*n01+modulo(i3-1-1+i3start,n03)*n01*n02)
+           end do
+        end do
+     end do
+  end if
+
+  !if rhocore is associated we then remove it from the charge density
+  if (associated(rhocore)) then
+     !at this stage the density is not anymore spin-polarised
+     !sum the complete core density for non-spin polarised calculations
+     call axpy(m1*m3*nxc,-1.0_wp,rhocore(1+m1*m3*i3xcsh_fake),1,rho(1),1)
+  end if
+
+  call timing(iproc,'Exchangecorr  ','OF')
+
+  !gathering the data to obtain the distribution array
+  !evaluating the total ehartree,eexcu,vexcu
+  if (nproc > 1) then
+
+     call timing(iproc,'PSolv_commun  ','ON')
+     allocate(energies_mpi(2+ndebug),stat=i_stat)
+     call memocc(i_stat,energies_mpi,'energies_mpi',subname)
+
+     energies_mpi(1)=eexcuLOC
+     energies_mpi(2)=vexcuLOC
+     call mpiallred(energies_mpi(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
+     exc=energies_mpi(1)
+     vxc=energies_mpi(2)
+
+     i_all=-product(shape(energies_mpi))*kind(energies_mpi)
+     deallocate(energies_mpi,stat=i_stat)
+     call memocc(i_stat,i_all,'energies_mpi',subname)
+     call timing(iproc,'PSolv_commun  ','OF')
+
+     if (datacode == 'G') then
+        !building the array of the data to be sent from each process
+        !and the array of the displacement
+
+        call timing(iproc,'PSolv_comput  ','ON')
+        allocate(gather_arr(0:nproc-1,2+ndebug),stat=i_stat)
+        call memocc(i_stat,gather_arr,'gather_arr',subname)
+        do jproc=0,nproc-1
+           istart=min(jproc*(md2/nproc),m2-1)
+           jend=max(min(md2/nproc,m2-md2/nproc*jproc),0)
+           gather_arr(jproc,1)=m1*m3*jend
+           gather_arr(jproc,2)=m1*m3*istart
+        end do
+
+        !gather all the results in the same rho array
+        istart=min(iproc*(md2/nproc),m2-1)
+
+        call timing(iproc,'PSolv_comput  ','OF')
+        call timing(iproc,'PSolv_commun  ','ON')
+        istden=1+n01*n02*istart
+        istglo=1
+        do ispin=1,nspin
+           if (ispin==2) then
+              istden=istden+n01*n02*n03
+              istglo=istglo+n01*n02*n03
+           end if
+           call MPI_ALLGATHERV(vxci(1,1,nxcl,ispin),gather_arr(iproc,1),mpidtypw,&
+                potxc(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
+                MPI_COMM_WORLD,ierr)
+        end do
+        call timing(iproc,'PSolv_commun  ','OF')
+        call timing(iproc,'PSolv_comput  ','ON')
+
+        i_all=-product(shape(gather_arr))*kind(gather_arr)
+        deallocate(gather_arr,stat=i_stat)
+        call memocc(i_stat,i_all,'gather_arr',subname)
+
+        call timing(iproc,'PSolv_comput  ','OF')
+
+     end if
+
+  else
+     exc=real(eexcuLOC,gp)
+     vxc=real(vexcuLOC,gp)
+  end if
+
+  i_all=-product(shape(vxci))*kind(vxci)
+  deallocate(vxci,stat=i_stat)
+  call memocc(i_stat,i_all,'vxci',subname)
+
+  if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
+
+END SUBROUTINE XC_potential
+!!***
+
+
+!!****f* PSolver/xc_energy_new
 !! FUNCTION
 !!    Calculate the XC terms from the given density in a distributed way.
 !!    it assign also the proper part of the density to the zf array 
@@ -6,12 +494,321 @@
 !!    Following the values of ixc and of sumpion, the array pot_ion is either summed or assigned
 !!    to the XC potential, or even ignored.
 !!
-!! COPYRIGHT
-!!    Copyright (C) 2002-2007 BigDFT group 
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!! SYNOPSIS
+!!    geocode  Indicates the boundary conditions (BC) of the problem:
+!!            'F' free BC, isolated systems.
+!!                The program calculates the solution as if the given density is
+!!                "alone" in R^3 space.
+!!            'S' surface BC, isolated in y direction, periodic in xz plane                
+!!                The given density is supposed to be periodic in the xz plane,
+!!                so the dimensions in these direction mus be compatible with the FFT
+!!                Beware of the fact that the isolated direction is y!
+!!            'P' periodic BC.
+!!                The density is supposed to be periodic in all the three directions,
+!!                then all the dimensions must be compatible with the FFT.
+!!                No need for setting up the kernel.
+!!    m1,m2,m3    global dimensions in the three directions.
+!!    nproc       number of processors
+!!    iproc       label of the process,from 0 to nproc-1
+!!    ixc         eXchange-Correlation code. Indicates the XC functional to be used 
+!!                for calculating XC energies and potential. 
+!!                ixc=0 indicates that no XC terms are computed. The XC functional codes follow
+!!                the ABINIT convention.
+!!    hx,hy,hz    grid spacings. 
+!!    rho         density in the distributed format, also in spin-polarised
+!!    exc,vxc     XC energy and integral of $\rho V_{xc}$ respectively
+!!    nxc         value of the effective distributed dimension in the third direction
+!!    nwb         enlarged dimension for calculating the WB correction
+!!    nxt         enlarged dimension for calculating the GGA case 
+!!                (further enlarged for compatibility with WB correction if it is the case)
+!!    nwbl,nwbr
+!!    nxcl,nxcr   shifts in the three directions to be compatible with the relation
+!!                nxc+nxcl+nxcr-2=nwb, nwb+nwbl+nwbr=nxt.
+!!
+!! WARNING
+!!    The dimensions of pot_ion must be compatible with geocode, datacode, nproc, 
+!!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
+!!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
+!!
+!! SOURCE
+!!
+subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
+     nxcl,nxcr,ixc,hx,hy,hz,rho,vxci,exc,vxc,nproc,nspden)
+
+  use module_base
+  use libxc_functionals
+  use interfaces_56_xc
+
+  implicit none
+
+  !Arguments----------------------
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,nproc,nspden
+  integer, intent(in) :: nwbl,nwbr
+  real(gp), intent(in) :: hx,hy,hz
+  real(dp), dimension(m1,m3,nxt,nspden), intent(inout) :: rho
+  real(dp), dimension(m1,m3,nwb,nspden), intent(out) :: vxci
+  real(dp), intent(out) :: exc,vxc
+
+  !Local variables----------------
+  character(len=*), parameter :: subname='xc_energy'
+  real(dp), dimension(:,:,:), allocatable :: exci,d2vxci
+  real(dp), dimension(:,:,:,:), allocatable :: dvxci,dvxcdgr
+  real(dp), dimension(:,:,:,:,:), allocatable :: gradient
+  real(dp) :: elocal,vlocal,rhov,sfactor
+  integer :: npts,i_all,order,offset,i_stat,ispden
+  integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2
+  integer :: ndvxc,nvxcdgr,ngr2,nd2vxc
+  logical :: use_gradient
+
+  !check for the dimensions
+  if (nwb/=nxcl+nxc+nxcr-2 .or. nxt/=nwbr+nwb+nwbl) then
+     print *,'the XC dimensions are not correct'
+     print *,'nxc,nwb,nxt,nxcl,nxcr,nwbl,nwbr',nxc,nwb,nxt,nxcl,nxcr,nwbl,nwbr
+     stop
+  end if
+
+  !these are always the same
+  order=1
+
+  !starting point of the density array for the GGA cases in parallel
+  offset=nwbl+1
+  !divide by two the density to applicate it in the ABINIT xc routines
+  use_gradient = (ixc >= 11 .and. ixc <= 16) .or. &
+       & (ixc < 0 .and. libxc_functionals_isgga())
+
+  !Allocations of the exchange-correlation terms, depending on the ixc value
+  nd2vxc=1
+  call size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
+
+  if (use_gradient) then
+     !computation of the gradient
+     allocate(gradient(m1,m3,nwb,2*nspden-1,0:3+ndebug),stat=i_stat)
+     call memocc(i_stat,gradient,'gradient',subname)
+
+     !!the calculation of the gradient will depend on the geometry code
+     !this operation will also modify the density arrangment for a GGA calculation
+     !in parallel and spin-polarised, since ABINIT routines need to calculate
+     !the XC terms for spin up and then spin down
+     call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rho,nspden,&
+          real(hx,dp),real(hy,dp),real(hz,dp),gradient)
+  end if
+
+  !Allocations
+  allocate(exci(m1,m3,nwb+ndebug),stat=i_stat)
+  call memocc(i_stat,exci,'exci',subname)
+
+  if (ndvxc/=0) then
+     allocate(dvxci(m1,m3,nwb,ndvxc+ndebug),stat=i_stat)
+     call memocc(i_stat,dvxci,'dvxci',subname)
+  end if
+  if (nvxcdgr/=0) then
+     allocate(dvxcdgr(m1,m3,nwb,nvxcdgr+ndebug),stat=i_stat)
+     call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
+  end if
+  if ((ixc==3 .or. (ixc>=7 .and. ixc<=15)) .and. order==3) then
+     allocate(d2vxci(m1,m3,nwb+ndebug),stat=i_stat)
+     call memocc(i_stat,d2vxci,'d2vxci',subname)
+  end if
+
+  if (.not.allocated(gradient) .and. nxc/=nxt ) then
+     print *,'xc_energy: if nxt/=nxc the gradient must be allocated'
+     stop
+  end if
+
+  !this part can be commented out if you don't want to use ABINIT modules
+  !of course it must be substituted with an alternative XC calculation
+  npts=m1*m3*nwb
+  !let us apply ABINIT routines
+  !case with gradient
+  if (ixc >= 11 .and. ixc <= 16) then
+     if (order**2 <= 1 .or. ixc == 16) then
+        if (ixc /= 13) then             
+           call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
+                vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+                grho2_updn=gradient,vxcgr=dvxcdgr) 
+        else
+           call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
+                vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+                grho2_updn=gradient) 
+        end if
+     else if (order /= 3) then
+        if (ixc /= 13) then             
+           call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
+                vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+                dvxc=dvxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
+        else
+           call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
+                vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+                dvxc=dvxci,grho2_updn=gradient) 
+        end if
+     else if (order == 3) then
+        if (ixc /= 13) then             
+           call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
+                vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+                dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
+        else
+           call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
+                vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+                dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient) 
+        end if
+     end if
+
+     !cases without gradient
+  else if (ixc >= 0) then
+     if (order**2 <=1 .or. ixc >= 31 .and. ixc<=34) then
+        call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),vxci,&
+             ndvxc,ngr2,nd2vxc,nvxcdgr)
+     else if (order==3 .and. (ixc==3 .or. ixc>=7 .and. ixc<=10)) then
+        call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),vxci,&
+             ndvxc,ngr2,nd2vxc,nvxcdgr,&
+             dvxc=dvxci,d2vxc=d2vxci)
+     else
+        call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),vxci,&
+             ndvxc,ngr2,nd2vxc,nvxcdgr,&
+             dvxc=dvxci)
+     end if
+     !case with libXC, with and without gradient
+  else if (ixc < 0) then
+     !here the abinit wrapper is used, but we can pass to the 
+     !libXC routines by eliminating one step
+     call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
+          vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+          grho2_updn=gradient,vxcgr=dvxcdgr)
+  end if
+
+  if (use_gradient) then
+     !do not calculate the White-Bird term in the Leeuwen Baerends XC case
+     if (ixc/=13) then
+        call vxcpostprocessing(geocode,m1,m3,nwb,nxc,nxcl,nxcr,nspden,nvxcdgr,gradient,&
+             real(hx,dp),real(hy,dp),real(hz,dp),dvxcdgr,vxci)
+     end if
+
+     !restore the density array in the good position if it was shifted for the parallel GGA
+     !operation not necessarily needed, but related to the fact that the array has three
+     !indices which make it difficult to treat
+     !one should convert the operations with one indices arrays
+     if (nspden==2 .and. nxt /= nwb) then
+        j3=nwb+1
+        do i3=nwb-nwbr,1,-1
+           j3=j3-1
+           do i2=1,m3
+              do i1=1,m1
+                 rho(i1,i2,nwbl+j3,2)=rho(i1,i2,i3,2)
+              end do
+           end do
+        end do
+        do i3=nxt,nwb+nwbl+1,-1 !we have nwbr points
+           j3=j3-1
+           do i2=1,m3
+              do i1=1,m1
+                 rho(i1,i2,nwbl+j3,2)=rho(i1,i2,i3,1)
+              end do
+           end do
+        end do
+     end if
+  end if
+  !end of the part that can be commented out
+
+  if (allocated(dvxci)) then
+     i_all=-product(shape(dvxci))*kind(dvxci)
+     deallocate(dvxci,stat=i_stat)
+     call memocc(i_stat,i_all,'dvxci',subname)
+  end if
+  if (allocated(dvxcdgr)) then
+     i_all=-product(shape(dvxcdgr))*kind(dvxcdgr)
+     deallocate(dvxcdgr,stat=i_stat)
+     call memocc(i_stat,i_all,'dvxcdgr',subname)
+  end if
+  if (allocated(d2vxci)) then
+     i_all=-product(shape(d2vxci))*kind(d2vxci)
+     deallocate(d2vxci,stat=i_stat)
+     call memocc(i_stat,i_all,'d2vxci',subname)
+  end if
+  if (allocated(gradient)) then
+     i_all=-product(shape(gradient))*kind(gradient)
+     deallocate(gradient,stat=i_stat)
+     call memocc(i_stat,i_all,'gradient',subname)
+  end if
+
+  !     rewind(300)
+  !     do ispden=1,nspden
+  !        do i3=1,nxt
+  !           do i2=1,m3
+  !              do i1=1,m1
+  !                 write(300,'(f18.12)') rho(i1,i2,i3,ispden)
+  !              end do
+  !           end do
+  !        end do
+  !     end do
+
+  !this part should be put out from this routine due to the Global distribution code
+  exc=0.0_dp
+  vxc=0.0_dp
+  sfactor=1.0_dp
+  if(nspden==1) sfactor=2.0_dp
+
+  !compact the rho array into the total charge density
+  !try to use dot and dcopy routines, more general
+  ! e.g. exc=dot(m1*m3*nxc,exci(1,1,nxcl),1,rho(1,1,offset+nxcl-1,ispden),1)
+
+  ispden=1
+  do jp2=1,nxc
+     j2=offset+jp2+nxcl-2
+     jppp2=jp2+nxcl-1
+     do j3=1,m3
+        do j1=1,m1
+           rhov=rho(j1,j3,j2,ispden)
+           elocal=exci(j1,j3,jppp2)
+           vlocal=vxci(j1,j3,jppp2,ispden)
+           exc=exc+elocal*rhov
+           vxc=vxc+vlocal*rhov
+           rho(j1,j3,jp2,1)=sfactor*rhov!restore the original normalization
+           !potxc(j1,j3,jp2,ispden)=real(vlocal,wp)
+        end do
+     end do
+  end do
+  !spin-polarised case
+  if (nspden==2) then
+     ispden=2
+     do jp2=1,nxc
+        j2=offset+jp2+nxcl-2
+        jppp2=jp2+nxcl-1
+        do j3=1,m3
+           do j1=1,m1
+              rhov=rho(j1,j3,j2,ispden)
+              elocal=exci(j1,j3,jppp2)
+              vlocal=vxci(j1,j3,jppp2,ispden)
+              exc=exc+elocal*rhov
+              vxc=vxc+vlocal*rhov
+              rho(j1,j3,jp2,1)=rho(j1,j3,jp2,1)+sfactor*rhov
+              !potxc(j1,j3,jp2,ispden)=real(vlocal,dp)
+           end do
+        end do
+     end do
+  end if
+
+  !the two factor is due to the 
+  !need of using the density of states in abinit routines
+  exc=sfactor*real(hx*hy*hz,dp)*exc
+  vxc=sfactor*real(hx*hy*hz,dp)*vxc
+
+  !De-allocations
+  i_all=-product(shape(exci))*kind(exci)
+  deallocate(exci,stat=i_stat)
+  call memocc(i_stat,i_all,'exci',subname)
+
+END SUBROUTINE xc_energy_new
+!!***
+
+
+!!****f* PSolver/xc_energy
+!! FUNCTION
+!!    Calculate the XC terms from the given density in a distributed way.
+!!    it assign also the proper part of the density to the zf array 
+!!    which will be used for the core of the FFT procedure.
+!!    Following the values of ixc and of sumpion, the array pot_ion is either summed or assigned
+!!    to the XC potential, or even ignored.
 !!
 !! SYNOPSIS
 !!    geocode  Indicates the boundary conditions (BC) of the problem:
@@ -72,7 +869,7 @@
 subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,nproc,nspden)
 
-  use module_base, only: ndebug
+  use module_base
   use libxc_functionals
   use interfaces_56_xc
 
@@ -225,6 +1022,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
            call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                 &dvxc=dvxci)
         end if
+        !case with libXC, with and without gradient
      else if (ixc < 0) then
         call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,     &
              &      grho2_updn=gradient,vxcgr=dvxcdgr)
@@ -489,7 +1287,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
   end if
 
-end subroutine xc_energy
+END SUBROUTINE xc_energy
 !!***
 
 
@@ -596,5 +1394,5 @@ subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gr
   deallocate(f_i,stat=i_stat)
   call memocc(i_stat,i_all,'f_i',subname)
 
-end subroutine vxcpostprocessing
+END SUBROUTINE vxcpostprocessing
 !!***

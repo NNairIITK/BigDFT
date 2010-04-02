@@ -8,7 +8,7 @@
 !! then produce primitive vectors based on the symmetrized strain.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2007-2009 ABINIT group (XG)
+!! Copyright (C) 2007-2010 ABINIT group (XG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -43,8 +43,8 @@ subroutine strainsym(nsym,rprimd0,rprimd,rprimd_symm,symrel)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-!use interfaces_11util
-!use interfaces_linalg
+ use interfaces_32_util
+ use interfaces_linalg
 !End of the abilint section
 
  implicit none
@@ -72,9 +72,9 @@ subroutine strainsym(nsym,rprimd0,rprimd,rprimd_symm,symrel)
 !ENDDEBUG
 
 !copy initial rprimd input and construct inverse
- rprimd0_inv = rprimd0 
+ rprimd0_inv = rprimd0
  call matrginv(rprimd0_inv,3,3)
- 
+
 !define strain as rprimd = strain * rprimd0 (in cartesian frame)
 !so strain = rprimd * rprimd0^{-1}
 !transform to triclinic frame with rprimd0^{-1} * strain * rprimd0
@@ -85,12 +85,12 @@ subroutine strainsym(nsym,rprimd0,rprimd,rprimd_symm,symrel)
  strain_symm = zero
  do isym = 1, nsym
 
-! this loop accumulates symrel^{-1}*strain*symrel into strain_symm
+!  this loop accumulates symrel^{-1}*strain*symrel into strain_symm
 
-! mati3inv gives the inverse transpose of symrel
-  call mati3inv(symrel(:,:,isym),symrel_it)
-  call dgemm('N','N',3,3,3,one,strain,3,dble(symrel(:,:,isym)),3,zero,tmp_mat,3)
-  call dgemm('T','N',3,3,3,one,dble(symrel_it),3,tmp_mat,3,one,strain_symm,3)
+!  mati3inv gives the inverse transpose of symrel
+   call mati3inv(symrel(:,:,isym),symrel_it)
+   call dgemm('N','N',3,3,3,one,strain,3,dble(symrel(:,:,isym)),3,zero,tmp_mat,3)
+   call dgemm('T','N',3,3,3,one,dble(symrel_it),3,tmp_mat,3,one,strain_symm,3)
 
  end do
 

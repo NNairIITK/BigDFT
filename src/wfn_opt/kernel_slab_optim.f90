@@ -11,8 +11,8 @@ subroutine hit_with_kernel_slab(x,zx,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
 
   real(wp),intent(inout)::x(0:n1,0:n2,0:n3)! input and output
   real(wp)::zx(2,0:(n1+1)/2,0:n2,0:n3)! work array
-  integer i1,i2,i3,isign,inzee,i,j,l
-  integer::nd1,nd2,nd3
+  integer ::  i1,i2,i3,isign,inzee,i,j,l
+  integer :: nd1,nd2,nd3,ntrig
 
   !*******************************************************************************************
   ! for 2-dimensional FFT:
@@ -29,17 +29,18 @@ subroutine hit_with_kernel_slab(x,zx,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
   ! fourier transform the x
 
 
-  !allocations to reformulated
-  allocate(trig(2,1024))
+  !allocations to be reformulated
+  ntrig=max(n1,n2,n3)
+  allocate(trig(2,ntrig))
 
   call cpu_time(t1)
   call system_clock(count1,count_rate,count_max)      
 
-  call forward_fft(n1,n2,n3,nd1,nd3,x,zx,trig)
+  call forward_fft(n1,n2,n3,nd1,nd3,x,zx,ntrig,trig)
 
   call segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
 
-  call backward_fft(n1,n2,n3,nd1,nd3,x,zx,trig)
+  call backward_fft(n1,n2,n3,nd1,nd3,x,zx,ntrig,trig)
 
   call cpu_time(t2)
   call system_clock(count2,count_rate,count_max)      
@@ -48,15 +49,15 @@ subroutine hit_with_kernel_slab(x,zx,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
 
   !deallocations to be reformulated
   deallocate(trig)
-end subroutine hit_with_kernel_slab
+END SUBROUTINE hit_with_kernel_slab
 
 
-  subroutine forward_fft(n1,n2,n3,nd1,nd3,x,zx,trig)
+  subroutine forward_fft(n1,n2,n3,nd1,nd3,x,zx,ntrig,trig)
   use module_base
     implicit none
   integer,intent(in)::n1,n2,n3,nd1,nd3
   real(wp),intent(in)::x(0:n1,0:n2,0:n3)
-  real (wp),intent(in):: trig(2,1024)
+  real (wp),intent(in):: trig(2,ntrig)
   real(wp),intent(inout)::zx(2,0:(n1+1)/2,0:n2,0:n3)! work array
   integer,parameter::ncache=4*1024
   real(wp),allocatable::zw(:)
@@ -88,15 +89,15 @@ end subroutine hit_with_kernel_slab
 !$omp end parallel
 
 
-  end subroutine forward_fft
+  END SUBROUTINE forward_fft
 
-  subroutine backward_fft(n1,n2,n3,nd1,nd3,x,zx,trig)
+  subroutine backward_fft(n1,n2,n3,nd1,nd3,x,zx,ntrig,trig)
   use module_base
     implicit none
  integer,intent(in)::n1,n2,n3,nd1,nd3
   real(wp),intent(inout)::x(0:n1,0:n2,0:n3)! input and output
   real(wp),intent(in)::zx(2,0:(n1+1)/2,0:n2,0:n3)! work array
-  real (wp),intent(in):: trig(2,1024)
+  real (wp),intent(in):: trig(2,trig)
   integer,parameter::ncache=4*1024
   real(wp),allocatable::z(:,:,:,:)
   real(wp),allocatable::zw(:)
@@ -147,7 +148,7 @@ end subroutine hit_with_kernel_slab
 !$omp enddo
   deallocate(z,zw)
 !$omp end parallel
-  end subroutine backward_fft
+  END SUBROUTINE backward_fft
 
 
 

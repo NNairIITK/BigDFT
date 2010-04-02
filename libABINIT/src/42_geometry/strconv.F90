@@ -9,7 +9,7 @@
 !! symmetric tensor in cartesian coordinates "cart".
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2009 ABINIT group (DCA, XG)
+!! Copyright (C) 1998-2010 ABINIT group (DCA, XG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -31,7 +31,7 @@
 !! in cartesian coordinates to reduced coordinates
 !!
 !! PARENTS
-!!      mkcore,nonlop_pl,nonlop_ylm,pawgrnl,strsym
+!!      mkcore,nonlop_pl,nonlop_ylm,stresssym
 !!
 !! CHILDREN
 !!
@@ -68,17 +68,17 @@ subroutine strconv(frac,gprimd,cart)
  work1(2,1)=frac(6) ; work1(1,2)=frac(6)
 
  do ii=1,3
-  work2(:,ii)=0.0d0
-  do jj=1,3
-   work2(:,ii)=work2(:,ii)+gprimd(ii,jj)*work1(:,jj)
-  end do
+   work2(:,ii)=0.0d0
+   do jj=1,3
+     work2(:,ii)=work2(:,ii)+gprimd(ii,jj)*work1(:,jj)
+   end do
  end do
 
  do ii=1,3
-  work1(ii,:)=0.0d0
-  do jj=1,3
-   work1(ii,:)=work1(ii,:)+gprimd(ii,jj)*work2(jj,:)
-  end do
+   work1(ii,:)=0.0d0
+   do jj=1,3
+     work1(ii,:)=work1(ii,:)+gprimd(ii,jj)*work2(jj,:)
+   end do
  end do
 
  cart(1)=work1(1,1)

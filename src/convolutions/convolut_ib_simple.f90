@@ -1,8 +1,13 @@
+module convSimpleBench
+  integer :: conv_f_nflop1,conv_f_nflop2,conv_f_nflop3
+end module convSimpleBench
+
 
 !   y = (kinetic energy operator)x + (cprec*I)x 
 subroutine Convolkinetic_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      cprecr,hgrid,ibyz_f,ibxz_f,ibxy_f,x_f,y_f)
   use module_base
+  use convSimpleBench, nflop1 => conv_f_nflop1, nflop2 => conv_f_nflop2, nflop3 => conv_f_nflop3
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(wp), intent(in) :: cprecr
@@ -15,7 +20,6 @@ subroutine Convolkinetic_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
   logical :: firstcall=.true. 
-  integer, save :: nflop1,nflop2,nflop3
   integer :: i,t,i1,i2,i3,ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6,l
   real(wp) :: scale,t112, t121,t122,t212,t221,t222,t211
   real(kind=8) :: tel
@@ -164,7 +168,7 @@ subroutine Convolkinetic_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
   !write(99,'(a40,1x,e10.3,1x,f6.1)') 'ALL   PART',  & 
   !tel,1.e-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-end subroutine Convolkinetic_f
+END SUBROUTINE Convolkinetic_f
 
 
 
@@ -428,7 +432,7 @@ subroutine Convolkinetic_sep(n1,n2,n3, &
   !write(99,'(a40,1x,e10.3,1x,f6.1)') 'ALL   PART',  & 
   !tel,1.e-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-end subroutine Convolkinetic_sep
+END SUBROUTINE Convolkinetic_sep
 
 !   y = (kinetic energy operator)x + (cprec*I)x 
 subroutine Convolkinetic(n1,n2,n3, &
@@ -857,7 +861,7 @@ subroutine Convolkinetic(n1,n2,n3, &
   !write(99,'(a40,1x,e10.3,1x,f6.1)') 'ALL   PART',  & 
   !tel,1.e-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-end subroutine Convolkinetic
+END SUBROUTINE Convolkinetic
 
 
 !   y = (kinetic energy operator)x + (cprec*I)x 
@@ -946,7 +950,7 @@ subroutine Convolkinetic_c(n1,n2,n3,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,x_c,y_c,fa
      enddo
   enddo
 
-end subroutine Convolkinetic_c
+END SUBROUTINE Convolkinetic_c
 
 
 
@@ -1421,7 +1425,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
 
   ekinout=real(ekin,gp)
 
-end subroutine ConvolkineticT
+END SUBROUTINE ConvolkineticT
 
 
 

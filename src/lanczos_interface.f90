@@ -58,7 +58,7 @@ contains
 !!!    real(8), intent(inout), TARGET :: p(:,:)
 !!!    passed_matrix => p 
 !!!    return
-!!!  end subroutine settapointer
+!!!  END SUBROUTINE settapointer
 
 !!!  subroutine testapointer()
 !!!    integer i,j
@@ -69,7 +69,7 @@ contains
 !!!       print *, (passed_matrix(i,j), j=1, size(passed_matrix,2))
 !!!    enddo
 !!!    return
-!!!  end subroutine testapointer
+!!!  END SUBROUTINE testapointer
 
   
 
@@ -82,10 +82,11 @@ contains
     real(8) shift
     EP_shift=shift
     return
-  end subroutine set_EP_shift
+  END SUBROUTINE set_EP_shift
 
   subroutine EP_inizializza(ha_actual)
     implicit none
+    !Arguments
     type(lanczos_args), target :: ha_actual
     
     ha=>ha_actual
@@ -110,22 +111,19 @@ contains
     EP_norb=0
     EP_doorthoocc=.false.
 
-  end subroutine EP_inizializza
+  END SUBROUTINE EP_inizializza
   
 
   subroutine EP_mat_mult( m,k ,  EV   ) ! usare i dumvectors a partire da -1
     implicit none
-    
+    !Arguments
     integer , intent(in):: m,k
     real(8), intent (in) :: EV(1)
-! ::::::::::::::::::::::::::::::::::::
-    integer i,j,l
 
     call gemm('N','N', EP_dim , k, m  ,1.0_wp ,&
          Qvect(1,0)  , EP_dim ,&
          EV(1) ,m ,&
          0.0_wp ,  dumQvect(1,1) ,  EP_dim )
-
 
 !!!
 !!!    do i=0, k-1
@@ -137,9 +135,7 @@ contains
 !!!       enddo
 !!!    enddo
 
-
-    return 
-  end subroutine EP_mat_mult
+  END SUBROUTINE EP_mat_mult
   
 
   !allocate the wavefunctions in the transposed form, for lancsoz
@@ -180,13 +176,13 @@ contains
        call memocc(i_stat,i_all,'EP_occprojections',subname)
     endif
 
-  end subroutine EP_free
+  END SUBROUTINE EP_free
 
 
   subroutine  EP_allocate_for_eigenprob(nsteps)
     implicit none
+    !Arguments
     integer, intent(in):: nsteps
-! :::::::::::::::::::::::
 
     if(associated(Qvect) ) then
        i_all=-product(shape(Qvect))*kind(Qvect)
@@ -198,7 +194,7 @@ contains
          stat=i_stat)
     call memocc(i_stat,Qvect,'Qvect',subname)
 
-  end subroutine EP_allocate_for_eigenprob
+  END SUBROUTINE EP_allocate_for_eigenprob
 
 
   subroutine EP_make_dummy_vectors(nd)
@@ -214,7 +210,7 @@ contains
     allocate(dumQvect(EP_dim,0:nd+1+ndebug),&
          stat=i_stat)
     call memocc(i_stat,dumQvect,'dumQvect',subname)
-  end subroutine EP_make_dummy_vectors
+  END SUBROUTINE EP_make_dummy_vectors
 
   subroutine EP_store_occupied_orbitals(iproc, nproc, norb, Occ_psit )
     implicit none
@@ -228,7 +224,7 @@ contains
     allocate(EP_occprojections(EP_norb+ndebug) , stat=i_stat )
     call memocc(i_stat,EP_occprojections,'EP_occprojections',subname)
 
-  end subroutine EP_store_occupied_orbitals
+  END SUBROUTINE EP_store_occupied_orbitals
 
 
   subroutine EP_normalizza(j)
@@ -241,7 +237,7 @@ contains
        call EP_normalizza_interno( dumQvect(1:,-j) )
     endif
     return 
-  end subroutine EP_normalizza
+  END SUBROUTINE EP_normalizza
     
 
   subroutine EP_multbyfact(j, fact)
@@ -255,20 +251,19 @@ contains
        call EP_multbyfact_interno( dumQvect(1,-j), fact )
     endif
     return 
-  end subroutine EP_multbyfact
+  END SUBROUTINE EP_multbyfact
     
 
 
   subroutine EP_normalizza_interno(Q)
     implicit none
-    real(wp) Q(EP_dim)
-! :::::::::::::::::::::::
-    integer i,j,l
-    real(wp) sump, sumtot
+    !Arguments
+    real(wp) :: Q(EP_dim)
+    !Local variables
+    real(wp) :: sump, sumtot
 
     sump = dot(EP_dim,Q(1),1 ,Q(1),1)
     sumtot=0
-
 
     if(ha%nproc/=1) then
        call MPI_Allreduce(sump,sumtot,1,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
@@ -279,49 +274,47 @@ contains
 
     call vscal(EP_dim,sump, Q(1), 1  ) 
 
-  end subroutine EP_normalizza_interno
+  END SUBROUTINE EP_normalizza_interno
 
 
   subroutine EP_multbyfact_interno(Q, fact)
     implicit none
-    real(wp) Q
-    real(gp) fact
-! :::::::::::::::::::::::
+    !Arguments
+    real(wp) :: Q
+    real(gp) :: fact
 
     call vscal(EP_dim,fact, Q, 1  ) 
 
-  end subroutine EP_multbyfact_interno
+  END SUBROUTINE EP_multbyfact_interno
 
 
   subroutine EP_copy(i,j)
     implicit none
+    !Arguments
     integer, intent(in) :: i,j
 
-    integer k
     if( i.ge.0 .and. j.ge.0) then
-       
        call dcopy(EP_dim,Qvect(1,j),1,Qvect(1,i),1)
        !Qvect(:,i)=Qvect(:,j)
-
-
     else  if( i.lt.0 .and. j.ge.0) then
        call dcopy(EP_dim,Qvect(1,j),1,dumQvect(1,-i),1)
        !dumQvect(:,-i)=Qvect(:,j)
     else  if( i.ge.0 .and. j.lt.0) then
        call dcopy(EP_dim,dumQvect(1,-j),1,Qvect(1,i),1)
        !Qvect(:,i)=dumQvect(:,-j)
-
     else 
        call dcopy(EP_dim,dumQvect(1,-j),1,dumQvect(1,-i),1)
        !dumQvect(:,-i)=dumQvect(:,-j)
     endif
 
-  end subroutine EP_copy
+  END SUBROUTINE EP_copy
   
 
   real(8) function   EP_scalare(i,j)
     implicit none
+    !Arguments
     integer, intent(in) :: i,j
+
     if( i.ge.0 .and. j.ge.0) then
        EP_scalare = EP_scalare_interna(Qvect(1,i), Qvect(1,j) )
     else  if( i.lt.0 .and. j.ge.0) then
@@ -331,18 +324,15 @@ contains
     else 
        EP_scalare = EP_scalare_interna(dumQvect(1,-i), dumQvect(1,-j) )
     endif
-    
-    return 
   end function EP_scalare
   
  
   real(8) function EP_scalare_interna(a,b)
     implicit none
+    !Arguments
     real(8), intent(in):: a,b
-    ! ::::::::::::::::::::::::::::::::::::::::::::::
-    integer i,j
-
-    real(wp) sump, sumtot
+    !Local variables
+    real(wp) :: sump, sumtot
 
     sump = dot(EP_dim,a,1 ,b,1)
     sumtot=0
@@ -379,10 +369,10 @@ contains
     
   subroutine  EP_copia_per_prova(psi)
     use module_interfaces
+    !Arguments
     real(wp), dimension(*), target :: psi ! per testare happlication
-
-    real(8) sumdum
-    integer i
+    !Local variables
+    integer :: i
 
     if( ha%nproc/=1) then
        call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
@@ -392,27 +382,31 @@ contains
           Qvect(i,0)= psi(i)
        enddo
     endif
-    
 
-  end subroutine EP_copia_per_prova
-  
+  END SUBROUTINE EP_copia_per_prova
+
+
   subroutine EP_memorizza_stato(Gabsorber)
+    implicit none
+    !Arguments
     type(gaussian_basis), target :: Gabsorber
   
     EP_Gabsorber => Gabsorber
     
-  end subroutine EP_memorizza_stato
+  END SUBROUTINE EP_memorizza_stato
 
 
   subroutine EP_initialize_start_0( Gabsorber)
     use module_interfaces
+    implicit none
+    !Arguments
     type(gaussian_basis) :: Gabsorber
+    !Local variables
     integer :: i
 
     call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%lr%geocode,ha%orbs,ha%lr%d,&
          ha%hx,ha%hy,ha%hz,ha%lr%wfd,Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
        
-    
     if (.not. associated(Qvect)) then
        write(*,*)'ERROR: initialization vector not allocated!'
        stop
@@ -426,17 +420,17 @@ contains
           Qvect(i,0)= Qvect_tmp(i)
        enddo
     endif
-    
 
+   END SUBROUTINE EP_initialize_start_0
 
-   end subroutine EP_initialize_start_0
 
   subroutine EP_initialize_start()
     use module_interfaces
-    integer :: i,k, volta
+    !Local variables
+    integer :: i, volta
     real(wp), pointer ::  scals(:), scalstot(:)
 
-       call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%lr%geocode,ha%orbs,ha%lr%d,&
+    call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%lr%geocode,ha%orbs,ha%lr%d,&
             ha%hx,ha%hy,ha%hz,ha%lr%wfd,EP_Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
  
     if (.not. associated(Qvect)) then
@@ -444,7 +438,6 @@ contains
        stop
     end if
     
-
     if( ha%nproc/=1) then
        call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
             Qvect_tmp,work=wrk,outadd=Qvect(1,0))  
@@ -453,10 +446,6 @@ contains
           Qvect(i,0)= Qvect_tmp(i)
        enddo
     endif
-    
-    
-    
-    
 
     if(EP_doorthoocc) then
 
@@ -464,7 +453,6 @@ contains
        call memocc(i_stat,scals,'scals',subname)
        allocate(scalstot( EP_norb+ndebug) ,stat=i_stat)
        call memocc(i_stat,scalstot,'scalstot',subname)
-       
 
        do volta=1,2 
           call gemm('T','N', EP_norb , 1, EP_dim ,1.0_wp ,  occQvect(1)  ,&
@@ -485,7 +473,6 @@ contains
              endif
           enddo
        enddo
-       
 
        i_all=-product(shape(scals))*kind(scals)
        deallocate(scals,stat=i_stat)
@@ -496,7 +483,6 @@ contains
        deallocate(scalstot,stat=i_stat)
        call memocc(i_stat,i_all,'scalstot',subname)
     endif
-
 
 !!!    call untranspose_v(ha%iproc,ha%nproc,ha%orbs%norbp,ha%orbs%nspinor,ha%lr%wfd,ha%comms,&
 !!!               Qvect(1,0), work=wrk,outadd= Qvect_tmp(1) )  
@@ -511,55 +497,59 @@ contains
 
     EP_norma2_initialized_state= EP_scalare(0,0)
 
-end subroutine EP_initialize_start
+END SUBROUTINE EP_initialize_start
+
      
-     subroutine EP_set_all_random(i)
-    implicit none
-    integer, intent(in) :: i
-    ! ::::::::::::::::::::::::::::::
-    if( i.ge.0 ) then
-       call EP_set_random_interna(Qvect(1:,i))
-    else 
-       call EP_set_random_interna(dumQvect(1:,-i))
-    endif
+subroutine EP_set_all_random(i)
+   implicit none
+   !Arguments
+   integer, intent(in) :: i
+   !Local variables
+   if ( i.ge.0 ) then
+      call EP_set_random_interna(Qvect(1:,i))
+   else 
+      call EP_set_random_interna(dumQvect(1:,-i))
+   endif
 
-  end subroutine EP_set_all_random
+END SUBROUTINE EP_set_all_random
 
 
-  subroutine EP_set_random_interna(Q)
-    implicit none
-    real(wp) Q(EP_dim)
-
-    ! :::::::::::::::::::::::
-    real(4) rand
-    integer i
-    do i=1,EP_dim
-       call random_number(rand)
-       Q(i)=real(rand,wp)
-    enddo
-  end subroutine EP_set_random_interna
+subroutine EP_set_random_interna(Q)
+   implicit none
+   !Arguments
+   real(wp) :: Q(EP_dim)
+   !Local variables
+   real(4) :: rand
+   integer :: i
+   do i=1,EP_dim
+      call random_number(rand)
+      Q(i)=real(rand,wp)
+   enddo
+END SUBROUTINE EP_set_random_interna
   
 
   subroutine EP_GramSchmidt(i,n)
     implicit none
+   !Arguments
     integer, intent(in) :: i,n
-    ! ::::::::::::::::::::::::::::::
 
     if( i.ge.0 ) then
        call EP_GramSchmidt_interna(Qvect(1:,i),n)
     else
        call EP_GramSchmidt_interna(dumQvect(1:,-i),n)
     endif
-    return
-  end subroutine EP_GramSchmidt
+
+  END SUBROUTINE EP_GramSchmidt
+
 
   subroutine EP_GramSchmidt_interna(Q,n)
     implicit none
+   !Arguments
     integer, intent(in) :: n
     real(wp) Q(EP_dim)
-    ! ::::::::::::::::::::::::::::::
-    integer i,k, volta
-    real(wp) scals(0:n-1), scalstot(0:n-1), occscals(1:EP_norb), occscalstot(1:EP_norb)
+   !Local variables
+    integer :: i, volta
+    real(wp) :: scals(0:n-1), scalstot(0:n-1), occscals(1:EP_norb), occscalstot(1:EP_norb)
 
     if(ha%iproc.eq.0) then
        print *, " starting GramSchmidt ", n
@@ -577,7 +567,6 @@ end subroutine EP_initialize_start
        do i=0, n-1
           call axpy(EP_dim, -scalstot(i)  ,   Qvect(1,i)  , 1,  Q(1) , 1)
        enddo
-       
 
        if ( EP_doorthoocc) then
           call gemm('T','N', EP_norb , 1, EP_dim ,1.0_wp ,  occQvect(1)  , EP_dim ,Q(1) ,EP_dim , 0.0_wp , occscals(1) ,  EP_norb )
@@ -599,19 +588,16 @@ end subroutine EP_initialize_start
        print *, "GramSchmidt done "
     endif
 
-    return
-  end subroutine EP_GramSchmidt_interna
+  END SUBROUTINE EP_GramSchmidt_interna
  
-
 
   subroutine EP_Moltiplica(p,i)
     use module_interfaces
+    !Arguments
     implicit none
     integer, intent(in) :: p,i
-! :::::::::::::::::::::::::::
-    integer k, nprocbidon
-    real(8) sumdum
- 
+    !Local variables
+    integer :: k
     
     if( ha%nproc > 1) then
        if(i>=0) then
@@ -633,7 +619,6 @@ end subroutine EP_initialize_start
        endif
     endif
     
- 
     if(ha%iproc==0 .and. .false. ) then
        !here the projector should be applied
        call lowpass_projector(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,ha%lr%wfd%nvctr_c, Qvect_tmp )
@@ -643,10 +628,9 @@ end subroutine EP_initialize_start
          ha%rxyz,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
          ha%ndimpot, &
-         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,ha%epot_sum,ha%eproj_sum,1,ha%GPU)
+         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
+         ha%epot_sum,ha%eexctX,ha%eproj_sum,1,ha%GPU)
     if(  ha%iproc ==0 ) write(*,*)" done "
-
-
 
     if(ha%iproc==0 .and. .false.) then
        !here the projector should be applied
@@ -683,17 +667,14 @@ end subroutine EP_initialize_start
       endif
    endif
    return 
- end subroutine EP_Moltiplica
- 
+ END SUBROUTINE EP_Moltiplica
  
  
  subroutine EP_add_from_vect_with_fact(p,i, fact)
    implicit none
+   !Arguments
    integer, intent(in) :: p,i
    real(8), intent(in) :: fact
-   ! :::::::::::::::::::::::::::
-   integer k
-   
  
    if(i.ge.0  .and. p<0) then
       call axpy(EP_dim, fact,   Qvect(1,i)  , 1,  dumQvect(1,-p)  , 1)
@@ -709,9 +690,7 @@ end subroutine EP_initialize_start
 !!!       dumQvect(k,-p) = dumQvect(k,-p)+fact*Qvect(k,i)
 !!!    enddo
    
-   
-   return
- end subroutine EP_add_from_vect_with_fact
+ END SUBROUTINE EP_add_from_vect_with_fact
  
  
  
@@ -732,8 +711,8 @@ end subroutine EP_initialize_start
    !local variables
    character(len=*), parameter :: subname='gaussians_to_wavelets'
    integer, parameter :: nterm_max=3
-   logical :: myorbital,maycalc
-   integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,i,nterm,ierr,ig,ispinor
+   logical :: maycalc
+   integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,nterm,ierr,ispinor
    real(dp) :: normdev,tt,scpr,totnorm
    real(gp) :: rx,ry,rz
    integer, dimension(nterm_max) :: lx,ly,lz
@@ -857,7 +836,7 @@ end subroutine EP_initialize_start
    deallocate(tpsi,stat=i_stat)
    call memocc(i_stat,i_all,'tpsi',subname)
 
- end subroutine gaussians_to_wavelets_nonorm
+ END SUBROUTINE gaussians_to_wavelets_nonorm
 
 
  subroutine lowpass_projector(n1,n2,n3,nvctr,psi)
@@ -991,7 +970,7 @@ end subroutine EP_initialize_start
 
    call synthese_per_self(n1/2,n2/2,n3/2,psi_gross,psi)
 
- end subroutine lowpass_projector
+ END SUBROUTINE lowpass_projector
  
  
 end module lanczos_interface

@@ -1,6 +1,14 @@
 !!****f* BigDFT/system_properties
+!!
 !! FUNCTION
 !!  Calculate the important objects related to the physical properties of the system
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 !!
 !! SOURCE
 !!
@@ -16,9 +24,9 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,i_all,i_stat,jproc,ikpts
+  integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
 
-  call read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,&
+  call read_system_variables('input.occup',iproc,in,atoms,radii_cf,nelec,&
        norb,norbu,norbd,iunit)
 
   if(in%nspin==4) then
@@ -50,11 +58,102 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
   !assign to each k-point the same occupation number
   do ikpts=1,orbs%nkpts
-     call input_occup(iproc,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,&
+     call input_occup(iproc,iunit,nelec,norb,norbu,in%nspin,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
+
+END SUBROUTINE system_properties
+!!***
+
+
+!!****f* BigDFT/calculate_rhocore
+!! FUNCTION
+!!  Check for the need of a core density and fill the rhocore array which
+!!  should be passed at the rhocore pointer
+!! SOURCE
+subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,i3s,n3d,i3xcsh,n3p
+  real(gp), intent(in) :: hxh,hyh,hzh
+  type(atoms_data), intent(in) :: at
+  type(grid_dimensions), intent(in) :: d
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(wp), dimension(:), pointer :: rhocore
+  !local variables
+  character(len=*), parameter :: subname='calculate_rhocore'
+  character(len=27) :: filename
+  logical :: exists,donlcc
+  integer :: ityp,iat,i_stat,j3,i1,i2,ind,ierr
+  real(wp) :: tt
+  real(gp) :: rx,ry,rz,rloc,cutoff
   
-end subroutine system_properties
+
+  !check for the need of a nonlinear core correction
+  donlcc=.false.
+  chk_nlcc: do ityp=1,at%ntypes
+     filename = 'nlcc.'//at%atomnames(ityp)
+
+     inquire(file=filename,exist=exists)
+     if (exists) then
+        donlcc=.true.
+        exit chk_nlcc
+     end if
+  end do chk_nlcc
+
+  if (donlcc) then
+     !allocate pointer rhocore
+     allocate(rhocore(d%n1i*d%n2i*n3d+ndebug),stat=i_stat)
+     call memocc(i_stat,rhocore,'rhocore',subname)
+     !initalise it 
+     call razero(d%n1i*d%n2i*n3d,rhocore)
+     !perform the loop on any of the atoms which have this feature
+     do iat=1,at%nat
+        ityp=at%iatype(iat)
+        filename = 'nlcc.'//at%atomnames(ityp)
+        inquire(file=filename,exist=exists)
+        if (exists) then
+           if (iproc == 0) write(*,'(1x,a)',advance='no')&
+                'NLCC: calculate core density for atom: '//&
+                trim(at%atomnames(ityp))//';'
+           rx=rxyz(1,iat) 
+           ry=rxyz(2,iat)
+           rz=rxyz(3,iat)
+
+           rloc=at%psppar(0,0,ityp)
+           cutoff=10.d0*rloc
+
+           call calc_rhocore_iat(iproc,at%geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
+                d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,&
+                i3s,n3d,rhocore)
+
+           if (iproc == 0) write(*,'(1x,a)')'done.'
+        end if
+     end do
+
+     !calculate total core charge in the grid
+     !In general this should be really bad
+     tt=0.0_wp
+     do j3=1,n3p
+        do i2=1,d%n2i
+           do i1=1,d%n1i
+              ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
+              tt=tt+rhocore(ind)
+           enddo
+        enddo
+     enddo
+     call mpiallred(tt,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     tt=tt*hxh*hyh*hzh
+     if (iproc == 0) write(*,'(1x,a,f15.7)') &
+       'Total core charge on the grid (generally bad, overestimated approx.): ',tt
+
+  else
+     !No NLCC needed, nullify the pointer 
+     nullify(rhocore)
+  end if
+
+END SUBROUTINE calculate_rhocore
 !!***
 
 
@@ -63,16 +162,18 @@ end subroutine system_properties
 !!   Assign some of the physical system variables
 !!   Performs also some cross-checks with other variables
 !! DESCRIPTION
-!!   The pointer in atoms structure have to be associated or nullify.
+!!   The pointer in atoms structure have to be associated or nullified.
 !! SOURCE
 !!
-subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
+subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      nelec,norb,norbu,norbd,iunit)
   use module_base
   use module_types
+  use ab6_symmetry
   implicit none
+  character (len=*), intent(in) :: fileocc
   type(input_variables), intent(in) :: in
-  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: iproc
   type(atoms_data), intent(inout) :: atoms
   integer, intent(out) :: nelec,norb,norbu,norbd,iunit
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
@@ -85,8 +186,8 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
   character(len=27) :: filename
   character(len=50) :: format
   character(len=100) :: line
-  integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all,ixcpsp,ispinsum,mxpl
-  integer :: ispol,mxchg,ichg,natpol,ichgsum,nsccode,ierror1
+  integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,ixcpsp,ispinsum,mxpl
+  integer :: ispol,mxchg,ichg,ichgsum,nsccode,ierror1
   real(gp) :: rcov,rprb,ehomo,radfine,minrad,maxrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr
@@ -144,6 +245,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
              '         contains a PSP generated with an XC id=',&
              ixcpsp,' while for this run ixc=',in%ixc
      end if
+
      atoms%psppar(:,:,ityp)=0._gp
      if (atoms%npspcode(ityp) == 2) then !GTH case
         read(11,*) (atoms%psppar(0,j,ityp),j=0,4)
@@ -244,8 +346,8 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
              '. At your own risk!'
      end if
 
-     call atomic_occupation_numbers(ityp,in%nspin,atoms,nmax,lmax,nelecmax,neleconf,&
-          nsccode,mxpl,mxchg)
+     call atomic_occupation_numbers(fileocc,ityp,in%nspin,atoms,nmax,lmax,nelecmax,&
+          neleconf,nsccode,mxpl,mxchg)
 
   enddo
   !print *,'iatsctype',atOMS%iasctype(:)
@@ -347,7 +449,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
      !if (ichg /=0) then
      !   call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
      !        neleconf,atoms%iasctype(ityp),mxpl,mxchg,atoms%amu(ityp))
-     !   call correct_semicore(atoms%atomnames(ityp),6,3,ichg,neleconf,nsccode)
+     !   call correct_semicore(6,3,ichg,neleconf,nsccode)
      !end if
      !end of part to be removed
      if (nsccode/= 0) atoms%natsc=atoms%natsc+1
@@ -486,21 +588,38 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,&
      end if
   end if
 
+  ! We modify the symmetry object with respect to the spin.
+  if (atoms%symObj >= 0) then
+     if (in%nspin == 2) then
+        call ab6_symmetry_set_collinear_spin(atoms%symObj, atoms%nat, &
+             & atoms%natpol, ierror)
+!!$     else if (in%nspin == 4) then
+!!$        call ab6_symmetry_set_spin(atoms%symObj, atoms%nat, &
+!!$             & atoms%natpol, ierror)
+     end if
+  end if
+
 !!!  tt=dble(norb)/dble(nproc)
 !!!  norbp=int((1.d0-eps_mach*tt) + tt)
 !!!  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
 
-end subroutine read_system_variables
+END SUBROUTINE read_system_variables
 !!***
 
-!fix all the atomic occupation numbers of the atoms which has the same type
-!look also at the input polarisation and spin
-!look at the file of the input occupation numbers and, if exists, modify the 
-!occupations accordingly
-subroutine atomic_occupation_numbers(ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
+
+!!****f* BigDFT/atomic_occupation_numbers
+!! FUNCTION
+!!   Fix all the atomic occupation numbers of the atoms which has the same type
+!!   look also at the input polarisation and spin
+!!   look at the file of the input occupation numbers and, if exists, modify the 
+!!   occupations accordingly
+!! SOURCE
+!!
+subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
   use module_base
   use module_types
   implicit none
+  character(len=*), intent(in) :: filename
   integer, intent(in) :: ityp,mxpl,mxchg,nspin,nmax,lmax,nelecmax,nsccode
   type(atoms_data), intent(inout) :: at
   integer, dimension(nmax,lmax), intent(in) :: neleconf
@@ -531,19 +650,18 @@ subroutine atomic_occupation_numbers(ityp,nspin,at,nmax,lmax,nelecmax,neleconf,n
         stop
   end select
 
-  inquire(file='input.occup',exist=exists)
+  inquire(file=filename,exist=exists)
 
   !search the corresponding atom
   if (exists) then
-     open(unit=91,file='input.occup',status='old',iostat=ierror)
+     open(unit=91,file=filename,status='old',iostat=ierror)
      !Check the open statement
      if (ierror /= 0) then
-        write(*,*)'Failed to open the existing  file input.occup'
+        write(*,*)'Failed to open the existing  file: '//filename
         stop
      end if
   end if
 
-       
   !here we must check of the input guess polarisation
   !control if the values are compatible with the atom configuration
   !do this for all atoms belonging to a given type
@@ -592,7 +710,7 @@ subroutine atomic_occupation_numbers(ityp,nspin,at,nmax,lmax,nelecmax,neleconf,n
            end if
            !correct the electronic configuration in case there is a charge
            !if (ichg /=0) then
-           call correct_semicore(at%atomnames(ityp),nmax,lmax-1,ichg,&
+           call correct_semicore(nmax,lmax-1,ichg,&
                 neleconf,eleconf,at%iasctype(iat))
            !end if
 
@@ -628,8 +746,8 @@ subroutine atomic_occupation_numbers(ityp,nspin,at,nmax,lmax,nelecmax,neleconf,n
 
   if (exists) close(unit=91)
 
-end subroutine atomic_occupation_numbers
-
+END SUBROUTINE atomic_occupation_numbers
+!!***
 
 
 !!****f* BigDFT/orbitals_descriptors
@@ -649,7 +767,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   real(gp), dimension(3,nkpt), intent(in) :: kpt
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all
+  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,n_i,n_ip,rs_i,N_a,N_b,N_c
   logical, dimension(:), allocatable :: GPU_for_orbs
 
   allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
@@ -668,13 +786,13 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   ! Change the wavefunctions to complex if k-points are used (except gamma).
   if (nspinor == 1) then
      if (maxval(abs(orbs%kpts)) > 0._gp) nspinor = 2
+     !nspinor=2 !fake, used for testing with gamma
   end if
 
   !initialise the array
   do jproc=0,nproc-1
      orbs%norb_par(jproc)=0 !size 0 nproc-1
   end do
-
 
   !create an array which indicate which processor has a GPU associated 
   !from the viewpoint of the BLAS routines
@@ -688,11 +806,54 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
      GPU_for_orbs(0)=GPUconv
   end if
 
-  !cubic-code strategy: balance the orbitals between processors
-  !in the most symmetric way
-  do iorb=1,norb*orbs%nkpts
-     jproc=mod(iorb-1,nproc)
-     orbs%norb_par(jproc)=orbs%norb_par(jproc)+1
+  ! Strategy to divide between k points.
+  ! There is an nproc length to divide into orbs%nkpts segments.
+  ! Segment (ikpt - 1) expand in 0 <= r_i < r_ip <= nproc.
+  ! where r_i and r_ip are real values. There are two possibilities:
+  !  - We can write r_i <= n_i <= n_ip <= r_ip with n_i and n_ip integers ;
+  !  - or r_i <= n_i and n_ip <= r_ip and n_i = n_ip + 1.
+  ! For both case, we can divide norb into the partition (real values):
+  !  - N_a = (n_i - r_i) * norb * orbs%nkpts / nproc;
+  !  - N_b = max((n_ip - n_i) * norb * orbs%nkpts / nproc, 0);
+  !  - N_c = (r_ip - n_ip) * norb * orbs%nkpts / nproc;
+  ! Before going to integer values, we have r_i = (ikpt - 1) * nproc / orbs%nkpts
+  ! So N_a and N_b can be simplified and written instead:
+  !  - N_a = int(norb * (n_i * orbs%nkpts - (ikpt - 1) * nproc) / nproc);
+  !  - N_c = int(norb * ((ikpt - 1) * nproc - n_i * orbs%nkpts) / nproc);
+  !  - N_b = norb - N_a - N_b.
+  ! After, if N_a > 0, we put this quantity to proc n_i - 1, if N_b > 0
+  ! we put its quantity to proc n_ip ; and finally N_b is distributed
+  ! among [n_i;n_ip[ procs.
+  orbs%norb_par(:) = 0
+  do ikpt = 1, orbs%nkpts
+     ! Calculation of n_i and n_ip, rs_i = r_i * orbs%nkpts to avoid rounding.
+     rs_i = (ikpt - 1) * nproc
+     if (mod(rs_i, orbs%nkpts) == 0) then
+        n_i = rs_i / orbs%nkpts
+     else
+        n_i = rs_i / orbs%nkpts + 1
+     end if
+     rs_i = ikpt * nproc
+     n_ip = rs_i / orbs%nkpts
+     ! Calculation of N_a, N_b and N_c from given n_i and n_ip.
+     if (n_ip >= n_i) then
+        N_a = norb * (n_i * orbs%nkpts - (ikpt - 1) * nproc) / nproc
+        N_c = norb * (ikpt * nproc - n_ip * orbs%nkpts) / nproc
+     else
+        N_c = norb / 2
+        N_a = norb - N_c
+     end if
+     N_b = norb - N_a - N_c
+     !if (iproc == 0) write(*,*) ikpt, n_i, n_ip, N_a, N_b, N_c
+     ! Affectation to procs.
+     if (N_a > 0) orbs%norb_par(n_i - 1) = orbs%norb_par(n_i - 1) + N_a
+     if (N_b > 0) then
+        do i_stat = 0, N_b - 1
+           jproc = n_i + mod(i_stat, n_ip - n_i)
+           orbs%norb_par(jproc) = orbs%norb_par(jproc) + 1
+        end do
+     end if
+     if (N_c > 0) orbs%norb_par(n_ip) = orbs%norb_par(n_ip) + N_c
   end do
 
   i_all=-product(shape(GPU_for_orbs))*kind(GPU_for_orbs)
@@ -756,7 +917,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
 
-end subroutine orbitals_descriptors
+END SUBROUTINE orbitals_descriptors
 !!***
 
 
@@ -766,15 +927,16 @@ end subroutine orbitals_descriptors
 !!    if iunit /=0 this means that the file 'occup.dat' does exist and it opens
 !! SOURCE
 !!
-subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinsgn)
+subroutine input_occup(iproc,iunit,nelec,norb,norbu,nspin,occup,spinsgn)
   use module_base
   implicit none
 ! Arguments
-  integer, intent(in) :: nelec,nspin,mpol,iproc,norb,norbu,norbd,iunit
+  integer, intent(in) :: nelec,nspin,iproc,norb,norbu,iunit
   real(gp), dimension(norb), intent(out) :: occup,spinsgn
 ! Local variables
-  integer :: iorb,nt,ne,it,ierror,iorb1
-  real(gp) :: rocc,rup,rdown
+  integer :: iorb,nt,ne,it,ierror,iorb1,i
+  real(gp) :: rocc
+  character(len=8) :: string
   character(len=100) :: line
 
 
@@ -815,7 +977,22 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
   if (iunit /= 0) then
      nt=0
      do
-        read(unit=iunit,fmt=*,iostat=ierror) iorb,rocc
+        read(unit=iunit,fmt='(a100)',iostat=ierror) line
+        if (ierror /= 0) then
+           exit
+        end if
+        !Transform the line in case there are slashes (to ease the parsing)
+        do i=1,len(line)
+           if (line(i:i) == '/') then
+              line(i:i) = ':'
+           end if
+        end do
+        read(line,*,iostat=ierror) iorb,string
+        call read_fraction_string(string,rocc,ierror) 
+        if (ierror /= 0) then
+           exit
+        end if
+
         if (ierror/=0) then
            exit
         else
@@ -893,5 +1070,5 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
      end if
   endif
 
-end subroutine input_occup
+END SUBROUTINE input_occup
 !!***

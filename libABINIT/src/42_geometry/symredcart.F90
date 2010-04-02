@@ -9,7 +9,7 @@
 !! Can operate in real or reciprocal space
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2009 ABINIT group (MT)
+!! Copyright (C) 1998-2010 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -61,22 +61,22 @@ subroutine symredcart(aprim,bprim,symcart,symred)
 
  work=zero
  do kk=1,3
-  do jj=1,3
-   symtmp=dble(symred(jj,kk))
-   do ii=1,3
-    work(ii,jj)=work(ii,jj)+bprim(ii,kk)*symtmp
+   do jj=1,3
+     symtmp=dble(symred(jj,kk))
+     do ii=1,3
+       work(ii,jj)=work(ii,jj)+bprim(ii,kk)*symtmp
+     end do
    end do
-  end do
  end do
 
  symcart=zero
  do kk=1,3
-  do jj=1,3
-   symtmp=work(jj,kk)
-   do ii=1,3
-    symcart(ii,jj)=symcart(ii,jj)+aprim(ii,kk)*symtmp
+   do jj=1,3
+     symtmp=work(jj,kk)
+     do ii=1,3
+       symcart(ii,jj)=symcart(ii,jj)+aprim(ii,kk)*symtmp
+     end do
    end do
-  end do
  end do
 
 end subroutine symredcart

@@ -7,7 +7,7 @@
 !! Invert and transpose orthogonal 3x3 matrix of INTEGER elements.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2009 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2010 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -32,9 +32,9 @@
 !! TODO
 !!
 !! PARENTS
-!!      anascr,bands_classification,crystal_methods,debug_tools,get_full_kgrid
-!!      getkgrid,invars2m,mrgscr,nstdy3,optic,outscfcv,rdddb9,rdkss,read_gkk
-!!      setsym,setup_FFT_rotation,strainsym,symdyma,wfconv
+!!      ab6_symmetry_f90,debug_tools,get_full_kgrid,getkgrid,ingeo,invars2m
+!!      m_bands_sym,m_crystal,m_fft_mesh,m_io_kss,nstdy3,optic,outscfcv,rdddb9
+!!      read_gkk,setsym,strainsym,symdij,symdyma,wfconv
 !!
 !! CHILDREN
 !!      leave_new,wrtout
@@ -51,7 +51,8 @@ subroutine mati3inv(mm,mit)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-! use interfaces_01manage_mpi
+ use interfaces_14_hidewrite
+ use interfaces_16_hideleave
 !End of the abilint section
 
  implicit none
@@ -82,14 +83,14 @@ subroutine mati3inv(mm,mit)
  dd  = mm(1,1) * tt(1,1) + mm(2,1) * tt(2,1) + mm(3,1) * tt(3,1)
 !Make sure matrix is not singular
  if (dd/=0) then
-  mit(:,:)=tt(:,:)/dd
+   mit(:,:)=tt(:,:)/dd
  else
-  write(message, '(5a,2x,9i5,a)' ) ch10,&
-&  ' mati3inv : BUG -',ch10,&
-&  '  Attempting to invert integer array',ch10,&
-&  mm(:,:),'   ==> determinant is zero.'
-  call wrtout(06,message,'COLL')
-  call leave_new('COLL')
+   write(message, '(5a,2x,9i5,a)' ) ch10,&
+&   ' mati3inv : BUG -',ch10,&
+&   '  Attempting to invert integer array',ch10,&
+&   mm(:,:),'   ==> determinant is zero.'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
  end if
 
 end subroutine mati3inv

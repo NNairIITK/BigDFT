@@ -16,7 +16,7 @@
 !! informative, name.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2002-2009 ABINIT group (PCasek,FF,XG,YMN)
+!! Copyright (C) 2002-2010 ABINIT group (PCasek,FF,XG,YMN)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -91,9 +91,6 @@ module defs_parameters
  character(len=25), parameter :: idyson_name(1:3) = (/"linear system          ", &
 &                                                "differential equation  ", &
 &                                                "self-consistent problem"/)
-
-!- Possible values for macro_uj
- integer,parameter :: ndtpawuj=4
 
 end module defs_parameters
 

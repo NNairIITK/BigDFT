@@ -92,7 +92,7 @@ subroutine convolut_kinetic_slab_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
 !           do l=lowfil,lupfil
 !              j=modulo(i2+l,n2+1)
            do l=max(lowfil,-i2),min(lupfil,n2-i2)
-			  j=i2+l 
+           j=i2+l 
               tt1=tt1+x(1,i1,j,i3)*fil(1,l,2)-x(2,i1,j,i3)*fil(2,l,2)
               tt2=tt2+x(2,i1,j,i3)*fil(1,l,2)+x(1,i1,j,i3)*fil(2,l,2)
            enddo
@@ -123,7 +123,7 @@ subroutine convolut_kinetic_slab_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
   enddo
 !$omp enddo
 !$omp end parallel  
-end subroutine convolut_kinetic_slab_c_k
+END SUBROUTINE convolut_kinetic_slab_c_k
 
 subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
 ! Applies the modified kinetic energy operator onto x to get y. 
@@ -139,7 +139,7 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
   real(gp),intent(in)::k1,k2,k3
   real(gp), dimension(3), intent(in) :: hgrid
   real(wp), dimension(2,0:n1,0:n2,0:n3), intent(in) :: x
-  real(wp), dimension(2,0:n1,0:n2,0:n3), intent(out) :: y
+  real(wp), dimension(2,0:n1,0:n2,0:n3), intent(inout) :: y
   real(wp), intent(out) :: ener
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
@@ -214,7 +214,7 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            enddo
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
-		   ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+         ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
      
@@ -226,13 +226,13 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            !do l=lowfil,lupfil
            !   j=modulo(i2+l,n2+1)
            do l=max(lowfil,-i2),min(lupfil,n2-i2)
-			  j=i2+l 
+           j=i2+l 
               tt1=tt1+x(1,i1,j,i3)*fil(1,l,2)-x(2,i1,j,i3)*fil(2,l,2)
               tt2=tt2+x(2,i1,j,i3)*fil(1,l,2)+x(1,i1,j,i3)*fil(2,l,2)
            enddo
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
-		   ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+         ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
      
@@ -252,11 +252,11 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            enddo
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
-		   ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+         ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
   enddo
 !$omp enddo
-  ener=ener*.5_wp
+!  ener=ener*.5_wp
 !$omp end parallel  
-end subroutine convolut_kinetic_slab_T_k
+END SUBROUTINE convolut_kinetic_slab_T_k

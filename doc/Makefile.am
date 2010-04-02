@@ -40,5 +40,5 @@ manual.pdf: Manual/manual.tex Manual/grid100.pdf Manual/grid200.pdf Manual/grid3
 	TEXINPUTS=$(top_srcdir)/doc/Manual:$${TEXINPUTS} pdflatex $(top_srcdir)/doc/Manual/manual.tex
 
 clean:
-	rm -f *.aux *.log *.pdf *.toc
+	rm -f *.aux *.log cluster.pdf halFFT.pdf manual.pdf *.toc
 

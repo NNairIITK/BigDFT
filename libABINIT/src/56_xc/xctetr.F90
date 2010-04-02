@@ -8,7 +8,7 @@
 !! Also returns $d^2(Vxc)/d(\rho)^2$ as needed for third-order DFPT
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2009 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2010 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -72,8 +72,8 @@ subroutine xctetr(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-! use interfaces_14_hidewrite
-! use interfaces_16_hideleave
+ use interfaces_14_hidewrite
+ use interfaces_16_hideleave
 !End of the abilint section
 
  implicit none
@@ -108,111 +108,111 @@ subroutine xctetr(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 !
 !Checks the values of order
  if(order<0 .or. order>3)then
-  write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
-&  ' xcpzca : BUG -',ch10,&
-&  '  With Teter 91 Ceperley-Alder xc functional, the only',ch10,&
-&  '  allowed values for order are 0, 1, 2 or 3, while it is found to be',&
-&  order,'.'
-  call wrtout(6,message,'COLL')
-  call leave_new('COLL')
+   write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
+&   ' xcpzca : BUG -',ch10,&
+&   '  With Teter 91 Ceperley-Alder xc functional, the only',ch10,&
+&   '  allowed values for order are 0, 1, 2 or 3, while it is found to be',&
+&   order,'.'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
  end if
 !Checks the compatibility between the order and the presence of the optional arguments
  if(order /=3 .and. present(d2vxc))then
-  write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
-&  ' xcpzca : BUG -',ch10,&
-&  '  The order chosen does not need the presence',ch10,&
-&  '  of the vector d2vxc, that is needed only with order=3, while we have',&
-&  order,'.'
-  call wrtout(6,message,'COLL')
-  call leave_new('COLL')
+   write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
+&   ' xcpzca : BUG -',ch10,&
+&   '  The order chosen does not need the presence',ch10,&
+&   '  of the vector d2vxc, that is needed only with order=3, while we have',&
+&   order,'.'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
  end if
  if(order <= 1 .and. present(dvxc))then
-  write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
-&  ' xcpzca : BUG -',ch10,&
-&  '  The order chosen does not need the presence',ch10,&
-&  '  of the vector dvxc, that is needed with order > 1, while we have',&
-&  order,'.'
-  call wrtout(6,message,'COLL')
-  call leave_new('COLL')
+   write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
+&   ' xcpzca : BUG -',ch10,&
+&   '  The order chosen does not need the presence',ch10,&
+&   '  of the vector dvxc, that is needed with order > 1, while we have',&
+&   order,'.'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
  end if
 
 !separated cases with respect to order
 
  if (order<=1) then
-! Loop over grid points
-  do ipt=1,npt
-   rs=rspts(ipt)
-   n1=-(a0+rs*(a1+rs*(a2+rs*a3)))
-   d1=rs*(b1+rs*(b2+rs*(b3+rs*b4)))
-   d1m1=1.0_dp/d1
-   n2=-rs*(c1+rs*(c2+rs*(c3+rs*(c4+rs*(c5+rs*(c6+rs*c7))))))
-!  
-!  Exchange-correlation energy
-   exc(ipt)=n1*d1m1
-!  
-!  Exchange-correlation potential
-   vxc(ipt)=n2*d1m1**2
-  end do
+!  Loop over grid points
+   do ipt=1,npt
+     rs=rspts(ipt)
+     n1=-(a0+rs*(a1+rs*(a2+rs*a3)))
+     d1=rs*(b1+rs*(b2+rs*(b3+rs*b4)))
+     d1m1=1.0_dp/d1
+     n2=-rs*(c1+rs*(c2+rs*(c3+rs*(c4+rs*(c5+rs*(c6+rs*c7))))))
+!    
+!    Exchange-correlation energy
+     exc(ipt)=n1*d1m1
+!    
+!    Exchange-correlation potential
+     vxc(ipt)=n2*d1m1**2
+   end do
  else if (order>2) then
-! Loop over grid points
-  do ipt=1,npt
-   rs=rspts(ipt)
-   n1=-(a0+rs*(a1+rs*(a2+rs*a3)))
-   d1=rs*(b1+rs*(b2+rs*(b3+rs*b4)))
-   d1m1=1.0_dp/d1
-   n2=-rs*(c1+rs*(c2+rs*(c3+rs*(c4+rs*(c5+rs*(c6+rs*c7))))))
-!  
-!  Exchange-correlation energy
-   exc(ipt)=n1*d1m1
-!  
-!  Exchange-correlation potential
-   vxc(ipt)=n2*d1m1**2
-!  Assemble derivative of vxc wrt rs
-   n3=-(c1+rs*(2._dp*c2+rs*(3._dp*c3+rs*(4._dp*c4+rs*(5._dp*c5+&
-&   rs*(6._dp*c6+rs*(7._dp*c7)))))))
-   d3=b1+rs*(2._dp*b2+rs*(3._dp*b3+rs*(4._dp*b4)))
-   dvxcdr=(n3-d3*(2._dp*n2*d1m1))*d1m1**2
-   rhom1=1.0_dp/rhor(ipt)
-!  
-!  derivative of vxc wrt rho
-   dvxc(ipt)=-dvxcdr*rs*third*rhom1
-!  
-   
-!  Assemble derivative d^2(Vxc)/d(rs)^2
-   n4=-(2.0_dp*c2+rs*(6.0_dp*c3+rs*(12.0_dp*c4+rs*(20.0_dp*c5+&
-&   rs*(30.0_dp*c6+rs*(42.0_dp*c7))))))
-   d4=2.0_dp*b2+rs*(6.0_dp*b3+rs*(12.0_dp*b4))
-   d2vxcr=(n4-2.0_dp*(2.0_dp*n3*d3+n2*d4-3.0_dp*n2*d3**2*d1m1)*d1m1)*d1m1**2
-   
-!  Derivative d^2(Vxc)/d(rho)^2
-   d2vxc(ipt)=(rs*third*rhom1)*(4.0_dp*dvxcdr+rs*d2vxcr)*third*rhom1
-   
-  end do
+!  Loop over grid points
+   do ipt=1,npt
+     rs=rspts(ipt)
+     n1=-(a0+rs*(a1+rs*(a2+rs*a3)))
+     d1=rs*(b1+rs*(b2+rs*(b3+rs*b4)))
+     d1m1=1.0_dp/d1
+     n2=-rs*(c1+rs*(c2+rs*(c3+rs*(c4+rs*(c5+rs*(c6+rs*c7))))))
+!    
+!    Exchange-correlation energy
+     exc(ipt)=n1*d1m1
+!    
+!    Exchange-correlation potential
+     vxc(ipt)=n2*d1m1**2
+!    Assemble derivative of vxc wrt rs
+     n3=-(c1+rs*(2._dp*c2+rs*(3._dp*c3+rs*(4._dp*c4+rs*(5._dp*c5+&
+&     rs*(6._dp*c6+rs*(7._dp*c7)))))))
+     d3=b1+rs*(2._dp*b2+rs*(3._dp*b3+rs*(4._dp*b4)))
+     dvxcdr=(n3-d3*(2._dp*n2*d1m1))*d1m1**2
+     rhom1=1.0_dp/rhor(ipt)
+!    
+!    derivative of vxc wrt rho
+     dvxc(ipt)=-dvxcdr*rs*third*rhom1
+!    
+     
+!    Assemble derivative d^2(Vxc)/d(rs)^2
+     n4=-(2.0_dp*c2+rs*(6.0_dp*c3+rs*(12.0_dp*c4+rs*(20.0_dp*c5+&
+&     rs*(30.0_dp*c6+rs*(42.0_dp*c7))))))
+     d4=2.0_dp*b2+rs*(6.0_dp*b3+rs*(12.0_dp*b4))
+     d2vxcr=(n4-2.0_dp*(2.0_dp*n3*d3+n2*d4-3.0_dp*n2*d3**2*d1m1)*d1m1)*d1m1**2
+     
+!    Derivative d^2(Vxc)/d(rho)^2
+     d2vxc(ipt)=(rs*third*rhom1)*(4.0_dp*dvxcdr+rs*d2vxcr)*third*rhom1
+     
+   end do
  else if (order>1) then
-! Loop over grid points
-  do ipt=1,npt
-   rs=rspts(ipt)
-   n1=-(a0+rs*(a1+rs*(a2+rs*a3)))
-   d1=rs*(b1+rs*(b2+rs*(b3+rs*b4)))
-   d1m1=1.0_dp/d1
-   n2=-rs*(c1+rs*(c2+rs*(c3+rs*(c4+rs*(c5+rs*(c6+rs*c7))))))
-!  
-!  Exchange-correlation energy
-   exc(ipt)=n1*d1m1
-!  
-!  Exchange-correlation potential
-   vxc(ipt)=n2*d1m1**2
-!  Assemble derivative of vxc wrt rs
-   n3=-(c1+rs*(2._dp*c2+rs*(3._dp*c3+rs*(4._dp*c4+rs*(5._dp*c5+&
-&   rs*(6._dp*c6+rs*(7._dp*c7)))))))
-   d3=b1+rs*(2._dp*b2+rs*(3._dp*b3+rs*(4._dp*b4)))
-   dvxcdr=(n3-d3*(2._dp*n2*d1m1))*d1m1**2
-   rhom1=1.0_dp/rhor(ipt)
-!  
-!  derivative of vxc wrt rho
-   dvxc(ipt)=-dvxcdr*rs*third*rhom1
-!  
-  end do
+!  Loop over grid points
+   do ipt=1,npt
+     rs=rspts(ipt)
+     n1=-(a0+rs*(a1+rs*(a2+rs*a3)))
+     d1=rs*(b1+rs*(b2+rs*(b3+rs*b4)))
+     d1m1=1.0_dp/d1
+     n2=-rs*(c1+rs*(c2+rs*(c3+rs*(c4+rs*(c5+rs*(c6+rs*c7))))))
+!    
+!    Exchange-correlation energy
+     exc(ipt)=n1*d1m1
+!    
+!    Exchange-correlation potential
+     vxc(ipt)=n2*d1m1**2
+!    Assemble derivative of vxc wrt rs
+     n3=-(c1+rs*(2._dp*c2+rs*(3._dp*c3+rs*(4._dp*c4+rs*(5._dp*c5+&
+&     rs*(6._dp*c6+rs*(7._dp*c7)))))))
+     d3=b1+rs*(2._dp*b2+rs*(3._dp*b3+rs*(4._dp*b4)))
+     dvxcdr=(n3-d3*(2._dp*n2*d1m1))*d1m1**2
+     rhom1=1.0_dp/rhor(ipt)
+!    
+!    derivative of vxc wrt rho
+     dvxc(ipt)=-dvxcdr*rs*third*rhom1
+!    
+   end do
  end if
 end subroutine xctetr
 !!***

@@ -23,7 +23,7 @@
 !! take into account the factor strfact
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2009 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2010 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -50,7 +50,7 @@
 !!  at output : iexit=  0 if not below tolerance, 1 if below tolerance
 !!
 !! PARENTS
-!!      brdmin,delocint,gstate,moldyn
+!!      brdmin,delocint,diisrelax,gstate,gstateimg,moldyn
 !!
 !! CHILDREN
 !!      wrtout
@@ -68,7 +68,7 @@ subroutine fconv(fcart,iatfix,iexit,itime,natom,ntime,&
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
-! use interfaces_14_hidewrite
+ use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -95,74 +95,74 @@ subroutine fconv(fcart,iatfix,iexit,itime,natom,ntime,&
 !Compute maximal component of forces, EXCLUDING any fixed components
  fmax=0.0_dp
  do iatom=1,natom
-  do idir=1,3
-   if (iatfix(idir,iatom) /= 1) then
-    if( abs(fcart(idir,iatom)) >= fmax ) fmax=abs(fcart(idir,iatom))
-   end if
-  end do
+   do idir=1,3
+     if (iatfix(idir,iatom) /= 1) then
+       if( abs(fcart(idir,iatom)) >= fmax ) fmax=abs(fcart(idir,iatom))
+     end if
+   end do
  end do
 
  dstr(:)=strten(:)-strtarget(:)
 
 !Eventually take into account the stress
  if(optcell==1)then
-  strdiag=(dstr(1)+dstr(2)+dstr(3))/3.0_dp
-  if(abs(strdiag)*strfact >= fmax ) fmax=abs(strdiag)*strfact
+   strdiag=(dstr(1)+dstr(2)+dstr(3))/3.0_dp
+   if(abs(strdiag)*strfact >= fmax ) fmax=abs(strdiag)*strfact
  else if(optcell==2)then
-  do istr=1,6
-   if(abs(dstr(istr))*strfact >= fmax ) fmax=abs(dstr(istr))*strfact
-  end do
+   do istr=1,6
+     if(abs(dstr(istr))*strfact >= fmax ) fmax=abs(dstr(istr))*strfact
+   end do
  else if(optcell==3)then
-! Must take away the trace from diagonal elements
-  strdiag=(dstr(1)+dstr(2)+dstr(3))/3.0_dp
-  do istr=1,3
-   if(abs(dstr(istr)-strdiag)*strfact >= fmax ) &
-&   fmax=abs(dstr(istr)-strdiag)*strfact
-  end do
-  do istr=4,6
-   if(abs(dstr(istr))*strfact >= fmax ) fmax=abs(dstr(istr))*strfact
-  end do
+!  Must take away the trace from diagonal elements
+   strdiag=(dstr(1)+dstr(2)+dstr(3))/3.0_dp
+   do istr=1,3
+     if(abs(dstr(istr)-strdiag)*strfact >= fmax ) &
+&     fmax=abs(dstr(istr)-strdiag)*strfact
+   end do
+   do istr=4,6
+     if(abs(dstr(istr))*strfact >= fmax ) fmax=abs(dstr(istr))*strfact
+   end do
  else if(optcell==4 .or. optcell==5 .or. optcell==6)then
-  if(abs(dstr(optcell-3))*strfact >= fmax ) fmax=abs(dstr(optcell-3))*strfact
+   if(abs(dstr(optcell-3))*strfact >= fmax ) fmax=abs(dstr(optcell-3))*strfact
  else if(optcell==7)then
-  if(abs(dstr(2))*strfact >= fmax ) fmax=abs(dstr(2))*strfact
-  if(abs(dstr(3))*strfact >= fmax ) fmax=abs(dstr(3))*strfact
-  if(abs(dstr(4))*strfact >= fmax ) fmax=abs(dstr(4))*strfact
+   if(abs(dstr(2))*strfact >= fmax ) fmax=abs(dstr(2))*strfact
+   if(abs(dstr(3))*strfact >= fmax ) fmax=abs(dstr(3))*strfact
+   if(abs(dstr(4))*strfact >= fmax ) fmax=abs(dstr(4))*strfact
  else if(optcell==8)then
-  if(abs(dstr(1))*strfact >= fmax ) fmax=abs(dstr(1))*strfact
-  if(abs(dstr(3))*strfact >= fmax ) fmax=abs(dstr(3))*strfact
-  if(abs(dstr(5))*strfact >= fmax ) fmax=abs(dstr(5))*strfact
+   if(abs(dstr(1))*strfact >= fmax ) fmax=abs(dstr(1))*strfact
+   if(abs(dstr(3))*strfact >= fmax ) fmax=abs(dstr(3))*strfact
+   if(abs(dstr(5))*strfact >= fmax ) fmax=abs(dstr(5))*strfact
  else if(optcell==9)then
-  if(abs(dstr(1))*strfact >= fmax ) fmax=abs(dstr(1))*strfact
-  if(abs(dstr(2))*strfact >= fmax ) fmax=abs(dstr(2))*strfact
-  if(abs(dstr(6))*strfact >= fmax ) fmax=abs(dstr(6))*strfact
+   if(abs(dstr(1))*strfact >= fmax ) fmax=abs(dstr(1))*strfact
+   if(abs(dstr(2))*strfact >= fmax ) fmax=abs(dstr(2))*strfact
+   if(abs(dstr(6))*strfact >= fmax ) fmax=abs(dstr(6))*strfact
  end if
 
  if (fmax<tolmxf) then
-  write(message, '(a,a,i4,a,a,a,es11.4,a,es11.4,a,a)' ) ch10,&
-&  ' At Broyd/MD step',itime,', gradients are converged : ',ch10,&
-&  '  max grad (force/stress) =',fmax,' < tolmxf=',tolmxf,&
-&  ' ha/bohr (free atoms)',ch10
-  call wrtout(ab_out,message,'COLL')
-  call wrtout(std_out,  message,'COLL')
-  iexit=1
+   write(message, '(a,a,i4,a,a,a,es11.4,a,es11.4,a,a)' ) ch10,&
+&   ' At Broyd/MD step',itime,', gradients are converged : ',ch10,&
+&   '  max grad (force/stress) =',fmax,' < tolmxf=',tolmxf,&
+&   ' ha/bohr (free atoms)',ch10
+   call wrtout(ab_out,message,'COLL')
+   call wrtout(std_out,  message,'COLL')
+   iexit=1
  else
-  if(iexit==1)then
-   write(message, '(a,a,a,a,i5,a,a,a,es11.4,a,es11.4,a,a)' ) ch10,&
-&   ' fconv : WARNING -',ch10,&
-&   '  ntime=',ntime,' was not enough Broyd/MD steps to converge gradients: ',&
-&   ch10,'  max grad (force/stress) =',fmax,' > tolmxf=',tolmxf,&
-&   ' ha/bohr (free atoms)',ch10
-   call wrtout(std_out,  message,'COLL')
-   call wrtout(ab_out,  message,'COLL')
-  else
-   write(message, '(a,i4,a,a,a,es11.4,a,es11.4,a,a)' ) &
-&   ' fconv : at Broyd/MD step',itime,', gradients have not converged yet. ',&
-&   ch10,'  max grad (force/stress) =',fmax,' > tolmxf=',tolmxf,&
-&   ' ha/bohr (free atoms)',ch10
-   call wrtout(std_out,  message,'COLL')
-  end if
-  iexit=0
+   if(iexit==1)then
+     write(message, '(a,a,a,a,i5,a,a,a,es11.4,a,es11.4,a,a)' ) ch10,&
+&     ' fconv : WARNING -',ch10,&
+&     '  ntime=',ntime,' was not enough Broyd/MD steps to converge gradients: ',&
+&     ch10,'  max grad (force/stress) =',fmax,' > tolmxf=',tolmxf,&
+&     ' ha/bohr (free atoms)',ch10
+     call wrtout(std_out,  message,'COLL')
+     call wrtout(ab_out,  message,'COLL')
+   else
+     write(message, '(a,i4,a,a,a,es11.4,a,es11.4,a,a)' ) &
+&     ' fconv : at Broyd/MD step',itime,', gradients have not converged yet. ',&
+&     ch10,'  max grad (force/stress) =',fmax,' > tolmxf=',tolmxf,&
+&     ' ha/bohr (free atoms)',ch10
+     call wrtout(std_out,  message,'COLL')
+   end if
+   iexit=0
  end if
 
 end subroutine fconv

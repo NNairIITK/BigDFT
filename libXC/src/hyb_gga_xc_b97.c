@@ -2,16 +2,16 @@
  Copyright (C) 2006-2007 M.A.L. Marques
 
  This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
+ it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation; either version 3 of the License, or
  (at your option) any later version.
   
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+ GNU Lesser General Public License for more details.
   
- You should have received a copy of the GNU General Public License
+ You should have received a copy of the GNU Lesser General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
@@ -51,8 +51,9 @@ hyb_gga_xc_b97_init(void *p_)
   };
 
   int func;
+  FLOAT one = 1.0;
 
-  XC(hyb_gga_type) *p = (XC(hyb_gga_type) *)p_;
+  XC(gga_type) *p = (XC(gga_type) *)p_;
 
   switch(p->info->number){
   case XC_HYB_GGA_XC_B97:      func =  0; break;
@@ -72,16 +73,8 @@ hyb_gga_xc_b97_init(void *p_)
     break;
   }
 
-  p->mix = (XC(mix_func_type) *) malloc(sizeof(XC(mix_func_type)));
-  XC(mix_func_init)(p->mix, XC_FAMILY_GGA, p->nspin);
-
-  p->mix->gga_n = 1;
-  XC(mix_func_alloc)(p->mix);
-
+  gga_init_mix(p, 1, &(par[func].iGGA), &one);
   p->exx_coef = par[func].a0;
-
-  XC(gga_init)(&p->mix->gga_mix[0], par[func].iGGA, p->nspin);
-  p->mix->gga_coef[0] = 1.0;
 }
 
 

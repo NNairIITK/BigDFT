@@ -1,0 +1,19 @@
+Add array example
+
+This program is an example to see how to use the S_GPU library.
+
+1. Make the program
+
+cp Makefile.standalone Makefile
+set your own environment variable in Makefile (cuda path, s_gpu path)
+make
+
+2. Set the S_GPU environment
+
+Cf documentation to learn how to build the GPU.config file
+
+3. Run the program
+
+The matrices height must be a multiple of the number of MPI tasks - 1. You can change the matrices size in add_array.c (MATRIX_H and MATRIX_W). By default, MATRIX_H is set to 320. The program works well with 6 MPI tasks:
+
+mpirun -n 6 add_array

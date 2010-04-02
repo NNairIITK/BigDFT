@@ -13,7 +13,7 @@
 !!
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
-     ekin_sum,epot_sum,eproj_sum,nspin,GPU,pkernel)
+     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc)
   use module_base
   use module_types
   use libxc_functionals
@@ -29,16 +29,17 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
-  real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
+  real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
   real(dp), dimension(*), optional :: pkernel
+  type(orbitals_data), intent(in), optional :: orbsocc
+  real(wp), dimension(*), intent(in), optional :: psirocc
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX
   integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
-  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi,istart_ca
-  real(gp) :: eproj,eexctX
+  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
   real(gp), dimension(3,2) :: wrkallred
   real(wp), dimension(:), pointer :: pot
   integer,parameter::lupfil=14
@@ -47,7 +48,10 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
 !  real(kind=8) :: stream_ptr_first_trsf
 
-  exctX = libxc_functionals_exctXfac() /= 0.d0
+  !initialise exact exchange energy 
+  eexctX=0.0_gp
+
+  exctX = libxc_functionals_exctXfac() /= 0.0_gp
 
   call timing(iproc,'Rho_commun    ','ON')
 
@@ -97,8 +101,19 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !fill the rest of the potential with the exact-exchange terms
   if (present(pkernel) .and. exctX) then
      n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
-     call exact_exchange_potential(iproc,nproc,at%geocode,lr,orbs,ngatherarr(0,1),n3p,&
-          0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+     !exact exchange for virtual orbitals (needs psirocc)
+     if (present(psirocc) .and. present(orbsocc)) then
+        call exact_exchange_potential_virt(iproc,nproc,at%geocode,nspin,&
+             lr,orbsocc,orbs,ngatherarr(0,1),n3p,&
+             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi,pot(ispot))
+        eexctX = 0._gp
+     else
+        call exact_exchange_potential(iproc,nproc,at%geocode,nspin,&
+             lr,orbs,ngatherarr(0,1),n3p,&
+             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+     end if
+  else
+     eexctX = 0._gp
      !print *,'iproc,eexctX',iproc,eexctX
   end if
 
@@ -178,11 +193,21 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      eproj_sum=wrkallred(3,1) 
   endif
 
-  if (exctX) epot_sum=epot_sum+eexctX
+  !up to this point, the value of the potential energy is 
+  !only taking into account the local potential part
+  !whereas it should consider also the value coming from the 
+  !exact exchange operator (twice the exact exchange energy)
+  if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
 
 END SUBROUTINE HamiltonianApplication
 !!***
 
+! This module is here to avoid save variables inside
+! hpsitopsi().
+module wavefunctionDIIS
+  logical :: switchSD
+  integer :: idiistol,mids,ids  
+end module wavefunctionDIIS
 
 !!****f* BigDFT/hpsitopsi
 !! FUNCTION
@@ -196,6 +221,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => hpsitopsi
+  use wavefunctionDIIS
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
   real(gp), intent(in) :: hx,hy,hz,energy,energy_old
@@ -211,10 +237,8 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='hpsitopsi'
-  logical, save :: switchSD
-  integer, save :: idiistol,mids,ids
   integer :: ierr,iorb,k,i_stat,i_all
-  real(dp) :: tt,scprpart
+  real(dp) :: tt
   real(wp), dimension(:,:,:), allocatable :: mom_vec
 
   !stream ptr array
@@ -238,7 +262,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
-          'done, orthoconstraint...'
+          'done,  orthoconstraint...'
   end if
 
   !transpose the hpsi wavefunction
@@ -260,7 +284,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   call timing(iproc,'Precondition  ','ON')
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
-          'done, preconditioning...'
+          'done,  preconditioning...'
   end if
 
   !Preconditions all orbitals belonging to iproc
@@ -475,9 +499,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   character(len=*), parameter :: subname='last_orthon'
   logical :: dowrite !write the screen output
   integer :: i_all,i_stat,iorb,jorb,md
-  real(wp) :: evpart
   real(wp), dimension(:,:,:), allocatable :: mom_vec
-
 
   
   if (present(opt_keeppsit)) then
@@ -572,7 +594,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   deallocate(hpsi,stat=i_stat)
   call memocc(i_stat,i_all,'hpsi',subname)
 
-end subroutine last_orthon
+END SUBROUTINE last_orthon
 !!***
 
 
@@ -666,7 +688,7 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   !local variables
   character(len=*), parameter :: subname='correct_hartree_potential'
   integer :: i_all,i_stat,ierr,i1,i2,i3,ispin
-  real(gp) :: ehart_fake,eexcu_fake,vexcu_fake,ehartA,ehartB,tt,offset
+  real(gp) :: ehart_fake,ehartA,ehartB,tt,offset
   real(dp), dimension(:,:,:,:), allocatable :: potref,drho,vxc
 
   allocate(potref(n1i,n2i,max(n3d,1),nspin+ndebug),stat=i_stat)
@@ -713,19 +735,29 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   if (iproc==0) print *,'charge deltarho',offset*hxh*hyh*hzh
 
   !rho_tot -> VH_tot & VXC_tot 
-  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
-       ixc,hxh,hyh,hzh,&
-       rhopot,pkernel,vxc,ehart,eexcu,vexcu,0.d0,.false.,nspin,&
+  call H_potential(at%geocode,'D',iproc,nproc,&
+       n1i,n2i,n3i,hxh,hyh,hzh,&
+       rhopot,pkernel,vxc,ehart,0.0_dp,.false.,&
        quiet=PSquiet)
+
+!!$  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
+!!$       ixc,hxh,hyh,hzh,&
+!!$       rhopot,pkernel,vxc,ehart,eexcu,vexcu,0.d0,.false.,nspin,&
+!!$       quiet=PSquiet)
 
   !calculate the reference Hartree potential
   !here the offset should be specified for charged systems
   call dcopy(n1i*n2i*n3d,rhoref,1,potref,1) 
   !Rho_ref -> VH_ref
-  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
-       0,hxh,hyh,hzh,&
-       potref,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+  call H_potential(at%geocode,'D',iproc,nproc,&
+       n1i,n2i,n3i,hxh,hyh,hzh,&
+       potref,pkernel,pot_ion,ehart_fake,0.0_dp,.false.,&
        quiet=PSquiet)
+
+!!$  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
+!!$       0,hxh,hyh,hzh,&
+!!$       potref,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+!!$       quiet=PSquiet)
   
   !save the total density in rhopot
   do ispin=1,nspin
@@ -752,10 +784,15 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   !calculate the vacancy hartree potential
   !Delta rho -> VH_drho(I)
   !use global distribution scheme for deltarho
-  call PSolver('F','G',iproc,nproc,n1i,n2i,n3i,&
-       0,hxh,hyh,hzh,&
-       drho,pkernel_ref,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+  call H_potential('F','G',iproc,nproc,&
+       n1i,n2i,n3i,hxh,hyh,hzh,&
+       drho,pkernel_ref,pot_ion,ehart_fake,0.0_dp,.false.,&
        quiet=PSquiet)
+
+!!$  call PSolver('F','G',iproc,nproc,n1i,n2i,n3i,&
+!!$       0,hxh,hyh,hzh,&
+!!$       drho,pkernel_ref,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+!!$       quiet=PSquiet)
 
 !!!  call plot_density(at%geocode,'VHdeltarho.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
 !!!       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,1+i3xcsh,1))
@@ -884,7 +921,7 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   deallocate(drho,stat=i_stat)
   call memocc(i_stat,i_all,'drho',subname)
 
-end subroutine correct_hartree_potential
+END SUBROUTINE correct_hartree_potential
 
 
 subroutine check_communications(iproc,nproc,orbs,lr,comms)
@@ -904,6 +941,8 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   real(wp), dimension(:), allocatable :: psi
   real(wp), dimension(:), pointer :: pwork
   real(wp) :: epsilon
+  character(len = 25) :: filename
+  logical :: abort
 
   !allocate the "wavefunction" amd fill it, and also the workspace
   allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
@@ -932,7 +971,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   maxdiff=0.0_wp
   ispsi=0
   do ikptsp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptsp
+     ikpt=orbs%ikptsp(ikptsp)
      valkpt=real(512*ikpt,wp)
      !calculate the starting point for the component distribution
      iscomp=0
@@ -964,15 +1003,17 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      ispsi=ispsi+nvctrp*orbs%norb*nspinor
   end do
 
+  abort = .false.
   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
      write(*,*)'ERROR: process',iproc,'does not transpose wavefunctions correctly!'
      write(*,*)'       found an error of',maxdiff,'cannot continue.'
      write(*,*)'       data are written in the file transerror.log, exiting...'
 
-     open(unit=22,file='transerror.log',status='unknown')
+     write(filename, "(A,I0,A)") 'transerror', iproc, '.log'
+     open(unit=22,file=trim(filename),status='unknown')
      ispsi=0
      do ikptsp=1,orbs%nkptsp
-        ikpt=orbs%iskpts+ikptsp
+        ikpt=orbs%ikptsp(ikptsp)
         valkpt=real(512*ikpt,wp)
         !calculate the starting point for the component distribution
         iscomp=0
@@ -993,8 +1034,10 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
                     index=ispinor+(i-1)*((2+nspinor)/4+1)+&
                          (idsx-1)*((2+nspinor)/4+1)*nvctrp+indorb+ispsi
                     maxdiff=abs(psi(index)-psival)
-                    write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i+iscomp,iorb+ikpt,psival,&
-                         psi(index),maxdiff
+                    if (maxdiff > 0.d0) then
+                       write(22,'(i3,i6,2i4,3(1x,1pe13.6))')ispinor,i+iscomp,iorb,ikpt,psival,&
+                            psi(index),maxdiff
+                    end if
                  end do
               end do
            end do
@@ -1002,10 +1045,11 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
         ispsi=ispsi+nvctrp*orbs%norb*nspinor
      end do
      close(unit=22)
-
-     call MPI_ABORT(MPI_COMM_WORLD,ierr)
-
+     abort = .true.
   end if
+
+  if (abort) call MPI_ABORT(MPI_COMM_WORLD,ierr)
+  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   !retranspose the hpsi wavefunction
   call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,&
@@ -1027,12 +1071,14 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      end do
   end do
 
+  abort = .false.
   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
      write(*,*)'ERROR: process',iproc,'does not untranspose wavefunctions correctly!'
      write(*,*)'       found an error of',maxdiff,'cannot continue.'
      write(*,*)'       data are written in the file transerror.log, exiting...'
 
-     open(unit=22,file='transerror.log',status='unknown')
+     write(filename, "(A,I0,A)") 'transerror', iproc, '.log'
+     open(unit=22,file=trim(filename),status='unknown')
      maxdiff=0.0_wp
      do iorb=1,orbs%norbp
         ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
@@ -1045,16 +1091,19 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
               vali=real(i,wp)/512.d0  !*1.d-5
               psival=(valorb+vali)*(-1)**(ispinor-1)
               maxdiff=abs(psi(i+indspin+indorb)-psival)
-              write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i,iorb+orbs%isorb,psival,&
-                   psi(ispinor+(i-1)*orbs%nspinor+indorb),maxdiff
+              if (maxdiff > 0.d0) then
+                 write(22,'(i3,i6,2i4,3(1x,1pe13.6))')ispinor,i,iorb,orbs%isorb,psival,&
+                      psi(ispinor+(i-1)*orbs%nspinor+indorb),maxdiff
+              end if
            end do
         end do
      end do
      close(unit=22)
-
-     call MPI_ABORT(MPI_COMM_WORLD,ierr)
-
+     abort = .true.
   end if
+
+  if (abort) call MPI_ABORT(MPI_COMM_WORLD,ierr)
+  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
@@ -1065,4 +1114,4 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
 
 
 
-end subroutine check_communications
+END SUBROUTINE check_communications

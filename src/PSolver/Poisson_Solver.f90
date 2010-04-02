@@ -4,7 +4,7 @@
 !!    It must be used in the parent routine. 
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2002-2009 BigDFT group 
+!!    Copyright (C) 2002-2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -74,9 +74,9 @@ module Poisson_Solver
   !calculate the poisson solver
   public :: PSolver
   !wrapper to the poisson solver for allowing non-collinear densities
-  public :: PSolverNC
+  public :: PSolverNC , H_potential 
   !calculate the allocation dimensions
-  public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions!,fourier_dim
+  public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions, xc_dimensions
 
 contains
 
@@ -84,8 +84,8 @@ contains
   include 'createKernel.f90'
   !include 'Build_Kernel.f90'
   !include 'PSolver_Base.f90'
-  include 'xcenergy.f90'
-  include '3Dgradient.f90'
+  !include 'xcenergy.f90'
+  !include '3Dgradient.f90'
   !include 'fft3D.f90'
   !include 'scaling_function.f90'
 

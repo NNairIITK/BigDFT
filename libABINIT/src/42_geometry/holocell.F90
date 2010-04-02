@@ -10,7 +10,7 @@
 !! along the C axis.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2000-2009 ABINIT group (XG).
+!! Copyright (C) 2000-2010 ABINIT group (XG).
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -64,9 +64,9 @@ subroutine holocell(cell_base,foundc,iholohedry)
 !**************************************************************************
 
  do ii=1,3
-  metric(:,ii)=cell_base(1,:)*cell_base(1,ii)+&
-&  cell_base(2,:)*cell_base(2,ii)+&
-&  cell_base(3,:)*cell_base(3,ii)
+   metric(:,ii)=cell_base(1,:)*cell_base(1,ii)+&
+&   cell_base(2,:)*cell_base(2,ii)+&
+&   cell_base(3,:)*cell_base(3,ii)
  end do
 
 !Examine the angles and vector lengths

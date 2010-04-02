@@ -478,4 +478,4 @@ subroutine read_parameters()
   write(flog,'(A39,A16  )')  ' File with filecounter                : ', counter
 
   close(flog)
-end subroutine
+END SUBROUTINE

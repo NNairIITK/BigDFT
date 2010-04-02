@@ -26,13 +26,13 @@ call comb_rot_shrink_hyb(nt,w1,w2,n2)
 nt=(n1+1)*(n2+1)
 call comb_rot_shrink_hyb(nt,w2,x,n3)
 
-end subroutine comb_shrink_hyb_c
+END SUBROUTINE comb_shrink_hyb_c
 
 subroutine comb_grow_c_simple(n1,n2,n3,w1,w2,x,y)
   use module_base
   implicit none
   integer,intent(in)::n1,n2,n3
-  real(wp),intent(in)::x(0:n1,0:n2,0:n3)	
+  real(wp),intent(in)::x(0:n1,0:n2,0:n3)   
   real(wp),dimension((2*n1+2)*(n2+1)*(n3+1)), intent(inout) :: w1 !work
   real(wp),dimension((n3+1)*(2*n1+2)*(2*n2+2)), intent(inout) :: w2 ! work
   real(wp),dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(out) :: y
@@ -51,4 +51,4 @@ subroutine comb_grow_c_simple(n1,n2,n3,w1,w2,x,y)
   nt=(2*n1+2)*(2*n2+2)
   call  comb_rot_grow(n3,nt,w2,y) 
   
-end subroutine comb_grow_c_simple
+END SUBROUTINE comb_grow_c_simple

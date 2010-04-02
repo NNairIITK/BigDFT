@@ -1,0 +1,6 @@
+TOP = @abs_top_builddir@
+
+MYCFLAGS = -I$(TOP)/src -I$(MPI_INCLUDE_PATH)
+MYLDFLAGS = -L$(TOP)/src/.libs -L$(MPI_LIBRARY_PATH)
+MYLIBS = -ls_gpu -lmpi
+

@@ -1,5 +1,16 @@
-!cleaned version of the logrid_old.f90 in the unused directory (with newmethod=.true.)
-
+!!****f* BigDFT/make_all_ib
+!! FUNCTION
+!!   Cleaned version of the logrid_old.f90 in the unused directory (with newmethod=.true.)
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&
      ibyz_c,ibzxx_c,ibxxyy_c,ibyz_f,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
@@ -7,7 +18,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   use module_base
   implicit none
   integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  integer i1,i2,i3,nt,m1,m2,m3,i_stat,i_all
+  integer :: i1,i2,i3,m1,m2,m3,i_stat,i_all
 
   integer,intent(in):: ibyz_c(2,0:n2,0:n3),ibxy_c(2,0:n1,0:n2)
   integer,intent(in):: ibyz_f(2,0:n2,0:n3),ibxy_f(2,0:n1,0:n2)
@@ -55,7 +66,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   call make_ib_inv(logrid_big, ibxy_c,ibzzx_c,ibyyzz_c,0,n1,0,n2,0,n3)
   call make_ib_inv(logrid_big,ibxy_ff,ibzzx_f,ibyyzz_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 
-  !	for realspace:
+  !for realspace:
   !-14:2*n2+16,-14:2*n3+16
   do i3=-14,2*n3+16
      do i2=-14,2*n2+16
@@ -89,11 +100,16 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   deallocate(logrid_big,stat=i_stat)
   call memocc(i_stat,i_all,'logrid_big',subname)
 
-end subroutine make_all_ib
+END SUBROUTINE make_all_ib
+!!***
 
 
+!!****f* BigDFT/make_ib_inv
+!! FUNCTION
+!!   This subroutine mimics the comb_grow_f one
+!! SOURCE
+!!
 subroutine make_ib_inv(logrid_big,ibxy,ibzzx,ibyyzz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
-  !    This subroutine mimics the comb_grow_f one
   implicit none
   integer nt,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer,intent(out):: ibxy(2,nfl1:nfu1,nfl2:nfu2)
@@ -114,7 +130,8 @@ subroutine make_ib_inv(logrid_big,ibxy,ibzzx,ibyyzz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
   nt=(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31)
   call ib_from_logrid_inv( ibyyzz,logrid_big,nfl1,nfu1,nt)
 
-end subroutine make_ib_inv
+END SUBROUTINE make_ib_inv
+!!***
 
 
 subroutine ib_to_logrid_inv(ib,logrid,nfl,nfu,ndat)
@@ -132,7 +149,7 @@ subroutine ib_to_logrid_inv(ib,logrid,nfl,nfu,ndat)
      enddo
   enddo
 
-end subroutine ib_to_logrid_inv
+END SUBROUTINE ib_to_logrid_inv
 
 subroutine ib_from_logrid_inv(ib,logrid,ml1,mu1,ndat)
   ! mimics the bounds subroutine    
@@ -161,7 +178,7 @@ subroutine ib_from_logrid_inv(ib,logrid,ml1,mu1,ndat)
      enddo inner2
   enddo
 
-end subroutine ib_from_logrid_inv
+END SUBROUTINE ib_from_logrid_inv
 
 
 subroutine make_ib_c(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,n3)
@@ -190,7 +207,7 @@ subroutine make_ib_c(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,n3)
   call ib_from_logrid(ibxxyy,logrid_big,0,n3,nt)
   call squares(ibxxyy,2*n1+30,2*n2+30)
 
-end subroutine make_ib_c
+END SUBROUTINE make_ib_c
 
 
 subroutine make_ib(logrid_big,ibyz,ibzxx,ibxxyy,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
@@ -215,7 +232,7 @@ subroutine make_ib(logrid_big,ibyz,ibzxx,ibxxyy,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
   nt=(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31)
   call ib_from_logrid(ibxxyy,logrid_big,nfl3,nfu3,nt)
 
-end subroutine make_ib
+END SUBROUTINE make_ib
 
 subroutine ib_to_logrid_rot(ib,logrid,nfl,nfu,ndat)
   ! This one mimics the comb_rot_grow_f_loc
@@ -232,7 +249,7 @@ subroutine ib_to_logrid_rot(ib,logrid,nfl,nfu,ndat)
      enddo
   enddo
 
-end subroutine ib_to_logrid_rot
+END SUBROUTINE ib_to_logrid_rot
 
 subroutine ib_from_logrid(ib,logrid,ml1,mu1,ndat)
   ! mimics the bounds subroutine    
@@ -261,19 +278,24 @@ subroutine ib_from_logrid(ib,logrid,ml1,mu1,ndat)
      enddo inner2
   enddo
 
-end subroutine ib_from_logrid
+END SUBROUTINE ib_from_logrid
 
+
+!!****f* BigDFT/squares_1d
+!! FUNCTION
+!!   Modifies the ib array
+!!   so that it is made up of blocks of size 2
+!!   the localization region is enlarged as a result
+!!   works for even nfl2 only
+!! SOURCE
+!!
 subroutine squares_1d(ib,nfl2,nfu2,nfl3,nfu3)
-  ! modifies the ib array 
-  ! so that it is made up of blocks of size 2
-  ! the localization region is enlarged as a result
-
-  ! works for even nfl2 only
   implicit none
-  integer,intent(in)::nfl2,nfu2,nfl3,nfu3
-  integer,intent(inout)::ib(2,nfl2:nfu2,nfl3:nfu3)
-
-  integer i2,i3,ii2,ii3,ibmin,ibmax
+  !Arguments
+  integer,intent(in) :: nfl2,nfu2,nfl3,nfu3
+  integer,intent(inout) :: ib(2,nfl2:nfu2,nfl3:nfu3)
+  !Local variables
+  integer :: i2,i3,ii2,ibmin,ibmax
 
   do i3=nfl3,nfu3
      do i2=nfl2/2,(nfu2-1)/2
@@ -289,13 +311,18 @@ subroutine squares_1d(ib,nfl2,nfu2,nfl3,nfu3)
         ib(2,ii2+1,i3)=ibmax
      enddo
   enddo
-end subroutine squares_1d
+END SUBROUTINE squares_1d
+!!***
 
 
+!!****f* BigDFT/squares
+!! FUNCTION
+!!   Modifies the ib array 
+!!   so that it is made up of squares 2x2
+!!   the localization region is enlarged as a result
+!! SOURCE
+!!
 subroutine squares(ib,n2,n3)
-  ! modifies the ib array 
-  ! so that it is made up of squares 2x2
-  ! the localization region is enlarged as a result
   implicit none
   integer,intent(in)::n2,n3
   integer,intent(inout)::ib(2,0:n2,0:n3)
@@ -323,18 +350,20 @@ subroutine squares(ib,n2,n3)
         ib(2,ii2+1,ii3+1)=ibmax
      enddo
   enddo
-end subroutine squares
+END SUBROUTINE squares
+!!***
 
 
 subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
   use module_base
   use module_types
   implicit none
+  !Arguments
   integer, intent(in) :: n1,n2,n3
   type(wavefunctions_descriptors), intent(in) :: wfd
   logical, dimension(0:n1,0:n2,0:n3), intent(out) :: logrid_c,logrid_f
   !local variables
-  integer :: iseg,j0,j1,ii,i1,i2,i3,i0,nvctr_check,nsrt,nend,i
+  integer :: iseg,j0,j1,ii,i1,i2,i3,i0,nvctr_check,i
 
   !coarse part
   logrid_c(:,:,:)=.false.
@@ -387,4 +416,4 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
   end if
 
 
-end subroutine wfd_to_logrids
+END SUBROUTINE wfd_to_logrids

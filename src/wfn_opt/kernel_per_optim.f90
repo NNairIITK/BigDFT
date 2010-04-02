@@ -19,20 +19,19 @@ subroutine hit_with_kernel_fac(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,
   ! ((-1/2\Delta+C)_{ij})^{-1}
   use module_base
   implicit none
-  integer,intent(in)::n1,n2,n3,nd1,nd2,nd3
-  integer,intent(in)::n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b
-  real(gp),intent(in)::kern_k1(n1)
-  real(gp),intent(in)::kern_k2(n2)
-  real(gp),intent(in)::kern_k3(n3)
-  real(gp),intent(in)::c,fac
+  integer,intent(in) :: n1,n2,n3,nd1,nd2,nd3
+  integer,intent(in) :: n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b
+  real(gp),intent(in) :: kern_k1(n1)
+  real(gp),intent(in) :: kern_k2(n2)
+  real(gp),intent(in) :: kern_k3(n3)
+  real(gp),intent(in) :: c,fac
 
   real(wp),intent(inout)::x(n1,n2,n3)! input/output
 
-  real(wp)::z1(2,nd1b,nd2,nd3,2)! work array
-  real(wp)::z3(2,nd1,nd2,nd3f,2)! work array
-  real(gp) tt
-  integer i1,i2,i3,isign,inzee
-  real(gp) fac_n
+  real(wp) :: z1(2,nd1b,nd2,nd3,2)! work array
+  real(wp) :: z3(2,nd1,nd2,nd3f,2)! work array
+  real(gp) :: tt
+  integer :: i1,i2,i3,inzee
 
   ! fft the input array x:
 
@@ -96,9 +95,9 @@ subroutine hit_with_kernel_fac(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,
 
   !$omp end parallel
 
-  call FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,x,z1,z3,inzee)
+  call FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,x,z1,z3,inzee)
 
-end subroutine hit_with_kernel_fac
+END SUBROUTINE hit_with_kernel_fac
 !!***
 
 
@@ -111,20 +110,19 @@ subroutine hit_with_kernel(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,
   n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,c)
   use module_base
   implicit none
-  integer,intent(in)::n1,n2,n3,nd1,nd2,nd3
-  integer,intent(in)::n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b
-  real(gp),intent(in)::kern_k1(n1)
-  real(gp),intent(in)::kern_k2(n2)
-  real(gp),intent(in)::kern_k3(n3)
-  real(gp),intent(in)::c
-
-  real(wp),intent(inout)::x(n1,n2,n3)! input/output
-
-  real(wp)::z1(2,nd1b,nd2,nd3,2)! work array
-  real(wp)::z3(2,nd1,nd2,nd3f,2)! work array
-  real(gp) tt
-  integer i1,i2,i3,isign,inzee
-  real(gp) fac_n
+! Arguments
+  integer,intent(in) :: n1,n2,n3,nd1,nd2,nd3
+  integer,intent(in) :: n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b
+  real(gp),intent(in) :: kern_k1(n1)
+  real(gp),intent(in) :: kern_k2(n2)
+  real(gp),intent(in) :: kern_k3(n3)
+  real(gp),intent(in) :: c
+  real(wp),intent(inout) :: x(n1,n2,n3)! input/output
+!Local variables
+  real(wp) :: z1(2,nd1b,nd2,nd3,2)! work array
+  real(wp) :: z3(2,nd1,nd2,nd3f,2)! work array
+  real(gp) :: tt
+  integer :: i1,i2,i3,inzee
 
 ! fft the input array x:
 
@@ -194,9 +192,9 @@ subroutine hit_with_kernel(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,
 
   !$omp end parallel
 
-  call FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,x,z1,z3,inzee)
+  call FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,x,z1,z3,inzee)
 
-end subroutine hit_with_kernel
+END SUBROUTINE hit_with_kernel
 !!***
 
 
@@ -208,6 +206,7 @@ end subroutine hit_with_kernel
 !!   SOURCE
 !!
 subroutine make_kernel(n1,hgrid,kern)
+  use module_fft_sg
   use module_base
   implicit none
   integer,intent(in)::n1
@@ -216,9 +215,10 @@ subroutine make_kernel(n1,hgrid,kern)
   real(gp),intent(out)::kern(0:n1)
 
 !***********************************************************************************************
-  integer::now(7),after(7),before(7),isign=1,ic
-  real(gp),allocatable::trig(:,:),z(:,:,:)
-  integer inzee,i,nd1
+  integer :: now(7),after(7),before(7)
+  integer :: isign=1
+  real(gp),allocatable :: trig(:,:),z(:,:,:)
+  integer :: inzee,i,nd1,ic
 !***********************************************************************************************
 
 
@@ -255,7 +255,7 @@ subroutine make_kernel(n1,hgrid,kern)
 ! fourier transform the kernel
 
   nd1=n1+2
-  allocate(trig(2,1024))
+  allocate(trig(2,nd1))
   allocate(z(2,nd1,2))
 
   inzee=1
@@ -276,9 +276,9 @@ subroutine make_kernel(n1,hgrid,kern)
   enddo
 
   isign=1
-  call ctrig_sg(n1+1,trig,after,before,now,isign,ic)
+  call ctrig_sg(n1+1,nd1,trig,after,before,now,isign,ic)
   do i=1,ic
-    call fftstp_sg(1,1,nd1,1,nd1,z(1,1,inzee),z(1,1,3-inzee),trig,after(i),now(i),before(i),isign)
+    call fftstp_sg(1,1,nd1,1,nd1,z(1,1,inzee),z(1,1,3-inzee),nd1,trig,after(i),now(i),before(i),isign)
     inzee=3-inzee
   enddo
 
@@ -287,5 +287,5 @@ subroutine make_kernel(n1,hgrid,kern)
   enddo
 
   deallocate(trig,z)
-end subroutine make_kernel
+END SUBROUTINE make_kernel
 !!***

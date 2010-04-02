@@ -3,7 +3,7 @@
 !!   Create the descriptors for the density and the potential
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA (LG)
+!!    Copyright (C) 2007-2010 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -55,7 +55,7 @@ subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc
   ngatherarr(:,1)=n1i*n2i*nscatterarr(:,2)
   ngatherarr(:,2)=n1i*n2i*nscatterarr(:,3)
 
-end subroutine createDensPotDescriptors
+END SUBROUTINE createDensPotDescriptors
 !!***
 
 !!****f* BigDFT/orbitals_communicators
@@ -84,8 +84,9 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   type(communications_arrays), intent(out) :: comms
   !local variables
   character(len=*), parameter :: subname='orbitals_communicators'
-  integer :: jproc,i,nvctr_tot,j,ikpts,iorbp,iorb,jorb,norb_tot,ikpt,i_stat,i_all
-  integer :: ncomp_res,iskpts,nkptsp,ierr
+  integer :: jproc,i,nvctr_tot,j,ikpts,iorbp,jorb,norb_tot,ikpt,i_stat,i_all
+  integer :: ncomp_res,nkptsp,ierr
+  integer, dimension(:), allocatable :: mykpts
   logical, dimension(:), allocatable :: GPU_for_comp
   integer, dimension(:,:), allocatable :: nvctr_par,norb_par !for all the components and orbitals (with k-pts)
   
@@ -107,6 +108,8 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   call memocc(i_stat,nvctr_par,'nvctr_par',subname)
   allocate(norb_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,norb_par,'norb_par',subname)
+  allocate(mykpts(orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,mykpts,'mykpts',subname)
 
   !initialise the arrays
   do ikpts=0,orbs%nkpts
@@ -191,21 +194,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      end if
   end do
 
-  !calculate the number of k-points treated by each processor in the component distribution
-  nkptsp=0
-  iskpts=-1
-  do ikpts=1,orbs%nkpts
-     if (nvctr_par(iproc,ikpts) /= 0) then
-        nkptsp=nkptsp+1
-        if (iskpts == -1) then
-           iskpts=ikpts-1
-        end if
-     end if
-  end do
-  
-  orbs%nkptsp=nkptsp
-  orbs%iskpts=iskpts
-
   !this function which associates a given k-point to a processor 
   !the association is chosen such that each k-point is associated to only
   !one processor
@@ -225,7 +213,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   !assign the k-point to the given orbital, counting one orbital after each other
   jorb=1
   ikpts=1
-
   !print *,'here',orbs%norb_par(:)
   do jproc=0,nproc-1
      do iorbp=1,orbs%norb_par(jproc)
@@ -252,6 +239,20 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      end do
   end if
 
+  !calculate the number of k-points treated by each processor in both
+  ! the component distribution and the orbital distribution.
+  nkptsp=0
+  do ikpts=1,orbs%nkpts
+     if (nvctr_par(iproc,ikpts) /= 0 .or. norb_par(iproc,ikpts) /= 0) then
+        nkptsp=nkptsp+1
+        mykpts(nkptsp) = ikpts
+     end if
+  end do
+  orbs%nkptsp=nkptsp
+  allocate(orbs%ikptsp(orbs%nkptsp+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%ikptsp,'orbs%ikptsp',subname)
+  orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
+
   !print the distribution scheme ussed for this set of orbital
   !in the case of multiple k-points
   if (iproc == 0 .and. verbose > 1 .and. orbs%nkpts > 1) then
@@ -274,7 +275,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 
   !assign the partition of the k-points to the communication array
   do ikpts=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikpts
+     ikpt=orbs%ikptsp(ikpts)
      do jproc=0,nproc-1
         comms%nvctr_par(jproc,ikpts)=nvctr_par(jproc,ikpt) 
      end do
@@ -316,6 +317,9 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   i_all=-product(shape(norb_par))*kind(norb_par)
   deallocate(norb_par,stat=i_stat)
   call memocc(i_stat,i_all,'norb_par',subname)
+  i_all=-product(shape(mykpts))*kind(mykpts)
+  deallocate(mykpts,stat=i_stat)
+  call memocc(i_stat,i_all,'mykpts',subname)
 
   !calculate the dimension of the wavefunction
   !for the given processor
@@ -327,24 +331,23 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
        'Wavefunctions memory occupation for root processor (Bytes): ',&
        orbs%npsidim*8
 
-
-
-end subroutine orbitals_communicators
+END SUBROUTINE orbitals_communicators
 !!***
 
 
 subroutine print_distribution_schemes(nproc,nkpts,norb_par,nvctr_par)
   use module_base
   implicit none
+  !Arguments
   integer, intent(in) :: nproc,nkpts
   integer, dimension(0:nproc-1,nkpts), intent(in) :: norb_par,nvctr_par
   !local variables
-  integer :: jproc,ikpt,norbp,kproc,isorb,ieorb,isko,ieko,nvctrp,ispsi,iepsi,iekc,iskc
+  integer :: jproc,ikpt,norbp,isorb,ieorb,isko,ieko,nvctrp,ispsi,iepsi,iekc,iskc
   integer :: iko,ikc,nko,nkc
 
-  write(*,'(1x,a,a)')repeat('-',47),'Direct and transposed data repartition'
-  write(*,'(1x,8(a))')'| proc |',' N. Orbitals | K-pt |  Orbitals   ',&
-       '|| No. Components | K-pt |    Components   |'
+  write(*,'(1x,a,a)')repeat('-',46),'Direct and transposed data repartition'
+  write(*,'(1x,8(a))')'| proc |',' N. Orbitals | K-pt |  Orbitals  ',&
+       '|| N. Components | K-pt |    Components   |'
   do jproc=0,nproc-1
      call start_end_distribution(nproc,nkpts,jproc,norb_par,isko,ieko,norbp)
      call start_end_distribution(nproc,nkpts,jproc,nvctr_par,iskc,iekc,nvctrp)
@@ -353,8 +356,8 @@ subroutine print_distribution_schemes(nproc,nkpts,norb_par,nvctr_par)
      nko=ieko-isko+1
      nkc=iekc-iskc+1
      !print total number of orbitals and components
-     write(*,'(1x,a,i4,a,i8,a,i14,a)')'| ',jproc,' |',norbp,&
-          repeat(' ',5)//'|'//repeat('-',6)//'|'//repeat('-',13)//'||',&
+     write(*,'(1x,a,i4,a,i8,a,i13,a)')'| ',jproc,' |',norbp,&
+          repeat(' ',5)//'|'//repeat('-',6)//'|'//repeat('-',12)//'||',&
           nvctrp,&
           repeat(' ',2)//'|'//repeat('-',6)//'|'//repeat('-',17)//'|'
      do ikpt=1,min(nko,nkc)
@@ -363,7 +366,7 @@ subroutine print_distribution_schemes(nproc,nkpts,norb_par,nvctr_par)
         write(*,'(a,i4,a,i5,a,i5,a,i4,a,i8,a,i8,a)')&
              ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
              iko,'  |',isorb,'-',ieorb,&
-             '  ||'//repeat(' ',16)//'|',&
+             ' ||'//repeat(' ',15)//'|',&
              ikc,'  |',ispsi,'-',iepsi,'|'
         iko=iko+1
         ikc=ikc+1
@@ -371,7 +374,10 @@ subroutine print_distribution_schemes(nproc,nkpts,norb_par,nvctr_par)
      if (nko > nkc) then
         do ikpt=nkc+1,nko
            call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
-           write(*,'(10x,i4,i8,a,i8)')iko,isorb,'-',ieorb
+           write(*,'(a,i4,a,i5,a,i5,2a)') &
+                & ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
+                & iko,'  |',isorb,'-',ieorb, ' ||'//repeat(' ',15)//'|',&
+                & '      |                 |'
            iko=iko+1
         end do
      else if (nkc > nko) then
@@ -379,14 +385,14 @@ subroutine print_distribution_schemes(nproc,nkpts,norb_par,nvctr_par)
            call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
            write(*,'(a,i4,a,i8,a,i8,a)')&
                 ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|'//repeat(' ',4)//'  |'//&
-                repeat(' ',13)//'|| '//repeat(' ',15)//'|',&
+                repeat(' ',12)//'||'//repeat(' ',15)//'|',&
                 ikc,'  |',ispsi,'-',iepsi,'|'
            ikc=ikc+1
         end do
      end if
   end do
   
-end subroutine print_distribution_schemes
+END SUBROUTINE print_distribution_schemes
 
 subroutine start_end_distribution(nproc,nkpts,jproc,ndist,is,ie,norbp)
   implicit none
@@ -415,7 +421,7 @@ subroutine start_end_distribution(nproc,nkpts,jproc,ndist,is,ie,norbp)
         exit loop_ie
      end if
   end do loop_ie
-end subroutine start_end_distribution
+END SUBROUTINE start_end_distribution
 
 subroutine start_end_comps(nproc,jproc,ndist,is,ie)
   implicit none
@@ -431,5 +437,5 @@ subroutine start_end_comps(nproc,jproc,ndist,is,ie)
   end do
   ie=is+ndist(jproc)-1
   
-end subroutine start_end_comps
+END SUBROUTINE start_end_comps
 

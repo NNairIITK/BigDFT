@@ -23,13 +23,14 @@ subroutine Convolkinetic(n1,n2,n3, &
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  logical :: firstcall=.true. 
+  !logical :: firstcall=.true. 
   !integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-  integer :: i,t,i1,i2,i3,ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
+  !integer :: ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
+  integer :: i,t,i1,i2,i3
   integer :: icur,istart,iend,l
   real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
-  real(kind=8) :: tel
-  real(wp), dimension(-3+lowfil:lupfil+3) :: a,b,c,d
+  !real(kind=8) :: tel
+  real(wp), dimension(-3+lowfil:lupfil+3) :: a,b,c
   real(wp), dimension(lowfil:lupfil) :: e
 
   scale=-.5_wp/real(hgrid**2,wp)
@@ -676,7 +677,7 @@ subroutine Convolkinetic(n1,n2,n3, &
 !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'ALL   PART',  & 
 !  tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-end subroutine Convolkinetic
+END SUBROUTINE Convolkinetic
 
 subroutine ConvolkineticT(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
@@ -699,13 +700,14 @@ subroutine ConvolkineticT(n1,n2,n3, &
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  logical :: firstcall=.true. 
+  !logical :: firstcall=.true. 
   !integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-  integer :: i,t,i1,i2,i3,ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
+  !integer :: ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
+  integer :: i,t,i1,i2,i3
   integer :: icur,istart,iend,l
   real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211,ekin
-  real(kind=8) :: tel
-  real(wp), dimension(-3+lowfil:lupfil+3) :: a,b,c,d
+  !real(kind=8) :: tel
+  real(wp), dimension(-3+lowfil:lupfil+3) :: a,b,c
   real(wp), dimension(lowfil:lupfil) :: e
   real(wp)::ekinp
 
@@ -1435,5 +1437,5 @@ subroutine ConvolkineticT(n1,n2,n3, &
   !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:ALL   PART',  & 
   !  tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-end subroutine ConvolkineticT
+END SUBROUTINE ConvolkineticT
 

@@ -78,7 +78,7 @@ subroutine hit_with_kernel_slab(x,z  ,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
 
     deallocate(x2,y2)
 
-end subroutine hit_with_kernel_slab
+END SUBROUTINE hit_with_kernel_slab
 
 subroutine slab_invert(n1,n2,n3,z,kern_k1,kern_k3,c,hgrid)
     implicit none
@@ -144,7 +144,7 @@ subroutine slab_invert(n1,n2,n3,z,kern_k1,kern_k3,c,hgrid)
 
     deallocate(b,ipiv)
 
-end subroutine slab_invert
+END SUBROUTINE slab_invert
 
 
 subroutine make_kernel_slab(n1,hgrid,kern)
@@ -183,4 +183,4 @@ do i=0,n1
 enddo
 
 deallocate(z,zin)
-end subroutine make_kernel_slab
+END SUBROUTINE make_kernel_slab

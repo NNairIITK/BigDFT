@@ -3,7 +3,7 @@
 !!  Control the accuracy of the expansion in gaussian
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA (LG)
+!!    Copyright (C) 2007-2010 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -31,8 +31,10 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   allocate(workpsi((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,workpsi,'workpsi',subname)
 
-  call gaussians_to_wavelets(iproc,nproc,lr%geocode,orbs,lr%d,hx,hy,hz,&
-       lr%wfd,G,coeffs,workpsi)
+  !call gaussians_to_wavelets(iproc,nproc,lr%geocode,orbs,lr%d,hx,hy,hz,&
+  !     lr%wfd,G,coeffs,workpsi)
+
+  call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,coeffs,workpsi)
 
   maxdiffp=0.0_wp
   do iorb=1,orbs%norbp
@@ -61,7 +63,7 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   deallocate(workpsi,stat=i_stat)
   call memocc(i_stat,i_all,'workpsi',subname)
 
-end subroutine check_gaussian_expansion
+END SUBROUTINE check_gaussian_expansion
 !!***
 
 subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,rxyz,&
@@ -81,12 +83,12 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   character(len=6) :: string,symbol
   character(len=100) :: line
   integer, parameter :: nterm_max=3
-  integer :: ngx,nbx,npgf,nst,nend,ng,lshell,num,mmax,myshift,icbas,isbas,nbas,nco,i,ipar,ipg,jat
-  integer :: iorb,jorb,iat,ityp,l,m,nterm,i_all,i_stat,ibas,ig,iset,jbas,iterm,ishell,lmax,m1,m2
-  integer :: ierr,isat,iexpo,icoeff,iam
-  real(dp) :: tt,normdev
+  integer :: ngx,nbx,nst,nend,num,mmax,myshift,i,ipar,ipg,jat
+  integer :: iorb,jorb,iat,ityp,i_all,i_stat,ibas,ig,iset,jbas,ishell,lmax
+  integer :: isat,iexpo,icoeff,iam
+  real(dp) :: tt
   real(gp) :: exponent,coefficient
-  integer, dimension(:), allocatable :: nshell,iorbtmp,iw
+  integer, dimension(:), allocatable :: nshell,iorbtmp
   integer, dimension(:,:), allocatable :: nam,ndoc
   real(gp), dimension(:), allocatable :: ctmp
   real(gp), dimension(:,:,:), allocatable :: contcoeff,expo
@@ -419,7 +421,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
      write(*,'(1x,a)')'done.'
   end if
 
-end subroutine parse_cp2k_files
+END SUBROUTINE parse_cp2k_files
 
 subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wfn_gau,psi)
   use module_base
@@ -438,8 +440,8 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   !local variables
   character(len=*), parameter :: subname='gaussians_to_wavelets'
   integer, parameter :: nterm_max=3
-  logical :: myorbital,maycalc
-  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,i,nterm,ierr,ig,ispinor
+  logical :: maycalc
+  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,nterm,ierr,ispinor
   real(dp) :: normdev,tt,scpr,totnorm
   real(gp) :: rx,ry,rz
   integer, dimension(nterm_max) :: lx,ly,lz
@@ -564,7 +566,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   deallocate(tpsi,stat=i_stat)
   call memocc(i_stat,i_all,'tpsi',subname)
 
-end subroutine gaussians_to_wavelets
+END SUBROUTINE gaussians_to_wavelets
 
 subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
   use module_base
@@ -578,7 +580,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
   real(wp), dimension(G%ncoeff,orbs%nspinor,orbs%norbp), intent(in) :: wfn_gau
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
   !local variables
-  integer :: iat,iorb,ierr,ispinor,ncplx
+  integer :: iorb,ierr,ispinor,ncplx
   real(dp) :: normdev,tt,scpr,totnorm
   real(gp) :: kx,ky,kz
 
@@ -615,7 +617,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
              psi(1,ispinor,iorb))
      end do
      tt=max(tt,abs(1.0_dp-totnorm))
-
+     !print *,'iorb,norm',totnorm
   end do
 
   if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
@@ -629,7 +631,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
   if (iproc ==0) write(*,'(1x,a,1pe12.2)')&
        'Deviation from normalization of the imported orbitals',normdev
 
-end subroutine gaussians_to_wavelets_new
+END SUBROUTINE gaussians_to_wavelets_new
 
 
 subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
@@ -644,9 +646,9 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(out) :: psi
   !local variables
   character(len=*), parameter :: subname='gaussians_to_wavelets_orb'
-  integer, parameter :: nterm_max=3,maxsizeKB=2048,nw=32000
+  integer, parameter :: nterm_max=3,maxsizeKB=2048,nw=65536
   logical :: perx,pery,perz
-  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,i,nterm,ierr,ig
+  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,i,nterm,ig
   integer :: nterms_max,nterms,iscoeff,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3
   real(gp) :: rx,ry,rz,gau_a
   integer, dimension(nterm_max) :: lx,ly,lz
@@ -719,7 +721,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
                     !print *,iat,ig,i,fac_arr(i),wfn_gau(icoeff),G%xp(iexpo+ig-1)
                     gau_a=G%xp(iexpo+ig-1)
                     n_gau=lx(i)
-                    !print *,'x',nterm,ncplx,kx,ky,kz
+                    !print *,'x',gau_a!nterm,ncplx,kx,ky,kz
                     call gauss_to_daub_k(hx,kx*hx,ncplx,fac_arr(i),rx,gau_a,n_gau,&
                          lr%d%n1,ml1,mu1,&
                          wx(1,0,1,iterm),work,nw,perx) 
@@ -760,7 +762,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   call memocc(i_stat,i_all,'wz',subname)
 
 
-end subroutine gaussians_to_wavelets_orb
+END SUBROUTINE gaussians_to_wavelets_orb
 
 !accumulate 3d wavefunction in complex form from a tensor produc decomposition
 !universal routine which should be used for all gautowav operations
@@ -777,20 +779,20 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
   !local variables
   integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
   real(wp) :: re_cmplx_prod,im_cmplx_prod
-  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
 
   !the filling of the wavefunction should be different if ncplx==1 or 2
   !split such as to avoid intensive call to if statements
 
-  !$omp parallel default(private) shared(lr%nseg_c,lr%wfd%keyv,lr%wfd%keyg,lr%d) &
-  !$omp shared(psi,wx,wy,wz,lr%wfd%nvctr_c) &
-  !$omp shared(nterm,lr%wfd%nvctr_f,lr%wfd%nseg_f)
+  !!$omp parallel default(private) shared(lr%nseg_c,lr%wfd%keyv,lr%wfd%keyg,lr%d) &
+  !!$omp shared(psi,wx,wy,wz,lr%wfd%nvctr_c) &
+  !!$omp shared(nterm,lr%wfd%nvctr_f,lr%wfd%nseg_f)
 
-  !$	ithread=omp_get_thread_num()
-  !$	nthread=omp_get_num_threads()
+  !!$	ithread=omp_get_thread_num()
+  !!$	nthread=omp_get_num_threads()
   if (ncplx == 1) then
 
-     !$  if(ithread .eq. 0) then
+     !!$  if(ithread .eq. 0) then
      ! Other terms: coarse projector components
      ! coarse part
      nvctr=0
@@ -810,9 +812,9 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
         stop
      end if
-     !$  end if
+     !!$  end if
 
-     !$  if(ithread .eq. 1 .or. nthread .eq. 1) then
+     !!$  if(ithread .eq. 1 .or. nthread .eq. 1) then
      ! Other terms: fine projector components
      nvctr=0
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
@@ -842,13 +844,13 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
         stop 
      end if
-     !$  end if
+     !!$  end if
   else if (ncplx ==2) then
 
      !part with real and imaginary part
      !modify the openMP statements such as to benefit from parallelisation
 
-     !$  if(ithread .eq. 0) then
+     !!$  if(ithread .eq. 0) then
      ! Other terms: coarse projector components
      ! coarse part
      nvctr=0
@@ -867,9 +869,9 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
         stop
      end if
-     !$  end if
+     !!$  end if
 
-     !$  if(ithread .eq. 1 .or. nthread .eq. 1) then
+     !!$  if(ithread .eq. 1 .or. nthread .eq. 1) then
      ! Other terms: fine projector components
      nvctr=0
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
@@ -899,11 +901,11 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
         stop 
      end if
-     !$  end if
+     !!$  end if
      
      !now the imaginary part
      
-     !$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then 
+     !!$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then 
      ! Other terms: coarse projector components
      ! coarse part
      do iseg=1,lr%wfd%nseg_c
@@ -917,9 +919,9 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         end do
      end do
 
-     !$  end if
+     !!$  end if
 
-     !$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
+     !!$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
      ! Other terms: fine projector components
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
         call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
@@ -943,12 +945,12 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
            end do
         end do
      end do
-     !$  end if
+     !!$  end if
   end if
 
-  !$omp end parallel
+  !!$omp end parallel
 
-end subroutine wfn_from_tensprod
+END SUBROUTINE wfn_from_tensprod
 
 subroutine segments_to_grid(keyv,keyg,grid,i0,i1,i2,i3,jj)
   use module_base
@@ -970,7 +972,7 @@ subroutine segments_to_grid(keyv,keyg,grid,i0,i1,i2,i3,jj)
   i2=ii/(grid%n1+1)
   i0=ii-i2*(grid%n1+1)
   i1=i0+j1-j0
-end subroutine segments_to_grid
+END SUBROUTINE segments_to_grid
 
 
 
@@ -1176,7 +1178,8 @@ end subroutine segments_to_grid
 !!!       'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
 !!!
 !!!
-!!!end subroutine sumrho_gaussians
+!!!END SUBROUTINE sumrho_gaussians
+
 
 subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
@@ -1201,15 +1204,15 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   character(len=6) :: string,symbol
   character(len=100) :: line
   integer, parameter :: nterm_max=3
-  integer :: ngx,nbx,npgf,nst,nend,ng,lshell,num,mmax,myshift,icbas,isbas,nbas,nco,i,ipar,ipg,jat
-  integer :: iorb,jorb,iat,ityp,l,m,nterm,i_all,i_stat,ibas,ig,iset,jbas,iterm,ishell,lmax,m1,m2
+  integer :: ngx,nbx,nst,nend,ng,num,mmax,myshift,i,ipar,ipg,jat
+  integer :: iorb,jorb,iat,ityp,l,m,nterm,i_all,i_stat,ibas,ig,iset,jbas,ishell,lmax
   integer :: ierr
   real(dp) :: tt,normdev
   real(gp) :: rx,ry,rz
-  real(gp) :: exponent,coefficient,scpr,ek
+  real(gp) :: exponent,coefficient,scpr
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
-  integer, dimension(:), allocatable :: nshell,iorbtmp,iw
+  integer, dimension(:), allocatable :: nshell,iorbtmp
   integer, dimension(:,:), allocatable :: nam,ndoc
   real(wp), dimension(:), allocatable :: tpsi,ctmp
   real(gp), dimension(:), allocatable :: psiatn,xp
@@ -1376,8 +1379,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
 !!!subroutine basis_ovrlp(nat,norb,nbx,ngx,lmax,ntypes,nam,ndoc,contcoeff,expo,cimu)
 !!!  
 !!!  
-!!!end subroutine basis_ovrlp
-
+!!!END SUBROUTINE basis_ovrlp
 
 
   mmax=2*lmax+1
@@ -1606,7 +1608,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   deallocate(psiatn,stat=i_stat)
   call memocc(i_stat,i_all,'psiatn',subname)
 
-end subroutine gautowav
+END SUBROUTINE gautowav
 
 !calculate the shift between the spherical harmonics of CP2K and the one of BigDFT
 function myshift(symbol)

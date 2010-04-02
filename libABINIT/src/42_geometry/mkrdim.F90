@@ -9,7 +9,7 @@
 !!  and dimensionless translations rprim(3,3).
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2009 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2010 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -20,7 +20,7 @@
 !!
 !! OUTPUT
 !!  rprimd(3,3)=dimensional real space primitive translations (bohr)
-!!   where: rprimd(i,j)=rprim(i,j)*acell(j)
+!!              where: rprimd(i,j)=rprim(i,j)*acell(j)
 !!
 !! SIDE EFFECTS
 !!
@@ -57,9 +57,9 @@ subroutine mkrdim(acell,rprim,rprimd)
 ! *************************************************************************
 
  do ii=1,3
-  do jj=1,3
-   rprimd(ii,jj)=rprim(ii,jj)*acell(jj)
-  end do
+   do jj=1,3
+     rprimd(ii,jj)=rprim(ii,jj)*acell(jj)
+   end do
  end do
 
 end subroutine mkrdim

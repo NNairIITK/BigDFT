@@ -29,6 +29,7 @@ Configure the source directory :
 
 The --enable-mpi option makes the source to compile with MPI support.
 This option is enable by default and can be omited (use --disable-mpi not to compile with mpi support).
+The --enable-cuda-gpu option makes the source to compile with CUDA support (NVIDIA GPU).
 The --with-lapack and --with-blas option is to give the compiler the
 position of required linear geometry libraries.
 The --prefix option is to give the installation directory (when 'make install' is done),

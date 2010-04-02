@@ -11,7 +11,7 @@
 !! symrel and tnons are completely determined.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1999-2009 ABINIT group (RC,XG)
+!! Copyright (C) 1999-2010 ABINIT group (RC,XG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -54,7 +54,8 @@ subroutine gensymshub4(genafm,msym,nsym,symafm,symrel,tnons)
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
- !use interfaces_01manage_mpi
+ use interfaces_14_hidewrite
+ use interfaces_16_hideleave
 !End of the abilint section
 
  implicit none
@@ -80,19 +81,19 @@ subroutine gensymshub4(genafm,msym,nsym,symafm,symrel,tnons)
 !ENDDEBUG
 
  if(msym<2*nsym)then
-  write(message, '(6a)' ) ch10,&
-&  ' gensymshub4 : BUG -',ch10,&
-&  '  The number of symmetries in the Shubnikov type IV space group',ch10,&
-&  '  is larger than the maximal allowed number of symmetries.'
-  call wrtout(6,message,'COLL')
-  call leave_new('COLL')
+   write(message, '(6a)' ) ch10,&
+&   ' gensymshub4 : BUG -',ch10,&
+&   '  The number of symmetries in the Shubnikov type IV space group',ch10,&
+&   '  is larger than the maximal allowed number of symmetries.'
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
  end if
 
  do ii=1,nsym
-  tnons(:,nsym+ii)=tnons(:,ii)+genafm(:)
-  symrel(:,:,nsym+ii)=symrel(:,:,ii)
-  symafm(ii)=1
-  symafm(nsym+ii)=-1
+   tnons(:,nsym+ii)=tnons(:,ii)+genafm(:)
+   symrel(:,:,nsym+ii)=symrel(:,:,ii)
+   symafm(ii)=1
+   symafm(nsym+ii)=-1
  end do
  nsym=nsym*2
 

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <config.h>
 
-#include <S_GPU/include/sg_common_def.h>
+#include <sg_common_def.h>
 
 
 
@@ -101,7 +101,7 @@ void FC_FUNC_(sg_precond_adapter,SG_PRECOND_ADAPTER)(int *n1,int *n2, int *n3,in
 			  double **r,double **b,double **d,
 			  double **work1,double **work2,double **work3,
 			  double *c,int *ncong, double *gnrm,
-			  sg_stream_ptr *stream)
+			  sg_stream_ptr_t *stream)
 {
   sg_param_precond_t param;
 
@@ -125,7 +125,7 @@ void FC_FUNC_(sg_precond_adapter,SG_PRECOND_ADAPTER)(int *n1,int *n2, int *n3,in
   param.gnrm = gnrm;
   
 
-  sg_calc(&sg_callback_precond,&param,sizeof(sg_param_precond_t),*stream);
+  sg_gpu_send_calc(&sg_callback_precond,&param,sizeof(sg_param_precond_t),*stream);
 }
 
 void FC_FUNC_(sg_intprecond_adapter,SG_INTPRECOND_ADAPTER)(int *n1,int *n2, int *n3,int *npsi,
@@ -134,7 +134,7 @@ void FC_FUNC_(sg_intprecond_adapter,SG_INTPRECOND_ADAPTER)(int *n1,int *n2, int 
 			     double **r,double **b,double **d,
 			     double **work1,double **work2,double **work3,
 			     double *c,int *ncong,
-			     sg_stream_ptr *stream)
+			     sg_stream_ptr_t *stream)
 {
   sg_param_intprecond_t param;
 
@@ -156,7 +156,7 @@ void FC_FUNC_(sg_intprecond_adapter,SG_INTPRECOND_ADAPTER)(int *n1,int *n2, int 
   param.c = *c;
   param.ncong = *ncong;  
 
-  sg_calc(&sg_callback_intprecond,&param,sizeof(sg_param_intprecond_t),*stream);
+  sg_gpu_send_calc(&sg_callback_intprecond,&param,sizeof(sg_param_intprecond_t),*stream);
 }
 
 void FC_FUNC_(sg_precond_preconditioner_adapter,SG_PRECOND_PRECONDITIONER_ADAPTER)(int *hybrid_on,int *n1, int *n2,int *n3,
@@ -172,7 +172,7 @@ void FC_FUNC_(sg_precond_preconditioner_adapter,SG_PRECOND_PRECONDITIONER_ADAPTE
 					 double **kern_k3,double **z1,double **z3,
 					 double **x_c,double **psifscf,double **ww,
 					 double **x,double **b,
-					 sg_stream_ptr *stream)
+					 sg_stream_ptr_t *stream)
 {
   sg_param_precondprecond_t param;
 
@@ -208,7 +208,7 @@ void FC_FUNC_(sg_precond_preconditioner_adapter,SG_PRECOND_PRECONDITIONER_ADAPTE
   param.ww = ww;
   param.x = x;
   param.b = b;
-  sg_calc(&sg_callback_precondprecond,&param,sizeof(sg_param_precondprecond_t),*stream);
+  sg_gpu_send_calc(&sg_callback_precondprecond,&param,sizeof(sg_param_precondprecond_t),*stream);
 }
 
 
@@ -273,7 +273,7 @@ void FC_FUNC_(sg_locham_adapter,SG_LOCHAM_ADAPTER)(int *n1,int *n2, int *n3,
 			double **work1,double **work2,double **work3,
 			double *epot_sum,double *ekin_sum,
 			double *occup_gpu,
-			sg_stream_ptr *stream)
+			sg_stream_ptr_t *stream)
 {
   sg_param_locham_t param;
 
@@ -296,7 +296,7 @@ void FC_FUNC_(sg_locham_adapter,SG_LOCHAM_ADAPTER)(int *n1,int *n2, int *n3,
   param.occup_gpu = *occup_gpu;
 
   
-  sg_calc(&sg_callback_locham,&param,sizeof(sg_param_locham_t),*stream);
+  sg_gpu_send_calc(&sg_callback_locham,&param,sizeof(sg_param_locham_t),*stream);
 }
 
 
@@ -306,7 +306,7 @@ void FC_FUNC_(sg_fulllocham_adapter,SG_FULLLOCHAM_ADAPTER)(int *n1,int *n2, int 
 			double **work1,double **work2,double **work3,
 			double *epot_sum,double *ekin_sum,
 			double *occup_gpu,
-			sg_stream_ptr *stream)
+			sg_stream_ptr_t *stream)
 {
   sg_param_locham_t param;
 
@@ -329,7 +329,7 @@ void FC_FUNC_(sg_fulllocham_adapter,SG_FULLLOCHAM_ADAPTER)(int *n1,int *n2, int 
   param.occup_gpu = *occup_gpu;
 
   
-  sg_calc(&sg_callback_fulllocham,&param,sizeof(sg_param_locham_t),*stream);
+  sg_gpu_send_calc(&sg_callback_fulllocham,&param,sizeof(sg_param_locham_t),*stream);
 }
 
 
@@ -370,7 +370,7 @@ void  FC_FUNC_(sg_locden_adapter,SG_LOCDEN_ADAPTER)(int *n1,int *n2, int *n3,int
 			  double **psi,int **keys, 
 			  double **work1,double **work2,
 			  double **rho,
-			  sg_stream_ptr *stream)
+			  sg_stream_ptr_t *stream)
 {
   
   sg_param_locden_t param;
@@ -391,5 +391,5 @@ void  FC_FUNC_(sg_locden_adapter,SG_LOCDEN_ADAPTER)(int *n1,int *n2, int *n3,int
   param.work2 = work2;
   param.rho = rho;
 
-sg_calc(&sg_callback_locden,&param,sizeof(sg_param_locden_t),*stream);
+  sg_gpu_send_calc(&sg_callback_locden,&param,sizeof(sg_param_locden_t),*stream);
 }

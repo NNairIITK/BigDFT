@@ -1,15 +1,24 @@
-! Subroutine saddle_convert
-!
-! This subroutine bring the configuration to a saddle point. It does that
-! by first pushing the configuration outside of the harmonic well, using
-! the initial direction selected in find_saddle. Once outside the harmonic
-! well, as defined by the appearance of a negative eigenvalue (or
-! reasonnable size) the configuration follows the direction corresponding
-! to this eigenvalue until the force components parallel and perpdendicular
-! to the eigendirection become close to zero.
-!
-!  Normand Mousseau, June 2001
-
+!!****f* art/saddle_converge
+!! FUNCTION
+!!    In the art method, converge to the saddle point
+!!    This subroutine bring the configuration to a saddle point. It does that
+!!    by first pushing the configuration outside of the harmonic well, using
+!!    the initial direction selected in find_saddle. Once outside the harmonic
+!!    well, as defined by the appearance of a negative eigenvalue (or
+!!    reasonnable size) the configuration follows the direction corresponding
+!!    to this eigenvalue until the force components parallel and perpdendicular
+!!    to the eigendirection become close to zero.
+!!
+!! COPYRIGHT
+!!    Copyright (C) Normand Mousseau, June 2001
+!!    Copyright (C) 2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
   use random
   use defs
@@ -18,15 +27,16 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
   use bigdft_forces
   implicit none
 
+  !Arguments
   integer, intent(out) :: ret
   real(8), intent(out) :: saddle_energy, fpar, fperp
   logical :: new_projection
-
-  integer :: i, j, k, kter, iter, iperp, k_rejected, eigen_rejected, nat
-  integer :: preafor, maxvec,npart,itry, iter_init, kter_init, ierror
+  !Local variables
+  integer :: i, k, kter, iter, iperp, k_rejected, eigen_rejected, nat
+  integer :: maxvec,npart,itry, iter_init, kter_init, ierror
   real(8) :: fdotinit, fperp2,current_fperp
-  real(8) :: step,delr, diff
-  real(8) :: one = 1.0d0
+  real(8) :: step,delr
+  real(8), parameter :: one = 1.0d0
   real(8) :: boxl, current_energy, ftot
   real(8), dimension(VECSIZE) :: posb, perp_force, forceb,perp_forceb
 
@@ -51,7 +61,7 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
   if ( (.not. restart) .and. NEW_EVENT ) then 
 
      eigenvalue = 0.0d0
-     call calcforce(NATOMS,type,pos,boxl,force,current_energy)
+     call calcforce(NATOMS,pos,boxl,force,current_energy)
      
      ! We now project out the direction of the initial displacement from the
      ! minimum from the force vector so that we can minimize the energy in
@@ -75,7 +85,7 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
         do 
            posb = pos + step * perp_force
            
-           call calcforce(NATOMS,type,posb,boxl,forceb,total_energy)
+           call calcforce(NATOMS,posb,boxl,forceb,total_energy)
            evalf_number = evalf_number + 1
            
            fdotinit= 0.0d0
@@ -171,7 +181,7 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
   else if (restart .and. (state_restart == 2) ) then
         iter_init = iter_restart
         projection = direction_restart
-        call calcforce(NATOMS,type,pos,boxl,force,current_energy)
+        call calcforce(NATOMS,pos,boxl,force,current_energy)
 
         fpar= 0.0d0
         do i=1, VECSIZE
@@ -200,7 +210,7 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
         new_projection = .false.
      end do
 
-     call calcforce(NATOMS,type,pos,boxl,force,current_energy)
+     call calcforce(NATOMS,pos,boxl,force,current_energy)
      fpar = dot_product(force,projection)
      if(fpar > 0.0d0 ) projection = -1.0d0 * projection
 
@@ -230,7 +240,7 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
        posb = pos + step * perp_force
        call displacement(posb, pos, delr,npart)
 
-       call calcforce(NATOMS,type,posb,boxl,forceb,total_energy)
+       call calcforce(NATOMS,posb,boxl,forceb,total_energy)
        evalf_number = evalf_number + 1
        
        fpar= 0.0d0
@@ -388,7 +398,7 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
       exit
     endif
 
-    call calcforce(NATOMS,type,pos,boxl,force,total_energy)  !! COSMIN
+    call calcforce(NATOMS,pos,boxl,force,total_energy)  !! COSMIN
     perp_force  = forceb - fpar * projection  ! Vectorial force
     fperp2 = 0.0d0
     do i=1, VECSIZE
@@ -401,4 +411,5 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
     if (iproc .eq. 0 ) call save_state(state_restart, iter+1, projection)
     
   end do
-end subroutine saddle_converge
+END SUBROUTINE saddle_converge
+!!***
