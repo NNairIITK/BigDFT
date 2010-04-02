@@ -116,7 +116,7 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
 
         
         ! We start checking of negative eigenvalues only after a few steps
-        if( kter>= KTER_MIN ) then 
+        if ( kter>= KTER_MIN ) then 
            new_projection = .true.    ! We do not  use previously computed lowest direction as see
            maxvec = NVECTOR_LANCZOS
            call lanczos(maxvec,new_projection)
