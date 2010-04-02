@@ -138,8 +138,8 @@ contains
 
     !do not do anything if the gaussian is too extended
     if (rightx-leftx > nwork) then
-       STOP 'gaustodaub'
-       !return
+       !STOP 'gaustodaub'
+       return
     end if
 
     !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
@@ -380,8 +380,8 @@ contains
 
     !stop the code if the gaussian is too extended
     if (rightx-leftx > nwork) then
-       !return
-       STOP 'gaustodaub'
+       !STOP 'gaustodaub'
+       return
     end if
 
     !loop for each complex component
