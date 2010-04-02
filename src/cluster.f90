@@ -349,7 +349,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call timing(iproc,'CrtDescriptors','ON')
   call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
-       atoms,rxyz,radii_cf,crmult,frmult,Glr,orbs)
+       atoms,rxyz,radii_cf,crmult,frmult,Glr)
   call timing(iproc,'CrtDescriptors','OF')
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
@@ -529,7 +529,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   case(0)
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
-     call input_wf_diag(iproc,nproc,radii_cf, cpmult, fpmult, atoms,&
+     call input_wf_diag(iproc,nproc, atoms,&
           orbs,orbsv,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
           nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons)

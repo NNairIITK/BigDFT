@@ -490,7 +490,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call timing(iproc,'CrtDescriptors','ON')
   call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
-       atoms,rxyz,radii_cf,crmult,frmult,Glr,orbs)
+       atoms,rxyz,radii_cf,crmult,frmult,Glr)
   call timing(iproc,'CrtDescriptors','OF')
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
@@ -589,7 +589,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call memocc(i_stat,phnons,'phnons',subname)
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
-     call input_wf_diag(iproc,nproc,radii_cf, cpmult, fpmult,atoms,&
+     call input_wf_diag(iproc,nproc,atoms,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons)

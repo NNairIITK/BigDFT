@@ -305,7 +305,7 @@ program memguess
      end do
 
      call createWavefunctionsDescriptors(0,hx,hy,hz,&
-          atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst)
+          atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr)
 
      call compare_cpu_gpu_hamiltonian(0,1,atoms,orbstst,nspin,in%ncong,in%ixc,&
           Glr,hx,hy,hz,rxyz,ntimes)

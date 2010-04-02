@@ -214,7 +214,7 @@ module module_interfaces
      END SUBROUTINE MemoryEstimator
 
      subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-          crmult,frmult,Glr,orbs)
+          crmult,frmult,Glr)
        use module_base
        use module_types
        implicit none
@@ -225,7 +225,6 @@ module module_interfaces
        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
        real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
        type(locreg_descriptors), intent(inout) :: Glr
-       type(orbitals_data), intent(inout) :: orbs
      END SUBROUTINE createWavefunctionsDescriptors
 
      subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
@@ -311,7 +310,7 @@ module module_interfaces
        real(dp), dimension(:,:,:), intent(in) :: phnons
      END SUBROUTINE import_gaussians
 
-     subroutine input_wf_diag(iproc,nproc,radii_cf, cpmult, fpmult,at,&
+     subroutine input_wf_diag(iproc,nproc,at,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
           nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons)
@@ -320,7 +319,7 @@ module module_interfaces
        implicit none
        integer, intent(in) :: iproc,nproc,ixc,symObj
        integer, intent(inout) :: nspin,nvirt
-       real(gp), intent(in) :: hx,hy,hz, cpmult, fpmult
+       real(gp), intent(in) :: hx,hy,hz
        type(atoms_data), intent(in) :: at
        type(orbitals_data), intent(inout) :: orbs
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -338,7 +337,6 @@ module module_interfaces
        integer, intent(in) :: potshortcut
        integer, dimension(:,:,:), intent(in) :: irrzon
        real(dp), dimension(:,:,:), intent(in) :: phnons
-       real(gp), dimension(:,:), intent(in) :: radii_cf
      END SUBROUTINE input_wf_diag
 
      subroutine reformatmywaves(iproc,orbs,at,&
