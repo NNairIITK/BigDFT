@@ -1336,7 +1336,7 @@ subroutine lsh_rotation(l,theta,phi,coeffs)
   p=phi*degrad
 
   !extract coefficients for the rotation
-  call rotation_matrix(l,t,p,hrot)
+  call rotation_matrix(l+1,t,p,hrot)
   
   !copy input variables
   do m=1,2*l+1
