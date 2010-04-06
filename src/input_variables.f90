@@ -217,9 +217,9 @@ subroutine dft_input_variables(iproc,filename,in)
   iline=iline+1
   !determine the acceleration strategy
   in%iacceleration=0 !default
-  if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
+  if (ierrfrc == 0 .and. string=='CUDAGPU') then
      in%iacceleration=1
-  else  if (ierrfrc == 0 .and. cudagpu=='OCLGPU') then
+  else  if (ierrfrc == 0 .and. string=='OCLGPU') then
      in%iacceleration=2
   end if
 
