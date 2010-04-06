@@ -104,7 +104,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
 
   ispsidst=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%ikptsp(ikptp)
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
      nvctrp=comms%nvctr_par(iproc,ikptp)
      if (nvctrp == 0) cycle
 
@@ -149,7 +149,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
   ispsi=1
   ispsidst=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%ikptsp(ikptp)
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
      nvctrp=comms%nvctr_par(iproc,ikptp)
      if (nvctrp == 0) cycle
 

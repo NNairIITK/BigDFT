@@ -334,17 +334,17 @@ subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
         do i1=nl1,nu1
            if (logrid(i1,i2,i3)) then
               mvctri=mvctri+1
-              if (plogrid .eqv. .false.) then
+              if (.not. plogrid) then
                  nsrti=nsrti+1
               endif
            else
-              if (plogrid .eqv. .true.) then
+              if (plogrid) then
                  nendi=nendi+1
               endif
            endif
            plogrid=logrid(i1,i2,i3)
         enddo
-        if (plogrid .eqv. .true.) then
+        if (plogrid) then
            nendi=nendi+1
         endif
      enddo
@@ -356,7 +356,7 @@ nsrt=nsrt+nsrti
 nend=nend+nendi
 !$omp end critical
 !$omp end parallel
-  if (nend.ne.nsrt) then 
+  if (nend /= nsrt) then 
      write(*,*)' ERROR: nend <> nsrt',nend,nsrt
      stop 
   endif
@@ -387,29 +387,30 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
   nend=0
   do i3=nl3,nu3 
      do i2=nl2,nu2
-     plogrid=.false.
-     do i1=nl1,nu1
-        ngridp=i3*((n1+1)*(n2+1)) + i2*(n1+1) + i1+1
-        if (logrid(i1,i2,i3)) then
-           mvctr=mvctr+1
-           if (plogrid .eqv. .false.) then
-              nsrt=nsrt+1
-              keyg(1,nsrt)=ngridp
-              keyv(nsrt)=mvctr
+        plogrid=.false.
+        do i1=nl1,nu1
+           ngridp=i3*((n1+1)*(n2+1)) + i2*(n1+1) + i1+1
+           if (logrid(i1,i2,i3)) then
+              mvctr=mvctr+1
+              if (.not. plogrid) then
+                 nsrt=nsrt+1
+                 keyg(1,nsrt)=ngridp
+                 keyv(nsrt)=mvctr
+              endif
+           else
+              if (plogrid) then
+                 nend=nend+1
+                 keyg(2,nend)=ngridp-1
+              endif
            endif
-        else
-           if (plogrid .eqv. .true.) then
-              nend=nend+1
-              keyg(2,nend)=ngridp-1
-           endif
+           plogrid=logrid(i1,i2,i3)
+        enddo
+        if (plogrid) then
+           nend=nend+1
+           keyg(2,nend)=ngridp
         endif
-        plogrid=logrid(i1,i2,i3)
      enddo
-     if (plogrid .eqv. .true.) then
-        nend=nend+1
-        keyg(2,nend)=ngridp
-     endif
-  enddo; enddo
+  enddo
   if (nend /= nsrt) then 
      write(*,*) 'nend , nsrt',nend,nsrt
      stop 'nend <> nsrt'
@@ -476,7 +477,6 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
   do iat=1,nat
      rad=radii(iatype(iat))*rmult+real(nbuf,gp)*hx
      if (rad /= 0.0_gp) then
-        !        write(*,*) 'iat,nat,rad',iat,nat,rad
         ml1=ceiling((rxyz(1,iat)-rad)/hx - eps_mach)  
         ml2=ceiling((rxyz(2,iat)-rad)/hy - eps_mach)   
         ml3=ceiling((rxyz(3,iat)-rad)/hz - eps_mach)   

@@ -367,7 +367,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
 
   !allocate communications arrays
-  !call allocate_comms(nproc,orbs,comms,subname)
   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
   !these arrays should be included in the comms descriptor

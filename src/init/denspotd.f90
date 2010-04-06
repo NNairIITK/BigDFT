@@ -84,6 +84,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   type(communications_arrays), intent(out) :: comms
   !local variables
   character(len=*), parameter :: subname='orbitals_communicators'
+  logical :: yesorb,yescomp
   integer :: jproc,i,nvctr_tot,j,ikpts,iorbp,jorb,norb_tot,ikpt,i_stat,i_all
   integer :: ncomp_res,nkptsp,ierr
   integer, dimension(:), allocatable :: mykpts
@@ -135,22 +136,24 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      GPU_for_comp(0)=GPUblas
   end if
 
-  i=1
-  j=1
-  loop_components: do 
-     jproc=mod(i-1,nproc)
-     if (.true.) then !here there is the criterion for filling a processor
-        nvctr_par(jproc,0)=nvctr_par(jproc,0)+1
-        j=j+1
-     end if
-     if (j > (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nkpts) exit loop_components
-     i=i+1
-  end do loop_components
-
-
   i_all=-product(shape(GPU_for_comp))*kind(GPU_for_comp)
   deallocate(GPU_for_comp,stat=i_stat)
   call memocc(i_stat,i_all,'GPU_for_comp',subname)
+
+  !decide the repartition for the components in the same way as the orbitals
+  call parallel_repartition_with_kpoints(nproc,orbs%nkpts,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),nvctr_par)
+
+!!$  i=1
+!!$  j=1
+!!$  loop_components: do 
+!!$     jproc=mod(i-1,nproc)
+!!$     if (.true.) then !here there is the criterion for filling a processor
+!!$        nvctr_par(jproc,0)=nvctr_par(jproc,0)+1
+!!$        j=j+1
+!!$     end if
+!!$     if (j > (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nkpts) exit loop_components
+!!$     i=i+1
+!!$  end do loop_components
 
 
   ikpts=1
@@ -177,10 +180,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   end do
 
   !some checks
-!!!  if (ikpts /= orbs%nkpts ) then
-!!!     write(*,*)' ERROR:ikpts not correct:',ikpts,orbs%nkpts
-!!!     stop
-!!!  end if
   !check the distribution
   do ikpts=1,orbs%nkpts
      !print *,'iproc,cpts:',lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nvctr_par(:,ikpts)
@@ -194,7 +193,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      end if
   end do
 
-  !this function which associates a given k-point to a processor 
+  !this function which associates a given k-point to a processor in the component distribution
   !the association is chosen such that each k-point is associated to only
   !one processor
   !if two processors treat the same k-point the processor which highest rank is chosen
@@ -242,22 +241,53 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   !calculate the number of k-points treated by each processor in both
   ! the component distribution and the orbital distribution.
   nkptsp=0
+  orbs%iskpts=-1
   do ikpts=1,orbs%nkpts
      if (nvctr_par(iproc,ikpts) /= 0 .or. norb_par(iproc,ikpts) /= 0) then
+        if (orbs%iskpts == -1) orbs%iskpts=ikpts-1
         nkptsp=nkptsp+1
         mykpts(nkptsp) = ikpts
      end if
   end do
   orbs%nkptsp=nkptsp
-  allocate(orbs%ikptsp(orbs%nkptsp+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%ikptsp,'orbs%ikptsp',subname)
-  orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
+
+!!$  allocate(orbs%ikptsp(orbs%nkptsp+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,orbs%ikptsp,'orbs%ikptsp',subname)
+!!$  orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
 
   !print the distribution scheme ussed for this set of orbital
   !in the case of multiple k-points
   if (iproc == 0 .and. verbose > 1 .and. orbs%nkpts > 1) then
      call print_distribution_schemes(nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
   end if
+
+  !before printing the distribution schemes, check that the two distributions contain
+  !the same k-points
+  yesorb=.false.
+  kpt_components: do ikpts=1,orbs%nkptsp
+     ikpt=orbs%iskpts+ikpts
+     do jorb=1,orbs%norbp
+        if (orbs%iokpt(jorb) == ikpt) yesorb=.true.
+     end do
+     if (.not. yesorb .and. orbs%norbp /= 0) then
+        write(*,*)' ERROR: processor ', iproc,' kpt ',ikpt,&
+             ' not found in the orbital distribution'
+        stop
+     end if
+  end do kpt_components
+
+  yescomp=.false.
+  kpt_orbitals: do jorb=1,orbs%norbp
+     ikpt=orbs%iokpt(jorb)   
+     do ikpts=1,orbs%nkptsp
+        if (orbs%iskpts+ikpts == ikpt) yescomp=.true.
+     end do
+     if (.not. yescomp) then
+        write(*,*)' ERROR: processor ', iproc,' kpt,',ikpt,&
+             'not found in the component distribution'
+        stop
+     end if
+  end do kpt_orbitals
 
   !allocate communication arrays
   allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
@@ -275,7 +305,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 
   !assign the partition of the k-points to the communication array
   do ikpts=1,orbs%nkptsp
-     ikpt=orbs%ikptsp(ikpts)
+     ikpt=orbs%iskpts+ikpts!orbs%ikptsp(ikpts)
      do jproc=0,nproc-1
         comms%nvctr_par(jproc,ikpts)=nvctr_par(jproc,ikpt) 
      end do

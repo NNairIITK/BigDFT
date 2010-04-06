@@ -137,7 +137,10 @@ contains
     rightx=rights(4)+n  
 
     !do not do anything if the gaussian is too extended
-    if (rightx-leftx > nwork) return
+    if (rightx-leftx > nwork) then
+       !STOP 'gaustodaub'
+       return
+    end if
 
     !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
   
@@ -375,8 +378,11 @@ contains
     leftx = lefts(4)-n
     rightx=rights(4)+n  
 
-    !do not do anything if the gaussian is too extended
-    if (rightx-leftx > nwork) return
+    !stop the code if the gaussian is too extended
+    if (rightx-leftx > nwork) then
+       !STOP 'gaustodaub'
+       return
+    end if
 
     !loop for each complex component
     do icplx=1,ncplx
@@ -467,17 +473,17 @@ contains
        end if
 
        !print *,'here',gau_a,gau_cen,n_gau
-       call apply_w(ww(:,1,icplx),ww(:,2,icplx),&
+       call apply_w(ww(0,1,icplx),ww(0,2,icplx),&
             leftx   ,rightx   ,lefts(4),rights(4),h)
 
-       call forward_c(ww(:,2,icplx),ww(:,1,icplx),&
+       call forward_c(ww(0,2,icplx),ww(0,1,icplx),&
             lefts(4),rights(4),lefts(3),rights(3)) 
-       call forward_c(ww(:,1,icplx),ww(:,2,icplx),&
+       call forward_c(ww(0,1,icplx),ww(0,2,icplx),&
             lefts(3),rights(3),lefts(2),rights(2)) 
-       call forward_c(ww(:,2,icplx),ww(:,1,icplx),&
+       call forward_c(ww(0,2,icplx),ww(0,1,icplx),&
             lefts(2),rights(2),lefts(1),rights(1)) 
 
-       call forward(  ww(:,1,icplx),ww(:,2,icplx),&
+       call forward(  ww(0,1,icplx),ww(0,2,icplx),&
             lefts(1),rights(1),lefts(0),rights(0)) 
 
     end do
@@ -494,6 +500,7 @@ contains
 
     !modification of the calculation.
     !at this stage the values of c are fixed to zero
+    !print *,'ncplx',ncplx,n_left,n_right,nwork,length
     do icplx=1,ncplx
        do i=n_left,n_right
           j=modulo(i,nmax+1)

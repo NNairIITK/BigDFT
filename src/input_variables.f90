@@ -666,6 +666,8 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%debug = .false.
   !Cache size for FFT
   inputs%ncache_fft = 8*1024
+  !radius of the projector as a function of the maxrad
+  inputs%projrad= 15.0_gp
 
   !Check if the file is present
   inquire(file=trim(filename),exist=exists)
@@ -686,6 +688,9 @@ subroutine perf_input_variables(iproc,filename,inputs)
         else if (index(line,"fftcache") /= 0 .or. index(line,"FFTCACHE") /= 0) then
             ii = index(line,"fftcache")  + index(line,"FFTCACHE") + 8 
            read(line(ii:),*) inputs%ncache_fft
+        else if (index(line,"projrad") /= 0 .or. index(line,"PROJRAD") /= 0) then
+            ii = index(line,"projrad")  + index(line,"PROJRAD") + 8 
+           read(line(ii:),*) inputs%projrad
         end if
      end do
      close(unit=1,iostat=ierror)
@@ -1244,7 +1249,6 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
 
   atoms%ntypes=0
   do iat=1,atoms%nat
-
      !xyz input file, allow extra information
      read(ifile,'(a150)')line 
      if (lpsdbl) then
@@ -1268,6 +1272,9 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
         rxyz(2,iat)=real(ry,gp)
         rxyz(3,iat)=real(rz,gp)
      end if
+
+     
+
      if (atoms%units == 'reduced') then !add treatment for reduced coordinates
         rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
         if (atoms%geocode == 'P') rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)

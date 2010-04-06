@@ -63,7 +63,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
   !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
   ispsi=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%ikptsp(ikptp)
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
 
@@ -103,7 +103,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
   !for each k-point now reorthogonalise wavefunctions
   ispsi=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%ikptsp(ikptp)
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
 
@@ -232,7 +232,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
   ispsi=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%ikptsp(ikptp)
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
 
@@ -274,7 +274,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   !for each k-point calculate the gradient
   ispsi=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%ikptsp(ikptp)
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
 
@@ -396,7 +396,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
   ispsi=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%ikptsp(ikptp)
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
 
@@ -448,7 +448,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   ispsi=1
   evsum=0.0_wp
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%ikptsp(ikptp)
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
      isorb=1
      do ispin=1,nspin
 
@@ -620,7 +620,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
   ispsi=1
   ispsiv=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%ikptsp(ikptp)
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
 
@@ -671,7 +671,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
   ispsiv=1
   isorb=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%ikptsp(ikptp)
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
 
