@@ -128,6 +128,10 @@ subroutine read_input_variables(iproc,posinp, &
      stop 'GPU calculation allowed only in periodic boundary conditions'
   end if
 
+  ! Stop code for unproper input variables combination.
+  if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym) then
+     stop 'Forces are not implemented with symmetry support, disable symmetry please'
+  end if
 END SUBROUTINE read_input_variables
 !!***
 
