@@ -100,5 +100,5 @@ compress.o : commonDef.h kernels_compress.hcu
 read_conf_file.cpp : read_conf_file.h
 
 check:
-	echo 1 64 64 2048 2048 1 > fort.1
+	echo 1 64 64 2048 2048 1000 > fort.1
 	$(top_builddir)/src/CUDA/conv_check

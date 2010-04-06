@@ -38,10 +38,14 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX
-  integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
+  integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat,i
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
+  integer, dimension(3) :: periodic
+  real(wp) :: maxdiff
+  real(gp) :: eproj,ek_fake,ep_fake
   real(gp), dimension(3,2) :: wrkallred
   real(wp), dimension(:), pointer :: pot
+  real(wp), dimension(:), allocatable :: hpsi_OCL
   integer,parameter::lupfil=14
 
   !stream ptr array
@@ -121,14 +125,37 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   !apply the local hamiltonian for each of the orbitals
   !given to each processor
-
+  !pot=0.d0
+  !psi=1.d0
   !switch between GPU/CPU treatment
+!  do i=1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
+!       call random_number(psi(i))
+!  end do
   if (GPUconv) then
      call local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
+  else if (OCLconv) then
+     call local_hamiltonian_OCL(iproc,orbs,at%geocode,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
   else
      call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   end if
 
+  !test part to check the results wrt OCL convolutions
+!!$  if (OCLconv) then
+!!$     allocate(hpsi_OCL((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,hpsi_OCL,'hpsi_OCL',subname)
+!!$     print *,'fulllocam',GPU%full_locham
+!!$     call local_hamiltonian_OCL(iproc,orbs,at%geocode,lr,hx,hy,hz,nspin,pot,psi,hpsi,ek_fake,ep_fake,GPU)
+!!$     maxdiff=0.0_wp
+!!$     do i=1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
+!!$        maxdiff=max(maxdiff,abs(hpsi(i)-hpsi_OCL(i)))
+!!$     end do
+!!$     print *,'maxdiff',maxdiff
+!!$     print *,'ekin_diff',abs(ek_fake-ekin_sum)
+!!$     print *,'epot_diff',abs(ep_fake-epot_sum)
+!!$     i_all=-product(shape(hpsi_OCL))*kind(hpsi_OCL)
+!!$     deallocate(hpsi_OCL,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'hpsi_OCL',subname)
+!!$  end if
   
   if (nproc > 1 .or. exctX) then
      i_all=-product(shape(pot))*kind(pot)
@@ -237,9 +264,12 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='hpsitopsi'
-  integer :: ierr,iorb,k,i_stat,i_all
+  real(wp), dimension(:), allocatable :: hpsi_OCL
+  integer :: ierr,iorb,k,i_stat,i_all,i
   real(dp) :: tt
   real(wp), dimension(:,:,:), allocatable :: mom_vec
+  real(wp) :: maxdiff
+  integer, dimension(3) :: periodic
 
   !stream ptr array
  ! real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
@@ -290,13 +320,36 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   !Preconditions all orbitals belonging to iproc
   !and calculate the partial norm of the residue
   !switch between CPU and GPU treatment
+!!$  if (OCLconv) then
+!!$     allocate(hpsi_OCL((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,hpsi_OCL,'hpsi_OCL',subname)
+!!$     call dcopy((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp, hpsi, 1, hpsi_OCL, 1)
+!!$  end if
+
   if (GPUconv) then
      call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+          hpsi,gnrm,GPU)
+  else if (OCLconv) then
+     call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
           hpsi,gnrm,GPU)
   else
      call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   end if
 
+!!$  if (OCLconv) then
+!!$     call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+!!$          hpsi_OCL,gnrm,GPU)
+!!$     maxdiff=0.0_wp
+!!$     do i=1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
+!!$        maxdiff=max(maxdiff,abs(hpsi(i)-hpsi_OCL(i)))
+!!$     end do
+!!$     print *,''
+!!$     print *,'maxdiff',maxdiff
+!!$     i_all=-product(shape(hpsi_OCL))*kind(hpsi_OCL)
+!!$     deallocate(hpsi_OCL,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'hpsi_OCL',subname)
+!!$
+!!$  end if
   !sum over all the partial residues
   if (nproc > 1) then
      tt=gnrm

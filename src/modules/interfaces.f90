@@ -313,7 +313,7 @@ module module_interfaces
      subroutine input_wf_diag(iproc,nproc,at,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
-          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons)
+          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU)
        use module_base
        use module_types
        implicit none
@@ -325,6 +325,7 @@ module module_interfaces
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
        type(locreg_descriptors), intent(in) :: Glr
        type(communications_arrays), intent(in) :: comms
+       type(GPU_pointers), intent(inout) :: GPU
        integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
