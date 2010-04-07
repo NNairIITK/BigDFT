@@ -132,6 +132,9 @@ subroutine read_input_variables(iproc,posinp, &
   if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym) then
      stop 'Forces are not implemented with symmetry support, disable symmetry please'
   end if
+  if (inputs%nkpt > 1 .and. inputs%gaussian_help) then
+     stop 'Gaussian projection is not implemented with k-point support'
+  end if
 END SUBROUTINE read_input_variables
 !!***
 
