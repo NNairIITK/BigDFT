@@ -190,23 +190,50 @@ void bench_gemm(cl_uint n1, cl_uint n2, cl_uint n3, double * in1, double * in2, 
   ocl_enqueue_write_buffer_(&queue, &b, &size_b, in2);
   char transa = 'n';
   char transb = 'n';
-  gemm_d_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &m, &b, &k, &beta, &c, &n);
+  gemm_d_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &m, &b, &k, &beta, &c, &m);
   transa = 'n';
   transb = 't';
-  gemm_d_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &m, &b, &n, &beta, &c, &n);
+  gemm_d_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &m, &b, &n, &beta, &c, &m);
   transa = 't';
   transb = 'n';
-  gemm_d_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &k, &b, &k, &beta, &c, &n);
+  gemm_d_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &k, &b, &k, &beta, &c, &m);
   transa = 't';
   transb = 't';
-  gemm_d_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &k, &b, &n, &beta, &c, &n);
+  gemm_d_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &k, &b, &n, &beta, &c, &m);
   ocl_finish_(&queue);
   ocl_enqueue_read_buffer_(&queue, &c, &size_c, out);
   ocl_release_mem_object_(&a);
   ocl_release_mem_object_(&b);
   ocl_release_mem_object_(&c);
 }
-
+void bench_zgemm(cl_uint n1, cl_uint n2, cl_uint n3, double * in1, double * in2, double * out){
+  cl_mem a, b, c;
+  cl_double2 alpha;
+  alpha.x = 1.2;
+  alpha.y = 1.1;
+  cl_double2 beta;
+  beta.x = 1.3;
+  beta.y = 1.4;
+  cl_uint m = n1/2;
+  cl_uint n = n2*n3;
+  cl_uint k = n1/2;
+  cl_uint size_a = m * k * 2 * sizeof(double);
+  cl_uint size_b = n * k * 2 * sizeof(double);
+  cl_uint size_c = n * m * 2 * sizeof(double);
+  ocl_create_write_buffer_(&context, &size_c, &c);
+  ocl_create_read_buffer_(&context, &size_b, &b);
+  ocl_create_read_buffer_(&context, &size_a, &a);
+  ocl_enqueue_write_buffer_(&queue, &a, &size_a, in1);
+  ocl_enqueue_write_buffer_(&queue, &b, &size_b, in2);
+  char transa = 'n';
+  char transb = 'n';
+  gemm_z_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &m, &b, &k, &beta, &c, &m);
+  ocl_finish_(&queue);
+  ocl_enqueue_read_buffer_(&queue, &c, &size_c, out);
+  ocl_release_mem_object_(&a);
+  ocl_release_mem_object_(&b);
+  ocl_release_mem_object_(&c);
+}
 void bench_uncompress(cl_uint n1, cl_uint n2, cl_uint n3, cl_uint nseg, cl_uint nvctr_cf, cl_uint * keyg, cl_uint * keyv, double * psi_in, double * psi_out) {
   cl_mem work_GPU,psi_c_GPU,psi_f_GPU,keyg_GPU, keyv_GPU ;
   cl_uint size;

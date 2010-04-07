@@ -47,6 +47,7 @@ int main(){
               bench_syn1d(un1,un2,un3,in,out);
               bench_syngrow1d(un1,un2,un3,in,out);
               bench_gemm(un1,un2,un3,in,in,out);
+              bench_zgemm(un1,un2,un3,in,in,out);
             }
           }
         }
