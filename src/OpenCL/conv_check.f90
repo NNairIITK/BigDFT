@@ -394,7 +394,6 @@ program conv_check
                  end if
               end do
            end do
-           maxdiff = maxdiff/ndat
 
            if (maxdiff <= 3.d-7) then
               write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
@@ -480,7 +479,6 @@ program conv_check
                  end if
               end do
            end do
-           maxdiff = maxdiff/ndat
 
            if (maxdiff <= 3.d-7) then
               write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&

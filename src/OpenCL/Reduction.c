@@ -158,14 +158,17 @@ __kernel void gemmKernel_d_tatb( uint m, uint n, uint k, double alpha, __global 
     ((global double *)c)[jg*ldc*2 + 2*ig+1] = resulty;\n\
   }\n\
 }*/\n\
-__kernel __attribute__((vec_type_hint(double2))) void gemmKernel_z( uint m, uint n, uint k, double2 alpha, __global const double2 *a, uint lda, __global const double2 *b, uint ldb, double2 beta, __global double2 * c, uint ldc, __local double2 *tmp1, __local double2 *tmp2){\n\
+__kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_type_hint(double2))) void gemmKernel_z( const uint m, const uint n, const uint k, const double2 alpha, __global const double2 *a, const uint lda, __global const double2 *b, const uint ldb, const double2 beta, __global double2 * c, const uint ldc, __local double2 *tmp1, __local double2 *tmp2){\n\
   size_t i = get_local_id(0);\n\
   size_t j = get_local_id(1);\n\
   size_t ig = get_global_id(0);\n\
   size_t jg = get_global_id(1);\n\
   \n\
+  double2 result __attribute__ ((aligned (16)));\n\
+  double2 a_t __attribute__ ((aligned (16)));\n\
+  double2 b_t __attribute__ ((aligned (16)));\n\
+  result = (double2)(0.0, 0.0);\n\
   size_t index = 0;\n\
-  double2 result = (double2)(0.0, 0.0);\n\
   while( index < k) {\n\
     //load first matrix in tmp1\n\
     tmp1[j*(BUFFER_SIZE) + i] = (ig < m && (index + j) <  k) ? a[(index+j)*lda + ig] : (double2)(0.0, 0.0);\n\
@@ -174,14 +177,12 @@ __kernel __attribute__((vec_type_hint(double2))) void gemmKernel_z( uint m, uint
     barrier(CLK_LOCAL_MEM_FENCE);\n\
     #pragma unroll\n\
     for(size_t sumi=0; sumi<BUFFER_SIZE; sumi++){\n\
-      double2 a_t;\n\
-      double2 b_t;\n\
       a_t = tmp1[sumi*(BUFFER_SIZE) + i];\n\
       b_t = tmp2[ j*(BUFFER_SIZE) + sumi];\n\
-      result.x += a_t.x*b_t.x;\n\
-      result.x +=-a_t.y*b_t.y;\n\
-      result.y += a_t.x*b_t.y;\n\
-      result.y += a_t.y*b_t.x;\n\
+      result.x = mad(a_t.x,b_t.x,mad(-a_t.y,b_t.y,result.x));\n\
+//      result.x = mad(-a_t.y,b_t.y,result.x);\n\
+      result.y = mad(a_t.x,b_t.y,mad(a_t.y,b_t.x,result.y));\n\
+//      result.y = mad(a_t.y,b_t.x,result.y);\n\
     }\n\
     index += BUFFER_SIZE;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
@@ -445,7 +446,7 @@ void inline zgemm_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_
   size_t localWorkSize[] = { block_size_i, block_size_j };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*m), shrRoundUp(block_size_j,*n)  };
   ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-  oclErrorCheck(ciErrNum,"Failed to enqueue gemm kernel!");
+  oclErrorCheck(ciErrNum,"Failed to enqueue zgemm kernel!");
 }
 
 void inline gemm_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
