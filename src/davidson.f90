@@ -769,10 +769,15 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   end if
   !finalize: Retranspose, deallocate
 
+  ! Send all eigenvalues to all procs.
+  call broadcast_kpt_objects(nproc, orbsv%nkpts, orbsv%norb, e(1,1,1), orbsv%ikptproc)
+
   if(iproc==0)then
      if (nspin==1) then
+        write(*,'(1x,a)')'Complete list of energy eigenvalues'
         do ikpt=1,orbsv%nkpts
-           write(*,'(1x,a)')'Complete list of energy eigenvalues'
+           write(*,"(1x,A,I3.3,A,3F12.6)") &
+                & "Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
            do iorb=1,orbs%norb
               write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',&
                    orbs%eval(iorb+(ikpt-1)*orbs%norb)

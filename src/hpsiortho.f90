@@ -38,14 +38,14 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX
-  integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat,i
+  integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
-  integer, dimension(3) :: periodic
-  real(wp) :: maxdiff
-  real(gp) :: eproj,ek_fake,ep_fake
+!OCL  integer, dimension(3) :: periodic
+!OCL  real(wp) :: maxdiff
+!OCL  real(gp) :: eproj,ek_fake,ep_fake
   real(gp), dimension(3,2) :: wrkallred
   real(wp), dimension(:), pointer :: pot
-  real(wp), dimension(:), allocatable :: hpsi_OCL
+!OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
   integer,parameter::lupfil=14
 
   !stream ptr array
@@ -264,12 +264,12 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='hpsitopsi'
-  real(wp), dimension(:), allocatable :: hpsi_OCL
-  integer :: ierr,iorb,k,i_stat,i_all,i
+!OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
+  integer :: ierr,iorb,k,i_stat,i_all
   real(dp) :: tt
   real(wp), dimension(:,:,:), allocatable :: mom_vec
-  real(wp) :: maxdiff
-  integer, dimension(3) :: periodic
+!OCL  real(wp) :: maxdiff
+!OCL  integer, dimension(3) :: periodic
 
   !stream ptr array
  ! real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
@@ -551,7 +551,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
 
   character(len=*), parameter :: subname='last_orthon'
   logical :: dowrite !write the screen output
-  integer :: i_all,i_stat,iorb,jorb,md
+  integer :: i_all,i_stat,iorb,jorb,md,ikpt,isorb
   real(wp), dimension(:,:,:), allocatable :: mom_vec
 
   
@@ -593,6 +593,10 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
           orbs%nspinor,psi,mom_vec)
   end if
 
+  ! Send all eigenvalues to all procs.
+  call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
+       & orbs%eval(1), orbs%ikptproc)
+
   !print the found eigenvalues
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -601,40 +605,45 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
         write(*,'(1x,a)')&
              '           Eigenvalue                                      m_x       m_y       m_z'
      end if
-     if (nspin==1.or.orbs%nspinor==4) then
-        do iorb=1,orbs%norb
-           dowrite =(iorb <= 5 .or. iorb >= orbs%norb-5) .or. verbose > 0
-           if (orbs%nspinor ==4) then
+     do ikpt=1,orbs%nkpts
+        write(*,"(1x,A,I3.3,A,3F12.6)") &
+             & "Kpt #", ikpt, " BZ coord. = ", orbs%kpts(:, ikpt)
+        isorb = (ikpt - 1) * orbs%norb
+        if (nspin==1.or.orbs%nspinor==4) then
+           do iorb=1,orbs%norb
+              dowrite =(iorb <= 5 .or. iorb >= orbs%norb-5) .or. verbose > 0
+              if (orbs%nspinor ==4) then
+                 if (dowrite) & 
+                      write(*,'(1x,a,i4,a,1x,1pe21.14,20x,(1x,3(0pf10.5)))') &
+                      'eval(',iorb,')=',orbs%eval(isorb + iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
+              else
+                 if (dowrite) & 
+                      write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',orbs%eval(isorb + iorb)
+              end if
+           end do
+        else
+           do iorb=1,min(orbs%norbu,orbs%norbd)
+              jorb=orbs%norbu+iorb
+              dowrite =(iorb <= 5 .or. iorb >= min(orbs%norbu,orbs%norbd)-5)  .or. verbose > 0
               if (dowrite) & 
-                   write(*,'(1x,a,i4,a,1x,1pe21.14,20x,(1x,3(0pf10.5)))') &
-                   'eval(',iorb,')=',orbs%eval(iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
-           else
-              if (dowrite) & 
-                   write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',orbs%eval(iorb)
+                   write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
+                   'eval(',iorb,',u)=',orbs%eval(isorb + iorb),'eval(',iorb,',d)=',orbs%eval(isorb + jorb)
+           end do
+           if (orbs%norbu > orbs%norbd) then
+              do iorb=orbs%norbd+1,orbs%norbu
+                 dowrite =(iorb <= 5 .or. iorb >= orbs%norbu-5) .or. verbose > 0
+                 if (dowrite) & 
+                      write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,',u)=',orbs%eval(isorb + iorb)
+              end do
+           else if (orbs%norbd > orbs%norbu) then
+              do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
+                 dowrite =(iorb <= 5 .or. iorb >= orbs%norbd-5) .or. verbose > 0
+                 if (dowrite) & 
+                      write(*,'(50x,a,i4,a,1x,1pe21.14)') 'eval(',iorb-orbs%norbu,',d)=',orbs%eval(isorb + iorb)
+              end do
            end if
-        end do
-     else
-        do iorb=1,min(orbs%norbu,orbs%norbd)
-           jorb=orbs%norbu+iorb
-           dowrite =(iorb <= 5 .or. iorb >= min(orbs%norbu,orbs%norbd)-5)  .or. verbose > 0
-           if (dowrite) & 
-                write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-                'eval(',iorb,',u)=',orbs%eval(iorb),'eval(',iorb,',d)=',orbs%eval(jorb)
-        end do
-        if (orbs%norbu > orbs%norbd) then
-           do iorb=orbs%norbd+1,orbs%norbu
-              dowrite =(iorb <= 5 .or. iorb >= orbs%norbu-5) .or. verbose > 0
-              if (dowrite) & 
-              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,',u)=',orbs%eval(iorb)
-           end do
-        else if (orbs%norbd > orbs%norbu) then
-           do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
-              dowrite =(iorb <= 5 .or. iorb >= orbs%norbd-5) .or. verbose > 0
-              if (dowrite) & 
-                   write(*,'(50x,a,i4,a,1x,1pe21.14)') 'eval(',iorb-orbs%norbu,',d)=',orbs%eval(iorb)
-           end do
         end if
-     end if
+     end do
   end if
 
   if (orbs%nspinor ==4) then
@@ -1168,3 +1177,20 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
 
 
 END SUBROUTINE check_communications
+
+subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
+  use module_base
+  implicit none
+  integer, intent(in) :: nproc, nkpts, ndata
+  integer, intent(in) :: ikptproc(nkpts)
+  real(gp), intent(inout) :: data(ndata, nkpts)
+
+  integer :: ikpt, ierr
+
+  if (nproc > 1) then
+     do ikpt = 1, nkpts
+        call MPI_BCAST(data(1,ikpt), ndata, MPI_DOUBLE_PRECISION, &
+             & ikptproc(ikpt), MPI_COMM_WORLD, ierr)
+     end do
+  end if
+end subroutine broadcast_kpt_objects
