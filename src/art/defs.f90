@@ -1,9 +1,9 @@
 !!****m* art/defs
 !! FUNCTION
-!!    This module defines all variables used accross the program ART01
+!!   This module defines all variables used accross the program ART
 !!
 !! COPYRIGHT
-!!    Copyright N. Mousseau, May 2001
+!!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -36,10 +36,11 @@ module defs
   integer, parameter :: FSTARTCONF   = 12
   integer, parameter :: FRESTART     = 9        
   integer, parameter :: XYZ          = 13  
+  integer, parameter :: CRESTART     = 14
   ! Name of the file storing the current configurations
   character(len=20) :: conf_initial, conf_saddle, conf_final
   
-  integer, dimension(:), allocatable          :: type       ! Atomic type
+  integer, dimension(:), allocatable          :: type                ! Atomic type
   real(8), dimension(:), allocatable, target  :: force      ! Working forces on the atoms
   real(8), dimension(:), allocatable, target  :: pos        ! Working positions of the atoms
   real(8), dimension(:), allocatable, target  :: posref     ! Reference position
@@ -88,7 +89,8 @@ module defs
   real(8) :: DIIS_FORCE_THRESHOLD           ! Force Threshold to leave the algorithm
   real(8) :: DIIS_STEP                      ! Step used to update positions in DIIS
 
-
+  logical :: SAVE_CONF_INT                  ! Save the configuration at every step?
+  
   character(len=20) :: LOGFILE
   character(len=20) :: EVENTSLIST
   character(len=20) :: REFCONFIG
@@ -97,6 +99,7 @@ module defs
   character(len=11) :: COUNTER
   character(len=11) :: RESTARTFILE
   character(len=20) :: eventtype 
+  character(len=11) :: pos_units = "angstroem"
 
   include 'mpif.h'
 

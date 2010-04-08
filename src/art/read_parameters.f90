@@ -1,21 +1,25 @@
-
-subroutine read_parameters()
+!!****f* art/read_parameters
+!! FUNCTION
+!!   Read the parameters defining the run 
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2001 Normand Mousseau
+!!    Copyright (C) 2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!! SOURCE
+!!
+subroutine read_parameters( )
 
   use defs
   use lanczos_defs
   use saddles
-
   implicit none  
-  integer :: ierror,i 
-  logical :: exists_already
-  character(len=40)  :: temporary 
-  !character(len=20)  :: eventtype
-  character(len=100) :: fname
-  character(len=150) :: commande
-  character(len=9)   :: digit = "123456789"
 
-  ! We first read the parameters defining the run
-
+  !Local variables
+  Character(len=40)  :: temporary 
 
   call getenv('EVENT_TYPE', temporary)
   if (temporary .eq. '') then
@@ -72,7 +76,6 @@ subroutine read_parameters()
      read(temporary,*) maxnei
   endif
 
-
   ! File names
   call getenv('LOGFILE', temporary)
   if (temporary .eq. '') then
@@ -123,6 +126,12 @@ subroutine read_parameters()
      read(temporary,*) RESTARTFILE
   endif
 
+  call getenv('Save_Conf_Int', temporary)
+  if (temporary .eq. '') then
+     SAVE_CONF_INT = .false. 
+  else
+     read(temporary,*) SAVE_CONF_INT
+  endif
 
   ! Reading details for activation
   ! Read type of events - local or global
@@ -190,7 +199,6 @@ subroutine read_parameters()
      read(temporary,*) MAXKTER
   endif
 
-
   ! Number of relaxation perpendicular moves - basin and activation
   call getenv('Max_Perp_Moves_Basin',temporary)
   if (temporary .eq. '') then
@@ -230,7 +238,6 @@ subroutine read_parameters()
   else
      read(temporary,*) FTHRESHOLD
   endif
-  FTHRESH2 = FTHRESHOLD * FTHRESHOLD
 
   ! Force threshold for the convergence at the saddle point
   call getenv('Exit_Force_Threshold',temporary)
@@ -240,13 +247,28 @@ subroutine read_parameters()
      read(temporary,*) EXITTHRESH
   endif
 
-
   ! Force threshold for the convergence at the saddle point
   call getenv('Number_Lanczos_Vectors',temporary)
   if (temporary .eq. '') then
      NVECTOR_LANCZOS = 16
   else
      read(temporary,*) NVECTOR_LANCZOS
+  endif
+
+  ! The step of the numerical derivative of forces for the Hessian 
+  call getenv('Step_Lanczos',temporary)
+  if (temporary .eq. '') then
+     INC_LANCZOS =  0.01
+  else
+     read(temporary,*) INC_LANCZOS 
+  endif
+
+  ! Calculation of the Hessian for each minimum
+  call getenv('Lanczos_of_minimum',temporary)
+  if (temporary .eq. '') then
+     LANCZOS_MIN = .true. 
+  else
+     read(temporary,*)  LANCZOS_MIN
   endif
 
   ! The prefactor for pushing over the saddle point, fraction of distance from
@@ -257,7 +279,6 @@ subroutine read_parameters()
   else
     read(temporary,*) PUSH_OVER
   endif
-
 
   ! We now get the types - define up to 5
   call getenv('type1',temporary)
@@ -340,7 +361,7 @@ subroutine read_parameters()
         read(temporary,*) DIIS_MAXITER
      endif
 
-     call getenv('DISS_Check_Eigenvector',temporary)
+     call getenv('DIIS_Check_Eigenvector',temporary)
      if (temporary .eq. '') then
         DIIS_CHECK_EIGENVEC = .true.
      else
@@ -361,6 +382,29 @@ subroutine read_parameters()
      DIIS_CHECK_EIGENVEC  = .false.
   endif
   
+END SUBROUTINE read_parameters
+!!***
+
+
+!!****f* read_parameters/write_parameters
+!! FUNCTION
+!!   Write the parameters defining the run 
+!! SOURCE
+!!
+subroutine write_parameters( )
+
+  use defs
+  use lanczos_defs
+  use saddles
+  implicit none  
+
+  !Local variables
+  integer :: ierror, i 
+  logical :: exists_already
+  character(len=100) :: fname
+  character(len=150) :: commande
+  character(len=9)   :: digit = "123456789"
+
   ! We set up other related parameters
   vecsize = 3*natoms
 
@@ -376,7 +420,6 @@ subroutine read_parameters()
   ! Vectors for lanczos
   allocate(old_projection(VECSIZE))
   allocate(projection(VECSIZE))
-  allocate(first_projection(VECSIZE))
 
   x => pos(1:NATOMS)
   y => pos(NATOMS+1:2*NATOMS)
@@ -390,43 +433,47 @@ subroutine read_parameters()
   fy => force(NATOMS+1:2*NATOMS)
   fz => force(2*NATOMS+1:3*NATOMS)
 
-  ! We first check whether the file "LOGFILE" exists. If so, we copy it before
+  ! We check whether the file "LOGFILE" exists. If so, we copy it before
   ! we start.
+  if ( iproc == 0 ) then
+
   fname = LOGFILE
-  do i=1, 9 
-    inquire(file=fname,exist=exists_already)
-    if (exists_already)  then
+  do i = 1, 9 
+    inquire( file = fname, exist = exists_already )
+    if ( exists_already ) then
        fname = trim(LOGFILE) // "." // digit(i:i)
     else 
-       if (i .gt. 1 ) then
-         commande = "mv " // LOGFILE // "  " // fname
-         call system(commande)
-       endif
-       exit
-    endif 
+       if ( i > 1 ) Then
+          commande = "mv " // LOGFILE // "  " // fname
+          call system ( commande )
+       end if
+       Exit
+    end if 
   end do
 
   ! We write down the various parameters for the simulation
   open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='rewind',iostat=ierror)  
-  write(flog,'(A39,f16.3)')  ' Version number of siestart           : ', VERSION_NUMBER
-  write(flog,*) ' '
-  write(flog,'(A39,A16  )')  ' Event type                           : ', eventtype
-  write(flog,'(A39,f16.4)')  ' Temperature                          : ', temperature
-  write(flog,'(A39,I16  )')  ' Number of atoms                      : ', natoms     
-  write(flog,'(A39,I16  )')  ' Number of events                     : ', number_events
-  write(flog,'(A39,I16  )')  ' Maximum number of neighbours         : ', maxnei    
+  write(flog,*) 'WELCOME TO BART : BigDFT + ART '
+  write(flog,*) '********************** '
+  write(flog,'(1X,A39,f12.3)')  ' - Version number of BART            : ', VERSION_NUMBER
+  write(flog,*) ''
+  write(flog,'(1X,A39,A12  )')  ' - Event type                        : ', trim(eventtype)
+  write(flog,'(1X,A39,f12.4)')  ' - Temperature                       : ', temperature
+  write(flog,'(1X,A39,I12  )')  ' - Number of atoms                   : ', natoms     
+  write(flog,'(1X,A39,I12  )')  ' - Number of events                  : ', number_events
+  write(flog,'(1X,A39,I12  )')  ' - Maximum number of neighbours      : ', maxnei    
 
-  write(flog,'(A39  )')  ' Atomic types                         : '
+  write(flog,'(1X,A39  )')  ' - Atomic types                      : '
   do i =1, 5
      if (type_name(i) .ne. '') then
-        write(flog,'(A31,i1,A5,a4  )')  '                          Type ',i,'   : ', type_name(i)
+        write(flog,'(1X,A31,I3,A5,a12  )')  ' Type ',i,': ', trim(type_name(i))
      endif
   end do
 
   write(flog,*) ' '
   write(flog,*) 'Selection of the event '
   write(flog,*) '********************** '
-  write(flog,'(1X,A39,A12)')   ' - Type of events                    : ', TYPE_EVENTS
+  write(flog,'(1X,A39,A12)')   ' - Type of events                    : ', trim(TYPE_EVENTS)
   if (TYPE_EVENTS .eq. 'local') then 
     write(flog,'(1X,A39,f12.4)')   ' - Radius of deformation (local ev.) : ', LOCAL_CUTOFF
     if (preferred_atom .gt. 0) then 
@@ -438,13 +485,15 @@ subroutine read_parameters()
   write(flog,*) ' '
   write(flog,*) 'Activation parameters '
   write(flog,*) '********************* '
-  write(flog,'(1X,A39,F12.4)') ' - Eigenvalue threshold              : ', EIGEN_THRESH
-  write(flog,'(1X,A39,F12.4)') ' - Total force threshold (saddle)    : ', EXITTHRESH
-
-  write(flog,'(1X,A39,F12.4)') ' - Initial step size                 : ', INITSTEPSIZE
-  write(flog,'(1X,A39,F12.4)') ' - Increment size                    : ', INCREMENT
-  write(flog,'(1X,A51,I8   )') ' - Number of vectors computed by Lanzcos         : ', NVECTOR_LANCZOS
+  write(flog,'(1X,A51,F8.4)')  ' - Eigenvalue threshold                          : ', EIGEN_THRESH
+  write(flog,'(1X,A51,F8.4)')  ' - Total force threshold (saddle)                : ', EXITTHRESH
+  write(flog,'(1X,A51,F8.4)')  ' - Initial step size                             : ', INITSTEPSIZE
+  write(flog,'(1X,A51,F8.4)')  ' - Increment size                                : ', INCREMENT
+  write(flog,'(1X,A51,F8.4)')  ' - Atomic displacement for breaking the symmetry : ', sym_break_dist
+  write(flog,'(1X,A51,I8)')    ' - Number of vectors computed by Lanzcos         : ', NVECTOR_LANCZOS
+  write(flog,'(1X,A51,F8.4)')  ' - Step in the Lanzcos method                    : ', INC_LANCZOS
   write(flog,*) ' '
+  write(flog,'(1X,A51,L8)')    ' - Calculation of the Hessian for each minimum   : ', LANCZOS_MIN
   write(flog,'(1X,A51,I8)')    ' - Min. number of ksteps before calling lanczos  : ', KTER_MIN
   write(flog,'(1X,A51,F8.4)')  ' - Factor mulp. INCREMENT for leaving basin      : ', BASIN_FACTOR
   write(flog,'(1X,A51,I8)')    ' - Maximum number of iteractions (basin -kter)   : ', MAXKTER
@@ -456,26 +505,30 @@ subroutine read_parameters()
   write(flog,'(1X,A51,F8.4)')  ' - Fraction of displacement over the saddle      : ', PUSH_OVER
 
   write(flog,*) ' '
-  write(flog,'(1X,A36,L6)')    'Use DIIS for convergence to saddle : ', USE_DIIS
+  write(flog,'(1X,A39,L12)')    ' Use DIIS for convergence to saddle  : ', USE_DIIS
   if (USE_DIIS) then
-     write(flog,'(1X,A36,F30.4)') ' - Total force threshold           : ', DIIS_FORCE_THRESHOLD
-     write(flog,'(1X,A36,F30.4)') ' - Step size to update positions   : ', DIIS_STEP
-     write(flog,'(1X,A36,I15)')   ' - Memory (number of steps)        : ', DIIS_MEMORY
-     write(flog,'(1X,A36,I15)')   ' - Maximum number of iterations    : ', DIIS_MAXITER
-     write(flog,'(1X,A36,L6)')    ' - Check eigenvector at saddle     : ', DIIS_CHECK_EIGENVEC
+     write(flog,'(1X,A39,F12.4)') ' - Total force threshold           : ', DIIS_FORCE_THRESHOLD
+     write(flog,'(1X,A39,F12.4)') ' - Step size to update positions   : ', DIIS_STEP
+     write(flog,'(1X,A39,I12)')   ' - Memory (number of steps)        : ', DIIS_MEMORY
+     write(flog,'(1X,A39,I12)')   ' - Maximum number of iterations    : ', DIIS_MAXITER
+     write(flog,'(1X,A39,L12)')   ' - Check eigenvector at saddle     : ', DIIS_CHECK_EIGENVEC
   endif
-
 
   write(flog,*) ' '
   write(flog,*) 'Input / Output '
   write(flog,*) '********************* '
-  write(flog,'(A39,A16  )')  ' Name of log file                     : ', logfile
-  write(flog,'(A39,A16  )')  ' Liste of events                      : ', eventslist 
-  write(flog,'(A39,A16  )')  ' Reference configuration              : ', refconfig   
-  write(flog,'(A39,A16  )')  ' Restart file                         : ', restartfile
-  write(flog,'(A39,A16  )')  ' Prefix for minima (file)             : ', FINAL      
-  write(flog,'(A39,A16  )')  ' Prefix for saddle points             : ', SADDLE
-  write(flog,'(A39,A16  )')  ' File with filecounter                : ', counter
-
+  write(flog,'(1X,A39,A15)')  ' - Name of log file                  : ', trim(LOGFILE) 
+  write(flog,'(1X,A39,A15)')  ' - Liste of events                   : ', trim(eventslist) 
+  write(flog,'(1X,A39,A15)')  ' - Reference configuration           : ', trim(refconfig) 
+  write(flog,'(1X,A39,A15)')  ' - Restart file                      : ', trim(restartfile)
+  write(flog,'(1X,A39,A15)')  ' - Prefix for minima (file)          : ', trim(FINAL)      
+  write(flog,'(1X,A39,A15)')  ' - Prefix for saddle points          : ', trim(SADDLE)
+  write(flog,'(1X,A39,A15)')  ' - File with filecounter             : ', trim(counter)
+  write(flog,*) '********************* '
+  write(flog,*) ' '
   close(flog)
-END SUBROUTINE
+
+  End If
+
+END SUBROUTINE write_parameters
+!!***

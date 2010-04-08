@@ -1,9 +1,9 @@
 !!****p* BigDFT/art90
 !! FUNCTION
-!!  Main program to use BigDFT with art nouveau method
+!!   Main program to use BigDFT with art nouveau method
 !!
 !! COPYRIGHT
-!!    Copyright Normand Mousseau, July 2001
+!!    Copyright (C) Normand Mousseau, June 2001
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -14,202 +14,268 @@
 !!
 program art90
 
-  use DEFS
-  use RANDOM
-  use lanczos_defs
+  use defs 
+  use random 
+  use lanczos_defs, Only: projection
+  implicit None
 
-  implicit none
-
-  integer :: ierror
+  integer :: ierror, ierr
   integer :: npart             ! Number of atoms participating to the eventt
-  real(8) :: del_r
+  real(8) :: delr
   real(8) :: ran3, random_number
   real(8) :: difpos
+  real(8) :: saddle_energy
   real(8), dimension(:), allocatable :: del_pos
 
-  logical :: success
-  character(8) :: date
+  logical       :: success
+  character(8)  :: date
   character(10) :: time
-  character(5) :: zone
-  character(len=20) :: fname
-  character(4) :: scounter
+  character(5)  :: zone
+  character(20) :: fname
+  character(4)  :: scounter
   integer, dimension(8) :: value
 
-  call read_parameters()
-  call initialize_potential()
+! _________
+                                      ! Read options.
+  call read_parameters( )
 
-  allocate(del_pos(VECSIZE))
+  call MPI_INIT(ierr)
+  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-  ! Only do for the main process
-  if (iproc .eq. 0 ) then
+                                      ! Write options in LOGFILE 
+  call write_parameters( )
+
+                                      ! Initialize BigDFT
+  call initialize_potential() 
+
+  if ( iproc == 0 ) then              ! Work only on the master node. 
+
+                                      ! Initialization of seed in random.
      call date_and_time(date,time,zone,value)
      idum = -1 * mod( (1000 * value(7) + value(8)), 1024) 
 
-     open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
-     write(flog,*) 'The seed is : ', idum
-     del_r = ran3()
-  endif
+                                      ! We decide whether or not we restart,
+                                      ! if the restart exists, then we restart.
+     inquire ( file = restartfile, exist = restart )
 
-  ! We now decide whether or not we restart if the restart exists, then we restart
-  inquire(file=restartfile,exist=restart)
-  write(flog,*) 'Restart : ', restart
-  close(unit=flog)
+                                      ! Write
+     open( unit = FLOG, file = LOGFILE, status = 'unknown',&
+         & action = 'write', position = 'append', iostat = ierror )
+     write(FLOG,'(1X,A34,I17)') ' - The seed is                  : ', idum
+     write(FLOG,'(1X,A34,L17)') ' - Restart                      : ', restart
+     close(FLOG)
 
-  if (restart) then          ! Restarts the initial configuration
-     open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
-     write(flog,*) 'call restart'   
-     call restart_states(state_restart,ievent_restart,iter_restart) 
-     close(unit=flog)
+  end if
+
+  if ( restart ) then                 ! Restarts the initial configuration.
+
+                                      ! Write
+     if ( iproc == 0 ) then 
+      open( unit = FLOG, file = LOGFILE, status = 'unknown',&
+          & action = 'write', position = 'append', iostat = ierror )
+      write(FLOG,'(1X,A)') ' Call restart'   
+      close(FLOG)
+     end if 
+
+     call restart_states( state_restart, ievent_restart, iter_restart )
+
   else 
-     open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
-     write(flog,*) 'Start with new event'
-     close(unit=flog)
-     call initialize()       ! Read in the initial configuration
-     ievent_restart = 1
-     
-     if (iproc .eq. 0 ) call write_refconfig() 
-  endif
+                                      ! Write
+     if ( iproc == 0 ) then
+      open( unit = FLOG, file = LOGFILE, status = 'unknown',&
+          & action = 'write', position = 'append', iostat = ierror )
+      write(FLOG,'(1X,A)') ' Start with new event    '
+      close(FLOG)
+     end if 
 
-  ! We define the name of the initial file
-  mincounter = mincounter -1
-  call convert_to_chain(mincounter,scounter)
+     call initialize()                ! Read in the initial configuration
+     ievent_restart = 1
+    
+     if ( iproc == 0 ) call write_refconfig( ) 
+
+  end if
+
+                                      ! We define the name of the initial file.
+  mincounter = mincounter - 1
+  if ( iproc == 0 ) call convert_to_chain( mincounter, scounter )
   fname = FINAL // scounter
   conf_initial = fname
-  mincounter = mincounter +1
+  mincounter = mincounter + 1
 
-  do ievent= ievent_restart, NUMBER_EVENTS         ! Main loop over the events
+                                      ! Main loop over the events.
+  Do_ev: do ievent = ievent_restart, NUMBER_EVENTS  
 
-    if (iproc .eq. 0 )  call print_newevent(ievent,temperature)
+     if ( iproc == 0 ) call print_newevent( ievent, temperature )
 
-    ! We look for a local saddle point b
-
-    ! If it is a restart event for the activation, phase 1 or 2, or it is not a restart event
-    ! then we call find_saddle
-    if ( .not. (restart .and. (state_restart .eq. 3))  ) then
-       do 
-          call find_saddle( success )
+                                      ! If it is a restart event for the activation,
+                                      ! phase 1 or 2, or it is not a restart event
+                                      ! then we call find_saddle.
+     if ( .not. ( restart .and. ( state_restart == 3 ) ) ) then
+        do 
+          call find_saddle( success, saddle_energy )
           if ( success ) exit
-       end do
-    endif
+        end Do
+     end if
+                                      ! If not a new event, then a convergence to
+                                      ! the saddle point, We do not go further.
+     if ( .not. NEW_EVENT .and. ( eventtype == 'REFINE_SADDLE' ) ) stop
+     
+                                      ! If it is a restart event of type 3, we 
+                                      ! are starting at the right point.
+     if ( restart .and. ( state_restart == 3 ) ) then
 
-    ! If not a new event, then a convergence to the saddle point, We do not go further
-    if( .not.NEW_EVENT .and. (eventtype .eq. 'REFINE_SADDLE') ) stop
+                                      ! Write
+        if ( iproc == 0 ) then
+         open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
+             & action = 'write', position = 'append', iostat = ierror )
+         write(FLOG,'(1X,A)') ' - Restart event'
+         write(FLOG,'(1X,A)') ' - We restart at the saddle point '
+         close(FLOG)
+        end if
 
-    ! If it is a restart event of type 3, we are starting at the right point
-    if ( restart .and. (state_restart .eq. 3) ) then
-       if (iproc .eq. 0 )  then
-          open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
-          write(flog,*) 'Restart event'
-          write(flog,*) 'We restart at the saddle point '
-          close(unit=flog)
-       endif
-       restart = .false.
-    else ! We save the current state for a possible restart
-       state_restart = 3
-       iter_restart = 0
-        if (iproc .eq. 0 ) call save_state(state_restart,iter_restart,projection)
-    endif
+        restart = .false.
 
-    ! Push the configuration slightly over the saddle point in order to minimise 
-    ! the odds that it falls back into its original state
+     else                                  
+                                      ! We save the current state for a possible 
+                                      ! restart.
+        state_restart = 3
+        iter_restart  = 0
+        if ( iproc == 0 ) call save_state( state_restart, iter_restart, projection )
 
-    ! we first compute the displacement
+     end if
 
-    del_pos(:) =  pos(:) - posref(:)
-    difpos = sqrt( dot_product(del_pos,del_pos) )
+                                      ! Push the configuration slightly over the
+                                      ! saddle point in order to minimise  the odds 
+                                      ! that it falls back into its original state.
+     
+                                      ! We first compute the displacement.
+     allocate(del_pos(VECSIZE))
+     del_pos =  pos - posref
+     difpos  = sqrt( dot_product(del_pos,del_pos) )
+     deallocate(del_pos)
 
-    ! Projection points away from the initial minimum
-    pos(:) = pos(:) + PUSH_OVER * difpos * projection(:)
+                                      ! Projection points away from the initial 
+                                      ! minimum.
+     pos = pos + PUSH_OVER * difpos * projection
 
-    ! And we converge to the new minimum.
-    call min_converge()
+                                      ! And we converge to the new minimum.
+     call min_converge( )
 
-    ! We need to write the configuration in a min.... file
-    call convert_to_chain(mincounter,scounter)
-     if (iproc .eq. 0 ) write(*,*) ' Mincounter is : ', mincounter, ' and scounter is ', scounter
-    fname =   FINAL // scounter
+                                      ! We write the configuration in a min.... file
+     if ( iproc == 0 ) call convert_to_chain( mincounter, scounter )
+     if ( iproc == 0 ) write(*,*) 'BART: Mincounter is : ', mincounter,&
+                       & ' and scounter is ', scounter
+     fname = FINAL // scounter
 
-    ! Compute the displacement and the number of atoms involved in the event     
-    call displacement(pos,posref,del_r,npart)
-    
-    ! We now store the configuration into fname
-    if (iproc .eq. 0 ) call store(fname)
+                                      ! Magnitude of the displacement (utils.f90).
+     call displacement( posref, pos, delr, npart )
+     
+     if ( iproc == 0 ) then
+                                      ! We now store the configuration into fname
+        Call store( fname ) 
+                                      ! Open files.
+        open( unit = FLOG, file = LOGFILE, status = 'unknown',&
+            & action = 'write', position = 'append', iostat = ierror ) 
+        open( unit = FLIST, file = EVENTSLIST, status = 'unknown',&
+            & action = 'write', position = 'append', iostat = ierror )
+                                      ! Write
+        write(*,*) 'BART: Configuration stored in file ',fname
+        write(FLOG,'(1X,A34,A17)') ' - Configuration stored in file : ', trim(fname)
+     end if
 
-    if (iproc .eq. 0 )  then
-       open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
-       write(*,*) 'Configuration stored in file ',fname
-       write(FLOG,*) 'Configuration stored in file ',fname
-    endif
+     conf_final = fname
+     mincounter = mincounter+1
 
-    conf_final = fname
-    mincounter = mincounter+1
+                                      ! Write 
+     if ( iproc == 0 )  then
+      write(FLOG,'(1X,A34,(1p,e17.10,0p))')&
+      &  ' - Total energy Minimum (eV)    : ', total_energy 
+      write(FLOG,'(1X,A34,F17.6)')&
+      &  ' - E( fin-ini )                 : ', total_energy - ref_energy
+      write(FLOG,'(1X,A34,F17.6)')& 
+      &  ' - E( fin-sad )                 : ', total_energy - saddle_energy  
+      write(FLOG,'(1X,A34,I17)')&
+      &  ' - npart                        : ', npart
+      write(FLOG,'(1X,A34,F17.4)')&
+      &  ' - delr( fin-ini )              : ', delr
+      write(FLOG,'(1X,A34,I17)')&
+      &  ' - evalf_number                 : ', evalf_number
+      write(*,"(' ','BART: Total energy M: ',(1p,e17.10,0p),'  npart: ', i4,'  delr: ',&
+      & f12.6,' Number evaluations: ',i6)") &
+      & total_energy, npart, delr, evalf_number
+     end if
 
-    ! We write out various information to both screen and file
-    if (iproc .eq. 0 )  then
-       write(*,*) 'Total energy M: ', total_energy, '  npart: ',npart, &
-            'del_r: ',del_r,' Number evaluations: ', evalf_number
+                                      ! Now, we accept or reject this move based
+                                      ! on a Boltzmann weight.
+     if ( iproc == 0 ) random_number = ran3()
 
-       write(FLOG,*) 'Total energy M: ', total_energy, '  npart: ',npart, &
-            'del_r: ',del_r,' Number evaluations: ', evalf_number
+     If_bol: if ( ( (total_energy - ref_energy) < -temperature * log( random_number ) )& 
+                & .and. ( temperature >= 0.0d0 ) ) then
 
-       ! Now, we accept or reject this move based on a Boltzmann weight
+                                      ! Write 
+        if ( iproc == 0 ) Then        
+         write(FLIST,*) conf_initial, conf_saddle, conf_final,'    accepted'
+         close(FLIST)
 
-       open(unit=FLIST,file=EVENTSLIST,status='unknown',action='write',position='append',iostat=ierror)
-    endif
+         write(*,*) 'BART: New configuration accepted, mincounter was: ', mincounter-1
+         write(FLOG,*) ' New configuration ACCEPTED'
+         write(FLOG,'(1X,A34,F17.6)')&
+         & ' - -T*log( random_number )      : ', -temperature*log( random_number ) 
+         write(FLOG,'(1X,A34,I17)') ' - mincounter was               : ', mincounter-1
+        end if
 
-    if (iproc .eq. 0 ) random_number = ran3()
-    call MPI_Bcast(random_number,1,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
+                                      ! We now redefine the reference configuration
+        scalaref     = scala
+        posref       = pos     
+        conf_initial = conf_final
+        ref_energy   = total_energy
 
-    if( ( (total_energy - ref_energy) < -temperature * log(ran3()) ) .and. (temperature .ge. 0.0d0) ) then
+        if ( eventtype == "REFINE_AND_RELAX" ) then
+           close (FLIST) 
+           close (FLOG)
+           stop
+        end if 
+                                      ! Update the reference configuration file,
+                                      ! which serves as the initial configuration
+                                      ! for events.
+        if ( iproc == 0 ) call write_refconfig( ) 
 
-       if (iproc .eq. 0 ) then        
-          write(*,*) 'New configuration accepted, mincounter was : ', mincounter-1
-          write(FLOG,*) 'New configuration accepted, mincounter was : ', mincounter-1
-          write(FLIST,*) conf_initial, conf_saddle, conf_final,'    accepted'
-       endif
+     else                             ! Else If_bol:
+                                      ! The event is not accepted; we start
+                                      ! from the previous refconfig.
 
-      ! We now redefine the reference configuration
-      scalaref = scala
-      posref= pos          ! This is a vectorial copy
-      conf_initial = conf_final
+                                      ! Write
+        if ( iproc == 0 ) then
+         if (( total_energy - ref_energy ) > 1.0d-5 )  then
+             write(FLIST,*) conf_initial, conf_saddle, conf_final,'    rejected'
+         else  
+             write(FLIST,*) conf_initial, conf_saddle, conf_final,'    exchanged'
+         end if
 
-      ref_energy = total_energy
+         write(*,*) 'BART: New configuration rejected, mincounter was : ', mincounter-1
+         write(FLOG,*) ' New configuration REJECTED'
+         write(FLOG,'(1X,A34,F17.6)')&
+         & ' - log( random_number )         : ', log( random_number )
+         write(FLOG,'(1X,A34,I17)') ' - mincounter was               : ', mincounter-1
+        end if
 
-      if (eventtype .eq. "REFINE_AND_RELAX") then
-         stop
-      endif
+     end if If_bol
 
-      ! Update the reference configuration file, which serves as the initial
-      ! configuration for events.
-       if (iproc .eq. 0 ) call write_refconfig() 
-    else
+     if ( iproc == 0 ) then
 
-       if (iproc .eq. 0 ) then
-        write(*,*) 'New configuration rejected, mincounter was : ', mincounter-1
-        write(FLOG,*) 'New configuration rejected, mincounter was : ', mincounter-1
+        open(unit=FCOUNTER,file=COUNTER,status='unknown',action='write',iostat=ierror)
+        write(FCOUNTER,'(A12,I6)') 'Counter:    ', mincounter
+        close(FCOUNTER)
+        close(FLOG)
+        close(FLIST)
+       
+     end if
 
-        ! The events is not accepted; we start from the previous refconfig
-        if((total_energy - ref_energy) > 1.0d-5)  then
-           write(FLIST,*) conf_initial, conf_saddle, conf_final,'    rejected'
-        else  
-           write(FLIST,*) conf_initial, conf_saddle, conf_final,'    exchanged'
-        endif
-     endif
-    endif
+  end do Do_ev
 
-    if (iproc .eq. 0 )  then
-       close(FLIST)
-       close(FLOG)
+  call finalise_potential( )
 
-       open(unit=FCOUNTER,file=COUNTER,status='unknown',action='write',iostat=ierror)
-       write(FCOUNTER,'(A12,I6)') 'Counter:    ', mincounter
-       close(FCOUNTER)
-    endif
-  end do
-
-  deallocate(del_pos)
-
-  call finalise_potential()
 end program art90
 !!***
 
@@ -219,24 +285,32 @@ end program art90
 !!   This subroutine prints the initial details for a new events
 !! SOURCE
 !!
-subroutine print_newevent(ievent_current,temperat)
+subroutine print_newevent( ievent_current, temperat )
+
   use defs
   implicit none
+
+  !Arguments
   integer, intent(in) :: ievent_current
   real(8), intent(in) :: temperat
-  integer :: ierror;
 
-  write(*,*) 'Simulation : ', ievent_current
-  write(*,*) 'Starting from minconf : ', mincounter
-  write(*,*) 'Temperature : ', temperat
+  !Local variables
+  integer :: ierror
+
+  write(*,*) 'BART: Simulation : ', ievent_current
+  write(*,*) 'BART: Starting from minconf : ', mincounter
+  write(*,*) 'BART: Reference Energy (eV) : ', ref_energy
+  write(*,*) 'BART: Temperature : ', temperat
 
   open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
-  write(FLOG,*) 'Simulation : ', ievent_current
-  write(FLOG,*) 'Starting from minconf : ', mincounter
-  write(FLOG,*) 'Initial energy : ', total_energy 
-  write(FLOG,*) 'Temperature : ', temperat
+  write(FlOG,*) ''
+  write(FLOG,*) ' _______________________________________'
+  write(FLOG,'(1X,A34,I17)') ' - Simulation                   : ', ievent_current
+  write(FLOG,'(1X,A34,I17)') ' - Starting from minconf        : ', mincounter
+  write(FLOG,'(1X,A34,(1p,e17.10,0p))') ' - Reference Energy (eV)        : ', ref_energy 
+  write(FLOG,'(1X,A34,F17.6)') ' - Temperature                  : ', temperat
   close(FLOG)
 
-  return
 END SUBROUTINE print_newevent
 !!***
+

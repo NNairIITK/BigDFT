@@ -10,34 +10,44 @@
 !! SOURCE
 !! 
 module diis_defs
+
   use defs
   implicit none
-  real(8), dimension(:,:), allocatable  :: previous_forces
-  real(8), dimension(:,:), allocatable  :: previous_pos
+
+  real(8), dimension(:,:), allocatable :: previous_forces
+  real(8), dimension(:,:), allocatable :: previous_pos
   real(8), dimension(:,:), allocatable :: product_matrix
-  real(8), dimension(:), allocatable :: tildeforce
+  real(8), dimension(:),   allocatable :: tildeforce
+
 end module diis_defs
 !!***
 
 
 !!****f* art/apply_diis
+!! FUNCTION
 !! SOURCE
 !! 
-subroutine apply_diis(current_energy, ftot)
+subroutine apply_diis( current_energy, ftot, delr, npart )
+
   use defs
   use diis_defs
   use random
   use bigdft_forces
   implicit none
 
+  !Arguments
   real(8), intent(out) :: current_energy
   real(8), intent(out) :: ftot
-  integer :: npart,lter, maxter, ierror
-  real(8) :: boxl, delr
-  real(8), dimension(VECSIZE) :: posb
+  real(8), intent(out) :: delr
+  integer, intent(out) :: npart
+
+  !Local variables
+  integer :: lter, maxter, ierror
+  real(8) :: boxl
+  real(8) :: delta_e                  ! current_energy - ref_energy
+
 
   boxl = box * scala
-  posb = pos
 
   allocate(previous_forces(DIIS_MEMORY,VECSIZE))
   allocate(previous_pos(DIIS_MEMORY,VECSIZE))
@@ -51,33 +61,39 @@ subroutine apply_diis(current_energy, ftot)
   previous_forces(1,:) = tildeforce(:)
   previous_pos(1,:) = pos(:)
   pos(:) = pos(:) + DIIS_STEP * tildeforce(:)
+
   do lter = 2, DIIS_MAXITER
      maxter = min(lter,DIIS_MEMORY)
      call diis(lter,maxter,pos)
      ftot = dsqrt(dot_product(tildeforce,tildeforce))
+     call displacement( posref, pos, delr, npart )
+     delta_e = total_energy - ref_energy
 
-     if (iproc .eq. 0 ) then 
-        call displacement(posb, pos, delr,npart)
-        
-        open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
-        write(FLOG,"(' ','lter: ',i4,'  ener: ',f12.4,'  ftot: ',f12.6,&
-             & '  delr: ',f10.4,'  npart: ',i4,' evalf: ',i7)")  &
-             & lter, total_energy, ftot, delr, npart,evalf_number
-        write(*,"(' ','lter: ',i4,'  ener: ',f12.4,'  ftot: ',f12.6,&
-             & '  delr: ',f10.4,'  npart: ',i4,' evalf: ',i7)")  &
-             & lter, total_energy, ftot, delr, npart,evalf_number
-        close(unit=FLOG)
-     endif
-     if (ftot .lt. DIIS_FORCE_THRESHOLD) exit
+     if ( SAVE_CONF_INT ) call save_intermediate( 'L', lter ) 
+
+                                      ! Write
+     if (iproc == 0 ) then 
+      open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
+          & action = 'write', position = 'append', iostat = ierror )
+      write(FLOG,'(a6,i4,x,F11.4,I3,I2,4f12.4,x,1f10.3,i4,i6,f7.2)') &
+      & "lter=", lter, delta_e, 0, 0, ftot, 0.0, 0.0, 0.0,     &
+      &  delr, npart, evalf_number, 0.0
+      close(FLOG)
+      write(*,'(a,i4,x,(1p,e17.10,0p),i3,i2,4f12.6,x,1f10.4,i4,i6)') &
+      & " BART: lter: '", lter, total_energy, 0, 0, ftot,   & 
+      & 0.0, 0.0, 0.0, delr, npart, evalf_number
+     end if
+
+     if ( ftot .lt. DIIS_FORCE_THRESHOLD ) exit
   end do
 
   current_energy = total_energy
+  force          = tildeforce
   deallocate(previous_forces)
   deallocate(previous_pos)
   deallocate(product_matrix)
   deallocate(tildeforce)
 
-  return
 END SUBROUTINE apply_diis
 !!***
 
@@ -93,14 +109,19 @@ END SUBROUTINE apply_diis
 !! SOURCE
 !! 
 subroutine diis(lter,maxvec, newpos)
+
   use defs
   use diis_defs
   use random
   use bigdft_forces
   implicit none
 
-  integer, intent(in) :: lter, maxvec
+  !Arguments
+  integer, intent(in) :: lter
+  integer, intent(in) :: maxvec
   real(8), intent(out), dimension(VECSIZE) :: newpos
+
+  !Local variables
   real(8), dimension(VECSIZE) :: tildepos
 
   ! Variables for lapack routine
