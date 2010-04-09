@@ -210,8 +210,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
   real(gp), dimension(:,:),allocatable :: fdisp
   ! Charge density/potential,ionic potential, pkernel
-  real(kind=8), dimension(:), allocatable :: pot_ion
-  real(kind=8), dimension(:,:,:,:), allocatable :: rhopot,pot,rhoref,potxc
+  real(dp), dimension(:), allocatable :: pot_ion,rhopot
+  real(gp), dimension(:), allocatable :: atchgs,radii
+  real(kind=8), dimension(:,:,:,:), allocatable :: pot,rhoref,potxc
   real(kind=8), dimension(:), pointer :: pkernel,pkernel_ref
   !wavefunction gradients, hamiltonian on vavefunction
   !transposed  wavefunction
@@ -434,10 +435,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !Allocate Charge density, Potential in real space
   if (n3d >0) then
-     allocate(rhopot(n1i,n2i,n3d,in%nspin+ndebug),stat=i_stat)
+     allocate(rhopot(n1i*n2i*n3d*in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,rhopot,'rhopot',subname)
   else
-     allocate(rhopot(1,1,1,in%nspin+ndebug),stat=i_stat)
+     allocate(rhopot(in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,rhopot,'rhopot',subname)
   end if
   !Allocate XC potential
@@ -786,29 +787,40 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                 rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
                 quiet=PSquiet) !optional argument
 
-!!$           if (endloop .and. .false.) then
-!!$              !calculation of the atomic charges to compare wrt Mulliken
-!!$              !radii to be defined
-!!$              call atomic_charges(iproc,nproc,atoms%geocode,rxyz,radii,&
-!!$                   atoms%alat1,atoms%alat2,atoms%alat3,nelec,atoms%nat,Glr%d,&
-!!$                   hxh,hyh,hzh,n3p,i3s+i3xcsh,rhopot,C)
-!!$           end if
+           !atomic charge calculation with York's method, to be commented out
+           if (endloop .and. in%gaussian_help .and. in%last_run == 1 .and. .false.) then
+
+              allocate(atchgs(atoms%nat+ndebug),stat=i_stat)
+              call memocc(i_stat,atchgs,'atchgs',subname)
+              allocate(radii(atoms%nat+ndebug),stat=i_stat)
+              call memocc(i_stat,radii,'radii',subname)
+
+              call assign_atomic_radii(atoms,radii)
+
+              !calculation of the atomic charges to compare wrt Mulliken
+              !radii to be defined
+              call atomic_charges(iproc,nproc,atoms%geocode,rxyz,radii,&
+                   atoms%alat1,atoms%alat2,atoms%alat3,nelec,atoms%nat,Glr%d,&
+                   hxh,hyh,hzh,n3p,i3s+i3xcsh,rhopot,atchgs)
+
+              i_all=-product(shape(radii))*kind(radii)
+              deallocate(radii,stat=i_stat)
+              call memocc(i_stat,i_all,'radii',subname)
+              i_all=-product(shape(atchgs))*kind(atchgs)
+              deallocate(atchgs,stat=i_stat)
+              call memocc(i_stat,i_all,'atchgs',subname)
+
+           end if
 
            !sum the two potentials in rhopot array
            !fill the other part, for spin, polarised
            if (in%nspin == 2) then
-              !the starting point is not so simple
-              if (n3d > n3p) then
-                 call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1,1,1,1),1,&
-                      rhopot(1,1,n3p+1,1),1)
-              else
-                 call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1,1,1,1),1,&
-                      rhopot(1,1,1,in%nspin),1)
-              end if
+              call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
+                   rhopot(1+n1i*n2i*n3p),1)
            end if
            !spin up and down together with the XC part
            call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
-                rhopot(1,1,1,1),1)
+                rhopot(1),1)
 
         end if
 
@@ -1001,7 +1013,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         if (iproc == 0) write(*,*) 'writing local_potential.pot'
         call plot_density(atoms%geocode,'local_potential.pot',iproc,nproc,&
              n1,n2,n3,n1i,n2i,n3i,n3p,&
-             atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
+             atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot)
      else
         if (iproc == 0) write(*,*) 'writing ionic_potential.cube'
         call plot_density_cube(atoms%geocode,'ionic_potential',iproc,nproc,&
@@ -1010,14 +1022,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         if (iproc == 0) write(*,*) 'writing local_potential.cube'
         call plot_density_cube(atoms%geocode,'local_potential',iproc,nproc,&
              n1,n2,n3,n1i,n2i,n3i,n3p,&
-             in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1,1))
+             in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot)
      endif
   end if
 
 
   if (in%output_grid==3 .and. in%last_run==1) then
 !!$        call plot_density(atoms%geocode,'b2B_xanes.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,1,&
-!!$             atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+!!$             atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot)
 !!$        write(comment,'(a)')'this file to check the positions and calculate shift '
 !!$        call write_atomic_file("b2B_xanes",energy,rxyz,atoms,trim(comment))
   endif
@@ -1090,14 +1102,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
   !calculate the total density in the case of nspin==2
   if (in%nspin==2) then
-     do i3=1,n3p
-        do i2=1,n2i
-           do i1=1,n1i
-              ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-              rho(ind)=rho(ind)+rho(ind+n1i*n2i*n3p)
-           end do
-        end do
-     end do
+     call axpy(n1i*n2i*n3p,1.0_dp,rho(1+n1i*n2i*n3p),1,rho(1),1)
+!!$     do i3=1,n3p
+!!$        do i2=1,n2i
+!!$           do i1=1,n1i
+!!$              ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+!!$              rho(ind)=rho(ind)+rho(ind+n1i*n2i*n3p)
+!!$           end do
+!!$        end do
+!!$     end do
   end if
   if (n3p>0) then
      allocate(pot(n1i,n2i,n3p,1+ndebug),stat=i_stat)
@@ -1108,13 +1121,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
 
   !calculate electrostatic potential
-  call DCOPY(n1i*n2i*n3p,rho,1,pot,1) 
+  call dcopy(n1i*n2i*n3p,rho,1,pot,1) 
   call H_potential(atoms%geocode,'D',iproc,nproc,&
        n1i,n2i,n3i,hxh,hyh,hzh,pot,pkernel,pot,ehart_fake,0.0_dp,.false.)
-
-!!$  call PSolver(atoms%geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-!!$       pot,pkernel,pot,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,quiet=PSquiet)
-  !here nspin=1 since ixc=0
 
   !plot also the electrostatic potential
   if (abs(in%output_grid) == 2 .and. in%last_run==1) then
@@ -1248,6 +1257,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
 
 
+
   i_all=-product(shape(pkernel))*kind(pkernel)
   deallocate(pkernel,stat=i_stat)
   call memocc(i_stat,i_all,'kernel',subname)
@@ -1262,35 +1272,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,pot,'pot',subname)
      
      if (nproc > 1) then
-        call MPI_ALLGATHERV(rhopot(1,1,1,1),n1i*n2i*n3p,&
+        call MPI_ALLGATHERV(rhopot,n1i*n2i*n3p,&
              mpidtypd,pot(1,1,1,1),ngatherarr(0,1),ngatherarr(0,2), & 
              mpidtypd,MPI_COMM_WORLD,ierr)
         !print '(a,2f12.6)','RHOup',sum(abs(rhopot(:,:,:,1))),sum(abs(pot(:,:,:,1)))
         if(in%nspin==2) then
            !print '(a,2f12.6)','RHOdw',sum(abs(rhopot(:,:,:,2))),sum(abs(pot(:,:,:,2)))
-           if (n3d /= n3p) then
-              i03=1+n3p
-              i04=1
-           else
-              i03=1
-              i04=2
-           end if
-           call MPI_ALLGATHERV(rhopot(1,1,i03,i04),n1i*n2i*n3p,&
+           call MPI_ALLGATHERV(rhopot(1+n1i*n2i*n3p),n1i*n2i*n3p,&
                 mpidtypd,pot(1,1,1,2),ngatherarr(0,1),ngatherarr(0,2), & 
                 mpidtypd,MPI_COMM_WORLD,ierr)
         end if
      else
-        do ispin=1,in%nspin
-           !here one could have not allocated pot and: call move_alloc(rhopot,pot) 
-           !(but it is a Fortran 95/2003 spec)
-           do i3=1,n3i
-              do i2=1,n2i
-                 do i1=1,n1i
-                    pot(i1,i2,i3,ispin)=rhopot(i1,i2,i3,ispin)
-                 enddo
-              enddo
-           enddo
-        end do
+        call dcopy(n1i*n2i*n3i*in%nspin,rhopot,1,pot,1)
      end if
      i_all=-product(shape(nscatterarr))*kind(nscatterarr)
      deallocate(nscatterarr,stat=i_stat)

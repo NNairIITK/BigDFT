@@ -29,7 +29,7 @@ EXERCISE = Exercise/plot.gnuplot \
 
 check_PROGRAMS = PS_Check PS_Program PS_Exercise
 
-AM_FCFLAGS = -I../../src/PSolver @MPI_INCLUDE@ -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+AM_FCFLAGS = -I../../src/modules -I../../src/PSolver @MPI_INCLUDE@ -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 
 if USE_MPI
@@ -41,7 +41,7 @@ LMPI =
 endif
 
 if USE_CUDA_GPU
-libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas ../CUDA/libGPU.a 
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas ../../src/CUDA/libGPU.a 
 else
 libs_cuda=
 endif
