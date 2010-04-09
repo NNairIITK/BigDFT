@@ -191,8 +191,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   integer :: nvirt,ndiis_sd_sw,norbv
   integer :: nelec,ndegree_ip,j,i,iorb
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
-  integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i,i03,i04
-  integer :: i1,i2,i3,ind,iat,i_all,i_stat,iter,ierr,jproc,ispin,inputpsi
+  integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
+  integer :: iat,i_all,i_stat,iter,ierr,jproc,inputpsi
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(gp) :: peakmem,energy_old,sumz,evsum,sumx,sumy
@@ -202,7 +202,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(gp) :: edisp ! Dispersion energy
   type(wavefunctions_descriptors) :: wfd_old
   type(nonlocal_psp_descriptors) :: nlpspd
-  type(communications_arrays) :: comms
+  type(communications_arrays) :: comms, commsv
   type(orbitals_data) :: orbsv
   type(gaussian_basis) :: Gvirt
   real(gp), dimension(3) :: shift
@@ -227,6 +227,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! Arrays for the symmetrisation.
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
+  ! Variables for the virtual orbitals and band diagram.
+  integer :: nkptv, nvirtu, nvirtd
+  real(gp), allocatable :: wkptv(:)
 
 
   ! ----------------------------------
@@ -530,9 +533,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc, atoms,&
-          orbs,orbsv,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
-          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in%kptv)
+          orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
+          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,Gvirt,&
+          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU)
   case(1)
      !these parts should be reworked for the non-collinear spin case
 
@@ -1241,14 +1244,43 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !!$     allocate(psivirt(orbs%npsidim+ndebug),stat=i_stat)
 !!$     call memocc(i_stat,psivirt,'psivirt',subname)
 
+     ! Set-up number of states and shifting values.
+     nvirtu = norbv
+     nvirtd = 0
+     if (in%nspin==2) nvirtd=nvirtu
+     ! Create the orbitals.
+     if (associated(in%kptv)) then
+        nvirtu = nvirtu + orbs%norbu
+        nvirtd = nvirtd + orbs%norbd
+        nvirt  = nvirt   + orbs%norb
+        nkptv = size(in%kptv, 2)
+        allocate(wkptv(nkptv+ndebug),stat=i_stat)
+        call memocc(i_stat,wkptv,'wkptv',subname)
+        wkptv(:) = real(1.0, gp) / real(nkptv, gp)
+        call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
+             & orbs%nspinor,nkptv,in%kptv,wkptv,orbsv)
+        i_all=-product(shape(wkptv))*kind(wkptv)
+        deallocate(wkptv,stat=i_stat)
+        call memocc(i_stat,i_all,'wkptv',subname)
+     else
+        call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
+             & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
+     end if
+
+     !allocate communications arrays for virtual orbitals
+     call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
+
      !allocate psivirt pointer (note the orbs dimension)
      allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psivirt,'psivirt',subname)
 
      call davidson(iproc,nproc,n1i,n2i,in,atoms,&
-          orbs,orbsv,nvirt,Glr,comms,&
+          orbs,orbsv,nvirt,Glr,comms,commsv,&
           hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj, &
           pkernel,psi,psivirt,ngatherarr,GPU)
+     
+     call deallocate_comms(commsv,subname)
+
   end if
 
 

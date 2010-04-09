@@ -53,7 +53,7 @@
 !! SOURCE
 !!
 subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
-     orbs,orbsv,nvirt,lr,comms,&
+     orbs,orbsv,nvirt,lr,comms,commsv,&
      hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
   use module_base
   use module_types
@@ -68,7 +68,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors), intent(in) :: lr 
   type(orbitals_data), intent(in) :: orbs
-  type(communications_arrays), intent(in) :: comms
+  type(communications_arrays), intent(in) :: comms, commsv
   real(gp), intent(in) :: hx,hy,hz
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -85,10 +85,11 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   character(len=10) :: comment
   character(len=11) :: orbname,denname
   logical :: msg,exctX,occorbs !extended output
+  integer :: occnorb, occnorbu, occnorbd
   integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,ind,norb,nspinor
   integer :: ise,j,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
   real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,gnrm_fake
-  type(communications_arrays) :: commsv
+  real(wp) :: val, valu, vald
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: work,work_rp,hamovr
   real(wp), dimension(:), allocatable :: hv,g,hg,ew,psirocc
@@ -107,6 +108,15 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
            exit
         end if
      end do
+  end if
+  if (occorbs) then
+     occnorb = 0
+     occnorbu = 0
+     occnorbd = 0
+  else
+     occnorb = orbs%norb
+     occnorbu = orbs%norbu
+     occnorbd = orbs%norbd
   end if
 
   !in the GPU case, the wavefunction should be copied to the card 
@@ -151,25 +161,24 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
   !n2virt=2*orbsv%norb! the dimension of the subspace
 
-  !disassociate work array for transposition in serial
-  if (nproc > 1) then
-     allocate(psiw(orbs%npsidim+ndebug),stat=i_stat)
-     call memocc(i_stat,psiw,'psiw',subname)
-  else
-     psiw => null()
-  endif
+  if (occorbs) then
+     !disassociate work array for transposition in serial
+     if (nproc > 1) then
+        allocate(psiw(orbs%npsidim+ndebug),stat=i_stat)
+        call memocc(i_stat,psiw,'psiw',subname)
+     else
+        psiw => null()
+     endif
 
-  !transpose the wavefunction psi 
-  call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psi,work=psiw)
+     !transpose the wavefunction psi 
+     call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psi,work=psiw)
 
-  if (nproc > 1) then
-     i_all=-product(shape(psiw))*kind(psiw)
-     deallocate(psiw,stat=i_stat)
-     call memocc(i_stat,i_all,'psiw',subname)
+     if (nproc > 1) then
+        i_all=-product(shape(psiw))*kind(psiw)
+        deallocate(psiw,stat=i_stat)
+        call memocc(i_stat,i_all,'psiw',subname)
+     end if
   end if
-
-  !allocate communications arrays for virtual orbitals
-  call orbitals_communicators(iproc,nproc,lr,orbsv,commsv)  
 
   !prepare the v array starting from a set of gaussians
   call psivirt_from_gaussians(iproc,nproc,at,orbsv,lr,commsv,rxyz,hx,hy,hz,in%nspin,v)
@@ -254,6 +263,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   if(iproc==0)write(*,'(1x,a)')"     sqnorm                Rayleigh quotient"
  
   do ikpt=1,orbsv%nkpts
+     if (orbsv%nkpts > 1 .and.iproc == 0) write(*,"(1x,A,I3.3,A,3F12.6)") &
+          & "Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
      do iorb=1,orbsv%norb
         !e(:,1,1) = <psi|H|psi> / <psi|psi>
         e(iorb,ikpt,1)=e(iorb,ikpt,1)/e(iorb,ikpt,2)
@@ -292,8 +303,13 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   !put to zero all the k-points which are not needed
   call razero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
 
+  if (orbsv%nspinor > 1) then
+     ncplx=2
+  else
+     ncplx=1
+  end if
   nwork=max(10,16*orbsv%norb)
-  allocate(work(nwork+ndebug),stat=i_stat)
+  allocate(work(ncplx*nwork+ndebug),stat=i_stat)
   call memocc(i_stat,work,'work',subname)
   
   allocate(ew(2*orbsv%norb+ndebug),stat=i_stat)
@@ -459,15 +475,14 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      if(iproc==0)write(*,'(1x,a)',advance="no")&
                  "Orthogonality of preconditioned gradients to occupied psi..."
 
-     !transpose  g 
-     call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
-
      if (occorbs) then
+        !transpose  g 
+        call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
         !project g such that they are orthogonal to all occupied psi
         call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,g,msg)
+        !retranspose the gradient g
+        call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
      end if
-     !retranspose the gradient g
-     call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
 
      if(iproc==0)write(*,'(1x,a)')"done."
 
@@ -541,11 +556,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
            call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            if (nvctrp == 0) cycle
-           if (nspinor > 1) then
-              ncplx=2
-           else
-              ncplx=1
-           end if
 !print *,iproc,ikpt,ispin,norb,nspinor,ncplx,nvctrp,8*ndimovrlp(ispin,ikpt-1)+1,8*ndimovrlp(nspin,orbsv%nkpts)
            call Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,&
                 hamovr(8*ndimovrlp(ispin,ikpt-1)+1),&
@@ -571,8 +581,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      do ikptp=1,orbsv%nkptsp
         ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
 
-        if(msg .or. (iproc==0 .and. ikpt == 0)) write(*,'(1x,a)',advance='no')"Diagonalization..."
+        if(msg .or. (iproc==0 .and. ikpt == 1)) write(*,'(1x,a)',advance='no')"Diagonalization..."
 
+        ise=0
         do ispin=1,nspin
            call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
@@ -619,7 +630,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
            end if
 
-           if (ispin==1) ise=0
            do iorb=1,norb
               e(iorb+ise,ikpt,1)=ew(iorb)
               e(iorb+ise,ikpt,2)=ew(iorb+norb)
@@ -648,7 +658,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
            end if
 
 
-           if(msg .or. (iproc==0 .and. ikpt == 0))write(*,'(1x,a)',advance="no")&
+           if(msg .or. (iproc==0 .and. ikpt == 1))write(*,'(1x,a)',advance="no")&
                 "done. Update v with eigenvectors..."
 
 !!$     !Update v, that is the wavefunction, using the eigenvectors stored in hamovr(:,:,1)
@@ -684,7 +694,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
            ispsi=ispsi+nvctrp*norb*nspinor
 
-           if(msg .or. (iproc==0 .and. ikpt == 0)) then
+           if(msg .or. (iproc==0 .and. ikpt == 1)) then
               if (nspin ==1) then
                  write(*,'(1x,a)')'done. The refined eigenvalues are'
                  do iorb=1,nvirt
@@ -786,69 +796,85 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      if (nspin==1) then
         write(*,'(1x,a)')'Complete list of energy eigenvalues'
         do ikpt=1,orbsv%nkpts
-           write(*,"(1x,A,I3.3,A,3F12.6)") &
+           if (orbsv%nkpts > 1) write(*,"(1x,A,I3.3,A,3F12.6)") &
                 & "Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
            do iorb=1,orbs%norb
-              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',&
-                   orbs%eval(iorb+(ikpt-1)*orbs%norb)
+              if (occorbs) then
+                 val = orbs%eval(iorb+(ikpt-1)*orbs%norb)
+              else
+                 val = e(iorb, ikpt, 1)
+              end if
+              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',val
            end do
            write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
-                'HOMO LUMO gap   =',e(1,ikpt,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb),&
-                ' (',ha2ev*(e(1,ikpt,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb)),&
+                'HOMO LUMO gap   =',e(1+occnorb,ikpt,1)-val,&
+                ' (',ha2ev*(e(1+occnorb,ikpt,1)-val),&
                 ' eV)'
-           do iorb=1,orbsv%norb
-              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_virtual(',iorb,')=',e(iorb,ikpt,1)
+           do iorb=1,orbsv%norb - occnorb
+              write(*,'(1x,a,i4,a,1x,1pe21.14)') &
+                   & 'e_virtual(',iorb,')=',e(iorb+occnorb,ikpt,1)
            end do
         end do
      else
         do ikpt=1,orbsv%nkpts
            write(*,'(1x,a)')'Complete list of energy eigenvalues'
            do iorb=1,min(orbs%norbu,orbs%norbd)
-              jorb=orbs%norbu+iorb
+              if (occorbs) then
+                 valu = orbs%eval(iorb+(ikpt-1)*orbs%norb)
+                 vald = orbs%eval(iorb+orbs%norbu+(ikpt-1)*orbs%norb)
+              else
+                 valu = e(iorb, ikpt, 1)
+                 vald = e(iorb+orbsv%norbu, ikpt, 1)
+              end if
               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-                   'e_occ(',iorb,',u)=',orbs%eval(iorb+(ikpt-1)*orbs%norb),&
-                   'e_occ(',iorb,',d)=',orbs%eval(jorb+(ikpt-1)*orbs%norb)
+                   'e_occ(',iorb,',u)=',valu,'e_occ(',iorb,',d)=',vald
            end do
            if (orbs%norbu > orbs%norbd) then
               do iorb=orbs%norbd+1,orbs%norbu
+                 if (occorbs) then
+                    valu = orbs%eval(iorb+(ikpt-1)*orbs%norb)
+                 else
+                    valu = e(iorb, ikpt, 1)
+                 end if
                  write(*,'(1x,a,i4,a,1x,1pe21.14)') &
-                      'e_occ(',iorb,',u)=',orbs%eval(iorb+(ikpt-1)*orbs%norb)
+                      'e_occ(',iorb,',u)=',valu
               end do
            else if (orbs%norbd > orbs%norbu) then
-              do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
+              do iorb=orbs%norbu+1,orbs%norbd
+                 if (occorbs) then
+                    vald = orbs%eval(iorb+orbs%norbu+(ikpt-1)*orbs%norb)
+                 else
+                    vald = e(iorb+orbsv%norbu, ikpt, 1)
+                 end if
                  write(*,'(50x,a,i4,a,1x,1pe21.14)') &
-                      'e_occ(',iorb-orbs%norbu,',d)=',orbs%eval(iorb+(ikpt-1)*orbs%norb)
+                      'e_occ(',iorb,',d)=',vald
               end do
            end if
            write(*,'(1x,a,1x,1pe21.14,a,0pf8.4,a,a,1x,1pe21.14,a,0pf8.4,a)') &
-                'HOMO LUMO gap, u =',&
-                e(1,ikpt,1)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb),&
-                ' (',ha2ev*(e(1,ikpt,1)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb)),&
-                ' eV)',&
-                ',d =',e(orbsv%norbu+1,ikpt,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb),&
-                ' (',&
-                ha2ev*(e(orbsv%norbu+1,ikpt,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb)),&
-                ' eV)'
-           do iorb=1,min(orbsv%norbu,orbsv%norbd)
-              jorb=orbsv%norbu+iorb
+                'HOMO LUMO gap, u =', e(1+occnorbu,ikpt,1)-valu,&
+                ' (',ha2ev*(e(1+occnorbu,ikpt,1)-valu),' eV)',&
+                ',d =',e(orbsv%norbu+1+occnorbd,ikpt,1)-vald,&
+                ' (',ha2ev*(e(orbsv%norbu+1+occnorbd,ikpt,1)-vald),' eV)'
+           do iorb=1,min(orbsv%norbu-occnorbu,orbsv%norbd-occnorbd)
+              jorb=orbsv%norbu+iorb+occnorbd
               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
                    'e_vrt(',iorb,',u)=',e(iorb,ikpt,1),&
                    'e_vrt(',iorb,',d)=',e(jorb,ikpt,1)
            end do
-           if (orbsv%norbu > orbsv%norbd) then
-              do iorb=orbsv%norbd+1,orbsv%norbu
+           if (orbsv%norbu-occnorbu > orbsv%norbd-occnorbd) then
+              do iorb=orbsv%norbd+1-occnorbu,orbsv%norbu-occnorbd
                  write(*,'(1x,a,i4,a,1x,1pe21.14)') &
                       'e_vrt(',iorb,',u)=',e(iorb,ikpt,1)
               end do
-           else if (orbsv%norbd > orbsv%norbu) then
-              do iorb=2*orbsv%norbu+1,orbsv%norbu+orbsv%norbd
+           else if (orbsv%norbd-occnorbd > orbsv%norbu-occnorbu) then
+              do iorb=2*orbsv%norbu+1-occnorbu,orbsv%norbu-occnorbu+orbsv%norbd-occnorbd
                  write(*,'(50x,a,i4,a,1x,1pe21.14)') &
-                      'e_vrt(',iorb-orbsv%norbu,',d)=',e(iorb,ikpt,1)
+                      'e_vrt(',iorb-orbsv%norbu-occnorbu,',d)=',e(iorb,ikpt,1)
               end do
            end if
         end do
      end if
-     end if
+  end if
 
   call timing(iproc,'Davidson      ','OF')
 
@@ -876,8 +902,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   i_all=-product(shape(hv))*kind(hv)
   deallocate(hv,stat=i_stat)
   call memocc(i_stat,i_all,'hv',subname)
-
-  call deallocate_comms(commsv,subname)
 
   ! PLOTTING
 
@@ -944,7 +968,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   else if (OCLconv) then
      call free_gpu_OCL(GPU,orbsv%norbp)
   end if
-
 
 END SUBROUTINE davidson
 !!***

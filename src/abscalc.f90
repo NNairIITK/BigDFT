@@ -591,9 +591,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,atoms,&
-          orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
+          orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons,GPU,in%kptv)
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons,GPU)
 
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)

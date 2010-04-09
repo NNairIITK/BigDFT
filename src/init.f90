@@ -464,9 +464,9 @@ END SUBROUTINE import_gaussians
 !! SOURCE
 !!
 subroutine input_wf_diag(iproc,nproc,at,&
-     orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-     nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
-     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,kptv)
+     orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
+     nlpspd,proj,pkernel,ixc,psi,hpsi,psit,G,&
+     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -491,13 +491,11 @@ subroutine input_wf_diag(iproc,nproc,at,&
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(dp), dimension(*), intent(in) :: pkernel
   real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
-  type(orbitals_data), intent(out) :: orbsv
   type(gaussian_basis), intent(out) :: G !basis for davidson IG
-  real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt,rhocore
+  real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
   integer, intent(in) ::potshortcut
   integer, dimension(:,:,:), intent(in) :: irrzon
   real(dp), dimension(:,:,:), intent(in) :: phnons
-  real(gp), dimension(:,:), pointer :: kptv
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   logical :: switchGPUconv,switchOCLconv
@@ -528,13 +526,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
      nspin_ig=nspin
   end if
 
-  if (associated(kptv)) then
-     call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
-          orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks,kptv)
-  else
-     call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
-          orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
-  end if
+  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
+       orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
 
   !allocate communications arrays for inputguess orbitals
   !call allocate_comms(nproc,orbse,commse,subname)
@@ -741,10 +734,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
         OCLconv=.true.
      end if
 
-
-     if (nvirt == 0) then
-        call deallocate_orbs(orbsv,subname)
-     end if
      call deallocate_orbs(orbse,subname)
      
      !deallocate the gaussian basis descriptors
@@ -853,12 +842,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
   i_all=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=i_stat)
   call memocc(i_stat,i_all,'psigau',subname)
-
-  if (nvirt == 0) then
-     !deallocate the gaussian basis descriptors
-     !call deallocate_gwf(G,subname)
-     call deallocate_orbs(orbsv,subname)
-  end if
 
   call deallocate_orbs(orbse,subname)
      

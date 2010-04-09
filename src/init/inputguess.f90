@@ -12,7 +12,7 @@
 !! SOURCE
 !!
 subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
-     orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks,kptsv)
+     orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
   use module_base
   use module_types
   use module_interfaces, except_this_one => inputguess_gaussian_orbitals
@@ -26,19 +26,16 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   real(gp), intent(out) :: eks
   integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
   real(gp), dimension(at%nat), intent(out) :: locrad
-  type(orbitals_data), intent(out) :: orbse,orbsv
+  type(orbitals_data), intent(out) :: orbse
   type(gaussian_basis), intent(out) :: G
   real(wp), dimension(:,:,:), pointer :: psigau
-  real(gp), intent(in), optional :: kptsv(:,:)
   !local variables
   character(len=*), parameter :: subname='inputguess_gaussian_orbitals'
   integer, parameter :: ngx=31
-  integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt,nkptv
-  integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll,nvirteu,nvirted
-  type(communications_arrays) :: commsv
+  integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt
+  integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: iorbtolr
-  real(gp), allocatable :: wkptv(:)
   
 
   allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)
@@ -63,8 +60,6 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
           ' are semicore orbitals'
   end if
 
-  nvirteu=0
-  nvirted=0
   if (nvirt /= 0) then
      do ispin=1,nspin
         !Check for max number of virtual orbitals
@@ -82,38 +77,14 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
            if(iproc==0) write(*,'(1x,a,i3)')&
                 "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
         end if
-        if (ispin==1) nvirteu=nvirte
-        if (ispin==2) nvirted=nvirte
      end do
-  end if
-  !no Davidson calculation if nvirt=0
-  if (nvirt==0) then
-     nvirte=0
-     nvirteu=0
-     nvirted=0
-  end if
-
-  !create the orbitals descriptors, for virtual and inputguess orbitals
-  if (present(kptsv)) then
-     nkptv = size(kptsv, 2)
-     allocate(wkptv(nkptv+ndebug),stat=i_stat)
-     call memocc(i_stat,wkptv,'wkptv',subname)
-     wkptv(:) = real(1.0, gp) / real(nkptv, gp)
-     call orbitals_descriptors(iproc,nproc,nvirteu+nvirted,nvirteu,nvirted, &
-          & orbs%nspinor,nkptv,kptsv,wkptv,orbsv)
-     i_all=-product(shape(wkptv))*kind(wkptv)
-     deallocate(wkptv,stat=i_stat)
-     call memocc(i_stat,i_all,'wkptv',subname)
-  else
-     call orbitals_descriptors(iproc,nproc,nvirteu+nvirted,nvirteu,nvirted, &
-          & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
   end if
 
   !allocate communications arrays for virtual orbitals
   !warning: here the aim is just to calculate npsidim, should be fixed
   !call allocate_comms(nproc,orbsv,commsv,subname)
-  call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
-  call deallocate_comms(commsv,subname)
+!!$  call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
+!!$  call deallocate_comms(commsv,subname)
 
   !!!orbitals descriptor for inguess orbitals
   nspinorfororbse=orbs%nspinor
