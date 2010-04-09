@@ -94,11 +94,20 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   real(wp), dimension(:), allocatable :: hv,g,hg,ew,psirocc
   real(wp), dimension(:,:,:), allocatable :: e
   real(wp), dimension(:), pointer :: psiw
-  integer, dimension(3) :: periodic
+!OCL  integer, dimension(3) :: periodic
 
   !logical flag which control to othogonalise wrt the occupied orbitals or not
-  !occorbs=.false.
-  occorbs=.true.
+  if (orbs%nkpts /= orbsv%nkpts) then
+     occorbs=.false.
+  else
+     occorbs=.true.
+     do ikpt = 1, orbs%nkpts
+        if (abs(maxval(orbs%kpts(:,ikpt) - orbsv%kpts(:,ikpt))) > 1.d-6) then
+           occorbs=.false.
+           exit
+        end if
+     end do
+  end if
 
   !in the GPU case, the wavefunction should be copied to the card 
   !at each HamiltonianApplication
@@ -562,7 +571,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      do ikptp=1,orbsv%nkptsp
         ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
 
-        if(iproc==0)write(*,'(1x,a)',advance='no')"Diagonalization..."
+        if(msg .or. (iproc==0 .and. ikpt == 0)) write(*,'(1x,a)',advance='no')"Diagonalization..."
 
         do ispin=1,nspin
            call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
@@ -639,7 +648,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
            end if
 
 
-           if(iproc==0)write(*,'(1x,a)',advance="no")&
+           if(msg .or. (iproc==0 .and. ikpt == 0))write(*,'(1x,a)',advance="no")&
                 "done. Update v with eigenvectors..."
 
 !!$     !Update v, that is the wavefunction, using the eigenvectors stored in hamovr(:,:,1)
@@ -675,18 +684,19 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
            ispsi=ispsi+nvctrp*norb*nspinor
 
-           if (nspin ==1) then
-              if(iproc == 0)write(*,'(1x,a)')'done. The refined eigenvalues are'
-              do iorb=1,nvirt
-                 if(iproc==0)write(*,'(1x,i3,2(1pe21.14))')iorb,(e(iorb,ikpt,j),j=1,2)
-              end do
-           else if (ispin == 2) then
-              if(iproc == 0)write(*,'(1x,a)')'done. The refined eigenvalues are'
-              do iorb=1,nvirt
-                 if(iproc==0)write(*,'(1x,i3,4(1pe21.14))')&
-                      iorb,(e(iorb,ikpt,j),j=1,2),(e(iorb+orbsv%norbu,ikpt,j),j=1,2)
-              end do
-              
+           if(msg .or. (iproc==0 .and. ikpt == 0)) then
+              if (nspin ==1) then
+                 write(*,'(1x,a)')'done. The refined eigenvalues are'
+                 do iorb=1,nvirt
+                    write(*,'(1x,i3,2(1pe21.14))')iorb,(e(iorb,ikpt,j),j=1,2)
+                 end do
+              else if (ispin == 2) then
+                 write(*,'(1x,a)')'done. The refined eigenvalues are'
+                 do iorb=1,nvirt
+                    write(*,'(1x,i3,4(1pe21.14))')&
+                         iorb,(e(iorb,ikpt,j),j=1,2),(e(iorb+orbsv%norbu,ikpt,j),j=1,2)
+                 end do
+              end if
            end if
            
         end do

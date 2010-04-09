@@ -313,7 +313,7 @@ module module_interfaces
      subroutine input_wf_diag(iproc,nproc,at,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
-          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU)
+          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,kptv)
        use module_base
        use module_types
        implicit none
@@ -338,6 +338,7 @@ module module_interfaces
        integer, intent(in) :: potshortcut
        integer, dimension(:,:,:), intent(in) :: irrzon
        real(dp), dimension(:,:,:), intent(in) :: phnons
+       real(gp), dimension(:,:), pointer :: kptv
      END SUBROUTINE input_wf_diag
 
      subroutine reformatmywaves(iproc,orbs,at,&
@@ -712,7 +713,7 @@ module module_interfaces
      END SUBROUTINE restart_from_gaussians
 
      subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
-          orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
+          orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks,kptsv)
        use module_base
        use module_types
        implicit none
@@ -728,6 +729,7 @@ module module_interfaces
        type(orbitals_data), intent(out) :: orbse,orbsv
        type(gaussian_basis), intent(out) :: G
        real(wp), dimension(:,:,:), pointer :: psigau
+       real(gp), intent(in), optional :: kptsv(:,:)
      END SUBROUTINE inputguess_gaussian_orbitals
 
      subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&

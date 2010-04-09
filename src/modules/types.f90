@@ -50,8 +50,8 @@ module module_types
      integer :: freq_method
 
      ! kpoints related input variables
-     integer :: nkpt
-     real(gp), pointer :: kpt(:,:), wkpt(:)
+     integer :: nkpt, nkptv
+     real(gp), pointer :: kpt(:,:), wkpt(:), kptv(:,:)
 
      ! Geometry variables from *.geopt
      character(len=10) :: geopt_approach

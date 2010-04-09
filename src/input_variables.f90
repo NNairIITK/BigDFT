@@ -148,6 +148,7 @@ subroutine default_input_variables(inputs)
   ! Default values.
   nullify(inputs%kpt)
   nullify(inputs%wkpt)
+  nullify(inputs%kptv)
   ! Default abscalc variables
   call abscalc_input_variables_default(inputs)
   ! Default frequencies variables
@@ -526,11 +527,13 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   logical :: exists
   character(len=*), parameter :: subname='kpt_input_variables'
   character(len = 6) :: type
-  integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3)
+  integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all
   real(gp) :: kptrlen, shiftk(3,8), norm, alat(3)
+  integer, allocatable :: iseg(:)
 
   ! Set default values.
   in%nkpt = 1
+  in%nkptv = 0
 
   inquire(file=trim(filename),exist=exists)
   if (.not. exists) then
@@ -607,6 +610,37 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
      ! We normalise the weights.
      in%wkpt(:) = in%wkpt / norm
   end if
+  ! Now read the band structure definition.
+  read(1,*,iostat=ierror) type
+  if (ierror == 0 .and. (trim(type) == "bands" .or. trim(type) == "Bands" .or. &
+       & trim(type) == "BANDS")) then
+     read(1,*,iostat=ierror) nseg
+     call check()
+     allocate(iseg(nseg+ndebug),stat=i_stat)
+     call memocc(i_stat,iseg,'iseg',subname)
+     read(1,*,iostat=ierror) iseg
+     call check()
+     in%nkptv = sum(iseg) + 1
+     allocate(in%kptv(3,in%nkptv+ndebug),stat=i_stat)
+     call memocc(i_stat,in%kptv,'in%kptv',subname)
+     ikpt = 1
+     read(1,*,iostat=ierror) in%kptv(:, ikpt)
+     call check()
+     do i = 1, nseg
+        ikpt = ikpt + iseg(i)
+        read(1,*,iostat=ierror) in%kptv(:, ikpt)
+        call check()
+        do j = ikpt - iseg(i) + 1, ikpt - 1
+           in%kptv(:, j) = in%kptv(:, ikpt - iseg(i)) + &
+                & (in%kptv(:, ikpt) - in%kptv(:, ikpt - iseg(i))) * &
+                & real(j - ikpt + iseg(i), gp) / real(iseg(i), gp)
+        end do
+     end do
+     
+     i_all=-product(shape(iseg))*kind(iseg)
+     deallocate(iseg,stat=i_stat)
+     call memocc(i_stat,i_all,'iseg',subname)
+  end if
 
   close(unit=1,iostat=ierror)
 
@@ -615,6 +649,9 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   if (atoms%geocode == 'S') alat(2) = 1.d0
   do i = 1, in%nkpt, 1
      in%kpt(:, i) = in%kpt(:, i) / alat * two_pi
+  end do
+  do i = 1, in%nkptv, 1
+     in%kptv(:, i) = in%kptv(:, i) / alat * two_pi
   end do
 
 contains
@@ -749,6 +786,11 @@ subroutine free_input_variables(in)
      i_all=-product(shape(in%wkpt))*kind(in%wkpt)
      deallocate(in%wkpt,stat=i_stat)
      call memocc(i_stat,i_all,'in%wkpt',subname)
+  end if
+  if (associated(in%kptv)) then
+     i_all=-product(shape(in%kptv))*kind(in%kptv)
+     deallocate(in%kptv,stat=i_stat)
+     call memocc(i_stat,i_all,'in%kptv',subname)
   end if
 
 !!$  if (associated(in%Gabs_coeffs) ) then
@@ -2155,6 +2197,15 @@ subroutine print_general_parameters(in,atoms)
              & in%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
              & in%wkpt(i), i, in%kpt(:, i)
      end do
+     if (in%nkptv > 0) then
+        write(*, "(1x,a)")    " K points for band structure calculation"
+        write(*, "(1x,a)")    "       red. coordinates         weight      id         BZ coordinates"
+        do i = 1, in%nkptv, 1
+           write(*, "(1x,3f9.5,2x,f9.5,5x,I3,2x,3f9.5)") &
+                & in%kptv(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
+                & 1.0d0 / real(size(in%kptv, 2), gp), i, in%kptv(:, i)
+        end do
+     end if
   end if
 
   if (in%ncount_cluster_x > 0) then

@@ -506,7 +506,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call MemoryEstimator(atoms%geocode,nproc,idsx,n1,n2,n3,&
           atoms%alat1,atoms%alat2,atoms%alat3,&
           hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,crmult,frmult,&
-          orbs%norb,nlpspd%nprojel,atoms%atomnames,0,in%nspin,peakmem)
+          orbs%norb,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,0,in%nspin,peakmem)
   end if
 
 
@@ -593,7 +593,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call input_wf_diag(iproc,nproc,atoms,&
           orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons,GPU)
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons,GPU,in%kptv)
 
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)

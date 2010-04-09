@@ -466,7 +466,7 @@ END SUBROUTINE import_gaussians
 subroutine input_wf_diag(iproc,nproc,at,&
      orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
      nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
-     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU)
+     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,kptv)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -497,6 +497,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   integer, intent(in) ::potshortcut
   integer, dimension(:,:,:), intent(in) :: irrzon
   real(dp), dimension(:,:,:), intent(in) :: phnons
+  real(gp), dimension(:,:), pointer :: kptv
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   logical :: switchGPUconv,switchOCLconv
@@ -527,8 +528,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
      nspin_ig=nspin
   end if
 
-  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
-       orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
+  if (associated(kptv)) then
+     call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
+          orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks,kptv)
+  else
+     call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
+          orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
+  end if
 
   !allocate communications arrays for inputguess orbitals
   !call allocate_comms(nproc,orbse,commse,subname)

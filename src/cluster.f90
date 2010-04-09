@@ -532,8 +532,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call input_wf_diag(iproc,nproc, atoms,&
           orbs,orbsv,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
-          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU)
-
+          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in%kptv)
   case(1)
      !these parts should be reworked for the non-collinear spin case
 

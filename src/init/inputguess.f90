@@ -12,7 +12,7 @@
 !! SOURCE
 !!
 subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
-     orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
+     orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks,kptsv)
   use module_base
   use module_types
   use module_interfaces, except_this_one => inputguess_gaussian_orbitals
@@ -29,14 +29,17 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   type(orbitals_data), intent(out) :: orbse,orbsv
   type(gaussian_basis), intent(out) :: G
   real(wp), dimension(:,:,:), pointer :: psigau
+  real(gp), intent(in), optional :: kptsv(:,:)
   !local variables
   character(len=*), parameter :: subname='inputguess_gaussian_orbitals'
   integer, parameter :: ngx=31
-  integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt
+  integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt,nkptv
   integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll,nvirteu,nvirted
   type(communications_arrays) :: commsv
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: iorbtolr
+  real(gp), allocatable :: wkptv(:)
+  
 
   allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)
   call memocc(i_stat,scorb,'scorb',subname)
@@ -91,8 +94,20 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   end if
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,nvirteu+nvirted,nvirteu,nvirted, &
-       & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
+  if (present(kptsv)) then
+     nkptv = size(kptsv, 2)
+     allocate(wkptv(nkptv+ndebug),stat=i_stat)
+     call memocc(i_stat,wkptv,'wkptv',subname)
+     wkptv(:) = real(1.0, gp) / real(nkptv, gp)
+     call orbitals_descriptors(iproc,nproc,nvirteu+nvirted,nvirteu,nvirted, &
+          & orbs%nspinor,nkptv,kptsv,wkptv,orbsv)
+     i_all=-product(shape(wkptv))*kind(wkptv)
+     deallocate(wkptv,stat=i_stat)
+     call memocc(i_stat,i_all,'wkptv',subname)
+  else
+     call orbitals_descriptors(iproc,nproc,nvirteu+nvirted,nvirteu,nvirted, &
+          & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
+  end if
 
   !allocate communications arrays for virtual orbitals
   !warning: here the aim is just to calculate npsidim, should be fixed
