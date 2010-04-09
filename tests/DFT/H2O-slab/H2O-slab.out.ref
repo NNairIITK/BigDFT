@@ -291,11 +291,9 @@
  Begin of minimization using  AB6MD     
  # ENTERING Molecular Dynamic (ABINIT implementation)
  
- MOLDYN STEP NUMBER    0  ----------------------------------------------------
- --
+ MOLDYN STEP NUMBER    0  ------------------------------------------------------
   Rescaling or initializing velocities to initial temperature
-  ---  Scaling factor :   8.37289877884497E-01 Asked T (K)   1.00000000000000E+0
- 2
+  ---  Scaling factor :   8.37289877884497E-01 Asked T (K)   1.00000000000000E+02
   ---  Effective temperature  1.00000000000000E+02
   Nose-Hoover updated velocities (T_ask =      100.000 and T_eff =       60.090)
   Cartesian coordinates (bohr)
@@ -316,8 +314,7 @@
                                    KIN.En.=  8.56321950088056E-04 Ha.
                                KIN+POT.En.= -1.71243539588188E+01 Ha.
  
- MOLDYN STEP NUMBER    1  ----------------------------------------------------
- --
+ MOLDYN STEP NUMBER    1  ------------------------------------------------------
  SCFloop API, call force calculation step= 1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -519,8 +516,7 @@
                                    KIN.En.=  1.38288341523799E-03 Ha.
                                KIN+POT.En.= -1.71243763947601E+01 Ha.
  
- MOLDYN STEP NUMBER    2  ----------------------------------------------------
- --
+ MOLDYN STEP NUMBER    2  ------------------------------------------------------
  SCFloop API, call force calculation step= 2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters

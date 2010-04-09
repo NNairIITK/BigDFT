@@ -73,7 +73,7 @@ program memguess
      write(*,'(1x,a)')&
           '"convert" converts input files older than 1.2 into actual format'
      write(*,'(1x,a)')&
-          '"atwf" <ng> calculates the atomic wavefuntions of the first atom in the gatom basis and write their expression '
+          '"atwf" <ng> calculates the atomic wavefunctions of the first atom in the gatom basis and write their expression '
      write(*,'(1x,a)')&
           '            in the "gatom-wfn.dat" file '
      write(*,'(1x,a)')&
@@ -305,7 +305,7 @@ program memguess
      end do
 
      call createWavefunctionsDescriptors(0,hx,hy,hz,&
-          atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst)
+          atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr)
 
      call compare_cpu_gpu_hamiltonian(0,1,atoms,orbstst,nspin,in%ncong,in%ixc,&
           Glr,hx,hy,hz,rxyz,ntimes)

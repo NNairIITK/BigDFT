@@ -14,7 +14,7 @@
 !! SOURCE
 !!
 subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-     crmult,frmult,Glr,orbs)
+     crmult,frmult,Glr)
   use module_base
   use module_types
   implicit none
@@ -25,7 +25,6 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   type(locreg_descriptors), intent(inout) :: Glr
-  type(orbitals_data), intent(inout) :: orbs
   !local variables
   character(len=*), parameter :: subname='createWavefunctionsDescriptors'
   integer :: i_all,i_stat
@@ -229,7 +228,6 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   call memocc(i_stat,nlpspd%keyv_p,'nlpspd%keyv_p',subname)
   allocate(proj(nlpspd%nprojel+ndebug),stat=i_stat)
   call memocc(i_stat,proj,'proj',subname)
-
 
   ! After having determined the size of the projector descriptor arrays fill them
   do iat=1,at%nat
@@ -500,7 +498,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
   real(dp), dimension(:,:,:), intent(in) :: phnons
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
-  integer, parameter :: ngx=31
   logical :: switchGPUconv
   integer :: i_stat,i_all,iat,nspin_ig
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,etol,accurex
@@ -542,7 +539,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   hzh=.5_gp*hz
 
   !check the communication distribution
-  call check_communications(iproc,nproc,orbse,Glr,commse)
+  !call check_communications(iproc,nproc,orbse,Glr,commse)
 
   !once the wavefunction coefficients are known perform a set 
   !of nonblocking send-receive operations to calculate overlap matrices
@@ -643,9 +640,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
      deallocate(potxc,stat=i_stat)
      call memocc(i_stat,i_all,'potxc',subname)
 
-!!$     call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
-!!$          ixc,hxh,hyh,hzh,&
-!!$          rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
   end if
 
 !!!  if (nproc == 1) then
@@ -749,10 +743,12 @@ subroutine input_wf_diag(iproc,nproc,at,&
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(orbse%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
+
+  !call dcopy(orbse%npsidim,psi,1,hpsi,1)
   
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-       rhopot,&!(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
+       rhopot,&
        psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernel)
 
 !!!  !calculate the overlap matrix knowing that the original functions are gaussian-based

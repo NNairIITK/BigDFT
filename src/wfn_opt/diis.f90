@@ -30,6 +30,7 @@ subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alp
      ispsidst=1
      do ikptp=1,orbs%nkptsp
         nvctrp=comms%nvctr_par(iproc,ikptp)
+        if (nvctrp == 0) cycle
         
      !here we can choose to store the DIIS arrays with single precision
      !psidst=psit
@@ -103,8 +104,9 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
 
   ispsidst=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptp
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
      nvctrp=comms%nvctr_par(iproc,ikptp)
+     if (nvctrp == 0) cycle
 
      ! set up DIIS matrix (upper triangle)
      if (ids > idsx) then
@@ -147,8 +149,9 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
   ispsi=1
   ispsidst=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptp
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
      nvctrp=comms%nvctr_par(iproc,ikptp)
+     if (nvctrp == 0) cycle
 
      do i=1,min(ids,idsx)
         ads(i,min(idsx,ids),ikptp,1)=rds(i,ikpt)

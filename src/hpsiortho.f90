@@ -262,7 +262,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
-          'done, orthoconstraint...'
+          'done,  orthoconstraint...'
   end if
 
   !transpose the hpsi wavefunction
@@ -284,7 +284,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   call timing(iproc,'Precondition  ','ON')
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
-          'done, preconditioning...'
+          'done,  preconditioning...'
   end if
 
   !Preconditions all orbitals belonging to iproc
@@ -941,6 +941,8 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   real(wp), dimension(:), allocatable :: psi
   real(wp), dimension(:), pointer :: pwork
   real(wp) :: epsilon
+  character(len = 25) :: filename
+  logical :: abort
 
   !allocate the "wavefunction" amd fill it, and also the workspace
   allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
@@ -969,7 +971,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   maxdiff=0.0_wp
   ispsi=0
   do ikptsp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptsp
+     ikpt=orbs%iskpts+ikptsp!orbs%ikptsp(ikptsp)
      valkpt=real(512*ikpt,wp)
      !calculate the starting point for the component distribution
      iscomp=0
@@ -1001,15 +1003,17 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      ispsi=ispsi+nvctrp*orbs%norb*nspinor
   end do
 
+  abort = .false.
   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
      write(*,*)'ERROR: process',iproc,'does not transpose wavefunctions correctly!'
      write(*,*)'       found an error of',maxdiff,'cannot continue.'
      write(*,*)'       data are written in the file transerror.log, exiting...'
 
-     open(unit=22,file='transerror.log',status='unknown')
+     write(filename, "(A,I0,A)") 'transerror', iproc, '.log'
+     open(unit=22,file=trim(filename),status='unknown')
      ispsi=0
      do ikptsp=1,orbs%nkptsp
-        ikpt=orbs%iskpts+ikptsp
+        ikpt=orbs%iskpts+ikptsp!orbs%ikptsp(ikptsp)
         valkpt=real(512*ikpt,wp)
         !calculate the starting point for the component distribution
         iscomp=0
@@ -1030,8 +1034,10 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
                     index=ispinor+(i-1)*((2+nspinor)/4+1)+&
                          (idsx-1)*((2+nspinor)/4+1)*nvctrp+indorb+ispsi
                     maxdiff=abs(psi(index)-psival)
-                    write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i+iscomp,iorb+ikpt,psival,&
-                         psi(index),maxdiff
+                    if (maxdiff > 0.d0) then
+                       write(22,'(i3,i6,2i4,3(1x,1pe13.6))')ispinor,i+iscomp,iorb,ikpt,psival,&
+                            psi(index),maxdiff
+                    end if
                  end do
               end do
            end do
@@ -1039,10 +1045,11 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
         ispsi=ispsi+nvctrp*orbs%norb*nspinor
      end do
      close(unit=22)
-
-     call MPI_ABORT(MPI_COMM_WORLD,ierr)
-
+     abort = .true.
   end if
+
+  if (abort) call MPI_ABORT(MPI_COMM_WORLD,ierr)
+  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   !retranspose the hpsi wavefunction
   call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,&
@@ -1064,12 +1071,14 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      end do
   end do
 
+  abort = .false.
   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
      write(*,*)'ERROR: process',iproc,'does not untranspose wavefunctions correctly!'
      write(*,*)'       found an error of',maxdiff,'cannot continue.'
      write(*,*)'       data are written in the file transerror.log, exiting...'
 
-     open(unit=22,file='transerror.log',status='unknown')
+     write(filename, "(A,I0,A)") 'transerror', iproc, '.log'
+     open(unit=22,file=trim(filename),status='unknown')
      maxdiff=0.0_wp
      do iorb=1,orbs%norbp
         ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
@@ -1082,16 +1091,19 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
               vali=real(i,wp)/512.d0  !*1.d-5
               psival=(valorb+vali)*(-1)**(ispinor-1)
               maxdiff=abs(psi(i+indspin+indorb)-psival)
-              write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i,iorb+orbs%isorb,psival,&
-                   psi(ispinor+(i-1)*orbs%nspinor+indorb),maxdiff
+              if (maxdiff > 0.d0) then
+                 write(22,'(i3,i6,2i4,3(1x,1pe13.6))')ispinor,i,iorb,orbs%isorb,psival,&
+                      psi(ispinor+(i-1)*orbs%nspinor+indorb),maxdiff
+              end if
            end do
         end do
      end do
      close(unit=22)
-
-     call MPI_ABORT(MPI_COMM_WORLD,ierr)
-
+     abort = .true.
   end if
+
+  if (abort) call MPI_ABORT(MPI_COMM_WORLD,ierr)
+  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)

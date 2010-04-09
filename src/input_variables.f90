@@ -339,6 +339,7 @@ subroutine geopt_input_variables_default(in)
   in%betax=2.0_gp
   in%history = 0
   in%ionmov = -1
+  in%dtion = 0.0_gp
   nullify(in%qmass)
 
 END SUBROUTINE geopt_input_variables_default
@@ -536,7 +537,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   character(len=*), parameter :: subname='kpt_input_variables'
   character(len = 6) :: type
   integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3)
-  real(gp) :: kptrlen, shiftk(3,8), norm
+  real(gp) :: kptrlen, shiftk(3,8), norm, alat(3)
 
   ! Set default values.
   in%nkpt = 1
@@ -620,8 +621,10 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   close(unit=1,iostat=ierror)
 
   ! Convert reduced coordinates into BZ coordinates.
+  alat = (/ atoms%alat1, atoms%alat2, atoms%alat3 /)
+  if (atoms%geocode == 'S') alat(2) = 1.d0
   do i = 1, in%nkpt, 1
-     in%kpt(:, i) = in%kpt(:, i) / (/ atoms%alat1, atoms%alat2, atoms%alat3 /) * two_pi
+     in%kpt(:, i) = in%kpt(:, i) / alat * two_pi
   end do
 
 contains
@@ -663,6 +666,8 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%debug = .false.
   !Cache size for FFT
   inputs%ncache_fft = 8*1024
+  !radius of the projector as a function of the maxrad
+  inputs%projrad= 15.0_gp
 
   !Check if the file is present
   inquire(file=trim(filename),exist=exists)
@@ -683,6 +688,9 @@ subroutine perf_input_variables(iproc,filename,inputs)
         else if (index(line,"fftcache") /= 0 .or. index(line,"FFTCACHE") /= 0) then
             ii = index(line,"fftcache")  + index(line,"FFTCACHE") + 8 
            read(line(ii:),*) inputs%ncache_fft
+        else if (index(line,"projrad") /= 0 .or. index(line,"PROJRAD") /= 0) then
+            ii = index(line,"projrad")  + index(line,"PROJRAD") + 8 
+           read(line(ii:),*) inputs%projrad
         end if
      end do
      close(unit=1,iostat=ierror)
@@ -1241,7 +1249,6 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
 
   atoms%ntypes=0
   do iat=1,atoms%nat
-
      !xyz input file, allow extra information
      read(ifile,'(a150)')line 
      if (lpsdbl) then
@@ -1265,6 +1272,9 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
         rxyz(2,iat)=real(ry,gp)
         rxyz(3,iat)=real(rz,gp)
      end if
+
+     
+
      if (atoms%units == 'reduced') then !add treatment for reduced coordinates
         rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
         if (atoms%geocode == 'P') rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
@@ -2112,30 +2122,30 @@ subroutine print_general_parameters(in,atoms)
      call ab6_symmetry_get_group(atoms%symObj, spaceGroup, &
           & spaceGroupId, pointGroupMagn, genAfm, ierr)
      if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
-     write(add(1), '(a,i0)')       "N. sym.     = ", nSym
-     write(add(2), '(a,a)')        "Space group = ", trim(spaceGroup)
+     write(add(1), '(a,i0)')       "N. sym.   = ", nSym
+     write(add(2), '(a,a,a)')      "Sp. group = ", trim(spaceGroup)
   else if (atoms%geocode /= 'F' .and. in%disableSym) then
-     write(add(1), '(a)')          "N. sym.     = disabled"
-     write(add(2), '(a)')          "Space group = disabled"
+     write(add(1), '(a)')          "N. sym.   = disabled"
+     write(add(2), '(a)')          "Sp. group = disabled"
   else
-     write(add(1), '(a)')          "N. sym.     = free BC"
-     write(add(2), '(a)')          "Space group = free BC"
+     write(add(1), '(a)')          "N. sym.   = free BC"
+     write(add(2), '(a)')          "Sp. group = free BC"
   end if
   i = 3
   if (in%nvirt > 0) then
-     write(add(i), '(a,i5,a)')     "Virtual orb.= ", in%nvirt, " orb."
-     write(add(i + 1), '(a,i5,a)') "Plot dens.  = ", abs(in%nplot), " orb."
+     write(add(i), '(a,i5,a)')     "Virt. orb.= ", in%nvirt, " orb."
+     write(add(i + 1), '(a,i5,a)') "Plot dens.= ", abs(in%nplot), " orb."
   else
-     write(add(i), '(a)')          "Virtual orb.= none"
-     write(add(i + 1), '(a)')      "Plot dens.  = none"
+     write(add(i), '(a)')          "Virt. orb.= none"
+     write(add(i + 1), '(a)')      "Plot dens.= none"
   end if
   i = i + 2
   if (in%nspin==4) then
-     write(add(i),'(a)')           "Spin pol.   = non-coll."
+     write(add(i),'(a)')           "Spin pol. = non-coll."
   else if (in%nspin==2) then
-     write(add(i),'(a)')           "Spin pol.   = collinear"
+     write(add(i),'(a)')           "Spin pol. = collinear"
   else if (in%nspin==1) then
-     write(add(i),'(a)')           "Spin pol.   = no"
+     write(add(i),'(a)')           "Spin pol. = no"
   end if
 
   ! Printing
