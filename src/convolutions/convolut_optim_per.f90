@@ -371,7 +371,7 @@ subroutine convrot_n_per(n1,ndat,x,y)
         tt12=0.e0_wp
 
         do l=lowfil,lupfil
-           k=mod_arr(i+l)   
+           k=mod_arr(i+l)
            fill=fil(l)
 
            tt1=tt1+x(  k,j*12+1)*fill

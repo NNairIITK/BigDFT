@@ -785,7 +785,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                 rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
                 quiet=PSquiet) !optional argument
 
-           !atomic charge calculation with York's method, to be commented out
+           !atomic charge calculation with York's method, to be improved
            if (endloop .and. in%gaussian_help .and. in%last_run == 1 .and. .false.) then
 
               allocate(atchgs(atoms%nat+ndebug),stat=i_stat)
@@ -823,6 +823,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         end if
 
      end if
+
+     !here the psi function for the orbital which does not converge can be plotted
+!!$     if (orbs%isorb+1 <= 32 .and. orbs%isorb+orbs%norbp >= 32) then
+!!$        write(f4,'(i4.4)')iter
+!!$             ind=1+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(32-orbs%isorb-1)
+!!$        call plot_wf('CUBE','testorb'//f4,1,atoms,Glr,hx,hy,hz,rxyz,psi(ind:),repeat(' ',10))
+!!$     end if
 
      call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
           nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
