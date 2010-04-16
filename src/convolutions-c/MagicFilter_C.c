@@ -512,7 +512,6 @@ struct magicfilter_params {
 };
 
 
-struct thread_engine_param engine_params;
 struct magicfilter_params ** params;
 
 void init_thread_engine_(){
@@ -520,12 +519,12 @@ void init_thread_engine_(){
   int argc = 7;
   int i;
 
-  get_engine_opt( argc, argv, &engine_params);
+  get_engine_opt( argc, argv);
 
-  init_thread_engine_spin( &engine_params );
+  init_thread_engine( );
 
-  params = (struct magicfilter_params **)malloc( (1 + engine_params.thread_number) * sizeof(struct magicfilter_params *));
-  for(i=0; i < 1 + engine_params.thread_number; i++) {
+  params = (struct magicfilter_params **)malloc( (1 + engine_params->thread_number) * sizeof(struct magicfilter_params *));
+  for(i=0; i < 1 + engine_params->thread_number; i++) {
     params[i] = (struct magicfilter_params *)malloc( sizeof(struct magicfilter_params) );
   }
 }
@@ -543,44 +542,44 @@ void magicfilter1d_d_par_(unsigned int *n1, unsigned int *ndat, double *x, doubl
   int i,j;
   size_t slice;
   unsigned int steps = 1;
-  slice = *ndat/(1 + engine_params.thread_number);
+  slice = *ndat/(1 + engine_params->thread_number);
   while( (slice* *n1 *sizeof(double)*NB_SYB) > CACHE_SIZE ) {
     slice /= 2;
     steps++;
   }
-  slice = *ndat/(steps*(1 + engine_params.thread_number));
+  slice = *ndat/(steps*(1 + engine_params->thread_number));
 //  printf("steps : %d, slice : %lu\n",steps,slice);
   for(i=0; i<steps-1; i++) {
-    for(j=0; j<(1 + engine_params.thread_number); j++) {
+    for(j=0; j<(1 + engine_params->thread_number); j++) {
       params[j]->n1 = *n1;
-      params[j]->start = (i*(1 + engine_params.thread_number)+j)*slice;
+      params[j]->start = (i*(1 + engine_params->thread_number)+j)*slice;
       params[j]->ndat = slice;
       params[j]->ld = *ndat;
       params[j]->x = x;
       params[j]->y = y;
     }
-    run_bench_spin(magicfilter_part_wrapper,magicfilter_part_wrapper, (void **)params );
+    run_bench(magicfilter_part_wrapper,magicfilter_part_wrapper, (void **)params );
   }
-  for(j=0; j<engine_params.thread_number; j++) {
+  for(j=0; j<engine_params->thread_number; j++) {
     params[j]->n1 = *n1;
-    params[j]->start = ((steps-1)*(1 + engine_params.thread_number)+j)*slice;
+    params[j]->start = ((steps-1)*(1 + engine_params->thread_number)+j)*slice;
     params[j]->ndat = slice;
     params[j]->ld = *ndat;
     params[j]->x = x;
     params[j]->y = y;
   }
-  params[engine_params.thread_number]->n1 = *n1;
-  params[engine_params.thread_number]->start = ((steps-1)*(1 + engine_params.thread_number)+engine_params.thread_number)*slice;
-  params[engine_params.thread_number]->ndat = slice + (*ndat % slice);
-  params[engine_params.thread_number]->ld = *ndat;
-  params[engine_params.thread_number]->x = x;
-  params[engine_params.thread_number]->y = y;
+  params[engine_params->thread_number]->n1 = *n1;
+  params[engine_params->thread_number]->start = ((steps-1)*(1 + engine_params->thread_number)+engine_params->thread_number)*slice;
+  params[engine_params->thread_number]->ndat = slice + (*ndat % slice);
+  params[engine_params->thread_number]->ld = *ndat;
+  params[engine_params->thread_number]->x = x;
+  params[engine_params->thread_number]->y = y;
 //  unsigned long long int start, stop;
 //  rdtscll(start);
-  run_bench_spin(magicfilter_part_wrapper,magicfilter_part_wrapper, (void **)params );
+  run_bench(magicfilter_part_wrapper,magicfilter_part_wrapper, (void **)params );
 //  rdtscll(stop);
 //  printf("start : %llu, stop : %llu\n",start,stop-start);
-//  for(j=0; j<(1 + engine_params.thread_number); j++)
+//  for(j=0; j<(1 + engine_params->thread_number); j++)
 //    printf("  start : %llu, stop %llu\n", params[j]->start_date-start, params[j]->stop_date-start);
 }
 

@@ -31,16 +31,18 @@ struct thread_engine_param {
   int real_time;
   int stack;
   int verbose;
+  int use_spin;
 };
+extern struct thread_engine_param *engine_params;
 #ifdef __cplusplus
  extern "C" {
 #endif
 
-void get_engine_opt(int argc, char *argv[], struct thread_engine_param * param );
-void init_thread_engine ( struct thread_engine_param * param );
-void init_thread_engine_spin ( struct thread_engine_param * param );
+void get_engine_opt(int argc, char *argv[]);
+void init_thread_engine ( );
+//void init_thread_engine_spin ( struct thread_engine_param * param );
 void run_bench( void * (*main_program)(void * param), void * (*thread_program)(void * param), void ** params ) ;
-void run_bench_spin( void * (*main_program)(void * param), void * (*thread_program)(void * param), void ** params ) ;
+//void run_bench_spin( void * (*main_program)(void * param), void * (*thread_program)(void * param), void ** params ) ;
 
 #ifdef __cplusplus
  }

@@ -43,7 +43,7 @@ struct thread_param {
   int thread_number;
 };
 
-struct thread_engine_param *engine_param;
+struct thread_engine_param *engine_params;
 struct thread_param * thread_params;
 struct thread_data * volatile * thread_datas;
 pthread_t * threads;
@@ -52,36 +52,37 @@ pthread_spinlock_t global_spin;
 volatile unsigned int thread_counter;
 
 
-void get_topology( struct thread_engine_param * param ) {
-	if( param->verbose ) std::cout << "reading topology" << std::endl;
+void get_topology( ) {
+	if( engine_params->verbose ) std::cout << "reading topology" << std::endl;
         libconfig::Config topology;
-        topology.readFile(param->topology_file);
-        param->cpu_number = topology.lookup("topology.cpu_number");
+        topology.readFile(engine_params->topology_file);
+        engine_params->cpu_number = topology.lookup("topology.cpu_number");
 }
 
-void get_placement( struct thread_engine_param * param ) {
+void get_placement( ) {
 	try {
 	        libconfig::Config thread_placement;
-		if( param->verbose ) std::cout << "reading placement" << std::endl;
-	        thread_placement.readFile(param->placement_file);
+		if( engine_params->verbose ) std::cout << "reading placement" << std::endl;
+	        thread_placement.readFile(engine_params->placement_file);
         	libconfig::Setting& thread_cpus = thread_placement.lookup("placement.thread_cpus");
 	        libconfig::Setting& main_cpus = thread_placement.lookup("placement.main_cpus");
-	        param->thread_number = thread_cpus.getLength();
-	        param->main_cpus = new int[main_cpus.getLength()];
-	        param->main_cpus_number = main_cpus.getLength();
+	        engine_params->thread_number = thread_cpus.getLength();
+	        engine_params->main_cpus = new int[main_cpus.getLength()];
+	        engine_params->main_cpus_number = main_cpus.getLength();
 	        for( int i=0; i<main_cpus.getLength(); i++ ) {
-	                param->main_cpus[i] = main_cpus[i];
+	                engine_params->main_cpus[i] = main_cpus[i];
 	        }
-	        param->thread_cpus = new int*[thread_cpus.getLength()];
-	        param->thread_cpus_number = new int[thread_cpus.getLength()];
+	        engine_params->thread_cpus = new int*[thread_cpus.getLength()];
+	        engine_params->thread_cpus_number = new int[thread_cpus.getLength()];
 	        for( int i=0; i<thread_cpus.getLength(); i++ ) {
-	                param->thread_cpus[i] = new int[thread_cpus[i].getLength()];
-	                param->thread_cpus_number[i] = thread_cpus[i].getLength();
+	                engine_params->thread_cpus[i] = new int[thread_cpus[i].getLength()];
+	                engine_params->thread_cpus_number[i] = thread_cpus[i].getLength();
 	                for( int j=0; j<thread_cpus[i].getLength(); j++) {
-	                        param->thread_cpus[i][j] = thread_cpus[i][j];
+	                        engine_params->thread_cpus[i][j] = thread_cpus[i][j];
 	                }
 	        }
-        	param->memory_allocation = thread_placement.lookup("placement.memory_allocation");
+        	engine_params->memory_allocation = thread_placement.lookup("placement.memory_allocation");
+                engine_params->use_spin = (bool)thread_placement.lookup("use_spin");
 	} catch (libconfig::ParseException e) {
 		std::cerr << "libconfig::ParseException" << std::endl;
 		std::cerr <<e.getLine () <<" : "<<e.getError() << std::endl;
@@ -89,38 +90,33 @@ void get_placement( struct thread_engine_param * param ) {
 	}
 }
 
-void get_engine_opt(int argc, char *argv[], struct thread_engine_param * param ) {
+void get_engine_opt(int argc, char *argv[]) {
 	int ch;
 	char *endptr;
+        engine_params = new struct thread_engine_param;
+        errno = 0;
 
-//struct thread_engine_param {
-//  int thread_number;
-//  int cpu_number;
-//  bool real_time;
-//  bool affinity;
-//  bool stack;
-//};
-        param->thread_number = 0;
-	param->cpu_number = 1;
-	param->real_time = false;
-	param->topology_file = NULL;
-	param->placement_file = NULL;
-	param->verbose = 0;
+        engine_params->thread_number = 0;
+	engine_params->cpu_number = 1;
+	engine_params->real_time = false;
+	engine_params->topology_file = NULL;
+	engine_params->placement_file = NULL;
+	engine_params->verbose = 0;
 
 	while ((ch = getopt(argc, argv, "t:p:rsv:")) != -1) {
 		switch (ch) {
                         case 't':
-                                param->topology_file = optarg;
+                                engine_params->topology_file = optarg;
                                 break;
                         case 'p':
-                                param->placement_file = optarg;
+                                engine_params->placement_file = optarg;
                                 break;
 			case 'r':
 				//real_time
-				param->real_time = true;
+				engine_params->real_time = true;
 				break;
 			case 'v':
-				param->verbose = strtol(optarg, &endptr, 10);
+				engine_params->verbose = strtol(optarg, &endptr, 10);
 				if( errno != 0)  {
 					perror("Invalid verbose level");
 				};
@@ -130,14 +126,14 @@ void get_engine_opt(int argc, char *argv[], struct thread_engine_param * param )
 				break;
 		}
 	}
-	if( param->topology_file )
-		get_topology(param);
+	if( engine_params->topology_file )
+		get_topology();
 	else {
 		std::cerr << "no topology file given" << std::endl;
 		exit(-1);
 	}
-	if( param->placement_file )
-		get_placement(param);
+	if( engine_params->placement_file )
+		get_placement();
 	else {
 		std::cerr << "no placement file given" << std::endl;
 		exit(-1);
@@ -201,80 +197,62 @@ void set_cpu_sets(int *cpus, int cpus_number ) {
   cpu_set_t cpuset;
   cpu_set_t fullcpuset;
   CPU_ZERO(&fullcpuset);
-  int cpu_number = engine_param->cpu_number;
+  int cpu_number = engine_params->cpu_number;
   for( int i=0; i<cpu_number; i++) {
     CPU_SET(i,&fullcpuset);
   }
   if(cpu_number > 0) {
-    if(engine_param->verbose) std::cout << "cpus :";
+    if(engine_params->verbose) std::cout << "cpus :";
     CPU_ZERO(&cpuset);
     for( int j=0; j<cpus_number; j++ ){
-      if(engine_param->verbose) std::cout << " "<< cpus[j];
+      if(engine_params->verbose) std::cout << " "<< cpus[j];
       if(cpus[j]>=cpu_number || cpus[j]<0) { std::cerr << "Invalid CPU number : " << cpus[j] << std::endl; exit(1);}
       CPU_SET(cpus[j], &cpuset);
     }
-    if(engine_param->verbose) std::cout << std::endl;
+    if(engine_params->verbose) std::cout << std::endl;
     if(pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset)<0)
       perror("pthread_setaffinity_np");
     sched_yield();
   } else {
-    if(engine_param->verbose) std::cout << "all cpus" << std::endl;
+    if(engine_params->verbose) std::cout << "all cpus" << std::endl;
     if(pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &fullcpuset)<0)
       perror("pthread_setaffinity_np");
     sched_yield();
   }
 }
 
-void init_thread_engine_spin ( struct thread_engine_param * param ) {
-  engine_param = param;
-  if(param->real_time) {       
+void init_thread_engine ( ) {
+  if(engine_params->real_time) {       
     struct sched_param sched_p;
     sched_p.__sched_priority = sched_get_priority_max (SCHED_RR);
     if (sched_setscheduler (0, SCHED_RR, &sched_p) != 0)
       perror("sched_setscheduler");
   }
-  thread_datas = new thread_data*[param->thread_number];
-  thread_params = new thread_param[param->thread_number];
-  threads = new pthread_t[param->thread_number];
-  thread_counter=0;
-  pthread_spin_init(&(global_spin),PTHREAD_PROCESS_PRIVATE);
+  thread_datas = new thread_data*[engine_params->thread_number];
+  thread_params = new thread_param[engine_params->thread_number];
+  threads = new pthread_t[engine_params->thread_number];
+  if(engine_params->use_spin) {
+    thread_counter=0;
+    pthread_spin_init(&(global_spin),PTHREAD_PROCESS_PRIVATE);
+  }
   sem_init(&semaphore,0,0);
-  for( int i=0; i<param->thread_number; i++ ) {
-    if( param->verbose ) std::cout << "binding thread : " << i+1 << std::endl; 
-    set_cpu_sets(param->thread_cpus[i], param->thread_cpus_number[i]);
+  for( int i=0; i<engine_params->thread_number; i++ ) {
+    if( engine_params->verbose ) std::cout << "binding thread : " << i+1 << std::endl; 
+    set_cpu_sets(engine_params->thread_cpus[i], engine_params->thread_cpus_number[i]);
     thread_params[i].thread_number = i;
-    pthread_create( &(threads[i]), NULL, thread_master_function_spin, (void *) &(thread_params[i]) );
+    if(engine_params->use_spin) {
+      pthread_create( &(threads[i]), NULL, thread_master_function_spin, (void *) &(thread_params[i]) );
+    } else {
+      pthread_create( &(threads[i]), NULL, thread_master_function, (void *) &(thread_params[i]) );
+    }
     sem_wait(&semaphore);
   }
-  if( param->verbose ) std::cout << "binding  main thread (0)" << std::endl; 
-  set_cpu_sets(param->main_cpus, param->main_cpus_number);
+  if( engine_params->verbose ) std::cout << "binding  main thread (0)" << std::endl; 
+  set_cpu_sets(engine_params->main_cpus, engine_params->main_cpus_number);
 }
 
-void init_thread_engine ( struct thread_engine_param * param ) {
-  engine_param = param;
-  if(param->real_time) {       
-    struct sched_param sched_p;
-    sched_p.__sched_priority = sched_get_priority_max (SCHED_RR);
-    if (sched_setscheduler (0, SCHED_RR, &sched_p) != 0)
-      perror("sched_setscheduler");
-  }
-  thread_datas = new thread_data*[param->thread_number];
-  thread_params = new thread_param[param->thread_number];
-  threads = new pthread_t[param->thread_number];
-  sem_init(&semaphore,0,0);
-  for( int i=0; i<param->thread_number; i++ ) {
-    if( param->verbose ) std::cout << "binding thread : " << i+1 << std::endl; 
-    set_cpu_sets(param->thread_cpus[i], param->thread_cpus_number[i]);
-    thread_params[i].thread_number = i;
-    pthread_create( &(threads[i]), NULL, thread_master_function, (void *) &(thread_params[i]) );
-    sem_wait(&semaphore);
-  }
-  if( param->verbose ) std::cout << "binding  main thread (0)" << std::endl; 
-  set_cpu_sets(param->main_cpus, param->main_cpus_number);
-}
-
-void run_bench_spin( void * (*main_program)(void * param), void * (*thread_program)(void * param), void ** params ) {
-  for( int i=0; i<engine_param->thread_number; i++ ) {
+void _run_bench_spin( void * (*main_program)(void * param), void * (*thread_program)(void * param), void ** params ) {
+  for( int i=0; i<engine_params->thread_number; i++ ) {
     struct thread_data *d = thread_datas[i];
     pthread_spin_lock(&global_spin);
     thread_counter++;
@@ -294,8 +272,8 @@ void run_bench_spin( void * (*main_program)(void * param), void * (*thread_progr
   pthread_spin_unlock(&global_spin);
 }
 
-void run_bench( void * (*main_program)(void * param), void * (*thread_program)(void * param), void ** params ) {
-  for( int i=0; i<engine_param->thread_number; i++ ) {
+void _run_bench( void * (*main_program)(void * param), void * (*thread_program)(void * param), void ** params ) {
+  for( int i=0; i<engine_params->thread_number; i++ ) {
     struct thread_data *d = thread_datas[i];
     pthread_mutex_lock(&(d->mutex));
     d->param = params[i+1];
@@ -304,7 +282,15 @@ void run_bench( void * (*main_program)(void * param), void * (*thread_program)(v
     pthread_mutex_unlock(&(d->mutex));
   }
   main_program(params[0]);
-  for( int i=0; i<engine_param->thread_number; i++ ) {
+  for( int i=0; i<engine_params->thread_number; i++ ) {
     sem_wait(&semaphore);
+  }
+}
+
+void run_bench( void * (*main_program)(void * param), void * (*thread_program)(void * param), void ** params ) {
+  if(engine_params->use_spin) {
+    _run_bench_spin(main_program, thread_program, params);
+  } else {
+    _run_bench(main_program, thread_program, params);
   }
 }

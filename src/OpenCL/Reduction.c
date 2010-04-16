@@ -229,12 +229,14 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   a += j*lda + ig;\n\
   b += jg*ldb + i;\n\
   c += jg*ldc + ig;\n\
+  bool condm = ig < m;\n\
+  bool condn = jg < n;\n\
   while( index < k) {\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
     //load first matrix in tmp1\n\
-    tmp1[j*(BUFFER_SIZE)] = (ig < m && (index + j) <  k) ? a[index*lda] : (double2)(0.0, 0.0);\n\
+    tmp1[j*(BUFFER_SIZE)] = (condm && (index + j) <  k) ? a[index*lda] : (double2)(0.0, 0.0);\n\
     //load second matrix in tmp2\n\
-    tmp2[i] = (jg < n && (index + i) < k) ? b[index] : (double2)(0.0, 0.0);\n\
+    tmp2[i] = (condn && (index + i) < k) ? b[index] : (double2)(0.0, 0.0);\n\
     index += BUFFER_SIZE;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
     #pragma unroll\n\
@@ -245,7 +247,7 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
       result.y = mad(a_t.x,b_t.y,mad(a_t.y,b_t.x,result.y));\n\
     }\n\
   }\n\
-  if(ig < m && jg < n){\n\
+  if(condm && condn){\n\
     double2 final_result = (double2)(0.0, 0.0);\n\
     final_result.x += alpha.x*result.x;\n\
     final_result.x +=-alpha.y*result.y;\n\
