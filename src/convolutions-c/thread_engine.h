@@ -28,13 +28,21 @@ struct thread_engine_param {
   int *main_cpus;
   int main_cpus_number;
   int memory_allocation;
-  bool real_time;
-  bool stack;
+  int real_time;
+  int stack;
   int verbose;
 };
+#ifdef __cplusplus
+ extern "C" {
+#endif
 
 void get_engine_opt(int argc, char *argv[], struct thread_engine_param * param );
 void init_thread_engine ( struct thread_engine_param * param );
+void init_thread_engine_spin ( struct thread_engine_param * param );
 void run_bench( void * (*main_program)(void * param), void * (*thread_program)(void * param), void ** params ) ;
+void run_bench_spin( void * (*main_program)(void * param), void * (*thread_program)(void * param), void ** params ) ;
 
+#ifdef __cplusplus
+ }
+#endif
 #endif

@@ -1,8 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
-#define CACHE_SIZE 6291456
+#include <thread_engine.h>
+#define CACHE_SIZE 62914560000000
 #define NB_SYB 2
 #define NB_CORE 8
+
+void rdtsc_(long long unsigned int * t) {
+  rdtscll(*t);
+}
 
 const double filt[] = { 8.4334247333529341094733325815816e-7,
                        -0.1290557201342060969516786758559028e-4,
@@ -363,6 +368,8 @@ void magicfilter_partial(unsigned int n1, unsigned int start, unsigned int ndat,
   }
 }
 
+
+
 void magicfilter_partial2(unsigned int n1, unsigned int start, unsigned int ndat, unsigned int ld, const double *x, double *y) {
   int i,j,k;
   double result0,result1,result2,result3,result4,result5,result6,result7;//,result8;//,result9,result10,result11;//,result12,result13,result14,result15;
@@ -493,6 +500,91 @@ void magicfilter_partial2(unsigned int n1, unsigned int start, unsigned int ndat
   }
 }
 
+struct magicfilter_params {
+  unsigned int n1;
+  unsigned int start;
+  unsigned int ndat;
+  unsigned int ld;
+  unsigned long long int start_date;
+  unsigned long long int stop_date;
+  const double *x;
+  double *y;
+};
+
+
+struct thread_engine_param engine_params;
+struct magicfilter_params ** params;
+
+void init_thread_engine_(){
+  char *argv[]={"conv_check", "-t", "topology_muscade.cfg", "-p", "placement_muscade.cfg", "-v", "1"};
+  int argc = 7;
+  int i;
+
+  get_engine_opt( argc, argv, &engine_params);
+
+  init_thread_engine_spin( &engine_params );
+
+  params = (struct magicfilter_params **)malloc( (1 + engine_params.thread_number) * sizeof(struct magicfilter_params *));
+  for(i=0; i < 1 + engine_params.thread_number; i++) {
+    params[i] = (struct magicfilter_params *)malloc( sizeof(struct magicfilter_params) );
+  }
+}
+
+void * magicfilter_part_wrapper(void *p) {
+  struct magicfilter_params * params;
+  params = ( struct magicfilter_params *) p;
+  rdtscll(params->start_date);
+  magicfilter_partial2(params->n1, params->start, params->ndat, params->ld, params->x, params->y);
+  rdtscll(params->stop_date);
+  return NULL;
+}
+
+void magicfilter1d_d_par_(unsigned int *n1, unsigned int *ndat, double *x, double *y) {
+  int i,j;
+  size_t slice;
+  unsigned int steps = 1;
+  slice = *ndat/(1 + engine_params.thread_number);
+  while( (slice* *n1 *sizeof(double)*NB_SYB) > CACHE_SIZE ) {
+    slice /= 2;
+    steps++;
+  }
+  slice = *ndat/(steps*(1 + engine_params.thread_number));
+//  printf("steps : %d, slice : %lu\n",steps,slice);
+  for(i=0; i<steps-1; i++) {
+    for(j=0; j<(1 + engine_params.thread_number); j++) {
+      params[j]->n1 = *n1;
+      params[j]->start = (i*(1 + engine_params.thread_number)+j)*slice;
+      params[j]->ndat = slice;
+      params[j]->ld = *ndat;
+      params[j]->x = x;
+      params[j]->y = y;
+    }
+    run_bench_spin(magicfilter_part_wrapper,magicfilter_part_wrapper, (void **)params );
+    exit(0);
+  }
+  for(j=0; j<engine_params.thread_number; j++) {
+    params[j]->n1 = *n1;
+    params[j]->start = ((steps-1)*(1 + engine_params.thread_number)+j)*slice;
+    params[j]->ndat = slice;
+    params[j]->ld = *ndat;
+    params[j]->x = x;
+    params[j]->y = y;
+  }
+  params[engine_params.thread_number]->n1 = *n1;
+  params[engine_params.thread_number]->start = ((steps-1)*(1 + engine_params.thread_number)+engine_params.thread_number)*slice;
+  params[engine_params.thread_number]->ndat = slice + (*ndat % slice);
+  params[engine_params.thread_number]->ld = *ndat;
+  params[engine_params.thread_number]->x = x;
+  params[engine_params.thread_number]->y = y;
+  unsigned long long int start, stop;
+  rdtscll(start);
+  run_bench_spin(magicfilter_part_wrapper,magicfilter_part_wrapper, (void **)params );
+  rdtscll(stop);
+  printf("start : %llu, stop : %llu\n",start,stop-start);
+  for(j=0; j<(1 + engine_params.thread_number); j++)
+    printf("  start : %llu, stop %llu\n", params[j]->start_date-start, params[j]->stop_date-start);
+}
+
 void magicfilter1d_d_seq_(unsigned int *n1, unsigned int *ndat, double *x, double *y) {
    int i,j;
    size_t slice;
@@ -503,7 +595,7 @@ void magicfilter1d_d_seq_(unsigned int *n1, unsigned int *ndat, double *x, doubl
      steps++;
    }
    slice = *ndat/(steps*NB_CORE);
-//   printf("steps : %d, slice : %lu\n",steps,slice);
+   printf("steps : %d, slice : %lu\n",steps,slice);
    for(i=0; i<steps-1; i++) {
      for(j=0; j<NB_CORE; j++) {
        magicfilter_partial2(*n1, (i*NB_CORE+j)*slice, slice, *ndat, x, y);

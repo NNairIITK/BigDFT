@@ -122,7 +122,7 @@ program conv_check
   ekin=0.0_wp
   
   !call set_gpu_double() !after this call, all memory operations are in double precision, call set_gpu_simple() in order to have simple memory operations
-
+  call init_thread_engine();
 
   !one dimensional case
   if (ndim == 1) then
@@ -175,7 +175,7 @@ program conv_check
 
            call cpu_time(t0)
            do i=1,ntimes
-              call magicfilter1d_d_seq(n1,ndat,psi_in,psi_cuda)
+              call magicfilter1d_d_par(n1,ndat,psi_in,psi_cuda)
            end do
            call cpu_time(t1)
            GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)

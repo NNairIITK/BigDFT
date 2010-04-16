@@ -32,10 +32,11 @@ typedef unsigned int u32;
 
 
 struct thread_data {
-  void * (*thread_code)(void * param);
-  void * param;
+  void * ( * volatile thread_code)(void * param);
+  void * volatile param;
   pthread_mutex_t mutex;
   pthread_cond_t cond;
+  pthread_spinlock_t spin;
 };
 
 struct thread_param {
@@ -44,9 +45,11 @@ struct thread_param {
 
 struct thread_engine_param *engine_param;
 struct thread_param * thread_params;
-struct thread_data ** thread_datas;
+struct thread_data * volatile * thread_datas;
 pthread_t * threads;
 sem_t semaphore;
+pthread_spinlock_t global_spin;
+volatile unsigned int thread_counter;
 
 
 void get_topology( struct thread_engine_param * param ) {
@@ -143,6 +146,33 @@ void get_engine_opt(int argc, char *argv[], struct thread_engine_param * param )
 	argv += optind;	
 }
 
+void * thread_master_function_spin( void *arg ) {
+  struct thread_param *param;
+  param = (struct thread_param *)arg;
+  struct thread_data data;
+  data.thread_code = NULL;
+  data.param = NULL;
+  pthread_spin_init(&(data.spin),PTHREAD_PROCESS_PRIVATE);
+  thread_datas[param->thread_number] = &data;
+  sem_post(&semaphore);
+  while(1) {
+    while (1) {
+      while (data.thread_code == NULL){ASMPAUSE;}
+      pthread_spin_lock(&(data.spin));//
+      if (data.thread_code != NULL) break;
+      pthread_spin_unlock(&(data.spin));
+    }
+    pthread_spin_unlock(&(data.spin));
+    data.thread_code(data.param);
+    data.param = NULL;
+    data.thread_code = NULL;
+    pthread_spin_lock(&global_spin);
+    thread_counter--;
+    pthread_spin_unlock(&global_spin);
+  }
+  return NULL;
+}
+
 void * thread_master_function( void *arg ) {
   struct thread_param *param;
   param = (struct thread_param *)arg;
@@ -195,6 +225,31 @@ void set_cpu_sets(int *cpus, int cpus_number ) {
   }
 }
 
+void init_thread_engine_spin ( struct thread_engine_param * param ) {
+  engine_param = param;
+  if(param->real_time) {       
+    struct sched_param sched_p;
+    sched_p.__sched_priority = sched_get_priority_max (SCHED_RR);
+    if (sched_setscheduler (0, SCHED_RR, &sched_p) != 0)
+      perror("sched_setscheduler");
+  }
+  thread_datas = new thread_data*[param->thread_number];
+  thread_params = new thread_param[param->thread_number];
+  threads = new pthread_t[param->thread_number];
+  thread_counter=0;
+  pthread_spin_init(&(global_spin),PTHREAD_PROCESS_PRIVATE);
+  sem_init(&semaphore,0,0);
+  for( int i=0; i<param->thread_number; i++ ) {
+    if( param->verbose ) std::cout << "binding thread : " << i+1 << std::endl; 
+    set_cpu_sets(param->thread_cpus[i], param->thread_cpus_number[i]);
+    thread_params[i].thread_number = i;
+    pthread_create( &(threads[i]), NULL, thread_master_function_spin, (void *) &(thread_params[i]) );
+    sem_wait(&semaphore);
+  }
+  if( param->verbose ) std::cout << "binding  main thread (0)" << std::endl; 
+  set_cpu_sets(param->main_cpus, param->main_cpus_number);
+}
+
 void init_thread_engine ( struct thread_engine_param * param ) {
   engine_param = param;
   if(param->real_time) {       
@@ -218,12 +273,33 @@ void init_thread_engine ( struct thread_engine_param * param ) {
   set_cpu_sets(param->main_cpus, param->main_cpus_number);
 }
 
+void run_bench_spin( void * (*main_program)(void * param), void * (*thread_program)(void * param), void ** params ) {
+  for( int i=0; i<engine_param->thread_number; i++ ) {
+    struct thread_data *d = thread_datas[i];
+    pthread_spin_lock(&global_spin);
+    thread_counter++;
+    pthread_spin_unlock(&global_spin);
+    pthread_spin_lock(&(d->spin));
+    d->param = params[i+1];
+    d->thread_code = thread_program;
+    pthread_spin_unlock(&(d->spin));
+  }
+  main_program(params[0]);
+  while (1) {
+    while (thread_counter != 0){ASMPAUSE;}
+    pthread_spin_lock(&global_spin);
+    if (thread_counter == 0) break;
+    pthread_spin_unlock(&global_spin);
+  }
+  pthread_spin_unlock(&global_spin);
+}
+
 void run_bench( void * (*main_program)(void * param), void * (*thread_program)(void * param), void ** params ) {
   for( int i=0; i<engine_param->thread_number; i++ ) {
     struct thread_data *d = thread_datas[i];
     pthread_mutex_lock(&(d->mutex));
-    d->thread_code = thread_program;
     d->param = params[i+1];
+    d->thread_code = thread_program;
     pthread_cond_signal(&(d->cond));
     pthread_mutex_unlock(&(d->mutex));
   }

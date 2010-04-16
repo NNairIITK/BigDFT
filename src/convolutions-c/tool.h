@@ -17,7 +17,6 @@
 #ifndef PASTEL_TOOL_H
 #define PASTEL_TOOL_H
 #include <stdlib.h>
-#include <iostream>
 typedef    unsigned int      u32;
 #include <asm/msr.h>
 
@@ -25,11 +24,14 @@ typedef    unsigned int      u32;
 
 #define rdtscll(t) do { \
      unsigned int __a,__d; \
+     asm 
      asm volatile("rdtsc" : "=a" (__a), "=d" (__d)); \
      (t) = ((unsigned long)__a) | (((unsigned long)__d)<<32); \
 } while(0)
 //#define rdtscll(val) __asm__ __volatile__("rdtsc" : "=A" (val))
 #endif
+
+void rdtsc_(long long unsigned int * t);
 
 #define SECURE_DELETE(X) if (X) {delete X; X=NULL;}
 #define SECURE_DELETE_ARRAY(X) if (X) {delete[] X; X=NULL;}
@@ -67,96 +69,6 @@ typedef    unsigned int      u32;
 #define TIME_IT_END(X,Y)
 #endif
 
-
-
-inline
-#if DEBUGSPIN
-int pthread_spin_lock (const char * str1, int str2, pthread_spinlock_t* spin)
-#else
-int pthread_spin_lock (const char * , int , pthread_spinlock_t* spin)
-#endif
-{
-#if DEBUGSPIN
-  long long int hw1;
-  long long int hw2;
-
-  rdtscll(hw1);
-  //std::cout<<"locking ("<<pthread_self()<<") : "<<str1<<" "<<str2;
-
-  int err = pthread_spin_lock(spin);
-
-  //std::cout<<"out"<<std::endl;
-  rdtscll(hw2);
-  if (hw2 - hw1 > 100000)
-    // std::cout<<str1<<" "<<str2<<"("<<pthread_self()<<")"<<" : "<<hw2-hw1<<std::endl;
-    fprintf (stderr, "%s %d (%d) : %ld\n", str1, str2, (int)pthread_self(),(long int)(hw2-hw1));
-  return err;
-#else
-  return pthread_spin_lock(spin);
-#endif
-}
-
-
-inline
-#if DEBUGSPIN
-int pthread_spin_unlock (const char * str1, int str2, pthread_spinlock_t* spin)
-#else
-int pthread_spin_unlock (const char * , int , pthread_spinlock_t* spin)
-#endif
-{
-#if DEBUGSPIN
-  long long int hw1;
-  long long int hw2;
-
-  rdtscll(hw1);
-  //std::cout<<"locking ("<<pthread_self()<<") : "<<str1<<" "<<str2;
-
-  int err = pthread_spin_unlock(spin);
-
-  //std::cout<<"out"<<std::endl;
-  rdtscll(hw2);
-if (hw2 - hw1 > 500)
-//  std::cout<<str1<<" "<<str2<<"("<<pthread_self()<<")"<<" : "<<hw2-hw1<<std::endl;
- printf ("%s %d (%d) : %d\n", str1, str2, (int)pthread_self(),(int)(hw2-hw1));
-  return err;
-#else
-  return pthread_spin_unlock(spin);
-#endif            
-} 
-       
-
-template <typename T>
-T MAX ( T a, T b)
-{
-  return ((a < b)? b : a);
-}
-
-template <typename T>
-T MIN (T a, T b)
-{
-  return ((a < b)? a : b);
-}
-
-template <typename T>
-T* alloc_T_random (int size)
-{
-  T* t = new T[size];
-  for (int i=0; i<size; i++)
-    t[i] = (T)rand();
-
-  return t;
-}
-
-inline int mylog(int x)
-{
-  int i=0;
-  while (x != 0)
-    {
-      i++;
-      x = x>>1;
-    }
-  return i;
-}
 
 inline long long int getcyclecount()
 {
