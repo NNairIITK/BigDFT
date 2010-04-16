@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <thread_engine.h>
-#define CACHE_SIZE 62914560000000
+#define CACHE_SIZE 6291456
 #define NB_SYB 2
 #define NB_CORE 8
 
@@ -533,9 +533,9 @@ void init_thread_engine_(){
 void * magicfilter_part_wrapper(void *p) {
   struct magicfilter_params * params;
   params = ( struct magicfilter_params *) p;
-  rdtscll(params->start_date);
+//  rdtscll(params->start_date);
   magicfilter_partial2(params->n1, params->start, params->ndat, params->ld, params->x, params->y);
-  rdtscll(params->stop_date);
+//  rdtscll(params->stop_date);
   return NULL;
 }
 
@@ -560,7 +560,6 @@ void magicfilter1d_d_par_(unsigned int *n1, unsigned int *ndat, double *x, doubl
       params[j]->y = y;
     }
     run_bench_spin(magicfilter_part_wrapper,magicfilter_part_wrapper, (void **)params );
-    exit(0);
   }
   for(j=0; j<engine_params.thread_number; j++) {
     params[j]->n1 = *n1;
@@ -576,13 +575,13 @@ void magicfilter1d_d_par_(unsigned int *n1, unsigned int *ndat, double *x, doubl
   params[engine_params.thread_number]->ld = *ndat;
   params[engine_params.thread_number]->x = x;
   params[engine_params.thread_number]->y = y;
-  unsigned long long int start, stop;
-  rdtscll(start);
+//  unsigned long long int start, stop;
+//  rdtscll(start);
   run_bench_spin(magicfilter_part_wrapper,magicfilter_part_wrapper, (void **)params );
-  rdtscll(stop);
-  printf("start : %llu, stop : %llu\n",start,stop-start);
-  for(j=0; j<(1 + engine_params.thread_number); j++)
-    printf("  start : %llu, stop %llu\n", params[j]->start_date-start, params[j]->stop_date-start);
+//  rdtscll(stop);
+//  printf("start : %llu, stop : %llu\n",start,stop-start);
+//  for(j=0; j<(1 + engine_params.thread_number); j++)
+//    printf("  start : %llu, stop %llu\n", params[j]->start_date-start, params[j]->stop_date-start);
 }
 
 void magicfilter1d_d_seq_(unsigned int *n1, unsigned int *ndat, double *x, double *y) {

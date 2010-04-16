@@ -33,5 +33,5 @@ conv_check_LDADD = libbasec.a libbasef.a ../libbigdft.a ../PSolver/libpoissonsol
 conv_check_LDFLAGS = -lpthread -lnuma -lconfig++
 
 check:
-	echo 1 65 65 2049 2049 1000 > fort.1
+	echo 1 65 65 204900 204900 10 > fort.1
 	numactl --interleave=all ./conv_check

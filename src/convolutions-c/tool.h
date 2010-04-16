@@ -24,7 +24,6 @@ typedef    unsigned int      u32;
 
 #define rdtscll(t) do { \
      unsigned int __a,__d; \
-     asm 
      asm volatile("rdtsc" : "=a" (__a), "=d" (__d)); \
      (t) = ((unsigned long)__a) | (((unsigned long)__d)<<32); \
 } while(0)

@@ -54,6 +54,7 @@ program conv_check
   integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
   integer, parameter :: lowfilK=-14,lupfilK=14 ! kinetic term
   real(kind=8), dimension(lowfilK:lupfilK) :: fil
+  integer(kind=8) :: tsc0, tsc1
 
  
 !!!  !Use arguments
@@ -156,9 +157,11 @@ program conv_check
            !take timings
            !call system_clock(it0,count_rate,count_max)
            call cpu_time(t0)
+           call rdtsc(tsc0)
            do i=1,ntimes
               call convrot_n_per(n1-1,ndat,psi_in,psi_out)
            end do
+           call rdtsc(tsc1)
            call cpu_time(t1)
            !call system_clock(it1,count_rate,count_max)
 
@@ -167,6 +170,7 @@ program conv_check
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
                 real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+           print *,"tsc : ",tsc1-tsc0
 
            !the input and output arrays must be reverted in this implementation
            !take timings
@@ -174,12 +178,15 @@ program conv_check
            write(*,'(a,i6,i6)')'CPU C Convolutions, dimensions:',n1,ndat
 
            call cpu_time(t0)
+           call rdtsc(tsc0)
            do i=1,ntimes
               call magicfilter1d_d_par(n1,ndat,psi_in,psi_cuda)
            end do
+           call rdtsc(tsc1)
            call cpu_time(t1)
            GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
 
+           print *,"tsc : ",tsc1-tsc0
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 GPUtime*1.d3/real(ntimes,kind=8),&
                 real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
