@@ -29,7 +29,7 @@
   !temporary interface
   interface
      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
-          psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,infocode)
+          psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
        use module_base
        use module_types
        implicit none
@@ -41,6 +41,7 @@
        type(atoms_data), intent(inout) :: atoms
        type(gaussian_basis), intent(inout) :: gbd
        type(orbitals_data), intent(inout) :: orbs
+       type(GPU_pointers), intent(inout) :: GPU
        real(gp), intent(out) :: energy
        real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
        real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
@@ -74,7 +75,7 @@
 
      call cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
-          rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,infocode)
+          rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
 
      if (in%inputPsiId==1 .and. infocode==2) then
         if (in%gaussian_help) then
@@ -155,7 +156,7 @@ END SUBROUTINE call_bigdft
 !! SOURCE
 !!
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
-     psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,infocode)
+     psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
   use module_types
   use module_interfaces
@@ -172,6 +173,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(atoms_data), intent(inout) :: atoms
   type(gaussian_basis), intent(inout) :: gbd
   type(orbitals_data), intent(inout) :: orbs
+  type(GPU_pointers), intent(inout) :: GPU
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
   real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
   integer, intent(out) :: infocode
@@ -189,8 +191,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   integer :: nvirt,ndiis_sd_sw,norbv
   integer :: nelec,ndegree_ip,j,i,iorb
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
-  integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i,i03,i04
-  integer :: i1,i2,i3,ind,iat,i_all,i_stat,iter,ierr,jproc,ispin,inputpsi
+  integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
+  integer :: iat,i_all,i_stat,iter,ierr,jproc,inputpsi
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(gp) :: peakmem,energy_old,sumz,evsum,sumx,sumy
@@ -200,10 +202,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(gp) :: edisp ! Dispersion energy
   type(wavefunctions_descriptors) :: wfd_old
   type(nonlocal_psp_descriptors) :: nlpspd
-  type(communications_arrays) :: comms
+  type(communications_arrays) :: comms, commsv
   type(orbitals_data) :: orbsv
   type(gaussian_basis) :: Gvirt
-  type(GPU_pointers) :: GPU
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: rho
@@ -226,6 +227,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! Arrays for the symmetrisation.
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
+  ! Variables for the virtual orbitals and band diagram.
+  integer :: nkptv, nvirtu, nvirtd
+  real(gp), allocatable :: wkptv(:)
 
 
   ! ----------------------------------
@@ -363,11 +367,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call MemoryEstimator(atoms%geocode,nproc,idsx,n1,n2,n3,&
           atoms%alat1,atoms%alat2,atoms%alat3,&
           hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,crmult,frmult,&
-          orbs%norb,nlpspd%nprojel,atoms%atomnames,0,in%nspin,peakmem)
+          orbs%norb,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,0,in%nspin,peakmem)
   end if
 
   !allocate communications arrays
-  !call allocate_comms(nproc,orbs,comms,subname)
   call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
   !these arrays should be included in the comms descriptor
@@ -530,10 +533,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc, atoms,&
-          orbs,orbsv,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
-          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons)
-
+          orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
+          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,Gvirt,&
+          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU)
   case(1)
      !these parts should be reworked for the non-collinear spin case
 
@@ -667,10 +669,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   endif
 
   !allocate arrays for the GPU if a card is present
-  !do this only if the potshortcut treatment is not activated
-  if (GPUconv .and.  in%potshortcut==0) then
+  if (GPUconv) then
      call prepare_gpu_for_locham(Glr%d%n1,Glr%d%n2,Glr%d%n3,in%nspin,&
           hx,hy,hz,Glr%wfd,orbs,GPU)
+  end if
+  !the same with OpenCL, but they cannot exist at same time
+  if (OCLconv) then
+     call allocate_data_OCL(Glr%d%n1,Glr%d%n2,Glr%d%n3,atoms%geocode,&
+          in%nspin,hx,hy,hz,Glr%wfd,orbs,GPU)
   end if
 
   alpha=2.d0
@@ -1238,14 +1244,43 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !!$     allocate(psivirt(orbs%npsidim+ndebug),stat=i_stat)
 !!$     call memocc(i_stat,psivirt,'psivirt',subname)
 
+     ! Set-up number of states and shifting values.
+     nvirtu = norbv
+     nvirtd = 0
+     if (in%nspin==2) nvirtd=nvirtu
+     ! Create the orbitals.
+     if (associated(in%kptv)) then
+        nvirtu = nvirtu + orbs%norbu
+        nvirtd = nvirtd + orbs%norbd
+        nvirt  = nvirt   + orbs%norb
+        nkptv = size(in%kptv, 2)
+        allocate(wkptv(nkptv+ndebug),stat=i_stat)
+        call memocc(i_stat,wkptv,'wkptv',subname)
+        wkptv(:) = real(1.0, gp) / real(nkptv, gp)
+        call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
+             & orbs%nspinor,nkptv,in%kptv,wkptv,orbsv)
+        i_all=-product(shape(wkptv))*kind(wkptv)
+        deallocate(wkptv,stat=i_stat)
+        call memocc(i_stat,i_all,'wkptv',subname)
+     else
+        call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
+             & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
+     end if
+
+     !allocate communications arrays for virtual orbitals
+     call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
+
      !allocate psivirt pointer (note the orbs dimension)
      allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psivirt,'psivirt',subname)
 
      call davidson(iproc,nproc,n1i,n2i,in,atoms,&
-          orbs,orbsv,nvirt,Glr,comms,&
+          orbs,orbsv,nvirt,Glr,comms,commsv,&
           hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj, &
           pkernel,psi,psivirt,ngatherarr,GPU)
+     
+     call deallocate_comms(commsv,subname)
+
   end if
 
 
@@ -1393,6 +1428,8 @@ contains
        !free GPU if it is the case
        if (GPUconv .and. .not.(DoDavidson)) then
           call free_gpu(GPU,orbs%norbp)
+       else if (OCLconv .and. .not.(DoDavidson)) then
+          call free_gpu_OCL(GPU,orbs%norbp)
        end if
        
        i_all=-product(shape(pot_ion))*kind(pot_ion)
@@ -1504,6 +1541,8 @@ contains
     !free GPU if it is the case
     if (GPUconv .and. .not.(DoDavidson)) then
        call free_gpu(GPU,orbs%norbp)
+    else if (OCLconv .and. .not.(DoDavidson)) then
+       call free_gpu_OCL(GPU,orbs%norbp)
     end if
     
     call deallocate_comms(comms,subname)

@@ -355,7 +355,14 @@ treatment if the variable {\bf rbuf} is set to a strictly positive value.
                                  of the highest occupied orbitals will be  written in the 'orbital.*.pot' file
                                  The Kohn Sham eigenvalues are written in the ordinary output file.  {\bf nvirt} corresponds to the actual number of orbitals the convergence process is taking care of during the Davidson iterations.
 
-\item {\bf verbosity}: Determines the amount of output from little (0) to detailed (2). By adding 10 to its value it switch on the once-and-for-all strategy for calcuylating the PSP projectors, which is faster but more memory demanding (considered by memguess).
+\item {\bf verbosity}: Determines the amount of output from little (0)
+to detailed (2). By adding 10 to its value it switch on the
+once-and-for-all strategy for calcuylating the PSP projectors, which
+is faster but more memory demanding (considered by memguess).
+\item \textbf{disable sym}: a logical to set to 'T' to disable the
+usage of symmetry operations in the calculations. By default symmetries
+are used to update the density in periodic boundary condition
+caculations, and surface boundary conditions also.
 \end{itemize}
 
 \section{The input file 'input.geopt'}
@@ -422,6 +429,22 @@ This file is used to specify a set of $k$ points. If this file does not exist, o
   \item  if \textbf{kptopt = 'auto'}: One additional line containing a real space length \textbf{kptrlen}. BigDFT will automatically generate a large set of possible $k$ point grids, and select among this set, the grids that give a length of smallest vector LARGER than \textbf{kptrlen}, and among these grids, the one that, reduces to the smallest number of $k$ points.
   \item  if \textbf{kptopt = 'MPgrid'}: Several additional lines. The first line should contains three integers describing the mesh of Monkhorst-Pack grid in reciprocal space. The second line contains one integer \textbf{nshiftk} that give the number of shift one would like to apply to the MMP grid to obtain the final $k$ point mesh. Then the file contains \textbf{nshiftk} lines with three real numbers each, giving the shift to apply in reciprocal space.
   \item  if \textbf{kptopt = 'manual'}: Several additional lines. The first contains \textbf{nkpt}, an integer giving the number of manually defined $k$ points. Then \textbf{nkpt} lines follow, with four real values each, the three first being the coordinates in reciprocal space (in $[0;0.5]$) and the fourth bing the weight. If the sum of all weights does not equal to one, weight values are renormalised.
+\end{itemize}
+After the regular $k$ point mesh for the self-consistent loop, one can
+define in addition a specific path of $k$ points to be used to compute
+a band diagram. This requires also to define Davidson usage in the
+'input.dft' file. The band structure is define if the following lines
+are present:
+\begin{itemize}
+  \item \textbf{band keyword}: a character string containing
+\emph{bands}.
+  \item the next line contains one integer, \textbf{nseg}, the number
+of different segments for the path.
+  \item the next line contains \textbf{nseg} integer values, defining
+the number different $k$ points to be generated in each segment.
+  \item then follow \textbf{nseg + 1} lines containing each three floating
+point values with the coordinates of the vertices in reduced
+coordinates of the Brillouin zone.
 \end{itemize}
 
 

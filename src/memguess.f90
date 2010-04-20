@@ -32,6 +32,7 @@ program memguess
   type(input_variables) :: in
   type(atoms_data) :: atoms
   type(orbitals_data) :: orbs,orbstst
+  type(communications_arrays) :: comms
   type(locreg_descriptors) :: Glr
   type(nonlocal_psp_descriptors) :: nlpspd
   type(gaussian_basis) :: G !basis for davidson IG
@@ -73,7 +74,7 @@ program memguess
      write(*,'(1x,a)')&
           '"convert" converts input files older than 1.2 into actual format'
      write(*,'(1x,a)')&
-          '"atwf" <ng> calculates the atomic wavefuntions of the first atom in the gatom basis and write their expression '
+          '"atwf" <ng> calculates the atomic wavefunctions of the first atom in the gatom basis and write their expression '
      write(*,'(1x,a)')&
           '            in the "gatom-wfn.dat" file '
      write(*,'(1x,a)')&
@@ -273,6 +274,11 @@ program memguess
 
   call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Glr,shift)
 
+  ! Build and print the communicator scheme.
+  call createWavefunctionsDescriptors(0,hx,hy,hz,&
+       atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr)
+  call orbitals_communicators(0,nproc,Glr,orbs,comms)  
+
   if (GPUtest .and. .not. GPUconv) then
      write(*,*)' ERROR: you can not put a GPUtest flag is there is no GPUrun.'
      stop
@@ -304,13 +310,8 @@ program memguess
         orbstst%spinsgn(iorb)=1.0_gp
      end do
 
-     call createWavefunctionsDescriptors(0,hx,hy,hz,&
-          atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr)
-
      call compare_cpu_gpu_hamiltonian(0,1,atoms,orbstst,nspin,in%ncong,in%ixc,&
           Glr,hx,hy,hz,rxyz,ntimes)
-
-     call deallocate_wfd(Glr%wfd,subname)
 
      call deallocate_orbs(orbstst,subname)
 
@@ -320,6 +321,8 @@ program memguess
 
   end if
 
+  call deallocate_wfd(Glr%wfd,subname)
+  call deallocate_comms(comms,subname)
 
   ! determine localization region for all projectors, but do not yet fill the descriptor arrays
   allocate(nlpspd%nseg_p(0:2*atoms%nat+ndebug),stat=i_stat)
@@ -432,7 +435,7 @@ program memguess
   call MemoryEstimator(atoms%geocode,nproc,in%idsx,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
        atoms%alat1,atoms%alat2,atoms%alat3,&
        hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,in%crmult,in%frmult,&
-       orbs%norb,nlpspd%nprojel,atoms%atomnames,output_grid,in%nspin,peakmem)
+       orbs%norb,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,output_grid,in%nspin,peakmem)
 
   !add the comparison between cuda hamiltonian and normal one if it is the case
 

@@ -119,48 +119,48 @@ contains
 
     i_all=-product(shape(modul1))*kind(modul1)
     deallocate(modul1,stat=i_stat)
-    call memocc(i_stat,i_all,'modul1','last_orthon')
+    call memocc(i_stat,i_all,'modul1','precong_slab')
 
     i_all=-product(shape(modul3))*kind(modul3)
     deallocate(modul3,stat=i_stat)
-    call memocc(i_stat,i_all,'modul3','last_orthon')
+    call memocc(i_stat,i_all,'modul3','precong_slab')
 
     i_all=-product(shape(af))*kind(af)
     deallocate(af,stat=i_stat)
-    call memocc(i_stat,i_all,'af','last_orthon')
+    call memocc(i_stat,i_all,'af','precong_slab')
 
     i_all=-product(shape(bf))*kind(bf)
     deallocate(bf,stat=i_stat)
-    call memocc(i_stat,i_all,'bf','last_orthon')
+    call memocc(i_stat,i_all,'bf','precong_slab')
 
     i_all=-product(shape(cf))*kind(cf)
     deallocate(cf,stat=i_stat)
-    call memocc(i_stat,i_all,'cf','last_orthon')
+    call memocc(i_stat,i_all,'cf','precong_slab')
 
     i_all=-product(shape(ef))*kind(ef)
     deallocate(ef,stat=i_stat)
-    call memocc(i_stat,i_all,'ef','last_orthon')
+    call memocc(i_stat,i_all,'ef','precong_slab')
 
 
     i_all=-product(shape(psifscf))*kind(psifscf)
     deallocate(psifscf,stat=i_stat)
-    call memocc(i_stat,i_all,'psifscf','last_orthon')
+    call memocc(i_stat,i_all,'psifscf','precong_slab')
 
     i_all=-product(shape(ww))*kind(ww)
     deallocate(ww,stat=i_stat)
-    call memocc(i_stat,i_all,'ww','last_orthon')
+    call memocc(i_stat,i_all,'ww','precong_slab')
 
     i_all=-product(shape(b))*kind(b)
     deallocate(b,stat=i_stat)
-    call memocc(i_stat,i_all,'b','last_orthon')
+    call memocc(i_stat,i_all,'b','precong_slab')
 
     i_all=-product(shape(r))*kind(r)
     deallocate(r,stat=i_stat)
-    call memocc(i_stat,i_all,'r','last_orthon')
+    call memocc(i_stat,i_all,'r','precong_slab')
 
     i_all=-product(shape(d))*kind(d)
     deallocate(d,stat=i_stat)
-    call memocc(i_stat,i_all,'d','last_orthon')
+    call memocc(i_stat,i_all,'d','precong_slab')
   END SUBROUTINE deallocate_all
 
 END SUBROUTINE precong_slab
@@ -363,19 +363,19 @@ contains
   subroutine deallocate_all
     i_all=-product(shape(z))*kind(z)
     deallocate(z,stat=i_stat)
-    call memocc(i_stat,i_all,'z','last_orthon')
+    call memocc(i_stat,i_all,'z','prec_fft_slab')
 
     i_all=-product(shape(kern_k1))*kind(kern_k1)
     deallocate(kern_k1,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k1','last_orthon')
+    call memocc(i_stat,i_all,'kern_k1','prec_fft_slab')
 
     i_all=-product(shape(kern_k3))*kind(kern_k3)
     deallocate(kern_k3,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k3','last_orthon')
+    call memocc(i_stat,i_all,'kern_k3','prec_fft_slab')
 
     i_all=-product(shape(x_c))*kind(x_c)
     deallocate(x_c,stat=i_stat)
-    call memocc(i_stat,i_all,'x_c','last_orthon')
+    call memocc(i_stat,i_all,'x_c','prec_fft_slab')
 
   END SUBROUTINE deallocate_all
 

@@ -212,9 +212,9 @@ subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
   isorb=orbs%isorb+1
   isorbp=0
   ispsi=0
-  do ikptsp = 1, orbs%nkptsp
-     ikpt = orbs%ikptsp(ikptsp)
-     if (ikpt < orbs%iokpt(1) .or. ikpt > orbs%iokpt(orbs%norbp)) cycle
+  do ikptsp =1,orbs%nkptsp
+     ikpt=orbs%iskpts+ikptsp !orbs%ikptsp(ikptsp)
+     !if (ikpt < orbs%iokpt(1) .or. ikpt > orbs%iokpt(orbs%norbp)) cycle
 
      !calculate the number of orbitals belonging to k-point ikptstp
      !calculate to which k-point it belongs
@@ -299,9 +299,9 @@ subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
   isorb=orbs%isorb+1
   isorbp=0
   ispsi=0
-  do ikptsp = 1, orbs%nkptsp
-     ikpt = orbs%ikptsp(ikptsp)
-     if (ikpt < orbs%iokpt(1) .or. ikpt > orbs%iokpt(orbs%norbp)) cycle
+  do ikptsp=1,orbs%nkptsp
+     ikpt=orbs%iskpts+ikptsp !orbs%ikptsp(ikptsp)
+     !if (ikpt < orbs%iokpt(1) .or. ikpt > orbs%iokpt(orbs%norbp)) cycle
 
      !calculate the number of orbitals belonging to k-point ikptstp
      !calculate to which k-point it belongs

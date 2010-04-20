@@ -607,7 +607,7 @@ program conv_check
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
-                real(8*nvctr_cf*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+                real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9)
 
 
            !now the CUDA part
@@ -701,7 +701,7 @@ program conv_check
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
-                real(8*nvctr_cf*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+                real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9)
 
 
            !now the CUDA part

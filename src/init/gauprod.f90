@@ -1318,7 +1318,7 @@ subroutine lsh_rotation(l,theta,phi,coeffs)
   implicit none
   integer, intent(in) :: l !beware the change in notation
   real(gp), intent(in) :: theta,phi
-  real(wp), dimension(2*l-1), intent(inout) :: coeffs
+  real(wp), dimension(2*l+1), intent(inout) :: coeffs
   !local variables
   real(gp), parameter :: degrad=0.0174532925199432957692369076849_gp
   integer :: m,m1
@@ -1336,7 +1336,7 @@ subroutine lsh_rotation(l,theta,phi,coeffs)
   p=phi*degrad
 
   !extract coefficients for the rotation
-  call rotation_matrix(l,t,p,hrot)
+  call rotation_matrix(l+1,t,p,hrot)
   
   !copy input variables
   do m=1,2*l+1

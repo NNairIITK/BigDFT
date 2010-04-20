@@ -50,8 +50,8 @@ module module_types
      integer :: freq_method
 
      ! kpoints related input variables
-     integer :: nkpt
-     real(gp), pointer :: kpt(:,:), wkpt(:)
+     integer :: nkpt, nkptv
+     real(gp), pointer :: kpt(:,:), wkpt(:), kptv(:,:)
 
      ! Geometry variables from *.geopt
      character(len=10) :: geopt_approach
@@ -63,11 +63,18 @@ module module_types
      real(gp) :: strtarget(6)
      real(gp), pointer :: qmass(:)
 
+     ! variable for material acceleration
+     ! values 0: traditional CPU calculation
+     !        1: CUDA acceleration with CUBLAS
+     !        2: OpenCL acceleration (with CUBLAS one day)
+     integer :: iacceleration
      ! Performance variables from input.perf
      ! Debug option (used by memocc)
      logical :: debug
      ! Cache size for FFT
      integer :: ncache_fft
+     !coarse radius of the projectors in units of the maxrad
+     real(gp) :: projrad
 
   end type input_variables
 !!***
@@ -220,8 +227,8 @@ module module_types
 !! SOURCE
 !!
   type, public :: orbitals_data
-     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts,nkptsp
-     integer, dimension(:), pointer :: norb_par,iokpt,ikptproc,ikptsp
+     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
+     integer, dimension(:), pointer :: norb_par,iokpt,ikptproc!,ikptsp
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
@@ -243,25 +250,6 @@ module module_types
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
   end type locreg_descriptors
-!!***
-
-
-!!****t* module_types/restart_objects
-!! DESCRIPTION
-!!  Used to restart a new DFT calculation or to save information 
-!!  for post-treatment
-!! SOURCE
-!!
-  type, public :: restart_objects
-     integer :: n1,n2,n3
-     real(gp) :: hx_old,hy_old,hz_old
-     real(wp), dimension(:), pointer :: psi 
-     real(wp), dimension(:,:), pointer :: gaucoeffs
-     real(gp), dimension(:,:), pointer :: rxyz_old
-     type(locreg_descriptors) :: Glr
-     type(gaussian_basis) :: gbd
-     type(orbitals_data) :: orbs
-  end type restart_objects
 !!***
 
 
@@ -294,7 +282,30 @@ module module_types
      real(kind=8) :: keys,work1,work2,work3,rhopot,r,d
      real(kind=8) :: pinned_in,pinned_out
      real(kind=8), dimension(:), pointer :: psi
+     real(kind=8) :: psi_c,psi_f
+     real(kind=8) :: psi_c_r,psi_f_r,psi_c_b,psi_f_b,psi_c_d,psi_f_d
+     real(kind=8) :: keyg_c,keyg_f,keyv_c,keyv_f
+     real(kind=8) :: context,queue
   end type GPU_pointers
+!!***
+
+!!****t* module_types/restart_objects
+!! DESCRIPTION
+!!  Used to restart a new DFT calculation or to save information 
+!!  for post-treatment
+!! SOURCE
+!!
+  type, public :: restart_objects
+     integer :: n1,n2,n3
+     real(gp) :: hx_old,hy_old,hz_old
+     real(wp), dimension(:), pointer :: psi 
+     real(wp), dimension(:,:), pointer :: gaucoeffs
+     real(gp), dimension(:,:), pointer :: rxyz_old
+     type(locreg_descriptors) :: Glr
+     type(gaussian_basis) :: gbd
+     type(orbitals_data) :: orbs
+     type(GPU_pointers) :: GPU
+  end type restart_objects
 !!***
 
 
@@ -497,9 +508,12 @@ subroutine deallocate_orbs(orbs,subname)
     i_all=-product(shape(orbs%ikptproc))*kind(orbs%ikptproc)
     deallocate(orbs%ikptproc,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%ikptproc',subname)
-    i_all=-product(shape(orbs%ikptsp))*kind(orbs%ikptsp)
-    deallocate(orbs%ikptsp,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%ikptsp',subname)
+
+    !contradictory: needed for component distribution and allocated for
+    !               orbital distribution. Better to deal with scalars
+    !i_all=-product(shape(orbs%ikptsp))*kind(orbs%ikptsp)
+    !deallocate(orbs%ikptsp,stat=i_stat)
+    !call memocc(i_stat,i_all,'orbs%ikptsp',subname)
 
 END SUBROUTINE deallocate_orbs
 !!***
@@ -510,11 +524,12 @@ END SUBROUTINE deallocate_orbs
 !!   Allocate and nullify restart objects
 !! SOURCE
 !!
-  subroutine init_restart_objects(atoms,rst,subname)
+  subroutine init_restart_objects(iproc,iacceleration,atoms,rst,subname)
     use module_base
     implicit none
     !Arguments
     character(len=*), intent(in) :: subname
+    integer, intent(in) :: iproc,iacceleration
     type(atoms_data), intent(in) :: atoms
     type(restart_objects), intent(out) :: rst
     !local variables
@@ -540,7 +555,10 @@ END SUBROUTINE deallocate_orbs
     nullify(rst%gbd%psiat)
     nullify(rst%gbd%rxyz)
 
-  END SUBROUTINE init_restart_objects
+    !initialise the acceleration stategy if required
+    call init_material_acceleration(iproc,iacceleration,rst%GPU)
+
+  end subroutine init_restart_objects
 !!***
 
 
@@ -585,6 +603,9 @@ END SUBROUTINE deallocate_orbs
        deallocate(rst%gaucoeffs,stat=i_stat)
        call memocc(i_stat,i_all,'gaucoeffs',subname)
     end if
+
+    !finalise the material accelearion usage
+    call release_material_acceleration(rst%GPU)
 
   END SUBROUTINE free_restart_objects
 !!***

@@ -229,7 +229,6 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   allocate(proj(nlpspd%nprojel+ndebug),stat=i_stat)
   call memocc(i_stat,proj,'proj',subname)
 
-
   ! After having determined the size of the projector descriptor arrays fill them
   do iat=1,at%nat
      call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
@@ -465,9 +464,9 @@ END SUBROUTINE import_gaussians
 !! SOURCE
 !!
 subroutine input_wf_diag(iproc,nproc,at,&
-     orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-     nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,G,&
-     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons)
+     orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
+     nlpspd,proj,pkernel,ixc,psi,hpsi,psit,G,&
+     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -485,27 +484,25 @@ subroutine input_wf_diag(iproc,nproc,at,&
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors), intent(in) :: Glr
   type(communications_arrays), intent(in) :: comms
+  type(GPU_pointers), intent(inout) :: GPU
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(dp), dimension(*), intent(in) :: pkernel
   real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
-  type(orbitals_data), intent(out) :: orbsv
   type(gaussian_basis), intent(out) :: G !basis for davidson IG
-  real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt,rhocore
+  real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
   integer, intent(in) ::potshortcut
   integer, dimension(:,:,:), intent(in) :: irrzon
   real(dp), dimension(:,:,:), intent(in) :: phnons
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
-  integer, parameter :: ngx=31
-  logical :: switchGPUconv
+  logical :: switchGPUconv,switchOCLconv
   integer :: i_stat,i_all,iat,nspin_ig
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,etol,accurex
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
-  type(GPU_pointers) :: GPU
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(wp), dimension(:), allocatable :: potxc
   real(gp), dimension(:), allocatable :: locrad
@@ -530,7 +527,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   end if
 
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
-       orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
+       orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
 
   !allocate communications arrays for inputguess orbitals
   !call allocate_comms(nproc,orbse,commse,subname)
@@ -541,7 +538,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   hzh=.5_gp*hz
 
   !check the communication distribution
-  call check_communications(iproc,nproc,orbse,Glr,commse)
+  !call check_communications(iproc,nproc,orbse,Glr,commse)
 
   !once the wavefunction coefficients are known perform a set 
   !of nonblocking send-receive operations to calculate overlap matrices
@@ -581,13 +578,23 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
   !allocate arrays for the GPU if a card is present
   switchGPUconv=.false.
+  switchOCLconv=.false.
   if (GPUconv .and. potshortcut ==0 ) then
      call prepare_gpu_for_locham(Glr%d%n1,Glr%d%n2,Glr%d%n3,nspin,&
           hx,hy,hz,Glr%wfd,orbse,GPU)
+  else if (OCLconv .and. potshortcut ==0) then
+     call allocate_data_OCL(Glr%d%n1,Glr%d%n2,Glr%d%n3,at%geocode,&
+          nspin,hx,hy,hz,Glr%wfd,orbse,GPU)
+     if (iproc == 0) write(*,*)&
+          'GPU data allocated'
   else if (GPUconv .and. potshortcut >0 ) then
      switchGPUconv=.true.
      GPUconv=.false.
+  else if (OCLconv .and. potshortcut >0 ) then
+     switchOCLconv=.true.
+     OCLconv=.false.
   end if
+
 
   !use only the part of the arrays for building the hamiltonian matrix
   call gaussians_to_wavelets_new(iproc,nproc,Glr,orbse,hx,hy,hz,G,&
@@ -642,9 +649,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
      deallocate(potxc,stat=i_stat)
      call memocc(i_stat,i_all,'potxc',subname)
 
-!!$     call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
-!!$          ixc,hxh,hyh,hzh,&
-!!$          rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
   end if
 
 !!!  if (nproc == 1) then
@@ -726,10 +730,10 @@ subroutine input_wf_diag(iproc,nproc,at,&
      if (switchGPUconv) then
         GPUconv=.true.
      end if
-
-     if (nvirt == 0) then
-        call deallocate_orbs(orbsv,subname)
+     if (switchOCLconv) then
+        OCLconv=.true.
      end if
+
      call deallocate_orbs(orbse,subname)
      
      !deallocate the gaussian basis descriptors
@@ -748,10 +752,12 @@ subroutine input_wf_diag(iproc,nproc,at,&
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(orbse%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
+
+  !call dcopy(orbse%npsidim,psi,1,hpsi,1)
   
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-       rhopot,&!(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
+       rhopot,&
        psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernel)
 
 !!!  !calculate the overlap matrix knowing that the original functions are gaussian-based
@@ -796,6 +802,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
   !free GPU if it is the case
   if (GPUconv) then
      call free_gpu(GPU,orbse%norbp)
+  else if (OCLconv) then
+     call free_gpu_OCL(GPU,orbse%norbp)
   end if
 
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
@@ -834,12 +842,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
   i_all=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=i_stat)
   call memocc(i_stat,i_all,'psigau',subname)
-
-  if (nvirt == 0) then
-     !deallocate the gaussian basis descriptors
-     !call deallocate_gwf(G,subname)
-     call deallocate_orbs(orbsv,subname)
-  end if
 
   call deallocate_orbs(orbse,subname)
      

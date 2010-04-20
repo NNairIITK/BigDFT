@@ -54,7 +54,6 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   etest=0.0_gp
 
   do iorb=1,orbs%norbp
-
      if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
         nsoffset=1
      else
@@ -599,7 +598,6 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
      call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
 
      !this may not work for non-collinear cases
-
      iproj=0
      do iat=1,at%nat
         istart_c=1

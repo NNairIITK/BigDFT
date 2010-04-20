@@ -128,6 +128,13 @@ subroutine read_input_variables(iproc,posinp, &
      stop 'GPU calculation allowed only in periodic boundary conditions'
   end if
 
+  ! Stop code for unproper input variables combination.
+  if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym) then
+     stop 'Forces are not implemented with symmetry support, disable symmetry please'
+  end if
+  if (inputs%nkpt > 1 .and. inputs%gaussian_help) then
+     stop 'Gaussian projection is not implemented with k-point support'
+  end if
 END SUBROUTINE read_input_variables
 !!***
 
@@ -141,6 +148,7 @@ subroutine default_input_variables(inputs)
   ! Default values.
   nullify(inputs%kpt)
   nullify(inputs%wkpt)
+  nullify(inputs%kptv)
   ! Default abscalc variables
   call abscalc_input_variables_default(inputs)
   ! Default frequencies variables
@@ -170,7 +178,7 @@ subroutine dft_input_variables(iproc,filename,in)
   character(len=7) :: string
   character(len=100) :: line
   logical :: exists
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj,useGPU
+  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj
 
   ! Read the input variables.
   inquire(file=trim(filename),exist=exists)
@@ -207,33 +215,16 @@ subroutine dft_input_variables(iproc,filename,in)
   call check()
   read(1,*,iostat=ierror) in%dispersion
   call check()
-  !read the line for force the CUDA GPU calculation for all processors
+  !read the line for force the CUDA GPU or OpenCL calculation for all processors
   read(1,'(a100)')line
   read(line,*,iostat=ierrfrc) string
   iline=iline+1
+  !determine the acceleration strategy
+  in%iacceleration=0 !default
   if (ierrfrc == 0 .and. string=='CUDAGPU') then
-     call sg_init(GPUshare,useGPU,iproc,initerror)
-     if (useGPU == 1) then
-        iconv = 1
-        iblas = 1
-     else
-        iconv = 0
-        iblas = 0
-     end if
-
-     if (initerror == 1) then
-        write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
-        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
-     end if
-       
-     if (iconv == 1) then
-        !change the value of the GPU convolution flag defined in the module_base
-        GPUconv=.true.
-     end if
-     if (iblas == 1) then
-        !change the value of the GPU convolution flag defined in the module_base
-        GPUblas=.true.
-     end if
+     in%iacceleration=1
+  else  if (ierrfrc == 0 .and. string=='OCLGPU') then
+     in%iacceleration=2
   end if
 
   !now the variables which are to be used only for the last run
@@ -253,6 +244,7 @@ subroutine dft_input_variables(iproc,filename,in)
   !davidson treatment
   read(1,*,iostat=ierror) in%norbv,in%nvirt,in%nplot
   call check()
+  in%nvirt = max(in%nvirt, in%norbv)
 
   !electrostatic treatment of the vacancy (experimental)
   !read(1,*,iostat=ierror) in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
@@ -536,11 +528,13 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   logical :: exists
   character(len=*), parameter :: subname='kpt_input_variables'
   character(len = 6) :: type
-  integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3)
+  integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all
   real(gp) :: kptrlen, shiftk(3,8), norm, alat(3)
+  integer, allocatable :: iseg(:)
 
   ! Set default values.
   in%nkpt = 1
+  in%nkptv = 0
 
   inquire(file=trim(filename),exist=exists)
   if (.not. exists) then
@@ -617,6 +611,37 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
      ! We normalise the weights.
      in%wkpt(:) = in%wkpt / norm
   end if
+  ! Now read the band structure definition.
+  read(1,*,iostat=ierror) type
+  if (ierror == 0 .and. (trim(type) == "bands" .or. trim(type) == "Bands" .or. &
+       & trim(type) == "BANDS")) then
+     read(1,*,iostat=ierror) nseg
+     call check()
+     allocate(iseg(nseg+ndebug),stat=i_stat)
+     call memocc(i_stat,iseg,'iseg',subname)
+     read(1,*,iostat=ierror) iseg
+     call check()
+     in%nkptv = sum(iseg) + 1
+     allocate(in%kptv(3,in%nkptv+ndebug),stat=i_stat)
+     call memocc(i_stat,in%kptv,'in%kptv',subname)
+     ikpt = 1
+     read(1,*,iostat=ierror) in%kptv(:, ikpt)
+     call check()
+     do i = 1, nseg
+        ikpt = ikpt + iseg(i)
+        read(1,*,iostat=ierror) in%kptv(:, ikpt)
+        call check()
+        do j = ikpt - iseg(i) + 1, ikpt - 1
+           in%kptv(:, j) = in%kptv(:, ikpt - iseg(i)) + &
+                & (in%kptv(:, ikpt) - in%kptv(:, ikpt - iseg(i))) * &
+                & real(j - ikpt + iseg(i), gp) / real(iseg(i), gp)
+        end do
+     end do
+     
+     i_all=-product(shape(iseg))*kind(iseg)
+     deallocate(iseg,stat=i_stat)
+     call memocc(i_stat,i_all,'iseg',subname)
+  end if
 
   close(unit=1,iostat=ierror)
 
@@ -625,6 +650,9 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   if (atoms%geocode == 'S') alat(2) = 1.d0
   do i = 1, in%nkpt, 1
      in%kpt(:, i) = in%kpt(:, i) / alat * two_pi
+  end do
+  do i = 1, in%nkptv, 1
+     in%kptv(:, i) = in%kptv(:, i) / alat * two_pi
   end do
 
 contains
@@ -666,6 +694,8 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%debug = .false.
   !Cache size for FFT
   inputs%ncache_fft = 8*1024
+  !radius of the projector as a function of the maxrad
+  inputs%projrad= 15.0_gp
 
   !Check if the file is present
   inquire(file=trim(filename),exist=exists)
@@ -686,6 +716,9 @@ subroutine perf_input_variables(iproc,filename,inputs)
         else if (index(line,"fftcache") /= 0 .or. index(line,"FFTCACHE") /= 0) then
             ii = index(line,"fftcache")  + index(line,"FFTCACHE") + 8 
            read(line(ii:),*) inputs%ncache_fft
+        else if (index(line,"projrad") /= 0 .or. index(line,"PROJRAD") /= 0) then
+            ii = index(line,"projrad")  + index(line,"PROJRAD") + 8 
+           read(line(ii:),*) inputs%projrad
         end if
      end do
      close(unit=1,iostat=ierror)
@@ -755,13 +788,17 @@ subroutine free_input_variables(in)
      deallocate(in%wkpt,stat=i_stat)
      call memocc(i_stat,i_all,'in%wkpt',subname)
   end if
+  if (associated(in%kptv)) then
+     i_all=-product(shape(in%kptv))*kind(in%kptv)
+     deallocate(in%kptv,stat=i_stat)
+     call memocc(i_stat,i_all,'in%kptv',subname)
+  end if
 
 !!$  if (associated(in%Gabs_coeffs) ) then
 !!$     i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
 !!$     deallocate(in%Gabs_coeffs,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
 !!$  end if
-
 END SUBROUTINE free_input_variables
 !!***
 
@@ -1244,7 +1281,6 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
 
   atoms%ntypes=0
   do iat=1,atoms%nat
-
      !xyz input file, allow extra information
      read(ifile,'(a150)')line 
      if (lpsdbl) then
@@ -1268,6 +1304,9 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
         rxyz(2,iat)=real(ry,gp)
         rxyz(3,iat)=real(rz,gp)
      end if
+
+     
+
      if (atoms%units == 'reduced') then !add treatment for reduced coordinates
         rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
         if (atoms%geocode == 'P') rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
@@ -2159,6 +2198,15 @@ subroutine print_general_parameters(in,atoms)
              & in%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
              & in%wkpt(i), i, in%kpt(:, i)
      end do
+     if (in%nkptv > 0) then
+        write(*, "(1x,a)")    " K points for band structure calculation"
+        write(*, "(1x,a)")    "       red. coordinates         weight      id         BZ coordinates"
+        do i = 1, in%nkptv, 1
+           write(*, "(1x,3f9.5,2x,f9.5,5x,I3,2x,3f9.5)") &
+                & in%kptv(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
+                & 1.0d0 / real(size(in%kptv, 2), gp), i, in%kptv(:, i)
+        end do
+     end if
   end if
 
   if (in%ncount_cluster_x > 0) then
@@ -2457,3 +2505,66 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
 
 END SUBROUTINE atomic_coordinate_axpy
 !!***
+
+subroutine init_material_acceleration(iproc,iacceleration,GPU)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in):: iacceleration,iproc
+  type(GPU_pointers), intent(out) :: GPU
+  !local variables
+  integer :: iconv,iblas,initerror,ierror,useGPU
+
+  if (iacceleration == 1) then
+     call sg_init(GPUshare,useGPU,iproc,initerror)
+     if (useGPU == 1) then
+        iconv = 1
+        iblas = 1
+     else
+        iconv = 0
+        iblas = 0
+     end if
+     if (initerror == 1) then
+        write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
+        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
+     end if
+
+     if (iconv == 1) then
+        !change the value of the GPU convolution flag defined in the module_base
+        GPUconv=.true.
+     end if
+     if (iblas == 1) then
+        !change the value of the GPU convolution flag defined in the module_base
+        GPUblas=.true.
+     end if
+  else if (iacceleration == 2) then
+     ! OpenCL convolutions are activated
+     !for the moment do not use CUBLAS for the linear algebra
+     if (.not. OCLconv) then
+        call init_acceleration_OCL(GPU)
+        if (iproc == 0) then
+           write(*,*)' OpenCL convolutions activated'
+        end if
+        OCLconv=.true.
+        GPUblas=.false.
+     end if
+  end if
+
+end subroutine init_material_acceleration
+
+subroutine release_material_acceleration(GPU)
+  use module_base
+  use module_types
+  implicit none
+  type(GPU_pointers), intent(out) :: GPU
+  
+  if (GPUconv) then
+     call sg_end()
+  end if
+
+  if (OCLconv) then
+     call release_acceleration_OCL(GPU)
+     OCLconv=.false.
+  end if
+
+end subroutine release_material_acceleration

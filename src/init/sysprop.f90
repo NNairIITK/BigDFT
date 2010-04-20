@@ -326,8 +326,13 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      end if
      close(11)
 
-     !correct the coarse and the fine radius for projectors
-     radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),15.0_gp*maxrad)/in%frmult,radii_cf(ityp,2))
+     !correct the coarse radius for projectors
+     !it is always multiplied by frmult
+     !NOTE this radius is chosen such as to make the projector be defined always on the same sphere
+     !     of the atom. This is clearly too much since such sphere is built to the exp decay of the wavefunction
+     !     and not for the gaussian decaying of the pseudopotential projector
+     !     add a proper varialbe in input.perf
+     radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),in%projrad*maxrad)/in%frmult,radii_cf(ityp,2))
 
      if (maxrad == 0.0_gp) then
         radii_cf(ityp,3)=0.0_gp
@@ -769,6 +774,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,n_i,n_ip,rs_i,N_a,N_b,N_c
   logical, dimension(:), allocatable :: GPU_for_orbs
+  integer, dimension(:), allocatable :: mykpts
+  integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
 
   allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
@@ -789,6 +796,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
      !nspinor=2 !fake, used for testing with gamma
   end if
 
+
   !initialise the array
   do jproc=0,nproc-1
      orbs%norb_par(jproc)=0 !size 0 nproc-1
@@ -806,59 +814,11 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
      GPU_for_orbs(0)=GPUconv
   end if
 
-  ! Strategy to divide between k points.
-  ! There is an nproc length to divide into orbs%nkpts segments.
-  ! Segment (ikpt - 1) expand in 0 <= r_i < r_ip <= nproc.
-  ! where r_i and r_ip are real values. There are two possibilities:
-  !  - We can write r_i <= n_i <= n_ip <= r_ip with n_i and n_ip integers ;
-  !  - or r_i <= n_i and n_ip <= r_ip and n_i = n_ip + 1.
-  ! For both case, we can divide norb into the partition (real values):
-  !  - N_a = (n_i - r_i) * norb * orbs%nkpts / nproc;
-  !  - N_b = max((n_ip - n_i) * norb * orbs%nkpts / nproc, 0);
-  !  - N_c = (r_ip - n_ip) * norb * orbs%nkpts / nproc;
-  ! Before going to integer values, we have r_i = (ikpt - 1) * nproc / orbs%nkpts
-  ! So N_a and N_b can be simplified and written instead:
-  !  - N_a = int(norb * (n_i * orbs%nkpts - (ikpt - 1) * nproc) / nproc);
-  !  - N_c = int(norb * ((ikpt - 1) * nproc - n_i * orbs%nkpts) / nproc);
-  !  - N_b = norb - N_a - N_b.
-  ! After, if N_a > 0, we put this quantity to proc n_i - 1, if N_b > 0
-  ! we put its quantity to proc n_ip ; and finally N_b is distributed
-  ! among [n_i;n_ip[ procs.
-  orbs%norb_par(:) = 0
-  do ikpt = 1, orbs%nkpts
-     ! Calculation of n_i and n_ip, rs_i = r_i * orbs%nkpts to avoid rounding.
-     rs_i = (ikpt - 1) * nproc
-     if (mod(rs_i, orbs%nkpts) == 0) then
-        n_i = rs_i / orbs%nkpts
-     else
-        n_i = rs_i / orbs%nkpts + 1
-     end if
-     rs_i = ikpt * nproc
-     n_ip = rs_i / orbs%nkpts
-     ! Calculation of N_a, N_b and N_c from given n_i and n_ip.
-     if (n_ip >= n_i) then
-        N_a = norb * (n_i * orbs%nkpts - (ikpt - 1) * nproc) / nproc
-        N_c = norb * (ikpt * nproc - n_ip * orbs%nkpts) / nproc
-     else
-        N_c = norb / 2
-        N_a = norb - N_c
-     end if
-     N_b = norb - N_a - N_c
-     !if (iproc == 0) write(*,*) ikpt, n_i, n_ip, N_a, N_b, N_c
-     ! Affectation to procs.
-     if (N_a > 0) orbs%norb_par(n_i - 1) = orbs%norb_par(n_i - 1) + N_a
-     if (N_b > 0) then
-        do i_stat = 0, N_b - 1
-           jproc = n_i + mod(i_stat, n_ip - n_i)
-           orbs%norb_par(jproc) = orbs%norb_par(jproc) + 1
-        end do
-     end if
-     if (N_c > 0) orbs%norb_par(n_ip) = orbs%norb_par(n_ip) + N_c
-  end do
-
   i_all=-product(shape(GPU_for_orbs))*kind(GPU_for_orbs)
   deallocate(GPU_for_orbs,stat=i_stat)
   call memocc(i_stat,i_all,'GPU_for_orbs',subname)
+
+  call parallel_repartition_with_kpoints(nproc,orbs%nkpts,norb,orbs%norb_par)
 
   !check the distribution
   norb_tot=0
@@ -873,8 +833,36 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
 
   if(norb_tot /= norb*orbs%nkpts) then
      write(*,*)'ERROR: partition of orbitals incorrect'
+     write(*,*)orbs%norb_par(:)
      stop
   end if
+
+  !calculate the k-points related quantities
+  allocate(norb_par(0:nproc-1,orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,norb_par,'norb_par',subname)
+  allocate(mykpts(orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,mykpts,'mykpts',subname)
+
+  call parallel_repartition_per_kpoints(iproc,nproc,orbs%nkpts,norb,orbs%norb_par,&
+       orbs%nkptsp,mykpts,norb_par)
+  if (orbs%norb_par(iproc) >0) then
+     orbs%iskpts=mykpts(1)-1
+  else
+     orbs%iskpts=0
+  end if
+
+
+  !allocate(orbs%ikptsp(orbs%nkptsp+ndebug),stat=i_stat)
+  !call memocc(i_stat,orbs%ikptsp,'orbs%ikptsp',subname)
+  !orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
+
+
+  i_all=-product(shape(norb_par))*kind(norb_par)
+  deallocate(norb_par,stat=i_stat)
+  call memocc(i_stat,i_all,'norb_par',subname)
+  i_all=-product(shape(mykpts))*kind(mykpts)
+  deallocate(mykpts,stat=i_stat)
+  call memocc(i_stat,i_all,'mykpts',subname)
 
   !assign the values of the orbitals data
   orbs%norb=norb
@@ -1072,3 +1060,124 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,nspin,occup,spinsgn)
 
 END SUBROUTINE input_occup
 !!***
+
+subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
+  use module_base
+  implicit none
+  integer, intent(in) :: nkpts,nobj,nproc
+  integer, dimension(0:nproc-1), intent(out) :: nobj_par
+  !local variables
+  integer :: n_i,n_ip,rs_i,N_a,N_b,N_c,ikpt,jproc,i
+  
+  ! Strategy to divide between k points.
+  ! There is an nproc length to divide into orbs%nkpts segments.
+  ! Segment (ikpt - 1) expand in 0 <= r_i < r_ip <= nproc.
+  ! where r_i and r_ip are real values. There are two possibilities:
+  !  - We can write r_i <= n_i <= n_ip <= r_ip with n_i and n_ip integers ;
+  !  - or r_i <= n_i and n_ip <= r_ip and n_i = n_ip + 1.
+  ! For both case, we can divide nobj into the partition (real values):
+  !  - N_a = (n_i - r_i)*nobj*nkpts/nproc;
+  !  - N_b = max((n_ip - n_i)*nobj*nkpts / nproc, 0);
+  !  - N_c = (r_ip - n_ip) * nobj * orbs%nkpts / nproc;
+  ! Before going to integer values, we have r_i = (ikpt - 1) * nproc / orbs%nkpts
+  ! So N_a and N_b can be simplified and written instead:
+  !  - N_a = int(nobj * (n_i * orbs%nkpts - (ikpt - 1) * nproc) / nproc);
+  !  - N_c = int(nobj * ((ikpt - 1) * nproc - n_i * orbs%nkpts) / nproc);
+  !  - N_b = nobj - N_a - N_b.
+  ! After, if N_a > 0, we put this quantity to proc n_i - 1, if N_b > 0
+  ! we put its quantity to proc n_ip ; and finally N_b is distributed
+  ! among [n_i;n_ip[ procs.
+
+  nobj_par(:)=0
+  do ikpt=1,nkpts
+     ! Calculation of n_i and n_ip, rs_i = r_i * orbs%nkpts to avoid rounding.
+     rs_i=(ikpt-1)*nproc !integer variable for rounding purposes
+
+     if (mod(rs_i,nkpts) == 0) then
+        n_i=rs_i/nkpts
+     else
+        n_i=rs_i/nkpts+1
+     end if
+
+     rs_i=ikpt*nproc
+     n_ip=rs_i/nkpts
+     ! Calculation of N_a, N_b and N_c from given n_i and n_ip.
+     if (n_ip >= n_i) then
+        N_a=nint(real(nobj*(n_i*nkpts-(ikpt-1)*nproc),gp)/real(nproc,gp))
+        N_c=nint(real(nobj*(ikpt*nproc-n_ip*nkpts),gp)/real(nproc,gp))
+     else
+        N_c=nobj/2
+        N_a=nobj-N_c
+     end if
+     N_b=nobj-N_a-N_c
+     !if (iproc == 0) write(*,*) ikpt, n_i, n_ip, N_a, N_b, N_c
+     !assign to procs the objects.
+     if (N_a>0) nobj_par(n_i-1)=nobj_par(n_i-1)+N_a
+     if (N_b>0) then
+        do i=0,N_b-1
+           jproc=n_i+mod(i,n_ip-n_i)
+           nobj_par(jproc)=nobj_par(jproc)+1
+        end do
+     end if
+     if (N_c>0) nobj_par(n_ip)=nobj_par(n_ip)+N_c
+  end do
+end subroutine parallel_repartition_with_kpoints
+
+subroutine parallel_repartition_per_kpoints(iproc,nproc,nkpts,nobj,nobj_par,&
+     nkptsp,mykpts,nobj_pkpt)
+  implicit none
+  integer, intent(in) :: iproc,nproc,nkpts,nobj
+  integer, dimension(0:nproc-1), intent(in) :: nobj_par
+  integer, intent(out) :: nkptsp
+  integer, dimension(nkpts), intent(out) :: mykpts
+  integer, dimension(0:nproc-1,nkpts), intent(out) :: nobj_pkpt
+  !local variables
+  integer :: ikpts,jproc,jobj,norb_tot,iorbp
+
+  !initialise the array
+  do ikpts=1,nkpts
+     do jproc=0,nproc-1
+        nobj_pkpt(jproc,ikpts)=0 
+     end do
+  end do
+
+  !assign the k-point, counting one object after each other
+  jobj=1
+  ikpts=1
+  !print *,'here',nobj_par(:)
+  do jproc=0,nproc-1
+     do iorbp=1,nobj_par(jproc)
+        nobj_pkpt(jproc,ikpts)=nobj_pkpt(jproc,ikpts)+1
+        if (mod(jobj,nobj)==0) then
+           ikpts=ikpts+1
+        end if
+        jobj=jobj+1
+     end do
+  end do
+  !some checks
+  if (nobj /= 0) then
+     !check the distribution
+     do ikpts=1,nkpts
+        !print *,'partition',ikpts,orbs%nkpts,'ikpts',nobj_pkpt(:,ikpts)
+        norb_tot=0
+        do jproc=0,nproc-1
+           norb_tot=norb_tot+nobj_pkpt(jproc,ikpts)
+        end do
+        if(norb_tot /= nobj) then
+           write(*,*)'ERROR: partition of objects incorrect, kpoint:',ikpts
+           stop
+        end if
+     end do
+  end if
+
+  !calculate the number of k-points treated by each processor in both
+  ! the component distribution and the orbital distribution.
+  nkptsp=0
+  do ikpts=1,nkpts
+     if (nobj_pkpt(iproc,ikpts) /= 0) then
+        nkptsp=nkptsp+1
+        mykpts(nkptsp) = ikpts
+     end if
+  end do
+
+end subroutine parallel_repartition_per_kpoints

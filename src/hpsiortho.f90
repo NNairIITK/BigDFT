@@ -40,8 +40,12 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   logical :: exctX
   integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
+!OCL  integer, dimension(3) :: periodic
+!OCL  real(wp) :: maxdiff
+!OCL  real(gp) :: eproj,ek_fake,ep_fake
   real(gp), dimension(3,2) :: wrkallred
   real(wp), dimension(:), pointer :: pot
+!OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
   integer,parameter::lupfil=14
 
   !stream ptr array
@@ -121,14 +125,37 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   !apply the local hamiltonian for each of the orbitals
   !given to each processor
-
+  !pot=0.d0
+  !psi=1.d0
   !switch between GPU/CPU treatment
+!  do i=1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
+!       call random_number(psi(i))
+!  end do
   if (GPUconv) then
      call local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
+  else if (OCLconv) then
+     call local_hamiltonian_OCL(iproc,orbs,at%geocode,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
   else
      call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   end if
 
+  !test part to check the results wrt OCL convolutions
+!!$  if (OCLconv) then
+!!$     allocate(hpsi_OCL((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,hpsi_OCL,'hpsi_OCL',subname)
+!!$     print *,'fulllocam',GPU%full_locham
+!!$     call local_hamiltonian_OCL(iproc,orbs,at%geocode,lr,hx,hy,hz,nspin,pot,psi,hpsi,ek_fake,ep_fake,GPU)
+!!$     maxdiff=0.0_wp
+!!$     do i=1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
+!!$        maxdiff=max(maxdiff,abs(hpsi(i)-hpsi_OCL(i)))
+!!$     end do
+!!$     print *,'maxdiff',maxdiff
+!!$     print *,'ekin_diff',abs(ek_fake-ekin_sum)
+!!$     print *,'epot_diff',abs(ep_fake-epot_sum)
+!!$     i_all=-product(shape(hpsi_OCL))*kind(hpsi_OCL)
+!!$     deallocate(hpsi_OCL,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'hpsi_OCL',subname)
+!!$  end if
   
   if (nproc > 1 .or. exctX) then
      i_all=-product(shape(pot))*kind(pot)
@@ -237,9 +264,12 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='hpsitopsi'
+!OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
   integer :: ierr,iorb,k,i_stat,i_all
   real(dp) :: tt
   real(wp), dimension(:,:,:), allocatable :: mom_vec
+!OCL  real(wp) :: maxdiff
+!OCL  integer, dimension(3) :: periodic
 
   !stream ptr array
  ! real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
@@ -290,13 +320,36 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   !Preconditions all orbitals belonging to iproc
   !and calculate the partial norm of the residue
   !switch between CPU and GPU treatment
+!!$  if (OCLconv) then
+!!$     allocate(hpsi_OCL((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,hpsi_OCL,'hpsi_OCL',subname)
+!!$     call dcopy((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp, hpsi, 1, hpsi_OCL, 1)
+!!$  end if
+
   if (GPUconv) then
      call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+          hpsi,gnrm,GPU)
+  else if (OCLconv) then
+     call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
           hpsi,gnrm,GPU)
   else
      call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   end if
 
+!!$  if (OCLconv) then
+!!$     call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+!!$          hpsi_OCL,gnrm,GPU)
+!!$     maxdiff=0.0_wp
+!!$     do i=1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
+!!$        maxdiff=max(maxdiff,abs(hpsi(i)-hpsi_OCL(i)))
+!!$     end do
+!!$     print *,''
+!!$     print *,'maxdiff',maxdiff
+!!$     i_all=-product(shape(hpsi_OCL))*kind(hpsi_OCL)
+!!$     deallocate(hpsi_OCL,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'hpsi_OCL',subname)
+!!$
+!!$  end if
   !sum over all the partial residues
   if (nproc > 1) then
      tt=gnrm
@@ -498,7 +551,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
 
   character(len=*), parameter :: subname='last_orthon'
   logical :: dowrite !write the screen output
-  integer :: i_all,i_stat,iorb,jorb,md
+  integer :: i_all,i_stat,iorb,jorb,md,ikpt,isorb
   real(wp), dimension(:,:,:), allocatable :: mom_vec
 
   
@@ -540,6 +593,10 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
           orbs%nspinor,psi,mom_vec)
   end if
 
+  ! Send all eigenvalues to all procs.
+  call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
+       & orbs%eval(1), orbs%ikptproc)
+
   !print the found eigenvalues
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -548,40 +605,45 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
         write(*,'(1x,a)')&
              '           Eigenvalue                                      m_x       m_y       m_z'
      end if
-     if (nspin==1.or.orbs%nspinor==4) then
-        do iorb=1,orbs%norb
-           dowrite =(iorb <= 5 .or. iorb >= orbs%norb-5) .or. verbose > 0
-           if (orbs%nspinor ==4) then
+     do ikpt=1,orbs%nkpts
+        write(*,"(1x,A,I3.3,A,3F12.6)") &
+             & "Kpt #", ikpt, " BZ coord. = ", orbs%kpts(:, ikpt)
+        isorb = (ikpt - 1) * orbs%norb
+        if (nspin==1.or.orbs%nspinor==4) then
+           do iorb=1,orbs%norb
+              dowrite =(iorb <= 5 .or. iorb >= orbs%norb-5) .or. verbose > 0
+              if (orbs%nspinor ==4) then
+                 if (dowrite) & 
+                      write(*,'(1x,a,i4,a,1x,1pe21.14,20x,(1x,3(0pf10.5)))') &
+                      'eval(',iorb,')=',orbs%eval(isorb + iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
+              else
+                 if (dowrite) & 
+                      write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',orbs%eval(isorb + iorb)
+              end if
+           end do
+        else
+           do iorb=1,min(orbs%norbu,orbs%norbd)
+              jorb=orbs%norbu+iorb
+              dowrite =(iorb <= 5 .or. iorb >= min(orbs%norbu,orbs%norbd)-5)  .or. verbose > 0
               if (dowrite) & 
-                   write(*,'(1x,a,i4,a,1x,1pe21.14,20x,(1x,3(0pf10.5)))') &
-                   'eval(',iorb,')=',orbs%eval(iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
-           else
-              if (dowrite) & 
-                   write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',orbs%eval(iorb)
+                   write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
+                   'eval(',iorb,',u)=',orbs%eval(isorb + iorb),'eval(',iorb,',d)=',orbs%eval(isorb + jorb)
+           end do
+           if (orbs%norbu > orbs%norbd) then
+              do iorb=orbs%norbd+1,orbs%norbu
+                 dowrite =(iorb <= 5 .or. iorb >= orbs%norbu-5) .or. verbose > 0
+                 if (dowrite) & 
+                      write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,',u)=',orbs%eval(isorb + iorb)
+              end do
+           else if (orbs%norbd > orbs%norbu) then
+              do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
+                 dowrite =(iorb <= 5 .or. iorb >= orbs%norbd-5) .or. verbose > 0
+                 if (dowrite) & 
+                      write(*,'(50x,a,i4,a,1x,1pe21.14)') 'eval(',iorb-orbs%norbu,',d)=',orbs%eval(isorb + iorb)
+              end do
            end if
-        end do
-     else
-        do iorb=1,min(orbs%norbu,orbs%norbd)
-           jorb=orbs%norbu+iorb
-           dowrite =(iorb <= 5 .or. iorb >= min(orbs%norbu,orbs%norbd)-5)  .or. verbose > 0
-           if (dowrite) & 
-                write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-                'eval(',iorb,',u)=',orbs%eval(iorb),'eval(',iorb,',d)=',orbs%eval(jorb)
-        end do
-        if (orbs%norbu > orbs%norbd) then
-           do iorb=orbs%norbd+1,orbs%norbu
-              dowrite =(iorb <= 5 .or. iorb >= orbs%norbu-5) .or. verbose > 0
-              if (dowrite) & 
-              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,',u)=',orbs%eval(iorb)
-           end do
-        else if (orbs%norbd > orbs%norbu) then
-           do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
-              dowrite =(iorb <= 5 .or. iorb >= orbs%norbd-5) .or. verbose > 0
-              if (dowrite) & 
-                   write(*,'(50x,a,i4,a,1x,1pe21.14)') 'eval(',iorb-orbs%norbu,',d)=',orbs%eval(iorb)
-           end do
         end if
-     end if
+     end do
   end if
 
   if (orbs%nspinor ==4) then
@@ -971,7 +1033,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   maxdiff=0.0_wp
   ispsi=0
   do ikptsp=1,orbs%nkptsp
-     ikpt=orbs%ikptsp(ikptsp)
+     ikpt=orbs%iskpts+ikptsp!orbs%ikptsp(ikptsp)
      valkpt=real(512*ikpt,wp)
      !calculate the starting point for the component distribution
      iscomp=0
@@ -1013,7 +1075,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      open(unit=22,file=trim(filename),status='unknown')
      ispsi=0
      do ikptsp=1,orbs%nkptsp
-        ikpt=orbs%ikptsp(ikptsp)
+        ikpt=orbs%iskpts+ikptsp!orbs%ikptsp(ikptsp)
         valkpt=real(512*ikpt,wp)
         !calculate the starting point for the component distribution
         iscomp=0
@@ -1115,3 +1177,20 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
 
 
 END SUBROUTINE check_communications
+
+subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
+  use module_base
+  implicit none
+  integer, intent(in) :: nproc, nkpts, ndata
+  integer, intent(in) :: ikptproc(nkpts)
+  real(gp), intent(inout) :: data(ndata, nkpts)
+
+  integer :: ikpt, ierr
+
+  if (nproc > 1) then
+     do ikpt = 1, nkpts
+        call MPI_BCAST(data(1,ikpt), ndata, MPI_DOUBLE_PRECISION, &
+             & ikptproc(ikpt), MPI_COMM_WORLD, ierr)
+     end do
+  end if
+end subroutine broadcast_kpt_objects

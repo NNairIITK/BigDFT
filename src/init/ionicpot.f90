@@ -364,6 +364,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
         ry=rxyz(2,iat) 
         rz=rxyz(3,iat)
         !inizialization of the forces
+
         fxerf=0.0_gp
         fyerf=0.0_gp
         fzerf=0.0_gp

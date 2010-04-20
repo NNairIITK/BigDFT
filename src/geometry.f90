@@ -2046,21 +2046,21 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   real(gp), intent(inout) :: epot
   real(gp), dimension(3*at%nat), intent(inout) :: x
   logical, intent(out) :: fail
-  real(gp), dimension(3*at%nat), intent(out) :: f
+  real(gp), dimension(3*at%nat), intent(inout) :: f
   !local variables
   character(len=*), parameter :: subname='rundiis'
   real(gp), dimension(:,:), allocatable  :: previous_forces
   real(gp), dimension(:,:), allocatable  :: previous_pos
   real(gp), dimension(:,:), allocatable :: product_matrix
   integer :: lter, maxter, i, i_err, n, nrhs, lwork, infocode, j, i_stat, i_all,nfluct
-  real(gp) :: sumx, sumy, sumz, fluctsum, fluct, fmax, fnrm
+  real(gp) :: sumx, sumy, sumz, fluctsum, fluct, fmax, fnrm2
   character(len = 4) :: fn4
   character(len = 40) :: comment
   ! Local variables for Lapack.
   integer, dimension(:), allocatable :: interchanges
-  real(8), dimension(:), allocatable :: work
-  real(8), dimension(:), allocatable :: solution
-  real(8), dimension(:,:), allocatable :: matrice
+  real(gp), dimension(:), allocatable :: work
+  real(gp), dimension(:), allocatable :: solution
+  real(gp), dimension(:,:), allocatable :: matrice
   logical :: check
 
   ! We save pointers on data used to call bigdft() routine.
@@ -2071,17 +2071,44 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   allocate(product_matrix(in%history, in%history+ndebug),stat=i_stat)
   call memocc(i_stat,product_matrix,'product_matrix',subname)
 
+  ! Initialization.
+  previous_forces = 0._gp
+  previous_pos    = 0._gp
+  product_matrix  = 0._gp
+ 
   fluctsum = 0._gp
-  nfluct = 0
+  nfluct   = 0
 
-  ! We set the first step and move to the second
+  ! We set the first step 
   previous_forces(1,:) = f(:)
   previous_pos(1,:) = x(:)
 
-  !x(:) = x(:) + in%betax * f(:)
-  !always better to use the atomic_* routines to move atoms
-  !it performs modulo operation as well as constrained search
+  ! We set the first matrix element 
+  product_matrix(1,1) = dot_product(previous_forces(1,:),previous_forces(1,:))
+
+  ! We move to the second step
+  ! x(:) = x(:) + in%betax * f(:)
+  ! always better to use the atomic_* routines to move atoms
+  ! it performs modulo operation as well as constrained search
   call atomic_axpy(at,x,in%betax,f,x)
+
+  ! New residual vector is evaluted. It will be stored as 
+  ! previous_forces(2,:) at the beggining of next loop.
+
+  in%inputPsiId=1
+  call call_bigdft(nproc,iproc,at,x,in,epot,f,rst,infocode)
+  ncount_bigdft=ncount_bigdft+1
+
+  call fnrmandforcemax(f,fnrm2,fmax,at)
+  if (fmax < 3.d-1) call updatefluctsum(at,f,nfluct,fluctsum,fluct)
+
+  if (iproc==0) then 
+     write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=', &
+          & fmax,'fnrm2=',    fnrm2    ,'fluct=', fluct
+     write(fn4,'(i4.4)') ncount_bigdft
+     write(comment,'(a,1pe10.3)')'DIIS:fnrm= ',sqrt(fnrm2)
+     call write_atomic_file('posout_'//fn4,epot,x,at,trim(comment))
+  endif
 
   do lter = 2, in%ncount_cluster_x
 
@@ -2089,12 +2116,14 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
      allocate(interchanges(maxter+1+ndebug),stat=i_stat)
      call memocc(i_stat,interchanges,'interchanges',subname)
-     allocate(work((maxter+1) * (maxter+1)+ndebug),stat=i_stat)
-     call memocc(i_stat,work,'work',subname)
      allocate(solution(maxter+1+ndebug),stat=i_stat)
      call memocc(i_stat,solution,'solution',subname)
      allocate(matrice(maxter+1, maxter+1))
      call memocc(i_stat,matrice,'matrice',subname)
+
+     ! Initialization.
+     solution = 0._gp
+     matrice  = 0._gp
 
      ! If lter is greater than maxvec, we move the previous solution up by one
      if (lter .gt. maxter) then
@@ -2119,12 +2148,12 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      end do
 
      matrice(1:maxter,1:maxter) = product_matrix(1:maxter, 1:maxter)
-     matrice(1:maxter,maxter+1) = 1.0d0
-     matrice(maxter+1,1:maxter) = 1.0d0
-     matrice(maxter+1,maxter+1) = 0.0d0
+     matrice(1:maxter,maxter+1) = 1.0_gp
+     matrice(maxter+1,1:maxter) = 1.0_gp
+     matrice(maxter+1,maxter+1) = 0.0_gp
 
-     solution(1:maxter) = 0.0d0
-     solution(maxter+1) = 1.0d0
+     solution(1:maxter) = 0.0_gp
+     solution(maxter+1) = 1.0_gp
 
      ! We now need the routines from Lapack. We define a few values
      i_err = 0
@@ -2132,10 +2161,24 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      ! We call the routine for diagonalizing a tridiagonal  matrix
      n = maxter+1
      nrhs = 1    ! Number of right-hand arguments in B (Ax=B)
-     lwork = n*n
+
+     ! We find the best size for work array.
+     allocate(work(100+ndebug),stat=i_stat)
+     call memocc(i_stat,work,'work',subname)
+     call dsysv('U',n, nrhs, matrice, n, interchanges, solution,n,work,-1,i_err)
+     lwork=work(1)
+     i_all=-product(shape(work))*kind(work)
+     deallocate(work,stat=i_stat)
+     call memocc(i_stat,i_all,'work',subname)
+     allocate(work(lwork+ndebug),stat=i_stat)
+     call memocc(i_stat,work,'work',subname)
 
      ! We prepare the upper triangular matrix for lapack
      call dsysv('U',n, nrhs, matrice, n, interchanges, solution,n,work,lwork,i_err)
+
+     if ( i_err /= 0 ) then
+        if ( iproc == 0 ) write(*,*) 'WARNING DIIS: info calculation of solution', i_err
+     end if
 
      i_all=-product(shape(interchanges))*kind(interchanges)
      deallocate(interchanges,stat=i_stat)
@@ -2149,7 +2192,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
      ! The solution that interests us is made of two parts
 
-     x(:) = 0.0d0
+     x(:) = 0.0_gp
      do i = 1, maxter
         x(:) = x(:) + solution(i) * previous_pos(i,:)
      end do
@@ -2160,33 +2203,32 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      deallocate(solution,stat=i_stat)
      call memocc(i_stat,i_all,'solution',subname)
 
-     in%inputPsiId=1
+     ! New residual vector is evaluted.
      call call_bigdft(nproc,iproc,at,x,in,epot,f,rst,infocode)
+     ncount_bigdft=ncount_bigdft+1
 
+     call transforce(at,f,sumx,sumy,sumz)
      if (iproc == 0) then
-        call transforce(at,f,sumx,sumy,sumz)
         write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
         write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
         write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
      end if
 
-     ncount_bigdft=ncount_bigdft+1
-
-     call fnrmandforcemax(f,fnrm,fmax,at)
+     call fnrmandforcemax(f,fnrm2,fmax,at)
      if (fmax < 3.d-1) call updatefluctsum(at,f,nfluct,fluctsum,fluct)
 
      if (iproc==0) then 
         write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=', &
-             & fmax,'fnrm=',    fnrm    ,'fluct=', fluct
+             & fmax,'fnrm2=',    fnrm2    ,'fluct=', fluct
         write(fn4,'(i4.4)') ncount_bigdft
-        write(comment,'(a,1pe10.3)')'DIIS:fnrm= ',sqrt(fnrm)
+        write(comment,'(a,1pe10.3)')'DIIS:fnrm= ',sqrt(fnrm2)
         call write_atomic_file('posout_'//fn4,epot,x,at,trim(comment))
      endif
 
-     call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
+     call convcheck(fnrm2,fmax,fluct*in%frac_fluct,in%forcemax,check)
 
      if(check)then
-        if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*in%frac_fluct,fluct
+        if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm2,fluct*in%frac_fluct,fluct
         if (iproc==0) write(16,*) 'DIIS converged'
         exit
      endif
