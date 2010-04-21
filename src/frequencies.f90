@@ -125,7 +125,7 @@ program frequencies
   freq_step(2) = inputs%freq_alpha*inputs%hy
   freq_step(3) = inputs%freq_alpha*inputs%hz
 
-  call init_restart_objects(atoms,rst,subname)
+  call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
 
   !Initialize the moves using a restart file if present
   call frequencies_read_restart(atoms%nat,n_order,imoves,moves,energies,forces,freq_step,atoms%amu,etot)
@@ -139,6 +139,7 @@ program frequencies
   !Reference state
   if (moves(1,0)) then
      fxyz = forces(:,1,0)
+     infocode=0
   else
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
      call frequencies_write_restart(iproc,0,0,0,rxyz,etot,fxyz,&

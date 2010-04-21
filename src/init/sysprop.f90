@@ -1103,8 +1103,8 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
      n_ip=rs_i/nkpts
      ! Calculation of N_a, N_b and N_c from given n_i and n_ip.
      if (n_ip >= n_i) then
-        N_a=nobj*floor(real(n_i*nkpts-(ikpt-1)*nproc,gp)/real(nproc,gp))
-        N_c=nobj*floor(real(ikpt*nproc-n_ip*nkpts,gp)/real(nproc,gp))
+        N_a=nint(real(nobj*(n_i*nkpts-(ikpt-1)*nproc),gp)/real(nproc,gp))
+        N_c=nint(real(nobj*(ikpt*nproc-n_ip*nkpts),gp)/real(nproc,gp))
      else
         N_c=nobj/2
         N_a=nobj-N_c
@@ -1121,7 +1121,6 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
      end if
      if (N_c>0) nobj_par(n_ip)=nobj_par(n_ip)+N_c
   end do
-
 end subroutine parallel_repartition_with_kpoints
 
 subroutine parallel_repartition_per_kpoints(iproc,nproc,nkpts,nobj,nobj_par,&

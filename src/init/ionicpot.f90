@@ -426,20 +426,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      end do
 
      if (nproc > 1) then
-!!$        allocate(gion(3,at%nat+ndebug),stat=i_stat)
-!!$        call memocc(i_stat,gion,'gion',subname)
-!!$        do iat=1,at%nat
-!!$           gion(1,iat)=fion(1,iat)
-!!$           gion(2,iat)=fion(2,iat)
-!!$           gion(3,iat)=fion(3,iat)
-!!$        end do
-
         call mpiallred(fion(1,1),3*at%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
-
-!!$        i_all=-product(shape(gion))*kind(gion)
-!!$        deallocate(gion,stat=i_stat)
-!!$        call memocc(i_stat,i_all,'gion',subname)
-
      end if
 
      !if (iproc ==0) print *,'eion',eion,psoffset,shortlength
@@ -616,8 +603,6 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
           n1i,n2i,n3i,hxh,hyh,hzh,&
           pot_ion,pkernel,pot_ion,ehart,-psoffset,.false.)
 
-!!$     call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-!!$          pot_ion,pkernel,pot_ion,ehart,eexcu,vexcu,-psoffset,.false.,nspin)
      call timing(iproc,'CrtLocPot     ','ON')
      
      if (check_potion) then

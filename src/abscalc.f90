@@ -102,7 +102,7 @@ program abscalc_main
      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fxyz,'fxyz',subname)
 
-     call init_restart_objects(atoms,rst,subname)
+     call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
 
      call call_abscalc(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
 
@@ -181,7 +181,7 @@ end program abscalc_main
   !temporary interface
   interface
      subroutine abscalc(nproc,iproc,atoms,rxyz,&
-          psi,Glr,orbs,hx_old,hy_old,hz_old,in,infocode)
+          psi,Glr,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)
        use module_base
        use module_types
        implicit none
@@ -192,6 +192,7 @@ end program abscalc_main
        type(locreg_descriptors), intent(inout) :: Glr
        type(atoms_data), intent(inout) :: atoms
        type(orbitals_data), intent(inout) :: orbs
+       type(GPU_pointers), intent(inout) :: GPU
        real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
        real(wp), dimension(:), pointer :: psi
      END SUBROUTINE abscalc 
@@ -225,7 +226,7 @@ end program abscalc_main
      else
         call abscalc(nproc,iproc,atoms,rxyz,&
              rst%psi,rst%Glr,rst%orbs,&
-             rst%hx_old,rst%hy_old,rst%hz_old,in,infocode)
+             rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
         fxyz(:,:) = 0.d0
      endif
 
@@ -304,7 +305,7 @@ END SUBROUTINE call_abscalc
 !! SOURCE
 !!
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
-     psi,Glr,orbs,hx_old,hy_old,hz_old,in,infocode)
+     psi,Glr,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
   use module_types
   use module_interfaces
@@ -319,6 +320,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   type(locreg_descriptors), intent(inout) :: Glr
   type(atoms_data), intent(inout) :: atoms
   type(orbitals_data), intent(inout) :: orbs
+  type(GPU_pointers), intent(inout) :: GPU
   real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
   integer, intent(out) :: infocode
   real(wp), dimension(:), pointer :: psi
@@ -342,7 +344,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   type(communications_arrays) :: comms
   type(orbitals_data) :: orbsv
   type(gaussian_basis) :: Gvirt
-  type(GPU_pointers) :: GPU
 
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:,:), allocatable :: radii_cf,fion
@@ -505,7 +506,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call MemoryEstimator(atoms%geocode,nproc,idsx,n1,n2,n3,&
           atoms%alat1,atoms%alat2,atoms%alat3,&
           hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,crmult,frmult,&
-          orbs%norb,nlpspd%nprojel,atoms%atomnames,0,in%nspin,peakmem)
+          orbs%norb,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,0,in%nspin,peakmem)
   end if
 
 
@@ -590,9 +591,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,atoms,&
-          orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons)
+          orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
+          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,Gvirt,&
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons,GPU)
 
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)
