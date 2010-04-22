@@ -216,7 +216,8 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
   integer :: nsccode,mxpl,mxchg
   integer :: norbat,iorbsc_count,niasc,nlsc
   real(gp) :: rcov,rprb,ehomo
-  integer, dimension(nmax,lmax+1) :: neleconf
+  !integer, dimension(nmax,lmax+1) :: neleconf
+  real(kind=8), dimension(nmax,lmax+1) :: neleconf
   integer, dimension(lmax+1) :: nl
   real(gp), dimension(noccmax,lmax+1) :: occup
 
@@ -936,7 +937,8 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
   integer :: lpx,nsccode,mxpl,mxchg
   integer :: l,i,j,iocc,i_all,i_stat
   real(gp) :: alpz,alpl,amu,rprb,rij,a,a0,a0in,tt,ehomo,rcov
-  integer, dimension(6,4) :: neleconf
+  !integer, dimension(6,4) :: neleconf
+  real(kind=8), dimension(6,4) :: neleconf
   real(gp), dimension(4) :: gpot
   real(gp), dimension(noccmax,lmax+1) :: aeval,chrg,res
   real(gp), dimension(:), allocatable :: xp,alps
