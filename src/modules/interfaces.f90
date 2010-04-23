@@ -972,6 +972,21 @@ module module_interfaces
        real(wp), dimension(:), pointer :: psi,psivirt
      end subroutine direct_minimization
 
+     subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
+          hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
+       use module_base
+       use module_types
+       implicit none
+       character(len=1), intent(in) :: geocode
+       integer, intent(in) :: iproc,nproc,n3pi,i3s
+       real(gp), intent(in) :: hxh,hyh,hzh
+       real(gp), dimension(3), intent(in) :: shift
+       type(input_variables), intent(in) :: in
+       type(grid_dimensions), intent(in) :: grid
+       real(dp), dimension(*), intent(in) :: pkernel
+       real(wp), dimension(*), intent(inout) :: pot_ion
+     end subroutine CounterIonPotential
+
   end interface
 
 end module module_interfaces

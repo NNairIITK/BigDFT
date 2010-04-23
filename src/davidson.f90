@@ -1516,6 +1516,8 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   !othogonalise the gaussian basis (wrong with k-points)
   !call gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
 
+  !as an alternative strategy we may take the eigenvectors of the kinetic+k hamiltonian
+
   call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,&
        gaucoeffs,psivirt)
 
