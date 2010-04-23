@@ -93,7 +93,7 @@
         end if
         
      else if (in%inputPsiId == 0 .and. infocode==3) then
-        if (iproc.eq.0) then
+        if (iproc == 0) then
            write( *,'(1x,a)')'Convergence error, cannot proceed.'
            write( *,'(1x,a)')' writing positions in file posfail.xyz then exiting'
            write(comment,'(a)')'UNCONVERGED WF '
@@ -117,7 +117,7 @@
 
         if (nproc > 1) call MPI_FINALIZE(ierr)
 
-        stop 'normal end'
+        stop 'unnormal end'
      else
         exit loop_cluster
      end if
@@ -187,7 +187,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   character(len=4) :: f4
   character(len=50) :: filename
   logical :: endloop,potion_overwritten=.false.,allfiles,onefile,refill_proj
-  logical :: doYorkAtChgs,DoDavidson
+  logical :: doYorkAtChgs,DoDavidson,counterions
   integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before,nsym
   integer :: nvirt,ndiis_sd_sw,norbv
   integer :: nelec,ndegree_ip,j,i,iorb
@@ -209,10 +209,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: rho
-  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
+  real(gp), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
   real(gp), dimension(:,:),allocatable :: fdisp
   ! Charge density/potential,ionic potential, pkernel
-  real(dp), dimension(:), allocatable :: pot_ion,rhopot
+  real(dp), dimension(:), allocatable :: pot_ion,rhopot,counter_ions
   real(gp), dimension(:), allocatable :: atchgs,radii
   real(kind=8), dimension(:,:,:,:), allocatable :: pot,rhoref,potxc
   real(kind=8), dimension(:), pointer :: pkernel,pkernel_ref
@@ -425,8 +425,28 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
        psoffset,in%nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
 
   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
-       in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,in%nvacancy,&
-       in%correct_offset)
+       in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,&
+       in%nvacancy,in%correct_offset)
+
+  !inquire for the counter_ion potential calculation (for the moment only xyz format)
+  inquire(file='posinp_ci.xyz',exist=counterions)
+  if (counterions) then
+     if (n3pi > 0) then
+        allocate(counter_ions(n1i*n2i*n3pi+ndebug),stat=i_stat)
+        call memocc(i_stat,counter_ions,'counter_ions',subname)
+     else
+        allocate(counter_ions(1+ndebug),stat=i_stat)
+        call memocc(i_stat,counter_ions,'counter_ions',subname)
+     end if
+
+     call CounterIonPotential(atoms%geocode,iproc,nproc,in,shift,&
+          hxh,hyh,hzh,Glr%d,n3pi,i3s,pkernel,counter_ions)
+
+     !sum that to the ionic potential
+     call axpy(Glr%d%n1i*Glr%d%n2i*n3p,1.0_dp,counter_ions(1),1,&
+          pot_ion(1),1)
+                   
+  end if
 
   !this can be inserted inside the IonicEnergyandForces routine
   !(after insertion of the non-regression test)
@@ -1071,6 +1091,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   i_all=-product(shape(pot_ion))*kind(pot_ion)
   deallocate(pot_ion,stat=i_stat)
   call memocc(i_stat,i_all,'pot_ion',subname)
+  if (counterions) then
+     i_all=-product(shape(counter_ions))*kind(counter_ions)
+     deallocate(counter_ions,stat=i_stat)
+     call memocc(i_stat,i_all,'counter_ions',subname)
+  end if
+
 
   !------------------------------------------------------------------------
   ! here we start the calculation of the forces
@@ -1475,6 +1501,12 @@ contains
        i_all=-product(shape(pot_ion))*kind(pot_ion)
        deallocate(pot_ion,stat=i_stat)
        call memocc(i_stat,i_all,'pot_ion',subname)
+       if (counterions) then
+          i_all=-product(shape(counter_ions))*kind(counter_ions)
+          deallocate(counter_ions,stat=i_stat)
+          call memocc(i_stat,i_all,'counter_ions',subname)
+       end if
+
        
        i_all=-product(shape(pkernel))*kind(pkernel)
        deallocate(pkernel,stat=i_stat)
