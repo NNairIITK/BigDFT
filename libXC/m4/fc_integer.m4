@@ -45,7 +45,7 @@ EOF
   ac_try='$FC $FCFLAGS $LDFLAGS -o intsizetest.x intsizetest.f90 1>&AC_FD_CC'
   if AC_TRY_EVAL(ac_try); then
     ac_try=""
-    ac_fcintegersize=`./intsizetest.x`;
+    ac_fcintegersize=`./intsizetest.x || echo "4"`;
   else
     echo "configure: failed program was:" >&AC_FD_CC
     cat intsizetest.f90 >&AC_FD_CC
