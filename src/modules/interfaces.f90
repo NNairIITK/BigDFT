@@ -987,6 +987,16 @@ module module_interfaces
        real(wp), dimension(*), intent(inout) :: pot_ion
      end subroutine CounterIonPotential
 
+     subroutine gaussian_rism_basis(nat,radii,rxyz,G)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: nat
+       real(gp), dimension(nat), intent(in) :: radii
+       real(gp), dimension(3,nat), target, intent(in) :: rxyz
+       type(gaussian_basis), intent(out) :: G
+     end subroutine gaussian_rism_basis
+
   end interface
 
 end module module_interfaces
