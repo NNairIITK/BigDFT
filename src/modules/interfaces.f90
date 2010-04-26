@@ -405,7 +405,7 @@ module module_interfaces
        type(GPU_pointers), intent(inout) :: GPU
        real(dp), dimension(*), optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
-       real(wp), dimension(*), intent(in), optional :: psirocc
+       real(wp), dimension(:), pointer, optional :: psirocc
      END SUBROUTINE HamiltonianApplication
 
      subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
@@ -567,12 +567,11 @@ module module_interfaces
 
      subroutine davidson(iproc,nproc,n1i,n2i,in,at,& 
           orbs,orbsv,nvirt,lr,comms,commsv,&
-          hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
+          hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: iproc,nproc,n1i,n2i
-       integer, intent(in) :: i3xcsh
        integer, intent(in) :: nvirt,n3p
        type(input_variables), intent(in) :: in
        type(atoms_data), intent(in) :: at
@@ -947,7 +946,46 @@ module module_interfaces
        real(dp), dimension(*), intent(inout) :: rho
        real(wp), dimension(:), pointer :: rhocore !associated if useful
        real(wp), dimension(*), intent(out) :: potxc
-     END SUBROUTINE XC_potential
+     end subroutine XC_potential
+
+     subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
+          orbs,orbsv,nvirt,lr,comms,commsv,&
+          hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
+          pkernel,psi,psivirt,ngatherarr,GPU)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,nproc,n1i,n2i,nvirt,n3p
+       type(input_variables), intent(in) :: in
+       type(atoms_data), intent(in) :: at
+       type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+       type(locreg_descriptors), intent(in) :: lr 
+       type(orbitals_data), intent(in) :: orbs
+       type(communications_arrays), intent(in) :: comms, commsv
+       real(gp), intent(in) :: hx,hy,hz
+       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+       real(gp), dimension(3,at%nat), intent(in) :: rxyz
+       real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+       real(dp), dimension(*), intent(in) :: pkernel,rhopot
+       type(orbitals_data), intent(inout) :: orbsv
+       type(GPU_pointers), intent(inout) :: GPU
+       real(wp), dimension(:), pointer :: psi,psivirt
+     end subroutine direct_minimization
+
+     subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
+          hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
+       use module_base
+       use module_types
+       implicit none
+       character(len=1), intent(in) :: geocode
+       integer, intent(in) :: iproc,nproc,n3pi,i3s
+       real(gp), intent(in) :: hxh,hyh,hzh
+       real(gp), dimension(3), intent(in) :: shift
+       type(input_variables), intent(in) :: in
+       type(grid_dimensions), intent(in) :: grid
+       real(dp), dimension(*), intent(in) :: pkernel
+       real(wp), dimension(*), intent(inout) :: pot_ion
+     end subroutine CounterIonPotential
 
   end interface
 

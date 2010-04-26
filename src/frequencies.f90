@@ -139,6 +139,7 @@ program frequencies
   !Reference state
   if (moves(1,0)) then
      fxyz = forces(:,1,0)
+     infocode=0
   else
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
      call frequencies_write_restart(iproc,0,0,0,rxyz,etot,fxyz,&

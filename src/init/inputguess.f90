@@ -1282,10 +1282,14 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
               end if
 ! potential from repulsive gauss potential
               tt=alpl**2/(.5_gp+d*alpl**2)
-              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma_restricted(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
-                   + (gpot(2)/alpl**2)*.5_gp*gamma_restricted(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
-                   + (gpot(3)/alpl**4)*.5_gp*gamma_restricted(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))&
-                   + (gpot(4)/alpl**6)*.5_gp*gamma_restricted(4.5_gp+real(l,gp))*tt**(4.5_gp+real(l,gp))
+              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma_restricted(1.5_gp+real(l,gp))*&
+                   tt**(1.5_gp+real(l,gp))&
+                   + (gpot(2)/alpl**2)*.5_gp*gamma_restricted(2.5_gp+real(l,gp))*&
+                   tt**(2.5_gp+real(l,gp))&
+                   + (gpot(3)/alpl**4)*.5_gp*gamma_restricted(3.5_gp+real(l,gp))*&
+                   tt**(3.5_gp+real(l,gp))&
+                   + (gpot(4)/alpl**6)*.5_gp*gamma_restricted(4.5_gp+real(l,gp))*&
+                   tt**(4.5_gp+real(l,gp))
 ! separable terms
               if (l.le.lpx) then
                  hh(i,j)=hh(i,j) + pp1(i,l+1)*hsep(1,l+1)*pp1(j,l+1)&
@@ -1756,6 +1760,7 @@ function gamma_restricted(x)
   if (x.le.0._gp) stop 'wrong argument for gamma_restricted'
   if (mod(x,1._gp).eq.0._gp) then
      ii=int(x)
+     gamma_restricted=1.0_gp
      do i=2,ii
         gamma_restricted=gamma_restricted*real(i-1,gp)
      end do

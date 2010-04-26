@@ -30,9 +30,10 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
   ! norm of gradient
   gnrm=0.0_dp
+
   do iorb=1,orbs%norbp
-! define zero energy for preconditioning 
-         eval_zero=max(orbs%eval(orbs%norb),0.d0)  !  Non-spin pol
+     ! define zero energy for preconditioning 
+     eval_zero=max(orbs%eval(orbs%norb),0.d0)  !  Non-spin pol
      if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then    !spin-pol
         eval_zero=max(orbs%eval(orbs%norbu),0.d0)  !up orbital
      else if (orbs%spinsgn(orbs%isorb+iorb) < 0.0_gp) then
@@ -56,6 +57,7 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
         !the nrm2 function can be replaced here by ddot
         scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi(1,inds,iorb),1)
+        !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
         gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
 
         if (scpr /= 0.0_wp) then
