@@ -62,7 +62,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,shift,lr,orbs,orbsv,psi,psivirt)
   nullify(G%rxyz)
 
   !extract the gaussian basis from the pseudowavefunctions
-  call gaussian_pswf_basis(31,iproc,inc%nspin,atc,cxyz,G,Gocc)
+  call gaussian_pswf_basis(31,.false.,iproc,inc%nspin,atc,cxyz,G,Gocc)
 
   allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
   call memocc(i_stat,thetaphi,'thetaphi',subname)

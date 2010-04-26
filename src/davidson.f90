@@ -1493,7 +1493,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   nullify(G%rxyz)
   !extract the gaussian basis from the pseudowavefunctions
   !use a better basis than the input guess
-  call gaussian_pswf_basis(31,iproc,nspin,at,rxyz,G,gbd_occ)
+  call gaussian_pswf_basis(31,.false.,iproc,nspin,at,rxyz,G,gbd_occ)
 
   allocate(gaucoeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)

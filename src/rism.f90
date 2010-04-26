@@ -21,7 +21,7 @@ subroutine two_center_two_electrons(nat,a1,a2,a3,rxyz,radii,H)
   real(gp), parameter :: oneosqrtpi=0.564189583547756286948079451_gp
   integer :: iat,jat,i_gauss
   real(dp) :: ur_gauss,dr_gauss,acc_gauss,factor,factor2
-  real(gp) :: a_range,ra2,ra2pb2,rab2,oneopk,oneoexpo,expo,oneofac,fac,ra
+  real(gp) :: a_range,ra2,ra2pb2,rab2,oneopk,oneoexpo,expo,oneofac,fac,ra,erfor
   real(gp), dimension(3) :: A
   real(dp), dimension(n_gauss) :: p_gauss,w_gauss
 
@@ -54,7 +54,7 @@ subroutine two_center_two_electrons(nat,a1,a2,a3,rxyz,radii,H)
      A(1)=rxyz(1,iat)
      A(2)=rxyz(2,iat)
      A(3)=rxyz(3,iat)
-     do jat=iat+1,nat
+     do jat=iat,nat
         ra2pb2=ra2+radii(jat)**2
         rab2=(rxyz(1,jat)-A(1))**2
         rab2=rab2+(rxyz(2,jat)-A(2))**2
@@ -72,7 +72,8 @@ subroutine two_center_two_electrons(nat,a1,a2,a3,rxyz,radii,H)
            fac=w_gauss(i_gauss)/oneofac
            H(iat,jat)=H(iat,jat)-fac*expo
         end do
-        !if (iat == jat) print *,'test',H(iat,jat),-oneosqrtpi/sqrt(ra2)
+        !calculate the analytic results via the Boys function
+        !print *,'Analytic-approx:',iat,jat,H(iat,jat)+erfor(sqrt(rab2),sqrt(ra2pb2))
      end do
   end do
 
@@ -390,7 +391,7 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
   !let us first calculate the structure for the basis functions
   !extract the gaussian basis from the pseudowavefunctions
   nullify(Gpswf%rxyz)
-  call gaussian_pswf_basis(31,iproc,1,atoms,rxyz,Gpswf,Gocc)
+  call gaussian_pswf_basis(21,.false.,iproc,1,atoms,rxyz,Gpswf,Gocc)
 
   if (associated(Gocc)) then
      i_all=-product(shape(Gocc))*kind(Gocc)
@@ -494,20 +495,20 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
   call calculate_rho(iproc,nproc,atoms%geocode,atoms%nat,radii,rxyz,hxh,hyh,hzh,&
        lr%d%n1,lr%d%n2,lr%d%n3,n3p,i3s,lr%d%n1i,lr%d%n2i,lr%d%n3i,pot,rhoarr)
 
-  if (iproc == 0) then
-     do iat=1,atoms%nat
-        write(*,'(a,i0,10(1pe15.7))')'rhoarrV',iat,rhoarr(iat)
-     end do
-  end if
-
-  call calculate_rho_longrange(iproc,nproc,atoms,radii,rxyz,hxh,hyh,hzh,&
-       lr%d%n1,lr%d%n2,lr%d%n3,n3p,i3s,lr%d%n1i,lr%d%n2i,lr%d%n3i,rho,rhoarr)
-
-  if (iproc == 0) then
-     do iat=1,atoms%nat
-        write(*,'(a,i0,10(1pe15.7))')'rhoarrrho',iat,rhoarr(iat)
-     end do
-  end if
+!!$  if (iproc == 0) then
+!!$     do iat=1,atoms%nat
+!!$        write(*,'(a,i0,10(1pe15.7))')'rhoarrV',iat,rhoarr(iat)
+!!$     end do
+!!$  end if
+!!$
+!!$  call calculate_rho_longrange(iproc,nproc,atoms,radii,rxyz,hxh,hyh,hzh,&
+!!$       lr%d%n1,lr%d%n2,lr%d%n3,n3p,i3s,lr%d%n1i,lr%d%n2i,lr%d%n3i,rho,rhoarr)
+!!$
+!!$  if (iproc == 0) then
+!!$     do iat=1,atoms%nat
+!!$        write(*,'(a,i0,10(1pe15.7))')'rhoarrrho',iat,rhoarr(iat)
+!!$     end do
+!!$  end if
 
 !!$  call MPI_FINALIZE(i_stat)
 !!$  stop
@@ -584,8 +585,8 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
   end if
 !!$  if (iproc == 0) print '(a,4(1pe15.7))','there',v(:)
 !!$  if (iproc == 0) print '(a,4(1pe15.7))','AAA',H(1,1),H(1,2),H(2,1),H(2,2)
-  !determinant of the matrix, temporary
-  gammafac=H(1,1)*H(2,2)-H(1,2)*H(2,1)
+!!$  !determinant of the matrix, temporary
+!!$  gammafac=H(1,1)*H(2,2)-H(1,2)*H(2,1)
 !!$  if (iproc == 0) print '(a,4(1pe15.7))','res',(H(2,2)-H(1,2))/gammafac,&
 !!$       (H(1,1)-H(2,1))/gammafac,real(nelec,gp)
   ddotu=dot(nbasis,D(1),1,u(1),1)
@@ -593,7 +594,8 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
   
 
   gammafac=(real(nelec,gp)+ddotu)/ddotv
-  !!zero has to be put since the potential is the deformation potential
+
+  !!zero has to be put when the potential is the deformation potential
   !gammafac=ddotu/ddotv
 
 !!$  if (iproc == 0 )print *,'gamma',gammafac,nelec,v(:)
@@ -941,11 +943,14 @@ subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,nga
      call daub_to_isf(lr,w,psi(1,jorb),psir)
 
      !now the integral with the density
-     rhoarr(jorb+isorb)=hfac*dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,rhotot(1,1,1),1,psir(1,1,1),1)
+     !the square root of the volume units should be put because the psi is normalised to 
+     !have unit norm without volume unit
+     rhoarr(jorb+isorb)=sqrt(hfac)*dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,rhotot(1,1,1),1,psir(1,1,1),1)
      !check the norm of the wavefunctions
-     print *,'norm',jorb+isorb,&
-          dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir(1,1,1),1,psir(1,1,1),1),&
-           rhoarr(jorb+isorb)
+!!$     print *,'norm',jorb+isorb,&
+!!$          dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir(1,1,1),1,psir(1,1,1),1),&
+!!$          rhoarr(jorb+isorb),&
+!!$          sum(rhotot),hfac
 
      
   end do

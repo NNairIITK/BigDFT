@@ -887,10 +887,11 @@ module module_interfaces
        integer, intent(out) ::  nat
      END SUBROUTINE read_density_cube
 
-     subroutine gaussian_pswf_basis(ng,iproc,nspin,at,rxyz,G,Gocc)
+     subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc)
        use module_base
        use module_types
        implicit none
+       logical, intent(in) :: enlargerprb
        integer, intent(in) :: iproc,nspin,ng
        type(atoms_data), intent(in) :: at
        real(gp), dimension(3,at%nat), target, intent(in) :: rxyz

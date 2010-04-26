@@ -774,7 +774,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !!$     end do
 !!$     close(78)
 
-     doYorkAtChgs=endloop .and. in%gaussian_help .and. in%last_run == 1 .and. .false.
+     doYorkAtChgs=endloop .and. in%gaussian_help .and. in%last_run == 1 !.and. .false.
 
      if(orbs%nspinor==4) then
         !this wrapper can be inserted inside the poisson solver 
@@ -891,7 +891,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      !check for convergence or whether max. numb. of iterations exceeded
      if (endloop) then 
-        if (iproc.eq.0) then 
+        if (iproc == 0) then 
            if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
            write( *,'(1x,a)') &
                 '--------------------------------------------------- End of Wavefunction Optimisation'
@@ -992,14 +992,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !extract the gaussian basis from the pseudowavefunctions
 !!!     if (in%inputPsiId == 11) then
 !!!        !extract the gaussian basis from the pseudowavefunctions
-!!!        call gaussian_pswf_basis(21,iproc,atoms,rxyz,gbd)
+!!!        call gaussian_pswf_basis(21,.false.,iproc,atoms,rxyz,gbd)
 !!!     else if (in%inputPsiId == 12) then
 !!!        !extract the gaussian basis from the pseudopotential
 !!!        call gaussian_psp_basis(atoms,rxyz,gbd)
 !!!     end if
 
      !extract the gaussian basis from the pseudowavefunctions
-     call gaussian_pswf_basis(21,iproc,in%nspin,atoms,rxyz,gbd,gbd_occ)
+     call gaussian_pswf_basis(21,.false.,iproc,in%nspin,atoms,rxyz,gbd,gbd_occ)
 
      if (associated(gbd_occ)) then
         i_all=-product(shape(gbd_occ))*kind(gbd_occ)
@@ -1345,6 +1345,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
      
      call deallocate_comms(commsv,subname)
+     call deallocate_orbs(orbsv,subname)
+     
+     i_all=-product(shape(orbsv%eval))*kind(orbsv%eval)
+     deallocate(orbsv%eval,stat=i_stat)
+     call memocc(i_stat,i_all,'eval',subname)
+     
+     i_all=-product(shape(psivirt))*kind(psivirt)
+     deallocate(psivirt,stat=i_stat)
+     call memocc(i_stat,i_all,'psivirt',subname)
 
   end if
 
@@ -1545,21 +1554,6 @@ contains
        call memocc(i_stat,i_all,'fdisp',subname)
        
     end if
-    !deallocate wavefunction for virtual orbitals
-    !if it is the case
-    if (DoDavidson) then
-       !call deallocate_gwf(Gvirt,subname)
-
-       call deallocate_orbs(orbsv,subname)
-
-       i_all=-product(shape(orbsv%eval))*kind(orbsv%eval)
-       deallocate(orbsv%eval,stat=i_stat)
-       call memocc(i_stat,i_all,'eval',subname)
-
-       i_all=-product(shape(psivirt))*kind(psivirt)
-       deallocate(psivirt,stat=i_stat)
-       call memocc(i_stat,i_all,'psivirt',subname)
-    end if
     
     i_all=-product(shape(irrzon))*kind(irrzon)
     deallocate(irrzon,stat=i_stat)
@@ -1618,7 +1612,6 @@ contains
     end if
     
     call deallocate_comms(comms,subname)
-    
 
     call deallocate_orbs(orbs,subname)
     call deallocate_atoms_scf(atoms,subname) 

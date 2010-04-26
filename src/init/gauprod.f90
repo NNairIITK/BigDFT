@@ -226,10 +226,11 @@ END SUBROUTINE write_gaussian_information
 !!
 !! SOURCE
 !!
-subroutine gaussian_pswf_basis(ng,iproc,nspin,at,rxyz,G,Gocc)
+subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc)
   use module_base
   use module_types
   implicit none
+  logical, intent(in) :: enlargerprb
   integer, intent(in) :: iproc,nspin,ng
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
@@ -360,7 +361,7 @@ subroutine gaussian_pswf_basis(ng,iproc,nspin,at,rxyz,G,Gocc)
              real(at%nelpsp(ityp),gp),at%psppar(0,0,ityp),&
              at%npspcode(ityp),&
              ng-1,nl,5,noccmax,lmax,occup,xpt(1,ityx),&
-             psiat(1,1,ityx))
+             psiat(1,1,ityx),enlargerprb)
         ntypesx=ntypesx+1
         if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
      end if
