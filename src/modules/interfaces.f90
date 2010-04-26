@@ -306,8 +306,8 @@ module module_interfaces
        real(dp), dimension(*), intent(inout) :: rhopot
        real(wp), dimension(*), intent(inout) :: pot_ion
        real(wp), dimension(:), pointer :: psi,psit,hpsi,rhocore
-       integer, dimension(:,:,:), intent(in) :: irrzon
-       real(dp), dimension(:,:,:), intent(in) :: phnons
+       integer, dimension(*), intent(in) :: irrzon
+       real(dp), dimension(*), intent(in) :: phnons
      END SUBROUTINE import_gaussians
 
      subroutine input_wf_diag(iproc,nproc,at,&
@@ -335,8 +335,8 @@ module module_interfaces
        type(gaussian_basis), intent(out) :: G 
        real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
        integer, intent(in) :: potshortcut
-       integer, dimension(:,:,:), intent(in) :: irrzon
-       real(dp), dimension(:,:,:), intent(in) :: phnons
+       integer, dimension(*), intent(in) :: irrzon
+       real(dp), dimension(*), intent(in) :: phnons
      END SUBROUTINE input_wf_diag
 
      subroutine reformatmywaves(iproc,orbs,at,&
@@ -987,6 +987,16 @@ module module_interfaces
        real(dp), dimension(*), intent(in) :: pkernel
        real(wp), dimension(*), intent(inout) :: pot_ion
      end subroutine CounterIonPotential
+
+     subroutine gaussian_rism_basis(nat,radii,rxyz,G)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: nat
+       real(gp), dimension(nat), intent(in) :: radii
+       real(gp), dimension(3,nat), target, intent(in) :: rxyz
+       type(gaussian_basis), intent(out) :: G
+     end subroutine gaussian_rism_basis
 
   end interface
 

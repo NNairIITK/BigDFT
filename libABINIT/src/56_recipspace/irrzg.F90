@@ -52,7 +52,7 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.h"
+#include "config.inc"
 #endif
 
 subroutine irrzg(irrzon,nspden,nsppol,nsym,n1,n2,n3,phnons,&
