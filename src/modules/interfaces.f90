@@ -306,8 +306,8 @@ module module_interfaces
        real(dp), dimension(*), intent(inout) :: rhopot
        real(wp), dimension(*), intent(inout) :: pot_ion
        real(wp), dimension(:), pointer :: psi,psit,hpsi,rhocore
-       integer, dimension(:,:,:), intent(in) :: irrzon
-       real(dp), dimension(:,:,:), intent(in) :: phnons
+       integer, dimension(*), intent(in) :: irrzon
+       real(dp), dimension(*), intent(in) :: phnons
      END SUBROUTINE import_gaussians
 
      subroutine input_wf_diag(iproc,nproc,at,&
@@ -335,8 +335,8 @@ module module_interfaces
        type(gaussian_basis), intent(out) :: G 
        real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
        integer, intent(in) :: potshortcut
-       integer, dimension(:,:,:), intent(in) :: irrzon
-       real(dp), dimension(:,:,:), intent(in) :: phnons
+       integer, dimension(*), intent(in) :: irrzon
+       real(dp), dimension(*), intent(in) :: phnons
      END SUBROUTINE input_wf_diag
 
      subroutine reformatmywaves(iproc,orbs,at,&
