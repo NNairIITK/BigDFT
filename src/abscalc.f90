@@ -87,7 +87,7 @@ program abscalc_main
           
      inquire(file="input.abscalc",exist=exists)
      if (.not. exists) then
-        if (iproc == 0) write(*,*)'ERROR: need file input.abscalc for x-ray absorber treatment.'
+        if (iproc == 0) write(*,*) 'ERROR: need file input.abscalc for x-ray absorber treatment.'
         if(nproc/=0)   call MPI_FINALIZE(ierr)
         stop
      end if
@@ -351,7 +351,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   ! Charge density/potential,ionic potential, pkernel
   real(kind=8), dimension(:), allocatable :: pot_ion
 
-  real(kind=8), dimension(:,:,:,:), allocatable :: rhopot, rhopottmp
+  real(kind=8), dimension(:,:,:,:), allocatable, target :: rhopot
+  real(kind=8), dimension(:,:,:,:), pointer ::  rhopottmp, rhopotExtra, rhoXanes, rhotarget
+  integer b2Bcounter, b2BN
+  character(len=100) filename
   real(kind=8), dimension(:), pointer :: pkernel
 
   !wavefunction gradients, hamiltonian on vavefunction
@@ -397,6 +400,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   real(gp) dumvect3D(3)
   real(gp) shiftdiff
   real(gp) potmodified_maxr, potmodified_shift
+
+
+  type(atoms_data) :: atoms_clone
+  integer :: nsp, nspinor, noncoll
+  integer, parameter :: nelecmax=32,nmax=6,lmax=4
+  integer, parameter :: noccmax=2
 
 
 
@@ -569,13 +578,160 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call memocc(i_stat,rhopot,'rhopot',subname)
   end if
 
-  nullify(rhocore)
+  if( iand( in%potshortcut,16)>0) then
+     allocate(rhoXanes(n1i,n2i,n3i,in%nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,rhoXanes,'rhoXanes',subname)
+  else
+     allocate(rhoXanes(1,1,1,1+ndebug),stat=i_stat)
+     call memocc(i_stat,rhoXanes,'rhoXanes',subname)     
+  endif
 
+
+
+  nullify(rhocore)
   !check the communication distribution
   !call check_communications(iproc,nproc,orbs,Glr,comms)
 
 
-  if(in%potshortcut/=2) then
+
+
+  if( iand( in%potshortcut,4)  .gt. 0 ) then
+     if (n3d >0) then
+        allocate(rhopotExtra(n1i,n2i,n3d,in%nspin+ndebug),stat=i_stat)
+        call memocc(i_stat,rhopotExtra,'rhopotExtra',subname)
+     else
+        allocate(rhopotExtra(1,1,1,in%nspin+ndebug),stat=i_stat)
+        call memocc(i_stat,rhopotExtra,'rhopotExtra',subname)
+     end if
+
+     atoms_clone = atoms
+     nullify(atoms_clone%aocc)
+     nullify(atoms_clone%iasctype)
+     
+     
+     allocate(atoms_clone%aocc(lbound(atoms%aocc,1 ):ubound(atoms%aocc,1),&
+          lbound(atoms%aocc,2):ubound(atoms%aocc,2)),stat=i_stat)
+     call memocc(i_stat,atoms%aocc,'atoms_clone%aocc',subname)
+
+     allocate(atoms_clone%iasctype(lbound(atoms%iasctype,1 ):ubound(atoms%iasctype,1)),stat=i_stat)
+     call memocc(i_stat,atoms%iasctype,'atoms_clone%iasctype',subname)
+
+  
+     atoms_clone%aocc=0.0_gp
+     atoms_clone%iasctype=0
+
+
+     read(in%extraOrbital,*,iostat=ierr)iat
+     !control the spin
+     select case(in%nspin)
+     case(1)
+        nsp=1
+        nspinor=1
+        noncoll=1
+     case(2)
+        nsp=2
+        nspinor=1
+        noncoll=1
+     case(4)
+        nsp=1
+        nspinor=4
+        noncoll=2
+     case default
+        write(*,*)' ERROR: nspin not valid:',nspin
+        stop
+     end select
+
+     
+     print *, " Going to create extra potential for orbital "
+     print *, in%extraOrbital
+     print *, "using hard-coded parameters "
+     print *, "noccmax, nelecmax,lmax ", noccmax, nelecmax,lmax
+
+
+     call read_eleconf(in%extraOrbital ,nsp,nspinor,noccmax, nelecmax,lmax, &
+     atoms_clone%aocc(1,iat), atoms_clone%iasctype(iat))
+
+     
+     nspin=in%nspin
+     
+     !Fake allocations
+     allocate(irrzon(1,2,1+ndebug),stat=i_stat)
+     call memocc(i_stat,irrzon,'irrzon',subname)
+     allocate(phnons(2,1,1+ndebug),stat=i_stat)
+     call memocc(i_stat,phnons,'phnons',subname)
+     
+     !-- calculate input guess from non-diagonalised of LCAO basis (written in wavelets)
+     !-- if spectra calculation is energy dependent  input_wf_diag will write
+     !    the density to the file electronic_density.cube
+     !   To tell  input_wf_diag to do this ne must set the 5th bit on in in%potshortcut
+     if( iand( in%potshortcut,16)>0) then
+        if( in%iabscalc_type<3) then
+           if(iproc==0) write(*,*)  ' Energy dependent potential has been asked in abscalc but  iabscalc_type<3 '
+           if(nproc>1) call MPI_Finalize(ierr)
+           stop '      Energy dependent potential has been asked in abscalc but  iabscalc_type<3    '
+        endif
+     endif
+
+
+     call input_wf_diag(iproc,nproc,atoms_clone,&
+          orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
+          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons)
+     
+     if( iand( in%potshortcut,16)>0) then
+        if(iproc==0) write(*,*) "re-reading electronic_density for Xanes energy dependent potential "
+        call read_density_cube("electronic_density", n1i,n2i,n3i,1, hx ,hy ,hz, atoms%nat, rxyz_b2B, pot_bB )
+        rhoXanes=0.0_gp
+        do iz = 1,n3i
+           do iy=1,n2i
+              do ix=1,n1i
+                 rhopottmp(ix,iy,iz +i3xcsh,1) =  pot_bB(ix  + (iy-1)*n1i  + (iz-1)*n1i*n2i)  
+              enddo
+           enddo
+        enddo
+        
+        i_all=-product(shape(pot_bB))*kind(pot_bB)
+        deallocate(pot_bB,stat=i_stat)
+        call memocc(i_stat,i_all,'rho',subname)
+        i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
+        deallocate(rxyz_b2B,stat=i_stat)
+        call memocc(i_stat,i_all,'rxyz',subname)
+
+
+     endif
+
+ 
+
+     i_all=-product(shape(psi))*kind(psi)
+     deallocate(psi,stat=i_stat)
+     call memocc(i_stat,i_all,'psi',subname)
+     
+     i_all=-product(shape(irrzon))*kind(irrzon)
+     deallocate(irrzon,stat=i_stat)
+     call memocc(i_stat,i_all,'irrzon',subname)
+     
+     i_all=-product(shape(phnons))*kind(phnons)
+     deallocate(phnons,stat=i_stat)
+     call memocc(i_stat,i_all,'phnons',subname)
+     
+     
+
+
+
+     i_all=-product(shape(atoms_clone%aocc))*kind(atoms_clone%aocc)
+     deallocate(atoms_clone%aocc,stat=i_stat)
+     call memocc(i_stat,i_all,'atoms_clone%aocc',subname)
+     i_all=-product(shape(atoms_clone%iasctype))*kind(atoms_clone%iasctype)
+     deallocate(atoms_clone%iasctype,stat=i_stat)
+     call memocc(i_stat,i_all,'atoms_clone%iasctype',subname)
+
+
+
+  endif
+
+
+
+  if( iand( in%potshortcut,1)  .gt. 0 ) then
 
      inputpsi=in%inputPsiId
 
@@ -650,17 +806,32 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 !!$     stop
      
      if(iproc==0) print *, " going to calculate spectra "
-
-     STOP
-
-
      
-     if(in%potshortcut==2) then
+     if(  iand( in%potshortcut, 2)  > 0 ) then
 
-        inquire(file="b2B_xanes.cube",exist=exists)
+        if(  iand( in%potshortcut, 16)  > 0 ) then
+           b2BN=2
+        else
+           b2BN=1
+        endif
+        
+
+        do b2Bcounter=1,b2BN
+
+           if(b2Bcounter==1) then
+              write(filename,'(A)' ) 'b2B_xanes'
+              rhotarget=>rhopot
+           else
+              write(filename,'(A)') 'b2B_rho'
+              rhotarget=>rhoXanes
+           endif
+
+
+        inquire(file=trim(trim(filename)//'.cube'),exist=exists)
+        print *, "controllo ",  trim(filename)//'.cube', exists
         if(exists) then
 
-           call read_density_cube("b2B_xanes", n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
+           call read_density_cube(trim(filename), n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
            hx_old=hx_old*2
            hy_old=hy_old*2
            hz_old=hz_old*2
@@ -673,8 +844,19 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
            end if
 
         else
+
+           if(b2BN>1) then
+              if(iproc==0) write(*,*)  " b2B must be read only from *.cube when potential is energy dependent  " 
+              if(nproc>1) call MPI_Finalize(ierr)
+              stop '   b2B must be read only from *.cube when potential is energy dependent         '
+           endif
            print  *, " reading atomic positions from file ","b2B_xanes.xyz"
            call read_atomic_file("b2B_xanes.xyz",iproc, atoms_b2B, rxyz_b2B )
+           print *, "OK ", shape( rxyz_b2B )
+
+           nat_b2B= (   Ubound(rxyz_b2B,2)  - Lbound(rxyz_b2B,2)  +  1 ) - ndebug
+
+
            if( (atoms%nat/nat_b2B)*nat_b2B /= atoms%nat ) then
               if(iproc==0) write(*,*)  "   b2B_xanes.xyz  is not compatible with actual positions" 
               if(nproc>1) call MPI_Finalize(ierr)
@@ -705,7 +887,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         call memocc(i_stat,rhopottmp,'rhopottmp',subname)
 
 
-        rhopot=0.0_gp
+        rhotarget=0.0_gp
 
 
 
@@ -732,9 +914,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         call memocc(i_stat,auxint,'auxint',subname)
 
         Nreplicas = atoms%nat / nat_b2B
-        dumvect3d(1)=atoms.alat1
-        dumvect3d(2)=atoms.alat2
-        dumvect3d(3)=atoms.alat3
+        dumvect3d(1)=atoms%alat1
+        dumvect3d(2)=atoms%alat2
+        dumvect3d(3)=atoms%alat3
 
         do ireplica=0, Nreplicas-1
            
@@ -767,6 +949,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                  enddo
               enddo
            enddo
+
+           i_all=-product(shape(pot_bB))*kind(pot_bB)
+           deallocate(pot_bB,stat=i_stat)
+           call memocc(i_stat,i_all,'rho',subname)
+
 
 
            do iz_bB = 1,n3i_bB-1
@@ -860,19 +1047,25 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                             factz * rhopottmp(ix_bB,iy_bB,iz_bB+i3xcsh,1)
                     enddo
                  enddo
-                 rhopot(ix_bB ,iy_bB, : ,1)= rhopot(ix_bB ,iy_bB, : ,1)+auxint(1:n3i)
+                 rhotarget(ix_bB ,iy_bB, : ,1)= rhotarget(ix_bB ,iy_bB, : ,1)+auxint(1:n3i)
               enddo
            enddo
-
-
-        
-
         enddo
-
-        
+        i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
+        deallocate(rxyz_b2B,stat=i_stat)
+        call memocc(i_stat,i_all,'rxyz',subname)
         i_all=-product(shape(rhopottmp))*kind(rhopottmp)
         deallocate(rhopottmp,stat=i_stat)
         call memocc(i_stat,i_all,'rhopottmp',subname)
+        i_all=-product(shape(auxint))*kind(auxint)
+        deallocate(auxint,stat=i_stat)
+        call memocc(i_stat,i_all,'auxint',subname)
+        i_all=-product(shape(intfunc_y))*kind(intfunc_y)
+        deallocate(intfunc_y,stat=i_stat)
+        call memocc(i_stat,i_all,'intfunc_y',subname)
+     enddo
+        
+
 
         if (iproc == 0) write(*,*) 'writing NEW local_potential.pot'
 
@@ -880,24 +1073,28 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
              n1,n2,n3,n1i,n2i,n3i,n3p,&
              atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
 
-        i_all=-product(shape(auxint))*kind(auxint)
-        deallocate(auxint,stat=i_stat)
-        call memocc(i_stat,i_all,'auxint',subname)
 
-        i_all=-product(shape(pot_bB))*kind(pot_bB)
-        deallocate(pot_bB,stat=i_stat)
-        call memocc(i_stat,i_all,'rho',subname)
-        
-        i_all=-product(shape(intfunc_y))*kind(intfunc_y)
-        deallocate(intfunc_y,stat=i_stat)
-        call memocc(i_stat,i_all,'intfunc_y',subname)
         print *," exiting b2B"
 
-        i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
-        deallocate(rxyz_b2B,stat=i_stat)
-        call memocc(i_stat,i_all,'rxyz',subname)
+
 
      endif
+
+     if( iand( in%potshortcut,4)  .gt. 0 ) then
+        do ix=1,n1i
+           do iy=1,n2i
+              do iz = 1,n3i
+                 rhopot(ix ,iy, iz ,1)= rhopot(ix ,iy, iz ,1)+rhopotExtra(ix ,iy, iz ,1)
+              enddo
+           enddo
+        enddo
+        i_all=-product(shape(rhopotExtra))*kind(rhopotExtra)
+        deallocate(rhopotExtra,stat=i_stat)
+        call memocc(i_stat,i_all,'rhopotExtra',subname)
+     endif
+     
+
+
 
      if(in%abscalc_alterpot) then
         ! Attention :  modification of the  potential for the  
@@ -991,13 +1188,18 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
-             , in%iat_absorber  , .false., orbs%norb,   psit , orbs%eval , in )
+             , in%iat_absorber  , in )
         
      else if (in%iabscalc_type==1) then
         call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
              , in%iat_absorber, in)
+     else if (in%iabscalc_type==3) then
+        call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
+             radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
+             rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
+             , in%iat_absorber, in, rhoXanes(1,1,1,1))
      else
         if (iproc == 0) write(*,*)' iabscalc_type not known, does not perform calculation'
      endif
@@ -1065,6 +1267,15 @@ contains
        i_all=-product(shape(rhopot))*kind(rhopot)
        deallocate(rhopot,stat=i_stat)
        call memocc(i_stat,i_all,'rhopot',subname)
+
+       if(associated(rhoXanes)) then
+          i_all=-product(shape(rhoXanes))*kind(rhoXanes)
+          deallocate(rhoXanes,stat=i_stat)
+          call memocc(i_stat,i_all,'rhoXanes',subname)
+       endif
+
+
+
 
 !!$       if (in%read_ref_den) then
 !!$          i_all=-product(shape(rhoref))*kind(rhoref)

@@ -779,7 +779,7 @@ module module_interfaces
 
      subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
           radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-          ekin_sum,epot_sum,eproj_sum,nspin,GPU, in_iat_absorber, doorthoocc, Occ_norb, Occ_psit, Occ_eval, in )
+          ekin_sum,epot_sum,eproj_sum,nspin,GPU, in_iat_absorber, in )
        use module_base
        use module_types
        implicit none
@@ -796,11 +796,6 @@ module module_interfaces
        real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
        type(GPU_pointers), intent(inout) , target :: GPU
        integer, intent(in) :: in_iat_absorber
-
-       logical, intent(in) :: doorthoocc
-       integer, intent(in)  :: Occ_norb
-       real(wp), dimension(:), pointer :: Occ_psit
-       real(wp), dimension(:), pointer :: Occ_eval
 
        type(input_variables),intent(in) :: in
      END SUBROUTINE xabs_lanczos
@@ -831,6 +826,32 @@ module module_interfaces
        type(input_variables),intent(in) :: in
 
      END SUBROUTINE xabs_chebychev
+
+     subroutine cg_spectra(iproc,nproc,at,hx,hy,hz,rxyz,&
+          radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
+          ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
+       use module_base
+       use module_types
+       implicit none
+       integer  :: iproc,nproc,ndimpot,nspin
+       real(gp)  :: hx,hy,hz
+       type(atoms_data), target :: at
+       type(nonlocal_psp_descriptors), target :: nlpspd
+       type(locreg_descriptors), target :: lr
+       integer, dimension(0:nproc-1,2), target :: ngatherarr 
+       real(gp), dimension(3,at%nat), target :: rxyz
+       real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
+       real(wp), dimension(nlpspd%nprojel), target :: proj
+       real(wp), dimension(max(ndimpot,1),nspin), target :: potential
+
+       real(gp) :: ekin_sum,epot_sum,eproj_sum
+       type(GPU_pointers), intent(inout) , target :: GPU
+       integer, intent(in) :: in_iat_absorber
+
+
+       type(input_variables),intent(in) :: in
+
+     END SUBROUTINE cg_spectra
 
      function GetBottom(  atoms, iproc)
        use module_base

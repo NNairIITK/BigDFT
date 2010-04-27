@@ -17,7 +17,7 @@ module lanczos_base
 
   public ::LB_alpha , LB_beta, LB_eval, LB_shift, LB_nsteps, LB_allocate_for_lanczos, &
        LB_de_allocate_for_lanczos, LB_cerca, LB_passeggia, LB_allocate_for_chebychev,&
-        LB_iproc, LB_nproc, LB_passeggia_Chebychev
+        LB_iproc, LB_nproc, LB_passeggia_Chebychev, LB_cg
   
   character(len=*), parameter :: subname='lanczos_base'
 
@@ -691,7 +691,7 @@ contains
     write(filename,'(a,i0)') "cheb_spectra_" , Nu
     print *, " writing spectra to " , filename 
 
-    Pi=acos(-1.0)
+    Pi=acos(-1.0_gp)
     Nbar =1
     do while(Nbar<Nu) 
        Nbar=Nbar*2
@@ -919,9 +919,136 @@ contains
     
   END SUBROUTINE LB_passeggia_Chebychev
 
+  real(gp) function  LB_cg(    get_EP_dim, EP_initialize_start , EP_normalizza,&
+             EP_Moltiplica4spectra,  EP_copy,  &
+             EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact ,EP_precondition , Ene, gamma, tol, useold )
+        
+
+    use module_base
+    implicit none
+    real(gp) ene, gamma, tol
+    logical useold
+
+    interface
+       integer function get_EP_dim()
+       end function
+       subroutine EP_initialize_start()
+       END SUBROUTINE 
+       subroutine EP_normalizza(i)
+         integer :: i
+       END SUBROUTINE 
+       subroutine EP_Moltiplica4spectra(i,j, ene, gamma)
+         use module_base
+         integer :: i,j
+         real(gp) :: ene, gamma
+       END SUBROUTINE 
+       real(kind=8) function EP_scalare(i,j)
+         integer :: i,j
+       end function 
+       subroutine EP_add_from_vect_with_fact( i, j  ,   a )
+         integer :: i,j
+         real(kind=8) :: a
+       END SUBROUTINE 
+       subroutine EP_copy(i,j)
+         integer :: i,j
+       END SUBROUTINE
+       subroutine EP_multbyfact(j, fact)
+         use module_base
+         implicit none
+         integer, intent(in) :: j
+         real(gp) :: fact
+         ! ::::::::::::::::::::::::::::::::::::::
+       END SUBROUTINE EP_multbyfact
+       subroutine EP_precondition(p,i, ene, gamma)
+         use module_interfaces
+         !Arguments
+         use module_base
+         implicit none
+         integer, intent(in) :: p,i
+         real(gp) ene, gamma
+       end subroutine EP_precondition
+
+    end interface
 
 
+    integer :: ipa
+    integer :: tmp1, attuale, precedente
+    real(gp)::rho, beta, err, alpha, err0, rhoold
+    integer :: k
+    integer :: b, x, r, p, z, Ap, remember
 
-!  
+
+    b=0
+    x=1
+    r=2
+    p=3
+    z=4
+    Ap=5
+    remember=6
+
+ 
+    call EP_initialize_start()
+
+     err0= EP_scalare(b,b)
+
+    if(.not. useold) then
+       call EP_copy(r,b)
+       call EP_precondition(z,r, ene, gamma)
+       call EP_multbyfact(x,0.0_gp)
+    else
+       call EP_copy(x,remember)
+       call EP_Moltiplica4spectra(r, x, ene, gamma)
+       call EP_multbyfact(r,-1.0_gp)
+       call EP_add_from_vect_with_fact(r,b,1.0_gp)
+       call EP_precondition(z,r, ene, gamma)
+    endif
+       
+    beta = 0.0
+    rho = EP_scalare(z,r)
+    err= rho
+    k = 0
+
+    print *, " err iniziale " , err0
+    call EP_copy(p,z)
+
+
+    do while(k<1000 .and. err/err0>tol) 
+
+       call EP_Moltiplica4spectra(Ap, p, ene, gamma)
+       
+       alpha = rho/ EP_scalare( p,Ap)
+
+       print *, " EP_scalare( p,Ap) " , EP_scalare( p,Ap)
+
+       call EP_add_from_vect_with_fact(x,p,alpha)
+       call EP_add_from_vect_with_fact(r, Ap,-alpha)
+
+       ! precondiziona qui 
+       call EP_precondition(z,r, ene, gamma)
+       ! call EP_copy(z,r)
+
+       rhoold=rho
+       rho = EP_scalare(z,r)
+       
+       beta= rho/rhoold
+
+       call EP_multbyfact(p,beta)
+       
+       call EP_add_from_vect_with_fact( p,z,1.0_gp  )
+       
+       err = EP_scalare(r,r)
+
+       print *,  k," CG ERR  ", err,  EP_scalare(x,b)
+       k = k+1
+
+    enddo
+    LB_cg= EP_scalare(x,b)
+    call EP_copy(remember,x)
+
+
+    return  
+
+  END function LB_cg
+
 end module lanczos_base
 !!***

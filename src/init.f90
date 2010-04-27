@@ -603,6 +603,17 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
        & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
        & symObj, irrzon, phnons)
+     
+  !-- if spectra calculation uses a energy dependent potential
+  !    input_wf_diag will write (to be used it in abscalc)
+  !    the density to the file electronic_density.cube
+  !  The writing is activated if  5th bit of  in%potshortcut is on.
+  if( iand( potshortcut,16)==0) then
+     call plot_density_cube(at%geocode,'electronic_density',&
+          iproc,nproc,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nscatterarr(iproc,2),  & 
+          nspin,hxh,hyh,hzh,at,rxyz,ngatherarr,rhopot(1+nscatterarr(iproc,4)*Glr%d%n1i*Glr%d%n2i))
+  endif
+  !---
   
   if(orbs%nspinor==4) then
      !this wrapper can be inserted inside the poisson solver 
@@ -624,9 +635,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
           Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
           rhopot,eexcu,vexcu,nspin,rhocore,potxc)
 
-     call H_potential(at%geocode,'D',iproc,nproc,&
-          Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-          rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.)
+
+     if( iand(potshortcut,4)==0) then
+        call H_potential(at%geocode,'D',iproc,nproc,&
+             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+             rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.)
+     endif
+
 
      !sum the two potentials in rhopot array
      !fill the other part, for spin, polarised

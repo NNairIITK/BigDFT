@@ -22,7 +22,7 @@ module lanczos_interface
        EP_mat_mult,EP_make_dummy_vectors,  EP_normalizza,EP_copy,EP_scalare, EP_copia_per_prova, &
        EP_set_all_random, EP_GramSchmidt, EP_add_from_vect_with_fact, EP_Moltiplica, EP_memorizza_stato, &
        EP_free, EP_initialize_start_0,  EP_norma2_initialized_state , EP_store_occupied_orbitals, EP_occprojections,&
-       EP_multbyfact
+       EP_multbyfact, EP_precondition, EP_Moltiplica4spectra
 
  
   character(len=*), parameter :: subname='lanczos_interface'
@@ -592,7 +592,420 @@ END SUBROUTINE EP_set_random_interna
     endif
 
   END SUBROUTINE EP_GramSchmidt_interna
- 
+
+!!****f* BigDFT/hit_with_kernel
+!! FUNCTION
+!!   Hits the input array x with the kernel ((-1/2\Delta+C)_{ij})^{-1}
+!! SOURCE
+!!
+subroutine hit_with_kernel_spectra(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,&
+  n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,ene, gamma )
+  use module_base
+  implicit none
+! Arguments
+  integer,intent(in) :: n1,n2,n3,nd1,nd2,nd3
+  integer,intent(in) :: n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b
+  real(gp),intent(in) :: kern_k1(n1)
+  real(gp),intent(in) :: kern_k2(n2)
+  real(gp),intent(in) :: kern_k3(n3)
+  real*8,intent(in)::ene, gamma
+
+  real(wp),intent(inout) :: x(n1,n2,n3)! input/output
+!Local variables
+  real(wp) :: z1(2,nd1b,nd2,nd3,2)! work array
+  real(wp) :: z3(2,nd1,nd2,nd3f,2)! work array
+  real(gp) :: tt
+  integer :: i1,i2,i3,inzee
+
+! fft the input array x:
+
+  call FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x,z1,z3,inzee)
+
+! hit the Fourier transform of x with the kernel. At the same time, transform the array
+! from the form z3 (where only half of values of i3 are stored)
+! to the form z1   (where only half of values of i1 are stored)
+! The latter thing could be done separately by the subroutine z3_to_z1 that is contained
+! in FFT_back, but then the code would be slower.
+
+  !$omp parallel default (private) shared(z1,z3,kern_k1,kern_k2,kern_k3,c)&
+  !$omp shared(n1b,n3f,inzee,n1,n2,n3)
+
+  ! i3=1: then z1 is contained in z3 
+  !$omp do 
+  do i2=1,n2
+    do i1=1,n1b
+      ! tt=1._gp/(kern_k1(i1)+kern_k2(i2)+kern_k3(1)+c)
+      tt= 1._gp/((kern_k1(i1)+kern_k2(i2)+kern_k3(1)-ene)**2+gamma**2)
+      z1(1,i1,i2,1,inzee)=z3(1,i1,i2,1,inzee)*tt
+      z1(2,i1,i2,1,inzee)=z3(2,i1,i2,1,inzee)*tt
+    enddo
+  enddo  
+  !$omp enddo
+
+  !$omp do
+  do i3=2,n3f
+    ! i2=1
+    ! i1=1
+    ! tt=1._gp/(kern_k1(1)+kern_k2(1)+kern_k3(i3)+c)
+    tt= 1._gp/((kern_k1(1)+kern_k2(1)+kern_k3(i3)-ene)**2+gamma**2)
+    z1(1,1,1,i3,inzee)=z3(1,1,1,i3,inzee)*tt
+    z1(2,1,1,i3,inzee)=z3(2,1,1,i3,inzee)*tt
+
+    z1(1,1,1,n3+2-i3,inzee)=z3(1,1,1,i3,inzee)*tt
+    z1(2,1,1,n3+2-i3,inzee)=-z3(2,1,1,i3,inzee)*tt
+
+    ! i2=1
+    do i1=2,n1b  
+      ! tt=1._gp/(kern_k1(i1)+kern_k2(1)+kern_k3(i3)+c)
+      tt= 1._gp/((kern_k1(i1)+kern_k2(1)+kern_k3(i3)-ene)**2+gamma**2)
+      z1(1,i1,1,i3,inzee)=z3(1,i1,1,i3,inzee)*tt
+      z1(2,i1,1,i3,inzee)=z3(2,i1,1,i3,inzee)*tt
+
+      z1(1,i1,1,n3+2-i3,inzee)= z3(1,n1+2-i1,1,i3,inzee)*tt
+      z1(2,i1,1,n3+2-i3,inzee)=-z3(2,n1+2-i1,1,i3,inzee)*tt
+    enddo
+
+    do i2=2,n2
+      ! i1=1
+      ! tt=1._gp/(kern_k1(1)+kern_k2(i2)+kern_k3(i3)+c)
+      tt= 1._gp/((kern_k1(1)+kern_k2(i2)+kern_k3(i3)-ene)**2+gamma**2)
+      z1(1,1,i2,i3,inzee)=z3(1,1,i2,i3,inzee)*tt
+      z1(2,1,i2,i3,inzee)=z3(2,1,i2,i3,inzee)*tt
+
+      z1(1,1,i2,n3+2-i3,inzee)= z3(1,1,n2+2-i2,i3,inzee)*tt
+      z1(2,1,i2,n3+2-i3,inzee)=-z3(2,1,n2+2-i2,i3,inzee)*tt
+
+      do i1=2,n1b
+        ! tt=1._gp/(kern_k1(i1)+kern_k2(i2)+kern_k3(i3)+c)
+        tt= 1._gp/((kern_k1(i1)+kern_k2(i2)+kern_k3(i3)-ene)**2+gamma**2)
+        z1(1,i1,i2,i3,inzee)=z3(1,i1,i2,i3,inzee)*tt
+        z1(2,i1,i2,i3,inzee)=z3(2,i1,i2,i3,inzee)*tt
+
+        z1(1,i1,i2,n3+2-i3,inzee)= z3(1,n1+2-i1,n2+2-i2,i3,inzee)*tt
+        z1(2,i1,i2,n3+2-i3,inzee)=-z3(2,n1+2-i1,n2+2-i2,i3,inzee)*tt
+      enddo
+    enddo
+  enddo
+  !$omp enddo
+
+  !$omp end parallel
+
+  call FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,x,z1,z3,inzee)
+
+END SUBROUTINE hit_with_kernel_spectra
+!!***
+
+
+
+
+  subroutine wscal_f_spectra(mvctr_f,psi_f,hx,hy,hz,ene, gamma)
+    ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
+    use module_base
+    implicit none
+    integer,intent(in)::mvctr_f
+    real(gp),intent(in)::hx,hy,hz, ene, gamma
+    
+    real(wp)::psi_f(7,mvctr_f)
+    real(gp)::scal(7),hh(3)
+    !WAVELET AND SCALING FUNCTION SECOND DERIVATIVE FILTERS, diagonal elements
+    real(gp),PARAMETER::B2=24.8758460293923314_gp,A2=3.55369228991319019_gp
+    
+    integer i
+    
+    hh(1)=.5_gp/hx**2
+    hh(2)=.5_gp/hy**2
+    hh(3)=.5_gp/hz**2
+    
+    scal(1)=1._gp/((b2*hh(1)+a2*hh(2)+a2*hh(3)-ene)**2+gamma*gamma)       !  2 1 1
+    scal(2)=1._gp/((a2*hh(1)+b2*hh(2)+a2*hh(3)-ene)**2+gamma*gamma)       !  1 2 1
+    scal(3)=1._gp/((b2*hh(1)+b2*hh(2)+a2*hh(3)-ene)**2+gamma*gamma)       !  2 2 1
+    scal(4)=1._gp/((a2*hh(1)+a2*hh(2)+b2*hh(3)-ene)**2+gamma*gamma)       !  1 1 2
+    scal(5)=1._gp/((b2*hh(1)+a2*hh(2)+b2*hh(3)-ene)**2+gamma*gamma)       !  2 1 2
+    scal(6)=1._gp/((a2*hh(1)+b2*hh(2)+b2*hh(3)-ene)**2+gamma*gamma)       !  1 2 2
+    scal(7)=1._gp/((b2*hh(1)+b2*hh(2)+b2*hh(3)-ene)**2+gamma*gamma)       !  2 2 2
+    
+    do i=1,mvctr_f
+       psi_f(1,i)=psi_f(1,i)*scal(1)       !  2 1 1
+       psi_f(2,i)=psi_f(2,i)*scal(2)       !  1 2 1
+       psi_f(3,i)=psi_f(3,i)*scal(3)       !  2 2 1
+       psi_f(4,i)=psi_f(4,i)*scal(4)       !  1 1 2
+       psi_f(5,i)=psi_f(5,i)*scal(5)       !  2 1 2
+       psi_f(6,i)=psi_f(6,i)*scal(6)       !  1 2 2
+       psi_f(7,i)=psi_f(7,i)*scal(7)       !  2 2 2
+    enddo
+    
+  END SUBROUTINE wscal_f_spectra
+  
+
+
+
+  !!****f* BigDFT/prec_fft_fast_spectra
+  !! FUNCTION
+  !!   Solves ((KE-ene)**2+gamma**2*I)*xx=yy by FFT in a cubic box 
+  !!   x_c is the right hand side on input and the solution on output
+  !!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
+  !! SOURCE : adapted from prec_fft_fast
+  !! 
+  subroutine prec_fft_fast_spectra(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
+       ene, gamma,hx,hy,hz,hpsi,&
+       kern_k1,kern_k2,kern_k3,z1,z3,x_c,&
+       nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b)
+    use module_base
+    implicit none 
+    integer, intent(in) :: n1,n2,n3
+    integer,intent(in)::nd1,nd2,nd3
+    integer,intent(in)::n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
+    integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
+    real(gp), intent(in) :: hx,hy,hz,ene, gamma
+    integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+    integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+    ! real(wp), intent(inout) ::  hpsi(*) 
+    real(wp), intent(inout) ::  hpsi(nvctr_c+7*nvctr_f) 
+    
+    !work arrays
+    real(gp):: kern_k1(0:n1),kern_k2(0:n2),kern_k3(0:n3)
+    real(wp),dimension(0:n1,0:n2,0:n3):: x_c! in and out of Fourier preconditioning
+    real(wp)::z1(2,nd1b,nd2,nd3,2)! work array
+    real(wp)::z3(2,nd1,nd2,nd3f,2)! work array
+    
+    if (nvctr_f > 0) then
+       call wscal_f_spectra(nvctr_f,hpsi(nvctr_c+1),hx,hy,hz,ene, gamma)
+    end if
+    
+    call make_kernel(n1,hx,kern_k1)
+    call make_kernel(n2,hy,kern_k2)
+    call make_kernel(n3,hz,kern_k3)
+    
+    call uncompress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
+    
+    call  hit_with_kernel_spectra(x_c,z1,z3,kern_k1,kern_k2,kern_k3,n1+1,n2+1,n3+1,nd1,nd2,nd3,&
+         n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,ene, gamma)
+    
+    call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
+    
+  END SUBROUTINE prec_fft_fast_spectra
+  !!***
+  
+
+
+
+
+  subroutine EP_precondition(p,i, ene, gamma)
+    use module_interfaces
+    use module_base
+    !Arguments
+    implicit none
+    integer, intent(in) :: p,i
+    real(gp) ene, gamma
+    !Local variables
+    integer :: k, j , ind
+    real(gp), dimension(0:7) :: scal
+    real(wp), parameter :: b2=24.8758460293923314d0,a2=3.55369228991319019d0
+    real(gp) :: hh(3)
+    integer :: nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b 
+    type(workarr_precond) :: w
+  
+    call allocate_work_arrays('P',.true.,1,ha%lr%d,w)
+
+!!$
+!!$    hh(1)=.5_wp/ha%hx**2
+!!$    hh(2)=.5_wp/ha%hy**2
+!!$    hh(3)=.5_wp/ha%hz**2
+!!$    
+!!$    scal(0)=1._wp/((a2*hh(1)+a2*hh(2)+a2*hh(3)-ene)**2+gamma*gamma)       !  1 1 1
+!!$    scal(1)=1._wp/((b2*hh(1)+a2*hh(2)+a2*hh(3)-ene)**2+gamma*gamma)       !  2 1 1
+!!$    scal(2)=1._wp/((a2*hh(1)+b2*hh(2)+a2*hh(3)-ene)**2+gamma*gamma)       !  1 2 1
+!!$    scal(3)=1._wp/((b2*hh(1)+b2*hh(2)+a2*hh(3)-ene)**2+gamma*gamma)       !  2 2 1
+!!$    scal(4)=1._wp/((a2*hh(1)+a2*hh(2)+b2*hh(3)-ene)**2+gamma*gamma)       !  1 1 2
+!!$    scal(5)=1._wp/((b2*hh(1)+a2*hh(2)+b2*hh(3)-ene)**2+gamma*gamma)       !  2 1 2
+!!$    scal(6)=1._wp/((a2*hh(1)+b2*hh(2)+b2*hh(3)-ene)**2+gamma*gamma)       !  1 2 2
+!!$    scal(7)=1._wp/((b2*hh(1)+b2*hh(2)+b2*hh(3)-ene)**2+gamma*gamma)       !  2 2 2
+!!$    
+
+    call dimensions_fft(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,&
+          nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
+
+
+
+
+    if( ha%nproc > 1) then
+       if(i>=0) then
+          call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+               Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+       else
+          call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+               dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+       endif
+    else
+       if(i>=0) then
+          do k=1, EP_dim_tot
+             Qvect_tmp(k)=  Qvect(k,i)
+          enddo
+       else
+          do k=1, EP_dim_tot
+             Qvect_tmp(k)=  dumQvect(k,-i)
+          enddo
+       endif
+    endif
+
+!!$
+!!$    do k=1,ha%lr%wfd%nvctr_c
+!!$       wrk(k)=Qvect_tmp(k)*scal(0)           !  1 1 1
+!!$    enddo
+!!$    
+!!$    do k=1,         ha%lr%wfd%nvctr_f
+!!$       ind=ha%lr%wfd%nvctr_c+7*(k-1)
+!!$       wrk(ind+1)=Qvect_tmp(ind+1)*scal(1)       !  2 1 1
+!!$       wrk(ind+2)=Qvect_tmp(ind+2)*scal(2)       !  1 2 1
+!!$       wrk(ind+3)=Qvect_tmp(ind+3)*scal(3)       !  2 2 1
+!!$       wrk(ind+4)=Qvect_tmp(ind+4)*scal(4)       !  1 1 2
+!!$       wrk(ind+5)=Qvect_tmp(ind+5)*scal(5)       !  2 1 2
+!!$       wrk(ind+6)=Qvect_tmp(ind+6)*scal(6)       !  1 2 2
+!!$       wrk(ind+7)=Qvect_tmp(ind+7)*scal(7)       !  2 2 2
+!!$    enddo
+
+    call dcopy(EP_dim_tot, Qvect_tmp(1),1,wrk(1),1) 
+           
+
+
+
+
+    call prec_fft_fast_spectra(ha%lr%d%n1,ha%lr%d%n2,ha%lr%d%n3,&
+         ha%lr%wfd%nseg_c,ha%lr%wfd%nvctr_c,ha%lr%wfd%nseg_f,ha%lr%wfd%nvctr_f,&
+         ha%lr%wfd%keyg,ha%lr%wfd%keyv, &
+         ene, gamma,ha%hx,ha%hy,ha%hz,wrk(1:),&
+         w%kern_k1,w%kern_k2,w%kern_k3,w%z1,w%z3,w%x_c,&
+         nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b)
+
+
+
+
+    if(  ha%iproc ==0 ) write(*,*)" done "
+
+
+   
+   if(p<0) then
+      if(  ha%nproc/=1) then
+         call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+              wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+      else
+         do k=1, EP_dim_tot
+            dumQvect(k,-p) =  wrk(k)
+         enddo
+      endif
+   else
+      if(  ha%nproc/=1) then
+         call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+              wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+      else
+         do k=1, EP_dim_tot
+            Qvect(k,p) =  wrk(k)
+         enddo
+      endif
+   endif
+
+
+
+   call deallocate_work_arrays('P',.true.,1,w)
+
+
+
+ end subroutine EP_precondition
+
+  
+  subroutine EP_Moltiplica4spectra(p,i, ene, gamma)
+    use module_interfaces
+    !Arguments
+    implicit none
+    integer, intent(in) :: p,i
+    real(gp) ene, gamma
+    !Local variables
+    integer :: k
+    
+    if( ha%nproc > 1) then
+       if(i>=0) then
+          call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+               Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+       else
+          call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+               dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+       endif
+    else
+       if(i>=0) then
+          do k=1, EP_dim_tot
+             Qvect_tmp(k)=  Qvect(k,i)
+          enddo
+       else
+          do k=1, EP_dim_tot
+             Qvect_tmp(k)=  dumQvect(k,-i)
+          enddo
+       endif
+    endif
+  
+
+    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
+         ha%rxyz,&
+         ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
+         ha%ndimpot, &
+         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
+         ha%epot_sum,ha%eexctX,ha%eproj_sum,1,ha%GPU)
+    call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
+    Qvect_tmp   =  wrk
+   
+
+    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
+         ha%rxyz,&
+         ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
+         ha%ndimpot, &
+         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
+         ha%epot_sum,ha%eexctX,ha%eproj_sum,1,ha%GPU)
+    call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
+
+
+
+    if(  ha%iproc ==0 ) write(*,*)" done "
+
+
+   
+   if(p<0) then
+      if(  ha%nproc/=1) then
+         call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+              wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+      else
+         do k=1, EP_dim_tot
+            dumQvect(k,-p) =  wrk(k)
+         enddo
+      endif
+
+      if(i>=0) then
+         dumQvect(:,-p)=Qvect(:,p)+gamma*gamma*Qvect(:,i)
+      else
+         dumQvect(:,-p)=Qvect(:,p)+gamma*gamma*dumQvect(:,-i)
+      endif
+
+
+   else
+      if(  ha%nproc/=1) then
+         call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+              wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+      else
+         do k=1, EP_dim_tot
+            Qvect(k,p) =  wrk(k)
+         enddo
+      endif
+
+      if(i>=0) then
+         Qvect(:,p)=Qvect(:,p)+gamma*gamma*Qvect(:,i)
+      else
+         Qvect(:,p)=Qvect(:,p)+gamma*gamma*dumQvect(:,-i)
+      endif
+
+   endif
+
+
+   return 
+ END subroutine EP_Moltiplica4spectra
+  
 
   subroutine EP_Moltiplica(p,i)
     use module_interfaces
