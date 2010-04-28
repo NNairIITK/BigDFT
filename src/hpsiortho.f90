@@ -34,7 +34,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(GPU_pointers), intent(inout) :: GPU
   real(dp), dimension(*), optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
-  real(wp), dimension(*), intent(in), optional :: psirocc
+  real(wp), dimension(:), pointer, optional :: psirocc
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX
@@ -101,7 +101,6 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+1
   end if
   call timing(iproc,'Rho_commun    ','OF') 
-
   !fill the rest of the potential with the exact-exchange terms
   if (present(pkernel) .and. exctX) then
      n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
@@ -606,7 +605,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
              '           Eigenvalue                                      m_x       m_y       m_z'
      end if
      do ikpt=1,orbs%nkpts
-        write(*,"(1x,A,I3.3,A,3F12.6)") &
+        if (orbs%nkpts > 1 .and. orbs%nspinor >= 2) write(*,"(1x,A,I3.3,A,3F12.6)") &
              & "Kpt #", ikpt, " BZ coord. = ", orbs%kpts(:, ikpt)
         isorb = (ikpt - 1) * orbs%norb
         if (nspin==1.or.orbs%nspinor==4) then

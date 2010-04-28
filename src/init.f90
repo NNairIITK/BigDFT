@@ -312,8 +312,8 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
   real(dp), dimension(*), intent(inout) :: rhopot
   real(wp), dimension(*), intent(inout) :: pot_ion
   real(wp), dimension(:), pointer :: psi,psit,hpsi,rhocore
-  integer, dimension(:,:,:), intent(in) :: irrzon
-  real(dp), dimension(:,:,:), intent(in) :: phnons
+  integer, dimension(*), intent(in) :: irrzon
+  real(dp), dimension(*), intent(in) :: phnons
   !local variables
   character(len=*), parameter :: subname='import_gaussians'
   integer :: i_stat,i_all
@@ -494,8 +494,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
   type(gaussian_basis), intent(out) :: G !basis for davidson IG
   real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
   integer, intent(in) ::potshortcut
-  integer, dimension(:,:,:), intent(in) :: irrzon
-  real(dp), dimension(:,:,:), intent(in) :: phnons
+  integer, dimension(*), intent(in) :: irrzon
+  real(dp), dimension(*), intent(in) :: phnons
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   logical :: switchGPUconv,switchOCLconv

@@ -676,10 +676,10 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   call gaussian_overlap(G,G,ovrlp)
 
 !!  !overlap matrix, print it for convenience
-  do icoeff=1,G%ncoeff
-     write(30,'(1x,200(1pe12.3))')&
-          (ovrlp(jcoeff+(icoeff-1)*G%ncoeff),jcoeff=1,G%ncoeff)
-  end do
+!!  do icoeff=1,G%ncoeff
+!!     write(30,'(1x,200(1pe12.3))')&
+!!          (ovrlp(jcoeff+(icoeff-1)*G%ncoeff),jcoeff=1,G%ncoeff)
+!!  end do
 
   if (norbp > 0) then
      call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
