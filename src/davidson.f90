@@ -1,5 +1,18 @@
-!naive subroutine which performs a direct minimization of the energy 
-!for a given hamiltonian
+!!****f* BigDFT/direct_minimization
+!!
+!! DESCRIPTION
+!!   Naive subroutine which performs a direct minimization of the energy 
+!!   for a given hamiltonian
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
           orbs,orbsv,nvirt,lr,comms,commsv,&
           hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
@@ -28,8 +41,8 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   character(len=*), parameter :: subname='direct_minimization'
   logical :: msg,exctX,occorbs,endloop !extended output
   integer :: occnorb, occnorbu, occnorbd
-  integer :: ierr,i_stat,i_all,iter,ikpt,idsx_actual,idsx_actual_before,ndiis_sd_sw
-  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,gnrm_fake,alpha
+  integer :: i_stat,i_all,iter,ikpt,idsx_actual,idsx_actual_before,ndiis_sd_sw
+  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
   real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
   real(wp), dimension(:), pointer :: psiw,psidst,hpsidst,psirocc,psitvirt,hpsivirt
   real(wp), dimension(:,:,:), pointer :: ads
@@ -317,6 +330,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   !the plotting should be added here (perhaps build a common routine?)
 
 end subroutine direct_minimization
+!!***
 
 
 !!****f* BigDFT/davidson
@@ -333,8 +347,7 @@ end subroutine direct_minimization
 !!   Algorithm
 !!   _________
 !!   (parallel)
-    
-    
+!!
 !!   (transpose psi, v is already transposed)
 !!   orthogonality of v to psi
 !!   orthogonalize v

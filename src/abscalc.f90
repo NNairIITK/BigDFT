@@ -342,7 +342,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   real(gp) :: edisp ! Dispersion energy
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
-  type(orbitals_data) :: orbsv
   type(gaussian_basis) :: Gvirt
 
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
