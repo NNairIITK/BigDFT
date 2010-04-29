@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 04/12/2009
+# Date: 29/04/2010
 #--------------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -2518,7 +2518,7 @@ class Implicit(Code):
             #a-h,...
             table = search["range"].split(",")
             for letters in table:
-                (a1,a2) = letters.split('-')
+                (a1,a2) = letters.strip().split('-')
                 a1 = ord(a1)
                 a2 = ord(a2)+1
                 for i in range(a1,a2):

@@ -3,7 +3,7 @@
 !!   Define the type parameterminimization
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    Copyright (C) 2007-2009 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -58,6 +58,7 @@ module minpar
 end module minpar
 !!***
 
+
 !!****f* BigDFT/geopt_init
 !! FUNCTION
 !!   Geometry optimization, parametrisation routine.
@@ -65,7 +66,7 @@ end module minpar
 !!
 subroutine geopt_init()
   use minpar
-
+  implicit none
   parmin%approach  = 'unknown'
   parmin%iter      = 0
   parmin%iflag     = 0
@@ -77,17 +78,21 @@ subroutine geopt_init()
 END SUBROUTINE geopt_init
 !!***
 
+
 !!****f* BigDFT/geopt_set_verbosity
 !! FUNCTION
 !!   Geometry optimization, parametrisation routine.
 !! SOURCE
 !!
-subroutine geopt_set_verbosity(verbosity_)
+subroutine geopt_set_verbosity(verbosity)
   use minpar
-
-  parmin%verbosity = verbosity_
+  implicit none
+  !Arguments
+  integer, intent(in) :: verbosity
+  parmin%verbosity = verbosity
 END SUBROUTINE geopt_set_verbosity
 !!***
+
 
 !!****f* BigDFT/geopt
 !! FUNCTION
