@@ -183,11 +183,6 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
      else
         rds(1,ikpt)=1.0_dp
      endif
-     if (iproc == 0 .and. verbose > 0) then 
-        !write(*,*) 'DIIS weights'
-        !we should print the weights for each k-point
-        write(*,'(1x,a,2x,12(1x,1pe9.2))')'DIIS weights',(rds(j,ikpt),j=1,min(idsx,ids)+1)
-     endif
 
 ! new guess
      do iorb=1,orbs%norb
@@ -212,6 +207,21 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
      ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
      ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*idsx
   end do
+  ! Output to screen, depending on policy.
+  if (verbose >= 10) then
+     call broadcast_kpt_objects(nproc, orbs%nkpts, idsx+1, rds, orbs%ikptproc)
+  end if
+  if (iproc == 0 .and. verbose > 0) then 
+     if (verbose < 10) then
+        !we restrict the printing to the first k point only.
+        write(*,'(1x,a,2x,12(1x,1pe9.2))')'DIIS weights',(rds(j,1),j=1,min(idsx,ids)+1)
+     else
+        do ikpt = 1, orbs%nkpts
+           write(*,'(1x,a,I3.3,a,2x,12(1x,1pe9.2))')'DIIS weights (kpt #', ikpt, &
+                & ')', (rds(j,0),j=1,min(idsx,ids)+1)
+        end do
+     end if
+  endif
   i_all=-product(shape(ipiv))*kind(ipiv)
   deallocate(ipiv,stat=i_stat)
   call memocc(i_stat,i_all,'ipiv',subname)

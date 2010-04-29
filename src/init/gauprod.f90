@@ -226,10 +226,11 @@ END SUBROUTINE write_gaussian_information
 !!
 !! SOURCE
 !!
-subroutine gaussian_pswf_basis(ng,iproc,nspin,at,rxyz,G,Gocc)
+subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc)
   use module_base
   use module_types
   implicit none
+  logical, intent(in) :: enlargerprb
   integer, intent(in) :: iproc,nspin,ng
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
@@ -360,7 +361,7 @@ subroutine gaussian_pswf_basis(ng,iproc,nspin,at,rxyz,G,Gocc)
              real(at%nelpsp(ityp),gp),at%psppar(0,0,ityp),&
              at%npspcode(ityp),&
              ng-1,nl,5,noccmax,lmax,occup,xpt(1,ityx),&
-             psiat(1,1,ityx))
+             psiat(1,1,ityx),enlargerprb)
         ntypesx=ntypesx+1
         if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
      end if
@@ -676,10 +677,10 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   call gaussian_overlap(G,G,ovrlp)
 
 !!  !overlap matrix, print it for convenience
-  do icoeff=1,G%ncoeff
-     write(30,'(1x,200(1pe12.3))')&
-          (ovrlp(jcoeff+(icoeff-1)*G%ncoeff),jcoeff=1,G%ncoeff)
-  end do
+!!  do icoeff=1,G%ncoeff
+!!     write(30,'(1x,200(1pe12.3))')&
+!!          (ovrlp(jcoeff+(icoeff-1)*G%ncoeff),jcoeff=1,G%ncoeff)
+!!  end do
 
   if (norbp > 0) then
      call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),&
@@ -1318,7 +1319,7 @@ subroutine lsh_rotation(l,theta,phi,coeffs)
   implicit none
   integer, intent(in) :: l !beware the change in notation
   real(gp), intent(in) :: theta,phi
-  real(wp), dimension(2*l-1), intent(inout) :: coeffs
+  real(wp), dimension(2*l+1), intent(inout) :: coeffs
   !local variables
   real(gp), parameter :: degrad=0.0174532925199432957692369076849_gp
   integer :: m,m1
@@ -1336,7 +1337,7 @@ subroutine lsh_rotation(l,theta,phi,coeffs)
   p=phi*degrad
 
   !extract coefficients for the rotation
-  call rotation_matrix(l,t,p,hrot)
+  call rotation_matrix(l+1,t,p,hrot)
   
   !copy input variables
   do m=1,2*l+1

@@ -245,7 +245,7 @@ program MINHOP
 
 
   inputs_opt%inputPsiId=0
-  call init_restart_objects(atoms,rst,subname)
+  call init_restart_objects(iproc,inputs_opt%iacceleration,atoms,rst,subname)
   call call_bigdft(nproc,iproc,atoms,pos,inputs_md,e_pos,ff,rst,infocode)
 
   write(17,*) 'ENERGY ',e_pos

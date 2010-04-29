@@ -1,5 +1,5 @@
 # 1 "./libxc_master.F90"
-# 1 "<interne>"
+# 1 "<built-in>"
 # 1 "<command-line>"
 # 1 "./libxc_master.F90"
 !! Copyright (C) 2003-2006 M. Marques, A. Castro, A. Rubio, G. Bertsch

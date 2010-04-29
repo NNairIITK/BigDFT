@@ -1,3 +1,324 @@
+!naive subroutine which performs a direct minimization of the energy 
+!for a given hamiltonian
+subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
+          orbs,orbsv,nvirt,lr,comms,commsv,&
+          hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
+          pkernel,psi,psivirt,ngatherarr,GPU)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => direct_minimization
+  use libxc_functionals
+  implicit none
+  integer, intent(in) :: iproc,nproc,n1i,n2i,nvirt,n3p
+  type(input_variables), intent(in) :: in
+  type(atoms_data), intent(in) :: at
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(locreg_descriptors), intent(in) :: lr 
+  type(orbitals_data), intent(in) :: orbs
+  type(communications_arrays), intent(in) :: comms, commsv
+  real(gp), intent(in) :: hx,hy,hz
+  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(dp), dimension(*), intent(in) :: pkernel,rhopot
+  type(orbitals_data), intent(inout) :: orbsv
+  type(GPU_pointers), intent(inout) :: GPU
+  real(wp), dimension(:), pointer :: psi,psivirt
+  !local variables
+  character(len=*), parameter :: subname='direct_minimization'
+  logical :: msg,exctX,occorbs,endloop !extended output
+  integer :: occnorb, occnorbu, occnorbd
+  integer :: ierr,i_stat,i_all,iter,ikpt,idsx_actual,idsx_actual_before,ndiis_sd_sw
+  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,gnrm_fake,alpha
+  real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
+  real(wp), dimension(:), pointer :: psiw,psidst,hpsidst,psirocc,psitvirt,hpsivirt
+  real(wp), dimension(:,:,:), pointer :: ads
+
+  !supplementary messages
+  msg=.false.
+
+  !logical flag which control to othogonalise wrt the occupied orbitals or not
+  if (orbs%nkpts /= orbsv%nkpts) then
+     occorbs=.false.
+  else
+     occorbs=.true.
+     do ikpt = 1, orbs%nkpts
+        if (abs(maxval(orbs%kpts(:,ikpt) - orbsv%kpts(:,ikpt))) > 1.d-6) then
+           occorbs=.false.
+           exit
+        end if
+     end do
+  end if
+  if (occorbs) then
+     occnorb = 0
+     occnorbu = 0
+     occnorbd = 0
+  else
+     occnorb = orbs%norb
+     occnorbu = orbs%norbu
+     occnorbd = orbs%norbd
+  end if
+
+  !in the GPU case, the wavefunction should be copied to the card 
+  !at each HamiltonianApplication
+  !rebind the GPU pointers to the orbsv structure
+  if (GPUconv) then
+     call free_gpu(GPU,orbs%norbp)
+     call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
+          hx,hy,hz,lr%wfd,orbsv,GPU)
+  else if (OCLconv) then
+     call free_gpu_OCL(GPU,orbs%norbp)    
+     call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
+          in%nspin,hx,hy,hz,lr%wfd,orbsv,GPU)
+  end if
+ 
+  GPU%full_locham=.true.
+  !verify whether the calculation of the exact exchange term
+  !should be preformed
+  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+
+  if(iproc==0)write(*,'(1x,a)')"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+  if(iproc==0)write(*,'(1x,a)')&
+       "Iterative subspace diagonalization of virtual orbitals (Direct Minimization)."
+
+
+  !before transposition, create the array of the occupied
+  !wavefunctions in real space, for exact exchange calculations
+  if (exctX) then
+     allocate(psirocc(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,&
+          ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
+     call memocc(i_stat,psirocc,'psirocc',subname)
+
+     call prepare_psirocc(iproc,nproc,lr,orbs,n3p,ngatherarr(0,1),psi,psirocc)
+  end if
+
+  !n2virt=2*orbsv%norb! the dimension of the subspace
+
+  if (occorbs) then
+     !disassociate work array for transposition in serial
+     if (nproc > 1) then
+        allocate(psiw(orbs%npsidim+ndebug),stat=i_stat)
+        call memocc(i_stat,psiw,'psiw',subname)
+     else
+        psiw => null()
+     endif
+
+     !transpose the wavefunction psi 
+     call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psi,work=psiw)
+
+     if (nproc > 1) then
+        i_all=-product(shape(psiw))*kind(psiw)
+        deallocate(psiw,stat=i_stat)
+        call memocc(i_stat,i_all,'psiw',subname)
+     end if
+  end if
+
+  !prepare the v array starting from a set of gaussians
+  call psivirt_from_gaussians(iproc,nproc,at,orbsv,lr,commsv,rxyz,hx,hy,hz,in%nspin,&
+       psivirt)
+
+  if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
+  !project v such that they are orthogonal to all occupied psi
+  !Orthogonalize before and afterwards.
+
+  !here nvirte=orbsv%norb
+  !     nvirtep=orbsv%norbp
+
+  !this is the same also in serial
+  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psivirt)
+
+  if (occorbs) then
+     call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,psivirt,msg)
+     !and orthonormalize them using "gram schmidt"  (conserve orthogonality to psi)
+     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psivirt)
+  end if
+
+  !retranspose v
+  if(nproc > 1)then
+     !reallocate the work array with the good size
+     allocate(psiw(orbsv%npsidim+ndebug),stat=i_stat)
+     call memocc(i_stat,psiw,'psiw',subname)
+  end if
+
+  call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,psivirt,work=psiw)
+
+  ! 1st Hamilton application on psivirt
+  if(iproc==0)write(*,'(1x,a)')"done."
+
+  allocate(hpsivirt(orbsv%npsidim+ndebug),stat=i_stat)
+  call memocc(i_stat,hpsivirt,'hpsivirt',subname)
+  allocate(psitvirt(orbsv%npsidim+ndebug),stat=i_stat)
+  call memocc(i_stat,psitvirt,'psitvirt',subname)
+
+  !transpose the psivirt 
+  call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,psivirt,work=psiw,outadd=psitvirt(1))
+
+
+  ! allocate arrays necessary for DIIS convergence acceleration
+  !the allocation with npsidim is not necessary here since DIIS arrays
+  !are always calculated in the transpsed form
+  if (in%idsx > 0) then
+     allocate(psidst(sum(commsv%ncntt(0:nproc-1))*in%idsx+ndebug),stat=i_stat)
+     call memocc(i_stat,psidst,'psidst',subname)
+     allocate(hpsidst(sum(commsv%ncntt(0:nproc-1))*in%idsx+ndebug),stat=i_stat)
+     call memocc(i_stat,hpsidst,'hpsidst',subname)
+     allocate(ads(in%idsx+1,in%idsx+1,orbsv%nkptsp*3+ndebug),stat=i_stat)
+     call memocc(i_stat,ads,'ads',subname)
+     call razero(orbs%nkptsp*3*(in%idsx+1)**2,ads)
+  endif
+
+  allocate(orbsv%eval(orbsv%norb*orbsv%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbsv%eval,'eval',subname)
+
+  orbsv%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
+
+  alpha=2.d0
+  energy=1.d10
+  gnrm=1.d10
+  ekin_sum=0.d0 
+  epot_sum=0.d0 
+  eproj_sum=0.d0
+  !minimum value of the energy during the minimisation procedure
+  energy_min=1.d10
+  !local variable for the diis history
+  idsx_actual=in%idsx
+  !number of switching betweed DIIS and SD during self-consistent loop
+  ndiis_sd_sw=0
+  !previous value of idsx_actual to control if switching has appeared
+  idsx_actual_before=idsx_actual
+
+  wfn_loop: do iter=1,in%itermax
+
+     if (iproc == 0 .and. verbose > 0) then 
+        write( *,'(1x,a,i0)') &
+             & repeat('~',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
+     endif
+     !control whether the minimisation iterations ended
+     endloop= gnrm <= in%gnrm_cv .or. iter == in%itermax
+     
+     !control how many times the DIIS has switched into SD
+     if (idsx_actual /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
+
+     !terminate SCF loop if forced to switch more than once from DIIS to SD
+     endloop=endloop .or. ndiis_sd_sw > 2
+
+     call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
+          nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
+          rhopot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+          pkernel,orbs,psirocc) ! optional arguments
+
+     energybs=ekin_sum+epot_sum+eproj_sum
+     energy_old=energy
+     energy=energybs-eexctX
+
+     !check for convergence or whether max. numb. of iterations exceeded
+     if (endloop) then 
+        if (iproc == 0) then 
+           if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
+           write( *,'(1x,a)') &
+                '------------------------------------------- End of Virtual Wavefunction Optimisation'
+           write( *,'(1x,a,3(1x,1pe18.11))') &
+                'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
+           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
+                'FINAL iter,total "energy",gnrm',iter,energy,gnrm
+           !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
+           if (energy > energy_min) write( *,'(1x,a,1pe9.2)')&
+                'WARNING: Found an "energy" value lower than the FINAL "energy", delta:',energy-energy_min
+        end if
+        exit wfn_loop 
+     endif
+
+     !control the previous value of idsx_actual
+     idsx_actual_before=idsx_actual
+
+     call hpsitopsi(iproc,nproc,orbsv,hx,hy,hz,lr,commsv,in%ncong,&
+          iter,in%idsx,idsx_actual,ads,energy,energy_old,energy_min,&
+          alpha,gnrm,scprsum,psivirt,psitvirt,hpsivirt,psidst,hpsidst,in%nspin,GPU)
+
+     if (occorbs) then
+        !if this is true the transposition for psivirt which is done in hpsitopsi
+        !is useless, but we leave it for simplicity
+
+        !project psivirt such that they are orthogonal to all occupied psi
+        call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,psitvirt,msg)
+        call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psitvirt)
+        !retranspose the psivirt
+        call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,psitvirt,&
+             work=psiw,outadd=psivirt(1))
+     end if
+
+     tt=(energybs-scprsum)/scprsum
+     if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
+          (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
+        write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
+             'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
+     endif
+     if (iproc.eq.0) then
+        if (verbose > 0) then
+           write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+                ekin_sum,epot_sum,eproj_sum
+        end if
+        write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total "energy",gnrm',iter,energy,gnrm
+     endif
+
+  end do wfn_loop
+  if (iter == in%itermax .and. iproc == 0 ) &
+       write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
+
+  !deallocate real array of wavefunctions
+  if(exctX)then
+     i_all=-product(shape(psirocc))*kind(psirocc)
+     deallocate(psirocc,stat=i_stat)
+     call memocc(i_stat,i_all,'psirocc',subname)
+  end if
+
+
+  if (idsx_actual > 0) then
+     i_all=-product(shape(psidst))*kind(psidst)
+     deallocate(psidst,stat=i_stat)
+     call memocc(i_stat,i_all,'psidst',subname)
+     i_all=-product(shape(hpsidst))*kind(hpsidst)
+     deallocate(hpsidst,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsidst',subname)
+     i_all=-product(shape(ads))*kind(ads)
+     deallocate(ads,stat=i_stat)
+     call memocc(i_stat,i_all,'ads',subname)
+  end if
+
+  !this deallocates also hpsivirt and psitvirt
+  call last_orthon(iproc,nproc,orbsv,lr%wfd,in%nspin,&
+       commsv,psivirt,hpsivirt,psitvirt,evsum)
+
+  !resize work array before final transposition
+  if(nproc > 1)then
+     i_all=-product(shape(psiw))*kind(psiw)
+     deallocate(psiw,stat=i_stat)
+     call memocc(i_stat,i_all,'psiw',subname)
+
+     allocate(psiw(orbs%npsidim+ndebug),stat=i_stat)
+     call memocc(i_stat,psiw,'psiw',subname)
+  end if
+
+  call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,psi,work=psiw)
+
+  if(nproc > 1) then
+     i_all=-product(shape(psiw))*kind(psiw)
+     deallocate(psiw,stat=i_stat)
+     call memocc(i_stat,i_all,'psiw',subname)
+  end if
+
+
+  if (GPUconv) then
+     call free_gpu(GPU,orbsv%norbp)
+  else if (OCLconv) then
+     call free_gpu_OCL(GPU,orbsv%norbp)
+  end if
+
+  !the plotting should be added here (perhaps build a common routine?)
+
+end subroutine direct_minimization
+
+
 !!****f* BigDFT/davidson
 !! AUTHOR
 !!   Alexander Willand
@@ -53,22 +374,21 @@
 !! SOURCE
 !!
 subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
-     orbs,orbsv,nvirt,lr,comms,&
-     hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
+     orbs,orbsv,nvirt,lr,comms,commsv,&
+     hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
   use module_base
   use module_types
   use module_interfaces, except_this_one => davidson
   use libxc_functionals
   implicit none
   integer, intent(in) :: iproc,nproc,n1i,n2i
-  integer, intent(in) :: i3xcsh
   integer, intent(in) :: nvirt,n3p
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors), intent(in) :: lr 
   type(orbitals_data), intent(in) :: orbs
-  type(communications_arrays), intent(in) :: comms
+  type(communications_arrays), intent(in) :: comms, commsv
   real(gp), intent(in) :: hx,hy,hz
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -85,19 +405,38 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   character(len=10) :: comment
   character(len=11) :: orbname,denname
   logical :: msg,exctX,occorbs !extended output
+  integer :: occnorb, occnorbu, occnorbd
   integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,ind,norb,nspinor
   integer :: ise,j,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
   real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,gnrm_fake
-  type(communications_arrays) :: commsv
+  real(wp) :: val, valu, vald
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: work,work_rp,hamovr
-  real(wp), dimension(:), allocatable :: hv,g,hg,ew,psirocc
+  real(wp), dimension(:), allocatable :: hv,g,hg,ew
   real(wp), dimension(:,:,:), allocatable :: e
-  real(wp), dimension(:), pointer :: psiw
+  real(wp), dimension(:), pointer :: psiw,psirocc
 
   !logical flag which control to othogonalise wrt the occupied orbitals or not
-  !occorbs=.false.
-  occorbs=.true.
+  if (orbs%nkpts /= orbsv%nkpts) then
+     occorbs=.false.
+  else
+     occorbs=.true.
+     do ikpt = 1, orbs%nkpts
+        if (abs(maxval(orbs%kpts(:,ikpt) - orbsv%kpts(:,ikpt))) > 1.d-6) then
+           occorbs=.false.
+           exit
+        end if
+     end do
+  end if
+  if (occorbs) then
+     occnorb = 0
+     occnorbu = 0
+     occnorbd = 0
+  else
+     occnorb = orbs%norb
+     occnorbu = orbs%norbu
+     occnorbd = orbs%norbd
+  end if
 
   !in the GPU case, the wavefunction should be copied to the card 
   !at each HamiltonianApplication
@@ -106,10 +445,13 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      call free_gpu(GPU,orbs%norbp)
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
           hx,hy,hz,lr%wfd,orbsv,GPU)
+  else if (OCLconv) then
+     call free_gpu_OCL(GPU,orbs%norbp)    
+     call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
+          in%nspin,hx,hy,hz,lr%wfd,orbsv,GPU)
   end if
-  
+ 
   GPU%full_locham=.true.
-  
   !verify whether the calculation of the exact exchange term
   !should be preformed
   exctX = libxc_functionals_exctXfac() /= 0.0_gp
@@ -138,25 +480,24 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
   !n2virt=2*orbsv%norb! the dimension of the subspace
 
-  !disassociate work array for transposition in serial
-  if (nproc > 1) then
-     allocate(psiw(orbs%npsidim+ndebug),stat=i_stat)
-     call memocc(i_stat,psiw,'psiw',subname)
-  else
-     psiw => null()
-  endif
+  if (occorbs) then
+     !disassociate work array for transposition in serial
+     if (nproc > 1) then
+        allocate(psiw(orbs%npsidim+ndebug),stat=i_stat)
+        call memocc(i_stat,psiw,'psiw',subname)
+     else
+        psiw => null()
+     endif
 
-  !transpose the wavefunction psi 
-  call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psi,work=psiw)
+     !transpose the wavefunction psi 
+     call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psi,work=psiw)
 
-  if (nproc > 1) then
-     i_all=-product(shape(psiw))*kind(psiw)
-     deallocate(psiw,stat=i_stat)
-     call memocc(i_stat,i_all,'psiw',subname)
+     if (nproc > 1) then
+        i_all=-product(shape(psiw))*kind(psiw)
+        deallocate(psiw,stat=i_stat)
+        call memocc(i_stat,i_all,'psiw',subname)
+     end if
   end if
-
-  !allocate communications arrays for virtual orbitals
-  call orbitals_communicators(iproc,nproc,lr,orbsv,commsv)  
 
   !prepare the v array starting from a set of gaussians
   call psivirt_from_gaussians(iproc,nproc,at,orbsv,lr,commsv,rxyz,hx,hy,hz,in%nspin,v)
@@ -191,7 +532,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
   allocate(hv(orbsv%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,hv,'hv',subname)
-  
+
   call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
        nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
        rhopot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
@@ -241,6 +582,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   if(iproc==0)write(*,'(1x,a)')"     sqnorm                Rayleigh quotient"
  
   do ikpt=1,orbsv%nkpts
+     if (orbsv%nkpts > 1 .and.iproc == 0) write(*,"(1x,A,I3.3,A,3F12.6)") &
+          & "Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
      do iorb=1,orbsv%norb
         !e(:,1,1) = <psi|H|psi> / <psi|psi>
         e(iorb,ikpt,1)=e(iorb,ikpt,1)/e(iorb,ikpt,2)
@@ -279,8 +622,13 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   !put to zero all the k-points which are not needed
   call razero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
 
+  if (orbsv%nspinor > 1) then
+     ncplx=2
+  else
+     ncplx=1
+  end if
   nwork=max(10,16*orbsv%norb)
-  allocate(work(nwork+ndebug),stat=i_stat)
+  allocate(work(ncplx*nwork+ndebug),stat=i_stat)
   call memocc(i_stat,work,'work',subname)
   
   allocate(ew(2*orbsv%norb+ndebug),stat=i_stat)
@@ -446,15 +794,14 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      if(iproc==0)write(*,'(1x,a)',advance="no")&
                  "Orthogonality of preconditioned gradients to occupied psi..."
 
-     !transpose  g 
-     call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
-
      if (occorbs) then
+        !transpose  g 
+        call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
         !project g such that they are orthogonal to all occupied psi
         call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,g,msg)
+        !retranspose the gradient g
+        call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
      end if
-     !retranspose the gradient g
-     call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,g,work=psiw)
 
      if(iproc==0)write(*,'(1x,a)')"done."
 
@@ -528,11 +875,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
            call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            if (nvctrp == 0) cycle
-           if (nspinor > 1) then
-              ncplx=2
-           else
-              ncplx=1
-           end if
 !print *,iproc,ikpt,ispin,norb,nspinor,ncplx,nvctrp,8*ndimovrlp(ispin,ikpt-1)+1,8*ndimovrlp(nspin,orbsv%nkpts)
            call Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,&
                 hamovr(8*ndimovrlp(ispin,ikpt-1)+1),&
@@ -558,8 +900,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      do ikptp=1,orbsv%nkptsp
         ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
 
-        if(iproc==0)write(*,'(1x,a)',advance='no')"Diagonalization..."
+        if(msg .or. (iproc==0 .and. ikpt == 1)) write(*,'(1x,a)',advance='no')"Diagonalization..."
 
+        ise=0
         do ispin=1,nspin
            call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
@@ -606,7 +949,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
            end if
 
-           if (ispin==1) ise=0
            do iorb=1,norb
               e(iorb+ise,ikpt,1)=ew(iorb)
               e(iorb+ise,ikpt,2)=ew(iorb+norb)
@@ -635,7 +977,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
            end if
 
 
-           if(iproc==0)write(*,'(1x,a)',advance="no")&
+           if(msg .or. (iproc==0 .and. ikpt == 1))write(*,'(1x,a)',advance="no")&
                 "done. Update v with eigenvectors..."
 
 !!$     !Update v, that is the wavefunction, using the eigenvectors stored in hamovr(:,:,1)
@@ -671,18 +1013,19 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
            ispsi=ispsi+nvctrp*norb*nspinor
 
-           if (nspin ==1) then
-              if(iproc == 0)write(*,'(1x,a)')'done. The refined eigenvalues are'
-              do iorb=1,nvirt
-                 if(iproc==0)write(*,'(1x,i3,2(1pe21.14))')iorb,(e(iorb,ikpt,j),j=1,2)
-              end do
-           else if (ispin == 2) then
-              if(iproc == 0)write(*,'(1x,a)')'done. The refined eigenvalues are'
-              do iorb=1,nvirt
-                 if(iproc==0)write(*,'(1x,i3,4(1pe21.14))')&
-                      iorb,(e(iorb,ikpt,j),j=1,2),(e(iorb+orbsv%norbu,ikpt,j),j=1,2)
-              end do
-              
+           if(msg .or. (iproc==0 .and. ikpt == 1)) then
+              if (nspin ==1) then
+                 write(*,'(1x,a)')'done. The refined eigenvalues are'
+                 do iorb=1,nvirt
+                    write(*,'(1x,i3,2(1pe21.14))')iorb,(e(iorb,ikpt,j),j=1,2)
+                 end do
+              else if (ispin == 2) then
+                 write(*,'(1x,a)')'done. The refined eigenvalues are'
+                 do iorb=1,nvirt
+                    write(*,'(1x,i3,4(1pe21.14))')&
+                         iorb,(e(iorb,ikpt,j),j=1,2),(e(iorb+orbsv%norbu,ikpt,j),j=1,2)
+                 end do
+              end if
            end if
            
         end do
@@ -765,71 +1108,92 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   end if
   !finalize: Retranspose, deallocate
 
+  ! Send all eigenvalues to all procs.
+  call broadcast_kpt_objects(nproc, orbsv%nkpts, orbsv%norb, e(1,1,1), orbsv%ikptproc)
+
   if(iproc==0)then
      if (nspin==1) then
+        write(*,'(1x,a)')'Complete list of energy eigenvalues'
         do ikpt=1,orbsv%nkpts
-           write(*,'(1x,a)')'Complete list of energy eigenvalues'
+           if (orbsv%nkpts > 1) write(*,"(1x,A,I3.3,A,3F12.6)") &
+                & "Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
            do iorb=1,orbs%norb
-              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',&
-                   orbs%eval(iorb+(ikpt-1)*orbs%norb)
+              if (occorbs) then
+                 val = orbs%eval(iorb+(ikpt-1)*orbs%norb)
+              else
+                 val = e(iorb, ikpt, 1)
+              end if
+              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',val
            end do
            write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
-                'HOMO LUMO gap   =',e(1,ikpt,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb),&
-                ' (',ha2ev*(e(1,ikpt,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb)),&
+                'HOMO LUMO gap   =',e(1+occnorb,ikpt,1)-val,&
+                ' (',ha2ev*(e(1+occnorb,ikpt,1)-val),&
                 ' eV)'
-           do iorb=1,orbsv%norb
-              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_virtual(',iorb,')=',e(iorb,ikpt,1)
+           do iorb=1,orbsv%norb - occnorb
+              write(*,'(1x,a,i4,a,1x,1pe21.14)') &
+                   & 'e_virtual(',iorb,')=',e(iorb+occnorb,ikpt,1)
            end do
         end do
      else
         do ikpt=1,orbsv%nkpts
            write(*,'(1x,a)')'Complete list of energy eigenvalues'
            do iorb=1,min(orbs%norbu,orbs%norbd)
-              jorb=orbs%norbu+iorb
+              if (occorbs) then
+                 valu = orbs%eval(iorb+(ikpt-1)*orbs%norb)
+                 vald = orbs%eval(iorb+orbs%norbu+(ikpt-1)*orbs%norb)
+              else
+                 valu = e(iorb, ikpt, 1)
+                 vald = e(iorb+orbsv%norbu, ikpt, 1)
+              end if
               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-                   'e_occ(',iorb,',u)=',orbs%eval(iorb+(ikpt-1)*orbs%norb),&
-                   'e_occ(',iorb,',d)=',orbs%eval(jorb+(ikpt-1)*orbs%norb)
+                   'e_occ(',iorb,',u)=',valu,'e_occ(',iorb,',d)=',vald
            end do
            if (orbs%norbu > orbs%norbd) then
               do iorb=orbs%norbd+1,orbs%norbu
+                 if (occorbs) then
+                    valu = orbs%eval(iorb+(ikpt-1)*orbs%norb)
+                 else
+                    valu = e(iorb, ikpt, 1)
+                 end if
                  write(*,'(1x,a,i4,a,1x,1pe21.14)') &
-                      'e_occ(',iorb,',u)=',orbs%eval(iorb+(ikpt-1)*orbs%norb)
+                      'e_occ(',iorb,',u)=',valu
               end do
            else if (orbs%norbd > orbs%norbu) then
-              do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
+              do iorb=orbs%norbu+1,orbs%norbd
+                 if (occorbs) then
+                    vald = orbs%eval(iorb+orbs%norbu+(ikpt-1)*orbs%norb)
+                 else
+                    vald = e(iorb+orbsv%norbu, ikpt, 1)
+                 end if
                  write(*,'(50x,a,i4,a,1x,1pe21.14)') &
-                      'e_occ(',iorb-orbs%norbu,',d)=',orbs%eval(iorb+(ikpt-1)*orbs%norb)
+                      'e_occ(',iorb,',d)=',vald
               end do
            end if
            write(*,'(1x,a,1x,1pe21.14,a,0pf8.4,a,a,1x,1pe21.14,a,0pf8.4,a)') &
-                'HOMO LUMO gap, u =',&
-                e(1,ikpt,1)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb),&
-                ' (',ha2ev*(e(1,ikpt,1)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb)),&
-                ' eV)',&
-                ',d =',e(orbsv%norbu+1,ikpt,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb),&
-                ' (',&
-                ha2ev*(e(orbsv%norbu+1,ikpt,1)-orbs%eval(orbs%norb+(ikpt-1)*orbs%norb)),&
-                ' eV)'
-           do iorb=1,min(orbsv%norbu,orbsv%norbd)
-              jorb=orbsv%norbu+iorb
+                'HOMO LUMO gap, u =', e(1+occnorbu,ikpt,1)-valu,&
+                ' (',ha2ev*(e(1+occnorbu,ikpt,1)-valu),' eV)',&
+                ',d =',e(orbsv%norbu+1+occnorbd,ikpt,1)-vald,&
+                ' (',ha2ev*(e(orbsv%norbu+1+occnorbd,ikpt,1)-vald),' eV)'
+           do iorb=1,min(orbsv%norbu-occnorbu,orbsv%norbd-occnorbd)
+              jorb=orbsv%norbu+iorb+occnorbd
               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
                    'e_vrt(',iorb,',u)=',e(iorb,ikpt,1),&
                    'e_vrt(',iorb,',d)=',e(jorb,ikpt,1)
            end do
-           if (orbsv%norbu > orbsv%norbd) then
-              do iorb=orbsv%norbd+1,orbsv%norbu
+           if (orbsv%norbu-occnorbu > orbsv%norbd-occnorbd) then
+              do iorb=orbsv%norbd+1-occnorbu,orbsv%norbu-occnorbd
                  write(*,'(1x,a,i4,a,1x,1pe21.14)') &
                       'e_vrt(',iorb,',u)=',e(iorb,ikpt,1)
               end do
-           else if (orbsv%norbd > orbsv%norbu) then
-              do iorb=2*orbsv%norbu+1,orbsv%norbu+orbsv%norbd
+           else if (orbsv%norbd-occnorbd > orbsv%norbu-occnorbu) then
+              do iorb=2*orbsv%norbu+1-occnorbu,orbsv%norbu-occnorbu+orbsv%norbd-occnorbd
                  write(*,'(50x,a,i4,a,1x,1pe21.14)') &
-                      'e_vrt(',iorb-orbsv%norbu,',d)=',e(iorb,ikpt,1)
+                      'e_vrt(',iorb-orbsv%norbu-occnorbu,',d)=',e(iorb,ikpt,1)
               end do
            end if
         end do
      end if
-     end if
+  end if
 
   call timing(iproc,'Davidson      ','OF')
 
@@ -857,8 +1221,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   i_all=-product(shape(hv))*kind(hv)
   deallocate(hv,stat=i_stat)
   call memocc(i_stat,i_all,'hv',subname)
-
-  call deallocate_comms(commsv,subname)
 
   ! PLOTTING
 
@@ -922,8 +1284,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
   if (GPUconv) then
      call free_gpu(GPU,orbsv%norbp)
+  else if (OCLconv) then
+     call free_gpu_OCL(GPU,orbsv%norbp)
   end if
-
 
 END SUBROUTINE davidson
 !!***
@@ -1130,7 +1493,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   nullify(G%rxyz)
   !extract the gaussian basis from the pseudowavefunctions
   !use a better basis than the input guess
-  call gaussian_pswf_basis(31,iproc,nspin,at,rxyz,G,gbd_occ)
+  call gaussian_pswf_basis(31,.false.,iproc,nspin,at,rxyz,G,gbd_occ)
 
   allocate(gaucoeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
@@ -1152,6 +1515,8 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
 
   !othogonalise the gaussian basis (wrong with k-points)
   !call gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
+
+  !as an alternative strategy we may take the eigenvectors of the kinetic+k hamiltonian
 
   call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,&
        gaucoeffs,psivirt)

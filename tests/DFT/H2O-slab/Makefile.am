@@ -14,7 +14,7 @@ PPFILES = \
 	psppar.H \
 	psppar.O
 
-CLEANFILES = $(PPFILES) inguess.new inguess.dat *.pot *.pot_avg* *xyz H2O-slab.out posmd* \
+CLEANFILES = $(PPFILES) inguess.new inguess.dat *.pot *.pot_avg* H2O-slab.out posmd* \
 	*prc fldiff.report velocities.xyz
 
 #dependencies

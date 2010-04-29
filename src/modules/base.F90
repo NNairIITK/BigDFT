@@ -61,6 +61,11 @@ module module_base
   !this value can be changed in the read_input_variables routine
   logical :: GPUconv=.false.,GPUblas=.false.,GPUshare=.true.
 
+  !Flag for GPU computing, if OpenCL libraries are present
+  !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
+  !this value can be changed in the read_input_variables routine
+  logical :: OCLconv=.false.
+
   !Logical parameter for the projectors application strategy (true for distributed way)
   !if the projector allocation passes the memorylimit this is switched to true
   !inside localize_projectors routines

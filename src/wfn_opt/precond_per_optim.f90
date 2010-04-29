@@ -136,52 +136,52 @@ contains
 
     i_all=-product(shape(modul1))*kind(modul1)
     deallocate(modul1,stat=i_stat)
-    call memocc(i_stat,i_all,'modul1','last_orthon')
+    call memocc(i_stat,i_all,'modul1','precong_per')
 
     i_all=-product(shape(modul2))*kind(modul2)
     deallocate(modul2,stat=i_stat)
-    call memocc(i_stat,i_all,'modul2','last_orthon')
+    call memocc(i_stat,i_all,'modul2','precong_per')
 
     i_all=-product(shape(modul3))*kind(modul3)
     deallocate(modul3,stat=i_stat)
-    call memocc(i_stat,i_all,'modul3','last_orthon')
+    call memocc(i_stat,i_all,'modul3','precong_per')
 
     i_all=-product(shape(af))*kind(af)
     deallocate(af,stat=i_stat)
-    call memocc(i_stat,i_all,'af','last_orthon')
+    call memocc(i_stat,i_all,'af','precong_per')
 
     i_all=-product(shape(bf))*kind(bf)
     deallocate(bf,stat=i_stat)
-    call memocc(i_stat,i_all,'bf','last_orthon')
+    call memocc(i_stat,i_all,'bf','precong_per')
 
     i_all=-product(shape(cf))*kind(cf)
     deallocate(cf,stat=i_stat)
-    call memocc(i_stat,i_all,'cf','last_orthon')
+    call memocc(i_stat,i_all,'cf','precong_per')
 
     i_all=-product(shape(ef))*kind(ef)
     deallocate(ef,stat=i_stat)
-    call memocc(i_stat,i_all,'ef','last_orthon')
+    call memocc(i_stat,i_all,'ef','precong_per')
 
 
     i_all=-product(shape(psifscf))*kind(psifscf)
     deallocate(psifscf,stat=i_stat)
-    call memocc(i_stat,i_all,'psifscf','last_orthon')
+    call memocc(i_stat,i_all,'psifscf','precong_per')
 
     i_all=-product(shape(ww))*kind(ww)
     deallocate(ww,stat=i_stat)
-    call memocc(i_stat,i_all,'ww','last_orthon')
+    call memocc(i_stat,i_all,'ww','precong_per')
 
     i_all=-product(shape(b))*kind(b)
     deallocate(b,stat=i_stat)
-    call memocc(i_stat,i_all,'b','last_orthon')
+    call memocc(i_stat,i_all,'b','precong_per')
 
     i_all=-product(shape(r))*kind(r)
     deallocate(r,stat=i_stat)
-    call memocc(i_stat,i_all,'r','last_orthon')
+    call memocc(i_stat,i_all,'r','precong_per')
 
     i_all=-product(shape(d))*kind(d)
     deallocate(d,stat=i_stat)
-    call memocc(i_stat,i_all,'d','last_orthon')
+    call memocc(i_stat,i_all,'d','precong_per')
   END SUBROUTINE deallocate_all
 
 END SUBROUTINE precong_per
