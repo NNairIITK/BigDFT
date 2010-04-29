@@ -81,6 +81,7 @@ module randomData
   integer :: iy = 0
   integer, dimension(NTAB) :: iv
 end module randomData
+!!***
 
 
 !!****f* BigDFT/builtin_rand
