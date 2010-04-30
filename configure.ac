@@ -305,7 +305,7 @@ if test x"$ac_use_ocl" = "xyes" ; then
       AC_MSG_WARN(["No 'OpenCL' library found, OpenCL parts disabled."])
       ac_use_ocl="no"
     else
-      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL"
+      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm"
     fi
     LIBS=$LIBS_OLD
   fi

@@ -387,7 +387,7 @@ void magicfilter_partial2(unsigned int n1, unsigned int start, unsigned int ndat
     x_t5=x_t4+n1;
     x_t6=x_t5+n1;
     x_t7=x_t6+n1;
-    y_t = y + j -ld+8;
+    y_t = y + j - ld + 8;
 
     for(i=0;i<8;i++){
       unsigned int i_t = i+n1;
