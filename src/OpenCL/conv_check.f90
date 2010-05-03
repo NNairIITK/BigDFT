@@ -42,6 +42,7 @@ program conv_check
   real(kind=8), dimension(:), allocatable :: psi, psi_d !temporary in view of wp 
   real(kind=4), dimension(:), allocatable :: psi_l !temporary in view of wp 
   real(kind=8), dimension(:,:,:), allocatable :: psi_cuda,v_cuda,psi_cuda_s,v_cuda_s,psi_cuda_t,v_cuda_t,v_cuda_str !temporary in view of wp 
+  real(kind=8), dimension(:,:,:), allocatable :: psi_cuda_str 
   real(kind=8), dimension(:,:,:,:,:), allocatable :: psi_cuda_k_in,psi_cuda_k_out,psi_cuda_k_in_bis 
   real(kind=8), dimension(:,:,:,:), allocatable :: psi_cuda_k_in_a,psi_cuda_k_out_a 
   real(kind=4), dimension(:,:,:), allocatable :: psi_cuda_l,v_cuda_l !temporary in view of wp 
@@ -177,8 +178,10 @@ program conv_check
 
            allocate(psi_cuda(n1,ndat,1+ndebug),stat=i_stat)
            call memocc(i_stat,psi_cuda,'psi_cuda',subname)
+           allocate(psi_cuda_str(ndat,n1,1+ndebug),stat=i_stat)
+           call memocc(i_stat,psi_cuda_str,'psi_cuda_str',subname)
            allocate(v_cuda(ndat,n1,1+ndebug),stat=i_stat)
-           call memocc(i_stat,v_cuda_str,'v_cuda',subname)
+           call memocc(i_stat,v_cuda,'v_cuda',subname)
            allocate(v_cuda_str(n1,ndat,1+ndebug),stat=i_stat)
            call memocc(i_stat,v_cuda_str,'v_cuda_str',subname)
            allocate(psi_cuda_l(n1,ndat,1+ndebug),stat=i_stat)
@@ -194,7 +197,9 @@ program conv_check
                  v_cuda_l(i,i1,1)=real(psi_in(i1,i,1),kind=4)
               end do
            end do
-           
+ 
+          write(*,'(a,i6,i6)')'GPU Convolutions, dimensions:',n1,ndat
+
            call ocl_create_write_buffer(context, n1*ndat*8, psi_GPU)
            call ocl_create_read_buffer(context, n1*ndat*8, work_GPU)
            call ocl_enqueue_write_buffer(queue, work_GPU, n1*ndat*8, v_cuda)
@@ -202,8 +207,7 @@ program conv_check
            !now the CUDA part
            !take timings
 
-           write(*,'(a,i6,i6)')'GPU Convolutions, dimensions:',n1,ndat
-
+ 
            call cpu_time(t0)
            do i=1,ntimes
               call magicfilter1d_d(queue,n1,ndat,work_GPU,psi_GPU)
@@ -226,6 +230,7 @@ program conv_check
            do i=1,ndat
               do i1=1,n1
                  comp=abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8))
+!                 print *,i,i1,psi_out(i,i1,1),psi_cuda(i,i1,1)
                  if (comp > maxdiff) then
                     maxdiff=comp
                     i1_max=i1
@@ -235,7 +240,7 @@ program conv_check
            end do
 
            if (maxdiff <= 3.d-7) then
-              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.3,0pf12.4))')&
                    'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1,ndat,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
@@ -243,7 +248,67 @@ program conv_check
                    GPUtime*1.d3/real(ntimes,kind=8),&
                    real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
            else
-              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.3,0pf12.4),a)')&
+                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),&
+                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),&
+                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+                   '<<<< WARNING' 
+           end if
+          
+          write(*,'(a,i6,i6)')'GPU Convolutions (straight), dimensions:',n1,ndat
+
+           call ocl_create_write_buffer(context, n1*ndat*8, psi_GPU)
+           call ocl_create_read_buffer(context, n1*ndat*8, work_GPU)
+           call ocl_enqueue_write_buffer(queue, work_GPU, n1*ndat*8, v_cuda_str)
+
+           !now the CUDA part
+           !take timings
+
+ 
+           call cpu_time(t0)
+           do i=1,ntimes
+              call magicfilter1d_straight_d(queue,n1,ndat,work_GPU,psi_GPU)
+           end do
+           call ocl_finish(queue);
+           call cpu_time(t1)
+           GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+                GPUtime*1.d3/real(ntimes,kind=8),&
+                real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+           call ocl_enqueue_read_buffer(queue, psi_GPU, n1*ndat*8, psi_cuda_str)
+           call ocl_release_mem_object(psi_GPU)
+           call ocl_release_mem_object(work_GPU)
+
+           !check the differences between the results
+           maxdiff=0.d0
+           i1_max=1
+           i_max=1
+           do i=1,ndat
+              do i1=1,n1
+                 comp=abs(psi_out(i,i1,1)-real(psi_cuda_str(i,i1,1),kind=8))
+!                 print *,i,i1,psi_out(i,i1,1),psi_cuda_str(i,i1,1)
+                 if (comp > maxdiff) then
+                    maxdiff=comp
+                    i1_max=i1
+                    i_max=i
+                 end if
+              end do
+           end do
+
+           if (maxdiff <= 3.d-7) then
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.3,0pf12.4))')&
+                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),&
+                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),&
+                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+           else
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.3,0pf12.4),a)')&
                    'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                    n1,ndat,CPUtime/GPUtime,maxdiff,&
                    CPUtime*1.d3/real(ntimes,kind=8),&
