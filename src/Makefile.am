@@ -373,7 +373,7 @@ bart-min_converge.o: art/min_converge.f90 art/defs.o bart-bigdft_forces.o
 bart-saddle_converge.o: art/saddle_converge.f90 art/defs.o bart-bigdft_forces.o bart-find_saddle.o art/random.o bart-art_lanczos.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-saddle_converge.o `test -f 'art/saddle_converge.f90' || echo '$(srcdir)/'`art/saddle_converge.f90
 
-bart-art_diis.o: art/art_diis.f90 art/defs.o bart-bigdft_forces.o art/random.o
+bart-art_diis.o: art/art_diis.f90 art/defs.o bart-bigdft_forces.o bart-art_lanczos.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-art_diis.o `test -f 'art/art_diis.f90' || echo '$(srcdir)/'`art/art_diis.f90
 
 bart-initialize.o: art/initialize.f90 art/defs.o bart-art_lanczos.o

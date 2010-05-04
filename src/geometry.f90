@@ -2092,7 +2092,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   ! it performs modulo operation as well as constrained search
   call atomic_axpy(at,x,in%betax,f,x)
 
-  ! New residual vector is evaluted. It will be stored as 
+  ! New force vector is evaluted. It will be stored as 
   ! previous_forces(2,:) at the beggining of next loop.
 
   in%inputPsiId=1
@@ -2196,6 +2196,17 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      do i = 1, maxter
         x(:) = x(:) + solution(i) * previous_pos(i,:)
      end do
+
+    ! This is the residuum vector
+     f(:) = 0.0_gp
+     do i = 1, maxter
+        f(:) = f(:) + solution(i) * previous_forces(i,:)
+     end do
+
+     ! Our new positions.
+     !x(:) = x(:) + in%betax * f(:)
+     call atomic_axpy(at,x,in%betax,f,x)
+
      !reput the modulo operation on the atoms
      call atomic_axpy(at,x,0.0_gp,x,x)
 
@@ -2203,7 +2214,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      deallocate(solution,stat=i_stat)
      call memocc(i_stat,i_all,'solution',subname)
 
-     ! New residual vector is evaluted.
+    ! Now the force is evaluted for our new positions.
      call call_bigdft(nproc,iproc,at,x,in,epot,f,rst,infocode)
      ncount_bigdft=ncount_bigdft+1
 
@@ -2240,8 +2251,6 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
       exit
      endif
 
-     !x(:) = x(:) + in%betax * f(:)
-     call atomic_axpy(at,x,in%betax,f,x)
   end do
 
   i_all=-product(shape(previous_forces))*kind(previous_forces)

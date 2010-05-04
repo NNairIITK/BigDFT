@@ -302,7 +302,7 @@ subroutine store_part( fname, scounter, rcounter, stage )
   end do
 
   write(XYZ,*) '# simulation ',scounter," stage ", stage, " iteration ",rcounter
-  write(XYZ,'(a,(1p,e17.10,0p))') '# total energy : ', total_energy
+  write(XYZ,'(a,(1p,e17.10,0p))') ' # total energy (eV) : ', total_energy
 
   close(XYZ)
 
