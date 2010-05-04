@@ -7,6 +7,8 @@
 #include <config.h>
 #include <math.h>
 #include <assert.h>
+#include <Tool.h>
+#include <time.h>
 
 #define DEBUG 0
 #define PROFILING 0
@@ -20,6 +22,7 @@ extern cl_kernel kinetic1d_kernel_d;
 extern cl_kernel kinetic1d_f_kernel_d;
 extern cl_kernel kinetic_k1d_kernel_d;
 extern cl_kernel magicfilter1d_kernel_d;
+extern cl_kernel magicfilter1d_straight_kernel_d;
 extern cl_kernel magicfilter1d_den_kernel_d;
 extern cl_kernel magicfilter1d_pot_kernel_d;
 extern cl_kernel magicfilter1d_t_kernel_d;
@@ -85,6 +88,9 @@ int addToEventList (event ev);
 extern event * event_list;
 extern size_t event_number;
 
+void FC_FUNC_(rdtsc,RDTSC)(cl_ulong * t);
+void FC_FUNC_(nanosec,NANOSEC)(cl_ulong * t);
+
 void FC_FUNC_(init_event_list,INIT_EVENT_LIST)();
 void FC_FUNC_(print_event_list,PRINT_EVENT_LIST)();
 void FC_FUNC_(ocl_build_kernels,OCL_BUILD_KERNELS)(cl_context * context);
@@ -118,6 +124,7 @@ void FC_FUNC_(syn_self_d_generic,SYN_SELF_D_GENERIC)(cl_command_queue *command_q
 void FC_FUNC_(magicfiltershrink1d_d,MAGICFILTERSHRINK1D_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out);
 void FC_FUNC_(magicfiltergrow1d_d,MAGICFILTERGROW1D_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out);
 void FC_FUNC_(magicfilter1d_d,MAGICFILTER1D_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out);
+void FC_FUNC_(magicfilter1d_straight_d,MAGICFILTER1D_STRAIGHT_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out);
 void FC_FUNC_(magicfilter1d_pot_d,MAGICFILTER1D_POT_D)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, cl_mem *psi, cl_mem *pot, cl_mem *out);
 void FC_FUNC_(magicfilter1d_t_d,MAGICFILTER1D_T_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out);
 void FC_FUNC_(magicfilter_n_self_d,MAGICFILTER_N_SELF_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *psi, cl_mem *out);
