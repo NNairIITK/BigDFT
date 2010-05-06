@@ -346,7 +346,7 @@ program conv_check
 
            call compare_time(CPUtime,GPUtime,n1*n1/4,ndat*8,ntimes,maxdiff,3.d-7)
 
-           write(*,'(a,i6)')'CPU Reduction, dimensions:',n1*ndat
+           write(*,'(a,i8)')'CPU Reduction, dimensions:',n1*ndat
 
            call nanosec(tsc0)
            do i=1,ntimes
@@ -356,7 +356,7 @@ program conv_check
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
            call print_time(CPUtime,n1*ndat,2,ntimes)
 
-           write(*,'(a,i6)')'GPU Reduction, dimensions:',n1*ndat
+           write(*,'(a,i8)')'GPU Reduction, dimensions:',n1*ndat
 
            call ocl_create_read_buffer(context, n1*ndat*8, psi_GPU)
            call ocl_create_read_write_buffer(context, n1*ndat*8, work_GPU)
@@ -381,7 +381,7 @@ program conv_check
 
            call compare_time(CPUtime,GPUtime,n1*ndat,2,ntimes,maxdiff,3.d-7)
 
-           write(*,'(a,i6)')'CPU Reduction Dot, dimensions:',n1*ndat
+           write(*,'(a,i8)')'CPU Reduction Dot, dimensions:',n1*ndat
 
            call nanosec(tsc0)
            do i=1,ntimes
@@ -391,7 +391,7 @@ program conv_check
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
            call print_time(CPUtime,n1*ndat,2,ntimes)
 
-           write(*,'(a,i6)')'GPU Reduction Dot, dimensions:',n1*ndat
+           write(*,'(a,i8)')'GPU Reduction Dot, dimensions:',n1*ndat
 
            call ocl_create_read_buffer(context, n1*ndat*8, psi_GPU)
            call ocl_create_read_write_buffer(context, n1*ndat*8, work_GPU)
@@ -1572,7 +1572,7 @@ contains
     real(gp),intent(in)::REFtime,TESTtime,maxdiff,threshold
     integer,intent(in)::nbelem,nop,ntimes
 
-    write(*,'(a,i10,f9.5,1pe12.5,2(0pf9.4,0pf12.4))',advance='no')&
+    write(*,'(a,i10,f9.5,1pe12.5,2(0pf12.4,0pf12.4))',advance='no')&
       'nbelem,REF/TEST ratio,Time,Gflops: REF,TEST',&
        nbelem,REFtime/TESTtime,maxdiff,&
        REFtime*1.d3/real(ntimes,kind=8),&
