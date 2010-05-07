@@ -26,6 +26,26 @@ void init_key(cl_int *keyg, cl_int *keyv, cl_int nseg, cl_int *nvctr_cf) {
 }
 
 void bench_magicfilter1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
+  cl_mem psi_GPU, work_GPU;
+  cl_uint n = n1;
+  cl_uint ndat = n2*n3;
+  cl_uint size = n*ndat*sizeof(double);
+//  cl_int ciErrNum;
+
+  ocl_create_write_buffer_(&context, &size, &psi_GPU);
+  ocl_create_read_buffer_(&context, &size, &work_GPU);
+//  psi_GPU = clCreateBuffer( context, CL_MEM_WRITE_ONLY|CL_MEM_USE_HOST_PTR , size, out, &ciErrNum);
+//  oclErrorCheck(ciErrNum,"Failed to create write buffer!");
+//  work_GPU = clCreateBuffer( context, CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR , size, out, &ciErrNum);
+//  oclErrorCheck(ciErrNum,"Failed to create read buffer!");
+  ocl_enqueue_write_buffer_(&queue, &work_GPU, &size, in);
+  magicfilter1d_d_(&queue,&n,&ndat,&work_GPU,&psi_GPU);
+  ocl_finish_(&queue);
+  ocl_enqueue_read_buffer_(&queue, &psi_GPU, &size, out);
+  ocl_release_mem_object_(&psi_GPU);
+  ocl_release_mem_object_(&work_GPU);
+}
+void bench_magicfilter1d_straight(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
   cl_mem psi_GPU,work_GPU;
   cl_uint n = n1;
   cl_uint ndat = n2*n3;
@@ -34,13 +54,12 @@ void bench_magicfilter1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double
   ocl_create_write_buffer_(&context, &size, &psi_GPU);
   ocl_create_read_buffer_(&context, &size, &work_GPU);
   ocl_enqueue_write_buffer_(&queue, &work_GPU, &size, in);
-  magicfilter1d_d_(&queue,&n,&ndat,&work_GPU,&psi_GPU);
+  magicfilter1d_straight_d_(&queue,&n,&ndat,&work_GPU,&psi_GPU);
   ocl_finish_(&queue);
   ocl_enqueue_read_buffer_(&queue, &psi_GPU, &size, out);
   ocl_release_mem_object_(&psi_GPU);
   ocl_release_mem_object_(&work_GPU);
 }
-
 void bench_magicfiltershrink1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
   cl_mem psi_GPU,work_GPU;
   cl_uint n = n1;

@@ -39,6 +39,7 @@ int main(){
           for( n3 = n2; n3 <= MAX_N3; n3 += N3_STEP ){
             for( un3 = n3 - N3_URANGE; un3 <= n3 + N3_URANGE; un3 += N3_USTEP){
               bench_magicfilter1d(un1,un2,un3,in,out);
+              bench_magicfilter1d_straight(un1,un2,un3,in,out);
               bench_magicfiltergrow1d(un1,un2,un3,in,out);
               bench_magicfiltershrink1d(un1,un2,un3,in,out);
               bench_kinetic1d(un1,un2,un3,in,out);
