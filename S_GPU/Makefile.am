@@ -6,7 +6,7 @@ examples
 #SUBDIRS += examples
 #endif
 
-EXTRA_DIST = cudalt.py
+EXTRA_DIST = cudalt.py autogen.sh
 
 #include doc/doxyinclude.am
 

@@ -371,7 +371,7 @@ subroutine convrot_n_per(n1,ndat,x,y)
         tt12=0.e0_wp
 
         do l=lowfil,lupfil
-           k=mod_arr(i+l)   
+           k=mod_arr(i+l)
            fill=fil(l)
 
            tt1=tt1+x(  k,j*12+1)*fill
@@ -559,264 +559,266 @@ END SUBROUTINE convrot_t_per
 
 !!!!!commented out as this routine is not used 
 subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
-!   applies the kinetic energy operator onto x to get y. Works for periodic BC
+  !   applies the kinetic energy operator onto x to get y. Works for periodic BC
   use module_base
   implicit none
+
 
   integer, intent(in) :: n1,n2,n3
   real(gp),intent(in)::c
   real(gp), dimension(3), intent(in) :: hgrid
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
   real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y
-!
-  stop 'convolut_kinetic_per_c should never be called'
-  write(*,*) n1,n2,n3,hgrid,x,y,c
-!
-!  !local variables
-!  integer, parameter :: lowfil=-14,lupfil=14
-!  integer :: i1,i2,i3,i,l,j,k
-!  real(wp) :: tt
-!  integer, dimension(lowfil:n1+lupfil) :: mod_arr1   
-!  integer, dimension(lowfil:n2+lupfil) :: mod_arr2   
-!  integer, dimension(lowfil:n3+lupfil) :: mod_arr3   
-!  real(wp), dimension(3) :: scale
-!  real(wp), dimension(lowfil:lupfil,3) :: fil
-!
-!
-!  !$omp parallel default(private) shared(x,y,n1,n2,n3,c,hgrid,fil,mod_arr1,mod_arr2,mod_arr3)
-!  call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
-!  call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
-!  call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
-!
-!  scale(:)=real(-.5_gp/hgrid(:)**2,wp)
-!
-!  ! second derivative filters for Daubechies 16
-!  fil(0,:)=   -3.5536922899131901941296809374e0_wp*scale(:)
-!  fil(1,:)=    2.2191465938911163898794546405e0_wp*scale(:)
-!  fil(2,:)=   -0.6156141465570069496314853949e0_wp*scale(:)
-!  fil(3,:)=    0.2371780582153805636239247476e0_wp*scale(:)
-!  fil(4,:)=   -0.0822663999742123340987663521e0_wp*scale(:)
-!  fil(5,:)=    0.02207029188482255523789911295638968409e0_wp*scale(:)
-!  fil(6,:)=   -0.409765689342633823899327051188315485e-2_wp*scale(:)
-!  fil(7,:)=    0.45167920287502235349480037639758496e-3_wp*scale(:)
-!  fil(8,:)=   -0.2398228524507599670405555359023135e-4_wp*scale(:)
-!  fil(9,:)=    2.0904234952920365957922889447361e-6_wp*scale(:)
-!  fil(10,:)=  -3.7230763047369275848791496973044e-7_wp*scale(:)
-!  fil(11,:)=  -1.05857055496741470373494132287e-8_wp*scale(:)
-!  fil(12,:)=  -5.813879830282540547959250667e-11_wp*scale(:)
-!  fil(13,:)=   2.70800493626319438269856689037647576e-13_wp*scale(:)
-!  fil(14,:)=  -6.924474940639200152025730585882e-18_wp*scale(:)
-!
-!  do k=1,14
-!     fil(-k,:)=fil(k,:)
-!  enddo
-!
-!  call conv_kin_x(x,y,(n2+1)*(n3+1))   
-!  call conv_kin_y
-!  call conv_kin_z(x,y,(n1+1)*(n2+1))
-!  !$omp end parallel
-!
-!
-!contains
-!
-!  subroutine conv_kin_y
-!    implicit none
-!    real(wp) tt0,tt1,tt2,tt3,tt4,tt5,tt6,tt7
-!
-!!$omp do 
-!    do i3=0,n3/8-1
-!       do i1=0,n1
-!          do i2=0,n2
-!             tt0=0.e0_wp
-!             tt1=0.e0_wp
-!             tt2=0.e0_wp
-!             tt3=0.e0_wp
-!             tt4=0.e0_wp
-!             tt5=0.e0_wp
-!             tt6=0.e0_wp
-!             tt7=0.e0_wp
-!
-!             do l=lowfil,lupfil
-!                j=mod_arr2(i2+l)
-!
-!                tt0=tt0+x(i1,j,i3*8+0)*fil(l,2)
-!                tt1=tt1+x(i1,j,i3*8+1)*fil(l,2)
-!                tt2=tt2+x(i1,j,i3*8+2)*fil(l,2)
-!                tt3=tt3+x(i1,j,i3*8+3)*fil(l,2)
-!                tt4=tt4+x(i1,j,i3*8+4)*fil(l,2)
-!                tt5=tt5+x(i1,j,i3*8+5)*fil(l,2)
-!                tt6=tt6+x(i1,j,i3*8+6)*fil(l,2)
-!                tt7=tt7+x(i1,j,i3*8+7)*fil(l,2)
-!             enddo
-!             y(i1,i2,i3*8+0)=y(i1,i2,i3*8+0)+tt0
-!             y(i1,i2,i3*8+1)=y(i1,i2,i3*8+1)+tt1
-!             y(i1,i2,i3*8+2)=y(i1,i2,i3*8+2)+tt2
-!             y(i1,i2,i3*8+3)=y(i1,i2,i3*8+3)+tt3
-!             y(i1,i2,i3*8+4)=y(i1,i2,i3*8+4)+tt4
-!             y(i1,i2,i3*8+5)=y(i1,i2,i3*8+5)+tt5
-!             y(i1,i2,i3*8+6)=y(i1,i2,i3*8+6)+tt6
-!             y(i1,i2,i3*8+7)=y(i1,i2,i3*8+7)+tt7
-!          enddo
-!       enddo
-!    enddo
-!!$omp  end do
-!
-!!$omp do 
-!    do i3=(n3/8)*8,n3
-!       do i1=0,n1
-!          do i2=0,n2
-!             tt=0.e0_wp
-!             do l=lowfil,lupfil
-!                j=mod_arr2(i2+l)
-!                tt=tt+x(i1,j   ,i3)*fil(l,2)
-!             enddo
-!             y(i1,i2,i3)=y(i1,i2,i3)+tt
-!          enddo
-!       enddo
-!    enddo
-!!$omp  end do
-!  END SUBROUTINE conv_kin_y
-!
-!
-!  subroutine conv_kin_x(x,y,ndat)
-!    implicit none
-!    integer,intent(in)::ndat
-!    real(wp),intent(in):: x(0:n1,ndat)
-!    real(wp),intent(out)::y(0:n1,ndat)
-!    real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
-!
-!!$omp do 
-!    do i=0,ndat/12-1
-!       do i1=0,n1
-!          tt1 =x(i1,i*12+1)*c
-!          tt2 =x(i1,i*12+2)*c
-!          tt3 =x(i1,i*12+3)*c
-!          tt4 =x(i1,i*12+4)*c
-!          tt5 =x(i1,i*12+5)*c
-!          tt6 =x(i1,i*12+6)*c
-!          tt7 =x(i1,i*12+7)*c
-!          tt8 =x(i1,i*12+8)*c
-!          tt9 =x(i1,i*12+9 )*c
-!          tt10=x(i1,i*12+10)*c
-!          tt11=x(i1,i*12+11)*c
-!          tt12=x(i1,i*12+12)*c
-!
-!          do l=lowfil,lupfil
-!             j=mod_arr1(i1+l)
-!
-!             tt1=tt1+x(j,i*12+1)*fil(l,1)
-!             tt2=tt2+x(j,i*12+2)*fil(l,1)
-!             tt3=tt3+x(j,i*12+3)*fil(l,1)
-!             tt4=tt4+x(j,i*12+4)*fil(l,1)
-!             tt5=tt5+x(j,i*12+5)*fil(l,1)
-!             tt6=tt6+x(j,i*12+6)*fil(l,1)
-!             tt7=tt7+x(j,i*12+7)*fil(l,1)
-!             tt8=tt8+x(j,i*12+8)*fil(l,1)
-!             tt9 =tt9 +x(j,i*12+9 )*fil(l,1)
-!             tt10=tt10+x(j,i*12+10)*fil(l,1)
-!             tt11=tt11+x(j,i*12+11)*fil(l,1)
-!             tt12=tt12+x(j,i*12+12)*fil(l,1)
-!          enddo
-!          y(i1,i*12+1)=tt1
-!          y(i1,i*12+2)=tt2
-!          y(i1,i*12+3)=tt3
-!          y(i1,i*12+4)=tt4
-!          y(i1,i*12+5)=tt5
-!          y(i1,i*12+6)=tt6
-!          y(i1,i*12+7)=tt7
-!          y(i1,i*12+8)=tt8
-!          y(i1,i*12+9 )=tt9 
-!          y(i1,i*12+10)=tt10
-!          y(i1,i*12+11)=tt11
-!          y(i1,i*12+12)=tt12
-!       enddo
-!    enddo
-!!$omp  end do
-!
-!!$omp  do 
-!    do i=(ndat/12)*12+1,ndat
-!       do i1=0,n1
-!          tt=x(i1,i)*c
-!          do l=lowfil,lupfil
-!             j=mod_arr1(i1+l)
-!             tt=tt+x(j   ,i)*fil(l,1)
-!          enddo
-!          y(i1,i)=tt
-!       enddo
-!    enddo
-!!$omp  end do
-!  END SUBROUTINE conv_kin_x
-!
-!  subroutine conv_kin_z(x,y,ndat)
-!    implicit none
-!    integer,intent(in)::ndat
-!    real(wp),intent(in):: x(ndat,0:n1)
-!    real(wp),intent(out)::y(ndat,0:n1)
-!    real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
-!
-!!$omp do 
-!    do i=0,ndat/12-1
-!       do i3=0,n3
-!          tt1=0.e0_wp
-!          tt2=0.e0_wp
-!          tt3=0.e0_wp
-!          tt4=0.e0_wp
-!          tt5=0.e0_wp
-!          tt6=0.e0_wp
-!          tt7=0.e0_wp
-!          tt8=0.e0_wp
-!          tt9 =0.e0_wp
-!          tt10=0.e0_wp
-!          tt11=0.e0_wp
-!          tt12=0.e0_wp
-!
-!          do l=lowfil,lupfil
-!             j=mod_arr3(i3+l)
-!
-!             tt1=tt1+x(i*12+1,j)*fil(l,3)
-!             tt2=tt2+x(i*12+2,j)*fil(l,3)
-!             tt3=tt3+x(i*12+3,j)*fil(l,3)
-!             tt4=tt4+x(i*12+4,j)*fil(l,3)
-!             tt5=tt5+x(i*12+5,j)*fil(l,3)
-!             tt6=tt6+x(i*12+6,j)*fil(l,3)
-!             tt7=tt7+x(i*12+7,j)*fil(l,3)
-!             tt8=tt8+x(i*12+8,j)*fil(l,3)
-!             tt9 =tt9 +x(i*12+9 ,j)*fil(l,3)
-!             tt10=tt10+x(i*12+10,j)*fil(l,3)
-!             tt11=tt11+x(i*12+11,j)*fil(l,3)
-!             tt12=tt12+x(i*12+12,j)*fil(l,3)
-!          enddo
-!
-!          y(i*12+1,i3)=y(i*12+1,i3)+tt1
-!          y(i*12+2,i3)=y(i*12+2,i3)+tt2
-!          y(i*12+3,i3)=y(i*12+3,i3)+tt3
-!          y(i*12+4,i3)=y(i*12+4,i3)+tt4
-!          y(i*12+5,i3)=y(i*12+5,i3)+tt5
-!          y(i*12+6,i3)=y(i*12+6,i3)+tt6
-!          y(i*12+7,i3)=y(i*12+7,i3)+tt7
-!          y(i*12+8,i3)=y(i*12+8,i3)+tt8
-!          y(i*12+9 ,i3)=y(i*12+9 ,i3)+tt9 
-!          y(i*12+10,i3)=y(i*12+10,i3)+tt10
-!          y(i*12+11,i3)=y(i*12+11,i3)+tt11
-!          y(i*12+12,i3)=y(i*12+12,i3)+tt12
-!       enddo
-!    enddo
-!!$omp  end do
-!
-!!$omp  do 
-!    do i=(ndat/12)*12+1,ndat
-!       do i3=0,n3
-!          tt=0.e0_wp
-!          do l=lowfil,lupfil
-!             j=mod_arr3(i3+l)
-!             tt=tt+x(i,j)*fil(l,3)
-!          enddo
-!          y(i,i3)=y(i,i3)+tt
-!       enddo
-!    enddo
-!!$omp  end do
-!  END SUBROUTINE conv_kin_z
-!
+
+!  stop 'convolut_kinetic_per_c should never be called'
+
+  !local variables
+  integer, parameter :: lowfil=-14,lupfil=14
+  integer :: i1,i2,i3,i,l,j,k
+  real(wp) :: tt
+  integer, dimension(lowfil:n1+lupfil) :: mod_arr1   
+  integer, dimension(lowfil:n2+lupfil) :: mod_arr2   
+  integer, dimension(lowfil:n3+lupfil) :: mod_arr3   
+  real(wp), dimension(3) :: scale
+  real(wp), dimension(lowfil:lupfil,3) :: fil
+
+
+  !$omp parallel default(private) shared(x,y,n1,n2,n3,c,hgrid,fil,mod_arr1,mod_arr2,mod_arr3)
+  call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
+  call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
+  call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
+
+  scale(:)=real(-.5_gp/hgrid(:)**2,wp)
+
+  ! second derivative filters for Daubechies 16
+  fil(0,:)=   -3.5536922899131901941296809374e0_wp*scale(:)
+  fil(1,:)=    2.2191465938911163898794546405e0_wp*scale(:)
+  fil(2,:)=   -0.6156141465570069496314853949e0_wp*scale(:)
+  fil(3,:)=    0.2371780582153805636239247476e0_wp*scale(:)
+  fil(4,:)=   -0.0822663999742123340987663521e0_wp*scale(:)
+  fil(5,:)=    0.02207029188482255523789911295638968409e0_wp*scale(:)
+  fil(6,:)=   -0.409765689342633823899327051188315485e-2_wp*scale(:)
+  fil(7,:)=    0.45167920287502235349480037639758496e-3_wp*scale(:)
+  fil(8,:)=   -0.2398228524507599670405555359023135e-4_wp*scale(:)
+  fil(9,:)=    2.0904234952920365957922889447361e-6_wp*scale(:)
+  fil(10,:)=  -3.7230763047369275848791496973044e-7_wp*scale(:)
+  fil(11,:)=  -1.05857055496741470373494132287e-8_wp*scale(:)
+  fil(12,:)=  -5.813879830282540547959250667e-11_wp*scale(:)
+  fil(13,:)=   2.70800493626319438269856689037647576e-13_wp*scale(:)
+  fil(14,:)=  -6.924474940639200152025730585882e-18_wp*scale(:)
+
+  do k=1,14
+     fil(-k,:)=fil(k,:)
+ enddo
+
+  call conv_kin_x(x,y,(n2+1)*(n3+1))   
+  call conv_kin_y
+  call conv_kin_z(x,y,(n1+1)*(n2+1))
+  !$omp end parallel
+
+
+contains
+
+  subroutine conv_kin_y
+    implicit none
+    real(wp) tt0,tt1,tt2,tt3,tt4,tt5,tt6,tt7
+
+!$omp do 
+   do i3=0,n3/8-1
+       do i1=0,n1
+          do i2=0,n2
+             tt0=0.e0_wp
+             tt1=0.e0_wp
+             tt2=0.e0_wp
+             tt3=0.e0_wp
+             tt4=0.e0_wp
+             tt5=0.e0_wp
+             tt6=0.e0_wp
+             tt7=0.e0_wp
+
+             do l=lowfil,lupfil
+                j=mod_arr2(i2+l)
+
+                tt0=tt0+x(i1,j,i3*8+0)*fil(l,2)
+                tt1=tt1+x(i1,j,i3*8+1)*fil(l,2)
+                tt2=tt2+x(i1,j,i3*8+2)*fil(l,2)
+                tt3=tt3+x(i1,j,i3*8+3)*fil(l,2)
+                tt4=tt4+x(i1,j,i3*8+4)*fil(l,2)
+                tt5=tt5+x(i1,j,i3*8+5)*fil(l,2)
+                tt6=tt6+x(i1,j,i3*8+6)*fil(l,2)
+                tt7=tt7+x(i1,j,i3*8+7)*fil(l,2)
+             enddo
+             y(i1,i2,i3*8+0)=y(i1,i2,i3*8+0)+tt0
+             y(i1,i2,i3*8+1)=y(i1,i2,i3*8+1)+tt1
+             y(i1,i2,i3*8+2)=y(i1,i2,i3*8+2)+tt2
+             y(i1,i2,i3*8+3)=y(i1,i2,i3*8+3)+tt3
+             y(i1,i2,i3*8+4)=y(i1,i2,i3*8+4)+tt4
+             y(i1,i2,i3*8+5)=y(i1,i2,i3*8+5)+tt5
+             y(i1,i2,i3*8+6)=y(i1,i2,i3*8+6)+tt6
+             y(i1,i2,i3*8+7)=y(i1,i2,i3*8+7)+tt7
+          enddo
+       enddo
+    enddo
+!$omp  end do
+
+!$omp do 
+    do i3=(n3/8)*8,n3
+       do i1=0,n1
+          do i2=0,n2
+             tt=0.e0_wp
+             do l=lowfil,lupfil
+                j=mod_arr2(i2+l)
+                tt=tt+x(i1,j   ,i3)*fil(l,2)
+             enddo
+             y(i1,i2,i3)=y(i1,i2,i3)+tt
+          enddo
+       enddo
+    enddo
+!$omp  end do
+  end subroutine conv_kin_y
+
+
+  subroutine conv_kin_x(x,y,ndat)
+    implicit none
+    integer,intent(in)::ndat
+    real(wp),intent(in):: x(0:n1,ndat)
+    real(wp),intent(out)::y(0:n1,ndat)
+    real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
+
+!$omp do 
+    do i=0,ndat/12-1
+       do i1=0,n1
+          tt1 =x(i1,i*12+1)*c
+          tt2 =x(i1,i*12+2)*c
+          tt3 =x(i1,i*12+3)*c
+          tt4 =x(i1,i*12+4)*c
+          tt5 =x(i1,i*12+5)*c
+          tt6 =x(i1,i*12+6)*c
+          tt7 =x(i1,i*12+7)*c
+          tt8 =x(i1,i*12+8)*c
+          tt9 =x(i1,i*12+9 )*c
+          tt10=x(i1,i*12+10)*c
+          tt11=x(i1,i*12+11)*c
+          tt12=x(i1,i*12+12)*c
+
+          do l=lowfil,lupfil
+             j=mod_arr1(i1+l)
+
+             tt1=tt1+x(j,i*12+1)*fil(l,1)
+             tt2=tt2+x(j,i*12+2)*fil(l,1)
+             tt3=tt3+x(j,i*12+3)*fil(l,1)
+             tt4=tt4+x(j,i*12+4)*fil(l,1)
+             tt5=tt5+x(j,i*12+5)*fil(l,1)
+             tt6=tt6+x(j,i*12+6)*fil(l,1)
+             tt7=tt7+x(j,i*12+7)*fil(l,1)
+             tt8=tt8+x(j,i*12+8)*fil(l,1)
+             tt9 =tt9 +x(j,i*12+9 )*fil(l,1)
+             tt10=tt10+x(j,i*12+10)*fil(l,1)
+             tt11=tt11+x(j,i*12+11)*fil(l,1)
+             tt12=tt12+x(j,i*12+12)*fil(l,1)
+          enddo
+          y(i1,i*12+1)=tt1
+          y(i1,i*12+2)=tt2
+          y(i1,i*12+3)=tt3
+          y(i1,i*12+4)=tt4
+          y(i1,i*12+5)=tt5
+          y(i1,i*12+6)=tt6
+          y(i1,i*12+7)=tt7
+          y(i1,i*12+8)=tt8
+          y(i1,i*12+9 )=tt9 
+          y(i1,i*12+10)=tt10
+          y(i1,i*12+11)=tt11
+          y(i1,i*12+12)=tt12
+       enddo
+    enddo
+!$omp  end do
+
+!$omp  do 
+    do i=(ndat/12)*12+1,ndat
+       do i1=0,n1
+          tt=x(i1,i)*c
+          do l=lowfil,lupfil
+             j=mod_arr1(i1+l)
+             tt=tt+x(j   ,i)*fil(l,1)
+          enddo
+          y(i1,i)=tt
+       enddo
+    enddo
+!$omp  end do
+  end subroutine conv_kin_x
+
+  subroutine conv_kin_z(x,y,ndat)
+    implicit none
+    integer,intent(in)::ndat
+    real(wp),intent(in):: x(ndat,0:n1)
+    real(wp),intent(out)::y(ndat,0:n1)
+    real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
+
+!$omp do 
+    do i=0,ndat/12-1
+       do i3=0,n3
+          tt1=0.e0_wp
+          tt2=0.e0_wp
+          tt3=0.e0_wp
+          tt4=0.e0_wp
+          tt5=0.e0_wp
+          tt6=0.e0_wp
+          tt7=0.e0_wp
+          tt8=0.e0_wp
+          tt9 =0.e0_wp
+          tt10=0.e0_wp
+          tt11=0.e0_wp
+          tt12=0.e0_wp
+
+          do l=lowfil,lupfil
+             j=mod_arr3(i3+l)
+
+             tt1=tt1+x(i*12+1,j)*fil(l,3)
+             tt2=tt2+x(i*12+2,j)*fil(l,3)
+             tt3=tt3+x(i*12+3,j)*fil(l,3)
+             tt4=tt4+x(i*12+4,j)*fil(l,3)
+             tt5=tt5+x(i*12+5,j)*fil(l,3)
+             tt6=tt6+x(i*12+6,j)*fil(l,3)
+             tt7=tt7+x(i*12+7,j)*fil(l,3)
+             tt8=tt8+x(i*12+8,j)*fil(l,3)
+             tt9 =tt9 +x(i*12+9 ,j)*fil(l,3)
+             tt10=tt10+x(i*12+10,j)*fil(l,3)
+             tt11=tt11+x(i*12+11,j)*fil(l,3)
+             tt12=tt12+x(i*12+12,j)*fil(l,3)
+          enddo
+
+          y(i*12+1,i3)=y(i*12+1,i3)+tt1
+          y(i*12+2,i3)=y(i*12+2,i3)+tt2
+          y(i*12+3,i3)=y(i*12+3,i3)+tt3
+          y(i*12+4,i3)=y(i*12+4,i3)+tt4
+          y(i*12+5,i3)=y(i*12+5,i3)+tt5
+          y(i*12+6,i3)=y(i*12+6,i3)+tt6
+          y(i*12+7,i3)=y(i*12+7,i3)+tt7
+          y(i*12+8,i3)=y(i*12+8,i3)+tt8
+          y(i*12+9 ,i3)=y(i*12+9 ,i3)+tt9 
+          y(i*12+10,i3)=y(i*12+10,i3)+tt10
+          y(i*12+11,i3)=y(i*12+11,i3)+tt11
+          y(i*12+12,i3)=y(i*12+12,i3)+tt12
+       enddo
+    enddo
+!$omp  end do
+
+!$omp  do 
+    do i=(ndat/12)*12+1,ndat
+       do i3=0,n3
+          tt=0.e0_wp
+          do l=lowfil,lupfil
+             j=mod_arr3(i3+l)
+             tt=tt+x(i,j)*fil(l,3)
+          enddo
+          y(i,i3)=y(i,i3)+tt
+       enddo
+    enddo
+!$omp  end do
+  end subroutine conv_kin_z
+
+
+
 END SUBROUTINE convolut_kinetic_per_c
 
 

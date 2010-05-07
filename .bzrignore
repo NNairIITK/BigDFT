@@ -19,6 +19,13 @@ src/memguess
 src/test_forces
 src/PSolver/Exercise/PS_Exercise.pdf
 src/PSolver/PSolver
+src/OpenCL/.deps
+src/CUDA/.deps
+libXC/src/.deps/
+libXC/testsuite/.deps/
+src/CUDA/S_GPU/.deps/
+src/CUDA/S_GPU/src/.deps/
+src/CUDA/S_GPU/src/.dirstamp
 tests/*/wavefunction.*
 tests/*/*.out
 tests/*/*.ascii

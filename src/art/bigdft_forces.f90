@@ -81,7 +81,7 @@ contains
     boxl = at%alat1 * bohr2ang
     
     ! The restart structure.
-    call init_restart_objects(at,rst,subname)
+    call init_restart_objects(me,in%iacceleration,at,rst,subname)
 
     ! First calculation of forces.
     allocate(fcart(3, at%nat))

@@ -12,7 +12,7 @@
 !! SOURCE
 !!
 subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
-     orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
+     orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
   use module_base
   use module_types
   use module_interfaces, except_this_one => inputguess_gaussian_orbitals
@@ -26,17 +26,17 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   real(gp), intent(out) :: eks
   integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
   real(gp), dimension(at%nat), intent(out) :: locrad
-  type(orbitals_data), intent(out) :: orbse,orbsv
+  type(orbitals_data), intent(out) :: orbse
   type(gaussian_basis), intent(out) :: G
   real(wp), dimension(:,:,:), pointer :: psigau
   !local variables
   character(len=*), parameter :: subname='inputguess_gaussian_orbitals'
   integer, parameter :: ngx=31
   integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt
-  integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll,nvirteu,nvirted
-  type(communications_arrays) :: commsv
+  integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: iorbtolr
+  
 
   allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)
   call memocc(i_stat,scorb,'scorb',subname)
@@ -60,8 +60,6 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
           ' are semicore orbitals'
   end if
 
-  nvirteu=0
-  nvirted=0
   if (nvirt /= 0) then
      do ispin=1,nspin
         !Check for max number of virtual orbitals
@@ -79,26 +77,14 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
            if(iproc==0) write(*,'(1x,a,i3)')&
                 "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
         end if
-        if (ispin==1) nvirteu=nvirte
-        if (ispin==2) nvirted=nvirte
      end do
   end if
-  !no Davidson calculation if nvirt=0
-  if (nvirt==0) then
-     nvirte=0
-     nvirteu=0
-     nvirted=0
-  end if
-  
-  !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,nvirteu+nvirted,nvirteu,nvirted, &
-       & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
 
   !allocate communications arrays for virtual orbitals
   !warning: here the aim is just to calculate npsidim, should be fixed
   !call allocate_comms(nproc,orbsv,commsv,subname)
-  call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
-  call deallocate_comms(commsv,subname)
+!!$  call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
+!!$  call deallocate_comms(commsv,subname)
 
   !!!orbitals descriptor for inguess orbitals
   nspinorfororbse=orbs%nspinor
@@ -422,7 +408,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
              real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
              at%npspcode(ity),&
              ng-1,nl,5,noccmax,lmax,occup,xp(1,ityx),&
-             psiat(1,1,ityx))
+             psiat(1,1,ityx),.false.)
         ntypesx=ntypesx+1
         if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
      end if
@@ -932,9 +918,10 @@ END SUBROUTINE calc_coeff_inguess
 !! SOURCE
 !!
 subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
-     nmax_occ,noccmax,lmax,occup,expo,psiat)
+     nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb)
   use module_base
   implicit none
+  logical, intent(in) :: enlargerprb
   integer, intent(in) :: ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom
   real(gp), intent(in) :: zion
   integer, dimension(lmax+1), intent(in) :: nl
@@ -1035,6 +1022,11 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
 
   !!Just for extracting the covalent radius and rprb
   call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
+
+  if (enlargerprb) then
+     !experimental
+     rprb=100.0_gp
+  end if
 
 !  occup(:,:)=0.0_gp
 !   do l=0,lmax-1
@@ -1296,10 +1288,14 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
               end if
 ! potential from repulsive gauss potential
               tt=alpl**2/(.5_gp+d*alpl**2)
-              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma_restricted(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
-                   + (gpot(2)/alpl**2)*.5_gp*gamma_restricted(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
-                   + (gpot(3)/alpl**4)*.5_gp*gamma_restricted(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))&
-                   + (gpot(4)/alpl**6)*.5_gp*gamma_restricted(4.5_gp+real(l,gp))*tt**(4.5_gp+real(l,gp))
+              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma_restricted(1.5_gp+real(l,gp))*&
+                   tt**(1.5_gp+real(l,gp))&
+                   + (gpot(2)/alpl**2)*.5_gp*gamma_restricted(2.5_gp+real(l,gp))*&
+                   tt**(2.5_gp+real(l,gp))&
+                   + (gpot(3)/alpl**4)*.5_gp*gamma_restricted(3.5_gp+real(l,gp))*&
+                   tt**(3.5_gp+real(l,gp))&
+                   + (gpot(4)/alpl**6)*.5_gp*gamma_restricted(4.5_gp+real(l,gp))*&
+                   tt**(4.5_gp+real(l,gp))
 ! separable terms
               if (l.le.lpx) then
                  hh(i,j)=hh(i,j) + pp1(i,l+1)*hsep(1,l+1)*pp1(j,l+1)&
@@ -1770,6 +1766,7 @@ function gamma_restricted(x)
   if (x.le.0._gp) stop 'wrong argument for gamma_restricted'
   if (mod(x,1._gp).eq.0._gp) then
      ii=int(x)
+     gamma_restricted=1.0_gp
      do i=2,ii
         gamma_restricted=gamma_restricted*real(i-1,gp)
      end do

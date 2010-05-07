@@ -14,8 +14,8 @@
 !!
 program find_angles
  implicit none
- integer, parameter :: ntypes=4,nnmax=15,nseg=1800,nsegr=100000
- real(kind=8), parameter :: rstep=0.001d0!factor=12.82,rad=3.2d0/factor
+ integer, parameter :: ntypes=4,nnmax=15,nseg=1800,nsegr=10000
+ real(kind=8), parameter :: rstep=0.005d0!factor=12.82,rad=3.2d0/factor
  real(kind=8) :: factor,rad,rij,distance
  integer :: i,j,istep,k,j1,nat,istart,iat,nrep,nata,natc
  real(kind=8) theta,anglemin,anglemax,th,facnorm

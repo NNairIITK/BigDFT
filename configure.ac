@@ -8,7 +8,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.6],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.8],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -232,8 +232,6 @@ AM_CONDITIONAL(USE_CUDA_GPU, test "$ac_use_cuda_gpu" = "yes")
 AC_MSG_RESULT([$ac_use_cuda_gpu])
 if test x"$ac_use_cuda_gpu" = "xyes" ; then
   dnl Local CUDA usage (beside S_GPU).
-  dnl Instead of second underscoring, test the compiler behaviour.
-  AC_FC_WRAPPERS()
   dnl Optional Cuda installation dir.
   AC_ARG_WITH(cuda-path, AS_HELP_STRING([--with-cuda-path], [give the path to the NVidia Cuda tools (default is /usr/local/cuda).]),
                          [ac_with_cuda_path=$withval], [ac_with_cuda_path="/usr/local/cuda"])
@@ -256,9 +254,6 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   fi
   if test "$withlibcublas" = "no"; then
     AC_MSG_ERROR(["No 'cublas' library found, link will fail."])
-  else
-    CUDA_LIB_PATH=$ac_cuda_lib_path
-    AC_SUBST(CUDA_LIB_PATH)
   fi
   LIBS=$LIBS_OLD
   AC_LANG_POP(C)
@@ -276,6 +271,52 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   fi
   AC_SUBST(NVCC_FLAGS)
   LIBCUDA_LIBS="-L$ac_cuda_lib_path -lcudart -lcublas"
+fi
+
+dnl Use the OpenCL support
+ac_use_ocl="no"
+AC_ARG_ENABLE(opencl, AS_HELP_STRING([--enable-opencl], [Use OpenCL implementation for GPU convolutions (disabled by default).]),
+                         ac_use_ocl=$enableval, ac_use_ocl="no")
+AC_MSG_CHECKING([for OpenCL support])
+AC_MSG_RESULT([$ac_use_ocl])
+if test x"$ac_use_ocl" = "xyes" ; then
+  AC_LANG_PUSH(C)
+  dnl Optional OpenCL installation dir.
+  AC_ARG_WITH(ocl-path, AS_HELP_STRING([--with-ocl-path], [give the path to the OpenCL library (default is /usr).]),
+                         [ac_ocl_path=$withval], [ac_ocl_path="/usr"])
+  dnl Test the link on libOpenCL.
+  dnl look for the header.
+  CPPFLAGS_SVG=$CPPFLAGS
+  CPPFLAGS="$CPPFLAGS -I$ac_ocl_path/include"
+  AC_CHECK_HEADER([CL/cl.h],
+                  [ac_ocl_header="yes"],
+                  [ac_ocl_header="no"])
+  CPPFLAGS=$CPPFLAGS_SVG
+  if test "$ac_ocl_header" = "no"; then
+    AC_MSG_WARN(["No 'OpenCL' header found, OpenCL parts disabled."])
+    ac_use_ocl="no"
+  else
+    OCL_INCLUDE_PATH=$ac_ocl_path"/include"
+    AC_SUBST(OCL_INCLUDE_PATH)
+    dnl Now test for the library.
+    LIBS_OLD=$LIBS
+    LIBS="-L$ac_ocl_path/lib $LIBS"
+    AC_CHECK_LIB(OpenCL, clCreateContext, withlibocl=yes, withlibocl=no)
+    if test "$withlibocl" = "no"; then
+      AC_MSG_WARN(["No 'OpenCL' library found, OpenCL parts disabled."])
+      ac_use_ocl="no"
+    else
+      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL"
+    fi
+    LIBS=$LIBS_OLD
+  fi
+  AC_LANG_POP(C)
+fi
+AM_CONDITIONAL(USE_OCL, test "$ac_use_ocl" = "yes")
+
+if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" ; then
+  dnl Instead of second underscoring, test the compiler behaviour.
+  AC_FC_WRAPPERS()
 fi
 
 dnl AM_CONDITIONAL for the different libraries, set default values.
@@ -488,7 +529,7 @@ fi
 AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
 dnl Agregate all the optional libs.
-LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBS"
+LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBS"
 
 dnl Test for the documentation.
 AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes])
@@ -518,6 +559,7 @@ src/profiling/Makefile
 src/PSolver/Makefile
 src/convolutions/Makefile
 src/CUDA/Makefile
+src/OpenCL/Makefile
 src/art/Makefile
 utils/Makefile
 utils/PSPfiles/Makefile
@@ -584,6 +626,7 @@ Options:
   With Cuda GPU conv.:       $ac_use_cuda_gpu
    | NVidia Cuda Compiler:   $NVCC
    | Cuda flags:             $CUDA_FLAGS
+  With OpenCL support:       $ac_use_ocl
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE
