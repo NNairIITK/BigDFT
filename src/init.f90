@@ -283,6 +283,201 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 END SUBROUTINE createProjectorsArrays
 !!***
 
+!!$!!****f* BigDFT/initalize_wavefunctions
+!!$!! FUNCTION
+!!$!!   Allocate and initalise the wavefunction arrays according to the inputpsiId varaible
+!!$!! SOURCE
+!!$!!
+!!$subroutine initalize_wavefunctions(iproc,nproc,atoms,&
+!!$     orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
+!!$     nlpspd,proj,pkernel,ixc,psi,hpsi,psit,Gvirt,&
+!!$     nscatterarr,ngatherarr,irrzon,phnons,GPU)
+!!$  ! Input wavefunctions are found by a diagonalization in a minimal basis set
+!!$  ! Each processors write its initial wavefunctions into the wavefunction file
+!!$  ! The files are then read by readwave
+!!$  use module_base
+!!$  use module_types
+!!$  use module_interfaces, except_this_one => initialize_wavefunctions
+!!$  implicit none
+!!$  !Arguments
+!!$  integer, intent(in) :: iproc,nproc,ixc
+!!$  integer, intent(inout) :: nvirt
+!!$  real(gp), intent(in) :: hx,hy,hz
+!!$  type(atoms_data), intent(in) :: atoms
+!!$  type(orbitals_data), intent(inout) :: orbs
+!!$  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+!!$  type(locreg_descriptors), intent(in) :: Glr
+!!$  type(communications_arrays), intent(in) :: comms
+!!$  type(GPU_pointers), intent(inout) :: GPU
+!!$  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+!!$  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+!!$  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+!!$  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+!!$  real(dp), dimension(*), intent(in) :: pkernel
+!!$  real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
+!!$  type(gaussian_basis), intent(out) :: Gvirt !basis for davidson IG
+!!$  real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
+!!$  integer, dimension(:,:,:), intent(in) :: irrzon
+!!$  real(dp), dimension(:,:,:), intent(in) :: phnons
+!!$
+!!$  ! INPUT WAVEFUNCTIONS, added also random input guess
+!!$  select case(inputpsi)
+!!$  case(-2)
+!!$
+!!$     if (iproc == 0) then
+!!$        write( *,'(1x,a)')&
+!!$             '------------------------------------------------ Random wavefunctions initialization'
+!!$     end if
+!!$
+!!$     !random initialisation of the wavefunctions
+!!$     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,psi,'psi',subname)
+!!$
+!!$     call razero(orbs%npsidim,psi)
+!!$     ttsum=0.0d0
+!!$     do i=1,orbs%npsidim
+!!$        do j=0,iproc-1
+!!$           call random_number(tt)
+!!$        end do
+!!$        call random_number(tt)
+!!$        psi(i)=real(tt,wp)*0.01_wp
+!!$        ttsum=ttsum+psi(i)
+!!$        do j=iproc+1,nproc
+!!$           call random_number(tt)
+!!$        end do
+!!$     end do
+!!$
+!!$     orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
+!!$
+!!$     !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
+!!$     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
+!!$
+!!$  case(-1)
+!!$
+!!$     !import gaussians form CP2K (data in files gaubasis.dat and gaucoeff.dat)
+!!$     !and calculate eigenvalues
+!!$     call import_gaussians(iproc,nproc,atoms,orbs,comms,&
+!!$          Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,nlpspd,proj, &
+!!$          pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,in%nspin,&
+!!$          atoms%symObj,irrzon,phnons)
+!!$
+!!$  case(0)
+!!$     nspin=in%nspin
+!!$     !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
+!!$     call input_wf_diag(iproc,nproc, atoms,&
+!!$          orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
+!!$          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,Gvirt,&
+!!$          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU)
+!!$  case(1)
+!!$     !these parts should be reworked for the non-collinear spin case
+!!$
+!!$     !restart from previously calculated wavefunctions, in memory
+!!$
+!!$     !allocate principal wavefunction
+!!$     !allocated in the transposed way such as 
+!!$     !it can also be used as a work array for transposition
+!!$     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,psi,'psi',subname)
+!!$
+!!$     if (iproc == 0) then
+!!$        write( *,'(1x,a)')&
+!!$             '-------------------------------------------------------------- Wavefunctions Restart'
+!!$     end if
+!!$
+!!$     call reformatmywaves(iproc,orbs,atoms,hx_old,hy_old,hz_old,&
+!!$          n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,hx,hy,hz,n1,n2,n3,rxyz,Glr%wfd,psi)
+!!$
+!!$     call deallocate_wfd(wfd_old,'cluster')
+!!$
+!!$     i_all=-product(shape(psi_old))*kind(psi_old)
+!!$     deallocate(psi_old,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'psi_old',subname)
+!!$
+!!$     !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
+!!$     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
+!!$
+!!$  case(2)
+!!$     !restart from previously calculated wavefunctions, on disk
+!!$
+!!$     !allocate principal wavefunction
+!!$     !allocated in the transposed way such as 
+!!$     !it can also be used as a work array for transposition
+!!$
+!!$     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,psi,'psi',subname)
+!!$
+!!$     if (iproc == 0) then
+!!$        write( *,'(1x,a)')&
+!!$             '---------------------------------------------------- Reading Wavefunctions from disk'
+!!$     end if
+!!$
+!!$     call readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
+!!$
+!!$     !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
+!!$     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
+!!$
+!!$  case(11)
+!!$     !restart from previously calculated gaussian coefficients
+!!$     if (iproc == 0) then
+!!$        write( *,'(1x,a)')&
+!!$             '--------------------------------------- Quick Wavefunctions Restart (Gaussian basis)'
+!!$     end if
+!!$
+!!$     !allocate principal wavefunction
+!!$     !allocated in the transposed way such as 
+!!$     !it can also be used as a work array for transposition
+!!$     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,psi,'psi',subname)
+!!$
+!!$     call restart_from_gaussians(iproc,nproc,orbs,Glr,hx,hy,hz,psi,gbd,gaucoeffs)
+!!$
+!!$     !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
+!!$     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
+!!$
+!!$  case(12)
+!!$     !reading wavefunctions from gaussian file
+!!$     if (iproc == 0) then
+!!$        write( *,'(1x,a)')&
+!!$             '------------------------------------------- Reading Wavefunctions from gaussian file'
+!!$     end if
+!!$
+!!$     !allocate principal wavefunction
+!!$     !allocated in the transposed way such as 
+!!$     !it can also be used as a work array for transposition
+!!$
+!!$     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,psi,'psi',subname)
+!!$
+!!$     call read_gaussian_information(orbs,gbd,gaucoeffs,'wavefunctions.gau')
+!!$     !associate the new positions, provided that the atom number is good
+!!$     if (gbd%nat == atoms%nat) then
+!!$        gbd%rxyz=>rxyz
+!!$     else
+!!$        !        if (iproc == 0) then
+!!$        write( *,*)&
+!!$             ' ERROR: the atom number does not coincide with the number of gaussian centers'
+!!$        !        end if
+!!$        stop
+!!$     end if
+!!$
+!!$     call restart_from_gaussians(iproc,nproc,orbs,Glr,hx,hy,hz,psi,gbd,gaucoeffs)
+!!$
+!!$     !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
+!!$     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
+!!$
+!!$  case default
+!!$
+!!$     !     if (iproc == 0) then
+!!$     write( *,'(1x,a)')'ERROR:values of inputPsiId must be integers from -2 to  2'
+!!$     write( *,'(1x,a)')'                                         or from 10 to 12'
+!!$     write( *,'(1x,a,i0)')'                               while we found',in%inputPsiId
+!!$     !     end if
+!!$     stop
+!!$
+!!$  end select
+!!$
+!!$end subroutine initalize_wavefunctions
+
 
 !!****f* BigDFT/import_gaussians
 !! FUNCTION
@@ -312,8 +507,8 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
   real(dp), dimension(*), intent(inout) :: rhopot
   real(wp), dimension(*), intent(inout) :: pot_ion
   real(wp), dimension(:), pointer :: psi,psit,hpsi,rhocore
-  integer, dimension(:,:,:), intent(in) :: irrzon
-  real(dp), dimension(:,:,:), intent(in) :: phnons
+  integer, dimension(*), intent(in) :: irrzon
+  real(dp), dimension(*), intent(in) :: phnons
   !local variables
   character(len=*), parameter :: subname='import_gaussians'
   integer :: i_stat,i_all
@@ -494,8 +689,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
   type(gaussian_basis), intent(out) :: G !basis for davidson IG
   real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
   integer, intent(in) ::potshortcut
-  integer, dimension(:,:,:), intent(in) :: irrzon
-  real(dp), dimension(:,:,:), intent(in) :: phnons
+  integer, dimension(*), intent(in) :: irrzon
+  real(dp), dimension(*), intent(in) :: phnons
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   logical :: switchGPUconv,switchOCLconv
@@ -827,13 +1022,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
   if (iproc == 0) then
      if (verbose > 1) write(*,'(1x,a)')'done.'
      !gaussian estimation valid only for Free BC
-     if (at%geocode == 'F') then
+!     if (at%geocode == 'F') then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
         write(*,'(1x,a,1pe9.2)') &
           'expected accuracy in energy per orbital ',accurex/real(orbs%norb,kind=8)
         !write(*,'(1x,a,1pe9.2)') &
         !     'suggested value for gnrm_cv ',accurex/real(orbs%norb,kind=8)
-     end if
+!     end if
   endif
 
   !here we can define the subroutine which generates the coefficients for the virtual orbitals

@@ -139,9 +139,9 @@ rprb=2.90d0
 ehomo=-0.199186d0
 neleconf(2,0)=2.d0
 neleconf(2,1)=2.d0
-neleconf(3,0)=1.d-100
-neleconf(3,1)=1.d-100
-neleconf(3,2)=1.d-100
+!neleconf(3,0)=1.d-100
+!neleconf(3,1)=1.d-100
+!neleconf(3,2)=1.d-100
 amu=12.011d0
 
 case(6*1000+6)
