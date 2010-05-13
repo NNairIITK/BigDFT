@@ -216,6 +216,7 @@ end program abscalc_main
         i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
         deallocate(rst%orbs%eval,stat=i_stat)
         call memocc(i_stat,i_all,'eval',subname)
+        nullify(rst%orbs%eval)
 
         call deallocate_wfd(rst%Glr%wfd,subname)
      end if
@@ -262,6 +263,7 @@ end program abscalc_main
         i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
         deallocate(rst%orbs%eval,stat=i_stat)
         call memocc(i_stat,i_all,'eval',subname)
+        nullify(rst%orbs%eval)
 
         call deallocate_wfd(rst%Glr%wfd,subname)
         !finalize memory counting (there are still the positions and the forces allocated)

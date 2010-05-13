@@ -584,15 +584,23 @@ END SUBROUTINE deallocate_orbs
        deallocate(rst%psi,stat=i_stat)
        call memocc(i_stat,i_all,'psi',subname)
     end if
+
     if (associated(rst%orbs%eval)) then
        i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
        deallocate(rst%orbs%eval,stat=i_stat)
        call memocc(i_stat,i_all,'eval',subname)
     end if
+
     if (associated(rst%rxyz_old)) then
        i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
        deallocate(rst%rxyz_old,stat=i_stat)
        call memocc(i_stat,i_all,'rxyz_old',subname)
+    end if
+
+    if (associated(rst%rxyz_new)) then
+       i_all=-product(shape(rst%rxyz_new))*kind(rst%rxyz_new)
+       deallocate(rst%rxyz_new,stat=i_stat)
+       call memocc(i_stat,i_all,'rxyz_new',subname)
     end if
 
     !The gaussian basis descriptors are always allocated together
@@ -605,13 +613,6 @@ END SUBROUTINE deallocate_orbs
        deallocate(rst%gaucoeffs,stat=i_stat)
        call memocc(i_stat,i_all,'gaucoeffs',subname)
     end if
-
-    if (associated(rst%rxyz_new)) then
-       i_all=-product(shape(rst%rxyz_new))*kind(rst%rxyz_new)
-       deallocate(rst%rxyz_new,stat=i_stat)
-       call memocc(i_stat,i_all,'rxyz_new',subname)
-    end if
-
 
     !finalise the material accelearion usage
     call release_material_acceleration(rst%GPU)
