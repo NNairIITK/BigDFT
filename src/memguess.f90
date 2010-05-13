@@ -280,7 +280,7 @@ program memguess
   call orbitals_communicators(0,nproc,Glr,orbs,comms)  
 
   if (GPUtest .and. .not. GPUconv) then
-     write(*,*)' ERROR: you can not put a GPUtest flag is there is no GPUrun.'
+     write(*,*)' ERROR: you can not put a GPUtest flag if there is no GPUrun.'
      stop
   end if
   if (GPUconv .and. atoms%geocode=='P' .and. GPUtest) then

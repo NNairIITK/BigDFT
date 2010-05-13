@@ -31,6 +31,7 @@ program MINHOP
   integer, parameter :: mdmin=2
   real(kind=8), parameter :: beta1=1.10d0,beta2=1.10d0,beta3=1.d0/1.10d0
   real(kind=8), parameter :: alpha1=1.d0/1.10d0,alpha2=1.10d0
+  real(gp) :: fnoise
   real(kind=8) :: elocmin(npminx)
   real(kind=8), allocatable, dimension(:,:) ::ff,wpos,vxyz,gg,earr
   real(kind=8),allocatable, dimension(:,:,:):: poslocmin
@@ -232,21 +233,21 @@ program MINHOP
   count_md=0.d0
   nputback=0
 
-  do iat=1,atoms%nat
-     if (atoms%geocode == 'P') then
-        pos(1,iat)=modulo(pos(1,iat),atoms%alat1)
-        pos(2,iat)=modulo(pos(2,iat),atoms%alat2)
-        pos(3,iat)=modulo(pos(3,iat),atoms%alat3)
-     else if (atoms%geocode == 'S') then
-        pos(1,iat)=modulo(pos(1,iat),atoms%alat1)
-        pos(3,iat)=modulo(pos(3,iat),atoms%alat3)
-     end if
-  end do
+!!$  do iat=1,atoms%nat
+!!$     if (atoms%geocode == 'P') then
+!!$        pos(1,iat)=modulo(pos(1,iat),atoms%alat1)
+!!$        pos(2,iat)=modulo(pos(2,iat),atoms%alat2)
+!!$        pos(3,iat)=modulo(pos(3,iat),atoms%alat3)
+!!$     else if (atoms%geocode == 'S') then
+!!$        pos(1,iat)=modulo(pos(1,iat),atoms%alat1)
+!!$        pos(3,iat)=modulo(pos(3,iat),atoms%alat3)
+!!$     end if
+!!$  end do
 
 
   inputs_opt%inputPsiId=0
   call init_restart_objects(iproc,inputs_opt%iacceleration,atoms,rst,subname)
-  call call_bigdft(nproc,iproc,atoms,pos,inputs_md,e_pos,ff,rst,infocode)
+  call call_bigdft(nproc,iproc,atoms,pos,inputs_md,e_pos,ff,fnoise,rst,infocode)
 
   write(17,*) 'ENERGY ',e_pos
   energyold=1.d100
@@ -653,9 +654,13 @@ contains
 !!             rkin=rkin+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
 !!          end if
 !!       enddo
-      call atomic_axpy(atoms,rxyz,dt,vxyz,rxyz)
-      call atomic_axpy(atoms,rxyz,.5d0*dt*dt,gg,rxyz)
-      call atomic_dot(atoms,vxyz,vxyz,rkin)
+       !call atomic_axpy(atoms,rxyz,dt,vxyz,rxyz)
+       !call atomic_axpy(atoms,rxyz,.5d0*dt*dt,gg,rxyz)
+       !call atomic_dot(atoms,vxyz,vxyz,rkin)
+       call daxpy(3*atoms%nat,dt,vxyz(1,1),1,rxyz(1,1),1)
+       call daxpy(3*atoms%nat,0.5_gp*dt*dt,gg(1,1),1,rxyz(1,1),1)
+
+       rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
        rkin=rkin*.5d0
 
        enmin2=enmin1
@@ -663,7 +668,7 @@ contains
        !    if (iproc == 0) write(*,*) 'CLUSTER FOR  MD'
        inputs_md%inputPsiId=1
        if (istep > 2) inputs_md%itermax=50
-       call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,e_rxyz,ff,rst,infocode)
+       call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,e_rxyz,ff,fnoise,rst,infocode)
 
        if (iproc == 0) then
           write(fn,'(i4.4)') istep
@@ -750,18 +755,18 @@ contains
 
     inputs_md%inputPsiId=1
     if(iproc==0)write(*,*)'# soften initial step '
-    call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,etot0,fxyz,rst,infocode)
+    call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,etot0,fxyz,fnoise,rst,infocode)
 
     ! scale velocity to generate dimer 
 
-    call atomic_dot(atoms,vxyz,vxyz,svxyz)
-!    svxyz=0.d0
-!    do i=1,3*atoms%nat
-!       iat=(i-1)/3+1
-!       if (.not. atoms%lfrztyp(iat)) then
-!          svxyz=svxyz+vxyz(i)**2
-!       end if
-!    enddo
+    !call atomic_dot(atoms,vxyz,vxyz,svxyz)
+    svxyz=0.d0
+    do i=1,3*atoms%nat
+       iat=(i-1)/3+1
+       if (atoms%ifrztyp(iat) /= 0) then
+          svxyz=svxyz+vxyz(i)**2
+       end if
+    enddo
     eps_vxyz=sqrt(svxyz)
     if(iproc == 0) write(*,*)'#  eps_vxyz=',eps_vxyz
 
@@ -788,36 +793,37 @@ contains
 !             end if
 !          end if
 !       end do
-       call atomic_axpy(atoms,rxyz,1.d0,vxyz,wpos)
+       !call atomic_axpy(atoms,rxyz,1.d0,vxyz,wpos)
+       wpos=rxyz+vxyz
 
-       call call_bigdft(nproc,iproc,atoms,wpos,inputs_md,etot,fxyz,rst,infocode)
+       call call_bigdft(nproc,iproc,atoms,wpos,inputs_md,etot,fxyz,fnoise,rst,infocode)
        fd2=2.d0*(etot-etot0)/eps_vxyz**2
 
-!       sdf=0.d0
-!       svxyz=0.d0
-!       do i=1,3*atoms%nat
-!          iat=(i-1)/3+1
-!          if (.not. atoms%lfrztyp(iat)) then
-!             sdf=sdf+vxyz(i)*fxyz(i)
-!             svxyz=svxyz+vxyz(i)*vxyz(i)
-!          end if
-!       end do
-       call atomic_dot(atoms,vxyz,vxyz,svxyz)
-       call atomic_dot(atoms,vxyz,fxyz,sdf)
+       sdf=0.d0
+       svxyz=0.d0
+       do i=1,3*atoms%nat
+          iat=(i-1)/3+1
+          if (atoms%ifrztyp(iat) /= 0) then
+             sdf=sdf+vxyz(i)*fxyz(i)
+             svxyz=svxyz+vxyz(i)*vxyz(i)
+          end if
+       end do
+       !call atomic_dot(atoms,vxyz,vxyz,svxyz)
+       !call atomic_dot(atoms,vxyz,fxyz,sdf)
 
        curv=-sdf/svxyz
        if (it == 1) curv0=curv
 
-!       res=0.d0
-!       do i=1,3*atoms%nat
-!          iat=(i-1)/3+1
-!          if (.not. atoms%lfrztyp(iat)) then
-!             fxyz(i)=fxyz(i)+curv*vxyz(i)
-!             res=res+fxyz(i)**2
-!          end if
-!       end do
-       call atomic_axpy_forces(atoms,fxyz,curv,vxyz,fxyz)
-       call atomic_dot(atoms,fxyz,fxyz,res)
+       res=0.d0
+       do i=1,3*atoms%nat
+          iat=(i-1)/3+1
+          if (atoms%ifrztyp(iat) /= 0) then
+             fxyz(i)=fxyz(i)+curv*vxyz(i)
+             res=res+fxyz(i)**2
+          end if
+       end do
+       !call atomic_axpy_forces(atoms,fxyz,curv,vxyz,fxyz)
+       !call atomic_dot(atoms,fxyz,fxyz,res)
        res=sqrt(res)
 
        write(fn4,'(i4.4)') it
@@ -850,7 +856,8 @@ contains
 !
 !          end if
 !       end do
-       call atomic_axpy_forces(atoms,wpos,alpha,fxyz,wpos)
+       !call atomic_axpy_forces(atoms,wpos,alpha,fxyz,wpos)
+       call daxpy(3*atoms%nat,alpha,fxyz(1),1,wpos(1),1)
 
        do i=1,3*atoms%nat
           vxyz(i)=wpos(i)-rxyz(i)
@@ -860,14 +867,14 @@ contains
        call elim_moment(atoms%nat,vxyz)
        call elim_torque(atoms%nat,rxyz,vxyz)
 
-!       svxyz=0.d0
-!       do i=1,3*atoms%nat
-!          iat=(i-1)/3+1
-!          if (.not. atoms%lfrztyp(iat)) then
-!             svxyz=svxyz+vxyz(i)*vxyz(i)
-!          end if
-!       end do
-       call atomic_dot(atoms,vxyz,vxyz,svxyz)
+       svxyz=0.d0
+       do i=1,3*atoms%nat
+          iat=(i-1)/3+1
+          if (atoms%ifrztyp(iat) /= 0) then
+             svxyz=svxyz+vxyz(i)*vxyz(i)
+          end if
+       end do
+       !call atomic_dot(atoms,vxyz,vxyz,svxyz)
        if (res <= curv*eps_vxyz*5.d-1) exit
        svxyz=eps_vxyz/dsqrt(svxyz)
 
