@@ -773,7 +773,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      !we fill the values of the eval for the orbitals used in the preconditioner
      do ikpt=1,orbsv%nkpts
         do iorb=1,orbsv%norb
-           orbsv%eval(iorb+(ikpt-1)*orbsv%norb)=e(iorb,ikpt,1)
+           write(*,*) 'iorb,e(iorb,ikpt,1)',iorb,e(iorb,ikpt,1)
+           orbsv%eval(iorb+(ikpt-1)*orbsv%norb)=min(e(iorb,ikpt,1),-.5d0)
         end do
      end do
      !we use for preconditioning the eval from the lowest value of the KS wavefunctions
@@ -1244,8 +1245,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      end if
      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
      !plot the orbital and the density
-     write(orbname,'(A,i3.3)')'virtual',iorb+orbsv%isorb
-     write(denname,'(A,i3.3)')'denvirt',iorb+orbsv%isorb
+     write(orbname,'(A,i4.4)')'virtual',iorb+orbsv%isorb
+     write(denname,'(A,i4.4)')'denvirt',iorb+orbsv%isorb
      write(comment,'(1pe10.3)')e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
      !choose the way of plotting the wavefunctions
      if (in%nplot > 0) then
@@ -1258,13 +1259,11 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   end do
 
   do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
-     if(modulo(orbs%norb-iorb-orbs%isorb-1,orbs%norb)+1 > abs(in%nplot)) then
-        exit! we have written nplot pot files
-     end if
+     if(modulo(orbs%norb-iorb-orbs%isorb-0,orbs%norb)+1 .le.  abs(in%nplot)) then  ! SG 
      !address
      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
-     write(orbname,'(A,i3.3)')'orbital',iorb+orbs%isorb
-     write(denname,'(A,i3.3)')'densocc',iorb+orbs%isorb
+     write(orbname,'(A,i4.4)')'orbital',iorb+orbs%isorb
+     write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
      write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
      !choose the way of plotting the wavefunctions
      if (in%nplot > 0) then
@@ -1274,7 +1273,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
         call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
         call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
      end if
-
+  endif
   end do
   ! END OF PLOTTING
 

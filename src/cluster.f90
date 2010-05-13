@@ -217,7 +217,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   real(gp) :: peakmem,energy_old,sumz,evsum,sumx,sumy
   real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,alpha,gnrm
   real(gp) :: scprsum,energybs,tt,tel,ehart_fake,energy_min,psoffset
-  real(kind=8) :: ttsum
+  real(kind=8) :: ttsum,tumx,tumy,tumz,fumx,fumy,fumz
   real(gp) :: edisp ! Dispersion energy
   type(wavefunctions_descriptors) :: wfd_old
   type(nonlocal_psp_descriptors) :: nlpspd
@@ -1231,6 +1231,23 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   call local_forces(iproc,atoms,rxyz,hxh,hyh,hzh,&
        n1,n2,n3,n3p,i3s+i3xcsh,n1i,n2i,n3i,rho,pot,gxyz)
 
+!!             Just sum up forces to get the translational force for the local part only:
+!              if (nproc > 1) then
+!                 call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+!              else
+!                 do iat=1,atoms%nat
+!                    fxyz(1,iat)=gxyz(1,iat) ; fxyz(2,iat)=gxyz(2,iat) ; fxyz(3,iat)=gxyz(3,iat)
+!                 enddo
+!              end if
+!              if (iproc == 0) then
+!              tumx=0.d0 ; tumy=0.d0 ; tumz=0.d0
+!              do iat=1,atoms%nat
+!                 tumx=tumx+fxyz(1,iat) ; tumy=tumy+fxyz(2,iat) ; tumz=tumz+fxyz(3,iat)
+!              enddo
+!              write(77,'(a30,3(1x,e10.3))') 'translat. force local pot ',tumx,tumy,tumz
+!              endif
+
+
   i_all=-product(shape(rho))*kind(rho)
   deallocate(rho,stat=i_stat)
   call memocc(i_stat,i_all,'rho',subname)
@@ -1258,6 +1275,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         fxyz(3,iat)=gxyz(3,iat)
      enddo
   end if
+              if (iproc == 0) then
+              sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
+              fumx=0.d0 ; fumy=0.d0 ; fumz=0.d0
+              do iat=1,atoms%nat
+                 sumx=sumx+fxyz(1,iat) ; sumy=sumy+fxyz(2,iat) ; sumz=sumz+fxyz(3,iat)
+                 fumx=fumx+fion(1,iat) ; fumy=fumy+fion(2,iat) ; fumz=fumz+fion(3,iat)
+              enddo
+              write(77,'(a30,3(1x,e10.3))') 'translat. force total pot ',sumx,sumy,sumz
+              write(77,'(a30,3(1x,e10.3))') 'translat. force ionic pot ',fumx,fumy,fumz
+              endif
 
   !add to the forces the ionic and dispersion contribution 
   do iat=1,atoms%nat

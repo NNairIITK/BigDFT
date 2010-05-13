@@ -191,7 +191,8 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   real(gp) :: rcov,rprb,ehomo,radfine,minrad,maxrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr
-  integer, dimension(nmax,0:lmax-1) :: neleconf
+  !integer, dimension(nmax,0:lmax-1) :: neleconf
+  real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
 
   !allocate atoms data variables
   ! store PSP parameters
