@@ -69,6 +69,7 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
 
   character(len=*), parameter :: subname='scfloop_main'
   integer :: infocode, i, i_stat, i_all,j
+  real(gp) :: fnoise
   real(dp) :: favg(3)
   real(dp), allocatable :: xcart(:,:)
 
@@ -98,7 +99,7 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   end do
 
   scfloop_in%inputPsiId = 1
-  call call_bigdft(scfloop_nproc,me,scfloop_at,xcart,scfloop_in,epot,grad,scfloop_rst,infocode)
+  call call_bigdft(scfloop_nproc,me,scfloop_at,xcart,scfloop_in,epot,grad,fnoise,scfloop_rst,infocode)
 
   ! need to transform the forces into reduced ones.
   favg(:) = real(0, dp)

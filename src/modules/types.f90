@@ -300,7 +300,7 @@ module module_types
      real(gp) :: hx_old,hy_old,hz_old
      real(wp), dimension(:), pointer :: psi 
      real(wp), dimension(:,:), pointer :: gaucoeffs
-     real(gp), dimension(:,:), pointer :: rxyz_old
+     real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
      type(locreg_descriptors) :: Glr
      type(gaussian_basis) :: gbd
      type(orbitals_data) :: orbs
@@ -536,6 +536,8 @@ END SUBROUTINE deallocate_orbs
     integer :: i_stat
 
     !allocate pointers
+    allocate(rst%rxyz_new(3,atoms%nat+ndebug),stat=i_stat)
+    call memocc(i_stat,rst%rxyz_new,'rxyz_new',subname)
     allocate(rst%rxyz_old(3,atoms%nat+ndebug),stat=i_stat)
     call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
 
@@ -582,15 +584,23 @@ END SUBROUTINE deallocate_orbs
        deallocate(rst%psi,stat=i_stat)
        call memocc(i_stat,i_all,'psi',subname)
     end if
+
     if (associated(rst%orbs%eval)) then
        i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
        deallocate(rst%orbs%eval,stat=i_stat)
        call memocc(i_stat,i_all,'eval',subname)
     end if
+
     if (associated(rst%rxyz_old)) then
        i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
        deallocate(rst%rxyz_old,stat=i_stat)
        call memocc(i_stat,i_all,'rxyz_old',subname)
+    end if
+
+    if (associated(rst%rxyz_new)) then
+       i_all=-product(shape(rst%rxyz_new))*kind(rst%rxyz_new)
+       deallocate(rst%rxyz_new,stat=i_stat)
+       call memocc(i_stat,i_all,'rxyz_new',subname)
     end if
 
     !The gaussian basis descriptors are always allocated together

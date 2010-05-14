@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.4-dev.6)
+                           ggggg       i         BBBB                 (Ver 1.4-dev.9)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -84,7 +84,6 @@
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
  ------------------------------------------------------- Input Wavefunctions Creation
  Generating 4 Atomic Input Orbitals
- Wavefunctions memory occupation for root processor (Bytes): 0
  Processes from 0 to 3 treat 1 inguess orbitals 
  Processes from 4 to 7 treat 0 inguess orbitals 
  Wavefunctions memory occupation for root processor (Bytes): 142160
@@ -92,35 +91,35 @@
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
  ekin_sum,epot_sum,eproj_sum  1.83027081160E+00 -2.11247987499E+00  0.00000000000E+00
     ehart,   eexcu,    vexcu  1.48585621362E+00 -8.25718029436E-01 -1.08636549763E+00
- evale(   1,u)= -2.27740859598821E-01  <-Last->  evale(   1,d)= -2.27731729727223E-01
+ evale(   1,u)= -2.27740859598820E-01  <-Last->  evale(   1,d)= -2.27731729727223E-01
  evale(   2,u)=  4.96218718821692E-01            evale(   2,d)=  4.96211017657104E-01
  expected accuracy in energy  1.71E-04
  expected accuracy in energy per orbital  8.54E-05
- iter,total energy,gnrm     1  -1.02716489510763354E+00  2.41E-01
- iter,total energy,gnrm     2  -1.12641797720167824E+00  1.29E-01
- iter,total energy,gnrm     3  -1.13322887761257185E+00  4.59E-02
- iter,total energy,gnrm     4  -1.13532020677164147E+00  2.83E-02
- iter,total energy,gnrm     5  -1.13682597225057558E+00  1.23E-02
- iter,total energy,gnrm     6  -1.13691624260322066E+00  1.95E-03
- iter,total energy,gnrm     7  -1.13691726035507101E+00  4.45E-04
- iter,total energy,gnrm     8  -1.13691730845801398E+00  9.26E-05
+ iter,total energy,gnrm     1  -1.02716489510758424E+00  2.41E-01
+ iter,total energy,gnrm     2  -1.12641797720159498E+00  1.29E-01
+ iter,total energy,gnrm     3  -1.13322887761241087E+00  4.59E-02
+ iter,total energy,gnrm     4  -1.13532020677152512E+00  2.83E-02
+ iter,total energy,gnrm     5  -1.13682597225045745E+00  1.23E-02
+ iter,total energy,gnrm     6  -1.13691624260308943E+00  1.95E-03
+ iter,total energy,gnrm     7  -1.13691726035494334E+00  4.45E-04
+ iter,total energy,gnrm     8  -1.13691730845786787E+00  9.26E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07939255797E+00 -1.82392899142E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114605742E+00 -6.45403231391E-01 -8.42922165339E-01
- FINAL iter,total energy,gnrm     9  -1.13691731038025701E+00  9.26E-05
+ FINAL iter,total energy,gnrm     9  -1.13691731038011512E+00  9.26E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72269089147929E-01              eval(   1,d)= -3.72267344305984E-01
+ eval(   1,u)= -3.72269089147930E-01              eval(   1,d)= -3.72267344305984E-01
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
- CPU time/ELAPSED time for root process     0         5.13         5.00
+ the sum of the forces is
+      x direction     1.27618950E-04
+      y direction     1.57662772E-04
+      z direction     1.57662772E-04
+ CPU time/ELAPSED time for root process     0        10.39         9.04
  Wavefunction Optimization Finished, exit signal=    0
  Final values of the Forces for each atom
-     1      H -8.25708E-04  1.50677E-04  1.50677E-04
-     2      H  1.08095E-03  1.64649E-04  1.64649E-04
- the sum of the forces is
-      x direction     2.55237901E-04
-      y direction     3.15325544E-04
-      z direction     3.15325544E-04
+     1      H -9.53327E-04 -8.47033E-22 -8.47033E-22
+     2      H  9.53327E-04  8.47033E-22  8.47033E-22
  
  =Frequencies calculation ===========================================================
  =F Move the atom 1 in the direction -1*x by    -7.0312500000E-03 bohr
@@ -147,7 +146,7 @@
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1      H  8.14482E+00  6.75000E+00  6.75000E+00       18.100    15.000    15.000
      2      H  6.70518E+00  6.75000E+00  6.75000E+00       14.900    15.000    15.000
-    Shift of=  3.51562E-03  0.00000E+00  0.00000E+00 H grids=  0.4500  0.4500  0.4500
+    Shift of= -1.42148E+00  6.75000E+00  6.75000E+00 H grids=  0.4500  0.4500  0.4500
    Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
        Extremes for the high resolution grid points:        13<20     13<17     13<17
  wavelet localization is ON
@@ -162,7 +161,7 @@
  Total number of components =                    0
  Percent of zero components =                    0
  Wavefunctions memory occupation for root processor (Bytes): 142160
- ion-ion interaction energy  6.94622336979816E-01
+ ion-ion interaction energy  6.94622336979817E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001559448   0.000E+00
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
@@ -170,19 +169,23 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   2.471923828125E-05 0.000000000000E+00 0.000000000000E+00
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13689474395899781E+00  8.83E-03
- iter,total energy,gnrm     2  -1.13691452815446192E+00  1.93E-03
- iter,total energy,gnrm     3  -1.13691563055204892E+00  2.32E-04
- iter,total energy,gnrm     4  -1.13691563694082132E+00  2.52E-05
+ iter,total energy,gnrm     1  -1.13689474395884571E+00  8.83E-03
+ iter,total energy,gnrm     2  -1.13691452815437444E+00  1.93E-03
+ iter,total energy,gnrm     3  -1.13691563055192613E+00  2.32E-04
+ iter,total energy,gnrm     4  -1.13691563694069342E+00  2.52E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.08271796900E+00 -1.82852933650E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28358325183E+00 -6.46468530783E-01 -8.44325176029E-01
- FINAL iter,total energy,gnrm     5  -1.13691563711104515E+00  2.52E-05
+ FINAL iter,total energy,gnrm     5  -1.13691563711089461E+00  2.52E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72905718983623E-01              eval(   1,d)= -3.72905648523181E-01
+ eval(   1,u)= -3.72905718983623E-01              eval(   1,d)= -3.72905648523180E-01
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
- CPU time/ELAPSED time for root process     0         2.39         2.40
+ the sum of the forces is
+      x direction     1.21105773E-04
+      y direction     1.56768261E-04
+      z direction     1.56768261E-04
+ CPU time/ELAPSED time for root process     0         5.26         5.02
  =F =================================================================================
  
  =F Move the atom 1 in the direction  1*x by     7.0312500000E-03 bohr
@@ -209,7 +212,7 @@
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1      H  8.15185E+00  6.75000E+00  6.75000E+00       18.115    15.000    15.000
      2      H  6.69815E+00  6.75000E+00  6.75000E+00       14.885    15.000    15.000
-    Shift of= -3.51563E-03  0.00000E+00  0.00000E+00 H grids=  0.4500  0.4500  0.4500
+    Shift of= -1.42852E+00  6.75000E+00  6.75000E+00 H grids=  0.4500  0.4500  0.4500
    Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
        Extremes for the high resolution grid points:        13<20     13<17     13<17
  wavelet localization is ON
@@ -232,19 +235,23 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   9.887695312502E-05 0.000000000000E+00 0.000000000000E+00
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13681883697472719E+00  1.77E-02
- iter,total energy,gnrm     2  -1.13689795974610153E+00  3.85E-03
- iter,total energy,gnrm     3  -1.13690229748085692E+00  4.58E-04
- iter,total energy,gnrm     4  -1.13690232609354380E+00  5.43E-05
+ iter,total energy,gnrm     1  -1.13681883697459041E+00  1.77E-02
+ iter,total energy,gnrm     2  -1.13689795974597985E+00  3.85E-03
+ iter,total energy,gnrm     3  -1.13690229748070903E+00  4.58E-04
+ iter,total energy,gnrm     4  -1.13690232609341146E+00  5.43E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07609993584E+00 -1.81936608835E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.27872228347E+00 -6.44344377726E-01 -8.41527671715E-01
- FINAL iter,total energy,gnrm     5  -1.13690232680392933E+00  5.43E-05
+ FINAL iter,total energy,gnrm     5  -1.13690232680378900E+00  5.43E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
  eval(   1,u)= -3.71633077614565E-01              eval(   1,d)= -3.71633074894125E-01
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
- CPU time/ELAPSED time for root process     0         2.42         2.40
+ the sum of the forces is
+      x direction     1.32746986E-04
+      y direction     1.56357641E-04
+      z direction     1.56357641E-04
+ CPU time/ELAPSED time for root process     0         5.23         4.71
  =F =================================================================================
  
  =F Move the atom 1 in the direction -1*y by    -7.0312500000E-03 bohr
@@ -271,7 +278,7 @@
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1      H  8.14833E+00  6.74648E+00  6.75000E+00       18.107    14.992    15.000
      2      H  6.70167E+00  6.75352E+00  6.75000E+00       14.893    15.008    15.000
-    Shift of= -8.88178E-16  3.51562E-03  0.00000E+00 H grids=  0.4500  0.4500  0.4500
+    Shift of= -1.42500E+00  6.75352E+00  6.75000E+00 H grids=  0.4500  0.4500  0.4500
    Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
        Extremes for the high resolution grid points:        13<20     13<17     13<17
  wavelet localization is ON
@@ -292,21 +299,25 @@
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    molecule was shifted   2.471923828127E-05 2.471923828125E-05 0.000000000000E+00
+    molecule was shifted   2.471923828125E-05 2.471923828125E-05 0.000000000000E+00
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13688517402071709E+00  1.20E-02
- iter,total energy,gnrm     2  -1.13691531694334791E+00  2.49E-03
- iter,total energy,gnrm     3  -1.13691704665620352E+00  2.88E-04
- iter,total energy,gnrm     4  -1.13691705951380917E+00  4.54E-05
+ iter,total energy,gnrm     1  -1.13688517402057099E+00  1.20E-02
+ iter,total energy,gnrm     2  -1.13691531694320669E+00  2.49E-03
+ iter,total energy,gnrm     3  -1.13691704665605475E+00  2.88E-04
+ iter,total energy,gnrm     4  -1.13691705951364974E+00  4.54E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938702826E+00 -1.82391894872E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114153708E+00 -6.45401277520E-01 -8.42919592992E-01
- FINAL iter,total energy,gnrm     5  -1.13691705994576697E+00  4.54E-05
+ FINAL iter,total energy,gnrm     5  -1.13691705994561443E+00  4.54E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72265960287094E-01              eval(   1,d)= -3.72265960173388E-01
+ eval(   1,u)= -3.72265960287094E-01              eval(   1,d)= -3.72265960173387E-01
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
- CPU time/ELAPSED time for root process     0         2.37         2.20
+ the sum of the forces is
+      x direction     1.25663727E-04
+      y direction     1.56475972E-04
+      z direction     1.56362297E-04
+ CPU time/ELAPSED time for root process     0         5.23         5.13
  =F =================================================================================
  
  =F Move the atom 1 in the direction  1*y by     7.0312500000E-03 bohr
@@ -333,7 +344,7 @@
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1      H  8.14833E+00  6.75352E+00  6.75000E+00       18.107    15.008    15.000
      2      H  6.70167E+00  6.74648E+00  6.75000E+00       14.893    14.992    15.000
-    Shift of= -8.88178E-16 -3.51563E-03  0.00000E+00 H grids=  0.4500  0.4500  0.4500
+    Shift of= -1.42500E+00  6.74648E+00  6.75000E+00 H grids=  0.4500  0.4500  0.4500
    Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
        Extremes for the high resolution grid points:        13<20     13<17     13<17
  wavelet localization is ON
@@ -356,20 +367,24 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 9.887695312500E-05 0.000000000000E+00
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13687231831142199E+00  1.62E-02
- iter,total energy,gnrm     2  -1.13691440325229975E+00  3.10E-03
- iter,total energy,gnrm     3  -1.13691693501524749E+00  4.02E-04
- iter,total energy,gnrm     4  -1.13691696008476506E+00  1.01E-04
- iter,total energy,gnrm     5  -1.13691696090356387E+00  6.14E-06
+ iter,total energy,gnrm     1  -1.13687231831129076E+00  1.62E-02
+ iter,total energy,gnrm     2  -1.13691440325215365E+00  3.10E-03
+ iter,total energy,gnrm     3  -1.13691693501510849E+00  4.02E-04
+ iter,total energy,gnrm     4  -1.13691696008461829E+00  1.01E-04
+ iter,total energy,gnrm     5  -1.13691696090343730E+00  6.14E-06
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938651659E+00 -1.82391849900E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114134738E+00 -6.45401186592E-01 -8.42919473340E-01
- FINAL iter,total energy,gnrm     6  -1.13691696091559602E+00  6.14E-06
+ FINAL iter,total energy,gnrm     6  -1.13691696091546235E+00  6.14E-06
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72265991202911E-01              eval(   1,d)= -3.72265991207432E-01
+ eval(   1,u)= -3.72265991202911E-01              eval(   1,d)= -3.72265991207431E-01
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
- CPU time/ELAPSED time for root process     0         2.81         2.65
+ the sum of the forces is
+      x direction     1.26621425E-04
+      y direction     1.56534964E-04
+      z direction     1.56398477E-04
+ CPU time/ELAPSED time for root process     0         5.79         5.65
  =F =================================================================================
  
  =F Move the atom 1 in the direction -1*z by    -7.0312500000E-03 bohr
@@ -396,7 +411,7 @@
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1      H  8.14833E+00  6.75000E+00  6.74648E+00       18.107    15.000    14.992
      2      H  6.70167E+00  6.75000E+00  6.75352E+00       14.893    15.000    15.008
-    Shift of= -8.88178E-16  0.00000E+00  3.51562E-03 H grids=  0.4500  0.4500  0.4500
+    Shift of= -1.42500E+00  6.75000E+00  6.75352E+00 H grids=  0.4500  0.4500  0.4500
    Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
        Extremes for the high resolution grid points:        13<20     13<17     13<17
  wavelet localization is ON
@@ -419,19 +434,23 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 2.471923828125E-05 2.471923828125E-05
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13689473862498169E+00  1.14E-02
- iter,total energy,gnrm     2  -1.13691577728155213E+00  2.20E-03
- iter,total energy,gnrm     3  -1.13691704691500628E+00  2.87E-04
- iter,total energy,gnrm     4  -1.13691705953550315E+00  7.21E-05
+ iter,total energy,gnrm     1  -1.13689473862484669E+00  1.14E-02
+ iter,total energy,gnrm     2  -1.13691577728138271E+00  2.20E-03
+ iter,total energy,gnrm     3  -1.13691704691488615E+00  2.87E-04
+ iter,total energy,gnrm     4  -1.13691705953536082E+00  7.21E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938679050E+00 -1.82391884413E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114138505E+00 -6.45401216950E-01 -8.42919513545E-01
- FINAL iter,total energy,gnrm     5  -1.13691705995020453E+00  7.21E-05
+ FINAL iter,total energy,gnrm     5  -1.13691705995005554E+00  7.21E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
  eval(   1,u)= -3.72266026810070E-01              eval(   1,d)= -3.72266026812649E-01
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
- CPU time/ELAPSED time for root process     0         2.50         2.44
+ the sum of the forces is
+      x direction     1.25940696E-04
+      y direction     1.56580067E-04
+      z direction     1.56600611E-04
+ CPU time/ELAPSED time for root process     0         5.17         5.18
  =F =================================================================================
  
  =F Move the atom 1 in the direction  1*z by     7.0312500000E-03 bohr
@@ -458,7 +477,7 @@
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1      H  8.14833E+00  6.75000E+00  6.75352E+00       18.107    15.000    15.008
      2      H  6.70167E+00  6.75000E+00  6.74648E+00       14.893    15.000    14.992
-    Shift of= -8.88178E-16  0.00000E+00 -3.51563E-03 H grids=  0.4500  0.4500  0.4500
+    Shift of= -1.42500E+00  6.75000E+00  6.74648E+00 H grids=  0.4500  0.4500  0.4500
    Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
        Extremes for the high resolution grid points:        13<20     13<17     13<17
  wavelet localization is ON
@@ -481,20 +500,24 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 0.000000000000E+00 9.887695312500E-05
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13687230837329012E+00  1.62E-02
- iter,total energy,gnrm     2  -1.13691440284545098E+00  3.10E-03
- iter,total energy,gnrm     3  -1.13691693501498126E+00  4.02E-04
- iter,total energy,gnrm     4  -1.13691696008446375E+00  1.01E-04
- iter,total energy,gnrm     5  -1.13691696090355188E+00  6.16E-06
+ iter,total energy,gnrm     1  -1.13687230837315734E+00  1.62E-02
+ iter,total energy,gnrm     2  -1.13691440284531420E+00  3.10E-03
+ iter,total energy,gnrm     3  -1.13691693501482161E+00  4.02E-04
+ iter,total energy,gnrm     4  -1.13691696008431609E+00  1.01E-04
+ iter,total energy,gnrm     5  -1.13691696090343242E+00  6.16E-06
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938651667E+00 -1.82391849901E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114134746E+00 -6.45401186630E-01 -8.42919473390E-01
- FINAL iter,total energy,gnrm     6  -1.13691696091557692E+00  6.16E-06
+ FINAL iter,total energy,gnrm     6  -1.13691696091545347E+00  6.16E-06
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
  eval(   1,u)= -3.72265991167309E-01              eval(   1,d)= -3.72265991167561E-01
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
- CPU time/ELAPSED time for root process     0         2.86         2.62
+ the sum of the forces is
+      x direction     1.26621717E-04
+      y direction     1.56398619E-04
+      z direction     1.56535014E-04
+ CPU time/ELAPSED time for root process     0         5.91         5.91
  =F =================================================================================
  
  =F Move the atom 2 in the direction -1*x by    -7.0312500000E-03 bohr
@@ -521,7 +544,7 @@
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1      H  8.15185E+00  6.75000E+00  6.75000E+00       18.115    15.000    15.000
      2      H  6.69815E+00  6.75000E+00  6.75000E+00       14.885    15.000    15.000
-    Shift of=  3.51562E-03  0.00000E+00  0.00000E+00 H grids=  0.4500  0.4500  0.4500
+    Shift of= -1.42148E+00  6.75000E+00  6.75000E+00 H grids=  0.4500  0.4500  0.4500
    Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
        Extremes for the high resolution grid points:        13<20     13<17     13<17
  wavelet localization is ON
@@ -536,7 +559,7 @@
  Total number of components =                    0
  Percent of zero components =                    0
  Wavefunctions memory occupation for root processor (Bytes): 142160
- ion-ion interaction energy  6.87902815183133E-01
+ ion-ion interaction energy  6.87902815183132E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001430549   0.000E+00
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
@@ -544,19 +567,23 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   2.471923828125E-05 0.000000000000E+00 2.471923828125E-05
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13687039443129212E+00  1.20E-02
- iter,total energy,gnrm     2  -1.13690062180903517E+00  2.46E-03
- iter,total energy,gnrm     3  -1.13690231381697426E+00  2.69E-04
- iter,total energy,gnrm     4  -1.13690232642306821E+00  4.53E-05
+ iter,total energy,gnrm     1  -1.13687039443115223E+00  1.20E-02
+ iter,total energy,gnrm     2  -1.13690062180888019E+00  2.46E-03
+ iter,total energy,gnrm     3  -1.13690231381686102E+00  2.69E-04
+ iter,total energy,gnrm     4  -1.13690232642294964E+00  4.53E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07610152792E+00 -1.81936719508E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.27872286874E+00 -6.44344694368E-01 -8.41528088262E-01
- FINAL iter,total energy,gnrm     5  -1.13690232682395775E+00  4.53E-05
+ FINAL iter,total energy,gnrm     5  -1.13690232682381742E+00  4.53E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.71632833579167E-01              eval(   1,d)= -3.71632833579157E-01
+ eval(   1,u)= -3.71632833579167E-01              eval(   1,d)= -3.71632833579156E-01
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
- CPU time/ELAPSED time for root process     0         2.46         2.14
+ the sum of the forces is
+      x direction     1.31329798E-04
+      y direction     1.55838783E-04
+      z direction     1.55936638E-04
+ CPU time/ELAPSED time for root process     0         4.92         4.90
  =F =================================================================================
  
  =F Move the atom 2 in the direction  1*x by     7.0312500000E-03 bohr
@@ -583,7 +610,7 @@
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1      H  8.14482E+00  6.75000E+00  6.75000E+00       18.100    15.000    15.000
      2      H  6.70518E+00  6.75000E+00  6.75000E+00       14.900    15.000    15.000
-    Shift of= -3.51563E-03  0.00000E+00  0.00000E+00 H grids=  0.4500  0.4500  0.4500
+    Shift of= -1.42852E+00  6.75000E+00  6.75000E+00 H grids=  0.4500  0.4500  0.4500
    Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
        Extremes for the high resolution grid points:        13<20     13<17     13<17
  wavelet localization is ON
@@ -598,27 +625,31 @@
  Total number of components =                    0
  Percent of zero components =                    0
  Wavefunctions memory occupation for root processor (Bytes): 142160
- ion-ion interaction energy  6.94622336979816E-01
+ ion-ion interaction energy  6.94622336979817E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001559448   0.000E+00
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    molecule was shifted   9.887695312500E-05 0.000000000000E+00 0.000000000000E+00
+    molecule was shifted   9.887695312502E-05 0.000000000000E+00 0.000000000000E+00
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13683238141089871E+00  1.76E-02
- iter,total energy,gnrm     2  -1.13691118927409796E+00  3.86E-03
- iter,total energy,gnrm     3  -1.13691561180049217E+00  4.65E-04
- iter,total energy,gnrm     4  -1.13691563641401472E+00  4.93E-05
+ iter,total energy,gnrm     1  -1.13683238141075948E+00  1.76E-02
+ iter,total energy,gnrm     2  -1.13691118927398160E+00  3.86E-03
+ iter,total energy,gnrm     3  -1.13691561180035960E+00  4.65E-04
+ iter,total energy,gnrm     4  -1.13691563641387683E+00  4.93E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.08271865565E+00 -1.82852983748E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28358347592E+00 -6.46468652788E-01 -8.44325336464E-01
- FINAL iter,total energy,gnrm     5  -1.13691563709085774E+00  4.93E-05
+ FINAL iter,total energy,gnrm     5  -1.13691563709071808E+00  4.93E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
  eval(   1,u)= -3.72905590912512E-01              eval(   1,d)= -3.72905590912522E-01
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
- CPU time/ELAPSED time for root process     0         2.37         2.37
+ the sum of the forces is
+      x direction     1.20147027E-04
+      y direction     1.56483691E-04
+      z direction     1.56484216E-04
+ CPU time/ELAPSED time for root process     0         5.33         5.32
  =F =================================================================================
  
  =F Move the atom 2 in the direction -1*y by    -7.0312500000E-03 bohr
@@ -645,7 +676,7 @@
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1      H  8.14833E+00  6.75352E+00  6.75000E+00       18.107    15.008    15.000
      2      H  6.70167E+00  6.74648E+00  6.75000E+00       14.893    14.992    15.000
-    Shift of= -8.88178E-16  3.51562E-03  0.00000E+00 H grids=  0.4500  0.4500  0.4500
+    Shift of= -1.42500E+00  6.75352E+00  6.75000E+00 H grids=  0.4500  0.4500  0.4500
    Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
        Extremes for the high resolution grid points:        13<20     13<17     13<17
  wavelet localization is ON
@@ -666,21 +697,25 @@
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    molecule was shifted   2.471923828124E-05 2.471923828125E-05 0.000000000000E+00
+    molecule was shifted   2.471923828125E-05 2.471923828125E-05 0.000000000000E+00
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13688483733399681E+00  1.20E-02
- iter,total energy,gnrm     2  -1.13691522637996001E+00  2.50E-03
- iter,total energy,gnrm     3  -1.13691694648427388E+00  2.85E-04
- iter,total energy,gnrm     4  -1.13691696046381652E+00  4.71E-05
+ iter,total energy,gnrm     1  -1.13688483733384094E+00  1.20E-02
+ iter,total energy,gnrm     2  -1.13691522637983899E+00  2.50E-03
+ iter,total energy,gnrm     3  -1.13691694648414332E+00  2.85E-04
+ iter,total energy,gnrm     4  -1.13691696046371371E+00  4.71E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938622103E+00 -1.82391832344E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114120882E+00 -6.45401127152E-01 -8.42919395366E-01
- FINAL iter,total energy,gnrm     5  -1.13691696090456773E+00  4.71E-05
+ FINAL iter,total energy,gnrm     5  -1.13691696090441430E+00  4.71E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72266051208770E-01              eval(   1,d)= -3.72266051208770E-01
+ eval(   1,u)= -3.72266051208770E-01              eval(   1,d)= -3.72266051208769E-01
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
- CPU time/ELAPSED time for root process     0         2.29         2.29
+ the sum of the forces is
+      x direction     1.27179680E-04
+      y direction     1.56549578E-04
+      z direction     1.56464804E-04
+ CPU time/ELAPSED time for root process     0         4.93         4.93
  =F =================================================================================
  
  =F Move the atom 2 in the direction  1*y by     7.0312500000E-03 bohr
@@ -707,7 +742,7 @@
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1      H  8.14833E+00  6.74648E+00  6.75000E+00       18.107    14.992    15.000
      2      H  6.70167E+00  6.75352E+00  6.75000E+00       14.893    15.008    15.000
-    Shift of= -8.88178E-16 -3.51563E-03  0.00000E+00 H grids=  0.4500  0.4500  0.4500
+    Shift of= -1.42500E+00  6.74648E+00  6.75000E+00 H grids=  0.4500  0.4500  0.4500
    Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
        Extremes for the high resolution grid points:        13<20     13<17     13<17
  wavelet localization is ON
@@ -730,20 +765,24 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 9.887695312500E-05 0.000000000000E+00
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13687241824332141E+00  1.62E-02
- iter,total energy,gnrm     2  -1.13691450252360693E+00  3.10E-03
- iter,total energy,gnrm     3  -1.13691703403312205E+00  4.02E-04
- iter,total energy,gnrm     4  -1.13691705911288099E+00  1.02E-04
- iter,total energy,gnrm     5  -1.13691705994454462E+00  6.15E-06
+ iter,total energy,gnrm     1  -1.13687241824316043E+00  1.62E-02
+ iter,total energy,gnrm     2  -1.13691450252347148E+00  3.10E-03
+ iter,total energy,gnrm     3  -1.13691703403295263E+00  4.02E-04
+ iter,total energy,gnrm     4  -1.13691705911271601E+00  1.02E-04
+ iter,total energy,gnrm     5  -1.13691705994440784E+00  6.15E-06
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938678826E+00 -1.82391881284E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114141795E+00 -6.45401229409E-01 -8.42919529859E-01
- FINAL iter,total energy,gnrm     6  -1.13691705995660031E+00  6.15E-06
+ FINAL iter,total energy,gnrm     6  -1.13691705995646664E+00  6.15E-06
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72266012291091E-01              eval(   1,d)= -3.72266012291092E-01
+ eval(   1,u)= -3.72266012291091E-01              eval(   1,d)= -3.72266012291091E-01
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
- CPU time/ELAPSED time for root process     0         2.84         2.77
+ the sum of the forces is
+      x direction     1.26201095E-04
+      y direction     1.56493040E-04
+      z direction     1.56430354E-04
+ CPU time/ELAPSED time for root process     0         5.96         5.90
  =F =================================================================================
  
  =F Move the atom 2 in the direction -1*z by    -7.0312500000E-03 bohr
@@ -770,7 +809,7 @@
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1      H  8.14833E+00  6.75000E+00  6.75352E+00       18.107    15.000    15.008
      2      H  6.70167E+00  6.75000E+00  6.74648E+00       14.893    15.000    14.992
-    Shift of= -8.88178E-16  0.00000E+00  3.51562E-03 H grids=  0.4500  0.4500  0.4500
+    Shift of= -1.42500E+00  6.75000E+00  6.75352E+00 H grids=  0.4500  0.4500  0.4500
    Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
        Extremes for the high resolution grid points:        13<20     13<17     13<17
  wavelet localization is ON
@@ -793,19 +832,23 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 2.471923828125E-05 2.471923828125E-05
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13689463951696235E+00  1.14E-02
- iter,total energy,gnrm     2  -1.13691567816999539E+00  2.20E-03
- iter,total energy,gnrm     3  -1.13691694788666031E+00  2.86E-04
- iter,total energy,gnrm     4  -1.13691696050057200E+00  7.12E-05
+ iter,total energy,gnrm     1  -1.13689463951681025E+00  1.14E-02
+ iter,total energy,gnrm     2  -1.13691567816984640E+00  2.20E-03
+ iter,total energy,gnrm     3  -1.13691694788650421E+00  2.86E-04
+ iter,total energy,gnrm     4  -1.13691696050042257E+00  7.12E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938652716E+00 -1.82391847925E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114138190E+00 -6.45401200030E-01 -8.42919490984E-01
- FINAL iter,total energy,gnrm     5  -1.13691696090918604E+00  7.12E-05
+ FINAL iter,total energy,gnrm     5  -1.13691696090906147E+00  7.12E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72265976044885E-01              eval(   1,d)= -3.72265976044885E-01
+ eval(   1,u)= -3.72265976044884E-01              eval(   1,d)= -3.72265976044885E-01
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
- CPU time/ELAPSED time for root process     0         2.36         2.36
+ the sum of the forces is
+      x direction     1.26892765E-04
+      y direction     1.56246377E-04
+      z direction     1.56418887E-04
+ CPU time/ELAPSED time for root process     0         5.28         5.05
  =F =================================================================================
  
  =F Move the atom 2 in the direction  1*z by     7.0312500000E-03 bohr
@@ -832,7 +875,7 @@
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1      H  8.14833E+00  6.75000E+00  6.74648E+00       18.107    15.000    14.992
      2      H  6.70167E+00  6.75000E+00  6.75352E+00       14.893    15.000    15.008
-    Shift of= -8.88178E-16  0.00000E+00 -3.51563E-03 H grids=  0.4500  0.4500  0.4500
+    Shift of= -1.42500E+00  6.75000E+00  6.74648E+00 H grids=  0.4500  0.4500  0.4500
    Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
        Extremes for the high resolution grid points:        13<20     13<17     13<17
  wavelet localization is ON
@@ -855,27 +898,31 @@
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 0.000000000000E+00 9.887695312500E-05
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13687240734348238E+00  1.62E-02
- iter,total energy,gnrm     2  -1.13691450201212008E+00  3.10E-03
- iter,total energy,gnrm     3  -1.13691703403046040E+00  4.02E-04
- iter,total energy,gnrm     4  -1.13691705911252594E+00  1.02E-04
- iter,total energy,gnrm     5  -1.13691705994456194E+00  6.18E-06
+ iter,total energy,gnrm     1  -1.13687240734337913E+00  1.62E-02
+ iter,total energy,gnrm     2  -1.13691450201200817E+00  3.10E-03
+ iter,total energy,gnrm     3  -1.13691703403028632E+00  4.02E-04
+ iter,total energy,gnrm     4  -1.13691705911238561E+00  1.02E-04
+ iter,total energy,gnrm     5  -1.13691705994443826E+00  6.18E-06
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938678815E+00 -1.82391881282E+00  0.00000000000E+00
- final ehart, eexcu,  vexcu   1.28114141785E+00 -6.45401229364E-01 -8.42919529801E-01
- FINAL iter,total energy,gnrm     6  -1.13691705995660031E+00  6.18E-06
+ final ehart, eexcu,  vexcu   1.28114141785E+00 -6.45401229364E-01 -8.42919529800E-01
+ FINAL iter,total energy,gnrm     6  -1.13691705995646286E+00  6.18E-06
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
  eval(   1,u)= -3.72266012335113E-01              eval(   1,d)= -3.72266012335113E-01
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:    97   91   91   proc    8  ixc:      0 ... done.
- CPU time/ELAPSED time for root process     0         2.74         2.46
+ the sum of the forces is
+      x direction     1.26200798E-04
+      y direction     1.56430210E-04
+      z direction     1.56492994E-04
+ CPU time/ELAPSED time for root process     0         6.02         5.91
  =F =================================================================================
  
- =F: eigenvalues (real)      =     3.6674678067E-04    1.3113498923E-05    1.3291357307E-05   -1.7094971653E-08   -8.1202071596E-10   -1.7088265053E-10
- =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00
- =F: frequencies (Hartree)   =     1.9150633950E-02    3.6212565392E-03    3.6457313816E-03   -1.3074774053E-04   -2.8495977189E-05   -1.3072209091E-05
- =F: frequencies (cm-1)      =       4203.08       794.77       800.15       -28.70        -6.25        -2.87
+ =F: eigenvalues (real)      =     3.6674677223E-04   -2.7105054312E-20    7.2426273052E-07    7.2424957979E-07   -6.4458866090E-24   -6.4458866090E-24
+ =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    4.2172578408E-23   -4.2172578408E-23
+ =F: frequencies (Hartree)   =     1.9150633729E-02   -1.6463612700E-10    8.5103626863E-04    8.5102854229E-04   -2.5388750676E-12   -2.5388750676E-12
+ =F: frequencies (cm-1)      =       4203.08         0.00       186.78       186.78         0.00         0.00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 7524 allocations and 7524 deallocations, remaining memory(B):0
- memory occupation peak: 52 MB
+ 7579 allocations and 7579 deallocations, remaining memory(B):0
+ memory occupation peak: 54 MB
  for the array  wz in the routine gaussians_to_wavelets_orb
