@@ -628,7 +628,8 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
   character(len=*), intent(in) :: filename
   integer, intent(in) :: ityp,mxpl,mxchg,nspin,nmax,lmax,nelecmax,nsccode
   type(atoms_data), intent(inout) :: at
-  integer, dimension(nmax,lmax), intent(in) :: neleconf
+  !integer, dimension(nmax,lmax), intent(in) :: neleconf
+  real(gp), dimension(nmax,lmax), intent(in) :: neleconf
   !local variables
   integer, parameter :: noccmax=2
   character(len=100) :: string
