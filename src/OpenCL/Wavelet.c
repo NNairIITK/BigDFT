@@ -9,27 +9,21 @@ size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
 const size_t j2 = get_local_id(1);\n\
-size_t igt = get_group_id(0);\n\
-size_t jgt = get_group_id(1);\n\
-size_t jb;\n\
+ptrdiff_t igt = get_group_id(0);\n\
+ptrdiff_t jgt = get_group_id(1);\n\
+ptrdiff_t jb;\n\
 //if data are ill dimentioned last block recomputes part of the data\n\
 jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
 ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
-igt = ig - i2 + j2;\n\
+igt = 2*(ig - i2) + j2;\n\
 jgt = jg - j2 + i2;\n\
 psi += 7*ndat;\n\
-//If I'm on the outside, select a border element to load\n\
-if (j2 < 7) {\n\
-    jb =  2 * igt - j2 - 7;\n\
-    tmp[i2 * (3 * FILTER_WIDTH + 1) + j2]=psi[jgt+jb*ndat];\n\
-  }\n\
-if (j2 >= 9) {\n\
-    jb = 2 * igt + FILTER_WIDTH - j2 + 7;\n\
-    tmp[i2 * (3 * FILTER_WIDTH + 1) + j2 + 2 * FILTER_WIDTH - 2]=psi[jgt+jb*ndat];\n\
-  }\n\
-//Load the elements I am to calculate\n\
-tmp[i2 * (3 * FILTER_WIDTH + 1) + 2 * j2 + 7]=psi[jgt+igt*2*ndat];\n\
-tmp[i2 * (3 * FILTER_WIDTH + 1) + 2 * j2 + 7 + 1]=psi[jgt+(igt*2+1)*ndat];\n\
+igt -= 7;\n\
+tmp[i2 * (3 * FILTER_WIDTH + 1) + j2]=psi[jgt+igt*ndat];\n\
+igt += FILTER_WIDTH - 1;\n\
+tmp[i2 * (3 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH - 1]=psi[jgt+igt*ndat];\n\
+igt += FILTER_WIDTH - 1;\n\
+tmp[i2 * (3 * FILTER_WIDTH + 1) + j2 + 2 * FILTER_WIDTH - 2]=psi[jgt+igt*ndat];\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
 double ci = 0.0;\n\
