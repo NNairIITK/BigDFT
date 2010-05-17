@@ -69,5 +69,5 @@ bench_quick: bench_conv_quick
 	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='profile.conf' ./bench_conv_quick
 
 check:
-	echo 1 64 64 2048 2048 1000 > fort.1
+	echo 1 128 128 16384 16384 100 > fort.1
 	./conv_check

@@ -2,10 +2,10 @@
 #include <assert.h>
 #include "bench_lib.h"
 
-void init_random(double * data, size_t size) {
+void init_random(cl_double * data, size_t size) {
   size_t i;
   for(i=0; i<size; i++)
-    data[i] = (double)rand() / (double)RAND_MAX;
+    data[i] = (cl_double)rand() / (cl_double)RAND_MAX;
 }
 
 cl_context context;
@@ -25,11 +25,11 @@ void init_key(cl_int *keyg, cl_int *keyv, cl_int nseg, cl_int *nvctr_cf) {
   *nvctr_cf = keyv[nseg*nseg-1] + nseg - 10 -1;
 }
 
-void bench_magicfilter1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
+void bench_magicfilter1d(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double * out) {
   cl_mem psi_GPU, work_GPU;
   cl_uint n = n1;
   cl_uint ndat = n2*n3;
-  cl_uint size = n*ndat*sizeof(double);
+  cl_uint size = n*ndat*sizeof(cl_double);
 //  cl_int ciErrNum;
 
   ocl_create_write_buffer_(&context, &size, &psi_GPU);
@@ -45,11 +45,11 @@ void bench_magicfilter1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double
   ocl_release_mem_object_(&psi_GPU);
   ocl_release_mem_object_(&work_GPU);
 }
-void bench_magicfilter1d_straight(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
+void bench_magicfilter1d_straight(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double * out) {
   cl_mem psi_GPU,work_GPU;
   cl_uint n = n1;
   cl_uint ndat = n2*n3;
-  cl_uint size = n*ndat*sizeof(double);
+  cl_uint size = n*ndat*sizeof(cl_double);
 
   ocl_create_write_buffer_(&context, &size, &psi_GPU);
   ocl_create_read_buffer_(&context, &size, &work_GPU);
@@ -60,12 +60,12 @@ void bench_magicfilter1d_straight(cl_uint n1, cl_uint n2, cl_uint n3, double * i
   ocl_release_mem_object_(&psi_GPU);
   ocl_release_mem_object_(&work_GPU);
 }
-void bench_magicfiltershrink1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
+void bench_magicfiltershrink1d(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double * out) {
   cl_mem psi_GPU,work_GPU;
   cl_uint n = n1;
   cl_uint ndat = n2*n3;
-  cl_uint size_i = n*ndat*sizeof(double);
-  cl_uint size_o = (n-15)*ndat*sizeof(double);
+  cl_uint size_i = n*ndat*sizeof(cl_double);
+  cl_uint size_o = (n-15)*ndat*sizeof(cl_double);
   n = n1 - 15;
 
   ocl_create_write_buffer_(&context, &size_o, &psi_GPU);
@@ -78,12 +78,12 @@ void bench_magicfiltershrink1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, 
   ocl_release_mem_object_(&work_GPU);
 }
 
-void bench_magicfiltergrow1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
+void bench_magicfiltergrow1d(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double * out) {
   cl_mem psi_GPU,work_GPU;
   cl_uint n = n1;
   cl_uint ndat = n2*n3;
-  cl_uint size_o = n*ndat*sizeof(double);
-  cl_uint size_i = (n-15)*ndat*sizeof(double);
+  cl_uint size_o = n*ndat*sizeof(cl_double);
+  cl_uint size_i = (n-15)*ndat*sizeof(cl_double);
   n = n1 - 15;
 
   ocl_create_write_buffer_(&context, &size_o, &psi_GPU);
@@ -96,14 +96,14 @@ void bench_magicfiltergrow1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, do
   ocl_release_mem_object_(&work_GPU);
 }
 
-void bench_kinetic1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
+void bench_kinetic1d(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double * out) {
   cl_mem psi_GPU,work_GPU,work2_GPU,v_GPU;
   cl_uint n = n1;
   cl_uint ndat = n2*n3;
-  cl_uint size = n*ndat*sizeof(double);
-  double hx = 0.1;
-  double c = 0.0;
-  double ekinGPU;
+  cl_uint size = n*ndat*sizeof(cl_double);
+  cl_double hx = 0.1;
+  cl_double c = 0.0;
+  cl_double ekinGPU;
 
   ocl_create_write_buffer_(&context, &size, &psi_GPU);
   ocl_create_read_buffer_(&context, &size, &work_GPU);
@@ -119,11 +119,11 @@ void bench_kinetic1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * o
   ocl_release_mem_object_(&v_GPU);
 }
 
-void bench_ana1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
+void bench_ana1d(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double * out) {
   cl_mem psi_GPU,work_GPU;
   cl_uint n = n1;
   cl_uint ndat = n2*n3;
-  cl_uint size = n*ndat*sizeof(double);
+  cl_uint size = n*ndat*sizeof(cl_double);
   n = n1/2;
 
   ocl_create_write_buffer_(&context, &size, &psi_GPU);
@@ -136,12 +136,12 @@ void bench_ana1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) 
   ocl_release_mem_object_(&work_GPU);
 }
 
-void bench_anashrink1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
+void bench_anashrink1d(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double * out) {
   cl_mem psi_GPU,work_GPU;
   cl_uint n = n1;
   cl_uint ndat = n2*n3;
-  cl_uint size_o = n*ndat*sizeof(double);
-  cl_uint size_f = (n-14)*ndat*sizeof(double);
+  cl_uint size_o = n*ndat*sizeof(cl_double);
+  cl_uint size_f = (n-14)*ndat*sizeof(cl_double);
   n = n1/2-7;
 
 
@@ -156,11 +156,11 @@ void bench_anashrink1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double *
 
 }
 
-void bench_syn1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
+void bench_syn1d(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double * out) {
   cl_mem psi_GPU,work_GPU;
   cl_uint n = n1;
   cl_uint ndat = n2*n3;
-  cl_uint size = n*ndat*sizeof(double);
+  cl_uint size = n*ndat*sizeof(cl_double);
   n = n1/2;
 
   ocl_create_write_buffer_(&context, &size, &psi_GPU);
@@ -174,12 +174,12 @@ void bench_syn1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) 
 
 }
 
-void bench_syngrow1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out) {
+void bench_syngrow1d(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double * out) {
   cl_mem psi_GPU,work_GPU;
   cl_uint n = n1;
   cl_uint ndat = n2*n3;
-  cl_uint size_f = n*ndat*sizeof(double);
-  cl_uint size_o = (n-14)*ndat*sizeof(double);
+  cl_uint size_f = n*ndat*sizeof(cl_double);
+  cl_uint size_o = (n-14)*ndat*sizeof(cl_double);
   n = n1/2-7;
 
   ocl_create_write_buffer_(&context, &size_f, &psi_GPU);
@@ -192,16 +192,16 @@ void bench_syngrow1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * o
   ocl_release_mem_object_(&work_GPU);
 }
 
-void bench_gemm(cl_uint n1, cl_uint n2, cl_uint n3, double * in1, double * in2, double * out){
+void bench_gemm(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in1, cl_double * in2, cl_double * out){
   cl_mem a, b, c;
   cl_double alpha = 1.2;
   cl_double beta = 1.3;
   cl_uint m = n1;
   cl_uint n = n2*n3;
   cl_uint k = n1;
-  cl_uint size_a = m * k * sizeof(double);
-  cl_uint size_b = n * k * sizeof(double);
-  cl_uint size_c = n * m * sizeof(double);
+  cl_uint size_a = m * k * sizeof(cl_double);
+  cl_uint size_b = n * k * sizeof(cl_double);
+  cl_uint size_c = n * m * sizeof(cl_double);
   ocl_create_write_buffer_(&context, &size_c, &c);
   ocl_create_read_buffer_(&context, &size_b, &b);
   ocl_create_read_buffer_(&context, &size_a, &a);
@@ -225,7 +225,7 @@ void bench_gemm(cl_uint n1, cl_uint n2, cl_uint n3, double * in1, double * in2, 
   ocl_release_mem_object_(&b);
   ocl_release_mem_object_(&c);
 }
-void bench_zgemm(cl_uint n1, cl_uint n2, cl_uint n3, double * in1, double * in2, double * out){
+void bench_zgemm(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in1, cl_double * in2, cl_double * out){
   cl_mem a, b, c;
   cl_double2 alpha;
   alpha.x = 1.2;
@@ -236,9 +236,9 @@ void bench_zgemm(cl_uint n1, cl_uint n2, cl_uint n3, double * in1, double * in2,
   cl_uint m = n1/2;
   cl_uint n = n2*n3;
   cl_uint k = n1/2;
-  cl_uint size_a = m * k * 2 * sizeof(double);
-  cl_uint size_b = n * k * 2 * sizeof(double);
-  cl_uint size_c = n * m * 2 * sizeof(double);
+  cl_uint size_a = m * k * 2 * sizeof(cl_double);
+  cl_uint size_b = n * k * 2 * sizeof(cl_double);
+  cl_uint size_c = n * m * 2 * sizeof(cl_double);
   ocl_create_write_buffer_(&context, &size_c, &c);
   ocl_create_read_buffer_(&context, &size_b, &b);
   ocl_create_read_buffer_(&context, &size_a, &a);
@@ -253,16 +253,16 @@ void bench_zgemm(cl_uint n1, cl_uint n2, cl_uint n3, double * in1, double * in2,
   ocl_release_mem_object_(&b);
   ocl_release_mem_object_(&c);
 }
-void bench_zgemmd(cl_uint n1, cl_uint n2, cl_uint n3, double * in1, double * in2, double * out){
+void bench_zgemmd(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in1, cl_double * in2, cl_double * out){
   cl_mem a, b, c;
   cl_double alpha[] = {1.2, 1.1};
   cl_double beta[] = {1.3, 1.4};
   cl_uint m = n1/2;
   cl_uint n = n2*n3;
   cl_uint k = n1/2;
-  cl_uint size_a = m * k * 2 * sizeof(double);
-  cl_uint size_b = n * k * 2 * sizeof(double);
-  cl_uint size_c = n * m * 2 * sizeof(double);
+  cl_uint size_a = m * k * 2 * sizeof(cl_double);
+  cl_uint size_b = n * k * 2 * sizeof(cl_double);
+  cl_uint size_c = n * m * 2 * sizeof(cl_double);
   ocl_create_write_buffer_(&context, &size_c, &c);
   ocl_create_read_buffer_(&context, &size_b, &b);
   ocl_create_read_buffer_(&context, &size_a, &a);
@@ -277,14 +277,14 @@ void bench_zgemmd(cl_uint n1, cl_uint n2, cl_uint n3, double * in1, double * in2
   ocl_release_mem_object_(&b);
   ocl_release_mem_object_(&c);
 }
-void bench_uncompress(cl_uint n1, cl_uint n2, cl_uint n3, cl_uint nseg, cl_uint nvctr_cf, cl_uint * keyg, cl_uint * keyv, double * psi_in, double * psi_out) {
+void bench_uncompress(cl_uint n1, cl_uint n2, cl_uint n3, cl_uint nseg, cl_uint nvctr_cf, cl_uint * keyg, cl_uint * keyv, cl_double * psi_in, cl_double * psi_out) {
   cl_mem work_GPU,psi_c_GPU,psi_f_GPU,keyg_GPU, keyv_GPU ;
   cl_uint size;
 
-  size = nvctr_cf*sizeof(double);
+  size = nvctr_cf*sizeof(cl_double);
   ocl_create_read_buffer_(&context, &size, &psi_c_GPU);
   ocl_enqueue_write_buffer_(&queue, &psi_c_GPU, &size, psi_in);
-  size = nvctr_cf*sizeof(double)*7;
+  size = nvctr_cf*sizeof(cl_double)*7;
   ocl_create_read_buffer_(&context, &size, &psi_f_GPU);
   ocl_enqueue_write_buffer_(&queue, &psi_f_GPU, &size, psi_in + nvctr_cf);
   size = nseg*sizeof(cl_uint)*2;
@@ -293,7 +293,7 @@ void bench_uncompress(cl_uint n1, cl_uint n2, cl_uint n3, cl_uint nseg, cl_uint 
   size = nseg*sizeof(cl_uint);
   ocl_create_read_buffer_(&context, &size, &keyv_GPU);
   ocl_enqueue_write_buffer_(&queue, &keyv_GPU, &size, keyv);
-  size = n1*n2*n3*sizeof(double)*8;
+  size = n1*n2*n3*sizeof(cl_double)*8;
   ocl_create_write_buffer_(&context, &size, &work_GPU);
   cl_uint dimensions[] = { n1, n2, n3};
   uncompress_d_(&queue , dimensions,
@@ -301,7 +301,7 @@ void bench_uncompress(cl_uint n1, cl_uint n2, cl_uint n3, cl_uint nseg, cl_uint 
                 &nseg, &nvctr_cf, &keyg_GPU, &keyv_GPU,
                 &psi_c_GPU, &psi_f_GPU, &work_GPU);
   ocl_finish_(&queue);
-  size = n1*n2*n3*sizeof(double)*8;
+  size = n1*n2*n3*sizeof(cl_double)*8;
   ocl_enqueue_read_buffer_(&queue, &work_GPU, &size, psi_out);
   ocl_release_mem_object_(&psi_c_GPU);
   ocl_release_mem_object_(&psi_f_GPU);
@@ -309,9 +309,9 @@ void bench_uncompress(cl_uint n1, cl_uint n2, cl_uint n3, cl_uint nseg, cl_uint 
   ocl_release_mem_object_(&keyv_GPU);
   ocl_release_mem_object_(&work_GPU);
 
-  size = nvctr_cf*sizeof(double);
+  size = nvctr_cf*sizeof(cl_double);
   ocl_create_write_buffer_(&context, &size, &psi_c_GPU);
-  size = nvctr_cf*sizeof(double)*7;
+  size = nvctr_cf*sizeof(cl_double)*7;
   ocl_create_write_buffer_(&context, &size, &psi_f_GPU);
   size = nseg*sizeof(cl_uint)*2;
   ocl_create_read_buffer_(&context, &size, &keyg_GPU);
@@ -319,7 +319,7 @@ void bench_uncompress(cl_uint n1, cl_uint n2, cl_uint n3, cl_uint nseg, cl_uint 
   size = nseg*sizeof(cl_uint);
   ocl_create_read_buffer_(&context, &size, &keyv_GPU);
   ocl_enqueue_write_buffer_(&queue, &keyv_GPU, &size, keyv);
-  size = n1*n2*n3*sizeof(double)*8;
+  size = n1*n2*n3*sizeof(cl_double)*8;
   ocl_create_read_buffer_(&context, &size, &work_GPU);
   ocl_enqueue_write_buffer_(&queue, &work_GPU, &size, psi_out);
   compress_d_(&queue , dimensions,
@@ -327,9 +327,9 @@ void bench_uncompress(cl_uint n1, cl_uint n2, cl_uint n3, cl_uint nseg, cl_uint 
               &nseg, &nvctr_cf, &keyg_GPU, &keyv_GPU,
               &psi_c_GPU, &psi_f_GPU, &work_GPU);
   ocl_finish_(&queue);
-  size = nvctr_cf*sizeof(double);
+  size = nvctr_cf*sizeof(cl_double);
   ocl_enqueue_read_buffer_(&queue, &psi_c_GPU, &size, psi_in);
-  size = nvctr_cf*sizeof(double)*7;
+  size = nvctr_cf*sizeof(cl_double)*7;
   ocl_enqueue_read_buffer_(&queue, &psi_f_GPU, &size, psi_in + nvctr_cf);
   ocl_release_mem_object_(&psi_c_GPU);
   ocl_release_mem_object_(&psi_f_GPU);

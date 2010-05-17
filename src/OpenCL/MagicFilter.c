@@ -496,6 +496,18 @@ void FC_FUNC_(magicfilter_n_d,MAGICFILTER_N_D)(cl_command_queue *command_queue, 
     magicfilter_generic(magicfilter1d_kernel_d, command_queue, &n1, &ndat, tmp, out);
 }
 
+void FC_FUNC_(magicfilter_n_straight_d,MAGICFILTER_N_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out){
+    cl_uint n1 = dimensions[0];
+    cl_uint n2 = dimensions[1];
+    cl_uint n3 = dimensions[2];
+    cl_uint ndat = n2 * n3;
+    magicfilter_generic(magicfilter1d_straight_kernel_d, command_queue, &n1, &ndat, psi, out);
+    ndat = n1 * n3;
+    magicfilter_generic(magicfilter1d_straight_kernel_d, command_queue, &n2, &ndat, out, tmp);
+    ndat = n1 * n2;
+    magicfilter_generic(magicfilter1d_straight_kernel_d, command_queue, &n3, &ndat, tmp, out);
+}
+
 void FC_FUNC_(magicfilter_den_d,MAGICFILTER_DEN_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out){
     cl_uint n1 = dimensions[0]*2;
     cl_uint n2 = dimensions[1]*2;
