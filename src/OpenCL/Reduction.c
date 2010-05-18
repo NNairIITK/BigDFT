@@ -130,19 +130,21 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
     for(size_t k=0; k<BUFFER_SIZE; k++){\n\
       a_t = tmp1[k*BUFFER_SIZE];\n\
       b_t = tmp2[k];\n\
-      result.x = mad(a_t.x,b_t.x,mad(-a_t.y,b_t.y,result.x));\n\
-      result.y = mad(a_t.x,b_t.y,mad(a_t.y,b_t.x,result.y));\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x -= a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y += a_t.y * b_t.x;\n\
     }\n\
   }\n\
   if(condm && condn){\n\
     double2 final_result = (double2)(0.0, 0.0);\n\
     final_result.x += alpha.x*result.x;\n\
-    final_result.x +=-alpha.y*result.y;\n\
+    final_result.x -= alpha.y*result.y;\n\
     final_result.y += alpha.x*result.y;\n\
     final_result.y += alpha.y*result.x;\n\
     double2 c_t = c[0];\n\
     final_result.x += beta.x*c_t.x;\n\
-    final_result.x +=-beta.y*c_t.y;\n\
+    final_result.x -= beta.y*c_t.y;\n\
     final_result.y += beta.x*c_t.y;\n\
     final_result.y += beta.y*c_t.x;\n\
     c[0] = final_result;\n\
@@ -179,19 +181,21 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
     for(size_t k=0; k<BUFFER_SIZE; k++){\n\
       a_t = tmp1[k*(BUFFER_SIZE+1) + i];\n\
       b_t = tmp2[k];\n\
-      result.x = mad(a_t.x,b_t.x,mad(-a_t.y,b_t.y,result.x));\n\
-      result.y = mad(a_t.x,b_t.y,mad(a_t.y,b_t.x,result.y));\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x -= a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y += a_t.y * b_t.x;\n\
     }\n\
   }\n\
   if(condm && condn){\n\
     double2 final_result = (double2)(0.0, 0.0);\n\
     final_result.x += alpha.x*result.x;\n\
-    final_result.x +=-alpha.y*result.y;\n\
+    final_result.x -= alpha.y*result.y;\n\
     final_result.y += alpha.x*result.y;\n\
     final_result.y += alpha.y*result.x;\n\
     double2 c_t = c[0];\n\
     final_result.x += beta.x*c_t.x;\n\
-    final_result.x +=-beta.y*c_t.y;\n\
+    final_result.x -= beta.y*c_t.y;\n\
     final_result.y += beta.x*c_t.y;\n\
     final_result.y += beta.y*c_t.x;\n\
     c[0] = final_result;\n\
@@ -228,19 +232,21 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
     for(size_t k=0; k<BUFFER_SIZE; k++){\n\
       a_t = tmp1[k*BUFFER_SIZE];\n\
       b_t = tmp2[j*(BUFFER_SIZE+1) + k];\n\
-      result.x = mad(a_t.x,b_t.x,mad(-a_t.y,b_t.y,result.x));\n\
-      result.y = mad(a_t.x,b_t.y,mad(a_t.y,b_t.x,result.y));\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x -= a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y += a_t.y * b_t.x;\n\
     }\n\
   }\n\
   if(condm && condn){\n\
     double2 final_result = (double2)(0.0, 0.0);\n\
     final_result.x += alpha.x*result.x;\n\
-    final_result.x +=-alpha.y*result.y;\n\
+    final_result.x -= alpha.y*result.y;\n\
     final_result.y += alpha.x*result.y;\n\
     final_result.y += alpha.y*result.x;\n\
     double2 c_t = c[0];\n\
     final_result.x += beta.x*c_t.x;\n\
-    final_result.x +=-beta.y*c_t.y;\n\
+    final_result.x -= beta.y*c_t.y;\n\
     final_result.y += beta.x*c_t.y;\n\
     final_result.y += beta.y*c_t.x;\n\
     c[0] = final_result;\n\
@@ -278,19 +284,21 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
     for(size_t k=0; k<BUFFER_SIZE; k++){\n\
       a_t = tmp1[k*(BUFFER_SIZE+1) + i];\n\
       b_t = tmp2[j*(BUFFER_SIZE+1) + k];\n\
-      result.x = mad(a_t.x,b_t.x,mad(-a_t.y,b_t.y,result.x));\n\
-      result.y = mad(a_t.x,b_t.y,mad(a_t.y,b_t.x,result.y));\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x -= a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y += a_t.y * b_t.x;\n\
     }\n\
   }\n\
   if(condm && condn){\n\
     double2 final_result = (double2)(0.0, 0.0);\n\
     final_result.x += alpha.x*result.x;\n\
-    final_result.x +=-alpha.y*result.y;\n\
+    final_result.x -= alpha.y*result.y;\n\
     final_result.y += alpha.x*result.y;\n\
     final_result.y += alpha.y*result.x;\n\
     double2 c_t = c[0];\n\
     final_result.x += beta.x*c_t.x;\n\
-    final_result.x +=-beta.y*c_t.y;\n\
+    final_result.x -= beta.y*c_t.y;\n\
     final_result.y += beta.x*c_t.y;\n\
     final_result.y += beta.y*c_t.x;\n\
     c[0] = final_result;\n\
@@ -327,19 +335,21 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
     for(size_t k=0; k<BUFFER_SIZE; k++){\n\
       a_t = tmp1[k*(BUFFER_SIZE+1) + i];\n\
       b_t = tmp2[k];\n\
-      result.x = mad(a_t.x,b_t.x,mad(a_t.y,b_t.y,result.x));\n\
-      result.y = mad(a_t.x,b_t.y,mad(-a_t.y,b_t.x,result.y));\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x += a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y -= a_t.y * b_t.x;\n\
     }\n\
   }\n\
   if(condm && condn){\n\
     double2 final_result = (double2)(0.0, 0.0);\n\
     final_result.x += alpha.x*result.x;\n\
-    final_result.x +=-alpha.y*result.y;\n\
+    final_result.x -= alpha.y*result.y;\n\
     final_result.y += alpha.x*result.y;\n\
     final_result.y += alpha.y*result.x;\n\
     double2 c_t = c[0];\n\
     final_result.x += beta.x*c_t.x;\n\
-    final_result.x +=-beta.y*c_t.y;\n\
+    final_result.x -= beta.y*c_t.y;\n\
     final_result.y += beta.x*c_t.y;\n\
     final_result.y += beta.y*c_t.x;\n\
     c[0] = final_result;\n\
@@ -376,19 +386,21 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
     for(size_t k=0; k<BUFFER_SIZE; k++){\n\
       a_t = tmp1[k*BUFFER_SIZE];\n\
       b_t = tmp2[j*(BUFFER_SIZE+1) + k];\n\
-      result.x = mad(a_t.x,b_t.x,mad(-a_t.y,b_t.y,result.x));\n\
-      result.y = mad(a_t.x,b_t.y,mad(a_t.y,b_t.x,result.y));\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x -= a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y += a_t.y * b_t.x;\n\
     }\n\
   }\n\
   if(condm && condn){\n\
     double2 final_result = (double2)(0.0, 0.0);\n\
     final_result.x += alpha.x*result.x;\n\
-    final_result.x +=-alpha.y*result.y;\n\
+    final_result.x -= alpha.y*result.y;\n\
     final_result.y += alpha.x*result.y;\n\
     final_result.y += alpha.y*result.x;\n\
     double2 c_t = c[0];\n\
     final_result.x += beta.x*c_t.x;\n\
-    final_result.x +=-beta.y*c_t.y;\n\
+    final_result.x -= beta.y*c_t.y;\n\
     final_result.y += beta.x*c_t.y;\n\
     final_result.y += beta.y*c_t.x;\n\
     c[0] = final_result;\n\
@@ -426,19 +438,21 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
     for(size_t k=0; k<BUFFER_SIZE; k++){\n\
       a_t = tmp1[k*(BUFFER_SIZE+1) + i];\n\
       b_t = tmp2[j*(BUFFER_SIZE+1) + k];\n\
-      result.x = mad(a_t.x,b_t.x,mad(a_t.y,b_t.y,result.x));\n\
-      result.y = mad(a_t.x,b_t.y,mad(-a_t.y,b_t.x,result.y));\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x += a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y -= a_t.y * b_t.x;\n\
     }\n\
   }\n\
   if(condm && condn){\n\
     double2 final_result = (double2)(0.0, 0.0);\n\
     final_result.x += alpha.x*result.x;\n\
-    final_result.x +=-alpha.y*result.y;\n\
+    final_result.x -= alpha.y*result.y;\n\
     final_result.y += alpha.x*result.y;\n\
     final_result.y += alpha.y*result.x;\n\
     double2 c_t = c[0];\n\
     final_result.x += beta.x*c_t.x;\n\
-    final_result.x +=-beta.y*c_t.y;\n\
+    final_result.x -= beta.y*c_t.y;\n\
     final_result.y += beta.x*c_t.y;\n\
     final_result.y += beta.y*c_t.x;\n\
     c[0] = final_result;\n\
@@ -476,19 +490,21 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
     for(size_t k=0; k<BUFFER_SIZE; k++){\n\
       a_t = tmp1[k*(BUFFER_SIZE+1) + i];\n\
       b_t = tmp2[j*(BUFFER_SIZE+1) + k];\n\
-      result.x = mad(a_t.x,b_t.x,mad(a_t.y,b_t.y,result.x));\n\
-      result.y = mad(a_t.x,b_t.y,mad(-a_t.y,b_t.x,result.y));\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x += a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y -= a_t.y * b_t.x;\n\
     }\n\
   }\n\
   if(condm && condn){\n\
     double2 final_result = (double2)(0.0, 0.0);\n\
     final_result.x += alpha.x*result.x;\n\
-    final_result.x +=-alpha.y*result.y;\n\
+    final_result.x -= alpha.y*result.y;\n\
     final_result.y += alpha.x*result.y;\n\
     final_result.y += alpha.y*result.x;\n\
     double2 c_t = c[0];\n\
     final_result.x += beta.x*c_t.x;\n\
-    final_result.x +=-beta.y*c_t.y;\n\
+    final_result.x -= beta.y*c_t.y;\n\
     final_result.y += beta.x*c_t.y;\n\
     final_result.y += beta.y*c_t.x;\n\
     c[0] = final_result;\n\
@@ -526,19 +542,21 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
     for(size_t k=0; k<BUFFER_SIZE; k++){\n\
       a_t = tmp1[k*(BUFFER_SIZE+1) + i];\n\
       b_t = tmp2[j*(BUFFER_SIZE+1) + k];\n\
-      result.x = mad(a_t.x,b_t.x,mad(-a_t.y,b_t.y,result.x));\n\
-      result.y = mad(a_t.x,b_t.y,mad(a_t.y,b_t.x,result.y));\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x -= a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y += a_t.y * b_t.x;\n\
     }\n\
   }\n\
   if(condm && condn){\n\
     double2 final_result = (double2)(0.0, 0.0);\n\
     final_result.x += alpha.x*result.x;\n\
-    final_result.x +=-alpha.y*result.y;\n\
+    final_result.x -= alpha.y*result.y;\n\
     final_result.y += alpha.x*result.y;\n\
     final_result.y += alpha.y*result.x;\n\
     double2 c_t = c[0];\n\
     final_result.x += beta.x*c_t.x;\n\
-    final_result.x +=-beta.y*c_t.y;\n\
+    final_result.x -= beta.y*c_t.y;\n\
     final_result.y += beta.x*c_t.y;\n\
     final_result.y += beta.y*c_t.x;\n\
     c[0] = final_result;\n\
