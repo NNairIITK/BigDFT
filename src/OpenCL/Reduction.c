@@ -369,15 +369,15 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
     //load first matrix in tmp1\n\
     tmp1[j*(BUFFER_SIZE)] = (condm && (index + j) < k) ? a[index*lda] : (double2)(0.0, 0.0);\n\
     //load second matrix in tmp2\n\
-    tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? b[index*ldb] : (double2)(0.0, 0.0);\n\
+    tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? (double2)(1,-1) * b[index*ldb] : (double2)(0.0, 0.0);\n\
     index += BUFFER_SIZE;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
     #pragma unroll\n\
     for(size_t k=0; k<BUFFER_SIZE; k++){\n\
       a_t = tmp1[k*BUFFER_SIZE];\n\
       b_t = tmp2[j*(BUFFER_SIZE+1) + k];\n\
-      result.x = mad(a_t.x,b_t.x,mad(-a_t.y,-b_t.y,result.x));\n\
-      result.y = mad(a_t.x,-b_t.y,mad(a_t.y,b_t.x,result.y));\n\
+      result.x = mad(a_t.x,b_t.x,mad(-a_t.y,b_t.y,result.x));\n\
+      result.y = mad(a_t.x,b_t.y,mad(a_t.y,b_t.x,result.y));\n\
     }\n\
   }\n\
   if(condm && condn){\n\
@@ -419,15 +419,15 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
     //load first matrix in tmp1\n\
     tmp1[i*(BUFFER_SIZE+1) + j] = (condm && (index + i) < k) ? a[index] : (double2)(0.0, 0.0);\n\
     //load second matrix in tmp2\n\
-    tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? b[index*ldb] : (double2)(0.0, 0.0);\n\
+    tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? (double2)(1,-1) * b[index*ldb] : (double2)(0.0, 0.0);\n\
     index += BUFFER_SIZE;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
     #pragma unroll\n\
     for(size_t k=0; k<BUFFER_SIZE; k++){\n\
       a_t = tmp1[k*(BUFFER_SIZE+1) + i];\n\
       b_t = tmp2[j*(BUFFER_SIZE+1) + k];\n\
-      result.x = mad(a_t.x,b_t.x,mad(a_t.y,-b_t.y,result.x));\n\
-      result.y = mad(a_t.x,-b_t.y,mad(-a_t.y,b_t.x,result.y));\n\
+      result.x = mad(a_t.x,b_t.x,mad(a_t.y,b_t.y,result.x));\n\
+      result.y = mad(a_t.x,b_t.y,mad(-a_t.y,b_t.x,result.y));\n\
     }\n\
   }\n\
   if(condm && condn){\n\
@@ -519,15 +519,15 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
     //load first matrix in tmp1\n\
     tmp1[i*(BUFFER_SIZE+1) + j] = (condm && (index + i) < k) ? a[index] : (double2)(0.0, 0.0);\n\
     //load second matrix in tmp2\n\
-    tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? b[index*ldb] : (double2)(0.0, 0.0);\n\
+    tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? (double2)(1,-1) * b[index*ldb] : (double2)(0.0, 0.0);\n\
     index += BUFFER_SIZE;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
     #pragma unroll\n\
     for(size_t k=0; k<BUFFER_SIZE; k++){\n\
       a_t = tmp1[k*(BUFFER_SIZE+1) + i];\n\
       b_t = tmp2[j*(BUFFER_SIZE+1) + k];\n\
-      result.x = mad(a_t.x,b_t.x,mad(-a_t.y,-b_t.y,result.x));\n\
-      result.y = mad(a_t.x,-b_t.y,mad(a_t.y,b_t.x,result.y));\n\
+      result.x = mad(a_t.x,b_t.x,mad(-a_t.y,b_t.y,result.x));\n\
+      result.y = mad(a_t.x,b_t.y,mad(a_t.y,b_t.x,result.y));\n\
     }\n\
   }\n\
   if(condm && condn){\n\
@@ -1180,13 +1180,23 @@ void clean_reduction_kernels(){
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(gemm_kernel_z_tb);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_kernel_z_cb);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(gemm_kernel_d_ta);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(gemm_kernel_z_ta);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_kernel_z_ca);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(gemm_kernel_d_tatb);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(gemm_kernel_z_tatb);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_kernel_z_catb);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_kernel_z_tacb);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_kernel_z_cacb);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseProgram(reductionProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");

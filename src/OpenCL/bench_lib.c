@@ -256,6 +256,22 @@ void bench_zgemm(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in1, cl_double 
   transa = 't';
   transb = 't';
   gemm_z_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &k, &b, &n, &beta, &c, &m);
+  transa = 'n';
+  transb = 'c';
+  gemm_z_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &m, &b, &n, &beta, &c, &m);
+  transa = 'c';
+  transb = 'n';
+  gemm_z_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &k, &b, &k, &beta, &c, &m);
+  transa = 'c';
+  transb = 't';
+  gemm_z_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &k, &b, &n, &beta, &c, &m);
+  transa = 'c';
+  transb = 'c';
+  gemm_z_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &k, &b, &n, &beta, &c, &m);
+  transa = 't';
+  transb = 'c';
+  gemm_z_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &k, &b, &n, &beta, &c, &m);
+
   ocl_finish_(&queue);
   ocl_enqueue_read_buffer_(&queue, &c, &size_c, out);
   ocl_release_mem_object_(&a);
