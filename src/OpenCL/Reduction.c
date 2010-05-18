@@ -968,36 +968,41 @@ void FC_FUNC_(nrm2sq_self_d,NRM2SQ_SELF_D)(cl_command_queue *command_queue, cl_u
 }
 
 void FC_FUNC_(gemm_d,GEMM_D)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
-  if( *transa == 'n' && *transb == 'n' )
-    gemm_generic(gemm_kernel_d, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
-  else if ( *transa == 'n' && ( *transb == 't' || *transb == 'c' ) )
-    gemm_generic(gemm_kernel_d_tb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
-  else if ( *transb == 'n' && ( *transa == 't' || *transa == 'c' ) )
-    gemm_generic(gemm_kernel_d_ta, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
-  else
-    gemm_generic(gemm_kernel_d_tatb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+  if( *transa == 't' || *transa == 'c' || *transa == 'T' || *transa == 'C' ) {
+    if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
+      gemm_generic(gemm_kernel_d_tatb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else {
+      gemm_generic(gemm_kernel_d_ta, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    }
+  } else {
+    if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
+      gemm_generic(gemm_kernel_d_tb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else {
+      gemm_generic(gemm_kernel_d, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    }
+  }
 }
 void FC_FUNC_(gemm_z,GEMM_Z)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double2 *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double2 *beta, cl_mem *c, cl_uint *ldc) {
-  if( *transa == 't' ) {
-    if ( *transb == 't' ) {
+  if( *transa == 't' || *transa == 'T' ) {
+    if ( *transb == 't' || *transb == 'T' ) {
       zgemm_generic(gemm_kernel_z_tatb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
-    } else if ( *transb == 'c' ) {
+    } else if ( *transb == 'c' || *transb == 'C' ) {
       zgemm_generic(gemm_kernel_z_tacb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     } else {
       zgemm_generic(gemm_kernel_z_ta, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     }
-  } else if ( *transa == 'c' ) {
-    if ( *transb == 't' ) {
+  } else if ( *transa == 'c' || *transa == 'C' ) {
+    if ( *transb == 't' || *transb == 'T' ) {
       zgemm_generic(gemm_kernel_z_catb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
-    } else if ( *transb == 'c' ) {
+    } else if ( *transb == 'c' || *transb == 'C' ) {
       zgemm_generic(gemm_kernel_z_cacb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     } else {
       zgemm_generic(gemm_kernel_z_ca, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     }
   } else {
-    if ( *transb == 't' ) {
+    if ( *transb == 't' || *transb == 'T' ) {
       zgemm_generic(gemm_kernel_z_tb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
-    } else if ( *transb == 'c' ) {
+    } else if ( *transb == 'c' || *transb == 'C' ) {
       zgemm_generic(gemm_kernel_z_cb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     } else {
       zgemm_generic(gemm_kernel_z, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
