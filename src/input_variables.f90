@@ -1932,7 +1932,7 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   if (atoms%geocode == 'S') write(9, "(A)") "#keyword: surface"
   if (atoms%geocode == 'F') write(9, "(A)") "#keyword: freeBC"
   if (energy /= 0.d0) then
-     write(9, "(A,e24.17)") "# Total energy (Ht): ", energy
+     write(9, "(A,e24.17,A)") "#metaData: totalEnergy=", energy, "Ht"
   end if
 
   do iat=1,atoms%nat
