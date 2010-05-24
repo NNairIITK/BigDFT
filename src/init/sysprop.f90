@@ -806,19 +806,21 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
 
   !create an array which indicate which processor has a GPU associated 
   !from the viewpoint of the BLAS routines
-  allocate(GPU_for_orbs(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
-
-  if (nproc > 1 .and. .not. GPUshare) then
-     call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
-          MPI_COMM_WORLD,ierr)
-  else
-     GPU_for_orbs(0)=GPUconv
+  if (.not. GPUshare) then
+     allocate(GPU_for_orbs(0:nproc-1+ndebug),stat=i_stat)
+     call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
+     
+     if (nproc > 1) then
+        call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
+             MPI_COMM_WORLD,ierr)
+     else
+        GPU_for_orbs(0)=GPUconv
+     end if
+     
+     i_all=-product(shape(GPU_for_orbs))*kind(GPU_for_orbs)
+     deallocate(GPU_for_orbs,stat=i_stat)
+     call memocc(i_stat,i_all,'GPU_for_orbs',subname)
   end if
-
-  i_all=-product(shape(GPU_for_orbs))*kind(GPU_for_orbs)
-  deallocate(GPU_for_orbs,stat=i_stat)
-  call memocc(i_stat,i_all,'GPU_for_orbs',subname)
 
   call parallel_repartition_with_kpoints(nproc,orbs%nkpts,norb,orbs%norb_par)
 

@@ -37,7 +37,7 @@ GPU_BLAS = modules/cublas_fake.f90
 endif
 
 if USE_OCL
-sub_dirs_ocl=OpenCL
+sub_dirs_ocl=OpenCL convolutions-c
 OCL_INTERFACE = convolutions/convolut_common_interface_ocl.f90
 libs_ocl=OpenCL/libOCL.a
 else

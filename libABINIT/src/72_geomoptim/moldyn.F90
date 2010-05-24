@@ -156,7 +156,6 @@
 !!      xredxcart
 !!
 !! SOURCE
-
 subroutine moldyn(acell,amass,me,&
 & mxfh,nxfh,natom,rprim,etotal,iexit,&
 & optcell, ionmov, ntime, dtion, noseinert, mditemp, mdftemp, &
@@ -210,7 +209,6 @@ subroutine moldyn(acell,amass,me,&
  real(dp),allocatable :: vel_prevhalf(:,:),vin(:),vin_next(:)
  real(dp),allocatable :: vin_prev(:),vout(:),xcart(:,:)
  real(dp),allocatable :: xcart_next(:,:),xred_prev(:,:),xred_next(:,:)
-
 !************************************************************************
 !Beginning of executable session
 !***************************************************************************
@@ -236,6 +234,7 @@ subroutine moldyn(acell,amass,me,&
  if(optcell==1 .or. optcell==4 .or. optcell==5 .or. optcell==6)ndim=ndim+1
  if(optcell==2 .or. optcell==3)ndim=ndim+6
  if(optcell==7 .or. optcell==8 .or. optcell==9)ndim=ndim+3
+
 
  allocate(fcart(3,natom))
  allocate(fcart_mold(3,natom))
@@ -307,7 +306,9 @@ subroutine moldyn(acell,amass,me,&
 !
 !Iterative procedure (main loop)
 !
+ 
  do itime=0,ntime
+
 
 !!$  if(itime/=0)then
 !!$   call status(itime,dtfil%filstat,iexit,level,'loop itime    ')
@@ -406,6 +407,7 @@ subroutine moldyn(acell,amass,me,&
 
   !!$ call status(itime,dtfil%filstat,iexit,level,'call prtxvf   ')
 
+
 ! Output of acell and/or rprim ( and angles ! - should become a routine later)
   if(optcell/=0)then
    angle(1)=acos(rmet(2,3)/sqrt(rmet(2,2)*rmet(3,3)))/two_pi*360.0
@@ -442,6 +444,7 @@ subroutine moldyn(acell,amass,me,&
   xfhist(:,1:natom,2,nxfh)=fred_corrected(:,:)
   xfhist(:,natom+2,2,nxfh)=strten(1:3)
   xfhist(:,natom+3,2,nxfh)=strten(4:6)
+
 
 ! Store computed gradient in vout
   option=3
@@ -517,6 +520,7 @@ subroutine moldyn(acell,amass,me,&
   prtvel=1
   call prtxvf(fcart,iatfix,ab_out,natom,prtvel,vel,xcart)
   call prtxvf(fcart,iatfix, 06 ,natom,prtvel,vel,xcart)
+
 
 ! Here, stop the atoms for which the scalar product of velocity
 ! and force is negative, and recompute the kinetic energy.

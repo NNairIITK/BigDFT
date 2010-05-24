@@ -1,6 +1,16 @@
 #include "OpenCL_wrappers.h"
 
 
+void FC_FUNC_(rdtsc,RDTSC)(cl_ulong * t){
+  rdtscll(*t);
+}
+void FC_FUNC_(nanosec,NANOSEC)(cl_ulong * t){
+  struct timespec time;
+  clock_gettime(CLOCK_REALTIME, &time);
+  *t = time.tv_sec;
+  *t *= 1000000000;
+  *t += time.tv_nsec;
+}
 
 cl_device_id oclGetFirstDev(cl_context cxGPUContext)
 {

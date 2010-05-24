@@ -1502,7 +1502,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
 
   !the kinetic overlap is correctly calculated only with Free BC
-  randinp = lr%geocode /= 'F'
+  randinp = .false.!lr%geocode /= 'F'
 
   if (randinp) then
      !fill randomly the gaussian coefficients for the orbitals considered
@@ -1531,7 +1531,8 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
      call memocc(i_stat,ovrlp,'ovrlp',subname)
 
      !overlap calculation of the kinetic operator, upper triangular part
-     call kinetic_overlap(G,G,ovrlp)
+     !call kinetic_overlap(G,G,ovrlp)
+     call gaussian_overlap(G,G,ovrlp)
      nwork=3*G%ncoeff+1
      allocate(work(nwork+ndebug),stat=i_stat)
      call memocc(i_stat,work,'work',subname)
