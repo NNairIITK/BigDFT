@@ -237,6 +237,31 @@ program conv_check
 
            call compare_time(CPUtime,GPUtime,n1*ndat,32,ntimes,maxdiff,3.d-7)
 
+          write(*,'(a,i6,i6)')'GPU Convolutions (block), dimensions:',n1,ndat
+
+           call ocl_create_write_buffer(context, n1*ndat*8, psi_GPU)
+           call ocl_create_read_buffer(context, n1*ndat*8, work_GPU)
+           call ocl_enqueue_write_buffer(queue, work_GPU, n1*ndat*8, v_cuda)
+
+           call nanosec(tsc0);
+           do i=1,ntimes
+              call magicfilter1d_block_d(queue,n1,ndat,work_GPU,psi_GPU)
+           end do
+           call ocl_finish(queue);
+           call nanosec(tsc1);
+
+           call ocl_enqueue_read_buffer(queue, psi_GPU, n1*ndat*8, psi_cuda)
+           call ocl_release_mem_object(psi_GPU)
+           call ocl_release_mem_object(work_GPU)
+
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9!/real(ntimes,kind=8)
+           call print_time(GPUtime,n1*ndat,32,ntimes)
+
+           call compare_2D_results_t(ndat, n1, psi_out, psi_cuda, maxdiff, 3.d-7)
+
+           call compare_time(CPUtime,GPUtime,n1*ndat,32,ntimes,maxdiff,3.d-7)
+
+
            write(*,'(a,i6,i6)')'CPU Convolutions T, dimensions:',n1,ndat
 
            call nanosec(tsc0)

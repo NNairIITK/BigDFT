@@ -9,6 +9,7 @@ void init_key(cl_int *keyg, cl_int *keyv, cl_int nseg, cl_int *nvctr_cf);
 void init_random(double * data, size_t size);
 void bench_magicfilter1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out);
 void bench_magicfilter1d_straight(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out);
+void bench_magicfilter1d_block(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out);
 void bench_magicfiltershrink1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out);
 void bench_magicfiltergrow1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out);
 void bench_kinetic1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out);
