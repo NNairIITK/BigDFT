@@ -1071,7 +1071,8 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
   integer, intent(in) :: nkpts,nobj,nproc
   integer, dimension(0:nproc-1), intent(out) :: nobj_par
   !local variables
-  integer :: n_i,n_ip,rs_i,N_a,N_b,N_c,ikpt,jproc,i
+  integer :: n_i,n_ip,rs_i,N_a,N_b,N_c,ikpt,jproc,i,ntmp
+  real(gp) :: rtmp
   
   ! Strategy to divide between k points.
   ! There is an nproc length to divide into orbs%nkpts segments.
@@ -1106,9 +1107,20 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
      rs_i=ikpt*nproc
      n_ip=rs_i/nkpts
      ! Calculation of N_a, N_b and N_c from given n_i and n_ip.
-     if (n_ip >= n_i) then
-        N_a=nint(real(nobj*(n_i*nkpts-(ikpt-1)*nproc),gp)/real(nproc,gp))
-        N_c=nint(real(nobj*(ikpt*nproc-n_ip*nkpts),gp)/real(nproc,gp))
+     if (n_ip >= n_i) then      
+        ntmp=n_i*nkpts-(ikpt-1)*nproc
+        rtmp=real(nobj,gp)/real(nproc,gp)
+        rtmp=rtmp*real(ntmp,gp)
+        N_a=nint(rtmp)
+
+        ntmp=ikpt*nproc-n_ip*nkpts
+        rtmp=real(nobj,gp)/real(nproc,gp)
+        rtmp=rtmp*real(ntmp,gp)
+        N_c=nint(rtmp)
+        
+        !the corrections above are to avoid the 32 bit integer overflow
+        !N_a=nint(real(nobj*(n_i*nkpts-(ikpt-1)*nproc),gp)/real(nproc,gp))
+        !N_c=nint(real(nobj*(ikpt*nproc-n_ip*nkpts),gp)/real(nproc,gp))
      else
         N_c=nobj/2
         N_a=nobj-N_c

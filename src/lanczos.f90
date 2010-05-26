@@ -24,8 +24,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   implicit none
 
-  integer  :: iproc,nproc,ndimpot,nspin
-  real(gp)  :: hx,hy,hz
+  integer, intent(in) :: iproc,nproc,ndimpot,nspin
+  real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), target :: at
   type(nonlocal_psp_descriptors), target :: nlpspd
   type(locreg_descriptors), target :: lr
