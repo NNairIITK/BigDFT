@@ -111,13 +111,13 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   character*40 comment
 
   call geopt_init()
-  if (iproc ==0 .and. parmin%verbosity > 0) &
-       & write(16,'(a)') '# Geometry optimization log file, grep for GEOPT for consistent output'
-  if (iproc ==0 .and. parmin%verbosity > 0) &
-       & write(16,'(a)') '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM       FNRM2     FRAC*FLUC FLUC      ADD. INFO'
+  if (iproc ==0 .and. parmin%verbosity > 0)  write(16,'(a)')  & 
+     '# Geometry optimization log file, grep for GEOPT for consistent output'
+  if (iproc ==0 .and. parmin%verbosity > 0) write(16,'(a)')  & 
+      '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM       FNRM2     FRAC*FLUC FLUC      ADD. INFO'
 
-  if (iproc ==0 .and. parmin%verbosity > 0) &
-       & write(* ,'(a)') '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM       FNRM2     FRAC*FLUC FLUC      ADD. INFO'
+  if (iproc ==0 .and. parmin%verbosity > 0) write(* ,'(a)') & 
+      '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM       FNRM2     FRAC*FLUC FLUC      ADD. INFO'
 
   !assign the geometry optimisation method
   parmin%approach=in%geopt_approach
@@ -319,7 +319,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   implicit none
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
-  real(gp), intent(out) :: etot
+  real(gp), intent(inout) :: etot
   type(atoms_data), intent(inout) :: at
   type(input_variables), intent(inout) :: in
   type(restart_objects), intent(inout) :: rst
@@ -630,7 +630,8 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
   type(restart_objects), intent(inout) :: rst
   integer, intent(inout) :: ncount_bigdft
   real(gp), dimension(3,at%nat), intent(inout) :: rxyz
-  real(gp), intent(out) :: fnrm,etot,fnoise
+  real(gp), intent(out) :: fnrm,fnoise
+  real(gp), intent(inout) :: etot
   real(gp), intent(inout) :: fluctsum,fluct
   real(gp), dimension(3,at%nat), intent(out) ::ff
   real(gp), intent(in)::forcemax_sw
@@ -772,9 +773,11 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
 
         if (iproc==0 .and. parmin%verbosity > 0) then
         write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,I2)') &
-        &ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,"b/b0=",beta/in%betax,"nsat=",nsatur
+        &ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,& 
+        &"b/b0=",beta/in%betax,"nsat=",nsatur
         write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,I2)') &
-        &ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,"b/b0=",beta/in%betax,"nsat=",nsatur
+        &ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct, & 
+        &"b/b0=",beta/in%betax,"nsat=",nsatur
         eprev=etot 
 !           write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',&
 !                fnrm,fluct*in%frac_fluct,fluct
@@ -893,7 +896,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   implicit none
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
-  real(gp), intent(out) :: etot
+  real(gp), intent(inout) :: etot
   type(atoms_data), intent(inout) :: at
   type(input_variables), intent(inout) :: in
   type(restart_objects), intent(inout) :: rst
@@ -1046,10 +1049,14 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
         betalastold=betalast
      endif
 
-     if (iproc == 0.and.parmin%verbosity > 0)   write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
-     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,"beta=",beta,"last beta=",betalast
-     if (iproc == 0.and.parmin%verbosity > 0)   write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
-     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,"beta=",beta,"last beta=",betalast
+     if (iproc == 0.and.parmin%verbosity > 0) & 
+     &write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
+     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,& 
+     &"beta=",beta,"last beta=",betalast
+     if (iproc == 0.and.parmin%verbosity > 0) & 
+     &write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
+     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,& 
+     &"beta=",beta,"last beta=",betalast
      eprev=etot
 !     if (iproc == 0) write(16,'(i5,1x,e12.5,1x,e21.14,a,e10.3,1x,e10.3)') itsd,sqrt(fnrm),etot,' GEOPT VSSD ',beta,betalast
      if(iproc==0)call timeleft(tt)
@@ -1058,10 +1065,14 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
 
 
   enddo loop_ntsd
-  if (iproc == 0.and.parmin%verbosity > 0)   write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
-  &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,"beta=",beta,"last beta=",betalast
-  if (iproc == 0.and.parmin%verbosity > 0)   write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
-  &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,"beta=",beta,"last beta=",betalast
+  if (iproc == 0.and.parmin%verbosity > 0) & 
+     &write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
+     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,& 
+     &"beta=",beta,"last beta=",betalast
+  if (iproc == 0.and.parmin%verbosity > 0) & 
+     &write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
+     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,& 
+     &"beta=",beta,"last beta=",betalast
   if (iproc == 0 .and. itsd == nitsd+1) &
        write(16,'(a,i5,e9.2,e18.10,e9.2)') '---- SD FAILED  TO CONVERGE'
   if (iproc == 0) then
@@ -1576,10 +1587,12 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
 
               if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,nfluct,fluctsum,fluct)
 !              if (fmax < 3.d-1) call updatefluctsum(at%nat,fxyz,nfluct,fluctsum,fluct)
-   if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe7.2E1)')&
+   if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) & 
+              &write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe7.2E1)')&
               &ncount_bigdft,ICALL,"GEOPT_BFGS",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct&
               &,"BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
-   if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe7.2E1)')&
+   if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) & 
+              & write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe7.2E1)')&
               &ncount_bigdft,ICALL,"GEOPT_BFGS",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct&
               &,"BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
               eprev=etot
@@ -2138,7 +2151,8 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
 !                         IF(IPRINT(2).GT.1.AND.ITER.GT.1.AND.IPROC==0) WRITE(parmin%MP,70)
 !                         IF(IPROC==0)   WRITE(parmin%MP,80)ITER,NFUN,F,GNORM,STP
 !                         IF(IPROC==0)   write(parmin%MP,'(i5,1x,e12.5,1x,e21.14,a,i5,1x,e12.5)') ITER,gnorm,f,' GEOPT BFGS ', nfun,STP
-                         IF(IPROC==0)   write(parmin%MP,'(a,2(i5,1x),1x,1pe21.14,1x,1pe12.5,1x,1E12.5)') ' MIN ',ITER,nfun,f,gnorm,STP
+                         IF(IPROC==0)   write(parmin%MP,'(a,2(i5,1x),1x,1pe21.14,1x,1pe12.5,1x,1E12.5)')  & 
+                                        ' MIN ',ITER,nfun,f,gnorm,STP
                          parmin%FINSTEP=ITER
                          parmin%ALPHA=STP
                    parmin%IWRITE=.true.
