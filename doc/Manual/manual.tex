@@ -373,7 +373,7 @@ If this file exists, BigDFT will do a geometry optimization and the file contain
        \begin{itemize}
        \item  \emph{VSSD}: Variable Stepsize Steepest Descent method;
        \item  \emph{SDCG}: A combination od Stepest Descent and Conjugate Gradient;
-       \item  \emph{LBFGS}: Limited Memory BFGS;
+       \item  \emph{BFGS}: Limited Memory BFGS;
        \item  \emph{AB6MD}: The molecular dynamic routines from ABINIT 6.
        \end{itemize}
 \item {\bf  ncount\_cluster\_x}: Maximum number of force evaluations to be used for the geometry optimization.
@@ -396,7 +396,7 @@ If this file exists, BigDFT will do a geometry optimization and the file contain
                       VSSD will suggest than a better value for {\bf betax} in the last line of the 'geopt.mon' file. 
                       Whether the stepsize is correct can also be seen from the 'geopt.mon' output of the SDCG method. In this 
                       case the average stepsize in terms of \textbf{betax} should be around 4 (after a brief initial period where it is around 8).
-                      In contrast to the SDCG method, the LBFGS method is not very sensitive to the correct stepsize but nevertheless 
+                      In contrast to the SDCG method, the BFGS method is not very sensitive to the correct stepsize but nevertheless 
                       one should try to find reasonable values also in this case.
 \item  \textbf{ionmov}: in case of {\bf geopt\_approach = AB6MD}, the {\bf betax} line should be replaced by this one. It contains an integer value as described in the ABINIT manual. Possible values are:
                          \begin{itemize}
