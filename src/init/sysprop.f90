@@ -628,7 +628,8 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
   character(len=*), intent(in) :: filename
   integer, intent(in) :: ityp,mxpl,mxchg,nspin,nmax,lmax,nelecmax,nsccode
   type(atoms_data), intent(inout) :: at
-  integer, dimension(nmax,lmax), intent(in) :: neleconf
+  !integer, dimension(nmax,lmax), intent(in) :: neleconf
+  real(gp), dimension(nmax,lmax), intent(in) :: neleconf
   !local variables
   integer, parameter :: noccmax=2
   character(len=100) :: string
@@ -805,19 +806,21 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
 
   !create an array which indicate which processor has a GPU associated 
   !from the viewpoint of the BLAS routines
-  allocate(GPU_for_orbs(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
-
-  if (nproc > 1 .and. .not. GPUshare) then
-     call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
-          MPI_COMM_WORLD,ierr)
-  else
-     GPU_for_orbs(0)=GPUconv
+  if (.not. GPUshare) then
+     allocate(GPU_for_orbs(0:nproc-1+ndebug),stat=i_stat)
+     call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
+     
+     if (nproc > 1) then
+        call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
+             MPI_COMM_WORLD,ierr)
+     else
+        GPU_for_orbs(0)=GPUconv
+     end if
+     
+     i_all=-product(shape(GPU_for_orbs))*kind(GPU_for_orbs)
+     deallocate(GPU_for_orbs,stat=i_stat)
+     call memocc(i_stat,i_all,'GPU_for_orbs',subname)
   end if
-
-  i_all=-product(shape(GPU_for_orbs))*kind(GPU_for_orbs)
-  deallocate(GPU_for_orbs,stat=i_stat)
-  call memocc(i_stat,i_all,'GPU_for_orbs',subname)
 
   call parallel_repartition_with_kpoints(nproc,orbs%nkpts,norb,orbs%norb_par)
 
@@ -1068,7 +1071,8 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
   integer, intent(in) :: nkpts,nobj,nproc
   integer, dimension(0:nproc-1), intent(out) :: nobj_par
   !local variables
-  integer :: n_i,n_ip,rs_i,N_a,N_b,N_c,ikpt,jproc,i
+  integer :: n_i,n_ip,rs_i,N_a,N_b,N_c,ikpt,jproc,i,ntmp
+  real(gp) :: rtmp
   
   ! Strategy to divide between k points.
   ! There is an nproc length to divide into orbs%nkpts segments.
@@ -1103,9 +1107,20 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
      rs_i=ikpt*nproc
      n_ip=rs_i/nkpts
      ! Calculation of N_a, N_b and N_c from given n_i and n_ip.
-     if (n_ip >= n_i) then
-        N_a=nint(real(nobj*(n_i*nkpts-(ikpt-1)*nproc),gp)/real(nproc,gp))
-        N_c=nint(real(nobj*(ikpt*nproc-n_ip*nkpts),gp)/real(nproc,gp))
+     if (n_ip >= n_i) then      
+        ntmp=n_i*nkpts-(ikpt-1)*nproc
+        rtmp=real(nobj,gp)/real(nproc,gp)
+        rtmp=rtmp*real(ntmp,gp)
+        N_a=nint(rtmp)
+
+        ntmp=ikpt*nproc-n_ip*nkpts
+        rtmp=real(nobj,gp)/real(nproc,gp)
+        rtmp=rtmp*real(ntmp,gp)
+        N_c=nint(rtmp)
+        
+        !the corrections above are to avoid the 32 bit integer overflow
+        !N_a=nint(real(nobj*(n_i*nkpts-(ikpt-1)*nproc),gp)/real(nproc,gp))
+        !N_c=nint(real(nobj*(ikpt*nproc-n_ip*nkpts),gp)/real(nproc,gp))
      else
         N_c=nobj/2
         N_a=nobj-N_c

@@ -383,6 +383,8 @@ subroutine geopt_input_variables(filename,in)
   read(1,*,iostat=ierror) in%randdis
   call check()
   if (trim(in%geopt_approach) == "AB6MD") then
+     in%nnos=0
+
      read(1,*,iostat=ierror) in%ionmov
      call check()
      read(1,*,iostat=ierror) in%dtion
@@ -405,13 +407,16 @@ subroutine geopt_input_variables(filename,in)
      else if (in%ionmov == 13) then
         read(1,*,iostat=ierror) in%nnos
         call check()
-        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
-        call memocc(i_stat,in%qmass,'in%qmass',subname)
         read(1,*,iostat=ierror) in%qmass
         call check()
         read(1,*,iostat=ierror) in%bmass, in%vmass
         call check()
      end if
+
+     !the allocation of this pointer should be done in any case
+     allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
+     call memocc(i_stat,in%qmass,'in%qmass',subname)
+
   else if (trim(in%geopt_approach) == "DIIS") then
      read(1,*,iostat=ierror) in%betax, in%history
      call check()

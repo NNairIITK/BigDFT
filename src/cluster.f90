@@ -792,7 +792,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 !!$     end do
 !!$     close(78)
 
-     doYorkAtChgs=endloop .and. in%gaussian_help .and. in%last_run == 1 .and. .false.
+     doYorkAtChgs=endloop .and. in%gaussian_help .and. in%last_run == 1 !.and. .false.
 
      if(orbs%nspinor==4) then
         !this wrapper can be inserted inside the poisson solver 
@@ -842,7 +842,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            call H_potential(atoms%geocode,'D',iproc,nproc,&
                 Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-                rhopot,pkernel,pot_ion,ehart,0.0_dp,.not. doYorkAtChgs,&!.true.,&
+                rhopot,pkernel,pot_ion,ehart,0.0_dp,.not. doYorkAtChgs,&!.true.,&!
                 quiet=PSquiet) !optional argument
 
            !atomic charge calculation with York's method, to be improved
@@ -857,9 +857,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
               !calculation of the atomic charges to compare wrt Mulliken
               !radii to be defined
-              call atomic_charges(iproc,nproc,rxyz,radii,atoms,-nelec,Glr,ngatherarr,&
-                   hxh,hyh,hzh,n3p,i3s+i3xcsh,rho,pot_ion,atchgs)
-                  !hxh,hyh,hzh,n3p,i3s+i3xcsh,rho,rhopot,atchgs)
+              !call atomic_charges(iproc,nproc,rxyz,radii,atoms,0,Glr,ngatherarr,&
+              call atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,Glr,ngatherarr,&
+                   !hxh,hyh,hzh,n3p,i3s+i3xcsh,rho,pot_ion,atchgs)
+                   hxh,hyh,hzh,n3p,i3s+i3xcsh,rho,rhopot,atchgs)
 
               i_all=-product(shape(radii))*kind(radii)
               deallocate(radii,stat=i_stat)
@@ -1275,16 +1276,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         fxyz(3,iat)=gxyz(3,iat)
      enddo
   end if
-              if (iproc == 0) then
-              sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
-              fumx=0.d0 ; fumy=0.d0 ; fumz=0.d0
-              do iat=1,atoms%nat
-                 sumx=sumx+fxyz(1,iat) ; sumy=sumy+fxyz(2,iat) ; sumz=sumz+fxyz(3,iat)
-                 fumx=fumx+fion(1,iat) ; fumy=fumy+fion(2,iat) ; fumz=fumz+fion(3,iat)
-              enddo
-              write(77,'(a30,3(1x,e10.3))') 'translat. force total pot ',sumx,sumy,sumz
-              write(77,'(a30,3(1x,e10.3))') 'translat. force ionic pot ',fumx,fumy,fumz
-              endif
+
+!!$  if (iproc == 0) then
+!!$     sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
+!!$     fumx=0.d0 ; fumy=0.d0 ; fumz=0.d0
+!!$     do iat=1,atoms%nat
+!!$        sumx=sumx+fxyz(1,iat) ; sumy=sumy+fxyz(2,iat) ; sumz=sumz+fxyz(3,iat)
+!!$        fumx=fumx+fion(1,iat) ; fumy=fumy+fion(2,iat) ; fumz=fumz+fion(3,iat)
+!!$     enddo
+!!$     write(77,'(a30,3(1x,e10.3))') 'translat. force total pot ',sumx,sumy,sumz
+!!$     write(77,'(a30,3(1x,e10.3))') 'translat. force ionic pot ',fumx,fumy,fumz
+!!$  endif
 
   !add to the forces the ionic and dispersion contribution 
   do iat=1,atoms%nat

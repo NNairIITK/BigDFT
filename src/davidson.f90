@@ -773,8 +773,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      !we fill the values of the eval for the orbitals used in the preconditioner
      do ikpt=1,orbsv%nkpts
         do iorb=1,orbsv%norb
-           write(*,*) 'iorb,e(iorb,ikpt,1)',iorb,e(iorb,ikpt,1)
+           !write(*,*) 'iorb,e(iorb,ikpt,1)',iorb,e(iorb,ikpt,1)
            orbsv%eval(iorb+(ikpt-1)*orbsv%norb)=min(e(iorb,ikpt,1),-.5d0)
+           !orbsv%eval(iorb+(ikpt-1)*orbsv%norb)=e(iorb,ikpt,1)
         end do
      end do
      !we use for preconditioning the eval from the lowest value of the KS wavefunctions
@@ -1501,7 +1502,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
 
   !the kinetic overlap is correctly calculated only with Free BC
-  randinp = lr%geocode == 'F'
+  randinp = .false.!lr%geocode /= 'F'
 
   if (randinp) then
      !fill randomly the gaussian coefficients for the orbitals considered
@@ -1530,7 +1531,8 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
      call memocc(i_stat,ovrlp,'ovrlp',subname)
 
      !overlap calculation of the kinetic operator, upper triangular part
-     call kinetic_overlap(G,G,ovrlp)
+     !call kinetic_overlap(G,G,ovrlp)
+     call gaussian_overlap(G,G,ovrlp)
      nwork=3*G%ncoeff+1
      allocate(work(nwork+ndebug),stat=i_stat)
      call memocc(i_stat,work,'work',subname)

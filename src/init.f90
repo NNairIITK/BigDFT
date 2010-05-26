@@ -1022,13 +1022,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
   if (iproc == 0) then
      if (verbose > 1) write(*,'(1x,a)')'done.'
      !gaussian estimation valid only for Free BC
-!     if (at%geocode == 'F') then
+     if (at%geocode == 'F') then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
         write(*,'(1x,a,1pe9.2)') &
           'expected accuracy in energy per orbital ',accurex/real(orbs%norb,kind=8)
         !write(*,'(1x,a,1pe9.2)') &
         !     'suggested value for gnrm_cv ',accurex/real(orbs%norb,kind=8)
-!     end if
+     end if
   endif
 
   !here we can define the subroutine which generates the coefficients for the virtual orbitals

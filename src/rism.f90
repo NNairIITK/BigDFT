@@ -108,10 +108,16 @@ subroutine calculate_rho(iproc,nproc,geocode,nat,radii,rxyz,hxh,hyh,hzh,&
   real(gp), dimension(nat), intent(out) :: rhoarr
   !Local variables---------
   logical :: perx,pery,perz,gox,goy,goz
-  real(gp) :: pi,prefactor,cutoff,rloc,Vel
+  real(gp) :: pi,prefactor,cutoff,rloc,Vel,cutofrac
   real(gp) :: rx,ry,rz,x,y,z,arg,r2,xp,charge
   integer :: i1,i2,i3,ind,iat,ierr
   integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
+  
+  !experimental, just to verify the effect of the cutoff
+  open(11)
+  read(11,*)prefactor,cutofrac
+  close(11)
+
   
   pi=4.d0*atan(1.d0)
 
@@ -139,7 +145,8 @@ subroutine calculate_rho(iproc,nproc,geocode,nat,radii,rxyz,hxh,hyh,hzh,&
      rloc=radii(iat)
      prefactor=1.0_gp/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
      !maximum extension of the gaussian
-     cutoff=10.d0*rloc
+     !cutoff=10.d0*rloc
+     cutoff=cutofrac!*rloc
 
      isx=floor((rx-cutoff)/hxh)
      isy=floor((ry-cutoff)/hyh)
@@ -217,8 +224,13 @@ subroutine calculate_rho_longrange(iproc,nproc,at,radii,rxyz,hxh,hyh,hzh,&
   logical :: perx,pery,perz,gox,goy,goz
   integer :: i1,i2,i3,ind,iat,ierr,ityp
   integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
-  real(gp) :: pi,prefactor,cutoff,rloc,Rel
+  real(gp) :: pi,prefactor,cutoff,rloc,Rel,cutofrac
   real(gp) :: rx,ry,rz,x,y,z,arg,r2,xp,charge,erfor
+
+  !experimental, just to verify the effect of the cutoff
+  open(11)
+  read(11,*)prefactor,cutofrac
+  close(11)
   
   pi=4.d0*atan(1.d0)
 
@@ -251,21 +263,27 @@ subroutine calculate_rho_longrange(iproc,nproc,at,radii,rxyz,hxh,hyh,hzh,&
         iey=ceiling((ry+cutoff)/hyh)
         iez=ceiling((rz+cutoff)/hzh)
 
-        do i3=isz,iez
+        !always calculate on the whole box
+        do i3=isz,iez!1,n3pi
+           !j3=i3+i3s-nbl3-1
            z=real(i3,gp)*hzh-rz
            call ind_positions(perz,i3,n3,j3,goz) 
            j3=j3+nbl3+1
-           do i2=isy,iey
+           do i2=isy,iey!1,n2i
+              !j2=i2-nbl2-1
               y=real(i2,gp)*hyh-ry
               call ind_positions(pery,i2,n2,j2,goy)
-              do i1=isx,iex
+              do i1=isx,iex!1,n1i
+                 !j1=i1-nbl1-1
                  x=real(i1,gp)*hxh-rx
                  call ind_positions(perx,i1,n1,j1,gox)
                  r2=x**2+y**2+z**2
                  arg=r2/rloc**2
                  xp=exp(-.5_gp*arg)
                  if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+                 !if (r2 <= cutoff**2 ) then
                     ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                    !ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
                     rho(ind)=rho(ind)-xp*charge
                  endif
               enddo
@@ -285,6 +303,9 @@ subroutine calculate_rho_longrange(iproc,nproc,at,radii,rxyz,hxh,hyh,hzh,&
 
      rloc=radii(iat)
 
+     !cutoff=10.d0*rloc
+     cutoff=cutofrac!*rloc
+
      rhoarr(iat)=0.0_gp
      if (n3pi >0 ) then
         do i3=-nbl3,2*n3+1+nbr3
@@ -298,7 +319,8 @@ subroutine calculate_rho_longrange(iproc,nproc,at,radii,rxyz,hxh,hyh,hzh,&
                  x=real(i1,kind=8)*hxh-rx
                  call ind_positions(perx,i1,n1,j1,gox)
                  r2=x**2+y**2+z**2
-                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox .and.&
+                     r2 > cutoff**2 ) then
                     ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
                     Rel=rho(ind)
                     rhoarr(iat)=rhoarr(iat)+Rel*erfor(sqrt(r2),rloc)
@@ -536,15 +558,15 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
         write(*,'(a,i0,10(1pe15.7))')'rhoarrV',iat,rhoarr(iat)
      end do
   end if
-!!$
-!!$  call calculate_rho_longrange(iproc,nproc,atoms,radii,rxyz,hxh,hyh,hzh,&
-!!$       lr%d%n1,lr%d%n2,lr%d%n3,n3p,i3s,lr%d%n1i,lr%d%n2i,lr%d%n3i,rho,rhoarr)
-!!$
-!!$  if (iproc == 0) then
-!!$     do iat=1,atoms%nat
-!!$        write(*,'(a,i0,10(1pe15.7))')'rhoarrrho',iat,rhoarr(iat)
-!!$     end do
-!!$  end if
+
+  call calculate_rho_longrange(iproc,nproc,atoms,radii,rxyz,hxh,hyh,hzh,&
+       lr%d%n1,lr%d%n2,lr%d%n3,n3p,i3s,lr%d%n1i,lr%d%n2i,lr%d%n3i,rho,rhoarr)
+
+  if (iproc == 0) then
+     do iat=1,atoms%nat
+        write(*,'(a,i0,10(1pe15.7))')'rhoarrrho',iat,rhoarr(iat)
+     end do
+  end if
 
 !!$  call MPI_FINALIZE(i_stat)
 !!$  stop
@@ -723,10 +745,10 @@ subroutine assign_atomic_radii(at,radii)
   !local variables
   real(gp), parameter :: xi=1.1839527_gp
   integer :: iat,ityp
-  real(gp) :: lambda,lambdafrac
+  real(gp) :: lambda,lambdafrac,cutoff
 
   open(11)
-  read(11,*)lambdafrac
+  read(11,*)lambdafrac,cutoff
   close(11)
 
   !take York's paper radii and convert them in the new basis
@@ -755,16 +777,16 @@ subroutine assign_atomic_radii(at,radii)
      end select
      !calculate the radius by minimizing the difference between 
      !York's function and our basis
-     radii(iat)=0.5_gp*xi/lambda
+     !radii(iat)=0.5_gp*xi/lambda
 
      !otherwise use the local psp radii
-     !radii(iat)=lambdafrac*lambda!at%psppar(0,0,ityp)
+     radii(iat)=lambdafrac*lambda!at%psppar(0,0,ityp)
      !radii(iat)=lambdafrac*at%psppar(0,0,ityp)
-     if (at%atomnames(ityp) == 'O') then
-        radii(iat)=lambdafrac*at%psppar(0,0,ityp)
-     else
-        radii(iat)=at%psppar(0,0,ityp)
-     end if
+     !if (at%atomnames(ityp) == 'O') then
+     !   radii(iat)=lambdafrac*at%psppar(0,0,ityp)
+     !else
+     !   radii(iat)=at%psppar(0,0,ityp)
+     !end if
   end do
 end subroutine assign_atomic_radii
   
