@@ -291,7 +291,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   !local variables
   character(len=*), parameter :: subname='bfgs'
   real(gp) :: fluct,fnrm
-  real(gp) ::sumx,sumy,sumz,fmax
+  real(gp) ::sumx,sumy,sumz,fmax,fnoise
   logical :: check
   integer :: n,i_all,i_stat,m,i,iter_old
   integer :: infocode,iwrite,nitsd,histlen,nfluct
@@ -340,10 +340,10 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   if (iproc==0)    write(*,*) 'Maximum number of SD steps used in the beginning: ',nitsd
 
-  call steepdes(nproc,iproc,at,x,epot,f,rst,ncount_bigdft,fluctsum,nfluct,fnrm,in,&
+  call steepdes(nproc,iproc,at,x,epot,f,rst,ncount_bigdft,fluctsum,nfluct,fnrm,fnoise,in,&
        fnormmax_sw,nitsd,fluct)
 
-  call fnrmandforcemax(f,tmp,fmax,at)
+  call fnrmandforcemax(f,tmp,fmax,at%nat)
   !check if the convergence is reached after SD
   call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
 
@@ -371,21 +371,14 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      if(ncount_bigdft==0 .or. parmin%iflag==1) then
 
         in%inputPsiId=1
-        call call_bigdft(nproc,iproc,at,x,in,epot,f,rst,infocode)
-
-        if (iproc == 0) then
-           call transforce(at,f,sumx,sumy,sumz)
-           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
-           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
-           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
-        end if
+        call call_bigdft(nproc,iproc,at,x,in,epot,f,fnoise,rst,infocode)
 
         ncount_bigdft=ncount_bigdft+1
         if (ncount_bigdft==1) ehist(1)=epot
         xdft(:)=x(:)
 
-        call fnrmandforcemax(f,fnrm,fmax,at)
-        if (fmax < 3.d-1) call updatefluctsum(at,f,nfluct,fluctsum,fluct)
+        call fnrmandforcemax(f,fnrm,fmax,at%nat)
+        if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,nfluct,fluctsum,fluct)
 
         call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
 
@@ -533,7 +526,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   real(gp), dimension(3,at%nat), intent(inout) :: rxyz
   real(gp), dimension(3,at%nat), intent(out) :: fxyz
   !local variables
-  real(gp) ::fluctsum 
+  real(gp) ::fluctsum,fnoise
   integer :: nfluct
   character(len=*), parameter :: subname='conjgrad'  
   integer :: nfail,it,iat,i_all,i_stat,infocode, nitsd
@@ -562,7 +555,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
   !start with a steepest descent algorithm
   call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,&
-       fluctsum,nfluct,fnrm,in,in%forcemax,nitsd,fluct)
+       fluctsum,nfluct,fnrm,fnoise,in,in%forcemax,nitsd,fluct)
   if (ncount_bigdft >= in%ncount_cluster_x) then
       if (iproc==0 .and. parmin%verbosity > 0) &
            & write(16,*) 'SDCG exited before the geometry optimization converged because more than ',&
@@ -572,7 +565,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   end if
 
   !calculate the max of the forces
-  call fnrmandforcemax(fxyz,tmp,fmax,at)
+  call fnrmandforcemax(fxyz,tmp,fmax,at%nat)
 
   !control whether the convergence criterion is reached after SD
   call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
@@ -596,18 +589,19 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         it=it+1
 
         !C line minimize along hh ----
-        call atomic_axpy(at,rxyz,beta0,hh,tpos)
+        !call atomic_axpy(at,rxyz,beta0,hh,tpos)
+        tpos=rxyz+beta0*hh
 
         in%inputPsiId=1
         in%output_grid=0
         in%output_wf=.false.
-        call call_bigdft(nproc,iproc,at,tpos,in,tetot,gpf,rst,infocode)
-        if (iproc == 0) then
-           call transforce(at,gpf,sumx,sumy,sumz)
-           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
-           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
-           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
-        end if
+        call call_bigdft(nproc,iproc,at,tpos,in,tetot,gpf,fnoise,rst,infocode)
+!!$        if (iproc == 0) then
+!!$           call transforce(at,gpf,sumx,sumy,sumz)
+!!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
+!!$           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
+!!$           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
+!!$        end if
         ncount_bigdft=ncount_bigdft+1
 
         !C projection of gradients at beta=0 and beta onto hh
@@ -627,28 +621,10 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         beta=beta0*max(min(tt,2._gp),-.25_gp)
         
         tpos=rxyz
-        call atomic_axpy(at,rxyz,beta,hh,rxyz)
-!!!        do iat=1,at%nat
-!!!           tpos(1,iat)=rxyz(1,iat)
-!!!           tpos(2,iat)=rxyz(2,iat)
-!!!           tpos(3,iat)=rxyz(3,iat)
-!!!           if ( .not. at%lfrztyp(iat)) then
-!!!              if (at%geocode == 'P') then
-!!!                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*hh(1,iat),at%alat1)
-!!!                 rxyz(2,iat)=modulo(rxyz(2,iat)+beta*hh(2,iat),at%alat2)
-!!!                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*hh(3,iat),at%alat3)
-!!!              else if (at%geocode == 'S') then
-!!!                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*hh(1,iat),at%alat1)
-!!!                 rxyz(2,iat)=rxyz(2,iat)+beta*hh(2,iat)
-!!!                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*hh(3,iat),at%alat3)
-!!!              else
-!!!                 rxyz(1,iat)=rxyz(1,iat)+beta*hh(1,iat)
-!!!                 rxyz(2,iat)=rxyz(2,iat)+beta*hh(2,iat)
-!!!                 rxyz(3,iat)=rxyz(3,iat)+beta*hh(3,iat)
-!!!              end if
-!!!
-!!!           end if
-!!!        end do
+
+        !call atomic_axpy(at,rxyz,beta,hh,rxyz)
+        rxyz=rxyz+beta*hh
+
         avbeta=avbeta+beta/in%betax
         avnum=avnum+1._gp
 
@@ -659,13 +635,13 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            gpf(3,iat)=fxyz(3,iat)
         end do
 
-        call call_bigdft(nproc,iproc,at,rxyz,in,etot,fxyz,rst,infocode)
-        if (iproc == 0) then
-           call transforce(at,fxyz,sumx,sumy,sumz)
-           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
-           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
-           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
-        end if
+        call call_bigdft(nproc,iproc,at,rxyz,in,etot,fxyz,fnoise,rst,infocode)
+!!$        if (iproc == 0) then
+!!$           call transforce(at,fxyz,sumx,sumy,sumz)
+!!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
+!!$           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
+!!$           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
+!!$        end if
         ncount_bigdft=ncount_bigdft+1
         !if the energy goes up (a small tolerance of anoise is allowed)
         !switch back to SD
@@ -681,10 +657,10 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            end do
 
            call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,&
-                fluctsum,nfluct,fnrm,in,in%forcemax,nitsd,fluct)
+                fluctsum,nfluct,fnrm,fnoise,in,in%forcemax,nitsd,fluct)
 
            !calculate the max of the forces
-           call fnrmandforcemax(fxyz,tmp,fmax,at)
+           call fnrmandforcemax(fxyz,tmp,fmax,at%nat)
            call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
            if(check) then
               if (iproc.eq.0) write(16,*) 'Converged in switch back SD',iproc
@@ -704,11 +680,15 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
         !if (iproc.eq.0) write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'CG ',ncount_bigdft,etot,sqrt(fnrm)
 
-        if (fmax < 3.d-1) call updatefluctsum(at,fxyz,nfluct,fluctsum,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,nfluct,fluctsum,fluct)
 
-        call atomic_dot(at,gpf,gpf,unten)
-        call atomic_dot(at,gpf,fxyz,oben1)
-        call atomic_dot(at,fxyz,fxyz,oben2)
+!!$        call atomic_dot(at,gpf,gpf,unten)
+!!$        call atomic_dot(at,gpf,fxyz,oben1)
+!!$        call atomic_dot(at,fxyz,fxyz,oben2)
+        unten=dot(3*at%nat,gpf(1,1),1,gpf(1,1),1)
+        oben1=dot(3*at%nat,gpf(1,1),1,fxyz(1,1),1)
+        oben2=dot(3*at%nat,fxyz(1,1),1,fxyz(1,1),1)
+
         oben=oben2-oben1
 
 !!!        obenx=0._gp
@@ -722,8 +702,8 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 !!!           unten=unten+gpf(1,iat)**2+gpf(2,iat)**2+gpf(3,iat)**2
 !!!        end do
 
-        call fnrmandforcemax(fxyz,fnrm,fmax,at)
-        if (iproc.eq.0) then
+        call fnrmandforcemax(fxyz,fnrm,fmax,at%nat)
+        if (iproc == 0) then
            if (parmin%verbosity > 0) then
               write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)')it,sqrt(fnrm),etot,' GEOPT CG ',beta/in%betax
               write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*in%frac_fluct,fluct
@@ -733,6 +713,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         end if
 
         call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
+
         if(check) exit loop_cg
 
         if (ncount_bigdft.gt.in%ncount_cluster_x) then 
@@ -752,8 +733,8 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
         !if no convergence is reached after 500 CG steps
         !switch back to SD
-        if (it.eq.500) then
-           if (iproc.eq.0) then
+        if (it == 500) then
+           if (iproc == 0) then
               if (parmin%verbosity > 0) write(16,*) &
                    'NO conv in CG after 500 its: switching back to SD',it,fnrm,etot
               write(*,*) 'NO conv in CG after 500 its: switching back to SD',it,fnrm,etot
@@ -765,31 +746,31 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            end do
 
            call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,&
-                fluctsum,nfluct,fnrm,in,in%forcemax,nitsd,fluct)
+                fluctsum,nfluct,fnrm,fnoise,in,in%forcemax,nitsd,fluct)
 
            !calculate the max of the forces
-           call fnrmandforcemax(fxyz,tmp,fmax,at)
+           call fnrmandforcemax(fxyz,tmp,fmax,at%nat)
 
            call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
            if(check) then
-              if (iproc.eq.0) write(16,*) 'Converged in back up SD',iproc
+              if (iproc == 0) write(16,*) 'Converged in back up SD',iproc
               call close_and_deallocate
               return
            endif
 
            nfail=nfail+1
-           if (nfail.ge.100) stop 'too many failures of CONJG'
+           if (nfail >= 100) stop 'too many failures of CONJG'
            cycle redo_cg
         endif
 
         !rlambda=(obenx+obeny+obenz)/unten
         rlambda=oben/unten
-        call atomic_axpy_forces(at,fxyz,rlambda,hh,hh)
-!!!        do iat=1,at%nat
-!!!           hh(1,iat)=fxyz(1,iat)+rlambda*hh(1,iat)
-!!!           hh(2,iat)=fxyz(2,iat)+rlambda*hh(2,iat)
-!!!           hh(3,iat)=fxyz(3,iat)+rlambda*hh(3,iat)
-!!!        end do
+        !call atomic_axpy_forces(at,fxyz,rlambda,hh,hh)
+        do iat=1,at%nat
+           hh(1,iat)=fxyz(1,iat)+rlambda*hh(1,iat)
+           hh(2,iat)=fxyz(2,iat)+rlambda*hh(2,iat)
+           hh(3,iat)=fxyz(3,iat)+rlambda*hh(3,iat)
+        end do
      end do loop_cg
      exit redo_cg
   end do redo_cg
@@ -830,7 +811,7 @@ END SUBROUTINE conjgrad
 !! SOURCE
 !!
 subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
-     nfluct,fnrm,in,forcemax_sw,nitsd,fluct)
+     nfluct,fnrm,fnoise,in,forcemax_sw,nitsd,fluct)
   use module_base
   use module_types
   use minpar
@@ -842,7 +823,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
   type(restart_objects), intent(inout) :: rst
   integer, intent(inout) :: ncount_bigdft
   real(gp), dimension(3,at%nat), intent(inout) :: rxyz
-  real(gp), intent(out) :: fnrm,etot
+  real(gp), intent(out) :: fnrm,etot,fnoise
   real(gp), intent(inout) :: fluctsum,fluct
   real(gp), dimension(3,at%nat), intent(out) ::ff
   real(gp), intent(in)::forcemax_sw
@@ -904,13 +885,13 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
         in%inputPsiId=1
         in%output_grid=0
         in%output_wf=.false.
-        call call_bigdft(nproc,iproc,at,rxyz,in,etot,ff,rst,infocode)
-        if (iproc == 0) then
-           call transforce(at,ff,sumx,sumy,sumz)
-           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
-           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
-           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
-        end if
+        call call_bigdft(nproc,iproc,at,rxyz,in,etot,ff,fnoise,rst,infocode)
+!!$        if (iproc == 0) then
+!!$           call transforce(at,ff,sumx,sumy,sumz)
+!!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
+!!$           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
+!!$           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
+!!$        end if
         ncount_bigdft=ncount_bigdft+1
 
         !if the energy goes up (a small tolerance is allowed by anoise)
@@ -933,7 +914,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
            cycle redo_sd
         endif
 
-        call fnrmandforcemax(ff,fnrm,fmax,at)
+        call fnrmandforcemax(ff,fnrm,fmax,at%nat)
 
         !first and second derivatives of the energy and of the norm of the forces
         !(in units of beta steps)
@@ -942,7 +923,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
         df1=fnrm-fnrmitm1
         df2=fnrm-2._gp*fnrmitm1+fnrmitm2
 
-        if (fmax < 3.d-1) call updatefluctsum(at,ff,nfluct,fluctsum,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,nfluct,fluctsum,fluct)
         if (iproc.eq.0) then
            if (parmin%verbosity > 0) &
                 & write(16,'(a,6(1x,e10.3),1x,i2)') 'fmax, fnrm/fnrmitm1, de1<0 , de2>0 , df1<0 , df2>0 ,nsatur',  & 
@@ -961,7 +942,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
            nsatur=0
         endif
 
-        if (iproc.eq.0) then 
+        if (iproc == 0) then 
            if (parmin%verbosity > 0) &
                 & write(16,'(i5,1x,e12.5,1x,e21.14,a)') itsd,sqrt(fnrm),etot,' GEOPT SD '
            write(fn4,'(i4.4)') ncount_bigdft 
@@ -1042,10 +1023,11 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
 !!!              nbeqbx=0
 !!!           end if
         endif
-        if (iproc.eq.0 .and. parmin%verbosity > 0) write(16,*) 'beta=',beta
+        if (iproc == 0 .and. parmin%verbosity > 0) write(16,*) 'beta=',beta
 
         tpos=rxyz
-        call atomic_axpy(at,rxyz,beta,ff,rxyz)
+        !call atomic_axpy(at,rxyz,beta,ff,rxyz)
+        call axpy(3*at%nat,beta,ff(1,1),1,rxyz(1,1),1)
 
 !!!        do iat=1,at%nat
 !!!           tpos(1,iat)=rxyz(1,iat)
@@ -1071,7 +1053,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
      exit redo_sd
   end do redo_sd
 
-  if (iproc.eq.0 .and. parmin%verbosity > 0) write(16,*) 'SD FINISHED',iproc
+  if (iproc == 0 .and. parmin%verbosity > 0) write(16,*) 'SD FINISHED',iproc
 
   i_all=-product(shape(tpos))*kind(tpos)
   deallocate(tpos,stat=i_stat)
@@ -1096,7 +1078,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   real(gp), dimension(3,at%nat), intent(inout) :: wpos
   real(gp), dimension(3,at%nat), intent(out) :: ff
   !local variables
-  real(gp) ::fluctsum 
+  real(gp) ::fluctsum,fnoise
   integer :: nfluct
   character(len=*), parameter :: subname='vstepsd'  
   integer :: iat,i_all,i_stat,infocode, nitsd,itsd
@@ -1119,20 +1101,20 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   nfluct=0
 
   beta=in%betax
-
+  
   in%inputPsiId=1
   in%output_grid=0
   in%output_wf=.false.
-  call call_bigdft(nproc,iproc,at,wpos,in,etotold,ffold,rst,infocode)
-  call fnrmandforcemax(ffold,fnrm,fmax,at)   
-  if (fmax < 3.d-1) call updatefluctsum(at,ffold,nfluct,fluctsum,fluct)
+  call call_bigdft(nproc,iproc,at,wpos,in,etotold,ffold,fnoise,rst,infocode)
+  call fnrmandforcemax(ffold,fnrm,fmax,at%nat)   
+  if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,nfluct,fluctsum,fluct)
   if (iproc == 0) then
      if (parmin%verbosity > 0) &
           & write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*in%frac_fluct,fluct
-     call transforce(at,ffold,sumx,sumy,sumz)                         
-     write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
-     write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
-     write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
+!!$     call transforce(at,ffold,sumx,sumy,sumz)                         
+!!$     write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
+!!$     write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
+!!$     write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
 
      write(fn4,'(i4.4)') ncount_bigdft
      write(comment,'(a,1pe10.3)')'Initial VSSD:fnrm= ',sqrt(fnrm)
@@ -1144,69 +1126,68 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   ncount_bigdft=ncount_bigdft+1
 
 
-  fnrmold=0.d0
+  fnrmold=0.0_gp
   do iat=1,at%nat
-     !          fnrmold=fnrmold+ffold(1,iat)**2+ffold(2,iat)**2+ffold(3,iat)**2
+     fnrmold=fnrmold+ffold(1,iat)**2+ffold(2,iat)**2+ffold(3,iat)**2
      posold(1,iat)=wpos(1,iat)
      posold(2,iat)=wpos(2,iat)
      posold(3,iat)=wpos(3,iat)
-     !          wpos(1,iat)=wpos(1,iat)+beta*ffold(1,iat)
-     !          wpos(2,iat)=wpos(2,iat)+beta*ffold(2,iat)
-     !          wpos(3,iat)=wpos(3,iat)+beta*ffold(3,iat)
+     wpos(1,iat)=wpos(1,iat)+beta*ffold(1,iat)
+     wpos(2,iat)=wpos(2,iat)+beta*ffold(2,iat)
+     wpos(3,iat)=wpos(3,iat)+beta*ffold(3,iat)
   enddo
-  call atomic_dot(at,ffold,ffold,fnrmold)
-  call atomic_axpy(at,wpos,beta,ffold,wpos)
+  !call atomic_dot(at,ffold,ffold,fnrmold)
+  !call atomic_axpy(at,wpos,beta,ffold,wpos)
   betaxx=1.d100
   reset=.true.
   betalastold=in%betax
 
-
   nitsd=1000
-  do itsd=1,nitsd
+  loop_ntsd: do itsd=1,nitsd
      in%inputPsiId=1
      in%output_grid=0
      in%output_wf=.false.
-     call call_bigdft(nproc,iproc,at,wpos,in,etot,ff,rst,infocode)
-     if (iproc == 0) then                                        
-        call transforce(at,ff,sumx,sumy,sumz)                         
-        write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
-        write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
-        write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
-     end if
+     call call_bigdft(nproc,iproc,at,wpos,in,etot,ff,fnoise,rst,infocode)
+!!$     if (iproc == 0) then                                        
+!!$        call transforce(at,ff,sumx,sumy,sumz)                         
+!!$        write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
+!!$        write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
+!!$        write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
+!!$     end if
      ncount_bigdft=ncount_bigdft+1
      fnrm=0.d0
      scpr=0.d0
-     !          do iat=1,at%nat
-     !          fnrm=fnrm+ff(1,iat)**2+ff(2,iat)**2+ff(3,iat)**2
-     !          scpr=scpr+ffold(1,iat)*ff(1,iat)+ffold(2,iat)*ff(2,iat)+ffold(3,iat)*ff(3,iat)
-     !          enddo
-     call  atomic_dot(at,ff,ff,fnrm)
-     call  atomic_dot(at,ff,ffold,scpr)
+     do iat=1,at%nat
+        fnrm=fnrm+ff(1,iat)**2+ff(2,iat)**2+ff(3,iat)**2
+        scpr=scpr+ffold(1,iat)*ff(1,iat)+ffold(2,iat)*ff(2,iat)+ffold(3,iat)*ff(3,iat)
+     enddo
+!!$     call  atomic_dot(at,ff,ff,fnrm)
+!!$     call  atomic_dot(at,ff,ffold,scpr)
      curv=(fnrmold-scpr)/(beta*fnrmold)
      betalast=.5d0/curv
      if (reset) betaxx=min(betaxx,1.5d0*betalast)
-     call fnrmandforcemax(ff,fnrm,fmax,at)   
-     if (fmax < 3.d-1) call updatefluctsum(at,ff,nfluct,fluctsum,fluct)
+     call fnrmandforcemax(ff,fnrm,fmax,at%nat)   
+     if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,nfluct,fluctsum,fluct)
      if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*in%frac_fluct,fluct
      call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
-     if (check) goto 100
+     if (check) exit loop_ntsd
      if (ncount_bigdft >= in%ncount_cluster_x) then 
         if (iproc==0)  write(16,*) 'VSSD exited before the geometry optimization converged because more than ',& 
              in%ncount_cluster_x,' wavefunction optimizations were required'
-        goto 100
+        exit loop_ntsd
      endif
 
 
-     if (etot.gt.etotold) then
+     if (etot > etotold) then
         reset=.true.
         beta=in%betax
         if (iproc == 0) write(16,*) 'new positions rejected, reduced beta',beta
-        !          do iat=1,at%nat
-        !          wpos(1,iat)=posold(1,iat)+beta*ffold(1,iat)
-        !          wpos(2,iat)=posold(2,iat)+beta*ffold(2,iat)
-        !          wpos(3,iat)=posold(3,iat)+beta*ffold(3,iat)
-        !          enddo
-        call atomic_axpy(at,posold,beta,ffold,wpos)
+        do iat=1,at%nat
+           wpos(1,iat)=posold(1,iat)+beta*ffold(1,iat)
+           wpos(2,iat)=posold(2,iat)+beta*ffold(2,iat)
+           wpos(3,iat)=posold(3,iat)+beta*ffold(3,iat)
+        enddo
+        !call atomic_axpy(at,posold,beta,ffold,wpos)
      else
         reset=.false.
         if (betalast.gt.0) then
@@ -1225,14 +1206,14 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
            posold(1,iat)=wpos(1,iat)
            posold(2,iat)=wpos(2,iat)
            posold(3,iat)=wpos(3,iat)
-           !          wpos(1,iat)=wpos(1,iat)+beta*ff(1,iat)
-           !          wpos(2,iat)=wpos(2,iat)+beta*ff(2,iat)
-           !          wpos(3,iat)=wpos(3,iat)+beta*ff(3,iat)
+           wpos(1,iat)=wpos(1,iat)+beta*ff(1,iat)
+           wpos(2,iat)=wpos(2,iat)+beta*ff(2,iat)
+           wpos(3,iat)=wpos(3,iat)+beta*ff(3,iat)
            ffold(1,iat)=ff(1,iat)
            ffold(2,iat)=ff(2,iat)
            ffold(3,iat)=ff(3,iat)
         enddo
-        call atomic_axpy(at,wpos,beta,ff,wpos)
+        !call atomic_axpy(at,wpos,beta,ff,wpos)
         etotold=etot
         fnrmold=fnrm
         betalastold=betalast
@@ -1241,12 +1222,13 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
      if (iproc == 0) write(16,'(i5,1x,e12.5,1x,e21.14,a,e10.3,1x,e10.3)') itsd,sqrt(fnrm),etot,' GEOPT VSSD ',beta,betalast
      if(iproc==0)call timeleft(tt)
      call MPI_BCAST(tt,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,i_stat)
-     if(tt<0) goto 100
+     if(tt<0) exit loop_ntsd
 
 
-  enddo
-  if (iproc == 0) write(16,'(a,i5,e9.2,e18.10,e9.2)') '---- SD FAILED  TO CONVERGE'
-100 if (iproc == 0) then
+  enddo loop_ntsd
+  if (iproc == 0 .and. itsd == nitsd+1) &
+       write(16,'(a,i5,e9.2,e18.10,e9.2)') '---- SD FAILED  TO CONVERGE'
+  if (iproc == 0) then
      if (parmin%verbosity > 0) then
         write(16,'(a,i5,e9.2,e18.10)') 'variable stepsize SD FINISHED,iter, force norm,energy',itsd,sqrt(fnrm),etot
         write(16,'(a,e9.2)') 'suggested value for stepsize:', betaxx
@@ -1267,13 +1249,11 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
 
 END SUBROUTINE vstepsd
 
-
-subroutine convcheck(fnrm, fmax, fluctfrac_fluct, forcemax, check)
+subroutine convcheck(fnrm,fmax,fluctfrac_fluct,forcemax,check)
   use module_base
   implicit none
   real(gp), intent(in):: fnrm, fmax, fluctfrac_fluct,forcemax
   logical, intent(out)::check
-
 
   check=.false.
   if (fnrm < fluctfrac_fluct .or. &
@@ -1281,9 +1261,32 @@ subroutine convcheck(fnrm, fmax, fluctfrac_fluct, forcemax, check)
      check=.true.
   endif
 
-END SUBROUTINE convcheck
+end subroutine convcheck
 
-subroutine fnrmandforcemax(ff,fnrm,fmax,at)
+subroutine fnrmandforcemax(ff,fnrm,fmax,nat)
+  use module_base
+  implicit none
+  integer, intent(in) :: nat
+  real(gp), intent(in):: ff(3,nat)
+  real(gp), intent(out):: fnrm, fmax
+  real(gp):: t1,t2,t3
+  integer:: iat
+
+  fmax=0._gp
+  do iat=1,nat
+     t1=ff(1,iat)**2
+     t2=ff(2,iat)**2
+     t3=ff(3,iat)**2
+     fmax=max(fmax,sqrt(t1+t2+t3))
+  enddo
+
+  !this is the norm of the forces of non-blocked atoms
+  !one has to discuss whether also the center mass shift should be added
+  fnrm=dot(3*nat,ff(1,1),1,ff(1,1),1)
+END SUBROUTINE fnrmandforcemax
+
+
+subroutine fnrmandforcemax_old(ff,fnrm,fmax,at)
   use module_base
   use module_types
   implicit none
@@ -1315,10 +1318,24 @@ subroutine fnrmandforcemax(ff,fnrm,fmax,at)
   !this is the norm of the forces of non-blocked atoms
   call atomic_dot(at,ff,ff,fnrm)
 !!!  fnrm=t1+t2+t3
-END SUBROUTINE fnrmandforcemax
+END SUBROUTINE fnrmandforcemax_old
 
+subroutine updatefluctsum(nat,fnoise,nfluct,fluctsum,fluct)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nat
+  real(gp),intent(in):: fnoise
+  real(gp),intent(inout):: fluctsum,fluct
+  integer, intent(inout):: nfluct
+  nfluct=nfluct+1
+  fluctsum=fluctsum+fnoise
 
-subroutine updatefluctsum(at,fxyz,nfluct,fluctsum,fluct)
+  fluct=fluctsum*sqrt(real(nat,gp))/real(nfluct,gp)
+
+end subroutine updatefluctsum
+
+subroutine updatefluctsum_old(at,fxyz,nfluct,fluctsum,fluct)
   use module_base
   use module_types
   implicit none
@@ -1353,7 +1370,7 @@ subroutine updatefluctsum(at,fxyz,nfluct,fluctsum,fluct)
   fluctsum=fluctsum+sumx**2+sumy**2+sumz**2
   !commented out, it increases the fluctuation artificially
   fluct=fluctsum*sqrt(real(at%nat,gp))/real(nfluct,gp)
-END SUBROUTINE updatefluctsum
+END SUBROUTINE updatefluctsum_old
 
 !should we evaluate the translational force also with blocked atoms?
 subroutine transforce(at,fxyz,sumx,sumy,sumz)
@@ -1436,11 +1453,11 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
         bound=parmin%iter-1
         if(parmin%iter/=1) then
            if(parmin%iter>m) bound=m
-           call atomic_dot(at,w(iypt+npt+1),w(ispt+npt+1),ys)
-!!!           ys=ddot(n,w(iypt+npt+1),1,w(ispt+npt+1),1)
+           !call atomic_dot(at,w(iypt+npt+1),w(ispt+npt+1),ys)
+           ys=dot(n,w(iypt+npt+1),1,w(ispt+npt+1),1)
            if(.not.parmin%diagco) then
-              call atomic_dot(at,w(iypt+npt+1),w(iypt+npt+1),yy)
-!!!              yy=ddot(n,w(iypt+npt+1),1,w(iypt+npt+1),1)
+              !call atomic_dot(at,w(iypt+npt+1),w(iypt+npt+1),yy)
+              yy=dot(n,w(iypt+npt+1),1,w(iypt+npt+1),1)
               do i=1,n
                  diag(i)= ys/yy
               enddo
@@ -1475,18 +1492,20 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
         do i=1,bound
            cp=cp-1
            if(cp==-1)cp=m-1
-           call atomic_dot(at,w(ispt+cp*n+1),w,sq)
-!!!           sq= ddot(n,w(ispt+cp*n+1),1,w,1)
+           !call atomic_dot(at,w(ispt+cp*n+1),w,sq)
+           sq=dot(n,w(ispt+cp*n+1),1,w(1),1)
            inmc=n+m+cp+1
            iycn=iypt+cp*n
            w(inmc)= w(n+cp+1)*sq
-           call atomic_axpy(at,w,-w(inmc),w(iycn+1),w)
-!!!           call daxpy(n,-w(inmc),w(iycn+1),1,w,1)
+           !call atomic_axpy(at,w,-w(inmc),w(iycn+1),w)
+           call daxpy(n,-w(inmc),w(iycn+1),1,w,1)
         enddo
         !to be used only in the case parmin%diagco==.false.
         !in that case diag=constant
         if (.not. parmin%diagco) then
-           call atomic_axpy(at,w,diag(1)-1.0_gp,w,w)
+           !call atomic_axpy(at,w,diag(1)-1.0_gp,w,w)
+           
+           call dscal(n,diag(1),w(1),1)
         else
            !here the blocked atoms are treated as the others
            !also atomic_gemv can be used here
@@ -1497,14 +1516,14 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
 
 
         do i=1,bound
-           call atomic_dot(at,w(iypt+cp*n+1),w,yr)
-!!!           yr=ddot(n,w(iypt+cp*n+1),1,w,1)
+           !call atomic_dot(at,w(iypt+cp*n+1),w,yr)
+           yr=dot(n,w(iypt+cp*n+1),1,w(1),1)
            beta= w(n+cp+1)*yr
            inmc=n+m+cp+1
            beta= w(inmc)-beta
            iscn=ispt+cp*n
-           call atomic_axpy(at,w,beta,w(iscn+1),w)
-!!!           call daxpy(n,beta,w(iscn+1),1,w,1)
+           !call atomic_axpy(at,w,beta,w(iscn+1),w)
+           call daxpy(n,beta,w(iscn+1),1,w,1)
            cp=cp+1
            if(cp==m) cp=0
         enddo
@@ -1541,22 +1560,22 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
      nfun=nfun+nfev
      !compute the new step and gradient change
      npt=point*n
-     call atomic_axpy(at,w(ispt+npt+1),a_t-1.0_gp,w(ispt+npt+1),w(ispt+npt+1))
-     call atomic_axpy(at,-1.0_gp*w,-1.0_gp,g, w(iypt+npt+1))
-!!!     do i=1,n
-!!!        w(ispt+npt+i)=a_t*w(ispt+npt+i)
-!!!        w(iypt+npt+i)=-g(i)-w(i)
-!!!     enddo
+     !call atomic_axpy(at,w(ispt+npt+1),a_t-1.0_gp,w(ispt+npt+1),w(ispt+npt+1))
+     !call atomic_axpy(at,-1.0_gp*w,-1.0_gp,g, w(iypt+npt+1))
+     do i=1,n
+        w(ispt+npt+i)=a_t*w(ispt+npt+i)
+        w(iypt+npt+i)=-g(i)-w(i)
+     enddo
      !point=point+1
      !if(point==m) point=0
      point=mod(point+1,m)
      !termination test
-     call atomic_dot(at,g,g,gnorm)
-     call atomic_dot(at,x,x,xnorm)
-     gnorm=sqrt(gnorm)
-     xnorm=sqrt(xnorm)
-!!!     gnorm=sqrt(ddot(n,g,1,g,1))
-!!!     xnorm=sqrt(ddot(n,x,1,x,1))
+!!$     call atomic_dot(at,g,g,gnorm)
+!!$     call atomic_dot(at,x,x,xnorm)
+!!$     gnorm=sqrt(gnorm)
+!!$     xnorm=sqrt(xnorm)
+     gnorm=sqrt(dot(n,g(1),1,g(1),1))
+     xnorm=sqrt(dot(n,x(1),1,x(1),1))
      xnorm=max(1.0d0,xnorm)
 !     if(gnorm/xnorm<=parmin%eps) finish=.true.
      if(parmin%iprint(1)>=0) then
@@ -1632,9 +1651,9 @@ subroutine init_lbfgs(at,n,m,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
   enddo
 !!!  end if
  
-  call atomic_dot(at,g,g,gnorm)
-  gnorm=dsqrt(gnorm)
-!!!  gnorm=dsqrt(ddot(n,g,1,g,1))
+!!$  call atomic_dot(at,g,g,gnorm)
+!!$  gnorm=dsqrt(gnorm)
+  gnorm=dsqrt(dot(n,g(1),1,g(1),1))
 
   !    stp1=one/gnorm
   
@@ -1736,13 +1755,13 @@ subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin)
           parmin%xtol<zero .or. parmin%stpmin<zero .or. parmin%stpmax<parmin%stpmin .or. parmin%maxfev<1) return
      !compute the initial gradient in the search direction
      !and check that s is a descent direction.
-     call atomic_dot(at,g,s,dginit)
-     dginit=-dginit
+!!$     call atomic_dot(at,g,s,dginit)
+!!$     dginit=-dginit
 
-!!!     dginit = zero
-!!!     do j = 1, n
-!!!        dginit = dginit - g(j)*s(j)
-!!!     enddo
+     dginit = zero
+     do j = 1, n
+        dginit = dginit - g(j)*s(j)
+     enddo
      if (dginit >=  zero) then
         write(parmin%lp,'(a,1pe24.17)') 'the search direction is not a descent direction',dginit
         return
@@ -1788,21 +1807,21 @@ subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin)
         !evaluate the function and gradient at a_t
         !and compute the directional derivative.
         !we return to main program to obtain f and g.
-        call atomic_axpy(at,wa,a_t,s,x)
-!!!        do j = 1, n
-!!!           x(j) = wa(j) + a_t*s(j)
-!!!        enddo
+        !call atomic_axpy(at,wa,a_t,s,x)
+        do j = 1, n
+           x(j) = wa(j) + a_t*s(j)
+        enddo
         info=-1
         return
      endif
      info=0
      nfev = nfev + 1
-     call atomic_dot(at,g,s,dg)
-     dg=-dg
-!!!     dg = zero
-!!!     do j=1,n
-!!!        dg=dg-g(j)*s(j)
-!!!     enddo
+!!$     call atomic_dot(at,g,s,dg)
+!!$     dg=-dg
+     dg = zero
+     do j=1,n
+        dg=dg-g(j)*s(j)
+     enddo
      ftest1=finit+a_t*dgtest
      !test for convergence.
      if((brackt .and. (a_t<=stmin .or. a_t>=stmax))   .or. infoc==0) info=6
@@ -2053,7 +2072,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   real(gp), dimension(:,:), allocatable  :: previous_pos
   real(gp), dimension(:,:), allocatable :: product_matrix
   integer :: lter, maxter, i, i_err, n, nrhs, lwork, infocode, j, i_stat, i_all,nfluct
-  real(gp) :: sumx, sumy, sumz, fluctsum, fluct, fmax, fnrm
+  real(gp) :: sumx, sumy, sumz, fluctsum, fluct, fmax, fnrm,fnoise
   character(len = 4) :: fn4
   character(len = 40) :: comment
   ! Local variables for Lapack.
@@ -2078,10 +2097,10 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   previous_forces(1,:) = f(:)
   previous_pos(1,:) = x(:)
 
-  !x(:) = x(:) + in%betax * f(:)
-  !always better to use the atomic_* routines to move atoms
-  !it performs modulo operation as well as constrained search
-  call atomic_axpy(at,x,in%betax,f,x)
+  x(:) = x(:) + in%betax * f(:)
+!!$  !always better to use the atomic_* routines to move atoms
+!!$  !it performs modulo operation as well as constrained search
+!!$  call atomic_axpy(at,x,in%betax,f,x)
 
   do lter = 2, in%ncount_cluster_x
 
@@ -2153,27 +2172,27 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      do i = 1, maxter
         x(:) = x(:) + solution(i) * previous_pos(i,:)
      end do
-     !reput the modulo operation on the atoms
-     call atomic_axpy(at,x,0.0_gp,x,x)
+!!$     !reput the modulo operation on the atoms
+!!$     call atomic_axpy(at,x,0.0_gp,x,x)
 
      i_all=-product(shape(solution))*kind(solution)
      deallocate(solution,stat=i_stat)
      call memocc(i_stat,i_all,'solution',subname)
 
      in%inputPsiId=1
-     call call_bigdft(nproc,iproc,at,x,in,epot,f,rst,infocode)
+     call call_bigdft(nproc,iproc,at,x,in,epot,f,fnoise,rst,infocode)
 
-     if (iproc == 0) then
-        call transforce(at,f,sumx,sumy,sumz)
-        write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
-        write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
-        write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
-     end if
+!!$     if (iproc == 0) then
+!!$        call transforce(at,f,sumx,sumy,sumz)
+!!$        write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
+!!$        write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
+!!$        write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
+!!$     end if
 
      ncount_bigdft=ncount_bigdft+1
 
-     call fnrmandforcemax(f,fnrm,fmax,at)
-     if (fmax < 3.d-1) call updatefluctsum(at,f,nfluct,fluctsum,fluct)
+     call fnrmandforcemax(f,fnrm,fmax,at%nat)
+     if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,nfluct,fluctsum,fluct)
 
      if (iproc==0) then 
         write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=', &
@@ -2198,8 +2217,8 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
       exit
      endif
 
-     !x(:) = x(:) + in%betax * f(:)
-     call atomic_axpy(at,x,in%betax,f,x)
+     x(:) = x(:) + in%betax * f(:)
+     !call atomic_axpy(at,x,in%betax,f,x)
   end do
 
   i_all=-product(shape(previous_forces))*kind(previous_forces)

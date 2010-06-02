@@ -2573,3 +2573,5 @@ subroutine release_material_acceleration(GPU)
   end if
 
 end subroutine release_material_acceleration
+
+

@@ -694,9 +694,10 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   if(.true.) then
      LB_nsteps =in%nsteps
      call LB_allocate_for_lanczos( )
-     call EP_allocate_for_eigenprob(LB_nsteps)
+     call EP_allocate_for_eigenprob(10)
      call EP_make_dummy_vectors(10)
      
+         
      do i=0,70
 
         ene = 0.22_gp + i*0.03_gp
@@ -704,12 +705,16 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
         if( iand( in%potshortcut,16)>0) then
            potential=potentialclone
            do j=1, ndimpot
+
+              if( mod(j-1,100)==0) then
+                 print *, " dirac_hara punto",j
+              endif
               call dirac_hara (rhoXanes(j,1), ene , potential(j,1))
            enddo
         endif
 
 
-
+          
 
         gamma = 0.03_gp
 
@@ -719,6 +724,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
            useold=.true.
         endif
 
+        print *, "chiamo CG "
         res =  LB_cg(    get_EP_dim, EP_initialize_start , EP_normalizza,&
              EP_Moltiplica4spectra,  EP_copy,  &
              EP_scalare,EP_add_from_vect_with_fact   , EP_multbyfact  ,EP_precondition, Ene, gamma, 1.0D-4, useold )
@@ -729,6 +735,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
         close(unit=22)
         
      enddo
+
 
      call LB_de_allocate_for_lanczos( )
 
@@ -778,12 +785,17 @@ END subroutine xabs_cg
 subroutine dirac_hara (rho, E , V)
   use module_base
     
+  implicit none
+
   real(gp), intent(in   ) :: rho, E
   real(gp), intent(inout) :: V
   real(gp), parameter :: f= 1.919158d0  !( 4/(9*pi)**(1/3)  )
-
-  real(gp) Vcorr, rs, xk, EV
+  real(gp), parameter :: pi=3.141592653589793_gp
+  
+  real(gp) Vcorr, rs, xk, EV,x
   integer i
+
+
 
   if(rho>1.0e-4) then
      rs = (3.0_gp / (4.0_gp*pi*rho)) ** (1.0_gp/3.0_gp)
@@ -791,27 +803,32 @@ subroutine dirac_hara (rho, E , V)
      rs=1000.0_gp
   endif
 
-  
+
+
   Vcorr=V
+
+
+
+
 
   EV=E-Vcorr
   if(EV<=0) then
      return
   endif
-     
-  
+       
   do i=1,10
-
+    
      EV=E-Vcorr
+
      if(EV<=0) then
         return
      endif
-     
+  
      xk =sqrt(2*EV  )
      
-     
      x = xk *rs/ f
-     
+
+    
      if ((x-1)  < 1.0D-6) return
      Vcorr =V - (f/pi/rs) * ( log(abs((1+x) / (1-x))) * (1-x**2) / (2*x))
      

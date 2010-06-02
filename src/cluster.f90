@@ -9,7 +9,7 @@
 !!   For the list of contributors, see ~/AUTHORS 
 !! SOURCE
 !!
- subroutine call_bigdft(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
+ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocode)
   use module_base
   use module_types
   implicit none
@@ -18,17 +18,17 @@
   type(atoms_data), intent(inout) :: atoms
   type(restart_objects), intent(inout) :: rst
   integer, intent(inout) :: infocode
-  real(gp), intent(out) :: energy
-  real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
+  real(gp), intent(out) :: energy,fnoise
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz0
   real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
   !local variables
   character(len=*), parameter :: subname='call_bigdft'
   character(len=40) :: comment
-  integer :: i_stat,i_all,ierr,inputPsiId_orig,icycle
+  integer :: i_stat,i_all,ierr,inputPsiId_orig,icycle,iat
 
   !temporary interface
   interface
-     subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
+     subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
        use module_base
        use module_types
@@ -42,7 +42,7 @@
        type(gaussian_basis), intent(inout) :: gbd
        type(orbitals_data), intent(inout) :: orbs
        type(GPU_pointers), intent(inout) :: GPU
-       real(gp), intent(out) :: energy
+       real(gp), intent(out) :: energy,fnoise
        real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
        real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
        real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
@@ -53,6 +53,24 @@
 
   !put a barrier for all the processes
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
+  !fill the rxyz array with the positions
+  !wrap the atoms in the periodic directions when needed
+  do iat=1,atoms%nat
+     if (atoms%geocode == 'P') then
+        rst%rxyz_new(1,iat)=modulo(rxyz0(1,iat),atoms%alat1)
+        rst%rxyz_new(2,iat)=modulo(rxyz0(2,iat),atoms%alat2)
+        rst%rxyz_new(3,iat)=modulo(rxyz0(3,iat),atoms%alat3)
+     else if (atoms%geocode == 'S') then
+        rst%rxyz_new(1,iat)=modulo(rxyz0(1,iat),atoms%alat1)
+        rst%rxyz_new(2,iat)=rxyz0(2,iat)
+        rst%rxyz_new(3,iat)=modulo(rxyz0(3,iat),atoms%alat3)
+     else if (atoms%geocode == 'F') then
+        rst%rxyz_new(1,iat)=rxyz0(1,iat)
+        rst%rxyz_new(2,iat)=rxyz0(2,iat)
+        rst%rxyz_new(3,iat)=rxyz0(3,iat)
+     end if
+  end do
 
   !assign the verbosity of the output
   !the verbose variables is defined in module_base
@@ -73,7 +91,7 @@
         call deallocate_wfd(rst%Glr%wfd,subname)
      end if
 
-     call cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
+     call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz,fnoise,&
           rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
           rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
 
@@ -99,7 +117,7 @@
            write(comment,'(a)')'UNCONVERGED WF '
            !call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
 
-           call write_atomic_file("posfail",energy,rxyz,atoms,trim(comment))
+           call write_atomic_file("posfail",energy,rst%rxyz_new,atoms,trim(comment))
 
         end if 
 
@@ -155,7 +173,7 @@ END SUBROUTINE call_bigdft
 !!            =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
 !! SOURCE
 !!
-subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
+subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
   use module_types
@@ -177,7 +195,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz_old
   real(gp), dimension(3,atoms%nat), target, intent(inout) :: rxyz
   integer, intent(out) :: infocode
-  real(gp), intent(out) :: energy
+  real(gp), intent(out) :: energy,fnoise
   real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
   real(wp), dimension(:), pointer :: psi
   real(wp), dimension(:,:), pointer :: gaucoeffs
@@ -199,7 +217,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(gp) :: peakmem,energy_old,sumz,evsum,sumx,sumy
   real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,alpha,gnrm
   real(gp) :: scprsum,energybs,tt,tel,ehart_fake,energy_min,psoffset
-  real(kind=8) :: ttsum
+  real(kind=8) :: ttsum,tumx,tumy,tumz,fumx,fumy,fumz
   real(gp) :: edisp ! Dispersion energy
   type(wavefunctions_descriptors) :: wfd_old
   type(nonlocal_psp_descriptors) :: nlpspd
@@ -824,7 +842,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
            call H_potential(atoms%geocode,'D',iproc,nproc,&
                 Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-                rhopot,pkernel,pot_ion,ehart,0.0_dp,.not. doYorkAtChgs,&!.true.,&
+                rhopot,pkernel,pot_ion,ehart,0.0_dp,.not. doYorkAtChgs,&!.true.,&!
                 quiet=PSquiet) !optional argument
 
            !atomic charge calculation with York's method, to be improved
@@ -839,7 +857,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
               !calculation of the atomic charges to compare wrt Mulliken
               !radii to be defined
+              !call atomic_charges(iproc,nproc,rxyz,radii,atoms,0,Glr,ngatherarr,&
               call atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,Glr,ngatherarr,&
+                   !hxh,hyh,hzh,n3p,i3s+i3xcsh,rho,pot_ion,atchgs)
                    hxh,hyh,hzh,n3p,i3s+i3xcsh,rho,rhopot,atchgs)
 
               i_all=-product(shape(radii))*kind(radii)
@@ -1000,7 +1020,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      !extract the gaussian basis from the pseudowavefunctions
      call gaussian_pswf_basis(21,.false.,iproc,in%nspin,atoms,rxyz,gbd,gbd_occ)
-
+     
      if (associated(gbd_occ)) then
         i_all=-product(shape(gbd_occ))*kind(gbd_occ)
         deallocate(gbd_occ,stat=i_stat)
@@ -1212,6 +1232,23 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call local_forces(iproc,atoms,rxyz,hxh,hyh,hzh,&
        n1,n2,n3,n3p,i3s+i3xcsh,n1i,n2i,n3i,rho,pot,gxyz)
 
+!!             Just sum up forces to get the translational force for the local part only:
+!              if (nproc > 1) then
+!                 call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+!              else
+!                 do iat=1,atoms%nat
+!                    fxyz(1,iat)=gxyz(1,iat) ; fxyz(2,iat)=gxyz(2,iat) ; fxyz(3,iat)=gxyz(3,iat)
+!                 enddo
+!              end if
+!              if (iproc == 0) then
+!              tumx=0.d0 ; tumy=0.d0 ; tumz=0.d0
+!              do iat=1,atoms%nat
+!                 tumx=tumx+fxyz(1,iat) ; tumy=tumy+fxyz(2,iat) ; tumz=tumz+fxyz(3,iat)
+!              enddo
+!              write(77,'(a30,3(1x,e10.3))') 'translat. force local pot ',tumx,tumy,tumz
+!              endif
+
+
   i_all=-product(shape(rho))*kind(rho)
   deallocate(rho,stat=i_stat)
   call memocc(i_stat,i_all,'rho',subname)
@@ -1239,6 +1276,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         fxyz(3,iat)=gxyz(3,iat)
      enddo
   end if
+              if (iproc == 0) then
+              sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
+              fumx=0.d0 ; fumy=0.d0 ; fumz=0.d0
+              do iat=1,atoms%nat
+                 sumx=sumx+fxyz(1,iat) ; sumy=sumy+fxyz(2,iat) ; sumz=sumz+fxyz(3,iat)
+                 fumx=fumx+fion(1,iat) ; fumy=fumy+fion(2,iat) ; fumz=fumz+fion(3,iat)
+              enddo
+              write(77,'(a30,3(1x,e10.3))') 'translat. force total pot ',sumx,sumy,sumz
+              write(77,'(a30,3(1x,e10.3))') 'translat. force ionic pot ',fumx,fumy,fumz
+              endif
 
   !add to the forces the ionic and dispersion contribution 
   do iat=1,atoms%nat
@@ -1259,27 +1306,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !subtraction of zero of the forces, disabled for the moment
   !the zero of the forces depends on the atomic positions
-  if (in%gaussian_help .and. .false.) then
-     sumx=0.d0
-     sumy=0.d0
-     sumz=0.d0
-     do iat=1,atoms%nat
-        sumx=sumx+fxyz(1,iat)
-        sumy=sumy+fxyz(2,iat)
-        sumz=sumz+fxyz(3,iat)
-     enddo
-     sumx=sumx/real(atoms%nat,gp)
-     sumy=sumy/real(atoms%nat,gp)
-     sumz=sumz/real(atoms%nat,gp)
-     if (iproc==0) write( *,'(1x,a,1x,3(1x,1pe9.2))') &
-          'Subtracting center-mass shift of',sumx,sumy,sumz
-
-     do iat=1,atoms%nat
-        fxyz(1,iat)=fxyz(1,iat)-sumx
-        fxyz(2,iat)=fxyz(2,iat)-sumy
-        fxyz(3,iat)=fxyz(3,iat)-sumz
-     enddo
-  end if
+  !if (in%gaussian_help .and. .false.) then
+  call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
+  !end if
 
   call timing(iproc,'Forces        ','OF')
 
@@ -1360,6 +1389,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !perform here the mulliken charge and density of states
   !localise them on the basis of gatom of a number of atoms
   if (in%gaussian_help .and. in%last_run==1) then
+     !here one must check if psivirt should have been kept allocated
      if (.not. DoDavidson) then
         orbsv%norb=0
         orbsv%norbp=0

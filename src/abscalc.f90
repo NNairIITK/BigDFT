@@ -216,6 +216,7 @@ end program abscalc_main
         i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
         deallocate(rst%orbs%eval,stat=i_stat)
         call memocc(i_stat,i_all,'eval',subname)
+        nullify(rst%orbs%eval)
 
         call deallocate_wfd(rst%Glr%wfd,subname)
      end if
@@ -262,6 +263,7 @@ end program abscalc_main
         i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
         deallocate(rst%orbs%eval,stat=i_stat)
         call memocc(i_stat,i_all,'eval',subname)
+        nullify(rst%orbs%eval)
 
         call deallocate_wfd(rst%Glr%wfd,subname)
         !finalize memory counting (there are still the positions and the forces allocated)
@@ -675,9 +677,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
 
      call input_wf_diag(iproc,nproc,atoms_clone,&
-          orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
-          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons)
+          orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
+          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,Gvirt,&
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU)
      
      if( iand( in%potshortcut,16)>0) then
         if(iproc==0) write(*,*) "re-reading electronic_density for Xanes energy dependent potential "

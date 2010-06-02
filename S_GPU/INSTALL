@@ -1,11 +1,3 @@
-Summary
--------
-
-./autogen.sh
-./configure --prefix=/install/dir/
-make
-make install
-
 Installation Instructions
 *************************
 

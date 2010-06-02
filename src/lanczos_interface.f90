@@ -184,15 +184,20 @@ contains
     !Arguments
     integer, intent(in):: nsteps
 
+    print *, " sono in EP_allocate_for_eigenprob "
+
     if(associated(Qvect) ) then
        i_all=-product(shape(Qvect))*kind(Qvect)
+       print *, " deallocao " 
        deallocate(Qvect,stat=i_stat)
        call memocc(i_stat,i_all,'Qvect',subname)
     endif
+    print *, " sono in EP_allocate_for_eigenprob EP_dim , nsteps ", EP_dim, nsteps
 
     allocate(Qvect(EP_dim,0:nsteps+ndebug),&
          stat=i_stat)
     call memocc(i_stat,Qvect,'Qvect',subname)
+    print *, " esco " 
 
   END SUBROUTINE EP_allocate_for_eigenprob
 
