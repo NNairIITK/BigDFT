@@ -57,10 +57,15 @@ extern cl_kernel gemm_kernel_d;
 extern cl_kernel gemm_kernel_d_tb;
 extern cl_kernel gemm_kernel_d_ta;
 extern cl_kernel gemm_kernel_d_tatb;
+extern cl_kernel benchmark_flops_kernel_d;
+extern cl_program benchmarkProgram;
 
 void create_magicfilter_kernels();
 void build_magicfilter_programs(cl_context * context);
 void clean_magicfilter_kernels();
+void create_benchmark_kernels();
+void build_benchmark_programs(cl_context * context);
+void clean_benchmark_kernels();
 void create_kinetic_kernels();
 void build_kinetic_programs(cl_context * context);
 void clean_kinetic_kernels();
@@ -137,6 +142,8 @@ void FC_FUNC_(magicfilter_t_self_d,MAGICFILTER_T_SELF_D)(cl_command_queue *comma
 void FC_FUNC_(magicfilter_t_d,MAGICFILTER_T_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out);
 void FC_FUNC_(potential_application_d,POTENTIAL_APPLICATION_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out, cl_mem *pot);
 void FC_FUNC_(potential_application_d_generic,POTENTIAL_APPLICATION_D_GENERIC)(cl_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out, cl_mem *pot, cl_double *epot);
+
+void FC_FUNC_(benchmark_flops_d,BENCHMARK_FLOPS_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out);
 
 void FC_FUNC_(kinetic_k_d,KINETIC_K_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y, cl_double * c_in,  cl_double *k);
 void FC_FUNC_(kinetic_stable_d,KINETIC_STABLE_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y, cl_mem *tmp_x, cl_mem *tmp_y);

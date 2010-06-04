@@ -32,6 +32,8 @@ cl_device_id oclGetFirstDev(cl_context cxGPUContext)
 void FC_FUNC_(ocl_build_kernels,OCL_BUILD_KERNELS)(cl_context * context) {
     build_magicfilter_programs(context);
     create_magicfilter_kernels();
+    build_benchmark_programs(context);
+    create_benchmark_kernels();
     build_kinetic_programs(context);
     create_kinetic_kernels();
     build_wavelet_programs(context);
@@ -187,6 +189,7 @@ void FC_FUNC_(ocl_enqueue_barrier,OCL_ENQUEUE_BARRIER)(cl_command_queue *command
 void FC_FUNC_(ocl_clean,OCL_CLEAN)(cl_command_queue *command_queue, cl_context *context){
   size_t i;
   clean_magicfilter_kernels();
+  clean_benchmark_kernels();
   clean_kinetic_kernels();
   clean_initialize_kernels();
   clean_wavelet_kernels();

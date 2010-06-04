@@ -31,7 +31,8 @@ libbasec_a_SOURCES = OpenCL_wrappers.c \
                      Hamiltonian.c \
                      Reduction.c \
                      Preconditioner.c \
-                     Density.c
+                     Density.c \
+                     Benchmark.c
 libOCL_a_SOURCES = $(libbasec_a_SOURCES)
 libStream_a_SOURCES = Stream.c
 
