@@ -564,6 +564,7 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
 }\n\
 ";
 
+
 char * reduction_program="\
 //group_size is supposed to be 512\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\

@@ -3,6 +3,18 @@
 char * benchmark_program = "\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable\n\
 #define NB_ITER 16\n\
+__kernel void benchmark_mopsKernel_d(uint n, __global const double *in, __global double *out){\n\
+size_t i = get_global_id(0);\n\
+i = get_group_id(0) == get_num_groups(0) - 1 ? i - ( get_global_size(0) - n ) : i;\n\
+out[i] = in[i];\n\
+out[i] = in[i];\n\
+out[i] = in[i];\n\
+out[i] = in[i];\n\
+out[i] = in[i];\n\
+out[i] = in[i];\n\
+out[i] = in[i];\n\
+out[i] = in[i];\n\
+};\n\
 __kernel void benchmark_flopsKernel_d(uint n, __global const double *in, __global double *out){\n\
 size_t i = get_global_id(0);\n\
 double a = in[i]*1.15;\n\
@@ -143,11 +155,14 @@ out[i]=a+b;\n\
 };\n\
 ";
 
+cl_kernel benchmark_mops_kernel_d;
 cl_kernel benchmark_flops_kernel_d;
 cl_program benchmarkProgram;
 
 void create_benchmark_kernels(){
     cl_int ciErrNum = CL_SUCCESS;
+    benchmark_mops_kernel_d=clCreateKernel(benchmarkProgram,"benchmark_mopsKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create benchmark_mopsKernel_d kernel!");
     benchmark_flops_kernel_d=clCreateKernel(benchmarkProgram,"benchmark_flopsKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create benchmark_flopsKernel_d kernel!");
 }
@@ -169,7 +184,7 @@ void build_benchmark_programs(cl_context * context){
 
 inline void benchmark_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n,cl_mem *in,cl_mem *out){
     cl_int ciErrNum;
-    int FILTER_WIDTH=32;
+    int FILTER_WIDTH=64;
     assert(*n>=FILTER_WIDTH);
     size_t block_size_i=FILTER_WIDTH;
     cl_uint i = 0;
@@ -186,9 +201,15 @@ void FC_FUNC_(benchmark_flops_d,BENCHMARK_FLOPS_D)(cl_command_queue *command_que
     benchmark_generic(benchmark_flops_kernel_d, command_queue, n, in, out);
 }
 
+void FC_FUNC_(benchmark_mops_d,BENCHMARK_MOPS_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out){
+    benchmark_generic(benchmark_mops_kernel_d, command_queue, n, in, out);
+}
+
 void clean_benchmark_kernels(){
   cl_int ciErrNum;
   ciErrNum = clReleaseKernel(benchmark_flops_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(benchmark_mops_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseProgram(benchmarkProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
