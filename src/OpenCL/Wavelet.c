@@ -7,36 +7,36 @@ char * ana_program="\
 #define filter(ci,di,tmp)\
 ci += tmp[14] * -0.00030292051472413308126;\
 di += tmp[14] *  0.00054213233180001068935;\
-di += tmp[ 1] * -0.00030292051472413308126;\
 ci += tmp[ 1] * -0.00054213233180001068935;\
+di += tmp[ 1] * -0.00030292051472413308126;\
 ci += tmp[15] *  0.0018899503327676891843;\
 di += tmp[15] * -0.0033824159510050025955;\
-di += tmp[ 0] * -0.0018899503327676891843;\
 ci += tmp[ 0] * -0.0033824159510050025955;\
+di += tmp[ 0] * -0.0018899503327676891843;\
 ci += tmp[12] *  0.0038087520138944894631;\
 di += tmp[12] * -0.0076074873249766081919;\
-di += tmp[ 3] *  0.0038087520138944894631;\
 ci += tmp[ 3] *  0.0076074873249766081919;\
+di += tmp[ 3] *  0.0038087520138944894631;\
 ci += tmp[13] * -0.014952258337062199118;\
 di += tmp[13] *  0.031695087811525991431;\
-di += tmp[ 2] *  0.014952258337062199118;\
 ci += tmp[ 2] *  0.031695087811525991431;\
+di += tmp[ 2] *  0.014952258337062199118;\
 ci += tmp[10] * -0.027219029917103486322;\
 di += tmp[10] *  0.061273359067811077843;\
-di += tmp[ 5] * -0.027219029917103486322;\
 ci += tmp[ 5] * -0.061273359067811077843;\
-di += tmp[ 4] * -0.049137179673730286787;\
-ci += tmp[ 4] * -0.14329423835127266284;\
-ci += tmp[ 9] * -0.051945838107881800736;\
-di += tmp[ 9] *  0.48135965125905339159;\
-di += tmp[ 6] *  0.051945838107881800736;\
-ci += tmp[ 6] *  0.48135965125905339159;\
+di += tmp[ 5] * -0.027219029917103486322;\
 ci += tmp[11] *  0.049137179673730286787;\
 di += tmp[11] * -0.14329423835127266284;\
+ci += tmp[ 4] * -0.14329423835127266284;\
+di += tmp[ 4] * -0.049137179673730286787;\
+ci += tmp[ 9] * -0.051945838107881800736;\
+di += tmp[ 9] *  0.48135965125905339159;\
+ci += tmp[ 6] *  0.48135965125905339159;\
+di += tmp[ 6] *  0.051945838107881800736;\
 ci += tmp[ 8] *  0.36444189483617893676;\
 di += tmp[ 8] * -0.77718575169962802862;\
-di += tmp[ 7] *  0.36444189483617893676;\
-ci += tmp[ 7] *  0.77718575169962802862;\n\
+ci += tmp[ 7] *  0.77718575169962802862;\
+di += tmp[ 7] *  0.36444189483617893676;\n\
 __kernel void anashrink1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
@@ -106,10 +106,9 @@ char * syn_program="\
 #define FILTER_WIDTH 8\n\
 #define SIZE_I 16\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
-__kernel void syngrow1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp_1[]){\n\
+__kernel void syngrow1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
-{\n\
 const size_t i2 = get_local_id(0);\n\
 const size_t j2 = get_local_id(1);\n\
 ptrdiff_t igt = get_group_id(0);\n\
@@ -124,68 +123,66 @@ jgt = jg - j2 + i2;\n\
 //If I'm on the outside, select a border element to load\n\
 ioff = i2*(2*FILTER_WIDTH+2*SIZE_I+1) + j2;\n\
 if( igt < 0 ) {\n\
-  tmp_1[ioff] = 0.0;\n\
-  tmp_1[ioff+FILTER_WIDTH+SIZE_I] = 0.0;\n\
+  tmp[ioff] = 0.0;\n\
+  tmp[ioff+FILTER_WIDTH+SIZE_I] = 0.0;\n\
 } else {\n\
-  tmp_1[ioff] = psi[jgt+igt*ndat];\n\
-  tmp_1[ioff+FILTER_WIDTH+SIZE_I] = psi[jgt+(igt+n-7)*ndat];\n\
+  tmp[ioff] = psi[jgt+igt*ndat];\n\
+  tmp[ioff+FILTER_WIDTH+SIZE_I] = psi[jgt+(igt+n-7)*ndat];\n\
 }\n\
 igt += SIZE_I;\n\
 if( j2 < SIZE_I - FILTER_WIDTH){\n\
   if ( igt >=n-7 ) {\n\
-    tmp_1[ioff+SIZE_I] = 0.0;\n\
-    tmp_1[ioff+FILTER_WIDTH+2*SIZE_I] = 0.0;\n\
+    tmp[ioff+SIZE_I] = 0.0;\n\
+    tmp[ioff+FILTER_WIDTH+2*SIZE_I] = 0.0;\n\
   } else {\n\
-    tmp_1[ioff+SIZE_I] = psi[jgt+igt*ndat];\n\
-    tmp_1[ioff+FILTER_WIDTH+2*SIZE_I] = psi[jgt+(igt+n-7)*ndat];\n\
+    tmp[ioff+SIZE_I] = psi[jgt+igt*ndat];\n\
+    tmp[ioff+FILTER_WIDTH+2*SIZE_I] = psi[jgt+(igt+n-7)*ndat];\n\
   }\n\
 }\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-ioff = j2*(2*FILTER_WIDTH+2*SIZE_I+1) + FILTER_WIDTH/2+i2;\n\
-tmp_1 = tmp_1 + ioff;\n\
-}\n\
+tmp += j2*(2*FILTER_WIDTH+2*SIZE_I+1) + FILTER_WIDTH/2+i2;\n\
 double se = 0.0;\n\
 double so = 0.0;\n\
-se += tmp_1[FILTER_WIDTH+SIZE_I + 4] * -0.00030292051472413308126;\n\
-so += tmp_1[FILTER_WIDTH+SIZE_I + 3] *  0.014952258337062199118;\n\
-se += tmp_1[-2] * -0.014952258337062199118;\n\
-so += tmp_1[-3] * -0.00030292051472413308126;\n\
-se += tmp_1[ 4] * -0.00054213233180001068935;\n\
-so += tmp_1[ 3] *  0.031695087811525991431;\n\
-se += tmp_1[FILTER_WIDTH+SIZE_I - 2] *  0.031695087811525991431;\n\
-so += tmp_1[FILTER_WIDTH+SIZE_I - 3] *  0.00054213233180001068935;\n\
-se += tmp_1[FILTER_WIDTH+SIZE_I + 3] *  0.0038087520138944894631;\n\
-so += tmp_1[FILTER_WIDTH+SIZE_I + 2] * -0.049137179673730286787;\n\
-se += tmp_1[-1] *  0.049137179673730286787;\n\
-so += tmp_1[-2] *  0.0038087520138944894631;\n\
-se += tmp_1[FILTER_WIDTH+SIZE_I - 1] * -0.14329423835127266284;\n\
-so += tmp_1[FILTER_WIDTH+SIZE_I - 2] * -0.0076074873249766081919;\n\
-se += tmp_1[ 3] *  0.0076074873249766081919;\n\
-so += tmp_1[ 2] * -0.14329423835127266284;\n\
-se += tmp_1[FILTER_WIDTH+SIZE_I + 2] * -0.027219029917103486322;\n\
-so += tmp_1[FILTER_WIDTH+SIZE_I + 1] *  0.051945838107881800736;\n\
-se += tmp_1[ 0] * -0.051945838107881800736;\n\
-so += tmp_1[-1] * -0.027219029917103486322;\n\
-se += tmp_1[ 2] * -0.061273359067811077843;\n\
-so += tmp_1[ 1] *  0.48135965125905339159;\n\
-se += tmp_1[FILTER_WIDTH+SIZE_I - 0] *  0.48135965125905339159;\n\
-so += tmp_1[FILTER_WIDTH+SIZE_I - 1] *  0.061273359067811077843;\n\
-se += tmp_1[FILTER_WIDTH+SIZE_I + 1] *  0.36444189483617893676;\n\
-so += tmp_1[FILTER_WIDTH+SIZE_I + 0] * -0.77718575169962802862;\n\
-se += tmp_1[ 1] *  0.77718575169962802862;\n\
-so += tmp_1[ 0] *  0.36444189483617893676;\n\
-so += tmp_1[FILTER_WIDTH+SIZE_I + 4] * -0.0018899503327676891843;\n\
-so += tmp_1[ 4] * -0.0033824159510050025955;\n\
-se += tmp_1[-3] *  0.0018899503327676891843;\n\
-se += tmp_1[FILTER_WIDTH+SIZE_I - 3] * -0.0033824159510050025955;\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+\
+so += tmp[FILTER_WIDTH+SIZE_I + 4] * -0.0018899503327676891843;\n\
+se += tmp[FILTER_WIDTH+SIZE_I + 4] * -0.00030292051472413308126;\n\
+so += tmp[-3] * -0.00030292051472413308126;\n\
+se += tmp[-3] *  0.0018899503327676891843;\n\
+so += tmp[FILTER_WIDTH+SIZE_I + 3] *  0.014952258337062199118;\n\
+se += tmp[FILTER_WIDTH+SIZE_I + 3] *  0.0038087520138944894631;\n\
+so += tmp[-2] *  0.0038087520138944894631;\n\
+se += tmp[-2] * -0.014952258337062199118;\n\
+so += tmp[FILTER_WIDTH+SIZE_I + 2] * -0.049137179673730286787;\n\
+se += tmp[FILTER_WIDTH+SIZE_I + 2] * -0.027219029917103486322;\n\
+so += tmp[-1] * -0.027219029917103486322;\n\
+se += tmp[-1] *  0.049137179673730286787;\n\
+so += tmp[FILTER_WIDTH+SIZE_I + 1] *  0.051945838107881800736;\n\
+se += tmp[FILTER_WIDTH+SIZE_I + 1] *  0.36444189483617893676;\n\
+so += tmp[ 0] *  0.36444189483617893676;\n\
+se += tmp[ 0] * -0.051945838107881800736;\n\
+so += tmp[FILTER_WIDTH+SIZE_I + 0] * -0.77718575169962802862;\n\
+se += tmp[FILTER_WIDTH+SIZE_I + 0] *  0.48135965125905339159;\n\
+so += tmp[ 1] *  0.48135965125905339159;\n\
+se += tmp[ 1] *  0.77718575169962802862;\n\
+so += tmp[FILTER_WIDTH+SIZE_I - 1] *  0.061273359067811077843;\n\
+se += tmp[FILTER_WIDTH+SIZE_I - 1] * -0.14329423835127266284;\n\
+so += tmp[ 2] * -0.14329423835127266284;\n\
+se += tmp[ 2] * -0.061273359067811077843;\n\
+so += tmp[FILTER_WIDTH+SIZE_I - 2] * -0.0076074873249766081919;\n\
+se += tmp[FILTER_WIDTH+SIZE_I - 2] *  0.031695087811525991431;\n\
+so += tmp[ 3] *  0.031695087811525991431;\n\
+se += tmp[ 3] *  0.0076074873249766081919;\n\
+so += tmp[FILTER_WIDTH+SIZE_I - 3] *  0.00054213233180001068935;\n\
+se += tmp[FILTER_WIDTH+SIZE_I - 3] * -0.0033824159510050025955;\n\
+so += tmp[ 4] * -0.0033824159510050025955;\n\
+se += tmp[ 4] * -0.00054213233180001068935;\n\
 \
 out[jg*2*n+2*ig]=so;\n\
 out[jg*2*n+2*ig+1]=se;\n\
 };\n\
-__kernel void syn1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp_1[]){\n\
+__kernel void syn1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
-{\n\
 const size_t i2 = get_local_id(0);\n\
 const size_t j2 = get_local_id(1);\n\
 ptrdiff_t igt = get_group_id(0);\n\
@@ -199,60 +196,59 @@ jgt = jg - j2 + i2;\n\
 //If I'm on the outside, select a border element to load\n\
 ioff = i2*(2*FILTER_WIDTH+2*SIZE_I+1) + j2;\n\
 if( igt < 0 ) {\n\
-  tmp_1[ioff] = psi[jgt+(n+igt)*ndat];\n\
-  tmp_1[ioff+FILTER_WIDTH+SIZE_I] = psi[jgt+(n+igt+n)*ndat];\n\
+  tmp[ioff] = psi[jgt+(n+igt)*ndat];\n\
+  tmp[ioff+FILTER_WIDTH+SIZE_I] = psi[jgt+(n+igt+n)*ndat];\n\
 } else {\n\
-  tmp_1[ioff] = psi[jgt+igt*ndat];\n\
-  tmp_1[ioff+FILTER_WIDTH+SIZE_I] = psi[jgt+(igt+n)*ndat];\n\
+  tmp[ioff] = psi[jgt+igt*ndat];\n\
+  tmp[ioff+FILTER_WIDTH+SIZE_I] = psi[jgt+(igt+n)*ndat];\n\
 }\n\
 igt += SIZE_I;\n\
 if( j2 < SIZE_I - FILTER_WIDTH){\n\
   if ( igt >=n ) {\n\
-    tmp_1[ioff+SIZE_I] = psi[jgt+(igt-n)*ndat];\n\
-    tmp_1[ioff+FILTER_WIDTH+2*SIZE_I] = psi[jgt+(igt-n+n)*ndat];\n\
+    tmp[ioff+SIZE_I] = psi[jgt+(igt-n)*ndat];\n\
+    tmp[ioff+FILTER_WIDTH+2*SIZE_I] = psi[jgt+(igt-n+n)*ndat];\n\
   } else {\n\
-    tmp_1[ioff+SIZE_I] = psi[jgt+igt*ndat];\n\
-    tmp_1[ioff+FILTER_WIDTH+2*SIZE_I] = psi[jgt+(igt+n)*ndat];\n\
+    tmp[ioff+SIZE_I] = psi[jgt+igt*ndat];\n\
+    tmp[ioff+FILTER_WIDTH+2*SIZE_I] = psi[jgt+(igt+n)*ndat];\n\
   }\n\
 }\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-ioff = j2*(2*FILTER_WIDTH+2*SIZE_I+1) + FILTER_WIDTH/2+i2;\n\
-tmp_1 = tmp_1 + ioff;\n\
-}\n\
+tmp += j2*(2*FILTER_WIDTH+2*SIZE_I+1) + FILTER_WIDTH/2+i2;\n\
 double se = 0.0;\n\
 double so = 0.0;\n\
-se += tmp_1[FILTER_WIDTH+SIZE_I + 3] * -0.00030292051472413308126;\n\
-so += tmp_1[FILTER_WIDTH+SIZE_I + 3] *  0.014952258337062199118;\n\
-se += tmp_1[-3] * -0.014952258337062199118;\n\
-so += tmp_1[-3] * -0.00030292051472413308126;\n\
-se += tmp_1[ 3] * -0.00054213233180001068935;\n\
-so += tmp_1[ 3] *  0.031695087811525991431;\n\
-se += tmp_1[FILTER_WIDTH+SIZE_I - 3] *  0.031695087811525991431;\n\
-so += tmp_1[FILTER_WIDTH+SIZE_I - 3] *  0.00054213233180001068935;\n\
-se += tmp_1[FILTER_WIDTH+SIZE_I + 2] *  0.0038087520138944894631;\n\
-so += tmp_1[FILTER_WIDTH+SIZE_I + 2] * -0.049137179673730286787;\n\
-se += tmp_1[-2] *  0.049137179673730286787;\n\
-so += tmp_1[-2] *  0.0038087520138944894631;\n\
-se += tmp_1[FILTER_WIDTH+SIZE_I - 2] * -0.14329423835127266284;\n\
-so += tmp_1[FILTER_WIDTH+SIZE_I - 2] * -0.0076074873249766081919;\n\
-se += tmp_1[ 2] *  0.0076074873249766081919;\n\
-so += tmp_1[ 2] * -0.14329423835127266284;\n\
-se += tmp_1[FILTER_WIDTH+SIZE_I + 1] * -0.027219029917103486322;\n\
-so += tmp_1[FILTER_WIDTH+SIZE_I + 1] *  0.051945838107881800736;\n\
-se += tmp_1[-1] * -0.051945838107881800736;\n\
-so += tmp_1[-1] * -0.027219029917103486322;\n\
-se += tmp_1[ 1] * -0.061273359067811077843;\n\
-so += tmp_1[ 1] *  0.48135965125905339159;\n\
-se += tmp_1[FILTER_WIDTH+SIZE_I - 1] *  0.48135965125905339159;\n\
-so += tmp_1[FILTER_WIDTH+SIZE_I - 1] *  0.061273359067811077843;\n\
-se += tmp_1[FILTER_WIDTH+SIZE_I + 0] *  0.36444189483617893676;\n\
-so += tmp_1[FILTER_WIDTH+SIZE_I + 0] * -0.77718575169962802862;\n\
-se += tmp_1[ 0] *  0.77718575169962802862;\n\
-so += tmp_1[ 0] *  0.36444189483617893676;\n\
-so += tmp_1[FILTER_WIDTH+SIZE_I + 4] * -0.0018899503327676891843;\n\
-so += tmp_1[ 4] * -0.0033824159510050025955;\n\
-se += tmp_1[-4] *  0.0018899503327676891843;\n\
-se += tmp_1[FILTER_WIDTH+SIZE_I - 4] * -0.0033824159510050025955;\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+\
+se += tmp[-3] * -0.014952258337062199118;\n\
+so += tmp[-3] * -0.00030292051472413308126;\n\
+se += tmp[FILTER_WIDTH+SIZE_I + 3] * -0.00030292051472413308126;\n\
+so += tmp[FILTER_WIDTH+SIZE_I + 3] *  0.014952258337062199118;\n\
+se += tmp[-2] *  0.049137179673730286787;\n\
+so += tmp[-2] *  0.0038087520138944894631;\n\
+se += tmp[FILTER_WIDTH+SIZE_I + 2] *  0.0038087520138944894631;\n\
+so += tmp[FILTER_WIDTH+SIZE_I + 2] * -0.049137179673730286787;\n\
+se += tmp[-1] * -0.051945838107881800736;\n\
+so += tmp[-1] * -0.027219029917103486322;\n\
+se += tmp[FILTER_WIDTH+SIZE_I + 1] * -0.027219029917103486322;\n\
+so += tmp[FILTER_WIDTH+SIZE_I + 1] *  0.051945838107881800736;\n\
+se += tmp[ 0] *  0.77718575169962802862;\n\
+so += tmp[ 0] *  0.36444189483617893676;\n\
+se += tmp[FILTER_WIDTH+SIZE_I + 0] *  0.36444189483617893676;\n\
+so += tmp[FILTER_WIDTH+SIZE_I + 0] * -0.77718575169962802862;\n\
+se += tmp[ 1] * -0.061273359067811077843;\n\
+so += tmp[ 1] *  0.48135965125905339159;\n\
+se += tmp[FILTER_WIDTH+SIZE_I - 1] *  0.48135965125905339159;\n\
+so += tmp[FILTER_WIDTH+SIZE_I - 1] *  0.061273359067811077843;\n\
+se += tmp[ 2] *  0.0076074873249766081919;\n\
+so += tmp[ 2] * -0.14329423835127266284;\n\
+se += tmp[FILTER_WIDTH+SIZE_I - 2] * -0.14329423835127266284;\n\
+so += tmp[FILTER_WIDTH+SIZE_I - 2] * -0.0076074873249766081919;\n\
+se += tmp[ 3] * -0.00054213233180001068935;\n\
+so += tmp[ 3] *  0.031695087811525991431;\n\
+se += tmp[FILTER_WIDTH+SIZE_I - 3] *  0.031695087811525991431;\n\
+so += tmp[FILTER_WIDTH+SIZE_I - 3] *  0.00054213233180001068935;\n\
+se += tmp[-4] *  0.0018899503327676891843;\n\
+so += tmp[ 4] * -0.0033824159510050025955;\n\
+se += tmp[FILTER_WIDTH+SIZE_I - 4] * -0.0033824159510050025955;\n\
+so += tmp[FILTER_WIDTH+SIZE_I + 4] * -0.0018899503327676891843;\n\
 \
 out[jg*(2*n)+ig*2]=se;\n\
 out[jg*(2*n)+ig*2+1]=so;\n\
