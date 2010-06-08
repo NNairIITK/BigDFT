@@ -20,6 +20,38 @@ char * magicfilter_program="\
 #define FILT14 -0.5185986881173432922848639136911487e-4\n\
 #define FILT15  2.72734492911979659657715313017228e-6\n\
 #define FILTER_WIDTH 16\n\
+#define filter(tt,tmp) tt += *tmp++ * FILT0;\
+tt += *tmp++ * FILT1;\
+tt += *tmp++ * FILT2;\
+tt += *tmp++ * FILT3;\
+tt += *tmp++ * FILT4;\
+tt += *tmp++ * FILT5;\
+tt += *tmp++ * FILT6;\
+tt += *tmp++ * FILT7;\
+tt += *tmp++ * FILT8;\
+tt += *tmp++ * FILT9;\
+tt += *tmp++ * FILT10;\
+tt += *tmp++ * FILT11;\
+tt += *tmp++ * FILT12;\
+tt += *tmp++ * FILT13;\
+tt += *tmp++ * FILT14;\
+tt += *tmp++ * FILT15;\n\
+#define filter_reverse(tt,tmp) tt += *tmp++ *  FILT15;\
+tt += *tmp++ *  FILT14;\
+tt += *tmp++ *  FILT13;\
+tt += *tmp++ *  FILT12;\
+tt += *tmp++ *  FILT11;\
+tt += *tmp++ *  FILT10;\
+tt += *tmp++ *  FILT9;\
+tt += *tmp++ *  FILT8;\
+tt += *tmp++ *  FILT7;\
+tt += *tmp++ *  FILT6;\
+tt += *tmp++ *  FILT5;\
+tt += *tmp++ *  FILT4;\
+tt += *tmp++ *  FILT3;\
+tt += *tmp++ *  FILT2;\
+tt += *tmp++ *  FILT1;\
+tt += *tmp++ *  FILT0;\n\
 __constant double filt0 = FILT0;\n\
 __constant double filt1 = FILT1;\n\
 __constant double filt2 = FILT2;\n\
@@ -63,22 +95,7 @@ double tt = 0.0;\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-tt += *tmp++ * FILT0;\n\
-tt += *tmp++ * FILT1;\n\
-tt += *tmp++ * FILT2;\n\
-tt += *tmp++ * FILT3;\n\
-tt += *tmp++ * FILT4;\n\
-tt += *tmp++ * FILT5;\n\
-tt += *tmp++ * FILT6;\n\
-tt += *tmp++ * FILT7;\n\
-tt += *tmp++ * FILT8;\n\
-tt += *tmp++ * FILT9;\n\
-tt += *tmp++ * FILT10;\n\
-tt += *tmp++ * FILT11;\n\
-tt += *tmp++ * FILT12;\n\
-tt += *tmp++ * FILT13;\n\
-tt += *tmp++ * FILT14;\n\
-tt += *tmp++ * FILT15;\n\
+filter(tt,tmp);\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
 __kernel void magicfiltergrow1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global const double *pot, __global double *out, __local double tmp[]){\n\
@@ -107,22 +124,7 @@ double tt = 0.0;\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-tt += *tmp++ * FILT0;\n\
-tt += *tmp++ * FILT1;\n\
-tt += *tmp++ * FILT2;\n\
-tt += *tmp++ * FILT3;\n\
-tt += *tmp++ * FILT4;\n\
-tt += *tmp++ * FILT5;\n\
-tt += *tmp++ * FILT6;\n\
-tt += *tmp++ * FILT7;\n\
-tt += *tmp++ * FILT8;\n\
-tt += *tmp++ * FILT9;\n\
-tt += *tmp++ * FILT10;\n\
-tt += *tmp++ * FILT11;\n\
-tt += *tmp++ * FILT12;\n\
-tt += *tmp++ * FILT13;\n\
-tt += *tmp++ * FILT14;\n\
-tt += *tmp++ * FILT15;\n\
+filter(tt,tmp);\n\
 out[(jg*n+ig)]=tt*pot[(jg*n+ig)];\n\
 };\n\
 __kernel void magicfiltershrink1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
@@ -147,22 +149,7 @@ double tt = 0.0;\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-tt += *tmp++ *  FILT15;\n\
-tt += *tmp++ *  FILT14;\n\
-tt += *tmp++ *  FILT13;\n\
-tt += *tmp++ *  FILT12;\n\
-tt += *tmp++ *  FILT11;\n\
-tt += *tmp++ *  FILT10;\n\
-tt += *tmp++ *  FILT9;\n\
-tt += *tmp++ *  FILT8;\n\
-tt += *tmp++ *  FILT7;\n\
-tt += *tmp++ *  FILT6;\n\
-tt += *tmp++ *  FILT5;\n\
-tt += *tmp++ *  FILT4;\n\
-tt += *tmp++ *  FILT3;\n\
-tt += *tmp++ *  FILT2;\n\
-tt += *tmp++ *  FILT1;\n\
-tt += *tmp++ *  FILT0;\n\
+filter_reverse(tt,tmp);\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
 __kernel void magicfilter1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global double *pot, __global double *out, __local double tmp[]){\n\
@@ -192,22 +179,7 @@ double tt = 0.0;\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-tt += *tmp++ * FILT0;\n\
-tt += *tmp++ * FILT1;\n\
-tt += *tmp++ * FILT2;\n\
-tt += *tmp++ * FILT3;\n\
-tt += *tmp++ * FILT4;\n\
-tt += *tmp++ * FILT5;\n\
-tt += *tmp++ * FILT6;\n\
-tt += *tmp++ * FILT7;\n\
-tt += *tmp++ * FILT8;\n\
-tt += *tmp++ * FILT9;\n\
-tt += *tmp++ * FILT10;\n\
-tt += *tmp++ * FILT11;\n\
-tt += *tmp++ * FILT12;\n\
-tt += *tmp++ * FILT13;\n\
-tt += *tmp++ * FILT14;\n\
-tt += *tmp++ * FILT15;\n\
+filter(tt,tmp);\n\
 out[(jg*n+ig)]=tt*pot[jg*n+ig];\n\
 };\n\
 __kernel void magicfilter1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
@@ -236,22 +208,7 @@ double tt = 0.0;\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-tt += *tmp++ * FILT0;\n\
-tt += *tmp++ * FILT1;\n\
-tt += *tmp++ * FILT2;\n\
-tt += *tmp++ * FILT3;\n\
-tt += *tmp++ * FILT4;\n\
-tt += *tmp++ * FILT5;\n\
-tt += *tmp++ * FILT6;\n\
-tt += *tmp++ * FILT7;\n\
-tt += *tmp++ * FILT8;\n\
-tt += *tmp++ * FILT9;\n\
-tt += *tmp++ * FILT10;\n\
-tt += *tmp++ * FILT11;\n\
-tt += *tmp++ * FILT12;\n\
-tt += *tmp++ * FILT13;\n\
-tt += *tmp++ * FILT14;\n\
-tt += *tmp++ * FILT15;\n\
+filter(tt,tmp);\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
 __kernel void magicfilter1d_blockKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
@@ -285,28 +242,13 @@ igt -= FILTER_WIDTH;\n\
 j2 = 0;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-tmp_o = tmp + j2*(2*FILTER_WIDTH+1) + FILTER_WIDTH/2+i2;\n\
+tmp_o = tmp + j2*(2*FILTER_WIDTH+1) + i2;\n\
 out += ig;\n\
 for (i=0;i<16;i++,jg++) {\n\
-double tt = 0.0;\n\
-tt += tmp_o[-8] *  8.4334247333529341094733325815816e-7\n\
-    + tmp_o[+7] *  2.72734492911979659657715313017228e-6\n\
-    + tmp_o[-7] * -0.1290557201342060969516786758559028e-4\n\
-    + tmp_o[+6] * -0.5185986881173432922848639136911487e-4\n\
-    + tmp_o[-6] *  0.8762984476210559564689161894116397e-4\n\
-    + tmp_o[-5] * -0.30158038132690463167163703826169879e-3\n\
-    + tmp_o[+5] *  0.49443227688689919192282259476750972e-3\n\
-    + tmp_o[-4] *  0.174723713672993903449447812749852942e-2;\n\
-tt += tmp_o[+4] * -0.344128144493493857280881509686821861e-2\n\
-    + tmp_o[-3] * -0.942047030201080385922711540948195075e-2\n\
-    + tmp_o[+3] *  0.1337263414854794752733423467013220997e-1\n\
-    + tmp_o[+2] * -0.2103025160930381434955489412839065067e-1\n\
-    + tmp_o[-2] *  0.2373821463724942397566389712597274535e-1\n\
-    + tmp_o[+1] * -0.604895289196983516002834636e-1\n\
-    + tmp_o[-1] *  0.612625895831207982195380597e-1\n\
-    + tmp_o[+0] *  0.9940415697834003993178616713;\n\
-out[jg*n]=tt;\n\
-tmp_o+=(2*FILTER_WIDTH+1);\n\
+  double tt = 0.0;\n\
+  filter(tt,tmp_o);\n\
+  out[jg*n]=tt;\n\
+  tmp_o+=(FILTER_WIDTH+1);\n\
 }\n\
 };\n\
 __kernel void magicfilter1d_straightKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
@@ -336,22 +278,7 @@ double tt = 0.0;\n\
 tmp += i2*(2*FILTER_WIDTH+1) + j2;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-tt += *tmp++ * FILT0;\n\
-tt += *tmp++ * FILT1;\n\
-tt += *tmp++ * FILT2;\n\
-tt += *tmp++ * FILT3;\n\
-tt += *tmp++ * FILT4;\n\
-tt += *tmp++ * FILT5;\n\
-tt += *tmp++ * FILT6;\n\
-tt += *tmp++ * FILT7;\n\
-tt += *tmp++ * FILT8;\n\
-tt += *tmp++ * FILT9;\n\
-tt += *tmp++ * FILT10;\n\
-tt += *tmp++ * FILT11;\n\
-tt += *tmp++ * FILT12;\n\
-tt += *tmp++ * FILT13;\n\
-tt += *tmp++ * FILT14;\n\
-tt += *tmp++ * FILT15;\n\
+filter(tt,tmp);\n\
 out[(igt*ndat+jgt)]=tt;\n\
 };\n\
 __kernel void magicfilter1d_denKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
@@ -380,22 +307,7 @@ double tt = 0.0;\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-tt += *tmp++ * FILT0;\n\
-tt += *tmp++ * FILT1;\n\
-tt += *tmp++ * FILT2;\n\
-tt += *tmp++ * FILT3;\n\
-tt += *tmp++ * FILT4;\n\
-tt += *tmp++ * FILT5;\n\
-tt += *tmp++ * FILT6;\n\
-tt += *tmp++ * FILT7;\n\
-tt += *tmp++ * FILT8;\n\
-tt += *tmp++ * FILT9;\n\
-tt += *tmp++ * FILT10;\n\
-tt += *tmp++ * FILT11;\n\
-tt += *tmp++ * FILT12;\n\
-tt += *tmp++ * FILT13;\n\
-tt += *tmp++ * FILT14;\n\
-tt += *tmp++ * FILT15;\n\
+filter(tt,tmp);\n\
 out[(jg*n+ig)]=tt*tt;\n\
 };\n\
 __kernel void magicfilter1d_tKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
@@ -424,22 +336,7 @@ double tt = 0.0;\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2 + 1;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-tt += *tmp++ * FILT15;\n\
-tt += *tmp++ * FILT14;\n\
-tt += *tmp++ * FILT13;\n\
-tt += *tmp++ * FILT12;\n\
-tt += *tmp++ * FILT11;\n\
-tt += *tmp++ * FILT10;\n\
-tt += *tmp++ * FILT9;\n\
-tt += *tmp++ * FILT8;\n\
-tt += *tmp++ * FILT7;\n\
-tt += *tmp++ * FILT6;\n\
-tt += *tmp++ * FILT5;\n\
-tt += *tmp++ * FILT4;\n\
-tt += *tmp++ * FILT3;\n\
-tt += *tmp++ * FILT2;\n\
-tt += *tmp++ * FILT1;\n\
-tt += *tmp++ * FILT0;\n\
+filter_reverse(tt,tmp);\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
 \n\
