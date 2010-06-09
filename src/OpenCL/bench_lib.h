@@ -14,6 +14,7 @@ void bench_magicfiltershrink1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, 
 void bench_magicfiltergrow1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out);
 void bench_kinetic1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out);
 void bench_ana1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out);
+void bench_ana1d_block(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out);
 void bench_anashrink1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out);
 void bench_syn1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out);
 void bench_syngrow1d(cl_uint n1, cl_uint n2, cl_uint n3, double * in, double * out);

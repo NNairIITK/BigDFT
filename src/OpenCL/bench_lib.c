@@ -152,6 +152,24 @@ void bench_ana1d(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double *
   ocl_release_mem_object_(&work_GPU);
 }
 
+void bench_ana1d_block(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double * out) {
+  cl_mem psi_GPU,work_GPU;
+  cl_uint n = n1;
+  cl_uint ndat = n2*n3;
+  cl_uint size = n*ndat*sizeof(cl_double);
+  n = n1/2;
+
+  ocl_create_write_buffer_(&context, &size, &psi_GPU);
+  ocl_create_read_buffer_(&context, &size, &work_GPU);
+  ocl_enqueue_write_buffer_(&queue, &work_GPU, &size, in);
+  ana1d_block_d_(&queue, &n, &ndat, &work_GPU, &psi_GPU);
+  ocl_finish_(&queue);
+  ocl_enqueue_read_buffer_(&queue, &psi_GPU, &size, out);
+  ocl_release_mem_object_(&psi_GPU);
+  ocl_release_mem_object_(&work_GPU);
+}
+
+
 void bench_anashrink1d(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double * out) {
   cl_mem psi_GPU,work_GPU;
   cl_uint n = n1;

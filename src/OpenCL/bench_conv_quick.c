@@ -74,6 +74,10 @@ int main(){
               nanosec_(&t1);
               printf("%lu usec\n",(t1-t0)/1000);
               nanosec_(&t0);
+              bench_ana1d_block(un1,un2,un3,in,out);
+              nanosec_(&t1);
+              printf("%lu usec\n",(t1-t0)/1000);
+              nanosec_(&t0);
               bench_anashrink1d(un1,un2,un3,in,out);
               nanosec_(&t1);
               printf("%lu usec\n",(t1-t0)/1000);
