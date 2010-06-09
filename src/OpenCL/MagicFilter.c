@@ -213,14 +213,14 @@ out[(jg*n+ig)]=tt;\n\
 };\n\
 __kernel void magicfilter1d_blockKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
 size_t ig = get_global_id(0);\n\
-size_t jg = get_global_id(1)*8;\n\
+size_t jg = get_global_id(1)*4;\n\
 size_t i2 = get_local_id(0);\n\
-size_t j2 = get_local_id(1)*8;\n\
+size_t j2 = get_local_id(1)*4;\n\
 ptrdiff_t igt = get_group_id(0);\n\
 ptrdiff_t jgt = get_group_id(1);\n\
 size_t i;\n\
 //if data are ill dimentioned last block recomputes part of the data\n\
-jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1)*8 - ndat ) : jg;\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1)*4 - ndat ) : jg;\n\
 ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
 igt = ig - i2 + j2 - FILTER_WIDTH/2;\n\
 jgt = jg - j2 + i2;\n\
@@ -243,40 +243,8 @@ if ( igt < 0 ) \n\
   *tmp_1++ = psi[( n + igt++ ) * ndat];\n\
 else \n\
   *tmp_1++ = psi[igt++ * ndat];\n\
-if ( igt < 0 ) \n\
-  *tmp_1++ = psi[( n + igt++ ) * ndat];\n\
-else \n\
-  *tmp_1++ = psi[igt++ * ndat];\n\
-if ( igt < 0 ) \n\
-  *tmp_1++ = psi[( n + igt++ ) * ndat];\n\
-else \n\
-  *tmp_1++ = psi[igt++ * ndat];\n\
-if ( igt < 0 ) \n\
-  *tmp_1++ = psi[( n + igt++ ) * ndat];\n\
-else \n\
-  *tmp_1++ = psi[igt++ * ndat];\n\
-if ( igt < 0 ) \n\
-  *tmp_1++ = psi[( n + igt++ ) * ndat];\n\
-else \n\
-  *tmp_1++ = psi[igt++ * ndat];\n\
-igt += FILTER_WIDTH-8;\n\
-tmp_1 += FILTER_WIDTH-8;\n\
-if ( igt >= n ) \n\
-  *tmp_1++ = psi[( igt++ - n ) * ndat];\n\
-else\n\
-  *tmp_1++ = psi[igt++ * ndat];\n\
-if ( igt >= n ) \n\
-  *tmp_1++ = psi[( igt++ - n ) * ndat];\n\
-else\n\
-  *tmp_1++ = psi[igt++ * ndat];\n\
-if ( igt >= n ) \n\
-  *tmp_1++ = psi[( igt++ - n ) * ndat];\n\
-else\n\
-  *tmp_1++ = psi[igt++ * ndat];\n\
-if ( igt >= n ) \n\
-  *tmp_1++ = psi[( igt++ - n ) * ndat];\n\
-else\n\
-  *tmp_1++ = psi[igt++ * ndat];\n\
+igt += FILTER_WIDTH-4;\n\
+tmp_1 += FILTER_WIDTH-4;\n\
 if ( igt >= n ) \n\
   *tmp_1++ = psi[( igt++ - n ) * ndat];\n\
 else\n\
@@ -298,28 +266,16 @@ tmp_1 = tmp + j2*(2*FILTER_WIDTH+1) + i2;\n\
 __local double * tmp_2 = tmp_1 + (2*FILTER_WIDTH+1);\n\
 __local double * tmp_3 = tmp_2 + (2*FILTER_WIDTH+1);\n\
 __local double * tmp_4 = tmp_3 + (2*FILTER_WIDTH+1);\n\
-__local double * tmp_5 = tmp_4 + (2*FILTER_WIDTH+1);\n\
-__local double * tmp_6 = tmp_5 + (2*FILTER_WIDTH+1);\n\
-__local double * tmp_7 = tmp_6 + (2*FILTER_WIDTH+1);\n\
-__local double * tmp_8 = tmp_7 + (2*FILTER_WIDTH+1);\n\
 out += jg*n + ig;\n\
 double tt_1 = 0.0;\n\
 double tt_2 = 0.0;\n\
 double tt_3 = 0.0;\n\
 double tt_4 = 0.0;\n\
-double tt_5 = 0.0;\n\
-double tt_6 = 0.0;\n\
-double tt_7 = 0.0;\n\
-double tt_8 = 0.0;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 filter(tt_1,tmp_1);\n\
 filter(tt_2,tmp_2);\n\
 filter(tt_3,tmp_3);\n\
 filter(tt_4,tmp_4);\n\
-filter(tt_5,tmp_5);\n\
-filter(tt_6,tmp_6);\n\
-filter(tt_7,tmp_7);\n\
-filter(tt_8,tmp_8);\n\
 *out = tt_1;\n\
 out += n;\n\
 *out = tt_2;\n\
@@ -327,14 +283,6 @@ out += n;\n\
 *out = tt_3;\n\
 out += n;\n\
 *out = tt_4;\n\
-out += n;\n\
-*out = tt_5;\n\
-out += n;\n\
-*out = tt_6;\n\
-out += n;\n\
-*out = tt_7;\n\
-out += n;\n\
-*out = tt_8;\n\
 };\n\
 __kernel void magicfilter1d_straightKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
 ptrdiff_t ig = get_global_id(0);\n\
@@ -449,7 +397,7 @@ inline void magicfilter_block_generic(cl_kernel kernel, cl_command_queue *comman
     cl_int ciErrNum;
     int FILTER_WIDTH=16;
     assert(*n>=FILTER_WIDTH);
-    size_t block_size_i=FILTER_WIDTH, block_size_j=2;
+    size_t block_size_i=FILTER_WIDTH, block_size_j=4;
     cl_uint i = 0;
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
