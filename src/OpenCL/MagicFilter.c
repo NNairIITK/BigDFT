@@ -211,78 +211,53 @@ barrier(CLK_LOCAL_MEM_FENCE);\n\
 filter(tt,tmp);\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
+#define ELEM_PER_THREAD 2\n\
 __kernel void magicfilter1d_blockKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
 size_t ig = get_global_id(0);\n\
-size_t jg = get_global_id(1)*4;\n\
+size_t jg = get_global_id(1)*ELEM_PER_THREAD;\n\
 size_t i2 = get_local_id(0);\n\
-size_t j2 = get_local_id(1)*4;\n\
+size_t j2 = get_local_id(1)*ELEM_PER_THREAD;\n\
 ptrdiff_t igt = get_group_id(0);\n\
 ptrdiff_t jgt = get_group_id(1);\n\
 size_t i;\n\
 //if data are ill dimentioned last block recomputes part of the data\n\
-jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1)*4 - ndat ) : jg;\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1)*ELEM_PER_THREAD - ndat ) : jg;\n\
 ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
 igt = ig - i2 + j2 - FILTER_WIDTH/2;\n\
 jgt = jg - j2 + i2;\n\
 //If I'm on the outside, select a border element to load\n\
 __local double * tmp_1 = tmp + i2 * (2 * FILTER_WIDTH + 1) + j2;\n\
 psi += jgt;\n\
-if ( igt < 0 ) \n\
-  *tmp_1++ = psi[( n + igt++ ) * ndat];\n\
+if ( igt < 0 )\n\
+  *tmp_1++ = psi[(n + igt++) * ndat];\n\
 else \n\
   *tmp_1++ = psi[igt++ * ndat];\n\
-if ( igt < 0 ) \n\
-  *tmp_1++ = psi[( n + igt++ ) * ndat];\n\
+if ( igt < 0 )\n\
+  *tmp_1++ = psi[(n + igt++) * ndat];\n\
 else \n\
   *tmp_1++ = psi[igt++ * ndat];\n\
-if ( igt < 0 ) \n\
-  *tmp_1++ = psi[( n + igt++ ) * ndat];\n\
-else \n\
-  *tmp_1++ = psi[igt++ * ndat];\n\
-if ( igt < 0 ) \n\
-  *tmp_1++ = psi[( n + igt++ ) * ndat];\n\
-else \n\
-  *tmp_1++ = psi[igt++ * ndat];\n\
-igt += FILTER_WIDTH-4;\n\
-tmp_1 += FILTER_WIDTH-4;\n\
-if ( igt >= n ) \n\
-  *tmp_1++ = psi[( igt++ - n ) * ndat];\n\
+igt += FILTER_WIDTH-ELEM_PER_THREAD;\n\
+tmp_1 += FILTER_WIDTH-ELEM_PER_THREAD;\n\
+if ( igt >= n )\n\
+  *tmp_1++ = psi[(igt++ - n) * ndat];\n\
 else\n\
   *tmp_1++ = psi[igt++ * ndat];\n\
-if ( igt >= n ) \n\
-  *tmp_1++ = psi[( igt++ - n ) * ndat];\n\
-else\n\
-  *tmp_1++ = psi[igt++ * ndat];\n\
-if ( igt >= n ) \n\
-  *tmp_1++ = psi[( igt++ - n ) * ndat];\n\
-else\n\
-  *tmp_1++ = psi[igt++ * ndat];\n\
-if ( igt >= n ) \n\
-  *tmp_1++ = psi[( igt++ - n ) * ndat];\n\
+if ( igt >= n )\n\
+  *tmp_1++ = psi[(igt++ - n) * ndat];\n\
 else\n\
   *tmp_1++ = psi[igt++ * ndat];\n\
 \
 tmp_1 = tmp + j2*(2*FILTER_WIDTH+1) + i2;\n\
 __local double * tmp_2 = tmp_1 + (2*FILTER_WIDTH+1);\n\
-__local double * tmp_3 = tmp_2 + (2*FILTER_WIDTH+1);\n\
-__local double * tmp_4 = tmp_3 + (2*FILTER_WIDTH+1);\n\
 out += jg*n + ig;\n\
 double tt_1 = 0.0;\n\
 double tt_2 = 0.0;\n\
-double tt_3 = 0.0;\n\
-double tt_4 = 0.0;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 filter(tt_1,tmp_1);\n\
 filter(tt_2,tmp_2);\n\
-filter(tt_3,tmp_3);\n\
-filter(tt_4,tmp_4);\n\
 *out = tt_1;\n\
 out += n;\n\
 *out = tt_2;\n\
-out += n;\n\
-*out = tt_3;\n\
-out += n;\n\
-*out = tt_4;\n\
 };\n\
 __kernel void magicfilter1d_straightKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
 ptrdiff_t ig = get_global_id(0);\n\
@@ -396,8 +371,9 @@ out[(jg*n+ig)]=tmp[j2 * (FILTER_WIDTH + 1) + i2];\n\
 inline void magicfilter_block_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     cl_int ciErrNum;
     int FILTER_WIDTH=16;
+    int ELEM_PER_THREAD=2;
     assert(*n>=FILTER_WIDTH);
-    size_t block_size_i=FILTER_WIDTH, block_size_j=4;
+    size_t block_size_i=FILTER_WIDTH, block_size_j=FILTER_WIDTH/ELEM_PER_THREAD;
     cl_uint i = 0;
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
@@ -405,7 +381,7 @@ inline void magicfilter_block_generic(cl_kernel kernel, cl_command_queue *comman
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(cl_double)*16*(block_size_i+FILTER_WIDTH+1), 0);
     size_t localWorkSize[] = { block_size_i,block_size_j };
-    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(16,*ndat)*block_size_j/16};
+    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(FILTER_WIDTH,*ndat)*block_size_j/FILTER_WIDTH};
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
     oclErrorCheck(ciErrNum,"Failed to enqueue magic filter kernel!");
 }
