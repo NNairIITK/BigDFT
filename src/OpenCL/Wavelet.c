@@ -100,6 +100,63 @@ filter(ci,di,tmp);\n\
 out[(jg*(2*n)+ig)]=ci;\n\
 out[(jg*(2*n)+ig+n)]=di;\n\
 };\n\
+#define ELEM_PER_THREAD 2\n\
+__kernel void ana1d_blockKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+size_t ig = get_global_id(0);\n\
+size_t jg = get_global_id(1)*ELEM_PER_THREAD;\n\
+const size_t i2 = get_local_id(0);\n\
+const size_t j2 = get_local_id(1)*ELEM_PER_THREAD;\n\
+ptrdiff_t igt = get_group_id(0);\n\
+ptrdiff_t jgt = get_group_id(1);\n\
+//if data are ill dimentioned last block recomputes part of the data\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1)*ELEM_PER_THREAD - ndat ) : jg;\n\
+ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+igt = (ig - i2) * 2 + j2 - FILTER_WIDTH/2;\n\
+jgt = jg - j2 + i2;\n\
+__local double * tmp_1 = tmp + i2 * (3 * FILTER_WIDTH + 1) + j2;\n\
+psi += jgt;\n\
+if ( igt < 0 ) \n\
+  *tmp_1++ = psi[( 2*n + igt++ ) * ndat];\n\
+else \n\
+  *tmp_1++ = psi[igt++ * ndat];\n\
+if ( igt < 0 ) \n\
+  *tmp_1++ = psi[( 2*n + igt++ ) * ndat];\n\
+else \n\
+  *tmp_1++ = psi[igt++ * ndat];\n\
+igt += FILTER_WIDTH-ELEM_PER_THREAD;\n\
+tmp_1 += FILTER_WIDTH-ELEM_PER_THREAD;\n\
+*tmp_1++ = psi[igt++ * ndat];\n\
+*tmp_1++ = psi[igt++ * ndat];\n\
+igt += FILTER_WIDTH-ELEM_PER_THREAD;\n\
+tmp_1 += FILTER_WIDTH-ELEM_PER_THREAD;\n\
+if ( igt >= 2*n ) \n\
+  *tmp_1++ = psi[(igt++ - 2*n) * ndat];\n\
+else\n\
+  *tmp_1++ = psi[igt++ * ndat];\n\
+if ( igt >= 2*n ) \n\
+  *tmp_1++ = psi[(igt++ - 2*n) * ndat];\n\
+else\n\
+  *tmp_1++ = psi[igt++ * ndat];\n\
+\
+double ci_1 = 0.0;\n\
+double di_1 = 0.0;\n\
+double ci_2 = 0.0;\n\
+double di_2 = 0.0;\n\
+tmp_1 = tmp + j2*(3*FILTER_WIDTH+1) + 2*i2 + 1;\n\
+__local double * tmp_2 = tmp_1 + (3*FILTER_WIDTH+1);\n\
+out += (jg*(2*n)+ig);\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+filter(ci_1,di_1,tmp_1);\n\
+filter(ci_2,di_2,tmp_2);\n\
+\
+*out = ci_1;\n\
+out += n;\n\
+*out = di_1;\n\
+out += n;\n\
+*out = ci_2;\n\
+out += n;\n\
+*out = di_2;\n\
+};\n\
 ";
 
 char * syn_program="\
@@ -255,6 +312,25 @@ out[jg*(2*n)+ig*2+1]=so;\n\
 };\n\
 ";
 
+inline void ana_block_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, cl_mem *psi, cl_mem *out){
+    cl_int ciErrNum;
+    int FILTER_WIDTH = 16;
+    int ELEM_PER_THREAD=2;
+    assert(*n>=FILTER_WIDTH);
+    size_t block_size_i=FILTER_WIDTH, block_size_j=FILTER_WIDTH/ELEM_PER_THREAD;
+    cl_uint i = 0;
+    clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+    clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
+    clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
+    clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
+    clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*ELEM_PER_THREAD*(block_size_i*2+FILTER_WIDTH + 1), 0);
+    size_t localWorkSize[] = { block_size_i,block_size_j };
+    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j*ELEM_PER_THREAD,*ndat)*block_size_j/FILTER_WIDTH};
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    oclErrorCheck(ciErrNum,"Failed to enqueue analysis kernel!");
+
+}
+
 inline void ana_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, cl_mem *psi, cl_mem *out){
     cl_int ciErrNum;
     int FILTER_WIDTH = 16;
@@ -292,6 +368,7 @@ inline void syn_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_ui
 }
 
 cl_kernel ana1d_kernel_d;
+cl_kernel ana1d_block_kernel_d;
 cl_kernel anashrink1d_kernel_d;
 cl_kernel syn1d_kernel_d;
 cl_kernel syngrow1d_kernel_d;
@@ -304,6 +381,8 @@ void create_wavelet_kernels() {
     oclErrorCheck(ciErrNum,"Failed to create anashrink1dKernel_d kernel!");
     ana1d_kernel_d=clCreateKernel(anaProgram,"ana1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create ana1dKernel_d kernel!");
+    ana1d_block_kernel_d=clCreateKernel(anaProgram,"ana1d_blockKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create ana1d_blockKernel_d kernel!");
     syngrow1d_kernel_d=clCreateKernel(synProgram,"syngrow1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create syngrow1dKernel_d kernel!");
     syn1d_kernel_d=clCreateKernel(synProgram,"syn1dKernel_d",&ciErrNum);
@@ -342,6 +421,10 @@ void FC_FUNC_(anashrink1d_d,ANASHRINK1D_D)(cl_command_queue *command_queue, cl_u
 
 void FC_FUNC_(ana1d_d,ANA1D_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
   ana_generic(ana1d_kernel_d, command_queue, n, ndat, psi, out);
+}
+
+void FC_FUNC_(ana1d_block_d,ANA1D_BLOCK_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
+  ana_block_generic(ana1d_block_kernel_d, command_queue, n, ndat, psi, out);
 }
 
 void FC_FUNC_(ana_d_generic,ANA_D_GENERIC)(cl_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *psi, cl_mem *out){
@@ -428,6 +511,18 @@ void FC_FUNC_(ana_d,ANA_D)(cl_command_queue *command_queue, cl_uint *dimensions,
   ana_generic(ana1d_kernel_d, command_queue, &n2, &ndat, out, tmp);
   ndat = n2 * n3 * 4;
   ana_generic(ana1d_kernel_d, command_queue, &n1, &ndat, tmp, out);
+}
+
+void FC_FUNC_(ana_block_d,ANA_BLOCK_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out){
+  cl_uint n1 = dimensions[0];
+  cl_uint n2 = dimensions[1];
+  cl_uint n3 = dimensions[2];
+  cl_uint ndat = n2 * n1 * 4;
+  ana_block_generic(ana1d_block_kernel_d, command_queue, &n3, &ndat, psi, out);
+  ndat = n1 * n3 * 4;
+  ana_block_generic(ana1d_block_kernel_d, command_queue, &n2, &ndat, out, tmp);
+  ndat = n2 * n3 * 4;
+  ana_block_generic(ana1d_block_kernel_d, command_queue, &n1, &ndat, tmp, out);
 }
 
 void FC_FUNC_(ana_self_d,ANA_SELF_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *psi, cl_mem *out){
@@ -545,6 +640,8 @@ void FC_FUNC_(syn_self_d,SYN_SELF_D)(cl_command_queue *command_queue, cl_uint *d
 void clean_wavelet_kernels(){
   cl_int ciErrNum;
   ciErrNum = clReleaseKernel(ana1d_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(ana1d_block_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(anashrink1d_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");

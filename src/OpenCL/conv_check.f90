@@ -1128,6 +1128,32 @@ program conv_check
       
            call compare_time(CPUtime,GPUtime,n1bis*n2bis*n3bis,3*32,ntimes,maxdiff,1.d-9)
 
+           write(*,'(a,i6,i6,i6)')'GPU Analysis 3D (block), dimensions:',n1bis,n2bis,n3bis
+
+           call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, psi_GPU)
+           call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work_GPU)
+           call ocl_create_read_write_buffer(context, n1bis*n2bis*n3bis*8, work2_GPU)
+           call ocl_enqueue_write_buffer(queue, work_GPU, n1bis*n2bis*n3bis*8, psi_cuda_k_in_a)
+
+           call nanosec(tsc0)
+           do itimes=1,ntimes
+             call ana_block_d(queue,(/n1bis/2,n2bis/2,n3bis/2/), work2_GPU, work_GPU,psi_GPU)
+           end do
+           call ocl_finish(queue);
+           call nanosec(tsc1)
+
+           call ocl_enqueue_read_buffer(queue, psi_GPU, n1bis*n2bis*n3bis*8, psi_cuda_k_out_a)
+           call ocl_release_mem_object(psi_GPU)
+           call ocl_release_mem_object(work_GPU)
+           call ocl_release_mem_object(work2_GPU)
+
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+           call print_time(GPUtime,n1bis*n2bis*n3bis,3*32,ntimes)
+
+           call compare_3D_results(n1bis, n2bis, n3bis, psi_k_out_a, psi_cuda_k_out_a, maxdiff, 1d-9)
+      
+           call compare_time(CPUtime,GPUtime,n1bis*n2bis*n3bis,3*32,ntimes,maxdiff,1.d-9)
+
            write(*,'(a,i6,i6,i6)')'CPU Synthesis 3D, dimensions:',n1bis,n2bis,n3bis
 
            sigma2=0.25d0*((n1bis*hx)**2)
@@ -1214,6 +1240,30 @@ program conv_check
            call nanosec(tsc0)
            do i=1,ntimes
               call ana1d_d(queue,n1/2,ndat,work_GPU,psi_GPU)
+           end do
+           call ocl_finish(queue);
+           call nanosec(tsc1)
+
+           call ocl_enqueue_read_buffer(queue, psi_GPU, n1*ndat*8, psi_cuda)
+           call ocl_release_mem_object(psi_GPU)
+           call ocl_release_mem_object(work_GPU)
+
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+           call print_time(GPUtime,n1*ndat,32,ntimes)
+
+           call compare_2D_results_t(ndat, n1, psi_out, psi_cuda, maxdiff, 1d-9)
+      
+           call compare_time(CPUtime,GPUtime,n1*ndat,32,ntimes,maxdiff,1.d-9)
+
+           write(*,'(a,i6,i6)')'GPU Analysis (block), dimensions:',n1,ndat
+
+           call ocl_create_write_buffer(context, n1*ndat*8, psi_GPU)
+           call ocl_create_read_buffer(context, n1*ndat*8, work_GPU)
+           call ocl_enqueue_write_buffer(queue, work_GPU, n1*ndat*8, v_cuda)
+
+           call nanosec(tsc0)
+           do i=1,ntimes
+              call ana1d_block_d(queue,n1/2,ndat,work_GPU,psi_GPU)
            end do
            call ocl_finish(queue);
            call nanosec(tsc1)

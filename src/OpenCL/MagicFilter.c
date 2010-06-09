@@ -219,7 +219,6 @@ size_t i2 = get_local_id(0);\n\
 size_t j2 = get_local_id(1)*ELEM_PER_THREAD;\n\
 ptrdiff_t igt = get_group_id(0);\n\
 ptrdiff_t jgt = get_group_id(1);\n\
-size_t i;\n\
 //if data are ill dimentioned last block recomputes part of the data\n\
 jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1)*ELEM_PER_THREAD - ndat ) : jg;\n\
 ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
@@ -379,9 +378,9 @@ inline void magicfilter_block_generic(cl_kernel kernel, cl_command_queue *comman
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(cl_double)*16*(block_size_i+FILTER_WIDTH+1), 0);
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(cl_double)*block_size_j*ELEM_PER_THREAD*(block_size_i+FILTER_WIDTH+1), 0);
     size_t localWorkSize[] = { block_size_i,block_size_j };
-    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(FILTER_WIDTH,*ndat)*block_size_j/FILTER_WIDTH};
+    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j*ELEM_PER_THREAD,*ndat)*block_size_j/FILTER_WIDTH};
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
     oclErrorCheck(ciErrNum,"Failed to enqueue magic filter kernel!");
 }
