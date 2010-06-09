@@ -226,6 +226,7 @@ void bench_gemm(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in1, cl_double *
   char transa = 'n';
   char transb = 'n';
   gemm_d_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &m, &b, &k, &beta, &c, &m);
+  gemm_block_d_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &m, &b, &k, &beta, &c, &m);
   transa = 'n';
   transb = 't';
   gemm_d_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &m, &b, &n, &beta, &c, &m);
