@@ -45,6 +45,38 @@ __kernel void gemm_blockKernel_d( uint m, uint n, uint k, double alpha, __global
     *c = alpha * result_2 + beta * *c;\n\
   }\n\
 }\n\
+__kernel void gemmsyKernel_d( uint m, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
+  size_t i = get_local_id(0);\n\
+  size_t j = get_local_id(1);\n\
+  size_t ig = get_global_id(0);\n\
+  size_t jg = get_global_id(1);\n\
+  \n\
+  size_t index = 0;\n\
+  double result = 0.0;\n\
+  if(get_group_id(1) < get_group_id(0))\n\
+    return;\n\
+  while( index < k) {\n\
+    //load first matrix in tmp1\n\
+    tmp1[j*(BUFFER_SIZE) + i] = (ig < m && (index + j) < k) ? a[(index+j)*lda + ig] : 0.0;\n\
+    //load second matrix in tmp2\n\
+    tmp2[j*(BUFFER_SIZE) + i] = (jg < m && (index + i) < k) ? b[(jg)*ldb + index+i] : 0.0;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    #pragma unroll\n\
+    for(size_t sumi=0; sumi<BUFFER_SIZE; sumi++)\n\
+      result += tmp1[sumi*(BUFFER_SIZE) + i] * tmp2[ j*(BUFFER_SIZE) + sumi];\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    index += BUFFER_SIZE;\n\
+  }\n\
+  result = alpha * result + beta * c[jg*ldc + ig];\n\
+  tmp1[j*(BUFFER_SIZE+1) + i] = result;\n\
+  size_t igt = ig - i + j;\n\
+  size_t jgt = jg - j + i;\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  if(ig < m && jg < m){\n\
+    c[jg*ldc + ig] = result;\n\
+    c[igt*ldc + jgt] = tmp1[i*(BUFFER_SIZE+1) + j];\n\
+  }\n\
+}\n\
 __kernel void gemmKernel_d( uint m, uint n, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
   size_t i = get_local_id(0);\n\
   size_t j = get_local_id(1);\n\
@@ -825,7 +857,28 @@ void inline gemm_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_u
   ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue gemm kernel!");
 }
-
+void inline gemmsy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *m, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
+  cl_int ciErrNum;
+  size_t block_size_i=16;
+  size_t block_size_j=16;
+  cl_uint i=0;
+  clSetKernelArg(kernel, i++,sizeof(*m), (void*)m);
+  clSetKernelArg(kernel, i++,sizeof(*k), (void*)k);
+  clSetKernelArg(kernel, i++,sizeof(*alpha), (void*)alpha);
+  clSetKernelArg(kernel, i++,sizeof(*a), (void*)a);
+  clSetKernelArg(kernel, i++,sizeof(*lda), (void*)lda);
+  clSetKernelArg(kernel, i++,sizeof(*b), (void*)b);
+  clSetKernelArg(kernel, i++,sizeof(*ldb), (void*)ldb);
+  clSetKernelArg(kernel, i++,sizeof(*beta), (void*)beta);
+  clSetKernelArg(kernel, i++,sizeof(*c), (void*)c);
+  clSetKernelArg(kernel, i++,sizeof(*ldc), (void*)ldc);
+  clSetKernelArg(kernel, i++,sizeof(cl_double)*(block_size_i+1)*block_size_j, NULL);
+  clSetKernelArg(kernel, i++,sizeof(cl_double)*(block_size_i+1)*block_size_j, NULL);
+  size_t localWorkSize[] = { block_size_i, block_size_j };
+  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*m), shrRoundUp(block_size_j,*m)  };
+  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue gemmsy kernel!");
+}
 void inline set_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_double *val, cl_mem *x) {
   cl_int ciErrNum;
   size_t block_size_i=64;
@@ -940,6 +993,7 @@ cl_kernel copy_kernel_d;
 cl_kernel dot_kernel_d;
 cl_kernel set_kernel_d;
 cl_kernel gemm_block_kernel_d;
+cl_kernel gemmsy_kernel_d;
 cl_kernel gemm_kernel_d;
 cl_kernel gemm_kernel_z;
 cl_kernel gemm_kernel_z_ta;
@@ -1081,6 +1135,24 @@ void FC_FUNC_(gemm_block_d,GEMM_BLOCK_D)(cl_command_queue *command_queue, char *
     }
   }
 }
+
+void FC_FUNC_(gemmsy_d,GEMMSY_D)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
+  assert(m == n);
+  if( *transa == 't' || *transa == 'c' || *transa == 'T' || *transa == 'C' ) {
+    if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
+      gemm_generic(gemm_kernel_d_tatb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else {
+      gemm_generic(gemm_kernel_d_ta, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    }
+  } else {
+    if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
+      gemm_generic(gemm_kernel_d_tb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else {
+      gemmsy_generic(gemmsy_kernel_d, command_queue, m, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    }
+  }
+}
+
 void FC_FUNC_(gemm_z,GEMM_Z)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double2 *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double2 *beta, cl_mem *c, cl_uint *ldc) {
   if( *transa == 't' || *transa == 'T' ) {
     if ( *transb == 't' || *transb == 'T' ) {
@@ -1200,6 +1272,8 @@ void create_reduction_kernels(){
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     gemm_block_kernel_d=clCreateKernel(dgemmProgram,"gemm_blockKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    gemmsy_kernel_d=clCreateKernel(dgemmProgram,"gemmsyKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
     gemm_kernel_d=clCreateKernel(dgemmProgram,"gemmKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     gemm_kernel_z=clCreateKernel(dgemmProgram,"gemmKernel_z",&ciErrNum);
@@ -1274,6 +1348,8 @@ void clean_reduction_kernels(){
   ciErrNum = clReleaseKernel(set_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(gemm_block_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemmsy_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(gemm_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");

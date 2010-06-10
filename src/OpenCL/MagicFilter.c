@@ -20,7 +20,8 @@ char * magicfilter_program="\
 #define FILT14 -0.5185986881173432922848639136911487e-4\n\
 #define FILT15  2.72734492911979659657715313017228e-6\n\
 #define FILTER_WIDTH 16\n\
-#define filter(tt,tmp) tt += *tmp++ * FILT0;\
+#define filter(tt,tmp) \
+tt += *tmp++ * FILT0;\
 tt += *tmp++ * FILT1;\
 tt += *tmp++ * FILT2;\
 tt += *tmp++ * FILT3;\
@@ -36,7 +37,8 @@ tt += *tmp++ * FILT12;\
 tt += *tmp++ * FILT13;\
 tt += *tmp++ * FILT14;\
 tt += *tmp++ * FILT15;\n\
-#define filter_reverse(tt,tmp) tt += *tmp++ *  FILT15;\
+#define filter_reverse(tt,tmp) \
+tt += *tmp++ *  FILT15;\
 tt += *tmp++ *  FILT14;\
 tt += *tmp++ *  FILT13;\
 tt += *tmp++ *  FILT12;\

@@ -26,7 +26,7 @@ program conv_check
   real(wp), dimension(:,:,:), allocatable :: pot,psir,psi_in,psi_out,psi_out_s
   real(wp), dimension(:,:,:,:,:), allocatable :: psi_k_in, psi_k_out
   real(wp), dimension(:,:,:,:), allocatable :: psi_k_in_a, psi_k_out_a, pot_a
-  real(wp), dimension(:,:,:), allocatable :: psi_in_s,psi_out_t,psi_in_t,psi_gemm,psi_cuda_gemm
+  real(wp), dimension(:,:,:), allocatable :: psi_in_s,psi_out_t,psi_in_t,psi_gemm,psi_gemmsy,psi_cuda_gemm
   !local variables
   character(len=*), parameter :: subname='conv_check'
   character(len=50) :: chain
@@ -139,6 +139,8 @@ program conv_check
            call memocc(i_stat,psi_out,'psi_out',subname)
            allocate(psi_gemm(n1,n1,1+ndebug),stat=i_stat)
            call memocc(i_stat,psi_in,'psi_gemm',subname)
+           allocate(psi_gemmsy(n1,n1,1+ndebug),stat=i_stat)
+           call memocc(i_stat,psi_in,'psi_gemmsy',subname)
            allocate(psi_cuda_gemm(n1,n1,1+ndebug),stat=i_stat)
            call memocc(i_stat,psi_out,'psi_cuda_gemm',subname)
 
@@ -369,6 +371,13 @@ program conv_check
 
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
            call print_time(CPUtime,n1*n1,ndat*2,ntimes)
+            
+           do j=1,n1
+             do i=1,j
+                psi_gemmsy(i,j,1) = psi_gemm(i,j,1)
+                psi_gemmsy(j,i,1) = psi_gemm(i,j,1)
+             end do
+           end do
 
            write(*,'(a,i6,i6,i6)')'GPU GEMM, dimensions:',n1,n1,ndat
 
@@ -418,6 +427,29 @@ program conv_check
 
            call compare_time(CPUtime,GPUtime,n1*n1,ndat*2,ntimes,maxdiff,3.d-7)
 
+           write(*,'(a,i6,i6,i6)')'GPU GEMMSY, dimensions:',n1,n1,ndat
+
+           call ocl_create_write_buffer(context, n1*n1*8, psi_GPU)
+           call ocl_create_read_buffer(context, n1*ndat*8, work_GPU)
+           call ocl_enqueue_write_buffer(queue, work_GPU, n1*ndat*8, v_cuda_str)
+
+           call nanosec(tsc0)
+           do i=1,ntimes
+              call gemmsy_d(queue,'n','n',n1,n1,ndat,1.2d0,work_GPU,n1,work_GPU,ndat,0.0d0,psi_GPU, n1)
+           end do
+           call ocl_finish(queue);
+           call nanosec(tsc1)
+
+           call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n1*8, psi_cuda_gemm)
+           call ocl_release_mem_object(psi_GPU)
+           call ocl_release_mem_object(work_GPU)
+
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+           call print_time(GPUtime,n1*n1,ndat*2,ntimes)
+
+           call compare_2D_results(n1, n1, psi_gemmsy, psi_cuda_gemm, maxdiff, 3.d-7)
+
+           call compare_time(CPUtime,GPUtime,n1*n1,ndat*2,ntimes,maxdiff,3.d-7)
 
            write(*,'(a,i6,i6,i6)')'CPU ZGEMM, dimensions:',n1/2,n1/2,ndat
 
@@ -1769,6 +1801,8 @@ program conv_check
      print *,'wrong ndim',ndim
   end if
   call print_event_list
+  
+  call ocl_clean(queue, context)
 
 contains
 
