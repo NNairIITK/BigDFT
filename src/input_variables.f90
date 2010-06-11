@@ -244,7 +244,7 @@ subroutine dft_input_variables(iproc,filename,in)
   !davidson treatment
   read(1,*,iostat=ierror) in%norbv,in%nvirt,in%nplot
   call check()
-  in%nvirt = max(in%nvirt, in%norbv)
+  in%nvirt = min(in%nvirt, in%norbv)
 
   !electrostatic treatment of the vacancy (experimental)
   !read(1,*,iostat=ierror) in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw

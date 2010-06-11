@@ -354,7 +354,7 @@ subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   hyh=.5_gp*hy
   hzh=.5_gp*hz
 
-  open(unit=22,file=orbname//'.cube',status='unknown')
+  open(unit=22,file=trim(orbname)//'.cube',status='unknown')
   write(22,*)orbname
   write(22,*)'CUBE file for orbital wavefunction'
   !number of atoms
@@ -712,7 +712,7 @@ subroutine plot_density_cube(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n
 contains
 
   subroutine cubefile_write
-        open(unit=22,file=filename//trim(suffix)//'.cube',status='unknown')
+        open(unit=22,file=trim(filename)//trim(suffix)//'.cube',status='unknown')
         write(22,*)'CUBE file for charge density'
         write(22,*)'Case for '//trim(message)
         !number of atoms
@@ -802,7 +802,7 @@ contains
   subroutine cubefile_read
        real(dp) dum1,dum2, dum3
         integer idum
-        open(unit=22,file=filename//trim(suffix)//'.cube',status='old')
+        open(unit=22,file=trim(filename)//trim(suffix)//'.cube',status='old')
         read(22,*)! 'CUBE file for charge density'
         read(22,*)! 'Case for '//trim(message)
 
