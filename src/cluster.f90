@@ -1232,23 +1232,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   call local_forces(iproc,atoms,rxyz,hxh,hyh,hzh,&
        n1,n2,n3,n3p,i3s+i3xcsh,n1i,n2i,n3i,rho,pot,gxyz)
 
-!!             Just sum up forces to get the translational force for the local part only:
-!              if (nproc > 1) then
-!                 call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
-!              else
-!                 do iat=1,atoms%nat
-!                    fxyz(1,iat)=gxyz(1,iat) ; fxyz(2,iat)=gxyz(2,iat) ; fxyz(3,iat)=gxyz(3,iat)
-!                 enddo
-!              end if
-!              if (iproc == 0) then
-!              tumx=0.d0 ; tumy=0.d0 ; tumz=0.d0
-!              do iat=1,atoms%nat
-!                 tumx=tumx+fxyz(1,iat) ; tumy=tumy+fxyz(2,iat) ; tumz=tumz+fxyz(3,iat)
-!              enddo
-!              write(77,'(a30,3(1x,e10.3))') 'translat. force local pot ',tumx,tumy,tumz
-!              endif
-
-
   i_all=-product(shape(rho))*kind(rho)
   deallocate(rho,stat=i_stat)
   call memocc(i_stat,i_all,'rho',subname)

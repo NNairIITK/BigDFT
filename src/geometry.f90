@@ -105,6 +105,7 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   real(gp), dimension(3*at%nat), intent(inout) :: fxyz
   !local variables
   logical :: fail
+  integer :: ibfgs
 
   !-------------------------------------------
   character*4 fn4
@@ -114,10 +115,10 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   if (iproc ==0 .and. parmin%verbosity > 0)  write(16,'(a)')  & 
      '# Geometry optimization log file, grep for GEOPT for consistent output'
   if (iproc ==0 .and. parmin%verbosity > 0) write(16,'(a)')  & 
-      '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM       FNRM2     FRAC*FLUC FLUC      ADD. INFO'
+      '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'
 
   if (iproc ==0 .and. parmin%verbosity > 0) write(* ,'(a)') & 
-      '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM       FNRM2     FRAC*FLUC FLUC      ADD. INFO'
+      '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'
 
   !assign the geometry optimisation method
   parmin%approach=in%geopt_approach
@@ -131,9 +132,11 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
 
   if (trim(parmin%approach)=='BFGS') then
   
-     if (iproc ==0) write(*,*) '# ENTERING BFGS'
-  
+     ibfgs=0
+86   ibfgs=ibfgs+1
+     if (iproc ==0) write(*,*) '# ENTERING BFGS,ibfgs',ibfgs
      call lbfgsdriver(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
+     if (fail .and. ibfgs .lt. 5) goto 86
 
      if (fail) then
         if (iproc ==0) write(*,*) '# ENTERING CG after BFGS failure'
@@ -326,8 +329,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   real(gp), dimension(3,at%nat), intent(inout) :: rxyz
   real(gp), dimension(3,at%nat), intent(out) :: fxyz
   !local variables
-  real(gp) ::fluctsum,fnoise
-  integer :: nfluct
+  real(gp) ::fnoise
   character(len=*), parameter :: subname='conjgrad'  
   integer :: nfail,it,iat,i_all,i_stat,infocode, nitsd
   real(gp) :: anoise,fluct,avbeta,avnum,fnrm,etotprec,beta0,beta
@@ -345,8 +347,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   call memocc(i_stat,hh,'hh',subname)
 
   anoise=1.e-4_gp
-  fluctsum=0._gp 
-  nfluct=0
+  fluct=0._gp 
 
   avbeta=0._gp
   avnum=0._gp
@@ -357,7 +358,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
   !start with a steepest descent algorithm
   call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,&
-       fluctsum,nfluct,fnrm,fnoise,in,in%forcemax,nitsd,fluct)
+       fnrm,fnoise,in,in%forcemax,nitsd,fluct)
   if (ncount_bigdft >= in%ncount_cluster_x) then
       if (iproc==0 .and. parmin%verbosity > 0) &
            & write(16,*) 'SDCG exited before the geometry optimization converged because more than ',&
@@ -459,7 +460,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            end do
 
            call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,&
-                fluctsum,nfluct,fnrm,fnoise,in,in%forcemax,nitsd,fluct)
+                fnrm,fnoise,in,in%forcemax,nitsd,fluct)
 
            !calculate the max of the forces
            call fnrmandforcemax(fxyz,tmp,fmax,at%nat)
@@ -482,7 +483,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
         !if (iproc.eq.0) write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'CG ',ncount_bigdft,etot,sqrt(fnrm)
 
-        if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,nfluct,fluctsum,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
 
 !!$        call atomic_dot(at,gpf,gpf,unten)
 !!$        call atomic_dot(at,gpf,fxyz,oben1)
@@ -509,10 +510,10 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            if (parmin%verbosity > 0) then
 !              write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)')it,sqrt(fnrm),etot,' GEOPT CG ',beta/in%betax
 !              write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*in%frac_fluct,fluct
-           write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1)') &
-           &ncount_bigdft,it,"GEOPT_CG  ",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,"b/b0=",beta/in%betax
-           write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1)') &
-           &ncount_bigdft,it,"GEOPT_CG  ",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,"b/b0=",beta/in%betax
+           write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1)') &
+           &ncount_bigdft,it,"GEOPT_CG  ",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"b/b0=",beta/in%betax
+           write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1)') &
+           &ncount_bigdft,it,"GEOPT_CG  ",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"b/b0=",beta/in%betax
            eprev=etot
            end if
            write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
@@ -553,7 +554,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            end do
 
            call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,&
-                fluctsum,nfluct,fnrm,fnoise,in,in%forcemax,nitsd,fluct)
+                fnrm,fnoise,in,in%forcemax,nitsd,fluct)
 
            !calculate the max of the forces
            call fnrmandforcemax(fxyz,tmp,fmax,at%nat)
@@ -617,14 +618,14 @@ END SUBROUTINE conjgrad
 !!  Steepedt descent method
 !! SOURCE
 !!
-subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
-     nfluct,fnrm,fnoise,in,forcemax_sw,nitsd,fluct)
+subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
+     fnrm,fnoise,in,forcemax_sw,nitsd,fluct)
   use module_base
   use module_types
   use minpar
   !use module_interfaces
   implicit none
-  integer, intent(in) :: nproc,iproc,nitsd,nfluct
+  integer, intent(in) :: nproc,iproc,nitsd
   type(atoms_data), intent(inout) :: at
   type(input_variables), intent(inout) :: in
   type(restart_objects), intent(inout) :: rst
@@ -632,7 +633,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
   real(gp), dimension(3,at%nat), intent(inout) :: rxyz
   real(gp), intent(out) :: fnrm,fnoise
   real(gp), intent(inout) :: etot
-  real(gp), intent(inout) :: fluctsum,fluct
+  real(gp), intent(inout) :: fluct
   real(gp), dimension(3,at%nat), intent(out) ::ff
   real(gp), intent(in)::forcemax_sw
   !local variables
@@ -740,7 +741,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
         df1=fnrm-fnrmitm1
         df2=fnrm-2._gp*fnrmitm1+fnrmitm2
 
-        if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,nfluct,fluctsum,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
         if (iproc.eq.0) then
            if (parmin%verbosity > 0) &
                 & write(16,'(a,6(1x,e10.3),1x,i2)') 'fmax, fnrm/fnrmitm1, de1<0 , de2>0 , df1<0 , df2>0 ,nsatur',  & 
@@ -772,11 +773,11 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
 
 
         if (iproc==0 .and. parmin%verbosity > 0) then
-        write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,I2)') &
-        &ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,& 
+        write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,I2)') &
+        &ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
         &"b/b0=",beta/in%betax,"nsat=",nsatur
-        write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,I2)') &
-        &ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct, & 
+        write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,I2)') &
+        &ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, & 
         &"b/b0=",beta/in%betax,"nsat=",nsatur
         eprev=etot 
 !           write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',&
@@ -821,12 +822,12 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
         !maximum number of allowed SD steps reached, locally or globally
         if (itsd >= nitsd) then 
            if (iproc.eq.0) write(16,'(a,i5,1x,e10.3,1x,e21.14)') &
-                'SD: NO CONVERGENCE:itsd,fnrm,etot',itsd,fnrm,etot
+                'SD: NO CONVERGENCE:itsd,fnrm2,etot',itsd,fnrm,etot
            exit loop_sd
         endif
         if (itot >= nitsd) then
            if (iproc.eq.0) write(16,'(a,i5,i5,1x,e10.3,1x,e21.14)') &
-                'SD: NO CONVERGENCE:itsd,itot,fnrm,etot:',itsd,itot,fnrm,etot
+                'SD: NO CONVERGENCE:itsd,itot,fnrm2,etot:',itsd,itot,fnrm,etot
            exit loop_sd
         endif
 
@@ -903,8 +904,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   real(gp), dimension(3,at%nat), intent(inout) :: wpos
   real(gp), dimension(3,at%nat), intent(out) :: ff
   !local variables
-  real(gp) ::fluctsum,fnoise
-  integer :: nfluct
+  real(gp) ::fnoise
   character(len=*), parameter :: subname='vstepsd'  
   integer :: iat,i_all,i_stat,infocode, nitsd,itsd
   real(gp) :: anoise,fluct,fnrm,fnrmold,beta,betaxx,betalast,betalastold
@@ -921,9 +921,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   call memocc(i_stat,ffold,'ffold',subname)
 
   anoise=1.e-4_gp
-  fluctsum=0._gp 
   fluct=0._gp
-  nfluct=0
 
   beta=in%betax
   
@@ -932,14 +930,12 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   in%output_wf=.false.
   call call_bigdft(nproc,iproc,at,wpos,in,etotold,ffold,fnoise,rst,infocode)
   call fnrmandforcemax(ffold,fnrm,fmax,at%nat)   
-  if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,nfluct,fluctsum,fluct)
+  if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
   if (iproc == 0) then
-!     if (parmin%verbosity > 0) &
-!         & write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*in%frac_fluct,fluct
-     if (parmin%verbosity > 0)   write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1)') &
-     &ncount_bigdft,itsd,"GEOPT_VSSD",etotold,etotold-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,"beta=",beta
-     if (parmin%verbosity > 0)   write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1)') &
-     &ncount_bigdft,itsd,"GEOPT_VSSD",etotold,etotold-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,"beta=",beta
+     if (parmin%verbosity > 0)   write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1)') &
+     &ncount_bigdft,itsd,"GEOPT_VSSD",etotold,etotold-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"beta=",beta
+     if (parmin%verbosity > 0)   write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1)') &
+     &ncount_bigdft,itsd,"GEOPT_VSSD",etotold,etotold-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"beta=",beta
      eprev=etotold
 !!$     call transforce(at,ffold,sumx,sumy,sumz)                         
 !!$     write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
@@ -997,7 +993,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
      betalast=.5d0/curv
      if (betalast.gt.0.d0) betaxx=min(betaxx,1.5d0*betalast)
      call fnrmandforcemax(ff,fnrm,fmax,at%nat)   
-     if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,nfluct,fluctsum,fluct)
+     if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
 !     if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*in%frac_fluct,fluct
      call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
      if (check) exit loop_ntsd
@@ -1050,12 +1046,12 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
      endif
 
      if (iproc == 0.and.parmin%verbosity > 0) & 
-     &write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
-     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,& 
+     &write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
+     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
      &"beta=",beta,"last beta=",betalast
      if (iproc == 0.and.parmin%verbosity > 0) & 
-     &write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
-     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,& 
+     &write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
+     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
      &"beta=",beta,"last beta=",betalast
      eprev=etot
 !     if (iproc == 0) write(16,'(i5,1x,e12.5,1x,e21.14,a,e10.3,1x,e10.3)') itsd,sqrt(fnrm),etot,' GEOPT VSSD ',beta,betalast
@@ -1066,12 +1062,12 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
 
   enddo loop_ntsd
   if (iproc == 0.and.parmin%verbosity > 0) & 
-     &write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
-     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,& 
+     &write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
+     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
      &"beta=",beta,"last beta=",betalast
   if (iproc == 0.and.parmin%verbosity > 0) & 
-     &write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
-     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct,& 
+     &write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
+     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
      &"beta=",beta,"last beta=",betalast
   if (iproc == 0 .and. itsd == nitsd+1) &
        write(16,'(a,i5,e9.2,e18.10,e9.2)') '---- SD FAILED  TO CONVERGE'
@@ -1103,10 +1099,10 @@ subroutine convcheck(fnrm,fmax,fluctfrac_fluct,forcemax,check)
   logical, intent(out)::check
 
   check=.false.
-  if (fnrm < fluctfrac_fluct .or. &
-       fmax < forcemax ) then
-     check=.true.
-  endif
+!  if (fnrm < fluctfrac_fluct .or. &
+!       fmax < forcemax ) then
+!  endif
+  if ( fmax < max(forcemax,fluctfrac_fluct)) check=.true.
 
 end subroutine convcheck
 
@@ -1167,57 +1163,22 @@ subroutine fnrmandforcemax_old(ff,fnrm,fmax,at)
 !!!  fnrm=t1+t2+t3
 END SUBROUTINE fnrmandforcemax_old
 
-subroutine updatefluctsum(nat,fnoise,nfluct,fluctsum,fluct)
+subroutine updatefluctsum(nat,fnoise,fluct)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: nat
   real(gp),intent(in):: fnoise
-  real(gp),intent(inout):: fluctsum,fluct
-  integer, intent(inout):: nfluct
-  nfluct=nfluct+1
-  fluctsum=fluctsum+fnoise
+  real(gp),intent(inout):: fluct
 
-  fluct=fluctsum*sqrt(real(nat,gp))/real(nfluct,gp)
+   if (fluct.eq.0.d0) then
+     fluct=fnoise
+   else
+     fluct=.8d0*fluct+.2d0*fnoise
+   endif
 
 end subroutine updatefluctsum
 
-subroutine updatefluctsum_old(at,fxyz,nfluct,fluctsum,fluct)
-  use module_base
-  use module_types
-  implicit none
-  type(atoms_data), intent(in) :: at
-  real(gp),intent(inout):: fluctsum,fluct
-  real(gp), dimension(3,at%nat), intent(in) :: fxyz
-  integer, intent(inout):: nfluct
-  !local variables
-!!!  real(gp), save :: fluct_im1,fluct_im2,fluct_i
-  real(gp) :: sumx,sumy,sumz
-
-
-  call transforce_forfluct(at,fxyz,sumx,sumy,sumz)
-  nfluct=nfluct+1
-
-!!!  !limit the fluctuation value to n=3
-!!!  !to be done only in the case of SDCG
-!!!  !for BFGS it is best to consider everything
-!!!  if (nfluct >= 3) then
-!!!     fluct_im2=fluct_im1
-!!!     fluct_im1=fluct_i
-!!!  else if (nfluct == 2) then
-!!!     fluct_im2=0.0_gp
-!!!     fluct_im1=fluct_i
-!!!  else if (nfluct == 1) then
-!!!     fluct_im2=0.0_gp
-!!!     fluct_im1=0.0_gp
-!!!  end if
-!!!  fluct_i=sumx**2+sumy**2+sumz**2
-!!!  fluct=sqrt(real(nat,gp))*(fluct_i+fluct_im1+fluct_im2)/3.0_gp
-
-  fluctsum=fluctsum+sumx**2+sumy**2+sumz**2
-  !commented out, it increases the fluctuation artificially
-  fluct=fluctsum*sqrt(real(at%nat,gp))/real(nfluct,gp)
-END SUBROUTINE updatefluctsum_old
 
 !should we evaluate the translational force also with blocked atoms?
 subroutine transforce(at,fxyz,sumx,sumy,sumz)
@@ -1295,8 +1256,8 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   real(gp), dimension(:,:), allocatable  :: previous_forces
   real(gp), dimension(:,:), allocatable  :: previous_pos
   real(gp), dimension(:,:), allocatable :: product_matrix
-  integer :: lter, maxter, i, i_err, n, nrhs, lwork, infocode, j, i_stat, i_all,nfluct
-  real(gp) :: sumx, sumy, sumz, fluctsum, fluct, fmax, fnrm,fnoise,eprev
+  integer :: lter, maxter, i, i_err, n, nrhs, lwork, infocode, j, i_stat, i_all
+  real(gp) :: sumx, sumy, sumz,  fluct, fmax, fnrm,fnoise,eprev
   character(len = 4) :: fn4
   character(len = 40) :: comment
   ! Local variables for Lapack.
@@ -1314,8 +1275,6 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   allocate(product_matrix(in%history, in%history+ndebug),stat=i_stat)
   call memocc(i_stat,product_matrix,'product_matrix',subname)
 
-  fluctsum = 0._gp
-  nfluct = 0
 
   ! We set the first step and move to the second
   previous_forces(1,:) = f(:)
@@ -1417,7 +1376,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      ncount_bigdft=ncount_bigdft+1
 
      call fnrmandforcemax(f,fnrm,fmax,at%nat)
-     if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,nfluct,fluctsum,fluct)
+     if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
 
      if (iproc==0) then 
      write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2))')  & 
@@ -1489,8 +1448,8 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   real(gp) :: fluct,fnrm, alpha, fnoise
   real(gp) ::sumx,sumy,sumz,fmax
   logical :: check
-  integer :: infocode,nfluct,i,ixyz,iat,nitsd
-  real(gp) :: fluctsum,fnormmax_sw,eprev
+  integer :: infocode,i,ixyz,iat,nitsd
+  real(gp) :: fnormmax_sw,eprev
   character*4 fn4
   character*40 comment
   logical :: move_this_coordinate
@@ -1509,10 +1468,8 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   parmin%finstep=0
   parmin%alpha=1.d0
   fail=.false.
-  nfluct=0
-  fluctsum=0._gp
   fnrm=1.d10
-  nitsd=10!500                 !Maximum number of SD steps before entering BFGS
+  nitsd=100!500                 !Maximum number of SD steps before entering BFGS
   fnormmax_sw=in%forcemax!1.e-2_gp      !SD till the max force comp is less than this value
   
   !Dummy variables
@@ -1522,7 +1479,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
 
   if (iproc==0)    write(*,*) 'Maximum number of SD steps used in the beginning: ',nitsd
 
-  call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,fluctsum,nfluct,fnrm,fnoise,in,&
+  call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,fnrm,fnoise,in,&
        fnormmax_sw,nitsd,fluct)
   eprev=etot
   rxyz0=rxyz     !Save initial positions, since the unconstrained degrees of freedom will be updated upon them
@@ -1585,20 +1542,18 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
               endif
               rxyzwrite=rxyz
 
-              if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,nfluct,fluctsum,fluct)
-!              if (fmax < 3.d-1) call updatefluctsum(at%nat,fxyz,nfluct,fluctsum,fluct)
+              if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
    if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) & 
-              &write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe7.2E1)')&
-              &ncount_bigdft,ICALL,"GEOPT_BFGS",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct&
+              &write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe7.2E1)')&
+              &ncount_bigdft,ICALL,"GEOPT_BFGS",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct&
               &,"BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
    if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) & 
-              & write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe7.2E1)')&
-              &ncount_bigdft,ICALL,"GEOPT_BFGS",etot,etot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct&
+              & write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe7.2E1)')&
+              &ncount_bigdft,ICALL,"GEOPT_BFGS",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct&
               &,"BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
               eprev=etot
               if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
-                           'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm=',fnrm,'fluct=', fluct
-!              if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*in%frac_fluct,fluct
+                           'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
               call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
               if (ncount_bigdft >= in%ncount_cluster_x) goto 50
               close(16)

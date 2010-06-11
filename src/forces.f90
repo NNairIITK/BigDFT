@@ -3021,6 +3021,7 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
      sumy=sumy+fxyz(2,iat)
      sumz=sumz+fxyz(3,iat)
   enddo
+  fnoise=sqrt((sumx**2+sumy**2+sumz**2)/real(at%nat,gp))
   sumx=sumx/real(at%nat,gp)
   sumy=sumy/real(at%nat,gp)
   sumz=sumz/real(at%nat,gp)
@@ -3029,10 +3030,11 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   if (iproc==0) then 
      !write( *,'(1x,a,1x,3(1x,1pe9.2))') &
      !  'Subtracting center-mass shift of',sumx,sumy,sumz
-           write(*,'(1x,a)')'the sum of the forces is'
-           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
+!           write(*,'(1x,a)')'the sum of the forces is'
+           write(*,'(a,1pe16.8)')' average noise along x direction: ',sumx*sqrt(real(at%nat,gp))
+           write(*,'(a,1pe16.8)')' average noise along y direction: ',sumy*sqrt(real(at%nat,gp))
+           write(*,'(a,1pe16.8)')' average noise along z direction: ',sumz*sqrt(real(at%nat,gp))
+           write(*,'(a,1pe16.8)')' total average noise            : ',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%nat,gp))
 !!$
 !!$     write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
 !!$     write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
@@ -3062,7 +3064,7 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   end do
   
   !the noise of the forces is the norm of the translational force
-  fnoise=real(at%nat,gp)**2*(sumx**2+sumy**2+sumz**2)
+!  fnoise=real(at%nat,gp)**2*(sumx**2+sumy**2+sumz**2)
 
   !the maximum force and force norm is computed after modification of the forces
   fmax2=0._gp
