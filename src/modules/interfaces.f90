@@ -46,7 +46,7 @@ module module_interfaces
 
   interface
 
-     subroutine call_bigdft(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
+     subroutine call_bigdft(nproc,iproc,atoms,rxyz,in,energy,fxyz,fnoise,rst,infocode)
        use module_base
        use module_types
        implicit none
@@ -55,10 +55,10 @@ module module_interfaces
        type(atoms_data), intent(inout) :: atoms
        type(restart_objects), intent(inout) :: rst
        integer, intent(inout) :: infocode
-       real(gp), intent(out) :: energy
-       real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
+       real(gp), intent(out) :: energy,fnoise
+       real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
        real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
-     END SUBROUTINE call_bigdft
+     end subroutine call_bigdft
 
 
      subroutine geopt(nproc,iproc,x,at,f,epot,rst,in,ncount_bigdft)
@@ -887,10 +887,11 @@ module module_interfaces
        integer, intent(out) ::  nat
      END SUBROUTINE read_density_cube
 
-     subroutine gaussian_pswf_basis(ng,iproc,nspin,at,rxyz,G,Gocc)
+     subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc)
        use module_base
        use module_types
        implicit none
+       logical, intent(in) :: enlargerprb
        integer, intent(in) :: iproc,nspin,ng
        type(atoms_data), intent(in) :: at
        real(gp), dimension(3,at%nat), target, intent(in) :: rxyz

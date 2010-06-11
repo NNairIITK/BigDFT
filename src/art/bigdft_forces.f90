@@ -57,7 +57,7 @@ contains
     real(gp), dimension(:,:), pointer :: rxyz
     real(gp), dimension(:,:), allocatable :: fcart
     integer :: i, infocode, ierror
-    real(gp) :: energy
+    real(gp) :: energy,fnoise
 
     nproc = nproc_
     me = me_
@@ -86,7 +86,7 @@ contains
     ! First calculation of forces.
     allocate(fcart(3, at%nat))
     call MPI_Barrier(MPI_COMM_WORLD,ierror)
-    call call_bigdft(nproc,me,at,rxyz,in,energy,fcart,rst,infocode)
+    call call_bigdft(nproc,me,at,rxyz,in,energy,fcart,fnoise,rst,infocode)
     deallocate(rxyz)
     deallocate(fcart)
 
@@ -113,6 +113,7 @@ contains
     real(kind=8), intent(out) :: energy
 
     integer :: infocode, i, ierror
+    real(gp) :: fnoise
     real(dp), allocatable :: xcart(:,:), fcart(:,:)
 
     if (.not. initialised) then
@@ -135,7 +136,7 @@ contains
     allocate(fcart(3, at%nat))
 
     call MPI_Barrier(MPI_COMM_WORLD,ierror)
-    call call_bigdft(nproc,me,at,xcart,in,energy,fcart,rst,infocode)
+    call call_bigdft(nproc,me,at,xcart,in,energy,fcart,fnoise,rst,infocode)
 
     ! need to transform the forces into ev/ang.
     do i = 1, nat, 1

@@ -280,7 +280,7 @@ program memguess
   call orbitals_communicators(0,nproc,Glr,orbs,comms)  
 
   if (GPUtest .and. .not. GPUconv) then
-     write(*,*)' ERROR: you can not put a GPUtest flag is there is no GPUrun.'
+     write(*,*)' ERROR: you can not put a GPUtest flag if there is no GPUrun.'
      stop
   end if
   if (GPUconv .and. atoms%geocode=='P' .and. GPUtest) then
@@ -345,7 +345,7 @@ program memguess
      !ng=31
      !plot the wavefunctions for the pseudo atom
      nullify(G%rxyz)
-     call gaussian_pswf_basis(ng,0,in%nspin,atoms,rxyz,G,gbd_occ)
+     call gaussian_pswf_basis(ng,.false.,0,in%nspin,atoms,rxyz,G,gbd_occ)
      !for the moment multiply the number of coefficients for each channel
      allocate(rhocoeff((ng*(ng+1))/2,4+ndebug),stat=i_stat)
      call memocc(i_stat,rhocoeff,'rhocoeff',subname)
@@ -369,7 +369,7 @@ program memguess
 !!$  call razero(35,atoms%psppar(0,0,atoms%iatype(1)))
 !!$  atoms%psppar(0,0,atoms%iatype(1))=0.01_gp
 !!$  nullify(G%rxyz)
-!!$  call gaussian_pswf_basis(ng,0,in%nspin,atoms,rxyz,G,gbd_occ)
+!!$  call gaussian_pswf_basis(ng,.false.,0,in%nspin,atoms,rxyz,G,gbd_occ)
 !!$  !for the moment multiply the number of coefficients for each channel
 !!$  allocate(rhocoeff((ng*(ng+1))/2,4+ndebug),stat=i_stat)
 !!$  call memocc(i_stat,rhocoeff,'rhocoeff',subname)
@@ -761,7 +761,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !nullify the G%rxyz pointer
   nullify(G%rxyz)
   !extract the gaussian basis from the pseudowavefunctions
-  call gaussian_pswf_basis(21,iproc,nspin,at,rxyz,G,gbd_occ)
+  call gaussian_pswf_basis(21,.false.,iproc,nspin,at,rxyz,G,gbd_occ)
   
   allocate(gaucoeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)

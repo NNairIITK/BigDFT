@@ -353,7 +353,7 @@ subroutine convrot_n_per(n1,ndat,x,y)
 
 !$omp parallel default (private) shared(x,y,fil,ndat,n1,mod_arr)
 !$omp do 
-  do j=0,ndat/12-1
+  do j=0,ndat/8-1
 
      do i=0,n1
 
@@ -365,42 +365,42 @@ subroutine convrot_n_per(n1,ndat,x,y)
         tt6=0.e0_wp
         tt7=0.e0_wp
         tt8=0.e0_wp
-        tt9 =0.e0_wp
-        tt10=0.e0_wp
-        tt11=0.e0_wp
-        tt12=0.e0_wp
+!        tt9 =0.e0_wp
+!        tt10=0.e0_wp
+!        tt11=0.e0_wp
+!        tt12=0.e0_wp
 
         do l=lowfil,lupfil
            k=mod_arr(i+l)
            fill=fil(l)
 
-           tt1=tt1+x(  k,j*12+1)*fill
-           tt2=tt2+x(  k,j*12+2)*fill
-           tt3=tt3+x(  k,j*12+3)*fill
-           tt4=tt4+x(  k,j*12+4)*fill
-           tt5=tt5+x(  k,j*12+5)*fill
-           tt6=tt6+x(  k,j*12+6)*fill
-           tt7=tt7+x(  k,j*12+7)*fill
-           tt8=tt8+x(  k,j*12+8)*fill
+           tt1=tt1+x(  k,j*8+1)*fill
+           tt2=tt2+x(  k,j*8+2)*fill
+           tt3=tt3+x(  k,j*8+3)*fill
+           tt4=tt4+x(  k,j*8+4)*fill
+           tt5=tt5+x(  k,j*8+5)*fill
+           tt6=tt6+x(  k,j*8+6)*fill
+           tt7=tt7+x(  k,j*8+7)*fill
+           tt8=tt8+x(  k,j*8+8)*fill
 
-           tt9 =tt9 +x(  k,j*12+9 )*fill
-           tt10=tt10+x(  k,j*12+10)*fill
-           tt11=tt11+x(  k,j*12+11)*fill
-           tt12=tt12+x(  k,j*12+12)*fill
+!           tt9 =tt9 +x(  k,j*12+9 )*fill
+!           tt10=tt10+x(  k,j*12+10)*fill
+!           tt11=tt11+x(  k,j*12+11)*fill
+!           tt12=tt12+x(  k,j*12+12)*fill
         enddo
-        y(j*12+1,i)=tt1
-        y(j*12+2,i)=tt2
-        y(j*12+3,i)=tt3
-        y(j*12+4,i)=tt4
-        y(j*12+5,i)=tt5
-        y(j*12+6,i)=tt6
-        y(j*12+7,i)=tt7
-        y(j*12+8,i)=tt8
+        y(j*8+1,i)=tt1
+        y(j*8+2,i)=tt2
+        y(j*8+3,i)=tt3
+        y(j*8+4,i)=tt4
+        y(j*8+5,i)=tt5
+        y(j*8+6,i)=tt6
+        y(j*8+7,i)=tt7
+        y(j*8+8,i)=tt8
 
-        y(j*12+9 ,i)=tt9 
-        y(j*12+10,i)=tt10
-        y(j*12+11,i)=tt11
-        y(j*12+12,i)=tt12
+!        y(j*12+9 ,i)=tt9 
+!        y(j*12+10,i)=tt10
+!        y(j*12+11,i)=tt11
+!        y(j*12+12,i)=tt12
 
      enddo
   enddo
@@ -409,7 +409,7 @@ subroutine convrot_n_per(n1,ndat,x,y)
 
   !$omp do
 
-  do j=(ndat/12)*12+1,ndat
+  do j=(ndat/8)*8+1,ndat
      do i=0,n1
 
         tt=0.e0_wp

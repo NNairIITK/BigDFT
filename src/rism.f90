@@ -21,7 +21,7 @@ subroutine two_center_two_electrons(nat,a1,a2,a3,rxyz,radii,H)
   real(gp), parameter :: oneosqrtpi=0.564189583547756286948079451_gp
   integer :: iat,jat,i_gauss
   real(dp) :: ur_gauss,dr_gauss,acc_gauss,factor,factor2
-  real(gp) :: a_range,ra2,ra2pb2,rab2,oneopk,oneoexpo,expo,oneofac,fac,ra
+  real(gp) :: a_range,ra2,ra2pb2,rab2,oneopk,oneoexpo,expo,oneofac,fac,ra,erfor
   real(gp), dimension(3) :: A
   real(dp), dimension(n_gauss) :: p_gauss,w_gauss
 
@@ -54,7 +54,7 @@ subroutine two_center_two_electrons(nat,a1,a2,a3,rxyz,radii,H)
      A(1)=rxyz(1,iat)
      A(2)=rxyz(2,iat)
      A(3)=rxyz(3,iat)
-     do jat=iat+1,nat
+     do jat=iat,nat
         ra2pb2=ra2+radii(jat)**2
         rab2=(rxyz(1,jat)-A(1))**2
         rab2=rab2+(rxyz(2,jat)-A(2))**2
@@ -72,7 +72,8 @@ subroutine two_center_two_electrons(nat,a1,a2,a3,rxyz,radii,H)
            fac=w_gauss(i_gauss)/oneofac
            H(iat,jat)=H(iat,jat)-fac*expo
         end do
-        !if (iat == jat) print *,'test',H(iat,jat),-oneosqrtpi/sqrt(ra2)
+        !calculate the analytic results via the Boys function
+        !print *,'Analytic-approx:',iat,jat,H(iat,jat)+erfor(sqrt(rab2),sqrt(ra2pb2))
      end do
   end do
 
@@ -107,10 +108,16 @@ subroutine calculate_rho(iproc,nproc,geocode,nat,radii,rxyz,hxh,hyh,hzh,&
   real(gp), dimension(nat), intent(out) :: rhoarr
   !Local variables---------
   logical :: perx,pery,perz,gox,goy,goz
-  real(gp) :: pi,prefactor,cutoff,rloc,Vel
+  real(gp) :: pi,prefactor,cutoff,rloc,Vel,cutofrac
   real(gp) :: rx,ry,rz,x,y,z,arg,r2,xp,charge
   integer :: i1,i2,i3,ind,iat,ierr
   integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
+  
+  !experimental, just to verify the effect of the cutoff
+  open(11)
+  read(11,*)prefactor,cutofrac
+  close(11)
+
   
   pi=4.d0*atan(1.d0)
 
@@ -138,7 +145,8 @@ subroutine calculate_rho(iproc,nproc,geocode,nat,radii,rxyz,hxh,hyh,hzh,&
      rloc=radii(iat)
      prefactor=1.0_gp/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
      !maximum extension of the gaussian
-     cutoff=10.d0*rloc
+     !cutoff=10.d0*rloc
+     cutoff=cutofrac!*rloc
 
      isx=floor((rx-cutoff)/hxh)
      isy=floor((ry-cutoff)/hyh)
@@ -216,8 +224,13 @@ subroutine calculate_rho_longrange(iproc,nproc,at,radii,rxyz,hxh,hyh,hzh,&
   logical :: perx,pery,perz,gox,goy,goz
   integer :: i1,i2,i3,ind,iat,ierr,ityp
   integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
-  real(gp) :: pi,prefactor,cutoff,rloc,Rel
+  real(gp) :: pi,prefactor,cutoff,rloc,Rel,cutofrac
   real(gp) :: rx,ry,rz,x,y,z,arg,r2,xp,charge,erfor
+
+  !experimental, just to verify the effect of the cutoff
+  open(11)
+  read(11,*)prefactor,cutofrac
+  close(11)
   
   pi=4.d0*atan(1.d0)
 
@@ -250,21 +263,27 @@ subroutine calculate_rho_longrange(iproc,nproc,at,radii,rxyz,hxh,hyh,hzh,&
         iey=ceiling((ry+cutoff)/hyh)
         iez=ceiling((rz+cutoff)/hzh)
 
-        do i3=isz,iez
+        !always calculate on the whole box
+        do i3=isz,iez!1,n3pi
+           !j3=i3+i3s-nbl3-1
            z=real(i3,gp)*hzh-rz
            call ind_positions(perz,i3,n3,j3,goz) 
            j3=j3+nbl3+1
-           do i2=isy,iey
+           do i2=isy,iey!1,n2i
+              !j2=i2-nbl2-1
               y=real(i2,gp)*hyh-ry
               call ind_positions(pery,i2,n2,j2,goy)
-              do i1=isx,iex
+              do i1=isx,iex!1,n1i
+                 !j1=i1-nbl1-1
                  x=real(i1,gp)*hxh-rx
                  call ind_positions(perx,i1,n1,j1,gox)
                  r2=x**2+y**2+z**2
                  arg=r2/rloc**2
                  xp=exp(-.5_gp*arg)
                  if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+                 !if (r2 <= cutoff**2 ) then
                     ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                    !ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
                     rho(ind)=rho(ind)-xp*charge
                  endif
               enddo
@@ -284,6 +303,9 @@ subroutine calculate_rho_longrange(iproc,nproc,at,radii,rxyz,hxh,hyh,hzh,&
 
      rloc=radii(iat)
 
+     !cutoff=10.d0*rloc
+     cutoff=cutofrac!*rloc
+
      rhoarr(iat)=0.0_gp
      if (n3pi >0 ) then
         do i3=-nbl3,2*n3+1+nbr3
@@ -297,7 +319,8 @@ subroutine calculate_rho_longrange(iproc,nproc,at,radii,rxyz,hxh,hyh,hzh,&
                  x=real(i1,kind=8)*hxh-rx
                  call ind_positions(perx,i1,n1,j1,gox)
                  r2=x**2+y**2+z**2
-                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox .and.&
+                     r2 > cutoff**2 ) then
                     ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
                     Rel=rho(ind)
                     rhoarr(iat)=rhoarr(iat)+Rel*erfor(sqrt(r2),rloc)
@@ -374,6 +397,7 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
   real(gp), dimension(atoms%nat) :: C
   !local variables
   character(len=*), parameter :: subname='atomic_charges'
+  logical, parameter :: higherorder=.false.
   integer :: iat,info,nwork,i_all,i_stat,nbasis,i,j
   real(gp) :: ddotu,ddotv,gammafac
   type(gaussian_basis) :: Gpswf,Glongr
@@ -386,24 +410,31 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
      write(*,*)'ERROR: the atomic charges can be calculated only in isolcated BC!'
      stop
   end if
-  
-  !let us first calculate the structure for the basis functions
-  !extract the gaussian basis from the pseudowavefunctions
-  nullify(Gpswf%rxyz)
-  call gaussian_pswf_basis(31,iproc,1,atoms,rxyz,Gpswf,Gocc)
 
-  if (associated(Gocc)) then
-     i_all=-product(shape(Gocc))*kind(Gocc)
-     deallocate(Gocc,stat=i_stat)
-     call memocc(i_stat,i_all,'Gocc',subname)
-     nullify(Gocc)
+  if (higherorder) then
+     !let us first calculate the structure for the basis functions
+     !extract the gaussian basis from the pseudowavefunctions
+     nullify(Gpswf%rxyz)
+     call gaussian_pswf_basis(31,.false.,iproc,1,atoms,rxyz,Gpswf,Gocc)
+     
+     if (associated(Gocc)) then
+        i_all=-product(shape(Gocc))*kind(Gocc)
+        deallocate(Gocc,stat=i_stat)
+        call memocc(i_stat,i_all,'Gocc',subname)
+        nullify(Gocc)
+     end if
+
+     call gaussian_rism_basis(atoms%nat,radii,rxyz,Glongr)
+
+  !print *,'nat',atoms%nat,Glongr%ncoeff
+
+     !after having determined the atomic basis funcitons, calculate the number of basis elements
+     !taking also into account the long-range part of the basis
+     nbasis=atoms%nat+Gpswf%ncoeff
+  else
+     nbasis=atoms%nat
   end if
 
-  call gaussian_rism_basis(atoms%nat,radii,rxyz,Glongr)
-
-  !after having determined the atomic basis funcitons, calculate the number of basis elements
-  !taking also into account the long-range part of the basis
-  nbasis=atoms%nat+Gpswf%ncoeff
   !allocate all the arrays
   allocate(H(nbasis,nbasis+ndebug),stat=i_stat)
   call memocc(i_stat,H,'H',subname)
@@ -418,49 +449,77 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
   allocate(Caux(nbasis+ndebug),stat=i_stat)
   call memocc(i_stat,Caux,'Caux',subname)
 
-
-  !calculate the overlap matrix as well as the kinetic overlap
-  !in view of complete gaussian calculation
-  allocate(ovrlp(Gpswf%ncoeff,Gpswf%ncoeff),stat=i_stat)
-  call memocc(i_stat,ovrlp,'ovrlp',subname)
-  
-  !overlap calculation of the kinetic operator
-  call kinetic_overlap(Gpswf,Gpswf,ovrlp)
-
-  !fill the last part of the H matrix
-  !for the same structure the kinetic overlap is symmetric
-  do j=1,Gpswf%ncoeff
-     do i=1,j-1
-        H(atoms%nat+i,atoms%nat+j)=ovrlp(i,j)
-        H(atoms%nat+j,atoms%nat+i)=ovrlp(i,j)
+  if (higherorder) then
+     !calculate the overlap matrix as well as the kinetic overlap
+     !in view of complete gaussian calculation
+     allocate(ovrlp(Gpswf%ncoeff,Gpswf%ncoeff),stat=i_stat)
+     call memocc(i_stat,ovrlp,'ovrlp',subname)
+     
+     !overlap calculation of the kinetic operator
+     call kinetic_overlap(Gpswf,Gpswf,ovrlp)
+     
+     !fill the last part of the H matrix
+     !for the same structure the kinetic overlap is symmetric
+     do j=1,Gpswf%ncoeff
+        do i=1,j-1
+           H(atoms%nat+i,atoms%nat+j)=-1.0_gp/(8.0_gp*atan(1.0_gp))*ovrlp(i,j)
+           H(atoms%nat+j,atoms%nat+i)=-1.0_gp/(8.0_gp*atan(1.0_gp))*ovrlp(i,j)
+        end do
+        !diagonal elements
+        H(atoms%nat+j,atoms%nat+j)=-1.0_gp/(8.0_gp*atan(1.0_gp))*ovrlp(j,j)
      end do
-     !diagonal elements
-     H(atoms%nat+j,atoms%nat+j)=ovrlp(j,j)
-  end do
 
-  i_all=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ovrlp',subname)
-  !calculate the overlap matrix as well as the kinetic overlap
-  !in view of complete gaussian calculation
-  allocate(ovrlp(Gpswf%ncoeff,Glongr%ncoeff),stat=i_stat)
-  call memocc(i_stat,ovrlp,'ovrlp',subname)
 
-  !overlap between longrange basis and short-range basis
-  call gaussian_overlap(Gpswf,Glongr,ovrlp)
+     !test the overlap matrices
+     i_all=-product(shape(ovrlp))*kind(ovrlp)
+     deallocate(ovrlp,stat=i_stat)
+     call memocc(i_stat,i_all,'ovrlp',subname)
+     !calculate the overlap matrix as well as the kinetic overlap
+     !in view of complete gaussian calculation
+     allocate(ovrlp(Gpswf%ncoeff,Gpswf%ncoeff),stat=i_stat)
+     call memocc(i_stat,ovrlp,'ovrlp',subname)
+     call gaussian_overlap(Gpswf,Gpswf,ovrlp)
+     if (iproc == 0) then
+        do iat=1,Gpswf%ncoeff
+           write(*,'(a,i0,10(1pe15.7))')'Gpswf',iat,ovrlp(1:iat,iat)
+        end do
+     end if
+     
+     i_all=-product(shape(ovrlp))*kind(ovrlp)
+     deallocate(ovrlp,stat=i_stat)
+     call memocc(i_stat,i_all,'ovrlp',subname)
+     !calculate the overlap matrix as well as the kinetic overlap
+     !in view of complete gaussian calculation
+     allocate(ovrlp(Glongr%ncoeff,Glongr%ncoeff),stat=i_stat)
+     call memocc(i_stat,ovrlp,'ovrlp',subname)
+     call gaussian_overlap(Glongr,Glongr,ovrlp)
+     if (iproc == 0) then
+        do iat=1,Glongr%ncoeff
+           write(*,'(a,i0,10(1pe15.7))')'Glongr',iat,ovrlp(1:iat,iat)
+        end do
+     end if
 
-  !fill the block off-diagonal part of the H matrix
-  do j=1,Glongr%ncoeff
-     do i=1,Gpswf%ncoeff
-        H(atoms%nat+i,j)=ovrlp(i,j)
-        H(j,atoms%nat+i)=ovrlp(i,j)
+     i_all=-product(shape(ovrlp))*kind(ovrlp)
+     deallocate(ovrlp,stat=i_stat)
+     call memocc(i_stat,i_all,'ovrlp',subname)
+     allocate(ovrlp(Gpswf%ncoeff,Glongr%ncoeff),stat=i_stat)
+     call memocc(i_stat,ovrlp,'ovrlp',subname)
+     
+     !overlap between longrange basis and short-range basis
+     call gaussian_overlap(Gpswf,Glongr,ovrlp)
+     
+     !fill the block off-diagonal part of the H matrix
+     do j=1,Glongr%ncoeff
+        do i=1,Gpswf%ncoeff
+           H(atoms%nat+i,j)=ovrlp(i,j)
+           H(j,atoms%nat+i)=ovrlp(i,j)
+        end do
      end do
-  end do
-
-  i_all=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ovrlp',subname)
-
+     
+     i_all=-product(shape(ovrlp))*kind(ovrlp)
+     deallocate(ovrlp,stat=i_stat)
+     call memocc(i_stat,i_all,'ovrlp',subname)
+  end if
 
   !here nat coincides with the number of long range basis functions
   !calculate H matrix
@@ -485,11 +544,11 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
 
   if (iproc == 0) then
      do iat=1,nbasis
-        write(*,'(a,i0,10(1pe15.7))')'H',iat,H(:,iat)
+        write(*,'(a,i0,10(1pe15.7))')'H',iat,H(1:iat,iat)
      end do
   end if
 
-
+ 
   !calculate the first part of rho array
   call calculate_rho(iproc,nproc,atoms%geocode,atoms%nat,radii,rxyz,hxh,hyh,hzh,&
        lr%d%n1,lr%d%n2,lr%d%n3,n3p,i3s,lr%d%n1i,lr%d%n2i,lr%d%n3i,pot,rhoarr)
@@ -518,9 +577,11 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
 !!$        write(*,'(a,4(1pe15.7))')'rho',rho(:)
 !!$  end if
   
-  !calculate the shortrange part of the rho array
-  call calculate_rho_shortrange(iproc,nproc,atoms,lr,Gpswf,hxh,hyh,hzh,rxyz,ngatherarr,&
-     rho,rhoarr(atoms%nat+1))
+  if (higherorder) then
+     !calculate the shortrange part of the rho array
+     call calculate_rho_shortrange(iproc,nproc,atoms,lr,Gpswf,hxh,hyh,hzh,rxyz,ngatherarr,&
+          rho,rhoarr(atoms%nat+1))
+  end if
 
 
   if (iproc == 0) then
@@ -529,11 +590,12 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
      end do
   end if
 
-
-  nullify(Gpswf%rxyz)
-  call deallocate_gwf(Gpswf,subname)
-  nullify(Glongr%rxyz)
-  call deallocate_gwf(Glongr,subname)
+  if (higherorder) then
+     nullify(Gpswf%rxyz)
+     call deallocate_gwf(Gpswf,subname)
+     nullify(Glongr%rxyz)
+     call deallocate_gwf(Glongr,subname)
+  end if
 
 
   !initalise D array
@@ -584,8 +646,8 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
   end if
 !!$  if (iproc == 0) print '(a,4(1pe15.7))','there',v(:)
 !!$  if (iproc == 0) print '(a,4(1pe15.7))','AAA',H(1,1),H(1,2),H(2,1),H(2,2)
-  !determinant of the matrix, temporary
-  gammafac=H(1,1)*H(2,2)-H(1,2)*H(2,1)
+!!$  !determinant of the matrix, temporary
+!!$  gammafac=H(1,1)*H(2,2)-H(1,2)*H(2,1)
 !!$  if (iproc == 0) print '(a,4(1pe15.7))','res',(H(2,2)-H(1,2))/gammafac,&
 !!$       (H(1,1)-H(2,1))/gammafac,real(nelec,gp)
   ddotu=dot(nbasis,D(1),1,u(1),1)
@@ -593,8 +655,23 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
   
 
   gammafac=(real(nelec,gp)+ddotu)/ddotv
-  !!zero has to be put since the potential is the deformation potential
+
+  !!zero has to be put when the potential is the deformation potential
   !gammafac=ddotu/ddotv
+
+  !calculate the eigenvalues of H
+  call dcopy(nbasis*nbasis,H,1,Hwork,1)
+  !print *,'nwork',nwork,3*nbasis-1
+  call dsyev('N','U',nbasis,Hwork(1,1),nbasis,v(1),work(1),nwork,info)
+
+  if (iproc == 0) then
+     do iat=1,nbasis
+        write(*,'(a,i0,10(1pe15.7))')'eigenvalues',iat,v(iat)
+     end do
+     write(*,*)'Condition Number (valid only if all eigenvalues are negative):',v(1)/v(nbasis)
+  end if
+
+
 
 !!$  if (iproc == 0 )print *,'gamma',gammafac,nelec,v(:)
 
@@ -616,7 +693,7 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
   !print the charges
   if (iproc == 0) then
      do iat=1,atoms%nat
-        write(*,*)'atom, charge',iat,Caux(iat),radii(iat)
+        write(*,'(1x,a,i4,3(1x,f12.7))')'atom, charge',iat,Caux(iat),Caux(iat)-real(atoms%nelpsp(atoms%iatype(iat)),gp),radii(iat)
         C(iat)=Caux(iat)
      end do
   end if
@@ -668,7 +745,11 @@ subroutine assign_atomic_radii(at,radii)
   !local variables
   real(gp), parameter :: xi=1.1839527_gp
   integer :: iat,ityp
-  real(gp) :: lambda
+  real(gp) :: lambda,lambdafrac,cutoff
+
+  open(11)
+  read(11,*)lambdafrac,cutoff
+  close(11)
 
   !take York's paper radii and convert them in the new basis
   do iat=1,at%nat
@@ -696,10 +777,16 @@ subroutine assign_atomic_radii(at,radii)
      end select
      !calculate the radius by minimizing the difference between 
      !York's function and our basis
-     radii(iat)=0.5_gp*xi/lambda
+     !radii(iat)=0.5_gp*xi/lambda
 
      !otherwise use the local psp radii
-     !radii(iat)=at%psppar(0,0,ityp)
+     radii(iat)=lambdafrac*lambda!at%psppar(0,0,ityp)
+     !radii(iat)=lambdafrac*at%psppar(0,0,ityp)
+     !if (at%atomnames(ityp) == 'O') then
+     !   radii(iat)=lambdafrac*at%psppar(0,0,ityp)
+     !else
+     !   radii(iat)=at%psppar(0,0,ityp)
+     !end if
   end do
 end subroutine assign_atomic_radii
   
@@ -718,6 +805,7 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   type(gaussian_basis), intent(out) :: G  
   !local variables
   character(len=*), parameter :: subname='gaussian_psp_basis'
+  real(gp), parameter :: oneo2pi3halves=0.0634936359342409697857633_gp
   integer :: iat,nshell,ityp,iexpo,l,ishell,i_stat
 
   G%nat=nat
@@ -766,7 +854,7 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
         if (l==1) then
            ishell=ishell+1
            iexpo=iexpo+1
-           G%psiat(iexpo)=1.0_gp
+           G%psiat(iexpo)=-oneo2pi3halves/radii(iat)**3
            G%xp(iexpo)=radii(iat)
         end if
      end do
@@ -941,11 +1029,14 @@ subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,nga
      call daub_to_isf(lr,w,psi(1,jorb),psir)
 
      !now the integral with the density
-     rhoarr(jorb+isorb)=hfac*dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,rhotot(1,1,1),1,psir(1,1,1),1)
+     !the square root of the volume units should be put because the psi is normalised to 
+     !have unit norm without volume unit
+     rhoarr(jorb+isorb)=sqrt(hfac)*dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,rhotot(1,1,1),1,psir(1,1,1),1)
      !check the norm of the wavefunctions
-     print *,'norm',jorb+isorb,&
-          dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir(1,1,1),1,psir(1,1,1),1),&
-           rhoarr(jorb+isorb)
+!!$     print *,'norm',jorb+isorb,&
+!!$          dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir(1,1,1),1,psir(1,1,1),1),&
+!!$          rhoarr(jorb+isorb),&
+!!$          sum(rhotot),hfac
 
      
   end do

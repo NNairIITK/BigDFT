@@ -10,6 +10,6 @@
  write "CUDAGPU" on this line to use GPU acceleration (GPU.config file is needed)
           0 F           0  InputPsiId, output_wf, output_grid
  0.0  30 rbuf, ncongt: length of the tail (AU),# tail CG iterations
-  16 3  0 davidson treatment, no. of virtual orbitals, no of plotted orbitals
+  3 1  0 davidson treatment, no. of virtual orbitals, no of plotted orbitals
  12   verbosity of the output 0=low, 2=high
 T   disable the symmetry detection

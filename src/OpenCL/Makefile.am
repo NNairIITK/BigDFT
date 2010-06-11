@@ -7,6 +7,7 @@ EXTRA_DIST = \
 	OpenCL_wrappers.h \
 	Stream.h \
 	Reduction.h \
+        Tool.h\
 	$(SOURCES_CONV_CHECK)
 
 SOURCES_CONV_CHECK =
@@ -48,12 +49,16 @@ AM_CFLAGS = -Wall -Werror
 
 conv_check_SOURCES = conv_check.f90 
 conv_check_LDADD = libbasec.a libbasef.a ../libbigdft.a ../PSolver/libpoissonsolver.a
+conv_check_LDFLAGS = -lrt
 stream_check_SOURCES = StreamCheck.c
 stream_check_LDADD = libOCL.a libStream.a
+stream_check_LDFLAGS = -lrt
 bench_conv_SOURCES = bench_conv.c bench_lib.c
 bench_conv_LDADD = libbasec.a
+bench_conv_LDFLAGS = -lrt
 bench_conv_quick_SOURCES = bench_conv_quick.c bench_lib.c
 bench_conv_quick_LDADD = libbasec.a
+bench_conv_quick_LDFLAGS = -lrt
 
 stream: stream_check
 
@@ -64,5 +69,5 @@ bench_quick: bench_conv_quick
 	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='profile.conf' ./bench_conv_quick
 
 check:
-	echo 1 64 64 2048 2048 1000 > fort.1
+	echo 1 128 128 16384 16384 100 > fort.1
 	./conv_check

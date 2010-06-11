@@ -25,7 +25,7 @@ program BigDFT
   character(len=*), parameter :: subname='BigDFT'
   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
   integer :: ncount_bigdft
-  real(gp) :: etot,sumx,sumy,sumz
+  real(gp) :: etot,sumx,sumy,sumz,fnoise
   logical :: exist_list
   !input variables
   type(atoms_data) :: atoms
@@ -94,7 +94,7 @@ program BigDFT
         inputs%last_run = 1
      end if
  
-     call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
+     call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
 
 
      if (inputs%ncount_cluster_x > 1) then
@@ -110,7 +110,7 @@ program BigDFT
      !if there is a last run to be performed do it now before stopping
      if (inputs%last_run == -1) then
         inputs%last_run = 1
-        call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
+        call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
      end if
 
 
@@ -126,12 +126,12 @@ program BigDFT
            sumy=sumy+fxyz(2,iat)
            sumz=sumz+fxyz(3,iat)
         enddo
-        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
-           write(*,'(1x,a)')'the sum of the forces is'
-           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-        end if
+!!$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
+!!$           write(*,'(1x,a)')'the sum of the forces is'
+!!$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
+!!$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
+!!$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
+!!$        end if
      endif
 
      call deallocate_atoms(atoms,subname) 
