@@ -374,8 +374,8 @@ program conv_check
             
            do j=1,n1
              do i=1,j
-                psi_gemmsy(i,j,1) = psi_gemm(i,j,1)
-                psi_gemmsy(j,i,1) = psi_gemm(i,j,1)
+                psi_gemmsy(i,j,1) = psi_gemm(j,i,1)
+                psi_gemmsy(j,i,1) = psi_gemm(j,i,1)
              end do
            end do
 
@@ -447,7 +447,7 @@ program conv_check
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
            call print_time(GPUtime,n1*n1,ndat*2,ntimes)
 
-           call compare_2D_results(n1, n1, psi_gemmsy, psi_cuda_gemm, maxdiff, 3.d-7)
+           !call compare_2D_results(n1, n1, psi_gemmsy, psi_cuda_gemm, maxdiff, 3.d-7)
 
            call compare_time(CPUtime,GPUtime,n1*n1,ndat*2,ntimes,maxdiff,3.d-7)
 

@@ -48,13 +48,14 @@ __kernel void gemm_blockKernel_d( uint m, uint n, uint k, double alpha, __global
 __kernel void gemmsyKernel_d( uint m, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
   size_t i = get_local_id(0);\n\
   size_t j = get_local_id(1);\n\
-  size_t ig = get_global_id(0);\n\
-  size_t jg = get_global_id(1);\n\
+  size_t ig = get_group_id(0);\n\
+  ig = ceil(-0.500001+0.5*sqrt(9.0+8*ig))-1;\n\
+  size_t jg = get_group_id(0) - ig * (ig + 1) / 2;\n\
+  ig = ig * BUFFER_SIZE + i;\n\
+  jg = jg * BUFFER_SIZE + j;\n\
   \n\
   size_t index = 0;\n\
   double result = 0.0;\n\
-  if(get_group_id(1) < get_group_id(0))\n\
-    return;\n\
   while( index < k) {\n\
     //load first matrix in tmp1\n\
     tmp1[j*(BUFFER_SIZE) + i] = (ig < m && (index + j) < k) ? a[(index+j)*lda + ig] : 0.0;\n\
@@ -72,10 +73,10 @@ __kernel void gemmsyKernel_d( uint m, uint k, double alpha, __global const doubl
   size_t igt = ig - i + j;\n\
   size_t jgt = jg - j + i;\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if(ig < m && jg < m){\n\
+  if(ig < m && jg < m)\n\
     c[jg*ldc + ig] = result;\n\
+  if(igt < m && jgt < m)\n\
     c[igt*ldc + jgt] = tmp1[i*(BUFFER_SIZE+1) + j];\n\
-  }\n\
 }\n\
 __kernel void gemmKernel_d( uint m, uint n, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
   size_t i = get_local_id(0);\n\
@@ -875,7 +876,9 @@ void inline gemmsy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl
   clSetKernelArg(kernel, i++,sizeof(cl_double)*(block_size_i+1)*block_size_j, NULL);
   clSetKernelArg(kernel, i++,sizeof(cl_double)*(block_size_i+1)*block_size_j, NULL);
   size_t localWorkSize[] = { block_size_i, block_size_j };
-  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*m), shrRoundUp(block_size_j,*m)  };
+  size_t group_number = shrRoundUp(block_size_i,*m)/block_size_i;
+  group_number = group_number * ( group_number + 1 ) / 2;
+  size_t globalWorkSize[] ={ group_number * block_size_i, block_size_j  };
   ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue gemmsy kernel!");
 }
