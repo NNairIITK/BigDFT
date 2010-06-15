@@ -305,25 +305,129 @@ void FC_FUNC_(magicfilter1d_block_d,MAGICFILTER1D_BLOCK_D)(cl_command_queue *com
  *  @param out output buffer of size n * ndat * sizeof(double), stored in collumn major order.
  */
 void FC_FUNC_(magicfilter1d_pot_d,MAGICFILTER1D_POT_D)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, cl_mem *psi, cl_mem *pot, cl_mem *out);
-void FC_FUNC_(magicfilter_n_self_d,MAGICFILTER_N_SELF_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *psi, cl_mem *out);
+/** Performs the three-dimensional magicfilter with periodic boundary conditions.
+ *  @param command_queue used to process the convolution.
+ *  @param dimensions of the input data. Vector of three values, one for each dimension.
+ *  @param tmp temporary buffer to store intermediate results. Must be of at least dimensions[0] * dimensions[1] * dimensions[2] * sizeof(double) in size.
+ *  @param psi input buffer of dimension : dimensions[0] * dimensions[1] * dimensions[2] * sizeof(double). Stored in column major order.
+ *  @param out output buffer of dimensions : dimensions[0] * dimensions[1] * dimensions[2] * sizeof(double). Stored in column major order.
+ */
 void FC_FUNC_(magicfilter_n_d,MAGICFILTER_N_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out);
+/** Version of magicfilter_n_d without the temporary buffer, psi is erased during the computation. @see magicfilter_n_d. */
+void FC_FUNC_(magicfilter_n_self_d,MAGICFILTER_N_SELF_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *psi, cl_mem *out);
+/** Slightly more performing version of magicfilter_n_d. @see magicfilter_n_d. */
 void FC_FUNC_(magicfilter_n_straight_d,MAGICFILTER_N_STRAIGHT_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out);
+/** Slightly more performing version of magicfilter_n_d. @see magicfilter_n_d. */
 void FC_FUNC_(magicfilter_n_block_d,MAGICFILTER_N_BLOCK_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out);
+/** Performs the three-dimensional magicfilter with periodic boundary conditions, and squares the values to compute the density.
+ *  @param command_queue used to process the convolution.
+ *  @param dimensions of the input data. Vector of three values, one for each dimension.
+ *  @param tmp temporary buffer to store intermediate results. Must be of at least dimensions[0] * dimensions[1] * dimensions[2] * sizeof(double) in size.
+ *  @param psi input buffer of dimension : dimensions[0] * dimensions[1] * dimensions[2] * sizeof(double). Stored in column major order.
+ *  @param out output buffer of dimensions : dimensions[0] * dimensions[1] * dimensions[2] * sizeof(double). Stored in column major order.
+ */
 void FC_FUNC_(magicfilter_den_d,MAGICFILTER_DEN_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out);
-void FC_FUNC_(magicfilter_t_self_d,MAGICFILTER_T_SELF_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *psi, cl_mem *out);
+/** Performs the three-dimensional reciprocal magicfilter with periodic boundary conditions.
+ *  @param command_queue used to process the convolution.
+ *  @param dimensions of the input data. Vector of three values, one for each dimension.
+ *  @param tmp temporary buffer to store intermediate results. Must be of at least dimensions[0] * dimensions[1] * dimensions[2] * sizeof(double) in size.
+ *  @param psi input buffer of dimension : dimensions[0] * dimensions[1] * dimensions[2] * sizeof(double). Stored in column major order.
+ *  @param out output buffer of dimensions : dimensions[0] * dimensions[1] * dimensions[2] * sizeof(double). Stored in column major order.
+ */
 void FC_FUNC_(magicfilter_t_d,MAGICFILTER_T_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out);
+/** Version of magicfilter_t_d without the temporary buffer, psi is erased during the computation. @see magicfilter_t_d. */
+void FC_FUNC_(magicfilter_t_self_d,MAGICFILTER_T_SELF_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *psi, cl_mem *out);
+/** Performs the three-dimensional magicfilter, applies the potential then applies the reciprocal three dimension magicfilter. With periodic boundary conditions.
+ *  @param command_queue used to process the convolution.
+ *  @param dimensions of the input data. Vector of three values, one for each dimension.
+ *  @param tmp temporary buffer to store intermediate results. Must be of at least dimensions[0] * dimensions[1] * dimensions[2] * sizeof(double) in size.
+ *  @param psi input buffer of dimension : (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double). Stored in column major order.
+ *  @param out output buffer of dimensions : (2 * dimensions[0]) * ( 2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double). Stored in column major order.
+ *  @param pot potential applied, buffer of dimensions : (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double). Stored in column major order.
+ */
 void FC_FUNC_(potential_application_d,POTENTIAL_APPLICATION_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out, cl_mem *pot);
+/** Performs the three-dimensional magicfilter, applies the potential then applies the reciprocal three dimension magicfilter. The potential energy is also computed. With periodic or non periodic boundary conditions.
+ *  @param command_queue used to process the convolution.
+ *  @param dimensions of the input data. Vector of three values, one for each dimension.
+ *  @param tmp temporary buffer to store intermediate results. Must be of at least (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double) in size.
+ *  @param tmp_dot temporary buffer to store intermediate results. Must be of at least (2 * dimensions[0] + (periodic[0]?0:14)) * (2 * dimensions[1] + (periodic[1]?0:14)) * (2 * dimensions[2] + (periodic[2]?0:14)) * sizeof(double) in size.
+ *  @param psi input buffer of dimension : (2 * dimensions[0] + (periodic[0]?0:14)) * (2 * dimensions[1] + (periodic[1]?0:14)) * (2 * dimensions[2] + (periodic[2]?0:14)) * sizeof(double). Stored in column major order.
+ *  @param out output buffer of dimensions : (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double). Stored in column major order.
+ *  @param pot potential applied, buffer of dimensions : (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double). Stored in column major order.
+ *  @param epot potential energy computed.
+ */
 void FC_FUNC_(potential_application_d_generic,POTENTIAL_APPLICATION_D_GENERIC)(cl_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out, cl_mem *pot, cl_double *epot);
 
+/** Benchmark to evaluate the throughput of the transposition mechanism used in the convolutions.
+ *  @param command_queue used to process the convolution.
+ *  @param n size of the first dimension.
+ *  @param ndat size of the second dimension.
+ *  @param psi input buffer of size ndat * n * sizeof(double), stored in column major order.
+ *  @param out output buffer of size n * ndat * sizeof(double), stored in column major order.
+ */
 void FC_FUNC_(transpose_d,TRANSPOSE_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out);
+/** Benchmark to evaluate the throughput of the OpenCL device in FLOPS, each element processed generates 4096 FLOP.
+ *  @param command_queue used to process the convolution.
+ *  @param n number of elements.
+ *  @param in input buffer of size n * sizeof(double), stored in column major order.
+ *  @param out output buffer of size n * sizeof(double), stored in column major order.
+ */
 void FC_FUNC_(benchmark_flops_d,BENCHMARK_FLOPS_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out);
+/** Benchmark to evaluate the throughput of the OpenCL device global memory in MOPS, each element processed generates 8 read and 8 write, which are coalesced.
+ *  @param command_queue used to process the convolution.
+ *  @param n number of elements.
+ *  @param in input buffer of size n * sizeof(double), stored in column major order.
+ *  @param out output buffer of size n * sizeof(double), stored in column major order.
+ */
 void FC_FUNC_(benchmark_mops_d,BENCHMARK_MOPS_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out);
 
-void FC_FUNC_(kinetic_k_d,KINETIC_K_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y, cl_double * c_in,  cl_double *k);
-void FC_FUNC_(kinetic_stable_d,KINETIC_STABLE_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y, cl_mem *tmp_x, cl_mem *tmp_y);
+/** Performs the one dimensional kinetic filter and transposition with periodic boundary conditions.
+ *  @param command_queue used to process the convolution.
+ *  @param n size of the dimension to process the convolution.
+ *  @param ndat size of the other dimension.
+ *  @param h hgrid along the dimension processed.
+ *  @param c scaling factor.
+ *  @param x input buffer of size ndat * n * sizeof(double), stored in column major order.
+ *  @param y output buffer of size n * ndat * sizeof(double), stored in column major order.
+ *  @param workx output buffer of size n * ndat * sizeof(double), stored in column major order. Transposition of x.
+ *  @param work_y temporary buffer used to store intermediate results. Size ndat * n * sizeof(double), stored in column major order.
+ *  @param ekin dummy argument. Will be used to compute the kinetic energy.
+ */
+void FC_FUNC_(kinetic1d_d,KINETIC1D_D)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, cl_double *h, cl_double *c, cl_mem *x, cl_mem *y, cl_mem *workx, cl_mem *worky, cl_double *ekin);
+/** Performs the three dimensional Kinetic filter with periodic boundary conditions.
+ *  @param command_queue used to process the convolution.
+ *  @param dimensions of the input data. Vector of three values, one for each dimension.
+ *  @param h hgrid along the three dimensions. Vector of three values.
+ *  @param x input buffer of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double). Stored in column major order.
+ *  @param y input buffer of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double). Stored in column major order.
+ *  @param work_x work buffer of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double). Stored in column major order.
+ *  @param work_y output buffer of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double). Stored in column major order. work_y = y + kinetic(x).
+ */
 void FC_FUNC_(kinetic_d,KINETIC_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y);
+/** Performs the three dimensional Kinetic filter with periodic or non periodic boundary conditions. Input arrays are lost.
+ *  @param command_queue used to process the convolution.
+ *  @param dimensions of the input data. Vector of three values, one for each dimension.
+ *  @param h hgrid along the three dimensions. Vector of three values.
+ *  @param x input buffer of size (2 * dimensions[0] + (periodic[0]?0:14)) * (2 * dimensions[1] + (periodic[1]?0:14)) * (2 * dimensions[2] + (periodic[2]?0:14)) * sizeof(double). Stored in column major order.
+ *  @param y input buffer of size (2 * dimensions[0] + (periodic[0]?0:14)) * (2 * dimensions[1] + (periodic[1]?0:14)) * (2 * dimensions[2] + (periodic[2]?0:14)) * sizeof(double). Stored in column major order.
+ *  @param work_x work buffer of size (2 * dimensions[0] + (periodic[0]?0:14)) * (2 * dimensions[1] + (periodic[1]?0:14)) * (2 * dimensions[2] + (periodic[2]?0:14)) * sizeof(double). Stored in column major order.
+ *  @param work_y output buffer of size (2 * dimensions[0] + (periodic[0]?0:14)) * (2 * dimensions[1] + (periodic[1]?0:14)) * (2 * dimensions[2] + (periodic[2]?0:14)) * sizeof(double). Stored in column major order. work_y = y + kinetic(x).
+ */
 void FC_FUNC_(kinetic_d_generic,KINETIC_D_GENERIC)(cl_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y);
-void FC_FUNC_(kinetic1d_d,KINETIC1D_D)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, cl_double *h, cl_double*c, cl_mem *x, cl_mem *y, cl_mem *workx, cl_mem *worky, cl_double *ekin);
+/** Version of kinetic_d using two temporary buffer to avoid erasing input arrays. @see kinetic_d. */
+void FC_FUNC_(kinetic_stable_d,KINETIC_STABLE_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y, cl_mem *tmp_x, cl_mem *tmp_y);
+/** Performs the three dimensional Kinetic filter with periodic boundary conditions on K point data.
+ *  @param command_queue used to process the convolution.
+ *  @param dimensions of the input data. Vector of three values, one for each dimension.
+ *  @param h hgrid along the three dimensions. Vector of three values.
+ *  @param x input buffer of size dimensions[0] * dimensions[1] * dimensions[2] * sizeof(complex double). Stored in column major order.
+ *  @param y input and output buffer of size dimensions[0] * dimensions[1] * dimensions[2] * sizeof(complex double). Stored in column major order.
+ *  @param work_x work buffer of size dimensions[0] * dimensions[1] * dimensions[2] * sizeof(complex double). Stored in column major order.
+ *  @param work_y work buffer of size dimensions[0] * dimensions[1] * dimensions[2] * sizeof(complex double). Stored in column major order. work_y = y + kinetic(x).
+ *  @param c_in constant affecting the scaling factor.
+ *  @param k point coordinates. Verctor of three values.
+ */
+void FC_FUNC_(kinetic_k_d,KINETIC_K_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y, cl_double * c_in,  cl_double *k);
 
 void FC_FUNC_(asum_self_d,ASUM_SELF_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, cl_double *out);
 void FC_FUNC_(nrm2sq_self_d,NRM2SQ_SELF_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, cl_double *out);
