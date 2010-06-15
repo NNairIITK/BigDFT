@@ -349,24 +349,6 @@ filter_reverse(tt,tmp);\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
 \n\
-__kernel void transposeKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double *tmp ) {\n\
-size_t ig = get_global_id(0);\n\
-size_t jg = get_global_id(1);\n\
-const size_t i2 = get_local_id(0);\n\
-const size_t j2 = get_local_id(1);\n\
-ptrdiff_t igt = get_group_id(0);\n\
-ptrdiff_t jgt = get_group_id(1);\n\
-//if data are ill dimentioned last block recomputes part of the data\n\
-jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
-ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
-igt = ig - i2 + j2;\n\
-jgt = jg - j2 + i2;\n\
-//If I'm on the outside, select a border element to load\n\
-tmp[i2 * (FILTER_WIDTH + 1) + j2] = psi[jgt + igt * ndat];\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-\
-out[(jg*n+ig)]=tmp[j2 * (FILTER_WIDTH + 1) + i2];\n\
-};\n\
 ";
 
 inline void magicfilter_block_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
@@ -403,22 +385,7 @@ inline void magicfilter_generic(cl_kernel kernel, cl_command_queue *command_queu
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
     oclErrorCheck(ciErrNum,"Failed to enqueue magic filter kernel!");
 }
-inline void transpose_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
-    cl_int ciErrNum;
-    int FILTER_WIDTH=16;
-    assert(*n>=FILTER_WIDTH);
-    size_t block_size_i=FILTER_WIDTH, block_size_j=FILTER_WIDTH;
-    cl_uint i = 0;
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(cl_double)*block_size_j*(block_size_i+1), 0);
-    size_t localWorkSize[] = { block_size_i,block_size_j };
-    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
-    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-    oclErrorCheck(ciErrNum,"Failed to enqueue magic filter kernel!");
-}
+
 inline void magicfilter_pot_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, cl_mem *psi, cl_mem *pot, cl_mem *out) {
     cl_int ciErrNum;
     int FILTER_WIDTH = 16;
@@ -446,7 +413,6 @@ cl_kernel magicfilter1d_t_kernel_d;
 cl_kernel magicfiltershrink1d_kernel_d;
 cl_kernel magicfiltergrow1d_kernel_d;
 cl_kernel magicfiltergrow1d_pot_kernel_d;
-cl_kernel transpose_kernel_d;
 cl_program magicfilterProgram;
 
 void create_magicfilter_kernels(){
@@ -469,8 +435,6 @@ void create_magicfilter_kernels(){
     oclErrorCheck(ciErrNum,"Failed to create magicfilter1d_straightKernel_d kernel!");
     magicfilter1d_block_kernel_d=clCreateKernel(magicfilterProgram,"magicfilter1d_blockKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create magicfilter1d_blockKernel_d kernel!");
-    transpose_kernel_d=clCreateKernel(magicfilterProgram,"transposeKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create transposeKernel_d kernel!");
 }
 
 void build_magicfilter_programs(cl_context * context){
@@ -499,10 +463,6 @@ void FC_FUNC_(magicfiltergrow1d_d,MAGICFILTERGROW1D_D)(cl_command_queue *command
 
 void FC_FUNC_(magicfilter1d_d,MAGICFILTER1D_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     magicfilter_generic(magicfilter1d_kernel_d, command_queue, n, ndat, psi, out);
-}
-
-void FC_FUNC_(transpose_d,TRANSPOSE_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
-    transpose_generic(transpose_kernel_d, command_queue, n, ndat, psi, out);
 }
 
 void FC_FUNC_(magicfilter1d_straight_d,MAGICFILTER1D_STRAIGHT_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
@@ -697,8 +657,6 @@ void clean_magicfilter_kernels(){
   ciErrNum = clReleaseKernel(magicfilter1d_straight_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(magicfilter1d_block_kernel_d);
-  oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(transpose_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseProgram(magicfilterProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
