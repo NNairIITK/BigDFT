@@ -429,47 +429,287 @@ void FC_FUNC_(kinetic_stable_d,KINETIC_STABLE_D)(cl_command_queue *command_queue
  */
 void FC_FUNC_(kinetic_k_d,KINETIC_K_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y, cl_double * c_in,  cl_double *k);
 
-void FC_FUNC_(asum_self_d,ASUM_SELF_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, cl_double *out);
-void FC_FUNC_(nrm2sq_self_d,NRM2SQ_SELF_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, cl_double *out);
-void FC_FUNC_(asum_d,ASUM_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, cl_double *out);
-void FC_FUNC_(nrm2sq_d,NRM2SQ_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, cl_double *out);
-void FC_FUNC_(axpy_self_d,AXPY_SELF_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *in, cl_mem *inout);
-void FC_FUNC_(axpy_d,AXPY_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *x, cl_mem *y, cl_mem *out);
-void FC_FUNC_(scal_d,SCAL_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *in, cl_mem *out);
-void FC_FUNC_(scal_self_d,SCAL_SELF_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *inout);
-void FC_FUNC_(dot_d,DOT_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *x, cl_mem *y, cl_mem *work1, cl_mem *work2, cl_double *out);
-void FC_FUNC_(set_d,SET_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *val, cl_mem *x);
-void FC_FUNC_(copy_d,COPY_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out);
-void FC_FUNC_(axpy_offset_self_d,AXPY_OFFSET_SELF_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha,
-                                                                            cl_uint *offset_x, cl_mem *x,
-                                                                            cl_uint *offset_y, cl_mem *y);
+/** Computes the sum of the components of a vector.
+ *  @param command_queue used to process the data.
+ *  @param n number of element of the vector.
+ *  @param in buffer of size n * sizeof(double), containing the input data.
+ *  @param work1 temporary buffer of size n * sizeof(double).
+ *  @param work2 temporary buffer of size n * sizeof(double).
+ *  @param out pointer to the resulting sum.
+ */
+void FC_FUNC_(asum_d,ASUM_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *work1, cl_mem *work2, cl_double *out);
+/** Version of asum_d without the second temporary buffer, erasing the input. @see asum_d. */
+void FC_FUNC_(asum_self_d,ASUM_SELF_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *work, cl_double *out);
+/** Computes the squared norm 2 of a vector.
+ *  @param command_queue used to process the data.
+ *  @param n number of element of the vector.
+ *  @param in buffer of size n * sizeof(double), containing the input data.
+ *  @param work1 temporary buffer of size n * sizeof(double).
+ *  @param work2 temporary buffer of size n * sizeof(double).
+ *  @param out pointer to the resulting sum.
+ */
+void FC_FUNC_(nrm2sq_d,NRM2SQ_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *work1, cl_mem *work2, cl_double *out);
+/** Version of nrm2sq_d without the second temporary buffer, erasing the input. @see nrm2sq_d. */
+void FC_FUNC_(nrm2sq_self_d,NRM2SQ_SELF_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *work, cl_double *out);
+/** Computes z = alpha * x + y for vectors.
+ *  @param command_queue used to process the data.
+ *  @param n number of element of the vectors.
+ *  @param alpha scaling coefficient.
+ *  @param x input buffer, vector of size n * sizeof(double).
+ *  @param y input buffer, vector of size n * sizeof(double).
+ *  @param z output buffer, vector of size n * sizeof(double).
+ */
+void FC_FUNC_(axpy_d,AXPY_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *x, cl_mem *y, cl_mem *z);
+/** Computes y = alpha * x + y for vectors.
+ *  @param command_queue used to process the data.
+ *  @param n number of element of the vectors.
+ *  @param alpha scaling coefficient.
+ *  @param x input buffer, vector of size n * sizeof(double).
+ *  @param y input and output buffer, vector of size n * sizeof(double).
+ */
+void FC_FUNC_(axpy_self_d,AXPY_SELF_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *x, cl_mem *y);
+/** Computes y = alpha * x for vectors.
+ *  @param command_queue used to process the data.
+ *  @param n number of element of the vectors.
+ *  @param alpha scaling coefficient.
+ *  @param x input buffer, vector of size n * sizeof(double).
+ *  @param y output buffer, vector of size n * sizeof(double).
+ */
+void FC_FUNC_(scal_d,SCAL_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *x, cl_mem *y);
+/** Computes x = alpha * x for vectors.
+ *  @param command_queue used to process the data.
+ *  @param n number of element of the vectors.
+ *  @param alpha scaling coefficient.
+ *  @param x input and output buffer, vector of size ndat * sizeof(double).
+ */
+void FC_FUNC_(scal_self_d,SCAL_SELF_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *x);
+/** Computes the dot product of 2 vectors.
+ *  @param command_queue used to process the data.
+ *  @param n number of element of the vectors.
+ *  @param x input buffer, vector of size n * sizeof(double).
+ *  @param y input buffer, vector of size n * sizeof(double).
+ *  @param work1 temporary buffer of size n * sizeof(double).
+ *  @param work2 temporary buffer of size n * sizeof(double).
+ *  @param out result.
+ */
+void FC_FUNC_(dot_d,DOT_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *x, cl_mem *y, cl_mem *work1, cl_mem *work2, cl_double *out);
+/** Initializes every component of a vector to a given value.
+ *  @param command_queue used to process the data.
+ *  @param n number of element of the vectors.
+ *  @param value used to initialize the vector.
+ *  @param x buffer to initialize, of size n * sizeof(double).
+ */
+void FC_FUNC_(set_d,SET_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *value, cl_mem *x);
+/** Computex y = x for vectors.
+ *  @param command_queue used to process the data.
+ *  @param n number of element of the vectors.
+ *  @param x input buffer, vector of size n * sizeof(double).
+ *  @param y output buffer, vector of size n * sizeof(double).
+ */
+void FC_FUNC_(copy_d,COPY_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *x, cl_mem *y);
+/** Computes z[offset_z:offset_z+n) = alpha * x[offset_x:offset_x+n) + y[offset_y:offset_y+x)..
+ *  @param command_queue used to process the data.
+ *  @param n number of element to process.
+ *  @param alpha scaling coefficient.
+ *  @param offset_x offset in the vector x.
+ *  @param x input buffer, vector of size n * sizeof(double).
+ *  @param offset_y offset in the vector y.
+ *  @param y input buffer, vector of size n * sizeof(double).
+ *  @param offset_z offset in the vector z.
+ *  @param z output buffer, vector of size n * sizeof(double).
+ */
 void FC_FUNC_(axpy_offset_d,AXPY_OFFSET_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha,
                                                                             cl_uint *offset_x, cl_mem *x,
                                                                             cl_uint *offset_y, cl_mem *y,
                                                                             cl_uint *offset_z, cl_mem *z);
+/** Computes y[offset_y:offset_y+n) = alpha * x[offset_x:offset_x+n) + y[offset_y:offset_y+x)..
+ *  @param command_queue used to process the data.
+ *  @param n number of element to process.
+ *  @param alpha scaling coefficient.
+ *  @param offset_x offset in the vector x.
+ *  @param x input buffer, vector of size n * sizeof(double).
+ *  @param offset_y offset in the vector y.
+ *  @param y input buffer, vector of size n * sizeof(double).
+ */
+void FC_FUNC_(axpy_offset_self_d,AXPY_OFFSET_SELF_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha,
+                                                                            cl_uint *offset_x, cl_mem *x,
+                                                                            cl_uint *offset_y, cl_mem *y);
+/** Computes the multiplication of 2 matrix.
+ *  Usage is identical to the BLAS routine DGEMM.
+ *  Refer to the BLAS documentation for the meaning of the
+ *  different parameters, in respect of the different
+ *  transposition and conjugation possible.
+ *  @param command_queue used to process the data.
+ */
 void FC_FUNC_(gemm_d,GEMM_D)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc);
+/** Computes the multiplication of 2 matrix, knowing the result to be a symmetric matrix.
+ *  m and n have to be identical.
+ *  Usage is identical to the BLAS routine DGEMM.
+ *  Refer to the BLAS documentation for the meaning of the
+ *  different parameters, in respect of the different
+ *  transposition and conjugation possible.
+ *  @param command_queue used to process the data.
+ */
 void FC_FUNC_(gemmsy_d,GEMMSY_D)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc);
+/** Slightly more performing version of gemm_d. @see gemm_d. */
 void FC_FUNC_(gemm_block_d,GEMM_BLOCK_D)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc);
+/** Computes the multiplication of 2 complex matrix.
+ *  Usage is identical to the BLAS routine ZGEMM.
+ *  Refer to the BLAS documentation for the meaning of the
+ *  different parameters, in respect of the different
+ *  transposition and conjugation possible.
+ *  @param command_queue used to process the data.
+ */
 void FC_FUNC_(gemm_z,GEMM_Z)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double2 *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double2 *beta, cl_mem *c, cl_uint *ldc);
 
+/** Uncompresses a wave function using BigDFT sparse wave function compression.
+ *  @param command_queue used to process the data.
+ *  @param dimensions of the output data, vector of 3 values.
+ *  @param nseg_c number of segment of coarse data.
+ *  @param nvctr_c number of point of coarse data.
+ *  @param keyg_c array of size 2 * nseg_c * sizeof(uint), representing the beginning and end of coarse segments in the output data.
+ *  @param keyv_c array of size nseg_c * sizeof(uint), representing the beginning of coarse segments in the input data.
+ *  @param nseg_f number of segment of fine data.
+ *  @param nvctr_f number of point of fine data.
+ *  @param keyg_f array of size 2 * nseg_f * sizeof(uint), representing the beginning and end of fine segments in the output data.
+ *  @param keyv_f array of size nseg_f * sizeof(uint), representing the beginning of fine segments in the input data.
+ *  @param psi_c array of size nvctr_c * sizeof(double), containing coarse input data.
+ *  @param psi_f array of size nvctr_f * 7 * sizeof(double), containing fine input data.
+ *  @param psi_out array of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) containing output data.
+ */
 void FC_FUNC_(uncompress_d,UNCOMPRESS_D)(cl_command_queue *command_queue, cl_uint *dimensions,
                                        cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
                                        cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                        cl_mem *psi_c, cl_mem *psi_f, cl_mem * psi_out);
+/** Compresses a wave function using BigDFT sparse wave function compression.
+ *  @param command_queue used to process the data.
+ *  @param dimensions of the input data, vector of 3 values.
+ *  @param nseg_c number of segment of coarse data.
+ *  @param nvctr_c number of point of coarse data.
+ *  @param keyg_c array of size 2 * nseg_c * sizeof(uint), representing the beginning and end of coarse segments in the input data.
+ *  @param keyv_c array of size nseg_c * sizeof(uint), representing the beginning of coarse segments in the output data.
+ *  @param nseg_f number of segment of fine data.
+ *  @param nvctr_f number of point of fine data.
+ *  @param keyg_f array of size 2 * nseg_f * sizeof(uint), representing the beginning and end of fine segments in the input data.
+ *  @param keyv_f array of size nseg_f * sizeof(uint), representing the beginning of fine segments in the output data.
+ *  @param psi_c array of size nvctr_c * sizeof(double), containing coarse output data.
+ *  @param psi_f array of size nvctr_f * 7 * sizeof(double), containing fine output data.
+ *  @param psi_out array of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) containing input data.
+ */
 void FC_FUNC_(compress_d,COMPRESS_D)(cl_command_queue *command_queue, cl_uint *dimensions,
                                      cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
                                      cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                      cl_mem *psi_c, cl_mem *psi_f, cl_mem * psi);
+/** Scales the wavefunction in compressed form.
+ *  @param command_queue used to process the data.
+ *  @param nvctr_c number of point of coarse data.
+ *  @param nvctr_f number of point of fine data.
+ *  @param h hgrid of the system, vector of 3 values.
+ *  @param c constant part of the scaling.
+ *  @param psi_c array of size nvctr_c * sizeof(double), containing coarse input and output data.
+ *  @param psi_f array of size nvctr_f * 7 * sizeof(double), containing fine input and output data.
+ */
 void FC_FUNC_(scale_psi_d,SCALE_PSI_D)(cl_command_queue *command_queue, cl_uint *nvctr_c, cl_uint *nvctr_f, cl_double *h, cl_double *c, cl_mem *psi_c,  cl_mem *psi_f);
+/** Uncompresses and scales a wave function using BigDFT sparse wave function compression.
+ *  @param command_queue used to process the data.
+ *  @param dimensions of the output data, vector of 3 values.
+ *  @param h hgrid of the system, vector of 3 values.
+ *  @param c constant part of the scaling.
+ *  @param nseg_c number of segment of coarse data.
+ *  @param nvctr_c number of point of coarse data.
+ *  @param keyg_c array of size 2 * nseg_c * sizeof(uint), representing the beginning and end of coarse segments in the output data.
+ *  @param keyv_c array of size nseg_c * sizeof(uint), representing the beginning of coarse segments in the input data.
+ *  @param nseg_f number of segment of fine data.
+ *  @param nvctr_f number of point of fine data.
+ *  @param keyg_f array of size 2 * nseg_f * sizeof(uint), representing the beginning and end of fine segments in the output data.
+ *  @param keyv_f array of size nseg_f * sizeof(uint), representing the beginning of fine segments in the input data.
+ *  @param psi_c array of size nvctr_c * sizeof(double), containing coarse input data.
+ *  @param psi_f array of size nvctr_f * 7 * sizeof(double), containing fine input data.
+ *  @param psi_out array of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) containing output data.
+ */
 void FC_FUNC_(uncompress_scale_d,UNCOMPRESS_SCALE_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_double *h, cl_double *c,
                                        cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
                                        cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                        cl_mem *psi_c, cl_mem *psi_f, cl_mem * psi_out);
+/** Compresses and scales a wave function using BigDFT sparse wave function compression.
+ *  @param command_queue used to process the data.
+ *  @param dimensions of the input data, vector of 3 values.
+ *  @param h hgrid of the system, vector of 3 values.
+ *  @param c constant part of the scaling.
+ *  @param nseg_c number of segment of coarse data.
+ *  @param nvctr_c number of point of coarse data.
+ *  @param keyg_c array of size 2 * nseg_c * sizeof(uint), representing the beginning and end of coarse segments in the input data.
+ *  @param keyv_c array of size nseg_c * sizeof(uint), representing the beginning of coarse segments in the output data.
+ *  @param nseg_f number of segment of fine data.
+ *  @param nvctr_f number of point of fine data.
+ *  @param keyg_f array of size 2 * nseg_f * sizeof(uint), representing the beginning and end of fine segments in the input data.
+ *  @param keyv_f array of size nseg_f * sizeof(uint), representing the beginning of fine segments in the output data.
+ *  @param psi_c array of size nvctr_c * sizeof(double), containing coarse output data.
+ *  @param psi_f array of size nvctr_f * 7 * sizeof(double), containing fine output data.
+ *  @param psi_out array of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) containing input data.
+ */
 void FC_FUNC_(compress_scale_d,COMPRESS_SCALE_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_double *h, cl_double *c,
                                      cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
                                      cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                      cl_mem *psi_c, cl_mem *psi_f, cl_mem * psi);
 
+/** Performs a full local hamiltonian on a compressed wave function.
+ *  @param command_queue used to process the data.
+ *  @param dimensions of the input data, vector of 3 values.
+ *  @param periodic periodicity of the convolution. Vector of three value, one for each dimension. Non zero means periodic.
+ *  @param h hgrid of the system, vector of 3 values.
+ *  @param nseg_c number of segment of coarse data.
+ *  @param nvctr_c number of point of coarse data.
+ *  @param keyg_c array of size 2 * nseg_c * sizeof(uint), representing the beginning and end of coarse segments in the compressed data.
+ *  @param keyv_c array of size nseg_c * sizeof(uint), representing the beginning of coarse segments in the uncompressed data.
+ *  @param nseg_f number of segment of fine data.
+ *  @param nvctr_f number of point of fine data.
+ *  @param keyg_f array of size 2 * nseg_f * sizeof(uint), representing the beginning and end of fine segments in the compressed data.
+ *  @param keyv_f array of size nseg_f * sizeof(uint), representing the beginning of fine segments in the uncompressed data.
+ *  @param psi_c array of size nvctr_c * sizeof(double), containing coarse input and output data.
+ *  @param psi_f array of size nvctr_f * 7 * sizeof(double), containing fine input and output data.
+ *  @param pot array of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double) containing potential input data.
+ *  @param work1 temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param work2 temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param work3 temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param work4 temporary buffer of size (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double).
+ *  @param epot potential energy of the system.
+ *  @param ekinpot kinetic energy of the system.
+*/
+void FC_FUNC_(ocl_fulllocham_generic,OCL_FULLLOCHAM_GENERIC)(cl_command_queue *command_queue,
+                                          cl_uint *dimensions,
+                                          cl_uint *periodic,
+                                          cl_double *h,
+                                          cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
+                                          cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                          cl_mem *psi_c, cl_mem *psi_f,
+                                          cl_mem *pot,
+                                          cl_mem *work1, cl_mem *work2,
+                                          cl_mem *work3, cl_mem *work4,
+                                          cl_double *epot, cl_double *ekinpot);
+/** Performs a full local hamiltonian in periodic boundary conditions.
+ *  @param command_queue used to process the data.
+ *  @param dimensions of the input data, vector of 3 values.
+ *  @param periodic periodicity of the convolution. Vector of three value, one for each dimension. Non zero means periodic.
+ *  @param h hgrid of the system, vector of 3 values.
+ *  @param nseg_c number of segment of coarse data.
+ *  @param nvctr_c number of point of coarse data.
+ *  @param keyg_c array of size 2 * nseg_c * sizeof(uint), representing the beginning and end of coarse segments in the compressed data.
+ *  @param keyv_c array of size nseg_c * sizeof(uint), representing the beginning of coarse segments in the uncompressed data.
+ *  @param nseg_f number of segment of fine data.
+ *  @param nvctr_f number of point of fine data.
+ *  @param keyg_f array of size 2 * nseg_f * sizeof(uint), representing the beginning and end of fine segments in the compressed data.
+ *  @param keyv_f array of size nseg_f * sizeof(uint), representing the beginning of fine segments in the uncompressed data.
+ *  @param psi_c array of size nvctr_c * sizeof(double), containing coarse input data.
+ *  @param psi_f array of size nvctr_f * 7 * sizeof(double), containing fine input data.
+ *  @param pot array of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double) containing potential input data.
+ *  @param work1 temporary buffer of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double).
+ *  @param work2 temporary buffer of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double).
+ *  @param work3 temporary buffer of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double).
+ *  @param work4 temporary buffer of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double).
+ *  @param epot potential energy of the system.
+ *  @param ekinpot kinetic energy of the system.
+*/
 void FC_FUNC_(ocl_fulllocham,OCL_FULLLOCHAM)(cl_command_queue *command_queue,
                                           cl_uint *dimensions,
                                           cl_double *h,
@@ -481,18 +721,33 @@ void FC_FUNC_(ocl_fulllocham,OCL_FULLLOCHAM)(cl_command_queue *command_queue,
                                           cl_mem *work, cl_mem *kinres,
                                           cl_double *epot, cl_double *ekinpot);
 
-void FC_FUNC_(ocl_fulllocham_generic,OCL_FULLLOCHAM_GENERIC)(cl_command_queue *command_queue,
-                                          cl_uint *dimensions,
-                                          cl_uint *periodic,
-                                          cl_double *h,
-                                          cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
-                                          cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
-                                          cl_mem *psi_c, cl_mem *psi_f,
-                                          cl_mem *pot,
-                                          cl_mem *psi, cl_mem *out,
-                                          cl_mem *work, cl_mem *kinres,
-                                          cl_double *epot, cl_double *ekinpot);
-
+/** Preconditions the data for further hamiltonian minimizing, in periodic boundary conditions.
+ *  @param command_queue used to process the data.
+ *  @param dimensions of the input data, vector of 3 values.
+ *  @param h hgrid of the system, vector of 3 values.
+ *  @param c scaling factor.
+ *  @param ncong number of iterations of the preconditioner.
+ *  @param nseg_c number of segment of coarse data.
+ *  @param nvctr_c number of point of coarse data.
+ *  @param keyg_c array of size 2 * nseg_c * sizeof(uint), representing the beginning and end of coarse segments in the compressed data.
+ *  @param keyv_c array of size nseg_c * sizeof(uint), representing the beginning of coarse segments in the uncompressed data.
+ *  @param nseg_f number of segment of fine data.
+ *  @param nvctr_f number of point of fine data.
+ *  @param keyg_f array of size 2 * nseg_f * sizeof(uint), representing the beginning and end of fine segments in the compressed data.
+ *  @param keyv_f array of size nseg_f * sizeof(uint), representing the beginning of fine segments in the uncompressed data.
+ *  @param psi_c array of size nvctr_c * sizeof(double), containing coarse input and output data.
+ *  @param psi_f array of size nvctr_f * 7 * sizeof(double), containing fine input and output data.
+ *  @param psi_c_r temporary buffer of size nvctr_c * sizeof(double).
+ *  @param psi_f_r temporary buffer of size nvctr_f * 7 * sizeof(double).
+ *  @param psi_c_b temporary buffer of size nvctr_c * sizeof(double).
+ *  @param psi_f_b temporary buffer of size nvctr_f * 7 * sizeof(double).
+ *  @param psi_c_d temporary buffer of size nvctr_c * sizeof(double).
+ *  @param psi_f_d temporary buffer of size nvctr_f * 7 * sizeof(double).
+ *  @param work1 temporary buffer of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double).
+ *  @param work2 temporary buffer of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double).
+ *  @param work3 temporary buffer of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double).
+ *  @param work4 temporary buffer of size (2 * dimensions[0]) * (2 * dimensions[1]) * (2 * dimensions[2]) * sizeof(double).
+ */
 void FC_FUNC_(ocl_preconditioner,OCL_PRECONDITIONER)(cl_command_queue *command_queue,
                                           cl_uint *dimensions,
                                           cl_double *h,
