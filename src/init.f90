@@ -756,10 +756,11 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call determine_locreg(at%nat,rxyz,locrad,hx,hy,hz,Glr,Llr)
 
      do iat=1,at%nat
-        call deallocate_wfd(Llr(iat)%wfd,subname)
-        if (Llr(iat)%geocode=='F') then
-           call deallocate_bounds(Llr(iat)%bounds,subname)
-        end if
+        call deallocate_lr(Llr(iat),subname)
+!!$        call deallocate_wfd(Llr(iat)%wfd,subname)
+!!$        if (Llr(iat)%geocode=='F') then
+!!$           call deallocate_bounds(Llr(iat)%bounds,subname)
+!!$        end if
      end do
 
      !i_all=-product(shape(Llr))*kind(Llr)

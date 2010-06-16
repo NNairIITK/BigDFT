@@ -643,11 +643,10 @@ module module_interfaces
        real(wp), intent(out), optional :: outadd
      END SUBROUTINE untranspose_v
 
-     subroutine plot_wf(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
+     subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
        use module_base
        use module_types
        implicit none
-       character(len=*) :: kindplot
        character(len=10) :: comment
        character(len=11) :: orbname
        integer, intent(in) :: nexpo
@@ -655,8 +654,8 @@ module module_interfaces
        type(atoms_data), intent(in) :: at
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        type(locreg_descriptors), intent(in) :: lr
-       real(wp), dimension(*) :: psi
-     END SUBROUTINE plot_wf
+       real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
+     end subroutine plot_wf
 
      subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
           hfac,nscatterarr,spinsgn,psir,rho_p,ibyyzz_r) !ex-optional argument
@@ -863,6 +862,21 @@ module module_interfaces
        real(wp), dimension(:,:,:), pointer :: ads
      END SUBROUTINE psimix
 
+     subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
+          hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
+       use module_base
+       use module_types
+       implicit none
+       character(len=1), intent(in) :: geocode
+       character(len=*), intent(in) :: filename
+       integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nspin,nproc
+       real(gp), intent(in) :: hxh,hyh,hzh
+       type(atoms_data), intent(in) :: at
+       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+       real(gp), dimension(3,at%nat), intent(in) :: rxyz
+       real(dp), dimension(n1i*n2i*n3p,nspin), target, intent(in) :: rho
+     end subroutine plot_density
+
 
      subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
        use module_base
@@ -874,18 +888,33 @@ module module_interfaces
        real(gp), pointer :: rho(:)
      END SUBROUTINE read_potfile4b2B
 
-     subroutine read_density_cube(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxyz,  rho)
+!!$     subroutine read_density_cube(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxyz,  rho)
+!!$       use module_base
+!!$       use module_types
+!!$       implicit none
+!!$       character(len=*), intent(in) :: filename
+!!$       integer, intent(out) ::  n1i,n2i,n3i
+!!$       integer, intent(in) :: nspin
+!!$       real(gp), intent(out) :: hxh,hyh,hzh
+!!$       real(gp), pointer :: rxyz(:,:)
+!!$       real(dp), dimension(:), pointer :: rho
+!!$       integer, intent(out) ::  nat
+!!$     END SUBROUTINE read_density_cube
+
+     subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
+          nat,rxyz)
        use module_base
        use module_types
        implicit none
        character(len=*), intent(in) :: filename
-       integer, intent(out) ::  n1i,n2i,n3i
+       character(len=1), intent(in) :: geocode
        integer, intent(in) :: nspin
+       integer, intent(out) ::  n1i,n2i,n3i
        real(gp), intent(out) :: hxh,hyh,hzh
-       real(gp), pointer :: rxyz(:,:)
-       real(dp), dimension(:), pointer :: rho
-       integer, intent(out) ::  nat
-     END SUBROUTINE read_density_cube
+       real(dp), dimension(:,:), pointer :: rho
+       real(gp), dimension(:,:), pointer, optional :: rxyz
+       integer, intent(out), optional ::  nat
+     end subroutine read_cube
 
      subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc)
        use module_base

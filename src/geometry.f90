@@ -1605,7 +1605,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
               open(unit=16,file='geopt.mon',status='unknown',position='APPEND')
 
       if(check) then
-      if(iproc==0)  write(16,'(a,i,a)') "   BFGS converged in ",ICALL," iterations"
+      if(iproc==0)  write(16,'(a,i0,a)') "   BFGS converged in ",ICALL," iterations"
       if (iproc == 0) then
               write(fn4,'(i4.4)') ncount_bigdft
               write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
