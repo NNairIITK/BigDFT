@@ -1,6 +1,15 @@
 #include "MagicFilter.h"
 #include "OpenCL_wrappers.h"
 
+/*
+  Magicfilter kernels share commons features. They are composed
+  of one convolution and a transposition. Each work item is
+  responsible for processing one element of the result matrix.
+  The convolution filter is 16 elemnts long, and buffers are 33*16
+  elements long to avoid bank conflicts. Local work size is 16*16
+  elements, so each work item is responsible for loading 2 elements.
+  The first kernel is commented.
+*/
 char * magicfilter_program="\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
 #define FILT0   8.4334247333529341094733325815816e-7\n\
@@ -71,6 +80,46 @@ __constant double filt13 = FILT13;\n\
 __constant double filt14 = FILT14;\n\
 __constant double filt15 = FILT15;\n\
 //n is supposed to be greater or equal than get_local_size(0)\n\
+//this filter is for periodic boundary conditions\n\
+__kernel void magicfilter1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+//get our position in the local work group\n\
+size_t ig = get_global_id(0);\n\
+size_t jg = get_global_id(1);\n\
+//get our position in the result matrix\n\
+const size_t i2 = get_local_id(0);\n\
+const size_t j2 = get_local_id(1);\n\
+//get our group number\n\
+ptrdiff_t igt = get_group_id(0);\n\
+ptrdiff_t jgt = get_group_id(1);\n\
+//if data are ill dimentioned border blocks recomputes part of the data\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+//transpose indexes in the work group in order to read transposed data\n\
+igt = ig - i2 + j2 - FILTER_WIDTH/2;\n\
+jgt = jg - j2 + i2;\n\
+//if we are on the outside, select a border element to load, wrapping around\n\
+//we will be loading 2 elements each\n\
+if ( igt < 0 ) \n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + ( n + igt ) * ndat];\n\
+else \n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + igt * ndat];\n\
+igt += FILTER_WIDTH;\n\
+if ( igt >= n ) \n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + ( igt - n ) * ndat];\n\
+else\n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
+//initialize reult\n\
+double tt = 0.0;\n\
+//rest position in the buffer to first element involved in the convolution\n\
+tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
+//wait for buffer to be full\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+\
+//apply filter\n\
+filter(tt,tmp);\n\
+//store the result\n\
+out[(jg*n+ig)]=tt;\n\
+};\n\
 __kernel void magicfiltergrow1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
@@ -183,35 +232,6 @@ barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
 filter(tt,tmp);\n\
 out[(jg*n+ig)]=tt*pot[jg*n+ig];\n\
-};\n\
-__kernel void magicfilter1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
-size_t ig = get_global_id(0);\n\
-size_t jg = get_global_id(1);\n\
-const size_t i2 = get_local_id(0);\n\
-const size_t j2 = get_local_id(1);\n\
-ptrdiff_t igt = get_group_id(0);\n\
-ptrdiff_t jgt = get_group_id(1);\n\
-//if data are ill dimentioned last block recomputes part of the data\n\
-jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
-ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
-igt = ig - i2 + j2 - FILTER_WIDTH/2;\n\
-jgt = jg - j2 + i2;\n\
-//If I'm on the outside, select a border element to load\n\
-if ( igt < 0 ) \n\
-  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + ( n + igt ) * ndat];\n\
-else \n\
-  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + igt * ndat];\n\
-igt += FILTER_WIDTH;\n\
-if ( igt >= n ) \n\
-  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + ( igt - n ) * ndat];\n\
-else\n\
-  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
-double tt = 0.0;\n\
-tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-\
-filter(tt,tmp);\n\
-out[(jg*n+ig)]=tt;\n\
 };\n\
 #define ELEM_PER_THREAD 2\n\
 __kernel void magicfilter1d_blockKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\

@@ -30,14 +30,9 @@ void bench_magicfilter1d(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_
   cl_uint n = n1;
   cl_uint ndat = n2*n3;
   cl_uint size = n*ndat*sizeof(cl_double);
-//  cl_int ciErrNum;
 
   ocl_create_write_buffer_(&context, &size, &psi_GPU);
   ocl_create_read_buffer_(&context, &size, &work_GPU);
-//  psi_GPU = clCreateBuffer( context, CL_MEM_WRITE_ONLY|CL_MEM_USE_HOST_PTR , size, out, &ciErrNum);
-//  oclErrorCheck(ciErrNum,"Failed to create write buffer!");
-//  work_GPU = clCreateBuffer( context, CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR , size, out, &ciErrNum);
-//  oclErrorCheck(ciErrNum,"Failed to create read buffer!");
   ocl_enqueue_write_buffer_(&queue, &work_GPU, &size, in);
   magicfilter1d_d_(&queue,&n,&ndat,&work_GPU,&psi_GPU);
   ocl_finish_(&queue);

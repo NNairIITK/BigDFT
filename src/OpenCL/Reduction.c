@@ -1,10 +1,75 @@
 #include "OpenCL_wrappers.h"
-
+/*
+  Matrix multiplication kernels written here share a common basic design.
+  Each work item computes 1 (or 2 elements in bloc design) element of
+  the result matrix. Local work size is 16*16 elements. Both arrays are 
+  loaded by block of 16*16 into shared memory. Buffers are big enough
+  so data can be padded to 17*16. Loading both matrix allows uniform
+  performance regarding transposition an conjugation.
+  As computation is performed by block, at each iteration a work item is
+  responsible for loading 2 elements, one from each source matrix.
+  Elements out of bouns are replaced by 0.
+  The first kernel is commented, other kernels are similar.
+  gemmsy is also commented.
+  Matrix are stored in column.
+*/
 char * dgemm_program="\
 //size is supposed to be 16*16\n\
 #define BUFFER_SIZE 16\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
 #define ELEM_PER_THREAD 2\n\
+__kernel void gemmKernel_d( uint m, uint n, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
+  //get our position in the local workgroup\n\
+  size_t i = get_local_id(0);\n\
+  size_t j = get_local_id(1);\n\
+  //get our position in the result matrix\n\
+  size_t ig = get_global_id(0);\n\
+  size_t jg = get_global_id(1);\n\
+  \n\
+  size_t index = 0;\n\
+  double result = 0.0;\n\
+  //for each block of 16*16 elements in the line of matrix a and column of matrix b\n\
+  while( index < k) {\n\
+    //load first matrix element in tmp1, 0.0 if out of bound.\n\
+    tmp1[j*(BUFFER_SIZE) + i] = (ig < m && (index + j) < k) ? a[(index+j)*lda + ig] : 0.0;\n\
+    //load second matrix element in tmp2, 0.0 if out of bound.\n\
+    tmp2[j*(BUFFER_SIZE) + i] = (jg < n && (index + i) < k) ? b[(jg)*ldb + index+i] : 0.0;\n\
+    //wait for buffer to be full\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    //compute partial sum, iterating over a line of tmp1 and a column of tmp2.\n\
+    #pragma unroll\n\
+    for(size_t sumi=0; sumi<BUFFER_SIZE; sumi++)\n\
+      result += tmp1[sumi*(BUFFER_SIZE) + i] * tmp2[ j*(BUFFER_SIZE) + sumi];\n\
+    //wait for buffer to be fully read.\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    index += BUFFER_SIZE;\n\
+  }\n\
+  //write output result if we are inside the bounds.\n\
+  if(ig < m && jg < n)\n\
+    c[jg*ldc + ig] = alpha * result + beta * c[jg*ldc + ig];\n\
+}\n\
+__kernel void gemmKernel_d_ta( uint m, uint n, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
+  size_t i = get_local_id(0);\n\
+  size_t j = get_local_id(1);\n\
+  size_t ig = get_global_id(0);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t igt = ig - i + j;\n\
+  \n\
+  size_t index = 0;\n\
+  double result = 0.0;\n\
+  while( index < k) {\n\
+    tmp1[i*(BUFFER_SIZE+1) + j] = (igt < m && (index + i) <  k) ? a[(igt)*lda + index+i] : 0.0;\n\
+    tmp2[j*(BUFFER_SIZE) + i] = (jg < n && (index + i) < k) ? b[(jg)*ldb + index+i] : 0.0;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    #pragma unroll\n\
+    for(size_t sumi=0; sumi<BUFFER_SIZE; sumi++)\n\
+      result += tmp1[sumi*(BUFFER_SIZE+1) + i] * tmp2[ j*(BUFFER_SIZE) + sumi];\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    index += BUFFER_SIZE;\n\
+  }\n\
+  if(ig < m && jg < n)\n\
+    c[jg*ldc + ig] = alpha * result + beta * c[jg*ldc + ig];\n\
+}\n\
 __kernel void gemm_blockKernel_d( uint m, uint n, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
   size_t i = get_local_id(0);\n\
   size_t j = get_local_id(1)*ELEM_PER_THREAD;\n\
@@ -18,10 +83,8 @@ __kernel void gemm_blockKernel_d( uint m, uint n, uint k, double alpha, __global
   b+= i+jg*ldb;\n\
   while( index < k) {\n\
     __local double *tmp2_t = tmp2 + j*BUFFER_SIZE;\n\
-    //load first matrix in tmp1\n\
     tmp1[j*(BUFFER_SIZE) + i] = (ig < m && (index + j) < k) ? *a : 0.0;\n\
     tmp1[(j+1)*(BUFFER_SIZE) + i] = (ig < m && (index + j+1) < k) ? a[lda] : 0.0;\n\
-    //load second matrix in tmp2\n\
     tmp2_t[i] = (jg < n && (index + i) < k) ? *b : 0.0;\n\
     tmp2_t[BUFFER_SIZE + i] = ((jg+1) < n && (index + i) < k) ? b[ldb] : 0.0;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
@@ -45,6 +108,15 @@ __kernel void gemm_blockKernel_d( uint m, uint n, uint k, double alpha, __global
     *c = alpha * result_2 + beta * *c;\n\
   }\n\
 }\n\
+//blocks are numbered in the following way :\n\
+// 0 1 3 6 10\n\
+//   2 4 7 11\n\
+//     5 8 12\n\
+//       9 13\n\
+//         14\n\
+//position in the matrix is obtained via solving ig * ( ig + 1) / 2 = index\n\
+//and rounding to the apropriate integer.\n\
+//non numbered blocks are obtained by transposing numbered blocks.\n\
 __kernel void gemmsyKernel_d( uint m, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
   size_t i = get_local_id(0);\n\
   size_t j = get_local_id(1);\n\
@@ -57,9 +129,7 @@ __kernel void gemmsyKernel_d( uint m, uint k, double alpha, __global const doubl
   size_t index = 0;\n\
   double result = 0.0;\n\
   while( index < k) {\n\
-    //load first matrix in tmp1\n\
     tmp1[j*(BUFFER_SIZE) + i] = (ig < m && (index + j) < k) ? a[(index+j)*lda + ig] : 0.0;\n\
-    //load second matrix in tmp2\n\
     tmp2[j*(BUFFER_SIZE) + i] = (jg < m && (index + i) < k) ? b[(jg)*ldb + index+i] : 0.0;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
     #pragma unroll\n\
@@ -78,53 +148,6 @@ __kernel void gemmsyKernel_d( uint m, uint k, double alpha, __global const doubl
   if(igt < m && jgt < m)\n\
     c[igt*ldc + jgt] = tmp1[i*(BUFFER_SIZE+1) + j];\n\
 }\n\
-__kernel void gemmKernel_d( uint m, uint n, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
-  size_t i = get_local_id(0);\n\
-  size_t j = get_local_id(1);\n\
-  size_t ig = get_global_id(0);\n\
-  size_t jg = get_global_id(1);\n\
-  \n\
-  size_t index = 0;\n\
-  double result = 0.0;\n\
-  while( index < k) {\n\
-    //load first matrix in tmp1\n\
-    tmp1[j*(BUFFER_SIZE) + i] = (ig < m && (index + j) < k) ? a[(index+j)*lda + ig] : 0.0;\n\
-    //load second matrix in tmp2\n\
-    tmp2[j*(BUFFER_SIZE) + i] = (jg < n && (index + i) < k) ? b[(jg)*ldb + index+i] : 0.0;\n\
-    barrier(CLK_LOCAL_MEM_FENCE);\n\
-    #pragma unroll\n\
-    for(size_t sumi=0; sumi<BUFFER_SIZE; sumi++)\n\
-      result += tmp1[sumi*(BUFFER_SIZE) + i] * tmp2[ j*(BUFFER_SIZE) + sumi];\n\
-    barrier(CLK_LOCAL_MEM_FENCE);\n\
-    index += BUFFER_SIZE;\n\
-  }\n\
-  if(ig < m && jg < n)\n\
-    c[jg*ldc + ig] = alpha * result + beta * c[jg*ldc + ig];\n\
-}\n\
-__kernel void gemmKernel_d_ta( uint m, uint n, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
-  size_t i = get_local_id(0);\n\
-  size_t j = get_local_id(1);\n\
-  size_t ig = get_global_id(0);\n\
-  size_t jg = get_global_id(1);\n\
-  size_t igt = ig - i + j;\n\
-  \n\
-  size_t index = 0;\n\
-  double result = 0.0;\n\
-  while( index < k) {\n\
-    //load first matrix in tmp1\n\
-    tmp1[i*(BUFFER_SIZE+1) + j] = (igt < m && (index + i) <  k) ? a[(igt)*lda + index+i] : 0.0;\n\
-    //load second matrix in tmp2\n\
-    tmp2[j*(BUFFER_SIZE) + i] = (jg < n && (index + i) < k) ? b[(jg)*ldb + index+i] : 0.0;\n\
-    barrier(CLK_LOCAL_MEM_FENCE);\n\
-    #pragma unroll\n\
-    for(size_t sumi=0; sumi<BUFFER_SIZE; sumi++)\n\
-      result += tmp1[sumi*(BUFFER_SIZE+1) + i] * tmp2[ j*(BUFFER_SIZE) + sumi];\n\
-    barrier(CLK_LOCAL_MEM_FENCE);\n\
-    index += BUFFER_SIZE;\n\
-  }\n\
-  if(ig < m && jg < n)\n\
-    c[jg*ldc + ig] = alpha * result + beta * c[jg*ldc + ig];\n\
-}\n\
 __kernel void gemmKernel_d_tb( uint m, uint n, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
   size_t i = get_local_id(0);\n\
   size_t j = get_local_id(1);\n\
@@ -135,9 +158,7 @@ __kernel void gemmKernel_d_tb( uint m, uint n, uint k, double alpha, __global co
   size_t index = 0;\n\
   double result = 0.0;\n\
   while( index < k) {\n\
-    //load first matrix in tmp1\n\
     tmp1[j*(BUFFER_SIZE) + i] = (ig < m && (index + j) <  k) ? a[(index+j)*lda + ig] : 0.0;\n\
-    //load second matrix in tmp2\n\
     tmp2[i*(BUFFER_SIZE+1) + j] = (jgt < n && (index + j) < k) ? b[(index+j)*ldb + jgt] : 0.0;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
     #pragma unroll\n\
@@ -160,9 +181,7 @@ __kernel void gemmKernel_d_tatb( uint m, uint n, uint k, double alpha, __global 
   size_t index = 0;\n\
   double result = 0.0;\n\
   while( index < k) {\n\
-    //load first matrix in tmp1\n\
     tmp1[i*(BUFFER_SIZE+1) + j] = (igt < m && (index + i) <  k) ? a[(igt)*lda + index+i] : 0.0;\n\
-    //load second matrix in tmp2\n\
     tmp2[i*(BUFFER_SIZE+1) + j] = (jgt < n && (index + j) < k) ? b[(index+j)*ldb + jgt] : 0.0;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
     #pragma unroll\n\
@@ -194,9 +213,7 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   bool condn = jg < n;\n\
   while( index < k) {\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
-    //load first matrix in tmp1\n\
     tmp1[j*(BUFFER_SIZE)] = (condm && (index + j) < k) ? a[index*lda] : (double2)(0.0, 0.0);\n\
-    //load second matrix in tmp2\n\
     tmp2[i] = (condn && (index + i) < k) ? b[index] : (double2)(0.0, 0.0);\n\
     index += BUFFER_SIZE;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
@@ -237,7 +254,6 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   result = (double2)(0.0, 0.0);\n\
   size_t index = 0;\n\
   tmp2 += j*(BUFFER_SIZE);\n\
-//  tmp1 += i;\n\
   a += igt*lda + i;\n\
   b += jg*ldb + i;\n\
   c += jg*ldc + ig;\n\
@@ -245,9 +261,7 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   bool condn = jg < n;\n\
   while( index < k) {\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
-    //load first matrix in tmp1\n\
     tmp1[i*(BUFFER_SIZE+1)+j] = (condm && (index + i) < k) ? a[index] : (double2)(0.0, 0.0);\n\
-    //load second matrix in tmp2\n\
     tmp2[i] = (condn && (index + i) < k) ? b[index] : (double2)(0.0, 0.0);\n\
     index += BUFFER_SIZE;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
@@ -287,7 +301,6 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   double2 b_t __attribute__ ((aligned (16)));\n\
   result = (double2)(0.0, 0.0);\n\
   size_t index = 0;\n\
-//  tmp2 += j*(BUFFER_SIZE);\n\
   tmp1 += i;\n\
   a += j*lda + ig;\n\
   b += j*ldb + jgt;\n\
@@ -296,9 +309,7 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   bool condn = jgt < n;\n\
   while( index < k) {\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
-    //load first matrix in tmp1\n\
     tmp1[j*(BUFFER_SIZE)] = (condm && (index + j) < k) ? a[index*lda] : (double2)(0.0, 0.0);\n\
-    //load second matrix in tmp2\n\
     tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? b[index*ldb] : (double2)(0.0, 0.0);\n\
     index += BUFFER_SIZE;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
@@ -339,8 +350,6 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   double2 b_t __attribute__ ((aligned (16)));\n\
   result = (double2)(0.0, 0.0);\n\
   size_t index = 0;\n\
-//  tmp2 += j*(BUFFER_SIZE);\n\
-//  tmp1 += i;\n\
   a += igt*lda + i;\n\
   b += j*ldb + jgt;\n\
   c += jg*ldc + ig;\n\
@@ -348,9 +357,7 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   bool condn = jgt < n;\n\
   while( index < k) {\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
-    //load first matrix in tmp1\n\
     tmp1[i*(BUFFER_SIZE+1) + j] = (condm && (index + i) < k) ? a[index] : (double2)(0.0, 0.0);\n\
-    //load second matrix in tmp2\n\
     tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? b[index*ldb] : (double2)(0.0, 0.0);\n\
     index += BUFFER_SIZE;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
@@ -391,7 +398,6 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   result = (double2)(0.0, 0.0);\n\
   size_t index = 0;\n\
   tmp2 += j*(BUFFER_SIZE);\n\
-//  tmp1 += i;\n\
   a += igt*lda + i;\n\
   b += jg*ldb + i;\n\
   c += jg*ldc + ig;\n\
@@ -399,9 +405,7 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   bool condn = jg < n;\n\
   while( index < k) {\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
-    //load first matrix in tmp1\n\
     tmp1[i*(BUFFER_SIZE+1)+j] = (condm && (index + i) < k) ? a[index] : (double2)(0.0, 0.0);\n\
-    //load second matrix in tmp2\n\
     tmp2[i] = (condn && (index + i) < k) ? b[index] : (double2)(0.0, 0.0);\n\
     index += BUFFER_SIZE;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
@@ -441,7 +445,6 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   double2 b_t __attribute__ ((aligned (16)));\n\
   result = (double2)(0.0, 0.0);\n\
   size_t index = 0;\n\
-//  tmp2 += j*(BUFFER_SIZE);\n\
   tmp1 += i;\n\
   a += j*lda + ig;\n\
   b += j*ldb + jgt;\n\
@@ -450,9 +453,7 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   bool condn = jgt < n;\n\
   while( index < k) {\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
-    //load first matrix in tmp1\n\
     tmp1[j*(BUFFER_SIZE)] = (condm && (index + j) < k) ? a[index*lda] : (double2)(0.0, 0.0);\n\
-    //load second matrix in tmp2\n\
     tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? (double2)(1,-1) * b[index*ldb] : (double2)(0.0, 0.0);\n\
     index += BUFFER_SIZE;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
@@ -493,8 +494,6 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   double2 b_t __attribute__ ((aligned (16)));\n\
   result = (double2)(0.0, 0.0);\n\
   size_t index = 0;\n\
-//  tmp2 += j*(BUFFER_SIZE);\n\
-//  tmp1 += i;\n\
   a += igt*lda + i;\n\
   b += j*ldb + jgt;\n\
   c += jg*ldc + ig;\n\
@@ -502,9 +501,7 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   bool condn = jgt < n;\n\
   while( index < k) {\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
-    //load first matrix in tmp1\n\
     tmp1[i*(BUFFER_SIZE+1) + j] = (condm && (index + i) < k) ? a[index] : (double2)(0.0, 0.0);\n\
-    //load second matrix in tmp2\n\
     tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? (double2)(1,-1) * b[index*ldb] : (double2)(0.0, 0.0);\n\
     index += BUFFER_SIZE;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
@@ -545,8 +542,6 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   double2 b_t __attribute__ ((aligned (16)));\n\
   result = (double2)(0.0, 0.0);\n\
   size_t index = 0;\n\
-//  tmp2 += j*(BUFFER_SIZE);\n\
-//  tmp1 += i;\n\
   a += igt*lda + i;\n\
   b += j*ldb + jgt;\n\
   c += jg*ldc + ig;\n\
@@ -554,9 +549,7 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   bool condn = jgt < n;\n\
   while( index < k) {\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
-    //load first matrix in tmp1\n\
     tmp1[i*(BUFFER_SIZE+1) + j] = (condm && (index + i) < k) ? a[index] : (double2)(0.0, 0.0);\n\
-    //load second matrix in tmp2\n\
     tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? b[index*ldb] : (double2)(0.0, 0.0);\n\
     index += BUFFER_SIZE;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
@@ -597,8 +590,6 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   double2 b_t __attribute__ ((aligned (16)));\n\
   result = (double2)(0.0, 0.0);\n\
   size_t index = 0;\n\
-//  tmp2 += j*(BUFFER_SIZE);\n\
-//  tmp1 += i;\n\
   a += igt*lda + i;\n\
   b += j*ldb + jgt;\n\
   c += jg*ldc + ig;\n\
@@ -606,9 +597,7 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
   bool condn = jgt < n;\n\
   while( index < k) {\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
-    //load first matrix in tmp1\n\
     tmp1[i*(BUFFER_SIZE+1) + j] = (condm && (index + i) < k) ? a[index] : (double2)(0.0, 0.0);\n\
-    //load second matrix in tmp2\n\
     tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? (double2)(1,-1) * b[index*ldb] : (double2)(0.0, 0.0);\n\
     index += BUFFER_SIZE;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
@@ -638,13 +627,19 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
 }\n\
 ";
 
-
+/*
+  Reduction kernels reduce 1024 values to 1 per work group.
+  The first one is commented.
+*/
 char * reduction_program="\
 //group_size is supposed to be 512\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
 __kernel void reductionKernel_d( uint n, __global const double *x, __global double *y, __local double *tmp ) {\n\
+  //get our position in the local buffer\n\
   size_t i = get_local_id(0);\n\
+  //get our position in the input data\n\
   size_t g = get_group_id(0)*1024+i;\n\
+  //copy our 2 data elements in the buffer, or store 0 if out of bounds.\n\
   if(g<n) {\n\
     tmp[i] = x[g];\n\
   } else {\n\
@@ -655,9 +650,13 @@ __kernel void reductionKernel_d( uint n, __global const double *x, __global doub
   } else {\n\
     tmp[i+512] = 0.0;\n\
   }\n\
+  //wait for buffer to be full\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
+  //reduce 2 data to 1\n\
   tmp[i] = tmp[i] + tmp[i+512];\n\
+  //wait for buffer to be processed 512 elem remaining\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
+  //if we are in the 256 first work items of the work group, repeat previous operations\n\
   if( i<256 )\n\
     tmp[i] = tmp[i] + tmp[i+256];\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
@@ -678,6 +677,7 @@ __kernel void reductionKernel_d( uint n, __global const double *x, __global doub
     tmp[i] = tmp[i] + tmp[i+4];\n\
   if( i<2 )\n\
     tmp[i] = tmp[i] + tmp[i+2];\n\
+  //if I am the firt work item, reduce the final 2 elements and store in result buffer at the position of our work group.\n\
   if( i==0 )\n\
     y[get_group_id(0)] = tmp[0]+tmp[1];\n\
 }\n\

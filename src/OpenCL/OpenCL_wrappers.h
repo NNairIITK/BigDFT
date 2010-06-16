@@ -13,6 +13,7 @@
  *  @brief Contains global declarations and fortran bindings for OpenCL convolutions.
  *  Warning : every fortran visible procedure is passing its argument per address.
  *  Warning : every floating point data is double precision.
+ *  Warning : aliasing of buffer is not supported.
  */
 
 /** Activate debugging info. */
