@@ -81,7 +81,9 @@ __constant double filt14 = FILT14;\n\
 __constant double filt15 = FILT15;\n\
 //n is supposed to be greater or equal than get_local_size(0)\n\
 //this filter is for periodic boundary conditions\n\
-__kernel void magicfilter1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void magicfilter1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 //get our position in the local work group\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
@@ -120,7 +122,9 @@ filter(tt,tmp);\n\
 //store the result\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
-__kernel void magicfiltergrow1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void magicfiltergrow1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -149,7 +153,9 @@ barrier(CLK_LOCAL_MEM_FENCE);\n\
 filter(tt,tmp);\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
-__kernel void magicfiltergrow1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global const double *pot, __global double *out, __local double tmp[]){\n\
+__kernel void magicfiltergrow1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global const double *pot, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -178,7 +184,9 @@ barrier(CLK_LOCAL_MEM_FENCE);\n\
 filter(tt,tmp);\n\
 out[(jg*n+ig)]=tt*pot[(jg*n+ig)];\n\
 };\n\
-__kernel void magicfiltershrink1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void magicfiltershrink1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -203,7 +211,9 @@ barrier(CLK_LOCAL_MEM_FENCE);\n\
 filter_reverse(tt,tmp);\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
-__kernel void magicfilter1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global double *pot, __global double *out, __local double tmp[]){\n\
+__kernel void magicfilter1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global double *pot, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -234,7 +244,9 @@ filter(tt,tmp);\n\
 out[(jg*n+ig)]=tt*pot[jg*n+ig];\n\
 };\n\
 #define ELEM_PER_THREAD 2\n\
-__kernel void magicfilter1d_blockKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void magicfilter1d_blockKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1)*ELEM_PER_THREAD;\n\
 size_t i2 = get_local_id(0);\n\
@@ -280,7 +292,9 @@ filter(tt_2,tmp_2);\n\
 out += n;\n\
 *out = tt_2;\n\
 };\n\
-__kernel void magicfilter1d_straightKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void magicfilter1d_straightKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 ptrdiff_t ig = get_global_id(0);\n\
 ptrdiff_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -310,7 +324,9 @@ barrier(CLK_LOCAL_MEM_FENCE);\n\
 filter(tt,tmp);\n\
 out[(igt*ndat+jgt)]=tt;\n\
 };\n\
-__kernel void magicfilter1d_denKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void magicfilter1d_denKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -339,7 +355,9 @@ barrier(CLK_LOCAL_MEM_FENCE);\n\
 filter(tt,tmp);\n\
 out[(jg*n+ig)]=tt*tt;\n\
 };\n\
-__kernel void magicfilter1d_tKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void magicfilter1d_tKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -382,7 +400,6 @@ inline void magicfilter_block_generic(cl_kernel kernel, cl_command_queue *comman
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(cl_double)*block_size_j*ELEM_PER_THREAD*(block_size_i+FILTER_WIDTH+1), 0);
     size_t localWorkSize[] = { block_size_i,block_size_j };
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j*ELEM_PER_THREAD,*ndat)*block_size_j/FILTER_WIDTH};
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
@@ -399,7 +416,6 @@ inline void magicfilter_generic(cl_kernel kernel, cl_command_queue *command_queu
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(cl_double)*block_size_j*(block_size_i+FILTER_WIDTH+1), 0);
     size_t localWorkSize[] = { block_size_i,block_size_j };
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
@@ -417,7 +433,6 @@ inline void magicfilter_pot_generic(cl_kernel kernel, cl_command_queue *command_
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*pot), (void*)pot);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(cl_double)*block_size_j*(block_size_i+FILTER_WIDTH+1), 0);
     size_t localWorkSize[] = { block_size_i,block_size_j };
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
