@@ -2,17 +2,21 @@
 #include "OpenCL_wrappers.h"
 
 /**
+  Kernels in the ana_program peform a wavelet analysis,
+  which can be reduced to a convolution and a transposition.
   In the kernels, each work item processes 2 elements, and
   loads 3 elements.
-  The filter macro is optimized to reduce register usage,
-  to imporve occupancy.
+  The filter macro is optimized to reduce register usage
+  in order to imporve occupancy.
   Buffer is of size 16*49.
   Memory pattern somewhat ressembles this :
   ///////   ///////
   \\\\\\\   ///////
   ///////   \\\\\\\
   \\\\\\\   \\\\\\\
-  Even line centered convolutions
+  Even line centered convolutions go int the upper part
+  of the resulting matrix, while odd line centered convolutions
+  go to the lower part of the resulting matrix.
   
 */
 char * ana_program="\
@@ -51,6 +55,45 @@ ci += tmp[ 8] *  0.36444189483617893676;\
 di += tmp[ 8] * -0.77718575169962802862;\
 ci += tmp[ 7] *  0.77718575169962802862;\
 di += tmp[ 7] *  0.36444189483617893676;\n\
+//periodic boundary condition of the filter\n\
+__kernel void ana1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(3*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
+size_t ig = get_global_id(0);\n\
+size_t jg = get_global_id(1);\n\
+const size_t i2 = get_local_id(0);\n\
+const size_t j2 = get_local_id(1);\n\
+ptrdiff_t igt = get_group_id(0);\n\
+ptrdiff_t jgt = get_group_id(1);\n\
+//if data are ill dimentioned last block recomputes part of the data\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+igt = (ig - i2) * 2 + j2 - FILTER_WIDTH/2;\n\
+jgt = jg - j2 + i2;\n\
+//if we are outside the matrix, load elements wrapping aroud.\n\
+if ( igt < 0 ) \n\
+  tmp[i2 * (3 * FILTER_WIDTH + 1) + j2] = psi[jgt + ( 2*n + igt ) * ndat];\n\
+else \n\
+  tmp[i2 * (3 * FILTER_WIDTH + 1) + j2] = psi[jgt + igt * ndat];\n\
+igt += FILTER_WIDTH;\n\
+tmp[i2 * (3 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + igt * ndat];\n\
+igt += FILTER_WIDTH;\n\
+if ( igt >= 2*n ) \n\
+  tmp[i2 * (3 * FILTER_WIDTH + 1) + j2 + 2*FILTER_WIDTH] = psi[jgt + ( igt - 2*n ) * ndat];\n\
+else\n\
+  tmp[i2 * (3 * FILTER_WIDTH + 1) + j2 + 2*FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+\
+double ci = 0.0;\n\
+double di = 0.0;\n\
+tmp = tmp + j2*(3*FILTER_WIDTH+1) + 2*i2 + 1;\n\
+filter(ci,di,tmp);\n\
+\
+out[(jg*(2*n)+ig)]=ci;\n\
+out[(jg*(2*n)+ig+n)]=di;\n\
+};\n\
+//non periodic boundary condition version of the filter\n\
+//output data is shrinked in regard of the input data\n\
 __kernel void anashrink1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
 __local double tmp1[FILTER_WIDTH*(3*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
@@ -68,6 +111,7 @@ igt = 2*(ig - i2) + j2;\n\
 jgt = jg - j2 + i2;\n\
 psi += 7*ndat;\n\
 igt -= 7;\n\
+//shrinking, so no elements nedd to be loaded outside the matrix.\n\
 tmp[i2 * (3 * FILTER_WIDTH + 1) + j2]=psi[jgt+igt*ndat];\n\
 igt += FILTER_WIDTH - 1;\n\
 tmp[i2 * (3 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH - 1]=psi[jgt+igt*ndat];\n\
@@ -78,41 +122,6 @@ barrier(CLK_LOCAL_MEM_FENCE);\n\
 double ci = 0.0;\n\
 double di = 0.0;\n\
 tmp = tmp + j2*(3*FILTER_WIDTH+1) + 2*i2;\n\
-filter(ci,di,tmp);\n\
-\
-out[(jg*(2*n)+ig)]=ci;\n\
-out[(jg*(2*n)+ig+n)]=di;\n\
-};\n\
-__kernel void ana1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
-__local double tmp1[FILTER_WIDTH*(3*FILTER_WIDTH+1)];\n\
-__local double *tmp = &tmp1[0];\n\
-size_t ig = get_global_id(0);\n\
-size_t jg = get_global_id(1);\n\
-const size_t i2 = get_local_id(0);\n\
-const size_t j2 = get_local_id(1);\n\
-ptrdiff_t igt = get_group_id(0);\n\
-ptrdiff_t jgt = get_group_id(1);\n\
-//if data are ill dimentioned last block recomputes part of the data\n\
-jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
-ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
-igt = (ig - i2) * 2 + j2 - FILTER_WIDTH/2;\n\
-jgt = jg - j2 + i2;\n\
-if ( igt < 0 ) \n\
-  tmp[i2 * (3 * FILTER_WIDTH + 1) + j2] = psi[jgt + ( 2*n + igt ) * ndat];\n\
-else \n\
-  tmp[i2 * (3 * FILTER_WIDTH + 1) + j2] = psi[jgt + igt * ndat];\n\
-igt += FILTER_WIDTH;\n\
-tmp[i2 * (3 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + igt * ndat];\n\
-igt += FILTER_WIDTH;\n\
-if ( igt >= 2*n ) \n\
-  tmp[i2 * (3 * FILTER_WIDTH + 1) + j2 + 2*FILTER_WIDTH] = psi[jgt + ( igt - 2*n ) * ndat];\n\
-else\n\
-  tmp[i2 * (3 * FILTER_WIDTH + 1) + j2 + 2*FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-\
-double ci = 0.0;\n\
-double di = 0.0;\n\
-tmp = tmp + j2*(3*FILTER_WIDTH+1) + 2*i2 + 1;\n\
 filter(ci,di,tmp);\n\
 \
 out[(jg*(2*n)+ig)]=ci;\n\
@@ -177,10 +186,101 @@ out += n;\n\
 };\n\
 ";
 
+
+/*
+  Synthesis is the reciprocal operation of analysis.
+  Each work item processes 2 elements.
+  Buffer is of size 16*49.
+  memory pattern is obviously reversed :
+  
+  ///////    ///////
+  ///////    \\\\\\\
+  \\\\\\\    ///////
+  \\\\\\\    \\\\\\\
+  As buffer is split into 2 zones, each of length:
+  4+16+4, some work items load 4 elements, while other
+  load 2 elements. The performance inpact of this is minimal.
+*/
 char * syn_program="\
 #define FILTER_WIDTH 8\n\
 #define SIZE_I 16\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
+__kernel void syn1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[SIZE_I*(2*FILTER_WIDTH+2*SIZE_I+1)];\n\
+__local double *tmp = &tmp1[0];\n\
+size_t ig = get_global_id(0);\n\
+size_t jg = get_global_id(1);\n\
+const size_t i2 = get_local_id(0);\n\
+const size_t j2 = get_local_id(1);\n\
+ptrdiff_t igt = get_group_id(0);\n\
+ptrdiff_t jgt = get_group_id(1);\n\
+size_t ioff;\n\
+//if data are ill dimentioned last block recomputes part of the data\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+igt = ig - i2 + j2 - FILTER_WIDTH/2;\n\
+jgt = jg - j2 + i2;\n\
+//If I'm on the outside, select a border element to load\n\
+ioff = i2*(2*FILTER_WIDTH+2*SIZE_I+1) + j2;\n\
+if( igt < 0 ) {\n\
+  tmp[ioff] = psi[jgt+(n+igt)*ndat];\n\
+  tmp[ioff+FILTER_WIDTH+SIZE_I] = psi[jgt+(n+igt+n)*ndat];\n\
+} else {\n\
+  tmp[ioff] = psi[jgt+igt*ndat];\n\
+  tmp[ioff+FILTER_WIDTH+SIZE_I] = psi[jgt+(igt+n)*ndat];\n\
+}\n\
+igt += SIZE_I;\n\
+//only half the work items load these elements\n\
+if( j2 < SIZE_I - FILTER_WIDTH){\n\
+  if ( igt >=n ) {\n\
+    tmp[ioff+SIZE_I] = psi[jgt+(igt-n)*ndat];\n\
+    tmp[ioff+FILTER_WIDTH+2*SIZE_I] = psi[jgt+(igt-n+n)*ndat];\n\
+  } else {\n\
+    tmp[ioff+SIZE_I] = psi[jgt+igt*ndat];\n\
+    tmp[ioff+FILTER_WIDTH+2*SIZE_I] = psi[jgt+(igt+n)*ndat];\n\
+  }\n\
+}\n\
+tmp += j2*(2*FILTER_WIDTH+2*SIZE_I+1) + FILTER_WIDTH/2+i2;\n\
+double se = 0.0;\n\
+double so = 0.0;\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+\
+se += tmp[-3] * -0.014952258337062199118;\n\
+so += tmp[-3] * -0.00030292051472413308126;\n\
+se += tmp[FILTER_WIDTH+SIZE_I + 3] * -0.00030292051472413308126;\n\
+so += tmp[FILTER_WIDTH+SIZE_I + 3] *  0.014952258337062199118;\n\
+se += tmp[-2] *  0.049137179673730286787;\n\
+so += tmp[-2] *  0.0038087520138944894631;\n\
+se += tmp[FILTER_WIDTH+SIZE_I + 2] *  0.0038087520138944894631;\n\
+so += tmp[FILTER_WIDTH+SIZE_I + 2] * -0.049137179673730286787;\n\
+se += tmp[-1] * -0.051945838107881800736;\n\
+so += tmp[-1] * -0.027219029917103486322;\n\
+se += tmp[FILTER_WIDTH+SIZE_I + 1] * -0.027219029917103486322;\n\
+so += tmp[FILTER_WIDTH+SIZE_I + 1] *  0.051945838107881800736;\n\
+se += tmp[ 0] *  0.77718575169962802862;\n\
+so += tmp[ 0] *  0.36444189483617893676;\n\
+se += tmp[FILTER_WIDTH+SIZE_I + 0] *  0.36444189483617893676;\n\
+so += tmp[FILTER_WIDTH+SIZE_I + 0] * -0.77718575169962802862;\n\
+se += tmp[ 1] * -0.061273359067811077843;\n\
+so += tmp[ 1] *  0.48135965125905339159;\n\
+se += tmp[FILTER_WIDTH+SIZE_I - 1] *  0.48135965125905339159;\n\
+so += tmp[FILTER_WIDTH+SIZE_I - 1] *  0.061273359067811077843;\n\
+se += tmp[ 2] *  0.0076074873249766081919;\n\
+so += tmp[ 2] * -0.14329423835127266284;\n\
+se += tmp[FILTER_WIDTH+SIZE_I - 2] * -0.14329423835127266284;\n\
+so += tmp[FILTER_WIDTH+SIZE_I - 2] * -0.0076074873249766081919;\n\
+se += tmp[ 3] * -0.00054213233180001068935;\n\
+so += tmp[ 3] *  0.031695087811525991431;\n\
+se += tmp[FILTER_WIDTH+SIZE_I - 3] *  0.031695087811525991431;\n\
+so += tmp[FILTER_WIDTH+SIZE_I - 3] *  0.00054213233180001068935;\n\
+se += tmp[-4] *  0.0018899503327676891843;\n\
+so += tmp[ 4] * -0.0033824159510050025955;\n\
+se += tmp[FILTER_WIDTH+SIZE_I - 4] * -0.0033824159510050025955;\n\
+so += tmp[FILTER_WIDTH+SIZE_I + 4] * -0.0018899503327676891843;\n\
+\
+out[jg*(2*n)+ig*2]=se;\n\
+out[jg*(2*n)+ig*2+1]=so;\n\
+};\n\
 __kernel void syngrow1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
 __local double tmp1[SIZE_I*(2*FILTER_WIDTH+2*SIZE_I+1)];\n\
 __local double *tmp = &tmp1[0];\n\
@@ -256,81 +356,6 @@ se += tmp[ 4] * -0.00054213233180001068935;\n\
 \
 out[jg*2*n+2*ig]=so;\n\
 out[jg*2*n+2*ig+1]=se;\n\
-};\n\
-__kernel void syn1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
-__local double tmp1[SIZE_I*(2*FILTER_WIDTH+2*SIZE_I+1)];\n\
-__local double *tmp = &tmp1[0];\n\
-size_t ig = get_global_id(0);\n\
-size_t jg = get_global_id(1);\n\
-const size_t i2 = get_local_id(0);\n\
-const size_t j2 = get_local_id(1);\n\
-ptrdiff_t igt = get_group_id(0);\n\
-ptrdiff_t jgt = get_group_id(1);\n\
-size_t ioff;\n\
-//if data are ill dimentioned last block recomputes part of the data\n\
-jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
-ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
-igt = ig - i2 + j2 - FILTER_WIDTH/2;\n\
-jgt = jg - j2 + i2;\n\
-//If I'm on the outside, select a border element to load\n\
-ioff = i2*(2*FILTER_WIDTH+2*SIZE_I+1) + j2;\n\
-if( igt < 0 ) {\n\
-  tmp[ioff] = psi[jgt+(n+igt)*ndat];\n\
-  tmp[ioff+FILTER_WIDTH+SIZE_I] = psi[jgt+(n+igt+n)*ndat];\n\
-} else {\n\
-  tmp[ioff] = psi[jgt+igt*ndat];\n\
-  tmp[ioff+FILTER_WIDTH+SIZE_I] = psi[jgt+(igt+n)*ndat];\n\
-}\n\
-igt += SIZE_I;\n\
-if( j2 < SIZE_I - FILTER_WIDTH){\n\
-  if ( igt >=n ) {\n\
-    tmp[ioff+SIZE_I] = psi[jgt+(igt-n)*ndat];\n\
-    tmp[ioff+FILTER_WIDTH+2*SIZE_I] = psi[jgt+(igt-n+n)*ndat];\n\
-  } else {\n\
-    tmp[ioff+SIZE_I] = psi[jgt+igt*ndat];\n\
-    tmp[ioff+FILTER_WIDTH+2*SIZE_I] = psi[jgt+(igt+n)*ndat];\n\
-  }\n\
-}\n\
-tmp += j2*(2*FILTER_WIDTH+2*SIZE_I+1) + FILTER_WIDTH/2+i2;\n\
-double se = 0.0;\n\
-double so = 0.0;\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-\
-se += tmp[-3] * -0.014952258337062199118;\n\
-so += tmp[-3] * -0.00030292051472413308126;\n\
-se += tmp[FILTER_WIDTH+SIZE_I + 3] * -0.00030292051472413308126;\n\
-so += tmp[FILTER_WIDTH+SIZE_I + 3] *  0.014952258337062199118;\n\
-se += tmp[-2] *  0.049137179673730286787;\n\
-so += tmp[-2] *  0.0038087520138944894631;\n\
-se += tmp[FILTER_WIDTH+SIZE_I + 2] *  0.0038087520138944894631;\n\
-so += tmp[FILTER_WIDTH+SIZE_I + 2] * -0.049137179673730286787;\n\
-se += tmp[-1] * -0.051945838107881800736;\n\
-so += tmp[-1] * -0.027219029917103486322;\n\
-se += tmp[FILTER_WIDTH+SIZE_I + 1] * -0.027219029917103486322;\n\
-so += tmp[FILTER_WIDTH+SIZE_I + 1] *  0.051945838107881800736;\n\
-se += tmp[ 0] *  0.77718575169962802862;\n\
-so += tmp[ 0] *  0.36444189483617893676;\n\
-se += tmp[FILTER_WIDTH+SIZE_I + 0] *  0.36444189483617893676;\n\
-so += tmp[FILTER_WIDTH+SIZE_I + 0] * -0.77718575169962802862;\n\
-se += tmp[ 1] * -0.061273359067811077843;\n\
-so += tmp[ 1] *  0.48135965125905339159;\n\
-se += tmp[FILTER_WIDTH+SIZE_I - 1] *  0.48135965125905339159;\n\
-so += tmp[FILTER_WIDTH+SIZE_I - 1] *  0.061273359067811077843;\n\
-se += tmp[ 2] *  0.0076074873249766081919;\n\
-so += tmp[ 2] * -0.14329423835127266284;\n\
-se += tmp[FILTER_WIDTH+SIZE_I - 2] * -0.14329423835127266284;\n\
-so += tmp[FILTER_WIDTH+SIZE_I - 2] * -0.0076074873249766081919;\n\
-se += tmp[ 3] * -0.00054213233180001068935;\n\
-so += tmp[ 3] *  0.031695087811525991431;\n\
-se += tmp[FILTER_WIDTH+SIZE_I - 3] *  0.031695087811525991431;\n\
-so += tmp[FILTER_WIDTH+SIZE_I - 3] *  0.00054213233180001068935;\n\
-se += tmp[-4] *  0.0018899503327676891843;\n\
-so += tmp[ 4] * -0.0033824159510050025955;\n\
-se += tmp[FILTER_WIDTH+SIZE_I - 4] * -0.0033824159510050025955;\n\
-so += tmp[FILTER_WIDTH+SIZE_I + 4] * -0.0018899503327676891843;\n\
-\
-out[jg*(2*n)+ig*2]=se;\n\
-out[jg*(2*n)+ig*2+1]=so;\n\
 };\n\
 ";
 
