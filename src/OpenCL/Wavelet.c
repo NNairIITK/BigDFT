@@ -1,6 +1,20 @@
 #include "Wavelet.h"
 #include "OpenCL_wrappers.h"
 
+/**
+  In the kernels, each work item processes 2 elements, and
+  loads 3 elements.
+  The filter macro is optimized to reduce register usage,
+  to imporve occupancy.
+  Buffer is of size 16*49.
+  Memory pattern somewhat ressembles this :
+  ///////   ///////
+  \\\\\\\   ///////
+  ///////   \\\\\\\
+  \\\\\\\   \\\\\\\
+  Even line centered convolutions
+  
+*/
 char * ana_program="\
 #define FILTER_WIDTH 16\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
