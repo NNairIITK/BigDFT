@@ -37,7 +37,9 @@ ci += tmp[ 8] *  0.36444189483617893676;\
 di += tmp[ 8] * -0.77718575169962802862;\
 ci += tmp[ 7] *  0.77718575169962802862;\
 di += tmp[ 7] *  0.36444189483617893676;\n\
-__kernel void anashrink1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void anashrink1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(3*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -67,7 +69,9 @@ filter(ci,di,tmp);\n\
 out[(jg*(2*n)+ig)]=ci;\n\
 out[(jg*(2*n)+ig+n)]=di;\n\
 };\n\
-__kernel void ana1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void ana1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(3*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -101,7 +105,7 @@ out[(jg*(2*n)+ig)]=ci;\n\
 out[(jg*(2*n)+ig+n)]=di;\n\
 };\n\
 #define ELEM_PER_THREAD 2\n\
-__kernel void ana1d_blockKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void ana1d_blockKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double *tmp){\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1)*ELEM_PER_THREAD;\n\
 const size_t i2 = get_local_id(0);\n\
@@ -163,7 +167,9 @@ char * syn_program="\
 #define FILTER_WIDTH 8\n\
 #define SIZE_I 16\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
-__kernel void syngrow1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void syngrow1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[SIZE_I*(2*FILTER_WIDTH+2*SIZE_I+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -237,7 +243,9 @@ se += tmp[ 4] * -0.00054213233180001068935;\n\
 out[jg*2*n+2*ig]=so;\n\
 out[jg*2*n+2*ig+1]=se;\n\
 };\n\
-__kernel void syn1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void syn1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[SIZE_I*(2*FILTER_WIDTH+2*SIZE_I+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -341,7 +349,6 @@ inline void ana_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_ui
     clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
     clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
     clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
-    clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*(block_size_i*2+FILTER_WIDTH + 1), 0);
     size_t localWorkSize[] = { block_size_i,block_size_j };
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
@@ -352,7 +359,7 @@ inline void ana_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_ui
 inline void syn_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, cl_mem *psi, cl_mem *out) {
     cl_int ciErrNum;
     int FILTER_WIDTH = 8;
-    int SIZE_I = 16;
+    int SIZE_I = 2*FILTER_WIDTH;
     assert(*n>=SIZE_I);
     size_t block_size_i=SIZE_I, block_size_j=SIZE_I;
     cl_uint i = 0;
@@ -360,7 +367,6 @@ inline void syn_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_ui
     clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
     clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
     clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
-    clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*(block_size_i*2+FILTER_WIDTH*2+1), NULL);
     size_t localWorkSize[] = { block_size_i,block_size_j };
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
