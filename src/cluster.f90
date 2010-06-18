@@ -305,7 +305,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
 
-
   ! We save the variables that defined the previous psi if the restart is active
   if (in%inputPsiId == 1) then
      !regenerate grid spacings
@@ -499,7 +498,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !check the communication distribution
   call check_communications(iproc,nproc,orbs,Glr,comms)
-
 
   !avoid allocation of the eigenvalues array in case of restart
   if (in%inputPsiId /= 1 .and. in%inputPsiId /= 11) then

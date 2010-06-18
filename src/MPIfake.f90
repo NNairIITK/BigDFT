@@ -126,3 +126,8 @@
           init=1
           ierr=0
         END SUBROUTINE  MPI_INITIALIZED
+
+        subroutine MPI_GET_PROCESSOR_NAME()
+        implicit none
+        stop 'MPIFAKE: MPI_GET_PROCESSOR_NAME'
+        end subroutine  MPI_GET_PROCESSOR_NAME

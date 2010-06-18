@@ -2574,4 +2574,45 @@ subroutine release_material_acceleration(GPU)
 
 end subroutine release_material_acceleration
 
+subroutine processor_id_per_node(iproc,nproc,iproc_node)
+  use module_base
+  integer, intent(in) :: iproc,nproc
+  integer, intent(out) :: iproc_node
+  !local variables
+  character(len=*), parameter :: subname='processor_id_per_node'
+  integer :: ierr,namelen,i_stat,i_all
+  character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
 
+  if (nproc == 1) then
+     iproc_node=0
+  else
+     allocate(nodename(0:nproc-1+ndebug),stat=i_stat)
+     call memocc(i_stat,nodename,'nodename',subname)
+     
+     !initalise nodenames
+     do jproc=0,nproc-1
+        nodename(jproc)=repeat(' ',MPI_MAX_PROCESSOR_NAME)
+     end do
+
+     call MPI_GET_PROCESSOR_NAME(nodename(iproc),namelen,ierr)
+
+     !gather the result between all the process
+     call MPI_Allgather(nodename(iproc),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+          nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+          MPI_COMM_WORLD,ierr)
+
+     !found the processors which belong to the same node
+     !before the processor iproc
+     iproc_node=0
+     do jproc=0,iproc-1
+        if (trim(nodename(jproc)) == trim(nodename(iproc))) then
+           iproc_node=iproc_node+1
+        end if
+     end do
+     
+     i_all=-product(shape(nodename))*kind(nodename)
+     deallocate(nodename,stat=i_stat)
+     call memocc(i_stat,i_all,'nodename',subname)
+  end if
+     
+end subroutine processor_id_per_node
