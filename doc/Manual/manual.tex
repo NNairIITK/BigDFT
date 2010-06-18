@@ -88,7 +88,7 @@ Some of them are listed here (and they can be of course combined with each other
 
 
 \subsection{Make}
-Make the package and create the 'cluster' executable, issuing \texttt{make}. The GNU option \texttt{-j$n$} is working with whatever value of $n$ (tested up to 16).
+Make the package and create the 'bigdft' executable, issuing \texttt{make}. The GNU option \texttt{-j$n$} is working with whatever value of $n$ (tested up to 16).
 
 \subsection{Install}
 To install the package, issue \texttt{make install}. It will copy all files to the specified prefix (see configure).
@@ -459,9 +459,9 @@ does not exist, default values are used. Keywords can specify options as:
 
 \chapter{ Running Bigdft executables}
 
-\section{Single point or geometry optimization: \texttt{cluster}}
+\section{Single point or geometry optimization: \texttt{bigdft}}
 The MPI version is executed on most machines with the \texttt{mpirun} command followed by the name of the executable which is 
-cluster in our case.
+\texttt{bigdft} in our case.
 The treatment of each orbital can be speeded up by using the mixed MPI/OpenMP implementation 
 where each MPI processes uses several OpenMP threads to do the calculations for its orbitals faster. 
 The OpenMP is simply activated by compiling the program with an OpenMP flag and by specifying the number of OpenMP threats by
@@ -473,8 +473,8 @@ is written in the files 'malloc.prc' and 'time.prc'. At the end the program chec
 to the number of allocations and whether the total memory went back to zero. If this should not be the case please send a bug report to the developers of BigDFT.
 
 \section{Doing a path minimization: \texttt{NEB}}
-A NEB implementation is present in the BigDFT package, thanks to the initial routines provided by Carlos Sbraccia. This implementation is launched with the help of the \texttt{NEB} executable. This program is responsible for initialising the path from the two minima and then to run the path minimisation, using BigDFT to compute the forces. Each replica is launched by an instance of \texttt{cluster} and not in the same program \texttt{NEB}. This allows to run the NEB algorithm on a super computer with a queue system, each replica going separately in the queue. 
-The process of running the different \texttt{cluster} instances, in different directories and wait for their completions is done by two shell scripts: \texttt{NEB\_driver.sh} and \texttt{NEB\_include.sh}. The first one is very generic and should not be touched by users. It is provided in the \texttt{src/} directory of the package. The second one must be adapted by users to suit to their running machine. One example is provided in the \texttt{tests/NEB/} directory of the package.
+A NEB implementation is present in the BigDFT package, thanks to the initial routines provided by Carlos Sbraccia. This implementation is launched with the help of the \texttt{NEB} executable. This program is responsible for initialising the path from the two minima and then to run the path minimisation, using BigDFT to compute the forces. Each replica is launched by an instance of \texttt{bigdft} and not in the same program \texttt{NEB}. This allows to run the NEB algorithm on a super computer with a queue system, each replica going separately in the queue. 
+The process of running the different \texttt{bigdft} instances, in different directories and wait for their completions is done by two shell scripts: \texttt{NEB\_driver.sh} and \texttt{NEB\_include.sh}. The first one is very generic and should not be touched by users. It is provided in the \texttt{src/} directory of the package. The second one must be adapted by users to suit to their running machine. One example is provided in the \texttt{tests/NEB/} directory of the package.
 
 The \texttt{NEB} executable can be run from everywhere but the scripts \texttt{NEB\_driver.sh} and \texttt{NEB\_include.sh} must be in the same directory. It takes arguments from the command line, using a redirection from a file is good practice. See the \texttt{tests/NEB} directory of the package:
 \begin{center}
@@ -482,7 +482,7 @@ The \texttt{NEB} executable can be run from everywhere but the scripts \texttt{N
 \end{center}
 The file \texttt{input} contains a list of variables relevant to the NEB algorithm. Some of them are explained here:
 \begin{itemize}
-  \item \texttt{scratch\_dir} is where the \texttt{NEB\_driver.sh} script will create the directories where to run the \texttt{cluster} instances. It is usually on a local disk.
+  \item \texttt{scratch\_dir} is where the \texttt{NEB\_driver.sh} script will create the directories where to run the \texttt{bigdft} instances. It is usually on a local disk.
   \item \texttt{job\_name} a name that will be used to named all generated files and directories.
   \item \texttt{climbing} when set to \texttt{.TRUE.}, the highest replica follow opposite parallel forces in addition to the usual perpendicular ones.
   \item \texttt{optimization} when set to \texttt{.TRUE.}, tries to optimize the geometry of the first and last replicas (if not local minima already).
