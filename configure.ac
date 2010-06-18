@@ -318,6 +318,12 @@ if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" ; then
   AC_FC_WRAPPERS()
 fi
 
+dnl Test libraries required for benching.
+AC_LANG_PUSH(C++)
+AC_CHECK_LIB(config++, config_init, withconfig=yes, withconfig=no)
+AM_CONDITIONAL(HAVE_LIBCONFIG, test "$withconfig" = "yes")
+AC_LANG_POP(C++)
+
 dnl AM_CONDITIONAL for the different libraries, set default values.
 dnl the common routines from ABINIT.
 ac_build_lib_ABINIT="yes"
