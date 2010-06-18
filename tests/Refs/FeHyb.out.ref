@@ -21,15 +21,24 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.3.99)
+                           ggggg       i         BBBB                (Ver 1.4-dev.10)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
- Number of atoms     =     1
- Number of atom types=     1
- Atoms of type 1 are Fe
- Spin-polarised calculation: YES (Collinear)
+ Reading atomic input positions from file:posinp.xyz
+ 
+ Performance options (file 'input.perf' not present):
+ |   'debug' option disabled
+ |   'fftcache' = 8192
+ 
+ ---------------------------------------------------------------- Input atomic system
+   Atomic system                  Fixed positions           Additional data
+ Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
+ N. types =     1         |                          | Sp. group = free BC     
+ N. atoms =     1         |                          | Virt. orb.= none        
+ Types    = 'Fe'          |                          | Plot dens.= none        
+                          |                          | Spin pol. = collinear   
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -108,11 +117,10 @@
  ion-ion interaction energy  0.00000000000000E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -16.000000000000   0.000E+00
- PSolver, free  BC, dimensions:   101  101  101   proc    8   ixc:    0 ...done.
+ PSolver, free  BC, dimensions:   101  101  101   proc    8  ixc:      0 ... done.
  ------------------------------------------------------- Input Wavefunctions Creation
  Generating 20 Atomic Input Orbitals
    of which 8 are semicore orbitals
- Wavefunctions memory occupation for root processor (Bytes): 0
  Processes from 0 to 3 treat 3 inguess orbitals 
  Processes from 4 to 7 treat 2 inguess orbitals 
  Calculating AIO wavefunctions: 
@@ -122,7 +130,7 @@
  Writing wavefunctions in wavelet form... done.
  Deviation from normalization of the imported orbitals    1.20E-03
  Calculation of charge density... done. Total electronic charge=      15.999967536148
- PSolver, free  BC, dimensions:   101  101  101   proc    8   ixc: -406 ...done.
+ PSolver, free  BC, dimensions:   101  101  101   proc    8  ixc:      0 ... done.
  Hamiltonian application... Exact exchange calculation: spin, orbitals:
            1           1           1
  Exact exchange calculation: spin, orbitals:           1           1           2
@@ -239,22 +247,22 @@ Exact Exchange Energy: -3.08074093273E+00
  ekin_sum,epot_sum,eproj_sum  6.72368749486E+01 -6.99863510523E+01 -2.15327773296E+01
     ehart,   eexcu,    vexcu  1.05228491322E+02 -9.97170173143E+00 -1.29776453512E+01
  Input Wavefunctions Orthogonalization: Overlap Matrix... Linear Algebra...
- evale(   1,u)= -3.77935367778299E+00            evale(   1,d)= -3.56587442572683E+00
+ evale(   1,u)= -3.77935367778298E+00            evale(   1,d)= -3.56587442572683E+00
  evale(   2,u)= -2.51918550031900E+00            evale(   2,d)= -2.24397797071073E+00
  evale(   3,u)= -2.44281988818674E+00            evale(   3,d)= -2.23541555091234E+00
  evale(   4,u)= -2.44280113271548E+00            evale(   4,d)= -2.23539631024305E+00
- evale(   5,u)= -4.46173584833491E-01            evale(   5,d)= -2.90805001710594E-01
- evale(   6,u)= -4.46151832267971E-01    Last->  evale(   6,d)= -1.90802788593373E-01
- evale(   7,u)= -4.39575323016582E-01            evale(   7,d)= -8.89659511615385E-02
+ evale(   5,u)= -4.46173584833491E-01            evale(   5,d)= -2.90805001710593E-01
+ evale(   6,u)= -4.46151832267970E-01    Last->  evale(   6,d)= -1.90802788593373E-01
+ evale(   7,u)= -4.39575323016583E-01            evale(   7,d)= -8.89659511615384E-02
  evale(   8,u)= -4.02217681634795E-01            evale(   8,d)= -8.89440814291894E-02
- evale(   9,u)= -3.76019430172718E-01            evale(   9,d)= -8.60409377062289E-02
- evale(  10,u)= -2.25683441046358E-01  <-Last    evale(  10,d)= -3.21957542818893E-02
+ evale(   9,u)= -3.76019430172717E-01            evale(   9,d)= -8.60409377062290E-02
+ evale(  10,u)= -2.25683441046358E-01  <-Last    evale(  10,d)= -3.21957542818891E-02
  Building orthogonal Wavefunctions... done.
  expected accuracy in energy  5.99E-02
  expected accuracy in energy per orbital  3.75E-03
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=      15.999967536137
- PSolver, free  BC, dimensions:   101  101  101   proc    8   ixc: -406 ...done.
+ PSolver, free  BC, dimensions:   101  101  101   proc    8  ixc:      0 ... done.
  Hamiltonian application... Exact exchange calculation: spin, orbitals:
            1           1           1
  Exact exchange calculation: spin, orbitals:           1           1           2
@@ -337,34 +345,35 @@ Exact Exchange Energy: -3.08074060411E+00
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   6.72368890710E+01 -6.99863474949E+01 -2.15327794803E+01
  final ehart, eexcu,  vexcu   1.05228506059E+02 -9.97170094469E+00 -1.29776437727E+01
- FINAL iter,total energy,gnrm     1  -1.23424060530797831E+02  1.00E+10
+ FINAL iter,total energy,gnrm     1  -1.23424060530796581E+02  1.00E+10
  No convergence within the allowed number of minimization steps
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
  eval(   1,u)= -3.78023354768658E+00              eval(   1,d)= -3.56587925614673E+00
  eval(   2,u)= -2.51919040729548E+00              eval(   2,d)= -2.24396693404700E+00
  eval(   3,u)= -2.44281624761647E+00              eval(   3,d)= -2.23541893362066E+00
  eval(   4,u)= -2.44279571267152E+00              eval(   4,d)= -2.23539935289891E+00
- eval(   5,u)= -4.46171568967780E-01              eval(   5,d)= -2.90804640611770E-01
- eval(   6,u)= -4.46149194343313E-01              eval(   6,d)= -1.90797603897860E-01
- eval(   7,u)= -4.38777013597641E-01
+ eval(   5,u)= -4.46171568967781E-01              eval(   5,d)= -2.90804640611771E-01
+ eval(   6,u)= -4.46149194343314E-01              eval(   6,d)= -1.90797603897860E-01
+ eval(   7,u)= -4.38777013597639E-01
  eval(   8,u)= -4.02218887257589E-01
- eval(   9,u)= -3.76021110246081E-01
+ eval(   9,u)= -3.76021110246080E-01
  eval(  10,u)= -2.25597493274443E-01
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=      15.999967536137
- PSolver, free  BC, dimensions:   101  101  101   proc    8   ixc:    0 ...done.
+ PSolver, free  BC, dimensions:   101  101  101   proc    8  ixc:      0 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- CPU time/ELAPSED time for root process     0        20.57        19.99
+ average noise along x direction:  -3.04261960E-03
+ average noise along y direction:  -5.64841704E-04
+ average noise along z direction:  -5.64841705E-04
+ total average noise            :   3.14573145E-03
+Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.989562634487289E-05     0.314573144830783E-02     0.000000000000000E+00     0.000000000000000E+00
+ CPU time/ELAPSED time for root process     0        20.80        20.29
   WARNING: Wavefunctions not converged after cycle           1
   restart after diagonalisation
  Final values of the Forces for each atom
-     1     Fe -3.04262E-03 -5.64842E-04 -5.64842E-04
- the sum of the forces is
-      x direction    -3.04261960E-03
-      y direction    -5.64841704E-04
-      z direction    -5.64841705E-04
+     1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 4860 allocations and 4860 deallocations, remaining memory(B):0
- memory occupation peak: 84 MB
+ 4558 allocations and 4558 deallocations, remaining memory(B):0
+ memory occupation peak: 85 MB
  for the array  zmpi1 in the routine G_Poisson_Solver

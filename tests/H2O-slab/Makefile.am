@@ -20,14 +20,14 @@ CLEANFILES = $(PPFILES) inguess.new inguess.dat *.pot *.pot_avg* H2O-slab.out po
 $(PPFILES):
 	ln -fs $(top_srcdir)/utils/PSPfiles/HGH-K/$@
 
-H2O-slab.out: $(top_builddir)/src/cluster $(PPFILES)
+H2O-slab.out: $(top_builddir)/src/bigdft $(PPFILES)
 	@if ! test x"$(srcdir)" = x"." ; then \
 	  for file in $(EXTRA_DIST); do \
 	    ln -fs $(srcdir)/$$file ; \
 	  done ; \
 	  cp velocities.ref velocities.xyz ; \
         fi
-	$(run_parallel) $(top_builddir)/src/cluster > $@
+	$(run_parallel) $(top_builddir)/src/bigdft > $@
 	@if ! test x"$(srcdir)" = x"." ; then \
 	  for file in $(EXTRA_DIST); do \
 	    rm -f $$file ; \

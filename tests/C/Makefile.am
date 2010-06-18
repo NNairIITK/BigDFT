@@ -20,13 +20,13 @@ $(PPFILES):
 inguess.dat:
 	ln -fs $(top_srcdir)/tests/inguess.dat
 
-C.out: $(top_builddir)/src/cluster $(PPFILES)
+C.out: $(top_builddir)/src/bigdft $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
 	  ln -fs $(srcdir)/occup.dat ; \
         fi
-	$(run_parallel) $(top_builddir)/src/cluster > C.out
+	$(run_parallel) $(top_builddir)/src/bigdft > C.out
 	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.xyz ; \

@@ -21,13 +21,13 @@ $(EXTRA_DIST):
 	ln -fs $(srcdir)/$@
 
 
-FeHyb.out: $(top_builddir)/src/cluster $(PPFILES)
+FeHyb.out: $(top_builddir)/src/bigdft $(PPFILES)
 	@if ! test x"$(srcdir)" = x"." ; then \
 	  for file in $(EXTRA_DIST); do \
 	    ln -fs $(srcdir)/$$file ; \
 	  done ; \
 	fi
-	$(run_parallel) $(top_builddir)/src/cluster > $@
+	$(run_parallel) $(top_builddir)/src/bigdft > $@
 	@if ! test x"$(srcdir)" = x"." ; then \
 	  for file in $(EXTRA_DIST); do \
 	    rm -f $$file ; \

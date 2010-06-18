@@ -378,14 +378,17 @@ If this file exists, BigDFT will do a geometry optimization and the file contain
        \end{itemize}
 \item {\bf  ncount\_cluster\_x}: Maximum number of force evaluations to be used for the geometry optimization.
 \item {\bf frac\_fluct}, {\bf forcemax}: Convergence criteria for the geometry optimization. The geometry optimization stops either 
-                                           if the norm of any force acting on any atom in the system is smaller than {\bf forcemax} 
+                                           if the norm of the individual forces acting on any atom in the system is smaller than {\bf forcemax} 
                                            or if the forces get noisy. Noise is present because of the underlying integration grid.
                                            The parameter {\bf frac\_fluct} specifies how small the forces should become 
-                                           compared to the noise level to stop the geometry optimization. 1 is a reasonable parameter 
-                                           for this parameter and it means that the geometry optimization will stop when the noise 
-                                           in the forces is comparable to the forces themselves. For values of  {\bf frac\_fluct} 
+                                           compared to the noise level to stop the geometry optimization. 
+                                           Values in between  1 and 10 is are reasonable for this parameter. 
+                                           A value of 2 means that the geometry optimization will stop when 
+                                           the largest atomic force is comparable to the 2 times the average noise in 
+                                           the forces themselves. For values of  {\bf frac\_fluct} 
                                            smaller than 1 one can under certain circumstances obtain better relaxed geometries but 
-                                           one risks that the geometry optimization will not converge. In such a case one should 
+                                           one risks that the geometry optimization will not converge since the forces are too noisy. 
+                                           In such a case one should 
                                            closely monitor the progress of the geometry optimization by looking at the 'posout.*' 
                                            files which are written at each step of the geometry optimization and at the 'geopt.mon' file. 
 \item  {\bf randdis}: This parameter allows to add random displacements with amplitude \textbf{randdis} to the atomic positions in the 

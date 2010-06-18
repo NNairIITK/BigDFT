@@ -124,7 +124,7 @@ subroutine read_input_variables(iproc,posinp, &
   end do
 
   !stop the code if it is trying to run GPU with non-periodic boundary conditions
-  if (atoms%geocode /= 'P' .and. GPUconv) then
+  if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
      stop 'GPU calculation allowed only in periodic boundary conditions'
   end if
 

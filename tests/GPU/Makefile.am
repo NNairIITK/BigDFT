@@ -17,13 +17,13 @@ CLEANFILES = $(PPFILES) GPU.out posout* *.prc \
 $(PPFILES):
 	ln -fs $(top_srcdir)/utils/PSPfiles/HGH/$@
 
-GPU.out: $(top_builddir)/src/cluster $(PPFILES)
+GPU.out: $(top_builddir)/src/bigdft $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
 	  ln -fs $(srcdir)/GPU.config ; \
         fi
-	$(top_builddir)/src/cluster > $@
+	$(top_builddir)/src/bigdft > $@
 	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.xyz ; \

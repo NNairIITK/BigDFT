@@ -612,6 +612,9 @@ contains
 
     !C initialize positions,velocities, forces
     call randdist(atoms%nat,rxyz,vxyz)
+
+!print *,'velocities',vxyz
+!stop
     inputs_md%inputPsiId=1
     !if(iproc==0)write(*,*)' #  no softening'
     call soften(nsoften,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
@@ -763,13 +766,12 @@ contains
     svxyz=0.d0
     do i=1,3*atoms%nat
        iat=(i-1)/3+1
-       if (atoms%ifrztyp(iat) /= 0) then
+       if (atoms%ifrztyp(iat) == 0) then
           svxyz=svxyz+vxyz(i)**2
        end if
     enddo
     eps_vxyz=sqrt(svxyz)
     if(iproc == 0) write(*,*)'#  eps_vxyz=',eps_vxyz
-
     do it=1,nsoften
        
 !       do iat=1,atoms%nat
@@ -803,7 +805,7 @@ contains
        svxyz=0.d0
        do i=1,3*atoms%nat
           iat=(i-1)/3+1
-          if (atoms%ifrztyp(iat) /= 0) then
+          if (atoms%ifrztyp(iat) == 0) then
              sdf=sdf+vxyz(i)*fxyz(i)
              svxyz=svxyz+vxyz(i)*vxyz(i)
           end if
@@ -817,7 +819,7 @@ contains
        res=0.d0
        do i=1,3*atoms%nat
           iat=(i-1)/3+1
-          if (atoms%ifrztyp(iat) /= 0) then
+          if (atoms%ifrztyp(iat) == 0) then
              fxyz(i)=fxyz(i)+curv*vxyz(i)
              res=res+fxyz(i)**2
           end if
@@ -870,7 +872,7 @@ contains
        svxyz=0.d0
        do i=1,3*atoms%nat
           iat=(i-1)/3+1
-          if (atoms%ifrztyp(iat) /= 0) then
+          if (atoms%ifrztyp(iat) == 0) then
              svxyz=svxyz+vxyz(i)*vxyz(i)
           end if
        end do

@@ -16,12 +16,12 @@ CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* SiBulk.out \
 $(PPFILES):
 	ln -fs $(top_srcdir)/utils/PSPfiles/HGH/$@
 
-SiBulk.out: $(top_builddir)/src/cluster $(PPFILES)
+SiBulk.out: $(top_builddir)/src/bigdft $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
         fi
-	$(run_parallel) $(top_builddir)/src/cluster > $@
+	$(run_parallel) $(top_builddir)/src/bigdft > $@
 	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.xyz ; \

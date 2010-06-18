@@ -343,16 +343,14 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
 END SUBROUTINE atom_projector
 !!***
 
-subroutine deallocate_proj_descr(nlpspd, subname)
+subroutine deallocate_proj_descr(nlpspd,subname)
   use module_base
   use module_types
   implicit none
-
+  character(len=*), intent(in) :: subname
   type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
-  character(len = *), intent(in) :: subname
 
   integer :: i_all, i_stat
-
   i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
   deallocate(nlpspd%nboxp_c,stat=i_stat)
   call memocc(i_stat,i_all,'nboxp_c',subname)

@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.4-dev.9)
+                           ggggg       i         BBBB                (Ver 1.4-dev.10)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -105,48 +105,50 @@
  Wavefunctions memory occupation for root processor (Bytes): 527728
  Deviation from normalization of the imported orbitals    1.21E-04
  PSolver, free  BC, dimensions:   125  125  125   proc    8  ixc:      0 ... done.
- ekin_sum,epot_sum,eproj_sum  5.70847696520E+00 -1.21001695492E+01  3.24729536429E+00
+ ekin_sum,epot_sum,eproj_sum  5.70847696520E+00 -1.21001695493E+01  3.24729536429E+00
     ehart,   eexcu,    vexcu  1.36713436985E+01 -2.86282299835E+00 -3.74291950990E+00
- evale(1)= -7.47600409609766E-01 <-
- evale(2)= -3.09515053273820E-01 <-
- evale(3)= -3.08625067614829E-01 <-
- evale(4)= -3.08625067614824E-01 <- Last eigenvalue for input wavefunctions
- evale(5)= -1.00985525209751E-01 <- First virtual eigenvalue
+ evale(1)= -7.47600409609836E-01 <-
+ evale(2)= -3.09515053273883E-01 <-
+ evale(3)= -3.08625067614892E-01 <-
+ evale(4)= -3.08625067614889E-01 <- Last eigenvalue for input wavefunctions
+ evale(5)= -1.00985525209783E-01 <- First virtual eigenvalue
  expected accuracy in energy  6.55E-04
  expected accuracy in energy per orbital  1.64E-04
- iter,total energy,gnrm     1  -1.50926713879747272E+01  1.06E-01
- iter,total energy,gnrm     2  -1.51664449738074421E+01  4.04E-02
- iter,total energy,gnrm     3  -1.51733068939429376E+01  1.10E-02
- iter,total energy,gnrm     4  -1.51763357163696302E+01  8.52E-03
- iter,total energy,gnrm     5  -1.51769777181118410E+01  7.61E-03
- iter,total energy,gnrm     6  -1.51775725360708922E+01  6.78E-03
- iter,total energy,gnrm     7  -1.51788187195455695E+01  6.64E-03
- iter,total energy,gnrm     8  -1.51802107495881895E+01  5.75E-03
- iter,total energy,gnrm     9  -1.51802773219922091E+01  5.93E-03
- iter,total energy,gnrm    10  -1.51806868372682278E+01  5.49E-03
- iter,total energy,gnrm    11  -1.51808689682725113E+01  1.40E-03
- iter,total energy,gnrm    12  -1.51808723000311065E+01  5.70E-04
- iter,total energy,gnrm    13  -1.51808776557344860E+01  3.44E-04
- iter,total energy,gnrm    14  -1.51808780664759784E+01  1.40E-04
- iter,total energy,gnrm    15  -1.51808783479915785E+01  6.74E-05
+ iter,total energy,gnrm     1  -1.50926713879744145E+01  1.06E-01
+ iter,total energy,gnrm     2  -1.51664449738073390E+01  4.04E-02
+ iter,total energy,gnrm     3  -1.51733068939428666E+01  1.10E-02
+ iter,total energy,gnrm     4  -1.51763357163694064E+01  8.52E-03
+ iter,total energy,gnrm     5  -1.51769777181115320E+01  7.61E-03
+ iter,total energy,gnrm     6  -1.51775725360704907E+01  6.78E-03
+ iter,total energy,gnrm     7  -1.51788187195453030E+01  6.64E-03
+ iter,total energy,gnrm     8  -1.51802107495877028E+01  5.75E-03
+ iter,total energy,gnrm     9  -1.51802773219916549E+01  5.93E-03
+ iter,total energy,gnrm    10  -1.51806868372676877E+01  5.49E-03
+ iter,total energy,gnrm    11  -1.51808689682722164E+01  1.40E-03
+ iter,total energy,gnrm    12  -1.51808723000308330E+01  5.70E-04
+ iter,total energy,gnrm    13  -1.51808776557342053E+01  3.44E-04
+ iter,total energy,gnrm    14  -1.51808780664754739E+01  1.40E-04
+ iter,total energy,gnrm    15  -1.51808783479912126E+01  6.74E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   5.69568664693E+00 -1.09272021982E+01  3.17703299296E+00
  final ehart, eexcu,  vexcu   1.48913588598E+01 -2.97857997376E+00 -3.89444097310E+00
- FINAL iter,total energy,gnrm    16  -1.51808783700053045E+01  6.74E-05
+ FINAL iter,total energy,gnrm    16  -1.51808783700048711E+01  6.74E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1)= -5.75540435669255E-01
- eval(   2)= -1.58571078693264E-01
- eval(   3)= -1.46564882395650E-01
- eval(   4)= -1.46564882395649E-01
+ eval(   1)= -5.75540435669257E-01
+ eval(   2)= -1.58571078693266E-01
+ eval(   3)= -1.46564882395651E-01
+ eval(   4)= -1.46564882395651E-01
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:   125  125  125   proc    8  ixc:      0 ... done.
- the sum of the forces is
-      x direction    -1.49875189E-04
-      y direction    -1.49875189E-04
-      z direction    -1.49875189E-04
- CPU time/ELAPSED time for root process     0        37.24        35.75
+ average noise along x direction:  -2.11955525E-04
+ average noise along y direction:  -2.11955525E-04
+ average noise along z direction:  -2.11955525E-04
+ total average noise            :   3.67117738E-04
+Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.463447207763970E-03     0.154798482126196E-01     0.231656216165254E-03     0.152202567706742E-01
+ CPU time/ELAPSED time for root process     0        15.47        15.06
  Wavefunction Optimization Finished, exit signal=    0
+# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
  Begin of minimization using  VSSD      
  # ENTERING VSSD
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -205,24 +207,26 @@
  PSolver, free  BC, dimensions:   125  125  125   proc    8  ixc:      0 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions do not need reformatting and can be imported directly...    done.
- iter,total energy,gnrm     1  -1.51808783700057415E+01  2.23E-05
+ iter,total energy,gnrm     1  -1.51808783700049812E+01  2.23E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   5.69570987091E+00 -1.09271676931E+01  3.17704115848E+00
  final ehart, eexcu,  vexcu   1.48914280625E+01 -2.97859055667E+00 -3.89445486041E+00
- FINAL iter,total energy,gnrm     2  -1.51808783736398478E+01  2.23E-05
+ FINAL iter,total energy,gnrm     2  -1.51808783736392510E+01  2.23E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1)= -5.75531022784616E-01
+ eval(   1)= -5.75531022784612E-01
  eval(   2)= -1.58563579889562E-01
  eval(   3)= -1.46556864579541E-01
- eval(   4)= -1.46556864579541E-01
+ eval(   4)= -1.46556864579540E-01
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:   125  125  125   proc    8  ixc:      0 ... done.
- the sum of the forces is
-      x direction    -1.48969596E-04
-      y direction    -1.48969596E-04
-      z direction    -1.48969596E-04
- CPU time/ELAPSED time for root process     0         6.14         5.76
+ average noise along x direction:  -2.10674823E-04
+ average noise along y direction:  -2.10674823E-04
+ average noise along z direction:  -2.10674823E-04
+ total average noise            :   3.64899498E-04
+Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.463373566678874E-03     0.154770967153486E-01     0.231620207517778E-03     0.152190738061742E-01
+ CPU time/ELAPSED time for root process     0         2.30         2.30
+    0     0  GEOPT_VSSD  -1.51808783736393E+01  -3.63E-09  1.522E-02  1.52E-02  0.00E+00  3.65E-04  beta=1.00E+2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -273,7 +277,7 @@
  Total number of components =               266320
  Percent of zero components =                   36
  Wavefunctions memory occupation for root processor (Bytes): 519960
- ion-ion interaction energy  1.04134189653528E+00
+ ion-ion interaction energy  1.04134189653525E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
  PSolver, free  BC, dimensions:   125  125  125   proc    8  ixc:      0 ... done.
@@ -281,38 +285,40 @@
  The wavefunctions need reformatting because:                                 
     nvctr_c_old >< nvctr_c   59239   58142
  Reformatting... done.
- iter,total energy,gnrm     1  -1.26426536895888226E+01  9.17E-01
- iter,total energy,gnrm     2  -1.46823567138512772E+01  3.71E-01
- iter,total energy,gnrm     3  -1.50711896958061757E+01  2.28E-01
- iter,total energy,gnrm     4  -1.51681000824543375E+01  1.21E-01
- iter,total energy,gnrm     5  -1.51993229455222263E+01  5.76E-02
- iter,total energy,gnrm     6  -1.52080282628497869E+01  2.20E-02
- iter,total energy,gnrm     7  -1.52095241367504208E+01  1.07E-02
- iter,total energy,gnrm     8  -1.52100455329428357E+01  4.31E-03
- iter,total energy,gnrm     9  -1.52102049486799764E+01  3.63E-03
- iter,total energy,gnrm    10  -1.52102416167157131E+01  2.72E-03
- iter,total energy,gnrm    11  -1.52102643500825643E+01  2.10E-03
- iter,total energy,gnrm    12  -1.52102736491486610E+01  8.18E-04
- iter,total energy,gnrm    13  -1.52102753663715582E+01  3.57E-04
- iter,total energy,gnrm    14  -1.52102756621280228E+01  1.46E-04
- iter,total energy,gnrm    15  -1.52102757140764062E+01  7.99E-05
+ iter,total energy,gnrm     1  -1.26426536895895296E+01  9.17E-01
+ iter,total energy,gnrm     2  -1.46823567138506590E+01  3.71E-01
+ iter,total energy,gnrm     3  -1.50711896958055611E+01  2.28E-01
+ iter,total energy,gnrm     4  -1.51681000824536376E+01  1.21E-01
+ iter,total energy,gnrm     5  -1.51993229455212990E+01  5.76E-02
+ iter,total energy,gnrm     6  -1.52080282628487993E+01  2.20E-02
+ iter,total energy,gnrm     7  -1.52095241367495859E+01  1.07E-02
+ iter,total energy,gnrm     8  -1.52100455329419333E+01  4.31E-03
+ iter,total energy,gnrm     9  -1.52102049486790953E+01  3.63E-03
+ iter,total energy,gnrm    10  -1.52102416167147645E+01  2.72E-03
+ iter,total energy,gnrm    11  -1.52102643500817329E+01  2.10E-03
+ iter,total energy,gnrm    12  -1.52102736491477373E+01  8.18E-04
+ iter,total energy,gnrm    13  -1.52102753663707269E+01  3.57E-04
+ iter,total energy,gnrm    14  -1.52102756621271311E+01  1.46E-04
+ iter,total energy,gnrm    15  -1.52102757140756033E+01  7.99E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   5.69561138767E+00 -1.10040136711E+01  3.17327883820E+00
  final ehart, eexcu,  vexcu   1.50371172194E+01 -2.99420172337E+00 -3.91482476202E+00
- FINAL iter,total energy,gnrm    16  -1.52102757294758355E+01  7.99E-05
+ FINAL iter,total energy,gnrm    16  -1.52102757294749615E+01  7.99E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1)= -5.84381076103371E-01
- eval(   2)= -1.70584899325685E-01
- eval(   3)= -1.56297873602988E-01
- eval(   4)= -1.56297873602987E-01
+ eval(   1)= -5.84381076103366E-01
+ eval(   2)= -1.70584899325679E-01
+ eval(   3)= -1.56297873602982E-01
+ eval(   4)= -1.56297873602981E-01
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:   125  125  125   proc    8  ixc:      0 ... done.
- the sum of the forces is
-      x direction    -9.58966777E-05
-      y direction    -9.58966777E-05
-      z direction    -9.58966777E-05
- CPU time/ELAPSED time for root process     0        34.64        33.45
+ average noise along x direction:  -1.35618382E-04
+ average noise along y direction:  -1.35618382E-04
+ average noise along z direction:  -1.35618382E-04
+ total average noise            :   2.34897928E-04
+Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.111655889054855E-02     0.237934519120378E-01     0.558251856755887E-03     0.236273539939598E-01
+ CPU time/ELAPSED time for root process     0        13.45        13.35
+    2     1  GEOPT_VSSD  -1.52102757294750E+01  -2.94E-02  2.363E-02  2.36E-02  0.00E+00  3.39E-04  beta=1.25E+2  last beta=*******
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -363,7 +369,7 @@
  Total number of components =               266320
  Percent of zero components =                   36
  Wavefunctions memory occupation for root processor (Bytes): 517056
- ion-ion interaction energy  1.85741596186748E+00
+ ion-ion interaction energy  1.85741596186880E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
  PSolver, free  BC, dimensions:   125  125  125   proc    8  ixc:      0 ... done.
@@ -371,9 +377,9 @@
  The wavefunctions need reformatting because:                                 
     nvctr_c_old >< nvctr_c   58142   57856
  Reformatting... done.
- iter,total energy,gnrm     1  -8.49564448709816844E+00  1.27E+00
+ iter,total energy,gnrm     1  -8.49564448708963127E+00  1.27E+00
  The norm of the residue is too large, need to recalculate input wavefunctions
- CPU time/ELAPSED time for root process     0         4.22         3.98
+ CPU time/ELAPSED time for root process     0         1.49         1.48
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 11
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -424,39 +430,41 @@
  Total number of components =               266320
  Percent of zero components =                   36
  Wavefunctions memory occupation for root processor (Bytes): 517056
- ion-ion interaction energy  1.85741596186748E+00
+ ion-ion interaction energy  1.85741596186880E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
  PSolver, free  BC, dimensions:   125  125  125   proc    8  ixc:      0 ... done.
  --------------------------------------- Quick Wavefunctions Restart (Gaussian basis)
  Deviation from normalization of the imported orbitals    5.67E-02
- iter,total energy,gnrm     1  -1.51319592557906795E+01  1.26E-01
- iter,total energy,gnrm     2  -1.52435288104230438E+01  5.72E-02
- iter,total energy,gnrm     3  -1.52604407789447230E+01  2.60E-02
- iter,total energy,gnrm     4  -1.52642306456627317E+01  1.30E-02
- iter,total energy,gnrm     5  -1.52647098415669475E+01  7.35E-03
- iter,total energy,gnrm     6  -1.52648780329561795E+01  3.37E-03
- iter,total energy,gnrm     7  -1.52649069368143522E+01  1.32E-03
- iter,total energy,gnrm     8  -1.52649095156694408E+01  4.36E-04
- iter,total energy,gnrm     9  -1.52649097815355397E+01  2.09E-04
- iter,total energy,gnrm    10  -1.52649098601536615E+01  9.74E-05
+ iter,total energy,gnrm     1  -1.51319592557901590E+01  1.26E-01
+ iter,total energy,gnrm     2  -1.52435288104220223E+01  5.72E-02
+ iter,total energy,gnrm     3  -1.52604407789437051E+01  2.60E-02
+ iter,total energy,gnrm     4  -1.52642306456617387E+01  1.30E-02
+ iter,total energy,gnrm     5  -1.52647098415665301E+01  7.35E-03
+ iter,total energy,gnrm     6  -1.52648780329554636E+01  3.37E-03
+ iter,total energy,gnrm     7  -1.52649069368138068E+01  1.32E-03
+ iter,total energy,gnrm     8  -1.52649095156690056E+01  4.36E-04
+ iter,total energy,gnrm     9  -1.52649097815348984E+01  2.09E-04
+ iter,total energy,gnrm    10  -1.52649098601529101E+01  9.74E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   5.87426765094E+00 -1.17411410664E+01  3.28165044652E+00
  final ehart, eexcu,  vexcu   1.54816674498E+01 -3.07072549461E+00 -4.01529006754E+00
- FINAL iter,total energy,gnrm    11  -1.52649098839617352E+01  9.74E-05
+ FINAL iter,total energy,gnrm    11  -1.52649098839613391E+01  9.74E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1)= -6.41291982068063E-01
- eval(   2)= -2.26018134122333E-01
- eval(   3)= -2.12650684135483E-01
- eval(   4)= -2.12650684135482E-01
+ eval(   1)= -6.41291982068125E-01
+ eval(   2)= -2.26018134122355E-01
+ eval(   3)= -2.12650684135553E-01
+ eval(   4)= -2.12650684135552E-01
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:   125  125  125   proc    8  ixc:      0 ... done.
- the sum of the forces is
-      x direction     3.31095259E-06
-      y direction     3.31095258E-06
-      z direction     3.31095253E-06
- CPU time/ELAPSED time for root process     0        24.96        24.61
+ average noise along x direction:   4.68239405E-06
+ average noise along y direction:   4.68239405E-06
+ average noise along z direction:   4.68239398E-06
+ total average noise            :   8.11014435E-06
+Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.340691515240318E-02     0.412786985680920E-01     0.170345754331437E-02     0.412729638300228E-01
+ CPU time/ELAPSED time for root process     0         9.83         9.66
+    3     2  GEOPT_VSSD  -1.52649098839613E+01  -5.46E-02  4.127E-02  4.13E-02  0.00E+00  2.73E-04  beta=1.00E+2  last beta=2.28E+1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -507,7 +515,7 @@
  Total number of components =               266320
  Percent of zero components =                   36
  Wavefunctions memory occupation for root processor (Bytes): 525488
- ion-ion interaction energy  8.86527860397967E-01
+ ion-ion interaction energy  8.86527860393583E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
  PSolver, free  BC, dimensions:   125  125  125   proc    8  ixc:      0 ... done.
@@ -515,9 +523,9 @@
  The wavefunctions need reformatting because:                                 
     nvctr_c_old >< nvctr_c   57856   58938
  Reformatting... done.
- iter,total energy,gnrm     1  -5.18318050046042078E+00  1.40E+00
+ iter,total energy,gnrm     1  -5.18318050033535282E+00  1.40E+00
  The norm of the residue is too large, need to recalculate input wavefunctions
- CPU time/ELAPSED time for root process     0         4.33         4.22
+ CPU time/ELAPSED time for root process     0         1.49         1.47
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 11
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -568,46 +576,48 @@
  Total number of components =               266320
  Percent of zero components =                   36
  Wavefunctions memory occupation for root processor (Bytes): 525488
- ion-ion interaction energy  8.86527860397967E-01
+ ion-ion interaction energy  8.86527860393583E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000000000000   0.000E+00
  PSolver, free  BC, dimensions:   125  125  125   proc    8  ixc:      0 ... done.
  --------------------------------------- Quick Wavefunctions Restart (Gaussian basis)
  Deviation from normalization of the imported orbitals    9.23E-02
- iter,total energy,gnrm     1  -1.50747474320197448E+01  9.11E-02
- iter,total energy,gnrm     2  -1.51609076540745935E+01  5.14E-02
- iter,total energy,gnrm     3  -1.51802535682669610E+01  2.25E-02
- iter,total energy,gnrm     4  -1.51858375056952806E+01  1.21E-02
- iter,total energy,gnrm     5  -1.51862668358144628E+01  4.23E-03
- iter,total energy,gnrm     6  -1.51864194322088775E+01  2.48E-03
- iter,total energy,gnrm     7  -1.51864468403153285E+01  1.21E-03
- iter,total energy,gnrm     8  -1.51864599006318759E+01  6.47E-04
- iter,total energy,gnrm     9  -1.51864616028860215E+01  2.66E-04
- iter,total energy,gnrm    10  -1.51864622689994757E+01  1.87E-04
- iter,total energy,gnrm    11  -1.51864627409575537E+01  1.56E-04
- iter,total energy,gnrm    12  -1.51864628523872778E+01  7.64E-05
+ iter,total energy,gnrm     1  -1.50747474320185226E+01  9.11E-02
+ iter,total energy,gnrm     2  -1.51609076540730943E+01  5.14E-02
+ iter,total energy,gnrm     3  -1.51802535682656572E+01  2.25E-02
+ iter,total energy,gnrm     4  -1.51858375056940336E+01  1.21E-02
+ iter,total energy,gnrm     5  -1.51862668358129884E+01  4.23E-03
+ iter,total energy,gnrm     6  -1.51864194322072823E+01  2.48E-03
+ iter,total energy,gnrm     7  -1.51864468403139892E+01  1.21E-03
+ iter,total energy,gnrm     8  -1.51864599006301670E+01  6.47E-04
+ iter,total energy,gnrm     9  -1.51864616028844726E+01  2.66E-04
+ iter,total energy,gnrm    10  -1.51864622689979871E+01  1.87E-04
+ iter,total energy,gnrm    11  -1.51864627409557453E+01  1.56E-04
+ iter,total energy,gnrm    12  -1.51864628523856826E+01  7.64E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   5.69450126231E+00 -1.09305467534E+01  3.17552679420E+00
  final ehart, eexcu,  vexcu   1.49294198609E+01 -2.98214999500E+00 -3.89909782265E+00
- FINAL iter,total energy,gnrm    13  -1.51864628696660571E+01  7.64E-05
+ FINAL iter,total energy,gnrm    13  -1.51864628696646076E+01  7.64E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1)= -5.75978587584691E-01
- eval(   2)= -1.59637928036358E-01
- eval(   3)= -1.47321416399456E-01
- eval(   4)= -1.47321416399455E-01
+ eval(   1)= -5.75978587584586E-01
+ eval(   2)= -1.59637928036179E-01
+ eval(   3)= -1.47321416399318E-01
+ eval(   4)= -1.47321416399317E-01
  ---------------------------------------------------------- Gaussian Basis Projection
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:   125  125  125   proc    8  ixc:      0 ... done.
- the sum of the forces is
-      x direction    -1.65345255E-04
-      y direction    -1.65345255E-04
-      z direction    -1.65345255E-04
- CPU time/ELAPSED time for root process     0        29.06        28.34
+ average noise along x direction:  -2.33833503E-04
+ average noise along y direction:  -2.33833503E-04
+ average noise along z direction:  -2.33833503E-04
+ total average noise            :   4.05011507E-04
+Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.584481254240218E-03     0.173790342165359E-01     0.292158609959715E-03     0.170926478334901E-01
+ CPU time/ELAPSED time for root process     0        11.40        11.15
+    4     3  GEOPT_VSSD  -1.51864628696646E+01   7.84E-02  1.709E-02  1.71E-02  0.00E+00  2.99E-04  beta=1.00E+2  last beta=3.54E+1
 End of minimization using  VSSD      
  Final values of the Forces for each atom
      1     Na  0.00000E+00  0.00000E+00  0.00000E+00
      2     Cl -9.86844E-03 -9.86844E-03 -9.86844E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 9279 allocations and 9279 deallocations, remaining memory(B):0
+ 9271 allocations and 9271 deallocations, remaining memory(B):0
  memory occupation peak: 61 MB
  for the array  wz in the routine gaussians_to_wavelets_orb

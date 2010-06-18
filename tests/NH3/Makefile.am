@@ -18,13 +18,13 @@ CLEANFILES = $(PPFILES) NH3.out geopt.mon posout* *.prc\
 $(PPFILES):
 	ln -fs $(top_srcdir)/utils/PSPfiles/HGH-K/$@
 
-NH3.out: $(top_builddir)/src/cluster $(PPFILES)
+NH3.out: $(top_builddir)/src/bigdft $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.ascii ; \
 	  ln -fs $(srcdir)/input.geopt ; \
         fi
-	$(run_parallel) $(top_builddir)/src/cluster > $@
+	$(run_parallel) $(top_builddir)/src/bigdft > $@
 	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.ascii ; \
