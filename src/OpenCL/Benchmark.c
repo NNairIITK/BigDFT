@@ -1,5 +1,17 @@
 #include "OpenCL_wrappers.h"
 
+/**
+  Those kernels are benchmark, they try to focus on
+  1 performance aspect each.
+  benchmark_mops measures the number of memory copy
+  that can be processed. It generates n*8 double memory
+  copy.
+  benchmark_flops mesures the number of mad that can be
+  expected from the device. It generates 16*128*n mads,
+  or 16*128*n*2 flop.
+  transpose measures the performances of the transposition
+  method used in almost every kernel.
+*/
 char * benchmark_program = "\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable\n\
 #define NB_ITER 16\n\

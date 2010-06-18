@@ -17,7 +17,7 @@
   Even line centered convolutions go int the upper part
   of the resulting matrix, while odd line centered convolutions
   go to the lower part of the resulting matrix.
-  
+  Size  of the data is 2*n * ndat.
 */
 char * ana_program="\
 #define FILTER_WIDTH 16\n\
@@ -200,6 +200,7 @@ out += n;\n\
   As buffer is split into 2 zones, each of length:
   4+16+4, some work items load 4 elements, while other
   load 2 elements. The performance inpact of this is minimal.
+  Size  of the data is 2*n * ndat.
 */
 char * syn_program="\
 #define FILTER_WIDTH 8\n\
