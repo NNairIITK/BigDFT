@@ -588,6 +588,7 @@ tests/NEB/input
 tests/NEB/NEB_include.sh
 tests/XabsCheb/Makefile
 tests/FeHyb/Makefile
+tests/Graphene/Makefile
 ])
 
 # Call libXC ./configure script recursively.

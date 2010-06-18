@@ -19,7 +19,8 @@ SUBDIRS = \
 	  NEB \
 	  NH3 \
 	  XabsCheb \
-	  FeHyb
+	  FeHyb \
+	  Graphene
 
 
 #This will run the automatic tests also for GPU
