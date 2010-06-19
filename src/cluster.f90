@@ -1261,7 +1261,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         orbsv%norb=0
         orbsv%norbp=0
      end if
-     call local_analysis(iproc,nproc,hx,hy,hz,shift,Glr,orbs,orbsv,psi,psivirt)
+     call local_analysis(iproc,nproc,hx,hy,hz,in,atoms,rxyz,shift,Glr,orbs,orbsv,psi,psivirt)
   end if
 
   i_all=-product(shape(pkernel))*kind(pkernel)

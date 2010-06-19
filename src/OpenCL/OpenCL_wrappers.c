@@ -32,6 +32,8 @@ cl_device_id oclGetFirstDev(cl_context cxGPUContext)
 void FC_FUNC_(ocl_build_kernels,OCL_BUILD_KERNELS)(cl_context * context) {
     build_magicfilter_programs(context);
     create_magicfilter_kernels();
+    build_benchmark_programs(context);
+    create_benchmark_kernels();
     build_kinetic_programs(context);
     create_kinetic_kernels();
     build_wavelet_programs(context);
@@ -61,7 +63,10 @@ void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(cl_context * contex
 
 void FC_FUNC_(ocl_create_cpu_context,OCL_CREATE_CPU_CONTEXT)(cl_context * context) {
     cl_int ciErrNum = CL_SUCCESS;
-    *context = clCreateContextFromType(0, CL_DEVICE_TYPE_CPU, NULL, NULL, &ciErrNum);
+    cl_platform_id platform_id;
+    clGetPlatformIDs(1, &platform_id, NULL);
+    cl_context_properties properties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, 0 };
+    *context = clCreateContextFromType( properties, CL_DEVICE_TYPE_CPU, NULL, NULL, &ciErrNum);
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
     printf("contexte address: %p\n",*context);
@@ -155,6 +160,27 @@ void FC_FUNC_(ocl_create_command_queue,OCL_CREATE_COMMAND_QUEUE)(cl_command_queu
     }
 }
 
+void FC_FUNC_(ocl_create_command_queue_id,OCL_CREATE_COMMAND_QUEUE_ID)(cl_command_queue *hCmdQueue, cl_context *context, cl_uint *index){
+    size_t nContextDescriptorSize;
+    cl_int ciErrNum;
+    clGetContextInfo(*context, CL_CONTEXT_DEVICES, 0, 0, &nContextDescriptorSize);
+    cl_device_id * aDevices = (cl_device_id *) malloc(nContextDescriptorSize);
+    clGetContextInfo(*context, CL_CONTEXT_DEVICES, nContextDescriptorSize, aDevices, 0);
+#if PROFILING
+    *hCmdQueue = clCreateCommandQueue(*context, aDevices[*index % (nContextDescriptorSize/sizeof(cl_device_id))], CL_QUEUE_PROFILING_ENABLE, &ciErrNum);
+#else
+    *hCmdQueue = clCreateCommandQueue(*context, aDevices[*index % (nContextDescriptorSize/sizeof(cl_device_id))], 0, &ciErrNum);
+#endif
+#if DEBUG
+    printf("%s %s\n", __func__, __FILE__);
+    printf("contexte address: %p, command queue: %p\n",*context, *hCmdQueue);
+#endif
+    if (ciErrNum != CL_SUCCESS)
+    {
+        fprintf(stderr,"Error: Failed to create command queue!\n");
+        exit(1);
+    }
+}
 
 size_t shrRoundUp(size_t group_size, size_t global_size)
 {
@@ -187,6 +213,7 @@ void FC_FUNC_(ocl_enqueue_barrier,OCL_ENQUEUE_BARRIER)(cl_command_queue *command
 void FC_FUNC_(ocl_clean,OCL_CLEAN)(cl_command_queue *command_queue, cl_context *context){
   size_t i;
   clean_magicfilter_kernels();
+  clean_benchmark_kernels();
   clean_kinetic_kernels();
   clean_initialize_kernels();
   clean_wavelet_kernels();

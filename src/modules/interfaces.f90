@@ -928,15 +928,18 @@ module module_interfaces
        real(wp), dimension(:), pointer :: Gocc
      END SUBROUTINE gaussian_pswf_basis
 
-     subroutine local_analysis(iproc,nproc,hx,hy,hz,shift,lr,orbs,orbsv,psi,psivirt)
+     subroutine local_analysis(iproc,nproc,hx,hy,hz,in,at,rxyz,shift,lr,orbs,orbsv,psi,psivirt)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: iproc,nproc
        real(gp), intent(in) :: hx,hy,hz
+       type(input_variables), intent(in) :: in
        type(locreg_descriptors), intent(in) :: lr
        type(orbitals_data), intent(in) :: orbs,orbsv
+       type(atoms_data), intent(in) :: at
        real(gp), dimension(3),intent(in) :: shift
+       real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(:), pointer :: psi,psivirt
      END SUBROUTINE local_analysis
 
