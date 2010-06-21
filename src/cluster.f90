@@ -574,6 +574,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU)
+     if (nvirt > norbv) then
+        nvirt = norbv
+     end if
   case(1)
      !these parts should be reworked for the non-collinear spin case
 
@@ -1233,7 +1236,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
              pkernel,psi,psivirt,ngatherarr,GPU)
         
      else if (in%norbv > 0) then
-
         call davidson(iproc,nproc,n1i,n2i,in,atoms,&
              orbs,orbsv,nvirt,Glr,comms,commsv,&
              hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &

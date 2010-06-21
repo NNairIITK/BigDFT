@@ -49,3 +49,4 @@ S_GPU/examples/fortran/add_array/Makefile.standalone
 S_GPU/src/CUDA/.deps/
 tmp.c
 .deps
+*.orig

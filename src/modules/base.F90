@@ -1331,7 +1331,7 @@ module module_base
       implicit none
       character(len=*), intent(in) :: aname,rname
       integer, intent(in) :: istat
-      character(len=20), dimension(:), intent(in) :: array
+      character(len=*), dimension(:), intent(in) :: array
       !local variables
       integer :: ndim
       if (ndebug /=0) then

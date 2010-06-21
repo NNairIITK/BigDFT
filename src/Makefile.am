@@ -37,8 +37,7 @@ GPU_BLAS = modules/cublas_fake.f90
 endif
 
 if USE_OCL
-#sub_dirs_ocl=OpenCL convolutions-c
-sub_dirs_ocl=OpenCL 
+sub_dirs_ocl=OpenCL
 OCL_INTERFACE = convolutions/convolut_common_interface_ocl.f90
 libs_ocl=OpenCL/libOCL.a
 else
@@ -46,6 +45,13 @@ sub_dirs_ocl=
 OCL_INTERFACE = convolutions/interface_ocl_fake.f90
 libs_ocl=
 endif
+
+if HAVE_LIBCONFIG
+sub_dirs_libconfig=convolutions-c
+else
+sub_dirs_libconfig=
+endif
+
 
 if USE_MINIMA_HOPPING
 minima_hopping_sources = global
@@ -66,7 +72,7 @@ global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) art
+SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) art $(sub_dirs_libconfig)
 
 EXTRA_DIST = \
 	wavelib/intots.inc \

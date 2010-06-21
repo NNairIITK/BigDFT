@@ -354,7 +354,7 @@ subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   hyh=.5_gp*hy
   hzh=.5_gp*hz
 
-  open(unit=22,file=orbname//'.cube',status='unknown')
+  open(unit=22,file=trim(orbname)//'.cube',status='unknown')
   write(22,*)orbname
   write(22,*)'CUBE file for orbital wavefunction'
   !number of atoms
@@ -712,7 +712,7 @@ subroutine plot_density_cube_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n
 contains
 
   subroutine cubefile_write
-        open(unit=22,file=filename//trim(suffix)//'.cube',status='unknown')
+        open(unit=22,file=trim(filename)//trim(suffix)//'.cube',status='unknown')
         write(22,*)'CUBE file for charge density'
         write(22,*)'Case for '//trim(message)
         !number of atoms
@@ -799,7 +799,7 @@ contains
   subroutine cubefile_read
        real(dp) dum1,dum2, dum3
         integer idum
-        open(unit=22,file=filename//trim(suffix)//'.cube',status='old')
+        open(unit=22,file=trim(filename)//trim(suffix)//'.cube',status='old')
         read(22,*)! 'CUBE file for charge density'
         read(22,*)! 'Case for '//trim(message)
 
@@ -875,6 +875,7 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   !local variables
   character(len=3) :: advancestring
   integer :: nl1,nl2,nl3,nbx,nby,nbz,i1,i2,i3,icount,j,iat
+  real(dp) :: later_avg
   !conditions for periodicity in the three directions
   !value of the buffer in the x and z direction
   if (at%geocode /= 'F') then
@@ -931,6 +932,51 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   end do
   close(22)
 
+  !average in x direction
+  open(unit=23,file=filename//'_avg_x',status='unknown')
+  do i1=0,2*n1+1
+     later_avg=0.0_dp
+     do i3=0,2*n3+1
+        do i2=0,2*n2+1
+           later_avg=later_avg+&
+                a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
+        end do
+     end do
+     later_avg=later_avg/real((2*n2+2)*(2*n3+2),dp) !2D integration/2D Volume
+     !to be checked with periodic/isolated BC
+     write(23,*)i1,at%alat1/real(2*n1+2,dp)*i1,later_avg
+  end do
+  close(23)
+  !average in y direction
+  open(unit=23,file=filename//'_avg_y',status='unknown')
+  do i2=0,2*n2+1
+     later_avg=0.0_dp
+     do i3=0,2*n3+1
+        do i1=0,2*n1+1
+           later_avg=later_avg+&
+                a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
+        end do
+     end do
+     later_avg=later_avg/real((2*n1+2)*(2*n3+2),dp) !2D integration/2D Volume
+     !to be checked with periodic/isolated BC
+     write(23,*)i2,at%alat2/real(2*n2+2,dp)*i2,later_avg
+  end do
+  close(23)
+  !average in z direction
+  open(unit=23,file=filename//'_avg_z',status='unknown')
+  do i3=0,2*n3+1
+     later_avg=0.0_dp
+     do i2=0,2*n2+1
+        do i1=0,2*n1+1
+           later_avg=later_avg+&
+                a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
+        end do
+     end do
+     later_avg=later_avg/real((2*n1+2)*(2*n2+2),dp) !2D integration/2D Volume
+     !to be checked with periodic/isolated BC
+     write(23,*)i3,at%alat3/real(2*n3+2,dp)*i3,later_avg
+  end do
+  close(23)
 
 end subroutine write_cube_fields
 
@@ -1030,6 +1076,8 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ns
              a,pot_ion(1,ia),1,b,pot_ion(1,ib))
 
      end if
+
+
   end if
 
   if (nproc > 1) then

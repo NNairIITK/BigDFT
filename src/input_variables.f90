@@ -244,7 +244,7 @@ subroutine dft_input_variables(iproc,filename,in)
   !davidson treatment
   read(1,*,iostat=ierror) in%norbv,in%nvirt,in%nplot
   call check()
-  in%nvirt = max(in%nvirt, in%norbv)
+  in%nvirt = min(in%nvirt, in%norbv)
 
   !electrostatic treatment of the vacancy (experimental)
   !read(1,*,iostat=ierror) in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
@@ -1937,7 +1937,7 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   if (atoms%geocode == 'S') write(9, "(A)") "#keyword: surface"
   if (atoms%geocode == 'F') write(9, "(A)") "#keyword: freeBC"
   if (energy /= 0.d0) then
-     write(9, "(A,e24.17)") "# Total energy (Ht): ", energy
+     write(9, "(A,e24.17,A)") "#metaData: totalEnergy=", energy, "Ht"
   end if
 
   do iat=1,atoms%nat

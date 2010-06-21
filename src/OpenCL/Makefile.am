@@ -1,4 +1,5 @@
 EXTRA_DIST = \
+	bench_lib.h \
 	Kinetic.h \
 	Kinetic_k.h \
 	bench_lib.h \

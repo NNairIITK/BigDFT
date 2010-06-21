@@ -19,7 +19,7 @@ program MINHOP
 
   implicit real(kind=8) (a-h,o-z)
   real(kind=4) :: tts
-  logical :: newmin,CPUcheck
+  logical :: newmin,CPUcheck,exists
   character(len=20) :: unitsp,units,atmn
   character(len=80) :: line
   type(atoms_data) :: atoms
@@ -332,21 +332,27 @@ program MINHOP
 
 !C check whether CPU time exceeded
      tleft=1.d100
-        if(iproc==0 .and. CPUcheck)then
-        open(unit=55,file='CPUlimit_global',status='unknown')
-        read(55,*,end=555) cpulimit ; cpulimit=cpulimit*3600
-        write(*,'(a,i5,i3,2(1x,e9.2))') 'iproc,nlmin,tcpu2-tcpu1,cpulimit',iproc,nlmin,tcpu2-tcpu1,cpulimit
-        close(55)
-        call cpu_time(tcpu2)
-        tleft=cpulimit-(tcpu2-tcpu1)
+     if(iproc==0 .and. CPUcheck)then
+        inquire(file='CPUlimit_global',exist=exists)
+        if (exists) then
+           open(unit=55,file='CPUlimit_global',status='unknown')
+           read(55,*,end=555) cpulimit ; cpulimit=cpulimit*3600
+           write(*,'(a,i5,i3,2(1x,e9.2))') 'iproc,nlmin,tcpu2-tcpu1,cpulimit',iproc,nlmin,tcpu2-tcpu1,cpulimit
+           close(55)
+           call cpu_time(tcpu2)
+           tleft=cpulimit-(tcpu2-tcpu1)
+        else
+           tleft=100.0_gp
+        end if
      end if
-555    continue
-       call MPI_BCAST(tleft,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-       if (tleft < 0.d0) then
-       write(*,*) 'CPU time exceeded',tleft
-       goto 3000
-       endif
-          CPUcheck=.true.
+555  continue
+     call MPI_BCAST(tleft,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+     if (tleft < 0.d0) then
+        write(*,*) 'CPU time exceeded',tleft
+        goto 3000
+     endif
+
+     CPUcheck=.true.
 
      do iat=1,atoms%nat
         wpos(1,iat)=pos(1,iat)
