@@ -3,7 +3,7 @@
 !!  Main program to calculate electronic structures
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2010 CEA, UNIBAS
+!!    Copyright (C) 2007-2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -23,26 +23,21 @@ program BigDFT
 
   implicit none
   character(len=*), parameter :: subname='BigDFT'
-  character(len=20) :: units
-  integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode
-  integer ::  ncount_bigdft
-  real(gp) :: etot,sumx,sumy,sumz
+  integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
+  integer :: ncount_bigdft
+  real(gp) :: etot,sumx,sumy,sumz,fnoise
   logical :: exist_list
   !input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
   type(restart_objects) :: rst
-  character(len=20), dimension(:), allocatable :: atomnames
   character(len=50), dimension(:), allocatable :: arr_posinp
-  character(len=60)  :: filename
+  character(len=60) :: filename
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
-  integer :: npr,iam,iconfig,nconfig
-  integer  :: nfluct
-  real(gp) :: fluctsum
+  integer :: iconfig,nconfig
 
- 
   ! Start MPI in parallel version
   !in the case of MPIfake libraries the number of processors is automatically adjusted
   call MPI_INIT(ierr)
@@ -75,15 +70,18 @@ program BigDFT
 
   do iconfig=1,nconfig
 
-     !initialize memory counting
-     call memocc(0,iproc,'count','start')
-
      !welcome screen
      if (iproc==0) call print_logo()
 
      ! Read all input files.
      call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
-          & "input.dft", "input.kpt", "input.geopt", inputs, atoms, rxyz)
+          & "input.dft", "input.kpt", "input.geopt", "input.perf", inputs, atoms, rxyz)
+     if (iproc == 0) then
+        call print_general_parameters(inputs,atoms)
+     end if
+
+     !initialize memory counting
+     !call memocc(0,iproc,'count','start')
 
      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fxyz,'fxyz',subname)
@@ -96,13 +94,13 @@ program BigDFT
         inputs%last_run = 1
      end if
  
-     call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
+     call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
 
 
      if (inputs%ncount_cluster_x > 1) then
         if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
         ! geometry optimization
-        open(unit=16,file='geopt.mon',status='unknown')
+        open(unit=16,file='geopt.mon',status='unknown',position='append')
         if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
         call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
         filename=trim('final_'//trim(arr_posinp(iconfig)))
@@ -112,7 +110,7 @@ program BigDFT
      !if there is a last run to be performed do it now before stopping
      if (inputs%last_run == -1) then
         inputs%last_run = 1
-        call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
+        call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
      end if
 
 
@@ -128,12 +126,12 @@ program BigDFT
            sumy=sumy+fxyz(2,iat)
            sumz=sumz+fxyz(3,iat)
         enddo
-        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
-           write(*,'(1x,a)')'the sum of the forces is'
-           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-        end if
+!!$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
+!!$           write(*,'(1x,a)')'the sum of the forces is'
+!!$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
+!!$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
+!!$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
+!!$        end if
      endif
 
      call deallocate_atoms(atoms,subname) 

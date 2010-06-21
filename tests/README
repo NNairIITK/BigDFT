@@ -42,7 +42,6 @@ The input files are:
 - occup.dat for the occupation numbers (see C directory as example)
             IF THIS FILE IS NOT PRESENT, the orbital number is (nelec+1)/2 with 2.0 as occupation numbers
 
-The directory 'Refs' contains the reference ouput files (gfortran 4.1.2)
 A diff is performed after each calculations to check the accuracy.
 
 "input.dat" file
@@ -120,7 +119,7 @@ In the file "occup.dat", you can specify only the occupation numbers differnet f
 Test in parallel
 ----------------
 Use the environment variable 'run_parallel' as:
-export run_parallel='ompirun -np 2'
+export run_parallel='mpirun -np 2'
 To use a batch system, add a batch file with:
 export run_parallel=...
 make check

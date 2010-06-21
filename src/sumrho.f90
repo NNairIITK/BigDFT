@@ -2,7 +2,7 @@
 !! FUNCTION
 !!    Calculate the electronic density (rho)
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    Copyright (C) 2007-2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -33,9 +33,9 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   !Local variables
   character(len=*), parameter :: subname='sumrho'
   logical :: rsflag
-  integer :: nw1,nw2,nrhotot,n3d,nxc,nxf,itmred
-  integer :: ind1,ind2,ind3,ind1s,ind2s,ind3s,oidx,sidx,nspinn
-  integer :: i00,i0,i1,i2,i3,i3off,i3s,isjmp,i,j,ispin,iorb,jproc,i_all,i_stat,ierr,j3,j3p
+  integer :: nrhotot,n3d,itmred
+  integer :: nspinn
+  integer :: i1,i2,i3,i3off,i3s,i,ispin,jproc,i_all,i_stat,ierr,j3,j3p,j
   real(dp) :: charge,tt,maxdiff
   real(dp), dimension(:,:), allocatable :: tmred
   real(dp), dimension(:,:), pointer :: rho_p
@@ -127,8 +127,9 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
 
   ! Symmetrise density, TODO...
   !after validation this point can be deplaced after the allreduce such as to reduce the number of operations
-  if (symObj >= 0 .and. .false.) then
-     call symmetrise_density(0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,nscatterarr,nspin,lr%d%n1i*lr%d%n2i*lr%d%n3i,&
+  if (symObj >= 0) then
+     call symmetrise_density(0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,nscatterarr,nspin,&
+          lr%d%n1i*lr%d%n2i*lr%d%n3i,&
           rho_p,symObj,irrzon,phnons)
   end if
 
@@ -240,7 +241,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
 
   call timing(iproc,'Rho_comput    ','OF')
 
-end subroutine sumrho
+END SUBROUTINE sumrho
 !!***
 
 
@@ -345,10 +346,14 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
 
   call deallocate_work_arrays_sumrho(w)
 
-end subroutine local_partial_density
+END SUBROUTINE local_partial_density
 !!***
 
 
+!!****f* BigDFT/partial_density
+!! FUNCTION
+!! SOURCE
+!!
 subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      hfac,nscatterarr,spinsgn,psir,rho_p)
   use module_base
@@ -361,10 +366,10 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
   real(wp), dimension(n1i,n2i,n3i,npsir), intent(in) :: psir
   real(dp), dimension(n1i,n2i,nrhotot,nspinn), intent(inout) :: rho_p
   !local variables
-  integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e,j3,i3sg,ithread,nthread
+  integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e,j3,i3sg
   real(gp) :: hfac2
   real(dp) :: psisq,p1,p2,p3,p4,r1,r2,r3,r4
-  integer :: omp_get_thread_num,omp_get_num_threads
+!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
   !sum different slices by taking into account the overlap
   i3sg=0
 !$omp parallel default(private) shared(n1i,nproc,rsflag,nspinn,nscatterarr,spinsgn) &
@@ -448,10 +453,14 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      stop
   end if
 
-end subroutine partial_density
+END SUBROUTINE partial_density
+!!***
 
 
-
+!!****f* BigDFT/partial_density_free
+!! FUNCTION
+!! SOURCE
+!!
 subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      hfac,nscatterarr,spinsgn,psir,rho_p,&
      ibyyzz_r) 
@@ -466,10 +475,10 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
   real(dp), dimension(n1i,n2i,nrhotot,nspinn), intent(inout) :: rho_p
   integer, dimension(:,:,:),pointer :: ibyyzz_r 
   !local variables
-  integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e,j3,i3sg,ithread,nthread
+  integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e,j3,i3sg
   real(gp) :: hfac2
   real(dp) :: psisq,p1,p2,p3,p4,r1,r2,r3,r4
-  integer :: omp_get_thread_num,omp_get_num_threads
+!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
   !sum different slices by taking into account the overlap
   i3sg=0
 !$omp parallel default(private) shared(n1i,nproc,rsflag,nspinn,nscatterarr,spinsgn) &
@@ -555,8 +564,14 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      stop
   end if
 
-end subroutine partial_density_free
+END SUBROUTINE partial_density_free
+!!***
 
+
+!!****f* BigDFT/symmetrise_density
+!! FUNCTION
+!! SOURCE
+!!
 subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho,&
      symObj,irrzon,phnons)
   use module_base!, only: gp,dp,wp,ndebug,memocc
@@ -710,14 +725,14 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho
            j2=modulo(j/n1i,n2i)
            j3=j/(n1i*n2i)
            r2=modulo(j2,nd2)
-!!$           if(modulo(j/n1i,n2i)/nd2==iproc) then ! this ind is to be treated by me_fft
-!!$              !          ind in the proc ind-1=n1(nd2 j3+ r2)+j1
-!!$              ind=n1i*(nd2*j3+r2)+j1+1 !this is ind in the current proc
-!!$              rhog(1,j1+1,r2+1,j3+1,inzee)=rhosu12(1,izone)*phnons(1,iup+numpt,imagn)&
-!!$                   +rhosu12(2,izone)*phnons(2,iup+numpt,imagn)
-!!$              rhog(2,j1+1,r2+1,j3+1,inzee)=rhosu12(2,izone)*phnons(1,iup+numpt,imagn)&
-!!$                   -rhosu12(1,izone)*phnons(2,iup+numpt,imagn)
-!!$           end if
+           if(modulo(j/n1i,n2i)/nd2==iproc) then ! this ind is to be treated by me_fft
+              !          ind in the proc ind-1=n1(nd2 j3+ r2)+j1
+              ind=n1i*(nd2*j3+r2)+j1+1 !this is ind in the current proc
+              rhog(1,j1+1,r2+1,j3+1,inzee)=rhosu12(1,izone)*phnons(1,iup+numpt,imagn)&
+                   +rhosu12(2,izone)*phnons(2,iup+numpt,imagn)
+              rhog(2,j1+1,r2+1,j3+1,inzee)=rhosu12(2,izone)*phnons(1,iup+numpt,imagn)&
+                   -rhosu12(1,izone)*phnons(2,iup+numpt,imagn)
+           end if
         end do
 
         !      Keep index of how many points have been considered:
@@ -752,4 +767,5 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho
   deallocate(rhog,stat=i_stat)
   call memocc(i_stat,i_all,'rhog',subname)
 
-end subroutine symmetrise_density
+END SUBROUTINE symmetrise_density
+!!***

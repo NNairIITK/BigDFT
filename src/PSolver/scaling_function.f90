@@ -94,7 +94,7 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   i_all=-product(shape(y))*kind(y)
   deallocate(y,stat=i_stat)
   call memocc(i_stat,i_all,'y',subname)
-end subroutine scaling_function
+END SUBROUTINE scaling_function
 !!***
 
 
@@ -185,7 +185,7 @@ subroutine wavelet_function(itype,nd,a,x)
   deallocate(y,stat=i_stat)
   call memocc(i_stat,i_all,'y',subname)
  
-end subroutine wavelet_function
+END SUBROUTINE wavelet_function
 !!***
 
 
@@ -236,7 +236,7 @@ subroutine scf_recursion(itype,n_iter,n_range,kernel_scf,kern_1_scf)
      call scf_recursion_100(n_iter,n_range,kernel_scf,kern_1_scf)
   end select
 
-end subroutine scf_recursion
+END SUBROUTINE scf_recursion
 !!***
 
 
@@ -256,7 +256,7 @@ subroutine zero(n,x)
   do i=1,n
      x(i)=0.d0
   end do
-end subroutine zero
+END SUBROUTINE zero
 !!***
 
 
@@ -307,7 +307,7 @@ subroutine for_trans_8(nd,nt,x,y)
      
   end do
 
-end subroutine for_trans_8
+END SUBROUTINE for_trans_8
 !!***
 
 
@@ -358,7 +358,7 @@ subroutine back_trans_8(nd,nt,x,y)
         
   end do
         
-end subroutine back_trans_8
+END SUBROUTINE back_trans_8
 !!***
 
 
@@ -414,7 +414,7 @@ subroutine ftest_8
   
   write(6,*) 'FILTER TEST PASSED'
   
-end subroutine ftest_8
+END SUBROUTINE ftest_8
 !!***
 
 
@@ -461,7 +461,7 @@ subroutine scf_recursion_8(n_iter,n_range,kernel_scf,kern_1_scf)
         end if
      end do loop_iter_i
   end do loop_iter_scf
-end subroutine scf_recursion_8
+END SUBROUTINE scf_recursion_8
 !!***
 
 
@@ -511,7 +511,7 @@ subroutine for_trans_14(nd,nt,x,y)
      end do
   end do
   
-end subroutine for_trans_14
+END SUBROUTINE for_trans_14
 !!***
 
 
@@ -562,7 +562,7 @@ subroutine back_trans_14(nd,nt,x,y)
      end do
   end do
         
-end subroutine back_trans_14
+END SUBROUTINE back_trans_14
 !!***
 
 
@@ -618,7 +618,7 @@ subroutine ftest_14
   
   write(6,*) 'FILTER TEST PASSED'
   
-end subroutine ftest_14
+END SUBROUTINE ftest_14
 !!***
 
 
@@ -665,7 +665,7 @@ subroutine scf_recursion_14(n_iter,n_range,kernel_scf,kern_1_scf)
         end if
      end do loop_iter_i
   end do loop_iter_scf
-end subroutine scf_recursion_14
+END SUBROUTINE scf_recursion_14
 !!***
 
 
@@ -715,7 +715,7 @@ subroutine for_trans_16(nd,nt,x,y)
      end do
   end do
   
-end subroutine for_trans_16
+END SUBROUTINE for_trans_16
 !!***
 
 
@@ -765,7 +765,7 @@ subroutine back_trans_16(nd,nt,x,y)
      end do
   end do
         
-end subroutine back_trans_16
+END SUBROUTINE back_trans_16
 !!***
 
 
@@ -821,7 +821,7 @@ subroutine ftest_16
   
   write(6,*) 'FILTER TEST PASSED'
   
-end subroutine ftest_16
+END SUBROUTINE ftest_16
 !!***
 
 
@@ -868,7 +868,7 @@ subroutine scf_recursion_16(n_iter,n_range,kernel_scf,kern_1_scf)
         end if
      end do loop_iter_i
   end do loop_iter_scf
-end subroutine scf_recursion_16
+END SUBROUTINE scf_recursion_16
 !!***
 
 
@@ -918,7 +918,7 @@ subroutine for_trans_20(nd,nt,x,y)
      end do
   end do
   
-end subroutine for_trans_20
+END SUBROUTINE for_trans_20
 !!***
 
 
@@ -968,7 +968,7 @@ subroutine back_trans_20(nd,nt,x,y)
      end do
   end do
         
-end subroutine back_trans_20
+END SUBROUTINE back_trans_20
 !!***
 
 
@@ -1024,7 +1024,7 @@ subroutine ftest_20
   
   write(6,*) 'FILTER TEST PASSED'
   
-end subroutine ftest_20
+END SUBROUTINE ftest_20
 !!***
 
 
@@ -1071,7 +1071,7 @@ subroutine scf_recursion_20(n_iter,n_range,kernel_scf,kern_1_scf)
         end if
      end do loop_iter_i
   end do loop_iter_scf
-end subroutine scf_recursion_20
+END SUBROUTINE scf_recursion_20
 !!***
 
 
@@ -1121,7 +1121,7 @@ subroutine for_trans_24(nd,nt,x,y)
      end do
   end do
   
-end subroutine for_trans_24
+END SUBROUTINE for_trans_24
 !!***
 
 
@@ -1171,7 +1171,7 @@ subroutine back_trans_24(nd,nt,x,y)
      end do
   end do
         
-end subroutine back_trans_24
+END SUBROUTINE back_trans_24
 !!***
 
 
@@ -1227,7 +1227,7 @@ subroutine ftest_24
   
   write(6,*) 'FILTER TEST PASSED'
   
-end subroutine ftest_24
+END SUBROUTINE ftest_24
 !!***
 
 
@@ -1274,7 +1274,7 @@ subroutine scf_recursion_24(n_iter,n_range,kernel_scf,kern_1_scf)
         end if
      end do loop_iter_i
   end do loop_iter_scf
-end subroutine scf_recursion_24
+END SUBROUTINE scf_recursion_24
 !!***
 
 
@@ -1324,7 +1324,7 @@ subroutine for_trans_30(nd,nt,x,y)
      end do
   end do
   
-end subroutine for_trans_30
+END SUBROUTINE for_trans_30
 !!***
 
 
@@ -1374,7 +1374,7 @@ subroutine back_trans_30(nd,nt,x,y)
      end do
   end do
         
-end subroutine back_trans_30
+END SUBROUTINE back_trans_30
 !!***
 
 
@@ -1430,7 +1430,7 @@ subroutine ftest_30
   
   write(6,*) 'FILTER TEST PASSED'
   
-end subroutine ftest_30
+END SUBROUTINE ftest_30
 !!***
 
 
@@ -1477,7 +1477,7 @@ subroutine scf_recursion_30(n_iter,n_range,kernel_scf,kern_1_scf)
         end if
      end do loop_iter_i
   end do loop_iter_scf
-end subroutine scf_recursion_30
+END SUBROUTINE scf_recursion_30
 !!***
 
 
@@ -1527,7 +1527,7 @@ subroutine for_trans_40(nd,nt,x,y)
      end do
   end do
   
-end subroutine for_trans_40
+END SUBROUTINE for_trans_40
 !!***
 
 
@@ -1577,7 +1577,7 @@ subroutine back_trans_40(nd,nt,x,y)
      end do
   end do
         
-end subroutine back_trans_40
+END SUBROUTINE back_trans_40
 !!***
 
 
@@ -1633,7 +1633,7 @@ subroutine ftest_40
   
   write(6,*) 'FILTER TEST PASSED'
   
-end subroutine ftest_40
+END SUBROUTINE ftest_40
 !!***
 
 
@@ -1680,7 +1680,7 @@ subroutine scf_recursion_40(n_iter,n_range,kernel_scf,kern_1_scf)
         end if
      end do loop_iter_i
   end do loop_iter_scf
-end subroutine scf_recursion_40
+END SUBROUTINE scf_recursion_40
 !!***
 
 
@@ -1730,7 +1730,7 @@ subroutine for_trans_50(nd,nt,x,y)
      end do
   end do
   
-end subroutine for_trans_50
+END SUBROUTINE for_trans_50
 !!***
 
 
@@ -1780,7 +1780,7 @@ subroutine back_trans_50(nd,nt,x,y)
      end do
   end do
         
-end subroutine back_trans_50
+END SUBROUTINE back_trans_50
 !!***
 
 
@@ -1836,7 +1836,7 @@ subroutine ftest_50
   
   write(6,*) 'FILTER TEST PASSED'
   
-end subroutine ftest_50
+END SUBROUTINE ftest_50
 !!***
 
 
@@ -1883,7 +1883,7 @@ subroutine scf_recursion_50(n_iter,n_range,kernel_scf,kern_1_scf)
         end if
      end do loop_iter_i
   end do loop_iter_scf
-end subroutine scf_recursion_50
+END SUBROUTINE scf_recursion_50
 !!***
 
 
@@ -1933,7 +1933,7 @@ subroutine for_trans_60(nd,nt,x,y)
      end do
   end do
   
-end subroutine for_trans_60
+END SUBROUTINE for_trans_60
 !!***
 
 
@@ -1983,7 +1983,7 @@ subroutine back_trans_60(nd,nt,x,y)
      end do
   end do
         
-end subroutine back_trans_60
+END SUBROUTINE back_trans_60
 !!***
 
 
@@ -2039,7 +2039,7 @@ subroutine ftest_60
   
   write(6,*) 'FILTER TEST PASSED'
   
-end subroutine ftest_60
+END SUBROUTINE ftest_60
 !!***
 
 
@@ -2086,7 +2086,7 @@ subroutine scf_recursion_60(n_iter,n_range,kernel_scf,kern_1_scf)
         end if
      end do loop_iter_i
   end do loop_iter_scf
-end subroutine scf_recursion_60
+END SUBROUTINE scf_recursion_60
 !!***
 
 
@@ -2136,7 +2136,7 @@ subroutine for_trans_100(nd,nt,x,y)
      end do
   end do
   
-end subroutine for_trans_100
+END SUBROUTINE for_trans_100
 !!***
 
 
@@ -2186,7 +2186,7 @@ subroutine back_trans_100(nd,nt,x,y)
      end do
   end do
         
-end subroutine back_trans_100
+END SUBROUTINE back_trans_100
 !!***
 
 
@@ -2242,7 +2242,7 @@ subroutine ftest_100
   
   write(6,*) 'FILTER TEST PASSED'
   
-end subroutine ftest_100
+END SUBROUTINE ftest_100
 !!***
 
 
@@ -2289,5 +2289,5 @@ subroutine scf_recursion_100(n_iter,n_range,kernel_scf,kern_1_scf)
         end if
      end do loop_iter_i
   end do loop_iter_scf
-end subroutine scf_recursion_100
+END SUBROUTINE scf_recursion_100
 !!***

@@ -37,7 +37,7 @@ subroutine hit_with_kernel(x,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,c)
      call dfftw_execute(plan_b)
   call dfftw_destroy_plan(plan_b)
 
-end subroutine hit_with_kernel
+END SUBROUTINE hit_with_kernel
 
 
 
@@ -105,4 +105,4 @@ do i=0,n1
 enddo
 
 deallocate(z,zin)
-end subroutine make_kernel
+END SUBROUTINE make_kernel

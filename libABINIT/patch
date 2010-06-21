@@ -762,7 +762,7 @@
 +  if (unit == ab_out) then
 +     call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
 +     if (trim(mode_paral) == "COLL") then
-+        if (iproc == 0) print *,trim(message)
++        if (iproc == 0) write(*, "(A)") trim(message)
 +     else
 +        write(*, "(I03,2x,A)") iproc, trim(message)
 +     end if
@@ -855,7 +855,7 @@
  !!***
 --- /local/caliste/abinit-6.0.0-caliste/src/18_timing/timab.F90	2010-01-19 12:14:21.000000000 +0100
 +++ src/18_timing/timab.F90	2010-01-19 17:33:57.000000000 +0100
-@@ -76,13 +76,12 @@
+@@ -78,13 +78,12 @@
  #define C_LONG_LONG INTEGER*8
  
  #if defined HAVE_CONFIG_H
@@ -870,21 +870,12 @@
  
  !This section has been created automatically by the script Abilint (TD).
  !Do not modify the following lines by hand.
-@@ -93,10 +92,6 @@
- 
-  implicit none
- 
--#if defined HAVE_PAPI
--#include "f90papi.h"
--#endif
--
- !Arguments ------------------------------------
-  !scalars
+@@ -104,119 +103,7 @@
   integer,intent(in) :: nn,option
-@@ -104,117 +99,6 @@
+  !arrays
   real(dp),intent(out) :: tottim(2)
- !Local variables-------------------------------
- 
+-!Local variables-------------------------------
+-
 - !scalars
 - real(dp) :: cpu,wall
 - character(len=500) :: message
@@ -939,78 +930,69 @@
 -   proc_time = zero
 -   real_time = zero
 -#endif
--  
+-   
 -   select case (option)
--   case (0)  ! Zero out all accumulators of time and init timers
--     acctim(:,:)=0.0d0
--     tzero(:,:)=0.0d0
--     ncount(:)=0
--     flops(:)=0
--     papi_acctim(:,:)=0. 
--     papi_accflops(:)=0. 
--     papi_tzero(:,:)=0. 
+-     case (0)  ! Zero out all accumulators of time and init timers
+-       acctim(:,:)=0.0d0
+-       tzero(:,:)=0.0d0
+-       ncount(:)=0
+-       flops(:)=0
+-       papi_acctim(:,:)=0. 
+-       papi_accflops(:)=0. 
+-       papi_tzero(:,:)=0. 
 -
--   case (1)  ! Initialize timab for nn
--     call timein(cpu,wall)
--     tzero(1,nn)=cpu
--     tzero(2,nn)=wall
--     flops(nn)=flops1       ! Initialize megaflops for nn
--     papi_tzero(1,nn) = proc_time
--     papi_tzero(2,nn) = real_time
+-     case (1)  ! Initialize timab for nn
+-       call timein(cpu,wall)
+-       tzero(1,nn)=cpu
+-       tzero(2,nn)=wall
+-       flops(nn)=flops1       ! Initialize megaflops for nn
+-       papi_tzero(1,nn) = proc_time
+-       papi_tzero(2,nn) = real_time
 -
--   case (2)  ! Accumulate time for nn
--     call timein(cpu,wall)
--     acctim(1,nn)=acctim(1,nn)+cpu -tzero(1,nn)
--     acctim(2,nn)=acctim(2,nn)+wall-tzero(2,nn)
--!    accumulate time and flops for nn Difference entre 2 calls a Papif_flops 
--     papi_acctim(1,nn)=papi_acctim(1,nn)+ proc_time - papi_tzero(1,nn)
--     papi_acctim(2,nn)=papi_acctim(2,nn)+ real_time - papi_tzero(2,nn)
--     papi_accflops(nn)=papi_accflops(nn)+ flops1- flops(nn) 
--     ncount(nn)=ncount(nn)+1
+-     case (2)  ! Accumulate time for nn
+-       call timein(cpu,wall)
+-       acctim(1,nn)=acctim(1,nn)+cpu -tzero(1,nn)
+-       acctim(2,nn)=acctim(2,nn)+wall-tzero(2,nn)
+-!      accumulate time and flops for nn Difference entre 2 calls a Papif_flops 
+-       papi_acctim(1,nn)=papi_acctim(1,nn)+ proc_time - papi_tzero(1,nn)
+-       papi_acctim(2,nn)=papi_acctim(2,nn)+ real_time - papi_tzero(2,nn)
+-       papi_accflops(nn)=papi_accflops(nn)+ flops1- flops(nn) 
+-       ncount(nn)=ncount(nn)+1
 -
--   case (3) ! Now use time_accu
--     write(message, '(a,a,a,a)' ) ch10,&
--&     ' timab: BUG -',ch10,&
--&     ' option 3 not valid (use time_accu).'
--     call wrtout(std_out,message,'PERS')
--     call leave_new('PERS')
+-     case (3) ! Now use time_accu
+-       write(message, '(a,a,a,a)' ) ch10,&
+-&       ' timab: BUG -',ch10,&
+-&       ' option 3 not valid (use time_accu).'
+-       call wrtout(std_out,message,'PERS')
+-       call leave_new('PERS')
 -
--   case (4) ! Return elapsed time for nn (do not accumulate)
--     call timein(cpu,wall)
--     tottim(1)=cpu-tzero(1,nn)
--     tottim(2)=wall-tzero(2,nn)
--!    return ellapsed floating point operationfor nn (do not accumulate)
--     papi_tottim(1,nn)= proc_time - papi_tzero(1,nn)
--     papi_tottim(2,nn)= real_time - papi_tzero(2,nn)
--     papi_totflops(nn)= flops1- flops(nn) 
+-     case (4) ! Return elapsed time for nn (do not accumulate)
+-       call timein(cpu,wall)
+-       tottim(1)=cpu-tzero(1,nn)
+-       tottim(2)=wall-tzero(2,nn)
+-!      return ellapsed floating point operationfor nn (do not accumulate)
+-       papi_tottim(1,nn)= proc_time - papi_tzero(1,nn)
+-       papi_tottim(2,nn)= real_time - papi_tzero(2,nn)
+-       papi_totflops(nn)= flops1- flops(nn) 
 -
--   case default
--     write(message, '(a,a,a,a,i10,a)' ) ch10,&
--&     ' timab: BUG -',ch10,&
--&     '  Input option not valid, =',option,'.'
--     call wrtout(std_out,message,'PERS')
--     call leave_new('PERS')
+-       case default
+-       write(message, '(a,a,a,a,i10,a)' ) ch10,&
+-&       ' timab: BUG -',ch10,&
+-&       '  Input option not valid, =',option,'.'
+-       call wrtout(std_out,message,'PERS')
+-       call leave_new('PERS')
 -   end select 
 - end if
 -
 -!DEBUG
 -!write(6,*)' timab : exit '
 -!ENDDEBUG
--
-+ tottim(:) = (/ 0., 0. /)
+ 
++ tottim = (/ 0.0_dp, 0.0_dp /)
  end subroutine timab
  !!***
 --- /local/caliste/abinit-6.0.0-caliste/src/32_util/derfc.F90	2010-01-19 11:58:43.000000000 +0100
 +++ src/32_util/derfc.F90	2010-01-19 17:33:54.000000000 +0100
-@@ -8,7 +8,7 @@
- !! Same implementation as imsl.
- !!
- !! COPYRIGHT
--!! Copyright (C) 1999-2009 ABINIT group (XG)
-+!! Copyright (C) 1999-2007  ABINIT group (XG)
- !! This file is distributed under the terms of the
- !! GNU General Public License, see ~abinit/COPYING
- !! or http://www.gnu.org/copyleft/gpl.txt .
 @@ -35,10 +35,10 @@
  !! SOURCE
  

@@ -19,7 +19,7 @@ PROGRAM rotate_posinp
    implicit real*8 (a-h,o-z)
    parameter(natx=2000)
    character(len=5) atomname(natx)
-   character(len=10) units
+   character(len=12) units
    character(len=20) extra(natx) 
    character(len=100) line,line2
    dimension pos(3,natx),pos_s(3)

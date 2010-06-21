@@ -43,7 +43,7 @@ libGPU_a_SOURCES = $(SOURCES_CU_CONV1) $(SOURCES_SHARED)  $(SOURCES_CONV)
 AM_CPPFLAGS = $(INC_CUDA) -I. -I$(top_builddir) -I@CUDA_PATH@/include/ @LIBSGPU_INCLUDE@ -DCUBLAS_USE_THUNKING
 
 NVCC = @NVCC@
-CUDA_FLAGS =  -arch sm_13 @CUDA_FLAGS@ 
+NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@ 
 SUFFIXES = .cu
 
 if USE_CUDA_GPU
@@ -64,7 +64,7 @@ CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir)
 
 conv_check_SOURCES = conv_check.f90  ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
-conv_check_LDFLAGS =
+conv_check_LDFLAGS = 
 conv_check_LDADD = ../libbigdft.a \
 	../PSolver/libpoissonsolver.a \
 	libGPU.a
@@ -75,7 +75,7 @@ conv_check_LDADD = ../libbigdft.a \
 #	$(libs_cuda)
 
 .cu.o:
-	$(NVCC) $(CUDA_FLAGS) $(AM_CPPFLAGS) -c $< -o $@
+	$(NVCC) $(NVCC_FLAGS) $(AM_CPPFLAGS) -c $< -o $@
 
 
 #dependencies

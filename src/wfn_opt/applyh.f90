@@ -54,7 +54,6 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   etest=0.0_gp
 
   do iorb=1,orbs%norbp
-
      if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
         nsoffset=1
      else
@@ -119,7 +118,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
 
   call deallocate_work_arrays_locham(lr,wrk_lh)
 
-end subroutine local_hamiltonian
+END SUBROUTINE local_hamiltonian
 !!***
 
 
@@ -178,7 +177,7 @@ subroutine transpose_for_kpoints(nspinor,n1,n2,n3,x,ww,direct)
   
   !for mixed precision code it should be changed
   call dcopy(nspinor*n1*n2*n3,ww,1,x,1)
-end subroutine transpose_for_kpoints
+END SUBROUTINE transpose_for_kpoints
 !!***
 
 
@@ -323,7 +322,7 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
 
 !$omp end parallel
 
-end subroutine apply_potential
+END SUBROUTINE apply_potential
 !!***
 
 
@@ -354,7 +353,7 @@ subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
      enddo
   enddo
 
-end subroutine realspace
+END SUBROUTINE realspace
 !!***
 
 
@@ -405,7 +404,7 @@ subroutine realspace_nbuf(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
      endif
   enddo
 
-end subroutine realspace_nbuf
+END SUBROUTINE realspace_nbuf
 !!***
 
 
@@ -437,7 +436,7 @@ subroutine realspaceINOUT(ibyyzz_r,pot,psirIN,psirOUT,epot,n1,n2,n3)
      enddo
   enddo
 
-end subroutine realspaceINOUT
+END SUBROUTINE realspaceINOUT
 !!***
 
 
@@ -489,7 +488,7 @@ subroutine realspaceINOUT_nbuf(ibyyzz_r,pot,psirIN,psirOUT,epot,nb1,nb2,nb3,nbuf
      endif
   enddo
 
-end subroutine realspaceINOUT_nbuf
+END SUBROUTINE realspaceINOUT_nbuf
 !!***
 
 
@@ -549,7 +548,7 @@ subroutine realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
      enddo
   enddo
 
-end subroutine realspaceINPLACE
+END SUBROUTINE realspaceINPLACE
 !!***
 
 
@@ -599,11 +598,10 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
      call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
 
      !this may not work for non-collinear cases
-
      iproj=0
      do iat=1,at%nat
         istart_c=1
-        call atom_projector(iproc,ikpt,iat,idir,istart_c,iproj,&
+        call atom_projector(ikpt,iat,idir,istart_c,iproj,&
              n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
 
         !apply the projector to all the orbitals belonging to the processor
@@ -632,7 +630,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
      end if
   end if
 
-end subroutine applyprojectorsonthefly
+END SUBROUTINE applyprojectorsonthefly
 !!***
 
 
@@ -691,7 +689,7 @@ subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,
      eproj=eproj+&
           orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_spinor
   end do
-end subroutine apply_atproj_iorb
+END SUBROUTINE apply_atproj_iorb
 !!***
 
 
@@ -800,7 +798,7 @@ subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
         enddo
      end do loop_j
   end if
-end subroutine applyprojector
+END SUBROUTINE applyprojector
 !!***
 
 
@@ -955,7 +953,7 @@ subroutine applyprojector_old(l,i,psppar,npspcode,&
         enddo
      end do loop_jK
   end if
-end subroutine applyprojector_old
+END SUBROUTINE applyprojector_old
 !!***
 
 
@@ -993,7 +991,7 @@ subroutine orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
   !nspinor for this k-point
   nspinor=orbs%nspinor
 
-end subroutine orbs_in_kpt
+END SUBROUTINE orbs_in_kpt
 !!***
 
 
@@ -1025,5 +1023,5 @@ subroutine ncplx_kpt(ikpt,orbs,ncplx)
      ncplx=2
   end if
 
-end subroutine ncplx_kpt
+END SUBROUTINE ncplx_kpt
 !!***

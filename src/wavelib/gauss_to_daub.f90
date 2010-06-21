@@ -21,7 +21,7 @@
 !!   err_norm        normalisation error
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA (LG)
+!!    Copyright (C) 2007-2010 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -62,6 +62,10 @@ subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
   !calculate the array sizes;
   !at level 0, positions shifted by i0 
   right_t= ceiling(15.d0*a)
+
+  ! initialise array
+  c=0.0_gp
+    
 
   if (periodic) then
      !we expand the whole Gaussian in scfunctions and later fold one of its tails periodically
@@ -132,6 +136,12 @@ contains
     leftx = lefts(4)-n
     rightx=rights(4)+n  
 
+    !do not do anything if the gaussian is too extended
+    if (rightx-leftx > nwork) then
+       !STOP 'gaustodaub'
+       return
+    end if
+
     !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
   
     !corrected for avoiding 0**0 problem
@@ -172,9 +182,8 @@ contains
     call forward(  ww(:,1),ww(:,2),&
          lefts(1),rights(1),lefts(0),rights(0)) 
 
-    c=0.0_gp
 
-  end subroutine gauss_to_scf
+  END SUBROUTINE gauss_to_scf
 
   subroutine fold_tail
     ! One of the tails of the Gaussian is folded periodically
@@ -231,10 +240,10 @@ contains
 !!          c(i,2)=ww(i-n_left+length,2)
 !!       enddo
 !!    endif
-  end subroutine fold_tail
+  END SUBROUTINE fold_tail
 
 
-end subroutine gauss_to_daub
+END SUBROUTINE gauss_to_daub
 !!***
 
 !!****f* BigDFT/gauss_to_daub_k
@@ -287,8 +296,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
   real(wp), dimension(ncplx,0:nmax,2), intent(out) :: c
   !local variables
   integer :: rightx,leftx,right_t,i0,i,k,length,j,icplx
-  real(gp) :: a,z0,h,theor_norm2,x,r,coeff,r2,error,fac,rk
-  real(dp) :: cn2,tt
+  real(gp) :: a,z0,h,x,r,coeff,r2,fac,rk
   real(wp) :: func,cval,sval
   integer, dimension(0:4) :: lefts,rights
   !include the convolutions filters
@@ -307,9 +315,13 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
   !at level 0, positions shifted by i0 
   right_t= ceiling(15.d0*a)
 
+  !print *,'a,right_t',a,right_t,gau_a,hgrid
+
   !to rescale back the coefficients
   fac=hgrid**n_gau*sqrt(hgrid)*factor
 
+  !initialise array
+  c=0.0_gp
 
   if (periodic) then
      !we expand the whole Gaussian in scfunctions and later fold one of its tails periodically
@@ -321,7 +333,6 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
      lefts( 0)=i0-right_t
      rights(0)=i0+right_t
      
-     
      call gauss_to_scf()
      
      ! special for periodic case:
@@ -330,7 +341,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
      ! non-periodic: the Gaussian is bounded by the cell borders
      lefts( 0)=max(i0-right_t,   0)
      rights(0)=min(i0+right_t,nmax)
-     
+
      call gauss_to_scf
      
      !loop for each complex component
@@ -366,6 +377,12 @@ contains
 
     leftx = lefts(4)-n
     rightx=rights(4)+n  
+
+    !stop the code if the gaussian is too extended
+    if (rightx-leftx > nwork) then
+       !STOP 'gaustodaub'
+       return
+    end if
 
     !loop for each complex component
     do icplx=1,ncplx
@@ -456,25 +473,23 @@ contains
        end if
 
        !print *,'here',gau_a,gau_cen,n_gau
-       call apply_w(ww(:,1,icplx),ww(:,2,icplx),&
+       call apply_w(ww(0,1,icplx),ww(0,2,icplx),&
             leftx   ,rightx   ,lefts(4),rights(4),h)
 
-       call forward_c(ww(:,2,icplx),ww(:,1,icplx),&
+       call forward_c(ww(0,2,icplx),ww(0,1,icplx),&
             lefts(4),rights(4),lefts(3),rights(3)) 
-       call forward_c(ww(:,1,icplx),ww(:,2,icplx),&
+       call forward_c(ww(0,1,icplx),ww(0,2,icplx),&
             lefts(3),rights(3),lefts(2),rights(2)) 
-       call forward_c(ww(:,2,icplx),ww(:,1,icplx),&
+       call forward_c(ww(0,2,icplx),ww(0,1,icplx),&
             lefts(2),rights(2),lefts(1),rights(1)) 
 
-       call forward(  ww(:,1,icplx),ww(:,2,icplx),&
+       call forward(  ww(0,1,icplx),ww(0,2,icplx),&
             lefts(1),rights(1),lefts(0),rights(0)) 
 
     end do
 
 
-    c=0.0_gp
-
-  end subroutine gauss_to_scf
+  END SUBROUTINE gauss_to_scf
 
   subroutine fold_tail
     ! One of the tails of the Gaussian is folded periodically
@@ -485,6 +500,7 @@ contains
 
     !modification of the calculation.
     !at this stage the values of c are fixed to zero
+    !print *,'ncplx',ncplx,n_left,n_right,nwork,length
     do icplx=1,ncplx
        do i=n_left,n_right
           j=modulo(i,nmax+1)
@@ -495,10 +511,10 @@ contains
 
     c=fac*c
 
-  end subroutine fold_tail
+  END SUBROUTINE fold_tail
 
 
-end subroutine gauss_to_daub_k
+END SUBROUTINE gauss_to_daub_k
 !!***
 
 
@@ -528,7 +544,7 @@ subroutine apply_w(cx,c,leftx,rightx,left,right,h)
      c(i)=ci*sqh
   enddo
 
-end subroutine apply_w
+END SUBROUTINE apply_w
 
 
 !
@@ -557,7 +573,7 @@ subroutine forward_c(c,c_1,left,right,left_1,right_1)
      c_1(i)=ci
   enddo
 
-end subroutine forward_c
+END SUBROUTINE forward_c
 
 !
 !      CONVENTIONAL FORWARD WAVELET TRANSFORM ("SHRINK")
@@ -588,4 +604,4 @@ subroutine forward(c,cd_1,left,right,left_1,right_1)
      cd_1(i,2)=di
   enddo
 
-end subroutine forward
+END SUBROUTINE forward

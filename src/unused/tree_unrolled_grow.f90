@@ -117,7 +117,7 @@ subroutine  comb_rot_grow_loc_1(nfl,nfu,ndat,x,y,ib)
   !tel=dble(ncount1-ncount0)/dble(ncount_rate)
 
   !write(20,*) tel, 1.d-6*nflop/tel
-end subroutine comb_rot_grow_loc_1
+END SUBROUTINE comb_rot_grow_loc_1
 
 
 
@@ -212,7 +212,7 @@ subroutine  comb_rot_grow_loc_2(nfl,nfu,ndat,x,y,ib)
   tel=dble(ncount1-ncount0)/dble(ncount_rate)
 
   !write(20,*) tel, 1.d-6*nflop/tel
-end subroutine comb_rot_grow_loc_2
+END SUBROUTINE comb_rot_grow_loc_2
 
 
 

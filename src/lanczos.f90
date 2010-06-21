@@ -24,8 +24,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   implicit none
 
-  integer  :: iproc,nproc,ndimpot,nspin
-  real(gp)  :: hx,hy,hz
+  integer, intent(in) :: iproc,nproc,ndimpot,nspin
+  real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), target :: at
   type(nonlocal_psp_descriptors), target :: nlpspd
   type(locreg_descriptors), target :: lr
@@ -100,7 +100,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      nullify(Gabsorber%xp)
      nullify(Gabsorber%psiat)
      
-     call read_gaussian_information (0 ,1 ,ha%orbs,Gabsorber,dum_coeffs , filename, .true. )    
+     call read_gaussian_information (ha%orbs,Gabsorber,dum_coeffs , filename, .true. )    
      Gabsorber%rxyz(:,1)=rxyz(:, in_iat_absorber )
      
      i_all=-product(shape(dum_coeffs))*kind(dum_coeffs)
@@ -231,7 +231,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   call deallocate_abscalc_input(in, subname)
 
 
-end subroutine xabs_lanczos
+END SUBROUTINE xabs_lanczos
 !!***
 
 
@@ -332,7 +332,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      nullify(Gabsorber%xp)
      nullify(Gabsorber%psiat)
    
-     call read_gaussian_information(0 ,1 ,ha%orbs,Gabsorber,dum_coeffs , filename, .true. )
+     call read_gaussian_information(ha%orbs,Gabsorber,dum_coeffs , filename, .true. )
      Gabsorber%rxyz(:,1)=rxyz(:, in_iat_absorber )
      
      i_all=-product(shape(dum_coeffs))*kind(dum_coeffs)
@@ -532,5 +532,5 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 !!$     call memocc(i_stat,i_all,'Gabsorber%rxyz',subname)
 !!$  endif
 
-end subroutine xabs_chebychev
+END SUBROUTINE xabs_chebychev
 !!***

@@ -1,3 +1,13 @@
+!!****f* BigDFT/psimix
+!! FUNCTION
+!! COPYRIGHT
+!!    Copyright (C) 2007-2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!! SOURCE
+!!
 subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alpha,&
      hpsit,psidst,hpsidst,psit)
   use module_base
@@ -20,6 +30,7 @@ subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alp
      ispsidst=1
      do ikptp=1,orbs%nkptsp
         nvctrp=comms%nvctr_par(iproc,ikptp)
+        if (nvctrp == 0) cycle
         
      !here we can choose to store the DIIS arrays with single precision
      !psidst=psit
@@ -58,7 +69,9 @@ subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alp
 
   endif
 
-end subroutine psimix
+END SUBROUTINE psimix
+!!***
+
 
 ! diis subroutine:
 ! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
@@ -79,7 +92,6 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
   character(len=*), parameter :: subname='diisstp'
   integer :: i,j,ist,jst,mi,iorb,info,jj,mj,k,i_all,i_stat,ierr
   integer :: ikptp,ikpt,ispsi,ispsidst,nvctrp
-  real(kind=8) :: tt
   integer, dimension(:), allocatable :: ipiv
   real(dp), dimension(:,:), allocatable :: rds
 
@@ -92,8 +104,9 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
 
   ispsidst=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptp
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
      nvctrp=comms%nvctr_par(iproc,ikptp)
+     if (nvctrp == 0) cycle
 
      ! set up DIIS matrix (upper triangle)
      if (ids > idsx) then
@@ -136,8 +149,9 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
   ispsi=1
   ispsidst=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptp
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
      nvctrp=comms%nvctr_par(iproc,ikptp)
+     if (nvctrp == 0) cycle
 
      do i=1,min(ids,idsx)
         ads(i,min(idsx,ids),ikptp,1)=rds(i,ikpt)
@@ -169,11 +183,6 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
      else
         rds(1,ikpt)=1.0_dp
      endif
-     if (iproc == 0 .and. verbose > 0) then 
-        !write(*,*) 'DIIS weights'
-        !we should print the weights for each k-point
-        write(*,'(1x,a,2x,12(1x,1pe9.2))')'DIIS weights',(rds(j,ikpt),j=1,min(idsx,ids)+1)
-     endif
 
 ! new guess
      do iorb=1,orbs%norb
@@ -198,6 +207,21 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
      ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
      ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*idsx
   end do
+  ! Output to screen, depending on policy.
+  if (verbose >= 10) then
+     call broadcast_kpt_objects(nproc, orbs%nkpts, idsx+1, rds, orbs%ikptproc)
+  end if
+  if (iproc == 0 .and. verbose > 0) then 
+     if (verbose < 10) then
+        !we restrict the printing to the first k point only.
+        write(*,'(1x,a,2x,12(1x,1pe9.2))')'DIIS weights',(rds(j,1),j=1,min(idsx,ids)+1)
+     else
+        do ikpt = 1, orbs%nkpts
+           write(*,'(1x,a,I3.3,a,2x,12(1x,1pe9.2))')'DIIS weights (kpt #', ikpt, &
+                & ')', (rds(j,0),j=1,min(idsx,ids)+1)
+        end do
+     end if
+  endif
   i_all=-product(shape(ipiv))*kind(ipiv)
   deallocate(ipiv,stat=i_stat)
   call memocc(i_stat,i_all,'ipiv',subname)

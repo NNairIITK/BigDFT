@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.4],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.11],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -258,17 +258,17 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   AC_LANG_POP(C)
 
   dnl Add the flags.
-  AC_ARG_WITH(cuda-cflags, AS_HELP_STRING([--with-cuda-cflags], [specify the flags for the NVidia Cuda Compiler (default is '-O3 --compiler-options -fno-strict-aliasing').]),
-                         [ac_with_cuda_cflags=$withval],
-                         [ac_with_cuda_cflags="no"])
-  if test x"$ac_with_cuda_cflags" != x"no" ; then
-    CUDA_FLAGS="$ac_with_cuda_cflags"
+  AC_ARG_WITH(cuda-cflags, AS_HELP_STRING([--with-nvcc-flags], [specify the flags for the NVidia Cuda Compiler (default is '-O3 --compiler-options -fno-strict-aliasing').]),
+                         [ac_with_nvcc_flags=$withval],
+                         [ac_with_nvcc_flags="no"])
+  if test x"$ac_with_nvcc_flags" != x"no" ; then
+    NVCC_FLAGS="$ac_with_nvcc_flags"
   else
-    if test -z "$CUDA_FLAGS" ; then
-      CUDA_FLAGS="-O3 --compiler-options -fno-strict-aliasing"
+    if test -z "NVCC_FLAGS" ; then
+      NVCC_FLAGS="-O3 --compiler-options -fno-strict-aliasing"
     fi
   fi
-  AC_SUBST(CUDA_FLAGS)
+  AC_SUBST(NVCC_FLAGS)
   LIBCUDA_LIBS="-L$ac_cuda_lib_path -lcudart -lcublas"
 fi
 
@@ -317,6 +317,12 @@ if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" ; then
   dnl Instead of second underscoring, test the compiler behaviour.
   AC_FC_WRAPPERS()
 fi
+
+dnl Test libraries required for benching.
+AC_LANG_PUSH(C++)
+AC_CHECK_LIB(config++, config_init, withconfig=yes, withconfig=no)
+AM_CONDITIONAL(HAVE_LIBCONFIG, test "$withconfig" = "yes")
+AC_LANG_POP(C++)
 
 dnl AM_CONDITIONAL for the different libraries, set default values.
 dnl the common routines from ABINIT.
@@ -552,8 +558,6 @@ AC_CONFIG_FILES([
 Makefile
 libABINIT/src/Makefile
 src/Makefile
-src/lib/Makefile
-src/lib/fft/Makefile
 src/modules/Makefile
 src/modules/configure.inc
 src/profiling/Makefile
@@ -567,38 +571,39 @@ utils/Makefile
 utils/PSPfiles/Makefile
 doc/Makefile
 tests/Makefile
-tests/C/Makefile
-tests/Ca2/Makefile
-tests/H/Makefile
-tests/H2-spin/Makefile
-tests/Li+/Makefile
-tests/Mn2/Makefile
-tests/NaCl/Makefile
-tests/SiH4/Makefile
-tests/H2O-CP2K/Makefile
-tests/SiBulk/Makefile
-tests/H2O-slab/Makefile
-tests/Davidson-SiH4/Makefile
-tests/GPU/Makefile
-tests/MINHOP/Makefile
+tests/fft/Makefile
+tests/PSolver/Makefile
 tests/H2-freq/Makefile
-tests/NH3/Makefile
+tests/MINHOP/Makefile
 tests/NEB/Makefile
 tests/NEB/input
 tests/NEB/NEB_include.sh
 tests/XabsCheb/Makefile
-tests/FeHyb/Makefile
+tests/DFT/Makefile
+tests/DFT/C/Makefile
+tests/DFT/Ca2/Makefile
+tests/DFT/H/Makefile
+tests/DFT/H2-spin/Makefile
+tests/DFT/Li+/Makefile
+tests/DFT/Mn2/Makefile
+tests/DFT/NaCl/Makefile
+tests/DFT/SiH4/Makefile
+tests/DFT/NH3/Makefile
+tests/DFT/H2O-CP2K/Makefile
+tests/DFT/SiBulk/Makefile
+tests/DFT/H2O-slab/Makefile
+tests/DFT/Davidson-SiH4/Makefile
+tests/DFT/FeHyb/Makefile
+tests/DFT/Graphene/Makefile
+tests/DFT/GPU/Makefile
+tests/DFT/OCL/Makefile
 ])
-dnl if test x"$ac_build_libxc" = x"yes" ; then
-  # Call libXC ./configure script recursively.
-  ac_configure_args=$ac_configure_args" --enable-fortran"
-  AC_CONFIG_SUBDIRS([libXC])
-dnl fi
-dnl if test x"$ac_build_libsgpu" = x"yes" ; then
-  # Call S_GPU ./configure script recursively.
-  ac_configure_args=$ac_configure_args" --with-cuda-path=$ac_with_cuda_path"
-  AC_CONFIG_SUBDIRS([S_GPU])
-dnl fi
+
+# Call libXC ./configure script recursively.
+# Call S_GPU ./configure script recursively.
+ac_configure_args=$ac_configure_args" --enable-fortran"
+AC_CONFIG_SUBDIRS([libXC S_GPU])
+
 AC_OUTPUT
 
 echo "

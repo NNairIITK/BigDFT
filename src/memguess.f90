@@ -5,7 +5,7 @@
 !! AUTHOR
 !!    Luigi Genovese
 !! COPYRIGHT
-!!   Copyright (C) 2007-2009 CEA
+!!   Copyright (C) 2007-2010 BigDFT group
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -22,57 +22,63 @@ program memguess
 
   implicit none
   character(len=*), parameter :: subname='memguess'
-  integer, parameter :: ngx=31
   character(len=20) :: tatonam
   character(len=40) :: comment
-  logical :: optimise,GPUtest,convert=.false.
+  logical :: optimise,GPUtest,atwf,convert=.false.
   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
-  integer :: norbgpu,nspin_ig
-  real(kind=8) :: peakmem,hx,hy,hz
+  integer :: norbgpu,nspin_ig,ng
+  real(gp) :: peakmem,hx,hy,hz
   type(input_variables) :: in
   type(atoms_data) :: atoms
   type(orbitals_data) :: orbs,orbstst
+  type(communications_arrays) :: comms
   type(locreg_descriptors) :: Glr
   type(nonlocal_psp_descriptors) :: nlpspd
+  type(gaussian_basis) :: G !basis for davidson IG
   real(gp), dimension(3) :: shift
   logical, dimension(:,:,:), allocatable :: logrid
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:,:), pointer :: rxyz
+  real(wp), dimension(:), allocatable :: rhoexpo
+  real(wp), dimension(:,:), allocatable :: rhocoeff
   real(kind=8), dimension(:,:), allocatable :: radii_cf
-  real(kind=8), dimension(:,:,:), allocatable :: psiat
-  real(kind=8), dimension(:,:), allocatable :: xp, occupat
-  integer, dimension(:,:), allocatable :: nl
   logical, dimension(:,:,:), allocatable :: scorb
-  integer, dimension(:), allocatable :: ng
   real(kind=8), dimension(:), allocatable :: locrad
+  real(gp), dimension(:), pointer :: gbd_occ
   !! By Ali
-  integer ::ierror
-! Get arguments
+  integer :: ierror
+
+  ! Get arguments
 
   call getarg(1,tatonam)
 
   optimise=.false.
   GPUtest=.false.
+  atwf=.false.
   if(trim(tatonam)=='') then
      write(*,'(1x,a)')&
-          'Usage: ./memguess <nproc> [y]'
+          'Usage: ./memguess <nproc> [option]'
      write(*,'(1x,a)')&
           'Indicate the number of processes after the executable'
      write(*,'(1x,a)')&
-          'You can put a "y" in the second argument (optional) if you want the '
+          '[option] can be the following: '
      write(*,'(1x,a)')&
-          '  grid to be plotted with V_Sim'
+          '"y": grid to be plotted with V_Sim'
      write(*,'(1x,a)')&
-          'You can also put an "o" if you want to rotate the molecule such that'
+          '"o" rotate the molecule such that the volume of the simulation box is optimised'
      write(*,'(1x,a)')&
-          '  the volume of the simulation box is optimised'
+          '"GPUtest <nrep>" case of a CUDAGPU calculation, to test the speed of 3d operators'
      write(*,'(1x,a)')&
-          'In the case of a CUDAGPU calculation you can put "GPUtest" after the'
+          '         <nrep> is the number of repeats'
      write(*,'(1x,a)')&
-          '  number of processors, followed by the number of repeats'
+          '"convert" converts input files older than 1.2 into actual format'
      write(*,'(1x,a)')&
-          'You can also put "convert" keyword for converting input file into 1.3 format'
+          '"atwf" <ng> calculates the atomic wavefunctions of the first atom in the gatom basis and write their expression '
+     write(*,'(1x,a)')&
+          '            in the "gatom-wfn.dat" file '
+     write(*,'(1x,a)')&
+          '           <ng> is the number of gaussians used for the gatom calculation'
      stop
   else
      read(unit=tatonam,fmt=*) nproc
@@ -106,13 +112,23 @@ program memguess
         convert=.true.
         write(*,'(1x,a)')&
              'convert the input.dat file in the "input_convert.dft" (1.3 format)'
+     else if (trim(tatonam)=='atwf') then
+        atwf=.true.
+        write(*,'(1x,a)')&
+             'Perform the calculation of aomic wavefunction of the first atom'
+        call getarg(3,tatonam)
+        read(tatonam,*,iostat=ierror)ng
+        write(*,'(1x,a,i0,a)')&
+             'Use gaussian basis of',ng,' elements.'
      else
         write(*,'(1x,a)')&
              'Usage: ./memguess <nproc> [y]'
         write(*,'(1x,a)')&
              'Indicate the number of processes after the executable'
         write(*,'(1x,a)')&
-             'ERROR: The only second argument which is accepted are "y", "o", "convert" or "GPUtest"'
+             'ERROR: The only second argument which is accepted are "y", "o", "convert" "GPUtest" or "atwf" ' 
+        write(*,'(1x,a)')&
+             '       (type "memguess" without arguments to have an help)'
         stop
      end if
   end if
@@ -140,13 +156,13 @@ program memguess
 
 
 
-  !initialize memory counting
-  call memocc(0,0,'count','start')
-
   !welcome screen
   call print_logo()
 
   if (convert) then
+     !initialize memory counting
+     !call memocc(0,0,'count','start')
+
      !read number of atoms
      call read_atomic_file('posinp',0,atoms,rxyz)
 
@@ -156,15 +172,17 @@ program memguess
      write(*,*)' ...done'
   else
      call read_input_variables(0, "posinp", "input.dft", "input.kpt", &
-          & "input.geopt", in, atoms, rxyz)
+          & "input.geopt", "input.perf", in, atoms, rxyz)
+     !initialize memory counting
+     !call memocc(0,0,'count','start')
   end if
 
-  call print_input_parameters(in,atoms)
-
+  call print_general_parameters(in,atoms)
+  call print_dft_parameters(in,atoms)
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
- 
+
 
   ! store PSP parameters
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
@@ -185,7 +203,6 @@ program memguess
 
   end if
 
-  
   !in the case in which the number of orbitals is not "trivial" check whether they are too many
   if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0)) then
      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
@@ -196,6 +213,8 @@ program memguess
      allocate(locrad(atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,locrad,'locrad',subname)
 
+     !calculate the inputguess orbitals
+     !spin for inputguess orbitals
      if (in%nspin==4) then
         nspin_ig=1
      else
@@ -203,7 +222,7 @@ program memguess
      end if
 
      ! Read the inguess.dat file or generate the input guess via the inguess_generator
-     call readAtomicOrbitals(0,atoms,norbe,norbsc,nspin_ig,orbs%nspinor,&
+     call readAtomicOrbitals(atoms,norbe,norbsc,nspin_ig,orbs%nspinor,&
           scorb,norbsc_arr,locrad)
 
      if (in%nspin==4) then
@@ -247,16 +266,21 @@ program memguess
 
   end if
 
-! Determine size alat of overall simulation cell and shift atom positions
-! then calculate the size in units of the grid space
+  ! Determine size alat of overall simulation cell and shift atom positions
+  ! then calculate the size in units of the grid space
   hx=in%hx
   hy=in%hy
   hz=in%hz
 
   call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Glr,shift)
 
+  ! Build and print the communicator scheme.
+  call createWavefunctionsDescriptors(0,hx,hy,hz,&
+       atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr)
+  call orbitals_communicators(0,nproc,Glr,orbs,comms)  
+
   if (GPUtest .and. .not. GPUconv) then
-     write(*,*)' ERROR: you can not put a GPUtest flag is there is no GPUrun.'
+     write(*,*)' ERROR: you can not put a GPUtest flag if there is no GPUrun.'
      stop
   end if
   if (GPUconv .and. atoms%geocode=='P' .and. GPUtest) then
@@ -286,13 +310,8 @@ program memguess
         orbstst%spinsgn(iorb)=1.0_gp
      end do
 
-     call createWavefunctionsDescriptors(0,hx,hy,hz,&
-          atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst)
-     
      call compare_cpu_gpu_hamiltonian(0,1,atoms,orbstst,nspin,in%ncong,in%ixc,&
           Glr,hx,hy,hz,rxyz,ntimes)
-     
-     call deallocate_wfd(Glr%wfd,subname)
 
      call deallocate_orbs(orbstst,subname)
 
@@ -302,6 +321,7 @@ program memguess
 
   end if
 
+  call deallocate_comms(comms,subname)
 
   ! determine localization region for all projectors, but do not yet fill the descriptor arrays
   allocate(nlpspd%nseg_p(0:2*atoms%nat+ndebug),stat=i_stat)
@@ -312,56 +332,96 @@ program memguess
   call memocc(i_stat,nlpspd%nboxp_c,'nboxp_c',subname)
   allocate(nlpspd%nboxp_f(2,3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,nlpspd%nboxp_f,'nboxp_f',subname)
+
   allocate(logrid(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid,'logrid',subname)
 
   call localize_projectors(0,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,&
        in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,orbs,nlpspd)
+  
+  !allocations for arrays holding the data descriptors
+  !just for modularity
+  allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
+  call memocc(i_stat,nlpspd%keyg_p,'nlpspd%keyg_p',subname)
+  allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
+  call memocc(i_stat,nlpspd%keyv_p,'nlpspd%keyv_p',subname)
+
+
+  if (atwf) then
+     !here the treatment of the AE Core charge density
+     !number of gaussians defined in the input of memguess
+     !ng=31
+     !plot the wavefunctions for the pseudo atom
+     nullify(G%rxyz)
+     call gaussian_pswf_basis(ng,.false.,0,in%nspin,atoms,rxyz,G,gbd_occ)
+     !for the moment multiply the number of coefficients for each channel
+     allocate(rhocoeff((ng*(ng+1))/2,4+ndebug),stat=i_stat)
+     call memocc(i_stat,rhocoeff,'rhocoeff',subname)
+     allocate(rhoexpo((ng*(ng+1))/2+ndebug),stat=i_stat)
+     call memocc(i_stat,rhoexpo,'rhoexpo',subname)
+
+     call plot_gatom_basis('gatom',1,ng,G,gbd_occ,rhocoeff,rhoexpo)
+
+     if (associated(gbd_occ)) then
+        i_all=-product(shape(gbd_occ))*kind(gbd_occ)
+        deallocate(gbd_occ,stat=i_stat)
+        call memocc(i_stat,i_all,'gbd_occ',subname)
+        nullify(gbd_occ)
+     end if
+     !deallocate the gaussian basis descriptors
+     call deallocate_gwf(G,subname)
+
+
+!!$  !plot the wavefunctions for the AE atom
+!!$  !not possible, the code should recognize the AE eleconf
+!!$  call razero(35,atoms%psppar(0,0,atoms%iatype(1)))
+!!$  atoms%psppar(0,0,atoms%iatype(1))=0.01_gp
+!!$  nullify(G%rxyz)
+!!$  call gaussian_pswf_basis(ng,.false.,0,in%nspin,atoms,rxyz,G,gbd_occ)
+!!$  !for the moment multiply the number of coefficients for each channel
+!!$  allocate(rhocoeff((ng*(ng+1))/2,4+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,rhocoeff,'rhocoeff',subname)
+!!$  allocate(rhoexpo((ng*(ng+1))/2+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,rhoexpo,'rhoexpo',subname)
+!!$  
+!!$  call plot_gatom_basis('all-elec',1,ng,G,gbd_occ,rhocoeff,rhoexpo)
+!!$
+!!$  if (associated(gbd_occ)) then
+!!$     i_all=-product(shape(gbd_occ))*kind(gbd_occ)
+!!$     deallocate(gbd_occ,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'gbd_occ',subname)
+!!$     nullify(gbd_occ)
+!!$  end if
+!!$  !deallocate the gaussian basis descriptors
+!!$  call deallocate_gwf(G,subname)
+
+     i_all=-product(shape(rhoexpo))*kind(rhoexpo)
+     deallocate(rhoexpo,stat=i_stat)
+     call memocc(i_stat,i_all,'rhoexpo',subname)
+     i_all=-product(shape(rhocoeff))*kind(rhocoeff)
+     deallocate(rhocoeff,stat=i_stat)
+     call memocc(i_stat,i_all,'rhocoeff',subname)
+
+  end if
 
   i_all=-product(shape(logrid))*kind(logrid)
   deallocate(logrid,stat=i_stat)
   call memocc(i_stat,i_all,'logrid',subname)
-  i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
-  deallocate(nlpspd%nvctr_p,stat=i_stat)
-  call memocc(i_stat,i_all,'nlpspd%nvctr_p',subname)
-  i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
-  deallocate(nlpspd%nseg_p,stat=i_stat)
-  call memocc(i_stat,i_all,'nlpspd%nseg_p',subname)
-  i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
-  deallocate(nlpspd%nboxp_c,stat=i_stat)
-  call memocc(i_stat,i_all,'nlpspd%nboxp_c',subname)
-  i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
-  deallocate(nlpspd%nboxp_f,stat=i_stat)
-  call memocc(i_stat,i_all,'nlpspd%nboxp_f',subname)
-  i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
-  deallocate(atoms%psppar,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%psppar',subname)
-  i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
-  deallocate(atoms%npspcode,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%npspcode',subname)
-  i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
-  deallocate(atoms%nelpsp,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nelpsp',subname)
-  !no need of using nzatom array
-  i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
-  deallocate(atoms%nzatom,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nzatom',subname)
-  i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
-  deallocate(atoms%iasctype,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%iasctype',subname)
-  i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
-  deallocate(atoms%aocc,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%aocc',subname)
 
+  call deallocate_proj_descr(nlpspd,subname)
+  call deallocate_atoms_scf(atoms,subname) 
 
   call MemoryEstimator(atoms%geocode,nproc,in%idsx,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
        atoms%alat1,atoms%alat2,atoms%alat3,&
        hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,in%crmult,in%frmult,&
-       orbs%norb,nlpspd%nprojel,atoms%atomnames,output_grid,in%nspin,peakmem)
+       orbs%norb,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,output_grid,in%nspin,peakmem)
 
   !add the comparison between cuda hamiltonian and normal one if it is the case
 
   call deallocate_atoms(atoms,subname)
+
+  call deallocate_lr(Glr,subname)
+
 
   i_all=-product(shape(radii_cf))*kind(radii_cf)
   deallocate(radii_cf,stat=i_stat)
@@ -493,7 +553,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
   deallocate(txyz,stat=i_stat)
   call memocc(i_stat,i_all,'txyz',subname)
 
-end subroutine optimise_volume
+END SUBROUTINE optimise_volume
 !!***
 
 !!****f* BigDFT/shift_periodic_directions
@@ -603,7 +663,7 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
   deallocate(txyz,stat=i_stat)
   call memocc(i_stat,i_all,'txyz',subname)
 
-end subroutine shift_periodic_directions
+END SUBROUTINE shift_periodic_directions
 !!***
 
 subroutine calc_vol(geocode,nat,rxyz,vol)
@@ -645,7 +705,7 @@ subroutine calc_vol(geocode,nat,rxyz,vol)
      vol=(cxmax-cxmin)*(czmax-czmin)
   end if
 
-end subroutine calc_vol
+END SUBROUTINE calc_vol
 
 
 subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
@@ -683,7 +743,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !nullify the G%rxyz pointer
   nullify(G%rxyz)
   !extract the gaussian basis from the pseudowavefunctions
-  call gaussian_pswf_basis(iproc,nspin,at,rxyz,G,gbd_occ)
+  call gaussian_pswf_basis(21,.false.,iproc,nspin,at,rxyz,G,gbd_occ)
   
   allocate(gaucoeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
@@ -704,7 +764,6 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   call razero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
 
-
   !convert the gaussians in wavelets
   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbs,lr%d,&
        hx,hy,hz,lr%wfd,G,gaucoeffs,psi)
@@ -716,7 +775,6 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   i_all=-product(shape(gbd_occ))*kind(gbd_occ)
   deallocate(gbd_occ,stat=i_stat)
   call memocc(i_stat,i_all,'gbd_occ',subname)
-
 
   !deallocate the gaussian basis descriptors
   call deallocate_gwf(G,subname)
@@ -1000,7 +1058,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   write(*,'(1x,a,5(1x,f7.3))')'Ratios:',Rden,Rham,Rgemm,Rsyrk,Rprec
   
-end subroutine compare_cpu_gpu_hamiltonian
+END SUBROUTINE compare_cpu_gpu_hamiltonian
 
 
 subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
@@ -1045,9 +1103,9 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
   end if
 
 
-end subroutine compare_data_and_gflops
+END SUBROUTINE compare_data_and_gflops
 
-!!****f* BigDFT/read_input_variables
+!!****f* BigDFT/read_input_variables_old
 !! FUNCTION
 !!    Read the input variables in the file 'input.dat', old format.
 !! SOURCE
@@ -1236,9 +1294,9 @@ contains
             'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
-  end subroutine check
+  END SUBROUTINE check
 
-end subroutine read_input_variables_old
+END SUBROUTINE read_input_variables_old
 !!***
 
 
@@ -1332,7 +1390,12 @@ subroutine dft_input_converter(in)
   line=' 2   verbosity of the output 0=low, 2=high'
   !electrostatic treatment of the vacancy (experimental)
   write(1,*) trim(line)
+
+  line=''
+  line='disable the symmetry detection'
+  !Disable automatic capabilities...
+  write(1,*) in%disableSym, trim(line)
    
   close(unit=1)
-end subroutine dft_input_converter
+END SUBROUTINE dft_input_converter
 !!***

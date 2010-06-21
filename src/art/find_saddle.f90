@@ -1,48 +1,57 @@
-!  Subroutine find_saddle
-!
-!  This subroutine initiates the random displacement at the start
-!  of the ART algorithm. 
-!
-!  After  random escape direction has been selected, the routine call 
-!  saddle_converge which will try to bring the configuration to a saddle point.
-!
-!  If the convergence fails, find_saddle will restart; if it succeeds, it saves 
-!  the event and returns to the main loop.
-
-!
-!  The displacement can be either LOCAL and involve a single atom
-!  and its neareast neighbours or
-!
-!  NON-LOCAL and involve ALL the atoms.
-!
-!  For large cells, it is preferable to use a local initial
-!  displacement to prevent the creation of many trajectories
-!  at the same time in different sections of the cell.
-!
-!   Normand Mousseau  19 June 2001
-!
+!!****m* art/saddles
+!! COPYRIGHT
+!!    Copyright (C) 2001 Normand Mousseau
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 module saddles
+
   use defs
   implicit none
-  save
-  
+
   character(len=20) :: TYPE_EVENTS
- 
-  real(8) :: INITSTEPSIZE 
-  real(8) :: LOCAL_CUTOFF
+
+  real(kind=8) :: INITSTEPSIZE 
+  real(kind=8) :: LOCAL_CUTOFF
 
   integer :: KTER_MIN, NVECTOR_LANCZOS
   integer :: MAXITER, MAXKTER
   integer :: MAXIPERP, MAXKPERP
-  real(8) :: INCREMENT,BASIN_FACTOR 
-  real(8) :: FTHRESHOLD, FTHRESH2
-  real(8) :: EIGEN_THRESH 
-  real(8) :: EXITTHRESH
+  real(kind=8) :: INCREMENT,BASIN_FACTOR 
+  real(kind=8) :: FTHRESHOLD, FTHRESH2
+  real(kind=8) :: EIGEN_THRESH 
+  real(kind=8) :: EXITTHRESH
 
   integer, dimension(:), allocatable  :: atom_displaced     ! Id of local atoms displaced
   integer                     :: natom_displaced    ! # of local atoms displaced
 end module saddles
+!!***
 
+
+!!****f* art/find_saddle
+!! FUNCTION
+!!  This subroutine initiates the random displacement at the start
+!!  of the ART algorithm. 
+!!  After  random escape direction has been selected, the routine call 
+!!  saddle_converge which will try to bring the configuration to a saddle point.
+!!  If the convergence fails, find_saddle will restart; if it succeeds, it saves 
+!!  the event and returns to the main loop.
+!!  The displacement can be either LOCAL and involve a single atom
+!!  and its neareast neighbours or
+!!
+!!  NON-LOCAL and involve ALL the atoms.
+!!
+!!  For large cells, it is preferable to use a local initial
+!!  displacement to prevent the creation of many trajectories
+!!  at the same time in different sections of the cell.
+!!
+!! SOURCE
+!! 
 subroutine find_saddle(success)
   use random
   use defs
@@ -51,10 +60,9 @@ subroutine find_saddle(success)
   implicit none
 
   logical, intent(out) :: success
-  integer :: i, j, k, that, ret, npart, ierror, nat
-  real(8) :: boxl
-  real(8) :: fperp, fpar, del_r, saddle_energy
-  real(8) :: ran3
+  integer :: ret, npart, ierror, nat
+  real(kind=8) :: boxl
+  real(kind=8) :: fperp, fpar, del_r, saddle_energy
   character(len=4)  :: scounter
   character(len=20) :: fname
 
@@ -136,27 +144,30 @@ subroutine find_saddle(success)
 
   deallocate(atom_displaced)       
 
-end subroutine find_saddle
+END SUBROUTINE find_saddle
+!!***
 
-! Subroutine local_move
-!
-! The initial random direction is taken from a restricted space based on 
-! the local bonding environment. For this, we need to know the list of neighbours
-! and the cut-off of the potential. Other approaches could be used also.
 
+!!****f* art/local_move
+!! FUNCTION
+!!   The initial random direction is taken from a restricted space based on 
+!!   the local bonding environment. For this, we need to know the list of neighbours
+!!   and the cut-off of the potential. Other approaches could be used also.
+!! SOURCE
+!! 
 subroutine local_move()
   use defs
   use random
   use saddles
+  implicit none
 
-  integer                          :: i, j, that, k, i_id, j_id, nat
-  real(8)                          :: lcutoff2    ! Cut-off for local moves, squared
-  real(8), dimension(VECSIZE), target :: dr
-  real(8), dimension(:), pointer   :: dx, dy, dz
-  real(8)                          :: dr2, dxi, dyi, dzi, dxij, dyij, dzij
-  real(8)                          :: boxl, invbox
-  real(8)                          :: xsum, ysum, zsum, xnorm, ynorm, znorm, norm
-  real(8) :: ran3, Numb, inf, sup
+  integer                               :: i, j, that, i_id, j_id, nat, ierror
+  real(kind=8)                          :: lcutoff2    ! Cut-off for local moves, squared
+  real(kind=8), dimension(VECSIZE), target :: dr
+  real(kind=8), dimension(:), pointer   :: dx, dy, dz
+  real(kind=8)                          :: boxl, invbox
+  real(kind=8)                          :: xsum, ysum, zsum, xnorm, ynorm, znorm, norm
+  real(kind=8) :: ran3, Numb,dr2,xi,xij,yi,yij,zi,zij
 
   ! We assign a few pointers 
   dx => dr(1:NATOMS)
@@ -273,22 +284,26 @@ subroutine local_move()
   initial_direction  = initial_direction * norm
   
   if (iproc .eq. 0 ) write(*,*) 'Number of displaced atoms initially: ',natom_displaced
-end subroutine local_move
+END SUBROUTINE local_move
+!!***
 
-! Subroutine global_move
-!
-! The initial random direction is taken from the full 3N-dimensional space
 
+!!****f* art/global_move
+!! FUNCTION
+!!   The initial random direction is taken from the full 3N-dimensional space
+!! SOURCE
+!!
 subroutine global_move()
   use defs
   use random
   use saddles
+  implicit none
 
-  integer :: i
-  real(8) :: norm, xnorm, ynorm, znorm
-  real(8), dimension(VECSIZE), target :: dr
-  real(8), dimension(:), pointer    :: dx, dy, dz
-  real(8) :: ran3
+  integer :: i,ierror,nat
+  real(kind=8) :: norm, xnorm, ynorm, znorm
+  real(kind=8), dimension(VECSIZE), target :: dr
+  real(kind=8), dimension(:), pointer    :: dx, dy, dz
+  real(kind=8) :: ran3
 
   ! We assign a few pointers 
   dx => dr(1:NATOMS)
@@ -297,8 +312,6 @@ subroutine global_move()
 
   ! All atoms are displaced
   atom_displaced = 1  ! Vectorial operation
-  natom_dispaced = NATOMS
- 
 
   ! Generate a random displacement
   if (iproc .eq. 0) then  ! Only on the master node
@@ -348,21 +361,27 @@ subroutine global_move()
   norm = 1.0 / sqrt (norm)
   initial_direction  = initial_direction * norm
 
-end subroutine global_move
+END SUBROUTINE global_move
+!!***
 
+
+!!****f* art/symmetry_break
+!! SOURCE
+!! 
 subroutine symmetry_break()
   use defs
   use random
   use saddles
+  implicit none
 
-  integer                          :: i, j, that, k, i_id, j_id, m
-  real(8)                          :: lcutoff2    ! Cut-off for local moves, squared
-  real(8), dimension(VECSIZE), target :: dr
-  real(8), dimension(:), pointer   :: dx, dy, dz
-  real(8)                          :: dr2, dxi, dyi, dzi, dxij, dyij, dzij
-  real(8)                          :: boxl, invbox
-  real(8)                          :: xsum, ysum, zsum, xnorm, ynorm, znorm, norm
-  real(8) :: ran3, Numb, inf, sup
+  integer                               :: i,ierror,nat
+  real(kind=8)                          :: lcutoff2    ! Cut-off for local moves, squared
+  real(kind=8), dimension(VECSIZE), target :: dr
+  real(kind=8), dimension(:), pointer   :: dx, dy, dz
+  real(kind=8)                          :: dr2
+  real(kind=8)                          :: boxl, invbox
+  real(kind=8)                          :: xsum, ysum, zsum, xnorm, ynorm, znorm, norm
+  real(kind=8) :: ran3, Numb
 
   ! We assign a few pointers 
   dx => dr(1:NATOMS)
@@ -453,4 +472,5 @@ subroutine symmetry_break()
      close(flog)
   endif
 
- end subroutine symmetry_break
+ END SUBROUTINE symmetry_break
+ !!***

@@ -19,7 +19,7 @@ program MINHOP
 
   implicit real(kind=8) (a-h,o-z)
   real(kind=4) :: tts
-  logical :: newmin
+  logical :: newmin,CPUcheck,exists
   character(len=20) :: unitsp,units,atmn
   character(len=80) :: line
   type(atoms_data) :: atoms
@@ -31,6 +31,7 @@ program MINHOP
   integer, parameter :: mdmin=2
   real(kind=8), parameter :: beta1=1.10d0,beta2=1.10d0,beta3=1.d0/1.10d0
   real(kind=8), parameter :: alpha1=1.d0/1.10d0,alpha2=1.10d0
+  real(gp) :: fnoise
   real(kind=8) :: elocmin(npminx)
   real(kind=8), allocatable, dimension(:,:) ::ff,wpos,vxyz,gg,earr
   real(kind=8),allocatable, dimension(:,:,:):: poslocmin
@@ -49,8 +50,11 @@ program MINHOP
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
   !call system('echo $HOSTNAME')
 
+  ! Read performance inputs if present
+  call perf_input_variables(iproc,'input.perf',inputs_opt)
+
   ! Initialize memory counting
-  call memocc(0,iproc,'count','start')
+  !call memocc(0,iproc,'count','start')
 
   if (iproc == 0)then
      write(*,'(23x,a)')' NEW '
@@ -110,12 +114,15 @@ program MINHOP
 
   call read_atomic_file('poscur',iproc,atoms,pos)
   !Read input parameters for geometry optimization 
-  call dft_input_variables(iproc,'input.dft',inputs_opt,atoms%symObj)
-  call geopt_input_variables(iproc,'input.geopt',inputs_opt)
+  call default_input_variables(inputs_opt)
+  call dft_input_variables(iproc,'input.dft',inputs_opt)
+  call geopt_input_variables('input.geopt',inputs_opt)
   call kpt_input_variables(iproc,'input.kpt',inputs_opt,atoms)
 
-  call dft_input_variables(iproc,'mdinput.dft',inputs_md,atoms%symObj)
-  call geopt_input_variables(iproc,'mdinput.geopt',inputs_md)
+  !read input parameters for molecular dynamics
+  call default_input_variables(inputs_md)
+  call dft_input_variables(iproc,'mdinput.dft',inputs_md)
+  call geopt_input_variables('mdinput.geopt',inputs_md)
   call kpt_input_variables(iproc,'input.kpt',inputs_md,atoms)
 
 
@@ -144,7 +151,7 @@ program MINHOP
  
 ! read random offset
   open(unit=11,file='rand.inp')
-  read(11,'(i3)') nrandoff
+  read(11,*) nrandoff
   !        write(*,*) 'nrandoff ',nrandoff
   close(11)
   do i=1,nrandoff
@@ -179,7 +186,8 @@ program MINHOP
         end if
         read(9,*) natp,unitsp,elocmin(nlmin_l)
         if (atoms%nat.ne.natp) stop   'nat <> natp'
-        if (trim(unitsp).ne.trim(units)) write(*,*) '# different units in poslow and poscur file:',trim(unitsp),(units)
+        if (trim(unitsp).ne.trim(atoms%units) .and. iproc.eq.0) write(*,*)  & 
+                 '# different units in poslow and poscur file: ',trim(unitsp),' ',trim(atoms%units)
         read(9,*)
         do iat=1,atoms%nat
           read(9,*) atmn,t1,t2,t3
@@ -225,21 +233,21 @@ program MINHOP
   count_md=0.d0
   nputback=0
 
-  do iat=1,atoms%nat
-     if (atoms%geocode == 'P') then
-        pos(1,iat)=modulo(pos(1,iat),atoms%alat1)
-        pos(2,iat)=modulo(pos(2,iat),atoms%alat2)
-        pos(3,iat)=modulo(pos(3,iat),atoms%alat3)
-     else if (atoms%geocode == 'S') then
-        pos(1,iat)=modulo(pos(1,iat),atoms%alat1)
-        pos(3,iat)=modulo(pos(3,iat),atoms%alat3)
-     end if
-  end do
+!!$  do iat=1,atoms%nat
+!!$     if (atoms%geocode == 'P') then
+!!$        pos(1,iat)=modulo(pos(1,iat),atoms%alat1)
+!!$        pos(2,iat)=modulo(pos(2,iat),atoms%alat2)
+!!$        pos(3,iat)=modulo(pos(3,iat),atoms%alat3)
+!!$     else if (atoms%geocode == 'S') then
+!!$        pos(1,iat)=modulo(pos(1,iat),atoms%alat1)
+!!$        pos(3,iat)=modulo(pos(3,iat),atoms%alat3)
+!!$     end if
+!!$  end do
 
 
   inputs_opt%inputPsiId=0
-  call init_restart_objects(iproc,input_opt%iacceleration,satoms,rst,subname)
-  call call_bigdft(nproc,iproc,atoms,pos,inputs_md,e_pos,ff,rst,infocode)
+  call init_restart_objects(iproc,inputs_opt%iacceleration,atoms,rst,subname)
+  call call_bigdft(nproc,iproc,atoms,pos,inputs_md,e_pos,ff,fnoise,rst,infocode)
 
   write(17,*) 'ENERGY ',e_pos
   energyold=1.d100
@@ -303,6 +311,7 @@ program MINHOP
   end if
 
   nlmin_old=nlmin
+  CPUcheck=.false.
 
   !C outer (hopping) loop
 !  hopping_loop: do
@@ -323,20 +332,27 @@ program MINHOP
 
 !C check whether CPU time exceeded
      tleft=1.d100
-     if (iproc == 0)then
-        open(unit=55,file='CPUlimit_global',status='unknown')
-        read(55,*,end=555) cpulimit ; cpulimit=cpulimit*3600
-        write(*,'(a,i5,i3,2(1x,e9.2))') 'iproc,nlmin,tcpu2-tcpu1,cpulimit',iproc,nlmin,tcpu2-tcpu1,cpulimit
-        close(55)
-        call cpu_time(tcpu2)
-        tleft=cpulimit-(tcpu2-tcpu1)
+     if(iproc==0 .and. CPUcheck)then
+        inquire(file='CPUlimit_global',exist=exists)
+        if (exists) then
+           open(unit=55,file='CPUlimit_global',status='unknown')
+           read(55,*,end=555) cpulimit ; cpulimit=cpulimit*3600
+           write(*,'(a,i5,i3,2(1x,e9.2))') 'iproc,nlmin,tcpu2-tcpu1,cpulimit',iproc,nlmin,tcpu2-tcpu1,cpulimit
+           close(55)
+           call cpu_time(tcpu2)
+           tleft=cpulimit-(tcpu2-tcpu1)
+        else
+           tleft=100.0_gp
+        end if
      end if
-555    continue
-       call MPI_BCAST(tleft,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-       if (tleft < 0.d0) then
-       write(*,*) 'CPU time exceeded',tleft
-       goto 3000
-       endif
+555  continue
+     call MPI_BCAST(tleft,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+     if (tleft < 0.d0) then
+        write(*,*) 'CPU time exceeded',tleft
+        goto 3000
+     endif
+
+     CPUcheck=.true.
 
      do iat=1,atoms%nat
         wpos(1,iat)=pos(1,iat)
@@ -602,6 +618,9 @@ contains
 
     !C initialize positions,velocities, forces
     call randdist(atoms%nat,rxyz,vxyz)
+
+!print *,'velocities',vxyz
+!stop
     inputs_md%inputPsiId=1
     !if(iproc==0)write(*,*)' #  no softening'
     call soften(nsoften,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
@@ -644,9 +663,13 @@ contains
 !!             rkin=rkin+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
 !!          end if
 !!       enddo
-      call atomic_axpy(atoms,rxyz,dt,vxyz,rxyz)
-      call atomic_axpy(atoms,rxyz,.5d0*dt*dt,gg,rxyz)
-      call atomic_dot(atoms,vxyz,vxyz,rkin)
+       !call atomic_axpy(atoms,rxyz,dt,vxyz,rxyz)
+       !call atomic_axpy(atoms,rxyz,.5d0*dt*dt,gg,rxyz)
+       !call atomic_dot(atoms,vxyz,vxyz,rkin)
+       call daxpy(3*atoms%nat,dt,vxyz(1,1),1,rxyz(1,1),1)
+       call daxpy(3*atoms%nat,0.5_gp*dt*dt,gg(1,1),1,rxyz(1,1),1)
+
+       rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
        rkin=rkin*.5d0
 
        enmin2=enmin1
@@ -654,7 +677,7 @@ contains
        !    if (iproc == 0) write(*,*) 'CLUSTER FOR  MD'
        inputs_md%inputPsiId=1
        if (istep > 2) inputs_md%itermax=50
-       call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,e_rxyz,ff,rst,infocode)
+       call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,e_rxyz,ff,fnoise,rst,infocode)
 
        if (iproc == 0) then
           write(fn,'(i4.4)') istep
@@ -716,7 +739,7 @@ contains
        dt=dt*(1.d0/1.05d0)
     endif
     
-  end subroutine mdescape
+  END SUBROUTINE mdescape
   
   
 
@@ -741,21 +764,20 @@ contains
 
     inputs_md%inputPsiId=1
     if(iproc==0)write(*,*)'# soften initial step '
-    call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,etot0,fxyz,rst,infocode)
+    call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,etot0,fxyz,fnoise,rst,infocode)
 
     ! scale velocity to generate dimer 
 
-    call atomic_dot(atoms,vxyz,vxyz,svxyz)
-!    svxyz=0.d0
-!    do i=1,3*atoms%nat
-!       iat=(i-1)/3+1
-!       if (.not. atoms%lfrztyp(iat)) then
-!          svxyz=svxyz+vxyz(i)**2
-!       end if
-!    enddo
+    !call atomic_dot(atoms,vxyz,vxyz,svxyz)
+    svxyz=0.d0
+    do i=1,3*atoms%nat
+       iat=(i-1)/3+1
+       if (atoms%ifrztyp(iat) == 0) then
+          svxyz=svxyz+vxyz(i)**2
+       end if
+    enddo
     eps_vxyz=sqrt(svxyz)
     if(iproc == 0) write(*,*)'#  eps_vxyz=',eps_vxyz
-
     do it=1,nsoften
        
 !       do iat=1,atoms%nat
@@ -779,36 +801,37 @@ contains
 !             end if
 !          end if
 !       end do
-       call atomic_axpy(atoms,rxyz,1.d0,vxyz,wpos)
+       !call atomic_axpy(atoms,rxyz,1.d0,vxyz,wpos)
+       wpos=rxyz+vxyz
 
-       call call_bigdft(nproc,iproc,atoms,wpos,inputs_md,etot,fxyz,rst,infocode)
+       call call_bigdft(nproc,iproc,atoms,wpos,inputs_md,etot,fxyz,fnoise,rst,infocode)
        fd2=2.d0*(etot-etot0)/eps_vxyz**2
 
-!       sdf=0.d0
-!       svxyz=0.d0
-!       do i=1,3*atoms%nat
-!          iat=(i-1)/3+1
-!          if (.not. atoms%lfrztyp(iat)) then
-!             sdf=sdf+vxyz(i)*fxyz(i)
-!             svxyz=svxyz+vxyz(i)*vxyz(i)
-!          end if
-!       end do
-       call atomic_dot(atoms,vxyz,vxyz,svxyz)
-       call atomic_dot(atoms,vxyz,fxyz,sdf)
+       sdf=0.d0
+       svxyz=0.d0
+       do i=1,3*atoms%nat
+          iat=(i-1)/3+1
+          if (atoms%ifrztyp(iat) == 0) then
+             sdf=sdf+vxyz(i)*fxyz(i)
+             svxyz=svxyz+vxyz(i)*vxyz(i)
+          end if
+       end do
+       !call atomic_dot(atoms,vxyz,vxyz,svxyz)
+       !call atomic_dot(atoms,vxyz,fxyz,sdf)
 
        curv=-sdf/svxyz
        if (it == 1) curv0=curv
 
-!       res=0.d0
-!       do i=1,3*atoms%nat
-!          iat=(i-1)/3+1
-!          if (.not. atoms%lfrztyp(iat)) then
-!             fxyz(i)=fxyz(i)+curv*vxyz(i)
-!             res=res+fxyz(i)**2
-!          end if
-!       end do
-       call atomic_axpy_forces(atoms,fxyz,curv,vxyz,fxyz)
-       call atomic_dot(atoms,fxyz,fxyz,res)
+       res=0.d0
+       do i=1,3*atoms%nat
+          iat=(i-1)/3+1
+          if (atoms%ifrztyp(iat) == 0) then
+             fxyz(i)=fxyz(i)+curv*vxyz(i)
+             res=res+fxyz(i)**2
+          end if
+       end do
+       !call atomic_axpy_forces(atoms,fxyz,curv,vxyz,fxyz)
+       !call atomic_dot(atoms,fxyz,fxyz,res)
        res=sqrt(res)
 
        write(fn4,'(i4.4)') it
@@ -841,7 +864,8 @@ contains
 !
 !          end if
 !       end do
-       call atomic_axpy_forces(atoms,wpos,alpha,fxyz,wpos)
+       !call atomic_axpy_forces(atoms,wpos,alpha,fxyz,wpos)
+       call daxpy(3*atoms%nat,alpha,fxyz(1),1,wpos(1),1)
 
        do i=1,3*atoms%nat
           vxyz(i)=wpos(i)-rxyz(i)
@@ -851,14 +875,14 @@ contains
        call elim_moment(atoms%nat,vxyz)
        call elim_torque(atoms%nat,rxyz,vxyz)
 
-!       svxyz=0.d0
-!       do i=1,3*atoms%nat
-!          iat=(i-1)/3+1
-!          if (.not. atoms%lfrztyp(iat)) then
-!             svxyz=svxyz+vxyz(i)*vxyz(i)
-!          end if
-!       end do
-       call atomic_dot(atoms,vxyz,vxyz,svxyz)
+       svxyz=0.d0
+       do i=1,3*atoms%nat
+          iat=(i-1)/3+1
+          if (atoms%ifrztyp(iat) == 0) then
+             svxyz=svxyz+vxyz(i)*vxyz(i)
+          end if
+       end do
+       !call atomic_dot(atoms,vxyz,vxyz,svxyz)
        if (res <= curv*eps_vxyz*5.d-1) exit
        svxyz=eps_vxyz/dsqrt(svxyz)
 
@@ -870,7 +894,7 @@ contains
  
 
     !        deallocate(wpos,fxyz)
-  end subroutine soften
+  END SUBROUTINE soften
 
 
 end program MINHOP
@@ -889,7 +913,7 @@ subroutine insert(nlminx,nlmin,k_e_wpos,re_wpos,earr)
   earr(k_e_wpos+1,1)=re_wpos
   earr(k_e_wpos+1,2)=1.d0
   return
-end subroutine insert
+END SUBROUTINE insert
 
 
 subroutine save_low_conf(nat,nlmin_l,npminx,e_wpos,pos,elocmin,poslocmin)
@@ -927,7 +951,7 @@ subroutine save_low_conf(nat,nlmin_l,npminx,e_wpos,pos,elocmin,poslocmin)
 
 
   return
-end subroutine save_low_conf
+END SUBROUTINE save_low_conf
 
 
 subroutine hunt(xx,n,x,jlo)
@@ -1045,7 +1069,7 @@ subroutine velopt(at,rxyz,ekinetic,vxyz)
 !     end if
   end do
 
-end subroutine velopt
+END SUBROUTINE velopt
 
 
 subroutine randdist(nat,rxyz,vxyz)
@@ -1067,7 +1091,7 @@ subroutine randdist(nat,rxyz,vxyz)
 
   call elim_moment(nat,vxyz)
   call elim_torque(nat,rxyz,vxyz)
-end subroutine randdist
+END SUBROUTINE randdist
 
 
 subroutine gausdist(nat,rxyz,vxyz)
@@ -1097,7 +1121,7 @@ subroutine gausdist(nat,rxyz,vxyz)
   call elim_moment(nat,vxyz)
   call  elim_torque(nat,rxyz,vxyz)
   return
-end subroutine gausdist
+END SUBROUTINE gausdist
 
 
 subroutine expdist(nat,rxyz,vxyz)
@@ -1118,7 +1142,7 @@ subroutine expdist(nat,rxyz,vxyz)
   call  elim_torque(nat,rxyz,vxyz)
 
   return
-end subroutine expdist
+END SUBROUTINE expdist
 
 
 subroutine localdist(nat,rxyz,vxyz)
@@ -1187,7 +1211,7 @@ subroutine localdist(nat,rxyz,vxyz)
   !        write(*,'(i3,3(1pe12.4))') jat,(rxyz(i,jat)+.5d0*vxyz(i,jat),i=1,3)
 
   return
-end subroutine localdist
+END SUBROUTINE localdist
 
 
 subroutine torque(nat,rxyz,vxyz)
@@ -1212,7 +1236,7 @@ subroutine torque(nat,rxyz,vxyz)
   enddo
   write(*,'(a,3(1pe11.3))') 'torque',tx,ty,tz
 
-end subroutine torque
+END SUBROUTINE torque
 
 
 subroutine elim_torque(nat,rxyz,vxyz)
@@ -1281,7 +1305,7 @@ subroutine elim_torque(nat,rxyz,vxyz)
   enddo
   write(*,'(a,3(1pe11.3))') 'WARNING REMAINING TORQUE',t
 
-end subroutine elim_torque
+END SUBROUTINE elim_torque
 
 
 subroutine moment(nat,vxyz)
@@ -1296,7 +1320,7 @@ subroutine moment(nat,vxyz)
   enddo
   write(*,'(a,3(1pe11.3))') 'momentum',sx,sy,sz
 
-end subroutine moment
+END SUBROUTINE moment
 
 
 subroutine elim_moment(nat,vxyz)
@@ -1316,7 +1340,7 @@ subroutine elim_moment(nat,vxyz)
      vxyz(3,iat)=vxyz(3,iat)-sz
   enddo
 
-end subroutine elim_moment
+END SUBROUTINE elim_moment
 
 
 subroutine fix_fragmentation(iproc,at,rxyz,nputback)
@@ -1453,7 +1477,7 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
      endif
   end do fragment_loop
 
-end subroutine fix_fragmentation
+END SUBROUTINE fix_fragmentation
 
 
 subroutine winter(at,re_pos,pos,npminx,nlminx,nlmin,nlmin_l,accur, & 
@@ -1497,7 +1521,7 @@ subroutine winter(at,re_pos,pos,npminx,nlminx,nlmin,nlmin_l,accur, &
      call  wtioput(ediff,ekinetic,dt,nsoften)
      write(*,*) ' wrote ioput for  RESTART'
 
-end subroutine winter
+END SUBROUTINE winter
 
 
 subroutine wtioput(ediff,ekinetic,dt,nsoften)
@@ -1505,7 +1529,7 @@ subroutine wtioput(ediff,ekinetic,dt,nsoften)
   open(unit=11,file='ioput',status='unknown')
   write(11,'(3(1x,1pe24.17)1x,i4,a)') ediff,ekinetic,dt,nsoften,' ediff, ekinetic dt and nsoften'
   close(11)
-end subroutine wtioput
+END SUBROUTINE wtioput
 
 
 subroutine wtpos(at,npminx,nlminx,nlmin,nlmin_l,pos,earr,elocmin)
@@ -1560,7 +1584,7 @@ subroutine wtpos(at,npminx,nlminx,nlmin,nlmin_l,pos,earr,elocmin)
 
   end do
 
-end subroutine wtpos
+END SUBROUTINE wtpos
 
 
 real*8 function round(enerd,accur)
@@ -1593,7 +1617,7 @@ end function round
 !     read(9,*)fn,rxyz(:,iat)!we know the atom types already
 !  enddo
 !  close(unit=9)
-!end subroutine rdposout
+!END SUBROUTINE rdposout
 
 
 !routine for adjusting the dimensions with the center of mass in the middle
@@ -1627,4 +1651,4 @@ subroutine adjustrxyz(nat,alat1,alat2,alat3,rxyz)
      rxyz(2,iat)=rxyz(2,iat)-cent(2)+alat2*.5_gp
      rxyz(3,iat)=rxyz(3,iat)-cent(3)+alat3*.5_gp
   enddo
-end subroutine adjustrxyz
+END SUBROUTINE adjustrxyz

@@ -1,6 +1,20 @@
+!!****m* BigDFT/convSimpleBench
+!! FUNCTION
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 module convSimpleBench
+  implicit none
   integer :: conv_f_nflop1,conv_f_nflop2,conv_f_nflop3
 end module convSimpleBench
+!!***
 
 
 !   y = (kinetic energy operator)x + (cprec*I)x 
@@ -168,7 +182,7 @@ subroutine Convolkinetic_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
   !write(99,'(a40,1x,e10.3,1x,f6.1)') 'ALL   PART',  & 
   !tel,1.e-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-end subroutine Convolkinetic_f
+END SUBROUTINE Convolkinetic_f
 
 
 
@@ -432,7 +446,7 @@ subroutine Convolkinetic_sep(n1,n2,n3, &
   !write(99,'(a40,1x,e10.3,1x,f6.1)') 'ALL   PART',  & 
   !tel,1.e-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-end subroutine Convolkinetic_sep
+END SUBROUTINE Convolkinetic_sep
 
 !   y = (kinetic energy operator)x + (cprec*I)x 
 subroutine Convolkinetic(n1,n2,n3, &
@@ -861,7 +875,7 @@ subroutine Convolkinetic(n1,n2,n3, &
   !write(99,'(a40,1x,e10.3,1x,f6.1)') 'ALL   PART',  & 
   !tel,1.e-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-end subroutine Convolkinetic
+END SUBROUTINE Convolkinetic
 
 
 !   y = (kinetic energy operator)x + (cprec*I)x 
@@ -950,7 +964,7 @@ subroutine Convolkinetic_c(n1,n2,n3,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,x_c,y_c,fa
      enddo
   enddo
 
-end subroutine Convolkinetic_c
+END SUBROUTINE Convolkinetic_c
 
 
 
@@ -1425,7 +1439,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
 
   ekinout=real(ekin,gp)
 
-end subroutine ConvolkineticT
+END SUBROUTINE ConvolkineticT
 
 
 

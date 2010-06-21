@@ -30,7 +30,7 @@ contains
     integer n,m
     real(gp) res
     res = facttable(n)/facttable(n-m)/facttable(m)
-  end subroutine binomial
+  END SUBROUTINE binomial
 
 
   real(gp) function Wig( two_ja,  two_jb,  two_jc,&
@@ -160,15 +160,16 @@ contains
        facttable(l)=l*facttable(l-1)
     enddo
 
-  end subroutine inizializza
+  END SUBROUTINE inizializza
 
 
-  integer function binary_search( dval, dlist,  len)
-    integer len
-    real(8) dval
+  integer function binary_search(dval, dlist, len)
+    !Arguments
+    integer :: len
+    real(8) :: dval
     real(8) :: dlist(1:len)
-
-    integer  bottom , top , middle, result
+    !Local variables
+    integer :: bottom , top , middle
     
     if (dval < dlist (1) ) then
        binary_search = 0
@@ -225,7 +226,7 @@ contains
           !! print *, "sqrt Ks(l)" , Ks(l)
        endif
     enddo
-  end subroutine getKs
+  END SUBROUTINE getKs
 
 
   subroutine getHam2ham(R, h2h_res, fattore)
@@ -247,16 +248,18 @@ contains
             h2h_res(i,j)= fatt* ham2ham(i,j) * fattore
          enddo
       enddo
-    end subroutine getHam2ham
+    END SUBROUTINE getHam2ham
 
 
     subroutine RiflettivitaSub( E , Ref, Trasm)
-      real(gp) E 
-      complex(gp) :: Ref(0:nls-1,0:nls-1), Trasm(0:nls-1,0:nls-1)
-
+      !Arguments
+      real(gp) :: E 
+      complex(gp), intent(out) :: Ref(0:nls-1,0:nls-1), Trasm(0:nls-1,0:nls-1)
+      !Local variables
       complex(gp), target ::  K(0:nls-1)
-      integer i,j
-      complex(gp) UIC 
+      integer :: i
+      complex(gp) :: UIC 
+
       UIC=(0.0,1.0_gp)
 
       call getKs(RMts,E,K, .false. )
@@ -274,7 +277,7 @@ contains
       do i=0, nls-1
          Trasm(i,i) = 2*UIC*K(i) /( UIC *K(i) * psi(i) - derpsi(i) )
       enddo
-    end subroutine RiflettivitaSub
+    END SUBROUTINE RiflettivitaSub
 
 
     subroutine Up_Down( R, Energy, E, dE_dz,  Up,  Down)
@@ -293,7 +296,7 @@ contains
             Down(i,j) = ( E(i,j) -    dE_dz(i,j)  /  ( K (i)*UIC)      )*0.5
          enddo
       enddo
-    end subroutine Up_Down
+    END SUBROUTINE Up_Down
 
 
     SUBROUTINE ZGEMM_i(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
@@ -303,7 +306,7 @@ contains
       DOUBLE COMPLEX A(LDA,*),B(LDB,*),C(LDC,*)
       print *, TRANSA,TRANSB,M,N,K,ALPHA,LDA,LDB,BETA,LDC
       call ZGEMM(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
-    end SUBROUTINE ZGEMM_i
+    END SUBROUTINE ZGEMM_i
 
 
    subroutine Propaga( R1, R2,Energy, E, dE_dz)
@@ -324,7 +327,7 @@ contains
      complex(gp) ::  dE_dza(0:nls-1,0:nls-1)
  
      complex(gp) :: K2(0:nls-1)
-     integer i,j
+     integer :: i
 
      hh=(R2-R1)/2.0
      call  getHam2ham(R1 , tf , 2.0_gp ) 
@@ -383,7 +386,7 @@ contains
 
      E     =E+h6*((di1+dt1)+   2.0* dm1)
      dE_dz  =dE_dz+ h6*((di2+dt2)+  2.0* dm2)
-   end subroutine Propaga
+   END SUBROUTINE Propaga
 
 
    function inverse(n,A)

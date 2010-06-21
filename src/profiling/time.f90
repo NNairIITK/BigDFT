@@ -1,4 +1,17 @@
+!!****m* BigDFT/timeData
+!! FUNCTION
+!!    Contains variables used a timing for BigDFT
+!! COPYRIGHT
+!!    Copyright (C) 2010, BigDFT group (Luigi Genovese)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!! SOURCE
+!!
 module timeData
+
+  implicit none
   integer, parameter :: ncat=23   ! define timimg categories
 
   integer :: istart, ittime, ncounters, ncaton!, nskip
@@ -8,6 +21,8 @@ module timeData
   real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
   character(len=10), dimension(ncat) :: pcnames !names of the partial counters, to be assigned
 end module timeData
+!!***
+
 
 !the same timing routine but with system_clock (in case of a supported specs)
 subroutine timing(iproc,category,action)
@@ -152,13 +167,13 @@ subroutine timing(iproc,category,action)
      !controls if the category exists
      ii=100000
      do i=1,ncat
-        if (trim(category).eq.trim(cats(i))) then
+        if (trim(category) == trim(cats(i))) then
            ii=i
            exit
         endif
      enddo
      !print *,'find category',ii,trim(category)
-     if (ii.eq.100000) then
+     if (ii == 100000) then
         print *, 'ACTION  ',action
         stop 'TIMING CATEGORY NOT DEFINED'
      end if
@@ -198,7 +213,8 @@ subroutine timing(iproc,category,action)
 
   endif
 
-end subroutine timing
+END SUBROUTINE timing
+
 
 subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
   implicit none
@@ -270,4 +286,4 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
      write(60,*)
   endif
 
-end subroutine sum_results
+END SUBROUTINE sum_results

@@ -1,7 +1,16 @@
-
+!!****f* BigDFT/analyse_per
+!! FUNCTION
+!!   Analysis wavelet transformation in periodic BC
+!!   The input array y is NOT overwritten
+!! COPYRIGHT
+!!    Copyright (C) 2007-2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!! SOURCE
+!!
 subroutine analyse_per(n1,n2,n3,ww,y,x)
-  ! Analysis wavelet transformation in periodic BC
-  ! The input array y is NOT overwritten
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -21,7 +30,9 @@ subroutine analyse_per(n1,n2,n3,ww,y,x)
   nt=(2*n1+2)*(2*n2+2)
   call  ana_rot_per(n3,nt,ww,x)
 
-end subroutine analyse_per
+END SUBROUTINE analyse_per
+!!***
+
 
 subroutine analyse_per_self(n1,n2,n3,y,x)
   ! Analysis wavelet transformation  in periodic BC
@@ -44,7 +55,7 @@ subroutine analyse_per_self(n1,n2,n3,y,x)
   nt=(2*n1+2)*(2*n2+2)
   call  ana_rot_per(n3,nt,y,x)
 
-end subroutine analyse_per_self
+END SUBROUTINE analyse_per_self
 
 
 subroutine synthese_per(n1,n2,n3,ww,x,y)
@@ -69,7 +80,7 @@ subroutine synthese_per(n1,n2,n3,ww,x,y)
   nt=(2*n1+2)*(2*n2+2)
   call  syn_rot_per(n3,nt,ww,y)
 
-end subroutine synthese_per
+END SUBROUTINE synthese_per
 
 
 subroutine synthese_per_self(n1,n2,n3,x,y)
@@ -93,7 +104,7 @@ subroutine synthese_per_self(n1,n2,n3,x,y)
   nt=(2*n1+2)*(2*n2+2)
   call  syn_rot_per(n3,nt,x,y)
 
-end subroutine synthese_per_self
+END SUBROUTINE synthese_per_self
 
 
 ! Applies the magic filter matrix in periodic BC ( no transposition)
@@ -108,7 +119,7 @@ subroutine convolut_magic_n_per(n1,n2,n3,x,y,ww)
   !local variables
   character(len=*), parameter :: subname='convolut_magic_n_per'
   integer, parameter :: lowfil=-8,lupfil=7 !for GPU computation
-  integer :: ndat,i_stat,i_all
+  integer :: ndat
   real(wp), dimension(0:n1,0:n2,0:n3):: ww ! work array
   
   !  (i1,i2*i3) -> (i2*i3,I1)
@@ -120,7 +131,7 @@ subroutine convolut_magic_n_per(n1,n2,n3,x,y,ww)
      !  (i3,I1*I2) -> (iI*I2,I3)
      ndat=(n1+1)*(n2+1)
      call convrot_n_per(n3,ndat,ww,y)
-end subroutine convolut_magic_n_per
+END SUBROUTINE convolut_magic_n_per
 
 
 ! Applies the magic filter matrix in periodic BC ( no transposition)
@@ -135,7 +146,7 @@ subroutine convolut_magic_n_per_self(n1,n2,n3,x,y)
   !local variables
   character(len=*), parameter :: subname='convolut_magic_n_per'
   integer, parameter :: lowfil=-8,lupfil=7 !for GPU computation
-  integer :: ndat,i_stat,i_all
+  integer :: ndat
 
   !  (i1,i2*i3) -> (i2*i3,I1)
   ndat=(n2+1)*(n3+1)
@@ -147,7 +158,7 @@ subroutine convolut_magic_n_per_self(n1,n2,n3,x,y)
   ndat=(n1+1)*(n2+1)
   call convrot_n_per(n3,ndat,x,y)
 
-end subroutine convolut_magic_n_per_self
+END SUBROUTINE convolut_magic_n_per_self
 
 
 ! Applies the magic filter matrix transposed in periodic BC 
@@ -162,7 +173,7 @@ subroutine convolut_magic_t_per_self(n1,n2,n3,x,y)
   !local variables
   character(len=*), parameter :: subname='convolut_magic_t_per'
   integer, parameter :: lowfil=-7,lupfil=8
-  integer :: ndat,i_stat,i_all
+  integer :: ndat
   
   !  (I1,I2*I3) -> (I2*I3,i1)
   ndat=(n2+1)*(n3+1)
@@ -174,7 +185,7 @@ subroutine convolut_magic_t_per_self(n1,n2,n3,x,y)
   ndat=(n1+1)*(n2+1)
   call convrot_t_per(n3,ndat,x,y)
 
-end subroutine convolut_magic_t_per_self
+END SUBROUTINE convolut_magic_t_per_self
 
 
 
@@ -212,5 +223,5 @@ subroutine convolut_magic_t_per(n1,n2,n3,x,y)
   deallocate(ww,stat=i_stat)
   call memocc(i_stat,i_all,'ww',subname)
 
-end subroutine convolut_magic_t_per
+END SUBROUTINE convolut_magic_t_per
 

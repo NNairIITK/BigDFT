@@ -156,7 +156,8 @@ EOF
 
   if test "x$ac_compile_nvcc" = "xno" 
   then
-    AC_MSG_ERROR([CUDA compiler seems to have problem. Maybe check the gcc used for nvcc.])
+    AC_MSG_WARN([CUDA compiler seems to have problem. Maybe check the gcc used for nvcc.])
+    NVCC=""
   fi
 fi
 

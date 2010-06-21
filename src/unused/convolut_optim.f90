@@ -93,7 +93,7 @@
 !        tel=dble(ncount2-ncount1)/dble(ncount_rate)
 !        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'convrot_grow',tel,1.d-6*nflop/tel,nflop
 
-end subroutine 
+END SUBROUTINE 
 
 
 
@@ -187,7 +187,7 @@ end subroutine
 !        tel=dble(ncount2-ncount1)/dble(ncount_rate)
 !        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'convrot_shrink',tel,1.d-6*nflop/tel,nflop
 
-end subroutine 
+END SUBROUTINE 
 
 
         subroutine ana_rot_shrink(n,ndat,x,y)
@@ -270,7 +270,7 @@ end subroutine
 !        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'ana_rot_shrink',tel,1.d-6*nflop/tel,nflop
 
 
-end subroutine 
+END SUBROUTINE 
 
 
         subroutine syn_rot_grow(n,ndat,x,y)
@@ -428,7 +428,7 @@ end subroutine
 !        tel=dble(ncount2-ncount1)/dble(ncount_rate)
 !        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'syn_rot_grow',tel,1.d-6*nflop/tel,nflop
 
-end subroutine 
+END SUBROUTINE 
 
 
          subroutine Convolkinetic(n1,n2,n3, &
@@ -918,7 +918,7 @@ end subroutine
 !       write(95,'(a40,1x,e11.4,1x,f10.1)') 'ALL   PART',  & 
 !            tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-end subroutine 
+END SUBROUTINE 
 
 
 
@@ -1483,5 +1483,5 @@ end subroutine
 !      write(95,'(a40,1x,e11.4,1x,f10.1)') 'P:ALL   PART',  & 
 !           tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-end subroutine 
+END SUBROUTINE 
 

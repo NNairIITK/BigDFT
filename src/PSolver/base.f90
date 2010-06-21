@@ -63,7 +63,7 @@ module module_base
       character(len=*), intent(in) :: array,routine
       integer, intent(in) :: istat,isize
       call memory_occupation(istat,isize,array,routine) !this routine is in profiling/memory.f90
-    end subroutine memocc_internal
+    END SUBROUTINE memocc_internal
 
     subroutine dp_padding(npaddim,nstart,array)
       implicit none
@@ -75,7 +75,7 @@ module module_base
       do i=1,npaddim*ndebug
          array(nstart+i)= d_nan() !this function is in profiling/memory.f90
       end do
-    end subroutine dp_padding
+    END SUBROUTINE dp_padding
 
     subroutine sp_padding(npaddim,nstart,array)
       implicit none
@@ -87,7 +87,7 @@ module module_base
       do i=1,npaddim*ndebug
          array(nstart+i)= r_nan() !this function is in profiling/memory.f90
       end do
-    end subroutine sp_padding
+    END SUBROUTINE sp_padding
 
     subroutine i_padding(npaddim,nstart,array)
       implicit none
@@ -99,7 +99,7 @@ module module_base
       do i=1,npaddim*ndebug
          array(nstart+i)= r_nan() !this function is in profiling/timem.f90
       end do
-    end subroutine i_padding
+    END SUBROUTINE i_padding
 
     subroutine l_padding(npaddim,nstart,array)
       implicit none
@@ -110,7 +110,7 @@ module module_base
       do i=1,npaddim*ndebug
          array(nstart+i)=.false.
       end do
-    end subroutine l_padding
+    END SUBROUTINE l_padding
 
     subroutine c_padding(npaddim,nstart,array)
       implicit none
@@ -121,7 +121,7 @@ module module_base
       do i=1,npaddim*ndebug
          array(nstart+i)='AAAAAAAAAAAAAAAAAAAA'
       end do
-    end subroutine c_padding
+    END SUBROUTINE c_padding
 
     !beginning of the verbose section
     subroutine mo_dp1(istat,array,aname,rname)
@@ -136,7 +136,7 @@ module module_base
          call dp_padding(1,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_dp1
+    END SUBROUTINE mo_dp1
 
     subroutine mo_dp2(istat,array,aname,rname)
       implicit none
@@ -153,7 +153,7 @@ module module_base
          call dp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_dp2
+    END SUBROUTINE mo_dp2
 
     subroutine mo_dp3(istat,array,aname,rname)
       implicit none
@@ -170,7 +170,7 @@ module module_base
          call dp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_dp3
+    END SUBROUTINE mo_dp3
 
     subroutine mo_dp4(istat,array,aname,rname)
       implicit none
@@ -187,7 +187,7 @@ module module_base
          call dp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_dp4
+    END SUBROUTINE mo_dp4
 
     subroutine mo_dp5(istat,array,aname,rname)
       implicit none
@@ -204,7 +204,7 @@ module module_base
          call dp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_dp5
+    END SUBROUTINE mo_dp5
 
     subroutine mo_dp6(istat,array,aname,rname)
       implicit none
@@ -221,7 +221,7 @@ module module_base
          call dp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_dp6
+    END SUBROUTINE mo_dp6
 
     subroutine mo_dp7(istat,array,aname,rname)
       implicit none
@@ -238,7 +238,7 @@ module module_base
          call dp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_dp7
+    END SUBROUTINE mo_dp7
 
     subroutine mo_sp1(istat,array,aname,rname)
       implicit none
@@ -252,7 +252,7 @@ module module_base
          call sp_padding(1,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_sp1
+    END SUBROUTINE mo_sp1
 
     subroutine mo_sp2(istat,array,aname,rname)
       implicit none
@@ -269,7 +269,7 @@ module module_base
          call sp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_sp2
+    END SUBROUTINE mo_sp2
 
     subroutine mo_sp3(istat,array,aname,rname)
       implicit none
@@ -286,7 +286,7 @@ module module_base
          call sp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_sp3
+    END SUBROUTINE mo_sp3
 
     subroutine mo_sp4(istat,array,aname,rname)
       implicit none
@@ -303,7 +303,7 @@ module module_base
          call sp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_sp4
+    END SUBROUTINE mo_sp4
 
     subroutine mo_sp5(istat,array,aname,rname)
       implicit none
@@ -320,7 +320,7 @@ module module_base
          call sp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_sp5
+    END SUBROUTINE mo_sp5
 
     subroutine mo_sp6(istat,array,aname,rname)
       implicit none
@@ -337,7 +337,7 @@ module module_base
          call sp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_sp6
+    END SUBROUTINE mo_sp6
 
     subroutine mo_sp7(istat,array,aname,rname)
       implicit none
@@ -354,7 +354,7 @@ module module_base
          call sp_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_sp7
+    END SUBROUTINE mo_sp7
 
     subroutine mo_i1(istat,array,aname,rname)
       implicit none
@@ -368,7 +368,7 @@ module module_base
          call i_padding(1,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_i1
+    END SUBROUTINE mo_i1
 
     subroutine mo_i2(istat,array,aname,rname)
       implicit none
@@ -385,7 +385,7 @@ module module_base
          call i_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_i2
+    END SUBROUTINE mo_i2
 
     subroutine mo_i3(istat,array,aname,rname)
       implicit none
@@ -402,7 +402,7 @@ module module_base
          call i_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_i3
+    END SUBROUTINE mo_i3
 
     subroutine mo_i4(istat,array,aname,rname)
       implicit none
@@ -419,7 +419,7 @@ module module_base
          call i_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_i4
+    END SUBROUTINE mo_i4
 
     subroutine mo_i5(istat,array,aname,rname)
       implicit none
@@ -436,7 +436,7 @@ module module_base
          call i_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_i5
+    END SUBROUTINE mo_i5
 
     subroutine mo_i6(istat,array,aname,rname)
       implicit none
@@ -453,7 +453,7 @@ module module_base
          call i_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_i6
+    END SUBROUTINE mo_i6
 
     subroutine mo_i7(istat,array,aname,rname)
       implicit none
@@ -470,7 +470,7 @@ module module_base
          call i_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_i7
+    END SUBROUTINE mo_i7
 
     subroutine mo_l1(istat,array,aname,rname)
       implicit none
@@ -484,7 +484,7 @@ module module_base
          call l_padding(1,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_l1
+    END SUBROUTINE mo_l1
 
     subroutine mo_l2(istat,array,aname,rname)
       implicit none
@@ -501,7 +501,7 @@ module module_base
          call l_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_l2
+    END SUBROUTINE mo_l2
 
     subroutine mo_l3(istat,array,aname,rname)
       implicit none
@@ -518,7 +518,7 @@ module module_base
          call l_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_l3
+    END SUBROUTINE mo_l3
 
     subroutine mo_l4(istat,array,aname,rname)
       implicit none
@@ -535,7 +535,7 @@ module module_base
          call l_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_l4
+    END SUBROUTINE mo_l4
 
     subroutine mo_l5(istat,array,aname,rname)
       implicit none
@@ -552,7 +552,7 @@ module module_base
          call l_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_l5
+    END SUBROUTINE mo_l5
 
     subroutine mo_l6(istat,array,aname,rname)
       implicit none
@@ -569,7 +569,7 @@ module module_base
          call l_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_l6
+    END SUBROUTINE mo_l6
 
     subroutine mo_l7(istat,array,aname,rname)
       implicit none
@@ -586,7 +586,7 @@ module module_base
          call l_padding(npaddim,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_l7
+    END SUBROUTINE mo_l7
 
     subroutine mo_c1(istat,array,aname,rname)
       implicit none
@@ -600,178 +600,7 @@ module module_base
          call c_padding(1,ndim,array)
       end if
       call memory_occupation(istat,product(shape(array))*kind(array),aname,rname)
-    end subroutine mo_c1
+    END SUBROUTINE mo_c1
 
 end module module_base
 !!***
-
-!control the memory occupation by calculating the overall size of the allocated arrays
-!usage: 
-! when allocating allocating an array "stuff" of dimension n in the routine "dosome"
-!  allocate(stuff(n),stat=i_stat)
-!  call memocc(i_stat,product(shape(stuff))*kind(stuff),'stuff','dosome')
-! when deallocating 
-!  i_all=-product(shape(stuff))*kind(stuff)
-!  deallocate(stuff,stat=i_stat)
-!  call memocc(i_stat,i_all,'stuff','dosome')
-! the counters are initialized with
-!  call memocc(0,iproc,'count','start') (iproc = mpi rank, nproc=mpi size)
-! and stopped with
-!  call memocc(0,0,'count','stop')
-! at the end of the calculation a short report is printed on the screen
-! some information can be also written on disk following the needs
-!  This file is distributed under the terms of the
-!  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!  Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007
-subroutine memory_occupation(istat,isize,array,routine)
-  use module_base, only : memstat,loc,tot,nalloc,ndealloc,iproc
-
-  implicit none
-
-  character(len=*), intent(in) :: array,routine
-  integer, intent(in) :: istat,isize
-  !local variables
-  include 'mpif.h'
-  !Memory limit value in GB. It stops EVERYTHING if some process passes such limit
-  !For no memory limit, leave it to zero
-  real(kind=4), parameter :: memorylimit=3.e0
-  integer :: ierr
-
-  select case(array)
-  case('count')
-     if (routine=='start') then
-        tot%memory=int(0,kind=8)
-        tot%peak=int(0,kind=8)
-        nalloc=0
-        ndealloc=0
-
-        loc%routine='routine'
-        loc%array='array'
-        loc%memory=int(0,kind=8) !fake initialisation to print the first routine
-        loc%peak=int(0,kind=8)
-
-        iproc=isize
-        !open the writing file for the root process
-        if (iproc == 0) then
-           open(unit=98,file='malloc.prc',status='unknown')
-           write(98,'(a32,a14,4(1x,a12))')&
-                '(Data in KB)             Routine','    Peak Array',&
-                'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
-        end if
-     else if (routine=='stop' .and. iproc==0) then
-        write(98,'(a32,a14,4(1x,i12))')&
-             trim(loc%routine),trim(loc%array),&
-             loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
-             tot%memory/int(1024,kind=8),&
-             (tot%peak+loc%peak-loc%memory)/int(1024,kind=8)
-        close(98)
-        write(*,'(1x,a)')&
-             '-------------------------MEMORY CONSUMPTION REPORT-----------------------------'
-        write(*,'(1x,2(i0,a),i0)')&
-             nalloc,' allocations and ',ndealloc,' deallocations, remaining memory(B):',&
-             tot%memory
-        write(*,'(1x,a,i0,a)') 'memory occupation peak: ',tot%peak/int(1048576,kind=8),' MB'
-        write(*,'(4(1x,a))') 'for the array ',trim(tot%array),&
-             'in the routine',trim(tot%routine)
-        !here we can add a routine which open the malloc.prc file in case of some 
-        !memory allocation problem, and which eliminates it for a successful run
-        if (nalloc == ndealloc .and. tot%memory==int(0,kind=8)) then
-           !clean the malloc file
-           open(unit=98,file='malloc.prc',status='unknown')
-           write(98,*)
-           close(98)
-        end if
-     end if
-
-  case default
-     !control of the allocation/deallocation status
-     if (istat/=0) then
-        if (isize>=0) then
-           write(*,*)' subroutine ',routine,': problem of allocation of array ',array,&
-                'error code=',istat,' exiting...'
-           stop
-        else if (isize<0) then
-           write(*,*)' subroutine ',routine,': problem of deallocation of array ',array,&
-                'error code=',istat,' exiting...'
-           stop
-        end if
-     end if
-     !total counter, for all the processes
-     tot%memory=tot%memory+int(isize,kind=8)
-     if (tot%memory > tot%peak) then
-        tot%peak=tot%memory
-        tot%routine=routine
-        tot%array=array
-     end if
-     if (isize>0) then
-        nalloc=nalloc+1
-     else if (isize<0) then
-        ndealloc=ndealloc+1
-     end if
-
-     if (memorylimit /= 0.e0 .and. &
-          tot%memory > int(real(memorylimit,kind=8)*1073741824.d0,kind=8)) then !memory limit is in GB
-        write(*,'(1x,a,f7.3,2(a,i0),a)')&
-             'ERROR: Memory limit of ',memorylimit,&
-             ' GB reached for iproc ',iproc,' : total memory is ',tot%memory,' B.'
-        write(*,'(1x,2(a,i0))')&
-             '       this happened for array '//trim(tot%array)//' in routine '//trim(tot%routine)
-        call MPI_ABORT(MPI_COMM_WORLD,ierr)
-     end if
-
-     select case(iproc)
-     case (0)
-        !to be used for inspecting an array which is not deallocated
-        !write(98,'(a32,a14,4(1x,i12))')trim(routine),trim(array),isize,memory
-        if (trim(loc%routine) /= routine) then
-           if (loc%memory /= int(0,kind=8)) then
-              write(98,'(a32,a14,4(1x,i12))')&
-                   trim(loc%routine),trim(loc%array),&
-                   loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
-                   tot%memory/int(1024,kind=8),&
-                   (tot%memory+loc%peak-loc%memory)/int(1024,kind=8)
-           end if
-           loc%routine=routine
-           loc%array=array
-           loc%memory=isize
-           loc%peak=isize
-!!!               end if
-        else
-           loc%memory=loc%memory+isize
-           if (loc%memory > loc%peak) then
-              loc%peak=loc%memory
-              loc%array=array
-           end if
-        end if
-     case default
-        return
-     end select
-  end select
-end subroutine memory_occupation
-
-!functions which specify NaN according to IEEE specifications
-function d_nan()
-  implicit none
-  real(kind=8) :: d_nan
-  !local variables
-  real(kind=8) :: dnan
-  integer, dimension(2) :: inan
-  equivalence (dnan, inan)
-  ! This first assignment is for big-endian machines
-  inan(1) = 2147483647
-  ! The second assignment is for little-endian machines
-  inan(2) = 2147483647
-  d_nan = dnan
-end function d_nan
-
-function r_nan()
-  implicit none
-  real(kind=4) :: r_nan
-  !local variables
-  real(kind=4) :: rnan
-  integer :: inan
-  equivalence (rnan, inan)
-  inan = 2147483647
-  r_nan = rnan
-end function r_nan
-

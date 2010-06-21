@@ -14,6 +14,8 @@
 !! TODO
 !!  Add higher order for finite difference
 !!  Maybe possibility to use Lanczos to determine lowest frequencies
+!!  Zero-point energy
+!!  Vibrational entropy
 !!
 !! SOURCE
 !!
@@ -26,19 +28,16 @@ program frequencies
 
   implicit none
 
-  real(dp), parameter :: Ha_cmm1=219474.6313705_dp                ! 1 Hartree, in cm^-1 (from abinit 5.7.x)
-  real(dp), parameter :: amu_emass=1.660538782d-27/9.10938215d-31 ! 1 atomic mass unit, in electronic mass
   character(len=*), parameter :: subname='frequencies'
   character(len=4) :: cc
   !File unit
   integer, parameter :: u_hessian=20
   integer :: iproc,nproc,iat,jat,i,j,i_stat,i_all,ierr,infocode,ity
-  real(gp) :: etot,sumx,sumy,sumz,alat,dd,rmass
+  real(gp) :: etot,sumx,sumy,sumz,alat,dd,rmass,fnoise
   !Input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
   type(restart_objects) :: rst
-  type(orbitals_data) :: orbs
   !Atomic coordinates, forces
   real(gp), dimension(:), allocatable :: fxyz
   real(gp), dimension(:,:), allocatable :: rpos
@@ -47,12 +46,15 @@ program frequencies
   ! hessian, eigenvectors
   real(gp), dimension(:,:), allocatable :: hessian,vector_l,vector_r
   real(gp), dimension(:), allocatable :: eigen_r,eigen_i
+  !Array which indicates moves to calculate for a given direction
+  integer, dimension(:), allocatable :: kmoves
   ! logical: .true. if already calculated
   logical, dimension(:,:), allocatable :: moves
   real(gp), dimension(:,:), allocatable :: energies
   real(gp), dimension(:,:,:), allocatable :: forces
   real(gp), dimension(3) :: freq_step
-  integer :: k,km,nelec,ii,jj,imoves,order,n_order
+  real(gp) :: zpenergy
+  integer :: k,km,ii,jj,ik,imoves,order,n_order
   logical :: exists
  
   ! Start MPI in parallel version
@@ -61,11 +63,14 @@ program frequencies
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-  ! Initialize memory counting
-  call memocc(0,iproc,'count','start')
-
   ! Welcome screen
   if (iproc == 0) call print_logo()
+
+  ! Initialize memory counting
+  !call memocc(0,iproc,'count','start')
+
+  call read_input_variables(iproc, "posinp", "input.dft", "input.kpt", &
+       & "input.geopt", "input.perf", inputs, atoms, rxyz)
 
   ! Read all input files.
   inquire(file="input.freq",exist=exists)
@@ -75,19 +80,30 @@ program frequencies
      stop
   end if
   call frequencies_input_variables(iproc,'input.freq',inputs)
-  call read_input_variables(iproc, "posinp", "input.dft", "input.kpt", &
-       & "input.geopt", inputs, atoms, rxyz)
 
   !Order of the finite difference scheme
   order = inputs%freq_order
-  if (order == 2) then
+  if (order == -1) then
+     n_order = 1
+     allocate(kmoves(n_order),stat=i_stat)
+     kmoves = (/ -1 /)
+  else if (order == 1) then
+     n_order = 1
+     allocate(kmoves(n_order),stat=i_stat)
+     kmoves = (/ 1 /)
+  else if (order == 2) then
      n_order = 2
+     allocate(kmoves(n_order),stat=i_stat)
+     kmoves = (/ -1, 1 /)
   else if (order == 3) then
      n_order = 4
+     allocate(kmoves(n_order),stat=i_stat)
+     kmoves = (/ -2, -1, 1, 2 /)
   else
      print *, "Frequencies: This order",order," is not implemented!"
      stop
   end if
+  call memocc(i_stat,kmoves,'kmoves',subname)
 
   ! Allocations
   allocate(fxyz(3*atoms%nat+ndebug),stat=i_stat)
@@ -126,8 +142,9 @@ program frequencies
   !Reference state
   if (moves(1,0)) then
      fxyz = forces(:,1,0)
+     infocode=0
   else
-     call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
+     call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
      call frequencies_write_restart(iproc,0,0,0,rxyz,etot,fxyz,&
                                     n_order=n_order,freq_step=freq_step,amu=atoms%amu)
      moves(:,0) = .true.
@@ -137,23 +154,23 @@ program frequencies
   if (iproc == 0) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
 
   if (iproc == 0) then
-     sumx=0.d0
-     sumy=0.d0
-     sumz=0.d0
+!!$     sumx=0.d0
+!!$     sumy=0.d0
+!!$     sumz=0.d0
      write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
      do iat=1,atoms%nat
         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
              iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(i+3*(iat-1)),i=1,3)
-        sumx=sumx+fxyz(1 + 3*(iat-1))
-        sumy=sumy+fxyz(2 + 3*(iat-1))
-        sumz=sumz+fxyz(3 + 3*(iat-1))
+!!$        sumx=sumx+fxyz(1 + 3*(iat-1))
+!!$        sumy=sumy+fxyz(2 + 3*(iat-1))
+!!$        sumz=sumz+fxyz(3 + 3*(iat-1))
      end do
-     if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
-        write(*,'(1x,a)')'the sum of the forces is'
-        write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-        write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-        write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-     end if
+!!$     if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
+!!$        write(*,'(1x,a)')'the sum of the forces is'
+!!$        write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
+!!$        write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
+!!$        write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
+!!$     end if
   end if
 
   if (iproc == 0) then
@@ -188,8 +205,8 @@ program frequencies
            cc(3:4)='*z'
         end if
         km = 0
-        do k=-order+1,order-1
-           if (k == 0) cycle
+        do ik=1,n_order
+           k = kmoves(ik)
            !-1-> 1, 1 -> 2, y = ( x + 3 ) / 2
            km = km + 1
            if (moves(km,ii)) then
@@ -213,7 +230,7 @@ program frequencies
            else
               rpos(i,iat)=rxyz(i,iat)+dd
            end if
-           call call_bigdft(nproc,iproc,atoms,rpos,inputs,etot,fpos(:,km),rst,infocode)
+           call call_bigdft(nproc,iproc,atoms,rpos,inputs,etot,fpos(:,km),fnoise,rst,infocode)
            call frequencies_write_restart(iproc,km,i,iat,rpos,etot,fpos(:,km))
            moves(km,ii) = .true.
            call restart_inputs(inputs)
@@ -228,8 +245,16 @@ program frequencies
            do j=1,3
               jj = j+3*(jat-1)
               !Force is -dE/dR
-              if (order == 2) then
+              if (order == -1) then
+                 dd = - (fxyz(jj) - fpos(jj,1))/freq_step(i)
+              else if (order == -1) then
+                 dd = - (fpos(jj,1) - fxyz(jj))/freq_step(i)
+              else if (order == 2) then
                  dd = - (fpos(jj,2) - fpos(jj,1))/(2.d0*freq_step(i))
+              else if (order == 4) then
+                 dd = - (fpos(jj,4) + fpos(jj,3) - fpos(jj,2) - fpos(jj,1))/(6.d0*freq_step(i))
+              else
+                 stop "BUG: frequencies this order is not defined"
               end if
               !if (abs(dd).gt.1.d-10) then
               hessian(jj,ii) = dd/rmass
@@ -242,13 +267,16 @@ program frequencies
 
   close(unit=u_hessian)
 
-  !deallocations
+  !Deallocations
   i_all=-product(shape(rpos))*kind(rpos)
   deallocate(rpos,stat=i_stat)
   call memocc(i_stat,i_all,'rpos',subname)
   i_all=-product(shape(fpos))*kind(fpos)
   deallocate(fpos,stat=i_stat)
   call memocc(i_stat,i_all,'fpos',subname)
+  i_all=-product(shape(kmoves))*kind(kmoves)
+  deallocate(kmoves,stat=i_stat)
+  call memocc(i_stat,i_all,'kmoves',subname)
 
   !allocations
   allocate(eigen_r(3*atoms%nat+ndebug),stat=i_stat)
@@ -274,7 +302,7 @@ program frequencies
        end if
      end do
      write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r(1:3*atoms%nat)
-     write(*,'(1x,a,1x,100(f13.2))') '=F: frequencies (cm-1)      =',eigen_r(1:3*atoms%nat)*Ha_cmm1
+     write(*,'(1x,a,1x,100(f13.2))')    '=F: frequencies (cm-1)      =',eigen_r(1:3*atoms%nat)*Ha_cmm1
      !Build frequencies.xyz
      open(unit=15,file='frequencies.xyz',status="unknown")
      do i=1,3*atoms%nat
@@ -291,6 +319,9 @@ program frequencies
          write(15,*)
      end do
      close(unit=15)
+     zpenergy = 0.5_gp*sum(eigen_r(1:3*atoms%nat))
+     write(*,'(1x,a,1x,1pe20.10)') '=F: Zero-point energy (Hartree)   =',zpenergy
+     write(*,'(1x,a,1x,f13.2)')    '=F: Zero-point energy (cm-1)      =',zpenergy*Ha_cmm1
   end if
 
   !Deallocations
@@ -406,7 +437,6 @@ contains
     moves = .false.
     !Test if the file does exist.
     if (iproc == 0) then
-       write(*,*)
        write(*,freq_form) 'Check if the file "frequencies.res" is present.'
     end if
     inquire(file='frequencies.res', exist=exists)
@@ -499,7 +529,7 @@ contains
     real(gp), dimension(:), intent(in), optional :: amu
     !Local variables
     integer, parameter :: iunit = 15
-    real(gp), dimension(:,:), allocatable :: fpos
+
     if (km == 0 .and. &
         .not.(present(n_order).and.present(freq_step).and.present(amu))) then
         if (iproc == 0) write(*,*) "Bug for use of frequencies_write_restart"

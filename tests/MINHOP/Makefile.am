@@ -3,7 +3,7 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
-	CPUlimit \
+	CPUlimit_global \
 	README \
 	earr.dat \
 	input.dft \
@@ -12,7 +12,9 @@ EXTRA_DIST = \
 	mdinput.dft \
 	mdinput.geopt \
 	poscur.xyz \
-	rand.inp
+	rand.inp \
+	MINHOP.out.ref \
+	global.mon.ref
 
 PPFILES = \
 	psppar.H \
@@ -29,7 +31,7 @@ $(PPFILES):
 
 MINHOP.out: $(top_builddir)/src/global $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
-	  cp -f $(srcdir)/CPUlimit .; \
+	  cp -f $(srcdir)/CPUlimit_global .; \
 	  cp -f $(srcdir)/earr.dat .; \
 	  cp -f $(srcdir)/input.dft .; \
 	  cp -f $(srcdir)/mdinput.dft .; \
@@ -41,7 +43,7 @@ MINHOP.out: $(top_builddir)/src/global $(PPFILES)
         fi
 	$(run_parallel) $(top_builddir)/src/global > $@
 	if ! test x"$(srcdir)" = x"." ; then \
-	  rm -f CPUlimit ; \
+	  rm -f CPUlimit_global ; \
 	  rm -f earr.dat ; \
 	  rm -f input.dft ; \
 	  rm -f mdinput.dft ; \
@@ -54,4 +56,4 @@ MINHOP.out: $(top_builddir)/src/global $(PPFILES)
 
 check: MINHOP.out
 	python $(top_srcdir)/tests/fldiff.py --discrepancy=5.e-9 --mode=bigdft MINHOP.out \
-	$(top_srcdir)/tests/Refs/MINHOP.out.ref | tee fldiff.report
+	$(top_srcdir)/tests/MINHOP/MINHOP.out.ref | tee fldiff.report

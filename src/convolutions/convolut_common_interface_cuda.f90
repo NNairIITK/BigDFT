@@ -133,7 +133,7 @@ subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c
   call memocc(i_stat,i_all,'keys',subname)
 
 
-end subroutine adjust_keys_for_gpu
+END SUBROUTINE adjust_keys_for_gpu
 
 subroutine prepare_gpu_for_locham(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
   use module_base
@@ -182,7 +182,7 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
   !at the starting point do not use full_locham
   GPU%full_locham = .false.
 
-end subroutine prepare_gpu_for_locham
+END SUBROUTINE prepare_gpu_for_locham
 
 
 subroutine free_gpu(GPU,norbp)
@@ -213,7 +213,7 @@ subroutine free_gpu(GPU,norbp)
   deallocate(GPU%psi,stat=i_stat)
   call memocc(i_stat,i_all,'GPU%psi',subname)
 
-end subroutine free_gpu
+END SUBROUTINE free_gpu
 
 
 subroutine local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,&
@@ -284,11 +284,8 @@ subroutine local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,&
      
   end do
   call sg_exec_all_streams() !stream are removed after this call, the queue becomes empty
-     
-
-  
-  
-end subroutine local_hamiltonian_GPU
+ 
+END SUBROUTINE local_hamiltonian_GPU
 
 
 subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
@@ -315,67 +312,63 @@ subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
   ncplx=1
   
   call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
-
-
  
-     !arrays for the CG procedure
-     allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),orbs%norbp+ndebug),stat=i_stat)
-     call memocc(i_stat,b,'b',subname)
+  !arrays for the CG procedure
+  allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),orbs%norbp+ndebug),stat=i_stat)
+  call memocc(i_stat,b,'b',subname)
 
-     gnrm=0.0_dp
+  gnrm=0.0_dp
 
-     do iorb=1,orbs%norbp
-        do inds=1,orbs%nspinor,ncplx !the streams should be more if nspinor>1
-           !the nrm2 function can be replaced here by ddot
-           scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi(1,inds,iorb),1)
-           gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+  do iorb=1,orbs%norbp
+     do inds=1,orbs%nspinor,ncplx !the streams should be more if nspinor>1
+        !the nrm2 function can be replaced here by ddot
+        scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi(1,inds,iorb),1)
+        gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
 
-           call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,0.5_wp,w,&
-                hpsi(1,inds,iorb),b(1,iorb))
+        call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,0.5_wp,w,&
+             hpsi(1,inds,iorb),b(1,iorb))
 
-           call sg_create_stream(tab_stream_ptr(iorb))
-
-
-
-           call sg_gpu_send_mem(GPU%psi(iorb),&
-                hpsi(1,inds,iorb),&
-                GPU%pinned_in,&
-                (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-                tab_stream_ptr(iorb),i_stat)
-           
+        call sg_create_stream(tab_stream_ptr(iorb))
 
 
 
-           call sg_gpu_send_mem(GPU%rhopot,&
-                b(1,iorb),&
-                GPU%pinned_in,&
-                (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
-                tab_stream_ptr(iorb),i_stat)
-
-           call sg_intprecond_adapter(lr%d%n1,lr%d%n2,lr%d%n3,&
-                lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
-                0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
-                GPU%psi(iorb),&
-                GPU%keys,GPU%r,GPU%rhopot,GPU%d,GPU%work1,GPU%work2,GPU%work3,&
-                0.5_wp,ncong,tab_stream_ptr(iorb))
+        call sg_gpu_send_mem(GPU%psi(iorb),&
+             hpsi(1,inds,iorb),&
+             GPU%pinned_in,&
+             (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
+             tab_stream_ptr(iorb),i_stat)
+        
 
 
 
-
-        call sg_gpu_recv_mem(hpsi(1,inds,iorb),&
-             GPU%psi(iorb),&
-             GPU%pinned_out,&  
+        call sg_gpu_send_mem(GPU%rhopot,&
+             b(1,iorb),&
+             GPU%pinned_in,&
              (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
              tab_stream_ptr(iorb),i_stat)
 
-        end do
+        call sg_intprecond_adapter(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
+             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+             GPU%psi(iorb),&
+             GPU%keys,GPU%r,GPU%rhopot,GPU%d,GPU%work1,GPU%work2,GPU%work3,&
+             0.5_wp,ncong,tab_stream_ptr(iorb))
+
+
+
+
+     call sg_gpu_recv_mem(hpsi(1,inds,iorb),&
+          GPU%psi(iorb),&
+          GPU%pinned_out,&  
+          (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
+          tab_stream_ptr(iorb),i_stat)
+
      end do
+  end do
 
+  call sg_exec_all_streams() !stream are removed after this call, the queue becomes empty
 
-     call sg_exec_all_streams() !stream are removed after this call, the queue becomes empty
-
-     !end of dynamic repartition
- 
+  !end of dynamic repartition
 
   i_all=-product(shape(b))*kind(b)
   deallocate(b,stat=i_stat)
@@ -383,8 +376,7 @@ subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
 
   call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
 
-
-end subroutine preconditionall_GPU
+END SUBROUTINE preconditionall_GPU
 
 
 subroutine local_partial_density_GPU(iproc,nproc,orbs,&
@@ -406,9 +398,6 @@ subroutine local_partial_density_GPU(iproc,nproc,orbs,&
   integer:: iorb,i_stat
   real(kind=8) :: stream_ptr
 
-
- 
-     
   call sg_create_stream(stream_ptr) !only one stream, it could be good to optimize that
   !copy the wavefunctions on GPU
   do iorb=1,orbs%norbp
@@ -448,7 +437,7 @@ subroutine local_partial_density_GPU(iproc,nproc,orbs,&
   
   
 
-end subroutine local_partial_density_GPU
+END SUBROUTINE local_partial_density_GPU
 
 
 subroutine gpu_locden(lr,nspin,hxh,hyh,hzh,orbs,GPU)
@@ -469,7 +458,7 @@ subroutine gpu_locden(lr,nspin,hxh,hyh,hzh,orbs,GPU)
        GPU%psi,GPU%keys,&
        GPU%work1,GPU%work2,GPU%rhopot)
 
-end subroutine gpu_locden
+END SUBROUTINE gpu_locden
 
 subroutine gpu_locden_helper_stream(lr,nspin,hxh,hyh,hzh,orbs,GPU,stream_ptr)
   use module_base
@@ -491,7 +480,7 @@ subroutine gpu_locden_helper_stream(lr,nspin,hxh,hyh,hzh,orbs,GPU,stream_ptr)
        GPU%work1,GPU%work2,GPU%rhopot,&
        stream_ptr)
 
-end subroutine gpu_locden_helper_stream
+END SUBROUTINE gpu_locden_helper_stream
 
 
 subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
@@ -533,7 +522,7 @@ subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
      end do
   end if
 
-end subroutine gpu_locham
+END SUBROUTINE gpu_locham
 
 
 subroutine gpu_locham_helper_stream(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum,iorb,stream_ptr)
@@ -570,7 +559,7 @@ subroutine gpu_locham_helper_stream(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum
   end if
 
 
-end subroutine gpu_locham_helper_stream
+END SUBROUTINE gpu_locham_helper_stream
 
 
 subroutine gpu_precond(lr,hx,hy,hz,GPU,norbp,ncong,eval,gnrm)
@@ -601,7 +590,7 @@ subroutine gpu_precond(lr,hx,hy,hz,GPU,norbp,ncong,eval,gnrm)
 
   end do
 
-end subroutine gpu_precond
+END SUBROUTINE gpu_precond
 
 subroutine gpu_intprecond(lr,hx,hy,hz,GPU,norbp,ncong,eval,iorb)
   use module_base
@@ -622,7 +611,7 @@ subroutine gpu_intprecond(lr,hx,hy,hz,GPU,norbp,ncong,eval,iorb)
        GPU%keys,GPU%r,GPU%rhopot,GPU%d,GPU%work1,GPU%work2,GPU%work3,&
        0.5_wp,ncong)
 
-end subroutine gpu_intprecond
+END SUBROUTINE gpu_intprecond
 
 
 subroutine gpu_precond_helper_stream(lr,hx,hy,hz,GPU,norbp,ncong,eval,gnrm,currOrb,stream_ptr)
@@ -650,7 +639,7 @@ subroutine gpu_precond_helper_stream(lr,hx,hy,hz,GPU,norbp,ncong,eval,gnrm,currO
        GPU%keys,GPU%r,GPU%rhopot,GPU%d,GPU%work1,GPU%work2,GPU%work3,&
        0.5_wp,ncong,gnrm,stream_ptr)
 
-end subroutine gpu_precond_helper_stream
+END SUBROUTINE gpu_precond_helper_stream
 
 subroutine gpu_precondprecond_helper_stream(lr,hx,hy,hz,cprecr,scal,ncplx,w,x,b,&
      stream_ptr)
@@ -678,7 +667,7 @@ subroutine gpu_precondprecond_helper_stream(lr,hx,hy,hz,cprecr,scal,ncplx,w,x,b,
        w%modul1,w%modul2,w%modul3,w%af,w%bf,w%cf,w%ef,w%kern_k1,w%kern_k2,w%kern_k3,&
        w%z1,w%z3,w%x_c,w%psifscf,w%ww,x,b,stream_ptr)
 
-end subroutine gpu_precondprecond_helper_stream
+END SUBROUTINE gpu_precondprecond_helper_stream
 
 
 subroutine precond_preconditioner_wrapper(hybrid_on,&
@@ -759,4 +748,4 @@ subroutine precond_preconditioner_wrapper(hybrid_on,&
 !!$  end if
 
   
-end subroutine precond_preconditioner_wrapper
+END SUBROUTINE precond_preconditioner_wrapper

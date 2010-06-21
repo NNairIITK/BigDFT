@@ -55,7 +55,7 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
   enddo
   !      ana_rot_per_old: nt*len_2*2*m*4 flops
 
-end subroutine ana_rot_per_old
+END SUBROUTINE ana_rot_per_old
 
 subroutine syn_rot_per_old(right1,nt,cd,c1)
   !
@@ -113,5 +113,5 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
   enddo
   !       syn_rot_per_old:  nt*len_2*(2*m_2+1)*8 flops
 
-end subroutine syn_rot_per_old
+END SUBROUTINE syn_rot_per_old
 

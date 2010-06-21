@@ -865,7 +865,7 @@ contains
        enddo
     enddo
     !$omp end do
-  end subroutine conv_kin_x
+  END SUBROUTINE conv_kin_x
 
  
 end program conv_check

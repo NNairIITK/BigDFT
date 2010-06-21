@@ -1,13 +1,21 @@
-!
-! This subroutine is used to restart an event during the activation. It uses the file 
-!
-!   restart.dat
-!   siestart2art
-!
-! It then continues the event where it stopped. 
-!
-! Below - surtoutine save_restart, saves the status for a restart
-!
+!!****f* art/restart_states
+!! FUNCTION
+!!   This subroutine is used to restart an event during the activation. It uses the files:
+!!     restart.dat
+!!     siestart2art
+!!   It then continues the event where it stopped. 
+!!   Below - subtoutine save_restart, saves the status for a restart
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2001 Normand Mousseau
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 subroutine restart_states(istatus,ieventcurrent, iterations)
   use defs
   implicit none  
@@ -41,14 +49,18 @@ subroutine restart_states(istatus,ieventcurrent, iterations)
   ! Initialise the potential if needed 
   ! call init_potential()
 
-end subroutine
+END SUBROUTINE
+!!***
 
+!!****f* art/save_state
+!! SOURCE
+!! 
 subroutine save_state(istatus,iter,direction)
   use defs
   implicit none  
   integer :: i, ierror
   integer, intent(in) :: istatus, iter
-  real(8), dimension(VECSIZE), target :: posref_current, pos_current, direction
+  real(8), dimension(VECSIZE), target :: direction
   real(8), dimension(:), pointer :: dx, dy, dz   ! Pointers for reference position
 
   dx => direction(1:NATOMS)
@@ -67,6 +79,5 @@ subroutine save_state(istatus,iter,direction)
   write(FRESTART,'(2x,3f20.8)') (dx(i),dy(i),dz(i),i=1,NATOMS)
   close(FRESTART)
 
-  return
-
-end subroutine
+END SUBROUTINE
+!!***

@@ -3,7 +3,7 @@
 !!  Self-Consistent Loop API
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    Copyright (C) 2007-2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -41,13 +41,18 @@ contains
     scfloop_rst => rst_
 
     scfloop_initialised = .true.
-  end subroutine scfloop_init
+  END SUBROUTINE scfloop_init
 
 !!!  subroutine scfloop_finalise()
-!!!  end subroutine scfloop_finalise
+!!!  END SUBROUTINE scfloop_finalise
 end module scfloop_API
 !!***
 
+
+!!****f* BigDFT/scfloop_main
+!! FUNCTION
+!! SOURCE
+!!
 subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred)
   use scfloop_API
   use module_base
@@ -64,6 +69,7 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
 
   character(len=*), parameter :: subname='scfloop_main'
   integer :: infocode, i, i_stat, i_all,j
+  real(gp) :: fnoise
   real(dp) :: favg(3)
   real(dp), allocatable :: xcart(:,:)
 
@@ -93,7 +99,7 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   end do
 
   scfloop_in%inputPsiId = 1
-  call call_bigdft(scfloop_nproc,me,scfloop_at,xcart,scfloop_in,epot,grad,scfloop_rst,infocode)
+  call call_bigdft(scfloop_nproc,me,scfloop_at,xcart,scfloop_in,epot,grad,fnoise,scfloop_rst,infocode)
 
   ! need to transform the forces into reduced ones.
   favg(:) = real(0, dp)
@@ -109,9 +115,15 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   i_all=-product(shape(xcart))*kind(xcart)
   deallocate(xcart,stat=i_stat)
   call memocc(i_stat,i_all,'xcart',subname)
-end subroutine scfloop_main
+END SUBROUTINE scfloop_main
+!!***
 
-subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel, xred)
+
+!!****f* BigDFT/scfloop_output
+!! FUNCTION
+!! SOURCE
+!!
+subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, vel, xred)
   use scfloop_API
   use module_base
   use module_types
@@ -119,14 +131,15 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
 
   implicit none
 
+  !Arguments
   integer, intent(in) :: natom, itime, me
   real(dp), intent(in) :: epot, ekin
   real(dp), intent(in) :: acell(3)
-  real(dp), intent(in) :: rprimd(3,3), xred(3,natom)
+  real(dp), intent(in) :: xred(3,natom)
   real(dp), intent(in) :: fred(3, natom), vel(3, natom)
-
+  !Local variables
   character(len=*), parameter :: subname='scfloop_output'
-  character(len = 4) :: fn4
+  character(len = 5) :: fn5
   character(len = 40) :: comment
   integer :: i, i_stat, i_all
   real :: fnrm
@@ -145,9 +158,9 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
           & fred(3, i) * acell(3) * fred(3, i) * acell(3)
   end do
 
-  write(fn4,'(i4.4)') itime+itime_shift_for_restart
+  write(fn5,'(i5.5)') itime+itime_shift_for_restart
   write(comment,'(a,1pe10.3)')'AB6MD:fnrm= ', sqrt(fnrm)
-  call write_atomic_file('posout_'//fn4, epot + ekin, xcart, scfloop_at, trim(comment))
+  call write_atomic_file('posmd_'//fn5, epot + ekin, xcart, scfloop_at, trim(comment))
 
   !write velocities
   write(comment,'(a,i6.6)')'Timestep= ',itime+itime_shift_for_restart
@@ -156,7 +169,9 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
   i_all=-product(shape(xcart))*kind(xcart)
   deallocate(xcart,stat=i_stat)
   call memocc(i_stat,i_all,'xcart',subname)
-end subroutine scfloop_output
+END SUBROUTINE scfloop_output
+!!***
+
 
 !!****f* BigDFT/read_velocities
 !! FUNCTION
@@ -179,12 +194,11 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   character(len=50) :: extra
   character(len=150) :: line
   logical :: lpsdbl,exists
-  integer :: iat,ityp,i,ierrsfx,i_stat,nat
+  integer :: iat,i,ierrsfx,nat
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: vx,vy,vz,alat1,alat2,alat3
 ! case for which the atomic positions are given whithin general precision
   real(gp) :: vxd0,vyd0,vzd0,alat1d0,alat2d0,alat3d0
-  character(len=20), dimension(100) :: atomnames
 
   !inquire whether the input file is present, otherwise put velocities to zero
   inquire(file=filename,exist=exists)
@@ -262,9 +276,14 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   enddo
 
   close(unit=99)
-end subroutine read_velocities
+END SUBROUTINE read_velocities
 !!***
 
+
+!!****f* BigDFT/wtvel
+!! FUNCTION
+!! SOURCE
+!!
 subroutine wtvel(filename,vxyz,atoms,comment)
   use module_base
   use module_types
@@ -276,7 +295,6 @@ subroutine wtvel(filename,vxyz,atoms,comment)
   character(len=2) :: symbol
   character(len=10) :: name
   character(len=11) :: units
-  character(len=50) :: extra
   integer :: iat,j
   real(gp) :: factor
 
@@ -315,4 +333,5 @@ subroutine wtvel(filename,vxyz,atoms,comment)
   enddo
 
   close(unit=9)
-end subroutine wtvel
+END SUBROUTINE wtvel
+!!***

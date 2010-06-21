@@ -31,7 +31,7 @@ subroutine initialize_potential()
   type(:) = typa(:)
   pos(:) = posa(:)
 
-end subroutine initialize_potential
+END SUBROUTINE initialize_potential
 !!***
 
 
@@ -47,5 +47,5 @@ subroutine finalise_potential()
   implicit none  
   
   call bigdft_finalise()
-end subroutine finalise_potential
+END SUBROUTINE finalise_potential
 !!***

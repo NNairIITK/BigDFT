@@ -1,5 +1,8 @@
 EXTRA_DIST = \
+	bench_lib.h \
 	Kinetic.h \
+	Kinetic_k.h \
+	bench_lib.h \
 	MagicFilter.h \
 	Uncompress.h \
 	Wavelet.h \
@@ -49,7 +52,7 @@ AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@
 AM_CFLAGS = -Wall -Werror
 
 conv_check_SOURCES = conv_check.f90 
-conv_check_LDADD = libbasec.a libbasef.a ../libbigdft.a ../PSolver/libpoissonsolver.a
+conv_check_LDADD =  ../libbigdft.a ../PSolver/libpoissonsolver.a libbasec.a libbasef.a
 conv_check_LDFLAGS = -lrt
 stream_check_SOURCES = StreamCheck.c
 stream_check_LDADD = libOCL.a libStream.a

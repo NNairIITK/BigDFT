@@ -4,7 +4,7 @@
 !!    Uses wavefunctions in their transposed form
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA, ESRF, UNIBAS
+!!    Copyright (C) 2007-2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -63,12 +63,13 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
   !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
   ispsi=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptp
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
 
         call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
+        if (nvctrp == 0) cycle
         
         !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nvctrp,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
        
@@ -102,12 +103,13 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi)
   !for each k-point now reorthogonalise wavefunctions
   ispsi=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptp
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
 
         call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
+        if (nvctrp == 0) cycle
 
         !to be excluded if nvctrp==0
         if(nspinor==1 .and. nvctrp /= 0) then
@@ -193,13 +195,11 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   real(dp), intent(out) :: scprsum
   !local variables
   character(len=*), parameter :: subname='orthoconstraint'
-  integer :: i_stat,i_all,ierr,info,iorb,ise
+  integer :: i_stat,i_all,ierr,iorb,ise
   integer :: istart,ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   real(dp) :: occ,tt
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:,:), allocatable :: alag
-  real(dp), dimension(:), allocatable :: scprkpts
-  
 
   !separate the orthogonalisation procedure for up and down orbitals 
   !and for different k-points
@@ -232,12 +232,13 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
   ispsi=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptp
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
 
         call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
+        if (nvctrp == 0) cycle
 
         if(nspinor==1) then
            call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
@@ -273,12 +274,13 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   !for each k-point calculate the gradient
   ispsi=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptp
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
 
         call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
+        if (nvctrp == 0) cycle
 
         !calculate the scprsum if the k-point is associated to this processor
         if (orbs%ikptproc(ikpt) == iproc) then
@@ -355,7 +357,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   character(len=*), parameter :: subname='subspace_diagonalisation'
   integer :: i_stat,i_all,ierr,info,iorb,n_lp,n_rp,npsiw,isorb,ise
   integer :: istart,ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
-  real(wp) :: occ,evsumtmp
+  real(wp) :: occ
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: work_lp,work_rp,psiw
   real(wp), dimension(:,:), allocatable :: hamks
@@ -394,12 +396,13 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
   ispsi=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptp
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
 
         call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
+        if (nvctrp == 0) cycle
 
         if(nspinor==1) then
            call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),max(1,nvctrp),hpsi(ispsi),&
@@ -445,12 +448,13 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   ispsi=1
   evsum=0.0_wp
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptp
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
      isorb=1
      do ispin=1,nspin
 
         call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
+        if (nvctrp == 0) cycle
 
         if(nspinor==1) then
 
@@ -573,7 +577,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
   real(wp), dimension(sum(commsv%nvctr_par(iproc,1:orbsv%nkptsp))*orbsv%nspinor*orbsv%norb), intent(out) :: psi_virt
   !local variables
   character(len=*), parameter :: subname='orthon_virt_occup'
-  integer :: i_stat,i_all,ierr,info,ispsiv,norbv,iorb,jorb,isorb
+  integer :: i_stat,i_all,ierr,ispsiv,norbv,iorb,jorb,isorb
   integer :: istart,ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   real(wp) :: scprsum,tt
   integer, dimension(:,:), allocatable :: ndimovrlp
@@ -616,12 +620,13 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
   ispsi=1
   ispsiv=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptp
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
 
         call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
+        if (nvctrp == 0) cycle
         
         norbv=orbsv%norbu
         if (ispin==2) norbv=orbsv%norbd
@@ -666,12 +671,13 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
   ispsiv=1
   isorb=1
   do ikptp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptp
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
 
         call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
+        if (nvctrp == 0) cycle
 
         norbv=orbsv%norbu
         if (ispin==2) norbv=orbsv%norbd
@@ -724,7 +730,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
 
   call timing(iproc,'LagrM_comput  ','OF')
 
-end subroutine orthon_virt_occup
+END SUBROUTINE orthon_virt_occup
 !!***
 
 subroutine complex_components(nspinor,norb,norbs,ncomp)
@@ -743,7 +749,7 @@ subroutine complex_components(nspinor,norb,norbs,ncomp)
      ncomp=2
   end if
   
-end subroutine complex_components
+END SUBROUTINE complex_components
 
 subroutine orbitals_and_components(iproc,ikptp,ispin,orbs,comms,nvctrp,norb,norbs,ncomp,nspinor)
   use module_base
@@ -761,7 +767,7 @@ subroutine orbitals_and_components(iproc,ikptp,ispin,orbs,comms,nvctrp,norb,norb
 
   call complex_components(nspinor,norb,norbs,ncomp)
 
-end subroutine orbitals_and_components
+END SUBROUTINE orbitals_and_components
 
 subroutine dimension_ovrlp(nspin,orbs,ndimovrlp)
   use module_base
@@ -803,7 +809,7 @@ subroutine dimension_ovrlp(nspin,orbs,ndimovrlp)
      end if
   end do
 
-end subroutine dimension_ovrlp
+END SUBROUTINE dimension_ovrlp
 
 subroutine dimension_ovrlp_virt(nspin,orbs,orbsv,ndimovrlp)
   use module_base
@@ -852,7 +858,7 @@ subroutine dimension_ovrlp_virt(nspin,orbs,orbsv,ndimovrlp)
      end if
   end do
 
-end subroutine dimension_ovrlp_virt
+END SUBROUTINE dimension_ovrlp_virt
 
 
 subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,nspinor)
@@ -866,10 +872,9 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   real(wp), dimension(nspinor*nvctrp,norb), intent(out) :: hpsit
   !local variables
   character(len=*), parameter :: subname='orthoconstraint_p'
-  integer :: i_stat,i_all,istart,iorb,jorb,ierr,norbs,i,j,ncomp
+  integer :: i_stat,i_all,istart,iorb,ierr,norbs,ncomp
   real(dp) :: occ
   real(wp), dimension(:,:,:), allocatable :: alag
-  integer volta
 
   call timing(iproc,'LagrM_comput  ','ON')
 
@@ -957,7 +962,7 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
 
   call timing(iproc,'LagrM_comput  ','OF')
 
-end subroutine orthoconstraint_p
+END SUBROUTINE orthoconstraint_p
 
 subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
   ! Gram-Schmidt orthogonalisation
@@ -967,10 +972,10 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
   real(wp), dimension(nspinor*nvctrp,norb), intent(inout) :: psit
   !local variables
   character(len=*), parameter :: subname='orthon_p'
-  integer :: info,i_all,i_stat,nvctr_eff,ierr,istart,i,j,norbs,iorb,jorb,ncomp
-  real(wp) :: tt,ttLOC,ttr,tti
+  integer :: info,i_all,i_stat,nvctr_eff,ierr,istart,norbs,ncomp
+  real(wp) :: tt,ttLOC
   real(wp), dimension(:,:,:), allocatable :: ovrlp
-  integer volta
+  integer :: volta
 
   call timing(iproc,'GramS_comput  ','ON')
 
@@ -1426,7 +1431,7 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
   !local variables
   character(len=*), parameter :: subname='KStrans_p'
   integer :: i_all,i_stat,ierr,iorb,jorb,n_lp,istart,info,norbs,ncomp
-  real(dp) :: scpr,alpha
+  real(wp) :: alpha
   ! arrays for KS orbitals
   real(wp), dimension(:), allocatable :: work_lp,work_rp
   real(wp), dimension(:,:), allocatable :: psitt

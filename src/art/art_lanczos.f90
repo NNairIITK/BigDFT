@@ -45,12 +45,12 @@ subroutine lanczos(maxvec,new_projection)
   real(8), dimension(maxvec) :: diag
   real(8), dimension(maxvec-1) :: offdiag
   real(8), dimension(maxvec, maxvec) :: vector
-  real(8), dimension(VECSIZE, maxvec), target :: lanc, proj
+  real(8), dimension(VECSIZE, maxvec), target :: lanc
   real(8):: sum_forcenew, sum_force
   ! Vectors used to build the matrix for Lanzcos algorithm 
   real(8), dimension(:), pointer :: z0, z1, z2
 
-  integer :: i,k, i_err, scratcha_size,ivec, ierror, nat
+  integer :: i,k, i_err, ivec, ierror, nat
 
   real(8) :: a1,a0,b2,b1,increment
   real(8) :: boxl, excited_energy,c1,norm
@@ -65,7 +65,7 @@ subroutine lanczos(maxvec,new_projection)
   ! We now take the current position as the reference point and will make 
   ! a displacement in a random direction or using the previous direction as
   ! the starting point.
-  call calcforce(NATOMS,type,pos,boxl,ref_force,total_energy)
+  call calcforce(NATOMS,pos,boxl,ref_force,total_energy)
   evalf_number = evalf_number + 1
   z0 => lanc(:,1)
 
@@ -119,7 +119,7 @@ subroutine lanczos(maxvec,new_projection)
 
   newpos = pos + z0 * increment   ! Vectorial operation
 
-  call calcforce(NATOMS,type,newpos,boxl,newforce,excited_energy)
+  call calcforce(NATOMS,newpos,boxl,newforce,excited_energy)
   evalf_number = evalf_number + 1
 
   ! We extract lanczos(1)
@@ -148,7 +148,7 @@ subroutine lanczos(maxvec,new_projection)
   do ivec = 2, maxvec-1
     z1 => lanc(:,ivec)
     newpos = pos + z1 * increment
-    call calcforce(NATOMS,type,newpos,boxl,newforce,excited_energy)
+    call calcforce(NATOMS,newpos,boxl,newforce,excited_energy)
     evalf_number = evalf_number + 1
     newforce = newforce - ref_force  
 
@@ -179,7 +179,7 @@ subroutine lanczos(maxvec,new_projection)
   ivec = maxvec
   z1 => lanc(:,maxvec)
   newpos = pos + z1 * increment    ! Vectorial operation
-  call calcforce(NATOMS,type,newpos,boxl,newforce,excited_energy)
+  call calcforce(NATOMS,newpos,boxl,newforce,excited_energy)
   evalf_number = evalf_number + 1
     sum_force = 0.0 
     sum_forcenew = 0.0
@@ -229,7 +229,7 @@ subroutine lanczos(maxvec,new_projection)
 
    ! The following lines are probably not needed.
    newpos = pos + projection * increment   ! Vectorial operation
-   call calcforce(NATOMS,type,newpos,boxl,newforce,excited_energy)
+   call calcforce(NATOMS,newpos,boxl,newforce,excited_energy)
    evalf_number = evalf_number + 1
    newforce = newforce - ref_force
 
@@ -262,5 +262,5 @@ subroutine lanczos(maxvec,new_projection)
   call MPI_Bcast(eigenvalue,1,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
   call MPI_Bcast(projection,nat,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
 
-end subroutine lanczos
+END SUBROUTINE lanczos
 !!***

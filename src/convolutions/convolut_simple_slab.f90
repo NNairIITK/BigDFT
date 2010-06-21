@@ -136,7 +136,7 @@ subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
   else
 	  stop 'the GPU part is not yet written'
   end if
-end subroutine convolut_magic_n_slab_self
+END SUBROUTINE convolut_magic_n_slab_self
 
 ! Applies the magic filter matrix in periodic BC ( no transposition)
 ! The input array x is not overwritten
@@ -188,7 +188,7 @@ subroutine convolut_magic_n_slab(n1,n2,n3,x,y,ww)
   else
 	  stop 'the GPU part is not yet written'
   end if
-end subroutine convolut_magic_n_slab
+END SUBROUTINE convolut_magic_n_slab
 
 
 
@@ -243,7 +243,7 @@ subroutine convolut_magic_t_slab_self(n1,n2,n3,x,y)
 	  stop 'the GPU part is not yet written'
   end if
 
-end subroutine convolut_magic_t_slab_self
+END SUBROUTINE convolut_magic_t_slab_self
 
 
 
@@ -333,7 +333,7 @@ subroutine convolut_kinetic_slab_c(n1,n2,n3,hgrid,x,y,c)
      enddo
   enddo
   
-end subroutine convolut_kinetic_slab_c
+END SUBROUTINE convolut_kinetic_slab_c
 
 
 subroutine convolut_kinetic_slab_T(n1,n2,n3,hgrid,x,y,ekin)
@@ -422,4 +422,4 @@ subroutine convolut_kinetic_slab_T(n1,n2,n3,hgrid,x,y,ekin)
      enddo
   enddo
   
-end subroutine convolut_kinetic_slab_T
+END SUBROUTINE convolut_kinetic_slab_T

@@ -1,6 +1,18 @@
+!!****f* BigDFT/preconditionall
+!! FUNCTION
+!!   Calls the preconditioner for each orbital treated by the processor
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
                    hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,cprec,logrid_c,logrid_f,hpsi)
-! Calls the preconditioner for each orbital treated by the processor
   implicit real(kind=8) (a-h,o-z)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension hpsi(nvctr_c+7*nvctr_f,norbp)
@@ -22,7 +34,8 @@ subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,n
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
   write(77,'(a40,i4,2(1x,e10.3))') 'PRECONDITIONING TIME',iproc,tr1-tr0,tel
 
-end preconditionall
+END SUBROUTINE preconditionall
+!!***
 
 
 subroutine precondition(C,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
@@ -203,16 +216,16 @@ subroutine precondition(C,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   DEALLOCATE(HPSI_C_MOD,HPSI_F_MOD) 
   DEALLOCATE(PSI_C_NEW,PSI_F_NEW) 
           
-end subroutine preconditionall
+END SUBROUTINE precondition
 
           
-       SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,&
-                          nl1,nu1,nl2,nu2,nl3,nu3, & 
-                     nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f, &
+SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,&
+       nl1,nu1,nl2,nu2,nl3,nu3, & 
+       nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f, &
        nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
-                          psi_c,psi_f, &
-                          hgrid,gg_c,gg_f,C, &
-                           hpsi_c,hpsi_f,hpsi2) 
+       psi_c,psi_f, &
+       hgrid,gg_c,gg_f,C, &
+       hpsi_c,hpsi_f,hpsi2) 
         implicit real(kind=8) (a-h,o-z)        
 
         allocatable psig_stand1(:,:,:,:,:,:),psig_stand2(:,:,:,:,:,:)
@@ -258,10 +271,10 @@ end subroutine preconditionall
           deallocate(psig_stand2,stat=i_stat)
           call memocc(i_stat,i_all,'psig_stand2','precondition')
 
-        END 
+END SUBROUTINE CALC_GRAD_REZA
 
 
-        subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
+subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
          keyg_c,keyv_c,hpsi_c,hpsi_f,C,&
          NUM_TRANS,ND1,ND2,ND3,N2_NT)
 ! 
@@ -323,7 +336,6 @@ end subroutine preconditionall
           HPSI_F(7,I)=HPSI_F(7,I)*F3
         ENDDO
 
-
 !    write(90,*) hpsip
 
 ! coarse part
@@ -367,7 +379,6 @@ end subroutine preconditionall
          N3PP=N3+1
 
            F1=1.D0/(H1+EPS); F2=1.D0/(H2+EPS);  F3=1.D0/(H3+EPS)       
-
 
          IF (I_TRANS.EQ.1) THEN 
 
@@ -431,26 +442,27 @@ end subroutine preconditionall
 
        ENDDO
 
-       END
+END SUBROUTINE
 
-      FUNCTION PIECELINE(C)
-      IMPLICIT real(kind=8)(A-H,O-Z)
 
-      PARAMETER(A=0.1086D0,B=.9895D0)
+FUNCTION PIECELINE(C)
+   IMPLICIT real(kind=8)(A-H,O-Z)
+
+   PARAMETER(A=0.1086D0,B=.9895D0)
+   
+   WRITE(*,*)'IN PIECELINE, C=',C 
+   
+   IF (C.LT. .011D0) THEN 
+        PIECELINE=.5D0
+   ELSE 
+        IF (C.LT.1.1D0) THEN 
+           PIECELINE=A*LOG(C)+B
+        ELSE   
+           PIECELINE=1.D0   
+        ENDIF        
+   ENDIF
      
-      WRITE(*,*)'IN PIECELINE, C=',C 
-      
-      IF (C.LT. .011D0) THEN 
-           PIECELINE=.5D0
-      ELSE 
-           IF (C.LT.1.1D0) THEN 
-              PIECELINE=A*LOG(C)+B
-           ELSE   
-              PIECELINE=1.D0   
-           ENDIF        
-      ENDIF
-     
-      END 
+END 
 
 
 

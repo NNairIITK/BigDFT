@@ -4,7 +4,7 @@
 !!    It must be used in the parent routine. 
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2002-2009 BigDFT group 
+!!    Copyright (C) 2002-2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -64,6 +64,8 @@
 module Poisson_Solver
 
   use module_base
+
+  implicit none
 
   private
 

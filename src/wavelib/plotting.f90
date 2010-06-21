@@ -1,4 +1,14 @@
-subroutine plot_wf(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
+!!****f* BigDFT/plot_wf
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
+subroutine plot_wf_old(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
   implicit none
@@ -13,7 +23,7 @@ subroutine plot_wf(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
   !local variables
   character(len=*), parameter :: subname='plot_wf'
-  integer :: i_stat,i_all,i
+  integer :: i_stat,i_all
   integer :: nl1,nl2,nl3,n1i,n2i,n3i,n1,n2,n3
   type(workarr_sumrho) :: w
   real(wp), dimension(:), allocatable :: psir
@@ -66,7 +76,9 @@ subroutine plot_wf(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
 
   call deallocate_work_arrays_sumrho(w)
 
-END SUBROUTINE plot_wf
+END SUBROUTINE plot_wf_old
+!!***
+
 
 subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
@@ -165,8 +177,7 @@ subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
      call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,&
           x_c_psifscf,x_f_psig,  & 
           psir(1),lr%bounds%kb%ibyz_c,lr%bounds%gb%ibzxx_c,lr%bounds%gb%ibxxyy_c,&
-          lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f,&
-          lr%bounds%ibyyzz_r)
+          lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f)
      
   case('P')
      call uncompress_per(n1,n2,n3,lr%wfd%nseg_c,&
@@ -275,13 +286,13 @@ subroutine plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,po
   close(iounit+1) 
   close(iounit+2) 
 
-end subroutine plot_pot
+END SUBROUTINE plot_pot
 
 subroutine plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
   use module_base
   implicit none
-  character(len=10), intent(in) :: orbname,comment
+  character(len=11), intent(in) :: orbname,comment
   integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,n1i,n2i,n3i,nexpo
   real(gp), intent(in) :: hx,hy,hz
   real(dp), dimension(*), intent(in) :: pot
@@ -316,7 +327,7 @@ subroutine plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   close(unit=22) 
 !  close(unit=23) 
 
-end subroutine plot_pot_full
+END SUBROUTINE plot_pot_full
 
 subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
@@ -343,7 +354,7 @@ subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   hyh=.5_gp*hy
   hzh=.5_gp*hz
 
-  open(unit=22,file=orbname//'.cube',status='unknown')
+  open(unit=22,file=trim(orbname)//'.cube',status='unknown')
   write(22,*)orbname
   write(22,*)'CUBE file for orbital wavefunction'
   !number of atoms
@@ -385,7 +396,7 @@ subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   end do
   close(22)
 
-end subroutine plot_cube_full
+END SUBROUTINE plot_cube_full
 
 subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
   use module_base
@@ -435,7 +446,8 @@ subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
           real(i1,gp)*hgridh,real(i2,gp)*hgridh,real(i3,gp)*hgridh,psifscf(i1,i2,i3)
   enddo
 
-end subroutine plot_psifscf
+END SUBROUTINE plot_psifscf
+
 
 subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   use module_base
@@ -445,7 +457,7 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   integer, intent(in) :: n1i,n2i,n3i,n3d,n1,n2,n3,i3s
   real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
   !local variables
-  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,j1,j2,j3
+  integer :: nl1,nl2,nl3,i1,i2,i3,ind
   real(dp) :: value
 
   open(unit=22,file=filename,status='unknown')
@@ -486,10 +498,10 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   end do
   close(22)
 
-end subroutine read_potfile
+END SUBROUTINE read_potfile
 
 
-subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+subroutine plot_density_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
      alat1,alat2,alat3,ngatherarr,rho)
   use module_base
   implicit none
@@ -561,8 +573,8 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
      !laterally averaged potential following the isolated direction in surfaces case
      !if (geocode == 'S') then
         open(unit=23,file=filename//'_avg'//geocode,status='unknown')
-        later_avg=0.0_dp
         do i2=0,2*n2+1
+           later_avg=0.0_dp
            do i3=0,2*n3+1
               do i1=0,2*n1+1
                  ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
@@ -582,9 +594,9 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
      deallocate(pot_ion,stat=i_stat)
      call memocc(i_stat,i_all,'pot_ion',subname)
   end if
-end subroutine plot_density
+END SUBROUTINE plot_density_old
 
-subroutine plot_density_cube(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
+subroutine plot_density_cube_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
      hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
   use module_base
   use module_types
@@ -700,7 +712,7 @@ subroutine plot_density_cube(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n
 contains
 
   subroutine cubefile_write
-        open(unit=22,file=filename//trim(suffix)//'.cube',status='unknown')
+        open(unit=22,file=trim(filename)//trim(suffix)//'.cube',status='unknown')
         write(22,*)'CUBE file for charge density'
         write(22,*)'Case for '//trim(message)
         !number of atoms
@@ -722,10 +734,10 @@ contains
 
         !the loop is reverted for a cube file
         !charge normalised to the total charge
-        do i1=0,2*(n1+nbxz) - 1
-           do i2=0,2*(n2+nby) - 1
+        do i1=0,2*(n1+nbxz)-1
+           do i2=0,2*(n2+nby)-1
               icount=0
-              do i3=0,2*(n3+nbxz) - 1
+              do i3=0,2*(n3+nbxz)-1
                  icount=icount+1
                  if (icount == 6 .or. i3==2*(n3+nbxz) - 1) then
                     advancestring='yes'
@@ -741,14 +753,11 @@ contains
            end do
         end do
         close(22)
-  end subroutine cubefile_write
+  END SUBROUTINE cubefile_write
 
-end subroutine plot_density_cube
+END SUBROUTINE plot_density_cube_old
 
-
-
-
-subroutine read_density_cube(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxyz,  rho)
+subroutine read_density_cube_old(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxyz,  rho)
   use module_base
   use module_types
   implicit none
@@ -765,9 +774,7 @@ subroutine read_density_cube(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxy
   character(len=5) :: suffix
   character(len=15) :: message
   character(len=3) :: advancestring
-  integer i_all,i_stat,i1,i2,i3,ind,ierr,icount,j,iat,ia,ib
-
-
+  integer :: i_all,i_stat,i1,i2,i3,ind,icount,j,iat,ia
 
   if (nspin /=2) then
      suffix=''
@@ -792,7 +799,7 @@ contains
   subroutine cubefile_read
        real(dp) dum1,dum2, dum3
         integer idum
-        open(unit=22,file=filename//trim(suffix)//'.cube',status='old')
+        open(unit=22,file=trim(filename)//trim(suffix)//'.cube',status='old')
         read(22,*)! 'CUBE file for charge density'
         read(22,*)! 'Case for '//trim(message)
 
@@ -848,7 +855,522 @@ contains
            end do
         end do
         close(22)
-  end subroutine cubefile_read
+  END SUBROUTINE cubefile_read
 
-end subroutine read_density_cube
+END SUBROUTINE read_density_cube_old
+
+
+!write a (sum of two) field in the ISF basis in the cube format
+subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+     a,x,nexpo,b,y)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename,message
+  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,nexpo
+  real(gp), intent(in) :: hxh,hyh,hzh,a,b
+  type(atoms_data), intent(in) :: at
+  real(wp), dimension(n1i,n2i,n3i), intent(in) :: x,y
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  !local variables
+  character(len=3) :: advancestring
+  integer :: nl1,nl2,nl3,nbx,nby,nbz,i1,i2,i3,icount,j,iat
+  real(dp) :: later_avg
+  !conditions for periodicity in the three directions
+  !value of the buffer in the x and z direction
+  if (at%geocode /= 'F') then
+     nl1=1
+     nl3=1
+     nbx = 1
+     nbz = 1
+  else
+     nl1=15
+     nl3=15
+     nbx = 0
+     nbz = 0
+  end if
+  !value of the buffer in the y direction
+  if (at%geocode == 'P') then
+     nl2=1
+     nby = 1
+  else
+     nl2=15
+     nby = 0
+  end if
+
+  open(unit=22,file=trim(filename)//'.cube',status='unknown')
+  write(22,*)'CUBE file for ISF field'
+  write(22,*)'Case for '//trim(message)
+  write(22,'(i5,3(f12.6))') at%nat,0.0_gp,0.0_gp,0.0_gp
+  !grid and grid spacings
+  write(22,'(i5,3(f12.6))') 2*(n1+nbx),hxh,0.0_gp,0.0_gp
+  write(22,'(i5,3(f12.6))') 2*(n2+nby),0.0_gp,hyh,0.0_gp
+  write(22,'(i5,3(f12.6))') 2*(n3+nbz),0.0_gp,0.0_gp,hzh
+  !atomic number and positions
+  do iat=1,at%nat
+     write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
+  end do
+
+  !the loop is reverted for a cube file
+  !charge normalised to the total charge
+  do i1=0,2*(n1+nbx) - 1
+     do i2=0,2*(n2+nby) - 1
+        icount=0
+        do i3=0,2*(n3+nbz) - 1
+           icount=icount+1
+           if (icount == 6 .or. i3==2*(n3+nbz) - 1) then
+              advancestring='yes'
+              icount=0
+           else
+              advancestring='no'
+           end if
+           !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
+           write(22,'(1x,1pe13.6)',advance=advancestring)&
+                a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
+        end do
+     end do
+  end do
+  close(22)
+
+  !average in x direction
+  open(unit=23,file=filename//'_avg_x',status='unknown')
+  do i1=0,2*n1+1
+     later_avg=0.0_dp
+     do i3=0,2*n3+1
+        do i2=0,2*n2+1
+           later_avg=later_avg+&
+                a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
+        end do
+     end do
+     later_avg=later_avg/real((2*n2+2)*(2*n3+2),dp) !2D integration/2D Volume
+     !to be checked with periodic/isolated BC
+     write(23,*)i1,at%alat1/real(2*n1+2,dp)*i1,later_avg
+  end do
+  close(23)
+  !average in y direction
+  open(unit=23,file=filename//'_avg_y',status='unknown')
+  do i2=0,2*n2+1
+     later_avg=0.0_dp
+     do i3=0,2*n3+1
+        do i1=0,2*n1+1
+           later_avg=later_avg+&
+                a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
+        end do
+     end do
+     later_avg=later_avg/real((2*n1+2)*(2*n3+2),dp) !2D integration/2D Volume
+     !to be checked with periodic/isolated BC
+     write(23,*)i2,at%alat2/real(2*n2+2,dp)*i2,later_avg
+  end do
+  close(23)
+  !average in z direction
+  open(unit=23,file=filename//'_avg_z',status='unknown')
+  do i3=0,2*n3+1
+     later_avg=0.0_dp
+     do i2=0,2*n2+1
+        do i1=0,2*n1+1
+           later_avg=later_avg+&
+                a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
+        end do
+     end do
+     later_avg=later_avg/real((2*n1+2)*(2*n2+2),dp) !2D integration/2D Volume
+     !to be checked with periodic/isolated BC
+     write(23,*)i3,at%alat3/real(2*n3+2,dp)*i3,later_avg
+  end do
+  close(23)
+
+end subroutine write_cube_fields
+
+subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
+     hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
+  use module_base
+  use module_types
+  implicit none
+  character(len=1), intent(in) :: geocode
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nspin,nproc
+  real(gp), intent(in) :: hxh,hyh,hzh
+  type(atoms_data), intent(in) :: at
+  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(dp), dimension(n1i*n2i*n3p,nspin), target, intent(in) :: rho
+  !local variables
+  character(len=*), parameter :: subname='plot_density'
+  character(len=3) :: advancestring
+  character(len=5) :: suffix
+  character(len=15) :: message
+  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,icount,j,iat,ia,ib,nbxz,nby
+  real(dp) :: a,b
+  real(dp), dimension(:,:), pointer :: pot_ion
+
+  if (nproc > 1) then
+     !allocate full density in pot_ion array
+     allocate(pot_ion(n1i*n2i*n3i,nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,pot_ion,'pot_ion',subname)
+
+     call MPI_ALLGATHERV(rho(1,1),n1i*n2i*n3p,&
+          mpidtypd,pot_ion(1,1),ngatherarr(0,1),&
+          ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+
+     !case for npspin==2
+     if (nspin==2) then
+        call MPI_ALLGATHERV(rho(1,2),n1i*n2i*n3p,&
+             mpidtypd,pot_ion(1,2),ngatherarr(0,1),&
+             ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+     end if
+
+  else
+     pot_ion => rho
+  end if
+
+  if (iproc == 0) then
+
+     if (nspin /=2) then
+        suffix=''
+        message='total spin'
+        a=1.0_dp
+        ia=1
+        b=0.0_dp
+        ib=1
+        call write_cube_fields(filename//trim(suffix),message,&
+             at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+             a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+     else
+        suffix='-up'
+        message='spin up'
+        a=1.0_dp
+        ia=1
+        b=0.0_dp
+        ib=2
+        call write_cube_fields(filename//trim(suffix),message,&
+             at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+             a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+
+        suffix='-down'
+        message='spin down'
+        a=0.0_dp
+        ia=1
+        b=1.0_dp
+        ib=2
+        call write_cube_fields(filename//trim(suffix),message,&
+             at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+             a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+
+        suffix=''
+        message='total spin'
+        a=1.0_dp
+        ia=1
+        b=1.0_dp
+        ib=2
+        call write_cube_fields(filename//trim(suffix),message,&
+             at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+             a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+
+        suffix='-u-d'
+        message='spin difference'
+        a=1.0_dp
+        ia=1
+        b=-1.0_dp
+        ib=2
+        call write_cube_fields(filename//trim(suffix),message,&
+             at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+             a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+
+     end if
+
+
+  end if
+
+  if (nproc > 1) then
+     i_all=-product(shape(pot_ion))*kind(pot_ion)
+     deallocate(pot_ion,stat=i_stat)
+     call memocc(i_stat,i_all,'pot_ion',subname)
+  end if
+
+end subroutine plot_density
+
+subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
+  use module_base
+  use module_types
+  implicit none
+  character(len=10) :: comment
+  character(len=11) :: orbname
+  integer, intent(in) :: nexpo
+  real(gp), intent(in) :: hx,hy,hz
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
+  !local variables
+  character(len=*), parameter :: subname='plot_wf'
+  integer :: i_stat,i_all
+  integer :: nl1,nl2,nl3,n1i,n2i,n3i,n1,n2,n3
+  type(workarr_sumrho) :: w
+  real(wp), dimension(:), allocatable :: psir
+
+  n1=lr%d%n1
+  n2=lr%d%n2
+  n3=lr%d%n3
+  n1i=lr%d%n1i
+  n2i=lr%d%n2i
+  n3i=lr%d%n3i
+
+  call initialize_work_arrays_sumrho(lr,w)
+ 
+  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i+ndebug),stat=i_stat)
+  call memocc(i_stat,psir,'psir',subname)
+  !initialisation
+  if (lr%geocode == 'F') then
+     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
+  end if
+ 
+  call daub_to_isf(lr,w,psi,psir)
+
+  call write_cube_fields(orbname,' ',&
+       at,rxyz,n1,n2,n3,n1i,n2i,n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+       1.0_gp,psir,1,0.0_gp,psir)
+
+  i_all=-product(shape(psir))*kind(psir)
+  deallocate(psir,stat=i_stat)
+  call memocc(i_stat,i_all,'psir',subname)
+
+  call deallocate_work_arrays_sumrho(w)
+
+end subroutine plot_wf
+!!***
+
+
+subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
+     nat,rxyz)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: nspin
+  integer, intent(out) ::  n1i,n2i,n3i
+  real(gp), intent(out) :: hxh,hyh,hzh
+  real(dp), dimension(:,:), pointer :: rho
+  real(gp), dimension(:,:), pointer, optional :: rxyz
+  integer, intent(out), optional ::  nat
+  !local variables
+  character(len=*), parameter :: subname='read_cube'
+  character(len=5) :: suffix
+  character(len=15) :: message
+  character(len=3) :: advancestring
+  integer :: i_all,i_stat,i1,i2,i3,ind,icount,j,iat,ia,nat_read
+  real(gp), dimension(:,:), pointer :: rxyz_read
+
+  !check the arguments
+  if (present(rxyz) .neqv. present(nat)) then
+     stop 'wrong usage of read_cube, both nat and rxyz should be present'
+  end if
+
+
+  if (nspin /=2) then
+     suffix=''
+     message='total spin'
+     ia=1
+     !read the header of the file
+     call read_cube_header(filename//trim(suffix),geocode,nspin,n1i,n2i,n3i,hxh,hyh,hzh,&
+          rho,nat_read,rxyz_read) 
+     !fill the pointer which was just allocated
+     call read_cube_field(filename//trim(suffix),geocode,n1i,n2i,n3i,rho)
+
+  else
+     suffix='-up'
+     message='spin up'
+     ia=1
+     !read the header of the file (suppose that it is the same for spin up and down)
+     call read_cube_header(filename//trim(suffix),geocode,nspin,n1i,n2i,n3i,hxh,hyh,hzh,&
+          rho,nat_read,rxyz_read) 
+     !fill the pointer which was just allocated
+     call read_cube_field(filename//trim(suffix),geocode,n1i,n2i,n3i,rho(1,ia))
+    
+     suffix='-down'
+     message='spin down'
+     ia=2
+     call read_cube_field(filename//trim(suffix),geocode,n1i,n2i,n3i,rho(1,ia)) 
+  end if
+
+  if (present(rxyz) .and. present(nat)) then
+     rxyz => rxyz_read
+     nat=nat_read
+  else
+     i_all=-product(shape(rxyz_read))*kind(rxyz_read)
+     deallocate(rxyz_read,stat=i_stat)
+     call memocc(i_stat,i_all,'rxyz_read',subname)
+  end if
+
+contains
+
+  subroutine read_cube_header(filename,geocode,nspin,n1i,n2i,n3i,hxh,hyh,hzh,rho,&
+       nat,rxyz)
+    use module_base
+    use module_types
+    implicit none
+    character(len=*), intent(in) :: filename
+    character(len=1), intent(in) :: geocode
+    integer, intent(in) :: nspin
+    integer, intent(out) :: n1i,n2i,n3i
+    real(gp), intent(out) :: hxh,hyh,hzh
+    real(dp), dimension(:,:), pointer :: rho
+    integer, intent(out) :: nat
+    real(gp), dimension(:,:), pointer :: rxyz
+    !local variables
+    character(len=*), parameter :: subname='read_density_cube'
+    character(len=3) :: advancestring
+    integer :: n1t,n2t,n3t,n1,n2,n3,idum,i1,i2,i3,iat,i_stat,i_all,j
+    integer :: nl1,nl2,nl3,nbx,nby,nbz,icount,ind
+    real(gp) :: dum1,dum2,dum3
+
+
+    if (geocode /= 'F') then
+       nl1=1
+       nl3=1
+       nbx = 1
+       nbz = 1
+    else
+       nl1=15
+       nl3=15
+       nbx = 0
+       nbz = 0
+    end if
+    !value of the buffer in the y direction
+    if (geocode == 'P') then
+       nl2=1
+       nby = 1
+    else
+       nl2=15
+       nby = 0
+    end if
+
+    open(unit=22,file=trim(filename)//'.cube',status='old')
+    read(22,*)! 'CUBE file for charge density'
+    read(22,*)! 'Case for '//trim(message)
+
+    read(22,'(i5,3(f12.6),a)')  nat , dum1, dum2, dum3 
+    read(22,'(i5,3(f12.6))') n1t , hxh  , dum1 , dum2
+    read(22,'(i5,3(f12.6))') n2t , dum1 , hyh  , dum2
+    read(22,'(i5,3(f12.6))') n3t , dum1 , dum2 , hzh
+
+    !grid positions
+    n1=n1t/2-nbx
+    n1i=2*n1+(1-nbx)+2*nl1
+    n2=n2t/2-nby
+    n2i=2*n2+(1-nby)+2*nl2
+    n3=n3t/2-nbz
+    n3i=2*n3+(1-nbz)+2*nl3
+
+    !atomic positions
+    allocate(rxyz(3,nat+ndebug),stat=i_stat)
+    call memocc(i_stat,rxyz,'rxyz',subname)
+
+    if(associated(rho)) then
+       i_all=-product(shape(rho))*kind(rho)
+       deallocate(rho,stat=i_stat)
+       call memocc(i_stat,i_all,'rho',subname)
+    end if
+
+    allocate(rho(n1i*n2i*n3i,nspin+ndebug) ,stat=i_stat)
+    call memocc(i_stat,rho,'rho',subname)
+
+    do iat=1,nat
+       read(22,'(i5,4(f12.6))') idum , dum1 , (rxyz(j,iat),j=1,3)
+       ! write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
+    end do
+
+    close(22)
+    
+  end subroutine read_cube_header
+
+end subroutine read_cube
+
+!read a cube field which have been plotted previously by write_cube_fields
+subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: n1i,n2i,n3i
+  real(dp), dimension(n1i*n2i*n3i) :: rho
+  !local variables
+  character(len=*), parameter :: subname='read_density_cube'
+  character(len=3) :: advancestring
+  integer :: n1t,n2t,n3t,n1,n2,n3,idum,i1,i2,i3,nat,iat,i_stat,i_all,j
+  integer :: nl1,nl2,nl3,nbx,nby,nbz,icount,ind
+  real(gp) :: dum1,dum2,dum3,tt
+
+
+  if (geocode /= 'F') then
+     nl1=1
+     nl3=1
+     nbx = 1
+     nbz = 1
+  else
+     nl1=15
+     nl3=15
+     nbx = 0
+     nbz = 0
+  end if
+  !value of the buffer in the y direction
+  if (geocode == 'P') then
+     nl2=1
+     nby = 1
+  else
+     nl2=15
+     nby = 0
+  end if
+
+  open(unit=22,file=trim(filename)//'.cube',status='old')
+  read(22,*)! 'CUBE file for charge density'
+  read(22,*)! 'Case for '//trim(message)
+
+  read(22,'(i5,3(f12.6),a)')  nat , dum1, dum2, dum3 
+  read(22,'(i5,3(f12.6))') n1t , dum3,   dum1 ,dum2
+  read(22,'(i5,3(f12.6))') n2t ,dum1 , dum3  ,  dum2
+  read(22,'(i5,3(f12.6))') n3t ,dum1 , dum2 , dum3
+
+  !grid positions
+  n1=n1t/2-nbx
+  if (n1i /= 2*n1+(1-nbx)+2*nl1) stop 'n1i not valid'
+  n2=n2t/2-nby
+  if (n2i /= 2*n2+(1-nby)+2*nl2) stop 'n2i not valid'
+  n3=n3t/2-nbz
+  if (n3i /= 2*n3+(1-nbz)+2*nl3) stop 'n3i not valid'
+
+  !zero the pointer
+  call razero(n1i*n2i*n3i,rho)
+
+  do iat=1,nat
+     !read(22,'(i5,4(f12.6))')! idum , dum1 , (rxyz(j,iat),j=1,3)
+     read(22,*)! idum , dum1 , (rxyz(j,iat),j=1,3)
+  end do
+
+  !the loop is reverted for a cube file
+  !charge normalised to the total charge
+  do i1=0,2*(n1+nbx) - 1
+     do i2=0,2*(n2+nby) - 1
+        icount=0
+        do i3=0,2*(n3+nbz) - 1
+           icount=icount+1
+           if (icount == 6 .or. i3==2*(n3+nbz) - 1) then
+              advancestring='yes'
+              icount=0
+           else
+              advancestring='no'
+           end if
+           ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
+           read(22,'(1x,1pe13.6)',advance=advancestring) tt !rho(ind) 
+           rho(ind)=tt
+!           write(16,*)i1,i2,i3,ind,rho(ind)
+           !read(22,*)',advance=advancestring) rho(ind) 
+        end do
+     end do
+  end do
+  close(22)
+
+ ! write(14,*)rho
+
+end subroutine read_cube_field
 

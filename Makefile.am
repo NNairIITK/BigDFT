@@ -1,4 +1,5 @@
 EXTRA_DIST = autogen.sh \
+	config/m4
 	configure
 
 ACLOCAL_AMFLAGS = -I config/m4
@@ -35,3 +36,5 @@ SUBDIRS = $(libXC_dir) \
 	utils \
 	$(tests_dir)
 
+check:
+	@python $(top_srcdir)/tests/report.py

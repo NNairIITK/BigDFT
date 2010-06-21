@@ -34,18 +34,18 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(GPU_pointers), intent(inout) :: GPU
   real(dp), dimension(*), optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
-  real(wp), dimension(*), intent(in), optional :: psirocc
+  real(wp), dimension(:), pointer, optional :: psirocc
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX
-  integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat,i
-  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi,istart_ca
-  integer, dimension(3) :: periodic
-  real(wp) :: maxdiff
-  real(gp) :: eproj,ek_fake,ep_fake
+  integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
+  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
+!OCL  integer, dimension(3) :: periodic
+!OCL  real(wp) :: maxdiff
+!OCL  real(gp) :: eproj,ek_fake,ep_fake
   real(gp), dimension(3,2) :: wrkallred
   real(wp), dimension(:), pointer :: pot
-  real(wp), dimension(:), allocatable :: hpsi_OCL
+!OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
   integer,parameter::lupfil=14
 
   !stream ptr array
@@ -101,7 +101,6 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+1
   end if
   call timing(iproc,'Rho_commun    ','OF') 
-
   !fill the rest of the potential with the exact-exchange terms
   if (present(pkernel) .and. exctX) then
      n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
@@ -229,12 +228,21 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 END SUBROUTINE HamiltonianApplication
 !!***
 
-! This module is here to avoid save variables inside
-! hpsitopsi().
+
+!!****m* BigDFT/wavefunctionDIIS
+!! FUNCTION
+!!   This module is here to avoid save variables inside
+!!   hpsitopsi().
+!!
+!! SOURCE
+!!
 module wavefunctionDIIS
+  implicit none
   logical :: switchSD
   integer :: idiistol,mids,ids  
 end module wavefunctionDIIS
+!!***
+
 
 !!****f* BigDFT/hpsitopsi
 !! FUNCTION
@@ -264,12 +272,12 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='hpsitopsi'
-  real(wp), dimension(:), allocatable :: hpsi_OCL
-  integer :: ierr,iorb,k,i_stat,i_all,i
-  real(dp) :: tt,scprpart
+!OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
+  integer :: ierr,iorb,k,i_stat,i_all
+  real(dp) :: tt
   real(wp), dimension(:,:,:), allocatable :: mom_vec
-  real(wp) :: maxdiff
-  integer, dimension(3) :: periodic
+!OCL  real(wp) :: maxdiff
+!OCL  integer, dimension(3) :: periodic
 
   !stream ptr array
  ! real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
@@ -292,7 +300,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
-          'done, orthoconstraint...'
+          'done,  orthoconstraint...'
   end if
 
   !transpose the hpsi wavefunction
@@ -314,7 +322,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   call timing(iproc,'Precondition  ','ON')
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
-          'done, preconditioning...'
+          'done,  preconditioning...'
   end if
 
   !Preconditions all orbitals belonging to iproc
@@ -551,10 +559,8 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
 
   character(len=*), parameter :: subname='last_orthon'
   logical :: dowrite !write the screen output
-  integer :: i_all,i_stat,iorb,jorb,md
-  real(wp) :: evpart
+  integer :: i_all,i_stat,iorb,jorb,md,ikpt,isorb
   real(wp), dimension(:,:,:), allocatable :: mom_vec
-
 
   
   if (present(opt_keeppsit)) then
@@ -595,6 +601,10 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
           orbs%nspinor,psi,mom_vec)
   end if
 
+  ! Send all eigenvalues to all procs.
+  call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
+       & orbs%eval(1), orbs%ikptproc)
+
   !print the found eigenvalues
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -603,40 +613,45 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
         write(*,'(1x,a)')&
              '           Eigenvalue                                      m_x       m_y       m_z'
      end if
-     if (nspin==1.or.orbs%nspinor==4) then
-        do iorb=1,orbs%norb
-           dowrite =(iorb <= 5 .or. iorb >= orbs%norb-5) .or. verbose > 0
-           if (orbs%nspinor ==4) then
+     do ikpt=1,orbs%nkpts
+        if (orbs%nkpts > 1 .and. orbs%nspinor >= 2) write(*,"(1x,A,I3.3,A,3F12.6)") &
+             & "Kpt #", ikpt, " BZ coord. = ", orbs%kpts(:, ikpt)
+        isorb = (ikpt - 1) * orbs%norb
+        if (nspin==1.or.orbs%nspinor==4) then
+           do iorb=1,orbs%norb
+              dowrite =(iorb <= 5 .or. iorb >= orbs%norb-5) .or. verbose > 0
+              if (orbs%nspinor ==4) then
+                 if (dowrite) & 
+                      write(*,'(1x,a,i4,a,1x,1pe21.14,20x,(1x,3(0pf10.5)))') &
+                      'eval(',iorb,')=',orbs%eval(isorb + iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
+              else
+                 if (dowrite) & 
+                      write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',orbs%eval(isorb + iorb)
+              end if
+           end do
+        else
+           do iorb=1,min(orbs%norbu,orbs%norbd)
+              jorb=orbs%norbu+iorb
+              dowrite =(iorb <= 5 .or. iorb >= min(orbs%norbu,orbs%norbd)-5)  .or. verbose > 0
               if (dowrite) & 
-                   write(*,'(1x,a,i4,a,1x,1pe21.14,20x,(1x,3(0pf10.5)))') &
-                   'eval(',iorb,')=',orbs%eval(iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
-           else
-              if (dowrite) & 
-                   write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',orbs%eval(iorb)
+                   write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
+                   'eval(',iorb,',u)=',orbs%eval(isorb + iorb),'eval(',iorb,',d)=',orbs%eval(isorb + jorb)
+           end do
+           if (orbs%norbu > orbs%norbd) then
+              do iorb=orbs%norbd+1,orbs%norbu
+                 dowrite =(iorb <= 5 .or. iorb >= orbs%norbu-5) .or. verbose > 0
+                 if (dowrite) & 
+                      write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,',u)=',orbs%eval(isorb + iorb)
+              end do
+           else if (orbs%norbd > orbs%norbu) then
+              do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
+                 dowrite =(iorb <= 5 .or. iorb >= orbs%norbd-5) .or. verbose > 0
+                 if (dowrite) & 
+                      write(*,'(50x,a,i4,a,1x,1pe21.14)') 'eval(',iorb-orbs%norbu,',d)=',orbs%eval(isorb + iorb)
+              end do
            end if
-        end do
-     else
-        do iorb=1,min(orbs%norbu,orbs%norbd)
-           jorb=orbs%norbu+iorb
-           dowrite =(iorb <= 5 .or. iorb >= min(orbs%norbu,orbs%norbd)-5)  .or. verbose > 0
-           if (dowrite) & 
-                write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-                'eval(',iorb,',u)=',orbs%eval(iorb),'eval(',iorb,',d)=',orbs%eval(jorb)
-        end do
-        if (orbs%norbu > orbs%norbd) then
-           do iorb=orbs%norbd+1,orbs%norbu
-              dowrite =(iorb <= 5 .or. iorb >= orbs%norbu-5) .or. verbose > 0
-              if (dowrite) & 
-              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,',u)=',orbs%eval(iorb)
-           end do
-        else if (orbs%norbd > orbs%norbu) then
-           do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
-              dowrite =(iorb <= 5 .or. iorb >= orbs%norbd-5) .or. verbose > 0
-              if (dowrite) & 
-                   write(*,'(50x,a,i4,a,1x,1pe21.14)') 'eval(',iorb-orbs%norbu,',d)=',orbs%eval(iorb)
-           end do
         end if
-     end if
+     end do
   end if
 
   if (orbs%nspinor ==4) then
@@ -649,7 +664,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   deallocate(hpsi,stat=i_stat)
   call memocc(i_stat,i_all,'hpsi',subname)
 
-end subroutine last_orthon
+END SUBROUTINE last_orthon
 !!***
 
 
@@ -743,7 +758,7 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   !local variables
   character(len=*), parameter :: subname='correct_hartree_potential'
   integer :: i_all,i_stat,ierr,i1,i2,i3,ispin
-  real(gp) :: ehart_fake,eexcu_fake,vexcu_fake,ehartA,ehartB,tt,offset
+  real(gp) :: ehart_fake,ehartA,ehartB,tt,offset
   real(dp), dimension(:,:,:,:), allocatable :: potref,drho,vxc
 
   allocate(potref(n1i,n2i,max(n3d,1),nspin+ndebug),stat=i_stat)
@@ -790,19 +805,29 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   if (iproc==0) print *,'charge deltarho',offset*hxh*hyh*hzh
 
   !rho_tot -> VH_tot & VXC_tot 
-  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
-       ixc,hxh,hyh,hzh,&
-       rhopot,pkernel,vxc,ehart,eexcu,vexcu,0.d0,.false.,nspin,&
+  call H_potential(at%geocode,'D',iproc,nproc,&
+       n1i,n2i,n3i,hxh,hyh,hzh,&
+       rhopot,pkernel,vxc,ehart,0.0_dp,.false.,&
        quiet=PSquiet)
+
+!!$  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
+!!$       ixc,hxh,hyh,hzh,&
+!!$       rhopot,pkernel,vxc,ehart,eexcu,vexcu,0.d0,.false.,nspin,&
+!!$       quiet=PSquiet)
 
   !calculate the reference Hartree potential
   !here the offset should be specified for charged systems
   call dcopy(n1i*n2i*n3d,rhoref,1,potref,1) 
   !Rho_ref -> VH_ref
-  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
-       0,hxh,hyh,hzh,&
-       potref,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+  call H_potential(at%geocode,'D',iproc,nproc,&
+       n1i,n2i,n3i,hxh,hyh,hzh,&
+       potref,pkernel,pot_ion,ehart_fake,0.0_dp,.false.,&
        quiet=PSquiet)
+
+!!$  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
+!!$       0,hxh,hyh,hzh,&
+!!$       potref,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+!!$       quiet=PSquiet)
   
   !save the total density in rhopot
   do ispin=1,nspin
@@ -829,10 +854,15 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   !calculate the vacancy hartree potential
   !Delta rho -> VH_drho(I)
   !use global distribution scheme for deltarho
-  call PSolver('F','G',iproc,nproc,n1i,n2i,n3i,&
-       0,hxh,hyh,hzh,&
-       drho,pkernel_ref,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+  call H_potential('F','G',iproc,nproc,&
+       n1i,n2i,n3i,hxh,hyh,hzh,&
+       drho,pkernel_ref,pot_ion,ehart_fake,0.0_dp,.false.,&
        quiet=PSquiet)
+
+!!$  call PSolver('F','G',iproc,nproc,n1i,n2i,n3i,&
+!!$       0,hxh,hyh,hzh,&
+!!$       drho,pkernel_ref,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+!!$       quiet=PSquiet)
 
 !!!  call plot_density(at%geocode,'VHdeltarho.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
 !!!       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,1+i3xcsh,1))
@@ -961,7 +991,7 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
   deallocate(drho,stat=i_stat)
   call memocc(i_stat,i_all,'drho',subname)
 
-end subroutine correct_hartree_potential
+END SUBROUTINE correct_hartree_potential
 
 
 subroutine check_communications(iproc,nproc,orbs,lr,comms)
@@ -981,6 +1011,8 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   real(wp), dimension(:), allocatable :: psi
   real(wp), dimension(:), pointer :: pwork
   real(wp) :: epsilon
+  character(len = 25) :: filename
+  logical :: abort
 
   !allocate the "wavefunction" amd fill it, and also the workspace
   allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
@@ -1009,7 +1041,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   maxdiff=0.0_wp
   ispsi=0
   do ikptsp=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikptsp
+     ikpt=orbs%iskpts+ikptsp!orbs%ikptsp(ikptsp)
      valkpt=real(512*ikpt,wp)
      !calculate the starting point for the component distribution
      iscomp=0
@@ -1041,15 +1073,17 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      ispsi=ispsi+nvctrp*orbs%norb*nspinor
   end do
 
+  abort = .false.
   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
      write(*,*)'ERROR: process',iproc,'does not transpose wavefunctions correctly!'
      write(*,*)'       found an error of',maxdiff,'cannot continue.'
      write(*,*)'       data are written in the file transerror.log, exiting...'
 
-     open(unit=22,file='transerror.log',status='unknown')
+     write(filename, "(A,I0,A)") 'transerror', iproc, '.log'
+     open(unit=22,file=trim(filename),status='unknown')
      ispsi=0
      do ikptsp=1,orbs%nkptsp
-        ikpt=orbs%iskpts+ikptsp
+        ikpt=orbs%iskpts+ikptsp!orbs%ikptsp(ikptsp)
         valkpt=real(512*ikpt,wp)
         !calculate the starting point for the component distribution
         iscomp=0
@@ -1070,8 +1104,10 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
                     index=ispinor+(i-1)*((2+nspinor)/4+1)+&
                          (idsx-1)*((2+nspinor)/4+1)*nvctrp+indorb+ispsi
                     maxdiff=abs(psi(index)-psival)
-                    write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i+iscomp,iorb+ikpt,psival,&
-                         psi(index),maxdiff
+                    if (maxdiff > 0.d0) then
+                       write(22,'(i3,i6,2i4,3(1x,1pe13.6))')ispinor,i+iscomp,iorb,ikpt,psival,&
+                            psi(index),maxdiff
+                    end if
                  end do
               end do
            end do
@@ -1079,10 +1115,11 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
         ispsi=ispsi+nvctrp*orbs%norb*nspinor
      end do
      close(unit=22)
-
-     call MPI_ABORT(MPI_COMM_WORLD,ierr)
-
+     abort = .true.
   end if
+
+  if (abort) call MPI_ABORT(MPI_COMM_WORLD,ierr)
+  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   !retranspose the hpsi wavefunction
   call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,&
@@ -1104,12 +1141,14 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      end do
   end do
 
+  abort = .false.
   if (abs(maxdiff) > real(orbs%norb,wp)*epsilon(1.0_wp)) then
      write(*,*)'ERROR: process',iproc,'does not untranspose wavefunctions correctly!'
      write(*,*)'       found an error of',maxdiff,'cannot continue.'
      write(*,*)'       data are written in the file transerror.log, exiting...'
 
-     open(unit=22,file='transerror.log',status='unknown')
+     write(filename, "(A,I0,A)") 'transerror', iproc, '.log'
+     open(unit=22,file=trim(filename),status='unknown')
      maxdiff=0.0_wp
      do iorb=1,orbs%norbp
         ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
@@ -1122,16 +1161,19 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
               vali=real(i,wp)/512.d0  !*1.d-5
               psival=(valorb+vali)*(-1)**(ispinor-1)
               maxdiff=abs(psi(i+indspin+indorb)-psival)
-              write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i,iorb+orbs%isorb,psival,&
-                   psi(ispinor+(i-1)*orbs%nspinor+indorb),maxdiff
+              if (maxdiff > 0.d0) then
+                 write(22,'(i3,i6,2i4,3(1x,1pe13.6))')ispinor,i,iorb,orbs%isorb,psival,&
+                      psi(ispinor+(i-1)*orbs%nspinor+indorb),maxdiff
+              end if
            end do
         end do
      end do
      close(unit=22)
-
-     call MPI_ABORT(MPI_COMM_WORLD,ierr)
-
+     abort = .true.
   end if
+
+  if (abort) call MPI_ABORT(MPI_COMM_WORLD,ierr)
+  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
@@ -1142,4 +1184,21 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
 
 
 
-end subroutine check_communications
+END SUBROUTINE check_communications
+
+subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
+  use module_base
+  implicit none
+  integer, intent(in) :: nproc, nkpts, ndata
+  integer, intent(in) :: ikptproc(nkpts)
+  real(gp), intent(inout) :: data(ndata, nkpts)
+
+  integer :: ikpt, ierr
+
+  if (nproc > 1) then
+     do ikpt = 1, nkpts
+        call MPI_BCAST(data(1,ikpt), ndata, MPI_DOUBLE_PRECISION, &
+             & ikptproc(ikpt), MPI_COMM_WORLD, ierr)
+     end do
+  end if
+end subroutine broadcast_kpt_objects
