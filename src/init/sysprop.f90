@@ -774,7 +774,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   real(gp), dimension(3,nkpt), intent(in) :: kpt
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,n_i,n_ip,rs_i,N_a,N_b,N_c
+  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all
   logical, dimension(:), allocatable :: GPU_for_orbs
   integer, dimension(:), allocatable :: mykpts
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)

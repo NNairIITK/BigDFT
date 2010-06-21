@@ -6,7 +6,8 @@ EXTRA_DIST = \
 	input.dft \
 	posinp.xyz \
 	gaubasis.dat \
-	gaucoeff.dat 
+	gaucoeff.dat \
+	H2O-CP2K.out.ref
 
 PPFILES = \
 	psppar.H \
@@ -35,4 +36,5 @@ H2O-CP2K.out: $(top_builddir)/src/bigdft $(PPFILES)
         fi
 
 check: H2O-CP2K.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H2O-CP2K.out $(top_srcdir)/tests/Refs/H2O-CP2K.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H2O-CP2K.out \
+		$(top_srcdir)/tests/DFT/H2O-CP2K/H2O-CP2K.out.ref | tee fldiff.report

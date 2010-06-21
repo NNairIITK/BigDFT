@@ -12,7 +12,9 @@ EXTRA_DIST = \
 	mdinput.dft \
 	mdinput.geopt \
 	poscur.xyz \
-	rand.inp
+	rand.inp \
+	MINHOP.out.ref \
+	global.mon.ref
 
 PPFILES = \
 	psppar.H \
@@ -54,4 +56,4 @@ MINHOP.out: $(top_builddir)/src/global $(PPFILES)
 
 check: MINHOP.out
 	python $(top_srcdir)/tests/fldiff.py --discrepancy=5.e-9 --mode=bigdft MINHOP.out \
-	$(top_srcdir)/tests/Refs/MINHOP.out.ref | tee fldiff.report
+	$(top_srcdir)/tests/MINHOP/MINHOP.out.ref | tee fldiff.report

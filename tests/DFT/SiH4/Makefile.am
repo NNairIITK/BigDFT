@@ -5,20 +5,21 @@ SUBDIRS =
 EXTRA_DIST = \
 	input.dft \
 	input.geopt \
-	posinp.ascii
+	posinp.ascii \
+	SiBulk.out.ref
 
 PPFILES = \
 	psppar.H \
-	psppar.N
+	psppar.Si
 
-CLEANFILES = $(PPFILES) NH3.out geopt.mon posout* *.prc\
+CLEANFILES = $(PPFILES) SiH4.out geopt.mon posout* *.prc\
 			fldiff.report
 
 #dependencies
 $(PPFILES):
 	ln -fs $(top_srcdir)/utils/PSPfiles/HGH-K/$@
 
-NH3.out: $(top_builddir)/src/bigdft $(PPFILES)
+SiH4.out: $(top_builddir)/src/bigdft $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.ascii ; \
@@ -31,5 +32,6 @@ NH3.out: $(top_builddir)/src/bigdft $(PPFILES)
 	  rm -f input.geopt ; \
         fi
 
-check: NH3.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft NH3.out $(top_srcdir)/tests/Refs/NH3.out.ref | tee fldiff.report
+check: SiH4.out
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft SiH4.out \
+		$(top_srcdir)/tests/DFT/SiH4/SiH4.out.ref | tee fldiff.report

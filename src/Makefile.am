@@ -80,8 +80,8 @@ EXTRA_DIST = \
 	wavelib/sym_16.inc \
 	NEB_driver.sh 
 
-AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver @LIBABINIT_INCLUDE@ \
-	@LIBXC_INCLUDE@
+AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver \
+	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)

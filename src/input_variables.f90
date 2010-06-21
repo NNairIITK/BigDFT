@@ -2518,7 +2518,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
   integer, intent(in):: iacceleration,iproc
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  integer :: iconv,iblas,initerror,ierror,useGPU
+  integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr
 
   if (iacceleration == 1) then
      call sg_init(GPUshare,useGPU,iproc,initerror)
@@ -2544,14 +2544,17 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
      end if
   else if (iacceleration == 2) then
      ! OpenCL convolutions are activated
-     !for the moment do not use CUBLAS for the linear algebra
+     ! use CUBLAS for the linear algebra for the moment
      if (.not. OCLconv) then
         call init_acceleration_OCL(GPU)
+        call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)
+        !initialize the id_proc per node
+        call processor_id_per_node(iproc,mproc,GPU%id_proc)
         if (iproc == 0) then
            write(*,*)' OpenCL convolutions activated'
         end if
         OCLconv=.true.
-        GPUblas=.false.
+        GPUblas=.true.
      end if
   end if
 
@@ -2597,7 +2600,7 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node)
      call MPI_GET_PROCESSOR_NAME(nodename(iproc),namelen,ierr)
 
      !gather the result between all the process
-     call MPI_Allgather(nodename(iproc),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+     call MPI_ALLGATHER(nodename(iproc),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
           nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
           MPI_COMM_WORLD,ierr)
 

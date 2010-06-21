@@ -4,28 +4,35 @@ SUBDIRS =
 
 EXTRA_DIST = \
 	input.dft \
-	posinp.xyz 
+	input.geopt \
+	posinp.xyz \
+	input.geopt \
+	NaCl.out.ref
 
 PPFILES = \
-	psppar.Si
+	psppar.Na \
+	psppar.Cl
 
-CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* SiBulk.out \
-	posout* *.prc fldiff.report
+CLEANFILES = $(PPFILES) NaCl.out posout* geopt.mon *.prc\
+			 fldiff.report
 
 #dependencies
 $(PPFILES):
 	ln -fs $(top_srcdir)/utils/PSPfiles/HGH/$@
 
-SiBulk.out: $(top_builddir)/src/bigdft $(PPFILES)
+NaCl.out: $(top_builddir)/src/bigdft $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
+	  ln -fs $(srcdir)/input.geopt ; \
         fi
 	$(run_parallel) $(top_builddir)/src/bigdft > $@
 	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.xyz ; \
+	  rm -f input.geopt ; \
         fi
 
-check: SiBulk.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft --discrepancy=5e-10 SiBulk.out $(top_srcdir)/tests/Refs/SiBulk.out.ref | tee fldiff.report
+check: NaCl.out
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft --discrepancy=2.e-8 NaCl.out \
+		$(top_srcdir)/tests/DFT/NaCl/NaCl.out.ref | tee fldiff.report

@@ -3,24 +3,10 @@
 SUBDIRS = \
 	  fft \
 	  PSolver \
-	  H \
-	  H2-spin \
-	  Li+ \
-	  SiH4 \
-	  NaCl \
-	  C \
-	  Ca2 \
-	  Mn2  \
-	  H2O-CP2K \
-	  SiBulk \
-	  H2O-slab \
-	  Davidson-SiH4 \
 	  H2-freq \
 	  NEB \
-	  NH3 \
 	  XabsCheb \
-	  FeHyb \
-	  Graphene
+	  DFT
 
 
 #This will run the automatic tests also for GPU
@@ -52,10 +38,10 @@ mpirun: head_message
 
 
 EXTRA_DIST = \
+	README \
 	fldiff.py \
 	inguess.dat \
-	report.py \
-	Refs
+	report.py
 
 CLEANFILES =
 

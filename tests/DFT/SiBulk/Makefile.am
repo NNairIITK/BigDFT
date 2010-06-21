@@ -4,20 +4,20 @@ SUBDIRS =
 
 EXTRA_DIST = \
 	input.dft \
-	posinp.xyz 
+	posinp.xyz \
+	SiBulk.out.ref
 
 PPFILES = \
-	psppar.H \
 	psppar.Si
 
-CLEANFILES = $(PPFILES) Davidson-SiH4.out posout* *.pot *.prc\
-			 fldiff.report
+CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* SiBulk.out \
+	posout* *.prc fldiff.report
 
 #dependencies
 $(PPFILES):
-	ln -fs $(top_srcdir)/utils/PSPfiles/$@
+	ln -fs $(top_srcdir)/utils/PSPfiles/HGH/$@
 
-Davidson-SiH4.out: $(top_builddir)/src/bigdft $(PPFILES)
+SiBulk.out: $(top_builddir)/src/bigdft $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
@@ -28,5 +28,6 @@ Davidson-SiH4.out: $(top_builddir)/src/bigdft $(PPFILES)
 	  rm -f posinp.xyz ; \
         fi
 
-check: Davidson-SiH4.out
-	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.e-9 --mode=bigdft Davidson-SiH4.out $(top_srcdir)/tests/Refs/Davidson-SiH4.out.ref | tee fldiff.report
+check: SiBulk.out
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft --discrepancy=5e-10 SiBulk.out \
+		$(top_srcdir)/tests/DFT/SiBulk/SiBulk.out.ref | tee fldiff.report

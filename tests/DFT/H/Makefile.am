@@ -4,7 +4,9 @@ SUBDIRS =
 
 EXTRA_DIST = \
 	input.dft \
-	posinp.xyz
+	posinp.xyz \
+	H.memguess.ref \
+	H.out.ref
 
 PPFILES = \
 	psppar.H
@@ -39,5 +41,7 @@ H.memguess: $(top_builddir)/src/memguess $(PPFILES)
     fi
 
 check: H.memguess H.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H.memguess $(top_srcdir)/tests/Refs/H.memguess.ref | tee memguess.report
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H.out $(top_srcdir)/tests/Refs/H.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H.memguess \
+		$(top_srcdir)/tests/DFT/H/H.memguess.ref | tee memguess.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H.out \
+		$(top_srcdir)/tests/DFT/H/H.out.ref | tee fldiff.report

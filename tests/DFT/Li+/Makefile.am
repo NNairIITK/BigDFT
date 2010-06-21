@@ -4,7 +4,8 @@ SUBDIRS =
 
 EXTRA_DIST = \
 	input.dft \
-	posinp.xyz
+	posinp.xyz \
+	Li+.out.ref
 
 PPFILES = \
 	psppar.Li 
@@ -28,4 +29,5 @@ Li+.out: $(top_builddir)/src/bigdft $(PPFILES)
         fi
 
 check: Li+.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft Li+.out $(top_srcdir)/tests/Refs/Li+.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft Li+.out \
+		$(top_srcdir)/tests/DFT/Li+/Li+.out.ref | tee fldiff.report

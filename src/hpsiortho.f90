@@ -228,12 +228,21 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 END SUBROUTINE HamiltonianApplication
 !!***
 
-! This module is here to avoid save variables inside
-! hpsitopsi().
+
+!!****m* BigDFT/wavefunctionDIIS
+!! FUNCTION
+!!   This module is here to avoid save variables inside
+!!   hpsitopsi().
+!!
+!! SOURCE
+!!
 module wavefunctionDIIS
+  implicit none
   logical :: switchSD
   integer :: idiistol,mids,ids  
 end module wavefunctionDIIS
+!!***
+
 
 !!****f* BigDFT/hpsitopsi
 !! FUNCTION

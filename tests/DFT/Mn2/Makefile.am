@@ -5,13 +5,15 @@ SUBDIRS =
 EXTRA_DIST = \
 	moments   \
 	input.dft \
-	posinp.xyz
+	posinp.xyz \
+	Mn2.memguess.ref \
+	Mn2.out.ref
 
 PPFILES = \
 	psppar.Mn
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* Mn2.out posout* \
-			 *.prc Mn2.memguess fldiff.report
+			 *.prc Mn2.memguess fldiff.report memguess.report
 
 #dependencies
 $(PPFILES):
@@ -44,5 +46,7 @@ Mn2.memguess: $(top_builddir)/src/memguess $(PPFILES)
         fi
 
 check: Mn2.memguess Mn2.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft Mn2.memguess $(top_srcdir)/tests/Refs/Mn2.memguess.ref | cat
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft Mn2.out $(top_srcdir)/tests/Refs/Mn2.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft Mn2.memguess \
+		$(top_srcdir)/tests/DFT/Mn2/Mn2.memguess.ref | tee memguess.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft Mn2.out \
+		$(top_srcdir)/tests/DFT/Mn2/Mn2.out.ref | tee fldiff.report

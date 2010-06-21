@@ -65,14 +65,24 @@ subroutine tenminustwenty(n,x,nproc)
 END SUBROUTINE tenminustwenty
 !!***
 
-! To be used in the following function.
+
+!!****m* BigDFT/randomData
+!! FUNCTION
+!!   To be used in the following function.
+!!
+!! SOURCE
+!!
 module randomData
+  implicit none
+
   integer, parameter :: ntab=32
 
   logical :: start = .true.
   integer :: iy = 0
   integer, dimension(NTAB) :: iv
 end module randomData
+!!***
+
 
 !!****f* BigDFT/builtin_rand
 !! FUNCTION
