@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.10],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.11],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -573,7 +573,6 @@ doc/Makefile
 tests/Makefile
 tests/fft/Makefile
 tests/PSolver/Makefile
-tests/GPU/Makefile
 tests/H2-freq/Makefile
 tests/MINHOP/Makefile
 tests/NEB/Makefile
@@ -596,6 +595,8 @@ tests/DFT/H2O-slab/Makefile
 tests/DFT/Davidson-SiH4/Makefile
 tests/DFT/FeHyb/Makefile
 tests/DFT/Graphene/Makefile
+tests/DFT/GPU/Makefile
+tests/DFT/OCL/Makefile
 ])
 
 # Call libXC ./configure script recursively.

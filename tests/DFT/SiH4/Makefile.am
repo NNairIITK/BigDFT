@@ -6,7 +6,7 @@ EXTRA_DIST = \
 	input.dft \
 	input.geopt \
 	posinp.ascii \
-	SiBulk.out.ref
+	SiH4.out.ref
 
 PPFILES = \
 	psppar.H \

@@ -33,4 +33,4 @@ GPU.out: $(top_builddir)/src/bigdft $(PPFILES)
 
 check: GPU.out
 	python $(top_srcdir)/tests/fldiff.py --mode=bigdft GPU.out \
-		$(top_srcdir)/tests/GPU/GPU.out.ref | tee fldiff.report
+		$(top_srcdir)/tests/DFT/GPU/GPU.out.ref | tee fldiff.report

@@ -9,11 +9,6 @@ SUBDIRS = \
 	  DFT
 
 
-#This will run the automatic tests also for GPU
-if USE_CUDA_GPU
-SUBDIRS += GPU
-endif
-
 #This will run the automatic tests also for minima hopping
 if USE_MINIMA_HOPPING
 SUBDIRS += MINHOP
@@ -40,7 +35,6 @@ mpirun: head_message
 EXTRA_DIST = \
 	README \
 	fldiff.py \
-	inguess.dat \
 	report.py
 
 CLEANFILES =
