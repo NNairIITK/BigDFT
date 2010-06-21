@@ -170,6 +170,8 @@ void FC_FUNC_(ocl_create_command_queue_id,OCL_CREATE_COMMAND_QUEUE_ID)(cl_comman
     *hCmdQueue = clCreateCommandQueue(*context, aDevices[*index % (nContextDescriptorSize/sizeof(cl_device_id))], CL_QUEUE_PROFILING_ENABLE, &ciErrNum);
 #else
     *hCmdQueue = clCreateCommandQueue(*context, aDevices[*index % (nContextDescriptorSize/sizeof(cl_device_id))], 0, &ciErrNum);
+    /*printf("Queue created index : %d, gpu chosen :%ld, gpu number : %ld\n", *index, *index %
+	   (nContextDescriptorSize/sizeof(cl_device_id)), nContextDescriptorSize/sizeof(cl_device_id)); */
 #endif
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
