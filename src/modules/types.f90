@@ -279,6 +279,7 @@ module module_types
 !!
   type, public :: GPU_pointers
      logical :: useDynamic,full_locham
+     integer :: id_proc
      real(kind=8) :: keys,work1,work2,work3,rhopot,r,d
      real(kind=8) :: pinned_in,pinned_out
      real(kind=8), dimension(:), pointer :: psi
@@ -300,7 +301,7 @@ module module_types
      real(gp) :: hx_old,hy_old,hz_old
      real(wp), dimension(:), pointer :: psi 
      real(wp), dimension(:,:), pointer :: gaucoeffs
-     real(gp), dimension(:,:), pointer :: rxyz_old
+     real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
      type(locreg_descriptors) :: Glr
      type(gaussian_basis) :: gbd
      type(orbitals_data) :: orbs
@@ -536,6 +537,8 @@ END SUBROUTINE deallocate_orbs
     integer :: i_stat
 
     !allocate pointers
+    allocate(rst%rxyz_new(3,atoms%nat+ndebug),stat=i_stat)
+    call memocc(i_stat,rst%rxyz_new,'rxyz_new',subname)
     allocate(rst%rxyz_old(3,atoms%nat+ndebug),stat=i_stat)
     call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
 
@@ -582,15 +585,23 @@ END SUBROUTINE deallocate_orbs
        deallocate(rst%psi,stat=i_stat)
        call memocc(i_stat,i_all,'psi',subname)
     end if
+
     if (associated(rst%orbs%eval)) then
        i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
        deallocate(rst%orbs%eval,stat=i_stat)
        call memocc(i_stat,i_all,'eval',subname)
     end if
+
     if (associated(rst%rxyz_old)) then
        i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
        deallocate(rst%rxyz_old,stat=i_stat)
        call memocc(i_stat,i_all,'rxyz_old',subname)
+    end if
+
+    if (associated(rst%rxyz_new)) then
+       i_all=-product(shape(rst%rxyz_new))*kind(rst%rxyz_new)
+       deallocate(rst%rxyz_new,stat=i_stat)
+       call memocc(i_stat,i_all,'rxyz_new',subname)
     end if
 
     !The gaussian basis descriptors are always allocated together
@@ -696,73 +707,94 @@ END SUBROUTINE deallocate_orbs
 
 !!****f* module_types/deallocate_bounds
 !! FUNCTION
-!!   De-Allocate convolutions_bounds type
+!!   De-Allocate convolutions_bounds type, depending of the geocode and the hybrid_on
 !! SOURCE
 !!
-  subroutine deallocate_bounds(bounds,subname)
+  subroutine deallocate_bounds(geocode,hybrid_on,bounds,subname)
     use module_base
     implicit none
+    character(len=1), intent(in) :: geocode
+    logical, intent(in) :: hybrid_on 
     type(convolutions_bounds) :: bounds
     character(len=*), intent(in) :: subname
     !local variables
     integer :: i_all,i_stat
 
-    i_all=-product(shape(bounds%kb%ibyz_c))*kind(bounds%kb%ibyz_c)
-    deallocate(bounds%kb%ibyz_c,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%kb%ibyz_c',subname)
-    i_all=-product(shape(bounds%kb%ibxz_c))*kind(bounds%kb%ibxz_c)
-    deallocate(bounds%kb%ibxz_c,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%kb%ibxz_c',subname)
-    i_all=-product(shape(bounds%kb%ibxy_c))*kind(bounds%kb%ibxy_c)
-    deallocate(bounds%kb%ibxy_c,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%kb%ibxy_c',subname)
-    i_all=-product(shape(bounds%kb%ibyz_f))*kind(bounds%kb%ibyz_f)
-    deallocate(bounds%kb%ibyz_f,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%kb%ibyz_f',subname)
-    i_all=-product(shape(bounds%kb%ibxz_f))*kind(bounds%kb%ibxz_f)
-    deallocate(bounds%kb%ibxz_f,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%kb%ibxz_f',subname)
-    i_all=-product(shape(bounds%kb%ibxy_f))*kind(bounds%kb%ibxy_f)
-    deallocate(bounds%kb%ibxy_f,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%kb%ibxy_f',subname)
 
-    i_all=-product(shape(bounds%sb%ibzzx_c))*kind(bounds%sb%ibzzx_c)
-    deallocate(bounds%sb%ibzzx_c,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%sb%ibzzx_c',subname)
-    i_all=-product(shape(bounds%sb%ibyyzz_c))*kind(bounds%sb%ibyyzz_c)
-    deallocate(bounds%sb%ibyyzz_c,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%sb%ibyyzz_c',subname)
-    i_all=-product(shape(bounds%sb%ibxy_ff))*kind(bounds%sb%ibxy_ff)
-    deallocate(bounds%sb%ibxy_ff,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%sb%ibxy_ff',subname)
-    i_all=-product(shape(bounds%sb%ibzzx_f))*kind(bounds%sb%ibzzx_f)
-    deallocate(bounds%sb%ibzzx_f,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%sb%ibzzx_f',subname)
-    i_all=-product(shape(bounds%sb%ibyyzz_f))*kind(bounds%sb%ibyyzz_f)
-    deallocate(bounds%sb%ibyyzz_f,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%sb%ibyyzz_f',subname)
+    if ((geocode == 'P' .and. hybrid_on) .or. geocode == 'F') then 
+       i_all=-product(shape(bounds%kb%ibyz_f))*kind(bounds%kb%ibyz_f)
+       deallocate(bounds%kb%ibyz_f,stat=i_stat)
+       call memocc(i_stat,i_all,'bounds%kb%ibyz_f',subname)
+       i_all=-product(shape(bounds%kb%ibxz_f))*kind(bounds%kb%ibxz_f)
+       deallocate(bounds%kb%ibxz_f,stat=i_stat)
+       call memocc(i_stat,i_all,'bounds%kb%ibxz_f',subname)
+       i_all=-product(shape(bounds%kb%ibxy_f))*kind(bounds%kb%ibxy_f)
+       deallocate(bounds%kb%ibxy_f,stat=i_stat)
+       call memocc(i_stat,i_all,'bounds%kb%ibxy_f',subname)
 
-    i_all=-product(shape(bounds%gb%ibzxx_c))*kind(bounds%gb%ibzxx_c)
-    deallocate(bounds%gb%ibzxx_c,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%gb%ibzxx_c',subname)
-    i_all=-product(shape(bounds%gb%ibxxyy_c))*kind(bounds%gb%ibxxyy_c)
-    deallocate(bounds%gb%ibxxyy_c,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%gb%ibxxyy_c',subname)
-    i_all=-product(shape(bounds%gb%ibyz_ff))*kind(bounds%gb%ibyz_ff)
-    deallocate(bounds%gb%ibyz_ff,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%gb%ibyz_ff',subname)
-    i_all=-product(shape(bounds%gb%ibzxx_f))*kind(bounds%gb%ibzxx_f)
-    deallocate(bounds%gb%ibzxx_f,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%gb%ibzxx_f',subname)
-    i_all=-product(shape(bounds%gb%ibxxyy_f))*kind(bounds%gb%ibxxyy_f)
-    deallocate(bounds%gb%ibxxyy_f,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%gb%ibxxyy_f',subname)
+       i_all=-product(shape(bounds%sb%ibxy_ff))*kind(bounds%sb%ibxy_ff)
+       deallocate(bounds%sb%ibxy_ff,stat=i_stat)
+       call memocc(i_stat,i_all,'bounds%sb%ibxy_ff',subname)
+       i_all=-product(shape(bounds%sb%ibzzx_f))*kind(bounds%sb%ibzzx_f)
+       deallocate(bounds%sb%ibzzx_f,stat=i_stat)
+       call memocc(i_stat,i_all,'bounds%sb%ibzzx_f',subname)
+       i_all=-product(shape(bounds%sb%ibyyzz_f))*kind(bounds%sb%ibyyzz_f)
+       deallocate(bounds%sb%ibyyzz_f,stat=i_stat)
+       call memocc(i_stat,i_all,'bounds%sb%ibyyzz_f',subname)
+       i_all=-product(shape(bounds%gb%ibyz_ff))*kind(bounds%gb%ibyz_ff)
+       deallocate(bounds%gb%ibyz_ff,stat=i_stat)
 
-    i_all=-product(shape(bounds%ibyyzz_r))*kind(bounds%ibyyzz_r)
-    deallocate(bounds%ibyyzz_r,stat=i_stat)
-    call memocc(i_stat,i_all,'bounds%ibyyzz_r',subname)
+       call memocc(i_stat,i_all,'bounds%gb%ibyz_ff',subname)
+       i_all=-product(shape(bounds%gb%ibzxx_f))*kind(bounds%gb%ibzxx_f)
+       deallocate(bounds%gb%ibzxx_f,stat=i_stat)
+       call memocc(i_stat,i_all,'bounds%gb%ibzxx_f',subname)
+       i_all=-product(shape(bounds%gb%ibxxyy_f))*kind(bounds%gb%ibxxyy_f)
+       deallocate(bounds%gb%ibxxyy_f,stat=i_stat)
+       call memocc(i_stat,i_all,'bounds%gb%ibxxyy_f',subname)
+    end if
+
+    !the arrays which are needed only for free BC
+    if (geocode == 'F') then
+       i_all=-product(shape(bounds%kb%ibyz_c))*kind(bounds%kb%ibyz_c)
+       deallocate(bounds%kb%ibyz_c,stat=i_stat)
+       call memocc(i_stat,i_all,'bounds%kb%ibyz_c',subname)
+       i_all=-product(shape(bounds%kb%ibxz_c))*kind(bounds%kb%ibxz_c)
+       deallocate(bounds%kb%ibxz_c,stat=i_stat)
+       call memocc(i_stat,i_all,'bounds%kb%ibxz_c',subname)
+       i_all=-product(shape(bounds%kb%ibxy_c))*kind(bounds%kb%ibxy_c)
+       deallocate(bounds%kb%ibxy_c,stat=i_stat)
+       call memocc(i_stat,i_all,'bounds%kb%ibxy_c',subname)
+       i_all=-product(shape(bounds%sb%ibzzx_c))*kind(bounds%sb%ibzzx_c)
+       deallocate(bounds%sb%ibzzx_c,stat=i_stat)
+
+       call memocc(i_stat,i_all,'bounds%sb%ibzzx_c',subname)
+       i_all=-product(shape(bounds%sb%ibyyzz_c))*kind(bounds%sb%ibyyzz_c)
+       deallocate(bounds%sb%ibyyzz_c,stat=i_stat)
+       call memocc(i_stat,i_all,'bounds%sb%ibyyzz_c',subname)
+       i_all=-product(shape(bounds%gb%ibzxx_c))*kind(bounds%gb%ibzxx_c)
+       deallocate(bounds%gb%ibzxx_c,stat=i_stat)
+       call memocc(i_stat,i_all,'bounds%gb%ibzxx_c',subname)
+       i_all=-product(shape(bounds%gb%ibxxyy_c))*kind(bounds%gb%ibxxyy_c)
+       deallocate(bounds%gb%ibxxyy_c,stat=i_stat)
+       call memocc(i_stat,i_all,'bounds%gb%ibxxyy_c',subname)
+
+       i_all=-product(shape(bounds%ibyyzz_r))*kind(bounds%ibyyzz_r)
+       deallocate(bounds%ibyyzz_r,stat=i_stat)
+       call memocc(i_stat,i_all,'bounds%ibyyzz_r',subname)
+    end if
 
   END SUBROUTINE deallocate_bounds
+
+  subroutine deallocate_lr(lr,subname)
+    use module_base
+    character(len=*), intent(in) :: subname
+    type(locreg_descriptors) :: lr
+
+    call deallocate_wfd(lr%wfd,subname)
+    
+    call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds,subname)
+
+  end subroutine deallocate_lr
 
 end module module_types
 !!***

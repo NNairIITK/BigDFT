@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.8],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.11],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -305,7 +305,7 @@ if test x"$ac_use_ocl" = "xyes" ; then
       AC_MSG_WARN(["No 'OpenCL' library found, OpenCL parts disabled."])
       ac_use_ocl="no"
     else
-      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL"
+      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt -lstdc++"
     fi
     LIBS=$LIBS_OLD
   fi
@@ -317,6 +317,12 @@ if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" ; then
   dnl Instead of second underscoring, test the compiler behaviour.
   AC_FC_WRAPPERS()
 fi
+
+dnl Test libraries required for benching.
+AC_LANG_PUSH(C++)
+AC_CHECK_LIB(config++, config_init, withconfig=yes, withconfig=no)
+AM_CONDITIONAL(HAVE_LIBCONFIG, test "$withconfig" = "yes")
+AC_LANG_POP(C++)
 
 dnl AM_CONDITIONAL for the different libraries, set default values.
 dnl the common routines from ABINIT.
@@ -559,6 +565,7 @@ src/PSolver/Makefile
 src/convolutions/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
+src/convolutions-c/Makefile
 src/art/Makefile
 utils/Makefile
 utils/PSPfiles/Makefile
@@ -566,10 +573,8 @@ doc/Makefile
 tests/Makefile
 tests/fft/Makefile
 tests/PSolver/Makefile
-tests/GPU/Makefile
 tests/H2-freq/Makefile
 tests/MINHOP/Makefile
-tests/NH3/Makefile
 tests/NEB/Makefile
 tests/NEB/input
 tests/NEB/NEB_include.sh
@@ -583,11 +588,15 @@ tests/DFT/Li+/Makefile
 tests/DFT/Mn2/Makefile
 tests/DFT/NaCl/Makefile
 tests/DFT/SiH4/Makefile
+tests/DFT/NH3/Makefile
 tests/DFT/H2O-CP2K/Makefile
 tests/DFT/SiBulk/Makefile
 tests/DFT/H2O-slab/Makefile
 tests/DFT/Davidson-SiH4/Makefile
 tests/DFT/FeHyb/Makefile
+tests/DFT/Graphene/Makefile
+tests/DFT/GPU/Makefile
+tests/DFT/OCL/Makefile
 ])
 
 # Call libXC ./configure script recursively.

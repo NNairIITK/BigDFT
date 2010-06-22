@@ -1,29 +1,50 @@
 #include "OpenCL_wrappers.h"
-
+/*
+  Matrix multiplication kernels written here share a common basic design.
+  Each work item computes 1 (or 2 elements in bloc design) element of
+  the result matrix. Local work size is 16*16 elements. Both arrays are 
+  loaded by block of 16*16 into shared memory. Buffers are big enough
+  so data can be padded to 17*16. Loading both matrix allows uniform
+  performance regarding transposition an conjugation.
+  As computation is performed by block, at each iteration a work item is
+  responsible for loading 2 elements, one from each source matrix.
+  Elements out of bouns are replaced by 0.
+  The first kernel is commented, other kernels are similar.
+  gemmsy is also commented.
+  Matrix are stored in column.
+*/
 char * dgemm_program="\
 //size is supposed to be 16*16\n\
 #define BUFFER_SIZE 16\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
+#define ELEM_PER_THREAD 2\n\
 __kernel void gemmKernel_d( uint m, uint n, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
+  //get our position in the local workgroup\n\
   size_t i = get_local_id(0);\n\
   size_t j = get_local_id(1);\n\
+  //get our position in the result matrix\n\
   size_t ig = get_global_id(0);\n\
   size_t jg = get_global_id(1);\n\
   \n\
   size_t index = 0;\n\
   double result = 0.0;\n\
+  //for each block of 16*16 elements in the line of matrix a and column of matrix b\n\
   while( index < k) {\n\
-    //load first matrix in tmp1\n\
-    tmp1[j*(BUFFER_SIZE) + i] = (ig < m && (index + j) <  k) ? a[(index+j)*lda + ig] : 0.0;\n\
-    //load second matrix in tmp2\n\
+    //load first matrix element in tmp1, 0.0 if out of bound.\n\
+    tmp1[j*(BUFFER_SIZE) + i] = (ig < m && (index + j) < k) ? a[(index+j)*lda + ig] : 0.0;\n\
+    //load second matrix element in tmp2, 0.0 if out of bound.\n\
     tmp2[j*(BUFFER_SIZE) + i] = (jg < n && (index + i) < k) ? b[(jg)*ldb + index+i] : 0.0;\n\
+    //wait for buffer to be full\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
+    //compute partial sum, iterating over a line of tmp1 and a column of tmp2.\n\
     #pragma unroll\n\
     for(size_t sumi=0; sumi<BUFFER_SIZE; sumi++)\n\
       result += tmp1[sumi*(BUFFER_SIZE) + i] * tmp2[ j*(BUFFER_SIZE) + sumi];\n\
+    //wait for buffer to be fully read.\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
     index += BUFFER_SIZE;\n\
   }\n\
+  //write output result if we are inside the bounds.\n\
   if(ig < m && jg < n)\n\
     c[jg*ldc + ig] = alpha * result + beta * c[jg*ldc + ig];\n\
 }\n\
@@ -37,9 +58,7 @@ __kernel void gemmKernel_d_ta( uint m, uint n, uint k, double alpha, __global co
   size_t index = 0;\n\
   double result = 0.0;\n\
   while( index < k) {\n\
-    //load first matrix in tmp1\n\
     tmp1[i*(BUFFER_SIZE+1) + j] = (igt < m && (index + i) <  k) ? a[(igt)*lda + index+i] : 0.0;\n\
-    //load second matrix in tmp2\n\
     tmp2[j*(BUFFER_SIZE) + i] = (jg < n && (index + i) < k) ? b[(jg)*ldb + index+i] : 0.0;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
     #pragma unroll\n\
@@ -51,6 +70,84 @@ __kernel void gemmKernel_d_ta( uint m, uint n, uint k, double alpha, __global co
   if(ig < m && jg < n)\n\
     c[jg*ldc + ig] = alpha * result + beta * c[jg*ldc + ig];\n\
 }\n\
+__kernel void gemm_blockKernel_d( uint m, uint n, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
+  size_t i = get_local_id(0);\n\
+  size_t j = get_local_id(1)*ELEM_PER_THREAD;\n\
+  size_t ig = get_global_id(0);\n\
+  size_t jg = get_global_id(1)*ELEM_PER_THREAD;\n\
+  \n\
+  size_t index = 0;\n\
+  double result_1 = 0.0;\n\
+  double result_2 = 0.0;\n\
+  a += ig+j*lda;\n\
+  b+= i+jg*ldb;\n\
+  while( index < k) {\n\
+    __local double *tmp2_t = tmp2 + j*BUFFER_SIZE;\n\
+    tmp1[j*(BUFFER_SIZE) + i] = (ig < m && (index + j) < k) ? *a : 0.0;\n\
+    tmp1[(j+1)*(BUFFER_SIZE) + i] = (ig < m && (index + j+1) < k) ? a[lda] : 0.0;\n\
+    tmp2_t[i] = (jg < n && (index + i) < k) ? *b : 0.0;\n\
+    tmp2_t[BUFFER_SIZE + i] = ((jg+1) < n && (index + i) < k) ? b[ldb] : 0.0;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    #pragma unroll\n\
+    __local double *tmp1_t = tmp1 + i;\n\
+    for(size_t sumi=0; sumi<BUFFER_SIZE; sumi++){\n\
+      result_1 += *tmp1_t * *tmp2_t;\n\
+      result_2 += *tmp1_t * tmp2_t[BUFFER_SIZE];\n\
+      tmp1_t+=BUFFER_SIZE;\n\
+      tmp2_t++;\n\
+    }\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    index += BUFFER_SIZE;\n\
+    b += BUFFER_SIZE;\n\
+    a += BUFFER_SIZE*lda;\n\
+  }\n\
+  c += jg*ldc + ig;\n\
+  if(ig < m && jg < n){\n\
+    *c = alpha * result_1 + beta * *c;\n\
+    c += ldc;\n\
+    *c = alpha * result_2 + beta * *c;\n\
+  }\n\
+}\n\
+//blocks are numbered in the following way :\n\
+// 0 1 3 6 10\n\
+//   2 4 7 11\n\
+//     5 8 12\n\
+//       9 13\n\
+//         14\n\
+//position in the matrix is obtained via solving ig * ( ig + 1) / 2 = index\n\
+//and rounding to the apropriate integer.\n\
+//non numbered blocks are obtained by transposing numbered blocks.\n\
+__kernel void gemmsyKernel_d( uint m, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
+  size_t i = get_local_id(0);\n\
+  size_t j = get_local_id(1);\n\
+  size_t ig = get_group_id(0);\n\
+  ig = ceil(-0.500001+0.5*sqrt(9.0+8*ig))-1;\n\
+  size_t jg = get_group_id(0) - ig * (ig + 1) / 2;\n\
+  ig = ig * BUFFER_SIZE + i;\n\
+  jg = jg * BUFFER_SIZE + j;\n\
+  \n\
+  size_t index = 0;\n\
+  double result = 0.0;\n\
+  while( index < k) {\n\
+    tmp1[j*(BUFFER_SIZE) + i] = (ig < m && (index + j) < k) ? a[(index+j)*lda + ig] : 0.0;\n\
+    tmp2[j*(BUFFER_SIZE) + i] = (jg < m && (index + i) < k) ? b[(jg)*ldb + index+i] : 0.0;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    #pragma unroll\n\
+    for(size_t sumi=0; sumi<BUFFER_SIZE; sumi++)\n\
+      result += tmp1[sumi*(BUFFER_SIZE) + i] * tmp2[ j*(BUFFER_SIZE) + sumi];\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    index += BUFFER_SIZE;\n\
+  }\n\
+  result = alpha * result + beta * c[jg*ldc + ig];\n\
+  tmp1[j*(BUFFER_SIZE+1) + i] = result;\n\
+  size_t igt = ig - i + j;\n\
+  size_t jgt = jg - j + i;\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  if(ig < m && jg < m)\n\
+    c[jg*ldc + ig] = result;\n\
+  if(igt < m && jgt < m)\n\
+    c[igt*ldc + jgt] = tmp1[i*(BUFFER_SIZE+1) + j];\n\
+}\n\
 __kernel void gemmKernel_d_tb( uint m, uint n, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
   size_t i = get_local_id(0);\n\
   size_t j = get_local_id(1);\n\
@@ -61,9 +158,7 @@ __kernel void gemmKernel_d_tb( uint m, uint n, uint k, double alpha, __global co
   size_t index = 0;\n\
   double result = 0.0;\n\
   while( index < k) {\n\
-    //load first matrix in tmp1\n\
     tmp1[j*(BUFFER_SIZE) + i] = (ig < m && (index + j) <  k) ? a[(index+j)*lda + ig] : 0.0;\n\
-    //load second matrix in tmp2\n\
     tmp2[i*(BUFFER_SIZE+1) + j] = (jgt < n && (index + j) < k) ? b[(index+j)*ldb + jgt] : 0.0;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
     #pragma unroll\n\
@@ -86,9 +181,7 @@ __kernel void gemmKernel_d_tatb( uint m, uint n, uint k, double alpha, __global 
   size_t index = 0;\n\
   double result = 0.0;\n\
   while( index < k) {\n\
-    //load first matrix in tmp1\n\
     tmp1[i*(BUFFER_SIZE+1) + j] = (igt < m && (index + i) <  k) ? a[(igt)*lda + index+i] : 0.0;\n\
-    //load second matrix in tmp2\n\
     tmp2[i*(BUFFER_SIZE+1) + j] = (jgt < n && (index + j) < k) ? b[(index+j)*ldb + jgt] : 0.0;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
     #pragma unroll\n\
@@ -100,14 +193,453 @@ __kernel void gemmKernel_d_tatb( uint m, uint n, uint k, double alpha, __global 
   if(ig < m && jg < n)\n\
     c[jg*ldc + ig] = alpha * result + beta * c[jg*ldc + ig];\n\
 }\n\
+__kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_type_hint(double2))) void gemmKernel_z( const uint m, const uint n, const uint k, const double2 alpha, __global const double2 *a, const uint lda, __global const double2 *b, const uint ldb, const double2 beta, __global double2 * c, const uint ldc, __local double2 *tmp1, __local double2 *tmp2){\n\
+  size_t i = get_local_id(0);\n\
+  size_t j = get_local_id(1);\n\
+  size_t ig = get_global_id(0);\n\
+  size_t jg = get_global_id(1);\n\
+  \n\
+  double2 result __attribute__ ((aligned (16)));\n\
+  double2 a_t __attribute__ ((aligned (16)));\n\
+  double2 b_t __attribute__ ((aligned (16)));\n\
+  result = (double2)(0.0, 0.0);\n\
+  size_t index = 0;\n\
+  tmp2 += j*(BUFFER_SIZE);\n\
+  tmp1 += i;\n\
+  a += j*lda + ig;\n\
+  b += jg*ldb + i;\n\
+  c += jg*ldc + ig;\n\
+  bool condm = ig < m;\n\
+  bool condn = jg < n;\n\
+  while( index < k) {\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    tmp1[j*(BUFFER_SIZE)] = (condm && (index + j) < k) ? a[index*lda] : (double2)(0.0, 0.0);\n\
+    tmp2[i] = (condn && (index + i) < k) ? b[index] : (double2)(0.0, 0.0);\n\
+    index += BUFFER_SIZE;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    #pragma unroll\n\
+    for(size_t k=0; k<BUFFER_SIZE; k++){\n\
+      a_t = tmp1[k*BUFFER_SIZE];\n\
+      b_t = tmp2[k];\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x -= a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y += a_t.y * b_t.x;\n\
+    }\n\
+  }\n\
+  if(condm && condn){\n\
+    double2 final_result = (double2)(0.0, 0.0);\n\
+    final_result.x += alpha.x*result.x;\n\
+    final_result.x -= alpha.y*result.y;\n\
+    final_result.y += alpha.x*result.y;\n\
+    final_result.y += alpha.y*result.x;\n\
+    double2 c_t = c[0];\n\
+    final_result.x += beta.x*c_t.x;\n\
+    final_result.x -= beta.y*c_t.y;\n\
+    final_result.y += beta.x*c_t.y;\n\
+    final_result.y += beta.y*c_t.x;\n\
+    c[0] = final_result;\n\
+  }\n\
+}\n\
+__kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_type_hint(double2))) void gemmKernel_z_ta( const uint m, const uint n, const uint k, const double2 alpha, __global const double2 *a, const uint lda, __global const double2 *b, const uint ldb, const double2 beta, __global double2 * c, const uint ldc, __local double2 *tmp1, __local double2 *tmp2){\n\
+  size_t i = get_local_id(0);\n\
+  size_t j = get_local_id(1);\n\
+  size_t ig = get_global_id(0);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t igt = ig - i + j;\n\
+  \n\
+  double2 result __attribute__ ((aligned (16)));\n\
+  double2 a_t __attribute__ ((aligned (16)));\n\
+  double2 b_t __attribute__ ((aligned (16)));\n\
+  result = (double2)(0.0, 0.0);\n\
+  size_t index = 0;\n\
+  tmp2 += j*(BUFFER_SIZE);\n\
+  a += igt*lda + i;\n\
+  b += jg*ldb + i;\n\
+  c += jg*ldc + ig;\n\
+  bool condm = igt < m;\n\
+  bool condn = jg < n;\n\
+  while( index < k) {\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    tmp1[i*(BUFFER_SIZE+1)+j] = (condm && (index + i) < k) ? a[index] : (double2)(0.0, 0.0);\n\
+    tmp2[i] = (condn && (index + i) < k) ? b[index] : (double2)(0.0, 0.0);\n\
+    index += BUFFER_SIZE;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    #pragma unroll\n\
+    for(size_t k=0; k<BUFFER_SIZE; k++){\n\
+      a_t = tmp1[k*(BUFFER_SIZE+1) + i];\n\
+      b_t = tmp2[k];\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x -= a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y += a_t.y * b_t.x;\n\
+    }\n\
+  }\n\
+  if(condm && condn){\n\
+    double2 final_result = (double2)(0.0, 0.0);\n\
+    final_result.x += alpha.x*result.x;\n\
+    final_result.x -= alpha.y*result.y;\n\
+    final_result.y += alpha.x*result.y;\n\
+    final_result.y += alpha.y*result.x;\n\
+    double2 c_t = c[0];\n\
+    final_result.x += beta.x*c_t.x;\n\
+    final_result.x -= beta.y*c_t.y;\n\
+    final_result.y += beta.x*c_t.y;\n\
+    final_result.y += beta.y*c_t.x;\n\
+    c[0] = final_result;\n\
+  }\n\
+}\n\
+__kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_type_hint(double2))) void gemmKernel_z_tb( const uint m, const uint n, const uint k, const double2 alpha, __global const double2 *a, const uint lda, __global const double2 *b, const uint ldb, const double2 beta, __global double2 * c, const uint ldc, __local double2 *tmp1, __local double2 *tmp2){\n\
+  size_t i = get_local_id(0);\n\
+  size_t j = get_local_id(1);\n\
+  size_t ig = get_global_id(0);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t jgt = jg - j + i;\n\
+  \n\
+  double2 result __attribute__ ((aligned (16)));\n\
+  double2 a_t __attribute__ ((aligned (16)));\n\
+  double2 b_t __attribute__ ((aligned (16)));\n\
+  result = (double2)(0.0, 0.0);\n\
+  size_t index = 0;\n\
+  tmp1 += i;\n\
+  a += j*lda + ig;\n\
+  b += j*ldb + jgt;\n\
+  c += jg*ldc + ig;\n\
+  bool condm = ig < m;\n\
+  bool condn = jgt < n;\n\
+  while( index < k) {\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    tmp1[j*(BUFFER_SIZE)] = (condm && (index + j) < k) ? a[index*lda] : (double2)(0.0, 0.0);\n\
+    tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? b[index*ldb] : (double2)(0.0, 0.0);\n\
+    index += BUFFER_SIZE;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    #pragma unroll\n\
+    for(size_t k=0; k<BUFFER_SIZE; k++){\n\
+      a_t = tmp1[k*BUFFER_SIZE];\n\
+      b_t = tmp2[j*(BUFFER_SIZE+1) + k];\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x -= a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y += a_t.y * b_t.x;\n\
+    }\n\
+  }\n\
+  if(condm && condn){\n\
+    double2 final_result = (double2)(0.0, 0.0);\n\
+    final_result.x += alpha.x*result.x;\n\
+    final_result.x -= alpha.y*result.y;\n\
+    final_result.y += alpha.x*result.y;\n\
+    final_result.y += alpha.y*result.x;\n\
+    double2 c_t = c[0];\n\
+    final_result.x += beta.x*c_t.x;\n\
+    final_result.x -= beta.y*c_t.y;\n\
+    final_result.y += beta.x*c_t.y;\n\
+    final_result.y += beta.y*c_t.x;\n\
+    c[0] = final_result;\n\
+  }\n\
+}\n\
+__kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_type_hint(double2))) void gemmKernel_z_tatb( const uint m, const uint n, const uint k, const double2 alpha, __global const double2 *a, const uint lda, __global const double2 *b, const uint ldb, const double2 beta, __global double2 * c, const uint ldc, __local double2 *tmp1, __local double2 *tmp2){\n\
+  size_t i = get_local_id(0);\n\
+  size_t j = get_local_id(1);\n\
+  size_t ig = get_global_id(0);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t jgt = jg - j + i;\n\
+  size_t igt = ig - i + j;\n\
+  \n\
+  double2 result __attribute__ ((aligned (16)));\n\
+  double2 a_t __attribute__ ((aligned (16)));\n\
+  double2 b_t __attribute__ ((aligned (16)));\n\
+  result = (double2)(0.0, 0.0);\n\
+  size_t index = 0;\n\
+  a += igt*lda + i;\n\
+  b += j*ldb + jgt;\n\
+  c += jg*ldc + ig;\n\
+  bool condm = igt < m;\n\
+  bool condn = jgt < n;\n\
+  while( index < k) {\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    tmp1[i*(BUFFER_SIZE+1) + j] = (condm && (index + i) < k) ? a[index] : (double2)(0.0, 0.0);\n\
+    tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? b[index*ldb] : (double2)(0.0, 0.0);\n\
+    index += BUFFER_SIZE;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    #pragma unroll\n\
+    for(size_t k=0; k<BUFFER_SIZE; k++){\n\
+      a_t = tmp1[k*(BUFFER_SIZE+1) + i];\n\
+      b_t = tmp2[j*(BUFFER_SIZE+1) + k];\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x -= a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y += a_t.y * b_t.x;\n\
+    }\n\
+  }\n\
+  if(condm && condn){\n\
+    double2 final_result = (double2)(0.0, 0.0);\n\
+    final_result.x += alpha.x*result.x;\n\
+    final_result.x -= alpha.y*result.y;\n\
+    final_result.y += alpha.x*result.y;\n\
+    final_result.y += alpha.y*result.x;\n\
+    double2 c_t = c[0];\n\
+    final_result.x += beta.x*c_t.x;\n\
+    final_result.x -= beta.y*c_t.y;\n\
+    final_result.y += beta.x*c_t.y;\n\
+    final_result.y += beta.y*c_t.x;\n\
+    c[0] = final_result;\n\
+  }\n\
+}\n\
+__kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_type_hint(double2))) void gemmKernel_z_ca( const uint m, const uint n, const uint k, const double2 alpha, __global const double2 *a, const uint lda, __global const double2 *b, const uint ldb, const double2 beta, __global double2 * c, const uint ldc, __local double2 *tmp1, __local double2 *tmp2){\n\
+  size_t i = get_local_id(0);\n\
+  size_t j = get_local_id(1);\n\
+  size_t ig = get_global_id(0);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t igt = ig - i + j;\n\
+  \n\
+  double2 result __attribute__ ((aligned (16)));\n\
+  double2 a_t __attribute__ ((aligned (16)));\n\
+  double2 b_t __attribute__ ((aligned (16)));\n\
+  result = (double2)(0.0, 0.0);\n\
+  size_t index = 0;\n\
+  tmp2 += j*(BUFFER_SIZE);\n\
+  a += igt*lda + i;\n\
+  b += jg*ldb + i;\n\
+  c += jg*ldc + ig;\n\
+  bool condm = igt < m;\n\
+  bool condn = jg < n;\n\
+  while( index < k) {\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    tmp1[i*(BUFFER_SIZE+1)+j] = (condm && (index + i) < k) ? a[index] : (double2)(0.0, 0.0);\n\
+    tmp2[i] = (condn && (index + i) < k) ? b[index] : (double2)(0.0, 0.0);\n\
+    index += BUFFER_SIZE;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    #pragma unroll\n\
+    for(size_t k=0; k<BUFFER_SIZE; k++){\n\
+      a_t = tmp1[k*(BUFFER_SIZE+1) + i];\n\
+      b_t = tmp2[k];\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x += a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y -= a_t.y * b_t.x;\n\
+    }\n\
+  }\n\
+  if(condm && condn){\n\
+    double2 final_result = (double2)(0.0, 0.0);\n\
+    final_result.x += alpha.x*result.x;\n\
+    final_result.x -= alpha.y*result.y;\n\
+    final_result.y += alpha.x*result.y;\n\
+    final_result.y += alpha.y*result.x;\n\
+    double2 c_t = c[0];\n\
+    final_result.x += beta.x*c_t.x;\n\
+    final_result.x -= beta.y*c_t.y;\n\
+    final_result.y += beta.x*c_t.y;\n\
+    final_result.y += beta.y*c_t.x;\n\
+    c[0] = final_result;\n\
+  }\n\
+}\n\
+__kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_type_hint(double2))) void gemmKernel_z_cb( const uint m, const uint n, const uint k, const double2 alpha, __global const double2 *a, const uint lda, __global const double2 *b, const uint ldb, const double2 beta, __global double2 * c, const uint ldc, __local double2 *tmp1, __local double2 *tmp2){\n\
+  size_t i = get_local_id(0);\n\
+  size_t j = get_local_id(1);\n\
+  size_t ig = get_global_id(0);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t jgt = jg - j + i;\n\
+  \n\
+  double2 result __attribute__ ((aligned (16)));\n\
+  double2 a_t __attribute__ ((aligned (16)));\n\
+  double2 b_t __attribute__ ((aligned (16)));\n\
+  result = (double2)(0.0, 0.0);\n\
+  size_t index = 0;\n\
+  tmp1 += i;\n\
+  a += j*lda + ig;\n\
+  b += j*ldb + jgt;\n\
+  c += jg*ldc + ig;\n\
+  bool condm = ig < m;\n\
+  bool condn = jgt < n;\n\
+  while( index < k) {\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    tmp1[j*(BUFFER_SIZE)] = (condm && (index + j) < k) ? a[index*lda] : (double2)(0.0, 0.0);\n\
+    tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? (double2)(1,-1) * b[index*ldb] : (double2)(0.0, 0.0);\n\
+    index += BUFFER_SIZE;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    #pragma unroll\n\
+    for(size_t k=0; k<BUFFER_SIZE; k++){\n\
+      a_t = tmp1[k*BUFFER_SIZE];\n\
+      b_t = tmp2[j*(BUFFER_SIZE+1) + k];\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x -= a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y += a_t.y * b_t.x;\n\
+    }\n\
+  }\n\
+  if(condm && condn){\n\
+    double2 final_result = (double2)(0.0, 0.0);\n\
+    final_result.x += alpha.x*result.x;\n\
+    final_result.x -= alpha.y*result.y;\n\
+    final_result.y += alpha.x*result.y;\n\
+    final_result.y += alpha.y*result.x;\n\
+    double2 c_t = c[0];\n\
+    final_result.x += beta.x*c_t.x;\n\
+    final_result.x -= beta.y*c_t.y;\n\
+    final_result.y += beta.x*c_t.y;\n\
+    final_result.y += beta.y*c_t.x;\n\
+    c[0] = final_result;\n\
+  }\n\
+}\n\
+__kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_type_hint(double2))) void gemmKernel_z_cacb( const uint m, const uint n, const uint k, const double2 alpha, __global const double2 *a, const uint lda, __global const double2 *b, const uint ldb, const double2 beta, __global double2 * c, const uint ldc, __local double2 *tmp1, __local double2 *tmp2){\n\
+  size_t i = get_local_id(0);\n\
+  size_t j = get_local_id(1);\n\
+  size_t ig = get_global_id(0);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t jgt = jg - j + i;\n\
+  size_t igt = ig - i + j;\n\
+  \n\
+  double2 result __attribute__ ((aligned (16)));\n\
+  double2 a_t __attribute__ ((aligned (16)));\n\
+  double2 b_t __attribute__ ((aligned (16)));\n\
+  result = (double2)(0.0, 0.0);\n\
+  size_t index = 0;\n\
+  a += igt*lda + i;\n\
+  b += j*ldb + jgt;\n\
+  c += jg*ldc + ig;\n\
+  bool condm = igt < m;\n\
+  bool condn = jgt < n;\n\
+  while( index < k) {\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    tmp1[i*(BUFFER_SIZE+1) + j] = (condm && (index + i) < k) ? a[index] : (double2)(0.0, 0.0);\n\
+    tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? (double2)(1,-1) * b[index*ldb] : (double2)(0.0, 0.0);\n\
+    index += BUFFER_SIZE;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    #pragma unroll\n\
+    for(size_t k=0; k<BUFFER_SIZE; k++){\n\
+      a_t = tmp1[k*(BUFFER_SIZE+1) + i];\n\
+      b_t = tmp2[j*(BUFFER_SIZE+1) + k];\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x += a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y -= a_t.y * b_t.x;\n\
+    }\n\
+  }\n\
+  if(condm && condn){\n\
+    double2 final_result = (double2)(0.0, 0.0);\n\
+    final_result.x += alpha.x*result.x;\n\
+    final_result.x -= alpha.y*result.y;\n\
+    final_result.y += alpha.x*result.y;\n\
+    final_result.y += alpha.y*result.x;\n\
+    double2 c_t = c[0];\n\
+    final_result.x += beta.x*c_t.x;\n\
+    final_result.x -= beta.y*c_t.y;\n\
+    final_result.y += beta.x*c_t.y;\n\
+    final_result.y += beta.y*c_t.x;\n\
+    c[0] = final_result;\n\
+  }\n\
+}\n\
+__kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_type_hint(double2))) void gemmKernel_z_catb( const uint m, const uint n, const uint k, const double2 alpha, __global const double2 *a, const uint lda, __global const double2 *b, const uint ldb, const double2 beta, __global double2 * c, const uint ldc, __local double2 *tmp1, __local double2 *tmp2){\n\
+  size_t i = get_local_id(0);\n\
+  size_t j = get_local_id(1);\n\
+  size_t ig = get_global_id(0);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t jgt = jg - j + i;\n\
+  size_t igt = ig - i + j;\n\
+  \n\
+  double2 result __attribute__ ((aligned (16)));\n\
+  double2 a_t __attribute__ ((aligned (16)));\n\
+  double2 b_t __attribute__ ((aligned (16)));\n\
+  result = (double2)(0.0, 0.0);\n\
+  size_t index = 0;\n\
+  a += igt*lda + i;\n\
+  b += j*ldb + jgt;\n\
+  c += jg*ldc + ig;\n\
+  bool condm = igt < m;\n\
+  bool condn = jgt < n;\n\
+  while( index < k) {\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    tmp1[i*(BUFFER_SIZE+1) + j] = (condm && (index + i) < k) ? a[index] : (double2)(0.0, 0.0);\n\
+    tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? b[index*ldb] : (double2)(0.0, 0.0);\n\
+    index += BUFFER_SIZE;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    #pragma unroll\n\
+    for(size_t k=0; k<BUFFER_SIZE; k++){\n\
+      a_t = tmp1[k*(BUFFER_SIZE+1) + i];\n\
+      b_t = tmp2[j*(BUFFER_SIZE+1) + k];\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x += a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y -= a_t.y * b_t.x;\n\
+    }\n\
+  }\n\
+  if(condm && condn){\n\
+    double2 final_result = (double2)(0.0, 0.0);\n\
+    final_result.x += alpha.x*result.x;\n\
+    final_result.x -= alpha.y*result.y;\n\
+    final_result.y += alpha.x*result.y;\n\
+    final_result.y += alpha.y*result.x;\n\
+    double2 c_t = c[0];\n\
+    final_result.x += beta.x*c_t.x;\n\
+    final_result.x -= beta.y*c_t.y;\n\
+    final_result.y += beta.x*c_t.y;\n\
+    final_result.y += beta.y*c_t.x;\n\
+    c[0] = final_result;\n\
+  }\n\
+}\n\
+__kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_type_hint(double2))) void gemmKernel_z_tacb( const uint m, const uint n, const uint k, const double2 alpha, __global const double2 *a, const uint lda, __global const double2 *b, const uint ldb, const double2 beta, __global double2 * c, const uint ldc, __local double2 *tmp1, __local double2 *tmp2){\n\
+  size_t i = get_local_id(0);\n\
+  size_t j = get_local_id(1);\n\
+  size_t ig = get_global_id(0);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t jgt = jg - j + i;\n\
+  size_t igt = ig - i + j;\n\
+  \n\
+  double2 result __attribute__ ((aligned (16)));\n\
+  double2 a_t __attribute__ ((aligned (16)));\n\
+  double2 b_t __attribute__ ((aligned (16)));\n\
+  result = (double2)(0.0, 0.0);\n\
+  size_t index = 0;\n\
+  a += igt*lda + i;\n\
+  b += j*ldb + jgt;\n\
+  c += jg*ldc + ig;\n\
+  bool condm = igt < m;\n\
+  bool condn = jgt < n;\n\
+  while( index < k) {\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    tmp1[i*(BUFFER_SIZE+1) + j] = (condm && (index + i) < k) ? a[index] : (double2)(0.0, 0.0);\n\
+    tmp2[i*(BUFFER_SIZE+1) + j] = (condn && (index + j) < k) ? (double2)(1,-1) * b[index*ldb] : (double2)(0.0, 0.0);\n\
+    index += BUFFER_SIZE;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    #pragma unroll\n\
+    for(size_t k=0; k<BUFFER_SIZE; k++){\n\
+      a_t = tmp1[k*(BUFFER_SIZE+1) + i];\n\
+      b_t = tmp2[j*(BUFFER_SIZE+1) + k];\n\
+      result.x += a_t.x * b_t.x;\n\
+      result.x -= a_t.y * b_t.y;\n\
+      result.y += a_t.x * b_t.y;\n\
+      result.y += a_t.y * b_t.x;\n\
+    }\n\
+  }\n\
+  if(condm && condn){\n\
+    double2 final_result = (double2)(0.0, 0.0);\n\
+    final_result.x += alpha.x*result.x;\n\
+    final_result.x -= alpha.y*result.y;\n\
+    final_result.y += alpha.x*result.y;\n\
+    final_result.y += alpha.y*result.x;\n\
+    double2 c_t = c[0];\n\
+    final_result.x += beta.x*c_t.x;\n\
+    final_result.x -= beta.y*c_t.y;\n\
+    final_result.y += beta.x*c_t.y;\n\
+    final_result.y += beta.y*c_t.x;\n\
+    c[0] = final_result;\n\
+  }\n\
+}\n\
 ";
 
+/*
+  Reduction kernels reduce 1024 values to 1 per work group.
+  The first one is commented.
+*/
 char * reduction_program="\
 //group_size is supposed to be 512\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
 __kernel void reductionKernel_d( uint n, __global const double *x, __global double *y, __local double *tmp ) {\n\
+  //get our position in the local buffer\n\
   size_t i = get_local_id(0);\n\
+  //get our position in the input data\n\
   size_t g = get_group_id(0)*1024+i;\n\
+  //copy our 2 data elements in the buffer, or store 0 if out of bounds.\n\
   if(g<n) {\n\
     tmp[i] = x[g];\n\
   } else {\n\
@@ -118,9 +650,13 @@ __kernel void reductionKernel_d( uint n, __global const double *x, __global doub
   } else {\n\
     tmp[i+512] = 0.0;\n\
   }\n\
+  //wait for buffer to be full\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
+  //reduce 2 data to 1\n\
   tmp[i] = tmp[i] + tmp[i+512];\n\
+  //wait for buffer to be processed 512 elem remaining\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
+  //if we are in the 256 first work items of the work group, repeat previous operations\n\
   if( i<256 )\n\
     tmp[i] = tmp[i] + tmp[i+256];\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
@@ -141,6 +677,7 @@ __kernel void reductionKernel_d( uint n, __global const double *x, __global doub
     tmp[i] = tmp[i] + tmp[i+4];\n\
   if( i<2 )\n\
     tmp[i] = tmp[i] + tmp[i+2];\n\
+  //if I am the firt work item, reduce the final 2 elements and store in result buffer at the position of our work group.\n\
   if( i==0 )\n\
     y[get_group_id(0)] = tmp[0]+tmp[1];\n\
 }\n\
@@ -251,7 +788,7 @@ __kernel void setKernel_d( uint n, const double val, __global double *x) {\n\
 \n\
 ";
 
-void inline gemm_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *m, cl_uint *n, cl_uint *k, double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, double *beta, cl_mem *c, cl_uint *ldc) {
+void inline zgemm_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *m, cl_uint *n, cl_uint *k, cl_double2 *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double2 *beta, cl_mem *c, cl_uint *ldc) {
   cl_int ciErrNum;
   size_t block_size_i=16;
   size_t block_size_j=16;
@@ -267,15 +804,85 @@ void inline gemm_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_u
   clSetKernelArg(kernel, i++,sizeof(*beta), (void*)beta);
   clSetKernelArg(kernel, i++,sizeof(*c), (void*)c);
   clSetKernelArg(kernel, i++,sizeof(*ldc), (void*)ldc);
-  clSetKernelArg(kernel, i++,sizeof(double)*(block_size_i+1)*block_size_j, NULL);
-  clSetKernelArg(kernel, i++,sizeof(double)*(block_size_i+1)*block_size_j, NULL);
+  clSetKernelArg(kernel, i++,sizeof(cl_double2)*(block_size_i+1)*block_size_j, NULL);
+  clSetKernelArg(kernel, i++,sizeof(cl_double2)*(block_size_i+1)*block_size_j, NULL);
+  size_t localWorkSize[] = { block_size_i, block_size_j };
+  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*m), shrRoundUp(block_size_j,*n)  };
+  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue zgemm kernel!");
+}
+void inline gemm_block_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
+  cl_int ciErrNum;
+  int ELEM_PER_THREAD=2;
+  size_t block_size_i=16;
+  size_t block_size_j=16/ELEM_PER_THREAD;
+  cl_uint i=0;
+  clSetKernelArg(kernel, i++,sizeof(*m), (void*)m);
+  clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+  clSetKernelArg(kernel, i++,sizeof(*k), (void*)k);
+  clSetKernelArg(kernel, i++,sizeof(*alpha), (void*)alpha);
+  clSetKernelArg(kernel, i++,sizeof(*a), (void*)a);
+  clSetKernelArg(kernel, i++,sizeof(*lda), (void*)lda);
+  clSetKernelArg(kernel, i++,sizeof(*b), (void*)b);
+  clSetKernelArg(kernel, i++,sizeof(*ldb), (void*)ldb);
+  clSetKernelArg(kernel, i++,sizeof(*beta), (void*)beta);
+  clSetKernelArg(kernel, i++,sizeof(*c), (void*)c);
+  clSetKernelArg(kernel, i++,sizeof(*ldc), (void*)ldc);
+  clSetKernelArg(kernel, i++,sizeof(cl_double)*(block_size_i+1)*block_size_j*ELEM_PER_THREAD, NULL);
+  clSetKernelArg(kernel, i++,sizeof(cl_double)*(block_size_i+1)*block_size_j*ELEM_PER_THREAD, NULL);
+  size_t localWorkSize[] = { block_size_i, block_size_j };
+  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*m), shrRoundUp(block_size_j*ELEM_PER_THREAD,*n)*block_size_j/16  };
+  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue gemm_block kernel!");
+}
+void inline gemm_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
+  cl_int ciErrNum;
+  size_t block_size_i=16;
+  size_t block_size_j=16;
+  cl_uint i=0;
+  clSetKernelArg(kernel, i++,sizeof(*m), (void*)m);
+  clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+  clSetKernelArg(kernel, i++,sizeof(*k), (void*)k);
+  clSetKernelArg(kernel, i++,sizeof(*alpha), (void*)alpha);
+  clSetKernelArg(kernel, i++,sizeof(*a), (void*)a);
+  clSetKernelArg(kernel, i++,sizeof(*lda), (void*)lda);
+  clSetKernelArg(kernel, i++,sizeof(*b), (void*)b);
+  clSetKernelArg(kernel, i++,sizeof(*ldb), (void*)ldb);
+  clSetKernelArg(kernel, i++,sizeof(*beta), (void*)beta);
+  clSetKernelArg(kernel, i++,sizeof(*c), (void*)c);
+  clSetKernelArg(kernel, i++,sizeof(*ldc), (void*)ldc);
+  clSetKernelArg(kernel, i++,sizeof(cl_double)*(block_size_i+1)*block_size_j, NULL);
+  clSetKernelArg(kernel, i++,sizeof(cl_double)*(block_size_i+1)*block_size_j, NULL);
   size_t localWorkSize[] = { block_size_i, block_size_j };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*m), shrRoundUp(block_size_j,*n)  };
   ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue gemm kernel!");
 }
-
-void inline set_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, double *val, cl_mem *x) {
+void inline gemmsy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *m, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
+  cl_int ciErrNum;
+  size_t block_size_i=16;
+  size_t block_size_j=16;
+  cl_uint i=0;
+  clSetKernelArg(kernel, i++,sizeof(*m), (void*)m);
+  clSetKernelArg(kernel, i++,sizeof(*k), (void*)k);
+  clSetKernelArg(kernel, i++,sizeof(*alpha), (void*)alpha);
+  clSetKernelArg(kernel, i++,sizeof(*a), (void*)a);
+  clSetKernelArg(kernel, i++,sizeof(*lda), (void*)lda);
+  clSetKernelArg(kernel, i++,sizeof(*b), (void*)b);
+  clSetKernelArg(kernel, i++,sizeof(*ldb), (void*)ldb);
+  clSetKernelArg(kernel, i++,sizeof(*beta), (void*)beta);
+  clSetKernelArg(kernel, i++,sizeof(*c), (void*)c);
+  clSetKernelArg(kernel, i++,sizeof(*ldc), (void*)ldc);
+  clSetKernelArg(kernel, i++,sizeof(cl_double)*(block_size_i+1)*block_size_j, NULL);
+  clSetKernelArg(kernel, i++,sizeof(cl_double)*(block_size_i+1)*block_size_j, NULL);
+  size_t localWorkSize[] = { block_size_i, block_size_j };
+  size_t group_number = shrRoundUp(block_size_i,*m)/block_size_i;
+  group_number = group_number * ( group_number + 1 ) / 2;
+  size_t globalWorkSize[] ={ group_number * block_size_i, block_size_j  };
+  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue gemmsy kernel!");
+}
+void inline set_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_double *val, cl_mem *x) {
   cl_int ciErrNum;
   size_t block_size_i=64;
   cl_uint i=0;
@@ -316,7 +923,7 @@ void inline copy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_u
   oclErrorCheck(ciErrNum,"Failed to enqueue copy kernel!");
 }
 
-void inline scal_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *out) {
+void inline scal_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *in, cl_mem *out) {
   cl_int ciErrNum;
   size_t block_size_i=64;
   cl_uint i=0;
@@ -330,7 +937,7 @@ void inline scal_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_u
   oclErrorCheck(ciErrNum,"Failed to enqueue scal kernel!");
 }
 
-void inline axpy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *x, cl_mem *y, cl_mem *out) {
+void inline axpy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *x, cl_mem *y, cl_mem *out) {
   cl_int ciErrNum;
   size_t block_size_i=64;
   cl_uint i=0;
@@ -345,7 +952,7 @@ void inline axpy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_u
   oclErrorCheck(ciErrNum,"Failed to enqueue axpy kernel!");
 }
 
-void inline axpy_offset_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, double *alpha, 
+void inline axpy_offset_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, 
                                                                                    cl_uint *offset_x, cl_mem *x,
                                                                                    cl_uint *offset_y, cl_mem *y,
                                                                                    cl_uint *offset_out, cl_mem *out) {
@@ -373,14 +980,40 @@ void inline reduction_generic(cl_kernel kernel, cl_command_queue *command_queue,
   clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
   clSetKernelArg(kernel, i++,sizeof(*in), (void*)in);
   clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
-  clSetKernelArg(kernel, i++,sizeof(double)*block_size_i*2, NULL);
+  clSetKernelArg(kernel, i++,sizeof(cl_double)*block_size_i*2, NULL);
   size_t localWorkSize[] = { block_size_i };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i*2,*ndat)/2 };
   ciErrNum = clEnqueueNDRangeKernel(*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue reduction kernel!");
 }
 
-void FC_FUNC_(set_d,SET_D)(cl_command_queue *command_queue, cl_uint *n, double *val, cl_mem *x){
+cl_kernel reduction_kernel_d;
+cl_kernel reduction_dot_kernel_d;
+cl_kernel axpy_kernel_d;
+cl_kernel axpy_offset_kernel_d;
+cl_kernel scal_kernel_d;
+cl_kernel copy_kernel_d;
+cl_kernel dot_kernel_d;
+cl_kernel set_kernel_d;
+cl_kernel gemm_block_kernel_d;
+cl_kernel gemmsy_kernel_d;
+cl_kernel gemm_kernel_d;
+cl_kernel gemm_kernel_z;
+cl_kernel gemm_kernel_z_ta;
+cl_kernel gemm_kernel_z_tb;
+cl_kernel gemm_kernel_z_tatb;
+cl_kernel gemm_kernel_z_ca;
+cl_kernel gemm_kernel_z_cb;
+cl_kernel gemm_kernel_z_cacb;
+cl_kernel gemm_kernel_z_tacb;
+cl_kernel gemm_kernel_z_catb;
+cl_kernel gemm_kernel_d_tb;
+cl_kernel gemm_kernel_d_ta;
+cl_kernel gemm_kernel_d_tatb;
+cl_program reductionProgram;
+cl_program dgemmProgram;
+
+void FC_FUNC_(set_d,SET_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *val, cl_mem *x){
   if(*n==0) return;
   set_generic(set_kernel_d, command_queue, n, val, x);
 }
@@ -390,31 +1023,31 @@ void FC_FUNC_(copy_d,COPY_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem
   copy_generic(copy_kernel_d, command_queue, n, in, out);
 }
 
-void FC_FUNC_(scal_self_d,SCAL_SELF_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *inout){
+void FC_FUNC_(scal_self_d,SCAL_SELF_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *inout){
   if(*n==0)
     return;
   scal_generic(scal_kernel_d, command_queue, n, alpha, inout, inout);
 }
 
-void FC_FUNC_(scal_d,SCAL_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *out){
+void FC_FUNC_(scal_d,SCAL_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *in, cl_mem *out){
   if(*n==0)
     return;
   scal_generic(scal_kernel_d, command_queue, n, alpha, in, out);
 }
 
-void FC_FUNC_(axpy_self_d,AXPY_SELF_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *in, cl_mem *inout){
+void FC_FUNC_(axpy_self_d,AXPY_SELF_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *in, cl_mem *inout){
   if(*n==0)
     return;
   axpy_generic(axpy_kernel_d, command_queue, n, alpha, in, inout, inout);
 }
 
-void FC_FUNC_(axpy_d,AXPY_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha, cl_mem *x, cl_mem *y, cl_mem *z){
+void FC_FUNC_(axpy_d,AXPY_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *x, cl_mem *y, cl_mem *z){
   if(*n==0)
     return;
   axpy_generic(axpy_kernel_d, command_queue, n, alpha, x, y, z);
 }
 
-void FC_FUNC_(axpy_offset_d,AXPY_OFFSET_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha,
+void FC_FUNC_(axpy_offset_d,AXPY_OFFSET_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha,
                                                                             cl_uint *offset_x, cl_mem *x,
                                                                             cl_uint *offset_y, cl_mem *y,
                                                                             cl_uint *offset_z, cl_mem *z){
@@ -423,7 +1056,7 @@ void FC_FUNC_(axpy_offset_d,AXPY_OFFSET_D)(cl_command_queue *command_queue, cl_u
   axpy_offset_generic(axpy_offset_kernel_d, command_queue, n, alpha, offset_x, x, offset_y, y, offset_z, z);
 }
 
-void FC_FUNC_(axpy_offset_self_d,AXPY_OFFSET_SELF_D)(cl_command_queue *command_queue, cl_uint *n, double *alpha,
+void FC_FUNC_(axpy_offset_self_d,AXPY_OFFSET_SELF_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha,
                                                                             cl_uint *offset_x, cl_mem *x,
                                                                             cl_uint *offset_y, cl_mem *y){
   if(*n==0)
@@ -431,7 +1064,7 @@ void FC_FUNC_(axpy_offset_self_d,AXPY_OFFSET_SELF_D)(cl_command_queue *command_q
   axpy_offset_generic(axpy_offset_kernel_d, command_queue, n, alpha, offset_x, x, offset_y, y, offset_y, y);
 }
 
-void FC_FUNC_(asum_self_d,ASUM_SELF_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, double *out) {
+void FC_FUNC_(asum_self_d,ASUM_SELF_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, cl_double *out) {
   if(*ndat==0){
     *out = 0.0;
     return;
@@ -447,10 +1080,10 @@ void FC_FUNC_(asum_self_d,ASUM_SELF_D)(cl_command_queue *command_queue, cl_uint 
     output = tmp;
     n = shrRoundUp(1024,n)/1024;
   } while(n>1);
-  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(double), out, 0, NULL, NULL);
+  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
 }
 
-void FC_FUNC_(nrm2sq_self_d,NRM2SQ_SELF_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, double *out) {
+void FC_FUNC_(nrm2sq_self_d,NRM2SQ_SELF_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, cl_double *out) {
   if(*ndat==0){
    *out = 0.0;
    return;
@@ -472,21 +1105,86 @@ void FC_FUNC_(nrm2sq_self_d,NRM2SQ_SELF_D)(cl_command_queue *command_queue, cl_u
       n = shrRoundUp(1024,n)/1024;
     } while(n>1);
   }
-  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(double), out, 0, NULL, NULL);
+  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
 }
 
-void FC_FUNC_(gemm_d,GEMM_D)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, double *beta, cl_mem *c, cl_uint *ldc) {
-  if( *transa == 'n' && *transb == 'n' )
-    gemm_generic(gemm_kernel_d, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
-  else if ( *transa == 'n' && ( *transb == 't' || *transb == 'c' ) )
-    gemm_generic(gemm_kernel_d_tb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
-  else if ( *transb == 'n' && ( *transa == 't' || *transa == 'c' ) )
-    gemm_generic(gemm_kernel_d_ta, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
-  else
-    gemm_generic(gemm_kernel_d_tatb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+void FC_FUNC_(gemm_d,GEMM_D)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
+  if( *transa == 't' || *transa == 'c' || *transa == 'T' || *transa == 'C' ) {
+    if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
+      gemm_generic(gemm_kernel_d_tatb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else {
+      gemm_generic(gemm_kernel_d_ta, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    }
+  } else {
+    if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
+      gemm_generic(gemm_kernel_d_tb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else {
+      gemm_generic(gemm_kernel_d, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    }
+  }
+}
+void FC_FUNC_(gemm_block_d,GEMM_BLOCK_D)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
+  if( *transa == 't' || *transa == 'c' || *transa == 'T' || *transa == 'C' ) {
+    if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
+      gemm_generic(gemm_kernel_d_tatb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else {
+      gemm_generic(gemm_kernel_d_ta, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    }
+  } else {
+    if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
+      gemm_generic(gemm_kernel_d_tb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else {
+      gemm_block_generic(gemm_block_kernel_d, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    }
+  }
 }
 
-void FC_FUNC_(asum_d,ASUM_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, double *out) {
+void FC_FUNC_(gemmsy_d,GEMMSY_D)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
+  assert(m == n);
+  if( *transa == 't' || *transa == 'c' || *transa == 'T' || *transa == 'C' ) {
+    if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
+      gemm_generic(gemm_kernel_d_tatb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else {
+      gemm_generic(gemm_kernel_d_ta, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    }
+  } else {
+    if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
+      gemm_generic(gemm_kernel_d_tb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else {
+      gemmsy_generic(gemmsy_kernel_d, command_queue, m, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    }
+  }
+}
+
+void FC_FUNC_(gemm_z,GEMM_Z)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double2 *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double2 *beta, cl_mem *c, cl_uint *ldc) {
+  if( *transa == 't' || *transa == 'T' ) {
+    if ( *transb == 't' || *transb == 'T' ) {
+      zgemm_generic(gemm_kernel_z_tatb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else if ( *transb == 'c' || *transb == 'C' ) {
+      zgemm_generic(gemm_kernel_z_tacb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else {
+      zgemm_generic(gemm_kernel_z_ta, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    }
+  } else if ( *transa == 'c' || *transa == 'C' ) {
+    if ( *transb == 't' || *transb == 'T' ) {
+      zgemm_generic(gemm_kernel_z_catb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else if ( *transb == 'c' || *transb == 'C' ) {
+      zgemm_generic(gemm_kernel_z_cacb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else {
+      zgemm_generic(gemm_kernel_z_ca, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    }
+  } else {
+    if ( *transb == 't' || *transb == 'T' ) {
+      zgemm_generic(gemm_kernel_z_tb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else if ( *transb == 'c' || *transb == 'C' ) {
+      zgemm_generic(gemm_kernel_z_cb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else {
+      zgemm_generic(gemm_kernel_z, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    }
+  }
+}
+
+void FC_FUNC_(asum_d,ASUM_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, cl_double *out) {
   if(*ndat==0){
    *out = 0.0;
    return;
@@ -508,10 +1206,10 @@ void FC_FUNC_(asum_d,ASUM_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_
       n = shrRoundUp(1024,n)/1024;
     } while(n>1);
   }
-  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(double), out, 0, NULL, NULL);
+  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
 }
 
-void FC_FUNC_(nrm2sq_d,NRM2SQ_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, double *out) {
+void FC_FUNC_(nrm2sq_d,NRM2SQ_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, cl_double *out) {
   if(*ndat==0){
    *out = 0.0;
    return;
@@ -531,10 +1229,10 @@ void FC_FUNC_(nrm2sq_d,NRM2SQ_D)(cl_command_queue *command_queue, cl_uint *ndat,
       n = shrRoundUp(1024,n)/1024;
     } while(n>1);
   }
-  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(double), out, 0, NULL, NULL);
+  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
 }
 
-void FC_FUNC_(dot_d,DOT_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *x, cl_mem *y, cl_mem *work1, cl_mem *work2, double *out) {
+void FC_FUNC_(dot_d,DOT_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *x, cl_mem *y, cl_mem *work1, cl_mem *work2, cl_double *out) {
   if(*ndat==0){
    *out = 0.0;
    return;
@@ -554,23 +1252,8 @@ void FC_FUNC_(dot_d,DOT_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_me
       n = shrRoundUp(1024,n)/1024;
     } while(n>1);
   }
-  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(double), out, 0, NULL, NULL);
+  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
 }
-
-cl_kernel reduction_kernel_d;
-cl_kernel reduction_dot_kernel_d;
-cl_kernel axpy_kernel_d;
-cl_kernel axpy_offset_kernel_d;
-cl_kernel scal_kernel_d;
-cl_kernel copy_kernel_d;
-cl_kernel dot_kernel_d;
-cl_kernel set_kernel_d;
-cl_kernel gemm_kernel_d;
-cl_kernel gemm_kernel_d_tb;
-cl_kernel gemm_kernel_d_ta;
-cl_kernel gemm_kernel_d_tatb;
-cl_program reductionProgram;
-cl_program dgemmProgram;
 
 void create_reduction_kernels(){
     cl_int ciErrNum = CL_SUCCESS;
@@ -590,13 +1273,35 @@ void create_reduction_kernels(){
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     set_kernel_d=clCreateKernel(reductionProgram,"setKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    gemm_block_kernel_d=clCreateKernel(dgemmProgram,"gemm_blockKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    gemmsy_kernel_d=clCreateKernel(dgemmProgram,"gemmsyKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
     gemm_kernel_d=clCreateKernel(dgemmProgram,"gemmKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    gemm_kernel_z=clCreateKernel(dgemmProgram,"gemmKernel_z",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     gemm_kernel_d_tb=clCreateKernel(dgemmProgram,"gemmKernel_d_tb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    gemm_kernel_z_tb=clCreateKernel(dgemmProgram,"gemmKernel_z_tb",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    gemm_kernel_z_cb=clCreateKernel(dgemmProgram,"gemmKernel_z_cb",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
     gemm_kernel_d_ta=clCreateKernel(dgemmProgram,"gemmKernel_d_ta",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    gemm_kernel_z_ta=clCreateKernel(dgemmProgram,"gemmKernel_z_ta",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    gemm_kernel_z_ca=clCreateKernel(dgemmProgram,"gemmKernel_z_ca",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
     gemm_kernel_d_tatb=clCreateKernel(dgemmProgram,"gemmKernel_d_tatb",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    gemm_kernel_z_tatb=clCreateKernel(dgemmProgram,"gemmKernel_z_tatb",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    gemm_kernel_z_catb=clCreateKernel(dgemmProgram,"gemmKernel_z_catb",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    gemm_kernel_z_tacb=clCreateKernel(dgemmProgram,"gemmKernel_z_tacb",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    gemm_kernel_z_cacb=clCreateKernel(dgemmProgram,"gemmKernel_z_cacb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
 }
 
@@ -645,13 +1350,35 @@ void clean_reduction_kernels(){
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(set_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_block_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemmsy_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(gemm_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_kernel_z);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(gemm_kernel_d_tb);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_kernel_z_tb);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_kernel_z_cb);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(gemm_kernel_d_ta);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_kernel_z_ta);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_kernel_z_ca);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(gemm_kernel_d_tatb);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_kernel_z_tatb);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_kernel_z_catb);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_kernel_z_tacb);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(gemm_kernel_z_cacb);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseProgram(reductionProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");

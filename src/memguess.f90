@@ -280,7 +280,7 @@ program memguess
   call orbitals_communicators(0,nproc,Glr,orbs,comms)  
 
   if (GPUtest .and. .not. GPUconv) then
-     write(*,*)' ERROR: you can not put a GPUtest flag is there is no GPUrun.'
+     write(*,*)' ERROR: you can not put a GPUtest flag if there is no GPUrun.'
      stop
   end if
   if (GPUconv .and. atoms%geocode=='P' .and. GPUtest) then
@@ -321,7 +321,6 @@ program memguess
 
   end if
 
-  call deallocate_wfd(Glr%wfd,subname)
   call deallocate_comms(comms,subname)
 
   ! determine localization region for all projectors, but do not yet fill the descriptor arrays
@@ -333,12 +332,21 @@ program memguess
   call memocc(i_stat,nlpspd%nboxp_c,'nboxp_c',subname)
   allocate(nlpspd%nboxp_f(2,3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,nlpspd%nboxp_f,'nboxp_f',subname)
+
   allocate(logrid(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid,'logrid',subname)
 
   call localize_projectors(0,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,&
        in%frmult,in%frmult,rxyz,radii_cf,logrid,atoms,orbs,nlpspd)
   
+  !allocations for arrays holding the data descriptors
+  !just for modularity
+  allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
+  call memocc(i_stat,nlpspd%keyg_p,'nlpspd%keyg_p',subname)
+  allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
+  call memocc(i_stat,nlpspd%keyv_p,'nlpspd%keyv_p',subname)
+
+
   if (atwf) then
      !here the treatment of the AE Core charge density
      !number of gaussians defined in the input of memguess
@@ -399,38 +407,9 @@ program memguess
   i_all=-product(shape(logrid))*kind(logrid)
   deallocate(logrid,stat=i_stat)
   call memocc(i_stat,i_all,'logrid',subname)
-  i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
-  deallocate(nlpspd%nvctr_p,stat=i_stat)
-  call memocc(i_stat,i_all,'nlpspd%nvctr_p',subname)
-  i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
-  deallocate(nlpspd%nseg_p,stat=i_stat)
-  call memocc(i_stat,i_all,'nlpspd%nseg_p',subname)
-  i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
-  deallocate(nlpspd%nboxp_c,stat=i_stat)
-  call memocc(i_stat,i_all,'nlpspd%nboxp_c',subname)
-  i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
-  deallocate(nlpspd%nboxp_f,stat=i_stat)
-  call memocc(i_stat,i_all,'nlpspd%nboxp_f',subname)
-  i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
-  deallocate(atoms%psppar,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%psppar',subname)
-  i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
-  deallocate(atoms%npspcode,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%npspcode',subname)
-  i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
-  deallocate(atoms%nelpsp,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nelpsp',subname)
-  !no need of using nzatom array
-  i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
-  deallocate(atoms%nzatom,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nzatom',subname)
-  i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
-  deallocate(atoms%iasctype,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%iasctype',subname)
-  i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
-  deallocate(atoms%aocc,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%aocc',subname)
 
+  call deallocate_proj_descr(nlpspd,subname)
+  call deallocate_atoms_scf(atoms,subname) 
 
   call MemoryEstimator(atoms%geocode,nproc,in%idsx,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
        atoms%alat1,atoms%alat2,atoms%alat3,&
@@ -440,6 +419,9 @@ program memguess
   !add the comparison between cuda hamiltonian and normal one if it is the case
 
   call deallocate_atoms(atoms,subname)
+
+  call deallocate_lr(Glr,subname)
+
 
   i_all=-product(shape(radii_cf))*kind(radii_cf)
   deallocate(radii_cf,stat=i_stat)

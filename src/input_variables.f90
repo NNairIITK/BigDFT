@@ -124,7 +124,7 @@ subroutine read_input_variables(iproc,posinp, &
   end do
 
   !stop the code if it is trying to run GPU with non-periodic boundary conditions
-  if (atoms%geocode /= 'P' .and. GPUconv) then
+  if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
      stop 'GPU calculation allowed only in periodic boundary conditions'
   end if
 
@@ -244,7 +244,7 @@ subroutine dft_input_variables(iproc,filename,in)
   !davidson treatment
   read(1,*,iostat=ierror) in%norbv,in%nvirt,in%nplot
   call check()
-  in%nvirt = max(in%nvirt, in%norbv)
+  in%nvirt = min(in%nvirt, in%norbv)
 
   !electrostatic treatment of the vacancy (experimental)
   !read(1,*,iostat=ierror) in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
@@ -383,6 +383,8 @@ subroutine geopt_input_variables(filename,in)
   read(1,*,iostat=ierror) in%randdis
   call check()
   if (trim(in%geopt_approach) == "AB6MD") then
+     in%nnos=0
+
      read(1,*,iostat=ierror) in%ionmov
      call check()
      read(1,*,iostat=ierror) in%dtion
@@ -405,13 +407,16 @@ subroutine geopt_input_variables(filename,in)
      else if (in%ionmov == 13) then
         read(1,*,iostat=ierror) in%nnos
         call check()
-        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
-        call memocc(i_stat,in%qmass,'in%qmass',subname)
         read(1,*,iostat=ierror) in%qmass
         call check()
         read(1,*,iostat=ierror) in%bmass, in%vmass
         call check()
      end if
+
+     !the allocation of this pointer should be done in any case
+     allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
+     call memocc(i_stat,in%qmass,'in%qmass',subname)
+
   else if (trim(in%geopt_approach) == "DIIS") then
      read(1,*,iostat=ierror) in%betax, in%history
      call check()
@@ -1932,7 +1937,7 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   if (atoms%geocode == 'S') write(9, "(A)") "#keyword: surface"
   if (atoms%geocode == 'F') write(9, "(A)") "#keyword: freeBC"
   if (energy /= 0.d0) then
-     write(9, "(A,e24.17)") "# Total energy (Ht): ", energy
+     write(9, "(A,e24.17,A)") "#metaData: totalEnergy=", energy, "Ht"
   end if
 
   do iat=1,atoms%nat
@@ -2513,7 +2518,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
   integer, intent(in):: iacceleration,iproc
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  integer :: iconv,iblas,initerror,ierror,useGPU
+  integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr
 
   if (iacceleration == 1) then
      call sg_init(GPUshare,useGPU,iproc,initerror)
@@ -2539,14 +2544,17 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
      end if
   else if (iacceleration == 2) then
      ! OpenCL convolutions are activated
-     !for the moment do not use CUBLAS for the linear algebra
+     ! use CUBLAS for the linear algebra for the moment
      if (.not. OCLconv) then
+        call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)
+        !initialize the id_proc per node
+        call processor_id_per_node(iproc,mproc,GPU%id_proc)
         call init_acceleration_OCL(GPU)
         if (iproc == 0) then
            write(*,*)' OpenCL convolutions activated'
         end if
         OCLconv=.true.
-        GPUblas=.false.
+        GPUblas=.true.
      end if
   end if
 
@@ -2568,3 +2576,46 @@ subroutine release_material_acceleration(GPU)
   end if
 
 end subroutine release_material_acceleration
+
+subroutine processor_id_per_node(iproc,nproc,iproc_node)
+  use module_base
+  integer, intent(in) :: iproc,nproc
+  integer, intent(out) :: iproc_node
+  !local variables
+  character(len=*), parameter :: subname='processor_id_per_node'
+  integer :: ierr,namelen,i_stat,i_all
+  character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
+
+  if (nproc == 1) then
+     iproc_node=0
+  else
+     allocate(nodename(0:nproc-1+ndebug),stat=i_stat)
+     call memocc(i_stat,nodename,'nodename',subname)
+     
+     !initalise nodenames
+     do jproc=0,nproc-1
+        nodename(jproc)=repeat(' ',MPI_MAX_PROCESSOR_NAME)
+     end do
+
+     call MPI_GET_PROCESSOR_NAME(nodename(iproc),namelen,ierr)
+
+     !gather the result between all the process
+     call MPI_ALLGATHER(nodename(iproc),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+          nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+          MPI_COMM_WORLD,ierr)
+
+     !found the processors which belong to the same node
+     !before the processor iproc
+     iproc_node=0
+     do jproc=0,iproc-1
+        if (trim(nodename(jproc)) == trim(nodename(iproc))) then
+           iproc_node=iproc_node+1
+        end if
+     end do
+     
+     i_all=-product(shape(nodename))*kind(nodename)
+     deallocate(nodename,stat=i_stat)
+     call memocc(i_stat,i_all,'nodename',subname)
+  end if
+     
+end subroutine processor_id_per_node

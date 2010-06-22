@@ -33,7 +33,7 @@ program frequencies
   !File unit
   integer, parameter :: u_hessian=20
   integer :: iproc,nproc,iat,jat,i,j,i_stat,i_all,ierr,infocode,ity
-  real(gp) :: etot,sumx,sumy,sumz,alat,dd,rmass
+  real(gp) :: etot,sumx,sumy,sumz,alat,dd,rmass,fnoise
   !Input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
@@ -144,7 +144,7 @@ program frequencies
      fxyz = forces(:,1,0)
      infocode=0
   else
-     call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
+     call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
      call frequencies_write_restart(iproc,0,0,0,rxyz,etot,fxyz,&
                                     n_order=n_order,freq_step=freq_step,amu=atoms%amu)
      moves(:,0) = .true.
@@ -154,23 +154,23 @@ program frequencies
   if (iproc == 0) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
 
   if (iproc == 0) then
-     sumx=0.d0
-     sumy=0.d0
-     sumz=0.d0
+!!$     sumx=0.d0
+!!$     sumy=0.d0
+!!$     sumz=0.d0
      write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
      do iat=1,atoms%nat
         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
              iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(i+3*(iat-1)),i=1,3)
-        sumx=sumx+fxyz(1 + 3*(iat-1))
-        sumy=sumy+fxyz(2 + 3*(iat-1))
-        sumz=sumz+fxyz(3 + 3*(iat-1))
+!!$        sumx=sumx+fxyz(1 + 3*(iat-1))
+!!$        sumy=sumy+fxyz(2 + 3*(iat-1))
+!!$        sumz=sumz+fxyz(3 + 3*(iat-1))
      end do
-     if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
-        write(*,'(1x,a)')'the sum of the forces is'
-        write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-        write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-        write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-     end if
+!!$     if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
+!!$        write(*,'(1x,a)')'the sum of the forces is'
+!!$        write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
+!!$        write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
+!!$        write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
+!!$     end if
   end if
 
   if (iproc == 0) then
@@ -230,7 +230,7 @@ program frequencies
            else
               rpos(i,iat)=rxyz(i,iat)+dd
            end if
-           call call_bigdft(nproc,iproc,atoms,rpos,inputs,etot,fpos(:,km),rst,infocode)
+           call call_bigdft(nproc,iproc,atoms,rpos,inputs,etot,fpos(:,km),fnoise,rst,infocode)
            call frequencies_write_restart(iproc,km,i,iat,rpos,etot,fpos(:,km))
            moves(km,ii) = .true.
            call restart_inputs(inputs)

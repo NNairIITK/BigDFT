@@ -297,7 +297,7 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   character(len=*), parameter :: subname='abs_generator_modified'
   character(len=2) :: symbol
   real(gp), parameter :: fact=4.0_gp
-  integer, dimension(6,4) :: neleconf
+  real(gp), dimension(6,4) :: neleconf
   real(gp), dimension(3) :: gpot
   real(gp), dimension(6) :: ott
   real(gp), dimension(noccmax,lmax+1) ::chrg,res
@@ -410,7 +410,7 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
    do l=0,lmax
      iocc=0
      do i=1,6
-        ott(i)=real(neleconf(i,l+1),gp)
+        ott(i)=neleconf(i,l+1)
         if (ott(i) > 0.0_gp) then
            iocc=iocc+1
             if (iocc > noccmax) stop 'abs_generator_modified: noccmax too small'

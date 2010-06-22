@@ -20,12 +20,12 @@ $(PPFILES):
 inguess.dat:
 	ln -fs $(top_srcdir)/tests/DFT/inguess.dat
 
-Ca2.out: $(top_builddir)/src/cluster $(PPFILES)
+Ca2.out: $(top_builddir)/src/bigdft $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
         fi
-	$(run_parallel) $(top_builddir)/src/cluster > $@
+	$(run_parallel) $(top_builddir)/src/bigdft > $@
 	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.xyz ; \

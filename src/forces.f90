@@ -2823,3 +2823,258 @@ else
 end if
 END SUBROUTINE calc_coeff_derproj
 !!***
+
+!!Eliminate the translational forces before calling this subroutine!!!
+!Main subroutine: Input is nat (number of atoms), rat0 (atomic positions) and fat (forces on atoms)
+!The atomic positions will be returned untouched
+!In fat, the rotational forces will be eliminated with respect to the center of mass. 
+!All atoms are treated equally (same atomic mass) 
+subroutine elim_torque_reza(nat,rat0,fat)
+  use module_base
+  implicit none
+  integer, intent(in) :: nat
+  real(gp), dimension(3*nat), intent(in) :: rat0
+  real(gp), dimension(3*nat), intent(inout) :: fat
+  !local variables
+  character(len=*), parameter :: subname='elim_torque_reza'
+  integer :: i,iat,i_all,i_stat
+  real(gp) :: vrotnrm,cmx,cmy,cmz,alpha,totmass
+  !this is an automatic array but it should be allocatable
+  real(gp), dimension(3) :: evaleria
+  real(gp), dimension(3,3) :: teneria
+  real(gp), dimension(3*nat) :: rat
+  real(gp), dimension(3*nat,3) :: vrot
+  real(gp), dimension(:), allocatable :: amass
+  
+  allocate(amass(nat+ndebug),stat=i_stat)
+  call memocc(i_stat,amass,'amass',subname)
+
+  rat=rat0
+  amass(1:nat)=1.0_gp
+  !project out rotations
+  totmass=0.0_gp
+  cmx=0.0_gp 
+  cmy=0.0_gp
+  cmz=0.0_gp
+  do i=1,3*nat-2,3
+     iat=(i+2)/3
+     cmx=cmx+amass(iat)*rat(i+0)
+     cmy=cmy+amass(iat)*rat(i+1)
+     cmz=cmz+amass(iat)*rat(i+2)
+     totmass=totmass+amass(iat)
+  enddo
+  cmx=cmx/totmass 
+  cmy=cmy/totmass 
+  cmz=cmz/totmass
+  do i=1,3*nat-2,3
+     rat(i+0)=rat(i+0)-cmx
+     rat(i+1)=rat(i+1)-cmy
+     rat(i+2)=rat(i+2)-cmz
+  enddo
+
+  call moment_of_inertia(nat,rat,teneria,evaleria)
+  do iat=1,nat
+     i=iat*3-2
+     call cross(teneria(1,1),rat(i),vrot(i,1))
+     call cross(teneria(1,2),rat(i),vrot(i,2))
+     call cross(teneria(1,3),rat(i),vrot(i,3))
+  enddo
+  call normalizevector(3*nat,vrot(1,1))
+  call normalizevector(3*nat,vrot(1,2))
+  call normalizevector(3*nat,vrot(1,3))
+  
+  do i=1,3*nat-2,3
+     rat(i+0)=rat(i+0)+cmx
+     rat(i+1)=rat(i+1)+cmy
+     rat(i+2)=rat(i+2)+cmz
+  enddo
+  
+  vrotnrm=nrm2(3*nat,vrot(1,1),1)
+  vrot(1:3*nat,1)=vrot(1:3*nat,1)/vrotnrm
+  vrotnrm=nrm2(3*nat,vrot(1,2),1)
+  vrot(1:3*nat,2)=vrot(1:3*nat,2)/vrotnrm
+  vrotnrm=nrm2(3*nat,vrot(1,3),1)
+  vrot(1:3*nat,3)=vrot(1:3*nat,3)/vrotnrm
+  
+  do i=1,3
+     alpha=0.0_gp  
+     if(abs(evaleria(i)).gt.1.e-10_gp) then
+        alpha=dot_product(vrot(:,i),fat(:))
+        fat(:)=fat(:)-alpha*vrot(:,i) 
+     endif
+  enddo
+
+  i_all=-product(shape(amass))*kind(amass)
+  deallocate(amass,stat=i_stat)
+  call memocc(i_stat,i_all,'amass',subname)
+
+end subroutine elim_torque_reza
+
+subroutine cross(a,b,c)
+  use module_base
+  implicit none
+  real(gp), dimension(3), intent(in) :: a,b
+  real(gp), dimension(3), intent(out) :: c
+
+  c(1)=a(2)*b(3)-b(2)*a(3)
+  c(2)=a(3)*b(1)-b(3)*a(1)
+  c(3)=a(1)*b(2)-b(1)*a(2)
+end subroutine cross
+
+subroutine moment_of_inertia(nat,rat,teneria,evaleria)
+  use module_base
+  implicit none
+  integer, intent(in) :: nat
+  real(gp), dimension(3,nat), intent(in) :: rat
+  real(gp), dimension(3), intent(out) :: evaleria
+  real(gp), dimension(3,3), intent(out) :: teneria
+  !local variables
+  character(len=*), parameter :: subname='moment_of_inertia'
+  integer, parameter::lwork=100
+  integer :: iat,info,i_all,i_stat
+  real(gp) :: tt
+  real(gp), dimension(lwork) :: work
+  real(gp), dimension(:), allocatable :: amass
+
+  allocate(amass(nat+ndebug),stat=i_stat)
+  call memocc(i_stat,amass,'amass',subname)
+  
+  !positions relative to center of geometry
+  amass(1:nat)=1.0_gp
+  !calculate inertia tensor
+  teneria(1:3,1:3)=0.0_gp
+  do iat=1,nat
+     tt=amass(iat)
+     teneria(1,1)=teneria(1,1)+tt*(rat(2,iat)*rat(2,iat)+rat(3,iat)*rat(3,iat))
+     teneria(2,2)=teneria(2,2)+tt*(rat(1,iat)*rat(1,iat)+rat(3,iat)*rat(3,iat))
+     teneria(3,3)=teneria(3,3)+tt*(rat(1,iat)*rat(1,iat)+rat(2,iat)*rat(2,iat))
+     teneria(1,2)=teneria(1,2)-tt*(rat(1,iat)*rat(2,iat))
+     teneria(1,3)=teneria(1,3)-tt*(rat(1,iat)*rat(3,iat))
+     teneria(2,3)=teneria(2,3)-tt*(rat(2,iat)*rat(3,iat))
+     teneria(2,1)=teneria(1,2)
+     teneria(3,1)=teneria(1,3)
+     teneria(3,2)=teneria(2,3)
+  enddo
+  !diagonalize inertia tensor
+  call DSYEV('V','L',3,teneria,3,evaleria,work,lwork,info)
+  
+  i_all=-product(shape(amass))*kind(amass)
+  deallocate(amass,stat=i_stat)
+  call memocc(i_stat,i_all,'amass',subname)
+  
+end subroutine moment_of_inertia
+
+subroutine normalizevector(n,v)
+  use module_base
+  implicit none
+  integer, intent(in) :: n
+  real(gp), dimension(n), intent(inout) :: v
+  !local variables
+  integer :: i
+  real(gp) :: vnrm
+
+  vnrm=0.0_gp
+  do i=1,n
+     vnrm=vnrm+v(i)**2
+  enddo
+  vnrm=sqrt(vnrm)
+  v(1:n)=v(1:n)/vnrm
+
+end subroutine normalizevector
+
+
+subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%nat), intent(inout) :: fxyz
+  real(gp), intent(out) :: fnoise
+  !local variables
+  logical :: move_this_coordinate
+  integer :: iat,ixyz
+  real(gp) :: sumx,sumy,sumz
+  !my variables
+  real(gp):: fmax1,t1,t2,t3,fnrm1
+  real(gp):: fmax2,fnrm2
+
+
+  !the maximum force and force norm is computed prior to modification of the forces
+  fmax1=0._gp
+  fnrm1=0._gp
+  do iat=1,at%nat
+     t1=fxyz(1,iat)**2
+     t2=fxyz(2,iat)**2
+     t3=fxyz(3,iat)**2
+     fmax1=max(fmax1,sqrt(t1+t2+t3))
+     fnrm1=fnrm1+t1+t2+t3
+  enddo
+  
+  
+  sumx=0.0_gp
+  sumy=0.0_gp
+  sumz=0.0_gp
+  do iat=1,at%nat
+     sumx=sumx+fxyz(1,iat)
+     sumy=sumy+fxyz(2,iat)
+     sumz=sumz+fxyz(3,iat)
+  enddo
+  fnoise=sqrt((sumx**2+sumy**2+sumz**2)/real(at%nat,gp))
+  sumx=sumx/real(at%nat,gp)
+  sumy=sumy/real(at%nat,gp)
+  sumz=sumz/real(at%nat,gp)
+
+
+  if (iproc==0) then 
+     !write( *,'(1x,a,1x,3(1x,1pe9.2))') &
+     !  'Subtracting center-mass shift of',sumx,sumy,sumz
+!           write(*,'(1x,a)')'the sum of the forces is'
+           write(*,'(a,1pe16.8)')' average noise along x direction: ',sumx*sqrt(real(at%nat,gp))
+           write(*,'(a,1pe16.8)')' average noise along y direction: ',sumy*sqrt(real(at%nat,gp))
+           write(*,'(a,1pe16.8)')' average noise along z direction: ',sumz*sqrt(real(at%nat,gp))
+           write(*,'(a,1pe16.8)')' total average noise            : ',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%nat,gp))
+!!$
+!!$     write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
+!!$     write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
+!!$     write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
+  end if
+  
+  if (at%geocode == 'F') then
+     do iat=1,at%nat
+        fxyz(1,iat)=fxyz(1,iat)-sumx
+        fxyz(2,iat)=fxyz(2,iat)-sumy
+        fxyz(3,iat)=fxyz(3,iat)-sumz
+     enddo
+     
+     call elim_torque_reza(at%nat,rxyz,fxyz)
+     
+  else if (at%geocode == 'S') then
+     do iat=1,at%nat
+        fxyz(2,iat)=fxyz(2,iat)-sumy
+     enddo
+  end if
+  
+  !clean the forces for blocked atoms
+  do iat=1,at%nat
+     do ixyz=1,3
+        if (.not. move_this_coordinate(at%ifrztyp(iat),ixyz)) fxyz(ixyz,iat)=0.0_gp
+     end do
+  end do
+  
+  !the noise of the forces is the norm of the translational force
+!  fnoise=real(at%nat,gp)**2*(sumx**2+sumy**2+sumz**2)
+
+  !the maximum force and force norm is computed after modification of the forces
+  fmax2=0._gp
+  fnrm2=0._gp
+  do iat=1,at%nat
+     t1=fxyz(1,iat)**2
+     t2=fxyz(2,iat)**2
+     t3=fxyz(3,iat)**2
+     fmax2=max(fmax2,sqrt(t1+t2+t3))
+     fnrm2=fnrm2+t1+t2+t3
+  enddo
+if (iproc==0)  write(*,'(a,4(1x,e25.15))') "Dirty: fnrm2, fmax. Clean: fnrm2, fmax",fnrm1,fmax1,fnrm2,fmax2
+end subroutine clean_forces

@@ -37,7 +37,7 @@ subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,
   character(len=2), intent(out) :: symbol
   real(kind=8), intent(out) :: rcov,rprb,ehomo,amu
   integer, parameter :: nmax=6,lmax=3
-  integer, intent(out) :: neleconf(nmax,0:lmax)
+  real(kind=8), intent(out) :: neleconf(nmax,0:lmax)
   integer, intent(out) :: nsccode,mxpl,mxchg
 ! Local variables
   integer :: n,l,nsum,ipow,lsc,inorbsc,i
@@ -137,8 +137,11 @@ symbol = "C"
 rcov=1.45d0
 rprb=2.90d0
 ehomo=-0.199186d0
-neleconf(2,0)=2
-neleconf(2,1)=2
+neleconf(2,0)=2.d0
+neleconf(2,1)=2.d0
+!neleconf(3,0)=1.d-100
+!neleconf(3,1)=1.d-100
+!neleconf(3,2)=1.d-100
 amu=12.011d0
 
 case(6*1000+6)
@@ -919,7 +922,8 @@ symbol = "Pd"
 rcov=2.50d0
 rprb=5.00d0
 ehomo=-0.160771d0
-neleconf(4,2)=10
+neleconf(4,2)=9
+neleconf(5,0)=1
 
 case(46*1000+18)
 ! -----------------------          73
@@ -1610,7 +1614,8 @@ end select
   nsum = 0
   do l=0,lmax
      do n=1,nmax
-        nsum = nsum + neleconf(n,l)
+        !write(111,*) l,n,neleconf(n,l)
+        if ( neleconf(n,l) /= 0 ) nsum = nsum + neleconf(n,l)
      end do
   end do
   if (nsum /= nvalelec) then
@@ -1658,7 +1663,8 @@ subroutine correct_semicore(nmax,lmax,ichg,neleconf,eleconf,nsccode)
   use module_base
   implicit none
   integer, intent(in) :: nmax,lmax,ichg
-  integer, dimension(nmax,0:lmax), intent(in) :: neleconf
+  real(kind=8) , dimension(nmax,0:lmax), intent(in) :: neleconf
+  !integer, dimension(nmax,0:lmax), intent(in) :: neleconf
   real(gp), dimension(nmax,0:lmax), intent(out) :: eleconf
   integer, intent(inout) :: nsccode
   !local variables
@@ -1679,7 +1685,7 @@ subroutine correct_semicore(nmax,lmax,ichg,neleconf,eleconf,nsccode)
      do i=nmax,1,-1
         do l=lmax,0,-1
            if (neleconf(i,l) /= 2*(2*l+1) .and. neleconf(i,l) /= 0) then
-              ichgp=min(neleconf(i,l),nchgres)
+              ichgp=min(nint(neleconf(i,l)),nchgres)
               nchgres=nchgres-ichgp
               eleconf(i,l)=eleconf(i,l)-real(ichgp,gp)
            end if
@@ -1705,7 +1711,7 @@ subroutine correct_semicore(nmax,lmax,ichg,neleconf,eleconf,nsccode)
      do i=nmax,1,-1
         do l=lmax,0,-1
            if (neleconf(i,l) /= 0) then
-              ichgp=min(2*(2*l+1)-neleconf(i,l),-nchgres)
+              ichgp=min(2*(2*l+1)-nint(neleconf(i,l)),-nchgres)
               nchgres=nchgres+ichgp
               eleconf(i,l)=eleconf(i,l)+real(ichgp,gp)
            end if
@@ -1804,7 +1810,8 @@ subroutine modified_eleconf(nzatom,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,
   character(len=2), intent(out) :: symbol
   real(kind=8), intent(out) :: rcov,rprb,ehomo
   integer, parameter :: nmax=6,lmax=3
-  integer, intent(out) :: neleconf(nmax,0:lmax)
+  !integer, intent(out) :: neleconf(nmax,0:lmax)
+  real(kind=8), intent(out) :: neleconf(nmax,0:lmax)
   integer, intent(out) :: nsccode,mxpl,mxchg
 ! Local variables
   integer :: n,l,nsum,i
@@ -2737,7 +2744,8 @@ symbol = "Pd"
 rcov=2.50d0
 rprb=5.00d0
 ehomo=-0.160771d0
-neleconf(4,2)=10
+neleconf(4,2)=9
+neleconf(5,0)=1
 
 has_found=1
 exit
@@ -3491,7 +3499,8 @@ endif
   nsum = 0
   do l=0,lmax
      do n=1,nmax
-        nsum = nsum + neleconf(n,l)
+write(222,*) l,n,neleconf(n,l)
+        if (neleconf(n,l) /= 0) nsum = nsum + neleconf(n,l)
      end do
   end do
   if (nsum /= try_nvalelec) then

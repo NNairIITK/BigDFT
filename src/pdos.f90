@@ -11,27 +11,30 @@
 !!
 !! SOURCE
 !!
-subroutine local_analysis(iproc,nproc,hx,hy,hz,shift,lr,orbs,orbsv,psi,psivirt)
+subroutine local_analysis(iproc,nproc,hx,hy,hz,in,at,rxyz,shift,lr,orbs,orbsv,psi,psivirt)
   use module_base
   use module_types
   use module_interfaces, except_this_one => local_analysis
   implicit none
   integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hx,hy,hz
+  type(input_variables), intent(in) :: in
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs,orbsv
+  type(atoms_data), intent(in) :: at
   real(gp), dimension(3),intent(in) :: shift
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(:), pointer :: psi,psivirt
   !local variables
   character(len=*), parameter :: subname='local_analysis'
   integer :: nelec,norb,norbu,norbd,iunit,i_all,i_stat,norbpv,iat
-  type(input_variables) :: inc
-  type(atoms_data) :: atc
+  !type(input_variables) :: inc
+  !type(atoms_data) :: atc
   type(gaussian_basis) :: G
   real(wp), dimension(:,:), allocatable :: allpsigau,dualcoeffs
   real(gp), dimension(:,:), allocatable :: radii_cf_fake,thetaphi
   real(gp), dimension(:), pointer :: Gocc
-  real(gp), dimension(:,:), pointer :: cxyz
+  !real(gp), dimension(:,:), pointer :: cxyz
 
   !the number of virtual orbitals in parallel is known only if orbsv%norb>0
   if (orbsv%norb >0) then
@@ -43,26 +46,31 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,shift,lr,orbs,orbsv,psi,psivirt)
   !define the local basis starting from the input files
   !this is done to allow the calculations of charges also in points which
   !are different from the atoms.
-  !NOTE: this meand that the MCPA can be done only on SP calculations
-  call read_input_variables(iproc,'posinp','input.dft','','','',inc,atc,cxyz)
+  !NOTE: this means that the MCPA can be done only on SP calculations
+  !call read_input_variables(iproc,'posinp','input.dft','','','',inc,atc,cxyz)
 
-  allocate(radii_cf_fake(atc%ntypes,3+ndebug),stat=i_stat)
+  !allocate(radii_cf_fake(atc%ntypes,3+ndebug),stat=i_stat)
+  !call memocc(i_stat,radii_cf_fake,'radii_cf_fake',subname)
+
+  allocate(radii_cf_fake(at%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf_fake,'radii_cf_fake',subname)
 
-  call read_system_variables('input.occup',iproc,inc,atc,radii_cf_fake,nelec,&
-       norb,norbu,norbd,iunit)
+
+  !call read_system_variables('input.occup',iproc,inc,atc,radii_cf_fake,nelec,&
+  !     norb,norbu,norbd,iunit)
 
   !shift the positions with the same value of the original positions
-  do iat=1,atc%nat
-     cxyz(1,iat)=cxyz(1,iat)-shift(1)
-     cxyz(2,iat)=cxyz(2,iat)-shift(2)
-     cxyz(3,iat)=cxyz(3,iat)-shift(3)
-  end do
+!  do iat=1,atc%nat
+!     cxyz(1,iat)=cxyz(1,iat)-shift(1)
+!     cxyz(2,iat)=cxyz(2,iat)-shift(2)
+!     cxyz(3,iat)=cxyz(3,iat)-shift(3)
+!  end do
   
   nullify(G%rxyz)
 
   !extract the gaussian basis from the pseudowavefunctions
-  call gaussian_pswf_basis(31,.false.,iproc,inc%nspin,atc,cxyz,G,Gocc)
+  !call gaussian_pswf_basis(31,.false.,iproc,inc%nspin,atc,cxyz,G,Gocc)
+  call gaussian_pswf_basis(31,.false.,iproc,in%nspin,at,rxyz,G,Gocc)
 
   allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
   call memocc(i_stat,thetaphi,'thetaphi',subname)
@@ -93,6 +101,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,shift,lr,orbs,orbsv,psi,psivirt)
   call mulliken_charge_population(iproc,nproc,orbs,Gocc,G,allpsigau,dualcoeffs)
 
   !also partial density of states can be analysed here
+  call gaussian_pdos(iproc,nproc,orbs,Gocc,G,allpsigau,dualcoeffs)
 
   call deallocate_gwf(G,subname)
   nullify(G%rxyz)
@@ -110,15 +119,15 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,shift,lr,orbs,orbsv,psi,psivirt)
   call memocc(i_stat,i_all,'thetaphi',subname)
 
   !deallocate the auxiliary structures for the calculations
-  call deallocate_atoms(atc,subname) 
-  call deallocate_atoms_scf(atc,subname) 
-  call free_input_variables(inc)
+  !call deallocate_atoms(atc,subname) 
+  !call deallocate_atoms_scf(atc,subname) 
+  !call free_input_variables(inc)
   i_all=-product(shape(radii_cf_fake))*kind(radii_cf_fake)
   deallocate(radii_cf_fake,stat=i_stat)
   call memocc(i_stat,i_all,'radii_cf_fake',subname)
-  i_all=-product(shape(cxyz))*kind(cxyz)
-  deallocate(cxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'cxyz',subname)
+  !i_all=-product(shape(cxyz))*kind(cxyz)
+  !deallocate(cxyz,stat=i_stat)
+  !call memocc(i_stat,i_all,'cxyz',subname)
   i_all=-product(shape(Gocc))*kind(Gocc)
   deallocate(Gocc,stat=i_stat)
   call memocc(i_stat,i_all,'Gocc',subname)
@@ -246,6 +255,105 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   
 END SUBROUTINE mulliken_charge_population
 !!***
+
+!!****f* BigDFT/mulliken_charge_population
+!! SOURCE
+!! 
+subroutine gaussian_pdos(iproc,nproc,orbs,Gocc,G,coeff,duals)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  type(orbitals_data), intent(in) :: orbs
+  type(gaussian_basis), intent(in) :: G
+  real(gp), dimension(G%ncoeff), intent(in) :: Gocc
+  real(wp), dimension(G%ncoeff,orbs%norbp), intent(in) :: coeff,duals
+  !local variables
+  character(len=*), parameter :: subname='gaussian_pdos'
+  character(len=11) :: shname
+  integer :: icoeff,i_all,i_stat,ierr,ishell,iexpo,iat,l,ng,iorb,isat,m,ispin,ig,nchannels
+  integer :: jproc,nspin
+  real(wp) :: msum,rad,radnorm,r,rsum,tnorm
+  real(wp), dimension(2) :: msumiat
+  integer, dimension(:), allocatable :: norb_displ
+  real(wp), dimension(:,:), allocatable :: pdos
+  
+  !allocate both for spins up and down
+  allocate(pdos(G%ncoeff+1,orbs%norb+ndebug),stat=i_stat)
+  call memocc(i_stat,pdos,'pdos',subname)
+
+  !for any of the orbitals calculate the Mulliken charge
+  nspin=1
+  do icoeff=1,G%ncoeff
+     do iorb=1,orbs%norbp
+        !useful only for finding the spins
+        if (orbs%spinsgn(orbs%isorb+iorb) == 1.0_gp) then
+           ispin=1
+        else
+           nspin=2
+           ispin=2
+        end if
+        pdos(icoeff,orbs%isorb+iorb)=coeff(icoeff,iorb)*duals(icoeff,iorb)
+     end do
+  end do
+
+  !gather the results to the root process
+  if (nproc > 1) then
+        allocate(norb_displ(0:nproc-1+ndebug),stat=i_stat)
+        call memocc(i_stat,norb_displ,'norb_displ',subname)
+
+        norb_displ(0)=0
+        do jproc=1,nproc-1
+           norb_displ(jproc)=norb_displ(jproc-1)+orbs%norb_par(jproc-1)
+        end do
+        
+        call MPI_GATHERV(pdos(1,min(orbs%isorb+1,orbs%norb)),(G%ncoeff+1)*orbs%norb_par(iproc),mpidtypw,&
+             pdos(1,1),(G%ncoeff+1)*orbs%norb_par,(G%ncoeff+1)*norb_displ,mpidtypw,&
+             0,MPI_COMM_WORLD,ierr)
+
+        i_all=-product(shape(norb_displ))*kind(norb_displ)
+        deallocate(norb_displ,stat=i_stat)
+        call memocc(i_stat,i_all,'norb_displ',subname)
+  end if
+ 
+  !now the results have to be written
+  if (iproc == 0) then
+     !renormalize the density of states to 10 (such as to gain a digit)
+     tnorm=5.0_wp*real(nspin,wp)
+     do iorb=1,orbs%norb
+        rsum=0.0_wp
+        do icoeff=1,G%ncoeff
+           rsum=rsum+pdos(icoeff,iorb)
+           pdos(icoeff,iorb)=pdos(icoeff,iorb)*tnorm/real(G%ncoeff,wp)
+        end do
+        pdos(G%ncoeff+1,iorb)=tnorm-rsum*tnorm/real(G%ncoeff,wp)
+     end do
+
+     !first spin up, then spin down
+     if (nspin == 2) then
+        open(unit=12,file='pdos-up.dat',status='unknown')
+     else
+        open(unit=12,file='pdos.dat',status='unknown')
+     end if
+     do iorb=1,orbs%norbu
+        write(12,'(i5,1pe14.5,1000(f7.4))')iorb,orbs%eval(iorb),pdos(1:G%ncoeff,iorb)
+     end do
+     close(unit=12)
+     if (orbs%norbd /= 0) then
+        open(unit=12,file='pdos-down.dat',status='unknown')
+        do iorb=orbs%norbu+1,orbs%norbu+orbs%norbd
+           write(12,'(i5,1pe12.5,1000(f12.4))')iorb-orbs%norbu,orbs%eval(iorb),pdos(1:G%ncoeff+1,iorb)
+        end do
+     end if
+  end if
+
+  i_all=-product(shape(pdos))*kind(pdos)
+  deallocate(pdos,stat=i_stat)
+  call memocc(i_stat,i_all,'pdos',subname)
+  
+END SUBROUTINE gaussian_pdos
+!!***
+
 
 
 !!****f* BigDFT/shell_name

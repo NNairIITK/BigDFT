@@ -6,7 +6,7 @@ EXTRA_DIST = \
 	input.dft \
 	input.geopt \
 	posinp.ascii \
-	SiBulk.out.ref
+	SiH4.out.ref
 
 PPFILES = \
 	psppar.H \
@@ -19,13 +19,13 @@ CLEANFILES = $(PPFILES) SiH4.out geopt.mon posout* *.prc\
 $(PPFILES):
 	ln -fs $(top_srcdir)/utils/PSPfiles/HGH-K/$@
 
-SiH4.out: $(top_builddir)/src/cluster $(PPFILES)
+SiH4.out: $(top_builddir)/src/bigdft $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.ascii ; \
 	  ln -fs $(srcdir)/input.geopt ; \
         fi
-	$(run_parallel) $(top_builddir)/src/cluster > $@
+	$(run_parallel) $(top_builddir)/src/bigdft > $@
 	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.ascii ; \

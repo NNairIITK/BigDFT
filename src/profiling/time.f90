@@ -167,13 +167,13 @@ subroutine timing(iproc,category,action)
      !controls if the category exists
      ii=100000
      do i=1,ncat
-        if (trim(category).eq.trim(cats(i))) then
+        if (trim(category) == trim(cats(i))) then
            ii=i
            exit
         endif
      enddo
      !print *,'find category',ii,trim(category)
-     if (ii.eq.100000) then
+     if (ii == 100000) then
         print *, 'ACTION  ',action
         stop 'TIMING CATEGORY NOT DEFINED'
      end if

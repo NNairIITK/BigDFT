@@ -5,15 +5,9 @@ SUBDIRS = \
 	  PSolver \
 	  H2-freq \
 	  NEB \
-	  NH3 \
 	  XabsCheb \
 	  DFT
 
-
-#This will run the automatic tests also for GPU
-if USE_CUDA_GPU
-SUBDIRS += GPU
-endif
 
 #This will run the automatic tests also for minima hopping
 if USE_MINIMA_HOPPING
@@ -41,7 +35,6 @@ mpirun: head_message
 EXTRA_DIST = \
 	README \
 	fldiff.py \
-	inguess.dat \
 	report.py
 
 CLEANFILES =

@@ -44,10 +44,11 @@ subroutine convolut_kinetic_per_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
   real(wp), dimension(2,0:n1,0:n2,0:n3), intent(out) :: y
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  integer :: i1,i2,i3,i,l,j
-  real(wp) :: tt1,tt2,c
+  integer :: i1,i2,i3,i,l,j,j1,j2
+  real(wp) :: tt1,tt2,tt3,tt4,c
+  real(wp) :: tt1_2,tt2_2,tt3_2,tt4_2
   real(wp), dimension(3) :: scale,scale1
-  real(wp), dimension(2,lowfil:lupfil,3) :: fil  
+  real(wp), dimension(2,0:lupfil,3) :: fil  
 
   scale (:)=real(-.5_gp/hgrid(:)**2,wp)
   scale1(1)=real(k1/hgrid(1),wp)
@@ -72,10 +73,6 @@ subroutine convolut_kinetic_per_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
   fil(1,13,:)=   2.70800493626319438269856689037647576e-13_wp*scale(:)
   fil(1,14,:)=  -6.924474940639200152025730585882e-18_wp*scale(:)
 
-  do i=1,14
-     fil(1,-i,:)=fil(1,i,:)
-  enddo
-
   fil(2,0,:)= 0._wp
   fil(2,1,:)= 0.8834460460908270942785856e0_wp*scale1(:)
   fil(2,2,:)= -0.3032593514765938346887962e0_wp*scale1(:)
@@ -92,9 +89,6 @@ subroutine convolut_kinetic_per_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
   fil(2,13,:)=1.240078536096648534547439e-14_wp*scale1(:)
   fil(2,14,:)=-1.585464751677102510097179e-19_wp*scale1(:)
 
-  do i=1,14
-     fil(2,-i,:)=-fil(2,i,:)
-  enddo
 
 !$omp parallel default (private) shared(n1,n2,n3,x,y,c,fil)
 !$omp do
@@ -102,51 +96,329 @@ subroutine convolut_kinetic_per_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
   do i3=0,n3
      ! (1/2) d^2/dx^2
      do i2=0,n2
-        do i1=0,n1
+        do i1=0,lupfil-1
            tt1=x(1,i1,i2,i3)*c
            tt2=x(2,i1,i2,i3)*c
-           do l=lowfil,lupfil
-              j=modulo(i1+l,n1+1)
-              tt1=tt1+x(1,j,i2,i3)*fil(1,l,1)-x(2,j,i2,i3)*fil(2,l,1)
-              tt2=tt2+x(2,j,i2,i3)*fil(1,l,1)+x(1,j,i2,i3)*fil(2,l,1)
+           tt1=tt1+x(1,i1,i2,i3)*fil(1,0,1)
+           tt2=tt2+x(2,i1,i2,i3)*fil(1,0,1)
+           tt3=0
+           tt4=0
+           do l=1,14
+              j1=i1+l
+              j2=modulo(i1-l,n1+1)
+              tt1=tt1+(x(1,j1,i2,i3)+x(1,j2,i2,i3))*fil(1,l,1)
+              tt3=tt3+(x(2,j1,i2,i3)-x(2,j2,i2,i3))*fil(2,l,1)
+              tt2=tt2+(x(2,j1,i2,i3)+x(2,j2,i2,i3))*fil(1,l,1)
+              tt4=tt4+(x(1,j1,i2,i3)-x(1,j2,i2,i3))*fil(2,l,1)
            enddo
-           y(1,i1,i2,i3)=tt1
-           y(2,i1,i2,i3)=tt2
+           y(1,i1,i2,i3)=tt1-tt3
+           y(2,i1,i2,i3)=tt2+tt4
+        enddo
+        do i1=lupfil,n1-lupfil
+           tt1=x(1,i1,i2,i3)*c
+           tt2=x(2,i1,i2,i3)*c
+           tt1=tt1+x(1,i1,i2,i3)*fil(1,0,1)
+           tt2=tt2+x(2,i1,i2,i3)*fil(1,0,1)
+           tt3=0
+           tt4=0
+           do l=1,14
+              j1=i1+l
+              j2=i1-l
+              tt1=tt1+(x(1,j1,i2,i3)+x(1,j2,i2,i3))*fil(1,l,1)
+              tt3=tt3+(x(2,j1,i2,i3)-x(2,j2,i2,i3))*fil(2,l,1)
+              tt2=tt2+(x(2,j1,i2,i3)+x(2,j2,i2,i3))*fil(1,l,1)
+              tt4=tt4+(x(1,j1,i2,i3)-x(1,j2,i2,i3))*fil(2,l,1)
+           enddo
+           y(1,i1,i2,i3)=tt1-tt3
+           y(2,i1,i2,i3)=tt2+tt4
+        enddo
+        do i1=n1-lupfil+1,n1
+           tt1=x(1,i1,i2,i3)*c
+           tt2=x(2,i1,i2,i3)*c
+           tt1=tt1+x(1,i1,i2,i3)*fil(1,0,1)
+           tt2=tt2+x(2,i1,i2,i3)*fil(1,0,1)
+           tt3=0
+           tt4=0
+           do l=1,14
+              j1=modulo(i1+l,n1+1)
+              j2=i1-l
+              tt1=tt1+(x(1,j1,i2,i3)+x(1,j2,i2,i3))*fil(1,l,1)
+              tt3=tt3+(x(2,j1,i2,i3)-x(2,j2,i2,i3))*fil(2,l,1)
+              tt2=tt2+(x(2,j1,i2,i3)+x(2,j2,i2,i3))*fil(1,l,1)
+              tt4=tt4+(x(1,j1,i2,i3)-x(1,j2,i2,i3))*fil(2,l,1)
+           enddo
+           y(1,i1,i2,i3)=tt1-tt3
+           y(2,i1,i2,i3)=tt2+tt4
         enddo
      enddo
      
      ! + (1/2) d^2/dy^2
-     do i1=0,n1
-        do i2=0,n2
-           tt1=0._wp
-           tt2=0._wp
-           do l=lowfil,lupfil
-              j=modulo(i2+l,n2+1)
-              tt1=tt1+x(1,i1,j,i3)*fil(1,l,2)-x(2,i1,j,i3)*fil(2,l,2)
-              tt2=tt2+x(2,i1,j,i3)*fil(1,l,2)+x(1,i1,j,i3)*fil(2,l,2)
+     do i1=0,n1-1,2
+        do i2=0,lupfil-1
+           tt1=x(1,i1,i2,i3)*fil(1,0,2)
+           tt1_2=x(1,i1+1,i2,i3)*fil(1,0,2)
+           tt2=x(2,i1,i2,i3)*fil(1,0,2)
+           tt2_2=x(2,i1+1,i2,i3)*fil(1,0,2)
+           tt3=0
+           tt3_2=0
+           tt4=0
+           tt4_2=0
+           do l=1,lupfil
+              j1=i2+l
+              j2=modulo(i2-l,n2+1)
+              tt1=tt1+(x(1,i1,j1,i3)+x(1,i1,j2,i3))*fil(1,l,2)
+              tt1_2=tt1_2+(x(1,i1+1,j1,i3)+x(1,i1+1,j2,i3))*fil(1,l,2)
+              tt3=tt3+(x(2,i1,j1,i3)-x(2,i1,j2,i3))*fil(2,l,2)
+              tt3_2=tt3_2+(x(2,i1+1,j1,i3)-x(2,i1+1,j2,i3))*fil(2,l,2)
+              tt2=tt2+(x(2,i1,j1,i3)+x(2,i1,j2,i3))*fil(1,l,2)
+              tt2_2=tt2_2+(x(2,i1+1,j1,i3)+x(2,i1+1,j2,i3))*fil(1,l,2)
+              tt4=tt4+(x(1,i1,j1,i3)-x(1,i1,j2,i3))*fil(2,l,2)
+              tt4_2=tt4_2+(x(1,i1+1,j1,i3)-x(1,i1+1,j2,i3))*fil(2,l,2)
            enddo
-           y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
-           y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
+           y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1-tt3
+           y(1,i1+1,i2,i3)=y(1,i1+1,i2,i3)+tt1_2-tt3_2
+           y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2+tt4
+           y(2,i1+1,i2,i3)=y(2,i1+1,i2,i3)+tt2_2+tt4_2
         enddo
+        do i2=lupfil,n2-lupfil
+           tt1=x(1,i1,i2,i3)*fil(1,0,2)
+           tt1_2=x(1,i1+1,i2,i3)*fil(1,0,2)
+           tt2=x(2,i1,i2,i3)*fil(1,0,2)
+           tt2_2=x(2,i1+1,i2,i3)*fil(1,0,2)
+           tt3=0
+           tt3_2=0
+           tt4=0
+           tt4_2=0
+           do l=1,lupfil
+              j1=i2+l
+              j2=i2-l
+              tt1=tt1+(x(1,i1,j1,i3)+x(1,i1,j2,i3))*fil(1,l,2)
+              tt1_2=tt1_2+(x(1,i1+1,j1,i3)+x(1,i1+1,j2,i3))*fil(1,l,2)
+              tt3=tt3+(x(2,i1,j1,i3)-x(2,i1,j2,i3))*fil(2,l,2)
+              tt3_2=tt3_2+(x(2,i1+1,j1,i3)-x(2,i1+1,j2,i3))*fil(2,l,2)
+              tt2=tt2+(x(2,i1,j1,i3)+x(2,i1,j2,i3))*fil(1,l,2)
+              tt2_2=tt2_2+(x(2,i1+1,j1,i3)+x(2,i1+1,j2,i3))*fil(1,l,2)
+              tt4=tt4+(x(1,i1,j1,i3)-x(1,i1,j2,i3))*fil(2,l,2)
+              tt4_2=tt4_2+(x(1,i1+1,j1,i3)-x(1,i1+1,j2,i3))*fil(2,l,2)
+           enddo
+           y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1-tt3
+           y(1,i1+1,i2,i3)=y(1,i1+1,i2,i3)+tt1_2-tt3_2
+           y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2+tt4
+           y(2,i1+1,i2,i3)=y(2,i1+1,i2,i3)+tt2_2+tt4_2
+        enddo
+        do i2=n2-lupfil+1,n2
+           tt1=x(1,i1,i2,i3)*fil(1,0,2)
+           tt1_2=x(1,i1+1,i2,i3)*fil(1,0,2)
+           tt2=x(2,i1,i2,i3)*fil(1,0,2)
+           tt2_2=x(2,i1+1,i2,i3)*fil(1,0,2)
+           tt3=0
+           tt3_2=0
+           tt4=0
+           tt4_2=0
+           do l=1,lupfil
+              j1=modulo(i2+l,n2+1)
+              j2=i2-l
+              tt1=tt1+(x(1,i1,j1,i3)+x(1,i1,j2,i3))*fil(1,l,2)
+              tt1_2=tt1_2+(x(1,i1+1,j1,i3)+x(1,i1+1,j2,i3))*fil(1,l,2)
+              tt3=tt3+(x(2,i1,j1,i3)-x(2,i1,j2,i3))*fil(2,l,2)
+              tt3_2=tt3_2+(x(2,i1+1,j1,i3)-x(2,i1+1,j2,i3))*fil(2,l,2)
+              tt2=tt2+(x(2,i1,j1,i3)+x(2,i1,j2,i3))*fil(1,l,2)
+              tt2_2=tt2_2+(x(2,i1+1,j1,i3)+x(2,i1+1,j2,i3))*fil(1,l,2)
+              tt4=tt4+(x(1,i1,j1,i3)-x(1,i1,j2,i3))*fil(2,l,2)
+              tt4_2=tt4_2+(x(1,i1+1,j1,i3)-x(1,i1+1,j2,i3))*fil(2,l,2)
+           enddo
+           y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1-tt3
+           y(1,i1+1,i2,i3)=y(1,i1+1,i2,i3)+tt1_2-tt3_2
+           y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2+tt4
+           y(2,i1+1,i2,i3)=y(2,i1+1,i2,i3)+tt2_2+tt4_2
+        enddo
+
      enddo
-     
+     do i1=((n1+1)/2)*2,n1,1
+        do i2=0,lupfil-1
+           tt1=x(1,i1,i2,i3)*fil(1,0,2)
+           tt2=x(2,i1,i2,i3)*fil(1,0,2)
+           tt3=0
+           tt4=0
+           do l=1,lupfil
+              j1=i2+l
+              j2=modulo(i2-l,n2+1)
+              tt1=tt1+(x(1,i1,j1,i3)+x(1,i1,j2,i3))*fil(1,l,2)
+              tt3=tt3+(x(2,i1,j1,i3)-x(2,i1,j2,i3))*fil(2,l,2)
+              tt2=tt2+(x(2,i1,j1,i3)+x(2,i1,j2,i3))*fil(1,l,2)
+              tt4=tt4+(x(1,i1,j1,i3)-x(1,i1,j2,i3))*fil(2,l,2)
+           enddo
+           y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1-tt3
+           y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2+tt4
+        enddo
+        do i2=lupfil,n2-lupfil
+           tt1=x(1,i1,i2,i3)*fil(1,0,2)
+           tt2=x(2,i1,i2,i3)*fil(1,0,2)
+           tt3=0
+           tt4=0
+           do l=1,lupfil
+              j1=i2+l
+              j2=i2-l
+              tt1=tt1+(x(1,i1,j1,i3)+x(1,i1,j2,i3))*fil(1,l,2)
+              tt3=tt3+(x(2,i1,j1,i3)-x(2,i1,j2,i3))*fil(2,l,2)
+              tt2=tt2+(x(2,i1,j1,i3)+x(2,i1,j2,i3))*fil(1,l,2)
+              tt4=tt4+(x(1,i1,j1,i3)-x(1,i1,j2,i3))*fil(2,l,2)
+           enddo
+           y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1-tt3
+           y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2+tt4
+        enddo
+        do i2=n2-lupfil+1,n2
+           tt1=x(1,i1,i2,i3)*fil(1,0,2)
+           tt2=x(2,i1,i2,i3)*fil(1,0,2)
+           tt3=0
+           tt4=0
+           do l=1,lupfil
+              j1=modulo(i2+l,n2+1)
+              j2=i2-l
+              tt1=tt1+(x(1,i1,j1,i3)+x(1,i1,j2,i3))*fil(1,l,2)
+              tt3=tt3+(x(2,i1,j1,i3)-x(2,i1,j2,i3))*fil(2,l,2)
+              tt2=tt2+(x(2,i1,j1,i3)+x(2,i1,j2,i3))*fil(1,l,2)
+              tt4=tt4+(x(1,i1,j1,i3)-x(1,i1,j2,i3))*fil(2,l,2)
+           enddo
+           y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1-tt3
+           y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2+tt4
+        enddo
+
+     enddo
   enddo
 !$omp enddo
 !$omp do
 
   ! + (1/2) d^2/dz^2
   do i2=0,n2
-     do i1=0,n1
-        do i3=0,n3
-           tt1=0._wp
-           tt2=0._wp
-           do l=lowfil,lupfil
-              j=modulo(i3+l,n3+1)
-              tt1=tt1+x(1,i1,i2,j)*fil(1,l,3)-x(2,i1,i2,j)*fil(2,l,3)
-              tt2=tt2+x(2,i1,i2,j)*fil(1,l,3)+x(1,i1,i2,j)*fil(2,l,3)
+     do i1=0,n1-1,2
+        do i3=0,lupfil-1
+           tt1=x(1,i1,i2,i3)*fil(1,0,3)
+           tt1_2=x(1,i1+1,i2,i3)*fil(1,0,3)
+           tt2=x(2,i1,i2,i3)*fil(1,0,3)
+           tt2_2=x(2,i1+1,i2,i3)*fil(1,0,3)
+           tt3=0
+           tt3_2=0
+           tt4=0
+           tt4_2=0
+           do l=1,lupfil
+              j2=modulo(i3-l,n3+1)
+              j1=i3+l
+              tt1=tt1+(x(1,i1,i2,j1)+x(1,i1,i2,j2))*fil(1,l,3)
+              tt1_2=tt1_2+(x(1,i1+1,i2,j1)+x(1,i1+1,i2,j2))*fil(1,l,3)
+              tt3=tt3+(x(2,i1,i2,j1)-x(2,i1,i2,j2))*fil(2,l,3)
+              tt3_2=tt3_2+(x(2,i1+1,i2,j1)-x(2,i1+1,i2,j2))*fil(2,l,3)
+              tt2=tt2+(x(2,i1,i2,j1)+x(2,i1,i2,j2))*fil(1,l,3)
+              tt2_2=tt2_2+(x(2,i1+1,i2,j1)+x(2,i1+1,i2,j2))*fil(1,l,3)
+              tt4=tt4+(x(1,i1,i2,j1)-x(1,i1,i2,j2))*fil(2,l,3)
+              tt4_2=tt4_2+(x(1,i1+1,i2,j1)-x(1,i1+1,i2,j2))*fil(2,l,3)
            enddo
-           y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
-           y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
+           y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1-tt3
+           y(1,i1+1,i2,i3)=y(1,i1+1,i2,i3)+tt1_2-tt3_2
+           y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2+tt4
+           y(2,i1+1,i2,i3)=y(2,i1+1,i2,i3)+tt2_2+tt4_2
+        enddo
+        do i3=lupfil,n3-lupfil
+           tt1=x(1,i1,i2,i3)*fil(1,0,3)
+           tt1_2=x(1,i1+1,i2,i3)*fil(1,0,3)
+           tt2=x(2,i1,i2,i3)*fil(1,0,3)
+           tt2_2=x(2,i1+1,i2,i3)*fil(1,0,3)
+           tt3=0
+           tt3_2=0
+           tt4=0
+           tt4_2=0
+           do l=1,lupfil
+              j2=i3-l
+              j1=i3+l
+              tt1=tt1+(x(1,i1,i2,j1)+x(1,i1,i2,j2))*fil(1,l,3)
+              tt1_2=tt1_2+(x(1,i1+1,i2,j1)+x(1,i1+1,i2,j2))*fil(1,l,3)
+              tt3=tt3+(x(2,i1,i2,j1)-x(2,i1,i2,j2))*fil(2,l,3)
+              tt3_2=tt3_2+(x(2,i1+1,i2,j1)-x(2,i1+1,i2,j2))*fil(2,l,3)
+              tt2=tt2+(x(2,i1,i2,j1)+x(2,i1,i2,j2))*fil(1,l,3)
+              tt2_2=tt2_2+(x(2,i1+1,i2,j1)+x(2,i1+1,i2,j2))*fil(1,l,3)
+              tt4=tt4+(x(1,i1,i2,j1)-x(1,i1,i2,j2))*fil(2,l,3)
+              tt4_2=tt4_2+(x(1,i1+1,i2,j1)-x(1,i1+1,i2,j2))*fil(2,l,3)
+           enddo
+           y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1-tt3
+           y(1,i1+1,i2,i3)=y(1,i1+1,i2,i3)+tt1_2-tt3_2
+           y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2+tt4
+           y(2,i1+1,i2,i3)=y(2,i1+1,i2,i3)+tt2_2+tt4_2
+        enddo
+        do i3=n3-lupfil+1,n3
+           tt1=x(1,i1,i2,i3)*fil(1,0,3)
+           tt1_2=x(1,i1+1,i2,i3)*fil(1,0,3)
+           tt2=x(2,i1,i2,i3)*fil(1,0,3)
+           tt2_2=x(2,i1+1,i2,i3)*fil(1,0,3)
+           tt3=0
+           tt3_2=0
+           tt4=0
+           tt4_2=0
+           do l=1,lupfil
+              j1=modulo(i3+l,n3+1)
+              j2=i3-l
+              tt1=tt1+(x(1,i1,i2,j1)+x(1,i1,i2,j2))*fil(1,l,3)
+              tt1_2=tt1_2+(x(1,i1+1,i2,j1)+x(1,i1+1,i2,j2))*fil(1,l,3)
+              tt3=tt3+(x(2,i1,i2,j1)-x(2,i1,i2,j2))*fil(2,l,3)
+              tt3_2=tt3_2+(x(2,i1+1,i2,j1)-x(2,i1+1,i2,j2))*fil(2,l,3)
+              tt2=tt2+(x(2,i1,i2,j1)+x(2,i1,i2,j2))*fil(1,l,3)
+              tt2_2=tt2_2+(x(2,i1+1,i2,j1)+x(2,i1+1,i2,j2))*fil(1,l,3)
+              tt4=tt4+(x(1,i1,i2,j1)-x(1,i1,i2,j2))*fil(2,l,3)
+              tt4_2=tt4_2+(x(1,i1+1,i2,j1)-x(1,i1+1,i2,j2))*fil(2,l,3)
+           enddo
+           y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1-tt3
+           y(1,i1+1,i2,i3)=y(1,i1+1,i2,i3)+tt1_2-tt3_2
+           y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2+tt4
+           y(2,i1+1,i2,i3)=y(2,i1+1,i2,i3)+tt2_2+tt4_2
+        enddo
+     enddo
+     do i1=((n1+1)/2)*2,n1,1
+        do i3=0,lupfil-1
+           tt1=x(1,i1,i2,i3)*fil(1,0,3)
+           tt2=x(2,i1,i2,i3)*fil(1,0,3)
+           tt3=0
+           tt4=0
+           do l=1,lupfil
+              j2=modulo(i3-l,n3+1)
+              j1=i3+l
+              tt1=tt1+(x(1,i1,i2,j1)+x(1,i1,i2,j2))*fil(1,l,3)
+              tt3=tt3+(x(2,i1,i2,j1)-x(2,i1,i2,j2))*fil(2,l,3)
+              tt2=tt2+(x(2,i1,i2,j1)+x(2,i1,i2,j2))*fil(1,l,3)
+              tt4=tt4+(x(1,i1,i2,j1)-x(1,i1,i2,j2))*fil(2,l,3)
+           enddo
+           y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1-tt3
+           y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2+tt4
+        enddo
+        do i3=lupfil,n3-lupfil
+           tt1=x(1,i1,i2,i3)*fil(1,0,3)
+           tt2=x(2,i1,i2,i3)*fil(1,0,3)
+           tt3=0
+           tt4=0
+           do l=1,lupfil
+              j2=i3-l
+              j1=i3+l
+              tt1=tt1+(x(1,i1,i2,j1)+x(1,i1,i2,j2))*fil(1,l,3)
+              tt3=tt3+(x(2,i1,i2,j1)-x(2,i1,i2,j2))*fil(2,l,3)
+              tt2=tt2+(x(2,i1,i2,j1)+x(2,i1,i2,j2))*fil(1,l,3)
+              tt4=tt4+(x(1,i1,i2,j1)-x(1,i1,i2,j2))*fil(2,l,3)
+           enddo
+           y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1-tt3
+           y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2+tt4
+        enddo
+        do i3=n3-lupfil+1,n3
+           tt1=x(1,i1,i2,i3)*fil(1,0,3)
+           tt2=x(2,i1,i2,i3)*fil(1,0,3)
+           tt3=0
+           tt4=0
+           do l=1,lupfil
+              j1=modulo(i3+l,n3+1)
+              j2=i3-l
+              tt1=tt1+(x(1,i1,i2,j1)+x(1,i1,i2,j2))*fil(1,l,3)
+              tt3=tt3+(x(2,i1,i2,j1)-x(2,i1,i2,j2))*fil(2,l,3)
+              tt2=tt2+(x(2,i1,i2,j1)+x(2,i1,i2,j2))*fil(1,l,3)
+              tt4=tt4+(x(1,i1,i2,j1)-x(1,i1,i2,j2))*fil(2,l,3)
+           enddo
+           y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1-tt3
+           y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2+tt4
         enddo
      enddo
   enddo

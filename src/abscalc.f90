@@ -216,6 +216,7 @@ end program abscalc_main
         i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
         deallocate(rst%orbs%eval,stat=i_stat)
         call memocc(i_stat,i_all,'eval',subname)
+        nullify(rst%orbs%eval)
 
         call deallocate_wfd(rst%Glr%wfd,subname)
      end if
@@ -262,6 +263,7 @@ end program abscalc_main
         i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
         deallocate(rst%orbs%eval,stat=i_stat)
         call memocc(i_stat,i_all,'eval',subname)
+        nullify(rst%orbs%eval)
 
         call deallocate_wfd(rst%Glr%wfd,subname)
         !finalize memory counting (there are still the positions and the forces allocated)
@@ -378,7 +380,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   real(gp) :: shift_b2B(3)
   integer itype, nd
   integer n1i_bB,n2i_bB,n3i_bB
-  real(gp), dimension(:), pointer :: pot_bB
+  real(gp), dimension(:,:), pointer :: pot_bB
   real(gp) alat1_bB, alat2_bB, alat3_bB
   real(gp), dimension(:), pointer ::  intfunc_x, intfunc_y
   real(gp) factx, facty, factz
@@ -634,16 +636,16 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 !!$     rhopot(10,9,8+i3xcsh,1)=100.0
 
      if (abs(in%output_grid)==2) then
-        if (in%output_grid==2) then
-          if (iproc == 0) write(*,*) 'writing local_potential.pot'
-           call plot_density(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
-                n1,n2,n3,n1i,n2i,n3i,n3p,&
-                atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
-        else
-           call plot_density_cube(atoms%geocode,'local_potentialb2B',iproc,nproc,&
+!!$        if (in%output_grid==2) then
+!!$          if (iproc == 0) write(*,*) 'writing local_potential.pot'
+!!$           call plot_density(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
+!!$                n1,n2,n3,n1i,n2i,n3i,n3p,&
+!!$                atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
+!!$        else
+           call plot_density(atoms%geocode,'local_potentialb2B',iproc,nproc,&
                 n1,n2,n3,n1i,n2i,n3i,n3p,&
                 in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1,1))
-        endif
+!!$        endif
      end if
 
 !!$     call  read_potfile4b2B("local_potential.pot",n1i_bB,n2i_bB,n3i_bB, pot_bB, alat1_bB, alat2_bB, alat3_bB)
@@ -658,7 +660,15 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         inquire(file="b2B_xanes.cube",exist=exists)
         if(exists) then
 
-           call read_density_cube("b2B_xanes", n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
+!!$           call read_density_cube("b2B_xanes",&
+!!$                n1i_bB,n2i_bB,n3i_bB, 1 ,&
+!!$                hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
+
+       call read_cube("b2B_xanes",atoms%geocode,&
+            n1i_bB,n2i_bB,n3i_bB,1,&
+            hx_old,hy_old,hz_old,pot_bB,nat_b2B,rxyz_b2B)
+
+
            hx_old=hx_old*2
            hy_old=hy_old*2
            hz_old=hz_old*2
@@ -680,7 +690,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
            end if
            
            print  *, " reading potential from file ","b2B_xanes.pot"
-           call  read_potfile4b2B("b2B_xanes.pot",n1i_bB,n2i_bB,n3i_bB, pot_bB, alat1_bB, alat2_bB, alat3_bB)
+!!$           call  read_potfile4b2B("b2B_xanes.pot",n1i_bB,n2i_bB,n3i_bB, pot_bB, alat1_bB, alat2_bB, alat3_bB)
            print  *, " reading OK "
            
            
@@ -707,7 +717,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
            shift_b2B(j) = rxyz(j,1) - rxyz_b2B(j,1) 
            do iat=2,atoms%nat
               if( abs(shift_b2B(j) - (rxyz(j,iat) - rxyz_b2B(j,iat) )  )>1.0e-4 ) then
-                 if(iproc==0) write(*,*)  "   b2B_xanes.xyz  positions are not compatible with actual positions" 
+                 if(iproc==0) write(*,*) &
+                      "   b2B_xanes.xyz  positions are not compatible with actual positions" 
                  if(nproc>1) call MPI_Finalize(ierr)
                  stop '      b2B_xanes.xyz positions are not compatible with actual positions'
               end if
@@ -759,13 +770,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         do iz_bB = 1,n3i_bB
            do iy_bB=1,n2i_bB
               do ix_bB=1,n1i_bB
-                 rhopot(ix_bB,iy_bB,iz_bB +i3xcsh,1) =  pot_bB(ix_bB  + (iy_bB-1)*n1i_bB  + (iz_bB-1)*n1i_bB*n2i_bB)
+                 rhopot(ix_bB,iy_bB,iz_bB +i3xcsh,1)=&
+                      pot_bB(ix_bB+(iy_bB-1)*n1i_bB+(iz_bB-1)*n1i_bB*n2i_bB,1)
                  
                  do j=-10,10
                     do k=1,3
-                       rx_bB = hx_old*(ix_bB-1)           /2.0   - potcoors(1,j+11,k)
-                       ry_bB = hy_old*(iy_bB-1)           /2.0   - potcoors(2,j+11,k)
-                       rz_bB = hz_old*(iz_bB-1)           /2.0   - potcoors(3,j+11,k)
+                       rx_bB = hx_old*(ix_bB-1)/2.0   - potcoors(1,j+11,k)
+                       ry_bB = hy_old*(iy_bB-1)/2.0   - potcoors(2,j+11,k)
+                       rz_bB = hz_old*(iz_bB-1)/2.0   - potcoors(3,j+11,k)
 
                        idelta = (NINT((rx_bB)*2**15/(hx_old/2)))  + nd/2
                        if(idelta<nd .and. idelta>0 ) then 
@@ -861,11 +873,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
            enddo
         enddo
 
-        if (iproc == 0) write(*,*) 'writing NEW local_potential.pot'
+        if (iproc == 0) write(*,*) 'writing NEW local_potential.cube'
 
-        call plot_density(atoms%geocode,'local_potentialb2BNEW.pot',iproc,nproc,&
+        call plot_density(atoms%geocode,'local_potentialb2BNEW',iproc,nproc,&
              n1,n2,n3,n1i,n2i,n3i,n3p,&
-             atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+             1,0.5_gp*hx_old,0.5_gp*hy_old,0.5_gp*hz_old,atoms,rxyz_b2B,&
+             ngatherarr,rhopot(1,1,1+i3xcsh,1))
 
 
         i_all=-product(shape(auxint))*kind(auxint)
@@ -979,57 +992,11 @@ contains
     !! if (infocode /=0 .and. infocode /=1) then
     if (.true.) then
        
-!!$       if (idsx_actual > 0) then
-!!$          i_all=-product(shape(psidst))*kind(psidst)
-!!$          deallocate(psidst,stat=i_stat)
-!!$          call memocc(i_stat,i_all,'psidst',subname)
-!!$          i_all=-product(shape(hpsidst))*kind(hpsidst)
-!!$          deallocate(hpsidst,stat=i_stat)
-!!$          call memocc(i_stat,i_all,'hpsidst',subname)
-!!$          i_all=-product(shape(ads))*kind(ads)
-!!$          deallocate(ads,stat=i_stat)
-!!$          call memocc(i_stat,i_all,'ads',subname)
-!!$       end if
-       
-!!$       if (nproc > 1) then
-!!$          i_all=-product(shape(psit))*kind(psit)
-!!$          deallocate(psit,stat=i_stat)
-!!$          call memocc(i_stat,i_all,'psit',subname)
-!!$       end if
-!!$       
-!!$       i_all=-product(shape(hpsi))*kind(hpsi)
-!!$       deallocate(hpsi,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'hpsi',subname)
-       
-
-       
-       
-!!$       i_all=-product(shape(pot_ion))*kind(pot_ion)
-!!$       deallocate(pot_ion,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'pot_ion',subname)
-!!$       
-!!$       i_all=-product(shape(pkernel))*kind(pkernel)
-!!$       deallocate(pkernel,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'pkernel',subname)
-!!$
-
-!!$       if (in%read_ref_den) then
-!!$          i_all=-product(shape(pkernel_ref))*kind(pkernel_ref)
-!!$          deallocate(pkernel_ref,stat=i_stat)
-!!$          call memocc(i_stat,i_all,'pkernel_ref',subname)
-!!$       end if
-       
        ! calc_tail false
        i_all=-product(shape(rhopot))*kind(rhopot)
        deallocate(rhopot,stat=i_stat)
        call memocc(i_stat,i_all,'rhopot',subname)
 
-!!$       if (in%read_ref_den) then
-!!$          i_all=-product(shape(rhoref))*kind(rhoref)
-!!$          deallocate(rhoref,stat=i_stat)
-!!$          call memocc(i_stat,i_all,'rhoref',subname)
-!!$       end if
-       
        i_all=-product(shape(nscatterarr))*kind(nscatterarr)
        deallocate(nscatterarr,stat=i_stat)
        call memocc(i_stat,i_all,'nscatterarr',subname)
@@ -1047,7 +1014,6 @@ contains
        deallocate(fdisp,stat=i_stat)
        call memocc(i_stat,i_all,'fdisp',subname)
        
-       
     end if
 
     !deallocate wavefunction for virtual orbitals
@@ -1059,96 +1025,23 @@ contains
        call memocc(i_stat,i_all,'psivirt',subname)
     end if
     
-    if (atoms%geocode == 'F') then
-       call deallocate_bounds(Glr%bounds,subname)
-    end if
+    call deallocate_bounds(Glr%geocode,Glr%hybrid_on,Glr%bounds,subname)
     
-    if (atoms%geocode == 'P' .and. Glr%hybrid_on) then 
-       
-       i_all=-product(shape(Glr%bounds%kb%ibxy_f))*kind(Glr%bounds%kb%ibxy_f)
-       deallocate(Glr%bounds%kb%ibxy_f,stat=i_stat)
-       call memocc(i_stat,i_all,'Glr%bounds%kb%ibxy_f',subname)
-       
-       i_all=-product(shape(Glr%bounds%kb%ibxz_f))*kind(Glr%bounds%kb%ibxz_f)
-       deallocate(Glr%bounds%kb%ibxz_f,stat=i_stat)
-       call memocc(i_stat,i_all,'Glr%bounds%kb%ibxz_f',subname)
-       
-       i_all=-product(shape(Glr%bounds%kb%ibyz_f))*kind(Glr%bounds%kb%ibyz_f)
-       deallocate(Glr%bounds%kb%ibyz_f,stat=i_stat)
-       call memocc(i_stat,i_all,'Glr%bounds%kb%ibyz_f',subname)
-       
-       i_all=-product(shape(Glr%bounds%sb%ibxy_ff))*kind(Glr%bounds%sb%ibxy_ff)
-       deallocate(Glr%bounds%sb%ibxy_ff,stat=i_stat)
-       call memocc(i_stat,i_all,'ibxy_ff',subname)
-       i_all=-product(shape(Glr%bounds%sb%ibzzx_f))*kind(Glr%bounds%sb%ibzzx_f)
-       deallocate(Glr%bounds%sb%ibzzx_f,stat=i_stat)
-       call memocc(i_stat,i_all,'ibzzx_f',subname)
-       i_all=-product(shape(Glr%bounds%sb%ibyyzz_f))*kind(Glr%bounds%sb%ibyyzz_f)
-       deallocate(Glr%bounds%sb%ibyyzz_f,stat=i_stat)
-       call memocc(i_stat,i_all,'ibyyzz_f',subname)
-       
-       i_all=-product(shape(Glr%bounds%gb%ibyz_ff))*kind(Glr%bounds%gb%ibyz_ff)
-       deallocate(Glr%bounds%gb%ibyz_ff,stat=i_stat)
-       call memocc(i_stat,i_all,'ibyz_ff',subname)
-       
-       i_all=-product(shape(Glr%bounds%gb%ibzxx_f))*kind(Glr%bounds%gb%ibzxx_f)
-       deallocate(Glr%bounds%gb%ibzxx_f,stat=i_stat)
-       call memocc(i_stat,i_all,'ibzxx_f',subname)
-       
-       i_all=-product(shape(Glr%bounds%gb%ibxxyy_f))*kind(Glr%bounds%gb%ibxxyy_f)
-       deallocate(Glr%bounds%gb%ibxxyy_f,stat=i_stat)
-       call memocc(i_stat,i_all,'ibxxyy_f',subname)
-    endif
-
     call deallocate_comms(comms,subname)
 
     call deallocate_orbs(orbs,subname)
 
-    !semicores useful only for the input guess
-    i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
-    deallocate(atoms%iasctype,stat=i_stat)
-    call memocc(i_stat,i_all,'iasctype',subname)
-    i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
-    deallocate(atoms%aocc,stat=i_stat)
-    call memocc(i_stat,i_all,'aocc',subname)
-    i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
-    deallocate(atoms%nzatom,stat=i_stat)
-    call memocc(i_stat,i_all,'nzatom',subname)
-    i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
-    deallocate(nlpspd%nboxp_c,stat=i_stat)
-    call memocc(i_stat,i_all,'nboxp_c',subname)
-    i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
-    deallocate(nlpspd%nboxp_f,stat=i_stat)
-    call memocc(i_stat,i_all,'nboxp_f',subname)
-    i_all=-product(shape(nlpspd%keyg_p))*kind(nlpspd%keyg_p)
-    deallocate(nlpspd%keyg_p,stat=i_stat)
-    call memocc(i_stat,i_all,'keyg_p',subname)
-    i_all=-product(shape(nlpspd%keyv_p))*kind(nlpspd%keyv_p)
-    deallocate(nlpspd%keyv_p,stat=i_stat)
-    call memocc(i_stat,i_all,'keyv_p',subname)
-    i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
-    deallocate(nlpspd%nvctr_p,stat=i_stat)
-    call memocc(i_stat,i_all,'nvctr_p',subname)
-    i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
-    deallocate(nlpspd%nseg_p,stat=i_stat)
-    call memocc(i_stat,i_all,'nseg_p',subname)
+    call deallocate_atoms_scf(atoms,subname) 
+
+    call deallocate_proj_descr(nlpspd, subname)
 
     i_all=-product(shape(proj))*kind(proj)
     deallocate(proj,stat=i_stat)
     call memocc(i_stat,i_all,'proj',subname)
 
-    i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
-    deallocate(atoms%psppar,stat=i_stat)
-    call memocc(i_stat,i_all,'psppar',subname)
-    i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
-    deallocate(atoms%nelpsp,stat=i_stat)
-    call memocc(i_stat,i_all,'nelpsp',subname)
     i_all=-product(shape(radii_cf))*kind(radii_cf)
     deallocate(radii_cf,stat=i_stat)
     call memocc(i_stat,i_all,'radii_cf',subname)
-    i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
-    deallocate(atoms%npspcode,stat=i_stat)
-    call memocc(i_stat,i_all,'npspcode',subname)
 
     ! Free the libXC stuff if necessary.
     if (ixc < 0) then

@@ -5,6 +5,7 @@ SUBDIRS = \
 	  H2-spin \
 	  Li+ \
 	  SiH4 \
+	  NH3 \
 	  NaCl \
 	  C \
 	  Ca2 \
@@ -13,7 +14,19 @@ SUBDIRS = \
 	  SiBulk \
 	  H2O-slab \
 	  Davidson-SiH4 \
-	  FeHyb
+	  Graphene \
+	  FeHyb 
+
+
+#This will run the automatic tests also for GPU
+if USE_CUDA_GPU
+SUBDIRS += GPU
+endif
+
+if USE_OCL
+SUBDIRS += OCL
+endif
+
 
 
 if USE_MPI
