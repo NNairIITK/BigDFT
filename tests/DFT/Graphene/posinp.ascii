@@ -1,15 +1,15 @@
-# V_Sim export to ascii from 'posinp.xyz'
-           3.24               0            3.24
-              0               0            3.24
-#keyword: atomic, freeBC
+# V_Sim export to ascii from 'posinp.ascii'
+        4.61388               0         40.00
+              0               0         7.99146
+#keyword: reduced
+#keyword: atomic
+#keyword: surface
 # Statistics are valid for all nodes (hidden or not).
 # Hidden nodes are printed, but commented.
-# Box contains 2 element(s).
-# Box contains 5 nodes.
-#  | 1 nodes for element 'Si'.
-#  | 4 nodes for element 'H'.
-            1.62            1.62            1.62 Si
-            3.24            3.24            3.24 H
-               0               0            3.24 H
-            3.24               0               0 H
-               0            3.24               0 H
+# Box contains 1 element(s).
+# Box contains 4 nodes.
+#  | 4 nodes for element 'C'.
+               0             0.5               0 C
+               0             0.5        0.3333333333 C
+             0.5             0.5             0.5 C
+             0.5             0.5        0.8333333333 C
