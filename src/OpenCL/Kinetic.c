@@ -106,7 +106,7 @@ x_out[jg*n + ig] = tmp_o[0];\n\
 \n\
 ";
 
-inline void kinetic_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, double *scale, cl_mem *x_in, cl_mem *x_out, cl_mem *y_in, cl_mem *y_out) {
+inline void kinetic_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n, cl_uint *ndat, double *scale, cl_mem *x_in, cl_mem *x_out, cl_mem *y_in, cl_mem *y_out) {
   int FILTER_WIDTH = 32;
   cl_int ciErrNum;
   assert(*n>=FILTER_WIDTH);
@@ -124,7 +124,7 @@ inline void kinetic_generic(cl_kernel kernel, cl_command_queue *command_queue, c
   clSetKernelArg(kernel, i++,sizeof(*y_out), (void*)y_out);
   clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*(block_size_i+FILTER_WIDTH+1), NULL);
   clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*(block_size_i+1), NULL);
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue kinetic kernel!");
 }
 
@@ -234,7 +234,7 @@ x[jg*2*n + 2*ig + 1] = tmp_o[1];\n\
 }\n\
 ";
 
-inline void kinetic_k_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, double *scale1, double *scale2, cl_mem *x_in, cl_mem *x_out, cl_mem *y_in, cl_mem *y_out) {
+inline void kinetic_k_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n, cl_uint *ndat, double *scale1, double *scale2, cl_mem *x_in, cl_mem *x_out, cl_mem *y_in, cl_mem *y_out) {
   int FILTER_WIDTH = 32;
   cl_int ciErrNum;
   assert(*n>=FILTER_WIDTH);
@@ -253,26 +253,22 @@ inline void kinetic_k_generic(cl_kernel kernel, cl_command_queue *command_queue,
   clSetKernelArg(kernel, i++,sizeof(*y_out), (void*)y_out);
   clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*2*(block_size_i+FILTER_WIDTH+1), NULL);
   clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*2*(block_size_i+1), NULL);
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue kinetic_k kernel!");
 } 
 
 
-cl_kernel kinetic1d_kernel_d;
-cl_kernel kinetic1d_f_kernel_d;
-cl_kernel kinetic_k1d_kernel_d;
 cl_program kineticProgram;
 cl_program kinetic_kProgram;
 
-void create_kinetic_kernels() {
+void create_kinetic_kernels(struct bigdft_kernels * kernels) {
     cl_int ciErrNum=CL_SUCCESS;
-    kinetic1d_kernel_d=clCreateKernel(kineticProgram,"kinetic1dKernel_d",&ciErrNum);
+    kernels->kinetic1d_kernel_d=clCreateKernel(kineticProgram,"kinetic1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kinetic_k1dKernel_d kernel!");
-    kinetic1d_f_kernel_d=clCreateKernel(kineticProgram,"kinetic1d_fKernel_d",&ciErrNum);
+    kernels->kinetic1d_f_kernel_d=clCreateKernel(kineticProgram,"kinetic1d_fKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kinetic_k1dKernel_d kernel!");
-    kinetic_k1d_kernel_d=clCreateKernel(kinetic_kProgram,"kinetic_k1dKernel_d",&ciErrNum);
+    kernels->kinetic_k1d_kernel_d=clCreateKernel(kinetic_kProgram,"kinetic_k1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kinetic_k1dKernel_d kernel!");
-
 }
 
 void build_kinetic_programs(cl_context * context){
@@ -302,45 +298,45 @@ void build_kinetic_programs(cl_context * context){
     }
 }
 
-void FC_FUNC_(kinetic_k_d,KINETIC_K_D)(cl_command_queue *command_queue, cl_uint *dimensions, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y, double * c_in,  double *k) {
+void FC_FUNC_(kinetic_k_d,KINETIC_K_D)(bigdft_command_queue *command_queue, cl_uint *dimensions, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y, double * c_in,  double *k) {
   double c = *c_in  + .5 * (k[0] * k[0] + k[1] * k[1] + k[2] * k[2]);
   cl_uint n1 = dimensions[0];
   cl_uint n2 = dimensions[1];
   cl_uint n3 = dimensions[2];
   cl_uint ng = n1 * n2 * n3 * 2;
-  c_initialize_generic(c_initialize_kernel_d, command_queue, &ng, x, work_y, &c);  
+  c_initialize_generic((*command_queue)->kernels.c_initialize_kernel_d, (*command_queue)->command_queue, &ng, x, work_y, &c);  
   c = 1.0;
-  c_initialize_generic(c_initialize_kernel_d, command_queue, &ng, x, work_x, &c);  
+  c_initialize_generic((*command_queue)->kernels.c_initialize_kernel_d, (*command_queue)->command_queue, &ng, x, work_x, &c);  
   double scale_1 = -0.5 / ( h[2] * h[2] );
   double scale_2 = k[2] / h[2];
   ng = n2 * n1;
-  kinetic_k_generic(kinetic_k1d_kernel_d, command_queue, &n3, &ng, &scale_1, &scale_2, work_x, x, work_y, y);
+  kinetic_k_generic((*command_queue)->kernels.kinetic_k1d_kernel_d, (*command_queue)->command_queue, &n3, &ng, &scale_1, &scale_2, work_x, x, work_y, y);
   scale_1 = -0.5 / ( h[1] * h[1] );
   scale_2 = k[1] / h[1];
   ng = n1 * n3;
-  kinetic_k_generic(kinetic_k1d_kernel_d, command_queue, &n2, &ng, &scale_1, &scale_2, x, work_x, y, work_y);
+  kinetic_k_generic((*command_queue)->kernels.kinetic_k1d_kernel_d, (*command_queue)->command_queue, &n2, &ng, &scale_1, &scale_2, x, work_x, y, work_y);
   scale_1 = -0.5 / ( h[0] * h[0] );
   scale_2 = k[0] / h[0];
   ng = n3 * n2;
-  kinetic_k_generic(kinetic_k1d_kernel_d, command_queue, &n1, &ng, &scale_1, &scale_2, work_x, x, work_y, y);
+  kinetic_k_generic((*command_queue)->kernels.kinetic_k1d_kernel_d, (*command_queue)->command_queue, &n1, &ng, &scale_1, &scale_2, work_x, x, work_y, y);
 }
 
-void FC_FUNC_(kinetic_stable_d,KINETIC_STABLE_D)(cl_command_queue *command_queue, cl_uint *dimensions, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y, cl_mem *tmp_x, cl_mem *tmp_y) {
+void FC_FUNC_(kinetic_stable_d,KINETIC_STABLE_D)(bigdft_command_queue *command_queue, cl_uint *dimensions, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y, cl_mem *tmp_x, cl_mem *tmp_y) {
   cl_uint n1 = dimensions[0] * 2;
   cl_uint n2 = dimensions[1] * 2;
   cl_uint n3 = dimensions[2] * 2;
   double scale = -0.5 / ( h[2] * h[2] );
   cl_uint ng = n2 * n1;
-  kinetic_generic(kinetic1d_kernel_d, command_queue, &n3, &ng, &scale, x, work_x, y, work_y);
+  kinetic_generic((*command_queue)->kernels.kinetic1d_kernel_d, (*command_queue)->command_queue, &n3, &ng, &scale, x, work_x, y, work_y);
   scale = -0.5 / ( h[1] * h[1] );
   ng = n1 * n3;
-  kinetic_generic(kinetic1d_kernel_d, command_queue, &n2, &ng, &scale, work_x, tmp_x, work_y, tmp_y);
+  kinetic_generic((*command_queue)->kernels.kinetic1d_kernel_d, (*command_queue)->command_queue, &n2, &ng, &scale, work_x, tmp_x, work_y, tmp_y);
   scale = -0.5 / ( h[0] * h[0] );
   ng = n3 * n2;
-  kinetic_generic(kinetic1d_kernel_d, command_queue, &n1, &ng, &scale, tmp_x, work_x, tmp_y, work_y);
+  kinetic_generic((*command_queue)->kernels.kinetic1d_kernel_d, (*command_queue)->command_queue, &n1, &ng, &scale, tmp_x, work_x, tmp_y, work_y);
 }
 
-void FC_FUNC_(kinetic_d_generic,KINETIC_D_GENERIC)(cl_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y) {
+void FC_FUNC_(kinetic_d_generic,KINETIC_D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y) {
   double scale;
   cl_uint ng;
   cl_uint n1 = dimensions[0] * 2;             
@@ -352,56 +348,60 @@ void FC_FUNC_(kinetic_d_generic,KINETIC_D_GENERIC)(cl_command_queue *command_que
   scale = -0.5 / ( h[2] * h[2] );
   ng = n1 * n2;
   if( periodic[2] ) {
-    kinetic_generic(kinetic1d_kernel_d, command_queue, &n3, &ng, &scale, x, work_x, y, work_y);
+    kinetic_generic((*command_queue)->kernels.kinetic1d_kernel_d, (*command_queue)->command_queue, &n3, &ng, &scale, x, work_x, y, work_y);
   } else {
-    kinetic_generic(kinetic1d_f_kernel_d, command_queue, &n3, &ng, &scale, x, work_x, y, work_y);
+    kinetic_generic((*command_queue)->kernels.kinetic1d_f_kernel_d, (*command_queue)->command_queue, &n3, &ng, &scale, x, work_x, y, work_y);
   }
   scale = -0.5 / ( h[1] * h[1] );
   ng = n1 * n3;
   if( periodic[1] ) {
-    kinetic_generic(kinetic1d_kernel_d, command_queue, &n2, &ng, &scale, work_x, x, work_y, y);
+    kinetic_generic((*command_queue)->kernels.kinetic1d_kernel_d, (*command_queue)->command_queue, &n2, &ng, &scale, work_x, x, work_y, y);
   } else {
-    kinetic_generic(kinetic1d_f_kernel_d, command_queue, &n2, &ng, &scale, work_x, x, work_y, y);
+    kinetic_generic((*command_queue)->kernels.kinetic1d_f_kernel_d, (*command_queue)->command_queue, &n2, &ng, &scale, work_x, x, work_y, y);
   }
   scale = -0.5 / ( h[0] * h[0] );
   ng = n2 * n3;
   if( periodic[0] ) {
-    kinetic_generic(kinetic1d_kernel_d, command_queue, &n1, &ng, &scale, x, work_x, y, work_y);
+    kinetic_generic((*command_queue)->kernels.kinetic1d_kernel_d, (*command_queue)->command_queue, &n1, &ng, &scale, x, work_x, y, work_y);
   } else {
-    kinetic_generic(kinetic1d_f_kernel_d, command_queue, &n1, &ng, &scale, x, work_x, y, work_y);
+    kinetic_generic((*command_queue)->kernels.kinetic1d_f_kernel_d, (*command_queue)->command_queue, &n1, &ng, &scale, x, work_x, y, work_y);
   }
 }
 
-void FC_FUNC_(kinetic_d,KINETIC_D)(cl_command_queue *command_queue, cl_uint *dimensions, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y) {
+void FC_FUNC_(kinetic_d,KINETIC_D)(bigdft_command_queue *command_queue, cl_uint *dimensions, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y) {
   cl_uint n1 = dimensions[0] * 2;             
   cl_uint n2 = dimensions[1] * 2;
   cl_uint n3 = dimensions[2] * 2;
   double scale = -0.5 / ( h[2] * h[2] );
   cl_uint ng = n2 * n1;
-  kinetic_generic(kinetic1d_kernel_d, command_queue, &n3, &ng, &scale, x, work_x, y, work_y);
+  kinetic_generic((*command_queue)->kernels.kinetic1d_kernel_d, (*command_queue)->command_queue, &n3, &ng, &scale, x, work_x, y, work_y);
   scale = -0.5 / ( h[1] * h[1] );
   ng = n1 * n3;
-  kinetic_generic(kinetic1d_kernel_d, command_queue, &n2, &ng, &scale, work_x, x, work_y, y);
+  kinetic_generic((*command_queue)->kernels.kinetic1d_kernel_d, (*command_queue)->command_queue, &n2, &ng, &scale, work_x, x, work_y, y);
   scale = -0.5 / ( h[0] * h[0] );
   ng = n3 * n2;
-  kinetic_generic(kinetic1d_kernel_d, command_queue, &n1, &ng, &scale, x, work_x, y, work_y);
+  kinetic_generic((*command_queue)->kernels.kinetic1d_kernel_d, (*command_queue)->command_queue, &n1, &ng, &scale, x, work_x, y, work_y);
 }
 
-void FC_FUNC_(kinetic1d_d,KINETIC1D_D)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, double *h, double*c, cl_mem *x, cl_mem *y, cl_mem *workx, cl_mem *worky,double *ekin){
+void FC_FUNC_(kinetic1d_d,KINETIC1D_D)(bigdft_command_queue *command_queue, cl_uint *n, cl_uint *ndat, double *h, double*c, cl_mem *x, cl_mem *y, cl_mem *workx, cl_mem *worky,double *ekin){
   cl_uint ng = *n * *ndat;
-  c_initialize_generic(c_initialize_kernel_d, command_queue, &ng, x, worky, c);
+  c_initialize_generic((*command_queue)->kernels.c_initialize_kernel_d, (*command_queue)->command_queue, &ng, x, worky, c);
   double scale = - 0.5 / ( *h * *h );
-  kinetic_generic(kinetic1d_kernel_d, command_queue, n, ndat, &scale, x, workx, worky, y);
+  kinetic_generic((*command_queue)->kernels.kinetic1d_kernel_d, (*command_queue)->command_queue, n, ndat, &scale, x, workx, worky, y);
 }
 
-void clean_kinetic_kernels(){
+void clean_kinetic_kernels(struct bigdft_kernels * kernels){
   cl_int ciErrNum;
-  ciErrNum = clReleaseKernel(kinetic1d_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->kinetic1d_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(kinetic1d_f_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->kinetic1d_f_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(kinetic_k1d_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->kinetic_k1d_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
+}
+
+void clean_kinetic_programs(){
+  cl_int ciErrNum;
   ciErrNum = clReleaseProgram(kineticProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
   ciErrNum = clReleaseProgram(kinetic_kProgram);

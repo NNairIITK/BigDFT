@@ -2546,10 +2546,10 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
      ! OpenCL convolutions are activated
      ! use CUBLAS for the linear algebra for the moment
      if (.not. OCLconv) then
-        call init_acceleration_OCL(GPU)
         call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)
         !initialize the id_proc per node
         call processor_id_per_node(iproc,mproc,GPU%id_proc)
+        call init_acceleration_OCL(GPU)
         if (iproc == 0) then
            write(*,*)' OpenCL convolutions activated'
         end if

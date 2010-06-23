@@ -1,6 +1,6 @@
 #include "OpenCL_wrappers.h"
 
-void FC_FUNC_(ocl_fulllocham,OCL_FULLLOCHAM)(cl_command_queue *command_queue,
+void FC_FUNC_(ocl_fulllocham,OCL_FULLLOCHAM)(bigdft_command_queue *command_queue,
                                           cl_uint *dimensions,
                                           double *h,
                                           cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
@@ -26,7 +26,7 @@ void FC_FUNC_(ocl_fulllocham,OCL_FULLLOCHAM)(cl_command_queue *command_queue,
   *ekinpot = 0.0;
 }
 
-void FC_FUNC_(ocl_fulllocham_generic,OCL_FULLLOCHAM_GENERIC)(cl_command_queue *command_queue,
+void FC_FUNC_(ocl_fulllocham_generic,OCL_FULLLOCHAM_GENERIC)(bigdft_command_queue *command_queue,
                                           cl_uint *dimensions,
                                           cl_uint *periodic,
                                           double *h,

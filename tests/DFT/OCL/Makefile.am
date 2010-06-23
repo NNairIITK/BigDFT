@@ -17,7 +17,7 @@ CLEANFILES = $(PPFILES) OCL.out posout* *.prc \
 $(PPFILES):
 	ln -fs $(top_srcdir)/utils/PSPfiles/HGH/$@
 
-GPU.out: $(top_builddir)/src/bigdft $(PPFILES)
+OCL.out: $(top_builddir)/src/bigdft $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.xyz ; \
@@ -28,6 +28,6 @@ GPU.out: $(top_builddir)/src/bigdft $(PPFILES)
 	  rm -f posinp.xyz ; \
         fi
 
-check: GPU.out
+check: OCL.out
 	python $(top_srcdir)/tests/fldiff.py --mode=bigdft OCL.out \
 		$(top_srcdir)/tests/DFT/OCL/OCL.out.ref | tee fldiff.report

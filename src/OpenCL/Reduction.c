@@ -788,7 +788,7 @@ __kernel void setKernel_d( uint n, const double val, __global double *x) {\n\
 \n\
 ";
 
-void inline zgemm_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *m, cl_uint *n, cl_uint *k, cl_double2 *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double2 *beta, cl_mem *c, cl_uint *ldc) {
+void inline zgemm_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *m, cl_uint *n, cl_uint *k, cl_double2 *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double2 *beta, cl_mem *c, cl_uint *ldc) {
   cl_int ciErrNum;
   size_t block_size_i=16;
   size_t block_size_j=16;
@@ -808,10 +808,10 @@ void inline zgemm_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_
   clSetKernelArg(kernel, i++,sizeof(cl_double2)*(block_size_i+1)*block_size_j, NULL);
   size_t localWorkSize[] = { block_size_i, block_size_j };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*m), shrRoundUp(block_size_j,*n)  };
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue zgemm kernel!");
 }
-void inline gemm_block_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
+void inline gemm_block_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
   cl_int ciErrNum;
   int ELEM_PER_THREAD=2;
   size_t block_size_i=16;
@@ -832,10 +832,10 @@ void inline gemm_block_generic(cl_kernel kernel, cl_command_queue *command_queue
   clSetKernelArg(kernel, i++,sizeof(cl_double)*(block_size_i+1)*block_size_j*ELEM_PER_THREAD, NULL);
   size_t localWorkSize[] = { block_size_i, block_size_j };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*m), shrRoundUp(block_size_j*ELEM_PER_THREAD,*n)*block_size_j/16  };
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue gemm_block kernel!");
 }
-void inline gemm_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
+void inline gemm_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
   cl_int ciErrNum;
   size_t block_size_i=16;
   size_t block_size_j=16;
@@ -855,10 +855,10 @@ void inline gemm_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_u
   clSetKernelArg(kernel, i++,sizeof(cl_double)*(block_size_i+1)*block_size_j, NULL);
   size_t localWorkSize[] = { block_size_i, block_size_j };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*m), shrRoundUp(block_size_j,*n)  };
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue gemm kernel!");
 }
-void inline gemmsy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *m, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
+void inline gemmsy_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *m, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
   cl_int ciErrNum;
   size_t block_size_i=16;
   size_t block_size_j=16;
@@ -879,10 +879,10 @@ void inline gemmsy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl
   size_t group_number = shrRoundUp(block_size_i,*m)/block_size_i;
   group_number = group_number * ( group_number + 1 ) / 2;
   size_t globalWorkSize[] ={ group_number * block_size_i, block_size_j  };
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue gemmsy kernel!");
 }
-void inline set_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_double *val, cl_mem *x) {
+void inline set_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n, cl_double *val, cl_mem *x) {
   cl_int ciErrNum;
   size_t block_size_i=64;
   cl_uint i=0;
@@ -891,11 +891,11 @@ void inline set_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_ui
   clSetKernelArg(kernel, i++,sizeof(*x), (void*)x);
   size_t localWorkSize[] = { block_size_i };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n) };
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue set kernel!");
 }
 
-void inline dot_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_mem *x, cl_mem *y, cl_mem *out) {
+void inline dot_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n, cl_mem *x, cl_mem *y, cl_mem *out) {
   cl_int ciErrNum;
   size_t block_size_i=512;
   cl_uint i=0;
@@ -906,11 +906,11 @@ void inline dot_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_ui
   clSetKernelArg(kernel, i++,sizeof(double)*block_size_i*2, NULL);
   size_t localWorkSize[] = { block_size_i };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n) };
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue dot kernel!");
 }
 
-void inline copy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out) {
+void inline copy_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n, cl_mem *in, cl_mem *out) {
   cl_int ciErrNum;
   size_t block_size_i=64;
   cl_uint i=0;
@@ -919,11 +919,11 @@ void inline copy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_u
   clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
   size_t localWorkSize[] = { block_size_i };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n) };
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue copy kernel!");
 }
 
-void inline scal_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *in, cl_mem *out) {
+void inline scal_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n, cl_double *alpha, cl_mem *in, cl_mem *out) {
   cl_int ciErrNum;
   size_t block_size_i=64;
   cl_uint i=0;
@@ -933,11 +933,11 @@ void inline scal_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_u
   clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
   size_t localWorkSize[] = { block_size_i };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n) };
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue scal kernel!");
 }
 
-void inline axpy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *x, cl_mem *y, cl_mem *out) {
+void inline axpy_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n, cl_double *alpha, cl_mem *x, cl_mem *y, cl_mem *out) {
   cl_int ciErrNum;
   size_t block_size_i=64;
   cl_uint i=0;
@@ -948,11 +948,11 @@ void inline axpy_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_u
   clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
   size_t localWorkSize[] = { block_size_i };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n) };
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue axpy kernel!");
 }
 
-void inline axpy_offset_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, 
+void inline axpy_offset_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n, cl_double *alpha, 
                                                                                    cl_uint *offset_x, cl_mem *x,
                                                                                    cl_uint *offset_y, cl_mem *y,
                                                                                    cl_uint *offset_out, cl_mem *out) {
@@ -969,11 +969,11 @@ void inline axpy_offset_generic(cl_kernel kernel, cl_command_queue *command_queu
   clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
   size_t localWorkSize[] = { block_size_i };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n) };
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue axpy kernel!");
 }
 
-void inline reduction_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *out) {
+void inline reduction_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *ndat, cl_mem *in, cl_mem *out) {
   cl_int ciErrNum;
   size_t block_size_i=512;
   cl_uint i=0;
@@ -983,88 +983,65 @@ void inline reduction_generic(cl_kernel kernel, cl_command_queue *command_queue,
   clSetKernelArg(kernel, i++,sizeof(cl_double)*block_size_i*2, NULL);
   size_t localWorkSize[] = { block_size_i };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i*2,*ndat)/2 };
-  ciErrNum = clEnqueueNDRangeKernel(*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue reduction kernel!");
 }
 
-cl_kernel reduction_kernel_d;
-cl_kernel reduction_dot_kernel_d;
-cl_kernel axpy_kernel_d;
-cl_kernel axpy_offset_kernel_d;
-cl_kernel scal_kernel_d;
-cl_kernel copy_kernel_d;
-cl_kernel dot_kernel_d;
-cl_kernel set_kernel_d;
-cl_kernel gemm_block_kernel_d;
-cl_kernel gemmsy_kernel_d;
-cl_kernel gemm_kernel_d;
-cl_kernel gemm_kernel_z;
-cl_kernel gemm_kernel_z_ta;
-cl_kernel gemm_kernel_z_tb;
-cl_kernel gemm_kernel_z_tatb;
-cl_kernel gemm_kernel_z_ca;
-cl_kernel gemm_kernel_z_cb;
-cl_kernel gemm_kernel_z_cacb;
-cl_kernel gemm_kernel_z_tacb;
-cl_kernel gemm_kernel_z_catb;
-cl_kernel gemm_kernel_d_tb;
-cl_kernel gemm_kernel_d_ta;
-cl_kernel gemm_kernel_d_tatb;
 cl_program reductionProgram;
 cl_program dgemmProgram;
 
-void FC_FUNC_(set_d,SET_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *val, cl_mem *x){
+void FC_FUNC_(set_d,SET_D)(bigdft_command_queue *command_queue, cl_uint *n, cl_double *val, cl_mem *x){
   if(*n==0) return;
-  set_generic(set_kernel_d, command_queue, n, val, x);
+  set_generic((*command_queue)->kernels.set_kernel_d, (*command_queue)->command_queue, n, val, x);
 }
 
-void FC_FUNC_(copy_d,COPY_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out){
+void FC_FUNC_(copy_d,COPY_D)(bigdft_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out){
   if(*n==0) return;
-  copy_generic(copy_kernel_d, command_queue, n, in, out);
+  copy_generic((*command_queue)->kernels.copy_kernel_d, (*command_queue)->command_queue, n, in, out);
 }
 
-void FC_FUNC_(scal_self_d,SCAL_SELF_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *inout){
+void FC_FUNC_(scal_self_d,SCAL_SELF_D)(bigdft_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *inout){
   if(*n==0)
     return;
-  scal_generic(scal_kernel_d, command_queue, n, alpha, inout, inout);
+  scal_generic((*command_queue)->kernels.scal_kernel_d, (*command_queue)->command_queue, n, alpha, inout, inout);
 }
 
-void FC_FUNC_(scal_d,SCAL_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *in, cl_mem *out){
+void FC_FUNC_(scal_d,SCAL_D)(bigdft_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *in, cl_mem *out){
   if(*n==0)
     return;
-  scal_generic(scal_kernel_d, command_queue, n, alpha, in, out);
+  scal_generic((*command_queue)->kernels.scal_kernel_d, (*command_queue)->command_queue, n, alpha, in, out);
 }
 
-void FC_FUNC_(axpy_self_d,AXPY_SELF_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *in, cl_mem *inout){
+void FC_FUNC_(axpy_self_d,AXPY_SELF_D)(bigdft_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *in, cl_mem *inout){
   if(*n==0)
     return;
-  axpy_generic(axpy_kernel_d, command_queue, n, alpha, in, inout, inout);
+  axpy_generic((*command_queue)->kernels.axpy_kernel_d, (*command_queue)->command_queue, n, alpha, in, inout, inout);
 }
 
-void FC_FUNC_(axpy_d,AXPY_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *x, cl_mem *y, cl_mem *z){
+void FC_FUNC_(axpy_d,AXPY_D)(bigdft_command_queue *command_queue, cl_uint *n, cl_double *alpha, cl_mem *x, cl_mem *y, cl_mem *z){
   if(*n==0)
     return;
-  axpy_generic(axpy_kernel_d, command_queue, n, alpha, x, y, z);
+  axpy_generic((*command_queue)->kernels.axpy_kernel_d, (*command_queue)->command_queue, n, alpha, x, y, z);
 }
 
-void FC_FUNC_(axpy_offset_d,AXPY_OFFSET_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha,
+void FC_FUNC_(axpy_offset_d,AXPY_OFFSET_D)(bigdft_command_queue *command_queue, cl_uint *n, cl_double *alpha,
                                                                             cl_uint *offset_x, cl_mem *x,
                                                                             cl_uint *offset_y, cl_mem *y,
                                                                             cl_uint *offset_z, cl_mem *z){
   if(*n==0)
     return;
-  axpy_offset_generic(axpy_offset_kernel_d, command_queue, n, alpha, offset_x, x, offset_y, y, offset_z, z);
+  axpy_offset_generic((*command_queue)->kernels.axpy_offset_kernel_d, (*command_queue)->command_queue, n, alpha, offset_x, x, offset_y, y, offset_z, z);
 }
 
-void FC_FUNC_(axpy_offset_self_d,AXPY_OFFSET_SELF_D)(cl_command_queue *command_queue, cl_uint *n, cl_double *alpha,
+void FC_FUNC_(axpy_offset_self_d,AXPY_OFFSET_SELF_D)(bigdft_command_queue *command_queue, cl_uint *n, cl_double *alpha,
                                                                             cl_uint *offset_x, cl_mem *x,
                                                                             cl_uint *offset_y, cl_mem *y){
   if(*n==0)
     return;
-  axpy_offset_generic(axpy_offset_kernel_d, command_queue, n, alpha, offset_x, x, offset_y, y, offset_y, y);
+  axpy_offset_generic((*command_queue)->kernels.axpy_offset_kernel_d, (*command_queue)->command_queue, n, alpha, offset_x, x, offset_y, y, offset_y, y);
 }
 
-void FC_FUNC_(asum_self_d,ASUM_SELF_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, cl_double *out) {
+void FC_FUNC_(asum_self_d,ASUM_SELF_D)(bigdft_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, cl_double *out) {
   if(*ndat==0){
     *out = 0.0;
     return;
@@ -1074,16 +1051,16 @@ void FC_FUNC_(asum_self_d,ASUM_SELF_D)(cl_command_queue *command_queue, cl_uint 
   cl_mem *output = work;
   cl_mem *tmp;
   do {
-    reduction_generic(reduction_kernel_d, command_queue, &n, input, output);
+    reduction_generic((*command_queue)->kernels.reduction_kernel_d, (*command_queue)->command_queue, &n, input, output);
     tmp = input;
     input = output;
     output = tmp;
     n = shrRoundUp(1024,n)/1024;
   } while(n>1);
-  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
+  clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
 }
 
-void FC_FUNC_(nrm2sq_self_d,NRM2SQ_SELF_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, cl_double *out) {
+void FC_FUNC_(nrm2sq_self_d,NRM2SQ_SELF_D)(bigdft_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, cl_double *out) {
   if(*ndat==0){
    *out = 0.0;
    return;
@@ -1092,99 +1069,99 @@ void FC_FUNC_(nrm2sq_self_d,NRM2SQ_SELF_D)(cl_command_queue *command_queue, cl_u
   cl_mem *input = in;
   cl_mem *output = work;
   cl_mem *tmp;
-  reduction_generic(reduction_dot_kernel_d, command_queue, &n, input, output);
+  reduction_generic((*command_queue)->kernels.reduction_dot_kernel_d, (*command_queue)->command_queue, &n, input, output);
   input = work;
   output = in;
   n = shrRoundUp(1024,n)/1024;
   if(n>1) {
     do {
-      reduction_generic(reduction_kernel_d, command_queue, &n, input, output);
+      reduction_generic((*command_queue)->kernels.reduction_kernel_d, (*command_queue)->command_queue, &n, input, output);
       tmp = input;
       input = output;
       output = tmp;
       n = shrRoundUp(1024,n)/1024;
     } while(n>1);
   }
-  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
+  clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
 }
 
-void FC_FUNC_(gemm_d,GEMM_D)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
+void FC_FUNC_(gemm_d,GEMM_D)(bigdft_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
   if( *transa == 't' || *transa == 'c' || *transa == 'T' || *transa == 'C' ) {
     if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
-      gemm_generic(gemm_kernel_d_tatb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      gemm_generic((*command_queue)->kernels.gemm_kernel_d_tatb, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     } else {
-      gemm_generic(gemm_kernel_d_ta, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      gemm_generic((*command_queue)->kernels.gemm_kernel_d_ta, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     }
   } else {
     if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
-      gemm_generic(gemm_kernel_d_tb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      gemm_generic((*command_queue)->kernels.gemm_kernel_d_tb, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     } else {
-      gemm_generic(gemm_kernel_d, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      gemm_generic((*command_queue)->kernels.gemm_kernel_d, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     }
   }
 }
-void FC_FUNC_(gemm_block_d,GEMM_BLOCK_D)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
+void FC_FUNC_(gemm_block_d,GEMM_BLOCK_D)(bigdft_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
   if( *transa == 't' || *transa == 'c' || *transa == 'T' || *transa == 'C' ) {
     if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
-      gemm_generic(gemm_kernel_d_tatb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      gemm_generic((*command_queue)->kernels.gemm_kernel_d_tatb, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     } else {
-      gemm_generic(gemm_kernel_d_ta, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      gemm_generic((*command_queue)->kernels.gemm_kernel_d_ta, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     }
   } else {
     if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
-      gemm_generic(gemm_kernel_d_tb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      gemm_generic((*command_queue)->kernels.gemm_kernel_d_tb, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     } else {
-      gemm_block_generic(gemm_block_kernel_d, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      gemm_block_generic((*command_queue)->kernels.gemm_block_kernel_d, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     }
   }
 }
 
-void FC_FUNC_(gemmsy_d,GEMMSY_D)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
+void FC_FUNC_(gemmsy_d,GEMMSY_D)(bigdft_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
   assert(m == n);
   if( *transa == 't' || *transa == 'c' || *transa == 'T' || *transa == 'C' ) {
     if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
-      gemm_generic(gemm_kernel_d_tatb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      gemm_generic((*command_queue)->kernels.gemm_kernel_d_tatb, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     } else {
-      gemm_generic(gemm_kernel_d_ta, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      gemm_generic((*command_queue)->kernels.gemm_kernel_d_ta, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     }
   } else {
     if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
-      gemm_generic(gemm_kernel_d_tb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      gemm_generic((*command_queue)->kernels.gemm_kernel_d_tb, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     } else {
-      gemmsy_generic(gemmsy_kernel_d, command_queue, m, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      gemmsy_generic((*command_queue)->kernels.gemmsy_kernel_d, (*command_queue)->command_queue, m, k, alpha, a, lda, b, ldb, beta, c, ldc);
     }
   }
 }
 
-void FC_FUNC_(gemm_z,GEMM_Z)(cl_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double2 *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double2 *beta, cl_mem *c, cl_uint *ldc) {
+void FC_FUNC_(gemm_z,GEMM_Z)(bigdft_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double2 *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double2 *beta, cl_mem *c, cl_uint *ldc) {
   if( *transa == 't' || *transa == 'T' ) {
     if ( *transb == 't' || *transb == 'T' ) {
-      zgemm_generic(gemm_kernel_z_tatb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      zgemm_generic((*command_queue)->kernels.gemm_kernel_z_tatb, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     } else if ( *transb == 'c' || *transb == 'C' ) {
-      zgemm_generic(gemm_kernel_z_tacb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      zgemm_generic((*command_queue)->kernels.gemm_kernel_z_tacb, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     } else {
-      zgemm_generic(gemm_kernel_z_ta, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      zgemm_generic((*command_queue)->kernels.gemm_kernel_z_ta, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     }
   } else if ( *transa == 'c' || *transa == 'C' ) {
     if ( *transb == 't' || *transb == 'T' ) {
-      zgemm_generic(gemm_kernel_z_catb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      zgemm_generic((*command_queue)->kernels.gemm_kernel_z_catb, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     } else if ( *transb == 'c' || *transb == 'C' ) {
-      zgemm_generic(gemm_kernel_z_cacb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      zgemm_generic((*command_queue)->kernels.gemm_kernel_z_cacb, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     } else {
-      zgemm_generic(gemm_kernel_z_ca, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      zgemm_generic((*command_queue)->kernels.gemm_kernel_z_ca, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     }
   } else {
     if ( *transb == 't' || *transb == 'T' ) {
-      zgemm_generic(gemm_kernel_z_tb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      zgemm_generic((*command_queue)->kernels.gemm_kernel_z_tb, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     } else if ( *transb == 'c' || *transb == 'C' ) {
-      zgemm_generic(gemm_kernel_z_cb, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      zgemm_generic((*command_queue)->kernels.gemm_kernel_z_cb, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     } else {
-      zgemm_generic(gemm_kernel_z, command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+      zgemm_generic((*command_queue)->kernels.gemm_kernel_z, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
     }
   }
 }
 
-void FC_FUNC_(asum_d,ASUM_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, cl_double *out) {
+void FC_FUNC_(asum_d,ASUM_D)(bigdft_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, cl_double *out) {
   if(*ndat==0){
    *out = 0.0;
    return;
@@ -1193,115 +1170,115 @@ void FC_FUNC_(asum_d,ASUM_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_
   cl_mem *input = in;
   cl_mem *output = work1;
   cl_mem *tmp;
-  reduction_generic(reduction_kernel_d, command_queue, &n, input, output);
+  reduction_generic((*command_queue)->kernels.reduction_kernel_d, (*command_queue)->command_queue, &n, input, output);
   input = work1;
   output = work2;
   n = shrRoundUp(1024,n)/1024;
   if(n>1) {
     do {
-      reduction_generic(reduction_kernel_d, command_queue, &n, input, output);
+      reduction_generic((*command_queue)->kernels.reduction_kernel_d, (*command_queue)->command_queue, &n, input, output);
       tmp = input;
       input = output;
       output = tmp;
       n = shrRoundUp(1024,n)/1024;
     } while(n>1);
   }
-  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
+  clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
 }
 
-void FC_FUNC_(nrm2sq_d,NRM2SQ_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, cl_double *out) {
+void FC_FUNC_(nrm2sq_d,NRM2SQ_D)(bigdft_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, cl_double *out) {
   if(*ndat==0){
    *out = 0.0;
    return;
   }
   cl_uint n = *ndat;
-  reduction_generic(reduction_dot_kernel_d, command_queue, &n, in, work1);
+  reduction_generic((*command_queue)->kernels.reduction_dot_kernel_d, (*command_queue)->command_queue, &n, in, work1);
   cl_mem *input = work1;
   cl_mem *output = work2;
   cl_mem *tmp;
   n = shrRoundUp(1024,n)/1024;
   if(n>1) {
     do {
-      reduction_generic(reduction_kernel_d, command_queue, &n, input, output);
+      reduction_generic((*command_queue)->kernels.reduction_kernel_d, (*command_queue)->command_queue, &n, input, output);
       tmp = input;
       input = output;
       output = tmp;
       n = shrRoundUp(1024,n)/1024;
     } while(n>1);
   }
-  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
+  clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
 }
 
-void FC_FUNC_(dot_d,DOT_D)(cl_command_queue *command_queue, cl_uint *ndat, cl_mem *x, cl_mem *y, cl_mem *work1, cl_mem *work2, cl_double *out) {
+void FC_FUNC_(dot_d,DOT_D)(bigdft_command_queue *command_queue, cl_uint *ndat, cl_mem *x, cl_mem *y, cl_mem *work1, cl_mem *work2, cl_double *out) {
   if(*ndat==0){
    *out = 0.0;
    return;
   }
   cl_uint n = *ndat;
-  dot_generic(dot_kernel_d, command_queue, &n, x, y, work1);
+  dot_generic((*command_queue)->kernels.dot_kernel_d, (*command_queue)->command_queue, &n, x, y, work1);
   cl_mem *input=work1;
   cl_mem *output=work2;
   cl_mem *tmp;
   n = shrRoundUp(1024,n)/1024;
   if(n>1) {
     do {
-      reduction_generic(reduction_kernel_d, command_queue, &n, input, output);
+      reduction_generic((*command_queue)->kernels.reduction_kernel_d, (*command_queue)->command_queue, &n, input, output);
       tmp = input;
       input = output;
       output = tmp;
       n = shrRoundUp(1024,n)/1024;
     } while(n>1);
   }
-  clEnqueueReadBuffer(*command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
+  clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
 }
 
-void create_reduction_kernels(){
+void create_reduction_kernels(struct bigdft_kernels * kernels){
     cl_int ciErrNum = CL_SUCCESS;
-    axpy_offset_kernel_d=clCreateKernel(reductionProgram,"axpy_offsetKernel_d",&ciErrNum);
+    kernels->axpy_offset_kernel_d=clCreateKernel(reductionProgram,"axpy_offsetKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    axpy_kernel_d=clCreateKernel(reductionProgram,"axpyKernel_d",&ciErrNum);
+    kernels->axpy_kernel_d=clCreateKernel(reductionProgram,"axpyKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    scal_kernel_d=clCreateKernel(reductionProgram,"scalKernel_d",&ciErrNum);
+    kernels->scal_kernel_d=clCreateKernel(reductionProgram,"scalKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    reduction_kernel_d=clCreateKernel(reductionProgram,"reductionKernel_d",&ciErrNum);
+    kernels->reduction_kernel_d=clCreateKernel(reductionProgram,"reductionKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    reduction_dot_kernel_d=clCreateKernel(reductionProgram,"reduction_dotKernel_d",&ciErrNum);
+    kernels->reduction_dot_kernel_d=clCreateKernel(reductionProgram,"reduction_dotKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    copy_kernel_d=clCreateKernel(reductionProgram,"copyKernel_d",&ciErrNum);
+    kernels->copy_kernel_d=clCreateKernel(reductionProgram,"copyKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    dot_kernel_d=clCreateKernel(reductionProgram,"dotKernel_d",&ciErrNum);
+    kernels->dot_kernel_d=clCreateKernel(reductionProgram,"dotKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    set_kernel_d=clCreateKernel(reductionProgram,"setKernel_d",&ciErrNum);
+    kernels->set_kernel_d=clCreateKernel(reductionProgram,"setKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    gemm_block_kernel_d=clCreateKernel(dgemmProgram,"gemm_blockKernel_d",&ciErrNum);
+    kernels->gemm_block_kernel_d=clCreateKernel(dgemmProgram,"gemm_blockKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    gemmsy_kernel_d=clCreateKernel(dgemmProgram,"gemmsyKernel_d",&ciErrNum);
+    kernels->gemmsy_kernel_d=clCreateKernel(dgemmProgram,"gemmsyKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    gemm_kernel_d=clCreateKernel(dgemmProgram,"gemmKernel_d",&ciErrNum);
+    kernels->gemm_kernel_d=clCreateKernel(dgemmProgram,"gemmKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    gemm_kernel_z=clCreateKernel(dgemmProgram,"gemmKernel_z",&ciErrNum);
+    kernels->gemm_kernel_z=clCreateKernel(dgemmProgram,"gemmKernel_z",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    gemm_kernel_d_tb=clCreateKernel(dgemmProgram,"gemmKernel_d_tb",&ciErrNum);
+    kernels->gemm_kernel_d_tb=clCreateKernel(dgemmProgram,"gemmKernel_d_tb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    gemm_kernel_z_tb=clCreateKernel(dgemmProgram,"gemmKernel_z_tb",&ciErrNum);
+    kernels->gemm_kernel_z_tb=clCreateKernel(dgemmProgram,"gemmKernel_z_tb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    gemm_kernel_z_cb=clCreateKernel(dgemmProgram,"gemmKernel_z_cb",&ciErrNum);
+    kernels->gemm_kernel_z_cb=clCreateKernel(dgemmProgram,"gemmKernel_z_cb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    gemm_kernel_d_ta=clCreateKernel(dgemmProgram,"gemmKernel_d_ta",&ciErrNum);
+    kernels->gemm_kernel_d_ta=clCreateKernel(dgemmProgram,"gemmKernel_d_ta",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    gemm_kernel_z_ta=clCreateKernel(dgemmProgram,"gemmKernel_z_ta",&ciErrNum);
+    kernels->gemm_kernel_z_ta=clCreateKernel(dgemmProgram,"gemmKernel_z_ta",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    gemm_kernel_z_ca=clCreateKernel(dgemmProgram,"gemmKernel_z_ca",&ciErrNum);
+    kernels->gemm_kernel_z_ca=clCreateKernel(dgemmProgram,"gemmKernel_z_ca",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    gemm_kernel_d_tatb=clCreateKernel(dgemmProgram,"gemmKernel_d_tatb",&ciErrNum);
+    kernels->gemm_kernel_d_tatb=clCreateKernel(dgemmProgram,"gemmKernel_d_tatb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    gemm_kernel_z_tatb=clCreateKernel(dgemmProgram,"gemmKernel_z_tatb",&ciErrNum);
+    kernels->gemm_kernel_z_tatb=clCreateKernel(dgemmProgram,"gemmKernel_z_tatb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    gemm_kernel_z_catb=clCreateKernel(dgemmProgram,"gemmKernel_z_catb",&ciErrNum);
+    kernels->gemm_kernel_z_catb=clCreateKernel(dgemmProgram,"gemmKernel_z_catb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    gemm_kernel_z_tacb=clCreateKernel(dgemmProgram,"gemmKernel_z_tacb",&ciErrNum);
+    kernels->gemm_kernel_z_tacb=clCreateKernel(dgemmProgram,"gemmKernel_z_tacb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    gemm_kernel_z_cacb=clCreateKernel(dgemmProgram,"gemmKernel_z_cacb",&ciErrNum);
+    kernels->gemm_kernel_z_cacb=clCreateKernel(dgemmProgram,"gemmKernel_z_cacb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
 }
 
@@ -1332,54 +1309,57 @@ void build_reduction_programs(cl_context * context){
     }
 }
 
-void clean_reduction_kernels(){
+void clean_reduction_kernels(struct bigdft_kernels * kernels){
   cl_int ciErrNum;
-  ciErrNum = clReleaseKernel(reduction_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->reduction_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(reduction_dot_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->reduction_dot_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(axpy_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->axpy_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(axpy_offset_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->axpy_offset_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(scal_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->scal_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(copy_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->copy_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(dot_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->dot_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(set_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->set_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(gemm_block_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->gemm_block_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(gemmsy_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->gemmsy_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(gemm_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->gemm_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(gemm_kernel_z);
+  ciErrNum = clReleaseKernel(kernels->gemm_kernel_z);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(gemm_kernel_d_tb);
+  ciErrNum = clReleaseKernel(kernels->gemm_kernel_d_tb);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(gemm_kernel_z_tb);
+  ciErrNum = clReleaseKernel(kernels->gemm_kernel_z_tb);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(gemm_kernel_z_cb);
+  ciErrNum = clReleaseKernel(kernels->gemm_kernel_z_cb);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(gemm_kernel_d_ta);
+  ciErrNum = clReleaseKernel(kernels->gemm_kernel_d_ta);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(gemm_kernel_z_ta);
+  ciErrNum = clReleaseKernel(kernels->gemm_kernel_z_ta);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(gemm_kernel_z_ca);
+  ciErrNum = clReleaseKernel(kernels->gemm_kernel_z_ca);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(gemm_kernel_d_tatb);
+  ciErrNum = clReleaseKernel(kernels->gemm_kernel_d_tatb);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(gemm_kernel_z_tatb);
+  ciErrNum = clReleaseKernel(kernels->gemm_kernel_z_tatb);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(gemm_kernel_z_catb);
+  ciErrNum = clReleaseKernel(kernels->gemm_kernel_z_catb);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(gemm_kernel_z_tacb);
+  ciErrNum = clReleaseKernel(kernels->gemm_kernel_z_tacb);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(gemm_kernel_z_cacb);
+  ciErrNum = clReleaseKernel(kernels->gemm_kernel_z_cacb);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
+}
+void clean_reduction_programs(){
+  cl_int ciErrNum;
   ciErrNum = clReleaseProgram(reductionProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
   ciErrNum = clReleaseProgram(dgemmProgram);

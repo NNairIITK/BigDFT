@@ -1,6 +1,6 @@
 #include "OpenCL_wrappers.h"
 
-void apply_hp(cl_command_queue *command_queue,
+void apply_hp(bigdft_command_queue *command_queue,
               cl_uint *dimensions,
               double *h,
               double *c,
@@ -25,7 +25,7 @@ void apply_hp(cl_command_queue *command_queue,
                       psi_c_out, psi_f_out, out);
 }
 
-void FC_FUNC_(ocl_preconditioner,OCL_PRECONDITIONER)(cl_command_queue *command_queue,
+void FC_FUNC_(ocl_preconditioner,OCL_PRECONDITIONER)(bigdft_command_queue *command_queue,
                                           cl_uint *dimensions,
                                           double *h,
                                           double *c,

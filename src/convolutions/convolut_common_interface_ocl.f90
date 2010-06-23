@@ -3,8 +3,8 @@ subroutine release_acceleration_OCL(GPU)
   use module_types
   implicit none
   type(GPU_pointers), intent(out) :: GPU
-
-  call ocl_clean(GPU%queue,GPU%context)
+  call ocl_clean_command_queue(GPU%queue)
+  call ocl_clean(GPU%context)
 end subroutine release_acceleration_OCL
 
 subroutine init_acceleration_OCL(GPU)
@@ -15,8 +15,8 @@ subroutine init_acceleration_OCL(GPU)
 
   call ocl_create_gpu_context(GPU%context)
   !call ocl_create_command_queue(GPU%queue,GPU%context)
+  call ocl_build_programs(GPU%context)
   call ocl_create_command_queue_id(GPU%queue,GPU%context,GPU%id_proc)
-  call ocl_build_kernels(GPU%context)
   call init_event_list
 end subroutine init_acceleration_OCL
 

@@ -357,7 +357,7 @@ psi_f[igr * 7 + i + 6*64] = tmp_o[6*64];\n\
 
 #define A2 3.55369228991319019
 #define B2 24.8758460293923314
-inline void scale_psi_coarse_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *nvctr_c, double *h, double *c, cl_mem *psi_c) {
+inline void scale_psi_coarse_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *nvctr_c, double *h, double *c, cl_mem *psi_c) {
   double hh1 = 0.125/(h[0]*h[0]);
   double hh2 = 0.125/(h[1]*h[1]);
   double hh3 = 0.125/(h[2]*h[2]);
@@ -370,11 +370,11 @@ inline void scale_psi_coarse_generic(cl_kernel kernel, cl_command_queue *command
   clSetKernelArg(kernel, i++, sizeof(*psi_c), (void*)psi_c);
   size_t localWorkSize[]= { block_size_i };
   size_t globalWorkSize[] = { shrRoundUp(block_size_i, *nvctr_c) } ;
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue scale_psi_coarse kernel!");
 }
 
-inline void un_compress_scale_coarse_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *dimensions, double *h, double *c,
+inline void un_compress_scale_coarse_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *dimensions, double *h, double *c,
                                     cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
                                     cl_mem *psi_c, cl_mem * psi) {
   double hh1 = 0.125/(h[0]*h[0]);
@@ -397,12 +397,12 @@ inline void un_compress_scale_coarse_generic(cl_kernel kernel, cl_command_queue 
     clSetKernelArg(kernel, i++, sizeof(*psi), (void*)psi);
     size_t localWorkSize[]= { block_size_i };
     size_t globalWorkSize[] = { shrRoundUp(block_size_i, *nvctr_c) } ;
-    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
     oclErrorCheck(ciErrNum,"Failed to enqueue uncompress_scale_coarse kernel!");
 
 }
 
-inline void scale_psi_fine_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *nvctr_f, double *h, double *c, cl_mem *psi_f) {
+inline void scale_psi_fine_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *nvctr_f, double *h, double *c, cl_mem *psi_f) {
   double hh1 = 0.125/(h[0]*h[0]);
   double hh2 = 0.125/(h[1]*h[1]);
   double hh3 = 0.125/(h[2]*h[2]);
@@ -427,11 +427,11 @@ inline void scale_psi_fine_generic(cl_kernel kernel, cl_command_queue *command_q
   clSetKernelArg(kernel, i++, sizeof(*psi_f), (void*)psi_f);
   size_t localWorkSize[]= { block_size_i };
   size_t globalWorkSize[] = { shrRoundUp(block_size_i, *nvctr_f) } ;
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue scale_psi_coarse kernel!");
 }
 
-inline void un_compress_scale_fine_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *dimensions, double *h, double *c,
+inline void un_compress_scale_fine_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *dimensions, double *h, double *c,
                                     cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                     cl_mem *psi_f, cl_mem * psi) {
   double hh1 = 0.125/(h[0]*h[0]);
@@ -453,13 +453,13 @@ inline void un_compress_scale_fine_generic(cl_kernel kernel, cl_command_queue *c
     clSetKernelArg(kernel, i++, sizeof(dimensions[2]), (void*)&(dimensions[2]));
     clSetKernelArg(kernel, i++, sizeof(*nseg_f), (void*)nseg_f);
     clSetKernelArg(kernel, i++, sizeof(*nvctr_f), (void*)nvctr_f);
-  clSetKernelArg(kernel, i++, sizeof(GPUscal1), (void*)&GPUscal1);
-  clSetKernelArg(kernel, i++, sizeof(GPUscal2), (void*)&GPUscal2);
-  clSetKernelArg(kernel, i++, sizeof(GPUscal3), (void*)&GPUscal3);
-  clSetKernelArg(kernel, i++, sizeof(GPUscal4), (void*)&GPUscal4);
-  clSetKernelArg(kernel, i++, sizeof(GPUscal5), (void*)&GPUscal5);
-  clSetKernelArg(kernel, i++, sizeof(GPUscal6), (void*)&GPUscal6);
-  clSetKernelArg(kernel, i++, sizeof(GPUscal7), (void*)&GPUscal7);
+    clSetKernelArg(kernel, i++, sizeof(GPUscal1), (void*)&GPUscal1);
+    clSetKernelArg(kernel, i++, sizeof(GPUscal2), (void*)&GPUscal2);
+    clSetKernelArg(kernel, i++, sizeof(GPUscal3), (void*)&GPUscal3);
+    clSetKernelArg(kernel, i++, sizeof(GPUscal4), (void*)&GPUscal4);
+    clSetKernelArg(kernel, i++, sizeof(GPUscal5), (void*)&GPUscal5);
+    clSetKernelArg(kernel, i++, sizeof(GPUscal6), (void*)&GPUscal6);
+    clSetKernelArg(kernel, i++, sizeof(GPUscal7), (void*)&GPUscal7);
     clSetKernelArg(kernel, i++, sizeof(*keyg_f), (void*)keyg_f);
     clSetKernelArg(kernel, i++, sizeof(*keyv_f), (void*)keyv_f);
     clSetKernelArg(kernel, i++, sizeof(*psi_f), (void*)psi_f);
@@ -467,12 +467,12 @@ inline void un_compress_scale_fine_generic(cl_kernel kernel, cl_command_queue *c
     clSetKernelArg(kernel, i++, sizeof(double)*block_size_i*7, NULL);
     size_t localWorkSize[]= { block_size_i };
     size_t globalWorkSize[] = { shrRoundUp(block_size_i, *nvctr_f) } ;
-    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
     oclErrorCheck(ciErrNum,"Failed to enqueue uncompress_scale_fine kernel!");
 
 }
 
-inline void un_compress_coarse_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *dimensions,
+inline void un_compress_coarse_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *dimensions,
                                     cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
                                     cl_mem *psi_c, cl_mem * psi) {
     cl_int ciErrNum;
@@ -490,12 +490,12 @@ inline void un_compress_coarse_generic(cl_kernel kernel, cl_command_queue *comma
     clSetKernelArg(kernel, i++, sizeof(*psi), (void*)psi);
     size_t localWorkSize[]= { block_size_i };
     size_t globalWorkSize[] = { shrRoundUp(block_size_i, *nvctr_c) } ;
-    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
     oclErrorCheck(ciErrNum,"Failed to enqueue compress_coarse kernel!");
 
 }
 
-inline void un_compress_fine_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *dimensions,
+inline void un_compress_fine_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *dimensions,
                                     cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                     cl_mem *psi_f, cl_mem * psi) {
     cl_int ciErrNum;
@@ -514,45 +514,35 @@ inline void un_compress_fine_generic(cl_kernel kernel, cl_command_queue *command
     clSetKernelArg(kernel, i++, sizeof(double)*block_size_i*7, NULL);
     size_t localWorkSize[]= { block_size_i };
     size_t globalWorkSize[] = { shrRoundUp(block_size_i, *nvctr_f) } ;
-    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
     oclErrorCheck(ciErrNum,"Failed to enqueue compress_fine kernel!");
 
 }
 
-cl_kernel uncompress_coarse_kernel_d;
-cl_kernel uncompress_fine_kernel_d;
-cl_kernel uncompress_scale_coarse_kernel_d;
-cl_kernel uncompress_scale_fine_kernel_d;
-cl_kernel compress_coarse_kernel_d;
-cl_kernel compress_fine_kernel_d;
-cl_kernel compress_scale_coarse_kernel_d;
-cl_kernel compress_scale_fine_kernel_d;
-cl_kernel scale_psi_fine_kernel_d;
-cl_kernel scale_psi_coarse_kernel_d;
 cl_program uncompressProgram;
 cl_program compressProgram;
 
-void create_uncompress_kernels(){
+void create_uncompress_kernels(struct bigdft_kernels * kernels){
     cl_int ciErrNum = CL_SUCCESS;
-    uncompress_coarse_kernel_d=clCreateKernel(uncompressProgram,"uncompress_coarseKernel_d",&ciErrNum);
+    kernels->uncompress_coarse_kernel_d=clCreateKernel(uncompressProgram,"uncompress_coarseKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel 1!");
-    uncompress_fine_kernel_d=clCreateKernel(uncompressProgram,"uncompress_fineKernel_d",&ciErrNum);
+    kernels->uncompress_fine_kernel_d=clCreateKernel(uncompressProgram,"uncompress_fineKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel 2!");
-    uncompress_scale_coarse_kernel_d=clCreateKernel(uncompressProgram,"uncompress_scale_coarseKernel_d",&ciErrNum);
+    kernels->uncompress_scale_coarse_kernel_d=clCreateKernel(uncompressProgram,"uncompress_scale_coarseKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel 3!");
-    uncompress_scale_fine_kernel_d=clCreateKernel(uncompressProgram,"uncompress_scale_fineKernel_d",&ciErrNum);
+    kernels->uncompress_scale_fine_kernel_d=clCreateKernel(uncompressProgram,"uncompress_scale_fineKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel 4!");
-    scale_psi_fine_kernel_d=clCreateKernel(uncompressProgram,"scale_psi_fineKernel_d",&ciErrNum);
+    kernels->scale_psi_fine_kernel_d=clCreateKernel(uncompressProgram,"scale_psi_fineKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel 5!");
-    scale_psi_coarse_kernel_d=clCreateKernel(uncompressProgram,"scale_psi_coarseKernel_d",&ciErrNum);
+    kernels->scale_psi_coarse_kernel_d=clCreateKernel(uncompressProgram,"scale_psi_coarseKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel 6!");
-    compress_coarse_kernel_d=clCreateKernel(compressProgram,"compress_coarseKernel_d",&ciErrNum);
+    kernels->compress_coarse_kernel_d=clCreateKernel(compressProgram,"compress_coarseKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel 7!");
-    compress_fine_kernel_d=clCreateKernel(compressProgram,"compress_fineKernel_d",&ciErrNum);
+    kernels->compress_fine_kernel_d=clCreateKernel(compressProgram,"compress_fineKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel 8!");
-    compress_scale_coarse_kernel_d=clCreateKernel(compressProgram,"compress_scale_coarseKernel_d",&ciErrNum);
+    kernels->compress_scale_coarse_kernel_d=clCreateKernel(compressProgram,"compress_scale_coarseKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel 9!");
-    compress_scale_fine_kernel_d=clCreateKernel(compressProgram,"compress_scale_fineKernel_d",&ciErrNum);
+    kernels->compress_scale_fine_kernel_d=clCreateKernel(compressProgram,"compress_scale_fineKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel 10!");
 }
 
@@ -583,74 +573,77 @@ void build_uncompress_programs(cl_context * context){
     }
 }
 
-void FC_FUNC_(scale_psi_d,SCALE_PSI_D)(cl_command_queue *command_queue, cl_uint *nvctr_c, cl_uint *nvctr_f, double *h, double *c, cl_mem *psi_c,  cl_mem *psi_f) {
-  scale_psi_coarse_generic(scale_psi_coarse_kernel_d, command_queue, nvctr_c, h, c, psi_c);
+void FC_FUNC_(scale_psi_d,SCALE_PSI_D)(bigdft_command_queue *command_queue, cl_uint *nvctr_c, cl_uint *nvctr_f, double *h, double *c, cl_mem *psi_c,  cl_mem *psi_f) {
+  scale_psi_coarse_generic((*command_queue)->kernels.scale_psi_coarse_kernel_d, (*command_queue)->command_queue, nvctr_c, h, c, psi_c);
   if(nvctr_f == 0) return;
-  scale_psi_fine_generic(scale_psi_fine_kernel_d, command_queue, nvctr_f, h, c, psi_f);
+  scale_psi_fine_generic((*command_queue)->kernels.scale_psi_fine_kernel_d, (*command_queue)->command_queue, nvctr_f, h, c, psi_f);
 }
 
-void FC_FUNC_(uncompress_d,UNCOMPRESS_D)(cl_command_queue *command_queue, cl_uint *dimensions,
+void FC_FUNC_(uncompress_d,UNCOMPRESS_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,
                                        cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
                                        cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
 				       cl_mem *psi_c, cl_mem *psi_f, cl_mem * psi_out) {
   cl_uint full_size = dimensions[0] * dimensions[1] * dimensions[2] * 8;
   double init = 0.0;
-  v_initialize_generic(v_initialize_kernel_d, command_queue, &full_size, psi_out, &init);
-  un_compress_coarse_generic(uncompress_coarse_kernel_d, command_queue, dimensions, nseg_c, nvctr_c, keyg_c, keyv_c, psi_c, psi_out);
+  v_initialize_generic((*command_queue)->kernels.v_initialize_kernel_d, (*command_queue)->command_queue, &full_size, psi_out, &init);
+  un_compress_coarse_generic((*command_queue)->kernels.uncompress_coarse_kernel_d, (*command_queue)->command_queue, dimensions, nseg_c, nvctr_c, keyg_c, keyv_c, psi_c, psi_out);
   if(nvctr_f == 0) return;
-  un_compress_fine_generic(uncompress_fine_kernel_d, command_queue, dimensions, nseg_f, nvctr_f, keyg_f, keyv_f, psi_f, psi_out);
+  un_compress_fine_generic((*command_queue)->kernels.uncompress_fine_kernel_d, (*command_queue)->command_queue, dimensions, nseg_f, nvctr_f, keyg_f, keyv_f, psi_f, psi_out);
 }
 
-void FC_FUNC_(compress_d,COMPRESS_D)(cl_command_queue *command_queue, cl_uint *dimensions,
+void FC_FUNC_(compress_d,COMPRESS_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,
                                      cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
                                      cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                      cl_mem *psi_c, cl_mem *psi_f, cl_mem * psi) {
-  un_compress_coarse_generic(compress_coarse_kernel_d, command_queue, dimensions, nseg_c, nvctr_c, keyg_c, keyv_c, psi_c, psi);
+  un_compress_coarse_generic((*command_queue)->kernels.compress_coarse_kernel_d, (*command_queue)->command_queue, dimensions, nseg_c, nvctr_c, keyg_c, keyv_c, psi_c, psi);
   if(nvctr_f == 0) return;
-  un_compress_fine_generic(compress_fine_kernel_d, command_queue, dimensions, nseg_f, nvctr_f, keyg_f, keyv_f, psi_f, psi);
+  un_compress_fine_generic((*command_queue)->kernels.compress_fine_kernel_d, (*command_queue)->command_queue, dimensions, nseg_f, nvctr_f, keyg_f, keyv_f, psi_f, psi);
 }
 
-void FC_FUNC_(uncompress_scale_d,UNCOMPRESS_SCALE_D)(cl_command_queue *command_queue, cl_uint *dimensions, double *h, double *c,
+void FC_FUNC_(uncompress_scale_d,UNCOMPRESS_SCALE_D)(bigdft_command_queue *command_queue, cl_uint *dimensions, double *h, double *c,
                                        cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
                                        cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                        cl_mem *psi_c, cl_mem *psi_f, cl_mem * psi_out) {
   cl_uint full_size = dimensions[0] * dimensions[1] * dimensions[2] * 8;
   double init = 0.0;
-  v_initialize_generic(v_initialize_kernel_d, command_queue, &full_size, psi_out, &init);
-  un_compress_scale_coarse_generic(uncompress_scale_coarse_kernel_d, command_queue, dimensions, h, c, nseg_c, nvctr_c, keyg_c, keyv_c, psi_c, psi_out);
+  v_initialize_generic((*command_queue)->kernels.v_initialize_kernel_d, (*command_queue)->command_queue, &full_size, psi_out, &init);
+  un_compress_scale_coarse_generic((*command_queue)->kernels.uncompress_scale_coarse_kernel_d, (*command_queue)->command_queue, dimensions, h, c, nseg_c, nvctr_c, keyg_c, keyv_c, psi_c, psi_out);
   if(nvctr_f == 0) return;
-  un_compress_scale_fine_generic(uncompress_scale_fine_kernel_d, command_queue, dimensions, h, c, nseg_f, nvctr_f, keyg_f, keyv_f, psi_f, psi_out);
+  un_compress_scale_fine_generic((*command_queue)->kernels.uncompress_scale_fine_kernel_d, (*command_queue)->command_queue, dimensions, h, c, nseg_f, nvctr_f, keyg_f, keyv_f, psi_f, psi_out);
 }
-void FC_FUNC_(compress_scale_d,COMPRESS_SCALE_D)(cl_command_queue *command_queue, cl_uint *dimensions, double *h, double *c,
+void FC_FUNC_(compress_scale_d,COMPRESS_SCALE_D)(bigdft_command_queue *command_queue, cl_uint *dimensions, double *h, double *c,
                                      cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
                                      cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                      cl_mem *psi_c, cl_mem *psi_f, cl_mem * psi) {
-  un_compress_scale_coarse_generic(compress_scale_coarse_kernel_d, command_queue, dimensions, h, c, nseg_c, nvctr_c, keyg_c, keyv_c, psi_c, psi);
+  un_compress_scale_coarse_generic((*command_queue)->kernels.compress_scale_coarse_kernel_d, (*command_queue)->command_queue, dimensions, h, c, nseg_c, nvctr_c, keyg_c, keyv_c, psi_c, psi);
   if(nvctr_f == 0) return;
-  un_compress_scale_fine_generic(compress_scale_fine_kernel_d, command_queue, dimensions, h, c, nseg_f, nvctr_f, keyg_f, keyv_f, psi_f, psi);
+  un_compress_scale_fine_generic((*command_queue)->kernels.compress_scale_fine_kernel_d, (*command_queue)->command_queue, dimensions, h, c, nseg_f, nvctr_f, keyg_f, keyv_f, psi_f, psi);
 }
-void clean_uncompress_kernels(){
+void clean_uncompress_kernels(struct bigdft_kernels * kernels){
   cl_int ciErrNum;
-  ciErrNum = clReleaseKernel(uncompress_coarse_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->uncompress_coarse_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(uncompress_fine_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->uncompress_fine_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(uncompress_scale_coarse_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->uncompress_scale_coarse_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(uncompress_scale_fine_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->uncompress_scale_fine_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(compress_coarse_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->compress_coarse_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(compress_fine_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->compress_fine_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(compress_scale_coarse_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->compress_scale_coarse_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(compress_scale_fine_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->compress_scale_fine_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(scale_psi_fine_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->scale_psi_fine_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(scale_psi_coarse_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->scale_psi_coarse_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
+}
+void clean_uncompress_programs(){
+  cl_int ciErrNum;
   ciErrNum = clReleaseProgram(uncompressProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
   ciErrNum = clReleaseProgram(compressProgram);

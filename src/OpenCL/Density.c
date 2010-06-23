@@ -1,7 +1,7 @@
 #include "OpenCL_wrappers.h"
 
 
-void FC_FUNC_(ocl_locden,OCL_LOCDEN)(cl_command_queue *command_queue,
+void FC_FUNC_(ocl_locden,OCL_LOCDEN)(bigdft_command_queue *command_queue,
                                      cl_uint *dimensions,
                                      double *hfac,
                                      cl_uint *iaddjmp,
