@@ -139,17 +139,22 @@ void FC_FUNC_(ocl_enqueue_write_buffer,OCL_ENQUEUE_WRITE_BUFFER)(bigdft_command_
 }
 
 void FC_FUNC_(ocl_create_command_queue,OCL_CREATE_COMMAND_QUEUE)(bigdft_command_queue *command_queue, cl_context *context){
-    size_t nContextDescriptorSize;
     cl_int ciErrNum;
+    cl_uint device_number;
     *command_queue = (struct _bigdft_command_queue *)malloc(sizeof(struct _bigdft_command_queue));
     if(*command_queue == NULL) {
       fprintf(stderr,"Error: Failed to create command queue (out of memory)!\n");
       exit(1);
     }
+#if __OPENCL_VERSION__ >= CL_VERSION_1_1
+    clGetContextInfo(*context, CL_CONTEXT_NUM_DEVICES, sizeof(device_number), &device_number, NULL);
+#else
+    size_t nContextDescriptorSize; 
     clGetContextInfo(*context, CL_CONTEXT_DEVICES, 0, 0, &nContextDescriptorSize);
-    cl_device_id * aDevices = (cl_device_id *) malloc(nContextDescriptorSize);
-    clGetContextInfo(*context, CL_CONTEXT_DEVICES, nContextDescriptorSize, aDevices, 0);
-    // create a command queue for first device the context reported
+    device_number = nContextDescriptorSize/sizeof(cl_device_id);
+#endif
+    cl_device_id * aDevices = (cl_device_id *) malloc(sizeof(cl_device_id)*device_number);
+    clGetContextInfo(*context, CL_CONTEXT_DEVICES, sizeof(cl_device_id)*device_number, aDevices, 0);
 #if PROFILING
     (*command_queue)->command_queue = clCreateCommandQueue(*context, aDevices[0], CL_QUEUE_PROFILING_ENABLE, &ciErrNum);
 #else
@@ -164,22 +169,27 @@ void FC_FUNC_(ocl_create_command_queue,OCL_CREATE_COMMAND_QUEUE)(bigdft_command_
 }
 
 void FC_FUNC_(ocl_create_command_queue_id,OCL_CREATE_COMMAND_QUEUE_ID)(bigdft_command_queue *command_queue, cl_context *context, cl_uint *index){
-    size_t nContextDescriptorSize;
     cl_int ciErrNum;
+    cl_uint device_number;
     *command_queue = (struct _bigdft_command_queue *)malloc(sizeof(struct _bigdft_command_queue));
     if(*command_queue == NULL) {
       fprintf(stderr,"Error: Failed to create command queue (out of memory)!\n");
       exit(1);
     }
-    clGetContextInfo(*context, CL_CONTEXT_DEVICES, 0, 0, &nContextDescriptorSize);
-    cl_device_id * aDevices = (cl_device_id *) malloc(nContextDescriptorSize);
-    clGetContextInfo(*context, CL_CONTEXT_DEVICES, nContextDescriptorSize, aDevices, 0);
-#if PROFILING
-    (*command_queue)->command_queue = clCreateCommandQueue(*context, aDevices[*index % (nContextDescriptorSize/sizeof(cl_device_id))], CL_QUEUE_PROFILING_ENABLE, &ciErrNum);
+#if __OPENCL_VERSION__ >= CL_VERSION_1_1
+    clGetContextInfo(*context, CL_CONTEXT_NUM_DEVICES, sizeof(device_number), &device_number, NULL);
 #else
-    (*command_queue)->command_queue = clCreateCommandQueue(*context, aDevices[*index % (nContextDescriptorSize/sizeof(cl_device_id))], 0, &ciErrNum);
-    /*printf("Queue created index : %d, gpu chosen :%ld, gpu number : %ld\n", *index, *index %
-	   (nContextDescriptorSize/sizeof(cl_device_id)), nContextDescriptorSize/sizeof(cl_device_id)); */
+    size_t nContextDescriptorSize; 
+    clGetContextInfo(*context, CL_CONTEXT_DEVICES, 0, 0, &nContextDescriptorSize);
+    device_number = nContextDescriptorSize/sizeof(cl_device_id);
+#endif
+    cl_device_id * aDevices = (cl_device_id *) malloc(sizeof(cl_device_id)*device_number);
+    clGetContextInfo(*context, CL_CONTEXT_DEVICES, sizeof(cl_device_id)*device_number, aDevices, 0);
+#if PROFILING
+    (*command_queue)->command_queue = clCreateCommandQueue(*context, aDevices[*index % device_number], CL_QUEUE_PROFILING_ENABLE, &ciErrNum);
+#else
+    (*command_queue)->command_queue = clCreateCommandQueue(*context, aDevices[*index % device_number], 0, &ciErrNum);
+    /*printf("Queue created index : %d, gpu chosen :%d, gpu number : %d\n", *index, *index % device_number, device_number);*/ 
 #endif
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
