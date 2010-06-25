@@ -33,7 +33,7 @@ program frequencies
   !File unit
   integer, parameter :: u_hessian=20
   integer :: iproc,nproc,iat,jat,i,j,i_stat,i_all,ierr,infocode,ity
-  real(gp) :: etot,sumx,sumy,sumz,alat,dd,rmass,fnoise
+  real(gp) :: etot,alat,dd,rmass,fnoise
   !Input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs

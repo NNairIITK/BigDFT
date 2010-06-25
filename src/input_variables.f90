@@ -178,7 +178,7 @@ subroutine dft_input_variables(iproc,filename,in)
   character(len=7) :: string
   character(len=100) :: line
   logical :: exists
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj
+  integer :: ierror,ierrfrc,iline,ivrbproj
 
   ! Read the input variables.
   inquire(file=trim(filename),exist=exists)

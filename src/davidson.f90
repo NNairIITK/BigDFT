@@ -1502,7 +1502,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   !local variables
   character(len=*), parameter :: subname='psivirt_from_gaussians'
   logical ::  randinp
-  integer :: iorb,icoeff,i_all,i_stat,jproc,nwork,info,iat,jorb
+  integer :: iorb,icoeff,i_all,i_stat,jproc,nwork,info,jorb
   real(kind=4) :: tt
   real(wp), dimension(:,:), allocatable :: gaucoeffs
   real(gp), dimension(:), allocatable :: work,ev

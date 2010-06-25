@@ -211,13 +211,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   integer :: nelec,ndegree_ip,j,i,iorb
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: iat,i_all,i_stat,iter,ierr,jproc,inputpsi,i1,i2,i3,ind,nl1,nl2,nl3
+  integer :: iat,i_all,i_stat,iter,ierr,jproc,inputpsi
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
-  real(gp) :: peakmem,energy_old,sumz,evsum,sumx,sumy,maxdiff
+  real(gp) :: peakmem,energy_old,evsum
   real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,alpha,gnrm
   real(gp) :: scprsum,energybs,tt,tel,ehart_fake,energy_min,psoffset
-  real(kind=8) :: ttsum,tumx,tumy,tumz,fumx,fumy,fumz
+  real(kind=8) :: ttsum
   real(gp) :: edisp ! Dispersion energy
   type(wavefunctions_descriptors) :: wfd_old
   type(nonlocal_psp_descriptors) :: nlpspd
@@ -231,7 +231,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   real(gp), dimension(:,:),allocatable :: fdisp
   ! Charge density/potential,ionic potential, pkernel
   real(dp), dimension(:), allocatable :: pot_ion,rhopot,counter_ions
-  real(gp), dimension(:), allocatable :: atchgs,radii
   real(kind=8), dimension(:,:,:,:), allocatable :: pot,rhoref,potxc
   real(kind=8), dimension(:), pointer :: pkernel,pkernel_ref
   !wavefunction gradients, hamiltonian on vavefunction
@@ -249,7 +248,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ! Variables for the virtual orbitals and band diagram.
   integer :: nkptv, nvirtu, nvirtd
   real(gp), allocatable :: wkptv(:)
-  real(dp), dimension(:,:), pointer :: rho_fake
 
 
   ! ----------------------------------
