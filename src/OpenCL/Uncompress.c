@@ -13,7 +13,7 @@ __global const size_t * first;\n\
 __global const size_t * middle;\n\
 size_t half;\n\
 first = keyv_c;\n\
-while ( length > 0) {\n\
+do {\n\
   half = length / 2;\n\
   middle = first + half;\n\
   if( *middle-1 <= ig ) {\n\
@@ -22,7 +22,7 @@ while ( length > 0) {\n\
   } else {\n\
     length = half;\n\
   }\n\
-}\n\
+} while (length > 0);\n\
 first--;\n\
 size_t iseg = first - keyv_c;\n\
 size_t j0,ii,i1,i2,i3;\n\
@@ -104,7 +104,7 @@ __global const size_t * first;\n\
 __global const size_t * middle;\n\
 size_t half;\n\
 first = keyv_c;\n\
-while ( length > 0) {\n\
+do {\n\
   half = length / 2;\n\
   middle = first + half;\n\
   if( *middle-1 <= ig ) {\n\
@@ -113,7 +113,7 @@ while ( length > 0) {\n\
   } else {\n\
     length = half;\n\
   }\n\
-}\n\
+} while ( length > 0);\n\
 first--;\n\
 size_t iseg = first - keyv_c;\n\
 size_t j0,ii,i1,i2,i3;\n\
@@ -205,7 +205,7 @@ __global const size_t * first;\n\
 __global const size_t * middle;\n\
 size_t half;\n\
 first = keyv_c;\n\
-while ( length > 0) {\n\
+do {\n\
   half = length / 2;\n\
   middle = first + half;\n\
   if( *middle-1 <= ig ) {\n\
@@ -214,7 +214,7 @@ while ( length > 0) {\n\
   } else {\n\
     length = half;\n\
   }\n\
-}\n\
+} while ( length > 0);\n\
 first--;\n\
 size_t iseg = first - keyv_c;\n\
 size_t j0,ii,i1,i2,i3;\n\
@@ -235,7 +235,7 @@ __global const size_t * first;\n\
 __global const size_t * middle;\n\
 size_t half;\n\
 first = keyv_c;\n\
-while ( length > 0) {\n\
+do {\n\
   half = length / 2;\n\
   middle = first + half;\n\
   if( *middle-1 <= ig ) {\n\
@@ -244,7 +244,7 @@ while ( length > 0) {\n\
   } else {\n\
     length = half;\n\
   }\n\
-}\n\
+} while ( length > 0);\n\
 first--;\n\
 size_t iseg = first - keyv_c;\n\
 size_t j0,ii,i1,i2,i3;\n\
