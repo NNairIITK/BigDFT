@@ -21,20 +21,17 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.4-dev.4)
+                           ggggg       i         BBBB                (Ver 1.4-dev.11)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
+ Reading atomic input positions from file:posinp.xyz
 
  Performance options (file 'input.perf' not present):
- |   'debug' option disable
+ |   'debug' option disabled
  |   'fftcache' = 8192
 
- Number of atoms     =     2
- Number of atom types=     1
- Atoms of type 1 are H
- Spin-polarised calculation: YES (Collinear)
 
  =F= Step size factor  1.562500E-02
  =F= Order scheme             2
@@ -45,19 +42,17 @@
 
  Wavefunction Optimization Finished, exit signal=    0
  Final values of the Forces for each atom
-     1      H -8.25708E-04  1.50677E-04  1.50677E-04
-     2      H  1.08095E-03  1.64649E-04  1.64649E-04
- the sum of the forces is
-      x direction     2.55237901E-04
-      y direction     3.15325544E-04
-      z direction     3.15325544E-04
+     1      H -9.53327E-04 -8.47033E-22 -1.69407E-21
+     2      H  9.53327E-04  8.47033E-22  1.69407E-21
 
  =Frequencies calculation ===========================================================
- =F: eigenvalues (real)      =     3.6674678067E-04    1.3113498923E-05    1.3291357307E-05   -1.7094971626E-08   -8.1202070951E-10   -1.7088259934E-10
- =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00
- =F: frequencies (Hartree)   =     1.9150633950E-02    3.6212565392E-03    3.6457313816E-03   -1.3074774042E-04   -2.8495977076E-05   -1.3072207133E-05
- =F: frequencies (cm-1)      =       4203.08       794.77       800.15       -28.70        -6.25        -2.87
+ =F: eigenvalues (real)      =     3.6674677223E-04    0.0000000000E+00    7.2364002490E-07    7.2424973729E-07    1.7112375707E-23    1.7112375707E-23
+ =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    7.9494660801E-23   -7.9494660801E-23
+ =F: frequencies (Hartree)   =     1.9150633729E-02    0.0000000000E+00    8.5067033855E-04    8.5102863482E-04    4.1367107352E-12    4.1367107352E-12
+ =F: frequencies (cm-1)      =       4203.08         0.00       186.70       186.78         0.00         0.00
+ =F: Zero-point energy (Hartree)   =     1.0426166355E-02
+ =F: Zero-point energy (cm-1)      =       2288.28
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 24 allocations and 24 deallocations, remaining memory(B):0
+ 25 allocations and 25 deallocations, remaining memory(B):0
  memory occupation peak: 0 MB
  for the array  work in the routine solve
