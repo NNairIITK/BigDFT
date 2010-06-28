@@ -516,8 +516,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         inquire(file=filename,exist=onefile)
         allfiles=allfiles .and. onefile
         if (.not. allfiles) then
-           if (iproc == 0) write(*,*)' WARNING: The wavefunction ',filename,&
-                'does not exist, switch to normal input guess'
+           if (iproc == 0) write(*,*)' WARNING: The wavefunction file ',trim(filename),&
+                ' does not exist, switch to normal input guess'
            inputpsi = 0
            exit
         end if

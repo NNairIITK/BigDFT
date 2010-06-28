@@ -2,6 +2,7 @@
 %\documentclass[dvips]{seminar}
 \usepackage{pslatex}
 \usepackage{graphicx}
+\usepackage{longtable}
 \usepackage[usenames]{color}
 \pagestyle{plain}
 %\textwidth=26cm
@@ -268,10 +269,13 @@ This file contains all the parameters required for a single wavefunction calcula
       {$1$}       & Pade LDA from Abinit XC library;\\
       {$11$}      & PBE from Abinit XC library;\\
       {$-020$}    & Pade LDA from libXC;\\
-      {$-101130$} & PBE from  libXC;\\
+      {$-101130$} & PBE from libXC;\\
       {$-116133$} & PBEsol from libXC; \\ 
       {$-406$}    & PBE0 Hybrid functional (local part from libXC).
       \end{tabular}
+      A positive integer refers to a functional from ABINIT library and a negative one from libXC
+      library. In this case, you concatenate the codes for the exchange part and for the correlation part
+      (see the table in appendix~\ref{appendix-libXC}).
 \item {\bf ncharge}, {\bf elecfield}: Total charge of the system and constant electric field along the y direction in units of Ha/bohr. 
       A positive {\bf ncharge} means that electrons are taken away.
 \item {\bf nspin}, {\bf mpol}: 
@@ -793,6 +797,133 @@ in progress
 \bibitem{weiss} A. Weiss, G. Wellein, A. Alvermann and H. Fehske Rev. Mod. Phys. 78, 275 (2006) 
 
 
- \end{thebibliography}
+\end{thebibliography}
+
+
+\chapter*{libXC functional codes}
+\label{appendix-libXC}
+\begin{longtable}{lrl}
+   XC\_LDA\_X                 &   1  &  Exchange                     \\
+   XC\_LDA\_C\_WIGNER         &   2  &  Wigner parametrization       \\
+   XC\_LDA\_C\_RPA            &   3  &  Random Phase Approximation   \\
+   XC\_LDA\_C\_HL             &   4  &  Hedin \& Lundqvist            \\
+   XC\_LDA\_C\_GL             &   5  &  Gunnarson \& Lundqvist        \\
+   XC\_LDA\_C\_XALPHA         &   6  &  Slater Xalpha                \\
+   XC\_LDA\_C\_VWN            &   7  &  Vosko, Wilk, \& Nussair       \\
+   XC\_LDA\_C\_VWN\_RPA       &   8  &  Vosko, Wilk, \& Nussair (RPA) \\
+   XC\_LDA\_C\_PZ             &   9  &  Perdew \& Zunger              \\
+   XC\_LDA\_C\_PZ\_MOD        &  10  &  Perdew \& Zunger (Modified)   \\
+   XC\_LDA\_C\_OB\_PZ         &  11  &  Ortiz \& Ballone (PZ)         \\
+   XC\_LDA\_C\_PW             &  12  &  Perdew \& Wang                \\
+   XC\_LDA\_C\_PW\_MOD        &  13  &  Perdew \& Wang (Modified)     \\
+   XC\_LDA\_C\_OB\_PW         &  14  &  Ortiz \& Ballone (PW)         \\
+   XC\_LDA\_C\_2D\_AMGB       &  15  &  Attacalite et al             \\
+   XC\_LDA\_C\_2D\_PRM        &  16  &  Pittalis, Rasanen \& Marques correlation in 2D \\
+   XC\_LDA\_C\_vBH            &  17  &  von Barth \& Hedin            \\
+   XC\_LDA\_C\_1D\_CSC        &  18  &  Casula, Sorella, and Senatore 1D correlation     \\
+   XC\_LDA\_X\_2D             &  19  &  Exchange in 2D \\
+   XC\_LDA\_XC\_TETER93       &  20  &  Teter 93 parametrization                \\
+   XC\_LDA\_X\_1D             &  21  &  Exchange in 1D     \\
+   XC\_GGA\_X\_PBE            & 101  &  Perdew, Burke \& Ernzerhof exchange             \\
+   XC\_GGA\_X\_PBE\_R         & 102  &  Perdew, Burke \& Ernzerhof exchange (revised)   \\
+   XC\_GGA\_X\_B86            & 103  &  Becke 86 Xalpha,beta,gamma                      \\
+   XC\_GGA\_X\_B86\_R         & 104  &  Becke 86 Xalpha,beta,gamma (reoptimized)        \\
+   XC\_GGA\_X\_B86\_MGC       & 105  &  Becke 86 Xalpha,beta,gamma (with mod. grad. correction) \\
+   XC\_GGA\_X\_B88            & 106  &  Becke 88 \\
+   XC\_GGA\_X\_G96            & 107  &  Gill 96                                        \\
+   XC\_GGA\_X\_PW86           & 108  &  Perdew \& Wang 86 \\
+   XC\_GGA\_X\_PW91           & 109  &  Perdew \& Wang 91 \\
+   XC\_GGA\_X\_OPTX           & 110  &  Handy \& Cohen OPTX 01                          \\
+   XC\_GGA\_X\_DK87\_R1       & 111  &  dePristo \& Kress 87 (version R1)               \\
+   XC\_GGA\_X\_DK87\_R2       & 112  &  dePristo \& Kress 87 (version R2)               \\
+   XC\_GGA\_X\_LG93           & 113  &  Lacks \& Gordon 93 \\
+   XC\_GGA\_X\_FT97\_A        & 114  &  Filatov \& Thiel 97 (version A) \\
+   XC\_GGA\_X\_FT97\_B        & 115  &  Filatov \& Thiel 97 (version B) \\
+   XC\_GGA\_X\_PBE\_SOL       & 116  &  Perdew, Burke \& Ernzerhof exchange (solids)    \\
+   XC\_GGA\_X\_RPBE           & 117  &  Hammer, Hansen \& Norskov (PBE-like) \\
+   XC\_GGA\_X\_WC             & 118  &  Wu \& Cohen \\
+   XC\_GGA\_X\_mPW91          & 119  &  Modified form of PW91 by Adamo \& Barone \\
+   XC\_GGA\_X\_AM05           & 120  &  Armiento \& Mattsson 05 exchange                \\
+   XC\_GGA\_X\_PBEA           & 121  &  Madsen (PBE-like) \\
+   XC\_GGA\_X\_MPBE           & 122  &  Adamo \& Barone modification to PBE             \\
+   XC\_GGA\_X\_XPBE           & 123  &  xPBE reparametrization by Xu \& Goddard         \\
+   XC\_GGA\_X\_2D\_B86\_MGC   & 124  &  Becke 86 MGC for 2D systems \\
+   XC\_GGA\_X\_BAYESIAN       & 125  &  Bayesian best fit for the enhancement factor \\
+   XC\_GGA\_X\_PBE\_JSJR      & 126  &  JSJR reparametrization by Pedroza, Silva \& Capelle \\
+   XC\_GGA\_X\_2D\_B88        & 127  &  Becke 88 in 2D \\
+   XC\_GGA\_X\_2D\_B86        & 128  &  Becke 86 Xalpha,beta,gamma                      \\
+   XC\_GGA\_X\_2D\_PBE        & 129  &  Perdew, Burke \& Ernzerhof exchange in 2D          \\
+   XC\_GGA\_C\_PBE            & 130  &  Perdew, Burke \& Ernzerhof correlation          \\
+   XC\_GGA\_C\_LYP            & 131  &  Lee, Yang \& Parr \\
+   XC\_GGA\_C\_P86            & 132  &  Perdew 86 \\
+   XC\_GGA\_C\_PBE\_SOL       & 133  &  Perdew, Burke \& Ernzerhof correlation SOL      \\
+   XC\_GGA\_C\_PW91           & 134  &  Perdew \& Wang 91 \\
+   XC\_GGA\_C\_AM05           & 135  &  Armiento \& Mattsson 05 correlation             \\
+   XC\_GGA\_C\_XPBE           & 136  &  xPBE reparametrization by Xu \& Goddard         \\
+   XC\_GGA\_C\_LM             & 137  &  Langreth and Mehl correlation          \\
+   XC\_GGA\_C\_PBE\_JRGX      & 138  &  JRGX reparametrization by Pedroza, Silva \& Capelle \\
+   XC\_GGA\_X\_OPTB88\_VDW    & 139  &  Becke 88 reoptimized to be used with vdW functional of Dion et al\\
+   XC\_GGA\_X\_PBEK1\_VDW     & 140  &  PBE reparametrization for vdW \\
+   XC\_GGA\_X\_OPTPBE\_VDW    & 141  &  PBE reparametrization for vdW \\
+   XC\_GGA\_XC\_LB            & 160  &  van Leeuwen \& Baerends \\
+   XC\_GGA\_XC\_HCTH\_93      & 161  &  HCTH functional fitted to  93 molecules  \\
+   XC\_GGA\_XC\_HCTH\_120     & 162  &  HCTH functional fitted to 120 molecules  \\
+   XC\_GGA\_XC\_HCTH\_147     & 163  &  HCTH functional fitted to 147 molecules  \\
+   XC\_GGA\_XC\_HCTH\_407     & 164  &  HCTH functional fitted to 147 molecules  \\
+   XC\_GGA\_XC\_EDF1          & 165  &  Empirical functionals from Adamson, Gill, and Pople \\
+   XC\_GGA\_XC\_XLYP          & 166  &  XLYP functional \\
+   XC\_GGA\_XC\_B97           & 167  &  Becke 97                                 \\
+   XC\_GGA\_XC\_B97\_1        & 168  &  Becke 97-1                               \\
+   XC\_GGA\_XC\_B97\_2        & 169  &  Becke 97-2                               \\
+   XC\_GGA\_XC\_B97\_D        & 170  &  Grimme functional to be used with C6 vdW term \\
+   XC\_GGA\_XC\_B97\_K        & 171  &  Boese-Martin for Kinetics                \\
+   XC\_GGA\_XC\_B97\_3        & 172  &  Becke 97-3                               \\
+   XC\_GGA\_XC\_PBE1W         & 173  &  Functionals fitted for water \\
+   XC\_GGA\_XC\_MPWLYP1W      & 174  &  Functionals fitted for water \\
+   XC\_GGA\_XC\_PBELYP1W      & 175  &  Functionals fitted for water \\
+   XC\_GGA\_XC\_SB98\_1a      & 176  &  Schmider-Becke 98 parameterization 1a    \\
+   XC\_GGA\_XC\_SB98\_1b      & 177  &  Schmider-Becke 98 parameterization 1b    \\
+   XC\_GGA\_XC\_SB98\_1c      & 178  &  Schmider-Becke 98 parameterization 1c    \\
+   XC\_GGA\_XC\_SB98\_2a      & 179  &  Schmider-Becke 98 parameterization 2a    \\
+   XC\_GGA\_XC\_SB98\_2b      & 180  &  Schmider-Becke 98 parameterization 2b    \\
+   XC\_GGA\_XC\_SB98\_2c      & 181  &  Schmider-Becke 98 parameterization 2c    \\
+   XC\_HYB\_GGA\_XC\_B3PW91   & 401  &  The original hybrid proposed by Becke \\
+   XC\_HYB\_GGA\_XC\_B3LYP    & 402  &  The (in)famous B3LYP                  \\
+   XC\_HYB\_GGA\_XC\_B3P86    & 403  &  Perdew 86 hybrid similar to B3PW91    \\
+   XC\_HYB\_GGA\_XC\_O3LYP    & 404  &  hybrid using the optx functional \\
+   XC\_HYB\_GGA\_XC\_mPW1K    & 405  &  mixture of mPW91 and PW91 optimized for kinetics \\
+   XC\_HYB\_GGA\_XC\_PBEH     & 406  &  aka PBE0 or PBE1PBE \\
+   XC\_HYB\_GGA\_XC\_B97      & 407  &  Becke 97                                 \\
+   XC\_HYB\_GGA\_XC\_B97\_1   & 408  &  Becke 97-1                               \\
+   XC\_HYB\_GGA\_XC\_B97\_2   & 410  &  Becke 97-2                               \\
+   XC\_HYB\_GGA\_XC\_X3LYP    & 411  &  maybe the best hybrid \\
+   XC\_HYB\_GGA\_XC\_B1WC     & 412  &  Becke 1-parameter mixture of WC and PBE \\
+   XC\_HYB\_GGA\_XC\_B97\_K   & 413  &  Boese-Martin for Kinetics                \\
+   XC\_HYB\_GGA\_XC\_B97\_3   & 414  &  Becke 97-3                               \\
+   XC\_HYB\_GGA\_XC\_mPW3PW   & 415  &  mixture with the mPW functional \\
+   XC\_HYB\_GGA\_XC\_B1LYP    & 416  &  Becke 1-parameter mixture of B88 and LYP \\
+   XC\_HYB\_GGA\_XC\_B1PW91   & 417  &  Becke 1-parameter mixture of B88 and PW91 \\
+   XC\_HYB\_GGA\_XC\_mPW1PW   & 418  &  Becke 1-parameter mixture of mPW91 and PW91 \\
+   XC\_HYB\_GGA\_XC\_mPW3LYP  & 419  &  mixture of mPW and LYP \\
+   XC\_HYB\_GGA\_XC\_SB98\_1a & 420  &  Schmider-Becke 98 parameterization 1a    \\
+   XC\_HYB\_GGA\_XC\_SB98\_1b & 421  &  Schmider-Becke 98 parameterization 1b    \\
+   XC\_HYB\_GGA\_XC\_SB98\_1c & 422  &  Schmider-Becke 98 parameterization 1c    \\
+   XC\_HYB\_GGA\_XC\_SB98\_2a & 423  &  Schmider-Becke 98 parameterization 2a    \\
+   XC\_HYB\_GGA\_XC\_SB98\_2b & 424  &  Schmider-Becke 98 parameterization 2b    \\
+   XC\_HYB\_GGA\_XC\_SB98\_2c & 425  &  Schmider-Becke 98 parameterization 2c    \\
+   XC\_MGGA\_X\_LTA           & 201  &  Local tau approximation of Ernzerhof \& Scuseria \\
+   XC\_MGGA\_X\_TPSS          & 202  &  Perdew, Tao, Staroverov \& Scuseria exchange \\
+   XC\_MGGA\_X\_M06L          & 203  &  Zhao, Truhlar exchange \\
+   XC\_MGGA\_X\_GVT4          & 204  &  GVT4 from Van Voorhis and Scuseria (exchange part)    \\
+   XC\_MGGA\_X\_TAU\_HCTH     & 205  &  tau-HCTH from Boese and Handy \\
+   XC\_MGGA\_X\_BR89          & 206  &  Becke-Roussel 89  \\
+   XC\_MGGA\_X\_BJ06          & 207  &  Becke \& Johnson correction to Becke-Roussel 89  \\
+   XC\_MGGA\_X\_TB09          & 208  &  Tran \& Blaha correction to Becke \& Johnson  \\
+   XC\_MGGA\_X\_RPP09         & 209  &  Rasanen, Pittalis, and Proetto correction to Becke \& Johnson  \\
+   XC\_MGGA\_C\_TPSS          & 231  &  Perdew, Tao, Staroverov \& Scuseria correlation \\
+   XC\_MGGA\_C\_VSXC          & 232  &  VSxc from Van Voorhis and Scuseria (correlation part) \\
+   XC\_LCA\_OMC               & 301  &  Orestes, Marcasso \& Capelle  \\
+   XC\_LCA\_LCH               & 302  &  Lee, Colwell \& Handy         \\
+\end{longtable}
 
 \end{document}
