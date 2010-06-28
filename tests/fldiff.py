@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
+# Use to perform comparison between references and output files
 # 1 - read the output
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 12/03/2010
+# Date: 28/06/2010
 #----------------------------------------------------------------------------
 
 import difflib
