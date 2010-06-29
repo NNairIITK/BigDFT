@@ -543,22 +543,6 @@
  e_virtual(   2)=  1.89875117989178E-03
  e_virtual(   3)=  2.14785617952128E-03
  e_virtual(   4)=  8.36711083596437E-03
-printing virtual0004
-printing virtual0002
-printing virtual0001
-printing virtual0003
-printing denvirt0004
-printing denvirt0002
-printing denvirt0001
-printing denvirt0003
-printing orbital0004
-printing orbital0002
-printing orbital0001
-printing orbital0003
-printing densocc0004
-printing densocc0002
-printing densocc0001
-printing densocc0003
  CPU time/ELAPSED time for root process     0        41.13        41.12
  Final values of the Forces for each atom
      1     Si -1.76630E-05 -1.76630E-05 -1.76630E-05

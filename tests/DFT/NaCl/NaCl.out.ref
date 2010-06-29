@@ -145,7 +145,8 @@
  average noise along y direction:  -2.11955525E-04
  average noise along z direction:  -2.11955525E-04
  total average noise            :   3.67117738E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.463447207764083E-03     0.154798482126231E-01     0.231656216165310E-03     0.152202567706760E-01
+ clean forces norm (Ha/Bohr): maxval=  1.522025677061E-02  fnrm2=  2.316562161632E-04
+ raw forces:                  maxval=  1.547984821249E-02  fnrm2=  4.634472077599E-04
  CPU time/ELAPSED time for root process     0        36.54        36.54
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
@@ -224,9 +225,10 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.463447207764083E-03     0.154798482
  average noise along y direction:  -2.10674823E-04
  average noise along z direction:  -2.10674823E-04
  total average noise            :   3.64899498E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.463373566678992E-03     0.154770967153520E-01     0.231620207517836E-03     0.152190738061761E-01
+ clean forces norm (Ha/Bohr): maxval=  1.521907380609E-02  fnrm2=  2.316202075153E-04
+ raw forces:                  maxval=  1.547709671519E-02  fnrm2=  4.633735666738E-04
  CPU time/ELAPSED time for root process     0         5.81         5.80
-    0     0  GEOPT_VSSD  -1.51808783736399E+01  -3.63E-09  1.522E-02  1.52E-02  0.00E+00  3.65E-04  beta=1.00E+2
+    0     0  GEOPT_VSSD  -1.51808783736399E+01  -3.63E-09  1.522E-02  1.52E-02  0.00E+00  3.65E-04  beta= 1.00E+2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -316,9 +318,10 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.463373566678992E-03     0.154770967
  average noise along y direction:  -1.35618382E-04
  average noise along z direction:  -1.35618382E-04
  total average noise            :   2.34897928E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.111655889054711E-02     0.237934519120070E-01     0.558251856755170E-03     0.236273539939446E-01
+ clean forces norm (Ha/Bohr): maxval=  2.362735399391E-02  fnrm2=  5.582518567537E-04
+ raw forces:                  maxval=  2.379345191200E-02  fnrm2=  1.116558890544E-03
  CPU time/ELAPSED time for root process     0        34.55        34.53
-    2     1  GEOPT_VSSD  -1.52102757294758E+01  -2.94E-02  2.363E-02  2.36E-02  0.00E+00  3.39E-04  beta=1.25E+2  last beta=-9.5E+1
+    2     1  GEOPT_VSSD  -1.52102757294758E+01  -2.94E-02  2.363E-02  2.36E-02  0.00E+00  3.39E-04  beta=1.25E+2  last beta=-9.05E+1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -462,7 +465,8 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.111655889054711E-02     0.237934519
  average noise along y direction:   4.68239405E-06
  average noise along z direction:   4.68239397E-06
  total average noise            :   8.11014435E-06
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.340691515235832E-02     0.412786985678174E-01     0.170345754329194E-02     0.412729638297511E-01
+ clean forces norm (Ha/Bohr): maxval=  4.127296382791E-02  fnrm2=  1.703457543140E-03
+ raw forces:                  maxval=  4.127869856600E-02  fnrm2=  3.406915152054E-03
  CPU time/ELAPSED time for root process     0        24.30        24.29
     3     2  GEOPT_VSSD  -1.52649098839618E+01  -5.46E-02  4.127E-02  4.13E-02  0.00E+00  2.73E-04  beta=1.00E+2  last beta=2.28E+1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
@@ -610,7 +614,8 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.340691515235832E-02     0.412786985
  average noise along y direction:  -2.33833503E-04
  average noise along z direction:  -2.33833503E-04
  total average noise            :   4.05011507E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.584481254246841E-03     0.173790342165923E-01     0.292158609963050E-03     0.170926478335877E-01
+ clean forces norm (Ha/Bohr): maxval=  1.709264783444E-02  fnrm2=  2.921586099922E-04
+ raw forces:                  maxval=  1.737903421737E-02  fnrm2=  5.844812543051E-04
  CPU time/ELAPSED time for root process     0        28.33        28.31
     4     3  GEOPT_VSSD  -1.51864628696659E+01   7.84E-02  1.709E-02  1.71E-02  0.00E+00  2.99E-04  beta=1.00E+2  last beta=3.54E+1
 End of minimization using  VSSD      
@@ -687,7 +692,8 @@ End of minimization using  VSSD
  average noise along y direction:  -2.35783931E-04
  average noise along z direction:  -2.35783931E-04
  total average noise            :   4.08389748E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.584640295019858E-03     0.173837088074583E-01     0.292236756416997E-03     0.170949336476337E-01
+ clean forces norm (Ha/Bohr): maxval=  1.709493364843E-02  fnrm2=  2.922367564443E-04
+ raw forces:                  maxval=  1.738370880812E-02  fnrm2=  5.846402950744E-04
  ------------------------------------------------ Mulliken Charge Population Analysis
  Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) | Net Pol  | Gross Chg
       1     |  s          |    1.52  |  0.21923 |  0.00000   |  0.21923 |  0.78077
@@ -705,6 +711,6 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.584640295019858E-03     0.173837088
      1     Na  0.00000E+00  0.00000E+00  0.00000E+00
      2     Cl -9.86976E-03 -9.86976E-03 -9.86976E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 9847 allocations and 9847 deallocations, remaining memory(B):0
+ 9847 allocations and 9847 deallocations, remaining memory(B): 0
  memory occupation peak: 124 MB
  for the array  rmt in the routine iguess_generator

@@ -27,11 +27,11 @@
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Reading atomic input positions from file:posinp.ascii
- 
+
  Performance options (file 'input.perf' not present):
  |   'debug' option disabled
  |   'fftcache' = 8192
- 
+
  ---------------------------------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -254,7 +254,8 @@
  average noise along y direction:  -2.44920880E-05
  average noise along z direction:   3.46054873E-04
  total average noise            :   3.48004987E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.283439119997173E-04     0.476951148280905E-02     0.282182262469308E-04     0.459594714341341E-02
+ clean forces norm (Ha/Bohr): maxval=  4.595947143429E-03  fnrm2=  2.821822624712E-05
+ raw forces:                  maxval=  4.769511482827E-03  fnrm2=  2.834391199991E-05
  CPU time/ELAPSED time for root process     0         7.40         7.14
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
@@ -437,7 +438,8 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.283439119997173E-04     0.476951148
  average noise along y direction:  -3.42991960E-04
  average noise along z direction:   2.99917616E-04
  total average noise            :   4.55882079E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.473834738954364E-04     0.601741665471224E-02     0.471689091853441E-04     0.588066905682263E-02
+ clean forces norm (Ha/Bohr): maxval=  5.880669056843E-03  fnrm2=  4.716890918566E-05
+ raw forces:                  maxval=  6.017416654736E-03  fnrm2=  4.738347389576E-05
  CPU time/ELAPSED time for root process     0         5.75         5.74
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -625,7 +627,8 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.473834738954364E-04     0.601741665
  average noise along y direction:   3.20052220E-04
  average noise along z direction:   2.18076710E-04
  total average noise            :   3.94324194E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.869835954566359E-04     0.746652677446162E-02     0.868268228624543E-04     0.730214719462178E-02
+ clean forces norm (Ha/Bohr): maxval=  7.302147194752E-03  fnrm2=  8.682682286519E-05
+ raw forces:                  maxval=  7.466526774595E-03  fnrm2=  8.698359545938E-05
  CPU time/ELAPSED time for root process     0         6.31         6.30
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -813,7 +816,8 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.869835954566359E-04     0.746652677
  average noise along y direction:   9.08179098E-04
  average noise along z direction:   7.30324421E-05
  total average noise            :   9.17044647E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.134745535513175E-04     0.276452296929613E-02     0.126294416728155E-04     0.255110947130769E-02
+ clean forces norm (Ha/Bohr): maxval=  2.551109471283E-03  fnrm2=  1.262944167254E-05
+ raw forces:                  maxval=  2.764522969272E-03  fnrm2=  1.347455355104E-05
  CPU time/ELAPSED time for root process     0         6.30         6.30
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -983,7 +987,8 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.134745535513175E-04     0.276452296
  average noise along y direction:   8.63220149E-04
  average noise along z direction:   1.68586368E-04
  total average noise            :   8.83320992E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.189405898863256E-05     0.920944268363782E-03     0.111021043984548E-05     0.629117829268892E-03
+ clean forces norm (Ha/Bohr): maxval=  6.291178292650E-04  fnrm2=  1.110210439869E-06
+ raw forces:                  maxval=  9.209442683692E-04  fnrm2=  1.894058988661E-06
  CPU time/ELAPSED time for root process     0         5.04         5.04
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -1144,7 +1149,8 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.189405898863256E-05     0.920944268
  average noise along y direction:   8.95028588E-04
  average noise along z direction:   1.38843586E-04
  total average noise            :   9.11725288E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.139319855532432E-05     0.879483256028674E-03     0.558432437640794E-06     0.567000550861739E-03
+ clean forces norm (Ha/Bohr): maxval=  5.670005508925E-04  fnrm2=  5.584324376976E-07
+ raw forces:                  maxval=  8.794832560451E-04  fnrm2=  1.393198555372E-06
  CPU time/ELAPSED time for root process     0         4.47         4.47
 End of minimization using  DIIS      
  Final values of the Forces for each atom
@@ -1153,6 +1159,6 @@ End of minimization using  DIIS
      3      H -1.48946E-04 -1.40737E-04  8.78402E-05
      4      H -2.97062E-04  1.34528E-04  8.59009E-05
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 5881 allocations and 5881 deallocations, remaining memory(B):0
+ 5881 allocations and 5881 deallocations, remaining memory(B): 0
  memory occupation peak: 53 MB
  for the array  wz in the routine gaussians_to_wavelets_orb

@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                (Ver 1.4-dev.11)
+                           ggggg       i         BBBB                     (Ver 1.4.0)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -37,16 +37,9 @@
  =F= Order scheme             2
  =F= Used method              1
  =F=> Check if the file "frequencies.res" is present.
- =F=> The reference state is already calculated.
- =F=> There are     3 moves already calculated over    12 frequencies.
+ =F=> No "frequencies.res" file present.
+ =F=> There are     0 moves already calculated over    12 frequencies.
 
- Wavefunction Optimization Finished, exit signal=    0
- Final values of the Forces for each atom
-     1      H -9.53327E-04 -8.47033E-22 -1.69407E-21
-     2      H  9.53327E-04  8.47033E-22  1.69407E-21
-
- =Frequencies calculation ===========================================================
- =F Move the atom 1 in the direction  1*y by     7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -63,6 +56,291 @@
         H   0.20000  -4.06633   0.67783
  Total Number of Electrons        2
  Spin-polarized calculation
+ Processes from 0 to 1 treat 1 orbitals 
+ Total Number of Orbitals         2
+ occup(1:2)= 1.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.14833E+00  6.75000E+00  6.75000E+00       18.107    15.000    15.000
+     2      H  6.70167E+00  6.75000E+00  6.75000E+00       14.893    15.000    15.000
+    Shift of= -1.42500E+00  6.75000E+00  6.75000E+00 H grids=  0.4500  0.4500  0.4500
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation for root processor (Bytes): 142160
+ ion-ion interaction energy  6.91246246551011E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001495710   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
+ ------------------------------------------------------- Input Wavefunctions Creation
+ Generating 4 Atomic Input Orbitals
+ Processes from 0 to 1 treat 2 inguess orbitals 
+ Wavefunctions memory occupation for root processor (Bytes): 284320
+ Deviation from normalization of the imported orbitals    1.62E-06
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
+ ekin_sum,epot_sum,eproj_sum  1.83027081160E+00 -2.11247987499E+00  0.00000000000E+00
+    ehart,   eexcu,    vexcu  1.48585621362E+00 -8.25718029436E-01 -1.08636549763E+00
+ evale(   1,u)= -2.27740859598806E-01  <-Last->  evale(   1,d)= -2.27731729727208E-01
+ evale(   2,u)=  4.96218718821725E-01            evale(   2,d)=  4.96211017657134E-01
+ expected accuracy in energy  1.71E-04
+ expected accuracy in energy per orbital  8.54E-05
+ iter,total energy,gnrm     1  -1.02716489510756381E+00  2.41E-01
+ iter,total energy,gnrm     2  -1.12641797720161452E+00  1.29E-01
+ iter,total energy,gnrm     3  -1.13322887761244417E+00  4.59E-02
+ iter,total energy,gnrm     4  -1.13532020677155154E+00  2.83E-02
+ iter,total energy,gnrm     5  -1.13682597225048765E+00  1.23E-02
+ iter,total energy,gnrm     6  -1.13691624260313051E+00  1.95E-03
+ iter,total energy,gnrm     7  -1.13691726035495422E+00  4.45E-04
+ iter,total energy,gnrm     8  -1.13691730845788075E+00  9.26E-05
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.07939255797E+00 -1.82392899142E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28114605742E+00 -6.45403231391E-01 -8.42922165339E-01
+ FINAL iter,total energy,gnrm     9  -1.13691731038014154E+00  9.26E-05
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1,u)= -3.72269089147929E-01              eval(   1,d)= -3.72267344305984E-01
+ ----------------------------------------------------------------- Forces Calculation
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
+ average noise along x direction:   1.80480450E-04
+ average noise along y direction:   2.22968830E-04
+ average noise along z direction:   2.22968830E-04
+ total average noise            :   3.63322710E-04
+ clean forces norm (Ha/Bohr): maxval=  9.533267081510E-04  fnrm2=  1.817663624948E-06
+ raw forces:                  maxval=  1.105740524808E-03  fnrm2=  1.949862246511E-06
+ CPU time/ELAPSED time for root process     0         7.93         7.92
+ Wavefunction Optimization Finished, exit signal=    0
+ Final values of the Forces for each atom
+     1      H -9.53327E-04 -8.47033E-22 -8.47033E-22
+     2      H  9.53327E-04  8.47033E-22  8.47033E-22
+
+ =Frequencies calculation ===========================================================
+ =F Move the atom 1 in the direction -1*x by    -7.0312500000E-03 bohr
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x 1 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ Polarisation=      0 |
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Spin-polarized calculation
+ Processes from 0 to 1 treat 1 orbitals 
+ Total Number of Orbitals         2
+ occup(1:2)= 1.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.14482E+00  6.75000E+00  6.75000E+00       18.100    15.000    15.000
+     2      H  6.70518E+00  6.75000E+00  6.75000E+00       14.900    15.000    15.000
+    Shift of= -1.42148E+00  6.75000E+00  6.75000E+00 H grids=  0.4500  0.4500  0.4500
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation for root processor (Bytes): 142160
+ ion-ion interaction energy  6.94622336979817E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001559448   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
+ -------------------------------------------------------------- Wavefunctions Restart
+ The wavefunctions need reformatting because:                                 
+    molecule was shifted   2.471923828125E-05 0.000000000000E+00 0.000000000000E+00
+ Reformatting... done.
+ iter,total energy,gnrm     1  -1.13689474395887280E+00  8.83E-03
+ iter,total energy,gnrm     2  -1.13691452815439020E+00  1.93E-03
+ iter,total energy,gnrm     3  -1.13691563055195144E+00  2.32E-04
+ iter,total energy,gnrm     4  -1.13691563694071185E+00  2.52E-05
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.08271796900E+00 -1.82852933650E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28358325183E+00 -6.46468530783E-01 -8.44325176029E-01
+ FINAL iter,total energy,gnrm     5  -1.13691563711091104E+00  2.52E-05
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1,u)= -3.72905718983625E-01              eval(   1,d)= -3.72905648523183E-01
+ ----------------------------------------------------------------- Forces Calculation
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
+ average noise along x direction:   1.71269427E-04
+ average noise along y direction:   2.21703801E-04
+ average noise along z direction:   2.21703801E-04
+ total average noise            :   3.57265121E-04
+ clean forces norm (Ha/Bohr): maxval=  1.442899798836E-03  fnrm2=  4.163919658961E-06
+ raw forces:                  maxval=  1.578341526550E-03  fnrm2=  4.291736909658E-06
+ CPU time/ELAPSED time for root process     0         4.19         4.17
+ =F =================================================================================
+
+ =F Move the atom 1 in the direction  1*x by     7.0312500000E-03 bohr
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x 1 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ Polarisation=      0 |
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Spin-polarized calculation
+ Processes from 0 to 1 treat 1 orbitals 
+ Total Number of Orbitals         2
+ occup(1:2)= 1.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.15185E+00  6.75000E+00  6.75000E+00       18.115    15.000    15.000
+     2      H  6.69815E+00  6.75000E+00  6.75000E+00       14.885    15.000    15.000
+    Shift of= -1.42852E+00  6.75000E+00  6.75000E+00 H grids=  0.4500  0.4500  0.4500
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation for root processor (Bytes): 142160
+ ion-ion interaction energy  6.87902815183132E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001430549   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
+ -------------------------------------------------------------- Wavefunctions Restart
+ The wavefunctions need reformatting because:                                 
+    molecule was shifted   9.887695312502E-05 0.000000000000E+00 0.000000000000E+00
+ Reformatting... done.
+ iter,total energy,gnrm     1  -1.13681883697460551E+00  1.77E-02
+ iter,total energy,gnrm     2  -1.13689795974599805E+00  3.85E-03
+ iter,total energy,gnrm     3  -1.13690229748071747E+00  4.58E-04
+ iter,total energy,gnrm     4  -1.13690232609343589E+00  5.43E-05
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.07609993584E+00 -1.81936608835E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.27872228347E+00 -6.44344377726E-01 -8.41527671715E-01
+ FINAL iter,total energy,gnrm     5  -1.13690232680380232E+00  5.43E-05
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1,u)= -3.71633077614565E-01              eval(   1,d)= -3.71633074894125E-01
+ ----------------------------------------------------------------- Forces Calculation
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
+ average noise along x direction:   1.87732588E-04
+ average noise along y direction:   2.21123097E-04
+ average noise along z direction:   2.21123097E-04
+ total average noise            :   3.64738773E-04
+ clean forces norm (Ha/Bohr): maxval=  3.295087309620E-03  fnrm2=  2.171520075604E-05
+ raw forces:                  maxval=  3.435651076006E-03  fnrm2=  2.184845572825E-05
+ CPU time/ELAPSED time for root process     0         4.19         4.16
+ =F =================================================================================
+
+ =F Move the atom 1 in the direction -1*y by    -7.0312500000E-03 bohr
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x 1 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ Polarisation=      0 |
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Spin-polarized calculation
+ Processes from 0 to 1 treat 1 orbitals 
+ Total Number of Orbitals         2
+ occup(1:2)= 1.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.14833E+00  6.74648E+00  6.75000E+00       18.107    14.992    15.000
+     2      H  6.70167E+00  6.75352E+00  6.75000E+00       14.893    15.008    15.000
+    Shift of= -1.42500E+00  6.75352E+00  6.75000E+00 H grids=  0.4500  0.4500  0.4500
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation for root processor (Bytes): 142160
+ ion-ion interaction energy  6.91238082123304E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001492465   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
+ -------------------------------------------------------------- Wavefunctions Restart
+ The wavefunctions need reformatting because:                                 
+    molecule was shifted   2.471923828125E-05 2.471923828125E-05 0.000000000000E+00
+ Reformatting... done.
+ iter,total energy,gnrm     1  -1.13688517402058342E+00  1.20E-02
+ iter,total energy,gnrm     2  -1.13691531694323444E+00  2.49E-03
+ iter,total energy,gnrm     3  -1.13691704665608051E+00  2.88E-04
+ iter,total energy,gnrm     4  -1.13691705951368061E+00  4.54E-05
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.07938702826E+00 -1.82391894872E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28114153708E+00 -6.45401277520E-01 -8.42919592992E-01
+ FINAL iter,total energy,gnrm     5  -1.13691705994564329E+00  4.54E-05
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1,u)= -3.72265960287095E-01              eval(   1,d)= -3.72265960173388E-01
+ ----------------------------------------------------------------- Forces Calculation
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
+ average noise along x direction:   1.77715347E-04
+ average noise along y direction:   2.21290441E-04
+ average noise along z direction:   2.21129682E-04
+ total average noise            :   3.59792357E-04
+ clean forces norm (Ha/Bohr): maxval=  9.624873823522E-04  fnrm2=  1.852763922374E-06
+ raw forces:                  maxval=  1.102646505076E-03  fnrm2=  1.993204164062E-06
+ CPU time/ELAPSED time for root process     0         4.18         4.17
+ =F =================================================================================
+
+ =F Move the atom 1 in the direction  1*y by     7.0312500000E-03 bohr
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x 1 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ Polarisation=      0 |
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Spin-polarized calculation
+ Processes from 0 to 1 treat 1 orbitals 
  Total Number of Orbitals         2
  occup(1:2)= 1.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -82,44 +360,35 @@
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 284320
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.91238082123304E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001492465   0.000E+00
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
- ------------------------------------------------------- Input Wavefunctions Creation
- Generating 4 Atomic Input Orbitals
- Wavefunctions memory occupation for root processor (Bytes): 568640
- Deviation from normalization of the imported orbitals    1.64E-06
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
- ekin_sum,epot_sum,eproj_sum  1.83027083981E+00 -2.11247434103E+00  0.00000000000E+00
-    ehart,   eexcu,    vexcu  1.48585195832E+00 -8.25717585562E-01 -1.08636499032E+00
- evale(   1,u)= -2.27738052146121E-01  <-Last->  evale(   1,d)= -2.27728471345326E-01
- evale(   2,u)=  4.96213574453003E-01            evale(   2,d)=  4.96205482845159E-01
- expected accuracy in energy  1.71E-04
- expected accuracy in energy per orbital  8.54E-05
- iter,total energy,gnrm     1  -1.02716292828832012E+00  2.41E-01
- iter,total energy,gnrm     2  -1.12641736168547024E+00  1.29E-01
- iter,total energy,gnrm     3  -1.13322851294133842E+00  4.59E-02
- iter,total energy,gnrm     4  -1.13531984526368523E+00  2.83E-02
- iter,total energy,gnrm     5  -1.13682559725163257E+00  1.23E-02
- iter,total energy,gnrm     6  -1.13691589275152016E+00  1.95E-03
- iter,total energy,gnrm     7  -1.13691691076999546E+00  4.45E-04
- iter,total energy,gnrm     8  -1.13691695880302324E+00  9.25E-05
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
+ -------------------------------------------------------------- Wavefunctions Restart
+ The wavefunctions need reformatting because:                                 
+    molecule was shifted   0.000000000000E+00 9.887695312500E-05 0.000000000000E+00
+ Reformatting... done.
+ iter,total energy,gnrm     1  -1.13687231831131741E+00  1.62E-02
+ iter,total energy,gnrm     2  -1.13691440325217408E+00  3.10E-03
+ iter,total energy,gnrm     3  -1.13691693501513535E+00  4.02E-04
+ iter,total energy,gnrm     4  -1.13691696008464405E+00  1.01E-04
+ iter,total energy,gnrm     5  -1.13691696090346883E+00  6.14E-06
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   1.07938352875E+00 -1.82391671964E+00  0.00000000000E+00
- final ehart, eexcu,  vexcu   1.28113992913E+00 -6.45400528891E-01 -8.42918606060E-01
- FINAL iter,total energy,gnrm     9  -1.13691696072159121E+00  9.25E-05
+ final  ekin,  epot,  eproj   1.07938651659E+00 -1.82391849900E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28114134738E+00 -6.45401186592E-01 -8.42919473340E-01
+ FINAL iter,total energy,gnrm     6  -1.13691696091548611E+00  6.14E-06
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72267468912373E-01              eval(   1,d)= -3.72265721974745E-01
+ eval(   1,u)= -3.72265991202910E-01              eval(   1,d)= -3.72265991207431E-01
  ----------------------------------------------------------------- Forces Calculation
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
- average noise along x direction:   1.80566235E-04
- average noise along y direction:   2.23207320E-04
- average noise along z direction:   2.22949903E-04
- total average noise            :   3.63500113E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.198909957511670E-05     0.112739678634208E-02     0.184148951679731E-05     0.959554458276682E-03
- CPU time/ELAPSED time for root process     0        68.40        67.00
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
+ average noise along x direction:   1.79069737E-04
+ average noise along y direction:   2.21373869E-04
+ average noise along z direction:   2.21180848E-04
+ total average noise            :   3.60545875E-04
+ clean forces norm (Ha/Bohr): maxval=  9.628648539669E-04  fnrm2=  1.854217454009E-06
+ raw forces:                  maxval=  1.129123239686E-03  fnrm2=  1.999712944589E-06
+ CPU time/ELAPSED time for root process     0         4.80         4.79
  =F =================================================================================
 
  =F Move the atom 1 in the direction -1*z by    -7.0312500000E-03 bohr
@@ -139,6 +408,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.198909957511670E-05     0.112739678
         H   0.20000  -4.06633   0.67783
  Total Number of Electrons        2
  Spin-polarized calculation
+ Processes from 0 to 1 treat 1 orbitals 
  Total Number of Orbitals         2
  occup(1:2)= 1.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -158,33 +428,34 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.198909957511670E-05     0.112739678
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 284320
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.91238082123304E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001492465   0.000E+00
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 2.471923828125E-05 2.471923828125E-05
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13689473774779293E+00  1.14E-02
- iter,total energy,gnrm     2  -1.13691577719101122E+00  2.20E-03
- iter,total energy,gnrm     3  -1.13691704691260154E+00  2.87E-04
- iter,total energy,gnrm     4  -1.13691705953485056E+00  7.20E-05
+ iter,total energy,gnrm     1  -1.13689473862486978E+00  1.14E-02
+ iter,total energy,gnrm     2  -1.13691577728141202E+00  2.20E-03
+ iter,total energy,gnrm     3  -1.13691704691490458E+00  2.87E-04
+ iter,total energy,gnrm     4  -1.13691705953539079E+00  7.21E-05
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   1.07938679236E+00 -1.82391884466E+00  0.00000000000E+00
- final ehart, eexcu,  vexcu   1.28114138658E+00 -6.45401217619E-01 -8.42919514423E-01
- FINAL iter,total energy,gnrm     5  -1.13691705994947134E+00  7.20E-05
+ final  ekin,  epot,  eproj   1.07938679050E+00 -1.82391884413E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28114138505E+00 -6.45401216950E-01 -8.42919513545E-01
+ FINAL iter,total energy,gnrm     5  -1.13691705995007641E+00  7.21E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72266054676093E-01              eval(   1,d)= -3.72265997623475E-01
+ eval(   1,u)= -3.72266026810070E-01              eval(   1,d)= -3.72266026812648E-01
  ----------------------------------------------------------------- Forces Calculation
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
- average noise along x direction:   1.78126857E-04
- average noise along y direction:   2.21437174E-04
- average noise along z direction:   2.21466071E-04
- total average noise            :   3.60292687E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199222755960125E-05     0.110280283556946E-02     0.185162496958216E-05     0.962191501101045E-03
- CPU time/ELAPSED time for root process     0        29.25        29.17
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
+ average noise along x direction:   1.78107040E-04
+ average noise along y direction:   2.21437655E-04
+ average noise along z direction:   2.21466708E-04
+ total average noise            :   3.60283577E-04
+ clean forces norm (Ha/Bohr): maxval=  9.621906808402E-04  fnrm2=  1.851621812591E-06
+ raw forces:                  maxval=  1.102787398387E-03  fnrm2=  1.992218892324E-06
+ CPU time/ELAPSED time for root process     0         4.17         4.16
  =F =================================================================================
 
  =F Move the atom 1 in the direction  1*z by     7.0312500000E-03 bohr
@@ -204,6 +475,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199222755960125E-05     0.110280283
         H   0.20000  -4.06633   0.67783
  Total Number of Electrons        2
  Spin-polarized calculation
+ Processes from 0 to 1 treat 1 orbitals 
  Total Number of Orbitals         2
  occup(1:2)= 1.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -223,34 +495,35 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199222755960125E-05     0.110280283
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 284320
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.91238082123304E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001492465   0.000E+00
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 0.000000000000E+00 9.887695312500E-05
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13687230831666075E+00  1.62E-02
- iter,total energy,gnrm     2  -1.13691440283969025E+00  3.10E-03
- iter,total energy,gnrm     3  -1.13691693501473945E+00  4.02E-04
- iter,total energy,gnrm     4  -1.13691696008428922E+00  1.01E-04
- iter,total energy,gnrm     5  -1.13691696090342087E+00  6.16E-06
+ iter,total energy,gnrm     1  -1.13687230837317843E+00  1.62E-02
+ iter,total energy,gnrm     2  -1.13691440284533507E+00  3.10E-03
+ iter,total energy,gnrm     3  -1.13691693501484559E+00  4.02E-04
+ iter,total energy,gnrm     4  -1.13691696008434051E+00  1.01E-04
+ iter,total energy,gnrm     5  -1.13691696090345618E+00  6.16E-06
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   1.07938651668E+00 -1.82391849901E+00  0.00000000000E+00
- final ehart, eexcu,  vexcu   1.28114134747E+00 -6.45401186633E-01 -8.42919473394E-01
- FINAL iter,total energy,gnrm     6  -1.13691696091540240E+00  6.16E-06
+ final  ekin,  epot,  eproj   1.07938651667E+00 -1.82391849901E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28114134746E+00 -6.45401186630E-01 -8.42919473390E-01
+ FINAL iter,total energy,gnrm     6  -1.13691696091548233E+00  6.16E-06
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72265991506756E-01              eval(   1,d)= -3.72265990820726E-01
+ eval(   1,u)= -3.72265991167308E-01              eval(   1,d)= -3.72265991167563E-01
  ----------------------------------------------------------------- Forces Calculation
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
- average noise along x direction:   1.79070222E-04
- average noise along y direction:   2.21181052E-04
- average noise along z direction:   2.21373949E-04
- total average noise            :   3.60546290E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199971394467293E-05     0.112912388006155E-02     0.185421788209461E-05     0.962864965115725E-03
- CPU time/ELAPSED time for root process     0        33.00        32.92
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
+ average noise along x direction:   1.79070150E-04
+ average noise along y direction:   2.21181048E-04
+ average noise along z direction:   2.21373939E-04
+ total average noise            :   3.60546246E-04
+ clean forces norm (Ha/Bohr): maxval=  9.628649480823E-04  fnrm2=  1.854217816491E-06
+ raw forces:                  maxval=  1.129123810101E-03  fnrm2=  1.999713844438E-06
+ CPU time/ELAPSED time for root process     0         4.80         4.78
  =F =================================================================================
 
  =F Move the atom 2 in the direction -1*x by    -7.0312500000E-03 bohr
@@ -270,6 +543,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199971394467293E-05     0.112912388
         H   0.20000  -4.06633   0.67783
  Total Number of Electrons        2
  Spin-polarized calculation
+ Processes from 0 to 1 treat 1 orbitals 
  Total Number of Orbitals         2
  occup(1:2)= 1.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -289,33 +563,34 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199971394467293E-05     0.112912388
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 284320
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.87902815183132E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001430549   0.000E+00
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
     molecule was shifted   2.471923828125E-05 0.000000000000E+00 2.471923828125E-05
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13687039443104299E+00  1.20E-02
- iter,total energy,gnrm     2  -1.13690062180888507E+00  2.46E-03
- iter,total energy,gnrm     3  -1.13690231381681128E+00  2.69E-04
- iter,total energy,gnrm     4  -1.13690232642292299E+00  4.53E-05
+ iter,total energy,gnrm     1  -1.13687039443118199E+00  1.20E-02
+ iter,total energy,gnrm     2  -1.13690062180890061E+00  2.46E-03
+ iter,total energy,gnrm     3  -1.13690231381687701E+00  2.69E-04
+ iter,total energy,gnrm     4  -1.13690232642297628E+00  4.53E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07610152792E+00 -1.81936719508E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.27872286874E+00 -6.44344694368E-01 -8.41528088262E-01
- FINAL iter,total energy,gnrm     5  -1.13690232682383963E+00  4.53E-05
+ FINAL iter,total energy,gnrm     5  -1.13690232682384185E+00  4.53E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.71632833595086E-01              eval(   1,d)= -3.71632833563137E-01
+ eval(   1,u)= -3.71632833579168E-01              eval(   1,d)= -3.71632833579157E-01
  ----------------------------------------------------------------- Forces Calculation
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
- average noise along x direction:   1.85728383E-04
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
+ average noise along x direction:   1.85728382E-04
  average noise along y direction:   2.20389321E-04
- average noise along z direction:   2.20527709E-04
- total average noise            :   3.62903507E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.218470266132487E-04     0.343415786803881E-02     0.217151244791767E-04     0.329508152244953E-02
- CPU time/ELAPSED time for root process     0        35.09        35.03
+ average noise along z direction:   2.20527708E-04
+ total average noise            :   3.62903506E-04
+ clean forces norm (Ha/Bohr): maxval=  3.295081522512E-03  fnrm2=  2.171512448000E-05
+ raw forces:                  maxval=  3.434157867409E-03  fnrm2=  2.184702661354E-05
+ CPU time/ELAPSED time for root process     0         4.18         4.16
  =F =================================================================================
 
  =F Move the atom 2 in the direction  1*x by     7.0312500000E-03 bohr
@@ -335,6 +610,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.218470266132487E-04     0.343415786
         H   0.20000  -4.06633   0.67783
  Total Number of Electrons        2
  Spin-polarized calculation
+ Processes from 0 to 1 treat 1 orbitals 
  Total Number of Orbitals         2
  occup(1:2)= 1.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -354,33 +630,34 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.218470266132487E-04     0.343415786
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 284320
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.94622336979817E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001559448   0.000E+00
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
     molecule was shifted   9.887695312502E-05 0.000000000000E+00 0.000000000000E+00
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13683238141075171E+00  1.76E-02
- iter,total energy,gnrm     2  -1.13691118927400070E+00  3.86E-03
- iter,total energy,gnrm     3  -1.13691561180033252E+00  4.65E-04
- iter,total energy,gnrm     4  -1.13691563641386284E+00  4.93E-05
+ iter,total energy,gnrm     1  -1.13683238141078591E+00  1.76E-02
+ iter,total energy,gnrm     2  -1.13691118927399759E+00  3.86E-03
+ iter,total energy,gnrm     3  -1.13691561180037737E+00  4.65E-04
+ iter,total energy,gnrm     4  -1.13691563641390592E+00  4.93E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.08271865565E+00 -1.82852983748E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28358347592E+00 -6.46468652788E-01 -8.44325336464E-01
- FINAL iter,total energy,gnrm     5  -1.13691563709068411E+00  4.93E-05
+ FINAL iter,total energy,gnrm     5  -1.13691563709073540E+00  4.93E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72905590911210E-01              eval(   1,d)= -3.72905590913834E-01
+ eval(   1,u)= -3.72905590912511E-01              eval(   1,d)= -3.72905590912520E-01
  ----------------------------------------------------------------- Forces Calculation
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
  average noise along x direction:   1.69913555E-04
  average noise along y direction:   2.21301358E-04
  average noise along z direction:   2.21302100E-04
  total average noise            :   3.56117294E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.429091812481822E-05     0.157734308411290E-02     0.416392122384286E-05     0.144290006997069E-02
- CPU time/ELAPSED time for root process     0        27.61        27.54
+ clean forces norm (Ha/Bohr): maxval=  1.442900069948E-03  fnrm2=  4.163921223712E-06
+ raw forces:                  maxval=  1.577343084150E-03  fnrm2=  4.290918124741E-06
+ CPU time/ELAPSED time for root process     0         4.18         4.15
  =F =================================================================================
 
  =F Move the atom 2 in the direction -1*y by    -7.0312500000E-03 bohr
@@ -400,6 +677,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.429091812481822E-05     0.157734308
         H   0.20000  -4.06633   0.67783
  Total Number of Electrons        2
  Spin-polarized calculation
+ Processes from 0 to 1 treat 1 orbitals 
  Total Number of Orbitals         2
  occup(1:2)= 1.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -419,33 +697,34 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.429091812481822E-05     0.157734308
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 284320
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.91238082123304E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001492465   0.000E+00
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
     molecule was shifted   2.471923828125E-05 2.471923828125E-05 0.000000000000E+00
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13688483733384205E+00  1.20E-02
- iter,total energy,gnrm     2  -1.13691522637982168E+00  2.50E-03
- iter,total energy,gnrm     3  -1.13691694648413244E+00  2.85E-04
- iter,total energy,gnrm     4  -1.13691696046369040E+00  4.71E-05
+ iter,total energy,gnrm     1  -1.13688483733385781E+00  1.20E-02
+ iter,total energy,gnrm     2  -1.13691522637985920E+00  2.50E-03
+ iter,total energy,gnrm     3  -1.13691694648416308E+00  2.85E-04
+ iter,total energy,gnrm     4  -1.13691696046374213E+00  4.71E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938622103E+00 -1.82391832344E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114120882E+00 -6.45401127152E-01 -8.42919395366E-01
- FINAL iter,total energy,gnrm     5  -1.13691696090439143E+00  4.71E-05
+ FINAL iter,total energy,gnrm     5  -1.13691696090443495E+00  4.71E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72266051208923E-01              eval(   1,d)= -3.72266051208614E-01
+ eval(   1,u)= -3.72266051208770E-01              eval(   1,d)= -3.72266051208769E-01
  ----------------------------------------------------------------- Forces Calculation
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
  average noise along x direction:   1.79859229E-04
  average noise along y direction:   2.21394536E-04
  average noise along z direction:   2.21274648E-04
  total average noise            :   3.61008798E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199951423739163E-05     0.112957701472415E-02     0.185358488126612E-05     0.962700597607096E-03
- CPU time/ELAPSED time for root process     0        28.49        28.43
+ clean forces norm (Ha/Bohr): maxval=  9.627005976089E-04  fnrm2=  1.853584881273E-06
+ raw forces:                  maxval=  1.129577014721E-03  fnrm2=  1.999514237393E-06
+ CPU time/ELAPSED time for root process     0         4.19         4.16
  =F =================================================================================
 
  =F Move the atom 2 in the direction  1*y by     7.0312500000E-03 bohr
@@ -465,6 +744,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199951423739163E-05     0.112957701
         H   0.20000  -4.06633   0.67783
  Total Number of Electrons        2
  Spin-polarized calculation
+ Processes from 0 to 1 treat 1 orbitals 
  Total Number of Orbitals         2
  occup(1:2)= 1.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -484,34 +764,35 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199951423739163E-05     0.112957701
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 284320
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.91238082123304E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001492465   0.000E+00
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 9.887695312500E-05 0.000000000000E+00
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13687241824312335E+00  1.62E-02
- iter,total energy,gnrm     2  -1.13691450252347015E+00  3.10E-03
- iter,total energy,gnrm     3  -1.13691703403292643E+00  4.02E-04
- iter,total energy,gnrm     4  -1.13691705911271401E+00  1.02E-04
- iter,total energy,gnrm     5  -1.13691705994441317E+00  6.15E-06
+ iter,total energy,gnrm     1  -1.13687241824318086E+00  1.62E-02
+ iter,total energy,gnrm     2  -1.13691450252350479E+00  3.10E-03
+ iter,total energy,gnrm     3  -1.13691703403297262E+00  4.02E-04
+ iter,total energy,gnrm     4  -1.13691705911274177E+00  1.02E-04
+ iter,total energy,gnrm     5  -1.13691705994443604E+00  6.15E-06
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938678826E+00 -1.82391881284E+00  0.00000000000E+00
- final ehart, eexcu,  vexcu   1.28114141795E+00 -6.45401229408E-01 -8.42919529859E-01
- FINAL iter,total energy,gnrm     6  -1.13691705995652259E+00  6.15E-06
+ final ehart, eexcu,  vexcu   1.28114141795E+00 -6.45401229409E-01 -8.42919529859E-01
+ FINAL iter,total energy,gnrm     6  -1.13691705995649728E+00  6.15E-06
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72266012291005E-01              eval(   1,d)= -3.72266012291175E-01
+ eval(   1,u)= -3.72266012291092E-01              eval(   1,d)= -3.72266012291092E-01
  ----------------------------------------------------------------- Forces Calculation
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
  average noise along x direction:   1.78475299E-04
  average noise along y direction:   2.21314580E-04
  average noise along z direction:   2.21225928E-04
  total average noise            :   3.60242261E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199248885771664E-05     0.110295570184527E-02     0.185179449061168E-05     0.962235545646614E-03
- CPU time/ELAPSED time for root process     0        32.07        32.04
+ clean forces norm (Ha/Bohr): maxval=  9.622355456455E-04  fnrm2=  1.851794490607E-06
+ raw forces:                  maxval=  1.102955701845E-03  fnrm2=  1.992488857713E-06
+ CPU time/ELAPSED time for root process     0         4.79         4.78
  =F =================================================================================
 
  =F Move the atom 2 in the direction -1*z by    -7.0312500000E-03 bohr
@@ -531,6 +812,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199248885771664E-05     0.110295570
         H   0.20000  -4.06633   0.67783
  Total Number of Electrons        2
  Spin-polarized calculation
+ Processes from 0 to 1 treat 1 orbitals 
  Total Number of Orbitals         2
  occup(1:2)= 1.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -550,33 +832,34 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199248885771664E-05     0.110295570
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 284320
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.91238082123304E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001492465   0.000E+00
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 2.471923828125E-05 2.471923828125E-05
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13689463951686709E+00  1.14E-02
- iter,total energy,gnrm     2  -1.13691567816984929E+00  2.20E-03
- iter,total energy,gnrm     3  -1.13691694788649422E+00  2.86E-04
- iter,total energy,gnrm     4  -1.13691696050045143E+00  7.12E-05
+ iter,total energy,gnrm     1  -1.13689463951684178E+00  1.14E-02
+ iter,total energy,gnrm     2  -1.13691567816985706E+00  2.20E-03
+ iter,total energy,gnrm     3  -1.13691694788653819E+00  2.86E-04
+ iter,total energy,gnrm     4  -1.13691696050044011E+00  7.12E-05
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938652716E+00 -1.82391847925E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114138190E+00 -6.45401200030E-01 -8.42919490984E-01
- FINAL iter,total energy,gnrm     5  -1.13691696090905014E+00  7.12E-05
+ FINAL iter,total energy,gnrm     5  -1.13691696090908545E+00  7.12E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72265976044849E-01              eval(   1,d)= -3.72265976044925E-01
+ eval(   1,u)= -3.72265976044884E-01              eval(   1,d)= -3.72265976044884E-01
  ----------------------------------------------------------------- Forces Calculation
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
  average noise along x direction:   1.79453469E-04
  average noise along y direction:   2.20965745E-04
  average noise along z direction:   2.21209711E-04
  total average noise            :   3.60504014E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199973911414145E-05     0.112922587968505E-02     0.185445830358654E-05     0.962927386563115E-03
- CPU time/ELAPSED time for root process     0        27.36        27.35
+ clean forces norm (Ha/Bohr): maxval=  9.629273865638E-04  fnrm2=  1.854458303589E-06
+ raw forces:                  maxval=  1.129225879685E-03  fnrm2=  1.999739114143E-06
+ CPU time/ELAPSED time for root process     0         4.17         4.16
  =F =================================================================================
 
  =F Move the atom 2 in the direction  1*z by     7.0312500000E-03 bohr
@@ -596,6 +879,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199973911414145E-05     0.112922587
         H   0.20000  -4.06633   0.67783
  Total Number of Electrons        2
  Spin-polarized calculation
+ Processes from 0 to 1 treat 1 orbitals 
  Total Number of Orbitals         2
  occup(1:2)= 1.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -615,43 +899,44 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199973911414145E-05     0.112922587
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 284320
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.91238082123304E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001492465   0.000E+00
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
     molecule was shifted   0.000000000000E+00 0.000000000000E+00 9.887695312500E-05
  Reformatting... done.
- iter,total energy,gnrm     1  -1.13687240734338535E+00  1.62E-02
- iter,total energy,gnrm     2  -1.13691450201198108E+00  3.10E-03
- iter,total energy,gnrm     3  -1.13691703403026900E+00  4.02E-04
- iter,total energy,gnrm     4  -1.13691705911241336E+00  1.02E-04
- iter,total energy,gnrm     5  -1.13691705994444336E+00  6.18E-06
+ iter,total energy,gnrm     1  -1.13687240734340178E+00  1.62E-02
+ iter,total energy,gnrm     2  -1.13691450201202793E+00  3.10E-03
+ iter,total energy,gnrm     3  -1.13691703403031852E+00  4.02E-04
+ iter,total energy,gnrm     4  -1.13691705911241825E+00  1.02E-04
+ iter,total energy,gnrm     5  -1.13691705994446557E+00  6.18E-06
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.07938678815E+00 -1.82391881282E+00  0.00000000000E+00
  final ehart, eexcu,  vexcu   1.28114141785E+00 -6.45401229364E-01 -8.42919529800E-01
- FINAL iter,total energy,gnrm     6  -1.13691705995644776E+00  6.18E-06
+ FINAL iter,total energy,gnrm     6  -1.13691705995649195E+00  6.18E-06
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.72266012335108E-01              eval(   1,d)= -3.72266012335116E-01
+ eval(   1,u)= -3.72266012335112E-01              eval(   1,d)= -3.72266012335112E-01
  ----------------------------------------------------------------- Forces Calculation
- PSolver, free  BC, dimensions:    97   91   91   proc    1 ... done.
+ PSolver, free  BC, dimensions:    97   91   91   proc    2 ... done.
  average noise along x direction:   1.78474880E-04
  average noise along y direction:   2.21225724E-04
  average noise along z direction:   2.21314515E-04
  total average noise            :   3.60241889E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199248842657610E-05     0.110295524339567E-02     0.185179413348112E-05     0.962235452859933E-03
- CPU time/ELAPSED time for root process     0        31.12        31.11
+ clean forces norm (Ha/Bohr): maxval=  9.622354528612E-04  fnrm2=  1.851794133486E-06
+ raw forces:                  maxval=  1.102955243397E-03  fnrm2=  1.992488426582E-06
+ CPU time/ELAPSED time for root process     0         4.80         4.77
  =F =================================================================================
 
- =F: eigenvalues (real)      =     3.6674677223E-04    0.0000000000E+00    7.2364002490E-07    7.2424973729E-07    1.7112375707E-23    1.7112375707E-23
- =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    7.9494660801E-23   -7.9494660801E-23
- =F: frequencies (Hartree)   =     1.9150633729E-02    0.0000000000E+00    8.5067033855E-04    8.5102863482E-04    4.1367107352E-12    4.1367107352E-12
- =F: frequencies (cm-1)      =       4203.08         0.00       186.70       186.78         0.00         0.00
- =F: Zero-point energy (Hartree)   =     1.0426166355E-02
- =F: Zero-point energy (cm-1)      =       2288.28
+ =F: eigenvalues (real)      =     3.6674677223E-04    0.0000000000E+00    7.2426273052E-07    7.2424957979E-07   -8.4299554535E-23   -1.4680958417E-23
+ =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00
+ =F: frequencies (Hartree)   =     1.9150633729E-02    0.0000000000E+00    8.5103626863E-04    8.5102854229E-04   -9.1814788861E-12   -3.8315738824E-12
+ =F: frequencies (cm-1)      =       4203.08         0.00       186.78       186.78        -0.00        -0.00
+ =F: Zero-point energy (Hartree)   =     1.0426349264E-02
+ =F: Zero-point energy (cm-1)      =       2288.32
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 6716 allocations and 6716 deallocations, remaining memory(B):0
- memory occupation peak: 87 MB
+ 7569 allocations and 7569 deallocations, remaining memory(B): 0
+ memory occupation peak: 68 MB
  for the array  wz in the routine gaussians_to_wavelets_orb

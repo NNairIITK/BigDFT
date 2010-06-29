@@ -1047,17 +1047,17 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
         betalastold=betalast
      endif
 
-     if (iproc == 0.and.parmin%verbosity > 0) & 
-     &write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
-     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
-     &"beta=",beta,"last beta=",betalast
-     if (iproc == 0.and.parmin%verbosity > 0) & 
-     &write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
-     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
-     &"beta=",beta,"last beta=",betalast
+     if (iproc == 0.and.parmin%verbosity > 0) then
+        write(16,'(i5,1x,i5,2x,a10,2x,1pe21.14,2x,1pe9.2,1pe11.3,3(1pe10.2),2x,a,1pe8.2e1,2x,a,1pe8.2e1)') &
+        & ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
+        & "beta=",beta,"last beta=",betalast
+        write(* ,'(i5,1x,i5,2x,a10,2x,1pe21.14,2x,1pe9.2,1pe11.3,3(1pe10.2),2x,a,1pe8.2e1,2x,a,1pe8.2e1)') &
+        & ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
+        & "beta=",beta,"last beta=",betalast
+     end if
      eprev=etot
 !     if (iproc == 0) write(16,'(i5,1x,e12.5,1x,e21.14,a,e10.3,1x,e10.3)') itsd,sqrt(fnrm),etot,' GEOPT VSSD ',beta,betalast
-     if(iproc==0)call timeleft(tt)
+     if(iproc==0) call timeleft(tt)
      call MPI_BCAST(tt,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,i_stat)
      if(tt<0) exit loop_ntsd
 
@@ -1165,6 +1165,7 @@ subroutine fnrmandforcemax_old(ff,fnrm,fmax,at)
 !!!  fnrm=t1+t2+t3
 END SUBROUTINE fnrmandforcemax_old
 
+
 subroutine updatefluctsum(nat,fnoise,fluct)
   use module_base
   use module_types
@@ -1178,8 +1179,7 @@ subroutine updatefluctsum(nat,fnoise,fluct)
    else
      fluct=.8d0*fluct+.2d0*fnoise
    endif
-
-end subroutine updatefluctsum
+END SUBROUTINE updatefluctsum
 
 
 !should we evaluate the translational force also with blocked atoms?
@@ -1204,6 +1204,7 @@ subroutine transforce(at,fxyz,sumx,sumy,sumz)
 
   end do
 END SUBROUTINE transforce
+
 
 !should we evaluate the translational force also with blocked atoms?
 subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
@@ -1819,24 +1820,10 @@ SUBROUTINE LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
 !                        not positive).
 ! 
 !
-!
 !    ON THE DRIVER:
 !
-!    The program that calls LBFGS must contain the declaration:
-!
-!                       EXTERNAL LB2
-!
-!    LB2 is a BLOCK DATA that defines the default values of several
-!    parameters described in the COMMON section. 
-!
-! 
-! 
-!    COMMON:
-! 
-!     The subroutine contains one common area, which the user may wish to
+!    The subroutine contains one common area, which the user may wish to
 !    reference:
-! 
-!         COMMON /LB3/MP,LP,GTOL,STPMIN,STPMAX
 ! 
 !    MP  is an INTEGER variable with default value 6. It is used as the
 !        unit number for the printing of the monitoring information
@@ -2101,72 +2088,60 @@ SUBROUTINE LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
 END SUBROUTINE LBFGS
 
 
-!      SUBROUTINE LB1(IPROC,PAR,IPRINT,ITER,NFUN,GNORM,N,M,X,F,G,STP,FINISH)
 SUBROUTINE LB1(IPROC,PARMIN,IPRINT,ITER,NFUN,GNORM,N,M,X,F,G,STP,FINISH)
-!      use par_driver , only:driverparameters
    use minpar, only: parameterminimization
 !
 !     -------------------------------------------------------------
 !     THIS ROUTINE PRINTS MONITORING INFORMATION. THE FREQUENCY AND
 !     AMOUNT OF OUTPUT ARE CONTROLLED BY IPRINT.
 !     -------------------------------------------------------------
-   IMPLICIT NONE
-!      type(driverparameters)::par
+   implicit none
    type(parameterminimization)::parmin
-!      INTEGER IPRINT(2),ITER,NFUN,LP,MP,N,M,IPROC
-   INTEGER IPRINT(2),ITER,NFUN,N,M,IPROC,I
-   DOUBLE PRECISION X(N),G(N),F,GNORM,STP!,GTOL,STPMIN,STPMAX
-   LOGICAL FINISH
-!      COMMON /LB3/MP,LP,GTOL,STPMIN,STPMAX
-!
-   IF (ITER.EQ.0)THEN
-!      IF(IPROC==0)     WRITE(parmin%MP,10)
-      IF(IPROC==0)     WRITE(parmin%MP,20) N,M
-      IF(IPROC==0)     WRITE(parmin%MP,30)F,GNORM
-      IF (IPRINT(2).GE.1)THEN
-         IF(IPROC==0)     WRITE(parmin%MP,40)
-         IF(IPROC==0)     WRITE(parmin%MP,50) (X(I),I=1,N)
-         IF(IPROC==0)     WRITE(parmin%MP,60)
-         IF(IPROC==0)     WRITE(parmin%MP,50) (G(I),I=1,N)
-      ENDIF
-!      IF(IPROC==0)     WRITE(parmin%MP,10)
-!      IF(IPROC==0)     WRITE(parmin%MP,70)
-      ELSE
-         IF ((IPRINT(1).EQ.0).AND.(ITER.NE.1.AND..NOT.FINISH))RETURN
-         IF (IPRINT(1).NE.0)THEN
-            IF (MOD(ITER-1,IPRINT(1)).EQ.0.OR.FINISH)THEN
-!            IF(IPRINT(2).GT.1.AND.ITER.GT.1.AND.IPROC==0) WRITE(parmin%MP,70)
-!            IF(IPROC==0)   WRITE(parmin%MP,80)ITER,NFUN,F,GNORM,STP
-!            IF(IPROC==0)   write(parmin%MP,'(i5,1x,e12.5,1x,e21.14,a,i5,1x,e12.5)') ITER,gnorm,f,' GEOPT BFGS ', nfun,STP
-               IF(IPROC==0)  write(parmin%MP,'(a,2(i5,1x),1x,1pe21.14,1x,1pe12.5,1x,1E12.5)')  & 
-                                ' MIN ',ITER,nfun,f,gnorm,STP
-               parmin%FINSTEP=ITER
-               parmin%ALPHA=STP
-               parmin%IWRITE=.true.
-            ELSE
-               RETURN
-            ENDIF
-         ELSE
-            IF( IPRINT(2).GT.1.AND.FINISH.AND.IPROC==0) WRITE(parmin%MP,70)
-            IF(IPROC==0)   WRITE(parmin%MP,80)ITER,NFUN,F,GNORM,STP
+   integer :: IPRINT(2),ITER,NFUN,N,M,IPROC,I
+   double precision :: X(N),G(N),F,GNORM,STP!,GTOL,STPMIN,STPMAX
+   logical :: FINISH
 
-         ENDIF
-         IF (IPRINT(2).EQ.2.OR.IPRINT(2).EQ.3)THEN
-            IF (FINISH)THEN
-               IF(IPROC==0)    WRITE(parmin%MP,90)
-            ELSE
-               IF(IPROC==0)    WRITE(parmin%MP,40)
-            ENDIF
-            IF(IPROC==0)  WRITE(parmin%MP,50)(X(I),I=1,N)
-            IF (IPRINT(2).EQ.3)THEN
-               IF(IPROC==0)  WRITE(parmin%MP,60)
-               IF(IPROC==0)  WRITE(parmin%MP,50)(G(I),I=1,N)
-            ENDIF
-         ENDIF
-         IF (FINISH) WRITE(parmin%MP,100)
+   IF (ITER.EQ.0)THEN
+      IF(IPROC==0) WRITE(parmin%MP,20) N,M
+      IF(IPROC==0) WRITE(parmin%MP,30)F,GNORM
+      IF (IPRINT(2).GE.1)THEN
+         IF(IPROC==0) WRITE(parmin%MP,40)
+         IF(IPROC==0) WRITE(parmin%MP,50) (X(I),I=1,N)
+         IF(IPROC==0) WRITE(parmin%MP,60)
+         IF(IPROC==0) WRITE(parmin%MP,50) (G(I),I=1,N)
       ENDIF
-!
- 10   FORMAT('*************************************************')
+   ELSE
+      IF ((IPRINT(1).EQ.0).AND.(ITER.NE.1.AND..NOT.FINISH)) RETURN
+      IF (IPRINT(1).NE.0)THEN
+         IF (MOD(ITER-1,IPRINT(1)).EQ.0.OR.FINISH)THEN
+            IF(IPROC==0)  write(parmin%MP,'(a,2(i5,1x),1x,1pe21.14,1x,1pe12.5,1x,1E12.5)')  & 
+                             ' MIN ',ITER,nfun,f,gnorm,STP
+            parmin%FINSTEP=ITER
+            parmin%ALPHA=STP
+            parmin%IWRITE=.true.
+         ELSE
+            RETURN
+         ENDIF
+      ELSE
+         IF( IPRINT(2).GT.1.AND.FINISH.AND.IPROC==0) WRITE(parmin%MP,70)
+         IF(IPROC==0)   WRITE(parmin%MP,80)ITER,NFUN,F,GNORM,STP
+
+      ENDIF
+      IF (IPRINT(2).EQ.2.OR.IPRINT(2).EQ.3)THEN
+         IF (FINISH)THEN
+            IF(IPROC==0)    WRITE(parmin%MP,90)
+         ELSE
+            IF(IPROC==0)    WRITE(parmin%MP,40)
+         ENDIF
+         IF(IPROC==0)  WRITE(parmin%MP,50)(X(I),I=1,N)
+         IF (IPRINT(2).EQ.3)THEN
+            IF(IPROC==0)  WRITE(parmin%MP,60)
+            IF(IPROC==0)  WRITE(parmin%MP,50)(G(I),I=1,N)
+         ENDIF
+      ENDIF
+      IF (FINISH) WRITE(parmin%MP,100)
+    ENDIF
+
  20   FORMAT('  N=',I5,'   NUMBER OF CORRECTIONS=',I2,/,  '       INITIAL VALUES')
  30   FORMAT('  F= ',1PD10.3,'   GNORM= ',1PD10.3)
  40   FORMAT(' VECTOR X= ')
@@ -2176,20 +2151,8 @@ SUBROUTINE LB1(IPROC,PARMIN,IPRINT,ITER,NFUN,GNORM,N,M,X,F,G,STP,FINISH)
  80   FORMAT(2(I4,1X),3X,3(1PD10.3,2X))
  90   FORMAT(' FINAL POINT X= ')
  100  FORMAT(/' THE MINIMIZATION TERMINATED WITHOUT DETECTING ERRORS.',/' IFLAG = 0')
-!
+
 END SUBROUTINE LB1
-
-
-!   ----------------------------------------------------------
-!     DATA 
-!   ----------------------------------------------------------
-BLOCK DATA LB2
-   INTEGER LP,MP
-   DOUBLE PRECISION GTOL,STPMIN,STPMAX
-   COMMON /LB3/MP,LP,GTOL,STPMIN,STPMAX
-!      DATA MP,LP,GTOL,STPMIN,STPMAX/16,16,9.0D-01,1.0D-20,1.0D+20/
-   DATA MP,LP,GTOL,STPMIN,STPMAX/16,16,9.0D-01,1.0D-20,20.d0/
-END
 
 
 !     **************************
@@ -2203,11 +2166,10 @@ SUBROUTINE MCSRCH(PARMIN,N,X,F,G,S,STP,INFO,NFEV,WA)
    use minpar, only: parameterminimization
    IMPLICIT NONE
 !      type(driverparameters)::par
-   type(parameterminimization)::parmin
+   type(parameterminimization) :: parmin
    INTEGER N,INFO,NFEV!,MAXFEV
    DOUBLE PRECISION F,STP!,FTOL,GTOL,XTOL,STPMIN,STPMAX
    DOUBLE PRECISION X(N),G(N),S(N),WA(N)
-!      COMMON /LB3/MP,LP,GTOL,STPMIN,STPMAX
    SAVE
 !
 !                     SUBROUTINE MCSRCH

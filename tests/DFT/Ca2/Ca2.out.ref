@@ -27,11 +27,11 @@
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Reading atomic input positions from file:posinp.xyz
- 
+
  Performance options (file 'input.perf' not present):
  |   'debug' option disabled
  |   'fftcache' = 8192
- 
+
  ---------------------------------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -381,12 +381,13 @@
  average noise along y direction:   1.13246220E-04
  average noise along z direction:   8.74827408E-05
  total average noise            :   1.82490116E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.228218649472032E-02     0.338418351277683E-01     0.228215291665404E-02     0.337798232429807E-01
+ clean forces norm (Ha/Bohr): maxval=  3.377982324295E-02  fnrm2=  2.282152916650E-03
+ raw forces:                  maxval=  3.384183512775E-02  fnrm2=  2.282186494716E-03
  CPU time/ELAPSED time for root process     0        15.62        15.40
  Final values of the Forces for each atom
      1     Ca  3.38813E-21 -3.38813E-21 -3.37798E-02
      2     Ca  5.08220E-21 -1.69407E-21  3.37798E-02
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 5876 allocations and 5876 deallocations, remaining memory(B):0
+ 5876 allocations and 5876 deallocations, remaining memory(B): 0
  memory occupation peak: 55 MB
  for the array  wz in the routine gaussians_to_wavelets_orb
