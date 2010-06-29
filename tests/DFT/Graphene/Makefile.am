@@ -5,7 +5,8 @@ SUBDIRS =
 EXTRA_DIST = \
 	input.dft \
 	input.kpt \
-	posinp.ascii
+	posinp.ascii \
+	Graphene.out.ref
 
 PPFILES = \
 	psppar.C
