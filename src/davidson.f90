@@ -1,5 +1,18 @@
-!naive subroutine which performs a direct minimization of the energy 
-!for a given hamiltonian
+!!****f* BigDFT/direct_minimization
+!!
+!! DESCRIPTION
+!!   Naive subroutine which performs a direct minimization of the energy 
+!!   for a given hamiltonian
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
           orbs,orbsv,nvirt,lr,comms,commsv,&
           hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
@@ -28,8 +41,8 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   character(len=*), parameter :: subname='direct_minimization'
   logical :: msg,exctX,occorbs,endloop !extended output
   integer :: occnorb, occnorbu, occnorbd
-  integer :: ierr,i_stat,i_all,iter,ikpt,idsx_actual,idsx_actual_before,ndiis_sd_sw
-  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,gnrm_fake,alpha
+  integer :: i_stat,i_all,iter,ikpt,idsx_actual,idsx_actual_before,ndiis_sd_sw
+  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
   real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
   real(wp), dimension(:), pointer :: psiw,psidst,hpsidst,psirocc,psitvirt,hpsivirt
   real(wp), dimension(:,:,:), pointer :: ads
@@ -317,6 +330,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   !the plotting should be added here (perhaps build a common routine?)
 
 end subroutine direct_minimization
+!!***
 
 
 !!****f* BigDFT/davidson
@@ -333,8 +347,7 @@ end subroutine direct_minimization
 !!   Algorithm
 !!   _________
 !!   (parallel)
-    
-    
+!!
 !!   (transpose psi, v is already transposed)
 !!   orthogonality of v to psi
 !!   orthogonalize v
@@ -1250,31 +1263,38 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      write(denname,'(A,i4.4)')'denvirt',iorb+orbsv%isorb
      write(comment,'(1pe10.3)')e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
      !choose the way of plotting the wavefunctions
-     if (in%nplot > 0) then
-        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-     else if (in%nplot < 0) then
-        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-     end if
+!!$     if (in%nplot > 0) then
+!!$        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+!!$        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+!!$     else if (in%nplot < 0) then
+!!$        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+!!$        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+!!$     end if
+
+     call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+     call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+
   end do
 
   do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
-     if(modulo(orbs%norb-iorb-orbs%isorb-0,orbs%norb)+1 .le.  abs(in%nplot)) then  ! SG 
-     !address
-     ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
-     write(orbname,'(A,i4.4)')'orbital',iorb+orbs%isorb
-     write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
-     write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
-     !choose the way of plotting the wavefunctions
-     if (in%nplot > 0) then
-        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-     else if (in%nplot < 0) then
-        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-     end if
-  endif
+     if(modulo(orbs%norb-iorb-orbs%isorb-0,orbs%norb)+1 <=  abs(in%nplot)) then  ! SG 
+        !address
+        ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
+        write(orbname,'(A,i4.4)')'orbital',iorb+orbs%isorb
+        write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
+        write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
+!!$     !choose the way of plotting the wavefunctions
+!!$     if (in%nplot > 0) then
+!!$        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+!!$        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+!!$     else if (in%nplot < 0) then
+!!$        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+!!$        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+!!$     end if
+        call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+        call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+        
+     endif
   end do
   ! END OF PLOTTING
 
@@ -1482,7 +1502,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   !local variables
   character(len=*), parameter :: subname='psivirt_from_gaussians'
   logical ::  randinp
-  integer :: iorb,icoeff,i_all,i_stat,jproc,nwork,info,iat,jorb
+  integer :: iorb,icoeff,i_all,i_stat,jproc,nwork,info,jorb
   real(kind=4) :: tt
   real(wp), dimension(:,:), allocatable :: gaucoeffs
   real(gp), dimension(:), allocatable :: work,ev

@@ -1,0 +1,11 @@
+ ----------------------------------------------------------------------------
+# Geometry optimization log file, grep for GEOPT for consistent output
+# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
+    1     2  GEOPT_DIIS  -1.17312429902414E+01  -1.30E-04  5.881E-03  6.868E-03  4.72E-05  9.12E-05  9.12E-05
+    2     3  GEOPT_DIIS  -1.17309838515535E+01   2.59E-04  7.302E-03  9.318E-03  8.68E-05  1.52E-04  1.52E-04
+    3     4  GEOPT_DIIS  -1.17309587500961E+01   2.51E-05  2.551E-03  3.554E-03  1.26E-05  3.05E-04  3.05E-04
+    4     5  GEOPT_DIIS  -1.17309713747215E+01  -1.26E-05  6.291E-04  1.054E-03  1.11E-06  4.21E-04  4.21E-04
+    5     6  GEOPT_DIIS  -1.17309716155378E+01  -2.41E-07  5.670E-04  7.473E-04  5.58E-07  5.19E-04  5.19E-04
+    6     7  GEOPT_DIIS  -1.17309695124693E+01   2.10E-06  2.371E-04  3.303E-04  1.09E-07  5.98E-04  5.98E-04
+ fnrm2,fluct*frac_fluct,fluct    1.09108E-07    5.97864E-04    5.97864E-04
+ DIIS converged

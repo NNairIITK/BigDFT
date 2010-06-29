@@ -70,11 +70,11 @@
         stop 'MPIFAKE: ALLGATHERV'
         END SUBROUTINE  MPI_ALLGatherV
 
-        subroutine  MPI_ALLGather()
+        subroutine  MPI_ALLGATHER()
         implicit none
         stop 'MPIFAKE: ALLGATHER'
-        END SUBROUTINE  MPI_ALLGather
-
+        END SUBROUTINE  MPI_ALLGATHER
+        
         subroutine  MPI_GatherV()
         implicit none
         stop 'MPIFAKE: GATHERV'
@@ -84,6 +84,7 @@
         implicit none
         stop 'MPIFAKE: GATHER'
         END SUBROUTINE  MPI_Gather
+
 
         subroutine  MPI_ALLTOALL()
         implicit none
@@ -126,3 +127,8 @@
           init=1
           ierr=0
         END SUBROUTINE  MPI_INITIALIZED
+
+        subroutine MPI_GET_PROCESSOR_NAME()
+        implicit none
+        stop 'MPIFAKE: MPI_GET_PROCESSOR_NAME'
+        end subroutine  MPI_GET_PROCESSOR_NAME

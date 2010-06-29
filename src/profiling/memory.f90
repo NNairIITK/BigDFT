@@ -95,8 +95,8 @@ subroutine memory_occupation(istat,isize,array,routine)
         end if
         write(*,'(1x,a)')&
              '-------------------------MEMORY CONSUMPTION REPORT-----------------------------'
-        write(*,'(1x,2(i0,a),i0)')&
-             memalloc,' allocations and ',memdealloc,' deallocations, remaining memory(B):',&
+        write(*,'(1x,2(i0,a,1x),i0)')&
+             memalloc,' allocations and',memdealloc,' deallocations, remaining memory(B):',&
              memtot%memory
         write(*,'(1x,a,i0,a)') 'memory occupation peak: ',memtot%peak/int(1048576,kind=8),' MB'
         write(*,'(4(1x,a))') 'for the array ',trim(memtot%array),&

@@ -3,30 +3,11 @@
 SUBDIRS = \
 	  fft \
 	  PSolver \
-	  H \
-	  H2-spin \
-	  Li+ \
-	  SiH4 \
-	  NaCl \
-	  C \
-	  Ca2 \
-	  Mn2  \
-	  H2O-CP2K \
-	  SiBulk \
-	  H2O-slab \
-	  Davidson-SiH4 \
+	  DFT \
 	  H2-freq \
 	  NEB \
-	  NH3 \
-	  XabsCheb \
-	  FeHyb \
-	  Graphene
+	  XabsCheb
 
-
-#This will run the automatic tests also for GPU
-if USE_CUDA_GPU
-SUBDIRS += GPU
-endif
 
 #This will run the automatic tests also for minima hopping
 if USE_MINIMA_HOPPING
@@ -52,10 +33,9 @@ mpirun: head_message
 
 
 EXTRA_DIST = \
+	README \
 	fldiff.py \
-	inguess.dat \
-	report.py \
-	Refs
+	report.py
 
 CLEANFILES =
 

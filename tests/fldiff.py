@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
+# Use to perform comparison between references and output files
 # 1 - read the output
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 12/03/2010
+# Date: 28/06/2010
 #----------------------------------------------------------------------------
 
 import difflib
@@ -72,6 +73,7 @@ if bigdft:
     def line_junk(line):
         "True if the line must not be compared"
         return re_version.search(line) \
+            or " |" in line \
             or "CPU time" in line \
             or "Load" in line \
             or "memory" in line \
@@ -156,6 +158,7 @@ if p1 >= 0 and p2 >= 0 and p1 != p2:
         #We remove the prefix
         original2 = map(lambda x: x.replace(prefix2,''), original2)
 
+#Remove post output
 end_left = False
 for line in original1:
     end_left = end_line in line
@@ -176,6 +179,7 @@ if bigdft:
     if not (end_left and end_right): 
         print "Max Discrepancy: NaN"
         sys.exit(1)
+
 
 #Compare both files
 compare = difflib.unified_diff(original1,original2,n=0)

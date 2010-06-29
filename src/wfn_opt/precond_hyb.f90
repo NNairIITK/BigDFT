@@ -28,13 +28,13 @@ integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ncong
   integer i,i_stat,i_all
   real(wp),allocatable::b(:),r(:),d(:)
 
-  !	work arrays for adaptive wavelet data structure
-  !	x_c and y_c are taken from the FFT arrays
+  ! work arrays for adaptive wavelet data structure
+  ! x_c and y_c are taken from the FFT arrays
   real(wp),allocatable::x_f(:,:,:,:)
   real(wp),allocatable,dimension(:)::x_f1,x_f2,x_f3
   real(wp),allocatable,dimension(:,:,:,:)::y_f
 
-  !	work arrays for FFT
+  ! work arrays for FFT
   real(wp), dimension(:), allocatable :: kern_k1,kern_k2,kern_k3
   real(wp), dimension(:,:,:), allocatable :: x_c! in and out of Fourier preconditioning
   real(wp), dimension(:,:,:,:,:), allocatable::z1,z3 ! work array for FFT
@@ -49,17 +49,17 @@ integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ncong
 
   call allocate_all
 
-  !	initializes the wavelet scaling coefficients	
+  ! initializes the wavelet scaling coefficients 
   call wscal_init_per(scal,hx,hy,hz,cprecr)
   !b=x
   call dcopy(nvctr_c+7*nvctr_f,x,1,b,1) 
 
-  !	compute the input guess x via a Fourier transform in a cubic box.
-  !	Arrays psifscf and ww serve as work arrays for the Fourier
+  ! compute the input guess x via a Fourier transform in a cubic box.
+  ! Arrays psifscf and ww serve as work arrays for the Fourier
   !        prec_fft_fast(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   !    cprecr,hx,hy,hz,hpsi,&
-  !	 kern_k1,kern_k2,kern_k3,z1,z3,x_c,&
-  !	 nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b)
+  !  kern_k1,kern_k2,kern_k3,z1,z3,x_c,&
+  !  nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b)
   call prec_fft_fast(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        cprecr,hx,hy,hz,x,&
        kern_k1,kern_k2,kern_k3,z1,z3,x_c,&
@@ -75,7 +75,7 @@ integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ncong
   rmr=dot(nvctr_c+7*nvctr_f,r(1),1,d(1),1)
   do i=1,ncong
      !write(*,*)i,rmr
-     !		write(*,*)i,sqrt(rmr)
+     !  write(*,*)i,sqrt(rmr)
 
      call apply_hp_hyb(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
           cprecr,hx,hy,hz,d,b,x_f,x_c,x_f1,x_f2,x_f3,y_f,z1,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,nf,ibyz,ibxz,ibxy)
@@ -94,9 +94,10 @@ integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ncong
      rmr=rmr_new
   enddo
 
-  call deallocate_all
+  call deallocate_all()
 
 contains
+
   subroutine allocate_all
     allocate(b(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
     call memocc(i_stat,b,'b','precong_per')
@@ -145,8 +146,6 @@ contains
     deallocate(d,stat=i_stat)
     call memocc(i_stat,i_all,'d','precong_per')
 
-
-
     i_all=-product(shape(z1))*kind(z1)
     deallocate(z1,stat=i_stat)
     call memocc(i_stat,i_all,'z1','prec_fft')
@@ -171,8 +170,6 @@ contains
     deallocate(x_c,stat=i_stat)
     call memocc(i_stat,i_all,'x_c','prec_fft')
 
-
-
     i_all=-product(shape(x_f))*kind(x_f)
     deallocate(x_f,stat=i_stat)
     call memocc(i_stat,i_all,'x_f','precong_per')
@@ -194,14 +191,21 @@ contains
     call memocc(i_stat,i_all,'y_f','precong_per')
 
   END SUBROUTINE deallocate_all
+
 END SUBROUTINE precong_per_hyb
+!!***
 
 
+!!****f* BigDFT/apply_hp_hyb
+!! FUNCTION
+!!   Applies the operator (KE+cprecr*I)*x=y
+!!   array x is input, array y is output
+!!
+!! SOURCE
+!!
 subroutine apply_hp_hyb(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,x_f,x_c,x_f1,x_f2,x_f3,y_f,y_c,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,nf,ibyz,ibxz,ibxy)
-  !	Applies the operator (KE+cprecr*I)*x=y
-  !	array x is input, array y is output
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -213,7 +217,7 @@ subroutine apply_hp_hyb(n1,n2,n3, &
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   real(wp), intent(in) :: x(nvctr_c+7*nvctr_f)  
   real(wp), intent(out) :: y(nvctr_c+7*nvctr_f)
-  !work arrays	
+  !work arrays 
   real(wp) :: x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
   real(wp) :: x_c(0:n1,0:n2,0:n3)
   real(wp) :: x_f1(nf),x_f2(nf),x_f3(nf)
@@ -238,5 +242,6 @@ subroutine apply_hp_hyb(n1,n2,n3, &
   call compress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
        nseg_f,nvctr_f,keyg(1,nseg_c+min(1,nseg_f)),keyv(nseg_c+min(1,nseg_f)), & 
        y_c,y_f,y(1),y(nvctr_c+min(1,nvctr_f)),nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
-END SUBROUTINE apply_hp_hyb
 
+END SUBROUTINE apply_hp_hyb
+!!***

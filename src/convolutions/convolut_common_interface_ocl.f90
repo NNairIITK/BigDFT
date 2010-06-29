@@ -14,7 +14,8 @@ subroutine init_acceleration_OCL(GPU)
   type(GPU_pointers), intent(out) :: GPU
 
   call ocl_create_gpu_context(GPU%context)
-  call ocl_create_command_queue(GPU%queue,GPU%context)
+  !call ocl_create_command_queue(GPU%queue,GPU%context)
+  call ocl_create_command_queue_id(GPU%queue,GPU%context,GPU%id_proc)
   call ocl_build_kernels(GPU%context)
   call init_event_list
 end subroutine init_acceleration_OCL

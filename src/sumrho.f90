@@ -36,12 +36,11 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   integer :: nrhotot,n3d,itmred
   integer :: nspinn
   integer :: i1,i2,i3,i3off,i3s,i,ispin,jproc,i_all,i_stat,ierr,j3,j3p,j
-  real(dp) :: charge,tt,maxdiff
+  real(dp) :: charge,tt
   real(dp), dimension(:,:), allocatable :: tmred
   real(dp), dimension(:,:), pointer :: rho_p
-  real(dp), dimension(:,:), allocatable :: rho_p_OCL
-  real(dp), dimension(:,:), allocatable :: psi_OCL
-  integer, dimension(3) :: periodic
+!!$  real(dp), dimension(:,:), allocatable :: rho_p_OCL
+!!$  real(dp), dimension(:,:), allocatable :: psi_OCL
 
 !  real(kind=8) :: stream_ptr
 

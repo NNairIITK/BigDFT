@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.9],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.4.0],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -305,7 +305,7 @@ if test x"$ac_use_ocl" = "xyes" ; then
       AC_MSG_WARN(["No 'OpenCL' library found, OpenCL parts disabled."])
       ac_use_ocl="no"
     else
-      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt"
+      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt -lstdc++"
     fi
     LIBS=$LIBS_OLD
   fi
@@ -573,28 +573,30 @@ doc/Makefile
 tests/Makefile
 tests/fft/Makefile
 tests/PSolver/Makefile
-tests/C/Makefile
-tests/Ca2/Makefile
-tests/H/Makefile
-tests/H2-spin/Makefile
-tests/Li+/Makefile
-tests/Mn2/Makefile
-tests/NaCl/Makefile
-tests/SiH4/Makefile
-tests/H2O-CP2K/Makefile
-tests/SiBulk/Makefile
-tests/H2O-slab/Makefile
-tests/Davidson-SiH4/Makefile
-tests/GPU/Makefile
-tests/MINHOP/Makefile
 tests/H2-freq/Makefile
-tests/NH3/Makefile
+tests/MINHOP/Makefile
 tests/NEB/Makefile
 tests/NEB/input
 tests/NEB/NEB_include.sh
 tests/XabsCheb/Makefile
-tests/FeHyb/Makefile
-tests/Graphene/Makefile
+tests/DFT/Makefile
+tests/DFT/C/Makefile
+tests/DFT/Ca2/Makefile
+tests/DFT/H/Makefile
+tests/DFT/H2-spin/Makefile
+tests/DFT/Li+/Makefile
+tests/DFT/Mn2/Makefile
+tests/DFT/NaCl/Makefile
+tests/DFT/SiH4/Makefile
+tests/DFT/NH3/Makefile
+tests/DFT/H2O-CP2K/Makefile
+tests/DFT/SiBulk/Makefile
+tests/DFT/H2O-slab/Makefile
+tests/DFT/Davidson-SiH4/Makefile
+tests/DFT/FeHyb/Makefile
+tests/DFT/Graphene/Makefile
+tests/DFT/GPU/Makefile
+tests/DFT/OCL/Makefile
 ])
 
 # Call libXC ./configure script recursively.
