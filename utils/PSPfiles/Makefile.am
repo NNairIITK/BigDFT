@@ -29,4 +29,5 @@ EXTRA_DIST = \
 	HGH-K/psppar.H \
 	HGH-K/psppar.Si \
 	HGH-K/psppar.O \
-	HGH-K/psppar.C
+	HGH-K/psppar.C \
+	HGH-K/psppar.N
