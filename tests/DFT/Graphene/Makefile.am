@@ -17,13 +17,13 @@ CLEANFILES = $(PPFILES) Graphene.out *.prc\
 $(PPFILES):
 	ln -fs $(top_srcdir)/utils/PSPfiles/$@
 
-Graphene.out: $(top_builddir)/src/cluster $(PPFILES)
+Graphene.out: $(top_builddir)/src/bigdft $(PPFILES)
 	if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/input.dft ; \
 	  ln -fs $(srcdir)/posinp.ascii ; \
 	  ln -fs $(srcdir)/input.kpt ; \
         fi
-	$(run_parallel) $(top_builddir)/src/cluster > $@
+	$(run_parallel) $(top_builddir)/src/bigdft > $@
 	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.ascii ; \
@@ -31,4 +31,5 @@ Graphene.out: $(top_builddir)/src/cluster $(PPFILES)
         fi
 
 check: Graphene.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft Graphene.out $(top_srcdir)/tests/Refs/Graphene.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft Graphene.out \
+		   $(top_srcdir)/tests/DFT/Graphene/Graphene.out.ref | tee fldiff.report

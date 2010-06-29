@@ -27,11 +27,11 @@
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Reading atomic input positions from file:posinp.xyz
- 
+
  Performance options (file 'input.perf' not present):
  |   'debug' option disabled
  |   'fftcache' = 8192
- 
+
  ---------------------------------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= S             | No fixed atom            | N. sym.   = disabled    
@@ -289,7 +289,8 @@
  average noise along y direction:  -5.62876632E-04
  average noise along z direction:   3.10090706E-06
  total average noise            :   5.62886060E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.614235512896324E-02     0.487999225039656E-01     0.614203829886089E-02     0.486739244630652E-01
+ clean forces norm (Ha/Bohr): maxval=  4.867392446306E-02  fnrm2=  6.142038298859E-03
+ raw forces:                  maxval=  4.879992250396E-02  fnrm2=  6.142355128961E-03
  CPU time/ELAPSED time for root process     0         3.64         3.36
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
@@ -505,7 +506,8 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.614235512896324E-02     0.487999225
  average noise along y direction:  -5.20347912E-04
  average noise along z direction:  -5.63851755E-06
  total average noise            :   5.22121387E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.546102049502071E-02     0.466746953935453E-01     0.546074973307106E-02     0.465598960335210E-01
+ clean forces norm (Ha/Bohr): maxval=  4.655989603352E-02  fnrm2=  5.460749733072E-03
+ raw forces:                  maxval=  4.667469539354E-02  fnrm2=  5.461020495021E-03
  CPU time/ELAPSED time for root process     0         1.85         1.84
   Nose-Hoover updated velocities (T_ask =      100.000 and T_eff =       97.195)
   Cartesian coordinates (bohr)
@@ -712,7 +714,8 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.546102049502071E-02     0.466746953
  average noise along y direction:  -4.06924910E-04
  average noise along z direction:  -1.09172571E-05
  total average noise            :   4.12440358E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.482382412563169E-02     0.445478827583958E-01     0.482365853774952E-02     0.444594883996927E-01
+ clean forces norm (Ha/Bohr): maxval=  4.445948839970E-02  fnrm2=  4.823658537750E-03
+ raw forces:                  maxval=  4.454788275840E-02  fnrm2=  4.823824125632E-03
  CPU time/ELAPSED time for root process     0         1.84         1.84
   Nose-Hoover updated velocities (T_ask =      100.000 and T_eff =      146.986)
   Cartesian coordinates (bohr)
@@ -940,13 +943,14 @@ End of minimization using  AB6MD
  average noise along y direction:  -5.43018138E-04
  average noise along z direction:   3.36075600E-06
  total average noise            :   5.43038364E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.614364193990242E-02     0.487949033685090E-01     0.614334707120398E-02     0.486733038693964E-01
+ clean forces norm (Ha/Bohr): maxval=  4.867330386939E-02  fnrm2=  6.143347071201E-03
+ raw forces:                  maxval=  4.879490336850E-02  fnrm2=  6.143641939899E-03
  CPU time/ELAPSED time for root process     0         2.19         2.16
  Final values of the Forces for each atom
      1      O  6.69436E-06  3.74881E-02  5.27914E-06
      2      H  4.49178E-02 -1.87427E-02 -5.66650E-07
      3      H -4.49188E-02 -1.87454E-02  1.10851E-06
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 3889 allocations and 3889 deallocations, remaining memory(B):0
+ 3889 allocations and 3889 deallocations, remaining memory(B): 0
  memory occupation peak: 33 MB
  for the array  wz in the routine gaussians_to_wavelets_orb

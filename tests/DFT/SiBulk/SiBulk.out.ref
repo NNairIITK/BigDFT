@@ -27,11 +27,11 @@
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Reading atomic input positions from file:posinp.xyz
- 
+
  Performance options (file 'input.perf' not present):
  |   'debug' option disabled
  |   'fftcache' = 8192
- 
+
  ---------------------------------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= P             | No fixed atom            | N. sym.   = disabled    
@@ -276,7 +276,7 @@
  average noise along y direction:   4.65038559E-09
  average noise along z direction:   4.65035499E-09
  total average noise            :   8.05468631E-09
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.650751867594514E-16     0.300477109502029E-08     0.650751867594514E-16     0.300477109502029E-08
+ clean forces norm (Ha/Bohr): maxval=  3.004768269536E-09  fnrm2=  6.507521270462E-17
  Wavefunctions memory occupation for root processor (Bytes): 1497984
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  Iterative subspace diagonalization of virtual orbitals.
@@ -526,6 +526,6 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.650751867594514E-16     0.300477109
      7     Si  1.55351E-09  1.55351E-09  1.55350E-09
      8     Si  1.55351E-09  1.55351E-09  1.55350E-09
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 2349 allocations and 2349 deallocations, remaining memory(B):0
+ 2349 allocations and 2349 deallocations, remaining memory(B): 0
  memory occupation peak: 127 MB
  for the array  rmt in the routine iguess_generator
