@@ -1278,6 +1278,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   allocate(product_matrix(in%history, in%history+ndebug),stat=i_stat)
   call memocc(i_stat,product_matrix,'product_matrix',subname)
 
+  fluct = 0.d0
 
   ! We set the first step and move to the second
   previous_forces(1,:) = f(:)
