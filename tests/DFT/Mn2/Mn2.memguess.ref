@@ -26,10 +26,19 @@
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
- Number of atoms     = 2
- Number of atom types= 1
- Atoms of type 1 are Mn
- Spin-polarised calculation: YES (Non-collinear)
+ Reading atomic input positions from file:posinp.xyz
+
+ Performance options (file 'input.perf' not present):
+ |   'debug' option disabled
+ |   'fftcache' = 8192
+
+ ---------------------------------------------------------------- Input atomic system
+   Atomic system                  Fixed positions           Additional data
+ Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
+ N. types =     1         |                          | Sp. group = free BC     
+ N. atoms =     2         |                          | Virt. orb.= none        
+ Types    = 'Mn'          |                          | Plot dens.= none        
+                          |                          | Spin pol. = non-coll.   
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 5.0E-04 | Calculate=   F
@@ -54,16 +63,19 @@
             0.32776  -7.99542
  Total Number of Electrons       14
  Spin-polarized non-collinear calculation
- Total Number of Orbitals       14
+ Total Number of Orbitals        14
  occup(1:14)= 1.0000
- Input wavefunction data for atom     Mn NOT found, automatic generation... done.
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1     Mn  7.87500E+00  7.87500E+00  7.97663E+00       17.500    17.500    17.726
      2     Mn  7.87500E+00  7.87500E+00  1.31734E+01       17.500    17.500    29.274
-    Shift of=  7.87500E+00  7.87500E+00  7.97663E+00 Grid Spacings=  0.45  0.45  0.45
+    Shift of=  7.87500E+00  7.87500E+00  7.97663E+00 H grids=  0.4500  0.4500  0.4500
    Box Sizes=  1.57500E+01  1.57500E+01  2.11500E+01           35        35        47
        Extremes for the high resolution grid points:        12<23     12<23     12<35
  wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=       1432 points=     35712
+   Fine resolution grid: Number of segments=        212 points=      1664
+ Wavefunctions memory occupation for root processor (Bytes): 21217280
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Mn               2                   14

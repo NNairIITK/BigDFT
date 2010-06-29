@@ -57,9 +57,9 @@ run_job()
     # $1 name of the job
     # $2 the replica id
     if test -z "$run_parallel" ; then
-	(@abs_top_builddir@/src/cluster > log; echo "job done" >> log)&
+	(@abs_top_builddir@/src/bigdft > log; echo "job done" >> log)&
     else
-	$run_parallel @abs_top_builddir@/src/cluster > log
+	$run_parallel @abs_top_builddir@/src/bigdft > log
 	echo "job done" >> log
     fi
 }
