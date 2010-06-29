@@ -27,11 +27,11 @@
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Reading atomic input positions from file:posinp.xyz
- 
+
  Performance options (file 'input.perf' not present):
  |   'debug' option disabled
  |   'fftcache' = 8192
- 
+
  ---------------------------------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -638,7 +638,8 @@
  average noise along y direction:   1.55794803E-04
  average noise along z direction:   1.05969127E-04
  total average noise            :   2.44486161E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.544670128691805E-03     0.165773257473021E-01     0.544610353031573E-03     0.165016719309222E-01
+ clean forces norm (Ha/Bohr): maxval=  1.650167193646E-02  fnrm2=  5.446103533972E-04
+ raw forces:                  maxval=  1.657732575812E-02  fnrm2=  5.446701290576E-04
  CPU time/ELAPSED time for root process     0        62.00        61.64
  Final values of the Forces for each atom
      1     Mn -3.17637E-22  6.56451E-21 -1.65017E-02
