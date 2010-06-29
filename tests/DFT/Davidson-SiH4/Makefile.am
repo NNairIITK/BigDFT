@@ -30,5 +30,5 @@ Davidson-SiH4.out: $(top_builddir)/src/bigdft $(PPFILES)
         fi
 
 check: Davidson-SiH4.out
-	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.e-9 --mode=bigdft Davidson-SiH4.out \
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=4.e-9 --mode=bigdft Davidson-SiH4.out \
 		$(top_srcdir)/tests/DFT/Davidson-SiH4/Davidson-SiH4.out.ref | tee fldiff.report
