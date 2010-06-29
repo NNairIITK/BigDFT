@@ -6,6 +6,7 @@ EXTRA_DIST = \
 	input.dft \
 	input.geopt \
 	posinp.ascii \
+	geopt.mon.ref \
 	NH3.out.ref
 
 PPFILES = \

@@ -89,7 +89,8 @@ elif neb:
         "True if the line must not be compared"
         return re_version.search(line) \
             or "datadir" in line \
-            or "workdir" in line
+            or "workdir" in line \
+            or "Reading atomic input" in line
 elif psolver:
     #Remove some lines (PS_Check)
     def line_junk(line):
