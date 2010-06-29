@@ -934,9 +934,9 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   call fnrmandforcemax(ffold,fnrm,fmax,at%nat)   
   if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
   if (iproc == 0) then
-     if (parmin%verbosity > 0)   write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe9.2E1)') &
+     if (parmin%verbosity > 0)   write(16,'(i5,1x,i5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2e1)') &
      &ncount_bigdft,itsd,"GEOPT_VSSD",etotold,etotold-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"beta=",beta
-     if (parmin%verbosity > 0)   write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe9.2E1)') &
+     if (parmin%verbosity > 0)   write(* ,'(i5,1x,i5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2e1)') &
      &ncount_bigdft,itsd,"GEOPT_VSSD",etotold,etotold-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"beta=",beta
      eprev=etotold
 !!$     call transforce(at,ffold,sumx,sumy,sumz)                         
