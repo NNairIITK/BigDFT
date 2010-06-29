@@ -35,3 +35,5 @@ NH3.out: $(top_builddir)/src/bigdft $(PPFILES)
 check: NH3.out
 	python $(top_srcdir)/tests/fldiff.py --mode=bigdft NH3.out \
 		$(top_srcdir)/tests/DFT/NH3/NH3.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py geopt.mon \
+		$(top_srcdir)/tests/DFT/NH3/geopt.mon.ref | tee geopt.report
