@@ -110,8 +110,8 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   integer :: ibfgs
 
   !-------------------------------------------
-  character*4 fn4
-  character*40 comment
+  character(len=4) :: fn4
+  character(len=40) :: comment
 
   call geopt_init()
   if (iproc ==0 .and. parmin%verbosity > 0)  write(16,'(a)')  & 
@@ -135,7 +135,8 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   if (trim(parmin%approach)=='BFGS') then
   
      ibfgs=0
-86   ibfgs=ibfgs+1
+86   continue
+     ibfgs=ibfgs+1
      if (iproc ==0) write(*,*) '# ENTERING BFGS,ibfgs',ibfgs
      call lbfgsdriver(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
      if (fail .and. ibfgs .lt. 5) goto 86
