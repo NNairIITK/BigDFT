@@ -105,6 +105,8 @@ int main() {
        magicfilter_generic(kernels.magicfilter1d_kernel_d, queue, &n, &ndat, &(input[i]), &(output[i]));
        magicfilter_generic(kernels.magicfilter1d_kernel_d, queue, &n, &ndat, &(output[i]), &(input[i]));
     }
+    ciErrNum = clFlush(queue);
+    oclErrorCheck(ciErrNum,"Failed to flush queue!");
   }
   printf("Enqueuing reads...\n");
   for(i=0; i<NB_STREAM; i++) {
@@ -126,6 +128,7 @@ int main() {
   ciErrNum = oclEndStreams();
   oclErrorCheck(ciErrNum,"Failed to end streams!");
   clean_magicfilter_kernels(&kernels);
+  clean_magicfilter_programs();
   ciErrNum = clReleaseCommandQueue(queue);
   oclErrorCheck(ciErrNum,"Failed to release command queue!");
   ciErrNum = clReleaseContext(context);

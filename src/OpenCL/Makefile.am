@@ -68,6 +68,7 @@ bench_zgemm_LDADD = libbasec.a
 bench_zgemm_LDFLAGS = -lrt
 
 stream: stream_check
+	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='profile.conf' ./stream_check
 
 bench: bench_conv
 	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='profile.conf' ./bench_conv

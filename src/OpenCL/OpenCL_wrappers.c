@@ -146,12 +146,12 @@ void FC_FUNC_(ocl_create_command_queue,OCL_CREATE_COMMAND_QUEUE)(bigdft_command_
       fprintf(stderr,"Error: Failed to create command queue (out of memory)!\n");
       exit(1);
     }
-#if __OPENCL_VERSION__ >= CL_VERSION_1_1
-    clGetContextInfo(*context, CL_CONTEXT_NUM_DEVICES, sizeof(device_number), &device_number, NULL);
-#else
+#if __OPENCL_VERSION__ <= CL_VERSION_1_0
     size_t nContextDescriptorSize; 
     clGetContextInfo(*context, CL_CONTEXT_DEVICES, 0, 0, &nContextDescriptorSize);
     device_number = nContextDescriptorSize/sizeof(cl_device_id);
+#else
+    clGetContextInfo(*context, CL_CONTEXT_NUM_DEVICES, sizeof(device_number), &device_number, NULL);
 #endif
     cl_device_id * aDevices = (cl_device_id *) malloc(sizeof(cl_device_id)*device_number);
     clGetContextInfo(*context, CL_CONTEXT_DEVICES, sizeof(cl_device_id)*device_number, aDevices, 0);
@@ -176,12 +176,12 @@ void FC_FUNC_(ocl_create_command_queue_id,OCL_CREATE_COMMAND_QUEUE_ID)(bigdft_co
       fprintf(stderr,"Error: Failed to create command queue (out of memory)!\n");
       exit(1);
     }
-#if __OPENCL_VERSION__ >= CL_VERSION_1_1
-    clGetContextInfo(*context, CL_CONTEXT_NUM_DEVICES, sizeof(device_number), &device_number, NULL);
-#else
+#if __OPENCL_VERSION__ <= CL_VERSION_1_0
     size_t nContextDescriptorSize; 
     clGetContextInfo(*context, CL_CONTEXT_DEVICES, 0, 0, &nContextDescriptorSize);
     device_number = nContextDescriptorSize/sizeof(cl_device_id);
+#else
+    clGetContextInfo(*context, CL_CONTEXT_NUM_DEVICES, sizeof(device_number), &device_number, NULL);
 #endif
     cl_device_id * aDevices = (cl_device_id *) malloc(sizeof(cl_device_id)*device_number);
     clGetContextInfo(*context, CL_CONTEXT_DEVICES, sizeof(cl_device_id)*device_number, aDevices, 0);

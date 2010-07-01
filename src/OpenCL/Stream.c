@@ -93,7 +93,7 @@ cl_int oclStreamFlush(ocl_stream stream) {
 }
 
 cl_int oclStreamFinish(ocl_stream stream) {
-  return clEnqueueWaitForEvents(stream->command_queue, 1, &(stream->event));
+  return clWaitForEvents(1, &(stream->event));
 }
 
 cl_int oclEnstreamWriteBuffer(ocl_stream stream, cl_mem buffer, cl_bool blocking_write, size_t offset, size_t cb, const void *ptr) {
