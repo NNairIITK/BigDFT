@@ -2,6 +2,7 @@
 
 SUBDIRS = \
 	  fft \
+	  OpenCL \
 	  PSolver \
 	  H2-freq \
 	  NEB \
