@@ -14,7 +14,6 @@ else
 check =
 endif
 
-check_PROGRAMS = $(check)
 
 noinst_LIBRARIES = libbasef.a libbasec.a
 
@@ -40,6 +39,6 @@ conv_check_SOURCES = conv_check.f90
 conv_check_LDADD = libbasec.a libbasef.a ../libbigdft.a ../PSolver/libpoissonsolver.a
 conv_check_LDFLAGS = -lpthread -lconfig++ -lstdc++
 
-check:
+check_conv:
 	echo 1 128 128 204900 204900 10 > fort.1
 	numactl --interleave=all ./conv_check

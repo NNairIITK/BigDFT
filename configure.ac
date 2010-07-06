@@ -598,6 +598,7 @@ tests/DFT/Graphene/Makefile
 tests/DFT/GPU/Makefile
 tests/DFT/OCL/Makefile
 tests/OpenCL/Makefile
+tests/CUDA/Makefile
 ])
 
 # Call libXC ./configure script recursively.

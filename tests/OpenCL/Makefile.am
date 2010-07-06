@@ -4,7 +4,11 @@ EXTRA_DIST = \
 SOURCES_CONV_CHECK =
 SOURCES_SHARED =
 
+if USE_OCL
 check_PROGRAMS = conv_check
+else
+check_PROGRAMS =
+endif
 
 CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 malloc.prc *linkinfo
 
@@ -17,5 +21,5 @@ conv_check_LDADD =  ../../src/libbigdft.a ../../src/PSolver/libpoissonsolver.a .
 conv_check_LDFLAGS = -lrt
 
 check:
-	echo 1 128 128 16384 16384 100 > fort.1
+	echo 1 128 128 16384 16384 2 > fort.1
 	./conv_check

@@ -16,14 +16,15 @@ EXTRA_DIST = \
 SOURCES_CONV_CHECK =
 SOURCES_SHARED =
 
-check_PROGRAMS = conv_check
-noinst_PROGRAMS = bench_conv bench_conv_quick bench_zgemm stream_check
+
+EXTRA_PROGRAMS = conv_check bench_conv bench_conv_quick bench_zgemm stream_check
 
 noinst_LIBRARIES = libbasef.a libbasec.a libOCL.a libStream.a
 
 libbasef_a_SOURCES = ../profiling/memory.f90 \
                      ../modules/base.F90 \
                      ../modules/cublas_fake.f90 $(mpi_source)
+
 libbasec_a_SOURCES = OpenCL_wrappers.c \
                      MagicFilter.c \
                      Kinetic.c \
@@ -79,6 +80,6 @@ bench_quick: bench_conv_quick
 bench_zg: bench_zgemm
 	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='profile.conf' ./bench_zgemm
 
-check:
+check_conv: conv_check
 	echo 1 128 128 16384 16384 100 > fort.1
 	./conv_check

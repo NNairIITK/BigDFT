@@ -3,6 +3,7 @@
 SUBDIRS = \
 	  fft \
 	  OpenCL \
+	  CUDA \
 	  PSolver \
 	  H2-freq \
 	  NEB \

@@ -210,7 +210,7 @@ libbigdft_a_LIBADD = profiling/time.o \
 	profiling/memory.o \
 	profiling/memoryestimator.o \
 	$(convolution_objects) \
-	$(modules_objects)
+	$(modules_objects) 
 
 bigdft_SOURCES = BigDFT.f90 
 bigdft_LDFLAGS = 
