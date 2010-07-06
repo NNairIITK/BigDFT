@@ -6,13 +6,13 @@ SOURCES_SHARED =
 
 check_PROGRAMS = conv_check
 
-CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
+CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 malloc.prc *linkinfo
 
 AM_FCFLAGS = -I../../src/modules @MPI_INCLUDE@ -I. -I$(srcdir)
 AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@
 AM_CFLAGS = -Wall -Werror
 
-conv_check_SOURCES = conv_check.f90 
+conv_check_SOURCES = ../../src/OpenCL/conv_check.f90 
 conv_check_LDADD =  ../../src/libbigdft.a ../../src/PSolver/libpoissonsolver.a ../../src/OpenCL/libbasec.a ../../src/OpenCL/libbasef.a
 conv_check_LDFLAGS = -lrt
 
