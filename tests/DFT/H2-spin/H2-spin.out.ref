@@ -27,11 +27,11 @@
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Reading atomic input positions from file:posinp.xyz
- 
+
  Performance options (file 'input.perf' not present):
  |   'debug' option disabled
  |   'fftcache' = 8192
- 
+
  ---------------------------------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -277,7 +277,8 @@
  average noise along y direction:   1.56302070E-04
  average noise along z direction:   7.71044538E-05
  total average noise            :   2.34106324E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.293127766039474E-03     0.121607656464477E-01     0.293072957643582E-03     0.121052252693534E-01
+ clean forces norm (Ha/Bohr): maxval=  1.210522526936E-02  fnrm2=  2.930729576438E-04
+ raw forces:                  maxval=  1.216076564645E-02  fnrm2=  2.931277660397E-04
  ---------------------------------------------- Estimation of Finite-Size Corrections
  F-S Correction for an effective space of  5.000 AU more around each external atom
                    requires the adding of     13 additional grid points around cell
@@ -296,6 +297,6 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.293127766039474E-03     0.121607656
      1      H  1.05879E-22  2.11758E-22  1.21052E-02
      2      H -1.05879E-22 -2.11758E-22 -1.21052E-02
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1576 allocations and 1576 deallocations, remaining memory(B):0
+ 1576 allocations and 1576 deallocations, remaining memory(B): 0
  memory occupation peak: 112 MB
  for the array  mod_my in the routine ana_rot_per_old

@@ -213,14 +213,15 @@
  PSolver, periodic BC, dimensions:    64   64   64   proc    4  ixc:      0 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
+ average noise along x direction:   1.25481060E-04
+ average noise along y direction:   1.25481060E-04
+ average noise along z direction:   1.25481060E-04
+ total average noise            :   2.17339571E-04
+ clean forces norm (Ha/Bohr): maxval=  2.173395713124E-04  fnrm2=  4.723648925825E-08
  CPU time/ELAPSED time for root process     0         3.96         3.96
  Final values of the Forces for each atom
      1      H  1.25481E-04  1.25481E-04  1.25481E-04
- the sum of the forces is
-      x direction     1.25481060E-04
-      y direction     1.25481060E-04
-      z direction     1.25481060E-04
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 759 allocations and 759 deallocations, remaining memory(B):0
+ 759 allocations and 759 deallocations, remaining memory(B): 0
  memory occupation peak: 53 MB
  for the array  wz in the routine gaussians_to_wavelets_orb

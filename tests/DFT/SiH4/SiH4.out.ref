@@ -27,11 +27,11 @@
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Reading atomic input positions from file:posinp.ascii
- 
+
  Performance options (file 'input.perf' not present):
  |   'debug' option disabled
  |   'fftcache' = 8192
- 
+
  ---------------------------------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -254,7 +254,8 @@
  average noise along y direction:   1.18242237E-05
  average noise along z direction:   1.18242236E-05
  total average noise            :   2.04801561E-05
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.344734436209665E-07     0.971254416178139E-04     0.340540068265995E-07     0.935503532483908E-04
+ clean forces norm (Ha/Bohr): maxval=  9.355035324818E-05  fnrm2=  3.405400682689E-08
+ raw forces:                  maxval=  9.712544161768E-05  fnrm2=  3.447344362145E-08
  CPU time/ELAPSED time for root process     0         8.66         8.48
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
@@ -372,7 +373,8 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.344734436209665E-07     0.971254416
  average noise along y direction:   1.15953899E-05
  average noise along z direction:   1.15953899E-05
  total average noise            :   2.00838045E-05
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.344798969122437E-07     0.970406349720480E-04     0.340765377106865E-07     0.935266072299937E-04
+ clean forces norm (Ha/Bohr): maxval=  9.352660722782E-05  fnrm2=  3.407653770973E-08
+ raw forces:                  maxval=  9.704063497107E-05  fnrm2=  3.447989691162E-08
  CPU time/ELAPSED time for root process     0         1.80         1.79
  FORCES norm(Ha/Bohr): maxval=   9.35266E-05 fnrm=   3.40765E-08 fluct=   2.00838E-05
     1     1  GEOPT_SD    -6.26982277975420E+00  -2.77E-10  9.353E-05  1.85E-04  2.01E-05  2.01E-05  b/b0=1.00E+0  nsat= 0
@@ -509,7 +511,8 @@ SD EXIT because fnrm < fluct*frac_fluct  3.40765377106865394E-08  2.008380445924
  average noise along y direction:   8.00018049E-06
  average noise along z direction:   8.00018042E-06
  total average noise            :   1.38567190E-05
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.152779087873574E-06     0.202634594642891E-03     0.152587079211015E-06     0.204674551948260E-03
+ clean forces norm (Ha/Bohr): maxval=  2.046745519447E-04  fnrm2=  1.525870792048E-07
+ raw forces:                  maxval=  2.026345946347E-04  fnrm2=  1.527790878684E-07
  CPU time/ELAPSED time for root process     0         3.23         3.21
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -643,8 +646,9 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.152779087873574E-06     0.202634594
  average noise along y direction:   1.16229501E-05
  average noise along z direction:   1.16229501E-05
  total average noise            :   2.01315401E-05
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.656647477607121E-09     0.204313797538746E-04     0.251368570328442E-09     0.114282813174619E-04
- CPU time/ELAPSED time for root process     0         3.23         3.22
+ clean forces norm (Ha/Bohr): maxval=  1.142828096608E-05  fnrm2=  2.513685599391E-10
+ raw forces:                  maxval=  2.043137931876E-05  fnrm2=  6.566474596790E-10
+ CPU time/ELAPSED time for root process     0         8.08         7.97
     3     1  GEOPT_CG    -6.26982286897739E+00  -8.95E-08  1.143E-05  1.59E-05  2.01E-05  2.01E-05  b/b0=1.29E+0
  FORCES norm(Ha/Bohr): maxval=   1.14283E-05 fnrm=   2.51369E-10 fluct=   2.00934E-05
  average CG stepsize in terms of betax   1.29036820649411                0
@@ -656,6 +660,6 @@ End of minimization using  SDCG
      4      H -7.57135E-08 -8.97501E-08 -8.97501E-08
      5      H -8.97501E-08 -7.57135E-08 -8.97501E-08
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 3127 allocations and 3127 deallocations, remaining memory(B):0
+ 3127 allocations and 3127 deallocations, remaining memory(B): 0
  memory occupation peak: 59 MB
  for the array  wz in the routine gaussians_to_wavelets_orb

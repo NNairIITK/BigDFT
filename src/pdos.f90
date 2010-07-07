@@ -27,7 +27,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,in,at,rxyz,shift,lr,orbs,orbsv,ps
   real(wp), dimension(:), pointer :: psi,psivirt
   !local variables
   character(len=*), parameter :: subname='local_analysis'
-  integer :: nelec,norb,norbu,norbd,iunit,i_all,i_stat,norbpv,iat
+  integer :: i_all,i_stat,norbpv
   !type(input_variables) :: inc
   !type(atoms_data) :: atc
   type(gaussian_basis) :: G
@@ -246,7 +246,7 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   end do
 
   if (iproc == 0) write(*,'(24x,a,f21.12)')'Total Charge considered on the centers: ',msum
-   
+  
   call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
   i_all=-product(shape(mchg))*kind(mchg)
@@ -256,7 +256,8 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
 END SUBROUTINE mulliken_charge_population
 !!***
 
-!!****f* BigDFT/mulliken_charge_population
+
+!!****f* BigDFT/gaussian_pdos
 !! SOURCE
 !! 
 subroutine gaussian_pdos(iproc,nproc,orbs,Gocc,G,coeff,duals)
@@ -270,11 +271,9 @@ subroutine gaussian_pdos(iproc,nproc,orbs,Gocc,G,coeff,duals)
   real(wp), dimension(G%ncoeff,orbs%norbp), intent(in) :: coeff,duals
   !local variables
   character(len=*), parameter :: subname='gaussian_pdos'
-  character(len=11) :: shname
-  integer :: icoeff,i_all,i_stat,ierr,ishell,iexpo,iat,l,ng,iorb,isat,m,ispin,ig,nchannels
+  integer :: icoeff,i_all,i_stat,ierr,iorb,ispin
   integer :: jproc,nspin
-  real(wp) :: msum,rad,radnorm,r,rsum,tnorm
-  real(wp), dimension(2) :: msumiat
+  real(wp) :: rsum,tnorm
   integer, dimension(:), allocatable :: norb_displ
   real(wp), dimension(:,:), allocatable :: pdos
   
@@ -336,13 +335,13 @@ subroutine gaussian_pdos(iproc,nproc,orbs,Gocc,G,coeff,duals)
         open(unit=12,file='pdos.dat',status='unknown')
      end if
      do iorb=1,orbs%norbu
-        write(12,'(i5,1pe14.5,1000(f7.4))')iorb,orbs%eval(iorb),pdos(1:G%ncoeff,iorb)
+        write(12,'(i5,1pe14.5,1000(1pe14.5))')iorb,orbs%eval(iorb),pdos(1:G%ncoeff,iorb)
      end do
      close(unit=12)
      if (orbs%norbd /= 0) then
         open(unit=12,file='pdos-down.dat',status='unknown')
         do iorb=orbs%norbu+1,orbs%norbu+orbs%norbd
-           write(12,'(i5,1pe12.5,1000(f12.4))')iorb-orbs%norbu,orbs%eval(iorb),pdos(1:G%ncoeff+1,iorb)
+           write(12,'(i5,1pe14.5,1000(1pe14.5))')iorb-orbs%norbu,orbs%eval(iorb),pdos(1:G%ncoeff+1,iorb)
         end do
      end if
   end if

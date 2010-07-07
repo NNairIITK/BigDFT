@@ -1,3 +1,14 @@
+!!****p* BigDFT/rism
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 CEA, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 program rism
   use BigDFT_API
   implicit none
@@ -125,9 +136,8 @@ program rism
   call memocc(0,0,'count','stop')
 
 
-  
 end program rism
-
+!!***
 
 
 !!****f* BigDFT/two_center_two_electrons
@@ -153,7 +163,7 @@ subroutine two_center_two_electrons(nat,a1,a2,a3,rxyz,radii,H)
   real(gp), parameter :: oneosqrtpi=0.564189583547756286948079451_gp
   integer :: iat,jat,i_gauss
   real(dp) :: ur_gauss,dr_gauss,acc_gauss,factor,factor2
-  real(gp) :: a_range,ra2,ra2pb2,rab2,oneopk,oneoexpo,expo,oneofac,fac,ra,erfor
+  real(gp) :: a_range,ra2,ra2pb2,rab2,oneopk,oneoexpo,expo,oneofac,fac,ra
   real(gp), dimension(3) :: A
   real(dp), dimension(n_gauss) :: p_gauss,w_gauss
 
@@ -536,7 +546,6 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
   integer, dimension(:), allocatable :: iwork
   real(gp), dimension(:), allocatable :: D,rhoarr,u,v,work,Caux
   real(gp), dimension(:,:), allocatable :: Hlrlr,Hwork,H,ovrlp
-  real(gp), dimension(:), pointer :: Gocc
 
   if (atoms%geocode /= 'F') then
      write(*,*)'ERROR: the atomic charges can be calculated only in isolcated BC!'
@@ -944,7 +953,7 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   !local variables
   character(len=*), parameter :: subname='gaussian_psp_basis'
   real(gp), parameter :: oneo2pi3halves=0.0634936359342409697857633_gp
-  integer :: iat,nshell,ityp,iexpo,l,ishell,i_stat
+  integer :: iat,nshell,iexpo,l,ishell,i_stat
 
   G%nat=nat
   G%rxyz => rxyz
@@ -1018,7 +1027,7 @@ subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
   !local variables
   character(len=*), parameter :: subname='gaussian_psp_basis'
   real(gp), parameter :: oneo2pi3halves=0.0634936359342409697857633_gp
-  integer :: iat,nshell,ityp,iexpo,l,ishell,i_stat
+  integer :: iat,nshell,iexpo,l,ishell,i_stat
 
   G%nat=nat
   G%rxyz => rxyz

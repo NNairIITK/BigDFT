@@ -3001,7 +3001,7 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   real(gp):: fmax2,fnrm2
 
 
-  !the maximum force and force norm is computed prior to modification of the forces
+  !The maximum force and force norm is computed prior to modification of the forces
   fmax1=0._gp
   fnrm1=0._gp
   do iat=1,at%nat
@@ -3066,7 +3066,7 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   !the noise of the forces is the norm of the translational force
 !  fnoise=real(at%nat,gp)**2*(sumx**2+sumy**2+sumz**2)
 
-  !the maximum force and force norm is computed after modification of the forces
+  !The maximum force and force norm is computed after modification of the forces
   fmax2=0._gp
   fnrm2=0._gp
   do iat=1,at%nat
@@ -3076,5 +3076,10 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
      fmax2=max(fmax2,sqrt(t1+t2+t3))
      fnrm2=fnrm2+t1+t2+t3
   enddo
-if (iproc==0)  write(*,'(a,4(1x,e25.15))') "Dirty: fnrm2, fmax. Clean: fnrm2, fmax",fnrm1,fmax1,fnrm2,fmax2
+
+  if (iproc==0) then
+     write(*,'(2(1x,a,1pe20.12))') 'clean forces norm (Ha/Bohr): maxval=', fmax2, ' fnrm2=', fnrm2
+     if (at%geocode /= 'P') &
+  &  write(*,'(2(1x,a,1pe20.12))') 'raw forces:                  maxval=', fmax1, ' fnrm2=', fnrm1
+  end if
 end subroutine clean_forces

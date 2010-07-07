@@ -1,107 +1,26 @@
-The command 'make check' performs the series of tests (optimisation of geometry):
-- C             carbon atom
-- Ca2           dimer of Ca
-- Davidson-SiH4 calculate the Kohn-Sham eigenvalues (diagonalisation)
-- FeHyb         Hybrid functional
-- H             hydrogen atom
-- H-spin        hydrogen atom with Local Spin Density
-- H2O-CP2K      use the output wavefunctions from CP2K
-                (example to import wavefunctions from Gaussian basis sets)
-- H2O-slab      calculation of a slab of H2O molecules (surface boundary conditions)
-- Li+           lithium ion
-- Mn2           non-collinear spin
-- NaCl          sodium chloride
-- SiBulk        a periodic cell of 8 Si atoms
-- SiH4          silane
+The command 'make check' performs the series of tests:
+C/:             tests non-local pseudo-potential for isolated system
+Ca2/:           tests adaptive mesh (by checking symmetry)
+Davidson-SiH4/: tests Kohn-Sham eigenvalue calculations
+FeHyb/:         tests the hybrid functional.
+fft/:           low level test functionality.
+GPU/:           tests GPU code (CUDA)
+H/:             tests the hydrogen in a periodic box.
+H2-freq/:       computes the vibration properties of the water molecule using finite differences.
+H2O-CP2K/:      tests import wavefunctions from a gaussian basis set
+H2O-slab/:      tests the calculation of dipolar surfaces.
+H2-spin/:       uses the spin in the calculation of hydrogen atom.
+Li+/:           calculates an isolated charged system.
+MINHOP/:        tests global research using minima hopping
+Mn2/:           tests non-collinear spin
+NaCl/:          tests non-local pseudo-potential and adaptive mesh
+NEB/:           runs NEB calculations.
+NH3/:           shows the DIIS geometry relaxation to obtain saddle points.
+PSolver/:       tests the Poisson solver implementation.
+SiBulk/:        tests bulk silicon in periodic boundary conditions.
+SiH4/:          tests the geometry relaxation for the silane molecule. Use the ASCII file format instead of the XYZ one.
+XabsCheb/:      tests XANES calculations.
 
-
-The input files are:
-- input.dat for the parameters of calculations
-- posinp    for the atomic position
-            The format is the number of atoms + atomic, bohr or angstroem for units
-            and per line coordinates and name of each atoms
-- psppar.<name of atom> for the pseudopotentiel (ex, 'psppar.H_lda)
-            GTH pseudopotentials (PRB 54, 1703 (1996))
-            HGH and modified HGH (PRB 58, 3641 (1998) and Theor. Chem. Acc. 114, 145 (2005))
-
-- inguess.dat for the initial guess of wavefunctions (sum of gaussian functions)
-            IF THIS FILE IS NOT PRESENT, THE INPUT GUESS IS AUTOMATICALLY GENERATED.
-- occup.dat for the occupation numbers (see C directory as example)
-            IF THIS FILE IS NOT PRESENT, the orbital number is (nelec+1)/2 with 2.0 as occupation numbers
-
-A diff is performed after each calculations to check the accuracy.
-
-"input.dat" file
-----------------
-1        ncount_cluster: Max number of wavefunction optimizations during geometry relaxation
-1.d0     frac_fluct: geometry optimization stops if force norm less than frac_fluct of noise
-0.d0     randdis: random amplitude for atoms
-4.d0     betax: steepest descent step size,  if negative automatic determination
-0.45     hgrid: grid spacing
-5.0      crmult:   crmult*radii_cf(*,1) gives the coarse radius around each atom
-9.       frmult:   frmult*radii_cf(*,2) gives the fine   radius around each atom
-1        ixc: exchange-correlation parameter (LDA=1)
-0 0.d0   ncharge: total charge (0=neutral), Electric field
-1.d-4    gnrm_cv: convergence criterion gradient
-50       itermax: maximum number of energy minimization steps
-15       ncong: number of conjugate gradient iterations for the solution of the preconditioning equation
-6        idsx: length of the diis history. if =0 steepest descent
-.true.   calc_tail: calculate tail for better energy
-5.       rbuf  : length of the tail to be added (in atomic units)
-30       ncongt: number of conjugate gradient iterations for the calculation of tail
-1 0      nspin=1 non-spin polarization, mpol=total magnetic moment
-0 .false. 0 InputPsiId, output_wf, output_density (cube format)
-
-For accuracy, we recommend to use 0.45 or lower as hgrid (grid step). 
-For some systems (Si), it is possible to increase hgrid.
-crmult is the extension of the coarse mesh. 5 is nice. With the tail extension, you can decrease up to 3
-to save time.
-
-"posinp" file
--------------
- 2   angstroem
- 10. 10. 10. Na_lda
- 10. 10. 12.36 Cl_lda 
-
-You specify the number of atoms followed by the units (angstroem, bohr or reduced)
-Then the coordinates of the atoms.
-
-For a periodic system, you have:
-8 reduced
-periodic 10.26085381075144364474 10.26085381075144364474 10.26085381075144364474
-Si 0.   0.   0.
-Si 0.5  0.5  0.
-Si 0.5  0.   0.5
-Si 0.   0.5  0.5
-Si 0.25 0.25 0.25
-Si 0.75 0.75 0.25
-Si 0.75 0.25 0.75
-Si 0.25 0.75 0.75
-
-and for a surface calculation:
-3 angstroem
-surface 3.0 0.0 3.0
-O 1.5     0.0    1.5    
-H  .7285 0.620919 1.5 
-H  2.2715  0.620919 1.5 
-
-
-psppar.<name of atom> files
----------------------------
-These files use the same format as ABINIT: See http://www.abinit.org/Psps
-
-"inguess.dat" file
-------------------
-We recommend not to use this file because the automatic generation works fine.
-Nevertheless, the format is the same as the file "inguess.new" generated by the program.
-
-"occup.dat" file
-----------------
-<norb> the number of orbitals
-<iorb> <occup(iorb)>
-
-By default, the occupation numbers are the same without the file "occup.dat".
-In the file "occup.dat", you can specify only the occupation numbers differnet from 0 or 2.
 
 Test in parallel
 ----------------
@@ -110,5 +29,3 @@ export run_parallel='mpirun -np 2'
 To use a batch system, add a batch file with:
 export run_parallel=...
 make check
-
-

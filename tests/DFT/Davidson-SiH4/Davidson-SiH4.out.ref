@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.4-dev.9)
+                           ggggg       i         BBBB                     (Ver 1.4.0)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -61,8 +61,7 @@
  Atom Name    rloc      C1        C2        C3        C4  
         H   0.20000  -4.06633   0.67783
  Total Number of Electrons        8
- Processes from 0 to 3 treat 1 orbitals 
- Processes from 4 to 7 treat 0 orbitals 
+ Processes from 0 to 1 treat 2 orbitals 
  Total Number of Orbitals         4
  occup(1:4)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -77,13 +76,12 @@
  wavelet localization is ON
  ------------------------------------------------------------ Poisson Kernel Creation
  Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=1040000  Kernel=1060904
+ Memory occ. per proc. (Bytes):  Density=4000000  Kernel=4162008
                                  Full Grid Arrays=7762392
  Load Balancing for Poisson Solver related operations:
- LB_density        : processors   0  -  6 work at 100%
-                     processor       7   works at  69%
-  LB_kernel        : processors   0  -  6 work at 100%
-                     processor       7   works at  77%
+ LB_density        : processors   0  -  1 work at 100%
+  LB_kernel        : processors   0  -  0 work at 100%
+                     processor       1   works at  98%
  Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        981 points=     23247
@@ -99,171 +97,173 @@
  Calculating wavelets expansion of projectors... done.
  ------------------------------------------------------------------ Memory Estimation
  Number of atoms=    5 Number of orbitals=     4 Sim. Box Dimensions=    34   34   34
- Estimation performed for 8 processors.
+ Estimation performed for 2 processors.
  Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):     1 MB    13 KB
-              Poisson Solver Density (D):     0 MB  1016 KB
+               Poisson Solver Kernel (K):     3 MB   993 KB
+              Poisson Solver Density (D):     3 MB   835 KB
      Single Wavefunction for one orbital:     0 MB   297 KB
-    All Wavefunctions for each processor:     0 MB   891 KB
-       Wavefunctions + DIIS per proc (W):     4 MB   359 KB
+    All Wavefunctions for each processor:     1 MB   758 KB
+       Wavefunctions + DIIS per proc (W):     8 MB   717 KB
      Nonlocal Pseudopotential Arrays (P):     1 MB    62 KB
     Arrays of full uncompressed grid (U):     7 MB   413 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
        ~19*K         |     W+(~4)*U+D+K+P   |   ~12*D+K+W+P  |    ~W+(~5)*U+D+K+P 
-        19MB         |        31MB          |       18MB     |            33MB
- The overall memory requirement needed for this calculation is thus: 33 MB
+        75MB         |        38MB          |       59MB     |            40MB
+ The overall memory requirement needed for this calculation is thus: 75 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 28 MB
- Wavefunctions memory occupation for root processor (Bytes): 304080
+ Wavefunctions memory occupation for root processor (Bytes): 608160
  ion-ion interaction energy  7.01168186244404E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -7.999922323890   0.000E+00
- PSolver, free  BC, dimensions:    99   99   99   proc    8  ixc:      0 ... done.
+ PSolver, free  BC, dimensions:    99   99   99   proc    2 ... done.
  ------------------------------------------------------- Input Wavefunctions Creation
  Generating 8 Atomic Input Orbitals
  WARNING: A smaller number of virtual orbitals may be needed for better convergence.
           Put nvirte= 4
- Processes from 0 to 7 treat 1 inguess orbitals 
+ Processes from 0 to 1 treat 4 inguess orbitals 
  Calculating AIO wavefunctions: 
  Generation of input wavefunction data for atom     Si: 
    Elec. Configuration: s 2.00 , p 2/3 2/3 2/3 , ... done.
  Generation of input wavefunction data for atom      H: 
    Elec. Configuration: s 1.00 , ... done.
- Wavefunctions memory occupation for root processor (Bytes): 304128
+ Wavefunctions memory occupation for root processor (Bytes): 1216320
  Writing wavefunctions in wavelet form... done.
  Deviation from normalization of the imported orbitals    2.53E-04
  Calculation of charge density... done. Total electronic charge=       7.999999769983
- PSolver, free  BC, dimensions:    99   99   99   proc    8  ixc:      0 ... done.
+ PSolver, free  BC, dimensions:    99   99   99   proc    2 ... done.
  Hamiltonian application... done. ekin_sum,eks:       5.0523464819       5.0504007013
  ekin_sum,epot_sum,eproj_sum  5.05234648185E+00 -7.84137073400E+00  8.69628646465E-01
     ehart,   eexcu,    vexcu  1.12511019713E+01 -2.59134717327E+00 -3.38358426227E+00
  Input Wavefunctions Orthogonalization: Overlap Matrix... Linear Algebra...
- evale(1)= -4.95268716050323E-01 <-
+ evale(1)= -4.95268716050325E-01 <-
  evale(2)= -2.91726757032491E-01 <-
- evale(3)= -2.91726757032488E-01 <-
- evale(4)= -2.91705569502016E-01 <- Last eigenvalue for input wavefunctions
- evale(5)=  2.26456667365690E-01 <- First virtual eigenvalue
- evale(6)=  2.26456667365693E-01 <-
- evale(7)=  2.26495699833703E-01 <-
- evale(8)=  2.93752601387936E-01 <-
+ evale(3)= -2.91726757032487E-01 <-
+ evale(4)= -2.91705569502015E-01 <- Last eigenvalue for input wavefunctions
+ evale(5)=  2.26456667365691E-01 <- First virtual eigenvalue
+ evale(6)=  2.26456667365698E-01 <-
+ evale(7)=  2.26495699833707E-01 <-
+ evale(8)=  2.93752601387942E-01 <-
  Building orthogonal Wavefunctions... done.
  expected accuracy in energy  1.95E-03
  expected accuracy in energy per orbital  4.86E-04
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999919162
- PSolver, free  BC, dimensions:    99   99   99   proc    8  ixc:      0 ... done.
+ PSolver, free  BC, dimensions:    99   99   99   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
  DIIS weights    1.00E+00  1.00E+00
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  3.49353169202E+00 -7.23008918261E+00  9.17024465733E-01
     ehart,   eexcu,    vexcu  1.10792966041E+01 -2.41397975460E+00 -3.14987029367E+00
- iter,total energy,gnrm     1  -6.15125722740673542E+00  1.31E-01
+ iter,total energy,gnrm     1  -6.15125722740595027E+00  1.31E-01
  ---------------------------------------------------------------------------- iter= 2
  Calculation of charge density... done. Total electronic charge=       7.999999909926
- PSolver, free  BC, dimensions:    99   99   99   proc    8  ixc:      0 ... done.
+ PSolver, free  BC, dimensions:    99   99   99   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
  DIIS weights   -4.56E-01  1.46E+00 -2.44E-03
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  3.56559684406E+00 -7.28865519003E+00  8.25823073142E-01
-    ehart,   eexcu,    vexcu  1.10674776761E+01 -2.43558757627E+00 -3.17838413723E+00
- iter,total energy,gnrm     2  -6.21023452556162869E+00  5.71E-02
+    ehart,   eexcu,    vexcu  1.10674776761E+01 -2.43558757627E+00 -3.17838413722E+00
+ iter,total energy,gnrm     2  -6.21023452556085065E+00  5.71E-02
  ---------------------------------------------------------------------------- iter= 3
- Calculation of charge density... done. Total electronic charge=       7.999999890864
- PSolver, free  BC, dimensions:    99   99   99   proc    8  ixc:      0 ... done.
+ Calculation of charge density... done. Total electronic charge=       7.999999890863
+ PSolver, free  BC, dimensions:    99   99   99   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
  DIIS weights    3.80E-02 -4.38E-01  1.40E+00 -2.21E-04
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  3.67889942595E+00 -7.34907462897E+00  7.92698113721E-01
     ehart,   eexcu,    vexcu  1.11144675843E+01 -2.46689899588E+00 -3.21963234209E+00
- iter,total energy,gnrm     3  -6.22752946490555015E+00  2.78E-02
+ iter,total energy,gnrm     3  -6.22752946490466730E+00  2.78E-02
  ---------------------------------------------------------------------------- iter= 4
  Calculation of charge density... done. Total electronic charge=       7.999999884521
- PSolver, free  BC, dimensions:    99   99   99   proc    8  ixc:      0 ... done.
+ PSolver, free  BC, dimensions:    99   99   99   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
  DIIS weights    1.47E-02  1.40E-02 -5.37E-01  1.51E+00 -2.05E-05
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  3.72270501796E+00 -7.37155916335E+00  7.76740896792E-01
     ehart,   eexcu,    vexcu  1.11269278900E+01 -2.47833057615E+00 -3.23469340739E+00
- iter,total energy,gnrm     4  -6.23099644495955385E+00  1.30E-02
+ iter,total energy,gnrm     4  -6.23099644495874561E+00  1.30E-02
  ---------------------------------------------------------------------------- iter= 5
  Calculation of charge density... done. Total electronic charge=       7.999999883793
- PSolver, free  BC, dimensions:    99   99   99   proc    8  ixc:      0 ... done.
+ PSolver, free  BC, dimensions:    99   99   99   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
  DIIS weights    8.14E-04 -2.49E-03  5.63E-02 -4.33E-01  1.38E+00 -2.74E-06
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  3.73965670563E+00 -7.37816633452E+00  7.70303509060E-01
     ehart,   eexcu,    vexcu  1.11328558906E+01 -2.48251220058E+00 -3.24020102869E+00
- iter,total energy,gnrm     5  -6.23169131991101910E+00  4.99E-03
+ iter,total energy,gnrm     5  -6.23169131990997993E+00  4.99E-03
  ---------------------------------------------------------------------------- iter= 6
- Calculation of charge density... done. Total electronic charge=       7.999999884099
- PSolver, free  BC, dimensions:    99   99   99   proc    8  ixc:      0 ... done.
+ Calculation of charge density... done. Total electronic charge=       7.999999884098
+ PSolver, free  BC, dimensions:    99   99   99   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
  DIIS weights   -3.11E-03  4.59E-03  2.05E-02 -1.26E-02 -4.62E-01  1.45E+00 -2.59E-07
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  3.74298743878E+00 -7.37884276103E+00  7.68218852368E-01
     ehart,   eexcu,    vexcu  1.11336844035E+01 -2.48307549968E+00 -3.24094379436E+00
- iter,total energy,gnrm     6  -6.23177071629398593E+00  1.70E-03
+ iter,total energy,gnrm     6  -6.23177071629367330E+00  1.70E-03
  ---------------------------------------------------------------------------- iter= 7
- Calculation of charge density... done. Total electronic charge=       7.999999884302
- PSolver, free  BC, dimensions:    99   99   99   proc    8  ixc:      0 ... done.
+ Calculation of charge density... done. Total electronic charge=       7.999999884301
+ PSolver, free  BC, dimensions:    99   99   99   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
  DIIS weights    4.37E-04 -5.70E-03  2.37E-02  3.26E-02 -4.19E-01  1.37E+00 -3.41E-08
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  3.74363738043E+00 -7.37870957023E+00  7.67415002694E-01
     ehart,   eexcu,    vexcu  1.11336617265E+01 -2.48303867598E+00 -3.24089577115E+00
- iter,total energy,gnrm     7  -6.23177995604124835E+00  5.94E-04
+ iter,total energy,gnrm     7  -6.23177995604059642E+00  5.94E-04
  ---------------------------------------------------------------------------- iter= 8
  Calculation of charge density... done. Total electronic charge=       7.999999884337
- PSolver, free  BC, dimensions:    99   99   99   proc    8  ixc:      0 ... done.
+ PSolver, free  BC, dimensions:    99   99   99   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
  DIIS weights   -1.95E-04 -4.56E-03  1.66E-03  1.30E-01 -8.25E-01  1.70E+00 -8.22E-09
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  3.74379665558E+00 -7.37857327040E+00  7.67076480532E-01
     ehart,   eexcu,    vexcu  1.11336042320E+01 -2.48298974021E+00 -3.24083135949E+00
- iter,total energy,gnrm     8  -6.23178088454041035E+00  3.62E-04
+ iter,total energy,gnrm     8  -6.23178088453977974E+00  3.62E-04
  ---------------------------------------------------------------------------- iter= 9
  Calculation of charge density... done. Total electronic charge=       7.999999884333
- PSolver, free  BC, dimensions:    99   99   99   proc    8  ixc:      0 ... done.
+ PSolver, free  BC, dimensions:    99   99   99   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
  DIIS weights    1.04E-03 -1.70E-03 -1.66E-02  2.10E-01 -1.04E+00  1.85E+00 -1.46E-09
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  3.74404736462E+00 -7.37847816555E+00  7.66729600703E-01
-    ehart,   eexcu,    vexcu  1.11336033325E+01 -2.48298933004E+00 -3.24083076490E+00
- iter,total energy,gnrm     9  -6.23178123537256123E+00  2.03E-04
+    ehart,   eexcu,    vexcu  1.11336033324E+01 -2.48298933004E+00 -3.24083076490E+00
+ iter,total energy,gnrm     9  -6.23178123537142614E+00  2.03E-04
  --------------------------------------------------------------------------- iter= 10
  Calculation of charge density... done. Total electronic charge=       7.999999884328
- PSolver, free  BC, dimensions:    99   99   99   proc    8  ixc:      0 ... done.
+ PSolver, free  BC, dimensions:    99   99   99   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
  DIIS weights   -1.44E-03  1.67E-03 -2.43E-02  3.79E-01 -1.11E+00  1.75E+00 -2.92E-10
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  3.74426650888E+00 -7.37837821760E+00  7.66411443578E-01
     ehart,   eexcu,    vexcu  1.11336055530E+01 -2.48299309647E+00 -3.24083569375E+00
- iter,total energy,gnrm    10  -6.23178135843873360E+00  8.28E-05
+ iter,total energy,gnrm    10  -6.23178135843796621E+00  8.28E-05
  --------------------------------------------------------------------------- iter= 11
- Calculation of charge density... done. Total electronic charge=       7.999999884329
- PSolver, free  BC, dimensions:    99   99   99   proc    8  ixc:      0 ... done.
+ Calculation of charge density... done. Total electronic charge=       7.999999884328
+ PSolver, free  BC, dimensions:    99   99   99   proc    2 ... done.
  Hamiltonian application... done. 11 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   3.74436571135E+00 -7.37832512828E+00  7.66262960810E-01
  final ehart, eexcu,  vexcu   1.11336100706E+01 -2.48299527811E+00 -3.24083856472E+00
- FINAL iter,total energy,gnrm    11  -6.23178137771598539E+00  8.28E-05
+ FINAL iter,total energy,gnrm    11  -6.23178137771520024E+00  8.28E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1)= -4.96339640824548E-01
- eval(   2)= -3.12507186715340E-01
- eval(   3)= -3.12500700261321E-01
- eval(   4)= -3.12500700261321E-01
+ eval(   1)= -4.96339640824546E-01
+ eval(   2)= -3.12507186715344E-01
+ eval(   3)= -3.12500700261325E-01
+ eval(   4)= -3.12500700261324E-01
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=       7.999999884329
- PSolver, free  BC, dimensions:    99   99   99   proc    8  ixc:      0 ... done.
+ Calculation of charge density... done. Total electronic charge=       7.999999884328
+ PSolver, free  BC, dimensions:    99   99   99   proc    2 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... Calculating wavelets expansion of projectors... done.
  done.
- the sum of the forces is
-      x direction     1.97811078E-05
-      y direction     1.97811078E-05
-      z direction     1.97811078E-05
- Wavefunctions memory occupation for root processor (Bytes): 304080
+ average noise along x direction:   4.42319018E-05
+ average noise along y direction:   4.42319018E-05
+ average noise along z direction:   4.42319017E-05
+ total average noise            :   7.66119012E-05
+ clean forces norm (Ha/Bohr): maxval=  4.928968243143E-04  fnrm2=  9.034283831796E-07
+ raw forces:                  maxval=  5.043195589805E-04  fnrm2=  9.092977665839E-07
+ Wavefunctions memory occupation for root processor (Bytes): 608160
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  Iterative subspace diagonalization of virtual orbitals.
  Generation of input wavefunction data for atom     Si:
@@ -271,295 +271,423 @@
  Generation of input wavefunction data for atom      H:
    Elec. Configuration: s 1.00 , ... done.
  Writing wavefunctions in wavelet form... done.
- Deviation from normalization of the imported orbitals    3.16E-01
+ Deviation from normalization of the imported orbitals    6.12E-01
  Orthogonality to occupied psi... done. first  Hamiltonian application... done.
       sqnorm                Rayleigh quotient
-   1  1.00000000000000E+00  2.81580918490619E-01
-   2  9.99999999999999E-01  1.53917259977555E-01
-   3  9.99999999999999E-01  1.53915692421097E-01
-   4  9.99999999999997E-01  1.53973184860031E-01
+   1  1.00000000000001E+00  2.72636345420029E-01
+   2  1.00000000000000E+00  2.10867135814433E-01
+   3  1.00000000000000E+00  2.10867393472751E-01
+   4  1.00000000000001E+00  2.10852777645020E-01
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter  1
- |gradient|=gnrm and exit criterion   4.30635E-01  1.00000E-04
+ |gradient|=gnrm and exit criterion   4.02468E-01  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.61353298220146E-02 4.35410626247220E-01
-   2 1.61927090794283E-02 5.24180026830112E-01
-   3 1.75728601475680E-02 5.24535170606662E-01
-   4 9.11330304690720E-02 5.50541216850057E-01
+   1 2.91476339244889E-02 8.29918429542154E-01
+   2 2.92492190077949E-02 8.56761784396656E-01
+   3 2.92857832594907E-02 8.61797153086260E-01
+   4 1.30190932220356E-01 8.61875642275323E-01
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter  2
- |gradient|=gnrm and exit criterion   3.28385E-01  1.00000E-04
+ |gradient|=gnrm and exit criterion   2.28728E-01  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 4.60335218115908E-03 3.85011479808780E-01
-   2 4.60929244572204E-03 9.38078669626923E-01
-   3 5.18137758250302E-03 1.06937283892584E+00
-   4 2.40780546109266E-02 1.08225519577985E+00
+   1 8.75983233019060E-03 5.70435569414799E-01
+   2 8.79037891849647E-03 8.33906199285592E-01
+   3 9.33512328609404E-03 8.53669984925011E-01
+   4 7.86332528220302E-02 8.58303238023624E-01
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter  3
- |gradient|=gnrm and exit criterion   1.45546E-01  1.00000E-04
+ |gradient|=gnrm and exit criterion   2.09665E-01  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 2.64657629374174E-03 5.29560526652284E-01
-   2 2.64810624915454E-03 6.88183153097214E-01
-   3 3.03315227550811E-03 6.91912687764723E-01
-   4 1.21759226292602E-02 7.01513622626205E-01
+   1 4.41022237533029E-03 7.84879461570329E-01
+   2 4.42557869500907E-03 1.20005757777654E+00
+   3 4.86475603290088E-03 1.20516377520271E+00
+   4 4.86404441036903E-02 1.31812679759101E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter  4
- |gradient|=gnrm and exit criterion   7.84441E-02  1.00000E-04
+ |gradient|=gnrm and exit criterion   1.67533E-01  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 2.12323491136593E-03 7.14063523139038E-01
-   2 2.12507215696965E-03 8.18626511958091E-01
-   3 2.42019538059029E-03 8.29242880354143E-01
-   4 9.65010619162651E-03 8.60370210564396E-01
+   1 2.98727874276235E-03 8.19464049318706E-01
+   2 2.99307879267449E-03 1.02365034526162E+00
+   3 3.34170027202604E-03 1.09927996405099E+00
+   4 3.09474457603665E-02 1.10187714534364E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter  5
- |gradient|=gnrm and exit criterion   3.50798E-02  1.00000E-04
+ |gradient|=gnrm and exit criterion   1.42891E-01  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.97234591365084E-03 5.36223992548777E-01
-   2 1.97307259874968E-03 7.04412526459335E-01
-   3 2.23767294216432E-03 7.05210630443572E-01
-   4 8.88118956526232E-03 7.71896249564249E-01
+   1 2.39913851446977E-03 1.00323820154568E+00
+   2 2.40164625124548E-03 1.15081999520164E+00
+   3 2.70598652255149E-03 1.15522453128045E+00
+   4 2.11569230718879E-02 1.25027105202239E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter  6
- |gradient|=gnrm and exit criterion   2.37782E-02  1.00000E-04
+ |gradient|=gnrm and exit criterion   1.08294E-01  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.92264125065065E-03 7.10603869995771E-01
-   2 1.92291737587767E-03 7.59107581626397E-01
-   3 2.17726235496288E-03 7.62707394151064E-01
-   4 8.58897467779995E-03 1.01442353212087E+00
+   1 2.15069820677107E-03 9.78580472801317E-01
+   2 2.15176500399588E-03 9.94881617177415E-01
+   3 2.43294591845038E-03 1.05399771474710E+00
+   4 1.56706842405424E-02 1.05722820183754E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter  7
- |gradient|=gnrm and exit criterion   1.31430E-02  1.00000E-04
+ |gradient|=gnrm and exit criterion   8.60838E-02  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.90662093204575E-03 6.84101176553974E-01
-   2 1.90671985109552E-03 7.22215393256081E-01
-   3 2.15785267605818E-03 7.22701713499552E-01
-   4 8.46850565280248E-03 9.37001138532027E-01
+   1 2.03351006655408E-03 1.03623230664346E+00
+   2 2.03398403505948E-03 1.03978426684498E+00
+   3 2.30272652759896E-03 1.11724382560012E+00
+   4 1.26127238910393E-02 1.15888972070482E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter  8
- |gradient|=gnrm and exit criterion   9.05473E-03  1.00000E-04
+ |gradient|=gnrm and exit criterion   6.22502E-02  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.90136187359530E-03 8.02253340188492E-01
-   2 1.90139650193663E-03 8.03415013354333E-01
-   3 2.15129117441723E-03 8.08089282872493E-01
-   4 8.41394614179228E-03 9.20853769053676E-01
+   1 1.97586315954673E-03 9.04108324563196E-01
+   2 1.97612235028600E-03 9.76765465311076E-01
+   3 2.23751250800431E-03 9.78532222746175E-01
+   4 1.08546861366695E-02 1.07626933185412E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter  9
- |gradient|=gnrm and exit criterion   5.58878E-03  1.00000E-04
+ |gradient|=gnrm and exit criterion   4.96519E-02  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.89964510294243E-03 6.77107325290515E-01
-   2 1.89965735401773E-03 6.78271502785187E-01
-   3 2.14908183683862E-03 7.91406219617664E-01
-   4 8.38944354470176E-03 9.42388451911005E-01
+   1 1.94498527672722E-03 9.60081804181110E-01
+   2 1.94511169031963E-03 9.61193123542381E-01
+   3 2.20199542863685E-03 1.02103038006973E+00
+   4 9.84507117752749E-03 1.26012165727455E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 10
- |gradient|=gnrm and exit criterion   3.89544E-03  1.00000E-04
+ |gradient|=gnrm and exit criterion   3.54582E-02  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.89906729521468E-03 7.76639313245383E-01
-   2 1.89907105859317E-03 7.78765051413372E-01
-   3 2.14829870481956E-03 8.48625640179309E-01
-   4 8.37787304510752E-03 9.19414297271484E-01
+   1 1.92736637618765E-03 8.47625318446900E-01
+   2 1.92746712343504E-03 9.11719958476022E-01
+   3 2.18153922817435E-03 9.13987026834373E-01
+   4 9.24927167682995E-03 1.11703912596004E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 11
- |gradient|=gnrm and exit criterion   2.60755E-03  1.00000E-04
+ |gradient|=gnrm and exit criterion   2.89561E-02  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.89887081361104E-03 6.05208274959010E-01
-   2 1.89887192606387E-03 6.06991322107260E-01
-   3 2.14802455998109E-03 8.23029799517123E-01
-   4 8.37243719570777E-03 9.50866797337770E-01
+   1 1.91696791466637E-03 9.45829586264737E-01
+   2 1.91702414437028E-03 9.49356335844326E-01
+   3 2.16930136416435E-03 9.98539408805968E-01
+   4 8.89940289659611E-03 1.33144786844470E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 12
- |gradient|=gnrm and exit criterion   1.82434E-03  1.00000E-04
+ |gradient|=gnrm and exit criterion   2.05709E-02  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.89879961479774E-03 6.94865662070948E-01
-   2 1.89879980449187E-03 6.97026658103632E-01
-   3 2.14792290273371E-03 8.05008532496798E-01
-   4 8.36981767806802E-03 1.00155207297072E+00
+   1 1.91042163515426E-03 8.17847597163504E-01
+   2 1.91048450675470E-03 8.66534274191009E-01
+   3 2.16161053230576E-03 8.77108836171884E-01
+   4 8.68899777571261E-03 1.13672870889882E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 13
- |gradient|=gnrm and exit criterion   1.25842E-03  1.00000E-04
+ |gradient|=gnrm and exit criterion   1.72124E-02  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.89877269051347E-03 5.42104717419686E-01
-   2 1.89877281406754E-03 5.45326651598383E-01
-   3 2.14788362277435E-03 7.77130756292995E-01
-   4 8.36850388700754E-03 9.45317362931630E-01
+   1 1.90636842313687E-03 9.73185026353461E-01
+   2 1.90640841864489E-03 9.86370828663254E-01
+   3 2.15680464186426E-03 1.02477101077068E+00
+   4 8.56341888828075E-03 1.38457869116474E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 14
- |gradient|=gnrm and exit criterion   9.05161E-04  1.00000E-04
+ |gradient|=gnrm and exit criterion   1.21608E-02  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.89876134078589E-03 5.97005308683685E-01
-   2 1.89876145333353E-03 5.99958526178910E-01
-   3 2.14786784106970E-03 7.67522772245783E-01
-   4 8.36784313285966E-03 1.01805843047589E+00
+   1 1.90370107340573E-03 8.00051728557854E-01
+   2 1.90374739661816E-03 8.33465255701627E-01
+   3 2.15367084848233E-03 8.56693747351360E-01
+   4 8.48692615084642E-03 1.14598080946038E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 15
- |gradient|=gnrm and exit criterion   6.32571E-04  1.00000E-04
+ |gradient|=gnrm and exit criterion   1.03998E-02  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.89875633446928E-03 5.18052942294527E-01
-   2 1.89875641732043E-03 5.23230598165882E-01
-   3 2.14786121444704E-03 7.26030792568244E-01
-   4 8.36749499085743E-03 9.25720369874375E-01
+   1 1.90201559412414E-03 1.01031962301220E+00
+   2 1.90204500999360E-03 1.04358352800930E+00
+   3 2.15167394521382E-03 1.06618018578789E+00
+   4 8.44071619271699E-03 1.42458790002482E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 16
- |gradient|=gnrm and exit criterion   4.74114E-04  1.00000E-04
+ |gradient|=gnrm and exit criterion   7.30738E-03  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.89875387588764E-03 5.41682403959939E-01
-   2 1.89875392723333E-03 5.45068221060919E-01
-   3 2.14785840106313E-03 7.26064495549789E-01
-   4 8.36731324329450E-03 1.05286725614171E+00
+   1 1.90088024803949E-03 7.85188661781077E-01
+   2 1.90091870107270E-03 7.94504697173264E-01
+   3 2.15035341103415E-03 8.45266105254155E-01
+   4 8.41235152665392E-03 1.15216636971750E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 17
- |gradient|=gnrm and exit criterion   3.34170E-04  1.00000E-04
+ |gradient|=gnrm and exit criterion   6.36259E-03  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.89875262371692E-03 5.17917342165292E-01
-   2 1.89875265387831E-03 5.27815059662841E-01
-   3 2.14785714403221E-03 6.46197752724299E-01
-   4 8.36721514225659E-03 9.57044134775072E-01
+   1 1.90015986123750E-03 1.04065236314373E+00
+   2 1.90018700000653E-03 1.10709332229913E+00
+   3 2.14950295790776E-03 1.11317966832651E+00
+   4 8.39503285003531E-03 1.45037649538794E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 18
- |gradient|=gnrm and exit criterion   2.57652E-04  1.00000E-04
+ |gradient|=gnrm and exit criterion   4.45825E-03  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.89875194118671E-03 4.91174608887446E-01
-   2 1.89875195710563E-03 4.96989787224873E-01
-   3 2.14785659386489E-03 6.86336122561835E-01
-   4 8.36716289995552E-03 1.12869905793020E+00
+   1 1.89967436079022E-03 7.62893089488149E-01
+   2 1.89970129922771E-03 7.72817382724292E-01
+   3 2.14893712952082E-03 8.40121081904540E-01
+   4 8.38437476086711E-03 1.16250212423967E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 19
- |gradient|=gnrm and exit criterion   1.81602E-04  1.00000E-04
+ |gradient|=gnrm and exit criterion   3.92463E-03  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.89875154829695E-03 4.78518547255406E-01
-   2 1.89875155832762E-03 4.88522518043462E-01
-   3 2.14785634170808E-03 5.74677187709749E-01
-   4 8.36713461968507E-03 9.87207873740924E-01
+   1 1.89936306696872E-03 1.04044065840597E+00
+   2 1.89937979200559E-03 1.14424750165022E+00
+   3 2.14857058827658E-03 1.17487758008503E+00
+   4 8.37777841972335E-03 1.44985174929571E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 20
- |gradient|=gnrm and exit criterion   1.41639E-04  1.00000E-04
+ |gradient|=gnrm and exit criterion   2.77391E-03  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.89875131816081E-03 4.64265660176758E-01
-   2 1.89875132422719E-03 4.66058802055511E-01
-   3 2.14785623079895E-03 6.56557521190638E-01
-   4 8.36711927358951E-03 1.12940555124329E+00
+   1 1.89915266707110E-03 7.33136292242107E-01
+   2 1.89916891998133E-03 7.57184608943341E-01
+   3 2.14832575226649E-03 8.54822630796133E-01
+   4 8.37374088200519E-03 1.18878775688413E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 21
- |gradient|=gnrm and exit criterion   1.00260E-04  1.00000E-04
+ |gradient|=gnrm and exit criterion   2.43046E-03  1.00000E-04
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.
  Orthogonality of preconditioned gradients to occupied psi... done.
  Hamiltonian application... done. Expanding subspace matrices... done.
  Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
-   1 1.89875117554799E-03 4.54849677550484E-01
-   2 1.89875117989178E-03 4.61034679956696E-01
-   3 2.14785617952128E-03 5.30574982656447E-01
-   4 8.36711083596437E-03 9.17350195139224E-01
+   1 1.89901663243513E-03 1.00972044874212E+00
+   2 1.89902703044879E-03 1.17808402657117E+00
+   3 2.14816683814831E-03 1.21993688833151E+00
+   4 8.37118764185244E-03 1.39862173366609E+00
  done.
  Orthogonality to occupied psi... done. Hamiltonian application... done. 
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 22
- |gradient|=gnrm and exit criterion   7.81128E-05  1.00000E-04
- Davidsons method: Convergence after  21 iterations.
+ |gradient|=gnrm and exit criterion   1.77255E-03  1.00000E-04
+ Orthogonality of gradients to occupied psi... done. Preconditioning... done.
+ Orthogonality of preconditioned gradients to occupied psi... done.
+ Hamiltonian application... done. Expanding subspace matrices... done.
+ Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
+   1 1.89892678838825E-03 7.28419434605759E-01
+   2 1.89893415754560E-03 7.39501516793416E-01
+   3 2.14806001128022E-03 8.70718170754998E-01
+   4 8.36964542884742E-03 1.23842084583929E+00
+ done.
+ Orthogonality to occupied psi... done. Hamiltonian application... done. 
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 23
+ |gradient|=gnrm and exit criterion   1.51052E-03  1.00000E-04
+ Orthogonality of gradients to occupied psi... done. Preconditioning... done.
+ Orthogonality of preconditioned gradients to occupied psi... done.
+ Hamiltonian application... done. Expanding subspace matrices... done.
+ Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
+   1 1.89886723063904E-03 1.04683873112030E+00
+   2 1.89887364390909E-03 1.20711757356682E+00
+   3 2.14799096428730E-03 1.22955834164450E+00
+   4 8.36869526631608E-03 1.42423091468642E+00
+ done.
+ Orthogonality to occupied psi... done. Hamiltonian application... done. 
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 24
+ |gradient|=gnrm and exit criterion   1.10013E-03  1.00000E-04
+ Orthogonality of gradients to occupied psi... done. Preconditioning... done.
+ Orthogonality of preconditioned gradients to occupied psi... done.
+ Hamiltonian application... done. Expanding subspace matrices... done.
+ Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
+   1 1.89882831520998E-03 6.93027066668634E-01
+   2 1.89883244154648E-03 7.50681122537011E-01
+   3 2.14794393518674E-03 8.38739547299905E-01
+   4 8.36809621390424E-03 1.22587000877298E+00
+ done.
+ Orthogonality to occupied psi... done. Hamiltonian application... done. 
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 25
+ |gradient|=gnrm and exit criterion   9.60443E-04  1.00000E-04
+ Orthogonality of gradients to occupied psi... done. Preconditioning... done.
+ Orthogonality of preconditioned gradients to occupied psi... done.
+ Hamiltonian application... done. Expanding subspace matrices... done.
+ Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
+   1 1.89880237312222E-03 1.09561934283909E+00
+   2 1.89880565770868E-03 1.19618725580992E+00
+   3 2.14791394005539E-03 1.29421786384432E+00
+   4 8.36772667897793E-03 1.46235314467438E+00
+ done.
+ Orthogonality to occupied psi... done. Hamiltonian application... done. 
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 26
+ |gradient|=gnrm and exit criterion   6.84925E-04  1.00000E-04
+ Orthogonality of gradients to occupied psi... done. Preconditioning... done.
+ Orthogonality of preconditioned gradients to occupied psi... done.
+ Hamiltonian application... done. Expanding subspace matrices... done.
+ Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
+   1 1.89878529380749E-03 6.84703700484792E-01
+   2 1.89878714035000E-03 7.61910952280920E-01
+   3 2.14789408635733E-03 7.87144460140013E-01
+   4 8.36749000422218E-03 1.18345818400825E+00
+ done.
+ Orthogonality to occupied psi... done. Hamiltonian application... done. 
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 27
+ |gradient|=gnrm and exit criterion   6.20320E-04  1.00000E-04
+ Orthogonality of gradients to occupied psi... done. Preconditioning... done.
+ Orthogonality of preconditioned gradients to occupied psi... done.
+ Hamiltonian application... done. Expanding subspace matrices... done.
+ Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
+   1 1.89877381988440E-03 1.16964386203465E+00
+   2 1.89877525718987E-03 1.17109251967502E+00
+   3 2.14788113792273E-03 1.32125991694454E+00
+   4 8.36734595412277E-03 1.53454297317401E+00
+ done.
+ Orthogonality to occupied psi... done. Hamiltonian application... done. 
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 28
+ |gradient|=gnrm and exit criterion   4.23771E-04  1.00000E-04
+ Orthogonality of gradients to occupied psi... done. Preconditioning... done.
+ Orthogonality of preconditioned gradients to occupied psi... done.
+ Hamiltonian application... done. Expanding subspace matrices... done.
+ Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
+   1 1.89876631567938E-03 6.58415360433184E-01
+   2 1.89876708159000E-03 7.45828856536644E-01
+   3 2.14787242296104E-03 7.85507053647060E-01
+   4 8.36725209921082E-03 1.11058449296907E+00
+ done.
+ Orthogonality to occupied psi... done. Hamiltonian application... done. 
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 29
+ |gradient|=gnrm and exit criterion   4.04379E-04  1.00000E-04
+ Orthogonality of gradients to occupied psi... done. Preconditioning... done.
+ Orthogonality of preconditioned gradients to occupied psi... done.
+ Hamiltonian application... done. Expanding subspace matrices... done.
+ Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
+   1 1.89876126824232E-03 1.15350942552279E+00
+   2 1.89876179385001E-03 1.23821414114306E+00
+   3 2.14786683140746E-03 1.37911106381517E+00
+   4 8.36719571461784E-03 1.64454885127721E+00
+ done.
+ Orthogonality to occupied psi... done. Hamiltonian application... done. 
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 30
+ |gradient|=gnrm and exit criterion   2.59486E-04  1.00000E-04
+ Orthogonality of gradients to occupied psi... done. Preconditioning... done.
+ Orthogonality of preconditioned gradients to occupied psi... done.
+ Hamiltonian application... done. Expanding subspace matrices... done.
+ Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
+   1 1.89875790602162E-03 6.16953994388291E-01
+   2 1.89875817008005E-03 7.13045962863604E-01
+   3 2.14786302576425E-03 7.93062304805426E-01
+   4 8.36715945819139E-03 1.06833267216621E+00
+ done.
+ Orthogonality to occupied psi... done. Hamiltonian application... done. 
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 31
+ |gradient|=gnrm and exit criterion   2.61984E-04  1.00000E-04
+ Orthogonality of gradients to occupied psi... done. Preconditioning... done.
+ Orthogonality of preconditioned gradients to occupied psi... done.
+ Hamiltonian application... done. Expanding subspace matrices... done.
+ Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
+   1 1.89875563910032E-03 1.13871033621383E+00
+   2 1.89875581388339E-03 1.30093512594951E+00
+   3 2.14786060969315E-03 1.43796330698932E+00
+   4 8.36713731477518E-03 1.72769730273964E+00
+ done.
+ Orthogonality to occupied psi... done. Hamiltonian application... done. 
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 32
+ |gradient|=gnrm and exit criterion   1.61159E-04  1.00000E-04
+ Orthogonality of gradients to occupied psi... done. Preconditioning... done.
+ Orthogonality of preconditioned gradients to occupied psi... done.
+ Hamiltonian application... done. Expanding subspace matrices... done.
+ Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
+   1 1.89875413770660E-03 6.34108279472979E-01
+   2 1.89875421158634E-03 6.93519690440306E-01
+   3 2.14785906762988E-03 8.14026143286280E-01
+   4 8.36712286823704E-03 9.99177638304954E-01
+ done.
+ Orthogonality to occupied psi... done. Hamiltonian application... done. 
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 33
+ |gradient|=gnrm and exit criterion   1.70480E-04  1.00000E-04
+ Orthogonality of gradients to occupied psi... done. Preconditioning... done.
+ Orthogonality of preconditioned gradients to occupied psi... done.
+ Hamiltonian application... done. Expanding subspace matrices... done.
+ Diagonalization... done. Update v with eigenvectors... done. The refined eigenvalues are
+   1 1.89875311473971E-03 1.11529711467071E+00
+   2 1.89875315504210E-03 1.33950341379395E+00
+   3 2.14785804151211E-03 1.37918998017061E+00
+   4 8.36711418063441E-03 1.85716416154737E+00
+ done.
+ Orthogonality to occupied psi... done. Hamiltonian application... done. 
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter 34
+ |gradient|=gnrm and exit criterion   9.93609E-05  1.00000E-04
+ Davidsons method: Convergence after  33 iterations.
  Complete list of energy eigenvalues
- e_occupied(   1)= -4.96339640824548E-01
- e_occupied(   2)= -3.12507186715340E-01
- e_occupied(   3)= -3.12500700261321E-01
- e_occupied(   4)= -3.12500700261321E-01
- HOMO LUMO gap   = 3.14399451436869E-01 (  8.5552 eV)
- e_virtual(   1)=  1.89875117554799E-03
- e_virtual(   2)=  1.89875117989178E-03
- e_virtual(   3)=  2.14785617952128E-03
- e_virtual(   4)=  8.36711083596437E-03
-printing virtual0004
-printing virtual0002
-printing virtual0001
-printing virtual0003
-printing denvirt0004
-printing denvirt0002
-printing denvirt0001
-printing denvirt0003
-printing orbital0004
-printing orbital0002
-printing orbital0001
-printing orbital0003
-printing densocc0004
-printing densocc0002
-printing densocc0001
-printing densocc0003
- CPU time/ELAPSED time for root process     0        41.13        41.12
+ e_occupied(   1)= -4.96339640824546E-01
+ e_occupied(   2)= -3.12507186715344E-01
+ e_occupied(   3)= -3.12500700261325E-01
+ e_occupied(   4)= -3.12500700261324E-01
+ HOMO LUMO gap   = 3.14399453376064E-01 (  8.5552 eV)
+ e_virtual(   1)=  1.89875311473971E-03
+ e_virtual(   2)=  1.89875315504210E-03
+ e_virtual(   3)=  2.14785804151211E-03
+ e_virtual(   4)=  8.36711418063441E-03
+ CPU time/ELAPSED time for root process     0        40.45        40.14
  Final values of the Forces for each atom
      1     Si -1.76630E-05 -1.76630E-05 -1.76630E-05
      2      H -2.40590E-04 -2.40590E-04 -2.40590E-04
@@ -567,6 +695,6 @@ printing densocc0003
      4      H -2.97509E-04  2.77881E-04  2.77881E-04
      5      H  2.77881E-04 -2.97509E-04  2.77881E-04
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 2882 allocations and 2882 deallocations, remaining memory(B):0
- memory occupation peak: 120 MB
+ 5248 allocations and 5248 deallocations, remaining memory(B): 0
+ memory occupation peak: 129 MB
  for the array  rmt in the routine iguess_generator

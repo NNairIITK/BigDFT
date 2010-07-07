@@ -2,14 +2,14 @@
 
 SUBDIRS = \
 	  H \
-	  H2-spin \
+	  C \
 	  Li+ \
+	  H2-spin \
 	  SiH4 \
 	  NH3 \
 	  NaCl \
-	  C \
 	  Ca2 \
-	  Mn2  \
+	  Mn2 \
 	  H2O-CP2K \
 	  SiBulk \
 	  H2O-slab \

@@ -2,6 +2,7 @@
 %\documentclass[dvips]{seminar}
 \usepackage{pslatex}
 \usepackage{graphicx}
+\usepackage{longtable}
 \usepackage[usenames]{color}
 \pagestyle{plain}
 %\textwidth=26cm
@@ -45,12 +46,14 @@ will do the job to create the \texttt{Makefile} and set the
 options, like the optimisation level, the associated libraries to link
 with, and so on.
 
-After the package has been untared, the sources should be configured, depending on the system we want to run on. Thanks to the autotools, it is possible to generate several builds from the same source tree. It is adviced to create a compilation directory, either inside or outside the source tree. Lets call this directory \texttt{compile-gfortran} for instance. One starts the configure from there \texttt{'source tree path'/configure}.
+After the package has been untarred, the sources should be configured, depending on the system we
+want to run on. Thanks to the autotools, it is possible to generate several builds from the same
+source tree. It is advised to create a compilation directory, either inside or outside the source tree. Lets call this directory \texttt{compile-gFortran} for instance. One starts the configure from there \texttt{'source tree path'/configure}.
 
 One can tune the compilation environment using the following options:
 \begin{itemize}
-  \item \texttt{--with-cuda-path}: Give the path to the NVidia CUDA tools (default is \texttt{/usr/local/cuda}).
-  \item \texttt{--with-cuda-cflags}: Specify the flags for the NVidia CUDA Compiler.
+  \item \texttt{--with-cuda-path}: Give the path to the NVIDIA CUDA tools (default is \texttt{/usr/local/cuda}).
+  \item \texttt{--with-cuda-cflags}: Specify the flags for the NVIDIA CUDA Compiler.
   \item \texttt{--with-ext-linalg}: Give the name of the libraries replacing BLAS and LAPACK (default = none specified). Use the -l before the name(s).
   \item \texttt{--with-ext-linalg-path}: Give the path of the other linear algebra libraries (default = \texttt{-L/usr/lib}). Use the -L before the path(es).
   \item \texttt{FC}: Specify the compiler.
@@ -81,7 +84,7 @@ The other options available can be browsed via the \texttt{-- help} option.
 Some of them are listed here (and they can be of course combined with each other, when it does make sense):
 \begin{itemize}
   \item \texttt{--disable-mpi}: Force not to use MPI during build. By default the configure will try to detect if the compiler has some native MPI capabilities. If not MPI will be automatically disabled.
-  \item \texttt{--enable-cuda-gpu}: Compile the CUDA parts to run on NVidia GPUs. This options requires to add some other one to find the CUDA environment, see the \texttt{--with} options later.
+  \item \texttt{--enable-cuda-gpu}: Compile the CUDA parts to run on NVIDIA GPUs. This options requires to add some other one to find the CUDA environment, see the \texttt{--with} options later.
 \item \texttt{--enable-debug}: Creates a slower version of the executable in which any of the array allocated is filled by \texttt{NaN} after its boundaries. Useful to detect runtime errors during developments
 \item \texttt{--with-memory-limit=<mem>}: Creates a version of the executable which abort the run if one of the processes allocates more memory than \texttt{<mem>} (in Gb). This version is not necessarily slower that traditional copilation.
 \end{itemize}
@@ -125,7 +128,7 @@ To form a basis set these functions have to be centered on the nodes of a regula
 \section{Wavelet basis sets in three dimensions and BigDFT input variables}
 A 3-dim wavelet basis is made by products of 1-dim functions.
  {\color{red} 1  scaling function} and {\color{blue} 7 wavelets} 
-can be centered on the nodes (i,j,k) of a regular 3-dim cartesian grid.
+can be centered on the nodes (i,j,k) of a regular 3-dim Cartesian grid.
 They all are products of 1-dim scaling functions and wavelets:
 \begin{eqnarray*}
  {\color{red} \phi_{i,j,k}(x,y,z) }  & = & \phi(x-i) \phi(y-j) \phi(z-k)   \\
@@ -140,7 +143,7 @@ They all are products of 1-dim scaling functions and wavelets:
 If a grid point carries the 7 {\color{blue} wavelets} in addition to the {\color{red} scaling function}, it belongs 
 to the high resolution region. In the low resolution region a grid point carries only 
 a single {\color{red} scaling function}. In the high resolution region, the resolution is doubled 
-in each diretion with respect to the low resolution region. The grid spacing is specified by the parameters
+in each direction with respect to the low resolution region. The grid spacing is specified by the parameters
 {\bf hgridx}, {\bf hgridy}, {\bf hgridz}. The low resolution region is constructed in the following way. Around each 
 atom one draws a sphere whose radii are the 'size of the atom' times the adimensional parameter {\bf crmult}. All the grid 
 points being contained in the union of all these spheres form the low resolution region. The high resolution is 
@@ -153,7 +156,7 @@ values of {\bf crmult} and then {\bf frmult}.
 
 \subsection{Visualizing the simulation grid with V\_Sim package}
 The grid can be visualized by calling the \texttt{memguess} program 
-with the the keywords {\bf output\_grid}=1 in the input file. Then the output file 'grid.xyz' contains the atomic positions and in addition 
+with the keywords {\bf output\_grid}=1 in the input file. Then the output file 'grid.xyz' contains the atomic positions and in addition 
 the grid points which denoted by 'g' if the are in the coarse region and by 'G' if they are in the fine region. 
 Whereas the total number of basis functions is nearly independent of the orientation of the molecule, the size of some 
 work arrays depends on the orientation. When the \texttt{memguess} routine is called with the option {\bf optimise} = \texttt{.TRUE.}, it will rotate 
@@ -189,22 +192,22 @@ files and each consecutive line contains then one filename.
 
 All the input and output files for atomic coordinates are in the \texttt{.xyz} format, i.e they can be visualized with any 
 standard visualization package and in particular with V\_sim. The first line contains the number of atoms 
-and then the units, which are specified by 'atomic', 'atomicd0' or 'bohr' if atomic units are used or by 
-'angstroem' or 'angstroemd0' if the angstr\"om unit is used. 'd0' formats (\texttt{1pe24.17} in fortran) guarantee that not a single bit is 
+and then the units, which are specified by 'atomic', 'atomicd0' or 'Bohr' if atomic units are used or by 
+'angstroem' or 'angstroemd0' if the angstr\"om unit is used. 'd0' formats (\texttt{1pe24.17} in Fortran) guarantee that not a single bit is 
 lost during write and read of the numbers.
 
 The second line contains the boundary conditions specified by the keywords 'free' for free boundary 
 conditions, 'periodic' for periodic boundary conditions or 'surface' for surface boundary conditions
 where the x and z direction have periodic boundary conditions and the y direction free boundary conditions. 
 The keywords 'periodic and 'surface' have to be followed by 3 real numbers giving the length of the 
-orthorombic periodic cell. In the case of surface boundary condition the second of these numbers is ignored.
+orthorhombic periodic cell. In the case of surface boundary condition the second of these numbers is ignored.
 
-The following lines contain the name of the chemical element followed by the 3 cartesian coordinates. 
+The following lines contain the name of the chemical element followed by the $3$~Cartesian coordinates. 
 Chemical elements are identified by their pseudopotential. If a element is for instance denoted by 
 'Si' the element will be described by the file 'psppar.Si' which has to be present in the working directory.
 of the BigDFT.run. A silicon atom could however also be denoted by 'Si\_lda' if there is file 'psppar.Si\_lda.
 BigDFT supports the GTH and HGH pseudopotentials in the format which can be downloaded from the ABINIT website
-(www.abinit.org). The 3 cartesian coordinates can be followed by optional additional information.
+(www.abinit.org). The $3$~Cartesian coordinates can be followed by optional additional information.
 
 In the case of spin-polarized calculation the polarization in the region around the atom can 
 be given by an integer. In addition the charge in the region around the atom can be specified.
@@ -217,7 +220,7 @@ This hydrogen atom is frozen during the geometry optimization
   H  1.2  3.4  5.6   f
 \end{verbatim}
 
-This hydrogen atom has a spin up poarization
+This hydrogen atom has a spin up polarization
 \begin{verbatim}
   H  1.2  3.4  5.6   1
 \end{verbatim}
@@ -245,7 +248,7 @@ have at least 2 to 4 orbitals.
 \begin{itemize}
 \item {\bf nproc}: Number of MPI processes;
 \item {\bf optimise}: if = \texttt{.TRUE.} the molecule will be rotated such that the size of the workarrays is minimal;
-\item {\bf output\_grid}: if = 1 the file grid.xyz will be generated, = 0 otherwise;
+\item {\bf output\_grid}: if = 1 the file 'grid.xyz' will be generated, = 0 otherwise;
 \item {\bf GPUtest}: if = \texttt{.TRUE.} perform the test with GPU.
 \end{itemize}
 
@@ -253,7 +256,7 @@ have at least 2 to 4 orbitals.
 \section{The input file 'input.dft'}
 This file contains all the parameters required for a single wavefunction calculations:
 \begin{itemize}
-\item {\bf hgridx}, {\bf hgridy}, {\bf hgridz}: The grid spacing of the cartesian grid, in bohr . As 
+\item {\bf hgridx}, {\bf hgridy}, {\bf hgridz}: The grid spacing of the Cartesian grid, in Bohr. As 
        described above the nodes of this grid serve as the centers for the scaling function/ wavelet basis. 
        Values are in most cases between $.3$ and $.6$.
 
@@ -268,11 +271,14 @@ This file contains all the parameters required for a single wavefunction calcula
       {$1$}       & Pade LDA from Abinit XC library;\\
       {$11$}      & PBE from Abinit XC library;\\
       {$-020$}    & Pade LDA from libXC;\\
-      {$-101130$} & PBE from  libXC;\\
+      {$-101130$} & PBE from libXC;\\
       {$-116133$} & PBEsol from libXC; \\ 
       {$-406$}    & PBE0 Hybrid functional (local part from libXC).
       \end{tabular}
-\item {\bf ncharge}, {\bf elecfield}: Total charge of the system and constant electric field along the y direction in units of Ha/bohr. 
+      A positive integer refers to a functional from ABINIT library and a negative one from libXC
+      library. In this case, you concatenate the codes for the exchange part and for the correlation part
+      (see the table in appendix~\ref{appendix-libXC}).
+\item {\bf ncharge}, {\bf elecfield}: Total charge of the system and constant electric field along the y direction in units of Ha/Bohr. 
       A positive {\bf ncharge} means that electrons are taken away.
 \item {\bf nspin}, {\bf mpol}: 
       nspin=1, closed shell system without spin polarization;\hfill\\
@@ -282,11 +288,12 @@ This file contains all the parameters required for a single wavefunction calcula
       Reasonable values are in most cases between 1.d-4 and 1.d-5.
 \item {\bf itermax}, {\bf nrepmax}: Maximum number of gradient evaluations for a single cycle in a wavefunction optimization 
       and maximum number of cycles. At the end of each cycle a subspace diagonalization is done which helps 
-in cases where one has near degeneracy between the homo and lumo orbitals. $50$ and $2$ are usually sufficient.
+in cases where one has near degeneracy between the HOMO and LUMO orbitals. $50$~and $2$~are usually sufficient.
 \item {\bf ncong}, {\bf idsx}: ncong gives the number of iterations in the solution of the preconditioning equation.
       For free boundary conditions $5$ is a good value whereas for other  boundary condition a value from 0 to 2 is in general sufficient. 
       Large values of {\bf ncong} lead to a smaller number of iterations in 
-      the wavefunction optimization and better forces, but each iteration is more costly. So an optimal compromise value has to be found.
+      the wavefunction optimization and better forces, but each iteration is more costly. 
+      So an optimal compromise value has to be found.
       {\bf idsx} gives the history length of the DIIS convergence acceleration in the wavefunction optimization.
       6 is usually a good value for fast convergence.\\
       In case of convergence problems it can be advantageous 
@@ -295,74 +302,78 @@ in cases where one has near degeneracy between the homo and lumo orbitals. $50$ 
       the fastest convergence. The 'memguess' tool can be used to predict the memory requirements for different choices 
       of  {\bf idsx}.
 \item {\bf dispersion}:  A non-zero values activates an  empirical add-on treatment of dispersion effects.
-       the values 1, 2 and 3 specify different switching on functions using the convention of 
-       Q. Hill and C.-K. Skylaris.  Proc. R. Soc. A 465  (2009) 669
-\item  Putting the keyword \textbf{CUDAGPU} in this line will activate the use of CUDA versions of various subroutines.
-       a 'GPU.config' file is needed in this case. 
+      The values~1, 2~and 3~specify different switching on functions using the convention of 
+      Q. Hill and C.-K. Skylaris.  Proc. R. Soc. A 465  (2009) 669
+\item Putting the keyword \textbf{CUDAGPU} in this line will activate the use of CUDA versions of various subroutines.
+      A 'GPU.config' file is needed in this case. 
 \item {\bf InputPsiId }, {\bf  output\_wf},  {\bf output\_density }: 
-       {\bf InputPsiId } specifies how the input guess wavefunction is generated:
+      {\bf InputPsiId } specifies how the input guess wavefunction is generated:
       \begin{itemize}
-       \item {\bf InputPsiId } = -2: Random numbers are used as input guess. This is of course a poor input guess which will 
-                                    need many iterations of the wavefunction oprimization and might even lead to divergencies.
-       \item {\bf InputPsiId } = -1: The input wavefunction is imported from the CP2K code which uses Gaussians. 
-                                    The basis set should be contained in a file named \texttt{gaubasis.dat} whereas the coefficients should appear in the
-                                     \texttt{gaucoeff.dat} file. Both files are the output files of CP2K code. See the H2O-CP2K test for an example.
-       \item {\bf InputPsiId } = 0: A subspace diagonalization in a minimal atomic basis set is used. This input guess 
-                                    should be used in general if one starts a new calculation. 
-       \item {\bf InputPsiId } = 1: The previously calculated wavefunctions (for instance from the previous 
-                                    geometry optimization step) are used as input guess. Setting {\bf InputPsiId } to 
-                                    this value does only make sense from within a main program where \texttt{call\_cluster} was 
-                                    called previously. The old wavefunction is passed to the new call via the data structure 'restart'
-       \item {\bf InputPsiId } = 2: The input wavefunction is read from the 'wavefunction.*' files which contain all the 
-                                    scaling function and wavelet coefficients. In case some parameters such as {\bf hgridx} 
-                                    or {\bf crmult} have changed, compared to the previous run, the wavefunctions will be 
-                                    also transformed to the new parameter set.
-       \item {\bf InputPsiId } = 10: The same as 0 but activates the 'gaussian help': after convergence the wavefunctions are projected onto the localised basis set used for the input guess, and Mulliken Charge Population Analysis (MCPA) is performed on this basis. The user has the possiblity to perform MCPA with separate basis set (functionality to be added)
+      \item {\bf InputPsiId } = -2: Random numbers are used as input guess. This is of course a poor input guess which will 
+            need many iterations of the wavefunction optimization and might even lead to divergences.
+      \item {\bf InputPsiId } = -1: The input wavefunction is imported from the CP2K code which
+            uses Gaussian functions. 
+            The basis set should be contained in a file named \texttt{gaubasis.dat} 
+            whereas the coefficients should appear in the \texttt{gaucoeff.dat} file. 
+            Both files are the output files of CP2K code. See the H2O-CP2K test for an example.
+      \item {\bf InputPsiId } = 0: A subspace diagonalization in a minimal atomic basis set is used.
+            This input guess should be used in general if one starts a new calculation. 
+      \item {\bf InputPsiId } = 1: The previously calculated wavefunctions (for instance from the previous 
+            geometry optimization step) are used as input guess. Setting {\bf InputPsiId } to 
+            this value does only make sense from within a main program where \texttt{call\_cluster} was 
+            called previously. The old wavefunction is passed to the new call via the data structure 'restart'
+      \item {\bf InputPsiId } = 2: The input wavefunction is read from the 'wavefunction.*' files which contain all the 
+            scaling function and wavelet coefficients. In case some parameters such as {\bf hgridx} 
+            or {\bf crmult} have changed, compared to the previous run, the wavefunctions will be 
+            also transformed to the new parameter set.
+      \item {\bf InputPsiId } = 10: The same as 0 but activates the 'Gaussian help': 
+            after convergence the wavefunctions are projected onto the localised basis set used for
+            the input guess, and Mulliken Charge Population Analysis (MCPA) is performed on this
+            basis. The user has the possibility to perform MCPA with separate basis set (functionality to be added)
        \item {\bf InputPsiId } = 11: Restart with Gaussian approximation contained in the 'restart' data structure.
        \item {\bf InputPsiId } = 12: The input wavefunction is read from the 'wavefunctions.gau'  file, which contains an 
-                                    approximation in a minimal Gaussian basis set of the previously calculated wavefunctions.
+            approximation in a minimal Gaussian basis set of the previously calculated wavefunctions.
        \item {\bf output\_wf} : If \texttt{.TRUE.} the output wavefunction is written at the end of the wavefunction optimization 
-                               into files. If {\bf InputPsiId } was greater than 10 the wavefunction will be written 
-                               in the Gaussian approximation into  a single 'wavefunctions.gau' file otherwise into 
-                               'wavefunction.*' files. Writing a  'wavefunction.*' file for each orbital can take a considerable 
-                               amount of time and disk space. 
+            into files. If {\bf InputPsiId } was greater than 10 the wavefunction will be written 
+            in the Gaussian approximation into  a single 'wavefunctions.gau' file otherwise into 
+            'wavefunction.*' files. Writing a  'wavefunction.*' file for each orbital can take a considerable 
+            amount of time and disk space. 
        \item {\bf output\_density} = 0, No output density is written.
        \item {\bf output\_density} = 1, Output electronic density is written in the .pot format of V\_sim into the file 'electronic\_density.pot'.
        \item {\bf output\_density} = -1, Same as  {\bf output\_density} = 1, but using .cube format in the file 'electronic\_density.cube'.
        \item {\bf output\_density} = 2, In addition to the electronic charge density the following files are written:
-                                  'ionic\_potential.pot', 'local\_potential.pot', 'hartree\_potential.pot'.
+                                  'ionic\_potential.pot', 'local\_potential.pot', 'Hartree\_potential.pot'.
        \item {\bf output\_density} = -2, Same as {\bf output\_density} = 2, but all files are written in the .cube format.
       \end{itemize}
 \item {\bf rbuf}, {\bf ncongt}:  Far reaching tails of the wavefunctions decaying into the vacuum are  
-                                      added in a perturbative
-treatment if the variable {\bf rbuf} is set to a strictly positive value. 
-                                      This allows to do a calculation with some moderate 
-                                      value of {\bf crmult} and then to extrapolate to the limit of large  {\bf crmult}. 
-                                      This procedure is not variational and gives too low energies. The true energy is 
-                                      in between the two energies and in general much closer to the extrapolated energy. 
-                                      This procedure can also be used to judge whether the chosen value of  {\bf crmult} is 
-                                      large enough for a certain required precision.
-                                      {\bf rbuf} gives the amount by which the radii for the coarse resolution region 
-                                      are increased in atomic units. {\bf ncongt} gives the number of iterations used 
-                                      in the pertubation calculation. Reasonable values for {\bf ncongt} are around 30.  
+      added in a perturbative treatment if the variable {\bf rbuf} is set to a strictly positive value. 
+      This allows to do a calculation with some moderate 
+      value of {\bf crmult} and then to extrapolate to the limit of large  {\bf crmult}. 
+      This procedure is not variational and gives too low energies. The true energy is 
+      in between the two energies and in general much closer to the extrapolated energy. 
+      This procedure can also be used to judge whether the chosen value of  {\bf crmult} is 
+      large enough for a certain required precision.
+      {\bf rbuf} gives the amount by which the radii for the coarse resolution region 
+      are increased in atomic units. {\bf ncongt} gives the number of iterations used 
+      in the perturbation calculation. Reasonable values for {\bf ncongt} are around 30.  
 
 \item {\bf norbv},{\bf nvirt}, {\bf  nplot}: Usually unoccupied orbitals are not calculated since they are not needed for 
-                                 the total energy and other physical properties of the electronic ground state. 
-                                 Putting  {\bf norbv} to  a non-zero 
-                                 value will result in the calculation of {\bf norbv} virtual orbitals in a postprocessing 
-                                 routine after the occupied orbitals have been calculated, which uses Davidson iterative treatment . {\bf nplot}  of these 
-                                 orbitals will be written in the 'virtual.*.pot' files and {\bf nplot} (if that many exist) 
-                                 of the highest occupied orbitals will be  written in the 'orbital.*.pot' file
-                                 The Kohn Sham eigenvalues are written in the ordinary output file.  {\bf nvirt} corresponds to the actual number of orbitals the convergence process is taking care of during the Davidson iterations.
+      the total energy and other physical properties of the electronic ground state. 
+      Putting  {\bf norbv} to  a non-zero 
+      value will result in the calculation of {\bf norbv} virtual orbitals in a postprocessing 
+      routine after the occupied orbitals have been calculated, which uses Davidson iterative treatment . {\bf nplot}  of these 
+      orbitals will be written in the 'virtual.*.pot' files and {\bf nplot} (if that many exist) 
+      of the highest occupied orbitals will be  written in the 'orbital.*.pot' file
+      The Kohn Sham eigenvalues are written in the ordinary output file.  {\bf nvirt} corresponds to the actual number of orbitals the convergence process is taking care of during the Davidson iterations.
 
 \item {\bf verbosity}: Determines the amount of output from little (0)
-to detailed (2). By adding 10 to its value it switch on the
-once-and-for-all strategy for calcuylating the PSP projectors, which
-is faster but more memory demanding (considered by memguess).
+      to detailed (2). By adding 10 to its value it switch on the
+      once-and-for-all strategy for calculating the PSP projectors, which
+      is faster but more memory demanding (considered by memguess).
 \item \textbf{disable sym}: a logical to set to 'T' to disable the
-usage of symmetry operations in the calculations. By default symmetries
-are used to update the density in periodic boundary condition
-caculations, and surface boundary conditions also.
+      usage of symmetry operations in the calculations. By default symmetries
+      are used to update the density in periodic boundary condition
+      calculations, and surface boundary conditions also.
 \end{itemize}
 
 \section{The input file 'input.geopt'}
@@ -370,52 +381,57 @@ If this file exists, BigDFT will do a geometry optimization and the file contain
 
 \begin{itemize}
 \item {\bf geopt\_approach}: This character string specifies the method used for the geometry optimization.
-       \begin{itemize}
-       \item  \emph{VSSD}: Variable Stepsize Steepest Descent method;
-       \item  \emph{SDCG}: A combination od Stepest Descent and Conjugate Gradient;
-       \item  \emph{BFGS}: Limited Memory BFGS;
-       \item  \emph{AB6MD}: The molecular dynamic routines from ABINIT 6.
-       \end{itemize}
+      \begin{itemize}
+      \item  \emph{VSSD}:  Variable Stepsize Steepest Descent method;
+      \item  \emph{SDCG}:  A combination of Steepest Descent and Conjugate Gradient;
+      \item  \emph{BFGS}:  Limited Memory BFGS;
+      \item  \emph{AB6MD}: The molecular dynamic routines from ABINIT~6.
+      \end{itemize}
 \item {\bf  ncount\_cluster\_x}: Maximum number of force evaluations to be used for the geometry optimization.
-\item {\bf frac\_fluct}, {\bf forcemax}: Convergence criteria for the geometry optimization. The geometry optimization stops either 
-                                           if the norm of the individual forces acting on any atom in the system is smaller than {\bf forcemax} 
-                                           or if the forces get noisy. Noise is present because of the underlying integration grid.
-                                           The parameter {\bf frac\_fluct} specifies how small the forces should become 
-                                           compared to the noise level to stop the geometry optimization. 
-                                           Values in between  1 and 10 is are reasonable for this parameter. 
-                                           A value of 2 means that the geometry optimization will stop when 
-                                           the largest atomic force is comparable to the 2 times the average noise in 
-                                           the forces themselves. For values of  {\bf frac\_fluct} 
-                                           smaller than 1 one can under certain circumstances obtain better relaxed geometries but 
-                                           one risks that the geometry optimization will not converge since the forces are too noisy. 
-                                           In such a case one should 
-                                           closely monitor the progress of the geometry optimization by looking at the 'posout.*' 
-                                           files which are written at each step of the geometry optimization and at the 'geopt.mon' file. 
-\item  {\bf randdis}: This parameter allows to add random displacements with amplitude \textbf{randdis} to the atomic positions in the 
-                        input file 'posinp'. This can for instance be useful to break degeneracies (which would lead to 
-                        convergence problems in the wavefunction optimization) in highly symmetric structures.
-\item  {\bf betax}: This is the stepsize for the geometry optimization. This stepsize is system dependent and it has therefore to be 
-                      determined for each system. If the VSSD method is used one can start with a small stepsize of around 1 and 
-                      VSSD will suggest than a better value for {\bf betax} in the last line of the 'geopt.mon' file. 
-                      Whether the stepsize is correct can also be seen from the 'geopt.mon' output of the SDCG method. In this 
-                      case the average stepsize in terms of \textbf{betax} should be around 4 (after a brief initial period where it is around 8).
-                      In contrast to the SDCG method, the BFGS method is not very sensitive to the correct stepsize but nevertheless 
-                      one should try to find reasonable values also in this case.
-\item  \textbf{ionmov}: in case of {\bf geopt\_approach = AB6MD}, the {\bf betax} line should be replaced by this one. It contains an integer value as described in the ABINIT manual. Possible values are:
-                         \begin{itemize}
-                         \item 6: simple velocity-Verlet molecular dynamic.
-                         \item 7: quenched molecular dynamic, when the scalar product force / velocity becomes negative, the velocity is set to zero. The force criterion is tested at each step.
-                         \item 8: Nose-Hoover thermostat.
-                         \item 9: Langevin dynamic (adding a friction force and a gaussian random force on atoms).
-                         \item 12: Isokinetic ensemble molecular dynamics. The equation of motion of the ions in contact with a thermostat are solved with the algorithm proposed by Zhang [J. Chem. Phys. 106, 6102 (1997)], as worked out by Minary et al [J. Chem. Phys. 188, 2510 (2003)]. The conservation of the kinetic energy is obtained within machine precision, at each step.
-                         \item 13: Iosthermal/isenthalpic ensemble. The equation of motion of the ions in contact with a thermostat and a barostat are solved with the algorithm proposed by Martyna, Tuckermann Tobias and Klein [Mol. Phys., 1996, p. 1117].
-                         \end{itemize}
-\item  \textbf{dtion}: the time step for molecular dynamic, in atomic time units. One atomic time unit is 2.418884e-17 seconds, which is the value of Planck's constant in hartree*sec. The following lines depend on the choosen value for \textbf{ionmov}.
+\item {\bf frac\_fluct}, {\bf forcemax}: Convergence criteria for the geometry optimization. 
+      The geometry optimization stops either 
+      if the norm of the individual forces acting on any atom in the system is smaller than {\bf forcemax} 
+      or if the forces get noisy. Noise is present because of the underlying integration grid.
+      The parameter {\bf frac\_fluct} specifies how small the forces should become 
+      compared to the noise level to stop the geometry optimization. 
+      Values in between  1 and 10 is are reasonable for this parameter. 
+      A value of 2 means that the geometry optimization will stop when 
+      the largest atomic force is comparable to the 2 times the average noise in 
+      the forces themselves. For values of  {\bf frac\_fluct} 
+      smaller than 1 one can under certain circumstances obtain better relaxed geometries but 
+      one risks that the geometry optimization will not converge since the forces are too noisy. 
+      In such a case one should 
+      closely monitor the progress of the geometry optimization by looking at the 'posout.*' 
+      files which are written at each step of the geometry optimization and at the 'geopt.mon' file. 
+\item {\bf randdis}: This parameter allows to add random displacements 
+      with amplitude \textbf{randdis} to the atomic positions in the 
+      input file 'posinp'. This can for instance be useful to break degeneracies (which would lead to 
+      convergence problems in the wavefunction optimization) in highly symmetric structures.
+\item {\bf betax}: This is the stepsize for the geometry optimization. 
+      This stepsize is system dependent and it has therefore to be 
+      determined for each system. If the VSSD method is used one can start with a small stepsize of around 1 and 
+      VSSD will suggest than a better value for {\bf betax} in the last line of the 'geopt.mon' file. 
+      Whether the stepsize is correct can also be seen from the 'geopt.mon' output of the SDCG method. In this 
+      case the average stepsize in terms of \textbf{betax} should be around~$4$
+      (after a brief initial period where it is around 8).
+      In contrast to the SDCG method, the BFGS method is not very sensitive to the correct stepsize but nevertheless 
+      one should try to find reasonable values also in this case.
+\item \textbf{ionmov}: in case of {\bf geopt\_approach = AB6MD}, the {\bf betax} line should be replaced by this one. It contains an integer value as described in the ABINIT manual. Possible values are:
+      \begin{itemize}
+      \item 6: simple velocity-Verlet molecular dynamic.
+      \item 7: quenched molecular dynamic, when the scalar product force / velocity becomes negative, 
+            the velocity is set to zero. The force criterion is tested at each step.
+      \item 8: Nose-Hoover thermostat.
+      \item 9: Langevin dynamic (adding a friction force and a Gaussian random force on atoms).
+      \item 12: Isokinetic ensemble molecular dynamics. The equation of motion of the ions in contact with a thermostat are solved with the algorithm proposed by Zhang [J. Chem. Phys. 106, 6102 (1997)], as worked out by Minary et al [J. Chem. Phys. 188, 2510 (2003)]. The conservation of the kinetic energy is obtained within machine precision, at each step.
+      \item 13: Iosthermal/isenthalpic ensemble. The equation of motion of the ions in contact with a thermostat and a barostat are solved with the algorithm proposed by Martyna, Tuckermann Tobias and Klein [Mol. Phys., 1996, p. 1117].
+      \end{itemize}
+\item \textbf{dtion}: the time step for molecular dynamic, in atomic time units. One atomic time unit is 2.418884e-17 seconds, which is the value of Planck's constant in Hartree*sec. The following lines depend on the choosen value for \textbf{ionmov}.
 \item  if \textbf{ionmov = 6}: one line containing the initial temperature in kelvin. If negative, the initial velocities are all zero. If positive, random speeds are chosen to match the given temperature (NOT IMPLEMENTED YET!).
 \item  if \textbf{ionmov $>$ 7}: one line containing two temperatures in kelvin. When different, the temperature is linearly change at each geometry step to go from the first value to the second.
-\item  if \textbf{ionmov = 8}: one additionnal line containing the thermostat inertia coefficient for Nose-Hoover dynamic.
-\item  if \textbf{ionmov = 9}: two additionnal lines containing first the friction coefficient and then a value in bohr corresponding at a distance where the atoms can bounce on (see the ABINIT documentation for further details).
-\item  if \textbf{ionmov = 13}: several additionnal lines containing first the number of thermostats in the chain of thermostats. Then a line with the mass of each thermostat in the chain. And finally a line with two values for the barostat mass, depending on optcell value (NOT IMPLEMENTED YET!).
+\item  if \textbf{ionmov = 8}: one additional line containing the thermostat inertia coefficient for Nose-Hoover dynamic.
+\item  if \textbf{ionmov = 9}: two additional lines containing first the friction coefficient and then a value in Bohr corresponding at a distance where the atoms can bounce on (see the ABINIT documentation for further details).
+\item  if \textbf{ionmov = 13}: several additional lines containing first the number of thermostats in the chain of thermostats. Then a line with the mass of each thermostat in the chain. And finally a line with two values for the barostat mass, depending on optcell value (NOT IMPLEMENTED YET!).
 \end{itemize}
 
 
@@ -456,7 +472,7 @@ This file is used to specify values in order to optimize the performances of Big
 does not exist, default values are used. Keywords can specify options as:
 \begin{itemize}
   \item  \textbf{'debug'}: The debug mode is enable mainly for memory profiling.
-  \item  \textbf{'fftcache' ncache\_size}: Specify the cache sier for FFT in kBytes.
+  \item  \textbf{'fftcache' ncache\_size}: Specify the cache size for FFT in kBytes.
 \end{itemize}
 
 
@@ -496,7 +512,7 @@ The file \texttt{input} contains a list of variables relevant to the NEB algorit
   \item \texttt{*\_config} the file describing the first and the last replica (in BigDFT 1.3, the file extension .xyz must be omitted).
 \end{itemize}
 
-At each NEB iteration, the driver script is runned. It creates the directories for forces calculations if needed, create the input files using the include script, run the jobs, grep the energy and the forces and return. The script file \texttt{NEB\_include.sh} must contain the following shell functions:
+At each NEB iteration, the driver script is run. It creates the directories for forces calculations if needed, create the input files using the include script, run the jobs, grep the energy and the forces and return. The script file \texttt{NEB\_include.sh} must contain the following shell functions:
 \begin{itemize}
   \item \texttt{init\_jobs()}, run once after directory creation. It can be used.
   \item \texttt{finalise\_jobs()}, run once after all jobs have finished.
@@ -504,7 +520,7 @@ At each NEB iteration, the driver script is runned. It creates the directories f
   \item \texttt{make\_input()}, run once in each scratch directories to create the file 'posinp.xyz' from the NEB restart file and the initial ones.
   \item \texttt{run\_job()}, run once in each scratch directories to start the force calculations. In the example, it runs the replicas directly on the host machine, but in this shell function, a submission file may be created instead and submitted to the queue system for later run.
   \item \texttt{check\_job()} is used periodically by the driver system to check if a job is finished or not. It must return different values: -1 if the job is still not started (maybe be still in the queue for instance), 0 if the job is running but not finished yet, 1 if it exited with success and 2 if it exited with a failure.
-  \item \texttt{grep\_forces()} is runned once after job termination to get the energy and the forces. Energy must be in hartree and forces in hartree per bohr.
+  \item \texttt{grep\_forces()} is run once after job termination to get the energy and the forces. Energy must be in Hartree and forces in Hartree per Bohr.
   \end{itemize}
 For NEB purposes, users of BigDFT usually have only to modify the \texttt{run\_job()} functions from the examples to adapt it to their machine.
 
@@ -517,9 +533,9 @@ The output files are:
 
 
 \section{Doing frequencies calculations: \texttt{frequencies}}
-Using the excutable \texttt{frequencies}, it is possible to calculate the vibrational properties of
+Using the executable \texttt{frequencies}, it is possible to calculate the vibrational properties of
 a system by finite difference. The atomic system is moving for each direction and each atom in a
-small step in order to calculate the hessian matrix by a finite difference scheme.
+small step in order to calculate the Hessian matrix by a finite difference scheme.
 A checkpoint restart is implemented. The file 'frequencies.res' contains the previous calculations.
 
 \subsection{The 'input.freq' file}
@@ -540,7 +556,7 @@ There are three parameters:
 \chapter{XANES calculations}
 
 \section{Abstract} 
-We have implemented an original procedure for calculating XANES spectra within the BigDFT code. Our approach consists firstly in  projecting the photoelectron wave-function onto the pseudopotential functions basis with the help of a reversed PAW projector\cite{Taillefumier} and, then, propagating this initial state by iterative applications of the Hamiltonian. The Hamiltonian is the one provided by the BigDFT code. The obtained spectra therefore correspond exactly to the electronic structure of the self consistent ground state.The spectra are built by obtaining at each new application of the Hamiltonian a new coefficient of the spectral decomposition in Chebychev polynomials. The method therefore systematically improves the calculated spectra resolution at each step and can be stopped once the required resolution is reached. Moreover, the Chebychev polynomials have a higher nodes' density at the extrema of the spectral range  than in the middle. For practical applications this makes convergence even faster because the broadening due to lifetime is narrow near the edge and large elsewhere. The execution times represent a break-through for this kind of calculations and reflect the exceptional features of the BigDft code. For a cluster contained in a 25\AA\ side cube, the spectra are obtained within half an hour, running on a single processor.
+We have implemented an original procedure for calculating XANES spectra within the BigDFT code. Our approach consists firstly in  projecting the photoelectron wave-function onto the pseudopotential functions basis with the help of a reversed PAW projector\cite{Taillefumier} and, then, propagating this initial state by iterative applications of the Hamiltonian. The Hamiltonian is the one provided by the BigDFT code. The obtained spectra therefore correspond exactly to the electronic structure of the self consistent ground state.The spectra are built by obtaining at each new application of the Hamiltonian a new coefficient of the spectral decomposition in Chebychev polynomials. The method therefore systematically improves the calculated spectra resolution at each step and can be stopped once the required resolution is reached. Moreover, the Chebychev polynomials have a higher nodes' density at the extrema of the spectral range  than in the middle. For practical applications this makes convergence even faster because the broadening due to lifetime is narrow near the edge and large elsewhere. The execution times represent a break-through for this kind of calculations and reflect the exceptional features of the BigDFT code. For a cluster contained in a 25\AA\ side cube, the spectra are obtained within half an hour, running on a single processor.
 
 
 \section{Introduction}
@@ -558,7 +574,7 @@ H_{int} =
 where ${ r}$ is the electron coordinate, ${ p}$ the kinetic moment, ${  a^\dagger }_{ k,\epsilon}$, $a_{ k ,\epsilon}$ 
 are creation annihilation photon operators, $\omega= kc $, and $V$ is the space volume.
 
-The photon absorption is  a first  order perturbative process whose probability  per unit of time $w(\omega)$, 
+The photon absorption is  a first order perturbative process whose probability  per unit of time $w(\omega)$, 
 for photon with polarization  $\epsilon$  state, 
 is obtained from  $H_{int}$  matrix elements by the Fermi golden rule. For one photon in the $V$ volume:
 \begin{equation}
@@ -606,7 +622,7 @@ which can be computed by iterative applications of the Hamiltonian :
 \end{equation}
 
 To avoid numerical ill-conditioning coming from the numerical linear dependence of  high order powers we proceed as explained in \cite{weiss}.
- The $H$ hamiltonian is rescaled  and shifted to a new $H'$ whose spectra
+ The $H$ Hamiltonian is rescaled  and shifted to a new $H'$ whose spectra
 is comprised within $]-1,1[$:
 $$   < n | H' | n > \in \,\, ]-1,1[ $$
 The overlap integrals between the spectra and Chebychev polynomials $T_n(x)$ is calculated by recurrence.
@@ -657,7 +673,7 @@ The structure of the file '{input.abscalc}' is the following:
 
 \begin{itemize}
 \item The input parameter {\it in\%iabscalc\_type} which can be equal to  $1$
-or $2$. In the first case the spectra is calculated as a serie of
+or $2$. In the first case the spectra is calculated as a series of
 Chebychev polynomials, while in the second case the Lanczos
 tridiagonalisation is applied. We suggest the first option
 because the Lanczos method requires, in order to keep orthogonality,
@@ -666,7 +682,8 @@ and this limits the number of steps that one can perform.
 
 \item The  parameter {\it in\%iat\_absorber}, an integer number,
 is the position (starting from one) in  the {\it posinp.xyz} file
- of the absorber atom. ({\it WARNING levare gnrm che non serve piu} )
+of the absorber atom.
+%({\it WARNING levare gnrm che non serve piu} )
 
 \item  {\it in\%L\_absorber} : this parameter is the angular moment
 of the multipole component of the interaction operator that 
@@ -675,10 +692,10 @@ quadrupolar ...
 
 \item {\it in\%Gabs\_coeffs(i), i=1,2*in\%L\_absorber +1}.
 
-This are the components of the interaction operator, in cartesian
+This are the components of the interaction operator, in Cartesian
 coordinates. These correspond to the BigDFT internal representation 
 of tensors, which is based on spherical tensor. 
-({\it aggiunger un link o una spiegazione per il caso di L  generico })
+%({\it aggiunger un link o una spiegazione per il caso di L  generico })
 For dipolar interaction these will be therefore the three $x,y,z$
 components. In this present version the input are real numbers.
 Entry for the imaginary parts will have to be added in the future versions 
@@ -688,17 +705,17 @@ for magnetic dichroism.
 local potential is obtained. If it is set to $1$ the potential is
 obtained from the superposition of atomic charges.
 If it is set to $2$ the potential is read from a previous SCF
-calculation. In this case the program seaches, in the current work directory,
+calculation. In this case the program searches, in the current work directory,
 the file {\it b2B\_xanes.cube}. Such file contains the atomic positions
 and the local potential of a previous SCF run and can be created
 setting the parameter {\it in\%output\_grid} to $-2$ in
 the file {\it input.dft}. The SCF potential is interpolated, using
-interpolants wavelets, to get the potential on the target grid.
+interpolant wavelets, to get the potential on the target grid.
 The SCF grid of the previous run must have less points than the target
 grid.
-This is easily the case, because in xanes calculations one usually
+This is easily the case, because in XANES calculations one usually
 sets a large diameter for the box. The fact of choosing a large box 
- limits the spurious oscillations due to bands effects and to interference with the replica
+limits the spurious oscillations due to bands effects and to interference with the replica
 of the absorber atom in the other Bravais cells. 
 
 \item {\it in\%nsteps } : this is the total number of Hamiltonian
@@ -710,17 +727,18 @@ of the absorber atom in the other Bravais cells.
 
 \subsection{Note about the absorber pseudopotential}
  In the actual version of the code ($1.4$) for the absorber
-psudopotential one must use a $Z+1$ approximation.
-For future versions of the code the developpment of on-the fly
+pseudopotential one must use a $Z+1$ approximation.
+For future versions of the code the development of on-the fly
 pseudopotentials, corresponding to the excited electronic structure,
-is foreseen. {\it verificare che non saranno invece tabulati } 
+is foreseen.
+%{\it verificare che non saranno invece tabulati } 
 
 
 \section{Description of the output}
 
 In case of  {\it in\%iabscalc\_type} equal to  $1$, the spectra
 is written, in the current work directory, with the name :
-{\it  cheb\_spectra\_NUM  } where {\it NUM } is the number of 
+{\it  cheb\_spectra\_NUM  } where {\it NUM} is the number of 
 Chebychev components. The number of components increases
 at each Hamiltonian application and ,during the calculation,
  several partial results, with increasing number of components,
@@ -771,9 +789,9 @@ where $\Delta_l$ is the number of core orbitals contained in the
 pseudopotential.
 We show in fig xxx the radial parts 
  $\tilde \psi_{nl}(r)$ and $\psi_{n+\Delta_l,l}(r)$  for $l=1$
- in the case of Iron, with a HGH pseudopotential  ( referenza )
+ in the case of Iron, with a HGH pseudopotential  %(referenza)
 with $Zion=16$, for $n=1,2,xx,xxx$.
-In figure yyy we show the corresponding  pseudo-eigenvalues $\tilde E_{n,l=1}$ and
+In figure we show the corresponding pseudo-eigenvalues $\tilde E_{n,l=1}$ and
 the all-electrons ones $ E_{n+\Delta_l,l=1}$.
 We can see that the agreement is within XXX for the first XXx
 eigenvalues and then increase still remaining better than XXX per cent,
@@ -783,16 +801,184 @@ all-electrons ones remains excellent.
 
 \section{Test against an exactly solvable case.}
  
-in progress
-
+In progress
 
   
- \begin{thebibliography}{0}
+\begin{thebibliography}{0}
 \bibitem{Taillefumier}** This reversed PAW procedure, that we describe and document here, looks similar to the one which seems to be  used in Taillefumier et al., Phys. Rev. B 66, 195107 (2002) 
 \bibitem{blume}   M. Blume, in Resonant Anomalous X-Ray Scattering, edited by G. Materlik, J. Sparks and K. Fisher (Elsevier, Amsterdam, 1994), p. 495.
 \bibitem{weiss} A. Weiss, G. Wellein, A. Alvermann and H. Fehske Rev. Mod. Phys. 78, 275 (2006) 
 
 
- \end{thebibliography}
+\end{thebibliography}
+
+\chapter*{Native ABINIT XC functionals}
+
+\begin{longtable}{ll}
+0  & NO xc\\
+1  & LDA or LSD, Teter Pade parametrization\\
+   & (S. Goedecker, M. Teter, J. H\"utter, Phys. Rev. B54, 1703 (1996)),\\
+   & which reproduces Perdew-Wang (which reproduces Ceperley-Alder!)\\
+2  & LDA, Perdew-Zunger-Ceperley-Alder (no spin-polarization)\\
+3  & LDA, old Teter rational polynomial parametrization\\
+   & fit to Ceperley-Alder data (no spin-polarization)\\
+4  & LDA, Wigner functional (no spin-polarization)\\
+5  & LDA, Hedin-Lundqvist functional (no spin-polarization)\\
+6  & LDA, "X-alpha" functional (no spin-polarization)\\
+7  & LDA or LSD, Perdew-Wang 92 functional\\
+8  & LDA or LSD, x-only part of the Perdew-Wang 92 functional\\
+9  & LDA or LSD, x- and RPA correlation part of the Perdew-Wang 92 functional\\
+11 & GGA, Perdew-Burke-Ernzerhof GGA functional\\
+12 & GGA, x-only part of Perdew-Burke-Ernzerhof GGA functional\\
+13 & GGA potential of van Leeuwen-Baerends,\\
+   & while for energy, Perdew-Wang 92 functional\\
+14 & GGA, revPBE of Y. Zhang and W. Yang, Phys. Rev. Lett. 80, 890 (1998)\\
+15 & GGA, RPBE of B. Hammer, L.B. Hansen and J.K. Norskov,\\
+   & Phys. Rev. B 59, 7413 (1999)\\
+16 & GGA, HTCH93 of F.A. Hamprecht, A.J. Cohen, D.J. Tozer, N.C. Handy,\\
+   & J. Chem. Phys. 109, 6264 (1998)\\
+17 & GGA, HTCH120 of A.D. Boese, N.L. Doltsinis, N.C. Handy, and M. Sprik,\\
+   & J. Chem. Phys 112, 1670 (1998) -- The usual HCTH functional\\
+20 & Fermi-Amaldi xc (-1/N Hartree energy, where N is the number of electrons per cell\\
+   & G=0 is not taken into account however), for TDDFT tests. No spin-polarisation.\\
+21 & same as 20, except that the xc-kernel is the LDA (ixc=1) one,\\
+   & for TDDFT tests\\
+22 & same as 20, except that the xc-kernel is the Burke-Petersilka-Gross hybrid,\\
+   & for TDDFT tests\\
+23 & GGA of Z. Wu and R.E. Cohen, Phys. Rev. 73, 235116 (2006)\\
+26 & GGA, HTCH147 of A.D. Boese, N.L. Doltsinis, N.C. Handy, and M. Sprik,\\
+   & J. Chem. Phys 112, 1670 (1998)\\
+27 & GGA, HTCH407 of A.D. Boese, and N.C. Handy, J. Chem. Phys 114, 5497 (2001)\\
+\end{longtable}
+
+\chapter*{libXC functional codes}
+\label{appendix-libXC}
+
+In the input file 'input.dft', you have to specify a code from this table made with a negative sign
+concatenated with two integers, one for exchange part and another one for correlation part.
+
+\begin{longtable}{lrl}
+   XC\_LDA\_X                 &   1  &  Exchange                     \\
+   XC\_LDA\_C\_WIGNER         &   2  &  Wigner parametrization       \\
+   XC\_LDA\_C\_RPA            &   3  &  Random Phase Approximation   \\
+   XC\_LDA\_C\_HL             &   4  &  Hedin \& Lundqvist            \\
+   XC\_LDA\_C\_GL             &   5  &  Gunnarson \& Lundqvist        \\
+   XC\_LDA\_C\_XALPHA         &   6  &  Slater Xalpha                \\
+   XC\_LDA\_C\_VWN            &   7  &  Vosko, Wilk, \& Nussair       \\
+   XC\_LDA\_C\_VWN\_RPA       &   8  &  Vosko, Wilk, \& Nussair (RPA) \\
+   XC\_LDA\_C\_PZ             &   9  &  Perdew \& Zunger              \\
+   XC\_LDA\_C\_PZ\_MOD        &  10  &  Perdew \& Zunger (Modified)   \\
+   XC\_LDA\_C\_OB\_PZ         &  11  &  Ortiz \& Ballone (PZ)         \\
+   XC\_LDA\_C\_PW             &  12  &  Perdew \& Wang                \\
+   XC\_LDA\_C\_PW\_MOD        &  13  &  Perdew \& Wang (Modified)     \\
+   XC\_LDA\_C\_OB\_PW         &  14  &  Ortiz \& Ballone (PW)         \\
+   XC\_LDA\_C\_2D\_AMGB       &  15  &  Attacalite et al             \\
+   XC\_LDA\_C\_2D\_PRM        &  16  &  Pittalis, Rasanen \& Marques correlation in 2D \\
+   XC\_LDA\_C\_vBH            &  17  &  von Barth \& Hedin            \\
+   XC\_LDA\_C\_1D\_CSC        &  18  &  Casula, Sorella, and Senatore 1D correlation     \\
+   XC\_LDA\_X\_2D             &  19  &  Exchange in 2D \\
+   XC\_LDA\_XC\_TETER93       &  20  &  Teter 93 parametrization                \\
+   XC\_LDA\_X\_1D             &  21  &  Exchange in 1D     \\
+   XC\_GGA\_X\_PBE            & 101  &  Perdew, Burke \& Ernzerhof exchange             \\
+   XC\_GGA\_X\_PBE\_R         & 102  &  Perdew, Burke \& Ernzerhof exchange (revised)   \\
+   XC\_GGA\_X\_B86            & 103  &  Becke 86 Xalpha,beta,gamma                      \\
+   XC\_GGA\_X\_B86\_R         & 104  &  Becke 86 Xalpha,beta,gamma (reoptimized)        \\
+   XC\_GGA\_X\_B86\_MGC       & 105  &  Becke 86 Xalpha,beta,gamma (with mod. grad. correction) \\
+   XC\_GGA\_X\_B88            & 106  &  Becke 88 \\
+   XC\_GGA\_X\_G96            & 107  &  Gill 96                                        \\
+   XC\_GGA\_X\_PW86           & 108  &  Perdew \& Wang 86 \\
+   XC\_GGA\_X\_PW91           & 109  &  Perdew \& Wang 91 \\
+   XC\_GGA\_X\_OPTX           & 110  &  Handy \& Cohen OPTX 01                          \\
+   XC\_GGA\_X\_DK87\_R1       & 111  &  dePristo \& Kress 87 (version R1)               \\
+   XC\_GGA\_X\_DK87\_R2       & 112  &  dePristo \& Kress 87 (version R2)               \\
+   XC\_GGA\_X\_LG93           & 113  &  Lacks \& Gordon 93 \\
+   XC\_GGA\_X\_FT97\_A        & 114  &  Filatov \& Thiel 97 (version A) \\
+   XC\_GGA\_X\_FT97\_B        & 115  &  Filatov \& Thiel 97 (version B) \\
+   XC\_GGA\_X\_PBE\_SOL       & 116  &  Perdew, Burke \& Ernzerhof exchange (solids)    \\
+   XC\_GGA\_X\_RPBE           & 117  &  Hammer, Hansen \& Norskov (PBE-like) \\
+   XC\_GGA\_X\_WC             & 118  &  Wu \& Cohen \\
+   XC\_GGA\_X\_mPW91          & 119  &  Modified form of PW91 by Adamo \& Barone \\
+   XC\_GGA\_X\_AM05           & 120  &  Armiento \& Mattsson 05 exchange                \\
+   XC\_GGA\_X\_PBEA           & 121  &  Madsen (PBE-like) \\
+   XC\_GGA\_X\_MPBE           & 122  &  Adamo \& Barone modification to PBE             \\
+   XC\_GGA\_X\_XPBE           & 123  &  xPBE reparametrization by Xu \& Goddard         \\
+   XC\_GGA\_X\_2D\_B86\_MGC   & 124  &  Becke 86 MGC for 2D systems \\
+   XC\_GGA\_X\_BAYESIAN       & 125  &  Bayesian best fit for the enhancement factor \\
+   XC\_GGA\_X\_PBE\_JSJR      & 126  &  JSJR reparametrization by Pedroza, Silva \& Capelle \\
+   XC\_GGA\_X\_2D\_B88        & 127  &  Becke 88 in 2D \\
+   XC\_GGA\_X\_2D\_B86        & 128  &  Becke 86 Xalpha,beta,gamma                      \\
+   XC\_GGA\_X\_2D\_PBE        & 129  &  Perdew, Burke \& Ernzerhof exchange in 2D          \\
+   XC\_GGA\_C\_PBE            & 130  &  Perdew, Burke \& Ernzerhof correlation          \\
+   XC\_GGA\_C\_LYP            & 131  &  Lee, Yang \& Parr \\
+   XC\_GGA\_C\_P86            & 132  &  Perdew 86 \\
+   XC\_GGA\_C\_PBE\_SOL       & 133  &  Perdew, Burke \& Ernzerhof correlation SOL      \\
+   XC\_GGA\_C\_PW91           & 134  &  Perdew \& Wang 91 \\
+   XC\_GGA\_C\_AM05           & 135  &  Armiento \& Mattsson 05 correlation             \\
+   XC\_GGA\_C\_XPBE           & 136  &  xPBE reparametrization by Xu \& Goddard         \\
+   XC\_GGA\_C\_LM             & 137  &  Langreth and Mehl correlation          \\
+   XC\_GGA\_C\_PBE\_JRGX      & 138  &  JRGX reparametrization by Pedroza, Silva \& Capelle \\
+   XC\_GGA\_X\_OPTB88\_VDW    & 139  &  Becke 88 reoptimized to be used with vdW functional of Dion et al\\
+   XC\_GGA\_X\_PBEK1\_VDW     & 140  &  PBE reparametrization for vdW \\
+   XC\_GGA\_X\_OPTPBE\_VDW    & 141  &  PBE reparametrization for vdW \\
+   XC\_GGA\_XC\_LB            & 160  &  van Leeuwen \& Baerends \\
+   XC\_GGA\_XC\_HCTH\_93      & 161  &  HCTH functional fitted to  93 molecules  \\
+   XC\_GGA\_XC\_HCTH\_120     & 162  &  HCTH functional fitted to 120 molecules  \\
+   XC\_GGA\_XC\_HCTH\_147     & 163  &  HCTH functional fitted to 147 molecules  \\
+   XC\_GGA\_XC\_HCTH\_407     & 164  &  HCTH functional fitted to 147 molecules  \\
+   XC\_GGA\_XC\_EDF1          & 165  &  Empirical functionals from Adamson, Gill, and Pople \\
+   XC\_GGA\_XC\_XLYP          & 166  &  XLYP functional \\
+   XC\_GGA\_XC\_B97           & 167  &  Becke 97                                 \\
+   XC\_GGA\_XC\_B97\_1        & 168  &  Becke 97-1                               \\
+   XC\_GGA\_XC\_B97\_2        & 169  &  Becke 97-2                               \\
+   XC\_GGA\_XC\_B97\_D        & 170  &  Grimme functional to be used with C6 vdW term \\
+   XC\_GGA\_XC\_B97\_K        & 171  &  Boese-Martin for Kinetics                \\
+   XC\_GGA\_XC\_B97\_3        & 172  &  Becke 97-3                               \\
+   XC\_GGA\_XC\_PBE1W         & 173  &  Functionals fitted for water \\
+   XC\_GGA\_XC\_MPWLYP1W      & 174  &  Functionals fitted for water \\
+   XC\_GGA\_XC\_PBELYP1W      & 175  &  Functionals fitted for water \\
+   XC\_GGA\_XC\_SB98\_1a      & 176  &  Schmider-Becke 98 parameterization 1a    \\
+   XC\_GGA\_XC\_SB98\_1b      & 177  &  Schmider-Becke 98 parameterization 1b    \\
+   XC\_GGA\_XC\_SB98\_1c      & 178  &  Schmider-Becke 98 parameterization 1c    \\
+   XC\_GGA\_XC\_SB98\_2a      & 179  &  Schmider-Becke 98 parameterization 2a    \\
+   XC\_GGA\_XC\_SB98\_2b      & 180  &  Schmider-Becke 98 parameterization 2b    \\
+   XC\_GGA\_XC\_SB98\_2c      & 181  &  Schmider-Becke 98 parameterization 2c    \\
+   XC\_HYB\_GGA\_XC\_B3PW91   & 401  &  The original hybrid proposed by Becke \\
+   XC\_HYB\_GGA\_XC\_B3LYP    & 402  &  The (in)famous B3LYP                  \\
+   XC\_HYB\_GGA\_XC\_B3P86    & 403  &  Perdew 86 hybrid similar to B3PW91    \\
+   XC\_HYB\_GGA\_XC\_O3LYP    & 404  &  hybrid using the optx functional \\
+   XC\_HYB\_GGA\_XC\_mPW1K    & 405  &  mixture of mPW91 and PW91 optimized for kinetics \\
+   XC\_HYB\_GGA\_XC\_PBEH     & 406  &  aka PBE0 or PBE1PBE \\
+   XC\_HYB\_GGA\_XC\_B97      & 407  &  Becke 97                                 \\
+   XC\_HYB\_GGA\_XC\_B97\_1   & 408  &  Becke 97-1                               \\
+   XC\_HYB\_GGA\_XC\_B97\_2   & 410  &  Becke 97-2                               \\
+   XC\_HYB\_GGA\_XC\_X3LYP    & 411  &  maybe the best hybrid \\
+   XC\_HYB\_GGA\_XC\_B1WC     & 412  &  Becke 1-parameter mixture of WC and PBE \\
+   XC\_HYB\_GGA\_XC\_B97\_K   & 413  &  Boese-Martin for Kinetics                \\
+   XC\_HYB\_GGA\_XC\_B97\_3   & 414  &  Becke 97-3                               \\
+   XC\_HYB\_GGA\_XC\_mPW3PW   & 415  &  mixture with the mPW functional \\
+   XC\_HYB\_GGA\_XC\_B1LYP    & 416  &  Becke 1-parameter mixture of B88 and LYP \\
+   XC\_HYB\_GGA\_XC\_B1PW91   & 417  &  Becke 1-parameter mixture of B88 and PW91 \\
+   XC\_HYB\_GGA\_XC\_mPW1PW   & 418  &  Becke 1-parameter mixture of mPW91 and PW91 \\
+   XC\_HYB\_GGA\_XC\_mPW3LYP  & 419  &  mixture of mPW and LYP \\
+   XC\_HYB\_GGA\_XC\_SB98\_1a & 420  &  Schmider-Becke 98 parameterization 1a    \\
+   XC\_HYB\_GGA\_XC\_SB98\_1b & 421  &  Schmider-Becke 98 parameterization 1b    \\
+   XC\_HYB\_GGA\_XC\_SB98\_1c & 422  &  Schmider-Becke 98 parameterization 1c    \\
+   XC\_HYB\_GGA\_XC\_SB98\_2a & 423  &  Schmider-Becke 98 parameterization 2a    \\
+   XC\_HYB\_GGA\_XC\_SB98\_2b & 424  &  Schmider-Becke 98 parameterization 2b    \\
+   XC\_HYB\_GGA\_XC\_SB98\_2c & 425  &  Schmider-Becke 98 parameterization 2c    \\
+   XC\_MGGA\_X\_LTA           & 201  &  Local tau approximation of Ernzerhof \& Scuseria \\
+   XC\_MGGA\_X\_TPSS          & 202  &  Perdew, Tao, Staroverov \& Scuseria exchange \\
+   XC\_MGGA\_X\_M06L          & 203  &  Zhao, Truhlar exchange \\
+   XC\_MGGA\_X\_GVT4          & 204  &  GVT4 from Van Voorhis and Scuseria (exchange part)    \\
+   XC\_MGGA\_X\_TAU\_HCTH     & 205  &  tau-HCTH from Boese and Handy \\
+   XC\_MGGA\_X\_BR89          & 206  &  Becke-Roussel 89  \\
+   XC\_MGGA\_X\_BJ06          & 207  &  Becke \& Johnson correction to Becke-Roussel 89  \\
+   XC\_MGGA\_X\_TB09          & 208  &  Tran \& Blaha correction to Becke \& Johnson  \\
+   XC\_MGGA\_X\_RPP09         & 209  &  Rasanen, Pittalis, and Proetto correction to Becke \& Johnson\\
+   XC\_MGGA\_C\_TPSS          & 231  &  Perdew, Tao, Staroverov \& Scuseria correlation\\
+   XC\_MGGA\_C\_VSXC          & 232  &  VSxc from Van Voorhis and Scuseria (correlation part)\\
+   XC\_LCA\_OMC               & 301  &  Orestes, Marcasso \& Capelle  \\
+   XC\_LCA\_LCH               & 302  &  Lee, Colwell \& Handy\\
+\end{longtable}
 
 \end{document}

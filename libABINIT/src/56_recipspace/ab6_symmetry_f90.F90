@@ -663,7 +663,7 @@ contains
     center    = token%data%bravais(2)
     bravais   = reshape(token%data%bravais(3:11), (/ 3,3 /))
     nBravSym  = token%data%nBravSym
-    bravSym(3, 3, 1:nBravSym) = token%data%bravSym(3, 3, 1:nBravSym)
+    bravSym(:, :, 1:nBravSym) = token%data%bravSym(:, :, 1:nBravSym)
   end subroutine ab6_symmetry_get_bravais
 
   subroutine compute_matrices(sym, errno)

@@ -320,16 +320,18 @@
  PSolver, surfaces BC, dimensions:    28  115   48   proc    4  ixc:      0 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
+ average noise along x direction:   1.60680885E-07
+ average noise along y direction:   6.77410670E-06
+ average noise along z direction:  -3.36662346E-07
+ total average noise            :   6.78437038E-06
+ clean forces norm (Ha/Bohr): maxval=  1.337490957308E-01  fnrm2=  7.155510232250E-02
+ raw forces:                  maxval=  1.337490957737E-01  fnrm2=  7.155510236838E-02
  CPU time/ELAPSED time for root process     0       138.69       137.25
  Final values of the Forces for each atom
-     1      C -2.07332E-07  3.38644E-06 -1.33749E-01
-     2      C  3.68013E-07  3.38767E-06  1.33749E-01
-     3      C -2.07332E-07  3.38644E-06 -1.33749E-01
-     4      C  3.68013E-07  3.38767E-06  1.33749E-01
- the sum of the forces is
-      x direction     3.21361760E-07
-      y direction     1.35482134E-05
-      z direction    -6.73324891E-07
+     1      C -2.07332E-07 -6.15454E-10 -1.33749E-01
+     2      C  3.68013E-07  6.15453E-10  1.33749E-01
+     3      C -2.07332E-07 -6.15454E-10 -1.33749E-01
+     4      C  3.68013E-07  6.15455E-10  1.33749E-01
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
  1647 allocations and 1647 deallocations, remaining memory(B):0
  memory occupation peak: 39 MB

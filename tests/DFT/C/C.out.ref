@@ -27,11 +27,11 @@
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Reading atomic input positions from file:posinp.xyz
- 
+
  Performance options (file 'input.perf' not present):
  |   'debug' option disabled
  |   'fftcache' = 8192
- 
+
  ---------------------------------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -218,7 +218,8 @@
  average noise along y direction:   1.40161747E-04
  average noise along z direction:   1.40161746E-04
  total average noise            :   2.42767266E-04
-Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.589359455576374E-07     0.242767266239988E-03     0.000000000000000E+00     0.000000000000000E+00
+ clean forces norm (Ha/Bohr): maxval=  0.000000000000E+00  fnrm2=  0.000000000000E+00
+ raw forces:                  maxval=  2.427672663474E-04  fnrm2=  5.893594560980E-08
  ---------------------------------------------- Estimation of Finite-Size Corrections
  F-S Correction for an effective space of  5.000 AU more around each external atom
                    requires the adding of     11 additional grid points around cell
