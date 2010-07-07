@@ -35,23 +35,23 @@ array[12]=0.0;\
 array[13]=0.0;\
 array[14]=0.0;\
 array[15]=0.0;\n\
-#define axpy16(a_c,a_a,a_b) \
-a_c[0] += a_a * a_b[0*16];\
-a_c[1] += a_a * a_b[1*16];\
-a_c[2] += a_a * a_b[2*16];\
-a_c[3] += a_a * a_b[3*16];\
-a_c[4] += a_a * a_b[4*16];\
-a_c[5] += a_a * a_b[5*16];\
-a_c[6] += a_a * a_b[6*16];\
-a_c[7] += a_a * a_b[7*16];\
-a_c[8] += a_a * a_b[8*16];\
-a_c[9] += a_a * a_b[9*16];\
-a_c[10] += a_a * a_b[10*16];\
-a_c[11] += a_a * a_b[11*16];\
-a_c[12] += a_a * a_b[12*16];\
-a_c[13] += a_a * a_b[13*16];\
-a_c[14] += a_a * a_b[14*16];\
-a_c[15] += a_a * a_b[15*16];\n\
+#define axpy16(a_c,a_a,a_b,o) \
+a_c[0] += a_a * a_b[0*16+o];\
+a_c[1] += a_a * a_b[1*16+o];\
+a_c[2] += a_a * a_b[2*16+o];\
+a_c[3] += a_a * a_b[3*16+o];\
+a_c[4] += a_a * a_b[4*16+o];\
+a_c[5] += a_a * a_b[5*16+o];\
+a_c[6] += a_a * a_b[6*16+o];\
+a_c[7] += a_a * a_b[7*16+o];\
+a_c[8] += a_a * a_b[8*16+o];\
+a_c[9] += a_a * a_b[9*16+o];\
+a_c[10] += a_a * a_b[10*16+o];\
+a_c[11] += a_a * a_b[11*16+o];\
+a_c[12] += a_a * a_b[12*16+o];\
+a_c[13] += a_a * a_b[13*16+o];\
+a_c[14] += a_a * a_b[14*16+o];\
+a_c[15] += a_a * a_b[15*16+o];\n\
 __kernel void gemm_volkovKernel_d( uint m, uint n, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp){\n\
   double a_t;\n\
   double c_t[16];\n\
@@ -63,78 +63,64 @@ __kernel void gemm_volkovKernel_d( uint m, uint n, uint k, double alpha, __globa
   double result = 0.0;\n\
   bool condm = ig < m;\n\
   init16(c_t);\n\
-  __local double *tmp_t;\n\
+  size_t jt = i/16+jg;\n\
+  b+=jt*ldb+i%16;\n\
+  a+=ig;\n\
   while( index < k) {\n\
-    size_t jt = i/16;\n\
-    tmp[i] = (jg+jt < n && index + (i%16) < k) ? b[(jg+jt)*ldb + index+(i%16)] : 0.0;\n\
-    tmp[i+64] = (jg+jt+4 < n && index + (i%16) < k) ? b[(jg+jt+4)*ldb + index+(i%16)] : 0.0;\n\
-    tmp[i+128] = (jg+jt+8 < n && index + (i%16) < k) ? b[(jg+jt+8)*ldb + index+(i%16)] : 0.0;\n\
-    tmp[i+192] = (jg+jt+12 < n && index + (i%16) < k) ? b[(jg+jt+12)*ldb + index+(i%16)] : 0.0;\n\
+    size_t it = i%16+index;\n\
+    tmp[i] = (jt < n && it < k) ? b[0] : 0.0;\n\
+    tmp[i+64] = (jt+4 < n && it < k) ? b[4*ldb] : 0.0;\n\
+    tmp[i+128] = (jt+8 < n && it < k) ? b[8*ldb] : 0.0;\n\
+    tmp[i+192] = (jt+12 < n && it < k) ? b[12*ldb] : 0.0;\n\
+    b+=16;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
-    tmp_t = tmp;\n\
-    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
-    axpy16(c_t,a_t,tmp_t);\n\
-    tmp_t++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    axpy16(c_t,a_t,tmp,0);\n\
     index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
-    axpy16(c_t,a_t,tmp_t);\n\
-    tmp_t++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    axpy16(c_t,a_t,tmp,1);\n\
     index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
-    axpy16(c_t,a_t,tmp_t);\n\
-    tmp_t++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    axpy16(c_t,a_t,tmp,2);\n\
     index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
-    axpy16(c_t,a_t,tmp_t);\n\
-    tmp_t++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    axpy16(c_t,a_t,tmp,3);\n\
     index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
-    axpy16(c_t,a_t,tmp_t);\n\
-    tmp_t++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    axpy16(c_t,a_t,tmp,4);\n\
     index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
-    axpy16(c_t,a_t,tmp_t);\n\
-    tmp_t++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    axpy16(c_t,a_t,tmp,5);\n\
     index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
-    axpy16(c_t,a_t,tmp_t);\n\
-    tmp_t++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    axpy16(c_t,a_t,tmp,6);\n\
     index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
-    axpy16(c_t,a_t,tmp_t);\n\
-    tmp_t++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    axpy16(c_t,a_t,tmp,7);\n\
     index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
-    axpy16(c_t,a_t,tmp_t);\n\
-    tmp_t++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    axpy16(c_t,a_t,tmp,8);\n\
     index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
-    axpy16(c_t,a_t,tmp_t);\n\
-    tmp_t++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    axpy16(c_t,a_t,tmp,9);\n\
     index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
-    axpy16(c_t,a_t,tmp_t);\n\
-    tmp_t++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    axpy16(c_t,a_t,tmp,10);\n\
     index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
-    axpy16(c_t,a_t,tmp_t);\n\
-    tmp_t++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    axpy16(c_t,a_t,tmp,11);\n\
     index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
-    axpy16(c_t,a_t,tmp_t);\n\
-    tmp_t++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    axpy16(c_t,a_t,tmp,12);\n\
     index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
-    axpy16(c_t,a_t,tmp_t);\n\
-    tmp_t++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    axpy16(c_t,a_t,tmp,13);\n\
     index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
-    axpy16(c_t,a_t,tmp_t);\n\
-    tmp_t++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    axpy16(c_t,a_t,tmp,14);\n\
     index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
-    axpy16(c_t,a_t,tmp_t);\n\
-    tmp_t++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    axpy16(c_t,a_t,tmp,15);\n\
     index++;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
   }\n\
@@ -169,57 +155,6 @@ __kernel void gemm_volkovKernel_d( uint m, uint n, uint k, double alpha, __globa
   (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[14] + beta * c[jg*ldc + ig]:0.0;\n\
   jg++;\n\
   (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[15] + beta * c[jg*ldc + ig]:0.0;\n\
-  jg++;\n\
-/*  if(ig < m){\n\
-    if(jg < n)\n\
-      c[jg*ldc + ig] = alpha * c_t[0] + beta * c[jg*ldc + ig];\n\
-    jg++;\n\
-    if(jg < n)\n\
-      c[jg*ldc + ig] = alpha * c_t[1] + beta * c[jg*ldc + ig];\n\
-    jg++;\n\
-    if(jg < n)\n\
-      c[jg*ldc + ig] = alpha * c_t[2] + beta * c[jg*ldc + ig];\n\
-    jg++;\n\
-    if(jg < n)\n\
-      c[jg*ldc + ig] = alpha * c_t[3] + beta * c[jg*ldc + ig];\n\
-    jg++;\n\
-    if(jg < n)\n\
-      c[jg*ldc + ig] = alpha * c_t[4] + beta * c[jg*ldc + ig];\n\
-    jg++;\n\
-    if(jg < n)\n\
-      c[jg*ldc + ig] = alpha * c_t[5] + beta * c[jg*ldc + ig];\n\
-    jg++;\n\
-    if(jg < n)\n\
-      c[jg*ldc + ig] = alpha * c_t[6] + beta * c[jg*ldc + ig];\n\
-    jg++;\n\
-    if(jg < n)\n\
-      c[jg*ldc + ig] = alpha * c_t[7] + beta * c[jg*ldc + ig];\n\
-    jg++;\n\
-    if(jg < n)\n\
-      c[jg*ldc + ig] = alpha * c_t[8] + beta * c[jg*ldc + ig];\n\
-    jg++;\n\
-    if(jg < n)\n\
-      c[jg*ldc + ig] = alpha * c_t[9] + beta * c[jg*ldc + ig];\n\
-    jg++;\n\
-    if(jg < n)\n\
-      c[jg*ldc + ig] = alpha * c_t[10] + beta * c[jg*ldc + ig];\n\
-    jg++;\n\
-    if(jg < n)\n\
-      c[jg*ldc + ig] = alpha * c_t[11] + beta * c[jg*ldc + ig];\n\
-    jg++;\n\
-    if(jg < n)\n\
-      c[jg*ldc + ig] = alpha * c_t[12] + beta * c[jg*ldc + ig];\n\
-    jg++;\n\
-    if(jg < n)\n\
-      c[jg*ldc + ig] = alpha * c_t[13] + beta * c[jg*ldc + ig];\n\
-    jg++;\n\
-    if(jg < n)\n\
-      c[jg*ldc + ig] = alpha * c_t[14] + beta * c[jg*ldc + ig];\n\
-    jg++;\n\
-    if(jg < n)\n\
-      c[jg*ldc + ig] = alpha * c_t[15] + beta * c[jg*ldc + ig];\n\
-    jg++;\n\
-  }*/\n\
 }\n\
 __kernel void gemmKernel_d( uint m, uint n, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
   //get our position in the local workgroup\n\
