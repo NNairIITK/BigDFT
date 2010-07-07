@@ -403,6 +403,30 @@ program conv_check
 
            call compare_time(CPUtime,GPUtime,n1*n1,ndat*2,ntimes,maxdiff,3.d-7)
 
+           write(*,'(a,i6,i6,i6)')'GPU GEMM (volkov), dimensions:',n1,n1,ndat
+
+           call ocl_create_write_buffer(context, n1*n1*8, psi_GPU)
+           call ocl_create_read_buffer(context, n1*ndat*8, work_GPU)
+           call ocl_enqueue_write_buffer(queue, work_GPU, n1*ndat*8, v_cuda_str)
+
+           call nanosec(tsc0)
+           do i=1,ntimes
+              call gemm_volkov_d(queue,'n','n',n1,n1,ndat,1.2d0,work_GPU,n1,work_GPU,ndat,0.0d0,psi_GPU, n1)
+           end do
+           call ocl_finish(queue);
+           call nanosec(tsc1)
+
+           call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n1*8, psi_cuda_gemm)
+           call ocl_release_mem_object(psi_GPU)
+           call ocl_release_mem_object(work_GPU)
+
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+           call print_time(GPUtime,n1*n1,ndat*2,ntimes)
+
+           call compare_2D_results(n1, n1, psi_gemm, psi_cuda_gemm, maxdiff, 3.d-7)
+
+           call compare_time(CPUtime,GPUtime,n1*n1,ndat*2,ntimes,maxdiff,3.d-7)
+
            write(*,'(a,i6,i6,i6)')'GPU GEMM (block), dimensions:',n1,n1,ndat
 
            call ocl_create_write_buffer(context, n1*n1*8, psi_GPU)

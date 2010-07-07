@@ -18,6 +18,209 @@ char * dgemm_program="\
 #define BUFFER_SIZE 16\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
 #define ELEM_PER_THREAD 2\n\
+#define init16(array) \
+array[0]=0.0;\
+array[1]=0.0;\
+array[2]=0.0;\
+array[3]=0.0;\
+array[4]=0.0;\
+array[5]=0.0;\
+array[6]=0.0;\
+array[7]=0.0;\
+array[8]=0.0;\
+array[9]=0.0;\
+array[10]=0.0;\
+array[11]=0.0;\
+array[12]=0.0;\
+array[13]=0.0;\
+array[14]=0.0;\
+array[15]=0.0;\n\
+#define axpy16(a_c,a_a,a_b) \
+a_c[0] += a_a * a_b[0*16];\
+a_c[1] += a_a * a_b[1*16];\
+a_c[2] += a_a * a_b[2*16];\
+a_c[3] += a_a * a_b[3*16];\
+a_c[4] += a_a * a_b[4*16];\
+a_c[5] += a_a * a_b[5*16];\
+a_c[6] += a_a * a_b[6*16];\
+a_c[7] += a_a * a_b[7*16];\
+a_c[8] += a_a * a_b[8*16];\
+a_c[9] += a_a * a_b[9*16];\
+a_c[10] += a_a * a_b[10*16];\
+a_c[11] += a_a * a_b[11*16];\
+a_c[12] += a_a * a_b[12*16];\
+a_c[13] += a_a * a_b[13*16];\
+a_c[14] += a_a * a_b[14*16];\
+a_c[15] += a_a * a_b[15*16];\n\
+__kernel void gemm_volkovKernel_d( uint m, uint n, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp){\n\
+  double a_t;\n\
+  double c_t[16];\n\
+  size_t i = get_local_id(0);\n\
+//  size_t j = get_local_id(1);\n\
+  size_t ig = get_global_id(0);\n\
+  size_t jg = get_global_id(1)*16;\n\
+  size_t index = 0;\n\
+  double result = 0.0;\n\
+  bool condm = ig < m;\n\
+  init16(c_t);\n\
+  __local double *tmp_t;\n\
+  while( index < k) {\n\
+    size_t jt = i/16;\n\
+    tmp[i] = (jg+jt < n && index + (i%16) < k) ? b[(jg+jt)*ldb + index+(i%16)] : 0.0;\n\
+    tmp[i+64] = (jg+jt+4 < n && index + (i%16) < k) ? b[(jg+jt+4)*ldb + index+(i%16)] : 0.0;\n\
+    tmp[i+128] = (jg+jt+8 < n && index + (i%16) < k) ? b[(jg+jt+8)*ldb + index+(i%16)] : 0.0;\n\
+    tmp[i+192] = (jg+jt+12 < n && index + (i%16) < k) ? b[(jg+jt+12)*ldb + index+(i%16)] : 0.0;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    tmp_t = tmp;\n\
+    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
+    axpy16(c_t,a_t,tmp_t);\n\
+    tmp_t++;\n\
+    index++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
+    axpy16(c_t,a_t,tmp_t);\n\
+    tmp_t++;\n\
+    index++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
+    axpy16(c_t,a_t,tmp_t);\n\
+    tmp_t++;\n\
+    index++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
+    axpy16(c_t,a_t,tmp_t);\n\
+    tmp_t++;\n\
+    index++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
+    axpy16(c_t,a_t,tmp_t);\n\
+    tmp_t++;\n\
+    index++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
+    axpy16(c_t,a_t,tmp_t);\n\
+    tmp_t++;\n\
+    index++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
+    axpy16(c_t,a_t,tmp_t);\n\
+    tmp_t++;\n\
+    index++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
+    axpy16(c_t,a_t,tmp_t);\n\
+    tmp_t++;\n\
+    index++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
+    axpy16(c_t,a_t,tmp_t);\n\
+    tmp_t++;\n\
+    index++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
+    axpy16(c_t,a_t,tmp_t);\n\
+    tmp_t++;\n\
+    index++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
+    axpy16(c_t,a_t,tmp_t);\n\
+    tmp_t++;\n\
+    index++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
+    axpy16(c_t,a_t,tmp_t);\n\
+    tmp_t++;\n\
+    index++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
+    axpy16(c_t,a_t,tmp_t);\n\
+    tmp_t++;\n\
+    index++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
+    axpy16(c_t,a_t,tmp_t);\n\
+    tmp_t++;\n\
+    index++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
+    axpy16(c_t,a_t,tmp_t);\n\
+    tmp_t++;\n\
+    index++;\n\
+    a_t = (condm && index < k) ? a[(index)*lda + ig] : 0.0;\n\
+    axpy16(c_t,a_t,tmp_t);\n\
+    tmp_t++;\n\
+    index++;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+  }\n\
+  (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[0] + beta * c[jg*ldc + ig]:0.0;\n\
+  jg++;\n\
+  (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[1] + beta * c[jg*ldc + ig]:0.0;\n\
+  jg++;\n\
+  (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[2] + beta * c[jg*ldc + ig]:0.0;\n\
+  jg++;\n\
+  (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[3] + beta * c[jg*ldc + ig]:0.0;\n\
+  jg++;\n\
+  (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[4] + beta * c[jg*ldc + ig]:0.0;\n\
+  jg++;\n\
+  (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[5] + beta * c[jg*ldc + ig]:0.0;\n\
+  jg++;\n\
+  (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[6] + beta * c[jg*ldc + ig]:0.0;\n\
+  jg++;\n\
+  (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[7] + beta * c[jg*ldc + ig]:0.0;\n\
+  jg++;\n\
+  (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[8] + beta * c[jg*ldc + ig]:0.0;\n\
+  jg++;\n\
+  (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[9] + beta * c[jg*ldc + ig]:0.0;\n\
+  jg++;\n\
+  (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[10] + beta * c[jg*ldc + ig]:0.0;\n\
+  jg++;\n\
+  (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[11] + beta * c[jg*ldc + ig]:0.0;\n\
+  jg++;\n\
+  (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[12] + beta * c[jg*ldc + ig]:0.0;\n\
+  jg++;\n\
+  (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[13] + beta * c[jg*ldc + ig]:0.0;\n\
+  jg++;\n\
+  (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[14] + beta * c[jg*ldc + ig]:0.0;\n\
+  jg++;\n\
+  (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[15] + beta * c[jg*ldc + ig]:0.0;\n\
+  jg++;\n\
+/*  if(ig < m){\n\
+    if(jg < n)\n\
+      c[jg*ldc + ig] = alpha * c_t[0] + beta * c[jg*ldc + ig];\n\
+    jg++;\n\
+    if(jg < n)\n\
+      c[jg*ldc + ig] = alpha * c_t[1] + beta * c[jg*ldc + ig];\n\
+    jg++;\n\
+    if(jg < n)\n\
+      c[jg*ldc + ig] = alpha * c_t[2] + beta * c[jg*ldc + ig];\n\
+    jg++;\n\
+    if(jg < n)\n\
+      c[jg*ldc + ig] = alpha * c_t[3] + beta * c[jg*ldc + ig];\n\
+    jg++;\n\
+    if(jg < n)\n\
+      c[jg*ldc + ig] = alpha * c_t[4] + beta * c[jg*ldc + ig];\n\
+    jg++;\n\
+    if(jg < n)\n\
+      c[jg*ldc + ig] = alpha * c_t[5] + beta * c[jg*ldc + ig];\n\
+    jg++;\n\
+    if(jg < n)\n\
+      c[jg*ldc + ig] = alpha * c_t[6] + beta * c[jg*ldc + ig];\n\
+    jg++;\n\
+    if(jg < n)\n\
+      c[jg*ldc + ig] = alpha * c_t[7] + beta * c[jg*ldc + ig];\n\
+    jg++;\n\
+    if(jg < n)\n\
+      c[jg*ldc + ig] = alpha * c_t[8] + beta * c[jg*ldc + ig];\n\
+    jg++;\n\
+    if(jg < n)\n\
+      c[jg*ldc + ig] = alpha * c_t[9] + beta * c[jg*ldc + ig];\n\
+    jg++;\n\
+    if(jg < n)\n\
+      c[jg*ldc + ig] = alpha * c_t[10] + beta * c[jg*ldc + ig];\n\
+    jg++;\n\
+    if(jg < n)\n\
+      c[jg*ldc + ig] = alpha * c_t[11] + beta * c[jg*ldc + ig];\n\
+    jg++;\n\
+    if(jg < n)\n\
+      c[jg*ldc + ig] = alpha * c_t[12] + beta * c[jg*ldc + ig];\n\
+    jg++;\n\
+    if(jg < n)\n\
+      c[jg*ldc + ig] = alpha * c_t[13] + beta * c[jg*ldc + ig];\n\
+    jg++;\n\
+    if(jg < n)\n\
+      c[jg*ldc + ig] = alpha * c_t[14] + beta * c[jg*ldc + ig];\n\
+    jg++;\n\
+    if(jg < n)\n\
+      c[jg*ldc + ig] = alpha * c_t[15] + beta * c[jg*ldc + ig];\n\
+    jg++;\n\
+  }*/\n\
+}\n\
 __kernel void gemmKernel_d( uint m, uint n, uint k, double alpha, __global const double *a, uint lda, __global const double *b, uint ldb, double beta, __global double * c, uint ldc, __local double *tmp1, __local double *tmp2){\n\
   //get our position in the local workgroup\n\
   size_t i = get_local_id(0);\n\
@@ -835,6 +1038,29 @@ void inline gemm_block_generic(cl_kernel kernel, cl_command_queue command_queue,
   ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue gemm_block kernel!");
 }
+void inline gemm_volkov_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
+  cl_int ciErrNum;
+  int ELEM_PER_THREAD=16;
+  size_t block_size_i=64;
+  size_t block_size_j=16/ELEM_PER_THREAD;
+  cl_uint i=0;
+  clSetKernelArg(kernel, i++,sizeof(*m), (void*)m);
+  clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+  clSetKernelArg(kernel, i++,sizeof(*k), (void*)k);
+  clSetKernelArg(kernel, i++,sizeof(*alpha), (void*)alpha);
+  clSetKernelArg(kernel, i++,sizeof(*a), (void*)a);
+  clSetKernelArg(kernel, i++,sizeof(*lda), (void*)lda);
+  clSetKernelArg(kernel, i++,sizeof(*b), (void*)b);
+  clSetKernelArg(kernel, i++,sizeof(*ldb), (void*)ldb);
+  clSetKernelArg(kernel, i++,sizeof(*beta), (void*)beta);
+  clSetKernelArg(kernel, i++,sizeof(*c), (void*)c);
+  clSetKernelArg(kernel, i++,sizeof(*ldc), (void*)ldc);
+  clSetKernelArg(kernel, i++,sizeof(cl_double)*(block_size_i/4+1)*block_size_j*ELEM_PER_THREAD, NULL);
+  size_t localWorkSize[] = { block_size_i, block_size_j };
+  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*m), shrRoundUp(block_size_j*ELEM_PER_THREAD,*n)*block_size_j/16  };
+  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue gemm_volkov kernel!");
+}
 void inline gemm_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
   cl_int ciErrNum;
   size_t block_size_i=16;
@@ -1084,7 +1310,21 @@ void FC_FUNC_(nrm2sq_self_d,NRM2SQ_SELF_D)(bigdft_command_queue *command_queue, 
   }
   clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
 }
-
+void FC_FUNC_(gemm_volkov_d,GEMM_VOLKOV_D)(bigdft_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
+  if( *transa == 't' || *transa == 'c' || *transa == 'T' || *transa == 'C' ) {
+    if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
+      gemm_generic((*command_queue)->kernels.gemm_kernel_d_tatb, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else {
+      gemm_generic((*command_queue)->kernels.gemm_kernel_d_ta, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    }
+  } else {
+    if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
+      gemm_generic((*command_queue)->kernels.gemm_kernel_d_tb, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    } else {
+      gemm_volkov_generic((*command_queue)->kernels.gemm_volkov_kernel_d, (*command_queue)->command_queue, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    }
+  }
+}
 void FC_FUNC_(gemm_d,GEMM_D)(bigdft_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
   if( *transa == 't' || *transa == 'c' || *transa == 'T' || *transa == 'C' ) {
     if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
@@ -1254,6 +1494,8 @@ void create_reduction_kernels(struct bigdft_kernels * kernels){
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     kernels->gemmsy_kernel_d=clCreateKernel(dgemmProgram,"gemmsyKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
+    kernels->gemm_volkov_kernel_d=clCreateKernel(dgemmProgram,"gemm_volkovKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kernel!");
     kernels->gemm_kernel_d=clCreateKernel(dgemmProgram,"gemmKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
     kernels->gemm_kernel_z=clCreateKernel(dgemmProgram,"gemmKernel_z",&ciErrNum);
@@ -1332,6 +1574,8 @@ void clean_reduction_kernels(struct bigdft_kernels * kernels){
   ciErrNum = clReleaseKernel(kernels->gemmsy_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(kernels->gemm_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(kernels->gemm_volkov_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(kernels->gemm_kernel_z);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");

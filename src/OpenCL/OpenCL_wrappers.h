@@ -64,6 +64,7 @@ struct bigdft_kernels {
   cl_kernel syn1d_kernel_d;
   cl_kernel syngrow1d_kernel_d;
   cl_kernel gemm_kernel_d;
+  cl_kernel gemm_volkov_kernel_d;
   cl_kernel gemm_kernel_d_tb;
   cl_kernel gemm_kernel_d_ta;
   cl_kernel gemm_kernel_d_tatb;
@@ -574,6 +575,7 @@ void FC_FUNC_(axpy_offset_self_d,AXPY_OFFSET_SELF_D)(bigdft_command_queue *comma
  *  @param command_queue used to process the data.
  */
 void FC_FUNC_(gemm_d,GEMM_D)(bigdft_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc);
+void FC_FUNC_(gemm_volkov_d,GEMM_VOLKOV_D)(bigdft_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc);
 /** Computes the multiplication of 2 matrix, knowing the result to be a symmetric matrix.
  *  m and n have to be identical.
  *  Usage is identical to the BLAS routine DGEMM.
