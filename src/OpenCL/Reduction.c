@@ -66,7 +66,7 @@ __kernel void gemm_volkovKernel_d( uint m, uint n, uint k, double alpha, __globa
   size_t jt = i/16+jg;\n\
   b+=jt*ldb+i%16;\n\
   a+=ig;\n\
-  while( index < k) {\n\
+  while( index < k - (k%16)) {\n\
     size_t it = i%16+index;\n\
     tmp[i] = (jt < n && it < k) ? b[0] : 0.0;\n\
     tmp[i+64] = (jt+4 < n && it < k) ? b[4*ldb] : 0.0;\n\
@@ -74,55 +74,114 @@ __kernel void gemm_volkovKernel_d( uint m, uint n, uint k, double alpha, __globa
     tmp[i+192] = (jt+12 < n && it < k) ? b[12*ldb] : 0.0;\n\
     b+=16;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
-    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    if(condm){\n\
+    a_t = a[(index)*lda];\n\
     axpy16(c_t,a_t,tmp,0);\n\
-    index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    a_t = a[(index+1)*lda];\n\
     axpy16(c_t,a_t,tmp,1);\n\
-    index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    a_t = a[(index+2)*lda];\n\
     axpy16(c_t,a_t,tmp,2);\n\
-    index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    a_t = a[(index+3)*lda];\n\
     axpy16(c_t,a_t,tmp,3);\n\
-    index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    a_t = a[(index+4)*lda];\n\
     axpy16(c_t,a_t,tmp,4);\n\
-    index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    a_t = a[(index+5)*lda];\n\
     axpy16(c_t,a_t,tmp,5);\n\
-    index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    a_t = a[(index+6)*lda];\n\
     axpy16(c_t,a_t,tmp,6);\n\
-    index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    a_t = a[(index+7)*lda];\n\
     axpy16(c_t,a_t,tmp,7);\n\
-    index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    a_t = a[(index+8)*lda];\n\
     axpy16(c_t,a_t,tmp,8);\n\
-    index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    a_t = a[(index+9)*lda];\n\
     axpy16(c_t,a_t,tmp,9);\n\
-    index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    a_t = a[(index+10)*lda];\n\
     axpy16(c_t,a_t,tmp,10);\n\
-    index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    a_t = a[(index+11)*lda];\n\
     axpy16(c_t,a_t,tmp,11);\n\
-    index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    a_t = a[(index+12)*lda];\n\
     axpy16(c_t,a_t,tmp,12);\n\
-    index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    a_t = a[(index+13)*lda];\n\
     axpy16(c_t,a_t,tmp,13);\n\
-    index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    a_t = a[(index+14)*lda];\n\
     axpy16(c_t,a_t,tmp,14);\n\
-    index++;\n\
-    a_t = (condm && index < k) ? a[(index)*lda] : 0.0;\n\
+    a_t = a[(index+15)*lda];\n\
     axpy16(c_t,a_t,tmp,15);\n\
-    index++;\n\
+    }\n\
+    index+=16;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
+  }\n\
+  if( index < k ) {\n\
+    size_t it = i%16+index;\n\
+    tmp[i] = (jt < n && it < k) ? b[0] : 0.0;\n\
+    tmp[i+64] = (jt+4 < n && it < k) ? b[4*ldb] : 0.0;\n\
+    tmp[i+128] = (jt+8 < n && it < k) ? b[8*ldb] : 0.0;\n\
+    tmp[i+192] = (jt+12 < n && it < k) ? b[12*ldb] : 0.0;\n\
+    b+=16;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    if(condm) {\n\
+    int offset=0;\n\
+    switch(k-index){\n\
+    case 15:\n\
+    a_t = a[(index++)*lda];\n\
+    axpy16(c_t,a_t,tmp,offset);\n\
+    offset++;\n\
+    case 14:\n\
+    a_t = a[(index++)*lda];\n\
+    axpy16(c_t,a_t,tmp,offset);\n\
+    offset++;\n\
+    case 13:\n\
+    a_t = a[(index++)*lda];\n\
+    axpy16(c_t,a_t,tmp,offset);\n\
+    offset++;\n\
+    case 12:\n\
+    a_t = a[(index++)*lda];\n\
+    axpy16(c_t,a_t,tmp,offset);\n\
+    offset++;\n\
+    case 11:\n\
+    a_t = a[(index++)*lda];\n\
+    axpy16(c_t,a_t,tmp,offset);\n\
+    offset++;\n\
+    case 10:\n\
+    a_t = a[(index++)*lda];\n\
+    axpy16(c_t,a_t,tmp,offset);\n\
+    offset++;\n\
+    case 9:\n\
+    a_t = a[(index++)*lda];\n\
+    axpy16(c_t,a_t,tmp,offset);\n\
+    offset++;\n\
+    case 8:\n\
+    a_t = a[(index++)*lda];\n\
+    axpy16(c_t,a_t,tmp,offset);\n\
+    offset++;\n\
+    case 7:\n\
+    a_t = a[(index++)*lda];\n\
+    axpy16(c_t,a_t,tmp,offset);\n\
+    offset++;\n\
+    case 6:\n\
+    a_t = a[(index++)*lda];\n\
+    axpy16(c_t,a_t,tmp,offset);\n\
+    offset++;\n\
+    case 5:\n\
+    a_t = a[(index++)*lda];\n\
+    axpy16(c_t,a_t,tmp,offset);\n\
+    offset++;\n\
+    case 4:\n\
+    a_t = a[(index++)*lda];\n\
+    axpy16(c_t,a_t,tmp,offset);\n\
+    case 3:\n\
+    a_t = a[(index++)*lda];\n\
+    axpy16(c_t,a_t,tmp,offset);\n\
+    offset++;\n\
+    case 2:\n\
+    a_t = a[(index++)*lda];\n\
+    axpy16(c_t,a_t,tmp,offset);\n\
+    offset++;\n\
+    case 1:\n\
+    a_t = a[(index)*lda];\n\
+    axpy16(c_t,a_t,tmp,offset);\n\
+    }\n\
+    }\n\
   }\n\
   (condm && jg < n) ? c[jg*ldc + ig] = alpha * c_t[0] + beta * c[jg*ldc + ig]:0.0;\n\
   jg++;\n\
