@@ -22,12 +22,12 @@ dnl Init something, don't know exactly what...
 AM_INIT_AUTOMAKE
 
 dnl This is a hack for usage inside ABINIT.
-if test -n "$FCFLAGS" ; then
-  FCFLAGS=`echo $FCFLAGS | sed 's/-qsuffix=[[a-zA-Z:0-9=]]*//'`
-fi
-if test -n "$F90FLAGS" ; then
-  F90FLAGS=`echo $F90FLAGS | sed 's/-qsuffix=[[a-zA-Z:0-9=]]*//'`
-fi
+dnl if test -n "$FCFLAGS" ; then
+dnl   FCFLAGS=`echo $FCFLAGS | sed 's/-qsuffix=[[a-zA-Z:0-9=]]*//'`
+dnl fi
+dnl if test -n "$F90FLAGS" ; then
+dnl   F90FLAGS=`echo $F90FLAGS | sed 's/-qsuffix=[[a-zA-Z:0-9=]]*//'`
+dnl fi
 
 dnl We defined CC for the ABINIT part.
 AC_PROG_CC()
@@ -38,7 +38,6 @@ dnl looks for a modern Fortran compiler, prefering newest
 dnl fortran available (e. g. Fortran95). Then FC variable
 dnl is set.
 AC_PROG_FC([], [Fortran 90])
-
 #	       ABI_PROG_FC()
 
 dnl Defining fortran language for tests.

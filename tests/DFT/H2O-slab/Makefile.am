@@ -26,8 +26,8 @@ H2O-slab.out: $(top_builddir)/src/bigdft $(PPFILES)
 	  for file in $(EXTRA_DIST); do \
 	    ln -fs $(srcdir)/$$file ; \
 	  done ; \
-	  cp velocities.ref velocities.xyz ; \
         fi
+	cp -f velocities.ref velocities.xyz
 	$(run_parallel) $(top_builddir)/src/bigdft > $@
 	@if ! test x"$(srcdir)" = x"." ; then \
 	  for file in $(EXTRA_DIST); do \
