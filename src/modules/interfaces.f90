@@ -1030,6 +1030,16 @@ module module_interfaces
        type(gaussian_basis), intent(out) :: G
      end subroutine gaussian_rism_basis
 
+     subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: nat,nhermitemax
+       real(gp), dimension(nat), intent(in) :: radii
+       real(gp), dimension(3,nat), target, intent(in) :: rxyz
+       type(gaussian_basis), intent(out) :: G  
+     end subroutine gaussian_hermite_basis
+
   end interface
 
 end module module_interfaces
