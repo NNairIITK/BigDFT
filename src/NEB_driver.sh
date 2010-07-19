@@ -12,7 +12,7 @@
 #   [all free_only] [job_name] [workdir] [first_config]
 # OUTPUTS:
 #   [gen_output_file]
-DEBUG="no"
+DEBUG="yes"
 
 INCLUDED="yes"
 source NEB_include.sh
@@ -44,12 +44,12 @@ fi
 
 # Try to find the iteration number.
 cd $datadir
-for ((i = 1; i < 1024; i++)) ; do
-    ch=`printf "%03d" $i`
-    if ! [ -f $job_name.NEB.it${ch}.dat ] ; then
-	break
-    fi
-done
+if [ -f $job_name.NEB.tar ] ; then
+    i=`tar -tf $job_name.NEB.tar | wc -l`
+    i=$(($i / 2))
+else
+    i=0
+fi
 neb_iter=`printf "%03d" $i`
 if test x"$DEBUG" != x ; then
     echo "Current iter is "${neb_iter}"."
@@ -58,7 +58,9 @@ fi
 # Save and remove the possible output from previous run.
 cd $datadir
 if [ -f gen_output_file ] ; then
-    cp -f -p gen_output_file $job_name.NEB.it${neb_iter}.forces
+    j=`printf "%03d" $((${i}-1))`
+    cp -f -p gen_output_file $job_name.NEB.it${j}.forces
+    tar -rf $job_name.NEB.tar --remove-files $job_name.NEB.it${j}.forces
 fi
 rm -f gen_output_file
 
@@ -88,6 +90,7 @@ for ((count=${min};count<=${max};count++)) ; do
 	mkdir $dir
     fi
     # Empty the working directory.
+    rm -f $dir/OK $dir/FAILED
     if [ ! -f $dir/RESTART ] ; then
         touch $dir/START
     fi
@@ -133,16 +136,20 @@ while [ ${jobs_done} -lt $((${max} - ${min} + 1)) ] ; do
 	res=`check_job $job_name`
 	# Job has finished
 	if test $res -gt 0 && [ ! -f OK ] && [ ! -f FAILED ] ; then
-	    jobs_done=$(($jobs_done + 1))
 	    if test x"$DEBUG" != x ; then
 		echo "Job "${count}" finished ("$jobs_done"/"$((${max} - ${min} + 1))")."
 	    fi
 
 	    if test x"$res" == x"1" ; then
+		jobs_done=$(($jobs_done + 1))
 		touch OK
 	    fi
 	    if test x"$res" == x"2" ; then
+		jobs_done=$(($jobs_done + 1))
 		touch FAILED
+	    fi
+	    if test x"$res" == x"3" ; then
+		touch START
 	    fi
 	fi
 
@@ -188,5 +195,6 @@ done
 cd $datadir
 if [ -f $job_name.NEB.dat ] ; then
     cp -f -p $job_name.NEB.dat $job_name.NEB.it${neb_iter}.dat
+    tar -rf $job_name.NEB.tar --remove-files $job_name.NEB.it${neb_iter}.dat
 fi
 
