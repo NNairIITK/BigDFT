@@ -64,7 +64,7 @@ CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir)
 
 conv_check_SOURCES = conv_check.f90  ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
-conv_check_LDFLAGS =
+conv_check_LDFLAGS = 
 conv_check_LDADD = ../libbigdft.a \
 	../PSolver/libpoissonsolver.a \
 	libGPU.a

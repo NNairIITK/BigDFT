@@ -922,7 +922,8 @@ symbol = "Pd"
 rcov=2.50d0
 rprb=5.00d0
 ehomo=-0.160771d0
-neleconf(4,2)=10
+neleconf(4,2)=9
+neleconf(5,0)=1
 
 case(46*1000+18)
 ! -----------------------          73
@@ -1613,7 +1614,7 @@ end select
   nsum = 0
   do l=0,lmax
      do n=1,nmax
-write(111,*) l,n,neleconf(n,l)
+        !write(111,*) l,n,neleconf(n,l)
         if ( neleconf(n,l) /= 0 ) nsum = nsum + neleconf(n,l)
      end do
   end do
@@ -2743,7 +2744,8 @@ symbol = "Pd"
 rcov=2.50d0
 rprb=5.00d0
 ehomo=-0.160771d0
-neleconf(4,2)=10
+neleconf(4,2)=9
+neleconf(5,0)=1
 
 has_found=1
 exit

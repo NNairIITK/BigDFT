@@ -1,7 +1,11 @@
-DIIS:
------
+Metallic systems (T.D. 28/06/2010)
+----------------------------------
+Not implemented
 
-T.D. 30/10/2007
+
+DIIS (T.D. 30/10/2007)
+----------------------
+
 With Pt2 spin-polarized, the DIIS algorithm decreases in energy and increases at the end.
 gnrm always decreases.
 It seems that the program converges to a higher-symmetry state than the ground one.

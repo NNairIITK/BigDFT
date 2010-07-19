@@ -75,14 +75,11 @@ subroutine find_pfproj( Nsol,Ngrid,rgrid, psi1s, psigrid, real_start, psigrid_ps
 
   call  DGEMM('N','N',Ngrid ,1,   Nsol,1.0d0 ,psigrid , Ngrid ,coeffs ,Nsol, 0.0D0 , dumgrid , Ngrid)
 
-
   if(dump_functions==1)      print *, " used coefficients " 
   do i=real_start,Nsol
      if(dump_functions==1)  print *, coeffs(i) , coeffs(i)*segno(i)*segno_pseudo(i-real_start+1)
      coeffs(i)=coeffs(i)*segno(i)*segno_pseudo(i-real_start+1)
   enddo
-  
-
 
   call  DGEMM('N','N',Ngrid ,1,   Nsol-real_start+1  ,1.0d0 ,psigrid_pseudo , Ngrid ,&
        coeffs(real_start) ,Nsol-real_start+1, 0.0D0 , dumgrid2 , Ngrid)
@@ -92,9 +89,13 @@ subroutine find_pfproj( Nsol,Ngrid,rgrid, psi1s, psigrid, real_start, psigrid_ps
 
   return
 END SUBROUTINE find_pfproj
-!!***  
+!!***
 
 
+!!****f* BigDFT/find_Scoeffs_grid
+!!
+!! SOURCE
+!!
 subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
   use module_base
   implicit none
@@ -111,7 +112,6 @@ subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
   real(gp) :: b1,b2, B, spi, pi
   real(gp) :: W(0:ng), WORK(3*(ng+1)*(ng+1))
   real(gp) ::  sum, totalpow, ggg, gamma_restricted
-
 
   lwork= 3*(ng+1)*(ng+1)
 
@@ -136,12 +136,8 @@ subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
      call integrate(dumgrid, dumgrid2, rgrid, Ngrid)
      Score(i) = dumgrid2(Ngrid)
   enddo
-  
 
   call DSYEV( 'V', 'L', ng+1, Soverlap(0,0) , ng+1, W(0), WORK, LWORK, INFO )
-  
-
-
 
   gcoeffs(:)=0.0
   do n=0, ng
@@ -159,9 +155,13 @@ subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
   
   return 
 END SUBROUTINE find_Scoeffs_grid
+!!***
 
 
-subroutine   dump_1gauwf_on_radgrid(prefix, ng , expo,psi   ,lpow   )
+!!****f* BigDFT/dump_1gauwf_on_radgrid
+!! SOURCE
+!!
+subroutine dump_1gauwf_on_radgrid(prefix, ng , expo,psi   ,lpow   )
   use module_base
   implicit none
  
@@ -172,11 +172,9 @@ subroutine   dump_1gauwf_on_radgrid(prefix, ng , expo,psi   ,lpow   )
 
   ! local
   integer, parameter :: n_int=100
-  character(200)  filename
-  integer i,ig
-  real(8) r,sum
-
-
+  character(len=200) :: filename
+  integer :: i,ig
+  real(kind=8) :: r,sum
 
   write(filename,'(a)') prefix
 
@@ -192,10 +190,15 @@ subroutine   dump_1gauwf_on_radgrid(prefix, ng , expo,psi   ,lpow   )
   enddo
   close(unit=22)
 
-return 
 END SUBROUTINE dump_1gauwf_on_radgrid
+!!***
 
-function  value_at_r(r, ng , expo,psi     )
+
+!!****f* BigDFT/value_at_r
+!!
+!! SOURCE
+!!
+function value_at_r(r, ng , expo,psi     )
   use module_base, only: gp
 
   implicit none
@@ -212,7 +215,6 @@ function  value_at_r(r, ng , expo,psi     )
   real(gp) sum
   real(gp) :: value_at_r
 
-
   sum=0.0
   do ig = 0,ng
      sum=sum+psi(ig)*exp( -r*r/2.0/expo(ig+1)/expo(ig+1) )
@@ -220,8 +222,13 @@ function  value_at_r(r, ng , expo,psi     )
   value_at_r=sum
 
 end function value_at_r
+!!***
 
 
+!!****f* BigDFT/dump_gauwf_on_radgrid
+!!
+!! SOURCE
+!!
 subroutine dump_gauwf_on_radgrid(prefix, ng, noccmax, lmax, expo, psi)
   use module_base, only: gp
   implicit none
@@ -234,9 +241,9 @@ subroutine dump_gauwf_on_radgrid(prefix, ng, noccmax, lmax, expo, psi)
 
   !Local variables
   integer, parameter :: n_int=100
-  character(200)  filename
-  integer l,i,k,ig
-  real(8) r,sum
+  character(len=200) :: filename
+  integer :: l,i,k,ig
+  real(kind=8) :: r,sum
 
   do i=1,noccmax
      do l=0,lmax
@@ -263,13 +270,11 @@ subroutine dump_gauwf_on_radgrid(prefix, ng, noccmax, lmax, expo, psi)
 
         close(unit=22)
 
-        
-
-
      enddo
   enddo
 return
 END SUBROUTINE dump_gauwf_on_radgrid
+!!***
 
 
 subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccmax, lmax ,expo,psi, aeval, occup, psp_modifier, &
@@ -280,7 +285,6 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   real(gp), dimension(0:4,0:6), intent(in) :: psppar
   integer, intent(in) :: psp_modifier
   
-
   real(gp), dimension(ng+1), intent(out) :: expo
 
   integer, parameter :: n_int=100
@@ -288,7 +292,7 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   real(gp), dimension(0:ng,noccmax,lmax+1), intent(out) :: psi, Egrid(Nsol),&
        rgrid(Ngrid), psigrid(Ngrid,Nsol  )
   real(gp), dimension(noccmax,lmax+1  ), intent(out) ::  aeval,occup
-  
+
   !local variables
   character(len=*), parameter :: subname='abs_generator_modified'
   character(len=2) :: symbol
@@ -507,9 +511,6 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   call memocc(i_stat,i_all,'alps',subname)
 
 END SUBROUTINE abs_generator_modified
-
-
-
 
 
 subroutine integrate(f,fint,x,Nx)
@@ -2848,45 +2849,7 @@ subroutine back_trans_14_4b2B(nd,nt,x,y)
   !Local variables
   integer :: i,j,ind
 
-  !!include 'lazy_16.inc'
-  !!****h* PSolver/lazy_16
-  !! FUNCTION
-  !!   Filters for interpolating scaling functions (order 16)
-  !!
-  !! SOURCE
-  !!
-  integer, parameter :: m=18
-  real(kind=8), dimension(-m:m) :: ch = (/&
-       0.d0,0.d0,0.d0,-6.39259815216064453D-6,0.D0,0.000110641121864318848D0,0.D0,&
-       -0.000915303826332092285D0,0.D0,0.00484772026538848877D0,0.D0,&
-       -0.0186983495950698853D0,0.D0,0.0575909167528152466D0,0.D0,&
-       -0.159974768757820129D0,0.D0,0.617045536637306213D0,1.D0,0.617045536637306213D0,&
-       0D0,-0.159974768757820129D0,0.D0,0.0575909167528152466D0,0.D0,&
-       -0.0186983495950698853D0,0.D0,0.00484772026538848877D0,0.D0,&
-       -0.000915303826332092285D0,0.D0,0.000110641121864318848D0,0.D0,&
-       -6.39259815216064453D-6,0.d0,0.d0,0.d0&
-       /)
-  real(kind=8), dimension(-m:m) :: cg,cht,cgt
-  
-  !******** coefficients for wavelet transform *********************
-  do i=-m,m
-     cht(i)=0.d0
-     cg(i)=0.d0
-     cgt(i)=0.d0
-  enddo
-  
-  ! the normalization is chosen such that a constant function remains the same constant 
-  ! on each level of the transform
-  
-  cht( 0)=1.D0
-  
-  ! g coefficients from h coefficients
-  do i=-m,m-1
-     cg(i+1)=cht(-i)*(-1.d0)**(i+1)
-     cgt(i+1)=ch(-i)*(-1.d0)**(i+1)
-  enddo
-  !!***
-  ! -------------------------------- lazy end --------------------------------------------
+  include 'lazy_16.inc'
   
   do i=0,nt/2-1
      y(2*i+0)=0.d0
@@ -2912,11 +2875,15 @@ subroutine back_trans_14_4b2B(nd,nt,x,y)
         y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
      end do
   end do
-        
+
 END SUBROUTINE back_trans_14_4b2B
+!!***
 
 
-
+!!****f* BigDFT/scaling_function4b2B
+!!
+!! SOURCE
+!!
 subroutine scaling_function4b2B(itype,nd,nrange,a,x)
   use module_base
   implicit none
@@ -2931,7 +2898,6 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
   character(len=*), parameter :: subname='scaling_function4b2B'
   real(kind=8), dimension(:), allocatable :: y
   integer :: i,nt,ni,i_all,i_stat  
-
 
   !Only itype=8,14,16,20,24,30,40,50,60,100
   select case(itype)
@@ -3004,6 +2970,10 @@ END SUBROUTINE scaling_function4b2B
 !!***
 
 
+!!****f* BigDFT/read_potfile4b2B
+!!
+!! SOURCE
+!!
 subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   use module_base
   implicit none
@@ -3030,7 +3000,6 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   nl3=1
   nl2=1
 
-
   print *, " allocation for rho for  n1i,n2i,n3i ",  n1i,n2i,n3i
 
   allocate( rho( n1i*n2i*n3i+ndebug) , stat=i_stat )
@@ -3050,6 +3019,4 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   close(22)
   
 END SUBROUTINE read_potfile4b2B
-
-
-
+!!***

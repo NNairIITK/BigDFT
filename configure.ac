@@ -8,7 +8,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.4-dev.9],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.5-dev.0],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -21,12 +21,12 @@ dnl Init something, don't know exactly what...
 AM_INIT_AUTOMAKE
 
 dnl This is a hack for usage inside ABINIT.
-if test -n "$FCFLAGS" ; then
-  FCFLAGS=`echo $FCFLAGS | sed 's/-qsuffix=[[a-zA-Z:0-9=]]*//'`
-fi
-if test -n "$F90FLAGS" ; then
-  F90FLAGS=`echo $F90FLAGS | sed 's/-qsuffix=[[a-zA-Z:0-9=]]*//'`
-fi
+dnl if test -n "$FCFLAGS" ; then
+dnl   FCFLAGS=`echo $FCFLAGS | sed 's/-qsuffix=[[a-zA-Z:0-9=]]*//'`
+dnl fi
+dnl if test -n "$F90FLAGS" ; then
+dnl   F90FLAGS=`echo $F90FLAGS | sed 's/-qsuffix=[[a-zA-Z:0-9=]]*//'`
+dnl fi
 
 
 
@@ -39,7 +39,6 @@ dnl looks for a modern Fortran compiler, prefering newest
 dnl fortran available (e. g. Fortran95). Then FC variable
 dnl is set.
 AC_PROG_FC([], [Fortran 90])
-
 #	       ABI_PROG_FC()
 
 dnl Defining fortran language for tests.
@@ -306,7 +305,7 @@ if test x"$ac_use_ocl" = "xyes" ; then
       AC_MSG_WARN(["No 'OpenCL' library found, OpenCL parts disabled."])
       ac_use_ocl="no"
     else
-      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL"
+      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt -lstdc++"
     fi
     LIBS=$LIBS_OLD
   fi
@@ -318,6 +317,12 @@ if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" ; then
   dnl Instead of second underscoring, test the compiler behaviour.
   AC_FC_WRAPPERS()
 fi
+
+dnl Test libraries required for benching.
+AC_LANG_PUSH(C++)
+AC_CHECK_LIB(config++, config_init, withconfig=yes, withconfig=no)
+AM_CONDITIONAL(HAVE_LIBCONFIG, test "$withconfig" = "yes")
+AC_LANG_POP(C++)
 
 dnl AM_CONDITIONAL for the different libraries, set default values.
 dnl the common routines from ABINIT.
@@ -560,6 +565,7 @@ src/PSolver/Makefile
 src/convolutions/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
+src/convolutions-c/Makefile
 src/art/Makefile
 utils/Makefile
 utils/PSPfiles/Makefile
@@ -567,27 +573,30 @@ doc/Makefile
 tests/Makefile
 tests/fft/Makefile
 tests/PSolver/Makefile
-tests/C/Makefile
-tests/Ca2/Makefile
-tests/H/Makefile
-tests/H2-spin/Makefile
-tests/Li+/Makefile
-tests/Mn2/Makefile
-tests/NaCl/Makefile
-tests/SiH4/Makefile
-tests/H2O-CP2K/Makefile
-tests/SiBulk/Makefile
-tests/H2O-slab/Makefile
-tests/Davidson-SiH4/Makefile
-tests/GPU/Makefile
-tests/MINHOP/Makefile
 tests/H2-freq/Makefile
-tests/NH3/Makefile
+tests/MINHOP/Makefile
 tests/NEB/Makefile
 tests/NEB/input
 tests/NEB/NEB_include.sh
 tests/XabsCheb/Makefile
-tests/FeHyb/Makefile
+tests/DFT/Makefile
+tests/DFT/C/Makefile
+tests/DFT/Ca2/Makefile
+tests/DFT/H/Makefile
+tests/DFT/H2-spin/Makefile
+tests/DFT/Li+/Makefile
+tests/DFT/Mn2/Makefile
+tests/DFT/NaCl/Makefile
+tests/DFT/SiH4/Makefile
+tests/DFT/NH3/Makefile
+tests/DFT/H2O-CP2K/Makefile
+tests/DFT/SiBulk/Makefile
+tests/DFT/H2O-slab/Makefile
+tests/DFT/Davidson-SiH4/Makefile
+tests/DFT/FeHyb/Makefile
+tests/DFT/Graphene/Makefile
+tests/DFT/GPU/Makefile
+tests/DFT/OCL/Makefile
 ])
 
 # Call libXC ./configure script recursively.

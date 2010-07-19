@@ -756,10 +756,11 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call determine_locreg(at%nat,rxyz,locrad,hx,hy,hz,Glr,Llr)
 
      do iat=1,at%nat
-        call deallocate_wfd(Llr(iat)%wfd,subname)
-        if (Llr(iat)%geocode=='F') then
-           call deallocate_bounds(Llr(iat)%bounds,subname)
-        end if
+        call deallocate_lr(Llr(iat),subname)
+!!$        call deallocate_wfd(Llr(iat)%wfd,subname)
+!!$        if (Llr(iat)%geocode=='F') then
+!!$           call deallocate_bounds(Llr(iat)%bounds,subname)
+!!$        end if
      end do
 
      !i_all=-product(shape(Llr))*kind(Llr)
@@ -810,7 +811,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   !    the density to the file electronic_density.cube
   !  The writing is activated if  5th bit of  in%potshortcut is on.
   if( iand( potshortcut,16)==0) then
-     call plot_density_cube(at%geocode,'electronic_density',&
+     call plot_density_cube_old(at%geocode,'electronic_density',&
           iproc,nproc,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nscatterarr(iproc,2),  & 
           nspin,hxh,hyh,hzh,at,rxyz,ngatherarr,rhopot(1+nscatterarr(iproc,4)*Glr%d%n1i*Glr%d%n2i))
   endif
@@ -1037,13 +1038,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
   if (iproc == 0) then
      if (verbose > 1) write(*,'(1x,a)')'done.'
      !gaussian estimation valid only for Free BC
-!     if (at%geocode == 'F') then
+     if (at%geocode == 'F') then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
         write(*,'(1x,a,1pe9.2)') &
           'expected accuracy in energy per orbital ',accurex/real(orbs%norb,kind=8)
         !write(*,'(1x,a,1pe9.2)') &
         !     'suggested value for gnrm_cv ',accurex/real(orbs%norb,kind=8)
-!     end if
+     end if
   endif
 
   !here we can define the subroutine which generates the coefficients for the virtual orbitals

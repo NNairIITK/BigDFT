@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
-# Final report (read *.report from fldiff.py)
-# Date: 12/03/2010
+# Build the final report (read *.report from fldiff.py)
+# Date: 28/06/2010
 #----------------------------------------------------------------------------
 
 import fnmatch

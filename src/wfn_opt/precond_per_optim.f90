@@ -41,11 +41,11 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   call allocate_all
 
   call prepare_sdc(n1,n2,n3,modul1,modul2,modul3,af,bf,cf,ef,hx,hy,hz)
-  !	initializes the wavelet scaling coefficients	
+  ! initializes the wavelet scaling coefficients 
   call wscal_init_per(scal,hx,hy,hz,cprecr)
 
-  !	scale the r.h.s. that is also the scaled input guess :
-  !	b'=D^{-1/2}b
+  ! scale the r.h.s. that is also the scaled input guess :
+  ! b'=D^{-1/2}b
   call wscal_per_self(nvctr_c,nvctr_f,scal,x(1),x(nvctr_c+1))
   !b=x
   call dcopy(nvctr_c+7*nvctr_f,x,1,b,1) 
@@ -53,8 +53,8 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   !if GPU is swithced on and there is no call to GPU preconditioner
   !do not do the FFT preconditioning
   if (.not. GPUconv) then
-     !	compute the input guess x via a Fourier transform in a cubic box.
-     !	Arrays psifscf and ww serve as work arrays for the Fourier
+     ! compute the input guess x via a Fourier transform in a cubic box.
+     ! Arrays psifscf and ww serve as work arrays for the Fourier
      fac=1.d0/scal(0)**2
      call prec_fft_c(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
           cprecr,hx,hy,hz,x,&
@@ -98,12 +98,13 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 
   ! x=D^{-1/2}x'
   call wscal_per_self(nvctr_c,nvctr_f,scal,x(1),x(nvctr_c+1))
-  !	write(30,*) x
-  !	stop
+  ! write(30,*) x
+  ! stop
 
   call deallocate_all
 
 contains
+
   subroutine allocate_all
     allocate(modul1(lowfil:n1+lupfil+ndebug),stat=i_stat)
     call memocc(i_stat,modul1,'modul1','precong_per')
@@ -185,6 +186,7 @@ contains
   END SUBROUTINE deallocate_all
 
 END SUBROUTINE precong_per
+!!***
 
 
 !!****f* BigDFT/prec_fft_c
@@ -315,7 +317,7 @@ subroutine prec_fft(n1,n2,n3, &
 
   call uncompress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
-  !	solve the helmholtz equation for the scfunction part  
+  ! solve the helmholtz equation for the scfunction part  
   call  hit_with_kernel(x_c,z1,z3,kern_k1,kern_k2,kern_k3,n1+1,n2+1,n3+1,nd1,nd2,nd3,&
        n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,cprecr)
 
@@ -411,8 +413,8 @@ END SUBROUTINE apply_hp
 subroutine apply_hp_slab_k(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,kx,ky,kz,x,y,psifscf,ww)
-  !	Applies the operator (KE+cprecr*I)*x=y
-  !	array x is input, array y is output
+  ! Applies the operator (KE+cprecr*I)*x=y
+  ! array x is input, array y is output
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -463,8 +465,8 @@ END SUBROUTINE apply_hp_slab_k
 subroutine apply_hp_per_k(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,k1,k2,k3,x,y,psifscf,ww,scal)
-  !	Applies the operator (KE+cprecr*I)*x=y
-  !	array x is input, array y is output
+  ! Applies the operator (KE+cprecr*I)*x=y
+  ! array x is input, array y is output
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -601,7 +603,7 @@ END SUBROUTINE wscal_per
 
 
 subroutine wscal_init_per(scal,hx,hy,hz,c)
-  !	initialization for the array scal in the subroutine wscal_per 	
+  ! initialization for the array scal in the subroutine wscal_per  
   use module_base
   implicit none
   real(wp), intent(in) :: c,hx,hy,hz
@@ -624,5 +626,3 @@ subroutine wscal_init_per(scal,hx,hy,hz,c)
   scal(7)=1._wp/sqrt(b2*hh(1)+b2*hh(2)+b2*hh(3)+c)       !  2 2 2
 
 END SUBROUTINE wscal_init_per
-
-

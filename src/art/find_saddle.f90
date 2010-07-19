@@ -16,16 +16,16 @@ module saddles
 
   character(len=20) :: TYPE_EVENTS
 
-  real(8) :: INITSTEPSIZE 
-  real(8) :: LOCAL_CUTOFF
+  real(kind=8) :: INITSTEPSIZE 
+  real(kind=8) :: LOCAL_CUTOFF
 
   integer :: KTER_MIN, NVECTOR_LANCZOS
   integer :: MAXITER, MAXKTER
   integer :: MAXIPERP, MAXKPERP
-  real(8) :: INCREMENT,BASIN_FACTOR 
-  real(8) :: FTHRESHOLD, FTHRESH2
-  real(8) :: EIGEN_THRESH 
-  real(8) :: EXITTHRESH
+  real(kind=8) :: INCREMENT,BASIN_FACTOR 
+  real(kind=8) :: FTHRESHOLD, FTHRESH2
+  real(kind=8) :: EIGEN_THRESH 
+  real(kind=8) :: EXITTHRESH
 
   integer, dimension(:), allocatable  :: atom_displaced     ! Id of local atoms displaced
   integer                     :: natom_displaced    ! # of local atoms displaced
@@ -61,8 +61,8 @@ subroutine find_saddle(success)
 
   logical, intent(out) :: success
   integer :: ret, npart, ierror, nat
-  real(8) :: boxl
-  real(8) :: fperp, fpar, del_r, saddle_energy
+  real(kind=8) :: boxl
+  real(kind=8) :: fperp, fpar, del_r, saddle_energy
   character(len=4)  :: scounter
   character(len=20) :: fname
 
@@ -159,14 +159,15 @@ subroutine local_move()
   use defs
   use random
   use saddles
+  implicit none
 
-  integer                          :: i, j, that, i_id, j_id, nat
-  real(8)                          :: lcutoff2    ! Cut-off for local moves, squared
-  real(8), dimension(VECSIZE), target :: dr
-  real(8), dimension(:), pointer   :: dx, dy, dz
-  real(8)                          :: boxl, invbox
-  real(8)                          :: xsum, ysum, zsum, xnorm, ynorm, znorm, norm
-  real(8) :: ran3, Numb
+  integer                               :: i, j, that, i_id, j_id, nat, ierror
+  real(kind=8)                          :: lcutoff2    ! Cut-off for local moves, squared
+  real(kind=8), dimension(VECSIZE), target :: dr
+  real(kind=8), dimension(:), pointer   :: dx, dy, dz
+  real(kind=8)                          :: boxl, invbox
+  real(kind=8)                          :: xsum, ysum, zsum, xnorm, ynorm, znorm, norm
+  real(kind=8) :: ran3, Numb,dr2,xi,xij,yi,yij,zi,zij
 
   ! We assign a few pointers 
   dx => dr(1:NATOMS)
@@ -296,12 +297,13 @@ subroutine global_move()
   use defs
   use random
   use saddles
+  implicit none
 
-  integer :: i
-  real(8) :: norm, xnorm, ynorm, znorm
-  real(8), dimension(VECSIZE), target :: dr
-  real(8), dimension(:), pointer    :: dx, dy, dz
-  real(8) :: ran3
+  integer :: i,ierror,nat
+  real(kind=8) :: norm, xnorm, ynorm, znorm
+  real(kind=8), dimension(VECSIZE), target :: dr
+  real(kind=8), dimension(:), pointer    :: dx, dy, dz
+  real(kind=8) :: ran3
 
   ! We assign a few pointers 
   dx => dr(1:NATOMS)
@@ -310,8 +312,6 @@ subroutine global_move()
 
   ! All atoms are displaced
   atom_displaced = 1  ! Vectorial operation
-  natom_dispaced = NATOMS
- 
 
   ! Generate a random displacement
   if (iproc .eq. 0) then  ! Only on the master node
@@ -372,15 +372,16 @@ subroutine symmetry_break()
   use defs
   use random
   use saddles
+  implicit none
 
-  integer                          :: i
-  real(8)                          :: lcutoff2    ! Cut-off for local moves, squared
-  real(8), dimension(VECSIZE), target :: dr
-  real(8), dimension(:), pointer   :: dx, dy, dz
-  real(8)                          :: dr2
-  real(8)                          :: boxl, invbox
-  real(8)                          :: xsum, ysum, zsum, xnorm, ynorm, znorm, norm
-  real(8) :: ran3, Numb
+  integer                               :: i,ierror,nat
+  real(kind=8)                          :: lcutoff2    ! Cut-off for local moves, squared
+  real(kind=8), dimension(VECSIZE), target :: dr
+  real(kind=8), dimension(:), pointer   :: dx, dy, dz
+  real(kind=8)                          :: dr2
+  real(kind=8)                          :: boxl, invbox
+  real(kind=8)                          :: xsum, ysum, zsum, xnorm, ynorm, znorm, norm
+  real(kind=8) :: ran3, Numb
 
   ! We assign a few pointers 
   dx => dr(1:NATOMS)

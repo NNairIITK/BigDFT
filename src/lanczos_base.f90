@@ -246,30 +246,30 @@ contains
        subroutine EP_initialize_start()
        END SUBROUTINE 
        subroutine EP_normalizza(i)
-         integer i
+         integer, intent(in) :: i
        END SUBROUTINE 
        subroutine EP_Moltiplica(i,j)
-         integer i,j
+         integer, intent(in) :: i,j
        END SUBROUTINE 
        real(kind=8) function EP_scalare(i,j)
-         integer i,j
+         integer, intent(in) :: i,j
        end function 
        subroutine EP_add_from_vect_with_fact( i, j  ,   a )
-         integer i,j
-         real(kind=8) a
+         integer, intent(in) :: i,j
+         real(kind=8), intent(in) :: a
        END SUBROUTINE 
        subroutine EP_GramSchmidt(i,j)
-         integer i,j
+         integer, intent(in) :: i,j
        END SUBROUTINE 
        subroutine EP_set_all_random(i)
-         integer i
+         integer, intent(in) :: i
        END SUBROUTINE 
        subroutine EP_copy(i,j)
-         integer i,j
+         integer, intent(in) :: i,j
        END SUBROUTINE
        subroutine EP_mat_mult(m,k ,  EV )
-         integer  m,k
-         real(kind=8)  EV(1 )
+         integer, intent(in):: m,k
+         real(kind=8), intent(in):: EV(1 )
        END SUBROUTINE        
 
     end interface
@@ -370,14 +370,14 @@ contains
     integer, intent(in):: k,m
     interface
        subroutine EP_normalizza(i)
-         integer i
+         integer, intent(in) :: i
        END SUBROUTINE EP_normalizza
        subroutine EP_copy(i,j)
-         integer i,j
+         integer, intent(in) :: i,j
        END SUBROUTINE EP_copy
        subroutine EP_mat_mult(m,k ,  EV )
-         integer  m,k
-         real(kind=8)  EV(1 )
+         integer, intent(in)::  m,k
+         real(kind=8), intent(in)::  EV(1 )
        END SUBROUTINE EP_mat_mult
     end interface
     
@@ -435,34 +435,34 @@ contains
 
     interface
        subroutine EP_mat_mult(m,k ,  EV )
-         integer  m,k
-         real(kind=8)  EV(1 )
+         integer, intent(in)::  m,k
+         real(kind=8), intent(in)::  EV(1 )
        END SUBROUTINE  
        integer function get_EP_dim()
        end function
        subroutine EP_initialize_start()
        END SUBROUTINE 
        subroutine EP_normalizza(i)
-         integer i
+         integer, intent(in) :: i
        END SUBROUTINE 
        subroutine EP_Moltiplica(i,j)
-         integer i,j
+         integer, intent(in) :: i,j
        END SUBROUTINE 
        real(kind=8) function EP_scalare(i,j)
-         integer i,j
+         integer, intent(in) :: i,j
        end function 
        subroutine EP_add_from_vect_with_fact( i, j  ,   a )
-         integer i,j
-         real(kind=8) a
+         integer, intent(in) :: i,j
+         real(kind=8), intent(in) :: a
        END SUBROUTINE 
        subroutine EP_GramSchmidt(i,j)
-         integer i,j
+         integer, intent(in) :: i,j
        END SUBROUTINE 
        subroutine EP_set_all_random(i)
-         integer i
+         integer, intent(in) :: i
        END SUBROUTINE 
        subroutine EP_copy(i,j)
-         integer i,j
+         integer, intent(in) :: i,j
        END SUBROUTINE
     end interface
 
@@ -835,34 +835,34 @@ contains
     integer :: i
     interface
        subroutine EP_mat_mult(m,k ,  EV )
-         integer  :: m,k
-         real(kind=8) :: EV(1 )
+         integer, intent(in)::  m,k
+         real(kind=8), intent(in)::  EV(1 )
        END SUBROUTINE  
        integer function get_EP_dim()
        end function
        subroutine EP_initialize_start()
        END SUBROUTINE 
        subroutine EP_normalizza(i)
-         integer :: i
+         integer, intent(in) :: i
        END SUBROUTINE 
        subroutine EP_Moltiplica(i,j)
-         integer :: i,j
+         integer, intent(in) :: i,j
        END SUBROUTINE 
        real(kind=8) function EP_scalare(i,j)
-         integer :: i,j
+         integer, intent(in) :: i,j
        end function 
        subroutine EP_add_from_vect_with_fact( i, j  ,   a )
-         integer :: i,j
-         real(kind=8) :: a
+         integer, intent(in) :: i,j
+         real(kind=8), intent(in) :: a
        END SUBROUTINE 
        subroutine EP_GramSchmidt(i,j)
-         integer :: i,j
+         integer, intent(in) :: i,j
        END SUBROUTINE 
        subroutine EP_set_all_random(i)
-         integer :: i
+         integer, intent(in) :: i
        END SUBROUTINE 
        subroutine EP_copy(i,j)
-         integer :: i,j
+         integer, intent(in) :: i,j
        END SUBROUTINE
        subroutine EP_multbyfact(j, fact)
          use module_base

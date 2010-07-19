@@ -1,8 +1,8 @@
 News
 ----
 
-2009/10/06 Version 1.3-dev
- - GPU (S_GPU library)
+2009/06/28 Version 1.4
+ - GPU (S_GPU library) + OpenCL
  - Exact exchange + hybrid functionals
  - Molecular dynamics (from ABINIT)
  - First spectra of XANES
