@@ -135,11 +135,15 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   if (trim(parmin%approach)=='BFGS') then
   
      ibfgs=0
-86   continue
-     ibfgs=ibfgs+1
-     if (iproc ==0) write(*,*) '# ENTERING BFGS,ibfgs',ibfgs
-     call lbfgsdriver(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
-     if (fail .and. ibfgs .lt. 5) goto 86
+     loop_bfgs: do
+        ibfgs=ibfgs+1
+        if (iproc ==0) write(*,*) '# ENTERING BFGS,ibfgs',ibfgs
+        call lbfgsdriver(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
+        if (fail .and. ibfgs < 5) then
+        else
+           exit loop_bfgs
+        end if
+     end do loop_bfgs
 
      if (fail) then
         if (iproc ==0) write(*,*) '# ENTERING CG after BFGS failure'
@@ -1464,7 +1468,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
 
   integer:: n,nr,ndim
   integer:: NWORK
-  real(gp), allocatable :: X(:),G(:),DIAG(:),W(:)
+  real(gp), dimension(:), allocatable :: X,G,DIAG,W
   real(gp):: F,EPS !,XTOL,GTOL,,STPMIN,STPMAX
   real(gp), allocatable, dimension(:) :: rxyz0,rxyzwrite
   integer:: IPRINT(2),IFLAG,ICALL,M
@@ -1476,7 +1480,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   parmin%alpha=1.d0
   fail=.false.
   fnrm=1.d10
-  nitsd=100!500                 !Maximum number of SD steps before entering BFGS
+  nitsd=10!500                 !Maximum number of SD steps before entering BFGS
   fnormmax_sw=in%forcemax!1.e-2_gp      !SD till the max force comp is less than this value
   
   !Dummy variables
@@ -1484,9 +1488,9 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   sxyz=0._gp
 
   !Allocations
-  allocate(rxyz0(3*at%nat),stat=i_stat)
+  allocate(rxyz0(3*at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyz0,'rxyz0',subname)
-  allocate(rxyzwrite(3*at%nat),stat=i_stat)
+  allocate(rxyzwrite(3*at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyzwrite,'rxyzwrite',subname)
 
   if (iproc==0)    write(*,*) 'Maximum number of SD steps used in the beginning: ',nitsd
@@ -1494,8 +1498,8 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,fnrm,fnoise,in,&
        fnormmax_sw,nitsd,fluct)
   eprev=etot
-  rxyz0=rxyz     !Save initial positions, since the unconstrained degrees of freedom will be updated upon them
-  rxyzwrite=rxyz
+  call dcopy(3*at%nat,rxyz,1,rxyz0,1) !rxyz0=rxyz     !Save initial positions, since the unconstrained degrees of freedom will be updated upon them
+  call dcopy(3*at%nat,rxyz,1,rxyzwrite,1) ! rxyzwrite=rxyz
   call fnrmandforcemax(fxyz,fnrm,fmax,at%nat)
   !call fnrmandforcemax(fxyz,fnrm,fmax,at)
   !check if the convergence is reached after SD
@@ -1518,13 +1522,13 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
      NDIM=nr
      NWORK=NDIM*(2*parmin%MSAVE +1)+2*parmin%MSAVE
      
-     allocate(X(NDIM),stat=i_stat)
+     allocate(X(NDIM+ndebug),stat=i_stat)
      call memocc(i_stat,X,'X',subname)
-     allocate(G(NDIM),stat=i_stat)
+     allocate(G(NDIM+ndebug),stat=i_stat)
      call memocc(i_stat,G,'G',subname)
-     allocate(DIAG(NDIM),stat=i_stat)
+     allocate(DIAG(NDIM+ndebug),stat=i_stat)
      call memocc(i_stat,DIAG,'DIAG',subname)
-     allocate(W(NWORK),stat=i_stat)
+     allocate(W(NWORK+ndebug),stat=i_stat)
      call memocc(i_stat,W,'W',subname)
 
      call atomic_copymoving_forward(at,n,rxyz,nr,X)
@@ -1550,7 +1554,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
         endif
         parmin%IWRITE=.false.
      endif
-     rxyzwrite=rxyz
+     call dcopy(3*at%nat,rxyz,1,rxyzwrite,1) ! rxyzwrite=rxyz
 
      if (fmax < 3.d-1) then
         call updatefluctsum(at%nat,fnoise,fluct)
@@ -1584,7 +1588,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
         goto 100
      endif
 
-     rxyz=rxyz0
+     call dcopy(3*at%nat,rxyz0,1,rxyz,1) ! rxyz=rxyz0
      call atomic_copymoving_backward(at,nr,X,n,rxyz)
 !     txyz=rxyz
 !     alpha=0._gp
@@ -1618,7 +1622,8 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
         write(*,*) "# Error in BFGS, switching to SD and CG"
         write(16,*) "Error in BFGS, switching to SD and CG"
      end if
-     rxyz(:)=rxyzwrite(:)
+
+     call dcopy(3*at%nat,rxyz,1,rxyzwrite,1) !rxyz(:)=rxyzwrite(:)
      fail=.true.
  100 CONTINUE
         
@@ -1628,15 +1633,15 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
      i_all=-product(shape(rxyzwrite))*kind(rxyzwrite)
      deallocate(rxyzwrite,stat=i_stat)
      call memocc(i_stat,i_all,'rxyzwrite',subname)
+     i_all=-product(shape(X))*kind(X)
+     deallocate(X,stat=i_stat)
+     call memocc(i_stat,i_all,'X',subname)
+     i_all=-product(shape(G))*kind(G)
+     deallocate(G,stat=i_stat)
+     call memocc(i_stat,i_all,'G',subname)
      i_all=-product(shape(DIAG))*kind(DIAG)
      deallocate(DIAG,stat=i_stat)
      call memocc(i_stat,i_all,'DIAG',subname)
-     i_all=-product(shape(W))*kind(W)
-     deallocate(W,stat=i_stat)
-     call memocc(i_stat,i_all,'W',subname)
-     i_all=-product(shape(W))*kind(W)
-     deallocate(W,stat=i_stat)
-     call memocc(i_stat,i_all,'W',subname)
      i_all=-product(shape(W))*kind(W)
      deallocate(W,stat=i_stat)
      call memocc(i_stat,i_all,'W',subname)
@@ -2144,6 +2149,7 @@ SUBROUTINE LB1(IPROC,PARMIN,IPRINT,ITER,NFUN,GNORM,N,M,X,F,G,STP,FINISH)
       IF (FINISH) WRITE(parmin%MP,100)
     ENDIF
 
+ 10   FORMAT('*************************************************')
  20   FORMAT('  N=',I5,'   NUMBER OF CORRECTIONS=',I2,/,  '       INITIAL VALUES')
  30   FORMAT('  F= ',1PD10.3,'   GNORM= ',1PD10.3)
  40   FORMAT(' VECTOR X= ')
@@ -2155,6 +2161,126 @@ SUBROUTINE LB1(IPROC,PARMIN,IPRINT,ITER,NFUN,GNORM,N,M,X,F,G,STP,FINISH)
  100  FORMAT(/' THE MINIMIZATION TERMINATED WITHOUT DETECTING ERRORS.',/' IFLAG = 0')
 
 END SUBROUTINE LB1
+!     ******
+!
+!
+!   ----------------------------------------------------------
+!     DATA 
+!   ----------------------------------------------------------
+!
+      BLOCK DATA LB2
+      INTEGER LP,MP
+      DOUBLE PRECISION GTOL,STPMIN,STPMAX
+      COMMON /LB3/MP,LP,GTOL,STPMIN,STPMAX
+!      DATA MP,LP,GTOL,STPMIN,STPMAX/16,16,9.0D-01,1.0D-20,1.0D+20/
+      DATA MP,LP,GTOL,STPMIN,STPMAX/16,16,9.0D-01,1.0D-20,20.d0/
+      END
+!
+!
+!!   ----------------------------------------------------------
+!!
+!      subroutine daxpy(n,da,dx,incx,dy,incy)
+!!
+!!     constant times a vector plus a vector.
+!!     uses unrolled loops for increments equal to one.
+!!     jack dongarra, linpack, 3/11/78.
+!!
+!      double precision dx(1),dy(1),da
+!      integer i,incx,incy,ix,iy,m,mp1,n
+!!
+!      if(n.le.0)return
+!      if (da .eq. 0.0d0) return
+!      if(incx.eq.1.and.incy.eq.1)go to 20
+!!
+!!        code for unequal increments or equal increments
+!!          not equal to 1
+!!
+!      ix = 1
+!      iy = 1
+!      if(incx.lt.0)ix = (-n+1)*incx + 1
+!      if(incy.lt.0)iy = (-n+1)*incy + 1
+!      do 10 i = 1,n
+!        dy(iy) = dy(iy) + da*dx(ix)
+!        ix = ix + incx
+!        iy = iy + incy
+!   10 continue
+!      return
+!!
+!!        code for both increments equal to 1
+!!
+!!
+!!        clean-up loop
+!!
+!   20 m = mod(n,4)
+!      if( m .eq. 0 ) go to 40
+!      do 30 i = 1,m
+!        dy(i) = dy(i) + da*dx(i)
+!   30 continue
+!      if( n .lt. 4 ) return
+!   40 mp1 = m + 1
+!      do 50 i = mp1,n,4
+!        dy(i) = dy(i) + da*dx(i)
+!        dy(i + 1) = dy(i + 1) + da*dx(i + 1)
+!        dy(i + 2) = dy(i + 2) + da*dx(i + 2)
+!        dy(i + 3) = dy(i + 3) + da*dx(i + 3)
+!   50 continue
+!      return
+!      end
+!
+!
+!!   ----------------------------------------------------------
+!!
+!      double precision function ddot(n,dx,incx,dy,incy)
+!!
+!!     forms the dot product of two vectors.
+!!     uses unrolled loops for increments equal to one.
+!!     jack dongarra, linpack, 3/11/78.
+!!
+!      double precision dx(1),dy(1),dtemp
+!      integer i,incx,incy,ix,iy,m,mp1,n
+!!
+!      ddot = 0.0d0
+!      dtemp = 0.0d0
+!      if(n.le.0)return
+!      if(incx.eq.1.and.incy.eq.1)go to 20
+!!
+!!        code for unequal increments or equal increments
+!!          not equal to 1
+!!
+!      ix = 1
+!      iy = 1
+!      if(incx.lt.0)ix = (-n+1)*incx + 1
+!      if(incy.lt.0)iy = (-n+1)*incy + 1
+!      do 10 i = 1,n
+!        dtemp = dtemp + dx(ix)*dy(iy)
+!        ix = ix + incx
+!        iy = iy + incy
+!   10 continue
+!      ddot = dtemp
+!      return
+!!
+!!        code for both increments equal to 1
+!!
+!!
+!!        clean-up loop
+!!
+!   20 m = mod(n,5)
+!      if( m .eq. 0 ) go to 40
+!      do 30 i = 1,m
+!        dtemp = dtemp + dx(i)*dy(i)
+!   30 continue
+!      if( n .lt. 5 ) go to 60
+!   40 mp1 = m + 1
+!      do 50 i = mp1,n,5
+!        dtemp = dtemp + dx(i)*dy(i) + dx(i + 1)*dy(i + 1) + dx(i + 2)*dy(i + 2) + dx(i + 3)*dy(i + 3) + dx(i + 4)*dy(i + 4)
+!   50 continue
+!   60 ddot = dtemp
+!      return
+!      end
+!    ------------------------------------------------------------------
+!
+
+
 
 
 !     **************************
