@@ -683,7 +683,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      
      if( iand( in%potshortcut,16)>0) then
         if(iproc==0) write(*,*) "re-reading electronic_density for Xanes energy dependent potential "
-        call read_density_cube("electronic_density", n1i,n2i,n3i,1, hx ,hy ,hz, atoms%nat, rxyz_b2B, pot_bB )
+        call read_density_cube_old("electronic_density", n1i,n2i,n3i,1, hx ,hy ,hz, atoms%nat, rxyz_b2B, pot_bB )
         rhoXanes=0.0_gp
         do iz = 1,n3i
            do iy=1,n2i
@@ -794,11 +794,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      if (abs(in%output_grid)==2) then
         if (in%output_grid==2) then
           if (iproc == 0) write(*,*) 'writing local_potential.pot'
-           call plot_density(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
+           call plot_density_old(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
                 n1,n2,n3,n1i,n2i,n3i,n3p,&
                 atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
         else
-           call plot_density_cube(atoms%geocode,'local_potentialb2B',iproc,nproc,&
+           call plot_density_cube_old(atoms%geocode,'local_potentialb2B',iproc,nproc,&
                 n1,n2,n3,n1i,n2i,n3i,n3p,&
                 in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1,1))
         endif
@@ -834,7 +834,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         print *, "controllo ",  trim(filename)//'.cube', exists
         if(exists) then
 
-           call read_density_cube(trim(filename), n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
+           call read_density_cube_old(trim(filename), n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
            hx_old=hx_old*2
            hy_old=hy_old*2
            hz_old=hz_old*2
@@ -1072,7 +1072,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
         if (iproc == 0) write(*,*) 'writing NEW local_potential.pot'
 
-        call plot_density(atoms%geocode,'local_potentialb2BNEW.pot',iproc,nproc,&
+        call plot_density_old(atoms%geocode,'local_potentialb2BNEW.pot',iproc,nproc,&
              n1,n2,n3,n1i,n2i,n3i,n3p,&
              atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
 
@@ -1315,46 +1315,49 @@ contains
        call memocc(i_stat,i_all,'psivirt',subname)
     end if
     
-    if (atoms%geocode == 'F') then
-       call deallocate_bounds(Glr%bounds,subname)
-    end if
-    
-    if (atoms%geocode == 'P' .and. Glr%hybrid_on) then 
-       
-       i_all=-product(shape(Glr%bounds%kb%ibxy_f))*kind(Glr%bounds%kb%ibxy_f)
-       deallocate(Glr%bounds%kb%ibxy_f,stat=i_stat)
-       call memocc(i_stat,i_all,'Glr%bounds%kb%ibxy_f',subname)
-       
-       i_all=-product(shape(Glr%bounds%kb%ibxz_f))*kind(Glr%bounds%kb%ibxz_f)
-       deallocate(Glr%bounds%kb%ibxz_f,stat=i_stat)
-       call memocc(i_stat,i_all,'Glr%bounds%kb%ibxz_f',subname)
-       
-       i_all=-product(shape(Glr%bounds%kb%ibyz_f))*kind(Glr%bounds%kb%ibyz_f)
-       deallocate(Glr%bounds%kb%ibyz_f,stat=i_stat)
-       call memocc(i_stat,i_all,'Glr%bounds%kb%ibyz_f',subname)
-       
-       i_all=-product(shape(Glr%bounds%sb%ibxy_ff))*kind(Glr%bounds%sb%ibxy_ff)
-       deallocate(Glr%bounds%sb%ibxy_ff,stat=i_stat)
-       call memocc(i_stat,i_all,'ibxy_ff',subname)
-       i_all=-product(shape(Glr%bounds%sb%ibzzx_f))*kind(Glr%bounds%sb%ibzzx_f)
-       deallocate(Glr%bounds%sb%ibzzx_f,stat=i_stat)
-       call memocc(i_stat,i_all,'ibzzx_f',subname)
-       i_all=-product(shape(Glr%bounds%sb%ibyyzz_f))*kind(Glr%bounds%sb%ibyyzz_f)
-       deallocate(Glr%bounds%sb%ibyyzz_f,stat=i_stat)
-       call memocc(i_stat,i_all,'ibyyzz_f',subname)
-       
-       i_all=-product(shape(Glr%bounds%gb%ibyz_ff))*kind(Glr%bounds%gb%ibyz_ff)
-       deallocate(Glr%bounds%gb%ibyz_ff,stat=i_stat)
-       call memocc(i_stat,i_all,'ibyz_ff',subname)
-       
-       i_all=-product(shape(Glr%bounds%gb%ibzxx_f))*kind(Glr%bounds%gb%ibzxx_f)
-       deallocate(Glr%bounds%gb%ibzxx_f,stat=i_stat)
-       call memocc(i_stat,i_all,'ibzxx_f',subname)
-       
-       i_all=-product(shape(Glr%bounds%gb%ibxxyy_f))*kind(Glr%bounds%gb%ibxxyy_f)
-       deallocate(Glr%bounds%gb%ibxxyy_f,stat=i_stat)
-       call memocc(i_stat,i_all,'ibxxyy_f',subname)
-    endif
+
+    call deallocate_bounds(atoms%geocode,Glr%hybrid_on,  Glr%bounds,subname)
+
+!!$    if (atoms%geocode == 'F') then
+!!$       call deallocate_bounds(Glr%bounds,subname)
+!!$    end if
+!!$    
+!!$    if (atoms%geocode == 'P' .and. Glr%hybrid_on) then 
+!!$       
+!!$       i_all=-product(shape(Glr%bounds%kb%ibxy_f))*kind(Glr%bounds%kb%ibxy_f)
+!!$       deallocate(Glr%bounds%kb%ibxy_f,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'Glr%bounds%kb%ibxy_f',subname)
+!!$       
+!!$       i_all=-product(shape(Glr%bounds%kb%ibxz_f))*kind(Glr%bounds%kb%ibxz_f)
+!!$       deallocate(Glr%bounds%kb%ibxz_f,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'Glr%bounds%kb%ibxz_f',subname)
+!!$       
+!!$       i_all=-product(shape(Glr%bounds%kb%ibyz_f))*kind(Glr%bounds%kb%ibyz_f)
+!!$       deallocate(Glr%bounds%kb%ibyz_f,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'Glr%bounds%kb%ibyz_f',subname)
+!!$       
+!!$       i_all=-product(shape(Glr%bounds%sb%ibxy_ff))*kind(Glr%bounds%sb%ibxy_ff)
+!!$       deallocate(Glr%bounds%sb%ibxy_ff,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'ibxy_ff',subname)
+!!$       i_all=-product(shape(Glr%bounds%sb%ibzzx_f))*kind(Glr%bounds%sb%ibzzx_f)
+!!$       deallocate(Glr%bounds%sb%ibzzx_f,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'ibzzx_f',subname)
+!!$       i_all=-product(shape(Glr%bounds%sb%ibyyzz_f))*kind(Glr%bounds%sb%ibyyzz_f)
+!!$       deallocate(Glr%bounds%sb%ibyyzz_f,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'ibyyzz_f',subname)
+!!$       
+!!$       i_all=-product(shape(Glr%bounds%gb%ibyz_ff))*kind(Glr%bounds%gb%ibyz_ff)
+!!$       deallocate(Glr%bounds%gb%ibyz_ff,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'ibyz_ff',subname)
+!!$       
+!!$       i_all=-product(shape(Glr%bounds%gb%ibzxx_f))*kind(Glr%bounds%gb%ibzxx_f)
+!!$       deallocate(Glr%bounds%gb%ibzxx_f,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'ibzxx_f',subname)
+!!$       
+!!$       i_all=-product(shape(Glr%bounds%gb%ibxxyy_f))*kind(Glr%bounds%gb%ibxxyy_f)
+!!$       deallocate(Glr%bounds%gb%ibxxyy_f,stat=i_stat)
+!!$       call memocc(i_stat,i_all,'ibxxyy_f',subname)
+!!$    endif
 
     call deallocate_comms(comms,subname)
 

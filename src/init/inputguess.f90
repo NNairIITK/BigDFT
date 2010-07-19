@@ -1915,7 +1915,8 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
               !this is a polarisable orbital
               polarised=.true.
               !assuming that the control of the allowed polarisation is already done
-              ipolorb=min(ipolres,int(shelloccup))
+
+              ipolorb=min(ipolres,  ((2*l-1) - abs( (2*l-1)- int(shelloccup) ) )  )
               ipolres=ipolres-ipolorb
            else
               !check for odd values of the occupation number
