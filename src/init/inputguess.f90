@@ -1881,7 +1881,7 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
   real(gp), dimension(nelecmax), intent(out) :: occupIG
   !local variables
   logical :: polarised
-  integer :: iocc,ipolorb,norbpol_nc,i,l,m,noncoll,icoll,ispin
+  integer :: iocc,ipolorb,norbpol_nc,i,l,m,noncoll,icoll,ispin, ipolsign
   real(gp) :: shelloccup,occshell,occres,rnl
   
   !in the non-collinear case the number of orbitals double
@@ -1897,6 +1897,7 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
   !such array can then be redefined on the parent routines and then used as input
   iocc=0
   polarised=.false.
+  ipolsign=sign(ipolorb)
   do l=1,lmax
      iocc=iocc+1
      rnl=0.0_gp !real since it goes in occupIG
@@ -1916,7 +1917,7 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
               polarised=.true.
               !assuming that the control of the allowed polarisation is already done
 
-              ipolorb=min(ipolres,  ((2*l-1) - abs( (2*l-1)- int(shelloccup) ) )  )
+              ipolorb=ipolsign*min(abs(ipolres),  ((2*l-1) - abs( (2*l-1)- int(shelloccup) ) )  )
               ipolres=ipolres-ipolorb
            else
               !check for odd values of the occupation number
@@ -1926,6 +1927,11 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
                  stop
               end if
            end if
+
+           if( polarised .AND. nspinor==4) then
+              stop " in non-collinear case at_moments must be used for polarising, not natpol input"  
+           endif
+
            do ispin=1,nspin
               occshell=shelloccup                 
               if (nspin==2 .or. nspinor==4) then
