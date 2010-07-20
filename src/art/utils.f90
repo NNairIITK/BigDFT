@@ -47,11 +47,18 @@ END SUBROUTINE
 !!***
 
 
-! The subroutine center places the center of mass of a 3D vector at (0,0,0)
+!!****f* art/center
+!! FUNCTION
+!!   The subroutine center places the center of mass of a 3D vector at (0,0,0)
+!!
+!! SOURCE
+!! 
 subroutine center(vector,vecsize)
+  implicit none
+  !Arguments
   integer, intent(IN) :: vecsize
   real(kind=8), dimension(vecsize),intent(inout), target :: vector
-
+  !Local variables
   integer :: i, natoms
   real(kind=8), dimension(:), pointer :: x, y, z     ! Pointers for coordinates
   real(kind=8) :: xtotal, ytotal, ztotal
@@ -83,20 +90,25 @@ subroutine center(vector,vecsize)
     z(i) = z(i) - ztotal
   end do
 END SUBROUTINE
+!!***
 
 
-! This subroutine computes the distance between two configurations and 
-! the number of particles having moved by more than a THRESHOLD
-
+!!****f* BigDFT/displacement
+!! FUNCTION
+!!   This subroutine computes the distance between two configurations and 
+!!   the number of particles having moved by more than a THRESHOLD
+!!
+!! SOURCE
+!!
 subroutine displacement(posa, posb, delr,npart)
   use defs
   implicit none
-
-  real(kind=8), parameter :: THRESHOLD = 0.1  ! In Angstroems
-  
+  !Arguments
   real(kind=8), dimension(vecsize), intent(in), target :: posa, posb
   integer, intent(out) :: npart
   real(kind=8), intent(out) :: delr
+  !Local variables
+  real(kind=8), parameter :: THRESHOLD = 0.1  ! In Angstroems
 
   real(kind=8), dimension(:), pointer :: xa, ya, za, xb, yb, zb
 
@@ -111,7 +123,6 @@ subroutine displacement(posa, posb, delr,npart)
   xb => posb(1:NATOMS)
   yb => posb(NATOMS+1:2*NATOMS)
   zb => posb(2*NATOMS+1:3*NATOMS)
-
 
   thresh = THRESHOLD 
   delr2 = 0.0d0
@@ -134,6 +145,8 @@ subroutine displacement(posa, posb, delr,npart)
   delr = sqrt(delr2)
 
 END SUBROUTINE
+!!***
+
 
 !!****f* art/store
 !! FUNCTION

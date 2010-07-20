@@ -4,7 +4,7 @@
  * 
  * @brief
  * Manage the affinity between the CPUs and the GPUs. At the initialization part of S_GPU,
- * using config information (in config file GPU.config), it is defined that porcesses located
+ * using config information (in config file GPU.config), it is defined that processes located
  * on some CPUs will use specific one GPU
  * 
  * @section LICENSE

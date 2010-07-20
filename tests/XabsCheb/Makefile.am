@@ -3,85 +3,83 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
-	input.dft \
-	input.abscalc \
-	posinp.xyz \
-	gproje_Fe_1s_1
+	inputRef.dft \
+	inputRef.abscalc \
+	posinpRef.xyz \
+	gproje_Fe_1s_1 \
+	XabsCheb.out.ref
 
 PPFILES = \
 	psppar.Fe
 
-CLEANFILES = $(PPFILES) Xabs*.out posout* *.pot *.prc coeffs_chebychev cheb_spectra_199 cheb_spectra_399 \
-			 fldiff.report  del.del cheb_spectra_* alpha_beta*
+CLEANFILES = $(PPFILES) Xabs*.out posout* *.pot *.prc \
+	coeffs_chebychev cheb_spectra_199 cheb_spectra_399 \
+	fldiff.report  del.del cheb_spectra_* alpha_beta* \
+	alphabeta* local_potential* potx.dat
 
 #dependencies
 $(PPFILES):
 	ln -fs $(top_srcdir)/utils/PSPfiles/HGH/$@
 
 XabsCheb.out: $(top_builddir)/src/abscalc $(PPFILES)
-	if ! test x"$(srcdir)" = x"." ; then \
-	  ln -fs $(srcdir)/input.dft ; \
-	  ln -fs $(srcdir)/input.abscalc ; \
-	  ln -fs $(srcdir)/posinp.xyz ; \
+	@if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/gproje_Fe_1s_1 ; \
 	fi
+	@ln -fs $(srcdir)/inputRef.abscalc input.abscalc
+	@ln -fs $(srcdir)/inputRef.dft input.dft
+	@ln -fs $(srcdir)/posinpRef.xyz posinp.xyz
 	$(top_builddir)/src/abscalc > $@
-	if ! test x"$(srcdir)" = x"." ; then \
-	  rm -f input.dft ; \
-	  rm -f posinp.xyz ; \
-	  rm -f input.abscalc ; \
+	@rm -f input.dft
+	@rm -f posinp.xyz
+	@rm -f input.abscalc
+	@if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f gproje_Fe_1s_1 ; \
 	fi
 
 XabsLanc.out: $(top_builddir)/src/abscalc $(PPFILES)
-	if ! test x"$(srcdir)" = x"." ; then \
-	  ln -fs $(srcdir)/input.dft input.dft  ; \
-	  ln -fs $(srcdir)/input.abscalcLanc input.abscalc ; \
-	  ln -fs $(srcdir)/posinp.xyz ; \
+	@if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/gproje_Fe_1s_1 ; \
 	fi
+	@ln -fs $(srcdir)/inputRef.dft input.dft
+	@ln -fs $(srcdir)/posinpRef.xyz posinp.xyz
+	@ln -fs $(srcdir)/input.abscalcLanc input.abscalc
 	$(top_builddir)/src/abscalc > $@
-	if ! test x"$(srcdir)" = x"." ; then \
-	  rm -f input.dft ; \
-	  rm -f posinp.xyz ; \
-	  rm -f input.abscalc ; \
+	@rm -f input.dft
+	@rm -f posinp.xyz
+	@rm -f input.abscalc
+	@if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f gproje_Fe_1s_1 ; \
 	fi
 
 
 Xabsb2B.out: $(top_builddir)/src/abscalc $(PPFILES)
-	if ! test x"$(srcdir)" = x"." ; then \
-	  ln -fs $(srcdir)/inputGenPot.dft input.dft  ; \
-	  ln -fs $(srcdir)/input.abscalc  input.abscalc; \
-	  ln -fs $(srcdir)/posinpGenPot.xyz   posinp.xyz ; \
+	@if ! test x"$(srcdir)" = x"." ; then \
 	  ln -fs $(srcdir)/gproje_Fe_1s_1 ; \
 	fi
+	@ln -fs $(srcdir)/inputGenPot.dft input.dft
+	@ln -fs $(srcdir)/posinpGenPot.xyz posinp.xyz
+	@ln -fs $(srcdir)/inputRef.abscalc input.abscalc
 	$(top_builddir)/src/abscalc > del.del
-	if ! test x"$(srcdir)" = x"." ; then \
-	  mv -f local_potentialb2B.cube  b2B_xanes.cube ; \
-	  cp posinp.xyz  b2B_xanes.xyz ; \
-	  rm -f input.dft ; \
-	  rm -f posinp.xyz ; \
-	  rm -f input.abscalc ; \
-	  rm -f gproje_Fe_1s_1 ; \
-	fi
-	if ! test x"$(srcdir)" = x"." ; then \
-	  ln -fs $(srcdir)/input.dft input.dft  ; \
-	  ln -fs $(srcdir)/inputb2B.abscalc  input.abscalc; \
-	  ln -fs $(srcdir)/posinp.xyz ; \
-	  ln -fs $(srcdir)/gproje_Fe_1s_1 ; \
-	fi
+	mv -f local_potentialb2B.cube  b2B_xanes.cube
+	cp posinp.xyz  b2B_xanes.xyz
+	@rm -f input.dft
+	@rm -f posinp.xyz
+	@rm -f input.abscalc
+	@ln -fs $(srcdir)/inputRef.dft input.dft
+	@ln -fs $(srcdir)/posinpRef.xyz posinp.xyz
+	@ln -fs $(srcdir)/inputb2B.abscalc input.abscalc
 	$(top_builddir)/src/abscalc > $@
-	if ! test x"$(srcdir)" = x"." ; then \
-	  rm -f input.dft ; \
-	  rm -f posinp.xyz ; \
-	  rm -f input.abscalc ; \
+	rm -f  b2B_xanes.xyz
+	rm -f  b2B_xanes.cube
+	@rm -f input.dft
+	@rm -f posinp.xyz
+	@rm -f input.abscalc
+	@if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f gproje_Fe_1s_1 ; \
-	  rm -f  b2B_xanes.xyz ; \
-	  rm -f  b2B_xanes.cube ; \
 	fi
 
 
 check: XabsCheb.out  XabsLanc.out Xabsb2B.out
 	cat XabsCheb.out  XabsLanc.out  Xabsb2B.out >  XabsChebLanc.out 
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft XabsChebLanc.out $(top_srcdir)/tests/Refs/XabsCheb.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft XabsChebLanc.out \
+		$(top_srcdir)/tests/XabsCheb/XabsCheb.out.ref | tee fldiff.report

@@ -30,14 +30,9 @@ void bench_magicfilter1d(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_
   cl_uint n = n1;
   cl_uint ndat = n2*n3;
   cl_uint size = n*ndat*sizeof(cl_double);
-//  cl_int ciErrNum;
 
   ocl_create_write_buffer_(&context, &size, &psi_GPU);
   ocl_create_read_buffer_(&context, &size, &work_GPU);
-//  psi_GPU = clCreateBuffer( context, CL_MEM_WRITE_ONLY|CL_MEM_USE_HOST_PTR , size, out, &ciErrNum);
-//  oclErrorCheck(ciErrNum,"Failed to create write buffer!");
-//  work_GPU = clCreateBuffer( context, CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR , size, out, &ciErrNum);
-//  oclErrorCheck(ciErrNum,"Failed to create read buffer!");
   ocl_enqueue_write_buffer_(&queue, &work_GPU, &size, in);
   magicfilter1d_d_(&queue,&n,&ndat,&work_GPU,&psi_GPU);
   ocl_finish_(&queue);
@@ -60,6 +55,22 @@ void bench_magicfilter1d_straight(cl_uint n1, cl_uint n2, cl_uint n3, cl_double 
   ocl_release_mem_object_(&psi_GPU);
   ocl_release_mem_object_(&work_GPU);
 }
+void bench_magicfilter1d_block(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double * out) {
+  cl_mem psi_GPU,work_GPU;
+  cl_uint n = n1;
+  cl_uint ndat = n2*n3;
+  cl_uint size = n*ndat*sizeof(cl_double);
+
+  ocl_create_write_buffer_(&context, &size, &psi_GPU);
+  ocl_create_read_buffer_(&context, &size, &work_GPU);
+  ocl_enqueue_write_buffer_(&queue, &work_GPU, &size, in);
+  magicfilter1d_block_d_(&queue,&n,&ndat,&work_GPU,&psi_GPU);
+  ocl_finish_(&queue);
+  ocl_enqueue_read_buffer_(&queue, &psi_GPU, &size, out);
+  ocl_release_mem_object_(&psi_GPU);
+  ocl_release_mem_object_(&work_GPU);
+}
+
 void bench_magicfiltershrink1d(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double * out) {
   cl_mem psi_GPU,work_GPU;
   cl_uint n = n1;
@@ -136,6 +147,24 @@ void bench_ana1d(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double *
   ocl_release_mem_object_(&work_GPU);
 }
 
+void bench_ana1d_block(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double * out) {
+  cl_mem psi_GPU,work_GPU;
+  cl_uint n = n1;
+  cl_uint ndat = n2*n3;
+  cl_uint size = n*ndat*sizeof(cl_double);
+  n = n1/2;
+
+  ocl_create_write_buffer_(&context, &size, &psi_GPU);
+  ocl_create_read_buffer_(&context, &size, &work_GPU);
+  ocl_enqueue_write_buffer_(&queue, &work_GPU, &size, in);
+  ana1d_block_d_(&queue, &n, &ndat, &work_GPU, &psi_GPU);
+  ocl_finish_(&queue);
+  ocl_enqueue_read_buffer_(&queue, &psi_GPU, &size, out);
+  ocl_release_mem_object_(&psi_GPU);
+  ocl_release_mem_object_(&work_GPU);
+}
+
+
 void bench_anashrink1d(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in, cl_double * out) {
   cl_mem psi_GPU,work_GPU;
   cl_uint n = n1;
@@ -210,6 +239,7 @@ void bench_gemm(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in1, cl_double *
   char transa = 'n';
   char transb = 'n';
   gemm_d_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &m, &b, &k, &beta, &c, &m);
+  gemm_block_d_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &m, &b, &k, &beta, &c, &m);
   transa = 'n';
   transb = 't';
   gemm_d_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &m, &b, &n, &beta, &c, &m);
@@ -247,30 +277,31 @@ void bench_zgemm(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in1, cl_double 
   char transa = 'n';
   char transb = 'n';
   gemm_z_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &m, &b, &k, &beta, &c, &m);
-  ocl_finish_(&queue);
-  ocl_enqueue_read_buffer_(&queue, &c, &size_c, out);
-  ocl_release_mem_object_(&a);
-  ocl_release_mem_object_(&b);
-  ocl_release_mem_object_(&c);
-}
-void bench_zgemmd(cl_uint n1, cl_uint n2, cl_uint n3, cl_double * in1, cl_double * in2, cl_double * out){
-  cl_mem a, b, c;
-  cl_double alpha[] = {1.2, 1.1};
-  cl_double beta[] = {1.3, 1.4};
-  cl_uint m = n1/2;
-  cl_uint n = n2*n3;
-  cl_uint k = n1/2;
-  cl_uint size_a = m * k * 2 * sizeof(cl_double);
-  cl_uint size_b = n * k * 2 * sizeof(cl_double);
-  cl_uint size_c = n * m * 2 * sizeof(cl_double);
-  ocl_create_write_buffer_(&context, &size_c, &c);
-  ocl_create_read_buffer_(&context, &size_b, &b);
-  ocl_create_read_buffer_(&context, &size_a, &a);
-  ocl_enqueue_write_buffer_(&queue, &a, &size_a, in1);
-  ocl_enqueue_write_buffer_(&queue, &b, &size_b, in2);
-  char transa = 'n';
-  char transb = 'n';
-  gemm_zd_(&queue, &transa, &transb, &m, &n, &k, alpha, &a, &m, &b, &k, beta, &c, &m);
+  transa = 'n';
+  transb = 't';
+  gemm_z_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &m, &b, &n, &beta, &c, &m);
+  transa = 't';
+  transb = 'n';
+  gemm_z_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &k, &b, &k, &beta, &c, &m);
+  transa = 't';
+  transb = 't';
+  gemm_z_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &k, &b, &n, &beta, &c, &m);
+  transa = 'n';
+  transb = 'c';
+  gemm_z_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &m, &b, &n, &beta, &c, &m);
+  transa = 'c';
+  transb = 'n';
+  gemm_z_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &k, &b, &k, &beta, &c, &m);
+  transa = 'c';
+  transb = 't';
+  gemm_z_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &k, &b, &n, &beta, &c, &m);
+  transa = 'c';
+  transb = 'c';
+  gemm_z_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &k, &b, &n, &beta, &c, &m);
+  transa = 't';
+  transb = 'c';
+  gemm_z_(&queue, &transa, &transb, &m, &n, &k, &alpha, &a, &k, &b, &n, &beta, &c, &m);
+
   ocl_finish_(&queue);
   ocl_enqueue_read_buffer_(&queue, &c, &size_c, out);
   ocl_release_mem_object_(&a);

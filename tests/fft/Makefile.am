@@ -22,16 +22,16 @@ fft_cache.o: fft3d.o
 fft_check.o: fft3d.o
 
 fft_check.out: fft_check
-	$(run_parallel) ./fft_check > fft_check.out
+	./fft_check > fft_check.out
 
 fft_cache.dat: fft_cache
-	$(run_parallel) ./fft_cache 0
-	$(run_parallel) ./fft_cache 6
-	$(run_parallel) ./fft_cache 12
-	$(run_parallel) ./fft_cache 24
-	$(run_parallel) ./fft_cache 50
-	$(run_parallel) ./fft_cache 75
-	$(run_parallel) ./fft_cache 100
+	./fft_cache 0
+	./fft_cache 6
+	./fft_cache 12
+	./fft_cache 24
+	./fft_cache 50
+	./fft_cache 75
+	./fft_cache 100
 
 check: fft_check.out fft_cache.dat
 	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.e-8 \

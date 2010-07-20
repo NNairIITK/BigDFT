@@ -1,8 +1,20 @@
+!!****f* BigDFT/comb_grow_all
+!! FUNCTION
+!!   w2 and w1 are switched because from shrink convention we go
+!!   to grow convention
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
      ,w2,w1,xc,xf,y,ibyz_c,ibzxx_c,ibxxyy_c,&
      ibyz_f,ibzxx_f,ibxxyy_f)
-  ! w2 and w1 are switched because from shrink convention we go
-  ! to grow convention
   implicit none
   
   integer n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
@@ -30,6 +42,7 @@ subroutine comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
        ,w1,w2,xf,y,ibyz_f,ibzxx_f,ibxxyy_f)    
   
 END SUBROUTINE comb_grow_all
+!!***
 
 
 subroutine comb_grow_tree(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
@@ -40,8 +53,10 @@ subroutine comb_grow_tree(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
   !  the size of the data is allowed to grow
   ! The input array x is not overwritten
 
-  implicit real(kind=8) (a-h,o-z)
+  implicit none
 
+!Arguments
+  integer :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
   real(kind=8) :: x(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
   real(kind=8) :: w1(4,nfl2:nfu2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16)
   real(kind=8) :: w2(2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
@@ -49,7 +64,7 @@ subroutine comb_grow_tree(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
   integer :: ibyz(2,nfl2:nfu2,nfl3:nfu3)
   integer :: ibzxx(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
   integer :: ibxxyy(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
-
+!Local variables
   integer :: m1,m2,m3,nt
 
   m1=nfu1-nfl1

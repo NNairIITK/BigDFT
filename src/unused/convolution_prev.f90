@@ -285,20 +285,31 @@ subroutine comb_rot_grow_loc_prev(nfl,nfu,ndat,x,y,icf,ib)
   !write(10,*) tel, 1.d-6*nflop/tel
 END SUBROUTINE comb_rot_grow_loc_prev
 
-! subroutine for wavelets
-subroutine  comb_rot_grow_loc_1_prev(nfl,nfu,ndat,x,y,ib)
-  ! In one dimesnion, 
-  ! with optimised cycles
-  ! Applies synthesis wavelet transformation 
-  ! then convolves with magic filter
-  !  the size of the data is allowed to grow
 
-  implicit real(kind=8) (a-h,o-z)
-  integer t
+!!****f* BigDFT/comb_rot_grow_loc_1_prev
+!! FUNCTION
+!!   In one dimension, 
+!!   with optimised cycles
+!!   Applies synthesis wavelet transformation 
+!!   then convolves with magic filter
+!!   the size of the data is allowed to grow
+!!
+!! SOURCE
+!!
+subroutine  comb_rot_grow_loc_1_prev(nfl,nfu,ndat,x,y,ib)
+
+  implicit none
+!Arguments
+  integer :: ndat,nfl,nfu
+  real(kind=8), dimension(7,nfl:nfu,ndat) :: x
+  real(kind=8), dimension(2,2,ndat,-14+2*nfl:2*nfu+16) :: y
+  integer :: ib(2,ndat)
+!Local variables
   integer,parameter:: lowfil=-7,lupfil=8
   integer,parameter:: lowfil2=2*lowfil,lupfil2=2*lupfil
-  dimension x(7,nfl:nfu,ndat),y(2,2,ndat,-14+2*nfl:2*nfu+16)
-  integer ib(2,ndat)
+  integer :: i,l
+  real(kind=8) :: y1w11,y1w12,y1w21,y1w22,y2w11,y2w12,y2w21,y2w22
+  integer :: t
 
   include 'v.inc'
 
@@ -406,10 +417,10 @@ subroutine  comb_rot_grow_loc_1_prev(nfl,nfu,ndat,x,y,ib)
 
   !write(20,*) tel, 1.d-6*nflop/tel
 END SUBROUTINE comb_rot_grow_loc_1_prev
+!!***
 
 
-
-subroutine  comb_rot_grow_loc_2_prev(nfl,nfu,ndat,x,y,ib)
+subroutine comb_rot_grow_loc_2_prev(nfl,nfu,ndat,x,y,ib)
 ! In one dimesnion, 
 ! with optimised cycles
 ! Applies synthesis wavelet transformation 

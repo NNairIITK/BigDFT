@@ -1,3 +1,145 @@
+!!****p* BigDFT/rism
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2010 CEA, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
+program rism
+  use BigDFT_API
+  implicit none
+  character(len=*), parameter :: subname='rism'
+  integer :: n1i,n2i,n3i,iproc,nproc,i_stat,i_all,nelec
+  integer :: n3d,n3p,n3pi,i3xcsh,i3s
+  real(gp) :: hxh,hyh,hzh
+  type(atoms_data) :: atoms
+  type(input_variables) :: in
+  type(orbitals_data) :: orbs
+  type(locreg_descriptors) :: Glr
+  real(gp), dimension(3) :: shift
+  integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
+  real(gp), dimension(:), allocatable :: atchgs,radii
+  real(gp), dimension(:,:), allocatable :: radii_cf
+  real(gp), dimension(:,:), pointer :: rxyz
+  real(dp), dimension(:,:), pointer :: rho,pot,pot_ion
+
+  !for the moment no need to have parallelism
+  iproc=0
+  nproc=1
+
+  !initalise the varaibles for the calculation
+  call read_input_variables(iproc,'posinp', &
+       & "input.dft", "input.kpt", "input.geopt", "input.perf", in, atoms, rxyz)
+
+  if (iproc == 0) then
+     call print_general_parameters(in,atoms)
+  end if
+       
+  allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
+  call memocc(i_stat,radii_cf,'radii_cf',subname)
+
+  call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
+
+  ! Determine size alat of overall simulation cell and shift atom positions
+  ! then calculate the size in units of the grid space
+  call system_size(iproc,atoms,rxyz,radii_cf,in%crmult,in%frmult,in%hx,in%hy,in%hz,&
+       Glr,shift)
+
+  call createWavefunctionsDescriptors(iproc,in%hx,in%hy,in%hz,&
+       atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr)
+
+  allocate(nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
+  call memocc(i_stat,nscatterarr,'nscatterarr',subname)
+  allocate(ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
+  call memocc(i_stat,ngatherarr,'ngatherarr',subname)
+
+  call createDensPotDescriptors(iproc,nproc,atoms%geocode,'D',&
+       Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,&
+       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
+
+  !read the files from the .cubes on the disk
+  call read_cube('electronic_density',atoms%geocode,&
+       n1i,n2i,n3i,1,hxh,hyh,hzh,rho)
+
+  call read_cube('hartree_potential',atoms%geocode,&
+       n1i,n2i,n3i,1,hxh,hyh,hzh,pot)
+
+  !not needed for the moment
+  call read_cube('ionic_potential',atoms%geocode,&
+       n1i,n2i,n3i,1,hxh,hyh,hzh,pot_ion)
+
+  !also extract the number of atoms and the positions
+  !for the atomic densities, if they are present
+  
+
+  !start the atomic charges calculation
+  allocate(atchgs(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atchgs,'atchgs',subname)
+
+  allocate(radii(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,radii,'radii',subname)
+
+  call assign_atomic_radii(atoms,radii)
+
+  !calculation of the atomic charges to compare wrt Mulliken
+  !radii to be defined
+  !call atomic_charges(iproc,nproc,rxyz,radii,atoms,0,Glr,ngatherarr,&
+  call atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,Glr,ngatherarr,&
+       !hxh,hyh,hzh,n3p,i3s+i3xcsh,rho,pot_ion,atchgs)
+       hxh,hyh,hzh,n3p,i3s+i3xcsh,rho,pot,atchgs)
+
+
+  i_all=-product(shape(nscatterarr))*kind(nscatterarr)
+  deallocate(nscatterarr,stat=i_stat)
+  call memocc(i_stat,i_all,'nscatterarr',subname)
+  i_all=-product(shape(ngatherarr))*kind(ngatherarr)
+  deallocate(ngatherarr,stat=i_stat)
+  call memocc(i_stat,i_all,'ngatherarr',subname)
+
+  i_all=-product(shape(radii_cf))*kind(radii_cf)
+  deallocate(radii_cf,stat=i_stat)
+  call memocc(i_stat,i_all,'radii_cf',subname)
+
+
+  call deallocate_lr(Glr,subname)
+  
+  call deallocate_orbs(orbs,subname)
+  call deallocate_atoms_scf(atoms,subname) 
+
+  i_all=-product(shape(rho))*kind(rho)
+  deallocate(rho,stat=i_stat)
+  call memocc(i_stat,i_all,'rho',subname)
+  i_all=-product(shape(pot))*kind(pot)
+  deallocate(pot,stat=i_stat)
+  call memocc(i_stat,i_all,'pot',subname)
+  i_all=-product(shape(pot_ion))*kind(pot_ion)
+  deallocate(pot_ion,stat=i_stat)
+  call memocc(i_stat,i_all,'pot_ion',subname)
+  i_all=-product(shape(radii))*kind(radii)
+  deallocate(radii,stat=i_stat)
+  call memocc(i_stat,i_all,'radii',subname)
+  i_all=-product(shape(atchgs))*kind(atchgs)
+  deallocate(atchgs,stat=i_stat)
+  call memocc(i_stat,i_all,'atchgs',subname)
+  
+  call deallocate_atoms(atoms,subname) 
+  i_all=-product(shape(rxyz))*kind(rxyz)
+  deallocate(rxyz,stat=i_stat)
+  call memocc(i_stat,i_all,'rxyz',subname)
+  call free_input_variables(in)
+
+  !finalize memory counting
+  call memocc(0,0,'count','stop')
+
+
+end program rism
+!!***
+
+
 !!****f* BigDFT/two_center_two_electrons
 !! FUNCTION
 !! COPYRIGHT
@@ -21,7 +163,7 @@ subroutine two_center_two_electrons(nat,a1,a2,a3,rxyz,radii,H)
   real(gp), parameter :: oneosqrtpi=0.564189583547756286948079451_gp
   integer :: iat,jat,i_gauss
   real(dp) :: ur_gauss,dr_gauss,acc_gauss,factor,factor2
-  real(gp) :: a_range,ra2,ra2pb2,rab2,oneopk,oneoexpo,expo,oneofac,fac,ra,erfor
+  real(gp) :: a_range,ra2,ra2pb2,rab2,oneopk,oneoexpo,expo,oneofac,fac,ra
   real(gp), dimension(3) :: A
   real(dp), dimension(n_gauss) :: p_gauss,w_gauss
 
@@ -397,14 +539,13 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
   real(gp), dimension(atoms%nat) :: C
   !local variables
   character(len=*), parameter :: subname='atomic_charges'
-  logical, parameter :: higherorder=.false.
+  logical, parameter :: higherorder=.true.
   integer :: iat,info,nwork,i_all,i_stat,nbasis,i,j
   real(gp) :: ddotu,ddotv,gammafac
   type(gaussian_basis) :: Gpswf,Glongr
   integer, dimension(:), allocatable :: iwork
   real(gp), dimension(:), allocatable :: D,rhoarr,u,v,work,Caux
   real(gp), dimension(:,:), allocatable :: Hlrlr,Hwork,H,ovrlp
-  real(gp), dimension(:), pointer :: Gocc
 
   if (atoms%geocode /= 'F') then
      write(*,*)'ERROR: the atomic charges can be calculated only in isolcated BC!'
@@ -415,14 +556,17 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
      !let us first calculate the structure for the basis functions
      !extract the gaussian basis from the pseudowavefunctions
      nullify(Gpswf%rxyz)
-     call gaussian_pswf_basis(31,.false.,iproc,1,atoms,rxyz,Gpswf,Gocc)
-     
-     if (associated(Gocc)) then
-        i_all=-product(shape(Gocc))*kind(Gocc)
-        deallocate(Gocc,stat=i_stat)
-        call memocc(i_stat,i_all,'Gocc',subname)
-        nullify(Gocc)
-     end if
+
+     !here we can put the gaussian with herimte polynomials in place of that
+     !call gaussian_pswf_basis(31,.false.,iproc,1,atoms,rxyz,Gpswf,Gocc)
+     !if (associated(Gocc)) then
+     !   i_all=-product(shape(Gocc))*kind(Gocc)
+     !   deallocate(Gocc,stat=i_stat)
+     !   call memocc(i_stat,i_all,'Gocc',subname)
+     !   nullify(Gocc)
+     !end if
+
+     call gaussian_hermite_basis(1,atoms%nat,radii,rxyz,Gpswf)     
 
      call gaussian_rism_basis(atoms%nat,radii,rxyz,Glongr)
 
@@ -456,8 +600,8 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
      call memocc(i_stat,ovrlp,'ovrlp',subname)
      
      !overlap calculation of the kinetic operator
-     call kinetic_overlap(Gpswf,Gpswf,ovrlp)
-     
+     call kinetic_overlap_h(Gpswf,Gpswf,ovrlp)
+  
      !fill the last part of the H matrix
      !for the same structure the kinetic overlap is symmetric
      do j=1,Gpswf%ncoeff
@@ -476,18 +620,18 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
      call memocc(i_stat,i_all,'ovrlp',subname)
      !calculate the overlap matrix as well as the kinetic overlap
      !in view of complete gaussian calculation
-     allocate(ovrlp(Gpswf%ncoeff,Gpswf%ncoeff),stat=i_stat)
-     call memocc(i_stat,ovrlp,'ovrlp',subname)
-     call gaussian_overlap(Gpswf,Gpswf,ovrlp)
-     if (iproc == 0) then
-        do iat=1,Gpswf%ncoeff
-           write(*,'(a,i0,10(1pe15.7))')'Gpswf',iat,ovrlp(1:iat,iat)
-        end do
-     end if
-     
-     i_all=-product(shape(ovrlp))*kind(ovrlp)
-     deallocate(ovrlp,stat=i_stat)
-     call memocc(i_stat,i_all,'ovrlp',subname)
+!!$     allocate(ovrlp(Gpswf%ncoeff,Gpswf%ncoeff),stat=i_stat)
+!!$     call memocc(i_stat,ovrlp,'ovrlp',subname)
+!!$     call gaussian_overlap(Gpswf,Gpswf,ovrlp)
+!!$     if (iproc == 0) then
+!!$        do iat=1,Gpswf%ncoeff
+!!$           write(*,'(a,i0,10(1pe15.7))')'Gpswf',iat,ovrlp(1:iat,iat)
+!!$        end do
+!!$     end if
+!!$     
+!!$     i_all=-product(shape(ovrlp))*kind(ovrlp)
+!!$     deallocate(ovrlp,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'ovrlp',subname)
      !calculate the overlap matrix as well as the kinetic overlap
      !in view of complete gaussian calculation
      allocate(ovrlp(Glongr%ncoeff,Glongr%ncoeff),stat=i_stat)
@@ -506,13 +650,19 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
      call memocc(i_stat,ovrlp,'ovrlp',subname)
      
      !overlap between longrange basis and short-range basis
-     call gaussian_overlap(Gpswf,Glongr,ovrlp)
+     call gaussian_overlap_h(Gpswf,Glongr,ovrlp)
      
      !fill the block off-diagonal part of the H matrix
+     print *,'coeffs',Gpswf%ncoeff,Glongr%ncoeff
      do j=1,Glongr%ncoeff
         do i=1,Gpswf%ncoeff
-           H(atoms%nat+i,j)=ovrlp(i,j)
-           H(j,atoms%nat+i)=ovrlp(i,j)
+           if (Gpswf%ncoeff == Glongr%ncoeff .and. i > j) then
+              H(atoms%nat+i,j)=ovrlp(j,i)
+              H(j,atoms%nat+i)=ovrlp(j,i)
+           else
+              H(atoms%nat+i,j)=ovrlp(i,j)
+              H(j,atoms%nat+i)=ovrlp(i,j)
+           end if
         end do
      end do
      
@@ -529,7 +679,6 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
   call two_center_two_electrons(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,&
        rxyz,radii,Hlrlr)
  
-
   !fill the first part of the H matrix
   do j=1,atoms%nat
      do i=1,atoms%nat
@@ -541,13 +690,11 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
   deallocate(Hlrlr,stat=i_stat)
   call memocc(i_stat,i_all,'Hlrlr',subname)
 
-
   if (iproc == 0) then
      do iat=1,nbasis
         write(*,'(a,i0,10(1pe15.7))')'H',iat,H(1:iat,iat)
      end do
   end if
-
  
   !calculate the first part of rho array
   call calculate_rho(iproc,nproc,atoms%geocode,atoms%nat,radii,rxyz,hxh,hyh,hzh,&
@@ -806,7 +953,7 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   !local variables
   character(len=*), parameter :: subname='gaussian_psp_basis'
   real(gp), parameter :: oneo2pi3halves=0.0634936359342409697857633_gp
-  integer :: iat,nshell,ityp,iexpo,l,ishell,i_stat
+  integer :: iat,nshell,iexpo,l,ishell,i_stat
 
   G%nat=nat
   G%rxyz => rxyz
@@ -861,6 +1008,76 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   end do
 
 END SUBROUTINE gaussian_rism_basis
+!!***
+
+!!****f* BigDFT/gaussian_hermite_basis
+!! FUNCTION
+!!   Gaussian basis associated to Hermite Polyomials multiplied by s-terms
+!!   given by the radii
+!! SOURCE
+!!
+subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nat,nhermitemax
+  real(gp), dimension(nat), intent(in) :: radii
+  real(gp), dimension(3,nat), target, intent(in) :: rxyz
+  type(gaussian_basis), intent(out) :: G  
+  !local variables
+  character(len=*), parameter :: subname='gaussian_psp_basis'
+  real(gp), parameter :: oneo2pi3halves=0.0634936359342409697857633_gp
+  integer :: iat,nshell,iexpo,l,ishell,i_stat
+
+  G%nat=nat
+  G%rxyz => rxyz
+  allocate(G%nshell(G%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,G%nshell,'G%nshell',subname)
+ 
+  G%nshltot=0
+  do iat=1,G%nat
+     nshell=nhermitemax
+     G%nshell(iat)=nshell
+     G%nshltot=G%nshltot+nshell
+  end do
+
+  allocate(G%ndoc(G%nshltot+ndebug),stat=i_stat)
+  call memocc(i_stat,G%ndoc,'G%ndoc',subname)
+  allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
+  call memocc(i_stat,G%nam,'G%nam',subname)
+
+  !assign shell IDs and count the number of exponents and coefficients
+  G%nexpo=0
+  G%ncoeff=0
+  ishell=0
+  do iat=1,G%nat
+     do l=1,G%nshell(iat) 
+        ishell=ishell+1
+        G%ndoc(ishell)=1
+        G%nam(ishell)=1
+        G%nexpo=G%nexpo+1
+        G%ncoeff=G%ncoeff+1
+     enddo
+  end do
+
+  !allocate and assign the exponents and the coefficients
+  allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
+  call memocc(i_stat,G%xp,'G%xp',subname)
+  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
+  call memocc(i_stat,G%psiat,'G%psiat',subname)
+
+  ishell=0
+  iexpo=0
+  do iat=1,G%nat
+     do l=1,G%nshell(iat) 
+        ishell=ishell+1
+        iexpo=iexpo+1
+        G%psiat(iexpo)=1.0_gp
+        G%xp(iexpo)=radii(iat)
+     end do
+  end do
+
+end subroutine gaussian_hermite_basis
 !!***
 
 
@@ -1008,7 +1225,7 @@ subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,nga
 
   !calculate the atomic wavefunctions in Daubechies basis
   !put nproc=1 since the orbitals descriptors is not parallelised by choice
-  call gaussians_to_wavelets_new(0,1,lr,orbspswf,2.0_gp*hxh,2.0_gp*hyh,2.0_gp*hzh,Gpswf,&
+  call gaussians_to_wavelets_new_h(0,1,lr,orbspswf,2.0_gp*hxh,2.0_gp*hyh,2.0_gp*hzh,Gpswf,&
        psigaup,psi)
 
   call deallocate_orbs(orbspswf,subname)
@@ -1071,6 +1288,5 @@ subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,nga
   i_all=-product(shape(ncoeff_par))*kind(ncoeff_par)
   deallocate(ncoeff_par,stat=i_stat)
   call memocc(i_stat,i_all,'ncoeff_par',subname)
-
   
 end subroutine calculate_rho_shortrange

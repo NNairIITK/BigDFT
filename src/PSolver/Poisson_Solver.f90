@@ -65,6 +65,8 @@ module Poisson_Solver
 
   use module_base
 
+  implicit none
+
   private
 
   !calculate the allocation dimensions

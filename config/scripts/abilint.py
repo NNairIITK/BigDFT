@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 04/12/2009
+# Date: 29/04/2010
 #--------------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -2518,7 +2518,7 @@ class Implicit(Code):
             #a-h,...
             table = search["range"].split(",")
             for letters in table:
-                (a1,a2) = letters.split('-')
+                (a1,a2) = letters.strip().split('-')
                 a1 = ord(a1)
                 a2 = ord(a2)+1
                 for i in range(a1,a2):
@@ -3075,6 +3075,9 @@ class Execution(Code):
 #Class for Fortran variables
 class Variable:
     "Class for Fortran variables (type, dimension, ...)"
+    #Built-in types
+    builtin_types = [ "character", "complex", "double complex", "double precision", "integer",
+                     "logical" ]
     #Reserved words for declaration
     reserved = [ "allocatable", "character", "complex", "dimension", "doublecomplex", "doubleprecision",
                  "integer","intent",
@@ -3285,6 +3288,9 @@ class Variable:
     #
     def search_name(self,string):
         "Each non-alphanumeric character is converted into blank, split and remove keywords."
+        #If we find a type, do not select built-in types
+        if string in self.builtin_types:
+            return
         liste = self.re_noletter.sub(" ",string).split()
         for name in liste:
             if name in self.reserved:
@@ -3536,7 +3542,8 @@ class Include(Code):
                         file.add_code(project.given_include[self.includefile])
                         self.struct = file
                     else:
-                        self.message.error("The include file '%s' does not exist in the project!" % self.includefile)
+                        self.message.error("[%s/%s]: The include file '%s' does not exist in the project!" % \
+                                           (self.dir,self.file,self.includefile))
                         #We create one with no code
                         file = project.add_file('.',self.includefile,create=True,read_only=True,File_Class=File_F90)
                         self.struct = file

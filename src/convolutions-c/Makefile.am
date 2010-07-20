@@ -1,12 +1,20 @@
 EXTRA_DIST = \
 	tool.h \
 	thread_engine.h \
+	topology_muscade.cfg \
+	placement_muscade.cfg \
 	$(SOURCES_CONV_CHECK)
 
 SOURCES_CONV_CHECK =
 SOURCES_SHARED =
 
-check_PROGRAMS = conv_check
+if HAVE_LIBCONFIG
+check = conv_check
+else
+check =
+endif
+
+check_PROGRAMS = $(check)
 
 noinst_LIBRARIES = libbasef.a libbasec.a
 
@@ -30,7 +38,7 @@ AM_CFLAGS = -Wall -Werror -funroll-loops -mtune=core2 -ftree-vectorize -floop-in
 
 conv_check_SOURCES = conv_check.f90 
 conv_check_LDADD = libbasec.a libbasef.a ../libbigdft.a ../PSolver/libpoissonsolver.a
-conv_check_LDFLAGS = -lpthread -lnuma -lconfig++ -lstdc++
+conv_check_LDFLAGS = -lpthread -lconfig++ -lstdc++
 
 check:
 	echo 1 128 128 204900 204900 10 > fort.1

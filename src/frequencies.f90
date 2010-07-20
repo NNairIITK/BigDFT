@@ -14,6 +14,8 @@
 !! TODO
 !!  Add higher order for finite difference
 !!  Maybe possibility to use Lanczos to determine lowest frequencies
+!!  Zero-point energy
+!!  Vibrational entropy
 !!
 !! SOURCE
 !!
@@ -31,7 +33,7 @@ program frequencies
   !File unit
   integer, parameter :: u_hessian=20
   integer :: iproc,nproc,iat,jat,i,j,i_stat,i_all,ierr,infocode,ity
-  real(gp) :: etot,sumx,sumy,sumz,alat,dd,rmass,fnoise
+  real(gp) :: etot,alat,dd,rmass,fnoise
   !Input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
@@ -51,6 +53,7 @@ program frequencies
   real(gp), dimension(:,:), allocatable :: energies
   real(gp), dimension(:,:,:), allocatable :: forces
   real(gp), dimension(3) :: freq_step
+  real(gp) :: zpenergy
   integer :: k,km,ii,jj,ik,imoves,order,n_order
   logical :: exists
  
@@ -264,7 +267,7 @@ program frequencies
 
   close(unit=u_hessian)
 
-  !deallocations
+  !Deallocations
   i_all=-product(shape(rpos))*kind(rpos)
   deallocate(rpos,stat=i_stat)
   call memocc(i_stat,i_all,'rpos',subname)
@@ -299,7 +302,7 @@ program frequencies
        end if
      end do
      write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r(1:3*atoms%nat)
-     write(*,'(1x,a,1x,100(f13.2))') '=F: frequencies (cm-1)      =',eigen_r(1:3*atoms%nat)*Ha_cmm1
+     write(*,'(1x,a,1x,100(f13.2))')    '=F: frequencies (cm-1)      =',eigen_r(1:3*atoms%nat)*Ha_cmm1
      !Build frequencies.xyz
      open(unit=15,file='frequencies.xyz',status="unknown")
      do i=1,3*atoms%nat
@@ -316,6 +319,9 @@ program frequencies
          write(15,*)
      end do
      close(unit=15)
+     zpenergy = 0.5_gp*sum(eigen_r(1:3*atoms%nat))
+     write(*,'(1x,a,1x,1pe20.10)') '=F: Zero-point energy (Hartree)   =',zpenergy
+     write(*,'(1x,a,1x,f13.2)')    '=F: Zero-point energy (cm-1)      =',zpenergy*Ha_cmm1
   end if
 
   !Deallocations

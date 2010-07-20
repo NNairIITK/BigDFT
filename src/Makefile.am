@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces memguess NEB frequencies MDanalysis $(minima_hopping_sources) bart abscalc
+binaries_sources = bigdft test_forces memguess NEB frequencies MDanalysis rism $(minima_hopping_sources) bart abscalc
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -37,7 +37,7 @@ GPU_BLAS = modules/cublas_fake.f90
 endif
 
 if USE_OCL
-sub_dirs_ocl=OpenCL convolutions-c
+sub_dirs_ocl=OpenCL
 OCL_INTERFACE = convolutions/convolut_common_interface_ocl.f90
 libs_ocl=OpenCL/libOCL.a
 else
@@ -45,6 +45,13 @@ sub_dirs_ocl=
 OCL_INTERFACE = convolutions/interface_ocl_fake.f90
 libs_ocl=
 endif
+
+if HAVE_LIBCONFIG
+sub_dirs_libconfig=convolutions-c
+else
+sub_dirs_libconfig=
+endif
+
 
 if USE_MINIMA_HOPPING
 minima_hopping_sources = global
@@ -65,16 +72,16 @@ global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) art
+SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) art $(sub_dirs_libconfig)
 
 EXTRA_DIST = \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
-	NEB_driver.sh
+	NEB_driver.sh 
 
-AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver @LIBABINIT_INCLUDE@ \
-	@LIBXC_INCLUDE@
+AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver \
+	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)
@@ -150,7 +157,6 @@ high_level = cluster.f90 \
 	geometry.f90 \
 	davidson.f90 \
 	pdos.f90 \
-	rism.f90 \
 	vdwcorrection.f90 \
 	lanczos_interface.f90 \
 	lanczos_base.f90 \
@@ -206,14 +212,24 @@ libbigdft_a_LIBADD = profiling/time.o \
 	$(convolution_objects) \
 	$(modules_objects)
 
-cluster_SOURCES = BigDFT.f90 
-cluster_LDFLAGS = 
-cluster_LDADD = libbigdft.a \
+bigdft_SOURCES = BigDFT.f90 
+bigdft_LDFLAGS = 
+bigdft_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda) \
 	$(libs_ocl)
+
+rism_SOURCES = rism.f90 rismlowlevel.f90
+rism_LDFLAGS = 
+rism_LDADD = libbigdft.a \
+	PSolver/libpoissonsolver.a \
+	$(LMPI) \
+	@MPI_LIBS@ \
+	$(libs_cuda) \
+	$(libs_ocl)
+
 
 MDanalysis_SOURCES = distances.f90 
 MDanalysis_LDFLAGS = 
@@ -329,7 +345,7 @@ lanczos.o : lanczos_base.o lanczos_interface.o
 
 BigDFT_API.o : scfloop_API.o
 
-distances.o global.o : BigDFT_API.o
+distances.o global.o rism.o : BigDFT_API.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 

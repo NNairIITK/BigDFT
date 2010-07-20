@@ -1,18 +1,6 @@
 # ==================================
 # "Basel" way to install the package
 # ==================================
-First, you can copy:
-cd src
-cp Makefile.standalone Makefile
-make
-
-
-See also the doc/basel-make.sh script for an integrated script.
-
-Run autotools using :
-./autogen.sh
-
-
 Choose the right option for your compilation :
 export FC=/opt/intel/fc/9.0/bin/ifort   # Choose your Fortran Compiler
 export MPI_INCLUDE=/opt/scali/include   # Set the include directory for MPI
@@ -20,12 +8,15 @@ export MPI_LDFLAGS=/opt/scali/lib       # Set the directory where to find MPI li
 export LDFLAGS="-D_REENTRANT"
 export LIBS="-lguide -lpthread"
 
-If the build environement is standard, none of these export is required.
+If the build environment is standard, none of these export is required.
 They have to be adapted according to situation.
 
+We recommend to create a temporary directory as 'tmp' to compile your source:
+mkdir tmp
+cd tmp
 
 Configure the source directory :
-./configure --enable-mpi --with-ext-linalg="-lmkl_ia32 -lmkl_lapack" --with-ext-linalg-path="-L/opt/intel/mkl72/lib/32" --prefix=/home/caliste/usr
+../configure --enable-mpi --with-ext-linalg="-lmkl_ia32 -lmkl_lapack" --with-ext-linalg-path="-L/opt/intel/mkl72/lib/32" --prefix=/home/caliste/usr
 
 The --enable-mpi option makes the source to compile with MPI support.
 This option is enable by default and can be omited (use --disable-mpi not to compile with mpi support).
@@ -41,8 +32,11 @@ IMPORTANT : from this point, the package is configured and previous steps are
 no more required if no file is added or removed.
 
 
-Make the package and create the 'cluster' executable :
+Make the package and create the executables as 'bigdft', 'memguess', 'frequencies':
 make
+
+Run the tests:
+make check
 
 
 Install the package :
@@ -70,3 +64,10 @@ make dist
 
 To avoid to create the binary executable,
 use --disable--build-binary option.
+
+#===================
+#Only for developers
+#===================
+Run autotools:
+./autogen.sh
+
