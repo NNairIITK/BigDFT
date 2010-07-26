@@ -23,6 +23,23 @@ const double filt[] __attribute__ ((aligned (16))) = { 8.43342473335293410947333
                         0.49443227688689919192282259476750972e-3,
                        -0.5185986881173432922848639136911487e-4,
                         2.72734492911979659657715313017228e-6};
+const double filt_u[] __attribute__ ((aligned (16))) = { 0.0,
+                        8.4334247333529341094733325815816e-7,
+                       -0.1290557201342060969516786758559028e-4,
+                        0.8762984476210559564689161894116397e-4,
+                       -0.30158038132690463167163703826169879e-3,
+                        0.174723713672993903449447812749852942e-2,
+                       -0.942047030201080385922711540948195075e-2,
+                        0.2373821463724942397566389712597274535e-1,
+                        0.612625895831207982195380597e-1,
+                        0.9940415697834003993178616713,
+                       -0.604895289196983516002834636e-1,
+                       -0.2103025160930381434955489412839065067e-1,
+                        0.1337263414854794752733423467013220997e-1,
+                       -0.344128144493493857280881509686821861e-2,
+                        0.49443227688689919192282259476750972e-3,
+                       -0.5185986881173432922848639136911487e-4,
+                        2.72734492911979659657715313017228e-6};
 
 void nanosec(unsigned long long int * t){
   struct timespec time;
@@ -111,28 +128,28 @@ inline void conv_16_odd(double const * source, double * dest){
   S6 = _mm_set_sd(*(source+13)*filt[0]+*(source+28)*filt[15]);
   S7 = _mm_set_sd(*(source+15)*filt[0]+*(source+30)*filt[15]);*/
 //  source+=1;
-  unsigned int i = 1;
+  unsigned int i = 2;
   do {
-    F = _mm_loadu_pd(filt+i);
-    D = _mm_load_pd(source+1+i);
+    F = _mm_load_pd(filt_u+i);
+    D = _mm_load_pd(source+i);
     S0 = _mm_add_pd(S0,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+3+i);
+    D = _mm_load_pd(source+2+i);
     S1 = _mm_add_pd(S1,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+5+i);
+    D = _mm_load_pd(source+4+i);
     S2 = _mm_add_pd(S2,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+7+i);
+    D = _mm_load_pd(source+6+i);
     S3 = _mm_add_pd(S3,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+9+i);
+    D = _mm_load_pd(source+8+i);
     S4 = _mm_add_pd(S4,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+11+i);
+    D = _mm_load_pd(source+10+i);
     S5 = _mm_add_pd(S5,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+13+i);
+    D = _mm_load_pd(source+12+i);
     S6 = _mm_add_pd(S6,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+15+i);
+    D = _mm_load_pd(source+14+i);
     S7 = _mm_add_pd(S7,_mm_mul_pd(D,F));
 //    source += 2;
     i += 2;
-  } while (i<15);
+  } while (i<16);
   _mm_storel_pd(dest+1,_mm_hadd_pd(S0,S0));
   _mm_storel_pd(dest+3,_mm_hadd_pd(S1,S1));
   _mm_storel_pd(dest+5,_mm_hadd_pd(S2,S2));
