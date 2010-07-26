@@ -492,12 +492,16 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   
 !!$  !not necessary anymore since psivirt is gaussian
   !allocate the pointer for virtual orbitals
-  if(present(orbsv) .and. present(psivirt) .and. orbsv%norb > 0) then
-     allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
-     call memocc(i_stat,psivirt,'psivirt',subname)
-  else if(present(psivirt) .and. orbsv%norb == 0) then
-     allocate(psivirt(1+ndebug),stat=i_stat)
-     call memocc(i_stat,psivirt,'psivirt',subname)
+  if(present(orbsv) .and. present(psivirt)) then
+     if (orbsv%norb > 0) then
+        allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
+        call memocc(i_stat,psivirt,'psivirt',subname)
+     end if
+  else if(present(psivirt)) then
+     if (orbsv%norb == 0) then
+        allocate(psivirt(1+ndebug),stat=i_stat)
+        call memocc(i_stat,psivirt,'psivirt',subname)
+     end if
   end if
 
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
@@ -529,10 +533,12 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
   !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
 
-  if(present(psivirt) .and. orbsv%norb == 0) then
-     i_all=-product(shape(psivirt))*kind(psivirt)
-     deallocate(psivirt,stat=i_stat)
-     call memocc(i_stat,i_all,'psivirt',subname)
+  if(present(psivirt)) then
+     if (orbsv%norb == 0) then
+        i_all=-product(shape(psivirt))*kind(psivirt)
+        deallocate(psivirt,stat=i_stat)
+        call memocc(i_stat,i_all,'psivirt',subname)
+     end if
   end if
      
   i_all=-product(shape(hamovr))*kind(hamovr)
@@ -996,18 +1002,20 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
 !!$     !we take the rest of the orbitals which are not assigned
 !!$     !from the group of non-semicore orbitals
 !!$     !the results are orthogonal with each other by construction
-     if (present(nvirte) .and. nvirte(ispin) >0) then
-        if (nspinor == 1) then
-           !print *,'debug',ispin,nvirte,imatrst+norbi*norbj,nspin*ndim_hamovr
-           call gemm('N','N',nvctrp,nvirte(ispin),norbi,1.0_wp,&
-                psi(1,iorbst),max(1,nvctrp),&
-                hamovr(imatrst+norbi*norbj),norbi,0.0_wp,psivirt(ispsiv),max(1,nvctrp))
-        else
-           call c_gemm('N','N',ncomp*nvctrp,nvirte(ispin),norbi,(1.0_wp,0.0_wp),&
-                psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst+ncplx*norbi*norbj),norbi,&
-                (0.0_wp,0.0_wp),psivirt(ispsiv),max(1,ncomp*nvctrp))
+     if (present(nvirte)) then
+        if (nvirte(ispin) >0) then
+           if (nspinor == 1) then
+              !print *,'debug',ispin,nvirte,imatrst+norbi*norbj,nspin*ndim_hamovr
+              call gemm('N','N',nvctrp,nvirte(ispin),norbi,1.0_wp,&
+                   psi(1,iorbst),max(1,nvctrp),&
+                   hamovr(imatrst+norbi*norbj),norbi,0.0_wp,psivirt(ispsiv),max(1,nvctrp))
+           else
+              call c_gemm('N','N',ncomp*nvctrp,nvirte(ispin),norbi,(1.0_wp,0.0_wp),&
+                   psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst+ncplx*norbi*norbj),norbi,&
+                   (0.0_wp,0.0_wp),psivirt(ispsiv),max(1,ncomp*nvctrp))
+           end if
+           ispsiv=ispsiv+nvctrp*nvirte(ispin)*nspinor
         end if
-        ispsiv=ispsiv+nvctrp*nvirte(ispin)*nspinor
      end if
      iorbst=norbi+norbsc+1 !this is equal to norbe+1
      iorbst2=norbu+1
