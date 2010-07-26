@@ -371,7 +371,23 @@ subroutine local_partial_density_OCL(iproc,nproc,orbs,&
   integer:: iorb,i_stat,isf,iaddjmp
   real(kind=8) :: stream_ptr
   real(gp) :: hfac
+  integer, dimension(3) :: periodic
 
+  if (lr%geocode /= 'F') then
+    periodic(1) = 1
+  else
+    periodic(1) = 0
+  endif
+  if (lr%geocode == 'P') then
+    periodic(2) = 1
+  else
+    periodic(2) = 0
+  endif 
+  if (lr%geocode /= 'F') then
+    periodic(3) = 1
+  else
+    periodic(3) = 0
+  endif
 
   if (lr%wfd%nvctr_f > 0) then
      isf=lr%wfd%nvctr_c+1
@@ -392,10 +408,11 @@ subroutine local_partial_density_OCL(iproc,nproc,orbs,&
     if (orbs%spinsgn(min(orbs%isorb+1,orbs%norb)+iorb-1) > 0.0) then
       iaddjmp = 0
     else
-      iaddjmp = 8*(lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1)
+      iaddjmp = (lr%d%n1i)*(lr%d%n2i)*(lr%d%n3i)
     endif
   !calculate the density
-   call ocl_locden(GPU%queue, (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
+   call ocl_locden_generic(GPU%queue, (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
+                          (/periodic(1),periodic(2),periodic(3)/),&
                           hfac, iaddjmp,&
                           lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
                           lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,&

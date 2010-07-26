@@ -38,6 +38,7 @@ struct bigdft_kernels {
   cl_kernel magicfilter1d_t_kernel_d;
   cl_kernel magicfiltershrink1d_kernel_d;
   cl_kernel magicfiltergrow1d_kernel_d;
+  cl_kernel magicfiltergrow1d_den_kernel_d;
   cl_kernel magicfiltergrow1d_pot_kernel_d;
   cl_kernel reduction_kernel_d;
   cl_kernel reduction_dot_kernel_d;
@@ -360,12 +361,21 @@ void FC_FUNC_(magicfilter_n_block_d,MAGICFILTER_N_BLOCK_D)(bigdft_command_queue 
  *  @param out output buffer of dimensions : dimensions[0] * dimensions[1] * dimensions[2] * sizeof(double). Stored in column major order.
  */
 void FC_FUNC_(magicfilter_den_d,MAGICFILTER_DEN_D)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out);
-/** Performs the three-dimensional reciprocal magicfilter with periodic boundary conditions.
+/** Performs the three-dimensional magicfilter with periodic boundary conditions.
  *  @param command_queue used to process the convolution.
  *  @param dimensions of the input data. Vector of three values, one for each dimension.
  *  @param tmp temporary buffer to store intermediate results. Must be of at least dimensions[0] * dimensions[1] * dimensions[2] * sizeof(double) in size.
  *  @param psi input buffer of dimension : dimensions[0] * dimensions[1] * dimensions[2] * sizeof(double). Stored in column major order.
  *  @param out output buffer of dimensions : dimensions[0] * dimensions[1] * dimensions[2] * sizeof(double). Stored in column major order.
+ */
+void FC_FUNC_(magicfilter_den_d_generic,MAGICFILTER_DEN_D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *psi, cl_mem *out);
+/** Performs the three-dimensional magicfilter with periodic or non-periodic boundary conditions.
+ *  @param command_queue used to process the convolution.
+ *  @param dimensions of the input data. Vector of three values, one for each dimension.
+ *  @param periodic periodicity of the convolution. Vector of three value, one for each dimension. Non zero means periodic.
+ *  @param tmp temporary buffer to store intermediate results. Must be of at least (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double) in size.
+ *  @param psi input buffer of dimension : (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double). Stored in column major order.
+ *  @param out output buffer of dimensions : (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double). Stored in column major order.
  */
 void FC_FUNC_(magicfilter_t_d,MAGICFILTER_T_D)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out);
 /** Version of magicfilter_t_d without the temporary buffer, psi is erased during the computation. @see magicfilter_t_d. */
@@ -382,6 +392,7 @@ void FC_FUNC_(potential_application_d,POTENTIAL_APPLICATION_D)(bigdft_command_qu
 /** Performs the three-dimensional magicfilter, applies the potential then applies the reciprocal three dimension magicfilter. The potential energy is also computed. With periodic or non periodic boundary conditions.
  *  @param command_queue used to process the convolution.
  *  @param dimensions of the input data. Vector of three values, one for each dimension.
+ *  @param periodic periodicity of the convolution. Vector of three value, one for each dimension. Non zero means periodic.
  *  @param tmp temporary buffer to store intermediate results. Must be of at least (2 * dimensions[0] + (periodic[0]?0:14+15)) * (2 * dimensions[1] + (periodic[1]?0:14+15)) * (2 * dimensions[2] + (periodic[2]?0:14+15)) * sizeof(double) in size.
  *  @param tmp_dot temporary buffer to store intermediate results. Must be of at least (2 * dimensions[0] + (periodic[0]?0:14)) * (2 * dimensions[1] + (periodic[1]?0:14)) * (2 * dimensions[2] + (periodic[2]?0:14)) * sizeof(double) in size.
  *  @param psi input buffer of dimension : (2 * dimensions[0] + (periodic[0]?0:14)) * (2 * dimensions[1] + (periodic[1]?0:14)) * (2 * dimensions[2] + (periodic[2]?0:14)) * sizeof(double). Stored in column major order.

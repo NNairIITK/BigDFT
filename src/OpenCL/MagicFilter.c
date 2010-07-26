@@ -153,6 +153,37 @@ barrier(CLK_LOCAL_MEM_FENCE);\n\
 filter(tt,tmp);\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
+__kernel void magicfiltergrow1d_denKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
+size_t ig = get_global_id(0);\n\
+size_t jg = get_global_id(1);\n\
+const size_t i2 = get_local_id(0);\n\
+const size_t j2 = get_local_id(1);\n\
+ptrdiff_t igt = get_group_id(0);\n\
+ptrdiff_t jgt = get_group_id(1);\n\
+//if data are ill dimentioned last block recomputes part of the data\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+igt = ig - i2 + j2 - FILTER_WIDTH/2 - 7;\n\
+jgt = jg - j2 + i2;\n\
+//If I'm on the outside, select a border element to load\n\
+if ( igt < 0 ) \n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = 0.0;\n\
+else \n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + igt * ndat];\n\
+igt += FILTER_WIDTH;\n\
+if ( igt >= n - 15 ) \n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = 0.0;\n\
+else\n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
+double tt = 0.0;\n\
+tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+\
+filter(tt,tmp);\n\
+out[(jg*n+ig)]=tt*tt;\n\
+};\n\
 __kernel void magicfiltergrow1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global const double *pot, __global double *out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
@@ -445,6 +476,8 @@ void create_magicfilter_kernels(struct bigdft_kernels * kernels){
     cl_int ciErrNum = CL_SUCCESS;
     kernels->magicfiltergrow1d_kernel_d=clCreateKernel(magicfilterProgram,"magicfiltergrow1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create magicfiltergrow1dKernel_d kernel!");
+    kernels->magicfiltergrow1d_den_kernel_d=clCreateKernel(magicfilterProgram,"magicfiltergrow1d_denKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create magicfiltergrow1d_denKernel_d kernel!");
     kernels->magicfiltershrink1d_kernel_d=clCreateKernel(magicfilterProgram,"magicfiltershrink1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create magicfiltershrink1dKernel_d kernel!");
     kernels->magicfiltergrow1d_pot_kernel_d=clCreateKernel(magicfilterProgram,"magicfiltergrow1d_potKernel_d",&ciErrNum);
@@ -567,6 +600,36 @@ void FC_FUNC_(magicfilter_den_d,MAGICFILTER_DEN_D)(bigdft_command_queue *command
     magicfilter_generic((*command_queue)->kernels.magicfilter1d_den_kernel_d, (*command_queue)->command_queue, &n1, &ndat, tmp, out);
 }
 
+void FC_FUNC_(magicfilter_den_d_generic,MAGICFILTER_DEN_D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *psi, cl_mem *out){
+    cl_uint n1 = dimensions[0]*2;
+    cl_uint n2 = dimensions[1]*2;
+    cl_uint n3 = dimensions[2]*2;
+    if( !periodic[0] ) n1 += 14;
+    if( !periodic[1] ) n2 += 14;
+    if( !periodic[2] ) n3 += 14;
+    cl_uint ndat = n1 * n2;
+    if( periodic[2] ) {
+      magicfilter_generic((*command_queue)->kernels.magicfilter1d_kernel_d, (*command_queue)->command_queue,  &n3, &ndat, psi, out);
+    } else {
+      n3 += 15;
+      magicfilter_generic((*command_queue)->kernels.magicfiltergrow1d_kernel_d, (*command_queue)->command_queue, &n3, &ndat, psi, out);
+    }
+    ndat = n1 * n3;
+    if( periodic[1] ) {
+      magicfilter_generic((*command_queue)->kernels.magicfilter1d_kernel_d, (*command_queue)->command_queue,  &n2, &ndat, out, tmp);
+    } else {
+      n2 += 15;
+      magicfilter_generic((*command_queue)->kernels.magicfiltergrow1d_kernel_d, (*command_queue)->command_queue, &n2, &ndat, out, tmp);
+    }
+    ndat = n2 * n3;
+    if( periodic[0] ) {
+      magicfilter_generic((*command_queue)->kernels.magicfilter1d_den_kernel_d, (*command_queue)->command_queue, &n1, &ndat, tmp, out);
+    } else {
+      n1 += 15;
+      magicfilter_generic((*command_queue)->kernels.magicfiltergrow1d_den_kernel_d, (*command_queue)->command_queue, &n1, &ndat, tmp, out);
+    }
+}
+
 void FC_FUNC_(magicfilter_t_self_d,MAGICFILTER_T_SELF_D)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_mem *psi, cl_mem *out){
     cl_uint n1 = dimensions[0];
     cl_uint n2 = dimensions[1];
@@ -677,6 +740,8 @@ void clean_magicfilter_kernels(struct bigdft_kernels * kernels){
   ciErrNum = clReleaseKernel(kernels->magicfiltershrink1d_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(kernels->magicfiltergrow1d_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(kernels->magicfiltergrow1d_den_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(kernels->magicfiltergrow1d_pot_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
