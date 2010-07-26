@@ -36,9 +36,9 @@ void nanosec(unsigned long long int * t){
 #define BUFFER_DEPTH 256
 
 inline void conv_16_even(double const * source, double * dest){
-  __v2df S0,S1,S2,S3,S4,S5,S6,S7;
-  __v2df F;
-  __v2df D;
+  __m128d S0,S1,S2,S3,S4,S5,S6,S7;
+  __m128d F;
+  __m128d D;
   S0 = _mm_setzero_pd();
   S1 = _mm_setzero_pd();
   S2 = _mm_setzero_pd();
@@ -50,23 +50,23 @@ inline void conv_16_even(double const * source, double * dest){
   unsigned int i = 0;
   do {
     F = _mm_load_pd(filt+i);
-    D = _mm_load_pd(source);
+    D = _mm_load_pd(source+i);
     S0 = _mm_add_pd(S0,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+2);
+    D = _mm_load_pd(source+2+i);
     S1 = _mm_add_pd(S1,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+4);
+    D = _mm_load_pd(source+4+i);
     S2 = _mm_add_pd(S2,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+6);
+    D = _mm_load_pd(source+6+i);
     S3 = _mm_add_pd(S3,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+8);
+    D = _mm_load_pd(source+8+i);
     S4 = _mm_add_pd(S4,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+10);
+    D = _mm_load_pd(source+10+i);
     S5 = _mm_add_pd(S5,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+12);
+    D = _mm_load_pd(source+12+i);
     S6 = _mm_add_pd(S6,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+14);
+    D = _mm_load_pd(source+14+i);
     S7 = _mm_add_pd(S7,_mm_mul_pd(D,F));
-    source+=2;
+//    source+=2;
     i+=2;
   } while (i<16);
   _mm_storel_pd(dest,_mm_hadd_pd(S0,S0));
@@ -81,38 +81,56 @@ inline void conv_16_even(double const * source, double * dest){
 }
 
 inline void conv_16_odd(double const * source, double * dest){
-  __v2df S0,S1,S2,S3,S4,S5,S6,S7;
-  __v2df F;
-  __v2df D;
-  S0 = _mm_set_sd(*(source+1)*filt[0]+*(source+16)*filt[15]);
+  __m128d S0,S1,S2,S3,S4,S5,S6,S7;
+  __m128d F;
+  __m128d D;
+  F = _mm_set_pd(filt[0],filt[15]);
+  S0 = _mm_set_pd(*(source+1),*(source+16));
+  S0 = _mm_mul_pd(S0,F);
+  S1 = _mm_set_pd(*(source+2),*(source+18));
+  S1 = _mm_mul_pd(S1,F);
+  S2 = _mm_set_pd(*(source+3),*(source+20));
+  S2 = _mm_mul_pd(S2,F);
+  S3 = _mm_set_pd(*(source+4),*(source+22));
+  S3 = _mm_mul_pd(S3,F);
+  S4 = _mm_set_pd(*(source+5),*(source+24));
+  S4 = _mm_mul_pd(S4,F);
+  S5 = _mm_set_pd(*(source+6),*(source+26));
+  S5 = _mm_mul_pd(S5,F);
+  S6 = _mm_set_pd(*(source+7),*(source+28));
+  S6 = _mm_mul_pd(S6,F);
+  S7 = _mm_set_pd(*(source+8),*(source+30));
+  S7 = _mm_mul_pd(S7,F);
+  
+/*  S0 = _mm_set_sd(*(source+1)*filt[0]+*(source+16)*filt[15]);
   S1 = _mm_set_sd(*(source+3)*filt[0]+*(source+18)*filt[15]);
   S2 = _mm_set_sd(*(source+5)*filt[0]+*(source+20)*filt[15]);
   S3 = _mm_set_sd(*(source+7)*filt[0]+*(source+22)*filt[15]);
   S4 = _mm_set_sd(*(source+9)*filt[0]+*(source+24)*filt[15]);
   S5 = _mm_set_sd(*(source+11)*filt[0]+*(source+26)*filt[15]);
   S6 = _mm_set_sd(*(source+13)*filt[0]+*(source+28)*filt[15]);
-  S7 = _mm_set_sd(*(source+15)*filt[0]+*(source+30)*filt[15]);
-  source+=2;
+  S7 = _mm_set_sd(*(source+15)*filt[0]+*(source+30)*filt[15]);*/
+//  source+=1;
   unsigned int i = 1;
   do {
     F = _mm_loadu_pd(filt+i);
-    D = _mm_load_pd(source);
+    D = _mm_load_pd(source+1+i);
     S0 = _mm_add_pd(S0,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+2);
+    D = _mm_load_pd(source+3+i);
     S1 = _mm_add_pd(S1,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+4);
+    D = _mm_load_pd(source+5+i);
     S2 = _mm_add_pd(S2,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+6);
+    D = _mm_load_pd(source+7+i);
     S3 = _mm_add_pd(S3,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+8);
+    D = _mm_load_pd(source+9+i);
     S4 = _mm_add_pd(S4,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+10);
+    D = _mm_load_pd(source+11+i);
     S5 = _mm_add_pd(S5,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+12);
+    D = _mm_load_pd(source+13+i);
     S6 = _mm_add_pd(S6,_mm_mul_pd(D,F));
-    D = _mm_load_pd(source+14);
+    D = _mm_load_pd(source+15+i);
     S7 = _mm_add_pd(S7,_mm_mul_pd(D,F));
-    source += 2;
+//    source += 2;
     i += 2;
   } while (i<15);
   _mm_storel_pd(dest+1,_mm_hadd_pd(S0,S0));
@@ -173,7 +191,7 @@ int main(void) {
     for(j=0;j<BUFFER_DEPTH;j++) {
       br+=b[i][j];
       if(fabs(b[i][j]-c[i][j])>1e-10){
-        printf("error %u %u: %lf != %lf!\n",i,j , b[i][j], c[i][j]);
+//        printf("error %u %u: %lf != %lf!\n",i,j , b[i][j], c[i][j]);
      }
     }
   }
