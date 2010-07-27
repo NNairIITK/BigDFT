@@ -1,294 +1,254 @@
-!!****f* BigDFT/exact_exchange_potential
-!! FUNCTION
-!!    Calculate the exact exchange potential
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2009-2010 BigDFT group 
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
-!! AUTHOR
-!!    Luigi Genovese
-!!
-!! SOURCE
-!! 
-!second version, with MPI non-blocking communications
-subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
-     hxh,hyh,hzh,pkernelseq,psi,psir,eexctX)
-  use module_base
-  use module_types
-  use Poisson_Solver
-  use libxc_functionals
-  implicit none
-  character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,nspin
-  real(gp), intent(in) :: hxh,hyh,hzh
-  type(locreg_descriptors), intent(in) :: lr
-  type(orbitals_data), intent(in) :: orbs
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
-  real(dp), dimension(*), intent(in) :: pkernelseq !this kernel should be built in sequential
-  real(gp), intent(out) :: eexctX
-  !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(out) :: XCi
-  !local variables
-  character(len=*), parameter :: subname='exact_exchange_potential_round'
-  integer :: i_all,i_stat,ierr,ispinor,ispsiw,ispin,norb,jpsend,jprecv,ishift,mpirequest,mpirequestr
-  integer :: i1,i2,i3,iorb,iorbs,jorb,jorbs,ispsir,ind3,ind2,ind1i,ind1j,jproc,igran,ngran,norbpm
-  real(gp) :: ehart,zero,hfac,exctXfac,sign,sfac,hfaci,hfacj,kerneloff,hfactor
-  type(workarr_sumrho) :: w
-  integer, dimension(MPI_STATUS_SIZE) :: istatus
-  integer, dimension(:), allocatable :: mpirequests,jsorb
-  real(wp), dimension(:,:,:,:), allocatable :: rp_ij
-  real(wp), dimension(:,:,:,:,:), allocatable :: psir
-  real(wp), dimension(:,:,:,:,:,:), allocatable :: psisr
-
-  !call timing(iproc,'Exchangecorr  ','ON')
-
-  exctXfac = libxc_functionals_exctXfac()
-
-  eexctX=0.0_gp
-
-  if (nspin==2) then
-     sfac=1.0_gp
-  else 
-     sfac=0.5_gp
-  end if
-  hfactor=1/(hxh*hyh*hzh)
-  !orbital quantities
-  allocate(jsorb(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,jsorb,'jsorb',subname)
-  !maximum value of orbitals
-  norbpm=maxval(orbs%norb_par(:))
-  !starting orbital for any processor
-  jsorb(0)=0
-  do jproc=1,nproc-1
-     jsorb(jproc)=jsorb(jproc-1)+orbs%norb_par(jproc-1)
-  end do
-
-  call initialize_work_arrays_sumrho(lr,w)
-  
-  !allocate arrays for the procedure
-  !partial densities with always granularity one
-  allocate(rp_ij(lr%d%n1i,lr%d%n2i,lr%d%n3i,orbs%norbp*(orbs%norbp+1)/2+ndebug),stat=i_stat)
-  call memocc(i_stat,rp_ij,'rp_ij',subname)
-  !final result of the exctX potential
-  allocate(psir(lr%d%n1i,lr%d%n2i,lr%d%n3i,orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
-  !array for round-robin communication
-  allocate(psisr(lr%d%n1i,lr%d%n2i,lr%d%n3i,orbs%nspinor,norbpm,2+ndebug),stat=i_stat)
-  call memocc(i_stat,psisr,'psisr',subname)
-  !array for mpi_requests
-  allocate(mpirequests(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,mpirequests,'mpirequests',subname)
-
-  if (geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor*orbs%norbp,psir)
-  end if
-
-  !uncompress the wavefunction in the real grid 
-  !and copy them on the psir array
-  ispsiw=1
-  do iorb=1,orbs%norbp
-     do ispinor=1,orbs%nspinor
-        call daub_to_isf(lr,w,psi(1,ispinor,iorb),psir(1,1,1,ispinor,iorb))
-     end do
-  end do
-  call deallocate_work_arrays_sumrho(w)
-
-  !copy the psir array in the sending space
-  call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor*orbs%norbp,psir,1,psisr,1)
-
-  !initialise the sending arrays to iproc
-  psisr=real(iproc,wp)
-
-  !for any of the processes send the wavefunctions to the next one (torus topology)
-  do ishift=0,nproc/2
-
-     jprecv=modulo(iproc+ishift+1,nproc)
-     jpsend=modulo(iproc-ishift,nproc)
-     
-     !the tag is associated to the receiving process
-     !first of all, send the psi for the next processor
-     call MPI_ISEND(psisr(1,1,1,1,1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor*orbs%norb_par(iproc),&
-          mpidtypw,jprecv,jprecv,MPI_COMM_WORLD,mpirequest,ierr)
-
-     !build the partial densities between the orbitals of the first processor and the one which has been 
-     !communicated
-     if (ishift == 0 ) then
-        jorbs=iorb
-     else
-        jorbs=1
-     end if
-     ind=0
-     do iorb=1,orbs%norbp
-        do jorb=jorbs,orbs%norb_par(jpsend)
-           !if (orbs%spinsgn(iorb+orbs%isorb) == orbs%spinsgn(jorb+orbs%isorb)) then
-              ind=ind+1
-              !calculate partial density (real functions), no spin-polarisation
-              do i3=1,lr%d%n3i
-                 do i2=1,lr%d%n2i
-                    do i1=1,lr%d%n1i
-                       rp_ij(i1,i2,i3,ind)=hfactor*psir(i1,i2,i3,1,iorb)*psisr(i1,i2,i3,1,jorb,2)
-                    end do
-                 end do
-              end do
-           !end if
-        end do
-     end do
-
-     !now the wavefunctions can be received, psisr not anymore necessary
-     !receive the wavefunctions to avoid deadlocks
-     call MPI_IRECV(psisr(1,1,1,1,1,2),lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor*orbs%norb_par(jpsend),&
-          mpidtypw,jpsend,iproc,MPI_COMM_WORLD,mpirequestr,ierr)
-
-     
-     !the poisson solver can be executed for all the partial densities
-     ind=0
-     do iorb=1,orbs%norbp
-        do jorb=jorbs,orbs%norbp
-           !if (orbs%spinsgn(iorb+orbs%isorb) == orbs%spinsgn(jorb+orbs%isorb)) then
-              ind=ind+1
-              !if (iproc == 0 .and. verbose > 1) then
-              !   write(*,*)'Exact exchange calculation: spin, orbitals:',ispin,iorb,jorb
-              !end if
-              !poisson solver in sequential mode, thus no communications
-              !call H_potential(geocode,'D',0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,hxh,hyh,hzh,&
-              !     rp_ij(1,1,1,ind),pkernelseq,rp_ij,ehart,0.0_dp,.false.,&
-              !     quiet='YES')
-              !hartree energy
-              !this factor is only valid with one k-point
-              !can be easily generalised to the k-point case
-              !here the occupation numbers have to be properly calculated
-              hfac=sfac*orbs%occup(iorb)*orbs%occup(jorb)
-              eexctX=eexctX+2.0_gp*hfac*real(ehart,gp)
-           end if
-        end do
-     end do
-
-     !now the partial potentials are known, they have to be used for building the potential 
-     !either in the present or in the sending processor
-     !fill the exctX potential with the results coming from partial potential
-     ind=0
-     do iorb=1,orbs%norbp
-        do jorb=iorb+1,orbs%norbp
-           if (orbs%spinsgn(iorb+orbs%isorb) == orbs%spinsgn(jorb+orbs%isorb)) then
-              ind=ind+1
-              !this factor is only valid with one k-point
-              !we have to correct with the kwgts if we want more than one k-point
-              hfaci=-sfac*orbs%occup(jorb)
-              hfacj=-sfac*orbs%occup(iorb)
-
-              !accumulate the results for each of the wavefunctions concerned
-              do i3=1,lr%d%n3i
-                 do i2=1,lr%d%n2i
-                    do i1=1,lr%d%n1i
-                       psir(i1,i2,i3,1,iorb)=psir(i1,i2,i3,1,iorb)+&
-                            hfaci*rp_ij(i1,i2,i3,ind)*psiw(i1,i2,i3,1,jorb)
-                       psir(i1,i2,i3,1,jorb)=psir(i1,i2,i3,1,jorb)+&
-                            hfacj*rp_ij(i1,i2,i3,ind)*psiw(i1,i2,i3,1,iorb)
-                    end do
-                 end do
-              end do
-           end if
-        end do
-     end do
-
+!!$!!****f* BigDFT/exact_exchange_potential
+!!$!! FUNCTION
+!!$!!    Calculate the exact exchange potential
+!!$!!
+!!$!! COPYRIGHT
+!!$!!    Copyright (C) 2009-2010 BigDFT group 
+!!$!!    This file is distributed under the terms of the
+!!$!!    GNU General Public License, see ~/COPYING file
+!!$!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!$!!    For the list of contributors, see ~/AUTHORS 
+!!$!!
+!!$!! AUTHOR
+!!$!!    Luigi Genovese
+!!$!!
+!!$!! SOURCE
+!!$!! 
+!!$!second version, with MPI non-blocking communications
+!!$subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
+!!$     hxh,hyh,hzh,pkernelseq,psi,psir,eexctX)
+!!$  use module_base
+!!$  use module_types
+!!$  use Poisson_Solver
+!!$  use libxc_functionals
+!!$  implicit none
+!!$  character(len=1), intent(in) :: geocode
+!!$  integer, intent(in) :: iproc,nproc,nspin
+!!$  real(gp), intent(in) :: hxh,hyh,hzh
+!!$  type(locreg_descriptors), intent(in) :: lr
+!!$  type(orbitals_data), intent(in) :: orbs
+!!$  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+!!$  real(dp), dimension(*), intent(in) :: pkernelseq !this kernel should be built in sequential
+!!$  real(gp), intent(out) :: eexctX
+!!$  !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(out) :: XCi
+!!$  !local variables
+!!$  character(len=*), parameter :: subname='exact_exchange_potential_round'
+!!$  integer :: i_all,i_stat,ierr,ispinor,ispsiw,ispin,norb,jpsend,jprecv,ishift,mpirequest,mpirequestr
+!!$  integer :: i1,i2,i3,iorb,iorbs,jorb,jorbs,ispsir,ind3,ind2,ind1i,ind1j,jproc,igran,ngran,norbpm
+!!$  real(gp) :: ehart,zero,hfac,exctXfac,sign,sfac,hfaci,hfacj,kerneloff,hfactor
+!!$  type(workarr_sumrho) :: w
+!!$  integer, dimension(MPI_STATUS_SIZE) :: istatus
+!!$  integer, dimension(:), allocatable :: mpirequests,jsorb
+!!$  real(wp), dimension(:,:,:,:), allocatable :: rp_ij
+!!$  real(wp), dimension(:,:,:,:,:), allocatable :: psir
+!!$  real(wp), dimension(:,:,:,:,:,:), allocatable :: psisr
 !!$
-
-     !the exact exchange energy is half the Hartree energy (which already has another half)
-     eexctX=-exctXfac*eexctX
-
-     if (iproc == 0) write(*,'(a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
-     
-     
-     !wait until the transfer has completed (data have been received)
-     call MPI_WAIT(mpirequestr,istatus)     
-     !verify the difference with the wavefunctions
-     hfac=0.0_wp
-     loop_check : do iorb=1,orbs%norb_par(jpsend)
-        do i3=1,lr%d%n3i
-           do i2=1,lr%d%n2i
-              do i1=1,lr%d%n1i
-                 hfac=max(hfac,psisr(i1,i2,i3,1,iorb,2)-real(jpsend,wp))
-                 if (hfac/=0.0_wp) exit loop_check
-              end do
-           end do
-        end do
-     end do loop_check
-     
-     if (hfac /= 0.0_wp) then
-        print *,'error from ',jpsend,' to ',iproc,' in: ',i1,i2,i3,iorb,' :',hfac,psisr(i1,i2,i3,1,iorb,2)
-     else
-        print *,'maxdiff,iproc',iproc,ishift,jpsend,jprecv,hfac
-     end if
-  end do
-
-  i_all=-product(shape(rp_ij))*kind(rp_ij)
-  deallocate(rp_ij,stat=i_stat)
-  call memocc(i_stat,i_all,'rp_ij',subname)
-  
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
-  i_all=-product(shape(psisr))*kind(psisr)
-  deallocate(psisr,stat=i_stat)
-  call memocc(i_stat,i_all,'psisr',subname)
-  i_all=-product(shape(mpirequests))*kind(mpirequests)
-  deallocate(mpirequests,stat=i_stat)
-  call memocc(i_stat,i_all,'mpirequests',subname)
-  i_all=-product(shape(jsorb))*kind(jsorb)
-  deallocate(jsorb,stat=i_stat)
-  call memocc(i_stat,i_all,'jsorb',subname)
-
-
-stop
-  
-  !build the partial densities for the poisson solver, calculate the partial potential
-  !and accumulate the result
-
-
-!!$  !construct the diagonal part of the XC potential
+!!$  !call timing(iproc,'Exchangecorr  ','ON')
+!!$
+!!$  exctXfac = libxc_functionals_exctXfac()
+!!$
+!!$  eexctX=0.0_gp
+!!$
+!!$  if (nspin==2) then
+!!$     sfac=1.0_gp
+!!$  else 
+!!$     sfac=0.5_gp
+!!$  end if
+!!$  hfactor=1/(hxh*hyh*hzh)
+!!$  !orbital quantities
+!!$  allocate(jsorb(0:nproc-1+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,jsorb,'jsorb',subname)
+!!$  !maximum value of orbitals
+!!$  norbpm=maxval(orbs%norb_par(:))
+!!$  !starting orbital for any processor
+!!$  jsorb(0)=0
+!!$  do jproc=1,nproc-1
+!!$     jsorb(jproc)=jsorb(jproc-1)+orbs%norb_par(jproc-1)
+!!$  end do
+!!$
+!!$  call initialize_work_arrays_sumrho(lr,w)
+!!$  
+!!$  !allocate arrays for the procedure
+!!$  !partial densities with always granularity one
+!!$  allocate(rp_ij(lr%d%n1i,lr%d%n2i,lr%d%n3i,orbs%norbp*(orbs%norbp+1)/2+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,rp_ij,'rp_ij',subname)
+!!$  !final result of the exctX potential
+!!$  allocate(psir(lr%d%n1i,lr%d%n2i,lr%d%n3i,orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,psir,'psir',subname)
+!!$  !array for round-robin communication
+!!$  allocate(psisr(lr%d%n1i,lr%d%n2i,lr%d%n3i,orbs%nspinor,norbpm,2+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,psisr,'psisr',subname)
+!!$  !array for mpi_requests
+!!$  allocate(mpirequests(0:nproc-1+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,mpirequests,'mpirequests',subname)
+!!$
+!!$  if (geocode == 'F') then
+!!$     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor*orbs%norbp,psir)
+!!$  end if
+!!$
+!!$  !uncompress the wavefunction in the real grid 
+!!$  !and copy them on the psir array
+!!$  ispsiw=1
 !!$  do iorb=1,orbs%norbp
-!!$     !calculate partial density (real functions), no spin-polarisation
-!!$     do i3=1,lr%d%n3i
-!!$        do i2=1,lr%d%n2i
-!!$           do i1=1,lr%d%n1i
-!!$              psir(i1,i2,i3,1,iorb)=hfactor*psiw(i1,i2,i3,1,iorb)**2
-!!$           end do
-!!$        end do
-!!$     end do
-!!$     !partial exchange term for each partial density
-!!$     if (iproc == 0 .and. verbose > 1) then
-!!$        write(*,*)'Exact exchange calculation: spin, orbitals:',ispin,iorb,jorb
-!!$     end if
-!!$     !poisson solver in sequential mode, thus no communications
-!!$     call H_potential(geocode,'D',0,1,&
-!!$          lr%d%n1i,lr%d%n2i,lr%d%n3i,hxh,hyh,hzh,&
-!!$          psir(1,1,1,1,iorb),pkernelseq,rp_ij,ehart,0.0_dp,.false.,&
-!!$          quiet='YES')
-!!$     !hartree energy
-!!$     !this factor is only valid with one k-point
-!!$     !can be easily generalised to the k-point case
-!!$     hfac=sfac*orbs%occup(iorb)**2
-!!$     eexctX=eexctX+hfac*real(ehart,gp)
-!!$     !accumulate the results for each of the wavefunctions concerned
-!!$     hfac=-sfac*orbs%occup(iorb)
-!!$     do i3=1,lr%d%n3i
-!!$        do i2=1,lr%d%n2i
-!!$           do i1=1,lr%d%n1i
-!!$              psir(i1,i2,i3,1,iorb)=hfacj*psir(i1,i2,i3,1,iorb)*psiw(i1,i2,i3,1,iorb)
-!!$           end do
-!!$        end do
+!!$     do ispinor=1,orbs%nspinor
+!!$        call daub_to_isf(lr,w,psi(1,ispinor,iorb),psir(1,1,1,ispinor,iorb))
 !!$     end do
 !!$  end do
+!!$  call deallocate_work_arrays_sumrho(w)
+!!$
+!!$  !copy the psir array in the sending space
+!!$  call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor*orbs%norbp,psir,1,psisr,1)
+!!$
+!!$  !initialise the sending arrays to iproc
+!!$  psisr=real(iproc,wp)
+!!$
+!!$  !for any of the processes send the wavefunctions to the next one (torus topology)
+!!$  do ishift=0,nproc/2
+!!$
+!!$     jprecv=modulo(iproc+ishift+1,nproc)
+!!$     jpsend=modulo(iproc-ishift,nproc)
+!!$     
+!!$     !the tag is associated to the receiving process
+!!$     !first of all, send the psi for the next processor
+!!$     call MPI_ISEND(psisr(1,1,1,1,1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor*orbs%norb_par(iproc),&
+!!$          mpidtypw,jprecv,jprecv,MPI_COMM_WORLD,mpirequest,ierr)
+!!$
+!!$     !build the partial densities between the orbitals of the first processor and the one which has been 
+!!$     !communicated
+!!$     if (ishift == 0 ) then
+!!$        jorbs=iorb
+!!$     else
+!!$        jorbs=1
+!!$     end if
+!!$     ind=0
+!!$     do iorb=1,orbs%norbp
+!!$        do jorb=jorbs,orbs%norb_par(jpsend)
+!!$           !if (orbs%spinsgn(iorb+orbs%isorb) == orbs%spinsgn(jorb+orbs%isorb)) then
+!!$              ind=ind+1
+!!$              !calculate partial density (real functions), no spin-polarisation
+!!$              do i3=1,lr%d%n3i
+!!$                 do i2=1,lr%d%n2i
+!!$                    do i1=1,lr%d%n1i
+!!$                       rp_ij(i1,i2,i3,ind)=hfactor*psir(i1,i2,i3,1,iorb)*psisr(i1,i2,i3,1,jorb,2)
+!!$                    end do
+!!$                 end do
+!!$              end do
+!!$           !end if
+!!$        end do
+!!$     end do
+!!$
+!!$     !now the wavefunctions can be received, psisr not anymore necessary
+!!$     !receive the wavefunctions to avoid deadlocks
+!!$     call MPI_IRECV(psisr(1,1,1,1,1,2),lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor*orbs%norb_par(jpsend),&
+!!$          mpidtypw,jpsend,iproc,MPI_COMM_WORLD,mpirequestr,ierr)
+!!$
+!!$     
+!!$     !the poisson solver can be executed for all the partial densities
+!!$     ind=0
+!!$     do iorb=1,orbs%norbp
+!!$        do jorb=jorbs,orbs%norbp
+!!$           !if (orbs%spinsgn(iorb+orbs%isorb) == orbs%spinsgn(jorb+orbs%isorb)) then
+!!$              ind=ind+1
+!!$              !if (iproc == 0 .and. verbose > 1) then
+!!$              !   write(*,*)'Exact exchange calculation: spin, orbitals:',ispin,iorb,jorb
+!!$              !end if
+!!$              !poisson solver in sequential mode, thus no communications
+!!$              !call H_potential(geocode,'D',0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,hxh,hyh,hzh,&
+!!$              !     rp_ij(1,1,1,ind),pkernelseq,rp_ij,ehart,0.0_dp,.false.,&
+!!$              !     quiet='YES')
+!!$              !hartree energy
+!!$              !this factor is only valid with one k-point
+!!$              !can be easily generalised to the k-point case
+!!$              !here the occupation numbers have to be properly calculated
+!!$              hfac=sfac*orbs%occup(iorb)*orbs%occup(jorb)
+!!$              eexctX=eexctX+2.0_gp*hfac*real(ehart,gp)
+!!$           end if
+!!$        end do
+!!$     end do
+!!$
+!!$     !now the partial potentials are known, they have to be used for building the potential 
+!!$     !either in the present or in the sending processor
+!!$     !fill the exctX potential with the results coming from partial potential
+!!$     ind=0
+!!$     do iorb=1,orbs%norbp
+!!$        do jorb=iorb+1,orbs%norbp
+!!$           if (orbs%spinsgn(iorb+orbs%isorb) == orbs%spinsgn(jorb+orbs%isorb)) then
+!!$              ind=ind+1
+!!$              !this factor is only valid with one k-point
+!!$              !we have to correct with the kwgts if we want more than one k-point
+!!$              hfaci=-sfac*orbs%occup(jorb)
+!!$              hfacj=-sfac*orbs%occup(iorb)
+!!$
+!!$              !accumulate the results for each of the wavefunctions concerned
+!!$              do i3=1,lr%d%n3i
+!!$                 do i2=1,lr%d%n2i
+!!$                    do i1=1,lr%d%n1i
+!!$                       psir(i1,i2,i3,1,iorb)=psir(i1,i2,i3,1,iorb)+&
+!!$                            hfaci*rp_ij(i1,i2,i3,ind)*psiw(i1,i2,i3,1,jorb)
+!!$                       psir(i1,i2,i3,1,jorb)=psir(i1,i2,i3,1,jorb)+&
+!!$                            hfacj*rp_ij(i1,i2,i3,ind)*psiw(i1,i2,i3,1,iorb)
+!!$                    end do
+!!$                 end do
+!!$              end do
+!!$           end if
+!!$        end do
+!!$     end do
+!!$
 
 !!$
-!!$  !the partial densities are built, calculate partial potentials
-!!$  ind=0
+!!$     !the exact exchange energy is half the Hartree energy (which already has another half)
+!!$     eexctX=-exctXfac*eexctX
 !!$
-
-end subroutine exact_exchange_potential_round
+!!$     if (iproc == 0) write(*,'(a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
+!!$     
+!!$     
+!!$     !wait until the transfer has completed (data have been received)
+!!$     call MPI_WAIT(mpirequestr,istatus)     
+!!$     !verify the difference with the wavefunctions
+!!$     hfac=0.0_wp
+!!$     loop_check : do iorb=1,orbs%norb_par(jpsend)
+!!$        do i3=1,lr%d%n3i
+!!$           do i2=1,lr%d%n2i
+!!$              do i1=1,lr%d%n1i
+!!$                 hfac=max(hfac,psisr(i1,i2,i3,1,iorb,2)-real(jpsend,wp))
+!!$                 if (hfac/=0.0_wp) exit loop_check
+!!$              end do
+!!$           end do
+!!$        end do
+!!$     end do loop_check
+!!$     
+!!$     if (hfac /= 0.0_wp) then
+!!$        print *,'error from ',jpsend,' to ',iproc,' in: ',i1,i2,i3,iorb,' :',hfac,psisr(i1,i2,i3,1,iorb,2)
+!!$     else
+!!$        print *,'maxdiff,iproc',iproc,ishift,jpsend,jprecv,hfac
+!!$     end if
+!!$  end do
+!!$
+!!$  i_all=-product(shape(rp_ij))*kind(rp_ij)
+!!$  deallocate(rp_ij,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'rp_ij',subname)
+!!$  
+!!$  i_all=-product(shape(psir))*kind(psir)
+!!$  deallocate(psir,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'psir',subname)
+!!$  i_all=-product(shape(psisr))*kind(psisr)
+!!$  deallocate(psisr,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'psisr',subname)
+!!$  i_all=-product(shape(mpirequests))*kind(mpirequests)
+!!$  deallocate(mpirequests,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'mpirequests',subname)
+!!$  i_all=-product(shape(jsorb))*kind(jsorb)
+!!$  deallocate(jsorb,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'jsorb',subname)
+!!$
+!!$
+!!$stop
+!!$  
+!!$  !build the partial densities for the poisson solver, calculate the partial potential
+!!$  !and accumulate the result
+!!$
+!!$
+!!$end subroutine exact_exchange_potential_round
 
 subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p,&
      hxh,hyh,hzh,pkernel,psi,psir,eexctX)

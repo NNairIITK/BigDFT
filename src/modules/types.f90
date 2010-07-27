@@ -43,6 +43,9 @@ module module_types
      logical ::  c_absorbtion , abscalc_alterpot, abscalc_eqdiff 
      integer ::  potshortcut
      integer ::  nsteps
+     character(len=100) :: extraOrbital
+   
+
 
      ! Frequencies calculations (finite difference)
      real(gp) :: freq_alpha

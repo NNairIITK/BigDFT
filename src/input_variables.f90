@@ -876,11 +876,16 @@ subroutine abscalc_input_variables(iproc,filename,in)
   
   read(iunit,*,iostat=ierror)  in%nsteps
   call check()
+
+  if( iand( in%potshortcut,4)>0) then
+     read(iunit,'(a100)',iostat=ierror) in%extraOrbital
+  end if
+
+
   
   read(iunit,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
-
   if(ierror==0) then
-     
+
   else
      in%abscalc_alterpot=.false.
      in%abscalc_eqdiff =.false.
