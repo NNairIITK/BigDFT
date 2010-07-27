@@ -1059,8 +1059,8 @@ subroutine conv_kin_z(x,y,n1,n2,n3,ekin,fil,mod_arr3)
   integer, intent(in) :: n1,n2,n3
   real(wp), intent(in) :: fil(lowfil:lupfil,3) 
   integer, intent(in) :: mod_arr3(lowfil:n3+lupfil)
-  real(wp),intent(in) :: x((n2+1)*(n1+1),0:n1)
-  real(wp),intent(inout) :: y((n2+1)*(n1+1),0:n1)
+  real(wp),intent(in) :: x((n2+1)*(n1+1),0:n3)
+  real(wp),intent(inout) :: y((n2+1)*(n1+1),0:n3)
   real(wp),intent(inout) :: ekin
   real(wp) :: tt,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
   integer :: ndat
@@ -1085,6 +1085,8 @@ subroutine conv_kin_z(x,y,n1,n2,n3,ekin,fil,mod_arr3)
 
         do l=lowfil,lupfil
            j=mod_arr3(i3+l)
+
+           !print *,'j,mod_arr',j,'aa',mod_arr3(:)
 
            tt1=tt1+x(i*12+1,j)*fil(l,3)
            tt2=tt2+x(i*12+2,j)*fil(l,3)
@@ -1137,7 +1139,7 @@ subroutine fill_mod_arr(arr,nleft,nright,n)
   integer,intent(out) :: arr(nleft:nright)
   integer :: i
   
-  if (nleft.ge.-n) then
+  if (nleft >= -n) then
      do i=nleft,-1
         arr(i)=n+i
      enddo
@@ -1151,7 +1153,7 @@ subroutine fill_mod_arr(arr,nleft,nright,n)
      arr(i)=i
   enddo
   
-  if (nright.lt.2*n) then
+  if (nright < 2*n) then
      do i=n,nright
         arr(i)=i-n
      enddo
