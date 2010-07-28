@@ -3,8 +3,8 @@ subroutine release_acceleration_OCL(GPU)
   use module_types
   implicit none
   type(GPU_pointers), intent(out) :: GPU
-
-  call ocl_clean(GPU%queue,GPU%context)
+  call ocl_clean_command_queue(GPU%queue)
+  call ocl_clean(GPU%context)
 end subroutine release_acceleration_OCL
 
 subroutine init_acceleration_OCL(GPU)
@@ -15,8 +15,8 @@ subroutine init_acceleration_OCL(GPU)
 
   call ocl_create_gpu_context(GPU%context)
   !call ocl_create_command_queue(GPU%queue,GPU%context)
+  call ocl_build_programs(GPU%context)
   call ocl_create_command_queue_id(GPU%queue,GPU%context,GPU%id_proc)
-  call ocl_build_kernels(GPU%context)
   call init_event_list
 end subroutine init_acceleration_OCL
 
@@ -144,12 +144,11 @@ subroutine free_gpu_OCL(GPU,norbp)
 end subroutine free_gpu_OCL
 
 
-subroutine local_hamiltonian_OCL(iproc,orbs,geocode,lr,hx,hy,hz,&
+subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
      nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nspin
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
@@ -170,17 +169,17 @@ subroutine local_hamiltonian_OCL(iproc,orbs,geocode,lr,hx,hy,hz,&
   integer :: n1, n2, n3
   real(gp) :: epot, ekin
 
-  if (geocode /= 'F') then
+  if (lr%geocode /= 'F') then
     periodic(1) = 1
   else
     periodic(1) = 0
   endif
-  if (geocode == 'P') then
+  if (lr%geocode == 'P') then
     periodic(2) = 1
   else
     periodic(2) = 0
   endif 
-  if (geocode /= 'F') then
+  if (lr%geocode /= 'F') then
     periodic(3) = 1
   else
     periodic(3) = 0
@@ -263,6 +262,7 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
   real(wp) :: scpr
   type(GPU_pointers), intent(inout) :: GPU
   type(workarr_precond) :: w
+  integer, dimension(3) :: periodic
   real(wp), dimension(:,:), allocatable :: b
   real(gp), dimension(0:7) :: scal
   !stream ptr array
@@ -270,6 +270,22 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
 
   ncplx=1
   
+  if (lr%geocode /= 'F') then
+    periodic(1) = 1
+  else
+    periodic(1) = 0
+  endif
+  if (lr%geocode == 'P') then
+    periodic(2) = 1
+  else
+    periodic(2) = 0
+  endif 
+  if (lr%geocode /= 'F') then
+    periodic(3) = 1
+  else
+    periodic(3) = 0
+  endif
+
   call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
 
   if (lr%wfd%nvctr_f > 0) then
@@ -303,8 +319,9 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
         call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f_b,7*lr%wfd%nvctr_f*orbs%nspinor*8,&
              b(isf,iorb))
 
-        call ocl_preconditioner(GPU%queue,&
+        call ocl_preconditioner_generic(GPU%queue,&
                                 (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
+                                (/periodic(1),periodic(2),periodic(3)/),&
                                 (/0.5_gp*hx,0.5_gp*hy,0.5_gp*hz/),&
                                 0.5_wp,&
                                 ncong,&
@@ -354,7 +371,23 @@ subroutine local_partial_density_OCL(iproc,nproc,orbs,&
   integer:: iorb,i_stat,isf,iaddjmp
   real(kind=8) :: stream_ptr
   real(gp) :: hfac
+  integer, dimension(3) :: periodic
 
+  if (lr%geocode /= 'F') then
+    periodic(1) = 1
+  else
+    periodic(1) = 0
+  endif
+  if (lr%geocode == 'P') then
+    periodic(2) = 1
+  else
+    periodic(2) = 0
+  endif 
+  if (lr%geocode /= 'F') then
+    periodic(3) = 1
+  else
+    periodic(3) = 0
+  endif
 
   if (lr%wfd%nvctr_f > 0) then
      isf=lr%wfd%nvctr_c+1
@@ -375,10 +408,11 @@ subroutine local_partial_density_OCL(iproc,nproc,orbs,&
     if (orbs%spinsgn(min(orbs%isorb+1,orbs%norb)+iorb-1) > 0.0) then
       iaddjmp = 0
     else
-      iaddjmp = 8*(lr%d%n1+1)*(lr%d%n2+1)*(lr%d%n3+1)
+      iaddjmp = (lr%d%n1i)*(lr%d%n2i)*(lr%d%n3i)
     endif
   !calculate the density
-   call ocl_locden(GPU%queue, (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
+   call ocl_locden_generic(GPU%queue, (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
+                          (/periodic(1),periodic(2),periodic(3)/),&
                           hfac, iaddjmp,&
                           lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
                           lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,&

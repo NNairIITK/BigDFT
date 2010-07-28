@@ -632,7 +632,7 @@ subroutine hit_with_kernel_spectra(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,
 ! The latter thing could be done separately by the subroutine z3_to_z1 that is contained
 ! in FFT_back, but then the code would be slower.
 
-  !$omp parallel default (private) shared(z1,z3,kern_k1,kern_k2,kern_k3,c)&
+  !$omp parallel default (private) shared(z1,z3,kern_k1,kern_k2,kern_k3)&
   !$omp shared(n1b,n3f,inzee,n1,n2,n3)
 
   ! i3=1: then z1 is contained in z3 

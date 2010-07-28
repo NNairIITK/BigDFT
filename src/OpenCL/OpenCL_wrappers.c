@@ -29,24 +29,25 @@ cl_device_id oclGetFirstDev(cl_context cxGPUContext)
     return first;
 }
 
-void FC_FUNC_(ocl_build_kernels,OCL_BUILD_KERNELS)(cl_context * context) {
+void FC_FUNC_(ocl_build_programs,OCL_BUILD_PROGRAMS)(cl_context * context) {
     build_magicfilter_programs(context);
-    create_magicfilter_kernels();
     build_benchmark_programs(context);
-    create_benchmark_kernels();
     build_kinetic_programs(context);
-    create_kinetic_kernels();
     build_wavelet_programs(context);
-    create_wavelet_kernels();
     build_uncompress_programs(context);
-    create_uncompress_kernels();
     build_initialize_programs(context);
-    create_initialize_kernels();
     build_reduction_programs(context);
-    create_reduction_kernels();
 }
 
-
+void create_kernels(struct bigdft_kernels *kernels){
+    create_magicfilter_kernels(kernels);
+    create_benchmark_kernels(kernels);
+    create_kinetic_kernels(kernels);
+    create_wavelet_kernels(kernels);
+    create_uncompress_kernels(kernels);
+    create_initialize_kernels(kernels);
+    create_reduction_kernels(kernels);
+}
 
 void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(cl_context * context) {
     cl_int ciErrNum = CL_SUCCESS;
@@ -119,69 +120,83 @@ void FC_FUNC_(ocl_release_mem_object,OCL_RELEASE_MEM_OBJECT)(cl_mem *buff_ptr) {
     oclErrorCheck(ciErrNum,"Failed to release buffer!");
 }
 
-void FC_FUNC_(ocl_enqueue_read_buffer,OCL_ENQUEUE_READ_BUFFER)(cl_command_queue *command_queue, cl_mem *buffer, cl_uint *size, void *ptr){
+void FC_FUNC_(ocl_enqueue_read_buffer,OCL_ENQUEUE_READ_BUFFER)(bigdft_command_queue *command_queue, cl_mem *buffer, cl_uint *size, void *ptr){
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
-    printf("command queue: %p, memory address: %p, size: %lu, target: %p\n",*command_queue,*buffer,(long unsigned)*size, ptr);
+    printf("command queue: %p, memory address: %p, size: %lu, target: %p\n",(*command_queue)->command_queue,*buffer,(long unsigned)*size, ptr);
 #endif
-    cl_int ciErrNum = clEnqueueReadBuffer( *command_queue, *buffer, CL_TRUE, 0, *size, ptr, 0, NULL, NULL);
+    cl_int ciErrNum = clEnqueueReadBuffer( (*command_queue)->command_queue, *buffer, CL_TRUE, 0, *size, ptr, 0, NULL, NULL);
     oclErrorCheck(ciErrNum,"Failed to enqueue read buffer!");
 }
 
-void FC_FUNC_(ocl_enqueue_write_buffer,OCL_ENQUEUE_WRITE_BUFFER)(cl_command_queue *command_queue, cl_mem *buffer, cl_uint *size, const void *ptr){
+void FC_FUNC_(ocl_enqueue_write_buffer,OCL_ENQUEUE_WRITE_BUFFER)(bigdft_command_queue *command_queue, cl_mem *buffer, cl_uint *size, const void *ptr){
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
-    printf("command queue: %p, memory address: %p, size: %lu, source: %p\n",*command_queue,*buffer,(long unsigned)*size, ptr);
+    printf("command queue: %p, memory address: %p, size: %lu, source: %p\n",(*command_queue)->command_queue,*buffer,(long unsigned)*size, ptr);
 #endif
-    cl_int ciErrNum = clEnqueueWriteBuffer( *command_queue, *buffer, CL_TRUE, 0, *size, ptr, 0, NULL, NULL);
+    cl_int ciErrNum = clEnqueueWriteBuffer( (*command_queue)->command_queue, *buffer, CL_TRUE, 0, *size, ptr, 0, NULL, NULL);
     oclErrorCheck(ciErrNum,"Failed to enqueue write buffer!");
 }
 
-void FC_FUNC_(ocl_create_command_queue,OCL_CREATE_COMMAND_QUEUE)(cl_command_queue *hCmdQueue, cl_context *context){
-    size_t nContextDescriptorSize;
+void FC_FUNC_(ocl_create_command_queue,OCL_CREATE_COMMAND_QUEUE)(bigdft_command_queue *command_queue, cl_context *context){
     cl_int ciErrNum;
+    cl_uint device_number;
+    *command_queue = (struct _bigdft_command_queue *)malloc(sizeof(struct _bigdft_command_queue));
+    if(*command_queue == NULL) {
+      fprintf(stderr,"Error: Failed to create command queue (out of memory)!\n");
+      exit(1);
+    }
+#if __OPENCL_VERSION__ <= CL_VERSION_1_0
+    size_t nContextDescriptorSize; 
     clGetContextInfo(*context, CL_CONTEXT_DEVICES, 0, 0, &nContextDescriptorSize);
-    cl_device_id * aDevices = (cl_device_id *) malloc(nContextDescriptorSize);
-    clGetContextInfo(*context, CL_CONTEXT_DEVICES, nContextDescriptorSize, aDevices, 0);
-    // create a command queue for first device the context reported
-#if PROFILING
-    *hCmdQueue = clCreateCommandQueue(*context, aDevices[0], CL_QUEUE_PROFILING_ENABLE, &ciErrNum);
+    device_number = nContextDescriptorSize/sizeof(cl_device_id);
 #else
-    *hCmdQueue = clCreateCommandQueue(*context, aDevices[0], 0, &ciErrNum);
+    clGetContextInfo(*context, CL_CONTEXT_NUM_DEVICES, sizeof(device_number), &device_number, NULL);
+#endif
+    cl_device_id * aDevices = (cl_device_id *) malloc(sizeof(cl_device_id)*device_number);
+    clGetContextInfo(*context, CL_CONTEXT_DEVICES, sizeof(cl_device_id)*device_number, aDevices, 0);
+#if PROFILING
+    (*command_queue)->command_queue = clCreateCommandQueue(*context, aDevices[0], CL_QUEUE_PROFILING_ENABLE, &ciErrNum);
+#else
+    (*command_queue)->command_queue = clCreateCommandQueue(*context, aDevices[0], 0, &ciErrNum);
 #endif
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
-    printf("contexte address: %p, command queue: %p\n",*context, *hCmdQueue);
+    printf("contexte address: %p, command queue: %p\n",*context, (*command_queue)->command_queue);
 #endif
-    if (ciErrNum != CL_SUCCESS)
-    {
-        fprintf(stderr,"Error: Failed to create command queue!\n");
-        exit(1);
-    }
+    oclErrorCheck(ciErrNum,"Failed to create command queue!");
+    create_kernels(&((*command_queue)->kernels));
 }
 
-void FC_FUNC_(ocl_create_command_queue_id,OCL_CREATE_COMMAND_QUEUE_ID)(cl_command_queue *hCmdQueue, cl_context *context, cl_uint *index){
-    size_t nContextDescriptorSize;
+void FC_FUNC_(ocl_create_command_queue_id,OCL_CREATE_COMMAND_QUEUE_ID)(bigdft_command_queue *command_queue, cl_context *context, cl_uint *index){
     cl_int ciErrNum;
+    cl_uint device_number;
+    *command_queue = (struct _bigdft_command_queue *)malloc(sizeof(struct _bigdft_command_queue));
+    if(*command_queue == NULL) {
+      fprintf(stderr,"Error: Failed to create command queue (out of memory)!\n");
+      exit(1);
+    }
+#if __OPENCL_VERSION__ <= CL_VERSION_1_0
+    size_t nContextDescriptorSize; 
     clGetContextInfo(*context, CL_CONTEXT_DEVICES, 0, 0, &nContextDescriptorSize);
-    cl_device_id * aDevices = (cl_device_id *) malloc(nContextDescriptorSize);
-    clGetContextInfo(*context, CL_CONTEXT_DEVICES, nContextDescriptorSize, aDevices, 0);
-#if PROFILING
-    *hCmdQueue = clCreateCommandQueue(*context, aDevices[*index % (nContextDescriptorSize/sizeof(cl_device_id))], CL_QUEUE_PROFILING_ENABLE, &ciErrNum);
+    device_number = nContextDescriptorSize/sizeof(cl_device_id);
 #else
-    *hCmdQueue = clCreateCommandQueue(*context, aDevices[*index % (nContextDescriptorSize/sizeof(cl_device_id))], 0, &ciErrNum);
-    /*printf("Queue created index : %d, gpu chosen :%ld, gpu number : %ld\n", *index, *index %
-	   (nContextDescriptorSize/sizeof(cl_device_id)), nContextDescriptorSize/sizeof(cl_device_id)); */
+    clGetContextInfo(*context, CL_CONTEXT_NUM_DEVICES, sizeof(device_number), &device_number, NULL);
+#endif
+    cl_device_id * aDevices = (cl_device_id *) malloc(sizeof(cl_device_id)*device_number);
+    clGetContextInfo(*context, CL_CONTEXT_DEVICES, sizeof(cl_device_id)*device_number, aDevices, 0);
+#if PROFILING
+    (*command_queue)->command_queue = clCreateCommandQueue(*context, aDevices[*index % device_number], CL_QUEUE_PROFILING_ENABLE, &ciErrNum);
+#else
+    (*command_queue)->command_queue = clCreateCommandQueue(*context, aDevices[*index % device_number], 0, &ciErrNum);
+    /*printf("Queue created index : %d, gpu chosen :%d, gpu number : %d\n", *index, *index % device_number, device_number);*/ 
 #endif
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
-    printf("contexte address: %p, command queue: %p\n",*context, *hCmdQueue);
+    printf("contexte address: %p, command queue: %p\n",*context, (*command_queue)->command_queue);
 #endif
-    if (ciErrNum != CL_SUCCESS)
-    {
-        fprintf(stderr,"Error: Failed to create command queue!\n");
-        exit(1);
-    }
+    oclErrorCheck(ciErrNum,"Failed to create command queue!");
+    create_kernels(&((*command_queue)->kernels));
 }
 
 size_t shrRoundUp(size_t group_size, size_t global_size)
@@ -199,32 +214,41 @@ size_t shrRoundUp(size_t group_size, size_t global_size)
 
 
 
-void FC_FUNC_(ocl_finish,OCL_FINISH)(cl_command_queue *command_queue){
+void FC_FUNC_(ocl_finish,OCL_FINISH)(bigdft_command_queue *command_queue){
     cl_int ciErrNum;
-    ciErrNum = clFinish(*command_queue);
+    ciErrNum = clFinish((*command_queue)->command_queue);
     oclErrorCheck(ciErrNum,"Failed to finish!");
 }
 
-void FC_FUNC_(ocl_enqueue_barrier,OCL_ENQUEUE_BARRIER)(cl_command_queue *command_queue){
+void FC_FUNC_(ocl_enqueue_barrier,OCL_ENQUEUE_BARRIER)(bigdft_command_queue *command_queue){
     cl_int ciErrNum;
-    ciErrNum = clEnqueueBarrier(*command_queue);
+    ciErrNum = clEnqueueBarrier((*command_queue)->command_queue);
     oclErrorCheck(ciErrNum,"Failed to enqueue barrier!");
 }
 
+void FC_FUNC_(ocl_clean_command_queue,OCL_CLEAN_COMMAND_QUEUE)(bigdft_command_queue *command_queue) {
+  clean_magicfilter_kernels(&((*command_queue)->kernels));
+  clean_benchmark_kernels(&((*command_queue)->kernels));
+  clean_kinetic_kernels(&((*command_queue)->kernels));
+  clean_initialize_kernels(&((*command_queue)->kernels));
+  clean_wavelet_kernels(&((*command_queue)->kernels));
+  clean_uncompress_kernels(&((*command_queue)->kernels));
+  clean_reduction_kernels(&((*command_queue)->kernels));
+  clReleaseCommandQueue((*command_queue)->command_queue);
+  free(*command_queue);
+}
 
-void FC_FUNC_(ocl_clean,OCL_CLEAN)(cl_command_queue *command_queue, cl_context *context){
+void FC_FUNC_(ocl_clean,OCL_CLEAN)(cl_context *context){
   size_t i;
-  clean_magicfilter_kernels();
-  clean_benchmark_kernels();
-  clean_kinetic_kernels();
-  clean_initialize_kernels();
-  clean_wavelet_kernels();
-  clean_uncompress_kernels();  
-  clean_reduction_kernels();  
-
+  clean_magicfilter_programs();
+  clean_benchmark_programs();
+  clean_kinetic_programs();
+  clean_initialize_programs();
+  clean_wavelet_programs();
+  clean_uncompress_programs();
+  clean_reduction_programs();
   for(i=0;i<event_number;i++){
     clReleaseEvent(event_list[i].e);
   }
-  clReleaseCommandQueue(*command_queue);
   clReleaseContext(*context);
 }
