@@ -49,8 +49,49 @@ void nanosec(unsigned long long int * t){
   *t += time.tv_nsec;
 }
 #define FILTER_SIZE 16
-#define BUFFER_WIDTH 512
-#define BUFFER_DEPTH 256
+#define BUFFER_WIDTH 32
+#define BUFFER_DEPTH 1024
+
+#define conv_8_even_init_block(offset,d0,d1,d2,d3) \
+F = _mm_load_pd(filt+offset+2);\
+S0 = _mm_add_pd(S0,_mm_mul_pd(d0,F));\
+S1 = _mm_add_pd(S1,_mm_mul_pd(d1,F));\
+S2 = _mm_add_pd(S2,_mm_mul_pd(d2,F));\
+d3 = _mm_load_pd(source+offset);\
+S3 = _mm_add_pd(S3,_mm_mul_pd(d3);
+
+inline void conv_8_even_init(size_t n, double const * source, double * dest){
+  __m128d S0,S1,S2,S3;
+  __m128d F;
+  __m128d D0,D1,D2,D3;
+  S0 = _mm_setzero_pd();
+  S1 = _mm_setzero_pd();
+  S2 = _mm_setzero_pd();
+  S3 = _mm_setzero_pd();
+  F = _mm_load_pd(filt);
+  D0 = _mm_load_pd(source+n-8);
+  S0 = _mm_add_pd(S0,_mm_mul_pd(D0,F));
+  D1 = _mm_load_pd(source+n-6);
+  S1 = _mm_add_pd(S1,_mm_mul_pd(D1,F));
+  D2 = _mm_load_pd(source+n-4);
+  S2 = _mm_add_pd(S2,_mm_mul_pd(D2,F));
+  D3 = _mm_load_pd(source+n-2);
+  S3 = _mm_add_pd(S3,_mm_mul_pd(D3,F));
+
+  conv_8_even_init_block(0,D1,D2,D3,D0);
+  conv_8_even_init_block(2,D2,D3,D0,D1);
+  conv_8_even_init_block(4,D3,D0,D1,D2);
+  conv_8_even_init_block(6,D0,D1,D2,D3);
+  conv_8_even_init_block(8,D1,D2,D3,D0);
+  conv_8_even_init_block(10,D2,D3,D0,D1);
+  conv_8_even_init_block(12,D3,D0,D1,D2);
+
+  _mm_storel_pd(dest,_mm_hadd_pd(S0,S0));
+  _mm_storel_pd(dest+2,_mm_hadd_pd(S1,S1));
+  _mm_storel_pd(dest+4,_mm_hadd_pd(S2,S2));
+  _mm_storel_pd(dest+6,_mm_hadd_pd(S3,S3));
+
+}
 
 inline void conv_16_even(double const * source, double * dest){
   __m128d S0,S1,S2,S3,S4,S5,S6,S7;
@@ -164,6 +205,41 @@ inline void filter_per_line(size_t n,  double const * source, double * dest){
   } while(j<n);
 }
 
+void filter_per_line_wrapper(size_t n, double const * source, double * dest){
+  size_t n2 = n-15;
+  n2 = n2 - (n2%16);
+  unsigned int i,j;
+  double tt=0;
+  for(i=0;i<8;i++) {
+    tt=0;
+    for(j=0;j<FILTER_SIZE;j++){
+      tt += source[(n+i+j-FILTER_SIZE/2)%n]*filt[j];
+    }
+    dest[i] = tt;
+  }
+  filter_per_line(n2, source, dest+8);
+  for(i=n2+8;i<n;i++){
+    tt=0;
+    for(j=0;j<FILTER_SIZE;j++){
+      tt += source[(i+j-FILTER_SIZE/2)%n]*filt[j];
+    }
+    dest[i] = tt;
+  }
+}
+
+void conv_ref_per(size_t n, double const * source, double * dest){
+  unsigned int i,j;
+  double tt=0;
+  for(i=0;i<n;i++) {
+    tt=0;
+    for(j=0;j<FILTER_SIZE;j++){
+      tt += source[(n+i+j-FILTER_SIZE/2)%n]*filt[j];
+    }
+    dest[i] = tt;
+  }
+
+}
+
 void conv_ref(double const * source, double * dest){
   unsigned int i,j;
   double tmp;
@@ -219,4 +295,23 @@ int main(void) {
     }
   }
   printf("result %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
+  for(i=0; i<BUFFER_WIDTH;i++) {
+      conv_ref_per(BUFFER_DEPTH,a[i],c[i]);
+  }
+  nanosec(&t1);
+  for(i=0; i<BUFFER_WIDTH;i++) {
+      filter_per_line_wrapper(BUFFER_DEPTH,a[i],b[i]);
+  }
+  nanosec(&t2);
+  br=0;
+  for(i=0; i<BUFFER_WIDTH;i++) {
+    for(j=0;j<BUFFER_DEPTH;j++) {
+      br+=b[i][j];
+      if(fabs(b[i][j]-c[i][j])>1e-10){
+        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i][j], c[i][j], fabs(b[i][j]-c[i][j]));
+     }
+    }
+  }
+  printf("result %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
+
 }
