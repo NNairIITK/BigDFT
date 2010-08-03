@@ -98,16 +98,16 @@ S2 = _mm_add_pd(S2,_mm_mul_pd(d2,F));
 
 #define conv_8_block_fused(offset_filter,offset_source,d0,d1,d2,d3) \
 FA = _mm_load_pd(filt+offset_filter);\
-FU = _mm_load_pd(filt_u+offset_filter);\
 S0 = _mm_add_pd(S0,_mm_mul_pd(d0,FA));\
-S1 = _mm_add_pd(S1,_mm_mul_pd(d0,FU));\
 S2 = _mm_add_pd(S2,_mm_mul_pd(d1,FA));\
-S3 = _mm_add_pd(S3,_mm_mul_pd(d1,FU));\
-d3 = _mm_load_pd(source+offset_source);\
+FU = _mm_load_pd(filt_u+offset_filter);\
 S4 = _mm_add_pd(S4,_mm_mul_pd(d2,FA));\
+S1 = _mm_add_pd(S1,_mm_mul_pd(d0,FU));\
+d3 = _mm_load_pd(source+offset_source);\
+S3 = _mm_add_pd(S3,_mm_mul_pd(d1,FU));\
 S5 = _mm_add_pd(S5,_mm_mul_pd(d2,FU));\
-S6 = _mm_add_pd(S6,_mm_mul_pd(d3,FA));\
-S7 = _mm_add_pd(S7,_mm_mul_pd(d3,FU));
+S7 = _mm_add_pd(S7,_mm_mul_pd(d3,FU));\
+S6 = _mm_add_pd(S6,_mm_mul_pd(d3,FA));
 
 #define conv_8_block(filter,offset_source,d0,d1,d2,d3) \
 F = _mm_load_pd(filter);\
@@ -119,18 +119,18 @@ S3 = _mm_add_pd(S3,_mm_mul_pd(d3,F));
 
 #define conv_10_block_fused(offset_filter,offset_source,d0,d1,d2,d3,d4) \
 FA = _mm_load_pd(filt+offset_filter);\
-FU = _mm_load_pd(filt_u+offset_filter);\
 S0 = _mm_add_pd(S0,_mm_mul_pd(d0,FA));\
-S1 = _mm_add_pd(S1,_mm_mul_pd(d0,FU));\
 S2 = _mm_add_pd(S2,_mm_mul_pd(d1,FA));\
-S3 = _mm_add_pd(S3,_mm_mul_pd(d1,FU));\
-d4 = _mm_load_pd(source+offset_source);\
+FU = _mm_load_pd(filt_u+offset_filter);\
 S4 = _mm_add_pd(S4,_mm_mul_pd(d2,FA));\
-S5 = _mm_add_pd(S5,_mm_mul_pd(d2,FU));\
 S6 = _mm_add_pd(S6,_mm_mul_pd(d3,FA));\
+S1 = _mm_add_pd(S1,_mm_mul_pd(d0,FU));\
+d4 = _mm_load_pd(source+offset_source);\
+S3 = _mm_add_pd(S3,_mm_mul_pd(d1,FU));\
+S5 = _mm_add_pd(S5,_mm_mul_pd(d2,FU));\
 S7 = _mm_add_pd(S7,_mm_mul_pd(d3,FU));\
-S8 = _mm_add_pd(S8,_mm_mul_pd(d4,FA));\
-S9 = _mm_add_pd(S9,_mm_mul_pd(d4,FU));
+S9 = _mm_add_pd(S9,_mm_mul_pd(d4,FU));\
+S8 = _mm_add_pd(S8,_mm_mul_pd(d4,FA));
 
 #define conv_10_block(filter,offset_source,d0,d1,d2,d3,d4) \
 F = _mm_load_pd(filter);\
