@@ -107,6 +107,22 @@ S1 = _mm_add_pd(S1,_mm_mul_pd(d1,F));\
 d2 = _mm_load_pd(source+offset_source);\
 S2 = _mm_add_pd(S2,_mm_mul_pd(d2,F));
 
+#define conv_4x2_block_fused(offset_filter,offset_source,d00,d10,d20,d30) \
+FA = _mm_load_pd(filt+offset_filter);\
+d00 = _mm_load_pd(source0+offset_source);\
+S00 = _mm_add_pd(S00,_mm_mul_pd(d00,FA));\
+FU = _mm_load_pd(filt_u+offset_filter);\
+d10 = _mm_load_pd(source1+offset_source);\
+S01 = _mm_add_pd(S01,_mm_mul_pd(d00,FU));\
+S11 = _mm_add_pd(S11,_mm_mul_pd(d10,FU));\
+d20 = _mm_load_pd(source2+offset_source);\
+S10 = _mm_add_pd(S10,_mm_mul_pd(d10,FA));\
+d30 = _mm_load_pd(source3+offset_source);\
+S20 = _mm_add_pd(S20,_mm_mul_pd(d20,FA));\
+S30 = _mm_add_pd(S30,_mm_mul_pd(d30,FA));\
+S31 = _mm_add_pd(S31,_mm_mul_pd(d30,FU));\
+S21 = _mm_add_pd(S21,_mm_mul_pd(d20,FU));
+
 #define conv_2x4_block_fused(offset_filter,offset_source,d00,d01,d10,d11) \
 FA = _mm_load_pd(filt+offset_filter);\
 S00 = _mm_add_pd(S00,_mm_mul_pd(d00,FA));\
@@ -348,6 +364,47 @@ inline void conv_2_line(size_t n,  double const * source, double * dest){
   } while(j<n);
 }
 
+inline void conv_4x2_fused(double const * source0, double const * source1, double const * source2, double const * source3,
+                           double       * dest0,   double       * dest1,   double       * dest2,   double       * dest3){
+  __m128d S00,S01,S10,S11,S20,S21,S30,S31;
+  __m128d FA,FU;
+  __m128d D00,D10,D20,D30;
+
+  FA = _mm_load_pd(filt);
+  D00 = _mm_load_pd(source0);
+  S00 = _mm_mul_pd(D00,FA);
+  D10 = _mm_load_pd(source1);
+  S10 = _mm_mul_pd(D10,FA);
+  D20 = _mm_load_pd(source2);
+  S20 = _mm_mul_pd(D20,FA);
+  D30 = _mm_load_pd(source3);
+  S30 = _mm_mul_pd(D30,FA);
+  
+  FU = _mm_load_pd(filt_u);
+  S01 = _mm_loadl_pd(D00,source0+16);
+  S01 = _mm_mul_pd(S01,FU);
+  S11 = _mm_loadl_pd(D10,source1+16);
+  S11 = _mm_mul_pd(S11,FU);
+  S21 = _mm_loadl_pd(D20,source2+16);
+  S21 = _mm_mul_pd(S21,FU);
+  S31 = _mm_loadl_pd(D30,source3+16);
+  S31 = _mm_mul_pd(S31,FU);
+
+  conv_4x2_block_fused(2,2,D00,D10,D20,D30);
+  conv_4x2_block_fused(4,4,D00,D10,D20,D30);
+  conv_4x2_block_fused(6,6,D00,D10,D20,D30);
+  conv_4x2_block_fused(8,8,D00,D10,D20,D30);
+  conv_4x2_block_fused(10,10,D00,D10,D20,D30);
+  conv_4x2_block_fused(12,12,D00,D10,D20,D30);
+  conv_4x2_block_fused(14,14,D00,D10,D20,D30);
+
+  _mm_store_pd(dest0,_mm_hadd_pd(S00,S01));
+  _mm_store_pd(dest1,_mm_hadd_pd(S10,S11));
+  _mm_store_pd(dest2,_mm_hadd_pd(S20,S21));
+  _mm_store_pd(dest3,_mm_hadd_pd(S30,S31));
+}
+
+
 inline void conv_2x4_fused(double const * source0, double const * source1, double * dest0, double * dest1){
   __m128d S00,S01,S02,S03,S10,S11,S12,S13;
   __m128d FA,FU;
@@ -488,6 +545,15 @@ inline void conv_2x4_line_fused(size_t n, double const * source0, double const *
   do {
     conv_2x4_fused(&source0[j],&source1[j],&dest0[j],&dest1[j]);
     j+=4;
+  } while(j<n);
+}
+
+inline void conv_4x2_line_fused(size_t n, double const * source0, double const * source1, double const * source2, double const * source3,
+                                          double * dest0, double * dest1, double * dest2, double * dest3){
+  unsigned int j=0;
+  do {
+    conv_4x2_fused(&source0[j],&source1[j],&source2[j],&source3[j],&dest0[j],&dest1[j],&dest2[j],&dest3[j]);
+    j+=2;
   } while(j<n);
 }
 
@@ -1619,6 +1685,22 @@ int main(void) {
     }
   }
   printf("result 2x4f %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
+
+  nanosec(&t1);
+  for(i=0; i<BUFFER_WIDTH;i+=4) {
+      conv_4x2_line_fused(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&a[(i+1)*(BUFFER_DEPTH+FILTER_SIZE)],&a[(i+2)*(BUFFER_DEPTH+FILTER_SIZE)],&a[(i+3)*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH],&b[(i+1)*BUFFER_DEPTH],&b[(i+2)*BUFFER_DEPTH],&b[(i+3)*BUFFER_DEPTH]);
+  }
+  nanosec(&t2);
+  br=0;
+  for(i=0; i<BUFFER_WIDTH;i++) {
+    for(j=0;j<BUFFER_DEPTH;j++) {
+      br+=b[i*BUFFER_DEPTH+j];
+      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
+        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
+     }
+    }
+  }
+  printf("result 4x2f %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
 
   nanosec(&t1);
   for(i=0; i<BUFFER_WIDTH;i++) {
