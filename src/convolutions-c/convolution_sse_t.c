@@ -5,6 +5,7 @@
 #include <pmmintrin.h>
 #include <assert.h>
 #include <math.h>
+#include <string.h>
 
 const double filt[] __attribute__ ((aligned (16))) = { 8.4334247333529341094733325815816e-7,
                        -0.1290557201342060969516786758559028e-4,
@@ -804,6 +805,57 @@ inline void transpose_8x16(size_t n, size_t ndat, double const * source, double 
   } while (i<ndat);
 }
 
+inline void copy(size_t n, size_t ndat, double const * source, double * dest){
+  unsigned int i=0;
+  do{
+    unsigned int j=0;
+    do{
+      dest[j]=source[j];
+      j+=1;
+    } while(j<n);
+    source+=n+FILTER_SIZE;
+    dest+=n;
+    i+=1;
+  } while (i<ndat);
+}
+
+inline void copy_v2(size_t n, size_t ndat, double const * source, double * dest){
+  unsigned int i=0;
+  do{
+    unsigned int j=0;
+    do{
+      _mm_store_pd(dest+j,_mm_load_pd(source+j));
+      j+=2;
+    } while(j<n);
+    source+=n+FILTER_SIZE;
+    dest+=n;
+    i+=1;
+  } while (i<ndat);
+}
+
+inline void copy_v16(size_t n, size_t ndat, double const * source, double * dest){
+  unsigned int i=0;
+  do{
+    unsigned int j=0;
+    do{
+      _mm_store_pd(dest,_mm_load_pd(source));
+      _mm_store_pd(dest+2,_mm_load_pd(source+2));
+      _mm_store_pd(dest+4,_mm_load_pd(source+4));
+      _mm_store_pd(dest+6,_mm_load_pd(source+6));
+      _mm_store_pd(dest+8,_mm_load_pd(source+8));
+      _mm_store_pd(dest+10,_mm_load_pd(source+10));
+      _mm_store_pd(dest+12,_mm_load_pd(source+12));
+      _mm_store_pd(dest+14,_mm_load_pd(source+14));
+      dest+=16;
+      source+=16;
+      j+=16;
+    } while(j<n);
+    source+=FILTER_SIZE;
+    i+=1;
+  } while (i<ndat);
+}
+
+
 inline void transpose_16x16(size_t n, size_t ndat, double const * source, double * dest){
   double buff[16*16] __attribute__ ((aligned (16)));
   double * dest_t;
@@ -834,6 +886,18 @@ inline void transpose_ref(size_t n, size_t ndat, double const * source, double *
     } while(j<n);
     i+=1;
   } while (i<ndat);
+}
+
+inline void transpose_ref2(size_t n, size_t ndat, double const * source, double * dest){
+  unsigned int j=0;
+  do{
+    unsigned int i=0;
+    do{
+      dest[j*ndat+i]=source[i*(n+FILTER_SIZE)+j];
+      i+=1;
+    } while (i<ndat);
+    j+=1;
+  } while(j<n);
 }
 
 inline void conv_4x2_line_fused_8x32_tb(size_t n,size_t ndat, double const * source, double * dest){
@@ -2050,6 +2114,7 @@ void conv_ref(size_t n, size_t ndat, double const * source, double * dest){
 }
 
 #define FLOP (BUFFER_WIDTH*BUFFER_DEPTH)*2*FILTER_SIZE
+#define MOP (BUFFER_WIDTH*BUFFER_DEPTH)*2*8
 int main(void) {
   void * t;
   double * a;
@@ -2147,6 +2212,36 @@ int main(void) {
 
 
   transpose_ref(BUFFER_DEPTH,BUFFER_WIDTH,a,c);
+
+  nanosec(&t1);
+  transpose_ref(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
+  nanosec(&t2);
+  br=0;
+  for(i=0; i<BUFFER_DEPTH;i++) {
+    for(j=0;j<BUFFER_WIDTH;j++) {
+      br+=b[i*BUFFER_WIDTH+j];
+      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
+        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
+      }
+    }
+  }
+  printf("result t %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
+
+  nanosec(&t1);
+  transpose_ref2(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
+  nanosec(&t2);
+  br=0;
+  for(i=0; i<BUFFER_DEPTH;i++) {
+    for(j=0;j<BUFFER_WIDTH;j++) {
+      br+=b[i*BUFFER_WIDTH+j];
+      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
+        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
+      }
+    }
+  }
+  printf("result t(2) %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
+
+
   nanosec(&t1);
   transpose_16x16(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
   nanosec(&t2);
@@ -2159,7 +2254,7 @@ int main(void) {
       }
     }
   }
-  printf("result t16x16 %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
+  printf("result t16x16 %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
 
   nanosec(&t1);
   transpose_8x16(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
@@ -2173,7 +2268,7 @@ int main(void) {
       }
     }
   }
-  printf("result t 8x16 %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
+  printf("result t 8x16 %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
 
   nanosec(&t1);
   transpose_8x32(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
@@ -2187,7 +2282,51 @@ int main(void) {
       }
     }
   }
-  printf("result t 8x32 %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
+  printf("result t 8x32 %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
+
+  nanosec(&t1);
+  copy(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
+  nanosec(&t2);
+  br=0;
+  for(i=0; i<BUFFER_DEPTH;i++) {
+    for(j=0;j<BUFFER_WIDTH;j++) {
+      br+=b[i*BUFFER_WIDTH+j];
+    }
+  }
+  printf("result c %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
+
+  nanosec(&t1);
+  copy_v2(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
+  nanosec(&t2);
+  br=0;
+  for(i=0; i<BUFFER_DEPTH;i++) {
+    for(j=0;j<BUFFER_WIDTH;j++) {
+      br+=b[i*BUFFER_WIDTH+j];
+    }
+  }
+  printf("result cv2 %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
+
+  nanosec(&t1);
+  copy_v16(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
+  nanosec(&t2);
+  br=0;
+  for(i=0; i<BUFFER_DEPTH;i++) {
+    for(j=0;j<BUFFER_WIDTH;j++) {
+      br+=b[i*BUFFER_WIDTH+j];
+    }
+  }
+  printf("result cv16 %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
+
+  nanosec(&t1);
+  memcpy(a,b,BUFFER_DEPTH*BUFFER_WIDTH*sizeof(double));
+  nanosec(&t2);
+  br=0;
+  for(i=0; i<BUFFER_DEPTH;i++) {
+    for(j=0;j<BUFFER_WIDTH;j++) {
+      br+=b[i*BUFFER_WIDTH+j];
+    }
+  }
+  printf("result memcpy %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
 
 
 }
