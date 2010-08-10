@@ -631,25 +631,34 @@ inline void copy_buffer_8x16(size_t ndat, double *dest, double *buff) {
 
 inline void copy_buffer_8x32(size_t ndat, double *dest, double *buff) {
   unsigned int i;
+  unsigned int j;
   for(i=0;i<8;i++,dest+=ndat,buff+=32){
-    _mm_store_pd(dest,_mm_load_pd(buff));
-    _mm_store_pd(dest+2,_mm_load_pd(buff+2));
-    _mm_store_pd(dest+4,_mm_load_pd(buff+4));
-    _mm_store_pd(dest+6,_mm_load_pd(buff+6));
-    _mm_store_pd(dest+8,_mm_load_pd(buff+8));
-    _mm_store_pd(dest+10,_mm_load_pd(buff+10));
-    _mm_store_pd(dest+12,_mm_load_pd(buff+12));
-    _mm_store_pd(dest+14,_mm_load_pd(buff+14));
-    _mm_store_pd(dest+16,_mm_load_pd(buff+16));
-    _mm_store_pd(dest+18,_mm_load_pd(buff+18));
-    _mm_store_pd(dest+20,_mm_load_pd(buff+20));
-    _mm_store_pd(dest+22,_mm_load_pd(buff+22));
-    _mm_store_pd(dest+24,_mm_load_pd(buff+24));
-    _mm_store_pd(dest+26,_mm_load_pd(buff+26));
-    _mm_store_pd(dest+28,_mm_load_pd(buff+28));
-    _mm_store_pd(dest+30,_mm_load_pd(buff+30));
+    for(j=0;j<32;j++){
+       dest[j]=buff[j];
+    }
   }
 }
+
+inline void copy_buffer_4x64(size_t ndat, double *dest, double *buff) {
+  unsigned int i;
+  unsigned int j;
+  for(i=0;i<4;i++,dest+=ndat,buff+=64){
+    for(j=0;j<64;j++){
+       dest[j]=buff[j];
+    }
+  }
+}
+
+inline void copy_buffer_2x128(size_t ndat, double *dest, double *buff) {
+  unsigned int i;
+  unsigned int j;
+  for(i=0;i<2;i++,dest+=ndat,buff+=128){
+    for(j=0;j<128;j++){
+       dest[j]=buff[j];
+    }
+  }
+}
+
 inline void fill_buffer_16x16_t(size_t n, double const *src, double *buff) {
   unsigned int i;
   __m128d D0,D1;
@@ -735,6 +744,33 @@ inline void fill_buffer_8x32_t(size_t n, double const *src, double *buff) {
   }
 }
 
+
+inline void fill_buffer_4x64_t(size_t n, double const *src, double *buff) {
+  unsigned int i;
+  __m128d D0,D1;
+  for(i=0;i<64;i+=2,src+=2*n){
+    D0 = _mm_load_pd(src);
+    D1 = _mm_load_pd(src+n);
+    _mm_store_pd(buff+i, _mm_unpacklo_pd( D0, D1));
+    _mm_store_pd(buff+i+64*1, _mm_unpackhi_pd( D0, D1));
+    D0 = _mm_load_pd(src+2);
+    D1 = _mm_load_pd(src+2+n);
+    _mm_store_pd(buff+i+64*2, _mm_unpacklo_pd( D0, D1));
+    _mm_store_pd(buff+i+64*3, _mm_unpackhi_pd( D0, D1));
+  }
+}
+
+inline void fill_buffer_2x128_t(size_t n, double const *src, double *buff) {
+  unsigned int i;
+  __m128d D0,D1;
+  for(i=0;i<128;i+=2,src+=2*n){
+    D0 = _mm_load_pd(src);
+    D1 = _mm_load_pd(src+n);
+    _mm_store_pd(buff+i, _mm_unpacklo_pd( D0, D1));
+    _mm_store_pd(buff+i+128*1, _mm_unpackhi_pd( D0, D1));
+  }
+}
+
 void print_first_block_16x16(size_t ndat, double const * source){
   int i,j;
   for(i=0;i<16;i++){
@@ -785,6 +821,45 @@ inline void transpose_8x32(size_t n, size_t ndat, double const * source, double 
   } while (i<ndat);
 }
 
+inline void transpose_4x64(size_t n, size_t ndat, double const * source, double * dest){
+  double buff[4*64] __attribute__ ((aligned (16)));
+  double * dest_t;
+  unsigned int i=0;
+  do{
+    dest_t=dest;
+    unsigned int j=0;
+    do{
+      fill_buffer_4x64_t(n+FILTER_SIZE, source,buff);
+      copy_buffer_4x64(ndat,dest_t,buff);
+      source+=4;
+      j+=4;
+      dest_t+=4*ndat;
+    } while(j<n);
+    source+=FILTER_SIZE*64+63*n;
+    i+=64;
+    dest+=64;
+  } while (i<ndat);
+}
+
+inline void transpose_2x128(size_t n, size_t ndat, double const * source, double * dest){
+  double buff[2*128] __attribute__ ((aligned (16)));
+  double * dest_t;
+  unsigned int i=0;
+  do{
+    dest_t=dest;
+    unsigned int j=0;
+    do{
+      fill_buffer_2x128_t(n+FILTER_SIZE, source,buff);
+      copy_buffer_2x128(ndat,dest_t,buff);
+      source+=2;
+      j+=2;
+      dest_t+=2*ndat;
+    } while(j<n);
+    source+=FILTER_SIZE*128+127*n;
+    i+=128;
+    dest+=128;
+  } while (i<ndat);
+}
 inline void transpose_8x16(size_t n, size_t ndat, double const * source, double * dest){
   double buff[8*16] __attribute__ ((aligned (16)));
   double * dest_t;
@@ -808,11 +883,10 @@ inline void transpose_8x16(size_t n, size_t ndat, double const * source, double 
 inline void copy(size_t n, size_t ndat, double const * source, double * dest){
   unsigned int i=0;
   do{
-    unsigned int j=0;
-    do{
+    unsigned int j;
+    for(j=0;j<n;j++){
       dest[j]=source[j];
-      j+=1;
-    } while(j<n);
+    }
     source+=n+FILTER_SIZE;
     dest+=n;
     i+=1;
@@ -900,6 +974,75 @@ inline void transpose_ref2(size_t n, size_t ndat, double const * source, double 
   } while(j<n);
 }
 
+inline void conv_4x2_line_fused_2x128_tb(size_t n,size_t ndat, double const * source, double * dest){
+  double buff[2*128] __attribute__ ((aligned (16)));
+  double * dest_t;
+  double const * source_t0, *source_t1, *source_t2, *source_t3;
+  unsigned int i=0;
+  do{
+    dest_t=dest;
+    unsigned int j=0;
+    do {
+      unsigned int k=0;
+      source_t0 = source;
+      source_t1 = source_t0 + n+FILTER_SIZE;
+      source_t2 = source_t1 + n+FILTER_SIZE;
+      source_t3 = source_t2 + n+FILTER_SIZE;
+      do {
+        conv_4x2_fused(128,source_t0,source_t1,source_t2,source_t3,buff+k);
+        source_t0 = source_t3 + n+FILTER_SIZE;
+        source_t1 = source_t0 + n+FILTER_SIZE;
+        source_t2 = source_t1 + n+FILTER_SIZE;
+        source_t3 = source_t2 + n+FILTER_SIZE;
+        k+=4;
+      } while(k<128);
+
+
+      copy_buffer_2x128(ndat,dest_t,buff);
+      source+=2;
+      j+=2;
+      dest_t+=2*ndat;
+    } while(j<n);
+    source+=FILTER_SIZE*128+127*n;
+    i+=128;
+    dest+=128;
+  } while (i<ndat);
+}
+
+inline void conv_4x2_line_fused_4x64_tb(size_t n,size_t ndat, double const * source, double * dest){
+  double buff[4*64] __attribute__ ((aligned (16)));
+  double * dest_t;
+  double const * source_t0, *source_t1, *source_t2, *source_t3;
+  unsigned int i=0;
+  do{
+    dest_t=dest;
+    unsigned int j=0;
+    do {
+      unsigned int k=0;
+      source_t0 = source;
+      source_t1 = source_t0 + n+FILTER_SIZE;
+      source_t2 = source_t1 + n+FILTER_SIZE;
+      source_t3 = source_t2 + n+FILTER_SIZE;
+      do {
+        conv_4x2_fused(64,source_t0,source_t1,source_t2,source_t3,buff+k);
+        conv_4x2_fused(64,source_t0+2,source_t1+2,source_t2+2,source_t3+2,buff+k+2*64);
+        source_t0 = source_t3 + n+FILTER_SIZE;
+        source_t1 = source_t0 + n+FILTER_SIZE;
+        source_t2 = source_t1 + n+FILTER_SIZE;
+        source_t3 = source_t2 + n+FILTER_SIZE;
+        k+=4;
+      } while(k<64);
+      copy_buffer_4x64(ndat,dest_t,buff);
+      source+=4;
+      j+=4;
+      dest_t+=4*ndat;
+    } while(j<n);
+    source+=FILTER_SIZE*64+63*n;
+    i+=64;
+    dest+=64;
+  } while (i<ndat);
+}
+
 inline void conv_4x2_line_fused_8x32_tb(size_t n,size_t ndat, double const * source, double * dest){
   double buff[16*16] __attribute__ ((aligned (16)));
   double * dest_t;
@@ -909,70 +1052,22 @@ inline void conv_4x2_line_fused_8x32_tb(size_t n,size_t ndat, double const * sou
     dest_t=dest;
     unsigned int j=0;
     do {
+      unsigned int k=0;
       source_t0 = source;
-      source_t1 = source_t0+n+FILTER_SIZE;
-      source_t2 = source_t1+n+FILTER_SIZE;
-      source_t3 = source_t2+n+FILTER_SIZE;
-      conv_4x2_fused(32,source_t0,source_t1,source_t2,source_t3,buff);
-      conv_4x2_fused(32,source_t0+2,source_t1+2,source_t2+2,source_t3+2,buff+2*32);
-      conv_4x2_fused(32,source_t0+4,source_t1+4,source_t2+4,source_t3+4,buff+4*32);
-      conv_4x2_fused(32,source_t0+6,source_t1+6,source_t2+6,source_t3+6,buff+6*32);
-      source_t0 = source_t3 + n+FILTER_SIZE;
       source_t1 = source_t0 + n+FILTER_SIZE;
       source_t2 = source_t1 + n+FILTER_SIZE;
       source_t3 = source_t2 + n+FILTER_SIZE;
-      conv_4x2_fused(32,source_t0,source_t1,source_t2,source_t3,buff+4);
-      conv_4x2_fused(32,source_t0+2,source_t1+2,source_t2+2,source_t3+2,buff+4+2*32);
-      conv_4x2_fused(32,source_t0+4,source_t1+4,source_t2+4,source_t3+4,buff+4+4*32);
-      conv_4x2_fused(32,source_t0+6,source_t1+6,source_t2+6,source_t3+6,buff+4+6*32);
-      source_t0 = source_t3 + n+FILTER_SIZE;
-      source_t1 = source_t0 + n+FILTER_SIZE;
-      source_t2 = source_t1 + n+FILTER_SIZE;
-      source_t3 = source_t2 + n+FILTER_SIZE;
-      conv_4x2_fused(32,source_t0,source_t1,source_t2,source_t3,buff+8);
-      conv_4x2_fused(32,source_t0+2,source_t1+2,source_t2+2,source_t3+2,buff+8+2*32);
-      conv_4x2_fused(32,source_t0+4,source_t1+4,source_t2+4,source_t3+4,buff+8+4*32);
-      conv_4x2_fused(32,source_t0+6,source_t1+6,source_t2+6,source_t3+6,buff+8+6*32);
-      source_t0 = source_t3 + n+FILTER_SIZE;
-      source_t1 = source_t0 + n+FILTER_SIZE;
-      source_t2 = source_t1 + n+FILTER_SIZE;
-      source_t3 = source_t2 + n+FILTER_SIZE;
-      conv_4x2_fused(32,source_t0,source_t1,source_t2,source_t3,buff+12);
-      conv_4x2_fused(32,source_t0+2,source_t1+2,source_t2+2,source_t3+2,buff+12+2*32);
-      conv_4x2_fused(32,source_t0+4,source_t1+4,source_t2+4,source_t3+4,buff+12+4*32);
-      conv_4x2_fused(32,source_t0+6,source_t1+6,source_t2+6,source_t3+6,buff+12+6*32);
-      source_t0 = source_t3 + n+FILTER_SIZE;
-      source_t1 = source_t0 + n+FILTER_SIZE;
-      source_t2 = source_t1 + n+FILTER_SIZE;
-      source_t3 = source_t2 + n+FILTER_SIZE;
-      conv_4x2_fused(32,source_t0,source_t1,source_t2,source_t3,buff+16);
-      conv_4x2_fused(32,source_t0+2,source_t1+2,source_t2+2,source_t3+2,buff+16+2*32);
-      conv_4x2_fused(32,source_t0+4,source_t1+4,source_t2+4,source_t3+4,buff+16+4*32);
-      conv_4x2_fused(32,source_t0+6,source_t1+6,source_t2+6,source_t3+6,buff+16+6*32);
-      source_t0 = source_t3 + n+FILTER_SIZE;
-      source_t1 = source_t0 + n+FILTER_SIZE;
-      source_t2 = source_t1 + n+FILTER_SIZE;
-      source_t3 = source_t2 + n+FILTER_SIZE;
-      conv_4x2_fused(32,source_t0,source_t1,source_t2,source_t3,buff+20);
-      conv_4x2_fused(32,source_t0+2,source_t1+2,source_t2+2,source_t3+2,buff+20+2*32);
-      conv_4x2_fused(32,source_t0+4,source_t1+4,source_t2+4,source_t3+4,buff+20+4*32);
-      conv_4x2_fused(32,source_t0+6,source_t1+6,source_t2+6,source_t3+6,buff+20+6*32);
-      source_t0 = source_t3 + n+FILTER_SIZE;
-      source_t1 = source_t0 + n+FILTER_SIZE;
-      source_t2 = source_t1 + n+FILTER_SIZE;
-      source_t3 = source_t2 + n+FILTER_SIZE;
-      conv_4x2_fused(32,source_t0,source_t1,source_t2,source_t3,buff+24);
-      conv_4x2_fused(32,source_t0+2,source_t1+2,source_t2+2,source_t3+2,buff+24+2*32);
-      conv_4x2_fused(32,source_t0+4,source_t1+4,source_t2+4,source_t3+4,buff+24+4*32);
-      conv_4x2_fused(32,source_t0+6,source_t1+6,source_t2+6,source_t3+6,buff+24+6*32);
-      source_t0 = source_t3 + n+FILTER_SIZE;
-      source_t1 = source_t0 + n+FILTER_SIZE;
-      source_t2 = source_t1 + n+FILTER_SIZE;
-      source_t3 = source_t2 + n+FILTER_SIZE;
-      conv_4x2_fused(32,source_t0,source_t1,source_t2,source_t3,buff+28);
-      conv_4x2_fused(32,source_t0+2,source_t1+2,source_t2+2,source_t3+2,buff+28+2*32);
-      conv_4x2_fused(32,source_t0+4,source_t1+4,source_t2+4,source_t3+4,buff+28+4*32);
-      conv_4x2_fused(32,source_t0+6,source_t1+6,source_t2+6,source_t3+6,buff+28+6*32);
+      do {
+        conv_4x2_fused(32,source_t0,source_t1,source_t2,source_t3,buff+k);
+        conv_4x2_fused(32,source_t0+2,source_t1+2,source_t2+2,source_t3+2,buff+k+2*32);
+        conv_4x2_fused(32,source_t0+4,source_t1+4,source_t2+4,source_t3+4,buff+k+4*32);
+        conv_4x2_fused(32,source_t0+6,source_t1+6,source_t2+6,source_t3+6,buff+k+6*32);
+        source_t0 = source_t3 + n+FILTER_SIZE;
+        source_t1 = source_t0 + n+FILTER_SIZE;
+        source_t2 = source_t1 + n+FILTER_SIZE;
+        source_t3 = source_t2 + n+FILTER_SIZE;
+        k+=4;
+      } while(k<32);
       copy_buffer_8x32(ndat,dest_t,buff);
       source+=8;
       j+=8;
@@ -983,6 +1078,7 @@ inline void conv_4x2_line_fused_8x32_tb(size_t n,size_t ndat, double const * sou
     dest+=32;
   } while (i<ndat);
 }
+
 inline void conv_4x2_line_fused_16x16_tb(size_t n,size_t ndat, double const * source, double * dest){
   double buff[16*16] __attribute__ ((aligned (16)));
   double * dest_t;
@@ -2210,6 +2306,34 @@ int main(void) {
   }
   printf("result 4x2fb8x32 %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
 
+  nanosec(&t1);
+  conv_4x2_line_fused_4x64_tb(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
+  nanosec(&t2);
+  br=0;
+  for(i=0; i<BUFFER_DEPTH;i++) {
+    for(j=0;j<BUFFER_WIDTH;j++) {
+      br+=b[i*BUFFER_WIDTH+j];
+      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
+        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
+     }
+    }
+  }
+  printf("result 4x2fb4x64 %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
+
+  nanosec(&t1);
+  conv_4x2_line_fused_2x128_tb(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
+  nanosec(&t2);
+  br=0;
+  for(i=0; i<BUFFER_DEPTH;i++) {
+    for(j=0;j<BUFFER_WIDTH;j++) {
+      br+=b[i*BUFFER_WIDTH+j];
+      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
+        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
+     }
+    }
+  }
+  printf("result 4x2fb2x128 %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
+
 
   transpose_ref(BUFFER_DEPTH,BUFFER_WIDTH,a,c);
 
@@ -2225,7 +2349,7 @@ int main(void) {
       }
     }
   }
-  printf("result t %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
+  printf("result t %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
 
   nanosec(&t1);
   transpose_ref2(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
@@ -2239,7 +2363,7 @@ int main(void) {
       }
     }
   }
-  printf("result t(2) %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
+  printf("result t(2) %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
 
 
   nanosec(&t1);
@@ -2254,7 +2378,7 @@ int main(void) {
       }
     }
   }
-  printf("result t16x16 %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
+  printf("result t 16x16 %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
 
   nanosec(&t1);
   transpose_8x16(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
@@ -2268,7 +2392,7 @@ int main(void) {
       }
     }
   }
-  printf("result t 8x16 %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
+  printf("result t 8x16 %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
 
   nanosec(&t1);
   transpose_8x32(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
@@ -2282,7 +2406,35 @@ int main(void) {
       }
     }
   }
-  printf("result t 8x32 %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
+  printf("result t 8x32 %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
+
+  nanosec(&t1);
+  transpose_4x64(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
+  nanosec(&t2);
+  br=0;
+  for(i=0; i<BUFFER_DEPTH;i++) {
+    for(j=0;j<BUFFER_WIDTH;j++) {
+      br+=b[i*BUFFER_WIDTH+j];
+      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
+        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
+      }
+    }
+  }
+  printf("result t 4x64 %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
+
+  nanosec(&t1);
+  transpose_2x128(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
+  nanosec(&t2);
+  br=0;
+  for(i=0; i<BUFFER_DEPTH;i++) {
+    for(j=0;j<BUFFER_WIDTH;j++) {
+      br+=b[i*BUFFER_WIDTH+j];
+      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
+        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
+      }
+    }
+  }
+  printf("result t 2x128 %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
 
   nanosec(&t1);
   copy(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
@@ -2293,7 +2445,7 @@ int main(void) {
       br+=b[i*BUFFER_WIDTH+j];
     }
   }
-  printf("result c %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
+  printf("result c %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
 
   nanosec(&t1);
   copy_v2(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
@@ -2304,7 +2456,7 @@ int main(void) {
       br+=b[i*BUFFER_WIDTH+j];
     }
   }
-  printf("result cv2 %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
+  printf("result cv2 %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
 
   nanosec(&t1);
   copy_v16(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
@@ -2315,7 +2467,7 @@ int main(void) {
       br+=b[i*BUFFER_WIDTH+j];
     }
   }
-  printf("result cv16 %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
+  printf("result cv16 %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
 
   nanosec(&t1);
   memcpy(a,b,BUFFER_DEPTH*BUFFER_WIDTH*sizeof(double));
@@ -2326,7 +2478,7 @@ int main(void) {
       br+=b[i*BUFFER_WIDTH+j];
     }
   }
-  printf("result memcpy %lf, duration %llu ns, B %d, GB/s %lf\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1));
+  printf("result memcpy %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
 
 
 }
