@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <math.h>
 #include <string.h>
+#include <time.h>
 
 const double filt[] __attribute__ ((aligned (16))) = { 8.4334247333529341094733325815816e-7,
                        -0.1290557201342060969516786758559028e-4,
@@ -631,31 +632,29 @@ inline void copy_buffer_8x16(size_t ndat, double *dest, double *buff) {
 
 inline void copy_buffer_8x32(size_t ndat, double *dest, double *buff) {
   unsigned int i;
-  unsigned int j;
   for(i=0;i<8;i++,dest+=ndat,buff+=32){
-    for(j=0;j<32;j++){
-       dest[j]=buff[j];
-    }
+    memcpy(dest,buff,32*sizeof(double));
   }
 }
 
 inline void copy_buffer_4x64(size_t ndat, double *dest, double *buff) {
   unsigned int i;
-  unsigned int j;
   for(i=0;i<4;i++,dest+=ndat,buff+=64){
-    for(j=0;j<64;j++){
-       dest[j]=buff[j];
-    }
+    memcpy(dest,buff,64*sizeof(double));
   }
 }
 
 inline void copy_buffer_2x128(size_t ndat, double *dest, double *buff) {
   unsigned int i;
-  unsigned int j;
   for(i=0;i<2;i++,dest+=ndat,buff+=128){
-    for(j=0;j<128;j++){
-       dest[j]=buff[j];
-    }
+    memcpy(dest,buff,128*sizeof(double));
+  }
+}
+
+inline void copy_buffer_2x256(size_t ndat, double *dest, double *buff) {
+  unsigned int i;
+  for(i=0;i<2;i++,dest+=ndat,buff+=256){
+    memcpy(dest,buff,256*sizeof(double));
   }
 }
 
@@ -771,6 +770,17 @@ inline void fill_buffer_2x128_t(size_t n, double const *src, double *buff) {
   }
 }
 
+inline void fill_buffer_2x256_t(size_t n, double const *src, double *buff) {
+  unsigned int i;
+  __m128d D0,D1;
+  for(i=0;i<256;i+=2,src+=2*n){
+    D0 = _mm_load_pd(src);
+    D1 = _mm_load_pd(src+n);
+    _mm_store_pd(buff+i, _mm_unpacklo_pd( D0, D1));
+    _mm_store_pd(buff+i+256, _mm_unpackhi_pd( D0, D1));
+  }
+}
+
 void print_first_block_16x16(size_t ndat, double const * source){
   int i,j;
   for(i=0;i<16;i++){
@@ -860,6 +870,27 @@ inline void transpose_2x128(size_t n, size_t ndat, double const * source, double
     dest+=128;
   } while (i<ndat);
 }
+
+inline void transpose_2x256(size_t n, size_t ndat, double const * source, double * dest){
+  double buff[2*256] __attribute__ ((aligned (16)));
+  double * dest_t;
+  unsigned int i=0;
+  do{
+    dest_t=dest;
+    unsigned int j=0;
+    do{
+      fill_buffer_2x256_t(n+FILTER_SIZE, source,buff);
+      copy_buffer_2x256(ndat,dest_t,buff);
+      source+=2;
+      j+=2;
+      dest_t+=2*ndat;
+    } while(j<n);
+    source+=FILTER_SIZE*256+255*n;
+    i+=256;
+    dest+=256;
+  } while (i<ndat);
+}
+
 inline void transpose_8x16(size_t n, size_t ndat, double const * source, double * dest){
   double buff[8*16] __attribute__ ((aligned (16)));
   double * dest_t;
@@ -883,10 +914,7 @@ inline void transpose_8x16(size_t n, size_t ndat, double const * source, double 
 inline void copy(size_t n, size_t ndat, double const * source, double * dest){
   unsigned int i=0;
   do{
-    unsigned int j;
-    for(j=0;j<n;j++){
-      dest[j]=source[j];
-    }
+    memcpy(dest,source,n*sizeof(double));
     source+=n+FILTER_SIZE;
     dest+=n;
     i+=1;
@@ -1044,7 +1072,7 @@ inline void conv_4x2_line_fused_4x64_tb(size_t n,size_t ndat, double const * sou
 }
 
 inline void conv_4x2_line_fused_8x32_tb(size_t n,size_t ndat, double const * source, double * dest){
-  double buff[16*16] __attribute__ ((aligned (16)));
+  double buff[8*32] __attribute__ ((aligned (16)));
   double * dest_t;
   double const * source_t0, *source_t1, *source_t2, *source_t3;
   unsigned int i=0;
@@ -2211,6 +2239,53 @@ void conv_ref(size_t n, size_t ndat, double const * source, double * dest){
 
 #define FLOP (BUFFER_WIDTH*BUFFER_DEPTH)*2*FILTER_SIZE
 #define MOP (BUFFER_WIDTH*BUFFER_DEPTH)*2*8
+
+inline void check_conv(void (*func) (size_t, size_t,  double const *, double *), double const * source, double * dest, double * check, char const * description) {
+    unsigned long long int t1,t2;
+//    memset(dest, 0, BUFFER_DEPTH*BUFFER_WIDTH*sizeof(double));
+
+    nanosec(&t1);
+    (*func)(BUFFER_DEPTH,BUFFER_WIDTH,source,dest);
+    nanosec(&t2);
+
+
+    double br;
+    br=0;
+    unsigned int i,j;
+    for(i=0; i<BUFFER_DEPTH;i++) {
+      for(j=0;j<BUFFER_WIDTH;j++) {
+        br+=dest[i*BUFFER_WIDTH+j];
+        if(fabs(dest[i*BUFFER_WIDTH+j]-check[i*BUFFER_WIDTH+j])>1e-10){
+          printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , dest[i*BUFFER_WIDTH+j], check[i*BUFFER_WIDTH+j], fabs(dest[i*BUFFER_WIDTH+j]-check[i*BUFFER_WIDTH+j]));
+        }
+      }
+    }
+    printf("result %10s %le, duration %10llu ns, FLOP %d, GFLOPS %lf\n", description, br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
+}
+
+inline void check_trans(void (*func) (size_t, size_t,  double const *, double *), double const * source, double * dest, double * check, char const * description) {
+    unsigned long long int t1,t2;
+
+    nanosec(&t1);
+    (*func)(BUFFER_DEPTH,BUFFER_WIDTH,source,dest);
+    nanosec(&t2);
+
+
+    double br;
+    br=0;
+    unsigned int i,j;
+    for(i=0; i<BUFFER_DEPTH;i++) {
+      for(j=0;j<BUFFER_WIDTH;j++) {
+        br+=dest[i*BUFFER_WIDTH+j];
+        if(fabs(dest[i*BUFFER_WIDTH+j]-check[i*BUFFER_WIDTH+j])>1e-10){
+          printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , dest[i*BUFFER_WIDTH+j], check[i*BUFFER_WIDTH+j], fabs(dest[i*BUFFER_WIDTH+j]-check[i*BUFFER_WIDTH+j]));
+        }
+      }
+    }
+    printf("result %10s %le, duration %10llu ns, B %d, GB/s %lf (conv limit : %lf)\n",description, br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
+}
+
+
 int main(void) {
   void * t;
   double * a;
@@ -2235,7 +2310,7 @@ int main(void) {
   }
   c=t;
 //  printf("a : %p, b : %p, c : %p\n",a,b,c);
-  unsigned int i,j,k;
+  unsigned int i,j;
   for(i=0; i<BUFFER_WIDTH;i++) {
     for(j=0;j<BUFFER_DEPTH+FILTER_SIZE;j++){
       a[i*(BUFFER_DEPTH+FILTER_SIZE)+j] = rand()/(double)RAND_MAX;
@@ -2250,194 +2325,32 @@ int main(void) {
   unsigned long long int t1,t2;
   double br;
 
-  nanosec(&t1);
-  conv_2x4_line_fused_t(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_DEPTH;i++) {
-    for(j=0;j<BUFFER_WIDTH;j++) {
-      br+=b[i*BUFFER_WIDTH+j];
-      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
-     }
-    }
-  }
-  printf("result 2x4f %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  conv_4x2_line_fused_t(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_DEPTH;i++) {
-    for(j=0;j<BUFFER_WIDTH;j++) {
-      br+=b[i*BUFFER_WIDTH+j];
-      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
-     }
-    }
-  }
-  printf("result 4x2f %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  conv_4x2_line_fused_16x16_tb(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_DEPTH;i++) {
-    for(j=0;j<BUFFER_WIDTH;j++) {
-      br+=b[i*BUFFER_WIDTH+j];
-      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
-     }
-    }
-  }
-  printf("result 4x2fb16x16 %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  conv_4x2_line_fused_8x32_tb(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_DEPTH;i++) {
-    for(j=0;j<BUFFER_WIDTH;j++) {
-      br+=b[i*BUFFER_WIDTH+j];
-      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
-     }
-    }
-  }
-  printf("result 4x2fb8x32 %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  conv_4x2_line_fused_4x64_tb(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_DEPTH;i++) {
-    for(j=0;j<BUFFER_WIDTH;j++) {
-      br+=b[i*BUFFER_WIDTH+j];
-      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
-     }
-    }
-  }
-  printf("result 4x2fb4x64 %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  conv_4x2_line_fused_2x128_tb(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_DEPTH;i++) {
-    for(j=0;j<BUFFER_WIDTH;j++) {
-      br+=b[i*BUFFER_WIDTH+j];
-      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
-     }
-    }
-  }
-  printf("result 4x2fb2x128 %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
+  check_conv(conv_2x4_line_fused_t,a,b,c,"2x4f");
+  check_conv(conv_4x2_line_fused_t,a,b,c,"4x2f");
+  check_conv(conv_4x2_line_fused_16x16_tb,a,b,c,"4x2fb16x16");
+  check_conv(conv_4x2_line_fused_8x32_tb,a,b,c,"4x2fb8x32");
+  check_conv(conv_4x2_line_fused_4x64_tb,a,b,c,"4x2fb4x64");
+  check_conv(conv_4x2_line_fused_2x128_tb,a,b,c,"4x2fb2x128");
 
   transpose_ref(BUFFER_DEPTH,BUFFER_WIDTH,a,c);
 
-  nanosec(&t1);
-  transpose_ref(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_DEPTH;i++) {
-    for(j=0;j<BUFFER_WIDTH;j++) {
-      br+=b[i*BUFFER_WIDTH+j];
-      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
-      }
-    }
-  }
-  printf("result t %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  transpose_ref2(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_DEPTH;i++) {
-    for(j=0;j<BUFFER_WIDTH;j++) {
-      br+=b[i*BUFFER_WIDTH+j];
-      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
-      }
-    }
-  }
-  printf("result t(2) %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
+  check_trans(transpose_ref,a,b,c,"t");
+  check_trans(transpose_ref2,a,b,c,"t(2)");
+  check_trans(transpose_16x16,a,b,c,"t 16x16");
+  check_trans(transpose_8x16,a,b,c,"t 8x16");
+  check_trans(transpose_8x32,a,b,c,"t 8x32");
+  check_trans(transpose_4x64,a,b,c,"t 4x64");
+  check_trans(transpose_2x128,a,b,c,"t 2x128");
+  check_trans(transpose_2x256,a,b,c,"t 2x256");
 
 
-  nanosec(&t1);
-  transpose_16x16(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_DEPTH;i++) {
-    for(j=0;j<BUFFER_WIDTH;j++) {
-      br+=b[i*BUFFER_WIDTH+j];
-      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
-      }
-    }
-  }
-  printf("result t 16x16 %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
+  copy(BUFFER_DEPTH,BUFFER_WIDTH,a,c);
+  check_trans(copy,a,b,c,"c");
+  check_trans(copy_v2,a,b,c,"cv2");
+  check_trans(copy_v2,a,b,c,"cv16");
 
   nanosec(&t1);
-  transpose_8x16(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_DEPTH;i++) {
-    for(j=0;j<BUFFER_WIDTH;j++) {
-      br+=b[i*BUFFER_WIDTH+j];
-      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
-      }
-    }
-  }
-  printf("result t 8x16 %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  transpose_8x32(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_DEPTH;i++) {
-    for(j=0;j<BUFFER_WIDTH;j++) {
-      br+=b[i*BUFFER_WIDTH+j];
-      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
-      }
-    }
-  }
-  printf("result t 8x32 %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  transpose_4x64(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_DEPTH;i++) {
-    for(j=0;j<BUFFER_WIDTH;j++) {
-      br+=b[i*BUFFER_WIDTH+j];
-      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
-      }
-    }
-  }
-  printf("result t 4x64 %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  transpose_2x128(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_DEPTH;i++) {
-    for(j=0;j<BUFFER_WIDTH;j++) {
-      br+=b[i*BUFFER_WIDTH+j];
-      if(fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_WIDTH+j], c[i*BUFFER_WIDTH+j], fabs(b[i*BUFFER_WIDTH+j]-c[i*BUFFER_WIDTH+j]));
-      }
-    }
-  }
-  printf("result t 2x128 %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  copy(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
+  memcpy(b,a,BUFFER_DEPTH*BUFFER_WIDTH*sizeof(double));
   nanosec(&t2);
   br=0;
   for(i=0; i<BUFFER_DEPTH;i++) {
@@ -2445,40 +2358,7 @@ int main(void) {
       br+=b[i*BUFFER_WIDTH+j];
     }
   }
-  printf("result c %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
+  printf("result %10s %le, duration %10llu ns, B %d, GB/s %lf (conv limit : %lf)\n","memcpy", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
 
-  nanosec(&t1);
-  copy_v2(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_DEPTH;i++) {
-    for(j=0;j<BUFFER_WIDTH;j++) {
-      br+=b[i*BUFFER_WIDTH+j];
-    }
-  }
-  printf("result cv2 %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  copy_v16(BUFFER_DEPTH,BUFFER_WIDTH,a,b);
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_DEPTH;i++) {
-    for(j=0;j<BUFFER_WIDTH;j++) {
-      br+=b[i*BUFFER_WIDTH+j];
-    }
-  }
-  printf("result cv16 %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  memcpy(a,b,BUFFER_DEPTH*BUFFER_WIDTH*sizeof(double));
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_DEPTH;i++) {
-    for(j=0;j<BUFFER_WIDTH;j++) {
-      br+=b[i*BUFFER_WIDTH+j];
-    }
-  }
-  printf("result memcpy %lf, duration %llu ns, B %d, GB/s %lf (conv limit : %lf)\n", br, t2-t1, MOP, (double)MOP/(float)(t2-t1),(double)FLOP/(float)(t2-t1));
-
-
+  return 0;
 }
