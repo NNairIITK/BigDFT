@@ -419,6 +419,7 @@ program MINHOP
           ' # Revisited: npmin,nlmin,k_e_wpos,re_wpos=earr',npmin,nlmin,k_e_wpos,re_wpos
      newmin=.false.
      escape_old=escape_old+1.d0
+     earr(k_e_wpos,2)=earr(k_e_wpos,2)+1.d0
      ekinetic=ekinetic*beta2
   else
      newmin=.true.
@@ -471,7 +472,7 @@ program MINHOP
       if (re_wpos.eq.re_hop) then  
          write(2,'((1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),l3,a,i5)')  &
           escape,e_hop-eref,ediff,ekinetic, &
-          escape_sam/escape,escape_old/escape,escape_new/escape,newmin,' A ', int(earr(k_e_wpos,2))
+          escape_sam/escape,escape_old/escape,escape_new/escape,newmin,' A ', nvisit
       else 
          write(2,'(1x,f10.0,1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a,i5)')  &                                           
               escape,e_wpos-eref,ediff,ekinetic, &                                                               
@@ -688,7 +689,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
             istep,e_rxyz,nummax,nummin
        if (iproc == 0) write(*,'(a,i5,1x,1pe17.10,2(1x,i2))') ' #MD ',&
             istep,e_rxyz,nummax,nummin
-       if (nummin.ge.mdmin .and. istep > 50) then
+       if (nummin.ge.mdmin) then
           if (nummax.ne.nummin .and. iproc == 0) &
                write(67,*) 'WARNING: nummin,nummax',nummin,nummax
           exit md_loop
