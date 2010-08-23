@@ -533,6 +533,64 @@ subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
 
 END SUBROUTINE allocate_work_arrays
 
+subroutine memspace_work_arrays_precond(geocode,hybrid_on,ncplx,d,memwork)
+  use module_base
+  use module_types
+  implicit none
+  character(len=1), intent(in) :: geocode
+  logical, intent(in) :: hybrid_on
+  integer, intent(in) :: ncplx
+  type(grid_dimensions), intent(in) :: d
+  integer(kind=8), intent(out) :: memwork
+  !local variables
+  integer, parameter :: lowfil=-14,lupfil=14
+  integer :: i_stat
+  integer :: nd1,nd2,nd3
+  integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
+  integer :: nf
+
+
+  if (geocode == 'F') then
+
+     nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
+
+     memwork=2*(d%n1+1)*(d%n2+1)*(d%n3+1)+2*7*(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)+3*nf
+     
+    
+  else if (geocode == 'P') then
+     
+     if (hybrid_on) then
+          
+        call dimensions_fft(d%n1,d%n2,d%n3,&
+             nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
+
+        nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
+
+        memwork=(d%n1+1)+(d%n2+1)+(d%n3+1)+2*nd1b*nd2*nd3*2+2*nd1*nd2*nd3f*2+&
+             (d%n1+1)*(d%n2+1)*(d%n3+1)+2*7*(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)+3*nf
+
+     else 
+
+        memwork=0
+        if (ncplx == 1) then
+           memwork=d%n1+d%n2+d%n3+15*(lupfil-lowfil+1)
+        end if
+        memwork=memwork+2*ncplx*(2*d%n1+2)*(2*d%n2+2)*(2*d%n3+2)
+
+     end if
+
+  else if (geocode == 'S') then
+
+     memwork=0
+     if (ncplx == 1) then
+        memwork=d%n1+d%n3+14*(lupfil-lowfil+1)
+     end if
+     memwork=memwork+2*ncplx*(2*d%n1+2)*(2*d%n2+16)*(2*d%n3+2)
+  end if
+
+END SUBROUTINE memspace_work_arrays_precond
+
+
 subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
   use module_base
   use module_types

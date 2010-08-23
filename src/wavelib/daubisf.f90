@@ -157,6 +157,107 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
 
 END SUBROUTINE initialize_work_arrays_locham
 
+subroutine memspace_work_arrays_locham(lr,nspinor,memwork)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nspinor
+  type(locreg_descriptors), intent(in) :: lr
+  integer(kind=8), intent(out) :: memwork
+  !local variables
+  integer :: i_stat
+  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,nw,nww,nf
+  integer :: nw1,nw2,nxc,nxf,nyc,nyf,nxf1,nxf2,nxf3
+
+  n1=lr%d%n1
+  n2=lr%d%n2
+  n3=lr%d%n3
+  n1i=lr%d%n1i
+  n2i=lr%d%n2i
+  n3i=lr%d%n3i
+  nfl1=lr%d%nfl1
+  nfl2=lr%d%nfl2
+  nfl3=lr%d%nfl3
+  nfu1=lr%d%nfu1
+  nfu2=lr%d%nfu2
+  nfu3=lr%d%nfu3
+
+  select case(lr%geocode)
+  case('F')
+     !dimensions of work arrays
+     ! shrink convention: nw1>nw2
+     nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&
+          (n1+1)*(2*n2+31)*(2*n3+31),&
+          2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+          2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
+
+     nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
+          4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+          (n1+1)*(n2+1)*(2*n3+31),&
+          (2*n1+31)*(n2+1)*(n3+1))
+
+     nyc=(n1+1)*(n2+1)*(n3+1)
+     nyf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+     nxc=(n1+1)*(n2+1)*(n3+1)
+     nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+     nxf1=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+     nxf2=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+     nxf3=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+  case('S')
+     nw1=0
+     nw2=0
+     nyc=n1i*n2i*n3i
+     nyf=0
+     nxc=n1i*n2i*n3i
+     nxf=0
+     nxf1=0
+     nxf2=0
+     nxf3=0
+
+  case('P')
+     if (lr%hybrid_on) then
+        ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
+        nf=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+        nw=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
+        nw=max(nw,2*(n3+1)*(n1+1)*(n2+1))      ! for the comb_shrink_hyb_c
+        nw=max(nw,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
+
+        nww=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
+        nww=max(nww,4*(n2+1)*(n3+1)*(n1+1))   ! for the comb_shrink_hyb_c   
+        nww=max(nww,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
+
+        nw1=nw
+        nw2=nww
+        nxc=(n1+1)*(n2+1)*(n3+1)
+        nyc=(n1+1)*(n2+1)*(n3+1)
+        nxf=7*nf
+        nyf=7*nf
+        nxf1=nf
+        nxf2=nf
+        nxf3=nf
+
+     else
+
+        nw1=0
+        nw2=0
+        nyc=n1i*n2i*n3i
+        nyf=0
+        nxc=n1i*n2i*n3i
+        nxf=0
+        nxf1=0
+        nxf2=0
+        nxf3=0
+
+     endif
+  end select
+
+  memwork=nw1+nw2+nxc+nxf+nyc+nyf+nxf1+nxf2+nxf3
+
+end subroutine memspace_work_arrays_locham
+
+
 subroutine deallocate_work_arrays_locham(lr,w)
   use module_base
   use module_types
@@ -619,6 +720,76 @@ subroutine initialize_work_arrays_sumrho(lr,w)
 
 
 END SUBROUTINE initialize_work_arrays_sumrho
+
+subroutine memspace_work_arrays_sumrho(lr,memwork)
+  use module_base
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(in) :: lr
+  integer(kind=8), intent(out) :: memwork
+  !local variables
+  integer :: n1,n2,n3,n1i,n2i,n3i,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i_stat
+  integer :: nw1,nw2,nxc,nxf
+
+  n1=lr%d%n1
+  n2=lr%d%n2
+  n3=lr%d%n3
+  n1i=lr%d%n1i
+  n2i=lr%d%n2i
+  n3i=lr%d%n3i
+  nfl1=lr%d%nfl1
+  nfl2=lr%d%nfl2
+  nfl3=lr%d%nfl3
+  nfu1=lr%d%nfu1
+  nfu2=lr%d%nfu2
+  nfu3=lr%d%nfu3
+
+  select case(lr%geocode)
+  case('F')
+     !dimension of the work arrays
+     ! shrink convention: nw1>nw2
+     nw1=max((n3+1)*(2*n1+31)*(2*n2+31),& 
+          (n1+1)*(2*n2+31)*(2*n3+31),&
+          2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+          2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
+     nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
+          4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+          (n1+1)*(n2+1)*(2*n3+31),&
+          (2*n1+31)*(n2+1)*(n3+1))
+     nxc=(n1+1)*(n2+1)*(n3+1)!(2*n1+2)*(2*n2+2)*(2*n3+2)
+     nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+  case('S')
+     !dimension of the work arrays
+     nw1=1
+     nw2=1
+     nxc=(2*n1+2)*(2*n2+31)*(2*n3+2)
+     nxf=1
+  case('P')
+     if (lr%hybrid_on) then
+        ! hybrid case:
+        nxc=(n1+1)*(n2+1)*(n3+1)
+        nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+        nw1=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
+        nw1=max(nw1,2*(n3+1)*(n1+1)*(n2+1))      ! for the comb_shrink_hyb_c
+        nw1=max(nw1,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
+
+        nw2=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
+        nw2=max(nw2,4*(n2+1)*(n3+1)*(n1+1))   ! for the comb_shrink_hyb_c   
+        nw2=max(nw2,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
+     else
+        !dimension of the work arrays, fully periodic case
+        nw1=1
+        nw2=1
+        nxc=(2*n1+2)*(2*n2+2)*(2*n3+2)
+        nxf=1
+     endif
+
+  end select
+  memwork=nxc+nxf+nw1+nw2
+
+end subroutine memspace_work_arrays_sumrho
+
 
 subroutine deallocate_work_arrays_sumrho(w)
   use module_base

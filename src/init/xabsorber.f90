@@ -1651,6 +1651,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
      noproj = noproj .and. (alps(l) .eq. 0._gp)
   end do
   
+  noproj=.true.
 
 ! projectors, just in case
   if ( .not. noproj) then
@@ -2076,7 +2077,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
            hpot_a = 3.0_gp
            Rinf_a=100.0_gp
            nstesp_coarse=1000
-           nsteps_fine  = 4
+           nsteps_fine  = 40
                      
 !!!           print *, y_r,d_r
 !!!           print *, " A  y_r(1) " , y_r(1), d_r(1)
@@ -2402,7 +2403,7 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
 !!!     rgrid(igrid) = igrid*1.0_gp/Ngrid * cradius
 !!!  enddo
 
-  rzero = 1.0_gp/Ngrid * cradius 
+  rzero = 1.0D-5/Ngrid * cradius 
   do igrid=1, Ngrid
      rgrid(igrid) = rzero*  exp( igrid*   1.0_gp/Ngrid * log( cradius/rzero ))
   enddo
@@ -2486,7 +2487,7 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   if(iproc.eq.0) print * , " routine GetExcitedOrbitalAsG  , generate  atom to  extract 1S " 
   psp_modifier=1
   
-  call abs_generator_modified(iproc,atoms%nzatom(ity), atoms%nelpsp(ity),atoms%psppar(0,0,ity),&
+  call abs_generator_modified(iproc,atoms%nzatom(ity)-1, atoms%nelpsp(ity),atoms%psppar(0,0,ity),&
        atoms%npspcode(ity),ng-1 ,noccmax , lmax , expo,psi,aeval, occup , psp_modifier  , &
        Nsol, abs_initial_L , Ngrid,Egrid,  rgrid , psigrid  )
   
@@ -2763,7 +2764,7 @@ function GetBottom( atoms, iproc)
   call memocc(i_stat,psigrid,'psigrid',subname)
 
 
-  rzero = 1.0_gp/Ngrid * cradius 
+  rzero = 1.0D-2/Ngrid * cradius 
   do igrid=1, Ngrid
      rgrid(igrid) = rzero*  exp( igrid*   1.0_gp/Ngrid * log( cradius/rzero ))
   enddo
@@ -2779,7 +2780,8 @@ function GetBottom( atoms, iproc)
      call abs_generator_modified(iproc,atoms%nzatom(ity), atoms%nelpsp(ity),atoms%psppar(0,0,ity),&
           atoms%npspcode(ity),ng-1 ,noccmax , lmax , expo,psi,aeval, occup , psp_modifier , &
           Nsol, abs_final_L , Ngrid,Egrid,  rgrid , psigrid )
-     if(aeval(1,1)<GetBottom) GetBottom=aeval(1,1)
+     ! if(aeval(1,1)<GetBottom) GetBottom=aeval(1,1)
+     if( minval(aeval) <GetBottom) GetBottom=minval(aeval)
   enddo
 
   i_all=-product(shape(Egrid))*kind(Egrid)

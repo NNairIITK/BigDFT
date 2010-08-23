@@ -34,10 +34,16 @@ SOURCES_SHARED = binding_s_gpu.c \
 	commonDef.cpp  \
 	fortran.c
 
+if USE_OCL
+libs_ocl=../OpenCL/libOCL.a
+else
+libs_ocl=
+endif
+
 # Not used anymore, to be removed
 #INC_CUDA = -I@LIB_CUTIL_PATH@
-
-noinst_LIBRARIES = libGPU.a
+EXTRA_PROGRAMS = conv_check
+noinst_LIBRARIES = libGPU.a libbasef.a
 
 libGPU_a_SOURCES = $(SOURCES_CU_CONV1) $(SOURCES_SHARED)  $(SOURCES_CONV)
 AM_CPPFLAGS = $(INC_CUDA) -I. -I$(top_builddir) -I@CUDA_PATH@/include/ @LIBSGPU_INCLUDE@ -DCUBLAS_USE_THUNKING
@@ -45,13 +51,6 @@ AM_CPPFLAGS = $(INC_CUDA) -I. -I$(top_builddir) -I@CUDA_PATH@/include/ @LIBSGPU_
 NVCC = @NVCC@
 NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@ 
 SUFFIXES = .cu
-
-if USE_CUDA_GPU
-check_PROGRAMS = conv_check 
-#	GPUham
-else
-check_PROGRAMS = 
-endif
 
 if USE_MPI
 mpi_source =
@@ -63,11 +62,13 @@ CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir)
 
-conv_check_SOURCES = conv_check.f90  ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
+libbasef_a_SOURCES = ../profiling/memory.f90 ../modules/base.F90 ../convolutions/interface_ocl_fake.f90 $(mpi_source)
+
+conv_check_SOURCES = conv_check.f90
 conv_check_LDFLAGS = 
 conv_check_LDADD = ../libbigdft.a \
 	../PSolver/libpoissonsolver.a \
-	libGPU.a
+	libGPU.a libbasef.a $(libs_ocl)
 
 #GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
 #GPUham_LDFLAGS =
@@ -99,6 +100,6 @@ compress.o : commonDef.h kernels_compress.hcu
 
 read_conf_file.cpp : read_conf_file.h
 
-check:
+check_conv: conv_check
 	echo 1 64 64 2048 2048 1000 > fort.1
 	$(top_builddir)/src/CUDA/conv_check

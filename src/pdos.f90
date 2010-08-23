@@ -335,13 +335,13 @@ subroutine gaussian_pdos(iproc,nproc,orbs,Gocc,G,coeff,duals)
         open(unit=12,file='pdos.dat',status='unknown')
      end if
      do iorb=1,orbs%norbu
-        write(12,'(i5,1pe14.5,1000(f7.4))')iorb,orbs%eval(iorb),pdos(1:G%ncoeff,iorb)
+        write(12,'(i5,1pe14.5,1000(1pe14.5))')iorb,orbs%eval(iorb),pdos(1:G%ncoeff,iorb)
      end do
      close(unit=12)
      if (orbs%norbd /= 0) then
         open(unit=12,file='pdos-down.dat',status='unknown')
         do iorb=orbs%norbu+1,orbs%norbu+orbs%norbd
-           write(12,'(i5,1pe12.5,1000(f12.4))')iorb-orbs%norbu,orbs%eval(iorb),pdos(1:G%ncoeff+1,iorb)
+           write(12,'(i5,1pe14.5,1000(1pe14.5))')iorb-orbs%norbu,orbs%eval(iorb),pdos(1:G%ncoeff+1,iorb)
         end do
      end if
   end if

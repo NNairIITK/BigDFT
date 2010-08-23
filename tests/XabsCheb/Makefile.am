@@ -3,9 +3,9 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
-	input.dft \
-	input.abscalc \
-	posinp.xyz \
+	inputRef.dft \
+	inputRef.abscalc \
+	posinpRef.xyz \
 	gproje_Fe_1s_1 \
 	XabsCheb.out.ref
 
