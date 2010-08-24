@@ -1,4 +1,4 @@
-!!****p* OpenCL/conv_check
+!!****p* convolutions-c/conv_check
 !! FUNCTION
 !!    Program test for the convolution in GPU
 !!

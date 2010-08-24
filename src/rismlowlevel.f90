@@ -1,4 +1,4 @@
-!!****f* BigDFT/rsimslowlevel
+!!****f* BigDFT/rsimlowlevel
 !! DESCRIPTION
 !!   In this file, we have the analytic routines for the calculation of the overlap of short-range functions
 !!***
@@ -316,6 +316,11 @@ subroutine gaussians_to_wavelets_new_h(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,ps
 END SUBROUTINE gaussians_to_wavelets_new_h
 
 
+!!****f* BigDFT/gaussians_to_wavelets_orb_h
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   use module_base
   use module_types
@@ -449,11 +454,11 @@ subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   deallocate(work,stat=i_stat)
   call memocc(i_stat,i_all,'work',subname)
 
-
-
 END SUBROUTINE gaussians_to_wavelets_orb_h
+!!***
 
-!!****f* BigDFT/gaussian_overlap
+
+!!****f* BigDFT/gaussian_overlap_h
 !! FUNCTION
 !!   Overlap matrix between two different basis structures
 !!   The first one is a gaussian hermite basis
@@ -530,7 +535,7 @@ END SUBROUTINE gaussian_overlap_h
 !!***
 
 
-!!****f* BigDFT/gbasovrlp
+!!****f* BigDFT/gbasovrlp_h
 !! FUNCTION
 !!   Calculates the scalar product between two shells
 !!   by considering only the nonzero coefficients

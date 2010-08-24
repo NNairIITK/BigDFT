@@ -1,4 +1,4 @@
-!!****f* BigDFT/hit_with_kernel_slab
+!!****f* BigDFT/hit_with_kernel_slab_simple
 !! FUNCTION
 !!   Hits the input array x with the kernel
 !!   ((-1/2\Delta+C)_{ij})^{-1}

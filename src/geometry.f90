@@ -622,7 +622,7 @@ END SUBROUTINE conjgrad
 
 !!****f* BigDFT/steepdes
 !! FUNCTION
-!!  Steepedt descent method
+!!  Steepest descent method
 !! SOURCE
 !!
 subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
