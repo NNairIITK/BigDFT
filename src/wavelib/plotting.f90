@@ -1,4 +1,4 @@
-!!****f* BigDFT/plot_wf
+!!****f* BigDFT/plot_wf_old
 !! COPYRIGHT
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
@@ -22,7 +22,7 @@ subroutine plot_wf_old(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
   !local variables
-  character(len=*), parameter :: subname='plot_wf'
+  character(len=*), parameter :: subname='plot_wf_old'
   integer :: i_stat,i_all
   integer :: nl1,nl2,nl3,n1i,n2i,n3i,n1,n2,n3
   type(workarr_sumrho) :: w
@@ -80,6 +80,11 @@ END SUBROUTINE plot_wf_old
 !!***
 
 
+!!****f* BigDFT/plot_wf_cube
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
@@ -238,8 +243,14 @@ subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
   call memocc(i_stat,i_all,'psir',subname)
 
 END SUBROUTINE plot_wf_cube
+!!***
 
 
+!!****f* BigDFT/plot_pot
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,pot)
   use module_base
   implicit none
@@ -287,7 +298,14 @@ subroutine plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,po
   close(iounit+2) 
 
 END SUBROUTINE plot_pot
+!!***
 
+
+!!****f* BigDFT/plot_pot_full
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
   use module_base
@@ -328,7 +346,14 @@ subroutine plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
 !  close(unit=23) 
 
 END SUBROUTINE plot_pot_full
+!!***
 
+
+!!****f* BigDFT/plot_cube_full
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
   use module_base
@@ -397,7 +422,14 @@ subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   close(22)
 
 END SUBROUTINE plot_cube_full
+!!***
 
+
+!!****f* BigDFT/plot_psifscf
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
   use module_base
   implicit none
@@ -447,8 +479,14 @@ subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
   enddo
 
 END SUBROUTINE plot_psifscf
+!!***
 
 
+!!****f* BigDFT/read_potfile
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   use module_base
   implicit none
@@ -499,8 +537,14 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   close(22)
 
 END SUBROUTINE read_potfile
+!!***
 
 
+!!****f* BigDFT/plot_density_old
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine plot_density_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
      alat1,alat2,alat3,ngatherarr,rho)
   use module_base
@@ -559,7 +603,6 @@ subroutine plot_density_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3
      pot_ion => rho
   end if
 
-
   if (iproc == 0) then
      do i3=0,2*(n3+nbxz)-1
         do i2=0,2*(n2+nby)-1
@@ -595,7 +638,14 @@ subroutine plot_density_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3
      call memocc(i_stat,i_all,'pot_ion',subname)
   end if
 END SUBROUTINE plot_density_old
+!!***
 
+
+!!****f* BigDFT/plot_density_cube_old
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine plot_density_cube_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
      hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
   use module_base
@@ -756,7 +806,14 @@ contains
   END SUBROUTINE cubefile_write
 
 END SUBROUTINE plot_density_cube_old
+!!***
 
+
+!!****f* BigDFT/read_density_cube_old
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine read_density_cube_old(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxyz,  rho)
   use module_base
   use module_types
@@ -858,9 +915,14 @@ contains
   END SUBROUTINE cubefile_read
 
 END SUBROUTINE read_density_cube_old
+!!***
 
 
-!write a (sum of two) field in the ISF basis in the cube format
+!!****f* BigDFT/write_cube_fields
+!! FUNCTION
+!!   Write a (sum of two) field in the ISF basis in the cube format
+!! SOURCE
+!!
 subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
      a,x,nexpo,b,y)
   use module_base
@@ -978,8 +1040,15 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   end do
   close(23)
 
-end subroutine write_cube_fields
+END SUBROUTINE write_cube_fields
+!!***
 
+
+!!****f* BigDFT/plot_density
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
      hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
   use module_base
@@ -995,10 +1064,9 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ns
   real(dp), dimension(n1i*n2i*n3p,nspin), target, intent(in) :: rho
   !local variables
   character(len=*), parameter :: subname='plot_density'
-  character(len=3) :: advancestring
   character(len=5) :: suffix
   character(len=15) :: message
-  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,icount,j,iat,ia,ib,nbxz,nby
+  integer :: i_all,i_stat,ierr,ia,ib
   real(dp) :: a,b
   real(dp), dimension(:,:), pointer :: pot_ion
 
@@ -1077,8 +1145,8 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ns
 
      end if
 
-
   end if
+
 
   if (nproc > 1) then
      i_all=-product(shape(pot_ion))*kind(pot_ion)
@@ -1086,8 +1154,15 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ns
      call memocc(i_stat,i_all,'pot_ion',subname)
   end if
 
-end subroutine plot_density
+END SUBROUTINE plot_density
+!!***
 
+
+!!****f* BigDFT/plot_wf
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
@@ -1103,7 +1178,7 @@ subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   !local variables
   character(len=*), parameter :: subname='plot_wf'
   integer :: i_stat,i_all
-  integer :: nl1,nl2,nl3,n1i,n2i,n3i,n1,n2,n3
+  integer :: n1i,n2i,n3i,n1,n2,n3
   type(workarr_sumrho) :: w
   real(wp), dimension(:), allocatable :: psir
 
@@ -1115,14 +1190,14 @@ subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   n3i=lr%d%n3i
 
   call initialize_work_arrays_sumrho(lr,w)
- 
+
   allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i+ndebug),stat=i_stat)
   call memocc(i_stat,psir,'psir',subname)
   !initialisation
   if (lr%geocode == 'F') then
      call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
   end if
- 
+
   call daub_to_isf(lr,w,psi,psir)
 
   call write_cube_fields(orbname,' ',&
@@ -1135,10 +1210,15 @@ subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
 
   call deallocate_work_arrays_sumrho(w)
 
-end subroutine plot_wf
+END SUBROUTINE plot_wf
 !!***
 
 
+!!****f* BigDFT/read_cube
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz)
   use module_base
@@ -1156,15 +1236,13 @@ subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   character(len=*), parameter :: subname='read_cube'
   character(len=5) :: suffix
   character(len=15) :: message
-  character(len=3) :: advancestring
-  integer :: i_all,i_stat,i1,i2,i3,ind,icount,j,iat,ia,nat_read
+  integer :: i_all,i_stat,ia,nat_read
   real(gp), dimension(:,:), pointer :: rxyz_read
 
   !check the arguments
   if (present(rxyz) .neqv. present(nat)) then
      stop 'wrong usage of read_cube, both nat and rxyz should be present'
   end if
-
 
   if (nspin /=2) then
      suffix=''
@@ -1218,9 +1296,8 @@ contains
     real(gp), dimension(:,:), pointer :: rxyz
     !local variables
     character(len=*), parameter :: subname='read_density_cube'
-    character(len=3) :: advancestring
-    integer :: n1t,n2t,n3t,n1,n2,n3,idum,i1,i2,i3,iat,i_stat,i_all,j
-    integer :: nl1,nl2,nl3,nbx,nby,nbz,icount,ind
+    integer :: n1t,n2t,n3t,n1,n2,n3,idum,iat,i_stat,i_all,j
+    integer :: nl1,nl2,nl3,nbx,nby,nbz
     real(gp) :: dum1,dum2,dum3
 
 
@@ -1283,9 +1360,15 @@ contains
     
   end subroutine read_cube_header
 
-end subroutine read_cube
+END SUBROUTINE read_cube
+!!***
 
-!read a cube field which have been plotted previously by write_cube_fields
+
+!!****f* BigDFT/read_cube_field
+!! FUNCTION
+!!   Read a cube field which have been plotted previously by write_cube_fields
+!! SOURCE
+!!
 subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
   use module_base
   use module_types
@@ -1297,10 +1380,9 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
   !local variables
   character(len=*), parameter :: subname='read_density_cube'
   character(len=3) :: advancestring
-  integer :: n1t,n2t,n3t,n1,n2,n3,idum,i1,i2,i3,nat,iat,i_stat,i_all,j
+  integer :: n1t,n2t,n3t,n1,n2,n3,i1,i2,i3,nat,iat
   integer :: nl1,nl2,nl3,nbx,nby,nbz,icount,ind
   real(gp) :: dum1,dum2,dum3,tt
-
 
   if (geocode /= 'F') then
      nl1=1
@@ -1372,5 +1454,6 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
 
  ! write(14,*)rho
 
-end subroutine read_cube_field
+END SUBROUTINE read_cube_field
+!!***
 

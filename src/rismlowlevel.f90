@@ -1,4 +1,9 @@
-!here we have the analytic routines for the calcuation of the overlap of short-range functions
+!!****f* BigDFT/rsimslowlevel
+!! DESCRIPTION
+!!   In this file, we have the analytic routines for the calculation of the overlap of short-range functions
+!!***
+
+
 !!****f* BigDFT/kinetic_overlap_h
 !! FUNCTION
 !!   Overlap kinetic matrix between two different basis structures
@@ -121,9 +126,14 @@ subroutine kineticovrlp_h(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,ih1,l2,ih2,dx,dy,
 END SUBROUTINE kineticovrlp_h
 !!***
 
-!kinetic overlap between gaussians, based on cartesian coordinates
-!calculates a dot product between two differents gaussians times spherical harmonics
-!only hermite polynomials
+
+!!****f* BigDFT/kinprod_h
+!! FUNCTION
+!!  Kinetic overlap between gaussians, based on cartesian coordinates
+!!  calculates a dot product between two differents gaussians times spherical harmonics
+!!  only hermite polynomials
+!! SOURCE
+!!
 subroutine kinprod_h(a1,a2,dx,dy,dz,l1,ih1,l2,ih2,niw,nrw,iw,rw,ovrlp)
   use module_base
   implicit none
@@ -169,7 +179,8 @@ subroutine kinprod_h(a1,a2,dx,dy,dz,l1,ih1,l2,ih2,niw,nrw,iw,rw,ovrlp)
      end do
   end do
  
-end subroutine kinprod_h
+END SUBROUTINE kinprod_h
+!!***
 
 
 !!****f* BigDFT/calc_coeff_hermite_r2

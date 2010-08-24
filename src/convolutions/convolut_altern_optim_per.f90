@@ -1,4 +1,4 @@
-!!****f* BigDFT/
+!!****f* BigDFT/apply_hp_sd
 !! FUNCTION
 !!  Applies the operator (KE+cprecr*I)*x=y
 !!  array x is input, array y is output

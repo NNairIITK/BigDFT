@@ -1,6 +1,6 @@
 !!****p* BigDFT/abscalc_main
 !! FUNCTION
-!!  Main program for Xanes calculation (absorption calc.)
+!!  Main program for XANES calculation (absorption calculation)
 !!
 !! COPYRIGHT
 !!    Copyright (C) 2009-2010 ESRF
@@ -331,7 +331,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   character(len=3) :: PSquiet
   integer :: ixc,ncong,idsx,ncongt,nspin,itermax
   integer :: nvirt
-  integer :: nelec,ndegree_ip,j,k
+  integer :: nelec,ndegree_ip,j
   integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
   integer :: iat,i_all,i_stat,ierr,inputpsi
@@ -344,7 +344,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   real(gp) :: edisp ! Dispersion energy
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
-  type(orbitals_data) :: orbsv
   type(gaussian_basis) :: Gvirt
 
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr

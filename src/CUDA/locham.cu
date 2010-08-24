@@ -1,8 +1,14 @@
-/****U* CUDA/anasyn.cu
+/****u* CUDA/locham.cu
 **
-** 
 ** AUTHOR
 **  Luigi Genovese
+**
+** COPYRIGHT
+**    Copyright (C) 2010 BigDFT group 
+**    This file is distributed under the terms of the
+**    GNU General Public License, see ~/COPYING file
+**    or http://www.gnu.org/copyleft/gpl.txt .
+**    For the list of contributors, see ~/AUTHORS 
 **
 ** SOURCE
 */
@@ -11,8 +17,6 @@
 #include <cublas.h>
 #include "commonDef.h"
 #include "GPUparameters.h"
-
-
 
 
 //#include "locpot.h"  //for mf1d and magicfilterpot fcts

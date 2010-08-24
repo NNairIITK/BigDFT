@@ -544,7 +544,6 @@ subroutine memspace_work_arrays_precond(geocode,hybrid_on,ncplx,d,memwork)
   integer(kind=8), intent(out) :: memwork
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  integer :: i_stat
   integer :: nd1,nd2,nd3
   integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
   integer :: nf

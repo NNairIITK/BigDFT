@@ -2,6 +2,9 @@
 !! FUNCTION
 !!  Parallel version of Poisson Solver
 !!
+!! WARNING
+!!  This file is deprecated and replaced by PSolver_Base_new.f90
+!!
 !! RESTRICTIONS on USAGE
 !! Copyright (C) 2002-2007 BigDFT group 
 !! This file is distributed under the terms of the

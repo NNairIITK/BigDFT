@@ -14,12 +14,12 @@ program oneatom
   use Poisson_Solver
   implicit none
   character(len=*), parameter :: subname='oneatom'
-  logical :: dokernel=.false.,endloop
+  logical :: dokernel=.false.
+  logical :: endloop
   integer :: n1i,n2i,n3i,iproc,nproc,i_stat,i_all,nelec
   integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3,ndegree_ip
-  integer :: idsx_actual,ndiis_sd_sw,idsx_actual_before,iter,i,j
-  real(kind=4) :: ttr
-  real(gp) :: hxh,hyh,hzh,ttsum
+  integer :: idsx_actual,ndiis_sd_sw,idsx_actual_before,iter
+  real(gp) :: hxh,hyh,hzh
   real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
   real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
   type(atoms_data) :: atoms
@@ -28,17 +28,14 @@ program oneatom
   type(locreg_descriptors) :: Glr
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
-  type(gaussian_basis) :: G
   type(GPU_pointers) :: GPU
   character(len=4) :: itername
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
-  real(gp), dimension(:), allocatable :: atchgs,radii
   real(gp), dimension(:,:), allocatable :: radii_cf
   real(wp), dimension(:), pointer :: hpsi,psit,psi,psidst,hpsidst,proj
   real(dp), dimension(:), pointer :: pkernel,pot_ion
   real(gp), dimension(:,:), pointer :: rxyz
-  real(dp), dimension(:,:), pointer :: rho,pot
   ! arrays for DIIS convergence accelerator
   real(wp), dimension(:,:,:), pointer :: ads
 
@@ -343,7 +340,8 @@ program oneatom
 end program oneatom
 !!***
 
-!!****f* BigDFT/createIonicPotential
+
+!!****f* BigDFT/createPotential
 !! FUNCTION
 !!
 !! SOURCE
@@ -365,19 +363,19 @@ subroutine createPotential(geocode,iproc,nproc,at,rxyz,&
   real(wp), dimension(*), intent(inout) :: pot_ion
   !local variables
   character(len=*), parameter :: subname='createIonicPotential'
-  logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.,efwrite,check_potion=.false.
+  logical :: perx,pery,perz,gox,goy,goz
+  logical :: htoobig=.false.
+  logical :: check_potion=.false.
   logical :: harmonic=.true.
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,nspin
   integer :: nl1,nl2,nl3,nu1,nu2,nu3
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
   real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
-  real(kind=8) :: tt_tot,rholeaked_tot,potxyz,offset,potcoeff
+  real(kind=8) :: tt_tot,rholeaked_tot,potxyz,potcoeff
   real(wp) :: maxdiff
   real(gp) :: ehart
   real(dp), dimension(2) :: charges_mpi
-  integer, dimension(:,:), allocatable :: ngatherarr
   real(dp), dimension(:), allocatable :: potion_corr
-  real(dp), dimension(:), pointer :: pkernel_ref
 
   read(1,*)potcoeff
 
@@ -720,6 +718,12 @@ subroutine createPotential(geocode,iproc,nproc,at,rxyz,&
 END SUBROUTINE createPotential
 !!***
 
+
+!!****f* BigDFT/psi_from_gaussians
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   use module_base
   use module_types
@@ -741,7 +745,7 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   real(gp), dimension(:), allocatable :: work,ev
   real(gp), dimension(:,:), allocatable :: ovrlp
   type(gaussian_basis) :: G
-  real(wp), dimension(:), pointer :: gbd_occ,psiw
+  real(wp), dimension(:), pointer :: gbd_occ
 
 
   !initialise some coefficients in the gaussian basis
@@ -858,8 +862,14 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
 
   
 END SUBROUTINE psi_from_gaussians
+!!***
 
 
+!!****f* BigDFT/plot_wf_oneatom
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   use module_base
   use module_types
@@ -947,5 +957,5 @@ subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
 
   call deallocate_work_arrays_sumrho(w)
 
-end subroutine plot_wf_oneatom
+END SUBROUTINE plot_wf_oneatom
 !!***

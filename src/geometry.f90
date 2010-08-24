@@ -2149,7 +2149,6 @@ SUBROUTINE LB1(IPROC,PARMIN,IPRINT,ITER,NFUN,GNORM,N,M,X,F,G,STP,FINISH)
       IF (FINISH) WRITE(parmin%MP,100)
     ENDIF
 
- 10   FORMAT('*************************************************')
  20   FORMAT('  N=',I5,'   NUMBER OF CORRECTIONS=',I2,/,  '       INITIAL VALUES')
  30   FORMAT('  F= ',1PD10.3,'   GNORM= ',1PD10.3)
  40   FORMAT(' VECTOR X= ')

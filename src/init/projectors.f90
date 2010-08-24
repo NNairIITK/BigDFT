@@ -343,6 +343,12 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
 END SUBROUTINE atom_projector
 !!***
 
+
+!!****f* BigDFT/deallocate_proj_descr
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine deallocate_proj_descr(nlpspd,subname)
   use module_base
   use module_types
@@ -369,7 +375,8 @@ subroutine deallocate_proj_descr(nlpspd,subname)
   i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
   deallocate(nlpspd%nseg_p,stat=i_stat)
   call memocc(i_stat,i_all,'nseg_p',subname)
-end subroutine deallocate_proj_descr
+END SUBROUTINE deallocate_proj_descr
+!!***
 
 
 !!****f* BigDFT/projector
@@ -508,7 +515,7 @@ END SUBROUTINE numb_proj
 !!***
 
 
-!!****f* BigDFT/
+!!****f* BigDFT/crtproj
 !! FUNCTION
 !!   Returns the compressed form of a Gaussian projector 
 !!   x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 ))
@@ -995,12 +1002,15 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
   deallocate(work,stat=i_stat)
   call memocc(i_stat,i_all,'work',subname)
 
-
 END SUBROUTINE crtproj
 !!***
 
 
-!real part of the complex product
+!!****f* BigDFT/re_cmplx_prod
+!! FUNCTION
+!!   Real part of the complex product
+!! SOURCE
+!!
 function re_cmplx_prod(a,b,c)
   use module_base
   implicit none
@@ -1012,9 +1022,15 @@ function re_cmplx_prod(a,b,c)
        -a(2)*b(1)*c(2) &
        -a(2)*b(2)*c(1)
   
-end function re_cmplx_prod
+END FUNCTION re_cmplx_prod
+!!***
 
-!imaginary part of the complex product
+
+!!****f* BigDFT/im_cmplx_prod
+!! FUNCTION
+!!   Imaginary part of the complex product
+!! SOURCE
+!!
 function im_cmplx_prod(a,b,c)
   use module_base
   implicit none
@@ -1026,12 +1042,17 @@ function im_cmplx_prod(a,b,c)
        +a(1)*b(2)*c(1) &
        +a(1)*b(1)*c(2)
   
-end function im_cmplx_prod
+END FUNCTION im_cmplx_prod
+!!***
 
 
+!!****f* BigDFT/pregion_size
+!! FUNCTION
+!!   Finds the size of the smallest subbox that contains a localization region made 
+!!   out of atom centered spheres
+!! SOURCE
+!!
 subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
-  ! finds the size of the smallest subbox that contains a localization region made 
-  ! out of atom centered spheres
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
@@ -1094,7 +1115,14 @@ subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,
   end if
 
 END SUBROUTINE pregion_size
+!!***
 
+
+!!****f* BigDFT/calc_coeff_proj
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
   use module_base
   implicit none
@@ -1631,3 +1659,4 @@ subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
   endif
   
 END SUBROUTINE calc_coeff_proj
+!!***
