@@ -51,6 +51,144 @@ void nanosec(unsigned long long int * t){
 #define BUFFER_WIDTH 2*16
 #define BUFFER_DEPTH 8*3*2*5*7*3
 
+#define store2(dest0,dest1,offset,S) \
+    _mm_storeh_pd(dest0+offset,S); \
+    _mm_storel_pd(dest1+offset,S);
+
+#define microloop_nostore(source0,source1,offset,D,F,B0,B1,B2,B3,B4,B5,B6,B7,B8,B9,B10,B11,B12,B13,B14,B15) \
+  D = _mm_set_pd(*(source0+offset),*(source1+offset));\
+  F = _mm_load1_pd(filt); \
+  B0 = _mm_mul_pd(F,D);\
+  F = _mm_load1_pd(filt+1);\
+  B15 = _mm_add_pd(B15,_mm_mul_pd(F,D));\
+  F = _mm_load1_pd(filt+2);\
+  B14 = _mm_add_pd(B14,_mm_mul_pd(F,D));\
+  F = _mm_load1_pd(filt+3);\
+  B13 = _mm_add_pd(B13,_mm_mul_pd(F,D));\
+  F = _mm_load1_pd(filt+4);\
+  B12 = _mm_add_pd(B12,_mm_mul_pd(F,D));\
+  F = _mm_load1_pd(filt+5);\
+  B11 = _mm_add_pd(B11,_mm_mul_pd(F,D));\
+  F = _mm_load1_pd(filt+6);\
+  B10 = _mm_add_pd(B10,_mm_mul_pd(F,D));\
+  F = _mm_load1_pd(filt+7);\
+  B9 = _mm_add_pd(B9,_mm_mul_pd(F,D));\
+  F = _mm_load1_pd(filt+8);\
+  B8 = _mm_add_pd(B8,_mm_mul_pd(F,D));\
+  F = _mm_load1_pd(filt+9);\
+  B7 = _mm_add_pd(B7,_mm_mul_pd(F,D));\
+  F = _mm_load1_pd(filt+10);\
+  B6 = _mm_add_pd(B6,_mm_mul_pd(F,D));\
+  F = _mm_load1_pd(filt+11);\
+  B5 = _mm_add_pd(B5,_mm_mul_pd(F,D));\
+  F = _mm_load1_pd(filt+12);\
+  B4 = _mm_add_pd(B4,_mm_mul_pd(F,D));\
+  F = _mm_load1_pd(filt+13);\
+  B3 = _mm_add_pd(B3,_mm_mul_pd(F,D));\
+  F = _mm_load1_pd(filt+14);\
+  B2 = _mm_add_pd(B2,_mm_mul_pd(F,D));\
+  F = _mm_load1_pd(filt+15);\
+  B1 = _mm_add_pd(B1,_mm_mul_pd(F,D));\
+
+inline void conv_gliding(unsigned int n, double const * source0, double const * source1, double * dest0, double * dest1){
+  int i;
+  __m128d S0,S1,S2,S3,S4,S5,S6,S7;
+  __m128d S8,S9,S10,S11,S12,S13,S14,S15;
+  __m128d F;
+  __m128d D;
+
+  microloop_nostore(source0,source1,0,D,F,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15);
+  microloop_nostore(source0,source1,1,D,F,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0);
+  microloop_nostore(source0,source1,2,D,F,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1);
+  microloop_nostore(source0,source1,3,D,F,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2);
+  microloop_nostore(source0,source1,4,D,F,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3);
+  microloop_nostore(source0,source1,5,D,F,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4);
+  microloop_nostore(source0,source1,6,D,F,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5);
+  microloop_nostore(source0,source1,7,D,F,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6);
+  microloop_nostore(source0,source1,8,D,F,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7);
+  microloop_nostore(source0,source1,9,D,F,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8);
+  microloop_nostore(source0,source1,10,D,F,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9);
+  microloop_nostore(source0,source1,11,D,F,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10);
+  microloop_nostore(source0,source1,12,D,F,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11);
+  microloop_nostore(source0,source1,13,D,F,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12);
+  microloop_nostore(source0,source1,14,D,F,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13);
+  microloop_nostore(source0,source1,15,D,F,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14);
+  source0 += 16;
+  source1 += 16;
+  i=16;
+  while(i<n) {
+    store2(dest0,dest1,0,S0);
+    microloop_nostore(source0,source1,0,D,F,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15);
+    store2(dest0,dest1,1,S1);
+    microloop_nostore(source0,source1,1,D,F,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0);
+    store2(dest0,dest1,2,S2);
+    microloop_nostore(source0,source1,2,D,F,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1);
+    store2(dest0,dest1,3,S3);
+    microloop_nostore(source0,source1,3,D,F,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2);
+    store2(dest0,dest1,4,S4);
+    microloop_nostore(source0,source1,4,D,F,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3);
+    store2(dest0,dest1,5,S5);
+    microloop_nostore(source0,source1,5,D,F,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4);
+    store2(dest0,dest1,6,S6);
+    microloop_nostore(source0,source1,6,D,F,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5);
+    store2(dest0,dest1,7,S7);
+    microloop_nostore(source0,source1,7,D,F,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6);
+    store2(dest0,dest1,8,S8);
+    microloop_nostore(source0,source1,8,D,F,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7);
+    store2(dest0,dest1,9,S9);
+    microloop_nostore(source0,source1,9,D,F,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8);
+    store2(dest0,dest1,10,S10);
+    microloop_nostore(source0,source1,10,D,F,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9);
+    store2(dest0,dest1,11,S11);
+    microloop_nostore(source0,source1,11,D,F,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10);
+    store2(dest0,dest1,12,S12);
+    microloop_nostore(source0,source1,12,D,F,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11);
+    store2(dest0,dest1,13,S13);
+    microloop_nostore(source0,source1,13,D,F,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12);
+    store2(dest0,dest1,14,S14);
+    microloop_nostore(source0,source1,14,D,F,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13);
+    store2(dest0,dest1,15,S15);
+    microloop_nostore(source0,source1,15,D,F,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14);
+    source0+=16;
+    dest0+=16;
+    source1+=16;
+    dest1+=16;
+    i += 16;
+  }
+  store2(dest0,dest1,0,S0);
+  microloop_nostore(source0,source1,0,D,F,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15);
+  store2(dest0,dest1,1,S1);
+  microloop_nostore(source0,source1,1,D,F,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0);
+  store2(dest0,dest1,2,S2);
+  microloop_nostore(source0,source1,2,D,F,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1);
+  store2(dest0,dest1,3,S3);
+  microloop_nostore(source0,source1,3,D,F,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2);
+  store2(dest0,dest1,4,S4);
+  microloop_nostore(source0,source1,4,D,F,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3);
+  store2(dest0,dest1,5,S5);
+  microloop_nostore(source0,source1,5,D,F,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4);
+  store2(dest0,dest1,6,S6);
+  microloop_nostore(source0,source1,6,D,F,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5);
+  store2(dest0,dest1,7,S7);
+  microloop_nostore(source0,source1,7,D,F,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6);
+  store2(dest0,dest1,8,S8);
+  microloop_nostore(source0,source1,8,D,F,S8,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7);
+  store2(dest0,dest1,9,S9);
+  microloop_nostore(source0,source1,9,D,F,S9,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8);
+  store2(dest0,dest1,10,S10);
+  microloop_nostore(source0,source1,10,D,F,S10,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9);
+  store2(dest0,dest1,11,S11);
+  microloop_nostore(source0,source1,11,D,F,S11,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10);
+  store2(dest0,dest1,12,S12);
+  microloop_nostore(source0,source1,12,D,F,S12,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11);
+  store2(dest0,dest1,13,S13);
+  microloop_nostore(source0,source1,13,D,F,S13,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12);
+  store2(dest0,dest1,14,S14);
+  microloop_nostore(source0,source1,14,D,F,S14,S15,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13);
+  store2(dest0,dest1,15,S15);
+}
+
+
 
 #define conv_2x2_block_fused(offset_filter,offset_source,d00,d10) \
 FA = _mm_load_pd(filt+offset_filter);\
@@ -1559,8 +1697,8 @@ int main(void) {
   if(err){    printf("memalign error : %i\n",err);    exit(0);  }
   c=t;
 
-  unsigned int i,j,k;
-  for(i=1; i<BUFFER_WIDTH;i++) {
+  unsigned int i,j;
+  for(i=0; i<BUFFER_WIDTH;i++) {
     for(j=0;j<BUFFER_DEPTH+FILTER_SIZE;j++){
       a[i*(BUFFER_DEPTH+FILTER_SIZE)+j] = rand()/(double)RAND_MAX;
     }
@@ -1878,5 +2016,22 @@ int main(void) {
   }
   printf("result 18eo %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
 
+  nanosec(&t1);
+  for(i=0; i<BUFFER_WIDTH;i+=2) {
+      conv_gliding(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&a[(i+1)*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH],&b[(i+1)*BUFFER_DEPTH]);
+  }
+  nanosec(&t2);
+  br=0;
+  for(i=0; i<BUFFER_WIDTH;i++) {
+    for(j=0;j<BUFFER_DEPTH;j++) {
+      br+=b[i*BUFFER_DEPTH+j];
+      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
+        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
+     }
+    }
+  }
+  printf("result glide %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
 
+
+  return 0;
 }

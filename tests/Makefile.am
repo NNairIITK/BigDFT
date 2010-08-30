@@ -2,8 +2,6 @@
 
 SUBDIRS = \
 	  fft \
-	  OpenCL \
-	  CUDA \
 	  PSolver \
 	  H2-freq \
 	  NEB \
@@ -14,6 +12,14 @@ SUBDIRS = \
 #This will run the automatic tests also for minima hopping
 if USE_MINIMA_HOPPING
 SUBDIRS += MINHOP
+endif
+
+if USE_CUDA_GPU
+SUBDIRS += CUDA
+endif
+
+if USE_OCL
+SUBDIRS += OpenCL
 endif
 
 if USE_MPI
