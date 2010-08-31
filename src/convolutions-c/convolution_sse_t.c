@@ -52,7 +52,7 @@ void nanosec(unsigned long long int * t){
   *t += time.tv_nsec;
 }
 #define FILTER_SIZE 16
-#define BUFFER_WIDTH (128*128)
+#define BUFFER_WIDTH (128*132)
 #define BUFFER_DEPTH 128
 
 #define store2_reverse(dest,offset,S) \

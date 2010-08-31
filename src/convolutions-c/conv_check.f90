@@ -175,6 +175,56 @@ program conv_check
            !the input and output arrays must be reverted in this implementation
            !take timings
 
+           write(*,'(a,i6,i6)')'CPU sse Convolutions, dimensions:',n1,ndat
+
+           call cpu_time(t0)
+           call rdtsc(tsc0)
+           do i=1,ntimes
+              call magicfilter1d_sse(n1,ndat,psi_in,psi_cuda)
+           end do
+           call rdtsc(tsc1)
+           call cpu_time(t1)
+           GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+           print *,"tsc : ",tsc1-tsc0
+           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+                GPUtime*1.d3/real(ntimes,kind=8),&
+                real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+
+           !check the differences between the results
+           maxdiff=3.d-7
+           i1_max=1
+           i_max=1
+           do i=1,ndat
+              do i1=1,n1
+                 comp=abs(psi_out(i,i1,1)-real(psi_cuda(i,i1,1),kind=8))
+                 if (comp > maxdiff) then
+                 write(*,*)i1, i, psi_out(i,i1,1),psi_cuda(i,i1,1)
+                    i1_max=i1
+                    i_max=i
+                 end if
+              end do
+           end do
+
+           if (maxdiff <= 3.d-7) then
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
+                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),&
+                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),&
+                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+           else
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
+                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),&
+                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),&
+                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+                   '<<<< WARNING' 
+           end if
+
            write(*,'(a,i6,i6)')'CPU C Convolutions, dimensions:',n1,ndat
 
            call cpu_time(t0)
