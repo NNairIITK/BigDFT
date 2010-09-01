@@ -192,14 +192,15 @@ program conv_check
                 real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
 
            !check the differences between the results
-           maxdiff=3.d-7
+           maxdiff=0.d0
            i1_max=1
            i_max=1
            do i=1,ndat
               do i1=1,n1
                  comp=abs(psi_out(i,i1,1)-real(psi_cuda(i,i1,1),kind=8))
                  if (comp > maxdiff) then
-                 write(*,*)i1, i, psi_out(i,i1,1),psi_cuda(i,i1,1)
+                    maxdiff=comp
+!                 write(*,*)i1, i, psi_out(i,i1,1),psi_cuda(i,i1,1)
                     i1_max=i1
                     i_max=i
                  end if
