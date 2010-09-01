@@ -123,7 +123,7 @@ program conv_check
   ekin=0.0_wp
   
   !call set_gpu_double() !after this call, all memory operations are in double precision, call set_gpu_simple() in order to have simple memory operations
-  call init_thread_engine();
+!  call init_thread_engine();
 
   !one dimensional case
   if (ndim == 1) then
@@ -142,140 +142,82 @@ program conv_check
            sigma2=0.25d0*((n1*hx)**2)
            do i=1,ndat
               do i1=1,n1
-                 x=hx*real(i1-n1/2-1,kind=8)
+!                 x=hx*real(i1-n1/2-1,kind=8)
                  !tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
-                 r2=x**2
-                 arg=0.5d0*r2/sigma2
-                 tt=dexp(-arg)
-
-                 psi_in(i1,i,1)=tt
+!                 r2=x**2
+!                 arg=0.5d0*r2/sigma2
+!                 tt=dexp(-arg)
+!                 random_number(tt)
+                 psi_in(i1,i,1)=rand(0)
               end do
            end do
 
-           write(*,'(a,i6,i6)')'CPU Convolutions, dimensions:',n1,ndat
+           write(*,'(a,i7,i7)')'CPU Convolutions, dimensions:',n1,ndat
 
            !take timings
            !call system_clock(it0,count_rate,count_max)
-           call cpu_time(t0)
-           call rdtsc(tsc0)
+           call nanosec(tsc0);
            do i=1,ntimes
               call convrot_n_per(n1-1,ndat,psi_in,psi_out)
            end do
-           call rdtsc(tsc1)
-           call cpu_time(t1)
+           call nanosec(tsc1);
            !call system_clock(it1,count_rate,count_max)
 
-           CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+           CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
-           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
-                CPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
-           print *,"tsc : ",tsc1-tsc0
+           call print_time(CPUtime,n1*ndat,32,ntimes)
 
            !the input and output arrays must be reverted in this implementation
            !take timings
 
-           write(*,'(a,i6,i6)')'CPU sse Convolutions, dimensions:',n1,ndat
+           write(*,'(a,i7,i7)')'CPU sse Convolutions, dimensions:',n1,ndat
 
-           call cpu_time(t0)
-           call rdtsc(tsc0)
+           call nanosec(tsc0);
            do i=1,ntimes
               call magicfilter1d_sse(n1,ndat,psi_in,psi_cuda)
            end do
-           call rdtsc(tsc1)
-           call cpu_time(t1)
-           GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+           call nanosec(tsc1);
 
-           print *,"tsc : ",tsc1-tsc0
-           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
-                GPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
-           !check the differences between the results
-           maxdiff=0.d0
-           i1_max=1
-           i_max=1
-           do i=1,ndat
-              do i1=1,n1
-                 comp=abs(psi_out(i,i1,1)-real(psi_cuda(i,i1,1),kind=8))
-                 if (comp > maxdiff) then
-                    maxdiff=comp
-!                 write(*,*)i1, i, psi_out(i,i1,1),psi_cuda(i,i1,1)
-                    i1_max=i1
-                    i_max=i
-                 end if
-              end do
-           end do
+           call print_time(GPUtime,n1*ndat,32,ntimes)
 
-           if (maxdiff <= 3.d-7) then
-              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
-                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                   n1,ndat,CPUtime/GPUtime,maxdiff,&
-                   CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
-                   GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
-           else
-              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
-                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                   n1,ndat,CPUtime/GPUtime,maxdiff,&
-                   CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
-                   GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
-                   '<<<< WARNING' 
-           end if
+           call compare_2D_results(ndat, n1, psi_out, psi_cuda, maxdiff, 3.d-7)
 
-           write(*,'(a,i6,i6)')'CPU C Convolutions, dimensions:',n1,ndat
+           call compare_time(CPUtime,GPUtime,n1*ndat,32,ntimes,maxdiff,3.d-7)
+          
+           write(*,'(a,i7,i7)')'CPU Convolutions T, dimensions:',n1,ndat
 
-           call cpu_time(t0)
-           call rdtsc(tsc0)
+           !take timings
+           !call system_clock(it0,count_rate,count_max)
+           call nanosec(tsc0);
            do i=1,ntimes
-              call magicfilter1d_d_par(n1,ndat,psi_in,psi_cuda)
+              call convrot_t_per(n1-1,ndat,psi_in,psi_out)
            end do
-           call rdtsc(tsc1)
-           call cpu_time(t1)
-           GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+           call nanosec(tsc1);
+           !call system_clock(it1,count_rate,count_max)
 
-           print *,"tsc : ",tsc1-tsc0
-           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
-                GPUtime*1.d3/real(ntimes,kind=8),&
-                real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+           CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
-           !check the differences between the results
-           maxdiff=0.d0
-           i1_max=1
-           i_max=1
-           do i=1,ndat
-              do i1=1,n1
-                 comp=abs(psi_out(i,i1,1)-real(psi_cuda(i,i1,1),kind=8))
-!                 write(*,*)psi_out(i,i1,1),psi_cuda(i,i1,1)
-                 if (comp > maxdiff) then
-                    maxdiff=comp
-                    i1_max=i1
-                    i_max=i
-                 end if
-              end do
+           call print_time(CPUtime,n1*ndat,32,ntimes)
+
+           !take timings
+
+           write(*,'(a,i7,i7)')'CPU sse Convolutions T, dimensions:',n1,ndat
+
+           call nanosec(tsc0);
+           do i=1,ntimes
+              call magicfilter1d_t_sse(n1,ndat,psi_in,psi_cuda)
            end do
+           call nanosec(tsc1);
 
-           if (maxdiff <= 3.d-7) then
-              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
-                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                   n1,ndat,CPUtime/GPUtime,maxdiff,&
-                   CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
-                   GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
-           else
-              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
-                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-                   n1,ndat,CPUtime/GPUtime,maxdiff,&
-                   CPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
-                   GPUtime*1.d3/real(ntimes,kind=8),&
-                   real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
-                   '<<<< WARNING' 
-           end if
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+
+           call print_time(GPUtime,n1*ndat,32,ntimes)
+
+           call compare_2D_results(ndat, n1, psi_out, psi_cuda, maxdiff, 3.d-7)
+
+           call compare_time(CPUtime,GPUtime,n1*ndat,32,ntimes,maxdiff,3.d-7)
 
         end do
      end do
@@ -285,6 +227,129 @@ program conv_check
   end if
 
 contains
+
+  subroutine print_time(time,nbelem,nop,ntimes)
+    implicit none
+    real(gp),intent(in)::time
+    integer,intent(in)::nbelem,nop,ntimes
+
+    write(*,'(a,f9.4,1pe12.5)')'Finished. Time(ms), GFlops',&
+      time*1.d3/real(ntimes,kind=8),&
+      real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(time*1.d9)
+
+  end subroutine print_time
+
+  subroutine compare_time(REFtime,TESTtime,nbelem,nop,ntimes,maxdiff,threshold)
+    implicit none
+    real(gp),intent(in)::REFtime,TESTtime,maxdiff,threshold
+    integer,intent(in)::nbelem,nop,ntimes
+
+    write(*,'(a,i10,f9.5,1pe12.5,2(0pf12.4,0pf12.4))',advance='no')&
+      'nbelem,REF/TEST ratio,Time,Gflops: REF,TEST',&
+       nbelem,REFtime/TESTtime,maxdiff,&
+       REFtime*1.d3/real(ntimes,kind=8),&
+       real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(REFtime*1.d9),&
+       TESTtime*1.d3/real(ntimes,kind=8),&
+       real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(TESTtime*1.d9)
+    if (maxdiff <= threshold) then
+      write(*,'(a)')''
+    else
+      write(*,'(a)')'<<<< WARNING' 
+    end if
+  end subroutine compare_time
+
+  subroutine compare_3D_results(dim1, dim2, dim3, psi_ref, psi, maxdiff, printdiff)
+    implicit none
+    integer,intent(in):: dim1, dim2, dim3
+    real(gp),intent(in):: psi_ref(dim1,dim2,dim3), psi(dim1,dim2,dim3)
+    real(gp),intent(out):: maxdiff
+    real(gp),intent(in):: printdiff
+    real(gp)::comp
+    integer::i1,i2,i3
+
+    maxdiff=0.d0
+    do i3=1,dim3
+      do i2=1,dim2
+        do i1=1,dim1
+          comp=abs(psi_ref(i1,i2,i3)-psi(i1,i2,i3))
+          if(comp > printdiff) then
+            write(*,*)i3,i2,i1,psi_ref(i1,i2,i3),psi(i1,i2,i3)
+          endif
+          if (comp > maxdiff) then
+            maxdiff=comp
+          end if
+        end do
+      end do
+    end do
+  end subroutine compare_3D_results
+
+  subroutine compare_2D_results(dim1, dim2, psi_ref, psi, maxdiff, printdiff)
+    implicit none
+    integer,intent(in):: dim1, dim2
+    real(gp),intent(in):: psi_ref(dim1,dim2), psi(dim1,dim2)
+    real(gp),intent(out):: maxdiff
+    real(gp),intent(in):: printdiff
+    real(gp)::comp
+    integer::i1,i2
+
+    maxdiff=0.d0
+    do i2=1,dim2
+      do i1=1,dim1
+        comp=abs(psi_ref(i1,i2)-psi(i1,i2))
+        if(comp > printdiff) then
+          write(*,*)i2,i1,psi_ref(i1,i2),psi(i1,i2)
+        endif
+        if (comp > maxdiff) then
+          maxdiff=comp
+        end if
+      end do
+    end do
+  end subroutine compare_2D_results
+
+  subroutine compare_2D_results_t(dim1, dim2, psi_ref, psi, maxdiff, printdiff)
+    implicit none
+    integer,intent(in):: dim1, dim2
+    real(gp),intent(in):: psi_ref(dim1,dim2), psi(dim2,dim1)
+    real(gp),intent(out):: maxdiff
+    real(gp),intent(in):: printdiff
+    real(gp)::comp
+    integer::i1,i2
+
+    maxdiff=0.d0
+    do i2=1,dim2
+      do i1=1,dim1
+        comp=abs(psi_ref(i1,i2)-psi(i2,i1))
+        if(comp > printdiff) then
+          write(*,*)i2,i1,psi_ref(i1,i2),psi(i2,i1)
+        endif
+        if (comp > maxdiff) then
+          maxdiff=comp
+        end if
+      end do
+    end do
+  end subroutine compare_2D_results_t
+
+  subroutine compare_1D_results(dim1, psi_ref, psi, maxdiff, printdiff)
+    implicit none
+    integer,intent(in):: dim1
+    real(gp),intent(in):: psi_ref(dim1), psi(dim1)
+    real(gp),intent(out):: maxdiff
+    real(gp),intent(in):: printdiff
+    real(gp)::comp
+    integer::i1
+
+    maxdiff=0.d0
+    do i1=1,dim1
+      comp=abs(psi_ref(i1)-psi(i1))
+      if(comp > printdiff) then
+        write(*,*)i1,psi_ref(i1),psi(i1)
+      endif
+      if (comp > maxdiff) then
+        maxdiff=comp
+      end if
+    end do
+  end subroutine compare_1D_results
+
 
   subroutine conv_kin_x(x,y,ndat,ekin)
     implicit none

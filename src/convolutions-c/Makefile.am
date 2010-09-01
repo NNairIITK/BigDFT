@@ -21,7 +21,6 @@ libbasef_a_SOURCES = ../profiling/memory.f90 \
                      ../modules/base.F90 \
                      ../modules/cublas_fake.f90 $(mpi_source)
 libbasec_a_SOURCES = thread_engine.cpp \
-                     MagicFilter_C.c \
                      MagicFilter_sse.c
 
 if USE_MPI
@@ -39,7 +38,7 @@ AM_CFLAGS = -Wall -Werror -O2 -msse3 -mtune=core2 -ftree-vectorize -ftree-vector
 
 conv_check_SOURCES = conv_check.f90 
 conv_check_LDADD = libbasec.a libbasef.a ../libbigdft.a ../PSolver/libpoissonsolver.a
-conv_check_LDFLAGS = -lpthread -lconfig++ -lstdc++
+conv_check_LDFLAGS = -lpthread -lconfig++ -lstdc++ -lrt
 
 check_conv: conv_check
 	echo 1 128 128 204900 204900 10 > fort.1
