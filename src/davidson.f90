@@ -287,7 +287,8 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   end if
 
 
-  if (idsx_actual > 0) then
+  !if (idsx_actual > 0) then
+  if (in%idsx > 0) then
      i_all=-product(shape(psidst))*kind(psidst)
      deallocate(psidst,stat=i_stat)
      call memocc(i_stat,i_all,'psidst',subname)

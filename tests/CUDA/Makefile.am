@@ -29,4 +29,4 @@ conv_check_LDADD = ../../src/libbigdft.a \
 
 check:
 	echo 1 64 64 2048 2048 2 > fort.1
-	$(top_builddir)/src/CUDA/conv_check
+	./conv_check

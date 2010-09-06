@@ -737,21 +737,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !control whether there is a reference density
   potion_overwritten=.false.
- 
-  if (in%read_ref_den ) then
-
-     !allocate the kernel for the reference density case
-     call createKernel(iproc,nproc,'F',n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel_ref,&
-          quiet=PSquiet)
-
-     allocate(rhoref(n1i,n2i,max(n3d,1),in%nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,rhoref,'rhoref',subname)
-
-     call read_potfile(atoms%geocode,'density.pot',n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rhoref)
-
-     potion_overwritten=.false.
-
-  end if
 
   !end of the initialization part
   call timing(iproc,'INIT','PR')
@@ -789,48 +774,24 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
              rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
      else
 
-        if (in%read_ref_den .and. gnrm <= in%gnrm_sw .or. potion_overwritten) then
-           if (.not. potion_overwritten) then
-              !overwrite pot_ion with the potential previously created
-              call read_potfile(atoms%geocode,'potion_corr.pot',n1,n2,n3,n1i,n2i,n3i,n3pi,&
-                   i3s+i3xcsh,pot_ion)
+        call XC_potential(atoms%geocode,'D',iproc,nproc,&
+             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
+             rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
 
-              if (.not. in%correct_offset) then
-                 !read the ionic energy from disk
-                 open(unit=22,file='eion_corr.tmp',status='unknown')
-                 read(22,*)eion,ehart_fake
-                 close(unit=22)
-              end if
-              potion_overwritten=.true.
-           end if
-           call correct_hartree_potential(atoms,iproc,nproc,&
-                Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
-                n3p,n3pi,n3d,i3s,i3xcsh,hxh,hyh,hzh,pkernel,ngatherarr,&
-                rhoref,pkernel_ref,pot_ion,rhopot,ixc,in%nspin,ehart,eexcu,vexcu,PSquiet,&
-                in%correct_offset)
+        call H_potential(atoms%geocode,'D',iproc,nproc,&
+             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+             rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
+             quiet=PSquiet) !optional argument
 
-        else
-
-           call XC_potential(atoms%geocode,'D',iproc,nproc,&
-                Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
-                rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
-
-           call H_potential(atoms%geocode,'D',iproc,nproc,&
-                Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-                rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
-                quiet=PSquiet) !optional argument
-
-           !sum the two potentials in rhopot array
-           !fill the other part, for spin, polarised
-           if (in%nspin == 2) then
-              call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
-                   rhopot(1+n1i*n2i*n3p),1)
-           end if
-           !spin up and down together with the XC part
-           call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
-                rhopot(1),1)
-
+        !sum the two potentials in rhopot array
+        !fill the other part, for spin, polarised
+        if (in%nspin == 2) then
+           call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
+                rhopot(1+n1i*n2i*n3p),1)
         end if
+        !spin up and down together with the XC part
+        call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
+             rhopot(1),1)
 
      end if
 
@@ -913,7 +874,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   if (iter == itermax .and. iproc == 0 ) &
        write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
 
-  if (idsx_actual > 0) then
+  !if (idsx_actual > 0) then
+  if (in%idsx > 0) then
      i_all=-product(shape(psidst))*kind(psidst)
      deallocate(psidst,stat=i_stat)
      call memocc(i_stat,i_all,'psidst',subname)
