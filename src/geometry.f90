@@ -183,7 +183,8 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
      call ab6md(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
 
   else
-     stop 'geometry optimization method undefined'
+     write(*,*) 'ERROR: geometry optimization method undefined, exiting...',trim(parmin%approach)
+     stop 
   endif
   if (iproc==0) write(*,'(a,1x,a)') 'End of minimization using ',parmin%approach
 
@@ -1431,7 +1432,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 END SUBROUTINE rundiis
 !!***
 
-
+ 
 !!****f* BigDFT/lbfgsdriver
 !! FUNCTION
 !!   Driver for the LBFGS routine found on the Nocedal Homepage
