@@ -147,8 +147,8 @@ program conv_check
 !                 r2=x**2
 !                 arg=0.5d0*r2/sigma2
 !                 tt=dexp(-arg)
-!                 random_number(tt)
-                 psi_in(i1,i,1)=rand(0)
+                 call random_number(tt)
+                 psi_in(i1,i,1)=tt
               end do
            end do
 
