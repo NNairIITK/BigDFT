@@ -42,4 +42,4 @@ conv_check_LDFLAGS = -lpthread -lconfig++ -lstdc++ -lrt
 
 check_conv: conv_check
 	echo 1 128 128 204900 204900 10 > fort.1
-	numactl --interleave=all ./conv_check
+	./conv_check
