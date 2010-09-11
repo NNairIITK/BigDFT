@@ -810,7 +810,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   !    input_wf_diag will write (to be used it in abscalc)
   !    the density to the file electronic_density.cube
   !  The writing is activated if  5th bit of  in%potshortcut is on.
-  if( iand( potshortcut,16)==0) then
+  if( iand( potshortcut,16)==0 .and. potshortcut /= 0) then
      call plot_density_cube_old(at%geocode,'electronic_density',&
           iproc,nproc,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nscatterarr(iproc,2),  & 
           nspin,hxh,hyh,hzh,at,rxyz,ngatherarr,rhopot(1+nscatterarr(iproc,4)*Glr%d%n1i*Glr%d%n2i))

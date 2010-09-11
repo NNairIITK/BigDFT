@@ -161,11 +161,14 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
 
   allocate(hpsivirt(orbsv%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,hpsivirt,'hpsivirt',subname)
-  allocate(psitvirt(orbsv%npsidim+ndebug),stat=i_stat)
-  call memocc(i_stat,psitvirt,'psitvirt',subname)
-
-  !transpose the psivirt 
-  call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,psivirt,work=psiw,outadd=psitvirt(1))
+  if (nproc > 1) then
+     allocate(psitvirt(orbsv%npsidim+ndebug),stat=i_stat)
+     call memocc(i_stat,psitvirt,'psitvirt',subname)
+     !transpose the psivirt 
+     call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,psivirt,work=psiw,outadd=psitvirt(1))
+  else
+     nullify(psitvirt)
+  end if
 
 
   ! allocate arrays necessary for DIIS convergence acceleration
@@ -253,6 +256,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
         !if this is true the transposition for psivirt which is done in hpsitopsi
         !is useless, but we leave it for simplicity
 
+        if (nproc == 1) psitvirt => psivirt
         !project psivirt such that they are orthogonal to all occupied psi
         call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,psitvirt,msg)
         call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psitvirt)

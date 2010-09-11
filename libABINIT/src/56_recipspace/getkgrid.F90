@@ -126,6 +126,7 @@ subroutine getkgrid(iout,iscf,kpt,kptopt,kptrlatt,kptrlen,&
 !write(6, '(3es16.6)' )rprimd(:,2)
 !write(6, '(3es16.6)' )rprimd(:,3)
 !ENDDEBUG
+
  call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
 
  if(kptopt==1.or.kptopt==4)then
