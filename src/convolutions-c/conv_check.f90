@@ -170,6 +170,22 @@ program conv_check
            !the input and output arrays must be reverted in this implementation
            !take timings
 
+           write(*,'(a,i7,i7)')'CPU naive Convolutions, dimensions:',n1,ndat
+
+           call nanosec(tsc0);
+           do i=1,ntimes
+              call magicfilter1d_naive(n1,ndat,psi_in,psi_cuda)
+           end do
+           call nanosec(tsc1);
+
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+
+           call print_time(GPUtime,n1*ndat,32,ntimes)
+
+           call compare_2D_results(ndat, n1, psi_out, psi_cuda, maxdiff, 3.d-7)
+
+           call compare_time(CPUtime,GPUtime,n1*ndat,32,ntimes,maxdiff,3.d-7)
+          
            write(*,'(a,i7,i7)')'CPU sse Convolutions, dimensions:',n1,ndat
 
            call nanosec(tsc0);
@@ -202,6 +218,23 @@ program conv_check
            call print_time(CPUtime,n1*ndat,32,ntimes)
 
            !take timings
+
+           write(*,'(a,i7,i7)')'CPU naive Convolutions T, dimensions:',n1,ndat
+
+           call nanosec(tsc0);
+           do i=1,ntimes
+              call magicfilter1d_t_naive(n1,ndat,psi_in,psi_cuda)
+           end do
+           call nanosec(tsc1);
+
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+
+           call print_time(GPUtime,n1*ndat,32,ntimes)
+
+           call compare_2D_results(ndat, n1, psi_out, psi_cuda, maxdiff, 3.d-7)
+
+           call compare_time(CPUtime,GPUtime,n1*ndat,32,ntimes,maxdiff,3.d-7)
+
 
            write(*,'(a,i7,i7)')'CPU sse Convolutions T, dimensions:',n1,ndat
 

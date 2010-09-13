@@ -784,6 +784,37 @@ inline void conv_4x2_fused_t(size_t ndat, double const * source0, double const *
   _mm_store_pd(dest+2+ndat,_mm_hadd_pd(S21,S31));
 }
 
+void magicfilter1d_naive_(unsigned int *n, unsigned int *ndat, double const *source, double *dest) {
+  double tmp;
+  unsigned int i,j,k;
+  for(i=0;i<(*ndat);i++){
+    for(j=0;j<(*n);j++) {
+      tmp=0;
+      for(k=0;k<16;k++){
+        tmp+=source[(j-8+k+(*n))%(*n)]*filter[k];
+      }
+      dest[j*(*ndat)]=tmp;
+    }
+    dest += 1;
+    source += (*n);
+  } 
+}
+
+void magicfilter1d_t_naive_(unsigned int *n, unsigned int *ndat, double const *source, double *dest) {
+  double tmp;
+  unsigned int i,j,k;
+  for(i=0;i<(*ndat);i++){
+    for(j=0;j<(*n);j++) {
+      tmp=0;
+      for(k=0;k<16;k++){
+        tmp+=source[(j-7+k+(*n))%(*n)]*filter_reverse[k];
+      }
+      dest[j*(*ndat)]=tmp;
+    }
+    dest += 1;
+    source += (*n);
+  } 
+}
 
 void magicfilter1d_sse_(unsigned int *n, unsigned int *ndat, double const *source, double *dest) {
   double * dest_t;
