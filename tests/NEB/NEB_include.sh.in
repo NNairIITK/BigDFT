@@ -15,6 +15,36 @@ wait_jobs()
     return
 }
 
+make_ascii()
+{
+    position_file=$1".ascii"
+    n_nodes=$2
+    restart_file=$3
+
+    rm -f posinp.ascii
+    head -n3 $position_file >> posinp.ascii
+    echo "#keyword: periodic, bohr" >> posinp.ascii
+    tail -n $n_nodes $position_file | sed "s/  */ /g" | cut -d" " -f5 > atoms
+    grep -A $(($n_nodes + 1)) -e "Replica: *$id *$" $restart_file | tail -n $n_nodes | sed "s/  */ /g" | cut -d' ' -f2,3,4 > positions
+    paste -d' ' positions atoms >> posinp.ascii
+    rm -f atoms positions
+}
+
+make_xyz()
+{
+    position_file=$1".xyz"
+    n_nodes=$2
+    restart_file=$3
+
+    rm -f posinp.xyz
+    echo $n_nodes" atomic" > posinp.xyz
+    head -n2 $position_file | tail -n 1 >> posinp.xyz
+    head -n $(($n_nodes + 2)) $position_file | tail -n $n_nodes | sed "s/^ *//g" | cut -d" " -f1 > atoms
+    grep -A $(($n_nodes + 1)) -e "Replica: *$id *$" $restart_file | tail -n $n_nodes | sed "s/  */ /g" | cut -d' ' -f2,3,4 > positions
+    paste -d' ' atoms positions >> posinp.xyz
+    rm -f atoms positions
+}
+
 make_input()
 {
     # We create a posinp file from the .NEB.restart file.
@@ -27,20 +57,16 @@ make_input()
     # $5 the first configuration
     datadir=$2
     restart_file=$datadir/$1".NEB.restart"
-    position_file=$5".xyz"
+    position_file=$5
     n_nodes=$4
     id=$3
 
-    # Create the posinp file
-    rm -f posinp.xyz
-    
-    echo $n_nodes" atomic" > posinp.xyz
-    head -n2 $position_file | tail -n 1 >> posinp.xyz
-    head -n $(($n_nodes + 2)) $position_file | tail -n $n_nodes | sed "s/^ *//g" | cut -d" " -f1 > atoms
-    grep -A $(($n_nodes + 1)) -e "Replica: *$id *$" $restart_file | tail -n $n_nodes | sed "s/  */ /g" | cut -d' ' -f2,3,4 > positions
-    paste -d' ' atoms positions >> posinp.xyz
-    rm -f atoms positions
+    # Clean the directory
+    rm -f log input.*
 
+    # Create the posinp file
+    make_xyz $position_file $n_nodes $restart_file
+    
     # Copy the input.dat
     cp -f -p $datadir/input.dft .
 
@@ -87,9 +113,15 @@ check_job()
 	    echo "1"
 	    return
 	else
-	    # Failure
-	    echo "2"
-	    return
+	    if grep -qs "Input Wavefunctions Creation" log ; then
+	        # Failure
+		echo "2"
+		return
+	    else
+		# System failure, should restart
+                echo "3"
+                return
+            fi
 	fi
     fi
     
