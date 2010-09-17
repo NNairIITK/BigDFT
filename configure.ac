@@ -508,7 +508,6 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
     ac_build_libsgpu="yes"
     ac_use_libsgpu="yes"
     AC_SUBST(LIBSGPU_INCLUDE, "-I\$(top_srcdir)"/S_GPU/src)
-    LDFLAGS="$LDFLAGS -L\$(top_builddir)/S_GPU/src/.libs"
   else
     if test -n "$ac_libsgpu_dir" ; then
       LDFLAGS="$LDFLAGS -L$ac_libsgpu_dir/lib"
@@ -525,9 +524,9 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   if test x"$ac_use_libsgpu" = x"yes" ; then
     AC_DEFINE([HAVE_LIBSGPU], [1], [use S_GPU in BigDFT.])
     if test "$internalsgpu" = "yes" ; then
-      LIBSGPU_LIBS="\$(top_builddir)/S_GPU/src/.libs/libs_gpu.a"
+      LIBSGPU_LIBS="\$(top_builddir)/S_GPU/src/.libs/libs_gpu.a -lstdc++"
     else
-      LIBSGPU_LIBS="-ls_gpu"
+      LIBSGPU_LIBS="-ls_gpu -lstdc++"
     fi
   fi
 fi
