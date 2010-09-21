@@ -9,7 +9,7 @@
 !! SOURCE
 !!
 subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alpha,&
-     hpsit,psidst,hpsidst,psit)
+     hpsit,psidst,hpsidst_sp,psit)
   use module_base
   use module_types
   implicit none
@@ -18,10 +18,11 @@ subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alp
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
   real(gp), intent(inout) :: alpha
-  real(wp), dimension(:), pointer :: psit,hpsit,psidst,hpsidst
+  real(wp), dimension(:), pointer :: psit,psidst,hpsit!,hpsidst
+  real(sp), dimension(:), pointer :: hpsidst_sp
   real(wp), dimension(:,:,:), pointer :: ads
   !local variables
-  integer :: ikptp,nvctrp,ispsi,ispsidst
+  integer :: ikptp,nvctrp,ispsi,ispsidst,jj
 
   if (idsx > 0) then
      !do not transpose the hpsi wavefunction into the diis array
@@ -38,16 +39,21 @@ subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alp
              psit(ispsi),1,&
              psidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(mids-1)),1)
      !hpsidst=hpsi
-        call dcopy(nvctrp*orbs%norb*orbs%nspinor,&
-             hpsit(ispsi),1,&
-             hpsidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(mids-1)),1)
+     !   call dcopy(nvctrp*orbs%norb*orbs%nspinor,&
+     !        hpsit(ispsi),1,&
+     !        hpsidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(mids-1)),1)
+
+     do jj=0,nvctrp*orbs%norb*orbs%nspinor-1
+        hpsidst_sp(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(mids-1)+jj)=real(hpsit(ispsi+jj))
+     end do
+
         ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
         ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*idsx
      end do
      
      !here we should separate between up and down spin orbitals, maybe
      call diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,&
-          psit,psidst,hpsidst)
+          psit,psidst,hpsidst_sp)
 
   else
      ! update all wavefunctions with the preconditioned gradient
@@ -72,12 +78,11 @@ subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alp
 END SUBROUTINE psimix
 !!***
 
-
 ! diis subroutine:
 ! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
 ! using  the previous iteration points psidst and the associated error 
 ! vectors (preconditioned gradients) hpsidst
-subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
+subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst_sp)
   use module_base
   use module_types
   implicit none
@@ -85,7 +90,8 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
   integer, intent(in) :: nproc,iproc,ids,mids,idsx
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
-  real(wp), dimension(sum(comms%ncntt(0:nproc-1))*idsx), intent(in) :: psidst,hpsidst
+  real(wp), dimension(sum(comms%ncntt(0:nproc-1))*idsx), intent(in) :: psidst!, hpsidst
+  real(sp), dimension(sum(comms%ncntt(0:nproc-1))*idsx), intent(in) :: hpsidst_sp
   real(dp), dimension(idsx+1,idsx+1,orbs%nkptsp,3), intent(inout) :: ads
   real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(out) :: psit
 ! Local variables
@@ -94,6 +100,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
   integer :: ikptp,ikpt,ispsi,ispsidst,nvctrp
   integer, dimension(:), allocatable :: ipiv
   real(dp), dimension(:,:), allocatable :: rds
+  !real(dp) :: ddot
 
   allocate(ipiv(idsx+1+ndebug),stat=i_stat)
   call memocc(i_stat,ipiv,'ipiv',subname)
@@ -127,9 +134,13 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
 !!        rds(i-ist+1)=rds(i-ist+1)+tt
 !!     end do
         !to be corrected for complex wavefunctions
-        rds(i-ist+1,ikpt)=dot(nvctrp*orbs%norb*orbs%nspinor,&
-             hpsidst(ispsidst+(mids-1)*nvctrp*orbs%norb*orbs%nspinor),1,&
-             hpsidst(ispsidst+(mi-1)*nvctrp*orbs%norb*orbs%nspinor),1)
+        !rds(i-ist+1,ikpt)=ddot(nvctrp*orbs%norb*orbs%nspinor,&
+        !     hpsidst(ispsidst+(mids-1)*nvctrp*orbs%norb*orbs%nspinor),1,&
+        !     hpsidst(ispsidst+(mi-1)*nvctrp*orbs%norb*orbs%nspinor),1)
+        call ds_dot(nvctrp*orbs%norb*orbs%nspinor,&
+             hpsidst_sp,ispsidst+(mids-1)*nvctrp*orbs%norb*orbs%nspinor,1,&
+             hpsidst_sp,ispsidst+(mi  -1)*nvctrp*orbs%norb*orbs%nspinor,1,&
+             rds(i-ist+1,ikpt))
      end do
 
      ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*idsx
@@ -199,8 +210,8 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
                    rds(jj,ikpt)*(&
                    psidst(ispsidst+k-1+(iorb-1)*nvctrp*orbs%nspinor+&
                    (mj-1)*orbs%norb*orbs%nspinor*nvctrp)-&
-                   hpsidst(ispsidst+k-1+(iorb-1)*nvctrp*orbs%nspinor+&
-                   (mj-1)*orbs%norb*orbs%nspinor*nvctrp))
+                   dble(hpsidst_sp(ispsidst+k-1+(iorb-1)*nvctrp*orbs%nspinor+&
+                   (mj-1)*orbs%norb*orbs%nspinor*nvctrp)))
            end do
         end do
      end do
@@ -222,6 +233,8 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
         end do
      end if
   endif
+  
+
   i_all=-product(shape(ipiv))*kind(ipiv)
   deallocate(ipiv,stat=i_stat)
   call memocc(i_stat,i_all,'ipiv',subname)
@@ -230,3 +243,27 @@ subroutine diisstp(iproc,nproc,orbs,comms,ads,ids,mids,idsx,psit,psidst,hpsidst)
   call memocc(i_stat,i_all,'rds',subname)
 
 END SUBROUTINE diisstp
+
+! compute a dot product of two single precision vectors 
+! returning a double precision result
+subroutine ds_dot(ndim,x,x0,dx,y,y0,dy,dot_out)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ndim,x0,dx,y0,dy
+  real(sp), dimension(ndim), intent(in) :: x,y
+  real(dp), intent(out) :: dot_out
+  integer :: jj,ix,iy
+  
+  dot_out=0.0d0
+  ix=x0
+  iy=y0
+  do jj=1,ndim
+    dot_out=dot_out + dble(x(ix))*dble(y(iy))
+    ix=ix+dx
+    iy=iy+dy
+  end do
+end subroutine ds_dot
+
+
+

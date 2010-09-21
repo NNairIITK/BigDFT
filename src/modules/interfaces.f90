@@ -287,7 +287,7 @@ module module_interfaces
 
      subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
           Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,nlpspd,proj,& 
-          pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin,symObj,irrzon,phnons)
+          pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin,symObj,irrzon,phnons,input)
        use module_base
        use module_types
        implicit none
@@ -297,6 +297,7 @@ module module_interfaces
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
        type(locreg_descriptors), intent(in) :: Glr
        type(communications_arrays), intent(in) :: comms
+       type(input_variables):: input
        integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -313,7 +314,7 @@ module module_interfaces
      subroutine input_wf_diag(iproc,nproc,at,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,G,&
-          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU)
+          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
        use module_base
        use module_types
        implicit none
@@ -326,6 +327,7 @@ module module_interfaces
        type(locreg_descriptors), intent(in) :: Glr
        type(communications_arrays), intent(in) :: comms
        type(GPU_pointers), intent(inout) :: GPU
+       type(input_variables):: input
        integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -355,7 +357,7 @@ module module_interfaces
        real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: psi
      END SUBROUTINE reformatmywaves
 
-     subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
+     subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
        use module_base
        use module_types
        implicit none
@@ -363,6 +365,7 @@ module module_interfaces
        type(orbitals_data), intent(in) :: orbs
        type(wavefunctions_descriptors), intent(in) :: wfd
        type(communications_arrays), intent(in) :: comms
+       type(input_variables):: input
        real(wp), dimension(:) , pointer :: psi,hpsi,psit
      END SUBROUTINE first_orthon
 
@@ -410,7 +413,7 @@ module module_interfaces
 
      subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
           ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
-          alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,GPU)
+          alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst_sp,nspin,GPU,input)
        use module_base
        use module_types
        implicit none
@@ -419,17 +422,19 @@ module module_interfaces
        type(locreg_descriptors), intent(in) :: lr
        type(communications_arrays), intent(in) :: comms
        type(orbitals_data), intent(in) :: orbs
+       type(input_variables):: input
        integer, intent(inout) :: idsx_actual
        real(wp), intent(inout) :: alpha
        real(dp), intent(inout) :: gnrm,scprsum
        real(gp), intent(inout) :: energy_min
-       real(wp), dimension(:), pointer :: psi,psit,hpsi,psidst,hpsidst
+       real(wp), dimension(:), pointer :: psi,psit,hpsi,psidst
+       real(sp), dimension(:), pointer :: hpsidst_sp
        real(wp), dimension(:,:,:), pointer :: ads
        type(GPU_pointers), intent(inout) :: GPU
      END SUBROUTINE hpsitopsi
 
      subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
-          psi,hpsi,psit,& !mandatory
+          psi,hpsi,psit,input,& !mandatory
           orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
        use module_base
        use module_types
@@ -438,6 +443,7 @@ module module_interfaces
        type(wavefunctions_descriptors), intent(in) :: wfd
        type(communications_arrays), target, intent(in) :: comms
        type(orbitals_data), target, intent(inout) :: orbs
+       type(input_variables):: input
        real(wp), dimension(:), pointer :: psi,hpsi,psit
        !optional arguments
        real(gp), optional, intent(in) :: etol
@@ -589,7 +595,7 @@ module module_interfaces
        real(wp), dimension(:), pointer :: psi,v
      END SUBROUTINE davidson
 
-     subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
+     subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
           ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,nvirte,psivirt)
        use module_base
        implicit none
@@ -601,6 +607,7 @@ module module_interfaces
        real(wp), dimension(nvctrp*nspinor,norb), intent(out) :: ppsit
        integer, dimension(2), intent(in), optional :: nvirte
        real(wp), dimension(*), optional :: psivirt
+       integer:: iproc
      END SUBROUTINE build_eigenvectors
 
      subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
@@ -849,7 +856,7 @@ module module_interfaces
      END SUBROUTINE eleconf
 
      subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alpha,&
-          hpsit,psidst,hpsidst,psit)
+          hpsit,psidst,hpsidst_sp,psit)
        use module_base
        use module_types
        implicit none
@@ -858,7 +865,8 @@ module module_interfaces
        type(orbitals_data), intent(in) :: orbs
        type(communications_arrays), intent(in) :: comms
        real(gp), intent(inout) :: alpha
-       real(wp), dimension(:), pointer :: psit,hpsit,psidst,hpsidst
+       real(wp), dimension(:), pointer :: psit,hpsit,psidst
+       real(sp), dimension(:), pointer :: hpsidst_sp
        real(wp), dimension(:,:,:), pointer :: ads
      END SUBROUTINE psimix
 

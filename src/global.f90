@@ -182,7 +182,8 @@ program MINHOP
         npmin=npmin+1  
         open(unit=9,file=filename,status='old',iostat=ierror)
         if (ierror /= 0) then
-           write(*,*) iproc,' COULD not read file ',filename
+!           write(*,*) iproc,' COULD not read file ',filename
+            npmin=npmin-1
            exit
         end if
         read(9,*) natp,unitsp,elocmin(npmin)
@@ -436,8 +437,10 @@ program MINHOP
      nlmin=nlmin+1
      call insert(nlminx,nlmin,k_e_wpos,re_wpos,earr(0,1))                                   
      k_e_wpos=k_e_wpos+1
+     npmin=npmin+1
+     call save_low_conf(atoms%nat,npmin,npminx,re_wpos,wpos,elocmin,poslocmin)
   endif
-!
+
 !  hopp=hopp+1.d0
   if (e_wpos.lt.e_hop) then                                                                                 
     e_hop=e_wpos                                                                                           
@@ -464,10 +467,10 @@ program MINHOP
         pos(2,iat)=poshop(2,iat) 
         pos(3,iat)=poshop(3,iat)
      enddo
-     if (newmin) then
-         npmin=npmin+1
-        call save_low_conf(atoms%nat,npmin,npminx,re_pos,pos,elocmin,poslocmin)
-     endif
+!     if (newmin) then
+!         npmin=npmin+1
+!        call save_low_conf(atoms%nat,npmin,npminx,re_pos,pos,elocmin,poslocmin)
+!     endif
       if (iproc == 0) then
       if (re_wpos.eq.re_hop) then  
          write(2,'((1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),l3,a,i5)')  &
@@ -515,6 +518,8 @@ program MINHOP
      write(67,*) ' Accepeted ',accepted,' minima'
      write(*,*) '#found in total ',nlmin,' minima'
      write(*,*) '#Accepeted ',accepted,' minima'
+     call winter(atoms,re_pos,pos,npminx,nlminx,nlmin,npmin,accur, & 
+           earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
   endif
 
 
@@ -1566,16 +1571,16 @@ subroutine wtpos(at,npminx,nlminx,nlmin,npmin,pos,earr,elocmin)
            write(*,*) 'ranking error for',k
            stop 
         endif
-!        if (earr(kk,1) == elocmin(k)) exit find_kk
-        if (abs(earr(kk,1) - elocmin(k)) .lt. 1.d-12 ) then 
-             write(*,*) 'match ',abs(earr(kk,1) - elocmin(k))
-             exit find_kk
-        endif
+        if (earr(kk,1) == elocmin(k)) exit find_kk
+!        if (abs(earr(kk,1) - elocmin(k)) .lt. 1.d-12 ) then 
+!             write(*,*) 'match ',abs(earr(kk,1) - elocmin(k))
+!             exit find_kk
+!        endif
      end do find_kk
 
      if (kk <= npminx) then
 
-        !        write(*,'(a,i2,i4,i4,1x,1pe21.14)') 'k,kk,elocmin(k)',k,kk,elocmin(k)
+                write(*,'(a,i4,i4,1x,1pe21.14)') 'k,kk,elocmin(k)',k,kk,elocmin(k)
 
         !C generate filename and open files
            write(fn,'(i5.5)') kk

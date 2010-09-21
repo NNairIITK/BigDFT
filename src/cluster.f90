@@ -237,7 +237,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !transposed  wavefunction
   ! Pointers and variables to store the last psi
   ! before reformatting if useFormattedInput is .true.
-  real(kind=8), dimension(:), pointer :: hpsi,psit,psi_old,psivirt,psidst,hpsidst
+  real(kind=8), dimension(:), pointer :: hpsi,psit,psi_old,psivirt,psidst
+  real(sp), dimension(:), pointer :: hpsidst_sp
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj,gbd_occ,rhocore
   ! arrays for DIIS convergence accelerator
@@ -554,7 +555,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in)
 
   case(-1)
 
@@ -563,7 +564,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call import_gaussians(iproc,nproc,atoms,orbs,comms,&
           & Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,nlpspd,proj, &
           & pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,in%nspin,&
-          & atoms%symObj,irrzon,phnons)
+          & atoms%symObj,irrzon,phnons,in)
 
   case(0)
      nspin=in%nspin
@@ -571,7 +572,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call input_wf_diag(iproc,nproc, atoms,&
           orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,Gvirt,&
-          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU)
+          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in)
      if (nvirt > norbv) then
         nvirt = norbv
      end if
@@ -601,7 +602,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call memocc(i_stat,i_all,'psi_old',subname)
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in)
 
   case(2)
      !restart from previously calculated wavefunctions, on disk
@@ -621,7 +622,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in)
 
   case(11)
      !restart from previously calculated gaussian coefficients
@@ -639,7 +640,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call restart_from_gaussians(iproc,nproc,orbs,Glr,hx,hy,hz,psi,gbd,gaucoeffs)
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in)
 
   case(12)
      !reading wavefunctions from gaussian file
@@ -670,7 +671,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call restart_from_gaussians(iproc,nproc,orbs,Glr,hx,hy,hz,psi,gbd,gaucoeffs)
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in)
 
   case default
 
@@ -700,8 +701,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   if (idsx > 0) then
      allocate(psidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
-     call memocc(i_stat,hpsidst,'hpsidst',subname)
+     allocate(hpsidst_sp(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
+     call memocc(i_stat,hpsidst_sp,'hpsidst_sp',subname)
      allocate(ads(idsx+1,idsx+1,orbs%nkptsp*3+ndebug),stat=i_stat)
      call memocc(i_stat,ads,'ads',subname)
      call razero(orbs%nkptsp*3*(idsx+1)**2,ads)
@@ -758,6 +759,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !Davidson is set to false first because used in deallocate_before_exiting
   DoDavidson= .false.
+
+
 
   wfn_loop: do iter=1,itermax
 
@@ -868,7 +871,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
      call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
           iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
-          alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,in%nspin,GPU)
+          alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst_sp,in%nspin,GPU,in)
 
      tt=(energybs-scprsum)/scprsum
      if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
@@ -917,9 +920,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      i_all=-product(shape(psidst))*kind(psidst)
      deallocate(psidst,stat=i_stat)
      call memocc(i_stat,i_all,'psidst',subname)
-     i_all=-product(shape(hpsidst))*kind(hpsidst)
-     deallocate(hpsidst,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsidst',subname)
+     i_all=-product(shape(hpsidst_sp))*kind(hpsidst_sp)
+     deallocate(hpsidst_sp,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsidst_sp',subname)
      i_all=-product(shape(ads))*kind(ads)
      deallocate(ads,stat=i_stat)
      call memocc(i_stat,i_all,'ads',subname)
@@ -1097,7 +1100,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !plot also the electrostatic potential
   if (abs(in%output_grid) == 2 .and. in%last_run==1) then
-        if (iproc == 0) write(*,*) 'writing hartree_potential.cube'
         call plot_density(atoms%geocode,'hartree_potential',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
              in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot)
   end if
@@ -1379,9 +1381,9 @@ contains
           i_all=-product(shape(psidst))*kind(psidst)
           deallocate(psidst,stat=i_stat)
           call memocc(i_stat,i_all,'psidst',subname)
-          i_all=-product(shape(hpsidst))*kind(hpsidst)
-          deallocate(hpsidst,stat=i_stat)
-          call memocc(i_stat,i_all,'hpsidst',subname)
+          i_all=-product(shape(hpsidst_sp))*kind(hpsidst_sp)
+          deallocate(hpsidst_sp,stat=i_stat)
+          call memocc(i_stat,i_all,'hpsidst_sp',subname)
           i_all=-product(shape(ads))*kind(ads)
           deallocate(ads,stat=i_stat)
           call memocc(i_stat,i_all,'ads',subname)

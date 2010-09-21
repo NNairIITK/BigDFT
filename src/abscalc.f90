@@ -594,7 +594,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call input_wf_diag(iproc,nproc,atoms,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons,GPU)
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU, in)
 
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)

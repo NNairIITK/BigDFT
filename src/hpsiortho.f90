@@ -252,7 +252,7 @@ end module wavefunctionDIIS
 !!
 subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
-     alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,GPU)
+     alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst_sp,nspin,GPU,input)
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => hpsitopsi
@@ -263,11 +263,13 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   type(locreg_descriptors), intent(in) :: lr
   type(communications_arrays), intent(in) :: comms
   type(orbitals_data), intent(in) :: orbs
+  type(input_variables):: input
   integer, intent(inout) :: idsx_actual
   real(wp), intent(inout) :: alpha
   real(dp), intent(inout) :: gnrm,scprsum
   real(gp), intent(inout) :: energy_min
-  real(wp), dimension(:), pointer :: psi,psit,hpsi,psidst,hpsidst
+  real(wp), dimension(:), pointer :: psi,psit,hpsi,psidst
+  real(sp), dimension(:), pointer :: hpsidst
   real(wp), dimension(:,:,:), pointer :: ads
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
@@ -276,6 +278,8 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   integer :: ierr,iorb,k,i_stat,i_all
   real(dp) :: tt
   real(wp), dimension(:,:,:), allocatable :: mom_vec
+
+integer:: i
 !OCL  real(wp) :: maxdiff
 !OCL  integer, dimension(3) :: periodic
 
@@ -379,7 +383,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   call timing(iproc,'Diis          ','ON')
 
   call psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx_actual,energy,energy_old,alpha,&
-       hpsi,psidst,hpsidst,psit)
+       hpsi,psidst,hpsidst_sp,psit)
 
   call timing(iproc,'Diis          ','OF')
 
@@ -388,7 +392,8 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
           'Orthogonalization...'
   end if
 
-  call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit)
+
+  call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit,input)
 
   !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
   
@@ -442,9 +447,9 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      i_all=-product(shape(psidst))*kind(psidst)
      deallocate(psidst,stat=i_stat)
      call memocc(i_stat,i_all,'psidst',subname)
-     i_all=-product(shape(hpsidst))*kind(hpsidst)
-     deallocate(hpsidst,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsidst',subname)
+     i_all=-product(shape(hpsidst_sp))*kind(hpsidst_sp)
+     deallocate(hpsidst_sp,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsidst_sp',subname)
      i_all=-product(shape(ads))*kind(ads)
      deallocate(ads,stat=i_stat)
      call memocc(i_stat,i_all,'ads',subname)
@@ -466,8 +471,8 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 
      allocate(psidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
-     call memocc(i_stat,hpsidst,'hpsidst',subname)
+     allocate(hpsidst_sp(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
+     call memocc(i_stat,hpsidst_sp,'hpsidst_sp',subname)
      allocate(ads(idsx+1,idsx+1,orbs%nkptsp*3+ndebug),stat=i_stat)
      call memocc(i_stat,ads,'ads',subname)
 
@@ -482,7 +487,7 @@ END SUBROUTINE hpsitopsi
 !!   First orthonormalisation
 !! SOURCE
 !!
-subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
+subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
   use module_base
   use module_types
   use module_interfaces, except_this_one_B => first_orthon
@@ -491,6 +496,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(communications_arrays), intent(in) :: comms
+  type(input_variables):: input
   real(wp), dimension(:) , pointer :: psi,hpsi,psit
   !local variables
   character(len=*), parameter :: subname='first_orthon'
@@ -519,7 +525,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
   call transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
        work=hpsi,outadd=psit(1))
 
-  call orthogonalize(iproc,nproc,orbs,comms,wfd,psit)
+  call orthogonalize(iproc,nproc,orbs,comms,wfd,psit,input)
 
   !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
