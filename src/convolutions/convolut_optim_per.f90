@@ -323,7 +323,7 @@ subroutine convrot_n_per(n1,ndat,x,y)
   ! the filtered output data structure has grown by the filter length
 
   !          THE MAGIC FILTER FOR DAUBECHIES-16
-  real(wp) fil(lowfil:lupfil)
+  real(wp) :: fil(lowfil:lupfil)
   DATA fil / &
        8.4334247333529341094733325815816e-7_wp,&
        -0.1290557201342060969516786758559028e-4_wp,&
@@ -342,9 +342,9 @@ subroutine convrot_n_per(n1,ndat,x,y)
        -0.5185986881173432922848639136911487e-4_wp,&
        2.72734492911979659657715313017228e-6_wp /
 
-  integer mod_arr(lowfil:n1+lupfil)   
-  integer i,j,l,k
-  real(wp) fill,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
+  integer :: mod_arr(lowfil:n1+lupfil)   
+  integer :: i,j,l,k
+  real(wp) :: fill,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8
 
   call fill_mod_arr(mod_arr,lowfil,n1+lupfil,n1+1)
 

@@ -660,7 +660,7 @@ END SUBROUTINE prepare_psirocc
 !!***
 
 
-!!****f* BigDFT/prepare_psirocc
+!!****f* BigDFT/exact_exchange_potential_virt
 !! FUNCTION
 !!   Calculate the exact exchange potential only on virtual orbitals
 !!   by knowing the occupied orbitals and their distribution

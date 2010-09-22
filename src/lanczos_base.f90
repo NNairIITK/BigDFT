@@ -51,7 +51,6 @@ contains
    allocate(omega( 0:1,  0:1    +ndebug  )  , stat=i_stat)
    call memocc(i_stat,omega,'omega',subname)
 
-   
    allocate(evect( 0:1,  0:1   +ndebug )   , stat=i_stat)
    call memocc(i_stat,evect,'evect',subname)
 
@@ -81,7 +80,6 @@ contains
    allocate(omega( 0:LB_nsteps,  0:LB_nsteps     +ndebug )  , stat=i_stat)
    call memocc(i_stat,omega,'omega',subname)
 
-   
    allocate(evect( 0:LB_nsteps-1,  0:LB_nsteps-1   +ndebug )   , stat=i_stat)
    call memocc(i_stat,evect,'evect',subname)
 
@@ -94,23 +92,20 @@ contains
    allocate(oldalpha (0: LB_nsteps+ndebug )        , stat=i_stat  )
    call memocc(i_stat,oldalpha,'oldalpha',subname)
 
-   
-
    omega(:,:)=0.0D0
 
  END SUBROUTINE LB_allocate_for_lanczos
 
-  subroutine LB_de_allocate_for_lanczos( )
+
+ subroutine LB_de_allocate_for_lanczos( )
 
     i_all=-product(shape(LB_alpha))*kind(LB_alpha)
     deallocate(LB_alpha)
     call memocc(i_stat,i_all,'LB_alpha',subname)
 
-
     i_all=-product(shape(LB_beta))*kind(LB_beta)
     deallocate(LB_beta)
     call memocc(i_stat,i_all,'LB_beta',subname)
-
 
     i_all=-product(shape(omega))*kind(omega)
     deallocate(omega )
@@ -132,14 +127,15 @@ contains
     deallocate(oldalpha          )
     call memocc(i_stat,i_all,'oldalpha',subname)
 
-  END SUBROUTINE LB_de_allocate_for_lanczos
-   
-  integer function converged(m)
+ END SUBROUTINE LB_de_allocate_for_lanczos
+
+
+ integer function converged(m)
     implicit none
-    integer, intent(in):: m
-! ::::::::::::::::::::::::::::::::::::::::::
-    integer j,i,k
-    real(kind=8) dum, dumvect(0:LB_nsteps )
+    integer, intent(in) :: m
+    integer :: j,i,k
+    real(kind=8) :: dum, dumvect(0:LB_nsteps)
+
     do j=1, m-1
        do i=0, m-j-1
           if( abs(LB_eval(i) ) .lt. abs(LB_eval(i+1) ) ) then
@@ -154,7 +150,6 @@ contains
           endif
        enddo
     enddo
-    
 
     converged=0
     
@@ -170,10 +165,9 @@ contains
        hasoldalpha=1
     endif
 
-   
     oldalpha(:m-1)=LB_eval(:m-1)
 
-  end function converged
+  END FUNCTION converged
 
 
   subroutine diago(k,m)
@@ -190,7 +184,6 @@ contains
        evect(i,i+1)=LB_beta(i)
     enddo
     evect(0:k-1,k)=LB_beta(0:k-1)
-
 
 !!$    if(LB_iproc==0) then
 !!$       print *, " in diag "
@@ -226,7 +219,9 @@ contains
     integer, intent(IN) :: nd
     real(kind=8), intent(IN) :: shift
     real(kind=8), intent(IN) :: tol
+
     interface
+
        subroutine set_EP_shift(shift)
          real(kind=8) shift
        END SUBROUTINE set_EP_shift
@@ -235,44 +230,54 @@ contains
          implicit none
          integer, intent(in):: nsteps
        END SUBROUTINE
+
        subroutine EP_make_dummy_vectors(nd)
          implicit none
          integer, intent(in):: nd
          ! :::::::::::::::::::::::    
        END SUBROUTINE
+
        integer function get_EP_dim()
        end function
 
        subroutine EP_initialize_start()
-       END SUBROUTINE 
+       END SUBROUTINE
+
        subroutine EP_normalizza(i)
          integer, intent(in) :: i
-       END SUBROUTINE 
+       END SUBROUTINE
+
        subroutine EP_Moltiplica(i,j)
          integer, intent(in) :: i,j
-       END SUBROUTINE 
+       END SUBROUTINE
+
        real(kind=8) function EP_scalare(i,j)
          integer, intent(in) :: i,j
-       end function 
+       end function
+
        subroutine EP_add_from_vect_with_fact( i, j  ,   a )
          integer, intent(in) :: i,j
          real(kind=8), intent(in) :: a
-       END SUBROUTINE 
+       END SUBROUTINE
+
        subroutine EP_GramSchmidt(i,j)
          integer, intent(in) :: i,j
-       END SUBROUTINE 
+       END SUBROUTINE
+
        subroutine EP_set_all_random(i)
          integer, intent(in) :: i
-       END SUBROUTINE 
+       END SUBROUTINE
+
        subroutine EP_copy(i,j)
          integer, intent(in) :: i,j
        END SUBROUTINE
+
        subroutine EP_mat_mult(m,k ,  EV )
          integer, intent(in):: m,k
          real(kind=8), intent(in):: EV(1 )
-       END SUBROUTINE        
+       END SUBROUTINE
 
-    end interface
+    END INTERFACE
 
     integer , optional :: accontentati_di_n
 
@@ -295,11 +300,8 @@ contains
     call EP_allocate_for_eigenprob(LB_nsteps)
     call EP_make_dummy_vectors(LB_nsteps)
 
-
-
     k=0
     nc=0
- 
 
     call LB_passeggia(k,m,      get_EP_dim, EP_initialize_start , EP_normalizza,&
          EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy,   EP_mat_mult, &
@@ -314,8 +316,6 @@ contains
 
        call diago(k,m)
 
-
-
        nc=converged(m)
 
        if ( k.gt.0) then
@@ -324,18 +324,13 @@ contains
           endif
        endif
 
-
        if ( (nc+2*nd) .ge. m) then 
           k=m-1
        else
           k=nc+2*nd
        endif
-  
-
-       
 
        call ricipolla(k,m, EP_normalizza ,EP_copy, EP_mat_mult)
-
 
        call LB_passeggia(k,m , get_EP_dim, EP_initialize_start , EP_normalizza, &
             EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy ,&
@@ -347,22 +342,21 @@ contains
        LB_cerca= k
     endif
     return 
-  end function LB_cerca
+  END FUNCTION LB_cerca
+
 
   integer function notzero(k, tol)
     implicit none
     integer, intent(in) :: k
     real(kind=8), intent(in) :: tol
-    !::::::::::::::::::::::::::::::`
-    integer i
+    integer :: i
     notzero=0
     do i=0,k-1
        if( abs(LB_beta(i)).gt.tol) then
           notzero=notzero+1
        endif
-    enddo
-    return 
-  end function notzero
+    end do
+  END FUNCTION notzero
 
 
   subroutine ricipolla(k,m, EP_normalizza ,EP_copy, EP_mat_mult )
@@ -398,7 +392,7 @@ contains
     enddo
 
     call EP_copy(k, m )
-  
+
     allocate(dumomega(0:m-1,0:m-1+ndebug))
     allocate(dumomega2(0:m-1,0:m-1+ndebug))
 
@@ -416,10 +410,8 @@ contains
 
     deallocate(dumomega)
     deallocate( dumomega2)
-    
 
   END SUBROUTINE ricipolla
-
 
 
   subroutine LB_passeggia( k, m, get_EP_dim, EP_initialize_start , EP_normalizza, &
@@ -472,7 +464,7 @@ contains
     integer :: ipa
 
     p = -1
-        
+
     sn   = sqrt(get_EP_dim()*1.0D0 )
     eu   = 1.1D-15
     eusn = eu*sn
@@ -496,9 +488,9 @@ contains
        end if
 
        call EP_Moltiplica(p, i )
-       
+
        LB_alpha(i) = EP_scalare(p , i)
-       
+
        if (i.eq.k) then
 
           call EP_add_from_vect_with_fact( p, k  ,   -LB_alpha(k) )
@@ -512,11 +504,11 @@ contains
 
           call EP_add_from_vect_with_fact( p, i-1  ,   -LB_beta (i-1) )
        endif
-       
+
        LB_beta(i)=sqrt(EP_scalare(p,p))
-       
+
        omega(i,i)=1.
-       
+
        max0 = 0.0
 
        if( LB_beta(i).ne.0.0) then
@@ -576,8 +568,6 @@ contains
                 
                 omega(i+1,j)  = omega(i+1,j) +  add / LB_beta(i)
              endif
-             
-
 
              omega(j,i+1) = omega(i+1,j)
              
@@ -585,16 +575,13 @@ contains
           enddo
        endif
 
-       
        if ( LB_beta(i).eq.0.0 .or.  max0.gt.eu  ) then
 
           if (i.gt.0) then
 
              call EP_GramSchmidt(i,i)
-             
 
              call EP_normalizza(i)
-             
 
              call EP_Moltiplica(p, i)
              
@@ -605,7 +592,6 @@ contains
           call EP_GramSchmidt(p,i+1)
           
           LB_beta(i) = sqrt(EP_scalare(p,p))
-          
 
           call EP_normalizza(p)
           if (i.gt.0) then
@@ -628,7 +614,6 @@ contains
 
              call EP_normalizza(p)
 
-             
           endif
           
           do l=0,i-1
@@ -636,12 +621,10 @@ contains
              omega(l,i)=eusn
           enddo
 
-
           do l=0,i
              omega(i+1,l)=eusn
              omega(l,i+1)=eusn
           enddo
-
 
        else
 
@@ -653,8 +636,6 @@ contains
 !!!       call EP_GramSchmidt(i+1,i+1)
 !!!       call EP_normalizza(i+1)
 
-
-       
 !!!
 !!!
 !!!       print *, "LB_beta(",i,")=" , LB_beta(i)
@@ -666,7 +647,6 @@ contains
 !!!          print *, "con due prima " , EP_scalare(i-1,i+1)
 !!!
 !!!       endif
-
 
     enddo
     
@@ -703,7 +683,6 @@ contains
     
     allocate(res(0:Nbar-1+ndebug) , stat=i_stat)
     call memocc(i_stat,res,'res',subname)
-        
 
     !! memocc does not work in complex
     allocate(alphas(0:Nbar-1+ndebug) , stat=i_stat)
@@ -712,17 +691,14 @@ contains
     !! memocc does not work in complex
     allocate(expn(0:Nbar-1+ndebug) , stat=i_stat)
 
-
     allocate(cfftreal(0:2*Nbar-1+ndebug) , stat=i_stat)
     call memocc(i_stat,cfftreal,'cfftreal',subname)
-  
+
     allocate(cfftimag(0:2*Nbar-1+ndebug) , stat=i_stat)
     call memocc(i_stat,cfftimag,'cfftimag',subname)
-    
+
     allocate(zinout (2,2*Nbar,2+ndebug) , stat=i_stat)
     call memocc(i_stat,zinout,'zinout',subname)
-    
-
 
     cfftreal=0
     cfftimag=0
@@ -754,12 +730,10 @@ contains
     zinout(1,1:2*Nbar,1) = cfftreal(:)
     zinout(2,1:2*Nbar,1) = cfftimag(:)
 
-
     call dcopy(2*Nbar,cfftreal(0),1,zinout(1,1,1),2)
     call dcopy(2*Nbar,cfftimag(0),1,zinout(2,1,1),2)
     !zinout(1,1:2*Nbar,1) = cfftreal(:)
     !zinout(2,1:2*Nbar,1) = cfftimag(:)
-
 
     call fft_1d_ctoc(1 ,1, 2*Nbar ,zinout(1,1,1) ,inzee)
 
@@ -778,11 +752,10 @@ contains
 !!$    enddo
 
     print *, " done " 
-    
+
 !!$    res =res/Pi/sqrt(1-Xs*Xs)
 
     cfftreal(0:Nbar-1) =2*cfftreal(0:Nbar-1)/Pi/sqrt(1-Xs*Xs)*fact_cheb
-    
     
     open(unit=22,file=filename)
     do i=0, Nbar-1
@@ -802,7 +775,6 @@ contains
     i_all=-product(shape(alphas))*kind(alphas)
     deallocate(alphas)
     !! call memocc(i_stat,i_all,'alphas',subname)
-    
 
     !! memocc does not work in complex
     i_all=-product(shape(expn))*kind(expn)
@@ -870,11 +842,8 @@ contains
          integer, intent(in) :: j
          real(gp) :: fact
          ! ::::::::::::::::::::::::::::::::::::::
-
        END SUBROUTINE EP_multbyfact
-       
     end interface
-
 
     integer :: ipa
     integer :: tmp1, attuale, precedente
@@ -919,10 +888,10 @@ contains
     
   END SUBROUTINE LB_passeggia_Chebychev
 
+
   real(gp) function  LB_cg(    get_EP_dim, EP_initialize_start , EP_normalizza,&
              EP_Moltiplica4spectra,  EP_copy,  &
              EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact ,EP_precondition , Ene, gamma, tol, useold )
-        
 
     use module_base
     implicit none
@@ -966,17 +935,12 @@ contains
          implicit none
          integer, intent(in) :: p,i
          real(gp) ene, gamma
-       end subroutine EP_precondition
-
+       END SUBROUTINE EP_precondition
     end interface
 
-
-    integer :: ipa
-    integer :: tmp1, attuale, precedente
     real(gp)::rho, beta, err, alpha, err0, rhoold
     integer :: k
     integer :: b, x, r, p, z, Ap, remember
-
 
     b=0
     x=1
@@ -986,7 +950,6 @@ contains
     Ap=5
     remember=6
 
- 
     call EP_initialize_start()
 
      err0= EP_scalare(b,b)
@@ -1010,7 +973,6 @@ contains
 
     print *, " err iniziale " , err0
     call EP_copy(p,z)
-
 
     do while(k<1000 .and. err/err0>tol) 
 
@@ -1050,5 +1012,5 @@ contains
 
   END function LB_cg
 
-end module lanczos_base
+END MODULE lanczos_base
 !!***

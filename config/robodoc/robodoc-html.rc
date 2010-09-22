@@ -4,20 +4,21 @@ items:
     COPYRIGHT
     CREATION DATE
     CHANGELOG
-    USAGE
-    FUNCTION
     DESCRIPTION
+    EXAMPLE
+    FILES
+    FUNCTION
     INPUTS
     OUTPUT
     SIDE EFFECTS
     RETURN VALUE
-    FILES
-    EXAMPLE
     SEE ALSO
     SYNOPSIS
+    USAGE
     USES
     USED BY
     WARNING
+    RESTRICTIONS
 source items:
     SOURCE
 ignore items:
@@ -56,6 +57,7 @@ ignore files:
     config
     doc
     tests
+    unused
     tmp*
     *.log
     *.o

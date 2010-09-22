@@ -2468,11 +2468,11 @@ function move_this_coordinate(ifrztyp,ixyz)
        (ifrztyp == 2 .and. ixyz /=2) .or. &
        (ifrztyp == 3 .and. ixyz ==2)
        
-end function move_this_coordinate
+END FUNCTION move_this_coordinate
 !!***
 
 
-!!****f* BigDFT/
+!!****f* BigDFT/atomic_coordinate_axpy
 !! FUNCTION
 !!   rxyz=txyz+alpha*sxyz
 !! SOURCE
@@ -2515,6 +2515,12 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
 END SUBROUTINE atomic_coordinate_axpy
 !!***
 
+
+!!****f* BigDFT/init_material_acceleration
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine init_material_acceleration(iproc,iacceleration,GPU)
   use module_base
   use module_types
@@ -2563,7 +2569,14 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
   end if
 
 end subroutine init_material_acceleration
+!!***
 
+
+!!****f* BigDFT/release_material_acceleration
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine release_material_acceleration(GPU)
   use module_base
   use module_types
@@ -2579,8 +2592,15 @@ subroutine release_material_acceleration(GPU)
      OCLconv=.false.
   end if
 
-end subroutine release_material_acceleration
+END SUBROUTINE release_material_acceleration
+!!***
 
+
+!!****f* BigDFT/processor_id_per_node
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine processor_id_per_node(iproc,nproc,iproc_node)
   use module_base
   integer, intent(in) :: iproc,nproc
@@ -2622,4 +2642,5 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node)
      call memocc(i_stat,i_all,'nodename',subname)
   end if
      
-end subroutine processor_id_per_node
+END SUBROUTINE processor_id_per_node
+!!***

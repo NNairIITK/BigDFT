@@ -2,7 +2,7 @@
 !! FUNCTION
 !!   Interface for routines which handle diagonalization
 !! COPYRIGHT
-!!    Copyright (C) 2009 BigDFT group
+!!    Copyright (C) 2009-2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -29,28 +29,28 @@ module lanczos_interface
   integer :: i_all,i_stat,ierr
   type(lanczos_args), pointer :: ha
 
-  real(8), pointer :: matrix(:,:)
+  real(kind=8), pointer :: matrix(:,:)
   real(wp), pointer :: Qvect   (:,:)
   real(wp), pointer :: dumQvect(:,:)
   real(wp), pointer :: occQvect(:)
 
-  real(8), pointer :: passed_matrix(:,:)
+  real(kind=8), pointer :: passed_matrix(:,:)
 
-  real(8) EP_shift
-  integer EP_dim
-  integer EP_dim_tot
+  real(kind=8) :: EP_shift
+  integer :: EP_dim
+  integer :: EP_dim_tot
 
   type(gaussian_basis), pointer :: EP_Gabsorber
 
   real(wp), dimension(:), pointer :: Qvect_tmp,wrk
-  real(8)  EP_norma2_initialized_state
+  real(kind=8) :: EP_norma2_initialized_state
 
-  logical EP_doorthoocc
-  integer EP_norb
+  logical :: EP_doorthoocc
+  integer :: EP_norb
   real(wp), dimension(:), pointer :: EP_occprojections
 
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psi_gross
-  logical , allocatable ::logrid(:,:,:)
+  logical , allocatable :: logrid(:,:,:)
 
 contains
 
@@ -70,19 +70,20 @@ contains
 !!!    enddo
 !!!    return
 !!!  END SUBROUTINE testapointer
-
   
 
   integer function get_EP_dim()
     get_EP_dim=EP_dim_tot
     return
-  end function get_EP_dim
+  END FUNCTION get_EP_dim
+
 
   subroutine set_EP_shift(shift)
-    real(8) shift
+    real(8) :: shift
     EP_shift=shift
     return
   END SUBROUTINE set_EP_shift
+
 
   subroutine EP_inizializza(ha_actual)
     implicit none
@@ -112,7 +113,7 @@ contains
     EP_doorthoocc=.false.
 
   END SUBROUTINE EP_inizializza
-  
+
 
   subroutine EP_mat_mult( m,k ,  EV   ) ! usare i dumvectors a partire da -1
     implicit none
@@ -136,39 +137,26 @@ contains
 !!!    enddo
 
   END SUBROUTINE EP_mat_mult
-  
-
-  !allocate the wavefunctions in the transposed form, for lancsoz
 
 
+  !allocate the wavefunctions in the transposed form, for lanczos
   subroutine EP_free()
-  
 
     i_all=-product(shape(Qvect))*kind(Qvect)
     deallocate(Qvect,stat=i_stat)
     call memocc(i_stat,i_all,'Qvect',subname)
 
-
-
     i_all=-product(shape(dumQvect))*kind(dumQvect)
     deallocate(dumQvect,stat=i_stat)
     call memocc(i_stat,i_all,'dumQvect',subname)
-
-
-
 
     i_all=-product(shape(Qvect_tmp))*kind(Qvect_tmp)
     deallocate(Qvect_tmp,stat=i_stat)
     call memocc(i_stat,i_all,'Qvect_tmp',subname)
 
-
-
-
     i_all=-product(shape(wrk))*kind(wrk)
     deallocate(wrk,stat=i_stat)
     call memocc(i_stat,i_all,'wrk',subname)
-
-
 
     if(EP_doorthoocc) then
        i_all=-product(shape(EP_occprojections))*kind(EP_occprojections)
@@ -182,7 +170,7 @@ contains
   subroutine  EP_allocate_for_eigenprob(nsteps)
     implicit none
     !Arguments
-    integer, intent(in):: nsteps
+    integer, intent(in) :: nsteps
 
     print *, " sono in EP_allocate_for_eigenprob "
 
@@ -204,8 +192,8 @@ contains
 
   subroutine EP_make_dummy_vectors(nd)
     implicit none
-    integer, intent(in):: nd
-! :::::::::::::::::::::::    
+    integer, intent(in) :: nd
+
     if(associated(dumQvect) ) then
        i_all=-product(shape(dumQvect))*kind(dumQvect)
        deallocate(dumQvect,stat=i_stat)
@@ -217,12 +205,12 @@ contains
     call memocc(i_stat,dumQvect,'dumQvect',subname)
   END SUBROUTINE EP_make_dummy_vectors
 
+
   subroutine EP_store_occupied_orbitals(iproc, nproc, norb, Occ_psit )
     implicit none
     integer, intent(IN) :: iproc, nproc, norb
     real(wp), dimension(:), pointer :: Occ_psit
 
-    ! :::::::::::::::::::::::    
     EP_doorthoocc=.true.
     EP_norb=norb
     occQvect=>Occ_psit
@@ -235,7 +223,7 @@ contains
   subroutine EP_normalizza(j)
     implicit none
     integer, intent(in)::j
-! ::::::::::::::::::::::::::::::::::::::
+
     if(J.ge.0) then
        call EP_normalizza_interno( Qvect(1:,j) )
     else
@@ -243,13 +231,13 @@ contains
     endif
     return 
   END SUBROUTINE EP_normalizza
-    
+
 
   subroutine EP_multbyfact(j, fact)
     implicit none
     integer, intent(in)::j
     real(gp) fact
-! ::::::::::::::::::::::::::::::::::::::
+
     if(J.ge.0) then
        call EP_multbyfact_interno( Qvect(1,j), fact )
     else
@@ -257,7 +245,6 @@ contains
     endif
     return 
   END SUBROUTINE EP_multbyfact
-    
 
 
   subroutine EP_normalizza_interno(Q)
@@ -313,9 +300,9 @@ contains
     endif
 
   END SUBROUTINE EP_copy
-  
 
-  real(8) function   EP_scalare(i,j)
+
+  real(kind=8) function EP_scalare(i,j)
     implicit none
     !Arguments
     integer, intent(in) :: i,j
@@ -329,9 +316,9 @@ contains
     else 
        EP_scalare = EP_scalare_interna(dumQvect(1,-i), dumQvect(1,-j) )
     endif
-  end function EP_scalare
-  
- 
+  END FUNCTION EP_scalare
+
+
   real(8) function EP_scalare_interna(a,b)
     implicit none
     !Arguments
@@ -349,7 +336,8 @@ contains
     endif
     EP_scalare_interna=sumtot
 
-  end function EP_scalare_interna
+  END FUNCTION EP_scalare_interna
+
 
 !  real(8) function EP_scalare_interna(a,b)
 !    implicit none
@@ -371,8 +359,8 @@ contains
 !
 !  end function EP_scalare_interna
 !
-    
-  subroutine  EP_copia_per_prova(psi)
+
+  subroutine EP_copia_per_prova(psi)
     use module_interfaces
     !Arguments
     real(wp), dimension(*), target :: psi ! per testare happlication
@@ -432,65 +420,65 @@ contains
    END SUBROUTINE EP_initialize_start_0
 
 
-  subroutine EP_initialize_start()
-    use module_interfaces
-    !Local variables
-    integer :: i, volta
-    real(wp), pointer ::  scals(:), scalstot(:)
+   subroutine EP_initialize_start()
+     use module_interfaces
+     !Local variables
+     integer :: i, volta
+     real(wp), pointer ::  scals(:), scalstot(:)
 
-    call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%lr%geocode,ha%orbs,ha%lr%d,&
-            ha%hx,ha%hy,ha%hz,ha%lr%wfd,EP_Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
+     call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%lr%geocode,ha%orbs,ha%lr%d,&
+             ha%hx,ha%hy,ha%hz,ha%lr%wfd,EP_Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
  
-    if (.not. associated(Qvect)) then
-       write(*,*)'ERROR: initialization vector not allocated!'
-       stop
-    end if
-    
-    if( ha%nproc/=1) then
-       call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
-            Qvect_tmp,work=wrk,outadd=Qvect(1,0))  
-    else
-       do i=1, EP_dim_tot
-          Qvect(i,0)= Qvect_tmp(i)
-       enddo
-    endif
+     if (.not. associated(Qvect)) then
+        write(*,*)'ERROR: initialization vector not allocated!'
+        stop
+     end if
+     
+     if( ha%nproc/=1) then
+        call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lr%wfd,ha%comms,&
+             Qvect_tmp,work=wrk,outadd=Qvect(1,0))  
+     else
+        do i=1, EP_dim_tot
+           Qvect(i,0)= Qvect_tmp(i)
+        enddo
+     endif
 
-    if(EP_doorthoocc) then
+     if(EP_doorthoocc) then
 
-       allocate(scals( EP_norb+ndebug) ,stat=i_stat)
-       call memocc(i_stat,scals,'scals',subname)
-       allocate(scalstot( EP_norb+ndebug) ,stat=i_stat)
-       call memocc(i_stat,scalstot,'scalstot',subname)
+        allocate(scals( EP_norb+ndebug) ,stat=i_stat)
+        call memocc(i_stat,scals,'scals',subname)
+        allocate(scalstot( EP_norb+ndebug) ,stat=i_stat)
+        call memocc(i_stat,scalstot,'scalstot',subname)
 
-       do volta=1,2 
-          call gemm('T','N', EP_norb , 1, EP_dim ,1.0_wp ,  occQvect(1)  ,&
-               EP_dim ,  Qvect(1,0) ,EP_dim , 0.0_wp , scals(1) ,  EP_norb )
-          
-          if(ha%nproc/=1) then
-             call MPI_Allreduce(scals(1) ,scalstot(1) ,EP_norb  ,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
-          else
-             do i=1,EP_norb
-                scalstot(i)=scals(i)
-             enddo
-          endif
-          do i=1, EP_norb
-             call axpy(EP_dim, -scalstot(i)  ,   occQvect(1+i*EP_dim)  , 1, Qvect(1,0)  , 1)
-             
-             if(volta==1) then
-                EP_occprojections(i)= scalstot(i)
-             endif
-          enddo
-       enddo
+        do volta=1,2 
+           call gemm('T','N', EP_norb , 1, EP_dim ,1.0_wp ,  occQvect(1)  ,&
+                EP_dim ,  Qvect(1,0) ,EP_dim , 0.0_wp , scals(1) ,  EP_norb )
+           
+           if(ha%nproc/=1) then
+              call MPI_Allreduce(scals(1) ,scalstot(1) ,EP_norb  ,mpidtypw, MPI_SUM,MPI_COMM_WORLD ,ierr )
+           else
+              do i=1,EP_norb
+                 scalstot(i)=scals(i)
+              enddo
+           endif
+           do i=1, EP_norb
+              call axpy(EP_dim, -scalstot(i)  ,   occQvect(1+i*EP_dim)  , 1, Qvect(1,0)  , 1)
+              
+              if(volta==1) then
+                 EP_occprojections(i)= scalstot(i)
+              endif
+           enddo
+        enddo
 
-       i_all=-product(shape(scals))*kind(scals)
-       deallocate(scals,stat=i_stat)
-       call memocc(i_stat,i_all,'scals',subname)
-       
-       
-       i_all=-product(shape(scalstot))*kind(scalstot)
-       deallocate(scalstot,stat=i_stat)
-       call memocc(i_stat,i_all,'scalstot',subname)
-    endif
+        i_all=-product(shape(scals))*kind(scals)
+        deallocate(scals,stat=i_stat)
+        call memocc(i_stat,i_all,'scals',subname)
+        
+        
+        i_all=-product(shape(scalstot))*kind(scalstot)
+        deallocate(scalstot,stat=i_stat)
+        call memocc(i_stat,i_all,'scalstot',subname)
+     endif
 
 !!!    call untranspose_v(ha%iproc,ha%nproc,ha%orbs%norbp,ha%orbs%nspinor,ha%lr%wfd,ha%comms,&
 !!!               Qvect(1,0), work=wrk,outadd= Qvect_tmp(1) )  
@@ -503,40 +491,39 @@ contains
 !!!    call EP_set_all_random(0)
 !!! endif
 
-    EP_norma2_initialized_state= EP_scalare(0,0)
+     EP_norma2_initialized_state= EP_scalare(0,0)
 
-END SUBROUTINE EP_initialize_start
-
-     
-subroutine EP_set_all_random(i)
-   implicit none
-   !Arguments
-   integer, intent(in) :: i
-   !Local variables
-   if ( i.ge.0 ) then
-      call EP_set_random_interna(Qvect(1:,i))
-   else 
-      call EP_set_random_interna(dumQvect(1:,-i))
-   endif
-
-END SUBROUTINE EP_set_all_random
+   END SUBROUTINE EP_initialize_start
 
 
-subroutine EP_set_random_interna(Q)
-   implicit none
-   !Arguments
-   real(wp) :: Q(EP_dim)
-   !Local variables
-   real(4) :: rand
-   integer :: i
-   do i=1,EP_dim
-      call random_number(rand)
-      Q(i)=real(rand,wp)
-   enddo
-END SUBROUTINE EP_set_random_interna
-  
+   subroutine EP_set_all_random(i)
+    implicit none
+    !Arguments
+    integer, intent(in) :: i
+    !Local variables
+    if ( i.ge.0 ) then
+       call EP_set_random_interna(Qvect(1:,i))
+    else 
+       call EP_set_random_interna(dumQvect(1:,-i))
+    endif
+   END SUBROUTINE EP_set_all_random
 
-  subroutine EP_GramSchmidt(i,n)
+
+   subroutine EP_set_random_interna(Q)
+    implicit none
+    !Arguments
+    real(wp) :: Q(EP_dim)
+    !Local variables
+    real(4) :: rand
+    integer :: i
+    do i=1,EP_dim
+       call random_number(rand)
+       Q(i)=real(rand,wp)
+    enddo
+   END SUBROUTINE EP_set_random_interna
+
+
+   subroutine EP_GramSchmidt(i,n)
     implicit none
    !Arguments
     integer, intent(in) :: i,n
@@ -547,10 +534,10 @@ END SUBROUTINE EP_set_random_interna
        call EP_GramSchmidt_interna(dumQvect(1:,-i),n)
     endif
 
-  END SUBROUTINE EP_GramSchmidt
+   END SUBROUTINE EP_GramSchmidt
 
 
-  subroutine EP_GramSchmidt_interna(Q,n)
+   subroutine EP_GramSchmidt_interna(Q,n)
     implicit none
    !Arguments
     integer, intent(in) :: n
@@ -596,115 +583,118 @@ END SUBROUTINE EP_set_random_interna
        print *, "GramSchmidt done "
     endif
 
-  END SUBROUTINE EP_GramSchmidt_interna
+   END SUBROUTINE EP_GramSchmidt_interna
+!!***
 
-!!****f* BigDFT/hit_with_kernel
+!!****f* lanczos_interface/hit_with_kernel_spectra
 !! FUNCTION
 !!   Hits the input array x with the kernel ((-1/2\Delta+C)_{ij})^{-1}
 !! SOURCE
 !!
-subroutine hit_with_kernel_spectra(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,&
-  n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,ene, gamma )
-  use module_base
-  implicit none
-! Arguments
-  integer,intent(in) :: n1,n2,n3,nd1,nd2,nd3
-  integer,intent(in) :: n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b
-  real(gp),intent(in) :: kern_k1(n1)
-  real(gp),intent(in) :: kern_k2(n2)
-  real(gp),intent(in) :: kern_k3(n3)
-  real*8,intent(in)::ene, gamma
+   subroutine hit_with_kernel_spectra(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,&
+     n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,ene, gamma )
+     use module_base
+     implicit none
+   ! Arguments
+     integer,intent(in) :: n1,n2,n3,nd1,nd2,nd3
+     integer,intent(in) :: n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b
+     real(gp),intent(in) :: kern_k1(n1)
+     real(gp),intent(in) :: kern_k2(n2)
+     real(gp),intent(in) :: kern_k3(n3)
+     real*8,intent(in)::ene, gamma
 
-  real(wp),intent(inout) :: x(n1,n2,n3)! input/output
-!Local variables
-  real(wp) :: z1(2,nd1b,nd2,nd3,2)! work array
-  real(wp) :: z3(2,nd1,nd2,nd3f,2)! work array
-  real(gp) :: tt
-  integer :: i1,i2,i3,inzee
+     real(wp),intent(inout) :: x(n1,n2,n3)! input/output
+   !Local variables
+     real(wp) :: z1(2,nd1b,nd2,nd3,2)! work array
+     real(wp) :: z3(2,nd1,nd2,nd3f,2)! work array
+     real(gp) :: tt
+     integer :: i1,i2,i3,inzee
 
-! fft the input array x:
+   ! fft the input array x:
 
-  call FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x,z1,z3,inzee)
+     call FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x,z1,z3,inzee)
 
-! hit the Fourier transform of x with the kernel. At the same time, transform the array
-! from the form z3 (where only half of values of i3 are stored)
-! to the form z1   (where only half of values of i1 are stored)
-! The latter thing could be done separately by the subroutine z3_to_z1 that is contained
-! in FFT_back, but then the code would be slower.
+   ! hit the Fourier transform of x with the kernel. At the same time, transform the array
+   ! from the form z3 (where only half of values of i3 are stored)
+   ! to the form z1   (where only half of values of i1 are stored)
+   ! The latter thing could be done separately by the subroutine z3_to_z1 that is contained
+   ! in FFT_back, but then the code would be slower.
 
-  !$omp parallel default (private) shared(z1,z3,kern_k1,kern_k2,kern_k3)&
-  !$omp shared(n1b,n3f,inzee,n1,n2,n3)
+     !$omp parallel default (private) shared(z1,z3,kern_k1,kern_k2,kern_k3)&
+     !$omp shared(n1b,n3f,inzee,n1,n2,n3)
 
-  ! i3=1: then z1 is contained in z3 
-  !$omp do 
-  do i2=1,n2
-    do i1=1,n1b
-      ! tt=1._gp/(kern_k1(i1)+kern_k2(i2)+kern_k3(1)+c)
-      tt= 1._gp/((kern_k1(i1)+kern_k2(i2)+kern_k3(1)-ene)**2+gamma**2)
-      z1(1,i1,i2,1,inzee)=z3(1,i1,i2,1,inzee)*tt
-      z1(2,i1,i2,1,inzee)=z3(2,i1,i2,1,inzee)*tt
-    enddo
-  enddo  
-  !$omp enddo
+     ! i3=1: then z1 is contained in z3 
+     !$omp do 
+     do i2=1,n2
+       do i1=1,n1b
+         ! tt=1._gp/(kern_k1(i1)+kern_k2(i2)+kern_k3(1)+c)
+         tt= 1._gp/((kern_k1(i1)+kern_k2(i2)+kern_k3(1)-ene)**2+gamma**2)
+         z1(1,i1,i2,1,inzee)=z3(1,i1,i2,1,inzee)*tt
+         z1(2,i1,i2,1,inzee)=z3(2,i1,i2,1,inzee)*tt
+       enddo
+     enddo  
+     !$omp enddo
 
-  !$omp do
-  do i3=2,n3f
-    ! i2=1
-    ! i1=1
-    ! tt=1._gp/(kern_k1(1)+kern_k2(1)+kern_k3(i3)+c)
-    tt= 1._gp/((kern_k1(1)+kern_k2(1)+kern_k3(i3)-ene)**2+gamma**2)
-    z1(1,1,1,i3,inzee)=z3(1,1,1,i3,inzee)*tt
-    z1(2,1,1,i3,inzee)=z3(2,1,1,i3,inzee)*tt
+     !$omp do
+     do i3=2,n3f
+       ! i2=1
+       ! i1=1
+       ! tt=1._gp/(kern_k1(1)+kern_k2(1)+kern_k3(i3)+c)
+       tt= 1._gp/((kern_k1(1)+kern_k2(1)+kern_k3(i3)-ene)**2+gamma**2)
+       z1(1,1,1,i3,inzee)=z3(1,1,1,i3,inzee)*tt
+       z1(2,1,1,i3,inzee)=z3(2,1,1,i3,inzee)*tt
 
-    z1(1,1,1,n3+2-i3,inzee)=z3(1,1,1,i3,inzee)*tt
-    z1(2,1,1,n3+2-i3,inzee)=-z3(2,1,1,i3,inzee)*tt
+       z1(1,1,1,n3+2-i3,inzee)=z3(1,1,1,i3,inzee)*tt
+       z1(2,1,1,n3+2-i3,inzee)=-z3(2,1,1,i3,inzee)*tt
 
-    ! i2=1
-    do i1=2,n1b  
-      ! tt=1._gp/(kern_k1(i1)+kern_k2(1)+kern_k3(i3)+c)
-      tt= 1._gp/((kern_k1(i1)+kern_k2(1)+kern_k3(i3)-ene)**2+gamma**2)
-      z1(1,i1,1,i3,inzee)=z3(1,i1,1,i3,inzee)*tt
-      z1(2,i1,1,i3,inzee)=z3(2,i1,1,i3,inzee)*tt
+       ! i2=1
+       do i1=2,n1b  
+         ! tt=1._gp/(kern_k1(i1)+kern_k2(1)+kern_k3(i3)+c)
+         tt= 1._gp/((kern_k1(i1)+kern_k2(1)+kern_k3(i3)-ene)**2+gamma**2)
+         z1(1,i1,1,i3,inzee)=z3(1,i1,1,i3,inzee)*tt
+         z1(2,i1,1,i3,inzee)=z3(2,i1,1,i3,inzee)*tt
 
-      z1(1,i1,1,n3+2-i3,inzee)= z3(1,n1+2-i1,1,i3,inzee)*tt
-      z1(2,i1,1,n3+2-i3,inzee)=-z3(2,n1+2-i1,1,i3,inzee)*tt
-    enddo
+         z1(1,i1,1,n3+2-i3,inzee)= z3(1,n1+2-i1,1,i3,inzee)*tt
+         z1(2,i1,1,n3+2-i3,inzee)=-z3(2,n1+2-i1,1,i3,inzee)*tt
+       enddo
 
-    do i2=2,n2
-      ! i1=1
-      ! tt=1._gp/(kern_k1(1)+kern_k2(i2)+kern_k3(i3)+c)
-      tt= 1._gp/((kern_k1(1)+kern_k2(i2)+kern_k3(i3)-ene)**2+gamma**2)
-      z1(1,1,i2,i3,inzee)=z3(1,1,i2,i3,inzee)*tt
-      z1(2,1,i2,i3,inzee)=z3(2,1,i2,i3,inzee)*tt
+       do i2=2,n2
+         ! i1=1
+         ! tt=1._gp/(kern_k1(1)+kern_k2(i2)+kern_k3(i3)+c)
+         tt= 1._gp/((kern_k1(1)+kern_k2(i2)+kern_k3(i3)-ene)**2+gamma**2)
+         z1(1,1,i2,i3,inzee)=z3(1,1,i2,i3,inzee)*tt
+         z1(2,1,i2,i3,inzee)=z3(2,1,i2,i3,inzee)*tt
 
-      z1(1,1,i2,n3+2-i3,inzee)= z3(1,1,n2+2-i2,i3,inzee)*tt
-      z1(2,1,i2,n3+2-i3,inzee)=-z3(2,1,n2+2-i2,i3,inzee)*tt
+         z1(1,1,i2,n3+2-i3,inzee)= z3(1,1,n2+2-i2,i3,inzee)*tt
+         z1(2,1,i2,n3+2-i3,inzee)=-z3(2,1,n2+2-i2,i3,inzee)*tt
 
-      do i1=2,n1b
-        ! tt=1._gp/(kern_k1(i1)+kern_k2(i2)+kern_k3(i3)+c)
-        tt= 1._gp/((kern_k1(i1)+kern_k2(i2)+kern_k3(i3)-ene)**2+gamma**2)
-        z1(1,i1,i2,i3,inzee)=z3(1,i1,i2,i3,inzee)*tt
-        z1(2,i1,i2,i3,inzee)=z3(2,i1,i2,i3,inzee)*tt
+         do i1=2,n1b
+           ! tt=1._gp/(kern_k1(i1)+kern_k2(i2)+kern_k3(i3)+c)
+           tt= 1._gp/((kern_k1(i1)+kern_k2(i2)+kern_k3(i3)-ene)**2+gamma**2)
+           z1(1,i1,i2,i3,inzee)=z3(1,i1,i2,i3,inzee)*tt
+           z1(2,i1,i2,i3,inzee)=z3(2,i1,i2,i3,inzee)*tt
 
-        z1(1,i1,i2,n3+2-i3,inzee)= z3(1,n1+2-i1,n2+2-i2,i3,inzee)*tt
-        z1(2,i1,i2,n3+2-i3,inzee)=-z3(2,n1+2-i1,n2+2-i2,i3,inzee)*tt
-      enddo
-    enddo
-  enddo
-  !$omp enddo
+           z1(1,i1,i2,n3+2-i3,inzee)= z3(1,n1+2-i1,n2+2-i2,i3,inzee)*tt
+           z1(2,i1,i2,n3+2-i3,inzee)=-z3(2,n1+2-i1,n2+2-i2,i3,inzee)*tt
+         enddo
+       enddo
+     enddo
+     !$omp enddo
 
-  !$omp end parallel
+     !$omp end parallel
 
-  call FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,x,z1,z3,inzee)
+     call FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,x,z1,z3,inzee)
 
-END SUBROUTINE hit_with_kernel_spectra
+   END SUBROUTINE hit_with_kernel_spectra
 !!***
 
 
-
-
+!!****f* lanczos_interface/wscal_f_spectra
+!! FUNCTION
+!!   Multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
+!! SOURCE
+!!
   subroutine wscal_f_spectra(mvctr_f,psi_f,hx,hy,hz,ene, gamma)
-    ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
     use module_base
     implicit none
     integer,intent(in)::mvctr_f
@@ -740,17 +730,16 @@ END SUBROUTINE hit_with_kernel_spectra
     enddo
     
   END SUBROUTINE wscal_f_spectra
-  
+!!***
 
 
-
-  !!****f* BigDFT/prec_fft_fast_spectra
-  !! FUNCTION
-  !!   Solves ((KE-ene)**2+gamma**2*I)*xx=yy by FFT in a cubic box 
-  !!   x_c is the right hand side on input and the solution on output
-  !!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
-  !! SOURCE : adapted from prec_fft_fast
-  !! 
+!!****f* lanczos_interface/prec_fft_fast_spectra
+!! FUNCTION
+!!   Solves ((KE-ene)**2+gamma**2*I)*xx=yy by FFT in a cubic box 
+!!   x_c is the right hand side on input and the solution on output
+!!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
+!! SOURCE : adapted from prec_fft_fast
+!! 
   subroutine prec_fft_fast_spectra(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        ene, gamma,hx,hy,hz,hpsi,&
        kern_k1,kern_k2,kern_k3,z1,z3,x_c,&
@@ -789,10 +778,7 @@ END SUBROUTINE hit_with_kernel_spectra
     call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
     
   END SUBROUTINE prec_fft_fast_spectra
-  !!***
-  
-
-
+!!***
 
 
   subroutine EP_precondition(p,i, ene, gamma)
@@ -803,10 +789,8 @@ END SUBROUTINE hit_with_kernel_spectra
     integer, intent(in) :: p,i
     real(gp) ene, gamma
     !Local variables
-    integer :: k, j , ind
-    real(gp), dimension(0:7) :: scal
+    integer :: k
     real(wp), parameter :: b2=24.8758460293923314d0,a2=3.55369228991319019d0
-    real(gp) :: hh(3)
     integer :: nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b 
     type(workarr_precond) :: w
   
@@ -1395,4 +1379,3 @@ END SUBROUTINE hit_with_kernel_spectra
  
  
 end module lanczos_interface
-!!***
