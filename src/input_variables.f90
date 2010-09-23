@@ -2554,7 +2554,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
            write(*,*)' OpenCL convolutions activated'
         end if
         OCLconv=.true.
-        GPUblas=.true.
+        GPUblas=.false.
      end if
   end if
 

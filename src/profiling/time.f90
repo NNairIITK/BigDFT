@@ -152,7 +152,8 @@ subroutine timing(iproc,category,action)
            total_pc=0.d0
            do i=1,ncounters
               pc=100.d0*timesum(i)/sum(timesum(1:ncounters))
-              if (timesum(i) /= 0.d0) write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') pcnames(i),timesum(i)/real(nproc,kind=8),pc
+!!              if (timesum(i) /= 0.d0) write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') pcnames(i),timesum(i)/real(nproc,kind=8),pc
+              write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') pcnames(i),timesum(i)/real(nproc,kind=8),pc
               total_pc=total_pc+pc
            enddo
            write(60,'(70("-"))')
@@ -277,7 +278,8 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
      total_pc=0.d0
      do i=1,ncat
         pc=100.d0*timetot(i)/timetot(ncat+1)!real(total,kind=8)
-        if (timetot(i) /= 0.d0) write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') cats(i),timetot(i)/real(nproc,kind=8),pc
+!!        if (timetot(i) /= 0.d0) write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') cats(i),timetot(i)/real(nproc,kind=8),pc
+        write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') cats(i),timetot(i)/real(nproc,kind=8),pc
         total_pc=total_pc+pc
      enddo
      write(60,'(70("-"))')
