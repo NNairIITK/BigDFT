@@ -138,6 +138,25 @@ void FC_FUNC_(ocl_enqueue_write_buffer,OCL_ENQUEUE_WRITE_BUFFER)(bigdft_command_
     oclErrorCheck(ciErrNum,"Failed to enqueue write buffer!");
 }
 
+void FC_FUNC_(ocl_enqueue_read_buffer_async,OCL_ENQUEUE_READ_BUFFER_ASYNC)(bigdft_command_queue *command_queue, cl_mem *buffer, cl_uint *size, void *ptr){
+#if DEBUG
+    printf("%s %s\n", __func__, __FILE__);
+    printf("command queue: %p, memory address: %p, size: %lu, target: %p\n",(*command_queue)->command_queue,*buffer,(long unsigned)*size, ptr);
+#endif
+    cl_int ciErrNum = clEnqueueReadBuffer( (*command_queue)->command_queue, *buffer, CL_FALSE, 0, *size, ptr, 0, NULL, NULL);
+    oclErrorCheck(ciErrNum,"Failed to enqueue read buffer!");
+}
+
+void FC_FUNC_(ocl_enqueue_write_buffer_async,OCL_ENQUEUE_WRITE_BUFFER_ASYNC)(bigdft_command_queue *command_queue, cl_mem *buffer, cl_uint *size, const void *ptr){
+#if DEBUG
+    printf("%s %s\n", __func__, __FILE__);
+    printf("command queue: %p, memory address: %p, size: %lu, source: %p\n",(*command_queue)->command_queue,*buffer,(long unsigned)*size, ptr);
+#endif
+    cl_int ciErrNum = clEnqueueWriteBuffer( (*command_queue)->command_queue, *buffer, CL_FALSE, 0, *size, ptr, 0, NULL, NULL);
+    oclErrorCheck(ciErrNum,"Failed to enqueue write buffer!");
+}
+
+
 void FC_FUNC_(ocl_create_command_queue,OCL_CREATE_COMMAND_QUEUE)(bigdft_command_queue *command_queue, cl_context *context){
     cl_int ciErrNum;
     cl_uint device_number;

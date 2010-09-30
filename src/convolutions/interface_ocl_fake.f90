@@ -25,6 +25,11 @@ subroutine local_hamiltonian_OCL()
     stop 'FAKE local_hamiltonian_OCL'
 end subroutine local_hamiltonian_OCL
 
+subroutine finish_hamiltonian_OCL()
+    implicit none
+    stop 'FAKE finish_hamiltonian_OCL'
+end subroutine finish_hamiltonian_OCL
+
 subroutine preconditionall_OCL()
     implicit none
     stop 'FAKE preconditionall_OCL'
