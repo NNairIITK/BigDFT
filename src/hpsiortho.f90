@@ -137,7 +137,6 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
     allocate(hpsi2((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),stat=i_stat)
     call memocc(i_stat,hpsi2,'hpsi2',subname)
     hpsi(:)=0.0
-!    hpsi2(:)=0.0
   else
     hpsi2 => hpsi
   end if
