@@ -123,7 +123,7 @@ END SUBROUTINE scfloop_main
 !! FUNCTION
 !! SOURCE
 !!
-subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, vel, xred)
+subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel, xred)
   use scfloop_API
   use module_base
   use module_types
@@ -136,7 +136,7 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, vel, xred)
   real(dp), intent(in) :: epot, ekin
   real(dp), intent(in) :: acell(3)
   real(dp), intent(in) :: xred(3,natom)
-  real(dp), intent(in) :: fred(3, natom), vel(3, natom)
+  real(dp), intent(in) :: fred(3, natom), vel(3, natom),rprimd(3,3) !the latter is not used
   !Local variables
   character(len=*), parameter :: subname='scfloop_output'
   character(len = 5) :: fn5

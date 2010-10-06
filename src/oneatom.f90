@@ -29,6 +29,7 @@ program oneatom
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
   type(GPU_pointers) :: GPU
+  type(diis_objects) :: diis
   character(len=4) :: itername
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -129,15 +130,8 @@ program oneatom
   !the allocation with npsidim is not necessary here since DIIS arrays
   !are always calculated in the transpsed form
   if (in%idsx > 0) then
-     allocate(psidst(sum(comms%ncntt(0:nproc-1))*in%idsx+ndebug),stat=i_stat)
-     call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(sum(comms%ncntt(0:nproc-1))*in%idsx+ndebug),stat=i_stat)
-     call memocc(i_stat,hpsidst,'hpsidst',subname)
-     allocate(ads(in%idsx+1,in%idsx+1,orbs%nkptsp*3+ndebug),stat=i_stat)
-     call memocc(i_stat,ads,'ads',subname)
-     call razero(orbs%nkptsp*3*(in%idsx+1)**2,ads)
+     call allocate_diis_objects(in%idsx,sum(comms%ncntt(0:nproc-1)),orbs%nkptsp,diis,subname)  
   endif
-
 
   !write the local potential in pot_ion array
   call createPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
@@ -240,8 +234,8 @@ program oneatom
      idsx_actual_before=idsx_actual
 
      call hpsitopsi(iproc,nproc,orbs,in%hx,in%hy,in%hz,Glr,comms,in%ncong,&
-          iter,in%idsx,idsx_actual,ads,energy,energy_old,energy_min,&
-          alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,in%nspin,GPU)
+          iter,diis,in%idsx,idsx_actual,energy,energy_old,&
+          alpha,gnrm,scprsum,psi,psit,hpsi,in%nspin,GPU,in)
 
      write(itername,'(i4.4)')iter
      call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'')
@@ -268,16 +262,8 @@ program oneatom
   call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
        comms,psi,hpsi,psit,evsum)
   
-  if (idsx_actual > 0) then
-     i_all=-product(shape(psidst))*kind(psidst)
-     deallocate(psidst,stat=i_stat)
-     call memocc(i_stat,i_all,'psidst',subname)
-     i_all=-product(shape(hpsidst))*kind(hpsidst)
-     deallocate(hpsidst,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsidst',subname)
-     i_all=-product(shape(ads))*kind(ads)
-     deallocate(ads,stat=i_stat)
-     call memocc(i_stat,i_all,'ads',subname)
+  if (in%idsx > 0) then
+     call deallocate_diis_objects(diis,subname)
   end if
 
   if (nproc > 1) then

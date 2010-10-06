@@ -68,6 +68,8 @@ program BigDFT
      arr_posinp(1)='posinp'
   end if
 
+        open(unit=16,file='geopt.mon',status='unknown',position='append')
+        if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
   do iconfig=1,nconfig
 
      !welcome screen
@@ -100,8 +102,6 @@ program BigDFT
      if (inputs%ncount_cluster_x > 1) then
         if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
         ! geometry optimization
-        open(unit=16,file='geopt.mon',status='unknown',position='append')
-        if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
         call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
         close(16)
         filename=trim('final_'//trim(arr_posinp(iconfig)))

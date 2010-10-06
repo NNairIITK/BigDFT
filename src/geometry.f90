@@ -3,7 +3,7 @@
 !!   Define the type parameterminimization
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 BigDFT group
+!!    Copyright (C) 2007-2009 CEA, UNIBAS
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -43,7 +43,6 @@ module minpar
 end module minpar
 !!***
 
-
 !!****f* BigDFT/geopt_init
 !! FUNCTION
 !!   Geometry optimization, parametrisation routine.
@@ -51,7 +50,7 @@ end module minpar
 !!
 subroutine geopt_init()
   use minpar
-  implicit none
+
   parmin%approach  = 'unknown'
   parmin%iter      = 0
   parmin%iflag     = 0
@@ -67,24 +66,22 @@ subroutine geopt_init()
   parmin%STPMAX=20.d0
   parmin%DIAGCO=.FALSE.
   parmin%IWRITE=.FALSE.
+
+
 END SUBROUTINE geopt_init
 !!***
-
 
 !!****f* BigDFT/geopt_set_verbosity
 !! FUNCTION
 !!   Geometry optimization, parametrisation routine.
 !! SOURCE
 !!
-subroutine geopt_set_verbosity(verbosity)
+subroutine geopt_set_verbosity(verbosity_)
   use minpar
-  implicit none
-  !Arguments
-  integer, intent(in) :: verbosity
-  parmin%verbosity = verbosity
+
+  parmin%verbosity = verbosity_
 END SUBROUTINE geopt_set_verbosity
 !!***
-
 
 !!****f* BigDFT/geopt
 !! FUNCTION
@@ -110,8 +107,8 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   integer :: ibfgs
 
   !-------------------------------------------
-  character(len=4) :: fn4
-  character(len=40) :: comment
+  character*4 fn4
+  character*40 comment
 
   call geopt_init()
   if (iproc ==0 .and. parmin%verbosity > 0)  write(16,'(a)')  & 
@@ -125,6 +122,7 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   !assign the geometry optimisation method
   parmin%approach=in%geopt_approach
 
+  epot=0.d0
   ncount_bigdft=0
   write(fn4,'(i4.4)') ncount_bigdft
   write(comment,'(a)')'INITIAL CONFIGURATION '
@@ -135,15 +133,10 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   if (trim(parmin%approach)=='BFGS') then
   
      ibfgs=0
-     loop_bfgs: do
-        ibfgs=ibfgs+1
-        if (iproc ==0) write(*,*) '# ENTERING BFGS,ibfgs',ibfgs
-        call lbfgsdriver(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
-        if (fail .and. ibfgs < 5) then
-        else
-           exit loop_bfgs
-        end if
-     end do loop_bfgs
+86   ibfgs=ibfgs+1
+     if (iproc ==0) write(*,*) '# ENTERING BFGS,ibfgs',ibfgs
+     call lbfgsdriver(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
+     if (fail .and. ibfgs .lt. 5) goto 86
 
      if (fail) then
         if (iproc ==0) write(*,*) '# ENTERING CG after BFGS failure'
@@ -340,13 +333,15 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   real(gp) ::fnoise
   character(len=*), parameter :: subname='conjgrad'  
   integer :: nfail,it,iat,i_all,i_stat,infocode, nitsd
-  real(gp) :: anoise,fluct,avbeta,avnum,fnrm,etotprec,beta0,beta
-  real(gp) :: y0,y1,tt,oben1,oben2,oben,unten,rlambda,tetot,fmax,tmp,eprev
+  real(gp) :: anoise,fluct,avbeta,avnum,fnrm,etotprev,beta0,beta
+  real(gp) :: y0,y1,tt,sumx,sumy,sumz,oben1,oben2,oben,unten,rlambda,tetot,fmax,tmp!,eprev
   real(gp), dimension(:,:), allocatable :: tpos,gpf,hh
-  logical::check
+!  logical::check
+  integer::check
   character*4 fn4
   character*40 comment
 
+  check=0
   allocate(tpos(3,at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,tpos,'tpos',subname)
   allocate(gpf(3,at%nat+ndebug),stat=i_stat)
@@ -362,7 +357,6 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   nfail=0
   nitsd=500
 
-  eprev=etot
 
   !start with a steepest descent algorithm
   call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,&
@@ -380,14 +374,13 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
   !control whether the convergence criterion is reached after SD
   call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
-  if (check) then
+  if (check.gt.5) then
      if (iproc.eq.0) write(16,*) 'Converged before entering CG',iproc
      call close_and_deallocate
      return
   endif
 
   redo_cg: do
-     etotprec=etot
      do iat=1,at%nat
         hh(1,iat)=fxyz(1,iat)
         hh(2,iat)=fxyz(2,iat)
@@ -406,6 +399,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         in%inputPsiId=1
         in%output_grid=0
         in%output_wf=.false.
+
         call call_bigdft(nproc,iproc,at,tpos,in,tetot,gpf,fnoise,rst,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,gpf,sumx,sumy,sumz)
@@ -414,6 +408,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 !!$           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
 !!$        end if
         ncount_bigdft=ncount_bigdft+1
+
 
         !C projection of gradients at beta=0 and beta onto hh
         y0=0._gp
@@ -446,6 +441,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            gpf(3,iat)=fxyz(3,iat)
         end do
 
+        etotprev=etot
         call call_bigdft(nproc,iproc,at,rxyz,in,etot,fxyz,fnoise,rst,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,fxyz,sumx,sumy,sumz)
@@ -456,11 +452,11 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         ncount_bigdft=ncount_bigdft+1
         !if the energy goes up (a small tolerance of anoise is allowed)
         !switch back to SD
-        if (etot > etotprec+anoise) then
+        if (etot > etotprev+anoise) then
 
            if (iproc.eq.0 .and. parmin%verbosity > 0) &
-                & write(16,*) 'switching back to SD:etot,etotprec',it,etot,etotprec
-           if (iproc.eq.0) write(*,*) ' switching back to SD:etot,etotprec',it,etot,etotprec
+                & write(16,*) 'switching back to SD:etot,etotprev',it,etot,etotprev
+           if (iproc.eq.0) write(*,*) ' switching back to SD:etot,etotprev',it,etot,etotprev
            do iat=1,at%nat
               rxyz(1,iat)=tpos(1,iat)
               rxyz(2,iat)=tpos(2,iat)
@@ -473,7 +469,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            !calculate the max of the forces
            call fnrmandforcemax(fxyz,tmp,fmax,at%nat)
            call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
-           if(check) then
+           if(check.gt.5) then
               if (iproc.eq.0) write(16,*) 'Converged in switch back SD',iproc
               call close_and_deallocate
               return
@@ -481,7 +477,6 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            cycle redo_cg
         endif
 
-        etotprec=etot
         if (iproc==0) then 
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'CONJG:fnrm= ',sqrt(fnrm)
@@ -518,11 +513,10 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            if (parmin%verbosity > 0) then
 !              write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)')it,sqrt(fnrm),etot,' GEOPT CG ',beta/in%betax
 !              write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*in%frac_fluct,fluct
-           write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1)') &
-           &ncount_bigdft,it,"GEOPT_CG  ",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"b/b0=",beta/in%betax
-           write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1)') &
-           &ncount_bigdft,it,"GEOPT_CG  ",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"b/b0=",beta/in%betax
-           eprev=etot
+           write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
+                ncount_bigdft,it,"GEOPT_CG  ",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"b/b0=",beta/in%betax
+           write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
+                ncount_bigdft,it,"GEOPT_CG  ",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"b/b0=",beta/in%betax
            end if
            write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
                 'FORCES norm(Ha/Bohr): maxval=',    fmax,'fnrm=',    fnrm   , 'fluct=',fluct
@@ -530,7 +524,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
         call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
 
-        if(check) exit loop_cg
+        if(check.gt.5) exit loop_cg
 
         if (ncount_bigdft.gt.in%ncount_cluster_x) then 
            if (iproc==0)  write(16,*) 'SDCG exited before the geometry optimization converged because more than ',&
@@ -568,7 +562,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            call fnrmandforcemax(fxyz,tmp,fmax,at%nat)
 
            call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
-           if(check) then
+           if(check.gt.5) then
               if (iproc == 0) write(16,*) 'Converged in back up SD',iproc
               call close_and_deallocate
               return
@@ -648,8 +642,8 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
   character(len=*), parameter :: subname='steepdes'
   logical :: care,move_this_coordinate
   integer :: nsatur,iat,itot,itsd,i_stat,i_all,infocode,nbeqbx,i,ixyz,nr
-  real(gp) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise
-  real(gp) :: fmax,de1,de2,df1,df2,beta,eprev
+  real(gp) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise,sumx,sumy,sumz
+  real(gp) :: fmax,de1,de2,df1,df2,beta,etotprev
   real(gp), allocatable, dimension(:,:) :: tpos
   character*4 fn4
   character*40 comment
@@ -657,7 +651,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
   allocate(tpos(3,at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,tpos,'tpos',subname)
 
-  eprev=etot
+  etotprev=etot
   anoise=0.e-4_gp
   fluct=0._gp
 
@@ -741,6 +735,8 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
         endif
 
         call fnrmandforcemax(ff,fnrm,fmax,at%nat)
+        if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
+
 
         !first and second derivatives of the energy and of the norm of the forces
         !(in units of beta steps)
@@ -749,7 +745,6 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
         df1=fnrm-fnrmitm1
         df2=fnrm-2._gp*fnrmitm1+fnrmitm2
 
-        if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
         if (iproc.eq.0) then
            if (parmin%verbosity > 0) &
                 & write(16,'(a,6(1x,e10.3),1x,i2)') 'fmax, fnrm/fnrmitm1, de1<0 , de2>0 , df1<0 , df2>0 ,nsatur',  & 
@@ -781,13 +776,13 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
 
 
         if (iproc==0 .and. parmin%verbosity > 0) then
-        write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,I2)') &
-        &ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
+        write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,I2)') &
+             ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
+             "b/b0=",beta/in%betax,"nsat=",nsatur
+        write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,I2)') &
+        &ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, & 
         &"b/b0=",beta/in%betax,"nsat=",nsatur
-        write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,I2)') &
-        &ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, & 
-        &"b/b0=",beta/in%betax,"nsat=",nsatur
-        eprev=etot 
+        etotprev=etot 
 !           write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',&
 !                fnrm,fluct*in%frac_fluct,fluct
         end if
@@ -799,25 +794,17 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
         !or the forces are below the fixed tolerance
 
         if (iproc==0) then
-            if (fnrm < fluct*in%frac_fluct ) write(*,'(a,2(1x,1pe24.17))')&
-                 'SD EXIT because fnrm < fluct*frac_fluct' ,&
-                 fnrm,fluct*in%frac_fluct
-            if (fmax < forcemax_sw ) write(*,'(a,2(1x,1pe24.17))')&
-                 'SD EXIT because fmax < forcemax_sw ',&
-                 fmax , forcemax_sw
             if (nsatur > 5  ) write(*,'(a,1x,i0)')&
                  'SD EXIT because nsatur > 5 ',nsatur 
-            if (fnrm < fluct*in%frac_fluct ) write(16,'(a,2(1x,1pe24.17))') &
-                 'SD EXIT because fnrm < fluct*frac_fluct',&
-                 fnrm , fluct*in%frac_fluct
-            if (fmax < forcemax_sw ) write(16,'(a,2(1x,1pe24.17))')&
-                 'SD EXIT because fmax < forcemax_sw ' ,fmax , forcemax_sw
-            if (nsatur > 5  ) write(16,'(a,1x,i0)') 'SD EXIT because nsatur > 5 ',nsatur 
+            if (fmax < forcemax_sw ) write(*,'(a,2(1x,1pe24.17))')&
+                 'SD EXIT because fmax < forcemax_sw ', fmax , forcemax_sw
+            if (fmax < fluct*in%frac_fluct ) write(16,'(a,2(1x,1pe24.17))')&
+                 'SD EXIT because fmax < fluctuation ' ,fmax , fluct*in%frac_fluct
+            if (fmax < fluct*in%forcemax ) write(16,'(a,2(1x,1pe24.17))')&
+                 'SD EXIT because fmax < forcemax ' ,fmax , in%forcemax
         endif
 
-        if (fnrm < fluct*in%frac_fluct .or. &
-             nsatur > 5 .or. fmax < forcemax_sw) &
-             exit loop_sd
+        if ( nsatur > 5 .or. fmax < max(forcemax_sw,in%forcemax,fluct*in%frac_fluct))  exit loop_sd
 
         !maximum number of allowed iterations reached
         if (ncount_bigdft > in%ncount_cluster_x) then 
@@ -916,13 +903,15 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   character(len=*), parameter :: subname='vstepsd'  
   integer :: iat,i_all,i_stat,infocode, nitsd,itsd
   real(gp) :: anoise,fluct,fnrm,fnrmold,beta,betaxx,betalast,betalastold
-  real(gp) :: etotold,fmax,scpr,curv,tt,eprev
+  real(gp) :: etotold,fmax,scpr,curv,tt,sumx,sumy,sumz,etotprev
   real(gp), dimension(:,:), allocatable :: posold,ffold
-  logical reset,check
+  logical reset!,check
+  integer check
   character*4 fn4
   character*40 comment
 
-  eprev=etot
+  check=0
+  etotprev=etot
   allocate(posold(3,at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,posold,'posold',subname)
   allocate(ffold(3,at%nat+ndebug),stat=i_stat)
@@ -940,11 +929,11 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   call fnrmandforcemax(ffold,fnrm,fmax,at%nat)   
   if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
   if (iproc == 0) then
-     if (parmin%verbosity > 0)   write(16,'(i5,1x,i5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2e1)') &
-     &ncount_bigdft,itsd,"GEOPT_VSSD",etotold,etotold-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"beta=",beta
-     if (parmin%verbosity > 0)   write(* ,'(i5,1x,i5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2e1)') &
-     &ncount_bigdft,itsd,"GEOPT_VSSD",etotold,etotold-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"beta=",beta
-     eprev=etotold
+     if (parmin%verbosity > 0)   write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
+     &ncount_bigdft,itsd,"GEOPT_VSSD",etotold,etotold-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"beta=",beta
+     if (parmin%verbosity > 0)   write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
+     &ncount_bigdft,itsd,"GEOPT_VSSD",etotold,etotold-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,"beta=",beta
+     etotprev=etotold
 !!$     call transforce(at,ffold,sumx,sumy,sumz)                         
 !!$     write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
 !!$     write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
@@ -1004,7 +993,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
      if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
 !     if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*in%frac_fluct,fluct
      call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
-     if (check) exit loop_ntsd
+     if (check.gt.5) exit loop_ntsd
      if (ncount_bigdft >= in%ncount_cluster_x) then 
         if (iproc==0)  write(16,*) 'VSSD exited before the geometry optimization converged because more than ',& 
              in%ncount_cluster_x,' wavefunction optimizations were required'
@@ -1052,30 +1041,30 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
         fnrmold=fnrm
         betalastold=betalast
      endif
-
-     if (iproc == 0.and.parmin%verbosity > 0) then
-        write(16,'(i5,1x,i5,2x,a10,2x,1pe21.14,2x,1pe9.2,1pe11.3,3(1pe10.2),2x,a,1pe8.2e1,2x,a,1pe8.2e1)') &
-        & ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
-        & "beta=",beta,"last beta=",betalast
-        write(* ,'(i5,1x,i5,2x,a10,2x,1pe21.14,2x,1pe9.2,1pe11.3,3(1pe10.2),2x,a,1pe8.2e1,2x,a,1pe8.2e1)') &
-        & ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
-        & "beta=",beta,"last beta=",betalast
-     end if
-     eprev=etot
+  
+     if (iproc == 0.and.parmin%verbosity > 0) & 
+          write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,1pe8.2E1)') &
+          ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
+          "beta=",beta,"last beta=",betalast
+     if (iproc == 0.and.parmin%verbosity > 0) & 
+          write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,1pe8.2E1)') &
+          ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
+     &"beta=",beta,"last beta=",betalast
+     etotprev=etot
 !     if (iproc == 0) write(16,'(i5,1x,e12.5,1x,e21.14,a,e10.3,1x,e10.3)') itsd,sqrt(fnrm),etot,' GEOPT VSSD ',beta,betalast
-     if(iproc==0) call timeleft(tt)
+     if(iproc==0)call timeleft(tt)
      call MPI_BCAST(tt,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,i_stat)
      if(tt<0) exit loop_ntsd
 
 
   enddo loop_ntsd
   if (iproc == 0.and.parmin%verbosity > 0) & 
-     &write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
-     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
-     &"beta=",beta,"last beta=",betalast
+       write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,1pe8.2E1)') &
+       ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
+       "beta=",beta,"last beta=",betalast
   if (iproc == 0.and.parmin%verbosity > 0) & 
-     &write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe7.2E1,2x,a,1pe7.2E1)') &
-     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
+     &write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,1pe8.2E1)') &
+     &ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct,& 
      &"beta=",beta,"last beta=",betalast
   if (iproc == 0 .and. itsd == nitsd+1) &
        write(16,'(a,i5,e9.2,e18.10,e9.2)') '---- SD FAILED  TO CONVERGE'
@@ -1104,13 +1093,16 @@ subroutine convcheck(fnrm,fmax,fluctfrac_fluct,forcemax,check)
   use module_base
   implicit none
   real(gp), intent(in):: fnrm, fmax, fluctfrac_fluct,forcemax
-  logical, intent(out)::check
+!  logical, intent(out)::check
+  integer, intent(inout)::check
 
-  check=.false.
-!  if (fnrm < fluctfrac_fluct .or. &
-!       fmax < forcemax ) then
-!  endif
-  if ( fmax < max(forcemax,fluctfrac_fluct)) check=.true.
+!  check=.false.
+!  if ( fmax < max(forcemax,fluctfrac_fluct)) check=.true.
+  if ( fmax < max(forcemax,fluctfrac_fluct)) then 
+    check=check+1
+  else
+    check=0
+  endif
 
 end subroutine convcheck
 
@@ -1171,7 +1163,6 @@ subroutine fnrmandforcemax_old(ff,fnrm,fmax,at)
 !!!  fnrm=t1+t2+t3
 END SUBROUTINE fnrmandforcemax_old
 
-
 subroutine updatefluctsum(nat,fnoise,fluct)
   use module_base
   use module_types
@@ -1185,7 +1176,8 @@ subroutine updatefluctsum(nat,fnoise,fluct)
    else
      fluct=.8d0*fluct+.2d0*fnoise
    endif
-END SUBROUTINE updatefluctsum
+
+end subroutine updatefluctsum
 
 
 !should we evaluate the translational force also with blocked atoms?
@@ -1210,7 +1202,6 @@ subroutine transforce(at,fxyz,sumx,sumy,sumz)
 
   end do
 END SUBROUTINE transforce
-
 
 !should we evaluate the translational force also with blocked atoms?
 subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
@@ -1266,7 +1257,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   real(gp), dimension(:,:), allocatable  :: previous_pos
   real(gp), dimension(:,:), allocatable :: product_matrix
   integer :: lter, maxter, i, i_err, n, nrhs, lwork, infocode, j, i_stat, i_all
-  real(gp) :: fluct,fmax,fnrm,fnoise,eprev
+  real(gp) :: sumx, sumy, sumz,  fluct, fmax, fnrm,fnoise,etotprev
   character(len = 4) :: fn4
   character(len = 40) :: comment
   ! Local variables for Lapack.
@@ -1274,7 +1265,10 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   real(8), dimension(:), allocatable :: work
   real(8), dimension(:), allocatable :: solution
   real(8), dimension(:,:), allocatable :: matrice
-  logical :: check
+  !logical :: check
+  integer :: check
+  check=0
+  fluct=0.0_gp
 
   ! We save pointers on data used to call bigdft() routine.
   allocate(previous_forces(in%history, AT%NAT * 3+ndebug),stat=i_stat)
@@ -1284,7 +1278,11 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   allocate(product_matrix(in%history, in%history+ndebug),stat=i_stat)
   call memocc(i_stat,product_matrix,'product_matrix',subname)
 
-  fluct = 0.d0
+
+  !zet to zero the arrays
+  call razero(in%history**2,product_matrix)
+  call razero(in%history*at%nat*3,previous_forces)
+  call razero(in%history*at%nat*3,previous_pos)
 
   ! We set the first step and move to the second
   previous_forces(1,:) = f(:)
@@ -1294,6 +1292,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 !!$  !always better to use the atomic_* routines to move atoms
 !!$  !it performs modulo operation as well as constrained search
 !!$  call atomic_axpy(at,x,in%betax,f,x)
+
 
   do lter = 2, in%ncount_cluster_x
 
@@ -1309,7 +1308,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      call memocc(i_stat,matrice,'matrice',subname)
 
      ! If lter is greater than maxvec, we move the previous solution up by one
-     if (lter .gt. maxter) then
+     if (lter > maxter) then
         do i=2, maxter
            previous_forces(i-1,:) = previous_forces(i,:)
            previous_pos(i-1,:)    = previous_pos(i,:)
@@ -1359,6 +1358,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      deallocate(matrice,stat=i_stat)
      call memocc(i_stat,i_all,'matrice',subname)
 
+
      ! The solution that interests us is made of two parts
 
      x(:) = 0.0d0
@@ -1373,7 +1373,8 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      call memocc(i_stat,i_all,'solution',subname)
 
      in%inputPsiId=1
-     eprev=epot
+     etotprev=epot
+
      call call_bigdft(nproc,iproc,at,x,in,epot,f,fnoise,rst,infocode)
 
 !!$     if (iproc == 0) then
@@ -1386,11 +1387,12 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      ncount_bigdft=ncount_bigdft+1
 
      call fnrmandforcemax(f,fnrm,fmax,at%nat)
+
      if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
 
      if (iproc==0) then 
      write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,2(1pe11.3),3(1pe10.2))')  & 
-          ncount_bigdft,lter,"GEOPT_DIIS",epot,epot-eprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct
+          ncount_bigdft,lter,"GEOPT_DIIS",epot,epot-etotprev,fmax,sqrt(fnrm),fnrm,fluct*in%frac_fluct,fluct
 
 !        write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=', &
 !             & fmax,'fnrm=',    fnrm    ,'fluct=', fluct
@@ -1401,7 +1403,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
      call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
 
-     if(check)then
+     if(check.gt.5)then
         if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*in%frac_fluct,fluct
         if (iproc==0) write(16,*) 'DIIS converged'
         exit
@@ -1433,13 +1435,10 @@ END SUBROUTINE rundiis
 !!***
 
  
-!!****f* BigDFT/lbfgsdriver
-!! FUNCTION
-!!   Driver for the LBFGS routine found on the Nocedal Homepage
-!!   The subroutines have only been modified slightly, so a VIMDIFF will show all modifications!
-!!   This is helpfull when we are looking for the source of problems during BFGS runs
-!! SOURCE
-!!
+!! Driver for the LBFGS routine found on the Nocedal Homepage
+!! The subroutines have only been modified slightly, so a VIMDIFF will show all modifications!
+!! This is helpfull when we are looking for the source of problems during BFGS runs
+
 subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail) 
   use module_base
   use module_types
@@ -1458,23 +1457,26 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   real(gp), dimension(3*at%nat), intent(out) :: fxyz
 
   real(gp), dimension(3*at%nat):: txyz, sxyz
-  real(gp) :: fluct,fnrm, fnoise
-  real(gp) :: fmax
-  logical :: check
+  real(gp) :: fluct,fnrm, alpha, fnoise
+  real(gp) ::sumx,sumy,sumz,fmax
+!  logical :: check
+  integer :: check
   integer :: infocode,i,ixyz,iat,nitsd
-  real(gp) :: fnormmax_sw,eprev
-  character(len=4) :: fn4
-  character(len=40) :: comment
+  real(gp) :: fnormmax_sw,etotprev
+  character*4 fn4
+  character*40 comment
   logical :: move_this_coordinate
 
   integer:: n,nr,ndim
   integer:: NWORK
-  real(gp), dimension(:), allocatable :: X,G,DIAG,W
-  real(gp):: F,EPS !,XTOL,GTOL,,STPMIN,STPMAX
-  real(gp), allocatable, dimension(:) :: rxyz0,rxyzwrite
-  integer:: IPRINT(2),IFLAG,ICALL,M
+  real(gp),allocatable:: X(:),G(:),DIAG(:),W(:)
+  real(gp):: F,EPS,T1,T2!,XTOL,GTOL,,STPMIN,STPMAX
+  real(gp), dimension(3*at%nat) :: rxyz0,rxyzwrite
+  INTEGER:: IPRINT(2),IFLAG,ICALL,M,J
   character(len=*), parameter :: subname='bfgs'
   integer :: i_stat,i_all
+
+  check=0
 
 !  call init_driver(par)     !Initialize the parameters
   parmin%finstep=0
@@ -1487,170 +1489,192 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   !Dummy variables
   txyz=0._gp
   sxyz=0._gp
-
-  !Allocations
-  allocate(rxyz0(3*at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz0,'rxyz0',subname)
-  allocate(rxyzwrite(3*at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyzwrite,'rxyzwrite',subname)
+  
 
   if (iproc==0)    write(*,*) 'Maximum number of SD steps used in the beginning: ',nitsd
 
   call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,fnrm,fnoise,in,&
        fnormmax_sw,nitsd,fluct)
-  eprev=etot
-  call dcopy(3*at%nat,rxyz,1,rxyz0,1) !rxyz0=rxyz     !Save initial positions, since the unconstrained degrees of freedom will be updated upon them
-  call dcopy(3*at%nat,rxyz,1,rxyzwrite,1) ! rxyzwrite=rxyz
+  etotprev=etot
+  rxyz0=rxyz     !Save initial positions, since the unconstrained degrees of freedom will be updated upon them
+  rxyzwrite=rxyz
   call fnrmandforcemax(fxyz,fnrm,fmax,at%nat)
   !call fnrmandforcemax(fxyz,fnrm,fmax,at)
   !check if the convergence is reached after SD
   call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
 
-  if (check) then
+  if (check.gt.5) then
      if (iproc.eq.0) write(*,*) 'Converged before entering BFGS'
      return
   endif
 
-  !Make a list of all degrees of freedom that should be passed to bfgs
-  n=3*at%nat
-  nr=0
-  do i=1,3*at%nat
-     iat=(i-1)/3+1
-     ixyz=mod(i-1,3)+1
-     if(move_this_coordinate(at%ifrztyp(iat),ixyz)) nr=nr+1
-  enddo
-  if (iproc==0) write(*,*) 'DOF: n,nr ',n,nr
-     NDIM=nr
-     NWORK=NDIM*(2*parmin%MSAVE +1)+2*parmin%MSAVE
-     
-     allocate(X(NDIM+ndebug),stat=i_stat)
-     call memocc(i_stat,X,'X',subname)
-     allocate(G(NDIM+ndebug),stat=i_stat)
-     call memocc(i_stat,G,'G',subname)
-     allocate(DIAG(NDIM+ndebug),stat=i_stat)
-     call memocc(i_stat,DIAG,'DIAG',subname)
-     allocate(W(NWORK+ndebug),stat=i_stat)
-     call memocc(i_stat,W,'W',subname)
 
-     call atomic_copymoving_forward(at,n,rxyz,nr,X)
+    !Make a list of all degrees of freedom that should be passed to bfgs
+    n=3*at%nat
+    nr=0
+    do i=1,3*at%nat
+        iat=(i-1)/3+1
+        ixyz=mod(i-1,3)+1
+        if(move_this_coordinate(at%ifrztyp(iat),ixyz)) nr=nr+1
+    enddo
+    if(iproc==0) write(*,*) 'DOF: n,nr ',n,nr
+      NDIM=nr
+      NWORK=NDIM*(2*parmin%MSAVE +1)+2*parmin%MSAVE
+      
+      allocate(X(NDIM),stat=i_stat)
+      call memocc(i_stat,X,'X',subname)
+      allocate(G(NDIM),stat=i_stat)
+      call memocc(i_stat,G,'G',subname)
+      allocate(DIAG(NDIM),stat=i_stat)
+      call memocc(i_stat,DIAG,'DIAG',subname)
+      allocate(W(NWORK),stat=i_stat)
+      call memocc(i_stat,W,'W',subname)
 
-     N=nr
-     M=parmin%MSAVE
-     IPRINT(1)= 1
-     IPRINT(2)= 0
-     F=etot
-!    We do not wish to provide the diagonal matrices Hk0, and 
-!    therefore set DIAGCO to FALSE.
 
-     EPS=0.0_gp
-     ICALL=0
-     IFLAG=0
+      call atomic_copymoving_forward(at,n,rxyz,nr,X)
 
- 20  CONTINUE
-     if (parmin%IWRITE) then
-        if (iproc == 0) then
-           write(fn4,'(i4.4)') ncount_bigdft
-           write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
-           call  write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
-        endif
-        parmin%IWRITE=.false.
-     endif
-     call dcopy(3*at%nat,rxyz,1,rxyzwrite,1) ! rxyzwrite=rxyz
+      N=nr
+      M=parmin%MSAVE
+      IPRINT(1)= 1
+      IPRINT(2)= 0
+      F=etot
+!     We do not wish to provide the diagonal matrices Hk0, and 
+!     therefore set DIAGCO to FALSE.
 
-     if (fmax < 3.d-1) then
-        call updatefluctsum(at%nat,fnoise,fluct)
-     end if
+      EPS=0.0_gp
+      ICALL=0
+      IFLAG=0
 
-     if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) then
-        write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe7.2E1)')&
-        & ncount_bigdft,ICALL,"GEOPT_BFGS",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct&
-        & ,"BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
-        write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe7.2E1)')&
-        &ncount_bigdft,ICALL,"GEOPT_BFGS",etot,etot-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct&
-        &,"BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
-     end if
-     eprev=etot
-     if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) &
-     &  write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
-     call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
+ 20   CONTINUE
+              if (parmin%IWRITE) then
+              if (iproc == 0) then
+              write(fn4,'(i4.4)') ncount_bigdft
+              write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
+              call  write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
+              endif
+              parmin%IWRITE=.false.
+              endif
+              rxyzwrite=rxyz
 
-     if (ncount_bigdft >= in%ncount_cluster_x) goto 50
+              if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
+   if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) & 
+              &write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)')&
+              &ncount_bigdft,ICALL,"GEOPT_BFGS",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct&
+              &,"BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
+   if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) & 
+              & write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)')&
+              &ncount_bigdft,ICALL,"GEOPT_BFGS",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct&
+              &,"BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
+              etotprev=etot
+              if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
+                           'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
+              call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
+              if (ncount_bigdft >= in%ncount_cluster_x) goto 50
+              close(16)
+              open(unit=16,file='geopt.mon',status='unknown',position='APPEND')
 
-     close(16)
-     open(unit=16,file='geopt.mon',status='unknown',position='APPEND')
+      if(check.gt.5) then
+         if(iproc==0)  write(16,'(a,i0,a)') "   BFGS converged in ",ICALL," iterations"
+         if (iproc == 0) then
+            write(fn4,'(i4.4)') ncount_bigdft
+            write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
+            call  write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
+         endif
+         goto 100
+      endif
 
-     if (check) then
-        if(iproc==0)  write(16,'(a,i0,a)') "   BFGS converged in ",ICALL," iterations"
-        if (iproc == 0) then
-           write(fn4,'(i4.4)') ncount_bigdft
-           write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
-           call  write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
-        endif
+      
+      rxyz=rxyz0
+      call atomic_copymoving_backward(at,nr,X,n,rxyz)
+!      txyz=rxyz
+!      alpha=0._gp
+!      call atomic_axpy(at,txyz,alpha,sxyz,rxyz)
+      in%inputPsiId=1
+      in%output_grid=0
+      in%output_wf=.false.
+!      if(ICALL.ne.0) call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,rst,infocode)
+      if(ICALL.ne.0) call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,fnoise,rst,infocode)
+      if(ICALL.ne.0) ncount_bigdft=ncount_bigdft+1
+      call atomic_copymoving_forward(at,n,fxyz,nr,G)
+      etot=F
+      G=-G
+      call fnrmandforcemax(fxyz,fnrm,fmax,at%nat)
+!      call fnrmandforcemax(fxyz,fnrm,fmax,at)
+
+      CALL LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
+      IF(IFLAG.LE.0) GO TO 50
+      ICALL=ICALL + 1
+!     We allow at most the given number of evaluations of F and G
+      if(ncount_bigdft>in%ncount_cluster_x-1)  then
         goto 100
-     endif
-
-     call dcopy(3*at%nat,rxyz0,1,rxyz,1) ! rxyz=rxyz0
-     call atomic_copymoving_backward(at,nr,X,n,rxyz)
-!     txyz=rxyz
-!     alpha=0._gp
-!     call atomic_axpy(at,txyz,alpha,sxyz,rxyz)
-     in%inputPsiId=1
-     in%output_grid=0
-     in%output_wf=.false.
-!     if(ICALL.ne.0) call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,rst,infocode)
-     if (ICALL.ne.0) then
-        call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,fnoise,rst,infocode)
-        ncount_bigdft=ncount_bigdft+1
-     end if
-     call atomic_copymoving_forward(at,n,fxyz,nr,G)
-     etot=F
-     G=-G
-     call fnrmandforcemax(fxyz,fnrm,fmax,at%nat)
-!     call fnrmandforcemax(fxyz,fnrm,fmax,at)
-
-     CALL LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
-     IF(IFLAG.LE.0) GO TO 50
-     ICALL=ICALL + 1
-!    We allow at most the given number of evaluations of F and G
-     if (ncount_bigdft>in%ncount_cluster_x-1)  then
-        goto 100
-     endif
-     close(16)
-     open(unit=16,file='geopt.mon',status='unknown',position='append')
-     GO TO 20
-  50 CONTINUE
-     if (iproc==0) then
-        write(*,*) "# Error in BFGS, switching to SD and CG"
-        write(16,*) "Error in BFGS, switching to SD and CG"
-     end if
-
-     call dcopy(3*at%nat,rxyz,1,rxyzwrite,1) !rxyz(:)=rxyzwrite(:)
-     fail=.true.
- 100 CONTINUE
+      endif
+      close(16)
+      open(unit=16,file='geopt.mon',status='unknown',position='append')
+      GO TO 20
+  50  CONTINUE
+        if (iproc==0) write(*,*) "# Error in BFGS, switching to SD and CG"
+        if (iproc==0) write(16,*) "Error in BFGS, switching to SD and CG"
+        rxyz(:)=rxyzwrite(:)
+        fail=.true.
+ 100  CONTINUE
         
-     i_all=-product(shape(rxyz0))*kind(rxyz0)
-     deallocate(rxyz0,stat=i_stat)
-     call memocc(i_stat,i_all,'rxyz0',subname)
-     i_all=-product(shape(rxyzwrite))*kind(rxyzwrite)
-     deallocate(rxyzwrite,stat=i_stat)
-     call memocc(i_stat,i_all,'rxyzwrite',subname)
-     i_all=-product(shape(X))*kind(X)
-     deallocate(X,stat=i_stat)
-     call memocc(i_stat,i_all,'X',subname)
-     i_all=-product(shape(G))*kind(G)
-     deallocate(G,stat=i_stat)
-     call memocc(i_stat,i_all,'G',subname)
-     i_all=-product(shape(DIAG))*kind(DIAG)
-     deallocate(DIAG,stat=i_stat)
-     call memocc(i_stat,i_all,'DIAG',subname)
-     i_all=-product(shape(W))*kind(W)
-     deallocate(W,stat=i_stat)
-     call memocc(i_stat,i_all,'W',subname)
+      i_all=-product(shape(X))*kind(X)
+      deallocate(X,stat=i_stat)
+      call memocc(i_stat,i_all,'X',subname)
+      i_all=-product(shape(G))*kind(G)
+      deallocate(G,stat=i_stat)
+      call memocc(i_stat,i_all,'G',subname)
+      i_all=-product(shape(DIAG))*kind(DIAG)
+      deallocate(DIAG,stat=i_stat)
+      call memocc(i_stat,i_all,'DIAG',subname)
+      i_all=-product(shape(W))*kind(W)
+      deallocate(W,stat=i_stat)
+      call memocc(i_stat,i_all,'W',subname)
 
-end subroutine lbfgsdriver
-!!***
+      return 
+    END subroutine lbfgsdriver
 
 
+subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
+    use module_types
+    implicit none
+    type(atoms_data), intent(inout) :: atoms
+    integer::n,nr,i,iat,ixyz,ir
+    real(8)::x(n),xa(nr)
+    logical::move_this_coordinate
+    ir=0
+    do i=1,3*atoms%nat
+        iat=(i-1)/3+1
+        ixyz=mod(i-1,3)+1
+        if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+            ir=ir+1
+            xa(ir)=x(i)
+        endif
+    enddo
+    if(ir/=nr) stop 'ERROR: inconsistent number of relaxing DOF'
+end subroutine atomic_copymoving_forward
+!*****************************************************************************************
+subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
+    use module_types
+    implicit none
+    type(atoms_data), intent(inout) :: atoms
+    integer::n,nr,i,iat,ixyz,ir
+    real(8)::x(n),xa(nr)
+    logical::move_this_coordinate
+    ir=0
+    do i=1,3*atoms%nat
+        iat=(i-1)/3+1
+        ixyz=mod(i-1,3)+1
+        if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
+            ir=ir+1
+            x(i)=xa(ir)
+        endif
+    enddo
+    if(ir/=nr) stop 'ERROR: inconsistent number of relaxing DOF'
+end subroutine atomic_copymoving_backward
+
+
+!     LUIGI: PLEASE CUT OUT THIS PART AND PUT IN A  TABOO file
 !     ----------------------------------------------------------------------
 !     This file contains the LBFGS algorithm and supporting routines
 !
@@ -1660,17 +1684,17 @@ end subroutine lbfgsdriver
 !
 !      SUBROUTINE LBFGS(IPROC,IN,N,M,X,F,G,DIAGCO,DIAG,IPRINT,EPS,XTOL,W,IFLAG)
 !      SUBROUTINE LBFGS(IPROC,IN,PAR,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
-SUBROUTINE LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
-   use module_types
+      SUBROUTINE LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
+      use module_types
 !
 !      use par_driver , only:driverparameters 
-   use minpar, only: parameterminimization
-   IMPLICIT NONE
+      use minpar, only: parameterminimization
+      IMPLICIT NONE
 !      type(driverparameters)::par
-   type(parameterminimization) :: parmin
-   INTEGER :: N,M,IPRINT(2),IFLAG,IPROC
-   DOUBLE PRECISION :: X(N),G(N),DIAG(N),W(N*(2*M+1)+2*M)
-   DOUBLE PRECISION :: F,EPS
+      type(parameterminimization)::parmin
+      INTEGER N,M,IPRINT(2),IFLAG,IPROC
+      DOUBLE PRECISION X(N),G(N),DIAG(N),W(N*(2*M+1)+2*M)
+      DOUBLE PRECISION F,EPS
 !      DOUBLE PRECISION F,EPS,XTOL
 !      LOGICAL DIAGCO
 !
@@ -1678,8 +1702,9 @@ SUBROUTINE LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
 !                          JORGE NOCEDAL
 !                        *** July 1990 ***
 !
+! 
 !     This subroutine solves the unconstrained minimization problem
-!
+! 
 !                      min F(x),    x= (x1,x2,...,xN),
 !
 !      using the limited memory BFGS method. The routine is especially
@@ -1828,10 +1853,24 @@ SUBROUTINE LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
 !                        not positive).
 ! 
 !
+!
 !    ON THE DRIVER:
 !
-!    The subroutine contains one common area, which the user may wish to
+!    The program that calls LBFGS must contain the declaration:
+!
+!                       EXTERNAL LB2
+!
+!    LB2 is a BLOCK DATA that defines the default values of several
+!    parameters described in the COMMON section. 
+!
+! 
+! 
+!    COMMON:
+! 
+!     The subroutine contains one common area, which the user may wish to
 !    reference:
+! 
+!         COMMON /LB3/MP,LP,GTOL,STPMIN,STPMAX
 ! 
 !    MP  is an INTEGER variable with default value 6. It is used as the
 !        unit number for the printing of the monitoring information
@@ -1874,37 +1913,36 @@ SUBROUTINE LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
 !     - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 !
 !      DOUBLE PRECISION GTOL,ONE,ZERO,GNORM,DDOT,STP1,FTOL,STPMIN,STPMAX,STP,YS,YY,SQ,YR,BETA,XNORM
-   double precision, parameter :: one=1.0d+0, zero=0.d+0
-   DOUBLE PRECISION :: GNORM,DDOT,STP1,STP,YS,YY,SQ,YR,BETA,XNORM
-!   INTEGER MP,LP,ITER,NFUN,POINT,ISPT,IYPT,MAXFEV,INFO,BOUND,NPT,CP,I,NFEV,INMC,IYCN,ISCN
-   INTEGER :: ITER,NFUN,POINT,ISPT,IYPT,INFO,BOUND,NPT,CP,I,NFEV,INMC,IYCN,ISCN
-   LOGICAL :: FINISH
-   type(input_variables), intent(inout) :: IN 
+      DOUBLE PRECISION ONE,ZERO,GNORM,DDOT,STP1,STP,YS,YY,SQ,YR,BETA,XNORM
+!      INTEGER MP,LP,ITER,NFUN,POINT,ISPT,IYPT,MAXFEV,INFO,BOUND,NPT,CP,I,NFEV,INMC,IYCN,ISCN
+      INTEGER ITER,NFUN,POINT,ISPT,IYPT,INFO,BOUND,NPT,CP,I,NFEV,INMC,IYCN,ISCN
+      LOGICAL FINISH
+      type(input_variables), intent(inout) :: IN 
 
-
+!
+      SAVE
+      DATA ONE,ZERO/1.0D+0,0.0D+0/
+!
 !     INITIALIZE
 !     ----------
 !
-   IF(IFLAG.EQ.0) GO TO 10
-   GO TO (172,100) IFLAG
-  10  CONTINUE
-      ITER= 0
+      IF(IFLAG.EQ.0) GO TO 10
+      GO TO (172,100) IFLAG
+  10  ITER= 0
       IF(N.LE.0.OR.M.LE.0) GO TO 196
-      IF (parmin%GTOL.LE.1.D-04) THEN
-         IF(parmin%LP.GT.0.AND.IPROC==0) WRITE(parmin%LP,245)
-         parmin%GTOL=9.D-01
+      IF(parmin%GTOL.LE.1.D-04) THEN
+        IF(parmin%LP.GT.0.AND.IPROC==0) WRITE(parmin%LP,245)
+        parmin%GTOL=9.D-01
       ENDIF
       NFUN= 1
       POINT= 0
       FINISH= .FALSE.
-      IF (parmin%DIAGCO) THEN
-         DO I=1,N
-            IF (DIAG(I).LE.ZERO) GO TO 195
-         END DO
+      IF(parmin%DIAGCO) THEN
+         DO 30 I=1,N
+ 30      IF (DIAG(I).LE.ZERO) GO TO 195
       ELSE
-         DO I=1,N
-            DIAG(I)= 1.0D0
-         END DO
+         DO 40 I=1,N
+ 40      DIAG(I)= 1.0D0
       ENDIF
 !
 !     THE WORK VECTOR W IS DIVIDED AS FOLLOWS:
@@ -1924,9 +1962,8 @@ SUBROUTINE LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
 !
       ISPT= N+2*M
       IYPT= ISPT+N*M     
-      DO I=1,N
-         W(ISPT+I)= -G(I)*DIAG(I)
-      END DO
+      DO 50 I=1,N
+ 50   W(ISPT+I)= -G(I)*DIAG(I)
       GNORM= DSQRT(DDOT(N,G,1,G,1))
 !      STP1= ONE/GNORM
 !      STP11=2.d-2/GNORM  !original convention
@@ -1945,28 +1982,25 @@ SUBROUTINE LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
 !     MAIN ITERATION LOOP
 !    --------------------
 !
- 80   CONTINUE
-      ITER= ITER+1
+ 80   ITER= ITER+1
       INFO=0
       BOUND=ITER-1
       IF(ITER.EQ.1) GO TO 165
       IF (ITER .GT. M)BOUND=M
 !
-      YS= DDOT(N,W(IYPT+NPT+1),1,W(ISPT+NPT+1),1)
-      IF (.NOT.parmin%DIAGCO) THEN
+         YS= DDOT(N,W(IYPT+NPT+1),1,W(ISPT+NPT+1),1)
+      IF(.NOT.parmin%DIAGCO) THEN
          YY= DDOT(N,W(IYPT+NPT+1),1,W(IYPT+NPT+1),1)
-         DO I=1,N
-            DIAG(I)= YS/YY
-         END DO
+         DO 90 I=1,N
+   90    DIAG(I)= YS/YY
       ELSE
          IFLAG=2
          RETURN
       ENDIF
  100  CONTINUE
       IF(parmin%DIAGCO) THEN
-         DO I=1,N
-            IF (DIAG(I).LE.ZERO) GO TO 195
-         END DO
+        DO 110 I=1,N
+ 110    IF (DIAG(I).LE.ZERO) GO TO 195
       ENDIF
 !
 !     COMPUTE -H*G USING THE FORMULA GIVEN IN: Nocedal, J. 1980,
@@ -1977,11 +2011,10 @@ SUBROUTINE LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
       CP= POINT
       IF (POINT.EQ.0) CP=M
       W(N+CP)= ONE/YS
-      DO I=1,N
-         W(I)= -G(I)
-      END DO
+      DO 112 I=1,N
+ 112  W(I)= -G(I)
       CP= POINT
-      DO I= 1,BOUND
+      DO 125 I= 1,BOUND
          CP=CP-1
          IF (CP.EQ. -1)CP=M-1
          SQ= DDOT(N,W(ISPT+CP*N+1),1,W,1)
@@ -1989,13 +2022,12 @@ SUBROUTINE LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
          IYCN=IYPT+CP*N
          W(INMC)= W(N+CP+1)*SQ
          CALL DAXPY(N,-W(INMC),W(IYCN+1),1,W,1)
-      END DO
+ 125  CONTINUE
 !
-      DO I=1,N
-         W(I)=DIAG(I)*W(I)
-      END DO
+      DO 130 I=1,N
+ 130  W(I)=DIAG(I)*W(I)
 !
-      DO I=1,BOUND
+      DO 145 I=1,BOUND
          YR= DDOT(N,W(IYPT+CP*N+1),1,W,1)
          BETA= W(N+CP+1)*YR
          INMC=N+M+CP+1
@@ -2004,32 +2036,29 @@ SUBROUTINE LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
          CALL DAXPY(N,BETA,W(ISCN+1),1,W,1)
          CP=CP+1
          IF (CP.EQ.M)CP=0
-      END DO
+ 145  CONTINUE
 !
 !     STORE THE NEW SEARCH DIRECTION
 !     ------------------------------
 !
-      DO I=1,N
-         W(ISPT+POINT*N+I)= W(I)
-      END DO
+       DO 160 I=1,N
+ 160   W(ISPT+POINT*N+I)= W(I)
 !
 !     OBTAIN THE ONE-DIMENSIONAL MINIMIZER OF THE FUNCTION 
 !     BY USING THE LINE SEARCH ROUTINE MCSRCH
 !     ----------------------------------------------------
- 165  CONTINUE
-      NFEV=0
+ 165  NFEV=0
       STP=ONE
       IF (ITER.EQ.1) STP=STP1
-      DO I=1,N
-         W(I)=G(I)
-      END DO
+      DO 170 I=1,N
+ 170  W(I)=G(I)
  172  CONTINUE
 !      CALL MCSRCH(N,X,F,G,W(ISPT+POINT*N+1),STP,FTOL,XTOL,MAXFEV,INFO,NFEV,DIAG)
 !      CALL MCSRCH(PAR,N,X,F,G,W(ISPT+POINT*N+1),STP,INFO,NFEV,DIAG)
       CALL MCSRCH(PARMIN,N,X,F,G,W(ISPT+POINT*N+1),STP,INFO,NFEV,DIAG)
       IF (INFO .EQ. -1) THEN
-         IFLAG=1
-         RETURN
+        IFLAG=1
+        RETURN
       ENDIF
       IF (INFO .NE. 1) GO TO 190
       NFUN= NFUN + NFEV
@@ -2038,10 +2067,9 @@ SUBROUTINE LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
 !     -----------------------------------------
 !
       NPT=POINT*N
-      DO I=1,N
-         W(ISPT+NPT+I)= STP*W(ISPT+NPT+I)
-         W(IYPT+NPT+I)= G(I)-W(I)
-      END DO
+      DO 175 I=1,N
+      W(ISPT+NPT+I)= STP*W(ISPT+NPT+I)
+ 175  W(IYPT+NPT+I)= G(I)-W(I)
       POINT=POINT+1
       IF (POINT.EQ.M)POINT=0
 !
@@ -2066,90 +2094,100 @@ SUBROUTINE LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
 !     END OF MAIN ITERATION LOOP. ERROR EXITS.
 !     ------------------------------------------------------------
 !
- 190  CONTINUE
-      IFLAG=-1
+ 190  IFLAG=-1
       IF(parmin%LP.GT.0.AND.IPROC==0) WRITE(parmin%LP,200) INFO
       RETURN
- 195  CONTINUE
-      IFLAG=-2
+ 195  IFLAG=-2
       IF(parmin%LP.GT.0.AND.IPROC==0) WRITE(parmin%LP,235) I
       RETURN
- 196  CONTINUE
-      IFLAG= -3
+ 196  IFLAG= -3
       IF(parmin%LP.GT.0.AND.IPROC==0) WRITE(parmin%LP,240)
 !
 !     FORMATS
 !     -------
 !
  200  FORMAT(/' IFLAG= -1 ',/' LINE SEARCH FAILED. SEE'&
-      &         ' DOCUMENTATION OF ROUTINE MCSRCH',/' ERROR RETURN'&
-      &         ' OF LINE SEARCH: INFO= ',I2,/&
-      &         ' POSSIBLE CAUSES: FUNCTION OR GRADIENT ARE INCORRECT',/,&
-      &         ' OR INCORRECT TOLERANCES')
+               ' DOCUMENTATION OF ROUTINE MCSRCH',/' ERROR RETURN'&
+               ' OF LINE SEARCH: INFO= ',I2,/&
+               ' POSSIBLE CAUSES: FUNCTION OR GRADIENT ARE INCORRECT',/,&
+               ' OR INCORRECT TOLERANCES')
  235  FORMAT(/' IFLAG= -2',/' THE',I5,'-TH DIAGONAL ELEMENT OF THE',/,&
-      &      ' INVERSE HESSIAN APPROXIMATION IS NOT POSITIVE')
+            ' INVERSE HESSIAN APPROXIMATION IS NOT POSITIVE')
  240  FORMAT(/' IFLAG= -3',/' IMPROPER INPUT PARAMETERS (N OR M',&
-      &      ' ARE NOT POSITIVE)')
+            ' ARE NOT POSITIVE)')
  245  FORMAT(/'  GTOL IS LESS THAN OR EQUAL TO 1.D-04',&
-      &      / ' IT HAS BEEN RESET TO 9.D-01')
-
-END SUBROUTINE LBFGS
-
-
-SUBROUTINE LB1(IPROC,PARMIN,IPRINT,ITER,NFUN,GNORM,N,M,X,F,G,STP,FINISH)
-   use minpar, only: parameterminimization
+            / ' IT HAS BEEN RESET TO 9.D-01')
+      RETURN
+      END
+!
+!     LAST LINE OF SUBROUTINE LBFGS
+!
+!
+!      SUBROUTINE LB1(IPROC,PAR,IPRINT,ITER,NFUN,GNORM,N,M,X,F,G,STP,FINISH)
+      SUBROUTINE LB1(IPROC,PARMIN,IPRINT,ITER,NFUN,GNORM,N,M,X,F,G,STP,FINISH)
+!      use par_driver , only:driverparameters
+      use minpar, only: parameterminimization
 !
 !     -------------------------------------------------------------
 !     THIS ROUTINE PRINTS MONITORING INFORMATION. THE FREQUENCY AND
 !     AMOUNT OF OUTPUT ARE CONTROLLED BY IPRINT.
 !     -------------------------------------------------------------
-   implicit none
-   type(parameterminimization)::parmin
-   integer :: IPRINT(2),ITER,NFUN,N,M,IPROC,I
-   double precision :: X(N),G(N),F,GNORM,STP!,GTOL,STPMIN,STPMAX
-   logical :: FINISH
-
-   IF (ITER.EQ.0)THEN
-      IF(IPROC==0) WRITE(parmin%MP,20) N,M
-      IF(IPROC==0) WRITE(parmin%MP,30)F,GNORM
-      IF (IPRINT(2).GE.1)THEN
-         IF(IPROC==0) WRITE(parmin%MP,40)
-         IF(IPROC==0) WRITE(parmin%MP,50) (X(I),I=1,N)
-         IF(IPROC==0) WRITE(parmin%MP,60)
-         IF(IPROC==0) WRITE(parmin%MP,50) (G(I),I=1,N)
-      ENDIF
-   ELSE
-      IF ((IPRINT(1).EQ.0).AND.(ITER.NE.1.AND..NOT.FINISH)) RETURN
-      IF (IPRINT(1).NE.0)THEN
-         IF (MOD(ITER-1,IPRINT(1)).EQ.0.OR.FINISH)THEN
-            IF(IPROC==0)  write(parmin%MP,'(a,2(i5,1x),1x,1pe21.14,1x,1pe12.5,1x,1E12.5)')  & 
-                             ' MIN ',ITER,nfun,f,gnorm,STP
-            parmin%FINSTEP=ITER
-            parmin%ALPHA=STP
-            parmin%IWRITE=.true.
-         ELSE
-            RETURN
-         ENDIF
+      IMPLICIT NONE
+!      type(driverparameters)::par
+      type(parameterminimization)::parmin
+!      INTEGER IPRINT(2),ITER,NFUN,LP,MP,N,M,IPROC
+      INTEGER IPRINT(2),ITER,NFUN,N,M,IPROC,I
+      DOUBLE PRECISION X(N),G(N),F,GNORM,STP!,GTOL,STPMIN,STPMAX
+      LOGICAL FINISH
+!      COMMON /LB3/MP,LP,GTOL,STPMIN,STPMAX
+!
+      IF (ITER.EQ.0)THEN
+!      IF(IPROC==0)     WRITE(parmin%MP,10)
+      IF(IPROC==0)     WRITE(parmin%MP,20) N,M
+      IF(IPROC==0)     WRITE(parmin%MP,30)F,GNORM
+                 IF (IPRINT(2).GE.1)THEN
+                IF(IPROC==0)     WRITE(parmin%MP,40)
+                IF(IPROC==0)     WRITE(parmin%MP,50) (X(I),I=1,N)
+                IF(IPROC==0)     WRITE(parmin%MP,60)
+                IF(IPROC==0)     WRITE(parmin%MP,50) (G(I),I=1,N)
+                  ENDIF
+!      IF(IPROC==0)     WRITE(parmin%MP,10)
+!      IF(IPROC==0)     WRITE(parmin%MP,70)
       ELSE
-         IF( IPRINT(2).GT.1.AND.FINISH.AND.IPROC==0) WRITE(parmin%MP,70)
-         IF(IPROC==0)   WRITE(parmin%MP,80)ITER,NFUN,F,GNORM,STP
+          IF ((IPRINT(1).EQ.0).AND.(ITER.NE.1.AND..NOT.FINISH))RETURN
+              IF (IPRINT(1).NE.0)THEN
+                   IF(MOD(ITER-1,IPRINT(1)).EQ.0.OR.FINISH)THEN
+!                         IF(IPRINT(2).GT.1.AND.ITER.GT.1.AND.IPROC==0) WRITE(parmin%MP,70)
+!                         IF(IPROC==0)   WRITE(parmin%MP,80)ITER,NFUN,F,GNORM,STP
+!                         IF(IPROC==0)   write(parmin%MP,'(i5,1x,e12.5,1x,e21.14,a,i5,1x,e12.5)') ITER,gnorm,f,' GEOPT BFGS ', nfun,STP
+                         IF(IPROC==0)   write(parmin%MP,'(a,2(i5,1x),1x,1pe21.14,1x,1pe12.5,1x,1E12.5)')  & 
+                                        ' MIN ',ITER,nfun,f,gnorm,STP
+                         parmin%FINSTEP=ITER
+                         parmin%ALPHA=STP
+                   parmin%IWRITE=.true.
+                   ELSE
+                         RETURN
+                   ENDIF
+              ELSE
+                   IF( IPRINT(2).GT.1.AND.FINISH.AND.IPROC==0) WRITE(parmin%MP,70)
+                   IF(IPROC==0)   WRITE(parmin%MP,80)ITER,NFUN,F,GNORM,STP
 
+              ENDIF
+              IF (IPRINT(2).EQ.2.OR.IPRINT(2).EQ.3)THEN
+                    IF (FINISH)THEN
+                    IF(IPROC==0)    WRITE(parmin%MP,90)
+                    ELSE
+                    IF(IPROC==0)    WRITE(parmin%MP,40)
+                    ENDIF
+                    IF(IPROC==0)  WRITE(parmin%MP,50)(X(I),I=1,N)
+                  IF (IPRINT(2).EQ.3)THEN
+                    IF(IPROC==0)  WRITE(parmin%MP,60)
+                    IF(IPROC==0)  WRITE(parmin%MP,50)(G(I),I=1,N)
+                  ENDIF
+              ENDIF
+            IF (FINISH) WRITE(parmin%MP,100)
       ENDIF
-      IF (IPRINT(2).EQ.2.OR.IPRINT(2).EQ.3)THEN
-         IF (FINISH)THEN
-            IF(IPROC==0)    WRITE(parmin%MP,90)
-         ELSE
-            IF(IPROC==0)    WRITE(parmin%MP,40)
-         ENDIF
-         IF(IPROC==0)  WRITE(parmin%MP,50)(X(I),I=1,N)
-         IF (IPRINT(2).EQ.3)THEN
-            IF(IPROC==0)  WRITE(parmin%MP,60)
-            IF(IPROC==0)  WRITE(parmin%MP,50)(G(I),I=1,N)
-         ENDIF
-      ENDIF
-      IF (FINISH) WRITE(parmin%MP,100)
-    ENDIF
-
+!
  20   FORMAT('  N=',I5,'   NUMBER OF CORRECTIONS=',I2,/,  '       INITIAL VALUES')
  30   FORMAT('  F= ',1PD10.3,'   GNORM= ',1PD10.3)
  40   FORMAT(' VECTOR X= ')
@@ -2159,8 +2197,9 @@ SUBROUTINE LB1(IPROC,PARMIN,IPRINT,ITER,NFUN,GNORM,N,M,X,F,G,STP,FINISH)
  80   FORMAT(2(I4,1X),3X,3(1PD10.3,2X))
  90   FORMAT(' FINAL POINT X= ')
  100  FORMAT(/' THE MINIMIZATION TERMINATED WITHOUT DETECTING ERRORS.',/' IFLAG = 0')
-
-END SUBROUTINE LB1
+!
+      RETURN
+      END
 !     ******
 !
 !
@@ -2279,26 +2318,23 @@ END SUBROUTINE LB1
 !      end
 !    ------------------------------------------------------------------
 !
-
-
-
-
 !     **************************
 !     LINE SEARCH ROUTINE MCSRCH
 !     **************************
 !
 !      SUBROUTINE MCSRCH(N,X,F,G,S,STP,FTOL,XTOL,MAXFEV,INFO,NFEV,WA)
 !      SUBROUTINE MCSRCH(PAR,N,X,F,G,S,STP,INFO,NFEV,WA)
-SUBROUTINE MCSRCH(PARMIN,N,X,F,G,S,STP,INFO,NFEV,WA)
+      SUBROUTINE MCSRCH(PARMIN,N,X,F,G,S,STP,INFO,NFEV,WA)
 !      use par_driver , only:driverparameters
-   use minpar, only: parameterminimization
-   IMPLICIT NONE
+      use minpar, only: parameterminimization
+      IMPLICIT NONE
 !      type(driverparameters)::par
-   type(parameterminimization) :: parmin
-   INTEGER N,INFO,NFEV!,MAXFEV
-   DOUBLE PRECISION F,STP!,FTOL,GTOL,XTOL,STPMIN,STPMAX
-   DOUBLE PRECISION X(N),G(N),S(N),WA(N)
-   SAVE
+      type(parameterminimization)::parmin
+      INTEGER N,INFO,NFEV!,MAXFEV
+      DOUBLE PRECISION F,STP!,FTOL,GTOL,XTOL,STPMIN,STPMAX
+      DOUBLE PRECISION X(N),G(N),S(N),WA(N)
+!      COMMON /LB3/MP,LP,GTOL,STPMIN,STPMAX
+      SAVE
 !
 !                     SUBROUTINE MCSRCH
 !                
@@ -2597,14 +2633,12 @@ SUBROUTINE MCSRCH(PARMIN,N,X,F,G,S,STP,INFO,NFEV,WA)
 !
 !     LAST LINE OF SUBROUTINE MCSRCH.
 !
-END SUBROUTINE MCSRCH
-
-
-SUBROUTINE MCSTEP(STX,FX,DX,STY,FY,DY,STP,FP,DP,BRACKT,STPMIN,STPMAX,INFO)
-   IMPLICIT NONE
-   INTEGER INFO
-   DOUBLE PRECISION STX,FX,DX,STY,FY,DY,STP,FP,DP,STPMIN,STPMAX
-   LOGICAL BRACKT,BOUND
+      END
+      SUBROUTINE MCSTEP(STX,FX,DX,STY,FY,DY,STP,FP,DP,BRACKT,STPMIN,STPMAX,INFO)
+      IMPLICIT NONE
+      INTEGER INFO
+      DOUBLE PRECISION STX,FX,DX,STY,FY,DY,STP,FP,DP,STPMIN,STPMAX
+      LOGICAL BRACKT,BOUND
 !
 !     SUBROUTINE MCSTEP
 !
@@ -2827,54 +2861,8 @@ SUBROUTINE MCSTEP(STX,FX,DX,STY,FY,DY,STP,FP,DP,BRACKT,STPMIN,STPMAX,INFO)
 !
 !     LAST LINE OF SUBROUTINE MCSTEP.
 !
-END SUBROUTINE MCSTEP
+      END
 
 
-!!****f* BigDFT/atomic_copymoving_forward
-!! FUNCTION
-!! SOURCE
-!!
-subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
-   use module_types
-   implicit none
-   type(atoms_data), intent(inout) :: atoms
-   integer::n,nr,i,iat,ixyz,ir
-   real(8)::x(n),xa(nr)
-   logical::move_this_coordinate
-   ir=0
-   do i=1,3*atoms%nat
-       iat=(i-1)/3+1
-       ixyz=mod(i-1,3)+1
-       if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
-           ir=ir+1
-           xa(ir)=x(i)
-       endif
-   enddo
-   if(ir/=nr) stop 'ERROR: inconsistent number of relaxing DOF'
-end subroutine atomic_copymoving_forward
-!!***
 
 
-!!****f* BigDFT/atomic_copymoving_backward
-!! FUNCTION
-!! SOURCE
-!!
-subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
-   use module_types
-   implicit none
-   type(atoms_data), intent(inout) :: atoms
-   integer::n,nr,i,iat,ixyz,ir
-   real(8)::x(n),xa(nr)
-   logical::move_this_coordinate
-   ir=0
-   do i=1,3*atoms%nat
-       iat=(i-1)/3+1
-       ixyz=mod(i-1,3)+1
-       if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) then
-           ir=ir+1
-           x(i)=xa(ir)
-       endif
-   enddo
-   if(ir/=nr) stop 'ERROR: inconsistent number of relaxing DOF'
-end subroutine atomic_copymoving_backward
-!!***

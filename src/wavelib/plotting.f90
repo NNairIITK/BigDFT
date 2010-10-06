@@ -1202,7 +1202,7 @@ subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
 
   call write_cube_fields(orbname,' ',&
        at,rxyz,n1,n2,n3,n1i,n2i,n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
-       1.0_gp,psir,1,0.0_gp,psir)
+       1.0_gp,psir,nexpo,0.0_gp,psir)
 
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
