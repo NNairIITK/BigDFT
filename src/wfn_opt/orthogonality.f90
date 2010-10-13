@@ -148,19 +148,16 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   !local variables
   character(len=*), parameter :: subname='orthoconstraint'
   integer :: i_stat,i_all,ierr,iorb,ise
-  integer :: istart,ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
+  integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   real(dp) :: occ,tt
   integer, dimension(:,:), allocatable :: ndimovrlp
-  real(wp), dimension(:,:), allocatable :: alag
+  real(wp), dimension(:), allocatable :: alag
 
   !separate the orthogonalisation procedure for up and down orbitals 
   !and for different k-points
   call timing(iproc,'LagrM_comput  ','ON')
 
   !number of components of the overlap matrix for parallel case
-  istart=2
-  if (nproc == 1) istart=1
-
   !calculate the dimension of the overlap matrix for each k-point
   if (orbs%norbd > 0) then
      nspin=2
@@ -175,11 +172,11 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
 
   call dimension_ovrlp(nspin,orbs,ndimovrlp)
 
-  allocate(alag(ndimovrlp(nspin,orbs%nkpts),istart+ndebug),stat=i_stat)
+  allocate(alag(ndimovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
   call memocc(i_stat,alag,'alag',subname)
 
   !put to zero all the k-points which are not needed
-  call razero(ndimovrlp(nspin,orbs%nkpts)*istart,alag)
+  call razero(ndimovrlp(nspin,orbs%nkpts),alag)
 
   !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
   ispsi=1
@@ -195,13 +192,13 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
         if(nspinor==1) then
            call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
                 max(1,nvctrp),hpsi(ispsi),max(1,nvctrp),0.0_wp,&
-                alag(ndimovrlp(ispin,ikpt-1)+1,istart),norb)
+                alag(ndimovrlp(ispin,ikpt-1)+1),norb)
         else
            !this part should be recheck in the case of nspinor == 2
            call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
                 max(1,ncomp*nvctrp), &
                 hpsi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
-                alag(ndimovrlp(ispin,ikpt-1)+1,istart),norb)
+                alag(ndimovrlp(ispin,ikpt-1)+1),norb)
         end if
         ispsi=ispsi+nvctrp*norb*nspinor
      end do
@@ -210,8 +207,9 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   if (nproc > 1) then
      call timing(iproc,'LagrM_comput  ','OF')
      call timing(iproc,'LagrM_commun  ','ON')
-     call MPI_ALLREDUCE (alag(1,2),alag(1,1),ndimovrlp(nspin,orbs%nkpts),&
-          mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(alag(1),ndimovrlp(nspin,orbs%nkpts),MPI_SUM,MPI_COMM_WORLD,ierr)
+     !call MPI_ALLREDUCE (alag(1,2),alag(1,1),ndimovrlp(nspin,orbs%nkpts),&
+     !mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
      call timing(iproc,'LagrM_commun  ','OF')
      call timing(iproc,'LagrM_comput  ','ON')
   end if
@@ -241,16 +239,16 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
               do iorb=1,norb
                  occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb+ise),dp)
                  scprsum=scprsum+&
-                      occ*real(alag(ndimovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs,1),dp)
+                      occ*real(alag(ndimovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs),dp)
               enddo
            else if (nspinor == 4 .or. nspinor == 2) then
               !not sure about the imaginary part of the diagonal
               do iorb=1,norb
                  occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb+ise),dp)
                  scprsum=scprsum+&
-                      occ*real(alag(ndimovrlp(ispin,ikpt-1)+2*iorb-1+(iorb-1)*norbs,1),dp)
+                      occ*real(alag(ndimovrlp(ispin,ikpt-1)+2*iorb-1+(iorb-1)*norbs),dp)
                  scprsum=scprsum+&
-                      occ*real(alag(ndimovrlp(ispin,ikpt-1)+2*iorb+(iorb-1)*norbs,1),dp)
+                      occ*real(alag(ndimovrlp(ispin,ikpt-1)+2*iorb+(iorb-1)*norbs),dp)
               enddo
            end if
            ise=norb
@@ -258,11 +256,11 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
 
         if(nspinor==1 .and. nvctrp /= 0) then
            call gemm('N','N',nvctrp,norb,norb,-1.0_wp,psi(ispsi),max(1,nvctrp),&
-                alag(ndimovrlp(ispin,ikpt-1)+1,1),norb,1.0_wp,&
+                alag(ndimovrlp(ispin,ikpt-1)+1),norb,1.0_wp,&
                 hpsi(ispsi),max(1,nvctrp))
         else if (nvctrp /= 0) then
            call c_gemm('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),psi(ispsi),max(1,ncomp*nvctrp),&
-                alag(ndimovrlp(ispin,ikpt-1)+1,1),norb,(1.0_wp,0.0_wp),hpsi(ispsi),max(1,ncomp*nvctrp))
+                alag(ndimovrlp(ispin,ikpt-1)+1),norb,(1.0_wp,0.0_wp),hpsi(ispsi),max(1,ncomp*nvctrp))
         end if
         ispsi=ispsi+nvctrp*norb*nspinor
      end do
@@ -270,10 +268,9 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
 
   if (nproc > 1) then
      tt=scprsum
-     call MPI_ALLREDUCE(tt,scprsum,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(scprsum,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     !call MPI_ALLREDUCE(tt,scprsum,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
   end if
-
-
 
   i_all=-product(shape(alag))*kind(alag)
   deallocate(alag,stat=i_stat)
@@ -514,7 +511,6 @@ END SUBROUTINE subspace_diagonalisation
 !! 
 !! WARNING
 !!   Orthogonality to spin polarized channels is achieved in two calls,
-!!   because up and down orbitals of psi are not orthogonal.
 !! SOURCE
 !!
 subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_virt,msg)
@@ -529,19 +525,16 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
   real(wp), dimension(sum(commsv%nvctr_par(iproc,1:orbsv%nkptsp))*orbsv%nspinor*orbsv%norb), intent(out) :: psi_virt
   !local variables
   character(len=*), parameter :: subname='orthon_virt_occup'
-  integer :: i_stat,i_all,ierr,ispsiv,norbv,iorb,jorb,isorb
-  integer :: istart,ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
+  integer :: i_stat,i_all,ierr,ispsiv,iorb,jorb,isorb
+  integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
+  integer :: norbv,norbsv,ncompv,nvctrpv,nspinorv
   real(wp) :: scprsum,tt
   integer, dimension(:,:), allocatable :: ndimovrlp
-  real(wp), dimension(:,:), allocatable :: alag
+  real(wp), dimension(:), allocatable :: alag
 
   !separate the orthogonalisation procedure for up and down orbitals 
   !and for different k-points
   call timing(iproc,'LagrM_comput  ','ON')
-
-  !number of components of the overlap matrix for parallel case
-  istart=2
-  if (nproc == 1) istart=1
 
   !calculate the dimension of the overlap matrix for each k-point
   if (orbs%norbd > 0) then
@@ -557,11 +550,11 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
 
   call dimension_ovrlp_virt(nspin,orbs,orbsv,ndimovrlp)
 
-  allocate(alag(ndimovrlp(nspin,orbs%nkpts),istart+ndebug),stat=i_stat)
+  allocate(alag(ndimovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
   call memocc(i_stat,alag,'alag',subname)
 
   !put to zero all the k-points which are not needed
-  call razero(ndimovrlp(nspin,orbs%nkpts)*istart,alag)
+  call razero(ndimovrlp(nspin,orbs%nkpts),alag)
 
   !differentiate between real and complex wavefunctions
   !Lower triangle of overlap matrix using BLAS
@@ -578,6 +571,15 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
 
         call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
+        call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
+             nvctrpv,norbv,norbsv,ncompv,nspinorv)
+        !there checks ensure that the component distribution scheme of virtual and occupied states is the same
+        if (nvctrpv /= nvctrp) stop 'nvctrp'
+        if (norbv /= norb) stop 'norb'
+        if (norbsv /= norbs) stop 'norbs'
+        if (ncompv /= ncomp) stop 'ncomp'
+        if (nspinorv /= nspinor) stop 'nspinor'
+
         if (nvctrp == 0) cycle
         
         norbv=orbsv%norbu
@@ -590,13 +592,13 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
         if(nspinor==1) then
            call gemm('T','N',norb,norbv,nvctrp,1.0_wp,psi_occ(ispsi),max(1,nvctrp),&
                 psi_virt(ispsiv),max(1,nvctrp),0.0_wp,&
-                alag(ndimovrlp(ispin,ikpt-1)+1,istart),norb)
+                alag(ndimovrlp(ispin,ikpt-1)+1),norb)
         else
            !this part should be recheck in the case of nspinor == 2
            call c_gemm('C','N',norb,norbv,ncomp*nvctrp,(1.0_wp,0.0_wp),psi_occ(ispsi),&
                 max(1,ncomp*nvctrp), &
                 psi_virt(ispsiv),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
-                alag(ndimovrlp(ispin,ikpt-1)+1,istart),norb)
+                alag(ndimovrlp(ispin,ikpt-1)+1),norb)
         end if
 
         ispsi=ispsi+nvctrp*norb*nspinor
@@ -607,8 +609,9 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
   if (nproc > 1) then
      call timing(iproc,'LagrM_comput  ','OF')
      call timing(iproc,'LagrM_commun  ','ON')
-     call MPI_ALLREDUCE (alag(1,2),alag(1,1),ndimovrlp(nspin,orbs%nkpts),&
-          mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(alag(1),ndimovrlp(nspin,orbs%nkpts),MPI_SUM,MPI_COMM_WORLD,ierr)
+     !call MPI_ALLREDUCE (alag(1,2),alag(1,1),ndimovrlp(nspin,orbs%nkpts),&
+     !     mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
      call timing(iproc,'LagrM_commun  ','OF')
      call timing(iproc,'LagrM_comput  ','ON')
   end if
@@ -643,7 +646,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
 
            do iorb=1,norb
               do jorb=1,norbv
-                 tt=alag(isorb+iorb-1+(jorb-1)*norbs,1)
+                 tt=alag(isorb+iorb-1+(jorb-1)*norbs)
                  write(*,'(1x,2i3,1pe21.14)')iorb,jorb,tt
                  scprsum=scprsum+tt**2
                  !if(abs(tt)<1d-12)alag(iorb,jorb,1)=0d0
@@ -657,12 +660,12 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
 
         if(nspinor==1 .and. nvctrp /= 0) then
            call gemm('N','N',nvctrp,norbv,norb,-1.0_wp,psi_occ(ispsi),max(1,nvctrp),&
-                alag(ndimovrlp(ispin,ikpt-1)+1,1),norb,1.0_wp,&
+                alag(ndimovrlp(ispin,ikpt-1)+1),norb,1.0_wp,&
                 psi_virt(ispsiv),max(1,nvctrp))
         else if (nvctrp /= 0) then
            call c_gemm('N','N',ncomp*nvctrp,norbv,norb,(-1.0_wp,0.0_wp),psi_occ(ispsi),&
                 max(1,ncomp*nvctrp),&
-                alag(ndimovrlp(ispin,ikpt-1)+1,1),norb,(1.0_wp,0.0_wp),psi_virt(ispsi),&
+                alag(ndimovrlp(ispin,ikpt-1)+1),norb,(1.0_wp,0.0_wp),psi_virt(ispsi),&
                 max(1,ncomp*nvctrp))
         end if
         ispsi=ispsi+nvctrp*norb*nspinor
@@ -1890,7 +1893,7 @@ real(kind=8),dimension(:,:),allocatable:: tempArr
 character(len=*), parameter :: subname='loewdin'
 
 ! Allocate the work arrays.
-lwork=nspinor*norbIn**2
+lwork=nspinor*norbIn**2+10
 allocate(tempArr(norbIn**2*nspinor,2), stat=i_stat)
 call memocc(i_stat,tempArr,'tempArr',subname)
 

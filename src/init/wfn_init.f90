@@ -1485,13 +1485,15 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
      else
         if(.not. simul) then
            if(iproc==0) write(*,'(5x,a,i0,a)') 'Generating input guess with ',nprocSub,' processes:'
-           if(iproc==0) write(*,'(7x,a,5(i0,a))') 'Processes from 0 to ',kkSave-1,'  treat ',iiSave+1,&
+            if(iproc==0 .and. kkSave/=0) write(*,'(7x,a,5(i0,a))') 'Processes from 0 to ',kkSave-1,'  treat ',iiSave+1,&
                 ' orbitals, processes from ',kkSave,' to ',nprocSub-1,' treat ',iiSave,' orbitals.'
+            if(iproc==0 .and. kkSave==0) write(*,'(7x,a,2(i0,a))') 'Processes from 0 to ',nprocSub-1,'  treat ',iiSave,' orbitals.'
            if(iproc==0) write(*,'(7x,a)') 'WARNING: this is more than intended!'
         else
            if(iproc==0) write(*,'(3x,a,i0,a)') 'Generating input guess with ',nprocSub,' processes:'
-           if(iproc==0) write(*,'(5x,a,5(i0,a))') 'Processes from 0 to ',kkSave-1,'  treat ',iiSave+1,&
+            if(iproc==0 .and. kkSave/=0) write(*,'(5x,a,5(i0,a))') 'Processes from 0 to ',kkSave-1,'  treat ',iiSave+1,&
                 ' orbitals, processes from ',kkSave,' to ',nprocSub-1,' treat ',iiSave,' orbitals.'
+            if(iproc==0 .and. kkSave==0) write(*,'(5x,a,2(i0,a))') 'Processes from 0 to ',nprocSub-1,'  treat ',iiSave,' orbitals.'
            if(iproc==0) write(*,'(5x,a)') 'WARNING: this is more than intended!'
         end if
      end if
@@ -2198,7 +2200,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
 
   ! Now treat the semicore orbitals, if there are any.
-  semicoreLoop: if(natsc>0) then
+semicoreIf: if(natsc>0) then
      if(iproc==0) write(*,'(3x,a,$)') 'Generating input guess for semicore orbitals...'
 
      if(nspinor == 1) then
@@ -2245,9 +2247,9 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                    norbi, evale(ist), work(1), -1, info)
               lwork=work(1)
               i_all=-product(shape(work))*kind(work)
-              deallocate(work)
+               deallocate(work, stat=i_stat)
               call memocc(i_stat, i_all, 'work', subname)
-              allocate(work(lwork))
+               allocate(work(lwork), stat=i_stat)
               call memocc(i_stat, work, 'work', subname)
 
               call dsygv(1, 'v', 'u', norbi, hamovr(imatrst,1,1,ikpt), norbi, hamovr(imatrst,1,2,ikpt), &
@@ -2256,8 +2258,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
               ist=ist+norbi
               if(nspin==1) then
                  i_all=-product(shape(work))*kind(work)
-                 deallocate(work)
-                 call memocc(i_stat, work, 'work', subname)
+                   deallocate(work, stat=i_stat)
+                   call memocc(i_stat, i_all, 'work', subname)
               end if
 
               ! Diagonalize the Hamiltonian for the down orbitals if we have spin polarization.
@@ -2269,8 +2271,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                  if(info/=0) write(*,'(a,i0)') 'ERROR in dsygv, info=',info
                  ist=ist+norbj
                  i_all=-product(shape(work))*kind(work)
-                 deallocate(work)
-                 call memocc(i_stat, work, 'work', subname)
+                   deallocate(work, stat=i_stat)
+                   call memocc(i_stat, i_all, 'work', subname)
               end if
 
            else
@@ -2284,14 +2286,14 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                    norbi, evale(ist), work(1), -1, work(1), info)
               lwork=work(1)
               i_all=-product(shape(work))*kind(work)
-              deallocate(work)
+               deallocate(work, stat=i_stat)
               call memocc(i_stat, i_all, 'work', subname)
               i_all=-product(shape(rwork))*kind(rwork)
-              deallocate(rwork)
+               deallocate(rwork, stat=i_stat)
               call memocc(i_stat, i_all, 'rwork', subname)
-              allocate(work(lwork))
+               allocate(work(lwork), stat=i_stat)
               call memocc(i_stat, work, 'work', subname)
-              allocate(rwork(lwork))
+               allocate(rwork(lwork), stat=i_stat)
               call memocc(i_stat, rwork, 'rwork', subname)
 
               call zhegv(1, 'v', 'u', norbi, hamovr(imatrst,1,1,ikpt), norbi, hamovr(imatrst,1,2,ikpt), &
@@ -2300,11 +2302,11 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
               ist=ist+norbi
               if(nspin==1) then
                  i_all=-product(shape(work))*kind(work)
-                 deallocate(work)
-                 call memocc(i_stat, work, 'work', subname)
+                   deallocate(work, stat=i_stat)
+                   call memocc(i_stat, i_all, 'work', subname)
                  i_all=-product(shape(rwork))*kind(rwork)
-                 deallocate(rwork)
-                 call memocc(i_stat, rwork, 'rwork', subname)
+                   deallocate(rwork, stat=i_stat)
+                   call memocc(i_stat, i_all, 'rwork', subname)
               end if
 
               ! Diagonalize the Hamiltonian for the down orbitals if we have spin polarization.
@@ -2316,11 +2318,11 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                  if(info/=0) write(*,'(a,i0)') 'ERROR in zhegv, info=',info
                  ist=ist+norbj
                  i_all=-product(shape(work))*kind(work)
-                 deallocate(work)
-                 call memocc(i_stat, work, 'work', subname)
+                   deallocate(work, stat=i_stat)
+                   call memocc(i_stat, i_all, 'work', subname)
                  i_all=-product(shape(rwork))*kind(rwork)
-                 deallocate(rwork)
-                 call memocc(i_stat, rwork, 'rwork', subname)
+                   deallocate(rwork, stat=i_stat)
+                   call memocc(i_stat, i_all, 'rwork', subname)
               end if
 
            end if
@@ -2389,9 +2391,9 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
      ! Now send all eigenvalues of all k-points to all processes.
      ! First find out which process handles which k-points.
-     allocate(kpArr(orbs%nkpts,0:nproc-1,2))
+    allocate(kpArr(orbs%nkpts,0:nproc-1,2), stat=i_stat)
      call memocc(i_stat, kpArr, 'kpArr', subname)
-     allocate(sceval(norbsc*nspin*orbs%nkpts))
+    allocate(sceval(norbsc*nspin*orbs%nkpts), stat=i_stat)
      call memocc(i_stat, sceval, 'sceval', subname)
 
      ! If process i handles k-point j, set kpArr(j,i) to 1. Then make a mpi_allreduce
@@ -2443,7 +2445,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
      if(iproc==0) write(*,'(a)') ' done.'
 
-  end if semicoreLoop
+end if semicoreIf
 
 
 
@@ -3377,15 +3379,13 @@ implicit none
 integer,intent(in):: iproc, ispin
 
 ! Local variables
-integer:: i, n, clock
+integer:: i, n
 integer,dimension(:),allocatable:: seed
 
 call random_seed(size=n)
 allocate(seed(n))
 
-call system_clock(count=clock)
-
-seed=clock+37*(10*iproc+ispin)*(/(i-1, i=1,n)/)
+seed=37*(10*iproc+ispin)*(/(i-1, i=1,n)/)
 call random_seed(put=seed)
 
 deallocate(seed)

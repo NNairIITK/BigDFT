@@ -98,6 +98,10 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
      end do
   end do
 
+!!$  open(100+me)
+!!$  write(100+me,*)xcart
+!!$  close(100+me)
+
   scfloop_in%inputPsiId = 1
   call call_bigdft(scfloop_nproc,me,scfloop_at,xcart,scfloop_in,epot,grad,fnoise,scfloop_rst,infocode)
 

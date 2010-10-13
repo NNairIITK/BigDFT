@@ -1061,7 +1061,7 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ns
   type(atoms_data), intent(in) :: at
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(dp), dimension(n1i*n2i*n3p,nspin), target, intent(in) :: rho
+  real(dp), dimension(max(n1i*n2i*n3p,1),nspin), target, intent(in) :: rho
   !local variables
   character(len=*), parameter :: subname='plot_density'
   character(len=5) :: suffix

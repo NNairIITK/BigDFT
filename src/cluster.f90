@@ -1014,6 +1014,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !plot the density on the density.pot file
   if ((abs(in%output_grid) >= 1 .or. in%nvacancy /=0) .and. in%last_run==1) then
      if (iproc == 0) write(*,*) 'writing electronic_density.cube'
+
      call plot_density(atoms%geocode,'electronic_density',&
           iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
           in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
@@ -1166,30 +1167,31 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call memocc(i_stat,psivirt,'psivirt',subname)
 
      if (in%norbv < 0) then
-        
+
         call direct_minimization(iproc,nproc,n1i,n2i,in,atoms,&
              orbs,orbsv,nvirt,Glr,comms,commsv,&
              hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
              pkernel,psi,psivirt,ngatherarr,GPU)
-        
+
      else if (in%norbv > 0) then
         call davidson(iproc,nproc,n1i,n2i,in,atoms,&
              orbs,orbsv,nvirt,Glr,comms,commsv,&
              hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
              pkernel,psi,psivirt,ngatherarr,GPU)
 
+     end if
+
+     if (atoms%geocode == 'F') then
         ! Potential from electronic charge density
         call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
              n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
 
-        !rhopot=rhopot+1.d-14
-        !print *,'here',rhopot(1) 
         !Allocate second Exc derivative
         if (n3p >0) then
-           allocate(dvxcdrho(n1i,n2i,n3p,max((in%nspin*(in%nspin+1))/2,2)+ndebug),stat=i_stat)
+           allocate(dvxcdrho(n1i,n2i,n3p,in%nspin+1+ndebug),stat=i_stat)
            call memocc(i_stat,dvxcdrho,'dvxcdrho',subname)
         else
-           allocate(dvxcdrho(1,1,1,max((in%nspin*(in%nspin+1))/2,2)+ndebug),stat=i_stat)
+           allocate(dvxcdrho(1,1,1,in%nspin+1+ndebug),stat=i_stat)
            call memocc(i_stat,dvxcdrho,'dvxcdrho',subname)
         end if
 
@@ -1228,9 +1230,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         deallocate(dvxcdrho,stat=i_stat)
         call memocc(i_stat,i_all,'dvxcdrho',subname)
 
-
      end if
-     
+
+
      call deallocate_comms(commsv,subname)
      call deallocate_orbs(orbsv,subname)
      
@@ -1241,8 +1243,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      i_all=-product(shape(psivirt))*kind(psivirt)
      deallocate(psivirt,stat=i_stat)
      call memocc(i_stat,i_all,'psivirt',subname)
-
+     
   end if
+  
 
   !perform here the mulliken charge and density of states
   !localise them on the basis of gatom of a number of atoms

@@ -901,7 +901,7 @@ module module_interfaces
        type(atoms_data), intent(in) :: at
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
-       real(dp), dimension(n1i*n2i*n3p,nspin), target, intent(in) :: rho
+       real(dp), dimension(max(n1i*n2i*n3p,1),nspin), target, intent(in) :: rho
      end subroutine plot_density
 
 
