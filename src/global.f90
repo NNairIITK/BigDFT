@@ -75,12 +75,8 @@ program MINHOP
 
   if (iproc == 0) write(67,'(a,3(1x,1pe11.4))') 'beta1,beta2,beta3',beta1,beta2,beta3
   if (iproc == 0) write(67,'(a,2(1x,1pe11.4))') 'alpha1,alpha2',alpha1,alpha2
-  ratio=-log(alpha2)/log(alpha1)
   if (iproc == 0) write(67,'(a,2(1x,1pe10.3))') 'predicted fraction accepted, rejected', & 
        ratio/(1.d0+ratio), 1.d0/(1.d0+ratio)
-  tt= beta2**ratio*beta3
-  if (iproc == 0) write(67,'(a,2(1x,1pe11.4))') 'critical ratio (.ge. 1)',tt
-  if (tt.lt.0.999999999999999d0) stop 'incompatible alpha s, beta s'
   if (iproc == 0) write(67,*) 'mdmin',mdmin
 
 
@@ -236,18 +232,6 @@ program MINHOP
   count_soft=0.d0
   count_md=0.d0
   nputback=0
-
-!!$  do iat=1,atoms%nat
-!!$     if (atoms%geocode == 'P') then
-!!$        pos(1,iat)=modulo(pos(1,iat),atoms%alat1)
-!!$        pos(2,iat)=modulo(pos(2,iat),atoms%alat2)
-!!$        pos(3,iat)=modulo(pos(3,iat),atoms%alat3)
-!!$     else if (atoms%geocode == 'S') then
-!!$        pos(1,iat)=modulo(pos(1,iat),atoms%alat1)
-!!$        pos(3,iat)=modulo(pos(3,iat),atoms%alat3)
-!!$     end if
-!!$  end do
-
 
   inputs_opt%inputPsiId=0
   call init_restart_objects(iproc,inputs_opt%iacceleration,atoms,rst,subname)
