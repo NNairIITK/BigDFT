@@ -24,6 +24,7 @@ program conv_check
   integer  :: n1,n2,n3,n1bis,n2bis,n3bis
   real(gp) :: hx,hy,hz,r2,sigma2,x,y,z,maxdiff,epot,arg
   real(wp), dimension(:,:,:), allocatable :: pot,psir,psi_in,psi_out,psi_out_s
+  real(wp), dimension(:,:,:,:), allocatable :: psi_3d_in,psi_3d_out
   real(wp), dimension(:,:,:,:,:), allocatable :: psi_k_in, psi_k_out
   real(wp), dimension(:,:,:,:), allocatable :: psi_k_in_a, psi_k_out_a, pot_a
   real(wp), dimension(:,:,:), allocatable :: psi_in_s,psi_out_t,psi_in_t,psi_gemm,psi_cuda_gemm
@@ -42,6 +43,7 @@ program conv_check
   real(kind=8), dimension(:), allocatable :: psi, psi_d !temporary in view of wp 
   real(kind=4), dimension(:), allocatable :: psi_l !temporary in view of wp 
   real(kind=8), dimension(:,:,:), allocatable :: psi_cuda,v_cuda,psi_cuda_s,v_cuda_s,psi_cuda_t,v_cuda_t,v_cuda_str !temporary in view of wp 
+  real(kind=8), dimension(:,:,:,:), allocatable :: psi_3d_cuda, psi_3d_tmp 
   real(kind=8), dimension(:,:,:,:,:), allocatable :: psi_cuda_k_in,psi_cuda_k_out,psi_cuda_k_in_bis 
   real(kind=8), dimension(:,:,:,:), allocatable :: psi_cuda_k_in_a,psi_cuda_k_out_a 
   real(kind=4), dimension(:,:,:), allocatable :: psi_cuda_l,v_cuda_l !temporary in view of wp 
@@ -129,6 +131,8 @@ program conv_check
   if (ndim == 1) then
      do ndat=ndats,ndate
         do n1=n1s,n1e
+           n2 = n1-2
+           n3 = n1+2
            !set of one-dimensional convolutions
            !allocate arrays
            allocate(psi_in(n1,ndat,1+ndebug),stat=i_stat)
@@ -137,6 +141,15 @@ program conv_check
            call memocc(i_stat,psi_out,'psi_out',subname)
            allocate(psi_cuda(ndat,n1,1+ndebug),stat=i_stat)
            call memocc(i_stat,psi_cuda,'psi_cuda',subname)
+           allocate(psi_3d_in(n1,n2,n3,1+ndebug),stat=i_stat)
+           call memocc(i_stat,psi_3d_in,'psi_3d_in',subname)
+           allocate(psi_3d_out(n1,n2,n3,1+ndebug),stat=i_stat)
+           call memocc(i_stat,psi_3d_out,'psi_3d_out',subname)
+           allocate(psi_3d_cuda(n1,n2,n3,1+ndebug),stat=i_stat)
+           call memocc(i_stat,psi_3d_cuda,'psi_3d_cuda',subname)
+           allocate(psi_3d_tmp(n1,n2,n3,1+ndebug),stat=i_stat)
+           call memocc(i_stat,psi_3d_tmp,'psi_3d_tmp',subname)
+
 
            !initialise array
            sigma2=0.25d0*((n1*hx)**2)
@@ -152,6 +165,102 @@ program conv_check
               end do
            end do
 
+           call convrot_n_per_3d_simple(n1,n2,n3,psi_3d_in,psi_3d_out,psi_3d_tmp)
+!           psi_3d_in(:,:,:,:)=0.0e0_wp
+           do i3=1,n3
+             do i2=1,n2
+               do i1=1,n1
+                 call random_number(tt)
+                 psi_3d_in(i1,i2,i3,1)=tt
+               end do
+             end do
+           end do
+            
+           write(*,'(a,i7,i7,i7)')'CPU 3D Simple Convolutions, dimensions:',n1,n2,n3
+
+           call nanosec(tsc0);
+           do i=1,ntimes
+              call convrot_n_per_3d_simple(n1,n2,n3,psi_3d_in,psi_3d_out,psi_3d_tmp)
+           end do
+           call nanosec(tsc1);
+           !call system_clock(it1,count_rate,count_max)
+
+           CPUtime=real(tsc1-tsc0,kind=8)*1d-9
+
+           call print_time(CPUtime,n1*n2*n3,32*3,ntimes)
+
+           write(*,'(a,i7,i7,i7)')'CPU 3D Simple Transposed Convolutions, dimensions:',n1,n2,n3
+
+           call nanosec(tsc0);
+           do i=1,ntimes
+              call convrot_n_per_3d_simple_transpose(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
+           end do
+           call nanosec(tsc1);
+           !call system_clock(it1,count_rate,count_max)
+
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+
+           call print_time(GPUtime,n1*n2*n3,32*3,ntimes)
+
+           call compare_3D_results(n1,n2,n3,psi_3d_out, psi_3d_cuda, maxdiff, 3.d-7)
+
+           call compare_time(CPUtime,GPUtime,n1*n2*n3,32*3,ntimes,maxdiff,3.d-7)
+
+           write(*,'(a,i7,i7,i7)')'CPU 3D Transposed Convolutions, dimensions:',n1,n2,n3
+
+           call nanosec(tsc0);
+           do i=1,ntimes
+              call convrot_n_per_3d_transpose(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
+           end do
+           call nanosec(tsc1);
+           !call system_clock(it1,count_rate,count_max)
+
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+
+           call print_time(GPUtime,n1*n2*n3,32*3,ntimes)
+
+           call compare_3D_results(n1,n2,n3,psi_3d_out, psi_3d_cuda, maxdiff, 3.d-7)
+
+           call compare_time(CPUtime,GPUtime,n1*n2*n3,32*3,ntimes,maxdiff,3.d-7)
+
+
+           write(*,'(a,i7,i7,i7)')'CPU 3D Convolutions, dimensions:',n1,n2,n3
+
+           call nanosec(tsc0);
+           do i=1,ntimes
+              call convrot_n_per_3d(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
+           end do
+           call nanosec(tsc1);
+           !call system_clock(it1,count_rate,count_max)
+
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+
+           call print_time(GPUtime,n1*n2*n3,32*3,ntimes)
+
+           call compare_3D_results(n1,n2,n3,psi_3d_out, psi_3d_cuda, maxdiff, 3.d-7)
+
+           call compare_time(CPUtime,GPUtime,n1*n2*n3,32*3,ntimes,maxdiff,3.d-7)
+
+           write(*,'(a,i7,i7,i7)')'CPU 3D Transposed sse Convolutions, dimensions:',n1,n2,n3
+
+           call nanosec(tsc0);
+           do i=1,ntimes
+              call convrot_n_per_3d_sse(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
+           end do
+           call nanosec(tsc1);
+           !call system_clock(it1,count_rate,count_max)
+
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+
+           call print_time(GPUtime,n1*n2*n3,32*3,ntimes)
+
+           call compare_3D_results(n1,n2,n3,psi_3d_out, psi_3d_cuda, maxdiff, 3.d-7)
+
+           call compare_time(CPUtime,GPUtime,n1*n2*n3,32*3,ntimes,maxdiff,3.d-7)
+
+
+
+ 
            write(*,'(a,i7,i7)')'CPU Convolutions, dimensions:',n1,ndat
 
            !take timings
@@ -252,6 +361,7 @@ program conv_check
 
            call compare_time(CPUtime,GPUtime,n1*ndat,32,ntimes,maxdiff,3.d-7)
 
+ 
         end do
      end do
     
@@ -384,77 +494,342 @@ contains
   end subroutine compare_1D_results
 
 
-  subroutine conv_kin_x(x,y,ndat,ekin)
-    implicit none
-    integer,intent(in)::ndat
-    real(wp),intent(in):: x(0:n1-1,ndat)
-    real(wp),intent(out)::y(ndat,0:n1-1)
-    real(wp),intent(inout)::ekin
-    real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
-
-    !$omp do
-    do i=0,ndat/12-1
-       do i1=0,n1-1
-          tt1=0.e0_wp
-          tt2=0.e0_wp
-          tt3=0.e0_wp
-          tt4=0.e0_wp
-          tt5=0.e0_wp
-          tt6=0.e0_wp
-          tt7=0.e0_wp
-          tt8=0.e0_wp
-          tt9 =0.e0_wp
-          tt10=0.e0_wp
-          tt11=0.e0_wp
-          tt12=0.e0_wp
-
-          do l=lowfilK,lupfilK
-             j=modarr(i1+l)
-
-             tt1=tt1+x(j,i*12+1)*fil(l)
-             tt2=tt2+x(j,i*12+2)*fil(l)
-             tt3=tt3+x(j,i*12+3)*fil(l)
-             tt4=tt4+x(j,i*12+4)*fil(l)
-             tt5=tt5+x(j,i*12+5)*fil(l)
-             tt6=tt6+x(j,i*12+6)*fil(l)
-             tt7=tt7+x(j,i*12+7)*fil(l)
-             tt8=tt8+x(j,i*12+8)*fil(l)
-             tt9 =tt9 +x(j,i*12+9 )*fil(l)
-             tt10=tt10+x(j,i*12+10)*fil(l)
-             tt11=tt11+x(j,i*12+11)*fil(l)
-             tt12=tt12+x(j,i*12+12)*fil(l)
-          enddo
-          y(i*12+1 ,i1)=tt1;	 ekin=ekin+tt1*x(i1,i*12+1)
-          y(i*12+2 ,i1)=tt2;	 ekin=ekin+tt2*x(i1,i*12+2)
-          y(i*12+3 ,i1)=tt3;	 ekin=ekin+tt3*x(i1,i*12+3)
-          y(i*12+4 ,i1)=tt4;	 ekin=ekin+tt4*x(i1,i*12+4)
-          y(i*12+5 ,i1)=tt5;	 ekin=ekin+tt5*x(i1,i*12+5)
-          y(i*12+6 ,i1)=tt6;	 ekin=ekin+tt6*x(i1,i*12+6)
-          y(i*12+7 ,i1)=tt7;	 ekin=ekin+tt7*x(i1,i*12+7)
-          y(i*12+8 ,i1)=tt8;	 ekin=ekin+tt8*x(i1,i*12+8)
-          y(i*12+9 ,i1)=tt9 ;	 ekin=ekin+tt9 *x(i1,i*12+9 )
-          y(i*12+10,i1)=tt10;	 ekin=ekin+tt10*x(i1,i*12+10)
-          y(i*12+11,i1)=tt11;	 ekin=ekin+tt11*x(i1,i*12+11)
-          y(i*12+12,i1)=tt12;	 ekin=ekin+tt12*x(i1,i*12+12)
-       enddo
-    enddo
-    !$omp end do
-
-    !$omp do
-    do i=(ndat/12)*12+1,ndat
-       do i1=0,n1-1
-          tt=0.e0_wp
-          do l=lowfilK,lupfilK
-             j=modarr(i1+l)
-             tt=tt+x(j   ,i)*fil(l)
-          enddo
-          y(i,i1)=tt ; ekin=ekin+tt*x(i1,i)
-       enddo
-    enddo
-    !$omp end do
-  end subroutine conv_kin_x
-
  
+subroutine convrot_n_per_simple(n1,ndat,x,y)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,ndat
+  real(wp), dimension(0:(n1-1),ndat), intent(in) :: x
+  real(wp), dimension(ndat,0:(n1-1)), intent(out) :: y
+  !local variables
+  integer, parameter :: lowfil=-8,lupfil=7
+  integer :: i,j,k,l
+  real(wp) :: tt
+
+  !          THE MAGIC FILTER FOR DAUBECHIES-16
+  real(wp) fil(lowfil:lupfil)
+  DATA fil / &
+       8.4334247333529341094733325815816e-7_wp,&
+       -0.1290557201342060969516786758559028e-4_wp,&
+       0.8762984476210559564689161894116397e-4_wp,&
+       -0.30158038132690463167163703826169879e-3_wp,&
+       0.174723713672993903449447812749852942e-2_wp,&
+       -0.942047030201080385922711540948195075e-2_wp,&
+       0.2373821463724942397566389712597274535e-1_wp,&
+       0.612625895831207982195380597e-1_wp,&
+       0.9940415697834003993178616713_wp,&
+       -0.604895289196983516002834636e-1_wp, &
+       -0.2103025160930381434955489412839065067e-1_wp,&
+       0.1337263414854794752733423467013220997e-1_wp,&
+       -0.344128144493493857280881509686821861e-2_wp,&
+       0.49443227688689919192282259476750972e-3_wp,&
+       -0.5185986881173432922848639136911487e-4_wp,&
+       2.72734492911979659657715313017228e-6_wp /
+  do j=1,ndat
+     do i=0,n1-1
+        tt=0.e0_wp
+        do l=lowfil,lupfil
+           k=modulo(i+l,n1)  
+           tt=tt+x(  k,j)*fil(l)
+        enddo
+        y(j,i)=tt
+     enddo
+  enddo
+
+END SUBROUTINE convrot_n_per_simple
+
+subroutine convrot_n_per_3d_simple_transpose(n1,n2,n3,x,y,tmp)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  real(wp), dimension(n1*n2*n3), intent(in) :: x
+  real(wp), dimension(n1*n2*n3), intent(out) :: y,tmp
+
+  call convrot_n_per_simple(n1,n2*n3,x,y)
+  call convrot_n_per_simple(n2,n1*n3,y,tmp)
+  call convrot_n_per_simple(n3,n1*n2,tmp,y)
+  
+END SUBROUTINE convrot_n_per_3d_simple_transpose
+
+subroutine convrot_n_per_3d_transpose(n1,n2,n3,x,y,tmp)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  real(wp), dimension(n1*n2*n3), intent(in) :: x
+  real(wp), dimension(n1*n2*n3), intent(out) :: y,tmp
+
+  call convrot_n_per(n1-1,n2*n3,x,y)
+  call convrot_n_per(n2-1,n1*n3,y,tmp)
+  call convrot_n_per(n3-1,n1*n2,tmp,y)
+  
+END SUBROUTINE convrot_n_per_3d_transpose
+
+subroutine convrot_n_per_3d_simple(n1,n2,n3,x,y,tmp)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  real(wp), dimension(0:n1-1,0:n2-1,0:n3-1), intent(in) :: x
+  real(wp), dimension(0:n1-1,0:n2-1,0:n3-1), intent(out) :: y,tmp
+  integer, parameter :: lowfil=-8,lupfil=7
+  integer :: i,j,k,l,m
+  real(wp) :: tt
+  ! the filtered output data structure has grown by the filter length
+
+  !          THE MAGIC FILTER FOR DAUBECHIES-16
+  real(wp) fil(lowfil:lupfil)
+  DATA fil / &
+       8.4334247333529341094733325815816e-7_wp,&
+       -0.1290557201342060969516786758559028e-4_wp,&
+       0.8762984476210559564689161894116397e-4_wp,&
+       -0.30158038132690463167163703826169879e-3_wp,&
+       0.174723713672993903449447812749852942e-2_wp,&
+       -0.942047030201080385922711540948195075e-2_wp,&
+       0.2373821463724942397566389712597274535e-1_wp,&
+       0.612625895831207982195380597e-1_wp,&
+       0.9940415697834003993178616713_wp,&
+       -0.604895289196983516002834636e-1_wp, &
+       -0.2103025160930381434955489412839065067e-1_wp,&
+       0.1337263414854794752733423467013220997e-1_wp,&
+       -0.344128144493493857280881509686821861e-2_wp,&
+       0.49443227688689919192282259476750972e-3_wp,&
+       -0.5185986881173432922848639136911487e-4_wp,&
+       2.72734492911979659657715313017228e-6_wp /
+
+  do j=0,n3-1
+    do m=0,n2-1
+     do i=0,n1-1
+        tt=0.e0_wp
+        do l=lowfil,lupfil
+           k=modulo(i+l,n1)   
+           tt=tt+x(  k,m,j)*fil(l)
+        enddo
+        y(i,m,j)=tt
+     enddo
+    enddo
+  enddo
+
+  do j=0,n3-1
+    do i=0,n1-1
+     do m=0,n2-1
+        tt=0.e0_wp
+        do l=lowfil,lupfil
+           k=modulo(m+l,n2)   
+           tt=tt+y(  i,k,j)*fil(l)
+        enddo
+        tmp(i,m,j)=tt
+     enddo
+    enddo
+  enddo
+  do m=0,n2-1
+    do i=0,n1-1
+     do j=0,n3-1
+        tt=0.e0_wp
+        do l=lowfil,lupfil
+           k=modulo(j+l,n3)   
+           tt=tt+tmp(  i,m,k)*fil(l)
+        enddo
+        y(i,m,j)=tt
+     enddo
+    enddo
+  enddo
+
+END SUBROUTINE convrot_n_per_3d_simple
+
+subroutine convrot_n_per_3d_sse(n1,n2,n3,x,y,tmp)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  real(wp), dimension(n1*n2*n3), intent(in) :: x
+  real(wp), dimension(n1*n2*n3), intent(out) :: y,tmp
+
+  call magicfilter1d_sse(n1,n2*n3,x,y)
+  call magicfilter1d_sse(n2,n1*n3,y,tmp)
+  call magicfilter1d_sse(n3,n1*n2,tmp,y)
+
+end subroutine convrot_n_per_3d_sse
+
+subroutine convrot_n_per_3d(n1,n2,n3,x,y,tmp)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  real(wp), dimension(0:n1-1,0:n2-1,0:n3-1), intent(in) :: x
+  real(wp), dimension(0:n1-1,0:n2-1,0:n3-1), intent(out) :: y,tmp
+  integer, parameter :: lowfil=-8,lupfil=7
+  integer :: i,j,k,l,m
+  real(wp) :: fill,tt,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8
+  ! the filtered output data structure has grown by the filter length
+
+  !          THE MAGIC FILTER FOR DAUBECHIES-16
+  real(wp) fil(lowfil:lupfil)
+  DATA fil / &
+       8.4334247333529341094733325815816e-7_wp,&
+       -0.1290557201342060969516786758559028e-4_wp,&
+       0.8762984476210559564689161894116397e-4_wp,&
+       -0.30158038132690463167163703826169879e-3_wp,&
+       0.174723713672993903449447812749852942e-2_wp,&
+       -0.942047030201080385922711540948195075e-2_wp,&
+       0.2373821463724942397566389712597274535e-1_wp,&
+       0.612625895831207982195380597e-1_wp,&
+       0.9940415697834003993178616713_wp,&
+       -0.604895289196983516002834636e-1_wp, &
+       -0.2103025160930381434955489412839065067e-1_wp,&
+       0.1337263414854794752733423467013220997e-1_wp,&
+       -0.344128144493493857280881509686821861e-2_wp,&
+       0.49443227688689919192282259476750972e-3_wp,&
+       -0.5185986881173432922848639136911487e-4_wp,&
+       2.72734492911979659657715313017228e-6_wp /
+
+  integer mod_arr1(lowfil:n1-1+lupfil)
+  integer mod_arr2(lowfil:n2-1+lupfil)
+  integer mod_arr3(lowfil:n3-1+lupfil)
+  call fill_mod_arr(mod_arr1,lowfil,n1-1+lupfil,n1)
+  call fill_mod_arr(mod_arr2,lowfil,n2-1+lupfil,n2)
+  call fill_mod_arr(mod_arr3,lowfil,n3-1+lupfil,n3)
+
+  do j=0,n3-1
+    do m=0,n2/8-1
+     do i=0,n1-1
+        tt1=0.e0_wp
+        tt2=0.e0_wp
+        tt3=0.e0_wp
+        tt4=0.e0_wp
+        tt5=0.e0_wp
+        tt6=0.e0_wp
+        tt7=0.e0_wp
+        tt8=0.e0_wp
+        do l=lowfil,lupfil
+           k=mod_arr1(i+l)
+           fill=fil(l)
+           tt1=tt1+x(  k,m*8+0,j)*fill
+           tt2=tt2+x(  k,m*8+1,j)*fill
+           tt3=tt3+x(  k,m*8+2,j)*fill
+           tt4=tt4+x(  k,m*8+3,j)*fill
+           tt5=tt5+x(  k,m*8+4,j)*fill
+           tt6=tt6+x(  k,m*8+5,j)*fill
+           tt7=tt7+x(  k,m*8+6,j)*fill
+           tt8=tt8+x(  k,m*8+7,j)*fill
+        enddo
+        y(i,m*8+0,j)=tt1
+        y(i,m*8+1,j)=tt2
+        y(i,m*8+2,j)=tt3
+        y(i,m*8+3,j)=tt4
+        y(i,m*8+4,j)=tt5
+        y(i,m*8+5,j)=tt6
+        y(i,m*8+6,j)=tt7
+        y(i,m*8+7,j)=tt8
+     enddo
+    enddo
+    do m=(n2/8)*8, n2-1
+     do i=0,n1-1
+       tt=0.e0_wp
+       do l=lowfil,lupfil
+           k=mod_arr1(i+l)
+           fill=fil(l)
+           tt=tt+x(  k,m,j)*fill
+       enddo
+       y(i,m,j)=tt
+     enddo
+    enddo
+  enddo
+  do j=0,n3-1
+    do i=0,n1/8-1
+     do m=0,n2-1
+        tt1=0.e0_wp
+        tt2=0.e0_wp
+        tt3=0.e0_wp
+        tt4=0.e0_wp
+        tt5=0.e0_wp
+        tt6=0.e0_wp
+        tt7=0.e0_wp
+        tt8=0.e0_wp
+        do l=lowfil,lupfil
+           k=mod_arr2(m+l)
+           fill=fil(l)
+           tt1=tt1+y(  i*8+0,k,j)*fill
+           tt2=tt2+y(  i*8+1,k,j)*fill
+           tt3=tt3+y(  i*8+2,k,j)*fill
+           tt4=tt4+y(  i*8+3,k,j)*fill
+           tt5=tt5+y(  i*8+4,k,j)*fill
+           tt6=tt6+y(  i*8+5,k,j)*fill
+           tt7=tt7+y(  i*8+6,k,j)*fill
+           tt8=tt8+y(  i*8+7,k,j)*fill
+        enddo
+        tmp(i*8+0,m,j)=tt1
+        tmp(i*8+1,m,j)=tt2
+        tmp(i*8+2,m,j)=tt3
+        tmp(i*8+3,m,j)=tt4
+        tmp(i*8+4,m,j)=tt5
+        tmp(i*8+5,m,j)=tt6
+        tmp(i*8+6,m,j)=tt7
+        tmp(i*8+7,m,j)=tt8
+     enddo
+    enddo
+    do i=(n1/8)*8,n1-1
+     do m=0, n2-1
+       tt=0.e0_wp
+       do l=lowfil,lupfil
+           k=mod_arr2(m+l)
+           fill=fil(l)
+           tt=tt+y(  i,k,j)*fill
+       enddo
+       tmp(i,m,j)=tt
+     enddo
+    enddo
+
+  enddo
+
+
+  do m=0,n2-1
+    do i=0,n1/8-1
+     do j=0,n3-1
+        tt1=0.e0_wp
+        tt2=0.e0_wp
+        tt3=0.e0_wp
+        tt4=0.e0_wp
+        tt5=0.e0_wp
+        tt6=0.e0_wp
+        tt7=0.e0_wp
+        tt8=0.e0_wp
+        do l=lowfil,lupfil
+           k=mod_arr3(j+l)
+           fill=fil(l)
+           tt1=tt1+tmp(  i*8+0,m,k)*fill
+           tt2=tt2+tmp(  i*8+1,m,k)*fill
+           tt3=tt3+tmp(  i*8+2,m,k)*fill
+           tt4=tt4+tmp(  i*8+3,m,k)*fill
+           tt5=tt5+tmp(  i*8+4,m,k)*fill
+           tt6=tt6+tmp(  i*8+5,m,k)*fill
+           tt7=tt7+tmp(  i*8+6,m,k)*fill
+           tt8=tt8+tmp(  i*8+7,m,k)*fill
+        enddo
+        y(i*8+0,m,j)=tt1
+        y(i*8+1,m,j)=tt2
+        y(i*8+2,m,j)=tt3
+        y(i*8+3,m,j)=tt4
+        y(i*8+4,m,j)=tt5
+        y(i*8+5,m,j)=tt6
+        y(i*8+6,m,j)=tt7
+        y(i*8+7,m,j)=tt8
+     enddo
+    enddo
+    do i=(n1/8)*8,n1-1
+     do j=0, n3-1
+       tt=0.e0_wp
+       do l=lowfil,lupfil
+           k=mod_arr3(j+l)
+           fill=fil(l)
+           tt=tt+tmp(  i,m,k)*fill
+       enddo
+       y(i,m,j)=tt
+     enddo
+    enddo
+
+
+  enddo
+
+END SUBROUTINE convrot_n_per_3d
+
+
 end program conv_check
 
 !!***
