@@ -871,7 +871,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call deallocate_diis_objects(diis,subname)
   end if
 
-  !analyse the possiblity to calculate Davidson rteatment
+  !analyse the possiblity to calculate Davidson treatment
   !(nvirt > 0 .and. in%inputPsiId == 0)
   DoDavidson= abs(in%norbv) > 0 .and. (infocode==0 .or. in%nrepmax == 1) .and. in%last_run == 1
   
