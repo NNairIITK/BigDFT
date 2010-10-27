@@ -45,7 +45,8 @@ int main() {
   ciErrNum = oclInitStreams(context);
   oclErrorCheck(ciErrNum,"Failed to init streams!");
   build_magicfilter_programs(&context);
-  create_magicfilter_kernels();
+  struct bigdft_kernels kernels;
+  create_magicfilter_kernels(&kernels);
 
   double * data[NB_STREAM];
   double * results[NB_STREAM];
@@ -76,8 +77,8 @@ int main() {
   printf("Enstreaming kernels...\n");
   for(i=0; i<NB_STREAM; i++) {
     for(j=0; j<500; j++){
-       magicfilter_generic_stream(magicfilter1d_kernel_d, streams[i], SIZE_I, SIZE_I * SIZE_I, input[i], output[i]);
-       magicfilter_generic_stream(magicfilter1d_kernel_d, streams[i], SIZE_I, SIZE_I * SIZE_I, output[i], input[i]);
+       magicfilter_generic_stream(kernels.magicfilter1d_kernel_d, streams[i], SIZE_I, SIZE_I * SIZE_I, input[i], output[i]);
+       magicfilter_generic_stream(kernels.magicfilter1d_kernel_d, streams[i], SIZE_I, SIZE_I * SIZE_I, output[i], input[i]);
     }
   }
   printf("Enstreaming reads...\n");
@@ -101,9 +102,11 @@ int main() {
   ndat = SIZE_I * SIZE_I;
   for(i=0; i<NB_STREAM; i++) {
     for(j=0; j<500; j++){
-       magicfilter_generic(magicfilter1d_kernel_d, &queue, &n, &ndat, &(input[i]), &(output[i]));
-       magicfilter_generic(magicfilter1d_kernel_d, &queue, &n, &ndat, &(output[i]), &(input[i]));
+       magicfilter_generic(kernels.magicfilter1d_kernel_d, queue, &n, &ndat, &(input[i]), &(output[i]));
+       magicfilter_generic(kernels.magicfilter1d_kernel_d, queue, &n, &ndat, &(output[i]), &(input[i]));
     }
+    ciErrNum = clFlush(queue);
+    oclErrorCheck(ciErrNum,"Failed to flush queue!");
   }
   printf("Enqueuing reads...\n");
   for(i=0; i<NB_STREAM; i++) {
@@ -124,7 +127,8 @@ int main() {
   }
   ciErrNum = oclEndStreams();
   oclErrorCheck(ciErrNum,"Failed to end streams!");
-  clean_magicfilter_kernels();
+  clean_magicfilter_kernels(&kernels);
+  clean_magicfilter_programs();
   ciErrNum = clReleaseCommandQueue(queue);
   oclErrorCheck(ciErrNum,"Failed to release command queue!");
   ciErrNum = clReleaseContext(context);

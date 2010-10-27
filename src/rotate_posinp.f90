@@ -1,4 +1,4 @@
-!!****p* BigDFT/BigDFT
+!!****p* BigDFT/rotate_posinp
 !! FUNCTION
 !!  Rotates the molecular structure in the input file posinp.xyz and 
 !!  writes the result in the file rot_posinp.xyz
@@ -6,7 +6,7 @@
 !!  can help to estimate the accuracy the the chosen parameter set( hgrid, crmult etc).
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    Copyright (C) 2007-2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -103,5 +103,5 @@ PROGRAM rotate_posinp
    end do
    close(unit=9)
 
-end program rotate_posinp
-!!
+END PROGRAM rotate_posinp
+!!***

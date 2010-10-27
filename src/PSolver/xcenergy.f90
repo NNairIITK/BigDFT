@@ -200,7 +200,7 @@ END SUBROUTINE calc_rhocore_iat
 !! SOURCE
 !! 
 subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-     rho,exc,vxc,nspin,rhocore,potxc)
+     rho,exc,vxc,nspin,rhocore,potxc,dvxcdrho)
   use module_base
   use Poisson_Solver
   implicit none
@@ -212,6 +212,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(dp), dimension(*), intent(inout) :: rho
   real(wp), dimension(:), pointer :: rhocore !associated if useful
   real(wp), dimension(*), intent(out) :: potxc
+  real(wp), dimension(*), intent(out), optional :: dvxcdrho
   !local variables
   character(len=*), parameter :: subname='XC_potential'
   logical :: wrtmsg
@@ -220,10 +221,11 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer :: i_all,i_stat,ierr,i,j
   integer :: i1,i2,i3,istart,iend,i3start,jend,jproc
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
-  real(dp) :: eexcuLOC,vexcuLOC
+  integer :: ndvxc,nvxcdgr,ngr2,nd2vxc,order
+  real(dp) :: eexcuLOC,vexcuLOC,ttsum
   integer, dimension(:,:), allocatable :: gather_arr
   real(dp), dimension(:), allocatable :: rho_G
-  real(dp), dimension(:,:,:,:), allocatable :: vxci
+  real(dp), dimension(:,:,:,:), allocatable :: vxci,dvxci
   real(gp), dimension(:), allocatable :: energies_mpi
 
   call timing(iproc,'Exchangecorr  ','ON')
@@ -344,13 +346,33 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   allocate(vxci(m1,m3,max(1,nwb),nspin+ndebug),stat=i_stat)
   call memocc(i_stat,vxci,'vxci',subname)
 
+  !allocate the array of the second derivative of the XC energy if it is needed
+  !Allocations of the exchange-correlation terms, depending on the ixc value
+  if (present(dvxcdrho)) then
+     if (nspin==1) then 
+        order=-2
+     else
+        order=2
+     end if
+  else
+     order=1
+  end if
+  call size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspin,nvxcdgr,order)
+
+  allocate(dvxci(m1,m3,max(1,nwb),ndvxc+ndebug),stat=i_stat)
+  call memocc(i_stat,dvxci,'dvxci',subname)
+
+  !if (present(dvxcdrho)) then
+  !   write(*,*)'Array of second derivatives of Exc allocated, dimension',ndvxc,m1,m3,nwb
+  !end if
+
   if (istart+1 <= m2) then 
      if(datacode=='G' .and. &
           ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
         !allocation of an auxiliary array for avoiding the shift 
         call xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
              ixc,hx,hy,hz,rho_G,vxci,&
-             eexcuLOC,vexcuLOC,nproc,nspin)
+             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nproc,nspin)
         !restoring the density on the original form
         do ispin=1,nspin
            do i3=1,nxt
@@ -369,7 +391,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      else
         call xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
              ixc,hx,hy,hz,rho(1+n01*n02*(i3start-1)),vxci,&
-             eexcuLOC,vexcuLOC,nproc,nspin)
+             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nproc,nspin)
      end if
   else
      !presumably the vxc should be initialised
@@ -384,6 +406,13 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      call dcopy(m1*m3*nxc,vxci(1,1,nxcl,1),1,potxc(1),1)
      if (nspin == 2) then
         call dcopy(m1*m3*nxc,vxci(1,1,nxcl,2),1,potxc(1+m1*m3*nxc),1)
+     end if
+     if (present(dvxcdrho)) then
+        if (nxcl /= 1) then
+           write(*,*)'ERROR: only LDA calculations are allowed for the second derivative of the XC energy!'
+           stop
+        end if
+        call dcopy(m1*m3*nxc*ndvxc,dvxci(1,1,nxcl,1),1,dvxcdrho,1)
      end if
   end if
  
@@ -433,6 +462,10 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      if (datacode == 'G') then
         !building the array of the data to be sent from each process
         !and the array of the displacement
+        if (present(dvxcdrho)) then
+           write(*,*)'ERROR: gathering of 2nd derivative of Exc not implemented yet!'
+           stop
+        end if
 
         call timing(iproc,'PSolv_comput  ','ON')
         allocate(gather_arr(0:nproc-1,2+ndebug),stat=i_stat)
@@ -479,6 +512,12 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   i_all=-product(shape(vxci))*kind(vxci)
   deallocate(vxci,stat=i_stat)
   call memocc(i_stat,i_all,'vxci',subname)
+
+  i_all=-product(shape(dvxci))*kind(dvxci)
+  deallocate(dvxci,stat=i_stat)
+  call memocc(i_stat,i_all,'dvxci',subname)
+
+
 
   if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
 
@@ -533,7 +572,7 @@ END SUBROUTINE XC_potential
 !! SOURCE
 !!
 subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
-     nxcl,nxcr,ixc,hx,hy,hz,rho,vxci,exc,vxc,nproc,nspden)
+     nxcl,nxcr,ixc,hx,hy,hz,rho,vxci,exc,vxc,order,ndvxc,dvxci,nproc,nspden)
 
   use module_base
   use libxc_functionals
@@ -544,21 +583,22 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   !Arguments----------------------
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,nproc,nspden
-  integer, intent(in) :: nwbl,nwbr
+  integer, intent(in) :: nwbl,nwbr,order,ndvxc
   real(gp), intent(in) :: hx,hy,hz
   real(dp), dimension(m1,m3,nxt,nspden), intent(inout) :: rho
   real(dp), dimension(m1,m3,nwb,nspden), intent(out) :: vxci
+  real(dp), dimension(m1,m3,nwb,ndvxc), intent(out) :: dvxci
   real(dp), intent(out) :: exc,vxc
 
   !Local variables----------------
   character(len=*), parameter :: subname='xc_energy'
   real(dp), dimension(:,:,:), allocatable :: exci,d2vxci
-  real(dp), dimension(:,:,:,:), allocatable :: dvxci,dvxcdgr
+  real(dp), dimension(:,:,:,:), allocatable :: dvxcdgr
   real(dp), dimension(:,:,:,:,:), allocatable :: gradient
   real(dp) :: elocal,vlocal,rhov,sfactor
-  integer :: npts,i_all,order,offset,i_stat,ispden
+  integer :: npts,i_all,offset,i_stat,ispden,ndvxct
   integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2
-  integer :: ndvxc,nvxcdgr,ngr2,nd2vxc
+  integer :: nvxcdgr,ngr2,nd2vxc
   logical :: use_gradient
 
   !check for the dimensions
@@ -569,7 +609,7 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   end if
 
   !these are always the same
-  order=1
+  !order=1
 
   !starting point of the density array for the GGA cases in parallel
   offset=nwbl+1
@@ -579,7 +619,12 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
   !Allocations of the exchange-correlation terms, depending on the ixc value
   nd2vxc=1
-  call size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
+  call size_dvxc(ixc,ndvxct,ngr2,nd2vxc,nspden,nvxcdgr,order)
+
+  !stop if the ndvxc differns from the input
+  if (ndvxc /= ndvxct) then
+     write(*,*)'ERROR: ndvxc differs from the input',ndvxc,ndvxct
+  end if
 
   if (use_gradient) then
      !computation of the gradient
@@ -598,10 +643,10 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   allocate(exci(m1,m3,nwb+ndebug),stat=i_stat)
   call memocc(i_stat,exci,'exci',subname)
 
-  if (ndvxc/=0) then
-     allocate(dvxci(m1,m3,nwb,ndvxc+ndebug),stat=i_stat)
-     call memocc(i_stat,dvxci,'dvxci',subname)
-  end if
+!!$  if (ndvxc/=0) then
+!!$     allocate(dvxci(m1,m3,nwb,ndvxc+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,dvxci,'dvxci',subname)
+!!$  end if
   if (nvxcdgr/=0) then
      allocate(dvxcdgr(m1,m3,nwb,nvxcdgr+ndebug),stat=i_stat)
      call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
@@ -667,7 +712,7 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),vxci,&
              ndvxc,ngr2,nd2vxc,nvxcdgr,&
              dvxc=dvxci)
-     end if
+        end if
      !case with libXC, with and without gradient
   else if (ixc < 0) then
      !here the abinit wrapper is used, but we can pass to the 
@@ -710,11 +755,11 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   end if
   !end of the part that can be commented out
 
-  if (allocated(dvxci)) then
-     i_all=-product(shape(dvxci))*kind(dvxci)
-     deallocate(dvxci,stat=i_stat)
-     call memocc(i_stat,i_all,'dvxci',subname)
-  end if
+!!$  if (allocated(dvxci)) then
+!!$     i_all=-product(shape(dvxci))*kind(dvxci)
+!!$     deallocate(dvxci,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'dvxci',subname)
+!!$  end if
   if (allocated(dvxcdgr)) then
      i_all=-product(shape(dvxcdgr))*kind(dvxcdgr)
      deallocate(dvxcdgr,stat=i_stat)

@@ -103,6 +103,7 @@ program BigDFT
         if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
         ! geometry optimization
         call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
+        close(16)
         filename=trim('final_'//trim(arr_posinp(iconfig)))
         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,' ')
      end if

@@ -46,6 +46,11 @@ else
 libs_cuda=
 endif
 
+if USE_OCL
+libs_ocl=../../src/OpenCL/libOCL.a
+else
+libs_ocl=
+endif
 
 PS_Check_SOURCES = PS_Check.f90 $(mpi_source)
 PS_Check_LDFLAGS =
@@ -53,7 +58,8 @@ PS_Check_LDADD = ../../src/PSolver/libpoissonsolver.a \
 				 ../../src/libbigdft.a \
 				 $(LMPI) \
 				 @MPI_LIBS@ \
-				 $(libs_cuda)
+				 $(libs_cuda) $(libs_ocl)
+
 
 PS_Program_SOURCES = PS_Program.f90 $(mpi_source)
 PS_Program_LDFLAGS = 
@@ -61,14 +67,14 @@ PS_Program_LDADD = ../../src/PSolver/libpoissonsolver.a \
 				   ../../src/libbigdft.a \
 				   $(LMPI) \
 				   @MPI_LIBS@ \
-				   $(libs_cuda) 
+				   $(libs_cuda) $(libs_ocl)
 
 PS_Exercise_SOURCES = PS_Exercise.f90 $(mpi_source)
 PS_Exercise_LDADD =	../../src/PSolver/libpoissonsolver.a \
 				    ../../src/libbigdft.a \
 					$(LMPI) \
 					@MPI_LIBS@ \
-					$(libs_cuda)
+					$(libs_cuda) $(libs_ocl)
 
 CLEANFILES = malloc.prc time.prc PS_Check.out fldiff.report \
 	module_fft_sg.@MODULE_EXT@ MODULE_FFT_SG.@MODULE_EXT@ \

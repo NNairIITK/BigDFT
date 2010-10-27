@@ -44,7 +44,7 @@ subroutine convolut_kinetic_per_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
   real(wp), dimension(2,0:n1,0:n2,0:n3), intent(out) :: y
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  integer :: i1,i2,i3,i,l,j,j1,j2
+  integer :: i1,i2,i3,l,j1,j2
   real(wp) :: tt1,tt2,tt3,tt4,c
   real(wp) :: tt1_2,tt2_2,tt3_2,tt4_2
   real(wp), dimension(3) :: scale,scale1

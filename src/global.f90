@@ -52,7 +52,7 @@ program MINHOP
 
   ! Read performance inputs if present
   call perf_input_variables(iproc,'input.perf',inputs_opt)
-
+  call perf_input_variables(iproc,'mdinput.perf',inputs_md)
   ! Initialize memory counting
   !call memocc(0,iproc,'count','start')
 
@@ -1454,7 +1454,7 @@ stop  '------ S ----------'
            write(444,*) at%nat, 'atomic ' 
            write(444,*) ' fixed configuration ', nputback,sqrt(d1**2+d2**2+d3**2),ii,jj
            do iat=1,at%nat
-              write(444,'(a,3(e15.7),l)') ' LJ  ',rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),belong(iat)
+              write(444,'(a5,3(e15.7),l1)') ' LJ  ',rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),belong(iat)
            enddo
         endif
         nloop=nloop+1

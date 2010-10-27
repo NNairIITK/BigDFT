@@ -258,7 +258,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   !print the distribution scheme ussed for this set of orbital
   !in the case of multiple k-points
   if (iproc == 0 .and. verbose > 1 .and. orbs%nkpts > 1) then
-     call print_distribution_schemes(nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
+     call print_distribution_schemes(6,nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
   end if
 
   !before printing the distribution schemes, check that the two distributions contain
@@ -365,18 +365,18 @@ END SUBROUTINE orbitals_communicators
 !!***
 
 
-subroutine print_distribution_schemes(nproc,nkpts,norb_par,nvctr_par)
+subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
   use module_base
   implicit none
   !Arguments
-  integer, intent(in) :: nproc,nkpts
+  integer, intent(in) :: nproc,nkpts,unit
   integer, dimension(0:nproc-1,nkpts), intent(in) :: norb_par,nvctr_par
   !local variables
   integer :: jproc,ikpt,norbp,isorb,ieorb,isko,ieko,nvctrp,ispsi,iepsi,iekc,iskc
   integer :: iko,ikc,nko,nkc
 
-  write(*,'(1x,a,a)')repeat('-',46),'Direct and transposed data repartition'
-  write(*,'(1x,8(a))')'| proc |',' N. Orbitals | K-pt |  Orbitals  ',&
+  write(unit,'(1x,a,a)')repeat('-',46),'Direct and transposed data repartition'
+  write(unit,'(1x,8(a))')'| proc |',' N. Orbitals | K-pt |  Orbitals  ',&
        '|| N. Components | K-pt |    Components   |'
   do jproc=0,nproc-1
      call start_end_distribution(nproc,nkpts,jproc,norb_par,isko,ieko,norbp)
@@ -386,14 +386,14 @@ subroutine print_distribution_schemes(nproc,nkpts,norb_par,nvctr_par)
      nko=ieko-isko+1
      nkc=iekc-iskc+1
      !print total number of orbitals and components
-     write(*,'(1x,a,i4,a,i8,a,i13,a)')'| ',jproc,' |',norbp,&
+     write(unit,'(1x,a,i4,a,i8,a,i13,a)')'| ',jproc,' |',norbp,&
           repeat(' ',5)//'|'//repeat('-',6)//'|'//repeat('-',12)//'||',&
           nvctrp,&
           repeat(' ',2)//'|'//repeat('-',6)//'|'//repeat('-',17)//'|'
      do ikpt=1,min(nko,nkc)
         call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
         call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
-        write(*,'(a,i4,a,i5,a,i5,a,i4,a,i8,a,i8,a)')&
+        write(unit,'(a,i4,a,i5,a,i5,a,i4,a,i8,a,i8,a)')&
              ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
              iko,'  |',isorb,'-',ieorb,&
              ' ||'//repeat(' ',15)//'|',&
@@ -404,7 +404,7 @@ subroutine print_distribution_schemes(nproc,nkpts,norb_par,nvctr_par)
      if (nko > nkc) then
         do ikpt=nkc+1,nko
            call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
-           write(*,'(a,i4,a,i5,a,i5,2a)') &
+           write(unit,'(a,i4,a,i5,a,i5,2a)') &
                 & ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
                 & iko,'  |',isorb,'-',ieorb, ' ||'//repeat(' ',15)//'|',&
                 & '      |                 |'
@@ -413,7 +413,7 @@ subroutine print_distribution_schemes(nproc,nkpts,norb_par,nvctr_par)
      else if (nkc > nko) then
         do ikpt=nko+1,nkc
            call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
-           write(*,'(a,i4,a,i8,a,i8,a)')&
+           write(unit,'(a,i4,a,i8,a,i8,a)')&
                 ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|'//repeat(' ',4)//'  |'//&
                 repeat(' ',12)//'||'//repeat(' ',15)//'|',&
                 ikc,'  |',ispsi,'-',iepsi,'|'

@@ -14,7 +14,7 @@
 !! 
 module module_types
 
-  use module_base, only : gp,wp,dp
+  use module_base, only : gp,wp,dp,tp
   implicit none
 !!***
 
@@ -43,6 +43,9 @@ module module_types
      logical ::  c_absorbtion , abscalc_alterpot, abscalc_eqdiff 
      integer ::  potshortcut
      integer ::  nsteps
+     character(len=100) :: extraOrbital
+   
+
 
      ! Frequencies calculations (finite difference)
      real(gp) :: freq_alpha
@@ -405,8 +408,73 @@ module module_types
   end type lanczos_args
 !!***
 
+!!****t* module_types/diis_objects
+!! DESCRIPTION
+!! Contains the arguments needed for the diis procedure
+!!
+!! SOURCE
+!!
+  type, public :: diis_objects
+     logical :: switchSD
+     integer :: idiistol,mids,ids  
+     real(gp) :: energy_min
+     real(wp), dimension(:), pointer :: psidst
+     real(tp), dimension(:), pointer :: hpsidst
+     real(wp), dimension(:,:,:,:), pointer :: ads
+  end type diis_objects
+!!***
 
 contains
+
+  !!****f* module_types/allocate_diis_objects
+  !! FUNCTION
+  !!   Allocate diis objects
+  !! SOURCE
+  !!
+  subroutine allocate_diis_objects(idsx,npsidim,nkptsp,diis,subname)
+    use module_base
+    implicit none
+    character(len=*), intent(in) :: subname
+    integer, intent(in) :: idsx,npsidim,nkptsp
+    type(diis_objects), intent(inout) :: diis
+    !local variables
+    integer :: i_stat
+    allocate(diis%psidst(npsidim*idsx+ndebug),stat=i_stat)
+    call memocc(i_stat,diis%psidst,'psidst',subname)
+    allocate(diis%hpsidst(npsidim*idsx+ndebug),stat=i_stat)
+    call memocc(i_stat,diis%hpsidst,'hpsidst',subname)
+    allocate(diis%ads(idsx+1,idsx+1,nkptsp,3+ndebug),stat=i_stat)
+    call memocc(i_stat,diis%ads,'ads',subname)
+    call razero(nkptsp*3*(idsx+1)**2,diis%ads)
+  END SUBROUTINE allocate_diis_objects
+
+!!****f* module_types/deallocate_diis_objects
+!! FUNCTION
+!!   De-Allocate diis objects
+!! SOURCE
+!!
+  subroutine deallocate_diis_objects(diis,subname)
+    use module_base
+    implicit none
+    character(len=*), intent(in) :: subname
+    type(diis_objects), intent(inout) :: diis
+    !local variables
+    integer :: i_all,i_stat
+
+    i_all=-product(shape(diis%psidst))*kind(diis%psidst)
+    deallocate(diis%psidst,stat=i_stat)
+    call memocc(i_stat,i_all,'psidst',subname)
+    i_all=-product(shape(diis%hpsidst))*kind(diis%hpsidst)
+    deallocate(diis%hpsidst,stat=i_stat)
+    call memocc(i_stat,i_all,'hpsidst',subname)
+    i_all=-product(shape(diis%ads))*kind(diis%ads)
+    deallocate(diis%ads,stat=i_stat)
+    call memocc(i_stat,i_all,'ads',subname)
+
+  END SUBROUTINE deallocate_diis_objects
+!!***
+
+
 
 
 !!****f* module_types/allocate_comms

@@ -3259,7 +3259,7 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,ntrig,trig,after,now,before,i_sign)
 ! End of radix 7
 
    else 
-      write(*,'(a,i4)') 'Error fftstp_sg: radix not defined ',now
+      write(*,'(a,i6)') 'Error fftstp_sg: radix not defined ',now
       stop
    end if !end of now
 

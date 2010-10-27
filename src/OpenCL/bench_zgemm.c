@@ -62,14 +62,14 @@ int main(){
 
 
   ocl_create_gpu_context_(&context);
+  ocl_build_programs_(&context);
   ocl_create_command_queue_(&queue,&context);
-  ocl_build_kernels_(&context);
   init_event_list_();
  
   cl_mem cmPinnedBufIn = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, size_in*sizeof(double), NULL, NULL);
   cl_mem cmPinnedBufOut = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, size_out*sizeof(double), NULL, NULL);
-  in = (double *)clEnqueueMapBuffer(queue, cmPinnedBufIn, CL_TRUE, CL_MAP_WRITE, 0, size_in*sizeof(double), 0, NULL, NULL, NULL);
-  out = (double *)clEnqueueMapBuffer(queue, cmPinnedBufOut, CL_TRUE, CL_MAP_READ, 0, size_out*sizeof(double), 0, NULL, NULL, NULL);
+  in = (double *)clEnqueueMapBuffer(queue->command_queue, cmPinnedBufIn, CL_TRUE, CL_MAP_WRITE, 0, size_in*sizeof(double), 0, NULL, NULL, NULL);
+  out = (double *)clEnqueueMapBuffer(queue->command_queue, cmPinnedBufOut, CL_TRUE, CL_MAP_READ, 0, size_out*sizeof(double), 0, NULL, NULL, NULL);
   init_random(in, size_in);
 
   for( n1 = N1_STEP; n1 <= MAX_N1; n1 += N1_STEP ){
@@ -94,6 +94,7 @@ int main(){
   ocl_release_mem_object_(&cmPinnedBufIn);
   ocl_release_mem_object_(&cmPinnedBufOut);
   print_event_list_();
-  ocl_clean_(&queue, &context);
+  ocl_clean_command_queue_(&queue);
+  ocl_clean_(&context);
   return 0;
 }

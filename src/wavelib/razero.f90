@@ -88,7 +88,6 @@ end module randomData
 !! FUNCTION
 !!   Random Number generator from Numerical Recipes
 !!   To be used for reproductability of the results
-!!
 !! SOURCE
 !!
 function builtin_rand(idum)
@@ -124,5 +123,5 @@ function builtin_rand(idum)
   iy=iv(j)
   iv(j)=idum
   builtin_rand=min(am*iy,rnmx)
-end function builtin_rand
-      
+END FUNCTION builtin_rand
+!!***

@@ -1075,10 +1075,14 @@ contains
     kptrlatt(3,3) = ngkpt(3)
     kptrlen = 20.
 
+    !the array kpt and wkpt have to be allocated
+    allocate(kpt(3, nkpt))
+    allocate(wkpt(nkpt))
     call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
          & AB6_MAX_SYMMETRIES, 0, nkpt, nshiftk, token%data%nSym, &
          & token%data%rprimd, shiftk, token%data%symAfm, token%data%sym, &
          & token%data%vacuum, wkpt)
+    deallocate(kpt,wkpt)
   end subroutine ab6_symmetry_binding_mp_k_1
 
   subroutine ab6_symmetry_binding_mp_k_2(id, nkpt, kpt, wkpt, &
@@ -1148,7 +1152,6 @@ contains
 
     nshiftk_ = nshiftk
     shiftk_(:,1:nshiftk_) = shiftk(:,:)
-
     call ab6_symmetry_binding_mp_k_1(id, nkpt, ngkpt, kptrlatt, kptrlen, &
          & nshiftk_, shiftk_, errno)
     if (errno /= AB6_NO_ERROR) return
@@ -1198,7 +1201,6 @@ contains
          & AB6_MAX_SYMMETRIES,nshiftk,token%data%nSym,0,token%data%rprimd,&
          & shiftk,token%data%symAfm,token%data%sym,token%data%vacuum)
     if (AB_DBG) write(0,*) "AB symmetry: testkgrid -> kptrlatt=", kptrlatt
-
     call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
          & AB6_MAX_SYMMETRIES, 0, nkpt, nshiftk, token%data%nSym, &
          & token%data%rprimd, shiftk, token%data%symAfm, token%data%sym, &

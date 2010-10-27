@@ -20,12 +20,9 @@ y[ig] = x[ig] * x[ig];\n\
 };\n\
 ";
 
-cl_kernel c_initialize_kernel_d;
-cl_kernel v_initialize_kernel_d;
-cl_kernel p_initialize_kernel_d;
 cl_program initializeProgram;
 
-void inline p_initialize_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *out) {
+void inline p_initialize_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *ndat, cl_mem *in, cl_mem *out) {
   cl_int ciErrNum;
   size_t block_size_i=64;
   assert(*ndat>=block_size_i);
@@ -35,11 +32,11 @@ void inline p_initialize_generic(cl_kernel kernel, cl_command_queue *command_que
   clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
   size_t localWorkSize[] = { block_size_i };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*ndat) };
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue p_initialize kernel!");
 }
 
-void inline c_initialize_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *inout, double *c) {
+void inline c_initialize_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *ndat, cl_mem *in, cl_mem *inout, double *c) {
   cl_int ciErrNum;
   size_t block_size_i=64;
   assert(*ndat>=block_size_i);
@@ -50,11 +47,11 @@ void inline c_initialize_generic(cl_kernel kernel, cl_command_queue *command_que
   clSetKernelArg(kernel, i++,sizeof(*c), (void*)c);
   size_t localWorkSize[] = { block_size_i };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*ndat) };
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue c_initialize kernel!");
 }
 
-void inline v_initialize_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *ndat, cl_mem *out, double *c) {
+void inline v_initialize_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *ndat, cl_mem *out, double *c) {
   cl_int ciErrNum;
   size_t block_size_i=64;
   assert(*ndat>=block_size_i);
@@ -64,17 +61,17 @@ void inline v_initialize_generic(cl_kernel kernel, cl_command_queue *command_que
   clSetKernelArg(kernel, i++,sizeof(*c), (void*)c);
   size_t localWorkSize[] = { block_size_i };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*ndat) };
-  ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue v_initialize kernel!");
 }
 
-void create_initialize_kernels(){
+void create_initialize_kernels(struct bigdft_kernels * kernels){
     cl_int ciErrNum = CL_SUCCESS;
-    c_initialize_kernel_d=clCreateKernel(initializeProgram,"c_initializeKernel_d",&ciErrNum);
+    kernels->c_initialize_kernel_d=clCreateKernel(initializeProgram,"c_initializeKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create c_initializeKernel_d kernel!");
-    v_initialize_kernel_d=clCreateKernel(initializeProgram,"v_initializeKernel_d",&ciErrNum);
+    kernels->v_initialize_kernel_d=clCreateKernel(initializeProgram,"v_initializeKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create v_initializeKernel_d kernel!");
-    p_initialize_kernel_d=clCreateKernel(initializeProgram,"p_initializeKernel_d",&ciErrNum);
+    kernels->p_initialize_kernel_d=clCreateKernel(initializeProgram,"p_initializeKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create p_initializeKernel_d kernel!");
 }
 
@@ -94,14 +91,17 @@ void build_initialize_programs(cl_context * context){
     }
 }
 
-void clean_initialize_kernels(){
+void clean_initialize_kernels(struct bigdft_kernels * kernels){
   cl_int ciErrNum;
-  ciErrNum = clReleaseKernel(c_initialize_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->c_initialize_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(v_initialize_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->v_initialize_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(p_initialize_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->p_initialize_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
+}
+void clean_initialize_programs(){
+  cl_int ciErrNum;
   ciErrNum = clReleaseProgram(initializeProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
 }
