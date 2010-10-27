@@ -2343,7 +2343,7 @@ subroutine print_dft_parameters(in,atoms)
        ' elec. field=',in%elecfield,'|                   ','| DIIS Hist. N.=',in%idsx
   if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
-          'Polarisation=',2*in%mpol, '|'
+          'Polarisation=',in%mpol, '|'
   end if
   if (atoms%geocode /= 'F') then
      write(*,'(1x,a,1x,a,3(1x,1pe12.5))')&

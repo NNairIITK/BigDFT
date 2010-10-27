@@ -915,11 +915,19 @@ subroutine test_value(ikpt,iorb,ispinor,icomp,val)
   !local variables
   real(wp) :: valkpt,valorb,vali
 
-  valkpt=real(10000*(ikpt-1),wp)!real(512*ikpt,wp)
+! recognizable pattern, for debugging
+! valkpt=real(10000*(ikpt-1),wp)!real(512*ikpt,wp)
+! valorb=real(iorb,wp)+valkpt
+! vali=real(icomp,wp)*1.e-5_wp  !real(icomp,wp)/512.0_wp  ! *1.d-5
+!
+! val=(valorb+vali)*(-1)**(ispinor-1)
+
+  valkpt=real(512*ikpt,wp)
   valorb=real(iorb,wp)+valkpt
-  vali=real(icomp,wp)*1.e-5_wp  !real(icomp,wp)/512.0_wp  ! *1.d-5
+  vali=real(icomp,wp)/512.0_wp  ! *1.d-5
 
   val=(valorb+vali)*(-1)**(ispinor-1)
+
   
 end subroutine test_value
   
