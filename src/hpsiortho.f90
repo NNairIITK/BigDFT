@@ -254,24 +254,24 @@ end module wavefunctionDIIS
 !! SOURCE
 !!
 subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
-     ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
-     alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,GPU)
+     ncong,iter,diis,idsx,idsx_actual,energy,energy_old,&
+     alpha,gnrm,scprsum,psi,psit,hpsi,nspin,GPU,input)
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => hpsitopsi
-  use wavefunctionDIIS
+  !use wavefunctionDIIS
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
   real(gp), intent(in) :: hx,hy,hz,energy,energy_old
   type(locreg_descriptors), intent(in) :: lr
   type(communications_arrays), intent(in) :: comms
   type(orbitals_data), intent(in) :: orbs
+  type(input_variables), intent(in) :: input
+  type(diis_objects), intent(inout) :: diis
   integer, intent(inout) :: idsx_actual
   real(wp), intent(inout) :: alpha
   real(dp), intent(inout) :: gnrm,scprsum
-  real(gp), intent(inout) :: energy_min
-  real(wp), dimension(:), pointer :: psi,psit,hpsi,psidst,hpsidst
-  real(wp), dimension(:,:,:), pointer :: ads
+  real(wp), dimension(:), pointer :: psi,psit,hpsi
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='hpsitopsi'
@@ -279,6 +279,8 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   integer :: ierr,iorb,k,i_stat,i_all
   real(dp) :: tt
   real(wp), dimension(:,:,:), allocatable :: mom_vec
+
+integer:: i
 !OCL  real(wp) :: maxdiff
 !OCL  integer, dimension(3) :: periodic
 
@@ -288,18 +290,18 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   !adjust the save variables for DIIS/SD switch
   if (iter == 1) then
      !logical control variable for switch DIIS-SD
-     switchSD=.false.
-     ids=0
-     mids=1
-     idiistol=0
+     diis%switchSD=.false.
+     diis%ids=0
+     diis%mids=1
+     diis%idiistol=0
   end if
   !update variables at each iteration step
   if (idsx > 0) then
-     mids=mod(ids,idsx)+1
-     ids=ids+1
+     diis%mids=mod(diis%ids,idsx)+1
+     diis%ids=diis%ids+1
   end if
 
-  energy_min=min(energy_min,energy)
+  diis%energy_min=min(diis%energy_min,energy)
 
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
@@ -317,6 +319,8 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
   !takes also into account parallel k-points distribution
+  !here the orthogonality with respect to other occupied functions should be 
+  !passed as an optional argument
   call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,scprsum)
 
   !retranspose the hpsi wavefunction
@@ -363,8 +367,9 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 !!$  end if
   !sum over all the partial residues
   if (nproc > 1) then
-     tt=gnrm
-     call MPI_ALLREDUCE(tt,gnrm,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+     !tt=gnrm
+     !call MPI_ALLREDUCE(tt,gnrm,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
   endif
   gnrm=sqrt(gnrm/real(orbs%norb,dp))
 
@@ -381,8 +386,8 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   !apply the minimization method (DIIS or steepest descent)
   call timing(iproc,'Diis          ','ON')
 
-  call psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx_actual,energy,energy_old,alpha,&
-       hpsi,psidst,hpsidst,psit)
+  call psimix(iproc,nproc,orbs,comms,diis,idsx_actual,energy,energy_old,alpha,&
+       hpsi,psit)
 
   call timing(iproc,'Diis          ','OF')
 
@@ -391,7 +396,8 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
           'Orthogonalization...'
   end if
 
-  call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit)
+
+  call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit,input)
 
   !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
   
@@ -430,53 +436,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      call memocc(i_stat,i_all,'mom_vec',subname)
   end if
 
-  !here we should add the DIIS/SD switch
-  !add switch between DIIS and SD
-  if (energy == energy_min .and. .not. switchSD) idiistol=0
-  if (energy > energy_min .and. idsx >0 .and. .not. switchSD) then
-     idiistol=idiistol+1
-  end if
-  if (idiistol > idsx .and. .not. switchSD) then
-     !the energy has not decreasing for too much steps, switching to SD for next steps
-     if (iproc ==0) write(*,'(1x,a,1pe9.2,a)')&
-          'WARNING: The energy value is growing (delta=',energy-energy_min,') switch to SD'
-     switchSD=.true.
-     !il is not necessary to deallocate these arrays
-     !i_all=-product(shape(psidst))*kind(psidst)
-     !deallocate(psidst,stat=i_stat)
-     !call memocc(i_stat,i_all,'psidst',subname)
-     !i_all=-product(shape(hpsidst))*kind(hpsidst)
-     !deallocate(hpsidst,stat=i_stat)
-     !call memocc(i_stat,i_all,'hpsidst',subname)
-     !i_all=-product(shape(ads))*kind(ads)
-     !deallocate(ads,stat=i_stat)
-     !call memocc(i_stat,i_all,'ads',subname)
-     idsx_actual=0
-     idiistol=0
-  end if
-
-  if ((energy == energy_min) .and. switchSD) then
-     idiistol=idiistol+1
-  end if
-  if (idiistol > idsx .and. switchSD) then
-     !restore the original DIIS
-     if (iproc ==0) write(*,'(1x,a,1pe9.2)')&
-          'WARNING: The energy value is now decreasing again, coming back to DIIS'
-     switchSD=.false.
-     idsx_actual=idsx
-     ids=0
-     idiistol=0
-
-     !no need to reallocate
-     !allocate(psidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
-     !call memocc(i_stat,psidst,'psidst',subname)
-     !allocate(hpsidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
-     !call memocc(i_stat,hpsidst,'hpsidst',subname)
-     !allocate(ads(idsx+1,idsx+1,orbs%nkptsp*3+ndebug),stat=i_stat)
-     !call memocc(i_stat,ads,'ads',subname)
-
-     call razero(orbs%nkptsp*3*(idsx+1)**2,ads)
-  end if
+  call diis_or_sd(iproc,idsx,orbs%nkptsp,energy,idsx_actual,diis)
 
 END SUBROUTINE hpsitopsi
 !!***
@@ -486,7 +446,7 @@ END SUBROUTINE hpsitopsi
 !!   First orthonormalisation
 !! SOURCE
 !!
-subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
+subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
   use module_base
   use module_types
   use module_interfaces, except_this_one_B => first_orthon
@@ -495,6 +455,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(communications_arrays), intent(in) :: comms
+  type(input_variables):: input
   real(wp), dimension(:) , pointer :: psi,hpsi,psit
   !local variables
   character(len=*), parameter :: subname='first_orthon'
@@ -523,7 +484,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
   call transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
        work=hpsi,outadd=psit(1))
 
-  call orthogonalize(iproc,nproc,orbs,comms,wfd,psit)
+  call orthogonalize(iproc,nproc,orbs,comms,wfd,psit,input)
 
   !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
@@ -769,18 +730,19 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
 
   do iorb=1,orbs%norbp
      ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
-     valkpt=real(512*ikpt,wp)
-     valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
+     !valkpt=real(512*ikpt,wp)
+     !valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
      indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
      do ispinor=1,orbs%nspinor
         indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
         do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           vali=real(i,wp)/512.d0  ! *1.d-5
-           psi(i+indspin+indorb)=(valorb+vali)*(-1)**(ispinor-1)
+           !vali=real(i,wp)/512.0_wp  ! *1.d-5
+           call test_value(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
+           psi(i+indspin+indorb)=psival!(valorb+vali)*(-1)**(ispinor-1)
         end do
      end do
   end do
-
+ 
   !transpose the hpsi wavefunction
   call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psi,work=pwork)
 
@@ -789,7 +751,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   ispsi=0
   do ikptsp=1,orbs%nkptsp
      ikpt=orbs%iskpts+ikptsp!orbs%ikptsp(ikptsp)
-     valkpt=real(512*ikpt,wp)
+     !valkpt=real(512*ikpt,wp)
      !calculate the starting point for the component distribution
      iscomp=0
      do jproc=0,iproc-1
@@ -799,13 +761,14 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      nspinor=orbs%nspinor
 
      do iorb=1,orbs%norb
-        valorb=real(iorb,wp)+valkpt
+        !valorb=real(iorb,wp)+valkpt
         indorb=(iorb-1)*nvctrp*nspinor
         do idsx=1,(nspinor-1)/2+1
            do i=1,nvctrp
-              vali=real(i+iscomp,wp)/512.d0  ! *1.d-5
+              !vali=real(i+iscomp,wp)/512.d0  ! *1.d-5
               do ispinor=1,((2+nspinor)/4+1)
-                 psival=(-1)**(ispinor-1)*(valorb+vali)
+                 !psival=(-1)**(ispinor-1)*(valorb+vali)
+                 call test_value(ikpt,iorb,ispinor,i+iscomp,psival)
                  !this is just to force the IEEE representation of psival
                  !              if (psival .lt. 0.d0) then  
                  !              write(321,*) psival,psival**2
@@ -831,7 +794,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      ispsi=0
      do ikptsp=1,orbs%nkptsp
         ikpt=orbs%iskpts+ikptsp!orbs%ikptsp(ikptsp)
-        valkpt=real(512*ikpt,wp)
+        !valkpt=real(512*ikpt,wp)
         !calculate the starting point for the component distribution
         iscomp=0
         do jproc=0,iproc-1
@@ -841,13 +804,14 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
         nspinor=orbs%nspinor
 
         do iorb=1,orbs%norb
-           valorb=real(iorb,wp)+valkpt
+           !valorb=real(iorb,wp)+valkpt
            indorb=(iorb-1)*nvctrp*nspinor
            do idsx=1,(nspinor-1)/2+1
               do i=1,nvctrp
-                 vali=real(i+iscomp,wp)/512.d0  !*1.d-5
+                 !vali=real(i+iscomp,wp)/512.d0  !*1.d-5
                  do ispinor=1,((2+nspinor)/4+1)
-                    psival=(-1)**(ispinor-1)*(valorb+vali)
+                    !psival=(-1)**(ispinor-1)*(valorb+vali)
+                    call test_value(ikpt,iorb,ispinor,i+iscomp,psival)
                     index=ispinor+(i-1)*((2+nspinor)/4+1)+&
                          (idsx-1)*((2+nspinor)/4+1)*nvctrp+indorb+ispsi
                     maxdiff=abs(psi(index)-psival)
@@ -863,10 +827,17 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      end do
      close(unit=22)
      abort = .true.
+     write(filename, "(A,I0,A)") 'distscheme', iproc, '.log'
+     open(unit=22,file=trim(filename),status='unknown')
+     call print_distribution_schemes(22,nproc,orbs%nkpts,orbs%norb_par,comms%nvctr_par)
+     close(unit=22)
   end if
 
-  if (abort) call MPI_ABORT(MPI_COMM_WORLD,ierr)
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+  if (abort) then
+     if (iproc == 0) call print_distribution_schemes(6,nproc,orbs%nkpts,orbs%norb_par,comms%nvctr_par)
+     call MPI_ABORT(MPI_COMM_WORLD,ierr)
+  end if
 
   !retranspose the hpsi wavefunction
   call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,&
@@ -875,14 +846,15 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   maxdiff=0.0_wp
   do iorb=1,orbs%norbp
      ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
-     valkpt=real(512*ikpt,wp)
-     valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
+     !valkpt=real(512*ikpt,wp)
+     !valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
      indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
      do ispinor=1,orbs%nspinor
         indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
         do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           vali=real(i,wp)/512.d0  !*1.d-5
-           psival=(valorb+vali)*(-1)**(ispinor-1)
+           !vali=real(i,wp)/512.d0  !*1.d-5
+           !psival=(valorb+vali)*(-1)**(ispinor-1)
+           call test_value(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
            maxdiff=max(abs(psi(i+indspin+indorb)-psival),maxdiff)
         end do
      end do
@@ -899,14 +871,15 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      maxdiff=0.0_wp
      do iorb=1,orbs%norbp
         ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
-        valkpt=real(512*ikpt,wp)
-        valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
+        !valkpt=real(512*ikpt,wp)
+        !valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
         indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
         do ispinor=1,orbs%nspinor
            indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
            do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-              vali=real(i,wp)/512.d0  !*1.d-5
-              psival=(valorb+vali)*(-1)**(ispinor-1)
+              !vali=real(i,wp)/512.d0  !*1.d-5
+              !psival=(valorb+vali)*(-1)**(ispinor-1)
+              call test_value(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
               maxdiff=abs(psi(i+indspin+indorb)-psival)
               if (maxdiff > 0.d0) then
                  write(22,'(i3,i6,2i4,3(1x,1pe13.6))')ispinor,i,iorb,orbs%isorb,psival,&
@@ -932,6 +905,32 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
 
 
 END SUBROUTINE check_communications
+
+!define a value for the wavefunction which is dependent of the indices
+subroutine test_value(ikpt,iorb,ispinor,icomp,val)
+  use module_base
+  implicit none
+  integer, intent(in) :: ikpt,icomp,iorb,ispinor
+  real(wp), intent(out) :: val
+  !local variables
+  real(wp) :: valkpt,valorb,vali
+
+! recognizable pattern, for debugging
+! valkpt=real(10000*(ikpt-1),wp)!real(512*ikpt,wp)
+! valorb=real(iorb,wp)+valkpt
+! vali=real(icomp,wp)*1.e-5_wp  !real(icomp,wp)/512.0_wp  ! *1.d-5
+!
+! val=(valorb+vali)*(-1)**(ispinor-1)
+
+  valkpt=real(512*ikpt,wp)
+  valorb=real(iorb,wp)+valkpt
+  vali=real(icomp,wp)/512.0_wp  ! *1.d-5
+
+  val=(valorb+vali)*(-1)**(ispinor-1)
+
+  
+end subroutine test_value
+  
 
 subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
   use module_base

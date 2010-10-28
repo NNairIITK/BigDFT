@@ -21,17 +21,20 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.5-dev.0)
+                           ggggg       i         BBBB                 (Ver 1.5-dev.1)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Reading atomic input positions from file:posinp.xyz
- 
+ File 'myparameters' is missing... using default values:
+   Input guess: direct diagonalization of Hamiltonian
+   Orthogonalization method: Cholesky
+
  Performance options (file 'input.perf' not present):
  |   'debug' option disabled
  |   'fftcache' = 8192
- 
+
  ===================== BigDFT XANE calculation =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -59,7 +62,7 @@
  occup(1:8)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1     Fe  1.13384E+01  1.13384E+01  1.13384E+01       27.000    27.000    27.000
-    Shift of=  0.00000E+00  0.00000E+00  0.00000E+00 H grids=  0.4199  0.4199  0.4199
+    Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 H grids=  0.4199  0.4199  0.4199
    Box Sizes=  2.26767E+01  2.26767E+01  2.26767E+01           53        53        53
        Extremes for the high resolution grid points:        23<31     23<31     23<31
  wavelet localization is ON
@@ -111,25 +114,23 @@
  Wavefunctions memory occupation for root processor (Bytes): 12855280
  Writing wavefunctions in wavelet form... done.
  Deviation from normalization of the imported orbitals    7.47E-05
- Calculation of charge density... done. Total electronic charge=      15.999983273240
+ Calculation of charge density... done. Total electronic charge=      15.999983273238
  PSolver, periodic BC, dimensions:   108  108  108   proc    1 ... done.
   going to calculate spectra 
   IN ROUTINE  chebychev  
  Wavefunctions memory occupation for root processor (Bytes): 1285528
  reading  precalculated  projection on pseudofunctions
- for 1s of atom number            1  ( atomname = Fe                   )
- After application of a 2*L-pole  with L=            1
-  from file 
- gproje_Fe_1s_1                                                                 
-  
+ for 1s of atom number  1  ( atomname = Fe                   )
+ After application of a 2*L-pole  with L=  1
+  from file gproje_Fe_1s_1                                                                  
  OK 
  OK 1
  OK 2
-  for atoms           26
+  for atoms  26
  OK 4
  OK 45
   sono in EP_allocate_for_eigenprob 
-  sono in EP_allocate_for_eigenprob EP_dim , nsteps       160691           3
+  sono in EP_allocate_for_eigenprob EP_dim , nsteps  160691 3
   esco 
  OK 5
  Writing wavefunctions in wavelet form ........................................ done.
@@ -153,26 +154,23 @@
  Hamiltonian application...  done 
  Hamiltonian application...  done 
  Hamiltonian application...  done 
-  writing spectra to 
- cheb_spectra_39                                                                
-                                                                                
-                                           
+  writing spectra to cheb_spectra_39                                                                                                                                                                                         
   done 
  Hamiltonian application...  done 
  coefficients from Chebychev 
-   40 1.6785726182760831E+02 5.8035787346174018E-03
+   40 1.6785726182760826E+02 5.8035787346174018E-03
  ... 
- 2.8032097970193256E-05
--6.9868633071488735E-05
- 8.9925560087372562E-05
--8.2631370239723972E-05
- 6.1734834452527396E-05
--5.7743630815925828E-05
- 1.0173233607006695E-04
--1.8840548308767793E-04
- 2.5808015931693025E-04
--2.4686515922294578E-04
- CPU time/ELAPSED time for root process     0         5.38         5.14
+ 2.8032097969901389E-05
+-6.9868633071217901E-05
+ 8.9925560087121895E-05
+-8.2631370239446417E-05
+ 6.1734834452304268E-05
+-5.7743630815664752E-05
+ 1.0173233606978896E-04
+-1.8840548308746478E-04
+ 2.5808015931681814E-04
+-2.4686515922296140E-04
+ CPU time/ELAPSED time for root process     0        18.30        18.31
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is
@@ -206,17 +204,20 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.5-dev.0)
+                           ggggg       i         BBBB                 (Ver 1.5-dev.1)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Reading atomic input positions from file:posinp.xyz
- 
+ File 'myparameters' is missing... using default values:
+   Input guess: direct diagonalization of Hamiltonian
+   Orthogonalization method: Cholesky
+
  Performance options (file 'input.perf' not present):
  |   'debug' option disabled
  |   'fftcache' = 8192
- 
+
  ===================== BigDFT XANE calculation =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -244,7 +245,7 @@
  occup(1:8)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1     Fe  1.13384E+01  1.13384E+01  1.13384E+01       27.000    27.000    27.000
-    Shift of=  0.00000E+00  0.00000E+00  0.00000E+00 H grids=  0.4199  0.4199  0.4199
+    Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 H grids=  0.4199  0.4199  0.4199
    Box Sizes=  2.26767E+01  2.26767E+01  2.26767E+01           53        53        53
        Extremes for the high resolution grid points:        23<31     23<31     23<31
  wavelet localization is ON
@@ -296,28 +297,17 @@
  Wavefunctions memory occupation for root processor (Bytes): 12855280
  Writing wavefunctions in wavelet form... done.
  Deviation from normalization of the imported orbitals    7.47E-05
- Calculation of charge density... done. Total electronic charge=      15.999983273240
+ Calculation of charge density... done. Total electronic charge=      15.999983273238
  PSolver, periodic BC, dimensions:   108  108  108   proc    1 ... done.
   going to calculate spectra 
   IN ROUTINE LANCZOS 
  Wavefunctions memory occupation for root processor (Bytes): 1285528
  reading  precalculated  projection on pseudofunctions
- for 1s of atom number            1  ( atomname = Fe                   )
- After application of a 2*L-pole  with L=            1
-  from file 
- gproje_Fe_1s_1                                                                 
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-           
+ for 1s of atom number  1  ( atomname = Fe                   )
+ After application of a 2*L-pole  with L=  1
+  from file gproje_Fe_1s_1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
   sono in EP_allocate_for_eigenprob 
-  sono in EP_allocate_for_eigenprob EP_dim , nsteps       160691          20
+  sono in EP_allocate_for_eigenprob EP_dim , nsteps  160691 20
   esco 
  Writing wavefunctions in wavelet form ........................................ done.
  Deviation from normalization of the imported orbitals    0.00E+00
@@ -338,38 +328,38 @@
  Hamiltonian application...  done 
  Hamiltonian application...  done 
  Hamiltonian application...  done 
-  starting GramSchmidt           15
+  starting GramSchmidt  15
  GramSchmidt done 
  Hamiltonian application...  done 
-  starting GramSchmidt           16
+  starting GramSchmidt  16
  GramSchmidt done 
  Hamiltonian application...  done 
  Hamiltonian application...  done 
  Hamiltonian application...  done 
  Hamiltonian application...  done 
   alpha and beta from lanczos 
-   20 1.7562530507505276E-03
- 4.6367176497143035E+01 4.6854586541482490E+01
- 1.1070200087401912E+02 6.6843275871318596E+01
- 1.4012733872842813E+02 7.7668910309474626E+01
- 1.5515439706358373E+02 8.1978527003579430E+01
- 1.6202146082219707E+02 8.3225919541583764E+01
- 1.6347576981223466E+02 8.3689229430736958E+01
- 1.6520956102295125E+02 8.3714612022203070E+01
- 1.6458234736422364E+02 8.2928345714907820E+01
- 1.6249982934072537E+02 8.1634089675380309E+01
- 1.5995985716172305E+02 8.0587272898735009E+01
- 1.6189714557890886E+02 8.2699908753817795E+01
- 1.6476485774115446E+02 8.3304154426189967E+01
- 1.6625821420349698E+02 8.2753375490318405E+01
- 1.6363483954860504E+02 8.2795831040870809E+01
- 1.6191549704645428E+02 8.1202038340193951E+01
- 1.6186495853321560E+02 7.9126926656163874E+01
- 1.6111621324290553E+02 8.0369732062818542E+01
- 1.5225934446109548E+02 7.8766290640403483E+01
- 1.5689912593807281E+02 7.4476439338186765E+01
- 1.4926424466876176E+02 7.4740068926014203E+01
- CPU time/ELAPSED time for root process     0         5.14         5.11
+   20 1.7562530507505252E-03
+ 4.6367176497141834E+01 4.6854586541482277E+01
+ 1.1070200087401743E+02 6.6843275871319193E+01
+ 1.4012733872842514E+02 7.7668910309474668E+01
+ 1.5515439706358347E+02 8.1978527003579160E+01
+ 1.6202146082219429E+02 8.3225919541584076E+01
+ 1.6347576981223327E+02 8.3689229430736503E+01
+ 1.6520956102295071E+02 8.3714612022203369E+01
+ 1.6458234736421974E+02 8.2928345714907891E+01
+ 1.6249982934072492E+02 8.1634089675380466E+01
+ 1.5995985716171970E+02 8.0587272898734994E+01
+ 1.6189714557890920E+02 8.2699908753817624E+01
+ 1.6476485774114997E+02 8.3304154426189768E+01
+ 1.6625821420349945E+02 8.2753375490318405E+01
+ 1.6363483954859817E+02 8.2795831040871633E+01
+ 1.6191549704645411E+02 8.1202038340193596E+01
+ 1.6186495853321458E+02 7.9126926656164017E+01
+ 1.6111621324290459E+02 8.0369732062818457E+01
+ 1.5225934446109153E+02 7.8766290640403454E+01
+ 1.5689912593807301E+02 7.4476439338186395E+01
+ 1.4926424466875886E+02 7.4740068926014644E+01
+ CPU time/ELAPSED time for root process     0        18.47        18.47
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is
@@ -403,17 +393,20 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.5-dev.0)
+                           ggggg       i         BBBB                 (Ver 1.5-dev.1)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Reading atomic input positions from file:posinp.xyz
- 
+ File 'myparameters' is missing... using default values:
+   Input guess: direct diagonalization of Hamiltonian
+   Orthogonalization method: Cholesky
+
  Performance options (file 'input.perf' not present):
  |   'debug' option disabled
  |   'fftcache' = 8192
- 
+
  ===================== BigDFT XANE calculation =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -441,7 +434,7 @@
  occup(1:8)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1     Fe  1.13384E+01  1.13384E+01  1.13384E+01       27.000    27.000    27.000
-    Shift of=  0.00000E+00  0.00000E+00  0.00000E+00 H grids=  0.4199  0.4199  0.4199
+    Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 H grids=  0.4199  0.4199  0.4199
    Box Sizes=  2.26767E+01  2.26767E+01  2.26767E+01           53        53        53
        Extremes for the high resolution grid points:        23<31     23<31     23<31
  wavelet localization is ON
@@ -487,26 +480,23 @@
   going to calculate spectra 
  controllo b2B_xanes.cube T
   scaling function for interpolation 
- for replica            0 SHIFT   0.944862749961537       0.944862749961537     
-  0.944862749961537     
+ for replica  0 SHIFT  0.944862749961537 0.944862749961537 0.944862749961537
  writing NEW local_potential.pot
   exiting b2B
   IN ROUTINE  chebychev  
  Wavefunctions memory occupation for root processor (Bytes): 1285528
  reading  precalculated  projection on pseudofunctions
- for 1s of atom number            1  ( atomname = Fe                   )
- After application of a 2*L-pole  with L=            1
-  from file 
- gproje_Fe_1s_1                                                                 
-  
+ for 1s of atom number  1  ( atomname = Fe                   )
+ After application of a 2*L-pole  with L=  1
+  from file gproje_Fe_1s_1                                                                  
  OK 
  OK 1
  OK 2
-  for atoms           26
+  for atoms  26
  OK 4
  OK 45
   sono in EP_allocate_for_eigenprob 
-  sono in EP_allocate_for_eigenprob EP_dim , nsteps       160691           3
+  sono in EP_allocate_for_eigenprob EP_dim , nsteps  160691 3
   esco 
  OK 5
  Writing wavefunctions in wavelet form ........................................ done.
@@ -530,26 +520,23 @@
  Hamiltonian application...  done 
  Hamiltonian application...  done 
  Hamiltonian application...  done 
-  writing spectra to 
- cheb_spectra_39                                                                
-                                                                                
-                                           
+  writing spectra to cheb_spectra_39                                                                                                                                                                                         
   done 
  Hamiltonian application...  done 
  coefficients from Chebychev 
-   40 1.6785726182760831E+02 5.8035787346174018E-03
+   40 1.6785726182760826E+02 5.8035787346174018E-03
  ... 
- 2.8698552728719309E-05
--7.0518066633021466E-05
- 9.0529061278488577E-05
--8.3176771030732660E-05
- 6.2229730901652153E-05
--5.8207117131204049E-05
- 1.0216408579951384E-04
--1.8875004463204319E-04
- 2.5824142065893020E-04
--2.4678223774906400E-04
- CPU time/ELAPSED time for root process     0         8.53         8.24
+ 2.8698552728742294E-05
+-7.0518066633030140E-05
+ 9.0529061278500937E-05
+-8.3176771030723119E-05
+ 6.2229730901640443E-05
+-5.8207117131199929E-05
+ 1.0216408579950841E-04
+-1.8875004463201001E-04
+ 2.5824142065891914E-04
+-2.4678223774899180E-04
+ CPU time/ELAPSED time for root process     0        19.84        19.84
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is

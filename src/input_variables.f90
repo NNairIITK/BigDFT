@@ -690,7 +690,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
   !local variables
   character(len=*), parameter :: subname='perf_input_variables'
   character(len=100) :: line
-  logical :: exists
+  logical :: exists, myparametersExists
   integer :: iline,ierror,ii
 
   ! Set default values.
@@ -727,6 +727,59 @@ subroutine perf_input_variables(iproc,filename,inputs)
      end do
      close(unit=1,iostat=ierror)
   end if
+
+! These variables have to be added to the file 'input.perf'
+inquire(file='myparameters', exist=myparametersExists)
+  if(myparametersExists) then
+      open(unit=20, file='myparameters')
+      read(20,*) inputs%directDiag
+      read(20,*) inputs%norbpInguess
+      read(20,*) inputs%bsLow, inputs%bsUp
+      read(20,*) inputs%methOrtho
+      read(20,*) inputs%iguessTol
+      close(unit=20)
+      if(iproc==0) write(*,'(1x,a)') "File 'myparameters' is present... using the following values:"
+  else
+      inputs%directDiag=.true.
+      inputs%norbpInguess=5
+      inputs%bsLow=300
+      inputs%bsLow=800
+      inputs%methOrtho=0
+      inputs%iguessTol=1.d-4
+      if(iproc==0) write(*,'(1x,a)') "File 'myparameters' is missing... using default values:"
+  end if
+  if(iproc==0) then
+      if(inputs%directDiag) then 
+          write(*,'(3x,a)') 'Input guess: direct diagonalization of Hamiltonian'
+      else if(.not.inputs%directDiag) then
+          write(*,'(3x,a)') 'Input guess: iterative diagonalization of Hamiltonian'
+          write(*,'(3x,a,i0)') 'orbitals per process: ',inputs%norbpInguess
+      end if
+      if(inputs%methOrtho==0) then
+          write(*,'(3x,a,i0)') 'Orthogonalization method: Cholesky'
+      else if(inputs%methOrtho==1) then
+          write(*,'(3x,a,i0)') 'Orthogonalization method: hybrid Gram-Schmidt/Cholesky'
+      else if(inputs%methOrtho==2) then
+          write(*,'(3x,a,i0)') 'Orthogonalization method: Loewdin'
+      else
+          write(*,'(3x,a,i0)') 'ERROR: invalid value for inputs%methOrtho (',inputs%methOrtho,').'
+          write(*,'(3x,a,i0)') "Change it in the file 'inputs.perf' to 0, 1 or 2."
+          stop
+      end if
+      if(.not.inputs%directDiag .or. inputs%methOrtho==1) then 
+          write(*,'(3x,a)') 'Block size used for the orthonormalization:'
+          if(inputs%bsLow==inputs%bsUp) then
+              write(*,'(5x,a,i0)') 'Take block size specified by user: ',inputs%bsLow
+          else if(inputs%bsLow<inputs%bsUp) then
+              write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',inputs%bsLow,' and ',inputs%bsUp
+          else
+              write(*,'(1x,a)') "ERROR: invalid values of inputs%bsLow and inputs%bsUp. Change them in 'inputs.perf'!"
+          end if
+          write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
+          write(*,'(3x,a,es9.2)') 'Tolerance criterion for input guess:',inputs%iguessTol
+      end if
+  end if
+
 
   ! Set performance variables
   memdebug = inputs%debug
@@ -2290,7 +2343,7 @@ subroutine print_dft_parameters(in,atoms)
        ' elec. field=',in%elecfield,'|                   ','| DIIS Hist. N.=',in%idsx
   if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
-          'Polarisation=',2*in%mpol, '|'
+          'Polarisation=',in%mpol, '|'
   end if
   if (atoms%geocode /= 'F') then
      write(*,'(1x,a,1x,a,3(1x,1pe12.5))')&

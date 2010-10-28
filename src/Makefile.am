@@ -190,6 +190,7 @@ low_level = init/projectors.f90  \
 	wfn_opt/precond_slab.f90 \
 	wfn_opt/kernel_per_optim.f90 \
 	wfn_opt/kernel_slab_simple.f90 \
+	wfn_opt/coupling_matrix.f90 \
 	lib/fft/fft2d.f90 \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \

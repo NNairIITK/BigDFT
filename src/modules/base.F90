@@ -40,6 +40,7 @@ module module_base
   integer, parameter :: gp=kind(1.0d0)  !general-type precision
   integer, parameter :: dp=kind(1.0d0)  !density-type precision
   integer, parameter :: wp=kind(1.0d0)  !wavefunction-type precision
+  integer, parameter :: tp=kind(1.0d0)  !diis precision (single in this context)
 
   ! MPI definitions and datatypes for density and wavefunctions
   include 'mpif.h'

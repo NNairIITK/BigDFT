@@ -98,6 +98,10 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
      end do
   end do
 
+!!$  open(100+me)
+!!$  write(100+me,*)xcart
+!!$  close(100+me)
+
   scfloop_in%inputPsiId = 1
   call call_bigdft(scfloop_nproc,me,scfloop_at,xcart,scfloop_in,epot,grad,fnoise,scfloop_rst,infocode)
 
@@ -123,7 +127,7 @@ END SUBROUTINE scfloop_main
 !! FUNCTION
 !! SOURCE
 !!
-subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, vel, xred)
+subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel, xred)
   use scfloop_API
   use module_base
   use module_types
@@ -136,7 +140,7 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, vel, xred)
   real(dp), intent(in) :: epot, ekin
   real(dp), intent(in) :: acell(3)
   real(dp), intent(in) :: xred(3,natom)
-  real(dp), intent(in) :: fred(3, natom), vel(3, natom)
+  real(dp), intent(in) :: fred(3, natom), vel(3, natom),rprimd(3,3) !the latter is not used
   !Local variables
   character(len=*), parameter :: subname='scfloop_output'
   character(len = 5) :: fn5
