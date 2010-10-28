@@ -286,6 +286,8 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc)
 
   !the number of gaussian centers are thus nat
   G%nat=at%nat
+  !this pointing creates problems if at the next call the positions are given by a different array.
+  !presumably the best if to copy the values and allocate the pointer
   G%rxyz => rxyz
 
   !copy the parsed values in the gaussian structure

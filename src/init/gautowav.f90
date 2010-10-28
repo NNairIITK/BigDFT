@@ -659,7 +659,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   !calculate nterms_max:
   !allows only maxsizeKB per one-dimensional array
   !(for a grid of dimension 100 nterms_max=655)
-  !bu with at least ngx*nterm_max ~= 100 elements
+  !but with at least ngx*nterm_max ~= 100 elements
   nterms_max=max(maxsizeKB*1024/(2*ncplx*max(lr%d%n1,lr%d%n2,lr%d%n3)),100)
 
   allocate(work(0:nw,2,2+ndebug),stat=i_stat)

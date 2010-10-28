@@ -65,18 +65,21 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
         !Check for max number of virtual orbitals
         !the unoccupied orbitals available as a LCAO
         !this is well defined only for closed-shell systems
-        if (ispin == 1) nvirte=min(noncoll*norbe-orbs%norbu,nvirt)
-        if (ispin == 2) nvirte=min(noncoll*norbe-orbs%norbd,nvirt)
-        if(nvirt == nvirte .and. nvirt/=0 .and. iproc==0) then
+        !if (ispin == 1) nvirte=min(noncoll*norbe-orbs%norbu,nvirt)
+        !if (ispin == 2) nvirte=min(noncoll*norbe-orbs%norbd,nvirt)
+	!alternative test, put always the limit to the number of elements of the input guess
+	nvirte=noncoll*norbe
+        if(nvirt < nvirte .and. iproc==0) then
            write(*,'(1x,a)')&
-                "WARNING: A smaller number of virtual orbitals may be needed for better convergence."
-           write(*,'(1x,a,i0)')'         Put nvirte= ',nvirte
+                "WARNING: A bigger number of virtual orbitals may be needed for better convergence."
+           write(*,'(1x,a,i0)')'         Put nvirt= ',nvirte
         end if
         if (nvirte < nvirt) then
            nvirt=nvirte
            if(iproc==0) write(*,'(1x,a,i3)')&
                 "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
         end if
+        nvirt=min(nvirt,nvirte)
      end do
   end if
 

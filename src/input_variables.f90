@@ -542,6 +542,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   in%nkptv = 0
 
   inquire(file=trim(filename),exist=exists)
+
   if (.not. exists) then
      ! Set only the gamma point.
      allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
@@ -566,11 +567,10 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
 
   read(1,*,iostat=ierror) type
   call check()
-
+  
   if (trim(type) == "auto" .or. trim(type) == "Auto" .or. trim(type) == "AUTO") then
      read(1,*,iostat=ierror) kptrlen
      call check()
-
      call ab6_symmetry_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
@@ -589,7 +589,6 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
         read(1,*,iostat=ierror) shiftk(:, i)
         call check()
      end do
-
      call ab6_symmetry_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
      if (ierror /= AB6_NO_ERROR) then

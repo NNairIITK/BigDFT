@@ -1061,6 +1061,20 @@ module module_interfaces
        type(gaussian_basis), intent(out) :: G  
      end subroutine gaussian_hermite_basis
 
+    subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
+      use module_base
+      use module_types
+      implicit none
+      logical, intent(in) :: occorbs
+      integer, intent(in) :: iproc,nspin,nvirt,nplot
+      real(gp), intent(in) :: hx,hy,hz
+      type(atoms_data), intent(in) :: at
+      type(locreg_descriptors), intent(in) :: lr
+      type(orbitals_data), intent(in) :: orbs,orbsv
+      real(gp), dimension(3,at%nat), intent(in) :: rxyz
+      real(wp), dimension(:), pointer :: psi,psivirt
+    end subroutine write_eigen_objects
+
   end interface
 
 end module module_interfaces

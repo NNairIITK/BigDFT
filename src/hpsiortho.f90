@@ -432,7 +432,6 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 
   !here we should add the DIIS/SD switch
   !add switch between DIIS and SD
-  !this section should be inserted into hpsitopsi
   if (energy == energy_min .and. .not. switchSD) idiistol=0
   if (energy > energy_min .and. idsx >0 .and. .not. switchSD) then
      idiistol=idiistol+1
@@ -442,15 +441,16 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      if (iproc ==0) write(*,'(1x,a,1pe9.2,a)')&
           'WARNING: The energy value is growing (delta=',energy-energy_min,') switch to SD'
      switchSD=.true.
-     i_all=-product(shape(psidst))*kind(psidst)
-     deallocate(psidst,stat=i_stat)
-     call memocc(i_stat,i_all,'psidst',subname)
-     i_all=-product(shape(hpsidst))*kind(hpsidst)
-     deallocate(hpsidst,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsidst',subname)
-     i_all=-product(shape(ads))*kind(ads)
-     deallocate(ads,stat=i_stat)
-     call memocc(i_stat,i_all,'ads',subname)
+     !il is not necessary to deallocate these arrays
+     !i_all=-product(shape(psidst))*kind(psidst)
+     !deallocate(psidst,stat=i_stat)
+     !call memocc(i_stat,i_all,'psidst',subname)
+     !i_all=-product(shape(hpsidst))*kind(hpsidst)
+     !deallocate(hpsidst,stat=i_stat)
+     !call memocc(i_stat,i_all,'hpsidst',subname)
+     !i_all=-product(shape(ads))*kind(ads)
+     !deallocate(ads,stat=i_stat)
+     !call memocc(i_stat,i_all,'ads',subname)
      idsx_actual=0
      idiistol=0
   end if
@@ -467,12 +467,13 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      ids=0
      idiistol=0
 
-     allocate(psidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
-     call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
-     call memocc(i_stat,hpsidst,'hpsidst',subname)
-     allocate(ads(idsx+1,idsx+1,orbs%nkptsp*3+ndebug),stat=i_stat)
-     call memocc(i_stat,ads,'ads',subname)
+     !no need to reallocate
+     !allocate(psidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
+     !call memocc(i_stat,psidst,'psidst',subname)
+     !allocate(hpsidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
+     !call memocc(i_stat,hpsidst,'hpsidst',subname)
+     !allocate(ads(idsx+1,idsx+1,orbs%nkptsp*3+ndebug),stat=i_stat)
+     !call memocc(i_stat,ads,'ads',subname)
 
      call razero(orbs%nkptsp*3*(idsx+1)**2,ads)
   end if
@@ -738,263 +739,6 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
 
 END SUBROUTINE calc_moments
 !!***
-
-!experimental routine for correcting the potential from a vacancy
-subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
-     i3s,i3xcsh,hxh,hyh,hzh,pkernel,ngatherarr,&
-     rhoref,pkernel_ref,pot_ion,rhopot,ixc,nspin,ehart,eexcu,vexcu,PSquiet,correct_offset)
-  use module_base
-  use module_types
-  use Poisson_Solver
-  implicit none
-  character(len=3), intent(in) :: PSquiet
-  logical, intent(in) :: correct_offset
-  integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,nspin,ixc,i3xcsh,i3s
-  real(gp), intent(in) :: hxh,hyh,hzh
-  type(atoms_data), intent(in) :: at
-  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
-  real(dp), dimension(n1i,n2i,max(n3d,1),nspin), intent(inout) :: rhoref
-  real(dp), dimension(n1i,n2i,max(n3pi,1)), intent(inout) :: pot_ion
-  real(dp), dimension(n1i,n2i,max(n3d,1),nspin), intent(inout) :: rhopot
-  real(gp), intent(out) :: ehart,eexcu,vexcu
-  real(dp), dimension(:), pointer :: pkernel_ref,pkernel
-  !local variables
-  character(len=*), parameter :: subname='correct_hartree_potential'
-  integer :: i_all,i_stat,ierr,i1,i2,i3,ispin
-  real(gp) :: ehart_fake,ehartA,ehartB,tt,offset
-  real(dp), dimension(:,:,:,:), allocatable :: potref,drho,vxc
-
-  allocate(potref(n1i,n2i,max(n3d,1),nspin+ndebug),stat=i_stat)
-  call memocc(i_stat,potref,'potref',subname)
-
-  allocate(drho(n1i,n2i,n3i,nspin+ndebug),stat=i_stat)
-  call memocc(i_stat,drho,'drho',subname)
-
-  allocate(vxc(n1i,n2i,max(n3p,1),nspin+ndebug),stat=i_stat)
-  call memocc(i_stat,vxc,'vxc',subname)
-
-  !Delta rho = rho - rho_ref
-  do ispin=1,nspin
-     do i3=1,n3d
-        do i2=1,n2i
-           do i1=1,n1i
-              drho(i1,i2,i3s-1+i3,ispin)=&
-                   rhopot(i1,i2,i3,ispin)-rhoref(i1,i2,i3,ispin)
-           end do
-        end do
-     end do
-  end do
-
-!!!  call plot_density(at%geocode,'deltarho.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-!!!       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,i3s+i3xcsh,1))
-
-  !calculate the offset
-  tt=0.d0
-  do i3=1,n3p
-     do i2=1,n2i
-        do i1=1,n1i
-           tt=tt+drho(i1,i2,i3+i3s-1+i3xcsh,1)
-        enddo
-     enddo
-  enddo
-  !tt=tt*hxh*hyh*hzh
-  if (nproc > 1) then
-     call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-          MPI_SUM,MPI_COMM_WORLD,ierr)
-  else
-     offset=tt
-  end if
-
-  if (iproc==0) print *,'charge deltarho',offset*hxh*hyh*hzh
-
-  !rho_tot -> VH_tot & VXC_tot 
-  call H_potential(at%geocode,'D',iproc,nproc,&
-       n1i,n2i,n3i,hxh,hyh,hzh,&
-       rhopot,pkernel,vxc,ehart,0.0_dp,.false.,&
-       quiet=PSquiet)
-
-!!$  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
-!!$       ixc,hxh,hyh,hzh,&
-!!$       rhopot,pkernel,vxc,ehart,eexcu,vexcu,0.d0,.false.,nspin,&
-!!$       quiet=PSquiet)
-
-  !calculate the reference Hartree potential
-  !here the offset should be specified for charged systems
-  call dcopy(n1i*n2i*n3d,rhoref,1,potref,1) 
-  !Rho_ref -> VH_ref
-  call H_potential(at%geocode,'D',iproc,nproc,&
-       n1i,n2i,n3i,hxh,hyh,hzh,&
-       potref,pkernel,pot_ion,ehart_fake,0.0_dp,.false.,&
-       quiet=PSquiet)
-
-!!$  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
-!!$       0,hxh,hyh,hzh,&
-!!$       potref,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
-!!$       quiet=PSquiet)
-  
-  !save the total density in rhopot
-  do ispin=1,nspin
-     do i3=1,n3p
-        do i2=1,n2i
-           do i1=1,n1i
-              rhopot(i1,i2,i3,ispin)=rhoref(i1,i2,i3,ispin)+&
-                   drho(i1,i2,i3s+i3xcsh-1+i3,ispin)
-           end do
-        end do
-     end do
-  end do
-  !rhopot=rhoref+drho
-
-  !gather the total density difference in drho
-  if (nproc > 1) then
-     do ispin=1,nspin
-        call MPI_ALLGATHERV(MPI_IN_PLACE,n1i*n2i*n3p,&
-             mpidtypd,drho(1,1,1,ispin),ngatherarr(0,1),&
-             ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
-     end do
-  end if
-
-  !calculate the vacancy hartree potential
-  !Delta rho -> VH_drho(I)
-  !use global distribution scheme for deltarho
-  call H_potential('F','G',iproc,nproc,&
-       n1i,n2i,n3i,hxh,hyh,hzh,&
-       drho,pkernel_ref,pot_ion,ehart_fake,0.0_dp,.false.,&
-       quiet=PSquiet)
-
-!!$  call PSolver('F','G',iproc,nproc,n1i,n2i,n3i,&
-!!$       0,hxh,hyh,hzh,&
-!!$       drho,pkernel_ref,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
-!!$       quiet=PSquiet)
-
-!!!  call plot_density(at%geocode,'VHdeltarho.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-!!!       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,1+i3xcsh,1))
-
-
-  !sum the complete hartree potential
-  call axpy(n1i*n2i*n3p,1.0_dp,potref(1,1,1+i3xcsh,1),1,drho(1,1,i3s+i3xcsh,1),1)
-
-  if (correct_offset) then
-     !calculate the offset
-     tt=0.d0
-     do i3=1,n3p
-        do i2=1,n2i
-           do i1=1,n1i
-              tt=tt+drho(i1,i2,i3+i3s-1+i3xcsh,1)
-           end do
-        end do
-     end do
-     !tt=tt*hxh*hyh*hzh
-     if (nproc > 1) then
-        call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-             MPI_SUM,MPI_COMM_WORLD,ierr)
-     else
-        offset=tt
-     end if
-
-     if (iproc==0) print *,'offset to subtract',offset
-
-     !now the hartree potential has zero integral
-     drho=drho-offset/real(n1i*n2i*n3i,dp)
-
-     !calculate the offset
-     tt=0.d0
-     do i3=1,n3p
-        do i2=1,n2i
-           do i1=1,n1i
-              tt=tt+drho(i1,i2,i3+i3s-1+i3xcsh,1)
-           end do
-        end do
-     end do
-     if (nproc > 1) then
-        call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-             MPI_SUM,MPI_COMM_WORLD,ierr)
-     else
-        offset=tt
-     end if
-
-     if (iproc==0) print *,'offset (verify)',offset*hxh*hyh*hzh
-  end if
-
-  !calculate total hartree energy
-  ehartA=0.0_dp
-  ehartA=0.5_dp*hxh*hyh*hzh*&
-       dot(n1i*n2i*n3p,rhopot(1,1,1+i3xcsh,1),1,drho(1,1,i3s+i3xcsh,1),1)
-
-  !reduce the result
-  if (nproc > 1) then
-     call MPI_ALLREDUCE(ehartA,ehartB,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
-  else
-     ehartB=ehartA
-  end if
-  ehart=ehartB
-
-  !sum the different potentials (valid only for non-spin polarised systems)
-  call axpy(n1i*n2i*n3p,1.0_dp,pot_ion(1,1,1),1,drho(1,1,i3s+i3xcsh,1),1)
-
-!!!  call plot_density(at%geocode,'VHpVion.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-!!!       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,i3s+i3xcsh,1))
-!!!
-!!!  !calculate the offset
-!!!  tt=0.d0
-!!!  do i3=1,n3p
-!!!     do i2=1,n2i
-!!!        do i1=1,n1i
-!!!           tt=tt+drho(i1,i2,i3+i3xcsh,1)
-!!!        enddo
-!!!     enddo
-!!!  enddo
-!!!  !tt=tt*hxh*hyh*hzh
-!!!  if (nproc > 1) then
-!!!     call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-!!!          MPI_SUM,MPI_COMM_WORLD,ierr)
-!!!  else
-!!!     offset=tt
-!!!  end if
-!!!
-!!!  if (iproc==0) print *,'offset of Vh+Vion',offset
-
-  call axpy(n1i*n2i*n3p*nspin,1.0_dp,vxc(1,1,1,1),1,drho(1,1,i3s+i3xcsh,1),1)
-
-  !final result in rhopot
-  call dcopy(n1i*n2i*n3d*nspin,drho(1,1,i3s,1),1,rhopot,1) 
-
-
-!!!  call plot_density(at%geocode,'Vtot.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-!!!       at%alat1,at%alat2,at%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
-
-  !calculate the offset
-  tt=0.d0
-  do i3=1,n3p
-     do i2=1,n2i
-        do i1=1,n1i
-           tt=tt+rhopot(i1,i2,i3+i3xcsh,1)
-        enddo
-     enddo
-  enddo
-  !tt=tt*hxh*hyh*hzh
-  if (nproc > 1) then
-     call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-          MPI_SUM,MPI_COMM_WORLD,ierr)
-  else
-     offset=tt
-  end if
-
-  if (iproc==0) print *,'offset of the total potential',offset
-
-  i_all=-product(shape(potref))*kind(potref)
-  deallocate(potref,stat=i_stat)
-  call memocc(i_stat,i_all,'potref',subname)
-
-  i_all=-product(shape(vxc))*kind(vxc)
-  deallocate(vxc,stat=i_stat)
-  call memocc(i_stat,i_all,'vxc',subname)
-
-  i_all=-product(shape(drho))*kind(drho)
-  deallocate(drho,stat=i_stat)
-  call memocc(i_stat,i_all,'drho',subname)
-
-END SUBROUTINE correct_hartree_potential
 
 
 subroutine check_communications(iproc,nproc,orbs,lr,comms)
