@@ -575,8 +575,6 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
              nvctrpv,norbv,norbsv,ncompv,nspinorv)
         !there checks ensure that the component distribution scheme of virtual and occupied states is the same
         if (nvctrpv /= nvctrp) stop 'nvctrp'
-        if (norbv /= norb) stop 'norb'
-        if (norbsv /= norbs) stop 'norbs'
         if (ncompv /= ncomp) stop 'ncomp'
         if (nspinorv /= nspinor) stop 'nspinor'
 

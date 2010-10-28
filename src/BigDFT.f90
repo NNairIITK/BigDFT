@@ -92,12 +92,11 @@ program BigDFT
 
      !if other steps are supposed to be done leave the last_run to minus one
      !otherwise put it to one
-     if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1) then
+     if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1 .or. inputs%ncount_cluster_x <= 1) then
         inputs%last_run = 1
      end if
  
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
-
 
      if (inputs%ncount_cluster_x > 1) then
         if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode

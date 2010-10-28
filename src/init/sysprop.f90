@@ -481,7 +481,11 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   else 
      if (iproc==0) write(*,'(1x,a)') 'Spin-polarized calculation'
      norb=nelec
-     norbu=min(norb/2+in%mpol,norb)
+     if (mod(norb+in%mpol,2) /=0) then
+        write(*,*)'ERROR: the input polarization should have the same parity of the number of electrons'
+        stop
+     end if
+     norbu=min((norb+in%mpol)/2,norb)
      norbd=norb-norbu
 
      !test if the spin is compatible with the input guess polarisations
@@ -577,7 +581,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
            !if (iproc==0) 
                 write(*,'(1x,a,i0,a,i0)') &
                 'ERROR: In the file "occup.dat", the number of orbitals up norbu=',ntu,&
-                ' should be greater or equal than min(nelec/2+mpol,nelec)=',norbu
+                ' should be greater or equal than min((nelec+mpol)/2,nelec)=',norbu
            stop
         else
            norbu=ntu
@@ -586,7 +590,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
            !if (iproc==0) 
                   write(*,'(1x,a,i0,a,i0)') &
                 'ERROR: In the file "occup.dat", the number of orbitals down norbd=',ntd,&
-                ' should be greater or equal than min(nelec/2-mpol,0)=',norbd
+                ' should be greater or equal than min((nelec-mpol/2),0)=',norbd
            stop
         else
            norbd=ntd

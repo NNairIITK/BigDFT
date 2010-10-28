@@ -730,7 +730,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
              EP_scalare,EP_add_from_vect_with_fact   , EP_multbyfact  ,EP_precondition, Ene, gamma, 1.0D-4, useold )
         
         print *, ene, res
-        open(unit=22,file="cgspectra", access='append')
+        open(unit=22,file="cgspectra", position='append')
         write(22,*) ene, res
         close(unit=22)
         
