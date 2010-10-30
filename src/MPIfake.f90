@@ -34,6 +34,32 @@
         ierr=MPI_COMM_WORLD*0
         END SUBROUTINE MPI_COMM_SIZE
 
+        subroutine  MPI_COMM_GROUP(MPI_COMM_WORLD,MPI_GROUP,ierr)
+        implicit none
+        integer, intent(in) :: MPI_COMM_WORLD
+        integer, intent(out) :: MPI_GROUP,ierr
+        MPI_GROUP=1
+        ierr=MPI_COMM_WORLD*0
+        END SUBROUTINE MPI_COMM_GROUP
+
+        subroutine  MPI_COMM_CREATE(MPI_COMM_WORLD,MPI_GROUP,MPI_COMM,ierr)
+        implicit none
+        integer, intent(in) :: MPI_COMM_WORLD
+        integer, intent(out) :: MPI_GROUP,MPI_COMM,ierr
+        MPI_GROUP=1
+        MPI_COMM=1
+        ierr=MPI_COMM_WORLD*0
+        END SUBROUTINE MPI_COMM_CREATE
+
+        subroutine  MPI_GROUP_INCL(GROUP,N,NRANKS,NEWGROUP,ierr)
+        implicit none
+        integer, intent(in) :: GROUP,N
+        integer, intent(in) :: NRANKS(N)
+        integer, intent(out) :: NEWGROUP,ierr
+        NEWGROUP=1
+        ierr=0
+        END SUBROUTINE MPI_GROUP_INCL
+
 !here we have routines which do not transform the argument for nproc==1
 !these routines can be safely called also in the serial version
         subroutine  MPI_FINALIZE(ierr)
@@ -111,10 +137,20 @@
         stop 'MPIFAKE: IRECV'
         END SUBROUTINE  MPI_IRECV
         
+        subroutine  MPI_RECV()
+        implicit none
+        stop 'MPIFAKE: RECV'
+        END SUBROUTINE  MPI_RECV
+        
         subroutine  MPI_ISEND()
         implicit none
         stop 'MPIFAKE: ISEND'
         END SUBROUTINE  MPI_ISEND
+        
+        subroutine  MPI_SEND()
+        implicit none
+        stop 'MPIFAKE: SEND'
+        END SUBROUTINE  MPI_SEND
         
         subroutine  MPI_WAITALL()
         implicit none

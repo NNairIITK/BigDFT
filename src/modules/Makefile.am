@@ -51,3 +51,4 @@ mpif.h:
 	echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_STATUSES_IGNORE=1, MPI_LOGICAL=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_MIN=1, MPI_MAX=1,MPI_CHARACTER=1,MPI_REAL8=1,MPI_MAX_PROCESSOR_NAME=1" >> mpif.h
+	echo "integer, parameter :: MPI_STATUS_SIZE=1" >> mpif.h
