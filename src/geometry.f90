@@ -50,6 +50,7 @@ end module minpar
 !!
 subroutine geopt_init()
   use minpar
+  implicit none
 
   parmin%approach  = 'unknown'
   parmin%iter      = 0
@@ -67,9 +68,9 @@ subroutine geopt_init()
   parmin%DIAGCO=.FALSE.
   parmin%IWRITE=.FALSE.
 
-
 END SUBROUTINE geopt_init
 !!***
+
 
 !!****f* BigDFT/geopt_set_verbosity
 !! FUNCTION
@@ -78,10 +79,13 @@ END SUBROUTINE geopt_init
 !!
 subroutine geopt_set_verbosity(verbosity_)
   use minpar
-
+  implicit none
+  !Arguments
+  integer, intent(in) :: verbosity_
   parmin%verbosity = verbosity_
 END SUBROUTINE geopt_set_verbosity
 !!***
+
 
 !!****f* BigDFT/geopt
 !! FUNCTION
@@ -219,7 +223,6 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      call scfloop_init(nproc, at, in, rst)
   end if
 
-
   ! Prepare the objects used by ABINIT.
   allocate(amass(at%nat))
   allocate(xfhist(3, at%nat + 4, 2, in%ncount_cluster_x+1))
@@ -334,7 +337,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   character(len=*), parameter :: subname='conjgrad'  
   integer :: nfail,it,iat,i_all,i_stat,infocode, nitsd
   real(gp) :: anoise,fluct,avbeta,avnum,fnrm,etotprev,beta0,beta
-  real(gp) :: y0,y1,tt,sumx,sumy,sumz,oben1,oben2,oben,unten,rlambda,tetot,fmax,tmp!,eprev
+  real(gp) :: y0,y1,tt,oben1,oben2,oben,unten,rlambda,tetot,fmax,tmp!,eprev
   real(gp), dimension(:,:), allocatable :: tpos,gpf,hh
 !  logical::check
   integer::check
@@ -642,7 +645,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
   character(len=*), parameter :: subname='steepdes'
   logical :: care,move_this_coordinate
   integer :: nsatur,iat,itot,itsd,i_stat,i_all,infocode,nbeqbx,i,ixyz,nr
-  real(gp) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise,sumx,sumy,sumz
+  real(gp) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise
   real(gp) :: fmax,de1,de2,df1,df2,beta,etotprev
   real(gp), allocatable, dimension(:,:) :: tpos
   character*4 fn4
@@ -903,12 +906,12 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   character(len=*), parameter :: subname='vstepsd'  
   integer :: iat,i_all,i_stat,infocode, nitsd,itsd
   real(gp) :: anoise,fluct,fnrm,fnrmold,beta,betaxx,betalast,betalastold
-  real(gp) :: etotold,fmax,scpr,curv,tt,sumx,sumy,sumz,etotprev
+  real(gp) :: etotold,fmax,scpr,curv,tt,etotprev
   real(gp), dimension(:,:), allocatable :: posold,ffold
-  logical reset!,check
-  integer check
-  character*4 fn4
-  character*40 comment
+  logical :: reset!,check
+  integer :: check
+  character(len=4) :: fn4
+  character(len=40) :: comment
 
   check=0
   etotprev=etot
@@ -1163,6 +1166,7 @@ subroutine fnrmandforcemax_old(ff,fnrm,fmax,at)
 !!!  fnrm=t1+t2+t3
 END SUBROUTINE fnrmandforcemax_old
 
+
 subroutine updatefluctsum(nat,fnoise,fluct)
   use module_base
   use module_types
@@ -1177,7 +1181,7 @@ subroutine updatefluctsum(nat,fnoise,fluct)
      fluct=.8d0*fluct+.2d0*fnoise
    endif
 
-end subroutine updatefluctsum
+END SUBROUTINE updatefluctsum
 
 
 !should we evaluate the translational force also with blocked atoms?
@@ -1257,14 +1261,14 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   real(gp), dimension(:,:), allocatable  :: previous_pos
   real(gp), dimension(:,:), allocatable :: product_matrix
   integer :: lter, maxter, i, i_err, n, nrhs, lwork, infocode, j, i_stat, i_all
-  real(gp) :: sumx, sumy, sumz,  fluct, fmax, fnrm,fnoise,etotprev
+  real(gp) :: fluct, fmax, fnrm,fnoise,etotprev
   character(len = 4) :: fn4
   character(len = 40) :: comment
   ! Local variables for Lapack.
   integer, dimension(:), allocatable :: interchanges
-  real(8), dimension(:), allocatable :: work
-  real(8), dimension(:), allocatable :: solution
-  real(8), dimension(:,:), allocatable :: matrice
+  real(kind=8), dimension(:), allocatable :: work
+  real(kind=8), dimension(:), allocatable :: solution
+  real(kind=8), dimension(:,:), allocatable :: matrice
   !logical :: check
   integer :: check
   check=0
@@ -1460,22 +1464,22 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   real(gp), dimension(3*at%nat), intent(out) :: fxyz
 
   real(gp), dimension(3*at%nat):: txyz, sxyz
-  real(gp) :: fluct,fnrm, alpha, fnoise
-  real(gp) ::sumx,sumy,sumz,fmax
+  real(gp) :: fluct,fnrm, fnoise
+  real(gp) :: fmax
 !  logical :: check
   integer :: check
   integer :: infocode,i,ixyz,iat,nitsd
   real(gp) :: fnormmax_sw,etotprev
-  character*4 fn4
-  character*40 comment
+  character(len=4) :: fn4
+  character(len=40) :: comment
   logical :: move_this_coordinate
 
   integer:: n,nr,ndim
   integer:: NWORK
   real(gp),allocatable:: X(:),G(:),DIAG(:),W(:)
-  real(gp):: F,EPS,T1,T2!,XTOL,GTOL,,STPMIN,STPMAX
+  real(gp):: F,EPS!,XTOL,GTOL,,STPMIN,STPMAX
   real(gp), dimension(3*at%nat) :: rxyz0,rxyzwrite
-  INTEGER:: IPRINT(2),IFLAG,ICALL,M,J
+  INTEGER:: IPRINT(2),IFLAG,ICALL,M
   character(len=*), parameter :: subname='bfgs'
   integer :: i_stat,i_all
 
@@ -2109,10 +2113,10 @@ end subroutine atomic_copymoving_backward
 !     FORMATS
 !     -------
 !
- 200  FORMAT(/' IFLAG= -1 ',/' LINE SEARCH FAILED. SEE'&
-               ' DOCUMENTATION OF ROUTINE MCSRCH',/' ERROR RETURN'&
+ 200  FORMAT(/' IFLAG= -1 ',/' LINE SEARCH FAILED. SEE',/&
+               ' DOCUMENTATION OF ROUTINE MCSRCH',/' ERROR RETURN',/&
                ' OF LINE SEARCH: INFO= ',I2,/&
-               ' POSSIBLE CAUSES: FUNCTION OR GRADIENT ARE INCORRECT',/,&
+               ' POSSIBLE CAUSES: FUNCTION OR GRADIENT ARE INCORRECT',/&
                ' OR INCORRECT TOLERANCES')
  235  FORMAT(/' IFLAG= -2',/' THE',I5,'-TH DIAGONAL ELEMENT OF THE',/,&
             ' INVERSE HESSIAN APPROXIMATION IS NOT POSITIVE')
