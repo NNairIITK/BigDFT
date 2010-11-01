@@ -601,6 +601,7 @@ contains
 
   subroutine close_and_deallocate
     use module_base
+    implicit none
     !    Close the file
     !close(unit=16)
     i_all=-product(shape(tpos))*kind(tpos)
@@ -893,6 +894,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   use module_types
   use minpar
   implicit none
+  !Arguments
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   real(gp), intent(inout) :: etot
@@ -1107,7 +1109,7 @@ subroutine convcheck(fnrm,fmax,fluctfrac_fluct,forcemax,check)
     check=0
   endif
 
-end subroutine convcheck
+END SUBROUTINE convcheck
 
 subroutine fnrmandforcemax(ff,fnrm,fmax,nat)
   use module_base
@@ -1206,6 +1208,7 @@ subroutine transforce(at,fxyz,sumx,sumy,sumz)
 
   end do
 END SUBROUTINE transforce
+
 
 !should we evaluate the translational force also with blocked atoms?
 subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
@@ -1497,7 +1500,6 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   txyz=0._gp
   sxyz=0._gp
   
-
   if (iproc==0)    write(*,*) 'Maximum number of SD steps used in the beginning: ',nitsd
 
   call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,fnrm,fnoise,in,&
@@ -1516,54 +1518,53 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   endif
 
 
-    !Make a list of all degrees of freedom that should be passed to bfgs
-    n=3*at%nat
-    nr=0
-    do i=1,3*at%nat
-        iat=(i-1)/3+1
-        ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(at%ifrztyp(iat),ixyz)) nr=nr+1
-    enddo
-    if(iproc==0) write(*,*) 'DOF: n,nr ',n,nr
-      NDIM=nr
-      NWORK=NDIM*(2*parmin%MSAVE +1)+2*parmin%MSAVE
+  !Make a list of all degrees of freedom that should be passed to bfgs
+  n=3*at%nat
+  nr=0
+  do i=1,3*at%nat
+     iat=(i-1)/3+1
+     ixyz=mod(i-1,3)+1
+     if(move_this_coordinate(at%ifrztyp(iat),ixyz)) nr=nr+1
+  enddo
+  if(iproc==0) write(*,*) 'DOF: n,nr ',n,nr
+     NDIM=nr
+     NWORK=NDIM*(2*parmin%MSAVE +1)+2*parmin%MSAVE
       
-      allocate(X(NDIM),stat=i_stat)
-      call memocc(i_stat,X,'X',subname)
-      allocate(G(NDIM),stat=i_stat)
-      call memocc(i_stat,G,'G',subname)
-      allocate(DIAG(NDIM),stat=i_stat)
-      call memocc(i_stat,DIAG,'DIAG',subname)
-      allocate(W(NWORK),stat=i_stat)
-      call memocc(i_stat,W,'W',subname)
+     allocate(X(NDIM),stat=i_stat)
+     call memocc(i_stat,X,'X',subname)
+     allocate(G(NDIM),stat=i_stat)
+     call memocc(i_stat,G,'G',subname)
+     allocate(DIAG(NDIM),stat=i_stat)
+     call memocc(i_stat,DIAG,'DIAG',subname)
+     allocate(W(NWORK),stat=i_stat)
+     call memocc(i_stat,W,'W',subname)
 
+     call atomic_copymoving_forward(at,n,rxyz,nr,X)
 
-      call atomic_copymoving_forward(at,n,rxyz,nr,X)
-
-      N=nr
-      M=parmin%MSAVE
-      IPRINT(1)= 1
-      IPRINT(2)= 0
-      F=etot
+     N=nr
+     M=parmin%MSAVE
+     IPRINT(1)= 1
+     IPRINT(2)= 0
+     F=etot
 !     We do not wish to provide the diagonal matrices Hk0, and 
 !     therefore set DIAGCO to FALSE.
 
-      EPS=0.0_gp
-      ICALL=0
-      IFLAG=0
+     EPS=0.0_gp
+     ICALL=0
+     IFLAG=0
 
  20   CONTINUE
-              if (parmin%IWRITE) then
-              if (iproc == 0) then
+        if (parmin%IWRITE) then
+           if (iproc == 0) then
               write(fn4,'(i4.4)') ncount_bigdft
               write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
               call  write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
-              endif
-              parmin%IWRITE=.false.
-              endif
-              rxyzwrite=rxyz
+           endif
+           parmin%IWRITE=.false.
+        endif
+        rxyzwrite=rxyz
 
-              if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
    if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) & 
               &write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)')&
               &ncount_bigdft,ICALL,"GEOPT_BFGS",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct&
@@ -1638,8 +1639,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
       deallocate(W,stat=i_stat)
       call memocc(i_stat,i_all,'W',subname)
 
-      return 
-    END subroutine lbfgsdriver
+END subroutine lbfgsdriver
 
 
 subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
@@ -1659,8 +1659,9 @@ subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
         endif
     enddo
     if(ir/=nr) stop 'ERROR: inconsistent number of relaxing DOF'
-end subroutine atomic_copymoving_forward
-!*****************************************************************************************
+END SUBROUTINE atomic_copymoving_forward
+
+
 subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
     use module_types
     implicit none
@@ -1678,7 +1679,7 @@ subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
         endif
     enddo
     if(ir/=nr) stop 'ERROR: inconsistent number of relaxing DOF'
-end subroutine atomic_copymoving_backward
+END SUBROUTINE atomic_copymoving_backward
 
 
 !     LUIGI: PLEASE CUT OUT THIS PART AND PUT IN A  TABOO file

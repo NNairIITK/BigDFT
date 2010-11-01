@@ -57,7 +57,7 @@
         integer, intent(in) :: NRANKS(N)
         integer, intent(out) :: NEWGROUP,ierr
         NEWGROUP=1
-        ierr=0
+        ierr=GROUP*0
         END SUBROUTINE MPI_GROUP_INCL
 
 !here we have routines which do not transform the argument for nproc==1
