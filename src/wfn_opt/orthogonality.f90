@@ -147,7 +147,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   real(dp), intent(out) :: scprsum
   !local variables
   character(len=*), parameter :: subname='orthoconstraint'
-  integer :: i_stat,i_all,ierr,iorb,ise
+  integer :: i_stat,i_all,ierr,iorb,ise,jorb
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   real(dp) :: occ,tt
   integer, dimension(:,:), allocatable :: ndimovrlp
@@ -227,14 +227,23 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
      ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
-
+        if (ispin==1) ise=0
         call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         if (nvctrp == 0) cycle
 
+        !correct the orthogonality constraint if there are some orbitals which have zero occupation number
+        do iorb=1,norb
+           do jorb=1,norb
+              if (orbs%occup((ikpt-1)*orbs%norb+iorb+ise) == 0.0_gp .and. &
+                   orbs%occup((ikpt-1)*orbs%norb+jorb+ise) /= 0.0_gp) then
+                 alag(ndimovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs) = 0.0_wp
+              end if
+           end do
+        end do
+
         !calculate the scprsum if the k-point is associated to this processor
         if (orbs%ikptproc(ikpt) == iproc) then
-           if (ispin==1) ise=0
            if(nspinor == 1) then
               do iorb=1,norb
                  occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb+ise),dp)
@@ -251,8 +260,8 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
                       occ*real(alag(ndimovrlp(ispin,ikpt-1)+2*iorb+(iorb-1)*norbs),dp)
               enddo
            end if
-           ise=norb
         end if
+        ise=norb
 
         if(nspinor==1 .and. nvctrp /= 0) then
            call gemm('N','N',nvctrp,norb,norb,-1.0_wp,psi(ispsi),max(1,nvctrp),&

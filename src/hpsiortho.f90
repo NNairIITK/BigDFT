@@ -255,7 +255,7 @@ end module wavefunctionDIIS
 !!
 subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      ncong,iter,diis,idsx,idsx_actual,energy,energy_old,&
-     alpha,gnrm,scprsum,psi,psit,hpsi,nspin,GPU,input)
+     alpha,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,nspin,GPU,input)
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => hpsitopsi
@@ -270,13 +270,13 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   type(diis_objects), intent(inout) :: diis
   integer, intent(inout) :: idsx_actual
   real(wp), intent(inout) :: alpha
-  real(dp), intent(inout) :: gnrm,scprsum
+  real(dp), intent(inout) :: gnrm,gnrm_zero,scprsum
   real(wp), dimension(:), pointer :: psi,psit,hpsi
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='hpsitopsi'
 !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
-  integer :: ierr,iorb,k,i_stat,i_all
+  integer :: ierr,iorb,k,i_stat,i_all,nzeroorbs
   real(dp) :: tt
   real(wp), dimension(:,:,:), allocatable :: mom_vec
 
@@ -343,12 +343,12 @@ integer:: i
 
   if (GPUconv) then
      call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
-          hpsi,gnrm,GPU)
+          hpsi,gnrm,gnrm_zero,GPU)
   else if (OCLconv) then
      call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
-          hpsi,gnrm,GPU)
+          hpsi,gnrm,gnrm_zero,GPU)
   else
-     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
+     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   end if
 
 !!$  if (OCLconv) then
@@ -370,8 +370,23 @@ integer:: i
      !tt=gnrm
      !call MPI_ALLREDUCE(tt,gnrm,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
      call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
   endif
-  gnrm=sqrt(gnrm/real(orbs%norb,dp))
+  !count the number of orbitals which has nonzero occupation number
+  !assume that this is the same for all k-points, which is not true in general
+  nzeroorbs=0
+  do iorb=1,orbs%norb
+     if (orbs%occup(iorb) == 0.0_gp) then
+        nzeroorbs=nzeroorbs+1
+     end if
+  end do
+  gnrm=sqrt(gnrm/real(orbs%norb-nzeroorbs,dp))
+
+  if (nzeroorbs /= 0) then
+     gnrm_zero=sqrt(gnrm_zero/real(nzeroorbs,dp))
+  else
+     gnrm_zero=0.0_gp
+  end if
 
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)')&
@@ -619,6 +634,8 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
      end do
   end if
 
+  if (iproc == 0) call eFermi(orbs)
+
   if (orbs%nspinor ==4) then
      i_all=-product(shape(mom_vec))*kind(mom_vec)
      deallocate(mom_vec,stat=i_stat)
@@ -631,6 +648,79 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
 
 END SUBROUTINE last_orthon
 !!***
+
+subroutine eFermi(orbs)
+  use module_base
+  use module_types
+  implicit none
+  type(orbitals_data), intent(in) :: orbs
+  !local variables
+  integer :: iu,id,i,n,nzeroorbs,ikpt,iorb
+  real(gp) :: charge
+  real(wp) :: eF
+
+  do ikpt=1,orbs%nkpts
+     !number of zero orbitals for the given k-point
+     nzeroorbs=0
+     !overall charge of the system
+     charge=0.0_gp
+     do iorb=1,orbs%norb
+        if (orbs%occup(iorb+(ikpt-1)*orbs%norb) == 0.0_gp) then
+           nzeroorbs=nzeroorbs+1
+        else
+           charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb)
+        end if
+     end do
+     if (nzeroorbs /= 0) then
+        do iorb=1,orbs%norbu-1
+           if (orbs%eval((ikpt-1)*orbs%norb+iorb) > orbs%eval((ikpt-1)*orbs%norb+iorb+1)) &
+                write(*,*) 'wrong ordering of up EVs',i,iorb,iorb+1
+        end do
+        do iorb=1,orbs%norbd-1
+           if (orbs%eval((ikpt-1)*orbs%norb+iorb+orbs%norbu) > orbs%eval((ikpt-1)*orbs%norb+iorb+1+orbs%norbu))&
+                write(*,*) 'wrong ordering of dw EVs',i,iorb+orbs%norbu,iorb+1+orbs%norbu
+        enddo
+
+        iu=0
+        id=0
+        n=0
+        do while (real(n,gp) < charge)
+           if (orbs%eval((ikpt-1)*orbs%norb+iu+1) <= orbs%eval((ikpt-1)*orbs%norb+id+1+orbs%norbu)) then
+              iu=iu+1
+              eF=orbs%eval((ikpt-1)*orbs%norb+iu+1)
+           else
+              id=id+1
+              eF=orbs%eval((ikpt-1)*orbs%norb+id+1+orbs%norbu)
+           endif
+           n=n+1
+        enddo
+        write(*,*) 'Suggested Homo energy level',eF
+        write(*,*) 'up,down, up-down',iu,id,iu-id
+     end if
+  end do
+
+  !if nkpts==1 we can write the new occup.dat now
+  if (orbs%nkpts == 1 .and. nzeroorbs /= 0) then
+     open(unit=11,file='occup.dat',status='unknown')
+     write(11,*)orbs%norbu,orbs%norbd
+     do iorb=1,iu
+        write(11,*)iorb,' 1'
+     end do
+     do iorb=iu+1,orbs%norbu
+        write(11,*)iorb,' 0'
+     end do
+     do iorb=1,id
+        write(11,*)iorb+orbs%norbu,' 1'
+     end do
+     do iorb=id+1,orbs%norbd
+        write(11,*)iorb+orbs%norbu,' 0'
+     end do
+     close(unit=11)
+  end if
+  
+
+end subroutine eFermi
+
 
 
 !!****f* BigDFT/calc_moments
