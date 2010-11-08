@@ -220,7 +220,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(gp) :: peakmem,energy_old,evsum
-  real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,alpha,gnrm
+  real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,alpha,gnrm,gnrm_zero
   real(gp) :: scprsum,energybs,tt,tel,ehart_fake,psoffset
   real(kind=8) :: ttsum
   real(gp) :: edisp ! Dispersion energy
@@ -719,6 +719,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   alpha=2.d0
   energy=1.d10
   gnrm=1.d10
+  gnrm_zero=0.0d0
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
@@ -812,8 +813,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
            write( *,'(1x,a,3(1x,1pe18.11))') &
                 'final ehart, eexcu,  vexcu ',ehart,eexcu,vexcu
-           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
-                'FINAL iter,total energy,gnrm',iter,energy,gnrm
+           if (gnrm_zero == 0.0_gp) then
+              write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
+                   'FINAL iter,total energy,gnrm',iter,energy,gnrm
+           else
+              write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') &
+                   'FINAL iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
+
+           end if
            !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
            if (energy > diis%energy_min) write( *,'(1x,a,1pe9.2)')&
                 'WARNING: Found an energy value lower than the FINAL energy, delta:',energy-diis%energy_min
@@ -827,7 +834,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
      call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
           iter,diis,idsx,idsx_actual,energy,energy_old,&
-          alpha,gnrm,scprsum,psi,psit,hpsi,in%nspin,GPU,in)
+          alpha,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,in%nspin,GPU,in)
 
      tt=(energybs-scprsum)/scprsum
      if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
@@ -841,7 +848,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 ekin_sum,epot_sum,eproj_sum
            write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
         end if
-        write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
+        if (gnrm_zero == 0.0_gp) then
+           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
+        else
+           write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
+        end if
      endif
 
      if (in%inputPsiId == 0) then
@@ -1191,7 +1202,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
      end if
 
-     if (atoms%geocode == 'F') then
+     if (atoms%geocode == 'F' .and. .false.) then
         ! Potential from electronic charge density
         call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
              n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)

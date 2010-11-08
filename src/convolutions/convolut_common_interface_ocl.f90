@@ -246,7 +246,7 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
   
 end subroutine local_hamiltonian_OCL
 
-subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
+subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
   use module_base
   use module_types
   implicit none
@@ -254,7 +254,7 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
   integer, intent(in) :: iproc,nproc,ncong
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
-  real(dp), intent(out) :: gnrm
+  real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
   character(len=*), parameter :: subname='preconditionall_OCL'
@@ -299,42 +299,48 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
      call memocc(i_stat,b,'b',subname)
 
      gnrm=0.0_dp
+     gnrm_zero=0.0_dp
 
      do iorb=1,orbs%norbp
         do inds=1,orbs%nspinor,ncplx !the streams should be more if nspinor>1
            !the nrm2 function can be replaced here by ddot
            scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi(1,inds,iorb),1)
-           gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
-
-        call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,0.5_wp,w,&
+           if (orbs%occup(orbs%isorb+iorb) == 0.0_gp) then
+              gnrm_zero=gnrm_zero+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+           else
+              !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
+              gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+           end if
+           
+           call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,0.5_wp,w,&
                 hpsi(1,inds,iorb),b(1,iorb))
-
-        call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*orbs%nspinor*8,&
-             hpsi(1,inds,iorb))
-        call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*orbs%nspinor*8,&
-             hpsi(isf,inds,iorb))
-
-        call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c_b,lr%wfd%nvctr_c*orbs%nspinor*8,&
-             b(1,iorb))
-        call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f_b,7*lr%wfd%nvctr_f*orbs%nspinor*8,&
-             b(isf,iorb))
-
-        call ocl_preconditioner_generic(GPU%queue,&
-                                (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
-                                (/periodic(1),periodic(2),periodic(3)/),&
-                                (/0.5_gp*hx,0.5_gp*hy,0.5_gp*hz/),&
-                                0.5_wp,&
-                                ncong,&
-                                lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
-                                lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,&
-                                GPU%psi_c,GPU%psi_f,&
-                                GPU%psi_c_r,GPU%psi_f_r,&
-                                GPU%psi_c_b,GPU%psi_f_b,&
-                                GPU%psi_c_d,GPU%psi_f_d,&
-                                GPU%d,GPU%work1,GPU%work2,GPU%work3)
-
-        call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*orbs%nspinor*8,hpsi(1,inds,iorb))
-        call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*orbs%nspinor*8,hpsi(isf,inds,iorb))
+           
+           call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*orbs%nspinor*8,&
+                hpsi(1,inds,iorb))
+           call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*orbs%nspinor*8,&
+                hpsi(isf,inds,iorb))
+           
+           call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c_b,lr%wfd%nvctr_c*orbs%nspinor*8,&
+                b(1,iorb))
+           call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f_b,7*lr%wfd%nvctr_f*orbs%nspinor*8,&
+                b(isf,iorb))
+           
+           call ocl_preconditioner_generic(GPU%queue,&
+                (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
+                (/periodic(1),periodic(2),periodic(3)/),&
+                (/0.5_gp*hx,0.5_gp*hy,0.5_gp*hz/),&
+                0.5_wp,&
+                ncong,&
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
+                lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,&
+                GPU%psi_c,GPU%psi_f,&
+                GPU%psi_c_r,GPU%psi_f_r,&
+                GPU%psi_c_b,GPU%psi_f_b,&
+                GPU%psi_c_d,GPU%psi_f_d,&
+                GPU%d,GPU%work1,GPU%work2,GPU%work3)
+           
+           call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*orbs%nspinor*8,hpsi(1,inds,iorb))
+           call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*orbs%nspinor*8,hpsi(isf,inds,iorb))
 
         end do
      end do

@@ -2320,8 +2320,6 @@ END SUBROUTINE print_general_parameters
 !!
 subroutine print_dft_parameters(in,atoms)
   use module_types
-  use defs_basis
-  use ab6_symmetry
   implicit none
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: atoms

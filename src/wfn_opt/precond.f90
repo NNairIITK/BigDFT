@@ -10,7 +10,7 @@
 !!
 !! SOURCE
 !! 
-subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
+subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   use module_base
   use module_types
   implicit none
@@ -18,7 +18,7 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
-  real(dp), intent(out) :: gnrm
+  real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
   integer :: iorb,inds,ncplx
@@ -30,6 +30,8 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
   ! norm of gradient
   gnrm=0.0_dp
+  !norm of gradient of unoccupied orbitals
+  gnrm_zero=0.0_dp
 
   do iorb=1,orbs%norbp
      ! define zero energy for preconditioning 
@@ -57,16 +59,21 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
         !the nrm2 function can be replaced here by ddot
         scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi(1,inds,iorb),1)
-        !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
-        gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        if (orbs%occup(orbs%isorb+iorb) == 0.0_gp) then
+           gnrm_zero=gnrm_zero+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        else
+           !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
+           gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        end if
 
-        if (scpr /= 0.0_wp) then
+       if (scpr /= 0.0_wp) then
            !value of the cpreconditioner
            !cprecr=-(orbs%eval(orbs%isorb+iorb)-eval_zero)+.10d0
            !write(*,*) 'cprecr:',iorb,cprecr,orbs%eval(orbs%isorb+iorb)
            select case(lr%geocode)
            case('F')
-              cprecr=-orbs%eval(orbs%isorb+iorb)
+!              cprecr=-orbs%eval(orbs%isorb+iorb)
+             cprecr=sqrt(.1d0**2+orbs%eval(orbs%isorb+iorb)**2)
            case('S')
               cprecr=0.5_wp
            case('S')

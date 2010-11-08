@@ -20,7 +20,7 @@ program oneatom
   integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3,ndegree_ip
   integer :: idsx_actual,ndiis_sd_sw,idsx_actual_before,iter
   real(gp) :: hxh,hyh,hzh
-  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
+  real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
   real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
   type(atoms_data) :: atoms
   type(input_variables) :: in
@@ -178,6 +178,7 @@ program oneatom
   alpha=2.d0
   energy=1.d10
   gnrm=1.d10
+  gnrm_zero=0.0_gp
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
@@ -235,7 +236,7 @@ program oneatom
 
      call hpsitopsi(iproc,nproc,orbs,in%hx,in%hy,in%hz,Glr,comms,in%ncong,&
           iter,diis,in%idsx,idsx_actual,energy,energy_old,&
-          alpha,gnrm,scprsum,psi,psit,hpsi,in%nspin,GPU,in)
+          alpha,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,in%nspin,GPU,in)
 
      write(itername,'(i4.4)')iter
      call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'')
