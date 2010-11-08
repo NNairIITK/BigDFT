@@ -80,6 +80,11 @@
 
   loop_cluster: do icycle=1,in%nrepmax
 
+     !if we are in the last_run case, validate the last_run only for the last cycle
+     if (in%last_run == 1 .and. icycle == in%nrepmax) then
+        in%last_run=100 !do the last_run things regardless of infocode
+     end if
+
      if (in%inputPsiId == 0 .and. associated(rst%psi)) then
         i_all=-product(shape(rst%psi))*kind(rst%psi)
         deallocate(rst%psi,stat=i_stat)
@@ -205,7 +210,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   character(len=4) :: f4
   character(len=50) :: filename
   logical :: endloop,potion_overwritten=.false.,allfiles,onefile,refill_proj
-  logical :: DoDavidson,counterions
+  logical :: DoDavidson,counterions,DoLastRunThings=.false.
   integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before,nsym
   integer :: nvirt,ndiis_sd_sw,norbv
   integer :: nelec,ndegree_ip,j,i,iorb
@@ -871,9 +876,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call deallocate_diis_objects(diis,subname)
   end if
 
+  !last run things has to be done:
+  !if it is the last run and the infocode is zero
+  !if infocode is not zero but the last run has been done for nrepmax times
+  DoLastRunThings= in%last_run==100 .or. (in%last_run == 1 .and. infocode == 0)
+
   !analyse the possiblity to calculate Davidson treatment
   !(nvirt > 0 .and. in%inputPsiId == 0)
-  DoDavidson= abs(in%norbv) > 0 .and. (infocode==0 .or. in%nrepmax == 1) .and. in%last_run == 1
+  DoDavidson= abs(in%norbv) > 0 .and. DoLastRunThings
   
   call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
        comms,psi,hpsi,psit,evsum)
@@ -929,7 +939,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   end if
 
   !  write all the wavefunctions into files
-  if (in%output_wf .and. in%last_run==1) then
+  if (in%output_wf .and. DoLastRunThings) then
      !add flag for writing waves in the gaussian basis form
      if (in%gaussian_help) then
 
@@ -958,7 +968,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   end if
 
   !plot the ionic potential, if required by output_grid
-  if (abs(in%output_grid)==2 .and. in%last_run==1) then
+  if (abs(in%output_grid)==2 .and. DoLastRunThings) then
      !if (in%output_grid==2) then
         !if (iproc == 0) write(*,*) 'writing ionic_potential.pot'
         if (iproc == 0) write(*,*) 'writing ionic_potential.cube'
@@ -1012,7 +1022,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
 
   !plot the density on the density.pot file
-  if ((abs(in%output_grid) >= 1 .or. in%nvacancy /=0) .and. in%last_run==1) then
+  if ((abs(in%output_grid) >= 1 .or. in%nvacancy /=0) .and. DoLastRunThings) then
      if (iproc == 0) write(*,*) 'writing electronic_density.cube'
 
      call plot_density(atoms%geocode,'electronic_density',&
@@ -1043,7 +1053,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
        n1i,n2i,n3i,hxh,hyh,hzh,pot,pkernel,pot,ehart_fake,0.0_dp,.false.)
 
   !plot also the electrostatic potential
-  if (abs(in%output_grid) == 2 .and. in%last_run==1) then
+  if (abs(in%output_grid) == 2 .and. DoLastRunThings) then
         call plot_density(atoms%geocode,'hartree_potential',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
              in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot)
   end if
@@ -1066,7 +1076,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
 
   !refill projectors for tails, davidson
-  refill_proj=(in%calc_tail .or. DoDavidson) .and. in%last_run==1
+  refill_proj=(in%calc_tail .or. DoDavidson) .and. DoLastRunThings
 
   call nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,atoms,rxyz,&
        orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
@@ -1249,7 +1259,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !perform here the mulliken charge and density of states
   !localise them on the basis of gatom of a number of atoms
-  if (in%gaussian_help .and. in%last_run==1) then
+  if (in%gaussian_help .and. DoLastRunThings) then
      !here one must check if psivirt should have been kept allocated
      if (.not. DoDavidson) then
         orbsv%norb=0
@@ -1264,7 +1274,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
 
   !------------------------------------------------------------------------
-  if (in%calc_tail .and. atoms%geocode == 'F' .and. in%last_run==1 ) then
+  if (in%calc_tail .and. atoms%geocode == 'F' .and. DoLastRunThings ) then
      call timing(iproc,'Tail          ','ON')
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential

@@ -69,8 +69,10 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
               cprecr=-orbs%eval(orbs%isorb+iorb)
            case('S')
               cprecr=0.5_wp
+           case('S')
            case('P')
               cprecr=0.5_wp
+!              cprecr=-orbs%eval(orbs%isorb+iorb)
            end select
            
 
