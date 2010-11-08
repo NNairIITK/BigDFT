@@ -234,10 +234,12 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
 
         !correct the orthogonality constraint if there are some orbitals which have zero occupation number
         do iorb=1,norb
-           do jorb=1,norb
-              if (orbs%occup((ikpt-1)*orbs%norb+iorb+ise) == 0.0_gp .and. &
-                   orbs%occup((ikpt-1)*orbs%norb+jorb+ise) /= 0.0_gp) then
+           do jorb=iorb+1,norb
+              if (orbs%occup((ikpt-1)*orbs%norb+iorb+ise) /= 0.0_gp .and. &
+                   orbs%occup((ikpt-1)*orbs%norb+jorb+ise) == 0.0_gp) then
                  alag(ndimovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs) = 0.0_wp
+                 alag(ndimovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs) = 0.0_wp
+                 !if (iproc ==0) print *,'i,j',iorb,jorb,alag(ndimovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs)
               end if
            end do
         end do

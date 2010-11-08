@@ -66,13 +66,14 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
            gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
         end if
 
-        if (scpr /= 0.0_wp) then
+       if (scpr /= 0.0_wp) then
            !value of the cpreconditioner
            !cprecr=-(orbs%eval(orbs%isorb+iorb)-eval_zero)+.10d0
            !write(*,*) 'cprecr:',iorb,cprecr,orbs%eval(orbs%isorb+iorb)
            select case(lr%geocode)
            case('F')
-              cprecr=-orbs%eval(orbs%isorb+iorb)
+!              cprecr=-orbs%eval(orbs%isorb+iorb)
+             cprecr=sqrt(.1d0**2+orbs%eval(orbs%isorb+iorb)**2)
            case('S')
               cprecr=0.5_wp
            case('P')
