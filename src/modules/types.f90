@@ -65,6 +65,7 @@ module module_types
      real(gp) :: bmass, vmass, strprecon, strfact
      real(gp) :: strtarget(6)
      real(gp), pointer :: qmass(:)
+     real(gp) :: dtinit,dtmax !for FIRE
 
      ! variable for material acceleration
      ! values 0: traditional CPU calculation

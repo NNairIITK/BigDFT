@@ -671,7 +671,7 @@ subroutine eFermi(orbs)
            charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb)
         end if
      end do
-     if (nzeroorbs /= 0) then
+     if (nzeroorbs /= 0 .and. orbs%norbd .gt.0) then
         do iorb=1,orbs%norbu-1
            if (orbs%eval((ikpt-1)*orbs%norb+iorb) > orbs%eval((ikpt-1)*orbs%norb+iorb+1)) &
                 write(*,*) 'wrong ordering of up EVs',i,iorb,iorb+1
@@ -700,7 +700,7 @@ subroutine eFermi(orbs)
   end do
 
   !if nkpts==1 we can write the new occup.dat now
-  if (orbs%nkpts == 1 .and. nzeroorbs /= 0) then
+  if (orbs%nkpts == 1 .and. nzeroorbs /= 0 .and. orbs%norbd .gt.0) then
      open(unit=11,file='occup.dat',status='unknown')
      write(11,*)orbs%norbu,orbs%norbd
      do iorb=1,iu
