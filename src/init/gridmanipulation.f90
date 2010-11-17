@@ -440,7 +440,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
   logical, dimension(0:n1,0:n2,0:n3), intent(out) :: logrid
   !local variables
   real(kind=8), parameter :: eps_mach=1.d-12
-  integer :: i1,i2,i3,iat,ml1,ml2,ml3,mu1,mu2,mu3,j1,j2,j3,ipoints
+  integer :: i1,i2,i3,iat,ml1,ml2,ml3,mu1,mu2,mu3,j1,j2,j3
   real(gp) :: dx,dy2,dz2,rad
 
   !some checks
