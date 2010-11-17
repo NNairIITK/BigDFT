@@ -506,7 +506,7 @@ function erfor(r,rl)
   if (r == 0.0_gp) then
      erfor=2.0_gp/(sqrt(pi)*sq2rl)
   else
-     call derf(derf_val,r/sq2rl)
+     call derf_ab(derf_val,r/sq2rl)
      erfor=derf_val/r
   end if
 
