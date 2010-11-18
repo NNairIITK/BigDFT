@@ -1,5 +1,18 @@
-!naive subroutine which performs a direct minimization of the energy 
-!for a given hamiltonian
+!!****f* BigDFT/direct_minimization
+!!
+!! DESCRIPTION
+!!   Naive subroutine which performs a direct minimization of the energy 
+!!   for a given hamiltonian
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2010 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
           orbs,orbsv,nvirt,lr,comms,commsv,&
           hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
@@ -28,8 +41,8 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   character(len=*), parameter :: subname='direct_minimization'
   logical :: msg,exctX,occorbs,endloop !extended output
   integer :: occnorb, occnorbu, occnorbd
-  integer :: ierr,i_stat,i_all,iter,ikpt,idsx_actual,idsx_actual_before,ndiis_sd_sw
-  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,gnrm_fake,alpha
+  integer :: i_stat,i_all,iter,ikpt,idsx_actual,idsx_actual_before,ndiis_sd_sw
+  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
   real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
   real(wp), dimension(:), pointer :: psiw,psidst,hpsidst,psirocc,psitvirt,hpsivirt
   real(wp), dimension(:,:,:), pointer :: ads
@@ -187,14 +200,14 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   !previous value of idsx_actual to control if switching has appeared
   idsx_actual_before=idsx_actual
 
-  wfn_loop: do iter=1,in%itermax
+  wfn_loop: do iter=1,in%itermax+100
 
      if (iproc == 0 .and. verbose > 0) then 
         write( *,'(1x,a,i0)') &
              & repeat('~',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
      endif
      !control whether the minimisation iterations ended
-     endloop= gnrm <= in%gnrm_cv .or. iter == in%itermax
+     endloop= gnrm <= in%gnrm_cv .or. iter == in%itermax+100
      
      !control how many times the DIIS has switched into SD
      if (idsx_actual /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
@@ -262,7 +275,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      endif
 
   end do wfn_loop
-  if (iter == in%itermax .and. iproc == 0 ) &
+  if (iter == in%itermax+100 .and. iproc == 0 ) &
        write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
 
   !deallocate real array of wavefunctions
@@ -317,6 +330,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   !the plotting should be added here (perhaps build a common routine?)
 
 end subroutine direct_minimization
+!!***
 
 
 !!****f* BigDFT/davidson
@@ -333,8 +347,7 @@ end subroutine direct_minimization
 !!   Algorithm
 !!   _________
 !!   (parallel)
-    
-    
+!!
 !!   (transpose psi, v is already transposed)
 !!   orthogonality of v to psi
 !!   orthogonalize v
@@ -773,7 +786,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      !we fill the values of the eval for the orbitals used in the preconditioner
      do ikpt=1,orbsv%nkpts
         do iorb=1,orbsv%norb
-           orbsv%eval(iorb+(ikpt-1)*orbsv%norb)=e(iorb,ikpt,1)
+           !write(*,*) 'iorb,e(iorb,ikpt,1)',iorb,e(iorb,ikpt,1)
+           orbsv%eval(iorb+(ikpt-1)*orbsv%norb)=min(e(iorb,ikpt,1),-.5d0)
+           !orbsv%eval(iorb+(ikpt-1)*orbsv%norb)=e(iorb,ikpt,1)
         end do
      end do
      !we use for preconditioning the eval from the lowest value of the KS wavefunctions
@@ -1244,37 +1259,42 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      end if
      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
      !plot the orbital and the density
-     write(orbname,'(A,i3.3)')'virtual',iorb+orbsv%isorb
-     write(denname,'(A,i3.3)')'denvirt',iorb+orbsv%isorb
+     write(orbname,'(A,i4.4)')'virtual',iorb+orbsv%isorb
+     write(denname,'(A,i4.4)')'denvirt',iorb+orbsv%isorb
      write(comment,'(1pe10.3)')e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
      !choose the way of plotting the wavefunctions
-     if (in%nplot > 0) then
-        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-     else if (in%nplot < 0) then
-        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-     end if
+!!$     if (in%nplot > 0) then
+!!$        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+!!$        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+!!$     else if (in%nplot < 0) then
+!!$        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+!!$        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+!!$     end if
+
+     call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+     call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+
   end do
 
   do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
-     if(modulo(orbs%norb-iorb-orbs%isorb-1,orbs%norb)+1 > abs(in%nplot)) then
-        exit! we have written nplot pot files
-     end if
-     !address
-     ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
-     write(orbname,'(A,i3.3)')'orbital',iorb+orbs%isorb
-     write(denname,'(A,i3.3)')'densocc',iorb+orbs%isorb
-     write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
-     !choose the way of plotting the wavefunctions
-     if (in%nplot > 0) then
-        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-     else if (in%nplot < 0) then
-        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-     end if
-
+     if(modulo(orbs%norb-iorb-orbs%isorb-0,orbs%norb)+1 <=  abs(in%nplot)) then  ! SG 
+        !address
+        ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
+        write(orbname,'(A,i4.4)')'orbital',iorb+orbs%isorb
+        write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
+        write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
+!!$     !choose the way of plotting the wavefunctions
+!!$     if (in%nplot > 0) then
+!!$        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+!!$        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+!!$     else if (in%nplot < 0) then
+!!$        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+!!$        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+!!$     end if
+        call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+        call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+        
+     endif
   end do
   ! END OF PLOTTING
 
@@ -1481,9 +1501,12 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   real(wp), dimension(orbs%npsidim), intent(out) :: psivirt
   !local variables
   character(len=*), parameter :: subname='psivirt_from_gaussians'
-  integer :: iorb,icoeff,i_all,i_stat,jproc
+  logical ::  randinp
+  integer :: iorb,icoeff,i_all,i_stat,jproc,nwork,info,jorb
   real(kind=4) :: tt
   real(wp), dimension(:,:), allocatable :: gaucoeffs
+  real(gp), dimension(:), allocatable :: work,ev
+  real(gp), dimension(:,:), allocatable :: ovrlp
   type(gaussian_basis) :: G
   real(wp), dimension(:), pointer :: gbd_occ,psiw
 
@@ -1493,30 +1516,98 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   nullify(G%rxyz)
   !extract the gaussian basis from the pseudowavefunctions
   !use a better basis than the input guess
-  call gaussian_pswf_basis(31,iproc,nspin,at,rxyz,G,gbd_occ)
+  call gaussian_pswf_basis(31,.false.,iproc,nspin,at,rxyz,G,gbd_occ)
 
   allocate(gaucoeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
 
-  !fill randomly the gaussian coefficients for the orbitals considered
-  do iorb=1,orbs%norbp*orbs%nspinor
-     do icoeff=1,G%ncoeff
-        !be sure to call always a different random number
-        do jproc=0,iproc-1
+  !the kinetic overlap is correctly calculated only with Free BC
+  randinp = .false.!lr%geocode /= 'F'
+
+  if (randinp) then
+     !fill randomly the gaussian coefficients for the orbitals considered
+     do iorb=1,orbs%norbp*orbs%nspinor
+        do icoeff=1,G%ncoeff
+           !be sure to call always a different random number
+           do jproc=0,iproc-1
+              call random_number(tt)
+           end do
            call random_number(tt)
-        end do
-        call random_number(tt)
-        gaucoeffs(icoeff,iorb)=real(tt,wp)
-        do jproc=iproc+1,nproc-1
-           call random_number(tt)
+           gaucoeffs(icoeff,iorb)=real(tt,wp)
+           do jproc=iproc+1,nproc-1
+              call random_number(tt)
+           end do
         end do
      end do
-  end do
 
-  !othogonalise the gaussian basis (wrong with k-points)
-  !call gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
+     !othogonalise the gaussian basis (wrong with k-points)
+     !call gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
 
-  !as an alternative strategy we may take the eigenvectors of the kinetic+k hamiltonian
+  else
+     !as an alternative strategy we may take the eigenvectors of the kinetic+k hamiltonian
+
+     !in view of complete gaussian calculation
+     allocate(ovrlp(G%ncoeff,G%ncoeff),stat=i_stat)
+     call memocc(i_stat,ovrlp,'ovrlp',subname)
+
+     !overlap calculation of the kinetic operator, upper triangular part
+     !call kinetic_overlap(G,G,ovrlp)
+     call gaussian_overlap(G,G,ovrlp)
+     nwork=3*G%ncoeff+1
+     allocate(work(nwork+ndebug),stat=i_stat)
+     call memocc(i_stat,work,'work',subname)
+     allocate(ev(G%ncoeff+ndebug),stat=i_stat)
+     call memocc(i_stat,ev,'ev',subname)
+
+!!$  if (iproc == 0) then
+!!$     do iat=1,G%ncoeff
+!!$        write(*,'(a,i0,10(1pe15.7))')'T',iat,ovrlp(1:iat,iat)
+!!$     end do
+!!$  end if
+
+     !print *,'nwork',nwork,3*nbasis-1
+     call dsyev('V','U',G%ncoeff,ovrlp(1,1),G%ncoeff,ev(1),work(1),nwork,info)
+     if (info /= 0) then
+        if (iproc == 0) then
+           write(*,*)'DSyev Error',info
+        end if
+        stop
+     end if
+
+!!$  if (iproc == 0) then
+!!$     do iat=1,G%ncoeff
+!!$        write(*,'(a,i0,10(1pe15.7))')'Ev',iat,ovrlp(:,iat)
+!!$     end do
+!!$     do iat=1,G%ncoeff
+!!$        write(*,'(a,i0,10(1pe15.7))')'K',iat,ev(iat)
+!!$     end do
+!!$  end if
+
+     !copy the eigenvectors to the matrix
+     call razero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
+     if (orbs%norb > G%ncoeff) stop 'wrong gaussian basis'
+     jorb=mod(orbs%isorb,orbs%norb)
+     do iorb=1,orbs%norbp
+        jorb=jorb+1
+        if (jorb == orbs%norb+1) jorb=1 !for k-points calculation
+        call dcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,orbs%nspinor*(iorb-1)+1),orbs%nspinor)
+     end do
+
+
+     i_all=-product(shape(ovrlp))*kind(ovrlp)
+     deallocate(ovrlp,stat=i_stat)
+     call memocc(i_stat,i_all,'ovrlp',subname)
+     i_all=-product(shape(work))*kind(work)
+     deallocate(work,stat=i_stat)
+     call memocc(i_stat,i_all,'work',subname)
+     i_all=-product(shape(ev))*kind(ev)
+     deallocate(ev,stat=i_stat)
+     call memocc(i_stat,i_all,'ev',subname)
+
+     !call MPI_BARRIER(MPI_COMM_WORLD,info)
+     !stop
+
+  end if
 
   call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,&
        gaucoeffs,psivirt)

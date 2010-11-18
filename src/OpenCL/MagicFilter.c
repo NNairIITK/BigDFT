@@ -1,55 +1,130 @@
 #include "MagicFilter.h"
 #include "OpenCL_wrappers.h"
 
+/*
+  Magicfilter kernels share commons features. They are composed
+  of one convolution and a transposition. Each work item is
+  responsible for processing one element of the result matrix.
+  The convolution filter is 16 elemnts long, and buffers are 33*16
+  elements long to avoid bank conflicts. Local work size is 16*16
+  elements, so each work item is responsible for loading 2 elements.
+  The first kernel is commented.
+*/
 char * magicfilter_program="\
-#define FILTER_WIDTH 16\n\
-//n is supposed to be greater or equal than get_local_size(0)\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
-__kernel void magicfiltergrow1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+#define FILT0   8.4334247333529341094733325815816e-7\n\
+#define FILT1  -0.1290557201342060969516786758559028e-4\n\
+#define FILT2   0.8762984476210559564689161894116397e-4\n\
+#define FILT3  -0.30158038132690463167163703826169879e-3\n\
+#define FILT4   0.174723713672993903449447812749852942e-2\n\
+#define FILT5  -0.942047030201080385922711540948195075e-2\n\
+#define FILT6   0.2373821463724942397566389712597274535e-1\n\
+#define FILT7   0.612625895831207982195380597e-1\n\
+#define FILT8   0.9940415697834003993178616713\n\
+#define FILT9  -0.604895289196983516002834636e-1\n\
+#define FILT10 -0.2103025160930381434955489412839065067e-1\n\
+#define FILT11  0.1337263414854794752733423467013220997e-1\n\
+#define FILT12 -0.344128144493493857280881509686821861e-2\n\
+#define FILT13  0.49443227688689919192282259476750972e-3\n\
+#define FILT14 -0.5185986881173432922848639136911487e-4\n\
+#define FILT15  2.72734492911979659657715313017228e-6\n\
+#define FILTER_WIDTH 16\n\
+#define filter(tt,tmp) \
+tt += *tmp++ * FILT0;\
+tt += *tmp++ * FILT1;\
+tt += *tmp++ * FILT2;\
+tt += *tmp++ * FILT3;\
+tt += *tmp++ * FILT4;\
+tt += *tmp++ * FILT5;\
+tt += *tmp++ * FILT6;\
+tt += *tmp++ * FILT7;\
+tt += *tmp++ * FILT8;\
+tt += *tmp++ * FILT9;\
+tt += *tmp++ * FILT10;\
+tt += *tmp++ * FILT11;\
+tt += *tmp++ * FILT12;\
+tt += *tmp++ * FILT13;\
+tt += *tmp++ * FILT14;\
+tt += *tmp++ * FILT15;\n\
+#define filter_reverse(tt,tmp) \
+tt += *tmp++ *  FILT15;\
+tt += *tmp++ *  FILT14;\
+tt += *tmp++ *  FILT13;\
+tt += *tmp++ *  FILT12;\
+tt += *tmp++ *  FILT11;\
+tt += *tmp++ *  FILT10;\
+tt += *tmp++ *  FILT9;\
+tt += *tmp++ *  FILT8;\
+tt += *tmp++ *  FILT7;\
+tt += *tmp++ *  FILT6;\
+tt += *tmp++ *  FILT5;\
+tt += *tmp++ *  FILT4;\
+tt += *tmp++ *  FILT3;\
+tt += *tmp++ *  FILT2;\
+tt += *tmp++ *  FILT1;\
+tt += *tmp++ *  FILT0;\n\
+__constant double filt0 = FILT0;\n\
+__constant double filt1 = FILT1;\n\
+__constant double filt2 = FILT2;\n\
+__constant double filt3 = FILT3;\n\
+__constant double filt4 = FILT4;\n\
+__constant double filt5 = FILT5;\n\
+__constant double filt6 = FILT6;\n\
+__constant double filt7 = FILT7;\n\
+__constant double filt8 = FILT8;\n\
+__constant double filt9 = FILT9;\n\
+__constant double filt10 = FILT10;\n\
+__constant double filt11 = FILT11;\n\
+__constant double filt12 = FILT12;\n\
+__constant double filt13 = FILT13;\n\
+__constant double filt14 = FILT14;\n\
+__constant double filt15 = FILT15;\n\
+//n is supposed to be greater or equal than get_local_size(0)\n\
+//this filter is for periodic boundary conditions\n\
+__kernel void magicfilter1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
+//get our position in the local work group\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
+//get our position in the result matrix\n\
 const size_t i2 = get_local_id(0);\n\
 const size_t j2 = get_local_id(1);\n\
+//get our group number\n\
 ptrdiff_t igt = get_group_id(0);\n\
 ptrdiff_t jgt = get_group_id(1);\n\
-//if data are ill dimentioned last block recomputes part of the data\n\
+//if data are ill dimentioned border blocks recomputes part of the data\n\
 jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
 ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
-igt = ig - i2 + j2 - FILTER_WIDTH/2 - 7;\n\
+//transpose indexes in the work group in order to read transposed data\n\
+igt = ig - i2 + j2 - FILTER_WIDTH/2;\n\
 jgt = jg - j2 + i2;\n\
-//If I'm on the outside, select a border element to load\n\
+//if we are on the outside, select a border element to load, wrapping around\n\
+//we will be loading 2 elements each\n\
 if ( igt < 0 ) \n\
-  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = 0.0;\n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + ( n + igt ) * ndat];\n\
 else \n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + igt * ndat];\n\
 igt += FILTER_WIDTH;\n\
-if ( igt >= n - 15 ) \n\
-  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = 0.0;\n\
+if ( igt >= n ) \n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + ( igt - n ) * ndat];\n\
 else\n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
+//initialize reult\n\
+double tt = 0.0;\n\
+//rest position in the buffer to first element involved in the convolution\n\
+tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
+//wait for buffer to be full\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-double tt = 0.0;\n\
-__local double * tmp_o = tmp + j2*(2*FILTER_WIDTH+1) + FILTER_WIDTH/2+i2;\n\
-tt += tmp_o[-8] *  8.4334247333529341094733325815816e-7\n\
-    + tmp_o[+7] *  2.72734492911979659657715313017228e-6\n\
-    + tmp_o[-7] * -0.1290557201342060969516786758559028e-4\n\
-    + tmp_o[+6] * -0.5185986881173432922848639136911487e-4\n\
-    + tmp_o[-6] *  0.8762984476210559564689161894116397e-4\n\
-    + tmp_o[-5] * -0.30158038132690463167163703826169879e-3\n\
-    + tmp_o[+5] *  0.49443227688689919192282259476750972e-3\n\
-    + tmp_o[-4] *  0.174723713672993903449447812749852942e-2;\n\
-tt += tmp_o[+4] * -0.344128144493493857280881509686821861e-2\n\
-    + tmp_o[-3] * -0.942047030201080385922711540948195075e-2\n\
-    + tmp_o[+3] *  0.1337263414854794752733423467013220997e-1\n\
-    + tmp_o[+2] * -0.2103025160930381434955489412839065067e-1\n\
-    + tmp_o[-2] *  0.2373821463724942397566389712597274535e-1\n\
-    + tmp_o[+1] * -0.604895289196983516002834636e-1\n\
-    + tmp_o[-1] *  0.612625895831207982195380597e-1\n\
-    + tmp_o[+0] *  0.9940415697834003993178616713;\n\
+//apply filter\n\
+filter(tt,tmp);\n\
+//store the result\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
-__kernel void magicfiltergrow1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global const double *pot, __global double *out, __local double tmp[]){\n\
+__kernel void magicfiltergrow1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -71,77 +146,74 @@ if ( igt >= n - 15 ) \n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = 0.0;\n\
 else\n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
+double tt = 0.0;\n\
+tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-double tt = 0.0;\n\
-__local double * tmp_o = tmp + j2*(2*FILTER_WIDTH+1) + FILTER_WIDTH/2+i2;\n\
-tt += tmp_o[-8] *  8.4334247333529341094733325815816e-7\n\
-    + tmp_o[+7] *  2.72734492911979659657715313017228e-6\n\
-    + tmp_o[-7] * -0.1290557201342060969516786758559028e-4\n\
-    + tmp_o[+6] * -0.5185986881173432922848639136911487e-4\n\
-    + tmp_o[-6] *  0.8762984476210559564689161894116397e-4\n\
-    + tmp_o[-5] * -0.30158038132690463167163703826169879e-3\n\
-    + tmp_o[+5] *  0.49443227688689919192282259476750972e-3\n\
-    + tmp_o[-4] *  0.174723713672993903449447812749852942e-2;\n\
-tt += tmp_o[+4] * -0.344128144493493857280881509686821861e-2\n\
-    + tmp_o[-3] * -0.942047030201080385922711540948195075e-2\n\
-    + tmp_o[+3] *  0.1337263414854794752733423467013220997e-1\n\
-    + tmp_o[+2] * -0.2103025160930381434955489412839065067e-1\n\
-    + tmp_o[-2] *  0.2373821463724942397566389712597274535e-1\n\
-    + tmp_o[+1] * -0.604895289196983516002834636e-1\n\
-    + tmp_o[-1] *  0.612625895831207982195380597e-1\n\
-    + tmp_o[+0] *  0.9940415697834003993178616713;\n\
-out[(jg*n+ig)]=tt*pot[(jg*n+ig)];\n\
+filter(tt,tmp);\n\
+out[(jg*n+ig)]=tt;\n\
 };\n\
-__kernel void magicfiltershrink1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void magicfiltergrow1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global const double *pot, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
 const size_t j2 = get_local_id(1);\n\
-size_t igt = get_group_id(0);\n\
-size_t jgt = get_group_id(1);\n\
-size_t jb;\n\
+ptrdiff_t igt = get_group_id(0);\n\
+ptrdiff_t jgt = get_group_id(1);\n\
+//if data are ill dimentioned last block recomputes part of the data\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+igt = ig - i2 + j2 - FILTER_WIDTH/2 - 7;\n\
+jgt = jg - j2 + i2;\n\
+//If I'm on the outside, select a border element to load\n\
+if ( igt < 0 ) \n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = 0.0;\n\
+else \n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + igt * ndat];\n\
+igt += FILTER_WIDTH;\n\
+if ( igt >= n - 15 ) \n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = 0.0;\n\
+else\n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
+double tt = 0.0;\n\
+tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+\
+filter(tt,tmp);\n\
+out[(jg*n+ig)]=tt*pot[(jg*n+ig)];\n\
+};\n\
+__kernel void magicfiltershrink1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
+size_t ig = get_global_id(0);\n\
+size_t jg = get_global_id(1);\n\
+const size_t i2 = get_local_id(0);\n\
+const size_t j2 = get_local_id(1);\n\
+ptrdiff_t igt = get_group_id(0);\n\
+ptrdiff_t jgt = get_group_id(1);\n\
 //if data are ill dimentioned last block recomputes part of the data\n\
 jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
 ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
 igt = ig - i2 + j2;\n\
 jgt = jg - j2 + i2;\n\
+igt -= FILTER_WIDTH/2;\n\
 psi = psi + 8 * ndat;\n\
 //If I'm on the outside, select a border element to load\n\
-if(j2 < FILTER_WIDTH/2) {\n\
-    jb = igt - FILTER_WIDTH/2; \n\
-    tmp[i2 * (2 * FILTER_WIDTH + 1) + j2]=psi[jgt + jb * ndat];\n\
-  }\n\
-if (j2 >= FILTER_WIDTH/2+1) {\n\
-    jb = igt + FILTER_WIDTH/2-1;\n\
-    tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH - 1]=psi[jgt + jb * ndat];\n\
-  }\n\
-//check boundaries\
-//Load the element I am to calculate\n\
-tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH/2]=psi[jgt + igt * ndat];\n\
+tmp[i2 * (2 * FILTER_WIDTH + 1) + j2]=psi[jgt + igt * ndat];\n\
+igt += FILTER_WIDTH - 1;\n\
+tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH - 1]=psi[jgt + igt * ndat];\n\
+double tt = 0.0;\n\
+tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-double tt = 0.0;\n\
-__local double * tmp_o = tmp + j2*(2*FILTER_WIDTH+1) + FILTER_WIDTH/2+i2;\n\
-tt += tmp_o[+7] *  8.4334247333529341094733325815816e-7\n\
-    + tmp_o[-8] *  2.72734492911979659657715313017228e-6\n\
-    + tmp_o[+6] * -0.1290557201342060969516786758559028e-4\n\
-    + tmp_o[-7] * -0.5185986881173432922848639136911487e-4\n\
-    + tmp_o[+5] *  0.8762984476210559564689161894116397e-4\n\
-    + tmp_o[+4] * -0.30158038132690463167163703826169879e-3\n\
-    + tmp_o[-6] *  0.49443227688689919192282259476750972e-3\n\
-    + tmp_o[+3] *  0.174723713672993903449447812749852942e-2;\n\
-tt += tmp_o[-5] * -0.344128144493493857280881509686821861e-2\n\
-    + tmp_o[+2] * -0.942047030201080385922711540948195075e-2\n\
-    + tmp_o[-4] *  0.1337263414854794752733423467013220997e-1\n\
-    + tmp_o[-3] * -0.2103025160930381434955489412839065067e-1\n\
-    + tmp_o[+1] *  0.2373821463724942397566389712597274535e-1\n\
-    + tmp_o[-2] * -0.604895289196983516002834636e-1\n\
-    + tmp_o[+0] *  0.612625895831207982195380597e-1\n\
-    + tmp_o[-1] *  0.9940415697834003993178616713;\n\
+filter_reverse(tt,tmp);\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
-__kernel void magicfilter1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global double *pot, __global double *out, __local double tmp[]){\n\
+__kernel void magicfilter1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global double *pot, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -164,73 +236,97 @@ if ( igt >= n ) \n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + ( igt - n ) * ndat];\n\
 else\n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
+double tt = 0.0;\n\
+tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-double tt = 0.0;\n\
-__local double * tmp_o = tmp + j2*(2*FILTER_WIDTH+1) + FILTER_WIDTH/2+i2;\n\
-tt += tmp_o[-8] *  8.4334247333529341094733325815816e-7\n\
-    + tmp_o[+7] *  2.72734492911979659657715313017228e-6\n\
-    + tmp_o[-7] * -0.1290557201342060969516786758559028e-4\n\
-    + tmp_o[+6] * -0.5185986881173432922848639136911487e-4\n\
-    + tmp_o[-6] *  0.8762984476210559564689161894116397e-4\n\
-    + tmp_o[-5] * -0.30158038132690463167163703826169879e-3\n\
-    + tmp_o[+5] *  0.49443227688689919192282259476750972e-3\n\
-    + tmp_o[-4] *  0.174723713672993903449447812749852942e-2;\n\
-tt += tmp_o[+4] * -0.344128144493493857280881509686821861e-2\n\
-    + tmp_o[-3] * -0.942047030201080385922711540948195075e-2\n\
-    + tmp_o[+3] *  0.1337263414854794752733423467013220997e-1\n\
-    + tmp_o[+2] * -0.2103025160930381434955489412839065067e-1\n\
-    + tmp_o[-2] *  0.2373821463724942397566389712597274535e-1\n\
-    + tmp_o[+1] * -0.604895289196983516002834636e-1\n\
-    + tmp_o[-1] *  0.612625895831207982195380597e-1\n\
-    + tmp_o[+0] *  0.9940415697834003993178616713;\n\
+filter(tt,tmp);\n\
 out[(jg*n+ig)]=tt*pot[jg*n+ig];\n\
 };\n\
-__kernel void magicfilter1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+#define ELEM_PER_THREAD 2\n\
+__kernel void magicfilter1d_blockKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
-size_t jg = get_global_id(1);\n\
-const size_t i2 = get_local_id(0);\n\
-const size_t j2 = get_local_id(1);\n\
+size_t jg = get_global_id(1)*ELEM_PER_THREAD;\n\
+size_t i2 = get_local_id(0);\n\
+size_t j2 = get_local_id(1)*ELEM_PER_THREAD;\n\
 ptrdiff_t igt = get_group_id(0);\n\
 ptrdiff_t jgt = get_group_id(1);\n\
 //if data are ill dimentioned last block recomputes part of the data\n\
-jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1)*ELEM_PER_THREAD - ndat ) : jg;\n\
 ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
 igt = ig - i2 + j2 - FILTER_WIDTH/2;\n\
 jgt = jg - j2 + i2;\n\
 //If I'm on the outside, select a border element to load\n\
-if ( igt < 0 ) \n\
-  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + ( n + igt ) * ndat];\n\
+__local double * tmp_1 = tmp + i2 * (2 * FILTER_WIDTH + 1) + j2;\n\
+psi += jgt;\n\
+if ( igt < 0 )\n\
+  *tmp_1++ = psi[(n + igt++) * ndat];\n\
 else \n\
-  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + igt * ndat];\n\
-igt += FILTER_WIDTH;\n\
-if ( igt >= n ) \n\
-  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + ( igt - n ) * ndat];\n\
+  *tmp_1++ = psi[igt++ * ndat];\n\
+if ( igt < 0 )\n\
+  *tmp_1++ = psi[(n + igt++) * ndat];\n\
+else \n\
+  *tmp_1++ = psi[igt++ * ndat];\n\
+igt += FILTER_WIDTH-ELEM_PER_THREAD;\n\
+tmp_1 += FILTER_WIDTH-ELEM_PER_THREAD;\n\
+if ( igt >= n )\n\
+  *tmp_1++ = psi[(igt++ - n) * ndat];\n\
 else\n\
-  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
+  *tmp_1++ = psi[igt++ * ndat];\n\
+if ( igt >= n )\n\
+  *tmp_1++ = psi[(igt++ - n) * ndat];\n\
+else\n\
+  *tmp_1++ = psi[igt++ * ndat];\n\
 \
-double tt = 0.0;\n\
-__local double * tmp_o = tmp + j2*(2*FILTER_WIDTH+1) + FILTER_WIDTH/2+i2;\n\
-tt += tmp_o[-8] *  8.4334247333529341094733325815816e-7\n\
-    + tmp_o[+7] *  2.72734492911979659657715313017228e-6\n\
-    + tmp_o[-7] * -0.1290557201342060969516786758559028e-4\n\
-    + tmp_o[+6] * -0.5185986881173432922848639136911487e-4\n\
-    + tmp_o[-6] *  0.8762984476210559564689161894116397e-4\n\
-    + tmp_o[-5] * -0.30158038132690463167163703826169879e-3\n\
-    + tmp_o[+5] *  0.49443227688689919192282259476750972e-3\n\
-    + tmp_o[-4] *  0.174723713672993903449447812749852942e-2;\n\
-tt += tmp_o[+4] * -0.344128144493493857280881509686821861e-2\n\
-    + tmp_o[-3] * -0.942047030201080385922711540948195075e-2\n\
-    + tmp_o[+3] *  0.1337263414854794752733423467013220997e-1\n\
-    + tmp_o[+2] * -0.2103025160930381434955489412839065067e-1\n\
-    + tmp_o[-2] *  0.2373821463724942397566389712597274535e-1\n\
-    + tmp_o[+1] * -0.604895289196983516002834636e-1\n\
-    + tmp_o[-1] *  0.612625895831207982195380597e-1\n\
-    + tmp_o[+0] *  0.9940415697834003993178616713;\n\
-out[(jg*n+ig)]=tt;\n\
+tmp_1 = tmp + j2*(2*FILTER_WIDTH+1) + i2;\n\
+__local double * tmp_2 = tmp_1 + (2*FILTER_WIDTH+1);\n\
+out += jg*n + ig;\n\
+double tt_1 = 0.0;\n\
+double tt_2 = 0.0;\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+filter(tt_1,tmp_1);\n\
+filter(tt_2,tmp_2);\n\
+*out = tt_1;\n\
+out += n;\n\
+*out = tt_2;\n\
 };\n\
-__kernel void magicfilter1d_denKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void magicfilter1d_straightKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
+ptrdiff_t ig = get_global_id(0);\n\
+ptrdiff_t jg = get_global_id(1);\n\
+const size_t i2 = get_local_id(0);\n\
+const size_t j2 = get_local_id(1);\n\
+ptrdiff_t igt = get_group_id(0);\n\
+ptrdiff_t jgt = get_group_id(1);\n\
+//if data are ill dimentioned last block recomputes part of the data\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+igt = ig - i2 + j2;\n\
+ig -= FILTER_WIDTH/2;\n\
+jgt = jg - j2 + i2;\n\
+//If I'm on the outside, select a border element to load\n\
+if ( ig < 0 ) \n\
+  tmp[j2 * (2 * FILTER_WIDTH + 1) + i2] = psi[jg*n + n + ig];\n\
+else \n\
+  tmp[j2 * (2 * FILTER_WIDTH + 1) + i2] = psi[jg*n + ig];\n\
+ig += FILTER_WIDTH;\n\
+if ( ig >= n ) \n\
+  tmp[j2 * (2 * FILTER_WIDTH + 1) + i2 + FILTER_WIDTH] = psi[jg*n + ig - n];\n\
+else\n\
+  tmp[j2 * (2 * FILTER_WIDTH + 1) + i2 + FILTER_WIDTH] = psi[jg*n + ig];\n\
+double tt = 0.0;\n\
+tmp += i2*(2*FILTER_WIDTH+1) + j2;\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+\
+filter(tt,tmp);\n\
+out[(igt*ndat+jgt)]=tt;\n\
+};\n\
+__kernel void magicfilter1d_denKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -252,29 +348,16 @@ if ( igt >= n ) \n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + ( igt - n ) * ndat];\n\
 else\n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
+double tt = 0.0;\n\
+tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-double tt = 0.0;\n\
-__local double * tmp_o = tmp + j2*(2*FILTER_WIDTH+1) + FILTER_WIDTH/2+i2;\n\
-tt += tmp_o[-8] *  8.4334247333529341094733325815816e-7\n\
-    + tmp_o[+7] *  2.72734492911979659657715313017228e-6\n\
-    + tmp_o[-7] * -0.1290557201342060969516786758559028e-4\n\
-    + tmp_o[+6] * -0.5185986881173432922848639136911487e-4\n\
-    + tmp_o[-6] *  0.8762984476210559564689161894116397e-4\n\
-    + tmp_o[-5] * -0.30158038132690463167163703826169879e-3\n\
-    + tmp_o[+5] *  0.49443227688689919192282259476750972e-3\n\
-    + tmp_o[-4] *  0.174723713672993903449447812749852942e-2;\n\
-tt += tmp_o[+4] * -0.344128144493493857280881509686821861e-2\n\
-    + tmp_o[-3] * -0.942047030201080385922711540948195075e-2\n\
-    + tmp_o[+3] *  0.1337263414854794752733423467013220997e-1\n\
-    + tmp_o[+2] * -0.2103025160930381434955489412839065067e-1\n\
-    + tmp_o[-2] *  0.2373821463724942397566389712597274535e-1\n\
-    + tmp_o[+1] * -0.604895289196983516002834636e-1\n\
-    + tmp_o[-1] *  0.612625895831207982195380597e-1\n\
-    + tmp_o[+0] *  0.9940415697834003993178616713;\n\
+filter(tt,tmp);\n\
 out[(jg*n+ig)]=tt*tt;\n\
 };\n\
-__kernel void magicfilter1d_tKernel_d(uint n, uint ndat, __global const double *psi, __global double *out, __local double tmp[]){\n\
+__kernel void magicfilter1d_tKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -296,30 +379,32 @@ if ( igt >= n ) \n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + ( igt - n ) * ndat];\n\
 else\n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
+double tt = 0.0;\n\
+tmp += j2*(2*FILTER_WIDTH+1) + i2 + 1;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
-double tt = 0.0;\n\
-__local double * tmp_o = tmp + j2*(2*FILTER_WIDTH+1) + FILTER_WIDTH/2+i2;\n\
-tt += tmp_o[+8] *  8.4334247333529341094733325815816e-7\n\
-    + tmp_o[-7] *  2.72734492911979659657715313017228e-6\n\
-    + tmp_o[+7] * -0.1290557201342060969516786758559028e-4\n\
-    + tmp_o[-6] * -0.5185986881173432922848639136911487e-4\n\
-    + tmp_o[+6] *  0.8762984476210559564689161894116397e-4\n\
-    + tmp_o[+5] * -0.30158038132690463167163703826169879e-3\n\
-    + tmp_o[-5] *  0.49443227688689919192282259476750972e-3\n\
-    + tmp_o[+4] *  0.174723713672993903449447812749852942e-2;\n\
-tt += tmp_o[-4] * -0.344128144493493857280881509686821861e-2\n\
-    + tmp_o[+3] * -0.942047030201080385922711540948195075e-2\n\
-    + tmp_o[-3] *  0.1337263414854794752733423467013220997e-1\n\
-    + tmp_o[-2] * -0.2103025160930381434955489412839065067e-1\n\
-    + tmp_o[+2] *  0.2373821463724942397566389712597274535e-1\n\
-    + tmp_o[-1] * -0.604895289196983516002834636e-1\n\
-    + tmp_o[+1] *  0.612625895831207982195380597e-1\n\
-    + tmp_o[+0] *  0.9940415697834003993178616713;\n\
+filter_reverse(tt,tmp);\n\
 out[(jg*n+ig)]=tt;\n\
 };\n\
 \n\
 ";
+
+inline void magicfilter_block_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
+    cl_int ciErrNum;
+    int FILTER_WIDTH=16;
+    int ELEM_PER_THREAD=2;
+    assert(*n>=FILTER_WIDTH);
+    size_t block_size_i=FILTER_WIDTH, block_size_j=FILTER_WIDTH/ELEM_PER_THREAD;
+    cl_uint i = 0;
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
+    size_t localWorkSize[] = { block_size_i,block_size_j };
+    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j*ELEM_PER_THREAD,*ndat)*block_size_j/FILTER_WIDTH};
+    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    oclErrorCheck(ciErrNum,"Failed to enqueue magic filter kernel!");
+}
 
 inline void magicfilter_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     cl_int ciErrNum;
@@ -331,7 +416,6 @@ inline void magicfilter_generic(cl_kernel kernel, cl_command_queue *command_queu
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(cl_double)*block_size_j*(block_size_i+FILTER_WIDTH+1), 0);
     size_t localWorkSize[] = { block_size_i,block_size_j };
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
@@ -349,7 +433,6 @@ inline void magicfilter_pot_generic(cl_kernel kernel, cl_command_queue *command_
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*pot), (void*)pot);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(cl_double)*block_size_j*(block_size_i+FILTER_WIDTH+1), 0);
     size_t localWorkSize[] = { block_size_i,block_size_j };
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
     ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
@@ -357,6 +440,8 @@ inline void magicfilter_pot_generic(cl_kernel kernel, cl_command_queue *command_
 }
 
 cl_kernel magicfilter1d_kernel_d;
+cl_kernel magicfilter1d_block_kernel_d;
+cl_kernel magicfilter1d_straight_kernel_d;
 cl_kernel magicfilter1d_den_kernel_d;
 cl_kernel magicfilter1d_pot_kernel_d;
 cl_kernel magicfilter1d_t_kernel_d;
@@ -381,6 +466,10 @@ void create_magicfilter_kernels(){
     oclErrorCheck(ciErrNum,"Failed to create magicfilter1d_potKernel_d kernel!");
     magicfilter1d_t_kernel_d=clCreateKernel(magicfilterProgram,"magicfilter1d_tKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create magicfilter1d_tKernel_d kernel!");
+    magicfilter1d_straight_kernel_d=clCreateKernel(magicfilterProgram,"magicfilter1d_straightKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create magicfilter1d_straightKernel_d kernel!");
+    magicfilter1d_block_kernel_d=clCreateKernel(magicfilterProgram,"magicfilter1d_blockKernel_d",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create magicfilter1d_blockKernel_d kernel!");
 }
 
 void build_magicfilter_programs(cl_context * context){
@@ -411,6 +500,13 @@ void FC_FUNC_(magicfilter1d_d,MAGICFILTER1D_D)(cl_command_queue *command_queue, 
     magicfilter_generic(magicfilter1d_kernel_d, command_queue, n, ndat, psi, out);
 }
 
+void FC_FUNC_(magicfilter1d_straight_d,MAGICFILTER1D_STRAIGHT_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
+    magicfilter_generic(magicfilter1d_straight_kernel_d, command_queue, n, ndat, psi, out);
+}
+
+void FC_FUNC_(magicfilter1d_block_d,MAGICFILTER1D_BLOCK_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
+    magicfilter_block_generic(magicfilter1d_block_kernel_d, command_queue, n, ndat, psi, out);
+}
 void FC_FUNC_(magicfilter1d_pot_d,MAGICFILTER1D_POT_D)(cl_command_queue *command_queue, cl_uint *n, cl_uint *ndat, cl_mem *psi, cl_mem *pot, cl_mem *out){
     magicfilter_pot_generic(magicfilter1d_pot_kernel_d, command_queue, n, ndat, psi, pot, out);
 }
@@ -442,6 +538,30 @@ void FC_FUNC_(magicfilter_n_d,MAGICFILTER_N_D)(cl_command_queue *command_queue, 
     magicfilter_generic(magicfilter1d_kernel_d, command_queue, &n2, &ndat, out, tmp);
     ndat = n2 * n3;
     magicfilter_generic(magicfilter1d_kernel_d, command_queue, &n1, &ndat, tmp, out);
+}
+
+void FC_FUNC_(magicfilter_n_straight_d,MAGICFILTER_N_STRAIGHT_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out){
+    cl_uint n1 = dimensions[0];
+    cl_uint n2 = dimensions[1];
+    cl_uint n3 = dimensions[2];
+    cl_uint ndat = n2 * n3;
+    magicfilter_generic(magicfilter1d_straight_kernel_d, command_queue, &n1, &ndat, psi, out);
+    ndat = n1 * n3;
+    magicfilter_generic(magicfilter1d_straight_kernel_d, command_queue, &n2, &ndat, out, tmp);
+    ndat = n1 * n2;
+    magicfilter_generic(magicfilter1d_straight_kernel_d, command_queue, &n3, &ndat, tmp, out);
+}
+
+void FC_FUNC_(magicfilter_n_block_d,MAGICFILTER_N_BLOCK_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out){
+    cl_uint n1 = dimensions[0];
+    cl_uint n2 = dimensions[1];
+    cl_uint n3 = dimensions[2];
+    cl_uint ndat = n1 * n2;
+    magicfilter_block_generic(magicfilter1d_block_kernel_d, command_queue, &n3, &ndat, psi, out);
+    ndat = n1 * n3;
+    magicfilter_block_generic(magicfilter1d_block_kernel_d, command_queue, &n2, &ndat, out, tmp);
+    ndat = n2 * n3;
+    magicfilter_block_generic(magicfilter1d_block_kernel_d, command_queue, &n1, &ndat, tmp, out);
 }
 
 void FC_FUNC_(magicfilter_den_d,MAGICFILTER_DEN_D)(cl_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out){
@@ -568,6 +688,10 @@ void clean_magicfilter_kernels(){
   ciErrNum = clReleaseKernel(magicfiltergrow1d_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(magicfiltergrow1d_pot_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(magicfilter1d_straight_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(magicfilter1d_block_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseProgram(magicfilterProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");

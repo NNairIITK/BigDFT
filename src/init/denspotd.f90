@@ -85,7 +85,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   !local variables
   character(len=*), parameter :: subname='orbitals_communicators'
   logical :: yesorb,yescomp
-  integer :: jproc,i,nvctr_tot,j,ikpts,iorbp,jorb,norb_tot,ikpt,i_stat,i_all
+  integer :: jproc,nvctr_tot,ikpts,iorbp,jorb,norb_tot,ikpt,i_stat,i_all
   integer :: ncomp_res,nkptsp,ierr
   integer, dimension(:), allocatable :: mykpts
   logical, dimension(:), allocatable :: GPU_for_comp

@@ -1,7 +1,9 @@
 !!****f* BigDFT/IonicEnergyandForces
+!! DESCRIPTION
+!!    Calculte the ionic contribution to the energy and the forces
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2010 (LG)
+!!    Copyright (C) 2007-2010 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -481,13 +483,12 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.,efwrite,check_potion=.false.
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,nspin
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
-  integer :: n3d_fake,n3p_fake,n3pi_fake,i3xcsh_fake,i3s_fake
   real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz,offset
   real(wp) :: maxdiff
   real(gp) :: ehart
   real(dp), dimension(2) :: charges_mpi
-  integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
+  integer, dimension(:,:), allocatable :: ngatherarr
   real(dp), dimension(:), allocatable :: potion_corr
   real(dp), dimension(:), pointer :: pkernel_ref
 
@@ -1166,12 +1167,13 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   real(wp), dimension(*), intent(inout) :: pot_ion
   !local variables
   character(len=*), parameter :: subname='CounterIonPotential'
-  logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.,efwrite,check_potion=.false.
+  logical :: htoobig=.false.,check_potion=.false.
+  logical :: perx,pery,perz,gox,goy,goz
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,nspin
-  integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc,nelec
-  integer :: n3d_fake,n3p_fake,n3pi_fake,i3xcsh_fake,i3s_fake,norb,norbu,norbd,iunit
+  integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nelec
+  integer :: norb,norbu,norbd,iunit
   real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
-  real(kind=8) :: tt_tot,rholeaked_tot,potxyz,offset
+  real(kind=8) :: tt_tot,rholeaked_tot,potxyz
   real(wp) :: maxdiff
   real(gp) :: ehart
   type(atoms_data) :: at

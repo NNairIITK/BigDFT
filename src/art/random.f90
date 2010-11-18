@@ -1,9 +1,9 @@
-!!****m* art/random
+!!****m* BigDFT/random
 !! FUNCTION
-!!   Random number generator (from "Numerical Recipes").
-!!   Returns a uniform random deviate between 0.0 and 1.0.
-!!   Set idum to any negative value to initialize or  
-!!   reinitialize the sequence.
+!!    Random number generator (from "Numerical Recipes").
+!!    Returns a uniform random deviate between 0.0 and 1.0.
+!!    Set idum to any negative value to initialize or
+!!    reinitialize the sequence.
 !!
 !! COPYRIGHT
 !!    Copyright (C) 2001 Normand Mousseau
@@ -12,12 +12,14 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+!!
 !! SOURCE
 !!
 module random
 
   implicit none
 
+  ! Shared variables
   integer :: idum, inext, inextp
   integer :: iff = 0
   integer, dimension(55) :: ma
@@ -26,9 +28,8 @@ end module random
 !!***
 
 
-!!****f* random/ran3
-!! FUNCTION
-!!   function
+
+!!****f* BigDFT/ran3
 !! SOURCE
 !!
 real(8) function ran3()
@@ -37,10 +38,10 @@ real(8) function ran3()
   implicit none
 
   !Local variables
-  integer, parameter :: mbig = 1000000000
-  integer, parameter :: mseed = 161803398
-  integer, parameter :: mz = 0
-  real(8), parameter :: fac = 1./mbig
+  integer, parameter :: mbig=1000000000
+  integer, parameter :: mseed=161803398
+  integer, parameter :: mz=0
+  real(8), parameter :: fac=1./mbig
 
   integer :: i, mj, mk, ii, k
 

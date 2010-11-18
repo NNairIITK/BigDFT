@@ -69,6 +69,7 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
 
   character(len=*), parameter :: subname='scfloop_main'
   integer :: infocode, i, i_stat, i_all,j
+  real(gp) :: fnoise
   real(dp) :: favg(3)
   real(dp), allocatable :: xcart(:,:)
 
@@ -98,7 +99,7 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   end do
 
   scfloop_in%inputPsiId = 1
-  call call_bigdft(scfloop_nproc,me,scfloop_at,xcart,scfloop_in,epot,grad,scfloop_rst,infocode)
+  call call_bigdft(scfloop_nproc,me,scfloop_at,xcart,scfloop_in,epot,grad,fnoise,scfloop_rst,infocode)
 
   ! need to transform the forces into reduced ones.
   favg(:) = real(0, dp)
@@ -213,7 +214,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
      lpsdbl=.false.
   end if
 
-  open(unit=99,file=trim(filename),status='old')
+  open(unit=99,file=trim(filename),status='old',action='read')
 
   read(99,*) nat,units,extra,itime_shift_for_restart
  
@@ -290,14 +291,15 @@ subroutine wtvel(filename,vxyz,atoms,comment)
   character(len=*), intent(in) :: filename,comment
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%nat), intent(in) :: vxyz
-  !local variables
+  !Local variables
+  integer, parameter :: iunit = 9
   character(len=2) :: symbol
   character(len=10) :: name
   character(len=11) :: units
   integer :: iat,j
   real(gp) :: factor
 
-  open(unit=9,file=trim(filename))
+  open(unit=iunit,file=trim(filename),status='unknown',action='write')
   if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
      factor=bohr2ang
      units='angstroemd0'
@@ -306,14 +308,14 @@ subroutine wtvel(filename,vxyz,atoms,comment)
      units='atomicd0'
   end if
 
-  write(9,'(i6,2x,a,2x,a)') atoms%nat,trim(units),comment
+  write(iunit,'(i6,2x,a,2x,a)') atoms%nat,trim(units),comment
 
   if (atoms%geocode == 'P') then
-     write(9,'(a,3(1x,1pe24.17))')'periodic',&
-          atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
+     write(iunit,'(a,3(1x,1pe24.17))') 'periodic',&
+       &  atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
   else if (atoms%geocode == 'S') then
-     write(9,'(a,3(1x,1pe24.17))')'surface',&
-          atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
+     write(iunit,'(a,3(1x,1pe24.17))') 'surface',&
+       &  atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
   else
      write(9,*)'free'
   end if
@@ -327,10 +329,10 @@ subroutine wtvel(filename,vxyz,atoms,comment)
         symbol=name(1:2)
      end if
 
-     write(9,'(a2,4x,3(1x,1pe24.17))')symbol,(vxyz(j,iat)*factor,j=1,3)
+     write(iunit,'(a2,4x,3(1x,1pe24.17))') symbol,(vxyz(j,iat)*factor,j=1,3)
 
   enddo
 
-  close(unit=9)
+  close(unit=iunit)
 END SUBROUTINE wtvel
 !!***

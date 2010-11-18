@@ -672,7 +672,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
   character(len=*), parameter :: subname='solve_eigensystem'
   character(len=64) :: message
   integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,iorb,i,ndegen,ncplx,ncomp
-  integer :: nwrtmsg,norbj
+  integer :: nwrtmsg,norbj,jiorb,jjorb,ihs,ispin,norbij
   real(wp), dimension(2) :: preval
   real(wp), dimension(:), allocatable :: work_lp,evale,work_rp
 
@@ -736,9 +736,29 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
                 work_lp(1),n_lp,work_rp(1),info)
            if (info /= 0) write(*,*) 'HEGV ERROR',info,i,natsc+1
         end if
-
-        
+       
      end if
+
+     !check the sign of the eigenvector, control the choice per MPI process
+     !this is useful when different MPI processes gave eigenvectors with different phases
+     norbij=norbi
+     ihs=imatrst
+     do ispin=1,nspin
+        do jjorb=1,norbij
+           !if it is negrative change the sign to all the values
+           if (hamovr(ihs+(jjorb-1)*norbij*ncplx,1) < 0.0_wp) then
+              do jiorb=1,norbij*ncplx
+                 hamovr(ihs-1+jiorb+(jjorb-1)*norbij*ncplx,1)=&
+                -hamovr(ihs-1+jiorb+(jjorb-1)*norbij*ncplx,1)
+              end do
+           end if
+        end do
+        if (nspin==2) then
+           norbij=norbj
+           ihs=ihs+ndim_hamovr
+        end if
+     end do
+
 
 !!$     if (iproc == 0) then
 !!$        print *,norbi,ncomp,ncplx,imatrst

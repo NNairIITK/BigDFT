@@ -36,7 +36,7 @@ include_HEADERS = sg_common_def.h \
 #lib_LIBRARIES = libs_gpu.a
 lib_LTLIBRARIES = libs_gpu.la
 libs_gpu_la_LIBTOOLFLAGS= $(AM_LIBTOOLFLAGS) --tag=CUDA
-
+libs_gpu_la_LDFLAGS= @AC_LDFLAGS_CUDA@
 #libs_gpu_a_SOURCES = $(S_GPU_SOURCES) $(S_GPU_SOURCES_CUDA)
 libs_gpu_la_SOURCES = $(S_GPU_SOURCES) $(S_GPU_SOURCES_CUDA)
 

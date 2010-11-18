@@ -1,0 +1,55 @@
+ Reading atomic input positions from file:../../../../1.4/tests/NEB/start.xyz
+ Reading atomic input positions from file:../../../../1.4/tests/NEB/stop.xyz
+External computation of forces for replicas.
+ type     = all
+ job_name = triH
+ n_images = 5
+ n_nodes  = 4
+ datadir  = /home/gigi/work/binaries/1.4-ifort-gC/tests/NEB
+ workdir  = /home/gigi/work/binaries/1.4-ifort-gC/tests/NEB/.
+Current iter is 001.
+Start job 1.
+Job 1 finished (1/5).
+Start job 2.
+Job 2 finished (2/5).
+Start job 3.
+Job 3 finished (3/5).
+Start job 4.
+Job 4 finished (4/5).
+Start job 5.
+Job 5 finished (5/5).
+External computation of forces for replicas.
+ type     = free_only
+ job_name = triH
+ n_images = 5
+ n_nodes  = 4
+ datadir  = /home/gigi/work/binaries/1.4-ifort-gC/tests/NEB
+ workdir  = /home/gigi/work/binaries/1.4-ifort-gC/tests/NEB/.
+Current iter is 001.
+Start job 2.
+Job 2 finished (1/3).
+Start job 3.
+Job 3 finished (2/3).
+Start job 4.
+Job 4 finished (3/3).
+ iteration:   1     E activation =  0.253089     error = 11.645019
+External computation of forces for replicas.
+ type     = free_only
+ job_name = triH
+ n_images = 5
+ n_nodes  = 4
+ datadir  = /home/gigi/work/binaries/1.4-ifort-gC/tests/NEB
+ workdir  = /home/gigi/work/binaries/1.4-ifort-gC/tests/NEB/.
+Current iter is 001.
+Start job 2.
+Job 2 finished (1/3).
+Start job 3.
+Job 3 finished (2/3).
+Start job 4.
+Job 4 finished (3/3).
+ iteration:   2     E activation = -0.650114     error =  3.036481
+ image:  1   Energy=      -54.74557690   Error= 0.00000
+ image:  2   Energy=      -56.01222118   Error= 0.41413
+ image:  3   Energy=      -55.39569130   Error= 3.03648
+ image:  4   Energy=      -56.01344858   Error= 0.98985
+ image:  5   Energy=      -55.25921658   Error= 0.00000

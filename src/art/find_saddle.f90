@@ -19,12 +19,12 @@ module saddles
   integer :: MAXIPERP, MAXKPERP
   integer, dimension(:), allocatable  :: atom_displaced  ! Id of local atoms displaced
 
-  real(8) :: INITSTEPSIZE 
-  real(8) :: LOCAL_CUTOFF
-  real(8) :: INCREMENT,BASIN_FACTOR 
-  real(8) :: FTHRESHOLD
-  real(8) :: EIGEN_THRESH 
-  real(8) :: EXITTHRESH
+  real(kind=8) :: INITSTEPSIZE 
+  real(kind=8) :: LOCAL_CUTOFF
+  real(kind=8) :: INCREMENT,BASIN_FACTOR 
+  real(kind=8) :: FTHRESHOLD
+  real(kind=8) :: EIGEN_THRESH 
+  real(kind=8) :: EXITTHRESH
 
   character(len=20) :: TYPE_EVENTS
 
@@ -59,7 +59,7 @@ subroutine find_saddle( success, saddle_energy )
 
   !Arguments
   logical, intent(out) :: success
-  real(8), intent(out) :: saddle_energy
+  real(kind=8), intent(out) :: saddle_energy
 
   !Local variables
   integer :: ret, ierror, nat
@@ -165,15 +165,15 @@ subroutine local_move( )
   implicit none
 
   !Local variables
-  integer                          :: i, j, that, i_id, j_id, nat, ierror
-  real(8)                          :: lcutoff2    ! Cut-off for local moves, squared
-  real(8), dimension(VECSIZE), target :: dr
-  real(8), dimension(:), pointer   :: dx, dy, dz
-  real(8)                          :: dr2
-  real(8)                          :: xi, yi, zi, xij, yij, zij
-  real(8)                          :: boxl, invbox
-  real(8)                          :: xsum, ysum, zsum, xnorm, ynorm, znorm, norm
-  real(8) :: ran3
+  integer                               :: i, j, that, i_id, j_id, nat, ierror
+  real(kind=8)                          :: lcutoff2    ! Cut-off for local moves, squared
+  real(kind=8), dimension(VECSIZE), target :: dr
+  real(kind=8), dimension(:), pointer   :: dx, dy, dz
+  real(kind=8)                          :: dr2
+  real(kind=8)                          :: xi, yi, zi, xij, yij, zij
+  real(kind=8)                          :: boxl, invbox
+  real(kind=8)                          :: xsum, ysum, zsum, xnorm, ynorm, znorm, norm
+  real(kind=8)                          :: ran3
 
   allocate(atom_displaced(natoms))
 
@@ -318,10 +318,10 @@ subroutine global_move( )
 
   !Local variables
   integer :: i, nat
-  real(8) :: norm, xnorm, ynorm, znorm, ierror
-  real(8), dimension(VECSIZE), target :: dr
-  real(8), dimension(:), pointer    :: dx, dy, dz
-  real(8) :: ran3
+  real(kind=8) :: norm, xnorm, ynorm, znorm, ierror
+  real(kind=8), dimension(VECSIZE), target :: dr
+  real(kind=8), dimension(:), pointer    :: dx, dy, dz
+  real(kind=8) :: ran3
 
   allocate(atom_displaced(natoms))
 
@@ -395,14 +395,14 @@ subroutine symmetry_break( )
   implicit none
 
   !Local variables
-  integer                             :: i, nat, ierror
-  real(8)                             :: lcutoff2 ! Cut-off for local moves, squared
-  real(8), dimension(VECSIZE), target :: dr
-  real(8), dimension(:), pointer      :: dx, dy, dz
-  real(8)                             :: dr2
-  real(8)                             :: boxl, invbox
-  real(8)                             :: xsum, ysum, zsum, xnorm, ynorm, znorm, norm
-  real(8)                             :: ran3
+  integer                                  :: i, nat, ierror
+  real(kind=8)                             :: lcutoff2 ! Cut-off for local moves, squared
+  real(kind=8), dimension(VECSIZE), target :: dr
+  real(kind=8), dimension(:), pointer      :: dx, dy, dz
+  real(kind=8)                             :: dr2
+  real(kind=8)                             :: boxl, invbox
+  real(kind=8)                             :: xsum, ysum, zsum, xnorm, ynorm, znorm, norm
+  real(kind=8)                             :: ran3
 
   allocate(atom_displaced(natoms))
 

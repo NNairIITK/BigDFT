@@ -216,7 +216,8 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
   integer :: nsccode,mxpl,mxchg
   integer :: norbat,iorbsc_count,niasc,nlsc
   real(gp) :: rcov,rprb,ehomo
-  integer, dimension(nmax,lmax+1) :: neleconf
+  !integer, dimension(nmax,lmax+1) :: neleconf
+  real(kind=8), dimension(nmax,lmax+1) :: neleconf
   integer, dimension(lmax+1) :: nl
   real(gp), dimension(noccmax,lmax+1) :: occup
 
@@ -408,7 +409,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
              real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
              at%npspcode(ity),&
              ng-1,nl,5,noccmax,lmax,occup,xp(1,ityx),&
-             psiat(1,1,ityx))
+             psiat(1,1,ityx),.false.)
         ntypesx=ntypesx+1
         if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
      end if
@@ -918,9 +919,10 @@ END SUBROUTINE calc_coeff_inguess
 !! SOURCE
 !!
 subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
-     nmax_occ,noccmax,lmax,occup,expo,psiat)
+     nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb)
   use module_base
   implicit none
+  logical, intent(in) :: enlargerprb
   integer, intent(in) :: ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom
   real(gp), intent(in) :: zion
   integer, dimension(lmax+1), intent(in) :: nl
@@ -936,7 +938,8 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
   integer :: lpx,nsccode,mxpl,mxchg
   integer :: l,i,j,iocc,i_all,i_stat
   real(gp) :: alpz,alpl,amu,rprb,rij,a,a0,a0in,tt,ehomo,rcov
-  integer, dimension(6,4) :: neleconf
+  !integer, dimension(6,4) :: neleconf
+  real(kind=8), dimension(6,4) :: neleconf
   real(gp), dimension(4) :: gpot
   real(gp), dimension(noccmax,lmax+1) :: aeval,chrg,res
   real(gp), dimension(:), allocatable :: xp,alps
@@ -1021,6 +1024,11 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
 
   !!Just for extracting the covalent radius and rprb
   call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
+
+  if (enlargerprb) then
+     !experimental
+     rprb=100.0_gp
+  end if
 
 !  occup(:,:)=0.0_gp
 !   do l=0,lmax-1

@@ -26,7 +26,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   !local variables
   logical :: cmplxprojs
   integer :: istart,ityp,natyp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
-  integer :: iorb,ikpt,nkptsproj,ikptp
+  integer :: ikpt,nkptsproj,ikptp
   real(gp) :: maxfullvol,totfullvol,totzerovol,zerovol,fullvol,maxrad,maxzerovol,rad
   
   if (iproc.eq.0) then
@@ -343,16 +343,14 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
 END SUBROUTINE atom_projector
 !!***
 
-subroutine deallocate_proj_descr(nlpspd, subname)
+subroutine deallocate_proj_descr(nlpspd,subname)
   use module_base
   use module_types
   implicit none
-
+  character(len=*), intent(in) :: subname
   type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
-  character(len = *), intent(in) :: subname
 
   integer :: i_all, i_stat
-
   i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
   deallocate(nlpspd%nboxp_c,stat=i_stat)
   call memocc(i_stat,i_all,'nboxp_c',subname)

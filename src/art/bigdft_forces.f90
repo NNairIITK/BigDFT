@@ -61,7 +61,7 @@ subroutine bigdft_init( nat, typa, posa, boxl, nproc_, me_ )
   real(gp), dimension(:,:), pointer     :: rxyz
   real(gp), dimension(:,:), allocatable :: fcart
   integer  :: i, infocode, ierror
-  real(gp) :: energy
+    real(gp) :: energy,fnoise
 
   nproc = nproc_
   me = me_
@@ -103,7 +103,7 @@ subroutine bigdft_init( nat, typa, posa, boxl, nproc_, me_ )
 !!
 subroutine calcforce( nat, posa, boxl, forca, energy )
 
-  implicit None
+    implicit none
 
   !Arguments
   integer,      intent(in)                            :: nat
@@ -113,7 +113,8 @@ subroutine calcforce( nat, posa, boxl, forca, energy )
   real(kind=8), intent(out)                           :: energy
 
   !Local variables
-  integer :: infocode, i, ierror
+  integer :: infocode, i, ierror 
+  real(gp) :: fnoise
   real(gp), allocatable :: xcart(:,:), fcart(:,:)
   real(gp) :: tsumx, tsumy, tsumz
 
@@ -135,7 +136,7 @@ subroutine calcforce( nat, posa, boxl, forca, energy )
 
      in%inputPsiId = 0
      call MPI_Barrier(MPI_COMM_WORLD,ierror)
-     call call_bigdft( nproc, me, at, xcart, in, energy, fcart, rst, infocode )
+     call call_bigdft( nproc, me, at, xcart, in, energy, fcart, fnoise, rst, infocode )
 
      in%inputPsiId = 1
      initialised   = .true.
@@ -225,7 +226,7 @@ subroutine mingeo( nat, boxl, posa, evalf_number, forca, total_energy )
   allocate(xcart(3, at%nat))
   do i = 1, at%nat, 1
      xcart(:, i) = (/ posa(i), posa(nat + i), posa(2 * nat + i) /) / bohr2ang
-  end Do
+  end do
 
   allocate(fcart(3, at%nat))
 

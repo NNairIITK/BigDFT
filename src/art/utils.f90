@@ -1,11 +1,12 @@
-!!****f* art/utils
-!! DESCRIPTION 
-!!   This file contains a series of utilities that could be used by a
-!!   number of program. They suppose very little.
+!!****f* BigDFT/utils
+!! FUNCTION
+!!    This file contains a series of utilities that could be used by a
+!!    number of program. They suppose very little.
 !!
 !!****f* utils/convert_to_chain
-!!   This subroutine takes an integer and transforms it into a
-!!   chain of character.
+!! FUNCTION
+!!    This subroutine takes an integer and transforms it into a
+!!    chain of character.
 !!
 !! COPYRIGHT
 !!    Copyright (C) 2001 Normand Mousseau
@@ -54,7 +55,7 @@ subroutine convert_to_chain( init_number, chain )
 END SUBROUTINE convert_to_chain 
 !!***
 
-!!****f* utils/center
+!!****f* BigDFT/center
 !! FUNCTION
 !!   It places the center of mass of a 3D vector at (0,0,0) 
 !!
@@ -103,11 +104,10 @@ subroutine center( vector, vecsize )
 END SUBROUTINE center
 !!***
 
-!!****f* utils/displacement
+!!****f* BigDFT/displacement
 !! FUNCTION
-!!   It computes the distance between two configurations and 
-!!   the number of particles having moved by more than a THRESHOLD
-!!
+!!    It computes the distance between two configurations and 
+!!    the number of particles having moved by more than a THRESHOLD
 !! SOURCE
 !!
 subroutine displacement( posa, posb, delr, npart )
@@ -124,7 +124,7 @@ subroutine displacement( posa, posb, delr, npart )
   !Local variables
   real(kind=8), parameter :: THRESHOLD = 0.1  ! In Angstroems
   real(kind=8), dimension(:), pointer :: xa, ya, za, xb, yb, zb
-  integer :: i, j
+  integer :: i
   real(kind=8) :: delx, dely, delz, dr, dr2, delr2
 
   ! We first set-up pointers for the x, y, z components for posa and posb

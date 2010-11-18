@@ -5,7 +5,9 @@ SUBDIRS =
 EXTRA_DIST = \
 	input.freq \
 	input.dft \
-	posinp.xyz
+	posinp.xyz \
+	H2-freq.out.ref \
+	H2-freq.out.2.ref
 
 EXTRA_CLEAN = hessian.dat frequencies.xyz frequencies.res
 
@@ -37,5 +39,7 @@ H2-freq.out: $(top_builddir)/src/frequencies $(PPFILES)
 	done
 
 check : H2-freq.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H2-freq.out $(top_srcdir)/tests/Refs/H2-freq.out.ref | tee fldiff.report
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft H2-freq.out.2 $(top_srcdir)/tests/Refs/H2-freq.out.2.ref | tee fldiff.2.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft --discrepancy=2.e-10 H2-freq.out \
+		$(top_srcdir)/tests/H2-freq/H2-freq.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft --discrepancy=2.e-10 H2-freq.out.2 \
+		$(top_srcdir)/tests/H2-freq/H2-freq.out.2.ref | tee fldiff.2.report
