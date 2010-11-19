@@ -238,7 +238,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ! Charge density/potential,ionic potential, pkernel
   real(dp), dimension(:), allocatable :: pot_ion,rhopot,counter_ions
   real(kind=8), dimension(:,:,:,:), allocatable :: pot,potxc,dvxcdrho
-  real(kind=8), dimension(:), pointer :: pkernel
+  real(dp), dimension(:), pointer :: pkernel,pkernelseq
   !wavefunction gradients, hamiltonian on vavefunction
   !transposed  wavefunction
   ! Pointers and variables to store the last psi
@@ -370,6 +370,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ndegree_ip=16 !default value 
   call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel,&
        quiet=PSquiet)
+
+  !create the sequential kernel if the exctX parallelisation scheme requires it
+  if (libxc_functionals_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .and. nproc > 1) then
+     call createKernel(0,1,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,&
+          pkernelseq,quiet=PSquiet)
+  else
+     pkernelseq => pkernel
+  end if
+  
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call timing(iproc,'CrtDescriptors','ON')
@@ -574,7 +583,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc, atoms,&
           orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,Gvirt,&
+          nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in)
      if (nvirt > norbv) then
         nvirt = norbv
@@ -797,7 +806,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
           nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
           rhopot,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
-          in%nspin,GPU,pkernel=pkernel)
+          in%nspin,GPU,pkernel=pkernelseq)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
@@ -1192,13 +1201,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call direct_minimization(iproc,nproc,n1i,n2i,in,atoms,&
              orbs,orbsv,nvirt,Glr,comms,commsv,&
              hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
-             pkernel,psi,psivirt,ngatherarr,GPU)
+             pkernelseq,psi,psivirt,ngatherarr,GPU)
 
      else if (in%norbv > 0) then
         call davidson(iproc,nproc,n1i,n2i,in,atoms,&
              orbs,orbsv,nvirt,Glr,comms,commsv,&
              hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
-             pkernel,psi,psivirt,ngatherarr,GPU)
+             pkernelseq,psi,psivirt,ngatherarr,GPU)
 
      end if
 
@@ -1236,7 +1245,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call center_of_charge(atoms,rxyz,chargec)
 
         call coupling_matrix_prelim(iproc,nproc,atoms%geocode,in%nspin,Glr,orbs,orbsv,&
-             i3s+i3xcsh,n3p,hxh,hyh,hzh,chargec,pkernel,dvxcdrho,psirocc,psirvirt)
+             i3s+i3xcsh,n3p,hxh,hyh,hzh,chargec,pkernelseq,dvxcdrho,psirocc,psirvirt)
 
         i_all=-product(shape(psirocc))*kind(psirocc)
         deallocate(psirocc,stat=i_stat)
@@ -1282,6 +1291,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   i_all=-product(shape(pkernel))*kind(pkernel)
   deallocate(pkernel,stat=i_stat)
   call memocc(i_stat,i_all,'kernel',subname)
+
+  if (in%exctxpar == 'OP2P') then
+     i_all=-product(shape(pkernelseq))*kind(pkernelseq)
+     deallocate(pkernelseq,stat=i_stat)
+     call memocc(i_stat,i_all,'kernelseq',subname)
+  end if
+
 
 
   !------------------------------------------------------------------------
@@ -1407,6 +1423,12 @@ contains
           i_all=-product(shape(counter_ions))*kind(counter_ions)
           deallocate(counter_ions,stat=i_stat)
           call memocc(i_stat,i_all,'counter_ions',subname)
+       end if
+
+       if (in%exctxpar == 'OP2P') then
+          i_all=-product(shape(pkernelseq))*kind(pkernelseq)
+          deallocate(pkernelseq,stat=i_stat)
+          call memocc(i_stat,i_all,'kernelseq',subname)
        end if
 
        

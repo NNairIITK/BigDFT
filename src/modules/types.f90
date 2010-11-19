@@ -96,8 +96,11 @@ module module_types
      integer:: methOrtho
      ! iguessTol gives the tolerance to which the input guess will converged (maximal
      ! residue of all orbitals).
-     real(kind=8):: iguessTol
-
+     real(gp):: iguessTol
+     !parallelisation scheme of the exact exchange operator
+     !   BC (Blocking Collective)
+     !   OP2P (Overlap Point-to-Point)
+     character(len=4) :: exctxpar
   end type input_variables
 !!***
 

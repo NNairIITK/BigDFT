@@ -105,6 +105,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   if (present(pkernel) .and. exctX) then
      n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
      !exact exchange for virtual orbitals (needs psirocc)
+
+     !here we have to add the round part
      if (present(psirocc) .and. present(orbsocc)) then
         call exact_exchange_potential_virt(iproc,nproc,at%geocode,nspin,&
              lr,orbsocc,orbs,ngatherarr(0,1),n3p,&
@@ -114,9 +116,17 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !!$        call exact_exchange_potential_round(iproc,nproc,at%geocode,nspin,lr,orbs,&
 !!$             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
 
-        call exact_exchange_potential(iproc,nproc,at%geocode,nspin,&
-             lr,orbs,ngatherarr(0,1),n3p,&
-             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+        !here the condition for the scheme should be chosen
+        if (.false.) then
+           call exact_exchange_potential(iproc,nproc,at%geocode,nspin,&
+                lr,orbs,ngatherarr(0,1),n3p,&
+                0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+        else
+           !the psi should be transformed in real space
+           call exact_exchange_potential_round(iproc,nproc,at%geocode,nspin,lr,orbs,&
+                0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+
+        end if
      end if
   else
      eexctX = 0._gp
@@ -648,6 +658,83 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
 
 END SUBROUTINE last_orthon
 !!***
+
+subroutine Fermilevel(orbs)
+  ! finds  the fermi level ef for an error function distribution with a width wf
+  ! eval are the Kohn Sham eigenvalues and melec is the total number of electrons
+  use module_base
+  use module_types
+  implicit none
+  type(orbitals_data), intent(in) :: orbs
+  !local variables
+  integer :: iu,id,i,n,nzeroorbs,ikpt,iorb,melec
+  real(gp) :: charge
+  real(wp) :: ef,wf,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff
+  parameter(pi=3.1415926535897932d0)
+  parameter(wf=1.d-2)
+
+  if (orbs%nkpts.ne.1) stop 'Fermilevel: Not yet implemented correctly'
+  do ikpt=1,orbs%nkpts
+     !number of zero orbitals for the given k-point
+     !overall charge of the system
+     charge=0.0_gp
+     do iorb=1,orbs%norb
+        charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb)
+     end do
+  end do
+  melec=nint(charge)
+
+
+  factor=1.d0/(sqrt(pi)*wf)
+  loop_fermi: do 
+     electrons=0.d0
+     dlectrons=0.d0
+     do ikpt=1,orbs%nkpts
+        do iorb=1,orbs%norbd+orbs%norbu
+           arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
+           electrons=electrons+.5d0*(1.d0-derf(arg))
+           dlectrons=dlectrons-exp(-arg**2)
+        enddo
+     enddo
+     dlectrons=dlectrons*factor
+     
+     write(*,*) electrons,ef,dlectrons
+     diff=melec-electrons
+     if (abs(diff).lt.1.d-12) exit loop_fermi
+     corr=diff/dlectrons
+     if (corr.gt.1.d0*wf) corr=1.d0*wf
+     if (corr.lt.-1.d0*wf) corr=-1.d0*wf
+     if (abs(dlectrons).lt.1.d-14  .and. electrons.gt.dble(melec)) corr=3.d0*wf
+     if (abs(dlectrons).lt.1.d-14  .and. electrons.lt.dble(melec)) corr=-3.d0*wf
+     ef=ef-corr
+  end do loop_fermi
+  
+  do ikpt=1,orbs%nkpts
+     argu=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu)-ef)/wf
+     argd=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+orbs%norbd)-ef)/wf
+     cutoffu=.5d0*(1.d0-derf(argu))
+     cutoffd=.5d0*(1.d0-derf(argd))
+     write(*,'(a,f12.5,2(1x,e8.1))') 'i, eval, Fermi level, Fermi distribution cut off at:',ef,cutoffu,cutoffd
+  enddo
+
+  ikpt=1
+  open(unit=11,file='occup.dat',status='unknown')
+  write(11,*)orbs%norbu,orbs%norbd
+  do iorb=1,orbs%norbu
+     arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
+     write(11,*)iorb,.5d0*(1.d0-derf(arg)),orbs%eval((ikpt-1)*orbs%norb+iorb)
+  end do
+  do iorb=1,orbs%norbd
+     arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
+     write(11,*)iorb+orbs%norbu,.5d0*(1.d0-derf(arg)),orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)
+  end do
+  close(unit=11)
+
+
+end subroutine Fermilevel
+
+
+
 
 subroutine eFermi(orbs)
   use module_base
