@@ -32,18 +32,20 @@ end module random
 !!****f* BigDFT/ran3
 !! SOURCE
 !!
-real(8) function ran3()
+real(kind=8) function ran3()
 
   use random 
   implicit none
 
   !Local variables
-  integer, parameter :: mbig=1000000000
-  integer, parameter :: mseed=161803398
-  integer, parameter :: mz=0
-  real(8), parameter :: fac=1./mbig
+  integer,      parameter :: mbig=1000000000
+  integer,      parameter :: mseed=161803398
+  integer,      parameter :: mz=0
+  real(kind=8), parameter :: fac=1./mbig
 
   integer :: i, mj, mk, ii, k
+  !_______________________
+
 
   ! Any large mbig, and any smaller (but still large) mseed can be
   !  substituted for the above values.

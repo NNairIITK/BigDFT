@@ -18,19 +18,27 @@ subroutine initialize_potential( )
   implicit None
 
   !Local variables
-  integer           :: nat_test
-  integer, pointer  :: typa(:) ! Atomic type
-  real(8), pointer  :: posa(:) ! Working positions of the atoms
+  integer               :: nat_test
+  integer, pointer      :: typa(:)    ! Atomic type
+  integer, pointer      :: const_(:)  ! constrains
+  real(kind=8), pointer :: posa(:)    ! Working positions of the atoms
 
-  call bigdft_init( nat_test, typa, posa, box, nproc, iproc )
+  call bigdft_init( nat_test, typa, posa, const_, boxref, boundary, nproc, iproc )
 
   call geopt_set_verbosity(0)
                                       ! test nat_test and nat
   if ( nat_test /= NATOMS ) stop "Different number of atoms"
 
-                                      ! transfer.
-  type(:) = typa(:)
-  pos(:)  = posa(:)
+  if ( .not. restart ) then                
+                    ! transfer.
+     typat(:)   = typa(:)
+     pos(:)     = posa(:)
+     constr(:)  = const_(:)
+     
+  end if
+  deallocate(posa)
+  deallocate(typa)
+  deallocate(const_)
 
 END SUBROUTINE initialize_potential
 !!***

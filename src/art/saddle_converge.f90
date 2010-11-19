@@ -24,68 +24,34 @@ subroutine saddle_converge( ret, saddle_energy )
   use saddles
   use lanczos_defs
   use bigdft_forces
-  implicit None
+  use diis_defs
+  implicit none
 
   !Arguments
   integer, intent(out) :: ret
-  real(8), intent(out) :: saddle_energy  ! Energy at saddle point.
+  real(kind=8), intent(out) :: saddle_energy  ! Energy at saddle point.
 
   !Local variables
   logical :: new_projection              ! For lanczos.
                                          ! Loop indeces :
-  integer :: i, kter, kter_init, iter, iter_init, m_perp, m_rejected, try
+  integer :: i, kter, kter_init, liter, diter, step_rejected
   integer :: ierror                      ! File control.
-  
-  integer :: npart                       ! number of particles having moved by more 
-                                         ! than a THRESHOLD
-  real(8) :: delr                        ! Distance between two configurations.
-  real(8) :: step                        ! This is the true step. 
-  real(8) :: boxl
-
-  real(8) :: current_energy                   ! Accept energy.
-  real(8), dimension(VECSIZE) :: pos_b        ! Position for evaluation.
-  real(8), dimension(VECSIZE) :: force_b      ! Total Force for evaluation.
-
-  real(8), dimension(VECSIZE) :: perp_force   ! Perpendicular force...
-  real(8), dimension(VECSIZE) :: perp_force_b ! ...& for evaluation.  
-
-  real(8) :: ftot                       ! Norm of the total force...
-  real(8) :: ftot_b                     ! ...& for evaluation.
-  real(8) :: fpar                       ! Parallel projection of force
-  real(8) :: fpar_b                     ! ...& for evaluation. 
-  real(8) :: fperp                      ! Norm of the perpendicular force
-  real(8) :: fperp_b                    ! ...& for evaluation.
-
-  real(8) :: current_fperp              ! fperp as a criteria of minimization. 
-  real(8) :: delta_e                    ! current_energy - ref_energy
-                                        ! If we lost the eigendirection :
-  real(8), dimension(VECSIZE) :: pos_p  ! previous position
-  real(8) :: fpar_p                     ! previous fpar.
-  
-  real(8) :: a1
-
-                                      ! We compute at constant volume.
-  boxl = box * scala
-
-                                      ! If restarts in harmonic well.
-  if ( restart .and. ( state_restart == 1 ) ) then 
-
-     initial_direction = direction_restart
-
-     kter_init = iter_restart         ! kter loop, init value.
-
-                                      ! Write
-     if ( iproc == 0 ) Then 
-      write(*,*) 'BART: Restart'
-      write(*,*) 'BART: in harmonic well '
-      write(*,*) 'BART: kter : ', kter_init
-      write(*,*) 'BART: pos: ', pos(1), pos(2), pos(3)
-     end if
-     restart = .false.
-  else
-                                      ! kter loop, init value.
-    kter_init = 0                   
-  end if
+  integer :: infodiis
+ 
+  real(kind=8) :: step                        ! This is the step in the hyperplane. 
+  real(kind=8),dimension(3) :: boxl
+  real(kind=8) :: a1
+  real(kind=8) :: current_energy              ! Accepted energy.
+  real(kind=8) :: current_fperp               ! fperp as a criteria of minimization. 
+  real(kind=8) :: ftot_b                      ! ftot  for evaluation.
+  real(kind=8) :: fpar_b                      ! fpar  for evaluation. 
+  real(kind=8) :: fperp_b                     ! fperp for evaluation.
+  real(kind=8), dimension(VECSIZE) :: pos_b        ! Position for evaluation.
+  real(kind=8), dimension(VECSIZE) :: force_b      ! Total Force for evaluation.
+  real(kind=8), dimension(VECSIZE) :: perp_force   ! Perpendicular force...
+  real(kind=8), dimension(VECSIZE) :: perp_force_b ! ...& for evaluation.  
+! __________________
+  boxl = box * scala                  ! We compute at constant volume.
 
                                       ! Write header in log.file.
   if ( iproc == 0 ) then
@@ -96,44 +62,58 @@ subroutine saddle_converge( ret, saddle_energy )
    write(FLOG, '(A22,A31,A27)' ) '( eV )', '( eV/Ang )', '( eV/Ang**2 )'
    close(FLOG)
   end if
+                                      ! initialization
+  saddle_energy = 0.0d0
+  if ( .not. restart ) pas = 0
+                                      ! If restarts in harmonic well.
+  if ( restart .and. ( state_restart == 1 ) ) then 
+
+     kter_init = iter_restart         ! init value of kter loop.
+     initial_direction = direction_restart
+     deallocate(direction_restart)
+
+     restart = .false.
+                                      ! Write
+     if ( iproc == 0 ) then
+        write(*,*) 'BART: Restart  in harmonic well '
+        write(*,*) 'BART: kter : ', kter_init
+        write(*,*) 'BART: pos: ', pos(1), pos(2), pos(3)
+     end if
+  else
+     kter_init = 0                    ! init value of kter loop.
+  end if
 ! _________
+!                HARMONIC WELL 
 
   If_restart: if ( ( .not. restart ) .and. NEW_EVENT ) then 
 
-     eigenvalue = 0.0d0
-     a1         = 0.0d0
-
-     call calcforce( NATOMS, pos, boxl, force, current_energy )
-     evalf_number = evalf_number + 1
-
-    ! We now project out the direction of the initial displacement from the
-    ! minimum from the force vector so that we can minimize the energy in
-    ! the direction perpendicular to the direction of escape from harmonic well
-
-     call force_prj( fpar, perp_force, fperp, ftot, force, initial_direction )
-
-                                      ! The true step is not the increment.
-     step = 0.4d0*INCREMENT           ! ?? HERE OR INSIDE Do_kter ??
-    
-     new_projection = .true.          ! COSMIN, but is it necessary???
-
+     eigenvalue = 0.0d0               ! Only for the report.
+     a1         = 0.0d0               ! Only for the report. 
+     step = 0.4*INCREMENT             ! The step in the hyperplane.
+     new_projection = .true.          ! We do not use previously computed 
+                                      ! lowest direction.
      Do_kter: do kter = kter_init, MAXKTER
-      
-        try = 0                       ! # iterationes of While loop.
-        m_perp = 0                    ! Accepted perpendicular iterations.
-        m_rejected = 0                ! Rejected movements.
+                                      ! Reference energy and force.
+        call calcforce( NATOMS, pos, boxl, force, current_energy, evalf_number )
 
-                                      ! We relax perpendicularly using a simple
-                                      ! variable-step steepest descent 
+        ! We now project out the direction of the initial displacement from the
+        ! minimum from the force vector so that we can minimize the energy in
+        ! the direction perpendicular to the direction of escape from harmonic well
+
+        call force_projection( fpar, perp_force, fperp, ftot, force, initial_direction )
+      
+        try = 0                       ! Total # of iterationes in a given hyperplane. 
+        m_perp = 0                    ! Perpendicular iterations accepted.
+        step_rejected = 0             ! Perpendicular steps rejected.
+
+        ! We relax perpendicularly using a simple variable-step steepest descent
         While_perpk: do 
 
           pos_b = pos + step * perp_force
 
-          call calcforce( NATOMS, pos_b, boxl, force_b, total_energy )
-          evalf_number = evalf_number + 1
-
-                                      ! Force's components.
-          call force_prj( fpar_b, perp_force_b, fperp_b, ftot_b, &
+          call calcforce( NATOMS, pos_b, boxl, force_b, total_energy, evalf_number )
+                                      ! New force's components.
+          call force_projection( fpar_b, perp_force_b, fperp_b, ftot_b, &
                        & force_b, initial_direction ) 
 
           if ( total_energy < current_energy ) then
@@ -145,456 +125,159 @@ subroutine saddle_converge( ret, saddle_energy )
              ftot           = ftot_b
              force          = force_b
 
-             m_perp = m_perp + 1
              step = 1.2 * step
-             m_rejected = 0
+             m_perp = m_perp + 1
+             step_rejected = 0
           else
              step = 0.6 * step
-             m_rejected = m_rejected + 1
+             step_rejected = step_rejected + 1
           end if
           try = try + 1
          
           if ( fperp < FTHRESHOLD .or. m_perp > MAXKPERP &
-              &  .or. m_rejected > 5 ) exit While_perpk
+              &  .or. step_rejected > 5 ) exit While_perpk
 
         end do While_perpk
-
                                       ! We start checking of negative eigenvalues 
         if ( kter >= KTER_MIN ) then  ! eigenvalues only after a few steps.
 
-                                      ! We do not use previously computed 
-           new_projection = .true.    ! lowest direction.
-
-                                      ! In lanczos.f90
            call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
-           new_projection = .false.   ! COSMIN
-
+           new_projection = .false.
         end if
 
         current_energy = total_energy ! As computed in lanczos routine.
         delta_e = current_energy - ref_energy
-
                                       ! Magnitude of the displacement (utils.f90).
         call displacement( posref, pos, delr, npart )
-
-        if ( SAVE_CONF_INT ) call save_intermediate( 'K', kter ) 
-
                                       ! Write 
-        if ( iproc == 0 ) then
-         open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
-             & action = 'write', position = 'append', iostat = ierror )
-         write( FLOG, '(a6,i4,x,F11.4,i3,i2,4f12.4,x,1f10.3,i4,i6,f7.2)') &
-         & "kter=", kter, delta_e, m_perp, try, ftot, fpar, fperp,   & 
-         &  eigenvalue, delr, npart, evalf_number, a1
-         close( FLOG )
-         write(*,'(a,i4,x,(1p,e17.10,0p),x,2i3,4f12.6,x,1f10.4,i4,i6)') &
-         & " BART: kter: '", kter, current_energy, m_perp, try, ftot,   & 
-         & fpar, fperp, eigenvalue, delr, npart, evalf_number
-        end if
+        call write_step ( 'K', kter, a1, current_energy )
 
+        if ( SAVE_CONF_INT ) call save_intermediate( 'K' ) 
+        pas = pas + 1
                                       ! For restart ( restart.f90 )
-        state_restart = 1
-        if ( iproc == 0 ) call save_state( state_restart, kter+1, initial_direction )
-
-                                      ! is the configuration out of the harmonic basin?
-        if ( eigenvalue < EIGEN_THRESH ) then 
-
-           exit Do_kter
-        else
-
-                                      ! We move the configuration along the initial direction.
-           pos = pos + BASIN_FACTOR * INCREMENT * initial_direction  
-
-                                      ! Current energy and force.
-           call calcforce( NATOMS, pos, boxl, force, current_energy )
-           evalf_number = evalf_number + 1
-
-                                      ! New force's components.
-           call force_prj( fpar, perp_force, fperp, ftot, force, initial_direction )
-
+        if ( write_restart_file ) then 
+            state_restart = 1
+            if ( iproc == 0 ) call save_state( state_restart, kter+1, initial_direction )
         end if
+                                      ! Is the configuration out of the harmonic basin?
+        if ( eigenvalue < EIGEN_THRESH ) exit Do_kter 
+                                      ! If not, we move the configuration along 
+                                      ! the initial direction.
+        pos = pos + BASIN_FACTOR * INCREMENT * initial_direction  
 
      end do Do_kter
+                                      ! If after MAXKTER iterations we have not found
+                                      ! an inflection the event is killed.
+     if ( eigenvalue > EIGEN_THRESH ) then
+        saddle_energy = current_energy ! For the report.
+        ret = 80000 + kter 
+        return
+     end if
      
      ! The configuration is now out of the harmonic well, we can now bring
-     ! it to the saddle point. Again, we split the move into a parallel and 
-     ! perpendicular contribution.
-      
+     ! it to the saddle point. 
      ! First, we must now orient the direction of the eigenvector corresponding to the
-     ! negative eigendirection (called projection) such that it points away from minimum. 
-     
+     ! negative eigendirection (called projection) such that it points away from minimum.
+
      fpar = dot_product( force, projection )
      if ( fpar > 0.0d0 ) projection = -1.0d0 * projection
-
-                                      ! We move the configuration along the projection.
-     pos = pos +  1.0d0 * INCREMENT * projection 
-
-                                      ! Current and energy and force.
-     call calcforce( NATOMS, pos, boxl, force, current_energy )
-     evalf_number = evalf_number + 1 
-
-                                      ! New force's components.
-     call force_prj( fpar, perp_force, fperp, ftot, force, projection )
-     current_fperp = fperp 
-
-                                      ! if we lost the eigendirection
-     pos_p  = pos   
-     fpar_p = fpar
-
-     iter_init = 1
-                                      ! Else If_restart
-  else if ( restart .and. ( state_restart == 2 ) ) then 
-
-                                      ! This is the restart from a previous ACTIVATION
-                                      ! ACTIVATION process. 
-     iter_init  = iter_restart
-     projection = direction_restart
-
-     call calcforce( NATOMS, pos, boxl, force, current_energy )
-     evalf_number = evalf_number + 1
-
-                                      ! Force's components.
-     Call force_prj( fpar, perp_force, fperp, ftot, force, projection )
-     current_fperp = fperp
-
-                                      ! If we lost the eigendirection
-     pos_p  = pos   
-     fpar_p = fpar
       
-     if ( iproc == 0 ) write(*,*) 'BART: Restart = 2'
-     restart = .false.
+     liter = 1                   ! init value of lanczos loop.
+     diter = 1                   ! init value of diis loop. 
+     switchDIIS= .false.
+! _________
+  else if ( restart .and. &
+          ( state_restart == 2 .or. state_restart == 4 ) ) then ! Else If_restart
 
+!           RESTART FROM A PREVIOUS ACTIVATION PROCESS 
+ 
+     call allocate_activation ()
+     projection      = direction_restart    
+     previous_forces = diis_forces_restart  
+     previous_pos    = diis_pos_restart    
+     previous_norm   = diis_norm_restart  
+     maxter     = maxter_r                  
+     eigen_min  = eigen_min_r               
+     eigenvalue = eigenvalue_r              
+     nsteps_after_eigen_min = nsteps_after_eigen_min_r 
+
+     deallocate(direction_restart) 
+     deallocate(diis_forces_restart)
+     deallocate(diis_pos_restart)
+     deallocate(diis_norm_restart) 
+
+     if ( state_restart == 2 ) then 
+        liter = iter_restart 
+        diter = 1
+        switchDIIS= .false.           ! We go to apply_lanczos.
+        if ( iproc == 0 ) write(*,*) "BART: Restart = 2"
+     elseif ( state_restart == 4 ) then 
+        diter = iter_restart 
+        liter = 1
+        switchDIIS= .true.            ! We go to apply_diis.
+        if ( iproc == 0 ) write(*,*) "BART: Restart = 4"
+     else                             !DEBUG
+        if ( iproc == 0 ) write(*,*) "BART: HOUSTON, we've got a problem"
+        stop
+     end if 
+                                      ! First force calculation.
+     call calcforce( NATOMS, pos, boxl, force, current_energy, evalf_number )
+     call force_projection( fpar, perp_force, fperp, ftot, force, projection )
+! _________
   else if ( .not. new_event ) then    ! Else If_restart
 
-                                      ! This is a convergence event, we must
-                                      ! compute the eigenvector with precision.
-
-     posref = pos                     ! ??? FOR WHAT ??
-
+!                'REFINE' EVENT 
+                                      ! we must compute the eigenvector
+                                      ! with precision.
+     posref = pos                     
      new_projection = .true. 
      do i = 1, 5
         call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
         new_projection = .false.
      end do
 
-     call calcforce( NATOMS, pos, boxl, force, current_energy )
-     evalf_number = evalf_number + 1
+     call calcforce( NATOMS, pos, boxl, force, current_energy, evalf_number )
 
+     delta_e = current_energy - ref_energy
      fpar = dot_product(force,projection)
      if( fpar > 0.0d0 ) projection = -1.0d0 * projection
-
-                                      ! Force's components.
-     call force_prj( fpar, perp_force, fperp, ftot, force, projection )
-     current_fperp = fperp
-
-                                      ! If we lost the eigendirection.
-     pos_p = pos   
-     fpar_p = fpar
-                                      ! For avoiding first 100 steps in next
-     iter_init = 100                  ! loop ???; ummm.
-
+                                      ! This will be just for divide the INCREMENT,
+     liter = 100                      ! i.e, a small move.
+! _________
   else                                ! Else If_restart
-
      write(*,*) 'BART: Problem with restart and state_restart : '
-     write(*,*) 'BART: restart = ', restart
-     write(*,*) 'BART: state_restart = ', state_restart
+     write(*,*) 'BART: restart = ', restart, ' state_restart = ', state_restart
      stop
-
   end if If_restart
 ! _________ 
-                                      ! ACTIVATION.
-                                      ! If activation did not converged before
-                                      ! MAXITER then ret = 0, and the the saddle
-                                      ! is not accepted. 
-  ret = 0 
+!                ACTIVATION PART
 
-  Do_iter: do iter = iter_init, MAXITER 
+  if ( .not. restart ) call allocate_activation ()
+  
+  ret = 0
+  end_activation = .false.
 
-     step = 0.04d0*INCREMENT          ! ?? HERE OR OUTSIDE Do_iter ??
-     reject = .false.                 ! If we lost the eigendirection
+  While_activation: do
+ 
+    if ( .not. switchDIIS ) then 
+       call apply_lanczos ( liter, saddle_energy )
+    else 
+       call apply_diis( diter, saddle_energy )
+       if ( diter > 1 ) liter = 1 
+       diter = 1
+       switchDIIS = .False.
+    end if
 
-     try = 0
-     m_perp = 0
-     m_rejected = 0
+    if ( end_activation ) exit 
+  end do While_activation
 
-                                      ! The next loop is on the perpendicular direction,
-                                      ! again using a variable-step steepest descent
-     While_perpi: do 
-
-       pos_b = pos + step * perp_force
-
-       call calcforce( NATOMS, pos_b, boxl, force_b, total_energy )
-       evalf_number = evalf_number + 1
-
-                                      ! New force's components.
-       call force_prj( fpar_b, perp_force_b, fperp_b, ftot_b, &
-                     & force_b, projection )      
-       
-       if ( fperp_b < current_fperp ) then
-          pos            = pos_b
-          current_energy = total_energy
-          fpar           = fpar_b
-          perp_force     = perp_force_b
-          fperp          = fperp_b
-          ftot           = ftot_b
-          force          = force_b
-
-          current_fperp  = fperp_b
-          m_perp = m_perp + 1
-          step = 1.6 * step
-          m_rejected = 0
-       else
-          step = 0.8 * step
-          m_rejected = m_rejected + 1
-       end if
-       try = try + 1 
-
-                                      ! 5 kills MAXIPERP 
-       if ( fperp < FTHRESHOLD .or. m_perp > (iter - 10) &         
-          & .or. m_perp > MAXIPERP .or. try > 5 ) exit While_perpi
-       
-     end do  While_perpi   
-
-                                      ! Lanczos call, we start from the
-     new_projection = .false.         ! previous direction each time.
-     call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
-
-                                      ! Write     
-     if ( iproc == 0 ) then 
-      write(*,*) 'BART: eigenvalue : ', eigenvalue
-      write(*,"(' ','BART: eigenvals: ',4f12.6)") (eigenvals(i),i=1,4)
-     end if
-    
-     current_energy = total_energy    ! As computed in lanczos routine
-     saddle_energy  = current_energy
-     delta_e = current_energy - ref_energy
-
-                                      ! Magnitude of the displacement (utils.f90).
-     call displacement( posref, pos, delr, npart )
-
-     if ( SAVE_CONF_INT ) call save_intermediate( 'I', iter )
-
-                                      ! Write
-     if ( iproc == 0 ) then
-      open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
-          & action = 'write', position = 'append', iostat = ierror )
-      write(FLOG,'(a6,i4,x,F11.4,i3,i2,4f12.4,x,1f10.3,i4,i6,f7.2)') &
-      & 'iter=', iter, delta_e, m_perp, try, ftot, fpar, fperp,   &
-      &  eigenvalue, delr, npart, evalf_number, a1
-      close(FLOG) 
-      write(*,'(a,i4,x,(1p,e17.10,0p),i3,i2,4f12.6,x,1f10.4,i4,i6)') &
-      & " BART: iter: ", iter, current_energy, m_perp, try, ftot,    &
-      & fpar, fperp, eigenvalue, delr, npart, evalf_number
-     end if
-
-                                      ! If force is below some threshold
-                                      ! of if we have a positive eigenvalue.
-     If_ftot_eigen: if ( ftot < EXITTHRESH ) then
-
-        If_diis1: if ( USE_DIIS ) then 
-
-                                      ! Write 
-           if ( iproc == 0 ) then
-            open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
-                 & action = 'write', position = 'append', iostat = ierror )
-            write(FLOG, * ) "Call DIIS"
-            close(FLOG)
-           end if
-
-                                       ! In diis.f90 
-           call apply_diis( current_energy, ftot, delr, npart )
-           saddle_energy = current_energy
-           fpar  = 0.0d0
-           fperp = 0.0d0
-
-           If_check: if ( DIIS_CHECK_EIGENVEC ) then
-
-                                      ! Lanczos several times.
-              new_projection = .true.
-              Do_lanc: do i = 1, 4
-
-                 call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
-                 new_projection = .false.
-
-                                      ! Write
-                 if ( iproc == 0 ) then 
-                  write(*,*) 'BART: Iter ', 1, ' : ', total_energy,  eigenvalue  
-                 end if
-                                      ! Exit of loop.  
-                 if ( eigenvalue < 0.0d0 ) exit Do_lanc
-              end do Do_lanc
-
-              if ( eigenvalue >= 0.0 .or. ftot > DIIS_FORCE_THRESHOLD ) then
-                                      ! failed.
-                 ret = 60000 + iter
-              else
-                                      ! As computed in lanczos routine.
-                 saddle_energy = total_energy 
-
-                                      ! New fpar and fperp. 
-                 call force_prj( fpar, perp_force, fperp, ftot, force, projection )
-                 ret = 20000 + iter
-
-              end if
-
-           else                       ! Else of If_check 
-
-                                      ! Write 
-              if ( iproc == 0 ) then 
-               open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
-                   & action = 'write', position = 'append', iostat = ierror )
-               write(FLOG,*) 'Warning : Not checking of saddle point' 
-               close(FLOG)            
-              end if
-             
-              eigenvalue = 0.0d0
-              ret = 20000 + iter
-              if ( ftot > DIIS_FORCE_THRESHOLD ) ret = 70000 + iter
-
-           end if If_check
-
-        else                          ! Else of If_diis1
-
-           ret = 20000 + iter
-
-        end if If_diis1
-
-        exit Do_iter
-
-                                      ! Else of If_ftot_eigen
-     else if ( (abs(fpar) < 0.1*EXITTHRESH ) .and. ( fperp < EXITTHRESH ) ) then 
-
-        If_diis2: if ( USE_DIIS ) then
-
-                                      ! Write 
-           if ( iproc == 0 ) then 
-            open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
-                & action = 'write', position = 'append', iostat = ierror )
-            write(FLOG, * ) "Call DIIS (2)"
-            close(FLOG)
-           end if
-
-                                      ! diis in diis.f90 
-           call apply_diis( current_energy, ftot, delr, npart )
-           saddle_energy = current_energy
-           fpar  = 0.0d0
-           fperp = 0.0d0
-
-           If_check2: if ( DIIS_CHECK_EIGENVEC ) then
-
-                                      ! Lanczos several times.
-              new_projection = .true.
-              Do_lanc2: do i = 1, 4
-
-                 call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
-                 new_projection = .false.
-
-                                      ! Write
-                 if ( iproc == 0 ) then 
-                  write(*,*) 'BART: Iter ', 1, ' : ', total_energy,  eigenvalue  
-                 end if
-                                      ! Exit of loop.
-                 if ( eigenvalue < 0.0d0 ) exit  Do_lanc2
-              end do Do_lanc2
-
-              if ( eigenvalue >= 0.0 .or. ftot > DIIS_FORCE_THRESHOLD ) then
-                                      ! failed.
-                 ret = 60000 + iter
-              else
-                                      ! As computed in lanczos routine.
-                 saddle_energy = total_energy 
-
-                                      ! New fpar and fperp.  
-                 call force_prj( fpar, perp_force, fperp, ftot, force, projection ) 
-                 ret = 10000 + iter
-
-              end if
-
-           else                       ! Else of If_check2 
-
-                                      ! Write 
-              if ( iproc == 0 ) then 
-               open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
-                   & action = 'write', position = 'append', iostat = ierror )
-               write(FLOG,*) 'Warning : Not checking of saddle point' 
-               close(FLOG)
-              end if
-
-              eigenvalue = 0.0d0
-              ret = 10000 + iter
-              if ( ftot > DIIS_FORCE_THRESHOLD ) ret = 70000 + iter
-
-           end if If_check2
-
-        else                          ! Else of If_diis2 
-
-           ret = 0000 + iter
-
-        end if If_diis2    
-
-        exit  Do_iter 
-
-     else if ( eigenvalue > 0.0 ) then! Else of If_ftot_eigen
-                                      ! Failed !!
-        ret = 60000 + iter
-        exit  Do_iter
-           
-     end if If_ftot_eigen
-
-                                      ! If we lost the eigendirection ! 
-     pos_p = pos
-     fpar_p = fpar  
-                                      ! We now move the configuration along the
-                                      ! eigendirection corresponding to the lowest
-                                      ! eigenvalue.
-     if ( abs(fpar) > EXITTHRESH*0.5 ) then 
-        pos = pos - sign(1.0d0,fpar) * 2.0d0 * INCREMENT * projection / sqrt(1.0d0*iter) 
-     else
-        pos = pos - sign(1.0d0,fpar) * 1.0d0 * INCREMENT * projection / sqrt(1.0d0*iter) 
-     end if
-
-                                      ! COSMIN 
-     call calcforce( NATOMS, pos, boxl, force, current_energy ) 
-     evalf_number = evalf_number + 1
-
-                                      ! New force's components.
-     call force_prj( fpar, perp_force, fperp, ftot, force, projection )
-     current_fperp = fperp
-
-                                      ! For restart ( restart.f90 )
-     state_restart = 2
-     if ( iproc == 0 ) Call save_state( state_restart, iter+1, projection )
-    
-  end do Do_iter
-! _________ 
-
-  if ( ( ret > 0 ) .and. ( ret < 30000 ) ) then 
-
-     delta_e = saddle_energy - ref_energy
-
-                                      ! Write
-     if ( iproc == 0 ) then 
-      open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
-          & action = 'write', position = 'append', iostat = ierror )
-      write(FlOG,*) ' '
-      write(FLOG, '(a7,i5,F10.4,i3,i2,4f12.4,x,1f10.3,i4,i6,f7.2)') &
-      & 'SADDLE', mincounter, delta_e, m_perp, try, ftot, fpar, fperp,   &
-      &  eigenvalue, delr, npart, evalf_number, a1
-      write(FLOG,*) ' '
-      close(FLOG) 
-
-      write( *, '(A,i5,F10.4,i3,i2,4f12.4,x,1f10.3,i4,i6,f7.2)') &
-      & 'BART: SADDLE', mincounter, delta_e, m_perp, try, ftot, fpar, fperp,   &
-      &  eigenvalue, delr, npart, evalf_number, a1
-     end if
-
-  end if
+  call deallocate_activation ()
 
 END SUBROUTINE saddle_converge
 !!***
 
 
-!!****f* saddle_converge/force_prj
+!!****f* saddle_converge/force_projection
 !! FUNCTION
 !!   It calculates: 
 !!    the magnitude the force in the direction of some 'direction' (F_par),
@@ -603,31 +286,193 @@ END SUBROUTINE saddle_converge
 !!
 !! SOURCE
 !! 
-subroutine force_prj ( F_par, F_perp_V, F_perp, norm_F, ref_F, direction )
+subroutine force_projection ( F_par, F_perp_V, F_perp, norm_F, ref_F, direction )
 
   use defs , only : VECSIZE
   implicit none
 
   ! Arguments
-  real(8),                     intent(out) :: F_par     ! Norm of parallel force.
-  real(8), dimension(VECSIZE), intent(out) :: F_perp_V  ! Perpendicular force Vector. 
-  real(8),                     intent(out) :: F_perp    ! Norm of F_perp_V.
-  real(8),                     intent(out) :: norm_F    ! Norm of the input force.
-  real(8), dimension(VECSIZE), intent(in)  :: ref_F     ! Input force.
-  real(8), dimension(VECSIZE), intent(in)  :: direction ! Eigen direction.
+  real(kind=8),                     intent(out) :: F_par     ! Norm of parallel force.
+  real(kind=8), dimension(VECSIZE), intent(out) :: F_perp_V  ! Perpendicular force Vector. 
+  real(kind=8),                     intent(out) :: F_perp    ! Norm of F_perp_V.
+  real(kind=8),                     intent(out) :: norm_F    ! Norm of the input force.
+  real(kind=8), dimension(VECSIZE), intent(in)  :: ref_F     ! Input force.
+  real(kind=8), dimension(VECSIZE), intent(in)  :: direction ! Eigen direction.
 
   ! Internal variables 
-  real(8) :: F_perp2                  ! F_perp*F_perp.
-
+  real(kind=8) :: F_perp2                  ! F_perp*F_perp.
 
   F_par  = dot_product( ref_F, direction )
   F_perp_V  = ref_F - F_par * direction  
 
   F_perp2 = dot_product( F_perp_V , F_perp_V )  
-  F_perp  = dsqrt( F_perp2 )
-                                      ! This is = dsqrt( dot_product( ref_F, ref_F ) ) 
+  F_perp  = sqrt( F_perp2 )
+                                      ! This is = sqrt( dot_product( ref_F, ref_F ) ) 
                                       ! i.e, the norm of the force, but cheaper.
-  norm_F = dsqrt( F_par*F_par + F_perp2 ) 
+  norm_F = sqrt( F_par*F_par + F_perp2 ) 
 
-END SUBROUTINE force_prj
+END SUBROUTINE force_projection
+!!***
+
+
+!!****f* saddle_converge/write_step
+!! FUNCTION
+!!
+!! SOURCE
+!! 
+subroutine write_step ( stage, it, a1, energy )
+
+  use defs
+  use saddles
+  use lanczos_defs
+  implicit None
+
+  !Arguments
+  character(len=1), intent(in) :: stage
+  integer,          intent(in) :: it
+  real(kind=8),          intent(in) :: a1
+  real(kind=8),          intent(in) :: energy         
+
+  !Local variables
+  integer :: ierror
+  character(len=2)  :: etape  
+
+  etape = stage//"="
+
+  if ( iproc == 0 ) then
+     open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
+         & action = 'write', position = 'append', iostat = ierror )
+
+     write( FLOG,'(i4,2x,a2,i4,x,F10.4,i3,i2,4f12.4,x,1f10.3,i4,i6,f7.2)')  &
+     &           pas, etape, it, delta_e, m_perp, try, ftot, fpar, fperp,  & 
+     &  eigenvalue, delr, npart, evalf_number, a1
+     close( FLOG )
+
+     write(*,'(a,i4,2x,a2,i4,x,(1p,e17.10,0p),x,2i3,4f12.6,x,1f10.4,i4,i6)') &
+     & " BART:", pas, etape, it, energy,  m_perp, try, ftot, fpar, fperp,   &
+     &  eigenvalue, delr, npart, evalf_number
+  end if
+
+END SUBROUTINE write_step
+!!***
+
+
+!!****f* saddle_converge/end_report
+!! FUNCTION
+!!   It calculates: 
+!!     
+!! SOURCE
+!! 
+subroutine end_report ( success, ret, saddle_energy )
+
+  use defs
+  use saddles
+  use lanczos_defs
+  implicit None
+
+  !Arguments
+  logical, intent(out)   :: success
+  integer, intent(inout) :: ret
+  real(kind=8), intent(inout) :: saddle_energy 
+
+  !Local variables
+  integer :: i
+  integer :: ierror                   ! File control.
+  real(kind=8) :: a1
+  real(kind=8) :: current_energy  
+  real(kind=8), dimension(VECSIZE) :: perp_force 
+  logical :: new_projection           ! For lanczos.
+  character(len=10) :: converg        ! For report.
+  character(len=4)  :: scounter
+  character(len=20) :: fname
+! __________________
+  
+  if ( ret < 80000 ) then 
+     If_diis: if ( USE_DIIS .and. ftot < EXITTHRESH ) then
+
+        fpar  = 0.0d0
+        fperp = 0.0d0
+
+        If_check: if ( DIIS_CHECK_EIGENVEC ) then
+                                         ! Lanczos several times.
+           new_projection = .true.
+           Do_lanc: do i = 1, 4
+              call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
+              new_projection = .false.
+                                         ! Exit of loop.  
+              if ( eigenvalue < 0.0d0 ) exit Do_lanc
+           end do Do_lanc
+
+           if ( eigenvalue >= 0.0 ) then
+              ret = 60000 + pas 
+           else                          ! Else of eigenvalue.
+                                         ! As computed in lanczos routine.
+              saddle_energy = total_energy  
+                                         ! New fpar and fperp. 
+              call force_projection( fpar, perp_force, fperp,&
+                                    & ftot, force, projection )
+              ret = 10000 + pas
+           end if
+
+        else                             ! Else of If_check 
+           eigenvalue = 0.0d0
+           ret = 10000 + pas 
+        end if If_check
+     else if ( ftot < EXITTHRESH ) then
+                              ! Else of If_diis
+        if ( eigenvalue > 0.0d0 ) then
+           ret = 60000 + pas
+        else 
+           ret = 20000 + pas
+        end if
+
+     else 
+        ret = 70000 + pas 
+     end if If_diis
+  end if
+
+  if ( ret < 59999 )  then 
+     converg = 'CONVERGED' 
+     success = .true.
+                                      ! We write the configuration in a sad.... file
+     call convert_to_chain( mincounter, scounter )
+     fname = SADDLE // scounter
+     if (iproc == 0 ) call store( fname ) 
+     conf_saddle = fname
+  else
+     converg = 'FAILED'
+     success = .false.
+     if ( SAVE_CONF_INT ) call move_intermediate( )
+  end if 
+
+  delta_e = saddle_energy - ref_energy
+                                   ! Final report of saddle point 
+  if ( iproc == 0 ) then
+   open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
+       & action = 'write', position = 'append', iostat = ierror )
+   write(FLOG,"(/' ','SADDLE',i5, a10,' |ret ',i6,' |delta energy= ',  &
+        & f9.4, ' |force_(tot,par,perp)= ', 3f10.4,        &
+        & ' |eigenval=',f9.4,' |npart= ', i4,' |delr= ', f8.3,' |evalf=', &
+        & i6 ' |')")                                          & 
+        & mincounter, adjustr(converg), ret, delta_e, ftot,  &  
+        & fpar, fperp, eigenvalue, npart, delr, evalf_number
+   write(*,"(/' ','BART: SADDLE',i5, a10,' |ret ',i6,' |delta energy= ',  &
+        & f9.4, ' |force_(tot,par,perp)= ', 3f10.4,        &
+        & ' |eigenval=',f9.4,' |npart= ', i4,' |delr= ', f8.3,' |evalf=', &
+        & i6 ' |')")                                          & 
+        & mincounter, adjustr(converg), ret, delta_e, ftot,  &  
+        & fpar, fperp, eigenvalue, npart, delr, evalf_number
+
+   if ( success ) then  
+                                        ! Write  
+      write(*,*) 'BART: Configuration stored in file ',fname
+      write(FLOG,'(1X,A34,A17)') ' - Configuration stored in file : ', trim(fname)
+      write(FLOG,'(1X,A34,(1p,e17.10,0p))') &
+      &  ' - Total energy Saddle (eV)     : ', saddle_energy
+      write(FLOG,*) ' '
+   end if
+   close(FLOG) 
+  end if
+
+END SUBROUTINE end_report 
 !!***

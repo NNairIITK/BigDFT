@@ -1,12 +1,7 @@
 !!****f* BigDFT/utils
-!! FUNCTION
+!! FUNCTION 
 !!    This file contains a series of utilities that could be used by a
 !!    number of program. They suppose very little.
-!!
-!!****f* utils/convert_to_chain
-!! FUNCTION
-!!    This subroutine takes an integer and transforms it into a
-!!    chain of character.
 !!
 !! COPYRIGHT
 !!    Copyright (C) 2001 Normand Mousseau
@@ -16,6 +11,44 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
+!!****f* BigDFT/print_newevent
+!! FUNCTION
+!!    This subroutine prints the initial details for a new events
+!! SOURCE
+!!
+subroutine print_newevent( ievent_current, temperat )
+
+  use defs
+  implicit none
+
+  !Arguments
+  integer, intent(in) :: ievent_current
+  real(kind=8), intent(in) :: temperat
+
+  !Local variables
+  integer :: ierror
+
+  write(*,*) 'BART: Simulation : ', ievent_current
+  write(*,*) 'BART: Starting from minconf : ', mincounter
+  write(*,*) 'BART: Reference Energy (eV) : ', ref_energy
+  write(*,*) 'BART: Temperature : ', temperat
+
+  open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
+  write(FLOG,*) ' _______________________________________'
+  write(FLOG,'(1X,A34,I17)') ' - Simulation                   : ', ievent_current
+  write(FLOG,'(1X,A34,I17)') ' - Starting from minconf        : ', mincounter
+  write(FLOG,'(1X,A34,(1p,e17.10,0p))') ' - Reference Energy (eV)        : ', ref_energy 
+  write(FLOG,'(1X,A34,F17.6)') ' - Temperature                  : ', temperat
+  close(FLOG)
+
+END SUBROUTINE print_newevent
+!!***
+
+
+!!****f* BigDFT/convert_to_chain
+!! FUNCTION
+!!    This subroutine takes an integer and transforms it into a
+!!    chain of character.
 !! SOURCE
 !!
 subroutine convert_to_chain( init_number, chain )
@@ -55,55 +88,6 @@ subroutine convert_to_chain( init_number, chain )
 END SUBROUTINE convert_to_chain 
 !!***
 
-!!****f* BigDFT/center
-!! FUNCTION
-!!   It places the center of mass of a 3D vector at (0,0,0) 
-!!
-!! SOURCE
-!!
-subroutine center( vector, vecsize )
-
-  implicit none
-
-  !Arguments
-  integer, intent(in) :: vecsize
-  real(kind=8), dimension(vecsize), intent(inout), target :: vector
-
-  !Local variables
-  integer :: i, natoms
-  real(kind=8), dimension(:), pointer :: x, y, z     ! Pointers for coordinates
-  real(kind=8) :: xtotal, ytotal, ztotal
-
-  natoms = vecsize / 3
-
-  ! We first set-up pointers for the x, y, z components 
-  x => vector(1:natoms)
-  y => vector(natoms+1:2*natoms)
-  z => vector(2*natoms+1:3*natoms)
-
-  xtotal = 0.0d0
-  ytotal = 0.0d0
-  ztotal = 0.0d0
-
-  do i = 1, natoms
-     xtotal = xtotal + x(i)
-     ytotal = ytotal + y(i)
-     ztotal = ztotal + z(i)
-  enddo 
-
-  xtotal = xtotal / natoms
-  ytotal = ytotal / natoms
-  ztotal = ztotal / natoms
-
-  do i = 1, natoms
-     x(i) = x(i) - xtotal
-     y(i) = y(i) - ytotal
-     z(i) = z(i) - ztotal
-  end do
-
-END SUBROUTINE center
-!!***
-
 !!****f* BigDFT/displacement
 !! FUNCTION
 !!    It computes the distance between two configurations and 
@@ -119,12 +103,12 @@ subroutine displacement( posa, posb, delr, npart )
   real(kind=8), dimension(vecsize), intent(in), target :: posa
   real(kind=8), dimension(vecsize), intent(in), target :: posb 
   real(kind=8), intent(out)                            :: delr
-  integer, intent(out)                                 :: npart
+  integer, intent(out)                            :: npart
 
   !Local variables
-  real(kind=8), parameter :: THRESHOLD = 0.1  ! In Angstroems
+  integer :: i, j
+  real(kind=8), parameter :: THRESHOLD = 0.1d0  ! In Angstroems
   real(kind=8), dimension(:), pointer :: xa, ya, za, xb, yb, zb
-  integer :: i
   real(kind=8) :: delx, dely, delz, dr, dr2, delr2
 
   ! We first set-up pointers for the x, y, z components for posa and posb
@@ -148,7 +132,7 @@ subroutine displacement( posa, posb, delr, npart )
      delr2 = delr2 + dr2
      dr    = sqrt(dr2) 
 
-! could comment this part if you are not interested in counting the moved atoms 
+     ! could comment this part if you are not interested in counting the moved atoms 
      if ( dr > THRESHOLD ) then 
         npart = npart + 1
      end if
@@ -160,11 +144,11 @@ END SUBROUTINE displacement
 !!***
 
 
-!!****f* utils/store
+!!****f* BigDFT/store
 !! FUNCTION
-!!   Subroutine store
-!!   This subroutine stores the configurations at minima and activated points
-!!   By definition, it uses pos, box and scala
+!!    Subroutine store
+!!    This subroutine stores the configurations at minima and activated points
+!!    By definition, it uses pos, box and scala
 !! SOURCE
 !! 
 subroutine store( fname )
@@ -176,49 +160,51 @@ subroutine store( fname )
   character(len=7 ), intent(in) :: fname
 
   !Local variables
-  integer :: ierror
-  integer :: i
-  real(kind=8) :: boxl
+  integer :: i, ierror
+  real(kind=8),dimension(3) :: boxl
   character(len=*), parameter :: extension = ".xyz"
   character(len=20) :: fnamexyz
 
-  ! We first set-up pointers for the x, y, z components for posa and posb
+  boxl = box * scala                  ! Update the box size
 
-  boxl = box * scala  ! Update the box size
-
-! added by Fedwa El-Mellouhi July 2002, writes the configuration in jmol format 
-  fnamexyz = trim(fname) // extension
-
-  write(*,*) 'BART: Writing to file : ', fname
-  write(*,*) 'BART: Writing to file : ', fnamexyz
+  write(*,*) ' Writing to file : ', fname
    
   open(unit=FCONF,file=fname,status='unknown',action='write',iostat=ierror)
-  open(unit=XYZ,file=fnamexyz,status='unknown',action='write',iostat=ierror)
-
-  write(XYZ,*) NATOMS , 'angstroem' 
-  write(XYZ,*) boxl
-
   write(FCONF,*) 'run_id: ', mincounter
-  write(FCONF,*) 'total energy : ', total_energy
+  write(FCONF,*) 'total_energy: ', total_energy
   write(FCONF,*) boxl
-
   do i=1, NATOMS
-     write(XYZ,'(1x,A2,3(2x,f16.8))')   Atom(i), x(i), y(i), z(i)
-     write(FCONF,'(1x,i6,3(2x,f16.8))') type(i), x(i), y(i), z(i)
+     write(FCONF,'(1x,i6,3(2x,f16.8))') typat(i), x(i), y(i), z(i)
   end do
-
   close(FCONF)
-  close(XYZ)
+
+  ! added by Fedwa El-Mellouhi July 2002, writes the configuration in jmol format 
+  if ( write_jmol ) then
+     fnamexyz = trim(fname) // extension
+     write(*,*) ' Writing to file : ', fnamexyz
+     open(unit=XYZ,file=fnamexyz,status='unknown',action='write',iostat=ierror)
+     write(XYZ,*) NATOMS , 'angstroem' 
+     if (boundary == 'P') then
+        write(XYZ,'(a,3(1x,1pe24.17))')'periodic', (boxl(i),i=1,3)
+     else if (boundary == 'S') then
+        write(XYZ,'(a,3(1x,1pe24.17))')'surface',(boxl(i),i=1,3)
+     else
+        write(XYZ,*)'free'
+     end if
+     do i=1, NATOMS
+        write(XYZ,'(1x,A2,3(2x,f16.8))')   Atom(i), x(i), y(i), z(i)
+     end do
+     close(XYZ)
+  end if
 
 END SUBROUTINE store
 !!***
 
 
-!!****f* utils/write_refconfig
+!!****f* BigDFT/write_refconfig
 !! FUNCTION
-!!   This subroutine writes the atomic positions and others to a "refconfig" file
-!!   which will be used a the reference point until a new events gets accepted.
-!!
+!!    This subroutine writes the atomic positions and others to a "refconfig" file
+!!    which will be used a the reference point until a new events gets accepted.
 !! SOURCE
 !!
 subroutine write_refconfig( )
@@ -228,18 +214,17 @@ subroutine write_refconfig( )
 
   !Local variables
   integer :: i, ierror
-  real(kind=8) :: boxl
+  real(kind=8),dimension(3) :: boxl
 
   boxl = box * scala                  ! Update the box size 
 
-                                      !switch replace for unknown
+                                      ! switch replace for unknown
   open(unit=FREFCONFIG,file=REFCONFIG,status='unknown',action='write',iostat=ierror) 
-  write(FREFCONFIG,*) 'run_id: ', mincounter
-  write(FREFCONFIG,*) 'total energy : '
-  write(FREFCONFIG,*) total_energy
+  write(FREFCONFIG,*) 'run_id: ', refcounter
+  write(FREFCONFIG,*) 'total_energy: ', total_energy
   write(FREFCONFIG,*) boxl
   do i = 1, NATOMS
-    write(FREFCONFIG,'(1x,i6, 3(2x,F16.8))') type(i), x(i), y(i), z(i)
+     write(FREFCONFIG,'(1x,i6, 3(2x,F16.8))') typat(i), x(i), y(i), z(i)
   end do
   close(FREFCONFIG)
 
@@ -247,9 +232,9 @@ END SUBROUTINE write_refconfig
 !!***
 
 
-!!****f* utils/store_part
+!!****f* BigDFT/store_part
 !! FUNCTION
-!!   This subroutine stores partial configurations. 
+!!    This subroutine stores partial configurations. 
 !! SOURCE
 !! 
 subroutine store_part( fname, scounter, rcounter, stage )
@@ -266,7 +251,7 @@ subroutine store_part( fname, scounter, rcounter, stage )
   !Local variables
   integer :: ierror
   integer :: i
-  real(kind=8) :: boxl
+  real(kind=8), dimension(3) :: boxl
   logical :: exists_already
   character(len=24) :: fnamexyz
   character(len=*), parameter :: extension = ".xyz"
@@ -295,7 +280,14 @@ subroutine store_part( fname, scounter, rcounter, stage )
   open(unit=XYZ,file=fnamexyz,status='unknown',action='write',iostat=ierror)
 
   write(XYZ,*) NATOMS,  'angstroem' 
-  write(XYZ,*) boxl
+
+  if (boundary == 'P') then
+     write(XYZ,'(a,3(1x,1pe24.17))')'periodic', (boxl(i),i=1,3)
+  else if (boundary == 'S') then
+     write(XYZ,'(a,3(1x,1pe24.17))')'surface',(boxl(i),i=1,3)
+  else
+     write(XYZ,*)'free'
+  end if
 
   do i= 1, NATOMS
      write(XYZ,'(1x,A2,3(2x,f16.8))')   Atom(i), x(i), y(i), z(i)
@@ -310,11 +302,11 @@ END SUBROUTINE store_part
 !!***
 
 
-!!****f* utils/convert_to_chain2
-!!   The subroutine convert_to_chain takes an integer and transforms it into a
-!!   chain of character. It is the same convert_to_chain, but with a small
-!!   modification.
-!!
+!!****f* BigDFT/convert_to_chain2
+!! FUNCTION
+!!    The subroutine convert_to_chain takes an integer and transforms it into a
+!!    chain of character. It is the same convert_to_chain, but with a small
+!!    modification.
 !! SOURCE
 !!
 subroutine convert_to_chain_2( init_number, chain )
@@ -331,7 +323,7 @@ subroutine convert_to_chain_2( init_number, chain )
 
   number = init_number
   if ( number == 0 ) then
-     chain = '0'
+     chain = '000'
      return
   else
      decades = log10( 1.0d0 * number) + 1
@@ -356,38 +348,81 @@ END SUBROUTINE convert_to_chain_2
 !!***
 
 
-!!****f* utils/save_intermediate
+!!****f* BigDFT/save_intermediate
 !! FUNCTION
-!!   It saves the configuration at every step in xyz format.
-!!   The name of the file will be:
-!!    conf_1001_K_030.xyz
-!!   if the 'mincounter' is 1001, 'stage' is 'K', and 'adv',
-!!   i.e the step, is 30.
-!!
+!!    It saves the configuration at every step in xyz format.
+!!    The name of the file will be:
+!!     conf_1001_030_K.xyz
+!!    where 1001 is the 'mincounter' is 1001,
+!!    K is the argument 'stage' ( K= basin activation, L=lanczos, D= DIIS),
+!!    and 030 is the step
 !! SOURCE
 !! 
-subroutine save_intermediate( stage, adv )
+subroutine save_intermediate( stage )
 
   use defs
   implicit none
 
   !Arguments
   character(len=1), intent(in) :: stage
-  integer,          intent(in) :: adv 
 
   !Local variables
   character(len=20) :: fname
   character(len=4)  :: rcounter, scounter
-
                                       ! subroutines in utils.f90 
-  if ( iproc == 0 ) then 
-
+  if ( iproc == 0 ) then
      call convert_to_chain( mincounter, scounter )
-     call convert_to_chain_2( adv, rcounter )
-     fname = 'conf_'//trim(scounter)//'_'//stage//'_'//trim(rcounter)
+     call convert_to_chain_2( pas, rcounter )
+     fname = 'conf_'//trim(scounter)//'_'//trim(rcounter)//'_'//stage
      call store_part( fname, scounter, rcounter, stage )
-
   end if
 
 END SUBROUTINE save_intermediate
+!!***
+
+
+!!****f* BigDFT/move_intermediate
+!! FUNCTION
+!!
+!! SOURCE
+!! 
+subroutine move_intermediate( )
+
+  use defs
+  implicit none
+
+  !Local variables
+  integer :: i, j
+  logical :: exists_already
+  character(len=4)   :: scounter
+  character(len=150) :: commande
+  character(len=25)  :: fname
+  character(len=9)   :: digit = "123456789"
+
+  if ( iproc == 0 ) then
+     call convert_to_chain( mincounter, scounter )
+
+     fname = 'conf_'//trim(scounter)//"_000_K.xyz"
+
+     do i = 1, 9 
+
+        inquire( file = fname, exist = exists_already )
+
+        if ( exists_already ) then
+           fname = 'conf_'//trim(scounter)//"_000_K.xyz"//"."// digit(i:i)
+        else 
+           if ( i > 1 ) then
+
+              j=i-1    
+              commande = "ls -1 " //" conf_"//trim(scounter)//"*.xyz"//& 
+            & " |sed -e 's|\(.*\)|mv \1 \1."//digit(j:j)//"|g'|sh"
+              call system ( commande )
+
+           end if
+           exit
+        end if 
+      end do
+  end if
+
+END SUBROUTINE move_intermediate
 !!***

@@ -288,7 +288,7 @@ frequencies_LDADD = libbigdft.a \
 
 bart_SOURCES = \
 	art/bigdft_forces.f90 \
-	art/art_diis.f90 \
+	art/art_step.f90 \
 	art/initialize_potential.f90 \
 	art/art_lanczos.f90 \
 	art/find_saddle.f90 \
@@ -383,14 +383,14 @@ bart-initialize_potential.o: art/initialize_potential.f90 art/defs.o bart-bigdft
 bart-art_lanczos.o: art/art_lanczos.f90 art/defs.o art/random.o bart-bigdft_forces.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-art_lanczos.o `test -f 'art/art_lanczos.f90' || echo '$(srcdir)/'`art/art_lanczos.f90
 
-bart-min_converge.o: art/min_converge.f90 art/defs.o bart-bigdft_forces.o
+bart-min_converge.o: art/min_converge.f90 art/defs.o bart-bigdft_forces.o bart-art_lanczos.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-min_converge.o `test -f 'art/min_converge.f90' || echo '$(srcdir)/'`art/min_converge.f90
 
-bart-saddle_converge.o: art/saddle_converge.f90 art/defs.o bart-bigdft_forces.o bart-find_saddle.o art/random.o bart-art_lanczos.o
+bart-saddle_converge.o: art/saddle_converge.f90 art/defs.o bart-bigdft_forces.o bart-find_saddle.o bart-art_lanczos.o  bart-art_step.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-saddle_converge.o `test -f 'art/saddle_converge.f90' || echo '$(srcdir)/'`art/saddle_converge.f90
 
-bart-art_diis.o: art/art_diis.f90 art/defs.o bart-bigdft_forces.o bart-art_lanczos.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-art_diis.o `test -f 'art/art_diis.f90' || echo '$(srcdir)/'`art/art_diis.f90
+bart-art_step.o: art/art_step.f90 art/defs.o bart-bigdft_forces.o bart-art_lanczos.o  bart-find_saddle.o
+	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-art_step.o `test -f 'art/art_step.f90' || echo '$(srcdir)/'`art/art_step.f90
 
 bart-initialize.o: art/initialize.f90 art/defs.o bart-art_lanczos.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-initialize.o `test -f 'art/initialize.f90' || echo '$(srcdir)/'`art/initialize.f90

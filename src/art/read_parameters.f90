@@ -21,6 +21,14 @@ subroutine read_parameters( )
   !Local variables
   Character(len=40)  :: temporary 
 
+  call getenv('Inflection', temporary)
+  if (temporary .eq. '') then
+     write(*,*) 'Error: Inflection is not defined'
+     stop
+  else
+     read(temporary,*) INFLECTION
+  end if
+
   call getenv('EVENT_TYPE', temporary)
   if (temporary .eq. '') then
      new_event = .true.
@@ -37,7 +45,7 @@ subroutine read_parameters( )
   else
      write(*,*) 'Error: event_types permitted are NEW , REFINE_SADDLE and REFINE_AND_RELAX'
      stop
-  endif
+  end if
 
   call getenv('Temperature', temporary)
   if (temporary .eq. '') then
@@ -45,7 +53,7 @@ subroutine read_parameters( )
      stop
   else
      read(temporary,*) temperature
-  endif
+  end if
 
   call getenv('NATOMS', temporary)
   if (temporary .eq. '') then
@@ -53,28 +61,28 @@ subroutine read_parameters( )
      stop
   else
      read(temporary,*) natoms
-  endif
+  end if
 
   call getenv('MAXNEI', temporary)
   if (temporary .eq. '') then
      maxnei = natoms
   else
      read(temporary,*) maxnei
-  endif
+  end if
 
   call getenv('Max_Number_Events', temporary)
   if (temporary .eq. '') then
      number_events = 100
   else
      read(temporary,*) number_events
-  endif
+  end if
 
   call getenv('MAXNEI', temporary)
   if (temporary .eq. '') then
      maxnei = natoms
   else
      read(temporary,*) maxnei
-  endif
+  end if
 
   ! File names
   call getenv('LOGFILE', temporary)
@@ -82,48 +90,62 @@ subroutine read_parameters( )
      LOGFILE   = 'log.file'
   else
      read(temporary,*) LOGFILE
-  endif
+  end if
 
   call getenv('EVENTSLIST', temporary)
   if (temporary .eq. '') then
      EVENTSLIST   = 'events.list'
   else
      read(temporary,*) EVENTSLIST
-  endif
+  end if
 
   call getenv('REFCONFIG', temporary)
   if (temporary .eq. '') then
      REFCONFIG   = 'refconfig.dat'
   else
      read(temporary,*) REFCONFIG
-  endif
+  end if
 
   call getenv('FINAL', temporary)
   if (temporary .eq. '') then
      FINAL  = 'min'
   else
      read(temporary,*) FINAL
-  endif
+  end if
 
   call getenv('SADDLE', temporary)
   if (temporary .eq. '') then
      SADDLE  = 'sad'
   else
      read(temporary,*) SADDLE
-  endif
+  end if
 
   call getenv('FILECOUNTER', temporary)
   if (temporary .eq. '') then
      COUNTER  = 'filecounter'
   else
      read(temporary,*) COUNTER
-  endif
+  end if
 
   call getenv('RESTART_FILE', temporary)
   if (temporary .eq. '') then
      RESTARTFILE = 'restart.dat'
   else
      read(temporary,*) RESTARTFILE
+  end if
+
+  call getenv('Write_restart_file', temporary)
+  if (temporary .eq. '') then
+     write_restart_file = .false.
+  else
+     read(temporary,*) write_restart_file 
+  endif
+
+  call getenv('Write_JMOL', temporary)
+  if (temporary .eq. '') then
+     write_jmol = .false.
+  else
+     read(temporary,*) write_jmol
   endif
 
   call getenv('Save_Conf_Int', temporary)
@@ -131,32 +153,34 @@ subroutine read_parameters( )
      SAVE_CONF_INT = .false. 
   else
      read(temporary,*) SAVE_CONF_INT
-  endif
+  end if
 
   ! Reading details for activation
   ! Read type of events - local or global
   call getenv('Type_of_Events', TYPE_EVENTS)
-  if ( (TYPE_EVENTS .ne. 'global') .and. (TYPE_EVENTS .ne. 'local')) then
-     write(*,*) 'Error : only global or local type of events are accepted - provided: ', TYPE_EVENTS
+  if ( (TYPE_EVENTS .ne. 'global') .and. (TYPE_EVENTS .ne. 'local') .and. &
+     &  (TYPE_EVENTS .ne. 'list') .and. (TYPE_EVENTS .ne. 'list_local') ) then
+     write(*,*) 'Error : only global, local, or list type of events are accepted - provided: ',&
+     & TYPE_EVENTS
      stop
-  endif
+  end if
 
-  if (TYPE_EVENTS .eq. 'local') then
+  if (TYPE_EVENTS .eq. 'local' .or. TYPE_EVENTS .eq. 'list_local' ) then
      call getenv('Radius_Initial_Deformation', temporary)
      if (temporary .eq. '') then
         write(*,*) 'Error: Radius_Initial_Deformation must be defined when TYPE_EVENTS is local'
         stop
      else
         read(temporary,*) LOCAL_CUTOFF
-     endif
+     end if
 
      call getenv('Central_Atom',temporary)
      if (temporary .eq. '') then
-       preferred_atom = -1
+        preferred_atom = -1
      else
-       read(temporary,*) preferred_atom
-     endif
-  endif
+        read(temporary,*) preferred_atom
+     end if
+  end if
 
   ! Info regarding initial displacement
   call getenv('Initial_Step_Size', temporary)
@@ -164,7 +188,7 @@ subroutine read_parameters( )
      INITSTEPSIZE = 0.001             ! Size of initial displacement in Ang.
   else
      read(temporary,*) INITSTEPSIZE
-  endif
+  end if
 
   ! Minimum number of steps in kter-loop before we call lanczos
   call getenv('Min_Number_KSteps',temporary)
@@ -172,24 +196,16 @@ subroutine read_parameters( )
      KTER_MIN = 1
   else
      read(temporary,*) KTER_MIN
-  endif
+  end if
   
   ! Size of the parallel displacement in for leavign the basin with respect to
   ! the overall increment
   call getenv('Basin_Factor',temporary)
   if (temporary .eq. '') then
-    BASIN_FACTOR = 1.0d0
+     BASIN_FACTOR = 1.0d0
   else
-    read(temporary,*) BASIN_FACTOR
-  endif
-
-  ! Maximum number of iteration in the activation
-  call getenv('Max_Iter_Activation',temporary)
-  if (temporary .eq. '') then
-     MAXITER = 1000
-  else
-     read(temporary,*) MAXITER
-  endif
+     read(temporary,*) BASIN_FACTOR
+  end if
 
   ! Maximum number of iteration in the activation
   call getenv('Max_Iter_Basin',temporary)
@@ -197,7 +213,7 @@ subroutine read_parameters( )
      MAXKTER = 100
   else
      read(temporary,*) MAXKTER
-  endif
+  end if
 
   ! Number of relaxation perpendicular moves - basin and activation
   call getenv('Max_Perp_Moves_Basin',temporary)
@@ -205,14 +221,14 @@ subroutine read_parameters( )
      MAXKPERP = 2
   else
      read(temporary,*) MAXKPERP
-  endif
+  end if
 
   call getenv('Max_Perp_Moves_Activ',temporary)
   if (temporary .eq. '') then
      MAXIPERP = 12
   else
      read(temporary,*) MAXIPERP
-  endif
+  end if
 
   ! Increment size - overall scaling (in angstroems)
   call getenv('Increment_Size',temporary)
@@ -220,7 +236,7 @@ subroutine read_parameters( )
      INCREMENT = 0.01
   else
      read(temporary,*) INCREMENT
-  endif
+  end if
 
   ! Eigenvalue threshold
   call getenv('Eigenvalue_Threshold',temporary)
@@ -229,7 +245,7 @@ subroutine read_parameters( )
      stop
   else
      read(temporary,*) EIGEN_THRESH
-  endif
+  end if
 
   ! Force threshold for the perpendicular relaxation
   call getenv('Force_Threshold_Perp_Rel',temporary)
@@ -237,15 +253,15 @@ subroutine read_parameters( )
      FTHRESHOLD = 1.0
   else
      read(temporary,*) FTHRESHOLD
-  endif
+  end if
 
   ! Force threshold for the convergence at the saddle point
   call getenv('Exit_Force_Threshold',temporary)
   if (temporary .eq. '') then
-     EXITTHRESH = 1.0
+     EXITTHRESH = 0.1 
   else
      read(temporary,*) EXITTHRESH
-  endif
+  end if
 
   ! Force threshold for the convergence at the saddle point
   call getenv('Number_Lanczos_Vectors',temporary)
@@ -253,15 +269,15 @@ subroutine read_parameters( )
      NVECTOR_LANCZOS = 16
   else
      read(temporary,*) NVECTOR_LANCZOS
-  endif
+  end if
 
   ! The step of the numerical derivative of forces for the Hessian 
-  call getenv('Step_Lanczos',temporary)
+  call getenv('delta_disp_Lanczos',temporary)
   if (temporary .eq. '') then
-     INC_LANCZOS =  0.01
+     DEL_LANCZOS =  0.01
   else
-     read(temporary,*) INC_LANCZOS 
-  endif
+     read(temporary,*) DEL_LANCZOS 
+  end if
 
   ! Calculation of the Hessian for each minimum
   call getenv('Lanczos_of_minimum',temporary)
@@ -269,16 +285,16 @@ subroutine read_parameters( )
      LANCZOS_MIN = .true. 
   else
      read(temporary,*)  LANCZOS_MIN
-  endif
+  end if
 
   ! The prefactor for pushing over the saddle point, fraction of distance from
   ! initial minimum to saddle point
   call getenv('Prefactor_Push_Over_Saddle',temporary)
   if (temporary .eq. '') then
-    PUSH_OVER = 0.15
+     PUSH_OVER = 0.15
   else
-    read(temporary,*) PUSH_OVER
-  endif
+     read(temporary,*) PUSH_OVER
+  end if
 
   ! We now get the types - define up to 5
   call getenv('type1',temporary)
@@ -287,48 +303,55 @@ subroutine read_parameters( )
      stop
   else
      read(temporary,*) type_name(1)
-  endif
+  end if
 
   call getenv('type2',temporary)
   if (temporary .eq. '') then
      type_name(2) = ''
   else
      read(temporary,*) type_name(2)
-  endif
+  end if
 
   call getenv('type3',temporary)
   if (temporary .eq. '') then
      type_name(3) = ''
   else
      read(temporary,*) type_name(3)
-  endif
+  end if
 
   call getenv('type4',temporary)
   if (temporary .eq. '') then
      type_name(4) = ''
   else
      read(temporary,*) type_name(4)
-  endif
+  end if
 
   call getenv('type5',temporary)
   if (temporary .eq. '') then
      type_name(5) = ''
   else
      read(temporary,*) type_name(5)
-  endif
+  end if
 
   call getenv('type6',temporary)
   if (temporary .ne. '') then
      write(*,*) 'Error: The code can only handle 5 atomic types, change read_parameters.f90, to allow for more.'
      stop
-  endif
+  end if
 
   call getenv('sym_break_dist',temporary)
   if (temporary .eq. '') then
      sym_break_dist = 0.0
   else
      read(temporary,*) sym_break_dist
-  endif
+  end if
+
+  call getenv('Iterative',temporary)
+  if (temporary .eq. '') then
+     ITERATIVE = .false.
+  else
+     read(temporary,*) ITERATIVE
+  end if
 
   ! Do we use DIIS for refining and converging to saddle
   call getenv('Use_DIIS',temporary)
@@ -336,84 +359,75 @@ subroutine read_parameters( )
      USE_DIIS = .false.
   else
      read(temporary,*) USE_DIIS
-  endif
+  end if
+
+  call getenv('Activation_MaxIter',temporary)
+  if (temporary .eq. '') then
+     MAXPAS = 100 
+  else
+     read(temporary,*) MAXPAS
+  end if
 
   ! If diis is used, we define a number of parameters
   if (USE_DIIS) then
      call getenv('DIIS_Force_Threshold',temporary)
      if (temporary .eq. '') then
-        DIIS_FORCE_THRESHOLD = 0.1d0
+        DIIS_FORCE_THRESHOLD = 1.0d0
      else
         read(temporary,*) DIIS_FORCE_THRESHOLD
-     endif
+     end if
 
      call getenv('DIIS_Memory',temporary)
      if (temporary .eq. '') then
         DIIS_MEMORY = 12
      else
         read(temporary,*) DIIS_MEMORY
-     endif
-
-     call getenv('DIIS_MaxIter',temporary)
-     if (temporary .eq. '') then
-        DIIS_MAXITER = 50
-     else
-        read(temporary,*) DIIS_MAXITER
-     endif
+     end if
 
      call getenv('DIIS_Check_Eigenvector',temporary)
      if (temporary .eq. '') then
         DIIS_CHECK_EIGENVEC = .true.
      else
         read(temporary,*) DIIS_CHECK_EIGENVEC
-     endif
+     end if
 
      call getenv('DIIS_Step_size',temporary)
      if (temporary .eq. '') then
         DIIS_STEP = 0.01d0
      else
         read(temporary,*) DIIS_STEP
-     endif
+     end if
+
+     call getenv('MAX_DIIS',temporary)
+     if (temporary .eq. '') then
+        maxdiis = 100 
+     else
+        read(temporary,*) maxdiis
+     end if
+
+     call getenv('FACTOR_DIIS',temporary)
+     if (temporary .eq. '') then
+        factor_diis = 5.0
+     else
+        read(temporary,*) factor_diis
+     end if
   else
      DIIS_FORCE_THRESHOLD = 1.0d0
-     DIIS_STEP = 1.0d0
+     DIIS_STEP            = 1.0d0
      DIIS_MEMORY          = 1
-     DIIS_MAXITER         = 1
      DIIS_CHECK_EIGENVEC  = .false.
-  endif
-  
-END SUBROUTINE read_parameters
-!!***
-
-
-!!****f* read_parameters/write_parameters
-!! FUNCTION
-!!   Write the parameters defining the run 
-!! SOURCE
-!!
-subroutine write_parameters( )
-
-  use defs
-  use lanczos_defs
-  use saddles
-  implicit none  
-
-  !Local variables
-  integer :: ierror, i 
-  logical :: exists_already
-  character(len=100) :: fname
-  character(len=150) :: commande
-  character(len=9)   :: digit = "123456789"
+  end if
 
   ! We set up other related parameters
   vecsize = 3*natoms
 
   ! And we allocate the vectors
-  allocate(type(natoms))
+  allocate(typat(natoms))
+  allocate(constr(natoms))
+
   allocate(force(vecsize))
   allocate(pos(vecsize))
   allocate(posref(vecsize))
-  allocate(direction_restart(vecsize))
   allocate(initial_direction(vecsize))
   allocate(Atom(vecsize))
 
@@ -432,6 +446,31 @@ subroutine write_parameters( )
   fx => force(1:NATOMS)
   fy => force(NATOMS+1:2*NATOMS)
   fz => force(2*NATOMS+1:3*NATOMS)
+  
+END SUBROUTINE read_parameters
+!!***
+
+
+!!****f* read_parameters/write_parameters
+!! FUNCTION
+!!   Write the parameters defining the run 
+!! SOURCE
+!!
+subroutine write_parameters( )
+
+  use defs
+  use lanczos_defs
+  use saddles
+  use random
+  implicit none  
+
+  !Local variables
+  integer :: ierror, i 
+  logical :: exists_already
+  character(len=100) :: fname
+  character(len=150) :: commande
+  character(len=9)   :: digit = "123456789"
+  integer, dimension(8) :: values
 
   ! We check whether the file "LOGFILE" exists. If so, we copy it before
   ! we start.
@@ -439,23 +478,25 @@ subroutine write_parameters( )
 
   fname = LOGFILE
   do i = 1, 9 
-    inquire( file = fname, exist = exists_already )
-    if ( exists_already ) then
-       fname = trim(LOGFILE) // "." // digit(i:i)
-    else 
-       if ( i > 1 ) Then
-          commande = "mv " // LOGFILE // "  " // fname
-          call system ( commande )
-       end if
-       Exit
-    end if 
+     inquire( file = fname, exist = exists_already )
+     if ( exists_already ) then
+        fname = trim(LOGFILE) // "." // digit(i:i)
+     else 
+        if ( i > 1 ) Then
+           commande = "mv " // LOGFILE // "  " // fname
+           call system ( commande )
+        end if
+        exit
+     end if 
   end do
 
   ! We write down the various parameters for the simulation
   open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='rewind',iostat=ierror)  
+  write(flog,*) '****************************** '
   write(flog,*) 'WELCOME TO BART : BigDFT + ART '
-  write(flog,*) '********************** '
-  write(flog,'(1X,A39,f12.3)')  ' - Version number of BART            : ', VERSION_NUMBER
+  write(flog,*) '****************************** '
+  call timestamp ('Start')
+  write(flog,'(1X,A39,f12.3)')  ' - Version number of  ART            : ', VERSION_NUMBER
   write(flog,*) ''
   write(flog,'(1X,A39,A12  )')  ' - Event type                        : ', trim(eventtype)
   write(flog,'(1X,A39,f12.4)')  ' - Temperature                       : ', temperature
@@ -467,7 +508,7 @@ subroutine write_parameters( )
   do i =1, 5
      if (type_name(i) .ne. '') then
         write(flog,'(1X,A31,I3,A5,a12  )')  ' Type ',i,': ', trim(type_name(i))
-     endif
+     end if
   end do
 
   write(flog,*) ' '
@@ -475,13 +516,13 @@ subroutine write_parameters( )
   write(flog,*) '********************** '
   write(flog,'(1X,A39,A12)')   ' - Type of events                    : ', trim(TYPE_EVENTS)
   if (TYPE_EVENTS .eq. 'local') then 
-    write(flog,'(1X,A39,f12.4)')   ' - Radius of deformation (local ev.) : ', LOCAL_CUTOFF
-    if (preferred_atom .gt. 0) then 
-      write(flog,'(1X,A39,i12)')   ' - Central atom for events           : ', preferred_atom
-    else
-      write(flog,'(1X,A39,A12)')   ' - Central atom for events           :   none (all equal) '
-    endif
-  endif
+     write(flog,'(1X,A39,f12.4)')   ' - Radius of deformation (local ev.) : ', LOCAL_CUTOFF
+     if (preferred_atom .gt. 0) then 
+        write(flog,'(1X,A39,i12)')   ' - Central atom for events           : ', preferred_atom
+     else
+        write(flog,'(1X,A39,A12)')   ' - Central atom for events           :   none (all equal) '
+     end if
+  end if
   write(flog,*) ' '
   write(flog,*) 'Activation parameters '
   write(flog,*) '********************* '
@@ -491,7 +532,7 @@ subroutine write_parameters( )
   write(flog,'(1X,A51,F8.4)')  ' - Increment size                                : ', INCREMENT
   write(flog,'(1X,A51,F8.4)')  ' - Atomic displacement for breaking the symmetry : ', sym_break_dist
   write(flog,'(1X,A51,I8)')    ' - Number of vectors computed by Lanzcos         : ', NVECTOR_LANCZOS
-  write(flog,'(1X,A51,F8.4)')  ' - Step in the Lanzcos method                    : ', INC_LANCZOS
+  write(flog,'(1X,A51,F8.4)')  ' - Delta displacement for derivative in Lanzcos  : ', DEL_LANCZOS
   write(flog,*) ' '
   write(flog,'(1X,A51,L8)')    ' - Calculation of the Hessian for each minimum   : ', LANCZOS_MIN
   write(flog,'(1X,A51,I8)')    ' - Min. number of ksteps before calling lanczos  : ', KTER_MIN
@@ -499,20 +540,19 @@ subroutine write_parameters( )
   write(flog,'(1X,A51,I8)')    ' - Maximum number of iteractions (basin -kter)   : ', MAXKTER
   write(flog,'(1X,A51,I8)')    ' - Maximum number of perpendicular moves (basin) : ', MAXKPERP
   write(flog,*) ' '
-  write(flog,'(1X,A51,I8)')    ' - Maximum number of iteractions (activation)    : ', MAXITER
+  write(flog,'(1X,A51,I8)')    ' - Maximum number of iteractions (activation)    : ', MAXPAS
   write(flog,'(1X,A51,I8)')    ' - Maximum number of perpendicular moves (activ) : ', MAXIPERP
   write(flog,'(1X,A51,F8.4)')  ' - Force threshold for perpendicular relaxation  : ', FTHRESHOLD
   write(flog,'(1X,A51,F8.4)')  ' - Fraction of displacement over the saddle      : ', PUSH_OVER
 
   write(flog,*) ' '
-  write(flog,'(1X,A39,L12)')    ' Use DIIS for convergence to saddle  : ', USE_DIIS
+  write(flog,'(1X,A39,L12)')    ' Use DIIS for convergence to saddle     : ', USE_DIIS
   if (USE_DIIS) then
-     write(flog,'(1X,A39,F12.4)') ' - Total force threshold           : ', DIIS_FORCE_THRESHOLD
-     write(flog,'(1X,A39,F12.4)') ' - Step size to update positions   : ', DIIS_STEP
-     write(flog,'(1X,A39,I12)')   ' - Memory (number of steps)        : ', DIIS_MEMORY
-     write(flog,'(1X,A39,I12)')   ' - Maximum number of iterations    : ', DIIS_MAXITER
-     write(flog,'(1X,A39,L12)')   ' - Check eigenvector at saddle     : ', DIIS_CHECK_EIGENVEC
-  endif
+     write(flog,'(1X,A40,F12.4)') ' - Total force threshold to call DIIS : ', DIIS_FORCE_THRESHOLD
+     write(flog,'(1X,A40,F12.4)') ' - Step size to update positions      : ', DIIS_STEP
+     write(flog,'(1X,A40,I12)')   ' - Memory (number of steps)           : ', DIIS_MEMORY
+     write(flog,'(1X,A40,L12)')   ' - Check eigenvector at saddle        : ', DIIS_CHECK_EIGENVEC
+  end if
 
   write(flog,*) ' '
   write(flog,*) 'Input / Output '
@@ -526,9 +566,53 @@ subroutine write_parameters( )
   write(flog,'(1X,A39,A15)')  ' - File with filecounter             : ', trim(counter)
   write(flog,*) '********************* '
   write(flog,*) ' '
+                                      ! Initialization of seed in random.
+  call date_and_time(values=values)
+  idum = -1 * mod( (1000 * values(7) + values(8)), 1024)
+                                      ! Report 
+  write(flog,'(1X,A34,I17)') ' - The seed is                  : ', idum
+  write(flog,'(1X,A34,L17)') ' - Restart                      : ', restart
   close(flog)
 
-  End If
+  end if
 
 END SUBROUTINE write_parameters
+!!***
+
+
+!!****f* read_parameters/timestamp
+!! FUNCTION
+!! SOURCE
+!!
+subroutine timestamp (str)
+   
+  use defs, only : FLOG 
+  implicit none
+  !Arguments   
+  character(len=*), intent(in) :: str
+  !Local variables    
+  integer         :: sec, min, hour, day, month, year
+  character(len=1), parameter :: dash = "-"
+  character(len=1), parameter :: colon = ":"
+  character(len=3), parameter :: prefix = ">> "
+  character(len=3)  :: month_str(12) =     &
+    (/'JAN','FEB','MAR','APR','MAY','JUN', &
+      'JUL','AUG','SEP','OCT','NOV','DEC'/)
+
+  integer :: values(8)
+
+  call date_and_time(values=values)
+  year  = values(1)
+  month = values(2)
+  day   = values(3)
+  hour  = values(5)
+  min   = values(6)
+  sec   = values(7)
+  
+  write(FLOG,1000)  prefix, trim(str), colon, day, dash, month_str(month),&
+  &                 dash, year, hour, colon, min, colon, sec
+  
+1000 format(2a,a1,2x,i2,a1,a3,a1,i4,2x,i2,a1,i2.2,a1,i2.2)
+    
+end subroutine timestamp
 !!***

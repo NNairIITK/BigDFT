@@ -16,80 +16,107 @@ module defs
 
   implicit none
 
-  real(8), parameter :: VERSION_NUMBER  = 1.5     ! Version of the code
+  real(kind=8), parameter :: VERSION_NUMBER  = 1.6    ! Version of the code
 
-  integer :: iproc, nproc ! MPI proc identificators
+  integer      :: iproc, nproc       ! MPI proc identificators
+  integer      :: INFLECTION
 
-  real(8) :: TEMPERATURE        ! Temperature in eV
-  integer :: NATOMS             ! Number of atoms in the system
-  integer :: MAXNEI             ! Maximum number of nearest neighbours
-  integer :: VECSIZE     ! Length of the force and position vectors
+  real(kind=8) :: TEMPERATURE        ! Temperature in eV
+  integer      :: NATOMS             ! Number of atoms in the system
+  integer      :: MAXNEI             ! Maximum number of nearest neighbours
+  integer      :: VECSIZE            ! Length of the force and position vectors
 
-  integer :: NUMBER_EVENTS      ! Total number of events in this run
-  logical :: NEW_EVENT          ! Total number of events in this run
+  integer      :: NUMBER_EVENTS      ! Total number of events in this run
+  logical      :: NEW_EVENT          ! Total number of events in this run
 
-  integer, parameter :: FCONF        = 1         ! Units for printing/reading
-  integer, parameter :: FCOUNTER     = 2        
-  integer, parameter :: FLIST        = 3         
-  integer, parameter :: FLOG         = 4         
-  integer, parameter :: FREFCONFIG   = 11
-  integer, parameter :: FSTARTCONF   = 12
-  integer, parameter :: FRESTART     = 9        
-  integer, parameter :: XYZ          = 13  
-  integer, parameter :: CRESTART     = 14
+  ! Units for printing/reading
+
+  integer, parameter :: FCONF       = 1         
+  integer, parameter :: FCOUNTER    = 2        
+  integer, parameter :: FLIST       = 3         
+  integer, parameter :: FLOG        = 4         
+  integer, parameter :: FREFCONFIG  = 11
+  integer, parameter :: FSTARTCONF  = 12
+  integer, parameter :: FRESTART    = 9        
+  integer, parameter :: XYZ         = 13  
+  integer, parameter :: CRESTART    = 14
+  integer, parameter :: ASCII       = 15
+
   ! Name of the file storing the current configurations
   character(len=20) :: conf_initial, conf_saddle, conf_final
   
-  integer, dimension(:), allocatable          :: type                ! Atomic type
-  real(8), dimension(:), allocatable, target  :: force      ! Working forces on the atoms
-  real(8), dimension(:), allocatable, target  :: pos        ! Working positions of the atoms
-  real(8), dimension(:), allocatable, target  :: posref     ! Reference position
-  real(8), dimension(:), allocatable, target  :: direction_restart  
-  real(8), dimension(:), allocatable :: initial_direction  ! Initial move for leaving harmonic  well
+  integer,      dimension(:), allocatable          :: typat    ! Atomic type
+  integer,      dimension(:), allocatable          :: constr   ! Atomic type
+  real(kind=8), dimension(:), allocatable, target  :: force    ! Working forces on the atoms
+  real(kind=8), dimension(:), allocatable, target  :: pos      ! Working positions of the atoms
+  real(kind=8), dimension(:), allocatable, target  :: posref   ! Reference position
+
+  logical      :: write_jmol
+  ! restart   
+  logical      :: write_restart_file
+  logical      :: restart                   ! State of restart (true or false)
+  real(kind=8), dimension(:),  allocatable, target :: direction_restart  
+  real(kind=8), dimension(:,:),allocatable, target :: diis_forces_restart 
+  real(kind=8), dimension(:,:),allocatable, target :: diis_pos_restart
+  real(kind=8), dimension(:),  allocatable         :: diis_norm_restart
+
+  integer      :: state_restart             ! start of restart (1 - harmonic well, 2 - 
+                                            ! lanczos, 3 - relaxation, 4-DIIS)
+  integer      :: iter_restart              ! Lanczos iteraction number of restart
+  integer      :: ievent_restart            ! Event number at restart
+  integer      :: nsteps_after_eigen_min_r
+  integer      :: maxter_r
+  real(kind=8) :: eigen_min_r 
+  real(kind=8) :: eigenvalue_r
+  !__________________
+
+  real(kind=8),     dimension(:), allocatable :: initial_direction  ! Initial move for leaving harmonic  well
   character(len=5), dimension(:), allocatable :: Atom
-  character(len=5), dimension(5) :: type_name
+  character(len=5), dimension(5)              :: type_name
 
-  real(8), dimension(:), pointer :: x, y, z   ! Pointers for working position
-  real(8), dimension(:), pointer :: xref, yref, zref   ! Pointers for reference position
-  real(8), dimension(:), pointer :: fx, fy, fz   ! Pointers for working force
+  real(kind=8), dimension(:), pointer :: x, y, z           ! Pointers for working position
+  real(kind=8), dimension(:), pointer :: xref, yref, zref  ! Pointers for reference position
+  real(kind=8), dimension(:), pointer :: fx, fy, fz        ! Pointers for working force
 
-  real(8) :: PUSH_OVER   ! Fraction of displacement for pushing of saddle point.
+  real(kind=8) :: PUSH_OVER                                ! Fraction of displacement for pushing of saddle point.
 
-  real(8) :: boxref                         ! Reference boxsize
-  real(8) :: box                            ! Working boxsize
+  character(len=1)          :: boundary
+  real(kind=8),dimension(3) :: boxref         ! Reference boxsize
+  real(kind=8),dimension(3) :: box            ! Working boxsize
 
-  real(8) :: scalaref                       ! Reference volume scaling
-  real(8) :: scala                          ! Working volume scaling
-  real(8) :: fscala                         ! Working forces on volume
+  real(kind=8) :: scalaref                    ! Reference volume scaling
+  real(kind=8) :: scala                       ! Working volume scaling
+  real(kind=8) :: fscala                      ! Working forces on volume
 
-  real(8) :: sym_break_dist                 ! Distance atoms are pushed to
-                                            ! break symmetry
+  real(kind=8) :: sym_break_dist              ! Distance atoms are pushed to
+                                              ! break symmetry
 
-  logical :: restart                        ! State of restart (true or false)
-  integer :: state_restart                  ! start of restart (1 - harmonic well, 2 - 
-                                            ! activation, 3 - relaxation)
+  integer      :: preferred_atom              ! Atom at the center of the event
+  real(kind=8) :: radius_initial_deformation  ! Radius of the initial deformation
 
-  integer :: preferred_atom                 ! Atom at the center of the event
-  real(8) :: radius_initial_deformation     ! Radius of the initial deformation
+  integer      :: pas                         ! Counter: number of steps in the
+                                              ! event 
 
-  integer :: ievent                         ! actual number of events
-  integer :: iter_restart                   ! iteraction number of restart
-  integer :: ievent_restart                 ! Event number at restart
-  integer :: mincounter                     ! Counter for output files
-  integer :: refcounter                     ! Id of reference file
+  integer      :: ievent                      ! actual number of events
+  integer      :: mincounter                  ! Counter for output files
+  integer      :: refcounter                  ! Id of reference file
+  integer      :: evalf_number                ! Number of force evalutions
 
-  integer :: evalf_number                   ! Number of force evalutions
+  real(kind=8) :: total_energy, ref_energy  ! Energies
 
-  real(8) :: total_energy, ref_energy       ! Energies
+  logical      :: ITERATIVE                 ! Iterative use of Lanczos & DIIS
+  logical      :: USE_DIIS                  ! Use DIIS for final convergence to saddle
+  logical      :: DIIS_CHECK_EIGENVEC       ! Check whether the metastable point is a saddle
+  integer      :: DIIS_MEMORY               ! Number of steps kept in memory
+  integer      :: MAXPAS
+  real(kind=8) :: DIIS_FORCE_THRESHOLD      ! Force Threshold to call the algorithm
+  real(kind=8) :: DIIS_STEP                 ! Step used to update positions in DIIS
 
-  logical :: USE_DIIS                       ! Use DIIS for final convergence to saddle
-  logical :: DIIS_CHECK_EIGENVEC            ! Check whether the metastable point is a saddle
-  integer :: DIIS_MEMORY                    ! Number of steps kept in memory
-  integer :: DIIS_MAXITER                   ! Maximum number of iterations
-  real(8) :: DIIS_FORCE_THRESHOLD           ! Force Threshold to leave the algorithm
-  real(8) :: DIIS_STEP                      ! Step used to update positions in DIIS
-
-  logical :: SAVE_CONF_INT                  ! Save the configuration at every step?
+  real(kind=8) :: factor_diis               ! new position pos(i) is accepted if the norm
+                                            ! of ( pos - previous_pos(i-1)) is
+                                            ! lower than factor_diis*INCREMENT
+  integer      :: maxdiis                   ! max allowed diis steps per call 
+  logical      :: SAVE_CONF_INT             ! Save the configuration at every step?
   
   character(len=20) :: LOGFILE
   character(len=20) :: EVENTSLIST
