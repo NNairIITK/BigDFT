@@ -803,6 +803,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
      end if
 
+     !temporary, to be corrected with comms structure
+     if (in%exctxpar == 'OP2P') eexctX = -99.0_gp
+
      call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
           nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
           rhopot,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&

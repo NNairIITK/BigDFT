@@ -966,7 +966,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call memocc(i_stat,hpsi,'hpsi',subname)
 
   !call dcopy(orbse%npsidim,psi,1,hpsi,1)
-  
+  if (input%exctxpar == 'OP2P') eexctX = -99.0_gp
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
        rhopot,&

@@ -37,7 +37,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(wp), dimension(:), pointer, optional :: psirocc
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
-  logical :: exctX
+  logical :: exctX,op2p
   integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
 !OCL  integer, dimension(3) :: periodic
@@ -53,6 +53,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !  real(kind=8) :: stream_ptr_first_trsf
 
   !initialise exact exchange energy 
+  op2p=(eexctX == -99.0_gp)
   eexctX=0.0_gp
 
   exctX = libxc_functionals_exctXfac() /= 0.0_gp
@@ -117,7 +118,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !!$             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
 
         !here the condition for the scheme should be chosen
-        if (.false.) then
+        if (.not. op2p) then
            call exact_exchange_potential(iproc,nproc,at%geocode,nspin,&
                 lr,orbs,ngatherarr(0,1),n3p,&
                 0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
