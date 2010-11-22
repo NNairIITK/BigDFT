@@ -1030,6 +1030,9 @@ subroutine input_wf_diag(iproc,nproc,at,&
        psi,hpsi,psit,input,orbse,commse,etol,norbsc_arr)
 
  
+  !correct the occupation numbers wrt fermi level
+  !call Fermilevel(.false.,1.e-2_gp,orbs)
+
   call deallocate_comms(commse,subname)
 
   i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)

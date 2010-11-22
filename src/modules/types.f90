@@ -27,10 +27,10 @@ module module_types
 !!
   type, public :: input_variables
      logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
-     integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol
+     integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
      integer :: norbv,nvirt,nplot
      integer :: output_grid, dispersion,last_run
-     real(gp) :: frac_fluct,gnrm_sw
+     real(gp) :: frac_fluct,gnrm_sw,alphamix
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf 
      integer :: nvacancy,verbosity
      real(gp) :: elecfield
@@ -65,6 +65,7 @@ module module_types
      real(gp) :: bmass, vmass, strprecon, strfact
      real(gp) :: strtarget(6)
      real(gp), pointer :: qmass(:)
+     real(gp) :: dtinit,dtmax !for FIRE
 
      ! variable for material acceleration
      ! values 0: traditional CPU calculation

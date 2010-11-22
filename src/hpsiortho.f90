@@ -558,7 +558,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
      keeppsit=opt_keeppsit
   else
      keeppsit=.false.
-  endif
+  end if
 
   call transpose_v(iproc,nproc,orbs,wfd,comms,&
        hpsi,work=psi)
@@ -580,6 +580,11 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
      else
         nullify(psit)
      end if
+     
+     i_all=-product(shape(hpsi))*kind(hpsi)
+     deallocate(hpsi,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsi',subname)
+
   endif
   !for a non-collinear treatment,
   !we add the calculation of the moments for printing their value
@@ -645,96 +650,210 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
      end do
   end if
 
-  if (iproc == 0) call eFermi(orbs)
-
   if (orbs%nspinor ==4) then
      i_all=-product(shape(mom_vec))*kind(mom_vec)
      deallocate(mom_vec,stat=i_stat)
      call memocc(i_stat,i_all,'mom_vec',subname)
   end if
 
-  i_all=-product(shape(hpsi))*kind(hpsi)
-  deallocate(hpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsi',subname)
 
 END SUBROUTINE last_orthon
-!!***
-
-subroutine Fermilevel(orbs)
-  ! finds  the fermi level ef for an error function distribution with a width wf
-  ! eval are the Kohn Sham eigenvalues and melec is the total number of electrons
-  use module_base
-  use module_types
-  implicit none
-  type(orbitals_data), intent(in) :: orbs
-  !local variables
-  integer :: iu,id,i,n,nzeroorbs,ikpt,iorb,melec
-  real(gp) :: charge
-  real(wp) :: ef,wf,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff
-  parameter(pi=3.1415926535897932d0)
-  parameter(wf=1.d-2)
-
-  if (orbs%nkpts.ne.1) stop 'Fermilevel: Not yet implemented correctly'
-  do ikpt=1,orbs%nkpts
-     !number of zero orbitals for the given k-point
-     !overall charge of the system
-     charge=0.0_gp
-     do iorb=1,orbs%norb
-        charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb)
-     end do
-  end do
-  melec=nint(charge)
 
 
-  factor=1.d0/(sqrt(pi)*wf)
-  loop_fermi: do 
-     electrons=0.d0
-     dlectrons=0.d0
-     do ikpt=1,orbs%nkpts
-        do iorb=1,orbs%norbd+orbs%norbu
-           arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
-           electrons=electrons+.5d0*(1.d0-derf(arg))
-           dlectrons=dlectrons-exp(-arg**2)
-        enddo
-     enddo
-     dlectrons=dlectrons*factor
-     
-     write(*,*) electrons,ef,dlectrons
-     diff=melec-electrons
-     if (abs(diff).lt.1.d-12) exit loop_fermi
-     corr=diff/dlectrons
-     if (corr.gt.1.d0*wf) corr=1.d0*wf
-     if (corr.lt.-1.d0*wf) corr=-1.d0*wf
-     if (abs(dlectrons).lt.1.d-14  .and. electrons.gt.dble(melec)) corr=3.d0*wf
-     if (abs(dlectrons).lt.1.d-14  .and. electrons.lt.dble(melec)) corr=-3.d0*wf
-     ef=ef-corr
-  end do loop_fermi
-  
-  do ikpt=1,orbs%nkpts
-     argu=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu)-ef)/wf
-     argd=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+orbs%norbd)-ef)/wf
-     cutoffu=.5d0*(1.d0-derf(argu))
-     cutoffd=.5d0*(1.d0-derf(argd))
-     write(*,'(a,f12.5,2(1x,e8.1))') 'i, eval, Fermi level, Fermi distribution cut off at:',ef,cutoffu,cutoffd
-  enddo
+subroutine Fermilevel(filewrite,wf,orbs)
+ ! finds  the fermi level ef for an error function distribution with a width wf
+ ! eval are the Kohn Sham eigenvalues and melec is the total number of electrons
+ use module_base
+ use module_types
+ implicit none
+ logical, intent(in) :: filewrite
+ real(gp), intent(in) :: wf
+ type(orbitals_data), intent(inout) :: orbs
+ !local variables
+ integer :: iu,id,i,n,nzeroorbs,ikpt,iorb,melec,ii
+ real(gp) :: charge
+ real(gp) :: ef,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
+ parameter(pi=3.1415926535897932d0)
+ !write(*,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd
+ 
+ if (orbs%norbd==0) then 
+    full=2.d0   ! maximum occupation for closed shell  orbital
+ else
+    full=1.d0   ! maximum occupation for spin polarized orbital
+ endif
 
-  ikpt=1
-  open(unit=11,file='occup.dat',status='unknown')
-  write(11,*)orbs%norbu,orbs%norbd
-  do iorb=1,orbs%norbu
-     arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
-     write(11,*)iorb,.5d0*(1.d0-derf(arg)),orbs%eval((ikpt-1)*orbs%norb+iorb)
-  end do
-  do iorb=1,orbs%norbd
-     arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
-     write(11,*)iorb+orbs%norbu,.5d0*(1.d0-derf(arg)),orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)
-  end do
-  close(unit=11)
+ if (orbs%nkpts.ne.1) stop 'Fermilevel: Not yet implemented correctly'
+ do ikpt=1,orbs%nkpts
+    !number of zero orbitals for the given k-point
+    !overall charge of the system
+    charge=0.0_gp
+    do iorb=1,orbs%norb
+       charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb)
+    end do
+ end do
+ melec=nint(charge)
+ !write(*,*) 'charge',charge,melec
+
+ ii=0
+ ef=-.1d0
+ factor=1.d0/(sqrt(pi)*wf)
+ loop_fermi: do
+    ii=ii+1
+    if (ii.gt.1000) stop 'error Fermilevel'
+    electrons=0.d0
+    dlectrons=0.d0
+    do ikpt=1,orbs%nkpts
+       do iorb=1,orbs%norbd+orbs%norbu
+          arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
+          ! next 2 line error function distribution
+          call derf(res,arg)
+          electrons=electrons+.5d0*(1.d0-res)
+          dlectrons=dlectrons-exp(-arg**2)
+          !! next 2 line Fermi function distribution
+          !   electrons=electrons+1.d0/(1.d0+exp(arg))
+          !   dlectrons=dlectrons-exp(arg)/(1.d0+exp(arg))**2
+       enddo
+    enddo
+    ! next  line error function distribution
+    dlectrons=dlectrons*factor
+    !! next  line Fermi function distribution
+    !   dlectrons=dlectrons/wf
+    
+    
+    !write(*,*) electrons,ef,dlectrons
+    diff=melec/full-electrons
+    if (abs(diff).lt.1.d-12) exit loop_fermi
+    corr=diff/dlectrons
+    if (corr.gt.1.d0*wf) corr=1.d0*wf
+    if (corr.lt.-1.d0*wf) corr=-1.d0*wf
+    if (abs(dlectrons).lt.1.d-18  .and. electrons.gt.dble(melec)) corr=3.d0*wf
+    if (abs(dlectrons).lt.1.d-18  .and. electrons.lt.dble(melec)) corr=-3.d0*wf
+    ef=ef-corr
+ end do loop_fermi
+
+ do ikpt=1,orbs%nkpts
+    argu=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu)-ef)/wf
+    argd=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+orbs%norbd)-ef)/wf
+    call derf(resu,argu)
+    call derf(resd,argd)
+    cutoffu=.5d0*(1.d0-resu)
+    cutoffd=.5d0*(1.d0-resd)
+!    cutoffu=1.d0/(1.d0+exp(argu))
+!    cutoffd=1.d0/(1.d0+exp(argd))
+    write(*,'(a,f12.5,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:',ef,cutoffu,cutoffd
+ enddo
+
+ ikpt=1
+ !write on file the results if needed
+ if (filewrite) then
+    
+    open(unit=11,file='occup.dat',status='unknown')
+    write(11,*)orbs%norbu,orbs%norbd
+    do iorb=1,orbs%norbu
+       arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
+       call derf(res,arg)
+       write(11,'(i5,e19.12)')iorb,full*.5d0*(1.d0-res)
+       !    write(11,'(i5,e19.12)')iorb,full/(1.d0+exp(arg))  !,orbs%eval((ikpt-1)*orbs%norb+iorb)
+    end do
+    do iorb=1,orbs%norbd
+       arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
+       call derf(res,arg)
+       write(11,'(i5,e19.12)')iorb+orbs%norbu,full*.5d0*(1.d0-res)
+       !    write(11,'(i5,e19.12)')iorb+orbs%norbu,full/(1.d0+exp(arg))  !,orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)
+    end do
+    close(unit=11)
+ else !otherwise update the occupation number
+    do iorb=1,orbs%norbu
+       arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
+       call derf(res,arg)
+       orbs%occup((ikpt-1)*orbs%norb+iorb)=full*.5d0*(1.d0-res)
+    end do
+    do iorb=1,orbs%norbd
+       arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
+       call derf(res,arg)
+       orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*.5d0*(1.d0-res)
+    end do
+ end if
 
 
 end subroutine Fermilevel
 
 
+
+!   subroutine Fermilevel(orbs)
+!! finds  the fermi level ef for an error function distribution with a width wf
+!! eval are the Kohn Sham eigenvalues and melec is the total number of electrons
+!  use module_base
+!  use module_types
+!  implicit none
+!  type(orbitals_data), intent(in) :: orbs
+!  !local variables
+!  integer :: iu,id,i,n,nzeroorbs,ikpt,iorb,melec
+!  real(gp) :: charge
+!  real(wp) :: ef,wf,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff
+!   parameter(pi=3.1415926535897932d0)
+!   parameter(wf=1.d-2)
+!
+!  if (orbs%nkpts.ne.1) stop 'Fermilevel: Not yet implemented correctly'
+!  do ikpt=1,orbs%nkpts
+!     !number of zero orbitals for the given k-point
+!     !overall charge of the system
+!     charge=0.0_gp
+!     do iorb=1,orbs%norb
+!           charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb)
+!     end do
+!   end do
+!     melec=nint(charge)
+!
+!
+!   factor=1.d0/(sqrt(pi)*wf)
+!10 electrons=0.d0
+!   dlectrons=0.d0
+!  do ikpt=1,orbs%nkpts
+!   do iorb=1,orbs%norbd+orbs%norbu
+!   arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
+!   electrons=electrons+.5d0*(1.d0-derf(arg))
+!   dlectrons=dlectrons-exp(-arg**2)
+!   enddo
+!  enddo
+!   dlectrons=dlectrons*factor
+!
+!   write(*,*) electrons,ef,dlectrons
+!   diff=melec-electrons
+!   if (abs(diff).lt.1.d-12) goto 20
+!   corr=diff/dlectrons
+!   if (corr.gt.1.d0*wf) corr=1.d0*wf
+!   if (corr.lt.-1.d0*wf) corr=-1.d0*wf
+!   if (abs(dlectrons).lt.1.d-14  .and. electrons.gt.dble(melec)) corr=3.d0*wf
+!   if (abs(dlectrons).lt.1.d-14  .and. electrons.lt.dble(melec)) corr=-3.d0*wf
+!   ef=ef-corr
+!
+!   goto 10
+!20 continue
+!  do ikpt=1,orbs%nkpts
+!   argu=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu)-ef)/wf
+!   argd=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+orbs%norbd)-ef)/wf
+!   cutoffu=.5d0*(1.d0-derf(argu))
+!   cutoffd=.5d0*(1.d0-derf(argd))
+!   write(*,'(a,f12.5,2(1x,e8.1))') 'i, eval, Fermi level, Fermi distribution cut off at:',ef,cutoffu,cutoffd
+!  enddo
+!
+!     ikpt=1
+!     open(unit=11,file='occup.dat',status='unknown')
+!     write(11,*)orbs%norbu,orbs%norbd
+!     do iorb=1,orbs%norbu
+!        arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
+!        write(11,*)iorb,.5d0*(1.d0-derf(arg)),orbs%eval((ikpt-1)*orbs%norb+iorb)
+!     end do
+!     do iorb=1,orbs%norbd
+!        arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
+!        write(11,*)iorb+orbs%norbu,.5d0*(1.d0-derf(arg)),orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)
+!     end do
+!     close(unit=11)
+!  
+!    
+!   end subroutine
+!
 
 
 subroutine eFermi(orbs)
@@ -759,14 +878,14 @@ subroutine eFermi(orbs)
            charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb)
         end if
      end do
-     if (nzeroorbs /= 0) then
+     if (nzeroorbs /= 0 .and. orbs%norbd .gt.0) then
         do iorb=1,orbs%norbu-1
            if (orbs%eval((ikpt-1)*orbs%norb+iorb) > orbs%eval((ikpt-1)*orbs%norb+iorb+1)) &
-                write(*,*) 'wrong ordering of up EVs',i,iorb,iorb+1
+                write(*,*) 'wrong ordering of up EVs',iorb,iorb+1
         end do
         do iorb=1,orbs%norbd-1
            if (orbs%eval((ikpt-1)*orbs%norb+iorb+orbs%norbu) > orbs%eval((ikpt-1)*orbs%norb+iorb+1+orbs%norbu))&
-                write(*,*) 'wrong ordering of dw EVs',i,iorb+orbs%norbu,iorb+1+orbs%norbu
+                write(*,*) 'wrong ordering of dw EVs',iorb+orbs%norbu,iorb+1+orbs%norbu
         enddo
 
         iu=0
@@ -788,7 +907,7 @@ subroutine eFermi(orbs)
   end do
 
   !if nkpts==1 we can write the new occup.dat now
-  if (orbs%nkpts == 1 .and. nzeroorbs /= 0) then
+  if (orbs%nkpts == 1 .and. nzeroorbs /= 0 .and. orbs%norbd .gt.0) then
      open(unit=11,file='occup.dat',status='unknown')
      write(11,*)orbs%norbu,orbs%norbd
      do iorb=1,iu

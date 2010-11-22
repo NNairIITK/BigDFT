@@ -246,6 +246,10 @@ subroutine dft_input_variables(iproc,filename,in)
   call check()
   in%nvirt = min(in%nvirt, in%norbv)
 
+  !mixing treatement (hard-coded values)
+  in%itrpmax=1
+  in%alphamix=0.0_gp
+
   !electrostatic treatment of the vacancy (experimental)
   !read(1,*,iostat=ierror) in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
   !call check()
@@ -376,11 +380,13 @@ subroutine geopt_input_variables(filename,in)
   read(1, "(A128)", iostat = ierror) line
   if (ierror == 0) then
      read(line,*,iostat=ierror) in%frac_fluct,in%forcemax
+write(*,*) 'in%frac_fluct,in%forcemax',in%frac_fluct,in%forcemax,ierror
      if (ierror /= 0) read(line,*,iostat=ierror) in%frac_fluct
      if (ierror == 0 .and. max(in%frac_fluct, in%forcemax) <= 0.d0) ierror = 1
   end if
   call check()
   read(1,*,iostat=ierror) in%randdis
+write(*,*) 'in%randdis',in%randdis
   call check()
   if (trim(in%geopt_approach) == "AB6MD") then
      in%nnos=0
@@ -424,7 +430,10 @@ subroutine geopt_input_variables(filename,in)
      read(1,*,iostat=ierror) in%betax
      call check()
   end if
-
+  if (trim(in%geopt_approach) == "FIRE") then
+     read(1,*,iostat=ierror) in%dtinit, in%dtmax
+     call check()
+  endif
   close(unit=1,iostat=ierror)
 
 contains

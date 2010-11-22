@@ -932,7 +932,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,nspin,occup,spinsgn)
 ! Local variables
   integer :: iorb,nt,ne,it,ierror,iorb1,i
   real(gp) :: rocc
-  character(len=8) :: string
+  character(len=20) :: string
   character(len=100) :: line
 
 
