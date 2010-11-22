@@ -63,7 +63,7 @@ subroutine bigdft_init( nat, typa, posa, const_, boxl, boxt, nproc_, me_ )
   real(gp), dimension(:,:), pointer     :: rxyz
   real(gp), dimension(:,:), allocatable :: fcart
   integer  :: i, infocode, ierror
-    real(gp) :: energy,fnoise
+  real(gp) :: energy, fnoise
 
   nproc = nproc_
   me = me_
@@ -134,10 +134,10 @@ subroutine calcforce( nat, posa, boxl, forca, energy, evalf_number )
   integer,      intent(inout)                         :: evalf_number
 
   !Local variables
-  integer :: infocode, i, ierror 
+  integer  :: infocode, i, ierror 
   real(gp) :: fnoise
-  real(gp), allocatable :: xcart(:,:), fcart(:,:)
   real(gp) :: tsumx, tsumy, tsumz
+  real(gp), allocatable :: xcart(:,:), fcart(:,:)
 
                                       ! We transfer acell into 'at'
   at%nat   = nat
@@ -218,8 +218,9 @@ subroutine mingeo( nat, boxl, posa, evalf_number, total_energy, success )
   logical,      intent(out)                     :: success
 
   !Local variables
-  integer :: i, ierror, ncount_bigdft
-  integer :: infocode
+  integer  :: i, ierror, ncount_bigdft
+  integer  :: infocode
+  real(gp) :: fnoise
   real(gp), allocatable :: xcart(:,:), fcart(:,:)
 
   success = .True.                    ! success will be .False. if:
