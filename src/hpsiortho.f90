@@ -37,7 +37,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(wp), dimension(:), pointer, optional :: psirocc
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
-  logical :: exctX
+  logical :: exctX,op2p
   integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
 !OCL  integer, dimension(3) :: periodic
@@ -53,6 +53,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !  real(kind=8) :: stream_ptr_first_trsf
 
   !initialise exact exchange energy 
+  op2p=(eexctX == -99.0_gp)
   eexctX=0.0_gp
 
   exctX = libxc_functionals_exctXfac() /= 0.0_gp
@@ -105,6 +106,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   if (present(pkernel) .and. exctX) then
      n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
      !exact exchange for virtual orbitals (needs psirocc)
+
+     !here we have to add the round part
      if (present(psirocc) .and. present(orbsocc)) then
         call exact_exchange_potential_virt(iproc,nproc,at%geocode,nspin,&
              lr,orbsocc,orbs,ngatherarr(0,1),n3p,&
@@ -114,9 +117,17 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !!$        call exact_exchange_potential_round(iproc,nproc,at%geocode,nspin,lr,orbs,&
 !!$             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
 
-        call exact_exchange_potential(iproc,nproc,at%geocode,nspin,&
-             lr,orbs,ngatherarr(0,1),n3p,&
-             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+        !here the condition for the scheme should be chosen
+        if (.not. op2p) then
+           call exact_exchange_potential(iproc,nproc,at%geocode,nspin,&
+                lr,orbs,ngatherarr(0,1),n3p,&
+                0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+        else
+           !the psi should be transformed in real space
+           call exact_exchange_potential_round(iproc,nproc,at%geocode,nspin,lr,orbs,&
+                0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+
+        end if
      end if
   else
      eexctX = 0._gp
@@ -547,7 +558,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
      keeppsit=opt_keeppsit
   else
      keeppsit=.false.
-  endif
+  end if
 
   call transpose_v(iproc,nproc,orbs,wfd,comms,&
        hpsi,work=psi)
@@ -569,6 +580,11 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
      else
         nullify(psit)
      end if
+     
+     i_all=-product(shape(hpsi))*kind(hpsi)
+     deallocate(hpsi,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsi',subname)
+
   endif
   !for a non-collinear treatment,
   !we add the calculation of the moments for printing their value
@@ -634,42 +650,37 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
      end do
   end if
 
-!  if (iproc == 0) call eFermi(orbs)
-  if (iproc == 0) call Fermilevel(orbs)
-
   if (orbs%nspinor ==4) then
      i_all=-product(shape(mom_vec))*kind(mom_vec)
      deallocate(mom_vec,stat=i_stat)
      call memocc(i_stat,i_all,'mom_vec',subname)
   end if
 
-  i_all=-product(shape(hpsi))*kind(hpsi)
-  deallocate(hpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsi',subname)
 
 END SUBROUTINE last_orthon
 
 
-subroutine Fermilevel(orbs)
+subroutine Fermilevel(filewrite,wf,orbs)
  ! finds  the fermi level ef for an error function distribution with a width wf
  ! eval are the Kohn Sham eigenvalues and melec is the total number of electrons
  use module_base
  use module_types
  implicit none
- type(orbitals_data), intent(in) :: orbs
+ logical, intent(in) :: filewrite
+ real(gp), intent(in) :: wf
+ type(orbitals_data), intent(inout) :: orbs
  !local variables
  integer :: iu,id,i,n,nzeroorbs,ikpt,iorb,melec,ii
  real(gp) :: charge
- real(gp) :: ef,wf,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
+ real(gp) :: ef,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
  parameter(pi=3.1415926535897932d0)
- parameter(wf=1.d-2)
-    write(*,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd
-
-    if (orbs%norbd==0) then 
-     full=2.d0   ! maximum occupation for closed shell  orbital
-    else
-     full=1.d0   ! maximum occupation for spin polarized orbital
-    endif
+ !write(*,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd
+ 
+ if (orbs%norbd==0) then 
+    full=2.d0   ! maximum occupation for closed shell  orbital
+ else
+    full=1.d0   ! maximum occupation for spin polarized orbital
+ endif
 
  if (orbs%nkpts.ne.1) stop 'Fermilevel: Not yet implemented correctly'
  do ikpt=1,orbs%nkpts
@@ -681,7 +692,7 @@ subroutine Fermilevel(orbs)
     end do
  end do
  melec=nint(charge)
-    write(*,*) 'charge',charge,melec
+ !write(*,*) 'charge',charge,melec
 
  ii=0
  ef=-.1d0
@@ -694,22 +705,22 @@ subroutine Fermilevel(orbs)
     do ikpt=1,orbs%nkpts
        do iorb=1,orbs%norbd+orbs%norbu
           arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
-! next 2 line error function distribution
-           call derf(res,arg)
+          ! next 2 line error function distribution
+          call derf(res,arg)
           electrons=electrons+.5d0*(1.d0-res)
           dlectrons=dlectrons-exp(-arg**2)
-!! next 2 line Fermi function distribution
-!   electrons=electrons+1.d0/(1.d0+exp(arg))
-!   dlectrons=dlectrons-exp(arg)/(1.d0+exp(arg))**2
+          !! next 2 line Fermi function distribution
+          !   electrons=electrons+1.d0/(1.d0+exp(arg))
+          !   dlectrons=dlectrons-exp(arg)/(1.d0+exp(arg))**2
        enddo
     enddo
-! next  line error function distribution
-   dlectrons=dlectrons*factor
-!! next  line Fermi function distribution
-!   dlectrons=dlectrons/wf
-
-
-  write(*,*) electrons,ef,dlectrons
+    ! next  line error function distribution
+    dlectrons=dlectrons*factor
+    !! next  line Fermi function distribution
+    !   dlectrons=dlectrons/wf
+    
+    
+    !write(*,*) electrons,ef,dlectrons
     diff=melec/full-electrons
     if (abs(diff).lt.1.d-12) exit loop_fermi
     corr=diff/dlectrons
@@ -729,25 +740,40 @@ subroutine Fermilevel(orbs)
     cutoffd=.5d0*(1.d0-resd)
 !    cutoffu=1.d0/(1.d0+exp(argu))
 !    cutoffd=1.d0/(1.d0+exp(argd))
-    write(*,'(a,f12.5,2(1x,e8.1))') 'i, eval, Fermi level, Fermi distribution cut off at:',ef,cutoffu,cutoffd
+    write(*,'(a,f12.5,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:',ef,cutoffu,cutoffd
  enddo
 
  ikpt=1
- open(unit=11,file='occup.dat',status='unknown')
- write(11,*)orbs%norbu,orbs%norbd
- do iorb=1,orbs%norbu
-    arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
-    call derf(res,arg)
-    write(11,'(i5,e19.12)')iorb,full*.5d0*(1.d0-res)
-!    write(11,'(i5,e19.12)')iorb,full/(1.d0+exp(arg))  !,orbs%eval((ikpt-1)*orbs%norb+iorb)
- end do
- do iorb=1,orbs%norbd
-    arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
-    call derf(res,arg)
-    write(11,'(i5,e19.12)')iorb+orbs%norbu,full*.5d0*(1.d0-res)
-!    write(11,'(i5,e19.12)')iorb+orbs%norbu,full/(1.d0+exp(arg))  !,orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)
- end do
- close(unit=11)
+ !write on file the results if needed
+ if (filewrite) then
+    
+    open(unit=11,file='occup.dat',status='unknown')
+    write(11,*)orbs%norbu,orbs%norbd
+    do iorb=1,orbs%norbu
+       arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
+       call derf(res,arg)
+       write(11,'(i5,e19.12)')iorb,full*.5d0*(1.d0-res)
+       !    write(11,'(i5,e19.12)')iorb,full/(1.d0+exp(arg))  !,orbs%eval((ikpt-1)*orbs%norb+iorb)
+    end do
+    do iorb=1,orbs%norbd
+       arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
+       call derf(res,arg)
+       write(11,'(i5,e19.12)')iorb+orbs%norbu,full*.5d0*(1.d0-res)
+       !    write(11,'(i5,e19.12)')iorb+orbs%norbu,full/(1.d0+exp(arg))  !,orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)
+    end do
+    close(unit=11)
+ else !otherwise update the occupation number
+    do iorb=1,orbs%norbu
+       arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
+       call derf(res,arg)
+       orbs%occup((ikpt-1)*orbs%norb+iorb)=full*.5d0*(1.d0-res)
+    end do
+    do iorb=1,orbs%norbd
+       arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
+       call derf(res,arg)
+       orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*.5d0*(1.d0-res)
+    end do
+ end if
 
 
 end subroutine Fermilevel
@@ -828,6 +854,7 @@ end subroutine Fermilevel
 !    
 !   end subroutine
 !
+
 
 subroutine eFermi(orbs)
   use module_base
