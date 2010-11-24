@@ -244,8 +244,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      idsx_actual_before=idsx_actual
 
      call hpsitopsi(iproc,nproc,orbsv,hx,hy,hz,lr,commsv,in%ncong,&
-          iter,diis,in%idsx,idsx_actual,energy,energy_old,&
-          alpha,gnrm,gnrm_zero,scprsum,psivirt,psitvirt,hpsivirt,in%nspin,GPU,in)
+          iter,diis,in%idsx,gnrm,gnrm_zero,scprsum,psivirt,psitvirt,hpsivirt,in%nspin,GPU,in)
 
      if (occorbs) then
         !if this is true the transposition for psivirt which is done in hpsitopsi

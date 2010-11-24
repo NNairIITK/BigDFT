@@ -209,18 +209,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   character(len=3) :: PSquiet
   character(len=4) :: f4
   character(len=50) :: filename
-  logical :: endloop,potion_overwritten=.false.,allfiles,onefile,refill_proj
+  logical :: endloop,endlooprp,potion_overwritten=.false.,allfiles,onefile,refill_proj
   logical :: DoDavidson,counterions,DoLastRunThings=.false.
-  integer :: ixc,ncong,idsx,ncongt,nspin,idsx_actual,idsx_actual_before,nsym
-  integer :: nvirt,ndiis_sd_sw,norbv
+  integer :: ixc,ncong,idsx,ncongt,nspin,nsym
+  integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
   integer :: nelec,ndegree_ip,j,i,iorb
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
   integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
-  real(gp) :: peakmem,energy_old,evsum
-  real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,alpha,gnrm,gnrm_zero
+  real(gp) :: peakmem,evsum
+  real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,rpnrm,gnrm,gnrm_zero
   real(gp) :: scprsum,energybs,tt,tel,ehart_fake,psoffset
   real(kind=8) :: ttsum
   real(gp) :: edisp ! Dispersion energy
@@ -724,9 +724,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           in%nspin,hx,hy,hz,Glr%wfd,orbs,GPU)
   end if
 
-  alpha=2.d0
+  diis%alpha=2.d0
   energy=1.d10
+  energybs=1.d10
   gnrm=1.d10
+  rpnrm=1.d10
   gnrm_zero=0.0d0
   ekin_sum=0.d0 
   epot_sum=0.d0 
@@ -737,11 +739,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !minimum value of the energy during the minimisation procedure
   diis%energy_min=1.d10
   !local variable for the diis history
-  idsx_actual=idsx
+  diis%idsx=idsx
   !number of switching betweed DIIS and SD during self-consistent loop
   ndiis_sd_sw=0
   !previous value of idsx_actual to control if switching has appeared
-  idsx_actual_before=idsx_actual
+  idsx_actual_before=diis%idsx
 
   !end of the initialization part
   call timing(iproc,'INIT','PR')
@@ -750,14 +752,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   DoDavidson= .false.
 
   !allocate the rhopot_old array needed for mixing
-  if (n3d >0) then
+  if (n3d >0 .and. in%itrpmax>1) then
      allocate(rhopot_old(n1i*n2i*n3d*in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,rhopot_old,'rhopot_old',subname)
   else
      allocate(rhopot_old(1+ndebug),stat=i_stat)
      call memocc(i_stat,rhopot_old,'rhopot_old',subname)
   end if
-
+  endlooprp=.false.
   rhopot_loop: do itrp=1,in%itrpmax
 
      wfn_loop: do iter=1,in%itermax
@@ -770,13 +772,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         endloop= gnrm <= gnrm_cv .or. iter == in%itermax
 
         !control how many times the DIIS has switched into SD
-        if (idsx_actual /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
+        if (diis%idsx /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
 
         !terminate SCF loop if forced to switch more than once from DIIS to SD
         endloop=endloop .or. ndiis_sd_sw > 2
 
         !stop the partial timing counter if necessary
-        if (endloop) call timing(iproc,'WFN_OPT','PR')
+        if (endloop .and. in%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
 
         !calculate the self-consistent potential
         if ((in%itrpmax /= 1 .and. iter==1) .or. in%itrpmax == 1) then
@@ -812,11 +814,21 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            end if
 
-           if (in%alphamix /=0.0_gp .and. itrp > 1) then
+           if (itrp > 1) then
               !here the potential can be mixed
               !vold=>vold-vnew
               call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,-1.0_dp,rhopot(1),1,&
                    rhopot_old(1),1)
+
+              !calculate rhopot_norm
+              rpnrm=(nrm2(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,rhopot_old(1),1))**2
+              call mpiallred(rpnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+              rpnrm=sqrt(rpnrm)
+
+              if (iproc == 0) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                   'POTENTIAL iteration,Delta P (Norm 2)',itrp,rpnrm
+
+              endlooprp= rpnrm <= in%rpnrm_cv .or. itrp == in%itrpmax
 
               !vnew=vnew+alpha(vold-vnew)
               call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,in%alphamix,rhopot_old(1),1,&
@@ -833,42 +845,34 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
              rhopot,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
              in%nspin,GPU,pkernel=pkernelseq)
 
-        energybs=ekin_sum+epot_sum+eproj_sum
-        energy_old=energy
-        energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
+        !previous value
+        if (in%itrpmax >1) then
+           diis%energy_old=energybs
+        else
+           diis%energy_old=energy
+        end if
 
+        energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
+        energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
+        
+        !new value
+        if (in%itrpmax >1) then
+           diis%energy=energybs
+        else
+           diis%energy=energy
+        end if
+        
         !check for convergence or whether max. numb. of iterations exceeded
         if (endloop) then 
-           if (iproc == 0) then 
-              if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
-              write( *,'(1x,a)') &
-                   '--------------------------------------------------- End of Wavefunction Optimisation'
-              write( *,'(1x,a,3(1x,1pe18.11))') &
-                   'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
-              write( *,'(1x,a,3(1x,1pe18.11))') &
-                   'final ehart, eexcu,  vexcu ',ehart,eexcu,vexcu
-              if (gnrm_zero == 0.0_gp) then
-                 write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
-                      'FINAL iter,total energy,gnrm',iter,energy,gnrm
-              else
-                 write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') &
-                      'FINAL iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
-
-              end if
-              !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
-              if (energy > diis%energy_min) write( *,'(1x,a,1pe9.2)')&
-                   'WARNING: Found an energy value lower than the FINAL energy, delta:',energy-diis%energy_min
-           end if
            if (gnrm <= gnrm_cv) infocode=0
            exit wfn_loop 
         endif
 
         !control the previous value of idsx_actual
-        idsx_actual_before=idsx_actual
+        idsx_actual_before=diis%idsx
 
         call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
-             iter,diis,idsx,idsx_actual,energy,energy_old,&
-             alpha,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,in%nspin,GPU,in)
+             iter,diis,idsx,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,in%nspin,GPU,in)
 
         tt=(energybs-scprsum)/scprsum
         if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
@@ -877,15 +881,23 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
         endif
         if (iproc == 0) then
-           if (verbose > 0) then
+           if (verbose > 0 .and. in%itrpmax==1) then
               write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
                    ekin_sum,epot_sum,eproj_sum
               write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
            end if
-           if (gnrm_zero == 0.0_gp) then
-              write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
+           if (in%itrpmax >1) then
+              if (gnrm_zero == 0.0_gp) then
+                 write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,weighted tr(H),gnrm',iter,energybs,gnrm
+              else
+                 write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,weighted tr(H),gnrm,gnrm_zero',iter,energybs,gnrm,gnrm_zero
+              end if
            else
-              write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
+              if (gnrm_zero == 0.0_gp) then
+                 write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
+              else
+                 write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
+              end if
            end if
         endif
 
@@ -914,6 +926,28 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         end if
 
      end do wfn_loop
+
+     if (iproc == 0) then 
+        if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
+        write( *,'(1x,a)') &
+             '--------------------------------------------------- End of Wavefunction Optimisation'
+        write( *,'(1x,a,3(1x,1pe18.11))') &
+             'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
+        write( *,'(1x,a,3(1x,1pe18.11))') &
+             'final ehart, eexcu,  vexcu ',ehart,eexcu,vexcu
+        if (gnrm_zero == 0.0_gp) then
+           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
+                'FINAL iter,total energy,gnrm',iter,energy,gnrm
+        else
+           write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') &
+                'FINAL iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
+
+        end if
+        !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
+        if (diis%energy > diis%energy_min) write( *,'(1x,a,1pe9.2)')&
+             'WARNING: Found an energy value lower than the FINAL energy, delta:',diis%energy-diis%energy_min
+     end if
+
      if (iter == in%itermax .and. iproc == 0 .and. infocode/=0) &
           write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
 
@@ -921,12 +955,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           comms,psi,hpsi,psit,evsum,in%itrpmax > 1)
 
      if (in%itrpmax > 1) then
+        !stop the partial timing counter if necessary
+        if (endlooprp .and. in%itrpmax >1) then
+           call timing(iproc,'WFN_OPT','PR')
+           exit rhopot_loop
+        end if
+
         !recalculate orbitals occupation numbers
         if (iproc == 0) call Fermilevel(.true.,1.e-2_gp,orbs) !on occup.dat file
         call Fermilevel(.false.,1.e-2_gp,orbs) !in memory
 
         call dcopy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,&
              rhopot(1),1,rhopot_old(1),1)
+        gnrm =1.d10
      end if
 
   end do rhopot_loop

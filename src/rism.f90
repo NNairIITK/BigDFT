@@ -858,6 +858,7 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
   i_all=-product(shape(H))*kind(H)
   deallocate(H,stat=i_stat)
   call memocc(i_stat,i_all,'H',subname)
+
   i_all=-product(shape(rhoarr))*kind(rhoarr)
   deallocate(rhoarr,stat=i_stat)
   call memocc(i_stat,i_all,'rhoarr',subname)
