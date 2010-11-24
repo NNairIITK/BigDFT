@@ -31,7 +31,7 @@ module module_types
      integer :: norbv,nvirt,nplot
      integer :: output_grid, dispersion,last_run
      real(gp) :: frac_fluct,gnrm_sw,alphamix
-     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf 
+     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv
      integer :: nvacancy,verbosity
      real(gp) :: elecfield
      logical :: disableSym
@@ -420,8 +420,8 @@ module module_types
 !!
   type, public :: diis_objects
      logical :: switchSD
-     integer :: idiistol,mids,ids  
-     real(gp) :: energy_min
+     integer :: idiistol,mids,ids,idsx
+     real(gp) :: energy_min,energy_old,energy,alpha
      real(wp), dimension(:), pointer :: psidst
      real(tp), dimension(:), pointer :: hpsidst
      real(wp), dimension(:,:,:,:), pointer :: ads

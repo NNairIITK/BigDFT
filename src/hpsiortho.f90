@@ -265,22 +265,19 @@ end module wavefunctionDIIS
 !! SOURCE
 !!
 subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
-     ncong,iter,diis,idsx,idsx_actual,energy,energy_old,&
-     alpha,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,nspin,GPU,input)
+     ncong,iter,diis,idsx,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,nspin,GPU,input)
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => hpsitopsi
   !use wavefunctionDIIS
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
-  real(gp), intent(in) :: hx,hy,hz,energy,energy_old
+  real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
   type(communications_arrays), intent(in) :: comms
   type(orbitals_data), intent(in) :: orbs
   type(input_variables), intent(in) :: input
   type(diis_objects), intent(inout) :: diis
-  integer, intent(inout) :: idsx_actual
-  real(wp), intent(inout) :: alpha
   real(dp), intent(inout) :: gnrm,gnrm_zero,scprsum
   real(wp), dimension(:), pointer :: psi,psit,hpsi
   type(GPU_pointers), intent(inout) :: GPU
@@ -312,7 +309,7 @@ integer:: i
      diis%ids=diis%ids+1
   end if
 
-  diis%energy_min=min(diis%energy_min,energy)
+  diis%energy_min=min(diis%energy_min,diis%energy)
 
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
@@ -412,8 +409,7 @@ integer:: i
   !apply the minimization method (DIIS or steepest descent)
   call timing(iproc,'Diis          ','ON')
 
-  call psimix(iproc,nproc,orbs,comms,diis,idsx_actual,energy,energy_old,alpha,&
-       hpsi,psit)
+  call psimix(iproc,nproc,orbs,comms,diis,hpsi,psit)
 
   call timing(iproc,'Diis          ','OF')
 
@@ -462,7 +458,7 @@ integer:: i
      call memocc(i_stat,i_all,'mom_vec',subname)
   end if
 
-  call diis_or_sd(iproc,idsx,orbs%nkptsp,energy,idsx_actual,diis)
+  call diis_or_sd(iproc,idsx,orbs%nkptsp,diis)
 
 END SUBROUTINE hpsitopsi
 !!***
