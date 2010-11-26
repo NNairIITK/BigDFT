@@ -755,7 +755,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   if (n3d >0 .and. in%itrpmax>1) then
      allocate(rhopot_old(n1i*n2i*n3d*in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,rhopot_old,'rhopot_old',subname)
-  else
+  else if (in%itrpmax >1) then
      allocate(rhopot_old(1+ndebug),stat=i_stat)
      call memocc(i_stat,rhopot_old,'rhopot_old',subname)
   end if
@@ -774,14 +774,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         !control how many times the DIIS has switched into SD
         if (diis%idsx /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
 
-        !terminate SCF loop if forced to switch more than once from DIIS to SD
-        endloop=endloop .or. ndiis_sd_sw > 2
+        !leave SD if the DIIS did not work the second time
+        if (ndiis_sd_sw > 1) then
+           diis%switchSD=.false.
+        end if
 
         !stop the partial timing counter if necessary
         if (endloop .and. in%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
 
         !calculate the self-consistent potential
-        if ((in%itrpmax /= 1 .and. iter==1) .or. in%itrpmax == 1) then
+        if ((in%itrpmax /= 1 .and. iter==1) .or. (in%itrpmax == 1) .or.&
+             (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix)) then
            ! Potential from electronic charge density
            call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
                 n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
