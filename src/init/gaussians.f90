@@ -494,13 +494,13 @@ subroutine gaussian_overlap(A,B,ovrlp)
                  lB=B%nam(jshell)
                  do mB=1,2*lB-1
                     jovrlp=jovrlp+1
-                    if ((jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) .or. &
-                         A%ncoeff /= B%ncoeff ) then
+                    !if ((jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) .or. &
+                    !     A%ncoeff /= B%ncoeff ) then
                        call gbasovrlp(A%xp(iexpo),A%psiat(iexpo),&
                             B%xp(jexpo),B%psiat(jexpo),&
                             ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
                             niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
-                    end if
+                    !end if
                  end do
                  jexpo=jexpo+ngB
                  jcoeff=jcoeff+2*lB-1

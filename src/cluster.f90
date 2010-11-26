@@ -78,12 +78,12 @@
 
   inputPsiId_orig=in%inputPsiId
 
-  loop_cluster: do icycle=1,in%nrepmax
+  loop_cluster: do !icycle=1,in%nrepmax !put a limit in the number of loops
 
      !if we are in the last_run case, validate the last_run only for the last cycle
-     if (in%last_run == 1 .and. icycle == in%nrepmax) then
-        in%last_run=100 !do the last_run things regardless of infocode
-     end if
+     !if (in%last_run == 1 .and. icycle == in%nrepmax) then
+     !   in%last_run=100 !do the last_run things regardless of infocode
+     !end if
 
      if (in%inputPsiId == 0 .and. associated(rst%psi)) then
         i_all=-product(shape(rst%psi))*kind(rst%psi)
@@ -107,14 +107,13 @@
            in%inputPsiId=0
         end if
      else if ((in%inputPsiId==1 .or. in%inputPsiId==0) .and. infocode==1) then
-        !in%inputPsiId=0 !better to diagonalise that to restart an input guess
+        !in%inputPsiId=0 !better to diagonalise than to restart an input guess
         in%inputPsiId=1
         if(iproc==0) then
            write(*,*)&
-             ' WARNING: Wavefunctions not converged after cycle',icycle
-           write(*,*)' restart after diagonalisation'
+                ' WARNING: Self-consistent cycle did not met convergence criteria'
         end if
-        
+        exit loop_cluster
      else if (in%inputPsiId == 0 .and. infocode==3) then
         if (iproc == 0) then
            write( *,'(1x,a)')'Convergence error, cannot proceed.'
@@ -135,7 +134,7 @@
 
         call deallocate_wfd(rst%Glr%wfd,subname)
 
-        !finalize memory counting (there are still the positions and the forces allocated)
+        !finalize memory counting (there are still at least positions and the forces allocated)
         call memocc(0,0,'count','stop')
 
         if (nproc > 1) call MPI_FINALIZE(ierr)
@@ -211,7 +210,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   character(len=50) :: filename
   logical :: endloop,endlooprp,potion_overwritten=.false.,allfiles,onefile,refill_proj
   logical :: DoDavidson,counterions,DoLastRunThings=.false.
-  integer :: ixc,ncong,idsx,ncongt,nspin,nsym
+  integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
   integer :: nelec,ndegree_ip,j,i,iorb
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
@@ -762,200 +761,216 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   endlooprp=.false.
   rhopot_loop: do itrp=1,in%itrpmax
 
-     wfn_loop: do iter=1,in%itermax
+     subd_loop : do icycle=1,in%nrepmax
 
-        if (iproc == 0 .and. verbose > 0) then 
-           write( *,'(1x,a,i0)') &
-                & repeat('-',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
-        endif
-        !control whether the minimisation iterations ended
-        endloop= gnrm <= gnrm_cv .or. iter == in%itermax
+        wfn_loop: do iter=1,in%itermax
 
-        !control how many times the DIIS has switched into SD
-        if (diis%idsx /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
+           if (iproc == 0 .and. verbose > 0) then 
+              write( *,'(1x,a,i0)') &
+                   & repeat('-',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
+           endif
+           !control whether the minimisation iterations ended
+           endloop= gnrm <= gnrm_cv .or. iter == in%itermax
 
-        !leave SD if the DIIS did not work the second time
-        if (ndiis_sd_sw > 1) then
-           diis%switchSD=.false.
-        end if
+           !control how many times the DIIS has switched into SD
+           if (diis%idsx /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
 
-        !stop the partial timing counter if necessary
-        if (endloop .and. in%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
+           !leave SD if the DIIS did not work the second time
+           if (ndiis_sd_sw > 1) then
+              diis%switchSD=.false.
+           end if
 
-        !calculate the self-consistent potential
-        if ((in%itrpmax /= 1 .and. iter==1) .or. (in%itrpmax == 1) .or.&
-             (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix)) then
-           ! Potential from electronic charge density
-           call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-                n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+           !stop the partial timing counter if necessary
+           if (endloop .and. in%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
 
-           if(orbs%nspinor==4) then
-              !this wrapper can be inserted inside the poisson solver 
-              call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
-                   ixc,hxh,hyh,hzh,&
-                   rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
-           else
+           !calculate the self-consistent potential
+           if ((in%itrpmax /= 1 .and. iter==1) .or. (in%itrpmax == 1) .or.&
+                (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix)) then
+              ! Potential from electronic charge density
+              call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
+                   n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
 
-              call XC_potential(atoms%geocode,'D',iproc,nproc,&
-                   Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
-                   rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
+              if(orbs%nspinor==4) then
+                 !this wrapper can be inserted inside the poisson solver 
+                 call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
+                      ixc,hxh,hyh,hzh,&
+                      rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+              else
+                 call XC_potential(atoms%geocode,'D',iproc,nproc,&
+                      Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
+                      rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
 
-              call H_potential(atoms%geocode,'D',iproc,nproc,&
-                   Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-                   rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
-                   quiet=PSquiet) !optional argument
+                 call H_potential(atoms%geocode,'D',iproc,nproc,&
+                      Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+                      rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
+                      quiet=PSquiet) !optional argument
 
-              !sum the two potentials in rhopot array
-              !fill the other part, for spin, polarised
-              if (in%nspin == 2) then
-                 call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
-                      rhopot(1+n1i*n2i*n3p),1)
+                 !sum the two potentials in rhopot array
+                 !fill the other part, for spin, polarised
+                 if (in%nspin == 2) then
+                    call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
+                         rhopot(1+n1i*n2i*n3p),1)
+                 end if
+                 !spin up and down together with the XC part
+                 call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
+                      rhopot(1),1)
+
               end if
-              !spin up and down together with the XC part
-              call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
-                   rhopot(1),1)
+
+              if (itrp > 1) then
+                 !here the potential can be mixed
+                 !vold=>vold-vnew
+                 call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,-1.0_dp,rhopot(1),1,&
+                      rhopot_old(1),1)
+
+                 !calculate rhopot_norm
+                 rpnrm=(nrm2(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,rhopot_old(1),1))**2
+                 call mpiallred(rpnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+                 rpnrm=sqrt(rpnrm)
+
+                 if (iproc == 0) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                      'POTENTIAL iteration,Delta P (Norm 2)',itrp,rpnrm
+
+                 endlooprp= rpnrm <= in%rpnrm_cv .or. itrp == in%itrpmax
+
+                 !vnew=vnew+alpha(vold-vnew)
+                 call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,in%alphamix,rhopot_old(1),1,&
+                      rhopot(1),1)
+              end if
 
            end if
 
-           if (itrp > 1) then
-              !here the potential can be mixed
-              !vold=>vold-vnew
-              call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,-1.0_dp,rhopot(1),1,&
-                   rhopot_old(1),1)
+           !temporary, to be corrected with comms structure
+           if (in%exctxpar == 'OP2P') eexctX = -99.0_gp
 
-              !calculate rhopot_norm
-              rpnrm=(nrm2(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,rhopot_old(1),1))**2
-              call mpiallred(rpnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-              rpnrm=sqrt(rpnrm)
+           call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+                nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
+                rhopot,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
+                in%nspin,GPU,pkernel=pkernelseq)
 
-              if (iproc == 0) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                   'POTENTIAL iteration,Delta P (Norm 2)',itrp,rpnrm
-
-              endlooprp= rpnrm <= in%rpnrm_cv .or. itrp == in%itrpmax
-
-              !vnew=vnew+alpha(vold-vnew)
-              call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,in%alphamix,rhopot_old(1),1,&
-                   rhopot(1),1)
-           end if
-
-        end if
-
-        !temporary, to be corrected with comms structure
-        if (in%exctxpar == 'OP2P') eexctX = -99.0_gp
-
-        call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
-             nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
-             rhopot,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
-             in%nspin,GPU,pkernel=pkernelseq)
-
-        !previous value
-        if (in%itrpmax >1) then
-           diis%energy_old=energybs
-        else
-           diis%energy_old=energy
-        end if
-
-        energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
-        energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
-        
-        !new value
-        if (in%itrpmax >1) then
-           diis%energy=energybs
-        else
-           diis%energy=energy
-        end if
-        
-        !check for convergence or whether max. numb. of iterations exceeded
-        if (endloop) then 
-           if (gnrm <= gnrm_cv) infocode=0
-           exit wfn_loop 
-        endif
-
-        !control the previous value of idsx_actual
-        idsx_actual_before=diis%idsx
-
-        call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
-             iter,diis,idsx,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,in%nspin,GPU,in)
-
-        tt=(energybs-scprsum)/scprsum
-        if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
-             (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
-           write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
-                'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
-        endif
-        if (iproc == 0) then
-           if (verbose > 0 .and. in%itrpmax==1) then
-              write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-                   ekin_sum,epot_sum,eproj_sum
-              write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-           end if
+           !previous value
            if (in%itrpmax >1) then
-              if (gnrm_zero == 0.0_gp) then
-                 write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,weighted tr(H),gnrm',iter,energybs,gnrm
-              else
-                 write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,weighted tr(H),gnrm,gnrm_zero',iter,energybs,gnrm,gnrm_zero
-              end if
+              diis%energy_old=energybs
            else
-              if (gnrm_zero == 0.0_gp) then
-                 write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
+              diis%energy_old=energy
+           end if
+
+           energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
+           energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
+
+           !new value
+           if (in%itrpmax >1) then
+              diis%energy=energybs
+           else
+              diis%energy=energy
+           end if
+
+           !check for convergence or whether max. numb. of iterations exceeded
+           if (endloop) then
+              if (gnrm < gnrm_cv) infocode=0
+              exit wfn_loop 
+           endif
+
+           !control the previous value of idsx_actual
+           idsx_actual_before=diis%idsx
+
+           call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
+                iter,diis,idsx,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,in%nspin,GPU,in)
+
+           tt=(energybs-scprsum)/scprsum
+           if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
+                (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
+              write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
+                   'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
+           endif
+           if (iproc == 0) then
+              if (verbose > 0 .and. in%itrpmax==1) then
+                 write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+                      ekin_sum,epot_sum,eproj_sum
+                 write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+              end if
+              if (in%itrpmax >1) then
+                 if (gnrm_zero == 0.0_gp) then
+                    write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,weighted tr(H),gnrm',iter,energybs,gnrm
+                 else
+                    write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,weighted tr(H),gnrm,gnrm_zero',iter,energybs,gnrm,gnrm_zero
+                 end if
               else
-                 write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
+                 if (gnrm_zero == 0.0_gp) then
+                    write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
+                 else
+                    write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
+                 end if
               end if
-           end if
-        endif
+           endif
 
-        if (in%inputPsiId == 0) then
-           if ((gnrm > 4.d0 .and. orbs%norbu /= orbs%norbd) .or. &
-                (orbs%norbu == orbs%norbd .and. gnrm > 10.d0)) then
-              if (iproc == 0) then
-                 write( *,'(1x,a)')&
-                      'ERROR: the norm of the residue is too large also with input wavefunctions.'
+           if (in%inputPsiId == 0) then
+              if ((gnrm > 4.d0 .and. orbs%norbu /= orbs%norbd) .or. &
+                   (orbs%norbu == orbs%norbd .and. gnrm > 10.d0)) then
+                 if (iproc == 0) then
+                    write( *,'(1x,a)')&
+                         'ERROR: the norm of the residue is too large also with input wavefunctions.'
+                 end if
+                 infocode=3
+                 call deallocate_before_exiting
+                 return
               end if
-              infocode=3
-              call deallocate_before_exiting
-              return
-           end if
-        else if (in%inputPsiId == 1) then
-           if (gnrm > 1.d0) then
-              if (iproc == 0) then
-                 write( *,'(1x,a)')&
-                      'The norm of the residue is too large, need to recalculate input wavefunctions'
+           else if (in%inputPsiId == 1) then
+              if (gnrm > 1.d0) then
+                 if (iproc == 0) then
+                    write( *,'(1x,a)')&
+                         'The norm of the residue is too large, need to recalculate input wavefunctions'
+                 end if
+                 infocode=2
+                 if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+                 call deallocate_before_exiting
+                 return
               end if
-              infocode=2
-              if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-              call deallocate_before_exiting
-              return
            end if
+
+        end do wfn_loop
+
+        if (iproc == 0) then 
+           if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
+           write( *,'(1x,a)') &
+                '--------------------------------------------------- End of Wavefunction Optimisation'
+           write( *,'(1x,a,3(1x,1pe18.11))') &
+                'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
+           write( *,'(1x,a,3(1x,1pe18.11))') &
+                'final ehart, eexcu,  vexcu ',ehart,eexcu,vexcu
+           if (gnrm_zero == 0.0_gp) then
+              write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
+                   'FINAL iter,total energy,gnrm',iter,energy,gnrm
+           else
+              write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') &
+                   'FINAL iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
+
+           end if
+           !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
+           if (diis%energy > diis%energy_min) write( *,'(1x,a,1pe9.2)')&
+                'WARNING: Found an energy value lower than the FINAL energy, delta:',diis%energy-diis%energy_min
         end if
 
-     end do wfn_loop
+        if (iter == in%itermax .and. iproc == 0 .and. infocode/=0) &
+             write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
 
-     if (iproc == 0) then 
-        if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
-        write( *,'(1x,a)') &
-             '--------------------------------------------------- End of Wavefunction Optimisation'
-        write( *,'(1x,a,3(1x,1pe18.11))') &
-             'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
-        write( *,'(1x,a,3(1x,1pe18.11))') &
-             'final ehart, eexcu,  vexcu ',ehart,eexcu,vexcu
-        if (gnrm_zero == 0.0_gp) then
-           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
-                'FINAL iter,total energy,gnrm',iter,energy,gnrm
+        call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
+             comms,psi,hpsi,psit,evsum,.true.) !never deallocate psit and hpsi
+
+        !exit if the infocode is correct
+        if (infocode == 0) then
+           exit subd_loop
         else
-           write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') &
-                'FINAL iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
-
+           if(iproc==0) then
+              write(*,*)&
+                   ' WARNING: Wavefunctions not converged after cycle',icycle
+              if (icycle < in%nrepmax) write(*,*)' restart after diagonalisation'
+           end if
+           gnrm=1.d10
         end if
-        !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
-        if (diis%energy > diis%energy_min) write( *,'(1x,a,1pe9.2)')&
-             'WARNING: Found an energy value lower than the FINAL energy, delta:',diis%energy-diis%energy_min
-     end if
 
-     if (iter == in%itermax .and. iproc == 0 .and. infocode/=0) &
-          write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
-
-     call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
-          comms,psi,hpsi,psit,evsum,in%itrpmax > 1)
+     end do subd_loop
+     
 
      if (in%itrpmax > 1) then
         !stop the partial timing counter if necessary
@@ -976,7 +991,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   end do rhopot_loop
 
   !deallocate psit and hpsi if it was not already been done
-  if (in%itrpmax > 1) then
+  if (.true.) then
      if (nproc > 1) then
         i_all=-product(shape(psit))*kind(psit)
         deallocate(psit,stat=i_stat)
@@ -987,11 +1002,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      i_all=-product(shape(hpsi))*kind(hpsi)
      deallocate(hpsi,stat=i_stat)
      call memocc(i_stat,i_all,'hpsi',subname)
-
+  end if
+  if (in%itrpmax > 1) then
      i_all=-product(shape(rhopot_old))*kind(rhopot_old)
      deallocate(rhopot_old,stat=i_stat)
      call memocc(i_stat,i_all,'rhopot_old',subname)
-
   end if
      
 

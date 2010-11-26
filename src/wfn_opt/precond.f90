@@ -72,8 +72,8 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
            !write(*,*) 'cprecr:',iorb,cprecr,orbs%eval(orbs%isorb+iorb)
            select case(lr%geocode)
            case('F')
-!              cprecr=-orbs%eval(orbs%isorb+iorb)
-             cprecr=sqrt(.2d0**2+min(0.d0,orbs%eval(orbs%isorb+iorb))**2)
+              cprecr=-orbs%eval(orbs%isorb+iorb)
+!             cprecr=sqrt(.2d0**2+min(0.d0,orbs%eval(orbs%isorb+iorb))**2)
            case('S')
               cprecr=0.5_wp
            case('P')
