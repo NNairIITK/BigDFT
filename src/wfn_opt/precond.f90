@@ -152,6 +152,7 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
 !!  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
 !!  write(*,*)'debug1',rmr_new
 
+  !this operation should be rewritten in a better way
   r=b-d ! r=b-Ax
 
   call calculate_rmr_new(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,r,d,rmr_new)

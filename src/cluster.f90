@@ -784,7 +784,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            if (endloop .and. in%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
 
            !calculate the self-consistent potential
-           if ((in%itrpmax /= 1 .and. iter==1) .or. (in%itrpmax == 1) .or.&
+           if ((in%itrpmax /= 1 .and. iter==1 .and. icycle==1) .or. (in%itrpmax == 1) .or.&
                 (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix)) then
               ! Potential from electronic charge density
               call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&

@@ -1535,12 +1535,12 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
 
   if (randinp) then
      !fill randomly the gaussian coefficients for the orbitals considered
-     do iorb=1,orbs%norbp*orbs%nspinor
-        do icoeff=1,G%ncoeff
-           !be sure to call always a different random number, per orbital
-           do jorb=1,orbs%isorb
-              tt=builtin_rand(idum) !call random_number(tt)
-           end do
+     do icoeff=1,G%ncoeff !reversed loop
+        !be sure to call always a different random number, per orbital
+        do jorb=1,orbs%isorb
+           tt=builtin_rand(idum) !call random_number(tt)
+        end do
+        do iorb=1,orbs%norbp*orbs%nspinor
            !do jproc=0,iproc-1
            !   tt=builtin_rand(idum) !call random_number(tt)
            !end do
