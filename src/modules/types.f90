@@ -31,7 +31,7 @@ module module_types
      integer :: norbv,nvirt,nplot
      integer :: output_grid, dispersion,last_run
      real(gp) :: frac_fluct,gnrm_sw,alphamix
-     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv
+     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
      integer :: nvacancy,verbosity
      real(gp) :: elecfield
      logical :: disableSym

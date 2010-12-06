@@ -111,7 +111,7 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
      diis%idiistol=diis%idiistol+1
   end if
 !  if (diis%idiistol > idsx .and. diis%switchSD) then
-  if (diis%idiistol > 10000*idsx .and. diis%switchSD) then
+   if (diis%idiistol > 10000*idsx .and. diis%switchSD) then
      !restore the original DIIS
      if (iproc ==0) write(*,'(1x,a,1pe9.2)')&
           'WARNING: The energy value is now decreasing again, coming back to DIIS'
