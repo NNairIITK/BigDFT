@@ -242,22 +242,6 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 END SUBROUTINE HamiltonianApplication
 !!***
 
-
-!!****m* BigDFT/wavefunctionDIIS
-!! FUNCTION
-!!   This module is here to avoid save variables inside
-!!   hpsitopsi().
-!!
-!! SOURCE
-!!
-module wavefunctionDIIS
-  implicit none
-  logical :: switchSD
-  integer :: idiistol,mids,ids  
-end module wavefunctionDIIS
-!!***
-
-
 !!****f* BigDFT/hpsitopsi
 !! FUNCTION
 !!   Operations after h|psi> 
@@ -265,11 +249,10 @@ end module wavefunctionDIIS
 !! SOURCE
 !!
 subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
-     ncong,iter,diis,idsx,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,nspin,GPU,input)
+     ncong,iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,nspin,GPU,input)
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => hpsitopsi
-  !use wavefunctionDIIS
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
   real(gp), intent(in) :: hx,hy,hz
@@ -278,7 +261,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   type(orbitals_data), intent(in) :: orbs
   type(input_variables), intent(in) :: input
   type(diis_objects), intent(inout) :: diis
-  real(dp), intent(inout) :: gnrm,gnrm_zero,scprsum
+  real(dp), intent(inout) :: gnrm,gnrm_zero,trH
   real(wp), dimension(:), pointer :: psi,psit,hpsi
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
@@ -309,8 +292,6 @@ integer:: i
      diis%ids=diis%ids+1
   end if
 
-  diis%energy_min=min(diis%energy_min,diis%energy)
-
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
           'done,  orthoconstraint...'
@@ -329,7 +310,11 @@ integer:: i
   !takes also into account parallel k-points distribution
   !here the orthogonality with respect to other occupied functions should be 
   !passed as an optional argument
-  call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,scprsum)
+  call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,trH)
+
+  !add the trace of the hamiltonian to the value of the energy
+  diis%energy=diis%energy+trH
+  diis%energy_min=min(diis%energy_min,diis%energy)
 
   !retranspose the hpsi wavefunction
   call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
@@ -380,14 +365,16 @@ integer:: i
      call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
      call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
   endif
-  !count the number of orbitals which has nonzero occupation number
+  !count the number of orbitals which have zero occupation number
   !assume that this is the same for all k-points, which is not true in general
   nzeroorbs=0
-  do iorb=1,orbs%norb
+  do iorb=1,orbs%norb*orbs%nkpts
      if (orbs%occup(iorb) == 0.0_gp) then
         nzeroorbs=nzeroorbs+1
      end if
   end do
+  if (orbs%nkpts > 1) nzeroorbs=nint(real(nzeroorbs,gp)/real(orbs%nkpts,gp))
+
   gnrm=sqrt(gnrm/real(orbs%norb-nzeroorbs,dp))
 
   if (nzeroorbs /= 0) then

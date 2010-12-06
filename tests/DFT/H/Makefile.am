@@ -8,6 +8,9 @@ EXTRA_DIST = \
 	H.memguess.ref \
 	H.out.ref
 
+INFILES = input.dft \
+	posinp.xyz
+
 PPFILES = \
 	psppar.H
 
@@ -18,11 +21,10 @@ CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* H.out posout* \
 $(PPFILES):
 	ln -fs $(top_srcdir)/utils/PSPfiles/$@
 
-H.out: $(top_builddir)/src/bigdft $(PPFILES)
-	if ! test x"$(srcdir)" = x"." ; then \
-	  ln -fs $(srcdir)/input.dft ; \
-	  ln -fs $(srcdir)/posinp.xyz ; \
-    fi
+$(INFILES):
+	ln -fs $(srcdir)/$@
+
+H.out: $(top_builddir)/src/bigdft $(PPFILES) $(INFILES)
 	$(run_parallel) $(top_builddir)/src/bigdft > $@
 	if ! test x"$(srcdir)" = x"." ; then \
 	  rm -f input.dft ; \

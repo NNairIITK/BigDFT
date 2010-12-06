@@ -209,7 +209,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   character(len=4) :: f4
   character(len=50) :: filename
   logical :: endloop,endlooprp,potion_overwritten=.false.,allfiles,onefile,refill_proj
-  logical :: DoDavidson,counterions,DoLastRunThings=.false.
+  logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
   integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
   integer :: nelec,ndegree_ip,j,i,iorb
@@ -220,7 +220,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(gp) :: peakmem,evsum
   real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,rpnrm,gnrm,gnrm_zero
-  real(gp) :: scprsum,energybs,tt,tel,ehart_fake,psoffset
+  real(gp) :: trH,energybs,tt,tel,ehart_fake,psoffset
   real(kind=8) :: ttsum
   real(gp) :: edisp ! Dispersion energy
   type(wavefunctions_descriptors) :: wfd_old
@@ -735,6 +735,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !set the infocode to the value it would have in the case of no convergence
   infocode=1
   !diis initialisation variables
+  diis%energy=1.d10
   !minimum value of the energy during the minimisation procedure
   diis%energy_min=1.d10
   !local variable for the diis history
@@ -782,10 +783,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            !stop the partial timing counter if necessary
            if (endloop .and. in%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
-
+           scpot=(in%itrpmax /= 1 .and. iter==1 .and. icycle==1) .or. (in%itrpmax == 1) .or.&
+                (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix)
            !calculate the self-consistent potential
-           if ((in%itrpmax /= 1 .and. iter==1) .or. (in%itrpmax == 1) .or.&
-                (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix)) then
+           if (scpot) then
               ! Potential from electronic charge density
               call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
                    n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
@@ -848,22 +849,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 rhopot,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
                 in%nspin,GPU,pkernel=pkernelseq)
 
-           !previous value
-           if (in%itrpmax >1) then
-              diis%energy_old=energybs
-           else
-              diis%energy_old=energy
-           end if
-
            energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
            energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
-
-           !new value
-           if (in%itrpmax >1) then
-              diis%energy=energybs
-           else
-              diis%energy=energy
-           end if
 
            !check for convergence or whether max. numb. of iterations exceeded
            if (endloop) then
@@ -873,15 +860,26 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            !control the previous value of idsx_actual
            idsx_actual_before=diis%idsx
-
+           !previous value
+           diis%energy_old=diis%energy
+           !new value without the trace, to be added in hpsitopsi
+           if (in%itrpmax >1) then
+              diis%energy=0.0_gp
+           else
+              diis%energy=-ehart+eexcu-vexcu-eexctX+eion+edisp
+           end if
            call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
-                iter,diis,idsx,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,in%nspin,GPU,in)
+                iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,in%nspin,GPU,in)
 
-           tt=(energybs-scprsum)/scprsum
+           tt=(energybs-trH)/trH
            if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
                 (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
-              write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
-                   'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
+              !write this warning only if the system is closed shell
+              call check_closed_shell(in%nspin,orbs,lcs)
+              if (lcs) then
+                 write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
+                      'ERROR: inconsistency between gradient and energy',tt,energybs,trH
+              end if
            endif
            if (iproc == 0) then
               if (verbose > 0 .and. in%itrpmax==1) then
@@ -889,11 +887,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                       ekin_sum,epot_sum,eproj_sum
                  write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
               end if
-              if (in%itrpmax >1) then
+              if (.not. scpot) then
                  if (gnrm_zero == 0.0_gp) then
-                    write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,weighted tr(H),gnrm',iter,energybs,gnrm
+                    write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,trH,gnrm
                  else
-                    write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,weighted tr(H),gnrm,gnrm_zero',iter,energybs,gnrm,gnrm_zero
+                    write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',iter,trH,gnrm,gnrm_zero
                  end if
               else
                  if (gnrm_zero == 0.0_gp) then
@@ -986,6 +984,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call dcopy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,&
              rhopot(1),1,rhopot_old(1),1)
         gnrm =1.d10
+        diis%energy_min=1.d10
      end if
 
   end do rhopot_loop

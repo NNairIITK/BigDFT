@@ -127,6 +127,23 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
 END SUBROUTINE orthogonalize
 !!***
 
+subroutine check_closed_shell(nspin,orbs,lcs)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nspin
+  type(orbitals_data), intent(in) :: orbs
+  logical, intent(out) :: lcs
+  !local variables
+  integer :: iorb
+  lcs=.true.
+  do iorb=orbs%norb*orbs%nkpts,1,-1
+     if ( orbs%occup(iorb) /= real(3-nspin,gp)) then
+        lcs=.false.
+        exit
+     end if
+  end do
+end subroutine check_closed_shell
 
 !!****f* BigDFT/orthoconstraint
 !! FUNCTION
@@ -208,8 +225,6 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
      call timing(iproc,'LagrM_comput  ','OF')
      call timing(iproc,'LagrM_commun  ','ON')
      call mpiallred(alag(1),ndimovrlp(nspin,orbs%nkpts),MPI_SUM,MPI_COMM_WORLD,ierr)
-     !call MPI_ALLREDUCE (alag(1,2),alag(1,1),ndimovrlp(nspin,orbs%nkpts),&
-     !mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
      call timing(iproc,'LagrM_commun  ','OF')
      call timing(iproc,'LagrM_comput  ','ON')
   end if
@@ -245,17 +260,17 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
 !!$        end do
 
         !calculate the scprsum if the k-point is associated to this processor
+        !the scprsum always coincide with the trace of the hamiltonian
         if (orbs%ikptproc(ikpt) == iproc) then
+           occ=real(orbs%kwgts(ikpt),dp)
            if(nspinor == 1) then
               do iorb=1,norb
-                 occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb+ise),dp)
                  scprsum=scprsum+&
                       occ*real(alag(ndimovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs),dp)
               enddo
            else if (nspinor == 4 .or. nspinor == 2) then
-              !not sure about the imaginary part of the diagonal
+              !not sure about the imaginary part of the diagonal (should be zero if H is hermitian)
               do iorb=1,norb
-                 occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb+ise),dp)
                  scprsum=scprsum+&
                       occ*real(alag(ndimovrlp(ispin,ikpt-1)+2*iorb-1+(iorb-1)*norbs),dp)
                  scprsum=scprsum+&

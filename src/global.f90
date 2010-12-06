@@ -75,8 +75,8 @@ program MINHOP
 
   if (iproc == 0) write(67,'(a,3(1x,1pe11.4))') 'beta1,beta2,beta3',beta1,beta2,beta3
   if (iproc == 0) write(67,'(a,2(1x,1pe11.4))') 'alpha1,alpha2',alpha1,alpha2
-  if (iproc == 0) write(67,'(a,2(1x,1pe10.3))') 'predicted fraction accepted, rejected', & 
-       ratio/(1.d0+ratio), 1.d0/(1.d0+ratio)
+  !if (iproc == 0) write(67,'(a,2(1x,1pe10.3))') 'predicted fraction accepted, rejected', & 
+  !     ratio/(1.d0+ratio), 1.d0/(1.d0+ratio)
   if (iproc == 0) write(67,*) 'mdmin',mdmin
 
 
@@ -499,9 +499,9 @@ program MINHOP
      write(67,*) 'writing final results'
      write(*,*) '# writing final results'
      write(67,*) ' found in total ',nlmin,' minima'
-     write(67,*) ' Accepeted ',accepted,' minima'
+     write(67,*) ' Accepted ',accepted,' minima'
      write(*,*) '#found in total ',nlmin,' minima'
-     write(*,*) '#Accepeted ',accepted,' minima'
+     write(*,*) '#Accepted ',accepted,' minima'
      call winter(atoms,re_pos,pos,npminx,nlminx,nlmin,npmin,accur, & 
            earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
   endif

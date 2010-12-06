@@ -260,6 +260,7 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
   character(len=*), parameter :: subname='preconditionall_OCL'
   integer ::  ierr,iorb,i_stat,ncplx,i_all,inds,isf
   real(wp) :: scpr
+  real(gp) :: cprecr
   type(GPU_pointers), intent(inout) :: GPU
   type(workarr_precond) :: w
   integer, dimension(3) :: periodic
@@ -302,6 +303,17 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
      gnrm_zero=0.0_dp
 
      do iorb=1,orbs%norbp
+        select case(lr%geocode)
+        case('F')
+           cprecr=-orbs%eval(orbs%isorb+iorb)
+           !             cprecr=sqrt(.2d0**2+min(0.d0,orbs%eval(orbs%isorb+iorb))**2)
+        case('S')
+           cprecr=0.5_wp
+        case('P')
+           cprecr=0.5_wp
+           !              cprecr=-orbs%eval(orbs%isorb+iorb)
+        end select
+
         do inds=1,orbs%nspinor,ncplx !the streams should be more if nspinor>1
            !the nrm2 function can be replaced here by ddot
            scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi(1,inds,iorb),1)
@@ -312,7 +324,7 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
               gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
            end if
            
-           call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,0.5_wp,w,&
+           call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,&
                 hpsi(1,inds,iorb),b(1,iorb))
            
            call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*orbs%nspinor*8,&
@@ -329,7 +341,7 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
                 (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
                 (/periodic(1),periodic(2),periodic(3)/),&
                 (/0.5_gp*hx,0.5_gp*hy,0.5_gp*hz/),&
-                0.5_wp,&
+                cprecr,&
                 ncong,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
                 lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,&
@@ -401,7 +413,7 @@ subroutine local_partial_density_OCL(iproc,nproc,orbs,&
      isf=lr%wfd%nvctr_c
   end if
 
-  call set_d(GPU%queue, lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin , 0.0d0,  GPU%rhopot)
+  call set_d(GPU%queue, lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin , 1.d-20,  GPU%rhopot)
   !copy the wavefunctions on GPU
   do iorb=1,orbs%norbp
      
