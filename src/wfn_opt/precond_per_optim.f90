@@ -498,6 +498,7 @@ subroutine apply_hp_per_k(n1,n2,n3, &
   call convolut_kinetic_per_c_k(2*n1+1,2*n2+1,2*n3+1,hgridh,psifscf,ww,cprecr,k1,k2,k3)
   !call convolut_kinetic_per_c(2*n1+1,2*n2+1,2*n3+1,hgridh,psifscf,ww,cprecr)
 
+  !this can be included in the compression
   call transpose_for_kpoints(2,2*n1+2,2*n2+2,2*n3+2,&
        ww,psifscf,.false.)
 
