@@ -21,12 +21,15 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                (Ver 1.4-dev.10)
+                           ggggg       i         BBBB                 (Ver 1.5-dev.1)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Reading atomic input positions from file:posinp.xyz
+ File 'myparameters' is missing... using default values:
+   Input guess: direct diagonalization of Hamiltonian
+   Orthogonalization method: Cholesky
 
  Performance options (file 'input.perf' not present):
  |   'debug' option disabled
@@ -107,6 +110,7 @@
  PSolver, free  BC, dimensions:   125  125  125   proc    8 ... done.
  ekin_sum,epot_sum,eproj_sum  5.70847696520E+00 -1.21001695492E+01  3.24729536429E+00
     ehart,   eexcu,    vexcu  1.36713436985E+01 -2.86282299835E+00 -3.74291950990E+00
+ Direct diagonalization...
  evale(1)= -7.47600409609794E-01 <-
  evale(2)= -3.09515053273834E-01 <-
  evale(3)= -3.08625067614846E-01 <-
@@ -145,9 +149,9 @@
  average noise along y direction:  -2.11955525E-04
  average noise along z direction:  -2.11955525E-04
  total average noise            :   3.67117738E-04
- clean forces norm (Ha/Bohr): maxval=  1.522025677061E-02  fnrm2=  2.316562161632E-04
- raw forces:                  maxval=  1.547984821249E-02  fnrm2=  4.634472077599E-04
- CPU time/ELAPSED time for root process     0        36.54        36.54
+ clean forces norm (Ha/Bohr): maxval=  1.522025677068E-02  fnrm2=  2.316562161653E-04
+ raw forces:                  maxval=  1.547984821262E-02  fnrm2=  4.634472077641E-04
+ CPU time/ELAPSED time for root process     0        36.41        36.07
  Wavefunction Optimization Finished, exit signal=    0
 # COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO
  Begin of minimization using  VSSD      
@@ -225,10 +229,10 @@
  average noise along y direction:  -2.10674823E-04
  average noise along z direction:  -2.10674823E-04
  total average noise            :   3.64899498E-04
- clean forces norm (Ha/Bohr): maxval=  1.521907380609E-02  fnrm2=  2.316202075153E-04
- raw forces:                  maxval=  1.547709671519E-02  fnrm2=  4.633735666738E-04
- CPU time/ELAPSED time for root process     0         5.81         5.80
-    0     0  GEOPT_VSSD  -1.51808783736399E+01  -3.63E-09  1.522E-02  1.52E-02  0.00E+00  3.65E-04  beta= 1.00E+2
+ clean forces norm (Ha/Bohr): maxval=  1.521907380618E-02  fnrm2=  2.316202075178E-04
+ raw forces:                  maxval=  1.547709671535E-02  fnrm2=  4.633735666790E-04
+ CPU time/ELAPSED time for root process     0         5.64         5.62
+    0     0  GEOPT_VSSD  -1.51808783736399E+01  -1.52E+01  1.522E-02  1.52E-02  0.00E+00  3.65E-04  beta= 1.00E+2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -318,10 +322,10 @@
  average noise along y direction:  -1.35618382E-04
  average noise along z direction:  -1.35618382E-04
  total average noise            :   2.34897928E-04
- clean forces norm (Ha/Bohr): maxval=  2.362735399391E-02  fnrm2=  5.582518567537E-04
- raw forces:                  maxval=  2.379345191200E-02  fnrm2=  1.116558890544E-03
- CPU time/ELAPSED time for root process     0        34.55        34.53
-    2     1  GEOPT_VSSD  -1.52102757294758E+01  -2.94E-02  2.363E-02  2.36E-02  0.00E+00  3.39E-04  beta=1.25E+2  last beta=-9.05E+1
+ clean forces norm (Ha/Bohr): maxval=  2.362735399394E-02  fnrm2=  5.582518567552E-04
+ raw forces:                  maxval=  2.379345191201E-02  fnrm2=  1.116558890547E-03
+ CPU time/ELAPSED time for root process     0        34.44        34.29
+    2     1  GEOPT_VSSD  -1.52102757294758E+01  -2.94E-02  2.363E-02  2.36E-02  0.00E+00  3.39E-04  beta= 1.25E+2  last beta=-9.05E+1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -382,7 +386,7 @@
  Reformatting... done.
  iter,total energy,gnrm     1  -8.49564448709528186E+00  1.27E+00
  The norm of the residue is too large, need to recalculate input wavefunctions
- CPU time/ELAPSED time for root process     0         4.70         4.69
+ CPU time/ELAPSED time for root process     0         4.58         4.56
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 11
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -465,10 +469,10 @@
  average noise along y direction:   4.68239405E-06
  average noise along z direction:   4.68239397E-06
  total average noise            :   8.11014435E-06
- clean forces norm (Ha/Bohr): maxval=  4.127296382791E-02  fnrm2=  1.703457543140E-03
- raw forces:                  maxval=  4.127869856600E-02  fnrm2=  3.406915152054E-03
- CPU time/ELAPSED time for root process     0        24.30        24.29
-    3     2  GEOPT_VSSD  -1.52649098839618E+01  -5.46E-02  4.127E-02  4.13E-02  0.00E+00  2.73E-04  beta=1.00E+2  last beta=2.28E+1
+ clean forces norm (Ha/Bohr): maxval=  4.127296382975E-02  fnrm2=  1.703457543292E-03
+ raw forces:                  maxval=  4.127869856782E-02  fnrm2=  3.406915152358E-03
+ CPU time/ELAPSED time for root process     0        24.21        24.09
+    3     2  GEOPT_VSSD  -1.52649098839618E+01  -5.46E-02  4.127E-02  4.13E-02  0.00E+00  2.73E-04  beta= 1.00E+2  last beta= 2.28E+1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -529,7 +533,7 @@
  Reformatting... done.
  iter,total energy,gnrm     1  -5.18318050041680678E+00  1.40E+00
  The norm of the residue is too large, need to recalculate input wavefunctions
- CPU time/ELAPSED time for root process     0         4.63         4.63
+ CPU time/ELAPSED time for root process     0         4.57         4.57
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 11
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -614,10 +618,10 @@
  average noise along y direction:  -2.33833503E-04
  average noise along z direction:  -2.33833503E-04
  total average noise            :   4.05011507E-04
- clean forces norm (Ha/Bohr): maxval=  1.709264783444E-02  fnrm2=  2.921586099922E-04
- raw forces:                  maxval=  1.737903421737E-02  fnrm2=  5.844812543051E-04
- CPU time/ELAPSED time for root process     0        28.33        28.31
-    4     3  GEOPT_VSSD  -1.51864628696659E+01   7.84E-02  1.709E-02  1.71E-02  0.00E+00  2.99E-04  beta=1.00E+2  last beta=3.54E+1
+ clean forces norm (Ha/Bohr): maxval=  1.709264783359E-02  fnrm2=  2.921586099630E-04
+ raw forces:                  maxval=  1.737903421659E-02  fnrm2=  5.844812542468E-04
+ CPU time/ELAPSED time for root process     0        28.22        28.20
+    4     3  GEOPT_VSSD  -1.51864628696659E+01   7.84E-02  1.709E-02  1.71E-02  0.00E+00  2.99E-04  beta= 1.00E+2  last beta= 3.54E+1
 End of minimization using  VSSD      
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -692,25 +696,25 @@ End of minimization using  VSSD
  average noise along y direction:  -2.35783931E-04
  average noise along z direction:  -2.35783931E-04
  total average noise            :   4.08389748E-04
- clean forces norm (Ha/Bohr): maxval=  1.709493364843E-02  fnrm2=  2.922367564443E-04
- raw forces:                  maxval=  1.738370880812E-02  fnrm2=  5.846402950744E-04
+ clean forces norm (Ha/Bohr): maxval=  1.709493364763E-02  fnrm2=  2.922367564170E-04
+ raw forces:                  maxval=  1.738370880746E-02  fnrm2=  5.846402950199E-04
  ------------------------------------------------ Mulliken Charge Population Analysis
  Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) | Net Pol  | Gross Chg
-      1     |  s          |    1.52  |  0.21923 |  0.00000   |  0.21923 |  0.78077
-                 Center Quantities : |  0.21923 |  0.00000   |  0.21923 |  0.78077
+      1     |  s          |    1.52  |  0.10961 |  0.10961   |  0.00000 |  0.78077
+                 Center Quantities : |  0.10961 |  0.10961   |  0.00000 |  0.78077
  ----------------------------------------------------------------------------------
-      2     |  s          |    0.54  |  1.99758 |  0.00000   |  1.99758 |  0.00242
-      2     |  px         |    0.64  |  1.90310 |  0.00000   |  1.90310 | -0.23644
-      2     |  py         |    0.64  |  1.90310 |  0.00000   |  1.90310 | -0.23644
-      2     |  pz         |    0.64  |  1.90310 |  0.00000   |  1.90310 | -0.23644
-                 Center Quantities : |  7.70689 |  0.00000   |  7.70689 | -0.70689
+      2     |  s          |    0.54  |  0.99879 |  0.99879   |  0.00000 |  0.00242
+      2     |  px         |    0.64  |  0.95155 |  0.95155   |  0.00000 | -0.23644
+      2     |  py         |    0.64  |  0.95155 |  0.95155   |  0.00000 | -0.23644
+      2     |  pz         |    0.64  |  0.95155 |  0.95155   |  0.00000 | -0.23644
+                 Center Quantities : |  3.85344 |  3.85344   |  0.00000 | -0.70689
  ----------------------------------------------------------------------------------
                         Total Charge considered on the centers:        7.926112961827
- CPU time/ELAPSED time for root process     0         9.80         9.80
+ CPU time/ELAPSED time for root process     0         9.62         9.62
  Final values of the Forces for each atom
      1     Na  0.00000E+00  0.00000E+00  0.00000E+00
      2     Cl -9.86976E-03 -9.86976E-03 -9.86976E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 9847 allocations and 9847 deallocations, remaining memory(B): 0
+ 9910 allocations and 9910 deallocations, remaining memory(B): 0
  memory occupation peak: 124 MB
  for the array  rmt in the routine iguess_generator

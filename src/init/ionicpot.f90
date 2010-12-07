@@ -1043,6 +1043,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 END SUBROUTINE createIonicPotential
 !!***
 
+
 !!****f* BigDFT/ind_position
 !! FUNCTION
 !!   Determine the index in which the potential must be inserted, following the BC
@@ -1145,7 +1146,7 @@ END SUBROUTINE ext_buffers
 !!***
 
 
-!!****f* BigDFT/createIonicPotential
+!!****f* BigDFT/CounterIonPotential
 !! FUNCTION
 !!
 !! SOURCE

@@ -1,6 +1,6 @@
 !!****p* BigDFT/abscalc_main
 !! FUNCTION
-!!  Main program for Xanes calculation (absorption calc.)
+!!  Main program for XANES calculation (absorption calculation)
 !!
 !! COPYRIGHT
 !!    Copyright (C) 2009-2010 ESRF
@@ -331,7 +331,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   character(len=3) :: PSquiet
   integer :: ixc,ncong,idsx,ncongt,nspin,itermax
   integer :: nvirt
-  integer :: nelec,ndegree_ip,j,k
+  integer :: nelec,ndegree_ip,j
   integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
   integer :: iat,i_all,i_stat,ierr,inputpsi
@@ -344,7 +344,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   real(gp) :: edisp ! Dispersion energy
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
-  type(orbitals_data) :: orbsv
   type(gaussian_basis) :: Gvirt
 
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -678,8 +677,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
      call input_wf_diag(iproc,nproc,atoms_clone,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
-          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU)
+          nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in)
      
      if( iand( in%potshortcut,16)>0) then
         if(iproc==0) write(*,*) "re-reading electronic_density for Xanes energy dependent potential "
@@ -749,8 +748,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,atoms,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons,GPU)
+          nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU, in)
 
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)

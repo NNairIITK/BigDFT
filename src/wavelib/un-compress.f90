@@ -1,4 +1,4 @@
-!!****f* BigDFT/
+!!****f* BigDFT/compress
 !! FUNCTION
 !!    Compresses a psig wavefunction into psi_c,psi_f form
 !! COPYRIGHT

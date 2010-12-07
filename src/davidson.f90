@@ -42,10 +42,10 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   logical :: msg,exctX,occorbs,endloop !extended output
   integer :: occnorb, occnorbu, occnorbd
   integer :: i_stat,i_all,iter,ikpt,idsx_actual,idsx_actual_before,ndiis_sd_sw
-  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
+  real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
   real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
-  real(wp), dimension(:), pointer :: psiw,psidst,hpsidst,psirocc,psitvirt,hpsivirt
-  real(wp), dimension(:,:,:), pointer :: ads
+  type(diis_objects) :: diis
+  real(wp), dimension(:), pointer :: psiw,psirocc,psitvirt,hpsivirt
 
   !supplementary messages
   msg=.false.
@@ -139,12 +139,12 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   !     nvirtep=orbsv%norbp
 
   !this is the same also in serial
-  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psivirt)
+  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psivirt,in)
 
   if (occorbs) then
      call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,psivirt,msg)
      !and orthonormalize them using "gram schmidt"  (conserve orthogonality to psi)
-     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psivirt)
+     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psivirt,in)
   end if
 
   !retranspose v
@@ -175,15 +175,9 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   !the allocation with npsidim is not necessary here since DIIS arrays
   !are always calculated in the transpsed form
   if (in%idsx > 0) then
-     allocate(psidst(sum(commsv%ncntt(0:nproc-1))*in%idsx+ndebug),stat=i_stat)
-     call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(sum(commsv%ncntt(0:nproc-1))*in%idsx+ndebug),stat=i_stat)
-     call memocc(i_stat,hpsidst,'hpsidst',subname)
-     allocate(ads(in%idsx+1,in%idsx+1,orbsv%nkptsp*3+ndebug),stat=i_stat)
-     call memocc(i_stat,ads,'ads',subname)
-     call razero(orbs%nkptsp*3*(in%idsx+1)**2,ads)
+     call allocate_diis_objects(in%idsx,sum(commsv%ncntt(0:nproc-1)),orbsv%nkptsp,diis,subname)  
   endif
-
+     
   allocate(orbsv%eval(orbsv%norb*orbsv%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbsv%eval,'eval',subname)
 
@@ -192,6 +186,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   alpha=2.d0
   energy=1.d10
   gnrm=1.d10
+  gnrm_zero=0.0_gp
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
@@ -249,8 +244,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      idsx_actual_before=idsx_actual
 
      call hpsitopsi(iproc,nproc,orbsv,hx,hy,hz,lr,commsv,in%ncong,&
-          iter,in%idsx,idsx_actual,ads,energy,energy_old,energy_min,&
-          alpha,gnrm,scprsum,psivirt,psitvirt,hpsivirt,psidst,hpsidst,in%nspin,GPU)
+          iter,diis,in%idsx,gnrm,gnrm_zero,scprsum,psivirt,psitvirt,hpsivirt,in%nspin,GPU,in)
 
      if (occorbs) then
         !if this is true the transposition for psivirt which is done in hpsitopsi
@@ -259,7 +253,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
         if (nproc == 1) psitvirt => psivirt
         !project psivirt such that they are orthogonal to all occupied psi
         call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,psitvirt,msg)
-        call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psitvirt)
+        call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psitvirt,in)
         !retranspose the psivirt
         call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,psitvirt,&
              work=psiw,outadd=psivirt(1))
@@ -293,15 +287,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
 
   !if (idsx_actual > 0) then
   if (in%idsx > 0) then
-     i_all=-product(shape(psidst))*kind(psidst)
-     deallocate(psidst,stat=i_stat)
-     call memocc(i_stat,i_all,'psidst',subname)
-     i_all=-product(shape(hpsidst))*kind(hpsidst)
-     deallocate(hpsidst,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsidst',subname)
-     i_all=-product(shape(ads))*kind(ads)
-     deallocate(ads,stat=i_stat)
-     call memocc(i_stat,i_all,'ads',subname)
+     call deallocate_diis_objects(diis,subname)
   end if
 
   !this deallocates also hpsivirt and psitvirt
@@ -530,12 +516,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   !     nvirtep=orbsv%norbp
 
   !this is the same also in serial
-  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
+  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in)
 
   if (occorbs) then
      call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
      !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
-     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
+     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in)
   end if
 
   !retranspose v
@@ -810,7 +796,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 !        stop
 !     end if
 
-     call preconditionall(iproc,nproc,orbsv,lr,hx,hy,hz,in%ncong,g,gnrm_fake)
+     call preconditionall(iproc,nproc,orbsv,lr,hx,hy,hz,in%ncong,g,gnrm_fake,gnrm_fake)
 
      call timing(iproc,'Precondition  ','OF')
      if (iproc==0)write(*,'(1x,a)')'done.'
@@ -1068,12 +1054,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      call timing(iproc,'Davidson      ','OF')
 
      !these routines should work both in parallel or in serial
-     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
+     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in)
 
      if (occorbs) then
         call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
      !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
-        call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
+        call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in)
      end if
 
      !retranspose v
@@ -1117,6 +1103,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   i_all=-product(shape(ew))*kind(ew)
   deallocate(ew,stat=i_stat)
   call memocc(i_stat,i_all,'ew',subname)
+
 
   !deallocate real array of wavefunctions
   if(exctX)then
@@ -1524,8 +1511,8 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   !local variables
   character(len=*), parameter :: subname='psivirt_from_gaussians'
   logical ::  randinp
-  integer :: iorb,icoeff,i_all,i_stat,jproc,nwork,info,jorb
-  real(kind=4) :: tt
+  integer :: iorb,icoeff,i_all,i_stat,jproc,nwork,info,jorb,idum=0
+  real(kind=4) :: tt,builtin_rand
   real(wp), dimension(:,:), allocatable :: gaucoeffs
   real(gp), dimension(:), allocatable :: work,ev
   real(gp), dimension(:,:), allocatable :: ovrlp
@@ -1548,17 +1535,20 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
 
   if (randinp) then
      !fill randomly the gaussian coefficients for the orbitals considered
-     do iorb=1,orbs%norbp*orbs%nspinor
-        do icoeff=1,G%ncoeff
-           !be sure to call always a different random number
-           do jproc=0,iproc-1
-              call random_number(tt)
-           end do
-           call random_number(tt)
+     do icoeff=1,G%ncoeff !reversed loop
+        !be sure to call always a different random number, per orbital
+        do jorb=1,orbs%isorb
+           tt=builtin_rand(idum) !call random_number(tt)
+        end do
+        do iorb=1,orbs%norbp*orbs%nspinor
+           !do jproc=0,iproc-1
+           !   tt=builtin_rand(idum) !call random_number(tt)
+           !end do
+           tt=builtin_rand(idum) !call random_number(tt)
            gaucoeffs(icoeff,iorb)=real(tt,wp)
-           do jproc=iproc+1,nproc-1
-              call random_number(tt)
-           end do
+           !do jproc=iproc+1,nproc-1
+           !   tt=builtin_rand(idum) !call random_number(tt)
+           !end do
         end do
      end do
 

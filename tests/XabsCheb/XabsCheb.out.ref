@@ -21,12 +21,15 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.5-dev.0)
+                           ggggg       i         BBBB                 (Ver 1.5-dev.2)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Reading atomic input positions from file:posinp.xyz
+ File 'myparameters' is missing... using default values:
+   Input guess: direct diagonalization of Hamiltonian
+   Orthogonalization method: Cholesky
  
  Performance options (file 'input.perf' not present):
  |   'debug' option disabled
@@ -172,7 +175,7 @@
 -1.8840548308767793E-04
  2.5808015931693025E-04
 -2.4686515922294578E-04
- CPU time/ELAPSED time for root process     0         5.38         5.14
+ CPU time/ELAPSED time for root process     0         5.25         5.25
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is
@@ -206,12 +209,15 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.5-dev.0)
+                           ggggg       i         BBBB                 (Ver 1.5-dev.2)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Reading atomic input positions from file:posinp.xyz
+ File 'myparameters' is missing... using default values:
+   Input guess: direct diagonalization of Hamiltonian
+   Orthogonalization method: Cholesky
  
  Performance options (file 'input.perf' not present):
  |   'debug' option disabled
@@ -369,7 +375,7 @@
  1.5225934446109548E+02 7.8766290640403483E+01
  1.5689912593807281E+02 7.4476439338186765E+01
  1.4926424466876176E+02 7.4740068926014203E+01
- CPU time/ELAPSED time for root process     0         5.14         5.11
+ CPU time/ELAPSED time for root process     0         5.05         5.05
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is
@@ -403,12 +409,15 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.5-dev.0)
+                           ggggg       i         BBBB                 (Ver 1.5-dev.2)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Reading atomic input positions from file:posinp.xyz
+ File 'myparameters' is missing... using default values:
+   Input guess: direct diagonalization of Hamiltonian
+   Orthogonalization method: Cholesky
  
  Performance options (file 'input.perf' not present):
  |   'debug' option disabled
@@ -549,7 +558,7 @@
 -1.8875004463204319E-04
  2.5824142065893020E-04
 -2.4678223774906400E-04
- CPU time/ELAPSED time for root process     0         8.53         8.24
+ CPU time/ELAPSED time for root process     0         8.15         8.12
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is

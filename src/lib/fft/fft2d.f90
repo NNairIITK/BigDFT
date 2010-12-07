@@ -171,6 +171,4 @@ subroutine FFT2d(n1,n2,nd1,nd2,z,isign,inzee,zw,ncache)
       endif
     return
 end subroutine fft2d
-
-
-
+!!***

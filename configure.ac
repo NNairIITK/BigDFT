@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.5-dev.0],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.5-dev.2],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -579,23 +579,6 @@ tests/NEB/input
 tests/NEB/NEB_include.sh
 tests/XabsCheb/Makefile
 tests/DFT/Makefile
-tests/DFT/C/Makefile
-tests/DFT/Ca2/Makefile
-tests/DFT/H/Makefile
-tests/DFT/H2-spin/Makefile
-tests/DFT/Li+/Makefile
-tests/DFT/Mn2/Makefile
-tests/DFT/NaCl/Makefile
-tests/DFT/SiH4/Makefile
-tests/DFT/NH3/Makefile
-tests/DFT/H2O-CP2K/Makefile
-tests/DFT/SiBulk/Makefile
-tests/DFT/H2O-slab/Makefile
-tests/DFT/Davidson-SiH4/Makefile
-tests/DFT/FeHyb/Makefile
-tests/DFT/Graphene/Makefile
-tests/DFT/GPU/Makefile
-tests/DFT/OCL/Makefile
 tests/OpenCL/Makefile
 tests/CUDA/Makefile
 ])

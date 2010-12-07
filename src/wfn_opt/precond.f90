@@ -10,7 +10,7 @@
 !!
 !! SOURCE
 !! 
-subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
+subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   use module_base
   use module_types
   implicit none
@@ -18,7 +18,7 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
-  real(dp), intent(out) :: gnrm
+  real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
   integer :: iorb,inds,ncplx
@@ -30,6 +30,8 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
   ! norm of gradient
   gnrm=0.0_dp
+  !norm of gradient of unoccupied orbitals
+  gnrm_zero=0.0_dp
 
   do iorb=1,orbs%norbp
      ! define zero energy for preconditioning 
@@ -57,20 +59,26 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
         !the nrm2 function can be replaced here by ddot
         scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi(1,inds,iorb),1)
-        !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
-        gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        if (orbs%occup(orbs%isorb+iorb) == 0.0_gp) then
+           gnrm_zero=gnrm_zero+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        else
+           !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
+           gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        end if
 
-        if (scpr /= 0.0_wp) then
+       if (scpr /= 0.0_wp) then
            !value of the cpreconditioner
            !cprecr=-(orbs%eval(orbs%isorb+iorb)-eval_zero)+.10d0
            !write(*,*) 'cprecr:',iorb,cprecr,orbs%eval(orbs%isorb+iorb)
            select case(lr%geocode)
            case('F')
               cprecr=-orbs%eval(orbs%isorb+iorb)
+!             cprecr=sqrt(.2d0**2+min(0.d0,orbs%eval(orbs%isorb+iorb))**2)
            case('S')
               cprecr=0.5_wp
            case('P')
               cprecr=0.5_wp
+!              cprecr=-orbs%eval(orbs%isorb+iorb)
            end select
            
 
@@ -144,6 +152,7 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
 !!  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
 !!  write(*,*)'debug1',rmr_new
 
+  !this operation should be rewritten in a better way
   r=b-d ! r=b-Ax
 
   call calculate_rmr_new(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,r,d,rmr_new)
@@ -544,7 +553,6 @@ subroutine memspace_work_arrays_precond(geocode,hybrid_on,ncplx,d,memwork)
   integer(kind=8), intent(out) :: memwork
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  integer :: i_stat
   integer :: nd1,nd2,nd3
   integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
   integer :: nf

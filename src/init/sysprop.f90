@@ -481,7 +481,11 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   else 
      if (iproc==0) write(*,'(1x,a)') 'Spin-polarized calculation'
      norb=nelec
-     norbu=min(norb/2+in%mpol,norb)
+     if (mod(norb+in%mpol,2) /=0) then
+        write(*,*)'ERROR: the input polarization should have the same parity of the number of electrons'
+        stop
+     end if
+     norbu=min((norb+in%mpol)/2,norb)
      norbd=norb-norbu
 
      !test if the spin is compatible with the input guess polarisations
@@ -522,8 +526,8 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
         ispinsum=ispinsum+abs(ispol)
      end do
      if (ispinsum == 0 .and. in%nspin==2) then
-        !if (iproc==0) 
-            write(*,'(1x,a)')&
+        if (iproc==0) &
+             write(*,'(1x,a)')&
              'WARNING: Found no input polarisation, add it for a correct input guess'
         !stop
      end if
@@ -577,7 +581,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
            !if (iproc==0) 
                 write(*,'(1x,a,i0,a,i0)') &
                 'ERROR: In the file "occup.dat", the number of orbitals up norbu=',ntu,&
-                ' should be greater or equal than min(nelec/2+mpol,nelec)=',norbu
+                ' should be greater or equal than min((nelec+mpol)/2,nelec)=',norbu
            stop
         else
            norbu=ntu
@@ -586,7 +590,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
            !if (iproc==0) 
                   write(*,'(1x,a,i0,a,i0)') &
                 'ERROR: In the file "occup.dat", the number of orbitals down norbd=',ntd,&
-                ' should be greater or equal than min(nelec/2-mpol,0)=',norbd
+                ' should be greater or equal than min((nelec-mpol/2),0)=',norbd
            stop
         else
            norbd=ntd
@@ -928,7 +932,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,nspin,occup,spinsgn)
 ! Local variables
   integer :: iorb,nt,ne,it,ierror,iorb1,i
   real(gp) :: rocc
-  character(len=8) :: string
+  character(len=20) :: string
   character(len=100) :: line
 
 
