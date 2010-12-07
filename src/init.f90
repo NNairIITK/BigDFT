@@ -695,7 +695,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   logical :: switchGPUconv,switchOCLconv
-  integer :: i_stat,i_all,iat,nspin_ig
+  integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0
+  real(kind=4) :: tt,builtin_rand
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,etol,accurex
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
@@ -1029,9 +1030,29 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
        psi,hpsi,psit,input,orbse,commse,etol,norbsc_arr)
 
- 
-  !correct the occupation numbers wrt fermi level
-  !call Fermilevel(.false.,1.e-2_gp,orbs)
+  if (input%itrpmax > 1) then
+     !use the eval array of orbse structure to save the original values
+     allocate(orbse%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+     call memocc(i_stat,orbse%eval,'orbse%eval',subname)
+     
+     call dcopy(orbs%norb*orbs%nkpts,orbs%eval(1),1,orbse%eval(1),1)
+
+     !add a small displacement in the eigenvalues
+     do iorb=1,orbs%norb*orbs%nkpts
+        tt=builtin_rand(idum)
+        orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+0.05_gp*real(tt,gp))
+     end do
+
+     !correct the occupation numbers wrt fermi level
+     call Fermilevel(.false.,1.e-2_gp,orbs)
+
+     !restore the occupation numbers
+     call dcopy(orbs%norb*orbs%nkpts,orbse%eval(1),1,orbs%eval(1),1)
+
+     i_all=-product(shape(orbse%eval))*kind(orbse%eval)
+     deallocate(orbse%eval,stat=i_stat)
+     call memocc(i_stat,i_all,'orbse%eval',subname)
+  end if
 
   call deallocate_comms(commse,subname)
 

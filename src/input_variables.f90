@@ -249,8 +249,8 @@ subroutine dft_input_variables(iproc,filename,in)
   !mixing treatement (hard-coded values)
   in%itrpmax=1
   in%alphamix=0.0_gp
-  in%rpnrm_cv=0.e-4_gp
-  in%gnrm_startmix=0.e-2_gp
+  in%rpnrm_cv=1.e-4_gp
+  in%gnrm_startmix=0.e-3_gp
 
   !electrostatic treatment of the vacancy (experimental)
   !read(1,*,iostat=ierror) in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
