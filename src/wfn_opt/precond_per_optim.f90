@@ -412,7 +412,7 @@ END SUBROUTINE apply_hp
 
 subroutine apply_hp_slab_k(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-     cprecr,hx,hy,hz,kx,ky,kz,x,y,psifscf,ww)
+     cprecr,hx,hy,hz,kx,ky,kz,x,y,psifscf,ww,scal)
   ! Applies the operator (KE+cprecr*I)*x=y
   ! array x is input, array y is output
   use module_base
@@ -422,6 +422,7 @@ subroutine apply_hp_slab_k(n1,n2,n3, &
   real(gp), intent(in) :: hx,hy,hz,cprecr,kx,ky,kz
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  real(wp), dimension(0:7), intent(in) :: scal
   real(wp), intent(in) ::  x(nvctr_c+7*nvctr_f,2)  
   real(wp), intent(out) ::  y(nvctr_c+7*nvctr_f,2)
   real(wp), dimension((2*n1+2)*(2*n2+16)*(2*n3+2),2) :: ww,psifscf
@@ -432,9 +433,9 @@ subroutine apply_hp_slab_k(n1,n2,n3, &
   ! x: input, ww:work
   ! psifscf: output
   do idx=1,2
-     call uncompress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+     call uncompress_slab_scal(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
           nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-          x(1,idx),x(nvctr_c+1,idx),psifscf(1,idx),ww(1,idx))
+          x(1,idx),x(nvctr_c+1,idx),psifscf(1,idx),ww(1,idx),scal)
   end do
 
   !transpose (to be included in the uncompression)
@@ -454,9 +455,9 @@ subroutine apply_hp_slab_k(n1,n2,n3, &
   ! ww:intput, psifscf: work
   ! y:output
   do idx=1,2
-     call compress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),& 
+     call compress_slab_scal(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),& 
           nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),& 
-          ww(1,idx),y(1,idx),y(nvctr_c+1,idx),psifscf(1,idx))
+          ww(1,idx),y(1,idx),y(nvctr_c+1,idx),psifscf(1,idx),scal)
   end do
 
 END SUBROUTINE apply_hp_slab_k
@@ -498,6 +499,7 @@ subroutine apply_hp_per_k(n1,n2,n3, &
   call convolut_kinetic_per_c_k(2*n1+1,2*n2+1,2*n3+1,hgridh,psifscf,ww,cprecr,k1,k2,k3)
   !call convolut_kinetic_per_c(2*n1+1,2*n2+1,2*n3+1,hgridh,psifscf,ww,cprecr)
 
+  !this can be included in the compression
   call transpose_for_kpoints(2,2*n1+2,2*n2+2,2*n3+2,&
        ww,psifscf,.false.)
 
