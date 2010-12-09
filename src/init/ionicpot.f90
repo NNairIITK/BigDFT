@@ -1113,7 +1113,7 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
      if (r == 0.0_gp) then
         potxyz = potxyz - charge*2.0_wp/(sqrt(pi)*real(sq2rl,wp))
      else
-        call derf(derf_val,r/sq2rl)
+        call derf_ab(derf_val,r/sq2rl)
         potxyz = potxyz - charge*real(derf_val/r,wp)
      end if
 

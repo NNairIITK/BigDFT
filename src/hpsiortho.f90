@@ -689,7 +689,7 @@ subroutine Fermilevel(filewrite,wf,orbs)
        do iorb=1,orbs%norbd+orbs%norbu
           arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
           ! next 2 line error function distribution
-          call derf(res,arg)
+          call derf_ab(res,arg)
           electrons=electrons+.5d0*(1.d0-res)
           dlectrons=dlectrons-exp(-arg**2)
           !! next 2 line Fermi function distribution
@@ -717,8 +717,8 @@ subroutine Fermilevel(filewrite,wf,orbs)
  do ikpt=1,orbs%nkpts
     argu=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu)-ef)/wf
     argd=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+orbs%norbd)-ef)/wf
-    call derf(resu,argu)
-    call derf(resd,argd)
+    call derf_ab(resu,argu)
+    call derf_ab(resd,argd)
     cutoffu=.5d0*(1.d0-resu)
     cutoffd=.5d0*(1.d0-resd)
 !    cutoffu=1.d0/(1.d0+exp(argu))
@@ -734,13 +734,13 @@ subroutine Fermilevel(filewrite,wf,orbs)
     write(11,*)orbs%norbu,orbs%norbd
     do iorb=1,orbs%norbu
        arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
-       call derf(res,arg)
+       call derf_ab(res,arg)
        write(11,'(i5,e19.12)')iorb,full*.5d0*(1.d0-res)
        !    write(11,'(i5,e19.12)')iorb,full/(1.d0+exp(arg))  !,orbs%eval((ikpt-1)*orbs%norb+iorb)
     end do
     do iorb=1,orbs%norbd
        arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
-       call derf(res,arg)
+       call derf_ab(res,arg)
        write(11,'(i5,e19.12)')iorb+orbs%norbu,full*.5d0*(1.d0-res)
        !    write(11,'(i5,e19.12)')iorb+orbs%norbu,full/(1.d0+exp(arg))  !,orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)
     end do
@@ -748,12 +748,12 @@ subroutine Fermilevel(filewrite,wf,orbs)
  else !otherwise update the occupation number
     do iorb=1,orbs%norbu
        arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
-       call derf(res,arg)
+       call derf_ab(res,arg)
        orbs%occup((ikpt-1)*orbs%norb+iorb)=full*.5d0*(1.d0-res)
     end do
     do iorb=1,orbs%norbd
        arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
-       call derf(res,arg)
+       call derf_ab(res,arg)
        orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*.5d0*(1.d0-res)
     end do
  end if
