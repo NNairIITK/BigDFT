@@ -11,12 +11,12 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!!****f* BigDFT/print_newevent
+!!****f* BigDFT/print_event
 !! FUNCTION
-!!    This subroutine prints the initial details for a new events
+!!    This subroutine prints the initial details for an event
 !! SOURCE
 !!
-subroutine print_newevent( ievent_current, temperat )
+subroutine print_event( ievent_current, temperat )
 
   use defs
   implicit none
@@ -36,57 +36,15 @@ subroutine print_newevent( ievent_current, temperat )
   open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
   write(FLOG,*) ' _______________________________________'
   write(FLOG,'(1X,A34,I17)') ' - Simulation                   : ', ievent_current
+  write(FLOG,'(1X,A34,I17)') ' - Attempt                      : ', atp
   write(FLOG,'(1X,A34,I17)') ' - Starting from minconf        : ', mincounter
   write(FLOG,'(1X,A34,(1p,e17.10,0p))') ' - Reference Energy (eV)        : ', ref_energy 
   write(FLOG,'(1X,A34,F17.6)') ' - Temperature                  : ', temperat
   close(FLOG)
 
-END SUBROUTINE print_newevent
+END SUBROUTINE print_event
 !!***
 
-
-!!****f* BigDFT/convert_to_chain
-!! FUNCTION
-!!    This subroutine takes an integer and transforms it into a
-!!    chain of character.
-!! SOURCE
-!!
-subroutine convert_to_chain( init_number, chain )
-
-  implicit none
-
-  !Arguments
-  integer,          intent(in)  :: init_number
-  character(len=4), intent(out) :: chain
-
-  !Local variables
-  character(len=10), parameter :: digit = '0123456789'
-  integer :: i, decades, divider, remainder, number
-
-  number = init_number
-  if ( number == 0 ) then
-     chain = '0'
-     return
-  else
-     decades = log10( 1.0d0 * number) + 1
-  end if
-
-  divider = 1
-  do i = 2, decades
-     divider =  divider * 10 
-  end do
-     
-  chain = 'AB'
-  do i = 1, decades
-     remainder = number / divider  + 1
-     chain = chain(1:i-1) // digit(remainder:remainder)
-     remainder = remainder -1
-     number = number - remainder * divider
-     divider = divider / 10
-  end do
-
-END SUBROUTINE convert_to_chain 
-!!***
 
 !!****f* BigDFT/displacement
 !! FUNCTION
@@ -164,6 +122,7 @@ subroutine store( fname )
   real(kind=8),dimension(3) :: boxl
   character(len=*), parameter :: extension = ".xyz"
   character(len=20) :: fnamexyz
+  character(len=4), dimension(natoms) :: frzchain
 
   boxl = box * scala                  ! Update the box size
 
@@ -178,8 +137,23 @@ subroutine store( fname )
   end do
   close(FCONF)
 
-  ! added by Fedwa El-Mellouhi July 2002, writes the configuration in jmol format 
+  ! Added by Fedwa El-Mellouhi July 2002, writes the configuration in jmol format. 
+  ! Modified by E. Machado-charry for v_sim and BigDFT.
   if ( write_jmol ) then
+
+     ! If there is a constraint over a given atom, is written in the geometry file.
+     do i = 1, NATOMS
+        if      ( constr(i)== 0) then
+           frzchain(i)='    '
+        else if (constr(i) == 1) then
+           frzchain(i)='   f'
+        else if (constr(i) == 2) then
+           frzchain(i)='  fy'
+        else if (constr(i) == 3) then
+           frzchain(i)=' fxz'
+        end if
+     end do
+
      fnamexyz = trim(fname) // extension
      write(*,*) ' Writing to file : ', fnamexyz
      open(unit=XYZ,file=fnamexyz,status='unknown',action='write',iostat=ierror)
@@ -192,7 +166,7 @@ subroutine store( fname )
         write(XYZ,*)'free'
      end if
      do i=1, NATOMS
-        write(XYZ,'(1x,A2,3(2x,f16.8))')   Atom(i), x(i), y(i), z(i)
+        write(XYZ,'(1x,A2,3(2x,f16.8),2x,a4)')   Atom(i), x(i), y(i), z(i), frzchain(i)
      end do
      close(XYZ)
   end if
@@ -201,161 +175,15 @@ END SUBROUTINE store
 !!***
 
 
-!!****f* BigDFT/write_refconfig
-!! FUNCTION
-!!    This subroutine writes the atomic positions and others to a "refconfig" file
-!!    which will be used a the reference point until a new events gets accepted.
-!! SOURCE
-!!
-subroutine write_refconfig( )
-
-  use defs
-  implicit none
-
-  !Local variables
-  integer :: i, ierror
-  real(kind=8),dimension(3) :: boxl
-
-  boxl = box * scala                  ! Update the box size 
-
-                                      ! switch replace for unknown
-  open(unit=FREFCONFIG,file=REFCONFIG,status='unknown',action='write',iostat=ierror) 
-  write(FREFCONFIG,*) 'run_id: ', refcounter
-  write(FREFCONFIG,*) 'total_energy: ', total_energy
-  write(FREFCONFIG,*) boxl
-  do i = 1, NATOMS
-     write(FREFCONFIG,'(1x,i6, 3(2x,F16.8))') typat(i), x(i), y(i), z(i)
-  end do
-  close(FREFCONFIG)
-
-END SUBROUTINE write_refconfig
-!!***
-
-
-!!****f* BigDFT/store_part
-!! FUNCTION
-!!    This subroutine stores partial configurations. 
-!! SOURCE
-!! 
-subroutine store_part( fname, scounter, rcounter, stage )
-
-  use defs
-  implicit none
-
-  !Arguments
-  character(len=20), intent(in) :: fname
-  character(len=4),  intent(in) :: scounter
-  character(len=4),  intent(in) :: rcounter
-  character(len=1),  intent(in) :: stage
-
-  !Local variables
-  integer :: ierror
-  integer :: i
-  real(kind=8), dimension(3) :: boxl
-  logical :: exists_already
-  character(len=24) :: fnamexyz
-  character(len=*), parameter :: extension = ".xyz"
-  character(len=9) :: digit = "123456789"
-  character(len=150) :: commande
-  character(len=100) :: temp
-
-  boxl = box * scala  ! Update the box size
-
-  fnamexyz = trim(fname)// extension
-
-  temp=  fnamexyz
-  do i = 1, 9 
-     inquire(file=temp,exist=exists_already)
-     if ( exists_already )  then
-        temp = trim(fnamexyz) // "." // digit(i:i)
-     else 
-        if ( i > 1 ) then
-           commande = "mv " // fnamexyz// "  " // temp
-           call system(commande)
-        end if
-        exit
-     end if 
-  end do
-   
-  open(unit=XYZ,file=fnamexyz,status='unknown',action='write',iostat=ierror)
-
-  write(XYZ,*) NATOMS,  'angstroem' 
-
-  if (boundary == 'P') then
-     write(XYZ,'(a,3(1x,1pe24.17))')'periodic', (boxl(i),i=1,3)
-  else if (boundary == 'S') then
-     write(XYZ,'(a,3(1x,1pe24.17))')'surface',(boxl(i),i=1,3)
-  else
-     write(XYZ,*)'free'
-  end if
-
-  do i= 1, NATOMS
-     write(XYZ,'(1x,A2,3(2x,f16.8))')   Atom(i), x(i), y(i), z(i)
-  end do
-
-  write(XYZ,*) '# simulation ',scounter," stage ", stage, " iteration ",rcounter
-  write(XYZ,'(a,(1p,e17.10,0p))') ' # total energy (eV) : ', total_energy
-
-  close(XYZ)
-
-END SUBROUTINE store_part
-!!***
-
-
-!!****f* BigDFT/convert_to_chain2
-!! FUNCTION
-!!    The subroutine convert_to_chain takes an integer and transforms it into a
-!!    chain of character. It is the same convert_to_chain, but with a small
-!!    modification.
-!! SOURCE
-!!
-subroutine convert_to_chain_2( init_number, chain )
-
-  implicit none
-
-  !Arguments
-  integer,          intent(in)  :: init_number
-  character(len=4), intent(out) :: chain
-
-  !Local variables
-  character(len=10) :: digit = '0123456789'
-  integer :: i, decades, divider, remainder, number, lm
-
-  number = init_number
-  if ( number == 0 ) then
-     chain = '000'
-     return
-  else
-     decades = log10( 1.0d0 * number) + 1
-  end if
-
-  divider = 1
-  do i = 2, decades
-     divider =  divider * 10 
-  end do
-     
-  lm = 3 - decades - 1 
-  chain = '0000'
-  do i = 1, decades
-     remainder = number / divider  + 1
-     chain = chain(1:lm+i) // digit(remainder:remainder)
-     remainder = remainder -1
-     number = number - remainder * divider
-     divider = divider / 10
-  end do
-
-END SUBROUTINE convert_to_chain_2
-!!***
-
-
 !!****f* BigDFT/save_intermediate
 !! FUNCTION
 !!    It saves the configuration at every step in xyz format.
-!!    The name of the file will be:
-!!     conf_1001_030_K.xyz
-!!    where 1001 is the 'mincounter' is 1001,
-!!    K is the argument 'stage' ( K= basin activation, L=lanczos, D= DIIS),
-!!    and 030 is the step
+!!    The name of the file will look like this example:
+!!    p_1001_05_030_K.xyz
+!!    1001:: is the 'mincounter' of the event, 
+!!    05  :: the attempt
+!!    030 :: the step
+!!    K is the argument 'stage' ( K= basin activation, L=lanczos, D= DIIS )
 !! SOURCE
 !! 
 subroutine save_intermediate( stage )
@@ -367,62 +195,213 @@ subroutine save_intermediate( stage )
   character(len=1), intent(in) :: stage
 
   !Local variables
-  character(len=20) :: fname
-  character(len=4)  :: rcounter, scounter
+  integer :: i, ierror
+  real(kind=8), dimension(3) :: boxl
+  character(len=40) :: fname
+  character(len=4)  :: scounter, rcounter, pcounter
+  character(len=4), dimension(natoms) :: frzchain
+
+  boxl = box * scala                  ! Update the box size
+
                                       ! subroutines in utils.f90 
   if ( iproc == 0 ) then
-     call convert_to_chain( mincounter, scounter )
-     call convert_to_chain_2( pas, rcounter )
-     fname = 'conf_'//trim(scounter)//'_'//trim(rcounter)//'_'//stage
-     call store_part( fname, scounter, rcounter, stage )
+                                      ! set up of xyz file.
+     call convert_to_chain( mincounter, 4, scounter ) 
+     call convert_to_chain( atp       , 2, rcounter )
+     call convert_to_chain( pas       , 3, pcounter )
+     fname = 'p_'//trim(scounter)//'_'//trim(rcounter)//'_'//trim(pcounter)//'_'//stage//".xyz"
+     fname = trim(fname)
+
+     ! If there is a constraint over a given atom, is written in the geometry file.
+     do i = 1, NATOMS
+        if      ( constr(i)== 0) then
+           frzchain(i)='    '
+        else if (constr(i) == 1) then
+           frzchain(i)='   f'
+        else if (constr(i) == 2) then
+           frzchain(i)='  fy'
+        else if (constr(i) == 3) then
+           frzchain(i)=' fxz'
+        end if
+     end do
+
+     open(unit=XYZ,file=fname,status='unknown',action='write',iostat=ierror)
+
+     write(XYZ,*) NATOMS,  'angstroem' 
+
+     if (boundary == 'P') then
+        write(XYZ,'(a,3(1x,1pe24.17))') 'periodic', (boxl(i),i=1,3)
+     else if (boundary == 'S') then
+        write(XYZ,'(a,3(1x,1pe24.17))') 'surface',  (boxl(i),i=1,3)
+     else
+        write(XYZ,*)'free'
+     end if
+
+     do i= 1, NATOMS
+        write(XYZ,'(1x,A2,3(2x,f16.8),2x,a4)')   Atom(i), x(i), y(i), z(i), frzchain(i)
+     end do
+
+     write(XYZ,*) '# simulation ',scounter,", attempt ", atp,", step ", pas,", stage ", stage
+     write(XYZ,'(a,(1p,e17.10,0p))') ' # total energy (eV) : ', total_energy
+
+     close(XYZ)
+
   end if
 
 END SUBROUTINE save_intermediate
 !!***
 
 
-!!****f* BigDFT/move_intermediate
+!!****f* BigDFT/convert_to_chain
 !! FUNCTION
-!!
+!!    The subroutine convert_to_chain takes an integer and transforms it into a
+!!    chain of character. 
 !! SOURCE
-!! 
-subroutine move_intermediate( )
+!!
+subroutine convert_to_chain( init_number, length, chain )
 
-  use defs
   implicit none
 
+  !Arguments
+  integer,          intent(in)  :: init_number
+  integer,          intent(in)  :: length      !can be up to 4 
+  character(len=4), intent(out) :: chain
+
   !Local variables
-  integer :: i, j
-  logical :: exists_already
-  character(len=4)   :: scounter
-  character(len=150) :: commande
-  character(len=25)  :: fname
-  character(len=9)   :: digit = "123456789"
+  character(len=10) :: digit = '0123456789'
+  integer :: i, decades, divider, remainder, number, lm
 
-  if ( iproc == 0 ) then
-     call convert_to_chain( mincounter, scounter )
-
-     fname = 'conf_'//trim(scounter)//"_000_K.xyz"
-
-     do i = 1, 9 
-
-        inquire( file = fname, exist = exists_already )
-
-        if ( exists_already ) then
-           fname = 'conf_'//trim(scounter)//"_000_K.xyz"//"."// digit(i:i)
-        else 
-           if ( i > 1 ) then
-
-              j=i-1    
-              commande = "ls -1 " //" conf_"//trim(scounter)//"*.xyz"//& 
-            & " |sed -e 's|\(.*\)|mv \1 \1."//digit(j:j)//"|g'|sh"
-              call system ( commande )
-
-           end if
-           exit
-        end if 
-      end do
+  number = init_number
+  if ( number == 0 ) then
+     chain =''
+     do i = 1, length
+        chain = trim(chain)//"0"
+     end do 
+     return
+  else
+     decades = log10( 1.0d0 * number) + 1
   end if
 
-END SUBROUTINE move_intermediate
+  if ( decades > length ) then   ! WARNING: chain will be is zero. 
+     chain =''
+     do i = 1, length
+        chain = trim(chain)//"0"
+     end do 
+     return 
+  end if
+
+  divider = 1
+  do i = 2, decades
+     divider =  divider * 10 
+  end do
+
+  lm = length - decades - 1 
+  chain = ''
+  do i = 1, decades
+     remainder = number / divider  + 1
+     chain = trim(chain)// digit(remainder:remainder)
+     remainder = remainder -1
+     number = number - remainder * divider
+     divider = divider / 10
+  end do
+    
+  do i= 1, length
+     if ( len(trim(chain)) == length ) exit
+     chain = "0"//trim(chain) 
+  end do 
+
+END SUBROUTINE convert_to_chain
 !!***
+
+
+! THIS IS NOT NECESSARY IN BIGDFT
+!!!****f* BigDFT/write_refconfig
+!!! FUNCTION
+!!!    This subroutine writes the atomic positions and others to a "refconfig" file
+!!!    which will be used a the reference point until a new events gets accepted.
+!!! SOURCE
+!!!
+!subroutine write_refconfig( )
+!
+!  use defs
+!  implicit none
+!
+!  !Local variables
+!  integer :: i, ierror
+!  real(kind=8),dimension(3) :: boxl
+!
+!  boxl = box * scala                  ! Update the box size 
+!
+!                                      ! switch replace for unknown
+!  open(unit=FREFCONFIG,file=REFCONFIG,status='unknown',action='write',iostat=ierror) 
+!  write(FREFCONFIG,*) 'run_id: ', refcounter
+!  write(FREFCONFIG,*) 'total_energy: ', total_energy
+!  write(FREFCONFIG,*) boxl
+!  do i = 1, NATOMS
+!     write(FREFCONFIG,'(1x,i6, 3(2x,F16.8))') typat(i), x(i), y(i), z(i)
+!  end do
+!  close(FREFCONFIG)
+!
+!END SUBROUTINE write_refconfig
+!!!!***
+
+
+!  TEMPORAL
+subroutine print_proj( repetitions, stage, projection, eigenvalue )
+
+  use defs
+
+  implicit none
+  integer,          intent(in) :: repetitions
+  character(len=1), intent(in) :: stage
+  real(kind=8),     intent(in) :: eigenvalue
+  real(kind=8),     intent(in), dimension(3*natoms), target :: projection
+
+  !Local variables
+
+  integer :: ierror
+  integer :: i
+  real(kind=8), dimension(3) :: boxl
+  real(kind=8), allocatable  :: pc(:,:)
+  character(len=40) :: fname
+  character(len=4)  :: rcounter
+
+  allocate(pc(3, NATOMS))
+  do i = 1, NATOMS, 1
+     pc(:, i) = (/ projection(i), projection(natoms + i), projection(2 * natoms + i) /) 
+  end do
+
+  if ( iproc == 0 ) then
+
+     boxl = box * scala  ! Update the box size
+
+     call convert_to_chain( repetitions, 2, rcounter )
+     fname = 'proj_'//trim(rcounter)//'_'//stage//".xyz"
+     fname = trim(fname)
+
+     open(unit=XYZ,file=fname,status='unknown',action='write',iostat=ierror)
+
+     write(XYZ,*) NATOMS,  'angstroem' 
+
+     if (boundary == 'P') then
+        write(XYZ,'(a,3(1x,1pe24.17),2x,a,2x,F12.6)')'periodic', (boxl(i),i=1,3),'#', eigenvalue
+     else if (boundary == 'S') then
+        write(XYZ,'(a,3(1x,1pe24.17),2x,a,2x,F12.6)')'surface',  (boxl(i),i=1,3),'#', eigenvalue
+     else
+        write(XYZ,*)'free ',' # ', eigenvalue
+     end if
+
+     do i= 1, NATOMS
+        write(XYZ,'(1x,A2,3(2x,f16.8),2x,A,2x,I3,3(2x,f12.8))') &
+       &                               Atom(i), x(i)+pc(1,i), y(i)+pc(2,i), z(i)+pc(3,i), &
+       &                               '#',i, pc(1,i), pc(2,i),pc(3,i)
+     end do
+
+     close(XYZ)
+  end if
+
+  deallocate(pc)
+
+END SUBROUTINE print_proj 
+!!***
+

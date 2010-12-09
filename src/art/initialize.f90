@@ -39,6 +39,7 @@
 subroutine initialize()
 
   use defs
+  use lanczos_defs, only: LANCZOS_MIN 
   implicit none
 
   !Local variables
@@ -91,7 +92,7 @@ subroutine initialize()
   zref = z
   total_energy = ref_energy           ! IS THIS USEFULL?
 
-  if ( iproc == 0 ) call convert_to_chain( refcounter, scounter )
+  if ( iproc == 0 ) call convert_to_chain( refcounter, 4, scounter )
   fname = FINAL // scounter
   conf_initial = fname
                                       ! If this is a new event, 
@@ -102,7 +103,8 @@ subroutine initialize()
      posref = pos                     ! New reference configuration.
  
      if ( iproc == 0 ) then
-        call write_refconfig( )       ! Write reference in REFCONFIG. 
+                                      ! THIS iS NOT NECESSARY IN BIGDFT
+        !call write_refconfig( )       ! Write reference in REFCONFIG. 
         call store( fname )           ! Store the configuration into fname.
 
         open( unit = FLOG, file = LOGFILE, status = 'unknown',&
@@ -115,6 +117,8 @@ subroutine initialize()
         end if
         close(FLOG)
      end if
+
+     if ( LANCZOS_MIN .and. success ) call check_min( ) 
 
      mincounter = mincounter + 1
      ref_energy = total_energy

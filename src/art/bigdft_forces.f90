@@ -44,7 +44,7 @@ contains
 !!   Routine to initialize all BigDFT stuff
 !! SOURCE
 !!
-subroutine bigdft_init( nat, typa, posa, const_, boxl, boxt, nproc_, me_ )
+subroutine bigdft_init( nat, typa, posa, const_, boxl, boxtype, nproc_, me_ )
 
   implicit none
 
@@ -54,7 +54,7 @@ subroutine bigdft_init( nat, typa, posa, const_, boxl, boxt, nproc_, me_ )
   real(kind=8), pointer     :: posa(:)
   integer,      pointer     :: const_(:)
   real(kind=8), dimension(3), intent(out) :: boxl
-  character(len=1), intent(out) :: boxt
+  character(len=1), intent(out) :: boxtype
   integer,      intent(in)  :: nproc_
   integer,      intent(in)  :: me_
 
@@ -77,7 +77,7 @@ subroutine bigdft_init( nat, typa, posa, const_, boxl, boxt, nproc_, me_ )
 
                                       ! Transfer at data to ART variables.
   nat = at%nat
-  boxt = at%geocode
+  boxtype = at%geocode
 
   allocate(posa(3 * nat))
   allocate(typa(nat))
@@ -128,7 +128,7 @@ subroutine calcforce( nat, posa, boxl, forca, energy, evalf_number )
   !Arguments
   integer,      intent(in)                            :: nat
   real(kind=8), intent(in),  dimension(3*nat), target :: posa
-  real(kind=8), dimension(3), intent(in)              :: boxl
+  real(kind=8), dimension(3), intent(inout)           :: boxl
   real(kind=8), intent(out), dimension(3*nat), target :: forca
   real(kind=8), intent(out)                           :: energy
   integer,      intent(inout)                         :: evalf_number
@@ -136,7 +136,6 @@ subroutine calcforce( nat, posa, boxl, forca, energy, evalf_number )
   !Local variables
   integer  :: infocode, i, ierror 
   real(gp) :: fnoise
-  real(gp) :: tsumx, tsumy, tsumz
   real(gp), allocatable :: xcart(:,:), fcart(:,:)
 
                                       ! We transfer acell into 'at'
@@ -180,12 +179,20 @@ subroutine calcforce( nat, posa, boxl, forca, energy, evalf_number )
   end if
                                       ! Energy in eV 
   energy = energy * ht2ev
-                                      ! clean the forces for blocked atoms 
+                                      ! box in ang
+  boxl(1) = at%alat1 * bohr2ang
+  boxl(2) = at%alat2 * bohr2ang
+  boxl(3) = at%alat3 * bohr2ang
+
+                                      ! zero forces for blocked atoms:
+                                      ! This was already done in clean_forces (forces.f90).
+                                      ! But, up to now, ART only works with totally frozen atoms
+                                      ! ( i.e "f" ). Therefore, this is a safe action.
   do i = 1, nat, 1
      if ( at%ifrztyp(i) .ne. 0 ) fcart(:,i) = 0.0d0 
   end do 
 
-  call center_f( fcart, nat )         ! We remove the net force.
+  call center_f( fcart, nat )         ! We remove the net force over our free atomos.
 
   do i = 1, nat, 1                    ! Forces into ev/ang and in 1D array.
      forca( i )           = fcart(1, i) * ht2ev / bohr2ang
@@ -211,7 +218,7 @@ subroutine mingeo( nat, boxl, posa, evalf_number, total_energy, success )
 
   !Arguments
   integer,      intent(in)                      :: nat
-  real(kind=8), intent(in), dimension(3)        :: boxl
+  real(kind=8), intent(inout), dimension(3)     :: boxl
   real(kind=8), intent(inout), dimension(3*nat) :: posa
   integer,      intent(inout)                   :: evalf_number
   real(kind=8), intent(out)                     :: total_energy
@@ -270,6 +277,10 @@ subroutine mingeo( nat, boxl, posa, evalf_number, total_energy, success )
   end if
 
   total_energy = total_energy * ht2ev
+                                      ! box in ang
+  boxl(1) = at%alat1 * bohr2ang
+  boxl(2) = at%alat2 * bohr2ang
+  boxl(3) = at%alat3 * bohr2ang
                                       ! Positions into ang.
   do i = 1, nat, 1
      posa(i)           = xcart(1, i) * bohr2ang
@@ -356,17 +367,31 @@ subroutine center_f( vector, natoms )
   ytotal = 0.0d0
   ztotal = 0.0d0
 
+ ! Do over free atoms ( although, the frozen ones add zero ) 
   do i = 1, natoms
-     xtotal = xtotal + vector(1,i)
-     ytotal = ytotal + vector(2,i)
-     ztotal = ztotal + vector(3,i)
+     if ( at%ifrztyp(i) == 0 ) then
+        xtotal = xtotal + vector(1,i)
+        ytotal = ytotal + vector(2,i)
+        ztotal = ztotal + vector(3,i)
+     end if 
   enddo 
+
+  if (iproc==0) then 
+     write(*,'(a,1x,1pe24.17)') 'CENTER: 1) net force over free region ', sqrt(xtotal**2 + ytotal**2 + ztotal**2)
+  end if 
 
   ! The average is only over the degrees of freedom in each direction 
   xtotal = xtotal / natoms_f 
   ytotal = ytotal / natoms_f
   ztotal = ztotal / natoms_f
 
+  if (iproc==0) then 
+     write(*,'(a,1x,1pe24.17)') 'CENTER: 1) residual force along x(pa)=', xtotal  
+     write(*,'(a,1x,1pe24.17)') 'CENTER: 1) residual force along y(pa)=', ytotal  
+     write(*,'(a,1x,1pe24.17)') 'CENTER: 1) residual force along z(pa)=', ztotal  
+  end if
+
+  ! Do over free atoms 
   do i = 1, natoms, 1
      if ( at%ifrztyp(i) == 0 ) then
         vector(1,i) = vector(1,i) - xtotal
@@ -374,16 +399,6 @@ subroutine center_f( vector, natoms )
         vector(3,i) = vector(3,i) - ztotal
      end if 
   end do 
-
-  !where( mx == 0 ) 
-  !  x = x - xtotal
-  !end where
-  !where( my == 0 ) 
-  !  y = y - ytotal
-  !end where
-  !where( mz == 0 ) 
-  !  z = z - ztotal
-  !end where
 
 END SUBROUTINE center_f
 !!***

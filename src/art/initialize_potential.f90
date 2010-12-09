@@ -18,24 +18,34 @@ subroutine initialize_potential( )
   implicit None
 
   !Local variables
-  integer               :: nat_test
-  integer, pointer      :: typa(:)    ! Atomic type
-  integer, pointer      :: const_(:)  ! constrains
-  real(kind=8), pointer :: posa(:)    ! Working positions of the atoms
+  integer                   :: nat_test
+  integer, pointer          :: typa(:)    ! Atomic type
+  integer, pointer          :: const_(:)  ! Constraints
+  real(kind=8), pointer     :: posa(:)    ! Working positions of the atoms
+  real(kind=8),dimension(3) :: boxref_    ! Reference box from posinp file
+  real(kind=8) :: current_energy          ! Initial energy.
 
-  call bigdft_init( nat_test, typa, posa, const_, boxref, boundary, nproc, iproc )
+  call bigdft_init( nat_test, typa, posa, const_, boxref_, boundary, nproc, iproc )
 
   call geopt_set_verbosity(0)
                                       ! test nat_test and nat
   if ( nat_test /= NATOMS ) stop "Different number of atoms"
 
   if ( .not. restart ) then                
-                    ! transfer.
+                                      ! transfer.
      typat(:)   = typa(:)
      pos(:)     = posa(:)
      constr(:)  = const_(:)
-     
+  else
+                                      ! our box corresponds to that one in restart file
+     boxref_(:) = boxref(:)
   end if
+                                      ! First force calculation.
+  call calcforce( NATOMS, pos, boxref_, force, current_energy, evalf_number )
+ 
+                                      ! The real box is given by call_bigdft 
+  boxref(:) = boxref_(:) 
+
   deallocate(posa)
   deallocate(typa)
   deallocate(const_)

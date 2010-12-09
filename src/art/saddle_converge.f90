@@ -141,8 +141,28 @@ subroutine saddle_converge( ret, saddle_energy )
                                       ! We start checking of negative eigenvalues 
         if ( kter >= KTER_MIN ) then  ! eigenvalues only after a few steps.
 
-           call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
-           new_projection = .false.
+           if ( .not. setup_initial ) then
+              call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
+              new_projection = .false.
+           else
+                                      ! Four lanczos calculation
+              do i = 1, 4
+                 call lanczos( NVECTOR_LANCZOS, new_projection , a1 )
+                                      ! Report
+                 if ( iproc == 0 ) then
+                    open( unit = FLOG, file = LOGFILE, status = 'unknown',&
+                        & action = 'write', position = 'append', iostat = ierror )
+                    write(FLOG,'(I6,3X,(1p,e17.10,0p),F12.6,x,F6.4)') i, total_energy, eigenvalue, a1
+                    close( FLOG )
+                    write(*,*) 'BART: Iter ', i, ' : ', total_energy,  eigenvalue, a1
+                 end if
+                 new_projection= .false.
+                                      ! let's see the projection
+                 call print_proj ( i, 'I', projection, eigenvalue)
+              end do
+              stop                    ! And that is all.
+           end if
+
         end if
 
         current_energy = total_energy ! As computed in lanczos routine.
@@ -153,12 +173,12 @@ subroutine saddle_converge( ret, saddle_energy )
         call write_step ( 'K', kter, a1, current_energy )
 
         if ( SAVE_CONF_INT ) call save_intermediate( 'K' ) 
-        pas = pas + 1
                                       ! For restart ( restart.f90 )
         if ( write_restart_file ) then 
             state_restart = 1
             if ( iproc == 0 ) call save_state( state_restart, kter+1, initial_direction )
         end if
+        pas = pas + 1
                                       ! Is the configuration out of the harmonic basin?
         if ( eigenvalue < EIGEN_THRESH ) exit Do_kter 
                                       ! If not, we move the configuration along 
@@ -220,8 +240,6 @@ subroutine saddle_converge( ret, saddle_energy )
         if ( iproc == 0 ) write(*,*) "BART: HOUSTON, we've got a problem"
         stop
      end if 
-                                      ! First force calculation.
-     call calcforce( NATOMS, pos, boxl, force, current_energy, evalf_number )
      call force_projection( fpar, perp_force, fperp, ftot, force, projection )
 ! _________
   else if ( .not. new_event ) then    ! Else If_restart
@@ -435,14 +453,13 @@ subroutine end_report ( success, ret, saddle_energy )
      converg = 'CONVERGED' 
      success = .true.
                                       ! We write the configuration in a sad.... file
-     call convert_to_chain( mincounter, scounter )
+     call convert_to_chain( mincounter, 4, scounter )
      fname = SADDLE // scounter
      if (iproc == 0 ) call store( fname ) 
      conf_saddle = fname
   else
      converg = 'FAILED'
      success = .false.
-     if ( SAVE_CONF_INT ) call move_intermediate( )
   end if 
 
   delta_e = saddle_energy - ref_energy

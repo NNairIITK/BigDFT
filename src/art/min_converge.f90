@@ -16,7 +16,6 @@
 subroutine min_converge ( success )
 
   use defs
-  use lanczos_defs
   use bigdft_forces
   implicit none
 
@@ -25,9 +24,9 @@ subroutine min_converge ( success )
 
   !Local variables
   integer :: i, ierror
-  logical :: new_projection
-  real(kind=8) :: a1
+  real(kind=8),dimension(3) :: boxl
   !_______________________
+
   if ( iproc == 0 ) then              ! Report
      open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
          & action = 'write', position = 'append', iostat = ierror )
@@ -35,7 +34,8 @@ subroutine min_converge ( success )
      close(FLOG) 
   end if
                                       ! Relaxation subroutine in bigdft_forces.f90                     
-  call mingeo( NATOMS, box * scala, pos, evalf_number, total_energy, success )
+  boxl = box * scala                  ! We compute at constant volume.
+  call mingeo( NATOMS, boxl, pos, evalf_number, total_energy, success )
                                       ! Report.
   if ( iproc == 0 ) then 
      !open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
@@ -53,42 +53,69 @@ subroutine min_converge ( success )
      end if
      write(*,"('',' BART: Relaxed energy : ',(1p,e17.10,0p))") total_energy
   end if 
-                                      ! Are we in a real minimum?.
-  If_lanc: if ( LANCZOS_MIN .and. success ) then  
-                                      ! Report 
-     if ( iproc == 0 ) then 
-        open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
-            & action = 'write', position = 'append', iostat = ierror )
-        write(FLOG,*) ' Starting Lanczos for minimum'
-        write(FLOG,'(1X,A38)') '    Iter     Energy (eV)    Eigenvalue'
-        close(FLOG) 
-        write(*,*) 'BART: Starting Lanczos for minimum'
-     end if
-     new_projection = .true.          ! We do not use any previously computed direction. 
-                                      ! We call lanczos twice.
-     do i = 1, 2
-        call lanczos( NVECTOR_LANCZOS, new_projection , a1 )
-                                      ! Report
-        if ( iproc == 0 ) then 
-           open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
-               & action = 'write', position = 'append', iostat = ierror )
-           write(FLOG,'(I6,3X,(1p,e17.10,0p),F12.6)') i, total_energy, eigenvalue  
-           close( FLOG ) 
-           write(*,*) 'BART: Iter ', i, ' : ', total_energy,  eigenvalue  
-        end if
-                                      ! Now we start from the previous direction. 
-        new_projection= .false.   
-     end do
-                                      ! Write. 
-     if ( iproc == 0 ) then 
-        open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
-            & action = 'write', position = 'append', iostat = ierror )
-        write(FLOG,*) ' Done Lanczos'
-        close(FLOG) 
-        write(*,*) 'BART: Done Lanczos'
-     end if
 
-  end if If_lanc
- 
 END SUBROUTINE min_converge
+!!***
+
+
+!!****f* art/check_min( )
+!! FUNCTION
+!! SOURCE
+!!
+subroutine check_min( )
+
+  use defs
+  use lanczos_defs
+  implicit none
+
+  !Local variables
+  integer :: i, ierror, repetition
+  logical :: new_projection
+  real(kind=8) :: a1
+  !_______________________
+                                      ! Report 
+   if ( iproc == 0 ) then 
+      open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
+          & action = 'write', position = 'append', iostat = ierror )
+      write(FLOG,*) ' Starting Lanczos for minimum'
+      write(FLOG,'(1X,A38)') '    Iter     Energy (eV)    Eigenvalue  a1' 
+      close(FLOG) 
+      write(*,*) 'BART: Starting Lanczos for minimum'
+   end if
+
+   new_projection = .true.          ! We do not use any previously computed direction. 
+
+   if ( .not. setup_initial ) then
+                                    ! We call lanczos twice.
+      repetition = 2
+   else 
+                                    ! if not, four times.
+      repetition = 4
+   end if
+
+   do i = 1, repetition
+      call lanczos( NVECTOR_LANCZOS, new_projection , a1 )
+                                    ! Report
+      if ( iproc == 0 ) then 
+         open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
+             & action = 'write', position = 'append', iostat = ierror )
+         write(FLOG,'(I6,3X,(1p,e17.10,0p),F12.6,x,F6.4)') i, total_energy, eigenvalue, a1
+         close( FLOG ) 
+         write(*,*) 'BART: Iter ', i, ' : ', total_energy,  eigenvalue, a1  
+      end if
+                                    ! Now we start from the previous direction. 
+      new_projection= .false.   
+                                    ! let's see the projection
+      if ( setup_initial ) call print_proj ( i, 'M', projection, eigenvalue )
+   end do
+                                    ! Report 
+   if ( iproc == 0 ) then 
+      open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
+          & action = 'write', position = 'append', iostat = ierror )
+      write(FLOG,*) ' Done Lanczos'
+      close(FLOG) 
+      write(*,*) 'BART: Done Lanczos'
+   end if
+ 
+END SUBROUTINE check_min
 !!***

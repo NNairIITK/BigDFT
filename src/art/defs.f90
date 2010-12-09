@@ -20,6 +20,9 @@ module defs
 
   integer      :: iproc, nproc       ! MPI proc identificators
   integer      :: INFLECTION
+  logical      :: setup_initial      ! The tests done for knowing the best set of parameters 
+                                     ! for doing lanczos. Four times Lanczos for the minimum, and 
+                                     ! four for the inflection point.
 
   real(kind=8) :: TEMPERATURE        ! Temperature in eV
   integer      :: NATOMS             ! Number of atoms in the system
@@ -46,7 +49,7 @@ module defs
   character(len=20) :: conf_initial, conf_saddle, conf_final
   
   integer,      dimension(:), allocatable          :: typat    ! Atomic type
-  integer,      dimension(:), allocatable          :: constr   ! Atomic type
+  integer,      dimension(:), allocatable          :: constr   ! Constraint over atoms
   real(kind=8), dimension(:), allocatable, target  :: force    ! Working forces on the atoms
   real(kind=8), dimension(:), allocatable, target  :: pos      ! Working positions of the atoms
   real(kind=8), dimension(:), allocatable, target  :: posref   ! Reference position
@@ -66,6 +69,7 @@ module defs
   integer      :: ievent_restart            ! Event number at restart
   integer      :: nsteps_after_eigen_min_r
   integer      :: maxter_r
+  integer      :: atp                       ! No. of attempts for a given event
   real(kind=8) :: eigen_min_r 
   real(kind=8) :: eigenvalue_r
   !__________________
@@ -121,7 +125,7 @@ module defs
   character(len=20) :: LOGFILE
   character(len=20) :: EVENTSLIST
   character(len=20) :: REFCONFIG
-  character(len=3)  :: FINAL
+  character(len=3)  :: FINAL                ! is the prefix for minima files
   character(len=3)  :: SADDLE 
   character(len=11) :: COUNTER
   character(len=11) :: RESTARTFILE

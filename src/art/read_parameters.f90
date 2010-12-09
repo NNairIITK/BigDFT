@@ -21,6 +21,15 @@ subroutine read_parameters( )
   !Local variables
   Character(len=40)  :: temporary 
 
+  ! Hide Option, by default .false.
+  ! Only Lanczos analysis for the minimum and the inflection point.
+  call getenv('Setup_Initial',temporary)
+  if (temporary .eq. '') then
+     setup_initial = .false. 
+  else
+     read(temporary,*)  setup_initial
+  end if
+
   call getenv('Inflection', temporary)
   if (temporary .eq. '') then
      write(*,*) 'Error: Inflection is not defined'
@@ -536,7 +545,7 @@ subroutine write_parameters( )
   write(flog,*) ' '
   write(flog,'(1X,A51,L8)')    ' - Calculation of the Hessian for each minimum   : ', LANCZOS_MIN
   write(flog,'(1X,A51,I8)')    ' - Min. number of ksteps before calling lanczos  : ', KTER_MIN
-  write(flog,'(1X,A51,F8.4)')  ' - Factor mulp. INCREMENT for leaving basin      : ', BASIN_FACTOR
+  write(flog,'(1X,A51,F8.4)')  ' - Factor mult. INCREMENT for leaving basin      : ', BASIN_FACTOR
   write(flog,'(1X,A51,I8)')    ' - Maximum number of iteractions (basin -kter)   : ', MAXKTER
   write(flog,'(1X,A51,I8)')    ' - Maximum number of perpendicular moves (basin) : ', MAXKPERP
   write(flog,*) ' '
@@ -568,7 +577,12 @@ subroutine write_parameters( )
   write(flog,*) ' '
                                       ! Initialization of seed in random.
   call date_and_time(values=values)
-  idum = -1 * mod( (1000 * values(7) + values(8)), 1024)
+
+  if ( .not. setup_initial ) then
+     idum = -1 * mod( (1000 * values(7) + values(8)), 1024)
+  else
+     idum = 0
+  end if
                                       ! Report 
   write(flog,'(1X,A34,I17)') ' - The seed is                  : ', idum
   write(flog,'(1X,A34,L17)') ' - Restart                      : ', restart

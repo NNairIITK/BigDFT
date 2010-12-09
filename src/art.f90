@@ -15,7 +15,7 @@ program art90
 
   use defs 
   use random 
-  use lanczos_defs, only: projection
+  use lanczos_defs, only: projection, LANCZOS_MIN 
   implicit None
 
   integer :: ierror, ierr
@@ -42,7 +42,7 @@ program art90
                                       ! If restartfile exists, then we restart.
   inquire ( file = restartfile, exist = restart )
   if ( restart ) & 
-     & call restart_states( state_restart, ievent_restart, iter_restart )
+     & call restart_states( state_restart, ievent_restart, iter_restart, atp )
   call MPI_Barrier( MPI_COMM_WORLD, ierr )
   call write_parameters( )            ! Write options in LOGFILE. 
   call MPI_Barrier( MPI_COMM_WORLD, ierr )
@@ -61,7 +61,7 @@ program art90
   call initialize_potential()         ! Initialize BigDFT
 
   if ( restart ) then        
-     if ( iproc == 0 ) call convert_to_chain( refcounter, scounter )
+     if ( iproc == 0 ) call convert_to_chain( refcounter, 4, scounter )
                              ! Information for FLIST 
      conf_initial = trim( FINAL // scounter )
   else 
@@ -75,15 +75,20 @@ program art90
 !                MAIN LOOP OVER THE EVENTS.
 
   Do_ev: do ievent = ievent_restart, NUMBER_EVENTS  
-
-     if ( iproc == 0 ) call print_newevent( ievent, temperature )
                                       ! If it is a restart event for the activation,
                                       ! phase 1, 2 or 4, or it is not a restart event
                                       ! then we call find_saddle.
      if ( .not. ( restart .and. ( state_restart == 3 ) ) ) then
+                                      ! atp is the number of attempts for event.
+        if (.not. restart) atp = 1 
         do 
+          if ( iproc == 0 ) call print_event( ievent, temperature )
           call find_saddle( success, saddle_energy )
-          if ( success ) exit
+          if ( success ) then 
+             exit
+          else
+             atp = atp + 1 
+          end if 
         end do
      end if
                                       ! If not a new event, then a convergence to
@@ -93,11 +98,12 @@ program art90
                                       ! are starting at the right point.
      if ( restart .and. ( state_restart == 3 ) ) then
         if ( iproc == 0 ) then        ! Report
+           call print_event( ievent, temperature )
            open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
                & action = 'write', position = 'append', iostat = ierror )
            write(FLOG,'(1X,A)') ' - Restart event: We restart at the saddle point'
            close(FLOG)
-           call convert_to_chain( mincounter, scounter )
+           call convert_to_chain( mincounter, 4, scounter )
         end if
         saddle_energy = total_energy
         conf_saddle = trim( SADDLE // scounter )
@@ -132,12 +138,14 @@ program art90
      delta_e = total_energy - ref_energy 
      if ( iproc == 0 ) then
                                       ! We write the configuration in a min.... file.
-        call convert_to_chain( mincounter, scounter )
+        call convert_to_chain( mincounter, 4, scounter )
         write(*,*) 'BART: Mincounter is ', mincounter,', scounter is ', scounter
         fname = FINAL // scounter
         conf_final = fname
         call store( fname ) 
      end if
+                                      ! Is a real minimum ?
+     if ( LANCZOS_MIN .and. success ) call check_min( ) 
                                       ! Magnitude of the displacement (utils.f90).
      call displacement( posref, pos, delr, npart )
                                       ! Now, we accept or reject this move based
@@ -159,10 +167,11 @@ program art90
         conf_initial = conf_final
         ref_energy   = total_energy
         refcounter   = mincounter
+                                      ! THIS IS NOT NECESSARY IN BIGDFT
                                       ! Updating the reference configuration file,
                                       ! which serves as the initial configuration
                                       ! for events.
-        if ( iproc == 0 ) call write_refconfig( )
+        !if ( iproc == 0 ) call write_refconfig( )
      else                             ! Else If_bol:
                                       ! If the event is not accepted we start
                                       ! from the previous refconfig.

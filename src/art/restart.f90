@@ -14,7 +14,7 @@
 !!
 !! SOURCE
 !! 
-subroutine restart_states( istatus, ieventcurrent, iterations )
+subroutine restart_states( istatus, ieventcurrent, iterations, iatp )
 
   use defs
   implicit none  
@@ -23,20 +23,12 @@ subroutine restart_states( istatus, ieventcurrent, iterations )
   integer, intent(out) :: istatus
   integer, intent(out) :: ieventcurrent
   integer, intent(out) :: iterations 
+  integer, intent(out) :: iatp 
 
   !Local variables
   integer :: i, j, ierror, ierr
   integer :: nat, id
   real(kind=8), dimension(:), pointer :: dx, dy, dz   ! Pointers for reference position
-
-  logical :: exists_already
-  real(kind=8),dimension(3) :: boxl
-  character(len=100) :: fname
-  character(len=100) :: f_xyz
-  character(len=100) :: f_ascii
-  character(len=150) :: commande
-  character(len=9)   :: digit = "123456789"
-  character(len=4), dimension(natoms) :: frzchain
 
   allocate(direction_restart(vecsize))
   dx => direction_restart(1:NATOMS)
@@ -44,7 +36,7 @@ subroutine restart_states( istatus, ieventcurrent, iterations )
   dz => direction_restart(2*NATOMS+1:3*NATOMS)
 
   open(unit=FRESTART,file=RESTARTFILE,status='old',action='read',iostat=ierror)
-  read(FRESTART,*) istatus, iterations, mincounter, refcounter, pas
+  read(FRESTART,*) istatus, iterations, mincounter, refcounter, pas, iatp
 
   if ( istatus == 2 .or. istatus == 4 ) then 
      allocate(diis_forces_restart(DIIS_MEMORY,VECSIZE))
@@ -85,128 +77,27 @@ subroutine restart_states( istatus, ieventcurrent, iterations )
 
   close(FRESTART)
 
-  if ( iproc == 0 ) then
-     ! Test posinp.xyz
-     f_xyz = 'posinp.xyz' 
-     fname = f_xyz 
-     do i = 1, 9 
-        inquire( file = fname, exist = exists_already )
-        if ( exists_already ) then
-           write(*,*) "BART: file ", trim(fname)," exists_already"
-           fname = trim(f_xyz)//"."//digit(i:i) 
-        else
-           if ( i > 1 ) Then
-              write(*,*) "BART: moving ",trim(f_xyz)," to ",trim(fname) 
-              commande = "mv " //trim(f_xyz) // "  " //trim(fname)
-              call system ( commande )
-           end if
-           exit
-        end if
-     end do
-  end if
-
-  if ( iproc == 0 ) then
-     ! Test posinp.ascii
-     f_ascii = 'posinp.ascii'
-     fname = f_ascii
-     do i = 1, 9 
-        inquire( file = fname, exist = exists_already )
-        if ( exists_already ) then
-           write(*,*) "BART: file ", trim(fname)," exists_already"
-           fname = trim(f_ascii)//"."//digit(i:i) 
-        else
-           if ( i > 1 ) Then
-              write(*,*) "BART: moving ",trim(f_ascii)," to ",trim(fname) 
-              commande = "mv " //trim(f_ascii)// "  " //trim(fname)
-              call system ( commande )
-           end if
-           exit
-        end if
-     end do
-  end if
-
-  ! A security action
-  if ( iproc == 0 ) then
-     call system ( 'rm posinp.ascii' )
-     call system ( 'rm posinp.xyz' ) 
-  end if
-
-  boxl = box * scala  ! Update the box size
-
   do i = 1, NATOMS
      Atom(i) = type_name(typat(i))
-     if      ( constr(i)== 0) then
-        frzchain(i)='    '
-     else if (constr(i) == 1) then
-        frzchain(i)='   f'
-     else if (constr(i) == 2) then
-        frzchain(i)='  fy'
-     else if (constr(i) == 3) then
-        frzchain(i)=' fxz'
-     end if
   end do
- 
-  f_ascii = 'posinp.ascii'
-
-  if (iproc == 0 ) then 
-   write(*,*) "BART: writting new input file "
-   open(unit=13,file=f_ascii,status='new',action='write',iostat=ierror)
-   write(13,'(a,x,I5,x,a)') "# BART RESTART input file: ", NATOMS , 'angstroem' 
-   write(13,*) boxl(1), 0.0, boxl(2)
-   write(13,*)  0.0, 0.0, boxl(3)
-   write(13,'(a)') "#keyword: angstroem"
-   if (boundary == 'P') then
-      write(13,'(a)') "#keyword: periodic"
-   else if (boundary == 'S') then
-      write(13,'(a)') "#keyword: surface"
-   else
-      write(13,'(a)') "#keyword: freeBC"
-   end if
-   do i=1, NATOMS
-      write(13,'(1x,3(2x,f16.8),2x,A,2x,a4)')  x(i), y(i), z(i), Atom(i), frzchain(i)
-   end do
-   close(13)
-  
                                       ! DEBUG 
-   write(*,*) 'BART: restart file'
-   write(*,*) 'BART: box: ', box
-   write(*,'(a,(1p,e17.10,0p))') ' BART: total energy: ', total_energy
-   write(*,'(a,3f20.8)') ' BART: xref(1): ', xref(1), yref(1), zref(1)
-   write(*,'(a,3f20.8)') ' BART: x(1)   : ', x(1), y(1), z(1)
-   write(*,'(a,3f20.8)') ' BART: x(NATOMS): ', x(NATOMS), y(NATOMS), z(NATOMS)
+  if ( iproc == 0 ) then
+     write(*,*) 'BART: restart file'
+     write(*,*) 'BART: box: ', box
+     write(*,'(a,(1p,e17.10,0p))') ' BART: total energy: ', total_energy
+     write(*,'(a,3f20.8)') ' BART: xref(1): ', xref(1), yref(1), zref(1)
+     write(*,'(a,3f20.8)') ' BART: x(1)   : ', x(1), y(1), z(1)
+     write(*,'(a,3f20.8)') ' BART: x(NATOMS): ', x(NATOMS), y(NATOMS), z(NATOMS)
  
-   if ( istatus == 2 .or. istatus == 4 ) then
-   write(*,*) ' BART: previous_norm : ', diis_norm_restart
-   write(*,*) ' BART: last line ',maxter_r,eigen_min_r,eigenvalue_r,nsteps_after_eigen_min_r 
-   end if
+     if ( istatus == 2 .or. istatus == 4 ) then
+     write(*,*) 'BART: previous_norm : ', diis_norm_restart
+     write(*,*) 'BART: last line ',maxter_r,eigen_min_r,eigenvalue_r,nsteps_after_eigen_min_r 
+     end if 
+     write(*,*) 'BART: Reading atomic input positions from RESTART file,'
+     write(*,*) 'BART: please, ignore the next message. '
   end if
 
 END SUBROUTINE restart_states 
-!!***
-
-
-!!****f* restart/extra
-!! FUNCTION
-!!   saves the status for a restart
-!!
-!! SOURCE
-!!
-subroutine extra(ifrztyp,frzchain)
-  implicit none
-  integer, intent(in) :: ifrztyp
-  character(len=4), intent(out) :: frzchain
-
-  if (ifrztyp == 0) then
-     frzchain='    '
-  else if (ifrztyp == 1) then
-     frzchain='   f'
-  else if (ifrztyp == 2) then
-     frzchain='  fy'
-  else if (ifrztyp == 3) then
-     frzchain=' fxz'
-  end if
-        
-END SUBROUTINE extra 
 !!***
 
 
@@ -235,7 +126,7 @@ subroutine save_state( istatus, iter, direction )
   dz => direction(2*NATOMS+1:3*NATOMS)
 
   open(unit=FRESTART,file=RESTARTFILE,status='unknown',action='write',iostat=ierror)
-  write(FRESTART,*) istatus, iter, mincounter, refcounter, pas+1
+  write(FRESTART,*) istatus, iter, mincounter, refcounter, pas+1, atp
   write(FRESTART,*) ievent, evalf_number, boundary
   write(FRESTART,*) box(1), box(2), box(3), scala
   write(FRESTART,*) boxref(1), boxref(2), boxref(3), scalaref
@@ -283,7 +174,7 @@ subroutine save_state2( istatus, iter, direction, maxter, pf, px, pn, &
   dz => direction(2*NATOMS+1:3*NATOMS)
 
   open(unit=FRESTART,file=RESTARTFILE,status='unknown',action='write',iostat=ierror)
-  write(FRESTART,*) istatus, iter, mincounter, refcounter, pas+1
+  write(FRESTART,*) istatus, iter, mincounter, refcounter, pas+1, atp
   write(FRESTART,*) ievent, evalf_number, boundary
   write(FRESTART,*) box(1), box(2), box(3), scala
   write(FRESTART,*) boxref(1), boxref(2), boxref(3), scalaref
@@ -312,151 +203,3 @@ subroutine save_state2( istatus, iter, direction, maxter, pf, px, pn, &
 
 END SUBROUTINE save_state2
 !!***
-
-!!****f* restart/save_input_file
-!! FUNCTION
-!!
-!! SOURCE
-!!
-!subroutine save_input_file (file_p)
-!
-!  use defs
-!  implicit none
-!
-!  !Arguments
-!  character(len=*), intent(in) :: file_p
-!
-!  !Local variables
-!  logical :: exists_already
-!  character(len=100) :: fname
-!  character(len=100) :: f_xyz
-!  character(len=100) :: f_ascii
-!  character(len=150) :: commande
-!  character(len=9)   :: digit = "123456789"
-!  integer :: i
-!
-!  integer :: ierror
-!  real(kind=8),dimensio(3) :: boxl
-!
-!  if ( iproc == 0 ) then
-!     ! Test posinp.xyz
-!     f_xyz = trim(file_p)//".xyz"
-!     fname = f_xyz 
-!     do i = 1, 9 
-!        inquire( file = fname, exist = exists_already )
-!        write(*,*) "BART: exists_already", fname, exists_already
-!        if ( exists_already ) then
-!           fname = trim(f_xyz)//"."//digit(i:i) 
-!        else
-!           if ( i > 1 ) Then
-!              commande = "mv " // f_xyz // "  " // fname
-!              call system ( commande )
-!           end if
-!           exit
-!        end if
-!     end do
-!  end if
-!
-!  !if ( iproc == 0 ) then
-!  !   ! Test posinp.ascii
-!  !   f_ascii = trim(file_p)//".ascii"
-!  !   fname = f_ascii
-!  !   do i = 1, 9 
-!  !      inquire( file = fname, exist = exists_already )
-!  !      write(*,*) "BART: ascii exists_already", fname, exists_already
-!  !      if ( exists_already ) then
-!  !         fname = trim(f_ascii)//"."//digit(i:i) 
-!  !      write(*,*) "BART: fname", fname
-!  !      else
-!  !         if ( i > 1 ) Then
-!  !            commande = "mv " //trim(f_ascii)// "  " //trim(fname)
-!  !      write(*,*) "BART: commande", commande
-!  !            call system ( commande )
-!  !         end if
-!  !         exit
-!  !      end if
-!  !   end do
-!  !end if
-!
-!  boxl = box * scala  ! Update the box size
-!
-!  do i = 1, NATOMS
-!     Atom(i) = type_name(typat(i))
-!  end do
-!
-!  f_ascii = trim(file_p)//".ascii"
-! 
-! !if ( iproc == 0 ) then
-! !inquire( file = f_ascii, exist = exists_already )
-! !if ( exists_already ) then
-! !commande = "rm " // f_ascii 
-! !write(*,*) "BART: commande", commande
-! !call system ( "rm posinp.ascii" )
-! !end if
-! !end if
-!
-!  if (iproc == 0 ) then 
-!    write(*,*) "BART: new_input_file",  x(1), y(1), z(1), Atom(1)
-!    write(*,*) "BART: new_input_file",  x(NATOMS), y(NATOMS), z(NATOMS), Atom(NATOMS)
-!    open(unit=14,file=f_ascii,status='new',action='write',iostat=ierror)
-!    write(*,*) "BART: f_ascii, ierror" ,  f_ascii, ierror
-!    write(14,*) "# BART RESTART input file: ", NATOMS , 'angstroem' 
-!    write(14,*) boxl, 0.0, boxl
-!    write(14,*)  0.0, 0.0, boxl
-!    write(14,*) "#keyword: angstroem"
-!
-!    do i=1, NATOMS
-!       write(14,'(1x,3(2x,f16.8),2x,A)')  x(i), y(i), z(i), Atom(i)
-!    end do
-!
-!    close(14)
-!  end if
-!
-!end subroutine save_input_file 
-!!***
-
-!!****f* restart/new_input_file
-!! FUNCTION
-!!
-!! SOURCE
-!!
-!subroutine new_input_file( file_p )
-!
-!  use defs
-!  implicit none
-!
-!  !Arguments
-!  character(len=*), intent(in) :: file_p
-!
-!  !Local variables
-!  integer :: ierror
-!  integer :: i
-!  real(kind=8) :: boxl
-!  character(len=100) :: f_ascii
-!
-!  boxl = box * scala  ! Update the box size
-!
-!  do i = 1, NATOMS
-!     Atom(i) = type_name(typat(i))
-!  end do
-!
-!  f_ascii = trim(file_p)//".ascii"
-!
-!  if (iproc == 0 ) then 
-!    write(*,*) "BART: new_input_file",  x(1), y(1), z(1), Atom(1)
-!    write(*,*) "BART: new_input_file",  x(NATOMS), y(NATOMS), z(NATOMS), Atom(NATOMS)
-!    open(unit=13,file=f_ascii,status='new',action='write',iostat=ierror)
-!    write(*,*) "BART  f_ascii, ierror" ,  f_ascii, ierror
-!    write(13,*) "# BART RESTART input file: ", NATOMS , 'angstroem' 
-!    write(13,*) boxl, 0.0, boxl
-!    write(13,*)  0.0, 0.0, boxl
-!    write(13,*) "#keyword: angstroem"
-!
-!    do i=1, NATOMS
-!       write(13,'(1x,3(2x,f16.8),2x,A)')  x(i), y(i), z(i), Atom(i)
-!    end do
-!
-!    close(13)
-!  end if
-!
-!END SUBROUTINE new_input_file 
