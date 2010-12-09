@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.5-dev.0],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.5-dev.2],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -304,7 +304,8 @@ if test x"$ac_use_ocl" = "xyes" ; then
       AC_MSG_WARN(["No 'OpenCL' library found, OpenCL parts disabled."])
       ac_use_ocl="no"
     else
-      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt -lstdc++"
+dnl      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt -lstdc++"
+      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt"
     fi
     LIBS=$LIBS_OLD
   fi
@@ -507,7 +508,6 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
     ac_build_libsgpu="yes"
     ac_use_libsgpu="yes"
     AC_SUBST(LIBSGPU_INCLUDE, "-I\$(top_srcdir)"/S_GPU/src)
-    LDFLAGS="$LDFLAGS -L\$(top_builddir)/S_GPU/src/.libs"
   else
     if test -n "$ac_libsgpu_dir" ; then
       LDFLAGS="$LDFLAGS -L$ac_libsgpu_dir/lib"
@@ -524,9 +524,9 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   if test x"$ac_use_libsgpu" = x"yes" ; then
     AC_DEFINE([HAVE_LIBSGPU], [1], [use S_GPU in BigDFT.])
     if test "$internalsgpu" = "yes" ; then
-      LIBSGPU_LIBS="\$(top_builddir)/S_GPU/src/.libs/libs_gpu.a"
+      LIBSGPU_LIBS="\$(top_builddir)/S_GPU/src/.libs/libs_gpu.a -lstdc++"
     else
-      LIBSGPU_LIBS="-ls_gpu"
+      LIBSGPU_LIBS="-ls_gpu -lstdc++"
     fi
   fi
 fi
@@ -579,23 +579,8 @@ tests/NEB/input
 tests/NEB/NEB_include.sh
 tests/XabsCheb/Makefile
 tests/DFT/Makefile
-tests/DFT/C/Makefile
-tests/DFT/Ca2/Makefile
-tests/DFT/H/Makefile
-tests/DFT/H2-spin/Makefile
-tests/DFT/Li+/Makefile
-tests/DFT/Mn2/Makefile
-tests/DFT/NaCl/Makefile
-tests/DFT/SiH4/Makefile
-tests/DFT/NH3/Makefile
-tests/DFT/H2O-CP2K/Makefile
-tests/DFT/SiBulk/Makefile
-tests/DFT/H2O-slab/Makefile
-tests/DFT/Davidson-SiH4/Makefile
-tests/DFT/FeHyb/Makefile
-tests/DFT/Graphene/Makefile
-tests/DFT/GPU/Makefile
-tests/DFT/OCL/Makefile
+tests/OpenCL/Makefile
+tests/CUDA/Makefile
 ])
 
 # Call libXC ./configure script recursively.

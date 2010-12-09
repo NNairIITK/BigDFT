@@ -1,8 +1,15 @@
 /****u* CUDA/anasyn.cu
 **
-** 
+**
 ** AUTHOR
 **  Luigi Genovese
+**
+** COPYRIGHT
+**    Copyright (C) 2010 BigDFT group 
+**    This file is distributed under the terms of the
+**    GNU General Public License, see ~/COPYING file
+**    or http://www.gnu.org/copyleft/gpl.txt .
+**    For the list of contributors, see ~/AUTHORS 
 **
 ** SOURCE
 */
@@ -142,11 +149,7 @@ int wavana(int n1,int n2, int n3,
 
 }
 
-
 //MUST CONTINUE WITH #D ANALYSIS SYNTHESIS VERSION
-
-
-
 
 /****/
 

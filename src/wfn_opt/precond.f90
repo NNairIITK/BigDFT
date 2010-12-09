@@ -10,7 +10,7 @@
 !!
 !! SOURCE
 !! 
-subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
+subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   use module_base
   use module_types
   implicit none
@@ -18,7 +18,7 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
-  real(dp), intent(out) :: gnrm
+  real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
   integer :: iorb,inds,ncplx
@@ -30,6 +30,8 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
   ! norm of gradient
   gnrm=0.0_dp
+  !norm of gradient of unoccupied orbitals
+  gnrm_zero=0.0_dp
 
   do iorb=1,orbs%norbp
      ! define zero energy for preconditioning 
@@ -57,20 +59,26 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
         !the nrm2 function can be replaced here by ddot
         scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi(1,inds,iorb),1)
-        !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
-        gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        if (orbs%occup(orbs%isorb+iorb) == 0.0_gp) then
+           gnrm_zero=gnrm_zero+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        else
+           !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
+           gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        end if
 
-        if (scpr /= 0.0_wp) then
+       if (scpr /= 0.0_wp) then
            !value of the cpreconditioner
            !cprecr=-(orbs%eval(orbs%isorb+iorb)-eval_zero)+.10d0
            !write(*,*) 'cprecr:',iorb,cprecr,orbs%eval(orbs%isorb+iorb)
            select case(lr%geocode)
            case('F')
               cprecr=-orbs%eval(orbs%isorb+iorb)
+!             cprecr=sqrt(.2d0**2+min(0.d0,orbs%eval(orbs%isorb+iorb))**2)
            case('S')
               cprecr=0.5_wp
            case('P')
               cprecr=0.5_wp
+!              cprecr=-orbs%eval(orbs%isorb+iorb)
            end select
            
 
@@ -144,6 +152,7 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
 !!  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
 !!  write(*,*)'debug1',rmr_new
 
+  !this operation should be rewritten in a better way
   r=b-d ! r=b-Ax
 
   call calculate_rmr_new(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,r,d,rmr_new)
@@ -532,6 +541,63 @@ subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
   end if
 
 END SUBROUTINE allocate_work_arrays
+
+subroutine memspace_work_arrays_precond(geocode,hybrid_on,ncplx,d,memwork)
+  use module_base
+  use module_types
+  implicit none
+  character(len=1), intent(in) :: geocode
+  logical, intent(in) :: hybrid_on
+  integer, intent(in) :: ncplx
+  type(grid_dimensions), intent(in) :: d
+  integer(kind=8), intent(out) :: memwork
+  !local variables
+  integer, parameter :: lowfil=-14,lupfil=14
+  integer :: nd1,nd2,nd3
+  integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
+  integer :: nf
+
+
+  if (geocode == 'F') then
+
+     nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
+
+     memwork=2*(d%n1+1)*(d%n2+1)*(d%n3+1)+2*7*(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)+3*nf
+     
+    
+  else if (geocode == 'P') then
+     
+     if (hybrid_on) then
+          
+        call dimensions_fft(d%n1,d%n2,d%n3,&
+             nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
+
+        nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
+
+        memwork=(d%n1+1)+(d%n2+1)+(d%n3+1)+2*nd1b*nd2*nd3*2+2*nd1*nd2*nd3f*2+&
+             (d%n1+1)*(d%n2+1)*(d%n3+1)+2*7*(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)+3*nf
+
+     else 
+
+        memwork=0
+        if (ncplx == 1) then
+           memwork=d%n1+d%n2+d%n3+15*(lupfil-lowfil+1)
+        end if
+        memwork=memwork+2*ncplx*(2*d%n1+2)*(2*d%n2+2)*(2*d%n3+2)
+
+     end if
+
+  else if (geocode == 'S') then
+
+     memwork=0
+     if (ncplx == 1) then
+        memwork=d%n1+d%n3+14*(lupfil-lowfil+1)
+     end if
+     memwork=memwork+2*ncplx*(2*d%n1+2)*(2*d%n2+16)*(2*d%n3+2)
+  end if
+
+END SUBROUTINE memspace_work_arrays_precond
+
 
 subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
   use module_base

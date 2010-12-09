@@ -106,6 +106,9 @@ subroutine symkpt(gmet,indkpt1,kptns,nkpt,nkpt1,nsym1,option,&
    call leave_new('COLL')
  end if
 
+
+ !initialise identi
+ identi=0
  if(nsym1/=1)then
 !  Find the identity symmetry operation
    do isym=1,nsym1

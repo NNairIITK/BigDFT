@@ -98,7 +98,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,in,at,rxyz,shift,lr,orbs,orbsv,ps
   !here we can calculate the Mulliken charge population
   !for any of the elements of the basis, ordered by angular momentum
   !do that only for the occupied orbitals
-  call mulliken_charge_population(iproc,nproc,orbs,Gocc,G,allpsigau,dualcoeffs)
+  call mulliken_charge_population(iproc,nproc,in%nspin,orbs,Gocc,G,allpsigau,dualcoeffs)
 
   !also partial density of states can be analysed here
   call gaussian_pdos(iproc,nproc,orbs,Gocc,G,allpsigau,dualcoeffs)
@@ -139,11 +139,11 @@ END SUBROUTINE local_analysis
 !!****f* BigDFT/mulliken_charge_population
 !! SOURCE
 !! 
-subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
+subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: iproc,nproc,nspin
   type(orbitals_data), intent(in) :: orbs
   type(gaussian_basis), intent(in) :: G
   real(gp), dimension(G%ncoeff), intent(in) :: Gocc
@@ -176,8 +176,12 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
              orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*&
              coeff(icoeff,iorb)*duals(icoeff,iorb)
              !duals(icoeff,iorb)**2
-
+        !if no spin polarisation equals up and down spin quantities
      end do
+     if (nspin ==1) then
+        mchg(icoeff,1)=0.5_wp*mchg(icoeff,1)
+        mchg(icoeff,2)=mchg(icoeff,1)
+     end if
   end do
 
   !reduce the results
@@ -335,13 +339,13 @@ subroutine gaussian_pdos(iproc,nproc,orbs,Gocc,G,coeff,duals)
         open(unit=12,file='pdos.dat',status='unknown')
      end if
      do iorb=1,orbs%norbu
-        write(12,'(i5,1pe14.5,1000(f7.4))')iorb,orbs%eval(iorb),pdos(1:G%ncoeff,iorb)
+        write(12,'(i5,1pe14.5,1000(1pe14.5))')iorb,orbs%eval(iorb),pdos(1:G%ncoeff,iorb)
      end do
      close(unit=12)
      if (orbs%norbd /= 0) then
         open(unit=12,file='pdos-down.dat',status='unknown')
         do iorb=orbs%norbu+1,orbs%norbu+orbs%norbd
-           write(12,'(i5,1pe12.5,1000(f12.4))')iorb-orbs%norbu,orbs%eval(iorb),pdos(1:G%ncoeff+1,iorb)
+           write(12,'(i5,1pe14.5,1000(1pe14.5))')iorb-orbs%norbu,orbs%eval(iorb),pdos(1:G%ncoeff+1,iorb)
         end do
      end if
   end if

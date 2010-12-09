@@ -42,10 +42,10 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   logical :: msg,exctX,occorbs,endloop !extended output
   integer :: occnorb, occnorbu, occnorbd
   integer :: i_stat,i_all,iter,ikpt,idsx_actual,idsx_actual_before,ndiis_sd_sw
-  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
+  real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
   real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
-  real(wp), dimension(:), pointer :: psiw,psidst,hpsidst,psirocc,psitvirt,hpsivirt
-  real(wp), dimension(:,:,:), pointer :: ads
+  type(diis_objects) :: diis
+  real(wp), dimension(:), pointer :: psiw,psirocc,psitvirt,hpsivirt
 
   !supplementary messages
   msg=.false.
@@ -87,7 +87,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
  
   GPU%full_locham=.true.
   !verify whether the calculation of the exact exchange term
-  !should be preformed
+  !should be performed
   exctX = libxc_functionals_exctXfac() /= 0.0_gp
 
   if(iproc==0)write(*,'(1x,a)')"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
@@ -97,6 +97,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
 
   !before transposition, create the array of the occupied
   !wavefunctions in real space, for exact exchange calculations
+  !still the exact exchange with occorbs=.false. has to be verified
   if (exctX) then
      allocate(psirocc(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,&
           ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
@@ -138,12 +139,12 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   !     nvirtep=orbsv%norbp
 
   !this is the same also in serial
-  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psivirt)
+  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psivirt,in)
 
   if (occorbs) then
      call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,psivirt,msg)
      !and orthonormalize them using "gram schmidt"  (conserve orthogonality to psi)
-     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psivirt)
+     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psivirt,in)
   end if
 
   !retranspose v
@@ -160,26 +161,23 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
 
   allocate(hpsivirt(orbsv%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,hpsivirt,'hpsivirt',subname)
-  allocate(psitvirt(orbsv%npsidim+ndebug),stat=i_stat)
-  call memocc(i_stat,psitvirt,'psitvirt',subname)
-
-  !transpose the psivirt 
-  call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,psivirt,work=psiw,outadd=psitvirt(1))
+  if (nproc > 1) then
+     allocate(psitvirt(orbsv%npsidim+ndebug),stat=i_stat)
+     call memocc(i_stat,psitvirt,'psitvirt',subname)
+     !transpose the psivirt 
+     call transpose_v(iproc,nproc,orbsv,lr%wfd,commsv,psivirt,work=psiw,outadd=psitvirt(1))
+  else
+     nullify(psitvirt)
+  end if
 
 
   ! allocate arrays necessary for DIIS convergence acceleration
   !the allocation with npsidim is not necessary here since DIIS arrays
   !are always calculated in the transpsed form
   if (in%idsx > 0) then
-     allocate(psidst(sum(commsv%ncntt(0:nproc-1))*in%idsx+ndebug),stat=i_stat)
-     call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(sum(commsv%ncntt(0:nproc-1))*in%idsx+ndebug),stat=i_stat)
-     call memocc(i_stat,hpsidst,'hpsidst',subname)
-     allocate(ads(in%idsx+1,in%idsx+1,orbsv%nkptsp*3+ndebug),stat=i_stat)
-     call memocc(i_stat,ads,'ads',subname)
-     call razero(orbs%nkptsp*3*(in%idsx+1)**2,ads)
+     call allocate_diis_objects(in%idsx,sum(commsv%ncntt(0:nproc-1)),orbsv%nkptsp,diis,subname)  
   endif
-
+     
   allocate(orbsv%eval(orbsv%norb*orbsv%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbsv%eval,'eval',subname)
 
@@ -188,6 +186,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   alpha=2.d0
   energy=1.d10
   gnrm=1.d10
+  gnrm_zero=0.0_gp
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
@@ -245,16 +244,16 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      idsx_actual_before=idsx_actual
 
      call hpsitopsi(iproc,nproc,orbsv,hx,hy,hz,lr,commsv,in%ncong,&
-          iter,in%idsx,idsx_actual,ads,energy,energy_old,energy_min,&
-          alpha,gnrm,scprsum,psivirt,psitvirt,hpsivirt,psidst,hpsidst,in%nspin,GPU)
+          iter,diis,in%idsx,gnrm,gnrm_zero,scprsum,psivirt,psitvirt,hpsivirt,in%nspin,GPU,in)
 
      if (occorbs) then
         !if this is true the transposition for psivirt which is done in hpsitopsi
         !is useless, but we leave it for simplicity
 
+        if (nproc == 1) psitvirt => psivirt
         !project psivirt such that they are orthogonal to all occupied psi
         call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,psitvirt,msg)
-        call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psitvirt)
+        call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psitvirt,in)
         !retranspose the psivirt
         call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,psitvirt,&
              work=psiw,outadd=psivirt(1))
@@ -286,16 +285,9 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   end if
 
 
-  if (idsx_actual > 0) then
-     i_all=-product(shape(psidst))*kind(psidst)
-     deallocate(psidst,stat=i_stat)
-     call memocc(i_stat,i_all,'psidst',subname)
-     i_all=-product(shape(hpsidst))*kind(hpsidst)
-     deallocate(hpsidst,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsidst',subname)
-     i_all=-product(shape(ads))*kind(ads)
-     deallocate(ads,stat=i_stat)
-     call memocc(i_stat,i_all,'ads',subname)
+  !if (idsx_actual > 0) then
+  if (in%idsx > 0) then
+     call deallocate_diis_objects(diis,subname)
   end if
 
   !this deallocates also hpsivirt and psitvirt
@@ -328,7 +320,8 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   end if
 
   !the plotting should be added here (perhaps build a common routine?)
-
+  call write_eigen_objects(iproc,occorbs,in%nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
+  
 end subroutine direct_minimization
 !!***
 
@@ -523,12 +516,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   !     nvirtep=orbsv%norbp
 
   !this is the same also in serial
-  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
+  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in)
 
   if (occorbs) then
      call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
      !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
-     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
+     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in)
   end if
 
   !retranspose v
@@ -655,8 +648,10 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   iter=1
   davidson_loop: do 
 
-     if(iproc==0)write(*,'(1x,a,i3)')&
-     "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter",iter
+     if(iproc==0)write( *,'(1x,a,i0)') &
+	repeat('~',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
+     !write(*,'(1x,a,i3)')&
+     !"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter",iter
      if(msg) write(*,'(1x,a)')"squared norm of the (nvirt) gradients"
 
      allocate(g(orbsv%npsidim+ndebug),stat=i_stat)
@@ -787,8 +782,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      do ikpt=1,orbsv%nkpts
         do iorb=1,orbsv%norb
            !write(*,*) 'iorb,e(iorb,ikpt,1)',iorb,e(iorb,ikpt,1)
-           orbsv%eval(iorb+(ikpt-1)*orbsv%norb)=min(e(iorb,ikpt,1),-.5d0)
-           !orbsv%eval(iorb+(ikpt-1)*orbsv%norb)=e(iorb,ikpt,1)
+           !orbsv%eval(iorb+(ikpt-1)*orbsv%norb)=min(e(iorb,ikpt,1),-.5d0)
+           orbsv%eval(iorb+(ikpt-1)*orbsv%norb)=e(iorb,ikpt,1)
         end do
      end do
      !we use for preconditioning the eval from the lowest value of the KS wavefunctions
@@ -801,7 +796,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 !        stop
 !     end if
 
-     call preconditionall(iproc,nproc,orbsv,lr,hx,hy,hz,in%ncong,g,gnrm_fake)
+     call preconditionall(iproc,nproc,orbsv,lr,hx,hy,hz,in%ncong,g,gnrm_fake,gnrm_fake)
 
      call timing(iproc,'Precondition  ','OF')
      if (iproc==0)write(*,'(1x,a)')'done.'
@@ -890,7 +885,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
            call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            if (nvctrp == 0) cycle
-!print *,iproc,ikpt,ispin,norb,nspinor,ncplx,nvctrp,8*ndimovrlp(ispin,ikpt-1)+1,8*ndimovrlp(nspin,orbsv%nkpts)
+	   !print *,iproc,ikpt,ispin,norb,nspinor,ncplx,nvctrp,8*ndimovrlp(ispin,ikpt-1)+1,8*ndimovrlp(nspin,orbsv%nkpts)
            call Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,&
                 hamovr(8*ndimovrlp(ispin,ikpt-1)+1),&
                 v(ispsi),g(ispsi),hv(ispsi),hg(ispsi))
@@ -1059,12 +1054,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      call timing(iproc,'Davidson      ','OF')
 
      !these routines should work both in parallel or in serial
-     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
+     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in)
 
      if (occorbs) then
         call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
      !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
-        call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v)
+        call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in)
      end if
 
      !retranspose v
@@ -1109,6 +1104,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   deallocate(ew,stat=i_stat)
   call memocc(i_stat,i_all,'ew',subname)
 
+
   !deallocate real array of wavefunctions
   if(exctX)then
      i_all=-product(shape(psirocc))*kind(psirocc)
@@ -1117,98 +1113,99 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   end if
 
 
-  if(iter <=in%itermax) then
+  if(iter <=in%itermax+100) then
      if(iproc==0)write(*,'(1x,a,i3,a)')&
-          'Davidsons method: Convergence after ',iter-1,' iterations.'
+          "Davidson's method: Convergence after ",iter-1,' iterations.'
   end if
   !finalize: Retranspose, deallocate
 
   ! Send all eigenvalues to all procs.
   call broadcast_kpt_objects(nproc, orbsv%nkpts, orbsv%norb, e(1,1,1), orbsv%ikptproc)
 
-  if(iproc==0)then
-     if (nspin==1) then
-        write(*,'(1x,a)')'Complete list of energy eigenvalues'
-        do ikpt=1,orbsv%nkpts
-           if (orbsv%nkpts > 1) write(*,"(1x,A,I3.3,A,3F12.6)") &
-                & "Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
-           do iorb=1,orbs%norb
-              if (occorbs) then
-                 val = orbs%eval(iorb+(ikpt-1)*orbs%norb)
-              else
-                 val = e(iorb, ikpt, 1)
-              end if
-              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',val
-           end do
-           write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
-                'HOMO LUMO gap   =',e(1+occnorb,ikpt,1)-val,&
-                ' (',ha2ev*(e(1+occnorb,ikpt,1)-val),&
-                ' eV)'
-           do iorb=1,orbsv%norb - occnorb
-              write(*,'(1x,a,i4,a,1x,1pe21.14)') &
-                   & 'e_virtual(',iorb,')=',e(iorb+occnorb,ikpt,1)
-           end do
-        end do
-     else
-        do ikpt=1,orbsv%nkpts
-           write(*,'(1x,a)')'Complete list of energy eigenvalues'
-           do iorb=1,min(orbs%norbu,orbs%norbd)
-              if (occorbs) then
-                 valu = orbs%eval(iorb+(ikpt-1)*orbs%norb)
-                 vald = orbs%eval(iorb+orbs%norbu+(ikpt-1)*orbs%norb)
-              else
-                 valu = e(iorb, ikpt, 1)
-                 vald = e(iorb+orbsv%norbu, ikpt, 1)
-              end if
-              write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-                   'e_occ(',iorb,',u)=',valu,'e_occ(',iorb,',d)=',vald
-           end do
-           if (orbs%norbu > orbs%norbd) then
-              do iorb=orbs%norbd+1,orbs%norbu
-                 if (occorbs) then
-                    valu = orbs%eval(iorb+(ikpt-1)*orbs%norb)
-                 else
-                    valu = e(iorb, ikpt, 1)
-                 end if
-                 write(*,'(1x,a,i4,a,1x,1pe21.14)') &
-                      'e_occ(',iorb,',u)=',valu
-              end do
-           else if (orbs%norbd > orbs%norbu) then
-              do iorb=orbs%norbu+1,orbs%norbd
-                 if (occorbs) then
-                    vald = orbs%eval(iorb+orbs%norbu+(ikpt-1)*orbs%norb)
-                 else
-                    vald = e(iorb+orbsv%norbu, ikpt, 1)
-                 end if
-                 write(*,'(50x,a,i4,a,1x,1pe21.14)') &
-                      'e_occ(',iorb,',d)=',vald
-              end do
-           end if
-           write(*,'(1x,a,1x,1pe21.14,a,0pf8.4,a,a,1x,1pe21.14,a,0pf8.4,a)') &
-                'HOMO LUMO gap, u =', e(1+occnorbu,ikpt,1)-valu,&
-                ' (',ha2ev*(e(1+occnorbu,ikpt,1)-valu),' eV)',&
-                ',d =',e(orbsv%norbu+1+occnorbd,ikpt,1)-vald,&
-                ' (',ha2ev*(e(orbsv%norbu+1+occnorbd,ikpt,1)-vald),' eV)'
-           do iorb=1,min(orbsv%norbu-occnorbu,orbsv%norbd-occnorbd)
-              jorb=orbsv%norbu+iorb+occnorbd
-              write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-                   'e_vrt(',iorb,',u)=',e(iorb,ikpt,1),&
-                   'e_vrt(',iorb,',d)=',e(jorb,ikpt,1)
-           end do
-           if (orbsv%norbu-occnorbu > orbsv%norbd-occnorbd) then
-              do iorb=orbsv%norbd+1-occnorbu,orbsv%norbu-occnorbd
-                 write(*,'(1x,a,i4,a,1x,1pe21.14)') &
-                      'e_vrt(',iorb,',u)=',e(iorb,ikpt,1)
-              end do
-           else if (orbsv%norbd-occnorbd > orbsv%norbu-occnorbu) then
-              do iorb=2*orbsv%norbu+1-occnorbu,orbsv%norbu-occnorbu+orbsv%norbd-occnorbd
-                 write(*,'(50x,a,i4,a,1x,1pe21.14)') &
-                      'e_vrt(',iorb-orbsv%norbu-occnorbu,',d)=',e(iorb,ikpt,1)
-              end do
-           end if
-        end do
-     end if
-  end if
+! 
+!   if(iproc==0)then
+!      if (nspin==1) then
+!         write(*,'(1x,a)')'Complete list of energy eigenvalues'
+!         do ikpt=1,orbsv%nkpts
+!            if (orbsv%nkpts > 1) write(*,"(1x,A,I3.3,A,3F12.6)") &
+!                 & "Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
+!            do iorb=1,orbs%norb
+!               if (occorbs) then
+!                  val = orbs%eval(iorb+(ikpt-1)*orbs%norb)
+!               else
+!                  val = e(iorb, ikpt, 1)
+!               end if
+!               write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',val
+!            end do
+!            write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
+!                 'HOMO LUMO gap   =',e(1+occnorb,ikpt,1)-val,&
+!                 ' (',ha2ev*(e(1+occnorb,ikpt,1)-val),&
+!                 ' eV)'
+!            do iorb=1,orbsv%norb - occnorb
+!               write(*,'(1x,a,i4,a,1x,1pe21.14)') &
+!                    & 'e_virtual(',iorb,')=',e(iorb+occnorb,ikpt,1)
+!            end do
+!         end do
+!      else
+!         do ikpt=1,orbsv%nkpts
+!            write(*,'(1x,a)')'Complete list of energy eigenvalues'
+!            do iorb=1,min(orbs%norbu,orbs%norbd)
+!               if (occorbs) then
+!                  valu = orbs%eval(iorb+(ikpt-1)*orbs%norb)
+!                  vald = orbs%eval(iorb+orbs%norbu+(ikpt-1)*orbs%norb)
+!               else
+!                  valu = e(iorb, ikpt, 1)
+!                  vald = e(iorb+orbsv%norbu, ikpt, 1)
+!               end if
+!               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
+!                    'e_occ(',iorb,',u)=',valu,'e_occ(',iorb,',d)=',vald
+!            end do
+!            if (orbs%norbu > orbs%norbd) then
+!               do iorb=orbs%norbd+1,orbs%norbu
+!                  if (occorbs) then
+!                     valu = orbs%eval(iorb+(ikpt-1)*orbs%norb)
+!                  else
+!                     valu = e(iorb, ikpt, 1)
+!                  end if
+!                  write(*,'(1x,a,i4,a,1x,1pe21.14)') &
+!                       'e_occ(',iorb,',u)=',valu
+!               end do
+!            else if (orbs%norbd > orbs%norbu) then
+!               do iorb=orbs%norbu+1,orbs%norbd
+!                  if (occorbs) then
+!                     vald = orbs%eval(iorb+orbs%norbu+(ikpt-1)*orbs%norb)
+!                  else
+!                     vald = e(iorb+orbsv%norbu, ikpt, 1)
+!                  end if
+!                  write(*,'(50x,a,i4,a,1x,1pe21.14)') &
+!                       'e_occ(',iorb,',d)=',vald
+!               end do
+!            end if
+!            write(*,'(1x,a,1x,1pe21.14,a,0pf8.4,a,a,1x,1pe21.14,a,0pf8.4,a)') &
+!                 'HOMO LUMO gap, u =', e(1+occnorbu,ikpt,1)-valu,&
+!                 ' (',ha2ev*(e(1+occnorbu,ikpt,1)-valu),' eV)',&
+!                 ',d =',e(orbsv%norbu+1+occnorbd,ikpt,1)-vald,&
+!                 ' (',ha2ev*(e(orbsv%norbu+1+occnorbd,ikpt,1)-vald),' eV)'
+!            do iorb=1,min(orbsv%norbu-occnorbu,orbsv%norbd-occnorbd)
+!               jorb=orbsv%norbu+iorb+occnorbd
+!               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
+!                    'e_vrt(',iorb,',u)=',e(iorb,ikpt,1),&
+!                    'e_vrt(',iorb,',d)=',e(jorb,ikpt,1)
+!            end do
+!            if (orbsv%norbu-occnorbu > orbsv%norbd-occnorbd) then
+!               do iorb=orbsv%norbd+1-occnorbu,orbsv%norbu-occnorbd
+!                  write(*,'(1x,a,i4,a,1x,1pe21.14)') &
+!                       'e_vrt(',iorb,',u)=',e(iorb,ikpt,1)
+!               end do
+!            else if (orbsv%norbd-occnorbd > orbsv%norbu-occnorbu) then
+!               do iorb=2*orbsv%norbu+1-occnorbu,orbsv%norbu-occnorbu+orbsv%norbd-occnorbd
+!                  write(*,'(50x,a,i4,a,1x,1pe21.14)') &
+!                       'e_vrt(',iorb-orbsv%norbu-occnorbu,',d)=',e(iorb,ikpt,1)
+!               end do
+!            end if
+!         end do
+!      end if
+!   end if
 
   call timing(iproc,'Davidson      ','OF')
 
@@ -1237,70 +1234,82 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   deallocate(hv,stat=i_stat)
   call memocc(i_stat,i_all,'hv',subname)
 
-  ! PLOTTING
+!   ! PLOTTING
+! 
+!   !plot the converged wavefunctions in the different orbitals.
+!   !nplot is the requested total of orbitals to plot, where
+!   !states near the HOMO/LUMO gap are given higher priority.
+!   !Occupied orbitals are only plotted when nplot>nvirt,
+!   !otherwise a comment is given in the out file.
+! 
+!   if(abs(in%nplot)>orbs%norb+nvirt)then
+!      if(iproc==0)write(*,'(1x,A,i3)')&
+!           "WARNING: More plots requested than orbitals calculated." 
+!   end if
+! 
+!   !add a modulo operator to get rid of the particular k-point
+!   do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals
+!      if(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1 > abs(in%nplot))then
+!         if(iproc == 0 .and. abs(in%nplot) > 0)write(*,'(A)')&
+!              'WARNING: No plots of occupied orbitals requested.'
+!         exit 
+!      end if
+!      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
+!      !plot the orbital and the density
+!      write(orbname,'(A,i4.4)')'virtual',iorb+orbsv%isorb
+!      write(denname,'(A,i4.4)')'denvirt',iorb+orbsv%isorb
+!      write(comment,'(1pe10.3)')e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
+!      !choose the way of plotting the wavefunctions
+! !!$     if (in%nplot > 0) then
+! !!$        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+! !!$        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+! !!$     else if (in%nplot < 0) then
+! !!$        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+! !!$        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+! !!$     end if
+! 
+!      call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+!      call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
+! 
+!   end do
+! 
+!   do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
+!      if(modulo(orbs%norb-iorb-orbs%isorb-0,orbs%norb)+1 <=  abs(in%nplot)) then  ! SG 
+!         !address
+!         ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
+!         write(orbname,'(A,i4.4)')'orbital',iorb+orbs%isorb
+!         write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
+!         write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
+! !!$     !choose the way of plotting the wavefunctions
+! !!$     if (in%nplot > 0) then
+! !!$        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+! !!$        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+! !!$     else if (in%nplot < 0) then
+! !!$        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+! !!$        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+! !!$     end if
+!         call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+!         call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+!         
+!      endif
+!   end do
+!   ! END OF PLOTTING
 
-  !plot the converged wavefunctions in the different orbitals.
-  !nplot is the requested total of orbitals to plot, where
-  !states near the HOMO/LUMO gap are given higher priority.
-  !Occupied orbitals are only plotted when nplot>nvirt,
-  !otherwise a comment is given in the out file.
-
-  if(abs(in%nplot)>orbs%norb+nvirt)then
-     if(iproc==0)write(*,'(1x,A,i3)')&
-          "WARNING: More plots requested than orbitals calculated." 
-  end if
-
-  !add a modulo operator to get rid of the particular k-point
-  do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals
-     if(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1 > abs(in%nplot))then
-        if(iproc == 0 .and. abs(in%nplot) > 0)write(*,'(A)')&
-             'WARNING: No plots of occupied orbitals requested.'
-        exit 
-     end if
-     ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
-     !plot the orbital and the density
-     write(orbname,'(A,i4.4)')'virtual',iorb+orbsv%isorb
-     write(denname,'(A,i4.4)')'denvirt',iorb+orbsv%isorb
-     write(comment,'(1pe10.3)')e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
-     !choose the way of plotting the wavefunctions
-!!$     if (in%nplot > 0) then
-!!$        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-!!$        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-!!$     else if (in%nplot < 0) then
-!!$        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-!!$        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-!!$     end if
-
-     call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-     call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-
+  !copy the values in the eval array of the davidson procedure
+  do ikpt=1,orbsv%nkpts
+    do iorb=1,orbsv%norb
+      !write(*,*) 'iorb,e(iorb,ikpt,1)',iorb,e(iorb,ikpt,1)
+      !orbsv%eval(iorb+(ikpt-1)*orbsv%norb)=min(e(iorb,ikpt,1),-.5d0)
+      orbsv%eval(iorb+(ikpt-1)*orbsv%norb)=e(iorb,ikpt,1)
+    end do
   end do
-
-  do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
-     if(modulo(orbs%norb-iorb-orbs%isorb-0,orbs%norb)+1 <=  abs(in%nplot)) then  ! SG 
-        !address
-        ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
-        write(orbname,'(A,i4.4)')'orbital',iorb+orbs%isorb
-        write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
-        write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
-!!$     !choose the way of plotting the wavefunctions
-!!$     if (in%nplot > 0) then
-!!$        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-!!$        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-!!$     else if (in%nplot < 0) then
-!!$        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-!!$        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-!!$     end if
-        call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-        call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-        
-     endif
-  end do
-  ! END OF PLOTTING
 
   i_all=-product(shape(e))*kind(e)
   deallocate(e,stat=i_stat)
   call memocc(i_stat,i_all,'e',subname)
+
+  !write the results on the screen
+  call write_eigen_objects(iproc,occorbs,nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,v)
 
   if (GPUconv) then
      call free_gpu(GPU,orbsv%norbp)
@@ -1502,8 +1511,8 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   !local variables
   character(len=*), parameter :: subname='psivirt_from_gaussians'
   logical ::  randinp
-  integer :: iorb,icoeff,i_all,i_stat,jproc,nwork,info,jorb
-  real(kind=4) :: tt
+  integer :: iorb,icoeff,i_all,i_stat,jproc,nwork,info,jorb,idum=0
+  real(kind=4) :: tt,builtin_rand
   real(wp), dimension(:,:), allocatable :: gaucoeffs
   real(gp), dimension(:), allocatable :: work,ev
   real(gp), dimension(:,:), allocatable :: ovrlp
@@ -1522,21 +1531,24 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
 
   !the kinetic overlap is correctly calculated only with Free BC
-  randinp = .false.!lr%geocode /= 'F'
+  randinp = .true.!.false.!lr%geocode /= 'F'
 
   if (randinp) then
      !fill randomly the gaussian coefficients for the orbitals considered
-     do iorb=1,orbs%norbp*orbs%nspinor
-        do icoeff=1,G%ncoeff
-           !be sure to call always a different random number
-           do jproc=0,iproc-1
-              call random_number(tt)
-           end do
-           call random_number(tt)
+     do icoeff=1,G%ncoeff !reversed loop
+        !be sure to call always a different random number, per orbital
+        do jorb=1,orbs%isorb
+           tt=builtin_rand(idum) !call random_number(tt)
+        end do
+        do iorb=1,orbs%norbp*orbs%nspinor
+           !do jproc=0,iproc-1
+           !   tt=builtin_rand(idum) !call random_number(tt)
+           !end do
+           tt=builtin_rand(idum) !call random_number(tt)
            gaucoeffs(icoeff,iorb)=real(tt,wp)
-           do jproc=iproc+1,nproc-1
-              call random_number(tt)
-           end do
+           !do jproc=iproc+1,nproc-1
+           !   tt=builtin_rand(idum) !call random_number(tt)
+           !end do
         end do
      end do
 
@@ -1634,6 +1646,9 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   !transpose the wavefunction in wavelet basis
   call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psivirt,work=psiw)
 
+  !here one has to decide whether leave things like that or
+  !multiply the transposed wavefunctions by the matrix of the coefficients
+
   if(nproc > 1)then
      i_all=-product(shape(psiw))*kind(psiw)
      deallocate(psiw,stat=i_stat)
@@ -1643,3 +1658,247 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   
 END SUBROUTINE psivirt_from_gaussians
 
+subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
+  use module_base
+  use module_types
+  implicit none
+  logical, intent(in) :: occorbs
+  integer, intent(in) :: iproc,nspin,nvirt,nplot
+  real(gp), intent(in) :: hx,hy,hz
+  type(atoms_data), intent(in) :: at
+  type(locreg_descriptors), intent(in) :: lr
+  type(orbitals_data), intent(in) :: orbs,orbsv
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(wp), dimension(:), pointer :: psi,psivirt
+  !local variables
+  character(len=10) :: comment
+  character(len=11) :: orbname,denname
+  integer :: iorb,ikpt,jorb,ind,occnorb,occnorbu,occnorbd
+  real(gp) :: eg,egu,egd,valu,vald,val
+  
+  if (occorbs) then
+     occnorb = 0
+     occnorbu = 0
+     occnorbd = 0
+  else
+     occnorb = orbs%norb
+     occnorbu = orbs%norbu
+     occnorbd = orbs%norbd
+  end if
+
+  
+!   if(iproc==0)then
+!     write(*,'(1x,a)')'Complete list of energy eigenvalues'
+!       if (nspin==1) then
+! 	do ikpt=1,orbsv%nkpts
+! 	  if (orbsv%nkpts > 1) write(*,"(1x,A,I3.3,A,3F12.6)") &
+! 	    "Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
+! 	    do iorb=1,orbs%norb
+! 		!if (occorbs) then
+! 		!val = orbs%eval(iorb+(ikpt-1)*orbs%norb)
+! 	      !else
+! 		!val = e(iorb, ikpt, 1)
+! 	      !end if
+! 	      write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',eval(iorb+(ikpt-1)*orbs%norb)
+! 	    end do
+! 	    eg=evalv(1+(ikpt-1)*orbsv%norb)-evalv(orbs%norb+(ikpt-1)*orbs%norb)
+! 	    write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
+! 	      'HOMO LUMO gap   =',eg,' (',ha2ev*eg,' eV)'
+! 	    do iorb=1,orbsv%norb
+! 	      write(*,'(1x,a,i4,a,1x,1pe21.14)') &
+! 		'e_virtual(',iorb,')=',evalv(iorb+(ikpt-1)*orbsv%norb)!e(iorb+occnorb,ikpt,1)
+! 	  end do
+! 	end do
+!       else
+!         do ikpt=1,orbsv%nkpts
+!            do iorb=1,min(orbs%norbu,orbs%norbd)
+!               !if (occorbs) then
+!                  valu = eval(iorb+(ikpt-1)*orbs%norb)
+!                  vald = eval(iorb+orbs%norbu+(ikpt-1)*orbs%norb)
+!               !else
+! 		 !valu = e(iorb, ikpt, 1)
+!                  !vald = e(iorb+orbsv%norbu, ikpt, 1)
+!               !end if
+!               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
+!                    'e_occ(',iorb,',u)=',valu,'e_occ(',iorb,',d)=',vald
+!            end do
+!            if (orbs%norbu > orbs%norbd) then
+!               do iorb=orbs%norbd+1,orbs%norbu
+!                  !if (occorbs) then
+!                     valu = eval(iorb+(ikpt-1)*orbs%norb)
+!                  !else
+!                  !   valu = e(iorb, ikpt, 1)
+!                  !end if
+!                  write(*,'(1x,a,i4,a,1x,1pe21.14)') &
+!                       'e_occ(',iorb,',u)=',valu
+!               end do
+!            else if (orbs%norbd > orbs%norbu) then
+!               do iorb=orbs%norbu+1,orbs%norbd
+!                  !if (occorbs) then
+!                     vald = eval(iorb+orbs%norbu+(ikpt-1)*orbs%norb)
+!                  !else
+!                  !   vald = e(iorb+orbsv%norbu, ikpt, 1)
+!                  !end if
+!                  write(*,'(50x,a,i4,a,1x,1pe21.14)') &
+!                       'e_occ(',iorb,',d)=',vald
+!               end do
+!            end if
+! 	   egu=evalv(1+(ikpt-1)*orbsv%norb)-eval(orbs%norbu+(ikpt-1)*orbs%norb)
+! 	   egd=evalv(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-eval(orbs%norb+(ikpt-1)*orbs%norb)
+!            write(*,'(1x,a,1x,1pe21.14,a,0pf8.4,a,a,1x,1pe21.14,a,0pf8.4,a)') &
+!                 'HOMO LUMO gap, u =', egu,' (',ha2ev*egu,' eV)',&
+!                 ',d =',egd,' (',ha2ev*egd,' eV)'
+!            do iorb=1,min(orbsv%norbu,orbsv%norbd)
+!               jorb=orbsv%norbu+iorb
+!               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
+!                    'e_vrt(',iorb,',u)=',evalv(iorb+(ikpt-1)*orbsv%norb),&!e(iorb,ikpt,1),&
+!                    'e_vrt(',iorb,',d)=',evalv(jorb+(ikpt-1)*orbsv%norb)!e(jorb,ikpt,1)
+!            end do
+!            if (orbsv%norbu > orbsv%norbd) then
+!               do iorb=orbsv%norbd+1,orbsv%norbu
+!                  write(*,'(1x,a,i4,a,1x,1pe21.14)') &
+!                       'e_vrt(',iorb,',u)=',evalv(iorb+(ikpt-1)*orbsv%norb)!e(iorb,ikpt,1)
+!               end do
+!            else if (orbsv%norbd > orbsv%norbu) then
+!               do iorb=2*orbsv%norbu+1,orbsv%norbu+orbsv%norbd
+!                  write(*,'(50x,a,i4,a,1x,1pe21.14)') &
+!                       'e_vrt(',iorb-orbsv%norbu,',d)=',evalv(iorb+(ikpt-1)*orbsv%norb)!e(iorb,ikpt,1)
+!               end do
+!            end if
+!         end do
+!      end if
+!   end if
+!   
+  if(iproc==0)then
+     if (nspin==1) then
+        write(*,'(1x,a)')'Complete list of energy eigenvalues'
+        do ikpt=1,orbsv%nkpts
+           if (orbsv%nkpts > 1) write(*,"(1x,A,I3.3,A,3F12.6)") &
+                & "Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
+           do iorb=1,orbs%norb
+              if (occorbs) then
+                 val = orbs%eval(iorb+(ikpt-1)*orbs%norb)
+              else
+                 val = orbsv%eval(iorb+(ikpt-1)*orbsv%norb)!(iorb, ikpt, 1)
+              end if
+              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',val
+           end do
+	   write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
+                'HOMO LUMO gap   =',orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val,&
+                ' (',ha2ev*(orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val),&
+                ' eV)'
+           do iorb=1,orbsv%norb - occnorb
+              write(*,'(1x,a,i4,a,1x,1pe21.14)') &
+                   & 'e_virtual(',iorb,')=',orbsv%eval(iorb+occnorb+(ikpt-1)*orbsv%norb)!e(iorb+occnorb,ikpt,1)
+           end do
+        end do
+     else
+        do ikpt=1,orbsv%nkpts
+           write(*,'(1x,a)')'Complete list of energy eigenvalues'
+           do iorb=1,min(orbs%norbu,orbs%norbd)
+              if (occorbs) then
+                 valu = orbs%eval(iorb+(ikpt-1)*orbs%norb)
+                 vald = orbs%eval(iorb+orbs%norbu+(ikpt-1)*orbs%norb)
+              else
+                 valu = orbsv%eval(iorb+(ikpt-1)*orbsv%norb)!e(iorb, ikpt, 1)
+                 vald = orbsv%eval(iorb+orbsv%norbu+(ikpt-1)*orbsv%norb)!e(iorb+orbsv%norbu, ikpt, 1)
+              end if
+              write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
+                   'e_occ(',iorb,',u)=',valu,'e_occ(',iorb,',d)=',vald
+           end do
+           if (orbs%norbu > orbs%norbd) then
+              do iorb=orbs%norbd+1,orbs%norbu
+                 if (occorbs) then
+                    valu = orbs%eval(iorb+(ikpt-1)*orbs%norb)
+                 else
+                    valu = orbsv%eval(iorb+(ikpt-1)*orbsv%norb)!e(iorb, ikpt, 1)
+                 end if
+                 write(*,'(1x,a,i4,a,1x,1pe21.14)') &
+                      'e_occ(',iorb,',u)=',valu
+              end do
+           else if (orbs%norbd > orbs%norbu) then
+              do iorb=orbs%norbu+1,orbs%norbd
+                 if (occorbs) then
+                    vald = orbs%eval(iorb+orbs%norbu+(ikpt-1)*orbs%norb)
+                 else
+                    vald = orbsv%eval(iorb+orbsv%norbu+(ikpt-1)*orbsv%norb)!e(iorb+orbsv%norbu, ikpt, 1)
+                 end if
+                 write(*,'(50x,a,i4,a,1x,1pe21.14)') &
+                      'e_occ(',iorb,',d)=',vald
+              end do
+           end if
+           write(*,'(1x,a,1x,1pe21.14,a,0pf8.4,a,a,1x,1pe21.14,a,0pf8.4,a)') &
+                'HOMO LUMO gap, u =', orbsv%eval(1+occnorbu+(ikpt-1)*orbsv%norb)-valu,&
+                ' (',ha2ev*(orbsv%eval(1+occnorbu+(ikpt-1)*orbsv%norb)-valu),' eV)',&
+                ',d =',orbsv%eval(orbsv%norbu+1+occnorbd+(ikpt-1)*orbsv%norb)-vald,&
+                ' (',ha2ev*(orbsv%eval(orbsv%norbu+1+occnorbd+(ikpt-1)*orbsv%norb)-vald),' eV)'
+           do iorb=1,min(orbsv%norbu-occnorbu,orbsv%norbd-occnorbd)
+              jorb=orbsv%norbu+iorb+occnorbd
+              write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
+                   'e_vrt(',iorb,',u)=',orbsv%eval(iorb+(ikpt-1)*orbsv%norb),&!e(iorb,ikpt,1),&
+                   'e_vrt(',iorb,',d)=',orbsv%eval(jorb+(ikpt-1)*orbsv%norb)!e(jorb,ikpt,1)
+           end do
+           if (orbsv%norbu-occnorbu > orbsv%norbd-occnorbd) then
+              do iorb=orbsv%norbd+1-occnorbu,orbsv%norbu-occnorbd
+                 write(*,'(1x,a,i4,a,1x,1pe21.14)') &
+                      'e_vrt(',iorb,',u)=',orbsv%eval(iorb+(ikpt-1)*orbsv%norb)!e(iorb,ikpt,1)
+              end do
+           else if (orbsv%norbd-occnorbd > orbsv%norbu-occnorbu) then
+              do iorb=2*orbsv%norbu+1-occnorbu,orbsv%norbu-occnorbu+orbsv%norbd-occnorbd
+                 write(*,'(50x,a,i4,a,1x,1pe21.14)') &
+                      'e_vrt(',iorb-orbsv%norbu-occnorbu,',d)=',orbsv%eval(iorb+(ikpt-1)*orbsv%norb)!e(iorb,ikpt,1)
+              end do
+           end if
+        end do
+     end if
+  end if
+
+  
+  ! PLOTTING
+
+  !plot the converged wavefunctions in the different orbitals.
+  !nplot is the requested total of orbitals to plot, where
+  !states near the HOMO/LUMO gap are given higher priority.
+  !Occupied orbitals are only plotted when nplot>nvirt,
+  !otherwise a comment is given in the out file.
+
+  if(abs(nplot)>orbs%norb+nvirt)then
+     if(iproc==0)write(*,'(1x,A,i3)')&
+          "WARNING: More plots requested than orbitals calculated." 
+  end if
+
+  !add a modulo operator to get rid of the particular k-point
+  do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals
+     if(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1 > abs(nplot))then
+        if(iproc == 0 .and. abs(nplot) > 0)write(*,'(A)')&
+             'WARNING: No plots of occupied orbitals requested.'
+        exit 
+     end if
+     ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
+     !plot the orbital and the density
+     write(orbname,'(A,i4.4)')'virtual',iorb+orbsv%isorb
+     write(denname,'(A,i4.4)')'denvirt',iorb+orbsv%isorb
+     write(comment,'(1pe10.3)')orbsv%eval(iorb+orbsv%isorb)!e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
+
+     call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psivirt(ind:),comment)
+     call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psivirt(ind:),comment)
+
+  end do
+
+  do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
+     if(modulo(orbs%norb-iorb-orbs%isorb-0,orbs%norb)+1 <=  abs(nplot)) then  ! SG 
+        !address
+        ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
+        write(orbname,'(A,i4.4)')'orbital',iorb+orbs%isorb
+        write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
+        write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
+
+	call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+        call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+        
+     endif
+  end do
+  ! END OF PLOTTING
+
+
+end subroutine write_eigen_objects 	

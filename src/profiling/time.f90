@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=23   ! define timimg categories
+  integer, parameter :: ncat=31   ! define timimg categories
 
   integer :: istart, ittime, ncounters, ncaton!, nskip
   logical :: parallel,init
@@ -65,6 +65,14 @@ subroutine timing(iproc,category,action)
        'Exchangecorr  '    ,  &  !
        'Forces        '    ,  &  !
        'Tail          '    ,  &
+       'Loewdin_comput'    ,  &
+       'Loewdin_commun'    ,  &
+       'Chol_commun   '    ,  &
+       'Chol_comput   '    ,  &
+       'GS/Chol_comput'    ,  &
+       'GS/Chol_commun'    ,  &
+       'Input_comput  '    ,  &
+       'Input_commun  '    ,  &
        'Davidson      '    /)    !
 
   !first of all, read the time
@@ -175,6 +183,8 @@ subroutine timing(iproc,category,action)
      !print *,'find category',ii,trim(category)
      if (ii == 100000) then
         print *, 'ACTION  ',action
+        write(*,*) 'category, action',category, action
+        call mpi_barrier(mpi_comm_world, ierr)
         stop 'TIMING CATEGORY NOT DEFINED'
      end if
 

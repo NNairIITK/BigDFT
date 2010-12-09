@@ -1043,6 +1043,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 END SUBROUTINE createIonicPotential
 !!***
 
+
 !!****f* BigDFT/ind_position
 !! FUNCTION
 !!   Determine the index in which the potential must be inserted, following the BC
@@ -1112,7 +1113,7 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
      if (r == 0.0_gp) then
         potxyz = potxyz - charge*2.0_wp/(sqrt(pi)*real(sq2rl,wp))
      else
-        call derf(derf_val,r/sq2rl)
+        call derf_ab(derf_val,r/sq2rl)
         potxyz = potxyz - charge*real(derf_val/r,wp)
      end if
 
@@ -1145,7 +1146,7 @@ END SUBROUTINE ext_buffers
 !!***
 
 
-!!****f* BigDFT/createIonicPotential
+!!****f* BigDFT/CounterIonPotential
 !! FUNCTION
 !!
 !! SOURCE

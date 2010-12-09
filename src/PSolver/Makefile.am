@@ -5,8 +5,6 @@ SOURCES_MOD = PSolver_Main.f90 \
 	xcenergy.f90 \
 	3Dgradient.f90 
 
-OTHERS = Makefile.PSolver
-
 EXTRA_DIST = \
 	lazy_100.inc \
 	lazy_14.inc \

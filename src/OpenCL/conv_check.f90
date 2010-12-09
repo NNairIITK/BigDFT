@@ -76,8 +76,8 @@ program conv_check
   end if
 
   call ocl_create_gpu_context(context)
+  call ocl_build_programs(context)
   call ocl_create_command_queue(queue,context)
-  call ocl_build_kernels(context)
   call init_event_list
 
   hx=0.1e0_gp
@@ -388,6 +388,30 @@ program conv_check
            call nanosec(tsc0)
            do i=1,ntimes
               call gemm_d(queue,'n','n',n1,n1,ndat,1.2d0,work_GPU,n1,work_GPU,ndat,0.0d0,psi_GPU, n1)
+           end do
+           call ocl_finish(queue);
+           call nanosec(tsc1)
+
+           call ocl_enqueue_read_buffer(queue, psi_GPU, n1*n1*8, psi_cuda_gemm)
+           call ocl_release_mem_object(psi_GPU)
+           call ocl_release_mem_object(work_GPU)
+
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+           call print_time(GPUtime,n1*n1,ndat*2,ntimes)
+
+           call compare_2D_results(n1, n1, psi_gemm, psi_cuda_gemm, maxdiff, 3.d-7)
+
+           call compare_time(CPUtime,GPUtime,n1*n1,ndat*2,ntimes,maxdiff,3.d-7)
+
+           write(*,'(a,i6,i6,i6)')'GPU GEMM (volkov), dimensions:',n1,n1,ndat
+
+           call ocl_create_write_buffer(context, n1*n1*8, psi_GPU)
+           call ocl_create_read_buffer(context, n1*ndat*8, work_GPU)
+           call ocl_enqueue_write_buffer(queue, work_GPU, n1*ndat*8, v_cuda_str)
+
+           call nanosec(tsc0)
+           do i=1,ntimes
+              call gemm_volkov_d(queue,'n','n',n1,n1,ndat,1.2d0,work_GPU,n1,work_GPU,ndat,0.0d0,psi_GPU, n1)
            end do
            call ocl_finish(queue);
            call nanosec(tsc1)
@@ -1628,7 +1652,7 @@ program conv_check
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
            call print_time(GPUtime,8*nvctr_cf,1,ntimes)
 
-           call compare_3D_results(n1*2, n2*2, n3*2, psi_in, psi_cuda, maxdiff,1d-9)
+           call compare_3D_results(n1*2, n1*2, n1*2, psi_in, psi_cuda, maxdiff,1d-9)
       
            call compare_time(CPUtime,GPUtime,8*nvctr_cf,1,ntimes,maxdiff,1.d-9)
 
@@ -1725,7 +1749,7 @@ program conv_check
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
            call print_time(GPUtime,8*nvctr_cf,1,ntimes)
 
-           call compare_3D_results(n1*2, n2*2, n3*2, psi_in, psi_cuda, maxdiff,1d-9)
+           call compare_3D_results(n1*2, n1*2, n1*2, psi_in, psi_cuda, maxdiff,1d-9)
       
            call compare_time(CPUtime,GPUtime,8*nvctr_cf,1,ntimes,maxdiff,1.d-9)
 
@@ -1801,8 +1825,8 @@ program conv_check
      print *,'wrong ndim',ndim
   end if
   call print_event_list
-  
-  call ocl_clean(queue, context)
+  call ocl_clean_command_queue(queue)
+  call ocl_clean(context)
 
 contains
 

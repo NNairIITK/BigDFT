@@ -3,7 +3,7 @@
 #include "OpenCL_wrappers.h"
 
 extern cl_context context;
-extern cl_command_queue queue;
+extern bigdft_command_queue queue;
 
 void init_key(cl_int *keyg, cl_int *keyv, cl_int nseg, cl_int *nvctr_cf);
 void init_random(double * data, size_t size);

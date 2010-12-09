@@ -240,8 +240,7 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
        d2excdrs2=-(d2n1drs2+2._dp*dexcdrs*dd1drs+excipt*d2d1drs2)*d1m1
        dvxcdrs=third*(2.0_dp*dexcdrs-rs*d2excdrs2)
 !      And d(vxc)/d(rho)=(-rs/(3*rho))*d(vxc)/d(rs)
-       dvxc(ipts,1)= -rs**4*rsfacm3*third*dvxcdrs
-
+       dvxc(ipts,1)=-rs**4*rsfacm3*third*dvxcdrs
 !      dn1df=d(n1)/d(fxc) and dd1df=d(d1)/d(fxc)
        dn1df=da0+rs*(da1+rs*(da2+rs*da3))
        dd1df=rs*(db1+rs*(db2+rs*(db3+rs*db4)))

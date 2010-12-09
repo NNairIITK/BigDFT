@@ -1,14 +1,24 @@
-!!****d* BigDFT/ABINIT-ewald
+!!****d* BigDFT/art
 !!
 !! DESCRIPTION
-!!  Routines to calculate the Ewald sum from ABINIT packages
-!!
+!!  ART method from normand Mousseau
 !! FILES
-!! derfc.F90
-!! ewald.F90
-!! matr3inv.F90
-!! metric.F90
 !!
+!! art_diis.f90
+!! art_lanczos.f90
+!! bart.sh
+!! bigdft_forces.f90
+!! defs.f90
+!! find_saddle.f90
+!! initialize.f90
+!! initialize_potential.f90
+!! min_converge.f90
+!! random.f90
+!! read_parameters.f90
+!! restart.f90
+!! saddle_converge.f90
+!! utils.f90
+!! write_refconfig.f90
 !!***
 
 
@@ -22,24 +32,51 @@
 !! combined_grow_simple.f90
 !! combined_shrink_optim.f90
 !! combined_shrink_simple.f90
+!! convolut_altern_optim_per.f90
 !! convolut_common.f90
 !! convolut_common_interface_cuda.f90
+!! convolut_common_interface_ocl.f90
 !! convolut_common_per.f90
+!! convolut_common_slab.f90
 !! convolut_ib_optim.f90
 !! convolut_ib_simple.f90
+!! convolut_new_per.f90
 !! convolut_optim_per.f90
+!! convolut_optim_slab.f90
 !! convolut_simple.f90
 !! convolut_simple_per.f90
+!! convolut_simple_per_k.f90
 !! convolut_simple_slab.f90
+!! convolut_simple_slab_k.f90
 !! conv_per_common.f90
 !! conv_per_optim.f90
 !! conv_per_simple.f90
 !! growshrink.f90
+!! growshrink_hyb_common.f90
+!! growshrink_hyb_optim.f90
+!! growshrink_hyb_simple.f90
 !! interface_cuda_fake.f90
+!! interface_ocl_fake.f90
 !! v_17.inc
 !! v.inc
 !! v_long.inc
+!!***
+
+
+!!****d* BigDFT/convolutions-c
 !!
+!! DESCRIPTION
+!!  Convolutions using C routines
+!!
+!! FILES
+compil.vec
+conv_check.f90
+MagicFilter_C.c
+test_vectorize3.c
+test_vectorize4.c
+thread_engine.cpp
+thread_engine.h
+tool.h
 !!***
 
 
@@ -94,7 +131,7 @@
 !!****d* BigDFT/lib
 !!
 !! DESCRIPTION
-!!  Contains routines for the compilation (CUDA header and library)
+!!  Contains routines for the compilation (only fft)
 !!
 !! FILES
 !!
@@ -209,6 +246,7 @@
 !!****d* BigDFT/wavelib
 !!
 !! DESCRIPTION
+!!  Basic routines for wavelets
 !!  
 !! FILES
 !! gauss_to_daub.f90

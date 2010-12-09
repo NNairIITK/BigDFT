@@ -186,18 +186,15 @@ out[(jg*n+ig)]=tmp[j2 * (FILTER_WIDTH + 1) + i2];\n\
 };\n\
 ";
 
-cl_kernel benchmark_mops_kernel_d;
-cl_kernel benchmark_flops_kernel_d;
-cl_kernel transpose_kernel_d;
 cl_program benchmarkProgram;
 
-void create_benchmark_kernels(){
+void create_benchmark_kernels(struct bigdft_kernels * kernels){
     cl_int ciErrNum = CL_SUCCESS;
-    benchmark_mops_kernel_d=clCreateKernel(benchmarkProgram,"benchmark_mopsKernel_d",&ciErrNum);
+    kernels->benchmark_mops_kernel_d=clCreateKernel(benchmarkProgram,"benchmark_mopsKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create benchmark_mopsKernel_d kernel!");
-    benchmark_flops_kernel_d=clCreateKernel(benchmarkProgram,"benchmark_flopsKernel_d",&ciErrNum);
+    kernels->benchmark_flops_kernel_d=clCreateKernel(benchmarkProgram,"benchmark_flopsKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create benchmark_flopsKernel_d kernel!");
-    transpose_kernel_d=clCreateKernel(benchmarkProgram,"transposeKernel_d",&ciErrNum);
+    kernels->transpose_kernel_d=clCreateKernel(benchmarkProgram,"transposeKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create transposeKernel_d kernel!");
 }
 
@@ -216,7 +213,7 @@ void build_benchmark_programs(cl_context * context){
     }
 }
 
-inline void benchmark_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n,cl_mem *in,cl_mem *out){
+inline void benchmark_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n,cl_mem *in,cl_mem *out){
     cl_int ciErrNum;
     int FILTER_WIDTH=64;
     assert(*n>=FILTER_WIDTH);
@@ -227,11 +224,11 @@ inline void benchmark_generic(cl_kernel kernel, cl_command_queue *command_queue,
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
     size_t localWorkSize[] = { block_size_i };
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n)};
-    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
     oclErrorCheck(ciErrNum,"Failed to enqueue benchmark kernel!");
 }
 
-inline void transpose_generic(cl_kernel kernel, cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
+inline void transpose_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     cl_int ciErrNum;
     int FILTER_WIDTH=16;
     assert(*n>=FILTER_WIDTH);
@@ -244,30 +241,34 @@ inline void transpose_generic(cl_kernel kernel, cl_command_queue *command_queue,
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(cl_double)*block_size_j*(block_size_i+1), 0);
     size_t localWorkSize[] = { block_size_i,block_size_j };
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
-    ciErrNum = clEnqueueNDRangeKernel  (*command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
     oclErrorCheck(ciErrNum,"Failed to enqueue transpose kernel!");
 }
 
-void FC_FUNC_(benchmark_flops_d,BENCHMARK_FLOPS_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out){
-    benchmark_generic(benchmark_flops_kernel_d, command_queue, n, in, out);
+void FC_FUNC_(benchmark_flops_d,BENCHMARK_FLOPS_D)(bigdft_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out){
+    benchmark_generic((*command_queue)->kernels.benchmark_flops_kernel_d, (*command_queue)->command_queue, n, in, out);
 }
 
-void FC_FUNC_(benchmark_mops_d,BENCHMARK_MOPS_D)(cl_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out){
-    benchmark_generic(benchmark_mops_kernel_d, command_queue, n, in, out);
+void FC_FUNC_(benchmark_mops_d,BENCHMARK_MOPS_D)(bigdft_command_queue *command_queue, cl_uint *n, cl_mem *in, cl_mem *out){
+    benchmark_generic((*command_queue)->kernels.benchmark_mops_kernel_d, (*command_queue)->command_queue, n, in, out);
 }
 
-void FC_FUNC_(transpose_d,TRANSPOSE_D)(cl_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
-    transpose_generic(transpose_kernel_d, command_queue, n, ndat, psi, out);
+void FC_FUNC_(transpose_d,TRANSPOSE_D)(bigdft_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
+    transpose_generic((*command_queue)->kernels.transpose_kernel_d, (*command_queue)->command_queue, n, ndat, psi, out);
 }
 
-void clean_benchmark_kernels(){
+void clean_benchmark_kernels(struct bigdft_kernels * kernels){
   cl_int ciErrNum;
-  ciErrNum = clReleaseKernel(benchmark_flops_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->benchmark_flops_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(benchmark_mops_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->benchmark_mops_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
-  ciErrNum = clReleaseKernel(transpose_kernel_d);
+  ciErrNum = clReleaseKernel(kernels->transpose_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
+}
+
+void clean_benchmark_programs(){
+  cl_int ciErrNum;
   ciErrNum = clReleaseProgram(benchmarkProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
 }

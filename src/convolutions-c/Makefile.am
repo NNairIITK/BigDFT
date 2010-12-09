@@ -14,8 +14,7 @@ else
 check =
 endif
 
-check_PROGRAMS = $(check)
-
+EXTRA_PROGRAMS = conv_check
 noinst_LIBRARIES = libbasef.a libbasec.a
 
 libbasef_a_SOURCES = ../profiling/memory.f90 \
@@ -34,12 +33,13 @@ CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir)
 AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@
-AM_CFLAGS = -Wall -Werror -funroll-loops -mtune=core2 -ftree-vectorize -floop-interchange -floop-strip-mine -floop-block
+AM_CFLAGS = -Wall -Werror -O3 -msse3 -mtune=core2 -ftree-vectorize -ftree-vectorizer-verbose=9 -ffast-math
+#-funroll-loops -mtune=core2 -ftree-vectorize -floop-interchange -floop-strip-mine -floop-block
 
 conv_check_SOURCES = conv_check.f90 
 conv_check_LDADD = libbasec.a libbasef.a ../libbigdft.a ../PSolver/libpoissonsolver.a
 conv_check_LDFLAGS = -lpthread -lconfig++ -lstdc++
 
-check:
+check_conv: conv_check
 	echo 1 128 128 204900 204900 10 > fort.1
 	numactl --interleave=all ./conv_check

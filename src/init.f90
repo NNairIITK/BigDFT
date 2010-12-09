@@ -99,11 +99,10 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
      end if
   end if
 
-  ! fine grid quantities
   call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
        atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f,Glr%wfd%nvctr_f)
-  if (iproc == 0) write(*,'(2(1x,a,i10))') &
+  if (iproc == 0) write(*,'(2(1x,a,i10))') & 
        '  Fine resolution grid: Number of segments= ',Glr%wfd%nseg_f,'points=',Glr%wfd%nvctr_f
   if (atoms%geocode == 'F') then
      call make_bounds(n1,n2,n3,logrid_f,Glr%bounds%kb%ibyz_f,Glr%bounds%kb%ibxz_f,Glr%bounds%kb%ibxy_f)
@@ -486,7 +485,7 @@ END SUBROUTINE createProjectorsArrays
 !!
 subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
      Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,nlpspd,proj,& 
-     pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin,symObj,irrzon,phnons)
+     pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin,symObj,irrzon,phnons,input)
   use module_base
   use module_interfaces, except_this_one_A => import_gaussians
   use module_types
@@ -498,6 +497,7 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors), intent(in) :: Glr
   type(communications_arrays), intent(in) :: comms
+  type(input_variables):: input
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -645,7 +645,7 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Imported Wavefunctions Orthogonalization:'
 
-  call DiagHam(iproc,nproc,at%natsc,nspin,orbs,Glr%wfd,comms,psi,hpsi,psit)
+  call DiagHam(iproc,nproc,at%natsc,nspin,orbs,Glr%wfd,comms,psi,hpsi,psit,input)
 
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
 
@@ -660,8 +660,8 @@ END SUBROUTINE import_gaussians
 !!
 subroutine input_wf_diag(iproc,nproc,at,&
      orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-     nlpspd,proj,pkernel,ixc,psi,hpsi,psit,G,&
-     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU)
+     nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
+     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -680,21 +680,23 @@ subroutine input_wf_diag(iproc,nproc,at,&
   type(locreg_descriptors), intent(in) :: Glr
   type(communications_arrays), intent(in) :: comms
   type(GPU_pointers), intent(inout) :: GPU
+  type(input_variables):: input
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-  real(dp), dimension(*), intent(in) :: pkernel
   real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
   type(gaussian_basis), intent(out) :: G !basis for davidson IG
   real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
+  real(dp), dimension(:), pointer :: pkernel,pkernelseq
   integer, intent(in) ::potshortcut
   integer, dimension(*), intent(in) :: irrzon
   real(dp), dimension(*), intent(in) :: phnons
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   logical :: switchGPUconv,switchOCLconv
-  integer :: i_stat,i_all,iat,nspin_ig
+  integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0
+  real(kind=4) :: tt,builtin_rand
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,etol,accurex
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
@@ -805,6 +807,17 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
        & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
        & symObj, irrzon, phnons)
+     
+  !-- if spectra calculation uses a energy dependent potential
+  !    input_wf_diag will write (to be used it in abscalc)
+  !    the density to the file electronic_density.cube
+  !  The writing is activated if  5th bit of  in%potshortcut is on.
+  if( iand( potshortcut,16)==0 .and. potshortcut /= 0) then
+     call plot_density_cube_old(at%geocode,'electronic_density',&
+          iproc,nproc,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nscatterarr(iproc,2),  & 
+          nspin,hxh,hyh,hzh,at,rxyz,ngatherarr,rhopot(1+nscatterarr(iproc,4)*Glr%d%n1i*Glr%d%n2i))
+  endif
+  !---
   
   if(orbs%nspinor==4) then
      !this wrapper can be inserted inside the poisson solver 
@@ -826,9 +839,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
           Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
           rhopot,eexcu,vexcu,nspin,rhocore,potxc)
 
-     call H_potential(at%geocode,'D',iproc,nproc,&
-          Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-          rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.)
+
+     if( iand(potshortcut,4)==0) then
+        call H_potential(at%geocode,'D',iproc,nproc,&
+             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+             rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.)
+     endif
+
 
      !sum the two potentials in rhopot array
      !fill the other part, for spin, polarised
@@ -950,11 +967,11 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call memocc(i_stat,hpsi,'hpsi',subname)
 
   !call dcopy(orbse%npsidim,psi,1,hpsi,1)
-  
+  if (input%exctxpar == 'OP2P') eexctX = -99.0_gp
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
        rhopot,&
-       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernel)
+       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
 
 !!!  !calculate the overlap matrix knowing that the original functions are gaussian-based
 !!!  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
@@ -1011,9 +1028,32 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !!$       psi,hpsi,psit,orbse,commse,etol,norbsc_arr,orbsv,psivirt)
 
   call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
-       psi,hpsi,psit,orbse,commse,etol,norbsc_arr)
+       psi,hpsi,psit,input,orbse,commse,etol,norbsc_arr)
 
- 
+  if (input%itrpmax > 1) then
+     !use the eval array of orbse structure to save the original values
+     allocate(orbse%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+     call memocc(i_stat,orbse%eval,'orbse%eval',subname)
+     
+     call dcopy(orbs%norb*orbs%nkpts,orbs%eval(1),1,orbse%eval(1),1)
+
+     !add a small displacement in the eigenvalues
+     do iorb=1,orbs%norb*orbs%nkpts
+        tt=builtin_rand(idum)
+        orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+0.05_gp*real(tt,gp))
+     end do
+
+     !correct the occupation numbers wrt fermi level
+     call Fermilevel(.false.,1.e-2_gp,orbs)
+
+     !restore the occupation numbers
+     call dcopy(orbs%norb*orbs%nkpts,orbse%eval(1),1,orbs%eval(1),1)
+
+     i_all=-product(shape(orbse%eval))*kind(orbse%eval)
+     deallocate(orbse%eval,stat=i_stat)
+     call memocc(i_stat,i_all,'orbse%eval',subname)
+  end if
+
   call deallocate_comms(commse,subname)
 
   i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
