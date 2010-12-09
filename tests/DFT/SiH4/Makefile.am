@@ -33,5 +33,5 @@ SiH4.out: $(top_builddir)/src/bigdft $(PPFILES)
         fi
 
 check: SiH4.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft --discrepancy=1.e-9 SiH4.out \
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft --discrepancy=5.e-9 SiH4.out \
 		$(top_srcdir)/tests/DFT/SiH4/SiH4.out.ref | tee fldiff.report

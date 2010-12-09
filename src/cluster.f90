@@ -372,7 +372,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if (libxc_functionals_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .and. nproc > 1) then
      call createKernel(0,1,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,&
-          pkernelseq,quiet=PSquiet)
+          pkernelseq,quiet='YES')
   else
      pkernelseq => pkernel
   end if
