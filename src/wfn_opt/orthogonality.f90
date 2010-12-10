@@ -127,6 +127,23 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
 END SUBROUTINE orthogonalize
 !!***
 
+subroutine check_closed_shell(nspin,orbs,lcs)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nspin
+  type(orbitals_data), intent(in) :: orbs
+  logical, intent(out) :: lcs
+  !local variables
+  integer :: iorb
+  lcs=.true.
+  do iorb=orbs%norb*orbs%nkpts,1,-1
+     if ( orbs%occup(iorb) /= real(3-nspin,gp)) then
+        lcs=.false.
+        exit
+     end if
+  end do
+end subroutine check_closed_shell
 
 !!****f* BigDFT/orthoconstraint
 !! FUNCTION
@@ -147,7 +164,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   real(dp), intent(out) :: scprsum
   !local variables
   character(len=*), parameter :: subname='orthoconstraint'
-  integer :: i_stat,i_all,ierr,iorb,ise
+  integer :: i_stat,i_all,ierr,iorb,ise,jorb
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   real(dp) :: occ,tt
   integer, dimension(:,:), allocatable :: ndimovrlp
@@ -208,8 +225,6 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
      call timing(iproc,'LagrM_comput  ','OF')
      call timing(iproc,'LagrM_commun  ','ON')
      call mpiallred(alag(1),ndimovrlp(nspin,orbs%nkpts),MPI_SUM,MPI_COMM_WORLD,ierr)
-     !call MPI_ALLREDUCE (alag(1,2),alag(1,1),ndimovrlp(nspin,orbs%nkpts),&
-     !mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
      call timing(iproc,'LagrM_commun  ','OF')
      call timing(iproc,'LagrM_comput  ','ON')
   end if
@@ -227,32 +242,44 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
      ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
      do ispin=1,nspin
-
+        if (ispin==1) ise=0
         call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         if (nvctrp == 0) cycle
 
+!!$        !correct the orthogonality constraint if there are some orbitals which have zero occupation number
+!!$        do iorb=1,norb
+!!$           do jorb=iorb+1,norb
+!!$              if (orbs%occup((ikpt-1)*orbs%norb+iorb+ise) /= 0.0_gp .and. &
+!!$                   orbs%occup((ikpt-1)*orbs%norb+jorb+ise) == 0.0_gp) then
+!!$                 alag(ndimovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs) = 0.0_wp
+!!$                 alag(ndimovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs) = 0.0_wp
+!!$                 !if (iproc ==0) print *,'i,j',iorb,jorb,alag(ndimovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs)
+!!$              end if
+!!$           end do
+!!$        end do
+
         !calculate the scprsum if the k-point is associated to this processor
+        !the scprsum always coincide with the trace of the hamiltonian
         if (orbs%ikptproc(ikpt) == iproc) then
-           if (ispin==1) ise=0
+           occ=real(orbs%kwgts(ikpt),dp)*real(3-nspin,gp)
+           if (nspinor == 4) occ=real(orbs%kwgts(ikpt),dp)
            if(nspinor == 1) then
               do iorb=1,norb
-                 occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb+ise),dp)
                  scprsum=scprsum+&
                       occ*real(alag(ndimovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs),dp)
               enddo
            else if (nspinor == 4 .or. nspinor == 2) then
-              !not sure about the imaginary part of the diagonal
+              !not sure about the imaginary part of the diagonal (should be zero if H is hermitian)
               do iorb=1,norb
-                 occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb+ise),dp)
                  scprsum=scprsum+&
                       occ*real(alag(ndimovrlp(ispin,ikpt-1)+2*iorb-1+(iorb-1)*norbs),dp)
                  scprsum=scprsum+&
                       occ*real(alag(ndimovrlp(ispin,ikpt-1)+2*iorb+(iorb-1)*norbs),dp)
               enddo
            end if
-           ise=norb
         end if
+        ise=norb
 
         if(nspinor==1 .and. nvctrp /= 0) then
            call gemm('N','N',nvctrp,norb,norb,-1.0_wp,psi(ispsi),max(1,nvctrp),&

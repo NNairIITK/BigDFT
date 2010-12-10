@@ -526,8 +526,8 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
         ispinsum=ispinsum+abs(ispol)
      end do
      if (ispinsum == 0 .and. in%nspin==2) then
-        !if (iproc==0) 
-            write(*,'(1x,a)')&
+        if (iproc==0) &
+             write(*,'(1x,a)')&
              'WARNING: Found no input polarisation, add it for a correct input guess'
         !stop
      end if
@@ -932,7 +932,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,nspin,occup,spinsgn)
 ! Local variables
   integer :: iorb,nt,ne,it,ierror,iorb1,i
   real(gp) :: rocc
-  character(len=8) :: string
+  character(len=20) :: string
   character(len=100) :: line
 
 

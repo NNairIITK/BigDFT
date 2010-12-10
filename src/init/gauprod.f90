@@ -687,7 +687,6 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   call memocc(i_stat,i_all,'work',subname)
   allocate(work(nwork+ndebug),stat=i_stat)
   call memocc(i_stat,work,'work',subname)
-
   
   call gaussian_overlap(G,G,ovrlp)
 

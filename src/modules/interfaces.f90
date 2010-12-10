@@ -313,7 +313,7 @@ module module_interfaces
 
      subroutine input_wf_diag(iproc,nproc,at,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,G,&
+          nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
           nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
        use module_base
        use module_types
@@ -332,10 +332,10 @@ module module_interfaces
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-       real(dp), dimension(*), intent(in) :: pkernel
        real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
        type(gaussian_basis), intent(out) :: G 
        real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
+       real(dp), dimension(:), pointer :: pkernel,pkernelseq
        integer, intent(in) :: potshortcut
        integer, dimension(*), intent(in) :: irrzon
        real(dp), dimension(*), intent(in) :: phnons
@@ -412,21 +412,19 @@ module module_interfaces
      END SUBROUTINE HamiltonianApplication
 
      subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
-          ncong,iter,diis,idsx,idsx_actual,energy,energy_old,&
-          alpha,gnrm,scprsum,psi,psit,hpsi,nspin,GPU,input)
+          ncong,iter,diis,idsx,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,nspin,GPU,input)
        use module_base
        use module_types
+       !use wavefunctionDIIS
        implicit none
        integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
-       real(gp), intent(in) :: hx,hy,hz,energy,energy_old
+       real(gp), intent(in) :: hx,hy,hz
        type(locreg_descriptors), intent(in) :: lr
        type(communications_arrays), intent(in) :: comms
        type(orbitals_data), intent(in) :: orbs
-       type(input_variables):: input
+       type(input_variables), intent(in) :: input
        type(diis_objects), intent(inout) :: diis
-       integer, intent(inout) :: idsx_actual
-       real(wp), intent(inout) :: alpha
-       real(dp), intent(inout) :: gnrm,scprsum
+       real(dp), intent(inout) :: gnrm,gnrm_zero,scprsum
        real(wp), dimension(:), pointer :: psi,psit,hpsi
        type(GPU_pointers), intent(inout) :: GPU
      END SUBROUTINE hpsitopsi
@@ -608,7 +606,7 @@ module module_interfaces
        integer:: iproc
      END SUBROUTINE build_eigenvectors
 
-     subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
+     subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
        use module_base
        use module_types
        implicit none
@@ -616,7 +614,7 @@ module module_interfaces
        real(gp), intent(in) :: hx,hy,hz
        type(locreg_descriptors), intent(in) :: lr
        type(orbitals_data), intent(in) :: orbs
-       real(dp), intent(out) :: gnrm
+       real(dp), intent(out) :: gnrm,gnrm_zero
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp,orbs%nspinor), intent(inout) :: hpsi
      END SUBROUTINE preconditionall
 

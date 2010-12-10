@@ -288,7 +288,7 @@ subroutine local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,&
 END SUBROUTINE local_hamiltonian_GPU
 
 
-subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
+subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
   use module_base
   use module_types
   implicit none
@@ -296,7 +296,7 @@ subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
   integer, intent(in) :: iproc,nproc,ncong
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
-  real(dp), intent(out) :: gnrm
+  real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
   character(len=*), parameter :: subname='preconditionall_GPU'
@@ -318,28 +318,31 @@ subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,GPU)
   call memocc(i_stat,b,'b',subname)
 
   gnrm=0.0_dp
+  !norm of gradient of unoccupied orbitals
+  gnrm_zero=0.0_dp
 
   do iorb=1,orbs%norbp
      do inds=1,orbs%nspinor,ncplx !the streams should be more if nspinor>1
         !the nrm2 function can be replaced here by ddot
         scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi(1,inds,iorb),1)
-        gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+
+        if (orbs%occup(orbs%isorb+iorb) == 0.0_gp) then
+           gnrm_zero=gnrm_zero+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        else
+           !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
+           gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        end if
 
         call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,0.5_wp,w,&
              hpsi(1,inds,iorb),b(1,iorb))
 
         call sg_create_stream(tab_stream_ptr(iorb))
 
-
-
         call sg_gpu_send_mem(GPU%psi(iorb),&
              hpsi(1,inds,iorb),&
              GPU%pinned_in,&
              (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,8,&
              tab_stream_ptr(iorb),i_stat)
-        
-
-
 
         call sg_gpu_send_mem(GPU%rhopot,&
              b(1,iorb),&

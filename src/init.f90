@@ -660,7 +660,7 @@ END SUBROUTINE import_gaussians
 !!
 subroutine input_wf_diag(iproc,nproc,at,&
      orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-     nlpspd,proj,pkernel,ixc,psi,hpsi,psit,G,&
+     nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
      nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
@@ -685,17 +685,18 @@ subroutine input_wf_diag(iproc,nproc,at,&
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-  real(dp), dimension(*), intent(in) :: pkernel
   real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
   type(gaussian_basis), intent(out) :: G !basis for davidson IG
   real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
+  real(dp), dimension(:), pointer :: pkernel,pkernelseq
   integer, intent(in) ::potshortcut
   integer, dimension(*), intent(in) :: irrzon
   real(dp), dimension(*), intent(in) :: phnons
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   logical :: switchGPUconv,switchOCLconv
-  integer :: i_stat,i_all,iat,nspin_ig
+  integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0
+  real(kind=4) :: tt,builtin_rand
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,etol,accurex
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
@@ -966,11 +967,11 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call memocc(i_stat,hpsi,'hpsi',subname)
 
   !call dcopy(orbse%npsidim,psi,1,hpsi,1)
-  
+  if (input%exctxpar == 'OP2P') eexctX = -99.0_gp
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
        rhopot,&
-       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernel)
+       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
 
 !!!  !calculate the overlap matrix knowing that the original functions are gaussian-based
 !!!  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
@@ -1029,7 +1030,30 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
        psi,hpsi,psit,input,orbse,commse,etol,norbsc_arr)
 
- 
+  if (input%itrpmax > 1) then
+     !use the eval array of orbse structure to save the original values
+     allocate(orbse%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+     call memocc(i_stat,orbse%eval,'orbse%eval',subname)
+     
+     call dcopy(orbs%norb*orbs%nkpts,orbs%eval(1),1,orbse%eval(1),1)
+
+     !add a small displacement in the eigenvalues
+     do iorb=1,orbs%norb*orbs%nkpts
+        tt=builtin_rand(idum)
+        orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+0.05_gp*real(tt,gp))
+     end do
+
+     !correct the occupation numbers wrt fermi level
+     call Fermilevel(.false.,1.e-2_gp,orbs)
+
+     !restore the occupation numbers
+     call dcopy(orbs%norb*orbs%nkpts,orbse%eval(1),1,orbs%eval(1),1)
+
+     i_all=-product(shape(orbse%eval))*kind(orbse%eval)
+     deallocate(orbse%eval,stat=i_stat)
+     call memocc(i_stat,i_all,'orbse%eval',subname)
+  end if
+
   call deallocate_comms(commse,subname)
 
   i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)

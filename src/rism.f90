@@ -506,7 +506,7 @@ function erfor(r,rl)
   if (r == 0.0_gp) then
      erfor=2.0_gp/(sqrt(pi)*sq2rl)
   else
-     call derf(derf_val,r/sq2rl)
+     call derf_ab(derf_val,r/sq2rl)
      erfor=derf_val/r
   end if
 
@@ -858,6 +858,7 @@ subroutine atomic_charges(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
   i_all=-product(shape(H))*kind(H)
   deallocate(H,stat=i_stat)
   call memocc(i_stat,i_all,'H',subname)
+
   i_all=-product(shape(rhoarr))*kind(rhoarr)
   deallocate(rhoarr,stat=i_stat)
   call memocc(i_stat,i_all,'rhoarr',subname)

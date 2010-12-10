@@ -169,6 +169,11 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
      if (iproc ==0) write(*,*) '# ENTERING VSSD'
      call vstepsd(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
 
+  else if(trim(parmin%approach)=='FIRE') then
+
+     if (iproc ==0) write(*,*) '# ENTERING FIRE'
+     call fire(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft,fail)
+
   else if(trim(parmin%approach)=='DIIS') then
  
      if (iproc ==0) write(*,*) '# ENTERING DIIS'
@@ -2871,6 +2876,157 @@ END SUBROUTINE atomic_copymoving_backward
 !
       END
 
+
+!! Implementation of the damped MD based geometry optimizer FIRE, PRL 97, 170201 (2006)
+!! The MD-Integrator is the common velocity verlet, all masses are equal to 1.d0
+!! Implemented in August 2010, Maximilian Amsler, Basel University 
+!! Suggestion for maximal timestep as tmax=2*pi*sqrt(alphaVSSD)*1.2d-1
+!! Choose the initial timestep as tinit=tmax*0.5d0
+subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail) 
+  use module_base
+  use module_types
+  use minpar
+
+  implicit none
+  integer, intent(in) :: nproc,iproc
+  integer, intent(inout) :: ncount_bigdft
+  type(atoms_data), intent(inout) :: at
+  type(input_variables), intent(inout) :: in
+  type(restart_objects), intent(inout) :: rst
+  real(gp), intent(inout) :: etot
+  real(gp), dimension(3*at%nat), intent(inout) :: rxyz
+  logical, intent(inout) :: fail
+  real(gp), dimension(3*at%nat), intent(inout) :: fxyz
+
+  real(gp) :: fluct,fnrm,  fnoise
+  real(gp) ::sumx,sumy,sumz,fmax,vmax
+  integer :: check
+  integer :: infocode,i,ixyz,iat
+  character*4 fn4
+  character*40 comment
+  logical :: move_this_coordinate
+
+  character(len=*), parameter :: subname='fire'
+  integer :: i_stat,i_all
+
+!Fire parameters:
+  real(gp):: alpha,P,finc,fdec,falpha,alphastart,dt,dtmax,dtmd,fnrmtol,vnrm
+  real(gp):: velcur(3*at%nat), velpred(3*at%nat),poscur(3*at%nat),pospred(3*at%nat),fcur(3*at%nat),fpred(3*at%nat),mass(3*at%nat)
+  real(gp):: ecur,epred,eprev,anoise
+  integer:: Nmin,nstep,it
+  logical:: state
+  check=0
+!Set FIRE parameters
+  Nmin=5
+  finc=1.1_gp
+  fdec=0.5_gp
+  alphastart=0.25_gp
+  anoise=1.e-8_gp
+
+
+  alpha=alphastart
+  falpha=0.99_gp
+  nstep=1
+  dt=in%dtinit
+
+  dtmax=in%dtmax
+
+  fail=.false.
+  fnrm=1.e10_gp
+  velcur=0.0_gp
+  poscur=rxyz
+  fcur=fxyz
+  mass=1.0_gp
+  ecur=etot
+  epred=etot
+
+
+  do it=1,in%ncount_cluster_x-1
+    do iat=1,3*at%nat
+    pospred(iat)=poscur(iat)+dt*velcur(iat)+dt*dt*0.5_gp*fcur(iat)/mass(iat)
+    enddo
+
+
+  in%inputPsiId=1
+  in%output_grid=0
+  in%output_wf=.false.
+  call call_bigdft(nproc,iproc,at,pospred,in,epred,fpred,fnoise,rst,infocode)
+  fxyz=fpred
+  ncount_bigdft=ncount_bigdft+1
+  call fnrmandforcemax(fpred,fnrm,fmax,at%nat)
+!  call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
+
+  do iat=1,3*at%nat
+  velpred(iat)=velcur(iat)+0.5_gp*dt*(fpred(iat))/mass(iat)+0.5_gp*dt*fcur(iat)/mass(iat)
+  enddo
+  P=dot_product(fpred,velpred)
+  call fnrmandforcemax(velpred,vnrm,vmax,at%nat)
+
+   if (iproc == 0) then
+     write(fn4,'(i4.4)') ncount_bigdft
+     write(comment,'(a,1pe10.3)')'FIRE:fnrm= ',sqrt(fnrm)
+     call  write_atomic_file('posout_'//fn4,epred,pospred,at,trim(comment))
+   endif
+   if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
+   if (iproc==0.and.parmin%verbosity > 0) & 
+       write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),  & 
+       &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
+       &ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
+       &"alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P
+   if (iproc==0.and.parmin%verbosity > 0) & 
+       write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2), & 
+       &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
+       &ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
+       &"alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P 
+       eprev=epred
+   if (iproc==0.and.parmin%verbosity > 0) write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
+                           'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
+   call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
+   if (ncount_bigdft >= in%ncount_cluster_x-1) goto 50
+   close(16)
+   open(unit=16,file='geopt.mon',status='unknown',position='APPEND')
+
+    if(check.gt.5) then
+      if(iproc==0)  write(16,'(a,i0,a)') "   FIRE converged in ",it," iterations"
+      goto 50
+    endif
+
+!Update variables
+  fcur=fpred
+  poscur=pospred
+!Normal verlet velocity update
+!  velcur=velpred
+
+!!FIRE Update
+  call fnrmandforcemax(fpred,fnrm,fmax,at%nat)
+  fnrm=sqrt(fnrm)
+  call fnrmandforcemax(velpred,vnrm,vmax,at%nat)
+  vnrm=sqrt(vnrm)
+!Modified velocity update, suggested by Alireza
+!  velcur(:)=(1.0_gp-alpha)*velpred(:)+fpred(:)*min(alpha*vnrm/fnrm,2.0_gp*in%betax)!alpha*fpred(:)/fnrm*vnrm
+!Original FIRE velocitiy update
+  velcur(:)=(1.0_gp-alpha)*velpred(:)+alpha*fpred(:)/fnrm*vnrm
+       if(P.gt.-anoise*vnrm .and. nstep.gt.Nmin) then
+         dt=min(dt*finc,dtmax)
+!         alpha=max(alpha*falpha,0.1_gp) !Limit the decrease of alpha
+         alpha=alpha*falpha
+       elseif(P.le.-anoise*vnrm) then
+         nstep=0
+         dt=dt*fdec
+         velcur=0.d0
+         alpha=alphastart
+       endif
+       nstep=nstep+1
+
+if (iproc==0) write(10,*) epred, vnrm*0.5d0
+enddo
+
+
+ 50  CONTINUE
+        
+
+      return 
+      END
 
 
 

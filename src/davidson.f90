@@ -42,7 +42,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   logical :: msg,exctX,occorbs,endloop !extended output
   integer :: occnorb, occnorbu, occnorbd
   integer :: i_stat,i_all,iter,ikpt,idsx_actual,idsx_actual_before,ndiis_sd_sw
-  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
+  real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
   real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
   type(diis_objects) :: diis
   real(wp), dimension(:), pointer :: psiw,psirocc,psitvirt,hpsivirt
@@ -186,6 +186,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   alpha=2.d0
   energy=1.d10
   gnrm=1.d10
+  gnrm_zero=0.0_gp
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
@@ -243,8 +244,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      idsx_actual_before=idsx_actual
 
      call hpsitopsi(iproc,nproc,orbsv,hx,hy,hz,lr,commsv,in%ncong,&
-          iter,diis,in%idsx,idsx_actual,energy,energy_old,&
-          alpha,gnrm,scprsum,psivirt,psitvirt,hpsivirt,in%nspin,GPU,in)
+          iter,diis,in%idsx,gnrm,gnrm_zero,scprsum,psivirt,psitvirt,hpsivirt,in%nspin,GPU,in)
 
      if (occorbs) then
         !if this is true the transposition for psivirt which is done in hpsitopsi
@@ -796,7 +796,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 !        stop
 !     end if
 
-     call preconditionall(iproc,nproc,orbsv,lr,hx,hy,hz,in%ncong,g,gnrm_fake)
+     call preconditionall(iproc,nproc,orbsv,lr,hx,hy,hz,in%ncong,g,gnrm_fake,gnrm_fake)
 
      call timing(iproc,'Precondition  ','OF')
      if (iproc==0)write(*,'(1x,a)')'done.'
@@ -1535,12 +1535,12 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
 
   if (randinp) then
      !fill randomly the gaussian coefficients for the orbitals considered
-     do iorb=1,orbs%norbp*orbs%nspinor
-        do icoeff=1,G%ncoeff
-           !be sure to call always a different random number, per orbital
-           do jorb=1,orbs%isorb
-              tt=builtin_rand(idum) !call random_number(tt)
-           end do
+     do icoeff=1,G%ncoeff !reversed loop
+        !be sure to call always a different random number, per orbital
+        do jorb=1,orbs%isorb
+           tt=builtin_rand(idum) !call random_number(tt)
+        end do
+        do iorb=1,orbs%norbp*orbs%nspinor
            !do jproc=0,iproc-1
            !   tt=builtin_rand(idum) !call random_number(tt)
            !end do

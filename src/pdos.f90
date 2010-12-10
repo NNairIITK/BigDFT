@@ -177,12 +177,11 @@ subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
              coeff(icoeff,iorb)*duals(icoeff,iorb)
              !duals(icoeff,iorb)**2
         !if no spin polarisation equals up and down spin quantities
-        if (nspin ==1) then
-           mchg(icoeff,1)=0.5_wp*mchg(icoeff,1)
-           mchg(icoeff,2)=mchg(icoeff,1)
-        end if
-
      end do
+     if (nspin ==1) then
+        mchg(icoeff,1)=0.5_wp*mchg(icoeff,1)
+        mchg(icoeff,2)=mchg(icoeff,1)
+     end if
   end do
 
   !reduce the results

@@ -87,7 +87,7 @@ end module randomData
 !!****f* BigDFT/builtin_rand
 !! FUNCTION
 !!   Random Number generator from Numerical Recipes
-!!   To be used for reproductability of the results
+!!   To be used for reproducibility of the results
 !! SOURCE
 !!
 function builtin_rand(idum)
