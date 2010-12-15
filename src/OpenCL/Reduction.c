@@ -1466,6 +1466,30 @@ void FC_FUNC_(dot_d,DOT_D)(bigdft_command_queue *command_queue, cl_uint *ndat, c
   clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
 }
 
+void FC_FUNC_(dot_d_async,DOT_D_ASYNC)(bigdft_command_queue *command_queue, cl_uint *ndat, cl_mem *x, cl_mem *y, cl_mem *work1, cl_mem *work2, cl_double *out) {
+  if(*ndat==0){
+   *out = 0.0;
+   return;
+  }
+  cl_uint n = *ndat;
+  dot_generic((*command_queue)->kernels.dot_kernel_d, (*command_queue)->command_queue, &n, x, y, work1);
+  cl_mem *input=work1;
+  cl_mem *output=work2;
+  cl_mem *tmp;
+  n = shrRoundUp(1024,n)/1024;
+  if(n>1) {
+    do {
+      reduction_generic((*command_queue)->kernels.reduction_kernel_d, (*command_queue)->command_queue, &n, input, output);
+      tmp = input;
+      input = output;
+      output = tmp;
+      n = shrRoundUp(1024,n)/1024;
+    } while(n>1);
+  }
+  clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_FALSE, 0, sizeof(cl_double), out, 0, NULL, NULL);
+}
+
+
 void create_reduction_kernels(struct bigdft_kernels * kernels){
     cl_int ciErrNum = CL_SUCCESS;
     kernels->axpy_offset_kernel_d=clCreateKernel(reductionProgram,"axpy_offsetKernel_d",&ciErrNum);

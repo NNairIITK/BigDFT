@@ -51,8 +51,7 @@ void FC_FUNC_(ocl_fulllocham_generic,OCL_FULLLOCHAM_GENERIC)(bigdft_command_queu
   if( !periodic[1] ) n2 += 2*7;
   if( !periodic[2] ) n3 += 2*7;
   cl_uint ndat = n1*n2*n3;
-  dot_d_(command_queue,&ndat, work, kinres, psi, out, ekinpot);
-  *ekinpot -= *epot;
+  dot_d_async_(command_queue,&ndat, work, kinres, psi, out, ekinpot);
   ana_self_d_generic_(command_queue, dimensions, periodic, kinres, psi);
   compress_d_(command_queue, dimensions,
 	      nseg_c, nvctr_c, keyg_c, keyv_c,
