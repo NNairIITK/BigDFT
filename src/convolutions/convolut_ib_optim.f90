@@ -125,126 +125,126 @@ subroutine Convolkinetic(n1,n2,n3, &
 
 
 ! uncomment by Huan --- begin
-
-  if (firstcall) then
-
-     ! (1/2) d^2/dx^2
-     mflop1=0
-     do i3=0,n3
-        do i2=0,n2
-           do i1=ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)
-              do l=max(ibyz_c(1,i2,i3)-i1,lowfil),min(lupfil,ibyz_c(2,i2,i3)-i1)
-                 mflop1=mflop1+2
-              enddo
-              mflop1=mflop1+2
-           enddo
-            do i1=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil),&
-                  min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
-                do l=max(ibyz_f(1,i2,i3)-i1,lowfil),min(lupfil,ibyz_f(2,i2,i3)-i1)
-                    mflop1=mflop1+2
-                enddo
-                mflop1=mflop1+1
-            enddo
-            do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
-               do l=max(ibyz_c(1,i2,i3)-i1,lowfil),min(lupfil,ibyz_c(2,i2,i3)-i1)
-                  mflop1=mflop1+2
-               enddo
-            enddo
-     enddo
-  enddo
-     ! + (1/2) d^2/dy^2
-    mflop2=0
-    do i3=0,n3
-        do i1=0,n1
-            do i2=ibxz_c(1,i1,i3),ibxz_c(2,i1,i3)
-                   do l=max(ibxz_c(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_c(2,i1,i3)-i2)
-                   mflop2=mflop2+2       
-                   enddo
-                mflop2=mflop2+1
-            enddo
-            do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
-               do l=max(ibxz_c(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_c(2,i1,i3)-i2)
-                    mflop2=mflop2+2
-               enddo
-               mflop2=mflop2+1
-            enddo
-            do i2=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil),&
-                  min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
-               do l=max(ibxz_f(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_f(2,i1,i3)-i2)
-                  mflop2=mflop2+2
-               enddo
-            enddo
-        enddo
-    enddo
-     ! + (1/2) d^2/dz^2
-
-    mflop3=0
-    do i2=0,n2
-        do i1=0,n1
-            do i3=ibxy_c(1,i1,i2),ibxy_c(2,i1,i2)
-                do l=max(ibxy_c(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_c(2,i1,i2)-i3)
-                    mflop3=mflop3+2
-                   enddo
-                mflop3=mflop3+1
-            enddo
-            do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
-               do l=max(ibxy_c(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_c(2,i1,i2)-i3)
-                    mflop3=mflop3+2
-               enddo
-               mflop3=mflop3+1
-            enddo
-            do i3=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil),&
-                  min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
-               do l=max(ibxy_f(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_f(2,i1,i2)-i3)
-                  mflop3=mflop3+2
-               enddo
-            enddo
-
-        enddo
-    enddo
-
-     ! wavelet part
-     ! (1/2) d^2/dx^2
-     nflop1=0
-     do i3=nfl3,nfu3
-        do i2=nfl2,nfu2
-           do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
-              do l=max(nfl1-i1,lowfil),min(lupfil,nfu1-i1)
-                 nflop1=nflop1+26
-              enddo
-              nflop1=nflop1+17
-           enddo
-        enddo
-     enddo
-
-     ! + (1/2) d^2/dy^2
-     nflop2=0
-     do i3=nfl3,nfu3
-        do i1=nfl1,nfu1
-           do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
-              do l=max(nfl2-i2,lowfil),min(lupfil,nfu2-i2)
-                 nflop2=nflop2+26
-              enddo
-              nflop2=nflop2+7
-           enddo
-        enddo
-     enddo
-
-     ! + (1/2) d^2/dz^2
-     nflop3=0
-     do i2=nfl2,nfu2
-        do i1=nfl1,nfu1
-           do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
-              do l=max(nfl3-i3,lowfil),min(lupfil,nfu3-i3)
-                 nflop3=nflop3+26
-              enddo
-              nflop3=nflop3+7
-           enddo
-        enddo
-     enddo
-
-     firstcall=.false.
-  endif
+!
+!  if (firstcall) then
+!
+!     ! (1/2) d^2/dx^2
+!     mflop1=0
+!     do i3=0,n3
+!        do i2=0,n2
+!           do i1=ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)
+!              do l=max(ibyz_c(1,i2,i3)-i1,lowfil),min(lupfil,ibyz_c(2,i2,i3)-i1)
+!                 mflop1=mflop1+2
+!              enddo
+!              mflop1=mflop1+2
+!           enddo
+!            do i1=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil),&
+!                  min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
+!                do l=max(ibyz_f(1,i2,i3)-i1,lowfil),min(lupfil,ibyz_f(2,i2,i3)-i1)
+!                    mflop1=mflop1+2
+!                enddo
+!                mflop1=mflop1+1
+!            enddo
+!            do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
+!               do l=max(ibyz_c(1,i2,i3)-i1,lowfil),min(lupfil,ibyz_c(2,i2,i3)-i1)
+!                  mflop1=mflop1+2
+!               enddo
+!            enddo
+!     enddo
+!  enddo
+!     ! + (1/2) d^2/dy^2
+!    mflop2=0
+!    do i3=0,n3
+!        do i1=0,n1
+!            do i2=ibxz_c(1,i1,i3),ibxz_c(2,i1,i3)
+!                   do l=max(ibxz_c(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_c(2,i1,i3)-i2)
+!                   mflop2=mflop2+2       
+!                   enddo
+!                mflop2=mflop2+1
+!            enddo
+!            do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
+!               do l=max(ibxz_c(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_c(2,i1,i3)-i2)
+!                    mflop2=mflop2+2
+!               enddo
+!               mflop2=mflop2+1
+!            enddo
+!            do i2=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil),&
+!                  min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
+!               do l=max(ibxz_f(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_f(2,i1,i3)-i2)
+!                  mflop2=mflop2+2
+!               enddo
+!            enddo
+!        enddo
+!    enddo
+!     ! + (1/2) d^2/dz^2
+!
+!    mflop3=0
+!    do i2=0,n2
+!        do i1=0,n1
+!            do i3=ibxy_c(1,i1,i2),ibxy_c(2,i1,i2)
+!                do l=max(ibxy_c(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_c(2,i1,i2)-i3)
+!                    mflop3=mflop3+2
+!                   enddo
+!                mflop3=mflop3+1
+!            enddo
+!            do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
+!               do l=max(ibxy_c(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_c(2,i1,i2)-i3)
+!                    mflop3=mflop3+2
+!               enddo
+!               mflop3=mflop3+1
+!            enddo
+!            do i3=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil),&
+!                  min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
+!               do l=max(ibxy_f(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_f(2,i1,i2)-i3)
+!                  mflop3=mflop3+2
+!               enddo
+!            enddo
+!
+!        enddo
+!    enddo
+!
+!     ! wavelet part
+!     ! (1/2) d^2/dx^2
+!     nflop1=0
+!     do i3=nfl3,nfu3
+!        do i2=nfl2,nfu2
+!           do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
+!              do l=max(nfl1-i1,lowfil),min(lupfil,nfu1-i1)
+!                 nflop1=nflop1+26
+!              enddo
+!              nflop1=nflop1+17
+!           enddo
+!        enddo
+!     enddo
+!
+!     ! + (1/2) d^2/dy^2
+!     nflop2=0
+!     do i3=nfl3,nfu3
+!        do i1=nfl1,nfu1
+!           do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
+!              do l=max(nfl2-i2,lowfil),min(lupfil,nfu2-i2)
+!                 nflop2=nflop2+26
+!              enddo
+!              nflop2=nflop2+7
+!           enddo
+!        enddo
+!     enddo
+!
+!     ! + (1/2) d^2/dz^2
+!     nflop3=0
+!     do i2=nfl2,nfu2
+!        do i1=nfl1,nfu1
+!           do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
+!              do l=max(nfl3-i3,lowfil),min(lupfil,nfu3-i3)
+!                 nflop3=nflop3+26
+!              enddo
+!              nflop3=nflop3+7
+!           enddo
+!        enddo
+!     enddo
+!
+!     firstcall=.false.
+!  endif
 
 ! uncomment by Huan -- end
 
