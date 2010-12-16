@@ -635,7 +635,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   end if
 
 !  if (iproc == 0) call eFermi(orbs)
-  if (iproc == 0) call Fermilevel(orbs)
+  !if (iproc == 0) call Fermilevel(orbs)
 
   if (orbs%nspinor ==4) then
      i_all=-product(shape(mom_vec))*kind(mom_vec)
