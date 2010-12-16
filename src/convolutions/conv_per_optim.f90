@@ -36,7 +36,7 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
        0.031695087811525991431_wp, 0.00054213233180001068935_wp, &
        -0.0033824159510050025955_wp , 0.0_wp /
 
-!write(*,*) 'ana_rot_per_old EXECUTED',right,nt,c(0,1),c(right,nt)
+!   write(*,*) 'ana_rot_per_old EXECUTED',right,nt,c(0,1),c(right,nt)
 
   lenc=right+1
   len_2=lenc/2
@@ -57,7 +57,7 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
 !$omp parallel default (private) shared(nt,len_2,ch,cg,mod_my,c,cd_1)
 !$  ithread = omp_get_thread_num()
 
-!$omp do
+!$omp do !schedule(static,1)
   do it=1,nt-11,12
      do i=0,len_2-1
         i2=2*i
@@ -247,7 +247,7 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
 !$  ithread = omp_get_thread_num()
 
 
-!$omp do
+!$omp do !schedule(static,1)
   do it=1,nt-11,12
      do i=0,len_2-1
 
