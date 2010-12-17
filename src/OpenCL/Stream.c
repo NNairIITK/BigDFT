@@ -96,10 +96,10 @@ cl_int oclStreamFinish(ocl_stream stream) {
   return clWaitForEvents(1, &(stream->event));
 }
 
-cl_int oclEnstreamWriteBuffer(ocl_stream stream, cl_mem buffer, cl_bool blocking_write, size_t offset, size_t cb, const void *ptr) {
+cl_int oclEnstreamWriteBuffer(ocl_stream stream, cl_mem buffer, size_t offset, size_t cb, const void *ptr) {
   cl_int errcode_ret;
   cl_event event;
-  errcode_ret = clEnqueueWriteBuffer(stream->command_queue, buffer, blocking_write, offset, cb, ptr, 1, &(stream->event), &(event));
+  errcode_ret = clEnqueueWriteBuffer(stream->command_queue, buffer, CL_FALSE, offset, cb, ptr, 1, &(stream->event), &(event));
   if( errcode_ret != CL_SUCCESS)
     return errcode_ret;
   errcode_ret = clReleaseEvent(stream->event);
@@ -109,10 +109,10 @@ cl_int oclEnstreamWriteBuffer(ocl_stream stream, cl_mem buffer, cl_bool blocking
   return CL_SUCCESS;
 }
 
-cl_int oclEnstreamReadBuffer(ocl_stream stream, cl_mem buffer, cl_bool blocking_read,  size_t offset, size_t cb, void *ptr) {
+cl_int oclEnstreamReadBuffer(ocl_stream stream, cl_mem buffer,  size_t offset, size_t cb, void *ptr) {
   cl_int errcode_ret;
   cl_event event;
-  errcode_ret = clEnqueueReadBuffer(stream->command_queue, buffer, blocking_read, offset, cb, ptr, 1, &(stream->event), &(event));
+  errcode_ret = clEnqueueReadBuffer(stream->command_queue, buffer, CL_FALSE, offset, cb, ptr, 1, &(stream->event), &(event));
   if( errcode_ret != CL_SUCCESS)
     return errcode_ret;
   errcode_ret = clReleaseEvent(stream->event);

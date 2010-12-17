@@ -66,6 +66,7 @@ module module_base
   !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !this value can be changed in the read_input_variables routine
   logical :: OCLconv=.false.
+  logical :: ASYNCconv=.true.
 
   !Logical parameter for the projectors application strategy (true for distributed way)
   !if the projector allocation passes the memorylimit this is switched to true

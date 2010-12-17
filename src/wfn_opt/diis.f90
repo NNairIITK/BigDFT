@@ -1,3 +1,31 @@
+subroutine mix_rhopot(npoints,alphamix,rhopot_old,rhopot,rpnrm)
+  use module_base
+  implicit none
+  integer, intent(in) :: npoints
+  real(gp), intent(in) :: alphamix
+  real(dp), dimension(npoints), intent(inout) :: rhopot,rhopot_old
+  real(gp), intent(out) :: rpnrm
+  !local variables
+  integer :: ierr
+  
+  !vold=>vold-vnew
+  call axpy(npoints,-1.0_dp,rhopot(1),1,rhopot_old(1),1)
+
+  !calculate rhopot_norm
+  rpnrm=(nrm2(npoints,rhopot_old(1),1))**2
+  rpnrm=rpnrm/real(npoints,gp)
+  call mpiallred(rpnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+  rpnrm=sqrt(rpnrm)
+      
+  !vnew=vnew+alpha(vold-vnew)
+  call axpy(npoints,alphamix,rhopot_old(1),1,rhopot(1),1)
+  
+  !vold=vnew
+  call dcopy(npoints,rhopot(1),1,rhopot_old(1),1)
+
+end subroutine mix_rhopot
+
+
 !!****f* BigDFT/psimix
 !! FUNCTION
 !! COPYRIGHT

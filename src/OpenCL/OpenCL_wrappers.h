@@ -195,6 +195,20 @@ void FC_FUNC_(ocl_enqueue_read_buffer,OCL_ENQUEUE_READ_BUFFER)(bigdft_command_qu
  *  @param host_ptr to copy the data from.
  */
 void FC_FUNC_(ocl_enqueue_write_buffer,OCL_ENQUEUE_WRITE_BUFFER)(bigdft_command_queue *command_queue, cl_mem *buffer, cl_uint *size, const void *host_ptr);
+/** Copies data from an OpenCL buffer to Host memory asynchronously.
+ *  @param command_queue a pointer to the command queue used to make the copy.
+ *  @param buffer to copy data from.
+ *  @param size of the data to copy.
+ *  @param host_ptr to copy the data to.
+ */
+void FC_FUNC_(ocl_enqueue_read_buffer_async,OCL_ENQUEUE_READ_BUFFER_ASYNC)(bigdft_command_queue *command_queue, cl_mem *buffer, cl_uint *size, void *host_ptr);
+/** Copies data from Host memory to an OpenCL buffer asynchronously.
+ *  @param command_queue a pointer to the command queue used to make the copy.
+ *  @param buffer to copy data to.
+ *  @param size of the data to copy.
+ *  @param host_ptr to copy the data from.
+ */
+void FC_FUNC_(ocl_enqueue_write_buffer_async,OCL_ENQUEUE_WRITE_BUFFER_ASYNC)(bigdft_command_queue *command_queue, cl_mem *buffer, cl_uint *size, const void *host_ptr);
 /** Creates a command queue in the given context, associating it to the first device in the context */
 void FC_FUNC_(ocl_create_command_queue,OCL_CREATE_COMMAND_QUEUE)(bigdft_command_queue *command_queue, cl_context *context);
 /** Creates a command queue in the given context, associating it to the device specified by index modulo the number of device. */
@@ -537,6 +551,16 @@ void FC_FUNC_(scal_self_d,SCAL_SELF_D)(bigdft_command_queue *command_queue, cl_u
  *  @param out result.
  */
 void FC_FUNC_(dot_d,DOT_D)(bigdft_command_queue *command_queue, cl_uint *n, cl_mem *x, cl_mem *y, cl_mem *work1, cl_mem *work2, cl_double *out);
+/** Computes the dot product of 2 vectors asynchronously.
+ *  @param command_queue used to process the data.
+ *  @param n number of element of the vectors.
+ *  @param x input buffer, vector of size n * sizeof(double).
+ *  @param y input buffer, vector of size n * sizeof(double).
+ *  @param work1 temporary buffer of size n * sizeof(double).
+ *  @param work2 temporary buffer of size n * sizeof(double).
+ *  @param out result.
+ */
+void FC_FUNC_(dot_d_async,DOT_D_ASYNC)(bigdft_command_queue *command_queue, cl_uint *n, cl_mem *x, cl_mem *y, cl_mem *work1, cl_mem *work2, cl_double *out);
 /** Initializes every component of a vector to a given value.
  *  @param command_queue used to process the data.
  *  @param n number of element of the vectors.

@@ -22,6 +22,14 @@ if USE_OCL
 SUBDIRS += OpenCL
 endif
 
+if USE_CUDA_GPU
+SUBDIRS += CUDA
+endif
+
+if USE_OCL
+SUBDIRS += OpenCL
+endif
+
 
 if USE_MPI
 mpirun_message=mpirun

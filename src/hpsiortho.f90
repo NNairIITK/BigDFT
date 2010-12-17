@@ -30,12 +30,15 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
   real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
-  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+  real(wp), target, dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
   real(dp), dimension(*), optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
   !local variables
+  real(gp), dimension(orbs%norbp) :: ekin
+  real(gp), dimension(orbs%norbp) :: epot
+  real(wp), dimension(:), pointer :: hpsi2
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX,op2p
   integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
@@ -144,14 +147,20 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !  do i=1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
 !       call random_number(psi(i))
 !  end do
+  if(OCLconv .and. ASYNCconv) then
+    allocate(hpsi2((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),stat=i_stat)
+    call memocc(i_stat,hpsi2,'hpsi2',subname)
+    hpsi(:)=0.0
+  else
+    hpsi2 => hpsi
+  end if
   if (GPUconv) then
      call local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
   else if (OCLconv) then
-     call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
+     call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi2,ekin_sum,epot_sum,GPU,ekin,epot)
   else
      call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   end if
-
   !test part to check the results wrt OCL convolutions
 !!$  if (OCLconv) then
 !!$     allocate(hpsi_OCL((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
@@ -170,14 +179,6 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !!$     call memocc(i_stat,i_all,'hpsi_OCL',subname)
 !!$  end if
   
-  if (nproc > 1 .or. exctX) then
-     i_all=-product(shape(pot))*kind(pot)
-     deallocate(pot,stat=i_stat)
-     call memocc(i_stat,i_all,'pot',subname)
-  else
-     nullify(pot)
-  end if
-
   call timing(iproc,'ApplyLocPotKin','OF')
 
   ! apply all PSP projectors for all orbitals belonging to iproc
@@ -218,6 +219,23 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      if (istart_ck-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp application'
      if (ispsi-1 /= (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) stop 'incorrect V_nl psi application'
   end if
+
+  if(OCLconv .and. ASYNCconv) then
+    call finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU,ekin,epot)
+    call daxpy(size(hpsi), 1.0_wp, hpsi2(1), 1, hpsi(1),1)
+    i_all=-product(shape(hpsi2))*kind(hpsi2)
+    deallocate(hpsi2,stat=i_stat)
+    call memocc(i_stat,i_all,'hpsi2',subname)
+  endif
+
+  if (nproc > 1 .or. exctX) then
+     i_all=-product(shape(pot))*kind(pot)
+     deallocate(pot,stat=i_stat)
+     call memocc(i_stat,i_all,'pot',subname)
+  else
+     nullify(pot)
+  end if
+
 
   call timing(iproc,'ApplyProj     ','OF')
 
@@ -689,7 +707,7 @@ subroutine Fermilevel(filewrite,wf,orbs)
        do iorb=1,orbs%norbd+orbs%norbu
           arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
           ! next 2 line error function distribution
-          call derf(res,arg)
+          call derf_ab(res,arg)
           electrons=electrons+.5d0*(1.d0-res)
           dlectrons=dlectrons-exp(-arg**2)
           !! next 2 line Fermi function distribution
@@ -717,8 +735,8 @@ subroutine Fermilevel(filewrite,wf,orbs)
  do ikpt=1,orbs%nkpts
     argu=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu)-ef)/wf
     argd=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+orbs%norbd)-ef)/wf
-    call derf(resu,argu)
-    call derf(resd,argd)
+    call derf_ab(resu,argu)
+    call derf_ab(resd,argd)
     cutoffu=.5d0*(1.d0-resu)
     cutoffd=.5d0*(1.d0-resd)
 !    cutoffu=1.d0/(1.d0+exp(argu))
@@ -734,13 +752,13 @@ subroutine Fermilevel(filewrite,wf,orbs)
     write(11,*)orbs%norbu,orbs%norbd
     do iorb=1,orbs%norbu
        arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
-       call derf(res,arg)
+       call derf_ab(res,arg)
        write(11,'(i5,e19.12)')iorb,full*.5d0*(1.d0-res)
        !    write(11,'(i5,e19.12)')iorb,full/(1.d0+exp(arg))  !,orbs%eval((ikpt-1)*orbs%norb+iorb)
     end do
     do iorb=1,orbs%norbd
        arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
-       call derf(res,arg)
+       call derf_ab(res,arg)
        write(11,'(i5,e19.12)')iorb+orbs%norbu,full*.5d0*(1.d0-res)
        !    write(11,'(i5,e19.12)')iorb+orbs%norbu,full/(1.d0+exp(arg))  !,orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)
     end do
@@ -748,12 +766,12 @@ subroutine Fermilevel(filewrite,wf,orbs)
  else !otherwise update the occupation number
     do iorb=1,orbs%norbu
        arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
-       call derf(res,arg)
+       call derf_ab(res,arg)
        orbs%occup((ikpt-1)*orbs%norb+iorb)=full*.5d0*(1.d0-res)
     end do
     do iorb=1,orbs%norbd
        arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
-       call derf(res,arg)
+       call derf_ab(res,arg)
        orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*.5d0*(1.d0-res)
     end do
  end if
