@@ -91,6 +91,32 @@
 ! These routines in serial version should not be called.
 ! A stop is added
 
+        subroutine  MPI_comm_group()
+          implicit none
+          stop 'MPIFAKE: comm_group'
+        END SUBROUTINE  MPI_comm_group
+
+        subroutine  MPI_comm_create()
+          implicit none
+          stop 'MPIFAKE: comm_create'
+        END SUBROUTINE  MPI_comm_create
+
+        subroutine  MPI_group_incl()
+          implicit none
+          stop 'MPIFAKE: comm_incl'
+        END SUBROUTINE  MPI_group_incl
+
+        subroutine  MPI_recv()
+          implicit none
+          stop 'MPIFAKE: recv'
+        END SUBROUTINE  MPI_recv
+
+        subroutine  MPI_send()
+          implicit none
+          stop 'MPIFAKE: send'
+        END SUBROUTINE  MPI_send
+
+
         subroutine  MPI_ALLGatherV()
         implicit none
         stop 'MPIFAKE: ALLGATHERV'

@@ -1044,7 +1044,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
      end do
 
      !correct the occupation numbers wrt fermi level
-     call Fermilevel(.false.,1.e-2_gp,orbs)
+     call Fermilevel(.false.,input%Tel,orbs)
 
      !restore the occupation numbers
      call dcopy(orbs%norb*orbs%nkpts,orbse%eval(1),1,orbs%eval(1),1)
