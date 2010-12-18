@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Build the final report (read *.report from fldiff.py)
-# Date: 10/12/2010
+# Date: 18/12/2010
 #----------------------------------------------------------------------------
 
 import fnmatch
@@ -26,7 +26,7 @@ os.path.walk(".",callback,"*.report")
 Exit = 0
 print "Final report:"
 for file in files:
-    dir = os.path.dirname(file)
+    dir = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
     #Max value
     max_discrepancy = float(open(file).readline())
@@ -42,6 +42,6 @@ for file in files:
             state = "%7.1e > (%7.1e)    failed" % (discrepancy,max_discrepancy)
             end = "\033[m"
             Exit = 1
-        print "%s%-18s %-28s %s%s" % (start,dir,fic,state,end)
+        print "%s%-20s %-28s %s%s" % (start,dir,fic,state,end)
 #Error code
 sys.exit(Exit)
