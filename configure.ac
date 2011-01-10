@@ -319,6 +319,19 @@ if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" ; then
   AC_FC_WRAPPERS()
 fi
 
+dnl Use th dgemmsy
+ac_use_dgemmsy="no"
+AC_ARG_ENABLE(dgemmsy, AS_HELP_STRING([--enable-dgemmsy], [Use dgemmsy (disabled by default).]),
+                         ac_use_dgemmsy=$enableval, ac_use_dgemmsy="no")
+AC_MSG_CHECKING([for dgemmsy support])
+AC_MSG_RESULT([$ac_use_dgemmsy])
+if test x"$ac_use_dgemmsy" = "xyes" ; then
+  AC_LANG_PUSH(C)
+
+  AC_LANG_POP(C)
+fi
+AM_CONDITIONAL(USE_DGEMMSY, test "$ac_use_dgemmsy" = "yes")
+
 dnl Test libraries required for benching.
 AC_LANG_PUSH(C++)
 AC_CHECK_LIB(config++, config_init, withconfig=yes, withconfig=no)
@@ -565,6 +578,7 @@ src/PSolver/Makefile
 src/convolutions/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
+src/dgemmsy/Makefile
 src/convolutions-c/Makefile
 src/art/Makefile
 utils/Makefile
@@ -638,6 +652,7 @@ Options:
    | NVidia Cuda Compiler:   $NVCC
    | Cuda flags:             $CUDA_FLAGS
   With OpenCL support:       $ac_use_ocl
+  With dgemmsy support:      $ac_use_dgemmsy
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE
