@@ -113,12 +113,12 @@ subroutine initialize()
         write(FLOG,'(1X,A34,A17)') ' - Configuration stored in file : ', trim(fname)
         if ( .not. success ) then
           write(FLOG,'(1X,A)') "ERROR: Initial configurations is not a minimum"
-          stop 
+          call end_art()  
         end if
         close(FLOG)
      end if
 
-     if ( LANCZOS_MIN .and. success ) call check_min( ) 
+     if ( LANCZOS_MIN .and. success ) call check_min( 'M' ) 
 
      mincounter = mincounter + 1
      ref_energy = total_energy

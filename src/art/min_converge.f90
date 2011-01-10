@@ -58,29 +58,35 @@ END SUBROUTINE min_converge
 !!***
 
 
-!!****f* art/check_min( )
+!!****f* art/check_min
 !! FUNCTION
 !! SOURCE
 !!
-subroutine check_min( )
+subroutine check_min( stage )
 
   use defs
   use lanczos_defs
   implicit none
 
+  !Arguments
+  character(len=1), intent(in) :: stage
+
   !Local variables
   integer :: i, ierror, repetition
   logical :: new_projection
   real(kind=8) :: a1
+  real(kind=8) :: min_energy ! First reference energy in lanczos
   !_______________________
+
+  ! We check how it changes the energy of the system by applying the projection.
+  IN_MINIMUN = .True.
                                       ! Report 
+
    if ( iproc == 0 ) then 
       open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
           & action = 'write', position = 'append', iostat = ierror )
-      write(FLOG,*) ' Starting Lanczos for minimum'
-      write(FLOG,'(1X,A38)') '    Iter     Energy (eV)    Eigenvalue  a1' 
+      write(FLOG,*) ' Starting Lanczos'
       close(FLOG) 
-      write(*,*) 'BART: Starting Lanczos for minimum'
    end if
 
    new_projection = .true.          ! We do not use any previously computed direction. 
@@ -93,29 +99,38 @@ subroutine check_min( )
       repetition = 4
    end if
 
+   if ( iproc==0 ) write(*,*) "BART: INIT LANCZOS"  !debug
    do i = 1, repetition
       call lanczos( NVECTOR_LANCZOS, new_projection , a1 )
                                     ! Report
       if ( iproc == 0 ) then 
          open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
              & action = 'write', position = 'append', iostat = ierror )
-         write(FLOG,'(I6,3X,(1p,e17.10,0p),F12.6,x,F6.4)') i, total_energy, eigenvalue, a1
-         close( FLOG ) 
-         write(*,*) 'BART: Iter ', i, ' : ', total_energy,  eigenvalue, a1  
+         if ( i == 1 ) then         ! Our reference energy for the report.
+             min_energy = lanc_energy
+             write(FLOG,'(1X,A8,(1p,e17.10,0p),A12,1pe8.1,A3)') ' Em= ', min_energy, ' ( gnrm = ', my_gnrm, ' )'
+             write(FLOG,'(A39)') '   Iter     Ep-Em (eV)   Eigenvalue  a1' 
+         end if 
+         write(FLOG,'(I6,3X,F10.3,4X,F12.6,X,F6.4)') i, min_energy-proj_energy, eigenvalue, a1
+         close(FLOG) 
+         write(*,*) 'BART: Iter ', i, ' : ', lanc_energy, proj_energy,  eigenvalue, a1  
       end if
                                     ! Now we start from the previous direction. 
       new_projection= .false.   
                                     ! let's see the projection
-      if ( setup_initial ) call print_proj ( i, 'M', projection, eigenvalue )
+      if ( setup_initial ) call print_proj ( i, stage, projection, eigenvalue, DEL_LANCZOS )
    end do
                                     ! Report 
    if ( iproc == 0 ) then 
+      write(*,*) "BART: END  LANCZOS"  !debug
       open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
           & action = 'write', position = 'append', iostat = ierror )
       write(FLOG,*) ' Done Lanczos'
       close(FLOG) 
-      write(*,*) 'BART: Done Lanczos'
    end if
+
+  ! Default value in the activation part is false.
+  IN_MINIMUN = .False.
  
 END SUBROUTINE check_min
 !!***

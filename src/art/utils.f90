@@ -29,6 +29,7 @@ subroutine print_event( ievent_current, temperat )
   integer :: ierror
 
   write(*,*) 'BART: Simulation : ', ievent_current
+  write(*,*) 'BART: Attempt    : ', atp
   write(*,*) 'BART: Starting from minconf : ', mincounter
   write(*,*) 'BART: Reference Energy (eV) : ', ref_energy
   write(*,*) 'BART: Temperature : ', temperat
@@ -61,7 +62,7 @@ subroutine displacement( posa, posb, delr, npart )
   real(kind=8), dimension(vecsize), intent(in), target :: posa
   real(kind=8), dimension(vecsize), intent(in), target :: posb 
   real(kind=8), intent(out)                            :: delr
-  integer, intent(out)                            :: npart
+  integer, intent(out)                                 :: npart
 
   !Local variables
   integer :: i, j
@@ -347,7 +348,7 @@ END SUBROUTINE convert_to_chain
 
 
 !  TEMPORAL
-subroutine print_proj( repetitions, stage, projection, eigenvalue )
+subroutine print_proj( repetitions, stage, projection, eigenvalue, DEL_LANCZOS )
 
   use defs
 
@@ -356,6 +357,7 @@ subroutine print_proj( repetitions, stage, projection, eigenvalue )
   character(len=1), intent(in) :: stage
   real(kind=8),     intent(in) :: eigenvalue
   real(kind=8),     intent(in), dimension(3*natoms), target :: projection
+  real(kind=8),     intent(in) :: DEL_LANCZOS
 
   !Local variables
 
@@ -393,7 +395,9 @@ subroutine print_proj( repetitions, stage, projection, eigenvalue )
 
      do i= 1, NATOMS
         write(XYZ,'(1x,A2,3(2x,f16.8),2x,A,2x,I3,3(2x,f12.8))') &
-       &                               Atom(i), x(i)+pc(1,i), y(i)+pc(2,i), z(i)+pc(3,i), &
+       &                               Atom(i), x(i)+DEL_LANCZOS*pc(1,i), &
+       &                                        y(i)+DEL_LANCZOS*pc(2,i), &
+       &                                        z(i)+DEL_LANCZOS*pc(3,i), &
        &                               '#',i, pc(1,i), pc(2,i),pc(3,i)
      end do
 

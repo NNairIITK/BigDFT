@@ -161,13 +161,8 @@ subroutine local_move( )
   else 
      that = preferred_atom
      if ( constr(that) .ne. 0 ) then  ! die !
-        if ( iproc == 0 ) then
-         open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
-             & action = 'write', position = 'append', iostat = ierror )
-         write(FLOG,*) ' ERROR: choosen atom is blocked in the geometry file '
-         close(FLOG)
-        end if
-        stop                          
+        write(*,*) ' ERROR: choosen atom is blocked in the geometry file '
+        call end_art()                          
      end if 
   end if
                                       ! Write
@@ -372,8 +367,8 @@ subroutine list_of_atoms ( )
   ! Is there the file?  
   inquire( file = filename, exist = found )
   if ( .not. found ) then
-     write(6,'(a)') 'ERROR: list_atoms.dat not found !! '
-     stop
+     write(*,'(a)') 'ERROR: list_atoms.dat not found !! '
+     call end_art() 
   end if
   
   open( unit= 99, file= filename, status= 'old' )
@@ -389,9 +384,9 @@ subroutine list_of_atoms ( )
      end if
      nlines = nlines + 1
      if ( nlines > 500 ) then
-        write(6,*) 'list_atoms.dat file too long (> 500 lines).'
-        write(6,*) 'change this parameter in the source!!'
-        stop 
+        write(*,*) 'list_atoms.dat file too long (> 500 lines).'
+        write(*,*) 'change this parameter in the source!!'
+        call end_art() 
      end if
   end do
   nlines = nlines - 1
@@ -399,7 +394,7 @@ subroutine list_of_atoms ( )
  
   if ( nlines < 2 ) then
      write(*,*) 'ERROR: list_atoms, file has less than 2 lines.'
-     stop 
+     call end_art() 
   end if
  
   ! Second pass: to determine the correct number of atoms.
@@ -497,8 +492,8 @@ subroutine list_and_local ()
   ! Is there the file?  
   inquire( file = filename, exist = found )
   if ( .not. found ) then
-     write(6,'(a)') 'ERROR: list_atoms.dat not found !! '
-     stop
+     write(*,'(a)') 'ERROR: list_atoms.dat not found !! '
+     call end_art()  
   end if
   
   open( unit= 99, file= filename, status= 'old' )
@@ -514,9 +509,9 @@ subroutine list_and_local ()
      end if
      nlines = nlines + 1
      if ( nlines > 500 ) then
-        write(6,*) 'list_atoms.dat file too long (> 500 lines).'
-        write(6,*) 'change this parameter in the source!!'
-        stop 
+        write(*,*) 'list_atoms.dat file too long (> 500 lines).'
+        write(*,*) 'change this parameter in the source!!'
+        call end_art() 
      end if
   end do
   nlines = nlines - 1
@@ -524,7 +519,7 @@ subroutine list_and_local ()
  
   if ( nlines < 2 ) then
      write(*,*) 'ERROR: list_atoms, file has less than 2 lines.'
-     stop 
+     call end_art() 
   end if
  
   ! Second pass: to determine the correct number of atoms.

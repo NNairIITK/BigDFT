@@ -35,7 +35,7 @@ subroutine saddle_converge( ret, saddle_energy )
   logical :: new_projection              ! For lanczos.
                                          ! Loop indeces :
   integer :: i, kter, kter_init, liter, diter, step_rejected
-  integer :: ierror                      ! File control.
+  integer :: ierror, ierr                ! File and MPI control.
   integer :: infodiis
  
   real(kind=8) :: step                        ! This is the step in the hyperplane. 
@@ -57,9 +57,9 @@ subroutine saddle_converge( ret, saddle_energy )
   if ( iproc == 0 ) then
    open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
        & action = 'write', position = 'append', iostat = ierror )
-   write(FLOG, '(a22,a8,a8,a12,a12,a12,a11,a7,a6,a5)')&
+   write(FLOG, '(a23,a8,a8,a12,a12,a12,a11,a7,a6,a5)')&
    &'E-Eref','m_perp','ftot','fpar','fperp','eigen','delr','npart','evalf','a1'
-   write(FLOG, '(A22,A31,A27)' ) '( eV )', '( eV/Ang )', '( eV/Ang**2 )'
+   write(FLOG, '(a23,a31,a27)' ) '( eV )', '( eV/Ang )', '( eV/Ang**2 )'
    close(FLOG)
   end if
                                       ! initialization
@@ -70,6 +70,7 @@ subroutine saddle_converge( ret, saddle_energy )
 
      kter_init = iter_restart         ! init value of kter loop.
      initial_direction = direction_restart
+     call displacement( posref, pos, delr, npart )
      deallocate(direction_restart)
 
      restart = .false.
@@ -94,7 +95,7 @@ subroutine saddle_converge( ret, saddle_energy )
                                       ! lowest direction.
      Do_kter: do kter = kter_init, MAXKTER
                                       ! Reference energy and force.
-        call calcforce( NATOMS, pos, boxl, force, current_energy, evalf_number )
+        call calcforce( NATOMS, pos, boxl, force, current_energy, evalf_number, .false. )
 
         ! We now project out the direction of the initial displacement from the
         ! minimum from the force vector so that we can minimize the energy in
@@ -111,7 +112,7 @@ subroutine saddle_converge( ret, saddle_energy )
 
           pos_b = pos + step * perp_force
 
-          call calcforce( NATOMS, pos_b, boxl, force_b, total_energy, evalf_number )
+          call calcforce( NATOMS, pos_b, boxl, force_b, total_energy, evalf_number, .false. )
                                       ! New force's components.
           call force_projection( fpar_b, perp_force_b, fperp_b, ftot_b, &
                        & force_b, initial_direction ) 
@@ -138,44 +139,35 @@ subroutine saddle_converge( ret, saddle_energy )
               &  .or. step_rejected > 5 ) exit While_perpk
 
         end do While_perpk
+
+        delta_e = current_energy - ref_energy
+                                      ! Magnitude of the displacement (utils.f90).
+        call displacement( posref, pos, delr, npart )
+
+        if ( SAVE_CONF_INT ) call save_intermediate( 'K' ) 
+
                                       ! We start checking of negative eigenvalues 
         if ( kter >= KTER_MIN ) then  ! eigenvalues only after a few steps.
 
            if ( .not. setup_initial ) then
+              !if ( iproc==0 ) write(*,*) "BART: INIT LANCZOS"  !debug
               call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
+              !if ( iproc==0 ) write(*,*) "BART: END  LANCZOS"  !debug
               new_projection = .false.
            else
-                                      ! Four lanczos calculation
-              do i = 1, 4
-                 call lanczos( NVECTOR_LANCZOS, new_projection , a1 )
-                                      ! Report
-                 if ( iproc == 0 ) then
-                    open( unit = FLOG, file = LOGFILE, status = 'unknown',&
-                        & action = 'write', position = 'append', iostat = ierror )
-                    write(FLOG,'(I6,3X,(1p,e17.10,0p),F12.6,x,F6.4)') i, total_energy, eigenvalue, a1
-                    close( FLOG )
-                    write(*,*) 'BART: Iter ', i, ' : ', total_energy,  eigenvalue, a1
-                 end if
-                 new_projection= .false.
-                                      ! let's see the projection
-                 call print_proj ( i, 'I', projection, eigenvalue)
-              end do
-              stop                    ! And that is all.
+              call check_min( 'I' ) 
+              call write_step ( 'K', kter, a1, current_energy )
+              call MPI_Barrier( MPI_COMM_WORLD, ierr )
+              call end_art( )
            end if
 
         end if
-
-        current_energy = total_energy ! As computed in lanczos routine.
-        delta_e = current_energy - ref_energy
-                                      ! Magnitude of the displacement (utils.f90).
-        call displacement( posref, pos, delr, npart )
                                       ! Write 
         call write_step ( 'K', kter, a1, current_energy )
-
-        if ( SAVE_CONF_INT ) call save_intermediate( 'K' ) 
                                       ! For restart ( restart.f90 )
         if ( write_restart_file ) then 
             state_restart = 1
+            total_energy = current_energy
             if ( iproc == 0 ) call save_state( state_restart, kter+1, initial_direction )
         end if
         pas = pas + 1
@@ -238,8 +230,11 @@ subroutine saddle_converge( ret, saddle_energy )
         if ( iproc == 0 ) write(*,*) "BART: Restart = 4"
      else                             !DEBUG
         if ( iproc == 0 ) write(*,*) "BART: HOUSTON, we've got a problem"
-        stop
+        call end_art () 
      end if 
+     
+     call displacement( posref, pos, delr, npart )
+     if (iproc==0) write(*,*) "BART: delr npart", delr, npart
      call force_projection( fpar, perp_force, fperp, ftot, force, projection )
 ! _________
   else if ( .not. new_event ) then    ! Else If_restart
@@ -249,12 +244,14 @@ subroutine saddle_converge( ret, saddle_energy )
                                       ! with precision.
      posref = pos                     
      new_projection = .true. 
+     !if ( iproc==0 ) write(*,*) "BART: INIT LANCZOS"  !debug
      do i = 1, 5
         call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
         new_projection = .false.
      end do
+     !if ( iproc==0 ) write(*,*) "BART: END  LANCZOS"  !debug
 
-     call calcforce( NATOMS, pos, boxl, force, current_energy, evalf_number )
+     call calcforce( NATOMS, pos, boxl, force, current_energy, evalf_number, .false. )
 
      delta_e = current_energy - ref_energy
      fpar = dot_product(force,projection)
@@ -391,7 +388,7 @@ subroutine end_report ( success, ret, saddle_energy )
   !Arguments
   logical, intent(out)   :: success
   integer, intent(inout) :: ret
-  real(kind=8), intent(inout) :: saddle_energy 
+  real(kind=8), intent(in) :: saddle_energy 
 
   !Local variables
   integer :: i
@@ -414,18 +411,18 @@ subroutine end_report ( success, ret, saddle_energy )
         If_check: if ( DIIS_CHECK_EIGENVEC ) then
                                          ! Lanczos several times.
            new_projection = .true.
+           !if ( iproc == 0 ) write(*,*) "BART: INIT LANCZOS"  !debug
            Do_lanc: do i = 1, 4
               call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
               new_projection = .false.
                                          ! Exit of loop.  
               if ( eigenvalue < 0.0d0 ) exit Do_lanc
            end do Do_lanc
+           !if ( iproc == 0 ) write(*,*) "BART: END  LANCZOS"  !debug
 
            if ( eigenvalue >= 0.0 ) then
               ret = 60000 + pas 
            else                          ! Else of eigenvalue.
-                                         ! As computed in lanczos routine.
-              saddle_energy = total_energy  
                                          ! New fpar and fperp. 
               call force_projection( fpar, perp_force, fperp,&
                                     & ftot, force, projection )

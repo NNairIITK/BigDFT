@@ -30,6 +30,9 @@ module bigdft_forces
   type(restart_objects) :: rst
   real(gp), parameter :: ht2ev = 27.2113834_gp
 
+  real(kind=8) :: gnrm_l
+  real(kind=8) :: gnrm_h  ! For lanczos
+
   public :: bigdft_init
   public :: calcforce
   public :: mingeo
@@ -44,7 +47,7 @@ contains
 !!   Routine to initialize all BigDFT stuff
 !! SOURCE
 !!
-subroutine bigdft_init( nat, typa, posa, const_, boxl, boxtype, nproc_, me_ )
+subroutine bigdft_init( nat, typa, posa, const_, boxl, boxtype, nproc_, me_, my_gnrm )
 
   implicit none
 
@@ -57,6 +60,7 @@ subroutine bigdft_init( nat, typa, posa, const_, boxl, boxtype, nproc_, me_ )
   character(len=1), intent(out) :: boxtype
   integer,      intent(in)  :: nproc_
   integer,      intent(in)  :: me_
+  real(kind=8), intent(in)  :: my_gnrm
 
   !Local variables
   character(len=*), parameter :: subname='bigdft_init'
@@ -67,10 +71,6 @@ subroutine bigdft_init( nat, typa, posa, const_, boxl, boxtype, nproc_, me_ )
 
   nproc = nproc_
   me = me_
-                                      ! Initialize memory counting.
-                                      ! Obsolete !!
-!  call memocc( 0, me, 'count', 'start' )
-
                                       ! Read inputs.
   call read_input_variables( me_, "posinp", "input.dft",  &
        & "input.kpt", "input.geopt", "input.perf", in, at, rxyz )
@@ -78,6 +78,13 @@ subroutine bigdft_init( nat, typa, posa, const_, boxl, boxtype, nproc_, me_ )
                                       ! Transfer at data to ART variables.
   nat = at%nat
   boxtype = at%geocode
+
+  gnrm_l = in%gnrm_cv
+  if ( my_gnrm == 1 ) then 
+     gnrm_h = in%gnrm_cv 
+  else
+     gnrm_h = my_gnrm
+  end if
 
   allocate(posa(3 * nat))
   allocate(typa(nat))
@@ -98,16 +105,6 @@ subroutine bigdft_init( nat, typa, posa, const_, boxl, boxtype, nproc_, me_ )
 
   do i = 1, at%nat, 1
      const_(i) = at%ifrztyp(i)  
-     !if (at%ifrztyp(i) == 1) then     ! all the atoms' components are frozen.
-     !   f_mask(i) = 1 
-     !   f_mask(nat + i) = 1
-     !   f_mask(2 * nat + i) = 1 
-     !else if (at%ifrztyp(i) == 2) then ! atom can only move in the XZ plane 
-     !   f_mask(nat + i) = 1
-     !else if (at%ifrztyp(i) == 3) then ! atom can only move along the Y axis.
-     !   f_mask(i) = 1 
-     !   f_mask(2 * nat + i) = 1 
-     !end if
   end do
                                       ! The BigDFT restart structure.
   call init_restart_objects(me, in%iacceleration, at, rst, subname)
@@ -121,7 +118,7 @@ subroutine bigdft_init( nat, typa, posa, const_, boxl, boxtype, nproc_, me_ )
 !!   Calculation of forces
 !! SOURCE
 !!
-subroutine calcforce( nat, posa, boxl, forca, energy, evalf_number )
+subroutine calcforce( nat, posa, boxl, forca, energy, evalf_number, conv )
 
   implicit none
 
@@ -132,12 +129,18 @@ subroutine calcforce( nat, posa, boxl, forca, energy, evalf_number )
   real(kind=8), intent(out), dimension(3*nat), target :: forca
   real(kind=8), intent(out)                           :: energy
   integer,      intent(inout)                         :: evalf_number
+  logical,      intent(in)                            :: conv
 
   !Local variables
   integer  :: infocode, i, ierror 
   real(gp) :: fnoise
   real(gp), allocatable :: xcart(:,:), fcart(:,:)
 
+  if ( conv ) then                    ! Convergence criterion for the wavefunction optimization
+     in%gnrm_cv = gnrm_h              ! in Lanczos procedure.              
+  else 
+     in%gnrm_cv = gnrm_l                                    
+  end if
                                       ! We transfer acell into 'at'
   at%nat   = nat
   at%alat1 = boxl(1)/bohr2ang
@@ -233,6 +236,8 @@ subroutine mingeo( nat, boxl, posa, evalf_number, total_energy, success )
   success = .True.                    ! success will be .False. if:
                                       !ncount_bigdft > in%ncount_cluster_x
 
+  in%gnrm_cv = gnrm_l                 ! For relaxation, we use always the default value in input.dft
+
   at%nat   = nat                      ! We transfer acell into at
   at%alat1 = boxl(1)/bohr2ang
   at%alat2 = boxl(2)/bohr2ang
@@ -314,8 +319,6 @@ subroutine bigdft_finalise ( )
 
   call memocc( 0, 0, 'count', 'stop' )  ! finalize memory counting.
 
-  !deallocate(f_mask)
-
 END SUBROUTINE bigdft_finalise
 !!***
 
@@ -336,32 +339,12 @@ subroutine center_f( vector, natoms )
   !Local variables
   integer :: i
   integer :: natoms_f                              ! degrees of freedom
-!  integer :: natoms_x, natoms_y, natoms_z         ! degrees of freedom 
   real(kind=8) :: xtotal, ytotal, ztotal
-!  real(kind=8), dimension(:), pointer :: x, y, z  ! Pointers for coordinates
-!  integer, dimension(:), pointer :: mx, my, mz    ! Pointer for mask 
   logical, dimension(natoms) :: mask
-
-!  ! We first set-up pointers for the x, y, z components 
-!  x => vector(1:natoms)
-!  y => vector(natoms+1:2*natoms)
-!  z => vector(2*natoms+1:3*natoms)
-
-!  ! pointers for the mask components
-!  mx => f_mask(1:natoms)
-!  my => f_mask(natoms+1:2*natoms)
-!  mz => f_mask(2*natoms+1:3*natoms)
 
   ! degrees of freedom 
   mask = at%ifrztyp .eq. 0
   natoms_f = count(mask)
-
-  ! degrees of freedom in each direction
-  ! natoms_x = count(mask)
-  ! mask = my .eq. 0
-  ! natoms_y = count(mask)
-  ! mask = mz .eq. 0
-  ! natoms_z = count(mask)
 
   xtotal = 0.0d0
   ytotal = 0.0d0

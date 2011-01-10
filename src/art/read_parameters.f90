@@ -30,6 +30,15 @@ subroutine read_parameters( )
      read(temporary,*)  setup_initial
   end if
 
+  ! Convergence criterion for the wavefunction optimization in Lanczos
+  ! If not defined, we use that one in input.dft 
+  call getenv('gnrm',temporary)
+  if (temporary .eq. '') then
+     my_gnrm = 1
+  else
+     read(temporary,*) my_gnrm 
+  end if
+
   call getenv('Inflection', temporary)
   if (temporary .eq. '') then
      write(*,*) 'Error: Inflection is not defined'
@@ -455,6 +464,11 @@ subroutine read_parameters( )
   fx => force(1:NATOMS)
   fy => force(NATOMS+1:2*NATOMS)
   fz => force(2*NATOMS+1:3*NATOMS)
+
+  ! If LANCZOS_MIN, we check how it changes the energy of the system by applying the projection.
+  ! This is done at the end of LANCZOS procedure, but this is done only for the minima.
+  ! (see subroutine check_min )
+  IN_MINIMUN = .False. 
   
 END SUBROUTINE read_parameters
 !!***
@@ -475,29 +489,30 @@ subroutine write_parameters( )
 
   !Local variables
   integer :: ierror, i 
-  logical :: exists_already
-  character(len=100) :: fname
-  character(len=150) :: commande
-  character(len=9)   :: digit = "123456789"
   integer, dimension(8) :: values
+  character(len=20) :: fname  ! same len than LOGFILE in defs.f90
+  character(len=4)   :: ext
+  logical :: exists_already
 
-  ! We check whether the file "LOGFILE" exists. If so, we copy it before
-  ! we start.
   if ( iproc == 0 ) then
 
-  fname = LOGFILE
-  do i = 1, 9 
-     inquire( file = fname, exist = exists_already )
-     if ( exists_already ) then
-        fname = trim(LOGFILE) // "." // digit(i:i)
-     else 
-        if ( i > 1 ) Then
-           commande = "mv " // LOGFILE // "  " // fname
-           call system ( commande )
-        end if
-        exit
-     end if 
-  end do
+     ! We check what is the last 'LOGFILE.number' in the directory. LOGFILE will be LOGFILE.number+1
+    
+     i = 1
+     do  
+
+        write(ext,'(i4)')  i
+        fname = trim(LOGFILE)// "." //adjustl(ext) 
+        fname = adjustl(fname)
+        inquire( file = fname, exist = exists_already )
+         
+        if ( .not. exists_already ) then
+            logfile = fname
+            exit
+        end if 
+        i = i + 1
+
+     end do  
 
   ! We write down the various parameters for the simulation
   open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='rewind',iostat=ierror)  

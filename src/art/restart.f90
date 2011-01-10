@@ -85,6 +85,7 @@ subroutine restart_states( istatus, ieventcurrent, iterations, iatp )
      write(*,*) 'BART: restart file'
      write(*,*) 'BART: box: ', box
      write(*,'(a,(1p,e17.10,0p))') ' BART: total energy: ', total_energy
+     write(*,'(a,(1p,e17.10,0p))') ' BART: ref   energy: ', ref_energy 
      write(*,'(a,3f20.8)') ' BART: xref(1): ', xref(1), yref(1), zref(1)
      write(*,'(a,3f20.8)') ' BART: x(1)   : ', x(1), y(1), z(1)
      write(*,'(a,3f20.8)') ' BART: x(NATOMS): ', x(NATOMS), y(NATOMS), z(NATOMS)

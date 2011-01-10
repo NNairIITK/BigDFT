@@ -30,7 +30,6 @@ program art90
   character(8)  :: accept 
   character(20) :: fname
   character(4)  :: scounter
-  real(kind=8) :: t1, t2  ! cputime
   real(kind=8) :: a1, b1, c1
 ! _________
   call CPU_TIME( t1 )
@@ -93,7 +92,7 @@ program art90
      end if
                                       ! If not a new event, then a convergence to
                                       ! the saddle point, We do not go further.
-     if ( .not. NEW_EVENT .and. ( eventtype == 'REFINE_SADDLE' ) ) stop
+     if ( .not. NEW_EVENT .and. ( eventtype == 'REFINE_SADDLE' ) ) call end_art () 
                                       ! If it is a restart event of type 3, we 
                                       ! are starting at the right point.
      if ( restart .and. ( state_restart == 3 ) ) then
@@ -129,10 +128,10 @@ program art90
      b1 = dot_product(force,projection)
      c1 = dot_product(del_pos,force)
      difpos  = sqrt( dot_product(del_pos,del_pos) )
-     pos = pos + del_pos 
+     !pos = pos + del_pos 
      deallocate(del_pos)
                                       
-     !pos = pos + PUSH_OVER * difpos * projection
+     pos = pos + PUSH_OVER * difpos * projection
 
      call min_converge( success )             ! And we converge to the new minimum.
      delta_e = total_energy - ref_energy 
@@ -145,7 +144,7 @@ program art90
         call store( fname ) 
      end if
                                       ! Is a real minimum ?
-     if ( LANCZOS_MIN .and. success ) call check_min( ) 
+     if ( LANCZOS_MIN .and. success ) call check_min( 'M' ) 
                                       ! Magnitude of the displacement (utils.f90).
      call displacement( posref, pos, delr, npart )
                                       ! Now, we accept or reject this move based
@@ -210,7 +209,7 @@ program art90
         close(FLOG)
      end if
 
-     if ( eventtype == "REFINE_AND_RELAX" ) stop 
+     if ( eventtype == "REFINE_AND_RELAX" ) call end_art() 
 
      mincounter = mincounter + 1
 
@@ -222,17 +221,41 @@ program art90
 
   end do Do_ev
 
+  call end_art( )
+
+END PROGRAM art90
+!!***
+
+
+!!****f* art/end_art( )
+!! FUNCTION
+!! SOURCE
+!!
+subroutine end_art( )
+
+  use defs
+
+  implicit none
+
+  integer      :: ierror, ierr
+  real(kind=8) :: t2  ! cputime
+
   call finalise_potential( )
 
-  open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
-      & action = 'write', position = 'append', iostat = ierror )
-  write(FLOG,*) '********************** '
-  write(FLOG,*)    '  A bientot !'
-  write(FLOG,*) '********************** '
-  call CPU_TIME( t2)
-  write(FLOG,"(' CPU_TIME: ', f12.4, ' seg')") t2-t1
-  call timestamp('End') 
-  close(FLOG)
+  if ( iproc == 0 ) then 
 
-end program art90
-!!***
+    open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
+        & action = 'write', position = 'append', iostat = ierror )
+    write(FLOG,*) '********************** '
+    write(FLOG,*)    '  A bientot !'
+    write(FLOG,*) '********************** '
+    call CPU_TIME( t2)
+    write(FLOG,"(' CPU_TIME: ', f12.4, ' seg')") t2-t1
+    call timestamp('End') 
+    close(FLOG)
+  end if 
+
+  if (nproc > 1) call MPI_FINALIZE(ierr)
+  stop
+
+END SUBROUTINE end_art

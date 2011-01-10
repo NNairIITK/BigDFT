@@ -21,10 +21,12 @@ module lanczos_defs
   real(kind=8) :: DEL_LANCZOS
   real(kind=8) :: eigenvalue
   real(kind=8), dimension(10) :: eigenvals
+  real(kind=8) :: lanc_energy
+  real(kind=8) :: proj_energy
 
   ! Projection direction based on lanczos computations of lowest eigenvalues
   real(kind=8), dimension(:), allocatable :: old_projection, projection 
-  logical :: LANCZOS_MIN
+  logical :: LANCZOS_MIN, IN_MINIMUN
 
 end module lanczos_defs
 !!***
@@ -69,7 +71,7 @@ subroutine lanczos( maxvec, new_projection, produit )
                                       ! reference point and will make  a displacement
                                       ! in a random direction or using the previous 
                                       ! direction as the starting point.
-  call calcforce( NATOMS, pos, boxl, ref_force, total_energy, evalf_number )
+  call calcforce( NATOMS, pos, boxl, ref_force, lanc_energy, evalf_number, .true. )
 
   z0 => lanc(:,1)
 
@@ -113,7 +115,7 @@ subroutine lanczos( maxvec, new_projection, produit )
 
   newpos = pos + z0 * DEL_LANCZOS     ! New positions.
 
-  call calcforce( NATOMS, newpos, boxl, newforce, excited_energy, evalf_number )
+  call calcforce( NATOMS, newpos, boxl, newforce, excited_energy, evalf_number, .true. )
                                       ! We extract lanczos(1)
   newforce = newforce - ref_force  
                                       ! We get a0
@@ -132,7 +134,7 @@ subroutine lanczos( maxvec, new_projection, produit )
 
      z1 => lanc(:,ivec)
      newpos = pos + z1 * DEL_LANCZOS 
-     call calcforce( NATOMS, newpos, boxl, newforce, excited_energy, evalf_number )
+     call calcforce( NATOMS, newpos, boxl, newforce, excited_energy, evalf_number, .true. )
      newforce = newforce - ref_force
 
      a1 = dot_product( z1, newforce )
@@ -156,7 +158,7 @@ subroutine lanczos( maxvec, new_projection, produit )
 
   newpos = pos + z1 * DEL_LANCZOS  
 
-  call calcforce( NATOMS, newpos, boxl, newforce, excited_energy, evalf_number )
+  call calcforce( NATOMS, newpos, boxl, newforce, excited_energy, evalf_number, .true. )
   newforce = newforce - ref_force
 
   a1 = dot_product( z1, newforce )
@@ -209,6 +211,13 @@ subroutine lanczos( maxvec, new_projection, produit )
   end if
                                       ! Check: center of mass at zero. 
   call center ( projection, VECSIZE )
+                                      ! This is for analyzing the minimum. 
+  if ( IN_MINIMUN .and. LANCZOS_MIN ) then 
+     newpos = pos + projection * DEL_LANCZOS 
+     call calcforce( NATOMS, newpos, boxl, newforce, proj_energy, evalf_number, .true. )
+  else
+     proj_energy = lanc_energy 
+  end if
                                       ! Broadcast eigenvalue and projection to all nodes.
   nat = 3 * NATOMS
   call MPI_Bcast(eigenvalue,1,MPI_REAL8,0,MPI_COMM_WORLD,ierror)

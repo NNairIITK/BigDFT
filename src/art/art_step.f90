@@ -110,6 +110,7 @@ subroutine apply_diis( diter, saddle_energy )
 
     ! Test of While_diis loop 
     if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. (diter > maxdiis) ) then
+       saddle_energy = total_energy
        end_activation = .true.  
        exit
     end if
@@ -197,10 +198,12 @@ subroutine apply_diis( diter, saddle_energy )
             ! projection vector.
             if ( diter > 1 ) then
                new_projection = .false.
+               !if ( iproc == 0 ) write(*,*) "BART: INIT LANCZOS"  !debug
                Do_lanc: do i = 1, 4
                   call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
                   if ( eigenvalue < 0.0d0 ) exit Do_lanc
                end do Do_lanc                         
+               !if ( iproc == 0 ) write(*,*) "BART: END  LANCZOS"  !debug
 
                fpar = dot_product( force, projection )
                if ( fpar > 0.0d0 ) projection = -1.0d0 * projection
@@ -214,7 +217,7 @@ subroutine apply_diis( diter, saddle_energy )
       else  ! else of If_rejected 
          
          ! Now the force is evaluted for our new pos configuration. 
-         call calcforce( NATOMS, pos, boxl, force, total_energy, evalf_number )
+         call calcforce( NATOMS, pos, boxl, force, total_energy, evalf_number, .false. )
          ftot = sqrt(dot_product(force,force))
 
          maxter = maxter + 1          ! update of history 
@@ -392,6 +395,7 @@ subroutine  apply_lanczos ( liter, saddle_energy )
       ! Test of While_lanczos loop 
       if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. (liter > 80) &
          & .or. (eigenvalue > 0.0) ) then
+         saddle_energy = total_energy
          end_activation = .true.  
          exit
       end if
@@ -502,7 +506,7 @@ subroutine lanczos_step ( current_energy, liter, get_proj )
      pos = pos - sign(1.0d0,fpar) * 1.0d0 * INCREMENT * projection / sqrt(1.0d0*liter) 
   end if
                                       ! Current energy and force.
-  call calcforce( NATOMS, pos, boxl, force, current_energy, evalf_number )
+  call calcforce( NATOMS, pos, boxl, force, current_energy, evalf_number, .false. )
                                       ! New force's components.
   call force_projection( fpar, perp_force, fperp, ftot, force, projection )
   current_fperp = fperp
@@ -517,7 +521,7 @@ subroutine lanczos_step ( current_energy, liter, get_proj )
 
     pos_b = pos + step * perp_force
 
-    call calcforce( NATOMS, pos_b, boxl, force_b, total_energy, evalf_number )
+    call calcforce( NATOMS, pos_b, boxl, force_b, total_energy, evalf_number, .false. )
                                       ! New force's components.
     call force_projection( fpar_b, perp_force_b, fperp_b, ftot_b, &
                   & force_b, projection )      
@@ -550,7 +554,9 @@ subroutine lanczos_step ( current_energy, liter, get_proj )
   if ( get_proj ) then
                                       ! Lanczos call, we start from the
       new_projection = .false.        ! previous direction each time.
+      !if ( iproc == 0 ) write(*,*) "BART: INIT LANCZOS"  !debug
       call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
+      !if ( iproc == 0 ) write(*,*) "BART: END  LANCZOS"  !debug
   end if
                                       ! Debug
   !if ( iproc == 0 ) then                
@@ -558,7 +564,6 @@ subroutine lanczos_step ( current_energy, liter, get_proj )
   ! write(*,"(' ','BART: eigenvals: ',4f12.6)") (eigenvals(i),i=1,4)
   !end if
 
-  current_energy = total_energy       ! As computed in lanczos routine
   delta_e = current_energy - ref_energy
                                       ! Magnitude of the displacement (utils.f90).
   call displacement( posref, pos, delr, npart )
@@ -569,6 +574,7 @@ subroutine lanczos_step ( current_energy, liter, get_proj )
                                       ! For restart ( restart.f90 )
   if ( write_restart_file ) then
      state_restart = 2 
+     total_energy = current_energy
      if ( iproc == 0 ) then
         call save_state2(state_restart,liter+1,projection,maxter,previous_forces,&
         & previous_pos,previous_norm,eigen_min,eigenvalue,nsteps_after_eigen_min )
