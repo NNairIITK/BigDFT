@@ -52,6 +52,12 @@ else
 sub_dirs_libconfig=
 endif
 
+if HAVE_ETSF_IO
+etsf_files = wavelib/plotting-etsf.f90
+else
+etsf_files = wavelib/plotting-etsf.fake.f90
+endif
+
 
 if USE_MINIMA_HOPPING
 minima_hopping_sources = global
@@ -192,6 +198,7 @@ low_level = init/projectors.f90  \
 	wfn_opt/kernel_slab_simple.f90 \
 	wfn_opt/coupling_matrix.f90 \
 	lib/fft/fft2d.f90 \
+	$(etsf_files) \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
 	wavelib/plotting.f90 \

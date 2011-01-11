@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.5-dev.2],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.5-dev.3],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -317,6 +317,41 @@ if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" ; then
   dnl Instead of second underscoring, test the compiler behaviour.
   AC_FC_WRAPPERS()
 fi
+
+dnl Use ETSF_IO
+ac_use_etsfio=no
+AC_ARG_WITH(etsf-io, AS_HELP_STRING([--with-etsf-io], [Link with ETSF_IO library (default = no).]), etsfio=$withval, etsfio=no)
+AC_ARG_WITH(etsf-io-path, AS_HELP_STRING([--with-etsf-io-path], [Give the path of the ETSF_IO installation (default = /usr).]),
+            ac_etsfio_dir=$withval, ac_etsfio_dir=)
+if test "$etsfio" = "yes" ; then
+   LDFLAGS_SVG="$LDFLAGS"
+   LIBS_SVG="$LIBS"
+   if test -n "$ac_etsfio_dir" ; then
+      LDFLAGS="$LDFLAGS -L$ac_etsfio_dir/lib"
+      FCFLAGS="$FCFLAGS -I$ac_etsfio_dir/include"
+   fi
+   LIBS="$LIBS -letsf_io -lnetcdff -lnetcdf"
+   AC_MSG_CHECKING([for ETSF_IO library])
+   AC_LINK_IFELSE([[
+program main
+  use etsf_io
+  
+  type(etsf_groups_flags) :: groups
+  type(etsf_dims) :: dims
+  logical :: lstat
+  type(etsf_io_low_error) :: error_data
+
+  call etsf_io_data_init("test", groups, dims, "test", "", lstat, error_data)
+end]], ac_use_etsfio=yes, ac_use_etsfio=no)
+   AC_MSG_RESULT([$ac_use_etsfio])
+   if test "$ac_use_etsfio" != "yes"; then
+      LIBS="$LIBS_SVG"
+      LDFLAGS="$LDFLAGS_SVG"
+   else
+      LIBS="$LIBS_SVG -letsf_io -lnetcdff -lnetcdf"
+   fi
+fi
+AM_CONDITIONAL(HAVE_ETSF_IO, test "$ac_use_etsfio" = "yes")
 
 dnl Test libraries required for benching.
 AC_LANG_PUSH(C++)
@@ -629,6 +664,8 @@ Options:
   With libS_GPU:             $ac_use_libsgpu
    | internal built:         $ac_build_libsgpu
    | include dir.:           $LIBSGPU_INCLUDE
+  With ETSF_IO:              $ac_use_etsfio
+   | include dir.:           $LIBETSFIO_INCLUDE
 
 Installation paths:
   Source code location:      ${srcdir}

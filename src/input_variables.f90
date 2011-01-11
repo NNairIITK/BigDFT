@@ -250,7 +250,9 @@ subroutine dft_input_variables(iproc,filename,in)
   in%itrpmax=1
   in%alphamix=0.0_gp
   in%rpnrm_cv=1.e-4_gp
-  in%gnrm_startmix=0.e-3_gp
+  in%gnrm_startmix=0.e300_gp
+  in%iscf=12 !only 2(potential) or 12(density) are allowed (ABINIT conventions for the moment)
+  in%Tel=1.e-2_gp 
 
   !electrostatic treatment of the vacancy (experimental)
   !read(1,*,iostat=ierror) in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw

@@ -39,7 +39,7 @@ int main() {
   clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, 0, &nContextDescriptorSize);
   cl_device_id * aDevices = (cl_device_id *) malloc(nContextDescriptorSize);
   clGetContextInfo(context, CL_CONTEXT_DEVICES, nContextDescriptorSize, aDevices, 0);
-  queue = clCreateCommandQueue(context, aDevices[0], CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &ciErrNum);
+  queue = clCreateCommandQueue(context, aDevices[0], 0, &ciErrNum);
   oclErrorCheck(ciErrNum,"Failed to create command queue!");
 
   ciErrNum = oclInitStreams(context);
@@ -71,7 +71,7 @@ int main() {
 
   printf("Enstreaming writes...\n");
   for(i=0; i<NB_STREAM; i++) {
-    ciErrNum = oclEnstreamWriteBuffer(streams[i], input[i], CL_FALSE, 0, size, data[i]);
+    ciErrNum = oclEnstreamWriteBuffer(streams[i], input[i], 0, size, data[i]);
     oclErrorCheck(ciErrNum,"Failed to enstream write buffer!");
   }
   printf("Enstreaming kernels...\n");
@@ -83,7 +83,7 @@ int main() {
   }
   printf("Enstreaming reads...\n");
   for(i=0; i<NB_STREAM; i++) {
-    ciErrNum = oclEnstreamReadBuffer(streams[i], output[i], CL_FALSE, 0, size, results[i]);
+    ciErrNum = oclEnstreamReadBuffer(streams[i], output[i], 0, size, results[i]);
     oclErrorCheck(ciErrNum,"Failed to enstream read buffer!");
   }
   printf("Waiting for kernels to finish...\n");

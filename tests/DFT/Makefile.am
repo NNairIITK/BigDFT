@@ -129,14 +129,16 @@ $(PSPS):
 %.run: %.in
 	@dir=`basename $@ .run` ; \
         runs="$(srcdir)/$$dir/*.ref" ; \
-        cd $$dir && $(MAKE) -f ../Makefile `for r in $$runs ; do echo $$(basename $$r .ref)".out"; done` ; \
+	tgts=`for r in $$runs ; do echo $$(basename $$r .ref)".out"; done` ; \
+        cd $$dir && $(MAKE) -f ../Makefile $$tgts ; \
         echo "Tests have run in "$$dir" dir. make $$dir.check available"
 	touch $@
 
 %.check: %.run
 	@dir=`basename $@ .check` ; \
         chks="$(srcdir)/$$dir/*.ref" ; \
-        cd $$dir && $(MAKE) -f ../Makefile `for c in $$chks ; do echo $$(basename $$c .ref)".report"; done`
+	tgts=`for c in $$chks ; do echo $$(basename $$c .ref)".report"; done` ; \
+        cd $$dir && $(MAKE) -f ../Makefile $$tgts
 	touch $@
 
 %.recheck:

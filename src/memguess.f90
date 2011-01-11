@@ -24,7 +24,8 @@ program memguess
   character(len=*), parameter :: subname='memguess'
   character(len=20) :: tatonam
   character(len=40) :: comment
-  logical :: optimise,GPUtest,atwf,convert=.false.
+  character(len=128) :: fileFrom, fileTo
+  logical :: optimise,GPUtest,atwf,convert=.false.,upgrade=.false.
   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: norbgpu,nspin_ig,ng
@@ -41,7 +42,7 @@ program memguess
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:,:), pointer :: rxyz
   real(wp), dimension(:), allocatable :: rhoexpo
-  real(wp), dimension(:,:), allocatable :: rhocoeff
+  real(wp), dimension(:,:), pointer :: rhocoeff
   real(kind=8), dimension(:,:), allocatable :: radii_cf
   logical, dimension(:,:,:), allocatable :: scorb
   real(kind=8), dimension(:), allocatable :: locrad
@@ -72,7 +73,9 @@ program memguess
      write(*,'(1x,a)')&
           '         <nrep> is the number of repeats'
      write(*,'(1x,a)')&
-          '"convert" converts input files older than 1.2 into actual format'
+          '"ugrade" ugrades input files older than 1.2 into actual format'
+     write(*,'(1x,a)')&
+          '"convert <from.[cube,etsf]> <to.[cube,etsf]>" converts file "from" to file "to" using the given formats'
      write(*,'(1x,a)')&
           '"atwf" <ng> calculates the atomic wavefunctions of the first atom in the gatom basis and write their expression '
      write(*,'(1x,a)')&
@@ -108,14 +111,20 @@ program memguess
            call getarg(4,tatonam)
            read(tatonam,*,iostat=ierror)norbgpu
         end if
+     else if (trim(tatonam)=='ugrade') then
+        upgrade=.true.
+        write(*,'(1x,a)')&
+             'ugrades the input.dat file in "input_convert.dft" (current version format)'
      else if (trim(tatonam)=='convert') then
         convert=.true.
-        write(*,'(1x,a)')&
-             'convert the input.dat file in the "input_convert.dft" (1.3 format)'
+        call getarg(3,fileFrom)
+        call getarg(4,fileTo)
+        write(*,'(1x,5a)')&
+             'convert "', trim(fileFrom),'" file to "', trim(fileTo),'"'
      else if (trim(tatonam)=='atwf') then
         atwf=.true.
         write(*,'(1x,a)')&
-             'Perform the calculation of aomic wavefunction of the first atom'
+             'Perform the calculation of atomic wavefunction of the first atom'
         call getarg(3,tatonam)
         read(tatonam,*,iostat=ierror)ng
         write(*,'(1x,a,i0,a)')&
@@ -160,6 +169,17 @@ program memguess
   call print_logo()
 
   if (convert) then
+     atoms%geocode = "P"
+     call read_density(trim(fileFrom), atoms%geocode, Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, &
+          & nspin, hx, hy, hz, rhocoeff, atoms%nat, rxyz, atoms%iatype, atoms%nzatom)
+     atoms%ntypes = size(atoms%nzatom) - ndebug
+     call plot_density(trim(fileTo), 0, 1, Glr%d%n1i / 2 - 1, Glr%d%n2i / 2 - 1, &
+          & Glr%d%n3i / 2 - 1, Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, Glr%d%n3i, nspin, hx, hy, hz, &
+          & atoms, rxyz, norbsc_arr, rhocoeff)
+     stop
+  end if
+
+  if (upgrade) then
      !initialize memory counting
      !call memocc(0,0,'count','start')
 

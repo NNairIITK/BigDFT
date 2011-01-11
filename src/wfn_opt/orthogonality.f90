@@ -262,7 +262,8 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
         !calculate the scprsum if the k-point is associated to this processor
         !the scprsum always coincide with the trace of the hamiltonian
         if (orbs%ikptproc(ikpt) == iproc) then
-           occ=real(orbs%kwgts(ikpt),dp)
+           occ=real(orbs%kwgts(ikpt),dp)*real(3-nspin,gp)
+           if (nspinor == 4) occ=real(orbs%kwgts(ikpt),dp)
            if(nspinor == 1) then
               do iorb=1,norb
                  scprsum=scprsum+&

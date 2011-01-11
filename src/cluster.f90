@@ -207,6 +207,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   character(len=*), parameter :: subname='cluster'
   character(len=3) :: PSquiet
   character(len=4) :: f4
+  character(len=5) :: fformat
   character(len=50) :: filename
   logical :: endloop,endlooprp,potion_overwritten=.false.,allfiles,onefile,refill_proj
   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
@@ -274,6 +275,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   rbuf=in%rbuf
   ncongt=in%ncongt
   nspin=in%nspin
+  if (abs(in%output_grid) > 10) then
+     write(fformat, "(A)") ".etsf"
+  else
+     write(fformat, "(A)") ".cube"
+  end if
 
   norbv=abs(in%norbv)
   nvirt=in%nvirt
@@ -372,7 +378,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if (libxc_functionals_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .and. nproc > 1) then
      call createKernel(0,1,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,&
-          pkernelseq,quiet=PSquiet)
+          pkernelseq,quiet='YES')
   else
      pkernelseq => pkernel
   end if
@@ -783,13 +789,32 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            !stop the partial timing counter if necessary
            if (endloop .and. in%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
-           scpot=(in%itrpmax /= 1 .and. iter==1 .and. icycle==1) .or. (in%itrpmax == 1) .or.&
-                (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix)
+           !logical flac for the self-consistent potential
+           scpot=(in%itrpmax /= 1 .and. iter==1 .and. icycle==1) .or. & !mixing to be done
+                (in%itrpmax == 1) .or. & !direct minimisation
+                (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix) !startmix condition
+
            !calculate the self-consistent potential
            if (scpot) then
               ! Potential from electronic charge density
               call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
                    n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+
+              !here the density can be mixed
+              if (in%iscf==12 .and. in%itrpmax>1) then
+                 if (itrp > 1) then
+                    call mix_rhopot(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,in%alphamix,rhopot_old,rhopot,rpnrm)
+                    
+                    if (iproc == 0) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                         'DENSITY iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+                    
+                    endlooprp= rpnrm <= in%rpnrm_cv .or. itrp == in%itrpmax
+                 else
+                    !define the first rhopot
+                    call dcopy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,rhopot(1),1,rhopot_old(1),1)
+                 end if
+              end if
+
 
               if(orbs%nspinor==4) then
                  !this wrapper can be inserted inside the poisson solver 
@@ -818,27 +843,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
               end if
 
-              if (itrp > 1) then
-                 !here the potential can be mixed
-                 !vold=>vold-vnew
-                 call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,-1.0_dp,rhopot(1),1,&
-                      rhopot_old(1),1)
-
-                 !calculate rhopot_norm
-                 rpnrm=(nrm2(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,rhopot_old(1),1))**2
-                 call mpiallred(rpnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-                 rpnrm=sqrt(rpnrm)
-
-                 if (iproc == 0) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                      'POTENTIAL iteration,Delta P (Norm 2)',itrp,rpnrm
-
-                 endlooprp= rpnrm <= in%rpnrm_cv .or. itrp == in%itrpmax
-
-                 !vnew=vnew+alpha(vold-vnew)
-                 call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,in%alphamix,rhopot_old(1),1,&
-                      rhopot(1),1)
+              !here the potential can be mixed
+              if (in%iscf==2 .and. in%itrpmax>1) then
+                 if (itrp > 1) then
+                    call mix_rhopot(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,in%alphamix,rhopot_old,rhopot,rpnrm)
+                    
+                    if (iproc == 0) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                         'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+                    
+                    endlooprp= rpnrm <= in%rpnrm_cv .or. itrp == in%itrpmax
+                 else
+                    !define the first rhopot
+                    call dcopy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,rhopot(1),1,rhopot_old(1),1)
+                 end if
               end if
-
            end if
 
            !temporary, to be corrected with comms structure
@@ -868,6 +886,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            else
               diis%energy=-ehart+eexcu-vexcu-eexctX+eion+edisp
            end if
+
            call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
                 iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,in%nspin,GPU,in)
 
@@ -978,11 +997,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         end if
 
         !recalculate orbitals occupation numbers
-        if (iproc == 0) call Fermilevel(.true.,1.e-2_gp,orbs) !on occup.dat file
-        call Fermilevel(.false.,1.e-2_gp,orbs) !in memory
+        if (iproc == 0) call Fermilevel(.true.,in%Tel,orbs) !on occup.dat file
+        call Fermilevel(.false.,in%Tel,orbs) !in memory
 
-        call dcopy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,&
-             rhopot(1),1,rhopot_old(1),1)
         gnrm =1.d10
         diis%energy_min=1.d10
      end if
@@ -1102,15 +1119,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   end if
 
   !plot the ionic potential, if required by output_grid
-  if (abs(in%output_grid)==2 .and. DoLastRunThings) then
+  if (mod(abs(in%output_grid), 10) == 2 .and. DoLastRunThings) then
      !if (in%output_grid==2) then
         !if (iproc == 0) write(*,*) 'writing ionic_potential.pot'
-        if (iproc == 0) write(*,*) 'writing ionic_potential.cube'
-        call plot_density(atoms%geocode,'ionic_potential',iproc,nproc,&
+        if (iproc == 0) write(*,*) 'writing ionic_potential' // fformat
+        call plot_density('ionic_potential' // fformat,iproc,nproc,&
              n1,n2,n3,n1i,n2i,n3i,n3p,&
              1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot_ion)
-        if (iproc == 0) write(*,*) 'writing local_potential.cube'
-        call plot_density(atoms%geocode,'local_potential',iproc,nproc,&
+        if (iproc == 0) write(*,*) 'writing local_potential' // fformat
+        call plot_density('local_potential' // fformat,iproc,nproc,&
              n1,n2,n3,n1i,n2i,n3i,n3p,&
              1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot)
   end if
@@ -1157,14 +1174,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !plot the density on the density.pot file
   if ((abs(in%output_grid) >= 1 .or. in%nvacancy /=0) .and. DoLastRunThings) then
-     if (iproc == 0) write(*,*) 'writing electronic_density.cube'
+     if (iproc == 0) write(*,*) 'writing electronic_density' // fformat
 
-     call plot_density(atoms%geocode,'electronic_density',&
+     call plot_density('electronic_density' // fformat,&
           iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
           in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
      if (associated(rhocore)) then
-        if (iproc == 0) write(*,*) 'writing grid core_density.cube'
-        call plot_density(atoms%geocode,'core_density',&
+        if (iproc == 0) write(*,*) 'writing grid core_density' // fformat
+        call plot_density('core_density' // fformat,&
              iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
              1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhocore(1+n1i*n2i*i3xcsh:))
      end if
@@ -1187,9 +1204,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
        n1i,n2i,n3i,hxh,hyh,hzh,pot,pkernel,pot,ehart_fake,0.0_dp,.false.)
 
   !plot also the electrostatic potential
-  if (abs(in%output_grid) == 2 .and. DoLastRunThings) then
-        call plot_density(atoms%geocode,'hartree_potential',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-             in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot)
+  if (mod(abs(in%output_grid), 10) == 2 .and. DoLastRunThings) then
+     if (iproc == 0) write(*,*) 'writing hartree_potential' // fformat
+     call plot_density('hartree_potential' // fformat, &
+          & iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+          in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot)
   end if
 
   allocate(gxyz(3,atoms%nat+ndebug),stat=i_stat)

@@ -217,7 +217,7 @@ subroutine finalise_precond_residue(geocode,hybrid_on,ncplx,wfd,scal,x)
      do idx=1,ncplx
         call wscalv_wrap(wfd%nvctr_c,wfd%nvctr_f,scal,x(1,idx))
      end do
-  else if (geocode == 'P' .and. .not. hybrid_on) then
+  else if ((geocode == 'P' .and. .not. hybrid_on) .or. geocode == 'S') then
      do idx=1,ncplx
         ! x=D^{-1/2}x'
         call wscal_per_self(wfd%nvctr_c,wfd%nvctr_f,scal,x(1,idx),&
@@ -246,7 +246,8 @@ subroutine calculate_rmr_new(geocode,hybrid_on,ncplx,wfd,scal,r,b,rmr_new)
   logical :: noscal
   integer :: idx
 
-  noscal = ((geocode == 'P' .and. .not. hybrid_on) .or. geocode == 'F')
+  noscal = ((geocode == 'P' .and. .not. hybrid_on) .or. &
+       geocode == 'F' .or. geocode == 'S')
 
   if (noscal) then
      call dcopy(ncplx*(wfd%nvctr_c+7*wfd%nvctr_f),r(1,1),1,b(1,1),1) 
@@ -380,7 +381,8 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
               !	Arrays psifscf and ww serve as work arrays for the Fourier
               fac=1.0_gp/scal(0)**2
               call prec_fft_c(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nseg_c,&
-                   lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                   lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                   lr%wfd%keyg,lr%wfd%keyv, &
                    cprecr,hx,hy,hz,x(1,idx),&
                    w%psifscf(1),w%psifscf(lr%d%n1+2),&
                    w%psifscf(lr%d%n1+lr%d%n2+3),w%ww(1),w%ww(nd1b*nd2*nd3*4+1),&
@@ -402,6 +404,14 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
      call wscal_init_per(scal,hx,hy,hz,cprecr)
     
      do idx=1,ncplx
+
+        !recently added
+        !	scale the r.h.s. that is also the scaled input guess :
+        !	b'=D^{-1/2}b
+        call wscal_per_self(lr%wfd%nvctr_c,lr%wfd%nvctr_f,scal,&
+             x(1,idx),x(lr%wfd%nvctr_c+1,idx))
+        !end of that
+
         !b=x
         call dcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
         
@@ -412,6 +422,10 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
              cprecr,hx,hy,hz,x(1,idx),&
              w%psifscf(1),w%psifscf(lr%d%n1+2),w%ww(1),&
              w%ww(2*((lr%d%n1+1)/2+1)*(lr%d%n2+1)*(lr%d%n3+1)+1))
+
+        !we will probably have to rescale x by fac=1.0_gp/scal(0)**2
+        call dscal(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,1.0_gp/scal(0)**2,x(1,idx),1)
+        
      end do
 
   end if
@@ -772,16 +786,16 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
      end if
   else if (lr%geocode == 'S') then
      if (ncplx == 1) then
-        call apply_hp_slab_sd(lr%d%n1,lr%d%n2,lr%d%n3,&
+        call apply_hp_slab_sd_scal(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
              lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
              cprecr,hx,hy,hz,x,y,w%psifscf,w%ww,w%modul1,w%modul3,&
-             w%af,w%bf,w%cf,w%ef)
+             w%af,w%bf,w%cf,w%ef,scal)
      else
         call apply_hp_slab_k(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
              lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
-             cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww) 
+             cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww,scal) 
 
      end if
    end if
