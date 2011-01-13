@@ -17,7 +17,7 @@
 !!   symbol    Atomic symbol
 !!   rcov      Covalent radius
 !!   rprb      Parabolic radius for the input guess using the subroutine "gatom"
-!!   ehomo     High occupied molecular orbital energy
+!!   ehomo     Highest occupied molecular orbital energy
 !!             See http://physics.nist.gov/PhysRefData/DFTdata/Tables/ptable.html
 !!   neleconf  Occupation number (electronic configuration of the atom)
 !!   nsccode   Semicore orbitals, indicated as an integer.

@@ -1450,9 +1450,9 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
   implicit none
   integer, intent(in) :: norb,nvctrp,nspinor,ncplx
   real(wp), dimension(nspinor*nvctrp*norb), intent(in) :: g
+  real(wp), dimension(ncplx,2*norb,2*norb), intent(in) :: hamovr
   real(wp), dimension(nspinor*nvctrp*norb), intent(inout) :: v
   real(wp), dimension(nspinor*nvctrp*norb), intent(inout) :: work
-  real(wp), dimension(ncplx,2*norb,2*norb), intent(out) :: hamovr
   !local variables
   character(len=*), parameter :: subname='update_psivirt'
   integer :: ncomp

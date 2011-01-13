@@ -991,8 +991,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         end if
 
         !recalculate orbitals occupation numbers
-        if (iproc == 0) call Fermilevel(.true.,in%Tel,orbs) !on occup.dat file
-        call Fermilevel(.false.,in%Tel,orbs) !in memory
+        call evaltoocc(iproc,.false.,in%Tel,orbs)
 
         gnrm =1.d10
         diis%energy_min=1.d10
