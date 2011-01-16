@@ -732,8 +732,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
-  !set the infocode to the value it would have in the case of no convergence
-  infocode=1
   !diis initialisation variables
   diis%energy=1.d10
   !minimum value of the energy during the minimisation procedure
@@ -744,6 +742,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ndiis_sd_sw=0
   !previous value of idsx_actual to control if switching has appeared
   idsx_actual_before=diis%idsx
+  !logical control variable for switch DIIS-SD
+  diis%switchSD=.false.
 
   !end of the initialization part
   call timing(iproc,'INIT','PR')
@@ -761,7 +761,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   end if
   endlooprp=.false.
   rhopot_loop: do itrp=1,in%itrpmax
-
+     !set the infocode to the value it would have in the case of no convergence
+     infocode=1
      subd_loop : do icycle=1,in%nrepmax
 
         wfn_loop: do iter=1,in%itermax
@@ -797,7 +798,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               !here the density can be mixed
               if (in%iscf==12 .and. in%itrpmax>1) then
                  if (itrp > 1) then
-                    call mix_rhopot(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,in%alphamix,rhopot_old,rhopot,rpnrm)
+                    call mix_rhopot(Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,in%alphamix,rhopot_old,rhopot,rpnrm)
                     
                     if (iproc == 0) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
                          'DENSITY iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
@@ -805,7 +806,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                     endlooprp= rpnrm <= in%rpnrm_cv .or. itrp == in%itrpmax
                  else
                     !define the first rhopot
-                    call dcopy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,rhopot(1),1,rhopot_old(1),1)
+                    call dcopy(Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,rhopot(1),1,rhopot_old(1),1)
                  end if
               end if
 
@@ -980,8 +981,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            gnrm=1.d10
         end if
 
+        if (in%itrpmax == 1 .and. in%norbsempty > 0) then
+           !recalculate orbitals occupation numbers
+           call evaltoocc(iproc,.false.,in%Tel,orbs)
+
+           gnrm =1.d10
+           diis%energy_min=1.d10
+           diis%alpha=2.d0
+        end if
+
      end do subd_loop
-     
 
      if (in%itrpmax > 1) then
         !stop the partial timing counter if necessary
@@ -995,6 +1004,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
         gnrm =1.d10
         diis%energy_min=1.d10
+        diis%alpha=2.d0
      end if
 
   end do rhopot_loop

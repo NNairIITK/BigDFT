@@ -13,7 +13,8 @@ PSPS = psppar.H \
        HGH-K/psppar.H \
        HGH-K/psppar.Si \
        HGH-K/psppar.N \
-       HGH-K/psppar.O
+       HGH-K/psppar.O \
+       HGH-K/psppar.Ti
 
 # Give here the list of existing tests
 TESTDIRS = H \
@@ -30,6 +31,8 @@ TESTDIRS = H \
 	  H2O-slab \
 	  Davidson-SiH4 \
 	  Graphene \
+	  TiMix \
+	  O2-Spin \
 	  FeHyb 
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
@@ -46,6 +49,7 @@ Li+.psp: psppar.Li
 H2-spin.psp: HGH/psppar.H
 SiH4.psp: HGH-K/psppar.H HGH-K/psppar.Si
 NH3.psp: HGH-K/psppar.N HGH-K/psppar.H
+TiMix.psp: HGH-K/psppar.Ti
 NaCl.psp: HGH/psppar.Na HGH/psppar.Cl
 Ca2.psp: psppar.Ca
 Mn2.psp: psppar.Mn
@@ -57,6 +61,7 @@ Graphene.psp: psppar.C
 FeHyb.psp: HGH/psppar.Fe
 GPU.psp: HGH/psppar.Si
 OCL.psp: HGH/psppar.Si
+O2-Spin.psp: HGH-K/psppar.O
 
 # Additional rules.
 H2O-slab.post-in:
