@@ -33,7 +33,7 @@ subroutine comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
 !$omp parallel default (private) shared(x,y,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)&
 !$omp shared(ib,fil2)
 
- !$omp do !schedule(static,1)
+ !$omp do schedule(static,1)
   do l2=-14+2*nfl2,2*nfu2+16
      !    do l1=-14+2*nfl1,2*nfu1+16
      ! bulk values of l1:
@@ -145,7 +145,7 @@ subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
 !$omp shared(ib,fil2,ib2)
 
  ! call system_clock(ncount1,ncount_rate,ncount_max)
-  !$omp do !schedule(static,1) ! switched off because does not improve the performance.  
+  !$omp do schedule(static,1) ! switched off because does not improve the performance.  
   do l1=-14,2*n1+16
      do l3=0,n3 
         do l2=ib2(1,l3,l1),ib2(2,l3,l1)
@@ -159,7 +159,7 @@ subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
 !  call system_clock(ncount2,ncount_rate,ncount_max)
 !  write (*,*) 'Timing ', real(ncount2-ncount1)/real(ncount_rate)
    
- !$omp do !schedule(static,1)
+ !$omp do schedule(static,1)
   do ll3=0,(n3-1)/2
      l3=ll3*2 ! even l3
      l31=ll3*2+1  ! odd l3
@@ -251,7 +251,7 @@ subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
   !$omp enddo
 
   ! remaining values of l3
-  !$omp do !schedule(static,1)
+  !$omp do schedule(static,1)
   do l3=2*((n3-1)/2)+2,n3
      do l2=0,n2
 
@@ -327,7 +327,7 @@ subroutine comb_rot_grow_loc_square_3(n1,n2,n3,x,y,ib)
 !$omp parallel default (private) shared(x,y,n1,n2,n3)&
 !$omp shared(ib,fil2)
 
- !$omp do !schedule(static,1)
+ !$omp do schedule(static,1)
   do ll3=0,(n3-1)/2
      l3=ll3*2 ! even l3
      l31=ll3*2+1  ! odd l3
@@ -419,7 +419,7 @@ subroutine comb_rot_grow_loc_square_3(n1,n2,n3,x,y,ib)
   !$omp enddo
 
   ! remaining values of l3
-  !$omp do !schedule(static,1)
+  !$omp do schedule(static,1)
   do l3=2*((n3-1)/2)+2,n3
      do l2=0,n2
 
@@ -464,7 +464,7 @@ subroutine make_loczero(n1,n2,n3,ib2,y)
 
 ! call system_clock(ncount0,ncount_rate,ncount_max)
 !$omp parallel default (private)
- !$omp do !schedule(static,1)
+ !$omp do schedule(static,1)
   do ll1=-7,n1+7
      l10=2*ll1
      l11=l10+1
@@ -499,7 +499,7 @@ subroutine make_loczero(n1,n2,n3,ib2,y)
   ! remaining value of l1=2*n1+16
   l1=2*n1+16
 !!$omp parallel default (private)
-! !$omp do !schedule(static,1)
+! !$omp do schedule(static,1)
   do l3=0,n3
      do i=ib2(1,l3,l1),ib2(2,l3,l1)
         y(i,l3,l1)=0.0_wp

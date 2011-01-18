@@ -57,7 +57,7 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
 !$omp parallel default (private) shared(nt,len_2,ch,cg,mod_my,c,cd_1)
 !$  ithread = omp_get_thread_num()
 
-!$omp do !schedule(static,1)
+!$omp do schedule(static,1)
   do it=1,nt-11,12
      do i=0,len_2-1
         i2=2*i
@@ -247,7 +247,7 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
 !$  ithread = omp_get_thread_num()
 
 
-!$omp do !schedule(static,1)
+!$omp do schedule(static,1)
   do it=1,nt-11,12
      do i=0,len_2-1
 

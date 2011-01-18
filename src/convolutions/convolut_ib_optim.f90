@@ -268,7 +268,7 @@ call system_clock(ncount0,ncount_rate,ncount_max)
 !$omp shared(x_f1,x_f2,x_f3,a,b,c,e,ncount0)&
 !$omp private(ncount1,ncount2,ncount3,ncount4,ncount5,ncount6)
 
-  !$omp do !schedule(static,1)
+  !$omp do schedule(static,1)
 !  !$omp parallel do collapse(2)
 
   do i3=0,n3
@@ -373,7 +373,7 @@ call system_clock(ncount0,ncount_rate,ncount_max)
 
   ! + (1/2) d^2/dy^2
 
-  !$omp do !schedule(static,1)
+  !$omp do schedule(static,1)
 !  !$omp parallel do collapse(2)
   do i3=0,n3
      do i1=0,n1
@@ -478,7 +478,7 @@ call system_clock(ncount0,ncount_rate,ncount_max)
   ! + (1/2) d^2/dz^2
 
 !   !$omp parallel do collapse(2)
-  !$omp do !schedule(static,1)
+  !$omp do schedule(static,1)
   do i2=0,n2
      do i1=0,n1
         if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
@@ -583,7 +583,7 @@ call system_clock(ncount0,ncount_rate,ncount_max)
 
 
 !   !omp parallel do collapse(3)
-  !$omp do !schedule(static,1)
+  !$omp do schedule(static,1)
   do i3=nfl3,nfu3
      do i2=nfl2,nfu2
         do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
@@ -617,7 +617,7 @@ call system_clock(ncount0,ncount_rate,ncount_max)
 
   ! + (1/2) d^2/dy^2
 !  !$omp parallel do collapse(2)
-  !$omp do !schedule(static,1)
+  !$omp do schedule(static,1)
   do i3=nfl3,nfu3
      do i1=nfl1,nfu1
         do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
@@ -649,7 +649,7 @@ call system_clock(ncount0,ncount_rate,ncount_max)
     !write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:y',tel,1.d-6*nflop2/tel
 
   ! + (1/2) d^2/dz^2
-  !$omp do !schedule(static,1)
+  !$omp do schedule(static,1)
 !  !$omp parallel do collapse(3)
   do i2=nfl2,nfu2
      do i1=nfl1,nfu1
@@ -963,7 +963,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
 !$omp private(ncount1,ncount2,ncount3,ncount4,ncount5,ncount6)
   ekinp=0._wp
 
-  !$omp do !schedule(static,1)
+  !$omp do schedule(static,1)
   do i3=0,n3
      do i2=0,n2
         if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -1083,7 +1083,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
   !!
   !!  ! + (1/2) d^2/dy^2
   !!
-  !$omp do !schedule(static,1)
+  !$omp do schedule(static,1)
   do i3=0,n3
      do i1=0,n1
         if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
@@ -1206,7 +1206,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
   !!
   !!  ! + (1/2) d^2/dz^2
   !!
-  !$omp do !schedule(static,1)
+  !$omp do schedule(static,1)
   do i2=0,n2
      do i1=0,n1
         if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
@@ -1326,7 +1326,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
 
   ! wavelet part
   ! (1/2) d^2/dx^2
-  !$omp do !schedule(static,1)
+  !$omp do schedule(static,1)
   do i3=nfl3,nfu3
      do i2=nfl2,nfu2
         do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
@@ -1367,7 +1367,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
 
   ! + (1/2) d^2/dy^2
   !nb=16
-  !$omp do !schedule(static,1)
+  !$omp do schedule(static,1)
   do i3=nfl3,nfu3
      do i1=nfl1,nfu1
         do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
@@ -1407,7 +1407,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
 
   ! + (1/2) d^2/dz^2
   !nb=16
-  !$omp do !schedule(static,1)
+  !$omp do schedule(static,1)
   do i2=nfl2,nfu2
      do i1=nfl1,nfu1
         do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
