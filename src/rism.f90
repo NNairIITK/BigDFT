@@ -621,7 +621,7 @@ subroutine calculate_rho_longrange(iproc,nproc,at,nlr,iatlr,radii,rxyz,hxh,hyh,h
      rz=rxyz(3,iat)
 
      !cutoff=10.d0*rloc
-     cutoff=4.0_gp!cutofrac!*rloc
+     cutoff=0.0_gp!cutofrac!*rloc
 
      do i=1,iatlr(iat)
         rhoarr(ilr+i)=0.0_gp

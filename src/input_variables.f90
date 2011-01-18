@@ -362,6 +362,7 @@ subroutine mix_input_variables_default(in)
   in%iscf=0 !only 2(potential) or 12(density) are allowed (ABINIT conventions for the moment)
   in%Tel=0.0_gp
   in%norbsempty=0
+  in%alphadiis=2.d0
 
 END SUBROUTINE mix_input_variables_default
 !!***
@@ -403,7 +404,7 @@ subroutine mix_input_variables(filename,in)
   call check()
   read(1,*,iostat=ierror) in%norbsempty, in%Tel
   call check()
-  read(1,*,iostat=ierror) in%alphamix
+  read(1,*,iostat=ierror) in%alphamix,in%alphadiis
   call check()
   close(unit=1,iostat=ierror)
 

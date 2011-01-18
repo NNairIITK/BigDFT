@@ -723,7 +723,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           in%nspin,hx,hy,hz,Glr%wfd,orbs,GPU)
   end if
 
-  diis%alpha=2.d0
+  diis%alpha=in%alphadiis
   energy=1.d10
   energybs=1.d10
   gnrm=1.d10
@@ -959,7 +959,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            end if
            !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
-           if (diis%energy > diis%energy_min) write( *,'(1x,a,1pe9.2)')&
+           if (diis%energy > diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
                 'WARNING: Found an energy value lower than the FINAL energy, delta:',diis%energy-diis%energy_min
         end if
 

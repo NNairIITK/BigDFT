@@ -30,7 +30,7 @@ module module_types
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
      integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty
      integer :: output_grid, dispersion,last_run
-     real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel
+     real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel,alphadiis
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
      integer :: nvacancy,verbosity
      real(gp) :: elecfield

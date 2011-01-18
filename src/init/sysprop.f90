@@ -628,7 +628,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
 
      if (in%nspin == 4 .or. in%nspin==1) then
         norb=norb+norbuempty
-        norbu=norb+norbuempty
+        norbu=norbu+norbuempty
      else if (in%nspin ==2) then
         norbu=norbu+norbuempty
         norbd=norbd+norbdempty
