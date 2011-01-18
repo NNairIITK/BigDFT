@@ -1172,7 +1172,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   logical :: perx,pery,perz,gox,goy,goz
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,nspin
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nelec
-  integer :: norb,norbu,norbd,iunit
+  integer :: norb,norbu,norbd,iunit,norbuempty,norbdempty
   real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz
   real(wp) :: maxdiff
@@ -1198,7 +1198,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
 
   !read the specifications of the counter ions from pseudopotentials
   call read_system_variables('input.occup',iproc,in,at,radii_cf,nelec,&
-       norb,norbu,norbd,iunit)
+       norb,norbu,norbd,norbuempty,norbdempty,iunit)
 
   pi=4.d0*atan(1.d0)
   ! Ionic charge (must be calculated for the PS active processes)

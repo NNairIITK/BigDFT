@@ -13,7 +13,7 @@ subroutine mix_rhopot(npoints,alphamix,rhopot_old,rhopot,rpnrm)
 
   !calculate rhopot_norm
   rpnrm=(nrm2(npoints,rhopot_old(1),1))**2
-  rpnrm=rpnrm/real(npoints,gp)
+  if (npoints > 0) rpnrm=rpnrm/real(npoints,gp)
   call mpiallred(rpnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
   rpnrm=sqrt(rpnrm)
       
