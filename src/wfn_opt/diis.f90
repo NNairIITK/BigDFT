@@ -82,10 +82,10 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
   else
      ! update all wavefunctions with the preconditioned gradient
      if (diis%energy > diis%energy_old) then
-        diis%alpha=max(.125_wp,.5_wp*diis%alpha)
-        if (diis%alpha == .125_wp) write(*,*) ' WARNING: Convergence problem or limit'
+        diis%alpha=max(5.d-2,.5_wp*diis%alpha)
+        if (diis%alpha == 5.d-2) write(*,*) ' WARNING: Convergence problem or limit'
      else
-        diis%alpha=min(1.05_wp*diis%alpha,1._wp)
+        diis%alpha=min(1.05_wp*diis%alpha,diis%alpha_max)
      endif
      if (iproc == 0 .and. verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',diis%alpha
 

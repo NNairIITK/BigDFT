@@ -882,6 +882,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               diis%energy=-ehart+eexcu-vexcu-eexctX+eion+edisp
            end if
 
+                diis%alpha_max=in%alphadiis
            call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
                 iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,in%nspin,GPU,in)
 
