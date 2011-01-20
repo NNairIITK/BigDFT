@@ -135,7 +135,7 @@ program memguess
         write(*,'(1x,a)')&
              'Indicate the number of processes after the executable'
         write(*,'(1x,a)')&
-             'ERROR: The only second argument which is accepted are "y", "o", "convert" "GPUtest" or "atwf" ' 
+             'ERROR: The only second argument which is accepted are "y", "o", "upgrade", "convert", "GPUtest" or "atwf" ' 
         write(*,'(1x,a)')&
              '       (type "memguess" without arguments to have an help)'
         stop
@@ -170,12 +170,15 @@ program memguess
 
   if (convert) then
      atoms%geocode = "P"
+     write(*,*) "Read density file..."
      call read_density(trim(fileFrom), atoms%geocode, Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, &
           & nspin, hx, hy, hz, rhocoeff, atoms%nat, rxyz, atoms%iatype, atoms%nzatom)
      atoms%ntypes = size(atoms%nzatom) - ndebug
+     write(*,*) "Write new density file..."
      call plot_density(trim(fileTo), 0, 1, Glr%d%n1i / 2 - 1, Glr%d%n2i / 2 - 1, &
           & Glr%d%n3i / 2 - 1, Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, Glr%d%n3i, nspin, hx, hy, hz, &
           & atoms, rxyz, norbsc_arr, rhocoeff)
+     write(*,*) "Done"
      stop
   end if
 

@@ -87,7 +87,7 @@ EXTRA_DIST = \
 	NEB_driver.sh 
 
 AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver \
-	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ @LIBETSFIO_INCLUDE@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)

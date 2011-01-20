@@ -326,6 +326,7 @@ AC_ARG_WITH(etsf-io-path, AS_HELP_STRING([--with-etsf-io-path], [Give the path o
 if test "$etsfio" = "yes" ; then
    LDFLAGS_SVG="$LDFLAGS"
    LIBS_SVG="$LIBS"
+   FCFLAGS_SVG="$FCFLAGS"
    if test -n "$ac_etsfio_dir" ; then
       LDFLAGS="$LDFLAGS -L$ac_etsfio_dir/lib"
       FCFLAGS="$FCFLAGS -I$ac_etsfio_dir/include"
@@ -344,11 +345,14 @@ program main
   call etsf_io_data_init("test", groups, dims, "test", "", lstat, error_data)
 end]], ac_use_etsfio=yes, ac_use_etsfio=no)
    AC_MSG_RESULT([$ac_use_etsfio])
-   if test "$ac_use_etsfio" != "yes"; then
-      LIBS="$LIBS_SVG"
-      LDFLAGS="$LDFLAGS_SVG"
-   else
-      LIBS="$LIBS_SVG -letsf_io -lnetcdff -lnetcdf"
+   LIBS="$LIBS_SVG"
+   FCFLAGS="$FCFLAGS_SVG"
+   if test "$ac_use_etsfio" = "yes"; then
+      ac_libetsfio_libs="-letsf_io -lnetcdff -lnetcdf"
+      if test -n "$ac_etsfio_dir" ; then
+         AC_SUBST(LIBETSFIO_INCLUDE, "-I$ac_etsfio_dir/include")
+      fi
+      LIBETSFIO_LIBS="-letsf_io -lnetcdff -lnetcdf"
    fi
 fi
 AM_CONDITIONAL(HAVE_ETSF_IO, test "$ac_use_etsfio" = "yes")
@@ -568,7 +572,7 @@ fi
 AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
 dnl Agregate all the optional libs.
-LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBS"
+LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS"
 
 dnl Test for the documentation.
 AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes])
