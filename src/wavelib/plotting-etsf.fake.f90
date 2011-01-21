@@ -32,7 +32,6 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz)
   use module_base
   use module_types
-  use etsf_io
   implicit none
   character(len=*), intent(in) :: filename
   character(len=1), intent(in) :: geocode
