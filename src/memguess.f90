@@ -194,7 +194,7 @@ program memguess
      call dft_input_converter(in)
      write(*,*)' ...done'
   else
-     call read_input_variables(0, "posinp", "input.dft", "input.kpt", &
+     call read_input_variables(0, "posinp", "input.dft", "input.kpt","input.mix", &
           & "input.geopt", "input.perf", in, atoms, rxyz)
      !initialize memory counting
      !call memocc(0,0,'count','start')
