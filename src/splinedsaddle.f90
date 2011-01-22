@@ -214,9 +214,9 @@ program BigDFT
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-
-    call system("echo $HOSTNAME")
-
+!
+!    call system("echo $HOSTNAME")
+!
   ! find out which input files will be used
   inquire(file="list_posinp",exist=exist_list)
   if (exist_list) then
@@ -267,7 +267,8 @@ program BigDFT
 
      !if other steps are supposed to be done leave the last_run to minus one
      !otherwise put it to one
-     if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1) then
+     !if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1) then
+     if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1 .or.  inputs%ncount_cluster_x <= 1) then
         inputs%last_run = 1
      end if
  
@@ -526,6 +527,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     call default_input_variables(ll_inputs)
     if(trim(pnow%hybrid)=='yes') then
         call dft_input_variables(iproc,'ll_input.dft',ll_inputs)
+        call perf_input_variables(iproc,'ll_input.perf',ll_inputs)
     else
         ll_inputs=inputs
     endif
@@ -644,7 +646,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         parmin_neb%approach='FIRE' !SD or SDCG or SDDIIS
         parmin_neb%alpha=1.d0*parmin%alphax
         call initminimize(parmin_neb)
-        parmin_neb%maxforcecall=100 !30  !10
+        parmin_neb%maxforcecall=200 !30  !10
         parmin_neb%fnrmtolsatur=1.d-4 !5.d-2
         call neb(n,nr,np_neb,xneb,epot_t,fneb,ratsp,parmin_neb,fends,pnow, &
             nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)  
@@ -1058,7 +1060,7 @@ subroutine readinputsplsad(iproc,np,np_neb,parmin,parmin_neb,pnow)
     parmin%alphax=0.5d0
     parmin%fmaxtol=2.d-4
     parmin%maxforcecall=100
-    parmin%dt=0.1d0
+    parmin%dt=0.03d0
     np=3
     np_neb=-1
     pnow%ns2=0
@@ -1366,7 +1368,7 @@ subroutine neb(n,nr,np,x,etmax,f,xtmax,parmin,fends,pnow,nproc,iproc,atoms,rst,l
         call dmemocc(3*nr*(np-1),3*nr*(np-1)+ndeb1,work,'work')
         !allocate(xold(n,0:np+ndeb2),stat=istat)
         !call dmemocc(n*(np+1),n*(np+1+ndeb2),xold,'xold')
-        parmin%dt=0.05d0
+        parmin%dt=0.02d0
         if(istat/=0) stop 'ERROR: failure allocating work.'
         icall=0
         do it=1,parmin%maxforcecall
@@ -1956,7 +1958,7 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
         parmin%iflag=1
         parmin%iter=0
         epotold=epot
-        alpha=10.d-1
+        alpha=7.d-1
         reset=.false.
         alphamax=1.d0
     else
@@ -2266,8 +2268,8 @@ subroutine checkpathway(iproc,istep,n,np,x,xold,pnow)
         enddo
     enddo
     if(iproc==0) write(*,'(a,i4,1es14.5)') 'fort53 ',istep,dmax
+    !if(dmax>5.d-3) then
     if(dmax>2.d-2) then
-    !if(dmax>7.d-3) then
         pnow%do_fill_ex_exd=.true.
     else
         pnow%do_fill_ex_exd=.false.
@@ -4323,7 +4325,7 @@ subroutine fire(iproc,nr,x,epot,f,work,parmin)
             write(*,*) 'ERROR: time step in FIRE method must be set by user'
             return
         endif
-        if(parmin%dtmax<0.d0) parmin%dtmax=10.d0*parmin%dt
+        if(parmin%dtmax<0.d0) parmin%dtmax=30.d0*parmin%dt
         if(parmin%finc<0.d0) parmin%finc=1.20d0
         if(parmin%fdec<0.d0) parmin%fdec=0.5d0
         if(parmin%falpha<0.d0) parmin%falpha=0.97d0  !0.99d0
@@ -4391,7 +4393,7 @@ subroutine fire(iproc,nr,x,epot,f,work,parmin)
     !if(p>-1.d-6 .or. parmin%itfire<=40) then
         if(ndown>parmin%ndowntol) then
             parmin%dt=min(parmin%finc*parmin%dt,parmin%dtmax)
-            alpha=max(parmin%falpha*alpha,1.d-1)
+            alpha=max(parmin%falpha*alpha,2.d-1)
             !alpha=parmin%falpha*alpha
         endif
         ndown=ndown+1
