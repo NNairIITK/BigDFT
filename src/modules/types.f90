@@ -422,7 +422,7 @@ module module_types
   type, public :: diis_objects
      logical :: switchSD
      integer :: idiistol,mids,ids,idsx
-     real(gp) :: energy_min,energy_old,energy,alpha
+     real(gp) :: energy_min,energy_old,energy,alpha,alpha_max
      real(wp), dimension(:), pointer :: psidst
      real(tp), dimension(:), pointer :: hpsidst
      real(wp), dimension(:,:,:,:), pointer :: ads

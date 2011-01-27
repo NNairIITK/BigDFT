@@ -49,11 +49,6 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(gp), dimension(3,2) :: wrkallred
   real(wp), dimension(:), pointer :: pot
 !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
-  integer,parameter::lupfil=14
-
-  !stream ptr array
-!  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
-!  real(kind=8) :: stream_ptr_first_trsf
 
   !initialise exact exchange energy 
   op2p=(eexctX == -99.0_gp)
@@ -292,9 +287,6 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 integer:: i
 !OCL  real(wp) :: maxdiff
 !OCL  integer, dimension(3) :: periodic
-
-  !stream ptr array
- ! real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
 
   !adjust the save variables for DIIS/SD switch
   if (iter == 1) then
