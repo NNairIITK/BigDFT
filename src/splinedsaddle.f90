@@ -1055,7 +1055,7 @@ subroutine readinputsplsad(iproc,np,np_neb,parmin,parmin_neb,pnow)
     character(10)::typintpol
     character(256)::str1
     pnow%runstat='new'
-    parmin_neb%fmaxtol=1.d-2
+    parmin_neb%fmaxtol=2.d-2
     parmin%approach='SD'
     parmin%alphax=0.5d0
     parmin%fmaxtol=2.d-4
@@ -1833,7 +1833,7 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,fends,pnow,nproc, &
         allocate(xold(n,0:np+ndeb2),stat=istat)
         if(istat/=0) stop 'ERROR: failure allocating xold.'
         call dmemocc(n*(np+1),n*(np+1+ndeb2),xold,'xold')
-        nwork=(nr*(np-1))*(nr*(np-1))+3*(nr*(np-1))+2*(nr*(np-1))*(nr*(np-1))+2*(nr*(np-1))
+        nwork=(nr*(np-1))*(nr*(np-1))+3*(nr*(np-1))+3*(nr*(np-1))*(nr*(np-1))+2*(nr*(np-1))
         allocate(work(nwork+ndeb1),stat=istat)
         if(istat/=0) stop 'ERROR: failure allocating work.'
         call dmemocc(nwork,nwork+ndeb1,work,'work')
@@ -1935,7 +1935,7 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     !use minimization, only:parameterminimization
     use minimization_sp, only:parameterminimization_sp
     implicit none
-    integer::iproc,nr,nwork,mf,my,ms,nrsq,iw1,iw2,iw3,info,i,j,l,mx
+    integer::iproc,nr,nwork,mf,my,ms,nrsqtwo,iw1,iw2,iw3,info,i,j,l,mx
     real(8)::x(nr),f(nr),epot,work(nwork)
     integer, allocatable::ipiv(:)
     !type(parameterminimization)::parmin
@@ -1943,7 +1943,7 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     real(8)::DDOT,DNRM2,tt1,tt2,de,fnrm,calnorm,fmax,calmaxforcecomponent
     real(8), save::epotold,alpha,alphamax
     logical, save::reset
-    if(nwork/=nr*nr+3*nr+2*nr*nr+2*nr) then
+    if(nwork/=nr*nr+3*nr+3*nr*nr+2*nr) then
         stop 'ERROR: size of work array is insufficient.'
     endif
     mf=nr*nr+1 !for force of previous iteration in wiki notation
@@ -1951,9 +1951,9 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     ms=nr*nr+2*nr+1 !for s_k in wiki notation
     iw1=nr*nr+3*nr+1 !work array to keep the hessian untouched
     iw2=nr*nr+3*nr+nr*nr+1 !for work array of DSYTRF
-    iw3=nr*nr+3*nr+2*nr*nr+1 !for p_k in wiki notation
-    mx=nr*nr+3*nr+2*nr*nr+nr+1 !for position of previous iteration
-    nrsq=nr*nr
+    iw3=nr*nr+3*nr+3*nr*nr+1 !for p_k in wiki notation
+    mx= nr*nr+3*nr+3*nr*nr+nr+1 !for position of previous iteration
+    nrsqtwo=nr*nr*2
     if(parmin%iflag==0) then
         parmin%iflag=1
         parmin%iter=0
@@ -2034,7 +2034,7 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
         !http://alcinoe.net/fortran/optim/optim.f90.html
         !http://www.netlib.no/netlib/lapack/double/dsytrf.f
         !http://www.netlib.no/netlib/lapack/double/dsytrs.f
-        call DSYTRF('L',nr,work(iw1),nr,ipiv,work(iw2),nrsq,info)
+        call DSYTRF('L',nr,work(iw1),nr,ipiv,work(iw2),nrsqtwo,info)
         if(info/=0) then;write(*,*) 'ERROR: DSYTRF failed: info',info;stop;endif
         call DSYTRS('L',nr,1,work(iw1),nr,ipiv,work(iw3),nr,info)
         if(info/=0) then;write(*,*) 'ERROR: DSYTRS failed: info',info;stop;endif
