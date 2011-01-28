@@ -21,8 +21,8 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
   real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
-  integer :: iorb,inds,ncplx
-  real(wp) :: cprecr,scpr,eval_zero
+  integer :: iorb,inds,ncplx,ikpt,ierr
+  real(wp) :: cprecr,scpr,eval_zero,evalmax 
   real(gp) :: kx,ky,kz
 
   ! Preconditions all orbitals belonging to iproc
@@ -33,14 +33,32 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
   !norm of gradient of unoccupied orbitals
   gnrm_zero=0.0_dp
 
+  !the eval array contains all the values
+  !take the max for all k-points
+  !one may think to take the max per k-point
+   evalmax=orbs%eval(1)
+   do iorb=1,orbs%norb*orbs%nkpts
+     evalmax=max(orbs%eval(iorb),evalmax)
+   enddo
+   eval_zero=evalmax
+  
+  !commented out, never used
+!   evalmax=orbs%eval(orbs%isorb+1)
+!   do iorb=1,orbs%norbp
+!     evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
+!   enddo
+!   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
+!        MPI_MAX,MPI_COMM_WORLD,ierr)
+
+
   do iorb=1,orbs%norbp
-     ! define zero energy for preconditioning 
-     eval_zero=max(orbs%eval(orbs%norb),0.d0)  !  Non-spin pol
-     if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then    !spin-pol
-        eval_zero=max(orbs%eval(orbs%norbu),0.d0)  !up orbital
-     else if (orbs%spinsgn(orbs%isorb+iorb) < 0.0_gp) then
-        eval_zero=max(orbs%eval(orbs%norbu+orbs%norbd),0.d0)  !down orbital
-     end if
+!     ! define zero energy for preconditioning 
+!     eval_zero=max(orbs%eval(orbs%norb),0.d0)  !  Non-spin pol
+!     if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then    !spin-pol
+!        eval_zero=max(orbs%eval(orbs%norbu),0.d0)  !up orbital
+!     else if (orbs%spinsgn(orbs%isorb+iorb) < 0.0_gp) then
+!        eval_zero=max(orbs%eval(orbs%norbu+orbs%norbd),0.d0)  !down orbital
+!     end if
      !indo=(iorb-1)*nspinor+1
      !loop over the spinorial components
      !k-point values, if present
@@ -67,21 +85,8 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
         end if
 
        if (scpr /= 0.0_wp) then
-           !value of the cpreconditioner
-           !cprecr=-(orbs%eval(orbs%isorb+iorb)-eval_zero)+.10d0
-           !write(*,*) 'cprecr:',iorb,cprecr,orbs%eval(orbs%isorb+iorb)
-           select case(lr%geocode)
-           case('F')
-              cprecr=-orbs%eval(orbs%isorb+iorb)
-!             cprecr=sqrt(.2d0**2+min(0.d0,orbs%eval(orbs%isorb+iorb))**2)
-           case('S')
-              cprecr=0.5_wp
-           case('P')
-              cprecr=0.5_wp
-!              cprecr=-orbs%eval(orbs%isorb+iorb)
-           end select
-           
 
+          call cprecr_from_eval(lr%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)          
            !cases with no CG iterations, diagonal preconditioning
            !for Free BC it is incorporated in the standard procedure
            if (ncong == 0 .and. lr%geocode /= 'F') then
@@ -113,6 +118,25 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
 
 END SUBROUTINE preconditionall
 !!***
+
+!this function has been created also for the GPU-ported routines
+subroutine cprecr_from_eval(geocode,eval_zero,eval,cprecr)
+  use module_base
+  implicit none
+  character(len=1), intent(in) :: geocode
+  real(gp), intent(in) :: eval,eval_zero
+  real(gp), intent(out) :: cprecr
+
+  select case(geocode)
+  case('F')
+     cprecr=sqrt(.2d0**2+min(0.d0,eval)**2)
+  case('S')
+     cprecr=sqrt(0.2d0**2+(eval-eval_zero)**2)
+  case('P')
+     cprecr=sqrt(0.2d0**2+(eval-eval_zero)**2)
+  end select
+
+end subroutine cprecr_from_eval
 
 
 !routine used for the k-points, eventually to be used for all cases

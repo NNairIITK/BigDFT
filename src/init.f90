@@ -516,6 +516,7 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
   type(gaussian_basis) :: CP2K
   type(GPU_pointers) :: GPU !added for interface compatibility, not working here
   real(wp), dimension(:), allocatable :: potxc
+  real(wp), dimension(:), pointer :: pot
   real(wp), dimension(:,:), pointer :: wfn_cp2k
 
   if (iproc.eq.0) then
@@ -622,11 +623,16 @@ subroutine import_gaussians(iproc,nproc,at,orbs,comms,&
   allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
 
+  !allocate the potential in the full box
+  call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,1,&
+       orbs%norb,orbs%norbp,ngatherarr,rhopot,pot)
+
   call HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-       nlpspd,proj,Glr,ngatherarr,&
-       Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-       rhopot,&!(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
+       nlpspd,proj,Glr,ngatherarr,pot,&!(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,1,GPU)
+
+  !deallocate potential
+  call free_full_potential(nproc,pot,subname)
 
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,(f19.10))') 'done. ekin_sum',ekin_sum
 
@@ -704,6 +710,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   real(wp), dimension(:), allocatable :: potxc
   real(gp), dimension(:), allocatable :: locrad
   type(locreg_descriptors), dimension(:), allocatable :: Llr
+  real(wp), dimension(:), pointer :: pot
   real(wp), dimension(:,:,:), pointer :: psigau
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
@@ -968,10 +975,16 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
   !call dcopy(orbse%npsidim,psi,1,hpsi,1)
   if (input%exctxpar == 'OP2P') eexctX = -99.0_gp
+
+  call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,nspin,&
+       orbse%norb,orbse%norbp,ngatherarr,rhopot,pot)
+
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
-       nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-       rhopot,&
+       nlpspd,proj,Glr,ngatherarr,pot,&
        psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+
+  !deallocate potential
+  call free_full_potential(nproc,pot,subname)
 
 !!!  !calculate the overlap matrix knowing that the original functions are gaussian-based
 !!!  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
@@ -1039,12 +1052,18 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
      !add a small displacement in the eigenvalues
      do iorb=1,orbs%norb*orbs%nkpts
+        if (iorb <= orbs%norb) then
+           if (orbs%efermi == -.1_gp .and. orbs%occup(iorb) < 1.0_gp) then
+              orbs%efermi=orbs%eval(iorb)
+           end if
+        end if
         tt=builtin_rand(idum)
-        orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+0.05_gp*real(tt,gp))
+        orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+input%Tel*real(tt,gp))
+        !use the first k-point to guess fermi energy input
      end do
 
      !correct the occupation numbers wrt fermi level
-     call Fermilevel(.false.,1.e-2_gp,orbs)
+     call evaltoocc(iproc,.false.,input%Tel,orbs)
 
      !restore the occupation numbers
      call dcopy(orbs%norb*orbs%nkpts,orbse%eval(1),1,orbs%eval(1),1)

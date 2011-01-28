@@ -237,6 +237,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ! Charge density/potential,ionic potential, pkernel
   real(dp), dimension(:), allocatable :: pot_ion,rhopot,rhopot_old,counter_ions
   real(kind=8), dimension(:,:,:,:), allocatable :: pot,potxc,dvxcdrho
+  real(wp), dimension(:), pointer :: potential
   real(dp), dimension(:), pointer :: pkernel,pkernelseq
   !wavefunction gradients, hamiltonian on vavefunction
   !transposed  wavefunction
@@ -723,7 +724,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           in%nspin,hx,hy,hz,Glr%wfd,orbs,GPU)
   end if
 
-  diis%alpha=2.d0
+  diis%alpha=in%alphadiis
   energy=1.d10
   energybs=1.d10
   gnrm=1.d10
@@ -732,8 +733,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
-  !set the infocode to the value it would have in the case of no convergence
-  infocode=1
   !diis initialisation variables
   diis%energy=1.d10
   !minimum value of the energy during the minimisation procedure
@@ -744,6 +743,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ndiis_sd_sw=0
   !previous value of idsx_actual to control if switching has appeared
   idsx_actual_before=diis%idsx
+  !logical control variable for switch DIIS-SD
+  diis%switchSD=.false.
 
   !end of the initialization part
   call timing(iproc,'INIT','PR')
@@ -761,7 +762,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   end if
   endlooprp=.false.
   rhopot_loop: do itrp=1,in%itrpmax
-
+     !set the infocode to the value it would have in the case of no convergence
+     infocode=1
      subd_loop : do icycle=1,in%nrepmax
 
         wfn_loop: do iter=1,in%itermax
@@ -783,13 +785,32 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            !stop the partial timing counter if necessary
            if (endloop .and. in%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
-           scpot=(in%itrpmax /= 1 .and. iter==1 .and. icycle==1) .or. (in%itrpmax == 1) .or.&
-                (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix)
+           !logical flac for the self-consistent potential
+           scpot=(in%itrpmax /= 1 .and. iter==1 .and. icycle==1) .or. & !mixing to be done
+                (in%itrpmax == 1) .or. & !direct minimisation
+                (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix) !startmix condition
+
            !calculate the self-consistent potential
            if (scpot) then
               ! Potential from electronic charge density
               call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
                    n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+
+              !here the density can be mixed
+              if (in%iscf==12 .and. in%itrpmax>1) then
+                 if (itrp > 1) then
+                    call mix_rhopot(Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,in%alphamix,rhopot_old,rhopot,rpnrm)
+                    
+                    if (iproc == 0) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                         'DENSITY iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+                    
+                    endlooprp= rpnrm <= in%rpnrm_cv .or. itrp == in%itrpmax
+                 else
+                    !define the first rhopot
+                    call dcopy(Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,rhopot(1),1,rhopot_old(1),1)
+                 end if
+              end if
+
 
               if(orbs%nspinor==4) then
                  !this wrapper can be inserted inside the poisson solver 
@@ -815,28 +836,22 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                  !spin up and down together with the XC part
                  call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
                       rhopot(1),1)
-
+                 
               end if
 
-              if (itrp > 1) then
-                 !here the potential can be mixed
-                 !vold=>vold-vnew
-                 call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,-1.0_dp,rhopot(1),1,&
-                      rhopot_old(1),1)
-
-                 !calculate rhopot_norm
-                 rpnrm=(nrm2(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,rhopot_old(1),1))**2
-                 call mpiallred(rpnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-                 rpnrm=sqrt(rpnrm)
-
-                 if (iproc == 0) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                      'POTENTIAL iteration,Delta P (Norm 2)',itrp,rpnrm
-
-                 endlooprp= rpnrm <= in%rpnrm_cv .or. itrp == in%itrpmax
-
-                 !vnew=vnew+alpha(vold-vnew)
-                 call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,in%alphamix,rhopot_old(1),1,&
-                      rhopot(1),1)
+              !here the potential can be mixed
+              if (in%iscf==2 .and. in%itrpmax>1) then
+                 if (itrp > 1) then
+                    call mix_rhopot(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,in%alphamix,rhopot_old,rhopot,rpnrm)
+                    
+                    if (iproc == 0) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                         'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+                    
+                    endlooprp= rpnrm <= in%rpnrm_cv .or. itrp == in%itrpmax
+                 else
+                    !define the first rhopot
+                    call dcopy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,rhopot(1),1,rhopot_old(1),1)
+                 end if
               end if
 
            end if
@@ -844,10 +859,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            !temporary, to be corrected with comms structure
            if (in%exctxpar == 'OP2P') eexctX = -99.0_gp
 
+           !allocate the potential in the full box
+           call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
+                orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
+
            call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
-                nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
-                rhopot,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
+                nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
                 in%nspin,GPU,pkernel=pkernelseq)
+
+           !deallocate potential
+           call free_full_potential(nproc,potential,subname)
 
            energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
            energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
@@ -868,6 +889,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            else
               diis%energy=-ehart+eexcu-vexcu-eexctX+eion+edisp
            end if
+
+                diis%alpha_max=in%alphadiis
            call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
                 iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,in%nspin,GPU,in)
 
@@ -945,8 +968,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            end if
            !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
-           if (diis%energy > diis%energy_min) write( *,'(1x,a,1pe9.2)')&
-                'WARNING: Found an energy value lower than the FINAL energy, delta:',diis%energy-diis%energy_min
+           if (in%itrpmax >1) then
+              if ( diis%energy > diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
+                   'WARNING: Found an energy value lower than the FINAL energy, delta:',diis%energy-diis%energy_min
+           else
+              !write this warning only if the system is closed shell
+              call check_closed_shell(in%nspin,orbs,lcs)
+              if (lcs) then
+                 if ( energy > diis%energy_min) write( *,'(1x,a,2(1pe19.12))')&
+                   'WARNING: Found an energy value lower than the FINAL energy, delta:',energy,diis%energy_min
+              end if
+           end if
         end if
 
         if (iter == in%itermax .and. iproc == 0 .and. infocode/=0) &
@@ -967,8 +999,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            gnrm=1.d10
         end if
 
+        if (in%itrpmax == 1 .and. in%norbsempty > 0) then
+           !recalculate orbitals occupation numbers
+           call evaltoocc(iproc,.false.,in%Tel,orbs)
+
+           gnrm =1.d10
+           diis%energy_min=1.d10
+           diis%alpha=2.d0
+        end if
+
      end do subd_loop
-     
 
      if (in%itrpmax > 1) then
         !stop the partial timing counter if necessary
@@ -978,13 +1018,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         end if
 
         !recalculate orbitals occupation numbers
-        if (iproc == 0) call Fermilevel(.true.,1.e-2_gp,orbs) !on occup.dat file
-        call Fermilevel(.false.,1.e-2_gp,orbs) !in memory
+        call evaltoocc(iproc,.false.,in%Tel,orbs)
 
-        call dcopy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,&
-             rhopot(1),1,rhopot_old(1),1)
         gnrm =1.d10
         diis%energy_min=1.d10
+        diis%alpha=2.d0
      end if
 
   end do rhopot_loop

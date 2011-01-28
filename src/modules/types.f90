@@ -28,9 +28,9 @@ module module_types
   type, public :: input_variables
      logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
-     integer :: norbv,nvirt,nplot
+     integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty
      integer :: output_grid, dispersion,last_run
-     real(gp) :: frac_fluct,gnrm_sw,alphamix
+     real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel,alphadiis
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
      integer :: nvacancy,verbosity
      real(gp) :: elecfield
@@ -254,6 +254,7 @@ module module_types
 !!
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
+     real(gp) :: efermi
      integer, dimension(:), pointer :: norb_par,iokpt,ikptproc!,ikptsp
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
@@ -405,7 +406,7 @@ module module_types
      real(gp), dimension(:,:),  pointer :: rxyz,radii_cf
      real(wp), dimension(:), pointer :: proj
      !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), pointer :: psi
-     real(wp), dimension(:,:), pointer :: potential
+     real(wp), dimension(:), pointer :: potential
      real(wp), dimension(:), pointer :: Gabs_coeffs
      !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp) :: hpsi
      type(GPU_pointers), pointer :: GPU
@@ -421,7 +422,7 @@ module module_types
   type, public :: diis_objects
      logical :: switchSD
      integer :: idiistol,mids,ids,idsx
-     real(gp) :: energy_min,energy_old,energy,alpha
+     real(gp) :: energy_min,energy_old,energy,alpha,alpha_max
      real(wp), dimension(:), pointer :: psidst
      real(tp), dimension(:), pointer :: hpsidst
      real(wp), dimension(:,:,:,:), pointer :: ads

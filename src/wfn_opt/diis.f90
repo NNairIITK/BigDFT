@@ -1,3 +1,31 @@
+subroutine mix_rhopot(npoints,alphamix,rhopot_old,rhopot,rpnrm)
+  use module_base
+  implicit none
+  integer, intent(in) :: npoints
+  real(gp), intent(in) :: alphamix
+  real(dp), dimension(npoints), intent(inout) :: rhopot,rhopot_old
+  real(gp), intent(out) :: rpnrm
+  !local variables
+  integer :: ierr
+  
+  !vold=>vold-vnew
+  call axpy(npoints,-1.0_dp,rhopot(1),1,rhopot_old(1),1)
+
+  !calculate rhopot_norm
+  rpnrm=(nrm2(npoints,rhopot_old(1),1))**2
+  if (npoints > 0) rpnrm=rpnrm/real(npoints,gp)
+  call mpiallred(rpnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+  rpnrm=sqrt(rpnrm)
+      
+  !vnew=vnew+alpha(vold-vnew)
+  call axpy(npoints,alphamix,rhopot_old(1),1,rhopot(1),1)
+  
+  !vold=vnew
+  call dcopy(npoints,rhopot(1),1,rhopot_old(1),1)
+
+end subroutine mix_rhopot
+
+
 !!****f* BigDFT/psimix
 !! FUNCTION
 !! COPYRIGHT
@@ -54,10 +82,10 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
   else
      ! update all wavefunctions with the preconditioned gradient
      if (diis%energy > diis%energy_old) then
-        diis%alpha=max(.125_wp,.5_wp*diis%alpha)
-        if (diis%alpha == .125_wp) write(*,*) ' WARNING: Convergence problem or limit'
+        diis%alpha=max(5.d-2,.5_wp*diis%alpha)
+        if (diis%alpha == 5.d-2) write(*,*) ' WARNING: Convergence problem or limit'
      else
-        diis%alpha=min(1.05_wp*diis%alpha,1._wp)
+        diis%alpha=min(1.05_wp*diis%alpha,diis%alpha_max)
      endif
      if (iproc == 0 .and. verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',diis%alpha
 
@@ -110,8 +138,8 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
   if ((diis%energy == diis%energy_min) .and. diis%switchSD) then
      diis%idiistol=diis%idiistol+1
   end if
-  if (diis%idiistol > idsx .and. diis%switchSD) then
-     !if (diis%idiistol > 100*idsx .and. diis%switchSD) then
+!  if (diis%idiistol > idsx .and. diis%switchSD) then
+   if (diis%idiistol > 10000*idsx .and. diis%switchSD) then
      !restore the original DIIS
      if (iproc ==0) write(*,'(1x,a,1pe9.2)')&
           'WARNING: The energy value is now decreasing again, coming back to DIIS'
