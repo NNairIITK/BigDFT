@@ -237,6 +237,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ! Charge density/potential,ionic potential, pkernel
   real(dp), dimension(:), allocatable :: pot_ion,rhopot,rhopot_old,counter_ions
   real(kind=8), dimension(:,:,:,:), allocatable :: pot,potxc,dvxcdrho
+  real(wp), dimension(:), pointer :: potential
   real(dp), dimension(:), pointer :: pkernel,pkernelseq
   !wavefunction gradients, hamiltonian on vavefunction
   !transposed  wavefunction
@@ -535,6 +536,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      end do
   end if
 
+  !all the input formats need to allocate psi except the LCAO input_guess
+  if (inputpsi /= 0) then
+     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+     call memocc(i_stat,psi,'psi',subname)
+  end if
+
   ! INPUT WAVEFUNCTIONS, added also random input guess
   select case(inputpsi)
   case(-2)
@@ -545,8 +552,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      end if
 
      !random initialisation of the wavefunctions
-     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
-     call memocc(i_stat,psi,'psi',subname)
 
      psi=0.0d0
      ttsum=0.0d0
@@ -564,17 +569,38 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
      orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
 
-     !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in)
-
   case(-1)
 
      !import gaussians form CP2K (data in files gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
-     call import_gaussians(iproc,nproc,atoms,orbs,comms,&
-          & Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,nlpspd,proj, &
-          & pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,in%nspin,&
-          & atoms%symObj,irrzon,phnons,in)
+     if (iproc == 0) then
+        write(*,'(1x,a)')&
+             '--------------------------------------------------------- Import Gaussians from CP2K'
+     end if
+
+     if (in%nspin /= 1) then
+        if (iproc==0) then
+           write(*,'(1x,a)')&
+                'Gaussian importing is possible only for non-spin polarised calculations'
+           write(*,'(1x,a)')&
+                'The reading rules of CP2K files for spin-polarised orbitals are not implemented'
+        end if
+        stop
+     end if
+
+     !eliminate the old_import_gaussians routine
+     call parse_cp2k_files(iproc,'gaubasis.dat','gaucoeff.dat',&
+          atoms%nat,atoms%ntypes,orbs,atoms%iatype,rxyz,gbd,gaucoeffs)
+     call gaussians_to_wavelets_new(iproc,nproc,Glr,orbs,hx,hy,hz,gbd,gaucoeffs,psi)
+     !deallocate gaussian structure and coefficients
+     call deallocate_gwf(gbd,subname)
+     i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
+     deallocate(gaucoeffs,stat=i_stat)
+     call memocc(i_stat,i_all,'gaucoeffs',subname)
+     nullify(gbd%rxyz)
+
+     !call dual_gaussian_coefficients(orbs%norbp,gbd,gaucoeffs)
+     orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
 
   case(0)
      nspin=in%nspin
@@ -590,13 +616,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      !these parts should be reworked for the non-collinear spin case
 
      !restart from previously calculated wavefunctions, in memory
-
-     !allocate principal wavefunction
-     !allocated in the transposed way such as 
-     !it can also be used as a work array for transposition
-     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
-     call memocc(i_stat,psi,'psi',subname)
-
      if (iproc == 0) then
         write( *,'(1x,a)')&
              '-------------------------------------------------------------- Wavefunctions Restart'
@@ -611,28 +630,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      deallocate(psi_old,stat=i_stat)
      call memocc(i_stat,i_all,'psi_old',subname)
 
-     !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in)
-
   case(2)
      !restart from previously calculated wavefunctions, on disk
-
-     !allocate principal wavefunction
-     !allocated in the transposed way such as 
-     !it can also be used as a work array for transposition
-
-     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
-     call memocc(i_stat,psi,'psi',subname)
-
      if (iproc == 0) then
         write( *,'(1x,a)')&
              '---------------------------------------------------- Reading Wavefunctions from disk'
      end if
 
      call readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
-
-     !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in)
 
   case(11)
      !restart from previously calculated gaussian coefficients
@@ -641,16 +646,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
              '--------------------------------------- Quick Wavefunctions Restart (Gaussian basis)'
      end if
 
-     !allocate principal wavefunction
-     !allocated in the transposed way such as 
-     !it can also be used as a work array for transposition
-     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
-     call memocc(i_stat,psi,'psi',subname)
-
      call restart_from_gaussians(iproc,nproc,orbs,Glr,hx,hy,hz,psi,gbd,gaucoeffs)
-
-     !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in)
 
   case(12)
      !reading wavefunctions from gaussian file
@@ -658,13 +654,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         write( *,'(1x,a)')&
              '------------------------------------------- Reading Wavefunctions from gaussian file'
      end if
-
-     !allocate principal wavefunction
-     !allocated in the transposed way such as 
-     !it can also be used as a work array for transposition
-
-     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
-     call memocc(i_stat,psi,'psi',subname)
 
      call read_gaussian_information(orbs,gbd,gaucoeffs,'wavefunctions.gau')
      !associate the new positions, provided that the atom number is good
@@ -680,9 +669,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
      call restart_from_gaussians(iproc,nproc,orbs,Glr,hx,hy,hz,psi,gbd,gaucoeffs)
 
-     !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in)
-
   case default
 
 !     if (iproc == 0) then
@@ -693,6 +679,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      stop
 
   end select
+
+  !all the input format need first_orthon except the LCAO input_guess
+  if (inputpsi /= 0) then
+     !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
+     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in)
+  end if
+
 
   !save the new atomic positions in the rxyz_old array
   do iat=1,atoms%nat
@@ -835,7 +828,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                  !spin up and down together with the XC part
                  call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
                       rhopot(1),1)
-
+                 
               end if
 
               !here the potential can be mixed
@@ -852,15 +845,22 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                     call dcopy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,rhopot(1),1,rhopot_old(1),1)
                  end if
               end if
+
            end if
 
            !temporary, to be corrected with comms structure
            if (in%exctxpar == 'OP2P') eexctX = -99.0_gp
 
+           !allocate the potential in the full box
+           call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
+                orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
+
            call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
-                nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
-                rhopot,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
+                nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
                 in%nspin,GPU,pkernel=pkernelseq)
+
+           !deallocate potential
+           call free_full_potential(nproc,potential,subname)
 
            energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
            energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
@@ -960,8 +960,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            end if
            !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
-           if (diis%energy > diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
-                'WARNING: Found an energy value lower than the FINAL energy, delta:',diis%energy-diis%energy_min
+           if (in%itrpmax >1) then
+              if ( diis%energy > diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
+                   'WARNING: Found an energy value lower than the FINAL energy, delta:',diis%energy-diis%energy_min
+           else
+              !write this warning only if the system is closed shell
+              call check_closed_shell(in%nspin,orbs,lcs)
+              if (lcs) then
+                 if ( energy > diis%energy_min) write( *,'(1x,a,2(1pe19.12))')&
+                   'WARNING: Found an energy value lower than the FINAL energy, delta:',energy,diis%energy_min
+              end if
+           end if
         end if
 
         if (iter == in%itermax .and. iproc == 0 .and. infocode/=0) &
@@ -1277,11 +1286,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   deallocate(gxyz,stat=i_stat)
   call memocc(i_stat,i_all,'gxyz',subname)
 
-  !subtraction of zero of the forces, disabled for the moment
-  !the zero of the forces depends on the atomic positions
-  !if (in%gaussian_help .and. .false.) then
+  !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
-  !end if
 
   call timing(iproc,'Forces        ','OF')
 

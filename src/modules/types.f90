@@ -406,7 +406,7 @@ module module_types
      real(gp), dimension(:,:),  pointer :: rxyz,radii_cf
      real(wp), dimension(:), pointer :: proj
      !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), pointer :: psi
-     real(wp), dimension(:,:), pointer :: potential
+     real(wp), dimension(:), pointer :: potential
      real(wp), dimension(:), pointer :: Gabs_coeffs
      !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp) :: hpsi
      type(GPU_pointers), pointer :: GPU

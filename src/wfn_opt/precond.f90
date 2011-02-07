@@ -21,8 +21,8 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
   real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
-  integer :: iorb,inds,ncplx,ikpt,ierr
-  real(wp) :: cprecr,scpr,eval_zero,evalmax 
+  integer :: iorb,inds,ncplx,ikpt,ierr,jorb
+  real(wp) :: cprecr,scpr,evalmax,eval_zero
   real(gp) :: kx,ky,kz
 
   ! Preconditions all orbitals belonging to iproc
@@ -33,15 +33,7 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
   !norm of gradient of unoccupied orbitals
   gnrm_zero=0.0_dp
 
-  !the eval array contains all the values
-  !take the max for all k-points
-  !one may think to take the max per k-point
-   evalmax=orbs%eval(1)
-   do iorb=1,orbs%norb*orbs%nkpts
-     evalmax=max(orbs%eval(iorb),evalmax)
-   enddo
-   eval_zero=evalmax
-  
+
   !commented out, never used
 !   evalmax=orbs%eval(orbs%isorb+1)
 !   do iorb=1,orbs%norbp
@@ -51,7 +43,21 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
 !        MPI_MAX,MPI_COMM_WORLD,ierr)
 
 
+  ikpt=orbs%iskpts
   do iorb=1,orbs%norbp
+     !if it is the first orbital or the k-point has changed calculate the max
+     if (orbs%iokpt(iorb) /= ikpt .or. iorb == 1) then
+        !the eval array contains all the values
+        !take the max for all k-points
+        !one may think to take the max per k-point
+        evalmax=orbs%eval((orbs%iokpt(iorb)-1)*orbs%norb+1)
+        do jorb=1,orbs%norb
+           evalmax=max(orbs%eval((orbs%iokpt(iorb)-1)*orbs%norb+jorb),evalmax)
+        enddo
+        eval_zero=evalmax
+        ikpt=orbs%iokpt(iorb)
+     end if
+
 !     ! define zero energy for preconditioning 
 !     eval_zero=max(orbs%eval(orbs%norb),0.d0)  !  Non-spin pol
 !     if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then    !spin-pol
