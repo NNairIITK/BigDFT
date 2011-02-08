@@ -257,10 +257,10 @@ subroutine Convolkinetic(n1,n2,n3, &
   ! (1/2) d^2/dx^2
 
 !dee
-call system_clock(istart_test,count_rate_test,count_max_test)
+!call system_clock(istart_test,count_rate_test,count_max_test)
 
 
-call system_clock(ncount0,ncount_rate,ncount_max)
+!call system_clock(ncount0,ncount_rate,ncount_max)
 
 !$omp parallel default(private) &
 !$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &

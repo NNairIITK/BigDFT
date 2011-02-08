@@ -414,6 +414,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !these descriptors should take into account the localisation regions
   call createDensPotDescriptors(iproc,nproc,atoms%geocode,'D',n1i,n2i,n3i,ixc,&
        n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
+
   !calculate the irreductible zone, if necessary.
   if (atoms%symObj >= 0) then
      call ab6_symmetry_get_n_sym(atoms%symObj, nsym, i_stat)
@@ -1021,18 +1022,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   end do rhopot_loop
 
   !deallocate psit and hpsi if it was not already been done
-  if (.true.) then
-     if (nproc > 1) then
-        i_all=-product(shape(psit))*kind(psit)
-        deallocate(psit,stat=i_stat)
-        call memocc(i_stat,i_all,'psit',subname)
-     else
-        nullify(psit)
-     end if
-     i_all=-product(shape(hpsi))*kind(hpsi)
-     deallocate(hpsi,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsi',subname)
+  if (nproc > 1) then
+     i_all=-product(shape(psit))*kind(psit)
+     deallocate(psit,stat=i_stat)
+     call memocc(i_stat,i_all,'psit',subname)
+  else
+     nullify(psit)
   end if
+  i_all=-product(shape(hpsi))*kind(hpsi)
+  deallocate(hpsi,stat=i_stat)
+  call memocc(i_stat,i_all,'hpsi',subname)
   if (in%itrpmax > 1) then
      i_all=-product(shape(rhopot_old))*kind(rhopot_old)
      deallocate(rhopot_old,stat=i_stat)
@@ -1158,7 +1157,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !------------------------------------------------------------------------
   ! here we start the calculation of the forces
-  if (iproc.eq.0) then
+  if (iproc == 0) then
      write( *,'(1x,a)')&
           '----------------------------------------------------------------- Forces Calculation'
   end if
