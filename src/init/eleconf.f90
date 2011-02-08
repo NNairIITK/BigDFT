@@ -17,7 +17,7 @@
 !!   symbol    Atomic symbol
 !!   rcov      Covalent radius
 !!   rprb      Parabolic radius for the input guess using the subroutine "gatom"
-!!   ehomo     High occupied molecular orbital energy
+!!   ehomo     Highest occupied molecular orbital energy
 !!             See http://physics.nist.gov/PhysRefData/DFTdata/Tables/ptable.html
 !!   neleconf  Occupation number (electronic configuration of the atom)
 !!   nsccode   Semicore orbitals, indicated as an integer.
@@ -1639,13 +1639,13 @@ end select
      end do
   end if
 
-  !calculate the maximum spin polarisation and the maximum charge to be placed on the atom
+  !calculate the maximum spin polarisation  to be placed on the atom
 
   mxpl=0
   do l=0,lmax
      do i=1,nmax
         if (neleconf(i,l) /= 0 .and. neleconf(i,l) /= 2*(2*l+1)) then
-           mxpl=mxpl+neleconf(i,l)
+           mxpl=mxpl+(  (2*l+1) - abs( (2*l+1)- neleconf(i,l)) ) 
         end if
      end do
   end do
@@ -3527,12 +3527,16 @@ write(222,*) l,n,neleconf(n,l)
 !!!     end do
 !!!  end if
 
-  !calculate the maximum spin polarisation and the maximum charge to be placed on the atom
+
+
+
+  !calculate the maximum spin polarisation  to be placed on the atom
+
   mxpl=0
   do l=0,lmax
      do i=1,nmax
         if (neleconf(i,l) /= 0 .and. neleconf(i,l) /= 2*(2*l+1)) then
-           mxpl=mxpl+neleconf(i,l)
+           mxpl=mxpl+(  (2*l+1) - abs( (2*l+1)- neleconf(i,l)) ) 
         end if
      end do
   end do

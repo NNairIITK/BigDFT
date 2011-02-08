@@ -98,6 +98,10 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
      end do
   end do
 
+!!$  open(100+me)
+!!$  write(100+me,*)xcart
+!!$  close(100+me)
+
   scfloop_in%inputPsiId = 1
   call call_bigdft(scfloop_nproc,me,scfloop_at,xcart,scfloop_in,epot,grad,fnoise,scfloop_rst,infocode)
 
@@ -123,7 +127,7 @@ END SUBROUTINE scfloop_main
 !! FUNCTION
 !! SOURCE
 !!
-subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, vel, xred)
+subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel, xred)
   use scfloop_API
   use module_base
   use module_types
@@ -136,7 +140,7 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, vel, xred)
   real(dp), intent(in) :: epot, ekin
   real(dp), intent(in) :: acell(3)
   real(dp), intent(in) :: xred(3,natom)
-  real(dp), intent(in) :: fred(3, natom), vel(3, natom)
+  real(dp), intent(in) :: fred(3, natom), vel(3, natom),rprimd(3,3) !the latter is not used
   !Local variables
   character(len=*), parameter :: subname='scfloop_output'
   character(len = 5) :: fn5
@@ -214,7 +218,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
      lpsdbl=.false.
   end if
 
-  open(unit=99,file=trim(filename),status='old')
+  open(unit=99,file=trim(filename),status='old',action='read')
 
   read(99,*) nat,units,extra,itime_shift_for_restart
  
@@ -291,14 +295,15 @@ subroutine wtvel(filename,vxyz,atoms,comment)
   character(len=*), intent(in) :: filename,comment
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%nat), intent(in) :: vxyz
-  !local variables
+  !Local variables
+  integer, parameter :: iunit = 9
   character(len=2) :: symbol
   character(len=10) :: name
   character(len=11) :: units
   integer :: iat,j
   real(gp) :: factor
 
-  open(unit=9,file=trim(filename))
+  open(unit=iunit,file=trim(filename),status='unknown',action='write')
   if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
      factor=bohr2ang
      units='angstroemd0'
@@ -307,14 +312,14 @@ subroutine wtvel(filename,vxyz,atoms,comment)
      units='atomicd0'
   end if
 
-  write(9,'(i6,2x,a,2x,a)') atoms%nat,trim(units),comment
+  write(iunit,'(i6,2x,a,2x,a)') atoms%nat,trim(units),comment
 
   if (atoms%geocode == 'P') then
-     write(9,'(a,3(1x,1pe24.17))')'periodic',&
-          atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
+     write(iunit,'(a,3(1x,1pe24.17))') 'periodic',&
+       &  atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
   else if (atoms%geocode == 'S') then
-     write(9,'(a,3(1x,1pe24.17))')'surface',&
-          atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
+     write(iunit,'(a,3(1x,1pe24.17))') 'surface',&
+       &  atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
   else
      write(9,*)'free'
   end if
@@ -328,10 +333,10 @@ subroutine wtvel(filename,vxyz,atoms,comment)
         symbol=name(1:2)
      end if
 
-     write(9,'(a2,4x,3(1x,1pe24.17))')symbol,(vxyz(j,iat)*factor,j=1,3)
+     write(iunit,'(a2,4x,3(1x,1pe24.17))') symbol,(vxyz(j,iat)*factor,j=1,3)
 
   enddo
 
-  close(unit=9)
+  close(unit=iunit)
 END SUBROUTINE wtvel
 !!***

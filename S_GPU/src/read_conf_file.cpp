@@ -73,7 +73,7 @@ int readConfFileGPU_CPU::getCPU ( int MPI_ID ) const throw ( read_not_found_CPU 
 	}
 }
 
-//1 CUDA, 0 CUDABLASS
+//1 CUDA, 0 CUDABLAS
 int readConfFileGPU_CPU::getFlag ( int MPI_ID ) const throw()
 {
 	std::ostringstream oss;

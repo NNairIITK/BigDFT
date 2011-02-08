@@ -65,7 +65,7 @@ contains
     ! Initialize memory counting
     call memocc(0,me,'count','start')
 
-    call read_input_variables(me_, "posinp", "input.dft", "input.kpt", &
+    call read_input_variables(me_, "posinp", "input.dft", "input.kpt","input.mix", &
          & "input.geopt", "input.perf", in, at, rxyz)
 
     ! Transfer at data to ART variables

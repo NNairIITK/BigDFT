@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
-# Final report (read *.report from fldiff.py)
-# Date: 12/03/2010
+# Build the final report (read *.report from fldiff.py)
+# Date: 28/06/2010
 #----------------------------------------------------------------------------
 
 import fnmatch
@@ -42,6 +42,6 @@ for file in files:
             state = "%7.1e > (%7.1e)    failed" % (discrepancy,max_discrepancy)
             end = "\033[m"
             Exit = 1
-        print "%s%-23s %-17s %s%s" % (start,dir,fic,state,end)
+        print "%s%-18s %-28s %s%s" % (start,dir,fic,state,end)
 #Error code
 sys.exit(Exit)

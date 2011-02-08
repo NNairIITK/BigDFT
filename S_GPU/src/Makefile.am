@@ -1,5 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
+SUBDIRS = CUDA
+
 S_GPU_SOURCES = bindings/C/s_gpu_C.cpp \
 	fct_call_implementation.cpp  \
 	localqueu.cpp \
@@ -21,13 +23,7 @@ S_GPU_SOURCES = bindings/C/s_gpu_C.cpp \
 	read_conf_file.h \
 	set_repartition.h \
 	sg_common_def.h \
-	s_gpu.h \
-	CUDA/cudafct.h \
-	CUDA/cuda_memory_management.h
-
-
-S_GPU_SOURCES_CUDA = CUDA/cudafct.cu  \
-	CUDA/cuda_memory_management.cu
+	s_gpu.h
 
 include_HEADERS = sg_common_def.h \
 	s_gpu.h
@@ -36,9 +32,10 @@ include_HEADERS = sg_common_def.h \
 #lib_LIBRARIES = libs_gpu.a
 lib_LTLIBRARIES = libs_gpu.la
 libs_gpu_la_LIBTOOLFLAGS= $(AM_LIBTOOLFLAGS) --tag=CUDA
-
+libs_gpu_la_LDFLAGS= @AC_LDFLAGS_CUDA@
 #libs_gpu_a_SOURCES = $(S_GPU_SOURCES) $(S_GPU_SOURCES_CUDA)
 libs_gpu_la_SOURCES = $(S_GPU_SOURCES) $(S_GPU_SOURCES_CUDA)
+libs_gpu_la_LIBADD  = CUDA/libcuda.la
 
 #INCLUDE_S_GPU = -I$(top_srcdir)/include/  -I$(top_srcdir)/src/
 #AM_CPPFLAGS = $(INCLUDE_S_GPU)
@@ -50,16 +47,8 @@ libs_gpu_la_SOURCES = $(S_GPU_SOURCES) $(S_GPU_SOURCES_CUDA)
 #NVCC = @NVCC@
 #RANLIB = @NVCC@ -lib
 
-SUFFIXES = .cu
 
 #NVCCFLAGS=@CUDA_FLAGS@
-
-.cu.$(OBJEXT):
-	$(NVCC) $(NVCCFLAGS) $(AM_CPPFLAGS) -c $< -o $@
-.cu.lo:
-	@PYTHON@ $(top_srcdir)/cudalt.py $@ $(NVCC) $(NVCCFLAGS) --compiler-options=\"$(CFLAGS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS)\" -c $<
-
-
 
 #libs_gpu.so:
 #	$(NVCC) @CUDA_FLAGS@ -shared --compiler-options '-fPIC' $(S_GPU_OBJECTS) -o libs_gpu.so -lcudart

@@ -63,7 +63,7 @@ END SUBROUTINE print_logo
 !! SOURCE
 !!
 subroutine read_input_variables(iproc,posinp, &
-     & file_dft, file_kpt, file_geopt, file_perf, inputs,atoms,rxyz)
+     & file_dft, file_kpt, file_mix, file_geopt, file_perf, inputs,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_variables
@@ -72,7 +72,7 @@ subroutine read_input_variables(iproc,posinp, &
 
   !Arguments
   character(len=*), intent(in) :: posinp
-  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_perf
+  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_mix,file_perf
   integer, intent(in) :: iproc
   type(input_variables), intent(out) :: inputs
   type(atoms_data), intent(out) :: atoms
@@ -94,6 +94,8 @@ subroutine read_input_variables(iproc,posinp, &
   call update_symmetries(inputs, atoms, rxyz)
   ! Read k-points input variables (if given)
   call kpt_input_variables(iproc,file_kpt,inputs,atoms)
+  ! Mixing input variables (if given)
+  call mix_input_variables(file_mix,inputs)
   ! Read geometry optimisation option
   call geopt_input_variables(file_geopt,inputs)
 
@@ -154,7 +156,10 @@ subroutine default_input_variables(inputs)
   ! Default frequencies variables
   call frequencies_input_variables_default(inputs)
   ! Default values for geopt.
-  call geopt_input_variables_default(inputs)  
+  call geopt_input_variables_default(inputs) 
+  ! Default values for mixing procedure
+  call mix_input_variables_default(inputs) 
+
 END SUBROUTINE default_input_variables
 
 !!****f* BigDFT/dft_input_variables
@@ -178,7 +183,7 @@ subroutine dft_input_variables(iproc,filename,in)
   character(len=7) :: string
   character(len=100) :: line
   logical :: exists
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror,ivrbproj
+  integer :: ierror,ierrfrc,iline,ivrbproj
 
   ! Read the input variables.
   inquire(file=trim(filename),exist=exists)
@@ -246,7 +251,8 @@ subroutine dft_input_variables(iproc,filename,in)
   call check()
   in%nvirt = min(in%nvirt, in%norbv)
 
-  !electrostatic treatment of the vacancy (experimental)
+
+  !electrostatic treatment of the vacancy (deprecated, to be removed)
   !read(1,*,iostat=ierror) in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
   !call check()
   in%nvacancy=0
@@ -337,6 +343,89 @@ subroutine geopt_input_variables_default(in)
 END SUBROUTINE geopt_input_variables_default
 !!***
 
+!!****f* BigDFT/mix_input_variables_default
+!! FUNCTION
+!!    Assign default values for mixing variables
+!! SOURCE
+!!
+subroutine mix_input_variables_default(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+
+  !mixing treatement (hard-coded values)
+  in%itrpmax=1
+  in%alphamix=0.0_gp
+  in%rpnrm_cv=1.e-4_gp
+  in%gnrm_startmix=0.0_gp
+  in%iscf=0 !only 2(potential) or 12(density) are allowed (ABINIT conventions for the moment)
+  in%Tel=0.0_gp
+  in%norbsempty=0
+  in%alphadiis=2.d0
+
+END SUBROUTINE mix_input_variables_default
+!!***
+
+!!****f* BigDFT/mix_input_variables
+!! FUNCTION
+!!    Read the input variables needed for the geometry optimisation
+!!    Every argument should be considered as mandatory
+!! SOURCE
+!! 
+subroutine mix_input_variables(filename,in)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  !local variables
+  character(len=*), parameter :: subname='mix_input_variables'
+  character(len = 128) :: line
+  integer :: i_stat,ierror,iline
+  logical :: exists
+
+  inquire(file=filename,exist=exists)
+  if (.not. exists) then
+     return
+  end if
+
+  ! Read the input variables.
+  open(unit=1,file=filename,status='old')
+
+  !line number, to control the input values
+  iline=0
+
+  read(1,*,iostat=ierror) in%iscf
+  call check()
+  read(1,*,iostat=ierror) in%itrpmax
+  call check()
+  read(1,*,iostat=ierror) in%rpnrm_cv
+  call check()
+  read(1,*,iostat=ierror) in%norbsempty, in%Tel
+  call check()
+  read(1,*,iostat=ierror) in%alphamix,in%alphadiis
+  call check()
+  close(unit=1,iostat=ierror)
+
+  !put the startmix if the mixing has to be done
+  if (in%itrpmax >1) in%gnrm_startmix=1.e300_gp
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  END SUBROUTINE check
+
+END SUBROUTINE mix_input_variables
+!!***
+
 
 !!****f* BigDFT/geopt_input_variables
 !! FUNCTION
@@ -424,7 +513,10 @@ subroutine geopt_input_variables(filename,in)
      read(1,*,iostat=ierror) in%betax
      call check()
   end if
-
+  if (trim(in%geopt_approach) == "FIRE") then
+     read(1,*,iostat=ierror) in%dtinit, in%dtmax
+     call check()
+  endif
   close(unit=1,iostat=ierror)
 
 contains
@@ -542,6 +634,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   in%nkptv = 0
 
   inquire(file=trim(filename),exist=exists)
+
   if (.not. exists) then
      ! Set only the gamma point.
      allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
@@ -566,11 +659,10 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
 
   read(1,*,iostat=ierror) type
   call check()
-
+  
   if (trim(type) == "auto" .or. trim(type) == "Auto" .or. trim(type) == "AUTO") then
      read(1,*,iostat=ierror) kptrlen
      call check()
-
      call ab6_symmetry_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
@@ -589,7 +681,6 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
         read(1,*,iostat=ierror) shiftk(:, i)
         call check()
      end do
-
      call ab6_symmetry_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & ngkpt, nshiftk, shiftk, ierror)
      if (ierror /= AB6_NO_ERROR) then
@@ -691,7 +782,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
   !local variables
   character(len=*), parameter :: subname='perf_input_variables'
   character(len=100) :: line
-  logical :: exists
+  logical :: exists, myparametersExists
   integer :: iline,ierror,ii
 
   ! Set default values.
@@ -701,6 +792,8 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%ncache_fft = 8*1024
   !radius of the projector as a function of the maxrad
   inputs%projrad= 15.0_gp
+  !exact exchange parallelisation scheme
+  inputs%exctxpar='BC' !(blocking collective)
 
   !Check if the file is present
   inquire(file=trim(filename),exist=exists)
@@ -724,15 +817,71 @@ subroutine perf_input_variables(iproc,filename,inputs)
         else if (index(line,"projrad") /= 0 .or. index(line,"PROJRAD") /= 0) then
             ii = index(line,"projrad")  + index(line,"PROJRAD") + 8 
            read(line(ii:),*) inputs%projrad
+        else if (index(line,"exctxpar") /= 0 .or. index(line,"EXCTXPAR") /= 0) then
+            ii = index(line,"exctxpar")  + index(line,"EXCTXPAR") + 8 
+           read(line(ii:),*) inputs%exctxpar
         end if
      end do
      close(unit=1,iostat=ierror)
   end if
 
+  ! These variables have to be added to the file 'input.perf'
+  inquire(file='myparameters', exist=myparametersExists)
+  if(myparametersExists) then
+     open(unit=20, file='myparameters')
+     read(20,*) inputs%directDiag
+     read(20,*) inputs%norbpInguess
+     read(20,*) inputs%bsLow, inputs%bsUp
+     read(20,*) inputs%methOrtho
+     read(20,*) inputs%iguessTol
+     close(unit=20)
+     if(iproc==0) write(*,'(1x,a)') "File 'myparameters' is present... using the following values:"
+  else
+     inputs%directDiag=.true.
+     inputs%norbpInguess=5
+     inputs%bsLow=300
+     inputs%bsLow=800
+     inputs%methOrtho=0
+     inputs%iguessTol=1.d-4
+     if(iproc==0) write(*,'(1x,a)') "File 'myparameters' is missing... using default values:"
+  end if
+  if(iproc==0) then
+     if(inputs%directDiag) then 
+        write(*,'(3x,a)') 'Input guess: direct diagonalization of Hamiltonian'
+     else if(.not.inputs%directDiag) then
+        write(*,'(3x,a)') 'Input guess: iterative diagonalization of Hamiltonian'
+        write(*,'(3x,a,i0)') 'orbitals per process: ',inputs%norbpInguess
+     end if
+     if(inputs%methOrtho==0) then
+        write(*,'(3x,a,i0)') 'Orthogonalization method: Cholesky'
+     else if(inputs%methOrtho==1) then
+        write(*,'(3x,a,i0)') 'Orthogonalization method: hybrid Gram-Schmidt/Cholesky'
+     else if(inputs%methOrtho==2) then
+        write(*,'(3x,a,i0)') 'Orthogonalization method: Loewdin'
+     else
+        write(*,'(3x,a,i0)') 'ERROR: invalid value for inputs%methOrtho (',inputs%methOrtho,').'
+        write(*,'(3x,a,i0)') "Change it in the file 'inputs.perf' to 0, 1 or 2."
+        stop
+     end if
+     if(.not.inputs%directDiag .or. inputs%methOrtho==1) then 
+        write(*,'(3x,a)') 'Block size used for the orthonormalization:'
+        if(inputs%bsLow==inputs%bsUp) then
+           write(*,'(5x,a,i0)') 'Take block size specified by user: ',inputs%bsLow
+        else if(inputs%bsLow<inputs%bsUp) then
+           write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',inputs%bsLow,' and ',inputs%bsUp
+        else
+           write(*,'(1x,a)') "ERROR: invalid values of inputs%bsLow and inputs%bsUp. Change them in 'inputs.perf'!"
+        end if
+        write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
+        write(*,'(3x,a,es9.2)') 'Tolerance criterion for input guess:',inputs%iguessTol
+     end if
+  end if
+  
+  
   ! Set performance variables
   memdebug = inputs%debug
   call set_cache_size(inputs%ncache_fft)
-
+  
   ! Output
   if (iproc == 0) then
      write(*,*)
@@ -876,11 +1025,16 @@ subroutine abscalc_input_variables(iproc,filename,in)
   
   read(iunit,*,iostat=ierror)  in%nsteps
   call check()
+
+  if( iand( in%potshortcut,4)>0) then
+     read(iunit,'(a100)',iostat=ierror) in%extraOrbital
+  end if
+
+
   
   read(iunit,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
-
   if(ierror==0) then
-     
+
   else
      in%abscalc_alterpot=.false.
      in%abscalc_eqdiff =.false.
@@ -2263,8 +2417,6 @@ END SUBROUTINE print_general_parameters
 !!
 subroutine print_dft_parameters(in,atoms)
   use module_types
-  use defs_basis
-  use ab6_symmetry
   implicit none
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: atoms
@@ -2286,7 +2438,7 @@ subroutine print_dft_parameters(in,atoms)
        ' elec. field=',in%elecfield,'|                   ','| DIIS Hist. N.=',in%idsx
   if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
-          'Polarisation=',2*in%mpol, '|'
+          'Polarisation=',in%mpol, '|'
   end if
   if (atoms%geocode /= 'F') then
      write(*,'(1x,a,1x,a,3(1x,1pe12.5))')&
@@ -2464,11 +2616,11 @@ function move_this_coordinate(ifrztyp,ixyz)
        (ifrztyp == 2 .and. ixyz /=2) .or. &
        (ifrztyp == 3 .and. ixyz ==2)
        
-end function move_this_coordinate
+END FUNCTION move_this_coordinate
 !!***
 
 
-!!****f* BigDFT/
+!!****f* BigDFT/atomic_coordinate_axpy
 !! FUNCTION
 !!   rxyz=txyz+alpha*sxyz
 !! SOURCE
@@ -2511,6 +2663,12 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
 END SUBROUTINE atomic_coordinate_axpy
 !!***
 
+
+!!****f* BigDFT/init_material_acceleration
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine init_material_acceleration(iproc,iacceleration,GPU)
   use module_base
   use module_types
@@ -2559,7 +2717,14 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
   end if
 
 end subroutine init_material_acceleration
+!!***
 
+
+!!****f* BigDFT/release_material_acceleration
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine release_material_acceleration(GPU)
   use module_base
   use module_types
@@ -2575,8 +2740,15 @@ subroutine release_material_acceleration(GPU)
      OCLconv=.false.
   end if
 
-end subroutine release_material_acceleration
+END SUBROUTINE release_material_acceleration
+!!***
 
+
+!!****f* BigDFT/processor_id_per_node
+!! FUNCTION
+!!
+!! SOURCE
+!!
 subroutine processor_id_per_node(iproc,nproc,iproc_node)
   use module_base
   integer, intent(in) :: iproc,nproc
@@ -2618,4 +2790,5 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node)
      call memocc(i_stat,i_all,'nodename',subname)
   end if
      
-end subroutine processor_id_per_node
+END SUBROUTINE processor_id_per_node
+!!***

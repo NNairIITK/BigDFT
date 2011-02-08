@@ -60,7 +60,7 @@ AM_INIT_AUTOMAKE
 
 dnl The user can define the CUDA root path, ie. the path including the bin, lib ... directories
 AC_ARG_WITH(cuda-path, AS_HELP_STRING([--with-cuda-path], [define the root path to the NVidia Cuda tools (eg. /usr/local/cuda/).]),
-[ac_with_cuda_path=$withval], [ac_with_cuda_path="no"])
+[ac_with_cuda_path=$withval], [ac_with_cuda_path="/usr/local/cuda"])
 
 if test "x$ac_with_cuda_path" = "xno" ; then
 dnl If the CUDA root path has not been defined, check if nvcc program is in $PATH
@@ -68,6 +68,7 @@ dnl If the CUDA root path has not been defined, check if nvcc program is in $PAT
 else
 dnl Else, check if nvcc program is in CUDA_PATH/bin directory
   AC_PATH_PROG([NVCC], [nvcc], [], [${ac_with_cuda_path}/bin/])
+  AC_LDFLAGS_CUDA="-L${ac_with_cuda_path}/lib"
 fi
 
 dnl User can define the binary directory path of CUDA, if this one is diferent than CUDA_PATH/bin
@@ -86,6 +87,7 @@ fi
 
 dnl Copy value into Makefiles: $NVCC = @NVCC@
 AC_SUBST(NVCC)
+AC_SUBST(AC_LDFLAGS_CUDA)
 
 ##### Cuda flags #####
 
@@ -310,6 +312,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
+src/CUDA/Makefile
 examples/Makefile
 examples/c/Makefile
 examples/c/simple/Makefile

@@ -10,7 +10,7 @@
 !!
 !! SOURCE
 !! 
-subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
+subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   use module_base
   use module_types
   implicit none
@@ -18,11 +18,11 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
-  real(dp), intent(out) :: gnrm
+  real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
-  integer :: iorb,inds,ncplx
-  real(wp) :: cprecr,scpr,eval_zero
+  integer :: iorb,inds,ncplx,ikpt,ierr,jorb
+  real(wp) :: cprecr,scpr,evalmax,eval_zero
   real(gp) :: kx,ky,kz
 
   ! Preconditions all orbitals belonging to iproc
@@ -30,15 +30,41 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
   ! norm of gradient
   gnrm=0.0_dp
+  !norm of gradient of unoccupied orbitals
+  gnrm_zero=0.0_dp
 
+
+  !commented out, never used
+!   evalmax=orbs%eval(orbs%isorb+1)
+!   do iorb=1,orbs%norbp
+!     evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
+!   enddo
+!   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
+!        MPI_MAX,MPI_COMM_WORLD,ierr)
+
+
+  ikpt=orbs%iskpts
   do iorb=1,orbs%norbp
-     ! define zero energy for preconditioning 
-     eval_zero=max(orbs%eval(orbs%norb),0.d0)  !  Non-spin pol
-     if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then    !spin-pol
-        eval_zero=max(orbs%eval(orbs%norbu),0.d0)  !up orbital
-     else if (orbs%spinsgn(orbs%isorb+iorb) < 0.0_gp) then
-        eval_zero=max(orbs%eval(orbs%norbu+orbs%norbd),0.d0)  !down orbital
+     !if it is the first orbital or the k-point has changed calculate the max
+     if (orbs%iokpt(iorb) /= ikpt .or. iorb == 1) then
+        !the eval array contains all the values
+        !take the max for all k-points
+        !one may think to take the max per k-point
+        evalmax=orbs%eval((orbs%iokpt(iorb)-1)*orbs%norb+1)
+        do jorb=1,orbs%norb
+           evalmax=max(orbs%eval((orbs%iokpt(iorb)-1)*orbs%norb+jorb),evalmax)
+        enddo
+        eval_zero=evalmax
+        ikpt=orbs%iokpt(iorb)
      end if
+
+!     ! define zero energy for preconditioning 
+!     eval_zero=max(orbs%eval(orbs%norb),0.d0)  !  Non-spin pol
+!     if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then    !spin-pol
+!        eval_zero=max(orbs%eval(orbs%norbu),0.d0)  !up orbital
+!     else if (orbs%spinsgn(orbs%isorb+iorb) < 0.0_gp) then
+!        eval_zero=max(orbs%eval(orbs%norbu+orbs%norbd),0.d0)  !down orbital
+!     end if
      !indo=(iorb-1)*nspinor+1
      !loop over the spinorial components
      !k-point values, if present
@@ -57,23 +83,16 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
         !the nrm2 function can be replaced here by ddot
         scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi(1,inds,iorb),1)
-        !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
-        gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        if (orbs%occup(orbs%isorb+iorb) == 0.0_gp) then
+           gnrm_zero=gnrm_zero+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        else
+           !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
+           gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        end if
 
-        if (scpr /= 0.0_wp) then
-           !value of the cpreconditioner
-           !cprecr=-(orbs%eval(orbs%isorb+iorb)-eval_zero)+.10d0
-           !write(*,*) 'cprecr:',iorb,cprecr,orbs%eval(orbs%isorb+iorb)
-           select case(lr%geocode)
-           case('F')
-              cprecr=-orbs%eval(orbs%isorb+iorb)
-           case('S')
-              cprecr=0.5_wp
-           case('P')
-              cprecr=0.5_wp
-           end select
-           
+       if (scpr /= 0.0_wp) then
 
+          call cprecr_from_eval(lr%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)          
            !cases with no CG iterations, diagonal preconditioning
            !for Free BC it is incorporated in the standard procedure
            if (ncong == 0 .and. lr%geocode /= 'F') then
@@ -105,6 +124,25 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
 END SUBROUTINE preconditionall
 !!***
+
+!this function has been created also for the GPU-ported routines
+subroutine cprecr_from_eval(geocode,eval_zero,eval,cprecr)
+  use module_base
+  implicit none
+  character(len=1), intent(in) :: geocode
+  real(gp), intent(in) :: eval,eval_zero
+  real(gp), intent(out) :: cprecr
+
+  select case(geocode)
+  case('F')
+     cprecr=sqrt(.2d0**2+min(0.d0,eval)**2)
+  case('S')
+     cprecr=sqrt(0.2d0**2+(eval-eval_zero)**2)
+  case('P')
+     cprecr=sqrt(0.2d0**2+(eval-eval_zero)**2)
+  end select
+
+end subroutine cprecr_from_eval
 
 
 !routine used for the k-points, eventually to be used for all cases
@@ -144,6 +182,7 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
 !!  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
 !!  write(*,*)'debug1',rmr_new
 
+  !this operation should be rewritten in a better way
   r=b-d ! r=b-Ax
 
   call calculate_rmr_new(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,r,d,rmr_new)
@@ -208,7 +247,7 @@ subroutine finalise_precond_residue(geocode,hybrid_on,ncplx,wfd,scal,x)
      do idx=1,ncplx
         call wscalv_wrap(wfd%nvctr_c,wfd%nvctr_f,scal,x(1,idx))
      end do
-  else if (geocode == 'P' .and. .not. hybrid_on) then
+  else if ((geocode == 'P' .and. .not. hybrid_on) .or. geocode == 'S') then
      do idx=1,ncplx
         ! x=D^{-1/2}x'
         call wscal_per_self(wfd%nvctr_c,wfd%nvctr_f,scal,x(1,idx),&
@@ -237,7 +276,8 @@ subroutine calculate_rmr_new(geocode,hybrid_on,ncplx,wfd,scal,r,b,rmr_new)
   logical :: noscal
   integer :: idx
 
-  noscal = ((geocode == 'P' .and. .not. hybrid_on) .or. geocode == 'F')
+  noscal = ((geocode == 'P' .and. .not. hybrid_on) .or. &
+       geocode == 'F' .or. geocode == 'S')
 
   if (noscal) then
      call dcopy(ncplx*(wfd%nvctr_c+7*wfd%nvctr_f),r(1,1),1,b(1,1),1) 
@@ -371,7 +411,8 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
               !	Arrays psifscf and ww serve as work arrays for the Fourier
               fac=1.0_gp/scal(0)**2
               call prec_fft_c(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nseg_c,&
-                   lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                   lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                   lr%wfd%keyg,lr%wfd%keyv, &
                    cprecr,hx,hy,hz,x(1,idx),&
                    w%psifscf(1),w%psifscf(lr%d%n1+2),&
                    w%psifscf(lr%d%n1+lr%d%n2+3),w%ww(1),w%ww(nd1b*nd2*nd3*4+1),&
@@ -393,6 +434,14 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
      call wscal_init_per(scal,hx,hy,hz,cprecr)
     
      do idx=1,ncplx
+
+        !recently added
+        !	scale the r.h.s. that is also the scaled input guess :
+        !	b'=D^{-1/2}b
+        call wscal_per_self(lr%wfd%nvctr_c,lr%wfd%nvctr_f,scal,&
+             x(1,idx),x(lr%wfd%nvctr_c+1,idx))
+        !end of that
+
         !b=x
         call dcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
         
@@ -403,6 +452,10 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
              cprecr,hx,hy,hz,x(1,idx),&
              w%psifscf(1),w%psifscf(lr%d%n1+2),w%ww(1),&
              w%ww(2*((lr%d%n1+1)/2+1)*(lr%d%n2+1)*(lr%d%n3+1)+1))
+
+        !we will probably have to rescale x by fac=1.0_gp/scal(0)**2
+        call dscal(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,1.0_gp/scal(0)**2,x(1,idx),1)
+        
      end do
 
   end if
@@ -532,6 +585,63 @@ subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
   end if
 
 END SUBROUTINE allocate_work_arrays
+
+subroutine memspace_work_arrays_precond(geocode,hybrid_on,ncplx,d,memwork)
+  use module_base
+  use module_types
+  implicit none
+  character(len=1), intent(in) :: geocode
+  logical, intent(in) :: hybrid_on
+  integer, intent(in) :: ncplx
+  type(grid_dimensions), intent(in) :: d
+  integer(kind=8), intent(out) :: memwork
+  !local variables
+  integer, parameter :: lowfil=-14,lupfil=14
+  integer :: nd1,nd2,nd3
+  integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
+  integer :: nf
+
+
+  if (geocode == 'F') then
+
+     nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
+
+     memwork=2*(d%n1+1)*(d%n2+1)*(d%n3+1)+2*7*(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)+3*nf
+     
+    
+  else if (geocode == 'P') then
+     
+     if (hybrid_on) then
+          
+        call dimensions_fft(d%n1,d%n2,d%n3,&
+             nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
+
+        nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
+
+        memwork=(d%n1+1)+(d%n2+1)+(d%n3+1)+2*nd1b*nd2*nd3*2+2*nd1*nd2*nd3f*2+&
+             (d%n1+1)*(d%n2+1)*(d%n3+1)+2*7*(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)+3*nf
+
+     else 
+
+        memwork=0
+        if (ncplx == 1) then
+           memwork=d%n1+d%n2+d%n3+15*(lupfil-lowfil+1)
+        end if
+        memwork=memwork+2*ncplx*(2*d%n1+2)*(2*d%n2+2)*(2*d%n3+2)
+
+     end if
+
+  else if (geocode == 'S') then
+
+     memwork=0
+     if (ncplx == 1) then
+        memwork=d%n1+d%n3+14*(lupfil-lowfil+1)
+     end if
+     memwork=memwork+2*ncplx*(2*d%n1+2)*(2*d%n2+16)*(2*d%n3+2)
+  end if
+
+END SUBROUTINE memspace_work_arrays_precond
+
 
 subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
   use module_base
@@ -706,16 +816,16 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
      end if
   else if (lr%geocode == 'S') then
      if (ncplx == 1) then
-        call apply_hp_slab_sd(lr%d%n1,lr%d%n2,lr%d%n3,&
+        call apply_hp_slab_sd_scal(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
              lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
              cprecr,hx,hy,hz,x,y,w%psifscf,w%ww,w%modul1,w%modul3,&
-             w%af,w%bf,w%cf,w%ef)
+             w%af,w%bf,w%cf,w%ef,scal)
      else
         call apply_hp_slab_k(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
              lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
-             cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww) 
+             cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww,scal) 
 
      end if
    end if

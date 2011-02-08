@@ -12,13 +12,13 @@
 !! SOURCE
 !!
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-     nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
+     nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&
      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc)
   use module_base
   use module_types
   use libxc_functionals
   implicit none
-  integer, intent(in) :: iproc,nproc,ndimpot,nspin
+  integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -28,7 +28,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
-  real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
+  real(wp), dimension(:), pointer :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
   real(wp), target, dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
@@ -40,27 +40,14 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(gp), dimension(orbs%norbp) :: epot
   real(wp), dimension(:), pointer :: hpsi2
   character(len=*), parameter :: subname='HamiltonianApplication'
-  logical :: exctX
+  logical :: exctX,op2p
   integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
 !OCL  integer, dimension(3) :: periodic
 !OCL  real(wp) :: maxdiff
 !OCL  real(gp) :: eproj,ek_fake,ep_fake
   real(gp), dimension(3,2) :: wrkallred
-  real(wp), dimension(:), pointer :: pot
 !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
-  integer,parameter::lupfil=14
-
-  !stream ptr array
-!  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
-!  real(kind=8) :: stream_ptr_first_trsf
-
-  !initialise exact exchange energy 
-  eexctX=0.0_gp
-
-  exctX = libxc_functionals_exctXfac() /= 0.0_gp
-
-  call timing(iproc,'Rho_commun    ','ON')
 
   ! local potential and kinetic energy for all orbitals belonging to iproc
   if (iproc==0 .and. verbose > 1) then
@@ -68,55 +55,48 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           'Hamiltonian application...'
   end if
 
-  
-  !determine the dimension of the potential array
-  if (exctX) then
-     npot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+&
-          max(lr%d%n1i*lr%d%n2i*&
-          max(lr%d%n3i*orbs%norbp,ngatherarr(0,1)/(lr%d%n1i*lr%d%n2i)*orbs%norb),1)
-  else
-     npot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin
+  !check if the potential has been associated
+  if (.not. associated(pot)) then
+     if (iproc ==0) then
+        write(*,*)' ERROR, HamiltonianApplication, potential not associated!'
+        stop
+     end if
   end if
 
-  !build the potential on the whole simulation box
-  !in the linear scaling case this should be done for a given localisation region
-  !cannot be deplaced due to the fact that n1i is not calculated
-  if (nproc > 1) then
-     allocate(pot(npot+ndebug),stat=i_stat)
-     call memocc(i_stat,pot,'pot',subname)
-     ispot=1
-     ispotential=1
-     do ispin=1,nspin
-        call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
-             mpidtypw,pot(ispot),ngatherarr(0,1),&
-             ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
-        ispot=ispot+lr%d%n1i*lr%d%n2i*lr%d%n3i
-        ispotential=ispotential+max(1,ndimpot)
-     end do
-  else
-     if (exctX) then
-        allocate(pot(npot+ndebug),stat=i_stat)
-        call memocc(i_stat,pot,'pot',subname)
-        call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,potential,1,pot,1)
-     else
-        pot => potential
-     end if
-     ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+1
-  end if
-  call timing(iproc,'Rho_commun    ','OF') 
+  !initialise exact exchange energy 
+  op2p=(eexctX == -99.0_gp)
+  eexctX=0.0_gp
+
+  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+
+  ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+1
+
   !fill the rest of the potential with the exact-exchange terms
   if (present(pkernel) .and. exctX) then
      n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
      !exact exchange for virtual orbitals (needs psirocc)
+
+     !here we have to add the round part
      if (present(psirocc) .and. present(orbsocc)) then
         call exact_exchange_potential_virt(iproc,nproc,at%geocode,nspin,&
              lr,orbsocc,orbs,ngatherarr(0,1),n3p,&
              0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi,pot(ispot))
         eexctX = 0._gp
      else
-        call exact_exchange_potential(iproc,nproc,at%geocode,nspin,&
-             lr,orbs,ngatherarr(0,1),n3p,&
-             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+!!$        call exact_exchange_potential_round(iproc,nproc,at%geocode,nspin,lr,orbs,&
+!!$             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+
+        !here the condition for the scheme should be chosen
+        if (.not. op2p) then
+           call exact_exchange_potential(iproc,nproc,at%geocode,nspin,&
+                lr,orbs,ngatherarr(0,1),n3p,&
+                0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+        else
+           !the psi should be transformed in real space
+           call exact_exchange_potential_round(iproc,nproc,at%geocode,nspin,lr,orbs,&
+                0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+
+        end if
      end if
   else
      eexctX = 0._gp
@@ -214,15 +194,6 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
     call memocc(i_stat,i_all,'hpsi2',subname)
   endif
 
-  if (nproc > 1 .or. exctX) then
-     i_all=-product(shape(pot))*kind(pot)
-     deallocate(pot,stat=i_stat)
-     call memocc(i_stat,i_all,'pot',subname)
-  else
-     nullify(pot)
-  end if
-
-
   call timing(iproc,'ApplyProj     ','OF')
 
   !energies reduction
@@ -246,21 +217,82 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 END SUBROUTINE HamiltonianApplication
 !!***
 
-
-!!****m* BigDFT/wavefunctionDIIS
-!! FUNCTION
-!!   This module is here to avoid save variables inside
-!!   hpsitopsi().
-!!
-!! SOURCE
-!!
-module wavefunctionDIIS
+!build the potential in the whole box
+subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ngatherarr,potential,pot)
+  use module_base
+  use libxc_functionals
   implicit none
-  logical :: switchSD
-  integer :: idiistol,mids,ids  
-end module wavefunctionDIIS
-!!***
+  integer, intent(in) :: iproc,nproc,nspin,ndimpot,norb,norbp,ndimgrid
+  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+  real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
+  real(wp), dimension(:), pointer :: pot
+  !local variables
+  character(len=*), parameter :: subname='full_local_potential'
+  logical :: exctX
+  integer :: npot,ispot,ispotential,ispin,ierr,i_stat,i_all
 
+  call timing(iproc,'Rho_commun    ','ON')
+  
+  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+  !determine the dimension of the potential array
+  if (exctX) then
+     npot=ndimgrid*nspin+&
+          max(max(ndimgrid*norbp,ngatherarr(0,1)*norb),1) !part which refers to exact exchange
+  else
+     npot=ndimgrid*nspin
+  end if
+
+  !build the potential on the whole simulation box
+  !in the linear scaling case this should be done for a given localisation region
+  !this routine should then be modified or integrated in HamiltonianApplication
+  if (nproc > 1) then
+     allocate(pot(npot+ndebug),stat=i_stat)
+     call memocc(i_stat,pot,'pot',subname)
+     ispot=1
+     ispotential=1
+     do ispin=1,nspin
+        call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
+             mpidtypw,pot(ispot),ngatherarr(0,1),&
+             ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+        ispot=ispot+ndimgrid
+        ispotential=ispotential+max(1,ndimpot)
+     end do
+  else
+     if (exctX) then
+        allocate(pot(npot+ndebug),stat=i_stat)
+        call memocc(i_stat,pot,'pot',subname)
+        call dcopy(ndimgrid*nspin,potential,1,pot,1)
+     else
+        pot => potential
+     end if
+     ispot=ndimgrid*nspin+1
+  end if
+
+  call timing(iproc,'Rho_commun    ','OF') 
+
+end subroutine full_local_potential
+
+subroutine free_full_potential(nproc,pot,subname)
+  use module_base
+  use libxc_functionals
+  implicit none
+  character(len=*), intent(in) :: subname
+  integer, intent(in) :: nproc
+  real(wp), dimension(:), pointer :: pot
+  !local variables
+  logical :: exctX
+  integer :: i_all,i_stat
+
+  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+  if (nproc > 1 .or. exctX) then
+     i_all=-product(shape(pot))*kind(pot)
+     deallocate(pot,stat=i_stat)
+     call memocc(i_stat,i_all,'pot',subname)
+  else
+     nullify(pot)
+  end if
+
+end subroutine free_full_potential
 
 !!****f* BigDFT/hpsitopsi
 !! FUNCTION
@@ -269,52 +301,43 @@ end module wavefunctionDIIS
 !! SOURCE
 !!
 subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
-     ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
-     alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,GPU)
+     ncong,iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,nspin,GPU,input)
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => hpsitopsi
-  use wavefunctionDIIS
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
-  real(gp), intent(in) :: hx,hy,hz,energy,energy_old
+  real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
   type(communications_arrays), intent(in) :: comms
   type(orbitals_data), intent(in) :: orbs
-  integer, intent(inout) :: idsx_actual
-  real(wp), intent(inout) :: alpha
-  real(dp), intent(inout) :: gnrm,scprsum
-  real(gp), intent(inout) :: energy_min
-  real(wp), dimension(:), pointer :: psi,psit,hpsi,psidst,hpsidst
-  real(wp), dimension(:,:,:), pointer :: ads
+  type(input_variables), intent(in) :: input
+  type(diis_objects), intent(inout) :: diis
+  real(dp), intent(inout) :: gnrm,gnrm_zero,trH
+  real(wp), dimension(:), pointer :: psi,psit,hpsi
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='hpsitopsi'
-!OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
-  integer :: ierr,iorb,k,i_stat,i_all
+  !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
+  integer :: ierr,iorb,k,i_stat,i_all,nzeroorbs
   real(dp) :: tt
   real(wp), dimension(:,:,:), allocatable :: mom_vec
+
+integer:: i
 !OCL  real(wp) :: maxdiff
 !OCL  integer, dimension(3) :: periodic
 
-  !stream ptr array
- ! real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
-
   !adjust the save variables for DIIS/SD switch
   if (iter == 1) then
-     !logical control variable for switch DIIS-SD
-     switchSD=.false.
-     ids=0
-     mids=1
-     idiistol=0
+     diis%ids=0
+     diis%mids=1
+     diis%idiistol=0
   end if
   !update variables at each iteration step
   if (idsx > 0) then
-     mids=mod(ids,idsx)+1
-     ids=ids+1
+     diis%mids=mod(diis%ids,idsx)+1
+     diis%ids=diis%ids+1
   end if
-
-  energy_min=min(energy_min,energy)
 
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
@@ -332,7 +355,13 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
   !takes also into account parallel k-points distribution
-  call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,scprsum)
+  !here the orthogonality with respect to other occupied functions should be 
+  !passed as an optional argument
+  call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,trH)
+
+  !add the trace of the hamiltonian to the value of the energy
+  diis%energy=diis%energy+trH
+  diis%energy_min=min(diis%energy_min,diis%energy)
 
   !retranspose the hpsi wavefunction
   call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
@@ -354,12 +383,12 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 
   if (GPUconv) then
      call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
-          hpsi,gnrm,GPU)
+          hpsi,gnrm,gnrm_zero,GPU)
   else if (OCLconv) then
      call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
-          hpsi,gnrm,GPU)
+          hpsi,gnrm,gnrm_zero,GPU)
   else
-     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
+     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   end if
 
 !!$  if (OCLconv) then
@@ -378,10 +407,28 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 !!$  end if
   !sum over all the partial residues
   if (nproc > 1) then
-     tt=gnrm
-     call MPI_ALLREDUCE(tt,gnrm,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+     !tt=gnrm
+     !call MPI_ALLREDUCE(tt,gnrm,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
   endif
-  gnrm=sqrt(gnrm/real(orbs%norb,dp))
+  !count the number of orbitals which have zero occupation number
+  !assume that this is the same for all k-points, which is not true in general
+  nzeroorbs=0
+  do iorb=1,orbs%norb*orbs%nkpts
+     if (orbs%occup(iorb) == 0.0_gp) then
+        nzeroorbs=nzeroorbs+1
+     end if
+  end do
+  if (orbs%nkpts > 1) nzeroorbs=nint(real(nzeroorbs,gp)/real(orbs%nkpts,gp))
+
+  gnrm=sqrt(gnrm/real(orbs%norb-nzeroorbs,dp))
+
+  if (nzeroorbs /= 0) then
+     gnrm_zero=sqrt(gnrm_zero/real(nzeroorbs,dp))
+  else
+     gnrm_zero=0.0_gp
+  end if
 
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)')&
@@ -396,8 +443,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   !apply the minimization method (DIIS or steepest descent)
   call timing(iproc,'Diis          ','ON')
 
-  call psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx_actual,energy,energy_old,alpha,&
-       hpsi,psidst,hpsidst,psit)
+  call psimix(iproc,nproc,orbs,comms,diis,hpsi,psit)
 
   call timing(iproc,'Diis          ','OF')
 
@@ -406,7 +452,8 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
           'Orthogonalization...'
   end if
 
-  call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit)
+
+  call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit,input)
 
   !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
   
@@ -445,52 +492,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      call memocc(i_stat,i_all,'mom_vec',subname)
   end if
 
-  !here we should add the DIIS/SD switch
-  !add switch between DIIS and SD
-  !this section should be inserted into hpsitopsi
-  if (energy == energy_min .and. .not. switchSD) idiistol=0
-  if (energy > energy_min .and. idsx >0 .and. .not. switchSD) then
-     idiistol=idiistol+1
-  end if
-  if (idiistol > idsx .and. .not. switchSD) then
-     !the energy has not decreasing for too much steps, switching to SD for next steps
-     if (iproc ==0) write(*,'(1x,a,1pe9.2,a)')&
-          'WARNING: The energy value is growing (delta=',energy-energy_min,') switch to SD'
-     switchSD=.true.
-     i_all=-product(shape(psidst))*kind(psidst)
-     deallocate(psidst,stat=i_stat)
-     call memocc(i_stat,i_all,'psidst',subname)
-     i_all=-product(shape(hpsidst))*kind(hpsidst)
-     deallocate(hpsidst,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsidst',subname)
-     i_all=-product(shape(ads))*kind(ads)
-     deallocate(ads,stat=i_stat)
-     call memocc(i_stat,i_all,'ads',subname)
-     idsx_actual=0
-     idiistol=0
-  end if
-
-  if ((energy == energy_min) .and. switchSD) then
-     idiistol=idiistol+1
-  end if
-  if (idiistol > idsx .and. switchSD) then
-     !restore the original DIIS
-     if (iproc ==0) write(*,'(1x,a,1pe9.2)')&
-          'WARNING: The energy value is now decreasing again, coming back to DIIS'
-     switchSD=.false.
-     idsx_actual=idsx
-     ids=0
-     idiistol=0
-
-     allocate(psidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
-     call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
-     call memocc(i_stat,hpsidst,'hpsidst',subname)
-     allocate(ads(idsx+1,idsx+1,orbs%nkptsp*3+ndebug),stat=i_stat)
-     call memocc(i_stat,ads,'ads',subname)
-
-     call razero(orbs%nkptsp*3*(idsx+1)**2,ads)
-  end if
+  call diis_or_sd(iproc,idsx,orbs%nkptsp,diis)
 
 END SUBROUTINE hpsitopsi
 !!***
@@ -500,7 +502,7 @@ END SUBROUTINE hpsitopsi
 !!   First orthonormalisation
 !! SOURCE
 !!
-subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
+subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
   use module_base
   use module_types
   use module_interfaces, except_this_one_B => first_orthon
@@ -509,6 +511,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(communications_arrays), intent(in) :: comms
+  type(input_variables):: input
   real(wp), dimension(:) , pointer :: psi,hpsi,psit
   !local variables
   character(len=*), parameter :: subname='first_orthon'
@@ -537,7 +540,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
   call transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
        work=hpsi,outadd=psit(1))
 
-  call orthogonalize(iproc,nproc,orbs,comms,wfd,psit)
+  call orthogonalize(iproc,nproc,orbs,comms,wfd,psit,input)
 
   !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
@@ -585,7 +588,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
      keeppsit=opt_keeppsit
   else
      keeppsit=.false.
-  endif
+  end if
 
   call transpose_v(iproc,nproc,orbs,wfd,comms,&
        hpsi,work=psi)
@@ -607,6 +610,11 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
      else
         nullify(psit)
      end if
+     
+     i_all=-product(shape(hpsi))*kind(hpsi)
+     deallocate(hpsi,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsi',subname)
+
   endif
   !for a non-collinear treatment,
   !we add the calculation of the moments for printing their value
@@ -626,7 +634,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   !print the found eigenvalues
   if (iproc == 0) then
      write(*,'(1x,a)')&
-          '-------------------------------------------------------------- Kohn-Sham Eigenvalues'
+          '--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers'
      if (orbs%nspinor ==4) then
         write(*,'(1x,a)')&
              '           Eigenvalue                                      m_x       m_y       m_z'
@@ -640,11 +648,11 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
               dowrite =(iorb <= 5 .or. iorb >= orbs%norb-5) .or. verbose > 0
               if (orbs%nspinor ==4) then
                  if (dowrite) & 
-                      write(*,'(1x,a,i4,a,1x,1pe21.14,20x,(1x,3(0pf10.5)))') &
-                      'eval(',iorb,')=',orbs%eval(isorb + iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
+                      write(*,'(1x,a,i4,a,1x,1pe21.14,1x,0pf6.4,16x,(1x,3(0pf10.5)))') &
+                      'e(',iorb,')=',orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
               else
                  if (dowrite) & 
-                      write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',orbs%eval(isorb + iorb)
+                      write(*,'(1x,a,i4,a,1x,1pe21.14,1x,0pf6.4)') 'e(',iorb,')=',orbs%eval(isorb + iorb),orbs%occup(isorb+iorb)
               end if
            end do
         else
@@ -652,20 +660,22 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
               jorb=orbs%norbu+iorb
               dowrite =(iorb <= 5 .or. iorb >= min(orbs%norbu,orbs%norbd)-5)  .or. verbose > 0
               if (dowrite) & 
-                   write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-                   'eval(',iorb,',u)=',orbs%eval(isorb + iorb),'eval(',iorb,',d)=',orbs%eval(isorb + jorb)
+                   write(*,'(1x,a,i4,a,1x,1pe21.14,1x,0pf6.4,6x,0pf6.4,1x,a,i4,a,1x,1pe21.14)') &
+                   'e(',iorb,',u)=',orbs%eval(isorb + iorb),orbs%occup(isorb + iorb),&
+                   orbs%occup(isorb + jorb),'e(',iorb,',d)=',orbs%eval(isorb + jorb)
            end do
            if (orbs%norbu > orbs%norbd) then
               do iorb=orbs%norbd+1,orbs%norbu
                  dowrite =(iorb <= 5 .or. iorb >= orbs%norbu-5) .or. verbose > 0
                  if (dowrite) & 
-                      write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,',u)=',orbs%eval(isorb + iorb)
+                      write(*,'(1x,a,i4,a,1x,1pe21.14,1x,0pf6.4)') 'e(',iorb,',u)=',orbs%eval(isorb + iorb),orbs%occup(isorb+iorb)
               end do
            else if (orbs%norbd > orbs%norbu) then
               do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
                  dowrite =(iorb <= 5 .or. iorb >= orbs%norbd-5) .or. verbose > 0
                  if (dowrite) & 
-                      write(*,'(50x,a,i4,a,1x,1pe21.14)') 'eval(',iorb-orbs%norbu,',d)=',orbs%eval(isorb + iorb)
+                      write(*,'(46x,0pf6.4,1x,a,i4,a,1x,1pe21.14)') orbs%occup(isorb + iorb),&
+                      'e(',iorb-orbs%norbu,',d)=',orbs%eval(isorb + iorb)
               end do
            end if
         end if
@@ -678,12 +688,193 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
      call memocc(i_stat,i_all,'mom_vec',subname)
   end if
 
-  i_all=-product(shape(hpsi))*kind(hpsi)
-  deallocate(hpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsi',subname)
 
 END SUBROUTINE last_orthon
-!!***
+
+
+subroutine evaltoocc(iproc,filewrite,wf,orbs)
+ ! finds  the fermi level ef for an error function distribution with a width wf
+ ! eval are the Kohn Sham eigenvalues and melec is the total number of electrons
+ use module_base
+ use module_types
+ implicit none
+ logical, intent(in) :: filewrite
+ integer, intent(in) :: iproc
+ real(gp), intent(in) :: wf
+ type(orbitals_data), intent(inout) :: orbs
+ !local variables
+ integer :: iu,id,i,n,nzeroorbs,ikpt,iorb,melec,ii
+ real(gp) :: charge
+ real(gp) :: ef,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
+ parameter(pi=3.1415926535897932d0)
+ !write(*,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd
+ 
+ if (orbs%norbd==0) then 
+    full=2.d0   ! maximum occupation for closed shell  orbital
+ else
+    full=1.d0   ! maximum occupation for spin polarized orbital
+ endif
+ 
+ if (orbs%nkpts.ne.1) stop 'Fermilevel: Not yet implemented correctly'
+ do ikpt=1,orbs%nkpts
+    !number of zero orbitals for the given k-point
+    !overall charge of the system
+    charge=0.0_gp
+    do iorb=1,orbs%norb
+       charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb)
+    end do
+ end do
+ melec=nint(charge)
+ !write(*,*) 'charge',charge,melec
+
+ if (wf > 0.0_gp) then
+    ii=0
+    ef=orbs%efermi
+    factor=1.d0/(sqrt(pi)*wf)
+    !print *,0,ef
+    loop_fermi: do
+       ii=ii+1
+       if (ii > 10000) stop 'error Fermilevel'
+       electrons=0.d0
+       dlectrons=0.d0
+       do ikpt=1,orbs%nkpts
+          do iorb=1,orbs%norbd+orbs%norbu
+             arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
+             ! next 2 line error function distribution
+             call derf_ab(res,arg)
+             electrons=electrons+.5d0*(1.d0-res)
+             !print *,iorb,ef,orbs%eval((ikpt-1)*orbs%norb+iorb),arg,electrons
+             dlectrons=dlectrons-exp(-arg**2)
+             !! next 2 line Fermi function distribution
+             !   electrons=electrons+1.d0/(1.d0+exp(arg))
+             !   dlectrons=dlectrons-exp(arg)/(1.d0+exp(arg))**2
+          enddo
+       enddo
+       ! next  line error function distribution
+       dlectrons=dlectrons*factor
+       !! next  line Fermi function distribution
+       !   dlectrons=dlectrons/wf
+       
+       diff=real(melec,gp)/full-electrons
+       if (abs(diff) < 1.d-12) exit loop_fermi
+       corr=diff/dlectrons
+       !if (iproc==0) write(*,*) ii,electrons,ef,dlectrons,melec,corr
+       if (corr > 1.d0*wf) corr=1.d0*wf
+       if (corr < -1.d0*wf) corr=-1.d0*wf
+       if (abs(dlectrons) < 1.d-18  .and. electrons > real(melec,gp)/full) corr=3.d0*wf
+       if (abs(dlectrons) < 1.d-18  .and. electrons < real(melec,gp)/full) corr=-3.d0*wf
+       ef=ef-corr
+    end do loop_fermi
+    
+    do ikpt=1,orbs%nkpts
+       argu=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu)-ef)/wf
+       argd=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+orbs%norbd)-ef)/wf
+       call derf_ab(resu,argu)
+       call derf_ab(resd,argd)
+       cutoffu=.5d0*(1.d0-resu)
+       cutoffd=.5d0*(1.d0-resd)
+       !    cutoffu=1.d0/(1.d0+exp(argu))
+       !    cutoffd=1.d0/(1.d0+exp(argd))
+       if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:',ef,cutoffu,cutoffd
+    enddo
+    orbs%efermi=ef
+    
+    !update the occupation number
+    ikpt=1
+    do iorb=1,orbs%norbu
+       arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
+       call derf_ab(res,arg)
+       orbs%occup((ikpt-1)*orbs%norb+iorb)=full*.5d0*(1.d0-res)
+    end do
+    do iorb=1,orbs%norbd
+       arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
+       call derf_ab(res,arg)
+       orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*.5d0*(1.d0-res)
+    end do
+ else if(full==1.0_gp) then
+    call eFermi_nosmearing(iproc,orbs)
+ end if
+ 
+ !write on file the results if needed
+ if (filewrite) then
+    open(unit=11,file='input.occ',status='unknown')
+    write(11,*)orbs%norbu,orbs%norbd
+    do iorb=1,orbs%norb
+       write(11,'(i5,e19.12)')iorb,orbs%occup((ikpt-1)*orbs%norb+iorb)
+       !    write(11,'(i5,e19.12)')iorb,full/(1.d0+exp(arg))  !,orbs%eval((ikpt-1)*orbs%norb+iorb)
+    end do
+    close(unit=11)
+ end if
+
+end subroutine evaltoocc
+
+subroutine eFermi_nosmearing(iproc,orbs)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc
+  type(orbitals_data), intent(inout) :: orbs
+  !local variables
+  integer :: iu,id,i,n,nzeroorbs,ikpt,iorb
+  real(gp) :: charge
+  real(wp) :: eF
+
+  do ikpt=1,orbs%nkpts
+     !number of zero orbitals for the given k-point
+     nzeroorbs=0
+     !overall charge of the system
+     charge=0.0_gp
+     do iorb=1,orbs%norb
+        if (orbs%occup(iorb+(ikpt-1)*orbs%norb) == 0.0_gp) then
+           nzeroorbs=nzeroorbs+1
+        else
+           charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb)
+        end if
+     end do
+     if (nzeroorbs /= 0 .and. orbs%norbd .gt.0) then
+        do iorb=1,orbs%norbu-1
+           if (orbs%eval((ikpt-1)*orbs%norb+iorb) > orbs%eval((ikpt-1)*orbs%norb+iorb+1)) &
+                write(*,*) 'wrong ordering of up EVs',iorb,iorb+1
+        end do
+        do iorb=1,orbs%norbd-1
+           if (orbs%eval((ikpt-1)*orbs%norb+iorb+orbs%norbu) > orbs%eval((ikpt-1)*orbs%norb+iorb+1+orbs%norbu))&
+                write(*,*) 'wrong ordering of dw EVs',iorb+orbs%norbu,iorb+1+orbs%norbu
+        enddo
+
+        iu=0
+        id=0
+        n=0
+        do while (real(n,gp) < charge)
+           if (orbs%eval((ikpt-1)*orbs%norb+iu+1) <= orbs%eval((ikpt-1)*orbs%norb+id+1+orbs%norbu)) then
+              iu=iu+1
+              eF=orbs%eval((ikpt-1)*orbs%norb+iu+1)
+           else
+              id=id+1
+              eF=orbs%eval((ikpt-1)*orbs%norb+id+1+orbs%norbu)
+           endif
+           n=n+1
+        enddo
+        if (iproc==0) write(*,'(1x,a,1pe21.14,a,i4)') 'Suggested Homo energy level',eF,', Spin polarization',iu-id
+        !write(*,*) 'up,down, up-down',iu,id,iu-id
+     end if
+  end do
+  orbs%efermi=eF
+  !assign the values for the occupation numbers
+  do iorb=1,iu
+     orbs%occup(iorb)=1.0_gp
+  end do
+  do iorb=iu+1,orbs%norbu
+     orbs%occup(iorb)=0.0_gp
+  end do
+  do iorb=1,id
+     orbs%occup(iorb+orbs%norbu)=1.0_gp
+  end do
+  do iorb=id+1,orbs%norbd
+     orbs%occup(iorb+orbs%norbu)=0.0_gp
+  end do
+
+end subroutine eFermi_nosmearing
+
 
 
 !!****f* BigDFT/calc_moments
@@ -754,263 +945,6 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
 END SUBROUTINE calc_moments
 !!***
 
-!experimental routine for correcting the potential from a vacancy
-subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
-     i3s,i3xcsh,hxh,hyh,hzh,pkernel,ngatherarr,&
-     rhoref,pkernel_ref,pot_ion,rhopot,ixc,nspin,ehart,eexcu,vexcu,PSquiet,correct_offset)
-  use module_base
-  use module_types
-  use Poisson_Solver
-  implicit none
-  character(len=3), intent(in) :: PSquiet
-  logical, intent(in) :: correct_offset
-  integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,nspin,ixc,i3xcsh,i3s
-  real(gp), intent(in) :: hxh,hyh,hzh
-  type(atoms_data), intent(in) :: at
-  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
-  real(dp), dimension(n1i,n2i,max(n3d,1),nspin), intent(inout) :: rhoref
-  real(dp), dimension(n1i,n2i,max(n3pi,1)), intent(inout) :: pot_ion
-  real(dp), dimension(n1i,n2i,max(n3d,1),nspin), intent(inout) :: rhopot
-  real(gp), intent(out) :: ehart,eexcu,vexcu
-  real(dp), dimension(:), pointer :: pkernel_ref,pkernel
-  !local variables
-  character(len=*), parameter :: subname='correct_hartree_potential'
-  integer :: i_all,i_stat,ierr,i1,i2,i3,ispin
-  real(gp) :: ehart_fake,ehartA,ehartB,tt,offset
-  real(dp), dimension(:,:,:,:), allocatable :: potref,drho,vxc
-
-  allocate(potref(n1i,n2i,max(n3d,1),nspin+ndebug),stat=i_stat)
-  call memocc(i_stat,potref,'potref',subname)
-
-  allocate(drho(n1i,n2i,n3i,nspin+ndebug),stat=i_stat)
-  call memocc(i_stat,drho,'drho',subname)
-
-  allocate(vxc(n1i,n2i,max(n3p,1),nspin+ndebug),stat=i_stat)
-  call memocc(i_stat,vxc,'vxc',subname)
-
-  !Delta rho = rho - rho_ref
-  do ispin=1,nspin
-     do i3=1,n3d
-        do i2=1,n2i
-           do i1=1,n1i
-              drho(i1,i2,i3s-1+i3,ispin)=&
-                   rhopot(i1,i2,i3,ispin)-rhoref(i1,i2,i3,ispin)
-           end do
-        end do
-     end do
-  end do
-
-!!!  call plot_density(at%geocode,'deltarho.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-!!!       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,i3s+i3xcsh,1))
-
-  !calculate the offset
-  tt=0.d0
-  do i3=1,n3p
-     do i2=1,n2i
-        do i1=1,n1i
-           tt=tt+drho(i1,i2,i3+i3s-1+i3xcsh,1)
-        enddo
-     enddo
-  enddo
-  !tt=tt*hxh*hyh*hzh
-  if (nproc > 1) then
-     call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-          MPI_SUM,MPI_COMM_WORLD,ierr)
-  else
-     offset=tt
-  end if
-
-  if (iproc==0) print *,'charge deltarho',offset*hxh*hyh*hzh
-
-  !rho_tot -> VH_tot & VXC_tot 
-  call H_potential(at%geocode,'D',iproc,nproc,&
-       n1i,n2i,n3i,hxh,hyh,hzh,&
-       rhopot,pkernel,vxc,ehart,0.0_dp,.false.,&
-       quiet=PSquiet)
-
-!!$  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
-!!$       ixc,hxh,hyh,hzh,&
-!!$       rhopot,pkernel,vxc,ehart,eexcu,vexcu,0.d0,.false.,nspin,&
-!!$       quiet=PSquiet)
-
-  !calculate the reference Hartree potential
-  !here the offset should be specified for charged systems
-  call dcopy(n1i*n2i*n3d,rhoref,1,potref,1) 
-  !Rho_ref -> VH_ref
-  call H_potential(at%geocode,'D',iproc,nproc,&
-       n1i,n2i,n3i,hxh,hyh,hzh,&
-       potref,pkernel,pot_ion,ehart_fake,0.0_dp,.false.,&
-       quiet=PSquiet)
-
-!!$  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
-!!$       0,hxh,hyh,hzh,&
-!!$       potref,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
-!!$       quiet=PSquiet)
-  
-  !save the total density in rhopot
-  do ispin=1,nspin
-     do i3=1,n3p
-        do i2=1,n2i
-           do i1=1,n1i
-              rhopot(i1,i2,i3,ispin)=rhoref(i1,i2,i3,ispin)+&
-                   drho(i1,i2,i3s+i3xcsh-1+i3,ispin)
-           end do
-        end do
-     end do
-  end do
-  !rhopot=rhoref+drho
-
-  !gather the total density difference in drho
-  if (nproc > 1) then
-     do ispin=1,nspin
-        call MPI_ALLGATHERV(MPI_IN_PLACE,n1i*n2i*n3p,&
-             mpidtypd,drho(1,1,1,ispin),ngatherarr(0,1),&
-             ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
-     end do
-  end if
-
-  !calculate the vacancy hartree potential
-  !Delta rho -> VH_drho(I)
-  !use global distribution scheme for deltarho
-  call H_potential('F','G',iproc,nproc,&
-       n1i,n2i,n3i,hxh,hyh,hzh,&
-       drho,pkernel_ref,pot_ion,ehart_fake,0.0_dp,.false.,&
-       quiet=PSquiet)
-
-!!$  call PSolver('F','G',iproc,nproc,n1i,n2i,n3i,&
-!!$       0,hxh,hyh,hzh,&
-!!$       drho,pkernel_ref,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
-!!$       quiet=PSquiet)
-
-!!!  call plot_density(at%geocode,'VHdeltarho.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-!!!       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,1+i3xcsh,1))
-
-
-  !sum the complete hartree potential
-  call axpy(n1i*n2i*n3p,1.0_dp,potref(1,1,1+i3xcsh,1),1,drho(1,1,i3s+i3xcsh,1),1)
-
-  if (correct_offset) then
-     !calculate the offset
-     tt=0.d0
-     do i3=1,n3p
-        do i2=1,n2i
-           do i1=1,n1i
-              tt=tt+drho(i1,i2,i3+i3s-1+i3xcsh,1)
-           end do
-        end do
-     end do
-     !tt=tt*hxh*hyh*hzh
-     if (nproc > 1) then
-        call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-             MPI_SUM,MPI_COMM_WORLD,ierr)
-     else
-        offset=tt
-     end if
-
-     if (iproc==0) print *,'offset to subtract',offset
-
-     !now the hartree potential has zero integral
-     drho=drho-offset/real(n1i*n2i*n3i,dp)
-
-     !calculate the offset
-     tt=0.d0
-     do i3=1,n3p
-        do i2=1,n2i
-           do i1=1,n1i
-              tt=tt+drho(i1,i2,i3+i3s-1+i3xcsh,1)
-           end do
-        end do
-     end do
-     if (nproc > 1) then
-        call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-             MPI_SUM,MPI_COMM_WORLD,ierr)
-     else
-        offset=tt
-     end if
-
-     if (iproc==0) print *,'offset (verify)',offset*hxh*hyh*hzh
-  end if
-
-  !calculate total hartree energy
-  ehartA=0.0_dp
-  ehartA=0.5_dp*hxh*hyh*hzh*&
-       dot(n1i*n2i*n3p,rhopot(1,1,1+i3xcsh,1),1,drho(1,1,i3s+i3xcsh,1),1)
-
-  !reduce the result
-  if (nproc > 1) then
-     call MPI_ALLREDUCE(ehartA,ehartB,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
-  else
-     ehartB=ehartA
-  end if
-  ehart=ehartB
-
-  !sum the different potentials (valid only for non-spin polarised systems)
-  call axpy(n1i*n2i*n3p,1.0_dp,pot_ion(1,1,1),1,drho(1,1,i3s+i3xcsh,1),1)
-
-!!!  call plot_density(at%geocode,'VHpVion.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-!!!       at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,i3s+i3xcsh,1))
-!!!
-!!!  !calculate the offset
-!!!  tt=0.d0
-!!!  do i3=1,n3p
-!!!     do i2=1,n2i
-!!!        do i1=1,n1i
-!!!           tt=tt+drho(i1,i2,i3+i3xcsh,1)
-!!!        enddo
-!!!     enddo
-!!!  enddo
-!!!  !tt=tt*hxh*hyh*hzh
-!!!  if (nproc > 1) then
-!!!     call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-!!!          MPI_SUM,MPI_COMM_WORLD,ierr)
-!!!  else
-!!!     offset=tt
-!!!  end if
-!!!
-!!!  if (iproc==0) print *,'offset of Vh+Vion',offset
-
-  call axpy(n1i*n2i*n3p*nspin,1.0_dp,vxc(1,1,1,1),1,drho(1,1,i3s+i3xcsh,1),1)
-
-  !final result in rhopot
-  call dcopy(n1i*n2i*n3d*nspin,drho(1,1,i3s,1),1,rhopot,1) 
-
-
-!!!  call plot_density(at%geocode,'Vtot.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
-!!!       at%alat1,at%alat2,at%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
-
-  !calculate the offset
-  tt=0.d0
-  do i3=1,n3p
-     do i2=1,n2i
-        do i1=1,n1i
-           tt=tt+rhopot(i1,i2,i3+i3xcsh,1)
-        enddo
-     enddo
-  enddo
-  !tt=tt*hxh*hyh*hzh
-  if (nproc > 1) then
-     call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-          MPI_SUM,MPI_COMM_WORLD,ierr)
-  else
-     offset=tt
-  end if
-
-  if (iproc==0) print *,'offset of the total potential',offset
-
-  i_all=-product(shape(potref))*kind(potref)
-  deallocate(potref,stat=i_stat)
-  call memocc(i_stat,i_all,'potref',subname)
-
-  i_all=-product(shape(vxc))*kind(vxc)
-  deallocate(vxc,stat=i_stat)
-  call memocc(i_stat,i_all,'vxc',subname)
-
-  i_all=-product(shape(drho))*kind(drho)
-  deallocate(drho,stat=i_stat)
-  call memocc(i_stat,i_all,'drho',subname)
-
-END SUBROUTINE correct_hartree_potential
-
 
 subroutine check_communications(iproc,nproc,orbs,lr,comms)
   use module_base
@@ -1040,18 +974,19 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
 
   do iorb=1,orbs%norbp
      ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
-     valkpt=real(512*ikpt,wp)
-     valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
+     !valkpt=real(512*ikpt,wp)
+     !valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
      indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
      do ispinor=1,orbs%nspinor
         indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
         do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           vali=real(i,wp)/512.d0  ! *1.d-5
-           psi(i+indspin+indorb)=(valorb+vali)*(-1)**(ispinor-1)
+           !vali=real(i,wp)/512.0_wp  ! *1.d-5
+           call test_value(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
+           psi(i+indspin+indorb)=psival!(valorb+vali)*(-1)**(ispinor-1)
         end do
      end do
   end do
-
+ 
   !transpose the hpsi wavefunction
   call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psi,work=pwork)
 
@@ -1060,7 +995,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   ispsi=0
   do ikptsp=1,orbs%nkptsp
      ikpt=orbs%iskpts+ikptsp!orbs%ikptsp(ikptsp)
-     valkpt=real(512*ikpt,wp)
+     !valkpt=real(512*ikpt,wp)
      !calculate the starting point for the component distribution
      iscomp=0
      do jproc=0,iproc-1
@@ -1070,13 +1005,14 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      nspinor=orbs%nspinor
 
      do iorb=1,orbs%norb
-        valorb=real(iorb,wp)+valkpt
+        !valorb=real(iorb,wp)+valkpt
         indorb=(iorb-1)*nvctrp*nspinor
         do idsx=1,(nspinor-1)/2+1
            do i=1,nvctrp
-              vali=real(i+iscomp,wp)/512.d0  ! *1.d-5
+              !vali=real(i+iscomp,wp)/512.d0  ! *1.d-5
               do ispinor=1,((2+nspinor)/4+1)
-                 psival=(-1)**(ispinor-1)*(valorb+vali)
+                 !psival=(-1)**(ispinor-1)*(valorb+vali)
+                 call test_value(ikpt,iorb,ispinor,i+iscomp,psival)
                  !this is just to force the IEEE representation of psival
                  !              if (psival .lt. 0.d0) then  
                  !              write(321,*) psival,psival**2
@@ -1102,7 +1038,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      ispsi=0
      do ikptsp=1,orbs%nkptsp
         ikpt=orbs%iskpts+ikptsp!orbs%ikptsp(ikptsp)
-        valkpt=real(512*ikpt,wp)
+        !valkpt=real(512*ikpt,wp)
         !calculate the starting point for the component distribution
         iscomp=0
         do jproc=0,iproc-1
@@ -1112,13 +1048,14 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
         nspinor=orbs%nspinor
 
         do iorb=1,orbs%norb
-           valorb=real(iorb,wp)+valkpt
+           !valorb=real(iorb,wp)+valkpt
            indorb=(iorb-1)*nvctrp*nspinor
            do idsx=1,(nspinor-1)/2+1
               do i=1,nvctrp
-                 vali=real(i+iscomp,wp)/512.d0  !*1.d-5
+                 !vali=real(i+iscomp,wp)/512.d0  !*1.d-5
                  do ispinor=1,((2+nspinor)/4+1)
-                    psival=(-1)**(ispinor-1)*(valorb+vali)
+                    !psival=(-1)**(ispinor-1)*(valorb+vali)
+                    call test_value(ikpt,iorb,ispinor,i+iscomp,psival)
                     index=ispinor+(i-1)*((2+nspinor)/4+1)+&
                          (idsx-1)*((2+nspinor)/4+1)*nvctrp+indorb+ispsi
                     maxdiff=abs(psi(index)-psival)
@@ -1134,10 +1071,17 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      end do
      close(unit=22)
      abort = .true.
+     write(filename, "(A,I0,A)") 'distscheme', iproc, '.log'
+     open(unit=22,file=trim(filename),status='unknown')
+     call print_distribution_schemes(22,nproc,orbs%nkpts,orbs%norb_par,comms%nvctr_par)
+     close(unit=22)
   end if
 
-  if (abort) call MPI_ABORT(MPI_COMM_WORLD,ierr)
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+  if (abort) then
+     if (iproc == 0) call print_distribution_schemes(6,nproc,orbs%nkpts,orbs%norb_par,comms%nvctr_par)
+     call MPI_ABORT(MPI_COMM_WORLD,ierr)
+  end if
 
   !retranspose the hpsi wavefunction
   call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,&
@@ -1146,14 +1090,15 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   maxdiff=0.0_wp
   do iorb=1,orbs%norbp
      ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
-     valkpt=real(512*ikpt,wp)
-     valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
+     !valkpt=real(512*ikpt,wp)
+     !valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
      indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
      do ispinor=1,orbs%nspinor
         indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
         do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           vali=real(i,wp)/512.d0  !*1.d-5
-           psival=(valorb+vali)*(-1)**(ispinor-1)
+           !vali=real(i,wp)/512.d0  !*1.d-5
+           !psival=(valorb+vali)*(-1)**(ispinor-1)
+           call test_value(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
            maxdiff=max(abs(psi(i+indspin+indorb)-psival),maxdiff)
         end do
      end do
@@ -1170,14 +1115,15 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      maxdiff=0.0_wp
      do iorb=1,orbs%norbp
         ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
-        valkpt=real(512*ikpt,wp)
-        valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
+        !valkpt=real(512*ikpt,wp)
+        !valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
         indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
         do ispinor=1,orbs%nspinor
            indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
            do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-              vali=real(i,wp)/512.d0  !*1.d-5
-              psival=(valorb+vali)*(-1)**(ispinor-1)
+              !vali=real(i,wp)/512.d0  !*1.d-5
+              !psival=(valorb+vali)*(-1)**(ispinor-1)
+              call test_value(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
               maxdiff=abs(psi(i+indspin+indorb)-psival)
               if (maxdiff > 0.d0) then
                  write(22,'(i3,i6,2i4,3(1x,1pe13.6))')ispinor,i,iorb,orbs%isorb,psival,&
@@ -1203,6 +1149,32 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
 
 
 END SUBROUTINE check_communications
+
+!define a value for the wavefunction which is dependent of the indices
+subroutine test_value(ikpt,iorb,ispinor,icomp,val)
+  use module_base
+  implicit none
+  integer, intent(in) :: ikpt,icomp,iorb,ispinor
+  real(wp), intent(out) :: val
+  !local variables
+  real(wp) :: valkpt,valorb,vali
+
+! recognizable pattern, for debugging
+! valkpt=real(10000*(ikpt-1),wp)!real(512*ikpt,wp)
+! valorb=real(iorb,wp)+valkpt
+! vali=real(icomp,wp)*1.e-5_wp  !real(icomp,wp)/512.0_wp  ! *1.d-5
+!
+! val=(valorb+vali)*(-1)**(ispinor-1)
+
+  valkpt=real(512*ikpt,wp)
+  valorb=real(iorb,wp)+valkpt
+  vali=real(icomp,wp)/512.0_wp  ! *1.d-5
+
+  val=(valorb+vali)*(-1)**(ispinor-1)
+
+  
+end subroutine test_value
+  
 
 subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
   use module_base

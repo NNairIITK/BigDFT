@@ -3,10 +3,10 @@
 SUBDIRS = \
 	  fft \
 	  PSolver \
+	  DFT \
 	  H2-freq \
 	  NEB \
-	  XabsCheb \
-	  DFT
+	  XabsCheb
 
 
 #This will run the automatic tests also for minima hopping
@@ -21,6 +21,15 @@ endif
 if USE_OCL
 SUBDIRS += OpenCL
 endif
+
+if USE_CUDA_GPU
+SUBDIRS += CUDA
+endif
+
+if USE_OCL
+SUBDIRS += OpenCL
+endif
+
 
 if USE_MPI
 mpirun_message=mpirun

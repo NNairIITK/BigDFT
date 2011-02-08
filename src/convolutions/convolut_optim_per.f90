@@ -323,7 +323,7 @@ subroutine convrot_n_per(n1,ndat,x,y)
   ! the filtered output data structure has grown by the filter length
 
   !          THE MAGIC FILTER FOR DAUBECHIES-16
-  real(wp) fil(lowfil:lupfil)
+  real(wp) :: fil(lowfil:lupfil)
   DATA fil / &
        8.4334247333529341094733325815816e-7_wp,&
        -0.1290557201342060969516786758559028e-4_wp,&
@@ -342,9 +342,9 @@ subroutine convrot_n_per(n1,ndat,x,y)
        -0.5185986881173432922848639136911487e-4_wp,&
        2.72734492911979659657715313017228e-6_wp /
 
-  integer mod_arr(lowfil:n1+lupfil)   
-  integer i,j,l,k
-  real(wp) fill,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
+  integer :: mod_arr(lowfil:n1+lupfil)   
+  integer :: i,j,l,k
+  real(wp) :: fill,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8
 
   call fill_mod_arr(mod_arr,lowfil,n1+lupfil,n1+1)
 
@@ -1059,8 +1059,8 @@ subroutine conv_kin_z(x,y,n1,n2,n3,ekin,fil,mod_arr3)
   integer, intent(in) :: n1,n2,n3
   real(wp), intent(in) :: fil(lowfil:lupfil,3) 
   integer, intent(in) :: mod_arr3(lowfil:n3+lupfil)
-  real(wp),intent(in) :: x((n2+1)*(n1+1),0:n1)
-  real(wp),intent(inout) :: y((n2+1)*(n1+1),0:n1)
+  real(wp),intent(in) :: x((n2+1)*(n1+1),0:n3)
+  real(wp),intent(inout) :: y((n2+1)*(n1+1),0:n3)
   real(wp),intent(inout) :: ekin
   real(wp) :: tt,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
   integer :: ndat
@@ -1085,6 +1085,8 @@ subroutine conv_kin_z(x,y,n1,n2,n3,ekin,fil,mod_arr3)
 
         do l=lowfil,lupfil
            j=mod_arr3(i3+l)
+
+           !print *,'j,mod_arr',j,'aa',mod_arr3(:)
 
            tt1=tt1+x(i*12+1,j)*fil(l,3)
            tt2=tt2+x(i*12+2,j)*fil(l,3)
@@ -1137,7 +1139,7 @@ subroutine fill_mod_arr(arr,nleft,nright,n)
   integer,intent(out) :: arr(nleft:nright)
   integer :: i
   
-  if (nleft.ge.-n) then
+  if (nleft >= -n) then
      do i=nleft,-1
         arr(i)=n+i
      enddo
@@ -1151,7 +1153,7 @@ subroutine fill_mod_arr(arr,nleft,nright,n)
      arr(i)=i
   enddo
   
-  if (nright.lt.2*n) then
+  if (nright < 2*n) then
      do i=n,nright
         arr(i)=i-n
      enddo

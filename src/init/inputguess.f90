@@ -65,18 +65,21 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
         !Check for max number of virtual orbitals
         !the unoccupied orbitals available as a LCAO
         !this is well defined only for closed-shell systems
-        if (ispin == 1) nvirte=min(noncoll*norbe-orbs%norbu,nvirt)
-        if (ispin == 2) nvirte=min(noncoll*norbe-orbs%norbd,nvirt)
-        if(nvirt == nvirte .and. nvirt/=0 .and. iproc==0) then
+        !if (ispin == 1) nvirte=min(noncoll*norbe-orbs%norbu,nvirt)
+        !if (ispin == 2) nvirte=min(noncoll*norbe-orbs%norbd,nvirt)
+	!alternative test, put always the limit to the number of elements of the input guess
+	nvirte=noncoll*norbe
+        if(nvirt < nvirte .and. iproc==0) then
            write(*,'(1x,a)')&
-                "WARNING: A smaller number of virtual orbitals may be needed for better convergence."
-           write(*,'(1x,a,i0)')'         Put nvirte= ',nvirte
+                "WARNING: A bigger number of virtual orbitals may be needed for better convergence."
+           write(*,'(1x,a,i0)')'         Put nvirt= ',nvirte
         end if
         if (nvirte < nvirt) then
            nvirt=nvirte
            if(iproc==0) write(*,'(1x,a,i3)')&
                 "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
         end if
+        nvirt=min(nvirt,nvirte)
      end do
   end if
 
@@ -1388,7 +1391,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
         do i=0,ng
            d=xp(i)+xp(j)
            sd=sqrt(d)
-           call derf(terf, sd*rcov) 
+           call derf_ab(terf, sd*rcov) 
            texp=exp(-d*rcov**2)
 
            tt=0.4431134627263791_gp*terf/sd**3 - 0.5_gp*rcov*texp/d
@@ -1508,7 +1511,7 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
   dr=fact*rprb/real(n_int,gp)
   do k=1,n_int
      r=(real(k,gp)-.5_gp)*dr
-     call derf(derf_val, r/(sqrt(2._gp)*alpz))
+     call derf_ab(derf_val, r/(sqrt(2._gp)*alpz))
      potgrd(k)= .5_gp*(r/rprb**2)**2 - &
           zion*derf_val/r &
           + exp(-.5_gp*(r/alpl)**2)*&
@@ -1520,7 +1523,7 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
            d=xp(i)+xp(j)
            sd=sqrt(d)
            tx=exp(-d*r**2)
-           call derf(tt, sd*r)
+           call derf_ab(tt, sd*r)
            tt=spi*tt
            u_gp=tt/(4._gp*sd**3*r)
            potgrd(k)=potgrd(k)+u_gp*rho(i,j,1)
@@ -1881,7 +1884,7 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
   real(gp), dimension(nelecmax), intent(out) :: occupIG
   !local variables
   logical :: polarised
-  integer :: iocc,ipolorb,norbpol_nc,i,l,m,noncoll,icoll,ispin
+  integer :: iocc,ipolorb,norbpol_nc,i,l,m,noncoll,icoll,ispin, ipolsign
   real(gp) :: shelloccup,occshell,occres,rnl
   
   !in the non-collinear case the number of orbitals double
@@ -1897,6 +1900,12 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
   !such array can then be redefined on the parent routines and then used as input
   iocc=0
   polarised=.false.
+  !the sign is always the same
+  if (ipolres >= 0) then
+     ipolsign=1
+  else
+     ipolsign=-1
+  end if
   do l=1,lmax
      iocc=iocc+1
      rnl=0.0_gp !real since it goes in occupIG
@@ -1915,7 +1924,8 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
               !this is a polarisable orbital
               polarised=.true.
               !assuming that the control of the allowed polarisation is already done
-              ipolorb=min(ipolres,int(shelloccup))
+
+              ipolorb=ipolsign*min(abs(ipolres),  ((2*l-1) - abs( (2*l-1)- int(shelloccup) ) )  )
               ipolres=ipolres-ipolorb
            else
               !check for odd values of the occupation number
@@ -1925,6 +1935,11 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
                  stop
               end if
            end if
+
+           if( polarised .AND. nspinor==4 .and. ipolorb /=0) then
+              stop " in non-collinear case at_moments must be used for polarising, not natpol input"  
+           endif
+
            do ispin=1,nspin
               occshell=shelloccup                 
               if (nspin==2 .or. nspinor==4) then

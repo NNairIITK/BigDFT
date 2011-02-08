@@ -171,7 +171,7 @@ program memguess
      call dft_input_converter(in)
      write(*,*)' ...done'
   else
-     call read_input_variables(0, "posinp", "input.dft", "input.kpt", &
+     call read_input_variables(0, "posinp", "input.dft", "input.kpt","input.mix", &
           & "input.geopt", "input.perf", in, atoms, rxyz)
      !initialize memory counting
      !call memocc(0,0,'count','start')
@@ -729,7 +729,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   integer :: icoeff,i_stat,i_all,i1,i2,i3,ispin,j
   integer :: iorb,n3d,n3p,n3pi,i3xcsh,i3s,jproc,nrhotot,nspinn,nvctrp
   real(kind=4) :: tt,t0,t1
-  real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum,ekinGPU,epotGPU,gnrm,gnrmGPU
+  real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum,ekinGPU,epotGPU,gnrm,gnrm_zero,gnrmGPU
   real(gp) :: Rden,Rham,Rgemm,Rsyrk,Rprec
   real(kind=8) :: CPUtime,GPUtime
   type(gaussian_basis) :: G
@@ -1015,7 +1015,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !the input function is psi
   call cpu_time(t0)
   do j=1,ntimes
-     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
+     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   end do
   call cpu_time(t1)
 
