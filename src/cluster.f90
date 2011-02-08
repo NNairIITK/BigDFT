@@ -78,12 +78,7 @@
 
   inputPsiId_orig=in%inputPsiId
 
-  loop_cluster: do !icycle=1,in%nrepmax !put a limit in the number of loops
-
-     !if we are in the last_run case, validate the last_run only for the last cycle
-     !if (in%last_run == 1 .and. icycle == in%nrepmax) then
-     !   in%last_run=100 !do the last_run things regardless of infocode
-     !end if
+  loop_cluster: do 
 
      if (in%inputPsiId == 0 .and. associated(rst%psi)) then
         i_all=-product(shape(rst%psi))*kind(rst%psi)
@@ -754,11 +749,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call memocc(i_stat,rhopot_old,'rhopot_old',subname)
   end if
   endlooprp=.false.
+
+  !if we are in the last_run case, validate the last_run only for the last cycle
+  DoLastRunThings=(in%last_run == 1 .and. in%nrepmax == 0) !do the last_run things regardless of infocode
+
   rhopot_loop: do itrp=1,in%itrpmax
      !set the infocode to the value it would have in the case of no convergence
      infocode=1
      subd_loop : do icycle=1,in%nrepmax
-
+        !if we are in the last_run case, validate the last_run only for the last cycle
+        DoLastRunThings=(in%last_run == 1 .and. icycle == in%nrepmax) !do the last_run things regardless of infocode
+       
         wfn_loop: do iter=1,in%itermax
 
            if (iproc == 0 .and. verbose > 0) then 
@@ -941,8 +942,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                  return
               end if
            end if
-           !flush all writings
-           call flush()
+           !flush all writings on standart output
+           call flush(6)
         end do wfn_loop
 
         if (iproc == 0) then 
@@ -1050,7 +1051,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !last run things has to be done:
   !if it is the last run and the infocode is zero
   !if infocode is not zero but the last run has been done for nrepmax times
-  DoLastRunThings= in%last_run==100 .or. (in%last_run == 1 .and. infocode == 0)
+  DoLastRunThings= (in%last_run == 1 .and. infocode == 0) .or. DoLastRunThings
 
   !analyse the possiblity to calculate Davidson treatment
   !(nvirt > 0 .and. in%inputPsiId == 0)
@@ -1306,7 +1307,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         if (associated(in%kptv)) then
            nvirtu = nvirtu + orbs%norbu
            nvirtd = nvirtd + orbs%norbd
-           nvirt  = nvirt   + orbs%norb
+           nvirt  = nvirtu+nvirtd
 
            !number of k-points for this group
            nkptv = in%nkptsv_group(igroup) !size(in%kptv, 2)
