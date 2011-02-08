@@ -688,7 +688,7 @@ call system_clock(ncount0,ncount_rate,ncount_max)
   !$omp end parallel
 
 !dee
-call system_clock(iend_test,count_rate_test,count_max_test)
+!call system_clock(iend_test,count_rate_test,count_max_test)
 !write(*,*) 'elapsed time on comb',(iend_test-istart_test)/(1.d0*count_rate_test)
 
 !  call system_clock(ncount6,ncount_rate,ncount_max)
@@ -950,7 +950,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
 !
   ! Scaling function part
 
-  call system_clock(ncount0,ncount_rate,ncount_max)
+  !call system_clock(ncount0,ncount_rate,ncount_max)
 
 !  ! (1/2) d^2/dx^2
 !

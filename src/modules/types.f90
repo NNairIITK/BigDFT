@@ -53,7 +53,8 @@ module module_types
      integer :: freq_method
 
      ! kpoints related input variables
-     integer :: nkpt, nkptv
+     integer :: nkpt, nkptv,ngroups_kptv
+     integer, dimension(:), pointer :: nkptsv_group
      real(gp), pointer :: kpt(:,:), wkpt(:), kptv(:,:)
 
      ! Geometry variables from *.geopt

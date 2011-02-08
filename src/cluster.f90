@@ -215,7 +215,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   integer :: nelec,ndegree_ip,j,i,iorb
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi
+  integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(gp) :: peakmem,evsum
@@ -940,7 +940,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                  return
               end if
            end if
-
+           !flush all writings
+           call flush()
         end do wfn_loop
 
         if (iproc == 0) then 
@@ -1293,127 +1294,142 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !if (nvirt > 0 .and. in%inputPsiId == 0) then
   if (DoDavidson) then
+     
+     !calculate davidson procedure for all the groups of k-points which are chosen
+     ikpt=1
+     do igroup=1,in%ngroups_kptv
 
-!!$     !allocate the virtual orbitals descriptors
-!!$     !allocated previously
-!!$     call deallocate_orbs(orbsv,subname)
-!!$     
-!!$     !create orbitals equal to the other
-!!$     call orbitals_descriptors(iproc,nproc,orbs%norb,orbs%norbu,orbs%norbd, &
-!!$          & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
-!!$     nvirt=orbs%norb !temporary
-!!$
-!!$     !allocate psivirt pointer (note the orbs dimension)
-!!$     allocate(psivirt(orbs%npsidim+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,psivirt,'psivirt',subname)
+        ! Set-up number of states and shifting values.
+        nvirtu = norbv
+        nvirtd = 0
+        if (in%nspin==2) nvirtd=nvirtu
+        ! Create the orbitals.
+        if (associated(in%kptv)) then
+           nvirtu = nvirtu + orbs%norbu
+           nvirtd = nvirtd + orbs%norbd
+           nvirt  = nvirt   + orbs%norb
 
-     ! Set-up number of states and shifting values.
-     nvirtu = norbv
-     nvirtd = 0
-     if (in%nspin==2) nvirtd=nvirtu
-     ! Create the orbitals.
-     if (associated(in%kptv)) then
-        nvirtu = nvirtu + orbs%norbu
-        nvirtd = nvirtd + orbs%norbd
-        nvirt  = nvirt   + orbs%norb
-        nkptv = size(in%kptv, 2)
-        allocate(wkptv(nkptv+ndebug),stat=i_stat)
-        call memocc(i_stat,wkptv,'wkptv',subname)
-        wkptv(:) = real(1.0, gp) / real(nkptv, gp)
-        call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-             & orbs%nspinor,nkptv,in%kptv,wkptv,orbsv)
-        i_all=-product(shape(wkptv))*kind(wkptv)
-        deallocate(wkptv,stat=i_stat)
-        call memocc(i_stat,i_all,'wkptv',subname)
-     else
-        call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-             & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
-     end if
+           !number of k-points for this group
+           nkptv = in%nkptsv_group(igroup) !size(in%kptv, 2)
 
-     !allocate communications arrays for virtual orbitals
-     call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
+           allocate(wkptv(nkptv+ndebug),stat=i_stat)
+           call memocc(i_stat,wkptv,'wkptv',subname)
+           wkptv(:) = real(1.0, gp) / real(nkptv, gp)
 
-     !allocate psivirt pointer (note the orbs dimension)
-     allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
-     call memocc(i_stat,psivirt,'psivirt',subname)
+           call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
+                & orbs%nspinor,nkptv,in%kptv(1,ikpt),wkptv,orbsv)
 
-     if (in%norbv < 0) then
+           i_all=-product(shape(wkptv))*kind(wkptv)
+           deallocate(wkptv,stat=i_stat)
+           call memocc(i_stat,i_all,'wkptv',subname)
 
-        call direct_minimization(iproc,nproc,n1i,n2i,in,atoms,&
-             orbs,orbsv,nvirt,Glr,comms,commsv,&
-             hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
-             pkernelseq,psi,psivirt,ngatherarr,GPU)
+           !recreate the memory space for the projectors 
+           call deallocate_proj_descr(nlpspd,subname)  
+           i_all=-product(shape(proj))*kind(proj)
+           deallocate(proj,stat=i_stat)
+           call memocc(i_stat,i_all,'proj',subname)
 
-     else if (in%norbv > 0) then
-        call davidson(iproc,nproc,n1i,n2i,in,atoms,&
-             orbs,orbsv,nvirt,Glr,comms,commsv,&
-             hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
-             pkernelseq,psi,psivirt,ngatherarr,GPU)
+           ! Calculate all projectors, or allocate array for on-the-fly calculation
+           call timing(iproc,'CrtProjectors ','ON')
+           call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbsv,&
+                radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj) 
+           call timing(iproc,'CrtProjectors ','OF') 
 
-     end if
+           ikpt=ikpt+in%nkptsv_group(igroup)
 
-     if (atoms%geocode == 'F' .and. .false.) then
-        ! Potential from electronic charge density
-        call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-             n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
-
-        !Allocate second Exc derivative
-        if (n3p >0) then
-           allocate(dvxcdrho(n1i,n2i,n3p,in%nspin+1+ndebug),stat=i_stat)
-           call memocc(i_stat,dvxcdrho,'dvxcdrho',subname)
         else
-           allocate(dvxcdrho(1,1,1,in%nspin+1+ndebug),stat=i_stat)
-           call memocc(i_stat,dvxcdrho,'dvxcdrho',subname)
+           call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
+                & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
         end if
 
-        call XC_potential(atoms%geocode,'D',iproc,nproc,&
-             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
-             rhopot,eexcu,vexcu,in%nspin,rhocore,potxc,dvxcdrho)
+        !allocate communications arrays for virtual orbitals
+        call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
 
-        !temporary call to the coupling matrix calculation
-        allocate(psirocc(max(max(n1i*n2i*n3i*orbs%norbp,&
-             ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
-        call memocc(i_stat,psirocc,'psirocc',subname)
+        !allocate psivirt pointer (note the orbs dimension)
+        allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
+        call memocc(i_stat,psivirt,'psivirt',subname)
 
-        allocate(psirvirt(max(max(n1i*n2i*n3i*orbsv%norbp,&
-             ngatherarr(0,1)*orbsv%norb),1)+ndebug),stat=i_stat)
-        call memocc(i_stat,psirvirt,'psirvirt',subname)
+        if (in%norbv < 0) then
 
-        call prepare_psirocc(iproc,nproc,Glr,orbs,n3p,ngatherarr(0,1),psi,psirocc)
+           call direct_minimization(iproc,nproc,n1i,n2i,in,atoms,&
+                orbs,orbsv,nvirt,Glr,comms,commsv,&
+                hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
+                pkernelseq,psi,psivirt,ngatherarr,GPU)
 
-        call prepare_psirocc(iproc,nproc,Glr,orbsv,n3p,ngatherarr(0,1),psivirt,psirvirt)
+        else if (in%norbv > 0) then
+           call davidson(iproc,nproc,n1i,n2i,in,atoms,&
+                orbs,orbsv,nvirt,Glr,comms,commsv,&
+                hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
+                pkernelseq,psi,psivirt,ngatherarr,GPU)
 
-        call center_of_charge(atoms,rxyz,chargec)
+        end if
 
-        call coupling_matrix_prelim(iproc,nproc,atoms%geocode,in%nspin,Glr,orbs,orbsv,&
-             i3s+i3xcsh,n3p,hxh,hyh,hzh,chargec,pkernelseq,dvxcdrho,psirocc,psirvirt)
+        if (atoms%geocode == 'F' .and. .false.) then
+           ! Potential from electronic charge density
+           call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
+                n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
 
-        i_all=-product(shape(psirocc))*kind(psirocc)
-        deallocate(psirocc,stat=i_stat)
-        call memocc(i_stat,i_all,'psirocc',subname)
+           !Allocate second Exc derivative
+           if (n3p >0) then
+              allocate(dvxcdrho(n1i,n2i,n3p,in%nspin+1+ndebug),stat=i_stat)
+              call memocc(i_stat,dvxcdrho,'dvxcdrho',subname)
+           else
+              allocate(dvxcdrho(1,1,1,in%nspin+1+ndebug),stat=i_stat)
+              call memocc(i_stat,dvxcdrho,'dvxcdrho',subname)
+           end if
 
-        i_all=-product(shape(psirvirt))*kind(psirvirt)
-        deallocate(psirvirt,stat=i_stat)
-        call memocc(i_stat,i_all,'psirvirt',subname)
+           call XC_potential(atoms%geocode,'D',iproc,nproc,&
+                Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
+                rhopot,eexcu,vexcu,in%nspin,rhocore,potxc,dvxcdrho)
+
+           !temporary call to the coupling matrix calculation
+           allocate(psirocc(max(max(n1i*n2i*n3i*orbs%norbp,&
+                ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
+           call memocc(i_stat,psirocc,'psirocc',subname)
+
+           allocate(psirvirt(max(max(n1i*n2i*n3i*orbsv%norbp,&
+                ngatherarr(0,1)*orbsv%norb),1)+ndebug),stat=i_stat)
+           call memocc(i_stat,psirvirt,'psirvirt',subname)
+
+           call prepare_psirocc(iproc,nproc,Glr,orbs,n3p,ngatherarr(0,1),psi,psirocc)
+
+           call prepare_psirocc(iproc,nproc,Glr,orbsv,n3p,ngatherarr(0,1),psivirt,psirvirt)
+
+           call center_of_charge(atoms,rxyz,chargec)
+
+           call coupling_matrix_prelim(iproc,nproc,atoms%geocode,in%nspin,Glr,orbs,orbsv,&
+                i3s+i3xcsh,n3p,hxh,hyh,hzh,chargec,pkernelseq,dvxcdrho,psirocc,psirvirt)
+
+           i_all=-product(shape(psirocc))*kind(psirocc)
+           deallocate(psirocc,stat=i_stat)
+           call memocc(i_stat,i_all,'psirocc',subname)
+
+           i_all=-product(shape(psirvirt))*kind(psirvirt)
+           deallocate(psirvirt,stat=i_stat)
+           call memocc(i_stat,i_all,'psirvirt',subname)
 
 
-        i_all=-product(shape(dvxcdrho))*kind(dvxcdrho)
-        deallocate(dvxcdrho,stat=i_stat)
-        call memocc(i_stat,i_all,'dvxcdrho',subname)
+           i_all=-product(shape(dvxcdrho))*kind(dvxcdrho)
+           deallocate(dvxcdrho,stat=i_stat)
+           call memocc(i_stat,i_all,'dvxcdrho',subname)
 
-     end if
+        end if
 
+        call deallocate_comms(commsv,subname)
+        call deallocate_orbs(orbsv,subname)
+       
+        !in the case of band structure calculation, copy the values of the eigenvectors
+        !into a new array to write them afterwards
 
-     call deallocate_comms(commsv,subname)
-     call deallocate_orbs(orbsv,subname)
-     
-     i_all=-product(shape(orbsv%eval))*kind(orbsv%eval)
-     deallocate(orbsv%eval,stat=i_stat)
-     call memocc(i_stat,i_all,'eval',subname)
-     
-     i_all=-product(shape(psivirt))*kind(psivirt)
-     deallocate(psivirt,stat=i_stat)
-     call memocc(i_stat,i_all,'psivirt',subname)
+        i_all=-product(shape(orbsv%eval))*kind(orbsv%eval)
+        deallocate(orbsv%eval,stat=i_stat)
+        call memocc(i_stat,i_all,'eval',subname)
+
+        i_all=-product(shape(psivirt))*kind(psivirt)
+        deallocate(psivirt,stat=i_stat)
+        call memocc(i_stat,i_all,'psivirt',subname)
+
+     end do
      
   end if
   

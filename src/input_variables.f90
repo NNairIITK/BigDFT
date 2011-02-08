@@ -151,6 +151,7 @@ subroutine default_input_variables(inputs)
   nullify(inputs%kpt)
   nullify(inputs%wkpt)
   nullify(inputs%kptv)
+  nullify(inputs%nkptsv_group)
   ! Default abscalc variables
   call abscalc_input_variables_default(inputs)
   ! Default frequencies variables
@@ -625,13 +626,14 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   logical :: exists
   character(len=*), parameter :: subname='kpt_input_variables'
   character(len = 6) :: type
-  integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all
+  integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount
   real(gp) :: kptrlen, shiftk(3,8), norm, alat(3)
   integer, allocatable :: iseg(:)
 
   ! Set default values.
   in%nkpt = 1
   in%nkptv = 0
+  in%ngroups_kptv=1
 
   inquire(file=trim(filename),exist=exists)
 
@@ -715,9 +717,25 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
      call check()
      allocate(iseg(nseg+ndebug),stat=i_stat)
      call memocc(i_stat,iseg,'iseg',subname)
-     read(1,*,iostat=ierror) iseg
+     read(1,*,iostat=ierror) iseg, ngranularity
      call check()
-     in%nkptv = sum(iseg) + 1
+     !calculate the number of groups of for the band structure
+     in%nkptv=1
+     do i=1,nseg
+        in%nkptv=in%nkptv+iseg(i)
+     end do
+     in%ngroups_kptv=ceiling(real(in%nkptv,gp)/real(ngranularity,gp))
+
+     allocate(in%nkptsv_group(in%ngroups_kptv+ndebug),stat=i_stat)
+     call memocc(i_stat,in%nkptsv_group,'in%nkptsv_group',subname)
+     ncount=0
+     do i=1,in%ngroups_kptv-1
+        in%nkptsv_group(i)=ngranularity !if ngranularity is bigger than nkptv  then ngroups is one
+        ncount=ncount+ngranularity
+     end do
+     !put the rest in the last group
+     in%nkptsv_group(in%ngroups_kptv)=in%nkptv-ncount
+
      allocate(in%kptv(3,in%nkptv+ndebug),stat=i_stat)
      call memocc(i_stat,in%kptv,'in%kptv',subname)
      ikpt = 1
@@ -947,6 +965,12 @@ subroutine free_input_variables(in)
      deallocate(in%kptv,stat=i_stat)
      call memocc(i_stat,i_all,'in%kptv',subname)
   end if
+  if (associated(in%nkptsv_group)) then
+     i_all=-product(shape(in%nkptsv_group))*kind(in%nkptsv_group)
+     deallocate(in%nkptsv_group,stat=i_stat)
+     call memocc(i_stat,i_all,'in%nkptsv_group',subname)
+  end if
+
 
 !!$  if (associated(in%Gabs_coeffs) ) then
 !!$     i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
