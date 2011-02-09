@@ -288,7 +288,7 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
   character(len=*), parameter :: subname='preconditionall_OCL'
   integer ::  ierr,iorb,i_stat,ncplx,i_all,inds,isf
   real(wp) :: scpr
-  real(gp) :: cprecr
+  real(gp) :: cprecr,eval_zero
   type(GPU_pointers), intent(inout) :: GPU
   type(workarr_precond) :: w
   integer, dimension(3) :: periodic
@@ -296,6 +296,14 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
   real(gp), dimension(0:7) :: scal
   !stream ptr array
   real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
+
+  !the eval array contains all the values
+  !take the max for all k-points
+  !one may think to take the max per k-point
+  eval_zero=orbs%eval(1)
+  do iorb=1,orbs%norb*orbs%nkpts
+     eval_zero=max(orbs%eval(iorb),eval_zero)
+  enddo
 
   ncplx=1
   
@@ -331,16 +339,7 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
      gnrm_zero=0.0_dp
 
      do iorb=1,orbs%norbp
-        select case(lr%geocode)
-        case('F')
-           cprecr=-orbs%eval(orbs%isorb+iorb)
-           !             cprecr=sqrt(.2d0**2+min(0.d0,orbs%eval(orbs%isorb+iorb))**2)
-        case('S')
-           cprecr=0.5_wp
-        case('P')
-           cprecr=0.5_wp
-           !              cprecr=-orbs%eval(orbs%isorb+iorb)
-        end select
+        call cprecr_from_eval(lr%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)          
 
         do inds=1,orbs%nspinor,ncplx !the streams should be more if nspinor>1
            !the nrm2 function can be replaced here by ddot

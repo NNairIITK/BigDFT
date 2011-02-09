@@ -45,7 +45,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
   real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
   type(diis_objects) :: diis
-  real(wp), dimension(:), pointer :: psiw,psirocc,psitvirt,hpsivirt
+  real(wp), dimension(:), pointer :: psiw,psirocc,psitvirt,hpsivirt,pot
 
   !supplementary messages
   msg=.false.
@@ -170,6 +170,10 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      nullify(psitvirt)
   end if
 
+  !allocate the potential in the full box
+  call full_local_potential(iproc,nproc,lr%d%n1i*lr%d%n2i*n3p,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
+       orbs%norb,orbs%norbp,ngatherarr,rhopot,pot)
+
 
   ! allocate arrays necessary for DIIS convergence acceleration
   !the allocation with npsidim is not necessary here since DIIS arrays
@@ -215,8 +219,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      endloop=endloop .or. ndiis_sd_sw > 2
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
-          rhopot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
           pkernel,orbs,psirocc) ! optional arguments
 
      energybs=ekin_sum+epot_sum+eproj_sum
@@ -312,6 +315,8 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      call memocc(i_stat,i_all,'psiw',subname)
   end if
 
+  !deallocate potential
+  call free_full_potential(nproc,pot,subname)
 
   if (GPUconv) then
      call free_gpu(GPU,orbsv%norbp)
@@ -420,7 +425,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   real(wp), dimension(:), allocatable :: work,work_rp,hamovr
   real(wp), dimension(:), allocatable :: hv,g,hg,ew
   real(wp), dimension(:,:,:), allocatable :: e
-  real(wp), dimension(:), pointer :: psiw,psirocc
+  real(wp), dimension(:), pointer :: psiw,psirocc,pot
 
   !logical flag which control to othogonalise wrt the occupied orbitals or not
   if (orbs%nkpts /= orbsv%nkpts) then
@@ -539,9 +544,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   allocate(hv(orbsv%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,hv,'hv',subname)
 
+  !allocate the potential in the full box
+  call full_local_potential(iproc,nproc,lr%d%n1i*lr%d%n2i*n3p,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
+       orbs%norb,orbs%norbp,ngatherarr,rhopot,pot)
+
   call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-       nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
-       rhopot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
        pkernel,orbs,psirocc) ! optional arguments
 
   !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
@@ -819,8 +827,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      call memocc(i_stat,hg,'hg',subname)
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
-          rhopot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
           pkernel,orbs,psirocc) ! optional argument
 
      !transpose  g and hg
@@ -1069,8 +1076,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
-          rhopot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
           pkernel,orbs,psirocc) !optional arguments
 
      !transpose  v and hv
@@ -1087,6 +1093,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      end if
 
   end do davidson_loop
+
+  !deallocate potential
+  call free_full_potential(nproc,pot,subname)
 
   i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
   deallocate(ndimovrlp,stat=i_stat)
@@ -1450,9 +1459,9 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
   implicit none
   integer, intent(in) :: norb,nvctrp,nspinor,ncplx
   real(wp), dimension(nspinor*nvctrp*norb), intent(in) :: g
+  real(wp), dimension(ncplx,2*norb,2*norb), intent(in) :: hamovr
   real(wp), dimension(nspinor*nvctrp*norb), intent(inout) :: v
   real(wp), dimension(nspinor*nvctrp*norb), intent(inout) :: work
-  real(wp), dimension(ncplx,2*norb,2*norb), intent(out) :: hamovr
   !local variables
   character(len=*), parameter :: subname='update_psivirt'
   integer :: ncomp
@@ -1537,7 +1546,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
      !fill randomly the gaussian coefficients for the orbitals considered
      do icoeff=1,G%ncoeff !reversed loop
         !be sure to call always a different random number, per orbital
-        do jorb=1,orbs%isorb
+        do jorb=1,orbs%isorb*orbs%nspinor
            tt=builtin_rand(idum) !call random_number(tt)
         end do
         do iorb=1,orbs%norbp*orbs%nspinor
@@ -1549,6 +1558,9 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
            !do jproc=iproc+1,nproc-1
            !   tt=builtin_rand(idum) !call random_number(tt)
            !end do
+        end do
+        do iorb=(orbs%isorb+orbs%norbp)*orbs%nspinor+1,orbs%norb*orbs%nspinor
+           tt=builtin_rand(idum) !call random_number(tt)
         end do
      end do
 

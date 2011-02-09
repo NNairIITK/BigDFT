@@ -76,7 +76,7 @@ program abscalc_main
 
      ! Read all input files.
      call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
-          & "input.dft", "input.kpt", "input.geopt", "input.perf", inputs, atoms, rxyz)
+          & "input.dft", "input.kpt","input.mix","input.geopt", "input.perf", inputs, atoms, rxyz)
 
      !Initialize memory counting
      !call memocc(0,iproc,'count','start')
@@ -1186,7 +1186,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         enddo
      end if
      infocode=0
- 
+
      if (in%iabscalc_type==2) then
         call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
