@@ -138,6 +138,7 @@ subroutine read_input_variables(iproc,posinp, &
 END SUBROUTINE read_input_variables
 !!***
 
+
 subroutine default_input_variables(inputs)
   use module_base
   use module_types
@@ -156,6 +157,7 @@ subroutine default_input_variables(inputs)
   ! Default values for geopt.
   call geopt_input_variables_default(inputs)  
 END SUBROUTINE default_input_variables
+
 
 !!****f* BigDFT/dft_input_variables
 !! FUNCTION
@@ -247,12 +249,12 @@ subroutine dft_input_variables(iproc,filename,in)
   in%nvirt = min(in%nvirt, in%norbv)
 
   !mixing treatement (hard-coded values)
-  in%itrpmax=1
-  in%alphamix=0.0_gp
+  in%itrpmax=10
+  in%alphamix=0.3_gp
   in%rpnrm_cv=1.e-4_gp
-  in%gnrm_startmix=0.e300_gp
+  in%gnrm_startmix=1.e300_gp
   in%iscf=12 !only 2(potential) or 12(density) are allowed (ABINIT conventions for the moment)
-  in%Tel=1.e-2_gp 
+  in%Tel=1.e-3_gp 
 
   !electrostatic treatment of the vacancy (experimental)
   !read(1,*,iostat=ierror) in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
