@@ -70,6 +70,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
      do ispin=1,nspin
         call getOverlap(iproc,nproc,nspin,norbArr(ispin),orbs,comms,&
              psi(1),ndimovrlp,ovrlp,norbArr,1,ispin,category)
+
         call cholesky(iproc,nproc,norbArr(ispin),psi(1),nspinor,nspin,orbs,comms,&
              ndimovrlp,ovrlp(1),norbArr,1,ispin)
      end do

@@ -56,6 +56,7 @@ module module_types
      integer :: nkpt, nkptv,ngroups_kptv
      integer, dimension(:), pointer :: nkptsv_group
      real(gp), pointer :: kpt(:,:), wkpt(:), kptv(:,:)
+     character(len=100) :: band_structure_filename
 
      ! Geometry variables from *.geopt
      character(len=10) :: geopt_approach

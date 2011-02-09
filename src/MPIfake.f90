@@ -127,6 +127,11 @@
         stop 'MPIFAKE: REDUCE_SCATTER'
         END SUBROUTINE  MPI_REDUCE_SCATTER
 
+        subroutine  MPI_SCATTERV()
+        implicit none
+        stop 'MPIFAKE: SCATTERV'
+        END SUBROUTINE  MPI_SCATTERV
+
         subroutine  MPI_ABORT()
         implicit none
         stop 'MPIFAKE: MPI_ABORT'

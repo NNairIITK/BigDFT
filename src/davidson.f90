@@ -174,6 +174,12 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   call full_local_potential(iproc,nproc,lr%d%n1i*lr%d%n2i*n3p,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
        orbs%norb,orbs%norbp,ngatherarr,rhopot,pot)
 
+  allocate(orbsv%eval(orbsv%norb*orbsv%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbsv%eval,'eval',subname)
+
+
+
+  !-----------starting point of the routine of direct minimisation
 
   ! allocate arrays necessary for DIIS convergence acceleration
   !the allocation with npsidim is not necessary here since DIIS arrays
@@ -182,9 +188,6 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      call allocate_diis_objects(in%idsx,sum(commsv%ncntt(0:nproc-1)),orbsv%nkptsp,diis,subname)  
   endif
      
-  allocate(orbsv%eval(orbsv%norb*orbsv%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbsv%eval,'eval',subname)
-
   orbsv%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
 
   alpha=2.d0
@@ -314,6 +317,8 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      deallocate(psiw,stat=i_stat)
      call memocc(i_stat,i_all,'psiw',subname)
   end if
+  !!!!! end point of the direct minimisation procedure
+  
 
   !deallocate potential
   call free_full_potential(nproc,pot,subname)
@@ -329,6 +334,10 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   
 end subroutine direct_minimization
 !!***
+
+subroutine jacobi_davidson
+end subroutine jacobi_davidson
+
 
 
 !!****f* BigDFT/davidson
@@ -407,8 +416,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   real(dp), dimension(*), intent(in) :: pkernel,rhopot
   type(orbitals_data), intent(inout) :: orbsv
   type(GPU_pointers), intent(inout) :: GPU
-  !this is a Fortran 95 standard, should be avoided (it is a pity IMHO)
-  !real(kind=8), dimension(:,:,:,:), allocatable :: rhopot 
   real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
                         !v, that is psivirt, is transposed on input and direct on output
   !local variables
