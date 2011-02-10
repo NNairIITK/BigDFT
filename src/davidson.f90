@@ -233,10 +233,8 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
         diis%switchSD=.false.
      end if
 
-
-
      !terminate SCF loop if forced to switch more than once from DIIS to SD
-     endloop=endloop .or. ndiis_sd_sw > 2
+     !endloop=endloop .or. ndiis_sd_sw > 2
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,ngatherarr,pot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
@@ -1161,91 +1159,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
   ! Send all eigenvalues to all procs.
   call broadcast_kpt_objects(nproc, orbsv%nkpts, orbsv%norb, e(1,1,1), orbsv%ikptproc)
-
-! 
-!   if(iproc==0)then
-!      if (nspin==1) then
-!         write(*,'(1x,a)')'Complete list of energy eigenvalues'
-!         do ikpt=1,orbsv%nkpts
-!            if (orbsv%nkpts > 1) write(*,"(1x,A,I3.3,A,3F12.6)") &
-!                 & "Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
-!            do iorb=1,orbs%norb
-!               if (occorbs) then
-!                  val = orbs%eval(iorb+(ikpt-1)*orbs%norb)
-!               else
-!                  val = e(iorb, ikpt, 1)
-!               end if
-!               write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',val
-!            end do
-!            write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
-!                 'HOMO LUMO gap   =',e(1+occnorb,ikpt,1)-val,&
-!                 ' (',ha2ev*(e(1+occnorb,ikpt,1)-val),&
-!                 ' eV)'
-!            do iorb=1,orbsv%norb - occnorb
-!               write(*,'(1x,a,i4,a,1x,1pe21.14)') &
-!                    & 'e_virtual(',iorb,')=',e(iorb+occnorb,ikpt,1)
-!            end do
-!         end do
-!      else
-!         do ikpt=1,orbsv%nkpts
-!            write(*,'(1x,a)')'Complete list of energy eigenvalues'
-!            do iorb=1,min(orbs%norbu,orbs%norbd)
-!               if (occorbs) then
-!                  valu = orbs%eval(iorb+(ikpt-1)*orbs%norb)
-!                  vald = orbs%eval(iorb+orbs%norbu+(ikpt-1)*orbs%norb)
-!               else
-!                  valu = e(iorb, ikpt, 1)
-!                  vald = e(iorb+orbsv%norbu, ikpt, 1)
-!               end if
-!               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-!                    'e_occ(',iorb,',u)=',valu,'e_occ(',iorb,',d)=',vald
-!            end do
-!            if (orbs%norbu > orbs%norbd) then
-!               do iorb=orbs%norbd+1,orbs%norbu
-!                  if (occorbs) then
-!                     valu = orbs%eval(iorb+(ikpt-1)*orbs%norb)
-!                  else
-!                     valu = e(iorb, ikpt, 1)
-!                  end if
-!                  write(*,'(1x,a,i4,a,1x,1pe21.14)') &
-!                       'e_occ(',iorb,',u)=',valu
-!               end do
-!            else if (orbs%norbd > orbs%norbu) then
-!               do iorb=orbs%norbu+1,orbs%norbd
-!                  if (occorbs) then
-!                     vald = orbs%eval(iorb+orbs%norbu+(ikpt-1)*orbs%norb)
-!                  else
-!                     vald = e(iorb+orbsv%norbu, ikpt, 1)
-!                  end if
-!                  write(*,'(50x,a,i4,a,1x,1pe21.14)') &
-!                       'e_occ(',iorb,',d)=',vald
-!               end do
-!            end if
-!            write(*,'(1x,a,1x,1pe21.14,a,0pf8.4,a,a,1x,1pe21.14,a,0pf8.4,a)') &
-!                 'HOMO LUMO gap, u =', e(1+occnorbu,ikpt,1)-valu,&
-!                 ' (',ha2ev*(e(1+occnorbu,ikpt,1)-valu),' eV)',&
-!                 ',d =',e(orbsv%norbu+1+occnorbd,ikpt,1)-vald,&
-!                 ' (',ha2ev*(e(orbsv%norbu+1+occnorbd,ikpt,1)-vald),' eV)'
-!            do iorb=1,min(orbsv%norbu-occnorbu,orbsv%norbd-occnorbd)
-!               jorb=orbsv%norbu+iorb+occnorbd
-!               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-!                    'e_vrt(',iorb,',u)=',e(iorb,ikpt,1),&
-!                    'e_vrt(',iorb,',d)=',e(jorb,ikpt,1)
-!            end do
-!            if (orbsv%norbu-occnorbu > orbsv%norbd-occnorbd) then
-!               do iorb=orbsv%norbd+1-occnorbu,orbsv%norbu-occnorbd
-!                  write(*,'(1x,a,i4,a,1x,1pe21.14)') &
-!                       'e_vrt(',iorb,',u)=',e(iorb,ikpt,1)
-!               end do
-!            else if (orbsv%norbd-occnorbd > orbsv%norbu-occnorbu) then
-!               do iorb=2*orbsv%norbu+1-occnorbu,orbsv%norbu-occnorbu+orbsv%norbd-occnorbd
-!                  write(*,'(50x,a,i4,a,1x,1pe21.14)') &
-!                       'e_vrt(',iorb-orbsv%norbu-occnorbu,',d)=',e(iorb,ikpt,1)
-!               end do
-!            end if
-!         end do
-!      end if
-!   end if
 
   call timing(iproc,'Davidson      ','OF')
 

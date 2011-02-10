@@ -439,7 +439,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
        & symObj, irrzon, phnons)
      
   !-- if spectra calculation uses a energy dependent potential
-  !    input_wf_diag will write (to be used it in abscalc)
+  !    input_wf_diag will write (to be used in abscalc)
   !    the density to the file electronic_density.cube
   !  The writing is activated if  5th bit of  in%potshortcut is on.
   if( iand( potshortcut,16)==0 .and. potshortcut /= 0) then

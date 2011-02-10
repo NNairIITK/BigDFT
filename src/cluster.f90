@@ -579,11 +579,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call memocc(i_stat,i_all,'pot_from_disk',subname)
 
         !add pot_ion potential to the local_potential
-        do ispin=1,in%nspin
-           !spin up and down together with the XC part
-           call axpy(Glr%d%n1i*Glr%d%n2i*n3p,1.0_dp,pot_ion(1),1,&
-                rhopot((ispin-1)*Glr%d%n1i*Glr%d%n2i*n3p+1),1)
-        end do
+        !do ispin=1,in%nspin
+        !   !spin up and down together with the XC part
+        !   call axpy(Glr%d%n1i*Glr%d%n2i*n3p,1.0_dp,pot_ion(1),1,&
+        !        rhopot((ispin-1)*Glr%d%n1i*Glr%d%n2i*n3p+1),1)
+        !end do
      end if
 
   case(-2)
@@ -1084,7 +1084,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call memocc(i_stat,i_all,'rhopot_old',subname)
   end if
      
-  if (inputpsi /=-1000) then
+  if (in%inputPsiId /=-1000) then
      if (abs(evsum-energybs) > 1.d-8 .and. iproc==0) write( *,'(1x,a,2(1x,1pe20.13))')&
           'Difference:evsum,energybs',evsum,energybs
   end if
