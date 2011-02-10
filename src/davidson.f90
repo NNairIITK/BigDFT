@@ -43,7 +43,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   logical :: msg,exctX,occorbs,endloop !extended output
   integer :: occnorb, occnorbu, occnorbd
   integer :: i_stat,i_all,iter,ikpt,idsx_actual,idsx_actual_before,ndiis_sd_sw
-  real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
+  real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum
   real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
   type(diis_objects) :: diis
   real(wp), dimension(:), pointer :: psiw,psirocc,psitvirt,hpsivirt,pot
@@ -131,8 +131,8 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   end if
 
   !prepare the v array starting from a set of gaussians
-  !call psivirt_from_gaussians(iproc,nproc,at,orbsv,lr,commsv,rxyz,hx,hy,hz,in%nspin,&
-  !     psivirt)
+  call psivirt_from_gaussians(iproc,nproc,at,orbsv,lr,commsv,rxyz,hx,hy,hz,in%nspin,&
+       psivirt)
 
   if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
   !project v such that they are orthogonal to all occupied psi
@@ -172,7 +172,6 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   else
      nullify(psitvirt)
   end if
-print *,'here',iproc
 
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,lr%d%n1i*lr%d%n2i*n3p,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
@@ -190,17 +189,20 @@ print *,'here',iproc
   !are always calculated in the transpsed form
   if (in%idsx > 0) then
      call allocate_diis_objects(in%idsx,sum(commsv%ncntt(0:nproc-1)),orbsv%nkptsp,diis,subname)  
+     !print *,'check',in%idsx,sum(commsv%ncntt(0:nproc-1)),orbsv%nkptsp
   endif
 
-  orbsv%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
+  orbsv%eval(1:orbsv%norb*orbsv%nkpts)=-0.5d0
 
-  alpha=2.d0
   energy=1.d10
   gnrm=1.d10
   gnrm_zero=0.0_gp
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
+
+  diis%alpha=in%alphadiis
+  diis%alpha_max=in%alphadiis
   !minimum value of the energy during the minimisation procedure
   energy_min=1.d10
   !local variable for the diis history
@@ -1531,9 +1533,9 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   !local variables
   character(len=*), parameter :: subname='psivirt_from_gaussians'
   logical ::  randinp
-  integer :: iorb,icoeff,i_all,i_stat,jproc,nwork,info,jorb,idum=0
+  integer :: iorb,icoeff,i_all,i_stat,jproc,nwork,info,jorb,idum=0,ikpt,korb
   real(kind=4) :: tt,builtin_rand
-  real(wp), dimension(:,:), allocatable :: gaucoeffs
+  real(wp), dimension(:,:,:), allocatable :: gaucoeffs
   real(gp), dimension(:), allocatable :: work,ev
   real(gp), dimension(:,:), allocatable :: ovrlp
   type(gaussian_basis) :: G
@@ -1547,33 +1549,50 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   !use a better basis than the input guess
   call gaussian_pswf_basis(31,.false.,iproc,nspin,at,rxyz,G,gbd_occ)
 
-  allocate(gaucoeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
+  allocate(gaucoeffs(G%ncoeff,orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
 
   !the kinetic overlap is correctly calculated only with Free BC
   randinp = .true.!.false.!lr%geocode /= 'F'
 
   if (randinp) then
-     !fill randomly the gaussian coefficients for the orbitals considered
-     do icoeff=1,G%ncoeff !reversed loop
-        !be sure to call always a different random number, per orbital
-        do jorb=1,orbs%isorb*orbs%nspinor
-           tt=builtin_rand(idum) !call random_number(tt)
-        end do
-        do iorb=1,orbs%norbp*orbs%nspinor
-           !do jproc=0,iproc-1
-           !   tt=builtin_rand(idum) !call random_number(tt)
-           !end do
-           tt=builtin_rand(idum) !call random_number(tt)
-           gaucoeffs(icoeff,iorb)=real(tt,wp)
-           !do jproc=iproc+1,nproc-1
-           !   tt=builtin_rand(idum) !call random_number(tt)
-           !end do
-        end do
-        do iorb=(orbs%isorb+orbs%norbp)*orbs%nspinor+1,orbs%norb*orbs%nspinor
-           tt=builtin_rand(idum) !call random_number(tt)
+     call razero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
+     do icoeff=1,G%ncoeff
+        !choose the orbital which correspond to this coefficient
+        jorb=modulo(icoeff-1,orbs%norb)+1
+        !fo any of the k-points associated to the processor fill
+        do iorb=1,orbs%norbp
+           !orbital at the net of k-point
+           ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+           korb=orbs%isorb+iorb-(ikpt-1)*orbs%norb
+           if (korb==jorb) then
+              gaucoeffs(icoeff,1,iorb)=1.0_wp
+              if (orbs%nspinor == 4) then
+                 gaucoeffs(icoeff,3,iorb)=1.0_wp
+              end if
+           end if
         end do
      end do
+!!$     !fill randomly the gaussian coefficients for the orbitals considered
+!!$     do icoeff=1,G%ncoeff !reversed loop
+!!$        !be sure to call always a different random number, per orbital
+!!$        do jorb=1,orbs%isorb*orbs%nspinor
+!!$           tt=builtin_rand(idum) !call random_number(tt)
+!!$        end do
+!!$        do iorb=1,orbs%norbp*orbs%nspinor
+!!$           !do jproc=0,iproc-1
+!!$           !   tt=builtin_rand(idum) !call random_number(tt)
+!!$           !end do
+!!$           tt=builtin_rand(idum) !call random_number(tt)
+!!$           gaucoeffs(icoeff,iorb)=real(tt,wp)
+!!$           !do jproc=iproc+1,nproc-1
+!!$           !   tt=builtin_rand(idum) !call random_number(tt)
+!!$           !end do
+!!$        end do
+!!$        do iorb=(orbs%isorb+orbs%norbp)*orbs%nspinor+1,orbs%norb*orbs%nspinor
+!!$           tt=builtin_rand(idum) !call random_number(tt)
+!!$        end do
+!!$     end do
 
      !othogonalise the gaussian basis (wrong with k-points)
      !call gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
@@ -1600,7 +1619,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
 !!$     end do
 !!$  end if
 
-     !print *,'nwork',nwork,3*nbasis-1
+     !print *'nwork',nwork,3*nbasis-1
      call dsyev('V','U',G%ncoeff,ovrlp(1,1),G%ncoeff,ev(1),work(1),nwork,info)
      if (info /= 0) then
         if (iproc == 0) then
@@ -1625,7 +1644,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
      do iorb=1,orbs%norbp
         jorb=jorb+1
         if (jorb == orbs%norb+1) jorb=1 !for k-points calculation
-        call dcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,orbs%nspinor*(iorb-1)+1),orbs%nspinor)
+        call dcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,1,iorb),orbs%nspinor)
      end do
 
 

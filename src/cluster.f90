@@ -562,7 +562,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         else
            allocate(pot_from_disk(1,in%nspin+ndebug),stat=i_stat)
            call memocc(i_stat,pot_from_disk,'pot_from_disk',subname)
-
         end if
 
         if (nproc > 1) then
@@ -759,7 +758,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           in%nspin,hx,hy,hz,Glr%wfd,orbs,GPU)
   end if
 
-  diis%alpha=in%alphadiis
   energy=1.d10
   energybs=1.d10
   gnrm=1.d10
@@ -769,6 +767,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   epot_sum=0.d0 
   eproj_sum=0.d0
   !diis initialisation variables
+  diis%alpha=in%alphadiis
+  diis%alpha_max=in%alphadiis
   diis%energy=1.d10
   !minimum value of the energy during the minimisation procedure
   diis%energy_min=1.d10
@@ -931,7 +931,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               diis%energy=-ehart+eexcu-vexcu-eexctX+eion+edisp
            end if
 
-                diis%alpha_max=in%alphadiis
            call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
                 iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,in%nspin,GPU,in)
 
@@ -1086,9 +1085,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call memocc(i_stat,i_all,'rhopot_old',subname)
   end if
      
-
-  if (abs(evsum-energybs) > 1.d-8 .and. iproc==0 .and. inputpsi /=-1000) write( *,'(1x,a,2(1x,1pe20.13))')&
-       'Difference:evsum,energybs',evsum,energybs
+  if (inputpsi /=-1000) then
+     if (abs(evsum-energybs) > 1.d-8 .and. iproc==0) write( *,'(1x,a,2(1x,1pe20.13))')&
+          'Difference:evsum,energybs',evsum,energybs
+  end if
 
 
 

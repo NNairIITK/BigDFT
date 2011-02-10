@@ -70,7 +70,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   exctX = libxc_functionals_exctXfac() /= 0.0_gp
 
   ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+1
-print *,'iproc,exctX',iproc,exctX
+
   !fill the rest of the potential with the exact-exchange terms
   if (present(pkernel) .and. exctX) then
      n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
@@ -102,7 +102,7 @@ print *,'iproc,exctX',iproc,exctX
      eexctX = 0._gp
      !print *,'iproc,eexctX',iproc,eexctX
   end if
-print *,'iproc,here',iproc
+
   call timing(iproc,'ApplyLocPotKin','ON')
 
   !apply the local hamiltonian for each of the orbitals
@@ -144,7 +144,6 @@ print *,'iproc,here',iproc
 !!$     deallocate(hpsi_OCL,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'hpsi_OCL',subname)
 !!$  end if
-  print *,'thereB',iproc
   call timing(iproc,'ApplyLocPotKin','OF')
 
   ! apply all PSP projectors for all orbitals belonging to iproc
@@ -185,7 +184,7 @@ print *,'iproc,here',iproc
      if (istart_ck-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp application'
      if (ispsi-1 /= (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) stop 'incorrect V_nl psi application'
   end if
-print *,'thereA',iproc
+
   if(OCLconv .and. ASYNCconv) then
     call finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU,ekin,epot)
     call daxpy(size(hpsi), 1.0_wp, hpsi2(1), 1, hpsi(1),1)
@@ -207,7 +206,7 @@ print *,'thereA',iproc
      epot_sum=wrkallred(2,1)
      eproj_sum=wrkallred(3,1) 
   endif
-print *,'there',iproc
+
   !up to this point, the value of the potential energy is 
   !only taking into account the local potential part
   !whereas it should consider also the value coming from the 
@@ -446,7 +445,7 @@ integer:: i
   call psimix(iproc,nproc,orbs,comms,diis,hpsi,psit)
 
   call timing(iproc,'Diis          ','OF')
-
+stop
   if (iproc == 0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
           'Orthogonalization...'
