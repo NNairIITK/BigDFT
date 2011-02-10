@@ -312,8 +312,6 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      call memocc(i_stat,i_all,'psirocc',subname)
   end if
 
-
-  !if (idsx_actual > 0) then
   if (in%idsx > 0) then
      call deallocate_diis_objects(diis,subname)
   end if

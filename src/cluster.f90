@@ -1324,12 +1324,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)
      enddo
 
-     i_all=-product(shape(fion))*kind(fion)
-     deallocate(fion,stat=i_stat)
-     call memocc(i_stat,i_all,'fion',subname)
-     i_all=-product(shape(fdisp))*kind(fdisp)
-     deallocate(fdisp,stat=i_stat)
-     call memocc(i_stat,i_all,'fdisp',subname)
      i_all=-product(shape(gxyz))*kind(gxyz)
      deallocate(gxyz,stat=i_stat)
      call memocc(i_stat,i_all,'gxyz',subname)
@@ -1340,6 +1334,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call timing(iproc,'Forces        ','OF')
   end if
   
+  i_all=-product(shape(fion))*kind(fion)
+  deallocate(fion,stat=i_stat)
+  call memocc(i_stat,i_all,'fion',subname)
+  i_all=-product(shape(fdisp))*kind(fdisp)
+  deallocate(fdisp,stat=i_stat)
+  call memocc(i_stat,i_all,'fdisp',subname)
+
   !if (nvirt > 0 .and. in%inputPsiId == 0) then
   if (DoDavidson) then
      
