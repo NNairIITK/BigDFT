@@ -558,7 +558,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            write(*,'(1x,a)')'Reading local potential from file:'//trim(in%band_structure_filename)
            call read_cube(trim(in%band_structure_filename),atoms%geocode,&
                 n1i,n2i,n3i,in%nspin,hxh,hyh,hzh,pot_from_disk)
-           print *,'dimensions',n1i,n2i,n3i,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i
         else
            allocate(pot_from_disk(1,in%nspin+ndebug),stat=i_stat)
            call memocc(i_stat,pot_from_disk,'pot_from_disk',subname)

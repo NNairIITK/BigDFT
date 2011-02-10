@@ -775,6 +775,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
         in%itermax=0
         in%itrpmax=0
         in%inputPsiId=-1000 !allocate empty wavefunctions
+        in%output_grid=0
      end if
   end if
   close(unit=1,iostat=ierror)

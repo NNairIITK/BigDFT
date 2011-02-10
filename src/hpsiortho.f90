@@ -445,12 +445,11 @@ integer:: i
   call psimix(iproc,nproc,orbs,comms,diis,hpsi,psit)
 
   call timing(iproc,'Diis          ','OF')
-stop
+
   if (iproc == 0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
           'Orthogonalization...'
   end if
-
 
   call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit,input)
 

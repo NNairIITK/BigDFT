@@ -40,9 +40,9 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   real(wp), dimension(:), pointer :: psi,psivirt
   !local variables
   character(len=*), parameter :: subname='direct_minimization'
-  logical :: msg,exctX,occorbs,endloop !extended output
+  logical :: msg,exctX,occorbs,endloop,lcs !extended output
   integer :: occnorb, occnorbu, occnorbd
-  integer :: i_stat,i_all,iter,ikpt,idsx_actual,idsx_actual_before,ndiis_sd_sw
+  integer :: i_stat,i_all,iter,ikpt,idsx_actual_before,ndiis_sd_sw
   real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum
   real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
   type(diis_objects) :: diis
@@ -201,16 +201,20 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   epot_sum=0.d0 
   eproj_sum=0.d0
 
+  !diis initialisation variables
   diis%alpha=in%alphadiis
   diis%alpha_max=in%alphadiis
+  diis%energy=1.d10
   !minimum value of the energy during the minimisation procedure
-  energy_min=1.d10
+  diis%energy_min=1.d10
   !local variable for the diis history
-  idsx_actual=in%idsx
+  diis%idsx=in%idsx
   !number of switching betweed DIIS and SD during self-consistent loop
   ndiis_sd_sw=0
   !previous value of idsx_actual to control if switching has appeared
-  idsx_actual_before=idsx_actual
+  idsx_actual_before=diis%idsx
+  !logical control variable for switch DIIS-SD
+  diis%switchSD=.false.
 
   wfn_loop: do iter=1,in%itermax+100
 
@@ -222,7 +226,14 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      endloop= gnrm <= in%gnrm_cv .or. iter == in%itermax+100
      
      !control how many times the DIIS has switched into SD
-     if (idsx_actual /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
+     if (diis%idsx /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
+
+     !leave SD if the DIIS did not work the second time
+     if (ndiis_sd_sw > 1) then
+        diis%switchSD=.false.
+     end if
+
+
 
      !terminate SCF loop if forced to switch more than once from DIIS to SD
      endloop=endloop .or. ndiis_sd_sw > 2
@@ -246,14 +257,18 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
            write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
                 'FINAL iter,total "energy",gnrm',iter,energy,gnrm
            !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
-           if (energy > energy_min) write( *,'(1x,a,1pe9.2)')&
-                'WARNING: Found an "energy" value lower than the FINAL "energy", delta:',energy-energy_min
+           if ( diis%energy > diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
+                'WARNING: Found an energy value lower than the FINAL energy, delta:',diis%energy-diis%energy_min
         end if
         exit wfn_loop 
      endif
 
      !control the previous value of idsx_actual
-     idsx_actual_before=idsx_actual
+     idsx_actual_before=diis%idsx
+     !previous value
+     diis%energy_old=diis%energy
+     !new value without the trace, to be added in hpsitopsi
+     diis%energy=0.0_gp
 
      call hpsitopsi(iproc,nproc,orbsv,hx,hy,hz,lr,commsv,in%ncong,&
           iter,diis,in%idsx,gnrm,gnrm_zero,scprsum,psivirt,psitvirt,hpsivirt,in%nspin,GPU,in)
@@ -274,8 +289,11 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      tt=(energybs-scprsum)/scprsum
      if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
           (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
-        write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
-             'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
+        call check_closed_shell(in%nspin,orbsv,lcs)
+        if (lcs) then
+           write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
+                'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
+        end if
      endif
      if (iproc.eq.0) then
         if (verbose > 0) then
@@ -1547,32 +1565,37 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   nullify(G%rxyz)
   !extract the gaussian basis from the pseudowavefunctions
   !use a better basis than the input guess
-  call gaussian_pswf_basis(31,.false.,iproc,nspin,at,rxyz,G,gbd_occ)
+  call gaussian_pswf_basis(11,.false.,iproc,nspin,at,rxyz,G,gbd_occ)
 
   allocate(gaucoeffs(G%ncoeff,orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
 
   !the kinetic overlap is correctly calculated only with Free BC
-  randinp = .true.!.false.!lr%geocode /= 'F'
+  randinp =.true.!.false.!lr%geocode /= 'F'
 
   if (randinp) then
      call razero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
-     do icoeff=1,G%ncoeff
-        !choose the orbital which correspond to this coefficient
-        jorb=modulo(icoeff-1,orbs%norb)+1
-        !fo any of the k-points associated to the processor fill
-        do iorb=1,orbs%norbp
-           !orbital at the net of k-point
-           ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
-           korb=orbs%isorb+iorb-(ikpt-1)*orbs%norb
-           if (korb==jorb) then
-              gaucoeffs(icoeff,1,iorb)=1.0_wp
-              if (orbs%nspinor == 4) then
-                 gaucoeffs(icoeff,3,iorb)=1.0_wp
+     if (G%ncoeff >= orbs%norb) then
+        do icoeff=1,G%ncoeff
+           !choose the orbital which correspond to this coefficient
+           jorb=modulo(icoeff-1,orbs%norb)+1
+           !fo any of the k-points associated to the processor fill
+           do iorb=1,orbs%norbp
+              !orbital at the net of k-point
+              ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+              korb=orbs%isorb+iorb-(ikpt-1)*orbs%norb
+              if (korb==jorb) then
+                 gaucoeffs(icoeff,1,iorb)=1.0_wp
+                 if (orbs%nspinor == 4) then
+                    gaucoeffs(icoeff,3,iorb)=1.0_wp
+                 end if
               end if
-           end if
+           end do
         end do
-     end do
+     else
+        write(*,*)'ERROR, not enough gaussian coefficients',G%ncoeff,orbs%norb
+        stop
+     end if
 !!$     !fill randomly the gaussian coefficients for the orbitals considered
 !!$     do icoeff=1,G%ncoeff !reversed loop
 !!$        !be sure to call always a different random number, per orbital
