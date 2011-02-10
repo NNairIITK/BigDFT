@@ -770,11 +770,11 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
         if (iproc==0) then
            write(*,'(1x,a)')'Local Potential read from file, '//trim(in%band_structure_filename)//&
                 ', do not optimise GS wavefunctions'
-           in%nrepmax=0
-           in%itermax=0
-           in%itrpmax=0
-           in%inputPsiId=-2
         end if
+        in%nrepmax=0
+        in%itermax=0
+        in%itrpmax=0
+        in%inputPsiId=-1000 !allocate empty wavefunctions
      end if
   end if
   close(unit=1,iostat=ierror)

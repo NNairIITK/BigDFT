@@ -603,11 +603,11 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
      end if
      totnorm=0.0_dp
      do ispinor=1,orbs%nspinor,ncplx
-        !print *,'start',ispinor,ncplx,iorb,orbs%nspinor
+        if (iproc == 0)print *,'start',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
         !the Block wavefunctions are exp(-Ikr) psi(r) (with MINUS k)
         call gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,&
              wfn_gau(1,ispinor,iorb),psi(1,ispinor,iorb))
-        !print *,'end',ispinor,ncplx,iorb,orbs%nspinor
+        if (iproc == 0)print *,'end',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
         call wnrm_wrap(ncplx,lr%wfd%nvctr_c,lr%wfd%nvctr_f,psi(1,ispinor,iorb),scpr) 
         totnorm=totnorm+scpr
      end do
@@ -740,6 +740,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
                  end do
               end do
               nterms=nterms+nterm*ng
+              print *,'nterms',nterms,nterms_max
            end if
            icoeff=icoeff+1
         end do

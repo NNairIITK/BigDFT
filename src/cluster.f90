@@ -541,6 +541,53 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
   select case(inputpsi)
+  case(-1000)
+     !allocate fake psit and hpsi
+     allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+     call memocc(i_stat,hpsi,'hpsi',subname)
+     if (nproc > 1) then
+        allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
+        call memocc(i_stat,psit,'psit',subname)
+     else
+        psit => psi
+     end if
+     !fill the rhopot array with the read potential if needed
+     if (trim(in%band_structure_filename) /= '') then
+        !only the first processor should read this
+        if (iproc == 0) then
+           write(*,'(1x,a)')'Reading local potential from file:'//trim(in%band_structure_filename)
+           call read_cube(trim(in%band_structure_filename),atoms%geocode,&
+                n1i,n2i,n3i,in%nspin,hxh,hyh,hzh,pot_from_disk)
+           print *,'dimensions',n1i,n2i,n3i,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i
+        else
+           allocate(pot_from_disk(1,in%nspin+ndebug),stat=i_stat)
+           call memocc(i_stat,pot_from_disk,'pot_from_disk',subname)
+
+        end if
+
+        if (nproc > 1) then
+           do ispin=1,in%nspin
+              call MPI_SCATTERV(pot_from_disk(1,ispin),&
+                   ngatherarr(0,1),ngatherarr(0,2),mpidtypw, &
+                   rhopot((ispin-1)*Glr%d%n1i*Glr%d%n2i*n3p+1),&
+                   Glr%d%n1i*Glr%d%n2i*n3p,mpidtypw,0,MPI_COMM_WORLD,ierr)
+           end do
+        else
+           call dcopy(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*in%nspin,pot_from_disk,1,rhopot,1)
+        end if
+
+        i_all=-product(shape(pot_from_disk))*kind(pot_from_disk)
+        deallocate(pot_from_disk,stat=i_stat)
+        call memocc(i_stat,i_all,'pot_from_disk',subname)
+
+        !add pot_ion potential to the local_potential
+        do ispin=1,in%nspin
+           !spin up and down together with the XC part
+           call axpy(Glr%d%n1i*Glr%d%n2i*n3p,1.0_dp,pot_ion(1),1,&
+                rhopot((ispin-1)*Glr%d%n1i*Glr%d%n2i*n3p+1),1)
+        end do
+     end if
+
   case(-2)
 
      if (iproc == 0) then
@@ -678,7 +725,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   end select
 
   !all the input format need first_orthon except the LCAO input_guess
-  if (inputpsi /= 0) then
+  if (inputpsi /= 0 .and. inputpsi /=-1000) then
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in)
   end if
@@ -1040,7 +1087,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   end if
      
 
-  if (abs(evsum-energybs) > 1.d-8 .and. iproc==0 .and. iter > 1) write( *,'(1x,a,2(1x,1pe20.13))')&
+  if (abs(evsum-energybs) > 1.d-8 .and. iproc==0 .and. inputpsi /=-1000) write( *,'(1x,a,2(1x,1pe20.13))')&
        'Difference:evsum,energybs',evsum,energybs
 
 
@@ -1156,7 +1203,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call memocc(i_stat,i_all,'counter_ions',subname)
   end if
 
-  if (.false.) then
+  if (inputpsi /= -1000) then
      !------------------------------------------------------------------------
      ! here we start the calculation of the forces
      if (iproc == 0) then
@@ -1296,31 +1343,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   
   !if (nvirt > 0 .and. in%inputPsiId == 0) then
   if (DoDavidson) then
-
-     !fill the rhopot array with the read potential if needed
-     if (trim(in%band_structure_filename) /= '') then
-
-        !only the first processor should read this
-        if (iproc == 0) then
-           call read_cube(trim(in%band_structure_filename),atoms%geocode,&
-                n1i,n2i,n3i,in%nspin,hxh,hyh,hzh,pot_from_disk)
-        end if
-
-        if (nproc > 1) then
-           do ispin=1,in%nspin
-              call MPI_SCATTERV(pot_from_disk(1,ispin),&
-                   ngatherarr(:,1),ngatherarr(:,1),mpidtypw, &
-                   rhopot((ispin-1)*Glr%d%n1i*Glr%d%n2i*n3p+1),&
-                   Glr%d%n1i*Glr%d%n2i*n3p,mpidtypw,0,MPI_COMM_WORLD,ierr)
-           end do
-        else
-           call dcopy(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*in%nspin,pot_from_disk,1,rhopot,1)
-        end if
-
-        i_all=-product(shape(pot_from_disk))*kind(pot_from_disk)
-        deallocate(pot_from_disk,stat=i_stat)
-        call memocc(i_stat,i_all,'pot_from_disk',subname)
-     end if
      
      !calculate davidson procedure for all the groups of k-points which are chosen
      ikpt=1

@@ -33,7 +33,8 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-  real(dp), dimension(*), intent(in) :: pkernel,rhopot
+  real(dp), dimension(*), intent(in) :: pkernel
+  real(dp), dimension(*), intent(in), target :: rhopot
   type(orbitals_data), intent(inout) :: orbsv
   type(GPU_pointers), intent(inout) :: GPU
   real(wp), dimension(:), pointer :: psi,psivirt
@@ -104,6 +105,8 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      call memocc(i_stat,psirocc,'psirocc',subname)
 
      call prepare_psirocc(iproc,nproc,lr,orbs,n3p,ngatherarr(0,1),psi,psirocc)
+  else
+     nullify(psirocc)
   end if
 
   !n2virt=2*orbsv%norb! the dimension of the subspace
@@ -128,8 +131,8 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   end if
 
   !prepare the v array starting from a set of gaussians
-  call psivirt_from_gaussians(iproc,nproc,at,orbsv,lr,commsv,rxyz,hx,hy,hz,in%nspin,&
-       psivirt)
+  !call psivirt_from_gaussians(iproc,nproc,at,orbsv,lr,commsv,rxyz,hx,hy,hz,in%nspin,&
+  !     psivirt)
 
   if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
   !project v such that they are orthogonal to all occupied psi
@@ -169,6 +172,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   else
      nullify(psitvirt)
   end if
+print *,'here',iproc
 
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,lr%d%n1i*lr%d%n2i*n3p,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
@@ -187,7 +191,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   if (in%idsx > 0) then
      call allocate_diis_objects(in%idsx,sum(commsv%ncntt(0:nproc-1)),orbsv%nkptsp,diis,subname)  
   endif
-     
+
   orbsv%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
 
   alpha=2.d0

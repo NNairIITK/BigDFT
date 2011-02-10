@@ -998,7 +998,8 @@ module module_interfaces
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-       real(dp), dimension(*), intent(in) :: pkernel,rhopot
+       real(dp), dimension(*), intent(in) :: pkernel
+       real(dp), dimension(*), intent(in), target :: rhopot
        type(orbitals_data), intent(inout) :: orbsv
        type(GPU_pointers), intent(inout) :: GPU
        real(wp), dimension(:), pointer :: psi,psivirt
