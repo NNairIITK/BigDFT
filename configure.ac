@@ -221,6 +221,14 @@ fi
 AM_CONDITIONAL(USE_MINIMA_HOPPING, test "$ac_build_bin_minima_hopping" = "yes")
 
 
+dnl build the pseudo generation (build the executables atom and pseudo)
+AC_MSG_CHECKING([for pseudo generation])
+ac_build_bin_pseudo="no"
+AC_ARG_ENABLE(pseudo, AS_HELP_STRING([--enable-pseudo], [Compile the pseudo code (not compiled by default).]),
+                         ac_build_bin_pseudo=$enableval, ac_build_bin_pseudo="no")
+AC_MSG_RESULT([$ac_build_bin_pseudo])
+
+
 dnl Use the GPU computing (only NVIDIA cards with CUDA libraries)
 AC_MSG_CHECKING([for GPU computing with CUDA libraries])
 ac_use_cuda_gpu="no"
@@ -333,6 +341,9 @@ dnl the BigDFT library (without PSolver)
 ac_build_lib_BigDFT="yes"
 dnl the standalone executable (required linking tests)
 ac_build_bin_cluster="yes"
+dnl the PSEUDO generators (atom and pseudo executables)
+ac_build_bin_pseudo="yes"
+AM_CONDITIONAL(BUILD_BIN_PSEUDO, test "$ac_build_bin_pseudo" = "yes")
 
 
 dnl disable different build
@@ -585,8 +596,9 @@ tests/CUDA/Makefile
 
 # Call libXC ./configure script recursively.
 # Call S_GPU ./configure script recursively.
+# Call pseudo ./configure script recursively.
 ac_configure_args=$ac_configure_args" --enable-fortran"
-AC_CONFIG_SUBDIRS([libXC S_GPU])
+AC_CONFIG_SUBDIRS([libXC S_GPU pseudo])
 
 AC_OUTPUT
 
@@ -607,6 +619,7 @@ Build:
   Library BigDFT:            $ac_build_lib_BigDFT
   Main binaries (cluster...):$ac_build_bin_cluster
   Minima hopping binary:     $ac_build_bin_minima_hopping
+  Pseudo generation:         $ac_build_bin_pseudo
 
 Options:
   Debug version:             $ac_use_debug		
