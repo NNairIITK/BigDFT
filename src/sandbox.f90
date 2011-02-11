@@ -1,7 +1,7 @@
-!!****p* BigDFT/oneatom
+!!****p* BigDFT/sandbox
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2010 ESRF, PoliTo
+!!    Copyright (C) 2011 CEA
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -9,16 +9,16 @@
 !!
 !! SOURCE
 !!
-program oneatom
+program sandbox
   use BigDFT_API
   use Poisson_Solver
   implicit none
-  character(len=*), parameter :: subname='oneatom'
+  character(len=*), parameter :: subname='sandbox'
   logical :: dokernel=.false.
   logical :: endloop
-  integer :: n1i,n2i,n3i,iproc,nproc,i_stat,i_all,nelec
+  integer :: n1i,n2i,n3i,iproc,nproc,ifine,i_stat,i_all,nelec
   integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3,ndegree_ip
-  integer :: idsx_actual,ndiis_sd_sw,idsx_actual_before,iter
+  integer :: idsx_actual,ndiis_sd_sw,idsx_actual_before,iter,iorb,jorb
   real(gp) :: hxh,hyh,hzh
   real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
   real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
@@ -37,9 +37,13 @@ program oneatom
   real(wp), dimension(:), pointer :: hpsi,psit,psi,psidst,hpsidst,proj
   real(dp), dimension(:), pointer :: pkernel,pot_ion
   real(gp), dimension(:,:), pointer :: rxyz
+  real(wp), dimension(:),allocatable :: apsi_c,bpsi_c
+  real(wp), dimension(:,:),allocatable :: apsi_f,bpsi_f
+  real(gp) :: scpr
+  real(gp), dimension(:,:),allocatable :: keyag_c,keybg_c,keyag_f,keybg_f
+  real(gp), dimension(:),allocatable :: keyav_c,keybv_c,keyav_f,keybv_f
   ! arrays for DIIS convergence accelerator
   real(wp), dimension(:,:,:), pointer :: ads
-
 
   !for the moment no need to have parallelism
   iproc=0
@@ -133,14 +137,75 @@ program oneatom
      call allocate_diis_objects(in%idsx,sum(comms%ncntt(0:nproc-1)),orbs%nkptsp,diis,subname)  
   endif
 
-  !write the local potential in pot_ion array
-  call createPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
-       in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,0.0_dp)
-
-  !pot_ion=0.0d0
+  pot_ion=0.0d0
 
   !create input guess wavefunction
   call psi_from_gaussians(iproc,nproc,atoms,orbs,Glr,rxyz,in%hx,in%hy,in%hz,in%nspin,psi)
+
+  !calculate scalar product between wavefunctions
+  !this scheme works only in sequential
+  write(*,'(A25)') 'Overlap matrix with ddot:'
+  do iorb=1,orbs%norb
+     do jorb=iorb,orbs%norb
+        write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,&
+             dot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(iorb-1)+1),1,&
+             psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(jorb-1)+1),1)
+     end do
+  end do
+
+!#######################################################################################################################
+!  write(*,'(A25)') 'Overlap matrix using wpdot:'
+
+  allocate(apsi_c(Glr%wfd%nvctr_c))
+  allocate(bpsi_c(Glr%wfd%nvctr_c))
+  allocate(apsi_f(7,Glr%wfd%nvctr_f))
+  allocate(bpsi_f(7,Glr%wfd%nvctr_f))
+  allocate(keyag_c(2,Glr%wfd%nvctr_c))
+  allocate(keybg_c(2,Glr%wfd%nvctr_c)) 
+  allocate(keyag_f(2,Glr%wfd%nvctr_f)) 
+  allocate(keybg_f(2,Glr%wfd%nvctr_f))
+  allocate(keyav_c(Glr%wfd%nvctr_c)) 
+  allocate(keybv_c(Glr%wfd%nvctr_c)) 
+  allocate(keyav_f(Glr%wfd%nvctr_f)) 
+  allocate(keybv_f(Glr%wfd%nvctr_f)) 
+
+! First format the two orbitals 
+  apsi_c(:) = psi(1:Glr%wfd%nvctr_c)
+  bpsi_c(:) = psi(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f+1:2*Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+ 
+  keyag_c(:,:) = Glr%wfd%keyg(:,1:Glr%wfd%nseg_c)    ! dim are (2,nseg_c)
+  keybg_c(:,:) = Glr%wfd%keyg(:,Glr%wfd%nseg_c+Glr%wfd%nseg_f+1:2*Glr%wfd%nseg_c+Glr%wfd%nseg_f)
+  keyag_f(:,:) = Glr%wfd%keyg(:,Glr%wfd%nseg_c+1:Glr%wfd%nseg_c+Glr%wfd%nseg_f)
+  keybg_f(:,:) = Glr%wfd%keyg(:,2*Glr%wfd%nseg_c+Glr%wfd%nseg_f+1:2*Glr%wfd%nseg_c+2*Glr%wfd%nseg_f)
+  keyav_c(:) = Glr%wfd%keyv(1:Glr%wfd%nseg_c)
+  keybv_c(:) = Glr%wfd%keyv(Glr%wfd%nseg_c+Glr%wfd%nseg_f+1:2*Glr%wfd%nseg_c+Glr%wfd%nseg_f)
+  keyav_f(:) = Glr%wfd%keyv(Glr%wfd%nseg_c+1:Glr%wfd%nseg_c+Glr%wfd%nseg_f)
+  keybv_f(:) = Glr%wfd%keyv(2*Glr%wfd%nseg_c+Glr%wfd%nseg_f+1:2*Glr%wfd%nseg_c+2*Glr%wfd%nseg_f)
+
+  do ifine=1,7
+     apsi_f(ifine,:) = psi(Glr%wfd%nvctr_c+(ifine-1)*Glr%wfd%nvctr_f+1:Glr%wfd%nvctr_c+ifine*Glr%wfd%nvctr_f)
+     bpsi_f(ifine,:) = psi(2*Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f+(ifine-1)*Glr%wfd%nvctr_f+1:&
+     &                     Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f+(ifine)*Glr%wfd%nvctr_f)
+  end do
+!  write(*,'(a,1x,1pe19.12)')'Overlap with dot',dot(Glr%wfd%nvctr_f,apsi_c(:),1,bpsi_c(:),1)
+!  & dot(Glr%wfd%nvctr_f,apsi_f(1,:),1,bpsi_f(1,:),1) + dot(Glr%wfd%nvctr_f,apsi_f(2,:),1,bpsi_f(2,:),1) + &
+!  & dot(Glr%wfd%nvctr_f,apsi_f(3,:),1,bpsi_f(3,:),1) + dot(Glr%wfd%nvctr_f,apsi_f(4,:),1,bpsi_f(4,:),1) + &
+!  & dot(Glr%wfd%nvctr_f,apsi_f(5,:),1,bpsi_f(5,:),1) + dot(Glr%wfd%nvctr_f,apsi_f(6,:),1,bpsi_f(6,:),1) !+ &
+!  & dot(Glr%wfd%nvctr_f,apsi_f(7,:),1,bpsi_f(7,:),1)
+
+! Then call the subroutine calculating the overlap (only calculate the overlap and not the 4 permutations)
+  call wpdot( Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,keyav_c,keyav_f,&
+& keyag_c,keyag_f,apsi_c,apsi_f,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
+& keybv_c,keybv_f,keybg_c,keybg_f,bpsi_c,bpsi_f,scpr)
+  stop
+  write(*,'(2(i4),1x,1pe19.12)') 1,2,scpr
+
+  deallocate(apsi_c)
+  deallocate(bpsi_c)
+  deallocate(apsi_f)
+  deallocate(bpsi_f)
+
+!#######################################################################################################################
 
 !!$  psi=0.0d0
 !!$  ttsum=0.0d0
@@ -159,14 +224,21 @@ program oneatom
 !!$  psi=1.d0
 
 
-  call plot_wf_oneatom('iter0',1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'')
+  print *,'norbs',orbs%norb
 
+  !plot first orbital
+  call plot_wf_sandbox('iter0-1',1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'')
+  !plot second orbital
+  call plot_wf_sandbox('iter0-2',1,atoms,Glr,hxh,hyh,hzh,rxyz,psi(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f+1),'')
 
+  
+
+  stop
   !othogonalise them
   !transpose the psi wavefunction
   call transpose_v(iproc,nproc,orbs,Glr%wfd,comms,&
        psi,work=hpsi)
-  call orthogonalize(iproc,nproc,orbs,comms,Glr%wfd,psi)
+  call orthogonalize(iproc,nproc,orbs,comms,Glr%wfd,psi,in)
   !untranspose psi
   call untranspose_v(iproc,nproc,orbs,Glr%wfd,comms,psi,work=hpsi)
 
@@ -238,7 +310,7 @@ program oneatom
           iter,diis,in%idsx,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,in%nspin,GPU,in)
 
      write(itername,'(i4.4)')iter
-     call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'')
+     call plot_wf_sandbox('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'')
 
      tt=(energybs-scprsum)/scprsum
      if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
@@ -323,386 +395,10 @@ program oneatom
   call memocc(0,0,'count','stop')
 
 
-end program oneatom
+end program sandbox
 !!***
 
 
-!!****f* BigDFT/createPotential
-!! FUNCTION
-!!
-!! SOURCE
-!!
-subroutine createPotential(geocode,iproc,nproc,at,rxyz,&
-     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
-  use module_base
-  use module_types
-  !  use module_interfaces, except_this_one => createIonicPotential
-  use Poisson_Solver
-  implicit none
-  character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
-  real(gp), intent(in) :: hxh,hyh,hzh,psoffset
-  type(atoms_data), intent(in) :: at
-  real(gp), intent(in) :: elecfield
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(dp), dimension(*), intent(in) :: pkernel
-  real(wp), dimension(*), intent(inout) :: pot_ion
-  !local variables
-  character(len=*), parameter :: subname='createIonicPotential'
-  logical :: perx,pery,perz,gox,goy,goz
-  logical :: htoobig=.false.
-  logical :: check_potion=.false.
-  logical :: harmonic=.true.
-  integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,nspin
-  integer :: nl1,nl2,nl3,nu1,nu2,nu3
-  integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
-  real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
-  real(kind=8) :: tt_tot,rholeaked_tot,potxyz,potcoeff
-  real(wp) :: maxdiff
-  real(gp) :: ehart
-  real(dp), dimension(2) :: charges_mpi
-  real(dp), dimension(:), allocatable :: potion_corr
-
-  read(1,*)potcoeff
-
-  call timing(iproc,'CrtLocPot     ','ON')
-
-  if (iproc.eq.0) then
-     write(*,'(1x,a)')&
-          '----------------------------------------------------------------- Potential Creation'
-  end if
-
-  pi=4.d0*atan(1.d0)
-  ! Ionic charge (must be calculated for the PS active processes)
-  rholeaked=0.d0
-  ! Ionic energy (can be calculated for all the processors)
-
-  !Creates charge density arising from the ionic PSP cores
-  call razero(n1i*n2i*n3pi,pot_ion)
-
-  !conditions for periodicity in the three directions
-  perx=(geocode /= 'F')
-  pery=(geocode == 'P')
-  perz=(geocode /= 'F')
-
-  call ext_buffers(perx,nbl1,nbr1)
-  call ext_buffers(pery,nbl2,nbr2)
-  call ext_buffers(perz,nbl3,nbr3)
-
-  if (harmonic) then
-     if (n3pi >0) then
-
-        do iat=1,at%nat
-           ityp=at%iatype(iat)
-           rx=rxyz(1,iat) 
-           ry=rxyz(2,iat)
-           rz=rxyz(3,iat)
-
-           rloc=at%psppar(0,0,ityp)
-           charge=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
-           cutoff=max(at%alat1,at%alat2,at%alat3)!10.d0*rloc
-
-           isx=floor((rx-cutoff)/hxh)
-           isy=floor((ry-cutoff)/hyh)
-           isz=floor((rz-cutoff)/hzh)
-
-           iex=ceiling((rx+cutoff)/hxh)
-           iey=ceiling((ry+cutoff)/hyh)
-           iez=ceiling((rz+cutoff)/hzh)
-
-           do i3=isz,iez
-              z=real(i3,kind=8)*hzh-rz
-              call ind_positions(perz,i3,n3,j3,goz) 
-              j3=j3+nbl3+1
-              do i2=isy,iey
-                 y=real(i2,kind=8)*hyh-ry
-                 call ind_positions(pery,i2,n2,j2,goy)
-                 do i1=isx,iex
-                    x=real(i1,kind=8)*hxh-rx
-                    call ind_positions(perx,i1,n1,j1,gox)
-                    r2=x**2+y**2+z**2
-                    arg=r2*potcoeff
-                    xp=exp(-.5d0*arg)
-                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                       pot_ion(ind)=pot_ion(ind)+arg
-                    else if (.not. goz ) then
-                       rholeaked=rholeaked+arg
-                    endif
-                 enddo
-              enddo
-           enddo
-
-        enddo
-     end if
-  else
-     if (n3pi >0 .and. .not. htoobig) then
-
-        do iat=1,at%nat
-           ityp=at%iatype(iat)
-           rx=rxyz(1,iat) 
-           ry=rxyz(2,iat)
-           rz=rxyz(3,iat)
-
-           rloc=at%psppar(0,0,ityp)
-           charge=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
-           cutoff=10.d0*rloc
-
-           isx=floor((rx-cutoff)/hxh)
-           isy=floor((ry-cutoff)/hyh)
-           isz=floor((rz-cutoff)/hzh)
-
-           iex=ceiling((rx+cutoff)/hxh)
-           iey=ceiling((ry+cutoff)/hyh)
-           iez=ceiling((rz+cutoff)/hzh)
-
-           do i3=isz,iez
-              z=real(i3,kind=8)*hzh-rz
-              call ind_positions(perz,i3,n3,j3,goz) 
-              j3=j3+nbl3+1
-              do i2=isy,iey
-                 y=real(i2,kind=8)*hyh-ry
-                 call ind_positions(pery,i2,n2,j2,goy)
-                 do i1=isx,iex
-                    x=real(i1,kind=8)*hxh-rx
-                    call ind_positions(perx,i1,n1,j1,gox)
-                    r2=x**2+y**2+z**2
-                    arg=r2/rloc**2
-                    xp=exp(-.5d0*arg)
-                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                       pot_ion(ind)=pot_ion(ind)-xp*charge
-                    else if (.not. goz ) then
-                       rholeaked=rholeaked+xp*charge
-                    endif
-                 enddo
-              enddo
-           enddo
-
-        enddo
-
-     end if
-
-     ! Check
-     tt=0.d0
-     do j3=1,n3pi
-        do i2= -nbl2,2*n2+1+nbr2
-           do i1= -nbl1,2*n1+1+nbr1
-              ind=i1+1+nbl1+(i2+nbl2)*n1i+(j3-1)*n1i*n2i
-              tt=tt+pot_ion(ind)
-           enddo
-        enddo
-     enddo
-
-     tt=tt*hxh*hyh*hzh
-     rholeaked=rholeaked*hxh*hyh*hzh
-
-     !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
-
-     if (nproc > 1) then
-        charges_mpi(1)=tt
-        charges_mpi(2)=rholeaked
-
-        call mpiallred(charges_mpi(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
-
-        tt_tot=charges_mpi(1)
-        rholeaked_tot=charges_mpi(2)
-     else
-        tt_tot=tt
-        rholeaked_tot=rholeaked
-     end if
-
-     if (iproc == 0) write(*,'(1x,a,f26.12,2x,1pe10.3)') &
-          'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
-
-     if (.not. htoobig) then
-        call timing(iproc,'CrtLocPot     ','OF')
-        !here the value of the datacode must be kept fixed
-        nspin=1
-
-        call H_potential(geocode,'D',iproc,nproc,&
-             n1i,n2i,n3i,hxh,hyh,hzh,&
-             pot_ion,pkernel,pot_ion,ehart,-psoffset,.false.)
-
-        call timing(iproc,'CrtLocPot     ','ON')
-
-        if (check_potion) then
-           if (iproc == 0) write(*,'(1x,a)',advance='no') &
-                'Check the ionic potential...'
-
-           allocate(potion_corr(n1i*n2i*n3pi+ndebug),stat=i_stat)
-           call memocc(i_stat,potion_corr,'potion_corr',subname)
-
-           call razero(n1i*n2i*n3pi,potion_corr)
-
-           !calculate pot_ion with an explicit error function to correct in the case of big grid spacings
-           !for the moment works only in the isolated BC case
-           do i3=1,n3pi
-              z=real(i3+i3s-1-nbl3-1,gp)*hzh
-              do i2=1,n2i
-                 y=real(i2-nbl2-1,gp)*hyh
-                 do i1=1,n1i
-                    x=real(i1-nbl1-1,gp)*hxh
-                    ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                    !if (i1==49 .and. i2==46 .and. i3==44) then
-                    call sum_erfcr(at%nat,at%ntypes,x,y,z,at%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
-                    !   stop
-                    !end if
-                    potion_corr(ind)=potion_corr(ind)+potxyz
-                    !write(18,'(3(i6),i12,3(1x,1pe24.17))')i1,i2,i3,ind,potion_corr(ind),pot_ion(ind)
-                 end do
-              end do
-           end do
-
-           !then calculate the maximum difference in the sup norm
-           maxdiff=0.0_wp
-           do i3=1,n3pi
-              do i2=1,n2i
-                 do i1=1,n1i
-                    ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                    maxdiff=max(maxdiff,abs(potion_corr(ind)-pot_ion(ind)))
-                    !write(17,'(3(i6),i12,3(1x,1pe24.17))')i1,i2,i3,ind,potion_corr(ind),pot_ion(ind),maxdiff
-                 end do
-              end do
-           end do
-
-           !call mpiallred(maxdiff,1,MPI_MAX,MPI_COMM_WORLD,ierr)
-
-           if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
-
-           stop
-
-           i_all=-product(shape(potion_corr))*kind(potion_corr)
-           deallocate(potion_corr,stat=i_stat)
-           call memocc(i_stat,i_all,'potion_corr',subname)
-
-        end if
-
-     end if
-
-
-!!!  !calculate the value of the offset to be put
-!!!  tt_tot=0.d0
-!!!  do ind=1,n1i*n2i*n3i
-!!!     tt_tot=tt_tot+pot_ion(ind)
-!!!  end do
-!!!  print *,'previous offset',tt_tot*hxh*hyh*hzh
-
-     if (n3pi > 0) then
-        do iat=1,at%nat
-           ityp=at%iatype(iat)
-
-           rx=rxyz(1,iat)
-           ry=rxyz(2,iat)
-           rz=rxyz(3,iat)
-
-           ! determine number of local terms
-           nloc=0
-           do iloc=1,4
-              if (at%psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
-           enddo
-           rloc=at%psppar(0,0,ityp)
-           cutoff=10.d0*rloc
-
-           isx=floor((rx-cutoff)/hxh)
-           isy=floor((ry-cutoff)/hyh)
-           isz=floor((rz-cutoff)/hzh)
-
-           iex=ceiling((rx+cutoff)/hxh)
-           iey=ceiling((ry+cutoff)/hyh)
-           iez=ceiling((rz+cutoff)/hzh)
-
-           !do not add the local part for the vacancy
-           if (nloc /= 0) then
-
-              do i3=isz,iez
-                 z=real(i3,kind=8)*hzh-rz
-                 call ind_positions(perz,i3,n3,j3,goz) 
-                 j3=j3+nbl3+1
-                 if (goz .and. j3 >= i3s .and. j3 <=  i3s+n3pi-1) then
-                    do i2=isy,iey
-                       y=real(i2,kind=8)*hyh-ry
-                       call ind_positions(pery,i2,n2,j2,goy)
-                       if (goy) then
-                          do i1=isx,iex
-                             x=real(i1,kind=8)*hxh-rx
-                             call ind_positions(perx,i1,n1,j1,gox)
-                             if (gox) then
-                                r2=x**2+y**2+z**2
-                                arg=r2/rloc**2
-                                xp=exp(-.5d0*arg)
-                                tt=at%psppar(0,nloc,ityp)
-                                do iloc=nloc-1,1,-1
-                                   tt=arg*tt+at%psppar(0,iloc,ityp)
-                                enddo
-                                ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                                pot_ion(ind)=pot_ion(ind)+xp*tt
-                             end if
-                          enddo
-                       end if
-                    enddo
-                 end if
-              end do
-
-           end if
-
-        enddo
-
-        if (htoobig) then
-           !add to pot_ion an explicit error function to correct in the case of big grid spacing
-           !for the moment works only in the isolated BC case
-           do i3=1,n3pi
-              z=real(i3+i3s-1-nbl3-1,gp)*hzh
-              do i2=1,n2i
-                 y=real(i2-nbl2-1,gp)*hyh
-                 do i1=1,n1i
-                    x=real(i1-nbl1-1,gp)*hxh
-                    ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                    call sum_erfcr(at%nat,at%ntypes,x,y,z,at%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
-                    pot_ion(ind)=pot_ion(ind)+potxyz
-                 end do
-              end do
-           end do
-        end if
-
-     end if
-
-  end if
-  call timing(iproc,'CrtLocPot     ','OF')
-
-
-  !plot the created potential (valid only with nproc =1 and geocode == 'F')
-     nl1=14
-     nu1=15
-     nl2=14
-     nu2=15
-     nl3=14
-     nu3=15
-
-  do iat=1,at%nat
-
-     open(unit=22,file='potential',status='unknown')
-
-     do i3=-nl3,2*n3+1+nu3
-        z=hzh*real(i3,gp)
-        do i2=-nl2,2*n2+1+nu2
-           y=hyh*real(i2,gp)
-           do i1=-nl1,2*n1+1+nu1
-              x=hxh*real(i1,gp)
-              if (z == rxyz(3,iat) .and. y ==  rxyz(2,iat)) then
-                 !print *,'value of the center',rxyz(1,iat)
-                 ind=i1+nl1+1+(i2+nl2)*n1i+(i3+nl3)*n1i*n2i
-                 write(22,'(1x,f9.5,1pe18.10)')x,pot_ion(ind)
-              end if
-           end do
-        end do
-     end do
-     close(22)
-  end do
-
-
-END SUBROUTINE createPotential
-!!***
 
 
 !!****f* BigDFT/psi_from_gaussians
@@ -725,7 +421,7 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   !local variables
   character(len=*), parameter :: subname='psi_from_gaussians'
   logical ::  randinp
-  integer :: iorb,icoeff,i_all,i_stat,jproc,nwork,info,jorb
+  integer :: iorb,icoeff,i_all,i_stat,jproc,nwork,info,jorb,i,j
   real(kind=4) :: tt
   real(wp), dimension(:,:), allocatable :: gaucoeffs
   real(gp), dimension(:), allocatable :: work,ev
@@ -744,6 +440,11 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   allocate(gaucoeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
 
+  !in view of complete gaussian calculation
+  allocate(ovrlp(G%ncoeff,G%ncoeff),stat=i_stat)
+  call memocc(i_stat,ovrlp,'ovrlp',subname)
+
+
   !the kinetic overlap is correctly calculated only with Free BC
   randinp = .true.!.false.!lr%geocode /= 'F'
 
@@ -756,7 +457,12 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
               call random_number(tt)
            end do
            call random_number(tt)
-           gaucoeffs(icoeff,iorb)=real(tt,wp)
+           !modification: initialisation coefficient equal to delta
+           if (icoeff==iorb) then
+              gaucoeffs(icoeff,iorb)=1.0_gp!real(tt,wp)
+           else
+              gaucoeffs(icoeff,iorb)=0.0_gp
+           end if
            do jproc=iproc+1,nproc-1
               call random_number(tt)
            end do
@@ -765,13 +471,19 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
 
      !othogonalise the gaussian basis (wrong with k-points)
      !call gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
+     
+     !calculate the overlap matrix
+     call gaussian_overlap(G,G,ovrlp)
+
+     !print it 
+     write(*,'(A37)') 'Overlap matrix with gaussian_overlap:'
+     do i=1,G%ncoeff
+        write(*,'(i4,10(1x,1pe19.12))')i,(ovrlp(i,j),j=1,G%ncoeff)
+     end do
 
   else
      !as an alternative strategy we may take the eigenvectors of the kinetic+k hamiltonian
 
-     !in view of complete gaussian calculation
-     allocate(ovrlp(G%ncoeff,G%ncoeff),stat=i_stat)
-     call memocc(i_stat,ovrlp,'ovrlp',subname)
 
      !overlap calculation of the kinetic operator, upper triangular part
      !call kinetic_overlap(G,G,ovrlp)
@@ -816,10 +528,6 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
         call dcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,orbs%nspinor*(iorb-1)+1),orbs%nspinor)
      end do
 
-
-     i_all=-product(shape(ovrlp))*kind(ovrlp)
-     deallocate(ovrlp,stat=i_stat)
-     call memocc(i_stat,i_all,'ovrlp',subname)
      i_all=-product(shape(work))*kind(work)
      deallocate(work,stat=i_stat)
      call memocc(i_stat,i_all,'work',subname)
@@ -831,6 +539,11 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
      !stop
 
   end if
+
+  i_all=-product(shape(ovrlp))*kind(ovrlp)
+  deallocate(ovrlp,stat=i_stat)
+  call memocc(i_stat,i_all,'ovrlp',subname)
+
 
   call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,&
        gaucoeffs,psi)
@@ -851,12 +564,12 @@ END SUBROUTINE psi_from_gaussians
 !!***
 
 
-!!****f* BigDFT/plot_wf_oneatom
+!!****f* BigDFT/plot_wf_sandbox
 !! FUNCTION
 !!
 !! SOURCE
 !!
-subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
+subroutine plot_wf_sandbox(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   use module_base
   use module_types
   implicit none
@@ -917,25 +630,22 @@ subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
  
   call daub_to_isf(lr,w,psi,psir)
 
-  do iat=1,at%nat
+  open(unit=22,file=trim(orbname),status='unknown')
 
-     open(unit=22,file=trim(orbname),status='unknown')
-
-     do i3=-nl3,2*n3+1+nu3
-        z=hzh*real(i3,gp)
-        do i2=-nl2,2*n2+1+nu2
-           y=hyh*real(i2,gp)
-           do i1=-nl1,2*n1+1+nu1
-              x=hxh*real(i1,gp)
-              if (z == rxyz(3,iat) .and. y ==  rxyz(2,iat)) then
-                 !print *,'value of the center',rxyz(1,iat)
-                 write(22,'(1x,f9.5,1pe18.10)')x,psir(i1,i2,i3)**nexpo
-              end if
-           end do
+  do i3=-nl3,2*n3+1+nu3
+     z=hzh*real(i3,gp)
+     do i2=-nl2,2*n2+1+nu2
+        y=hyh*real(i2,gp)
+        do i1=-nl1,2*n1+1+nu1
+           x=hxh*real(i1,gp)
+           if (i3 == n3+1 .and. i2 ==  n2+1) then
+           !print *,'value of the center',rxyz(1,iat)
+              write(22,'(1x,f9.5,1pe18.10)')x,psir(i1,i2,i3)**nexpo
+           end if
         end do
      end do
-     close(22)
   end do
+  close(22)
 
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
@@ -943,5 +653,5 @@ subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
 
   call deallocate_work_arrays_sumrho(w)
 
-END SUBROUTINE plot_wf_oneatom
-!!***
+END SUBROUTINE plot_wf_sandbox
+!%***

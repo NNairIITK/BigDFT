@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft test_forces memguess NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
+binaries_sources = bigdft test_forces memguess NEB frequencies MDanalysis rism sandbox $(minima_hopping_sources) bart abscalc
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -231,9 +231,9 @@ rism_LDADD = libbigdft.a \
 	$(libs_cuda) \
 	$(libs_ocl)
 
-oneatom_SOURCES = oneatom.f90
-oneatom_LDFLAGS = 
-oneatom_LDADD = libbigdft.a \
+sandbox_SOURCES = sandbox.f90
+sandbox_LDFLAGS = 
+sandbox_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
@@ -355,7 +355,7 @@ lanczos.o : lanczos_base.o lanczos_interface.o
 
 BigDFT_API.o : scfloop_API.o
 
-distances.o global.o rism.o oneatom.o : BigDFT_API.o
+distances.o global.o rism.o sandbox.o : BigDFT_API.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 

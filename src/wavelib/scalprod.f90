@@ -232,7 +232,7 @@ END SUBROUTINE wzero
 
 !wrapper of wpdot to avoid boundary problems in absence of wavelets
 !and to perform scalar product for complex wavefunctions and projectors
-!NOTE: is the wavefunctions are complex, so should be also the projectors
+!NOTE: if the wavefunctions are complex, so should be the projectors
 subroutine wpdot_wrap(ncplx,mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi,  &
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,scpr)
   use module_base
@@ -283,7 +283,7 @@ subroutine wpdot_wrap(ncplx,mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi, 
 
 END SUBROUTINE wpdot_wrap
 
-!this function must be generalized for the linear scaling code
+! this function must be generalized for the linear scaling code
 ! calculates the dot product between a wavefunctions apsi and a projector bpsi (both in compressed form)
 ! Warning: the subroutine assumes that bpsi has only one segment along each line,
 ! whereas apsi can have several segments. This assumption is true if bpsi is a projector 
@@ -338,14 +338,14 @@ subroutine wpdot(  &
   ibseg=1
   !for each segment of the first function
   loop_jac: do iaseg=1,maseg_c
-     jaj=keyav_c(iaseg)
-     ja0=keyag_c(1,iaseg)
-     ja1=keyag_c(2,iaseg)
+     jaj=keyav_c(iaseg)          ! starting point of segment iaseg of first function [compressed form]
+     ja0=keyag_c(1,iaseg)        ! starting point of segment iaseg of first function [uncompressed form]
+     ja1=keyag_c(2,iaseg)        ! ending point of segment iaseg of first function [uncompressed form]
 
      !control if it intersects a segment of the second function
      loop_jbc: do
-        jb1=keybg_c(2,ibseg)
-        jb0=keybg_c(1,ibseg)
+        jb1=keybg_c(2,ibseg)     ! ending point of segment of second fonction [uncompressed]
+        jb0=keybg_c(1,ibseg)     ! starting point of segment of second fonction [uncompressed]
         if (jb1 < ja0) then !not yet there increase the count
            ibseg=ibseg+1
            if (ibseg > mbseg_c) exit loop_jac !function b ended
@@ -353,11 +353,11 @@ subroutine wpdot(  &
         end if
         if (jb0 > ja1) exit loop_jbc  !we went through, don't increase count, exit inner loop
 
-        jbj=keybv_c(ibseg)
+        jbj=keybv_c(ibseg)        ! starting point of segment of second fonction [compressed]
         if (ja0 .gt. jb0) then 
            iaoff=0
-           iboff=ja0-jb0
-           length=min(ja1,jb1)-ja0
+           iboff=ja0-jb0             ! length not overlapping
+           length=min(ja1,jb1)-ja0   ! length of overlap
         else
            iaoff=jb0-ja0
            iboff=0
@@ -372,14 +372,12 @@ subroutine wpdot(  &
            scpr0=scpr0+pac*pbc
         enddo
         ibseg=ibseg+1
+        
         if (ibseg > mbseg_c) exit loop_jac !function b ended 
      end do loop_jbc
   enddo loop_jac
-
 !$  endif
   !print *,'nvctr_c',llc,mavctr_c,mbvctr_c
-
-
 !$  if (ithread .eq. 1  .or. nthread .eq. 1) then
   scpr1=0.0_dp
   scpr2=0.0_dp
@@ -392,7 +390,10 @@ subroutine wpdot(  &
   ! fine part
   !add possibility of zero fine segments for the projectors
   ibseg=1
+ ! write(*,*)'scpr0',scpr0
+  
   if (mbseg_f /= 0) then
+
      loop_jaf: do iaseg=1,maseg_f
         jaj=keyav_f(iaseg)
         ja0=keyag_f(1,iaseg)
