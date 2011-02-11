@@ -33,6 +33,27 @@ AC_FC_SRCEXT(f90)
 dnl Fortran 77 (to be removed)
 AC_PROG_F77([], [Fortran 77])
 
+dnl Set if the module name are capitalized or not with the FC compiler.
+AC_MSG_CHECKING([for module extension for compiler '$fc_type'])
+case "$fc_type" in
+  "pathscale")
+     capitalize_module=yes
+     capitalize_module_ext="mod" ;;
+  "mipspro")
+     capitalize_module=yes
+     capitalize_module_ext="mod" ;;
+  *)
+     capitalize_module=no
+     capitalize_module_ext="mod" ;;
+esac
+AC_MSG_RESULT([$capitalize_module_ext])
+
+dnl We custom the module naming scheme depending on the compiler
+dnl and the platform.
+dnl Not done yet
+AM_CONDITIONAL(CAPITALIZE, test "$capitalize_module" = "yes")
+AC_SUBST(MODULE_EXT, $capitalize_module_ext)
+
 dnl Set the FCFLAGS and FFLAGS variable
 if test -z "$FFLAGS" ; then
   AC_SUBST(FFLAGS, "-O2")
@@ -139,62 +160,116 @@ AC_SUBST(MPI_INCLUDE)
 AC_SUBST(MPI_LDFLAGS)
 
 
-dnl Use the GPU computing (only NVIDIA cards with CUDA libraries)
-AC_MSG_CHECKING([for GPU computing with CUDA libraries])
-ac_use_cuda_gpu="no"
-AC_ARG_ENABLE(cuda-gpu, AS_HELP_STRING([--enable-cuda-gpu], [Use CUDA implementation for GPU convolutions (disabled by default).]),
-                         ac_use_cuda_gpu=$enableval, ac_use_cuda_gpu="no")
-AM_CONDITIONAL(USE_CUDA_GPU, test "$ac_use_cuda_gpu" = "yes")
-AC_MSG_RESULT([$ac_use_cuda_gpu])
-if test x"$ac_use_cuda_gpu" = "xyes" ; then
-  dnl Local CUDA usage (beside S_GPU).
-  dnl Optional Cuda installation dir.
-  AC_ARG_WITH(cuda-path, AS_HELP_STRING([--with-cuda-path], [give the path to the NVidia Cuda tools (default is /usr/local/cuda).]),
-                         [ac_with_cuda_path=$withval], [ac_with_cuda_path="/usr/local/cuda"])
-  CUDA_PATH=$ac_with_cuda_path
-  AC_SUBST(CUDA_PATH)
-  dnl Test the existence of things.
-  AC_PATH_PROG([NVCC], [nvcc], [$ac_with_nvcc], [$PATH:${ac_with_cuda_path}/bin])
-  AC_SUBST(NVCC)
-
-  dnl Test the link on libcudart and libcublas.
-  AC_LANG_PUSH(C)
-  LIBS_OLD=$LIBS
-  ac_cuda_lib_path="$ac_with_cuda_path/lib"
-  LIBS="-L$ac_cuda_lib_path $LIBS"
-  AC_CHECK_LIB(cublas, cublasSsymv, withlibcublas=yes, withlibcublas=no, [-lcudart])
-  if test "$withlibcublas" = "no"; then
-    ac_cuda_lib_path="$ac_with_cuda_path/lib64"
-    LIBS="-L$ac_cuda_lib_path $LIBS_OLD"
-    AC_CHECK_LIB(cublas, cublasScopy, withlibcublas=yes, withlibcublas=no, [-lcudart])
-  fi
-  if test "$withlibcublas" = "no"; then
-    AC_MSG_ERROR(["No 'cublas' library found, link will fail."])
-  fi
-  LIBS=$LIBS_OLD
-  AC_LANG_POP(C)
-
-  dnl Add the flags.
-  AC_ARG_WITH(cuda-cflags, AS_HELP_STRING([--with-nvcc-flags], [specify the flags for the NVidia Cuda Compiler (default is '-O3 --compiler-options -fno-strict-aliasing').]),
-                         [ac_with_nvcc_flags=$withval],
-                         [ac_with_nvcc_flags="no"])
-  if test x"$ac_with_nvcc_flags" != x"no" ; then
-    NVCC_FLAGS="$ac_with_nvcc_flags"
-  else
-    if test -z "NVCC_FLAGS" ; then
-      NVCC_FLAGS="-O3 --compiler-options -fno-strict-aliasing"
-    fi
-  fi
-  AC_SUBST(NVCC_FLAGS)
-  LIBCUDA_LIBS="-L$ac_cuda_lib_path -lcudart -lcublas"
-fi
-
-
 dnl atom and pseudo executables
 AC_ARG_ENABLE(binaries, AS_HELP_STRING([--disable-binaries], [build the binaries (default = yes).]), ac_build_bin_pseudo=$enableval, ac_build_bin_pseudo="yes")
 AM_CONDITIONAL(BUILD_BINARIES, test "$ac_build_bin_pseudo" = "yes")
 AC_MSG_CHECKING([for pseudo binaries build])
 AC_MSG_RESULT([$ac_build_bin_pseudo])
+
+
+dnl ---------------------------------------
+dnl Test the linking part only if required.
+if test "$ac_build_bin_pseudo" = "yes" ; then
+
+dnl Substitute Lapack and Blas by another specific library
+withlinalg=no
+AC_ARG_WITH(ext-linalg, AS_HELP_STRING([--with-ext-linalg],
+            [Give the name of the libraries replacing Blas and Lapack (default = none specified). Use the -l before the name(s).]),
+            ac_linalg=$withval, ac_linalg=)
+AC_ARG_WITH(ext-linalg-path, AS_HELP_STRING([--with-ext-linalg-path],
+            [Give the path of the other linear algebra libraries (default = -L/usr/lib). Use the -L before the path(es).]),
+            ac_linalg_dir=$withval, ac_linalg_dir=)
+if test -n "$ac_linalg_dir" ; then
+  LDFLAGS="$LDFLAGS $ac_linalg_dir"
+fi
+if test -n "$ac_linalg" ; then
+#  AC_LANG_CONFTEST([[program main
+#                     call dsysv
+#                     end program main]])
+  AC_MSG_CHECKING([for dsysv in $ac_linalg])
+  LIBS_OLD=$LIBS
+  LIBS="$ac_linalg $LIBS"
+  AC_LINK_IFELSE([[program main
+  call dsysv
+end]], withlinalg=yes, withlinalg=no)
+#  AC_CHECK_LIB($ac_linalg, dsysv, withlinalg=yes, withlinalg=no)
+  if test "$withlinalg" = "no"; then
+    LIBS=$LIBS_OLD
+  fi
+  AC_MSG_RESULT([$withlinalg])
+fi
+
+if test "$withlinalg" = "no" ; then
+dnl Get the Blas library
+blas=yes
+AC_ARG_WITH(blas, AS_HELP_STRING([--with-blas], [Link with Blas library (default = yes).]), blas=$withval, blas=yes)
+AC_ARG_WITH(blas-path, AS_HELP_STRING([--with-blas-path], [Give the path of the Blas library (default = /usr/lib).]),
+            ac_blas_dir=$withval, ac_blas_dir=)
+if test -n "$ac_blas_dir" ; then
+  LDFLAGS="$LDFLAGS -L$ac_blas_dir"
+fi
+withblas=no
+if test "$blas" = "yes" ; then
+  AC_CHECK_LIB(blas, dcopy, withblas=yes, withblas=no)
+  if test "$withblas" = "yes"; then
+    LIBS="-lblas $LIBS"
+  fi
+fi
+
+dnl Get the lapack library
+lapack=yes
+AC_ARG_WITH(lapack, AS_HELP_STRING([--with-lapack], [Link with Lapack library (default = yes).]), lapack=$withval, lapack=yes)
+AC_ARG_WITH(lapack-path, AS_HELP_STRING([--with-lapack-path], [Give the path of the Lapack library (default = /usr/lib).]),
+            ac_lapack_dir=$withval, ac_lapack_dir=)
+if test -n "$ac_lapack_dir" ; then
+  LDFLAGS="$LDFLAGS -L$ac_lapack_dir"
+fi
+withlapack=no
+if test "$lapack" = "yes" ; then
+  AC_CHECK_LIB(lapack, dsysv, withlapack=yes, withlapack=no)
+  if test "$withlapack" = "yes"; then
+    LIBS="-llapack $LIBS"
+  fi
+fi
+
+fi #end $withlinalg = no
+
+dnl Fallbacks for linear algebra libraries
+if [ test $withlinalg = "no" && test $withblas = "no" ] ; then
+  AC_MSG_ERROR(["No blas library. Use --with-blas-path or check your Blas installation."])
+fi
+if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
+  AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation."])
+fi
+
+dnl Test the libXC library
+AC_ARG_WITH(libxc-path, AS_HELP_STRING([--with-libxc-path], [Give the path for an external libXC library, lib and module files (default = None).]),
+            ac_libxc_dir=$withval, ac_libxc_dir=)
+ac_use_libxc="no"
+if test -n "$ac_libxc_dir" ; then
+  LDFLAGS="$LDFLAGS -L$ac_libxc_dir"
+  dnl Test the given implementation of libXC.
+  AC_CHECK_LIB(xc, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+  AC_CHECK_FILE($ac_libxc_dir/libxc_funcs_m.$capitalize_module_ext, funcs="yes", funcs="no")
+  AC_CHECK_FILE($ac_libxc_dir/xc_f90_lib_m.$capitalize_module_ext, lib="yes", lib="no")
+  AC_CHECK_FILE($ac_libxc_dir/xc_f90_types_m.$capitalize_module_ext, types="yes", types="no")
+  if test "$withlibxc" = "yes" -a "$funcs" = "yes" -a "$lib" = "yes" -a "$types" = "yes"; then
+    ac_use_libxc="yes"
+    AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir)
+    AC_SUBST(LIBXC_LIBS,"-L"$ac_libxc_dir" -lxc")
+  fi
+fi
+FCFLAGS="$FCFLAGS $LIBXC_INCLUDE"
+LIBS="$LIBXC_LIBS $LIBS"
+dnl flags for F77 (to be removed)
+FFLAGS="$FFLAGS $LIBXC_INCLUDE"
+
+dnl Fallbacks for libXC library
+if [ test $ac_use_libxc = "no" && test $ac_use_libxc = "no" ] ; then
+  AC_MSG_ERROR(["No libxc library. Use --with-libxc-path or check your libxc installation."])
+fi
+fi # End of the if library compilation
+
 
 
 dnl Give the name of file.in to transform to file
@@ -210,6 +285,8 @@ pseudo configure summary:
 ========================
 
 Basics:
+  Fortran77 compiler:        $F77
+  Fortran77 flags:           $FFLAGS
   Fortran90 compiler:        $FC
   Fortran90 compiler name:   $fc_type
   Fortran90 flags:           $FCFLAGS
@@ -225,12 +302,9 @@ Options:
    | Linker flags:           $MPI_LDFLAGS
    | Linked libraries:       $MPI_LIBS
    | MPI2 support:           $ac_with_mpi2
-  With Cuda GPU:             $ac_use_cuda_gpu
-   | NVidia Cuda Compiler:   $NVCC
-   | Cuda flags:             $CUDA_FLAGS
   With libXC:                $ac_use_libxc
-   | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE
+   | linked libraries:       $LIBXC_LIBS
 
 Installation paths:
   Source code location:      ${srcdir}
