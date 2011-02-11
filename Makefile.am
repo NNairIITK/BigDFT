@@ -22,7 +22,7 @@ else
 libSGPU_dir = 
 endif
 
-if BUILD_BIN_PSEUDO
+if BUILD_PSEUDO
 pseudo_dir = pseudo
 else
 pseudo_dir =

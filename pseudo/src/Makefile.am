@@ -38,7 +38,7 @@ pseudo_LDADD = \
 
 #List of sources (objects) grouped by dependencies
 
-OBJf77	=crtvh.o \
+OBJf77 = crtvh.o \
 	penalty.o \
 	amoeba.o \
 	gatom.o \

@@ -343,7 +343,7 @@ dnl the standalone executable (required linking tests)
 ac_build_bin_cluster="yes"
 dnl the PSEUDO generators (atom and pseudo executables)
 ac_build_bin_pseudo="yes"
-AM_CONDITIONAL(BUILD_BIN_PSEUDO, test "$ac_build_bin_pseudo" = "yes")
+AM_CONDITIONAL(BUILD_PSEUDO, test "$ac_build_bin_pseudo" = "yes")
 
 
 dnl disable different build
