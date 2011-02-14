@@ -70,11 +70,11 @@ CLEANFILES = mpif.h
 
 # Dependencies
 atom.o: xcfunction.o driveXC.o
-amoeba.o: mpif.h
-ekin_gauss_wvlt.cublas.o: mpif.h
-ekin_gauss_wvlt.o: mpif.h
-penalty.o: mpif.h
-pseudo.o: mpif.h
+penalty.o: $(mpi_include)
+pseudo.o: $(mpi_include)
+amoeba.o: $(mpi_include)
+ekin_gauss_wvlt.cublas.o: $(mpi_include)
+ekin_gauss_wvlt.o: $(mpi_include)
 
 #Fake mpif.h for serial compilation
 mpif.h:
