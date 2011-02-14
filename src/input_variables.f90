@@ -392,8 +392,7 @@ subroutine mix_input_variables(filename,in)
   type(input_variables), intent(inout) :: in
   !local variables
   character(len=*), parameter :: subname='mix_input_variables'
-  character(len = 128) :: line
-  integer :: i_stat,ierror,iline
+  integer :: ierror,iline
   logical :: exists
 
   inquire(file=filename,exist=exists)
@@ -1991,7 +1990,7 @@ subroutine charge_and_spol(natpol,nchrg,nspol)
 
 END SUBROUTINE charge_and_spol
 !!***
-i
+
 
 !!****f* BigDFT/write_atomic_file
 !! FUNCTION

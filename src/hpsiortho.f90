@@ -41,7 +41,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(wp), dimension(:), pointer :: hpsi2
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX,op2p
-  integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
+  integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
 !OCL  integer, dimension(3) :: periodic
 !OCL  real(wp) :: maxdiff
@@ -229,7 +229,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ng
   !local variables
   character(len=*), parameter :: subname='full_local_potential'
   logical :: exctX
-  integer :: npot,ispot,ispotential,ispin,ierr,i_stat,i_all
+  integer :: npot,ispot,ispotential,ispin,ierr,i_stat
 
   call timing(iproc,'Rho_commun    ','ON')
   
@@ -320,10 +320,8 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   character(len=*), parameter :: subname='hpsitopsi'
   !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
   integer :: ierr,iorb,k,i_stat,i_all,nzeroorbs
-  real(dp) :: tt
   real(wp), dimension(:,:,:), allocatable :: mom_vec
 
-integer:: i
 !OCL  real(wp) :: maxdiff
 !OCL  integer, dimension(3) :: periodic
 
@@ -703,7 +701,7 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
  real(gp), intent(in) :: wf
  type(orbitals_data), intent(inout) :: orbs
  !local variables
- integer :: iu,id,i,n,nzeroorbs,ikpt,iorb,melec,ii
+ integer :: ikpt,iorb,melec,ii
  real(gp) :: charge
  real(gp) :: ef,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
  parameter(pi=3.1415926535897932d0)
@@ -815,7 +813,7 @@ subroutine eFermi_nosmearing(iproc,orbs)
   integer, intent(in) :: iproc
   type(orbitals_data), intent(inout) :: orbs
   !local variables
-  integer :: iu,id,i,n,nzeroorbs,ikpt,iorb
+  integer :: iu,id,n,nzeroorbs,ikpt,iorb
   real(gp) :: charge
   real(wp) :: eF
 
@@ -959,7 +957,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   character(len=*), parameter :: subname='check_communications'
   integer :: i,ispinor,iorb,indspin,indorb,jproc,i_stat,i_all,iscomp,idsx,index,ikptsp
   integer :: ikpt,ispsi,nspinor,nvctrp
-  real(wp) :: vali,valorb,psival,maxdiff,ierr,valkpt
+  real(wp) :: psival,maxdiff,ierr
   real(wp), dimension(:), allocatable :: psi
   real(wp), dimension(:), pointer :: pwork
   real(wp) :: epsilon
