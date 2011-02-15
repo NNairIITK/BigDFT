@@ -145,6 +145,7 @@ convolution_objects = $(convolution_source:.f90=.o)
 
 #modules for types, interfaces and base variables
 modules_source = modules/base.f90 \
+	modules/defs.f90 \
 	modules/types.f90 \
 	modules/interfaces.f90 \
 	$(GPU_BLAS)
@@ -215,7 +216,6 @@ libbigdft_a_SOURCES = \
 	$(high_level)
 
 libbigdft_a_LIBADD = profiling/time.o \
-	profiling/memory.o \
 	profiling/memoryestimator.o \
 	$(convolution_objects) \
 	$(modules_objects) 

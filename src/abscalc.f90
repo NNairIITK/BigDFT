@@ -834,7 +834,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         print *, "controllo ",  trim(filename)//'.cube', exists
         if(exists) then
 
-           call read_cube(trim(filename),atoms%geocode,n1i_bB,n2i_bB,n3i_bB, nspin , hx_old ,hy_old ,hz_old ,pot_bB, nat_b2B, rxyz_b2B, iatype_b2B, znucl_b2B)
+           call read_cube(trim(filename),atoms%geocode,n1i_bB,n2i_bB,n3i_bB, &
+                & nspin , hx_old ,hy_old ,hz_old ,pot_bB, nat_b2B, rxyz_b2B, iatype_b2B, znucl_b2B)
            !call read_density_cube_old(trim(filename), n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
            hx_old=hx_old*2
            hy_old=hy_old*2

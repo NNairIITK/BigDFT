@@ -75,6 +75,7 @@
   !assign the verbosity of the output
   !the verbose variables is defined in module_base
   verbose=in%verbosity
+  call memocc_set_verbosity(verbose)
 
   inputPsiId_orig=in%inputPsiId
 

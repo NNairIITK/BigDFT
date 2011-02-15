@@ -44,6 +44,8 @@ program BigDFT
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+  call memocc_set_memory_limit(memorylimit)
+
   ! find out which input files will be used
   inquire(file="list_posinp",exist=exist_list)
   if (exist_list) then

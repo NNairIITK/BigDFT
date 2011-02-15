@@ -879,7 +879,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
   
   
   ! Set performance variables
-  memdebug = inputs%debug
+  call memocc_set_debug(inputs%debug)
   call set_cache_size(inputs%ncache_fft)
   
   ! Output

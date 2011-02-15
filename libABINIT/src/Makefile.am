@@ -30,6 +30,7 @@ libabinit_a_SOURCES = \
 	16_hideleave/interfaces_16_hideleave.F90 \
 	18_timing/interfaces_18_timing.F90 \
 	18_timing/timab.F90 \
+	18_memory/m_profiling.F90 \
 	28_numeric_noabirule/interfaces_28_numeric_noabirule.F90 \
 	28_numeric_noabirule/sort_dp.F90 \
 	28_numeric_noabirule/sort_int.F90 \
@@ -126,6 +127,7 @@ CLEANFILES = mpif.h \
 	defs_datatypes.@MODULE_EXT@ DEFS_DATATYPES.@MODULE_EXT@ \
 	defs_parameters.@MODULE_EXT@ DEFS_PARAMETERS.@MODULE_EXT@ \
 	defs_xc.@MODULE_EXT@ DEFS_XC.@MODULE_EXT@ \
+	m_profiling.@MODULE_EXT@ M_PROFILING.@MODULE_EXT@ \
 	libxc_functionals.@MODULE_EXT@ LIBXC_FUNCTIONALS.@MODULE_EXT@ \
 	interfaces_14_hidewrite.@MODULE_EXT@ INTERFACES_14_HIDEWRITE.@MODULE_EXT@ \
 	interfaces_16_hideleave.@MODULE_EXT@ INTERFACES_16_HIDELEAVE.@MODULE_EXT@ \
