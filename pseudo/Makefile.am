@@ -3,5 +3,7 @@ EXTRA_DIST = \
 	doc \
 	input-files
 
-SUBDIRS = src
+SUBDIRS = \
+	src \
+	tests
 

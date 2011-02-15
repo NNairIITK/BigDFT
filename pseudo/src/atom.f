@@ -1,4 +1,3 @@
-
       program main
 c
 c     run atomic program
@@ -578,8 +577,8 @@ c     c.hartwig give energies in hartree; no virial correction
      5 /,28h vxc    correction         =,f18.8,
      7 /,28h exchange + corr energy    =,f18.8,
      8 /,28h kinetic energy from ev    =,f18.8,
-     9 /,28h potential energy          =,e18.8,/,1x,45('-'),
-     X /,28h total energy              =,f18.8)
+     9 /,28h potential energy          =,1pe18.8,/,1x,45('-'),
+     X /,28h total energy              =,0pf18.8)
        return
        end
 c
@@ -2635,7 +2634,7 @@ c
             write(6,*) 'ddcharge     = int_0^infinity (f^2+g^2) r^6 dr '
          endif
          write(6,21)
- 21      format(/,' nl   s    occ',4x,'eigenvalue',3x,'charge(rcov)',
+ 21      format(/,' nl   s    occ',5x,'eigenvalue',4x,'charge(rcov)',
      1        4 x,'dcharge',4x,'ddcharge')
       endif
 c     Collect 2nd and 4th moment of the core charge density for NCC 
@@ -2643,7 +2642,7 @@ c     Collect 2nd and 4th moment of the core charge density for NCC
       ddcrc=ddcrc+zo(iorb)*ddcrcov
       write(6,31) no(iorb),il(lo(iorb)+1),so(iorb),zo(iorb),
      :     (ev(iorb)-vshift)/2.,crcov,dcrcov,ddcrcov
- 31   format(1x,i1,a1,f4.1,f8.3,2e14.7,2e12.5)
+ 31   format(1x,i1,a1,f4.1,f8.3,2(1pe15.7),2(1pe12.5))
 c      write(6,*) 'drcov at rcov :',ddd
 c      write(6,*) 'ddrcov at rcov:',dddd
        name = 'r extr    '

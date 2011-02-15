@@ -12,7 +12,7 @@ The program atom.f carries out all electron DFT calculations of an atom using in
 splines. For this, either the LDA, LSD or RLDA approximations may be used, or their gradient
 corrected counterparts, based on the functionals from the libXC libraries. 
 The input conventions for the file atom.dat are mostly the same as in previous versions of atom.f.
-
+PADE (ixc=-20) and PBE (ixc=-101130) is also accepted.
 
 
 Example for the input file atom.dat:

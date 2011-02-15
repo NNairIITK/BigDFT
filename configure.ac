@@ -585,6 +585,7 @@ utils/Makefile
 utils/PSPfiles/Makefile
 pseudo/Makefile
 pseudo/src/Makefile
+pseudo/tests/Makefile
 doc/Makefile
 tests/Makefile
 tests/fft/Makefile
