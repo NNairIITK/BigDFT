@@ -58,13 +58,6 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
         ikpt=orbs%iokpt(iorb)
      end if
 
-!     ! define zero energy for preconditioning 
-!     eval_zero=max(orbs%eval(orbs%norb),0.d0)  !  Non-spin pol
-!     if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then    !spin-pol
-!        eval_zero=max(orbs%eval(orbs%norbu),0.d0)  !up orbital
-!     else if (orbs%spinsgn(orbs%isorb+iorb) < 0.0_gp) then
-!        eval_zero=max(orbs%eval(orbs%norbu+orbs%norbd),0.d0)  !down orbital
-!     end if
      !indo=(iorb-1)*nspinor+1
      !loop over the spinorial components
      !k-point values, if present

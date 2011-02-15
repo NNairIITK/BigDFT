@@ -1599,7 +1599,7 @@ contains
   subroutine deallocate_before_exiting
     
     !when this condition is verified we are in the middle of the SCF cycle
-    if (infocode /=0 .and. infocode /=1) then
+    if (infocode /=0 .and. infocode /=1 .and. in%inputPsiId /=-1000) then
        
        if (in%idsx > 0) then
           call deallocate_diis_objects(diis,subname)
