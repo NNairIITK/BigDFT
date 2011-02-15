@@ -58,3 +58,72 @@ void FC_FUNC_(ocl_fulllocham_generic,OCL_FULLLOCHAM_GENERIC)(bigdft_command_queu
 	      nseg_f, nvctr_f, keyg_f, keyv_f,
 	      psi_c, psi_f, psi);
 }
+
+void FC_FUNC_(ocl_fulllocham_generic_k,OCL_FULLLOCHAM_GENERIC_K)(bigdft_command_queue *command_queue,
+                                          cl_uint *dimensions,
+                                          cl_uint *periodic,
+                                          double *h,
+                                          double *k,
+                                          cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
+                                          cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                          cl_mem *psi_c_r, cl_mem *psi_f_r,
+                                          cl_mem *psi_c_i, cl_mem *psi_f_i,
+                                          cl_mem *pot, 
+                                          cl_mem *psi_r, cl_mem *out_r, cl_mem *work_r,
+                                          cl_mem *psi_i, cl_mem *out_i, cl_mem *work_i,
+                                          cl_mem *kinres_r,
+                                          cl_mem *kinres_i,
+                                          cl_uint *nspinor,
+                                          double *epot_r,double *ekinpot_r,
+                                          double *epot_i,double *ekinpot_i) {
+  *epot_i = 0.0;
+  *ekinpot_i = 0.0;
+  uncompress_d_(command_queue, dimensions,
+                               nseg_c, nvctr_c, keyg_c, keyv_c,
+                               nseg_f, nvctr_f, keyg_f, keyv_f,
+                               psi_c_r, psi_f_r, out_r);
+  syn_self_d_generic_(command_queue, dimensions, periodic, out_r, psi_r);
+  potential_application_d_generic_(command_queue, dimensions, periodic, work_r, kinres_r, psi_r, out_r, pot, epot_r);
+  if(*nspinor==2){
+    uncompress_d_(command_queue, dimensions,
+                               nseg_c, nvctr_c, keyg_c, keyv_c,
+                               nseg_f, nvctr_f, keyg_f, keyv_f,
+                               psi_c_i, psi_f_i, out_i);
+    syn_self_d_generic_(command_queue, dimensions, periodic, out_i, psi_i);
+    potential_application_d_generic_(command_queue, dimensions, periodic, work_i, kinres_i, psi_i, out_i, pot, epot_i);
+  }
+
+
+  cl_uint n1 = dimensions[0] * 2;             
+  cl_uint n2 = dimensions[1] * 2;
+  cl_uint n3 = dimensions[2] * 2;
+  if( !periodic[0] ) n1 += 2*7;
+  if( !periodic[1] ) n2 += 2*7;
+  if( !periodic[2] ) n3 += 2*7;
+  cl_uint ndat = n1*n2*n3;
+
+  if(*nspinor==2) {
+    double c = .5 * (k[0] * k[0] + k[1] * k[1] + k[2] * k[2]);
+    axpy_self_d_(command_queue, &ndat, &c, psi_r, out_r);
+    axpy_self_d_(command_queue, &ndat, &c, psi_i, out_i);
+    kinetic_k_d_generic_(command_queue, dimensions, periodic, h, k, psi_r, psi_i, out_r, out_i, work_r, work_i, kinres_r, kinres_i);
+  } else {
+    kinetic_d_generic_(command_queue, dimensions, periodic, h, psi_r, out_r, work_r, kinres_r);
+  }
+
+  dot_d_async_(command_queue,&ndat, work_r, kinres_r, psi_r, out_r, ekinpot_r);
+  ana_self_d_generic_(command_queue, dimensions, periodic, kinres_r, psi_r);
+  compress_d_(command_queue, dimensions,
+	      nseg_c, nvctr_c, keyg_c, keyv_c,
+	      nseg_f, nvctr_f, keyg_f, keyv_f,
+	      psi_c_r, psi_f_r, psi_r);
+  if(*nspinor==2){
+    dot_d_async_(command_queue,&ndat, work_i, kinres_i, psi_i, out_i, ekinpot_i);
+    ana_self_d_generic_(command_queue, dimensions, periodic, kinres_i, psi_i);
+    compress_d_(command_queue, dimensions,
+	      nseg_c, nvctr_c, keyg_c, keyv_c,
+	      nseg_f, nvctr_f, keyg_f, keyv_f,
+	      psi_c_i, psi_f_i, psi_i);
+
+  }
+}
