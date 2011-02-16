@@ -31,7 +31,7 @@ atom_LDADD = \
 	$(libs_cuda)
 
 
-pseudo_SOURCES = pseudo.f $(low_level) $(f90_level) $(xc_level) $(mpi_source)
+pseudo_SOURCES = pseudo.f $(low_level) $(f90_level) $(xc_level) $(cuda_level) $(mpi_source)
 pseudo_LDADD = \
 	$(LMPI) \
 	@MPI_LIBS@ \
@@ -64,6 +64,14 @@ f90_level = \
 xc_level = \
 	xcfunction.f90 \
 	driveXC.f90
+
+
+if USE_CUDA_GPU
+cuda_level = cublas.fortran.bindings.o \
+			 ekin_gauss_wvlt.cublas.o
+else
+cuda_level =
+endif
 
 
 CLEANFILES = mpif.h

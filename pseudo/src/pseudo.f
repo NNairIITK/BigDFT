@@ -357,10 +357,10 @@ c
              ierr=3
           end if
       end if
-         write(errmsg,*)'atomic reference file missing!'
-         call errorhandler(ierr,iproc,nproc,errmsg)
+      write(errmsg,*)'atomic reference file missing!'
+      call errorhandler(ierr,iproc,nproc,errmsg)
+
       open(unit=40,file=trim(label),form='formatted',status='unknown')
-c     open(unit=40,file='atom.ae',form='formatted',status='unknown')
       read(40,*,iostat=ierr) norb, wghtconf
          if(ierr/=0)ierr=3
          write(errmsg,*)'error: 1st line of AE ref data'
@@ -464,7 +464,7 @@ c     :     'dcharge         ddcharge'
 
 
 c     this file should hold all ae plots
-      if(plotwf.and.iproc==0) open(41,file='ae.orbitals.plt')
+      if(plotwf.and.iproc==0) open(unit=41,file='ae.orbitals.plt')
 c     read the AE data
       do iorb=1,norb
          read(40,*,iostat=ierr) no(iorb),lo(iorb),so(iorb),zo(iorb),
@@ -474,33 +474,33 @@ c    :        ev(iorb),crcov(iorb),dcrcov(iorb),ddcrcov(iorb),plotfile
          if(ierr/=0)ierr=3
          write(errmsg,*)'reading error in AE ref data'
          call errorhandler(ierr,iproc,nproc,errmsg)
-       write(6,30) no(iorb),il(lo(iorb)+1),so(iorb),zo(iorb),
+         write(6,30) no(iorb),il(lo(iorb)+1),so(iorb),zo(iorb),
      :        ev(iorb),crcov(iorb)
 c    :        ev(iorb),crcov(iorb),dcrcov(iorb),ddcrcov(iorb)
  30      format(1x,i1,a1,f6.1,f10.4,2f16.10,2f16.7,a)
          if(plotwf.and.iproc==0)then
-c         use this statement if atom is compiled to write one file
-c         per configuration and orbital
-c         open(41,file=trim(plotfile))
-          read(41,*)
-          read(41,*)
-          do igrid=1,ngrid
-            read(41,*,iostat=ierr) rae(igrid),(gf(igrid,iorb,igf),
-     :        igf=1,nspin)
-c           error handling in the loop is slow, but better give detailed feedback
-c           for now, we only plot the ground state, i.e. atom.00.ae
-            if(ierr/=0)ierr=2
-c            write(errmsg,*)'error reading AE plots',
-c    :                  trim(plotfile),
-c     :                 'orb',iorb,'pt',igrid
-c            call errorhandler(ierr,iproc,nproc,errmsg)
-          end do
-          read(41,*)
-c         do not close this unit when reading from one single file
-c         close(41)
+c           use this statement if atom is compiled to write one file
+c           per configuration and orbital
+c           open(41,file=trim(plotfile))
+            read(41,*)
+            read(41,*)
+            do igrid=1,ngrid
+              read(41,*,iostat=ierr) rae(igrid),(gf(igrid,iorb,igf),
+     :          igf=1,nspin)
+c             error handling in the loop is slow, but better give detailed feedback
+c             for now, we only plot the ground state, i.e. atom.00.ae
+              if(ierr/=0)ierr=2
+c              write(errmsg,*)'error reading AE plots',
+c    :                    trim(plotfile),
+c     :                   'orb',iorb,'pt',igrid
+c              call errorhandler(ierr,iproc,nproc,errmsg)
+            end do
+            read(41,*)
+c           do not close this unit when reading from one single file
+c           close(unit=41)
          end if
       enddo
-      if(plotwf) close(41)
+      if(plotwf) close(unit=41)
       goto 457
 c 456  write(6,*) 'error during reading atom.ae'
 c      stop
@@ -671,7 +671,7 @@ c        different conventions of etot in gatom and atom.f
          write(6,*)
          write(6,*)'excitation energies (AE)'
          do i=0,nproc-1
-             write(6,'(1x,i3,3(1x,e20.10))')
+             write(6,'(1x,i3,3(1x,1pe20.10))')
      :       i, excit(i+1)
          end do
          ierr=0
@@ -1259,7 +1259,7 @@ c           a=a0*tt**i
          write(6,*)'______________'
          write(6,*)
          write(6,'(a,4(1pe11.4))') ' amin,amax',a0,a
-         write(6,'(a,t10,3(e11.4),a,2(1pe11.4))') ' gaussians ',
+         write(6,'(a,t10,3(1pe11.4),a,2(1pe11.4))') ' gaussians ',
      &        xp(1),xp(2),xp(3),' .... ',xp(ng-1),xp(ng)
          write(6,*)'gaussians:',ng
 c     set up radial grid
@@ -1301,7 +1301,7 @@ c        criterion for the simplex (FTOL)
          if(ierr.eq.0)then
 c            write(6,*)'Optional fitting paramaters from'//
 c     :                ' the first line of FITPAR:'
-            write(6,'(1x,a,e20.10,1x,i3,1x,g15.5)')
+            write(6,'(1x,a,1pe20.10,1x,i3,1x,g15.5)')
      :           'initial width, tries and spread for convergence ',
      :                          dh,ntrymax,FTOL
          else
@@ -1403,7 +1403,7 @@ c                the following lines differ from pseudo2.2
      :           iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,
      :           nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,frmult,
      :           excitAE,ntime,iter,itertot,penref,time)
-c              write(6,'(4x,i3,4x,e20.10)')i,yp(i)
+c              write(6,'(4x,i3,4x,1pe20.10)')i,yp(i)
 CMK            CALL FLUSH(6)
             enddo
             write(99,*)'history of lowest vertices'
@@ -1613,28 +1613,28 @@ c         this intrinsic may have different conventions on its arguments
           call date_and_time(dateYMD)
           write(13,'(2i5,2x,2a)') int(znuc+.1),int(zion+.1),dateYMD,
      :                     ' zatom, zion, date (yymmdd)'
-          write( 6,'(2i5,2x,2a)')int(znuc+.1),int(zion+.1),dateYMD,
+          write( 6,'(2i5,2x,2a)') int(znuc+.1),int(zion+.1),dateYMD,
      :                     ' zatom, zion, date (yymmdd)'
 c         use pspcod=10 per default, always. When we tried to write hij
 c         and kij also for s projectors in a polarized fit, we used a
 c         special format pspcod 11= 9+nspol, which does not make much
 c         sense and has been discarded.
-          write(13,'(3x,i3,i8,i2,a)')10,ixc,lpx,
+          write(13,'(3x,i3,i8,i2,a)') 10,ixc,lpx,
      :               ' 0 2002 0     pspcod,IXC,lmax,lloc,mmax,r2well'
-          write( 6,'(3x,i3,i7,i2,a)')10,ixc,lpx,
+          write( 6,'(3x,i3,i7,i2,a)') 10,ixc,lpx,
      :               ' 0 2002 0     pspcod,IXC,lmax,lloc,mmax,r2well'
           ngpot=0
           do j=1,4
              if (gpot(j).ne.0.d0) ngpot=j
           enddo
           if(ngpot==0)then
-            write(13,'(1pe18.8,a)')rloc,' 0 rloc nloc ck (none)'
-            write( 6,'(1pe18.8,a)')rloc,' 0 rloc nloc ck (none)'
+            write(13,'(1pe18.8,a)') rloc,' 0 rloc nloc ck (none)'
+            write( 6,'(1pe18.8,a)') rloc,' 0 rloc nloc ck (none)'
           else
-            write(label,'(a,i1.1,a)')'(1pe16.8,i2,',ngpot,'1pe16.8,a)'
-            write(13,label)rloc,ngpot,gpot(1:ngpot),
+            write(label,'(a,i1.1,a)')'(1pe18.8,i2,',ngpot,'(1pe18.8),a)'
+            write(13,label) rloc,ngpot,gpot(1:ngpot),
      :             ' rloc nloc c1 .. cnloc'
-            write( 6,label)rloc,ngpot,gpot(1:ngpot),
+            write( 6,label) rloc,ngpot,gpot(1:ngpot),
      :             ' rloc nloc c1 .. cnloc'
           end if
           write(13,'(i3,2g16.8,a)')lpx+1, rcore,zcore,
@@ -1734,7 +1734,7 @@ c                   get the matrix dimension lpj = 1,2 or 3
                         if (l.gt.0)then
                           write(13,'(21x,2(1pe16.8))') hso(1:2)
                           write( 6,'(21x,2(1pe16.8))') hso(1:2)
-                          write(13,'(37x, 1pe16.8)') hso(3)
+                          write(13,'(37x,1pe16.8)') hso(3)
                           write( 6,'(37x, 1pe16.8)') hso(3)
                         end if
                     elseif(lpj==3)then
@@ -1847,7 +1847,7 @@ c        no spin down s orbitals in the r case: nspin=2, nspol=1, 2l+1=1
                      write(23,*) 'l,ispin:',l,ispin
                      write(23,*) 'psi n=1,noccmax(l):'
                      do i=0,ng
-                        write(23,'(10e20.10)')
+                        write(23,'(10(1pe20.10))')
      :                       (psi(i,nocc,l+1,ispin),
      :                       nocc=1,nomax(l))
                      enddo

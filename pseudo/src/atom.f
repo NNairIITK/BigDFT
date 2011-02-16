@@ -15,13 +15,13 @@ c      *     written by Sverre Froyen, February 1982        *
 c      *     while at UC Berkeley, California               *
 c      *                                                    *
 c      *    then  modified by                               *
-c      *    christian hartwigsen, february 1998             *
+c      *    Christian Hartwigsen, february 1998             *
 c      *    while at MPI Stuttgart, Germany                 *
 c      *                                                    *
 c      *                                                    *
 c      *        and further altered by                      *
 c      *        Alex Willand,                               *
-c      *                under the supevision of             *       
+c      *                under the supervision of            *       
 c      *        Stefan Goedecker, December 2010             *
 c      *        while at Universitaet Basel, Switzerland    *
 c      *                                                    *
@@ -42,7 +42,8 @@ c
      5 vod(nrmax),vou(nrmax),
      6 etot(10),econf(maxconf),ev(maxorb),ek(maxorb),ep(maxorb)
 c
-       character*2 naold,itype,ityold,ispp*1,nameat,stop,cnum
+       character(len=2) :: naold,itype,ityold,nameat,stop_chain,cnum
+       character(len=1) :: ispp
        integer :: iXCold
        integer :: iXC
        logical :: abort
@@ -56,14 +57,14 @@ c      heuristic value for fluctuating GGAs
        naold = '  '
        iXCold = 0
        ityold ='  ' 
-       stop  = 'st'
+       stop_chain  = 'st'
        zsold = 0.D0
        nconf = 0
        dvold = 1.0D10
        nr    = 1
        norb  = 1
 c      new convention: dump all plots in two file:
-       open(33,file='ae.core.orbitals.plt',status='unknown')
+       open(unit=33,file='ae.core.orbitals.plt',status='unknown')
 c      and ae.orbitals.plt for non core states,
 c      which will be read by the pseudo fitting program
 
@@ -95,7 +96,7 @@ c
 c      test: pass dummy args instead of using a save block
      6 nvalo,ncoreo)
 
-       if (itype .eq. stop) goto 140
+       if (itype .eq. stop_chain) goto 140
        if (nconf .gt. maxconf) then
           write(6,*) 'too many configurations, max. is:',maxconf
           stop
@@ -201,8 +202,7 @@ c
 c
 c     predictor - corrector method (more accurate)
 c
-       call dsolv2
-     + (iter,iconv,iXC,ispp,ifcore,itype,
+       call dsolv2(iter,iconv,iXC,ispp,ifcore,itype,
      1 nrmax,nr,a,b,r,rab,lmax,
      2 nameat,norb,ncore,no,lo,so,zo,
      3 znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,dcrc,ddcrc,
@@ -252,7 +252,7 @@ c     diverging - reduce mixing coefficient
        if (xmixo .lt. 1D-5) xmixo=1D-5
        dvold = dvmax
       write(6,70) iter,dvmax,xmixo
- 70    format(7h iter =,i5,9h dvmax = ,e9.3,8h xmixo =,e9.3)
+ 70    format(7h iter =,i5,9h dvmax = ,1pe9.3,8h xmixo =,1pe9.3)
 c
 c      mix input and output electronic potentials
 c
@@ -337,7 +337,7 @@ c
 ccc     DO NOT CREATE guess for psppar, let the user download
 ccc     a psppar for a much better input guess.
 ccc     append some clue about additional input variables
-ccc     don't do this here, but after the 1st configuration is done.
+ccc     do not do this here, but after the 1st configuration is done.
 
 ccc     write data to files psp.par/weights.par
 ccc     for pseudopotential-fit
@@ -433,13 +433,13 @@ c
        write(6,*)'---------------------------------------------'
        write(6,10) (i,i=1,nconf)
  10    format(25h Total energy differences,//,2x,19i9)
-       do 30 i=1,nconf
-       write(6,20) i,(econf(i)-econf(j),j=1,i)
- 20    format(1x,i2,1x,19f9.5)
- 30    continue
- 40    nconf = 0
-       return
-       end
+       do i=1,nconf
+          write(6,20) i,(econf(i)-econf(j),j=1,i)
+ 20       format(1x,i2,1x,19f9.5)
+       end do
+ 40    continue
+       nconf = 0
+       end subroutine prdiff
 c
 c      *****************************************************************
 c
@@ -460,16 +460,17 @@ c
      3 cdd(nr),cdu(nr),cdc(nr),
      4 viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),
      5 etot(10),ev(norb),ek(norb),ep(norb)
-       character*2 ispp*1,nameat
+       character(len=1) :: ispp
+       character(len=2) :: nameat
        integer ::  iXC
 c
        xmixi = 1 - xmixo
-       do 120 i=1,nr
-       vid(i) = xmixo * vod(i) + xmixi * vid(i)
-       viu(i) = xmixo * vou(i) + xmixi * viu(i)
- 120   continue
-       return
-       end
+       do i=1,nr
+          vid(i) = xmixo * vod(i) + xmixi * vid(i)
+          viu(i) = xmixo * vou(i) + xmixi * viu(i)
+       end do
+
+       end subroutine mixer
 c
 c      *****************************************************************
 c
@@ -488,7 +489,7 @@ c
      3 cdd(nr),cdu(nr),cdc(nr),
      4 viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),
      5 etot(10),ev(norb),ek(norb),ep(norb)
-       character*2 itype,nameat
+       character(len=2) :: itype,nameat
 c
 c      etot(i)    i=1,10 contains various contributions to the total
 c                 energy.
@@ -508,7 +509,8 @@ c                 (9)   potential energy
 c                 (10)  total energy
 c
        dimension il(5)
-       character il*1
+       character(len=1) :: il
+
  1     format(/,1x,a10,30(/,1x,10(1pe13.4)))
 c       pi = 4*atan(1.D0)
 c
@@ -518,17 +520,17 @@ c
        etot(1) = 0.D0
        etot(2) = 0.D0
        etot(3) = 0.D0
-c     c.hartwig
-c     subtract vshift
-      vshift=-15.0d0
-       do 10 i=1,norb
-        etot(1) = etot(1) + zo(i)*(ev(i)-vshift)
-        etot(2) = etot(2) + zo(i)*ek(i)
-        etot(3) = etot(3) + zo(i)*(ep(i)-vshift)
-c       etot(1) = etot(1) + zo(i)*ev(i)
-c       etot(2) = etot(2) + zo(i)*ek(i)
-c       etot(3) = etot(3) + zo(i)*ep(i)
- 10    continue
+c      c.hartwig
+c      subtract vshift
+       vshift=-15.0d0
+       do i=1,norb
+          etot(1) = etot(1) + zo(i)*(ev(i)-vshift)
+          etot(2) = etot(2) + zo(i)*ek(i)
+          etot(3) = etot(3) + zo(i)*(ep(i)-vshift)
+c         etot(1) = etot(1) + zo(i)*ev(i)
+c         etot(2) = etot(2) + zo(i)*ek(i)
+c         etot(3) = etot(3) + zo(i)*ep(i)
+       end do
 c
 c      compute interaction shell - (nucleus-core)
 c
@@ -559,16 +561,16 @@ c
  20    format(a3,25h output data for orbitals,/,1x,27('-'),//,
      1 17h nl    s      occ,9x,'eigenvalue',4x,14hkinetic energy,
      2 6x,'pot energy'/)
-       do 40 i=1,norb
-c     c.hartwig give energies in hartree
-      ev(i) = ev(i) - vshift
-      ep(i) = ep(i) - vshift
-       write(6,30) no(i),il(lo(i)+1),so(i),zo(i),
+       do i=1,norb
+c         c.hartwig give energies in hartree
+          ev(i) = ev(i) - vshift
+          ep(i) = ep(i) - vshift
+          write(6,30) no(i),il(lo(i)+1),so(i),zo(i),
      :         ev(i)/2,ek(i)/2,ep(i)/2
- 30    format(1x,i1,a1,f6.1,f10.4,3f17.8)
- 40    continue
-c     c.hartwig give energies in hartree; no virial correction
-      write(6,50) (etot(i)*.5d0,i=1,5), (etot(i)*.5d0,i=7,10)
+ 30       format(1x,i1,a1,f6.1,f10.4,3f17.8)
+       end do
+c      c.hartwig give energies in hartree; no virial correction
+       write(6,50) (etot(i)*.5d0,i=1,5), (etot(i)*.5d0,i=7,10)
  50    format(//,15h total energies,/,1x,14('-'),/,
      1 /,28h sum of eigenvalues        =,f18.8,
      2 /,28h kinetic energy from ek    =,f18.8,
@@ -579,8 +581,8 @@ c     c.hartwig give energies in hartree; no virial correction
      8 /,28h kinetic energy from ev    =,f18.8,
      9 /,28h potential energy          =,1pe18.8,/,1x,45('-'),
      X /,28h total energy              =,0pf18.8)
-       return
-       end
+      
+       end subroutine etotal
 c
 c      *****************************************************************
 c
@@ -601,7 +603,7 @@ c
        if (i .ne. 0) write(6,10) i
  10    format(17h1stop parameter =,i3)
        stop
-       end
+       end subroutine ext
 c
 c      *****************************************************************
 c
@@ -717,7 +719,7 @@ c
        do 10 i=2,nr
        y(i) = (cdd(i)+cdu(i))/r(i)
 c      below test output proofs cdd cdu are charge densities
-c      write(22,'(i4,3f20.8)')i,r(i),cdu(i),cdd(i)
+c      write(22,'(i4,3f20.8)') i,r(i),cdu(i),cdd(i)
        if (ifcore .eq. 2) y(i) = y(i) + cdc(i)/r(i)
  10    continue
        isx = 0
@@ -1216,13 +1218,13 @@ c      c.hartwig
        if (zo(norb) .eq. 0.0) zo(norb)=1.0d-20
 c
 c      this is an experimental option:
-c      zd > 0 = zu  ---> use Hund's rule 
+c      zd > 0 = zu  ---> use Hund s rule 
 c      for auto assignment in polarized case:
        if (ispp .eq. 's')then
           if (zu==0d0 .and. zd>0d0 .and. j==1 )then
               zd = min( dble(2*li+1), zo(norb) )
               zu = zo(norb)-zd  
-c             write(*,*)"(Hund's rule)",ni,li,si,zd,zu
+c             write(*,*)"(Hunds rule)",ni,li,si,zd,zu
           end if
           if( si .lt. 0.1D0) then 
               zo(norb) = zd
@@ -1318,9 +1320,9 @@ c
 c
 c    function determines the nuclear charge of an element
 c
-       parameter ( nelem = 103 )
-       character*2 name, elemnt, pertab(nelem)
-       integer ic(2)
+       integer, parameter :: nelem = 103
+       character(len=2) :: name, elemnt, pertab(nelem)
+       integer :: ic(2)
 c      the periodic table
        data pertab /
      +  'H ','HE',
@@ -1542,11 +1544,10 @@ c
      3 cdd(nr),cdu(nr),cdc(nr),
      4 viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),
      5 etot(10),ev(norb),ek(norb),ep(norb)
-       character*2 ispp*1,nameat,itype
+       character(len=2) :: ispp*1,nameat,itype
        integer :: iXC
 c
-       parameter ( mesh = 2000 )
-c      parameter ( mesh = 80000 )
+       integer, parameter :: mesh = 2000
        dimension v(mesh),ar(mesh),br(mesh)
        common  v,ar,br
 c.....files
@@ -1569,59 +1570,64 @@ c      start loop over orbitals
 c      note that spin zero is treated as down
 c
        do 50 i=1,norb
-       if (no(i) .le. 0) goto 50
-       if (zo(i) .eq. 0.D0 .and. iconv .eq. 0) goto 50
-       if (ev(i) .ge. 0.D0) ev(i)=-1.D0
-c
-c      set up potential
-c
-       lp  = lo(i)+1
-       llp = lo(i)*lp
-       do 20 j=2,nr
-       if (so(i) .lt. 0.1D0) v(j) = viod(lp,j)/r(j) + vid(j)
-       if (so(i) .gt. 0.1D0) v(j) = viou(lp,j)/r(j) + viu(j)
-       if (ispp .ne. 'r') v(j) = v(j) + llp/r(j)**2
-c      if (ispp .eq. 'n') v(j) = v(j) + llp/r(j)**2
- 20    continue
-c
-c      call integration routine
-c
- 
-       if (ispp .ne. 'r' ) call difnrl(iter,i,v,ar,br,
-     1 lmax,nr,a,b,r,rab,
-     2 norb,no,lo,so,
-     3 znuc,
-     4 viod,viou,vid,viu,ev)
-       if (ispp .eq. 'r' ) call difrel(iter,i,v,ar,br,
-     1 lmax,nr,a,b,r,rab,norb,
-     2 no,lo,so,znuc,viod,viou,vid,viu,ev)
-c
-c      add to the charge density
-c
-       do 30 j=1,nr
-       denr = zo(i) * ar(j) * ar(j)
-c      the relativistic case requires the minor component of the spinor to be added
-       if (ispp .eq. 'r') denr = denr + zo(i) * br(j) * br(j)
-       if (so(i) .lt. 0.1D0) cdd(j) = cdd(j) + denr
-       if (so(i) .gt. 0.1D0) cdu(j) = cdu(j) + denr
-       if (ifcore .ne. 1 .and. i .le. ncore) cdc(j)=cdc(j)+denr
- 30    continue
-c
-c      compute various quantitities if last iteration
-c
-       if (iconv .eq. 1) call orban
-     + (itype,iXC,ispp,i,ar,br,
-     1 nrmax,nr,a,b,r,rab,lmax,
-     2 nameat,norb,ncore,no,lo,so,zo,
-     3 znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,dcrc,ddcrc,
-     4 viod,viou,vid,viu,vod,vou,
-     5 etot,v,ev,ek,ep,rcov,rprb,nconf)
+          if (no(i) .le. 0) goto 50
+          if (zo(i) .eq. 0.D0 .and. iconv .eq. 0) goto 50
+          if (ev(i) .ge. 0.D0) ev(i)=-1.D0
+c         
+c         set up potential
+c         
+          lp  = lo(i)+1
+          llp = lo(i)*lp
+          do j=2,nr
+             if (so(i) .lt. 0.1D0) v(j) = viod(lp,j)/r(j) + vid(j)
+             if (so(i) .gt. 0.1D0) v(j) = viou(lp,j)/r(j) + viu(j)
+             if (ispp .ne. 'r') v(j) = v(j) + llp/r(j)**2
+c            if (ispp .eq. 'n') v(j) = v(j) + llp/r(j)**2
+          end do
+c         
+c         call integration routine
+c         
+          
+          if (ispp .ne. 'r' ) then
+              call difnrl(iter,i,v,ar,br,
+     1            lmax,nr,a,b,r,rab,
+     2            norb,no,lo,so,
+     3            znuc,
+     4            viod,viou,vid,viu,ev)
+          end if
+          if (ispp .eq. 'r' ) then
+              call difrel(iter,i,v,ar,br,
+     1            lmax,nr,a,b,r,rab,norb,
+     2            no,lo,so,znuc,viod,viou,vid,viu,ev)
+          end if
+c         
+c         add to the charge density
+c         
+          do j=1,nr
+             denr = zo(i) * ar(j) * ar(j)
+c            the relativistic case requires the minor component of the spinor to be added
+             if (ispp .eq. 'r') denr = denr + zo(i) * br(j) * br(j)
+             if (so(i) .lt. 0.1D0) cdd(j) = cdd(j) + denr
+             if (so(i) .gt. 0.1D0) cdu(j) = cdu(j) + denr
+             if (ifcore .ne. 1 .and. i .le. ncore) cdc(j)=cdc(j)+denr
+          end do
+c         
+c         compute various quantities if last iteration
+c         
+          if (iconv .eq. 1) then
+c             orban is used to analyze and printout data about the orbital
+              call orban(itype,iXC,ispp,i,ar,br,
+     1           nrmax,nr,a,b,r,rab,lmax,
+     2           nameat,norb,ncore,no,lo,so,zo,
+     3           znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,dcrc,ddcrc,
+     4           viod,viou,vid,viu,vod,vou,
+     5           etot,v,ev,ek,ep,rcov,rprb,nconf)
+          end if
  50    continue
 c
 c      end loop over orbitals
 c
-       return
-       end
+       end subroutine dsolv2
 c
 c      *****************************************************************
 c
@@ -1747,17 +1753,19 @@ c   find practical infinity ninf and classical turning
 c   point nctp for orbital
 c
       icount=0
- 20   icount=icount+1
+ 20   continue
+      icount=icount+1
       do 22 j=nr,2,-1
         temp = v(j) -ev(iorb)
         if (temp .lt. 0.0) temp = 0.0d0
         if (r(j)*sqrt(temp) .lt. expzer) goto 23
  22   continue
- 23   ninf=j
+ 23   continue
+      ninf=j
       nctp = ninf - 5
-      do 25 j=2,ninf-5
+      do j=2,ninf-5
         if (v(j) .lt. ev(iorb)) nctp = j
- 25   continue
+      end do
       if (ev(iorb) .ge. etol*10) nctp=ninf-5
       if (ev(iorb) .ge. etol) ev(iorb)=0.0d0
       if (nctp .le. 6) then
@@ -2319,8 +2327,7 @@ c
 c
 c      *****************************************************************
 c
-       subroutine orban
-     + (itype,iXC,ispp,iorb,ar,br,
+       subroutine orban(itype,iXC,ispp,iorb,ar,br,
      1 nrmax,nr,a,b,r,rab,lmax,
      2 nameat,norb,ncore,no,lo,so,zo,
      3 znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,dcrc,ddcrc,
@@ -2340,7 +2347,7 @@ c
 c
        dimension rzero(10),rextr(10),aextr(10),bextr(10)
        dimension cg(100),gzero(10),gextr(10),cextr(10)
-       character*10 name
+       character*10 :: name
        character*30 plotfile
        character irel*3,ifcore*4
        integer :: iXC
@@ -2412,21 +2419,21 @@ c
        ll = 2
        if (2*(nr/2) .eq. nr) ll=4
        do 40 ii=2,nr
-       i = nr-ii+2
-       ar2 = ar(i)*ar(i)
-       br2 = br(i)*br(i)
-       deni = ar2
-       if (ispp .eq. 'r') deni=deni+br2
-       ek(iorb) = ek(iorb) + ll * (br2 + ar2*llp/r(i)**2)*rab(i)
-       if (so(iorb) .lt. 0.1D0) ep(iorb) = ep(iorb)
-     1    + ll * deni*viod(lp,i)*rab(i)/r(i)
-       if (so(iorb) .gt. 0.1D0) ep(iorb) = ep(iorb)
-     1    + ll * deni*viou(lp,i)*rab(i)/r(i)
-       ll = 6 - ll
-       if (sa2 .gt. 0.10D0) goto 40
-       sa2 = sa2 + deni*rab(i)
-       if (sa2 .le. 0.01D0) i99 = i
-       i90 = i
+          i = nr-ii+2
+          ar2 = ar(i)*ar(i)
+          br2 = br(i)*br(i)
+          deni = ar2
+          if (ispp .eq. 'r') deni=deni+br2
+          ek(iorb) = ek(iorb) + ll * (br2 + ar2*llp/r(i)**2)*rab(i)
+          if (so(iorb) .lt. 0.1D0) ep(iorb) = ep(iorb)
+     1       + ll * deni*viod(lp,i)*rab(i)/r(i)
+          if (so(iorb) .gt. 0.1D0) ep(iorb) = ep(iorb)
+     1       + ll * deni*viou(lp,i)*rab(i)/r(i)
+          ll = 6 - ll
+          if (sa2 .gt. 0.10D0) goto 40
+          sa2 = sa2 + deni*rab(i)
+          if (sa2 .le. 0.01D0) i99 = i
+          i90 = i
  40    continue
        ek(iorb) = ek(iorb) / 3
        ep(iorb) = ep(iorb) / 3
@@ -2608,7 +2615,6 @@ c     dddd =  = int_0^rcov (f^2+g^2) r^6 dr
      :     1,dddd,ierr)
       if(ierr.ne.1) write(6,*)'SPLIQ ERROR!' !stop 'spliq'
 
-
       nextr=01
 c
 c   printout
@@ -2703,7 +2709,7 @@ c        better use formatted output here!
          write(40,
      :         '(5x,2i5,6e20.12,1x)')
 c              in case many plot files are written,
-c              append the file names using advance='no')
+c              append the file names using advance='no'
      :         no(iorb),lo(iorb),
      :         so(iorb),zo(iorb),
      :        (ev(iorb)-vshift)/2.,crcov,dcrcov,ddcrcov
@@ -2782,24 +2788,26 @@ c     add a blank line for readability and use of gnuplots "every" keyword
       write(33,*)
 c     do not close this io unit unless we write to one file per orbital
 c     close(33)
+
       if (iorb.eq.ncore)then
-c     addition for Nonlinear Core Corrections:
-c     if this is the last core orbital,
-c     write out the charge density of the core,
-c     generate a gnuplot script to fit a gaussian interactively and
-c     open a new plotfile to separate core and valence wgn plots.
+c         addition for Nonlinear Core Corrections:
+c         if this is the last core orbital,
+c         write out the charge density of the core,
+c         generate a gnuplot script to fit a gaussian interactively and
+c         open a new plotfile to separate core and valence wgn plots.
           close(33)
-          open(33,file='ae.core.dens.plt')
+
+          open(unit=33,file='ae.core.dens.plt')
           write(33,*)'#',zcore,dcrc/zcore,ddcrc/zcore,
      :                 '0th, 2nd and 4th moment of core charge'
           write(33,*)'#core charge radial distribution rho(r)*4pi*r**2'
           do i=1,npoint
               write(33,*)r(i),cdc(i)
           end do
-          close(33)
-c         gnuplot script
-          open(33,file='gplt.fit.NLCC')
+          close(unit=33)
 
+c         gnuplot script
+          open(unit=33,file='gplt.fit.NLCC')
           write(33,'(a)')"# input"
           write(33,'(a)')"fl = 'ae.core.dens.plt'"
           write(33,'(a)')"dch = 0.376"
@@ -2823,9 +2831,9 @@ c         gnuplot script
           write(33,'(a)')""
           write(33,'(a)')"# do the fit"
           write(33,'(a)')"load 'gplt.fit.NLCC.again'"
-          close(33)
+          close(unit=33)
 
-          open(33,file='gplt.fit.NLCC.again')
+          open(unit=33,file='gplt.fit.NLCC.again')
           write(33,'(a)')"fit rho(x)*dA(x) fl via zcore, rcore"
           write(33,'(a)')"pr '================================='"
           write(33,'(a)')"pr 'New parameters:'"
@@ -2841,18 +2849,18 @@ c         gnuplot script
           write(33,'(a)')"pause -1 'Do another fit? Choose a new "
      :                 //"range for r (==x).'"
           write(33,'(a)')"reread"
-          close(33)
-          open(33,file='ae.orbitals.plt')
-      end if
+          close(unit=33)
 
+          open(unit=33,file='ae.orbitals.plt')
+      end if
+      print *,'orban:',iorb,norb
       if(iorb.eq.norb)then
 c         and the same thing for the valence charge density
-          open(33,file='ae.val.dens.plt')
+          open(unit=33,file='ae.val.dens.plt')
           do i=1,npoint
               write(33,*)r(i),cdu(i)+cdd(i)-cdc(i)
           end do
-          close(33)
+          close(unit=33)
       end if
 
-       return
-       end
+      end subroutine orban
