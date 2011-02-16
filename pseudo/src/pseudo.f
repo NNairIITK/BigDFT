@@ -66,7 +66,7 @@ c
       character(len=25) :: form
       character(len=80) :: label
       integer :: namoeb,nsmplx
-      integer, dimension(6) :: dateDMY
+      character(len=8) :: dateYMD
 
 
 c     INCLUDE 'func.inc'
@@ -324,9 +324,9 @@ c       grid spacing range: samples, min, max, power law
      :         'for wavelets. No fitting of softness possible.'
                 nhgrid=0
         else
-         write(6,'(a,i3,2e12.4,i3)')'hgrid parameters ',
+         write(6,'(a,i3,2(1pe12.4),i3)')'hgrid parameters ',
      :                    nhgrid, hgridmin,hgridmax, nhpow
-         write(6,'(a,3e12.4)')'offset and radii ', ampl,crmult,frmult
+         write(6,'(a,3(1pe12.4))')'offset and radii ', ampl,crmult,frmult
         end if
 c       random shift, coarse and fine grid radii
         close(11)
@@ -1197,7 +1197,7 @@ c           output
             write(6,'(t2,i10,t30,a)')iXC ,'XC-functional'
             write(6,*) 
             write(6,*) 'local part'
-            write(6,'(f5.0,f7.2,f7.3,4e11.3,t65,a)')
+            write(6,'(f5.0,f7.2,f7.3,4(1pe11.3),t65,a)')
      :           znuc,zion,rloc,gpot(1),gpot(2),gpot(3),gpot(4),
      :           'znuc,zion, rloc, gpot() '
             if (lpx.ge.0) then
@@ -1206,10 +1206,10 @@ c           output
      :              'lpx, (Projectors for l=0..lpx)'
                do l=0,lpx
                   write(6,*) 'l=',l
-                  write(6,'(f7.3,t8,6e11.3,t76,a)') r_l(l+1),
+                  write(6,'(f7.3,t8,6(1pe11.3),t76,a)') r_l(l+1),
      :                 (hsep(i,l+1,1),i=1,6),'r_l(),hsep(), '//is(1)
                   if (l.gt.0 .and. nspin.eq.2)
-     :                 write(6,'(t8,6e11.3,t76,a)')
+     :                 write(6,'(t8,6(1pe11.3),t76,a)')
      :                 (hsep(i,l+1,2),i=1,6),'      hsep(), '//is(2)
                enddo
             endif
@@ -1258,8 +1258,8 @@ c           a=a0*tt**i
          write(6,*)'Gaussian basis'
          write(6,*)'______________'
          write(6,*)
-         write(6,'(a,4e11.4)') ' amin,amax',a0,a
-         write(6,'(a,t10,3(e11.4),a,2(e11.4))') ' gaussians ',
+         write(6,'(a,4(1pe11.4))') ' amin,amax',a0,a
+         write(6,'(a,t10,3(e11.4),a,2(1pe11.4))') ' gaussians ',
      &        xp(1),xp(2),xp(3),' .... ',xp(ng-1),xp(ng)
          write(6,*)'gaussians:',ng
 c     set up radial grid
@@ -1268,7 +1268,7 @@ c     set up radial grid
          a_grd=a0/400.d0
          b_grd=log(rmax/a_grd)/(nint-2)
          call radgrid(nint,rr,rw,rd,a_grd,b_grd,rmax)
-         write(6,'(a,t10,3(e11.4),a,2(e11.4))') ' r-grid: ',
+         write(6,'(a,t10,3(1pe11.4),a,2(1pe11.4))') ' r-grid: ',
      &        rr(1),rr(2),rr(3),' .... ',rr(nint-1),rr(nint)
          write(6,*)'gridpoints:',nint
          write(6,*)
@@ -1525,7 +1525,7 @@ c
          write(6,*)'Penalty contributions from this configuration'
          write(6,*)'_____________________________________________'
          write(6,*)
-         write(6,'(2(tr10,a,e12.4))')
+         write(6,'(2(tr10,a,1pe12.4))')
      :        'psi(r=0) =',psir0,'; psi(0)*wght=',abs(psir0*wghtp0)
          write(6,*)
          write(6,'(a,t32,a,t42,a,t55,a,t64,a)')
@@ -1577,8 +1577,8 @@ c
      :           abs(wght(nocc,l+1,ispin,8)*wfnode(nocc,l+1,ispin,3))
             write(6,*)
          enddo
- 32      format (t10,a,t25,4e12.4)
- 33      format (t10,a,t25,2e24.4)
+ 32      format (t10,a,t25,4(1pe12.4))
+ 33      format (t10,a,t25,2(1pe24.4))
          write(6,*) 'diff for dcharg and echarge is given in (%)'
 
          if(namoeb.ne.0)then
@@ -1610,19 +1610,11 @@ c          with two spin channels also for s projectors.
      :                        ' spin treatment, ng rij rcov and rprb'
 
 c         this intrinsic may have different conventions on its arguments
-c         call idate(dateDMY)
-c          call idate(dateDMY(1),dateDMY(2),dateDMY(3))
-c          write(13,'(2i5,2x,3i2.2,a)')int(znuc+.1),int(zion+.1),dateDMY,
-c     :                     ' zatom, zion, date (ddmmyy)'
-c          write( 6,'(2i5,2x,3i2.2,a)')int(znuc+.1),int(zion+.1),dateDMY,
-c     :                     ' zatom, zion, date (ddmmyy)'
-          call date_and_time(values=dateDMY)
-          write(13,'(2i5,2x,3i2.2,a)')int(znuc+.1),int(zion+.1),
-     :                     dateDMY(3),dateDMY(2),dateDMY(1),
-     :                     ' zatom, zion, date (ddmmyy)'
-          write( 6,'(2i5,2x,3i2.2,a)')int(znuc+.1),int(zion+.1),
-     :                     dateDMY(3),dateDMY(2),dateDMY(1),
-     :                     ' zatom, zion, date (ddmmyy)'
+          call date_and_time(dateYMD)
+          write(13,'(2i5,2x,2a)') int(znuc+.1),int(zion+.1),dateYMD,
+     :                     ' zatom, zion, date (yymmdd)'
+          write( 6,'(2i5,2x,2a)')int(znuc+.1),int(zion+.1),dateYMD,
+     :                     ' zatom, zion, date (yymmdd)'
 c         use pspcod=10 per default, always. When we tried to write hij
 c         and kij also for s projectors in a polarized fit, we used a
 c         special format pspcod 11= 9+nspol, which does not make much
@@ -1636,10 +1628,10 @@ c         sense and has been discarded.
              if (gpot(j).ne.0.d0) ngpot=j
           enddo
           if(ngpot==0)then
-            write(13,'(e18.8,a)')rloc,' 0 rloc nloc ck (none)'
-            write( 6,'(e18.8,a)')rloc,' 0 rloc nloc ck (none)'
+            write(13,'(1pe18.8,a)')rloc,' 0 rloc nloc ck (none)'
+            write( 6,'(1pe18.8,a)')rloc,' 0 rloc nloc ck (none)'
           else
-            write(label,'(a,i1.1,a)')'(e16.8,i2,',ngpot,'e16.8,a)'
+            write(label,'(a,i1.1,a)')'(1pe16.8,i2,',ngpot,'1pe16.8,a)'
             write(13,label)rloc,ngpot,gpot(1:ngpot),
      :             ' rloc nloc c1 .. cnloc'
             write( 6,label)rloc,ngpot,gpot(1:ngpot),
@@ -1658,10 +1650,10 @@ c         sense and has been discarded.
                     if(abs(hsep(3,l+1,1))>1d-8)lpj=2
                     if(abs(hsep(6,l+1,1))>1d-8)lpj=3
                     if(lpj==1)then
-                        write(13,'(2x,g16.8,i3,e16.8,6x,a)')
+                        write(13,'(2x,g16.8,i3,1pe16.8,6x,a)')
      :                            r_l(l+1),lpj, hsep(1,l+1,1)
      :                            ,il(l+1)//'-projector'
-                        write( 6,'(2x,g16.8,i3,e16.8,6x,a)')
+                        write( 6,'(2x,g16.8,i3,1pe16.8,6x,a)')
      :                            r_l(l+1),lpj, hsep(1,l+1,1)
      :                            ,il(l+1)//'-projector'
                     elseif(lpj==2)then
@@ -1722,47 +1714,47 @@ c                   get the matrix dimension lpj = 1,2 or 3
                     if(max(abs(havg(3)),abs(hso(3)))>1d-8)lpj=2
                     if(max(abs(havg(6)),abs(hso(6)))>1d-8)lpj=3
                     if(lpj==1)then
-                        write(13,'(2x,e16.8,i3,e16.8,6x,a)')
+                        write(13,'(2x,1pe16.8,i3,1pe16.8,6x,a)')
      :                             r_l(l+1),lpj, havg(1)
      :                            ,il(l+1)//'-projector'
-                        write( 6,'(2x,e16.8,i3,e16.8,6x,a)')
+                        write( 6,'(2x,1pe16.8,i3,1pe16.8,6x,a)')
      :                             r_l(l+1),lpj, havg(1)
      :                            ,il(l+1)//'-projector'
-                        if (l.gt.0)write(13,'(21x,e16.8)')hso(1)
-                        if (l.gt.0)write( 6,'(21x,e16.8)')hso(1)
+                        if (l.gt.0)write(13,'(21x,1pe16.8)')hso(1)
+                        if (l.gt.0)write( 6,'(21x,1pe16.8)')hso(1)
                     elseif(lpj==2)then
-                        write(13,'(2x,e16.8,i3,2e16.8,6x,a)')
+                        write(13,'(2x,1pe16.8,i3,2(1pe16.8),6x,a)')
      :                             r_l(l+1),lpj, havg(1:2)
      :                            ,il(l+1)//'-projector'
-                        write( 6,'(2x,e16.8,i3,2e16.8,6x,a)')
+                        write( 6,'(2x,1pe16.8,i3,2(1pe16.8),6x,a)')
      :                             r_l(l+1),lpj, havg(1:2)
      :                            ,il(l+1)//'-projector'
-                        write(13,'(37x,e16.8)') havg(3)
-                        write( 6,'(37x,e16.8)') havg(3)
+                        write(13,'(37x,1pe16.8)') havg(3)
+                        write( 6,'(37x,1pe16.8)') havg(3)
                         if (l.gt.0)then
-                          write(13,'(21x,2e16.8)') hso(1:2)
-                          write( 6,'(21x,2e16.8)') hso(1:2)
-                          write(13,'(37x, e16.8)') hso(3)
-                          write( 6,'(37x, e16.8)') hso(3)
+                          write(13,'(21x,2(1pe16.8))') hso(1:2)
+                          write( 6,'(21x,2(1pe16.8))') hso(1:2)
+                          write(13,'(37x, 1pe16.8)') hso(3)
+                          write( 6,'(37x, 1pe16.8)') hso(3)
                         end if
                     elseif(lpj==3)then
-                        write(13,'(2x,e16.8,i3,3e16.8,6x,a)')
+                        write(13,'(2x,1pe16.8,i3,3(1pe16.8),6x,a)')
      :                             r_l(l+1),lpj,havg(1:2), havg(4)
      :                            ,il(l+1)//'-projector'
-                        write( 6,'(2x,e16.8,i3,3e16.8,6x,a)')
+                        write( 6,'(2x,1pe16.8,i3,3(1pe16.8),6x,a)')
      :                             r_l(l+1),lpj,havg(1:2), havg(4)
      :                            ,il(l+1)//'-projector'
-                        write(13,'(37x,2e16.8)') havg(3),havg(5)
-                        write( 6,'(37x,2e16.8)') havg(3),havg(5)
-                        write(13,'(53x,e16.8)') havg(6)
-                        write( 6,'(53x,e16.8)') havg(6)
+                        write(13,'(37x,2(1pe16.8))') havg(3),havg(5)
+                        write( 6,'(37x,2(1pe16.8))') havg(3),havg(5)
+                        write(13,'(53x,1pe16.8)') havg(6)
+                        write( 6,'(53x,1pe16.8)') havg(6)
                         if (l.gt.0)then
-                          write(13,'(21x,3e16.8)') hso(1:2),hso(4)
-                          write( 6,'(21x,3e16.8)') hso(1:2),hso(4)
-                          write(13,'(37x,2e16.8)') hso(3),hso(5)
-                          write( 6,'(37x,2e16.8)') hso(3),hso(5)
-                          write(13,'(53x, e16.8)') hso(6)
-                          write( 6,'(53x, e16.8)') hso(6)
+                          write(13,'(21x,3(1pe16.8))') hso(1:2),hso(4)
+                          write( 6,'(21x,3(1pe16.8))') hso(1:2),hso(4)
+                          write(13,'(37x,2(1pe16.8))') hso(3),hso(5)
+                          write( 6,'(37x,2(1pe16.8))') hso(3),hso(5)
+                          write(13,'(53x, 1pe16.8)') hso(6)
+                          write( 6,'(53x, 1pe16.8)') hso(6)
                         end if
                     end if
                  enddo
@@ -1820,7 +1812,7 @@ c write out the local potential
      :                   gpot(3)*(r/rloc)**4 +
      :                   gpot(4)*(r/rloc)**6 )
 
-              write(17,'(4e18.8)') r,-zion*Derf(r/(sqrt(2.d0)*rloc))/r
+              write(17,'(4(1pe18.8))') r,-zion*Derf(r/(sqrt(2.d0)*rloc))/r
      1                    +dd+zion/r, dd,.5d0*(r/rprb**2)**2
            enddo
         end if

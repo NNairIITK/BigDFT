@@ -1,4 +1,3 @@
-
       subroutine gatom(nspol,energ,verbose,
      :     noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,
      :     occup,aeval,chrg,dhrg,ehrg,res,wght,wfnode,psir0,

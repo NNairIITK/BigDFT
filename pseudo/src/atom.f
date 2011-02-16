@@ -269,8 +269,8 @@ c
  100   continue
 c
        write(6,110) dvmax,xmixo
- 110   format(/,34h potential not converged - dvmax =,e10.4,
-     1 9h  xmixo =,f5.3)
+ 110   format(/,34h potential not converged - dvmax =,1pe10.4,
+     1 9h  xmixo =,0pf5.3)
        call ext(1)
 c
 c      find total energy
@@ -509,7 +509,7 @@ c                 (10)  total energy
 c
        dimension il(5)
        character il*1
- 1     format(/,1x,a10,30(/,1x,10e13.4))
+ 1     format(/,1x,a10,30(/,1x,10(1pe13.4)))
 c       pi = 4*atan(1.D0)
 c
 c      sum up eigenvalues ev, kinetic energies ek, and
@@ -1292,7 +1292,7 @@ c
  200     continue
       write(6,210) r(2),nr,r(nr),aa,bb
  210  format(//,' radial grid parameters',//,
-     1 ' r(1) = .0 , r(2) =',e12.6,' , ... , r(',i4,') =',f12.8,
+     1 ' r(1) = .0 , r(2) =',1pe12.6,' , ... , r(',i4,') =',0pf12.8,
      2 /,' a =',f12.8,'  b =',f12.8,/)
       irel   = 'nrl'
       if (ispp .eq. 'r') irel = 'rel'
@@ -1734,7 +1734,7 @@ c
       emin = -200000.0d0
       if (ev(iorb) .gt. emax) ev(iorb) = emax
  10   if (itmax .lt. 2) write(6,15) iorb,iter,ev(iorb),nodes
- 15   format(' iorb =',i3,' iter =',i3,' ev =',e18.10,' nodes =',i2)
+ 15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i2)
       if (itmax .eq. 0) return
       if (ev(iorb) .gt. 0.0) then
         write(6,1000)iorb
@@ -2083,7 +2083,7 @@ c
       emin = -100000.0d0
       if (ev(iorb) .gt. emax) ev(iorb) = emax
  10   if (itmax .lt. 2) write(6,15) iorb,iter,ev(iorb),nodes
- 15   format(' iorb =',i3,' iter =',i3,' ev =',e18.10,' nodes =',i2)
+ 15   format(' iorb =',i3,' iter =',i3,' ev =',1pe18.10,' nodes =',i2)
       if (itmax .eq. 0) return
       if (ev(iorb) .gt. 0.0) then
         write(6,1000)iorb
@@ -2488,7 +2488,7 @@ c 70    if (iorb .lt. ncore) return
 c       write(6,80) no(iorb),lo(iorb),so(iorb)
 c 80    format(/' n =',i2,'  l =',i2,'  s =',f4.1)
 c       write(6,90)  (ev(iorb)-vshift)/2.,ek(iorb)/2.,ep(iorb)/2.
-c 90    format(8x,'ev =',e15.8,'  ek =',e14.8,'  ep =',e15.8)
+c 90    format(8x,'ev =',1pe15.8,'  ek =',1pe14.8,'  ep =',1pe15.8)
 c       name = 'a extr    '
 c       write(6,100) name,(aextr(i),i=1,nextr)
 c       name = 'b extr    '
@@ -2750,7 +2750,7 @@ c     save data for plots
      :        '.conf'//cnum(inum:2)//'.dat'
       endif
 c     Let us create only two plotfiles and put the old plot file
-c     name on a comment line instead. Don't write the plot to atom.ae.
+c     name on a comment line instead. Do not write the plot to atom.ae.
 
 c     if you prefer one file per orbital and config,
 c     append the file name to the orbitals line in atom.ae
