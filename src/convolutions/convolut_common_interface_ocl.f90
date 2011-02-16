@@ -89,7 +89,10 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
     call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*8,GPU%d_i)
   end if
   !here spin value should be taken into account
-  call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*nspin*8,GPU%rhopot)
+  call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*8,GPU%rhopot_up)
+  if( nspin == 2 ) then
+    call ocl_create_read_write_buffer(GPU%context, n1b*n2b*n3b*8,GPU%rhopot_down)
+  end if
 
 
 
@@ -126,10 +129,11 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
 end subroutine allocate_data_OCL
 
 
-subroutine free_gpu_OCL(GPU,orbs)
+subroutine free_gpu_OCL(GPU,orbs,nspin)
   use module_base
   use module_types
   implicit none
+  integer, intent(in) :: nspin
   type(orbitals_data), intent(in) :: orbs
   type(GPU_pointers), intent(out) :: GPU
   !local variables
@@ -137,12 +141,14 @@ subroutine free_gpu_OCL(GPU,orbs)
   integer :: i_stat,iorb,norbp,i_all
   
 
-  !call ocl_release_mem_object(GPU%r)
   call ocl_release_mem_object(GPU%d)
   call ocl_release_mem_object(GPU%work1)
   call ocl_release_mem_object(GPU%work2)
   call ocl_release_mem_object(GPU%work3)
-  call ocl_release_mem_object(GPU%rhopot)
+  call ocl_release_mem_object(GPU%rhopot_up)
+  if ( nspin == 2 ) then
+    call ocl_release_mem_object(GPU%rhopot_down)
+  endif
   call ocl_release_mem_object(GPU%keyg_c)
   call ocl_release_mem_object(GPU%keyv_c)
   call ocl_release_mem_object(GPU%keyg_f)
@@ -190,8 +196,8 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
   real(gp), intent(out) :: ekin_sum,epot_sum
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,orbs%norbp), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
-  real(gp), dimension(orbs%norbp,2), intent(out) :: ekin
-  real(gp), dimension(orbs%norbp,2), intent(out) :: epot
+  real(gp), dimension(2,orbs%norbp), intent(out) :: ekin
+  real(gp), dimension(2,orbs%norbp), intent(out) :: epot
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_OCL'
   integer :: i_stat,iorb,isf,i
@@ -200,6 +206,7 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
   !stream ptr array
   real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
   real(kind=8) :: stream_ptr_first_trsf
+  real(kind=8) :: rhopot
   integer :: n1, n2, n3
 
   if (lr%geocode /= 'F') then
@@ -232,7 +239,10 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
     n3 = n3 + 2*7 + 15
   endif
 
-  call ocl_enqueue_write_buffer(GPU%queue,GPU%rhopot,n1*n2*n3*8,pot) 
+  call ocl_enqueue_write_buffer(GPU%queue,GPU%rhopot_up,n1*n2*n3*8,pot) 
+  if( nspin == 2 ) then
+    call ocl_enqueue_write_buffer(GPU%queue,GPU%rhopot_down,n1*n2*n3*8,pot(1,1,1,2)) 
+  end if
  
   if (lr%wfd%nvctr_f > 0) then
      isf=lr%wfd%nvctr_c+1
@@ -249,6 +259,11 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
 
   do iorb=1,orbs%norbp
 
+     if (orbs%spinsgn(orbs%isorb+iorb) > 0.0) then
+       rhopot = GPU%rhopot_up
+     else
+       rhopot = GPU%rhopot_down
+     endif
      !if orbs%nspinor /= 1 this implementation should be rediscussed
      if (.not. GPU%full_locham) then
         stop 'ONLY FULL LOCHAM IS IMPLEMENTED!'
@@ -274,14 +289,15 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
           lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,& 
           GPU%psi_c,GPU%psi_f,&
           GPU%psi_c_i,GPU%psi_f_i,&
-          GPU%rhopot,&
+          rhopot,&
           GPU%work1,GPU%work2,GPU%work3,&
           GPU%work1_i,GPU%work2_i,GPU%work3_i,&
           GPU%d,&
           GPU%d_i,&
           orbs%nspinor,&
-          epot(iorb,1),ekin(iorb,1),&
-          epot(iorb,2),ekin(iorb,2))
+          epot(1,iorb),ekin(1,iorb))
+!,&
+!          epot(iorb,2),ekin(iorb,2))
 
      call ocl_enqueue_read_buffer_async(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,hpsi(1,iorb))
      call ocl_enqueue_read_buffer_async(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,hpsi(isf,iorb))
@@ -294,10 +310,9 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
   if (.not. ASYNCconv) then
      call ocl_finish(GPU%queue)
      do iorb=1,orbs%norbp
-       ekin_sum = ekin_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*((ekin(iorb,1)+ekin(iorb,2))&
-                  - (epot(iorb,1)+epot(iorb,2)))
-!    print *,iorb, ekin(iorb,1) + ekin(iorb,2), epot(iorb,1)+epot(iorb,2)
-       epot_sum = epot_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*(epot(iorb,1)+epot(iorb,2))
+       ekin_sum = ekin_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*((ekin(1,iorb)+ekin(2,iorb))&
+                  - (epot(1,iorb)+epot(2,iorb)))
+       epot_sum = epot_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*(epot(1,iorb)+epot(2,iorb))
      end do
   endif
   
@@ -311,8 +326,8 @@ subroutine finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU,ekin,epot)
   type(orbitals_data), intent(in) :: orbs
   real(gp), intent(out) :: ekin_sum,epot_sum
   type(GPU_pointers), intent(inout) :: GPU
-  real(gp), dimension(orbs%norbp,2), intent(in) :: ekin
-  real(gp), dimension(orbs%norbp,2), intent(in) :: epot
+  real(gp), dimension(2,orbs%norbp), intent(in) :: ekin
+  real(gp), dimension(2,orbs%norbp), intent(in) :: epot
 
   integer :: iorb
 
@@ -320,12 +335,10 @@ subroutine finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU,ekin,epot)
   ekin_sum=0
   epot_sum=0
   do iorb=1,orbs%norbp
-    ekin_sum = ekin_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*((ekin(iorb,1)+ekin(iorb,2))&
-                 - (epot(iorb,1)+epot(iorb,2)))
-!    print *,iorb, ekin(iorb,1) + ekin(iorb,2), epot(iorb,1)+epot(iorb,2)
-    epot_sum = epot_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*(epot(iorb,1)+epot(iorb,2))
+    ekin_sum = ekin_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*((ekin(1,iorb)+ekin(2,iorb))&
+                 - (epot(1,iorb)+epot(2,iorb)))
+    epot_sum = epot_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*(epot(1,iorb)+epot(2,iorb))
   end do
-!  print * , ekin_sum, epot_sum
 end subroutine finish_hamiltonian_OCL
 
 subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
@@ -401,7 +414,6 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
      end if
 
 
-!       print *, iorb, orbs%kpts(1,orbs%iokpt(iorb)), orbs%kpts(2,orbs%iokpt(iorb)), orbs%kpts(3,orbs%iokpt(iorb))
        if (orbs%kpts(1,orbs%iokpt(iorb))**2+orbs%kpts(2,orbs%iokpt(iorb))**2+&
            orbs%kpts(3,orbs%iokpt(iorb))**2 > 0.0_gp .or. orbs%nspinor==2 ) then
          ncplx=2
@@ -473,8 +485,6 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
              call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_f_i,7*lr%wfd%nvctr_f*8,hpsi(isf,inds+1,iorb))
            endif
 
-!           print *,iorb,inds,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds,iorb),1,hpsi(1,inds,iorb),1)
-!           print *,iorb,inds+1,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds+1,iorb),1,hpsi(1,inds+1,iorb),1)
         end do
      end do
 
@@ -511,6 +521,7 @@ subroutine local_partial_density_OCL(iproc,nproc,orbs,&
   real(kind=8) :: stream_ptr
   real(gp) :: hfac
   integer, dimension(3) :: periodic
+  real(kind=8) :: rhopot
 
   if (lr%geocode /= 'F') then
     periodic(1) = 1
@@ -534,7 +545,10 @@ subroutine local_partial_density_OCL(iproc,nproc,orbs,&
      isf=lr%wfd%nvctr_c
   end if
 
-  call set_d(GPU%queue, lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin , 1.d-20,  GPU%rhopot)
+  call set_d(GPU%queue, lr%d%n1i*lr%d%n2i*lr%d%n3i , 1.d-20,  GPU%rhopot_up)
+  if ( nspin == 2 ) then
+    call set_d(GPU%queue, lr%d%n1i*lr%d%n2i*lr%d%n3i , 1.d-20,  GPU%rhopot_down)
+  end if
   !copy the wavefunctions on GPU
   do iorb=1,orbs%norbp*orbs%nspinor
      iorb_r = (iorb-1)/orbs%nspinor + 1
@@ -544,28 +558,31 @@ subroutine local_partial_density_OCL(iproc,nproc,orbs,&
     call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,&
              psi(isf,iorb))
  
-    hfac=orbs%kwgts(orbs%iokpt(iorb_r))*orbs%occup(min(orbs%isorb+1,orbs%norb)+iorb_r-1)/(hxh*hyh*hzh);
-    if (orbs%spinsgn(min(orbs%isorb+1,orbs%norb)+iorb_r-1) > 0.0) then
-      iaddjmp = 0
+    hfac=orbs%kwgts(orbs%iokpt(iorb_r))*orbs%occup(orbs%isorb++iorb_r)/(hxh*hyh*hzh);
+    if (orbs%spinsgn(orbs%isorb+iorb_r) > 0.0) then
+       rhopot = GPU%rhopot_up
     else
-      iaddjmp = (lr%d%n1i)*(lr%d%n2i)*(lr%d%n3i)
+       rhopot = GPU%rhopot_down
     endif
   !calculate the density
    call ocl_locden_generic(GPU%queue, (/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
                           (/periodic(1),periodic(2),periodic(3)/),&
-                          hfac, iaddjmp,&
+                          hfac,&
                           lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
                           lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,&
                           GPU%psi_c,GPU%psi_f,&
                           GPU%work1,GPU%work2,GPU%work3,&
-                          GPU%rhopot)
+                          rhopot)
 
   
   end do
   !copy back the results and leave the uncompressed wavefunctions on the card
   
 
-  call ocl_enqueue_read_buffer(GPU%queue,GPU%rhopot,lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin*8,rho_p)
+  call ocl_enqueue_read_buffer(GPU%queue,GPU%rhopot_up,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p)
+  if( nspin == 2 ) then
+    call ocl_enqueue_read_buffer(GPU%queue,GPU%rhopot_down,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p(1,1,1,2))
+  endif
 
 end subroutine local_partial_density_OCL
 

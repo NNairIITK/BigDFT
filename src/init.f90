@@ -652,7 +652,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   if (GPUconv) then
      call free_gpu(GPU,orbse%norbp)
   else if (OCLconv) then
-     call free_gpu_OCL(GPU,orbse)
+     call free_gpu_OCL(GPU,orbse,nspin)
   end if
 
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&

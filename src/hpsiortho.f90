@@ -36,8 +36,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
   !local variables
-  real(gp), dimension(orbs%norbp,2) :: ekin
-  real(gp), dimension(orbs%norbp,2) :: epot
+  real(gp), dimension(2,orbs%norbp) :: ekin
+  real(gp), dimension(2,orbs%norbp) :: epot
   real(wp), dimension(:), pointer :: hpsi2
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX,op2p

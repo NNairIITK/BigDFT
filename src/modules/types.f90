@@ -308,6 +308,7 @@ module module_types
      logical :: useDynamic,full_locham
      integer :: id_proc
      real(kind=8) :: keys,work1,work2,work3,rhopot,r,d
+     real(kind=8) :: rhopot_down, rhopot_up
      real(kind=8) :: work1_i,work2_i,work3_i,d_i
      real(kind=8) :: pinned_in,pinned_out
      real(kind=8), dimension(:), pointer :: psi

@@ -80,7 +80,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
           hx,hy,hz,lr%wfd,orbsv,GPU)
   else if (OCLconv) then
-     call free_gpu_OCL(GPU,orbs)    
+     call free_gpu_OCL(GPU,orbs,in%nspin)    
      call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
           in%nspin,hx,hy,hz,lr%wfd,orbsv,GPU)
   end if
@@ -321,7 +321,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   if (GPUconv) then
      call free_gpu(GPU,orbsv%norbp)
   else if (OCLconv) then
-     call free_gpu_OCL(GPU,orbsv)
+     call free_gpu_OCL(GPU,orbsv,in%nspin)
   end if
 
   !the plotting should be added here (perhaps build a common routine?)
@@ -457,7 +457,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
           hx,hy,hz,lr%wfd,orbsv,GPU)
   else if (OCLconv) then
-     call free_gpu_OCL(GPU,orbs)    
+     call free_gpu_OCL(GPU,orbs,in%nspin)    
      call allocate_data_OCL(lr%d%n1,lr%d%n2,lr%d%n3,at%geocode,&
           in%nspin,hx,hy,hz,lr%wfd,orbsv,GPU)
   end if
@@ -1323,7 +1323,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   if (GPUconv) then
      call free_gpu(GPU,orbsv%norbp)
   else if (OCLconv) then
-     call free_gpu_OCL(GPU,orbsv)
+     call free_gpu_OCL(GPU,orbsv,in%nspin)
   end if
 
 END SUBROUTINE davidson
