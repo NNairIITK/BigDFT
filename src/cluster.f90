@@ -1619,7 +1619,7 @@ contains
        if (GPUconv .and. .not.(DoDavidson)) then
           call free_gpu(GPU,orbs%norbp)
        else if (OCLconv .and. .not.(DoDavidson)) then
-          call free_gpu_OCL(GPU,orbs%norbp)
+          call free_gpu_OCL(GPU,orbs,in%nspin)
        end if
        
        i_all=-product(shape(pot_ion))*kind(pot_ion)
@@ -1680,7 +1680,7 @@ contains
     if (GPUconv .and. .not.(DoDavidson)) then
        call free_gpu(GPU,orbs%norbp)
     else if (OCLconv .and. .not.(DoDavidson)) then
-       call free_gpu_OCL(GPU,orbs%norbp)
+       call free_gpu_OCL(GPU,orbs,in%nspin)
     end if
     
     call deallocate_comms(comms,subname)

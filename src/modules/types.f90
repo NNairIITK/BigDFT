@@ -310,10 +310,14 @@ module module_types
      logical :: useDynamic,full_locham
      integer :: id_proc
      real(kind=8) :: keys,work1,work2,work3,rhopot,r,d
+     real(kind=8) :: rhopot_down, rhopot_up
+     real(kind=8) :: work1_i,work2_i,work3_i,d_i
      real(kind=8) :: pinned_in,pinned_out
      real(kind=8), dimension(:), pointer :: psi
      real(kind=8) :: psi_c,psi_f
+     real(kind=8) :: psi_c_i,psi_f_i
      real(kind=8) :: psi_c_r,psi_f_r,psi_c_b,psi_f_b,psi_c_d,psi_f_d
+     real(kind=8) :: psi_c_r_i,psi_f_r_i,psi_c_b_i,psi_f_b_i,psi_c_d_i,psi_f_d_i
      real(kind=8) :: keyg_c,keyg_f,keyv_c,keyv_f
      real(kind=8) :: context,queue
   end type GPU_pointers
