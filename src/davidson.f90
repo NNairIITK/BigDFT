@@ -130,6 +130,11 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      end if
   end if
 
+  allocate(orbsv%eval(orbsv%norb*orbsv%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbsv%eval,'eval',subname)
+
+  orbsv%eval(1:orbsv%norb*orbsv%nkpts)=-0.5d0
+
   !prepare the v array starting from a set of gaussians
   call psivirt_from_gaussians(iproc,nproc,at,orbsv,lr,commsv,rxyz,hx,hy,hz,in%nspin,&
        psivirt)
@@ -177,10 +182,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   call full_local_potential(iproc,nproc,lr%d%n1i*lr%d%n2i*n3p,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
        orbs%norb,orbs%norbp,ngatherarr,rhopot,pot)
 
-  allocate(orbsv%eval(orbsv%norb*orbsv%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbsv%eval,'eval',subname)
-
-
+  
 
   !-----------starting point of the routine of direct minimisation
 
@@ -191,8 +193,6 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      call allocate_diis_objects(in%idsx,sum(commsv%ncntt(0:nproc-1)),orbsv%nkptsp,diis,subname)  
      !print *,'check',in%idsx,sum(commsv%ncntt(0:nproc-1)),orbsv%nkptsp
   endif
-
-  orbsv%eval(1:orbsv%norb*orbsv%nkpts)=-0.5d0
 
   energy=1.d10
   gnrm=1.d10
@@ -537,6 +537,11 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      end if
   end if
 
+  allocate(orbsv%eval(orbsv%norb*orbsv%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbsv%eval,'eval',subname)
+
+  orbsv%eval(1:orbsv%norb*orbsv%nkpts)=-0.5d0
+
   !prepare the v array starting from a set of gaussians
   call psivirt_from_gaussians(iproc,nproc,at,orbsv,lr,commsv,rxyz,hx,hy,hz,in%nspin,v)
 
@@ -675,8 +680,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   allocate(ew(2*orbsv%norb+ndebug),stat=i_stat)
   call memocc(i_stat,ew,'ew',subname)
 
-  allocate(orbsv%eval(orbsv%norb*orbsv%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbsv%eval,'eval',subname)
 
 
   !itermax=... use the input variable instead
@@ -1463,7 +1466,9 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   character(len=*), parameter :: subname='psivirt_from_gaussians'
   logical ::  randinp
   integer :: iorb,icoeff,i_all,i_stat,jproc,nwork,info,jorb,idum=0,ikpt,korb
+  integer :: iseg,i0,i1,i2,i3,jj,ispinor,i,ind_c,ind_f
   real(kind=4) :: tt,builtin_rand
+  real(wp) :: rfreq,gnrm_fake
   real(wp), dimension(:,:,:), allocatable :: gaucoeffs
   real(gp), dimension(:), allocatable :: work,ev
   real(gp), dimension(:,:), allocatable :: ovrlp
@@ -1496,9 +1501,9 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
               ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
               korb=orbs%isorb+iorb-(ikpt-1)*orbs%norb
               if (korb==jorb) then
-                 gaucoeffs(icoeff,1,iorb)=1.0_wp
+                 gaucoeffs(icoeff,1,iorb)=cos(real(jorb+icoeff,wp))
                  if (orbs%nspinor == 4) then
-                    gaucoeffs(icoeff,3,iorb)=1.0_wp
+                    gaucoeffs(icoeff,3,iorb)=sin(real(jorb+icoeff,wp))
                  end if
               end if
            end do
@@ -1611,6 +1616,47 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   deallocate(gbd_occ,stat=i_stat)
   call memocc(i_stat,i_all,'gbd_occ',subname)
 
+  !add random background to the wavefunctions
+  if (randinp .and. lr%geocode=='F') then
+     !call razero(orbs%npsidim,psivirt)
+     do iorb=1,orbs%norbp
+        do ispinor=1,orbs%nspinor
+           !pseudo-random frequency (from 0 to 10*2pi)
+           rfreq=real(iorb+orbs%isorb,wp)/real(orbs%norb*orbs%nkpts,wp)*62.8318530717958648_wp
+           do iseg=1,lr%wfd%nseg_c
+              call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+              do i=i0,i1
+                 ind_c=i-i0+jj+((iorb-1)*orbs%nspinor+ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
+                 psivirt(ind_c)=psivirt(ind_c)+0.5_wp*&
+                      sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+              end do
+           end do
+        end do
+        do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
+           call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+           do i=i0,i1
+              ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)+&
+                   ((iorb-1)*orbs%nspinor+ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
+              psivirt(ind_f+1)=psivirt(ind_f+1)+0.4_wp*&
+                   sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+              psivirt(ind_f+2)=psivirt(ind_f+2)+0.35_wp*&
+                   sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+              psivirt(ind_f+3)=psivirt(ind_f+3)+0.3_wp*&
+                   sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+              psivirt(ind_f+4)=psivirt(ind_f+4)+0.25_wp*&
+                   sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+              psivirt(ind_f+5)=psivirt(ind_f+5)+0.2_wp*&
+                   sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+              psivirt(ind_f+6)=psivirt(ind_f+6)+0.15_wp*&
+                   sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+              psivirt(ind_f+7)=psivirt(ind_f+7)+0.1_wp*&
+                   sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+           end do
+        end do
+     end do
+     !after having added random background, precondition the wavefunctions with an ncong of 5
+     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,5,psivirt,gnrm_fake,gnrm_fake)
+  end if
 
   !transpose v
   if(nproc > 1)then
