@@ -209,7 +209,8 @@ low_level = init/projectors.f90  \
 	wavelib/un-compress.f90 \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 \
-	wavelib/daubisf.f90
+	wavelib/daubisf.f90 \
+	$(DGEMMSY_INTERFACE)
 
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
@@ -221,7 +222,8 @@ libbigdft_a_LIBADD = profiling/time.o \
 	profiling/memory.o \
 	profiling/memoryestimator.o \
 	$(convolution_objects) \
-	$(modules_objects) 
+	$(modules_objects) \
+	$(libs_dgemmsy)
 
 bigdft_SOURCES = BigDFT.f90 
 bigdft_LDFLAGS = 
@@ -230,8 +232,7 @@ bigdft_LDADD = libbigdft.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
+	$(libs_ocl) 
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
 rism_LDFLAGS = 
@@ -240,8 +241,8 @@ rism_LDADD = libbigdft.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
+	$(libs_ocl)
+ 
 oneatom_SOURCES = oneatom.f90
 oneatom_LDFLAGS = 
 oneatom_LDADD = libbigdft.a \
@@ -259,8 +260,7 @@ MDanalysis_LDADD = libbigdft.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
+	$(libs_ocl) 
 
 abscalc_SOURCES = abscalc.f90 
 abscalc_LDFLAGS = 
@@ -269,9 +269,7 @@ abscalc_LDADD = libbigdft.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
-
+	$(libs_ocl) 
 
 test_forces_SOURCES = test_forces.f90
 test_forces_LDFLAGS = 
@@ -280,8 +278,7 @@ test_forces_LDADD = libbigdft.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
+	$(libs_ocl) 
 
 NEB_SOURCES = NEB.f90 \
 	$(mpi_source)
@@ -289,8 +286,7 @@ NEB_LDFLAGS =
 NEB_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
+	$(libs_ocl) 
 
 memguess_SOURCES = memguess.f90 \
 	$(mpi_source)
@@ -299,8 +295,7 @@ memguess_LDADD = libbigdft.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
+	$(libs_ocl) 
 
 frequencies_SOURCES = frequencies.f90  \
 	$(mpi_source)
@@ -310,8 +305,7 @@ frequencies_LDADD = libbigdft.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
+	$(libs_ocl) 
 
 bart_SOURCES = \
 	art/bigdft_forces.f90 \
@@ -332,9 +326,7 @@ bart_LDADD = art/libart.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
-
+	$(libs_ocl) 
 
 CLEANFILES = \
 	bigdft_api.@MODULE_EXT@ BIGDFT_API.@MODULE_EXT@ \
