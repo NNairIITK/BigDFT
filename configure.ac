@@ -333,7 +333,7 @@ dnl      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt -lstdc++"
 fi
 AM_CONDITIONAL(USE_OCL, test "$ac_use_ocl" = "yes")
 
-if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" ; then
+if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" -o "$ac_use_dgemmsy" = "yes"; then
   dnl Instead of second underscoring, test the compiler behaviour.
   AC_FC_WRAPPERS()
 fi

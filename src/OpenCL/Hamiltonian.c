@@ -59,6 +59,37 @@ void FC_FUNC_(ocl_fulllocham_generic,OCL_FULLLOCHAM_GENERIC)(bigdft_command_queu
 	      psi_c, psi_f, psi);
 }
 
+void FC_FUNC_(ocl_isf_to_daub,OCL_ISF_TO_DAUB)(bigdft_command_queue *command_queue,
+                                          cl_uint *dimensions,
+                                          cl_uint *periodic,
+                                          cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
+                                          cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                          cl_mem *psi_c, cl_mem *psi_f,
+                                          cl_mem *psi, cl_mem *out,
+                                          cl_mem *work, cl_mem *kinres) {
+  magic_filter_t_3d_generic_(command_queue, dimensions, periodic, work, kinres, psi, out);
+  ana_self_d_generic_(command_queue, dimensions, periodic, out, psi);
+  compress_d_(command_queue, dimensions,
+	      nseg_c, nvctr_c, keyg_c, keyv_c,
+	      nseg_f, nvctr_f, keyg_f, keyv_f,
+	      psi_c, psi_f, psi);
+}
+void FC_FUNC_(ocl_daub_to_isf,OCL_DAUB_TO_ISF)(bigdft_command_queue *command_queue,
+                                          cl_uint *dimensions,
+                                          cl_uint *periodic,
+                                          cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
+                                          cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                          cl_mem *psi_c, cl_mem *psi_f,
+                                          cl_mem *psi, cl_mem *out,
+                                          cl_mem *work, cl_mem *kinres) {
+  uncompress_d_(command_queue, dimensions,
+                               nseg_c, nvctr_c, keyg_c, keyv_c,
+                               nseg_f, nvctr_f, keyg_f, keyv_f,
+                               psi_c, psi_f, out);
+  syn_self_d_generic_(command_queue, dimensions, periodic, out, psi);
+  magic_filter_3d_generic_(command_queue, dimensions, periodic, work, kinres, psi, out);
+}
+
 void FC_FUNC_(ocl_fulllocham_generic_k,OCL_FULLLOCHAM_GENERIC_K)(bigdft_command_queue *command_queue,
                                           cl_uint *dimensions,
                                           cl_uint *periodic,

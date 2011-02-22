@@ -3,13 +3,13 @@
 // Copyright (c) 2010, Commissariat a l'Energie Atomique
 // Eric Bainville, Mar 2010
 
-#ifdef Linux
 #define _GNU_SOURCE
 #include <pthread.h>
-#endif
 #include <malloc.h>
+#include <string.h>
 #include "utils.h"
 #include "patterns.h"
+#include "dgemmsy.h"
 
 static BlocksPatternData BEST_PATTERN_ARG_MT = { 32,128,1 }; // na,nb,order
 static BlocksPatternData BEST_PATTERN_ARG_1T = { 32,512,1 }; // na,nb,order
@@ -24,10 +24,37 @@ static void setBestParams(int n_threads,dgemmsyParams * params)
   params->slice_n = 512;
 }
 
-void dgemmsy(char transa,char transb,int n,int p,double alpha,const double * a,int lda,const double * b,int ldb,double * y,int ldy,void * params)
+// Scale Y(P,P,LDY) by BETA
+static void scaleOutput(int p,double beta,double * y,int ldy)
+{
+  // Special cases
+  if (beta == 0.0) // Clear memory
+    {
+      size_t sz = p * sizeof(y[0]); // Column size (bytes)
+      int c;
+      for (c=0;c<p;c++) memset(y+c*ldy,0,sz);
+      return;
+    }
+  if (beta == 1.0) return; // Nothing to do if BETA is exactly 1
+
+  // Otherwise scale Y (not optimized)
+  int c,r;
+  for (c=0;c<p;c++)
+    {
+      double * yy = y + c*ldy;
+      for (r=0;r<p;r++) yy[r] *= beta;
+    }
+}
+
+void FC_FUNC(dgemmsy,DGEMMSY)(char transa,char transb,int n,int p,
+	     double alpha,const double * a,int lda,const double * b,int ldb,
+	     double beta,double * y,int ldy,void * params)
 {
   int status;
   dgemmsyBaseArgs U;
+
+  // Scale Y
+  scaleOutput(p,beta,y,ldy);
 
   // Setup args
   if (params != 0) U.params = *((dgemmsyParams *)params);
@@ -43,9 +70,7 @@ void dgemmsy(char transa,char transb,int n,int p,double alpha,const double * a,i
   U.ldb = ldb;
   U.y = y;
   U.ldy = ldy;
-#ifdef Linux
   U.yMutex = 0;
-#endif
 
   status = dgemmsy_base(&U);
 
@@ -56,7 +81,6 @@ void dgemmsy(char transa,char transb,int n,int p,double alpha,const double * a,i
     }
 }
 
-#ifdef Linux
 void * dgemmsy_base_mt(void * arg)
 {
   dgemmsyBaseArgs * x = (dgemmsyBaseArgs *)arg;
@@ -67,7 +91,7 @@ void * dgemmsy_base_mt(void * arg)
 void dgemmsy_mt(int n_threads,
 		char transa,char transb,int n,int p,
 		double alpha,const double * a,int lda,const double * b,int ldb,
-		double * y,int ldy,void * params)
+		double beta,double * y,int ldy,void * params)
 {
   pthread_mutex_t yMutex = PTHREAD_MUTEX_INITIALIZER;
   dgemmsyBaseArgs *U;
@@ -77,11 +101,14 @@ void dgemmsy_mt(int n_threads,
   // Single thread
   if (n_threads <= 1)
     {
-      dgemmsy(transa,transb,n,p,alpha,a,lda,b,ldb,y,ldy,params);
+      dgemmsy(transa,transb,n,p,alpha,a,lda,b,ldb,beta,y,ldy,params);
       return;
     }
 
   rows_per_thread = (n+n_threads-1) / n_threads; // rounded up
+
+  // Scale Y
+  scaleOutput(p,beta,y,ldy);
 
   // Setup args
   U = (dgemmsyBaseArgs *)malloc(n_threads * sizeof(U[0]));
@@ -137,16 +164,3 @@ void dgemmsy_mt(int n_threads,
   free(U);
   free(T);
 }
-#else
-
-// Windows implentation runs on single thread
-void dgemmsy_mt(int n_threads,
-		char transa,char transb,int n,int p,
-		double alpha,const double * a,int lda,const double * b,int ldb,
-		double * y,int ldy,
-		void * params)
-{
-  dgemmsy(transa,transb,n,p,alpha,a,lda,b,ldb,y,ldy,params);
-}
-
-#endif // Linux
