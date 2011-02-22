@@ -81,16 +81,47 @@ subroutine read_input_variables(iproc,posinp, &
   real(gp) :: tt
   integer :: iat
 
-  ! Default
-  call default_input_variables(inputs)
-
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
 
+  ! Read all parameters and update atoms and rxyz.
+  call read_input_parameters(iproc, file_dft, file_kpt, file_mix, &
+       & file_geopt, file_perf, inputs, atoms, rxyz)
+END SUBROUTINE read_input_variables
+!!***
+
+!!****f* BigDFT/read_input_parameters
+!! FUNCTION
+!!    Do initialisation for all different calculation parameters of BigDFT. 
+!!    Set default values if not any. Atomic informations are updated  by
+!!    symmetries if necessary and by geometry input parameters.
+!! SOURCE
+!!
+subroutine read_input_parameters(iproc, &
+     & file_dft, file_kpt, file_mix, file_geopt, file_perf,inputs,atoms,rxyz)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => read_input_variables
+
+  implicit none
+
+  !Arguments
+  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_mix,file_perf
+  integer, intent(in) :: iproc
+  type(input_variables), intent(out) :: inputs
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(:,:), pointer :: rxyz
+  !Local variables
+  real(gp) :: tt
+  integer :: iat
+
+  ! Default for inputs
+  call default_input_variables(inputs)
   ! Read performance input variables (if given)
   call perf_input_variables(iproc,file_perf,inputs)
   ! Read dft input variables
   call dft_input_variables(iproc,file_dft,inputs)
+  ! Update atoms with symmetry information
   call update_symmetries(inputs, atoms, rxyz)
   ! Read k-points input variables (if given)
   call kpt_input_variables(iproc,file_kpt,inputs,atoms)
@@ -137,7 +168,7 @@ subroutine read_input_variables(iproc,posinp, &
   if (inputs%nkpt > 1 .and. inputs%gaussian_help) then
      stop 'Gaussian projection is not implemented with k-point support'
   end if
-END SUBROUTINE read_input_variables
+END SUBROUTINE read_input_parameters
 !!***
 
 subroutine default_input_variables(inputs)

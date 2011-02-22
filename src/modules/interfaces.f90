@@ -133,6 +133,19 @@ module module_interfaces
        real(gp), dimension(:,:), pointer :: rxyz
      END SUBROUTINE read_input_variables
 
+     subroutine read_input_parameters(iproc, &
+          & file_dft, file_kpt, file_mix, file_geopt, file_perf,inputs,atoms,rxyz)
+       use module_base
+       use module_types
+       use module_interfaces, except_this_one => read_input_variables
+       implicit none
+       character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_mix,file_perf
+       integer, intent(in) :: iproc
+       type(input_variables), intent(out) :: inputs
+       type(atoms_data), intent(inout) :: atoms
+       real(gp), dimension(:,:), pointer :: rxyz
+     end subroutine read_input_parameters
+
      subroutine dft_input_variables(iproc,filename,in)
        use module_base
        use module_types
