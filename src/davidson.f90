@@ -1617,7 +1617,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   call memocc(i_stat,i_all,'gbd_occ',subname)
 
   !add random background to the wavefunctions
-  if (randinp .and. lr%geocode=='F') then
+  if (randinp) then
      !call razero(orbs%npsidim,psivirt)
      do iorb=1,orbs%norbp
         do ispinor=1,orbs%nspinor
@@ -1631,31 +1631,31 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
                       sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
               end do
            end do
-        end do
-        do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-           call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
-           do i=i0,i1
-              ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)+&
-                   ((iorb-1)*orbs%nspinor+ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
-              psivirt(ind_f+1)=psivirt(ind_f+1)+0.4_wp*&
-                   sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
-              psivirt(ind_f+2)=psivirt(ind_f+2)+0.35_wp*&
-                   sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
-              psivirt(ind_f+3)=psivirt(ind_f+3)+0.3_wp*&
-                   sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
-              psivirt(ind_f+4)=psivirt(ind_f+4)+0.25_wp*&
-                   sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
-              psivirt(ind_f+5)=psivirt(ind_f+5)+0.2_wp*&
-                   sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
-              psivirt(ind_f+6)=psivirt(ind_f+6)+0.15_wp*&
-                   sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
-              psivirt(ind_f+7)=psivirt(ind_f+7)+0.1_wp*&
-                   sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+           do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
+              call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
+              do i=i0,i1
+                 ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)+&
+                      ((iorb-1)*orbs%nspinor+ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
+                 psivirt(ind_f+1)=psivirt(ind_f+1)+0.4_wp*&
+                      sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+                 psivirt(ind_f+2)=psivirt(ind_f+2)+0.35_wp*&
+                      sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+                 psivirt(ind_f+3)=psivirt(ind_f+3)+0.3_wp*&
+                      sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+                 psivirt(ind_f+4)=psivirt(ind_f+4)+0.25_wp*&
+                      sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+                 psivirt(ind_f+5)=psivirt(ind_f+5)+0.2_wp*&
+                      sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+                 psivirt(ind_f+6)=psivirt(ind_f+6)+0.15_wp*&
+                      sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+                 psivirt(ind_f+7)=psivirt(ind_f+7)+0.1_wp*&
+                      sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+              end do
            end do
         end do
      end do
      !after having added random background, precondition the wavefunctions with an ncong of 5
-     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,5,psivirt,gnrm_fake,gnrm_fake)
+     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,10,psivirt,gnrm_fake,gnrm_fake)
   end if
 
   !transpose v
