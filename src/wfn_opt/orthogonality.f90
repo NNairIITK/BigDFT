@@ -207,7 +207,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
         if (nvctrp == 0) cycle
 
         if(nspinor==1) then
-           call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+           call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
                 max(1,nvctrp),hpsi(ispsi),max(1,nvctrp),0.0_wp,&
                 alag(ndimovrlp(ispin,ikpt-1)+1),norb)
         else

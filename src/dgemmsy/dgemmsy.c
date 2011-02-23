@@ -46,30 +46,29 @@ static void scaleOutput(int p,double beta,double * y,int ldy)
     }
 }
 
-void FC_FUNC(dgemmsy,DGEMMSY)(char transa,char transb,int n,int p,
-	     double alpha,const double * a,int lda,const double * b,int ldb,
-	     double beta,double * y,int ldy,void * params)
+void FC_FUNC(dgemmsy,DGEMMSY)(char *transa,char *transb,int *n,int *p,
+	     double *alpha,const double * a,int *lda,const double * b,int *ldb,
+	     double *beta,double * y,int *ldy)
 {
   int status;
   dgemmsyBaseArgs U;
 
   // Scale Y
-  scaleOutput(p,beta,y,ldy);
+  scaleOutput(*p,*beta,y,*ldy);
 
   // Setup args
-  if (params != 0) U.params = *((dgemmsyParams *)params);
-  else setBestParams(1,&(U.params));
-  U.transa = (transa == 'T' || transa == 't');
-  U.transb = (transb == 'T' || transb == 't');
-  U.n = n;
-  U.p = p;
-  U.alpha = alpha;
+  setBestParams(1,&(U.params));
+  U.transa = (*transa == 'T' || *transa == 't');
+  U.transb = (*transb == 'T' || *transb == 't');
+  U.n = *n;
+  U.p = *p;
+  U.alpha = *alpha;
   U.a = a;
-  U.lda = lda;
+  U.lda = *lda;
   U.b = b;
-  U.ldb = ldb;
+  U.ldb = *ldb;
   U.y = y;
-  U.ldy = ldy;
+  U.ldy = *ldy;
   U.yMutex = 0;
 
   status = dgemmsy_base(&U);
@@ -80,7 +79,7 @@ void FC_FUNC(dgemmsy,DGEMMSY)(char transa,char transb,int n,int p,
       fprintf(stderr,"dgemmsy_base failed: error %d\n",status);
     }
 }
-
+/*
 void * dgemmsy_base_mt(void * arg)
 {
   dgemmsyBaseArgs * x = (dgemmsyBaseArgs *)arg;
@@ -101,7 +100,7 @@ void dgemmsy_mt(int n_threads,
   // Single thread
   if (n_threads <= 1)
     {
-      dgemmsy(transa,transb,n,p,alpha,a,lda,b,ldb,beta,y,ldy,params);
+      FC_FUNC(dgemmsy,DGEMMSY)(transa,transb,n,p,alpha,a,lda,b,ldb,beta,y,ldy,params);
       return;
     }
 
@@ -164,3 +163,4 @@ void dgemmsy_mt(int n_threads,
   free(U);
   free(T);
 }
+*/

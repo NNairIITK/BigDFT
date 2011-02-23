@@ -28,10 +28,9 @@
 // PARAMS is an internal parameter, must be set to 0 for general use.
 //
 // All coefficients of Y are updated.
-void FC_FUNC(dgemmsy,DGEMMSY)(char transa,char transb,int n,int p,
-	     double alpha,const double * a,int lda,const double * b,int ldb,
-	     double beta,double * y,int ldy,
-	     void * params);
+void FC_FUNC(dgemmsy,DGEMMSY)(char *transa,char *transb,int *n,int *p,
+	     double *alpha,const double * a,int *lda,const double * b,int *ldb,
+	     double *beta,double * y,int *ldy);
 
 // Same call, but dispatched on N_THREADS threads.
 // On Windows, N_THREADS is ignored, and the single thread function will be called.

@@ -162,7 +162,7 @@ int dgemmsy_base(dgemmsyBaseArgs * args)
   // printf("N=%d P=%d LDA=%d LDB=%d LDY=%d  P2=%d\n",n,p,lda,ldb,ldy,p2);
 
   // Check other arguments
-  if (a == 0 || b == 0 || y == 0 || pattern == 0) return -2;
+  if (a == 0 || b == 0 || y == 0 || pattern == 0) return -5;
 
   // Allocate memory
   slice_size = slice_n * p2 * sizeof(double); // Slice size in bytes
