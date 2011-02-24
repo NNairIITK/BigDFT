@@ -1,6 +1,6 @@
 SUBDIRS = 
 
-EXTRA_DIST =
+EXTRA_DIST = atom-orig.f
 
 if BUILD_BINARIES_PSEUDO
 binaries_sources = atom pseudo
