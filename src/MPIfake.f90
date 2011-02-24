@@ -168,3 +168,9 @@ subroutine MPI_GET_PROCESSOR_NAME()
   implicit none
   stop 'MPIFAKE: MPI_GET_PROCESSOR_NAME'
 end subroutine  MPI_GET_PROCESSOR_NAME
+
+subroutine  MPI_SCATTERV()
+  implicit none
+  stop 'MPIFAKE: SCATTERV'
+END SUBROUTINE  MPI_SCATTERV
+

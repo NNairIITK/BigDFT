@@ -58,19 +58,13 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
         ikpt=orbs%iokpt(iorb)
      end if
 
-!     ! define zero energy for preconditioning 
-!     eval_zero=max(orbs%eval(orbs%norb),0.d0)  !  Non-spin pol
-!     if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then    !spin-pol
-!        eval_zero=max(orbs%eval(orbs%norbu),0.d0)  !up orbital
-!     else if (orbs%spinsgn(orbs%isorb+iorb) < 0.0_gp) then
-!        eval_zero=max(orbs%eval(orbs%norbu+orbs%norbd),0.d0)  !down orbital
-!     end if
      !indo=(iorb-1)*nspinor+1
      !loop over the spinorial components
      !k-point values, if present
      kx=orbs%kpts(1,orbs%iokpt(iorb))
      ky=orbs%kpts(2,orbs%iokpt(iorb))
      kz=orbs%kpts(3,orbs%iokpt(iorb))
+!       print *, iorb, orbs%kpts(1,orbs%iokpt(iorb)), orbs%kpts(2,orbs%iokpt(iorb)), orbs%kpts(3,orbs%iokpt(iorb))
 
      !real k-point different from Gamma still not implemented
      if (kx**2+ky**2+kz**2 > 0.0_gp .or. orbs%nspinor==2 ) then
@@ -119,6 +113,8 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
 
         end if
 
+!     print *,iorb,inds,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds,iorb),1,hpsi(1,inds,iorb),1)
+!     print *,iorb,inds+1,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds+1,iorb),1,hpsi(1,inds+1,iorb),1)
      end do
   enddo
 

@@ -57,12 +57,12 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
      do ikptp=1,orbs%nkptsp
         nvctrp=comms%nvctr_par(iproc,ikptp)
         if (nvctrp == 0) cycle
-        
      !here we can choose to store the DIIS arrays with single precision
      !psidst=psit
         call dcopy(nvctrp*orbs%norb*orbs%nspinor,&
              psit(ispsi),1,&
              diis%psidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(diis%mids-1)),1)
+
      !hpsidst=hpsi
      !   call dcopy(nvctrp*orbs%norb*orbs%nspinor,&
      !        hpsit(ispsi),1,&

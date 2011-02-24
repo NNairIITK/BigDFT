@@ -36,8 +36,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
   !local variables
-  real(gp), dimension(orbs%norbp) :: ekin
-  real(gp), dimension(orbs%norbp) :: epot
+  real(gp), dimension(2,orbs%norbp) :: ekin
+  real(gp), dimension(2,orbs%norbp) :: epot
   real(wp), dimension(:), pointer :: hpsi2
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX,op2p
@@ -144,7 +144,6 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !!$     deallocate(hpsi_OCL,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'hpsi_OCL',subname)
 !!$  end if
-  
   call timing(iproc,'ApplyLocPotKin','OF')
 
   ! apply all PSP projectors for all orbitals belonging to iproc
@@ -449,7 +448,6 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      write(*,'(1x,a)',advance='no')&
           'Orthogonalization...'
   end if
-
 
   call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit,input)
 

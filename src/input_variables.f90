@@ -643,6 +643,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   logical :: exists
   character(len=*), parameter :: subname='kpt_input_variables'
   character(len = 6) :: type
+  character(len=100) :: line
   integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount
   real(gp) :: kptrlen, shiftk(3,8), norm, alat(3)
   integer, allocatable :: iseg(:)
@@ -772,8 +773,28 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
      i_all=-product(shape(iseg))*kind(iseg)
      deallocate(iseg,stat=i_stat)
      call memocc(i_stat,i_all,'iseg',subname)
-  end if
 
+     !read an optional line to see if there is a file associated
+     read(1,'(a100)',iostat=ierror)line
+     if (ierror /=0) then
+        !last line missing, put an empty line
+        line=''
+        in%band_structure_filename=''
+     else
+        read(line,*,iostat=ierror) in%band_structure_filename
+        call check()
+        !since a file for the local potential is already given, do not perform ground state calculation
+        if (iproc==0) then
+           write(*,'(1x,a)')'Local Potential read from file, '//trim(in%band_structure_filename)//&
+                ', do not optimise GS wavefunctions'
+        end if
+        in%nrepmax=0
+        in%itermax=0
+        in%itrpmax=0
+        in%inputPsiId=-1000 !allocate empty wavefunctions
+        in%output_grid=0
+     end if
+  end if
   close(unit=1,iostat=ierror)
 
   ! Convert reduced coordinates into BZ coordinates.

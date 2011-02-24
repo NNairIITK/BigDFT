@@ -408,11 +408,11 @@ subroutine input_wf_diag(iproc,nproc,at,&
   switchGPUconv=.false.
   switchOCLconv=.false.
   if (GPUconv .and. potshortcut ==0 ) then
-     call prepare_gpu_for_locham(Glr%d%n1,Glr%d%n2,Glr%d%n3,nspin,&
+     call prepare_gpu_for_locham(Glr%d%n1,Glr%d%n2,Glr%d%n3,nspin_ig,&
           hx,hy,hz,Glr%wfd,orbse,GPU)
   else if (OCLconv .and. potshortcut ==0) then
      call allocate_data_OCL(Glr%d%n1,Glr%d%n2,Glr%d%n3,at%geocode,&
-          nspin,hx,hy,hz,Glr%wfd,orbse,GPU)
+          nspin_ig,hx,hy,hz,Glr%wfd,orbse,GPU)
      if (iproc == 0) write(*,*)&
           'GPU data allocated'
   else if (GPUconv .and. potshortcut >0 ) then
@@ -439,7 +439,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
        & symObj, irrzon, phnons)
      
   !-- if spectra calculation uses a energy dependent potential
-  !    input_wf_diag will write (to be used it in abscalc)
+  !    input_wf_diag will write (to be used in abscalc)
   !    the density to the file electronic_density.cube
   !  The writing is activated if  5th bit of  in%potshortcut is on.
   if( iand( potshortcut,16)==0 .and. potshortcut /= 0) then
@@ -652,7 +652,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   if (GPUconv) then
      call free_gpu(GPU,orbse%norbp)
   else if (OCLconv) then
-     call free_gpu_OCL(GPU,orbse%norbp)
+     call free_gpu_OCL(GPU,orbse,nspin_ig)
   end if
 
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
