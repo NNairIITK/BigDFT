@@ -750,7 +750,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   hfac=1.0_gp/(hxh*hyh*hzh)
 
   !here we can start with the round-robin scheme
-  !since the orbitlas are all occupied we have to use the symmetric scheme
+  !since the orbitals are all occupied we have to use the symmetric scheme
   !we have first to define the number of groups, which correspond to the repartition 
   !of spin up and spin down orbitals
   allocate(nvctr_par(0:nproc-1,ngroup+ndebug),stat=i_stat)
@@ -883,7 +883,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
         if (nvctr_par(kproc,igrpr(igroup)) > 0) nprocgr=nprocgr+1
      end do
      
-     !do not sent anything if there is only one member in the group
+     !do not send anything if there is only one member in the group
      if (nprocgr > 1) then
         do kproc=0,(nprocgr-1)/2-1
            !define the arrays for send-receive of data

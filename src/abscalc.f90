@@ -1194,7 +1194,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         enddo
      end if
      infocode=0
- 
+
      if (in%iabscalc_type==2) then
         call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&

@@ -322,6 +322,7 @@ subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
   gnrm_zero=0.0_dp
 
   do iorb=1,orbs%norbp
+
      do inds=1,orbs%nspinor,ncplx !the streams should be more if nspinor>1
         !the nrm2 function can be replaced here by ddot
         scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi(1,inds,iorb),1)

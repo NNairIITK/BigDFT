@@ -34,7 +34,7 @@ program oneatom
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(gp), dimension(:,:), allocatable :: radii_cf
-  real(wp), dimension(:), pointer :: hpsi,psit,psi,psidst,hpsidst,proj
+  real(wp), dimension(:), pointer :: hpsi,psit,psi,psidst,hpsidst,proj,pot
   real(dp), dimension(:), pointer :: pkernel,pot_ion
   real(gp), dimension(:,:), pointer :: rxyz
   ! arrays for DIIS convergence accelerator
@@ -166,7 +166,7 @@ program oneatom
   !transpose the psi wavefunction
   call transpose_v(iproc,nproc,orbs,Glr%wfd,comms,&
        psi,work=hpsi)
-  call orthogonalize(iproc,nproc,orbs,comms,Glr%wfd,psi)
+  call orthogonalize(iproc,nproc,orbs,comms,Glr%wfd,psi,in)
   !untranspose psi
   call untranspose_v(iproc,nproc,orbs,Glr%wfd,comms,psi,work=hpsi)
 
@@ -191,6 +191,10 @@ program oneatom
   !previous value of idsx_actual to control if switching has appeared
   idsx_actual_before=idsx_actual
 
+  !allocate the potential in the full box
+  call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
+       orbs%norb,orbs%norbp,ngatherarr,pot_ion,pot)
+  
   wfn_loop: do iter=1,in%itermax
 
      if (iproc == 0 .and. verbose > 0) then 
@@ -207,8 +211,7 @@ program oneatom
      endloop=endloop .or. ndiis_sd_sw > 2
 
      call HamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
-          nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
-          pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU)
+          nlpspd,proj,Glr,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
@@ -308,6 +311,9 @@ program oneatom
      deallocate(pkernel,stat=i_stat)
      call memocc(i_stat,i_all,'kernel',subname)
   end if
+
+  !deallocate potential
+  call free_full_potential(nproc,pot,subname)
 
   i_all=-product(shape(pot_ion))*kind(pot_ion)
   deallocate(pot_ion,stat=i_stat)
