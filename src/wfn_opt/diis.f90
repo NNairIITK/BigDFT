@@ -10,7 +10,7 @@ subroutine mix_rhopot(nproc,npoints,alphamix,mix,rhopot,istep,ntot,ucvol,rpnrm)
   real(gp), intent(out) :: rpnrm
   !local variables
   integer :: ierr
-  integer, save :: i = 0
+!!$  integer, save :: i = 0
   character(len = 500) :: errmess
   
 !!$  !vold=>vold-vnew
@@ -28,15 +28,15 @@ subroutine mix_rhopot(nproc,npoints,alphamix,mix,rhopot,istep,ntot,ucvol,rpnrm)
 !!$  !vold=vnew
 !!$  call dcopy(npoints,rhopot(1),1,rhopot_old(1),1)
 
-  if (i == 0) then
-     do i = 1, npoints, 1
-        if (rhopot(i) > 0.0001) exit
-     end do
-     i = 2725
-  end if
-
-  write(*,*) "new:", rhopot(i)
-  write(*,*) "old:", mix%f_fftgr(i,1, mix%i_vrespc(1))
+!!$  if (i == 0) then
+!!$     do i = 1, npoints, 1
+!!$        if (rhopot(i) > 0.0001) exit
+!!$     end do
+!!$     i = 2725
+!!$  end if
+!!$
+!!$  write(*,*) "new:", rhopot(i)
+!!$  write(*,*) "old:", mix%f_fftgr(i,1, mix%i_vrespc(1))
 
   ! Calculate the residue
   if (istep > 1) then
@@ -50,7 +50,7 @@ subroutine mix_rhopot(nproc,npoints,alphamix,mix,rhopot,istep,ntot,ucvol,rpnrm)
   end if
 
   ! Do the mixing
-  write(*,*) "res:", mix%f_fftgr(i,1, mix%i_vrespc(1))
+!!$  write(*,*) "res:", mix%f_fftgr(i,1, mix%i_vrespc(1))
   call ab6_mixing_eval(mix, rhopot, istep, ntot, ucvol, &
        & MPI_COMM_WORLD, (nproc > 1), ierr, errmess, resnrm = rpnrm)
   if (ierr /= AB6_NO_ERROR) then
@@ -58,7 +58,7 @@ subroutine mix_rhopot(nproc,npoints,alphamix,mix,rhopot,istep,ntot,ucvol,rpnrm)
      call MPI_ABORT(MPI_COMM_WORLD, ierr)
   end if
   rpnrm = sqrt(rpnrm) / real(ntot, gp)
-  write(*,*) "mix:", rhopot(i)  
+!!$  write(*,*) "mix:", rhopot(i)  
   if (mix%iscf == AB6_MIXING_SIMPLE) then
      rpnrm = rpnrm / alphamix
   end if

@@ -24,7 +24,7 @@
   !local variables
   character(len=*), parameter :: subname='call_bigdft'
   character(len=40) :: comment
-  integer :: i_stat,i_all,ierr,inputPsiId_orig,icycle,iat
+  integer :: i_stat,i_all,ierr,inputPsiId_orig,iat
 
   !temporary interface
   interface
@@ -79,7 +79,7 @@
 
   inputPsiId_orig=in%inputPsiId
 
-  loop_cluster: do 
+  loop_cluster: do
 
      if (in%inputPsiId == 0 .and. associated(rst%psi)) then
         i_all=-product(shape(rst%psi))*kind(rst%psi)
@@ -566,8 +566,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         !only the first processor should read this
         if (iproc == 0) then
            write(*,'(1x,a)')'Reading local potential from file:'//trim(in%band_structure_filename)
-           call read_cube(trim(in%band_structure_filename),atoms%geocode,&
-                n1i,n2i,n3i,in%nspin,hxh,hyh,hzh,pot_from_disk)
+           call read_density(trim(in%band_structure_filename),atoms%geocode,&
+                n1i,n2i,n3i,nspin,hxh,hyh,hzh,pot_from_disk)
+           if (nspin /= in%nspin) stop
         else
            allocate(pot_from_disk(1,in%nspin+ndebug),stat=i_stat)
            call memocc(i_stat,pot_from_disk,'pot_from_disk',subname)
