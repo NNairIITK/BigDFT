@@ -336,6 +336,10 @@ ac_use_etsfio=no
 AC_ARG_WITH(etsf-io, AS_HELP_STRING([--with-etsf-io], [Link with ETSF_IO library (default = no).]), etsfio=$withval, etsfio=no)
 AC_ARG_WITH(etsf-io-path, AS_HELP_STRING([--with-etsf-io-path], [Give the path of the ETSF_IO installation (default = /usr).]),
             ac_etsfio_dir=$withval, ac_etsfio_dir=)
+AC_ARG_WITH(netcdf-path, AS_HELP_STRING([--with-netcdf-path], [Give the path to NetCDF (required by ETSF_IO) (default = /usr).]),
+            ac_netcdf_dir=$withval, ac_netcdf_dir=)
+AC_ARG_WITH(netcdf-libs, AS_HELP_STRING([--with-netcdf-libs], [Give the library to link with NetCDF (required by ETSF_IO) (default = -lnetcdff -lnetcdf).]),
+            ac_netcdf_libs=$withval, ac_netcdf_libs="-lnetcdff -lnetcdf")
 if test "$etsfio" = "yes" ; then
    LDFLAGS_SVG="$LDFLAGS"
    LIBS_SVG="$LIBS"
@@ -344,7 +348,11 @@ if test "$etsfio" = "yes" ; then
       LDFLAGS="$LDFLAGS -L$ac_etsfio_dir/lib"
       FCFLAGS="$FCFLAGS -I$ac_etsfio_dir/include"
    fi
-   LIBS="$LIBS -letsf_io -lnetcdff -lnetcdf"
+   if test -n "$ac_netcdf_dir" -a x"$ac_netcdf_dir" != x"$ac_etsfio_dir" ; then
+      LDFLAGS="$LDFLAGS -L$ac_netcdf_dir/lib"
+      FCFLAGS="$FCFLAGS -I$ac_netcdf_dir/include"
+   fi
+   LIBS="$LIBS -letsf_io $ac_netcdf_libs"
    AC_MSG_CHECKING([for ETSF_IO library])
    AC_LINK_IFELSE([[
 program main
