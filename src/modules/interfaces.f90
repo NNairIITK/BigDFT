@@ -137,7 +137,6 @@ module module_interfaces
           & file_dft, file_kpt, file_mix, file_geopt, file_perf,inputs,atoms,rxyz)
        use module_base
        use module_types
-       use module_interfaces, except_this_one => read_input_variables
        implicit none
        character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_mix,file_perf
        integer, intent(in) :: iproc

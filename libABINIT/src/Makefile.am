@@ -13,17 +13,31 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 	72_geomoptim/nose.F90 \
 	72_geomoptim/others.F90 \
 	72_geomoptim/quenched.F90 \
-	72_geomoptim/velocity_verlet.F90
+	72_geomoptim/velocity_verlet.F90 \
+	12_hide_mpi/xallgather_mpi.F90 \
+	12_hide_mpi/xallgatherv_mpi.F90 \
+	12_hide_mpi/xalltoall_mpi.F90 \
+	12_hide_mpi/xalltoallv_mpi.F90 \
+	12_hide_mpi/xcast_mpi.F90 \
+	12_hide_mpi/xexch_mpi.F90 \
+	12_hide_mpi/xmax_mpi.F90 \
+	12_hide_mpi/xmin_mpi.F90 \
+	12_hide_mpi/xrecv_mpi.F90 \
+	12_hide_mpi/xsend_mpi.F90 \
+	12_hide_mpi/xsum_master.F90 \
+	12_hide_mpi/xsum_mpi.F90
 
 noinst_LIBRARIES = libabinit.a
 
-AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim
+AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -DHAVE_MPI -I$(srcdir)/72_geomoptim
 
 libabinit_a_SOURCES = \
 	01_interfaces_ext/interfaces_linalg.F90 \
 	10_defs/defs_basis.F90 \
 	10_defs/defs_datatypes.F90 \
 	10_defs/defs_parameters.F90 \
+	12_hide_mpi/interfaces_12_hide_mpi.F90 \
+	12_hide_mpi/m_xmpi.F90 \
 	14_hidewrite/wrtout.F90 \
 	14_hidewrite/interfaces_14_hidewrite.F90 \
 	16_hideleave/leave_new.F90 \
@@ -94,6 +108,16 @@ libabinit_a_SOURCES = \
 	42_geometry/symzat.F90 \
 	42_geometry/xredxcart.F90 \
 	50_abitypes_defs/defs_abitypes.F90 \
+	56_mixing/aprxdr.F90 \
+	56_mixing/dotprodm_v.F90 \
+	56_mixing/dotprodm_vn.F90 \
+	56_mixing/findminscf.F90 \
+	56_mixing/interfaces_56_mixing.F90 \
+	56_mixing/m_ab6_mixing.F90 \
+	56_mixing/scfcge.F90 \
+	56_mixing/scfeig.F90 \
+	56_mixing/scfopt.F90 \
+	56_mixing/sqnormm_v.F90 \
 	56_recipspace/interfaces_56_recipspace.F90 \
 	56_recipspace/irrzg.F90 \
 	56_recipspace/getkgrid.F90 \

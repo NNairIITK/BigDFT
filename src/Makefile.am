@@ -314,7 +314,7 @@ bart_SOURCES = \
 	art/initialize.f90 \
 	art/read_parameters.f90 \
 	art.f90
-bart_FCFLAGS = -I. -Iart -Imodules
+bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@
 bart_LDFLAGS = 
 bart_LDADD = art/libart.a \
 	libbigdft.a \

@@ -1,4 +1,4 @@
-AM_FCFLAGS = -I. -I../modules -I$(srcdir) @MPI_INCLUDE@ -I../PSolver -I../
+AM_FCFLAGS = -I. -I../modules -I$(srcdir) @MPI_INCLUDE@ -I../PSolver -I../ @LIBABINIT_INCLUDE@
 
 noinst_LIBRARIES = libprofiling.a
 

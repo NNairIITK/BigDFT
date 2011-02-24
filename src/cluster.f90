@@ -188,6 +188,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
   use esatto
   use ab6_symmetry
+  use m_ab6_mixing
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -210,9 +211,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   character(len=4) :: f4
   character(len=5) :: fformat
   character(len=50) :: filename
+  character(len=500) :: errmess
   logical :: endloop,endlooprp,potion_overwritten=.false.,allfiles,onefile,refill_proj
   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
-  integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle
+  integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
   integer :: nelec,ndegree_ip,j,i,iorb
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
@@ -237,7 +239,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   real(gp), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
   real(gp), dimension(:,:),allocatable :: fdisp
   ! Charge density/potential,ionic potential, pkernel
-  real(dp), dimension(:), allocatable :: pot_ion,rhopot,rhopot_old,counter_ions
+  type(ab6_mixing_object) :: mix
+  real(dp), dimension(:), allocatable :: pot_ion,rhopot,counter_ions
   real(kind=8), dimension(:,:,:,:), allocatable :: pot,potxc,dvxcdrho
   real(dp), dimension(:), pointer :: pkernel,pkernelseq
   !wavefunction gradients, hamiltonian on vavefunction
@@ -759,13 +762,21 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   DoDavidson= .false.
 
   !allocate the rhopot_old array needed for mixing
-  if (n3d >0 .and. in%itrpmax>1) then
-     allocate(rhopot_old(n1i*n2i*n3d*in%nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,rhopot_old,'rhopot_old',subname)
-  else if (in%itrpmax >1) then
-     allocate(rhopot_old(1+ndebug),stat=i_stat)
-     call memocc(i_stat,rhopot_old,'rhopot_old',subname)
+  if (in%iscf < 10) then
+     potden = AB6_MIXING_POTENTIAL
+  else
+     potden = AB6_MIXING_DENSITY
   end if
+  if (n3d >0 .and. in%itrpmax>1) then
+     call ab6_mixing_new(mix, modulo(in%iscf, 10), potden, &
+          & AB6_MIXING_REAL_SPACE, n1i*n2i*n3d, in%nspin, 0, &
+          & ierr, errmess, useprec = .false.)
+  else if (in%itrpmax >1) then
+     call ab6_mixing_new(mix, modulo(in%iscf, 10), potden, &
+          & AB6_MIXING_REAL_SPACE, 1, in%nspin, 0, &
+          & ierr, errmess, useprec = .false.)
+  end if
+  if (in%itrpmax >1) call ab6_mixing_eval_allocate(mix)
   endlooprp=.false.
   rhopot_loop: do itrp=1,in%itrpmax
      !set the infocode to the value it would have in the case of no convergence
@@ -803,18 +814,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                    n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
 
               !here the density can be mixed
-              if (in%iscf==12 .and. in%itrpmax>1) then
-                 if (itrp > 1) then
-                    call mix_rhopot(Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,in%alphamix,rhopot_old,rhopot,rpnrm)
-                    
-                    if (iproc == 0) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                         'DENSITY iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
-                    
-                    endlooprp= rpnrm <= in%rpnrm_cv .or. itrp == in%itrpmax
-                 else
-                    !define the first rhopot
-                    call dcopy(Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,rhopot(1),1,rhopot_old(1),1)
-                 end if
+              if (mix%kind == AB6_MIXING_DENSITY .and. in%itrpmax>1) then
+                 call mix_rhopot(nproc,mix%nfft*mix%nspden,in%alphamix,mix,&
+                      & rhopot,itrp,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,hx*hy*hz,rpnrm)
+                 if (iproc == 0 .and. itrp > 1) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                      'DENSITY iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+                 endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
               end if
 
 
@@ -846,18 +851,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               end if
 
               !here the potential can be mixed
-              if (in%iscf==2 .and. in%itrpmax>1) then
-                 if (itrp > 1) then
-                    call mix_rhopot(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,in%alphamix,rhopot_old,rhopot,rpnrm)
-                    
-                    if (iproc == 0) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                         'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
-                    
-                    endlooprp= rpnrm <= in%rpnrm_cv .or. itrp == in%itrpmax
-                 else
-                    !define the first rhopot
-                    call dcopy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,rhopot(1),1,rhopot_old(1),1)
-                 end if
+              if (mix%kind == AB6_MIXING_POTENTIAL .and. in%itrpmax>1) then
+                 call mix_rhopot(nproc,mix%nfft*mix%nspden,in%alphamix,mix,&
+                      & rhopot,itrp,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,hx*hy*hz,rpnrm)
+                 if (iproc == 0 .and. itrp > 1) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                      'DENSITY iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+                 endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
               end if
            end if
 
@@ -1030,9 +1029,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call memocc(i_stat,i_all,'hpsi',subname)
   end if
   if (in%itrpmax > 1) then
-     i_all=-product(shape(rhopot_old))*kind(rhopot_old)
-     deallocate(rhopot_old,stat=i_stat)
-     call memocc(i_stat,i_all,'rhopot_old',subname)
+     call ab6_mixing_deallocate(mix)
   end if
      
 
