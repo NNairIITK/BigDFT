@@ -238,7 +238,7 @@
          end do
          mix%i_vrespc(mix%n_pulayit+1)=2*mix%n_pulayit+1
          mix%i_vresid(1)=2*mix%n_pulayit+2
-         if (.not. mix%useprec) mix%i_vresid(1)=2*mix%n_pulayit+1
+         if (.not. mix%useprec) mix%i_vresid(1)=2
       end if ! iscf cases
     end subroutine ab6_mixing_new
 

@@ -207,7 +207,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   character(len=5) :: fformat
   character(len=50) :: filename
   character(len=500) :: errmess
-  logical :: endloop,endlooprp,potion_overwritten=.false.,allfiles,onefile,refill_proj
+  logical :: endloop,endlooprp,allfiles,onefile,refill_proj
   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
   integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
@@ -862,8 +862,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                  if (iproc == 0 .and. itrp > 1) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
                       'DENSITY iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
                  endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
+                 ! DEBUGGING !!!!!!
+                 rhopot = abs(rhopot) + 1.0d-20
               end if
-
 
               if(orbs%nspinor==4) then
                  !this wrapper can be inserted inside the poisson solver 
