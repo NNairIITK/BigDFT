@@ -1665,7 +1665,7 @@ subroutine find_extra_info(line,extra)
   !print *,'line',line
   find_space : do
      !toggle the space value for each time
-     if (line(i:i) == ' ' .neqv. space) then
+     if ((line(i:i) == ' ' .or. line(i:i) == char(9)) .neqv. space) then
         nspace=nspace+1
         space=.not. space
      end if
@@ -1681,7 +1681,6 @@ subroutine find_extra_info(line,extra)
      end if
      i=i+1
   end do find_space
-
 END SUBROUTINE find_extra_info
 !!***
 
