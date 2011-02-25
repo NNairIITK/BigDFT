@@ -211,7 +211,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
   integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
-  integer :: nelec,ndegree_ip,j,i,iorb
+  integer :: nelec,ndegree_ip,j,i,iorb,npoints
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
   integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,ispin
@@ -800,12 +800,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !allocate the rhopot_old array needed for mixing
   if (in%iscf < 10) then
      potden = AB6_MIXING_POTENTIAL
+     npoints = n1i*n2i*n3p
   else
      potden = AB6_MIXING_DENSITY
+     npoints = n1i*n2i*n3d
   end if
   if (n3d >0 .and. in%itrpmax>1) then
      call ab6_mixing_new(mix, modulo(in%iscf, 10), potden, &
-          & AB6_MIXING_REAL_SPACE, n1i*n2i*n3d, in%nspin, 0, &
+          & AB6_MIXING_REAL_SPACE, npoints, in%nspin, 0, &
           & ierr, errmess, useprec = .false.)
   else if (in%itrpmax >1) then
      call ab6_mixing_new(mix, modulo(in%iscf, 10), potden, &
