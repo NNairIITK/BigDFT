@@ -133,6 +133,18 @@ module module_interfaces
        real(gp), dimension(:,:), pointer :: rxyz
      END SUBROUTINE read_input_variables
 
+     subroutine read_input_parameters(iproc, &
+          & file_dft, file_kpt, file_mix, file_geopt, file_perf,inputs,atoms,rxyz)
+       use module_base
+       use module_types
+       implicit none
+       character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_mix,file_perf
+       integer, intent(in) :: iproc
+       type(input_variables), intent(out) :: inputs
+       type(atoms_data), intent(inout) :: atoms
+       real(gp), dimension(:,:), pointer :: rxyz
+     end subroutine read_input_parameters
+
      subroutine dft_input_variables(iproc,filename,in)
        use module_base
        use module_types
@@ -860,12 +872,11 @@ module module_interfaces
 !       real(wp), dimension(:,:,:), pointer :: ads
 !     END SUBROUTINE psimix
 !
-     subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
+     subroutine plot_density(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
           hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
        use module_base
        use module_types
        implicit none
-       character(len=1), intent(in) :: geocode
        character(len=*), intent(in) :: filename
        integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nspin,nproc
        real(gp), intent(in) :: hxh,hyh,hzh
@@ -875,6 +886,53 @@ module module_interfaces
        real(dp), dimension(max(n1i*n2i*n3p,1),nspin), target, intent(in) :: rho
      end subroutine plot_density
 
+     subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
+          nat,rxyz,iatypes, znucl)
+       use module_base
+       use module_types
+       implicit none
+       character(len=*), intent(in) :: filename
+       character(len=1), intent(in) :: geocode
+       integer, intent(out) :: nspin
+       integer, intent(out) ::  n1i,n2i,n3i
+       real(gp), intent(out) :: hxh,hyh,hzh
+       real(dp), dimension(:,:), pointer :: rho
+       real(gp), dimension(:,:), pointer, optional :: rxyz
+       integer, intent(out), optional ::  nat
+       integer, dimension(:), pointer, optional :: iatypes, znucl
+     end subroutine read_density
+
+     subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
+          nat,rxyz, iatypes, znucl)
+       use module_base
+       use module_types
+       implicit none
+       character(len=*), intent(in) :: filename
+       character(len=1), intent(in) :: geocode
+       integer, intent(out) :: nspin
+       integer, intent(out) ::  n1i,n2i,n3i
+       real(gp), intent(out) :: hxh,hyh,hzh
+       real(dp), dimension(:,:), pointer :: rho
+       real(gp), dimension(:,:), pointer   :: rxyz
+       integer, intent(out)   ::  nat
+       integer, dimension(:), pointer   :: iatypes, znucl
+     end subroutine read_cube
+
+     subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
+          nat,rxyz, iatypes, znucl)
+       use module_base
+       use module_types
+       implicit none
+       character(len=*), intent(in) :: filename
+       character(len=1), intent(in) :: geocode
+       integer, intent(out) :: nspin
+       integer, intent(out) ::  n1i,n2i,n3i
+       real(gp), intent(out) :: hxh,hyh,hzh
+       real(dp), dimension(:,:), pointer :: rho
+       real(gp), dimension(:,:), pointer :: rxyz
+       integer, intent(out) ::  nat
+       integer, dimension(:), pointer :: iatypes, znucl
+     end subroutine read_etsf
 
      subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
        use module_base
@@ -898,21 +956,6 @@ module module_interfaces
 !!$       real(dp), dimension(:), pointer :: rho
 !!$       integer, intent(out) ::  nat
 !!$     END SUBROUTINE read_density_cube
-
-     subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
-          nat,rxyz)
-       use module_base
-       use module_types
-       implicit none
-       character(len=*), intent(in) :: filename
-       character(len=1), intent(in) :: geocode
-       integer, intent(in) :: nspin
-       integer, intent(out) ::  n1i,n2i,n3i
-       real(gp), intent(out) :: hxh,hyh,hzh
-       real(dp), dimension(:,:), pointer :: rho
-       real(gp), dimension(:,:), pointer, optional :: rxyz
-       integer, intent(out), optional ::  nat
-     end subroutine read_cube
 
      subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc)
        use module_base

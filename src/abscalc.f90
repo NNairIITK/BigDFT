@@ -381,6 +381,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
   type(atoms_data) :: atoms_b2B
   real(gp), dimension(:,:), pointer :: rxyz_b2B
+  integer, dimension(:), pointer :: iatype_b2B, znucl_b2B
   real(gp) :: shift_b2B(3)
   integer itype, nd
   integer n1i_bB,n2i_bB,n3i_bB
@@ -833,7 +834,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         print *, "controllo ",  trim(filename)//'.cube', exists
         if(exists) then
 
-           call read_cube(trim(filename),atoms%geocode,n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old ,pot_bB, nat_b2B, rxyz_b2B)
+           call read_cube(trim(filename),atoms%geocode,n1i_bB,n2i_bB,n3i_bB, &
+                & nspin , hx_old ,hy_old ,hz_old ,pot_bB, nat_b2B, rxyz_b2B, iatype_b2B, znucl_b2B)
            !call read_density_cube_old(trim(filename), n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
            hx_old=hx_old*2
            hy_old=hy_old*2
@@ -1057,6 +1059,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
         deallocate(rxyz_b2B,stat=i_stat)
         call memocc(i_stat,i_all,'rxyz',subname)
+        i_all=-product(shape(iatype_b2B))*kind(rxyz_b2B)
+        deallocate(iatype_b2B,stat=i_stat)
+        call memocc(i_stat,i_all,'iatype',subname)
+        i_all=-product(shape(znucl_b2B))*kind(rxyz_b2B)
+        deallocate(znucl_b2B,stat=i_stat)
+        call memocc(i_stat,i_all,'znucl',subname)
         i_all=-product(shape(rhopottmp))*kind(rhopottmp)
         deallocate(rhopottmp,stat=i_stat)
         call memocc(i_stat,i_all,'rhopottmp',subname)

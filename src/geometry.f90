@@ -3024,6 +3024,8 @@ enddo
 
  50  CONTINUE
         
+! Output the final energy.
+etot = epred
 
       return 
       END

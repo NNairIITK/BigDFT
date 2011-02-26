@@ -12,10 +12,12 @@ endif
 
 if CAPITALIZE
 mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
+	MODULE_DEFS.@MODULE_EXT@ \
 	MODULE_TYPES.@MODULE_EXT@ \
 	MODULE_INTERFACES.@MODULE_EXT@
 else
 mod_bigdft = module_base.@MODULE_EXT@ \
+	module_defs.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@
 endif
@@ -23,24 +25,27 @@ module_DATA = $(mod_bigdft)
 
 EXTRA_DIST = configure.inc.in
 
-modules_source = base.F90 \
+modules_source = base.f90 \
+	defs.F90 \
 	types.f90 \
 	interfaces.f90 \
 	$(GPUBLAS_INTERFACE)
 
-AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@
+AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ @LIBABINIT_INCLUDE@
 
 noinst_LIBRARIES = libmodules.a
 
 libmodules_a_SOURCES = $(modules_source)
 
 CLEANFILES = mpif.h MODULE_BASE.@MODULE_EXT@ module_base.@MODULE_EXT@ \
+	MODULE_DEFS.@MODULE_EXT@ module_defs.@MODULE_EXT@ \
 	MODULE_TYPES.@MODULE_EXT@ module_types.@MODULE_EXT@ \
 	MODULE_INTERFACES.@MODULE_EXT@ module_interfaces.@MODULE_EXT@
 #dependencies
 interfaces.o: base.o types.o
 types.o: base.o
-base.o: $(mpi_include) configure.inc
+defs.o: $(mpi_include) configure.inc 
+base.o: defs.o
 
 $(mod_bigdft) : base.o types.o interfaces.o
 
