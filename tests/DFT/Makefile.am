@@ -168,4 +168,5 @@ endif
 EXTRA_DIST = \
 	README \
 	inguess.dat \
-        $(TESTDIRS)
+        $(TESTDIRS) \
+        GPU OCL

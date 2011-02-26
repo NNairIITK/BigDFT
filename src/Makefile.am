@@ -66,6 +66,12 @@ else
 sub_dirs_libconfig=
 endif
 
+if HAVE_ETSF_IO
+etsf_files = wavelib/plotting-etsf.f90
+else
+etsf_files = wavelib/plotting-etsf.fake.f90
+endif
+
 
 if USE_MINIMA_HOPPING
 minima_hopping_sources = global
@@ -95,7 +101,7 @@ EXTRA_DIST = \
 	NEB_driver.sh 
 
 AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver \
-	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ @LIBETSFIO_INCLUDE@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)
@@ -153,6 +159,7 @@ convolution_objects = $(convolution_source:.f90=.o)
 
 #modules for types, interfaces and base variables
 modules_source = modules/base.f90 \
+	modules/defs.f90 \
 	modules/types.f90 \
 	modules/interfaces.f90 \
 	$(GPU_BLAS)
@@ -206,6 +213,7 @@ low_level = init/projectors.f90  \
 	wfn_opt/kernel_slab_simple.f90 \
 	wfn_opt/coupling_matrix.f90 \
 	lib/fft/fft2d.f90 \
+	$(etsf_files) \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
 	wavelib/plotting.f90 \
@@ -223,7 +231,6 @@ libbigdft_a_SOURCES = \
 	$(high_level)
 
 libbigdft_a_LIBADD = profiling/time.o \
-	profiling/memory.o \
 	profiling/memoryestimator.o \
 	$(convolution_objects) \
 	$(modules_objects) 
@@ -312,7 +319,7 @@ bart_SOURCES = \
 	art/initialize.f90 \
 	art/read_parameters.f90 \
 	art.f90
-bart_FCFLAGS = -I. -Iart -Imodules
+bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@
 bart_LDFLAGS = 
 bart_LDADD = art/libart.a \
 	libbigdft.a \

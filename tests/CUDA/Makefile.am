@@ -21,7 +21,7 @@ CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 
 AM_FCFLAGS = -I../../src/modules @MPI_INCLUDE@ -I. -I$(srcdir)
 
-conv_check_SOURCES = ../../src/CUDA/conv_check.f90  ../../src/profiling/memory.f90 ../../src/modules/base.F90 $(mpi_source)
+conv_check_SOURCES = ../../src/CUDA/conv_check.f90  ../../src/modules/defs.F90 ../../src/modules/base.f90 $(mpi_source)
 conv_check_LDFLAGS = 
 conv_check_LDADD = ../../src/libbigdft.a \
 	../../src/PSolver/libpoissonsolver.a \

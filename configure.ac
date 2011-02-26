@@ -338,6 +338,53 @@ if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" -o "$ac_use_dgemmsy"
   AC_FC_WRAPPERS()
 fi
 
+dnl Use ETSF_IO
+ac_use_etsfio=no
+AC_ARG_WITH(etsf-io, AS_HELP_STRING([--with-etsf-io], [Link with ETSF_IO library (default = no).]), etsfio=$withval, etsfio=no)
+AC_ARG_WITH(etsf-io-path, AS_HELP_STRING([--with-etsf-io-path], [Give the path of the ETSF_IO installation (default = /usr).]),
+            ac_etsfio_dir=$withval, ac_etsfio_dir=)
+AC_ARG_WITH(netcdf-path, AS_HELP_STRING([--with-netcdf-path], [Give the path to NetCDF (required by ETSF_IO) (default = /usr).]),
+            ac_netcdf_dir=$withval, ac_netcdf_dir=)
+AC_ARG_WITH(netcdf-libs, AS_HELP_STRING([--with-netcdf-libs], [Give the library to link with NetCDF (required by ETSF_IO) (default = -lnetcdff -lnetcdf).]),
+            ac_netcdf_libs=$withval, ac_netcdf_libs="-lnetcdff -lnetcdf")
+if test "$etsfio" = "yes" ; then
+   LDFLAGS_SVG="$LDFLAGS"
+   LIBS_SVG="$LIBS"
+   FCFLAGS_SVG="$FCFLAGS"
+   if test -n "$ac_etsfio_dir" ; then
+      LDFLAGS="$LDFLAGS -L$ac_etsfio_dir/lib"
+      FCFLAGS="$FCFLAGS -I$ac_etsfio_dir/include"
+   fi
+   if test -n "$ac_netcdf_dir" -a x"$ac_netcdf_dir" != x"$ac_etsfio_dir" ; then
+      LDFLAGS="$LDFLAGS -L$ac_netcdf_dir/lib"
+      FCFLAGS="$FCFLAGS -I$ac_netcdf_dir/include"
+   fi
+   LIBS="$LIBS -letsf_io $ac_netcdf_libs"
+   AC_MSG_CHECKING([for ETSF_IO library])
+   AC_LINK_IFELSE([[
+program main
+  use etsf_io
+  
+  type(etsf_groups_flags) :: groups
+  type(etsf_dims) :: dims
+  logical :: lstat
+  type(etsf_io_low_error) :: error_data
+
+  call etsf_io_data_init("test", groups, dims, "test", "", lstat, error_data)
+end]], ac_use_etsfio=yes, ac_use_etsfio=no)
+   AC_MSG_RESULT([$ac_use_etsfio])
+   LIBS="$LIBS_SVG"
+   FCFLAGS="$FCFLAGS_SVG"
+   if test "$ac_use_etsfio" = "yes"; then
+      ac_libetsfio_libs="-letsf_io -lnetcdff -lnetcdf"
+      if test -n "$ac_etsfio_dir" ; then
+         AC_SUBST(LIBETSFIO_INCLUDE, "-I$ac_etsfio_dir/include")
+      fi
+      LIBETSFIO_LIBS="-letsf_io -lnetcdff -lnetcdf"
+   fi
+fi
+AM_CONDITIONAL(HAVE_ETSF_IO, test "$ac_use_etsfio" = "yes")
+
 dnl Test libraries required for benching.
 AC_LANG_PUSH(C++)
 AC_CHECK_LIB(config++, config_init, withconfig=yes, withconfig=no)
@@ -553,7 +600,7 @@ fi
 AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
 dnl Agregate all the optional libs.
-LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBS"
+LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS"
 
 dnl Test for the documentation.
 AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes])
@@ -651,6 +698,8 @@ Options:
   With libS_GPU:             $ac_use_libsgpu
    | internal built:         $ac_build_libsgpu
    | include dir.:           $LIBSGPU_INCLUDE
+  With ETSF_IO:              $ac_use_etsfio
+   | include dir.:           $LIBETSFIO_INCLUDE
 
 Installation paths:
   Source code location:      ${srcdir}

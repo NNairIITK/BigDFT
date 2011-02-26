@@ -947,7 +947,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      end if
 
      !here put nproc=1 
-     call plot_density(at%geocode,'potion_corr.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3pi,&
+     call plot_density('potion_corr.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3pi,&
           at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr(ind))
 
 
