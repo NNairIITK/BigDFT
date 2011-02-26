@@ -652,11 +652,11 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
      do i=1,natsc+1
         norbi=norbsc_arr(i,ispin)
         if (nspinor ==1) then
-           call gemm('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
+           call gemmsy('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
                 hpsi(1,iorbst),max(1,nvctrp),&
                 0.0_wp,hamovr(imatrst,1),norbi)
            !here probably dsyrk can be used
-           call gemm('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
+           call gemmsy('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
                 psi(1,iorbst),max(1,nvctrp),0.0_wp,hamovr(imatrst,2),norbi)
         else
            call c_gemm('C','N',norbi,norbi,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(1,iorbst),&

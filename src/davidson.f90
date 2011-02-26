@@ -1320,7 +1320,7 @@ subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
 
   !<vi | hvj> 
   if(nspinor==1) then
-     call gemm('T','N',norb,norb,nvctrp,1.0_wp,v(1),&
+     call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,v(1),&
           max(1,nvctrp),hv(1),max(1,nvctrp),0.0_wp,&
           hamovr(1,1,1,1),2*norb)
   else
@@ -1344,7 +1344,7 @@ subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
 
   !<gi | hgj>
   if(nspinor==1) then
-     call gemm('T','N',norb,norb,nvctrp,1.0_wp,g(1),&
+     call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,g(1),&
           max(1,nvctrp),hg(1),max(1,nvctrp),0.0_wp,&
           hamovr(1,norb+1,norb+1,1),2*norb)
   else

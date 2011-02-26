@@ -140,6 +140,9 @@ module module_base
   interface gemm
      module procedure gemm_simple,gemm_double
   end interface
+  interface gemmsy
+     module procedure gemm_simple,gemmsy_double_wrap
+  end interface
   interface c_gemm
      module procedure c_gemm_simple,c_gemm_double
   end interface
@@ -706,6 +709,18 @@ module module_base
          call DGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
       end if
     end subroutine gemm_double
+
+    subroutine gemmsy_double_wrap(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
+      implicit none
+      character(len=1), intent(in) :: transa,transb
+      integer, intent(in) :: k,lda,ldb,ldc,m,n
+      real(kind=8), intent(in) :: alpha,beta
+      real(kind=8), intent(in) :: a
+      real(kind=8), intent(in) :: b
+      real(kind=8), intent(inout) :: c
+      !call to BLAS routine
+      call gemmsy_double(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
+    end subroutine gemmsy_double_wrap
 
     subroutine c_gemm_simple(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
       implicit none

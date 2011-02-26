@@ -5,8 +5,9 @@
 
 #ifndef dgemmsy_h
 #define dgemmsy_h
+#include <config.h>
 
-// Compute Y' = Y + ALPHA * op(A)^T*op(B)
+// Compute Y' = ALPHA * op(A)^T*op(B) + BETA * Y
 //
 // op(A) and op(B) both have N rows and P columns, representing
 // P vectors of dimension N.
@@ -27,17 +28,16 @@
 // PARAMS is an internal parameter, must be set to 0 for general use.
 //
 // All coefficients of Y are updated.
-void dgemmsy(char transa,char transb,int n,int p,
-	     double alpha,const double * a,int lda,const double * b,int ldb,
-	     double * y,int ldy,
-	     void * params);
+void FC_FUNC(dgemmsy,DGEMMSY)(char *transa,char *transb,int *n,int *p,
+	     double *alpha,const double * a,int *lda,const double * b,int *ldb,
+	     double *beta,double * y,int *ldy);
 
 // Same call, but dispatched on N_THREADS threads.
 // On Windows, N_THREADS is ignored, and the single thread function will be called.
 void dgemmsy_mt(int n_threads,
 		char transa,char transb,int n,int p,
 		double alpha,const double * a,int lda,const double * b,int ldb,
-		double * y,int ldy,
+		double beta,double * y,int ldy,
 		void * params);
 
 #endif // #ifndef dgemmsy_h
