@@ -255,7 +255,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 !!$  call memocc(i_stat,orbs%ikptsp,'orbs%ikptsp',subname)
 !!$  orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
 
-  !print the distribution scheme ussed for this set of orbital
+  !print the distribution scheme used for this set of orbital
   !in the case of multiple k-points
   if (iproc == 0 .and. verbose > 1 .and. orbs%nkpts > 1) then
      call print_distribution_schemes(6,nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))

@@ -101,7 +101,7 @@ subroutine read_input_parameters(iproc, &
      & file_dft, file_kpt, file_mix, file_geopt, file_perf,inputs,atoms,rxyz)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => read_input_variables
+  use module_interfaces, except_this_one => read_input_parameters
 
   implicit none
 
