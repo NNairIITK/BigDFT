@@ -167,4 +167,4 @@ else
   mpirun_message=
 endif
 
-EXTRA_DIST =
+EXTRA_DIST = example.Cl
