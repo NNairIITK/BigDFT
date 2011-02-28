@@ -106,7 +106,7 @@ program BigDFT
         call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
         close(16)
         filename=trim('final_'//trim(arr_posinp(iconfig)))
-        if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,' ')
+        if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION')
      end if
 
      !if there is a last run to be performed do it now before stopping

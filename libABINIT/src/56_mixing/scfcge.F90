@@ -165,6 +165,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 !write(6,*)' scfcge : enter '
 !ENDDEBUG
  errid = AB6_NO_ERROR
+ dbl_nnsclo = 0
 
 !reduction gives the level of reduction of the error in
 !the line minimization to be reached for the minimization to be

@@ -169,8 +169,27 @@ subroutine MPI_GET_PROCESSOR_NAME()
   stop 'MPIFAKE: MPI_GET_PROCESSOR_NAME'
 end subroutine  MPI_GET_PROCESSOR_NAME
 
+subroutine  mpi_error_string()
+  implicit none
+  stop 'MPIFAKE: mpi_error_string'
+END SUBROUTINE  MPI_ERROR_STRING
+
 subroutine  MPI_SCATTERV()
   implicit none
   stop 'MPIFAKE: SCATTERV'
 END SUBROUTINE  MPI_SCATTERV
 
+subroutine mpi_attr_get ()
+  implicit none
+  stop 'MPIFAKE: mpi_attr_get'
+END SUBROUTINE  MPI_ATTR_GET
+
+subroutine mpi_type_size ()
+  implicit none
+  stop 'MPIFAKE: mpi_type_size'
+END SUBROUTINE  MPI_TYPE_SIZE
+
+subroutine mpi_comm_free ()
+  implicit none
+  stop 'MPIFAKE: mpi_comm_free'
+END SUBROUTINE  MPI_COMM_FREE

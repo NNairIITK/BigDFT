@@ -260,6 +260,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   if (iproc == 0 .and. verbose > 1 .and. orbs%nkpts > 1) then
      call print_distribution_schemes(6,nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
   end if
+  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   !before printing the distribution schemes, check that the two distributions contain
   !the same k-points
@@ -272,7 +273,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      if (.not. yesorb .and. orbs%norbp /= 0) then
         write(*,*)' ERROR: processor ', iproc,' kpt ',ikpt,&
              ' not found in the orbital distribution'
-        stop
+        call MPI_ABORT(MPI_COMM_WORLD, ierr)
      end if
   end do kpt_components
 
@@ -285,7 +286,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      if (.not. yescomp) then
         write(*,*)' ERROR: processor ', iproc,' kpt,',ikpt,&
              'not found in the component distribution'
-        stop
+        call MPI_ABORT(MPI_COMM_WORLD, ierr)
      end if
   end do kpt_orbitals
 
