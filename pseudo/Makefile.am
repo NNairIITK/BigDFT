@@ -1,7 +1,8 @@
 EXTRA_DIST = \
 	tests \
-	doc \
-	input-files
+	doc
+# \
+#	input-files
 
 SUBDIRS = \
 	src \
