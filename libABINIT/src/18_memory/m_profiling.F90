@@ -38,8 +38,9 @@
 #endif
     real :: memorylimit = 0.e0
     logical :: meminit = .false.
+    integer, parameter :: mallocFile = 98
     type(memstat) :: memloc,memtot
-    integer :: memalloc,memdealloc,memproc
+    integer :: memalloc,memdealloc,memproc = 0
     !Debug option for memocc, set in the input file
     logical :: memdebug
 
@@ -64,6 +65,26 @@
     subroutine memocc_set_verbosity(verb)
       integer, intent(in) :: verb
 
+      if (verbose < 2 .and. verb >= 2) then
+         ! The malloc.prc file should be created.
+         if (memproc == 0) then
+            open(unit=mallocFile,file='malloc.prc',status='unknown')
+            if (memdebug) then
+               write(mallocFile,'(a,t40,a,t70,4(1x,a12))')&
+                    '(Data in KB) Routine','Array name    ',&
+                    'Array size','Total Memory'
+            else
+               write(mallocFile,'(a,t40,a,t70,4(1x,a12))')&
+                    '(Data in KB) Routine','Peak Array    ',&
+                    'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
+            end if
+         end if
+      end if
+
+      if (verbose >= 2 .and. verb < 2) then
+         close(unit=mallocFile)
+      end if
+      ! Assign the verbosity.
       verbose = verb
     end subroutine memocc_set_verbosity
 
@@ -142,22 +163,24 @@
          !Use MPI to have the mpi rank
          call MPI_INITIALIZED(lmpinit,ierr)
          if (lmpinit) then
+            print *,'ciao'
+
             call MPI_COMM_RANK(MPI_COMM_WORLD,memproc,ierr)
          else
-            !no-mpi case
+            !no-mpi case 
             memproc=0
          end if
 
          !open the writing file for the root process
          if (memproc == 0 .and. verbose >= 2) then
-            open(unit=98,file='malloc.prc',status='unknown')
+            open(unit=mallocFile,file='malloc.prc',status='unknown')
             !print *,'here',memproc
             if (memdebug) then
-               write(98,'(a,t40,a,t70,4(1x,a12))')&
+               write(mallocFile,'(a,t40,a,t70,4(1x,a12))')&
                     '(Data in KB) Routine','Array name    ',&
                     'Array size','Total Memory'
             else
-               write(98,'(a,t40,a,t70,4(1x,a12))')&
+               write(mallocFile,'(a,t40,a,t70,4(1x,a12))')&
                     '(Data in KB) Routine','Peak Array    ',&
                     'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
             end if
@@ -169,12 +192,12 @@
       case('count')
          if (trim(routine)=='stop' .and. memproc==0) then
             if (verbose >= 2) then
-               write(98,'(a,t40,a,t70,4(1x,i12))')&
+               write(mallocFile,'(a,t40,a,t70,4(1x,i12))')&
                     trim(memloc%routine),trim(memloc%array),&
                     memloc%memory/int(1024,kind=8),memloc%peak/int(1024,kind=8),&
                     memtot%memory/int(1024,kind=8),&
                     (memtot%peak+memloc%peak-memloc%memory)/int(1024,kind=8)
-               close(unit=98)
+               close(unit=mallocFile)
             end if
             write(*,'(1x,a)')&
                  '-------------------------MEMORY CONSUMPTION REPORT-----------------------------'
@@ -188,10 +211,10 @@
             !memory allocation problem, and which eliminates it for a successful run
             if (.not.memdebug .and. memalloc == memdealloc .and. memtot%memory==int(0,kind=8)) then
                !clean the malloc file
-               if (memproc==0 .and. verbose >= 2) then
-                  open(unit=98,file='malloc.prc',status='unknown',action='write')
-                  write(unit=98,fmt='()',advance='no')
-                  close(unit=98)
+               if (verbose >= 2) then
+                  open(unit=mallocFile,file='malloc.prc',status='unknown',action='write')
+                  write(unit=mallocFile,fmt='()',advance='no')
+                  close(unit=mallocFile)
                end if
             else
                call memory_malloc_check(memdebug,memalloc,memdealloc)
@@ -208,12 +231,12 @@
             if (isize>=0) then
                write(*,*)' subroutine ',routine,': problem of allocation of array ',array,&
                     ', error code=',istat,' exiting...'
-               if (memproc == 0) close(unit=98)
+               if (memproc == 0 .and. verbose >= 2) close(unit=mallocFile)
                call MPI_ABORT(MPI_COMM_WORLD,ierr)
             else if (isize<0) then
                write(*,*)' subroutine ',routine,': problem of deallocation of array ',array,&
                     ', error code=',istat,' exiting...'
-               if (memproc == 0) close(unit=98)
+               if (memproc == 0 .and. verbose >= 2) close(unit=mallocFile)
                call MPI_ABORT(MPI_COMM_WORLD,ierr)
             end if
          end if
@@ -244,12 +267,12 @@
          case (0)
             if (memdebug .and. verbose >= 2) then
                !to be used for inspecting an array which is not deallocated
-               write(98,'(a,t40,a,t70,4(1x,i12))')trim(routine),trim(array),isize,memtot%memory
+               write(mallocFile,'(a,t40,a,t70,4(1x,i12))')trim(routine),trim(array),isize,memtot%memory
             else
                !Compact format
                if (trim(memloc%routine) /= routine) then
                   if (memloc%memory /= int(0,kind=8) .and. verbose >= 2) then
-                     write(98,'(a,t40,a,t70,4(1x,i12))')&
+                     write(mallocFile,'(a,t40,a,t70,4(1x,i12))')&
                           trim(memloc%routine),trim(memloc%array),&
                           memloc%memory/int(1024,kind=8),memloc%peak/int(1024,kind=8),&
                           memtot%memory/int(1024,kind=8),&

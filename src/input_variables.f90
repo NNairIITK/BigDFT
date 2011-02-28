@@ -304,6 +304,7 @@ subroutine dft_input_variables(iproc,filename,in)
   else
      in%verbosity=ivrbproj
   end if
+  call memocc_set_verbosity(in%verbosity)
 !!  !temporary correction
 !!  DistProjApply=.false.
 

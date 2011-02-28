@@ -294,7 +294,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      if (.not. yesorb .and. orbs%norbp /= 0) then
         write(*,*)' ERROR: processor ', iproc,' kpt ',ikpt,&
              ' not found in the orbital distribution'
-        stop
+        call MPI_ABORT(MPI_COMM_WORLD, ierr)
      end if
   end do kpt_components
 
@@ -307,7 +307,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      if (.not. yescomp) then
         write(*,*)' ERROR: processor ', iproc,' kpt,',ikpt,&
              'not found in the component distribution'
-        stop
+        call MPI_ABORT(MPI_COMM_WORLD, ierr)
      end if
   end do kpt_orbitals
 

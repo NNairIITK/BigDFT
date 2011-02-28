@@ -783,6 +783,7 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
        arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
        call derf_ab(res,arg)
        orbs%occup((ikpt-1)*orbs%norb+iorb)=full*.5d0*(1.d0-res)
+       !print *,'iorb,arg,res,full*.5d0*(1.d0-res)',iorb,arg,res,full*.5d0*(1.d0-res)
     end do
     do iorb=1,orbs%norbd
        arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
