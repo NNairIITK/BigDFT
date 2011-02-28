@@ -32,7 +32,7 @@ noinst_LIBRARIES = libabinit.a
 # Don't use the HAVE_CONFIG_H
 DEFS =
 # Force HAVE_MPI and HAVE_MPI1.
-AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -DHAVE_MPI -DHAVE_MPI1 -I$(srcdir)/72_geomoptim
+AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -DHAVE_MPI -DHAVE_MPI1 -DHAVE_LIBXC -I$(srcdir)/72_geomoptim
 
 libabinit_a_SOURCES = \
 	01_interfaces_ext/interfaces_linalg.F90 \
@@ -172,6 +172,12 @@ CLEANFILES = mpif.h \
 mpif.h:
 	touch mpif.h &&\
 	 echo "integer, parameter :: MPI_SUM=1, MPI_COMM_WORLD=1" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_COMM_NULL=1, MPI_COMM_SELF=1" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_LOR=1, MPI_COMPLEX=1" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_UNDEFINED=1, MPI_MAX_ERROR_STRING=1" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_DOUBLE_COMPLEX=1, MPI_STATUS_IGNORE=1" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_STATUS_SIZE=1, MPI_ERR_UNKNOWN=1" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_TAG_UB=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_STATUSES_IGNORE=1, MPI_LOGICAL=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_MIN=1, MPI_MAX=1,MPI_CHARACTER=1,MPI_REAL8=1" >> mpif.h

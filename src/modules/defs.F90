@@ -20,6 +20,9 @@
 #endif
 
 module module_defs
+
+  use m_profiling
+
   implicit none  
 
   ! Include variables set from configure.
