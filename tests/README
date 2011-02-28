@@ -1,36 +1,26 @@
 The command 'make check' performs the series of tests:
-C/:             tests non-local pseudo-potential for isolated system
-Ca2/:           tests adaptive mesh (by checking symmetry)
-Davidson-SiH4/: tests Kohn-Sham eigenvalue calculations
-FeHyb/:         tests the hybrid functional.
+CUDA/:          tests CUDA implmentation (GPU)
+DFT/:           tests basic features of DFT calculations
 fft/:           low level test functionality.
-GPU/:           tests GPU code (CUDA)
-H/:             tests the hydrogen in a periodic box.
 H2-freq/:       computes the vibration properties of the water molecule using finite differences.
-H2O-CP2K/:      tests import wavefunctions from a gaussian basis set
-H2O-slab/:      tests the calculation of dipolar surfaces.
-H2-spin/:       uses the spin in the calculation of hydrogen atom.
-Li+/:           calculates an isolated charged system.
 MINHOP/:        tests global research using minima hopping
-Mn2/:           tests non-collinear spin
-NaCl/:          tests non-local pseudo-potential and adaptive mesh
 NEB/:           runs NEB calculations.
-NH3/:           shows the DIIS geometry relaxation to obtain saddle points.
+OpenCL/:        tests OpenCL code (GPU)
 PSolver/:       tests the Poisson solver implementation.
-SiBulk/:        tests bulk silicon in periodic boundary conditions.
-SiH4/:          tests the geometry relaxation for the silane molecule. Use the ASCII file format instead of the XYZ one.
 XabsCheb/:      tests XANES calculations.
 
 
 Executables (src directory):
 ----------------------------
-bigdft (previously called cluster): run DFT ground state calculations with or without geometry relaxations.
-memguess: read BigDFT inputs and provide an accurate estimation of memory requirement (for each CPU in case of MPI run). It can also ouput the grid with the option 'y'.
-NEB: run a NEB path search (requires to provide also NEB_driver.sh and NEB_include.sh).
+bigdft:      run DFT ground state calculations with or without geometry relaxations.
+memguess:    read BigDFT inputs and provide an accurate estimation of memory requirement (for each CPU in case of MPI run). 
+             It can also ouput the grid with the option 'y'.
+NEB:         run a NEB path search (requires to provide also NEB_driver.sh and NEB_include.sh).
 frequencies: run a finite difference calculation to find vibration for a molecule.
-MDanaysis: browse the posout files generated during a molecular dynamic to compute several quantities, like the radial distribution g(r).
-bart: EXPERIMENTAL, ART implementation using BigDFT for the force calculation.
-abscalc: EXPERIMENTAL, compute XANES spectrum.
+MDanalysis:  browse the posout files generated during a molecular dynamic to compute several quantities, 
+             like the radial distribution g(r).
+bart:        EXPERIMENTAL, ART implementation using BigDFT for the force calculation.
+abscalc:     EXPERIMENTAL, compute XANES spectrum.
 
 
 Read the manual for more information or go to the web siet http://inac.cea.fr/L_Sim/BigDFT

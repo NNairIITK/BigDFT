@@ -40,7 +40,10 @@ dnl is set.
 AC_PROG_FC([], [Fortran 90])
 #	       ABI_PROG_FC()
 
-dnl Defining fortran language for tests.
+dnl Fortran 77 (to be removed)
+AC_PROG_F77([], [Fortran 77])
+
+dnl Defining Fortran language for tests.
 AC_LANG(Fortran)
 AC_FC_SRCEXT(f90)
 
@@ -239,6 +242,15 @@ if test x"$ac_use_dgemmsy" = "xyes" ; then
   fi
 fi
 AM_CONDITIONAL(USE_DGEMMSY, test "$ac_use_dgemmsy" = "yes")
+
+
+dnl build the pseudo generation (build the executables atom and pseudo)
+AC_MSG_CHECKING([for pseudo generation])
+ac_build_bin_pseudo="no"
+AC_ARG_ENABLE(pseudo, AS_HELP_STRING([--enable-pseudo], [Compile the pseudo code (not compiled by default).]),
+                         ac_build_bin_pseudo=$enableval, ac_build_bin_pseudo="no")
+AM_CONDITIONAL(BUILD_BINARIES_PSEUDO, test "$ac_build_bin_pseudo" = "yes")
+AC_MSG_RESULT([$ac_build_bin_pseudo])
 
 
 dnl Use the GPU computing (only NVIDIA cards with CUDA libraries)
@@ -507,6 +519,8 @@ ac_build_libxc="no"
 if test "$internallibxc" = "yes" ; then
   ac_build_libxc="yes"
   ac_use_libxc="yes"
+  ac_libxc_dir="$top_builddir"/libXC/src
+  AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libXC/src)
   AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libXC/src)
   LDFLAGS="$LDFLAGS -L\$(top_builddir)/libXC/src"
 else
@@ -520,6 +534,7 @@ else
     AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$capitalize_module_ext, types="yes", types="no")
     if test "$withlibxc" = "yes" -a "$funcs" = "yes" -a "$lib" = "yes" -a "$types" = "yes"; then
       ac_use_libxc="yes"
+      AC_SUBST(LIBXC_DIR, $ac_libxc_dir/include)
       AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
     fi
   fi
@@ -636,6 +651,9 @@ src/convolutions-c/Makefile
 src/art/Makefile
 utils/Makefile
 utils/PSPfiles/Makefile
+pseudo/Makefile
+pseudo/src/Makefile
+pseudo/tests/Makefile
 doc/Makefile
 tests/Makefile
 tests/fft/Makefile
@@ -653,10 +671,11 @@ tests/CUDA/Makefile
 
 # Call libXC ./configure script recursively.
 # Call S_GPU ./configure script recursively.
-ac_configure_args=$ac_configure_args" --enable-fortran"
 AC_CONFIG_SUBDIRS([libXC S_GPU])
 
+
 AC_OUTPUT
+
 
 echo "
 BigDFT configure summary:
@@ -666,6 +685,8 @@ Basics:
   Fortran90 compiler:        $FC
   Fortran90 compiler name:   $fc_type
   Fortran90 flags:           $FCFLAGS
+  Fortran77 compiler:        $F77
+  Fortran77 flags:           $FFLAGS
   Linker flags:              $LDFLAGS
   Linked libraries:          $LIBS
 
@@ -675,6 +696,7 @@ Build:
   Library BigDFT:            $ac_build_lib_BigDFT
   Main binaries (cluster...):$ac_build_bin_cluster
   Minima hopping binary:     $ac_build_bin_minima_hopping
+  atom and pseudo binaries:  $ac_build_bin_pseudo
 
 Options:
   Debug version:             $ac_use_debug		

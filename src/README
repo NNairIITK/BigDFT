@@ -1,19 +1,22 @@
-There are two programs:
-- cluster (file BigDFT.f90)
-- memguess (file memguess.f90) to estimate the necessary memory
-  ex: memguess nproc
-
-cluster and memguess read the input files (input.dat, posinp and psppar.<name of atom>) in the corresponding directory.
-
-BigDFT.f90 performs a geometry optimization using a conjugate gradient algorithm and calls
-the routine cluster (cluster_all.f90).
-
-The file cluster_all.f90 contains the routine cluster and all routines called by ABINIT as BigDFT is interfaced.
+Directory of source for BigDFT
+Binaries:
+* abscalc
+* bart
+* bigdft
+* frequencies
+* MDanalysis
+* memguess
+* NEB
+* oneatom
+* rism
+* test_forces
 
 Sub-directories:
-
-- "profiling" contains routines to profile times and memories
-- "PSolver" contains all routines for the different Poisson solver (isolated systems, surfaces, 3D periodic)
-- "convolutions" contains the routine performing the convolution
-
-Change here
+* art
+* convolutions
+* convolutions-c
+* CUDA
+* modules
+* OpenCL
+* profiling
+* PSolver

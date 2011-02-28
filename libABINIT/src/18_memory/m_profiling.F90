@@ -163,8 +163,6 @@
          !Use MPI to have the mpi rank
          call MPI_INITIALIZED(lmpinit,ierr)
          if (lmpinit) then
-            print *,'ciao'
-
             call MPI_COMM_RANK(MPI_COMM_WORLD,memproc,ierr)
          else
             !no-mpi case 

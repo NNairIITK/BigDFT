@@ -6,7 +6,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 28/06/2010
+# Date: 17/11/2010
 #----------------------------------------------------------------------------
 
 import difflib
