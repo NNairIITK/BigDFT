@@ -29,7 +29,10 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 
 noinst_LIBRARIES = libabinit.a
 
-AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -DHAVE_MPI -I$(srcdir)/72_geomoptim
+# Don't use the HAVE_CONFIG_H
+DEFS =
+# Force HAVE_MPI and HAVE_MPI1.
+AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -DHAVE_MPI -DHAVE_MPI1 -I$(srcdir)/72_geomoptim
 
 libabinit_a_SOURCES = \
 	01_interfaces_ext/interfaces_linalg.F90 \
