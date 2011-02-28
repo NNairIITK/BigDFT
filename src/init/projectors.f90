@@ -183,8 +183,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   nkptsproj=1
   if ((.not.DistProjApply) .and. orbs%norbp > 0) then
      nkptsproj = 0
-     !the new solution did not work when there is no orbital on the processor
-     do ikptp=1,orbs%nkptsp! orbs%iokpt(1), orbs%iokpt(orbs%norbp)
+     do ikptp=1,orbs%nkptsp
         ikpt=orbs%iskpts+ikptp
         if (orbs%kpts(1,ikpt)**2+orbs%kpts(2,ikpt)**2+orbs%kpts(3,ikpt)**2 >0 .and. &
              &  orbs%nspinor > 1) then
@@ -194,8 +193,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
         end if
      end do
   else if (DistProjApply) then
-     !the new solution did not work when there is no orbital on the processor
-     do ikptp=1,orbs%nkptsp! orbs%iokpt(1), orbs%iokpt(orbs%norbp)
+     do ikptp=1,orbs%nkptsp
         ikpt=orbs%iskpts+ikptp
         if (orbs%kpts(1,ikpt)**2+orbs%kpts(2,ikpt)**2+orbs%kpts(3,ikpt)**2 >0 .and. &
              &  orbs%nspinor > 1) then
@@ -204,6 +202,8 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
      end do
   end if
   nlpspd%nprojel=nkptsproj*nlpspd%nprojel
+
+  !print *,'iproc,nkptsproj',iproc,nkptsproj,orbs%iskpts,orbs%iskpts+orbs%nkptsp
 
   if (iproc == 0) then
      if (DistProjApply) then
@@ -336,6 +336,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
                 nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),nwarnings)
            iproj=iproj+2*l-1
            istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
+           !print *,'iproc,istart_c,nlpspd%nprojel',istart_c,nlpspd%nprojel,ncplx
            if (istart_c > nlpspd%nprojel+1) stop 'istart_c > nprojel+1'
         endif
      enddo

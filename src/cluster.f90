@@ -390,6 +390,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
        atoms,rxyz,radii_cf,crmult,frmult,Glr)
   call timing(iproc,'CrtDescriptors','OF')
+
+  !allocate communications arrays (allocate it before Projectors because of the definition
+  !of iskpts and nkptsp)
+  call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
+
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
@@ -404,9 +409,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,crmult,frmult,&
           orbs%norb,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,0,in%nspin,peakmem)
   end if
-
-  !allocate communications arrays
-  call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
   !these arrays should be included in the comms descriptor
   !allocate values of the array for the data scattering in sumrho

@@ -438,7 +438,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
         avbeta=avbeta+beta/in%betax
         avnum=avnum+1._gp
-
+        !if (iproc ==0)print *,'beta,avbeta,avnum',beta,avbeta,avnum 
         !C new gradient
         do iat=1,at%nat
            gpf(1,iat)=fxyz(1,iat)
@@ -593,8 +593,8 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   !!        write(6,*) 'CG finished',it,fnrm,etot
   if (iproc == 0) then
      if (parmin%verbosity > 0) &
-          & write(16,*) 'average CG stepsize in terms of betax',avbeta/avnum,iproc
-     write(*,*) 'average CG stepsize in terms of betax',avbeta/avnum,iproc
+          & write(16,'(1x,a,f8.5,i5)') 'average CG stepsize in terms of betax',avbeta/avnum,iproc
+     write(*,'(1x,a,f8.5,i5)') 'average CG stepsize in terms of betax',avbeta/avnum,iproc
   end if
 
  call close_and_deallocate

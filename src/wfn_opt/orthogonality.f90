@@ -260,6 +260,12 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
 !!$           end do
 !!$        end do
 
+!!$        if (iproc ==0) print *,'matrix'
+!!$        do iorb=1,norb
+!!$           if (iproc ==0) print '(a,i3,100(1pe14.4))','i,j',iorb,&
+!!$                (alag(ndimovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs),jorb=1,norb)
+!!$        end do
+
         !calculate the scprsum if the k-point is associated to this processor
         !the scprsum always coincide with the trace of the hamiltonian
         if (orbs%ikptproc(ikpt) == iproc) then

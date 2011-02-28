@@ -618,8 +618,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   if(nproc > 1)then
      !sum up the contributions of nproc sets with 
      !commsv%nvctr_par(iproc,1) wavelet coefficients each
-     !call MPI_ALLREDUCE(e(1,1,1,2),e(1,1,1,1),2*orbsv%norb*orbsv%nkpts,&
-     !     mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
      call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
 
   end if
@@ -1064,12 +1062,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
               if (nspin ==1) then
                  write(*,'(1x,a)')'done. The refined eigenvalues are'
                  do iorb=1,nvirt
-                    write(*,'(1x,i3,2(1pe21.14))')iorb,(e(iorb,ikpt,j),j=1,2)
+                    write(*,'(1x,i3,(1pe21.14,1pe11.4))')iorb,(e(iorb,ikpt,j),j=1,2)
                  end do
               else if (ispin == 2) then
                  write(*,'(1x,a)')'done. The refined eigenvalues are'
                  do iorb=1,nvirt
-                    write(*,'(1x,i3,4(1pe21.14))')&
+                    write(*,'(1x,i3,2(1pe21.14,1pe11.4))')&
                          iorb,(e(iorb,ikpt,j),j=1,2),(e(iorb+orbsv%norbu,ikpt,j),j=1,2)
                  end do
               end if

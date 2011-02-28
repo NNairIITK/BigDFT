@@ -506,7 +506,7 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
      gnrm=0.0_dp
      gnrm_zero=0.0_dp
   call allocate_work_arrays(lr%geocode,lr%hybrid_on,orbs%nspinor,lr%d,w)
-  ikpt=orbs%iskpts
+  if (orbs%norbp >0) ikpt=orbs%iokpt(1)
   do iorb=1,orbs%norbp
      !if it is the first orbital or the k-point has changed calculate the max
      if (orbs%iokpt(iorb) /= ikpt .or. iorb == 1) then
