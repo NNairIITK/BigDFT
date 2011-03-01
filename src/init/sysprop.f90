@@ -1150,7 +1150,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
   integer, dimension(0:nproc-1), intent(out) :: nobj_par
   !local variables
   integer :: n_i,n_ip,rs_i,N_a,N_b,N_c,ikpt,jproc,i,ntmp
-  real(gp) :: rtmp
+!!$  real(gp) :: rtmp
 
   ! Strategy to divide between k points.
   ! There is an nproc length to divide into orbs%nkpts segments.
@@ -1167,7 +1167,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
   !  - N_a = int(nobj * (n_i * orbs%nkpts - (ikpt - 1) * nproc) / nproc);
   !  - N_c = int(nobj * ((ikpt - 1) * nproc - n_i * orbs%nkpts) / nproc);
   !  - N_b = nobj - N_a - N_b.
-  ! After, if N_a > 0, we put this quantity to proc n_i - 1, if N_b > 0
+  ! After, if N_a > 0, we put this quantity to proc n_i - 1, if N_c > 0
   ! we put its quantity to proc n_ip ; and finally N_b is distributed
   ! among [n_i;n_ip[ procs.
 
@@ -1184,19 +1184,32 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
 
      rs_i=ikpt*nproc
      n_ip=rs_i/nkpts
-     !print *,'ikpt,ni,nip',ikpt,n_i,n_ip
+!!$     if (iproc == 0) print *,'ikpt,ni,nip',ikpt,n_i,n_ip
      ! Calculation of N_a, N_b and N_c from given n_i and n_ip.
-     if (n_ip >= n_i) then      
-        ntmp=n_i*nkpts-(ikpt-1)*nproc
-        rtmp=real(nobj,gp)/real(nproc,gp)
-        rtmp=rtmp*real(ntmp,gp)
-        N_a=nint(rtmp+1.e-10_gp)
-        !print *,'ikpts,rtmp',ikpt,rtmp
-        ntmp=ikpt*nproc-n_ip*nkpts
-        rtmp=real(nobj,gp)/real(nproc,gp)
-        rtmp=rtmp*real(ntmp,gp)
-        N_c=nint(rtmp-1.e-10_gp)
-        !print *,'ikpts,rtmp2',ikpt,rtmp,N_a,N_c
+     if (n_ip >= n_i) then
+        ntmp = (n_i*nkpts-(ikpt-1)*nproc) * nobj
+        if (modulo(ntmp, nproc) == 0) then
+           N_a = ntmp / nproc
+        else
+           N_a = (ntmp - modulo(ntmp, nproc) + nproc) / nproc
+        end if
+!!$        ntmp=n_i*nkpts-(ikpt-1)*nproc
+!!$        rtmp=real(nobj,gp)/real(nproc,gp)
+!!$        rtmp=rtmp*real(ntmp,gp)
+!!$        N_a=nint(rtmp+1.e-10_gp)
+!!$        if (iproc == 0) print *,'ikpts,rtmp',ikpt,rtmp
+        ntmp = (ikpt*nproc-n_ip*nkpts) * nobj
+        if (modulo(ntmp, nproc) == 0) then
+           N_c = ntmp / nproc
+        else
+           N_c = (ntmp - modulo(ntmp, nproc) + nproc) / nproc
+        end if
+
+!!$        ntmp=ikpt*nproc-n_ip*nkpts
+!!$        rtmp=real(nobj,gp)/real(nproc,gp)
+!!$        rtmp=rtmp*real(ntmp,gp)
+!!$        N_c=nint(rtmp-1.e-10_gp)
+!!$        if (iproc == 0) print *,'ikpts,rtmp2',ikpt,rtmp,N_a,N_c
         !the corrections above are to avoid the 32 bit integer overflow
         !N_a=nint(real(nobj*(n_i*nkpts-(ikpt-1)*nproc),gp)/real(nproc,gp))
         !N_c=nint(real(nobj*(ikpt*nproc-n_ip*nkpts),gp)/real(nproc,gp))
@@ -1206,9 +1219,10 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
      end if
      N_b=nobj-N_a-N_c
      if (N_b == -1) then
-        write(*,*) ikpt, n_i, n_ip, N_a, N_b, N_c
-        stop
+        N_c = N_c - 1
+        N_b = 0
      end if
+!!$     if (iproc == 0) write(*,*) ikpt, N_a, N_b, N_c
      !assign to procs the objects.
      if (N_a>0) nobj_par(n_i-1)=nobj_par(n_i-1)+N_a
      if (N_b>0) then
