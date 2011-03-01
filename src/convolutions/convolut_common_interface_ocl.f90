@@ -181,6 +181,114 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
 
 end subroutine free_gpu_OCL
 
+subroutine daub_to_isf_OCL(orbs,lr,psi,psi_r,GPU)
+  use module_base
+  use module_types
+  
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: lr
+  type(GPU_pointers), intent(inout) :: GPU
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)), intent(in) :: psi
+  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i), intent(out) :: psi_r
+  
+  integer, dimension(3) :: periodic
+  integer :: isf
+
+  if (lr%geocode /= 'F') then
+    periodic(1) = 1
+  else
+    periodic(1) = 0
+  endif
+  if (lr%geocode == 'P') then
+    periodic(2) = 1
+  else
+    periodic(2) = 0
+  endif
+  if (lr%geocode /= 'F') then
+    periodic(3) = 1
+  else
+    periodic(3) = 0
+  endif 
+
+  if (lr%wfd%nvctr_f > 0) then
+     isf=lr%wfd%nvctr_c+1
+  else
+     isf=lr%wfd%nvctr_c
+  end if
+
+
+  call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,&
+          psi(1))
+  call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,&
+          psi(isf))
+
+  call ocl_daub_to_isf(GPU%queue,(/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
+          periodic,&
+          lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
+          lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,&
+          GPU%psi_c,GPU%psi_f,&
+          GPU%work1,GPU%work2,GPU%work3,GPU%d)
+
+  call ocl_enqueue_read_buffer(GPU%queue,GPU%work2,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,&
+          psi_r(1))
+
+end subroutine daub_to_isf_OCL
+
+subroutine isf_to_daub_OCL(orbs,lr,psi_r,psi,GPU)
+  use module_base
+  use module_types
+  
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: lr
+  type(GPU_pointers), intent(inout) :: GPU
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)), intent(out) :: psi
+  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i), intent(in) :: psi_r
+  
+  integer, dimension(3) :: periodic
+  integer :: isf
+
+  if (lr%geocode /= 'F') then
+    periodic(1) = 1
+  else
+    periodic(1) = 0
+  endif
+  if (lr%geocode == 'P') then
+    periodic(2) = 1
+  else
+    periodic(2) = 0
+  endif
+  if (lr%geocode /= 'F') then
+    periodic(3) = 1
+  else
+    periodic(3) = 0
+  endif 
+
+  if (lr%wfd%nvctr_f > 0) then
+     isf=lr%wfd%nvctr_c+1
+  else
+     isf=lr%wfd%nvctr_c
+  end if
+
+
+  call ocl_enqueue_write_buffer(GPU%queue,GPU%work1,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,&
+          psi_r(1))
+
+  call ocl_isf_to_daub(GPU%queue,(/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
+          periodic,&
+          lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&
+          lr%wfd%nseg_f,lr%wfd%nvctr_f,GPU%keyg_f,GPU%keyv_f,&
+          GPU%psi_c,GPU%psi_f,&
+          GPU%work1,GPU%work2,GPU%work3,GPU%d)
+
+  call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_c,lr%wfd%nvctr_c*8,&
+          psi(1))
+  call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,&
+          psi(isf))
+
+end subroutine isf_to_daub_OCL
+
+
+
 
 subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
      nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU,ekin,epot)
@@ -398,7 +506,7 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
      gnrm=0.0_dp
      gnrm_zero=0.0_dp
   call allocate_work_arrays(lr%geocode,lr%hybrid_on,orbs%nspinor,lr%d,w)
-  ikpt=orbs%iskpts
+  if (orbs%norbp >0) ikpt=orbs%iokpt(1)
   do iorb=1,orbs%norbp
      !if it is the first orbital or the k-point has changed calculate the max
      if (orbs%iokpt(iorb) /= ikpt .or. iorb == 1) then
@@ -558,7 +666,7 @@ subroutine local_partial_density_OCL(iproc,nproc,orbs,&
     call ocl_enqueue_write_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,&
              psi(isf,iorb))
  
-    hfac=orbs%kwgts(orbs%iokpt(iorb_r))*orbs%occup(orbs%isorb++iorb_r)/(hxh*hyh*hzh);
+    hfac=orbs%kwgts(orbs%iokpt(iorb_r))*orbs%occup(orbs%isorb+iorb_r)/(hxh*hyh*hzh);
     if (orbs%spinsgn(orbs%isorb+iorb_r) > 0.0) then
        rhopot = GPU%rhopot_up
     else

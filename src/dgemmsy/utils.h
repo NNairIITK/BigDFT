@@ -6,9 +6,7 @@
 #ifndef utils_h
 #define utils_h
 
-#ifdef Linux
 #include <pthread.h>
-#endif
 
 #include "visitors.h"
 #include "patterns.h"
@@ -59,10 +57,8 @@ typedef struct s_dgemmsyBaseArgs
   // Y
   double * y;
   int ldy;
-#ifdef Linux
   // Y access mutex
   pthread_mutex_t * yMutex;
-#endif
 } dgemmsyBaseArgs;
 
 // dgemmsy low-level call, with a specific pattern and slice size.

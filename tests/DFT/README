@@ -1,25 +1,23 @@
-The command 'make check' performs the series of tests:
-C/:             tests non-local pseudo-potential for isolated system
+The command 'make check' performs the series of tests related to DFT calculations:
+C/:             tests non-local pseudo-potential for isolated system and input.occ (occupation numbers)
 Ca2/:           tests adaptive mesh (by checking symmetry)
 Davidson-SiH4/: tests Kohn-Sham eigenvalue calculations
 FeHyb/:         tests the hybrid functional.
-fft/:           low level test functionality.
-GPU/:           tests GPU code (CUDA)
+GPU/:           tests DFT calculationw with GPU code (CUDA)
+Graphene/:      tests k points with surface
 H/:             tests the hydrogen in a periodic box.
-H2-freq/:       computes the vibration properties of the water molecule using finite differences.
 H2O-CP2K/:      tests import wavefunctions from a gaussian basis set
 H2O-slab/:      tests the calculation of dipolar surfaces.
 H2-spin/:       uses the spin in the calculation of hydrogen atom.
 Li+/:           calculates an isolated charged system.
-MINHOP/:        tests global research using minima hopping
 Mn2/:           tests non-collinear spin
 NaCl/:          tests non-local pseudo-potential and adaptive mesh
-NEB/:           runs NEB calculations.
 NH3/:           shows the DIIS geometry relaxation to obtain saddle points.
-PSolver/:       tests the Poisson solver implementation.
+O2-Spin/:       tests spin restart 
+OCL/:           tests DFT calculationa with OpenCL implementation
 SiBulk/:        tests bulk silicon in periodic boundary conditions.
 SiH4/:          tests the geometry relaxation for the silane molecule. Use the ASCII file format instead of the XYZ one.
-XabsCheb/:      tests XANES calculations.
+TiMix/:         tests density mixing
 
 
 Test in parallel

@@ -831,4 +831,22 @@ void FC_FUNC_(ocl_preconditioner,OCL_PRECONDITIONER)(bigdft_command_queue *comma
                                           cl_mem *psi_c_b, cl_mem *psi_f_b,
                                           cl_mem *psi_c_d, cl_mem *psi_f_d,
                                           cl_mem *work1, cl_mem *work2, cl_mem *work3, cl_mem *work4);
+void FC_FUNC_(ocl_isf_to_daub,OCL_ISF_TO_DAUB)(bigdft_command_queue *command_queue,
+                                          cl_uint *dimensions,
+                                          cl_uint *periodic,
+                                          cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
+                                          cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                          cl_mem *psi_c, cl_mem *psi_f,
+                                          cl_mem *psi, cl_mem *out,
+                                          cl_mem *work, cl_mem *kinres);
+void FC_FUNC_(ocl_daub_to_isf,OCL_DAUB_TO_ISF)(bigdft_command_queue *command_queue,
+                                          cl_uint *dimensions,
+                                          cl_uint *periodic,
+                                          cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
+                                          cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                          cl_mem *psi_c, cl_mem *psi_f,
+                                          cl_mem *psi, cl_mem *out,
+                                          cl_mem *work, cl_mem *kinres);
+void FC_FUNC_(magic_filter_t_3d_generic,MAGIC_FILTER_T_3D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out);
+void FC_FUNC_(magic_filter_3d_generic,MAGIC_FILTER_3D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out);
 #endif

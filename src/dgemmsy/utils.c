@@ -8,14 +8,8 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <math.h>
-#ifdef Linux
 #include <unistd.h>
 #include <xmmintrin.h>
-#endif
-#ifdef WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
 
 // Set to 1 to use BLAS axpy call to accumulate partial results.
 #ifndef USE_AXPY
@@ -34,42 +28,6 @@
 
 // System-specific functions
 
-#ifdef WIN32
-void * allocPages(size_t sz)
-{
-  void * address = VirtualAlloc(0,sz,MEM_RESERVE | MEM_COMMIT,PAGE_READWRITE);
-  if (address == 0)
-  {
-    printf("VirtualAlloc failed: %d\n",GetLastError());
-    return 0;
-  }
-  return address;
-}
-void freePages(void * address)
-{
-  if (address == 0) return; // Ignored
-  VirtualFree(address,0,MEM_RELEASE);
-}
-double * allocDoubles(int n)
-{
-  return (double *)_aligned_malloc(n*sizeof(double),16);
-}
-float * allocFloats(int n)
-{
-  return (float *)_aligned_malloc(n*sizeof(float),16);
-}
-void freeDoubles(double * x)
-{
-  _aligned_free(x);
-}
-void freeFloats(float * x)
-{
-  _aligned_free(x);
-}
-
-#endif
-
-#ifdef Linux
 #include <unistd.h>
 void * allocPages(size_t sz)
 {
@@ -107,7 +65,6 @@ void freeFloats(float * x)
 {
   free(x);
 }
-#endif
 
 // Reference implementations
 
@@ -205,7 +162,7 @@ int dgemmsy_base(dgemmsyBaseArgs * args)
   // printf("N=%d P=%d LDA=%d LDB=%d LDY=%d  P2=%d\n",n,p,lda,ldb,ldy,p2);
 
   // Check other arguments
-  if (a == 0 || b == 0 || y == 0 || pattern == 0) return -2;
+  if (a == 0 || b == 0 || y == 0 || pattern == 0) return -5;
 
   // Allocate memory
   slice_size = slice_n * p2 * sizeof(double); // Slice size in bytes
@@ -243,13 +200,11 @@ int dgemmsy_base(dgemmsyBaseArgs * args)
   // Combine and store (untransposed) result. If we are multithreading,
   // we must protect the update with a mutex, since all threads
   // will update the same Y.
-#ifdef Linux
   if (args->yMutex != 0)
     {
       int locked = pthread_mutex_lock(args->yMutex);
       if (locked != 0) status = -4;
     }
-#endif
   for (col=0;col<p;col++)
     {
       double * yy = y+ldy*col;
@@ -267,13 +222,11 @@ int dgemmsy_base(dgemmsyBaseArgs * args)
 	}
 #endif
     }
-#ifdef Linux
   if (args->yMutex != 0)
     {
       int unlocked = pthread_mutex_unlock(args->yMutex);
       if (unlocked != 0) status = -4;
     }
-#endif
 
 END:
   // Cleanup

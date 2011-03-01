@@ -43,7 +43,7 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
 !        MPI_MAX,MPI_COMM_WORLD,ierr)
 
 
-  ikpt=orbs%iskpts
+  if (orbs%norbp >0) ikpt=orbs%iokpt(1)
   do iorb=1,orbs%norbp
      !if it is the first orbital or the k-point has changed calculate the max
      if (orbs%iokpt(iorb) /= ikpt .or. iorb == 1) then

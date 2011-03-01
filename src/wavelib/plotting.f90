@@ -1198,7 +1198,7 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz,iatypes, znucl)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => read_density
   implicit none
   character(len=*), intent(in) :: filename
   character(len=1), intent(in) :: geocode
