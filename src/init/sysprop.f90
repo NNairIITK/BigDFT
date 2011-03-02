@@ -809,7 +809,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt
-  integer, intent(inout) :: nspinor
+  integer, intent(in) :: nspinor
   type(orbitals_data), intent(out) :: orbs
   real(gp), dimension(nkpt), intent(in) :: wkpt
   real(gp), dimension(3,nkpt), intent(in) :: kpt
@@ -834,8 +834,9 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   orbs%kwgts(1:nkpt) = wkpt(:)
 
   ! Change the wavefunctions to complex if k-points are used (except gamma).
+  orbs%nspinor=nspinor
   if (nspinor == 1) then
-     if (maxval(abs(orbs%kpts)) > 0._gp) nspinor = 2
+     if (maxval(abs(orbs%kpts)) > 0._gp) orbs%nspinor = 2
      !nspinor=2 !fake, used for testing with gamma
   end if
 
@@ -912,7 +913,6 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   !assign the values of the orbitals data
   orbs%norb=norb
   orbs%norbp=orbs%norb_par(iproc)
-  orbs%nspinor=nspinor
   orbs%norbu=norbu
   orbs%norbd=norbd
 
