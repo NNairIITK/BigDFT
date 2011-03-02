@@ -1,0 +1,6 @@
+12 iscf
+50 itrpmax
+1.d-4 rpnrm_cv
+3 1.d-3 norbsempty Tel
+0.5 2.0 alphamix alphadiis
+

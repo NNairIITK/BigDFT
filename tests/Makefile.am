@@ -6,12 +6,21 @@ SUBDIRS = \
 	  DFT \
 	  H2-freq \
 	  NEB \
-	  XabsCheb
+	  XabsCheb \
+	  SPLSAD
 
 
 #This will run the automatic tests also for minima hopping
 if USE_MINIMA_HOPPING
 SUBDIRS += MINHOP
+endif
+
+if USE_CUDA_GPU
+SUBDIRS += CUDA
+endif
+
+if USE_OCL
+SUBDIRS += OpenCL
 endif
 
 if USE_CUDA_GPU

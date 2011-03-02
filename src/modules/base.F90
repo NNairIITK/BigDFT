@@ -40,7 +40,7 @@ module module_base
   integer, parameter :: gp=kind(1.0d0)  !general-type precision
   integer, parameter :: dp=kind(1.0d0)  !density-type precision
   integer, parameter :: wp=kind(1.0d0)  !wavefunction-type precision
-  integer, parameter :: tp=kind(1.0d0)  !diis precision (single in this context)
+  integer, parameter :: tp=kind(1.0d0)  !diis precision (single in this context, if double is only for non-regression)
 
   ! MPI definitions and datatypes for density and wavefunctions
   include 'mpif.h'
@@ -66,6 +66,7 @@ module module_base
   !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !this value can be changed in the read_input_variables routine
   logical :: OCLconv=.false.
+  logical :: ASYNCconv=.true.
 
   !Logical parameter for the projectors application strategy (true for distributed way)
   !if the projector allocation passes the memorylimit this is switched to true

@@ -244,8 +244,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      idsx_actual_before=idsx_actual
 
      call hpsitopsi(iproc,nproc,orbsv,hx,hy,hz,lr,commsv,in%ncong,&
-          iter,diis,in%idsx,idsx_actual,energy,energy_old,&
-          alpha,gnrm,gnrm_zero,scprsum,psivirt,psitvirt,hpsivirt,in%nspin,GPU,in)
+          iter,diis,in%idsx,gnrm,gnrm_zero,scprsum,psivirt,psitvirt,hpsivirt,in%nspin,GPU,in)
 
      if (occorbs) then
         !if this is true the transposition for psivirt which is done in hpsitopsi
@@ -1451,9 +1450,9 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
   implicit none
   integer, intent(in) :: norb,nvctrp,nspinor,ncplx
   real(wp), dimension(nspinor*nvctrp*norb), intent(in) :: g
+  real(wp), dimension(ncplx,2*norb,2*norb), intent(in) :: hamovr
   real(wp), dimension(nspinor*nvctrp*norb), intent(inout) :: v
   real(wp), dimension(nspinor*nvctrp*norb), intent(inout) :: work
-  real(wp), dimension(ncplx,2*norb,2*norb), intent(out) :: hamovr
   !local variables
   character(len=*), parameter :: subname='update_psivirt'
   integer :: ncomp
@@ -1536,12 +1535,12 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
 
   if (randinp) then
      !fill randomly the gaussian coefficients for the orbitals considered
-     do iorb=1,orbs%norbp*orbs%nspinor
-        do icoeff=1,G%ncoeff
-           !be sure to call always a different random number, per orbital
-           do jorb=1,orbs%isorb
-              tt=builtin_rand(idum) !call random_number(tt)
-           end do
+     do icoeff=1,G%ncoeff !reversed loop
+        !be sure to call always a different random number, per orbital
+        do jorb=1,orbs%isorb*orbs%nspinor
+           tt=builtin_rand(idum) !call random_number(tt)
+        end do
+        do iorb=1,orbs%norbp*orbs%nspinor
            !do jproc=0,iproc-1
            !   tt=builtin_rand(idum) !call random_number(tt)
            !end do
@@ -1550,6 +1549,9 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
            !do jproc=iproc+1,nproc-1
            !   tt=builtin_rand(idum) !call random_number(tt)
            !end do
+        end do
+        do iorb=orbs%norbp*orbs%nspinor+1,orbs%norb*orbs%nspinor
+           tt=builtin_rand(idum) !call random_number(tt)
         end do
      end do
 

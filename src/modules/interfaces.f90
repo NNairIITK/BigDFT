@@ -121,12 +121,12 @@ module module_interfaces
        real(gp), dimension(3), intent(out) :: shift
      END SUBROUTINE system_size
 
-     subroutine read_input_variables(iproc,posinp, file_dft, file_kpt, file_geopt, file_perf, inputs,atoms,rxyz)
+     subroutine read_input_variables(iproc,posinp, file_dft, file_kpt, file_mix,file_geopt, file_perf, inputs,atoms,rxyz)
        use module_base
        use module_types
        implicit none
        character(len=*), intent(in) :: posinp
-       character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_perf
+       character(len=*), intent(in) :: file_dft, file_geopt, file_kpt,file_mix, file_perf
        integer, intent(in) :: iproc
        type(input_variables), intent(out) :: inputs
        type(atoms_data), intent(out) :: atoms
@@ -313,7 +313,7 @@ module module_interfaces
 
      subroutine input_wf_diag(iproc,nproc,at,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,G,&
+          nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
           nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
        use module_base
        use module_types
@@ -332,10 +332,10 @@ module module_interfaces
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-       real(dp), dimension(*), intent(in) :: pkernel
        real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
        type(gaussian_basis), intent(out) :: G 
        real(wp), dimension(:), pointer :: psi,hpsi,psit,rhocore
+       real(dp), dimension(:), pointer :: pkernel,pkernelseq
        integer, intent(in) :: potshortcut
        integer, dimension(*), intent(in) :: irrzon
        real(dp), dimension(*), intent(in) :: phnons
@@ -412,20 +412,18 @@ module module_interfaces
      END SUBROUTINE HamiltonianApplication
 
      subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
-          ncong,iter,diis,idsx,idsx_actual,energy,energy_old,&
-          alpha,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,nspin,GPU,input)
+          ncong,iter,diis,idsx,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,nspin,GPU,input)
        use module_base
        use module_types
+       !use wavefunctionDIIS
        implicit none
        integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
-       real(gp), intent(in) :: hx,hy,hz,energy,energy_old
+       real(gp), intent(in) :: hx,hy,hz
        type(locreg_descriptors), intent(in) :: lr
        type(communications_arrays), intent(in) :: comms
        type(orbitals_data), intent(in) :: orbs
-       type(input_variables):: input
+       type(input_variables), intent(in) :: input
        type(diis_objects), intent(inout) :: diis
-       integer, intent(inout) :: idsx_actual
-       real(wp), intent(inout) :: alpha
        real(dp), intent(inout) :: gnrm,gnrm_zero,scprsum
        real(wp), dimension(:), pointer :: psi,psit,hpsi
        type(GPU_pointers), intent(inout) :: GPU

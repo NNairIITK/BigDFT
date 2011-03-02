@@ -48,7 +48,7 @@ program oneatom
   !initalise the variables for the calculation
 
   call read_input_variables(iproc,'posinp', &
-       & "input.dft", "input.kpt", "input.geopt", "input.perf", in, atoms, rxyz)
+       & "input.dft", "input.kpt","input.mix", "input.geopt", "input.perf", in, atoms, rxyz)
 
   if (iproc == 0) then
      call print_general_parameters(in,atoms)
@@ -235,8 +235,7 @@ program oneatom
      idsx_actual_before=idsx_actual
 
      call hpsitopsi(iproc,nproc,orbs,in%hx,in%hy,in%hz,Glr,comms,in%ncong,&
-          iter,diis,in%idsx,idsx_actual,energy,energy_old,&
-          alpha,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,in%nspin,GPU,in)
+          iter,diis,in%idsx,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,in%nspin,GPU,in)
 
      write(itername,'(i4.4)')iter
      call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'')

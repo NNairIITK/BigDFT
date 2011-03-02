@@ -2979,7 +2979,7 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
    open(unit=16,file='geopt.mon',status='unknown',position='APPEND')
 
     if(check.gt.5) then
-      if(iproc==0)  write(16,'(a,i,a)') "   FIRE converged in ",it," iterations"
+      if(iproc==0)  write(16,'(a,i0,a)') "   FIRE converged in ",it," iterations"
       goto 50
     endif
 

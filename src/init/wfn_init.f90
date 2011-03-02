@@ -566,7 +566,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
   end if differentInputGuess
 
-
      
   i_all=-product(shape(hamovr))*kind(hamovr)
   deallocate(hamovr,stat=i_stat)
@@ -704,11 +703,13 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
   real(wp), dimension(norb), intent(out) :: eval
   !local variables
   character(len=*), parameter :: subname='solve_eigensystem'
+  character(len=9) :: gapstring
   character(len=64) :: message
   integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,iorb,i,ndegen,ncplx,ncomp
   integer :: nwrtmsg,norbj,jiorb,jjorb,ihs,ispin,norbij
   real(wp), dimension(2) :: preval
   real(wp), dimension(:), allocatable :: work_lp,evale,work_rp
+  real(gp) :: HLIGgap
 integer:: j
 
 !if(iproc==0) write(30100,*) hamovr(1:ndim_hamovr,1)
@@ -851,13 +852,22 @@ integer:: j
               message=' <- '
            end if
            if (iorb+iorbst-1 == norb) then
+              !calculate the IG HOMO-LUMO gap
+              if(iorb+iorbst <= norbi) then
+                 HLIGgap=evale(iorb+1)-evale(iorb)
+
+                 write(gapstring,'(f8.4)')HLIGgap*ha2ev    
+                 !print *,"REZA ",HLIGgap,gapstring,ha2ev,iproc
+                 !write(*,*) "REZA ",HLIGgap,gapstring,ha2ev,iproc
+              end if
               nwrtmsg=1
-              message=' <- Last eigenvalue for input wavefunctions'
+              message=' <- Last InputGuess eval, H-L IG gap: '&
+                //gapstring//' eV'
               preval(1)=evale(iorb)
            end if
            if (iorb+iorbst-2 == norb) then
               nwrtmsg=1
-              message=' <- First virtual eigenvalue '
+              message=' <- First virtual eval '
            end if
            if (iproc == 0) then
               if (nwrtmsg == 1) then

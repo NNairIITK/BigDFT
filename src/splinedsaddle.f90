@@ -82,7 +82,7 @@ program BigDFT
 
      ! Read all input files.
      call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
-          & "input.dft", "input.kpt", "input.geopt", "input.perf", inputs, atoms, rxyz)
+          & "input.dft", "input.kpt","input.mix", "input.geopt", "input.perf", inputs, atoms, rxyz)
      !-----------------------------------------------------------
      !-----------------------------------------------------------
      if (iproc == 0) then
@@ -1666,9 +1666,11 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     if(fmax<parmin%fmaxtol) then
         parmin%converged=.true.
         parmin%iflag=0
+        if(iproc==0) then
         write(*,'(a,i4,es23.15,2es12.5)') &
             'BFGS FINISHED: itfire,epot,fnrm,fmax ',parmin%iter,epot,fnrm,fmax
         return
+        endif
     endif
 
     if(de>5.d-3) then

@@ -27,11 +27,11 @@ module module_types
 !!
   type, public :: input_variables
      logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
-     integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol
-     integer :: norbv,nvirt,nplot
+     integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
+     integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty
      integer :: output_grid, dispersion,last_run
-     real(gp) :: frac_fluct,gnrm_sw
-     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf 
+     real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel,alphadiis
+     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
      integer :: nvacancy,verbosity
      real(gp) :: elecfield
      logical :: disableSym
@@ -97,8 +97,11 @@ module module_types
      integer:: methOrtho
      ! iguessTol gives the tolerance to which the input guess will converged (maximal
      ! residue of all orbitals).
-     real(kind=8):: iguessTol
-
+     real(gp):: iguessTol
+     !parallelisation scheme of the exact exchange operator
+     !   BC (Blocking Collective)
+     !   OP2P (Overlap Point-to-Point)
+     character(len=4) :: exctxpar
   end type input_variables
 !!***
 
@@ -251,6 +254,7 @@ module module_types
 !!
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
+     real(gp) :: efermi
      integer, dimension(:), pointer :: norb_par,iokpt,ikptproc!,ikptsp
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
@@ -417,8 +421,8 @@ module module_types
 !!
   type, public :: diis_objects
      logical :: switchSD
-     integer :: idiistol,mids,ids  
-     real(gp) :: energy_min
+     integer :: idiistol,mids,ids,idsx
+     real(gp) :: energy_min,energy_old,energy,alpha,alpha_max
      real(wp), dimension(:), pointer :: psidst
      real(tp), dimension(:), pointer :: hpsidst
      real(wp), dimension(:,:,:,:), pointer :: ads

@@ -11,13 +11,9 @@ subroutine razero(n,x)
   real(kind=8), intent(out) :: x(n)
   !Local variables
   integer :: i
-!$omp parallel default(private) shared(n,x)
-!$omp do 
   do i=1,n
      x(i)=0.d0
   end do
-!$omp enddo
-!$omp end parallel
 END SUBROUTINE razero
 !!***
 
@@ -87,7 +83,7 @@ end module randomData
 !!****f* BigDFT/builtin_rand
 !! FUNCTION
 !!   Random Number generator from Numerical Recipes
-!!   To be used for reproductability of the results
+!!   To be used for reproducibility of the results
 !! SOURCE
 !!
 function builtin_rand(idum)
