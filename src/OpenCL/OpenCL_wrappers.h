@@ -30,6 +30,8 @@ struct bigdft_kernels {
   cl_kernel kinetic1d_kernel_d;
   cl_kernel kinetic1d_f_kernel_d;
   cl_kernel kinetic_k1d_kernel_d;
+  cl_kernel kinetic_k1d_kernel_d_2;
+  cl_kernel kinetic_k1d_f_kernel_d_2;
   cl_kernel magicfilter1d_kernel_d;
   cl_kernel magicfilter1d_straight_kernel_d;
   cl_kernel magicfilter1d_block_kernel_d;
@@ -486,7 +488,7 @@ void FC_FUNC_(kinetic_stable_d,KINETIC_STABLE_D)(bigdft_command_queue *command_q
  *  @param k point coordinates. Verctor of three values.
  */
 void FC_FUNC_(kinetic_k_d,KINETIC_K_D)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y, cl_double * c_in,  cl_double *k);
-
+void FC_FUNC_(kinetic_k_d_generic,KINETIC_K_D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, double *h, double *k, cl_mem *x_r, cl_mem *x_i, cl_mem *y_r, cl_mem *y_i, cl_mem *work_x_r, cl_mem *work_x_i, cl_mem *work_y_r, cl_mem *work_y_i);
 /** Computes the sum of the components of a vector.
  *  @param command_queue used to process the data.
  *  @param n number of element of the vector.
@@ -829,4 +831,22 @@ void FC_FUNC_(ocl_preconditioner,OCL_PRECONDITIONER)(bigdft_command_queue *comma
                                           cl_mem *psi_c_b, cl_mem *psi_f_b,
                                           cl_mem *psi_c_d, cl_mem *psi_f_d,
                                           cl_mem *work1, cl_mem *work2, cl_mem *work3, cl_mem *work4);
+void FC_FUNC_(ocl_isf_to_daub,OCL_ISF_TO_DAUB)(bigdft_command_queue *command_queue,
+                                          cl_uint *dimensions,
+                                          cl_uint *periodic,
+                                          cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
+                                          cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                          cl_mem *psi_c, cl_mem *psi_f,
+                                          cl_mem *psi, cl_mem *out,
+                                          cl_mem *work, cl_mem *kinres);
+void FC_FUNC_(ocl_daub_to_isf,OCL_DAUB_TO_ISF)(bigdft_command_queue *command_queue,
+                                          cl_uint *dimensions,
+                                          cl_uint *periodic,
+                                          cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c,
+                                          cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
+                                          cl_mem *psi_c, cl_mem *psi_f,
+                                          cl_mem *psi, cl_mem *out,
+                                          cl_mem *work, cl_mem *kinres);
+void FC_FUNC_(magic_filter_t_3d_generic,MAGIC_FILTER_T_3D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out);
+void FC_FUNC_(magic_filter_3d_generic,MAGIC_FILTER_3D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out);
 #endif

@@ -46,10 +46,30 @@ OCL_INTERFACE = convolutions/interface_ocl_fake.f90
 libs_ocl=
 endif
 
+if USE_DGEMMSY
+sub_dirs_dgemmsy=dgemmsy
+DGEMMSY_INTERFACE = dgemmsy/interface_dgemmsy.f90
+libs_dgemmsy=dgemmsy/libdgemmsy.a
+else
+sub_dirs_dgemmsy=
+DGEMMSY_INTERFACE = dgemmsy/interface_dgemmsy_fake.f90
+libs_dgemmsy=
+endif
+
+libs_opt=$(libs_cuda)\
+ $(libs_ocl)\
+ $(libs_dgemmsy)
+
 if HAVE_LIBCONFIG
 sub_dirs_libconfig=convolutions-c
 else
 sub_dirs_libconfig=
+endif
+
+if HAVE_ETSF_IO
+etsf_files = wavelib/plotting-etsf.f90
+else
+etsf_files = wavelib/plotting-etsf.fake.f90
 endif
 
 
@@ -72,7 +92,7 @@ global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) art $(sub_dirs_libconfig)
+SUBDIRS = modules convolutions $(sub_dirs_ps) profiling $(sub_dirs_cuda) $(sub_dirs_ocl) $(sub_dirs_dgemmsy) art $(sub_dirs_libconfig)
 
 EXTRA_DIST = \
 	wavelib/intots.inc \
@@ -81,7 +101,7 @@ EXTRA_DIST = \
 	NEB_driver.sh 
 
 AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver \
-	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ @LIBETSFIO_INCLUDE@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)
@@ -139,6 +159,7 @@ convolution_objects = $(convolution_source:.f90=.o)
 
 #modules for types, interfaces and base variables
 modules_source = modules/base.f90 \
+	modules/defs.f90 \
 	modules/types.f90 \
 	modules/interfaces.f90 \
 	$(GPU_BLAS)
@@ -192,6 +213,7 @@ low_level = init/projectors.f90  \
 	wfn_opt/kernel_slab_simple.f90 \
 	wfn_opt/coupling_matrix.f90 \
 	lib/fft/fft2d.f90 \
+	$(etsf_files) \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
 	wavelib/plotting.f90 \
@@ -199,7 +221,8 @@ low_level = init/projectors.f90  \
 	wavelib/un-compress.f90 \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 \
-	wavelib/daubisf.f90
+	wavelib/daubisf.f90 \
+	$(DGEMMSY_INTERFACE)
 
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
@@ -208,7 +231,6 @@ libbigdft_a_SOURCES = \
 	$(high_level)
 
 libbigdft_a_LIBADD = profiling/time.o \
-	profiling/memory.o \
 	profiling/memoryestimator.o \
 	$(convolution_objects) \
 	$(modules_objects) 
@@ -219,8 +241,7 @@ bigdft_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
+	$(libs_opt)
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
 rism_LDFLAGS = 
@@ -228,17 +249,15 @@ rism_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
-
+	$(libs_opt)
+ 
 oneatom_SOURCES = oneatom.f90
 oneatom_LDFLAGS = 
 oneatom_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
+	$(libs_opt)
 
 
 MDanalysis_SOURCES = distances.f90 
@@ -247,8 +266,7 @@ MDanalysis_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
+	$(libs_opt)  
 
 abscalc_SOURCES = abscalc.f90 
 abscalc_LDFLAGS = 
@@ -256,9 +274,7 @@ abscalc_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
-
+	$(libs_opt) 
 
 test_forces_SOURCES = test_forces.f90
 test_forces_LDFLAGS = 
@@ -266,16 +282,14 @@ test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
+	$(libs_opt) 
 
 NEB_SOURCES = NEB.f90 \
 	$(mpi_source)
 NEB_LDFLAGS = 
 NEB_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	$(libs_cuda) \
-	$(libs_ocl)
+	$(libs_opt) 
 
 memguess_SOURCES = memguess.f90 \
 	$(mpi_source)
@@ -283,8 +297,7 @@ memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
+	$(libs_opt) 
 
 frequencies_SOURCES = frequencies.f90  \
 	$(mpi_source)
@@ -293,8 +306,7 @@ frequencies_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
+	$(libs_opt) 
 
 bart_SOURCES = \
 	art/bigdft_forces.f90 \
@@ -307,16 +319,14 @@ bart_SOURCES = \
 	art/initialize.f90 \
 	art/read_parameters.f90 \
 	art.f90
-bart_FCFLAGS = -I. -Iart -Imodules
+bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@
 bart_LDFLAGS = 
 bart_LDADD = art/libart.a \
 	libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
-
+	$(libs_opt) 
 
 CLEANFILES = \
 	bigdft_api.@MODULE_EXT@ BIGDFT_API.@MODULE_EXT@ \

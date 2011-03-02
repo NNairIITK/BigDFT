@@ -49,6 +49,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   type(gaussian_basis), target ::  Gabsorber
   real(wp),   pointer  :: Gabs_coeffs(:)
+  real(wp), dimension(:), pointer  :: pot
   real(wp),  pointer, dimension(:,:)  :: dum_coeffs
   character(len=800) :: filename
   logical :: projeexists
@@ -132,6 +133,10 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
         
      endif
 
+  !allocate the potential in the full box
+  call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
+       ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
+
 
   ha%iproc=iproc
   ha%nproc=nproc
@@ -147,7 +152,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%lr=>lr !!!
   ha%ngatherarr=>ngatherarr
   ha%ndimpot=ndimpot
-  ha%potential=>potential
+  ha%potential=>pot
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
   ha%eproj_sum=eproj_sum
@@ -189,6 +194,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
   endif
+
+
   
   call deallocate_comms(ha%comms,subname)
 
@@ -265,6 +272,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   type(gaussian_basis), target ::  Gabsorber
   real(wp), pointer :: Gabs_coeffs(:)
+  real(wp), dimension(:), pointer :: pot
   real(wp), pointer, dimension (:,:) :: dum_coeffs
   character(len=80) :: filename
   logical :: projeexists
@@ -355,6 +363,10 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      call memocc(i_stat,i_all,'coeffs',subname)
      
   endif
+
+  !allocate the potential in the full box
+  call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
+       ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
   
   print *, "OK "
   !associate hamapp_arg pointers
@@ -372,7 +384,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%lr=>lr !!!
   ha%ngatherarr=>ngatherarr
   ha%ndimpot=ndimpot
-  ha%potential=>potential
+  ha%potential=>pot
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
   ha%eproj_sum=eproj_sum
@@ -462,6 +474,10 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
         enddo
      endif
   endif
+
+  call free_full_potential(nproc,pot,subname)
+
+  nullify(ha%potential)
 
   !deallocate communication and orbitals descriptors
   call deallocate_comms(ha%comms,subname)
@@ -572,6 +588,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   type(gaussian_basis), target ::  Gabsorber
   real(wp),   pointer  :: Gabs_coeffs(:)
+  real(wp), dimension(:), pointer  :: pot
   real(wp),  pointer, dimension(:,:)  :: dum_coeffs
   character(len=800) :: filename
   logical :: projeexists
@@ -663,6 +680,9 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
         
      endif
 
+     !allocate the potential in the full box
+     call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
+          ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
 
   ha%iproc=iproc
   ha%nproc=nproc
@@ -678,7 +698,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%lr=>lr !!!
   ha%ngatherarr=>ngatherarr
   ha%ndimpot=ndimpot
-  ha%potential=>potential
+  ha%potential=>pot
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
   ha%eproj_sum=eproj_sum
@@ -773,8 +793,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      call memocc(i_stat,i_all,'potentialclone',subname)
   endif
 
-
-
+  call free_full_potential(nproc,pot,subname)
 
   call deallocate_abscalc_input(in, subname)
 
