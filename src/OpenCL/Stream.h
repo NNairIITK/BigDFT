@@ -21,8 +21,8 @@ cl_int oclEnstreamNDRangeKernel(ocl_stream stream,
                                 const size_t *global_work_offset,
                                 const size_t *global_work_size,
                                 const size_t *local_work_size);
-cl_int oclEnstreamWriteBuffer(ocl_stream stream, cl_mem buffer, cl_bool blocking_write, size_t offset, size_t cb, const void *ptr);
-cl_int oclEnstreamReadBuffer(ocl_stream stream, cl_mem buffer, cl_bool blocking_read,  size_t offset, size_t cb, void *ptr);
+cl_int oclEnstreamWriteBuffer(ocl_stream stream, cl_mem buffer, size_t offset, size_t cb, const void *ptr);
+cl_int oclEnstreamReadBuffer(ocl_stream stream, cl_mem buffer,  size_t offset, size_t cb, void *ptr);
 cl_int oclStreamFinish(ocl_stream stream);
 cl_int oclStreamFlush(ocl_stream stream);
 

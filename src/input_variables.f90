@@ -63,7 +63,7 @@ END SUBROUTINE print_logo
 !! SOURCE
 !!
 subroutine read_input_variables(iproc,posinp, &
-     & file_dft, file_kpt, file_geopt, file_perf, inputs,atoms,rxyz)
+     & file_dft, file_kpt, file_mix, file_geopt, file_perf, inputs,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_variables
@@ -72,7 +72,7 @@ subroutine read_input_variables(iproc,posinp, &
 
   !Arguments
   character(len=*), intent(in) :: posinp
-  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_perf
+  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_mix,file_perf
   integer, intent(in) :: iproc
   type(input_variables), intent(out) :: inputs
   type(atoms_data), intent(out) :: atoms
@@ -94,6 +94,8 @@ subroutine read_input_variables(iproc,posinp, &
   call update_symmetries(inputs, atoms, rxyz)
   ! Read k-points input variables (if given)
   call kpt_input_variables(iproc,file_kpt,inputs,atoms)
+  ! Mixing input variables (if given)
+  call mix_input_variables(file_mix,inputs)
   ! Read geometry optimisation option
   call geopt_input_variables(file_geopt,inputs)
 
@@ -154,7 +156,10 @@ subroutine default_input_variables(inputs)
   ! Default frequencies variables
   call frequencies_input_variables_default(inputs)
   ! Default values for geopt.
-  call geopt_input_variables_default(inputs)  
+  call geopt_input_variables_default(inputs) 
+  ! Default values for mixing procedure
+  call mix_input_variables_default(inputs) 
+
 END SUBROUTINE default_input_variables
 
 !!****f* BigDFT/dft_input_variables
@@ -246,13 +251,8 @@ subroutine dft_input_variables(iproc,filename,in)
   call check()
   in%nvirt = min(in%nvirt, in%norbv)
 
-  !mixing treatement (hard-coded values)
-  in%itrpmax=1
-  in%alphamix=0.0_gp
-  in%rpnrm_cv=1.e-4_gp
-  in%gnrm_startmix=0.e-3_gp
 
-  !electrostatic treatment of the vacancy (experimental)
+  !electrostatic treatment of the vacancy (deprecated, to be removed)
   !read(1,*,iostat=ierror) in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
   !call check()
   in%nvacancy=0
@@ -341,6 +341,89 @@ subroutine geopt_input_variables_default(in)
   nullify(in%qmass)
 
 END SUBROUTINE geopt_input_variables_default
+!!***
+
+!!****f* BigDFT/mix_input_variables_default
+!! FUNCTION
+!!    Assign default values for mixing variables
+!! SOURCE
+!!
+subroutine mix_input_variables_default(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+
+  !mixing treatement (hard-coded values)
+  in%itrpmax=1
+  in%alphamix=0.0_gp
+  in%rpnrm_cv=1.e-4_gp
+  in%gnrm_startmix=0.0_gp
+  in%iscf=0 !only 2(potential) or 12(density) are allowed (ABINIT conventions for the moment)
+  in%Tel=0.0_gp
+  in%norbsempty=0
+  in%alphadiis=2.d0
+
+END SUBROUTINE mix_input_variables_default
+!!***
+
+!!****f* BigDFT/mix_input_variables
+!! FUNCTION
+!!    Read the input variables needed for the geometry optimisation
+!!    Every argument should be considered as mandatory
+!! SOURCE
+!! 
+subroutine mix_input_variables(filename,in)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  !local variables
+  character(len=*), parameter :: subname='mix_input_variables'
+  character(len = 128) :: line
+  integer :: i_stat,ierror,iline
+  logical :: exists
+
+  inquire(file=filename,exist=exists)
+  if (.not. exists) then
+     return
+  end if
+
+  ! Read the input variables.
+  open(unit=1,file=filename,status='old')
+
+  !line number, to control the input values
+  iline=0
+
+  read(1,*,iostat=ierror) in%iscf
+  call check()
+  read(1,*,iostat=ierror) in%itrpmax
+  call check()
+  read(1,*,iostat=ierror) in%rpnrm_cv
+  call check()
+  read(1,*,iostat=ierror) in%norbsempty, in%Tel
+  call check()
+  read(1,*,iostat=ierror) in%alphamix,in%alphadiis
+  call check()
+  close(unit=1,iostat=ierror)
+
+  !put the startmix if the mixing has to be done
+  if (in%itrpmax >1) in%gnrm_startmix=1.e300_gp
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  END SUBROUTINE check
+
+END SUBROUTINE mix_input_variables
 !!***
 
 

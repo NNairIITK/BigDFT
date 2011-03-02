@@ -25,9 +25,10 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
+  integer :: norbuempty,norbdempty
 
   call read_system_variables('input.occup',iproc,in,atoms,radii_cf,nelec,&
-       norb,norbu,norbd,iunit)
+       norb,norbu,norbd,norbuempty,norbdempty,iunit)
 
   if(in%nspin==4) then
      nspinor=4
@@ -58,7 +59,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
   !assign to each k-point the same occupation number
   do ikpts=1,orbs%nkpts
-     call input_occup(iproc,iunit,nelec,norb,norbu,in%nspin,&
+     call input_occup(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
 
@@ -166,7 +167,7 @@ END SUBROUTINE calculate_rhocore
 !! SOURCE
 !!
 subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
-     nelec,norb,norbu,norbd,iunit)
+     nelec,norb,norbu,norbd,norbuempty,norbdempty,iunit)
   use module_base
   use module_types
   use ab6_symmetry
@@ -175,11 +176,11 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   type(input_variables), intent(in) :: in
   integer, intent(in) :: iproc
   type(atoms_data), intent(inout) :: atoms
-  integer, intent(out) :: nelec,norb,norbu,norbd,iunit
+  integer, intent(out) :: nelec,norb,norbu,norbd,iunit,norbuempty,norbdempty
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   !local variables
   character(len=*), parameter :: subname='read_system_variables'
-  integer, parameter :: nelecmax=32,nmax=6,lmax=4
+  integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
   logical :: exists
   character(len=2) :: symbol
   character(len=24) :: message
@@ -187,12 +188,15 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   character(len=50) :: format
   character(len=100) :: line
   integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,ixcpsp,ispinsum,mxpl
-  integer :: ispol,mxchg,ichg,ichgsum,nsccode,ierror1
+  integer :: ispol,mxchg,ichg,ichgsum,nsccode,ierror1,norbe,norbat,nspinor,nspin
   real(gp) :: rcov,rprb,ehomo,radfine,minrad,maxrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr
   !integer, dimension(nmax,0:lmax-1) :: neleconf
   real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
+  integer, dimension(lmax) :: nl
+  real(gp), dimension(noccmax,lmax) :: occup
+
 integer,dimension(:),allocatable:: orbsPerAt
 character(len=20):: atomname
 integer:: istat, norbitals, i_n, i_l
@@ -297,24 +301,24 @@ allocate(orbsPerAt(atoms%ntypes), stat=istat)
      call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
           neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
 
-if(in%inputPsiId==100) then
-     norbitals=0
-     do i_n=1,nmax
-         do i_l=0,min(i_n-1,lmax-1)
-             if(neleconf(i_n,i_l)>0.d0) norbitals=norbitals+2*(i_l)+1
-         end do
-     end do
-     write(*,'(a,3i6)') 'ityp, norb, orbsPerAt', ityp, norbitals, orbsPerAt(ityp)
-     if(norbitals<orbsPerAt(ityp)) then
-         write(*,'(a,a)') 'adding orbitals for ', atoms%atomnames(ityp)
-         norbitals=0
-         do i_n=1,nmax
-             do i_l=0,min(i_n-1,lmax-1)
-                 if(neleconf(i_n,i_l)>0.d0) norbitals=norbitals+2*(i_l)+1
-             end do
-         end do
-     end if
-end if
+!!if(in%inputPsiId==100) then
+!!     norbitals=0
+!!     do i_n=1,nmax
+!!         do i_l=0,min(i_n-1,lmax-1)
+!!             if(neleconf(i_n,i_l)>0.d0) norbitals=norbitals+2*(i_l)+1
+!!         end do
+!!     end do
+!!     write(*,'(a,3i6)') 'ityp, norb, orbsPerAt', ityp, norbitals, orbsPerAt(ityp)
+!!     if(norbitals<orbsPerAt(ityp)) then
+!!         write(*,'(a,a)') 'adding orbitals for ', atoms%atomnames(ityp)
+!!         norbitals=0
+!!         do i_n=1,nmax
+!!             do i_l=0,min(i_n-1,lmax-1)
+!!                 if(neleconf(i_n,i_l)>0.d0) norbitals=norbitals+2*(i_l)+1
+!!             end do
+!!         end do
+!!     end if
+!!end if
 
 
      !control the hardest and the softest gaussian
@@ -557,7 +561,7 @@ end if
         ispinsum=ispinsum+abs(ispol)
      end do
      if (ispinsum == 0 .and. in%nspin==2) then
-        if (iproc==0) &
+        if (iproc==0 .and. in%norbsempty == 0) &
              write(*,'(1x,a)')&
              'WARNING: Found no input polarisation, add it for a correct input guess'
         !stop
@@ -565,12 +569,16 @@ end if
 
   end if
 
-  ! Test if the file 'occup.dat exists
-  inquire(file='occup.dat',exist=exists)
+  !initialise the values for the empty orbitals
+  norbuempty=0
+  norbdempty=0
+
+  ! Test if the file 'input.occ exists
+  inquire(file='input.occ',exist=exists)
   iunit=0
   if (exists) then
      iunit=25
-     open(unit=iunit,file='occup.dat',form='formatted',action='read',status='old')
+     open(unit=iunit,file='input.occ',form='formatted',action='read',status='old')
      if (in%nspin==1) then
         !The first line gives the number of orbitals
         read(unit=iunit,fmt=*,iostat=ierror) nt
@@ -581,7 +589,7 @@ end if
      if (ierror /=0) then
         !if (iproc==0) 
           write(*,'(1x,a)') &
-             'ERROR: reading the number of orbitals in the file "occup.dat"'
+             'ERROR: reading the number of orbitals in the file "input.occ"'
         stop
      end if
      !Check
@@ -589,7 +597,7 @@ end if
         if (nt<norb) then
            !if (iproc==0) 
                write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
+                'ERROR: In the file "input.occ", the number of orbitals norb=',nt,&
                 ' should be greater or equal than (nelec+1)/2=',norb
            stop
         else
@@ -602,7 +610,7 @@ end if
         if (nt<norb) then
            !if (iproc==0) 
                write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
+                'ERROR: In the file "input.occ", the number of orbitals norb=',nt,&
                 ' should be greater or equal than nelec=',norb
            stop
         else
@@ -611,7 +619,7 @@ end if
         if (ntu<norbu) then
            !if (iproc==0) 
                 write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "occup.dat", the number of orbitals up norbu=',ntu,&
+                'ERROR: In the file "input.occ", the number of orbitals up norbu=',ntu,&
                 ' should be greater or equal than min((nelec+mpol)/2,nelec)=',norbu
            stop
         else
@@ -620,12 +628,42 @@ end if
         if (ntd<norbd) then
            !if (iproc==0) 
                   write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "occup.dat", the number of orbitals down norbd=',ntd,&
+                'ERROR: In the file "input.occ", the number of orbitals down norbd=',ntd,&
                 ' should be greater or equal than min((nelec-mpol/2),0)=',norbd
            stop
         else
            norbd=ntd
         end if
+     end if
+  else if (in%norbsempty > 0) then
+     !total number of orbitals
+     norbe=0
+     if(in%nspin==4) then
+        nspin=2
+        nspinor=4
+     else
+        nspin=in%nspin
+        nspinor=1
+     end if
+
+     do iat=1,atoms%nat
+        ityp=atoms%iatype(iat)
+        call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,atoms%aocc(1,iat),occup,nl)
+        norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
+        norbe=norbe+norbat
+     end do
+
+     !value of empty orbitals up and down, needed to fill occupation numbers
+     norbuempty=min(in%norbsempty,norbe-norbu)
+     norbdempty=min(in%norbsempty,norbe-norbd)
+
+     if (in%nspin == 4 .or. in%nspin==1) then
+        norb=norb+norbuempty
+        norbu=norbu+norbuempty
+     else if (in%nspin ==2) then
+        norbu=norbu+norbuempty
+        norbd=norbd+norbdempty
+        norb=norbu+norbd
      end if
   end if
 
@@ -872,7 +910,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
 
   if(norb_tot /= norb*orbs%nkpts) then
      write(*,*)'ERROR: partition of orbitals incorrect'
-     write(*,*)orbs%norb_par(:)
+     write(*,*)orbs%norb_par(:),norb*orbs%nkpts
      stop
   end if
 
@@ -940,6 +978,9 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
      end do
   end do
 
+  !put a default value for the fermi energy
+  orbs%efermi=-.1_gp
+
   !allocate the array which assign the k-point to processor in transposed version
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
@@ -951,16 +992,16 @@ END SUBROUTINE orbitals_descriptors
 !!****f* BigDFT/input_occup
 !! FUNCTION
 !!    Fill the arrays occup and spinsgn
-!!    if iunit /=0 this means that the file 'occup.dat' does exist and it opens
+!!    if iunit /=0 this means that the file 'input.occ' does exist and it opens
 !! SOURCE
 !!
-subroutine input_occup(iproc,iunit,nelec,norb,norbu,nspin,occup,spinsgn)
+subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
   use module_base
   implicit none
-! Arguments
-  integer, intent(in) :: nelec,nspin,iproc,norb,norbu,iunit
+  ! Arguments
+  integer, intent(in) :: nelec,nspin,iproc,norb,norbu,iunit,norbuempty,norbdempty
   real(gp), dimension(norb), intent(out) :: occup,spinsgn
-! Local variables
+  ! Local variables
   integer :: iorb,nt,ne,it,ierror,iorb1,i
   real(gp) :: rocc
   character(len=20) :: string
@@ -978,9 +1019,9 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,nspin,occup,spinsgn)
         spinsgn(iorb)=-1.0_gp
      end do
   end if
-! write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinsgn(iorb),iorb=1,norb)
+  ! write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinsgn(iorb),iorb=1,norb)
 
-! First fill the occupation numbers by default
+  ! First fill the occupation numbers by default
   nt=0
   if (nspin==1) then
      ne=(nelec+1)/2
@@ -993,14 +1034,45 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,nspin,occup,spinsgn)
         occup(iorb)=0._gp
      end do
   else
-     do iorb=1,norb
-        it=min(1,nelec-nt)
-        occup(iorb)=real(it,gp)
-        nt=nt+it
-     enddo
+     if (norbuempty+norbdempty == 0) then
+        if (norb > nelec) then
+           do iorb=1,min(norbu,norb/2+1)
+              it=min(1,nelec-nt)
+              occup(iorb)=real(it,gp)
+              nt=nt+it
+           enddo
+           do iorb=min(norbu,norb/2+1)+1,norbu
+              occup(iorb)=0.0_gp
+           end do
+           do iorb=norbu+1,norbu+min(norb-norbu,norb/2+1)
+              it=min(1,nelec-nt)
+              occup(iorb)=real(it,gp)
+              nt=nt+it
+           enddo
+           do iorb=norbu+min(norb-norbu,norb/2+1)+1,norb
+              occup(iorb)=0.0_gp
+           end do
+        else
+           do iorb=1,norb
+              occup(iorb)=1.0_gp
+           end do
+        end if
+     else
+        do iorb=1,norbu-norbuempty
+           occup(iorb)=1.0_gp
+        end do
+        do iorb=norbu-norbuempty+1,norbu
+           occup(iorb)=0.0_gp
+        end do
+        do iorb=1,norb-norbu-norbdempty
+           occup(norbu+iorb)=1.0_gp
+        end do
+        do iorb=norb-norbu-norbdempty+1,norb-norbu
+           occup(norbu+iorb)=0.0_gp
+        end do
+     end if
   end if
-
-! Then read the file "occup.dat" if does exist
+  ! Then read the file "input.occ" if does exist
   if (iunit /= 0) then
      nt=0
      do
@@ -1026,14 +1098,14 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,nspin,occup,spinsgn)
            nt=nt+1
            if (iorb<0 .or. iorb>norb) then
               !if (iproc==0) then
-                 write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
-                 write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "input.occ"'
+              write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
               !end if
               stop
            elseif (rocc<0._gp .or. rocc>2._gp) then
               !if (iproc==0) then
-                 write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
-                 write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "input.occ"'
+              write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
               !end if
               stop
            else
@@ -1043,25 +1115,17 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,nspin,occup,spinsgn)
      end do
      if (iproc==0) then
         write(*,'(1x,a,i0,a)') &
-             'The occupation numbers are read from the file "occup.dat" (',nt,' lines read)'
+             'The occupation numbers are read from the file "input.occ" (',nt,' lines read)'
      end if
      close(unit=iunit)
-     !Check if sum(occup)=nelec
-     rocc=sum(occup)
-     if (abs(rocc-real(nelec,gp))>1.e-6_gp) then
-        !if (iproc==0) then
-           write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the total number of electrons ',rocc,&
-                          ' is not equal to ',nelec
-        !end if
-        stop
-     end if
+
      if (nspin/=1) then
 !!!        !Check if the polarisation is respected (mpol)
 !!!        rup=sum(occup(1:norbu))
 !!!        rdown=sum(occup(norbu+1:norb))
 !!!        if (abs(rup-rdown-real(norbu-norbd,gp))>1.e-6_gp) then
 !!!           if (iproc==0) then
-!!!              write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the polarization ',rup-rdown,&
+!!!              write(*,'(1x,a,f13.6,a,i0)') 'From the file "input.occ", the polarization ',rup-rdown,&
 !!!                             ' is not equal to ',norbu-norbd
 !!!           end if
 !!!           stop
@@ -1073,7 +1137,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,nspin,occup,spinsgn)
         do iorb=norbu+1,norb
            spinsgn(iorb)=-1.0_gp
         end do
-      end if
+     end if
   end if
   if (iproc==0) then 
      write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
@@ -1097,6 +1161,17 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,nspin,occup,spinsgn)
      end if
   endif
 
+  !Check if sum(occup)=nelec
+  rocc=sum(occup)
+  if (abs(rocc-real(nelec,gp))>1.e-6_gp) then
+     !if (iproc==0) then
+     write(*,'(1x,a,f13.6,a,i0)') 'ERROR in determining the occupation numbers: the total number of electrons ',rocc,&
+          ' is not equal to ',nelec
+     !end if
+     stop
+  end if
+
+
 END SUBROUTINE input_occup
 !!***
 
@@ -1108,7 +1183,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
   !local variables
   integer :: n_i,n_ip,rs_i,N_a,N_b,N_c,ikpt,jproc,i,ntmp
   real(gp) :: rtmp
-  
+
   ! Strategy to divide between k points.
   ! There is an nproc length to divide into orbs%nkpts segments.
   ! Segment (ikpt - 1) expand in 0 <= r_i < r_ip <= nproc.
@@ -1141,18 +1216,19 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
 
      rs_i=ikpt*nproc
      n_ip=rs_i/nkpts
+     !print *,'ikpt,ni,nip',ikpt,n_i,n_ip
      ! Calculation of N_a, N_b and N_c from given n_i and n_ip.
      if (n_ip >= n_i) then      
         ntmp=n_i*nkpts-(ikpt-1)*nproc
         rtmp=real(nobj,gp)/real(nproc,gp)
         rtmp=rtmp*real(ntmp,gp)
-        N_a=nint(rtmp)
-
+        N_a=nint(rtmp+1.e-10_gp)
+        !print *,'ikpts,rtmp',ikpt,rtmp
         ntmp=ikpt*nproc-n_ip*nkpts
         rtmp=real(nobj,gp)/real(nproc,gp)
         rtmp=rtmp*real(ntmp,gp)
-        N_c=nint(rtmp)
-        
+        N_c=nint(rtmp-1.e-10_gp)
+        !print *,'ikpts,rtmp2',ikpt,rtmp,N_a,N_c
         !the corrections above are to avoid the 32 bit integer overflow
         !N_a=nint(real(nobj*(n_i*nkpts-(ikpt-1)*nproc),gp)/real(nproc,gp))
         !N_c=nint(real(nobj*(ikpt*nproc-n_ip*nkpts),gp)/real(nproc,gp))
@@ -1161,7 +1237,10 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
         N_a=nobj-N_c
      end if
      N_b=nobj-N_a-N_c
-     !if (iproc == 0) write(*,*) ikpt, n_i, n_ip, N_a, N_b, N_c
+     if (N_b == -1) then
+        write(*,*) ikpt, n_i, n_ip, N_a, N_b, N_c
+        stop
+     end if
      !assign to procs the objects.
      if (N_a>0) nobj_par(n_i-1)=nobj_par(n_i-1)+N_a
      if (N_b>0) then

@@ -1652,7 +1652,7 @@ program conv_check
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
            call print_time(GPUtime,8*nvctr_cf,1,ntimes)
 
-           call compare_3D_results(n1*2, n1*2, n1*2, psi_in, psi_cuda, maxdiff,1d-9)
+           call compare_3D_results(n1*2+2, n1*2+2, n1*2+2, psi_in, psi_cuda, maxdiff,1d-9)
       
            call compare_time(CPUtime,GPUtime,8*nvctr_cf,1,ntimes,maxdiff,1.d-9)
 
@@ -1749,7 +1749,7 @@ program conv_check
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
            call print_time(GPUtime,8*nvctr_cf,1,ntimes)
 
-           call compare_3D_results(n1*2, n1*2, n1*2, psi_in, psi_cuda, maxdiff,1d-9)
+           call compare_3D_results(n1*2+2, n1*2+2, n1*2+2, psi_in, psi_cuda, maxdiff,1d-9)
       
            call compare_time(CPUtime,GPUtime,8*nvctr_cf,1,ntimes,maxdiff,1.d-9)
 

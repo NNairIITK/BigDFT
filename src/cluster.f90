@@ -390,7 +390,7 @@ real(8),dimension(:),pointer:: phiWorkPointer
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if (libxc_functionals_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .and. nproc > 1) then
      call createKernel(0,1,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,&
-          pkernelseq,quiet=PSquiet)
+          pkernelseq,quiet='YES')
   else
      pkernelseq => pkernel
   end if
@@ -787,7 +787,7 @@ real(8),dimension(:),pointer:: phiWorkPointer
           in%nspin,hx,hy,hz,Glr%wfd,orbs,GPU)
   end if
 
-  diis%alpha=2.d0
+  diis%alpha=in%alphadiis
   energy=1.d10
   energybs=1.d10
   gnrm=1.d10
@@ -796,8 +796,6 @@ real(8),dimension(:),pointer:: phiWorkPointer
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
-  !set the infocode to the value it would have in the case of no convergence
-  infocode=1
   !diis initialisation variables
   diis%energy=1.d10
   !minimum value of the energy during the minimisation procedure
@@ -808,6 +806,8 @@ real(8),dimension(:),pointer:: phiWorkPointer
   ndiis_sd_sw=0
   !previous value of idsx_actual to control if switching has appeared
   idsx_actual_before=diis%idsx
+  !logical control variable for switch DIIS-SD
+  diis%switchSD=.false.
 
   !end of the initialization part
   call timing(iproc,'INIT','PR')
@@ -825,7 +825,8 @@ real(8),dimension(:),pointer:: phiWorkPointer
   end if
   endlooprp=.false.
   rhopot_loop: do itrp=1,in%itrpmax
-
+     !set the infocode to the value it would have in the case of no convergence
+     infocode=1
      subd_loop : do icycle=1,in%nrepmax
 
         wfn_loop: do iter=1,in%itermax
@@ -847,13 +848,32 @@ real(8),dimension(:),pointer:: phiWorkPointer
 
            !stop the partial timing counter if necessary
            if (endloop .and. in%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
-           scpot=(in%itrpmax /= 1 .and. iter==1 .and. icycle==1) .or. (in%itrpmax == 1) .or.&
-                (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix)
+           !logical flac for the self-consistent potential
+           scpot=(in%itrpmax /= 1 .and. iter==1 .and. icycle==1) .or. & !mixing to be done
+                (in%itrpmax == 1) .or. & !direct minimisation
+                (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix) !startmix condition
+
            !calculate the self-consistent potential
            if (scpot) then
               ! Potential from electronic charge density
               call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
                    n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+
+              !here the density can be mixed
+              if (in%iscf==12 .and. in%itrpmax>1) then
+                 if (itrp > 1) then
+                    call mix_rhopot(Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,in%alphamix,rhopot_old,rhopot,rpnrm)
+                    
+                    if (iproc == 0) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                         'DENSITY iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+                    
+                    endlooprp= rpnrm <= in%rpnrm_cv .or. itrp == in%itrpmax
+                 else
+                    !define the first rhopot
+                    call dcopy(Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,rhopot(1),1,rhopot_old(1),1)
+                 end if
+              end if
+
 
               if(orbs%nspinor==4) then
                  !this wrapper can be inserted inside the poisson solver 
@@ -882,27 +902,20 @@ real(8),dimension(:),pointer:: phiWorkPointer
 
               end if
 
-              if (itrp > 1) then
-                 !here the potential can be mixed
-                 !vold=>vold-vnew
-                 call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,-1.0_dp,rhopot(1),1,&
-                      rhopot_old(1),1)
-
-                 !calculate rhopot_norm
-                 rpnrm=(nrm2(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,rhopot_old(1),1))**2
-                 call mpiallred(rpnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-                 rpnrm=sqrt(rpnrm)
-
-                 if (iproc == 0) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                      'POTENTIAL iteration,Delta P (Norm 2)',itrp,rpnrm
-
-                 endlooprp= rpnrm <= in%rpnrm_cv .or. itrp == in%itrpmax
-
-                 !vnew=vnew+alpha(vold-vnew)
-                 call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,in%alphamix,rhopot_old(1),1,&
-                      rhopot(1),1)
+              !here the potential can be mixed
+              if (in%iscf==2 .and. in%itrpmax>1) then
+                 if (itrp > 1) then
+                    call mix_rhopot(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,in%alphamix,rhopot_old,rhopot,rpnrm)
+                    
+                    if (iproc == 0) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                         'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+                    
+                    endlooprp= rpnrm <= in%rpnrm_cv .or. itrp == in%itrpmax
+                 else
+                    !define the first rhopot
+                    call dcopy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,rhopot(1),1,rhopot_old(1),1)
+                 end if
               end if
-
            end if
 
            !temporary, to be corrected with comms structure
@@ -1372,6 +1385,8 @@ real(8),dimension(:),pointer:: phiWorkPointer
            else
               diis%energy=-ehart+eexcu-vexcu-eexctX+eion+edisp
            end if
+
+                diis%alpha_max=in%alphadiis
            call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
                 iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,in%nspin,GPU,in)
            !if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
@@ -1451,7 +1466,7 @@ real(8),dimension(:),pointer:: phiWorkPointer
 
            end if
            !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
-           if (diis%energy > diis%energy_min) write( *,'(1x,a,1pe9.2)')&
+           if (diis%energy > diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
                 'WARNING: Found an energy value lower than the FINAL energy, delta:',diis%energy-diis%energy_min
         end if
 
@@ -1473,8 +1488,16 @@ real(8),dimension(:),pointer:: phiWorkPointer
            gnrm=1.d10
         end if
 
+        if (in%itrpmax == 1 .and. in%norbsempty > 0) then
+           !recalculate orbitals occupation numbers
+           call evaltoocc(iproc,.false.,in%Tel,orbs)
+
+           gnrm =1.d10
+           diis%energy_min=1.d10
+           diis%alpha=2.d0
+        end if
+
      end do subd_loop
-     
 
      if (in%itrpmax > 1) then
         !stop the partial timing counter if necessary
@@ -1484,13 +1507,11 @@ real(8),dimension(:),pointer:: phiWorkPointer
         end if
 
         !recalculate orbitals occupation numbers
-        if (iproc == 0) call Fermilevel(.true.,1.e-2_gp,orbs) !on occup.dat file
-        call Fermilevel(.false.,1.e-2_gp,orbs) !in memory
+        call evaltoocc(iproc,.false.,in%Tel,orbs)
 
-        call dcopy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,&
-             rhopot(1),1,rhopot_old(1),1)
         gnrm =1.d10
         diis%energy_min=1.d10
+        diis%alpha=2.d0
      end if
 
   end do rhopot_loop
