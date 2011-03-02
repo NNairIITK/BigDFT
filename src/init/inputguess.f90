@@ -36,7 +36,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: iorbtolr
-  
+
 
   allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)
   call memocc(i_stat,scorb,'scorb',subname)
@@ -67,8 +67,8 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
         !this is well defined only for closed-shell systems
         !if (ispin == 1) nvirte=min(noncoll*norbe-orbs%norbu,nvirt)
         !if (ispin == 2) nvirte=min(noncoll*norbe-orbs%norbd,nvirt)
-	!alternative test, put always the limit to the number of elements of the input guess
-	nvirte=noncoll*norbe
+        !alternative test, put always the limit to the number of elements of the input guess
+        nvirte=noncoll*norbe
         if(nvirt < nvirte .and. iproc==0) then
            write(*,'(1x,a)')&
                 "WARNING: A bigger number of virtual orbitals may be needed for better convergence."
@@ -806,7 +806,7 @@ END SUBROUTINE atomkin
 
 !!****f* BigDFT/calc_coeff_inguess
 !! FUNCTION
-!!   
+!!
 !!
 !! SOURCE
 !!

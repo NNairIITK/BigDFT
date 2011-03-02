@@ -12,13 +12,13 @@
 !! SOURCE
 !!
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-     nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
+     nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&
      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc)
   use module_base
   use module_types
   use libxc_functionals
   implicit none
-  integer, intent(in) :: iproc,nproc,ndimpot,nspin
+  integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -28,7 +28,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
-  real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
+  real(wp), dimension(:), pointer :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
   real(wp), target, dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
@@ -36,32 +36,18 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
   !local variables
-  real(gp), dimension(orbs%norbp) :: ekin
-  real(gp), dimension(orbs%norbp) :: epot
+  real(gp), dimension(2,orbs%norbp) :: ekin
+  real(gp), dimension(2,orbs%norbp) :: epot
   real(wp), dimension(:), pointer :: hpsi2
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX,op2p
-  integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
+  integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
 !OCL  integer, dimension(3) :: periodic
 !OCL  real(wp) :: maxdiff
 !OCL  real(gp) :: eproj,ek_fake,ep_fake
   real(gp), dimension(3,2) :: wrkallred
-  real(wp), dimension(:), pointer :: pot
 !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
-  integer,parameter::lupfil=14
-
-  !stream ptr array
-!  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
-!  real(kind=8) :: stream_ptr_first_trsf
-
-  !initialise exact exchange energy 
-  op2p=(eexctX == -99.0_gp)
-  eexctX=0.0_gp
-
-  exctX = libxc_functionals_exctXfac() /= 0.0_gp
-
-  call timing(iproc,'Rho_commun    ','ON')
 
   ! local potential and kinetic energy for all orbitals belonging to iproc
   if (iproc==0 .and. verbose > 1) then
@@ -69,42 +55,22 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           'Hamiltonian application...'
   end if
 
-  
-  !determine the dimension of the potential array
-  if (exctX) then
-     npot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+&
-          max(lr%d%n1i*lr%d%n2i*&
-          max(lr%d%n3i*orbs%norbp,ngatherarr(0,1)/(lr%d%n1i*lr%d%n2i)*orbs%norb),1)
-  else
-     npot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin
+  !check if the potential has been associated
+  if (.not. associated(pot)) then
+     if (iproc ==0) then
+        write(*,*)' ERROR, HamiltonianApplication, potential not associated!'
+        stop
+     end if
   end if
 
-  !build the potential on the whole simulation box
-  !in the linear scaling case this should be done for a given localisation region
-  !cannot be deplaced due to the fact that n1i is not calculated
-  if (nproc > 1) then
-     allocate(pot(npot+ndebug),stat=i_stat)
-     call memocc(i_stat,pot,'pot',subname)
-     ispot=1
-     ispotential=1
-     do ispin=1,nspin
-        call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
-             mpidtypw,pot(ispot),ngatherarr(0,1),&
-             ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
-        ispot=ispot+lr%d%n1i*lr%d%n2i*lr%d%n3i
-        ispotential=ispotential+max(1,ndimpot)
-     end do
-  else
-     if (exctX) then
-        allocate(pot(npot+ndebug),stat=i_stat)
-        call memocc(i_stat,pot,'pot',subname)
-        call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,potential,1,pot,1)
-     else
-        pot => potential
-     end if
-     ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+1
-  end if
-  call timing(iproc,'Rho_commun    ','OF') 
+  !initialise exact exchange energy 
+  op2p=(eexctX == -99.0_gp)
+  eexctX=0.0_gp
+
+  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+
+  ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+1
+
   !fill the rest of the potential with the exact-exchange terms
   if (present(pkernel) .and. exctX) then
      n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
@@ -178,7 +144,6 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !!$     deallocate(hpsi_OCL,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'hpsi_OCL',subname)
 !!$  end if
-  
   call timing(iproc,'ApplyLocPotKin','OF')
 
   ! apply all PSP projectors for all orbitals belonging to iproc
@@ -228,15 +193,6 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
     call memocc(i_stat,i_all,'hpsi2',subname)
   endif
 
-  if (nproc > 1 .or. exctX) then
-     i_all=-product(shape(pot))*kind(pot)
-     deallocate(pot,stat=i_stat)
-     call memocc(i_stat,i_all,'pot',subname)
-  else
-     nullify(pot)
-  end if
-
-
   call timing(iproc,'ApplyProj     ','OF')
 
   !energies reduction
@@ -259,6 +215,83 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
 END SUBROUTINE HamiltonianApplication
 !!***
+
+!build the potential in the whole box
+subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ngatherarr,potential,pot)
+  use module_base
+  use libxc_functionals
+  implicit none
+  integer, intent(in) :: iproc,nproc,nspin,ndimpot,norb,norbp,ndimgrid
+  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+  real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
+  real(wp), dimension(:), pointer :: pot
+  !local variables
+  character(len=*), parameter :: subname='full_local_potential'
+  logical :: exctX
+  integer :: npot,ispot,ispotential,ispin,ierr,i_stat
+
+  call timing(iproc,'Rho_commun    ','ON')
+  
+  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+  !determine the dimension of the potential array
+  if (exctX) then
+     npot=ndimgrid*nspin+&
+          max(max(ndimgrid*norbp,ngatherarr(0,1)*norb),1) !part which refers to exact exchange
+  else
+     npot=ndimgrid*nspin
+  end if
+
+  !build the potential on the whole simulation box
+  !in the linear scaling case this should be done for a given localisation region
+  !this routine should then be modified or integrated in HamiltonianApplication
+  if (nproc > 1) then
+     allocate(pot(npot+ndebug),stat=i_stat)
+     call memocc(i_stat,pot,'pot',subname)
+     ispot=1
+     ispotential=1
+     do ispin=1,nspin
+        call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
+             mpidtypw,pot(ispot),ngatherarr(0,1),&
+             ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+        ispot=ispot+ndimgrid
+        ispotential=ispotential+max(1,ndimpot)
+     end do
+  else
+     if (exctX) then
+        allocate(pot(npot+ndebug),stat=i_stat)
+        call memocc(i_stat,pot,'pot',subname)
+        call dcopy(ndimgrid*nspin,potential,1,pot,1)
+     else
+        pot => potential
+     end if
+     ispot=ndimgrid*nspin+1
+  end if
+
+  call timing(iproc,'Rho_commun    ','OF') 
+
+end subroutine full_local_potential
+
+subroutine free_full_potential(nproc,pot,subname)
+  use module_base
+  use libxc_functionals
+  implicit none
+  character(len=*), intent(in) :: subname
+  integer, intent(in) :: nproc
+  real(wp), dimension(:), pointer :: pot
+  !local variables
+  logical :: exctX
+  integer :: i_all,i_stat
+
+  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+  if (nproc > 1 .or. exctX) then
+     i_all=-product(shape(pot))*kind(pot)
+     deallocate(pot,stat=i_stat)
+     call memocc(i_stat,i_all,'pot',subname)
+  else
+     nullify(pot)
+  end if
+
+end subroutine free_full_potential
 
 !!****f* BigDFT/hpsitopsi
 !! FUNCTION
@@ -286,16 +319,11 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   character(len=*), parameter :: subname='hpsitopsi'
   !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
   integer :: ierr,iorb,k,i_stat,i_all,nzeroorbs
-  real(dp) :: tt
   real(wp), dimension(:,:,:), allocatable :: mom_vec
 
 real(8):: rr
-integer:: i
 !OCL  real(wp) :: maxdiff
 !OCL  integer, dimension(3) :: periodic
-
-  !stream ptr array
- ! real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
 
   !adjust the save variables for DIIS/SD switch
   if (iter == 1) then
@@ -429,7 +457,6 @@ integer:: i
      write(*,'(1x,a)',advance='no')&
           'Orthogonalization...'
   end if
-
 
   call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit,input)
 
@@ -681,7 +708,7 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
  real(gp), intent(in) :: wf
  type(orbitals_data), intent(inout) :: orbs
  !local variables
- integer :: iu,id,i,n,nzeroorbs,ikpt,iorb,melec,ii
+ integer :: ikpt,iorb,melec,ii
  real(gp) :: charge
  real(gp) :: ef,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
  parameter(pi=3.1415926535897932d0)
@@ -763,6 +790,7 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
        arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
        call derf_ab(res,arg)
        orbs%occup((ikpt-1)*orbs%norb+iorb)=full*.5d0*(1.d0-res)
+       !print *,'iorb,arg,res,full*.5d0*(1.d0-res)',iorb,arg,res,full*.5d0*(1.d0-res)
     end do
     do iorb=1,orbs%norbd
        arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
@@ -793,7 +821,7 @@ subroutine eFermi_nosmearing(iproc,orbs)
   integer, intent(in) :: iproc
   type(orbitals_data), intent(inout) :: orbs
   !local variables
-  integer :: iu,id,i,n,nzeroorbs,ikpt,iorb
+  integer :: iu,id,n,nzeroorbs,ikpt,iorb
   real(gp) :: charge
   real(wp) :: eF
 
@@ -937,7 +965,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   character(len=*), parameter :: subname='check_communications'
   integer :: i,ispinor,iorb,indspin,indorb,jproc,i_stat,i_all,iscomp,idsx,index,ikptsp
   integer :: ikpt,ispsi,nspinor,nvctrp
-  real(wp) :: vali,valorb,psival,maxdiff,ierr,valkpt
+  real(wp) :: psival,maxdiff,ierr
   real(wp), dimension(:), allocatable :: psi
   real(wp), dimension(:), pointer :: pwork
   real(wp) :: epsilon

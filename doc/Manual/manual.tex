@@ -455,7 +455,7 @@ a band diagram. This requires also to define Davidson usage in the
 'input.dft' file. The band structure is define if the following lines
 are present:
 \begin{itemize}
-  \item \textbf{band keyword}: a character string containing
+  \item \textbf{bands} keyword: a character string containing
 \emph{bands}.
   \item the next line contains one integer, \textbf{nseg}, the number
 of different segments for the path.
@@ -476,7 +476,7 @@ does not exist, default values are used. Keywords can specify options as:
 \end{itemize}
 
 
-\chapter{ Running Bigdft executables}
+\chapter{ Running BigDFT executables}
 
 \section{Single point or geometry optimization: \texttt{bigdft}}
 The MPI version is executed on most machines with the \texttt{mpirun} command followed by the name of the executable which is 
@@ -839,7 +839,8 @@ In progress
    & J. Chem. Phys. 109, 6264 (1998)\\
 17 & GGA, HTCH120 of A.D. Boese, N.L. Doltsinis, N.C. Handy, and M. Sprik,\\
    & J. Chem. Phys 112, 1670 (1998) -- The usual HCTH functional\\
-20 & Fermi-Amaldi xc (-1/N Hartree energy, where N is the number of electrons per cell\\
+20 & Fermi-Amaldi xc (-1/N Hartree energy, \\
+   & where N is the number of electrons per cell\\
    & G=0 is not taken into account however), for TDDFT tests. No spin-polarisation.\\
 21 & same as 20, except that the xc-kernel is the LDA (ixc=1) one,\\
    & for TDDFT tests\\

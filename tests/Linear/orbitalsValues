@@ -1,0 +1,6 @@
+10  600              min number of iterations, max number of iterations
+1.d-3   1.d-3        convCritInit, convCritFinal
+6   10               DIISHistMin, DIISHistMax
+C  3  2.d-7          number of basis functions per atom, prefactor for parabolic / quartic potential
+H  3  2.d-7          number of basis functions per atom, prefactor for parabolic / quartic potential
+

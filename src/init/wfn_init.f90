@@ -708,7 +708,6 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
   integer :: nwrtmsg,norbj,jiorb,jjorb,ihs,ispin,norbij
   real(wp), dimension(2) :: preval
   real(wp), dimension(:), allocatable :: work_lp,evale,work_rp
-integer:: j
 
 !if(iproc==0) write(30100,*) hamovr(1:ndim_hamovr,1)
 !if(iproc==0) write(30110,*) hamovr(1:ndim_hamovr,2)
@@ -740,7 +739,7 @@ integer:: j
   end if
 
   !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'Linear Algebra...'
-
+  
   nwrtmsg=0
   ndegen=0
 
@@ -755,10 +754,10 @@ integer:: j
         call sygv(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
              norbi,evale(1),work_lp(1),n_lp,info)
         if (info /= 0) write(*,*) 'SYGV ERROR',info,i,natsc+1
-        
+
         !do the diagonalisation separately in case of spin polarization     
         if (nspin==2) then
-        !if(iproc==0) write(*,*) 'imatrst+ndim_hamovr',imatrst+ndim_hamovr
+           !if(iproc==0) write(*,*) 'imatrst+ndim_hamovr',imatrst+ndim_hamovr
            norbj=norbsc_arr(i,2)
            call sygv(1,'V','U',norbj,hamovr(imatrst+ndim_hamovr,1),&
                 norbj,hamovr(imatrst+ndim_hamovr,2),norbj,evale(norbi+1),work_lp(1),n_lp,info)
@@ -768,7 +767,7 @@ integer:: j
         call hegv(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
              norbi,evale(1),work_lp(1),n_lp,work_rp(1),info)
         if (info /= 0) write(*,*) 'HEGV ERROR',info,i,natsc+1
-        
+
         !do the diagonalisation separately in case of spin polarization     
         if (nspin==2) then
            norbj=norbsc_arr(i,2)
@@ -777,7 +776,7 @@ integer:: j
                 work_lp(1),n_lp,work_rp(1),info)
            if (info /= 0) write(*,*) 'HEGV ERROR',info,i,natsc+1
         end if
-       
+
      end if
 
      !check the sign of the eigenvector, control the choice per MPI process
@@ -790,7 +789,7 @@ integer:: j
            if (hamovr(ihs+(jjorb-1)*norbij*ncplx,1) < 0.0_wp) then
               do jiorb=1,norbij*ncplx
                  hamovr(ihs-1+jiorb+(jjorb-1)*norbij*ncplx,1)=&
-                -hamovr(ihs-1+jiorb+(jjorb-1)*norbij*ncplx,1)
+                      -hamovr(ihs-1+jiorb+(jjorb-1)*norbij*ncplx,1)
               end do
            end if
         end do
@@ -801,32 +800,32 @@ integer:: j
      end do
 
 
-!!$     if (iproc == 0) then
-!!$        print *,norbi,ncomp,ncplx,imatrst
-!!$        !write the matrices on a file
-!!$        !open(12)
-!!$        do jjorb=1,8!norbi
+!!$     !if (iproc == 0) then
+!!$     print *,norbi,ncomp,ncplx,imatrst
+!!$     !write the matrices on a file
+!!$     !open(12)
+!!$     do jjorb=1,8!norbi
 !!$        !   do jiorb=1,norbi
 !!$        !      write(12,'(1x,2(i0,1x),200(1pe24.17,1x))')jjorb,jiorb,&
 !!$        !           hamovr(jjorb+norbi*(jiorb-1),1),hamovr(jjorb+norbi*(jiorb-1),2)
 !!$        !   end do
 !!$        !end do
 !!$        !close(12)
-!!$        open(33+2*(i-1))
-!!$        write(33+2*(i-1),'(2000(1pe10.2))')&
-!!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,8*ncomp*ncplx)
-!!$!                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,norbi*ncomp*ncplx)
-!!$        end do
-!!$        close(33+2*(i-1))
-!!$        open(34+2*(i-1))
-!!$        do jjorb=1,8!norbi
-!!$           write(34+2*(i-1),'(2000(1pe10.2))')&
-!!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,2),jiorb=1,8*ncomp*ncplx)
-!!$!                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,2),jiorb=1,norbi*ncomp*ncplx)
-!!$        end do
-!!$        close(34+2*(i-1))
+!!$        open(33+2*(i-1)+100*iproc)
+!!$        write(33+2*(i-1)+100*iproc,'(2000(1pe10.2))')&
+!!$             (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,8*ncomp*ncplx)
+!!$        !                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,norbi*ncomp*ncplx)
+!!$     end do
+!!$     close(33+2*(i-1)+100*iproc)
+!!$     open(34+2*(i-1)+100*iproc)
+!!$     do jjorb=1,8!norbi
+!!$        write(34+2*(i-1)+100*iproc,'(2000(1pe10.2))')&
+!!$             (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,2),jiorb=1,8*ncomp*ncplx)
+!!$        !                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,2),jiorb=1,norbi*ncomp*ncplx)
+!!$     end do
+!!$     close(34+2*(i-1)+100*iproc+100*iproc)
 !!$
-!!$     end if
+!!$     !end if
 !!$     stop
 
      !writing rules, control if the last eigenvector is degenerate
@@ -963,9 +962,9 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
   integer, parameter :: iunit=1978
   integer :: ispin,iorbst,iorbst2,imatrst,norbsc,norbi,norbj
   integer :: ncplx,ncomp,i,ispsiv
+  integer :: j,iproc
 
 
-integer:: j,l,iproc
   if(iproc==0) then
       do j=1,size(hamovr)
           !write(100001,*) hamovr(j)
@@ -1228,10 +1227,9 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
   real(kind=8),dimension(:,:,:,:),allocatable:: HamPad, overlapPad
   integer,dimension(:,:,:),allocatable:: kpArr
   logical:: success, warning, simul
-  complex(8):: zdotc, dznrm2, zz
-  integer stat(mpi_status_size)
-  character(len=*),parameter:: subname='inputguessParallel'
-
+  complex(kind=8):: zdotc, dznrm2, zz
+  integer :: stat(mpi_status_size)
+  character(len=*),parameter :: subname='inputguessParallel'
 
 
   ! Start the timing for the input guess.

@@ -78,6 +78,7 @@ program MINHOP
   !if (iproc == 0) write(67,'(a,2(1x,1pe10.3))') 'predicted fraction accepted, rejected', & 
   !     ratio/(1.d0+ratio), 1.d0/(1.d0+ratio)
   if (iproc == 0) write(67,*) 'mdmin',mdmin
+  accepted=0.0d0
 
 
   call cpu_time(tcpu1)

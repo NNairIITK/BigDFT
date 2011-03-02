@@ -296,9 +296,8 @@ subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
   real(wp), dimension(nvctr,orbs%nspinor,orbs%norbp), intent(out) :: psi
   !local variables
   integer :: iorb,i,j,ij,ijproc,ind,it,it1,it2,it3,it4,ikptsp
-  integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt,iproc,ierr
+  integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt,ierr
 
-  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   isorb=orbs%isorb+1
   isorbp=0
   ispsi=0

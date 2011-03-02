@@ -62,7 +62,6 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      call input_occup(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
-
 END SUBROUTINE system_properties
 !!***
 
@@ -1222,12 +1221,12 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
         ntmp=n_i*nkpts-(ikpt-1)*nproc
         rtmp=real(nobj,gp)/real(nproc,gp)
         rtmp=rtmp*real(ntmp,gp)
-        N_a=nint(rtmp+1.e-10_gp)
+        N_a=floor(rtmp)!nint(rtmp+1.e-10_gp)
         !print *,'ikpts,rtmp',ikpt,rtmp
         ntmp=ikpt*nproc-n_ip*nkpts
         rtmp=real(nobj,gp)/real(nproc,gp)
         rtmp=rtmp*real(ntmp,gp)
-        N_c=nint(rtmp-1.e-10_gp)
+        N_c=ceiling(rtmp)!nint(rtmp-1.e-10_gp)
         !print *,'ikpts,rtmp2',ikpt,rtmp,N_a,N_c
         !the corrections above are to avoid the 32 bit integer overflow
         !N_a=nint(real(nobj*(n_i*nkpts-(ikpt-1)*nproc),gp)/real(nproc,gp))

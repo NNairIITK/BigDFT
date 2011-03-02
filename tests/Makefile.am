@@ -6,7 +6,8 @@ SUBDIRS = \
 	  DFT \
 	  H2-freq \
 	  NEB \
-	  XabsCheb
+	  XabsCheb \
+	  Linear
 
 
 #This will run the automatic tests also for minima hopping

@@ -1,0 +1,9 @@
+spin-polarized  20  2.00      1.87      3.74     spin treatment, ng rij rcov and rprb
+   17    7  021811 zatom, zion, date (ddmmyy)
+   10     -20 1 0 2002 0     pspcod,IXC,lmax,lloc,mmax,r2well
+    0.41000000      1  -4.6270579     rloc nloc c1 .. cnloc
+   2                   0.34720679       4.4393098    nsep, rcore&zcore (NLCC)
+    0.33907807      2   5.9334538     -0.34528442          s-projector
+                                        4.1256617    
+    0.37386421      1   4.4649838          p-projector
+                       0 (no kij)
