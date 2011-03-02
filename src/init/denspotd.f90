@@ -178,6 +178,8 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 
      end do loop_comps
   end do
+!write(*,'(a,i2,3x,8i7,i10)') 'iproc, nvctr_par(jproc), sum', iproc, (nvctr_par(jproc,1), jproc=0,nproc-1), sum(nvctr_par(:,1))
+!write(*,*) 'iproc, (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norbp', iproc, (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norbp
 
   !some checks
   !check the distribution
@@ -213,6 +215,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   jorb=1
   ikpts=1
   !print *,'here',orbs%norb_par(:)
+!write(*,*) 'orbs%norb_par',orbs%norb_par
   do jproc=0,nproc-1
      do iorbp=1,orbs%norb_par(jproc)
         norb_par(jproc,ikpts)=norb_par(jproc,ikpts)+1

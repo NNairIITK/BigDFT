@@ -124,6 +124,8 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
      !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' inguess orbitals '
   end if
 
+  write(*,'(a,3i6)') 'iproc, orbse%isorb, orbse%norbp', iproc, orbse%isorb,orbse%norbp
+  write(*,'(a,3i6)') 'norbe, orbse%nspinor, orbse%isorb+orbse%norbp+ndebug', norbe, orbse%nspinor, orbse%isorb+orbse%norbp+ndebug
   !allocate the gaussian coefficients for the number of orbitals which is needed
   allocate(psigau(norbe,orbse%nspinor,orbse%isorb+orbse%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,psigau,'psigau',subname)
@@ -232,6 +234,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
   do iat=1,at%nat
      ity=at%iatype(iat)
      call count_atomic_shells(lmax+1,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
+!write(*,'(a,i4,2x,10i4)') 'iat, nl', iat, nl
      norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
 
      norbe=norbe+norbat

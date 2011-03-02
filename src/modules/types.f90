@@ -258,6 +258,15 @@ module module_types
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
+integer:: nbasis, nbasisp
+real(8):: parabPrefac, parabMaxVal
+real(8),dimension(:),allocatable:: parabPrefacArr
+integer,dimension(:),allocatable:: onWhichAtom
+integer,dimension(:),allocatable:: orbitalNumber
+real(8),dimension(:,:),allocatable:: parabolaShift
+integer:: nbasisOnPreviousMPI
+real(8):: convCrit, convCritInit, convCritFinal
+integer:: nItMin, nItMax, power, DIIShistMin, DIISHistMax
   end type orbitals_data
 !!***
 
@@ -274,6 +283,7 @@ module module_types
      integer :: ns1,ns2,ns3 !starting points of the localisation region in global coordinates
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
+   type(wavefunctions_descriptors),dimension(:,:),allocatable :: wfdLIN
      type(convolutions_bounds) :: bounds
   end type locreg_descriptors
 !!***
@@ -289,6 +299,9 @@ module module_types
   type, public :: communications_arrays
      integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
      integer, dimension(:,:), pointer :: nvctr_par
+  integer,dimension(:,:,:,:),pointer:: nvctr_parLIN
+  integer, dimension(:), pointer :: ncntdLIN,ncnttLIN,ndspldLIN,ndspltLIN
+
   end type communications_arrays
 !!***
 

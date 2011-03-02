@@ -252,6 +252,24 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   integer :: nkptv, nvirtu, nvirtd
   real(gp), allocatable :: wkptv(:)
 
+! New variables
+real(8),dimension(:),allocatable:: phi, phiPulay
+type(orbitals_data):: orbsLIN
+type(communications_arrays):: commsLIN
+logical:: writeBasis
+real(8),dimension(:,:),allocatable:: rxyzParab, rxyzParabOld, fxyzPulay
+integer:: icomp, ishift, ishell, sizeRhopot, iforce, niter, DIISHist, nvctrp, istart, infoBasisFunctions
+real(8):: energyLIN, energym2, energym1, energy0, energyp1, energyp2, pulayForce, pulayShift, pulayShift0, ddot, dnrm2
+real(8):: convCritInit, beta, ebs_mod, ebs_mod2
+real(8),dimension(:),allocatable:: rhopotCorrect, alphaArr, cosangle
+real(8),dimension(:,:),allocatable:: occupForInguess, fxyzOld
+character(len=50):: outputFile, ch
+integer, dimension(:,:), allocatable :: nscatterarrCorrect ,ngatherarrCorrect
+real(kind=8), dimension(:), pointer :: projCorrect
+real(8),dimension(:,:),allocatable:: perturbation
+real(8),dimension(:,:,:),allocatable:: rxyzParabolaHist
+real(8),dimension(:),pointer:: phiWorkPointer
+
 
   ! ----------------------------------
   
@@ -586,6 +604,52 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      if (nvirt > norbv) then
         nvirt = norbv
      end if
+  case(100)
+     ! linear scaling
+     !write(*,*) 'LINEAR SCALING VERSION'
+     !call improveOrbitals(iproc, nproc, nspin, Glr, orbs, orbsLIN, commsLIN, atoms, rxyz, nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, in, pkernelseq, phi)
+
+     ! Do also the normal cubic case at the moment to avoid changes in the code (allocating etc.)
+     nspin=in%nspin
+     !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
+     do iat=1,atoms%nat
+         ishell=0
+         do
+             ishell=ishell+1
+             if(atoms%aocc(ishell,iat)==0.d0) exit
+             if(iproc==0) write(*,'(a,2i5,es12.5)') 'iat, ishell, atoms%aocc(ishell,iat)', iat, ishell, atoms%aocc(ishell,iat)
+         end do
+     end do
+     call input_wf_diag(iproc,nproc, atoms,&
+          orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
+          nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
+          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in)
+     
+
+
+     allocate(occupForInguess(32,atoms%nat))
+     !occupForInguess=0.d0
+     !do iat=1,atoms%nat
+     !    ishell=0
+     !    do
+     !        ishell=ishell+1
+     !        if(atoms%aocc(ishell,iat)==0.d0) exit
+     !        occupForInguess(ishell,iat)=atoms%aocc(ishell,iat)
+     !        if(iproc==0) write(*,'(a,2i5,es12.5)') 'iat, ishell, occupForInguess(ishell,iat)', iat, ishell, occupForInguess(ishell,iat)
+     !    end do
+     !end do
+     call initializeParameters(iproc, nproc, Glr, orbs, orbsLIN, commsLIN, atoms, phi, in, rxyz, occupForInguess)
+
+     !call inputOrbitals(iproc,nproc, atoms,&
+     !     orbsLIN,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
+     !     nlpspd,proj,pkernel,pkernelseq,ixc,phi,hpsi,psit,Gvirt,&
+     !     nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in)
+ !write(100+iproc,*) phi
+     if (nvirt > norbv) then
+        nvirt = norbv
+     end if
+
+     !call initializeLocRegLIN(iproc, nproc, Glr, orbsLIN, atoms, in, rxyz, radii_cf)
   case(1)
      !these parts should be reworked for the non-collinear spin case
 
@@ -844,6 +908,58 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            !temporary, to be corrected with comms structure
            if (in%exctxpar == 'OP2P') eexctX = -99.0_gp
 
+           if(iter==1) then
+               writeBasis=.true.
+           else
+               writeBasis=.false.
+           end if
+
+
+     !!linearIf: if(inputpsi==100) then
+     !!    call improveOrbitals(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN, atoms, rxyz, nscatterarr, & 
+     !!                                       ngatherarr, nlpspd, proj, rhopot, GPU, in, pkernelseq, phi, psi, psit, iter)
+
+
+     !!      !calculate the self-consistent potential
+     !!      if (scpot) then
+     !!          !write(*,*) 'SCPOT'
+     !!         ! Potential from electronic charge density
+     !!         call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
+     !!              n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+
+     !!         if(orbs%nspinor==4) then
+     !!            !this wrapper can be inserted inside the poisson solver 
+     !!            call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
+     !!                 ixc,hxh,hyh,hzh,&
+     !!                 rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+     !!         else
+     !!            call XC_potential(atoms%geocode,'D',iproc,nproc,&
+     !!                 Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
+     !!                 rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
+
+     !!            call H_potential(atoms%geocode,'D',iproc,nproc,&
+     !!                 Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+     !!                 rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
+     !!                 quiet=PSquiet) !optional argument
+
+     !!            !sum the two potentials in rhopot array
+     !!            !fill the other part, for spin, polarised
+     !!            if (in%nspin == 2) then
+     !!               call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
+     !!                    rhopot(1+n1i*n2i*n3p),1)
+     !!            end if
+     !!            !spin up and down together with the XC part
+     !!            call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
+     !!                 rhopot(1),1)
+
+     !!         end if
+     !!      end if
+
+     !!end if linearIf
+
+
+
+
            call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
                 nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
                 rhopot,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
@@ -854,6 +970,394 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            !check for convergence or whether max. numb. of iterations exceeded
            if (endloop) then
+
+               allocate(fxyzPulay(3,atoms%nat), stat=i_stat)
+               fxyzPulay=0.d0
+               if(inputpsi==100)then
+                    if(iproc==0) write(*,'(a)') 'trying to reproduce the result with the new version...'
+                    if(nproc==1) allocate(psit(size(psi)))
+                    allocate(rhopotCorrect(size(rhopot)))
+                    rhopotCorrect=rhopot
+                    sizeRhopot=size(rhopot)
+                    !convCritInit=5.d-3
+                    !!!$orbsLIN%convCrit=orbsLIN%convCritInit
+                    !orbsLIN%nItMin=20
+                    !orbsLIN%nItMax=300
+                    !!!!$call improveOrbitals(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN, atoms, rxyz, rxyz, nscatterarr, & 
+                    !!!!$     ngatherarr, nlpspd, proj, sizeRhopot, rhopot, GPU, in, pkernelseq, phi, psi, psit, iter, infoBasisFunctions, ebs_mod=ebs_mod)
+
+                    !write(ch,'(i0)') iproc
+                    !outputFile='psit_'//trim(ch)
+                    !open(unit=100*iproc, file=trim(outputFile))
+                    !write(100*iproc,*) psit
+                    !close(unit=100*iproc)
+
+                    !!!!$call potentialAndEnergy()
+
+                    !!!$energyLIN=energy
+
+                    !!!!!!!! FORCES !!!!!!!!!
+                    allocate(nscatterarrCorrect(0:nproc-1,4+ndebug),stat=i_stat)
+                    call memocc(i_stat,nscatterarrCorrect,'nscatterarrCorrect',subname)
+                    !allocate array for the communications of the potential
+                    allocate(ngatherarrCorrect(0:nproc-1,2+ndebug),stat=i_stat)
+                    call memocc(i_stat,ngatherarrCorrect,'ngatherarrCorrect',subname)
+                    allocate(projCorrect(nlpspd%nprojel+ndebug),stat=i_stat)
+                    call memocc(i_stat,projCorrect,'projCorrect',subname)
+
+
+                    if(.not.allocated(rxyzParab)) allocate(rxyzParab(3,atoms%nat))
+                    if(.not.allocated(rxyzParabOld)) allocate(rxyzParabOld(3,atoms%nat))
+                    allocate(alphaArr(atoms%nat))
+                    allocate(fxyzOld(3,atoms%nat))
+                    allocate(perturbation(3,atoms%nat))
+                    allocate(cosangle(atoms%nat))
+                    DIISHist=7
+                    allocate(rxyzParabolaHist(3,atoms%nat,DIISHist))
+                    rxyzParabolaHist=0.d0
+                    alphaArr=30.d0
+                    rxyzParab=rxyz
+                    fxyz=0.d0
+                    !orbsLIN%nItMin=10
+                    !orbsLIN%nItMax=150
+                    forceLoop: do iforce=1,15
+                        orbsLIN%convCrit=orbsLIN%convCritInit
+                        call improveOrbitals(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN, atoms, rxyz, & 
+                         rxyz, nscatterarr, ngatherarr, nlpspd, proj, sizeRhopot, rhopot, GPU, in, pkernelseq, phi, &
+                         psi, psit, iter, infoBasisFunctions, ebs_mod=ebs_mod)
+
+                        call potentialAndEnergy()
+
+                        ! Exit the loop if the basis functions are well converged
+                        ! IMPROVE THIS, e.g. with infocode wheter this tolernace has been reached
+                        !orbsLIN%convCrit=orbsLIN%convCrit*.7d0
+                        !orbsLIN%convCrit=convCritInit*(.7d0**sqrt(dble(iforce)))
+                        !orbsLIN%convCrit=convCritInit*.7d0**dble(iforce)
+                        !tt=min(dble(iforce)/4.d0,.7d0)
+                        if(infoBasisFunctions==0) then
+                            tt=.8d0
+                        else
+                            tt=1.d0
+                        end if
+                        orbsLIN%convCrit=orbsLIN%convCrit*tt  ! decrease faster in the beginning
+                        !orbsLIN%convCrit=max(orbsLIN%convCrit,5.d-4)
+                        orbsLIN%convCrit=max(orbsLIN%convCrit,orbsLIN%convCritFinal)
+                        nscatterarrCorrect=nscatterarr
+                        ngatherarrCorrect=ngatherarr
+                        projCorrect=proj
+                        fxyzOld=fxyz
+                        call calculateForces()
+                        nscatterarr=nscatterarrCorrect
+                        ngatherarr=ngatherarrCorrect
+                        proj=projCorrect
+                        rhopot=rhopotCorrect
+                        if(orbsLIN%convCrit<=orbsLIN%convCritFinal .and. infoBasisFunctions==0) exit forceLoop
+
+                        if(iforce>1 .and. infoBasisFunctions==0) then
+                            do iat=1,atoms%nat
+                                tt=ddot(3, fxyz(1,iat), 1, fxyzOld(1,iat), 1)
+                                cosangle(iat)=tt/(dnrm2(3, fxyz(1,iat), 1)*dnrm2(3, fxyzOld(1,iat), 1))
+                                !if(iproc==0) write(*,'(a,i4,es12.5)') 'iat, cosangle(fxyz,fxyzOld)', iat, cosangle(iat)
+                                if(cosangle(iat)>8.d-1) then
+                                    alphaArr(iat)=alphaArr(iat)*1.5d0
+                                else
+                                    alphaArr(iat)=alphaArr(iat)*.5d0
+                                end if
+                            end do
+                        end if
+
+                        !! DO THE SAME AGAIN
+                        do iat=1,atoms%nat
+                            if(infoBasisFunctions==0) then
+                                !perturbation(1,iat)=-alphaArr(iat)*fxyz(1,iat)
+                                perturbation(1,iat)=-alphaArr(iat)*(fxyz(1,iat)-fxyzOld(1,iat))
+                            else
+                                perturbation(1,iat)=0.d0
+                            end if
+                            !if(iproc==0) write(*,'(a,es13.6,3x,a,es13.6)') 'shifting parabola by ',-alphaArr(iat)*fxyz(1,iat), 'i.e. alpha=', alphaArr(iat)
+                            !if(iproc==0) write(*,'(a,es13.6,3x,a,es13.6)') 'shifting parabola by ',perturbation(1,iat), 'i.e. alpha=', alphaArr(iat)
+                            if(infoBasisFunctions==0) then
+                                !perturbation(2,iat)=-alphaArr(iat)*fxyz(2,iat)
+                                perturbation(2,iat)=-alphaArr(iat)*(fxyz(2,iat)-fxyzOld(2,iat))
+                            else
+                                perturbation(2,iat)=0.d0
+                            end if
+                            !if(iproc==0) write(*,'(a,es13.6,3x,a,es13.6)') 'shifting parabola by ',-alphaArr(iat)*fxyz(2,iat), 'i.e. alpha=', alphaArr(iat)
+                            !if(iproc==0) write(*,'(a,es13.6,3x,a,es13.6)') 'shifting parabola by ',perturbation(2,iat), 'i.e. alpha=', alphaArr(iat)
+                            if(infoBasisFunctions==0) then
+                                !perturbation(3,iat)=-alphaArr(iat)*fxyz(3,iat)
+                                perturbation(3,iat)=-alphaArr(iat)*(fxyz(3,iat)-fxyzOld(3,iat))
+                            else
+                                perturbation(3,iat)=0.d0
+                            end if
+                            !if(iproc==0) write(*,'(a,es13.6,3x,a,es13.6)') 'shifting parabola by ',-alphaArr(iat)*fxyz(3,iat), 'i.e. alpha=', alphaArr(iat)
+                            !if(iproc==0) write(*,'(a,es13.6,3x,a,es13.6)') 'shifting parabola by ',perturbation(3,iat), 'i.e. alpha=', alphaArr(iat)
+                            if(iforce>1 .and. infoBasisFunctions==0) then
+                                if(iproc==0) write(*,'(a,i0,a,3es12.3,a,es8.2,a,f5.2,a)') 'shifts for atom ', iat,&
+                                ' :', perturbation(1,iat), perturbation(2,iat), perturbation(3,iat), &
+                                '  (alpha=',alphaArr(iat), ', cosangle=', cosangle(iat),')'
+                            else
+                                if(iproc==0) write(*,'(a,i0,a,3es12.3,a,es8.2,a)') 'shifts for atom ', iat,' :', &
+                                    perturbation(1,iat), perturbation(2,iat), perturbation(3,iat), &
+                                    '  (alpha=',alphaArr(iat), ')'
+                            end if
+                        end do
+                        rxyzParabOld=rxyzParab
+                        !call estimatePerturbedOrbitals(iproc, nproc, atoms, orbs, Glr, in, orbsLIN, commsLIN, rxyz, nspin, nlpspd, proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, rxyzParab, perturbation)
+                        do iat=1,atoms%nat
+                            rxyzParab(1,iat)=rxyzParab(1,iat)+perturbation(1,iat)
+                            rxyzParab(2,iat)=rxyzParab(2,iat)+perturbation(2,iat)
+                            rxyzParab(3,iat)=rxyzParab(3,iat)+perturbation(3,iat)
+                        end do
+                        beta=50.d0
+                        !call DIISParabola(iproc, nproc, iforce, DIISHist, atoms, rxyzParab, fxyz, rxyzParabolaHist, beta)
+                        !! ATTENTION: ONLY FOR DEBUGGING !!
+                        !rxyzParab=rxyzParabOld
+                        !! ATTENTION: ONLY FOR DEBUGGING !!
+                        !do iat=1,atoms%nat
+                        !    write(*,'(a,i0,a,3es14.5)') 'shifts for atom ', iat,': ', rxyzParab(1,iat)-rxyzParabOld(1,iat), rxyzParab(2,iat)-rxyzParabOld(2,iat), rxyzParab(3,iat)-rxyzParabOld(3,iat)
+                        !end do
+
+                        !!!!!$call improveOrbitals(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN, atoms, rxyz, rxyzParab, nscatterarr, & 
+                        !!!!!$     ngatherarr, nlpspd, proj, sizeRhopot, rhopot, GPU, in, pkernelseq, phi, psi, psit, -1, infoBasisFunctions)
+
+                        !write(ch,'(i0)') iproc
+                        !outputFile='psit_'//trim(ch)
+                        !open(unit=100*iproc, file=trim(outputFile))
+                        !write(100*iproc,*) psit
+                        !close(unit=100*iproc)
+
+                        !!!!!$call potentialAndEnergy()
+
+                        !!!!calculate the self-consistent potential
+                        !!!if (scpot) then
+                        !!!    !write(*,*) 'SCPOT'
+                        !!!   ! Potential from electronic charge density
+                        !!!   call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
+                        !!!        n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+
+                        !!!   if(orbs%nspinor==4) then
+                        !!!      !this wrapper can be inserted inside the poisson solver 
+                        !!!      call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
+                        !!!           ixc,hxh,hyh,hzh,&
+                        !!!           rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+                        !!!   else
+                        !!!      call XC_potential(atoms%geocode,'D',iproc,nproc,&
+                        !!!           Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
+                        !!!           rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
+
+                        !!!      call H_potential(atoms%geocode,'D',iproc,nproc,&
+                        !!!           Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+                        !!!           rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
+                        !!!           quiet=PSquiet) !optional argument
+
+                        !!!      !sum the two potentials in rhopot array
+                        !!!      !fill the other part, for spin, polarised
+                        !!!      if (in%nspin == 2) then
+                        !!!         call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
+                        !!!              rhopot(1+n1i*n2i*n3p),1)
+                        !!!      end if
+                        !!!      !spin up and down together with the XC part
+                        !!!      call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
+                        !!!           rhopot(1),1)
+
+                        !!!   end if
+                        !!!end if
+
+                        !!!call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+                        !!!     nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
+                        !!!     rhopot,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
+                        !!!     in%nspin,GPU,pkernel=pkernelseq)
+
+                        !!!energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
+                        !!!energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
+
+                        !!!if (iproc == 0) then
+                        !!!   if (verbose > 0 .and. in%itrpmax==1) then
+                        !!!      write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+                        !!!           ekin_sum,epot_sum,eproj_sum
+                        !!!      write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+                        !!!   end if
+                        !!!   if (.not. scpot) then
+                        !!!      if (gnrm_zero == 0.0_gp) then
+                        !!!         write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,trH,gnrm
+                        !!!      else
+                        !!!         write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',iter,trH,gnrm,gnrm_zero
+                        !!!      end if
+                        !!!   else
+                        !!!      if (gnrm_zero == 0.0_gp) then
+                        !!!         write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
+                        !!!      else
+                        !!!         write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
+                        !!!      end if
+                        !!!   end if
+                        !!!endif
+                        energyLIN=energy
+                    end do forceLoop
+
+                    if(iproc==0) then
+                        write(*,'(a)') 'the parabolas were totally shifted by the following amount:'
+                        do iat=1,atoms%nat
+                            write(*,'(i0,3x,3es10.3)') iat, rxyzParab(1,iat)-rxyz(1,iat), &
+                                rxyzParab(2,iat)-rxyz(2,iat), rxyzParab(3,iat)-rxyz(3,iat)
+                        end do
+                    end if
+
+                    !!!!!!!! END FORCES !!!!!!!!!!
+
+
+                    ! Forces from linear version
+                    if(iproc==0) write(*,*) 'forces from linear version:'
+                    nscatterarrCorrect=nscatterarr
+                    ngatherarrCorrect=ngatherarr
+                    projCorrect=proj
+                    !fxyzOld=fxyz
+                    call calculateForces()
+                    nscatterarr=nscatterarrCorrect
+                    ngatherarr=ngatherarrCorrect
+                    proj=projCorrect
+                    rhopot=rhopotCorrect
+                    ! Now do some iterations of the cubic version
+                    niter=4
+                    if(iproc==0) write(*,'(a,i0,a)') 'now do ', niter, ' iterations with the original cubic version'
+                    call cubic(niter)
+
+                    !if(.true.) then
+                    if(.false.) then
+                        ! Try to estimate Pulay forces
+                        if(.not.allocated(rxyzParab)) allocate(rxyzParab(3,atoms%nat))
+                        allocate(phiPulay(size(phi)))
+                        rxyzParab=rxyz
+                        pulayShift0=8.d-2
+                        if(iproc==0) write(*,'(a,es10.3)')'calculating Pulay forces by shifts of', pulayShift0
+                        do iat=1,atoms%nat
+                            do icomp=1,3
+                                do ishift=-2,2
+                                    PulayShift=dble(ishift)*PulayShift0
+                                    if(ishift==0) cycle
+                                    !rxyzParab(1,1)=rxyzParab(1,1)+1.d-3
+                                    rxyzParab(icomp,iat)=rxyzParab(icomp,iat)+pulayShift
+                                    phiPulay=phi
+                                    rhopot=rhopotCorrect
+                                    
+                                    do i=1,atoms%nat
+                                        if(iproc==0) write(*,'(a,3es14.6)') trim(atoms%atomnames(atoms%iatype(i))), &
+                                            rxyzParab(1,i), rxyzParab(2,i), rxyzParab(3,i)
+                                    end do
+                                    !write(20+iproc,*) psi
+                                    call improveOrbitals(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN, &
+                                         atoms, rxyz, rxyzParab, nscatterarr, ngatherarr, nlpspd, proj, sizeRhopot, &
+                                         rhopot, GPU, in, pkernelseq, phiPulay, psi, psit, -1, infoBasisFunctions, &
+                                         iat, icomp, pulayShift)
+                                    !write(30+iproc,*) psi
+
+
+                                    !calculate the self-consistent potential
+                                    if (scpot) then
+                                        !write(*,*) 'SCPOT'
+                                       ! Potential from electronic charge density
+                                       call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
+                                            n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+
+                                       if(orbs%nspinor==4) then
+                                          !this wrapper can be inserted inside the poisson solver 
+                                          call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
+                                               ixc,hxh,hyh,hzh,&
+                                               rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+                                       else
+                                          call XC_potential(atoms%geocode,'D',iproc,nproc,&
+                                               Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
+                                               rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
+
+                                          call H_potential(atoms%geocode,'D',iproc,nproc,&
+                                               Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+                                               rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
+                                               quiet=PSquiet) !optional argument
+
+                                          !sum the two potentials in rhopot array
+                                          !fill the other part, for spin, polarised
+                                          if (in%nspin == 2) then
+                                             call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
+                                                  rhopot(1+n1i*n2i*n3p),1)
+                                          end if
+                                          !spin up and down together with the XC part
+                                          call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
+                                               rhopot(1),1)
+
+                                       end if
+                                    end if
+
+                                    call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+                                         nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
+                                         rhopot,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
+                                         in%nspin,GPU,pkernel=pkernelseq)
+
+                                    energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
+                                    energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
+
+                                    
+                                    if (iproc == 0) then
+                                       if (verbose > 0 .and. in%itrpmax==1) then
+                                          write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+                                               ekin_sum,epot_sum,eproj_sum
+                                          write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+                                       end if
+                                       if (.not. scpot) then
+                                          if (gnrm_zero == 0.0_gp) then
+                                             write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,trH,gnrm
+                                          else
+                                             write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',&
+                                                 iter,trH,gnrm,gnrm_zero
+                                          end if
+                                       else
+                                          if (gnrm_zero == 0.0_gp) then
+                                             write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
+                                          else
+                                             write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,total energy,gnrm,gnrm_zero',&
+                                                 iter,energy,gnrm,gnrm_zero
+                                          end if
+                                       end if
+                                       if(abs(ishift)==2) then
+                                           write(*,'(a,3i6,4es22.12)') 'Pulay: iat, icomp, ishift, energyLIN, energy, difference, &
+                                               &force', iat, icomp, ishift, energyLIN, energy,energy-energyLIN,&
+                                                        (energy-energyLIN)/(dble(abs(ishift))*pulayShift0)
+                                       else if(abs(ishift)==1) then
+                                           write(*,'(a,3i6,4es22.12)') 'Pulay: iat, icomp, ishift, energyLIN, energy, difference, &
+                                               &force', iat, icomp, ishift, energyLIN, energy, energy-energyLIN,&
+                                                         (energy-energyLIN)/(dble(abs(ishift))*pulayShift0)
+                                       end if 
+                                    endif
+                                    fxyzPulay(icomp,iat)=(energy-energyLIN)/(dble(abs(ishift))*pulayShift)
+                                    if(ishift==-2) then
+                                        energym2=energy
+                                    else if(ishift==-1) then
+                                        energym1=energy
+                                    else if(ishift==0) then
+                                        energy0=energy
+                                    else if(ishift==1) then
+                                        energyp1=energy
+                                    else if(ishift==2) then
+                                        energyp2=energy
+                                    else
+                                        stop 'wrong ishift'
+                                    end if
+
+
+                                    ! undo the shift
+                                    !rxyzParab(icomp,iat)=rxyzParab(icomp,iat)-1.d-1
+                                    !rxyzParab(1,1)=rxyzParab(1,1)-1.d-3
+                                    rxyzParab(icomp,iat)=rxyzParab(icomp,iat)-pulayShift
+                                end do
+                                pulayForce=1.d0/12.d0*energym2-2.d0/3.d0*energym1+2.d0/3.d0*energyp1-1.d0/12.d0*energyp2
+                                pulayForce=pulayForce/pulayShift0
+                                fxyzPulay(icomp,iat)=pulayForce
+                                if(iproc==0) write(*,'(a,2i6,3es22.12)') 'Pulay second order: iat, icomp, energyLIN, &
+                                    & energy, force', iat, icomp, energyLIN, energy, pulayForce
+                            end do
+                        end do
+                    end if
+               end if
+
               if (gnrm < gnrm_cv) infocode=0
               exit wfn_loop 
            endif
@@ -870,6 +1374,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            end if
            call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
                 iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,in%nspin,GPU,in)
+           !if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
+           !     iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,in%nspin,GPU,in)
 
            tt=(energybs-trH)/trH
            if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
@@ -1256,6 +1762,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   deallocate(gxyz,stat=i_stat)
   call memocc(i_stat,i_all,'gxyz',subname)
 
+! ADD THE PULAY FORCES !
+!write(*,*) 'WARNING: PULAY FORCES ARE SUBTRACTED!!'
+  !do iat=1,atoms%nat
+  !   if(iproc==0) write(*,'(a,i3,2es15.6)') 'iat, fxyz(1,iat), fxyzPulay(1,iat)', iat, fxyz(1,iat), fxyzPulay(1,iat)
+  !   if(iproc==0) write(*,'(a,i3,2es15.6)') 'iat, fxyz(2,iat), fxyzPulay(2,iat)', iat, fxyz(2,iat), fxyzPulay(2,iat)
+  !   if(iproc==0) write(*,'(a,i3,2es15.6)') 'iat, fxyz(3,iat), fxyzPulay(3,iat)', iat, fxyz(3,iat), fxyzPulay(3,iat)
+  !end do
+  !do iat=1,atoms%nat
+  !   fxyz(1,iat)=fxyz(1,iat)-fxyzPulay(1,iat)
+  !   fxyz(2,iat)=fxyz(2,iat)-fxyzPulay(2,iat)
+  !   fxyz(3,iat)=fxyz(3,iat)-fxyzPulay(3,iat)
+  !enddo
+
   !subtraction of zero of the forces, disabled for the moment
   !the zero of the forces depends on the atomic positions
   !if (in%gaussian_help .and. .false.) then
@@ -1393,7 +1912,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !perform here the mulliken charge and density of states
   !localise them on the basis of gatom of a number of atoms
-  if (in%gaussian_help .and. DoLastRunThings) then
+  !if (in%gaussian_help .and. DoLastRunThings) then
+  if (in%gaussian_help .and. DoLastRunThings .and. .not.in%inputPsiId==100) then
      !here one must check if psivirt should have been kept allocated
      if (.not. DoDavidson) then
         orbsv%norb=0
@@ -1629,6 +2149,539 @@ contains
 
   END SUBROUTINE deallocate_before_exiting
 
+
+
+
+    subroutine calculateForces()
+                        !------------------------------------------------------------------------
+                        ! here we start the calculation of the forces
+                        if (iproc.eq.0) then
+                           write( *,'(1x,a)')&
+                                '----------------------------------------------------------------- Forces Calculation'
+                        end if
+                      
+                        ! Selfconsistent potential is saved in rhopot, 
+                        ! new arrays rho,pot for calculation of forces ground state electronic density
+                      
+                        ! Potential from electronic charge density
+                      
+                        !manipulate scatter array for avoiding the GGA shift
+                        do jproc=0,nproc-1
+                           !n3d=n3p
+                           nscatterarr(jproc,1)=nscatterarr(jproc,2)
+                           !i3xcsh=0
+                           nscatterarr(jproc,4)=0
+                        end do
+                      
+                        if (n3p>0) then
+                           allocate(rho(n1i*n2i*n3p*in%nspin+ndebug),stat=i_stat)
+                           call memocc(i_stat,rho,'rho',subname)
+                        else
+                           allocate(rho(1+ndebug),stat=i_stat)
+                           call memocc(i_stat,rho,'rho',subname)
+                        end if
+                        call sumrho(iproc,nproc,orbs,Glr,0,hxh,hyh,hzh,psi,rho,n1i*n2i*n3p,&
+                                nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+                      
+                        !plot the density on the density.pot file
+                        if ((abs(in%output_grid) >= 1 .or. in%nvacancy /=0) .and. DoLastRunThings) then
+                           if (iproc == 0) write(*,*) 'writing electronic_density.cube'
+                      
+                           call plot_density(atoms%geocode,'electronic_density',&
+                                iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
+                                in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+                           if (associated(rhocore)) then
+                              if (iproc == 0) write(*,*) 'writing grid core_density.cube'
+                              call plot_density(atoms%geocode,'core_density',&
+                                   iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
+                                   1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhocore(1+n1i*n2i*i3xcsh:))
+                           end if
+                        end if
+                        !calculate the total density in the case of nspin==2
+                        if (in%nspin==2) then
+                           call axpy(n1i*n2i*n3p,1.0_dp,rho(1+n1i*n2i*n3p),1,rho(1),1)
+                        end if
+                        if (n3p>0) then
+                           allocate(pot(n1i,n2i,n3p,1+ndebug),stat=i_stat)
+                           call memocc(i_stat,pot,'pot',subname)
+                        else
+                           allocate(pot(1,1,1,1+ndebug),stat=i_stat)
+                           call memocc(i_stat,pot,'pot',subname)
+                        end if
+                      
+                        !calculate electrostatic potential
+                        call dcopy(n1i*n2i*n3p,rho,1,pot,1) 
+                        call H_potential(atoms%geocode,'D',iproc,nproc,&
+                             n1i,n2i,n3i,hxh,hyh,hzh,pot,pkernel,pot,ehart_fake,0.0_dp,.false.)
+                      
+                        !plot also the electrostatic potential
+                        if (abs(in%output_grid) == 2 .and. DoLastRunThings) then
+                              call plot_density(atoms%geocode,'hartree_potential',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+                                   in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot)
+                        end if
+                      
+                        allocate(gxyz(3,atoms%nat+ndebug),stat=i_stat)
+                        call memocc(i_stat,gxyz,'gxyz',subname)
+                      
+                        call timing(iproc,'Forces        ','ON')
+                        ! calculate local part of the forces gxyz
+                        call local_forces(iproc,atoms,rxyz,hxh,hyh,hzh,&
+                             n1,n2,n3,n3p,i3s+i3xcsh,n1i,n2i,n3i,rho,pot,gxyz)
+                      
+                        i_all=-product(shape(rho))*kind(rho)
+                        deallocate(rho,stat=i_stat)
+                        call memocc(i_stat,i_all,'rho',subname)
+                        i_all=-product(shape(pot))*kind(pot)
+                        deallocate(pot,stat=i_stat)
+                        call memocc(i_stat,i_all,'pot',subname)
+                      
+                        if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
+                      
+                        !refill projectors for tails, davidson
+                        refill_proj=(in%calc_tail .or. DoDavidson) .and. DoLastRunThings
+                      
+                        call nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,atoms,rxyz,&
+                             orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
+                      
+                        if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
+                      
+                        ! Add up all the force contributions
+                        if (nproc > 1) then
+                           call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+                        else
+                           do iat=1,atoms%nat
+                              fxyz(1,iat)=gxyz(1,iat)
+                              fxyz(2,iat)=gxyz(2,iat)
+                              fxyz(3,iat)=gxyz(3,iat)
+                           enddo
+                        end if
+                      
+                      !!$  if (iproc == 0) then
+                      !!$     sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
+                      !!$     fumx=0.d0 ; fumy=0.d0 ; fumz=0.d0
+                      !!$     do iat=1,atoms%nat
+                      !!$        sumx=sumx+fxyz(1,iat) ; sumy=sumy+fxyz(2,iat) ; sumz=sumz+fxyz(3,iat)
+                      !!$        fumx=fumx+fion(1,iat) ; fumy=fumy+fion(2,iat) ; fumz=fumz+fion(3,iat)
+                      !!$     enddo
+                      !!$     write(77,'(a30,3(1x,e10.3))') 'translat. force total pot ',sumx,sumy,sumz
+                      !!$     write(77,'(a30,3(1x,e10.3))') 'translat. force ionic pot ',fumx,fumy,fumz
+                      !!$  endif
+                      
+                        !add to the forces the ionic and dispersion contribution 
+                        do iat=1,atoms%nat
+                           fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)
+                           fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)
+                           fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)
+                        enddo
+                      
+                        !i_all=-product(shape(fion))*kind(fion)
+                        !deallocate(fion,stat=i_stat)
+                        !call memocc(i_stat,i_all,'fion',subname)
+                        !i_all=-product(shape(fdisp))*kind(fdisp)
+                        !deallocate(fdisp,stat=i_stat)
+                        !call memocc(i_stat,i_all,'fdisp',subname)
+                        i_all=-product(shape(gxyz))*kind(gxyz)
+                        deallocate(gxyz,stat=i_stat)
+                        call memocc(i_stat,i_all,'gxyz',subname)
+                      
+                      ! ADD THE PULAY FORCES !
+                      !write(*,*) 'WARNING: PULAY FORCES ARE SUBTRACTED!!'
+                        do iat=1,atoms%nat
+                           if(iproc==0) write(*,'(a,i0,3es14.5)') 'forces for atom ',iat, fxyz(1,iat), fxyz(2,iat), fxyz(3,iat)
+                        end do
+                        !do iat=1,atoms%nat
+                        !   fxyz(1,iat)=fxyz(1,iat)-fxyzPulay(1,iat)
+                        !   fxyz(2,iat)=fxyz(2,iat)-fxyzPulay(2,iat)
+                        !   fxyz(3,iat)=fxyz(3,iat)-fxyzPulay(3,iat)
+                        !enddo
+                      
+                        !subtraction of zero of the forces, disabled for the moment
+                        !the zero of the forces depends on the atomic positions
+                        !if (in%gaussian_help .and. .false.) then
+                        call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
+                        !end if
+                      
+                        call timing(iproc,'Forces        ','OF')
+    end subroutine calculateForces
+
+
+
+    subroutine cubic(niter)
+    !
+    ! Does the cubic procedure niter times
+    !
+    implicit none
+    integer:: niter
+
+             wfn_loop: do iter=1,niter
+
+                if (iproc == 0 .and. verbose > 0) then 
+                   write( *,'(1x,a,i0)') &
+                        & repeat('-',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
+                endif
+                !control whether the minimisation iterations ended
+                endloop= gnrm <= gnrm_cv .or. iter == in%itermax
+
+                !control how many times the DIIS has switched into SD
+                if (diis%idsx /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
+
+                !leave SD if the DIIS did not work the second time
+                if (ndiis_sd_sw > 1) then
+                   diis%switchSD=.false.
+                end if
+
+                !stop the partial timing counter if necessary
+                if (endloop .and. in%itrpmax==1) call timing(iproc,'WFN_OPT','PR')
+                scpot=(in%itrpmax /= 1 .and. iter==1 .and. icycle==1) .or. (in%itrpmax == 1) .or.&
+                     (itrp==1 .and. in%itrpmax/=1 .and. gnrm > in%gnrm_startmix)
+                !calculate the self-consistent potential
+                if (scpot) then
+                   ! Potential from electronic charge density
+                   call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
+                        n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+
+                   if(orbs%nspinor==4) then
+                      !this wrapper can be inserted inside the poisson solver 
+                      call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
+                           ixc,hxh,hyh,hzh,&
+                           rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+                   else
+                      call XC_potential(atoms%geocode,'D',iproc,nproc,&
+                           Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
+                           rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
+
+                      call H_potential(atoms%geocode,'D',iproc,nproc,&
+                           Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+                           rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
+                           quiet=PSquiet) !optional argument
+
+                      !sum the two potentials in rhopot array
+                      !fill the other part, for spin, polarised
+                      if (in%nspin == 2) then
+                         call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
+                              rhopot(1+n1i*n2i*n3p),1)
+                      end if
+                      !spin up and down together with the XC part
+                      call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
+                           rhopot(1),1)
+
+                   end if
+
+                   if (itrp > 1) then
+                      !here the potential can be mixed
+                      !vold=>vold-vnew
+                      call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,-1.0_dp,rhopot(1),1,&
+                           rhopot_old(1),1)
+
+                      !calculate rhopot_norm
+                      rpnrm=(nrm2(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,rhopot_old(1),1))**2
+                      call mpiallred(rpnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+                      rpnrm=sqrt(rpnrm)
+
+                      if (iproc == 0) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                           'POTENTIAL iteration,Delta P (Norm 2)',itrp,rpnrm
+
+                      endlooprp= rpnrm <= in%rpnrm_cv .or. itrp == in%itrpmax
+
+                      !vnew=vnew+alpha(vold-vnew)
+                      call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,in%alphamix,rhopot_old(1),1,&
+                           rhopot(1),1)
+                   end if
+
+                end if
+
+                !temporary, to be corrected with comms structure
+                if (in%exctxpar == 'OP2P') eexctX = -99.0_gp
+
+                if(iter==1) then
+                    writeBasis=.true.
+                else
+                    writeBasis=.false.
+                end if
+
+
+                call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+                     nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
+                     rhopot,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
+                     in%nspin,GPU,pkernel=pkernelseq)
+
+                energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
+                energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
+
+
+                !control the previous value of idsx_actual
+                idsx_actual_before=diis%idsx
+                !previous value
+                diis%energy_old=diis%energy
+                !new value without the trace, to be added in hpsitopsi
+                if (in%itrpmax >1) then
+                   diis%energy=0.0_gp
+                else
+                   diis%energy=-ehart+eexcu-vexcu-eexctX+eion+edisp
+                end if
+                call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
+                     iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,in%nspin,GPU,in)
+                !if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
+                !     iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,in%nspin,GPU,in)
+
+                tt=(energybs-trH)/trH
+                if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
+                     (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
+                   !write this warning only if the system is closed shell
+                   call check_closed_shell(in%nspin,orbs,lcs)
+                   if (lcs) then
+                      write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
+                           'ERROR: inconsistency between gradient and energy',tt,energybs,trH
+                   end if
+                endif
+                if (iproc == 0) then
+                   if (verbose > 0 .and. in%itrpmax==1) then
+                      write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+                           ekin_sum,epot_sum,eproj_sum
+                      write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+                   end if
+                   if (.not. scpot) then
+                      if (gnrm_zero == 0.0_gp) then
+                         write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,trH,gnrm
+                      else
+                         write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',&
+                             iter,trH,gnrm,gnrm_zero
+                      end if
+                   else
+                      if (gnrm_zero == 0.0_gp) then
+                         write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
+                      else
+                         write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,total energy,gnrm,gnrm_zero',&
+                             iter,energy,gnrm,gnrm_zero
+                      end if
+                   end if
+                endif
+
+                if (in%inputPsiId == 0) then
+                   if ((gnrm > 4.d0 .and. orbs%norbu /= orbs%norbd) .or. &
+                        (orbs%norbu == orbs%norbd .and. gnrm > 10.d0)) then
+                      if (iproc == 0) then
+                         write( *,'(1x,a)')&
+                              'ERROR: the norm of the residue is too large also with input wavefunctions.'
+                      end if
+                      infocode=3
+                      call deallocate_before_exiting
+                      return
+                   end if
+                else if (in%inputPsiId == 1) then
+                   if (gnrm > 1.d0) then
+                      if (iproc == 0) then
+                         write( *,'(1x,a)')&
+                              'The norm of the residue is too large, need to recalculate input wavefunctions'
+                      end if
+                      infocode=2
+                      if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+                      call deallocate_before_exiting
+                      return
+                   end if
+                end if
+
+             end do wfn_loop
+
+
+
+    end subroutine cubic
+
+
+
+    subroutine potentialAndEnergy()
+                        !calculate the self-consistent potential
+                        if (scpot) then
+                            !write(*,*) 'SCPOT'
+                           ! Potential from electronic charge density
+                           call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
+                                n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+
+                           if(orbs%nspinor==4) then
+                              !this wrapper can be inserted inside the poisson solver 
+                              call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
+                                   ixc,hxh,hyh,hzh,&
+                                   rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+                           else
+                              call XC_potential(atoms%geocode,'D',iproc,nproc,&
+                                   Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
+                                   rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
+
+                              call H_potential(atoms%geocode,'D',iproc,nproc,&
+                                   Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+                                   rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
+                                   quiet=PSquiet) !optional argument
+
+                              !sum the two potentials in rhopot array
+                              !fill the other part, for spin, polarised
+                              if (in%nspin == 2) then
+                                 call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
+                                      rhopot(1+n1i*n2i*n3p),1)
+                              end if
+                              !spin up and down together with the XC part
+                              call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
+                                   rhopot(1),1)
+
+                           end if
+                        end if
+
+                        call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+                             nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
+                             rhopot,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
+                             in%nspin,GPU,pkernel=pkernelseq)
+
+                        energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
+                        energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
+
+                        if (iproc == 0) then
+                           if (verbose > 0 .and. in%itrpmax==1) then
+                              write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+                                   ekin_sum,epot_sum,eproj_sum
+                              write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+                           end if
+                           if (.not. scpot) then
+                              if (gnrm_zero == 0.0_gp) then
+                                 write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,trH,gnrm
+                              else
+                                 write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',&
+                                     iter,trH,gnrm,gnrm_zero
+                              end if
+                           else
+                              if (gnrm_zero == 0.0_gp) then
+                                 write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
+                              else
+                                 write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,total energy,gnrm,gnrm_zero',&
+                                     iter,energy,gnrm,gnrm_zero
+                              end if
+                           end if
+                        endif
+      end subroutine potentialAndEnergy
+
+
+
+
 END SUBROUTINE cluster
 !!***
+
+
+
+
+
+
+
+subroutine DIISParabola(iproc, nproc, idiis, DIISHIst, at, rxyzParabola, fxyz, rxyzParabolaHist, beta)
+! Subroutine that moves the dimer towards the saddle point using DIIS
+use module_base
+use module_types
+implicit none
+
+! calling arguments
+integer:: iproc, nproc, idiis, DIISHist
+type(atoms_data), intent(inout) :: at
+real(8),dimension(3,at%nat):: rxyzParabola
+real(8),dimension(3,at%nat):: fxyz
+real(8),dimension(3,at%nat,DIISHist):: rxyzParabolaHist
+real(8):: beta
+
+! local variables
+real(8),dimension(DIISHist+1,DIISHist+1):: A,A_temp
+real(8),dimension(DIISHist+1):: B
+real(8),dimension(DIISHist+1):: ipiv
+real(8),dimension(DIISHist):: temp
+real(8),dimension(DIISHist+1):: X
+real(8),dimension(3,at%nat,DIISHist):: err
+real(8),dimension(3,at%nat):: rxyzParabolaTemp
+integer:: i,k,l, iat
+integer:: it_DIIS
+real(8):: Fnorm
+real(8):: E_min
+real(8):: Fnorm_min
+integer:: lwork
+integer:: m,mi,ist
+integer:: info
+real(8),allocatable,dimension(:):: work
+real(8):: ddot,dnrm2
+integer:: icall_temp
+
+
+allocate(work(1))
+
+    X=0.d0
+    A_temp=0.d0
+    m=mod(idiis-1,DIISHist)+1
+
+
+do iat=1,at%nat
+    ! approximate the error vector
+    err(:,iat,m)=-fxyz(:,iat)
+    rxyzParabolaHist(:,iat,m)=rxyzParabola(:,iat)
+    
+    ! shift matrix left up
+    if(idiis>DIISHist) then
+        do k=1,DIISHist-1
+            do l=1,k
+                A(l,k)=A(l+1,k+1)
+            end do
+        end do
+    end if
+
+    ! calculate new line
+    ist=max(1,idiis-DIISHist+1)
+    do k=ist,idiis
+        mi=mod(k-1,DIISHist)+1
+        temp(k-ist+1)=ddot(3,err(:,iat,m),1,err(:,iat,mi),1)
+    end do
+
+    ! insert new line into matrix
+    do k=1,min(idiis,DIISHist)
+        A(k,min(idiis,DIISHist))=temp(k)
+    end do
+
+    ! build matrix and vector used in solving the linear system
+    do k=1,min(idiis,DIISHist)
+        A_temp(k,min(idiis,DIISHist)+1)=1.d0
+        B(k)=0.d0
+        do l=k,min(idiis,DIISHist)
+            A_temp(k,l)=A(k,l)
+        end do
+    end do
+    A_temp(min(idiis,DIISHist)+1,min(idiis,DIISHist)+1)=0.d0
+    B(min(idiis,DIISHist)+1)=1.d0
+
+    ! solve linear system A_temp*X=B
+    if(idiis>1) then
+        ! determine the optimal work array size 
+        call dsysv('U',min(i,DIISHist)+1,1,A_temp,DIISHist+1,ipiv,B,DIISHist+1,work,-1,info)
+        lwork=work(1)
+        deallocate(work)
+        allocate(work(lwork))
+        call dsysv('U',min(idiis,DIISHist)+1,1,A_temp,DIISHist+1,ipiv,B,DIISHist+1,work,lwork,info)
+        X=B
+    else
+        X(1)=1.d0
+    end if
+
+    ! build up new vector
+    rxyzParabolaTemp(:,iat)=0.d0
+    do l=1,min(idiis,DIISHist)
+if(iproc==0) write(*,'(a,2i3,es12.4)') 'iat, l, X(l)', iat, l, X(l)
+        if(idiis>DIISHist) then
+            mi=mod(l-1+m,DIISHist)+1
+        else
+            mi=l
+        end if
+        rxyzParabolaTemp(:,iat)=rxyzParabolaTemp(:,iat)+X(l)*(rxyzParabolaHist(:,iat,mi)-err(:,iat,mi))
+    end do
+    rxyzParabola(:,iat)=rxyzParabolaTemp(:,iat)
+
+end do
+
+deallocate(work)
+
+end subroutine DIISParabola
+
+
+
+
+
 

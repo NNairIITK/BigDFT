@@ -193,6 +193,17 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   real(gp), dimension(2,2,3) :: offdiagarr
   !integer, dimension(nmax,0:lmax-1) :: neleconf
   real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
+integer,dimension(:),allocatable:: orbsPerAt
+character(len=20):: atomname
+integer:: istat, norbitals, i_n, i_l
+
+allocate(orbsPerAt(atoms%ntypes), stat=istat)
+!open(unit=999, file='orbitalsValues')
+!do iat=1,atoms%ntypes
+!    read(999,*) atomname, orbsPerAt(iat)
+!    if(iproc==0) write(*,'(a,a,a,i0)') 'number of orbitals for ', trim(atomname),' is: ', orbsPerAt(iat)
+!end do
+!close(unit=999)
 
   !allocate atoms data variables
   ! store PSP parameters
@@ -285,6 +296,26 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      !and consider the ground state electronic configuration
      call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
           neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
+
+if(in%inputPsiId==100) then
+     norbitals=0
+     do i_n=1,nmax
+         do i_l=0,min(i_n-1,lmax-1)
+             if(neleconf(i_n,i_l)>0.d0) norbitals=norbitals+2*(i_l)+1
+         end do
+     end do
+     write(*,'(a,3i6)') 'ityp, norb, orbsPerAt', ityp, norbitals, orbsPerAt(ityp)
+     if(norbitals<orbsPerAt(ityp)) then
+         write(*,'(a,a)') 'adding orbitals for ', atoms%atomnames(ityp)
+         norbitals=0
+         do i_n=1,nmax
+             do i_l=0,min(i_n-1,lmax-1)
+                 if(neleconf(i_n,i_l)>0.d0) norbitals=norbitals+2*(i_l)+1
+             end do
+         end do
+     end if
+end if
+
 
      !control the hardest and the softest gaussian
      minrad=1.e10_gp
