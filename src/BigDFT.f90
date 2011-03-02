@@ -44,6 +44,8 @@ program BigDFT
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+  call memocc_set_memory_limit(memorylimit)
+
   ! find out which input files will be used
   inquire(file="list_posinp",exist=exist_list)
   if (exist_list) then
@@ -104,7 +106,7 @@ program BigDFT
         call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
         close(16)
         filename=trim('final_'//trim(arr_posinp(iconfig)))
-        if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,' ')
+        if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION')
      end if
 
      !if there is a last run to be performed do it now before stopping

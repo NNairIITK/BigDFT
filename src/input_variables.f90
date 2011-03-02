@@ -55,6 +55,7 @@ subroutine print_logo()
 END SUBROUTINE print_logo
 !!***
 
+
 !!****f* BigDFT/read_input_variables
 !! FUNCTION
 !!    Do all initialisation for all different files of BigDFT. 
@@ -81,16 +82,47 @@ subroutine read_input_variables(iproc,posinp, &
   real(gp) :: tt
   integer :: iat
 
-  ! Default
-  call default_input_variables(inputs)
-
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
 
+  ! Read all parameters and update atoms and rxyz.
+  call read_input_parameters(iproc, file_dft, file_kpt, file_mix, &
+       & file_geopt, file_perf, inputs, atoms, rxyz)
+END SUBROUTINE read_input_variables
+!!***
+
+!!****f* BigDFT/read_input_parameters
+!! FUNCTION
+!!    Do initialisation for all different calculation parameters of BigDFT. 
+!!    Set default values if not any. Atomic informations are updated  by
+!!    symmetries if necessary and by geometry input parameters.
+!! SOURCE
+!!
+subroutine read_input_parameters(iproc, &
+     & file_dft, file_kpt, file_mix, file_geopt, file_perf,inputs,atoms,rxyz)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => read_input_parameters
+
+  implicit none
+
+  !Arguments
+  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_mix,file_perf
+  integer, intent(in) :: iproc
+  type(input_variables), intent(out) :: inputs
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(:,:), pointer :: rxyz
+  !Local variables
+  real(gp) :: tt
+  integer :: iat
+
+  ! Default for inputs
+  call default_input_variables(inputs)
   ! Read performance input variables (if given)
   call perf_input_variables(iproc,file_perf,inputs)
   ! Read dft input variables
   call dft_input_variables(iproc,file_dft,inputs)
+  ! Update atoms with symmetry information
   call update_symmetries(inputs, atoms, rxyz)
   ! Read k-points input variables (if given)
   call kpt_input_variables(iproc,file_kpt,inputs,atoms)
@@ -137,9 +169,15 @@ subroutine read_input_variables(iproc,posinp, &
   if (inputs%nkpt > 1 .and. inputs%gaussian_help) then
      stop 'Gaussian projection is not implemented with k-point support'
   end if
-END SUBROUTINE read_input_variables
+END SUBROUTINE read_input_parameters
 !!***
 
+
+!!****f* BigDFT/default_input_variables
+!! FUNCTION
+!!    Set default values.
+!! SOURCE
+!!
 subroutine default_input_variables(inputs)
   use module_base
   use module_types
@@ -151,6 +189,7 @@ subroutine default_input_variables(inputs)
   nullify(inputs%kpt)
   nullify(inputs%wkpt)
   nullify(inputs%kptv)
+  nullify(inputs%nkptsv_group)
   ! Default abscalc variables
   call abscalc_input_variables_default(inputs)
   ! Default frequencies variables
@@ -161,6 +200,8 @@ subroutine default_input_variables(inputs)
   call mix_input_variables_default(inputs) 
 
 END SUBROUTINE default_input_variables
+!!***
+
 
 !!****f* BigDFT/dft_input_variables
 !! FUNCTION
@@ -272,6 +313,7 @@ subroutine dft_input_variables(iproc,filename,in)
   else
      in%verbosity=ivrbproj
   end if
+  call memocc_set_verbosity(in%verbosity)
 !!  !temporary correction
 !!  DistProjApply=.false.
 
@@ -367,6 +409,7 @@ subroutine mix_input_variables_default(in)
 END SUBROUTINE mix_input_variables_default
 !!***
 
+
 !!****f* BigDFT/mix_input_variables
 !! FUNCTION
 !!    Read the input variables needed for the geometry optimisation
@@ -381,8 +424,7 @@ subroutine mix_input_variables(filename,in)
   type(input_variables), intent(inout) :: in
   !local variables
   character(len=*), parameter :: subname='mix_input_variables'
-  character(len = 128) :: line
-  integer :: i_stat,ierror,iline
+  integer :: ierror,iline
   logical :: exists
 
   inquire(file=filename,exist=exists)
@@ -534,6 +576,12 @@ contains
 END SUBROUTINE geopt_input_variables
 !!***
 
+
+!!****f* BigDFT/update_symmetries
+!! FUNCTION
+!!    Calculate symmetries and update
+!! SOURCE
+!!
 subroutine update_symmetries(in, atoms, rxyz)
   use module_base
   use module_types
@@ -572,6 +620,9 @@ subroutine update_symmetries(in, atoms, rxyz)
         deallocate(xRed,stat=i_stat)
         call memocc(i_stat,i_all,'xRed',subname)
         if (atoms%geocode == 'S') then
+           !!for the moment symmetries are not allowed in surfaces BC
+           write(*,*)'ERROR: symmetries in surfaces BC are not allowed for the moment, disable them to run'
+           stop
            call ab6_symmetry_set_periodicity(atoms%symObj, &
                 & (/ .true., .false., .true. /), ierr)
         else if (atoms%geocode == 'F') then
@@ -605,6 +656,8 @@ subroutine update_symmetries(in, atoms, rxyz)
      atoms%symObj = -1
   end if
 END SUBROUTINE update_symmetries
+!!***
+
 
 !!****f* BigDFT/kpt_input_variables
 !! FUNCTION
@@ -625,13 +678,15 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   logical :: exists
   character(len=*), parameter :: subname='kpt_input_variables'
   character(len = 6) :: type
-  integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all
+  character(len=100) :: line
+  integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount
   real(gp) :: kptrlen, shiftk(3,8), norm, alat(3)
   integer, allocatable :: iseg(:)
 
   ! Set default values.
   in%nkpt = 1
   in%nkptv = 0
+  in%ngroups_kptv=1
 
   inquire(file=trim(filename),exist=exists)
 
@@ -715,9 +770,25 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
      call check()
      allocate(iseg(nseg+ndebug),stat=i_stat)
      call memocc(i_stat,iseg,'iseg',subname)
-     read(1,*,iostat=ierror) iseg
+     read(1,*,iostat=ierror) iseg, ngranularity
      call check()
-     in%nkptv = sum(iseg) + 1
+     !calculate the number of groups of for the band structure
+     in%nkptv=1
+     do i=1,nseg
+        in%nkptv=in%nkptv+iseg(i)
+     end do
+     in%ngroups_kptv=ceiling(real(in%nkptv,gp)/real(ngranularity,gp))
+
+     allocate(in%nkptsv_group(in%ngroups_kptv+ndebug),stat=i_stat)
+     call memocc(i_stat,in%nkptsv_group,'in%nkptsv_group',subname)
+     ncount=0
+     do i=1,in%ngroups_kptv-1
+        in%nkptsv_group(i)=ngranularity !if ngranularity is bigger than nkptv  then ngroups is one
+        ncount=ncount+ngranularity
+     end do
+     !put the rest in the last group
+     in%nkptsv_group(in%ngroups_kptv)=in%nkptv-ncount
+
      allocate(in%kptv(3,in%nkptv+ndebug),stat=i_stat)
      call memocc(i_stat,in%kptv,'in%kptv',subname)
      ikpt = 1
@@ -737,8 +808,28 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
      i_all=-product(shape(iseg))*kind(iseg)
      deallocate(iseg,stat=i_stat)
      call memocc(i_stat,i_all,'iseg',subname)
-  end if
 
+     !read an optional line to see if there is a file associated
+     read(1,'(a100)',iostat=ierror)line
+     if (ierror /=0) then
+        !last line missing, put an empty line
+        line=''
+        in%band_structure_filename=''
+     else
+        read(line,*,iostat=ierror) in%band_structure_filename
+        call check()
+        !since a file for the local potential is already given, do not perform ground state calculation
+        if (iproc==0) then
+           write(*,'(1x,a)')'Local Potential read from file, '//trim(in%band_structure_filename)//&
+                ', do not optimise GS wavefunctions'
+        end if
+        in%nrepmax=0
+        in%itermax=0
+        in%itrpmax=0
+        in%inputPsiId=-1000 !allocate empty wavefunctions
+        in%output_grid=0
+     end if
+  end if
   close(unit=1,iostat=ierror)
 
   ! Convert reduced coordinates into BZ coordinates.
@@ -879,7 +970,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
   
   
   ! Set performance variables
-  memdebug = inputs%debug
+  call memocc_set_debug(inputs%debug)
   call set_cache_size(inputs%ncache_fft)
   
   ! Output
@@ -947,6 +1038,12 @@ subroutine free_input_variables(in)
      deallocate(in%kptv,stat=i_stat)
      call memocc(i_stat,i_all,'in%kptv',subname)
   end if
+  if (associated(in%nkptsv_group)) then
+     i_all=-product(shape(in%nkptsv_group))*kind(in%nkptsv_group)
+     deallocate(in%nkptsv_group,stat=i_stat)
+     call memocc(i_stat,i_all,'in%nkptsv_group',subname)
+  end if
+
 
 !!$  if (associated(in%Gabs_coeffs) ) then
 !!$     i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
@@ -1153,6 +1250,7 @@ contains
 
 END SUBROUTINE frequencies_input_variables
 !!***
+
 
 !!****f* BigDFT/read_atomic_file
 !! FUNCTION
@@ -1589,7 +1687,7 @@ subroutine find_extra_info(line,extra)
   !print *,'line',line
   find_space : do
      !toggle the space value for each time
-     if (line(i:i) == ' ' .neqv. space) then
+     if ((line(i:i) == ' ' .or. line(i:i) == char(9)) .neqv. space) then
         nspace=nspace+1
         space=.not. space
      end if
@@ -1605,7 +1703,6 @@ subroutine find_extra_info(line,extra)
      end if
      i=i+1
   end do find_space
-
 END SUBROUTINE find_extra_info
 !!***
 
@@ -1949,6 +2046,7 @@ subroutine charge_and_spol(natpol,nchrg,nspol)
 END SUBROUTINE charge_and_spol
 !!***
 
+
 !!****f* BigDFT/write_atomic_file
 !! FUNCTION
 !!    Write an atomic file
@@ -2236,6 +2334,7 @@ subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
 END SUBROUTINE frozen_alpha
 !!***
 
+
 !!****f* BigDFT/print_general_parameters
 !! FUNCTION
 !!    Print all general parameters
@@ -2397,7 +2496,7 @@ subroutine print_general_parameters(in,atoms)
      end if
      
      if (in%ionmov == 8) then
-        write(*,*) "TODO: pretty printing!", in%noseinert
+        write(*,'(1x,a,f15.5)') "TODO: pretty printing!", in%noseinert
      else if (in%ionmov == 9) then
         write(*,*) "TODO: pretty printing!", in%friction
         write(*,*) "TODO: pretty printing!", in%mdwall
@@ -2410,9 +2509,10 @@ subroutine print_general_parameters(in,atoms)
 END SUBROUTINE print_general_parameters
 !!***
 
-!!****f* BigDFT/print_input_parameters
+
+!!****f* BigDFT/print_dft_parameters
 !! FUNCTION
-!!    Print all input parameters
+!!    Print all dft input parameters
 !! SOURCE
 !!
 subroutine print_dft_parameters(in,atoms)
@@ -2448,6 +2548,7 @@ subroutine print_dft_parameters(in,atoms)
   end if
 END SUBROUTINE print_dft_parameters
 !!***
+
 
 !!****f* BigDFT/atomic_axpy
 !! FUNCTION

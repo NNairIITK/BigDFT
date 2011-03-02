@@ -1239,7 +1239,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
   real(kind=8),dimension(:,:,:,:),allocatable:: HamPad, overlapPad
   integer,dimension(:,:,:),allocatable:: kpArr
   logical:: success, warning, simul
-  complex(8):: zdotc, dznrm2, zz
+  complex(kind=8):: zdotc, dznrm2, zz
   integer stat(mpi_status_size)
   character(len=*),parameter:: subname='inputguessParallel'
 

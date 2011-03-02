@@ -52,13 +52,24 @@ else
 libs_ocl=
 endif
 
+if USE_DGEMMSY
+libs_dgemmsy=../../src/dgemmsy/libdgemmsy.a
+else
+libs_dgemmsy=
+endif
+
+libs_opt=$(libs_cuda)\
+ $(libs_ocl)\
+ $(libs_dgemmsy)
+
+
 PS_Check_SOURCES = PS_Check.f90 $(mpi_source)
 PS_Check_LDFLAGS =
 PS_Check_LDADD = ../../src/PSolver/libpoissonsolver.a \
 				 ../../src/libbigdft.a \
 				 $(LMPI) \
 				 @MPI_LIBS@ \
-				 $(libs_cuda) $(libs_ocl)
+				 $(libs_opt)
 
 
 PS_Program_SOURCES = PS_Program.f90 $(mpi_source)
@@ -67,14 +78,14 @@ PS_Program_LDADD = ../../src/PSolver/libpoissonsolver.a \
 				   ../../src/libbigdft.a \
 				   $(LMPI) \
 				   @MPI_LIBS@ \
-				   $(libs_cuda) $(libs_ocl)
+				   $(libs_opt)
 
 PS_Exercise_SOURCES = PS_Exercise.f90 $(mpi_source)
 PS_Exercise_LDADD =	../../src/PSolver/libpoissonsolver.a \
 				    ../../src/libbigdft.a \
 					$(LMPI) \
 					@MPI_LIBS@ \
-					$(libs_cuda) $(libs_ocl)
+					$(libs_opt)
 
 CLEANFILES = malloc.prc time.prc PS_Check.out fldiff.report \
 	module_fft_sg.@MODULE_EXT@ MODULE_FFT_SG.@MODULE_EXT@ \

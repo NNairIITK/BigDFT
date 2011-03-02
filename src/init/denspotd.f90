@@ -86,7 +86,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   character(len=*), parameter :: subname='orbitals_communicators'
   logical :: yesorb,yescomp
   integer :: jproc,nvctr_tot,ikpts,iorbp,jorb,norb_tot,ikpt,i_stat,i_all
-  integer :: ncomp_res,nkptsp,ierr
+  integer :: ncomp_res,nkptsp,ierr,kproc,jkpts,jkpte,jsorb
   integer, dimension(:), allocatable :: mykpts
   logical, dimension(:), allocatable :: GPU_for_comp
   integer, dimension(:,:), allocatable :: nvctr_par,norb_par !for all the components and orbitals (with k-pts)
@@ -240,6 +240,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 
   !calculate the number of k-points treated by each processor in both
   ! the component distribution and the orbital distribution.
+  !to have a correct distribution, a k-point should be divided between the same processors
   nkptsp=0
   orbs%iskpts=-1
   do ikpts=1,orbs%nkpts
@@ -255,11 +256,32 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 !!$  call memocc(i_stat,orbs%ikptsp,'orbs%ikptsp',subname)
 !!$  orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
 
-  !print the distribution scheme ussed for this set of orbital
+  !print the distribution scheme used for this set of orbital
   !in the case of multiple k-points
   if (iproc == 0 .and. verbose > 1 .and. orbs%nkpts > 1) then
      call print_distribution_schemes(6,nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
   end if
+
+  !check that for any processor the orbital k-point repartition is contained into the components
+  do jproc=0,nproc-1
+     jsorb=0
+     do kproc=0,jproc-1
+        jsorb=jsorb+orbs%norb_par(kproc)
+     end do
+     jkpts=min(jsorb/orbs%norb+1,orbs%nkpts)
+     if (nvctr_par(jproc,jkpts) == 0 .and. orbs%norb_par(jproc) /=0 ) then
+        if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,' the orbital k-points distribution starts before the components one'
+        !print *,jsorb,jkpts,jproc,orbs%iskpts,nvctr_par(jproc,jkpts)
+        stop
+     end if
+     jkpte=min((jsorb+orbs%norb_par(jproc)-1)/orbs%norb+1,orbs%nkpts)
+     if (nvctr_par(jproc,jkpte) == 0 .and. orbs%norb_par(jproc) /=0) then
+        if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,' the orbital k-points distribution ends after the components one'
+        print *,jsorb,jkpte,jproc,orbs%iskpts,orbs%nkptsp,nvctr_par(jproc,jkpte)
+        stop
+     end if
+  end do
+
 
   !before printing the distribution schemes, check that the two distributions contain
   !the same k-points
@@ -272,7 +294,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      if (.not. yesorb .and. orbs%norbp /= 0) then
         write(*,*)' ERROR: processor ', iproc,' kpt ',ikpt,&
              ' not found in the orbital distribution'
-        stop
+        call MPI_ABORT(MPI_COMM_WORLD, ierr)
      end if
   end do kpt_components
 
@@ -285,9 +307,11 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      if (.not. yescomp) then
         write(*,*)' ERROR: processor ', iproc,' kpt,',ikpt,&
              'not found in the component distribution'
-        stop
+        call MPI_ABORT(MPI_COMM_WORLD, ierr)
      end if
   end do kpt_orbitals
+
+  !print *,'AAAAiproc',iproc,orbs%iskpts,orbs%iskpts+orbs%nkptsp
 
   !allocate communication arrays
   allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
@@ -390,6 +414,7 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
           repeat(' ',5)//'|'//repeat('-',6)//'|'//repeat('-',12)//'||',&
           nvctrp,&
           repeat(' ',2)//'|'//repeat('-',6)//'|'//repeat('-',17)//'|'
+     !change the values to zero if there is no orbital
      do ikpt=1,min(nko,nkc)
         call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
         call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)

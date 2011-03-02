@@ -12,7 +12,7 @@
 !!
 !! SOURCE
 !!
-program BigDFT
+program splinedsaddle
 
   use module_base
   use module_types
@@ -174,7 +174,7 @@ program BigDFT
 
   call MPI_FINALIZE(ierr)
 
-end program BigDFT
+end program splinedsaddle
 !!***
 !*****************************************************************************************
 module minimization_sp
@@ -4436,9 +4436,10 @@ subroutine initializepoints(atoms,n,x1,x2,np,x)
 end subroutine initializepoints
 !*****************************************************************************************
 subroutine dmemocc(n1,n2,v,chv)
+    use module_base
     implicit none
     integer::n1,n2,i
-    real(8)::v(n2),d_nan
+    real(8)::v(n2)
     character(*)::chv
     if(n1>n2) then
         write(777,'(2a)') 'ERROR: n1>n2 while allocating ',chv
@@ -4453,8 +4454,9 @@ subroutine dmemocc(n1,n2,v,chv)
 end subroutine dmemocc
 !*****************************************************************************************
 subroutine imemocc(n1,n2,v,chv)
+    use module_base
     implicit none
-    integer::n1,n2,i,v(n2),r_nan
+    integer::n1,n2,i,v(n2)
     character(*)::chv
     if(n1>n2) then
         write(888,'(2a)') 'ERROR: n1>n2 while allocating ',chv
