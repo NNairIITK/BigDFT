@@ -7,6 +7,7 @@ SUBDIRS = \
 	  H2-freq \
 	  NEB \
 	  XabsCheb \
+	  SPLSAD \
 	  Linear
 
 
