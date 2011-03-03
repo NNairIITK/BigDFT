@@ -34,7 +34,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   character(len = *), parameter :: subname = "read_waves_etsf"
   integer, pointer :: nvctr_old(:)
   integer :: iCoeff, iFine, n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old
-  integer :: i, iorb, ncid
+  integer :: i, iorb, ncid, iGrid, diGrid
   integer :: nb1, nb2, nb3, i_all, i_stat, ncount1,ncount_rate,ncount_max, ncount2
   integer :: start(6), count(6), coord(3)
   real :: tr0,tr1
@@ -69,9 +69,6 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
        & n1_old == n1 .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
      if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
 
-     ! We load in band_old and reorder after.
-     allocate(band_old(wfd%nvctr_c + 7 * wfd%nvctr_f+ndebug),stat=i_stat)
-     call memocc(i_stat,band_old,'band_old',subname)
      do iorb = 1, orbs%norbp*orbs%nspinor, 1
         ! Read one spinor.
         start(3) = modulo(iorb - 1, orbs%nspinor) + 1
@@ -82,26 +79,40 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
         ! Read one kpoint.
         start(5) = (orbs%isorb + (iorb - 1) / orbs%nspinor) / orbs%norb + 1
         count(5) = 1
-        call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
-             & band_old, lstat, error_data = error, start = start, count = count)
-        if (.not. lstat) call etsf_error(error)
 
         iFine = wfd%nvctr_c + 1
         iCoeff = 1
-        do i = 1, wfd%nvctr_c, 1
-           psi(i, iorb) = band_old(iCoeff)
-           if (nvctr_old(i) > 1) then
-              psi(iFine:iFine + nvctr_old(i) - 2, iorb) = &
-                   & band_old(iCoeff + 1:iCoeff + nvctr_old(i) - 1)
-              iFine = iFine + nvctr_old(i) - 1
+        iGrid = 1
+        do
+           if (iGrid > wfd%nvctr_c) exit
+           diGrid = 0
+           do
+              if (nvctr_old(iGrid + diGrid) /= 1 .or. &
+                   & iGrid + diGrid == wfd%nvctr_c) exit
+              diGrid = diGrid + 1
+           end do
+           ! Read diGrid + 1 coeff.
+           start(2) = iCoeff
+           count(2) = diGrid + 1
+           call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
+                & psi(iGrid:iGrid + diGrid, iorb), lstat, error_data = error, start = start, count = count)
+           if (.not. lstat) call etsf_error(error)
+           iCoeff  = iCoeff + diGrid + 1
+           
+           if (nvctr_old(iGrid + diGrid) == 8) then
+              ! Write seven coeff.
+              start(2) = iCoeff
+              count(2) = 7
+              call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
+                   & psi(iFine:iFine+6, iorb), lstat, error_data = error, start = start, count = count)
+              if (.not. lstat) call etsf_error(error)
+              iCoeff = iCoeff + 7
+              iFine  = iFine + 7
            end if
-           iCoeff = iCoeff + nvctr_old(i)
+           iGrid = iGrid + diGrid + 1
         end do
      end do
 !!$     write(33 + iproc,"(G18.10)") psi
-     i_all=-product(shape(band_old))*kind(band_old)
-     deallocate(band_old,stat=i_stat)
-     call memocc(i_stat,i_all,'band_old',subname)
   else
      if (iproc == 0) then
         write(*,*) 'wavefunctions need reformatting'
