@@ -69,29 +69,34 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
        & n1_old == n1 .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
      if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
 
-     ! We read all wavefunctions of this processor.
-     start(4) = orbs%isorb*orbs%nspinor + 1
-     count(4) = orbs%norbp*orbs%nspinor
-     call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
-          & psi, lstat, error_data = error, start = start, count = count)
-     if (.not. lstat) call etsf_error(error)
-     ! We reorder 'almost' in place.
-     allocate(band_old(7 * wfd%nvctr_f+ndebug),stat=i_stat)
+     ! We load in band_old and reorder after.
+     allocate(band_old(wfd%nvctr_c + 7 * wfd%nvctr_f+ndebug),stat=i_stat)
      call memocc(i_stat,band_old,'band_old',subname)
      do iorb = 1, orbs%norbp*orbs%nspinor, 1
-        iFine = 1
+        ! Read one spinor.
+        start(3) = modulo(iorb - 1, orbs%nspinor) + 1
+        count(3) = 1
+        ! Read one orbital.
+        start(4) = modulo(orbs%isorb + (iorb - 1) / orbs%nspinor, orbs%norb) + 1
+        count(4) = 1
+        ! Read one kpoint.
+        start(5) = (orbs%isorb + (iorb - 1) / orbs%nspinor) / orbs%norb + 1
+        count(5) = 1
+        call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
+             & band_old, lstat, error_data = error, start = start, count = count)
+        if (.not. lstat) call etsf_error(error)
+
+        iFine = wfd%nvctr_c + 1
         iCoeff = 1
-        do i = 1, nvctr_c_old, 1
-           psi(i, iorb) = psi(iCoeff, iorb)
+        do i = 1, wfd%nvctr_c, 1
+           psi(i, iorb) = band_old(iCoeff)
            if (nvctr_old(i) > 1) then
-              band_old(iFine:iFine + nvctr_old(i) - 2) = &
-                   & psi(iCoeff + 1:iCoeff + nvctr_old(i) - 1, iorb)
+              psi(iFine:iFine + nvctr_old(i) - 2, iorb) = &
+                   & band_old(iCoeff + 1:iCoeff + nvctr_old(i) - 1)
               iFine = iFine + nvctr_old(i) - 1
            end if
            iCoeff = iCoeff + nvctr_old(i)
         end do
-        psi(wfd%nvctr_c + 1:wfd%nvctr_c + 7 * wfd%nvctr_f, iorb) = &
-             & band_old(1:7 * wfd%nvctr_f)
      end do
 !!$     write(33 + iproc,"(G18.10)") psi
      i_all=-product(shape(band_old))*kind(band_old)
@@ -138,8 +143,15 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
 
      do iorb = 1, orbs%norbp*orbs%nspinor
         ! We read the coefficients.
-        start(4) = orbs%isorb*orbs%nspinor + iorb
+        ! Read one spinor.
+        start(3) = modulo(iorb - 1, orbs%nspinor) + 1
+        count(3) = 1
+        ! Read one orbital.
+        start(4) = modulo(orbs%isorb + (iorb - 1) / orbs%nspinor, orbs%norb) + 1
         count(4) = 1
+        ! Read one kpoint.
+        start(5) = (orbs%isorb + (iorb - 1) / orbs%nspinor) / orbs%norb + 1
+        count(5) = 1
         call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
              & band_old, lstat, error_data = error, start = start, count = count)
         if (.not. lstat) call etsf_error(error)
@@ -398,8 +410,15 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
            iFine  = iFine + 7
         end if
      end do
-     start(4) = orbs%isorb*orbs%nspinor + iorb
+     ! Write one spinor.
+     start(3) = modulo(iorb - 1, orbs%nspinor) + 1
+     count(3) = 1
+     ! Write one orbital.
+     start(4) = modulo(orbs%isorb + (iorb - 1) / orbs%nspinor, orbs%norb) + 1
      count(4) = 1
+     ! Write one kpoint.
+     start(5) = (orbs%isorb + (iorb - 1) / orbs%nspinor) / orbs%norb + 1
+     count(5) = 1
      call etsf_io_low_write_var(ncid, "coefficients_of_wavefunctions", &
           & band, lstat, error_data = error, start = start, count = count)
      if (.not. lstat) call etsf_error(error)
@@ -437,6 +456,7 @@ contains
     character(len=etsf_io_low_error_len)  :: errmess
 
     call etsf_io_low_error_to_str(errmess, error)
+    write(0,"(A)") "Error: ETSF_IO error for proc", iproc
     write(0,"(A)") trim(errmess)
     call MPI_ABORT(MPI_COMM_WORLD, ierr)
   end subroutine etsf_error
@@ -479,12 +499,13 @@ contains
     dims%real_or_complex_potential = etsf_no_dimension
 
     ! Specific dims of interest.
+    write(*,*) "#######", wfd%nvctr_c+7*wfd%nvctr_f, orbs%nspinor, orbs%norb, orbs%nkpts
     dims%real_or_complex_coefficients = 1
     dims%max_number_of_coefficients = wfd%nvctr_c+7*wfd%nvctr_f
     dims%number_of_spinor_components = orbs%nspinor
     dims%max_number_of_states = orbs%norb
+    dims%number_of_kpoints = orbs%nkpts
     ! TODO: spin and kpoints here.
-    dims%number_of_kpoints = 1
     dims%number_of_spins = 1
 
     dims%max_number_of_basis_grid_points = wfd%nvctr_c
