@@ -312,6 +312,19 @@ contains
 end subroutine read_waves_etsf
 !!***
 
+!!****f* BigDFT/write_waves_etsf
+!! FUNCTION
+!!   Write a ETSF file containing wavefunctions.
+!!
+!!   Write a NetCDF file.
+!!    coordinates_of_grid_points is used to store the geometric
+!!   position of coefficients of wavelets i, as integer in
+!!   (/ n1, n2, n3 /) dimensions.
+!!   coefficients_of_wavefunctions is used to store the psi values for
+!!   each wavelet.
+!!
+!! SOURCE
+!!
 subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   use module_types
   use module_base
@@ -334,13 +347,12 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
   logical :: lstat
   integer :: ncid, ierr, nproc
   integer :: i_all, i_stat, ncount1,ncount_rate,ncount_max, ncount2, i
-  integer :: iCoeff, iFine, iGrid, iorb
+  integer :: iCoeff, iFine, iGrid, iorb, diGrid
   integer :: start(6), count(6)
   real :: tr0,tr1
   integer, allocatable :: nvctr(:)
   integer, allocatable :: gcoord(:,:)
   real(gp) :: tel
-  real(wp), allocatable :: band(:)
   character(len = *), parameter :: subname = "write_waves_etsf"
 
   integer :: iproc_writing
@@ -392,24 +404,8 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
 
   start(:) = 1
   count(:) = 0
-  allocate(band(wfd%nvctr_c + 7 * wfd%nvctr_f),stat=i_stat)
-  call memocc(i_stat,band,'band',subname)
 !!$  write(23 + iproc, "(G18.10)") psi
-  ! We reorder the psi(:,iband) into band
   do iorb = 1, orbs%norbp*orbs%nspinor, 1
-     ! iCoeff is the index of the coefficient we are writing in band
-     iCoeff  = 1
-     ! iFine is the index of the fine part in psi
-     iFine = wfd%nvctr_c + 1
-     do iGrid = 1, wfd%nvctr_c, 1
-        band(iCoeff) = psi(iGrid, iorb)
-        iCoeff  = iCoeff + 1
-        if (nvctr(iGrid) == 8) then
-           band(iCoeff:iCoeff + 6) = psi(iFine:iFine+6, iorb)
-           iCoeff = iCoeff + 7
-           iFine  = iFine + 7
-        end if
-     end do
      ! Write one spinor.
      start(3) = modulo(iorb - 1, orbs%nspinor) + 1
      count(3) = 1
@@ -419,13 +415,41 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
      ! Write one kpoint.
      start(5) = (orbs%isorb + (iorb - 1) / orbs%nspinor) / orbs%norb + 1
      count(5) = 1
-     call etsf_io_low_write_var(ncid, "coefficients_of_wavefunctions", &
-          & band, lstat, error_data = error, start = start, count = count)
-     if (.not. lstat) call etsf_error(error)
+
+     ! iCoeff is the index of the coefficient we are writing in ETSF
+     iCoeff  = 1
+     ! iFine is the index of the fine part in psi
+     iFine = wfd%nvctr_c + 1
+     ! iGrid runs on all grid points.
+     iGrid = 1
+     do
+        if (iGrid > wfd%nvctr_c) exit
+        diGrid = 0
+        do
+           if (nvctr(iGrid + diGrid) /= 1 .or. iGrid + diGrid == wfd%nvctr_c) exit
+           diGrid = diGrid + 1
+        end do
+        ! Write diGrid + 1 coeff.
+        start(2) = iCoeff
+        count(2) = diGrid + 1
+        call etsf_io_low_write_var(ncid, "coefficients_of_wavefunctions", &
+             & psi(iGrid:iGrid + diGrid, iorb), lstat, error_data = error, start = start, count = count)
+        if (.not. lstat) call etsf_error(error)
+        iCoeff  = iCoeff + diGrid + 1
+
+        if (nvctr(iGrid + diGrid) == 8) then
+           ! Write seven coeff.
+           start(2) = iCoeff
+           count(2) = 7
+           call etsf_io_low_write_var(ncid, "coefficients_of_wavefunctions", &
+                & psi(iFine:iFine+6, iorb), lstat, error_data = error, start = start, count = count)
+           if (.not. lstat) call etsf_error(error)
+           iCoeff = iCoeff + 7
+           iFine  = iFine + 7
+        end if
+        iGrid = iGrid + diGrid + 1
+     end do
   end do
-  i_all=-product(shape(band))*kind(band)
-  deallocate(band)
-  call memocc(i_stat,i_all,'band',subname)
   i_all=-product(shape(nvctr))*kind(nvctr)
   deallocate(nvctr)
   call memocc(i_stat,i_all,'nvctr',subname)
@@ -499,7 +523,6 @@ contains
     dims%real_or_complex_potential = etsf_no_dimension
 
     ! Specific dims of interest.
-    write(*,*) "#######", wfd%nvctr_c+7*wfd%nvctr_f, orbs%nspinor, orbs%norb, orbs%nkpts
     dims%real_or_complex_coefficients = 1
     dims%max_number_of_coefficients = wfd%nvctr_c+7*wfd%nvctr_f
     dims%number_of_spinor_components = orbs%nspinor
@@ -634,3 +657,4 @@ contains
     call memocc(i_stat,i_all,'coeff_map',subname)
   end subroutine build_grid
 end subroutine write_waves_etsf
+!!***
