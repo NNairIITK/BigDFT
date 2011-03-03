@@ -375,15 +375,16 @@ END SUBROUTINE readmywaves
 !!   Write all my wavefunctions in files by calling writeonewave
 !! SOURCE
 !!
-subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
+subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   use module_types
   use module_base
   implicit none
-  integer, intent(in) :: iproc,n1,n2,n3,nat
+  integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz
+  type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
-  real(gp), dimension(3,nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
   character(len=*), intent(in) :: filename
   !Local variables
@@ -396,7 +397,7 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
   isuffix = index(filename, ".etsf", back = .true.)
   if (isuffix <= 0) isuffix = index(filename, ".etsf.nc", back = .true.)
   if (isuffix > 0) then
-     call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
+     call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   else
      call cpu_time(tr0)
      call system_clock(ncount1,ncount_rate,ncount_max)
@@ -415,7 +416,7 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
            open(unit=99,file=filename_,status='unknown',form="unformatted")
         end if
 
-        call writeonewave(99,(isuffix <= 0),iorb+orbs%isorb*orbs%nspinor,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
+        call writeonewave(99,(isuffix <= 0),iorb+orbs%isorb*orbs%nspinor,n1,n2,n3,hx,hy,hz,at%nat,rxyz,  & 
              wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
              wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
              psi(1,iorb),psi(wfd%nvctr_c+1,iorb),orbs%norb,orbs%eval)

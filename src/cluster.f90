@@ -1212,7 +1212,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
      else
         call  writemywaves(iproc,"wavefunction" // trim(wfformat), &
-             & orbs,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,Glr%wfd,psi)
+             & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psi)
         if (verbose >0) write( *,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
      end if
   end if

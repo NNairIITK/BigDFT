@@ -300,7 +300,7 @@ contains
 end subroutine read_waves_etsf
 !!***
 
-subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
+subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   use module_types
   use module_base
 
@@ -309,11 +309,12 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,p
 
   implicit none
 
-  integer, intent(in) :: iproc,n1,n2,n3,nat
+  integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz
+  type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
-  real(gp), dimension(3,nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
   character(len = *), intent(in) :: filename
 
@@ -352,7 +353,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,p
           & overwrite = .true., with_etsf_header = .true.)
      if (.not. lstat) call etsf_error(error)
 
-     call etsf_write_global(ncid,orbs, n1,n2,n3,hx,hy,hz,rxyz,nat,wfd,gcoord,nvctr)
+     call etsf_write_global(ncid,orbs, n1,n2,n3,hx,hy,hz,rxyz,at,wfd,gcoord,nvctr)
 
      ! We close the file.
      call etsf_io_low_close(ncid, lstat, error)
@@ -440,12 +441,13 @@ contains
     call MPI_ABORT(MPI_COMM_WORLD, ierr)
   end subroutine etsf_error
 
-  subroutine etsf_write_global(ncid,orbs, n1,n2,n3,hx,hy,hz,rxyz,nat,wfd,gcoord,nvctr)
-    integer, intent(in) :: ncid, n1, n2, n3, nat
+  subroutine etsf_write_global(ncid,orbs, n1,n2,n3,hx,hy,hz,rxyz,at,wfd,gcoord,nvctr)
+    integer, intent(in) :: ncid, n1, n2, n3
     real(gp), intent(in) :: hx, hy, hz
-    real(gp), intent(in) :: rxyz(3,nat)
+    type(atoms_data), intent(in) :: at
     type(orbitals_data), intent(in) :: orbs
     type(wavefunctions_descriptors), intent(in) :: wfd
+    real(gp), intent(in) :: rxyz(3,at%nat)
     integer, target, intent(in) :: nvctr(wfd%nvctr_c)
     integer, target, intent(in) :: gcoord(3,wfd%nvctr_c)
 
@@ -454,8 +456,10 @@ contains
     type(etsf_basisdata) :: basis
     type(etsf_electrons) :: elec
     integer :: i_all, i_stat, iat
-    real(dp), target :: rprimd(3,3)
-    real(dp), allocatable, target :: xred(:,:)
+    double precision, target :: rprimd(3,3)
+    double precision, allocatable, target :: xred(:,:)
+    double precision, dimension(:), allocatable, target :: znucl
+    character(len=etsf_chemlen), allocatable, dimension(:), target :: spnames
     logical :: lstat
     type(etsf_io_low_error) :: error
 
@@ -486,7 +490,8 @@ contains
     dims%max_number_of_basis_grid_points = wfd%nvctr_c
     dims%number_of_localization_regions = 1
 
-    dims%number_of_atoms               = nat
+    dims%number_of_atoms               = at%nat
+    dims%number_of_atom_species        = at%ntypes
     dims%number_of_grid_points_vector1 = n1
     dims%number_of_grid_points_vector2 = n2
     dims%number_of_grid_points_vector3 = n3
@@ -497,7 +502,9 @@ contains
 
     ! We set up the required variables.
     call etsf_io_geometry_def(ncid, lstat, error, &
-         & flags = etsf_geometry_primitive_vectors + etsf_geometry_red_at_pos)
+         & flags = etsf_geometry_primitive_vectors + etsf_geometry_atom_species + &
+         & etsf_geometry_red_at_pos + etsf_geometry_atomic_numbers + &
+         & etsf_geometry_chemical_symbols)
     if (.not. lstat) call etsf_error(error)
     call etsf_io_basisdata_def(ncid, lstat, error, &
          & flags = etsf_basisdata_coord_grid + etsf_basisdata_n_coeff_grid)
@@ -512,18 +519,35 @@ contains
     rprimd = reshape((/ (hx * n1),0.0_gp,0.0_gp, &
          & 0.0_gp,(hy * n2),0.0_gp, &
          & 0.0_gp,0.0_gp,(hz * n3) /), (/ 3, 3 /))
-    allocate(xred(3, nat),stat=i_stat)
+    allocate(xred(3, at%nat),stat=i_stat)
     call memocc(i_stat,xred,'xred',subname)
-    do iat = 1, nat, 1
+    do iat = 1, at%nat, 1
        xred(:, iat) = rxyz(:, iat) / (/ hx * n1, hy * n2, hz * n3 /)
     end do
-    geo%primitive_vectors      => rprimd
+    allocate(znucl(at%ntypes),stat=i_stat)
+    call memocc(i_stat,znucl,'znucl',subname)
+    znucl = real(at%nzatom)
+    allocate(spnames(at%ntypes),stat=i_stat)
+    call memocc(i_stat,spnames,'spnames',subname)
+    do iat = 1, at%ntypes, 1
+       call nzsymbol(at%nzatom(iat), spnames(iat))
+    end do
+    geo%chemical_symbols       => spnames
+    geo%atom_species           => at%iatype
+    geo%atomic_numbers         => znucl
     geo%reduced_atom_positions => xred
+    geo%primitive_vectors      => rprimd
     call etsf_io_geometry_put(ncid, geo, lstat, error)
     if (.not. lstat) call etsf_error(error)
     i_all=-product(shape(xred))*kind(xred)
     deallocate(xred)
     call memocc(i_stat,i_all,'xred',subname)
+    i_all=-product(shape(znucl))*kind(znucl)
+    deallocate(znucl)
+    call memocc(i_stat,i_all,'znucl',subname)
+    i_all=-product(shape(spnames))*kind(spnames)
+    deallocate(spnames)
+    call memocc(i_stat,i_all,'spnames',subname)
     ! The eigenvalues
     elec%eigenvalues%data1D => orbs%eval
     call etsf_io_electrons_put(ncid, elec, lstat, error)
