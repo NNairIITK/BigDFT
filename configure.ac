@@ -388,11 +388,15 @@ end]], ac_use_etsfio=yes, ac_use_etsfio=no)
    LIBS="$LIBS_SVG"
    FCFLAGS="$FCFLAGS_SVG"
    if test "$ac_use_etsfio" = "yes"; then
-      ac_libetsfio_libs="-letsf_io -lnetcdff -lnetcdf"
+      ac_etsfio_incs=""
       if test -n "$ac_etsfio_dir" ; then
-         AC_SUBST(LIBETSFIO_INCLUDE, "-I$ac_etsfio_dir/include")
+         ac_etsfio_incs=$ac_etsfio_incs" -I$ac_etsfio_dir/include"
       fi
-      LIBETSFIO_LIBS="-letsf_io -lnetcdff -lnetcdf"
+      if test -n "$ac_netcdf_dir" -a x"$ac_netcdf_dir" != x"$ac_etsfio_dir" ; then
+         ac_etsfio_incs=$ac_etsfio_incs" -I$ac_netcdf_dir/include"
+      fi
+      AC_SUBST(LIBETSFIO_INCLUDE, $ac_etsfio_incs)
+      LIBETSFIO_LIBS="-letsf_io $ac_netcdf_libs"
    fi
 fi
 AM_CONDITIONAL(HAVE_ETSF_IO, test "$ac_use_etsfio" = "yes")
