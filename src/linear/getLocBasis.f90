@@ -1,4 +1,4 @@
-subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN, at, rxyz, rxyzParab, &
+subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
     infoBasisFunctions, n3p)
 !
@@ -27,6 +27,7 @@ subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN
 !     comms           type containing the communication parameters for the physical orbitals psi
 !     commsLIN        type containing the communication parameters for the basis functions psi
 !     at              type containing the paraneters for the atoms
+!     lin             type containing parameters for the linear version
 !     rxyz            the atomic positions
 !     rxyzParab       the center of the confinement potential (at the moment identical rxyz)
 !     nscatterarr     ???
@@ -62,6 +63,7 @@ type(orbitals_data), intent(in) :: orbs, orbsLIN
 type(communications_arrays), intent(in) :: comms
 type(communications_arrays), intent(in) :: commsLIN
 type(atoms_data), intent(in) :: at
+type(linearParameters):: lin
 type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(in):: rxyz, rxyzParab
 integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -93,7 +95,7 @@ call memocc(istat, hphi, 'hphi', subname)
 allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
 call memocc(istat, phiWorkPointer, 'phiWorkPointer', subname)
 
-call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, orbsLIN, commsLIN, rxyz, nspin, nlpspd, proj, &
+call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, orbsLIN, commsLIN, rxyz, nspin, nlpspd, proj, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
     orbsLIN%DIISHistMin, orbsLIN%DIISHistMax, infoBasisFunctions)
 
@@ -144,7 +146,7 @@ end subroutine getLinearPsi
 
 
 
-subroutine initializeParameters(iproc, nproc, Glr, orbs, orbsLIN, commsLIN, at, phi, input, rxyz, occupForInguess)
+subroutine initializeParameters(iproc, nproc, Glr, orbs, orbsLIN, commsLIN, at, lin, phi, input, rxyz, occupForInguess)
 !
 ! Purpose:
 ! ========
@@ -167,6 +169,7 @@ type(orbitals_data), intent(inout) :: orbs
 type(orbitals_data), intent(out) :: orbsLIN
 type(communications_arrays), intent(in) :: commsLIN
 type(atoms_data), intent(in) :: at
+type(linearParameters):: lin
 real(8),dimension(:),allocatable:: phi
 type(input_variables), intent(in) :: input
 real(8),dimension(3,at%nat):: rxyz
@@ -230,6 +233,23 @@ do iat=1,at%ntypes
     !occupForInguess
 end do
 close(unit=999) 
+
+
+allocate(lin%potentialPrefac(at%ntypes), stat=istat)
+open(unit=99, file='input.lin')
+read(99,*) lin%nItMax
+read(99,*) lin%convCrit
+read(99,*) lin%DIISHistMin, lin%DIISHistMax
+if(orbsLIN%DIISHistMin>orbsLIN%DIISHistMax) then
+    if(iproc==0) write(*,'(a,i0,a,i0,a)') 'ERROR: DIISHistMin must not be larger than &
+    & DIISHistMax, but you chose ', orbsLIN%DIISHistMin, ' and ', orbsLIN%DIISHistMax, '!'
+    stop
+end if
+do iat=1,at%ntypes
+    read(99,*) atomname, orbsPerAt(iat), lin%potentialPrefac(iat)
+end do
+close(unit=99)
+
 !open(unit=999, file='parabolaValues')
 !do iat=1,at%ntypes
 !    read(999,*) atomname, orbsLIN%parabPrefacArr(iat)
@@ -471,7 +491,7 @@ end subroutine initializeParameters
 
 
 
-subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, orbsLIN, commsLIN, rxyz, nspin, nlpspd, &
+subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, orbsLIN, commsLIN, rxyz, nspin, nlpspd, &
     proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, &
     idsxMin, idsxMax, infoBasisFunctions)
 !
@@ -498,6 +518,7 @@ type(atoms_data), intent(in) :: at
 type(orbitals_data):: orbs
 type(locreg_descriptors), intent(in) :: Glr
 type(input_variables):: input
+type(linearParameters):: lin
 type(orbitals_data):: orbsLIN
 type(communications_arrays):: commsLIN
 real(8),dimension(3,at%nat):: rxyz, rxyzParabola
@@ -584,9 +605,9 @@ precond=.true.
 trHm1=0.d0
 trHm2=0.d0
 if(iproc==0) write(*,'(a,i0)') 'using DIIS with history length ', diisLIN%idsx
-if(iproc==0) write(*,'(a,es12.5)') 'convergence criterion is', orbsLIN%convCrit
-if(iproc==0) write(*,'(a,i0)') 'minimal number of iterations: ', orbsLIN%nItMin
-if(iproc==0) write(*,'(a,i0)') 'maximal number of iterations: ', orbsLIN%nItMax
+if(iproc==0) write(*,'(a,es12.5)') 'convergence criterion is', lin%convCrit
+!if(iproc==0) write(*,'(a,i0)') 'minimal number of iterations: ', orbsLIN%nItMin
+if(iproc==0) write(*,'(a,i0)') 'maximal number of iterations: ', lin%nItMax
 iterLoop: do it=1,itMax
     trace=0.d0
     fnrmMax=0.d0

@@ -1846,419 +1846,419 @@ end subroutine plotOrbitals
 
 
 
-subroutine improveOrbitals(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN, at, rxyz, rxyzParab, &
-    nscatterarr, ngatherarr, nlpspd, proj, sizeRhopot, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-    iter, infoBasisFunctions, n3p, pulayAt, pulayDir, shift, ebs_mod)
-!
-! Purpose:
-! ========
-!   Improves the eigenvectors according to the updated electronic density.
-!
-! Calling arguments:
-! ==================
-!
-use module_base
-use module_types
-use module_interfaces, except_this_one => improveOrbitals
-implicit none
-
-! Calling arguments
-integer:: iproc, nproc, nspin, sizeRhopot, infoBasisFunctions
-type(locreg_descriptors), intent(in) :: Glr
-type(orbitals_data), intent(inout) :: orbs, orbsLIN
-type(communications_arrays), intent(in) :: comms
-type(communications_arrays), intent(in) :: commsLIN
-type(atoms_data), intent(in) :: at
-real(8),dimension(3,at%nat):: rxyz, rxyzParab
-integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-!real(dp), dimension(*), intent(inout) :: rhopot
-real(dp), dimension(sizeRhopot), intent(inout) :: rhopot
-type(GPU_pointers), intent(inout) :: GPU
-type(input_variables):: input
-real(dp), dimension(:), pointer :: pkernelseq
-real(8),dimension(orbsLIN%npsidim):: phi
-real(8),dimension(orbs%npsidim):: psi, psit
-integer:: iter, n3p
-integer,optional:: pulayAt, pulayDir
-real(8),optional:: shift, ebs_mod
-
-! Local variables
-integer:: istat, i, j, istart, jstart, ierr
-real(8),dimension(:),allocatable:: hphi, eval
-real(8),dimension(:,:),allocatable:: HamSmall
-real(8),dimension(:,:,:),allocatable:: matrixElements
-real(8),dimension(:),pointer:: phiWorkPointer
-real(8):: epot_sum,ekin_sum,eexctX,eproj_sum, ddot, trace, dnrm2, tt
-character(len=1)::num,num2
-character(len=20):: filename
-logical:: modifiedEnergy
-real(8),dimension(:),allocatable:: phiOld, psiOld
-integer:: iorb, jorb, korb, nvctrp, idsx, idsxStart, idsxMin, idsxMax
-real(wp), dimension(:), pointer :: potential
-character(len=*),parameter:: subname='improveOrbitals'
-
-allocate(hphi(orbsLIN%npsidim), stat=istat)
-
-
-!if(iter<=0) then
-!    write(num,'(i1)') iproc
-!    filename='phiIproc'//num
-!    open(unit=iproc+1, file=trim(filename))
-!    do i=1,size(phi)
-!        !write(iproc+1,*) phi(i)
-!        read(iproc+1,*) phi(i)
-!    end do
-!    close(unit=iproc+1)
-!else 
-    !call random_number(phi)
-if(iter>=0) then
-    !read(3000000+iproc,*) phi
-    !read(1000000+iproc,*) phi
-    !read(5000000+iproc,*) phi
-    call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, orbsLIN, commsLIN, rxyz, nspin, nlpspd, proj, &
-        nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
-        orbsLIN%DIISHistMin, orbsLIN%DIISHistMax, infoBasisFunctions)
-    !write(4000000+iproc,*) phi
-    !write(5000000+iproc,*) phi
-else
-    ! idsx is the maximal DIIS history length, idsxStart is the history length with
-    ! which DIIS start (0 means SD). If everything works fine, the program switches
-    ! automatically to DIIS with histoy length idsx.
-    !if(.not.present(pulayAt) .or. .not.present(pulayDir) .or. .not.present(shift)) stop 'pulayAt and/or pulayDir and/or shift not present!'
-    allocate(phiOld(size(phi)))
-    phiOld=phi
-
-    !!&! Take the 'old' HamSmall
-    !!&call HamiltonianApplication(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
-    !!&     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-    !!&     rhopot(1),&
-    !!&     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
-    !!&allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
-    !!&call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-    !!&call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
-    !!&deallocate(phiWorkPointer, stat=istat)
-    !!&allocate(HamSmall(orbsLIN%norb,orbsLIN%norb), stat=istat)
-    !!&call transformHam(iproc, nproc, orbsLIN, commsLIN, phi, hphi, HamSmall)
-    !!&allocate(eval(orbsLIN%norb), stat=istat)
-    !!&call diagonalizeHamiltonian(iproc, nproc, orbsLIN, HamSmall, eval)
-    !!&allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
-    !!&call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-    !!&call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
-    !!&deallocate(phiWorkPointer, stat=istat)
-
-    
-    !call pulayNew(iproc, nproc, at, orbs, Glr, input, orbsLIN, commsLIN, rxyz, nspin, nlpspd, proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, rxyzParab, pulayAt, pulayDir, shift)
-    call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, orbsLIN, commsLIN, rxyz, &
-        nspin, nlpspd, proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, &
-        hphi, trace, rxyzParab, orbsLIN%DIISHistMin, orbsLIN%DIISHistMax, infoBasisFunctions)
-    !istart=1
-    !do iorb=1,orbsLIN%norbp
-    !    write(*,'(a,i4,i3,i5,2es22.12)') 'pulayAt, iproc, iorb, <phi|phiOld>', pulayAt, iproc, iorb, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, phi(istart), 1, phiOld(istart), 1)
-    !    istart=istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-    !end do
-
-    !!&allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
-    !!&call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-    !!&call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
-    !!&deallocate(phiWorkPointer, stat=istat)
-end if
-    !call getLocalizedBasis2(iproc, nproc, at, orbs, Glr, input, orbsLIN, commsLIN, rxyz, nspin, nlpspd, proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab)
-!    if(iter<=9) then
-!        write(num,'(i1)') iproc
-!        write(num2,'(i1)') iter
-!        filename='phiIproc'//num//'_'//num2
-!        open(unit=iproc+1, file=trim(filename))
-!        do i=1,size(phi)
-!            write(iproc+1,*) phi(i)
-!        end do
-!        close(unit=iproc+1)
-!    end if
-!end if
-
-!! Estimate the pulay forces by finite differences
-!do iat=1,at%nat
-!    do icomp=1,3
-!        ! shift the parabolic center
-!    end do
-!end do
-
-
-!call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
-!     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-!     rhopot(1),&
-!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, pkernel=pkernelseq)
-!if(iter>=0) then
-
-
-modifiedEnergy=.true.
-if(modifiedEnergy) then
-    ! Calculate <phi_i|H|phi_j>
-    allocate(matrixElements(orbsLIN%norb, orbsLIN%norb,2))
-    call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
-         nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-         rhopot(1),&
-         phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParab, pkernel=pkernelseq)
-    allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
-    call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-    call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
-    nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbs%nspinor
-    jstart=1
-    do jorb=1,orbsLIN%norb
-        istart=1
-        do iorb=1,orbsLIN%norb
-            matrixElements(iorb,jorb,2)=ddot(nvctrp, phi(istart), 1, hphi(jstart), 1)
-            istart=istart+nvctrp
-        end do
-        jstart=jstart+nvctrp
-    end do
-    call mpi_allreduce(matrixElements(1,1,2), matrixElements(1,1,1), orbsLIN%norb**2, &
-        mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-    !if(iproc==0) then
-    !    write(*,*) 'matrix Elements'
-    !    do iorb=1,orbsLIN%norb
-    !        write(*,'(80es9.2)') (matrixElements(iorb,jorb,1), jorb=1,orbsLIN%norb)
-    !    end do
-    !end if
-    call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-    call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
-    deallocate(phiWorkPointer)
-end if
-
-if(.true.) then
-    if(iproc==0) write(*,'(a)', advance='no') 'calculation of physical orbitals... '
-
-    !allocate the potential in the full box
-    call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
-         orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
-
-    !call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
-    !     nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
-    !     in%nspin,GPU,pkernel=pkernelseq)
-
-    call HamiltonianApplication(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
-         nlpspd,proj,Glr,ngatherarr,potential,&
-         phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
-
-    !call HamiltonianApplication(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
-    !     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-    !     rhopot(1),&
-    !     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
-
-    !deallocate potential
-    call free_full_potential(nproc,potential,subname)
-
-
-
-    allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
-    call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-    call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
-    deallocate(phiWorkPointer, stat=istat)
-    allocate(HamSmall(orbsLIN%norb,orbsLIN%norb), stat=istat)
-    call transformHam(iproc, nproc, orbsLIN, commsLIN, phi, hphi, HamSmall)
-    !if(iter>=0) then
-    !    do iorb=1,orbsLIN%norb
-    !        write(110+iproc,'(100f7.3)') (HamSmall(iorb,jorb), jorb=1,orbsLIN%norb)
-    !    end do
-    !else
-    !    do iorb=1,orbsLIN%norb
-    !        write(120+iproc,'(100f7.3)') (HamSmall(iorb,jorb), jorb=1,orbsLIN%norb)
-    !    end do
-    !end if
-    if(iproc==0) write(*,'(a)', advance='no') 'Linear Algebra... '
-    allocate(eval(orbsLIN%norb), stat=istat)
-    call diagonalizeHamiltonian(iproc, nproc, orbsLIN, HamSmall, eval)
-    !if(iproc==0) then
-    !    write(*,*) 'diagonalized HamSmall'
-    !    do iorb=1,orbsLIN%norb
-    !        write(*,'(80es9.2)') (HamSmall(iorb,jorb), jorb=1,orbsLIN%norb)
-    !    end do
-    !end if
-end if
-
-! Calculate the modified band structure energy
-if(modifiedEnergy) then
-    tt=0.d0
-    do iorb=1,orbs%norb
-        do jorb=1,orbsLIN%norb
-            do korb=1,orbsLIN%norb
-                tt=tt+HamSmall(korb,iorb)*HamSmall(jorb,iorb)*matrixElements(korb,jorb,1)
- !if(iproc==0) write(*,'(a,3i5,3es12.4,es16.5)') 'iorb, jorb, korb, HamSmall(korb,iorb), HamSmall(jorb,iorb), matrixElements(korb,jorb,1), tt', iorb, jorb, korb, HamSmall(korb,iorb), HamSmall(jorb,iorb), matrixElements(korb,jorb,1), tt
-            end do
-        end do
-    end do
-    if(present(ebs_mod)) then
-        if(nspin==1) ebs_mod=2.d0*tt ! 2 for closed shell
-    end if
-end if
-
-!write(*,*) 'after diagonalizeHamiltonian, iproc',iproc
-
-!if(iter>=0) then
-!    do iorb=1,orbsLIN%norb
-!        !write(80+iproc,'(100f7.3)') (HamSmall(iorb,jorb), jorb=1,orbsLIN%norb)
-!    end do
-!else
-!    do iorb=1,orbsLIN%norb
-!        !write(90+iproc,'(100f7.3)') (HamSmall(iorb,jorb), jorb=1,orbsLIN%norb)
-!    end do
-!end if
-nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbs%nspinor
-!if(iter>=0) then
-!    do istat=1,orbsLIN%norb*nvctrp
-!        if(mod(istat-1,nvctrp)==0) write(130+iproc,'(i0,a)') nint(dble(istat)/dble(nvctrp))+1,' ---------------------------'
-!        !write(130+iproc,*) phi(istat)
-!    end do
-!else
-!    do istat=1,orbsLIN%norb*nvctrp
-!        if(mod(istat-1,nvctrp)==0) write(140+iproc,'(i0,a)') nint(dble(istat)/dble(nvctrp))+1,' ---------------------------'
-!        !write(140+iproc,*) phi(istat)
-!    end do
-!end if
-
-
-! Store the new wave function in psi
-allocate(psiOld(size(psi)))
-psiOld=psi
-allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
-call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psiOld, work=phiWorkPointer)
-deallocate(phiWorkPointer)
-
-! THIS IS A TEST
-psiOld=0.d0
-nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
-jstart=1
-do jorb=1,orbs%norb
-    istart=1
-    do iorb=1,orbsLIN%norb
-        call daxpy(nvctrp, HamSmall(iorb,jorb), phi(istart), 1, psiOld(jstart), 1)
-    istart=istart+nvctrp
-    end do
-    jstart=jstart+nvctrp
-end do
-!if(iter>=0) then
-!    do istat=1,orbs%norb*nvctrp
-!        if(mod(istat-1,nvctrp)==0) write(150+iproc,'(i0,a)') nint(dble(istat)/dble(nvctrp))+1,' ---------------------------'
-!        write(150+iproc,*) psiOld(istat)
-!    end do
-!else
-!    do istat=1,orbs%norb*nvctrp
-!        if(mod(istat-1,nvctrp)==0) write(160+iproc,'(i0,a)') nint(dble(istat)/dble(nvctrp))+1,' ---------------------------'
-!        write(160+iproc,*) psiOld(istat)
-!    end do
-!end if
-
-call buildWavefunction(iproc, nproc, orbs, orbsLIN, comms, commsLIN, phi, psi, HamSmall)
-nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
-!if(iter>=0) then
-!    do istat=1,orbs%norb*nvctrp
-!        if(mod(istat-1,nvctrp)==0) write(40+iproc,'(i0,a)') nint(dble(istat)/dble(nvctrp))+1,' ---------------------------'
-!        write(40+iproc,*) psi(istat)
-!    end do
-!else
-!    do istat=1,orbs%norb*nvctrp
-!        if(mod(istat-1,nvctrp)==0) write(50+iproc,'(i0,a)') nint(dble(istat)/dble(nvctrp))+1,' ---------------------------'
-!        write(50+iproc,*) psi(istat)
-!    end do
-! !call mpi_barrier(mpi_comm_world, iorb)
-! !stop
-!end if
-!istart=1
-!do iorb=1,orbs%norbp
-!    !write(*,'(a,i4,i3,i5,2es12.5)') 'pulayAt, iproc, iorb, <psi|psiOld>', pulayAt, iproc, iorb, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psi(istart), 1, psiOld(istart), 1)
-!    !write(*,'(a,i4,i3,i5,2es12.5)') 'pulayAt, iproc, iorb, <psi|psi>', pulayAt, iproc, iorb, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psi(istart), 1, psi(istart), 1)
-!    write(*,'(a,i4,i3,i5,2es12.5)') 'pulayAt, iproc, iorb, <psiOld|psiOld>', pulayAt, iproc, iorb, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psiOld(istart), 1, psiOld(istart), 1)
-!    istart=istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-!end do
-call dcopy(orbs%npsidim, psi, 1, psit, 1)
-if(iproc==0) write(*,'(a)') 'done.'
-
-!!! Get the Pulay forces
-!write(*,*) 'iproc, iter', iproc, iter
-!write(*,*) 'before calling pulay, iproc', iproc
-!call mpi_barrier(mpi_comm_world, i)
-!if(iter>=0) call pulay(iproc, nproc, Glr, orbs, orbsLIN, comms, commsLIN, input, at, rxyz, phi, hphi, psi)
-!!write(*,*) 'ATTENTION --  FIRST TEST!'
-!!call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
-!!     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-!!     rhopot(1),&
-!!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyz, pkernel=pkernelseq)
-!call pulay(iproc, nproc, Glr, orbs, orbsLIN, comms, commsLIN, input, at, rxyz, phi, hphi, psi, nscatterarr, ngatherarr, nlpspd, proj, sizeRhopot, rhopot, GPU, pkernelseq)
-!call mpi_barrier(mpi_comm_world, i)
-
-! Orthonormalization necessary?
-!call initRandomSeed(iproc, 1)
-!call random_number(psi)
-!call transpose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWorkPointer)
-!call orthogonalize(iproc, nproc, orbs, comms, Glr%wfd, psi, input)
-
-allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
-call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWorkPointer)
-! Not necessary to untranspose hphi (no longer needed)
-!call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
-
-!if(iter>=0) then
-!    do istat=1,size(psi)
-!        write(60+iproc,*) psi(istat)
-!    end do
-!    write(*,*) iproc, 'writes', size(psi)
-!else
-!    do istat=1,size(psi)
-!        write(70+iproc,*) psi(istat)
-!    end do
-!end if
-
-!allocate(psiOld(size(psi)))
-!psiOld=psi
-!istart=1
-!write(*,'(a,2i6,2i12)') 'iproc, istart, istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, size(psiOld)', iproc, istart, istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, size(psiOld)
-!do iorb=1,orbs%norbp
-!    !write(*,'(a,i4,i3,i5,2es12.5)') 'pulayAt, iproc, iorb, <psi|psiOld>', pulayAt, iproc, iorb, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psi(istart), 1, psiOld(istart), 1)
-!    write(*,'(a,i4,i3,i5,2es12.5)') 'pulayAt, iproc, iorb, <psi|psi>', pulayAt, iproc, iorb, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psi(istart), 1, psi(istart), 1)
-!    !write(*,'(a,i4,i3,i5,2es12.5)') 'pulayAt, iproc, iorb, <psiOld|psiOld>', pulayAt, iproc, iorb, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psiOld(istart), 1, psiOld(istart), 1)
-!    istart=istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-!    write(*,'(a,2i5,2i12)') 'iproc, iorb, istart, size(psiOld)', iproc, iorb, istart, size(psiOld)
-!end do
-!if(iter<0) then
-!    write(*,*) iproc, 'reads', size(psi)
-!    ! waste time
-!    do istat=1,10000000
-!        tt=exp(dble(istat))
-!    end do
-!    do istat=1,size(psi)
-!        read(60+iproc,*) psiOld(istat)
-!    end do
-!    do iorb=1,orbs%norbp
-!        write(*,*) 'iproc, ddot2', ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psi(1), 1, psiOld(1), 1)/(dnrm2(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psi(1), 1)*dnrm2(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psiOld(1), 1))
-!    end do
-!end if
-
-
-!!! ONLY A TEST
-!!!call initRandomSeed(iproc, 1)
-!!!call random_number(phi)
-!!call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-!!call orthogonalize(iproc, nproc, orbsLIN, commsLIN, Glr%wfd, phi, input)
-!!call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-deallocate(phiWorkPointer, stat=istat)
-
-
-!!istart=1
-!!do i=1,orbs%norbp
-!!    jstart=1
-!!    do j=1,i
-!!        write(*,*) 'i, j, ddot', i, j, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psi(istart), 1, psi(jstart), 1)
-!!        !write(*,*) 'i, j, ddot', i, j, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, phi(istart), 1, phi(jstart), 1)
-!!        jstart=jstart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-!!    end do
-!!    istart=istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-!!end do
-
-
-end subroutine improveOrbitals
+!!!subroutine improveOrbitals(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN, at, rxyz, rxyzParab, &
+!!!    nscatterarr, ngatherarr, nlpspd, proj, sizeRhopot, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
+!!!    iter, infoBasisFunctions, n3p, pulayAt, pulayDir, shift, ebs_mod)
+!!!!
+!!!! Purpose:
+!!!! ========
+!!!!   Improves the eigenvectors according to the updated electronic density.
+!!!!
+!!!! Calling arguments:
+!!!! ==================
+!!!!
+!!!use module_base
+!!!use module_types
+!!!use module_interfaces, except_this_one => improveOrbitals
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer:: iproc, nproc, nspin, sizeRhopot, infoBasisFunctions
+!!!type(locreg_descriptors), intent(in) :: Glr
+!!!type(orbitals_data), intent(inout) :: orbs, orbsLIN
+!!!type(communications_arrays), intent(in) :: comms
+!!!type(communications_arrays), intent(in) :: commsLIN
+!!!type(atoms_data), intent(in) :: at
+!!!real(8),dimension(3,at%nat):: rxyz, rxyzParab
+!!!integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+!!!integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+!!!type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+!!!real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+!!!!real(dp), dimension(*), intent(inout) :: rhopot
+!!!real(dp), dimension(sizeRhopot), intent(inout) :: rhopot
+!!!type(GPU_pointers), intent(inout) :: GPU
+!!!type(input_variables):: input
+!!!real(dp), dimension(:), pointer :: pkernelseq
+!!!real(8),dimension(orbsLIN%npsidim):: phi
+!!!real(8),dimension(orbs%npsidim):: psi, psit
+!!!integer:: iter, n3p
+!!!integer,optional:: pulayAt, pulayDir
+!!!real(8),optional:: shift, ebs_mod
+!!!
+!!!! Local variables
+!!!integer:: istat, i, j, istart, jstart, ierr
+!!!real(8),dimension(:),allocatable:: hphi, eval
+!!!real(8),dimension(:,:),allocatable:: HamSmall
+!!!real(8),dimension(:,:,:),allocatable:: matrixElements
+!!!real(8),dimension(:),pointer:: phiWorkPointer
+!!!real(8):: epot_sum,ekin_sum,eexctX,eproj_sum, ddot, trace, dnrm2, tt
+!!!character(len=1)::num,num2
+!!!character(len=20):: filename
+!!!logical:: modifiedEnergy
+!!!real(8),dimension(:),allocatable:: phiOld, psiOld
+!!!integer:: iorb, jorb, korb, nvctrp, idsx, idsxStart, idsxMin, idsxMax
+!!!real(wp), dimension(:), pointer :: potential
+!!!character(len=*),parameter:: subname='improveOrbitals'
+!!!
+!!!allocate(hphi(orbsLIN%npsidim), stat=istat)
+!!!
+!!!
+!!!!if(iter<=0) then
+!!!!    write(num,'(i1)') iproc
+!!!!    filename='phiIproc'//num
+!!!!    open(unit=iproc+1, file=trim(filename))
+!!!!    do i=1,size(phi)
+!!!!        !write(iproc+1,*) phi(i)
+!!!!        read(iproc+1,*) phi(i)
+!!!!    end do
+!!!!    close(unit=iproc+1)
+!!!!else 
+!!!    !call random_number(phi)
+!!!if(iter>=0) then
+!!!    !read(3000000+iproc,*) phi
+!!!    !read(1000000+iproc,*) phi
+!!!    !read(5000000+iproc,*) phi
+!!!    call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, orbsLIN, commsLIN, rxyz, nspin, nlpspd, proj, &
+!!!        nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
+!!!        orbsLIN%DIISHistMin, orbsLIN%DIISHistMax, infoBasisFunctions)
+!!!    !write(4000000+iproc,*) phi
+!!!    !write(5000000+iproc,*) phi
+!!!else
+!!!    ! idsx is the maximal DIIS history length, idsxStart is the history length with
+!!!    ! which DIIS start (0 means SD). If everything works fine, the program switches
+!!!    ! automatically to DIIS with histoy length idsx.
+!!!    !if(.not.present(pulayAt) .or. .not.present(pulayDir) .or. .not.present(shift)) stop 'pulayAt and/or pulayDir and/or shift not present!'
+!!!    allocate(phiOld(size(phi)))
+!!!    phiOld=phi
+!!!
+!!!    !!&! Take the 'old' HamSmall
+!!!    !!&call HamiltonianApplication(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!!!    !!&     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+!!!    !!&     rhopot(1),&
+!!!    !!&     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+!!!    !!&allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
+!!!    !!&call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!    !!&call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!!!    !!&deallocate(phiWorkPointer, stat=istat)
+!!!    !!&allocate(HamSmall(orbsLIN%norb,orbsLIN%norb), stat=istat)
+!!!    !!&call transformHam(iproc, nproc, orbsLIN, commsLIN, phi, hphi, HamSmall)
+!!!    !!&allocate(eval(orbsLIN%norb), stat=istat)
+!!!    !!&call diagonalizeHamiltonian(iproc, nproc, orbsLIN, HamSmall, eval)
+!!!    !!&allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
+!!!    !!&call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!    !!&call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!!!    !!&deallocate(phiWorkPointer, stat=istat)
+!!!
+!!!    
+!!!    !call pulayNew(iproc, nproc, at, orbs, Glr, input, orbsLIN, commsLIN, rxyz, nspin, nlpspd, proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, rxyzParab, pulayAt, pulayDir, shift)
+!!!    call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, orbsLIN, commsLIN, rxyz, &
+!!!        nspin, nlpspd, proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, &
+!!!        hphi, trace, rxyzParab, orbsLIN%DIISHistMin, orbsLIN%DIISHistMax, infoBasisFunctions)
+!!!    !istart=1
+!!!    !do iorb=1,orbsLIN%norbp
+!!!    !    write(*,'(a,i4,i3,i5,2es22.12)') 'pulayAt, iproc, iorb, <phi|phiOld>', pulayAt, iproc, iorb, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, phi(istart), 1, phiOld(istart), 1)
+!!!    !    istart=istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+!!!    !end do
+!!!
+!!!    !!&allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
+!!!    !!&call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!    !!&call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!!!    !!&deallocate(phiWorkPointer, stat=istat)
+!!!end if
+!!!    !call getLocalizedBasis2(iproc, nproc, at, orbs, Glr, input, orbsLIN, commsLIN, rxyz, nspin, nlpspd, proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab)
+!!!!    if(iter<=9) then
+!!!!        write(num,'(i1)') iproc
+!!!!        write(num2,'(i1)') iter
+!!!!        filename='phiIproc'//num//'_'//num2
+!!!!        open(unit=iproc+1, file=trim(filename))
+!!!!        do i=1,size(phi)
+!!!!            write(iproc+1,*) phi(i)
+!!!!        end do
+!!!!        close(unit=iproc+1)
+!!!!    end if
+!!!!end if
+!!!
+!!!!! Estimate the pulay forces by finite differences
+!!!!do iat=1,at%nat
+!!!!    do icomp=1,3
+!!!!        ! shift the parabolic center
+!!!!    end do
+!!!!end do
+!!!
+!!!
+!!!!call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!!!!     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+!!!!     rhopot(1),&
+!!!!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, pkernel=pkernelseq)
+!!!!if(iter>=0) then
+!!!
+!!!
+!!!modifiedEnergy=.true.
+!!!if(modifiedEnergy) then
+!!!    ! Calculate <phi_i|H|phi_j>
+!!!    allocate(matrixElements(orbsLIN%norb, orbsLIN%norb,2))
+!!!    call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!!!         nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+!!!         rhopot(1),&
+!!!         phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParab, pkernel=pkernelseq)
+!!!    allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
+!!!    call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!    call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!!!    nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbs%nspinor
+!!!    jstart=1
+!!!    do jorb=1,orbsLIN%norb
+!!!        istart=1
+!!!        do iorb=1,orbsLIN%norb
+!!!            matrixElements(iorb,jorb,2)=ddot(nvctrp, phi(istart), 1, hphi(jstart), 1)
+!!!            istart=istart+nvctrp
+!!!        end do
+!!!        jstart=jstart+nvctrp
+!!!    end do
+!!!    call mpi_allreduce(matrixElements(1,1,2), matrixElements(1,1,1), orbsLIN%norb**2, &
+!!!        mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!!    !if(iproc==0) then
+!!!    !    write(*,*) 'matrix Elements'
+!!!    !    do iorb=1,orbsLIN%norb
+!!!    !        write(*,'(80es9.2)') (matrixElements(iorb,jorb,1), jorb=1,orbsLIN%norb)
+!!!    !    end do
+!!!    !end if
+!!!    call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!    call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!!!    deallocate(phiWorkPointer)
+!!!end if
+!!!
+!!!if(.true.) then
+!!!    if(iproc==0) write(*,'(a)', advance='no') 'calculation of physical orbitals... '
+!!!
+!!!    !allocate the potential in the full box
+!!!    call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
+!!!         orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
+!!!
+!!!    !call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+!!!    !     nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
+!!!    !     in%nspin,GPU,pkernel=pkernelseq)
+!!!
+!!!    call HamiltonianApplication(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!!!         nlpspd,proj,Glr,ngatherarr,potential,&
+!!!         phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+!!!
+!!!    !call HamiltonianApplication(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!!!    !     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+!!!    !     rhopot(1),&
+!!!    !     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+!!!
+!!!    !deallocate potential
+!!!    call free_full_potential(nproc,potential,subname)
+!!!
+!!!
+!!!
+!!!    allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
+!!!    call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!    call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!!!    deallocate(phiWorkPointer, stat=istat)
+!!!    allocate(HamSmall(orbsLIN%norb,orbsLIN%norb), stat=istat)
+!!!    call transformHam(iproc, nproc, orbsLIN, commsLIN, phi, hphi, HamSmall)
+!!!    !if(iter>=0) then
+!!!    !    do iorb=1,orbsLIN%norb
+!!!    !        write(110+iproc,'(100f7.3)') (HamSmall(iorb,jorb), jorb=1,orbsLIN%norb)
+!!!    !    end do
+!!!    !else
+!!!    !    do iorb=1,orbsLIN%norb
+!!!    !        write(120+iproc,'(100f7.3)') (HamSmall(iorb,jorb), jorb=1,orbsLIN%norb)
+!!!    !    end do
+!!!    !end if
+!!!    if(iproc==0) write(*,'(a)', advance='no') 'Linear Algebra... '
+!!!    allocate(eval(orbsLIN%norb), stat=istat)
+!!!    call diagonalizeHamiltonian(iproc, nproc, orbsLIN, HamSmall, eval)
+!!!    !if(iproc==0) then
+!!!    !    write(*,*) 'diagonalized HamSmall'
+!!!    !    do iorb=1,orbsLIN%norb
+!!!    !        write(*,'(80es9.2)') (HamSmall(iorb,jorb), jorb=1,orbsLIN%norb)
+!!!    !    end do
+!!!    !end if
+!!!end if
+!!!
+!!!! Calculate the modified band structure energy
+!!!if(modifiedEnergy) then
+!!!    tt=0.d0
+!!!    do iorb=1,orbs%norb
+!!!        do jorb=1,orbsLIN%norb
+!!!            do korb=1,orbsLIN%norb
+!!!                tt=tt+HamSmall(korb,iorb)*HamSmall(jorb,iorb)*matrixElements(korb,jorb,1)
+!!! !if(iproc==0) write(*,'(a,3i5,3es12.4,es16.5)') 'iorb, jorb, korb, HamSmall(korb,iorb), HamSmall(jorb,iorb), matrixElements(korb,jorb,1), tt', iorb, jorb, korb, HamSmall(korb,iorb), HamSmall(jorb,iorb), matrixElements(korb,jorb,1), tt
+!!!            end do
+!!!        end do
+!!!    end do
+!!!    if(present(ebs_mod)) then
+!!!        if(nspin==1) ebs_mod=2.d0*tt ! 2 for closed shell
+!!!    end if
+!!!end if
+!!!
+!!!!write(*,*) 'after diagonalizeHamiltonian, iproc',iproc
+!!!
+!!!!if(iter>=0) then
+!!!!    do iorb=1,orbsLIN%norb
+!!!!        !write(80+iproc,'(100f7.3)') (HamSmall(iorb,jorb), jorb=1,orbsLIN%norb)
+!!!!    end do
+!!!!else
+!!!!    do iorb=1,orbsLIN%norb
+!!!!        !write(90+iproc,'(100f7.3)') (HamSmall(iorb,jorb), jorb=1,orbsLIN%norb)
+!!!!    end do
+!!!!end if
+!!!nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbs%nspinor
+!!!!if(iter>=0) then
+!!!!    do istat=1,orbsLIN%norb*nvctrp
+!!!!        if(mod(istat-1,nvctrp)==0) write(130+iproc,'(i0,a)') nint(dble(istat)/dble(nvctrp))+1,' ---------------------------'
+!!!!        !write(130+iproc,*) phi(istat)
+!!!!    end do
+!!!!else
+!!!!    do istat=1,orbsLIN%norb*nvctrp
+!!!!        if(mod(istat-1,nvctrp)==0) write(140+iproc,'(i0,a)') nint(dble(istat)/dble(nvctrp))+1,' ---------------------------'
+!!!!        !write(140+iproc,*) phi(istat)
+!!!!    end do
+!!!!end if
+!!!
+!!!
+!!!! Store the new wave function in psi
+!!!allocate(psiOld(size(psi)))
+!!!psiOld=psi
+!!!allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
+!!!call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psiOld, work=phiWorkPointer)
+!!!deallocate(phiWorkPointer)
+!!!
+!!!! THIS IS A TEST
+!!!psiOld=0.d0
+!!!nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
+!!!jstart=1
+!!!do jorb=1,orbs%norb
+!!!    istart=1
+!!!    do iorb=1,orbsLIN%norb
+!!!        call daxpy(nvctrp, HamSmall(iorb,jorb), phi(istart), 1, psiOld(jstart), 1)
+!!!    istart=istart+nvctrp
+!!!    end do
+!!!    jstart=jstart+nvctrp
+!!!end do
+!!!!if(iter>=0) then
+!!!!    do istat=1,orbs%norb*nvctrp
+!!!!        if(mod(istat-1,nvctrp)==0) write(150+iproc,'(i0,a)') nint(dble(istat)/dble(nvctrp))+1,' ---------------------------'
+!!!!        write(150+iproc,*) psiOld(istat)
+!!!!    end do
+!!!!else
+!!!!    do istat=1,orbs%norb*nvctrp
+!!!!        if(mod(istat-1,nvctrp)==0) write(160+iproc,'(i0,a)') nint(dble(istat)/dble(nvctrp))+1,' ---------------------------'
+!!!!        write(160+iproc,*) psiOld(istat)
+!!!!    end do
+!!!!end if
+!!!
+!!!call buildWavefunction(iproc, nproc, orbs, orbsLIN, comms, commsLIN, phi, psi, HamSmall)
+!!!nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
+!!!!if(iter>=0) then
+!!!!    do istat=1,orbs%norb*nvctrp
+!!!!        if(mod(istat-1,nvctrp)==0) write(40+iproc,'(i0,a)') nint(dble(istat)/dble(nvctrp))+1,' ---------------------------'
+!!!!        write(40+iproc,*) psi(istat)
+!!!!    end do
+!!!!else
+!!!!    do istat=1,orbs%norb*nvctrp
+!!!!        if(mod(istat-1,nvctrp)==0) write(50+iproc,'(i0,a)') nint(dble(istat)/dble(nvctrp))+1,' ---------------------------'
+!!!!        write(50+iproc,*) psi(istat)
+!!!!    end do
+!!!! !call mpi_barrier(mpi_comm_world, iorb)
+!!!! !stop
+!!!!end if
+!!!!istart=1
+!!!!do iorb=1,orbs%norbp
+!!!!    !write(*,'(a,i4,i3,i5,2es12.5)') 'pulayAt, iproc, iorb, <psi|psiOld>', pulayAt, iproc, iorb, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psi(istart), 1, psiOld(istart), 1)
+!!!!    !write(*,'(a,i4,i3,i5,2es12.5)') 'pulayAt, iproc, iorb, <psi|psi>', pulayAt, iproc, iorb, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psi(istart), 1, psi(istart), 1)
+!!!!    write(*,'(a,i4,i3,i5,2es12.5)') 'pulayAt, iproc, iorb, <psiOld|psiOld>', pulayAt, iproc, iorb, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psiOld(istart), 1, psiOld(istart), 1)
+!!!!    istart=istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+!!!!end do
+!!!call dcopy(orbs%npsidim, psi, 1, psit, 1)
+!!!if(iproc==0) write(*,'(a)') 'done.'
+!!!
+!!!!!! Get the Pulay forces
+!!!!write(*,*) 'iproc, iter', iproc, iter
+!!!!write(*,*) 'before calling pulay, iproc', iproc
+!!!!call mpi_barrier(mpi_comm_world, i)
+!!!!if(iter>=0) call pulay(iproc, nproc, Glr, orbs, orbsLIN, comms, commsLIN, input, at, rxyz, phi, hphi, psi)
+!!!!!write(*,*) 'ATTENTION --  FIRST TEST!'
+!!!!!call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!!!!!     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+!!!!!     rhopot(1),&
+!!!!!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyz, pkernel=pkernelseq)
+!!!!call pulay(iproc, nproc, Glr, orbs, orbsLIN, comms, commsLIN, input, at, rxyz, phi, hphi, psi, nscatterarr, ngatherarr, nlpspd, proj, sizeRhopot, rhopot, GPU, pkernelseq)
+!!!!call mpi_barrier(mpi_comm_world, i)
+!!!
+!!!! Orthonormalization necessary?
+!!!!call initRandomSeed(iproc, 1)
+!!!!call random_number(psi)
+!!!!call transpose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWorkPointer)
+!!!!call orthogonalize(iproc, nproc, orbs, comms, Glr%wfd, psi, input)
+!!!
+!!!allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
+!!!call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWorkPointer)
+!!!! Not necessary to untranspose hphi (no longer needed)
+!!!!call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!!!
+!!!!if(iter>=0) then
+!!!!    do istat=1,size(psi)
+!!!!        write(60+iproc,*) psi(istat)
+!!!!    end do
+!!!!    write(*,*) iproc, 'writes', size(psi)
+!!!!else
+!!!!    do istat=1,size(psi)
+!!!!        write(70+iproc,*) psi(istat)
+!!!!    end do
+!!!!end if
+!!!
+!!!!allocate(psiOld(size(psi)))
+!!!!psiOld=psi
+!!!!istart=1
+!!!!write(*,'(a,2i6,2i12)') 'iproc, istart, istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, size(psiOld)', iproc, istart, istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, size(psiOld)
+!!!!do iorb=1,orbs%norbp
+!!!!    !write(*,'(a,i4,i3,i5,2es12.5)') 'pulayAt, iproc, iorb, <psi|psiOld>', pulayAt, iproc, iorb, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psi(istart), 1, psiOld(istart), 1)
+!!!!    write(*,'(a,i4,i3,i5,2es12.5)') 'pulayAt, iproc, iorb, <psi|psi>', pulayAt, iproc, iorb, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psi(istart), 1, psi(istart), 1)
+!!!!    !write(*,'(a,i4,i3,i5,2es12.5)') 'pulayAt, iproc, iorb, <psiOld|psiOld>', pulayAt, iproc, iorb, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psiOld(istart), 1, psiOld(istart), 1)
+!!!!    istart=istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+!!!!    write(*,'(a,2i5,2i12)') 'iproc, iorb, istart, size(psiOld)', iproc, iorb, istart, size(psiOld)
+!!!!end do
+!!!!if(iter<0) then
+!!!!    write(*,*) iproc, 'reads', size(psi)
+!!!!    ! waste time
+!!!!    do istat=1,10000000
+!!!!        tt=exp(dble(istat))
+!!!!    end do
+!!!!    do istat=1,size(psi)
+!!!!        read(60+iproc,*) psiOld(istat)
+!!!!    end do
+!!!!    do iorb=1,orbs%norbp
+!!!!        write(*,*) 'iproc, ddot2', ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psi(1), 1, psiOld(1), 1)/(dnrm2(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psi(1), 1)*dnrm2(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psiOld(1), 1))
+!!!!    end do
+!!!!end if
+!!!
+!!!
+!!!!!! ONLY A TEST
+!!!!!!call initRandomSeed(iproc, 1)
+!!!!!!call random_number(phi)
+!!!!!call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!!!call orthogonalize(iproc, nproc, orbsLIN, commsLIN, Glr%wfd, phi, input)
+!!!!!call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!deallocate(phiWorkPointer, stat=istat)
+!!!
+!!!
+!!!!!istart=1
+!!!!!do i=1,orbs%norbp
+!!!!!    jstart=1
+!!!!!    do j=1,i
+!!!!!        write(*,*) 'i, j, ddot', i, j, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, psi(istart), 1, psi(jstart), 1)
+!!!!!        !write(*,*) 'i, j, ddot', i, j, ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, phi(istart), 1, phi(jstart), 1)
+!!!!!        jstart=jstart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+!!!!!    end do
+!!!!!    istart=istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+!!!!!end do
+!!!
+!!!
+!!!end subroutine improveOrbitals
 
 
 

@@ -432,6 +432,17 @@ integer:: nItMin, nItMax, power, DIIShistMin, DIISHistMax
   end type lanczos_args
 !!***
 
+
+
+type,public:: linearParameters
+  integer:: DIISHistMin, DIISHistMax, nItMax
+  real(8):: convCrit
+  real(8),dimension(:),allocatable:: potentialPrefac
+end type
+
+
+
+
 !!****t* module_types/diis_objects
 !! DESCRIPTION
 !! Contains the arguments needed for the diis procedure
