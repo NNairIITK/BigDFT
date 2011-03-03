@@ -40,9 +40,9 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   real :: tr0,tr1
   real(gp) :: hx_old, hy_old, hz_old
   real(gp) :: displ,tel
+  real(wp) :: fv(7)
   logical :: perx, pery, perz
   integer, dimension(:,:), allocatable :: gcoord
-  real(wp), dimension(:), allocatable :: band_old
   real(wp), dimension(:,:,:), allocatable :: psifscf
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
   type(etsf_io_low_error) :: error
@@ -147,11 +147,6 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
      call memocc(i_stat,psigold,'psigold',subname)
      call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
-     ! This array may be removed if necessary by reading only the
-     ! required coefficients from the file.
-     allocate(band_old(nvctr_c_old + 7 * nvctr_f_old+ndebug),stat=i_stat)
-     call memocc(i_stat,band_old,'band_old',subname)
-
      do iorb = 1, orbs%norbp*orbs%nspinor
         ! We read the coefficients.
         ! Read one spinor.
@@ -163,24 +158,31 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
         ! Read one kpoint.
         start(5) = (orbs%isorb + (iorb - 1) / orbs%nspinor) / orbs%norb + 1
         count(5) = 1
-        call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
-             & band_old, lstat, error_data = error, start = start, count = count)
-        if (.not. lstat) call etsf_error(error)
 
         ! We transfer the coefficients in psigold.
         iCoeff = 1
         do i = 1, nvctr_c_old, 1
            coord = gcoord(:, i)
-           psigold(coord(1), 1, coord(2), 1, coord(3), 1) = band_old(iCoeff)
+           start(2) = iCoeff
+           count(2) = 1
+           call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
+                & psigold(coord(1), 1, coord(2), 1, coord(3), 1), &
+                & lstat, error_data = error, start = start, count = count)
+           if (.not. lstat) call etsf_error(error)
            iCoeff = iCoeff + 1
            if (nvctr_old(i) == 8) then
-              psigold(coord(1), 2, coord(2), 1, coord(3), 1) = band_old(iCoeff + 0)
-              psigold(coord(1), 1, coord(2), 2, coord(3), 1) = band_old(iCoeff + 1)
-              psigold(coord(1), 2, coord(2), 2, coord(3), 1) = band_old(iCoeff + 2)
-              psigold(coord(1), 1, coord(2), 1, coord(3), 2) = band_old(iCoeff + 3)
-              psigold(coord(1), 2, coord(2), 1, coord(3), 2) = band_old(iCoeff + 4)
-              psigold(coord(1), 1, coord(2), 2, coord(3), 2) = band_old(iCoeff + 5)
-              psigold(coord(1), 2, coord(2), 2, coord(3), 2) = band_old(iCoeff + 6)
+              start(2) = iCoeff
+              count(2) = 7
+              call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
+                   & fv, lstat, error_data = error, start = start, count = count)
+              if (.not. lstat) call etsf_error(error)
+              psigold(coord(1), 2, coord(2), 1, coord(3), 1) = fv(1)
+              psigold(coord(1), 1, coord(2), 2, coord(3), 1) = fv(2)
+              psigold(coord(1), 2, coord(2), 2, coord(3), 1) = fv(3)
+              psigold(coord(1), 1, coord(2), 1, coord(3), 2) = fv(4)
+              psigold(coord(1), 2, coord(2), 1, coord(3), 2) = fv(5)
+              psigold(coord(1), 1, coord(2), 2, coord(3), 2) = fv(6)
+              psigold(coord(1), 2, coord(2), 2, coord(3), 2) = fv(7)
               iCoeff = iCoeff + 7
            end if
         end do
@@ -188,10 +190,6 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
         call reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
              rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
      end do
-
-     i_all=-product(shape(band_old))*kind(band_old)
-     deallocate(band_old,stat=i_stat)
-     call memocc(i_stat,i_all,'band_old',subname)
 
      i_all=-product(shape(psigold))*kind(psigold)
      deallocate(psigold,stat=i_stat)
