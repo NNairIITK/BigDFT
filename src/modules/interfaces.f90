@@ -1506,6 +1506,35 @@ integer:: power
 end subroutine apply_potentialParabola
 
 
+subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN, at, rxyz, rxyzParab, &
+    nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
+    infoBasisFunctions, n3p)
+use module_base
+use module_types
+
+! Calling arguments
+integer:: iproc, nproc, nspin, infoBasisFunctions, n3p
+type(locreg_descriptors), intent(in) :: Glr
+type(orbitals_data), intent(inout) :: orbs, orbsLIN
+type(communications_arrays), intent(in) :: comms
+type(communications_arrays), intent(in) :: commsLIN
+type(atoms_data), intent(in) :: at
+type(input_variables):: input
+real(8),dimension(3,at%nat):: rxyz, rxyzParab
+integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+!real(dp), dimension(*), intent(inout) :: rhopot
+!real(dp), dimension(sizeRhopot), intent(inout) :: rhopot
+real(dp), dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin), intent(inout) :: rhopot
+type(GPU_pointers), intent(inout) :: GPU
+real(dp), dimension(:), pointer :: pkernelseq
+real(8),dimension(orbsLIN%npsidim):: phi
+real(8),dimension(orbs%npsidim):: psi, psit
+end subroutine getLinearPsi
+
+
   end interface
 
 end module module_interfaces

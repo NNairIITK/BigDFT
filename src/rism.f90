@@ -249,7 +249,7 @@ subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngathe
         nullify(Gocc)
      end if
      nbasis=nlr+Gpswf%ncoeff
-     call gaussian_rism_basis_new(nlr,radii,rxyz,Glongr)
+     !call gaussian_rism_basis_new(nlr,radii,rxyz,Glongr)
   else
      nbasis=nlr
   end if
