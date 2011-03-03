@@ -34,7 +34,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   character(len = *), parameter :: subname = "read_waves_etsf"
   integer, pointer :: nvctr_old(:)
   integer :: iCoeff, iFine, n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old
-  integer :: i, iorb, ncid, iGrid, diGrid
+  integer :: i, iorb, ncid, iGrid, diGrid, nspin, ispin
   integer :: nb1, nb2, nb3, i_all, i_stat, ncount1,ncount_rate,ncount_max, ncount2
   integer :: start(6), count(6), coord(3)
   real :: tr0,tr1
@@ -43,6 +43,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   real(wp) :: fv(7)
   logical :: perx, pery, perz
   integer, dimension(:,:), allocatable :: gcoord
+  double precision, dimension(:,:,:), allocatable :: eigen
   real(wp), dimension(:,:,:), allocatable :: psifscf
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
   type(etsf_io_low_error) :: error
@@ -62,6 +63,9 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   !conditions for periodicity in the three directions
   call calc_displ(at, rxyz, rxyz_old, displ, perx, pery, perz)
 
+  nspin = 1
+  if (orbs%norbd /= 0) nspin = 2
+
   start(:) = 1
   count(:) = 0
   if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and. &
@@ -79,6 +83,13 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
         ! Read one kpoint.
         start(5) = (orbs%isorb + (iorb - 1) / orbs%nspinor) / orbs%norb + 1
         count(5) = 1
+        ! Write one spin.
+        start(6) = 1
+        if (start(4) > orbs%norbu) then
+           start(6) = 2
+           start(4) = start(4) - orbs%norbu
+        end if
+        count(6) = 1
 
         iFine = wfd%nvctr_c + 1
         iCoeff = 1
@@ -158,6 +169,13 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
         ! Read one kpoint.
         start(5) = (orbs%isorb + (iorb - 1) / orbs%nspinor) / orbs%norb + 1
         count(5) = 1
+        ! Write one spin.
+        start(6) = 1
+        if (start(4) > orbs%norbu) then
+           start(6) = 2
+           start(4) = start(4) - orbs%norbu
+        end if
+        count(6) = 1
 
         ! We transfer the coefficients in psigold.
         iCoeff = 1
@@ -209,9 +227,30 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   call memocc(i_stat,i_all,'nvctr_old',subname)
 
   ! We read the eigenvalues.
-  call etsf_io_low_read_var(ncid, "eigenvalues", &
-       & orbs%eval, lstat, error_data = error)
-  if (.not. lstat) call etsf_error(error)
+  if (nspin == 1) then
+     call etsf_io_low_read_var(ncid, "eigenvalues", &
+          & orbs%eval, lstat, error_data = error)
+     if (.not. lstat) call etsf_error(error)
+  else
+     allocate(eigen(max(orbs%norbu, orbs%norbd), &
+          & orbs%nkpts, nspin + ndebug),stat=i_stat)
+     call memocc(i_stat,eigen,'eigen',subname)
+     call etsf_io_low_read_var(ncid, "eigenvalues", &
+          & eigen, lstat, error_data = error)
+     if (.not. lstat) call etsf_error(error)
+     do i = 1, orbs%norb*orbs%nkpts, 1
+        ispin = 1
+        iorb = modulo(i - 1, orbs%norb) + 1
+        if (iorb > orbs%norbu) then
+           ispin = 2
+           iorb = iorb - orbs%norbu
+        end if
+        orbs%eval(i) = eigen(iorb, (i - 1) / orbs%norb + 1, ispin)
+     end do
+     i_all=-product(shape(eigen))*kind(eigen)
+     deallocate(eigen,stat=i_stat)
+     call memocc(i_stat,i_all,'eigen',subname)
+  end if
 
   ! We close the file.
   call etsf_io_low_close(ncid, lstat, error)
@@ -544,7 +583,6 @@ contains
     dims%number_of_spinor_components = orbs%nspinor
     dims%max_number_of_states = max(orbs%norbu, orbs%norbd)
     dims%number_of_kpoints = orbs%nkpts
-    ! TODO: spin and kpoints here.
     if (orbs%norbd > 0) then
        dims%number_of_spins = 2
     else
