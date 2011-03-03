@@ -438,6 +438,8 @@ type,public:: linearParameters
   integer:: DIISHistMin, DIISHistMax, nItMax
   real(8):: convCrit
   real(8),dimension(:),allocatable:: potentialPrefac
+  type(orbitals_data):: orbs
+  integer,dimension(:),allocatable:: onWhichAtom
 end type
 
 

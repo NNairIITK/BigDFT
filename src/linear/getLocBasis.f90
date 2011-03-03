@@ -184,20 +184,26 @@ integer,dimension(:),allocatable:: nbasisPerAt, nbasisArr, orbsPerAt
 character(len=*),parameter:: subname='initializeParameters'
 character(len=20):: atomname
 
-! Copy everything
+! Copy everything. This also allocates the pointer. To be changed later
 orbsLin=orbs
+lin%orbs=orbs
+
+
 
 ! Decide wheter quadratic or quartic potential
 orbsLIN%power=4  ! quartic
 !orbsLIN%power=2  ! quadratic
+lin%orbs%power=4
 
 if(iproc==0) then
-    if(orbsLIN%power==2) then
+    !if(orbsLIN%power==2) then
+    if(lin%orbs%power==2) then
         write(*,'(a)') 'The basis functions are created using a parabolic potential.'
-    else if(orbsLIN%power==4) then
+    !else if(orbsLIN%power==4) then
+    else if(lin%orbs%power==4) then
         write(*,'(a)') 'The basis functions are created using a quartic potential.'
     else
-        write(*,'(a,i0,a)') 'ERROR: can only use parabolic or quartic potentials, but found power ', orbsLIN%power, '!' 
+        write(*,'(a,i0,a)') 'ERROR: can only use parabolic or quartic potentials, but found power ', lin%orbs%power, '!' 
         stop
     end if
 end if
@@ -263,27 +269,27 @@ do iat=1,at%nat
     ityp=at%iatype(iat)
     nbasisPerAt(iat)=orbsPerAt(at%iatype(iat))
 end do
-orbs%nbasis=sum(nbasisPerAt) ! Choose such that they can be evenly distributed
+lin%orbs%norb=sum(nbasisPerAt) ! Choose such that they can be evenly distributed
 deallocate(orbsPerAt, stat=istat)
 
 
 ! Determine how many orbitals shall be treated by each process.
 ! tt gives the ideal split. Unfortunately this will likely not be an integer.
-tt=dble(orbs%nbasis)/dble(nproc)
-orbs%nbasisp=floor(tt)
+tt=dble(lin%orbs%norb)/dble(nproc)
+lin%orbs%norbp=floor(tt)
 ! Each process will handle floor(tt) orbitals.
 ! Since some orbitals are remaining if tt was not an integer, calculate the number of orbitals
 ! that some processors have to handle on top. This number is given by ii.
 tt=tt-dble(floor(tt))
 ii=int(tt*nproc)
 do jproc=0,ii-1
-    if(iproc==jproc) orbs%nbasisp=orbs%nbasisp+1
+    if(iproc==jproc) lin%orbs%norbp=lin%orbs%norbp+1
 end do
 if(ii==0) then
-    if(iproc==0) write(*,'(a,2(i0,a))') 'Processes from 0 to ',nproc-1,' treat ',orbs%nbasisp,' orbitals.'
+    if(iproc==0) write(*,'(a,2(i0,a))') 'Processes from 0 to ',nproc-1,' treat ',lin%orbs%norbp,' orbitals.'
 else
-    if(iproc==0) write(*,'(a,5(i0,a))') 'Processes from 0 to ',ii-1,' treat ',orbs%nbasisp, &
-        ' orbitals, processes from ',ii,' to ',nproc-1,' treat ',orbs%nbasisp-1,' orbitals.'
+    if(iproc==0) write(*,'(a,5(i0,a))') 'Processes from 0 to ',ii-1,' treat ',lin%orbs%norbp, &
+        ' orbitals, processes from ',ii,' to ',nproc-1,' treat ',lin%orbs%norbp-1,' orbitals.'
 end if
 
 ! The number of orbitals handled by each preocessor is stored in orbsLIN%norb_par.
@@ -291,18 +297,21 @@ end if
 allocate(norb_par(0:nproc-1), stat=istat)
 call memocc(istat, nproc, 'norb_par', subname)
 norb_par=0
-norb_par(iproc)=orbs%nbasisp
+norb_par(iproc)=lin%orbs%norbp
 call mpi_allreduce(norb_par(0), orbsLIN%norb_par, nproc, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+call mpi_allreduce(norb_par(0), lin%orbs%norb_par, nproc, mpi_integer, mpi_sum, mpi_comm_world, ierr)
 
 iall=-product(shape(norb_par))*kind(norb_par)
 deallocate(norb_par, stat=istat)
 call memocc(istat, iall, 'norb_par', subname)
 
-if(.not.allocated(orbsLIN%onWhichAtom)) allocate(orbsLIN%onWhichAtom(orbs%nbasisp), &
+allocate(lin%onWhichAtom(lin%orbs%norbp), stat=istat)
+call memocc(istat, nproc, 'lin%onWhichAtomnorb_par', subname)
+if(.not.allocated(orbsLIN%onWhichAtom)) allocate(orbsLIN%onWhichAtom(lin%orbs%norbp), &
     stat=istat) ; if(istat/=0) stop 'ERROR in allocating onWhichAtom'
-if(.not.allocated(orbsLIN%orbitalNumber)) allocate(orbsLIN%orbitalNumber(orbs%nbasisp), &
+if(.not.allocated(orbsLIN%orbitalNumber)) allocate(orbsLIN%orbitalNumber(lin%orbs%norbp), &
     stat=istat) ; if(istat/=0) stop 'ERROR in allocating onWhichAtom'
-if(.not.allocated(orbsLIN%parabolaShift)) allocate(orbsLIN%parabolaShift(3,orbs%nbasisp), &
+if(.not.allocated(orbsLIN%parabolaShift)) allocate(orbsLIN%parabolaShift(3,lin%orbs%norbp), &
     stat=istat) ; if(istat/=0) stop 'ERROR in allocating onWhichAtom'
 
 
@@ -321,17 +330,19 @@ ii=1
 jj=0
 ii2=0
 iiOrb=0
+lin%onWhichAtom=-1
 orbsLIN%onWhichAtom=-1
 orbsLIN%orbitalNumber=-1
 !write(*,'(a,i2,3x,20i4)') 'iproc, nbasisPerAt', iproc, nbasisPerAt
 
 ! THERE IS A PROBLEM WHEN ONLY 1 ORBITAL PER ATOM
-do iorb=1,orbs%nbasis
+do iorb=1,lin%orbs%norb
 call mpi_barrier(mpi_comm_world, ierr)
 
     ! Switch to the next MPI process if the numbers of orbitals for a given
     ! MPI process is reached.
-    if(jj==orbsLIN%norb_par(jproc)) then
+    !if(jj==orbsLIN%norb_par(jproc)) then
+    if(jj==lin%orbs%norb_par(jproc)) then
         jproc=jproc+1
   !if(iproc==0) write(*,'(a,4i5)') 'iorb, jj, ii, ii2', iorb, jj, ii, ii2
         if(iproc==jproc .and. iiorb/=nbasisPerAt(max(ii,1))) orbsLIN%nbasisOnPreviousMPI=ii2
@@ -353,13 +364,14 @@ call mpi_barrier(mpi_comm_world, ierr)
     jj=jj+1
     iiOrb=iiOrb+1
     !if(iproc==0) write(*,'(a,4i5)') 'iorb, ii, jj, jproc', iorb, ii, jj, jproc
+    if(iproc==jproc) lin%onWhichAtom(jj)=ii
     if(iproc==jproc) orbsLIN%onWhichAtom(jj)=ii
     if(iproc==jproc) orbsLIN%orbitalNumber(jj)=iiOrb
     !write(*,'(a,i2,i3,3x,20i4)') 'iproc, iorb, orbsLIN%onWhichAtom, orbsLIN%orbitalNumber', iproc, iorb, orbsLIN%onWhichAtom, orbsLIN%orbitalNumber
 
 end do    
 orbsLIN%orbitalNumber=orbsLIN%orbitalNumber!+orbsLIN%nbasisOnPreviousMPI
-do iorb=1,orbs%nbasisp
+do iorb=1,lin%orbs%norbp
     !ii=mod(orbsLIN%orbitalNumber(iorb)-1,7)+1
     !tt=dble(ceiling(dble(orbsLIN%orbitalNumber(iorb))/7.d0))
     !tt=1.d0
@@ -410,10 +422,11 @@ call memocc(istat, iall, 'nbasisPerAt', subname)
 ! Now adapt a few parameters in orbsLin%norb
 
 ! The number of orbitals in orbsLIN is the number of basis functions
-orbsLin%norb=orbs%nbasis
+orbsLin%norb=lin%orbs%norb
 ! At the moment only working for closed shell!
-orbsLin%norbu=orbs%nbasis
-orbsLin%norbp=orbs%nbasisp
+lin%orbs%norbu=lin%orbs%norb
+orbsLin%norbu=lin%orbs%norb
+orbsLin%norbp=lin%orbs%norbp
 if(orbsLIN%norbd>0) stop 'ERROR: not yet implemented for nspin=2!'
 
 ! READ IN THE PREFACTOR FOR THE PARABOLIC POTENTIAL
@@ -435,39 +448,55 @@ if(orbsLIN%norbd>0) stop 'ERROR: not yet implemented for nspin=2!'
 ! orbsLIN%isorb is the 'first' orbital for a given MPI process.
 norb_tot=0
 do jproc=0,iproc-1
-   norb_tot=norb_tot+orbsLIN%norb_par(jproc)
+   !norb_tot=norb_tot+orbsLIN%norb_par(jproc)
+   norb_tot=norb_tot+lin%orbs%norb_par(jproc)
 end do
 !reference orbital for process
-orbsLIN%isorb=norb_tot
+!orbsLIN%isorb=norb_tot
+lin%orbs%isorb=norb_tot
 
 
 ! I don't know what this means, but it seems that it is necessary.
 nullify(orbsLIN%spinsgn)
-allocate(orbsLIN%spinsgn(orbs%nbasis), stat=istat)
+allocate(orbsLIN%spinsgn(lin%orbs%norb), stat=istat)
 orbsLIN%spinsgn=1.d0  ! WHY LIKE THIS?
+nullify(lin%orbs%spinsgn)
+allocate(lin%orbs%spinsgn(lin%orbs%norb), stat=istat)
+lin%orbs%spinsgn=1.d0  ! WHY LIKE THIS?
 
 ! I don't know what this means, but it seems that it is necessary.
 nullify(orbsLIN%iokpt)
-allocate(orbsLIN%iokpt(orbs%nbasisp), stat=istat)
+allocate(orbsLIN%iokpt(lin%orbs%norbp), stat=istat)
 orbsLIN%iokpt=1 ! WHY LIKE THIS?
+nullify(lin%orbs%iokpt)
+allocate(lin%orbs%iokpt(lin%orbs%norbp), stat=istat)
+lin%orbs%iokpt=1 ! WHY LIKE THIS?
 
 ! I don't know what this means, but it seems that it is necessary.
 nullify(orbsLIN%occup)
-allocate(orbsLIN%occup(orbs%nbasis), stat=istat)
+allocate(orbsLIN%occup(lin%orbs%norb), stat=istat)
 orbsLIN%occup=2.d0  ! WHY LIKE THIS?
+nullify(lin%orbs%occup)
+allocate(lin%orbs%occup(lin%orbs%norb), stat=istat)
+lin%orbs%occup=2.d0  ! WHY LIKE THIS?
 
 ! The eigenvalues from the input guess. They are used for the preconditioning.
 nullify(orbsLIN%eval)
-allocate(orbsLIN%eval(orbs%nbasis), stat=istat)
+allocate(orbsLIN%eval(lin%orbs%norb), stat=istat)
 orbsLIN%eval=-.5d0
+nullify(lin%orbs%eval)
+allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
+lin%orbs%eval=-.5d0
 
 
 ! Assign the parameters needed for the communication to commsLIN.
 call orbitals_communicators(iproc,nproc,Glr,orbsLIN,commsLIN)
+call orbitals_communicators(iproc,nproc,Glr,lin%orbs,commsLIN)
 
 
 ! Allocate phi and initialize it at random
-allocate(phi(orbsLIN%npsidim), stat=istat)
+!allocate(phi(orbsLIN%npsidim), stat=istat)
+allocate(phi(lin%orbs%npsidim), stat=istat)
 call initRandomSeed(iproc, 1)
 call random_number(phi)
 
@@ -622,7 +651,8 @@ iterLoop: do it=1,itMax
     if(iproc==0) then
         write(*,'(x,a)', advance='no') 'Orthonormalization... '
     end if
-    call orthogonalize(iproc, nproc, orbsLIN, commsLIN, Glr%wfd, phi, input)
+    !call orthogonalize(iproc, nproc, orbsLIN, commsLIN, Glr%wfd, phi, input)
+    call orthogonalize(iproc, nproc, lin%orbs, commsLIN, Glr%wfd, phi, input)
 
     ! Untranspose phi
     call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
@@ -668,7 +698,7 @@ iterLoop: do it=1,itMax
     !  step size for the steepest descent minimization (depending on the angle 
     ! between the current gradient and the one from the previous iteration).
     ! This is of course only necessary if we are using steepest descent and not DIIS.
-    do iorb=1,orbsLIN%norb
+    do iorb=1,lin%orbs%norb
         fnrm=fnrm+fnrmArr(iorb,1)
         if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
         if(it>1 .and. diisLIN%idsx==0 .and. .not.diisLIN%switchSD) then
