@@ -177,12 +177,14 @@ real(8),dimension(32,at%nat):: occupForInguess
 
 ! Local variables
 integer:: ii, jproc, jj, istat, iorb, i, jorb, ierr, ii2, j, istart, jstart, iat, ityp, iall, norb_tot, iiOrb
+integer:: norb, norbu, norbd
 real(8):: tt, ddot
 integer,dimension(:),allocatable:: norb_par
 real(8),dimension(:),pointer:: phiWorkPointer
 integer,dimension(:),allocatable:: nbasisPerAt, nbasisArr, orbsPerAt
 character(len=*),parameter:: subname='initializeParameters'
 character(len=20):: atomname
+logical:: written
 
 ! Copy everything. This also allocates the pointer. To be changed later
 orbsLin=orbs
@@ -272,25 +274,43 @@ end do
 lin%orbs%norb=sum(nbasisPerAt) ! Choose such that they can be evenly distributed
 deallocate(orbsPerAt, stat=istat)
 
-
-! Determine how many orbitals shall be treated by each process.
-! tt gives the ideal split. Unfortunately this will likely not be an integer.
-tt=dble(lin%orbs%norb)/dble(nproc)
-lin%orbs%norbp=floor(tt)
-! Each process will handle floor(tt) orbitals.
-! Since some orbitals are remaining if tt was not an integer, calculate the number of orbitals
-! that some processors have to handle on top. This number is given by ii.
-tt=tt-dble(floor(tt))
-ii=int(tt*nproc)
-do jproc=0,ii-1
-    if(iproc==jproc) lin%orbs%norbp=lin%orbs%norbp+1
+norb=lin%orbs%norb
+norbu=norb
+norbd=0
+call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%orbs)
+written=.false.
+do jproc=1,nproc-1
+    if(lin%orbs%norb_par(jproc)<lin%orbs%norb_par(jproc-1)) then
+        if(iproc==0) write(*,'(a,5(i0,a))') 'Processes from 0 to ',jproc-1,' treat ',lin%orbs%norb_par(jproc-1), &
+            ' orbitals, processes from ',jproc,' to ',nproc-1,' treat ',lin%orbs%norb_par(jproc),' orbitals.'
+        written=.true.
+        exit
+    end if
 end do
-if(ii==0) then
+if(.not.written) then
     if(iproc==0) write(*,'(a,2(i0,a))') 'Processes from 0 to ',nproc-1,' treat ',lin%orbs%norbp,' orbitals.'
-else
-    if(iproc==0) write(*,'(a,5(i0,a))') 'Processes from 0 to ',ii-1,' treat ',lin%orbs%norbp, &
-        ' orbitals, processes from ',ii,' to ',nproc-1,' treat ',lin%orbs%norbp-1,' orbitals.'
 end if
+
+
+!!!! Determine how many orbitals shall be treated by each process.
+!!!! tt gives the ideal split. Unfortunately this will likely not be an integer.
+!!!tt=dble(lin%orbs%norb)/dble(nproc)
+!!!lin%orbs%norbp=floor(tt)
+!!!! Each process will handle floor(tt) orbitals.
+!!!! Since some orbitals are remaining if tt was not an integer, calculate the number of orbitals
+!!!! that some processors have to handle on top. This number is given by ii.
+!!!tt=tt-dble(floor(tt))
+!!!ii=int(tt*nproc)
+!!!do jproc=0,ii-1
+!!!    if(iproc==jproc) lin%orbs%norbp=lin%orbs%norbp+1
+!!!end do
+!!!if(ii==0) then
+!!!    if(iproc==0) write(*,'(a,2(i0,a))') 'Processes from 0 to ',nproc-1,' treat ',lin%orbs%norbp,' orbitals.'
+!!!else
+!!!    if(iproc==0) write(*,'(a,5(i0,a))') 'Processes from 0 to ',ii-1,' treat ',lin%orbs%norbp, &
+!!!        ' orbitals, processes from ',ii,' to ',nproc-1,' treat ',lin%orbs%norbp-1,' orbitals.'
+!!!end if
+
 
 ! The number of orbitals handled by each preocessor is stored in orbsLIN%norb_par.
 ! The local array norb_par is used to collect the data and is then deallocated
