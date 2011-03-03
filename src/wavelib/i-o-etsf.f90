@@ -424,6 +424,13 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
      ! Write one kpoint.
      start(5) = (orbs%isorb + (iorb - 1) / orbs%nspinor) / orbs%norb + 1
      count(5) = 1
+     ! Write one spin.
+     start(6) = 1
+     if (start(4) > orbs%norbu) then
+        start(6) = 2
+        start(4) = start(4) - orbs%norbu
+     end if
+     count(6) = 1
 
      ! iCoeff is the index of the coefficient we are writing in ETSF
      iCoeff  = 1
@@ -508,7 +515,7 @@ contains
     type(etsf_geometry) :: geo
     type(etsf_basisdata) :: basis
     type(etsf_electrons) :: elec
-    integer :: i_all, i_stat, iat
+    integer :: i_all, i_stat, iat, i, ispin, iorb
     double precision, target :: rprimd(3,3)
     double precision, allocatable, target :: xred(:,:)
     double precision, dimension(:), allocatable, target :: znucl
@@ -535,10 +542,14 @@ contains
     dims%real_or_complex_coefficients = 1
     dims%max_number_of_coefficients = wfd%nvctr_c+7*wfd%nvctr_f
     dims%number_of_spinor_components = orbs%nspinor
-    dims%max_number_of_states = orbs%norb
+    dims%max_number_of_states = max(orbs%norbu, orbs%norbd)
     dims%number_of_kpoints = orbs%nkpts
     ! TODO: spin and kpoints here.
-    dims%number_of_spins = 1
+    if (orbs%norbd > 0) then
+       dims%number_of_spins = 2
+    else
+       dims%number_of_spins = 1
+    end if
 
     dims%max_number_of_basis_grid_points = wfd%nvctr_c
     dims%number_of_localization_regions = 1
@@ -602,9 +613,30 @@ contains
     deallocate(spnames)
     call memocc(i_stat,i_all,'spnames',subname)
     ! The eigenvalues
-    elec%eigenvalues%data1D => orbs%eval
+    if (dims%number_of_spins == 1) then
+       elec%eigenvalues%data1D => orbs%eval
+    else
+       allocate(elec%eigenvalues%data3D(dims%max_number_of_states, &
+            & dims%number_of_kpoints, dims%number_of_spins + ndebug),stat=i_stat)
+       call memocc(i_stat,elec%eigenvalues%data3D,'elec%eigenvalues%data3D',subname)
+       elec%eigenvalues%data3D = 999.
+       do i = 1, orbs%norb*orbs%nkpts, 1
+          ispin = 1
+          iorb = modulo(i - 1, orbs%norb) + 1
+          if (iorb > orbs%norbu) then
+             ispin = 2
+             iorb = iorb - orbs%norbu
+          end if
+          elec%eigenvalues%data3D(iorb, (i - 1) / orbs%norb + 1, ispin) = orbs%eval(i)
+       end do
+    end if
     call etsf_io_electrons_put(ncid, elec, lstat, error)
     if (.not. lstat) call etsf_error(error)
+    if (dims%number_of_spins /= 1) then
+       i_all=-product(shape(elec%eigenvalues%data3D))*kind(elec%eigenvalues%data3D)
+       deallocate(elec%eigenvalues%data3D)
+       call memocc(i_stat,i_all,'elec%eigenvalues%data3D',subname)
+    end if
     ! Basis set
     basis%coordinates_of_basis_grid_points%data2D => gcoord
     basis%number_of_coefficients_per_grid_point%data1D => nvctr
