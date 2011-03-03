@@ -203,7 +203,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   character(len=*), parameter :: subname='cluster'
   character(len=3) :: PSquiet
   character(len=4) :: f4
-  character(len=5) :: fformat
+  character(len=5) :: gridformat, wfformat
   character(len=50) :: filename
   character(len=500) :: errmess
   logical :: endloop,endlooprp,allfiles,onefile,refill_proj
@@ -276,11 +276,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ncongt=in%ncongt
   nspin=in%nspin
   if (abs(in%output_grid) > 10) then
-     write(fformat, "(A)") ".etsf"
+     write(gridformat, "(A)") ".etsf"
   else
-     write(fformat, "(A)") ".cube"
+     write(gridformat, "(A)") ".cube"
   end if
-
+  write(wfformat, "(A)") ""
+  select case (in%output_wf_format)
+     case (WF_FORMAT_ETSF)
+        write(wfformat, "(A)") ".etsf"
+     case (WF_FORMAT_BINARY)
+        write(wfformat, "(A)") ".bin"
+  end select
+     
   norbv=abs(in%norbv)
   nvirt=in%nvirt
 
@@ -530,18 +537,36 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !otherwise switch to normal input guess
   if (in%inputPsiId ==2) then
      allfiles=.true.
-     do iorb=1,orbs%norb*orbs%nspinor
-        write(f4,'(i4.4)')  iorb
-        filename = 'wavefunction.'//f4
-        inquire(file=filename,exist=onefile)
-        allfiles=allfiles .and. onefile
-        if (.not. allfiles) then
-           if (iproc == 0) write(*,*)' WARNING: The wavefunction file ',trim(filename),&
-                ' does not exist, switch to normal input guess'
-           inputpsi = 0
-           exit
+     ! Test ETSF file.
+     inquire(file="wavefunction.etsf",exist=onefile)
+     if (.not. onefile) then
+        ! Test bin files
+        do iorb=1,orbs%norb*orbs%nspinor
+           write(f4,'(i4.4)')  iorb
+           filename = 'wavefunction.bin.'//f4
+           inquire(file=filename,exist=onefile)
+           allfiles=allfiles .and. onefile
+           if (.not. allfiles) then
+              exit
+           end if
+        end do
+        if (.not. allfiles) then           
+           ! Test plain files.
+           do iorb=1,orbs%norb*orbs%nspinor
+              write(f4,'(i4.4)')  iorb
+              filename = 'wavefunction.'//f4
+              inquire(file=filename,exist=onefile)
+              allfiles=allfiles .and. onefile
+              if (.not. allfiles) then
+                 exit
+              end if
+           end do
         end if
-     end do
+     end if
+     if (.not. allfiles) then
+        if (iproc == 0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        inputpsi = 0
+     end if
   end if
 
   !all the input formats need to allocate psi except the LCAO input_guess
@@ -691,7 +716,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
              '---------------------------------------------------- Reading Wavefunctions from disk'
      end if
 
-     call readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
+     call readmywaves(iproc,"wavefunction", &
+          & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
 
   case(11)
      !restart from previously calculated gaussian coefficients
@@ -1185,7 +1211,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         nullify(gbd%rxyz)
 
      else
-        call  writemywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,Glr%wfd,psi)
+        call  writemywaves(iproc,"wavefunction" // trim(wfformat), &
+             & orbs,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,Glr%wfd,psi)
         if (verbose >0) write( *,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
      end if
   end if
@@ -1194,12 +1221,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   if (mod(abs(in%output_grid), 10) == 2 .and. DoLastRunThings) then
      !if (in%output_grid==2) then
      !if (iproc == 0) write(*,*) 'writing ionic_potential.pot'
-     if (iproc == 0) write(*,*) 'writing ionic_potential' // fformat
-     call plot_density('ionic_potential' // fformat,iproc,nproc,&
+     if (iproc == 0) write(*,*) 'writing ionic_potential' // gridformat
+     call plot_density('ionic_potential' // gridformat,iproc,nproc,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&
           1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot_ion)
-     if (iproc == 0) write(*,*) 'writing local_potential' // fformat
-     call plot_density('local_potential' // fformat,iproc,nproc,&
+     if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
+     call plot_density('local_potential' // gridformat,iproc,nproc,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&
           1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot)
   end if
@@ -1246,14 +1273,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
      !plot the density on the density.pot file
      if ((abs(in%output_grid) >= 1 .or. in%nvacancy /=0) .and. DoLastRunThings) then
-        if (iproc == 0) write(*,*) 'writing electronic_density' // fformat
+        if (iproc == 0) write(*,*) 'writing electronic_density' // gridformat
 
-        call plot_density('electronic_density' // fformat,&
+        call plot_density('electronic_density' // gridformat,&
              iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
              in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
         if (associated(rhocore)) then
-           if (iproc == 0) write(*,*) 'writing grid core_density' // fformat
-           call plot_density('core_density' // fformat,&
+           if (iproc == 0) write(*,*) 'writing grid core_density' // gridformat
+           call plot_density('core_density' // gridformat,&
                 iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
                 1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhocore(1+n1i*n2i*i3xcsh:))
         end if
@@ -1277,8 +1304,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
      !plot also the electrostatic potential
      if (mod(abs(in%output_grid), 10) == 2 .and. DoLastRunThings) then
-        if (iproc == 0) write(*,*) 'writing hartree_potential' // fformat
-        call plot_density('hartree_potential' // fformat, &
+        if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
+        call plot_density('hartree_potential' // gridformat, &
              & iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
              & in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot)
      end if

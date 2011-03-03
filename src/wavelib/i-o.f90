@@ -486,7 +486,7 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
      enddo
   enddo
 
-  write(*,'(1x,i0,a)') iorb,'th wavefunction written'
+  if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
 
 
 END SUBROUTINE writeonewave

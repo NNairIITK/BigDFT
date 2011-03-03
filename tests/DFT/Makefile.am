@@ -72,9 +72,12 @@ H2O-slab.post-in:
 
 
 # Generic part, do not touch.
+INS = $(TESTDIRS:=.in)
 CHECKS = $(TESTDIRS:=.check)
 FAILEDCHECKS = $(TESTDIRS:=.recheck)
 CLEANS = $(TESTDIRS:=.clean)
+
+in: $(INS)
 
 check: $(CHECKS) report
 
