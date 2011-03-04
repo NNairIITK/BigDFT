@@ -269,7 +269,7 @@ integer,dimension(:),allocatable:: orbitalNumber
 real(8),dimension(:,:),allocatable:: parabolaShift
 integer:: nbasisOnPreviousMPI
 real(8):: convCrit, convCritInit, convCritFinal
-integer:: nItMin, nItMax, power, DIIShistMin, DIISHistMax
+integer:: nItMin, nItMax, DIIShistMin, DIISHistMax
   end type orbitals_data
 !!***
 
@@ -431,6 +431,19 @@ integer:: nItMin, nItMax, power, DIIShistMin, DIISHistMax
      type(GPU_pointers), pointer :: GPU
   end type lanczos_args
 !!***
+
+
+
+type,public:: linearParameters
+  integer:: DIISHistMin, DIISHistMax, nItMax
+  real(8):: convCrit
+  real(8),dimension(:),allocatable:: potentialPrefac
+  type(orbitals_data):: orbs
+  integer,dimension(:),allocatable:: onWhichAtom
+end type
+
+
+
 
 !!****t* module_types/diis_objects
 !! DESCRIPTION
