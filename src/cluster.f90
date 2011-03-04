@@ -551,6 +551,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            end if
         end do
         if (.not. allfiles) then           
+           allfiles = .true.
            ! Test plain files.
            do iorb=1,orbs%norb*orbs%nspinor
               write(f4,'(i4.4)')  iorb

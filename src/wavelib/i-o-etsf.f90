@@ -127,15 +127,16 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   else
      if (iproc == 0) then
         write(*,*) 'wavefunctions need reformatting'
-        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,*) &
-             'because hgrid_old >< hgrid',hx_old,hy_old,hz_old,hx,hy,hz
-        if (nvctr_c_old /= wfd%nvctr_c) write(*,*) 'because nvctr_c_old >< nvctr_c',&
-             nvctr_c_old,wfd%nvctr_c
-        if (nvctr_f_old /= wfd%nvctr_f) write(*,*) 'because nvctr_f_old >< nvctr_f',&
-             nvctr_f_old,wfd%nvctr_f
+        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) &
+             & write(*,*) 'because hgrid_old >< hgrid',hx_old,hy_old,hz_old,hx,hy,hz
+        if (nvctr_c_old /= wfd%nvctr_c) &
+             & write(*,*) 'because nvctr_c_old >< nvctr_c',nvctr_c_old,wfd%nvctr_c
+        if (nvctr_f_old /= wfd%nvctr_f) &
+             & write(*,*) 'because nvctr_f_old >< nvctr_f',nvctr_f_old,wfd%nvctr_f
         if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
-             write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
-        if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule'
+             & write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
+        if (displ > 1.d-3 ) &
+             & write(*,*) 'because of large displacement of molecule'
      end if
 
      ! We read the coordinates of grid points.
@@ -158,7 +159,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
      call memocc(i_stat,psigold,'psigold',subname)
      call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
-     do iorb = 1, orbs%norbp*orbs%nspinor
+     do iorb = 1, orbs%norbp*orbs%nspinor, 1
         ! We read the coefficients.
         ! Read one spinor.
         start(3) = modulo(iorb - 1, orbs%nspinor) + 1
@@ -206,7 +207,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
         end do
 
         call reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
-             rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
+             rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi(1,iorb))
      end do
 
      i_all=-product(shape(psigold))*kind(psigold)
@@ -500,7 +501,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
                 & psi(iFine:iFine+6, iorb), lstat, error_data = error, start = start, count = count)
            if (.not. lstat) call etsf_error(error)
            iCoeff = iCoeff + 7
-           iFine  = iFine + 7
+           iFine  = iFine  + 7
         end if
         iGrid = iGrid + diGrid + 1
      end do
@@ -695,7 +696,6 @@ contains
     allocate(coeff_map(0:n1, 0:n2, 0:n3),stat=i_stat)
     call memocc(i_stat,coeff_map,'coeff_map',subname)
     ! coarse part
-    iGrid = 0
     coeff_map = 0
     do iseg = 1, wfd%nseg_c
        jj = wfd%keyv(iseg)
@@ -708,7 +708,7 @@ contains
        i0 = ii - i2 * (n1 + 1)
        i1 = i0 + j1 - j0
        do i = i0, i1
-          iGrid = iGrid + 1
+          iGrid = i - i0 + jj
           coeff_map(i, i2, i3) = iGrid
           gcoord(:, iGrid) = (/ i, i2, i3 /)
           nvctr(iGrid) = 1
