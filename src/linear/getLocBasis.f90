@@ -75,7 +75,7 @@ real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
 real(dp), dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin) :: rhopot
 type(GPU_pointers):: GPU
 real(dp),dimension(:),pointer,intent(in) :: pkernelseq
-real(8),dimension(orbsLIN%npsidim),intent(in out):: phi
+real(8),dimension(lin%orbs%npsidim),intent(in out):: phi
 real(8),dimension(orbs%npsidim),intent(out):: psi, psit
 integer,intent(out):: infoBasisFunctions
 
@@ -90,20 +90,36 @@ character(len=*),parameter:: subname='getLinearPsi'
  
 
 
-allocate(hphi(orbsLIN%npsidim), stat=istat) 
+allocate(hphi(lin%orbs%npsidim), stat=istat) 
 call memocc(istat, hphi, 'hphi', subname)
 allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
 call memocc(istat, phiWorkPointer, 'phiWorkPointer', subname)
 
-call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, orbsLIN, commsLIN, rxyz, nspin, nlpspd, proj, &
+
+!!!!! ATENTION DEBUGGING !!
+!!!write(*,*) 'ATTENTION: DEBUGGING'
+!!!allocate(HamSmall(lin%orbs%norb,lin%orbs%norb), stat=istat)
+!!!!call transformHam(iproc, nproc, orbsLIN, commsLIN, phi, hphi, HamSmall)
+!!!call transformHam(iproc, nproc, lin%orbs, commsLIN, phi, hphi, HamSmall)
+!!!deallocate(HamSmall)
+!!!!! ATENTION DEBUGGING !!
+
+
+!call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, orbsLIN, commsLIN, rxyz, nspin, nlpspd, proj, &
+!    nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
+!    orbsLIN%DIISHistMin, orbsLIN%DIISHistMax, infoBasisFunctions)
+call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, commsLIN, rxyz, nspin, nlpspd, proj, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
-    orbsLIN%DIISHistMin, orbsLIN%DIISHistMax, infoBasisFunctions)
+    lin%DIISHistMin, lin%DIISHistMax, infoBasisFunctions)
 
 !allocate the potential in the full box
 call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
-     orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
+     lin%orbs%norb,lin%orbs%norbp,ngatherarr,rhopot,potential)
 
-call HamiltonianApplication(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!call HamiltonianApplication(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!     nlpspd,proj,Glr,ngatherarr,potential,&
+!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,rxyz,&
      nlpspd,proj,Glr,ngatherarr,potential,&
      phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
 
@@ -111,23 +127,29 @@ call HamiltonianApplication(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rx
 call free_full_potential(nproc,potential,subname)
 
 
-call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+!call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
 
-allocate(HamSmall(orbsLIN%norb,orbsLIN%norb), stat=istat)
-call transformHam(iproc, nproc, orbsLIN, commsLIN, phi, hphi, HamSmall)
+allocate(HamSmall(lin%orbs%norb,lin%orbs%norb), stat=istat)
+!call transformHam(iproc, nproc, orbsLIN, commsLIN, phi, hphi, HamSmall)
+call transformHam(iproc, nproc, lin%orbs, commsLIN, phi, hphi, HamSmall)
 
 if(iproc==0) write(*,'(a)', advance='no') 'Linear Algebra... '
-allocate(eval(orbsLIN%norb), stat=istat)
-call diagonalizeHamiltonian(iproc, nproc, orbsLIN, HamSmall, eval)
+allocate(eval(lin%orbs%norb), stat=istat)
+!call diagonalizeHamiltonian(iproc, nproc, orbsLIN, HamSmall, eval)
+call diagonalizeHamiltonian(iproc, nproc, lin%orbs, HamSmall, eval)
 
-call buildWavefunction(iproc, nproc, orbs, orbsLIN, comms, commsLIN, phi, psi, HamSmall)
+!call buildWavefunction(iproc, nproc, orbs, orbsLIN, comms, commsLIN, phi, psi, HamSmall)
+call buildWavefunction(iproc, nproc, orbs, lin%orbs, comms, commsLIN, phi, psi, HamSmall)
 
 call dcopy(orbs%npsidim, psi, 1, psit, 1)
 if(iproc==0) write(*,'(a)') 'done.'
 
 
-call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+!call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
 call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWorkPointer)
 
 
@@ -186,29 +208,6 @@ character(len=*),parameter:: subname='initializeParameters'
 character(len=20):: atomname
 logical:: written
 
-! Copy everything. This also allocates the pointer. To be changed later
-orbsLin=orbs
-lin%orbs=orbs
-
-
-
-! Decide wheter quadratic or quartic potential
-orbsLIN%power=4  ! quartic
-!orbsLIN%power=2  ! quadratic
-lin%orbs%power=4
-
-if(iproc==0) then
-    !if(orbsLIN%power==2) then
-    if(lin%orbs%power==2) then
-        write(*,'(a)') 'The basis functions are created using a parabolic potential.'
-    !else if(orbsLIN%power==4) then
-    else if(lin%orbs%power==4) then
-        write(*,'(a)') 'The basis functions are created using a quartic potential.'
-    else
-        write(*,'(a,i0,a)') 'ERROR: can only use parabolic or quartic potentials, but found power ', lin%orbs%power, '!' 
-        stop
-    end if
-end if
 
 ! Number of basis functions
 allocate(nbasisPerAt(at%nat), stat=istat)
@@ -217,53 +216,20 @@ call memocc(istat, at%nat, 'nbasisPerAt', subname)
 ! Read in the number of basis functions per atom type and save this information
 ! in the array nbasisPerAt.
 allocate(orbsPerAt(at%ntypes), stat=istat)
-allocate(orbsLIN%parabPrefacArr(at%ntypes), stat=istat)
-open(unit=999, file='orbitalsValues')
-read(999,*) orbsLIN%nItMin, orbsLIN%nItMax
-read(999,*) orbsLIN%convCritInit, orbsLIN%convCritFinal
-read(999,*) orbsLIN%DIISHistMin, orbsLIN%DIISHistMax
-if(orbsLIN%DIISHistMin>orbsLIN%DIISHistMax) then
-    if(iproc==0) write(*,'(a,i0,a,i0,a)') 'ERROR: DIISHistMin must not be larger than &
-    & DIISHistMax, but you chose ', orbsLIN%DIISHistMin, ' and ', orbsLIN%DIISHistMax, '!'
-    stop
-end if
-do iat=1,at%ntypes
-    read(999,*) atomname, orbsPerAt(iat), orbsLIN%parabPrefacArr(iat)
-    if(mod(orbsPerAt(iat),7)/=0) then
-        !write(*,'(a,a,a,i0)') 'ERROR: the number of orbitals per atom must be a multiple of 7, but for ',trim(atomname),' we found ', orbsPerAt(iat)
-        !stop
-    end if
-    if(iproc==0) write(*,'(a,a,a,i0,a,es9.3)') 'parameters for atom ', trim(atomname), &
-        ': number of basis functions=', orbsPerAt(iat), ', prefactor=', orbsLIN%parabPrefacArr(iat)
-    !do
-    !    ishell=ii+occupForInguess(iat, ishell)
-    !end do
-    !occupForInguess
-end do
-close(unit=999) 
-
-
 allocate(lin%potentialPrefac(at%ntypes), stat=istat)
 open(unit=99, file='input.lin')
 read(99,*) lin%nItMax
 read(99,*) lin%convCrit
 read(99,*) lin%DIISHistMin, lin%DIISHistMax
-if(orbsLIN%DIISHistMin>orbsLIN%DIISHistMax) then
+if(lin%DIISHistMin>lin%DIISHistMax) then
     if(iproc==0) write(*,'(a,i0,a,i0,a)') 'ERROR: DIISHistMin must not be larger than &
-    & DIISHistMax, but you chose ', orbsLIN%DIISHistMin, ' and ', orbsLIN%DIISHistMax, '!'
+    & DIISHistMax, but you chose ', lin%DIISHistMin, ' and ', lin%DIISHistMax, '!'
     stop
 end if
 do iat=1,at%ntypes
     read(99,*) atomname, orbsPerAt(iat), lin%potentialPrefac(iat)
 end do
 close(unit=99)
-
-!open(unit=999, file='parabolaValues')
-!do iat=1,at%ntypes
-!    read(999,*) atomname, orbsLIN%parabPrefacArr(iat)
-!    if(iproc==0) write(*,'(a,a,a,es12.4)') 'parabola value for ', trim(atomname),' is:', orbsLIN%parabPrefacArr(iat)
-!end do
-!close(unit=999)
 
 
 ! Count how many basis functions we have.
@@ -292,47 +258,9 @@ if(.not.written) then
 end if
 
 
-!!!! Determine how many orbitals shall be treated by each process.
-!!!! tt gives the ideal split. Unfortunately this will likely not be an integer.
-!!!tt=dble(lin%orbs%norb)/dble(nproc)
-!!!lin%orbs%norbp=floor(tt)
-!!!! Each process will handle floor(tt) orbitals.
-!!!! Since some orbitals are remaining if tt was not an integer, calculate the number of orbitals
-!!!! that some processors have to handle on top. This number is given by ii.
-!!!tt=tt-dble(floor(tt))
-!!!ii=int(tt*nproc)
-!!!do jproc=0,ii-1
-!!!    if(iproc==jproc) lin%orbs%norbp=lin%orbs%norbp+1
-!!!end do
-!!!if(ii==0) then
-!!!    if(iproc==0) write(*,'(a,2(i0,a))') 'Processes from 0 to ',nproc-1,' treat ',lin%orbs%norbp,' orbitals.'
-!!!else
-!!!    if(iproc==0) write(*,'(a,5(i0,a))') 'Processes from 0 to ',ii-1,' treat ',lin%orbs%norbp, &
-!!!        ' orbitals, processes from ',ii,' to ',nproc-1,' treat ',lin%orbs%norbp-1,' orbitals.'
-!!!end if
-
-
-! The number of orbitals handled by each preocessor is stored in orbsLIN%norb_par.
-! The local array norb_par is used to collect the data and is then deallocated
-allocate(norb_par(0:nproc-1), stat=istat)
-call memocc(istat, nproc, 'norb_par', subname)
-norb_par=0
-norb_par(iproc)=lin%orbs%norbp
-call mpi_allreduce(norb_par(0), orbsLIN%norb_par, nproc, mpi_integer, mpi_sum, mpi_comm_world, ierr)
-call mpi_allreduce(norb_par(0), lin%orbs%norb_par, nproc, mpi_integer, mpi_sum, mpi_comm_world, ierr)
-
-iall=-product(shape(norb_par))*kind(norb_par)
-deallocate(norb_par, stat=istat)
-call memocc(istat, iall, 'norb_par', subname)
 
 allocate(lin%onWhichAtom(lin%orbs%norbp), stat=istat)
 call memocc(istat, nproc, 'lin%onWhichAtomnorb_par', subname)
-if(.not.allocated(orbsLIN%onWhichAtom)) allocate(orbsLIN%onWhichAtom(lin%orbs%norbp), &
-    stat=istat) ; if(istat/=0) stop 'ERROR in allocating onWhichAtom'
-if(.not.allocated(orbsLIN%orbitalNumber)) allocate(orbsLIN%orbitalNumber(lin%orbs%norbp), &
-    stat=istat) ; if(istat/=0) stop 'ERROR in allocating onWhichAtom'
-if(.not.allocated(orbsLIN%parabolaShift)) allocate(orbsLIN%parabolaShift(3,lin%orbs%norbp), &
-    stat=istat) ; if(istat/=0) stop 'ERROR in allocating onWhichAtom'
 
 
 ! Distribute the centers of the parabolic potential among the MPI processes.
@@ -351,9 +279,6 @@ jj=0
 ii2=0
 iiOrb=0
 lin%onWhichAtom=-1
-orbsLIN%onWhichAtom=-1
-orbsLIN%orbitalNumber=-1
-!write(*,'(a,i2,3x,20i4)') 'iproc, nbasisPerAt', iproc, nbasisPerAt
 
 ! THERE IS A PROBLEM WHEN ONLY 1 ORBITAL PER ATOM
 do iorb=1,lin%orbs%norb
@@ -361,10 +286,9 @@ call mpi_barrier(mpi_comm_world, ierr)
 
     ! Switch to the next MPI process if the numbers of orbitals for a given
     ! MPI process is reached.
-    !if(jj==orbsLIN%norb_par(jproc)) then
     if(jj==lin%orbs%norb_par(jproc)) then
         jproc=jproc+1
-  !if(iproc==0) write(*,'(a,4i5)') 'iorb, jj, ii, ii2', iorb, jj, ii, ii2
+   !if(iproc==0) write(*,'(a,4i5)') 'iorb, jj, ii, ii2', iorb, jj, ii, ii2
         if(iproc==jproc .and. iiorb/=nbasisPerAt(max(ii,1))) orbsLIN%nbasisOnPreviousMPI=ii2
         jj=0
         ii2=0
@@ -385,53 +309,13 @@ call mpi_barrier(mpi_comm_world, ierr)
     iiOrb=iiOrb+1
     !if(iproc==0) write(*,'(a,4i5)') 'iorb, ii, jj, jproc', iorb, ii, jj, jproc
     if(iproc==jproc) lin%onWhichAtom(jj)=ii
-    if(iproc==jproc) orbsLIN%onWhichAtom(jj)=ii
-    if(iproc==jproc) orbsLIN%orbitalNumber(jj)=iiOrb
+    !if(iproc==jproc) orbsLIN%onWhichAtom(jj)=ii
+    !if(iproc==jproc) orbsLIN%orbitalNumber(jj)=iiOrb
     !write(*,'(a,i2,i3,3x,20i4)') 'iproc, iorb, orbsLIN%onWhichAtom, orbsLIN%orbitalNumber', iproc, iorb, orbsLIN%onWhichAtom, orbsLIN%orbitalNumber
 
 end do    
-orbsLIN%orbitalNumber=orbsLIN%orbitalNumber!+orbsLIN%nbasisOnPreviousMPI
-do iorb=1,lin%orbs%norbp
-    !ii=mod(orbsLIN%orbitalNumber(iorb)-1,7)+1
-    !tt=dble(ceiling(dble(orbsLIN%orbitalNumber(iorb))/7.d0))
-    !tt=1.d0
-    !select case(ii)
-    !case(1)
-    !    orbsLIN%parabolaShift(1,iorb)=0.d0
-    !    orbsLIN%parabolaShift(2,iorb)=0.d0
-    !    orbsLIN%parabolaShift(3,iorb)=0.d0
-    !case(2)
-    !    orbsLIN%parabolaShift(1,iorb)=-1.d-1*tt
-    !    orbsLIN%parabolaShift(2,iorb)=0.d0
-    !    orbsLIN%parabolaShift(3,iorb)=0.d0
-    !case(3)
-    !    orbsLIN%parabolaShift(1,iorb)=1.d-1*tt
-    !    orbsLIN%parabolaShift(2,iorb)=0.d0
-    !    orbsLIN%parabolaShift(3,iorb)=0.d0
-    !case(4)
-    !    orbsLIN%parabolaShift(1,iorb)=0.d0
-    !    orbsLIN%parabolaShift(2,iorb)=-1.d-1*tt
-    !    orbsLIN%parabolaShift(3,iorb)=0.d0
-    !case(5)
-    !    orbsLIN%parabolaShift(1,iorb)=0.d0
-    !    orbsLIN%parabolaShift(2,iorb)=1.d-1*tt
-    !    orbsLIN%parabolaShift(3,iorb)=0.d0
-    !case(6)
-    !    orbsLIN%parabolaShift(1,iorb)=0.d0
-    !    orbsLIN%parabolaShift(2,iorb)=0.d0
-    !    orbsLIN%parabolaShift(3,iorb)=-1.d-1*tt
-    !case(7)
-    !    orbsLIN%parabolaShift(1,iorb)=0.d0
-    !    orbsLIN%parabolaShift(2,iorb)=0.d0
-    !    orbsLIN%parabolaShift(3,iorb)=1.d-1*tt
-    !end select
-    orbsLIN%parabolaShift(1,iorb)=0.d0
-    orbsLIN%parabolaShift(2,iorb)=0.d0
-    orbsLIN%parabolaShift(3,iorb)=0.d0
-!write(*,'(a,2i5,3es9.2)') 'iproc, iorb, orbsLIN%parabolaShift(:,iorb)', iproc, iorb, orbsLIN%parabolaShift(:,iorb)
-end do
 
-!write(*,'(a,i2,3x,200i4)') 'iproc, orbsLIN%onWhichAtom', iproc, orbsLIN%onWhichAtom
+write(*,'(a,i2,3x,200i4)') 'iproc, lin%onWhichAtom', iproc, lin%onWhichAtom
 !write(*,'(a,i2,3x,200i4)') 'iproc, orbsLIN%orbitalNumber', iproc, orbsLIN%orbitalNumber
 !write(*,'(a,i2,3x,200i4)') 'iproc, orbsLIN%nbasisOnPreviousMPI', iproc, orbsLIN%nbasisOnPreviousMPI
 iall=-product(shape(nbasisPerAt))*kind(nbasisPerAt)
@@ -439,78 +323,25 @@ deallocate(nbasisPerAt, stat=istat)
 call memocc(istat, iall, 'nbasisPerAt', subname)
 
 
-! Now adapt a few parameters in orbsLin%norb
-
-! The number of orbitals in orbsLIN is the number of basis functions
-orbsLin%norb=lin%orbs%norb
-! At the moment only working for closed shell!
-lin%orbs%norbu=lin%orbs%norb
-orbsLin%norbu=lin%orbs%norb
-orbsLin%norbp=lin%orbs%norbp
-if(orbsLIN%norbd>0) stop 'ERROR: not yet implemented for nspin=2!'
-
-! READ IN THE PREFACTOR FOR THE PARABOLIC POTENTIAL
-!open(unit=999, file='parabPrefac')
-!read(999,*) orbsLIN%parabPrefac
-!read(999,*) orbsLIN%parabMaxVal
-!close(unit=999)
-
-! Read in the prefactors for the parabola centered at the atoms. Each atom type
-! has it own value.
-!allocate(orbsLIN%parabPrefacArr(at%ntypes), stat=istat)
-!open(unit=999, file='parabolaValues')
-!do iat=1,at%ntypes
-!    read(999,*) atomname, orbsLIN%parabPrefacArr(iat)
-!    if(iproc==0) write(*,'(a,a,a,es12.4)') 'parabola value for ', trim(atomname),' is:', orbsLIN%parabPrefacArr(iat)
-!end do
-!close(unit=999)
 
 ! orbsLIN%isorb is the 'first' orbital for a given MPI process.
 norb_tot=0
 do jproc=0,iproc-1
-   !norb_tot=norb_tot+orbsLIN%norb_par(jproc)
    norb_tot=norb_tot+lin%orbs%norb_par(jproc)
 end do
 !reference orbital for process
-!orbsLIN%isorb=norb_tot
 lin%orbs%isorb=norb_tot
 
 
-! I don't know what this means, but it seems that it is necessary.
-nullify(orbsLIN%spinsgn)
-allocate(orbsLIN%spinsgn(lin%orbs%norb), stat=istat)
-orbsLIN%spinsgn=1.d0  ! WHY LIKE THIS?
-nullify(lin%orbs%spinsgn)
-allocate(lin%orbs%spinsgn(lin%orbs%norb), stat=istat)
-lin%orbs%spinsgn=1.d0  ! WHY LIKE THIS?
-
-! I don't know what this means, but it seems that it is necessary.
-nullify(orbsLIN%iokpt)
-allocate(orbsLIN%iokpt(lin%orbs%norbp), stat=istat)
-orbsLIN%iokpt=1 ! WHY LIKE THIS?
-nullify(lin%orbs%iokpt)
-allocate(lin%orbs%iokpt(lin%orbs%norbp), stat=istat)
-lin%orbs%iokpt=1 ! WHY LIKE THIS?
-
-! I don't know what this means, but it seems that it is necessary.
-nullify(orbsLIN%occup)
-allocate(orbsLIN%occup(lin%orbs%norb), stat=istat)
-orbsLIN%occup=2.d0  ! WHY LIKE THIS?
-nullify(lin%orbs%occup)
-allocate(lin%orbs%occup(lin%orbs%norb), stat=istat)
-lin%orbs%occup=2.d0  ! WHY LIKE THIS?
-
-! The eigenvalues from the input guess. They are used for the preconditioning.
-nullify(orbsLIN%eval)
-allocate(orbsLIN%eval(lin%orbs%norb), stat=istat)
-orbsLIN%eval=-.5d0
-nullify(lin%orbs%eval)
+if(associated(lin%orbs%eval)) then
+    nullify(lin%orbs%eval)
+end if
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
 lin%orbs%eval=-.5d0
 
 
 ! Assign the parameters needed for the communication to commsLIN.
-call orbitals_communicators(iproc,nproc,Glr,orbsLIN,commsLIN)
+!call orbitals_communicators(iproc,nproc,Glr,orbsLIN,commsLIN)
 call orbitals_communicators(iproc,nproc,Glr,lin%orbs,commsLIN)
 
 
@@ -523,24 +354,90 @@ call random_number(phi)
 !write(*,*) 'calling createInputGuess'
 !call createInputGuess(iproc, orbsLIN, Glr, input, at, rxyz, phi)
 
-! Orthonormalize phi.
-allocate(phiWorkPointer(size(phi)), stat=istat)
-call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-call orthogonalize(iproc, nproc, orbsLIN, commsLIN, Glr%wfd, phi, input)
-call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-deallocate(phiWorkPointer, stat=istat)
-
 
 end subroutine initializeParameters
 
 
 
+subroutine assignOrbitalsToAtoms(iproc, nat, lin, norbsPerAt)
+!
+!
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nat
+type(linearParameters):: lin
+integer,dimension(nat):: norbsPerAt
+
+! Local variables
+integer:: jproc, ii, jj, ii2, iiOrb, iorb
+
+
+
+! Distribute the centers of the parabolic potential among the MPI processes.
+! There are four counters:
+!   jproc: indicates which MPI process is handling the basis function which is being treated
+!   ii: counts the atom numbers
+!   jj: counts the orbitals handled by a given process
+!   iiOrb: counts the number of orbitals for a given atoms thas has already been assigned
+!   ii2: counts the number of basis functions for a given atom which are on the 'previous' MPI process
+!        and then stores this number in orbsLIN%nbasisOnPreviousMPI.
+!        (example: MPI 0 handles 4 orbitals centered on atom i and MPI 1 handles the remaining 8, then
+!         orbsLIN%nbasisOnPreviousMPI will have the value 4 for MPI 1)
+jproc=0
+ii=1
+jj=0
+ii2=0
+iiOrb=0
+lin%onWhichAtom=-1
+
+! THERE IS A PROBLEM WHEN ONLY 1 ORBITAL PER ATOM
+do iorb=1,lin%orbs%norb
+
+    ! Switch to the next MPI process if the numbers of orbitals for a given
+    ! MPI process is reached.
+    if(jj==lin%orbs%norb_par(jproc)) then
+        jproc=jproc+1
+   !if(iproc==0) write(*,'(a,4i5)') 'iorb, jj, ii, ii2', iorb, jj, ii, ii2
+        !if(iproc==jproc .and. iiorb/=nbasisPerAt(max(ii,1))) orbsLIN%nbasisOnPreviousMPI=ii2
+        jj=0
+        ii2=0
+    end if
+    
+    ! Switch to the next atom if the number of basis functions for this atom is reached.
+    !if(mod(iorb,nbasisPerAt(max(ii,1)))==1 .or. nbasisPerAt(max(ii,1))==1) then
+    !if((ii==0 .or. (ii2>1 .and. mod(ii2,nbasisPerAt(max(ii,1)))==1)) .or. nbasisPerAt(max(ii,1))==1) then
+
+    !if(iiOrb==nbasisPerAt(max(ii,1)) .or. nbasisPerAt(max(ii,1))==1) then
+    !if(iiOrb==nbasisPerAt(max(ii,1))) then
+    if(iiOrb==norbsPerAt(max(ii,1))) then
+        ii=ii+1
+        ii2=0
+        iiOrb=0
+    end if
+    ii2=ii2+1
+    jj=jj+1
+    iiOrb=iiOrb+1
+    !if(iproc==0) write(*,'(a,4i5)') 'iorb, ii, jj, jproc', iorb, ii, jj, jproc
+    if(iproc==jproc) lin%onWhichAtom(jj)=ii
+    !if(iproc==jproc) orbsLIN%onWhichAtom(jj)=ii
+    !if(iproc==jproc) orbsLIN%orbitalNumber(jj)=iiOrb
+    !write(*,'(a,i2,i3,3x,20i4)') 'iproc, iorb, orbsLIN%onWhichAtom, orbsLIN%orbitalNumber', iproc, iorb, orbsLIN%onWhichAtom, orbsLIN%orbitalNumber
+
+end do    
+end subroutine assignOrbitalsToAtoms
 
 
 
 
 
-subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, orbsLIN, commsLIN, rxyz, nspin, nlpspd, &
+
+!subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, orbsLIN, commsLIN, rxyz, nspin, nlpspd, &
+!    proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, &
+!    idsxMin, idsxMax, infoBasisFunctions)
+subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, commsLIN, rxyz, nspin, nlpspd, &
     proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, &
     idsxMin, idsxMax, infoBasisFunctions)
 !
@@ -568,7 +465,7 @@ type(orbitals_data):: orbs
 type(locreg_descriptors), intent(in) :: Glr
 type(input_variables):: input
 type(linearParameters):: lin
-type(orbitals_data):: orbsLIN
+!type(orbitals_data):: orbsLIN
 type(communications_arrays):: commsLIN
 real(8),dimension(3,at%nat):: rxyz, rxyzParabola
 integer:: nspin
@@ -579,7 +476,8 @@ integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
 real(dp), dimension(*), intent(inout) :: rhopot
 type(GPU_pointers), intent(inout) :: GPU
 real(dp), dimension(:), pointer :: pkernelseq
-real(8),dimension(orbsLIN%npsidim):: phi, hphi
+!real(8),dimension(orbsLIN%npsidim):: phi, hphi
+real(8),dimension(lin%orbs%npsidim):: phi, hphi
 real(8):: trH
 
 ! Local variables
@@ -627,21 +525,21 @@ else
 end if
 
 
-allocate(diisArr(orbsLIN%norb), stat=istat)
-do iorb=1,orbsLIN%norb
-    ! parameters for DIIS
-    diisArr(iorb)%switchSD=.false.
-    diisArr(iorb)%idiistol=0
-    diisArr(iorb)%mids=1
-    diisArr(iorb)%ids=0
-    diisArr(iorb)%idsx=idsxMax
-    diisArr(iorb)%energy_min=1.d10
-    diisArr(iorb)%energy_old=1.d10
-    diisArr(iorb)%energy=1.d10
-    diisArr(iorb)%alpha=2.d0
-    ! allocate only matrix, no history array (therefore '0')
-    call allocate_diis_objects(diisArr(iorb)%idsx, 0, 1, diisArr(iorb), subname) ! 1 for k-points
-end do
+!!allocate(diisArr(orbsLIN%norb), stat=istat)
+!!do iorb=1,orbsLIN%norb
+!!    ! parameters for DIIS
+!!    diisArr(iorb)%switchSD=.false.
+!!    diisArr(iorb)%idiistol=0
+!!    diisArr(iorb)%mids=1
+!!    diisArr(iorb)%ids=0
+!!    diisArr(iorb)%idsx=idsxMax
+!!    diisArr(iorb)%energy_min=1.d10
+!!    diisArr(iorb)%energy_old=1.d10
+!!    diisArr(iorb)%energy=1.d10
+!!    diisArr(iorb)%alpha=2.d0
+!!    ! allocate only matrix, no history array (therefore '0')
+!!    call allocate_diis_objects(diisArr(iorb)%idsx, 0, 1, diisArr(iorb), subname) ! 1 for k-points
+!!end do
 
 
 
@@ -675,43 +573,49 @@ iterLoop: do it=1,itMax
     call orthogonalize(iproc, nproc, lin%orbs, commsLIN, Glr%wfd, phi, input)
 
     ! Untranspose phi
-    call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+    !call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+    call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
 
 
     ! Calculate the unconstrained gradient.
     if(iproc==0) then
         write(*,'(a)', advance='no') 'Hamiltonian application... '
     end if
-    call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+    call HamiltonianApplicationParabola(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
          nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
          rhopot(1),&
-         phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
+         phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, pkernel=pkernelseq)
 
 
     ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
     if(iproc==0) then
         write(*,'(a)', advance='no') 'orthoconstraint... '
     end if
-    call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
-    call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-    call orthoconstraintNotSymmetric(iproc, nproc, orbsLIN, commsLIN, Glr%wfd, phi, hphi, trH, diag)
+    !call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+    !call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+    !call orthoconstraintNotSymmetric(iproc, nproc, orbsLIN, commsLIN, Glr%wfd, phi, hphi, trH, diag)
+    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+    call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, commsLIN, Glr%wfd, phi, hphi, trH, diag)
 
 
     ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
     ! of the previous iteration (fnrmOvrlpArr).
     nvctrp=commsLIN%nvctr_par(iproc,1) ! 1 for k-point
     istart=1
-    do iorb=1,orbsLIN%norb
+    do iorb=1,lin%orbs%norb
         if(it>1) fnrmOvrlpArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphiold(istart), 1)
         fnrmArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphi(istart), 1)
         istart=istart+nvctrp*orbs%nspinor
     end do
-    call mpi_allreduce(fnrmArr(1,2), fnrmArr(1,1), orbsLIN%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-    call mpi_allreduce(fnrmOvrlpArr(1,2), fnrmOvrlpArr(1,1), orbsLIN%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+    !call mpi_allreduce(fnrmArr(1,2), fnrmArr(1,1), orbsLIN%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+    !call mpi_allreduce(fnrmOvrlpArr(1,2), fnrmOvrlpArr(1,1), orbsLIN%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+    call mpi_allreduce(fnrmArr(1,2), fnrmArr(1,1), lin%orbs%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+    call mpi_allreduce(fnrmOvrlpArr(1,2), fnrmOvrlpArr(1,1), lin%orbs%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
 
     ! Keep the gradient for the next iteration.
     if(it>1) then
-        call dcopy(orbsLIN%norb, fnrmArr(1,1), 1, fnrmOldArr(1), 1)
+        call dcopy(lin%orbs%norb, fnrmArr(1,1), 1, fnrmOldArr(1), 1)
     end if
 
     ! Determine the gradient norm and its maximal component. In addition, adapt the
@@ -734,10 +638,11 @@ iterLoop: do it=1,itMax
     fnrm=sqrt(fnrm)
     fnrmMax=sqrt(fnrmMax)
     ! Copy the gradient (will be used in the next iteration to adapt the step size).
-    call dcopy(orbsLIN%norb*nvctrp*orbs%nspinor, hphi(1), 1, hphiold(1), 1)
+    call dcopy(lin%orbs%norb*nvctrp*orbs%nspinor, hphi(1), 1, hphiold(1), 1)
 
     ! Untranspose hphi.
-    call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+    !call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+    call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
     !deallocate(phiWorkPointer, stat=istat)
 
 
@@ -747,8 +652,10 @@ iterLoop: do it=1,itMax
     end if
     ncong=10
     gnrm=1.d3 ; gnrm_zero=1.d3
-    if(precond) call preconditionallLIN(iproc, nproc, orbsLIN, Glr, input%hx, input%hy, input%hz, &
-        ncong, hphi, gnrm, gnrm_zero, gnrmMax,  at%nat, rxyz, orbsLIN%onWhichAtom, at, it)
+    !if(precond) call preconditionallLIN(iproc, nproc, orbsLIN, Glr, input%hx, input%hy, input%hz, &
+    !    ncong, hphi, gnrm, gnrm_zero, gnrmMax,  at%nat, rxyz, orbsLIN%onWhichAtom, at, it)
+    if(precond) call preconditionallLIN(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
+        ncong, hphi, gnrm, gnrm_zero, gnrmMax,  at%nat, rxyz, at, it)
     !if(iproc==0) then
     !    write(*,'(a)') 'done. '
     !end if
@@ -762,7 +669,7 @@ iterLoop: do it=1,itMax
 
 
     tt=sum(alpha)
-    meanAlpha=tt/dble(orbsLIN%norb)
+    meanAlpha=tt/dble(lin%orbs%norb)
 
     ! Keep the values of the two previous iterations
     trHm2=trHm1
@@ -776,8 +683,9 @@ iterLoop: do it=1,itMax
     !if(fnrmMax<1.d0) allowDIIS=.true.
     !if(fnrmMax<1.d-2) then
     !if(fnrmMax<1.d-2 .and. it>=15) then
-    if((fnrmMax<orbsLIN%convCrit .and. it>=orbsLIN%nItMin) .or. it>=orbsLIN%nItMax) then
-        if(it>=orbsLIN%nItMax) then
+    !if((fnrmMax<orbsLIN%convCrit .and. it>=orbsLIN%nItMin) .or. it>=orbsLIN%nItMax) then
+    if(fnrmMax<lin%convCrit .or. it>=lin%nItMax) then
+        if(it>=lin%nItMax) then
             if(iproc==0) write(*,'(a,i0,a)') 'WARNING: not converged within ', it, &
                 ' iterations! Exiting loop due to limitations of iterations.'
             if(iproc==0) write(*,'(a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
@@ -791,9 +699,10 @@ iterLoop: do it=1,itMax
         end if
         if(iproc==0) write(*,'(a)') '============================== basis functions created =============================='
         !allocate(phiWorkPointer(size(phi)), stat=istat)
-        call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+        !call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+        call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
         !deallocate(phiWorkPointer, stat=istat)
-        call plotOrbitals(iproc, orbsLIN, Glr, phi, at%nat, rxyz, orbsLIN%onWhichAtom, .5d0*input%hx, &
+        call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
             .5d0*input%hy, .5d0*input%hz, 1)
         exit iterLoop
     end if
@@ -853,7 +762,7 @@ contains
     diisLIN%energy_old=1.d10
     diisLIN%energy=1.d10
     diisLIN%alpha=2.d0
-    call allocate_diis_objects(diisLIN%idsx, orbsLIN%npsidim, 1, diisLIN, subname) ! 1 for k-points
+    call allocate_diis_objects(diisLIN%idsx, lin%orbs%npsidim, 1, diisLIN, subname) ! 1 for k-points
     end subroutine initializeDIISParameters
 
 
@@ -905,7 +814,8 @@ contains
                ii=modulo(diisLIN%mids-(it-itBest),diisLIN%mids)
                !write(*,'(a,2i5)') 'diisLIN%mids, ii', diisLIN%mids, ii
                nvctrp=commsLIN%nvctr_par(iproc,1) ! 1 for k-point
-               call dcopy(orbsLIN%norb*nvctrp, diisLIN%psidst(ii*nvctrp*orbsLIN%norb+1), 1, phi(1), 1)
+               !call dcopy(orbsLIN%norb*nvctrp, diisLIN%psidst(ii*nvctrp*orbsLIN%norb+1), 1, phi(1), 1)
+               call dcopy(lin%orbs%norb*nvctrp, diisLIN%psidst(ii*nvctrp*lin%orbs%norb+1), 1, phi(1), 1)
             end if
             call deallocate_diis_objects(diisLIN, subname)
             diisLIN%idsx=0
@@ -920,29 +830,33 @@ contains
     if (diisLIN%idsx > 0) then
        diisLIN%mids=mod(diisLIN%ids,diisLIN%idsx)+1
        diisLIN%ids=diisLIN%ids+1
-       do iorb=1,orbsLIN%norb
-           diisArr(iorb)%mids=mod(diisArr(iorb)%ids,diisArr(iorb)%idsx)+1
-           diisArr(iorb)%ids=diisArr(iorb)%ids+1
-       end do
+       !do iorb=1,orbsLIN%norb
+       !do iorb=1,lin%orbs%norb
+       !    diisArr(iorb)%mids=mod(diisArr(iorb)%ids,diisArr(iorb)%idsx)+1
+       !    diisArr(iorb)%ids=diisArr(iorb)%ids+1
+       !end do
     end if
 
     ! Follow the gradient using steepest descent.
     ! The same, but transposed
     !allocate(phiWorkPointer(size(phi)), stat=istat)
-    call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+    !call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
     
     ! steepest descent
     if(diisLIN%idsx==0) then
         istart=1
         nvctrp=commsLIN%nvctr_par(iproc,1) ! 1 for k-point
-        do iorb=1,orbsLIN%norb
+        !do iorb=1,orbsLIN%norb
+        do iorb=1,lin%orbs%norb
             call daxpy(nvctrp*orbs%nspinor, -alpha(iorb), hphi(istart), 1, phi(istart), 1)
             istart=istart+nvctrp*orbs%nspinor
         end do
     else
         ! DIIS
         quiet=.true. ! less output
-        call psimix(iproc, nproc, orbsLIN, commsLIN, diisLIN, hphi, phi, quiet)
+        !call psimix(iproc, nproc, orbsLIN, commsLIN, diisLIN, hphi, phi, quiet)
+        call psimix(iproc, nproc, lin%orbs, commsLIN, diisLIN, hphi, phi, quiet)
         !call psimixVariable(iproc, nproc, orbsLIN, commsLIN, diisLIN, diisArr, hphi, phi, quiet)
     end if
     !deallocate(phiWorkPointer, stat=istat)
@@ -957,28 +871,28 @@ contains
     !   This subroutine allocates all local arrays.
     !
 
-    allocate(hphiold(orbsLIN%npsidim), stat=istat)
-    call memocc(istat, orbsLIN%npsidim, 'hphiold', subname)
+    allocate(hphiold(lin%orbs%npsidim), stat=istat)
+    call memocc(istat, lin%orbs%npsidim, 'hphiold', subname)
 
-    allocate(alpha(orbsLIN%norb), stat=istat)
-    call memocc(istat, orbsLIN%norbp, 'alpha', subname)
+    allocate(alpha(lin%orbs%norb), stat=istat)
+    call memocc(istat, lin%orbs%norbp, 'alpha', subname)
 
-    allocate(fnrmArr(orbsLIN%norb,2), stat=istat)
-    call memocc(istat, orbsLIN%norb*2, 'fnrmArr', subname)
+    allocate(fnrmArr(lin%orbs%norb,2), stat=istat)
+    call memocc(istat, lin%orbs%norb*2, 'fnrmArr', subname)
 
-    allocate(fnrmOldArr(orbsLIN%norb), stat=istat)
-    call memocc(istat, orbsLIN%norb, 'fnrmOldArr', subname)
+    allocate(fnrmOldArr(lin%orbs%norb), stat=istat)
+    call memocc(istat, lin%orbs%norb, 'fnrmOldArr', subname)
 
-    allocate(fnrmOvrlpArr(orbsLIN%norb,2), stat=istat)
-    call memocc(istat, orbsLIN%norb*2, 'fnrmOvrlpArr', subname)
+    allocate(fnrmOvrlpArr(lin%orbs%norb,2), stat=istat)
+    call memocc(istat, lin%orbs%norb*2, 'fnrmOvrlpArr', subname)
 
     allocate(phiWorkPointer(size(phi)), stat=istat)
     call memocc(istat, size(phi), 'phiWorkPointer', subname)
     
-    allocate(diag(orbsLIN%norb), stat=istat)
+    allocate(diag(lin%orbs%norb), stat=istat)
     
     ! Allocate the work arrays which will be used for the preconditioning.
-    call initialize_work_arrays_locham(Glr,orbs%nspinor,w2)
+    call initialize_work_arrays_locham(Glr,lin%orbs%nspinor,w2)
 
     end subroutine allocateLocalArrays
 
@@ -1048,6 +962,7 @@ real(8),dimension(orbs%norb,orbs%norb),intent(out):: HamSmall
 integer:: iorb, jorb, istat, ierr, nvctrp, iall
 real(8),dimension(:,:),allocatable:: HamTemp
 character(len=*),parameter:: subname='transformHam'
+
 
 
 ! Allocate a temporary array if there are several MPI processes

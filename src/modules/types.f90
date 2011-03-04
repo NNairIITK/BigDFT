@@ -269,7 +269,7 @@ integer,dimension(:),allocatable:: orbitalNumber
 real(8),dimension(:,:),allocatable:: parabolaShift
 integer:: nbasisOnPreviousMPI
 real(8):: convCrit, convCritInit, convCritFinal
-integer:: nItMin, nItMax, power, DIIShistMin, DIISHistMax
+integer:: nItMin, nItMax, DIIShistMin, DIISHistMax
   end type orbitals_data
 !!***
 

@@ -2572,918 +2572,918 @@ end function
 
 
 
-subroutine pulayNew(iproc, nproc, at, orbs, lr, input, orbsLIN, commsLIN, rxyz, nspin, &
-    nlpspd, proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, &
-    rxyzParabola, pulayAt, pulayDir, shift)
-!
-! Purpose:
-! ========
-!   Calculates the localized basis functions phi. These basis functions are eigenfunctions of the ordinary Hamiltonian
-!   with an additional parabolic potential centered at the atoms. The eigenfunctions are determined by minimizing the trace.
-!
-! Calling arguments:
-!   Input arguments
-!   Output arguments
-!    phi   the localized basis functions
-!
-use module_base
-use module_types
-use module_interfaces, except_this_one => pulayNew
-  use Poisson_Solver
-!use allocModule
-implicit none
-
-! Calling arguments
-integer:: iproc, nproc
-type(atoms_data), intent(in) :: at
-type(orbitals_data):: orbs
-type(locreg_descriptors), intent(in) :: lr
-type(input_variables):: input
-type(orbitals_data):: orbsLIN
-type(communications_arrays):: commsLIN
-real(8),dimension(3,at%nat):: rxyz, rxyzParabola
-integer:: nspin
-type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-real(dp), dimension(*), intent(inout) :: rhopot
-type(GPU_pointers), intent(inout) :: GPU
-real(dp), dimension(:), pointer :: pkernelseq
-real(8),dimension(orbsLIN%npsidim):: phi, hphi
-integer:: pulayAt, pulayDir
-real(8):: shift
-! Local variables
-integer:: iorb, jorb, korb, lorb, istat, istart, nvctrp, ierr, iat, ii, jj, kk, ik, il, ll, jproc, kproc, lproc, id, norbOnAt, info
-integer:: jstart, lwork, ncplx, it, iiAt, idir
-real(8),dimension(:),allocatable:: b, a, dvec, eval, work, phiw, hphiw, phi1, phiw2
-real(8),dimension(:,:),allocatable:: eps, dTemp, d
-real(8),dimension(:,:),allocatable:: emat, U, HU, HtildeSmall
-real(8),dimension(:,:,:),allocatable:: Htilde
-real(8):: tt, hphiNrm, dnrm2, fracTot, parabPrefac, ddot, ekin_sum, epot_sum, eexctx, eproj_sum
-integer,dimension(:,:),allocatable:: orbsOnAtom
-integer,dimension(:,:,:),allocatable:: tempArr
-integer,dimension(:),allocatable:: lorbArr, displs, ipiv
-real(8),dimension(:),pointer:: phiWorkPointer
-character(len=1):: direction
-!real(8),dimension(:,:),allocatable:: rxyzParabola
-
-
-! Calculate the unconstrained gradient.
-call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
-     nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
-     rhopot(1),&
-     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
-
-allocate(orbsOnAtom(orbsLIN%norb,2), stat=istat)
-allocate(lorbArr(0:nproc-1), stat=istat)
-allocate(displs(0:nproc-1), stat=istat)
-atomsLoop: do iat=pulayAt,pulayAt
-    orbsOnAtom=0
-    nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor
-
-
-    ! First find out which atoms are centered on atom iat
-    korb=0
-    lorb=0
-    do jproc=0,nproc-1
-        do jorb=1,orbsLIN%norb_par(jproc)
-            korb=korb+1
-            if(jproc==iproc) then
-                if(orbsLIN%onWhichAtom(jorb)==iat) then
-                    lorb=lorb+1
-                    orbsOnAtom(lorb,2)=korb
-                end if
-            end if
-        end do
-    end do
-    call mpi_gather(lorb, 1, mpi_integer, lorbArr(0), 1, mpi_integer, 0, mpi_comm_world, ierr)
-    displs(0)=0
-    do jproc=1,nproc-1
-        displs(jproc)=displs(jproc-1)+lorbArr(jproc-1)
-    end do
-    call mpi_gatherv(orbsOnAtom(1,2), lorb, mpi_integer, orbsOnAtom(1,1), lorbArr(0), displs(0), &
-        mpi_integer, 0, mpi_comm_world, ierr)
-    do istat=1,sum(lorbArr)
-        !if(iproc==0) write(*,*)'istat, orbsOnAtom(istat,1)', istat, orbsOnAtom(istat,1)
-    end do
-
-    ! Send orbsOnAtom to all processes
-    if(iproc==0) norbOnAt=sum(lorbArr)
-    call mpi_bcast(norbOnAt, 1, mpi_integer, 0, mpi_comm_world, ierr)
-    call mpi_barrier(mpi_comm_world, ierr)
-    call mpi_bcast(orbsOnAtom(1,1), norbOnat, mpi_integer, 0, mpi_comm_world, ierr)
-    call mpi_barrier(mpi_comm_world, ierr)
- 
-    ! Calculate <phi|H|phi> for all orbitals. This requires to tranpose them first.
-    allocate(Htilde(orbsLIN%norb,orbsLIN%norb,2), stat=istat)
-    Htilde=0.d0
-    allocate(phiWorkPointer(size(phi)), stat=istat)
-    call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
-    call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
-    deallocate(phiWorkPointer, stat=istat)
-    nvctrp=commsLIN%nvctr_par(iproc,1)
-    istart=1
-    do iorb=1,orbsLIN%norb
-        jstart=1
-        do jorb=1,orbsLIN%norb
-            Htilde(iorb,jorb,2)=ddot(nvctrp, phi(istart), 1, hphi(jstart), 1)
-            jstart=jstart+nvctrp
-        end do
-        istart=istart+nvctrp
-    end do
-    call mpi_allreduce (Htilde(1,1,2), Htilde(1,1,1), orbsLIN%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-    if(iproc==0) write(*,*) '<phi|H|phi>'
-    do iorb=1,orbsLIN%norb
-        if(iproc==0) write(*,'(100f8.4)') (Htilde(iorb,jorb,1), jorb=1,orbsLIN%norb)
-    end do
-
-    ! Cut out the part of the matrix containing all orbitals centered on the current atom
-    allocate(HtildeSmall(norbOnAt,norbOnAt), stat=istat)
-    if(iproc==0) then
-        do iorb=1,norbOnAt
-            do jorb=1,norbOnAt
-                HtildeSmall(jorb,iorb)=Htilde(orbsOnAtom(jorb,1),orbsOnAtom(iorb,1),1)
-            end do
-        end do 
-        !do iorb=1,norbOnAt
-        !    write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
-        !end do
-        
-        ! Diagonalize Htilde on root only
-        allocate(eval(norbOnAt), stat=istat)
-        lwork=1000*norbOnAt
-        allocate(work(lwork), stat=istat)
-        call dsyev('v', 'l', norbOnAt, HtildeSmall, norbOnAt, eval, work, lwork, info)
-        if(info/=0) then
-            write(*,'(a,i0)') 'ERROR in dsyev, info= ',info
-            stop
-        end if
-        deallocate(work, stat=istat)
-        !write(*,*) '--------------'
-        !do iorb=1,norbOnAt
-        !    write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
-        !end do
-    end if
-
-    ! Broadcast HtildeSmall
-    call mpi_bcast(HtildeSmall(1,1), norbOnAt**2, mpi_double_precision, 0, mpi_comm_world, ierr)
-    call mpi_barrier(mpi_comm_world, ierr)
-    !write(*,*) '--------------', iproc, norbOnAt
-    !do iorb=1,norbOnAt
-    !    write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
-    !end do
-
-    ! Build new linear combination
-    allocate(phiw(orbsLIN%npsidim), stat=istat)
-    allocate(hphiw(orbsLIN%npsidim), stat=istat)
-    phiw=0.d0 ; hphiw=0.d0
-    nvctrp=commsLIN%nvctr_par(iproc,1)
-    do iorb=1,norbOnAt
-        istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
-        do jorb=1,norbOnAt
-            jstart=(orbsOnAtom(jorb,1)-1)*nvctrp+1
-            call daxpy(nvctrp, HtildeSmall(jorb,iorb), phi(jstart), 1, phiw(istart), 1)
-        end do
-    end do
-
-    !!! Undo this transformations only a test)
-    !!allocate(phiw2(size(phiw)), stat=istat)
-    !!phiw2=phiw
-    !!phiw=0.d0
-    !!do iorb=1,norbOnAt
-    !!    istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
-    !!    do jorb=1,norbOnAt
-    !!        jstart=(orbsOnAtom(jorb,1)-1)*nvctrp+1
-    !!        call daxpy(nvctrp, HtildeSmall(iorb,jorb), phiw2(jstart), 1, phiw(istart), 1)
-    !!    end do
-    !!end do
-
-    allocate(phiWorkPointer(size(phi)), stat=istat)
-    call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
-    call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
-    call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
-    deallocate(phiWorkPointer, stat=istat)
-
-    ! Check whether the subspace diagonalization was successful
-    ! This should at the moment always be done to get the diagonal elements
-    if(.true.) then
-        nspin=1
-        !call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
-        !     nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
-        !     rhopot(1),&
-        !     phiw(1),hphiw(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
-        call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
-            nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
-            rhopot(1),&
-            phiw(1),hphiw(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
-
-        Htilde=0.d0
-        allocate(phiWorkPointer(size(phi)), stat=istat)
-        call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
-        call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphiw, work=phiWorkPointer)
-        deallocate(phiWorkPointer, stat=istat)
-        nvctrp=commsLIN%nvctr_par(iproc,1)
-        istart=1
-        do iorb=1,orbsLIN%norb
-            jstart=1
-            do jorb=1,orbsLIN%norb
-                Htilde(iorb,jorb,2)=ddot(nvctrp, phiw(istart), 1, hphiw(jstart), 1)
-                jstart=jstart+nvctrp
-            end do
-            istart=istart+nvctrp
-        end do
-        call mpi_allreduce (Htilde(1,1,2), Htilde(1,1,1), orbsLIN%norb**2 ,mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-        !if(iproc==0) write(*,*) 'after subspace diag: <phi|H|phi>'
-        !do iorb=1,orbsLIN%norb
-        !    if(iproc==0) write(*,'(100f8.4)') (Htilde(iorb,jorb,1), jorb=1,orbsLIN%norb)
-        !end do
-    end if       
-
-    directionLoop: do idir=pulayDir,pulayDir
-           if(idir==1) then
-               direction='x'
-           else if(idir==2) then
-               direction='y'
-           else if(idir==3) then
-               direction='z'
-           end if
-           ! Calculate the matrix elements <phiw|V|phiw>
-           ncplx=1
-           it=1
-           ! First apply the perturbation to all orbitals belonging to iproc
-           allocate(phiWorkPointer(size(phi)), stat=istat)
-           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
-           hphiw=phiw
-           istart=1
-           do iorb=1,orbsLIN%norbp
-               iiAt=orbsLIN%onWhichAtom(iorb)
-               parabPrefac=orbsLIN%parabPrefacArr(at%iatype(orbsLIN%onWhichAtom(iorb)))
-               !write(*,'(a,2i6,es12.4)') 'before: iproc, iorb, dnrm2(hphiw)', iproc, iorb, dnrm2(nvctrp,hphiw(istart),1)
-               call subTemp(lr,ncplx,&
-                    input%hx,input%hy,input%hz,hphiw(istart), rxyzParabola(3,iat), orbsLIN, parabPrefac, it, direction, shift)
-               !write(*,'(a,2i6,es12.4)') 'after: iproc, iorb, dnrm2(hphiw)', iproc, iorb, dnrm2(nvctrp,hphiw(istart),1)
-               istart=istart+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbsLIN%nspinor
-           end do
-    
-           call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
-           call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphiw, work=phiWorkPointer)
-    
-    
-           ! nvctrp is the amount of each phi hold by the current process
-           nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor
-           
-           allocate(dTemp(orbsLIN%norb,orbsLIN%norb), stat=istat)
-           allocate(d(orbsLIN%norb,orbsLIN%norb), stat=istat)
-           dTemp=0.d0
-           istart=1
-           do iorb=1,orbsLIN%norb
-               jstart=1
-               do jorb=1,orbsLIN%norb
-                   dTemp(iorb,jorb)=ddot(nvctrp, phiw(istart), 1, hphiw(jstart), 1)
-                   !if(iproc==0) write(*,'(a,2i6,2es12.4)') 'iorb, jorb, dnrm2(phiw), dnrm2(hphiw)', iorb, jorb, dnrm2(nvctrp,phiw(istart),1), dnrm2(nvctrp,hphiw(jstart),1)
-                   jstart=jstart+nvctrp
-               end do
-               istart=istart+nvctrp
-           end do
-           d=0.d0
-           call mpi_allreduce(dTemp(1,1), d(1,1), orbsLIN%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-           ! Add the diagonal element shift**2
-           do iorb=1,orbsLIN%norb
-               d(iorb,iorb)=d(iorb,iorb)+parabPrefac*dble(shift)**2
-           end do
-           
-           if(iproc==0) write(*,'(a,es12.4)') '<phi|V|phi> with shift=',shift
-           do iorb=1,orbsLIN%norb
-               if(iproc==0) write(*,'(100es15.8)') (d(iorb,jorb), jorb=1,orbsLIN%norb)
-           end do
-    
-           ! Make a linear combination according to perturbation theory
-           !!do iorb=1,orbsLIN%norbp
-           !!    write(*,'(a,i5,i3,i5,es12.5)') 'iat, iproc, iorb, dnrm2(phiw)', iat, iproc, iorb, dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phiw(istart), 1)
-           !!    istart=istart+lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           !!end do
-           allocate(phi1(orbsLIN%npsidim), stat=istat)
-           phi1=0.d0
-           do iorb=1,norbOnAt
-               !istart=(iorb-1)*nvctrp+1
-               istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
-               do jorb=1,norbOnAt
-                   jstart=(orbsOnAtom(jorb,1)-1)*nvctrp+1
-                   if(iorb==jorb) cycle
-                   call daxpy(nvctrp, d(orbsOnATom(iorb,1),orbsOnAtom(jorb,1))/ &
-                   (Htilde(orbsOnAtom(iorb,1),orbsOnAtom(iorb,1),1)-Htilde(orbsOnAtom(jorb,1),orbsOnAtom(jorb,1),1)), &
-                   phiw(jstart), 1, phi1(istart), 1)
-               end do
-           end do
-           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi1, work=phiWorkPointer)
-           !istart=1
-           !do iorb=1,orbsLIN%norbp
-           !    write(*,'(a,i3,i5,2es12.5)') 'iproc, iorb, dnrm2(phi1), dnrm2(phi)', iproc, iorb, dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phi1(istart), 1), dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phi(istart), 1)
-           !    istart=istart+lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           !end do
-           call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi1, work=phiWorkPointer)
-
-           ! Add the correction phi1 to the old orbitals phiw
-           istart=1
-           do iorb=1,norbOnAt
-               jstart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
-               call daxpy(nvctrp, 1.d0, phi1(jstart), 1, phiw(jstart), 1)
-               !call daxpy(nvctrp, 1.d0, phi1(istart), 1, phiw(jstart), 1)
-               istart=istart+nvctrp
-           end do
-
-           call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
-           ! Transform back to 'old' orbitals
-           allocate(phiw2(size(phiw)), stat=istat)
-           phiw2=phiw
-           phiw=0.d0
-           do iorb=1,norbOnAt
-               istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
-               do jorb=1,norbOnAt
-                   jstart=(orbsOnAtom(jorb,1)-1)*nvctrp+1
-                   call daxpy(nvctrp, HtildeSmall(iorb,jorb), phiw2(jstart), 1, phiw(istart), 1)
-               end do
-           end do
-
-           ! Now mix the orbitals
-           phiw2=phi
-           istart=1
-           do iorb=1,norbOnAt
-               jstart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
-               !call dcopy(nvctrp, phiw(istart), 1, phiw2(jstart), 1)
-               call dcopy(nvctrp, phiw(jstart), 1, phiw2(jstart), 1)
-               istart=istart+nvctrp
-           end do
-
-           ! This is not necessary, only for debugging
-           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw2, work=phiWorkPointer)
-           !istart=1
-           !do iorb=1,orbsLIN%norbp
-           !    write(*,'(a,i4,i3,i5,2es12.5)') 'iat, iproc, iorb, dnrm2(phiw2)', iat, iproc, iorb, dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phiw2(istart), 1)
-           !    istart=istart+lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           !end do
-           call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw2, work=phiWorkPointer)
-
-
-           ! Now orthonormalize
-           call orthogonalize(iproc, nproc, orbsLIN, commsLIN, lr%wfd, phiw2, input)
-    
-           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
-           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
-           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphiw, work=phiWorkPointer)
-           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw2, work=phiWorkPointer)
-           deallocate(phiWorkPointer, stat=istat)
-
-           ! Now phiw2 contains the perturbed basis functions.
-           ! Copy them back
-           !istart=1
-           !do iorb=1,orbsLIN%norbp
-           !    write(*,'(a,i4,i3,i5,2es24.15)') 'iat, iproc, iorb, <phi|phiw2>', iat, iproc, iorb, ddot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phi(istart), 1, phiw2(istart), 1)
-           !    istart=istart+lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           !end do
-           phi=phiw2
-    
-        !call mpi_barrier(mpi_comm_world, ierr)
-        !stop
-    end do directionLoop
-end do atomsLoop
-
-end subroutine pulayNew
-
-
-subroutine pulay(iproc, nproc, lr, orbs, orbsLIN, comms, commsLIN, input, at, rxyz, phi, hphi, &
-    psi, nscatterarr, ngatherarr, nlpspd, proj, sizeRhopot, rhopot, GPU, pkernelseq)
-!
-! Purpose:
-! ========
-!   Calculates the Pulay forces
-!
-! Calling arguments:
-! ==================
-!
-use module_base
-use module_types
-use module_interfaces, except_this_one => pulay
-implicit none
-
-! Calling arguments
-integer:: iproc, nproc, sizeRhopot
-type(locreg_descriptors), intent(in) :: lr
-type(orbitals_data), intent(inout) :: orbs, orbsLIN
-type(communications_arrays), intent(in) :: comms
-type(communications_arrays), intent(in) :: commsLIN
-type(atoms_data), intent(in) :: at
-real(8),dimension(3,at%nat):: rxyz
-integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-!real(dp), dimension(*), intent(inout) :: rhopot
-real(dp), dimension(sizeRhopot), intent(inout) :: rhopot
-type(GPU_pointers), intent(inout) :: GPU
-type(input_variables):: input
-real(dp), dimension(:), pointer :: pkernelseq
-real(8),dimension(orbsLIN%npsidim):: phi, hphi
-real(8),dimension(orbs%npsidim):: psi
-!integer:: iter
-!!
-! Local variables
-integer:: iorb, jorb, korb, lorb, istat, istart, nvctrp, ierr, iat, ii, jj, kk, ik, il, ll, jproc, kproc, lproc, id, norbOnAt, info
-integer:: jstart, lwork, nspin
-real(8),dimension(:),allocatable:: b, d, a, dvec, eval, work, phiw, hphiw
-real(8),dimension(:,:),allocatable:: eps
-real(8),dimension(:,:),allocatable:: emat, U, HU, HtildeSmall
-real(8),dimension(:,:,:),allocatable:: Htilde
-real(8):: tt, hphiNrm, dnrm2, fracTot, parabPrefac, ddot, ekin_sum, epot_sum, eexctx, eproj_sum
-integer,dimension(:,:),allocatable:: orbsOnAtom
-integer,dimension(:,:,:),allocatable:: tempArr
-integer,dimension(:),allocatable:: lorbArr, displs, ipiv
-real(8),dimension(:),pointer:: phiWorkPointer
-real(8),dimension(:,:),allocatable:: rxyzParabola
-!!
- write(*,*) 'ATTENTION -- TEST!'
- write(*,'(a,2i9)') 'size(rhopot), lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2)', size(rhopot), lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2)
-       allocate(rxyzParabola(3,at%nat), stat=istat)
-       rxyzParabola=rxyz
-       call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
-            nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
-            rhopot(1),&
-            phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
-
-fracTot=0.d0
-allocate(eps(orbsLIN%norb,orbsLIN%norb), stat=istat)
-allocate(d(orbsLIN%norb**2), stat=istat)
-allocate(orbsOnAtom(orbsLIN%norb,2), stat=istat)
-allocate(lorbArr(0:nproc-1), stat=istat)
-allocate(displs(0:nproc-1), stat=istat)
-orbsOnAtom=0
-nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor
-!!psiLoop: do korb=1,orbs%norb
-    istart=1
-    ! First calculate the epsilons
-    !call getEpsilon(iproc, nproc, orbsLIN, commsLIN, eps, phi(1), hphi(1))
-    !do iorb=1,orbslIN%norb
-    !    !if(iproc==0) write(*,'(100f9.5)') (eps((jorb-1)*orbsLIN%norb+iorb), jorb=1,orbsLIN%norb)
-    !    if(iproc==0) write(*,'(100f9.5)') (eps(iorb,jorb), jorb=1,orbsLIN%norb)
-    !end do
-    !phi1Loop: do iorb=1,orbsLIN%norb
-    atomsLoop: do iat=1,at%nat
-
-        call mpi_barrier(mpi_comm_world, ierr)  
-
-        !iiAt=orbsLIN%onWhichAtom(iorb)
-        !parabPrefac=orbsLIN%parabPrefacArr(at%iatype(orbsLIN%onWhichAtom(iorb)))
-        parabPrefac=orbsLIN%parabPrefacArr(at%iatype(iat))
-        !call getD(iproc,nproc,orbsLIN,lr,input%hx,input%hy,input%hz,phi, hphi, at%nat, rxyz(1,iat), parabPrefac, at, commsLIN, d)
-        !if(iproc==0) write(*,*) '===================================================='
-        !if(iproc==0) write(*,*) '===================================================='
-        !do iorb=1,orbsLIN%norb
-        !    if(iproc==0) write(*,'(100f11.5)') (d((jorb-1)*orbsLIN%norb+iorb), jorb=1,orbsLIN%norb)
-        !end do
-
-        ! First find out which atoms are centered on atom iat
-        korb=0
-        lorb=0
-        do jproc=0,nproc-1
-            do jorb=1,orbsLIN%norb_par(jproc)
-                korb=korb+1
-                if(jproc==iproc) then
-                    if(orbsLIN%onWhichAtom(jorb)==iat) then
-                        lorb=lorb+1
-                        orbsOnAtom(lorb,2)=korb
-                    end if
-                end if
-            end do
-        end do
-        call mpi_gather(lorb, 1, mpi_integer, lorbArr(0), 1, mpi_integer, 0, mpi_comm_world, ierr)
-        !if(iproc==0) then
-            displs(0)=0
-            do jproc=1,nproc-1
-                displs(jproc)=displs(jproc-1)+lorbArr(jproc-1)
-            end do
-        !end if
-        if(iproc==0) write(*,'(a,100i4)') 'lorbArr', lorbArr
-        if(iproc==0) write(*,'(a,100i4)') 'displs', displs
-        call mpi_barrier(mpi_comm_world, ierr)
-        write(*,*) 'before mpi_gatherv, iproc', iproc
-        call mpi_gatherv(orbsOnAtom(1,2), lorb, mpi_integer, orbsOnAtom(1,1), lorbArr(0), displs(0), &
-            mpi_integer, 0, mpi_comm_world, ierr)
-        write(*,*) 'after mpi_gatherv, iproc', iproc
-        do istat=1,sum(lorbArr)
-            if(iproc==0) write(*,*)'istat, orbsOnAtom(istat,1)', istat, orbsOnAtom(istat,1)
-        end do
-        call mpi_barrier(mpi_comm_world, ierr)
- write(*,*) 'here, iproc', iproc
-        call mpi_barrier(mpi_comm_world, ierr)
-  write(*,*) 'after barrier, iproc', iproc
-
-        ! Send orbsOnAtom to all processes
-        if(iproc==0) norbOnAt=sum(lorbArr)
-        call mpi_bcast(norbOnAt, 1, mpi_integer, 0, mpi_comm_world, ierr)
-        call mpi_barrier(mpi_comm_world, ierr)
-          write(*,*) 'norbOnAt, iproc', norbOnAt, iproc
-        call mpi_bcast(orbsOnAtom(1,1), norbOnat, mpi_integer, 0, mpi_comm_world, ierr)
-        call mpi_barrier(mpi_comm_world, ierr)
-   write(*,*) 'after bcast, iproc', iproc
- 
-        !if(iproc==0) then
-            !norbOnAt=sum(lorbArr)
-            !allocate(U(orbsLIN%npsidim,norbOnAt), stat=istat)
-            !allocate(HU(orbsLIN%npsidim,norbOnAt), stat=istat)
-            allocate(Htilde(orbsLIN%norb,orbsLIN%norb,2), stat=istat)
-            Htilde=0.d0
-            allocate(phiWorkPointer(size(phi)), stat=istat)
-            call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
-            call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
-            deallocate(phiWorkPointer, stat=istat)
-            nvctrp=commsLIN%nvctr_par(iproc,1)
-            istart=1
-            do iorb=1,orbsLIN%norb
-                jstart=1
-                do jorb=1,orbsLIN%norb
- !write(*,*) iproc, iorb, jorb
-                    Htilde(iorb,jorb,2)=ddot(nvctrp, phi(istart), 1, hphi(jstart), 1)
-                    jstart=jstart+nvctrp
-                end do
-                istart=istart+nvctrp
-            end do
-            call mpi_allreduce (Htilde(1,1,2), Htilde(1,1,1), orbsLIN%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-            do iorb=1,orbsLIN%norb
-                if(iproc==0) write(*,'(100f8.4)') (Htilde(iorb,jorb,1), jorb=1,orbsLIN%norb)
-            end do
-        !end if
-
-        allocate(HtildeSmall(norbOnAt,norbOnAt), stat=istat)
-        if(iproc==0) then
-            do iorb=1,norbOnAt
-                do jorb=1,norbOnAt
-                    HtildeSmall(jorb,iorb)=Htilde(orbsOnAtom(jorb,1),orbsOnAtom(iorb,1),1)
-                end do
-            end do 
-            do iorb=1,norbOnAt
-                write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
-            end do
-            
-            ! Diagonalize Htilde
-             allocate(eval(norbOnAt), stat=istat)
-             lwork=1000*norbOnAt
-             allocate(work(lwork), stat=istat)
-            call dsyev('v', 'l', norbOnAt, HtildeSmall, norbOnAt, eval, work, lwork, info)
-            deallocate(work, stat=istat)
-            write(*,*) '--------------'
-            do iorb=1,norbOnAt
-                write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
-            end do
-        end if
-        ! Broadcast HtildeSmall
-        call mpi_bcast(HtildeSmall(1,1), norbOnAt**2, mpi_double_precision, 0, mpi_comm_world, ierr)
-        call mpi_barrier(mpi_comm_world, ierr)
-            write(*,*) '--------------', iproc, norbOnAt
-            do iorb=1,norbOnAt
-                write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
-            end do
-
-       ! Build new linear combination
-       allocate(phiw(orbsLIN%npsidim), stat=istat)
-       allocate(hphiw(orbsLIN%npsidim), stat=istat)
-       nvctrp=commsLIN%nvctr_par(iproc,1)
-       jstart=1
-       do iorb=1,norbOnAt
-           istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
-           call dcopy(nvctrp, phi(istart), 1, phiw(jstart), 1)
-           jstart=jstart+nvctrp
-       end do
-
-       allocate(phiWorkPointer(size(phi)), stat=istat)
-       call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
-       call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
-       call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
-       deallocate(phiWorkPointer, stat=istat)
-
-       nspin=1
-       !call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
-       !     nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
-       !     rhopot(1),&
-       !     phiw(1),hphiw(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
-       call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
-            nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
-            rhopot(1),&
-            phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
-
-       Htilde=0.d0
-       allocate(phiWorkPointer(size(phi)), stat=istat)
-       call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
-       call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
-       deallocate(phiWorkPointer, stat=istat)
-       nvctrp=commsLIN%nvctr_par(iproc,1)
-       istart=1
-       do iorb=1,orbsLIN%norb
-           jstart=1
-           do jorb=1,orbsLIN%norb
-               Htilde(iorb,jorb,2)=ddot(nvctrp, phi(istart), 1, hphi(jstart), 1)
-               jstart=jstart+nvctrp
-           end do
-           istart=istart+nvctrp
-       end do
-       call mpi_allreduce (Htilde(1,1,2), Htilde(1,1,1), orbsLIN%norb**2 ,mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-       do iorb=1,orbsLIN%norb
-           if(iproc==0) write(*,'(100f8.4)') (Htilde(iorb,jorb,1), jorb=1,orbsLIN%norb)
-       end do
-
-    call mpi_barrier(mpi_comm_world, ierr)
-    stop
-
-
-        if(iproc==0) then
-            if(allocated(emat)) deallocate(emat)
-            norbOnAt=sum(lorbArr)
-            allocate(emat(norbOnAt**2,norbOnAt**2))
-            emat=0.d0
-            !emat=1.d-100
-        end if
-        
-        if(iproc==0) allocate(tempArr(2,norbOnAt**2,norbOnAt**2))
-        if(iproc==0) tempArr=0
-        ! Build the matrix emat
-        if(iproc==0) then
-            do jorb=1,norbOnAt**2
-                do iorb=1,norbOnAt**2
-                    ! the 'blocks'
-                    !write(*,'(a,3i7)') 'iorb, sum(lorbArr), mod(iorb-1,sum(lorbArr))+1',iorb, sum(lorbArr), mod(iorb-1,sum(lorbArr))+1
-                    !if(abs(iorb-jorb)<norbOnAt) emat(iorb,jorb)=eps(orbsOnAtom(mod(iorb-1,norbOnAt)+1,1),orbsOnAtom(mod(jorb-1,norbOnAt)+1,1))
-                    !if(abs(iorb-jorb)<norbOnAt) tempArr(1,iorb,jorb)=orbsOnAtom(mod(iorb-1,norbOnAt)+1,1) ; tempArr(2,iorb,jorb)=orbsOnAtom(mod(jorb-1,norbOnAt)+1,1)
-                    if(ceiling(dble(iorb)/dble(norbOnAt))==ceiling(dble(jorb)/dble(norbOnAt))) then
-                        emat(iorb,jorb)=eps(orbsOnAtom(mod(iorb-1,norbOnAt)+1,1), &
-                        orbsOnAtom(mod(jorb-1,norbOnAt)+1,1))
-                        !tempArr(1,iorb,jorb)=orbsOnAtom(mod(iorb-1,norbOnAt)+1,1) ; tempArr(2,iorb,jorb)=orbsOnAtom(mod(jorb-1,norbOnAt)+1,1)
-                    end if
-                    ! the 'pseudodiagonal' elements
-                    if(ceiling(dble(jorb)/dble(norbOnAt))==mod(iorb-1,norbOnAt)+1) then
-                        emat(iorb,jorb)=emat(iorb,jorb)+eps(orbsOnAtom(ceiling(dble(iorb)/dble(norbOnAt)),1),&
-                        orbsOnAtom(mod(jorb-1,norbOnAt)+1,1))
-                        tempArr(1,iorb,jorb)=orbsOnAtom(ceiling(dble(iorb)/dble(norbOnAt)),1) ; &
-                        tempArr(2,iorb,jorb)=orbsOnAtom(mod(jorb-1,norbOnAt)+1,1)
-                    end if
-                end do
-            end do
-        end if
-        !!! Delete the elements belonging to a_ii
-        !!if(iproc==0) then
-        !!    do jorb=1,norbOnAt**2
-        !!        do iorb=1,norbOnAt**2
-        !!            if(mod(iorb-1,norbOnAt)+1==ceiling(dble(iorb)/dble(norbOnAt)) .and. iorb==jorb) then
-        !!                emat(iorb,jorb)=0.d0
-        !!            end if
-        !!        end do
-        !!    end do
-        !!end if
-        if(iproc==0) then
-            do iorb=1,norbOnAt**2
-                write(*,'(100f9.5)') (emat(iorb,jorb), jorb=1,norbOnAt**2)
-            end do
-        end if
-        if(iproc==0) write(*,*) '--------------------------------'
-        if(iproc==0) then
-            do iorb=1,norbOnAt**2
-                write(*,'(100(2i3,2x))') (tempArr(1:2,iorb,jorb), jorb=1,norbOnAt**2)
-            end do
-        end if
-
-        ! Build the vector dvec
-        if(allocated(dvec)) deallocate(dvec)
-        if(iproc==0) then
-            allocate(dvec(norbOnAt**2))
-            dvec=0.d0
-            ii=1
-            do iorb=1,norbOnAt**2
-                if(iorb==orbsOnAtom(ii,1)) then
-                    jj=1
-                    do jorb=1,norbOnAt**2
-                        if(jorb==orbsOnAtom(jj,1)) then
-                            tempArr(1,(ii-1)*norbOnAt+jj,1)=iorb ; tempArr(2,(ii-1)*norbOnAt+jj,1)=jorb
-                            dvec((ii-1)*norbOnAt+jj)=d((iorb-1)*norbOnAt+jorb)
-                            jj=jj+1
-                        end if
-                    end do
-                    ii=ii+1
-                end if
-            end do
-  
-            do iorb=1,norbOnAt**2
-                write(*,'(2i4)') tempArr(1,iorb,1), tempArr(2,iorb,1)
-            end do
-        end if
-
-
-        ! Solve emat*a=dvec
-        if(iproc==0) then
-            allocate(a(norbOnAt**2))
-            allocate(ipiv(norbOnAt**2))
-            call dgesv(norbOnAt**2, 1, emat(1,1), norbOnAt**2, ipiv(1), dvec(1), norbOnAt**2, info)
-            if(info/=0) then
-                write(*,'(a,i0)') 'ERROR in dgesv, errorcode=', info
-                do iorb=1,norbOnAt**2
-                    write(*,'(100f9.5)') (emat(iorb,jorb), jorb=1,norbOnAt**2)
-                end do
-                stop
-            end if
-            do iorb=1,norbOnAt**2
-                write(*,'(a,i4,es12.5)') 'iorb, dvec(iorb)', iorb, dvec(iorb)
-            end do
-        end if
-        
-
-        !! Build the matrix epsilon and the vector d only for those orbitals centerd in atom iat.
-        !jj=0
-        !ik=0
-        !do jproc=0,nproc-1
-        !    do jorb=1,orbsLIN%norb_par(jproc)
-        !        jj=jj+1
-        !        if(jproc==iproc) then
-        !            if(orbsLIN%onWhichAtom(jorb)==iat) then
-        !                kk=0
-        !                il=0
-        !                do kproc=0,nproc-1
-        !                    do korb=1,orbsLIN%norb_par(kproc)
-        !                        kk=kk+1
-        !                        if(kproc==iproc) then
-        !                            if(orbsLIN%onWhichAtom(korb)==iat) then
-        !                                ik=ik+1
-        !                                dvec(ik)=-2.d0*d(jj+kk)
-        !                                ll=0
-        !                                do lproc=0,nproc-1
-        !                                    do lorb=1,orbsLIN%norb_par(lproc)
-        !                                        ll=ll+1
-        !                                        if(lproc==iproc) then
-        !                                            if(orbsLIN%onWhichAtom(lorb)==iat) then
-        !                                                il=il+1
-        !                                                emat(ik,il)=eps((ik-1)*orbsLIN%norbp+il)
-        !                                            end if
-        !                                        end if
-        !                                    end do
-        !                                end do
-        !                            end if
-        !                        end if
-        !                    end do
-        !                end do
-        !            end if
-        !        end if
-        !    end do
-        !end do
-        !do iorb=1,14
-        !    write(*,'(20f9.4)') (emat(iorb,jorb), jorb=1,14)
-        !end do
-        !if(iproc==0) write(*,*) '****************************************************'
-        !if(iproc==0) write(*,*) '****************************************************'
-        !do iorb=1,14
-        !    write(*,'(20f9.4)') dvec(iorb)
-        !end do
-
-        !do iorb=1,orbsLIN%norb**2
-        !    if(iproc==0) write(*,'(f9.5)') d(iorb)
-        !end do
-        !tt=dnrm2(nvctrp, hphi(istart), 1)
-        !call mpi_allreduce(tt, hphiNrm, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-        !tt=0.d0
-        !do jorb=1,orbsLIN%norb
-        !    write(*,'(a,3i4,2es14.6)') 'iproc, iorb, jorb, eps(jorb), hphiNrm', iproc, iorb, jorb, eps(jorb), hphiNrm
-        !    tt=tt+eps(jorb)**2
-        !end do
-        !write(*,'(a,2i4,2es14.6,f8.3)') 'iproc, iorb, epsSum, hphiNrm, sqrt(tt)/hphiNrm', iproc, iorb, sqrt(tt), hphiNrm, sqrt(tt)/hphiNrm
-        !fracTot=fracTot+sqrt(tt)/hphiNrm
-        ! Then calculate the b coefficients
-        !!call getB(iproc, nproc, orbsLIN, commsLIN, eps, phi, hphi, iorb)
-!!        phi2Loop: do jorb=1,orbsLIN%norb
-!!
-!!            
-!!            
-!!            ! Then calculate the d coefficients
-!!            call getD()
-!!  
-!!            ! Calculate the force component
-!!            call getForce()
-!!        
-!!        end do phi2Loop
-          istart=istart+nvctrp
-    !end do phi1Loop
-    end do atomsLoop
-    fracTot=fracTot/orbsLIN%norb
-    write(*,'(a,i4,f8.3)') 'iproc, fracTot', iproc, fracTot
-   tt=fracTot
-   call mpi_allreduce(tt, fracTot, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-   if(iproc==0) write(*,'(a,f8.3)') 'mean totFrac', fracTot/dble(nproc)
-!!end do psiLoop
-!!
-!!
-end subroutine pulay
-!!
-!!
-!!
-!!
-subroutine getEpsilon(iproc, nproc, orbsLIN, commsLIN, eps, phi, hphi)
-
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer:: iproc, nproc
-type(orbitals_data), intent(inout):: orbsLIN
-type(communications_arrays), intent(in):: commsLIN
-real(8),dimension(orbsLIN%norb,orbsLIN%norb):: eps
-real(8),dimension(orbsLIN%npsidim):: phi
-real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor*orbsLIN%norb):: hphi
-
-! Local variables
-integer:: nvctrp, istat, ierr, istart, jstart, iorb, jorb
-real(8),dimension(:,:),allocatable:: epsTemp 
-real(8):: ddot
-
-! nvctrp is the amount of each phi hold by the current process
-nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor
-
-allocate(epsTemp(orbsLIN%norb,orbsLIN%norb), stat=istat)
-epsTemp=0.d0
-istart=1
-do iorb=1,orbsLIN%norb
-    jstart=1
-    do jorb=1,orbsLIN%norb
-        epsTemp(iorb,jorb)=ddot(nvctrp, phi(istart), 1, hphi(jstart), 1)
-        epsTemp(iorb,jorb)=epsTemp(iorb,jorb)+ddot(nvctrp, phi(jstart), 1, hphi(istart), 1)
-        jstart=jstart+nvctrp
-    end do
-    istart=istart+nvctrp
-end do
-eps=0.d0
-call mpi_allreduce(epsTemp(1,1), eps(1,1), orbsLIN%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-
-end subroutine getEpsilon
-
-
-
-
-
-
-!!!!subroutine getD(iproc, nproc, orbsLIN, commsLIN, d, phi)
+!!!subroutine pulayNew(iproc, nproc, at, orbs, lr, input, orbsLIN, commsLIN, rxyz, nspin, &
+!!!    nlpspd, proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, &
+!!!    rxyzParabola, pulayAt, pulayDir, shift)
 !!!!
-!!!!use module_base
-!!!!use module_types
-!!!!implicit none
+!!!! Purpose:
+!!!! ========
+!!!!   Calculates the localized basis functions phi. These basis functions are eigenfunctions of the ordinary Hamiltonian
+!!!!   with an additional parabolic potential centered at the atoms. The eigenfunctions are determined by minimizing the trace.
 !!!!
-!!!!! Calling arguments
-!!!!integer:: iproc, nproc
-!!!!type(orbitals_data), intent(inout):: orbsLIN
-!!!!type(communications_arrays), intent(in):: commsLIN
-!!!!real(8),dimension(orbsLIN%norb*orbsLIN%norb):: d
-!!!!real(8),dimension(orbsLIN%npsidim):: phi
+!!!! Calling arguments:
+!!!!   Input arguments
+!!!!   Output arguments
+!!!!    phi   the localized basis functions
 !!!!
-!!!!! Local variables
-!!!!integer:: nvctrp, istat, ierr, istart, jstart, iorb, jorb
-!!!!real(8),dimension(:),allocatable:: dTemp 
-!!!!real(8):: ddot
+!!!use module_base
+!!!use module_types
+!!!use module_interfaces, except_this_one => pulayNew
+!!!  use Poisson_Solver
+!!!!use allocModule
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer:: iproc, nproc
+!!!type(atoms_data), intent(in) :: at
+!!!type(orbitals_data):: orbs
+!!!type(locreg_descriptors), intent(in) :: lr
+!!!type(input_variables):: input
+!!!type(orbitals_data):: orbsLIN
+!!!type(communications_arrays):: commsLIN
+!!!real(8),dimension(3,at%nat):: rxyz, rxyzParabola
+!!!integer:: nspin
+!!!type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+!!!real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+!!!integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+!!!integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+!!!real(dp), dimension(*), intent(inout) :: rhopot
+!!!type(GPU_pointers), intent(inout) :: GPU
+!!!real(dp), dimension(:), pointer :: pkernelseq
+!!!real(8),dimension(orbsLIN%npsidim):: phi, hphi
+!!!integer:: pulayAt, pulayDir
+!!!real(8):: shift
+!!!! Local variables
+!!!integer:: iorb, jorb, korb, lorb, istat, istart, nvctrp, ierr, iat, ii, jj, kk, ik, il, ll, jproc, kproc, lproc, id, norbOnAt, info
+!!!integer:: jstart, lwork, ncplx, it, iiAt, idir
+!!!real(8),dimension(:),allocatable:: b, a, dvec, eval, work, phiw, hphiw, phi1, phiw2
+!!!real(8),dimension(:,:),allocatable:: eps, dTemp, d
+!!!real(8),dimension(:,:),allocatable:: emat, U, HU, HtildeSmall
+!!!real(8),dimension(:,:,:),allocatable:: Htilde
+!!!real(8):: tt, hphiNrm, dnrm2, fracTot, parabPrefac, ddot, ekin_sum, epot_sum, eexctx, eproj_sum
+!!!integer,dimension(:,:),allocatable:: orbsOnAtom
+!!!integer,dimension(:,:,:),allocatable:: tempArr
+!!!integer,dimension(:),allocatable:: lorbArr, displs, ipiv
+!!!real(8),dimension(:),pointer:: phiWorkPointer
+!!!character(len=1):: direction
+!!!!real(8),dimension(:,:),allocatable:: rxyzParabola
+!!!
+!!!
+!!!! Calculate the unconstrained gradient.
+!!!call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!!!     nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
+!!!     rhopot(1),&
+!!!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
+!!!
+!!!allocate(orbsOnAtom(orbsLIN%norb,2), stat=istat)
+!!!allocate(lorbArr(0:nproc-1), stat=istat)
+!!!allocate(displs(0:nproc-1), stat=istat)
+!!!atomsLoop: do iat=pulayAt,pulayAt
+!!!    orbsOnAtom=0
+!!!    nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor
+!!!
+!!!
+!!!    ! First find out which atoms are centered on atom iat
+!!!    korb=0
+!!!    lorb=0
+!!!    do jproc=0,nproc-1
+!!!        do jorb=1,orbsLIN%norb_par(jproc)
+!!!            korb=korb+1
+!!!            if(jproc==iproc) then
+!!!                if(orbsLIN%onWhichAtom(jorb)==iat) then
+!!!                    lorb=lorb+1
+!!!                    orbsOnAtom(lorb,2)=korb
+!!!                end if
+!!!            end if
+!!!        end do
+!!!    end do
+!!!    call mpi_gather(lorb, 1, mpi_integer, lorbArr(0), 1, mpi_integer, 0, mpi_comm_world, ierr)
+!!!    displs(0)=0
+!!!    do jproc=1,nproc-1
+!!!        displs(jproc)=displs(jproc-1)+lorbArr(jproc-1)
+!!!    end do
+!!!    call mpi_gatherv(orbsOnAtom(1,2), lorb, mpi_integer, orbsOnAtom(1,1), lorbArr(0), displs(0), &
+!!!        mpi_integer, 0, mpi_comm_world, ierr)
+!!!    do istat=1,sum(lorbArr)
+!!!        !if(iproc==0) write(*,*)'istat, orbsOnAtom(istat,1)', istat, orbsOnAtom(istat,1)
+!!!    end do
+!!!
+!!!    ! Send orbsOnAtom to all processes
+!!!    if(iproc==0) norbOnAt=sum(lorbArr)
+!!!    call mpi_bcast(norbOnAt, 1, mpi_integer, 0, mpi_comm_world, ierr)
+!!!    call mpi_barrier(mpi_comm_world, ierr)
+!!!    call mpi_bcast(orbsOnAtom(1,1), norbOnat, mpi_integer, 0, mpi_comm_world, ierr)
+!!!    call mpi_barrier(mpi_comm_world, ierr)
+!!! 
+!!!    ! Calculate <phi|H|phi> for all orbitals. This requires to tranpose them first.
+!!!    allocate(Htilde(orbsLIN%norb,orbsLIN%norb,2), stat=istat)
+!!!    Htilde=0.d0
+!!!    allocate(phiWorkPointer(size(phi)), stat=istat)
+!!!    call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!    call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!!!    deallocate(phiWorkPointer, stat=istat)
+!!!    nvctrp=commsLIN%nvctr_par(iproc,1)
+!!!    istart=1
+!!!    do iorb=1,orbsLIN%norb
+!!!        jstart=1
+!!!        do jorb=1,orbsLIN%norb
+!!!            Htilde(iorb,jorb,2)=ddot(nvctrp, phi(istart), 1, hphi(jstart), 1)
+!!!            jstart=jstart+nvctrp
+!!!        end do
+!!!        istart=istart+nvctrp
+!!!    end do
+!!!    call mpi_allreduce (Htilde(1,1,2), Htilde(1,1,1), orbsLIN%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!!    if(iproc==0) write(*,*) '<phi|H|phi>'
+!!!    do iorb=1,orbsLIN%norb
+!!!        if(iproc==0) write(*,'(100f8.4)') (Htilde(iorb,jorb,1), jorb=1,orbsLIN%norb)
+!!!    end do
+!!!
+!!!    ! Cut out the part of the matrix containing all orbitals centered on the current atom
+!!!    allocate(HtildeSmall(norbOnAt,norbOnAt), stat=istat)
+!!!    if(iproc==0) then
+!!!        do iorb=1,norbOnAt
+!!!            do jorb=1,norbOnAt
+!!!                HtildeSmall(jorb,iorb)=Htilde(orbsOnAtom(jorb,1),orbsOnAtom(iorb,1),1)
+!!!            end do
+!!!        end do 
+!!!        !do iorb=1,norbOnAt
+!!!        !    write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
+!!!        !end do
+!!!        
+!!!        ! Diagonalize Htilde on root only
+!!!        allocate(eval(norbOnAt), stat=istat)
+!!!        lwork=1000*norbOnAt
+!!!        allocate(work(lwork), stat=istat)
+!!!        call dsyev('v', 'l', norbOnAt, HtildeSmall, norbOnAt, eval, work, lwork, info)
+!!!        if(info/=0) then
+!!!            write(*,'(a,i0)') 'ERROR in dsyev, info= ',info
+!!!            stop
+!!!        end if
+!!!        deallocate(work, stat=istat)
+!!!        !write(*,*) '--------------'
+!!!        !do iorb=1,norbOnAt
+!!!        !    write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
+!!!        !end do
+!!!    end if
+!!!
+!!!    ! Broadcast HtildeSmall
+!!!    call mpi_bcast(HtildeSmall(1,1), norbOnAt**2, mpi_double_precision, 0, mpi_comm_world, ierr)
+!!!    call mpi_barrier(mpi_comm_world, ierr)
+!!!    !write(*,*) '--------------', iproc, norbOnAt
+!!!    !do iorb=1,norbOnAt
+!!!    !    write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
+!!!    !end do
+!!!
+!!!    ! Build new linear combination
+!!!    allocate(phiw(orbsLIN%npsidim), stat=istat)
+!!!    allocate(hphiw(orbsLIN%npsidim), stat=istat)
+!!!    phiw=0.d0 ; hphiw=0.d0
+!!!    nvctrp=commsLIN%nvctr_par(iproc,1)
+!!!    do iorb=1,norbOnAt
+!!!        istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
+!!!        do jorb=1,norbOnAt
+!!!            jstart=(orbsOnAtom(jorb,1)-1)*nvctrp+1
+!!!            call daxpy(nvctrp, HtildeSmall(jorb,iorb), phi(jstart), 1, phiw(istart), 1)
+!!!        end do
+!!!    end do
+!!!
+!!!    !!! Undo this transformations only a test)
+!!!    !!allocate(phiw2(size(phiw)), stat=istat)
+!!!    !!phiw2=phiw
+!!!    !!phiw=0.d0
+!!!    !!do iorb=1,norbOnAt
+!!!    !!    istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
+!!!    !!    do jorb=1,norbOnAt
+!!!    !!        jstart=(orbsOnAtom(jorb,1)-1)*nvctrp+1
+!!!    !!        call daxpy(nvctrp, HtildeSmall(iorb,jorb), phiw2(jstart), 1, phiw(istart), 1)
+!!!    !!    end do
+!!!    !!end do
+!!!
+!!!    allocate(phiWorkPointer(size(phi)), stat=istat)
+!!!    call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!    call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
+!!!    call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!!!    deallocate(phiWorkPointer, stat=istat)
+!!!
+!!!    ! Check whether the subspace diagonalization was successful
+!!!    ! This should at the moment always be done to get the diagonal elements
+!!!    if(.true.) then
+!!!        nspin=1
+!!!        !call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!!!        !     nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
+!!!        !     rhopot(1),&
+!!!        !     phiw(1),hphiw(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
+!!!        call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!!!            nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
+!!!            rhopot(1),&
+!!!            phiw(1),hphiw(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
+!!!
+!!!        Htilde=0.d0
+!!!        allocate(phiWorkPointer(size(phi)), stat=istat)
+!!!        call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
+!!!        call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphiw, work=phiWorkPointer)
+!!!        deallocate(phiWorkPointer, stat=istat)
+!!!        nvctrp=commsLIN%nvctr_par(iproc,1)
+!!!        istart=1
+!!!        do iorb=1,orbsLIN%norb
+!!!            jstart=1
+!!!            do jorb=1,orbsLIN%norb
+!!!                Htilde(iorb,jorb,2)=ddot(nvctrp, phiw(istart), 1, hphiw(jstart), 1)
+!!!                jstart=jstart+nvctrp
+!!!            end do
+!!!            istart=istart+nvctrp
+!!!        end do
+!!!        call mpi_allreduce (Htilde(1,1,2), Htilde(1,1,1), orbsLIN%norb**2 ,mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!!        !if(iproc==0) write(*,*) 'after subspace diag: <phi|H|phi>'
+!!!        !do iorb=1,orbsLIN%norb
+!!!        !    if(iproc==0) write(*,'(100f8.4)') (Htilde(iorb,jorb,1), jorb=1,orbsLIN%norb)
+!!!        !end do
+!!!    end if       
+!!!
+!!!    directionLoop: do idir=pulayDir,pulayDir
+!!!           if(idir==1) then
+!!!               direction='x'
+!!!           else if(idir==2) then
+!!!               direction='y'
+!!!           else if(idir==3) then
+!!!               direction='z'
+!!!           end if
+!!!           ! Calculate the matrix elements <phiw|V|phiw>
+!!!           ncplx=1
+!!!           it=1
+!!!           ! First apply the perturbation to all orbitals belonging to iproc
+!!!           allocate(phiWorkPointer(size(phi)), stat=istat)
+!!!           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
+!!!           hphiw=phiw
+!!!           istart=1
+!!!           do iorb=1,orbsLIN%norbp
+!!!               iiAt=orbsLIN%onWhichAtom(iorb)
+!!!               parabPrefac=orbsLIN%parabPrefacArr(at%iatype(orbsLIN%onWhichAtom(iorb)))
+!!!               !write(*,'(a,2i6,es12.4)') 'before: iproc, iorb, dnrm2(hphiw)', iproc, iorb, dnrm2(nvctrp,hphiw(istart),1)
+!!!               call subTemp(lr,ncplx,&
+!!!                    input%hx,input%hy,input%hz,hphiw(istart), rxyzParabola(3,iat), orbsLIN, parabPrefac, it, direction, shift)
+!!!               !write(*,'(a,2i6,es12.4)') 'after: iproc, iorb, dnrm2(hphiw)', iproc, iorb, dnrm2(nvctrp,hphiw(istart),1)
+!!!               istart=istart+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbsLIN%nspinor
+!!!           end do
+!!!    
+!!!           call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
+!!!           call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphiw, work=phiWorkPointer)
+!!!    
+!!!    
+!!!           ! nvctrp is the amount of each phi hold by the current process
+!!!           nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor
+!!!           
+!!!           allocate(dTemp(orbsLIN%norb,orbsLIN%norb), stat=istat)
+!!!           allocate(d(orbsLIN%norb,orbsLIN%norb), stat=istat)
+!!!           dTemp=0.d0
+!!!           istart=1
+!!!           do iorb=1,orbsLIN%norb
+!!!               jstart=1
+!!!               do jorb=1,orbsLIN%norb
+!!!                   dTemp(iorb,jorb)=ddot(nvctrp, phiw(istart), 1, hphiw(jstart), 1)
+!!!                   !if(iproc==0) write(*,'(a,2i6,2es12.4)') 'iorb, jorb, dnrm2(phiw), dnrm2(hphiw)', iorb, jorb, dnrm2(nvctrp,phiw(istart),1), dnrm2(nvctrp,hphiw(jstart),1)
+!!!                   jstart=jstart+nvctrp
+!!!               end do
+!!!               istart=istart+nvctrp
+!!!           end do
+!!!           d=0.d0
+!!!           call mpi_allreduce(dTemp(1,1), d(1,1), orbsLIN%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!!           ! Add the diagonal element shift**2
+!!!           do iorb=1,orbsLIN%norb
+!!!               d(iorb,iorb)=d(iorb,iorb)+parabPrefac*dble(shift)**2
+!!!           end do
+!!!           
+!!!           if(iproc==0) write(*,'(a,es12.4)') '<phi|V|phi> with shift=',shift
+!!!           do iorb=1,orbsLIN%norb
+!!!               if(iproc==0) write(*,'(100es15.8)') (d(iorb,jorb), jorb=1,orbsLIN%norb)
+!!!           end do
+!!!    
+!!!           ! Make a linear combination according to perturbation theory
+!!!           !!do iorb=1,orbsLIN%norbp
+!!!           !!    write(*,'(a,i5,i3,i5,es12.5)') 'iat, iproc, iorb, dnrm2(phiw)', iat, iproc, iorb, dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phiw(istart), 1)
+!!!           !!    istart=istart+lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+!!!           !!end do
+!!!           allocate(phi1(orbsLIN%npsidim), stat=istat)
+!!!           phi1=0.d0
+!!!           do iorb=1,norbOnAt
+!!!               !istart=(iorb-1)*nvctrp+1
+!!!               istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
+!!!               do jorb=1,norbOnAt
+!!!                   jstart=(orbsOnAtom(jorb,1)-1)*nvctrp+1
+!!!                   if(iorb==jorb) cycle
+!!!                   call daxpy(nvctrp, d(orbsOnATom(iorb,1),orbsOnAtom(jorb,1))/ &
+!!!                   (Htilde(orbsOnAtom(iorb,1),orbsOnAtom(iorb,1),1)-Htilde(orbsOnAtom(jorb,1),orbsOnAtom(jorb,1),1)), &
+!!!                   phiw(jstart), 1, phi1(istart), 1)
+!!!               end do
+!!!           end do
+!!!           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi1, work=phiWorkPointer)
+!!!           !istart=1
+!!!           !do iorb=1,orbsLIN%norbp
+!!!           !    write(*,'(a,i3,i5,2es12.5)') 'iproc, iorb, dnrm2(phi1), dnrm2(phi)', iproc, iorb, dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phi1(istart), 1), dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phi(istart), 1)
+!!!           !    istart=istart+lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+!!!           !end do
+!!!           call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi1, work=phiWorkPointer)
+!!!
+!!!           ! Add the correction phi1 to the old orbitals phiw
+!!!           istart=1
+!!!           do iorb=1,norbOnAt
+!!!               jstart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
+!!!               call daxpy(nvctrp, 1.d0, phi1(jstart), 1, phiw(jstart), 1)
+!!!               !call daxpy(nvctrp, 1.d0, phi1(istart), 1, phiw(jstart), 1)
+!!!               istart=istart+nvctrp
+!!!           end do
+!!!
+!!!           call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!           ! Transform back to 'old' orbitals
+!!!           allocate(phiw2(size(phiw)), stat=istat)
+!!!           phiw2=phiw
+!!!           phiw=0.d0
+!!!           do iorb=1,norbOnAt
+!!!               istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
+!!!               do jorb=1,norbOnAt
+!!!                   jstart=(orbsOnAtom(jorb,1)-1)*nvctrp+1
+!!!                   call daxpy(nvctrp, HtildeSmall(iorb,jorb), phiw2(jstart), 1, phiw(istart), 1)
+!!!               end do
+!!!           end do
+!!!
+!!!           ! Now mix the orbitals
+!!!           phiw2=phi
+!!!           istart=1
+!!!           do iorb=1,norbOnAt
+!!!               jstart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
+!!!               !call dcopy(nvctrp, phiw(istart), 1, phiw2(jstart), 1)
+!!!               call dcopy(nvctrp, phiw(jstart), 1, phiw2(jstart), 1)
+!!!               istart=istart+nvctrp
+!!!           end do
+!!!
+!!!           ! This is not necessary, only for debugging
+!!!           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw2, work=phiWorkPointer)
+!!!           !istart=1
+!!!           !do iorb=1,orbsLIN%norbp
+!!!           !    write(*,'(a,i4,i3,i5,2es12.5)') 'iat, iproc, iorb, dnrm2(phiw2)', iat, iproc, iorb, dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phiw2(istart), 1)
+!!!           !    istart=istart+lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+!!!           !end do
+!!!           call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw2, work=phiWorkPointer)
+!!!
+!!!
+!!!           ! Now orthonormalize
+!!!           call orthogonalize(iproc, nproc, orbsLIN, commsLIN, lr%wfd, phiw2, input)
+!!!    
+!!!           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
+!!!           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphiw, work=phiWorkPointer)
+!!!           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw2, work=phiWorkPointer)
+!!!           deallocate(phiWorkPointer, stat=istat)
+!!!
+!!!           ! Now phiw2 contains the perturbed basis functions.
+!!!           ! Copy them back
+!!!           !istart=1
+!!!           !do iorb=1,orbsLIN%norbp
+!!!           !    write(*,'(a,i4,i3,i5,2es24.15)') 'iat, iproc, iorb, <phi|phiw2>', iat, iproc, iorb, ddot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phi(istart), 1, phiw2(istart), 1)
+!!!           !    istart=istart+lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+!!!           !end do
+!!!           phi=phiw2
+!!!    
+!!!        !call mpi_barrier(mpi_comm_world, ierr)
+!!!        !stop
+!!!    end do directionLoop
+!!!end do atomsLoop
+!!!
+!!!end subroutine pulayNew
+!!!
+!!!
+!!!subroutine pulay(iproc, nproc, lr, orbs, orbsLIN, comms, commsLIN, input, at, rxyz, phi, hphi, &
+!!!    psi, nscatterarr, ngatherarr, nlpspd, proj, sizeRhopot, rhopot, GPU, pkernelseq)
 !!!!
-!!!!! nvctrp is the amount of each phi hold by the current process
-!!!!nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor
+!!!! Purpose:
+!!!! ========
+!!!!   Calculates the Pulay forces
 !!!!
-!!!!allocate(dTemp(orbsLIN%norb*orbsLIN%norb), stat=istat)
-!!!!istart=1
-!!!!do iorb=1,orbsLIN%norb
-!!!!    jstart=1
-!!!!    do jorb=1,orbsLIN%norb
-!!!!        !call calculateMatrixElement()
-!!!!        jstart=jstart+nvctrp
-!!!!    end do
-!!!!    istart=istart+nvctrp
-!!!!end do
-!!!!call mpi_allreduce(dTemp(1), d(1), orbsLIN%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!!! Calling arguments:
+!!!! ==================
 !!!!
-!!!!end subroutine getD
-
-
-
-subroutine getB(iproc, nproc, orbsLIN, commsLIN, e, phi, hphi, iorb)
-
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer:: iproc, nproc, iorb
-type(orbitals_data), intent(inout):: orbsLIN
-type(communications_arrays), intent(in):: commsLIN
-real(8),dimension(orbsLIN%norb):: e
-real(8),dimension(orbsLIN%npsidim):: phi, hphi
-
-! Local variables
-integer:: jorb
-
-do jorb=1,orbsLIN%norb
-    if(jorb==iorb) cycle
-    e(jorb)=e(iorb)/(e(iorb)-e(jorb))
-end do
-
-end subroutine getB
+!!!use module_base
+!!!use module_types
+!!!use module_interfaces, except_this_one => pulay
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer:: iproc, nproc, sizeRhopot
+!!!type(locreg_descriptors), intent(in) :: lr
+!!!type(orbitals_data), intent(inout) :: orbs, orbsLIN
+!!!type(communications_arrays), intent(in) :: comms
+!!!type(communications_arrays), intent(in) :: commsLIN
+!!!type(atoms_data), intent(in) :: at
+!!!real(8),dimension(3,at%nat):: rxyz
+!!!integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+!!!integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+!!!type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+!!!real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+!!!!real(dp), dimension(*), intent(inout) :: rhopot
+!!!real(dp), dimension(sizeRhopot), intent(inout) :: rhopot
+!!!type(GPU_pointers), intent(inout) :: GPU
+!!!type(input_variables):: input
+!!!real(dp), dimension(:), pointer :: pkernelseq
+!!!real(8),dimension(orbsLIN%npsidim):: phi, hphi
+!!!real(8),dimension(orbs%npsidim):: psi
+!!!!integer:: iter
+!!!!!
+!!!! Local variables
+!!!integer:: iorb, jorb, korb, lorb, istat, istart, nvctrp, ierr, iat, ii, jj, kk, ik, il, ll, jproc, kproc, lproc, id, norbOnAt, info
+!!!integer:: jstart, lwork, nspin
+!!!real(8),dimension(:),allocatable:: b, d, a, dvec, eval, work, phiw, hphiw
+!!!real(8),dimension(:,:),allocatable:: eps
+!!!real(8),dimension(:,:),allocatable:: emat, U, HU, HtildeSmall
+!!!real(8),dimension(:,:,:),allocatable:: Htilde
+!!!real(8):: tt, hphiNrm, dnrm2, fracTot, parabPrefac, ddot, ekin_sum, epot_sum, eexctx, eproj_sum
+!!!integer,dimension(:,:),allocatable:: orbsOnAtom
+!!!integer,dimension(:,:,:),allocatable:: tempArr
+!!!integer,dimension(:),allocatable:: lorbArr, displs, ipiv
+!!!real(8),dimension(:),pointer:: phiWorkPointer
+!!!real(8),dimension(:,:),allocatable:: rxyzParabola
+!!!!!
+!!! write(*,*) 'ATTENTION -- TEST!'
+!!! write(*,'(a,2i9)') 'size(rhopot), lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2)', size(rhopot), lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2)
+!!!       allocate(rxyzParabola(3,at%nat), stat=istat)
+!!!       rxyzParabola=rxyz
+!!!       call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!!!            nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
+!!!            rhopot(1),&
+!!!            phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
+!!!
+!!!fracTot=0.d0
+!!!allocate(eps(orbsLIN%norb,orbsLIN%norb), stat=istat)
+!!!allocate(d(orbsLIN%norb**2), stat=istat)
+!!!allocate(orbsOnAtom(orbsLIN%norb,2), stat=istat)
+!!!allocate(lorbArr(0:nproc-1), stat=istat)
+!!!allocate(displs(0:nproc-1), stat=istat)
+!!!orbsOnAtom=0
+!!!nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor
+!!!!!psiLoop: do korb=1,orbs%norb
+!!!    istart=1
+!!!    ! First calculate the epsilons
+!!!    !call getEpsilon(iproc, nproc, orbsLIN, commsLIN, eps, phi(1), hphi(1))
+!!!    !do iorb=1,orbslIN%norb
+!!!    !    !if(iproc==0) write(*,'(100f9.5)') (eps((jorb-1)*orbsLIN%norb+iorb), jorb=1,orbsLIN%norb)
+!!!    !    if(iproc==0) write(*,'(100f9.5)') (eps(iorb,jorb), jorb=1,orbsLIN%norb)
+!!!    !end do
+!!!    !phi1Loop: do iorb=1,orbsLIN%norb
+!!!    atomsLoop: do iat=1,at%nat
+!!!
+!!!        call mpi_barrier(mpi_comm_world, ierr)  
+!!!
+!!!        !iiAt=orbsLIN%onWhichAtom(iorb)
+!!!        !parabPrefac=orbsLIN%parabPrefacArr(at%iatype(orbsLIN%onWhichAtom(iorb)))
+!!!        parabPrefac=orbsLIN%parabPrefacArr(at%iatype(iat))
+!!!        !call getD(iproc,nproc,orbsLIN,lr,input%hx,input%hy,input%hz,phi, hphi, at%nat, rxyz(1,iat), parabPrefac, at, commsLIN, d)
+!!!        !if(iproc==0) write(*,*) '===================================================='
+!!!        !if(iproc==0) write(*,*) '===================================================='
+!!!        !do iorb=1,orbsLIN%norb
+!!!        !    if(iproc==0) write(*,'(100f11.5)') (d((jorb-1)*orbsLIN%norb+iorb), jorb=1,orbsLIN%norb)
+!!!        !end do
+!!!
+!!!        ! First find out which atoms are centered on atom iat
+!!!        korb=0
+!!!        lorb=0
+!!!        do jproc=0,nproc-1
+!!!            do jorb=1,orbsLIN%norb_par(jproc)
+!!!                korb=korb+1
+!!!                if(jproc==iproc) then
+!!!                    if(orbsLIN%onWhichAtom(jorb)==iat) then
+!!!                        lorb=lorb+1
+!!!                        orbsOnAtom(lorb,2)=korb
+!!!                    end if
+!!!                end if
+!!!            end do
+!!!        end do
+!!!        call mpi_gather(lorb, 1, mpi_integer, lorbArr(0), 1, mpi_integer, 0, mpi_comm_world, ierr)
+!!!        !if(iproc==0) then
+!!!            displs(0)=0
+!!!            do jproc=1,nproc-1
+!!!                displs(jproc)=displs(jproc-1)+lorbArr(jproc-1)
+!!!            end do
+!!!        !end if
+!!!        if(iproc==0) write(*,'(a,100i4)') 'lorbArr', lorbArr
+!!!        if(iproc==0) write(*,'(a,100i4)') 'displs', displs
+!!!        call mpi_barrier(mpi_comm_world, ierr)
+!!!        write(*,*) 'before mpi_gatherv, iproc', iproc
+!!!        call mpi_gatherv(orbsOnAtom(1,2), lorb, mpi_integer, orbsOnAtom(1,1), lorbArr(0), displs(0), &
+!!!            mpi_integer, 0, mpi_comm_world, ierr)
+!!!        write(*,*) 'after mpi_gatherv, iproc', iproc
+!!!        do istat=1,sum(lorbArr)
+!!!            if(iproc==0) write(*,*)'istat, orbsOnAtom(istat,1)', istat, orbsOnAtom(istat,1)
+!!!        end do
+!!!        call mpi_barrier(mpi_comm_world, ierr)
+!!! write(*,*) 'here, iproc', iproc
+!!!        call mpi_barrier(mpi_comm_world, ierr)
+!!!  write(*,*) 'after barrier, iproc', iproc
+!!!
+!!!        ! Send orbsOnAtom to all processes
+!!!        if(iproc==0) norbOnAt=sum(lorbArr)
+!!!        call mpi_bcast(norbOnAt, 1, mpi_integer, 0, mpi_comm_world, ierr)
+!!!        call mpi_barrier(mpi_comm_world, ierr)
+!!!          write(*,*) 'norbOnAt, iproc', norbOnAt, iproc
+!!!        call mpi_bcast(orbsOnAtom(1,1), norbOnat, mpi_integer, 0, mpi_comm_world, ierr)
+!!!        call mpi_barrier(mpi_comm_world, ierr)
+!!!   write(*,*) 'after bcast, iproc', iproc
+!!! 
+!!!        !if(iproc==0) then
+!!!            !norbOnAt=sum(lorbArr)
+!!!            !allocate(U(orbsLIN%npsidim,norbOnAt), stat=istat)
+!!!            !allocate(HU(orbsLIN%npsidim,norbOnAt), stat=istat)
+!!!            allocate(Htilde(orbsLIN%norb,orbsLIN%norb,2), stat=istat)
+!!!            Htilde=0.d0
+!!!            allocate(phiWorkPointer(size(phi)), stat=istat)
+!!!            call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!            call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!!!            deallocate(phiWorkPointer, stat=istat)
+!!!            nvctrp=commsLIN%nvctr_par(iproc,1)
+!!!            istart=1
+!!!            do iorb=1,orbsLIN%norb
+!!!                jstart=1
+!!!                do jorb=1,orbsLIN%norb
+!!! !write(*,*) iproc, iorb, jorb
+!!!                    Htilde(iorb,jorb,2)=ddot(nvctrp, phi(istart), 1, hphi(jstart), 1)
+!!!                    jstart=jstart+nvctrp
+!!!                end do
+!!!                istart=istart+nvctrp
+!!!            end do
+!!!            call mpi_allreduce (Htilde(1,1,2), Htilde(1,1,1), orbsLIN%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!!            do iorb=1,orbsLIN%norb
+!!!                if(iproc==0) write(*,'(100f8.4)') (Htilde(iorb,jorb,1), jorb=1,orbsLIN%norb)
+!!!            end do
+!!!        !end if
+!!!
+!!!        allocate(HtildeSmall(norbOnAt,norbOnAt), stat=istat)
+!!!        if(iproc==0) then
+!!!            do iorb=1,norbOnAt
+!!!                do jorb=1,norbOnAt
+!!!                    HtildeSmall(jorb,iorb)=Htilde(orbsOnAtom(jorb,1),orbsOnAtom(iorb,1),1)
+!!!                end do
+!!!            end do 
+!!!            do iorb=1,norbOnAt
+!!!                write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
+!!!            end do
+!!!            
+!!!            ! Diagonalize Htilde
+!!!             allocate(eval(norbOnAt), stat=istat)
+!!!             lwork=1000*norbOnAt
+!!!             allocate(work(lwork), stat=istat)
+!!!            call dsyev('v', 'l', norbOnAt, HtildeSmall, norbOnAt, eval, work, lwork, info)
+!!!            deallocate(work, stat=istat)
+!!!            write(*,*) '--------------'
+!!!            do iorb=1,norbOnAt
+!!!                write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
+!!!            end do
+!!!        end if
+!!!        ! Broadcast HtildeSmall
+!!!        call mpi_bcast(HtildeSmall(1,1), norbOnAt**2, mpi_double_precision, 0, mpi_comm_world, ierr)
+!!!        call mpi_barrier(mpi_comm_world, ierr)
+!!!            write(*,*) '--------------', iproc, norbOnAt
+!!!            do iorb=1,norbOnAt
+!!!                write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
+!!!            end do
+!!!
+!!!       ! Build new linear combination
+!!!       allocate(phiw(orbsLIN%npsidim), stat=istat)
+!!!       allocate(hphiw(orbsLIN%npsidim), stat=istat)
+!!!       nvctrp=commsLIN%nvctr_par(iproc,1)
+!!!       jstart=1
+!!!       do iorb=1,norbOnAt
+!!!           istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
+!!!           call dcopy(nvctrp, phi(istart), 1, phiw(jstart), 1)
+!!!           jstart=jstart+nvctrp
+!!!       end do
+!!!
+!!!       allocate(phiWorkPointer(size(phi)), stat=istat)
+!!!       call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!       call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
+!!!       call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!!!       deallocate(phiWorkPointer, stat=istat)
+!!!
+!!!       nspin=1
+!!!       !call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!!!       !     nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
+!!!       !     rhopot(1),&
+!!!       !     phiw(1),hphiw(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
+!!!       call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!!!            nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
+!!!            rhopot(1),&
+!!!            phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
+!!!
+!!!       Htilde=0.d0
+!!!       allocate(phiWorkPointer(size(phi)), stat=istat)
+!!!       call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!       call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!!!       deallocate(phiWorkPointer, stat=istat)
+!!!       nvctrp=commsLIN%nvctr_par(iproc,1)
+!!!       istart=1
+!!!       do iorb=1,orbsLIN%norb
+!!!           jstart=1
+!!!           do jorb=1,orbsLIN%norb
+!!!               Htilde(iorb,jorb,2)=ddot(nvctrp, phi(istart), 1, hphi(jstart), 1)
+!!!               jstart=jstart+nvctrp
+!!!           end do
+!!!           istart=istart+nvctrp
+!!!       end do
+!!!       call mpi_allreduce (Htilde(1,1,2), Htilde(1,1,1), orbsLIN%norb**2 ,mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!!       do iorb=1,orbsLIN%norb
+!!!           if(iproc==0) write(*,'(100f8.4)') (Htilde(iorb,jorb,1), jorb=1,orbsLIN%norb)
+!!!       end do
+!!!
+!!!    call mpi_barrier(mpi_comm_world, ierr)
+!!!    stop
+!!!
+!!!
+!!!        if(iproc==0) then
+!!!            if(allocated(emat)) deallocate(emat)
+!!!            norbOnAt=sum(lorbArr)
+!!!            allocate(emat(norbOnAt**2,norbOnAt**2))
+!!!            emat=0.d0
+!!!            !emat=1.d-100
+!!!        end if
+!!!        
+!!!        if(iproc==0) allocate(tempArr(2,norbOnAt**2,norbOnAt**2))
+!!!        if(iproc==0) tempArr=0
+!!!        ! Build the matrix emat
+!!!        if(iproc==0) then
+!!!            do jorb=1,norbOnAt**2
+!!!                do iorb=1,norbOnAt**2
+!!!                    ! the 'blocks'
+!!!                    !write(*,'(a,3i7)') 'iorb, sum(lorbArr), mod(iorb-1,sum(lorbArr))+1',iorb, sum(lorbArr), mod(iorb-1,sum(lorbArr))+1
+!!!                    !if(abs(iorb-jorb)<norbOnAt) emat(iorb,jorb)=eps(orbsOnAtom(mod(iorb-1,norbOnAt)+1,1),orbsOnAtom(mod(jorb-1,norbOnAt)+1,1))
+!!!                    !if(abs(iorb-jorb)<norbOnAt) tempArr(1,iorb,jorb)=orbsOnAtom(mod(iorb-1,norbOnAt)+1,1) ; tempArr(2,iorb,jorb)=orbsOnAtom(mod(jorb-1,norbOnAt)+1,1)
+!!!                    if(ceiling(dble(iorb)/dble(norbOnAt))==ceiling(dble(jorb)/dble(norbOnAt))) then
+!!!                        emat(iorb,jorb)=eps(orbsOnAtom(mod(iorb-1,norbOnAt)+1,1), &
+!!!                        orbsOnAtom(mod(jorb-1,norbOnAt)+1,1))
+!!!                        !tempArr(1,iorb,jorb)=orbsOnAtom(mod(iorb-1,norbOnAt)+1,1) ; tempArr(2,iorb,jorb)=orbsOnAtom(mod(jorb-1,norbOnAt)+1,1)
+!!!                    end if
+!!!                    ! the 'pseudodiagonal' elements
+!!!                    if(ceiling(dble(jorb)/dble(norbOnAt))==mod(iorb-1,norbOnAt)+1) then
+!!!                        emat(iorb,jorb)=emat(iorb,jorb)+eps(orbsOnAtom(ceiling(dble(iorb)/dble(norbOnAt)),1),&
+!!!                        orbsOnAtom(mod(jorb-1,norbOnAt)+1,1))
+!!!                        tempArr(1,iorb,jorb)=orbsOnAtom(ceiling(dble(iorb)/dble(norbOnAt)),1) ; &
+!!!                        tempArr(2,iorb,jorb)=orbsOnAtom(mod(jorb-1,norbOnAt)+1,1)
+!!!                    end if
+!!!                end do
+!!!            end do
+!!!        end if
+!!!        !!! Delete the elements belonging to a_ii
+!!!        !!if(iproc==0) then
+!!!        !!    do jorb=1,norbOnAt**2
+!!!        !!        do iorb=1,norbOnAt**2
+!!!        !!            if(mod(iorb-1,norbOnAt)+1==ceiling(dble(iorb)/dble(norbOnAt)) .and. iorb==jorb) then
+!!!        !!                emat(iorb,jorb)=0.d0
+!!!        !!            end if
+!!!        !!        end do
+!!!        !!    end do
+!!!        !!end if
+!!!        if(iproc==0) then
+!!!            do iorb=1,norbOnAt**2
+!!!                write(*,'(100f9.5)') (emat(iorb,jorb), jorb=1,norbOnAt**2)
+!!!            end do
+!!!        end if
+!!!        if(iproc==0) write(*,*) '--------------------------------'
+!!!        if(iproc==0) then
+!!!            do iorb=1,norbOnAt**2
+!!!                write(*,'(100(2i3,2x))') (tempArr(1:2,iorb,jorb), jorb=1,norbOnAt**2)
+!!!            end do
+!!!        end if
+!!!
+!!!        ! Build the vector dvec
+!!!        if(allocated(dvec)) deallocate(dvec)
+!!!        if(iproc==0) then
+!!!            allocate(dvec(norbOnAt**2))
+!!!            dvec=0.d0
+!!!            ii=1
+!!!            do iorb=1,norbOnAt**2
+!!!                if(iorb==orbsOnAtom(ii,1)) then
+!!!                    jj=1
+!!!                    do jorb=1,norbOnAt**2
+!!!                        if(jorb==orbsOnAtom(jj,1)) then
+!!!                            tempArr(1,(ii-1)*norbOnAt+jj,1)=iorb ; tempArr(2,(ii-1)*norbOnAt+jj,1)=jorb
+!!!                            dvec((ii-1)*norbOnAt+jj)=d((iorb-1)*norbOnAt+jorb)
+!!!                            jj=jj+1
+!!!                        end if
+!!!                    end do
+!!!                    ii=ii+1
+!!!                end if
+!!!            end do
+!!!  
+!!!            do iorb=1,norbOnAt**2
+!!!                write(*,'(2i4)') tempArr(1,iorb,1), tempArr(2,iorb,1)
+!!!            end do
+!!!        end if
+!!!
+!!!
+!!!        ! Solve emat*a=dvec
+!!!        if(iproc==0) then
+!!!            allocate(a(norbOnAt**2))
+!!!            allocate(ipiv(norbOnAt**2))
+!!!            call dgesv(norbOnAt**2, 1, emat(1,1), norbOnAt**2, ipiv(1), dvec(1), norbOnAt**2, info)
+!!!            if(info/=0) then
+!!!                write(*,'(a,i0)') 'ERROR in dgesv, errorcode=', info
+!!!                do iorb=1,norbOnAt**2
+!!!                    write(*,'(100f9.5)') (emat(iorb,jorb), jorb=1,norbOnAt**2)
+!!!                end do
+!!!                stop
+!!!            end if
+!!!            do iorb=1,norbOnAt**2
+!!!                write(*,'(a,i4,es12.5)') 'iorb, dvec(iorb)', iorb, dvec(iorb)
+!!!            end do
+!!!        end if
+!!!        
+!!!
+!!!        !! Build the matrix epsilon and the vector d only for those orbitals centerd in atom iat.
+!!!        !jj=0
+!!!        !ik=0
+!!!        !do jproc=0,nproc-1
+!!!        !    do jorb=1,orbsLIN%norb_par(jproc)
+!!!        !        jj=jj+1
+!!!        !        if(jproc==iproc) then
+!!!        !            if(orbsLIN%onWhichAtom(jorb)==iat) then
+!!!        !                kk=0
+!!!        !                il=0
+!!!        !                do kproc=0,nproc-1
+!!!        !                    do korb=1,orbsLIN%norb_par(kproc)
+!!!        !                        kk=kk+1
+!!!        !                        if(kproc==iproc) then
+!!!        !                            if(orbsLIN%onWhichAtom(korb)==iat) then
+!!!        !                                ik=ik+1
+!!!        !                                dvec(ik)=-2.d0*d(jj+kk)
+!!!        !                                ll=0
+!!!        !                                do lproc=0,nproc-1
+!!!        !                                    do lorb=1,orbsLIN%norb_par(lproc)
+!!!        !                                        ll=ll+1
+!!!        !                                        if(lproc==iproc) then
+!!!        !                                            if(orbsLIN%onWhichAtom(lorb)==iat) then
+!!!        !                                                il=il+1
+!!!        !                                                emat(ik,il)=eps((ik-1)*orbsLIN%norbp+il)
+!!!        !                                            end if
+!!!        !                                        end if
+!!!        !                                    end do
+!!!        !                                end do
+!!!        !                            end if
+!!!        !                        end if
+!!!        !                    end do
+!!!        !                end do
+!!!        !            end if
+!!!        !        end if
+!!!        !    end do
+!!!        !end do
+!!!        !do iorb=1,14
+!!!        !    write(*,'(20f9.4)') (emat(iorb,jorb), jorb=1,14)
+!!!        !end do
+!!!        !if(iproc==0) write(*,*) '****************************************************'
+!!!        !if(iproc==0) write(*,*) '****************************************************'
+!!!        !do iorb=1,14
+!!!        !    write(*,'(20f9.4)') dvec(iorb)
+!!!        !end do
+!!!
+!!!        !do iorb=1,orbsLIN%norb**2
+!!!        !    if(iproc==0) write(*,'(f9.5)') d(iorb)
+!!!        !end do
+!!!        !tt=dnrm2(nvctrp, hphi(istart), 1)
+!!!        !call mpi_allreduce(tt, hphiNrm, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!!        !tt=0.d0
+!!!        !do jorb=1,orbsLIN%norb
+!!!        !    write(*,'(a,3i4,2es14.6)') 'iproc, iorb, jorb, eps(jorb), hphiNrm', iproc, iorb, jorb, eps(jorb), hphiNrm
+!!!        !    tt=tt+eps(jorb)**2
+!!!        !end do
+!!!        !write(*,'(a,2i4,2es14.6,f8.3)') 'iproc, iorb, epsSum, hphiNrm, sqrt(tt)/hphiNrm', iproc, iorb, sqrt(tt), hphiNrm, sqrt(tt)/hphiNrm
+!!!        !fracTot=fracTot+sqrt(tt)/hphiNrm
+!!!        ! Then calculate the b coefficients
+!!!        !!call getB(iproc, nproc, orbsLIN, commsLIN, eps, phi, hphi, iorb)
+!!!!!        phi2Loop: do jorb=1,orbsLIN%norb
+!!!!!
+!!!!!            
+!!!!!            
+!!!!!            ! Then calculate the d coefficients
+!!!!!            call getD()
+!!!!!  
+!!!!!            ! Calculate the force component
+!!!!!            call getForce()
+!!!!!        
+!!!!!        end do phi2Loop
+!!!          istart=istart+nvctrp
+!!!    !end do phi1Loop
+!!!    end do atomsLoop
+!!!    fracTot=fracTot/orbsLIN%norb
+!!!    write(*,'(a,i4,f8.3)') 'iproc, fracTot', iproc, fracTot
+!!!   tt=fracTot
+!!!   call mpi_allreduce(tt, fracTot, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!!   if(iproc==0) write(*,'(a,f8.3)') 'mean totFrac', fracTot/dble(nproc)
+!!!!!end do psiLoop
+!!!!!
+!!!!!
+!!!end subroutine pulay
+!!!!!
+!!!!!
+!!!!!
+!!!!!
+!!!subroutine getEpsilon(iproc, nproc, orbsLIN, commsLIN, eps, phi, hphi)
+!!!
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer:: iproc, nproc
+!!!type(orbitals_data), intent(inout):: orbsLIN
+!!!type(communications_arrays), intent(in):: commsLIN
+!!!real(8),dimension(orbsLIN%norb,orbsLIN%norb):: eps
+!!!real(8),dimension(orbsLIN%npsidim):: phi
+!!!real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor*orbsLIN%norb):: hphi
+!!!
+!!!! Local variables
+!!!integer:: nvctrp, istat, ierr, istart, jstart, iorb, jorb
+!!!real(8),dimension(:,:),allocatable:: epsTemp 
+!!!real(8):: ddot
+!!!
+!!!! nvctrp is the amount of each phi hold by the current process
+!!!nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor
+!!!
+!!!allocate(epsTemp(orbsLIN%norb,orbsLIN%norb), stat=istat)
+!!!epsTemp=0.d0
+!!!istart=1
+!!!do iorb=1,orbsLIN%norb
+!!!    jstart=1
+!!!    do jorb=1,orbsLIN%norb
+!!!        epsTemp(iorb,jorb)=ddot(nvctrp, phi(istart), 1, hphi(jstart), 1)
+!!!        epsTemp(iorb,jorb)=epsTemp(iorb,jorb)+ddot(nvctrp, phi(jstart), 1, hphi(istart), 1)
+!!!        jstart=jstart+nvctrp
+!!!    end do
+!!!    istart=istart+nvctrp
+!!!end do
+!!!eps=0.d0
+!!!call mpi_allreduce(epsTemp(1,1), eps(1,1), orbsLIN%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!!
+!!!end subroutine getEpsilon
+!!!
+!!!
+!!!
+!!!
+!!!
+!!!
+!!!!!!!subroutine getD(iproc, nproc, orbsLIN, commsLIN, d, phi)
+!!!!!!!
+!!!!!!!use module_base
+!!!!!!!use module_types
+!!!!!!!implicit none
+!!!!!!!
+!!!!!!!! Calling arguments
+!!!!!!!integer:: iproc, nproc
+!!!!!!!type(orbitals_data), intent(inout):: orbsLIN
+!!!!!!!type(communications_arrays), intent(in):: commsLIN
+!!!!!!!real(8),dimension(orbsLIN%norb*orbsLIN%norb):: d
+!!!!!!!real(8),dimension(orbsLIN%npsidim):: phi
+!!!!!!!
+!!!!!!!! Local variables
+!!!!!!!integer:: nvctrp, istat, ierr, istart, jstart, iorb, jorb
+!!!!!!!real(8),dimension(:),allocatable:: dTemp 
+!!!!!!!real(8):: ddot
+!!!!!!!
+!!!!!!!! nvctrp is the amount of each phi hold by the current process
+!!!!!!!nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor
+!!!!!!!
+!!!!!!!allocate(dTemp(orbsLIN%norb*orbsLIN%norb), stat=istat)
+!!!!!!!istart=1
+!!!!!!!do iorb=1,orbsLIN%norb
+!!!!!!!    jstart=1
+!!!!!!!    do jorb=1,orbsLIN%norb
+!!!!!!!        !call calculateMatrixElement()
+!!!!!!!        jstart=jstart+nvctrp
+!!!!!!!    end do
+!!!!!!!    istart=istart+nvctrp
+!!!!!!!end do
+!!!!!!!call mpi_allreduce(dTemp(1), d(1), orbsLIN%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!!!!!!
+!!!!!!!end subroutine getD
+!!!
+!!!
+!!!
+!!!subroutine getB(iproc, nproc, orbsLIN, commsLIN, e, phi, hphi, iorb)
+!!!
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer:: iproc, nproc, iorb
+!!!type(orbitals_data), intent(inout):: orbsLIN
+!!!type(communications_arrays), intent(in):: commsLIN
+!!!real(8),dimension(orbsLIN%norb):: e
+!!!real(8),dimension(orbsLIN%npsidim):: phi, hphi
+!!!
+!!!! Local variables
+!!!integer:: jorb
+!!!
+!!!do jorb=1,orbsLIN%norb
+!!!    if(jorb==iorb) cycle
+!!!    e(jorb)=e(iorb)/(e(iorb)-e(jorb))
+!!!end do
+!!!
+!!!end subroutine getB
 
 
 
@@ -3979,683 +3979,683 @@ END SUBROUTINE inputOrbitals
 
 
 
-!! THIS IS NOT WORKING !!
-subroutine getD(iproc,nproc,orbsLIN,lr,hx,hy,hz,phi, hphi, nat, rxyzParab, parabPrefac, at, commsLIN, d)
-  use module_base
-  use module_types
-  use module_interfaces
-  implicit none
-  integer, intent(in) :: iproc,nproc
-  real(gp), intent(in) :: hx,hy,hz
-  type(locreg_descriptors), intent(in) :: lr
-  type(orbitals_data), intent(in) :: orbsLIN
-  !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
-  real(wp), dimension(orbsLIN%npsidim), intent(inout) :: phi, hphi
-integer,intent(in):: nat
-real(8),dimension(3),intent(in):: rxyzParab
-real(8):: parabPrefac
-type(atoms_data), intent(in) :: at
-type(communications_arrays), intent(in):: commsLIN
-real(8),dimension(orbsLIN%norb,orbsLIN%norb):: d
-  !local variables
-  integer :: iorb,inds,ncplx,ikpt,ierr
-  real(wp) :: cprecr,scpr,eval_zero,evalmax 
-  real(gp) :: kx,ky,kz
-real(8),dimension(:),pointer:: phiWorkPointer
-integer:: iiAt, istat, nvctrp, istart, jstart, jorb, it
-real(8):: ddot
-real(8),dimension(:,:),allocatable:: dTemp
-
-  ncplx=1
-  it=1
-  ! First apply the perturbation to all orbitals belonging to iproc
-  allocate(phiWorkPointer(size(phi)), stat=istat)
-  call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
-  hphi=phi
-  istart=1
-  do iorb=1,orbsLIN%norbp
-      !iiAt=onWhichAtom(iorb)
-      !parabPrefac=orbsLIN%parabPrefacArr(at%iatype(onWhichAtom(iorb)))
-
-
- !! THIS IS NOT WORKING !!
-      !!call subTemp(lr,ncplx,&
-      !!     hx,hy,hz,hphi(istart), rxyzParab, orbsLIN, parabPrefac, it)
-
-
-      istart=istart+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbsLIN%nspinor
-  end do
-
-  call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
-  call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
-
-
-  ! nvctrp is the amount of each phi hold by the current process
-  nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor
-  
-  allocate(dTemp(orbsLIN%norb,orbsLIN%norb), stat=istat)
-  dTemp=0.d0
-  istart=1
-  do iorb=1,orbsLIN%norb
-      jstart=1
-      do jorb=1,orbsLIN%norb
-          dTemp(iorb,jorb)=ddot(nvctrp, phi(istart), 1, hphi(jstart), 1)
-          jstart=jstart+nvctrp
-      end do
-      istart=istart+nvctrp
-  end do
-  d=0.d0
-  call mpi_allreduce(dTemp(1,1), d(1,1), orbsLIN%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-
-  call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
-  call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
-  deallocate(phiWorkPointer, stat=istat)
-
-
-END SUBROUTINE getD
-!!***
-
-
-
-
-subroutine subTemp(lr,ncplx,&
-     hx,hy,hz,x,  rxyzParab, orbs, parabPrefac, it, direction, shift)
-  use module_base
-  use module_types
-  ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-  ! x is the right hand side on input and the solution on output
-  implicit none
-  integer, intent(in) :: ncplx
-  real(gp), intent(in) :: hx,hy,hz
-  type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
-real(8),dimension(3),intent(in):: rxyzParab
-type(orbitals_data), intent(in) :: orbs
-real(8):: parabPrefac
-integer:: it
-character(len=1):: direction
-real(8):: shift
-  ! local variables
-  character(len=*), parameter :: subname='precondition_residue'
-  real(gp), dimension(0:7) :: scal
-  real(wp) :: rmr_old,rmr_new,alpha,beta
-  integer :: i_stat,i_all,icong
-  type(workarr_precond) :: w
-  real(wp), dimension(:), allocatable :: b,r,d
-real(8):: dnrm2
-
-  !arrays for the CG procedure
-  allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
-  call memocc(i_stat,b,'b',subname)
-  allocate(r(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
-  call memocc(i_stat,r,'r',subname)
-  allocate(d(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
-  call memocc(i_stat,d,'d',subname)
-
-  call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
-
-  !call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
-
-  scal=1.d0
-!write(*,*) 'dnrm2(x) 1' , dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, x, 1)
-  call callApplyLinearOperator(ncplx,lr,hx,hy,hz,x,d,w,scal, rxyzParab, orbs, parabPrefac, it, direction, shift)
-  x=d
-!write(*,*) 'dnrm2(x)', dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, x, 1)
-
-  i_all=-product(shape(b))*kind(b)
-  deallocate(b,stat=i_stat)
-  call memocc(i_stat,i_all,'b',subname)
-  i_all=-product(shape(r))*kind(r)
-  deallocate(r,stat=i_stat)
-  call memocc(i_stat,i_all,'r',subname)
-  i_all=-product(shape(d))*kind(d)
-  deallocate(d,stat=i_stat)
-  call memocc(i_stat,i_all,'d',subname)
-
-  call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
-
-END SUBROUTINE subTemp
-
-
-
-
-
-
-subroutine callApplyLinearOperator(ncplx,lr,hx,hy,hz,&
-     x,y,w,scal, rxyzParab, orbs, parabPrefac, it, direction, shift)! y:=Ax
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: ncplx
-  real(gp), intent(in) :: hx,hy,hz
-  type(locreg_descriptors), intent(in) :: lr
-  real(gp), dimension(0:7), intent(in) :: scal
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(in) ::  x
-  type(workarr_precond), intent(inout) :: w
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(out) ::  y
-real(8),dimension(3),intent(in):: rxyzParab
-type(orbitals_data), intent(in) :: orbs
-real(8):: parabPrefac
-integer:: it
-character(len=1):: direction
-real(8):: shift
-  !local variables
-  integer :: idx,nf
-
-     do idx=1,ncplx
-        call applyLinearOperator(lr%d%n1,lr%d%n2,lr%d%n3,&
-             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
-             lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keyg,lr%wfd%keyv,&
-             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-             lr%wfd%keyg(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),&
-             lr%wfd%keyv(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
-             scal,hx,&
-             lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
-             lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
-             x(1,idx),x(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
-             y(1,idx),y(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
-             w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f,&
-             w%x_f1,w%x_f2,w%x_f3, rxyzParab, orbs, lr, parabPrefac, it, direction, shift)
-     end do
-END SUBROUTINE callApplyLinearOperator
-
-! ypsi = (1/2) \Nabla^2 xpsi + cprecr xpsi
-subroutine applyLinearOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-     nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
-     scal,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
-     xpsi_c,xpsi_f,ypsi_c,ypsi_f,&
-     xpsig_c,xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab, orbs, lr, parabPrefac, it, direction, shift)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
-  real(gp), intent(in) :: hgrid
-  integer, dimension(nseg_c), intent(in) :: keyv_c
-  integer, dimension(nseg_f), intent(in) :: keyv_f
-  integer, dimension(2,nseg_c), intent(in) :: keyg_c
-  integer, dimension(2,nseg_f), intent(in) :: keyg_f
-  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
-  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
-  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
-  real(wp), dimension(0:3), intent(in) :: scal
-  real(wp), dimension(nvctr_c), intent(in) :: xpsi_c
-  real(wp), dimension(7,nvctr_f), intent(in) :: xpsi_f
-  real(wp), dimension(nvctr_c), intent(out) :: ypsi_c
-  real(wp), dimension(7,nvctr_f), intent(out) :: ypsi_f
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: xpsig_c,ypsig_c
-  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: xpsig_f,ypsig_f
-  real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: x_f1
-  real(wp), dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), intent(inout) :: x_f2
-  real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(inout) :: x_f3
-real(8),dimension(3),intent(in):: rxyzParab
-type(orbitals_data), intent(in) :: orbs
-type(locreg_descriptors), intent(in) :: lr
-real(8):: parabPrefac
-integer:: it
-character(len=1):: direction
-real(8):: shift
-
-! Local variables
-integer:: ix, iy, iz, ix0, iy0, iz0, i1, i2, i3, istat, ii, jj
-real(8):: hxh, hyh, hzh, tt, dis, kx, ky, kz
-real(8),dimension(:,:,:),allocatable:: xpsig_cTemp
-real(8),dimension(:,:,:,:),allocatable:: xpsig_fTemp
-real(8),dimension(:),allocatable:: phi, phir
-type(workarr_locham) :: w2
-
-real(8):: dnrm2
-
-
-!write(*,*) 'dnrm2(xpsi_c)', dnrm2(nvctr_c, xpsi_c, 1)
-!write(*,*) 'dnrm2(xpsi_f)', dnrm2(7*nvctr_f, xpsi_f, 1)
-
-xpsig_c=0.d0
-xpsig_f=0.d0
-
-  call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
-       nseg_c,nvctr_c,keyg_c,keyv_c,  & 
-       nseg_f,nvctr_f,keyg_f,keyv_f,  & 
-       scal,xpsi_c,xpsi_f,xpsig_c,xpsig_f,x_f1,x_f2,x_f3)
-
-!write(*,*) 'dnrm2(xpsig_c)', dnrm2((n1+1)*(n2+1)*(n3+1), xpsig_c, 1)
-
-  call ConvolLinear(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-       hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
-       xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it, direction, shift)
-!write(*,*) 'dnrm2(ypsig_c)', dnrm2((n1+1)*(n2+1)*(n3+1), ypsig_c, 1)
-!write(*,*) 'parabPrefac',parabPrefac
-
-  call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
-       nseg_c,nvctr_c,keyg_c,keyv_c,  & 
-       nseg_f,nvctr_f,keyg_f,keyv_f,  & 
-       scal,ypsig_c,ypsig_f,ypsi_c,ypsi_f)
-
-!write(*,*) 'dnrm2(ypsi_c)', dnrm2(nvctr_c, ypsi_c, 1)
-
-
-END SUBROUTINE applyLinearOperator
-
-
-
-
-subroutine estimatePerturbedOrbitals(iproc, nproc, at, orbs, lr, input, orbsLIN, commsLIN, rxyz,&
-     nspin, nlpspd, proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, rxyzParabola, perturbation)
-!
-! Purpose:
-! ========
-!   Calculates the localized basis functions phi. These basis functions are eigenfunctions of the ordinary Hamiltonian
-!   with an additional parabolic potential centered at the atoms. The eigenfunctions are determined by minimizing the trace.
-!
-! Calling arguments:
-!   Input arguments
-!   Output arguments
-!    phi   the localized basis functions
-!
-use module_base
-use module_types
-use module_interfaces, except_this_one => estimatePerturbedOrbitals
-implicit none
-
-! Calling arguments
-integer:: iproc, nproc
-type(atoms_data), intent(in) :: at
-type(orbitals_data):: orbs
-type(locreg_descriptors), intent(in) :: lr
-type(input_variables):: input
-type(orbitals_data):: orbsLIN
-type(communications_arrays):: commsLIN
-real(8),dimension(3,at%nat):: rxyz, rxyzParabola
-integer:: nspin
-type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-real(dp), dimension(*), intent(inout) :: rhopot
-type(GPU_pointers), intent(inout) :: GPU
-real(dp), dimension(:), pointer :: pkernelseq
-real(8),dimension(orbsLIN%npsidim):: phi
-real(8),dimension(3,at%nat):: perturbation
-! Local variables
-integer:: iorb, jorb, korb, lorb, istat, istart, nvctrp, ierr, iat, ii, jj, kk, ik, il, ll, jproc, kproc, lproc, id, norbOnAt, info
-integer:: jstart, lwork, ncplx, it, iiAt, idir
-real(8),dimension(:),allocatable:: b, a, dvec, eval, work, phiw, hphiw, phi1, phiw2, phiPerturbed
-real(8),dimension(:,:),allocatable:: eps, dTemp, d
-real(8),dimension(:,:),allocatable:: emat, U, HU, HtildeSmall
-real(8),dimension(:,:,:),allocatable:: Htilde
-real(8):: tt, hphiNrm, dnrm2, fracTot, parabPrefac, ddot, ekin_sum, epot_sum, eexctx, eproj_sum
-integer,dimension(:,:),allocatable:: orbsOnAtom
-integer,dimension(:,:,:),allocatable:: tempArr
-integer,dimension(:),allocatable:: lorbArr, displs, ipiv
-real(8),dimension(:),pointer:: phiWorkPointer
-character(len=1):: direction
-real(8):: shift
-real(8),dimension(:),allocatable:: hphi
-!real(8),dimension(:,:),allocatable:: rxyzParabola
-
-
-! Calculate the unconstrained gradient.
-allocate(hphi(orbsLIN%npsidim), stat=istat)
-call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
-     nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
-     rhopot(1),&
-     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
-
-allocate(orbsOnAtom(orbsLIN%norb,2), stat=istat)
-allocate(lorbArr(0:nproc-1), stat=istat)
-allocate(displs(0:nproc-1), stat=istat)
-allocate(phiPerturbed(size(phi)), stat=istat)
-
-! First copy phi to phiPerturbed
-allocate(phiWorkPointer(size(phi)), stat=istat)
-call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
-phiPerturbed=phi
-call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
-deallocate(phiWorkPointer, stat=istat)
-
-atomsLoop: do iat=1,at%nat
-    orbsOnAtom=0
-    nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor
-
-
-    ! First find out which atoms are centered on atom iat
-    korb=0
-    lorb=0
-    do jproc=0,nproc-1
-        do jorb=1,orbsLIN%norb_par(jproc)
-            korb=korb+1
-            if(jproc==iproc) then
-                if(orbsLIN%onWhichAtom(jorb)==iat) then
-                    lorb=lorb+1
-                    orbsOnAtom(lorb,2)=korb
-                end if
-            end if
-        end do
-    end do
-    call mpi_gather(lorb, 1, mpi_integer, lorbArr(0), 1, mpi_integer, 0, mpi_comm_world, ierr)
-    displs(0)=0
-    do jproc=1,nproc-1
-        displs(jproc)=displs(jproc-1)+lorbArr(jproc-1)
-    end do
-    call mpi_gatherv(orbsOnAtom(1,2), lorb, mpi_integer, orbsOnAtom(1,1), lorbArr(0), displs(0), &
-        mpi_integer, 0, mpi_comm_world, ierr)
-    do istat=1,sum(lorbArr)
-        if(iproc==0) write(*,*)'istat, orbsOnAtom(istat,1)', istat, orbsOnAtom(istat,1)
-    end do
-
-    ! Send orbsOnAtom to all processes
-    if(iproc==0) norbOnAt=sum(lorbArr)
-    call mpi_bcast(norbOnAt, 1, mpi_integer, 0, mpi_comm_world, ierr)
-    call mpi_barrier(mpi_comm_world, ierr)
-    call mpi_bcast(orbsOnAtom(1,1), norbOnat, mpi_integer, 0, mpi_comm_world, ierr)
-    call mpi_barrier(mpi_comm_world, ierr)
- 
-    ! Calculate <phi|H|phi> for all orbitals. This requires to tranpose them first.
-    allocate(Htilde(orbsLIN%norb,orbsLIN%norb,2), stat=istat)
-    Htilde=0.d0
-    allocate(phiWorkPointer(size(phi)), stat=istat)
-    call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
-    call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
-    deallocate(phiWorkPointer, stat=istat)
-    nvctrp=commsLIN%nvctr_par(iproc,1)
-    istart=1
-    do iorb=1,orbsLIN%norb
-        jstart=1
-        do jorb=1,orbsLIN%norb
-            Htilde(iorb,jorb,2)=ddot(nvctrp, phi(istart), 1, hphi(jstart), 1)
-            jstart=jstart+nvctrp
-        end do
-        istart=istart+nvctrp
-    end do
-    call mpi_allreduce (Htilde(1,1,2), Htilde(1,1,1), orbsLIN%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-    !if(iproc==0) write(*,*) '<phi|H|phi>'
-    !do iorb=1,orbsLIN%norb
-    !    if(iproc==0) write(*,'(100f8.4)') (Htilde(iorb,jorb,1), jorb=1,orbsLIN%norb)
-    !end do
-
-    ! Cut out the part of the matrix containing all orbitals centered on the current atom
-    allocate(HtildeSmall(norbOnAt,norbOnAt), stat=istat)
-    if(iproc==0) then
-        do iorb=1,norbOnAt
-            do jorb=1,norbOnAt
-                HtildeSmall(jorb,iorb)=Htilde(orbsOnAtom(jorb,1),orbsOnAtom(iorb,1),1)
-            end do
-        end do 
-        !do iorb=1,norbOnAt
-        !    write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
-        !end do
-        
-        ! Diagonalize Htilde on root only
-        allocate(eval(norbOnAt), stat=istat)
-        lwork=1000*norbOnAt
-        allocate(work(lwork), stat=istat)
-        call dsyev('v', 'l', norbOnAt, HtildeSmall, norbOnAt, eval, work, lwork, info)
-        if(info/=0) then
-            write(*,'(a,i0)') 'ERROR in dsyev, info= ',info
-            stop
-        end if
-        deallocate(work, stat=istat)
-        !write(*,*) '--------------'
-        !do iorb=1,norbOnAt
-        !    write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
-        !end do
-    end if
-
-    ! Broadcast HtildeSmall
-    call mpi_bcast(HtildeSmall(1,1), norbOnAt**2, mpi_double_precision, 0, mpi_comm_world, ierr)
-    call mpi_barrier(mpi_comm_world, ierr)
-    !write(*,*) '--------------', iproc, norbOnAt
-    !do iorb=1,norbOnAt
-    !    write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
-    !end do
-
-    ! Build new linear combination
-    allocate(phiw(orbsLIN%npsidim), stat=istat)
-    allocate(hphiw(orbsLIN%npsidim), stat=istat)
-    phiw=0.d0 ; hphiw=0.d0
-    nvctrp=commsLIN%nvctr_par(iproc,1)
-    do iorb=1,norbOnAt
-        istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
-        do jorb=1,norbOnAt
-            jstart=(orbsOnAtom(jorb,1)-1)*nvctrp+1
-            call daxpy(nvctrp, HtildeSmall(jorb,iorb), phi(jstart), 1, phiw(istart), 1)
-        end do
-    end do
-
-    !!! Undo this transformations only a test)
-    !!allocate(phiw2(size(phiw)), stat=istat)
-    !!phiw2=phiw
-    !!phiw=0.d0
-    !!do iorb=1,norbOnAt
-    !!    istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
-    !!    do jorb=1,norbOnAt
-    !!        jstart=(orbsOnAtom(jorb,1)-1)*nvctrp+1
-    !!        call daxpy(nvctrp, HtildeSmall(iorb,jorb), phiw2(jstart), 1, phiw(istart), 1)
-    !!    end do
-    !!end do
-
-    allocate(phiWorkPointer(size(phi)), stat=istat)
-    call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
-    call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
-    call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
-    deallocate(phiWorkPointer, stat=istat)
-
-    ! Check whether the subspace diagonalization was successful
-    ! This should at the moment always be done to get the diagonal elements
-    if(.true.) then
-        nspin=1
-        !call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
-        !     nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
-        !     rhopot(1),&
-        !     phiw(1),hphiw(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
-        call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
-            nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
-            rhopot(1),&
-            phiw(1),hphiw(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
-
-        Htilde=0.d0
-        allocate(phiWorkPointer(size(phi)), stat=istat)
-        call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
-        call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphiw, work=phiWorkPointer)
-        deallocate(phiWorkPointer, stat=istat)
-        nvctrp=commsLIN%nvctr_par(iproc,1)
-        istart=1
-        do iorb=1,orbsLIN%norb
-            jstart=1
-            do jorb=1,orbsLIN%norb
-                Htilde(iorb,jorb,2)=ddot(nvctrp, phiw(istart), 1, hphiw(jstart), 1)
-                jstart=jstart+nvctrp
-            end do
-            istart=istart+nvctrp
-        end do
-        call mpi_allreduce (Htilde(1,1,2), Htilde(1,1,1), orbsLIN%norb**2 ,mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-        !if(iproc==0) write(*,*) 'after subspace diag: <phi|H|phi>', iat
-        !do iorb=1,orbsLIN%norb
-        !    if(iproc==0) write(*,'(100f8.4)') (Htilde(iorb,jorb,1), jorb=1,orbsLIN%norb)
-        !end do
-    end if       
-
-     if(.not.allocated(phiw2)) allocate(phiw2(size(phiw)), stat=istat)
-     !phiw2=0.d0
-
-    ! After this operation phiw2 contains the transformed phi in the transposed way.
-    phiw2=phiw  ! here it is transposed?
-    directionLoop: do idir=1,3
-           if(idir==1) then
-               direction='x'
-           else if(idir==2) then
-               direction='y'
-           else if(idir==3) then
-               direction='z'
-           end if
-           ! Calculate the matrix elements <phiw|V|phiw>
-           ncplx=1
-           it=1
-           ! First apply the perturbation to all orbitals belonging to iproc
-           allocate(phiWorkPointer(size(phi)), stat=istat)
-           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
-           hphiw=phiw
-           istart=1
-           shift=perturbation(idir,iat)
-!write(*,*) 'ATTENTION: CHANGING SHIFT!!'
-!SHIFT=1.d2
-           do iorb=1,orbsLIN%norbp
-               iiAt=orbsLIN%onWhichAtom(iorb)
-               parabPrefac=orbsLIN%parabPrefacArr(at%iatype(orbsLIN%onWhichAtom(iorb)))
-               !write(*,'(a,2i6,es12.4)') 'before: iproc, iorb, dnrm2(hphiw)', iproc, iorb, dnrm2(nvctrp,hphiw(istart),1)
-               call subTemp(lr,ncplx,&
-                    input%hx,input%hy,input%hz,hphiw(istart), rxyzParabola(3,iat), orbsLIN, parabPrefac, it, direction, shift)
-               !write(*,'(a,2i6,es12.4)') 'after: iproc, iorb, dnrm2(hphiw)', iproc, iorb, dnrm2(nvctrp,hphiw(istart),1)
-               istart=istart+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbsLIN%nspinor
-           end do
-    
-           call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
-           call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphiw, work=phiWorkPointer)
-    
-    
-           ! nvctrp is the amount of each phi hold by the current process
-           nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor
-           
-           allocate(dTemp(orbsLIN%norb,orbsLIN%norb), stat=istat)
-           allocate(d(orbsLIN%norb,orbsLIN%norb), stat=istat)
-           dTemp=0.d0
-           istart=1
-           do iorb=1,orbsLIN%norb
-               jstart=1
-               do jorb=1,orbsLIN%norb
-                   dTemp(iorb,jorb)=ddot(nvctrp, phiw(istart), 1, hphiw(jstart), 1)
-                   !if(iproc==0) write(*,'(a,2i6,2es12.4)') 'iorb, jorb, dnrm2(phiw), dnrm2(hphiw)', iorb, jorb, dnrm2(nvctrp,phiw(istart),1), dnrm2(nvctrp,hphiw(jstart),1)
-                   jstart=jstart+nvctrp
-               end do
-               istart=istart+nvctrp
-           end do
-           d=0.d0
-           call mpi_allreduce(dTemp(1,1), d(1,1), orbsLIN%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-           ! Add the diagonal element shift**2
-           do iorb=1,orbsLIN%norb
-               d(iorb,iorb)=d(iorb,iorb)+parabPrefac*dble(shift)**2
-           end do
-           
-           !if(iproc==0) write(*,'(a,es12.4)') '<phi|V|phi> with shift=',shift
-           !do iorb=1,orbsLIN%norb
-           !    if(iproc==0) write(*,'(100es15.8)') (d(iorb,jorb), jorb=1,orbsLIN%norb)
-           !end do
-    
-           ! Make a linear combination according to perturbation theory
-           !!do iorb=1,orbsLIN%norbp
-           !!    write(*,'(a,i5,i3,i5,es12.5)') 'iat, iproc, iorb, dnrm2(phiw)', iat, iproc, iorb, dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phiw(istart), 1)
-           !!    istart=istart+lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           !!end do
-           allocate(phi1(orbsLIN%npsidim), stat=istat)
-           phi1=0.d0
-           do iorb=1,norbOnAt
-               !istart=(iorb-1)*nvctrp+1
-               istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
-               do jorb=1,norbOnAt
-                   jstart=(orbsOnAtom(jorb,1)-1)*nvctrp+1
-                   if(iorb==jorb) cycle
-                   call daxpy(nvctrp, d(orbsOnATom(iorb,1),orbsOnAtom(jorb,1))/&
-                   (Htilde(orbsOnAtom(iorb,1),orbsOnAtom(iorb,1),1)-Htilde(orbsOnAtom(jorb,1),orbsOnAtom(jorb,1),1)), &
-                   phiw(jstart), 1, phi1(istart), 1)
-               end do
-           end do
-           !call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi1, work=phiWorkPointer)
-           !istart=1
-           !do iorb=1,orbsLIN%norbp
-           !    write(*,'(a,i3,i5,2es12.5)') 'iproc, iorb, dnrm2(phi1), dnrm2(phi)', iproc, iorb, dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phi1(istart), 1), dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phi(istart), 1)
-           !    istart=istart+lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           !end do
-           !call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi1, work=phiWorkPointer)
-
-           ! Add the correction phi1 to the old orbitals phiw2
-           istart=1
-           do iorb=1,norbOnAt
-               jstart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
-               call daxpy(nvctrp, 1.d0, phi1(jstart), 1, phiw2(jstart), 1)
-               !call daxpy(nvctrp, 1.d0, phi1(jstart), 1, phiw(jstart), 1)
-               !call daxpy(nvctrp, 1.d0, phi1(istart), 1, phiw(jstart), 1)
-               istart=istart+nvctrp
-        
-           end do
-        ! Try to stop the loop here
-        end do directionLoop
-
-        ! Now phiw2 contains the perturbed orbitals.
-
-           !call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
-           ! Transform back to 'old' orbitals
-           !if(.not.allocated(phiw2)) allocate(phiw2(size(phiw)), stat=istat)
-           !phiw2=phiw
-           phiw=0.d0
-           do iorb=1,norbOnAt
-               istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
-               do jorb=1,norbOnAt
-                   jstart=(orbsOnAtom(jorb,1)-1)*nvctrp+1
-                   call daxpy(nvctrp, HtildeSmall(iorb,jorb), phiw2(jstart), 1, phiw(istart), 1)
-               end do
-           end do
-
-           !! Now mix the orbitals
-           !phiw2=phi
-           !istart=1
-           !do iorb=1,norbOnAt
-           !    jstart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
-           !    !call dcopy(nvctrp, phiw(istart), 1, phiw2(jstart), 1)
-           !    call dcopy(nvctrp, phiw(jstart), 1, phiw2(jstart), 1)
-           !    istart=istart+nvctrp
-           !end do
-           ! Mix the orbitals in phiPerturbed. phiPerturbed was initialized to be =phi in the very beginning,
-           ! So we can just replace the perturbed orbitals without doing anything else
-           istart=1
-           do iorb=1,norbOnAt
-               jstart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
-               !call dcopy(nvctrp, phiw(istart), 1, phiw2(jstart), 1)
-               call dcopy(nvctrp, phiw(jstart), 1, phiPerturbed(jstart), 1)
-               istart=istart+nvctrp
-           end do
-
-           ! This is not necessary, only for debugging
-           !call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw2, work=phiWorkPointer)
-           !istart=1
-           !do iorb=1,orbsLIN%norbp
-           !    write(*,'(a,i4,i3,i5,2es12.5)') 'iat, iproc, iorb, dnrm2(phiw2)', iat, iproc, iorb, dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phiw2(istart), 1)
-           !    istart=istart+lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           !end do
-           !call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw2, work=phiWorkPointer)
-
-
-           ! Now orthonormalize
-           call orthogonalize(iproc, nproc, orbsLIN, commsLIN, lr%wfd, phiw2, input)
-    
-           !call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
-           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
-           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphiw, work=phiWorkPointer)
-           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw2, work=phiWorkPointer)
-           deallocate(phiWorkPointer, stat=istat)
-
-           ! Now phiw2 contains the perturbed basis functions.
-           ! Copy them back
-           !istart=1
-           !do iorb=1,orbsLIN%norbp
-           !    write(*,'(a,i4,i3,i5,2es24.15)') 'iat, iproc, iorb, <phi|phiw2>', iat, iproc, iorb, ddot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phi(istart), 1, phiw2(istart), 1)
-           !    istart=istart+lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
-           !end do
-
-           ! DO NOT COPY HERE
-           !phi=phiw2
-    
-        !call mpi_barrier(mpi_comm_world, ierr)
-        !stop
-    !end do directionLoop
-end do atomsLoop
-
-! Replace phi with the perturbed phiPerturbed
-call orthogonalize(iproc, nproc, orbsLIN, commsLIN, lr%wfd, phiPerturbed, input)
-allocate(phiWorkPointer(size(phi)), stat=istat)
-call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiPerturbed, work=phiWorkPointer)
-deallocate(phiWorkPointer, stat=istat)
-write(*,*) 'check', ddot(size(phi), phi(1), 1, phiPerturbed(1), 1)/&
-    (dnrm2(size(phi), phi(1), 1)*dnrm2(size(phiPerturbed), phiPerturbed(1), 1))
-phi=phiPerturbed
-
-end subroutine estimatePerturbedOrbitals
+!!!!! THIS IS NOT WORKING !!
+!!!subroutine getD(iproc,nproc,orbsLIN,lr,hx,hy,hz,phi, hphi, nat, rxyzParab, parabPrefac, at, commsLIN, d)
+!!!  use module_base
+!!!  use module_types
+!!!  use module_interfaces
+!!!  implicit none
+!!!  integer, intent(in) :: iproc,nproc
+!!!  real(gp), intent(in) :: hx,hy,hz
+!!!  type(locreg_descriptors), intent(in) :: lr
+!!!  type(orbitals_data), intent(in) :: orbsLIN
+!!!  !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
+!!!  real(wp), dimension(orbsLIN%npsidim), intent(inout) :: phi, hphi
+!!!integer,intent(in):: nat
+!!!real(8),dimension(3),intent(in):: rxyzParab
+!!!real(8):: parabPrefac
+!!!type(atoms_data), intent(in) :: at
+!!!type(communications_arrays), intent(in):: commsLIN
+!!!real(8),dimension(orbsLIN%norb,orbsLIN%norb):: d
+!!!  !local variables
+!!!  integer :: iorb,inds,ncplx,ikpt,ierr
+!!!  real(wp) :: cprecr,scpr,eval_zero,evalmax 
+!!!  real(gp) :: kx,ky,kz
+!!!real(8),dimension(:),pointer:: phiWorkPointer
+!!!integer:: iiAt, istat, nvctrp, istart, jstart, jorb, it
+!!!real(8):: ddot
+!!!real(8),dimension(:,:),allocatable:: dTemp
+!!!
+!!!  ncplx=1
+!!!  it=1
+!!!  ! First apply the perturbation to all orbitals belonging to iproc
+!!!  allocate(phiWorkPointer(size(phi)), stat=istat)
+!!!  call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!  hphi=phi
+!!!  istart=1
+!!!  do iorb=1,orbsLIN%norbp
+!!!      !iiAt=onWhichAtom(iorb)
+!!!      !parabPrefac=orbsLIN%parabPrefacArr(at%iatype(onWhichAtom(iorb)))
+!!!
+!!!
+!!! !! THIS IS NOT WORKING !!
+!!!      !!call subTemp(lr,ncplx,&
+!!!      !!     hx,hy,hz,hphi(istart), rxyzParab, orbsLIN, parabPrefac, it)
+!!!
+!!!
+!!!      istart=istart+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbsLIN%nspinor
+!!!  end do
+!!!
+!!!  call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!  call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!!!
+!!!
+!!!  ! nvctrp is the amount of each phi hold by the current process
+!!!  nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor
+!!!  
+!!!  allocate(dTemp(orbsLIN%norb,orbsLIN%norb), stat=istat)
+!!!  dTemp=0.d0
+!!!  istart=1
+!!!  do iorb=1,orbsLIN%norb
+!!!      jstart=1
+!!!      do jorb=1,orbsLIN%norb
+!!!          dTemp(iorb,jorb)=ddot(nvctrp, phi(istart), 1, hphi(jstart), 1)
+!!!          jstart=jstart+nvctrp
+!!!      end do
+!!!      istart=istart+nvctrp
+!!!  end do
+!!!  d=0.d0
+!!!  call mpi_allreduce(dTemp(1,1), d(1,1), orbsLIN%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!!
+!!!  call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!  call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!!!  deallocate(phiWorkPointer, stat=istat)
+!!!
+!!!
+!!!END SUBROUTINE getD
+!!!!!***
+!!!
+!!!
+!!!
+!!!
+!!!subroutine subTemp(lr,ncplx,&
+!!!     hx,hy,hz,x,  rxyzParab, orbs, parabPrefac, it, direction, shift)
+!!!  use module_base
+!!!  use module_types
+!!!  ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!!!  ! x is the right hand side on input and the solution on output
+!!!  implicit none
+!!!  integer, intent(in) :: ncplx
+!!!  real(gp), intent(in) :: hx,hy,hz
+!!!  type(locreg_descriptors), intent(in) :: lr
+!!!  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
+!!!real(8),dimension(3),intent(in):: rxyzParab
+!!!type(orbitals_data), intent(in) :: orbs
+!!!real(8):: parabPrefac
+!!!integer:: it
+!!!character(len=1):: direction
+!!!real(8):: shift
+!!!  ! local variables
+!!!  character(len=*), parameter :: subname='precondition_residue'
+!!!  real(gp), dimension(0:7) :: scal
+!!!  real(wp) :: rmr_old,rmr_new,alpha,beta
+!!!  integer :: i_stat,i_all,icong
+!!!  type(workarr_precond) :: w
+!!!  real(wp), dimension(:), allocatable :: b,r,d
+!!!real(8):: dnrm2
+!!!
+!!!  !arrays for the CG procedure
+!!!  allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
+!!!  call memocc(i_stat,b,'b',subname)
+!!!  allocate(r(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
+!!!  call memocc(i_stat,r,'r',subname)
+!!!  allocate(d(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
+!!!  call memocc(i_stat,d,'d',subname)
+!!!
+!!!  call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
+!!!
+!!!  !call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
+!!!
+!!!  scal=1.d0
+!!!!write(*,*) 'dnrm2(x) 1' , dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, x, 1)
+!!!  call callApplyLinearOperator(ncplx,lr,hx,hy,hz,x,d,w,scal, rxyzParab, orbs, parabPrefac, it, direction, shift)
+!!!  x=d
+!!!!write(*,*) 'dnrm2(x)', dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, x, 1)
+!!!
+!!!  i_all=-product(shape(b))*kind(b)
+!!!  deallocate(b,stat=i_stat)
+!!!  call memocc(i_stat,i_all,'b',subname)
+!!!  i_all=-product(shape(r))*kind(r)
+!!!  deallocate(r,stat=i_stat)
+!!!  call memocc(i_stat,i_all,'r',subname)
+!!!  i_all=-product(shape(d))*kind(d)
+!!!  deallocate(d,stat=i_stat)
+!!!  call memocc(i_stat,i_all,'d',subname)
+!!!
+!!!  call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
+!!!
+!!!END SUBROUTINE subTemp
+!!!
+!!!
+!!!
+!!!
+!!!
+!!!
+!!!subroutine callApplyLinearOperator(ncplx,lr,hx,hy,hz,&
+!!!     x,y,w,scal, rxyzParab, orbs, parabPrefac, it, direction, shift)! y:=Ax
+!!!  use module_base
+!!!  use module_types
+!!!  implicit none
+!!!  integer, intent(in) :: ncplx
+!!!  real(gp), intent(in) :: hx,hy,hz
+!!!  type(locreg_descriptors), intent(in) :: lr
+!!!  real(gp), dimension(0:7), intent(in) :: scal
+!!!  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(in) ::  x
+!!!  type(workarr_precond), intent(inout) :: w
+!!!  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(out) ::  y
+!!!real(8),dimension(3),intent(in):: rxyzParab
+!!!type(orbitals_data), intent(in) :: orbs
+!!!real(8):: parabPrefac
+!!!integer:: it
+!!!character(len=1):: direction
+!!!real(8):: shift
+!!!  !local variables
+!!!  integer :: idx,nf
+!!!
+!!!     do idx=1,ncplx
+!!!        call applyLinearOperator(lr%d%n1,lr%d%n2,lr%d%n3,&
+!!!             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
+!!!             lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keyg,lr%wfd%keyv,&
+!!!             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!!             lr%wfd%keyg(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),&
+!!!             lr%wfd%keyv(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+!!!             scal,hx,&
+!!!             lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
+!!!             lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
+!!!             x(1,idx),x(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
+!!!             y(1,idx),y(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
+!!!             w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f,&
+!!!             w%x_f1,w%x_f2,w%x_f3, rxyzParab, orbs, lr, parabPrefac, it, direction, shift)
+!!!     end do
+!!!END SUBROUTINE callApplyLinearOperator
+!!!
+!!!! ypsi = (1/2) \Nabla^2 xpsi + cprecr xpsi
+!!!subroutine applyLinearOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+!!!     nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
+!!!     scal,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
+!!!     xpsi_c,xpsi_f,ypsi_c,ypsi_f,&
+!!!     xpsig_c,xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab, orbs, lr, parabPrefac, it, direction, shift)
+!!!  use module_base
+!!!  use module_types
+!!!  implicit none
+!!!  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+!!!  integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
+!!!  real(gp), intent(in) :: hgrid
+!!!  integer, dimension(nseg_c), intent(in) :: keyv_c
+!!!  integer, dimension(nseg_f), intent(in) :: keyv_f
+!!!  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+!!!  integer, dimension(2,nseg_f), intent(in) :: keyg_f
+!!!  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+!!!  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+!!!  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+!!!  real(wp), dimension(0:3), intent(in) :: scal
+!!!  real(wp), dimension(nvctr_c), intent(in) :: xpsi_c
+!!!  real(wp), dimension(7,nvctr_f), intent(in) :: xpsi_f
+!!!  real(wp), dimension(nvctr_c), intent(out) :: ypsi_c
+!!!  real(wp), dimension(7,nvctr_f), intent(out) :: ypsi_f
+!!!  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: xpsig_c,ypsig_c
+!!!  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: xpsig_f,ypsig_f
+!!!  real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: x_f1
+!!!  real(wp), dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), intent(inout) :: x_f2
+!!!  real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(inout) :: x_f3
+!!!real(8),dimension(3),intent(in):: rxyzParab
+!!!type(orbitals_data), intent(in) :: orbs
+!!!type(locreg_descriptors), intent(in) :: lr
+!!!real(8):: parabPrefac
+!!!integer:: it
+!!!character(len=1):: direction
+!!!real(8):: shift
+!!!
+!!!! Local variables
+!!!integer:: ix, iy, iz, ix0, iy0, iz0, i1, i2, i3, istat, ii, jj
+!!!real(8):: hxh, hyh, hzh, tt, dis, kx, ky, kz
+!!!real(8),dimension(:,:,:),allocatable:: xpsig_cTemp
+!!!real(8),dimension(:,:,:,:),allocatable:: xpsig_fTemp
+!!!real(8),dimension(:),allocatable:: phi, phir
+!!!type(workarr_locham) :: w2
+!!!
+!!!real(8):: dnrm2
+!!!
+!!!
+!!!!write(*,*) 'dnrm2(xpsi_c)', dnrm2(nvctr_c, xpsi_c, 1)
+!!!!write(*,*) 'dnrm2(xpsi_f)', dnrm2(7*nvctr_f, xpsi_f, 1)
+!!!
+!!!xpsig_c=0.d0
+!!!xpsig_f=0.d0
+!!!
+!!!  call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+!!!       nseg_c,nvctr_c,keyg_c,keyv_c,  & 
+!!!       nseg_f,nvctr_f,keyg_f,keyv_f,  & 
+!!!       scal,xpsi_c,xpsi_f,xpsig_c,xpsig_f,x_f1,x_f2,x_f3)
+!!!
+!!!!write(*,*) 'dnrm2(xpsig_c)', dnrm2((n1+1)*(n2+1)*(n3+1), xpsig_c, 1)
+!!!
+!!!  call ConvolLinear(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+!!!       hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
+!!!       xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it, direction, shift)
+!!!!write(*,*) 'dnrm2(ypsig_c)', dnrm2((n1+1)*(n2+1)*(n3+1), ypsig_c, 1)
+!!!!write(*,*) 'parabPrefac',parabPrefac
+!!!
+!!!  call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+!!!       nseg_c,nvctr_c,keyg_c,keyv_c,  & 
+!!!       nseg_f,nvctr_f,keyg_f,keyv_f,  & 
+!!!       scal,ypsig_c,ypsig_f,ypsi_c,ypsi_f)
+!!!
+!!!!write(*,*) 'dnrm2(ypsi_c)', dnrm2(nvctr_c, ypsi_c, 1)
+!!!
+!!!
+!!!END SUBROUTINE applyLinearOperator
+!!!
+!!!
+!!!
+!!!
+!!!subroutine estimatePerturbedOrbitals(iproc, nproc, at, orbs, lr, input, orbsLIN, commsLIN, rxyz,&
+!!!     nspin, nlpspd, proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, rxyzParabola, perturbation)
+!!!!
+!!!! Purpose:
+!!!! ========
+!!!!   Calculates the localized basis functions phi. These basis functions are eigenfunctions of the ordinary Hamiltonian
+!!!!   with an additional parabolic potential centered at the atoms. The eigenfunctions are determined by minimizing the trace.
+!!!!
+!!!! Calling arguments:
+!!!!   Input arguments
+!!!!   Output arguments
+!!!!    phi   the localized basis functions
+!!!!
+!!!use module_base
+!!!use module_types
+!!!use module_interfaces, except_this_one => estimatePerturbedOrbitals
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer:: iproc, nproc
+!!!type(atoms_data), intent(in) :: at
+!!!type(orbitals_data):: orbs
+!!!type(locreg_descriptors), intent(in) :: lr
+!!!type(input_variables):: input
+!!!type(orbitals_data):: orbsLIN
+!!!type(communications_arrays):: commsLIN
+!!!real(8),dimension(3,at%nat):: rxyz, rxyzParabola
+!!!integer:: nspin
+!!!type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+!!!real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+!!!integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+!!!integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+!!!real(dp), dimension(*), intent(inout) :: rhopot
+!!!type(GPU_pointers), intent(inout) :: GPU
+!!!real(dp), dimension(:), pointer :: pkernelseq
+!!!real(8),dimension(orbsLIN%npsidim):: phi
+!!!real(8),dimension(3,at%nat):: perturbation
+!!!! Local variables
+!!!integer:: iorb, jorb, korb, lorb, istat, istart, nvctrp, ierr, iat, ii, jj, kk, ik, il, ll, jproc, kproc, lproc, id, norbOnAt, info
+!!!integer:: jstart, lwork, ncplx, it, iiAt, idir
+!!!real(8),dimension(:),allocatable:: b, a, dvec, eval, work, phiw, hphiw, phi1, phiw2, phiPerturbed
+!!!real(8),dimension(:,:),allocatable:: eps, dTemp, d
+!!!real(8),dimension(:,:),allocatable:: emat, U, HU, HtildeSmall
+!!!real(8),dimension(:,:,:),allocatable:: Htilde
+!!!real(8):: tt, hphiNrm, dnrm2, fracTot, parabPrefac, ddot, ekin_sum, epot_sum, eexctx, eproj_sum
+!!!integer,dimension(:,:),allocatable:: orbsOnAtom
+!!!integer,dimension(:,:,:),allocatable:: tempArr
+!!!integer,dimension(:),allocatable:: lorbArr, displs, ipiv
+!!!real(8),dimension(:),pointer:: phiWorkPointer
+!!!character(len=1):: direction
+!!!real(8):: shift
+!!!real(8),dimension(:),allocatable:: hphi
+!!!!real(8),dimension(:,:),allocatable:: rxyzParabola
+!!!
+!!!
+!!!! Calculate the unconstrained gradient.
+!!!allocate(hphi(orbsLIN%npsidim), stat=istat)
+!!!call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!!!     nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
+!!!     rhopot(1),&
+!!!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
+!!!
+!!!allocate(orbsOnAtom(orbsLIN%norb,2), stat=istat)
+!!!allocate(lorbArr(0:nproc-1), stat=istat)
+!!!allocate(displs(0:nproc-1), stat=istat)
+!!!allocate(phiPerturbed(size(phi)), stat=istat)
+!!!
+!!!! First copy phi to phiPerturbed
+!!!allocate(phiWorkPointer(size(phi)), stat=istat)
+!!!call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!phiPerturbed=phi
+!!!call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!deallocate(phiWorkPointer, stat=istat)
+!!!
+!!!atomsLoop: do iat=1,at%nat
+!!!    orbsOnAtom=0
+!!!    nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor
+!!!
+!!!
+!!!    ! First find out which atoms are centered on atom iat
+!!!    korb=0
+!!!    lorb=0
+!!!    do jproc=0,nproc-1
+!!!        do jorb=1,orbsLIN%norb_par(jproc)
+!!!            korb=korb+1
+!!!            if(jproc==iproc) then
+!!!                if(orbsLIN%onWhichAtom(jorb)==iat) then
+!!!                    lorb=lorb+1
+!!!                    orbsOnAtom(lorb,2)=korb
+!!!                end if
+!!!            end if
+!!!        end do
+!!!    end do
+!!!    call mpi_gather(lorb, 1, mpi_integer, lorbArr(0), 1, mpi_integer, 0, mpi_comm_world, ierr)
+!!!    displs(0)=0
+!!!    do jproc=1,nproc-1
+!!!        displs(jproc)=displs(jproc-1)+lorbArr(jproc-1)
+!!!    end do
+!!!    call mpi_gatherv(orbsOnAtom(1,2), lorb, mpi_integer, orbsOnAtom(1,1), lorbArr(0), displs(0), &
+!!!        mpi_integer, 0, mpi_comm_world, ierr)
+!!!    do istat=1,sum(lorbArr)
+!!!        if(iproc==0) write(*,*)'istat, orbsOnAtom(istat,1)', istat, orbsOnAtom(istat,1)
+!!!    end do
+!!!
+!!!    ! Send orbsOnAtom to all processes
+!!!    if(iproc==0) norbOnAt=sum(lorbArr)
+!!!    call mpi_bcast(norbOnAt, 1, mpi_integer, 0, mpi_comm_world, ierr)
+!!!    call mpi_barrier(mpi_comm_world, ierr)
+!!!    call mpi_bcast(orbsOnAtom(1,1), norbOnat, mpi_integer, 0, mpi_comm_world, ierr)
+!!!    call mpi_barrier(mpi_comm_world, ierr)
+!!! 
+!!!    ! Calculate <phi|H|phi> for all orbitals. This requires to tranpose them first.
+!!!    allocate(Htilde(orbsLIN%norb,orbsLIN%norb,2), stat=istat)
+!!!    Htilde=0.d0
+!!!    allocate(phiWorkPointer(size(phi)), stat=istat)
+!!!    call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!    call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!!!    deallocate(phiWorkPointer, stat=istat)
+!!!    nvctrp=commsLIN%nvctr_par(iproc,1)
+!!!    istart=1
+!!!    do iorb=1,orbsLIN%norb
+!!!        jstart=1
+!!!        do jorb=1,orbsLIN%norb
+!!!            Htilde(iorb,jorb,2)=ddot(nvctrp, phi(istart), 1, hphi(jstart), 1)
+!!!            jstart=jstart+nvctrp
+!!!        end do
+!!!        istart=istart+nvctrp
+!!!    end do
+!!!    call mpi_allreduce (Htilde(1,1,2), Htilde(1,1,1), orbsLIN%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!!    !if(iproc==0) write(*,*) '<phi|H|phi>'
+!!!    !do iorb=1,orbsLIN%norb
+!!!    !    if(iproc==0) write(*,'(100f8.4)') (Htilde(iorb,jorb,1), jorb=1,orbsLIN%norb)
+!!!    !end do
+!!!
+!!!    ! Cut out the part of the matrix containing all orbitals centered on the current atom
+!!!    allocate(HtildeSmall(norbOnAt,norbOnAt), stat=istat)
+!!!    if(iproc==0) then
+!!!        do iorb=1,norbOnAt
+!!!            do jorb=1,norbOnAt
+!!!                HtildeSmall(jorb,iorb)=Htilde(orbsOnAtom(jorb,1),orbsOnAtom(iorb,1),1)
+!!!            end do
+!!!        end do 
+!!!        !do iorb=1,norbOnAt
+!!!        !    write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
+!!!        !end do
+!!!        
+!!!        ! Diagonalize Htilde on root only
+!!!        allocate(eval(norbOnAt), stat=istat)
+!!!        lwork=1000*norbOnAt
+!!!        allocate(work(lwork), stat=istat)
+!!!        call dsyev('v', 'l', norbOnAt, HtildeSmall, norbOnAt, eval, work, lwork, info)
+!!!        if(info/=0) then
+!!!            write(*,'(a,i0)') 'ERROR in dsyev, info= ',info
+!!!            stop
+!!!        end if
+!!!        deallocate(work, stat=istat)
+!!!        !write(*,*) '--------------'
+!!!        !do iorb=1,norbOnAt
+!!!        !    write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
+!!!        !end do
+!!!    end if
+!!!
+!!!    ! Broadcast HtildeSmall
+!!!    call mpi_bcast(HtildeSmall(1,1), norbOnAt**2, mpi_double_precision, 0, mpi_comm_world, ierr)
+!!!    call mpi_barrier(mpi_comm_world, ierr)
+!!!    !write(*,*) '--------------', iproc, norbOnAt
+!!!    !do iorb=1,norbOnAt
+!!!    !    write(*,'(100f8.4)') (HtildeSmall(iorb,jorb), jorb=1,norbOnAt)
+!!!    !end do
+!!!
+!!!    ! Build new linear combination
+!!!    allocate(phiw(orbsLIN%npsidim), stat=istat)
+!!!    allocate(hphiw(orbsLIN%npsidim), stat=istat)
+!!!    phiw=0.d0 ; hphiw=0.d0
+!!!    nvctrp=commsLIN%nvctr_par(iproc,1)
+!!!    do iorb=1,norbOnAt
+!!!        istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
+!!!        do jorb=1,norbOnAt
+!!!            jstart=(orbsOnAtom(jorb,1)-1)*nvctrp+1
+!!!            call daxpy(nvctrp, HtildeSmall(jorb,iorb), phi(jstart), 1, phiw(istart), 1)
+!!!        end do
+!!!    end do
+!!!
+!!!    !!! Undo this transformations only a test)
+!!!    !!allocate(phiw2(size(phiw)), stat=istat)
+!!!    !!phiw2=phiw
+!!!    !!phiw=0.d0
+!!!    !!do iorb=1,norbOnAt
+!!!    !!    istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
+!!!    !!    do jorb=1,norbOnAt
+!!!    !!        jstart=(orbsOnAtom(jorb,1)-1)*nvctrp+1
+!!!    !!        call daxpy(nvctrp, HtildeSmall(iorb,jorb), phiw2(jstart), 1, phiw(istart), 1)
+!!!    !!    end do
+!!!    !!end do
+!!!
+!!!    allocate(phiWorkPointer(size(phi)), stat=istat)
+!!!    call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!    call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
+!!!    call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphi, work=phiWorkPointer)
+!!!    deallocate(phiWorkPointer, stat=istat)
+!!!
+!!!    ! Check whether the subspace diagonalization was successful
+!!!    ! This should at the moment always be done to get the diagonal elements
+!!!    if(.true.) then
+!!!        nspin=1
+!!!        !call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!!!        !     nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
+!!!        !     rhopot(1),&
+!!!        !     phiw(1),hphiw(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
+!!!        call HamiltonianApplicationParabola(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
+!!!            nlpspd,proj,lr,ngatherarr,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),&
+!!!            rhopot(1),&
+!!!            phiw(1),hphiw(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, orbsLIN%onWhichAtom, rxyzParabola, pkernel=pkernelseq)
+!!!
+!!!        Htilde=0.d0
+!!!        allocate(phiWorkPointer(size(phi)), stat=istat)
+!!!        call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
+!!!        call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphiw, work=phiWorkPointer)
+!!!        deallocate(phiWorkPointer, stat=istat)
+!!!        nvctrp=commsLIN%nvctr_par(iproc,1)
+!!!        istart=1
+!!!        do iorb=1,orbsLIN%norb
+!!!            jstart=1
+!!!            do jorb=1,orbsLIN%norb
+!!!                Htilde(iorb,jorb,2)=ddot(nvctrp, phiw(istart), 1, hphiw(jstart), 1)
+!!!                jstart=jstart+nvctrp
+!!!            end do
+!!!            istart=istart+nvctrp
+!!!        end do
+!!!        call mpi_allreduce (Htilde(1,1,2), Htilde(1,1,1), orbsLIN%norb**2 ,mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!!        !if(iproc==0) write(*,*) 'after subspace diag: <phi|H|phi>', iat
+!!!        !do iorb=1,orbsLIN%norb
+!!!        !    if(iproc==0) write(*,'(100f8.4)') (Htilde(iorb,jorb,1), jorb=1,orbsLIN%norb)
+!!!        !end do
+!!!    end if       
+!!!
+!!!     if(.not.allocated(phiw2)) allocate(phiw2(size(phiw)), stat=istat)
+!!!     !phiw2=0.d0
+!!!
+!!!    ! After this operation phiw2 contains the transformed phi in the transposed way.
+!!!    phiw2=phiw  ! here it is transposed?
+!!!    directionLoop: do idir=1,3
+!!!           if(idir==1) then
+!!!               direction='x'
+!!!           else if(idir==2) then
+!!!               direction='y'
+!!!           else if(idir==3) then
+!!!               direction='z'
+!!!           end if
+!!!           ! Calculate the matrix elements <phiw|V|phiw>
+!!!           ncplx=1
+!!!           it=1
+!!!           ! First apply the perturbation to all orbitals belonging to iproc
+!!!           allocate(phiWorkPointer(size(phi)), stat=istat)
+!!!           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
+!!!           hphiw=phiw
+!!!           istart=1
+!!!           shift=perturbation(idir,iat)
+!!!!write(*,*) 'ATTENTION: CHANGING SHIFT!!'
+!!!!SHIFT=1.d2
+!!!           do iorb=1,orbsLIN%norbp
+!!!               iiAt=orbsLIN%onWhichAtom(iorb)
+!!!               parabPrefac=orbsLIN%parabPrefacArr(at%iatype(orbsLIN%onWhichAtom(iorb)))
+!!!               !write(*,'(a,2i6,es12.4)') 'before: iproc, iorb, dnrm2(hphiw)', iproc, iorb, dnrm2(nvctrp,hphiw(istart),1)
+!!!               call subTemp(lr,ncplx,&
+!!!                    input%hx,input%hy,input%hz,hphiw(istart), rxyzParabola(3,iat), orbsLIN, parabPrefac, it, direction, shift)
+!!!               !write(*,'(a,2i6,es12.4)') 'after: iproc, iorb, dnrm2(hphiw)', iproc, iorb, dnrm2(nvctrp,hphiw(istart),1)
+!!!               istart=istart+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbsLIN%nspinor
+!!!           end do
+!!!    
+!!!           call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
+!!!           call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphiw, work=phiWorkPointer)
+!!!    
+!!!    
+!!!           ! nvctrp is the amount of each phi hold by the current process
+!!!           nvctrp=sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor
+!!!           
+!!!           allocate(dTemp(orbsLIN%norb,orbsLIN%norb), stat=istat)
+!!!           allocate(d(orbsLIN%norb,orbsLIN%norb), stat=istat)
+!!!           dTemp=0.d0
+!!!           istart=1
+!!!           do iorb=1,orbsLIN%norb
+!!!               jstart=1
+!!!               do jorb=1,orbsLIN%norb
+!!!                   dTemp(iorb,jorb)=ddot(nvctrp, phiw(istart), 1, hphiw(jstart), 1)
+!!!                   !if(iproc==0) write(*,'(a,2i6,2es12.4)') 'iorb, jorb, dnrm2(phiw), dnrm2(hphiw)', iorb, jorb, dnrm2(nvctrp,phiw(istart),1), dnrm2(nvctrp,hphiw(jstart),1)
+!!!                   jstart=jstart+nvctrp
+!!!               end do
+!!!               istart=istart+nvctrp
+!!!           end do
+!!!           d=0.d0
+!!!           call mpi_allreduce(dTemp(1,1), d(1,1), orbsLIN%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!!           ! Add the diagonal element shift**2
+!!!           do iorb=1,orbsLIN%norb
+!!!               d(iorb,iorb)=d(iorb,iorb)+parabPrefac*dble(shift)**2
+!!!           end do
+!!!           
+!!!           !if(iproc==0) write(*,'(a,es12.4)') '<phi|V|phi> with shift=',shift
+!!!           !do iorb=1,orbsLIN%norb
+!!!           !    if(iproc==0) write(*,'(100es15.8)') (d(iorb,jorb), jorb=1,orbsLIN%norb)
+!!!           !end do
+!!!    
+!!!           ! Make a linear combination according to perturbation theory
+!!!           !!do iorb=1,orbsLIN%norbp
+!!!           !!    write(*,'(a,i5,i3,i5,es12.5)') 'iat, iproc, iorb, dnrm2(phiw)', iat, iproc, iorb, dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phiw(istart), 1)
+!!!           !!    istart=istart+lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+!!!           !!end do
+!!!           allocate(phi1(orbsLIN%npsidim), stat=istat)
+!!!           phi1=0.d0
+!!!           do iorb=1,norbOnAt
+!!!               !istart=(iorb-1)*nvctrp+1
+!!!               istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
+!!!               do jorb=1,norbOnAt
+!!!                   jstart=(orbsOnAtom(jorb,1)-1)*nvctrp+1
+!!!                   if(iorb==jorb) cycle
+!!!                   call daxpy(nvctrp, d(orbsOnATom(iorb,1),orbsOnAtom(jorb,1))/&
+!!!                   (Htilde(orbsOnAtom(iorb,1),orbsOnAtom(iorb,1),1)-Htilde(orbsOnAtom(jorb,1),orbsOnAtom(jorb,1),1)), &
+!!!                   phiw(jstart), 1, phi1(istart), 1)
+!!!               end do
+!!!           end do
+!!!           !call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi1, work=phiWorkPointer)
+!!!           !istart=1
+!!!           !do iorb=1,orbsLIN%norbp
+!!!           !    write(*,'(a,i3,i5,2es12.5)') 'iproc, iorb, dnrm2(phi1), dnrm2(phi)', iproc, iorb, dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phi1(istart), 1), dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phi(istart), 1)
+!!!           !    istart=istart+lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+!!!           !end do
+!!!           !call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi1, work=phiWorkPointer)
+!!!
+!!!           ! Add the correction phi1 to the old orbitals phiw2
+!!!           istart=1
+!!!           do iorb=1,norbOnAt
+!!!               jstart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
+!!!               call daxpy(nvctrp, 1.d0, phi1(jstart), 1, phiw2(jstart), 1)
+!!!               !call daxpy(nvctrp, 1.d0, phi1(jstart), 1, phiw(jstart), 1)
+!!!               !call daxpy(nvctrp, 1.d0, phi1(istart), 1, phiw(jstart), 1)
+!!!               istart=istart+nvctrp
+!!!        
+!!!           end do
+!!!        ! Try to stop the loop here
+!!!        end do directionLoop
+!!!
+!!!        ! Now phiw2 contains the perturbed orbitals.
+!!!
+!!!           !call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!           ! Transform back to 'old' orbitals
+!!!           !if(.not.allocated(phiw2)) allocate(phiw2(size(phiw)), stat=istat)
+!!!           !phiw2=phiw
+!!!           phiw=0.d0
+!!!           do iorb=1,norbOnAt
+!!!               istart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
+!!!               do jorb=1,norbOnAt
+!!!                   jstart=(orbsOnAtom(jorb,1)-1)*nvctrp+1
+!!!                   call daxpy(nvctrp, HtildeSmall(iorb,jorb), phiw2(jstart), 1, phiw(istart), 1)
+!!!               end do
+!!!           end do
+!!!
+!!!           !! Now mix the orbitals
+!!!           !phiw2=phi
+!!!           !istart=1
+!!!           !do iorb=1,norbOnAt
+!!!           !    jstart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
+!!!           !    !call dcopy(nvctrp, phiw(istart), 1, phiw2(jstart), 1)
+!!!           !    call dcopy(nvctrp, phiw(jstart), 1, phiw2(jstart), 1)
+!!!           !    istart=istart+nvctrp
+!!!           !end do
+!!!           ! Mix the orbitals in phiPerturbed. phiPerturbed was initialized to be =phi in the very beginning,
+!!!           ! So we can just replace the perturbed orbitals without doing anything else
+!!!           istart=1
+!!!           do iorb=1,norbOnAt
+!!!               jstart=(orbsOnAtom(iorb,1)-1)*nvctrp+1
+!!!               !call dcopy(nvctrp, phiw(istart), 1, phiw2(jstart), 1)
+!!!               call dcopy(nvctrp, phiw(jstart), 1, phiPerturbed(jstart), 1)
+!!!               istart=istart+nvctrp
+!!!           end do
+!!!
+!!!           ! This is not necessary, only for debugging
+!!!           !call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw2, work=phiWorkPointer)
+!!!           !istart=1
+!!!           !do iorb=1,orbsLIN%norbp
+!!!           !    write(*,'(a,i4,i3,i5,2es12.5)') 'iat, iproc, iorb, dnrm2(phiw2)', iat, iproc, iorb, dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phiw2(istart), 1)
+!!!           !    istart=istart+lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+!!!           !end do
+!!!           !call transpose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw2, work=phiWorkPointer)
+!!!
+!!!
+!!!           ! Now orthonormalize
+!!!           call orthogonalize(iproc, nproc, orbsLIN, commsLIN, lr%wfd, phiw2, input)
+!!!    
+!!!           !call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phi, work=phiWorkPointer)
+!!!           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw, work=phiWorkPointer)
+!!!           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, hphiw, work=phiWorkPointer)
+!!!           call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiw2, work=phiWorkPointer)
+!!!           deallocate(phiWorkPointer, stat=istat)
+!!!
+!!!           ! Now phiw2 contains the perturbed basis functions.
+!!!           ! Copy them back
+!!!           !istart=1
+!!!           !do iorb=1,orbsLIN%norbp
+!!!           !    write(*,'(a,i4,i3,i5,2es24.15)') 'iat, iproc, iorb, <phi|phiw2>', iat, iproc, iorb, ddot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, phi(istart), 1, phiw2(istart), 1)
+!!!           !    istart=istart+lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+!!!           !end do
+!!!
+!!!           ! DO NOT COPY HERE
+!!!           !phi=phiw2
+!!!    
+!!!        !call mpi_barrier(mpi_comm_world, ierr)
+!!!        !stop
+!!!    !end do directionLoop
+!!!end do atomsLoop
+!!!
+!!!! Replace phi with the perturbed phiPerturbed
+!!!call orthogonalize(iproc, nproc, orbsLIN, commsLIN, lr%wfd, phiPerturbed, input)
+!!!allocate(phiWorkPointer(size(phi)), stat=istat)
+!!!call untranspose_v(iproc, nproc, orbsLIN, lr%wfd, commsLIN, phiPerturbed, work=phiWorkPointer)
+!!!deallocate(phiWorkPointer, stat=istat)
+!!!write(*,*) 'check', ddot(size(phi), phi(1), 1, phiPerturbed(1), 1)/&
+!!!    (dnrm2(size(phi), phi(1), 1)*dnrm2(size(phiPerturbed), phiPerturbed(1), 1))
+!!!phi=phiPerturbed
+!!!
+!!!end subroutine estimatePerturbedOrbitals

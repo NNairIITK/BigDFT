@@ -1347,7 +1347,7 @@ END SUBROUTINE precong
 
 
 
-subroutine preconditionallLIN(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero, gnrmMax, nat, rxyz, onWhichAtom, at, it)
+subroutine preconditionallLIN(iproc,nproc,orbs,lin,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero, gnrmMax, nat, rxyz, at, it)
   use module_base
   use module_types
   implicit none
@@ -1355,11 +1355,11 @@ subroutine preconditionallLIN(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
+  type(linearParameters):: lin
   real(dp), intent(out) :: gnrm,gnrm_zero, gnrmMax
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
 integer,intent(in):: nat, it
 real(8),dimension(3,nat),intent(in):: rxyz
-integer,dimension(orbs%norbp),intent(in):: onWhichAtom
 type(atoms_data), intent(in) :: at
   !local variables
   integer :: iorb,inds,ncplx,ikpt,ierr
@@ -1454,12 +1454,12 @@ real(8),dimension(3):: rxyzShifted
 
            else !normal preconditioner
               
-              iiAt=onWhichAtom(iorb)
-              parabPrefac=orbs%parabPrefacArr(at%iatype(onWhichAtom(iorb)))
+              iiAt=lin%onWhichAtom(iorb)
+              parabPrefac=lin%potentialPrefac(at%iatype(iiat))
            ! WITH PARABOLA SHIFT
-              rxyzShifted(1)=rxyz(1,onWhichAtom(iorb))+orbs%parabolaShift(1,iorb)
-              rxyzShifted(2)=rxyz(2,onWhichAtom(iorb))+orbs%parabolaShift(2,iorb)
-              rxyzShifted(3)=rxyz(3,onWhichAtom(iorb))+orbs%parabolaShift(3,iorb)
+              rxyzShifted(1)=rxyz(1,iiat)!+orbs%parabolaShift(1,iorb)
+              rxyzShifted(2)=rxyz(2,iiat)!+orbs%parabolaShift(2,iorb)
+              rxyzShifted(3)=rxyz(3,iiat)!+orbs%parabolaShift(3,iorb)
               call precondition_residueLIN(lr,ncplx,ncong,cprecr,&
                    hx,hy,hz,kx,ky,kz,hpsi(1,inds,iorb), rxyzShifted, orbs, parabPrefac, it)
            ! THIS WAS THE ORIGINAL VERSION
@@ -1702,15 +1702,15 @@ type(workarr_locham) :: w2
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
        scal,xpsi_c,xpsi_f,xpsig_c,xpsig_f,x_f1,x_f2,x_f3)
 
-  if(orbs%power==2) then
-      call ConvolkineticParabola(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-           cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
-           xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it)
-  else if(orbs%power==4) then
+  !if(orbs%power==2) then
+  !    call ConvolkineticParabola(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+  !         cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
+  !         xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it)
+  !else if(orbs%power==4) then
       call ConvolkineticQuartic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
            cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
            xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it)
-  end if
+  !end if
 
   call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
        nseg_c,nvctr_c,keyg_c,keyv_c,  & 

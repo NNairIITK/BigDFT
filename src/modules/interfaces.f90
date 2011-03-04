@@ -397,9 +397,9 @@ module module_interfaces
        real(wp), dimension(:), pointer, optional :: psirocc
      END SUBROUTINE HamiltonianApplication
 
-     subroutine HamiltonianApplicationParabola(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
+     subroutine HamiltonianApplicationParabola(iproc,nproc,at,orbs,lin,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, onWhichAtom, rxyzParabola, pkernel,orbsocc,psirocc)
+          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, pkernel,orbsocc,psirocc)
        use module_base
        use module_types
        implicit none
@@ -407,6 +407,7 @@ module module_interfaces
        real(gp), intent(in) :: hx,hy,hz
        type(atoms_data), intent(in) :: at
        type(orbitals_data), intent(in) :: orbs
+       type(linearParameters):: lin
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
        type(locreg_descriptors), intent(in) :: lr 
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
@@ -417,7 +418,6 @@ module module_interfaces
        real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
-     integer,dimension(orbs%norbp):: onWhichAtom
      real(gp), dimension(3,at%nat), intent(in) :: rxyzParabola
        real(dp), dimension(*), optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
@@ -1141,7 +1141,7 @@ module module_interfaces
       real(wp), dimension(:), pointer :: pot
     end subroutine free_full_potential
 
-subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, orbsLIN, commsLIN, rxyz, nspin, nlpspd, &
+subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, commsLIN, rxyz, nspin, nlpspd, &
     proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, &
     idsxMin, idsxMax, infoBasisFunctions)
 !
@@ -1160,7 +1160,7 @@ type(orbitals_data):: orbs
 type(locreg_descriptors), intent(in) :: Glr
 type(input_variables):: input
 type(linearParameters):: lin
-type(orbitals_data):: orbsLIN
+!type(orbitals_data):: orbsLIN
 type(communications_arrays):: commsLIN
 real(8),dimension(3,at%nat):: rxyz
 integer:: nspin
@@ -1171,7 +1171,8 @@ integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
 real(dp), dimension(*), intent(inout) :: rhopot
 type(GPU_pointers), intent(inout) :: GPU
 real(dp), dimension(:), pointer :: pkernelseq
-real(8),dimension(orbsLIN%npsidim):: phi, hphi
+!real(8),dimension(orbsLIN%npsidim):: phi, hphi
+real(8),dimension(lin%orbs%npsidim):: phi, hphi
 real(8):: trH
 real(8),dimension(3,at%nat):: rxyzParabola
 end subroutine getLocalizedBasis
@@ -1492,7 +1493,7 @@ end subroutine diisstpVariable
 
 
 subroutine apply_potentialParabola(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, rxyzParab, &
-     hxh, hyh, hzh, parabPrefac, power, &
+     hxh, hyh, hzh, parabPrefac, &
      ibyyzz_r) !optional
   use module_base
   implicit none
@@ -1504,7 +1505,6 @@ subroutine apply_potentialParabola(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,p
   real(gp), intent(out) :: epot
 real(8),dimension(3):: rxyzParab
 real(8):: hxh, hyh, hzh, parabPrefac
-integer:: power
 end subroutine apply_potentialParabola
 
 
@@ -1537,6 +1537,26 @@ real(8),dimension(orbsLIN%npsidim):: phi
 real(8),dimension(orbs%npsidim):: psi, psit
 end subroutine getLinearPsi
 
+subroutine local_hamiltonianParabola(iproc,orbs,lin,lr,hx,hy,hz,&
+     nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, at)
+  use module_base
+  use module_types
+  use libxc_functionals
+  implicit none
+  integer, intent(in) :: iproc,nspin
+  real(gp), intent(in) :: hx,hy,hz
+  type(orbitals_data), intent(in) :: orbs
+  type(linearParameters):: lin
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
+  real(wp), dimension(*) :: pot
+  !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
+  real(gp), intent(out) :: ekin_sum,epot_sum
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+integer:: nat
+real(8),dimension(3,nat):: rxyz
+type(atoms_data), intent(in) :: at
+end subroutine local_hamiltonianParabola
 
   end interface
 

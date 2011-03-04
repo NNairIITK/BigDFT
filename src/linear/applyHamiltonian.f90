@@ -11,9 +11,9 @@
 !!
 !! SOURCE
 !!
-subroutine HamiltonianApplicationParabola(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
+subroutine HamiltonianApplicationParabola(iproc,nproc,at,orbs,lin,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, onWhichAtom, rxyzParabola,&
+     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola,&
      pkernel,orbsocc,psirocc) ! optional
   use module_base
   use module_types
@@ -23,6 +23,7 @@ subroutine HamiltonianApplicationParabola(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
+  type(linearParameters):: lin
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors), intent(in) :: lr 
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
@@ -33,7 +34,6 @@ subroutine HamiltonianApplicationParabola(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
-integer,dimension(orbs%norbp):: onWhichAtom
 real(gp), dimension(3,at%nat), intent(in) :: rxyzParabola
   real(dp), dimension(*), optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
@@ -156,8 +156,8 @@ real(gp), dimension(3,at%nat), intent(in) :: rxyzParabola
   else if (OCLconv) then
      call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
   else
-     call local_hamiltonianParabola(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum, &
-       at%nat, rxyzParabola, onWhichAtom, at)
+     call local_hamiltonianParabola(iproc,orbs,lin,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum, &
+       at%nat, rxyzParabola, at)
      !call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   end if
 
@@ -269,8 +269,8 @@ END SUBROUTINE HamiltonianApplicationParabola
 !!   For the list of contributors, see ~/AUTHORS 
 !! SOURCE
 !!
-subroutine local_hamiltonianParabola(iproc,orbs,lr,hx,hy,hz,&
-     nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, onWhichAtom, at)
+subroutine local_hamiltonianParabola(iproc,orbs,lin,lr,hx,hy,hz,&
+     nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, at)
   use module_base
   use module_types
   use module_interfaces
@@ -279,6 +279,7 @@ subroutine local_hamiltonianParabola(iproc,orbs,lr,hx,hy,hz,&
   integer, intent(in) :: iproc,nspin
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
+  type(linearParameters):: lin
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension(*) :: pot
@@ -287,7 +288,6 @@ subroutine local_hamiltonianParabola(iproc,orbs,lr,hx,hy,hz,&
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
 integer:: nat
 real(8),dimension(3,nat):: rxyz 
-integer,dimension(orbs%norbp):: onWhichAtom
 type(atoms_data), intent(in) :: at
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
@@ -347,11 +347,11 @@ real(8),dimension(3):: rxyzShifted
      case('F')
 
    ! ATTENTION: WITH SHIFTED PARABOLA
-    rxyzShifted(1)=rxyz(1,onWhichAtom(iorb))+orbs%parabolaShift(1,iorb)
-    rxyzShifted(2)=rxyz(2,onWhichAtom(iorb))+orbs%parabolaShift(2,iorb)
-    rxyzShifted(3)=rxyz(3,onWhichAtom(iorb))+orbs%parabolaShift(3,iorb)
+    rxyzShifted(1)=rxyz(1,lin%onWhichAtom(iorb))!+orbs%parabolaShift(1,iorb)
+    rxyzShifted(2)=rxyz(2,lin%onWhichAtom(iorb))!+orbs%parabolaShift(2,iorb)
+    rxyzShifted(3)=rxyz(3,lin%onWhichAtom(iorb))!+orbs%parabolaShift(3,iorb)
         call apply_potentialParabola(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-             pot(nsoffset),epot, rxyzShifted, hxh, hyh, hzh, orbs%parabPrefacArr(at%iatype(onWhichAtom(iorb))), orbs%power, &
+             pot(nsoffset),epot, rxyzShifted, hxh, hyh, hzh, lin%potentialPrefac(at%iatype(lin%onWhichAtom(iorb))), &
              lr%bounds%ibyyzz_r) !optional
    ! THIS WAS THE ORIGINAL
         !call apply_potentialParabola(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
@@ -423,7 +423,7 @@ END SUBROUTINE local_hamiltonianParabola
 !! SOURCE
 !!
 subroutine apply_potentialParabola(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, rxyzParab, &
-     hxh, hyh, hzh, parabPrefac, power, &
+     hxh, hyh, hzh, parabPrefac, &
      ibyyzz_r) !optional
   use module_base
   implicit none
@@ -435,7 +435,6 @@ subroutine apply_potentialParabola(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,p
   real(gp), intent(out) :: epot
 real(8),dimension(3):: rxyzParab
 real(8):: hxh, hyh, hzh, parabPrefac
-integer:: power
   !local variables
   integer :: i1,i2,i3,i1s,i1e,ispinor
   real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
@@ -562,14 +561,15 @@ potCopy=0.d0
                        !tt=hxh**2*dble(i1-ix0)**2 + hyh**2*dble(i2-iy0)**2 + hzh**2*dble(i3-iz0)**2
                        !tt=hxh2*dble(i1-ix0)**2 + hyh2*dble(i2-iy0)**2 + hzh2*dble(i3-iz0)**2
                        tt=(hxh*dble(i1)-rxyzParab(1))**2 + (hyh*dble(i2)-rxyzParab(2))**2 + (hzh*dble(i3)-rxyzParab(3))**2
-                       if(power==2) then
-                           tt=parabPrefac*tt
-                       else if(power==4) then
-                           tt=parabPrefac*tt**2
-                       else
-                           write(*,'(a,i0)') "'power' must be 2 or 4, but we found ", power
-                           stop
-                       end if
+                       tt=parabPrefac*tt
+                       !if(power==2) then
+                       !    tt=parabPrefac*tt
+                       !else if(power==4) then
+                       !    tt=parabPrefac*tt**2
+                       !else
+                       !    write(*,'(a,i0)') "'power' must be 2 or 4, but we found ", power
+                       !    stop
+                       !end if
                        potCopy(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)=potCopy(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)+tt
                        tt=potCopy(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)*psir(i1,i2,i3,ispinor)
                        epot_p=epot_p+real(tt*psir(i1,i2,i3,ispinor),gp)
