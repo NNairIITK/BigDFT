@@ -608,7 +608,7 @@ END SUBROUTINE make_bounds
 
 
 
-subroutine initializeLocRegLIN(iproc, nproc, lr, orbsLIN, at, input, rxyz, radii_cf)
+subroutine initializeLocRegLIN(iproc, nproc, lr, orbsLIN, lin, at, input, rxyz, radii_cf)
 !
 ! Purpose:
 ! ========
@@ -626,6 +626,7 @@ implicit none
 integer:: iproc, nproc
 type(locreg_descriptors):: lr
 type(orbitals_data),intent(in):: orbsLIN
+type(linearParameters):: lin
 type(atoms_data),intent(in):: at
 type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat):: rxyz
@@ -675,7 +676,8 @@ write(*,*) 'iproc, size(lr%wfdLIN)', iproc, size(lr%wfdLIN)
 radiusCut=10.d0
 do iorb=1,orbsLIN%norbp
 
-    iiAt=orbsLIN%onWhichAtom(iorb)
+    !iiAt=orbsLIN%onWhichAtom(iorb)
+    iiAt=lin%onWhichAtom(iorb)
     iitype=at%iatype(iiAt)
     radius=radii_cf(1,iitype)
     call fill_logridCUT(lr%geocode, lr%d%n1, lr%d%n2, lr%d%n3, 0, lr%d%n1, 0, lr%d%n2, 0, lr%d%n3, 0, 1, &
