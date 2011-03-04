@@ -277,7 +277,7 @@ subroutine dft_input_variables(iproc,filename,in)
   if (ierror /= 0) then
      in%output_wf = .false.
      read(line,*,iostat=ierror) in%inputPsiId,in%output_wf_format,in%output_grid
-  else
+  else if (in%output_wf) then
      in%output_wf_format = WF_FORMAT_PLAIN
   end if
   call check()
