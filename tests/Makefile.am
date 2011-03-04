@@ -30,6 +30,10 @@ if USE_OCL
 SUBDIRS += OpenCL
 endif
 
+if HAVE_ETSF_IO
+SUBDIRS += ETSF_IO
+endif
+
 
 if USE_MPI
 mpirun_message=mpirun
