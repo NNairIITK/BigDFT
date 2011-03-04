@@ -1221,7 +1221,7 @@ end subroutine improveOrbitals
 
 
 
-subroutine initializeParameters(iproc, nproc, Glr, orbs, commsLIN, at, lin, phi, input, rxyz, occupForInguess)
+subroutine initializeParameters(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess)
 
 use module_base
 use module_types
@@ -1230,7 +1230,6 @@ implicit none
 integer:: iproc, nproc
 type(locreg_descriptors), intent(in) :: Glr
 type(orbitals_data), intent(inout) :: orbs
-type(communications_arrays), intent(in) :: commsLIN
 type(atoms_data), intent(in) :: at
 type(linearParameters):: lin
 real(8),dimension(:),allocatable:: phi
@@ -1508,7 +1507,7 @@ real(8):: hxh, hyh, hzh, parabPrefac
 end subroutine apply_potentialParabola
 
 
-subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN, at, lin, rxyz, rxyzParab, &
+subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
     infoBasisFunctions, n3p)
 use module_base
@@ -1519,7 +1518,6 @@ integer:: iproc, nproc, nspin, infoBasisFunctions, n3p
 type(locreg_descriptors), intent(in) :: Glr
 type(orbitals_data), intent(inout) :: orbs, orbsLIN
 type(communications_arrays), intent(in) :: comms
-type(communications_arrays), intent(in) :: commsLIN
 type(atoms_data), intent(in) :: at
 type(linearParameters):: lin
 type(input_variables):: input
