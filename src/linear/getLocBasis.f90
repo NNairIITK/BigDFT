@@ -263,57 +263,58 @@ allocate(lin%onWhichAtom(lin%orbs%norbp), stat=istat)
 call memocc(istat, nproc, 'lin%onWhichAtomnorb_par', subname)
 
 
-! Distribute the centers of the parabolic potential among the MPI processes.
-! There are four counters:
-!   jproc: indicates which MPI process is handling the basis function which is being treated
-!   ii: counts the atom numbers
-!   jj: counts the orbitals handled by a given process
-!   iiOrb: counts the number of orbitals for a given atoms thas has already been assigned
-!   ii2: counts the number of basis functions for a given atom which are on the 'previous' MPI process
-!        and then stores this number in orbsLIN%nbasisOnPreviousMPI.
-!        (example: MPI 0 handles 4 orbitals centered on atom i and MPI 1 handles the remaining 8, then
-!         orbsLIN%nbasisOnPreviousMPI will have the value 4 for MPI 1)
-jproc=0
-ii=1
-jj=0
-ii2=0
-iiOrb=0
-lin%onWhichAtom=-1
-
-! THERE IS A PROBLEM WHEN ONLY 1 ORBITAL PER ATOM
-do iorb=1,lin%orbs%norb
-call mpi_barrier(mpi_comm_world, ierr)
-
-    ! Switch to the next MPI process if the numbers of orbitals for a given
-    ! MPI process is reached.
-    if(jj==lin%orbs%norb_par(jproc)) then
-        jproc=jproc+1
-   !if(iproc==0) write(*,'(a,4i5)') 'iorb, jj, ii, ii2', iorb, jj, ii, ii2
-        if(iproc==jproc .and. iiorb/=nbasisPerAt(max(ii,1))) orbsLIN%nbasisOnPreviousMPI=ii2
-        jj=0
-        ii2=0
-    end if
-    
-    ! Switch to the next atom if the number of basis functions for this atom is reached.
-    !if(mod(iorb,nbasisPerAt(max(ii,1)))==1 .or. nbasisPerAt(max(ii,1))==1) then
-    !if((ii==0 .or. (ii2>1 .and. mod(ii2,nbasisPerAt(max(ii,1)))==1)) .or. nbasisPerAt(max(ii,1))==1) then
-
-    !if(iiOrb==nbasisPerAt(max(ii,1)) .or. nbasisPerAt(max(ii,1))==1) then
-    if(iiOrb==nbasisPerAt(max(ii,1))) then
-        ii=ii+1
-        ii2=0
-        iiOrb=0
-    end if
-    ii2=ii2+1
-    jj=jj+1
-    iiOrb=iiOrb+1
-    !if(iproc==0) write(*,'(a,4i5)') 'iorb, ii, jj, jproc', iorb, ii, jj, jproc
-    if(iproc==jproc) lin%onWhichAtom(jj)=ii
-    !if(iproc==jproc) orbsLIN%onWhichAtom(jj)=ii
-    !if(iproc==jproc) orbsLIN%orbitalNumber(jj)=iiOrb
-    !write(*,'(a,i2,i3,3x,20i4)') 'iproc, iorb, orbsLIN%onWhichAtom, orbsLIN%orbitalNumber', iproc, iorb, orbsLIN%onWhichAtom, orbsLIN%orbitalNumber
-
-end do    
+call assignOrbitalsToAtoms(iproc, at%nat, lin, nbasisPerAt)
+!!!! Distribute the centers of the parabolic potential among the MPI processes.
+!!!! There are four counters:
+!!!!   jproc: indicates which MPI process is handling the basis function which is being treated
+!!!!   ii: counts the atom numbers
+!!!!   jj: counts the orbitals handled by a given process
+!!!!   iiOrb: counts the number of orbitals for a given atoms thas has already been assigned
+!!!!   ii2: counts the number of basis functions for a given atom which are on the 'previous' MPI process
+!!!!        and then stores this number in orbsLIN%nbasisOnPreviousMPI.
+!!!!        (example: MPI 0 handles 4 orbitals centered on atom i and MPI 1 handles the remaining 8, then
+!!!!         orbsLIN%nbasisOnPreviousMPI will have the value 4 for MPI 1)
+!!!jproc=0
+!!!ii=1
+!!!jj=0
+!!!ii2=0
+!!!iiOrb=0
+!!!lin%onWhichAtom=-1
+!!!
+!!!! THERE IS A PROBLEM WHEN ONLY 1 ORBITAL PER ATOM
+!!!do iorb=1,lin%orbs%norb
+!!!call mpi_barrier(mpi_comm_world, ierr)
+!!!
+!!!    ! Switch to the next MPI process if the numbers of orbitals for a given
+!!!    ! MPI process is reached.
+!!!    if(jj==lin%orbs%norb_par(jproc)) then
+!!!        jproc=jproc+1
+!!!   !if(iproc==0) write(*,'(a,4i5)') 'iorb, jj, ii, ii2', iorb, jj, ii, ii2
+!!!        if(iproc==jproc .and. iiorb/=nbasisPerAt(max(ii,1))) orbsLIN%nbasisOnPreviousMPI=ii2
+!!!        jj=0
+!!!        ii2=0
+!!!    end if
+!!!    
+!!!    ! Switch to the next atom if the number of basis functions for this atom is reached.
+!!!    !if(mod(iorb,nbasisPerAt(max(ii,1)))==1 .or. nbasisPerAt(max(ii,1))==1) then
+!!!    !if((ii==0 .or. (ii2>1 .and. mod(ii2,nbasisPerAt(max(ii,1)))==1)) .or. nbasisPerAt(max(ii,1))==1) then
+!!!
+!!!    !if(iiOrb==nbasisPerAt(max(ii,1)) .or. nbasisPerAt(max(ii,1))==1) then
+!!!    if(iiOrb==nbasisPerAt(max(ii,1))) then
+!!!        ii=ii+1
+!!!        ii2=0
+!!!        iiOrb=0
+!!!    end if
+!!!    ii2=ii2+1
+!!!    jj=jj+1
+!!!    iiOrb=iiOrb+1
+!!!    !if(iproc==0) write(*,'(a,4i5)') 'iorb, ii, jj, jproc', iorb, ii, jj, jproc
+!!!    if(iproc==jproc) lin%onWhichAtom(jj)=ii
+!!!    !if(iproc==jproc) orbsLIN%onWhichAtom(jj)=ii
+!!!    !if(iproc==jproc) orbsLIN%orbitalNumber(jj)=iiOrb
+!!!    !write(*,'(a,i2,i3,3x,20i4)') 'iproc, iorb, orbsLIN%onWhichAtom, orbsLIN%orbitalNumber', iproc, iorb, orbsLIN%onWhichAtom, orbsLIN%orbitalNumber
+!!!
+!!!end do    
 
 write(*,'(a,i2,3x,200i4)') 'iproc, lin%onWhichAtom', iproc, lin%onWhichAtom
 !write(*,'(a,i2,3x,200i4)') 'iproc, orbsLIN%orbitalNumber', iproc, orbsLIN%orbitalNumber
@@ -372,24 +373,19 @@ type(linearParameters):: lin
 integer,dimension(nat):: norbsPerAt
 
 ! Local variables
-integer:: jproc, ii, jj, ii2, iiOrb, iorb
+integer:: jproc, ii, jj, ii2, iiOrb, iorb, jorb, jat
 
 
 
 ! Distribute the centers of the parabolic potential among the MPI processes.
 ! There are four counters:
 !   jproc: indicates which MPI process is handling the basis function which is being treated
-!   ii: counts the atom numbers
-!   jj: counts the orbitals handled by a given process
+!   jat: counts the atom numbers
+!   jorb: counts the orbitals handled by a given process
 !   iiOrb: counts the number of orbitals for a given atoms thas has already been assigned
-!   ii2: counts the number of basis functions for a given atom which are on the 'previous' MPI process
-!        and then stores this number in orbsLIN%nbasisOnPreviousMPI.
-!        (example: MPI 0 handles 4 orbitals centered on atom i and MPI 1 handles the remaining 8, then
-!         orbsLIN%nbasisOnPreviousMPI will have the value 4 for MPI 1)
 jproc=0
-ii=1
-jj=0
-ii2=0
+jat=1
+jorb=0
 iiOrb=0
 lin%onWhichAtom=-1
 
@@ -398,34 +394,19 @@ do iorb=1,lin%orbs%norb
 
     ! Switch to the next MPI process if the numbers of orbitals for a given
     ! MPI process is reached.
-    if(jj==lin%orbs%norb_par(jproc)) then
+    if(jorb==lin%orbs%norb_par(jproc)) then
         jproc=jproc+1
-   !if(iproc==0) write(*,'(a,4i5)') 'iorb, jj, ii, ii2', iorb, jj, ii, ii2
-        !if(iproc==jproc .and. iiorb/=nbasisPerAt(max(ii,1))) orbsLIN%nbasisOnPreviousMPI=ii2
-        jj=0
-        ii2=0
+        jorb=0
     end if
     
     ! Switch to the next atom if the number of basis functions for this atom is reached.
-    !if(mod(iorb,nbasisPerAt(max(ii,1)))==1 .or. nbasisPerAt(max(ii,1))==1) then
-    !if((ii==0 .or. (ii2>1 .and. mod(ii2,nbasisPerAt(max(ii,1)))==1)) .or. nbasisPerAt(max(ii,1))==1) then
-
-    !if(iiOrb==nbasisPerAt(max(ii,1)) .or. nbasisPerAt(max(ii,1))==1) then
-    !if(iiOrb==nbasisPerAt(max(ii,1))) then
-    if(iiOrb==norbsPerAt(max(ii,1))) then
-        ii=ii+1
-        ii2=0
+    if(iiOrb==norbsPerAt(max(jat,1))) then
+        jat=jat+1
         iiOrb=0
     end if
-    ii2=ii2+1
-    jj=jj+1
+    jorb=jorb+1
     iiOrb=iiOrb+1
-    !if(iproc==0) write(*,'(a,4i5)') 'iorb, ii, jj, jproc', iorb, ii, jj, jproc
-    if(iproc==jproc) lin%onWhichAtom(jj)=ii
-    !if(iproc==jproc) orbsLIN%onWhichAtom(jj)=ii
-    !if(iproc==jproc) orbsLIN%orbitalNumber(jj)=iiOrb
-    !write(*,'(a,i2,i3,3x,20i4)') 'iproc, iorb, orbsLIN%onWhichAtom, orbsLIN%orbitalNumber', iproc, iorb, orbsLIN%onWhichAtom, orbsLIN%orbitalNumber
-
+    if(iproc==jproc) lin%onWhichAtom(jorb)=jat
 end do    
 end subroutine assignOrbitalsToAtoms
 
