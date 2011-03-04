@@ -261,15 +261,15 @@ module module_types
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
-integer:: nbasis, nbasisp
-real(8):: parabPrefac, parabMaxVal
-real(8),dimension(:),allocatable:: parabPrefacArr
-integer,dimension(:),allocatable:: onWhichAtom
-integer,dimension(:),allocatable:: orbitalNumber
-real(8),dimension(:,:),allocatable:: parabolaShift
-integer:: nbasisOnPreviousMPI
-real(8):: convCrit, convCritInit, convCritFinal
-integer:: nItMin, nItMax, DIIShistMin, DIISHistMax
+!integer:: nbasis, nbasisp
+!real(8):: parabPrefac, parabMaxVal
+!real(8),dimension(:),allocatable:: parabPrefacArr
+!integer,dimension(:),allocatable:: onWhichAtom
+!integer,dimension(:),allocatable:: orbitalNumber
+!real(8),dimension(:,:),allocatable:: parabolaShift
+!integer:: nbasisOnPreviousMPI
+!real(8):: convCrit, convCritInit, convCritFinal
+!integer:: nItMin, nItMax, DIIShistMin, DIISHistMax
   end type orbitals_data
 !!***
 

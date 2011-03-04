@@ -1221,7 +1221,7 @@ end subroutine improveOrbitals
 
 
 
-subroutine initializeParameters(iproc, nproc, Glr, orbs, orbsLIN, commsLIN, at, lin, phi, input, rxyz, occupForInguess)
+subroutine initializeParameters(iproc, nproc, Glr, orbs, commsLIN, at, lin, phi, input, rxyz, occupForInguess)
 
 use module_base
 use module_types
@@ -1229,7 +1229,7 @@ implicit none
 
 integer:: iproc, nproc
 type(locreg_descriptors), intent(in) :: Glr
-type(orbitals_data), intent(inout) :: orbs, orbsLIN
+type(orbitals_data), intent(inout) :: orbs
 type(communications_arrays), intent(in) :: commsLIN
 type(atoms_data), intent(in) :: at
 type(linearParameters):: lin
