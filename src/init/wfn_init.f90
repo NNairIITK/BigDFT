@@ -703,7 +703,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
   real(wp), dimension(norb), intent(out) :: eval
   !local variables
   character(len=*), parameter :: subname='solve_eigensystem'
-  character(len=9) :: gapstring
+  character(len=25) :: gapstring
   character(len=64) :: message
   integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,iorb,i,ndegen,ncplx,ncomp
   integer :: nwrtmsg,norbj,jiorb,jjorb,ihs,ispin,norbij
@@ -853,16 +853,17 @@ integer:: j
            end if
            if (iorb+iorbst-1 == norb) then
               !calculate the IG HOMO-LUMO gap
-              if(iorb+iorbst <= norbi) then
+              !if(iorb+iorbst <= norbi) then !Luigi and I did together
+              if(norb<norbi) then !I added after they left Basel.
                  HLIGgap=evale(iorb+1)-evale(iorb)
 
-                 write(gapstring,'(f8.4)')HLIGgap*ha2ev    
-                 !print *,"REZA ",HLIGgap,gapstring,ha2ev,iproc
-                 !write(*,*) "REZA ",HLIGgap,gapstring,ha2ev,iproc
+                 write(gapstring,'(a,f8.4,a)') ', H-L IG gap: ',HLIGgap*ha2ev,' eV'
+                 !if(iproc==0) write(*,*) "REZA ",HLIGgap,ha2ev,iproc,iorb,norbi,norb
+              else
+                gapstring=''
               end if
               nwrtmsg=1
-              message=' <- Last InputGuess eval, H-L IG gap: '&
-                //gapstring//' eV'
+              message=' <- Last InputGuess eval'//gapstring
               preval(1)=evale(iorb)
            end if
            if (iorb+iorbst-2 == norb) then
