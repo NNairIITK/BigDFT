@@ -261,15 +261,6 @@ module module_types
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
-!integer:: nbasis, nbasisp
-!real(8):: parabPrefac, parabMaxVal
-!real(8),dimension(:),allocatable:: parabPrefacArr
-!integer,dimension(:),allocatable:: onWhichAtom
-!integer,dimension(:),allocatable:: orbitalNumber
-!real(8),dimension(:,:),allocatable:: parabolaShift
-!integer:: nbasisOnPreviousMPI
-!real(8):: convCrit, convCritInit, convCritFinal
-!integer:: nItMin, nItMax, DIIShistMin, DIISHistMax
   end type orbitals_data
 !!***
 
@@ -439,6 +430,7 @@ type,public:: linearParameters
   real(8):: convCrit
   real(8),dimension(:),allocatable:: potentialPrefac
   type(orbitals_data):: orbs
+  type(communications_arrays):: comms
   integer,dimension(:),allocatable:: onWhichAtom
 end type
 

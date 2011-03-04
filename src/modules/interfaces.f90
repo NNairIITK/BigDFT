@@ -1141,7 +1141,7 @@ module module_interfaces
       real(wp), dimension(:), pointer :: pot
     end subroutine free_full_potential
 
-subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, commsLIN, rxyz, nspin, nlpspd, &
+subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
     proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, &
     idsxMin, idsxMax, infoBasisFunctions)
 !
@@ -1161,7 +1161,7 @@ type(locreg_descriptors), intent(in) :: Glr
 type(input_variables):: input
 type(linearParameters):: lin
 !type(orbitals_data):: orbsLIN
-type(communications_arrays):: commsLIN
+!type(communications_arrays):: commsLIN
 real(8),dimension(3,at%nat):: rxyz
 integer:: nspin
 type(nonlocal_psp_descriptors), intent(in) :: nlpspd
