@@ -1141,7 +1141,7 @@ module module_interfaces
       real(wp), dimension(:), pointer :: pot
     end subroutine free_full_potential
 
-subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, commsLIN, rxyz, nspin, nlpspd, &
+subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
     proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, &
     idsxMin, idsxMax, infoBasisFunctions)
 !
@@ -1161,7 +1161,7 @@ type(locreg_descriptors), intent(in) :: Glr
 type(input_variables):: input
 type(linearParameters):: lin
 !type(orbitals_data):: orbsLIN
-type(communications_arrays):: commsLIN
+!type(communications_arrays):: commsLIN
 real(8),dimension(3,at%nat):: rxyz
 integer:: nspin
 type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -1221,7 +1221,7 @@ end subroutine improveOrbitals
 
 
 
-subroutine initializeParameters(iproc, nproc, Glr, orbs, commsLIN, at, lin, phi, input, rxyz, occupForInguess)
+subroutine initializeParameters(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess)
 
 use module_base
 use module_types
@@ -1230,7 +1230,6 @@ implicit none
 integer:: iproc, nproc
 type(locreg_descriptors), intent(in) :: Glr
 type(orbitals_data), intent(inout) :: orbs
-type(communications_arrays), intent(in) :: commsLIN
 type(atoms_data), intent(in) :: at
 type(linearParameters):: lin
 real(8),dimension(:),allocatable:: phi
@@ -1508,7 +1507,7 @@ real(8):: hxh, hyh, hzh, parabPrefac
 end subroutine apply_potentialParabola
 
 
-subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN, at, lin, rxyz, rxyzParab, &
+subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
     infoBasisFunctions, n3p)
 use module_base
@@ -1519,7 +1518,6 @@ integer:: iproc, nproc, nspin, infoBasisFunctions, n3p
 type(locreg_descriptors), intent(in) :: Glr
 type(orbitals_data), intent(inout) :: orbs, orbsLIN
 type(communications_arrays), intent(in) :: comms
-type(communications_arrays), intent(in) :: commsLIN
 type(atoms_data), intent(in) :: at
 type(linearParameters):: lin
 type(input_variables):: input

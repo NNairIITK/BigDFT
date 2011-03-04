@@ -1,4 +1,4 @@
-subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN, at, lin, rxyz, rxyzParab, &
+subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
     infoBasisFunctions, n3p)
 !
@@ -25,7 +25,6 @@ subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN
 !     orbs            type describing the physical orbitals psi
 !     orbsLIN         type describing the basic functions phi
 !     comms           type containing the communication parameters for the physical orbitals psi
-!     commsLIN        type containing the communication parameters for the basis functions psi
 !     at              type containing the paraneters for the atoms
 !     lin             type containing parameters for the linear version
 !     rxyz            the atomic positions
@@ -61,7 +60,6 @@ integer,intent(in):: iproc, nproc, nspin, n3p
 type(locreg_descriptors), intent(in) :: Glr
 type(orbitals_data), intent(in) :: orbs, orbsLIN
 type(communications_arrays), intent(in) :: comms
-type(communications_arrays), intent(in) :: commsLIN
 type(atoms_data), intent(in) :: at
 type(linearParameters):: lin
 type(input_variables),intent(in):: input
@@ -99,16 +97,11 @@ call memocc(istat, phiWorkPointer, 'phiWorkPointer', subname)
 !!!!! ATENTION DEBUGGING !!
 !!!write(*,*) 'ATTENTION: DEBUGGING'
 !!!allocate(HamSmall(lin%orbs%norb,lin%orbs%norb), stat=istat)
-!!!!call transformHam(iproc, nproc, orbsLIN, commsLIN, phi, hphi, HamSmall)
-!!!call transformHam(iproc, nproc, lin%orbs, commsLIN, phi, hphi, HamSmall)
 !!!deallocate(HamSmall)
 !!!!! ATENTION DEBUGGING !!
 
 
-!call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, orbsLIN, commsLIN, rxyz, nspin, nlpspd, proj, &
-!    nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
-!    orbsLIN%DIISHistMin, orbsLIN%DIISHistMax, infoBasisFunctions)
-call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, commsLIN, rxyz, nspin, nlpspd, proj, &
+call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
     lin%DIISHistMin, lin%DIISHistMax, infoBasisFunctions)
 
@@ -127,29 +120,24 @@ call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,r
 call free_full_potential(nproc,potential,subname)
 
 
-!call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-!call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
-call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWorkPointer)
+call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWorkPointer)
 
 allocate(HamSmall(lin%orbs%norb,lin%orbs%norb), stat=istat)
-!call transformHam(iproc, nproc, orbsLIN, commsLIN, phi, hphi, HamSmall)
-call transformHam(iproc, nproc, lin%orbs, commsLIN, phi, hphi, HamSmall)
+call transformHam(iproc, nproc, lin%orbs, lin%comms, phi, hphi, HamSmall)
 
 if(iproc==0) write(*,'(a)', advance='no') 'Linear Algebra... '
 allocate(eval(lin%orbs%norb), stat=istat)
 !call diagonalizeHamiltonian(iproc, nproc, orbsLIN, HamSmall, eval)
 call diagonalizeHamiltonian(iproc, nproc, lin%orbs, HamSmall, eval)
 
-!call buildWavefunction(iproc, nproc, orbs, orbsLIN, comms, commsLIN, phi, psi, HamSmall)
-call buildWavefunction(iproc, nproc, orbs, lin%orbs, comms, commsLIN, phi, psi, HamSmall)
+call buildWavefunction(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, HamSmall)
 
 call dcopy(orbs%npsidim, psi, 1, psit, 1)
 if(iproc==0) write(*,'(a)') 'done.'
 
 
-!call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWorkPointer)
 call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWorkPointer)
 
 
@@ -168,7 +156,7 @@ end subroutine getLinearPsi
 
 
 
-subroutine initializeParameters(iproc, nproc, Glr, orbs, commsLIN, at, lin, phi, input, rxyz, occupForInguess)
+subroutine initializeParameters(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess)
 !
 ! Purpose:
 ! ========
@@ -188,7 +176,6 @@ implicit none
 integer:: iproc, nproc
 type(locreg_descriptors), intent(in) :: Glr
 type(orbitals_data), intent(inout) :: orbs
-type(communications_arrays), intent(in) :: commsLIN
 type(atoms_data), intent(in) :: at
 type(linearParameters):: lin
 real(8),dimension(:),allocatable:: phi
@@ -263,61 +250,8 @@ call memocc(istat, nproc, 'lin%onWhichAtomnorb_par', subname)
 
 
 call assignOrbitalsToAtoms(iproc, at%nat, lin, nbasisPerAt)
-!!!! Distribute the centers of the parabolic potential among the MPI processes.
-!!!! There are four counters:
-!!!!   jproc: indicates which MPI process is handling the basis function which is being treated
-!!!!   ii: counts the atom numbers
-!!!!   jj: counts the orbitals handled by a given process
-!!!!   iiOrb: counts the number of orbitals for a given atoms thas has already been assigned
-!!!!   ii2: counts the number of basis functions for a given atom which are on the 'previous' MPI process
-!!!!        and then stores this number in orbsLIN%nbasisOnPreviousMPI.
-!!!!        (example: MPI 0 handles 4 orbitals centered on atom i and MPI 1 handles the remaining 8, then
-!!!!         orbsLIN%nbasisOnPreviousMPI will have the value 4 for MPI 1)
-!!!jproc=0
-!!!ii=1
-!!!jj=0
-!!!ii2=0
-!!!iiOrb=0
-!!!lin%onWhichAtom=-1
-!!!
-!!!! THERE IS A PROBLEM WHEN ONLY 1 ORBITAL PER ATOM
-!!!do iorb=1,lin%orbs%norb
-!!!call mpi_barrier(mpi_comm_world, ierr)
-!!!
-!!!    ! Switch to the next MPI process if the numbers of orbitals for a given
-!!!    ! MPI process is reached.
-!!!    if(jj==lin%orbs%norb_par(jproc)) then
-!!!        jproc=jproc+1
-!!!   !if(iproc==0) write(*,'(a,4i5)') 'iorb, jj, ii, ii2', iorb, jj, ii, ii2
-!!!        if(iproc==jproc .and. iiorb/=nbasisPerAt(max(ii,1))) orbsLIN%nbasisOnPreviousMPI=ii2
-!!!        jj=0
-!!!        ii2=0
-!!!    end if
-!!!    
-!!!    ! Switch to the next atom if the number of basis functions for this atom is reached.
-!!!    !if(mod(iorb,nbasisPerAt(max(ii,1)))==1 .or. nbasisPerAt(max(ii,1))==1) then
-!!!    !if((ii==0 .or. (ii2>1 .and. mod(ii2,nbasisPerAt(max(ii,1)))==1)) .or. nbasisPerAt(max(ii,1))==1) then
-!!!
-!!!    !if(iiOrb==nbasisPerAt(max(ii,1)) .or. nbasisPerAt(max(ii,1))==1) then
-!!!    if(iiOrb==nbasisPerAt(max(ii,1))) then
-!!!        ii=ii+1
-!!!        ii2=0
-!!!        iiOrb=0
-!!!    end if
-!!!    ii2=ii2+1
-!!!    jj=jj+1
-!!!    iiOrb=iiOrb+1
-!!!    !if(iproc==0) write(*,'(a,4i5)') 'iorb, ii, jj, jproc', iorb, ii, jj, jproc
-!!!    if(iproc==jproc) lin%onWhichAtom(jj)=ii
-!!!    !if(iproc==jproc) orbsLIN%onWhichAtom(jj)=ii
-!!!    !if(iproc==jproc) orbsLIN%orbitalNumber(jj)=iiOrb
-!!!    !write(*,'(a,i2,i3,3x,20i4)') 'iproc, iorb, orbsLIN%onWhichAtom, orbsLIN%orbitalNumber', iproc, iorb, orbsLIN%onWhichAtom, orbsLIN%orbitalNumber
-!!!
-!!!end do    
 
 write(*,'(a,i2,3x,200i4)') 'iproc, lin%onWhichAtom', iproc, lin%onWhichAtom
-!write(*,'(a,i2,3x,200i4)') 'iproc, orbsLIN%orbitalNumber', iproc, orbsLIN%orbitalNumber
-!write(*,'(a,i2,3x,200i4)') 'iproc, orbsLIN%nbasisOnPreviousMPI', iproc, orbsLIN%nbasisOnPreviousMPI
 iall=-product(shape(nbasisPerAt))*kind(nbasisPerAt)
 deallocate(nbasisPerAt, stat=istat)
 call memocc(istat, iall, 'nbasisPerAt', subname)
@@ -340,9 +274,8 @@ allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
 lin%orbs%eval=-.5d0
 
 
-! Assign the parameters needed for the communication to commsLIN.
-!call orbitals_communicators(iproc,nproc,Glr,orbsLIN,commsLIN)
-call orbitals_communicators(iproc,nproc,Glr,lin%orbs,commsLIN)
+! Assign the parameters needed for the communication to lin%comms
+call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
 
 
 ! Allocate phi and initialize it at random
@@ -417,7 +350,7 @@ end subroutine assignOrbitalsToAtoms
 !subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, orbsLIN, commsLIN, rxyz, nspin, nlpspd, &
 !    proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, &
 !    idsxMin, idsxMax, infoBasisFunctions)
-subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, commsLIN, rxyz, nspin, nlpspd, &
+subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
     proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, &
     idsxMin, idsxMax, infoBasisFunctions)
 !
@@ -446,7 +379,6 @@ type(locreg_descriptors), intent(in) :: Glr
 type(input_variables):: input
 type(linearParameters):: lin
 !type(orbitals_data):: orbsLIN
-type(communications_arrays):: commsLIN
 real(8),dimension(3,at%nat):: rxyz, rxyzParabola
 integer:: nspin
 type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -472,7 +404,6 @@ real(8):: hxh, hyh, hzh, dis, tt, rr, trace, ddot, dnrm2, fnrm, fnrmMax, meanAlp
 real(8):: kx, ky, kz, tt1, tt2, tt3, parabShift, gnrmMax, trHm1, trHm2, d2trH
 type(workarr_sumrho) :: w
 type(workarr_locham) :: w2
-!integer,dimension(:),allocatable:: onWhichAtom
 real(8),dimension(:),pointer:: phiWorkPointer
 real(8),dimension(:),allocatable:: phiWorkPointer2
 logical:: debug, precond, quiet, allowDIIS
@@ -505,24 +436,6 @@ else
 end if
 
 
-!!allocate(diisArr(orbsLIN%norb), stat=istat)
-!!do iorb=1,orbsLIN%norb
-!!    ! parameters for DIIS
-!!    diisArr(iorb)%switchSD=.false.
-!!    diisArr(iorb)%idiistol=0
-!!    diisArr(iorb)%mids=1
-!!    diisArr(iorb)%ids=0
-!!    diisArr(iorb)%idsx=idsxMax
-!!    diisArr(iorb)%energy_min=1.d10
-!!    diisArr(iorb)%energy_old=1.d10
-!!    diisArr(iorb)%energy=1.d10
-!!    diisArr(iorb)%alpha=2.d0
-!!    ! allocate only matrix, no history array (therefore '0')
-!!    call allocate_diis_objects(diisArr(iorb)%idsx, 0, 1, diisArr(iorb), subname) ! 1 for k-points
-!!end do
-
-
-
 
 if(iproc==0) write(*,'(a)') '============================ basis functions creation... ============================'
 itMax=10000
@@ -533,7 +446,6 @@ trHm1=0.d0
 trHm2=0.d0
 if(iproc==0) write(*,'(a,i0)') 'using DIIS with history length ', diisLIN%idsx
 if(iproc==0) write(*,'(a,es12.5)') 'convergence criterion is', lin%convCrit
-!if(iproc==0) write(*,'(a,i0)') 'minimal number of iterations: ', orbsLIN%nItMin
 if(iproc==0) write(*,'(a,i0)') 'maximal number of iterations: ', lin%nItMax
 iterLoop: do it=1,itMax
     trace=0.d0
@@ -549,12 +461,10 @@ iterLoop: do it=1,itMax
     if(iproc==0) then
         write(*,'(x,a)', advance='no') 'Orthonormalization... '
     end if
-    !call orthogonalize(iproc, nproc, orbsLIN, commsLIN, Glr%wfd, phi, input)
-    call orthogonalize(iproc, nproc, lin%orbs, commsLIN, Glr%wfd, phi, input)
+    call orthogonalize(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, input)
 
     ! Untranspose phi
-    !call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-    call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
+    call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWorkPointer)
 
 
     ! Calculate the unconstrained gradient.
@@ -571,25 +481,20 @@ iterLoop: do it=1,itMax
     if(iproc==0) then
         write(*,'(a)', advance='no') 'orthoconstraint... '
     end if
-    !call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
-    !call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-    !call orthoconstraintNotSymmetric(iproc, nproc, orbsLIN, commsLIN, Glr%wfd, phi, hphi, trH, diag)
-    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
-    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-    call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, commsLIN, Glr%wfd, phi, hphi, trH, diag)
+    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWorkPointer)
+    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWorkPointer)
+    call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, hphi, trH, diag)
 
 
     ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
     ! of the previous iteration (fnrmOvrlpArr).
-    nvctrp=commsLIN%nvctr_par(iproc,1) ! 1 for k-point
+    nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
     istart=1
     do iorb=1,lin%orbs%norb
         if(it>1) fnrmOvrlpArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphiold(istart), 1)
         fnrmArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphi(istart), 1)
         istart=istart+nvctrp*orbs%nspinor
     end do
-    !call mpi_allreduce(fnrmArr(1,2), fnrmArr(1,1), orbsLIN%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-    !call mpi_allreduce(fnrmOvrlpArr(1,2), fnrmOvrlpArr(1,1), orbsLIN%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
     call mpi_allreduce(fnrmArr(1,2), fnrmArr(1,1), lin%orbs%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
     call mpi_allreduce(fnrmOvrlpArr(1,2), fnrmOvrlpArr(1,1), lin%orbs%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
 
@@ -621,9 +526,7 @@ iterLoop: do it=1,itMax
     call dcopy(lin%orbs%norb*nvctrp*orbs%nspinor, hphi(1), 1, hphiold(1), 1)
 
     ! Untranspose hphi.
-    !call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
-    call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
-    !deallocate(phiWorkPointer, stat=istat)
+    call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWorkPointer)
 
 
     ! Precondition the gradient
@@ -632,13 +535,8 @@ iterLoop: do it=1,itMax
     end if
     ncong=10
     gnrm=1.d3 ; gnrm_zero=1.d3
-    !if(precond) call preconditionallLIN(iproc, nproc, orbsLIN, Glr, input%hx, input%hy, input%hz, &
-    !    ncong, hphi, gnrm, gnrm_zero, gnrmMax,  at%nat, rxyz, orbsLIN%onWhichAtom, at, it)
     if(precond) call preconditionallLIN(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
         ncong, hphi, gnrm, gnrm_zero, gnrmMax,  at%nat, rxyz, at, it)
-    !if(iproc==0) then
-    !    write(*,'(a)') 'done. '
-    !end if
 
     tt=gnrm
     call mpi_allreduce(tt, gnrm, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
@@ -678,12 +576,9 @@ iterLoop: do it=1,itMax
             infoBasisFunctions=0
         end if
         if(iproc==0) write(*,'(a)') '============================== basis functions created =============================='
-        !allocate(phiWorkPointer(size(phi)), stat=istat)
-        !call untranspose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-        call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, phi, work=phiWorkPointer)
-        !deallocate(phiWorkPointer, stat=istat)
-        call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
-            .5d0*input%hy, .5d0*input%hz, 1)
+        call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWorkPointer)
+        !call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
+        !    .5d0*input%hy, .5d0*input%hz, 1)
         exit iterLoop
     end if
     if(fnrmMax<1.d2 .and. .not.precond) then
@@ -793,7 +688,7 @@ contains
                end if
                ii=modulo(diisLIN%mids-(it-itBest),diisLIN%mids)
                !write(*,'(a,2i5)') 'diisLIN%mids, ii', diisLIN%mids, ii
-               nvctrp=commsLIN%nvctr_par(iproc,1) ! 1 for k-point
+               nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
                !call dcopy(orbsLIN%norb*nvctrp, diisLIN%psidst(ii*nvctrp*orbsLIN%norb+1), 1, phi(1), 1)
                call dcopy(lin%orbs%norb*nvctrp, diisLIN%psidst(ii*nvctrp*lin%orbs%norb+1), 1, phi(1), 1)
             end if
@@ -820,13 +715,12 @@ contains
     ! Follow the gradient using steepest descent.
     ! The same, but transposed
     !allocate(phiWorkPointer(size(phi)), stat=istat)
-    !call transpose_v(iproc, nproc, orbsLIN, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
-    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, commsLIN, hphi, work=phiWorkPointer)
+    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWorkPointer)
     
     ! steepest descent
     if(diisLIN%idsx==0) then
         istart=1
-        nvctrp=commsLIN%nvctr_par(iproc,1) ! 1 for k-point
+        nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
         !do iorb=1,orbsLIN%norb
         do iorb=1,lin%orbs%norb
             call daxpy(nvctrp*orbs%nspinor, -alpha(iorb), hphi(istart), 1, phi(istart), 1)
@@ -835,9 +729,7 @@ contains
     else
         ! DIIS
         quiet=.true. ! less output
-        !call psimix(iproc, nproc, orbsLIN, commsLIN, diisLIN, hphi, phi, quiet)
-        call psimix(iproc, nproc, lin%orbs, commsLIN, diisLIN, hphi, phi, quiet)
-        !call psimixVariable(iproc, nproc, orbsLIN, commsLIN, diisLIN, diisArr, hphi, phi, quiet)
+        call psimix(iproc, nproc, lin%orbs, lin%comms, diisLIN, hphi, phi, quiet)
     end if
     !deallocate(phiWorkPointer, stat=istat)
     end subroutine improve

@@ -1083,14 +1083,14 @@ type(linearParameters):: lin
         ! ATTENTION: this will overwrite some results of the cubic run made so far, in particular psi and psit.
         linearIf: if(inputpsi==100) then
             ! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
-            call initializeParameters(iproc, nproc, Glr, orbs, commsLIN, atoms, lin, phi, in, rxyz, occupForInguess)
+            call initializeParameters(iproc, nproc, Glr, orbs, atoms, lin, phi, in, rxyz, occupForInguess)
             if(iproc==0) write(*,'(a)') 'trying to reproduce the result with the linear scaling version...'
             if(nproc==1) allocate(psit(size(psi)))
             if(.not.allocated(rxyzParab)) allocate(rxyzParab(3,atoms%nat))
             rxyzParab=rxyz
             !orbsLIN%convCrit=orbsLIN%convCritInit
             ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
-            call getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN, atoms, lin, rxyz, rxyzParab, &
+            call getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, atoms, lin, rxyz, rxyzParab, &
                 nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, in, pkernelseq, phi, psi, psit, &
                 infoBasisFunctions, n3p)
 
