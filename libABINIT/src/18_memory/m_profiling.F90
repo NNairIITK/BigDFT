@@ -141,6 +141,7 @@
       character(len=*), intent(in) :: array,routine
 
       ! Local variables
+      logical :: lmpinit
       integer :: ierr
 
       include 'mpif.h'
@@ -160,14 +161,18 @@
          memloc%peak=int(0,kind=8)
 
          !Use MPI to have the mpi rank
-         call MPI_INITIALIZED(memproc,ierr)
-         if (memproc /= 0) then
+         call MPI_INITIALIZED(lmpinit,ierr)
+         if (lmpinit) then
             call MPI_COMM_RANK(MPI_COMM_WORLD,memproc,ierr)
+         else
+            !no-mpi case 
+            memproc=0
          end if
 
          !open the writing file for the root process
          if (memproc == 0 .and. verbose >= 2) then
             open(unit=mallocFile,file='malloc.prc',status='unknown')
+            !print *,'here',memproc
             if (memdebug) then
                write(mallocFile,'(a,t40,a,t70,4(1x,a12))')&
                     '(Data in KB) Routine','Array name    ',&

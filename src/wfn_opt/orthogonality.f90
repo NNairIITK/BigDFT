@@ -208,7 +208,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
         if (nvctrp == 0) cycle
 
         if(nspinor==1) then
-           call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+           call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
                 max(1,nvctrp),hpsi(ispsi),max(1,nvctrp),0.0_wp,&
                 alag(ndimovrlp(ispin,ikpt-1)+1),norb)
         else
@@ -258,6 +258,12 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
 !!$                 !if (iproc ==0) print *,'i,j',iorb,jorb,alag(ndimovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs)
 !!$              end if
 !!$           end do
+!!$        end do
+
+!!$        if (iproc ==0) print *,'matrix'
+!!$        do iorb=1,norb
+!!$           if (iproc ==0) print '(a,i3,100(1pe14.4))','i,j',iorb,&
+!!$                (alag(ndimovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs),jorb=1,norb)
 !!$        end do
 
         !calculate the scprsum if the k-point is associated to this processor

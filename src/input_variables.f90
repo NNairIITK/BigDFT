@@ -102,7 +102,7 @@ subroutine read_input_parameters(iproc, &
      & file_dft, file_kpt, file_mix, file_geopt, file_perf,inputs,atoms,rxyz)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => read_input_variables
+  use module_interfaces, except_this_one => read_input_parameters
 
   implicit none
 
@@ -620,6 +620,9 @@ subroutine update_symmetries(in, atoms, rxyz)
         deallocate(xRed,stat=i_stat)
         call memocc(i_stat,i_all,'xRed',subname)
         if (atoms%geocode == 'S') then
+           !!for the moment symmetries are not allowed in surfaces BC
+           write(*,*)'ERROR: symmetries in surfaces BC are not allowed for the moment, disable them to run'
+           stop
            call ab6_symmetry_set_periodicity(atoms%symObj, &
                 & (/ .true., .false., .true. /), ierr)
         else if (atoms%geocode == 'F') then
@@ -2493,7 +2496,7 @@ subroutine print_general_parameters(in,atoms)
      end if
      
      if (in%ionmov == 8) then
-        write(*,*) "TODO: pretty printing!", in%noseinert
+        write(*,'(1x,a,f15.5)') "TODO: pretty printing!", in%noseinert
      else if (in%ionmov == 9) then
         write(*,*) "TODO: pretty printing!", in%friction
         write(*,*) "TODO: pretty printing!", in%mdwall

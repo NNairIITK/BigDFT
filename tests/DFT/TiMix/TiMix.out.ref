@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.5-dev.4)
+                           ggggg       i         BBBB                 (Ver 1.5-dev.5)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -46,9 +46,9 @@
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-06 | Calculate=   F
-        XC id=     11 |    Fine Wfs.= 9.00 | Max. N. Iter.=    5x 1 | Extension= 0.0
+        XC id=     11 |    Fine Wfs.= 9.00 | Max. N. Iter.=    4x 1 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
-  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       0
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
      Ti         12      10            1.72977  0.24253  0.56295         X              
@@ -64,11 +64,11 @@
      l=2      rl        h1j       h2j       h3j 
             0.24332  -9.40665
  Total Number of Electrons       12
- Processes from 0 to 0 treat 3 orbitals 
- Processes from 1 to 3 treat 2 orbitals 
- Total Number of Orbitals         9
+ Processes from 0 to 1 treat 3 orbitals 
+ Processes from 2 to 3 treat 2 orbitals 
+ Total Number of Orbitals        10
  occup(1:6)= 2.0000
- occup(7:9)= 0.0000
+ occup(7:10)= 0.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1     Ti  8.55000E+00  8.55000E+00  8.55000E+00       19.000    19.000    19.000
     Shift of=  8.55000E+00  8.55000E+00  8.55000E+00 H grids=  0.4500  0.4500  0.4500
@@ -87,6 +87,7 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1161 points=     29711
    Fine resolution grid: Number of segments=         69 points=       461
+ Wavefunctions memory occupation for root processor (Bytes): 790512
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Ti               1                   13
@@ -95,24 +96,23 @@
  Total number of components =               120354
  Percent of zero components =                   38
  ------------------------------------------------------------------ Memory Estimation
- Number of atoms=    1 Number of orbitals=     9 Sim. Box Dimensions=    38   38   38
+ Number of atoms=    1 Number of orbitals=    10 Sim. Box Dimensions=    38   38   38
  Estimation performed for 4 processors.
  Memory occupation for principal arrays:
                Poisson Solver Kernel (K):     2 MB   551 KB
               Poisson Solver Density (D):     2 MB   413 KB
      Single Wavefunction for one orbital:     0 MB   258 KB
     All Wavefunctions for each processor:     2 MB   269 KB
-       Wavefunctions + DIIS per proc (W):    11 MB   317 KB
+       Wavefunctions + DIIS per proc (W):     2 MB   269 KB
      Nonlocal Pseudopotential Arrays (P):     0 MB   941 KB
     Arrays of full uncompressed grid (U):     9 MB   355 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
        ~19*K         |     W+(~4)*U+D+K+P   |   ~12*D+K+W+P  |    ~W+(~5)*U+D+K+P 
-        48MB         |        46MB          |       43MB     |            49MB
- The overall memory requirement needed for this calculation is thus: 49 MB
+        48MB         |        37MB          |       34MB     |            40MB
+ The overall memory requirement needed for this calculation is thus: 48 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 36 MB
- Wavefunctions memory occupation for root processor (Bytes): 790512
  ion-ion interaction energy  0.00000000000000E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -12.000000000000   0.000E+00
@@ -124,507 +124,390 @@
  Processes from 2 to 3 treat 2 inguess orbitals 
  Calculating AIO wavefunctions: 
  Generation of input wavefunction data for atom     Ti: 
-   Elec. Configuration: [s] 2.00 , [p] 2.00 2.00 2.00 , d 2/5 2/5 2/5 2/5 2/5 , s 2.00 , ... done.
+   Elec. Configuration: [s] 2.00 , [p] 2.00 2.00 2.00 , d 0.33 0.33 0.33 0.50 0.50 , s 2.00 , ... done.
  Wavefunctions memory occupation for root processor (Bytes): 790512
  Writing wavefunctions in wavelet form... done.
  Deviation from normalization of the imported orbitals    1.73E-03
- Calculation of charge density... done. Total electronic charge=      11.999995637880
+ Calculation of charge density... done. Total electronic charge=      11.999995467790
  PSolver, free  BC, dimensions:   107  107  107   proc    4 ... done.
- Hamiltonian application... done. ekin_sum,eks:      25.0230095311      25.0031524241
- ekin_sum,epot_sum,eproj_sum  2.50230095311E+01 -3.54617409437E+01 -3.38880875519E+00
-    ehart,   eexcu,    vexcu  4.61960713411E+01 -7.06481234121E+00 -9.16724174297E+00
+ Hamiltonian application... done. ekin_sum,eks:      25.0233539368      25.0031524241
+ ekin_sum,epot_sum,eproj_sum  2.50233539368E+01 -3.54617220431E+01 -3.38854423055E+00
+    ehart,   eexcu,    vexcu  4.61964867598E+01 -7.06541257173E+00 -9.16810044042E+00
  Input Wavefunctions Orthogonalization: Overlap Matrix... Direct diagonalization...
- evale(1)= -2.35198295795470E+00
- evale(2)= -1.41952347740609E+00
- evale(3)= -1.41952347740608E+00
- evale(4)= -1.41952248350593E+00 <-
- evale(5)= -1.52436869259242E-01 <-
- evale(6)= -1.51996091991510E-01 <-
- evale(7)= -1.51996091991504E-01 <-
- evale(8)= -1.51994183924971E-01 <-
- evale(9)= -1.48958942434957E-01 <- Last eigenvalue for input wavefunctions
- evale(10)= -1.48958942434953E-01 <- First virtual eigenvalue
- Building orthogonal Wavefunctions... Fermi level, Fermi distribution cut off at:-1.52178793583632E-01  5.4E-06  5.4E-06
+ evale(1)= -2.35195521472468E+00
+ evale(2)= -1.41949529601383E+00
+ evale(3)= -1.41949529601383E+00
+ evale(4)= -1.41949430684844E+00
+ evale(5)= -1.52417881154592E-01 <-
+ evale(6)= -1.51440047886269E-01 <-
+ evale(7)= -1.51440047886263E-01 <-
+ evale(8)= -1.51438154699328E-01 <-
+ evale(9)= -1.49756960766934E-01 <-
+ evale(10)= -1.49756960766930E-01 <- Last eigenvalue for input wavefunctions
+ Building orthogonal Wavefunctions... Fermi level, Fermi distribution cut off at:-1.51729023509665E-01  4.1E-03  4.1E-03
  done.
- expected accuracy in energy  1.99E-02
- expected accuracy in energy per orbital  2.21E-03
+ expected accuracy in energy  2.02E-02
+ expected accuracy in energy per orbital  2.02E-03
  ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      11.999996103243
+ Calculation of charge density... done. Total electronic charge=      11.999996213907
  PSolver, free  BC, dimensions:   107  107  107   proc    4 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.00E+00  1.00E+00
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter,total energy,gnrm     1  -5.78990960450091379E+01  1.25E-01
+ iter,total energy,gnrm     1  -5.79212879201951978E+01  1.17E-01
  ---------------------------------------------------------------------------- iter= 2
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -3.86E-01  1.39E+00 -9.50E-03
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm     2  -1.20646948480366181E+01  5.10E-02
+ iter, tr(H),gnrm     2  -1.37666124676864108E+01  1.07E-01
  ---------------------------------------------------------------------------- iter= 3
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -1.60E-01 -9.92E-01  2.15E+00 -1.15E-03
+ alpha=  1.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm     3  -1.20976729295191312E+01  3.38E-02
+ iter, tr(H),gnrm     3  -1.37602722004514106E+01  1.22E-01
  ---------------------------------------------------------------------------- iter= 4
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.83E-02  3.04E-01 -8.12E-01  1.49E+00 -2.02E-04
- Orthogonalization... done.
- iter, tr(H),gnrm     4  -1.21190228459715481E+01  2.28E-02
- ---------------------------------------------------------------------------- iter= 5
- Hamiltonian application... done. 5 minimization iterations required
+ Hamiltonian application... done. 4 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   2.40243776415E+01 -3.27373583045E+01 -3.23156587980E+00
- final ehart, eexcu,  vexcu   4.81824371363E+01 -7.33120507019E+00 -9.51300742228E+00
- FINAL iter,total energy,gnrm     5  -5.79451813270335734E+01  2.28E-02
+ final  ekin,  epot,  eproj   2.50694784958E+01 -3.46411479050E+01 -3.47259653886E+00
+ final ehart, eexcu,  vexcu   4.70260505096E+01 -7.18038019846E+00 -9.31643753373E+00
+ FINAL iter,total energy,gnrm     4  -5.79342591223366412E+01  1.22E-01
+ WARNING: Found an energy value lower than the FINAL energy, delta: 6.34E-03
  No convergence within the allowed number of minimization steps
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -2.15707625781135E+00 2.0000
- e(   2)= -1.23643415695339E+00 2.0000
- e(   3)= -1.23338666093822E+00 2.0000
- e(   4)= -1.23283996147870E+00 2.0000
- e(   5)= -1.14876935111824E-01 1.4283
- e(   6)= -2.45429020336652E-02 0.8603
- e(   7)= -2.37300437791496E-02 0.9062
- e(   8)= -2.31150546267387E-02 0.8051
- e(   9)= -1.46146410332033E-02 0.0000
+ e(   1)= -2.26970117858706E+00 2.0000
+ e(   2)= -1.34327523479721E+00 2.0000
+ e(   3)= -1.34038004705403E+00 2.0000
+ e(   4)= -1.33984160357178E+00 2.0000
+ e(   5)= -1.38151753635884E-01 1.7599
+ e(   6)= -9.68088314155366E-02 0.7440
+ e(   7)= -9.60158554452083E-02 0.7882
+ e(   8)= -9.52375374075618E-02 0.6913
+ e(   9)= -8.70514706568583E-02 0.0084
+ e(  10)= -8.63367952977519E-02 0.0081
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:-2.42015602059754E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:-9.64563230550692E-02  0.0E+00  0.0E+00
  ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      11.999997179829
- DENSITY iteration,Delta P (Norm 2/Volume)     2    3.19E-06
+ Calculation of charge density... done. Total electronic charge=      11.999996931463
+ DENSITY iteration,Delta P (Norm 2/Volume)     2    2.33E-06
  PSolver, free  BC, dimensions:   107  107  107   proc    4 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.00E+00  1.00E+00
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter,total energy,gnrm,gnrm_zero     1  -5.79382793818210189E+01  3.17E-02  3.66E-02
+ iter,total energy,gnrm,gnrm_zero     1  -5.79429006320269906E+01  2.43E-02  1.42E-02
  ---------------------------------------------------------------------------- iter= 2
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -1.84E+00  2.84E+00 -9.92E-04
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     2  -1.33312043266271711E+01  2.31E-02  3.41E-02
+ iter, tr(H),gnrm,gnrm_zero     2  -1.39090698671136437E+01  2.42E-02  1.13E-02
  ---------------------------------------------------------------------------- iter= 3
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    5.64E-01 -1.00E+00  1.44E+00 -8.90E-05
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     3  -1.33459994099141639E+01  2.54E-02  4.64E-02
+ iter, tr(H),gnrm,gnrm_zero     3  -1.39091153587634935E+01  2.41E-02  1.07E-02
  ---------------------------------------------------------------------------- iter= 4
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.72E-01 -2.98E-01  2.54E-02  1.10E+00 -1.75E-05
- Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     4  -1.33475231265707812E+01  9.17E-03  1.70E-02
- ---------------------------------------------------------------------------- iter= 5
- Hamiltonian application... done. 5 minimization iterations required
+ Hamiltonian application... done. 4 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   2.40069393682E+01 -3.37645516527E+01 -3.11128904560E+00
- final ehart, eexcu,  vexcu   4.72252638101E+01 -7.20839184021E+00 -9.35289609196E+00
- FINAL iter,total energy,gnrm,gnrm_zero     5  -5.79496608883769397E+01  9.17E-03  1.70E-02
+ final  ekin,  epot,  eproj   2.44013018507E+01 -3.43074297006E+01 -3.22672098064E+00
+ final ehart, eexcu,  vexcu   4.69430614616E+01 -7.16997190064E+00 -9.30285073961E+00
+ FINAL iter,total energy,gnrm,gnrm_zero     4  -5.79430314531458777E+01  2.41E-02  1.07E-02
  No convergence within the allowed number of minimization steps
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -2.25011254522733E+00 2.0000
- e(   2)= -1.32420482892177E+00 2.0000
- e(   3)= -1.32369575193719E+00 2.0000
- e(   4)= -1.31964805131179E+00 2.0000
- e(   5)= -1.34486943077181E-01 2.0000
- e(   6)= -8.38651687218241E-02 1.3707
- e(   7)= -8.33566802928757E-02 0.5049
- e(   8)= -8.18222663725811E-02 0.1244
- e(   9)= -7.26934061432610E-02 0.0000
+ e(   1)= -2.27785138322379E+00 2.0000
+ e(   2)= -1.34945439554452E+00 2.0000
+ e(   3)= -1.34872846307272E+00 2.0000
+ e(   4)= -1.34860851310828E+00 2.0000
+ e(   5)= -1.40021906158477E-01 2.0000
+ e(   6)= -1.01839034491839E-01 1.3819
+ e(   7)= -1.01685578613336E-01 0.5333
+ e(   8)= -1.01470602105840E-01 0.0848
+ e(   9)= -9.25941698690571E-02 0.0000
+ e(  10)= -9.23202533438973E-02 0.0000
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:-8.36162094111473E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:-1.01976815418421E-01  0.0E+00  0.0E+00
  ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      11.999996999430
- DENSITY iteration,Delta P (Norm 2/Volume)     3    2.37E-06
+ Calculation of charge density... done. Total electronic charge=      11.999996979424
+ DENSITY iteration,Delta P (Norm 2/Volume)     3    1.01E-06
  PSolver, free  BC, dimensions:   107  107  107   proc    4 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.00E+00  1.00E+00
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter,total energy,gnrm,gnrm_zero     1  -5.79444640094509538E+01  8.06E-03  1.30E-02
+ iter,total energy,gnrm,gnrm_zero     1  -5.79406920662753464E+01  2.42E-02  1.08E-02
  ---------------------------------------------------------------------------- iter= 2
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -1.81E+00  2.81E+00 -3.17E-05
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     2  -1.36236599438176107E+01  5.77E-03  1.10E-02
+ iter, tr(H),gnrm,gnrm_zero     2  -1.40628083716770664E+01  2.40E-02  1.05E-02
  ---------------------------------------------------------------------------- iter= 3
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    3.45E-01 -6.65E-01  1.32E+00 -3.18E-06
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     3  -1.36244410279315424E+01  4.72E-03  1.15E-02
+ iter, tr(H),gnrm,gnrm_zero     3  -1.40628793239976968E+01  2.38E-02  1.04E-02
  ---------------------------------------------------------------------------- iter= 4
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.08E-01 -1.93E-01  4.51E-02  1.04E+00 -4.58E-07
- Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     4  -1.36244945529815844E+01  1.24E-03  3.01E-03
- ---------------------------------------------------------------------------- iter= 5
- Hamiltonian application... done. 5 minimization iterations required
+ Hamiltonian application... done. 4 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   2.43032053681E+01 -3.41673968723E+01 -3.19887468280E+00
- final ehart, eexcu,  vexcu   4.70182738245E+01 -7.18184164740E+00 -9.31827065882E+00
- FINAL iter,total energy,gnrm,gnrm_zero     5  -5.79449110000746828E+01  1.24E-03  3.01E-03
+ final  ekin,  epot,  eproj   2.45160746398E+01 -3.44917696986E+01 -3.25405139434E+00
+ final ehart, eexcu,  vexcu   4.68400553370E+01 -7.15713152537E+00 -9.28608108501E+00
+ FINAL iter,total energy,gnrm,gnrm_zero     4  -5.79408522306235483E+01  2.38E-02  1.04E-02
  No convergence within the allowed number of minimization steps
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -2.27042216637295E+00 2.0000
- e(   2)= -1.34209605210492E+00 2.0000
- e(   3)= -1.34194228270120E+00 2.0000
- e(   4)= -1.34149082304210E+00 2.0000
- e(   5)= -1.38887914609291E-01 2.0000
- e(   6)= -9.69880517835475E-02 1.2752
- e(   7)= -9.68298310478097E-02 0.7136
- e(   8)= -9.66748597109689E-02 0.0112
- e(   9)= -8.69179847368239E-02 0.0000
+ e(   1)= -2.28800006097795E+00 2.0000
+ e(   2)= -1.35865897821729E+00 2.0000
+ e(   3)= -1.35864075685131E+00 2.0000
+ e(   4)= -1.35849349449047E+00 2.0000
+ e(   5)= -1.42323520082381E-01 2.0000
+ e(   6)= -1.08832482408927E-01 0.8455
+ e(   7)= -1.08771490985244E-01 0.6804
+ e(   8)= -1.08709937099043E-01 0.4741
+ e(   9)= -9.95293446023834E-02 0.0000
+ e(  10)= -9.94912859090811E-02 0.0000
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:-9.71404728797954E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:-1.09076636582234E-01  0.0E+00  0.0E+00
  ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      11.999996973789
- DENSITY iteration,Delta P (Norm 2/Volume)     4    1.05E-06
+ Calculation of charge density... done. Total electronic charge=      11.999996942830
+ DENSITY iteration,Delta P (Norm 2/Volume)     4    6.92E-07
  PSolver, free  BC, dimensions:   107  107  107   proc    4 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.00E+00  1.00E+00
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter,total energy,gnrm,gnrm_zero     1  -5.79367977890558024E+01  1.17E-02  1.53E-02
+ iter,total energy,gnrm,gnrm_zero     1  -5.79399156614814572E+01  2.36E-02  1.09E-02
  ---------------------------------------------------------------------------- iter= 2
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -1.54E+00  2.54E+00 -5.75E-05
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     2  -1.41507649834914151E+01  8.58E-03  1.39E-02
+ iter, tr(H),gnrm,gnrm_zero     2  -1.41458209093888225E+01  2.34E-02  1.16E-02
  ---------------------------------------------------------------------------- iter= 3
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    2.69E-01 -5.61E-01  1.29E+00 -7.81E-06
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     3  -1.41525122248887563E+01  7.67E-03  1.56E-02
+ iter, tr(H),gnrm,gnrm_zero     3  -1.41458266303246987E+01  2.33E-02  1.21E-02
  ---------------------------------------------------------------------------- iter= 4
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    9.94E-02 -1.82E-01 -3.41E-02  1.12E+00 -1.23E-06
- Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     4  -1.41526360452166831E+01  2.23E-03  4.55E-03
- ---------------------------------------------------------------------------- iter= 5
- Hamiltonian application... done. 5 minimization iterations required
+ Hamiltonian application... done. 4 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   2.47655317817E+01 -3.48748422795E+01 -3.32110628245E+00
- final ehart, eexcu,  vexcu   4.66292730357E+01 -7.13266311389E+00 -9.25408100289E+00
- FINAL iter,total energy,gnrm,gnrm_zero     5  -5.79382719269210895E+01  2.23E-03  4.55E-03
+ final  ekin,  epot,  eproj   2.45847801673E+01 -3.45906808784E+01 -3.27607747384E+00
+ final ehart, eexcu,  vexcu   4.67848030629E+01 -7.15031252936E+00 -9.27716960670E+00
+ FINAL iter,total energy,gnrm,gnrm_zero     4  -5.79399241704932209E+01  2.33E-02  1.21E-02
  No convergence within the allowed number of minimization steps
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -2.30879223313049E+00 2.0000
- e(   2)= -1.37890517841042E+00 2.0000
- e(   3)= -1.37833411222919E+00 2.0000
- e(   4)= -1.37798801611468E+00 2.0000
- e(   5)= -1.47419813613217E-01 2.0000
- e(   6)= -1.23941420500182E-01 0.8293
- e(   7)= -1.23887145310208E-01 0.6604
- e(   8)= -1.23544706021604E-01 0.5102
- e(   9)= -1.13513965662147E-01 0.0000
+ e(   1)= -2.29344395342175E+00 2.0000
+ e(   2)= -1.36388188382417E+00 2.0000
+ e(   3)= -1.36378272967757E+00 2.0000
+ e(   4)= -1.36370024994822E+00 2.0000
+ e(   5)= -1.43557159586753E-01 2.0000
+ e(   6)= -1.12640515066210E-01 0.7299
+ e(   7)= -1.12622626528644E-01 0.6661
+ e(   8)= -1.12610216214536E-01 0.6040
+ e(   9)= -1.03337528863168E-01 0.0000
+ e(  10)= -1.03322533440189E-01 0.0000
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:-1.24106069645209E-01  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:-1.12929069793502E-01  0.0E+00  0.0E+00
  ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      11.999996914994
- DENSITY iteration,Delta P (Norm 2/Volume)     5    8.06E-07
+ Calculation of charge density... done. Total electronic charge=      11.999996945083
+ DENSITY iteration,Delta P (Norm 2/Volume)     5    6.00E-07
  PSolver, free  BC, dimensions:   107  107  107   proc    4 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.00E+00  1.00E+00
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter,total energy,gnrm,gnrm_zero     1  -5.79362566079699377E+01  6.36E-03  8.96E-03
+ iter,total energy,gnrm,gnrm_zero     1  -5.79361692270743021E+01  2.46E-02  1.66E-02
  ---------------------------------------------------------------------------- iter= 2
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -1.48E+00  2.48E+00 -1.42E-05
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     2  -1.44449644143089664E+01  4.59E-03  7.96E-03
+ iter, tr(H),gnrm,gnrm_zero     2  -1.45448559223605578E+01  2.45E-02  2.00E-02
  ---------------------------------------------------------------------------- iter= 3
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    3.00E-01 -6.15E-01  1.31E+00 -1.64E-06
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     3  -1.44454353170384575E+01  3.39E-03  9.29E-03
+ iter, tr(H),gnrm,gnrm_zero     3  -1.45450576726672249E+01  2.48E-02  1.96E-02
  ---------------------------------------------------------------------------- iter= 4
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    8.49E-02 -1.59E-01 -1.80E-02  1.09E+00 -2.76E-07
- Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     4  -1.44454646572185119E+01  1.03E-03  2.47E-03
- ---------------------------------------------------------------------------- iter= 5
- Hamiltonian application... done. 5 minimization iterations required
+ Hamiltonian application... done. 4 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   2.50051079885E+01 -3.52515286981E+01 -3.38563222889E+00
- final ehart, eexcu,  vexcu   4.64179433845E+01 -7.10631521406E+00 -9.21965783534E+00
- FINAL iter,total energy,gnrm,gnrm_zero     5  -5.79366537017720020E+01  1.03E-03  2.47E-03
+ final  ekin,  epot,  eproj   2.48810114237E+01 -3.50643902806E+01 -3.34897758256E+00
+ final ehart, eexcu,  vexcu   4.65211713500E+01 -7.11788501508E+00 -9.23478525964E+00
+ FINAL iter,total energy,gnrm,gnrm_zero     4  -5.79366275448665249E+01  2.48E-02  1.96E-02
  No convergence within the allowed number of minimization steps
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -2.32971609097844E+00 2.0000
- e(   2)= -1.39865277659700E+00 2.0000
- e(   3)= -1.39844312988510E+00 2.0000
- e(   4)= -1.39806450141895E+00 2.0000
- e(   5)= -1.52238099582118E-01 2.0000
- e(   6)= -1.38972562747034E-01 0.8159
- e(   7)= -1.38898876356949E-01 0.7569
- e(   8)= -1.38866882927169E-01 0.4273
- e(   9)= -1.28881279525042E-01 0.0000
+ e(   1)= -2.31949593205326E+00 2.0000
+ e(   2)= -1.38869375978670E+00 2.0000
+ e(   3)= -1.38862762968881E+00 2.0000
+ e(   4)= -1.38860582965461E+00 2.0000
+ e(   5)= -1.49460261312437E-01 2.0000
+ e(   6)= -1.31331343154017E-01 0.6832
+ e(   7)= -1.31286078533901E-01 0.6647
+ e(   8)= -1.31268754683755E-01 0.6520
+ e(   9)= -1.21894293918336E-01 0.0000
+ e(  10)= -1.21843243501207E-01 0.0000
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:-1.39217930425066E-01  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:-1.31600171986341E-01  0.0E+00  0.0E+00
  ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      11.999996885226
- DENSITY iteration,Delta P (Norm 2/Volume)     6    3.30E-07
+ Calculation of charge density... done. Total electronic charge=      11.999996905523
+ DENSITY iteration,Delta P (Norm 2/Volume)     6    2.86E-07
  PSolver, free  BC, dimensions:   107  107  107   proc    4 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.00E+00  1.00E+00
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter,total energy,gnrm,gnrm_zero     1  -5.79363375274942669E+01  1.90E-03  2.79E-03
+ iter,total energy,gnrm,gnrm_zero     1  -5.79354839910938892E+01  2.63E-02  2.15E-02
  ---------------------------------------------------------------------------- iter= 2
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -1.38E+00  2.38E+00 -1.36E-06
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     2  -1.45521003340655710E+01  1.34E-03  2.45E-03
+ iter, tr(H),gnrm,gnrm_zero     2  -1.48209266830799393E+01  2.77E-02  2.45E-02
  ---------------------------------------------------------------------------- iter= 3
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.74E-01 -4.20E-01  1.25E+00 -1.82E-07
+ alpha=  1.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     3  -1.45521466705836104E+01  1.16E-03  2.87E-03
+ iter, tr(H),gnrm,gnrm_zero     3  -1.48209090456813346E+01  2.93E-02  2.53E-02
  ---------------------------------------------------------------------------- iter= 4
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    7.28E-02 -1.39E-01 -6.32E-02  1.13E+00 -3.36E-08
- Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     4  -1.45521496949344780E+01  3.33E-04  7.13E-04
- ---------------------------------------------------------------------------- iter= 5
- Hamiltonian application... done. 5 minimization iterations required
+ Hamiltonian application... done. 4 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   2.50762192326E+01 -3.53758850306E+01 -3.40507257476E+00
- final ehart, eexcu,  vexcu   4.63423618154E+01 -7.09811254240E+00 -9.20883291009E+00
- FINAL iter,total energy,gnrm,gnrm_zero     5  -5.79363798205106448E+01  3.33E-04  7.13E-04
+ final  ekin,  epot,  eproj   2.50714365764E+01 -3.53742161054E+01 -3.40244856137E+00
+ final ehart, eexcu,  vexcu   4.63413719942E+01 -7.09614280036E+00 -9.20633746858E+00
+ FINAL iter,total energy,gnrm,gnrm_zero     4  -5.79364054164581859E+01  2.93E-02  2.53E-02
+ WARNING: Found an energy value lower than the FINAL energy, delta: 1.76E-05
  No convergence within the allowed number of minimization steps
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -2.33707845223149E+00 2.0000
- e(   2)= -1.40572255871439E+00 2.0000
- e(   3)= -1.40546173335219E+00 2.0000
- e(   4)= -1.40526890322541E+00 2.0000
- e(   5)= -1.54348646619036E-01 2.0000
- e(   6)= -1.44629090540634E-01 0.7286
- e(   7)= -1.44468221675388E-01 0.6518
- e(   8)= -1.44387774490161E-01 0.6196
- e(   9)= -1.34709684074226E-01 0.0000
+ e(   1)= -2.33730330787260E+00 2.0000
+ e(   2)= -1.40571155981009E+00 2.0000
+ e(   3)= -1.40566375781178E+00 2.0000
+ e(   4)= -1.40559697683421E+00 2.0000
+ e(   5)= -1.53994605251373E-01 2.0000
+ e(   6)= -1.44353741221608E-01 0.7038
+ e(   7)= -1.44342509542998E-01 0.6569
+ e(   8)= -1.44334538106073E-01 0.6393
+ e(   9)= -1.34857091673154E-01 0.0000
+ e(  10)= -1.34852616361803E-01 0.0000
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:-1.44802566373988E-01  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:-1.44648185356245E-01  0.0E+00  0.0E+00
  ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      11.999996878136
- DENSITY iteration,Delta P (Norm 2/Volume)     7    4.46E-07
+ Calculation of charge density... done. Total electronic charge=      11.999996879011
+ DENSITY iteration,Delta P (Norm 2/Volume)     7    1.41E-07
  PSolver, free  BC, dimensions:   107  107  107   proc    4 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.00E+00  1.00E+00
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter,total energy,gnrm,gnrm_zero     1  -5.79362260719804567E+01  4.06E-03  5.14E-03
+ iter,total energy,gnrm,gnrm_zero     1  -5.79363093988656672E+01  2.73E-03  2.79E-03
  ---------------------------------------------------------------------------- iter= 2
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -1.30E+00  2.30E+00 -5.55E-06
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     2  -1.47890745773801697E+01  2.77E-03  4.34E-03
+ iter, tr(H),gnrm,gnrm_zero     2  -1.48913464257025066E+01  2.70E-03  3.10E-03
  ---------------------------------------------------------------------------- iter= 3
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.59E-01 -3.93E-01  1.23E+00 -7.44E-07
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     3  -1.47892710923383692E+01  2.45E-03  4.89E-03
+ iter, tr(H),gnrm,gnrm_zero     3  -1.48913565087362816E+01  2.58E-03  2.66E-03
  ---------------------------------------------------------------------------- iter= 4
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    7.06E-02 -1.37E-01 -8.62E-02  1.15E+00 -1.39E-07
- Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     4  -1.47892836073557117E+01  7.62E-04  1.44E-03
- ---------------------------------------------------------------------------- iter= 5
- Hamiltonian application... done. 5 minimization iterations required
+ Hamiltonian application... done. 4 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   2.52287283037E+01 -3.56505690332E+01 -3.44469701148E+00
- final ehart, eexcu,  vexcu   4.61748546993E+01 -7.08014687583E+00 -9.18510465333E+00
- FINAL iter,total energy,gnrm,gnrm_zero     5  -5.79364346628098730E+01  7.62E-04  1.44E-03
+ final  ekin,  epot,  eproj   2.51215859880E+01 -3.54524027689E+01 -3.41702047696E+00
+ final ehart, eexcu,  vexcu   4.62973508468E+01 -7.09215941755E+00 -9.20101558789E+00
+ FINAL iter,total energy,gnrm,gnrm_zero     4  -5.79363319343099548E+01  2.58E-03  2.66E-03
  No convergence within the allowed number of minimization steps
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -2.35344133214538E+00 2.0000
- e(   2)= -1.42168658210032E+00 2.0000
- e(   3)= -1.42111997796286E+00 2.0000
- e(   4)= -1.42097465522359E+00 2.0000
- e(   5)= -1.59048567768679E-01 2.0000
- e(   6)= -1.57232490540411E-01 0.8062
- e(   7)= -1.56923186710474E-01 0.6363
- e(   8)= -1.56775630225406E-01 0.5575
- e(   9)= -1.47440416162670E-01 0.0000
+ e(   1)= -2.34154231915549E+00 2.0000
+ e(   2)= -1.40985691141854E+00 2.0000
+ e(   3)= -1.40976962420497E+00 2.0000
+ e(   4)= -1.40967513206067E+00 2.0000
+ e(   5)= -1.55393561969929E-01 2.0000
+ e(   6)= -1.47692316488341E-01 0.6771
+ e(   7)= -1.47677771676024E-01 0.6655
+ e(   8)= -1.47673364033265E-01 0.6574
+ e(   9)= -1.38203746992781E-01 0.0000
+ e(  10)= -1.38194352436510E-01 0.0000
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:-1.57287753453273E-01  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:-1.47985740819395E-01  0.0E+00  0.0E+00
  ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      11.999996857488
- DENSITY iteration,Delta P (Norm 2/Volume)     8    7.99E-07
+ Calculation of charge density... done. Total electronic charge=      11.999996874589
+ DENSITY iteration,Delta P (Norm 2/Volume)     8    1.22E-07
  PSolver, free  BC, dimensions:   107  107  107   proc    4 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.00E+00  1.00E+00
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter,total energy,gnrm,gnrm_zero     1  -5.79362195813092171E+01  1.72E-03  1.86E-03
+ iter,total energy,gnrm,gnrm_zero     1  -5.79362871811795088E+01  2.89E-03  2.86E-03
  ---------------------------------------------------------------------------- iter= 2
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -1.31E+00  2.31E+00 -8.16E-07
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     2  -1.47263105208919001E+01  1.04E-03  1.51E-03
+ iter, tr(H),gnrm,gnrm_zero     2  -1.49648507946328024E+01  2.74E-03  2.82E-03
  ---------------------------------------------------------------------------- iter= 3
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    3.50E-01 -7.62E-01  1.41E+00 -6.99E-08
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     3  -1.47263299635499099E+01  6.74E-04  1.64E-03
+ iter, tr(H),gnrm,gnrm_zero     3  -1.49648525126070595E+01  2.70E-03  2.83E-03
  ---------------------------------------------------------------------------- iter= 4
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    7.71E-02 -1.42E-01 -9.79E-02  1.16E+00 -9.69E-09
- Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     4  -1.47263313872666686E+01  2.42E-04  5.33E-04
- ---------------------------------------------------------------------------- iter= 5
- Hamiltonian application... done. 5 minimization iterations required
+ Hamiltonian application... done. 4 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   2.52167099571E+01 -3.55932622565E+01 -3.44652438265E+00
- final ehart, eexcu,  vexcu   4.62200163176E+01 -7.08658450708E+00 -9.19343595272E+00
- FINAL iter,total energy,gnrm,gnrm_zero     5  -5.79362415540348081E+01  2.42E-04  5.33E-04
+ final  ekin,  epot,  eproj   2.51346363788E+01 -3.55052421350E+01 -3.42126985853E+00
+ final ehart, eexcu,  vexcu   4.62526206938E+01 -7.09119663439E+00 -9.19939137948E+00
+ FINAL iter,total energy,gnrm,gnrm_zero     4  -5.79363015635001091E+01  2.70E-03  2.83E-03
  No convergence within the allowed number of minimization steps
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -2.34887163470655E+00 2.0000
- e(   2)= -1.41715701554573E+00 2.0000
- e(   3)= -1.41705114920912E+00 2.0000
- e(   4)= -1.41658001013948E+00 2.0000
- e(   5)= -1.58205323583971E-01 1.9872
- e(   6)= -1.53773708276769E-01 0.9377
- e(   7)= -1.53704110664828E-01 0.6062
- e(   8)= -1.53652200444600E-01 0.4689
- e(   9)= -1.44170634945888E-01 0.0000
+ e(   1)= -2.34557469930082E+00 2.0000
+ e(   2)= -1.41386071122209E+00 2.0000
+ e(   3)= -1.41381765171891E+00 2.0000
+ e(   4)= -1.41374520899094E+00 2.0000
+ e(   5)= -1.57604324799379E-01 2.0000
+ e(   6)= -1.51361713063448E-01 0.6782
+ e(   7)= -1.51330718599933E-01 0.6632
+ e(   8)= -1.51313785010254E-01 0.6587
+ e(   9)= -1.41918435231979E-01 0.0000
+ e(  10)= -1.41899139525240E-01 0.0000
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:-1.54015325891379E-01  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:-1.51640094987921E-01  0.0E+00  0.0E+00
  ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      11.999996869291
- DENSITY iteration,Delta P (Norm 2/Volume)     9    2.22E-07
+ Calculation of charge density... done. Total electronic charge=      11.999996875169
+ DENSITY iteration,Delta P (Norm 2/Volume)     9    6.14E-08
  PSolver, free  BC, dimensions:   107  107  107   proc    4 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.00E+00  1.00E+00
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter,total energy,gnrm,gnrm_zero     1  -5.79362963608814212E+01  1.03E-03  1.34E-03
+ iter,total energy,gnrm,gnrm_zero     1  -5.79363035217410669E+01  2.70E-03  2.88E-03
  ---------------------------------------------------------------------------- iter= 2
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -1.33E+00  2.33E+00 -2.78E-07
+ alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     2  -1.46959085410739796E+01  6.56E-04  1.11E-03
+ iter, tr(H),gnrm,gnrm_zero     2  -1.49764693820934891E+01  2.71E-03  2.97E-03
  ---------------------------------------------------------------------------- iter= 3
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    4.17E-01 -9.11E-01  1.49E+00 -2.46E-08
+ alpha=  1.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     3  -1.46959150844766597E+01  3.59E-04  1.02E-03
+ iter, tr(H),gnrm,gnrm_zero     3  -1.49764689596488552E+01  2.73E-03  3.07E-03
  ---------------------------------------------------------------------------- iter= 4
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    6.56E-02 -1.13E-01 -1.28E-01  1.18E+00 -3.23E-09
- Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     4  -1.46959156228744057E+01  1.38E-04  3.43E-04
- ---------------------------------------------------------------------------- iter= 5
- Hamiltonian application... done. 5 minimization iterations required
+ Hamiltonian application... done. 4 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   2.51454623828E+01 -3.55236779590E+01 -3.42383683594E+00
- final ehart, eexcu,  vexcu   4.62420997018E+01 -7.09008699024E+00 -9.19793650390E+00
- FINAL iter,total energy,gnrm,gnrm_zero     5  -5.79363026001663783E+01  1.38E-04  3.43E-04
+ final  ekin,  epot,  eproj   2.51409654468E+01 -3.55174652084E+01 -3.42255055849E+00
+ final ehart, eexcu,  vexcu   4.62452182544E+01 -7.09049131060E+00 -9.19845133503E+00
+ FINAL iter,total energy,gnrm,gnrm_zero     4  -5.79363085500587260E+01  2.73E-03  3.07E-03
+ WARNING: Found an energy value lower than the FINAL energy, delta: 4.22E-07
  No convergence within the allowed number of minimization steps
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -2.34661462368243E+00 2.0000
- e(   2)= -1.41515122163943E+00 2.0000
- e(   3)= -1.41472444420143E+00 2.0000
- e(   4)= -1.41453482208314E+00 2.0000
- e(   5)= -1.57870305980919E-01 2.0000
- e(   6)= -1.52177421905947E-01 0.7326
- e(   7)= -1.52140523288533E-01 0.6598
- e(   8)= -1.52080119714181E-01 0.6076
- e(   9)= -1.42664360237273E-01 0.0000
+ e(   1)= -2.34629832876871E+00 2.0000
+ e(   2)= -1.41457868614252E+00 2.0000
+ e(   3)= -1.41451739251971E+00 2.0000
+ e(   4)= -1.41441989986234E+00 2.0000
+ e(   5)= -1.57819581985264E-01 2.0000
+ e(   6)= -1.51903221931728E-01 0.6938
+ e(   7)= -1.51889548293687E-01 0.6617
+ e(   8)= -1.51880284880573E-01 0.6445
+ e(   9)= -1.42467599545372E-01 0.0000
+ e(  10)= -1.42464022731935E-01 0.0000
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:-1.52437753603242E-01  0.0E+00  0.0E+00
- ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      11.999996873935
- DENSITY iteration,Delta P (Norm 2/Volume)    10    1.70E-07
- PSolver, free  BC, dimensions:   107  107  107   proc    4 ... done.
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.00E+00  1.00E+00
- Orthogonalization... done.
- iter,total energy,gnrm,gnrm_zero     1  -5.79363091090723117E+01  2.45E-04  3.22E-04
- ---------------------------------------------------------------------------- iter= 2
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -9.50E-01  1.95E+00 -1.23E-08
- Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     2  -1.46929332268195516E+01  1.34E-04  2.32E-04
- ---------------------------------------------------------------------------- iter= 3
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    3.46E-01 -9.86E-01  1.64E+00 -1.83E-09
- Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     3  -1.46929333996508120E+01  6.80E-05  1.68E-04
- ---------------------------------------------------------------------------- iter= 4
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.89E-02  1.07E-02 -4.34E-01  1.40E+00 -4.40E-10
- Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     4  -1.46929334325652317E+01  4.33E-05  7.00E-05
- ---------------------------------------------------------------------------- iter= 5
- Hamiltonian application... done. 5 minimization iterations required
- --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   2.51412936710E+01 -3.55185732636E+01 -3.42269126553E+00
- final ehart, eexcu,  vexcu   4.62443266083E+01 -7.09063419916E+00 -9.19862232787E+00
- FINAL iter,total energy,gnrm,gnrm_zero     5  -5.79363093377688188E+01  4.33E-05  7.00E-05
- No convergence within the allowed number of minimization steps
- --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -2.34637649505196E+00 2.0000
- e(   2)= -1.41483482517409E+00 2.0000
- e(   3)= -1.41456062802381E+00 2.0000
- e(   4)= -1.41436048299208E+00 2.0000
- e(   5)= -1.57872705933358E-01 2.0000
- e(   6)= -1.52035111491883E-01 0.7128
- e(   7)= -1.51966796761631E-01 0.6742
- e(   8)= -1.51934905767851E-01 0.6130
- e(   9)= -1.42524770234682E-01 0.0000
-  WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:-1.52284032396512E-01  0.0E+00  0.0E+00
- ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      11.999996874809
- DENSITY iteration,Delta P (Norm 2/Volume)    11    9.42E-08
- PSolver, free  BC, dimensions:   107  107  107   proc    4 ... done.
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.00E+00  1.00E+00
- Orthogonalization... done.
- iter,total energy,gnrm,gnrm_zero     1  -5.79363123213732223E+01  1.01E-04  1.01E-04
- ---------------------------------------------------------------------------- iter= 2
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -6.36E-01  1.64E+00 -1.76E-09
- Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     2  -1.46924144880699821E+01  5.49E-05  3.93E-05
- ---------------------------------------------------------------------------- iter= 3
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    3.08E-01 -1.08E+00  1.77E+00 -5.36E-10
- Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     3  -1.46924145101287849E+01  4.45E-05  2.52E-05
- ---------------------------------------------------------------------------- iter= 4
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -3.72E-02  1.31E-01 -5.57E-01  1.46E+00 -3.63E-10
- Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     4  -1.46924145231341559E+01  4.11E-05  2.00E-05
- ---------------------------------------------------------------------------- iter= 5
- Hamiltonian application... done. 5 minimization iterations required
- --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   2.51428371490E+01 -3.55194688646E+01 -3.42306269294E+00
- final ehart, eexcu,  vexcu   4.62445866382E+01 -7.09057829758E+00 -9.19854697332E+00
- FINAL iter,total energy,gnrm,gnrm_zero     5  -5.79363123709779586E+01  4.11E-05  2.00E-05
- No convergence within the allowed number of minimization steps
- --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -2.34637711134899E+00 2.0000
- e(   2)= -1.41484146717885E+00 2.0000
- e(   3)= -1.41457320129144E+00 2.0000
- e(   4)= -1.41431148885999E+00 2.0000
- e(   5)= -1.57807501597062E-01 2.0000
- e(   6)= -1.51977720173283E-01 0.7248
- e(   7)= -1.51932459820387E-01 0.6537
- e(   8)= -1.51892679970441E-01 0.6215
- e(   9)= -1.42493636259780E-01 0.0000
-  WARNING: Wavefunctions not converged after cycle           1
- Difference:evsum,energybs -1.3799694542919E+01 -1.3799694408471E+01
+ Difference:evsum,energybs -1.3799050392136E+01 -1.3799050320074E+01
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      11.999996874514
+ Calculation of charge density... done. Total electronic charge=      11.999996875083
  PSolver, free  BC, dimensions:   107  107  107   proc    4 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:   1.82475732E-03
- average noise along y direction:   1.82230618E-03
- average noise along z direction:   1.82863062E-03
- total average noise            :   3.16139669E-03
+ average noise along x direction:   2.20525998E-03
+ average noise along y direction:   2.20368621E-03
+ average noise along z direction:   2.20113176E-03
+ total average noise            :   3.81633142E-03
  clean forces norm (Ha/Bohr): maxval=  0.000000000000E+00  fnrm2=  0.000000000000E+00
- raw forces:                  maxval=  3.161396689161E-03  fnrm2=  9.994429026240E-06
- CPU time/ELAPSED time for root process     0        51.68        47.54
+ raw forces:                  maxval=  3.816331419640E-03  fnrm2=  1.456438550453E-05
+ CPU time/ELAPSED time for root process     0        38.62        38.37
   WARNING: Self-consistent cycle did not met convergence criteria
  Final values of the Forces for each atom
      1     Ti  0.00000E+00  0.00000E+00  0.00000E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 9374 allocations and 9374 deallocations, remaining memory(B): 0
- memory occupation peak: 99 MB
+ 6136 allocations and 6136 deallocations, remaining memory(B): 0
+ memory occupation peak: 92 MB
  for the array  f_i in the routine vxcpostprocessing

@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.5-dev.4],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.5-dev.5],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -223,6 +223,26 @@ if test x"$ac_build_bin_minima_hopping" = "xyes" ; then
 fi
 AM_CONDITIONAL(USE_MINIMA_HOPPING, test "$ac_build_bin_minima_hopping" = "yes")
 
+dnl Use the dgemmsy
+ac_use_dgemmsy="no"
+AC_ARG_ENABLE(dgemmsy, AS_HELP_STRING([--enable-dgemmsy], [Use dgemmsy (disabled by default).]),
+                         ac_use_dgemmsy=$enableval, ac_use_dgemmsy="no")
+if test x"$ac_use_dgemmsy" = "xyes" ; then
+  AC_LANG_PUSH(C)
+
+  CPPFLAGS_SVG=$CPPFLAGS
+  CPPFLAGS="$CPPFLAGS -msse3"
+  AC_CHECK_HEADER([pmmintrin.h],
+                  [ac_use_dgemmsy="yes"],
+                  [ac_use_dgemmsy="no"])
+  CPPFLAGS=$CPPFLAGS_SVG
+  AC_LANG_POP(C)
+  if test "$ac_use_dgemmsy" = "no"; then
+    AC_MSG_WARN(["No SSE header found, dgemmsy disabled."])
+  fi
+fi
+AM_CONDITIONAL(USE_DGEMMSY, test "$ac_use_dgemmsy" = "yes")
+
 
 dnl build the pseudo generation (build the executables atom and pseudo)
 AC_MSG_CHECKING([for pseudo generation])
@@ -325,23 +345,10 @@ dnl      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt -lstdc++"
 fi
 AM_CONDITIONAL(USE_OCL, test "$ac_use_ocl" = "yes")
 
-if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" ; then
+if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" -o "$ac_use_dgemmsy" = "yes"; then
   dnl Instead of second underscoring, test the compiler behaviour.
   AC_FC_WRAPPERS()
 fi
-
-dnl Use th dgemmsy
-ac_use_dgemmsy="no"
-AC_ARG_ENABLE(dgemmsy, AS_HELP_STRING([--enable-dgemmsy], [Use dgemmsy (disabled by default).]),
-                         ac_use_dgemmsy=$enableval, ac_use_dgemmsy="no")
-AC_MSG_CHECKING([for dgemmsy support])
-AC_MSG_RESULT([$ac_use_dgemmsy])
-if test x"$ac_use_dgemmsy" = "xyes" ; then
-  AC_LANG_PUSH(C)
-
-  AC_LANG_POP(C)
-fi
-AM_CONDITIONAL(USE_DGEMMSY, test "$ac_use_dgemmsy" = "yes")
 
 dnl Use ETSF_IO
 ac_use_etsfio=no

@@ -618,8 +618,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   if(nproc > 1)then
      !sum up the contributions of nproc sets with 
      !commsv%nvctr_par(iproc,1) wavelet coefficients each
-     !call MPI_ALLREDUCE(e(1,1,1,2),e(1,1,1,1),2*orbsv%norb*orbsv%nkpts,&
-     !     mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
      call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
 
   end if
@@ -1064,12 +1062,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
               if (nspin ==1) then
                  write(*,'(1x,a)')'done. The refined eigenvalues are'
                  do iorb=1,nvirt
-                    write(*,'(1x,i3,2(1pe21.14))')iorb,(e(iorb,ikpt,j),j=1,2)
+                    write(*,'(1x,i3,(1pe21.14,1pe11.4))')iorb,(e(iorb,ikpt,j),j=1,2)
                  end do
               else if (ispin == 2) then
                  write(*,'(1x,a)')'done. The refined eigenvalues are'
                  do iorb=1,nvirt
-                    write(*,'(1x,i3,4(1pe21.14))')&
+                    write(*,'(1x,i3,2(1pe21.14,1pe11.4))')&
                          iorb,(e(iorb,ikpt,j),j=1,2),(e(iorb+orbsv%norbu,ikpt,j),j=1,2)
                  end do
               end if
@@ -1320,7 +1318,7 @@ subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
 
   !<vi | hvj> 
   if(nspinor==1) then
-     call gemm('T','N',norb,norb,nvctrp,1.0_wp,v(1),&
+     call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,v(1),&
           max(1,nvctrp),hv(1),max(1,nvctrp),0.0_wp,&
           hamovr(1,1,1,1),2*norb)
   else
@@ -1344,7 +1342,7 @@ subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
 
   !<gi | hgj>
   if(nspinor==1) then
-     call gemm('T','N',norb,norb,nvctrp,1.0_wp,g(1),&
+     call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,g(1),&
           max(1,nvctrp),hg(1),max(1,nvctrp),0.0_wp,&
           hamovr(1,norb+1,norb+1,1),2*norb)
   else
@@ -1620,15 +1618,16 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   if (randinp) then
      !call razero(orbs%npsidim,psivirt)
      do iorb=1,orbs%norbp
+        jorb=iorb+orbs%isorb
         do ispinor=1,orbs%nspinor
            !pseudo-random frequency (from 0 to 10*2pi)
-           rfreq=real(iorb+orbs%isorb,wp)/real(orbs%norb*orbs%nkpts,wp)*62.8318530717958648_wp
+           rfreq=real(jorb,wp)/real(orbs%norb*orbs%nkpts,wp)*62.8318530717958648_wp
            do iseg=1,lr%wfd%nseg_c
               call segments_to_grid(lr%wfd%keyv(iseg),lr%wfd%keyg(1,iseg),lr%d,i0,i1,i2,i3,jj)
               do i=i0,i1
                  ind_c=i-i0+jj+((iorb-1)*orbs%nspinor+ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
                  psivirt(ind_c)=psivirt(ind_c)+0.5_wp*&
-                      sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+                      sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
               end do
            end do
            do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
@@ -1637,24 +1636,24 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
                  ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)+&
                       ((iorb-1)*orbs%nspinor+ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
                  psivirt(ind_f+1)=psivirt(ind_f+1)+0.4_wp*&
-                      sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+                      sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
                  psivirt(ind_f+2)=psivirt(ind_f+2)+0.35_wp*&
-                      sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+                      sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
                  psivirt(ind_f+3)=psivirt(ind_f+3)+0.3_wp*&
-                      sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+                      sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
                  psivirt(ind_f+4)=psivirt(ind_f+4)+0.25_wp*&
-                      sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+                      sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
                  psivirt(ind_f+5)=psivirt(ind_f+5)+0.2_wp*&
-                      sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+                      sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
                  psivirt(ind_f+6)=psivirt(ind_f+6)+0.15_wp*&
-                      sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+                      sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
                  psivirt(ind_f+7)=psivirt(ind_f+7)+0.1_wp*&
-                      sin(rfreq*(i1+real(iorb,wp)))*sin(rfreq*(i2+real(iorb,wp)))*sin(rfreq*(i3+real(iorb,wp)))
+                      sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
               end do
            end do
         end do
      end do
-     !after having added random background, precondition the wavefunctions with an ncong of 5
+     !after having added random background, precondition the wavefunctions with an ncong of 10
      call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,10,psivirt,gnrm_fake,gnrm_fake)
   end if
 

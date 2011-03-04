@@ -56,6 +56,10 @@ DGEMMSY_INTERFACE = dgemmsy/interface_dgemmsy_fake.f90
 libs_dgemmsy=
 endif
 
+libs_opt=$(libs_cuda)\
+ $(libs_ocl)\
+ $(libs_dgemmsy)
+
 if HAVE_LIBCONFIG
 sub_dirs_libconfig=convolutions-c
 else
@@ -217,7 +221,8 @@ low_level = init/projectors.f90  \
 	wavelib/un-compress.f90 \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 \
-	wavelib/daubisf.f90
+	wavelib/daubisf.f90 \
+	$(DGEMMSY_INTERFACE)
 
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
@@ -236,9 +241,7 @@ bigdft_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
+	$(libs_opt)
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
 rism_LDFLAGS = 
@@ -246,17 +249,15 @@ rism_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
+	$(libs_opt)
+ 
 oneatom_SOURCES = oneatom.f90
 oneatom_LDFLAGS = 
 oneatom_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
+	$(libs_opt)
 
 
 MDanalysis_SOURCES = distances.f90 
@@ -265,9 +266,7 @@ MDanalysis_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
+	$(libs_opt)  
 
 abscalc_SOURCES = abscalc.f90 
 abscalc_LDFLAGS = 
@@ -275,10 +274,7 @@ abscalc_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
-
+	$(libs_opt) 
 
 test_forces_SOURCES = test_forces.f90
 test_forces_LDFLAGS = 
@@ -286,18 +282,14 @@ test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
+	$(libs_opt) 
 
 NEB_SOURCES = NEB.f90 \
 	$(mpi_source)
 NEB_LDFLAGS = 
 NEB_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
+	$(libs_opt) 
 
 memguess_SOURCES = memguess.f90 \
 	$(mpi_source)
@@ -305,9 +297,7 @@ memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
+	$(libs_opt) 
 
 frequencies_SOURCES = frequencies.f90  \
 	$(mpi_source)
@@ -316,9 +306,7 @@ frequencies_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
+	$(libs_opt) 
 
 bart_SOURCES = \
 	art/bigdft_forces.f90 \
@@ -338,10 +326,7 @@ bart_LDADD = art/libart.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl) \
-	$(libs_dgemmsy)
-
+	$(libs_opt) 
 
 CLEANFILES = \
 	bigdft_api.@MODULE_EXT@ BIGDFT_API.@MODULE_EXT@ \

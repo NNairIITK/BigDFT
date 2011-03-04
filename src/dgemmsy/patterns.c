@@ -5,10 +5,6 @@
 
 #include "patterns.h"
 
-#ifdef WIN32
-#define snprintf _snprintf
-#endif
-
 void columns_pattern(void * arg,int p,BlockVisitor_2x4_Proc visitor,void * visitor_arg)
 {
   ColumnsPatternData * data = (ColumnsPatternData *)arg;
