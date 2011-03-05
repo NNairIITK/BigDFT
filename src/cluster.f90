@@ -1078,33 +1078,6 @@ type(linearParameters):: lin
         end do wfn_loop
 
 
-        ! Here we try to reproduce the above result with the linear scaling version, i.e. we take the selfconsistent potential
-        ! for all calculations.
-        ! ATTENTION: this will overwrite some results of the cubic run made so far, in particular psi and psit.
-        linearIf: if(inputpsi==100) then
-            ! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
-            call initializeParameters(iproc, nproc, Glr, orbs, atoms, lin, phi, in, rxyz, occupForInguess)
-            if(iproc==0) write(*,'(a)') 'trying to reproduce the result with the linear scaling version...'
-            if(nproc==1) allocate(psit(size(psi)))
-            if(.not.allocated(rxyzParab)) allocate(rxyzParab(3,atoms%nat))
-            rxyzParab=rxyz
-            !orbsLIN%convCrit=orbsLIN%convCritInit
-            ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
-            call getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, atoms, lin, rxyz, rxyzParab, &
-                nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, in, pkernelseq, phi, psi, psit, &
-                infoBasisFunctions, n3p)
-
-            ! Calculate the potential arising from the new psi and calculate the energy.
-            call potentialAndEnergy()
-
-            !nscatterarrCorrect=nscatterarr
-            !ngatherarrCorrect=ngatherarr
-            !projCorrect=proj
-            !fxyzOld=fxyz
-
-            ! Calculate the forces arising from the new psi.
-            call calculateForces()
-        end if linearIf
 
 
         if (iproc == 0) then 
@@ -1142,6 +1115,39 @@ type(linearParameters):: lin
 
         call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
              comms,psi,hpsi,psit,evsum,.true.) !never deallocate psit and hpsi
+
+
+        ! Here we try to reproduce the above result with the linear scaling version, i.e. we take the selfconsistent potential
+        ! for all calculations.
+        ! ATTENTION: this will overwrite some results of the cubic run made so far, in particular psi and psit.
+        linearIf: if(inputpsi==100) then
+            if(iproc==0) then
+                write(*,'(x,a)') repeat('*',84)
+                write(*,'(x,a)') '********* Use the selfconsistent potential for the linear scaling version. *********'
+            end if
+            ! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
+            call initializeParameters(iproc, nproc, Glr, orbs, atoms, lin, phi, in, rxyz, occupForInguess)
+            if(iproc==0) write(*,'(a)') 'trying to reproduce the result with the linear scaling version...'
+            if(nproc==1) allocate(psit(size(psi)))
+            if(.not.allocated(rxyzParab)) allocate(rxyzParab(3,atoms%nat))
+            rxyzParab=rxyz
+            ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
+            call getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, atoms, lin, rxyz, rxyzParab, &
+                nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, in, pkernelseq, phi, psi, psit, &
+                infoBasisFunctions, n3p)
+
+            ! Calculate the potential arising from the new psi and calculate the energy.
+            call potentialAndEnergy()
+
+            !nscatterarrCorrect=nscatterarr
+            !ngatherarrCorrect=ngatherarr
+            !projCorrect=proj
+            !fxyzOld=fxyz
+
+            ! Calculate the forces arising from the new psi.
+            call calculateForces()
+        end if linearIf
+
 
         !exit if the infocode is correct
         if (infocode == 0) then

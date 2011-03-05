@@ -1507,7 +1507,7 @@ real(8):: hxh, hyh, hzh, parabPrefac
 end subroutine apply_potentialParabola
 
 
-subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, at, lin, rxyz, rxyzParab, &
+subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
     infoBasisFunctions, n3p)
 use module_base
@@ -1516,7 +1516,7 @@ use module_types
 ! Calling arguments
 integer:: iproc, nproc, nspin, infoBasisFunctions, n3p
 type(locreg_descriptors), intent(in) :: Glr
-type(orbitals_data), intent(inout) :: orbs, orbsLIN
+type(orbitals_data), intent(inout) :: orbs
 type(communications_arrays), intent(in) :: comms
 type(atoms_data), intent(in) :: at
 type(linearParameters):: lin
@@ -1531,7 +1531,7 @@ real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
 real(dp), dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin), intent(inout) :: rhopot
 type(GPU_pointers), intent(inout) :: GPU
 real(dp), dimension(:), pointer :: pkernelseq
-real(8),dimension(orbsLIN%npsidim):: phi
+real(8),dimension(lin%orbs%npsidim):: phi
 real(8),dimension(orbs%npsidim):: psi, psit
 end subroutine getLinearPsi
 

@@ -1,4 +1,4 @@
-subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, at, lin, rxyz, rxyzParab, &
+subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
     infoBasisFunctions, n3p)
 !
@@ -23,7 +23,6 @@ subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, at, lin,
 !     nspin           npsin==1 -> closed shell; npsin==2 -> spin polarized
 !     Glr             type describing the localization region
 !     orbs            type describing the physical orbitals psi
-!     orbsLIN         type describing the basic functions phi
 !     comms           type containing the communication parameters for the physical orbitals psi
 !     at              type containing the paraneters for the atoms
 !     lin             type containing parameters for the linear version
@@ -58,7 +57,7 @@ use module_interfaces, exceptThisOne => getLinearPsi
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nspin, n3p
 type(locreg_descriptors), intent(in) :: Glr
-type(orbitals_data), intent(in) :: orbs, orbsLIN
+type(orbitals_data), intent(in) :: orbs
 type(communications_arrays), intent(in) :: comms
 type(atoms_data), intent(in) :: at
 type(linearParameters):: lin
@@ -94,12 +93,6 @@ allocate(phiWorkPointer(max(size(phi),size(psi))), stat=istat)
 call memocc(istat, phiWorkPointer, 'phiWorkPointer', subname)
 
 
-!!!!! ATENTION DEBUGGING !!
-!!!write(*,*) 'ATTENTION: DEBUGGING'
-!!!allocate(HamSmall(lin%orbs%norb,lin%orbs%norb), stat=istat)
-!!!deallocate(HamSmall)
-!!!!! ATENTION DEBUGGING !!
-
 
 call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
@@ -109,9 +102,6 @@ call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlp
 call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
      lin%orbs%norb,lin%orbs%norbp,ngatherarr,rhopot,potential)
 
-!call HamiltonianApplication(iproc,nproc,at,orbsLIN,input%hx,input%hy,input%hz,rxyz,&
-!     nlpspd,proj,Glr,ngatherarr,potential,&
-!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
 call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,rxyz,&
      nlpspd,proj,Glr,ngatherarr,potential,&
      phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
@@ -128,7 +118,6 @@ call transformHam(iproc, nproc, lin%orbs, lin%comms, phi, hphi, HamSmall)
 
 if(iproc==0) write(*,'(a)', advance='no') 'Linear Algebra... '
 allocate(eval(lin%orbs%norb), stat=istat)
-!call diagonalizeHamiltonian(iproc, nproc, orbsLIN, HamSmall, eval)
 call diagonalizeHamiltonian(iproc, nproc, lin%orbs, HamSmall, eval)
 
 call buildWavefunction(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, HamSmall)
@@ -189,7 +178,7 @@ integer:: norb, norbu, norbd
 real(8):: tt, ddot
 integer,dimension(:),allocatable:: norb_par
 real(8),dimension(:),pointer:: phiWorkPointer
-integer,dimension(:),allocatable:: nbasisPerAt, nbasisArr, orbsPerAt
+integer,dimension(:),allocatable:: nbasisPerAt, nbasisArr, orbsPerAt, norbsPerType, norbsPerAtom
 character(len=*),parameter:: subname='initializeParameters'
 character(len=20):: atomname
 logical:: written
@@ -198,6 +187,10 @@ logical:: written
 ! Number of basis functions
 allocate(nbasisPerAt(at%nat), stat=istat)
 call memocc(istat, at%nat, 'nbasisPerAt', subname)
+allocate(norbsPerType(at%ntypes), stat=istat)
+call memocc(istat, at%ntypes, 'norbsPerType', subname)
+allocate(norbsPerAtom(at%nat), stat=istat)
+call memocc(istat, at%nat, 'norbsPerAtom', subname)
 
 ! Read in the number of basis functions per atom type and save this information
 ! in the array nbasisPerAt.
@@ -213,7 +206,10 @@ if(lin%DIISHistMin>lin%DIISHistMax) then
     stop
 end if
 do iat=1,at%ntypes
-    read(99,*) atomname, orbsPerAt(iat), lin%potentialPrefac(iat)
+    !read(99,*) atomname, orbsPerAt(iat), lin%potentialPrefac(iat)
+    read(99,*) atomname, norbsPerType(iat), lin%potentialPrefac(iat)
+    if(iproc==0) write(*,'(a,a,a,i0,a,es9.3)') 'parameters for atom ', trim(atomname), ': number of basis functions = ', norbsPerType(iat), &
+        ', prefactor for potential = ', lin%potentialPrefac(iat)
 end do
 close(unit=99)
 
@@ -221,9 +217,11 @@ close(unit=99)
 ! Count how many basis functions we have.
 do iat=1,at%nat
     ityp=at%iatype(iat)
-    nbasisPerAt(iat)=orbsPerAt(at%iatype(iat))
+    !nbasisPerAt(iat)=orbsPerAt(at%iatype(iat))
+    norbsPerAtom(iat)=norbsPerType(at%iatype(iat))
+    lin%orbs%norb=lin%orbs%norb+norbsPerAtom(iat)
 end do
-lin%orbs%norb=sum(nbasisPerAt) ! Choose such that they can be evenly distributed
+!lin%orbs%norb=sum(nbasisPerAt) ! Choose such that they can be evenly distributed
 deallocate(orbsPerAt, stat=istat)
 
 norb=lin%orbs%norb
@@ -249,9 +247,9 @@ allocate(lin%onWhichAtom(lin%orbs%norbp), stat=istat)
 call memocc(istat, nproc, 'lin%onWhichAtomnorb_par', subname)
 
 
-call assignOrbitalsToAtoms(iproc, at%nat, lin, nbasisPerAt)
+call assignOrbitalsToAtoms(iproc, at%nat, lin, norbsPerAtom)
 
-write(*,'(a,i2,3x,200i4)') 'iproc, lin%onWhichAtom', iproc, lin%onWhichAtom
+!write(*,'(a,i2,3x,200i4)') 'iproc, lin%onWhichAtom', iproc, lin%onWhichAtom
 iall=-product(shape(nbasisPerAt))*kind(nbasisPerAt)
 deallocate(nbasisPerAt, stat=istat)
 call memocc(istat, iall, 'nbasisPerAt', subname)
