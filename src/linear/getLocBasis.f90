@@ -173,29 +173,23 @@ real(8),dimension(3,at%nat):: rxyz
 real(8),dimension(32,at%nat):: occupForInguess
 
 ! Local variables
-integer:: ii, jproc, jj, istat, iorb, i, jorb, ierr, ii2, j, istart, jstart, iat, ityp, iall, norb_tot, iiOrb
+integer:: jproc, istat, iorb, jorb, ierr, iat, ityp, iall, norb_tot
 integer:: norb, norbu, norbd
-real(8):: tt, ddot
-integer,dimension(:),allocatable:: norb_par
-real(8),dimension(:),pointer:: phiWorkPointer
-integer,dimension(:),allocatable:: nbasisPerAt, nbasisArr, orbsPerAt, norbsPerType, norbsPerAtom
+integer,dimension(:),allocatable:: norbsPerType, norbsPerAtom
 character(len=*),parameter:: subname='initializeParameters'
 character(len=20):: atomname
 logical:: written
 
 
-! Number of basis functions
-allocate(nbasisPerAt(at%nat), stat=istat)
-call memocc(istat, at%nat, 'nbasisPerAt', subname)
+! Allocate all local arrays.
 allocate(norbsPerType(at%ntypes), stat=istat)
 call memocc(istat, at%ntypes, 'norbsPerType', subname)
 allocate(norbsPerAtom(at%nat), stat=istat)
 call memocc(istat, at%nat, 'norbsPerAtom', subname)
 
-! Read in the number of basis functions per atom type and save this information
-! in the array nbasisPerAt.
-allocate(orbsPerAt(at%ntypes), stat=istat)
+! Read in all parameters related to the linear scaling version and print them.
 allocate(lin%potentialPrefac(at%ntypes), stat=istat)
+call memocc(istat, at%ntypes, 'lin%potentialPrefac', subname)
 open(unit=99, file='input.lin')
 read(99,*) lin%nItMax
 read(99,*) lin%convCrit
@@ -209,7 +203,6 @@ if(iproc==0) write(*,'(x,a)') '================== Input parameters. ============
 if(iproc==0) write(*,'(x,a,9x,a,3x,a,3x,a,4x,a,4x,a)') '| ', ' | ', 'number of', ' | ', 'prefactor for', ' |'
 if(iproc==0) write(*,'(x,a,a,a,a,a,a,a)') '| ', 'atom type', ' | ', 'basis functions', ' | ', 'confinement potential', ' |'
 do iat=1,at%ntypes
-    !read(99,*) atomname, orbsPerAt(iat), lin%potentialPrefac(iat)
     read(99,*) atomname, norbsPerType(iat), lin%potentialPrefac(iat)
     if(iproc==0) write(*,'(x,a,4x,a,a,a,a,i0,7x,a,7x,es9.3,6x,a)') '| ', trim(atomname), repeat(' ', 6-len_trim(atomname)), '|',  &
         repeat(' ', 10-ceiling(log10(dble(norbsPerType(iat)+1)))), norbsPerType(iat), '|', lin%potentialPrefac(iat), ' |'
@@ -224,16 +217,16 @@ if(iproc==0) write(*,'(x,a)') '=================================================
 close(unit=99)
 
 
-! Count how many basis functions we have.
+! Assign to each atom its number of basis functions and count how many basis functions 
+! we have in total.
 do iat=1,at%nat
     ityp=at%iatype(iat)
-    !nbasisPerAt(iat)=orbsPerAt(at%iatype(iat))
-    norbsPerAtom(iat)=norbsPerType(at%iatype(iat))
+    norbsPerAtom(iat)=norbsPerType(ityp)
     lin%orbs%norb=lin%orbs%norb+norbsPerAtom(iat)
 end do
-!lin%orbs%norb=sum(nbasisPerAt) ! Choose such that they can be evenly distributed
-deallocate(orbsPerAt, stat=istat)
 
+
+! Distribute the orbitals among the processors.
 norb=lin%orbs%norb
 norbu=norb
 norbd=0
@@ -252,18 +245,12 @@ if(.not.written) then
 end if
 
 
-
+! Decide which orbital is centered in which atom.
 allocate(lin%onWhichAtom(lin%orbs%norbp), stat=istat)
 call memocc(istat, nproc, 'lin%onWhichAtomnorb_par', subname)
-
-
 call assignOrbitalsToAtoms(iproc, at%nat, lin, norbsPerAtom)
 
 !write(*,'(a,i2,3x,200i4)') 'iproc, lin%onWhichAtom', iproc, lin%onWhichAtom
-iall=-product(shape(nbasisPerAt))*kind(nbasisPerAt)
-deallocate(nbasisPerAt, stat=istat)
-call memocc(istat, iall, 'nbasisPerAt', subname)
-
 
 
 ! orbsLIN%isorb is the 'first' orbital for a given MPI process.
@@ -287,13 +274,22 @@ call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
 
 
 ! Allocate phi and initialize it at random
-!allocate(phi(orbsLIN%npsidim), stat=istat)
 allocate(phi(lin%orbs%npsidim), stat=istat)
+call memocc(istat, lin%orbs%npsidim, 'phi', subname)
 call initRandomSeed(iproc, 1)
 call random_number(phi)
 
 !write(*,*) 'calling createInputGuess'
 !call createInputGuess(iproc, orbsLIN, Glr, input, at, rxyz, phi)
+
+
+! Deallocate all local arrays
+iall=-product(shape(norbsPerType))*kind(norbsPerType)
+deallocate(norbsPerType, stat=istat)
+call memocc(istat, iall, 'norbsPerType', subname)
+iall=-product(shape(norbsPerAtom))*kind(norbsPerAtom)
+deallocate(norbsPerAtom, stat=istat)
+call memocc(istat, iall, 'norbsPerAtom', subname)
 
 
 end subroutine initializeParameters
@@ -452,9 +448,9 @@ alpha=1.d-2
 precond=.true.
 trHm1=0.d0
 trHm2=0.d0
-if(iproc==0) write(*,'(a,i0)') 'using DIIS with history length ', diisLIN%idsx
-if(iproc==0) write(*,'(a,es12.5)') 'convergence criterion is', lin%convCrit
-if(iproc==0) write(*,'(a,i0)') 'maximal number of iterations: ', lin%nItMax
+!if(iproc==0) write(*,'(a,i0)') 'using DIIS with history length ', diisLIN%idsx
+!if(iproc==0) write(*,'(a,es12.5)') 'convergence criterion is', lin%convCrit
+!if(iproc==0) write(*,'(a,i0)') 'maximal number of iterations: ', lin%nItMax
 iterLoop: do it=1,itMax
     trace=0.d0
     fnrmMax=0.d0
