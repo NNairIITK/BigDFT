@@ -205,12 +205,22 @@ if(lin%DIISHistMin>lin%DIISHistMax) then
     & DIISHistMax, but you chose ', lin%DIISHistMin, ' and ', lin%DIISHistMax, '!'
     stop
 end if
+if(iproc==0) write(*,'(x,a)') '================== Input parameters. =================='
+if(iproc==0) write(*,'(x,a,9x,a,3x,a,3x,a,4x,a,4x,a)') '| ', ' | ', 'number of', ' | ', 'prefactor for', ' |'
+if(iproc==0) write(*,'(x,a,a,a,a,a,a,a)') '| ', 'atom type', ' | ', 'basis functions', ' | ', 'confinement potential', ' |'
 do iat=1,at%ntypes
     !read(99,*) atomname, orbsPerAt(iat), lin%potentialPrefac(iat)
     read(99,*) atomname, norbsPerType(iat), lin%potentialPrefac(iat)
-    if(iproc==0) write(*,'(a,a,a,i0,a,es9.3)') 'parameters for atom ', trim(atomname), ': number of basis functions = ', norbsPerType(iat), &
-        ', prefactor for potential = ', lin%potentialPrefac(iat)
+    if(iproc==0) write(*,'(x,a,4x,a,a,a,a,i0,7x,a,7x,es9.3,6x,a)') '| ', trim(atomname), repeat(' ', 6-len_trim(atomname)), '|',  &
+        repeat(' ', 10-ceiling(log10(dble(norbsPerType(iat)+1)))), norbsPerType(iat), '|', lin%potentialPrefac(iat), ' |'
 end do
+if(iproc==0) write(*,'(x,a)') '--------------------------------------------------------'
+if(iproc==0) write(*,'(x,a,a,a,a,a,a,a)') '| ', 'maximal number', ' | ', 'convergence', ' | ', 'DIIS history', ' |'
+if(iproc==0) write(*,'(x,a,x,a,a,x,a,x,a,x,a,2x,a)') '| ', 'of iterations', ' | ', 'criterion', ' | ', 'min   max', ' |'
+if(iproc==0) write(*,'(x,a,a,i0,5x,a,x,es9.3,x,a,a,i0,3x,a,i0,2x,a)') '| ', repeat(' ', 9-ceiling(log10(dble(lin%nItMax+1)))), lin%nItMax, &
+    ' | ', lin%convCrit, ' | ', repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)))), lin%DIISHistMin, &
+    repeat(' ', 4-ceiling(log10(dble(lin%nItMax+1)))), lin%DIISHistMax, ' |'
+if(iproc==0) write(*,'(x,a)') '======================================================='
 close(unit=99)
 
 
@@ -231,14 +241,14 @@ call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, orbs%nspinor, input%
 written=.false.
 do jproc=1,nproc-1
     if(lin%orbs%norb_par(jproc)<lin%orbs%norb_par(jproc-1)) then
-        if(iproc==0) write(*,'(a,5(i0,a))') 'Processes from 0 to ',jproc-1,' treat ',lin%orbs%norb_par(jproc-1), &
+        if(iproc==0) write(*,'(x,a,5(i0,a))') 'Processes from 0 to ',jproc-1,' treat ',lin%orbs%norb_par(jproc-1), &
             ' orbitals, processes from ',jproc,' to ',nproc-1,' treat ',lin%orbs%norb_par(jproc),' orbitals.'
         written=.true.
         exit
     end if
 end do
 if(.not.written) then
-    if(iproc==0) write(*,'(a,2(i0,a))') 'Processes from 0 to ',nproc-1,' treat ',lin%orbs%norbp,' orbitals.'
+    if(iproc==0) write(*,'(x,a,2(i0,a))') 'Processes from 0 to ',nproc-1,' treat ',lin%orbs%norbp,' orbitals.'
 end if
 
 

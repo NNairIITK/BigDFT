@@ -1123,11 +1123,12 @@ type(linearParameters):: lin
         linearIf: if(inputpsi==100) then
             if(iproc==0) then
                 write(*,'(x,a)') repeat('*',84)
+                write(*,'(x,a)') '****************************** LINEAR SCALING VERSION ******************************'
                 write(*,'(x,a)') '********* Use the selfconsistent potential for the linear scaling version. *********'
             end if
             ! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
             call initializeParameters(iproc, nproc, Glr, orbs, atoms, lin, phi, in, rxyz, occupForInguess)
-            if(iproc==0) write(*,'(a)') 'trying to reproduce the result with the linear scaling version...'
+            !if(iproc==0) write(*,'(a)') 'trying to reproduce the result with the linear scaling version...'
             if(nproc==1) allocate(psit(size(psi)))
             if(.not.allocated(rxyzParab)) allocate(rxyzParab(3,atoms%nat))
             rxyzParab=rxyz
