@@ -96,7 +96,7 @@ call memocc(istat, phiWorkPointer, 'phiWorkPointer', subname)
 
 call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
-    lin%DIISHistMin, lin%DIISHistMax, infoBasisFunctions)
+    infoBasisFunctions)
 
 !allocate the potential in the full box
 call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
@@ -153,8 +153,21 @@ subroutine initializeParameters(iproc, nproc, Glr, orbs, at, lin, phi, input, rx
 !
 ! Calling arguments:
 ! ==================
-!   Input arguments
-!   Output arguments
+!   Input arguments:
+!   ----------------
+!     iproc           process ID
+!     nproc           total number of processes
+!     Glr             type describing the localization region
+!     orbs            type describing the physical orbitals psi
+!     at              type containing the paraneters for the atoms
+!     lin             type containing parameters for the linear version
+!     input           type containing some very general parameters
+!     rxyz            the atomic positions
+!     occuprForINguess  delete maybe
+!  Output arguments
+!  ---------------------
+!     phi             the localized basis functions. They are only initialized here, but
+!                       not normalized.
 !
 use module_base
 use module_types
@@ -162,15 +175,15 @@ use module_interfaces, except_this_one => initializeParameters
 implicit none
 
 ! Calling arguments
-integer:: iproc, nproc
+integer,intent(in):: iproc, nproc
 type(locreg_descriptors), intent(in) :: Glr
 type(orbitals_data), intent(inout) :: orbs
 type(atoms_data), intent(in) :: at
 type(linearParameters):: lin
-real(8),dimension(:),allocatable:: phi
 type(input_variables), intent(in) :: input
-real(8),dimension(3,at%nat):: rxyz
+real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(32,at%nat):: occupForInguess
+real(8),dimension(:),allocatable,intent(out):: phi
 
 ! Local variables
 integer:: jproc, istat, iorb, jorb, ierr, iat, ityp, iall, norb_tot
@@ -298,6 +311,21 @@ end subroutine initializeParameters
 
 subroutine assignOrbitalsToAtoms(iproc, nat, lin, norbsPerAt)
 !
+! Purpose:
+! ========
+!   Assigns the orbitals to the atoms, using the array lin%onWhichAtom.
+!   If orbital i is centered on atom j, we have lin%onWhichAtom(i)=j.
+!
+! Calling arguments:
+! ==================
+!   Input arguments:
+!   ----------------
+!     iproc         process ID
+!     nat           number of atoms
+!     norbsPerAt    indicates how many orbitals are centered on each atom.
+!  Input / Output arguments
+!  ---------------------
+!     lin           type containing parameters for the linear version
 !
 use module_base
 use module_types
@@ -309,11 +337,9 @@ type(linearParameters):: lin
 integer,dimension(nat):: norbsPerAt
 
 ! Local variables
-integer:: jproc, ii, jj, ii2, iiOrb, iorb, jorb, jat
+integer:: jproc, iiOrb, iorb, jorb, jat
 
 
-
-! Distribute the centers of the parabolic potential among the MPI processes.
 ! There are four counters:
 !   jproc: indicates which MPI process is handling the basis function which is being treated
 !   jat: counts the atom numbers
@@ -323,7 +349,7 @@ jproc=0
 jat=1
 jorb=0
 iiOrb=0
-lin%onWhichAtom=-1
+!lin%onWhichAtom=-1
 
 ! THERE IS A PROBLEM WHEN ONLY 1 ORBITAL PER ATOM
 do iorb=1,lin%orbs%norb
@@ -336,7 +362,8 @@ do iorb=1,lin%orbs%norb
     end if
     
     ! Switch to the next atom if the number of basis functions for this atom is reached.
-    if(iiOrb==norbsPerAt(max(jat,1))) then
+    !if(iiOrb==norbsPerAt(max(jat,1))) then
+    if(iiOrb==norbsPerAt(jat)) then
         jat=jat+1
         iiOrb=0
     end if
@@ -344,24 +371,56 @@ do iorb=1,lin%orbs%norb
     iiOrb=iiOrb+1
     if(iproc==jproc) lin%onWhichAtom(jorb)=jat
 end do    
+
 end subroutine assignOrbitalsToAtoms
 
 
 
 
 
-
-!subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, orbsLIN, commsLIN, rxyz, nspin, nlpspd, &
-!    proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, &
-!    idsxMin, idsxMax, infoBasisFunctions)
 subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
     proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, &
-    idsxMin, idsxMax, infoBasisFunctions)
+    infoBasisFunctions)
 !
 ! Purpose:
 ! ========
-!   Calculates the localized basis functions phi. These basis functions are eigenfunctions of the ordinary Hamiltonian
-!   with an additional parabolic potential centered at the atoms. The eigenfunctions are determined by minimizing the trace.
+!   Calculates the localized basis functions phi. These basis functions are obtained by adding a
+!   quartic potential centered on the atoms to the ordinary Hamiltonian. The eigenfunctions are then
+!   determined by minimizing the trace until the gradient norm is below the convergence criterion.
+!
+! Calling arguments:
+! ==================
+!   Input arguments:
+!   ----------------
+!     iproc           process ID
+!     nproc           total number of processes
+!     at              type containing the paraneters for the atoms
+!     orbs            type describing the physical orbitals psi
+!     Glr             type describing the localization region
+!     input           type containing some very general parameters
+!     lin             type containing parameters for the linear version
+!     rxyz            the atomic positions
+!     nspin           npsin==1 -> closed shell; npsin==2 -> spin polarized
+!     nlpsp           ???
+!     proj            ???
+!     nscatterarr     ???
+!     ngatherarr      ???
+!     rhopot          the charge density
+!     GPU             parameters for GPUs
+!     pkernelseq      ???
+!     rxyzParab       the center of the confinement potential (at the moment identical rxyz)
+!     n3p             ???
+!  Input/Output arguments
+!  ---------------------
+!     phi             the localized basis functions. It is assumed that they have been initialized
+!                     somewhere else
+!   Output arguments
+!   ----------------
+!     hphi            the modified Hamiltonian applied to phi
+!     trH             the trace of the Hamiltonian
+!     infoBasisFunctions  indicated wheter the basis functions converged to the specified limit (value is 0)
+!                         or whether the iteration stopped due to the iteration limit (value is -1). This info
+!                         is returned by 'getLocalizedBasis'
 !
 ! Calling arguments:
 !   Input arguments
@@ -376,7 +435,7 @@ use module_interfaces, except_this_one => getLocalizedBasis
 implicit none
 
 ! Calling arguments
-integer:: iproc, nproc, idsxMin, idsxMax, infoBasisFunctions
+integer:: iproc, nproc, infoBasisFunctions
 type(atoms_data), intent(in) :: at
 type(orbitals_data):: orbs
 type(locreg_descriptors), intent(in) :: Glr
@@ -397,26 +456,21 @@ real(8),dimension(lin%orbs%npsidim):: phi, hphi
 real(8):: trH
 
 ! Local variables
-real(8) ::epot_sum,ekin_sum,eexctX,eproj_sum
-integer:: iorb, jorb, j, icountSDSatur, iat, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
-integer:: istat, istart, jstart, ierr, i, i0, i1, i2, i3, j0, j1, ii, jj, ix0, iy0, iz0, iseg, jproc, it
-integer:: itMax, nbasisPerAtForDebug, icount, ishift, ncong, ix, iy, iz, iiAt, info, lwork, iall, nvctrp
+real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum
+integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
+integer:: istat, istart, ierr, ii, it
+integer:: nbasisPerAtForDebug, ncong, iall, nvctrp
 real(8),dimension(:),allocatable:: hphiold, alpha
-real(8),dimension(:),allocatable:: phir, eval, work
 real(8),dimension(:,:),allocatable:: HamSmall
-real(8):: hxh, hyh, hzh, dis, tt, rr, trace, ddot, dnrm2, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero
-real(8):: kx, ky, kz, tt1, tt2, tt3, parabShift, gnrmMax, trHm1, trHm2, d2trH
-type(workarr_sumrho) :: w
+real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax
 type(workarr_locham) :: w2
 real(8),dimension(:),pointer:: phiWorkPointer
-real(8),dimension(:),allocatable:: phiWorkPointer2
-logical:: debug, precond, quiet, allowDIIS
+logical:: precond, quiet, allowDIIS
 logical,dimension(:),allocatable:: move
 character(len=*),parameter:: subname='getLocalizedBasis'
 real(8),dimension(:),allocatable:: diag, fnrmOldArr
 real(8),dimension(:,:),allocatable:: fnrmArr, fnrmOvrlpArr
 type(diis_objects):: diisLIN
-type(diis_objects),dimension(:),allocatable:: diisArr
 
 
 
@@ -431,7 +485,7 @@ icountDIISFailureCons=0
 
 
 ! No DIIS in the beginning
-call initializeDIISParameters(idsxMax)
+call initializeDIISParameters(lin%DIISHistMax)
 allowDIIS=.true.
 if(allowDIIS) then
 else
@@ -442,17 +496,13 @@ end if
 
 
 if(iproc==0) write(*,'(a)') '============================ basis functions creation... ============================'
-itMax=10000
 !alpha=1.d-3
 alpha=1.d-2
 precond=.true.
-trHm1=0.d0
-trHm2=0.d0
 !if(iproc==0) write(*,'(a,i0)') 'using DIIS with history length ', diisLIN%idsx
 !if(iproc==0) write(*,'(a,es12.5)') 'convergence criterion is', lin%convCrit
 !if(iproc==0) write(*,'(a,i0)') 'maximal number of iterations: ', lin%nItMax
-iterLoop: do it=1,itMax
-    trace=0.d0
+iterLoop: do it=1,lin%nItMax
     fnrmMax=0.d0
     fnrm=0.d0
 
@@ -552,11 +602,6 @@ iterLoop: do it=1,itMax
 
     tt=sum(alpha)
     meanAlpha=tt/dble(lin%orbs%norb)
-
-    ! Keep the values of the two previous iterations
-    trHm2=trHm1
-    trHm1=trH 
-    d2trH=trHm2-2.d0*trHm1+trH
 
 
 
@@ -659,8 +704,7 @@ contains
             ! switch back to DIIS 
             icountSwitch=icountSwitch+1
             !diisLIN%idsx=idsx
-            idsx=max(idsxMin,idsxMax-icountSwitch)
-            !diisLIN%idsx=idsxMax
+            idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
             if(iproc==0) write(*,'(a,i0)') 'switch to DIIS with new history length ', idsx
             call initializeDIISParameters(idsx)
             !diisLIN%ids=0
@@ -795,7 +839,7 @@ contains
     call memocc(istat, iall, 'phiWorkPointer', subname)
     
     ! if diisLIN%idsx==0, these arrays have already been deallocated
-    if(diisLIN%idsx>0 .and. idsxMax>0) call deallocate_diis_objects(diisLIN,subname)
+    if(diisLIN%idsx>0 .and. lin%DIISHistMax>0) call deallocate_diis_objects(diisLIN,subname)
 
     end subroutine deallocateLocalArrays
 

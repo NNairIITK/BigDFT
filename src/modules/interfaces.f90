@@ -1143,7 +1143,7 @@ module module_interfaces
 
 subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
     proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, &
-    idsxMin, idsxMax, infoBasisFunctions)
+    infoBasisFunctions)
 !
 ! Purpose:
 ! ========
