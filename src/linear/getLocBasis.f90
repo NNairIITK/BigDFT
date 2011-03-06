@@ -349,9 +349,7 @@ jproc=0
 jat=1
 jorb=0
 iiOrb=0
-!lin%onWhichAtom=-1
 
-! THERE IS A PROBLEM WHEN ONLY 1 ORBITAL PER ATOM
 do iorb=1,lin%orbs%norb
 
     ! Switch to the next MPI process if the numbers of orbitals for a given
@@ -362,7 +360,6 @@ do iorb=1,lin%orbs%norb
     end if
     
     ! Switch to the next atom if the number of basis functions for this atom is reached.
-    !if(iiOrb==norbsPerAt(max(jat,1))) then
     if(iiOrb==norbsPerAt(jat)) then
         jat=jat+1
         iiOrb=0
@@ -441,7 +438,6 @@ type(orbitals_data):: orbs
 type(locreg_descriptors), intent(in) :: Glr
 type(input_variables):: input
 type(linearParameters):: lin
-!type(orbitals_data):: orbsLIN
 real(8),dimension(3,at%nat):: rxyz, rxyzParabola
 integer:: nspin
 type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -451,7 +447,6 @@ integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
 real(dp), dimension(*), intent(inout) :: rhopot
 type(GPU_pointers), intent(inout) :: GPU
 real(dp), dimension(:), pointer :: pkernelseq
-!real(8),dimension(orbsLIN%npsidim):: phi, hphi
 real(8),dimension(lin%orbs%npsidim):: phi, hphi
 real(8):: trH
 
@@ -463,10 +458,9 @@ integer:: istat, istart, ierr, ii, it, nbasisPerAtForDebug, ncong, iall, nvctrp
 real(8),dimension(:),allocatable:: hphiold, alpha, diag, fnrmOldArr
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
 real(8),dimension(:),pointer:: phiWorkPointer
-logical:: precond, quiet, allowDIIS
+logical:: quiet, allowDIIS
 character(len=*),parameter:: subname='getLocalizedBasis'
 type(diis_objects):: diisLIN
-type(workarr_locham) :: w2
 
 
 
@@ -492,12 +486,7 @@ end if
 
 
 if(iproc==0) write(*,'(a)') '============================ basis functions creation... ============================'
-!alpha=1.d-3
 alpha=1.d-2
-precond=.true.
-!if(iproc==0) write(*,'(a,i0)') 'using DIIS with history length ', diisLIN%idsx
-!if(iproc==0) write(*,'(a,es12.5)') 'convergence criterion is', lin%convCrit
-!if(iproc==0) write(*,'(a,i0)') 'maximal number of iterations: ', lin%nItMax
 iterLoop: do it=1,lin%nItMax
     fnrmMax=0.d0
     fnrm=0.d0
@@ -585,7 +574,7 @@ iterLoop: do it=1,lin%nItMax
     end if
     ncong=10
     gnrm=1.d3 ; gnrm_zero=1.d3
-    if(precond) call preconditionallLIN(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
+    call preconditionallLIN(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
         ncong, hphi, gnrm, gnrm_zero, gnrmMax,  at%nat, rxyz, at, it)
 
     tt=gnrm
@@ -603,10 +592,6 @@ iterLoop: do it=1,lin%nItMax
 
     if(iproc==0) write(*,'(x,a,i6,2es15.7,f14.7)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
     if(iproc==0) write(1000,'(i6,2es15.7,f15.7,es12.4)') it, fnrm, fnrmMax, trH, meanAlpha
-    !if(fnrmMax<1.d0) allowDIIS=.true.
-    !if(fnrmMax<1.d-2) then
-    !if(fnrmMax<1.d-2 .and. it>=15) then
-    !if((fnrmMax<orbsLIN%convCrit .and. it>=orbsLIN%nItMin) .or. it>=orbsLIN%nItMax) then
     if(fnrmMax<lin%convCrit .or. it>=lin%nItMax) then
         if(it>=lin%nItMax) then
             if(iproc==0) write(*,'(a,i0,a)') 'WARNING: not converged within ', it, &
@@ -625,11 +610,6 @@ iterLoop: do it=1,lin%nItMax
         !call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
         !    .5d0*input%hy, .5d0*input%hz, 1)
         exit iterLoop
-    end if
-    if(fnrmMax<1.d2 .and. .not.precond) then
-        if(iproc==0) write(*,'(a)') 'starting preconditioner...'
-        alpha=10.d0*alpha
-        precond=.true.
     end if
 
 
@@ -699,13 +679,9 @@ contains
         if(icountSDSatur>=10 .and. diisLIN%idsx==0 .and. allowDIIS) then
             ! switch back to DIIS 
             icountSwitch=icountSwitch+1
-            !diisLIN%idsx=idsx
             idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
             if(iproc==0) write(*,'(a,i0)') 'switch to DIIS with new history length ', idsx
             call initializeDIISParameters(idsx)
-            !diisLIN%ids=0
-            !diisLIN%mids=1
-            !call allocate_diis_objects(diisLIN%idsx, orbsLIN%npsidim, 1, diisLIN, subname) ! 1 for k-points
             icountDIISFailureTot=0
             icountDIISFailureCons=0
         end if
@@ -731,9 +707,7 @@ contains
                        itBest, ' which are the best so far.'
                end if
                ii=modulo(diisLIN%mids-(it-itBest),diisLIN%mids)
-               !write(*,'(a,2i5)') 'diisLIN%mids, ii', diisLIN%mids, ii
                nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
-               !call dcopy(orbsLIN%norb*nvctrp, diisLIN%psidst(ii*nvctrp*orbsLIN%norb+1), 1, phi(1), 1)
                call dcopy(lin%orbs%norb*nvctrp, diisLIN%psidst(ii*nvctrp*lin%orbs%norb+1), 1, phi(1), 1)
             end if
             call deallocate_diis_objects(diisLIN, subname)
@@ -749,23 +723,16 @@ contains
     if (diisLIN%idsx > 0) then
        diisLIN%mids=mod(diisLIN%ids,diisLIN%idsx)+1
        diisLIN%ids=diisLIN%ids+1
-       !do iorb=1,orbsLIN%norb
-       !do iorb=1,lin%orbs%norb
-       !    diisArr(iorb)%mids=mod(diisArr(iorb)%ids,diisArr(iorb)%idsx)+1
-       !    diisArr(iorb)%ids=diisArr(iorb)%ids+1
-       !end do
     end if
 
     ! Follow the gradient using steepest descent.
     ! The same, but transposed
-    !allocate(phiWorkPointer(size(phi)), stat=istat)
     call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWorkPointer)
     
     ! steepest descent
     if(diisLIN%idsx==0) then
         istart=1
         nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
-        !do iorb=1,orbsLIN%norb
         do iorb=1,lin%orbs%norb
             call daxpy(nvctrp*orbs%nspinor, -alpha(iorb), hphi(istart), 1, phi(istart), 1)
             istart=istart+nvctrp*orbs%nspinor
@@ -775,7 +742,6 @@ contains
         quiet=.true. ! less output
         call psimix(iproc, nproc, lin%orbs, lin%comms, diisLIN, hphi, phi, quiet)
     end if
-    !deallocate(phiWorkPointer, stat=istat)
     end subroutine improve
 
 
@@ -807,8 +773,6 @@ contains
     
     allocate(diag(lin%orbs%norb), stat=istat)
     
-    ! Allocate the work arrays which will be used for the preconditioning.
-    call initialize_work_arrays_locham(Glr,lin%orbs%nspinor,w2)
 
     end subroutine allocateLocalArrays
 
@@ -817,11 +781,9 @@ contains
     !
     ! Purpose:
     ! ========
-    !   This subroutine deallocate all local arrays.
+    !   This subroutine deallocates all local arrays.
     !
 
-    call deallocate_work_arrays_locham(Glr,w2)
-    
     iall=-product(shape(hphiold))*kind(hphiold)
     deallocate(hphiold, stat=istat)
     call memocc(istat, iall, 'hphiold', subname)
@@ -1018,7 +980,6 @@ type(orbitals_data), intent(in) :: orbsLIN
 type(communications_arrays), intent(in) :: comms
 type(communications_arrays), intent(in) :: commsLIN
 real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
-!real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbs%norb) :: phiNew
 real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
 real(8),dimension(orbsLIN%norb,orbsLIN%norb):: HamSmall
 
@@ -1033,4 +994,3 @@ call dgemm('n', 'n', nvctrp, orbs%norb, orbsLIN%norb, 1.d0, phi(1,1), nvctrp, Ha
 
 
 end subroutine buildWavefunction
-
