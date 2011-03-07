@@ -12,7 +12,7 @@
 !!
 !! SOURCE
 !!
-program splinedsaddle
+program splined_saddle
 
   use module_base
   use module_types
@@ -174,7 +174,7 @@ program splinedsaddle
 
   call MPI_FINALIZE(ierr)
 
-end program splinedsaddle
+end program splined_saddle
 !!***
 !*****************************************************************************************
 module minimization_sp
