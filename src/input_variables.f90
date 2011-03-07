@@ -78,9 +78,6 @@ subroutine read_input_variables(iproc,posinp, &
   type(input_variables), intent(out) :: inputs
   type(atoms_data), intent(out) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
-  !Local variables
-  real(gp) :: tt
-  integer :: iat
 
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
@@ -186,6 +183,7 @@ subroutine default_input_variables(inputs)
   type(input_variables), intent(out) :: inputs
 
   ! Default values.
+  inputs%output_wf_format = WF_FORMAT_NONE
   nullify(inputs%kpt)
   nullify(inputs%wkpt)
   nullify(inputs%kptv)
@@ -229,7 +227,7 @@ subroutine dft_input_variables(iproc,filename,in)
   ! Read the input variables.
   inquire(file=trim(filename),exist=exists)
   if (.not.exists) then
-      write(*,*) "The file 'input.dft' does not exist!"
+      if (iproc == 0) write(*,*) "The file 'input.dft' does not exist!"
       stop
   end if
 
@@ -274,8 +272,16 @@ subroutine dft_input_variables(iproc,filename,in)
   end if
 
   !now the variables which are to be used only for the last run
-  read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
+  read(1,'(a100)')line
+  read(line,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
+  if (ierror /= 0) then
+     in%output_wf = .false.
+     read(line,*,iostat=ierror) in%inputPsiId,in%output_wf_format,in%output_grid
+  else
+     in%output_wf_format = WF_FORMAT_PLAIN
+  end if
   call check()
+  if (in%output_wf_format /= WF_FORMAT_NONE) in%output_wf = .true.
   !project however the wavefunction on gaussians if asking to write them on disk
   in%gaussian_help=(in%inputPsiId >= 10)! commented .or. in%output_wf 
   !switch on the gaussian auxiliary treatment 

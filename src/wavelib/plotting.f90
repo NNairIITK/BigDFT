@@ -1260,9 +1260,9 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      i_all=-product(shape(iatypes_read))*kind(iatypes_read)
      deallocate(iatypes_read,stat=i_stat)
      call memocc(i_stat,i_all,'iatypes_read',subname)
-     i_all=-product(shape(znucl))*kind(znucl)
-     deallocate(znucl,stat=i_stat)
-     call memocc(i_stat,i_all,'znucl',subname)
+     i_all=-product(shape(znucl_read))*kind(znucl)
+     deallocate(znucl_read,stat=i_stat)
+     call memocc(i_stat,i_all,'znucl_read',subname)
   end if
 end subroutine read_density
 !!***

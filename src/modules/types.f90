@@ -18,6 +18,10 @@ module module_types
   implicit none
 !!***
 
+  integer, parameter :: WF_FORMAT_NONE   = 0
+  integer, parameter :: WF_FORMAT_PLAIN  = 1
+  integer, parameter :: WF_FORMAT_BINARY = 2
+  integer, parameter :: WF_FORMAT_ETSF   = 3
 
 !!****t* module_types/input_variables
 !! DESCRIPTION
@@ -29,7 +33,7 @@ module module_types
      logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
      integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty
-     integer :: output_grid, dispersion,last_run
+     integer :: output_grid, dispersion,last_run,output_wf_format
      real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel,alphadiis
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
      integer :: nvacancy,verbosity

@@ -46,3 +46,36 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   stop
 END SUBROUTINE read_etsf
 !!***
+
+subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+     wfd,psi)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,n1,n2,n3
+  real(gp), intent(in) :: hx,hy,hz
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(orbitals_data), intent(in) :: orbs
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
+  character(len = *), intent(in) :: filename
+
+  stop 'No ETSF support at compilation!'
+end subroutine read_waves_etsf
+
+subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
+  use module_types
+  use module_base
+  implicit none
+  integer, intent(in) :: iproc,n1,n2,n3,nat
+  real(gp), intent(in) :: hx,hy,hz
+  type(orbitals_data), intent(in) :: orbs
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  real(gp), dimension(3,nat), intent(in) :: rxyz
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
+  character(len = *), intent(in) :: filename
+
+  stop 'No ETSF support at compilation!'
+end subroutine write_waves_etsf
