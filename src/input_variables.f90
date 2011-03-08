@@ -407,7 +407,7 @@ subroutine mix_input_variables_default(in)
   in%alphamix=0.0_gp
   in%rpnrm_cv=1.e-4_gp
   in%gnrm_startmix=0.0_gp
-  in%iscf=0 !only 2(potential) or 12(density) are allowed (ABINIT conventions for the moment)
+  in%iscf=7
   in%Tel=0.0_gp
   in%norbsempty=0
   in%alphadiis=2.d0
@@ -2363,6 +2363,7 @@ subroutine print_general_parameters(in,atoms)
   integer :: spaceGroupId, pointGroupMagn
   integer, parameter :: maxLen = 50, width = 24
   character(len = width) :: at(maxLen), fixed(maxLen), add(maxLen)
+  character(len = 11) :: potden
 
   ! Output for atoms and k-points
   write(*,'(1x,a)') '---------------------------------------------------------------- Input atomic system'
@@ -2471,6 +2472,28 @@ subroutine print_general_parameters(in,atoms)
                 & 1.0d0 / real(size(in%kptv, 2), gp), i, in%kptv(:, i)
         end do
      end if
+  end if
+
+  ! Printing for mixing parameters.
+  if (in%itrpmax>1) then
+     if (in%iscf < 10) then
+        write(potden, "(A)") "potential"
+     else
+        write(potden, "(A)") "density"
+     end if
+     write(*,'(1x,a)') '----------------------------------------------------------------------------- Mixing'
+     write(*,"(1x,A12,A12,1x,A1,1x,A12,I12,1x,A1,1x,A11,F10.2)") &
+          & "     Target=", potden,        "|", &
+          & " Add. bands=", in%norbsempty, "|", &
+          & "    Coeff.=", in%alphamix
+     write(*,"(1x,A12,I12,1x,A1,1x,A12,1pe12.2,1x,A1,1x,A11,F10.2)") &
+          & "     Scheme=", modulo(in%iscf, 10), "|", &
+          & "Elec. temp.=", in%tel,              "|", &
+          & "      DIIS=", in%alphadiis
+     write(*,"(1x,A12,I12,1x,A1,1x,A24,1x,A1)") &
+          & "  Max iter.=", in%itrpmax,    "|", " ", "|"
+     write(*,"(1x,A12,1pe12.2,1x,A1,1x,A24,1x,A1)") &
+          & "   Rp norm.=", in%rpnrm_cv,    "|", " ", "|"
   end if
 
   if (in%ncount_cluster_x > 0) then
