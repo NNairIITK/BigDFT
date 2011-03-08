@@ -1081,7 +1081,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
         if (in%itrpmax == 1 .and. in%norbsempty > 0) then
            !recalculate orbitals occupation numbers
-           call evaltoocc(iproc,.false.,in%Tel,orbs)
+           call evaltoocc(iproc,nproc,.false.,in%Tel,orbs)
 
            gnrm =1.d10
            diis%energy_min=1.d10
@@ -1098,7 +1098,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         end if
 
         !recalculate orbitals occupation numbers
-        call evaltoocc(iproc,.false.,in%Tel,orbs)
+        call evaltoocc(iproc,nproc,.false.,in%Tel,orbs)
 
         gnrm =1.d10
         diis%energy_min=1.d10

@@ -2488,7 +2488,7 @@ subroutine print_general_parameters(in,atoms)
           & "     Target=", potden,        "|", &
           & " Add. bands=", in%norbsempty, "|", &
           & "    Coeff.=", in%alphamix
-     write(*,"(1x,A12,I12,1x,A1,1x,A12,1pe12.2,1x,A1,1x,A11,F10.2)") &
+     write(*,"(1x,A12,I12,1x,A1,1x,A12,1pe12.2,1x,A1,1x,A11,0pe10.2)") &
           & "     Scheme=", modulo(in%iscf, 10), "|", &
           & "Elec. temp.=", in%tel,              "|", &
           & "      DIIS=", in%alphadiis

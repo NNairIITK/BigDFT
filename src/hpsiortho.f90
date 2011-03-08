@@ -688,23 +688,20 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
 END SUBROUTINE last_orthon
 
 
-subroutine evaltoocc(iproc,filewrite,wf,orbs)
+subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
  ! finds  the fermi level ef for an error function distribution with a width wf
  ! eval are the Kohn Sham eigenvalues and melec is the total number of electrons
  use module_base
  use module_types
  implicit none
  logical, intent(in) :: filewrite
- integer, intent(in) :: iproc
+ integer, intent(in) :: iproc, nproc
  real(gp), intent(in) :: wf
  type(orbitals_data), intent(inout) :: orbs
  !local variables
  integer :: ikpt,iorb,melec,ii
  real(gp) :: charge
  real(gp) :: ef,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
- integer, parameter :: SMEARING_DIST_ERF = 0
- integer, parameter :: SMEARING_DIST_FERMI = 1
- integer, parameter :: occopt = SMEARING_DIST_FERMI
  parameter(pi=3.1415926535897932d0)
  !write(*,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd
  
@@ -714,17 +711,21 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
     full=1.d0   ! maximum occupation for spin polarized orbital
  endif
  
- if (orbs%nkpts.ne.1 .and. filewrite) stop 'Fermilevel:CANNOT write input.occ with more than one k-point'
+ if (orbs%nkpts.ne.1 .and. filewrite) stop 'Fermilevel: CANNOT write input.occ with more than one k-point'
+ charge=0.0_gp
  do ikpt=1,orbs%nkpts
     !number of zero orbitals for the given k-point
     !overall charge of the system
-    charge=0.0_gp
     do iorb=1,orbs%norb
        charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb)
     end do
  end do
  melec=nint(charge)
- !write(*,*) 'charge',charge,melec
+ !if (iproc == 0) write(*,*) 'charge',charge,melec
+
+ ! Send all eigenvalues to all procs.
+ call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
+      & orbs%eval(1), orbs%ikptproc)
 
  if (wf > 0.0_gp) then
     ii=0
@@ -748,7 +749,7 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
              else if (occopt == SMEARING_DIST_FERMI) then
                 !! next 2 line Fermi function distribution
                 electrons=electrons+1.d0/(1.d0+exp(arg))
-                dlectrons=dlectrons-exp(arg)/(1.d0+exp(arg))**2
+                dlectrons=dlectrons-1.d0/(2.d0+exp(arg)+exp(-arg))
              end if
           enddo
        enddo
@@ -764,6 +765,7 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
        diff=real(melec,gp)/full-electrons
        if (abs(diff) < 1.d-12) exit loop_fermi
        corr=diff/dlectrons
+       if (iproc == 0) write(*,"(I6,3G)") ii, electrons, melec, diff
        !if (iproc==0) write(*,*) ii,electrons,ef,dlectrons,melec,corr
        if (corr > 1.d0*wf) corr=1.d0*wf
        if (corr < -1.d0*wf) corr=-1.d0*wf
@@ -786,8 +788,8 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
           cutoffu=1.d0/(1.d0+exp(argu))
           cutoffd=1.d0/(1.d0+exp(argd))
        end if
-       if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:',ef,cutoffu,cutoffd
     enddo
+    if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:',ef,cutoffu,cutoffd
     orbs%efermi=ef
     
     !update the occupation number
