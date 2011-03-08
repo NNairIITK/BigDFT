@@ -1318,7 +1318,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   end if
 
   open(unit=99,file=trim(filename),status='old')
-  if (iproc.eq.0) write(*,*) 'Reading atomic input positions from file:',trim(filename) 
+  !if (iproc.eq.0) write(*,*) 'Reading atomic input positions from file:',trim(filename) 
 
   if (atoms%format == "xyz") then
      read(99,*) atoms%nat,atoms%units
@@ -2366,7 +2366,8 @@ subroutine print_general_parameters(in,atoms)
   character(len = 11) :: potden
 
   ! Output for atoms and k-points
-  write(*,'(1x,a)') '---------------------------------------------------------------- Input atomic system'
+  write(*,'(1x,a,a,a)') '--- (file: posinp.', &
+       & atoms%format, ') --------------------------------------- Input atomic system'
   write(*, "(A)")   "   Atomic system                  Fixed positions           Additional data"
   do i = 1, maxLen
      write(at(i), "(a)") " "
@@ -2453,7 +2454,7 @@ subroutine print_general_parameters(in,atoms)
   end do
 
   if (atoms%geocode /= 'F') then
-     write(*,'(1x,a)') '--------------------------------------------------------------------------- k-points'
+     write(*,'(1x,a)') '--- (file: input.kpt) ----------------------------------------------------- k-points'
      if (in%disableSym .and. in%nkpt > 1) then
         write(*, "(1x,A)") "WARNING: symmetries have been disabled, k points are not irreductible."
      end if
@@ -2481,7 +2482,7 @@ subroutine print_general_parameters(in,atoms)
      else
         write(potden, "(A)") "density"
      end if
-     write(*,'(1x,a)') '----------------------------------------------------------------------------- Mixing'
+     write(*,'(1x,a)') '--- (file: input.mix) ------------------------------------------------------- Mixing'
      write(*,"(1x,A12,A12,1x,A1,1x,A12,I12,1x,A1,1x,A11,F10.2)") &
           & "     Target=", potden,        "|", &
           & " Add. bands=", in%norbsempty, "|", &
@@ -2497,7 +2498,7 @@ subroutine print_general_parameters(in,atoms)
   end if
 
   if (in%ncount_cluster_x > 0) then
-     write(*,'(1x,a)') '------------------------------------------------------------- Geopt Input Parameters'
+     write(*,'(1x,a)') '--- (file: input.geopt) ------------------------------------- Geopt Input Parameters'
      write(*, "(A)")   "       Generic param.              Geo. optim.                MD param."
 
      write(*, "(1x,a,i7,1x,a,1x,a,1pe7.1,1x,a,1x,a,i7)") &
