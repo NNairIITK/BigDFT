@@ -72,9 +72,7 @@ contains
 !Local variables-------------------------------
 !scalars
 
-    integer :: i, ii
-    character(len=500) :: message
-    type(xc_f90_pointer_t) :: str
+    integer :: i
 
 ! *************************************************************************
 
@@ -147,7 +145,6 @@ contains
     implicit none
 
     integer :: i
-    character(len=500) :: message
 
     do i = 1, 2
       if (funcs(i)%id == 0) cycle
@@ -183,7 +180,6 @@ contains
 !Local variables-------------------------------
 
     logical :: libxc_functionals_isgga
-    character(len=500) :: message
 
 ! *************************************************************************
 
@@ -218,8 +214,6 @@ contains
 
 !Local variables-------------------------------
 
-    logical :: libxc_functionals_needexctX
-    character(len=500) :: message
 
 ! *************************************************************************
 
@@ -305,8 +299,7 @@ SUBROUTINE XCFUNCTION(nspol,rho,grad,EXC,VXC,dEdg)
 !     use libxcModule
 
       implicit none
-      integer :: nspol,i,j
-      real(8) :: abs
+      integer :: nspol,i
       real(8) :: EXC,rho(nspol),VXC(nspol),dEdg(nspol),grad(nspol)  ! dummy ARGUMENTS
       real(8) :: EXCi,VXCi(nspol), sigma(3),vsigma(3)!  ! summands and libxc arg
 

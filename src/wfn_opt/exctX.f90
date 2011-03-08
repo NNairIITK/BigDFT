@@ -1,9 +1,23 @@
+!!****f* BigDFT/exact_exchange_potential
+!! FUNCTION
+!!    Calculate the exact exchange potential
+!! COPYRIGHT
+!!    Copyright (C) 2010-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!! 
 subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p,&
      hxh,hyh,hzh,pkernel,psi,psir,eexctX)
+
   use module_base
   use module_types
   use Poisson_Solver
   use libxc_functionals
+
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,n3p,nspin
@@ -688,6 +702,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
 end subroutine exact_exchange_potential_virt
 !!***
 
+
 !!****f* BigDFT/exact_exchange_potential_round
 !! FUNCTION
 !!   Calculate the exact exchange potential on occupied orbitals
@@ -714,9 +729,9 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential_round'
   logical :: doit
-  integer :: i_all,i_stat,ierr,ispin,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp,jgroup
-  integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,jprocsend,jprocrecv,jprocrecv2,nend,isorb,iorbs,iorbe,jorbs,jorbe
-  integer :: icount,nprocgr,iprocgrs,iprocgrr,itestproc,norbi,norbj,iproclast,ncalltot,icountmax,iprocref,ncalls
+  integer :: i_all,i_stat,ierr,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp
+  integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs
+  integer :: icount,nprocgr,iprocgrs,iprocgrr,itestproc,norbi,norbj,ncalltot,icountmax,iprocref,ncalls
   real(gp) :: ehart,hfac,exctXfac,sfac,hfaci,hfacj,hfac2
   integer, dimension(4) :: mpireq,mpireq2
   integer, dimension(MPI_STATUS_SIZE,4) :: mpistat,mpistat2

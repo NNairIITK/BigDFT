@@ -1345,7 +1345,7 @@ subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   character(len=*), parameter :: subname='read_cube'
   character(len=5) :: suffix
   character(len=15) :: message
-  integer :: i_all,i_stat,ia
+  integer :: ia
   logical :: exists
 
   ! Test if we have up and down densities.

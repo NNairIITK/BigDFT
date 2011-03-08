@@ -2899,22 +2899,20 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
   real(gp), dimension(3*at%nat), intent(inout) :: fxyz
 
   real(gp) :: fluct,fnrm,  fnoise
-  real(gp) ::sumx,sumy,sumz,fmax,vmax
+  real(gp) :: fmax,vmax
   integer :: check
-  integer :: infocode,i,ixyz,iat
-  character*4 fn4
-  character*40 comment
-  logical :: move_this_coordinate
+  integer :: infocode,iat
+  character(len=4) :: fn4
+  character(len=40) :: comment
 
   character(len=*), parameter :: subname='fire'
-  integer :: i_stat,i_all
 
 !Fire parameters:
-  real(gp):: alpha,P,finc,fdec,falpha,alphastart,dt,dtmax,dtmd,fnrmtol,vnrm
+  real(gp):: alpha,P,finc,fdec,falpha,alphastart,dt,dtmax,vnrm
   real(gp):: velcur(3*at%nat), velpred(3*at%nat),poscur(3*at%nat),pospred(3*at%nat),fcur(3*at%nat),fpred(3*at%nat),mass(3*at%nat)
   real(gp):: ecur,epred,eprev,anoise
   integer:: Nmin,nstep,it
-  logical:: state
+
   check=0
 !Set FIRE parameters
   Nmin=5

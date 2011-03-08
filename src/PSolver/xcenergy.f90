@@ -222,7 +222,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer :: i1,i2,i3,istart,iend,i3start,jend,jproc
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
   integer :: ndvxc,nvxcdgr,ngr2,nd2vxc,order
-  real(dp) :: eexcuLOC,vexcuLOC,ttsum
+  real(dp) :: eexcuLOC,vexcuLOC
   integer, dimension(:,:), allocatable :: gather_arr
   real(dp), dimension(:), allocatable :: rho_G
   real(dp), dimension(:,:,:,:), allocatable :: vxci,dvxci
@@ -372,7 +372,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         !allocation of an auxiliary array for avoiding the shift 
         call xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
              ixc,hx,hy,hz,rho_G,vxci,&
-             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nproc,nspin)
+             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin)
         !restoring the density on the original form
         do ispin=1,nspin
            do i3=1,nxt
@@ -391,7 +391,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      else
         call xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
              ixc,hx,hy,hz,rho(1+n01*n02*(i3start-1)),vxci,&
-             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nproc,nspin)
+             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin)
      end if
   else
      !presumably the vxc should be initialised
@@ -565,14 +565,14 @@ END SUBROUTINE XC_potential
 !!                nxc+nxcl+nxcr-2=nwb, nwb+nwbl+nwbr=nxt.
 !!
 !! WARNING
-!!    The dimensions of pot_ion must be compatible with geocode, datacode, nproc, 
+!!    The dimensions of pot_ion must be compatible with geocode, datacode,
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
 !!
 !! SOURCE
 !!
 subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
-     nxcl,nxcr,ixc,hx,hy,hz,rho,vxci,exc,vxc,order,ndvxc,dvxci,nproc,nspden)
+     nxcl,nxcr,ixc,hx,hy,hz,rho,vxci,exc,vxc,order,ndvxc,dvxci,nspden)
 
   use module_base
   use libxc_functionals
@@ -582,7 +582,7 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
   !Arguments----------------------
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,nproc,nspden
+  integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,nspden
   integer, intent(in) :: nwbl,nwbr,order,ndvxc
   real(gp), intent(in) :: hx,hy,hz
   real(dp), dimension(m1,m3,nxt,nspden), intent(inout) :: rho

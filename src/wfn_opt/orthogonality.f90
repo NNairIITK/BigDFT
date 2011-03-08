@@ -23,13 +23,12 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
   real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(inout) :: psi
   !local variables
   character(len=*), parameter :: subname='orthogonalize'
-  integer :: i_stat,i_all,ierr,info
-  integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
+  integer :: i_stat,i_all
+  integer :: ispin,nspin,nspinor
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: ovrlp
   integer,dimension(:),allocatable:: norbArr
   character(len=20):: category
-
 
   ! Determine wheter we have close shell (nspin=1) or spin polarized (nspin=2)
   if (orbs%norbd>0) then 
@@ -165,7 +164,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   real(dp), intent(out) :: scprsum
   !local variables
   character(len=*), parameter :: subname='orthoconstraint'
-  integer :: i_stat,i_all,ierr,iorb,ise,jorb
+  integer :: i_stat,i_all,ierr,iorb,ise
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   real(dp) :: occ,tt
   integer, dimension(:,:), allocatable :: ndimovrlp
@@ -1570,7 +1569,7 @@ subroutine gsChol(iproc, nproc, psi, input, nspinor, orbs, nspin,ndimovrlp,norbA
   
   ! Local variables
   integer:: iblock, jblock, ist, jst, iter, iter2, gcd, blocksize, blocksizeSmall, i_stat, i_all
-  integer:: getBlocksize, ispin, ikptp, norbs, ncomp
+  integer:: getBlocksize, ispin
   real(wp),dimension(:), allocatable :: ovrlp
   character(len=*), parameter:: subname='gsChol',category='GS/Chol'
    
@@ -1709,7 +1708,7 @@ real(wp),dimension(ndimovrlp(nspin,orbs%nkpts)):: ovrlp
 integer,dimension(nspin):: norbTot
 
 ! Local arguments
-integer:: nvctrp, ist, ierr, i_stat, i_all, ncomp, ikptp, ikpt, ispin, norb, norbs, istThis, istOther
+integer:: nvctrp, i_stat, i_all, ncomp, ikptp, ikpt, ispin, norb, norbs, istThis, istOther
 real(kind=8),dimension(:),allocatable:: A1D
 character(len=*),parameter:: subname='gramschmidt'
 
@@ -1818,7 +1817,7 @@ real(kind=8),dimension(ndimL(nspin,orbs%nkpts),1):: Lc
 integer,dimension(nspin):: norbTot
 
 ! Local variables
-integer:: ist, info, i_stat, i_all, ispin, ikptp, ikpt, ncomp, norbs, norb
+integer:: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb
 character(len=*),parameter:: subname='cholesky'
   
  

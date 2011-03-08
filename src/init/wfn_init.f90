@@ -1210,12 +1210,12 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
   ! Local variables
   integer :: i, j, iorb, jorb, ispin, ii, jj, kk, norbtot, norbtotPad, iter, ierr, itermax
   integer :: ist, i_stat, i_all, nprocSub, ishift, jjorb
-  integer :: jspin, ist2, ishift1, ishift2, norb, blocksize, lwork
+  integer :: jspin, ist2, ishift2, norb, blocksize, lwork
   integer :: norbi, norbj, iat, imatrst, imatrst2, ihs, jiorb, norbij, ncplx, ncomp
   integer :: istpsi, istpsit, nvctrp, kkSave, iiSave, jproc, ist3, ikptp2, ikpt2
   integer :: blocksizeSmall, nprocSubu, nprocSubd, nspinSub, isp, kp, ikpt, ikptp
-  integer :: istpsiS, istpsitS, info, wholeGroup, newGroup, newComm, wholeGroupu
-  integer :: newGroupu, newCommu, wholeGroupd, newGroupd, newCommd
+  integer :: istpsiS, istpsitS, info, wholeGroup, newGroup, newComm
+  integer :: newGroupu, newCommu, newGroupd, newCommd
   integer,dimension(:),allocatable:: sendcounts, sdispls, recvcounts, rdispls, norbpArr,&
        norbtotpArr, kArr, kstArr, nkArr, norbArr
   integer,dimension(:),allocatable:: newID, newIDu, newIDd, norbpArrSimul, norbpArrSimulLoc
@@ -1223,11 +1223,11 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
   real(kind=8),dimension(2):: gradientMax
   real(kind=8),dimension(:),allocatable:: alphaArr, rayleigh, evale, sceval, work, rwork
   real(kind=8),dimension(:,:),allocatable:: gradient, gradientOld
-  real(kind=8),dimension(:,:,:),allocatable:: psiGuessP, overlapPsiGuessP, psiGuess, psiGuessPTrunc, sortArr, hamovrTemp
+  real(kind=8),dimension(:,:,:),allocatable:: psiGuessP, overlapPsiGuessP, psiGuess, psiGuessPTrunc, sortArr
   real(kind=8),dimension(:,:,:,:),allocatable:: HamPad, overlapPad
   integer,dimension(:,:,:),allocatable:: kpArr
   logical:: success, warning, simul
-  complex(kind=8):: zdotc, dznrm2, zz
+  complex(kind=8):: zdotc, zz
   integer :: stat(mpi_status_size)
   character(len=*),parameter :: subname='inputguessParallel'
 
@@ -3061,7 +3061,6 @@ real(kind=8),dimension(1:norbtot*nspinor,1:norb,nkpts),intent(in out):: psi
 integer:: ikpt, ist, ierr, i_stat, i_all
 real(kind=8),dimension(:,:),allocatable:: A
 real(kind=8),dimension(:,:,:),allocatable:: ovrlp
-real(kind=8):: ddot
 character(len=*),parameter:: subname='gramschmidtOverlap'
 
 ! Allocate the matrix A which will hold some partial results.

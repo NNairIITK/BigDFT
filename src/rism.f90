@@ -521,12 +521,6 @@ END SUBROUTINE atomic_charges
 
 !!****f* BigDFT/two_center_two_electrons_analytic
 !! FUNCTION
-!! COPYRIGHT
-!!   Copyright (C) 2010 BigDFT group 
-!!   This file is distributed under the terms of the
-!!   GNU General Public License, see ~/COPYING file
-!!   or http://www.gnu.org/copyleft/gpl.txt .
-!!   For the list of contributors, see ~/AUTHORS 
 !! SOURCE
 !!
 subroutine two_center_two_electrons_analytic(nlr,nat,iatlr,radii,rxyz,H)
@@ -539,8 +533,7 @@ subroutine two_center_two_electrons_analytic(nlr,nat,iatlr,radii,rxyz,H)
   real(gp), dimension(nlr,nlr), intent(out) :: H
   !local variables
   integer :: iat,jat,i,j,ilr,jlr
-  real(dp) :: factor,factor2
-  real(gp) :: ra2,ra2pb2,rab2,oneopk,oneoexpo,expo,oneofac,fac,ra,erfor
+  real(gp) :: ra2,ra2pb2,rab2,erfor
   real(gp), dimension(3) :: A
 
   !the loop is so fast that we just do not need to process only the upeer triangular part
@@ -602,10 +595,10 @@ subroutine calculate_rho_longrange(iproc,nproc,at,nlr,iatlr,radii,rxyz,hxh,hyh,h
   real(gp), dimension(nlr), intent(out) :: rhoarr
   !Local variables---------
   logical :: perx,pery,perz,gox,goy,goz
-  integer :: i1,i2,i3,ind,iat,ierr,ityp,i,ilr
-  integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
-  real(gp) :: pi,prefactor,cutoff,rloc,Rel,cutofrac
-  real(gp) :: rx,ry,rz,x,y,z,arg,r2,xp,charge,erfor
+  integer :: i1,i2,i3,ind,iat,ierr,i,ilr
+  integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3
+  real(gp) :: pi,cutoff,rloc,Rel
+  real(gp) :: rx,ry,rz,x,y,z,r2,charge,erfor
 
   pi=4.d0*atan(1.d0)
 

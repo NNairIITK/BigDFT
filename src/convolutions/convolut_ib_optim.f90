@@ -6,8 +6,8 @@ subroutine Convolkinetic(n1,n2,n3, &
   use module_base
   implicit none
 !dee
-  integer :: iend_test,count_rate_test,count_max_test,istart_test
-
+  !integer :: iend_test,count_rate_test,count_max_test,istart_test
+  
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(wp), intent(in) :: cprecr
   real(gp), intent(in) :: hgrid
@@ -23,14 +23,14 @@ subroutine Convolkinetic(n1,n2,n3, &
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  logical :: firstcall=.true. 
-  integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-  integer(8) :: ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6,ncount0,ncnt1
-  integer(8) :: clock0,clock1,clock2
+  !logical :: firstcall=.true. 
+  !integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
+  !integer(8) :: ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6,ncount0,ncnt1
+  !integer(8) :: clock0,clock1,clock2
   integer :: i,t,i1,i2,i3
   integer :: icur,istart,iend,l
   real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
-  real(kind=8) :: tel
+  !real(kind=8) :: tel
   real(wp), dimension(-3+lowfil:lupfil+3) :: a,b,c
   real(wp), dimension(lowfil:lupfil) :: e
 
@@ -722,13 +722,13 @@ subroutine ConvolkineticT(n1,n2,n3, &
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  logical :: firstcall=.true. 
-  integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-  integer :: ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6,ncount0
+  !logical :: firstcall=.true. 
+  !integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
+  !integer :: ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6,ncount0
   integer :: i,t,i1,i2,i3
   integer :: icur,istart,iend,l
   real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211,ekin
-  real(kind=8) :: tel
+  !real(kind=8) :: tel
   real(wp), dimension(-3+lowfil:lupfil+3) :: a,b,c
   real(wp), dimension(lowfil:lupfil) :: e
   real(wp)::ekinp
