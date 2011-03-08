@@ -27,9 +27,13 @@ program frequencies
 
   implicit none
 
+  !Parameters
   character(len=*), parameter :: subname='frequencies'
-  !if |freq1-freq2|<tolfreq, freq1 and freq2 are identical
-  real(gp), parameter :: tolfreq=1.d-11
+  !if |freq1-freq2|<tol_freq, freq1 and freq2 are identical
+  real(gp), parameter :: tol_freq=1.d-11
+  !Temperature (300K)
+  real(gp), parameter :: Temperature=300.0_gp
+
   character(len=4) :: cc
   !File unit
   integer, parameter :: u_hessian=20
@@ -56,7 +60,7 @@ program frequencies
   real(gp), dimension(:,:), allocatable :: energies
   real(gp), dimension(:,:,:), allocatable :: forces
   real(gp), dimension(3) :: freq_step
-  real(gp) :: zpenergy
+  real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy
   integer :: k,km,ii,jj,ik,imoves,order,n_order
   logical :: exists
  
@@ -285,12 +289,12 @@ program frequencies
 
   !Diagonalise the hessian matrix
   call solve(hessian,3*atoms%nat,eigen_r,eigen_i,vector_l,vector_r)
-  !Sort eigenvalues in ascending order (use abinit routinei sort_dp)
+  !Sort eigenvalues in ascending order (use abinit routine sort_dp)
   sort_work=eigen_r
   do i=1,3*atoms%nat
      iperm(i)=i
   end do
-  call sort_dp(3*atoms%nat,sort_work,iperm,tolfreq)
+  call sort_dp(3*atoms%nat,sort_work,iperm,tol_freq)
 
   if (iproc == 0) then
      write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(iperm(3*atoms%nat:1:-1))
@@ -320,8 +324,30 @@ program frequencies
          write(15,*)
      end do
      close(unit=15)
-     zpenergy = 0.5_gp*sum(eigen_r(1:3*atoms%nat))
-     write(*,'(1x,a,f13.2,1x,a,1pe20.10,1x,a)') '=F: Zero-point energy =',zpenergy*Ha_cmm1, 'cm-1',zpenergy,'Hartree'
+     !Vibrational entropy of the molecule
+     ! See : http://www.codessa-pro.com/descriptors/thermodynamic/entropy.htm)
+     !       http://www.ncsu.edu/chemistry/franzen/public_html/CH795N/lecture/XIV/XIV.html
+     !Zero-point energy
+     zpenergy = 0.0_gp
+     vibrational_energy=0.0_gp
+     vibrational_entropy=0.0_gp
+     !iperm: ascending order
+     !Remove almost zero frequencies
+     do i=6,3*atoms%nat
+        freq_exp=exp(eigen_r(iperm(i))*Ha_K/Temperature)
+        freq2_exp=exp(-eigen_r(iperm(i))*Ha_K/(2.0_gp*Temperature))
+        zpenergy=zpenergy+0.5_gp*eigen_r(iperm(i))
+        vibrational_energy=vibrational_entropy+eigen_r(iperm(i))*(0.5_gp+1.0_gp/(freq_exp-1.0_gp))
+        vibrational_entropy=vibrational_entropy + eigen_r(iperm(i))*freq2_exp/(1.0_gp-freq2_exp) - log(1.0_gp-freq2_exp)
+     end do
+     !Multiply by 1/kT
+     vibrational_entropy=vibrational_entropy*Ha_K/Temperature
+     write(*,'(1x,a,f13.2,1x,a,5x,1pe20.10,1x,a)') &
+          '=F: Zero-point energy   =', zpenergy*Ha_cmm1, 'cm-1',zpenergy,'Hartree'
+     write(*,'(1x,a,f13.2,1x,a,5x,1pe20.10,1x,a,0pf5.1,a)') &
+          '=F: Vibrational  energy =', vibrational_energy*Ha_cmm1, 'cm-1',vibrational_energy,'Hartree at ',Temperature,'K'
+     write(*,'(1x,a,1pe22.10,a,0pf5.1,a)') &
+          '=F: Vibrational entropy =', vibrational_entropy,' at ',Temperature,'K'
   end if
 
   !Deallocations
