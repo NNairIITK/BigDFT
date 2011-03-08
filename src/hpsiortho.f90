@@ -702,6 +702,9 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
  integer :: ikpt,iorb,melec,ii
  real(gp) :: charge
  real(gp) :: ef,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
+ integer, parameter :: SMEARING_DIST_ERF = 0
+ integer, parameter :: SMEARING_DIST_FERMI = 1
+ integer, parameter :: occopt = SMEARING_DIST_FERMI
  parameter(pi=3.1415926535897932d0)
  !write(*,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd
  
@@ -711,7 +714,7 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
     full=1.d0   ! maximum occupation for spin polarized orbital
  endif
  
- if (orbs%nkpts.ne.1) stop 'Fermilevel: Not yet implemented correctly'
+ if (orbs%nkpts.ne.1 .and. filewrite) stop 'Fermilevel:CANNOT write input.occ with more than one k-point'
  do ikpt=1,orbs%nkpts
     !number of zero orbitals for the given k-point
     !overall charge of the system
@@ -736,20 +739,27 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
        do ikpt=1,orbs%nkpts
           do iorb=1,orbs%norbd+orbs%norbu
              arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
-             ! next 2 line error function distribution
-             call derf_ab(res,arg)
-             electrons=electrons+.5d0*(1.d0-res)
-             !print *,iorb,ef,orbs%eval((ikpt-1)*orbs%norb+iorb),arg,electrons
-             dlectrons=dlectrons-exp(-arg**2)
-             !! next 2 line Fermi function distribution
-             !   electrons=electrons+1.d0/(1.d0+exp(arg))
-             !   dlectrons=dlectrons-exp(arg)/(1.d0+exp(arg))**2
+             if (occopt == SMEARING_DIST_ERF) then
+                ! next 2 line error function distribution
+                call derf_ab(res,arg)
+                electrons=electrons+.5d0*(1.d0-res)
+                dlectrons=dlectrons-exp(-arg**2)
+                !print *,iorb,ef,orbs%eval((ikpt-1)*orbs%norb+iorb),arg,electrons
+             else if (occopt == SMEARING_DIST_FERMI) then
+                !! next 2 line Fermi function distribution
+                electrons=electrons+1.d0/(1.d0+exp(arg))
+                dlectrons=dlectrons-exp(arg)/(1.d0+exp(arg))**2
+             end if
           enddo
        enddo
-       ! next  line error function distribution
-       dlectrons=dlectrons*factor
-       !! next  line Fermi function distribution
-       !   dlectrons=dlectrons/wf
+
+       if (occopt == SMEARING_DIST_ERF) then
+          ! next  line error function distribution
+          dlectrons=dlectrons*factor
+       else if (occopt == SMEARING_DIST_FERMI) then
+          ! next  line Fermi function distribution
+          dlectrons=dlectrons/wf
+       end if
        
        diff=real(melec,gp)/full-electrons
        if (abs(diff) < 1.d-12) exit loop_fermi
@@ -765,28 +775,47 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
     do ikpt=1,orbs%nkpts
        argu=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu)-ef)/wf
        argd=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+orbs%norbd)-ef)/wf
-       call derf_ab(resu,argu)
-       call derf_ab(resd,argd)
-       cutoffu=.5d0*(1.d0-resu)
-       cutoffd=.5d0*(1.d0-resd)
-       !    cutoffu=1.d0/(1.d0+exp(argu))
-       !    cutoffd=1.d0/(1.d0+exp(argd))
+       if (occopt == SMEARING_DIST_ERF) then
+          !error function
+          call derf_ab(resu,argu)
+          call derf_ab(resd,argd)
+          cutoffu=.5d0*(1.d0-resu)
+          cutoffd=.5d0*(1.d0-resd)
+       else if (occopt == SMEARING_DIST_FERMI) then
+          !Fermi function
+          cutoffu=1.d0/(1.d0+exp(argu))
+          cutoffd=1.d0/(1.d0+exp(argd))
+       end if
        if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:',ef,cutoffu,cutoffd
     enddo
     orbs%efermi=ef
     
     !update the occupation number
-    ikpt=1
-    do iorb=1,orbs%norbu
-       arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
-       call derf_ab(res,arg)
-       orbs%occup((ikpt-1)*orbs%norb+iorb)=full*.5d0*(1.d0-res)
-       !print *,'iorb,arg,res,full*.5d0*(1.d0-res)',iorb,arg,res,full*.5d0*(1.d0-res)
-    end do
-    do iorb=1,orbs%norbd
-       arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
-       call derf_ab(res,arg)
-       orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*.5d0*(1.d0-res)
+    do ikpt=1,orbs%nkpts
+       !ikpt=1
+       do iorb=1,orbs%norbu
+          arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
+          if (occopt == SMEARING_DIST_ERF) then
+             !error function
+             call derf_ab(res,arg)
+             orbs%occup((ikpt-1)*orbs%norb+iorb)=full*.5d0*(1.d0-res)
+             !print *,'iorb,arg,res,full*.5d0*(1.d0-res)',iorb,arg,res,full*.5d0*(1.d0-res)
+          else if (occopt == SMEARING_DIST_FERMI) then
+             !Fermi function
+             orbs%occup((ikpt-1)*orbs%norb+iorb)=full*1.d0/(1.d0+exp(arg))
+          end if
+       end do
+       do iorb=1,orbs%norbd
+          arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
+          if (occopt == SMEARING_DIST_ERF) then
+             !error function
+             call derf_ab(res,arg)
+             orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*.5d0*(1.d0-res)
+          else if (occopt == SMEARING_DIST_FERMI) then
+             !Fermi function
+             orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*1.d0/(1.d0+exp(arg))
+          end if
+       end do
     end do
  else if(full==1.0_gp) then
     call eFermi_nosmearing(iproc,orbs)
