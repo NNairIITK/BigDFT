@@ -2347,6 +2347,7 @@ END SUBROUTINE frozen_alpha
 !! SOURCE
 !!
 subroutine print_general_parameters(in,atoms)
+  use module_base
   use module_types
   use defs_basis
   use ab6_symmetry
@@ -2491,8 +2492,9 @@ subroutine print_general_parameters(in,atoms)
           & "     Scheme=", modulo(in%iscf, 10), "|", &
           & "Elec. temp.=", in%tel,              "|", &
           & "      DIIS=", in%alphadiis
-     write(*,"(1x,A12,I12,1x,A1,1x,A24,1x,A1)") &
-          & "  Max iter.=", in%itrpmax,    "|", " ", "|"
+     write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
+          & "  Max iter.=", in%itrpmax,    "|", &
+          & "Occ. scheme=", smearing_names(occopt), "|"
      write(*,"(1x,A12,1pe12.2,1x,A1,1x,A24,1x,A1)") &
           & "   Rp norm.=", in%rpnrm_cv,    "|", " ", "|"
   end if
