@@ -29,7 +29,7 @@ program frequencies
 
   character(len=*), parameter :: subname='frequencies'
   !if |freq1-freq2|<tolfreq, freq1 and freq2 are identical
-  real(gp), parameter :: tolfreq=1.d-10
+  real(gp), parameter :: tolfreq=1.d-11
   character(len=4) :: cc
   !File unit
   integer, parameter :: u_hessian=20
