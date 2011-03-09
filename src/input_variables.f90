@@ -2452,7 +2452,7 @@ subroutine print_general_parameters(in,atoms)
      end if
      write(*, "(1x,a)")    "       red. coordinates         weight      id         BZ coordinates"
      do i = 1, in%nkpt, 1
-        write(*, "(1x,3f9.5,2x,f9.5,5x,I3,2x,3f9.5)") &
+        write(*, "(1x,3f9.5,2x,f9.5,5x,I4,2x,3f9.5)") &
              & in%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
              & in%wkpt(i), i, in%kpt(:, i)
      end do

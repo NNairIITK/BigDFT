@@ -636,7 +636,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
              '           Eigenvalue                                      m_x       m_y       m_z'
      end if
      do ikpt=1,orbs%nkpts
-        if (orbs%nkpts > 1 .and. orbs%nspinor >= 2) write(*,"(1x,A,I3.3,A,3F12.6)") &
+        if (orbs%nkpts > 1 .and. orbs%nspinor >= 2) write(*,"(1x,A,I4.4,A,3F12.6)") &
              & "Kpt #", ikpt, " BZ coord. = ", orbs%kpts(:, ikpt)
         isorb = (ikpt - 1) * orbs%norb
         if (nspin==1.or.orbs%nspinor==4) then

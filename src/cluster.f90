@@ -766,7 +766,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !the same with OpenCL, but they cannot exist at same time
   if (OCLconv) then
      call allocate_data_OCL(Glr%d%n1,Glr%d%n2,Glr%d%n3,atoms%geocode,&
-          in%nspin,hx,hy,hz,Glr%wfd,orbs,GPU)
+          in%nspin,hx,hy,hz,Glr%wfd,orbs,GPU
+     if (iproc == 0) write(*,*)&
+          'GPU data allocated'
   end if
 
   energy=1.d10
@@ -1378,6 +1380,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 & orbs%nspinor,nkptv,in%kptv(1,ikpt),wkptv,orbsv)
+           !allocate communications arrays for virtual orbitals
+           call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
 
            i_all=-product(shape(wkptv))*kind(wkptv)
            deallocate(wkptv,stat=i_stat)
@@ -1400,10 +1404,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         else
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
+           !allocate communications arrays for virtual orbitals
+           call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
+
         end if
 
-        !allocate communications arrays for virtual orbitals
-        call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
 
         !allocate psivirt pointer (note the orbs dimension)
         allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
