@@ -1,4 +1,29 @@
-subroutine preconditionallLIN(iproc,nproc,orbs,lin,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero, gnrmMax, nat, rxyz, at, it)
+subroutine choosePreconditioner(iproc,nproc,orbs,lin,lr,hx,hy,hz,ncong,hpsi, nat, rxyz, at, it)
+!
+! Purpose:
+! ========
+!   Preconditions all orbitals belonging to iproc.
+!  
+! Calling arguments:
+! ==================
+!   Input arguments:
+!   ----------------
+!     iproc     process ID
+!     nproc     total number of processes
+!     orbs      type describing the physical orbitals psi
+!     lin       type containing parameters for the linear version
+!     lr        type describing the localization region
+!     hx        grid spacing in x direction
+!     hy        grid spacing in y direction
+!     hz        grid spacing in z direction
+!     ncong     number of CG iterations 
+!     rxyz      the center of the confinement potential
+!     at        type containing the paraneters for the atoms
+!     it        iteration -- delete maybe??
+!  Input/Output arguments
+!  ---------------------
+!     hpsi      the gradient to be preconditioned
+!
   use module_base
   use module_types
   implicit none
@@ -7,28 +32,16 @@ subroutine preconditionallLIN(iproc,nproc,orbs,lin,lr,hx,hy,hz,ncong,hpsi,gnrm,g
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
   type(linearParameters):: lin
-  real(dp), intent(out) :: gnrm,gnrm_zero, gnrmMax
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
-integer,intent(in):: nat, it
-real(8),dimension(3,nat),intent(in):: rxyz
-type(atoms_data), intent(in) :: at
+  integer,intent(in):: nat, it
+  real(8),dimension(3,nat),intent(in):: rxyz
+  type(atoms_data), intent(in) :: at
   !local variables
-  integer :: iorb,inds,ncplx,ikpt,ierr
+  integer :: iorb, inds, ncplx, ikpt, ierr, iiAt
   real(wp) :: cprecr,scpr,eval_zero,evalmax 
   real(gp) :: kx,ky,kz
-integer:: iiAt
-real(8):: parabPrefac, ddot
-real(8),dimension(3):: rxyzShifted
 
-  ! Preconditions all orbitals belonging to iproc
-  !and calculate the norm of the residue
 
-  ! norm of gradient
-  gnrm=0.0_dp
-  !norm of gradient of unoccupied orbitals
-  gnrm_zero=0.0_dp
-  ! maximum of all grnm and grnm_zero
-  gnrmMax=0.d0
 
    evalmax=orbs%eval(orbs%isorb+1)
    do iorb=1,orbs%norbp
@@ -62,20 +75,7 @@ real(8),dimension(3):: rxyzShifted
 
      do inds=1,orbs%nspinor,ncplx
 
-        ! This things are done in the subroutine 'getLocalizedBasis' calling this subroutine.
-        !the nrm2 function can be replaced here by ddot
-        !!scpr=ddot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), hpsi(1,inds,iorb), 1, hpsi(1,inds,iorb),1)
-        !!if (orbs%occup(orbs%isorb+iorb) == 0.0_gp) then
-        !!   gnrm_zero=gnrm_zero+orbs%kwgts(orbs%iokpt(iorb))*scpr
-        !!else
-        !!   !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
-        !!   gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr
-        !!end if
-        !!if(orbs%kwgts(orbs%iokpt(iorb))*scpr>gnrmMax) then
-        !!    gnrmMax=orbs%kwgts(orbs%iokpt(iorb))*scpr
-        !!end if
 
-       !if (scpr /= 0.0_wp) then
        if (.true.) then
            select case(lr%geocode)
            case('F')
@@ -105,19 +105,10 @@ real(8),dimension(3):: rxyzShifted
 
            else !normal preconditioner
               
+              ! iiAt indicates on which atom orbital iorb is centered.
               iiAt=lin%onWhichAtom(iorb)
-              parabPrefac=lin%potentialPrefac(at%iatype(iiat))
-           ! WITH PARABOLA SHIFT
-              rxyzShifted(1)=rxyz(1,iiat)!+orbs%parabolaShift(1,iorb)
-              rxyzShifted(2)=rxyz(2,iiat)!+orbs%parabolaShift(2,iorb)
-              rxyzShifted(3)=rxyz(3,iiat)!+orbs%parabolaShift(3,iorb)
-              !!call solvePrecondEquation(lr,ncplx,ncong,cprecr,&
-              !!     hx,hy,hz,kx,ky,kz,hpsi(1,inds,iorb), rxyzShifted, orbs, parabPrefac, it)
               call solvePrecondEquation(lr,ncplx,ncong,cprecr,&
-                   hx,hy,hz,kx,ky,kz,hpsi(1,inds,iorb), rxyz(1,iiAt), orbs, parabPrefac, it)
-           ! THIS WAS THE ORIGINAL VERSION
-              !call precondition_residueLIN(lr,ncplx,ncong,cprecr,&
-              !     hx,hy,hz,kx,ky,kz,hpsi(1,inds,iorb), rxyz(1,iiAt), orbs, parabPrefac, it)
+                   hx,hy,hz,kx,ky,kz,hpsi(1,inds,iorb), rxyz(1,iiAt), orbs, lin%potentialPrefac(at%iatype(iiAt)), it)
 
            end if
 
@@ -126,7 +117,7 @@ real(8),dimension(3):: rxyzShifted
      end do
   enddo
 
-END SUBROUTINE preconditionallLIN
+END SUBROUTINE choosePreconditioner
 !!***
 
 

@@ -415,7 +415,7 @@ subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspi
 !   ----------------
 !     hphi            the modified Hamiltonian applied to phi
 !     trH             the trace of the Hamiltonian
-!     infoBasisFunctions  indicated wheter the basis functions converged to the specified limit (value is 0)
+!     infoBasisFunctions  indicates wheter the basis functions converged to the specified limit (value is 0)
 !                         or whether the iteration stopped due to the iteration limit (value is -1). This info
 !                         is returned by 'getLocalizedBasis'
 !
@@ -574,8 +574,8 @@ iterLoop: do it=1,lin%nItMax
     end if
     ncong=10
     gnrm=1.d3 ; gnrm_zero=1.d3
-    call preconditionallLIN(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
-        ncong, hphi, gnrm, gnrm_zero, gnrmMax,  at%nat, rxyz, at, it)
+    call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
+        ncong, hphi, at%nat, rxyz, at, it)
 
     tt=gnrm
     call mpi_allreduce(tt, gnrm, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
@@ -624,8 +624,6 @@ iterLoop: do it=1,lin%nItMax
         end if
     end if
     if(.not. diisLIN%switchSD) call improve()
-
-
 
  
 

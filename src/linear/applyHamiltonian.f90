@@ -441,7 +441,7 @@ real(8):: hxh, hyh, hzh, parabPrefac
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
   real(gp) :: epot_p
 real(8):: hxh2, hyh2, hzh2
-integer:: ix0, iy0, iz0, istat, ipot
+integer:: istat, ipot
 real(8),dimension(:,:,:,:),allocatable:: potCopy
 
 !write(*,'(a,2i7)') '-14*nl3, 2*n3+1+15*nl3', -14*nl3, 2*n3+1+15*nl3
@@ -473,9 +473,6 @@ potCopy=0.d0
   !  =pot(-14*nl1:2*n1+1+15*nl1-4*nbuf,-14*nl2:2*n2+1+15*nl2-4*nbuf,&
   !     -14*nl3:2*n3+1+15*nl3-4*nbuf,1:npot)
 
-   ix0=nint(rxyzParab(1)/hxh)
-   iy0=nint(rxyzParab(2)/hyh)
-   iz0=nint(rxyzParab(3)/hzh)
    hxh2=hxh**2
    hyh2=hyh**2
    hzh2=hzh**2
@@ -558,10 +555,8 @@ potCopy=0.d0
                     do i1=i1s,i1e
                        !the local potential is always real
                        ! Add the parabola to the potential
-                       !tt=hxh**2*dble(i1-ix0)**2 + hyh**2*dble(i2-iy0)**2 + hzh**2*dble(i3-iz0)**2
-                       !tt=hxh2*dble(i1-ix0)**2 + hyh2*dble(i2-iy0)**2 + hzh2*dble(i3-iz0)**2
                        tt=(hxh*dble(i1)-rxyzParab(1))**2 + (hyh*dble(i2)-rxyzParab(2))**2 + (hzh*dble(i3)-rxyzParab(3))**2
-                       tt=parabPrefac*tt
+                       tt=parabPrefac*tt**2
                        !if(power==2) then
                        !    tt=parabPrefac*tt
                        !else if(power==4) then
