@@ -1,7 +1,5 @@
 !>    A periodic synthesis (backward) wavelet transformation
 !!    the input array x is not overwritten
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2010 BigDFT group
@@ -9,8 +7,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine synthese_per_old(nd1,nd2,nd3,x,y,ww)
   use module_base

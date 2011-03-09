@@ -1,8 +1,6 @@
 !>   Calculates the overall size of the simulation cell 
 !!   and shifts the atoms such that their position is the most symmetric possible.
 !!   Assign these values to the global localisation region descriptor.
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2010 BigDFT group
@@ -10,8 +8,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
   use module_base
@@ -416,8 +412,6 @@ END SUBROUTINE segkeys
 
 !>   set up an array logrid(i1,i2,i3) that specifies whether the grid point
 !!   i1,i2,i3 is the center of a scaling function/wavelet
-!!
-!!
 !!
 subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
      ntypes,iatype,rxyz,radii,rmult,hx,hy,hz,logrid)

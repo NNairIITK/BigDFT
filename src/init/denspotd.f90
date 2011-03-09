@@ -1,6 +1,4 @@
 !>   Create the descriptors for the density and the potential
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2007-2011 BigDFT group (LG)
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc,&
      n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
@@ -69,8 +65,6 @@ END SUBROUTINE createDensPotDescriptors
 !!      - each processor has all the orbitals in transposed form
 !!      - each wavefunction is equally distributed in its transposed form
 !!      - this holds for each k-point, which regroups different processors
-!!
-!!
 !!
 subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   use module_base

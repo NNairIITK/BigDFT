@@ -1,6 +1,4 @@
 !>   Define the type parameterminimization
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2007-2011 BigDFT group
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 module minpar
   implicit none
@@ -2243,8 +2239,6 @@ END SUBROUTINE atomic_copymoving_backward
 !      return
 !!
 !!        code for both increments equal to 1
-!!
-!!
 !!        clean-up loop
 !!
 !   20 m = mod(n,4)
@@ -2296,8 +2290,6 @@ END SUBROUTINE atomic_copymoving_backward
 !      return
 !!
 !!        code for both increments equal to 1
-!!
-!!
 !!        clean-up loop
 !!
 !   20 m = mod(n,5)

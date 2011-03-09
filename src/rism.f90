@@ -1,6 +1,4 @@
 !> BigDFT/rism
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2010 ESRF, CEA
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 program rism
   use BigDFT_API
@@ -202,8 +198,6 @@ END SUBROUTINE assign_atomic_radii
 !!         J.Chem.Phys. 103(17),7422 (1995) 
 !!   use a basis of error functions centered on the atoms, with atom-defined radii
 !!   and also short-range functions are allowed, as well as dummy atoms
-!!
-!!
 !!
 subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngatherarr,&
      hxh,hyh,hzh,n3p,i3s,rho,pot,C)

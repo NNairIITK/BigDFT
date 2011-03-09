@@ -1,7 +1,5 @@
 !>    The module of the Poisson Solver.
 !!    It must be used in the parent routine. 
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2002-2011 BigDFT group 
@@ -41,8 +39,6 @@
 !!
 !!       Any other changment of the arguments require reading of the documentation.
 !!       See documentations of the Public routines
-!!
-!!
 !! WARNING
 !!    This module REQUIRE the module of XC functional from ABINIT, defs_xc, which
 !!    require defs_basis and defs_datatypes. 
@@ -51,8 +47,6 @@
 !!    If you want to use this Poisson Solver without the XC functionals, you can comment out
 !!    the XC part in the PSolver routine
 !!    Search for
-!!
-!!
 !! Author:
 !!
 !!    Luigi Genovese

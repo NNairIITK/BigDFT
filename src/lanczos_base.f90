@@ -8,8 +8,6 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!!
-!!
 module lanczos_base
   use module_base
   implicit none

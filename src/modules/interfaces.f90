@@ -1,6 +1,4 @@
 !>  Modules which contains all interfaces
-!!
-!!
 !!  Interfaces of:
 !!  - call_cluster
 !!  - conjgrad
@@ -25,13 +23,9 @@
 !!  - nonlocal_forces
 !!  - CalculateTailCorrection
 !!  - reformatonewave
-!!
-!!
 !! Author:
 !!
 !!    Luigi Genovese, Damien Caliste
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2007-2011 BigDFT group
@@ -39,8 +33,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 module module_interfaces
 

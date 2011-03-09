@@ -1,6 +1,4 @@
 !>   Calculates the local forces acting on the atoms belonging to iproc
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2007-2011 BigDFT group
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,pot,floc)

@@ -1,20 +1,12 @@
 !>  Modules which contains the low level definitions, as well as some profiling procedures
 !!  in order to have a standalone PSolver version.
-!!
-!!
 !!  Interfaces of:
-!!
-!!
 !! Author:
 !!
 !!    Luigi Genovese
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2008 CEA
-!!
-!!
 !! 
 module module_base 
   !use MPI

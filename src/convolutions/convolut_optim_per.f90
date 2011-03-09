@@ -1,6 +1,4 @@
 !> BigDFT/ana_rot_per
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2010 BigDFT group 
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine ana_rot_per(n,ndat,x,y)
   use module_base

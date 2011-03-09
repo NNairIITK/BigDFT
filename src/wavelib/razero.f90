@@ -1,7 +1,5 @@
 !>   Set to zero an array x(n)
 !!
-!!
-!!
 subroutine razero(n,x)
   implicit none
   !Arguments
@@ -17,8 +15,6 @@ END SUBROUTINE razero
 
 
 !>   Set to zero an array x(n): omp version of razero
-!!
-!!
 !!
 subroutine omp_razero(n,x)
   use module_base
@@ -40,8 +36,6 @@ END SUBROUTINE omp_razero
 
 !>   Set to 10^-20 an array x(n)
 !!
-!!
-!!
 subroutine tenminustwenty(n,x,nproc)
   implicit none
 ! Arguments
@@ -57,8 +51,6 @@ END SUBROUTINE tenminustwenty
 
 
 !>   To be used in the following function.
-!!
-!!
 !!
 module randomData
   implicit none

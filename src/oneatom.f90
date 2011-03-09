@@ -1,6 +1,4 @@
 !> BigDFT/oneatom
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2010 ESRF, PoliTo
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 program oneatom
   use BigDFT_API

@@ -1,7 +1,5 @@
 !>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 !!   x is the right hand side on input and the solution on output
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2010 BigDFT group 
@@ -9,8 +7,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !! 
 subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hx,hy,hz,x)

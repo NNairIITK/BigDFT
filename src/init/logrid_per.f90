@@ -1,6 +1,4 @@
 !> BigDFT/make_bounds_per
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2010 BigDFT group 
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !! 
 subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
   use module_base
@@ -170,8 +166,6 @@ END SUBROUTINE ib_to_logrid_inv_per
 
 !>    This subroutine mimics the comb_grow_f one
 !!
-!!
-!!
 subroutine make_ib_per(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,nfl2,nfu2,nfl3,nfu3)
   implicit none
   integer :: nt,nfl2,nfu2,nfl3,nfu3,n1,n2
@@ -198,8 +192,6 @@ END SUBROUTINE make_ib_per
 
 
 !>   This one mimics the comb_rot_grow_f_loc
-!!
-!!
 !!
 subroutine ib_to_logrid_rot_per(ib,logrid,n,ndat)
   implicit none

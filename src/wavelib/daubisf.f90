@@ -1,6 +1,4 @@
 !> BigDFT/initialize_work_arrays_locham
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2010 BigDFT group
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine initialize_work_arrays_locham(lr,nspinor,w)
   use module_base

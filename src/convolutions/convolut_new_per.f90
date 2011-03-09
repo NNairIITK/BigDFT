@@ -1,8 +1,6 @@
 !>   Applies the operator (KE+cprecr*I)*x=y
 !!   array x is input, array y is output
 !! See also the optimized version (apply_hp_sd_optim)
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2010 BigDFT group 
@@ -10,8 +8,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e)

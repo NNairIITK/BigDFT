@@ -1,11 +1,7 @@
 !>    Test the hamiltonian operation for GPU and compare with CPU
-!!
-!!
 !! Author:
 !!
 !!    Luigi Genovese, Matthieu Ospici
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2008 BigDFT group 

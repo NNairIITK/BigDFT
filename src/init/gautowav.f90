@@ -1,6 +1,4 @@
 !>  Control the accuracy of the expansion in gaussian
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2007-2011 BigDFT group (LG)
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine check_gaussian_expansion(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   use module_base

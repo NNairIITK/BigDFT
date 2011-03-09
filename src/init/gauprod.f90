@@ -1,6 +1,4 @@
 !>  Restart from gaussian functions
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2007-2011 CEA (LG)
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   use module_base
@@ -49,8 +45,6 @@ END SUBROUTINE restart_from_gaussians
 
 
 !>   Read information for gaussian basis set (from CP2K) or for restarting
-!!
-!!
 !!
 subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
   use module_base
@@ -140,8 +134,6 @@ END SUBROUTINE read_gaussian_information
 
 !>   Write gaussian informatio for another program or for restarting
 !!
-!!
-!!
 subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   use module_base
   use module_types
@@ -218,8 +210,6 @@ END SUBROUTINE write_gaussian_information
 
 !>   gaussian section
 !!   Create gaussian structure from input guess pseudo wavefunctions
-!!
-!!
 !!
 subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc)
   use module_base
@@ -826,8 +816,6 @@ END SUBROUTINE gprod
 !!   calculates a dot product between two differents gaussians times spherical harmonics
 !!   valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
 !!   to be rearranged when only some of them is zero
-!!
-!!
 !!
 subroutine kinprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
   use module_base

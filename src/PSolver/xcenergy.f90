@@ -1,6 +1,4 @@
 !>    Calculate the array of the core density for the atom iat
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2002-2011 BigDFT group 
@@ -8,13 +6,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !! Author:
 !!
 !!    Luigi Genovese
-!!
-!!
 !! 
 subroutine calc_rhocore_iat(iproc,geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
      n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore)
@@ -196,8 +190,6 @@ END SUBROUTINE calc_rhocore_iat
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
-!!
-!!
 !! 
 subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rho,exc,vxc,nspin,rhocore,potxc,dvxcdrho)
@@ -567,8 +559,6 @@ END SUBROUTINE XC_potential
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
 !!
-!!
-!!
 subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      nxcl,nxcr,ixc,hx,hy,hz,rho,vxci,exc,vxc,order,ndvxc,dvxci,nspden)
 
@@ -899,15 +889,11 @@ END SUBROUTINE xc_energy_new
 !!    The dimensions of pot_ion must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
-!!
-!!
 !! Author:
 !!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2007
-!!
-!!
 !!
 subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,nproc,nspden)

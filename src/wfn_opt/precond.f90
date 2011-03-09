@@ -7,8 +7,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !! 
 subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   use module_base
@@ -1089,8 +1087,6 @@ END SUBROUTINE precond_proper
 
 !>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 !!   hpsi is the right hand side on input and the solution on output
-!!
-!!
 !!
 subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &

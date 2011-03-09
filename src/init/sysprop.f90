@@ -2,8 +2,6 @@
 !!
 !! :
 !!  Calculate the important objects related to the physical properties of the system
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2010 BigDFT group
@@ -11,8 +9,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   use module_base

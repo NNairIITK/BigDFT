@@ -1,6 +1,4 @@
 !> BigDFT/find_pfproj
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2009-2011 BigDFT group
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine find_pfproj( Nsol,Ngrid,rgrid, psi1s, psigrid, real_start, psigrid_pseudo, dump_functions)
   use module_base
@@ -95,8 +91,6 @@ END SUBROUTINE find_pfproj
 
 
 !> BigDFT/find_Scoeffs_grid
-!!
-!!
 !!
 subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
   use module_base
@@ -198,8 +192,6 @@ END SUBROUTINE dump_1gauwf_on_radgrid
 
 !> BigDFT/value_at_r
 !!
-!!
-!!
 function value_at_r(r, ng , expo,psi     )
   use module_base, only: gp
 
@@ -228,8 +220,6 @@ end function value_at_r
 
 
 !> BigDFT/dump_gauwf_on_radgrid
-!!
-!!
 !!
 subroutine dump_gauwf_on_radgrid(prefix, ng, noccmax, lmax, expo, psi)
   use module_base, only: gp
@@ -2836,8 +2826,6 @@ END SUBROUTINE zero4b2B
 !!   m filter length (m has to be even!)
 !!   x input data, y output data
 !!
-!!
-!!
 subroutine back_trans_14_4b2B(nd,nt,x,y)
   implicit none
   !Arguments
@@ -2879,8 +2867,6 @@ END SUBROUTINE back_trans_14_4b2B
 
 
 !> BigDFT/scaling_function4b2B
-!!
-!!
 !!
 subroutine scaling_function4b2B(itype,nd,nrange,a,x)
   use module_base
@@ -2969,8 +2955,6 @@ END SUBROUTINE scaling_function4b2B
 
 
 !> BigDFT/read_potfile4b2B
-!!
-!!
 !!
 subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   use module_base

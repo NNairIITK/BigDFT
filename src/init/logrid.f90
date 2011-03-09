@@ -1,6 +1,4 @@
 !>   Cleaned version of the logrid_old.f90 in the unused directory (with newmethod=.true.)
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2010 BigDFT group 
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&

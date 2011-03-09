@@ -1,6 +1,4 @@
 !>  Main program to use BigDFT with art nouveau method
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright Normand Mousseau, July 2001
@@ -9,8 +7,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 program art90
 

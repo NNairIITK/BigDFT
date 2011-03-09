@@ -22,8 +22,6 @@
 !!   box. 
 !!   The annihilation accuracy improves with decreasing grid constant h, as expected,
 !!   but the numerical noise spoils the convergence after some point.
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2005-2011 BigDFT group 
@@ -31,8 +29,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !! 
 subroutine convolut_kinetic_per_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
   use module_base

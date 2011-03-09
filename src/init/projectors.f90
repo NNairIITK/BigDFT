@@ -8,8 +8,6 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!!
-!!
 subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
      logrid,at,orbs,nlpspd)
   use module_base
@@ -221,8 +219,6 @@ END SUBROUTINE localize_projectors
 
 
 !>   Fill the proj array with the PSP projectors or their derivatives, following idir value
-!!
-!!
 !!
 subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
   use module_base
@@ -479,8 +475,6 @@ END SUBROUTINE projector
 
 !>   Determines the number of projectors (valid for GTH and HGH pseudopotentials)
 !!
-!!
-!!
 subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
   use module_base
   implicit none
@@ -513,8 +507,6 @@ END SUBROUTINE numb_proj
 !>   Returns the compressed form of a Gaussian projector 
 !!   x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 ))
 !!   in the arrays proj_c, proj_f
-!!
-!!
 !!
 subroutine crtproj(geocode,nterm,n1,n2,n3, & 
      hx,hy,hz,kx,ky,kz,ncplx,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 

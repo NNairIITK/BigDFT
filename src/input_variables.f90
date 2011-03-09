@@ -1635,8 +1635,6 @@ END SUBROUTINE check_atoms_positions
 
 !>    Find extra information
 !!
-!!
-!!
 subroutine find_extra_info(line,extra)
   implicit none
   character(len=150), intent(in) :: line
@@ -1671,8 +1669,6 @@ END SUBROUTINE find_extra_info
 
 
 !>    Parse extra information
-!!
-!!
 !!
 subroutine parse_extra_info(iat,extra,atoms)
   use module_types

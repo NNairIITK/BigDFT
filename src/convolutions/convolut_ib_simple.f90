@@ -8,8 +8,6 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!!
-!!
 module convSimpleBench
   implicit none
   integer :: conv_f_nflop1,conv_f_nflop2,conv_f_nflop3

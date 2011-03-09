@@ -4,8 +4,6 @@
 !!   then convolves with magic filter
 !!   then adds the result to y.
 !!   The size of the data is allowed to grow
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2011 BigDFT group
@@ -13,8 +11,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
   use module_base

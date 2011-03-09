@@ -1,6 +1,4 @@
 !>   Generate the input guess via the inguess_generator
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2007-2011 (LG) BigDFT group
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
      orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
@@ -275,8 +271,6 @@ END SUBROUTINE readAtomicOrbitals
 
 
 !>   Generate atomic orbitals
-!!
-!!
 !!
 subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
      nspin,eks,scorb,G,gaucoeff,iorbtolr)
@@ -727,8 +721,6 @@ END SUBROUTINE AtomicOrbitals
 !>   Calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
 !!   the output psiatn is a normalized version of psiat
 !!
-!!
-!!
 subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
   use module_base
   implicit none
@@ -794,8 +786,6 @@ END SUBROUTINE atomkin
 
 
 !>
-!!
-!!
 !!
 subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
   use module_base
@@ -906,8 +896,6 @@ END SUBROUTINE calc_coeff_inguess
 
 
 !>   
-!!
-!!
 !!
 subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
      nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb)
@@ -1477,8 +1465,6 @@ END SUBROUTINE gatom
 
 !>
 !!
-!!
-!!
 subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
                  ng,res,zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
                  potgrd,xcgrd,noproj)
@@ -1667,8 +1653,6 @@ END SUBROUTINE crtvh
 
 !>   
 !!
-!!
-!!
 function wave(ng,ll,xp,psi,r)
   use module_base, only: gp
   implicit none
@@ -1733,8 +1717,6 @@ end function emuxc
 
 !>   Restricted version of the Gamma function
 !!
-!!
-!!
 function gamma_restricted(x)
   use module_base, only: gp
   implicit none
@@ -1766,8 +1748,6 @@ end function gamma_restricted
 
 
 !>   
-!!
-!!
 !!
 !  call psitospi0(iproc,nproc,norbe,norbep,norbsc,&
 !       wfd%nvctr_c,wfd%nvctr_f,nspin,spinsgne,psi)
@@ -1844,8 +1824,6 @@ END SUBROUTINE psitospi0
 
 
 !>  Calculate the occupation number for any of the orbitals
-!!
-!!
 !!
 subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
   use module_base

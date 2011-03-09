@@ -13,8 +13,6 @@
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
 !!
-!!
-!!
 program memguess
 
   use module_base

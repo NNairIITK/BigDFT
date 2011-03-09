@@ -6,8 +6,6 @@
 !!    reasonnable size) the configuration follows the direction corresponding
 !!    to this eigenvalue until the force components parallel and perpdendicular
 !!    to the eigendirection become close to zero.
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) Normand Mousseau, June 2001
@@ -16,8 +14,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
   use random

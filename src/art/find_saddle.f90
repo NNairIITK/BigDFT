@@ -8,8 +8,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !! 
 module saddles
 
@@ -49,8 +47,6 @@ end module saddles
 !!  For large cells, it is preferable to use a local initial
 !!  displacement to prevent the creation of many trajectories
 !!  at the same time in different sections of the cell.
-!!
-!!
 !! 
 subroutine find_saddle(success)
   use random

@@ -1,6 +1,4 @@
 !>   Give electronic configuration of atom
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2007-2011 BigDFT group (TD,LG)
@@ -27,8 +25,6 @@
 !!   mxpl      Maximum spin polarisation to be placed on the atom
 !!   mxchg     Maximum charge to be placed on the atom
 !!   amu       Atomic mass unit (use values coming from ABINIT/11util/atmdata.F90)
-!!
-!!
 !!
 subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
   implicit none
@@ -1824,8 +1820,6 @@ END SUBROUTINE correct_semicore
 !!             The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
 !!             where n_l are the number of semicore orbitals for a given angular momentum
 !!             starting from the lower level of course
-!!
-!!
 !!
 subroutine modified_eleconf(nzatom,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
   implicit none

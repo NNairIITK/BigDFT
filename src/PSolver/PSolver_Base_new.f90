@@ -8,8 +8,6 @@
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !! For the list of contributors, see ~/AUTHORS 
 !!
-!!
-!!
 subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,&
              scal,hx,hy,hz,offset)
   use module_base
@@ -611,16 +609,12 @@ END SUBROUTINE G_switch_upcorn
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!!
 !! Author:
 !!S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!!
 !!
 subroutine P_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
   implicit none
@@ -723,16 +717,12 @@ END SUBROUTINE C_fill_upcorn
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!!
 !! Author:
 !!S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!!
 !!
 subroutine scramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2)
   implicit none
@@ -771,16 +761,12 @@ END SUBROUTINE scramble_P
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!!
 !! Author:
 !!S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!!
 !!
 subroutine unscramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw)
   implicit none
@@ -829,16 +815,12 @@ END SUBROUTINE unscramble_P
 !!     Copyright (C) 2009 Luigi Genovese, ESRF Grenoble
 !!     This file is distributed under the terms of the
 !!      GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!!
 !! Author:
 !!S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!!
 !!
 subroutine P_multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset)
   implicit none
@@ -888,16 +870,12 @@ END SUBROUTINE P_multkernel
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!      GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!!
 !! Author:
 !!S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!!
 !!
 subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
   implicit none
@@ -1018,16 +996,12 @@ END SUBROUTINE G_unmpiswitch_downcorn
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!!
 !! Author:
 !!S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!!
 !!
 subroutine unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
      ,scal)!,ehartreetmp)
@@ -1106,16 +1080,12 @@ END SUBROUTINE halfill_upcorn
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!!
 !! Author:
 !!S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!!
 !!
 subroutine scramble_unpack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2,cosinarr)
   implicit none
@@ -1185,16 +1155,12 @@ END SUBROUTINE scramble_unpack
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!!
 !! Author:
 !!S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!!
 !!
 subroutine unscramble_pack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw,cosinarr)
   implicit none

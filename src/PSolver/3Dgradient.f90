@@ -3,8 +3,6 @@
 !! It is based on a finite difference calculation of the gradient, corrected at the border
 !! (see the calc_gradient routine)
 !! Works either in parallel or in serial, by proper adjustation of the arguments
-!!
-!!
 !! Copyright:
 !!
 !! Copyright (C) 2002-2011 BigDFT group 
@@ -20,8 +18,6 @@
 !! wbl, wbr indicates the point starting from which we have to calculate the WB correction
 !! The correction is then added to the wb_vxc array in the proper points
 !! n3grad is the effective dimension of interest
-!!
-!!
 !!
 subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
      wb_vxc)
@@ -565,8 +561,6 @@ END SUBROUTINE wb_correction
 !! The rest of the array is defined for later use in the wb postprocessing routine.
 !!
 !! WARNING
-!!
-!!
 !!
 subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
      gradient)

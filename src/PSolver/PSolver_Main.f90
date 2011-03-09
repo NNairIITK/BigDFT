@@ -3,8 +3,6 @@
 !!    from a given $\rho$, 
 !!    for different boundary conditions an for different data distributions.
 !!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2002-2011 BigDFT group 
@@ -65,15 +63,11 @@
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
-!!
-!!
 !! Author:
 !!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2007
-!!
-!!
 !! 
 subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,offset,sumpion,&
@@ -319,8 +313,6 @@ END SUBROUTINE H_potential
 !>    Calculate the Poisson equation $\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$
 !!    from a given $\rho$, for different boundary conditions an for different data distributions.
 !!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2002-2007 BigDFT group 
@@ -394,15 +386,11 @@ END SUBROUTINE H_potential
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
-!!
-!!
 !! Author:
 !!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2007
-!!
-!!
 !! 
 subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin,&
@@ -804,8 +792,6 @@ END SUBROUTINE PSolver
 
 !>    Transforms a generalized spin density into a pointwise collinear spin density which is
 !!    then passed to the Poisson Solver (PSolver). 
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2002-2007 BigDFT group 
@@ -883,15 +869,11 @@ END SUBROUTINE PSolver
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
-!!
-!!
 !! Author:
 !!
 !!    Anders Bergman
 !! CREATION DATE
 !!    March 2008
-!!
-!!
 !! 
 subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
@@ -1045,21 +1027,15 @@ END SUBROUTINE PSolverNC
 !!                The potential to the planes from i3s+i3xcsh to i3s+i3xcsh+n3p-1
 !!                The array pot_ion to the planes from i3s+i3xcsh to i3s+i3xcsh+n3pi-1
 !!                For global disposition i3s is equal to distributed case with i3xcsh=0.
-!!
-!!
 !! WARNING
 !!    The XC enlarging due to GGA part is not present for surfaces and 
 !!    periodic boundary condition. This is related to the fact that the calculation of the
 !!    gradient and the White-Bird correction are not yet implemented for non-isolated systems
-!!
-!!
 !! Author:
 !!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2007
-!!
-!!
 !!
 subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
      n3d,n3p,n3pi,i3xcsh,i3s)
@@ -1137,15 +1113,11 @@ END SUBROUTINE PS_dim4allocation
 !!
 !! WARNING
 !!    It is imperative that iend <=m2
-!!
-!!
 !! Author:
 !!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    May 2008
-!!
-!!
 !!
 subroutine xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)
   use libxc_functionals
@@ -1246,15 +1218,11 @@ END SUBROUTINE xc_dimensions
 !!    due to the backward-compatibility
 !!    with the other geometries of the Poisson Solver.
 !!    The dimensions 2 and 3 are exchanged.
-!!
-!!
 !! Author:
 !!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    October 2006
-!!
-!!
 !!
 subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
  implicit none
@@ -1345,15 +1313,11 @@ END SUBROUTINE P_FFT_dimensions
 !!    due to the backward-compatibility
 !!    with the Poisson Solver with other geometries.
 !!    Dimensions n02 and n03 were exchanged
-!!
-!!
 !! Author:
 !!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    October 2006
-!!
-!!
 !!
 subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
  implicit none
@@ -1446,15 +1410,11 @@ END SUBROUTINE S_FFT_dimensions
 !!    The dimension m2 and m3 correspond to n03 and n02 respectively
 !!    this is needed since the convolution routine manage arrays of dimension
 !!    (md1,md3,md2/nproc)
-!!
-!!
 !! Author:
 !!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2006
-!!
-!!
 !!
 subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
  implicit none

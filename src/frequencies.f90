@@ -1,10 +1,6 @@
 !> BigDFT/frequencies
-!!
-!!
 !!  Calculate vibrational frequencies by frozen phonon approximation.
 !!  Use a file 'frequencies.res' to restart calculations.
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2010-2011 BigDFT group
@@ -16,8 +12,6 @@
 !! TODO
 !!  Add higher order for finite difference
 !!  Maybe possibility to use Lanczos to determine lowest frequencies
-!!
-!!
 !!
 program frequencies
 

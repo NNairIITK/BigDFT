@@ -1,8 +1,6 @@
 !> BigDFT/IonicEnergyandForces
 !!
 !!    Calculte the ionic contribution to the energy and the forces
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2007-2011 BigDFT group (LG)
@@ -10,8 +8,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      rxyz,eion,fion,psoffset,nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
@@ -1046,8 +1042,6 @@ END SUBROUTINE createIonicPotential
 
 !>   Determine the index in which the potential must be inserted, following the BC
 !!   Determine also whether the index is inside or outside the box for free BC
-!!
-!!
 !!
 subroutine ind_positions(periodic,i,n,j,go)
   implicit none

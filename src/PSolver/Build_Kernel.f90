@@ -10,15 +10,11 @@
 !!    itype_scf          Order of the scaling function
 !!    iproc,nproc        Number of process, number of processes
 !!    karray             output array
-!!
-!!
 !! Author:
 !!
 !!    L. Genovese
 !! CREATION DATE
 !!    October 2006
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2006-2011 CEA, ESRF
@@ -26,8 +22,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc)
   use module_base
@@ -201,15 +195,11 @@ END SUBROUTINE fourtrans
 !!    itype_scf          Order of the scaling function
 !!    iproc,nproc        Number of process, number of processes
 !!    karray             output array
-!!
-!!
 !! Author:
 !!
 !!    L. Genovese
 !! CREATION DATE
 !!    October 2006
-!!
-!!
 !!
 subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc)
   
@@ -870,8 +860,6 @@ END SUBROUTINE indices
 !!    n1k,n2k,n3k        Dimensions of the kernel FFT
 !!    hgrid              Mesh step
 !!    itype_scf          Order of the scaling function (8,14,16)
-!!
-!!
 !! Author:
 !!S
 !!    T. Deutsch, L. Genovese
@@ -879,8 +867,6 @@ END SUBROUTINE indices
 !!    February 2006
 !! MODIFICATION
 !!    Different calculation of the gaussian times ISF integral, LG, Dec 2009
-!!
-!!
 !!
 subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
      hx,hy,hz,itype_scf,iproc,nproc,karray)
@@ -1391,16 +1377,12 @@ END SUBROUTINE inserthalf
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!!
 !! Author:
 !!S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!!
 !!
 subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   use module_base

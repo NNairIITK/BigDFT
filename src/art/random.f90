@@ -2,8 +2,6 @@
 !!    Returns a uniform random deviate between 0.0 and 1.0.
 !!    Set idum to any negative value to initialize or
 !!    reinitialize the sequence.
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2010 BigDFT group
@@ -11,8 +9,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 MODULE random
 

@@ -3,8 +3,6 @@
 !!     siestart2art
 !!   It then continues the event where it stopped. 
 !!   Below - subtoutine save_restart, saves the status for a restart
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2001 Normand Mousseau
@@ -13,8 +11,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !! 
 subroutine restart_states(istatus,ieventcurrent, iterations)
   use defs

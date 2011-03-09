@@ -1,6 +1,4 @@
 !>  Copy old wavefunctions from psi to psi_old
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2007-2011 BigDFT group
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
      n1_old,n2_old,n3_old,wfd_old,psi_old)

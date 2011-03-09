@@ -7,8 +7,6 @@
 !!   coefficients_of_wavefunctions is used to store the psi values for
 !!   each wavelet.
 !!
-!!
-!!
 subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi)
   use module_base
@@ -367,8 +365,6 @@ END SUBROUTINE read_waves_etsf
 !!   (/ n1, n2, n3 /) dimensions.
 !!   coefficients_of_wavefunctions is used to store the psi values for
 !!   each wavelet.
-!!
-!!
 !!
 subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   use module_types

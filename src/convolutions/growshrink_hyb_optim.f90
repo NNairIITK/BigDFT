@@ -1,6 +1,4 @@
 !> BigDFT/comb_grow_all_hybrid
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2010 BigDFT group 
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw1,nw2&
      ,w1,w2,xc,xf,y,gb)
@@ -40,8 +36,6 @@ END SUBROUTINE comb_grow_all_hybrid
 !!   then convolves with magic filter
 !!   then adds the result to y.
 !!   The size of the data is allowed to grow
-!!
-!!
 !!
 subroutine  comb_rot_grow_ib_3(n1,n2,n3,nfl3,nfu3,x,y,ibxxyy)
    use module_base
@@ -102,8 +96,6 @@ END SUBROUTINE comb_rot_grow_ib_3
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
 !!   the size of the data is allowed to grow
-!!
-!!
 !!
 subroutine comb_rot_grow_ib_2(n1,n2,nfl2,nfu2,nfl3,nfu3,x,y,ibzxx,ibxxyy)
 use module_base
@@ -183,8 +175,6 @@ END SUBROUTINE comb_rot_grow_ib_2
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
 !!   the size of the data is allowed to grow
-!!
-!!
 !!
 subroutine comb_rot_grow_ib_1(n1,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ibyz,ibzxx)
 use module_base

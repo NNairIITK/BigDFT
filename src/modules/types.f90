@@ -258,8 +258,6 @@ module module_types
 !! All the parameters which are important for describing the orbitals
 !! Add also the objects related to k-points sampling, after symmetries applications
 !!
-!!
-!!
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
      real(gp) :: efermi
@@ -293,8 +291,6 @@ module module_types
 !! Contains the information needed for communicating the wavefunctions
 !! between processors for the transposition
 !!
-!!
-!!
   type, public :: communications_arrays
      integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
      integer, dimension(:,:), pointer :: nvctr_par
@@ -309,8 +305,6 @@ module module_types
 !! which take 8 bytes
 !! So they are declared as kind=8 variables either if the GPU works in simple precision
 !! Also other information concerning the GPU runs can be stored in this structure
-!!
-!!
 !!
   type, public :: GPU_pointers
      logical :: useDynamic,full_locham
@@ -354,8 +348,6 @@ module module_types
 !! Contains the work arrays needed for expressing wavefunction in real space
 !!  with all the BC
 !!
-!!
-!!
   type, public :: workarr_sumrho
      integer :: nw1,nw2,nxc,nxf
      real(wp), dimension(:), pointer :: x_c,x_f,w1,w2
@@ -366,8 +358,6 @@ module module_types
 !> module_types/workarr_locham
 !!
 !! Contains the work arrays needed for hamiltonian application with all the BC
-!!
-!!
 !!
   type, public :: workarr_locham
      integer :: nw1,nw2,nxc,nyc,nxf1,nxf2,nxf3,nxf,nyf
@@ -384,8 +374,6 @@ module module_types
 !! Contains the work arrays needed for th preconditioner with all the BC
 !! Take different pointers depending on the boundary conditions
 !!
-!!
-!!
   type, public :: workarr_precond
      integer, dimension(:), pointer :: modul1,modul2,modul3
      real(wp), dimension(:), pointer :: psifscf,ww,x_f1,x_f2,x_f3,kern_k1,kern_k2,kern_k3
@@ -400,8 +388,6 @@ module module_types
 !> module_types/lanczos_args
 !!
 !! Contains the arguments needed for the application of the hamiltonian
-!!
-!!
 !!
   type, public :: lanczos_args
      !arguments for the hamiltonian
@@ -428,8 +414,6 @@ module module_types
 !> module_types/diis_objects
 !!
 !! Contains the arguments needed for the diis procedure
-!!
-!!
 !!
   type, public :: diis_objects
      logical :: switchSD

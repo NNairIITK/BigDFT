@@ -17,8 +17,6 @@
 !!   C(:,2)          array of wavelet coefficients:
 !!   WW(:,1),WW(:,2) work arrays that have to be 17 times larger than C
 !!   err_norm        normalisation error
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2007-2011 BigDFT group (LG)
@@ -26,8 +24,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
      nmax,n_left,n_right,c,err_norm,&                      !no err_wav. nmax instead of n_intvx
@@ -271,8 +267,6 @@ END SUBROUTINE gauss_to_daub
 !!   C(:,2)          array of wavelet coefficients:
 !!   WW(:,1),WW(:,2) work arrays that have to be 17 times larger than C
 !!   err_norm        normalisation error
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2007-2011 CEA (LG)
@@ -280,8 +274,6 @@ END SUBROUTINE gauss_to_daub
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
      nmax,n_left,n_right,c,& 

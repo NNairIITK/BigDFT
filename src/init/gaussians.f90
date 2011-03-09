@@ -3,8 +3,6 @@
 !!   attention: it works only when the exponenets are always of the same type
 !!              which is typical of gatom
 !!    no good, they have to be converted shell-by-shell
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2009-2011 BigDFT group
@@ -12,8 +10,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
   use module_base

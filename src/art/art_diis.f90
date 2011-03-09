@@ -8,8 +8,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !! 
 module diis_defs
   use defs
@@ -89,8 +87,6 @@ END SUBROUTINE apply_diis
 !!   we are in its vicinity.
 !!
 !!   maxvec is the iteration number. The matrix computed has one more dimension
-!!
-!!
 !! 
 subroutine diis(lter,maxvec, newpos)
   use defs

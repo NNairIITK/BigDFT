@@ -1,6 +1,4 @@
 !> BigDFT/hit_with_kernel_slab_optim
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2010 BigDFT group 
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine hit_with_kernel_slab(x,zx,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
   ! hits the input array x with the kernel
@@ -68,8 +64,6 @@ END SUBROUTINE hit_with_kernel_slab
 
 !> BigDFT/forward_fft
 !!
-!!
-!!
 subroutine forward_fft(n1,n2,n3,nd1,nd3,x,zx,ntrig,trig)
   use module_base
   implicit none
@@ -112,8 +106,6 @@ END SUBROUTINE forward_fft
 
 
 !> BigDFT/backward_fft
-!!
-!!
 !!
 subroutine backward_fft(n1,n2,n3,nd1,nd3,x,zx,ntrig,trig)
   use module_base

@@ -1,10 +1,6 @@
 !> BigDFT/direct_minimization
-!!
-!!
 !!   Naive subroutine which performs a direct minimization of the energy 
 !!   for a given hamiltonian
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2007-2011 BigDFT group
@@ -12,8 +8,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
           orbs,orbsv,nvirt,lr,comms,commsv,&
@@ -407,8 +401,6 @@ END SUBROUTINE jacobi_davidson
 !!      (transpose v and hv)
 !!   end do
 !!   (retranspose v and psi)
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2007-2011 BigDFT group
@@ -416,8 +408,6 @@ END SUBROUTINE jacobi_davidson
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      orbs,orbsv,nvirt,lr,comms,commsv,&

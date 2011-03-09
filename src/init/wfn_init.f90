@@ -6,8 +6,6 @@
 !!    In the absence of norbe parameters, it simply diagonalize the hamiltonian in the given
 !!    orbital basis set.
 !!    Works for wavefunctions given in a Gaussian basis set provided bt the structure G
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2010 BigDFT group (LG)
@@ -15,8 +13,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !! Author:
 !!
 !!    Luigi Genovese
@@ -1078,8 +1074,6 @@ END SUBROUTINE build_eigenvectors
 !> Reads magnetic moments from file ('moments') and transforms the
 !! atomic orbitals to spinors 
 !! warning: Does currently not work for mx<0
-!!
-!!
 !!
 subroutine psitospi(iproc,nproc,norbe,norbep,norbsc, &
      & nvctr_c,nvctr_f,nat,nspin,spinsgne,otoa,psi)

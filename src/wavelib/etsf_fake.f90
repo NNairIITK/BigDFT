@@ -22,8 +22,6 @@ END SUBROUTINE write_etsf_density
 
 !>   Read a field in the ISF basis in the ETSF format
 !!
-!!
-!!
 subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz)
   use module_base

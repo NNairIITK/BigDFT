@@ -92,8 +92,6 @@ END SUBROUTINE two_center_two_electrons
 !!   Ref: J.Chem.Phys. 102(19),7549 (1995)
 !!   use a basis of error functions centered on the atoms, with atom-defined radii
 !!
-!!
-!!
 subroutine atomic_charges_york(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
      hxh,hyh,hzh,n3p,i3s,rho,pot,C)
   use module_base
@@ -869,8 +867,6 @@ END SUBROUTINE kinprod_h
 
 
 !>   
-!!
-!!
 !!
 subroutine calc_coeff_hermite_r2(l,ih,nterm_max,nterm,lx,ly,lz,fac_arr)
   use module_base

@@ -7,8 +7,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !! 
 subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
   use module_base

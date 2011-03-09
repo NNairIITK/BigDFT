@@ -2,8 +2,6 @@
 !!   of program. They suppose very little.
 !!   The subroutine convert_to_chain takes an integer and transforms it into a
 !!   chain of character.
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2001 Normand Mousseau
@@ -12,8 +10,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !! 
 subroutine convert_to_chain(init_number,chain)
   implicit none
@@ -48,8 +44,6 @@ END SUBROUTINE
 
 
 !>   The subroutine center places the center of mass of a 3D vector at (0,0,0)
-!!
-!!
 !! 
 subroutine center(vector,vecsize)
   implicit none
@@ -93,8 +87,6 @@ END SUBROUTINE
 
 !>   This subroutine computes the distance between two configurations and 
 !!   the number of particles having moved by more than a THRESHOLD
-!!
-!!
 !!
 subroutine displacement(posa, posb, delr,npart)
   use defs

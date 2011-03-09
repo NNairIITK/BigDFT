@@ -1,6 +1,4 @@
 !>  Main program for XANES calculation (absorption calculation)
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2009-2011 ESRF
@@ -8,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !!
 program abscalc_main
 

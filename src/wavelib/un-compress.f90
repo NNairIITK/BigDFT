@@ -7,8 +7,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !! 
 subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3, & 
      mseg_c,mvctr_c,keyg_c,keyv_c,  & 

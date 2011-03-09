@@ -1,11 +1,7 @@
 !>    Program test for the convolution in GPU
-!!
-!!
 !! Author:
 !!
 !!    Luigi Genovese
-!!
-!!
 !! Copyright:
 !!
 !!    Copyright (C) 2008 BigDFT group 
@@ -16,8 +12,6 @@
 !!
 !! CREATION DATE
 !!    Septembre 2008
-!!
-!!
 !!
 
 program conv_check
