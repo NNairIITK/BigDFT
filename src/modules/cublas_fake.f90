@@ -1,3 +1,5 @@
+!> @file Fake routines for cublas
+!!
   subroutine cublas_SSCAL()
     implicit none
     stop 'FAKE SSCAL'

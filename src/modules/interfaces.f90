@@ -23,9 +23,8 @@
 !!  - nonlocal_forces
 !!  - CalculateTailCorrection
 !!  - reformatonewave
-!! Author:
-!!    Luigi Genovese, Damien Caliste
-!! @author
+!!    
+!! @author Luigi Genovese, Damien Caliste
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

@@ -1,4 +1,4 @@
-!> art/diis_def
+!> Module to define DIIS inside ART
 !!
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
@@ -19,8 +19,7 @@ end module diis_defs
 
 
 
-!> art/apply_diis
-!!
+!> Apply DIIS for ART
 !! 
 subroutine apply_diis(current_energy, ftot)
   use defs

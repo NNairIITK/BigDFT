@@ -1,24 +1,22 @@
-! -*- mode: F90 ; mode: font-lock ; column-number-mode: true -*-
-!================================================================!
-!                                                                !
-!          Van der Waals empirical correction module             !
-!                                                                !
-! This module contains subroutines for calculating a Van der     !
-! Waals energy correction as a sum of damped London potentials.  !
-!----------------------------------------------------------------!
-! Written by Quintin Hill in 2007/8 with assistance from         !
-! Chris-Kriton Skylaris.                                         !
-! Forces added July 2008 by Quintin Hill                         !
-! Modified for BigDFT in March/April 2009 by Quintin Hill        !
-!================================================================!
-! COPYRIGHT                                                      !
-! Copyright (C)  2007-2009  Quintin Hill.                        !
-! This file is distributed under the terms of the                !
-! GNU General Public License either version 2 of the License, or !
-! (at your option) any later version, see ~/COPYING file,        !
-! http://www.gnu.org/licenses/gpl-2.0.txt (for GPL v2)           !
-! or http://www.gnu.org/copyleft/gpl.txt (for latest version).   !
-!================================================================!
+!>          Van der Waals empirical correction module             !
+!!================================================================!
+!!                                                                !
+!! This module contains subroutines for calculating a Van der     !
+!! Waals energy correction as a sum of damped London potentials.  !
+!!----------------------------------------------------------------!
+!! Written by Quintin Hill in 2007/8 with assistance from         !
+!! Chris-Kriton Skylaris.                                         !
+!! Forces added July 2008 by Quintin Hill                         !
+!! Modified for BigDFT in March/April 2009 by Quintin Hill        !
+!!================================================================!
+!! COPYRIGHT                                                      !
+!! Copyright (C)  2007-2009  Quintin Hill.                        !
+!! This file is distributed under the terms of the                !
+!! GNU General Public License either version 2 of the License, or !
+!! (at your option) any later version, see ~/COPYING file,        !
+!! http://www.gnu.org/licenses/gpl-2.0.txt (for GPL v2)           !
+!! or http://www.gnu.org/copyleft/gpl.txt (for latest version).   !
+!!================================================================!
 
 module vdwcorrection
 

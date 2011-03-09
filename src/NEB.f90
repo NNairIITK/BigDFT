@@ -1,9 +1,27 @@
+!> @file NEB routines
+!! The IO with the external program is performed using atomic units. 
+!! The restart file is in atomic units too.
+!! Both output files ( int and dat files ) are in angstrom and eV.
+!!
+!! PES energies and gradients are obtained calling the NEB_driver.sh and 
+!! reading the gen_output_file.
+!!
+!! References :
+!!
+!! - G.Henkelman, B.P.Uberuaga, H.Jonsson; J.Chem.Phys., 113, 9901, (2000)
+!! - G.Henkelman and H.Jonsson; J.Chem.Phys., 113, 9978, (2000)
+!! - H.Jonsson, G.Mills, K.W.Jacobsen, "Nudged elastic band method for finding
+!!   minimum energy paths of transitions", in Classical and Quantum Dynamics in 
+!!   Condensed Phase Simulations, edited by B.J.Berne, G.Ciccotti, D.F.Coker 
+!!   (World Scientific, Singapore, 1998), pag. 385 .
+!!
+!! @author
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!          COPYRIGHT (C) 2003 Carlo Sbraccia.                       !!
+!!          COPYRIGHT (C) 2003 Carlo Sbraccia.                                !!
 !!                   modifications: 2009 Damien Caliste (DC)                  !!
-!!          This file is distributed under the terms                 !!
-!!          of the GNU General Public License.                       !!
-!!          See http://www.gnu.org/copyleft/gpl.txt .                !!
+!!          This file is distributed under the terms                          !!
+!!          of the GNU General Public License.                                !!
+!!          See http://www.gnu.org/copyleft/gpl.txt .                         !!
 !!                                                                            !!
 !!    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,         !!
 !!    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF      !!
@@ -14,24 +32,7 @@
 !!    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                  !!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-
-!! The IO with the external program is performed using atomic units. 
-!! The restart file is in atomic units too.
-!! Both output files ( int and dat files ) are in angstrom and eV.
-
-!! PES energies and gradients are obtained calling the NEB_driver.sh and 
-!! reading the gen_output_file.
-
-!! References :
-!!
-!! - G.Henkelman, B.P.Uberuaga, H.Jonsson; J.Chem.Phys., 113, 9901, (2000)
-!! - G.Henkelman and H.Jonsson; J.Chem.Phys., 113, 9978, (2000)
-!! - H.Jonsson, G.Mills, K.W.Jacobsen, "Nudged elastic band method for finding
-!!   minimum energy paths of transitions", in Classical and Quantum Dynamics in 
-!!   Condensed Phase Simulations, edited by B.J.Berne, G.Ciccotti, D.F.Coker 
-!!   (World Scientific, Singapore, 1998), pag. 385 .
-
-
+!> Module for NEB calculations (parameters)
 MODULE Numeric
 
   IMPLICIT NONE
@@ -41,6 +42,7 @@ MODULE Numeric
 END MODULE Numeric
 
 
+!> Module for NEB calculations (defined formats)
 MODULE Formats
 
   IMPLICIT NONE
@@ -54,6 +56,7 @@ MODULE Formats
 END MODULE Formats
 
 
+!> Module for NEB calculations (variables)
 MODULE NEB_variables
 
   USE numeric
@@ -102,6 +105,7 @@ MODULE NEB_variables
 END MODULE NEB_variables
 
 
+!> Module for NEB calculations (Miscellany)
 MODULE Miscellany
 
   USE Numeric
@@ -136,6 +140,7 @@ MODULE Miscellany
 END MODULE Miscellany
 
 
+!> Modules which contains minimizaton routines for NEB calculation
 MODULE Minimization_routines
 
   USE Numeric
@@ -388,6 +393,7 @@ MODULE Minimization_routines
 END MODULE Minimization_routines
 
 
+!> Module for NEB calculations
 MODULE NEB_routines
 
   USE Numeric

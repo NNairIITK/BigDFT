@@ -15,4 +15,3 @@ module BigDFT_API
   use module_interfaces
   implicit none
 end module BigDFT_API
-

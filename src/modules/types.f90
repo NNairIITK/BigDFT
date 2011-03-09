@@ -1,11 +1,8 @@
 !>  Modules which contains the Fortran data structures
 !!  and the routines of allocations and de-allocations
 !!
-!! Author:
-!!    Luigi Genovese
-!!
-!! @author
-!!    Copyright (C) 2008-2011 CEA, ESRF
+!! @author Luigi Genovese
+!!    Copyright (C) 2008-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
