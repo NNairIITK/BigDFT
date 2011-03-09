@@ -1,6 +1,4 @@
-!> BigDFT/localize_projectors
-!! :
-!!
+!>
 !!
 !! Copyright:
 !!
@@ -222,9 +220,7 @@ END SUBROUTINE localize_projectors
 
 
 
-!> BigDFT/fill_projectors
-!! :
-!!   Fill the proj array with the PSP projectors or their derivatives, following idir value
+!>   Fill the proj array with the PSP projectors or their derivatives, following idir value
 !!
 !!
 !!
@@ -347,9 +343,7 @@ END SUBROUTINE atom_projector
 
 
 
-!> BigDFT/deallocate_proj_descr
-!! :
-!!
+!>
 !!
 !!
 subroutine deallocate_proj_descr(nlpspd,subname)
@@ -483,9 +477,7 @@ END SUBROUTINE projector
 
 
 
-!> BigDFT/numb_proj
-!! :
-!!   Determines the number of projectors (valid for GTH and HGH pseudopotentials)
+!>   Determines the number of projectors (valid for GTH and HGH pseudopotentials)
 !!
 !!
 !!
@@ -518,9 +510,7 @@ END SUBROUTINE numb_proj
 
 
 
-!> BigDFT/crtproj
-!! :
-!!   Returns the compressed form of a Gaussian projector 
+!>   Returns the compressed form of a Gaussian projector 
 !!   x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 ))
 !!   in the arrays proj_c, proj_f
 !!
@@ -1009,9 +999,7 @@ END SUBROUTINE crtproj
 
 
 
-!> BigDFT/re_cmplx_prod
-!! :
-!!   Real part of the complex product
+!>   Real part of the complex product
 !!
 !!
 function re_cmplx_prod(a,b,c)
@@ -1029,9 +1017,7 @@ END FUNCTION re_cmplx_prod
 
 
 
-!> BigDFT/im_cmplx_prod
-!! :
-!!   Imaginary part of the complex product
+!>   Imaginary part of the complex product
 !!
 !!
 function im_cmplx_prod(a,b,c)
@@ -1049,9 +1035,7 @@ END FUNCTION im_cmplx_prod
 
 
 
-!> BigDFT/pregion_size
-!! :
-!!   Finds the size of the smallest subbox that contains a localization region made 
+!>   Finds the size of the smallest subbox that contains a localization region made 
 !!   out of atom centered spheres
 !!
 !!
@@ -1121,9 +1105,7 @@ END SUBROUTINE pregion_size
 
 
 
-!> BigDFT/calc_coeff_proj
-!! :
-!!
+!>
 !!
 !!
 subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)

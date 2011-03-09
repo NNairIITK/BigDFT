@@ -1,6 +1,4 @@
-!> BigDFT/module_types
-!! :
-!!  Modules which contains the Fortran data structures
+!>  Modules which contains the Fortran data structures
 !!  and the routines of allocations and de-allocations
 !!
 !! Author:
@@ -467,9 +465,7 @@ contains
     call razero(nkptsp*3*(idsx+1)**2,diis%ads)
   END SUBROUTINE allocate_diis_objects
 
-!> module_types/deallocate_diis_objects
-!! :
-!!   De-Allocate diis objects
+!>   De-Allocate diis objects
 !!
 !!
   subroutine deallocate_diis_objects(diis,subname)
@@ -496,9 +492,7 @@ contains
 
 
 
-!> module_types/allocate_comms
-!! :
-!!   Allocate communications_arrays
+!>   Allocate communications_arrays
 !!
 !!
   subroutine allocate_comms(nproc,orbs,comms,subname)
@@ -525,9 +519,7 @@ contains
 
 
 
-!> module_types/deallocate_comms
-!! :
-!!   De-Allocate communications_arrays
+!>   De-Allocate communications_arrays
 !!
 !!
   subroutine deallocate_comms(comms,subname)
@@ -557,9 +549,7 @@ contains
 
 
 
-!> module_types/deallocate_abscalc_input
-!! :
-!!  
+!>  
 !!
 !!
   subroutine deallocate_abscalc_input(in, subname)
@@ -580,9 +570,7 @@ contains
 
 
 
-!> module_types/deallocate_orbs
-!! :
-!!   De-Allocate orbitals data structure, except eval pointer
+!>   De-Allocate orbitals data structure, except eval pointer
 !!   which is not allocated in the orbitals_descriptor routine
 !!
 !!
@@ -626,9 +614,7 @@ END SUBROUTINE deallocate_orbs
 
 
 
-!> module_types/init_restart_objects
-!! :
-!!   Allocate and nullify restart objects
+!>   Allocate and nullify restart objects
 !!
 !!
   subroutine init_restart_objects(iproc,iacceleration,atoms,rst,subname)
@@ -671,9 +657,7 @@ END SUBROUTINE deallocate_orbs
 
 
 
-!> module_types/free_restart_objects
-!! :
-!!   De-Allocate restart_objects
+!>   De-Allocate restart_objects
 !!
 !!
   subroutine free_restart_objects(rst,subname)
@@ -728,9 +712,7 @@ END SUBROUTINE deallocate_orbs
 
 
 
-!> module_types/allocate_wfd
-!! :
-!!   Allocate wavefunctions_descriptors
+!>   Allocate wavefunctions_descriptors
 !!
 !!
   subroutine allocate_wfd(wfd,subname)
@@ -749,9 +731,7 @@ END SUBROUTINE deallocate_orbs
 
 
 
-!> module_types/deallocate_wfd
-!! :
-!!   De-Allocate wavefunctions_descriptors
+!>   De-Allocate wavefunctions_descriptors
 !!
 !!
   subroutine deallocate_wfd(wfd,subname)
@@ -776,9 +756,7 @@ END SUBROUTINE deallocate_orbs
 
 
 
-!> module_types/deallocate_gwf
-!! :
-!!   De-Allocate gaussian_basis type
+!>   De-Allocate gaussian_basis type
 !!
 !!
   subroutine deallocate_gwf(G,subname)
@@ -811,9 +789,7 @@ END SUBROUTINE deallocate_orbs
 
 
 
-!> module_types/deallocate_bounds
-!! :
-!!   De-Allocate convolutions_bounds type, depending of the geocode and the hybrid_on
+!>   De-Allocate convolutions_bounds type, depending of the geocode and the hybrid_on
 !!
 !!
   subroutine deallocate_bounds(geocode,hybrid_on,bounds,subname)

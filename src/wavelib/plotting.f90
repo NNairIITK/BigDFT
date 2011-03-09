@@ -82,9 +82,7 @@ END SUBROUTINE plot_wf_old
 
 
 
-!> BigDFT/plot_wf_cube
-!! :
-!!
+!>
 !!
 !!
 subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
@@ -248,9 +246,7 @@ END SUBROUTINE plot_wf_cube
 
 
 
-!> BigDFT/plot_pot
-!! :
-!!
+!>
 !!
 !!
 subroutine plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,pot)
@@ -303,9 +299,7 @@ END SUBROUTINE plot_pot
 
 
 
-!> BigDFT/plot_pot_full
-!! :
-!!
+!>
 !!
 !!
 subroutine plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
@@ -351,9 +345,7 @@ END SUBROUTINE plot_pot_full
 
 
 
-!> BigDFT/plot_cube_full
-!! :
-!!
+!>
 !!
 !!
 subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
@@ -427,9 +419,7 @@ END SUBROUTINE plot_cube_full
 
 
 
-!> BigDFT/plot_psifscf
-!! :
-!!
+!>
 !!
 !!
 subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
@@ -484,9 +474,7 @@ END SUBROUTINE plot_psifscf
 
 
 
-!> BigDFT/read_potfile
-!! :
-!!
+!>
 !!
 !!
 subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
@@ -542,9 +530,7 @@ END SUBROUTINE read_potfile
 
 
 
-!> BigDFT/plot_density_old
-!! :
-!!
+!>
 !!
 !!
 subroutine plot_density_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -643,9 +629,7 @@ END SUBROUTINE plot_density_old
 
 
 
-!> BigDFT/plot_density_cube_old
-!! :
-!!
+!>
 !!
 !!
 subroutine plot_density_cube_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
@@ -811,9 +795,7 @@ END SUBROUTINE plot_density_cube_old
 
 
 
-!> BigDFT/read_density_cube_old
-!! :
-!!
+!>
 !!
 !!
 subroutine read_density_cube_old(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxyz,  rho)
@@ -920,9 +902,7 @@ END SUBROUTINE read_density_cube_old
 
 
 
-!> BigDFT/write_cube_fields
-!! :
-!!   Write a (sum of two) field in the ISF basis in the cube format
+!>   Write a (sum of two) field in the ISF basis in the cube format
 !!
 !!
 subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
@@ -1046,9 +1026,7 @@ END SUBROUTINE write_cube_fields
 
 
 
-!> BigDFT/plot_density
-!! :
-!!
+!>
 !!
 !!
 subroutine plot_density(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
@@ -1190,9 +1168,7 @@ subroutine plot_density(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
 END SUBROUTINE plot_density
 
 
-!> BigDFT/read_density
-!! :
-!!  Read a density file using file format depending on the extension.
+!>  Read a density file using file format depending on the extension.
 !!
 !!
 !!
@@ -1269,9 +1245,7 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
 END SUBROUTINE read_density
 
 
-!> BigDFT/plot_wf
-!! :
-!!
+!>
 !!
 !!
 subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
@@ -1324,9 +1298,7 @@ subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
 END SUBROUTINE plot_wf
 
 
-!> BigDFT/read_cube
-!! :
-!!
+!>
 !!
 !!
 subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
@@ -1501,9 +1473,7 @@ END SUBROUTINE read_cube
 
 
 
-!> BigDFT/read_cube_field
-!! :
-!!   Read a cube field which have been plotted previously by write_cube_fields
+!>   Read a cube field which have been plotted previously by write_cube_fields
 !!
 !!
 subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)

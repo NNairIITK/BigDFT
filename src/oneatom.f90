@@ -335,9 +335,7 @@ end program oneatom
 
 
 
-!> BigDFT/createPotential
-!! :
-!!
+!>
 !!
 !!
 subroutine createPotential(geocode,iproc,nproc,at,rxyz,&
@@ -713,9 +711,7 @@ END SUBROUTINE createPotential
 
 
 
-!> BigDFT/psi_from_gaussians
-!! :
-!!
+!>
 !!
 !!
 subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
@@ -859,9 +855,7 @@ END SUBROUTINE psi_from_gaussians
 
 
 
-!> BigDFT/plot_wf_oneatom
-!! :
-!!
+!>
 !!
 !!
 subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)

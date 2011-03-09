@@ -1,6 +1,4 @@
-!> BigDFT/sumrho
-!! :
-!!    Calculate the electronic density (rho)
+!>    Calculate the electronic density (rho)
 !!
 !! Copyright:
 !!
@@ -246,9 +244,7 @@ END SUBROUTINE sumrho
 
 
 
-!> BigDFT/local_partial_density
-!! :
-!!   Here starts the routine for building partial density inside the localisation region
+!>   Here starts the routine for building partial density inside the localisation region
 !!   This routine should be treated as a building-block for the linear scaling code
 !!
 !!
@@ -351,9 +347,7 @@ END SUBROUTINE local_partial_density
 
 
 
-!> BigDFT/partial_density
-!! :
-!!
+!>
 !!
 subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      hfac,nscatterarr,spinsgn,psir,rho_p)
@@ -458,9 +452,7 @@ END SUBROUTINE partial_density
 
 
 
-!> BigDFT/partial_density_free
-!! :
-!!
+!>
 !!
 subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      hfac,nscatterarr,spinsgn,psir,rho_p,&
@@ -569,9 +561,7 @@ END SUBROUTINE partial_density_free
 
 
 
-!> BigDFT/symmetrise_density
-!! :
-!!
+!>
 !!
 subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho,&
      symObj,irrzon,phnons)

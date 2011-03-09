@@ -1,6 +1,4 @@
-!> BigDFT/system_size
-!! :
-!!   Calculates the overall size of the simulation cell 
+!>   Calculates the overall size of the simulation cell 
 !!   and shifts the atoms such that their position is the most symmetric possible.
 !!   Assign these values to the global localisation region descriptor.
 !!
@@ -259,9 +257,7 @@ END SUBROUTINE system_size
 
 
 
-!> BigDFT/correct_grid
-!! :
-!!   Here the dimensions should be corrected in order to 
+!>   Here the dimensions should be corrected in order to 
 !!   allow the fft for the preconditioner and for Poisson Solver
 !!
 !!
@@ -309,9 +305,7 @@ END SUBROUTINE correct_grid
 
 
 
-!> BigDFT/num_segkeys
-!! :
-!!   Calculates the length of the keys describing a wavefunction data structure
+!>   Calculates the length of the keys describing a wavefunction data structure
 !!
 !!
 subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
@@ -368,9 +362,7 @@ END SUBROUTINE num_segkeys
 
 
 
-!> BigDFT/segkeys
-!! :
-!!   Calculates the keys describing a wavefunction data structure
+!>   Calculates the keys describing a wavefunction data structure
 !!
 !!
 subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
@@ -422,9 +414,7 @@ END SUBROUTINE segkeys
 
 
 
-!> BigDFT/fill_logrid
-!! :
-!!   set up an array logrid(i1,i2,i3) that specifies whether the grid point
+!>   set up an array logrid(i1,i2,i3) that specifies whether the grid point
 !!   i1,i2,i3 is the center of a scaling function/wavelet
 !!
 !!
@@ -522,9 +512,7 @@ END SUBROUTINE fill_logrid
 
 
 
-!> BigDFT/make_bounds
-!! :
-!!
+!>
 !!
 !!
 subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)

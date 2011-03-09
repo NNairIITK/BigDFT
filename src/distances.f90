@@ -1,6 +1,4 @@
-!> BigDFT/find_angles
-!! :
-!!    Analyse atomic configurations
+!>    Analyse atomic configurations
 !!
 !! Copyright:
 !!

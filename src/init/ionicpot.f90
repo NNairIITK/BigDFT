@@ -458,9 +458,7 @@ END SUBROUTINE IonicEnergyandForces
 
 
 
-!> BigDFT/createIonicPotential
-!! :
-!!
+!>
 !!
 !!
 subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
@@ -1046,9 +1044,7 @@ END SUBROUTINE createIonicPotential
 
 
 
-!> BigDFT/ind_position
-!! :
-!!   Determine the index in which the potential must be inserted, following the BC
+!>   Determine the index in which the potential must be inserted, following the BC
 !!   Determine also whether the index is inside or outside the box for free BC
 !!
 !!
@@ -1076,9 +1072,7 @@ END SUBROUTINE ind_positions
 
 
 
-!> BigDFT/sum_erfcr
-!! :
-!!
+!>
 !!
 !!
 subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
@@ -1127,9 +1121,7 @@ END SUBROUTINE sum_erfcr
 
 
 
-!> BigDFT/ext_buffers
-!! :
-!!
+!>
 !!
 !!
 subroutine ext_buffers(periodic,nl,nr)
@@ -1148,9 +1140,7 @@ END SUBROUTINE ext_buffers
 
 
 
-!> BigDFT/CounterIonPotential
-!! :
-!!
+!>
 !!
 !!
 subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&

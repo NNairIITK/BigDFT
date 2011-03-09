@@ -1,6 +1,4 @@
-!> BigDFT/plot_gatom_basis
-!! :
-!!   Plot all the elements of the gaussian basis for a given diffusion center
+!>   Plot all the elements of the gaussian basis for a given diffusion center
 !!   provide also the basis set in which the atomic density is expressed
 !!   attention: it works only when the exponenets are always of the same type
 !!              which is typical of gatom
@@ -248,9 +246,7 @@ end function combine_exponents
 
 
 
-!> BigDFT/nonblocking_transposition
-!! :
-!!    Perform a set of non-blocking send-receive operations
+!>    Perform a set of non-blocking send-receive operations
 !!
 !!
 subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
@@ -286,9 +282,7 @@ END SUBROUTINE nonblocking_transposition
 
 
 
-!> BigDFT/overlap_and_gather
-!! :
-!!
+!>
 !!
 subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovrlp,orbs,&
      norbsc_arr,psi,hpsi,ovrlp)
@@ -446,9 +440,7 @@ END SUBROUTINE overlap_and_gather
 
 
 
-!> BigDFT/gaussian_overlap
-!! :
-!!   Overlap matrix between two different basis structures
+!>   Overlap matrix between two different basis structures
 !!
 !!
 subroutine gaussian_overlap(A,B,ovrlp)
@@ -521,9 +513,7 @@ END SUBROUTINE gaussian_overlap
 
 
 
-!> BigDFT/gbasovrlp
-!! :
-!!   Calculates the scalar product between two shells
+!>   Calculates the scalar product between two shells
 !!   by considering only the nonzero coefficients
 !!   actual building block for calculating overlap matrix
 !!   inserted work arrays for calculation
@@ -564,9 +554,7 @@ END SUBROUTINE gbasovrlp
 
 
 
-!> BigDFT/kinetic_overlap
-!! :
-!!   Overlap kinetic matrix between two different basis structures
+!>   Overlap kinetic matrix between two different basis structures
 !!   the kinetic operator is applicated on the A basis structure
 !!
 !!
@@ -640,9 +628,7 @@ END SUBROUTINE kinetic_overlap
 
 
 
-!> BigDFT/kineticovrlp
-!! :
-!!   Calculates the scalar product between two shells
+!>   Calculates the scalar product between two shells
 !!   by considering only the nonzero coefficients
 !!   actual building block for calculating overlap matrix
 !!   inserted work arrays for calculation
@@ -683,9 +669,7 @@ END SUBROUTINE kineticovrlp
 
 
 
-!> BigDFT/potential_overlap
-!! :
-!!   Overlap kinetic matrix between two different basis structures
+!>   Overlap kinetic matrix between two different basis structures
 !!   the kinetic operator is applicated on the A basis structure
 !!
 !!

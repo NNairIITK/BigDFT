@@ -68,9 +68,7 @@ END SUBROUTINE system_properties
 
 
 
-!> BigDFT/calculate_rhocore
-!! :
-!!  Check for the need of a core density and fill the rhocore array which
+!>  Check for the need of a core density and fill the rhocore array which
 !!  should be passed at the rhocore pointer
 !!
 subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
@@ -159,9 +157,7 @@ END SUBROUTINE calculate_rhocore
 
 
 
-!> BigDFT/read_system_variables
-!! :
-!!   Assign some of the physical system variables
+!>   Assign some of the physical system variables
 !!   Performs also some cross-checks with other variables
 !!
 !!   The pointer in atoms structure have to be associated or nullified.
@@ -656,9 +652,7 @@ END SUBROUTINE read_system_variables
 
 
 
-!> BigDFT/atomic_occupation_numbers
-!! :
-!!   Fix all the atomic occupation numbers of the atoms which has the same type
+!>   Fix all the atomic occupation numbers of the atoms which has the same type
 !!   look also at the input polarisation and spin
 !!   look at the file of the input occupation numbers and, if exists, modify the 
 !!   occupations accordingly
@@ -800,9 +794,7 @@ END SUBROUTINE atomic_occupation_numbers
 
 
 
-!> BigDFT/orbitals_descriptors
-!! :
-!!    Define the descriptors of the orbitals from a given norb
+!>    Define the descriptors of the orbitals from a given norb
 !!    It uses the cubic strategy for partitioning the orbitals
 !!
 !!
@@ -959,9 +951,7 @@ END SUBROUTINE orbitals_descriptors
 
 
 
-!> BigDFT/input_occup
-!! :
-!!    Fill the arrays occup and spinsgn
+!>    Fill the arrays occup and spinsgn
 !!    if iunit /=0 this means that the file 'input.occ' does exist and it opens
 !!
 !!

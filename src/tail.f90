@@ -1,6 +1,4 @@
-!> BigDFT/CalculateTailCorrection
-!! :
-!!  Calculate the finite size corrections over wavefunctions
+!>  Calculate the finite size corrections over wavefunctions
 !!  Conceived only for isolated Boundary Conditions
 !!
 !! Copyright:

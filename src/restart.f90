@@ -1,6 +1,4 @@
-!> BigDFT/copy_old_wavefunctions
-!! :
-!!  Copy old wavefunctions from psi to psi_old
+!>  Copy old wavefunctions from psi to psi_old
 !!
 !!
 !! Copyright:
@@ -83,9 +81,7 @@ END SUBROUTINE copy_old_wavefunctions
 
 
 
-!> BigDFT/reformatmywaves
-!! :
-!!   Reformat wavefunctions if the mesh have changed (in a restart)
+!>   Reformat wavefunctions if the mesh have changed (in a restart)
 !!
 !!
 subroutine reformatmywaves(iproc,orbs,at,&
@@ -282,9 +278,7 @@ END SUBROUTINE reformatmywaves
 
 
 
-!> BigDFT/readmywaves
-!! :
-!!  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
+!>  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !!  have changed
 !!
 !!
@@ -372,9 +366,7 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
 END SUBROUTINE readmywaves
 
 
-!> BigDFT/writemywaves
-!! :
-!!   Write all my wavefunctions in files by calling writeonewave
+!>   Write all my wavefunctions in files by calling writeonewave
 !!
 !!
 subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)

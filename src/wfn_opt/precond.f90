@@ -1,6 +1,4 @@
-!> BigDFT/preconditionall
-!! :
-!!    Calls the preconditioner for each orbital treated by the processor
+!>    Calls the preconditioner for each orbital treated by the processor
 !!
 !! Copyright:
 !!
@@ -1089,9 +1087,7 @@ subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
 END SUBROUTINE precond_proper
 
 
-!> BigDFT/precong
-!! :
-!!   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 !!   hpsi is the right hand side on input and the solution on output
 !!
 !!

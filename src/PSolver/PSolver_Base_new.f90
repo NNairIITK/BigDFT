@@ -1,6 +1,4 @@
-!> PSolver/G_PoissonSolver
-!! :
-!!  Parallel version of Poisson Solver
+!>  Parallel version of Poisson Solver
 !!  General version, for each boundary condition
 !!
 !! RESTRICTIONS on USAGE
@@ -591,9 +589,7 @@ subroutine G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt,zw)
 END SUBROUTINE G_switch_upcorn
 
 
-!> PSolver/P_unfill_downcorn
-!! :
-!!     (Based on suitable modifications of S.Goedecker routines)
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Restore data into output array
 !!
 !! SYNOPSIS
@@ -710,9 +706,7 @@ END SUBROUTINE C_fill_upcorn
 
 
 
-!> PSolver/scramble_P
-!! :
-!!     (Based on suitable modifications of S.Goedecker routines)
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Assign the correct planes to the work array zmpi2
 !!     in order to prepare for interprocessor data transposition.
 !!
@@ -760,9 +754,7 @@ END SUBROUTINE scramble_P
 
 
 
-!> PSolver/unscramble_P
-!! :
-!!     (Based on suitable modifications of S.Goedecker routines)
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Insert the correct planes of the work array zmpi2
 !!     in order to prepare for backward FFT transform
 !!
@@ -818,9 +810,7 @@ subroutine unscramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw)
 END SUBROUTINE unscramble_P
 
 
-!> PSolver/P_multkernel
-!! :
-!!     (Based on suitable modifications of S.Goedecker routines)
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Multiply with the kernel taking into account its symmetry
 !!     Conceived to be used into convolution loops
 !!
@@ -881,9 +871,7 @@ subroutine P_multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset)
 END SUBROUTINE P_multkernel
 
 
-!> PSolver/multkernel
-!! :
-!!     (Based on suitable modifications of S.Goedecker routines)
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Multiply with the kernel taking into account its symmetry
 !!     Conceived to be used into convolution loops
 !!
@@ -1006,9 +994,7 @@ subroutine G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,n1dim,md2,nd3,npro
 END SUBROUTINE G_unmpiswitch_downcorn
 
 
-!> PSolver/unfill_downcorn
-!! :
-!!     (Based on suitable modifications of S.Goedecker routines)
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Restore data into output array, calculating in the meanwhile
 !!     Hartree energy of the potential 
 !!
@@ -1100,9 +1086,7 @@ subroutine halfill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
 END SUBROUTINE halfill_upcorn
 
 
-!> PSolver/scramble_unpack
-!! :
-!!     (Based on suitable modifications of S.Goedecker routines)
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Assign the correct planes to the work array zmpi2
 !!     in order to prepare for interprocessor data transposition.
 !!     In the meanwhile, it unpacks the data of the HalFFT in order to prepare for
@@ -1181,9 +1165,7 @@ END SUBROUTINE scramble_unpack
 
 
  
-!> PSolver/unscramble_pack
-!! :
-!!     (Based on suitable modifications of S.Goedecker routines)
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Insert the correct planes of the work array zmpi2
 !!     in order to prepare for backward FFT transform
 !!     In the meanwhile, it packs the data in order to be transformed with the HalFFT 

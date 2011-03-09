@@ -1,6 +1,4 @@
-!> BigDFT/apply_hp_sd
-!! :
-!!   Applies the operator (KE+cprecr*I)*x=y
+!>   Applies the operator (KE+cprecr*I)*x=y
 !!   array x is input, array y is output
 !! See also the optimized version (apply_hp_sd_optim)
 !!
@@ -56,9 +54,7 @@ END SUBROUTINE apply_hp_sd
 
 
 
-!> BigDFT/apply_hp_scal
-!! :
-!!   See also the optimized version (apply_hp_scal_optim)
+!>   See also the optimized version (apply_hp_scal_optim)
 !!
 !!
 subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
@@ -103,9 +99,7 @@ END SUBROUTINE apply_hp_scal
 
 
 
-!> BigDFT/convolut_kinetic_per_sdc
-!! :
-!!   Applies the kinetic energy operator onto x to get y. Works for periodic BC
+!>   Applies the kinetic energy operator onto x to get y. Works for periodic BC
 !!   See also the optimized version (convolut_kinteic_per_sdc_optim)
 !!
 !!

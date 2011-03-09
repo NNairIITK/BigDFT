@@ -1,6 +1,4 @@
-!> BigDFT/razero
-!! :
-!!   Set to zero an array x(n)
+!>   Set to zero an array x(n)
 !!
 !!
 !!
@@ -18,9 +16,7 @@ END SUBROUTINE razero
 
 
 
-!> BigDFT/omp_razero
-!! :
-!!   Set to zero an array x(n): omp version of razero
+!>   Set to zero an array x(n): omp version of razero
 !!
 !!
 !!
@@ -42,9 +38,7 @@ END SUBROUTINE omp_razero
 
 
 
-!> BigDFT/tenminustwenty
-!! :
-!!   Set to 10^-20 an array x(n)
+!>   Set to 10^-20 an array x(n)
 !!
 !!
 !!
@@ -62,9 +56,7 @@ END SUBROUTINE tenminustwenty
 
 
 
-!> BigDFT/randomData
-!! :
-!!   To be used in the following function.
+!>   To be used in the following function.
 !!
 !!
 !!
@@ -80,9 +72,7 @@ end module randomData
 
 
 
-!> BigDFT/builtin_rand
-!! :
-!!   Random Number generator from Numerical Recipes
+!>   Random Number generator from Numerical Recipes
 !!   To be used for reproducibility of the results
 !!
 !!

@@ -1,6 +1,4 @@
-!> BigDFT/BigDFT
-!! :
-!!  Rotates the molecular structure such that its principal axis coincide with the x,y,z axis
+!>  Rotates the molecular structure such that its principal axis coincide with the x,y,z axis
 !!
 !!
 !! Copyright:

@@ -1,6 +1,4 @@
-!> BigDFT/createWavefunctionsDescriptors
-!! :
-!!   Calculates the descriptor arrays and nvctrp
+!>   Calculates the descriptor arrays and nvctrp
 !!   Calculates also the bounds arrays needed for convolutions
 !!   Refers this information to the global localisation region descriptor
 !!
@@ -182,9 +180,7 @@ END SUBROUTINE createWavefunctionsDescriptors
 
 
 
-!> BigDFT/createProjectorsArrays
-!! :
-!!   Determine localization region for all projectors, but do not yet fill the descriptor arrays
+!>   Determine localization region for all projectors, but do not yet fill the descriptor arrays
 !!
 !!
 subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
@@ -284,9 +280,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 END SUBROUTINE createProjectorsArrays
 
 
-!> BigDFT/input_wf_diag
-!! :
-!!   input guess wavefunction diagonalization
+!>   input guess wavefunction diagonalization
 !!
 !!
 subroutine input_wf_diag(iproc,nproc,at,&

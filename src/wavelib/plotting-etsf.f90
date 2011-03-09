@@ -1,6 +1,4 @@
-!> BigDFT/write_etsf_density
-!! :
-!!   Write a field in the ISF basis in the ETSF format
+!>   Write a field in the ISF basis in the ETSF format
 !!
 !!
 subroutine write_etsf_density(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
@@ -200,9 +198,7 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,
 END SUBROUTINE write_etsf_density
 
 
-!> BigDFT/read_etsf
-!! :
-!!   Read a field in the ISF basis in the ETSF format
+!>   Read a field in the ISF basis in the ETSF format
 !!
 !!
 !!

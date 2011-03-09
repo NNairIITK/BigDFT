@@ -1,6 +1,4 @@
-!> BigDFT/eleconf
-!! :
-!!   Give electronic configuration of atom
+!>   Give electronic configuration of atom
 !!
 !!
 !! Copyright:
@@ -1656,9 +1654,7 @@ END SUBROUTINE eleconf
 
 
 
-!> BigDFT/nzsymbol
-!! :
-!!   Give the symbol of element.
+!>   Give the symbol of element.
 subroutine nzsymbol(nzatom, symbol)
   implicit none
 ! Arguments
@@ -1686,9 +1682,7 @@ END SUBROUTINE nzsymbol
 
 
 
-!> BigDFT/correct_semicore
-!! :
-!!   Correct the electronic configuration for a given atomic charge
+!>   Correct the electronic configuration for a given atomic charge
 !!
 !!
 subroutine correct_semicore(nmax,lmax,ichg,neleconf,eleconf,nsccode)
@@ -1815,9 +1809,7 @@ END SUBROUTINE correct_semicore
 
 
 ! AMmodif  start
-!> BigDFT/modified_eleconf
-!! :
-!!   Give electronic configuration of atom (copied from eleconf).
+!>   Give electronic configuration of atom (copied from eleconf).
 !!   This modified version returns the hardest pseudo potential for the given atom.
 !!
 !! SYNOPSIS

@@ -1,6 +1,4 @@
-!> BigDFT/make_all_ib
-!! :
-!!   Cleaned version of the logrid_old.f90 in the unused directory (with newmethod=.true.)
+!>   Cleaned version of the logrid_old.f90 in the unused directory (with newmethod=.true.)
 !!
 !!
 !! Copyright:
@@ -106,9 +104,7 @@ END SUBROUTINE make_all_ib
 
 
 
-!> BigDFT/make_ib_inv
-!! :
-!!   This subroutine mimics the comb_grow_f one
+!>   This subroutine mimics the comb_grow_f one
 !!
 !!
 subroutine make_ib_inv(logrid_big,ibxy,ibzzx,ibyyzz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
@@ -283,9 +279,7 @@ subroutine ib_from_logrid(ib,logrid,ml1,mu1,ndat)
 END SUBROUTINE ib_from_logrid
 
 
-!> BigDFT/squares_1d
-!! :
-!!   Modifies the ib array
+!>   Modifies the ib array
 !!   so that it is made up of blocks of size 2
 !!   the localization region is enlarged as a result
 !!   works for even nfl2 only
@@ -317,9 +311,7 @@ END SUBROUTINE squares_1d
 
 
 
-!> BigDFT/squares
-!! :
-!!   Modifies the ib array 
+!>   Modifies the ib array 
 !!   so that it is made up of squares 2x2
 !!   the localization region is enlarged as a result
 !!

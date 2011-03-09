@@ -34,9 +34,7 @@ END SUBROUTINE comb_grow_all_hybrid
 
 
 
-!> BigDFT/comb_rot_grow_ib_3
-!! :
-!!   In one dimension,    
+!>   In one dimension,    
 !!   with optimised cycles
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
@@ -99,9 +97,7 @@ END SUBROUTINE comb_rot_grow_ib_3
 
 
 
-!> BigDFT/comb_rot_grow_ib_2
-!! :
-!!   In one dimension,    
+!>   In one dimension,    
 !!   with optimised cycles
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
@@ -182,9 +178,7 @@ END SUBROUTINE comb_rot_grow_ib_2
 
 
 
-!> BigDFT/comb_rot_grow_ib_1
-!! :
-!!   In one dimension,    
+!>   In one dimension,    
 !!   with optimised cycles
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter

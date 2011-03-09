@@ -1275,9 +1275,7 @@ END SUBROUTINE davidson
 
 
 
-!> BigDFT/Davidson_subspace_hamovr
-!! :
-!!   Generate upper triangular matrix in the subspace of Davidson algorithm
+!>   Generate upper triangular matrix in the subspace of Davidson algorithm
 !!
 !!
 subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)

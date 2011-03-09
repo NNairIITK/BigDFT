@@ -1,6 +1,4 @@
-!> BigDFT/restart_from_gaussians
-!! :
-!!  Restart from gaussian functions
+!>  Restart from gaussian functions
 !!
 !!
 !! Copyright:
@@ -50,9 +48,7 @@ END SUBROUTINE restart_from_gaussians
 
 
 
-!> BigDFT/read_gaussian_information
-!! :
-!!   Read information for gaussian basis set (from CP2K) or for restarting
+!>   Read information for gaussian basis set (from CP2K) or for restarting
 !!
 !!
 !!
@@ -142,9 +138,7 @@ END SUBROUTINE read_gaussian_information
 
 
 
-!> BigDFT/write_gaussian_information
-!! :
-!!   Write gaussian informatio for another program or for restarting
+!>   Write gaussian informatio for another program or for restarting
 !!
 !!
 !!
@@ -222,9 +216,7 @@ END SUBROUTINE write_gaussian_information
 
 
 
-!> BigDFT/gaussian_pswf_basis
-!! :
-!!   gaussian section
+!>   gaussian section
 !!   Create gaussian structure from input guess pseudo wavefunctions
 !!
 !!
@@ -469,9 +461,7 @@ END SUBROUTINE gaussian_pswf_basis
 
 
 
-!> BigDFT/gaussian_psp_basis
-!! :
-!!   Extract the pseudopotential basis
+!>   Extract the pseudopotential basis
 !! WARNING
 !!   This is not the complete PSP basis set. 
 !!   The radial power term is lacking in the gaussian descriptors should be added if needed
@@ -550,9 +540,7 @@ END SUBROUTINE gaussian_psp_basis
 
 
 
-!> BigDFT/gaussian_orthogonality
-!! :
-!!
+!>
 !!
 !!
 subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
@@ -651,9 +639,7 @@ END SUBROUTINE gaussian_orthogonality
 
 
 
-!> BigDFT/dual_gaussian_coefficients
-!! :
-!!
+!>
 !!
 !!
 subroutine dual_gaussian_coefficients(norbp,G,coeffs)
@@ -721,9 +707,7 @@ END SUBROUTINE dual_gaussian_coefficients
 
 
 
-!> BigDFT/normalize_shell
-!! :
-!!   Normalize a given atomic shell following the angular momentum
+!>   Normalize a given atomic shell following the angular momentum
 !!
 !!
 subroutine normalize_shell(ng,l,expo,coeff)
@@ -759,9 +743,7 @@ END SUBROUTINE normalize_shell
 
 
 
-!> BigDFT/gauinth
-!! :
-!!   Calculates \int_0^\infty \exp^{-a*x^2} x^l dx
+!>   Calculates \int_0^\infty \exp^{-a*x^2} x^l dx
 !!
 !!
 function gauinth(a,l)
@@ -792,9 +774,7 @@ END FUNCTION gauinth
 
 
 
-!> BigDFT/gprod
-!! :
-!!   Calculates a dot product between two differents gaussians times spherical harmonics
+!>   Calculates a dot product between two differents gaussians times spherical harmonics
 !!   valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
 !!   to be rearranged when only some of them is zero
 !!
@@ -842,9 +822,7 @@ END SUBROUTINE gprod
 
 
 
-!> BigDFT/kinprod
-!! :
-!!   Kinetic overlap between gaussians, based on cartesian coordinates
+!>   Kinetic overlap between gaussians, based on cartesian coordinates
 !!   calculates a dot product between two differents gaussians times spherical harmonics
 !!   valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
 !!   to be rearranged when only some of them is zero
@@ -898,9 +876,7 @@ END SUBROUTINE kinprod
 
 
 
-!> BigDFT/kinovrlp
-!! :
-!!   Calculates \int d^2/dx^2(\exp^{-a1*x^2} x^l1) \exp^{-a2*(x-d)^2} (x-d)^l2 dx
+!>   Calculates \int d^2/dx^2(\exp^{-a1*x^2} x^l1) \exp^{-a2*(x-d)^2} (x-d)^l2 dx
 !!   in terms of the govrlp function below
 !!
 !!
@@ -931,9 +907,7 @@ END FUNCTION kinovrlp
 
 
 
-!> BigDFT/govrlp
-!! :
-!!   Calculates \int \exp^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx
+!>   Calculates \int \exp^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx
 !!
 !!
 function govrlp(a1,a2,d,l1,l2)
@@ -990,9 +964,7 @@ END FUNCTION govrlp
 
 
 
-!> BigDFT/gauint
-!! :
-!!   Calculates \int \exp^{-a*(x-c)^2} x^l dx
+!>   Calculates \int \exp^{-a*(x-c)^2} x^l dx
 !!   this works ALSO when c/=0.d0
 !!
 !!
@@ -1057,9 +1029,7 @@ END FUNCTION gauint
 
 
 
-!> BigDFT/gauint0
-!! :
-!!   Calculates \int \exp^{-a*x^2} x^l dx
+!>   Calculates \int \exp^{-a*x^2} x^l dx
 !!   this works only when l is even (if not equal to zero)
 !!
 !!
@@ -1087,9 +1057,7 @@ END FUNCTION gauint0
 
 
 
-!> BigDFT/firstprod
-!! :
-!!
+!>
 !!
 !!
 function firstprod(p)
@@ -1111,9 +1079,7 @@ END FUNCTION firstprod
 
 
 
-!> BigDFT/rfac
-!! :
-!!
+!>
 !!
 !!
 function rfac(is,ie)
@@ -1133,9 +1099,7 @@ END FUNCTION rfac
 
 
 
-!> BigDFT/xfac
-!! :
-!!   With this function n!=xfac(1,n,0.d0)
+!>   With this function n!=xfac(1,n,0.d0)
 !!
 !!
 function xfac(is,ie,sh)
@@ -1159,9 +1123,7 @@ END FUNCTION xfac
 !End of the interesting part
 
 
-!> BigDFT/gauinti
-!! :
-!!   The same function but with integer factorials (valid ONLY if l<=18)
+!>   The same function but with integer factorials (valid ONLY if l<=18)
 !!   not a visible improvement in speed with respect to the analogous real
 !!
 !!
@@ -1223,9 +1185,7 @@ END FUNCTION gauinti
 
 
 
-!> BigDFT/secondprod1
-!! :
-!!   Valid if p<l/4 AND p/=0
+!>   Valid if p<l/4 AND p/=0
 !!
 !!
 function secondprod1(p,l)
@@ -1250,9 +1210,7 @@ END FUNCTION secondprod1
 
 
 
-!> BigDFT/secondprod2
-!! :
-!!   Valid if p>=l/4 AND p<l/3
+!>   Valid if p>=l/4 AND p<l/3
 !!
 !!
 function secondprod2(p,l)
@@ -1277,9 +1235,7 @@ END FUNCTION secondprod2
 
 
 
-!> BigDFT/ifac
-!! :
-!!   Integer version of factorial
+!>   Integer version of factorial
 !!
 !!
 function ifac(is,ie)
@@ -1296,9 +1252,7 @@ END FUNCTION ifac
 
 
 
-!> BigDFT/wavelets_to_gaussians
-!! :
-!!   Calculate the projection of norb wavefunctions on a gaussian basis set
+!>   Calculate the projection of norb wavefunctions on a gaussian basis set
 !!
 !!
 subroutine wavelets_to_gaussians(geocode,norbp,nspinor,n1,n2,n3,G,thetaphi,hx,hy,hz,wfd,psi,coeffs)
@@ -1329,9 +1283,7 @@ END SUBROUTINE wavelets_to_gaussians
 
 
 
-!> BigDFT/orbital_projection
-!! :
-!!   Calculate the projection of a given orbital on a gaussian basis centered on 
+!>   Calculate the projection of a given orbital on a gaussian basis centered on 
 !!   a set of points
 !!
 !!
@@ -1375,9 +1327,7 @@ END SUBROUTINE orbital_projection
 
 
 
-!> BigDFT/gaudim_check
-!! :
-!!
+!>
 !!
 !!
 subroutine gaudim_check(iexpo,icoeff,ishell,nexpo,ncoeff,nshltot)
@@ -1398,9 +1348,7 @@ END SUBROUTINE gaudim_check
 
 
 
-!> BigDFT/lsh_projection
-!! :
-!!   Calculate the projection of a gaussian for a given eigenspace of spherical harmonics
+!>   Calculate the projection of a gaussian for a given eigenspace of spherical harmonics
 !!   centered on a given point and rotated by theta(along z) and phi(along x)
 !!
 !!
@@ -1443,9 +1391,7 @@ END SUBROUTINE lsh_projection
 
 
 
-!> BigDFT/lsh_rotation
-!! :
-!!
+!>
 !!
 !!
 subroutine lsh_rotation(l,theta,phi,coeffs)
@@ -1491,9 +1437,7 @@ END SUBROUTINE lsh_rotation
 
 
 
-!> BigDFT/wavetogau
-!! :
-!!   Calculate the scalar product between a sum of gaussians times polynomials and a wavefunction
+!>   Calculate the scalar product between a sum of gaussians times polynomials and a wavefunction
 !!   \int dx dy dz 
 !!             \sum_i=1..ntp fac_arr(i) {
 !!                  \sum_j=1..nterm psiat(j) [exp(-r^2/(2*(xp(j)^2)))] 
@@ -1626,9 +1570,7 @@ END SUBROUTINE wavetogau
 
 
 
-!> BigDFT/rotation_matrix
-!! :
-!!   Coefficients of the rotation matrix
+!>   Coefficients of the rotation matrix
 !!
 !!
 subroutine rotation_matrix(l,t,p,hrot)

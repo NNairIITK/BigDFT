@@ -1,6 +1,4 @@
-!> H_potential/H_potential
-!! :
-!!    Calculate the Hartree potential by solving Poisson equation 
+!>    Calculate the Hartree potential by solving Poisson equation 
 !!       $\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$
 !!    from a given $\rho$, 
 !!    for different boundary conditions an for different data distributions.
@@ -318,9 +316,7 @@ END SUBROUTINE H_potential
 
 
 
-!> PSolver/PSolver
-!! :
-!!    Calculate the Poisson equation $\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$
+!>    Calculate the Poisson equation $\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$
 !!    from a given $\rho$, for different boundary conditions an for different data distributions.
 !!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
 !!
@@ -806,9 +802,7 @@ END SUBROUTINE PSolver
 
 
 
-!> PSolver/PSolverNC
-!! :
-!!    Transforms a generalized spin density into a pointwise collinear spin density which is
+!>    Transforms a generalized spin density into a pointwise collinear spin density which is
 !!    then passed to the Poisson Solver (PSolver). 
 !!
 !!
@@ -1000,9 +994,7 @@ END SUBROUTINE PSolverNC
 
 
 
-!> PSolver/PS_dim4allocation
-!! :
-!!    Calculate the dimensions needed for the allocation of the arrays 
+!>    Calculate the dimensions needed for the allocation of the arrays 
 !!    related to the Poisson Solver
 !!
 !! SYNOPSIS
@@ -1124,9 +1116,7 @@ END SUBROUTINE PS_dim4allocation
 
 
 
-!> PSolver/xc_dimensions
-!! :
-!!   Calculate the dimensions to be used for the XC part, taking into account also
+!>   Calculate the dimensions to be used for the XC part, taking into account also
 !!   the White-bird correction which should be made for some GGA functionals
 !!
 !! SYNOPSIS
@@ -1233,9 +1223,7 @@ END SUBROUTINE xc_dimensions
 
 
 
-!> PSolver/P_FFT_dimensions
-!! :
-!!    Calculate four sets of dimension needed for the calculation of the
+!>    Calculate four sets of dimension needed for the calculation of the
 !!    convolution for the periodic system
 !!
 !! SYNOPSIS
@@ -1331,9 +1319,7 @@ END SUBROUTINE P_FFT_dimensions
 
 
 
-!> PSolver/S_FFT_dimensions
-!! :
-!!    Calculate four sets of dimension needed for the calculation of the
+!>    Calculate four sets of dimension needed for the calculation of the
 !!    convolution for the surface system
 !!
 !! SYNOPSIS
@@ -1436,9 +1422,7 @@ END SUBROUTINE S_FFT_dimensions
 
 
 
-!> PSolver/F_FFT_dimensions
-!! :
-!!    Calculate four sets of dimension needed for the calculation of the
+!>    Calculate four sets of dimension needed for the calculation of the
 !!    zero-padded convolution
 !!
 !! SYNOPSIS

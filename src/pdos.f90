@@ -1,6 +1,4 @@
-!> BigDFT/local_analysis
-!! :
-!!    Perform all the projection associated to local variables
+!>    Perform all the projection associated to local variables
 !!
 !!
 !! Copyright:

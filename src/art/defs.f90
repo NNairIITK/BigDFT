@@ -1,6 +1,4 @@
-!> art/defs
-!! :
-!!    This module defines all variables used accross the program ART01
+!>    This module defines all variables used accross the program ART01
 !!
 !!
 !! Copyright:

@@ -1,6 +1,4 @@
-!> BigDFT/random
-!! :
-!!    Random number generator (from "Numerical Recipes").
+!>    Random number generator (from "Numerical Recipes").
 !!    Returns a uniform random deviate between 0.0 and 1.0.
 !!    Set idum to any negative value to initialize or
 !!    reinitialize the sequence.

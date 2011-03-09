@@ -1,6 +1,4 @@
-!> BigDFT/gauss_to_daub
-!! :
-!!   Project gaussian functions in a mesh of Daubechies scaling functions
+!>   Project gaussian functions in a mesh of Daubechies scaling functions
 !!   Gives the expansion coefficients of :
 !!     factor*x**n_gau*exp(-(1/2)*(x/gau_a)**2)
 !! INPUT
@@ -248,9 +246,7 @@ contains
 END SUBROUTINE gauss_to_daub
 
 
-!> BigDFT/gauss_to_daub_k
-!! :
-!!   Project gaussian functions in a mesh of Daubechies scaling functions
+!>   Project gaussian functions in a mesh of Daubechies scaling functions
 !!   Gives the expansion coefficients of :
 !!     factor*x**n_gau*exp(-(1/2)*(x/gau_a)**2)
 !!   Multiply it for the k-point factor exp(Ikx)

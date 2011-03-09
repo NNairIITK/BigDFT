@@ -1,6 +1,4 @@
-!> BigDFT/wnrm_wrap
-!! :
-!!    Wrapper for simplifying the call
+!>    Wrapper for simplifying the call
 !!
 !! Copyright:
 !!

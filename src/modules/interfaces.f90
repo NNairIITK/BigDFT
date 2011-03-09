@@ -1,6 +1,4 @@
-!> BigDFT/interfaces
-!! :
-!!  Modules which contains all interfaces
+!>  Modules which contains all interfaces
 !!
 !!
 !!  Interfaces of:

@@ -1,6 +1,4 @@
-!> BigDFT/test_forces
-!! :
-!!    Runs BigDFT and test whether the forces are the 
+!>    Runs BigDFT and test whether the forces are the 
 !!    derivative of the energy.
 !!    Performs the integration of the calculated forces over
 !!    some random displacement and compare the result with the 

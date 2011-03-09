@@ -1,6 +1,4 @@
-!> BigDFT/createKernel
-!! :
-!!    Allocate a pointer which corresponds to the zero-padded FFT slice needed for
+!>    Allocate a pointer which corresponds to the zero-padded FFT slice needed for
 !!    calculating the convolution with the kernel expressed in the interpolating scaling
 !!    function basis. The kernel pointer is unallocated on input, allocated on output.
 !!

@@ -1,6 +1,4 @@
-!> BigDFT/local_hamiltonian
-!! :
-!!   Calculate the action of the local hamiltonian on the orbitals
+!>   Calculate the action of the local hamiltonian on the orbitals
 !!
 !! Copyright:
 !!
@@ -124,9 +122,7 @@ END SUBROUTINE local_hamiltonian
 
 
 
-!> BigDFT/transpose_for_kpoints
-!! :
-!!   Transpose the wavefunction into a real and imaginary part to be treated with k-points
+!>   Transpose the wavefunction into a real and imaginary part to be treated with k-points
 !!   to be used only when nspinor=2 or 4
 !!   here the dimensions are n1->n1+1
 !!
@@ -183,9 +179,7 @@ END SUBROUTINE transpose_for_kpoints
 
 
 
-!> BigDFT/apply_potential
-!! :
-!!   routine for applying the local potentials
+!>   routine for applying the local potentials
 !!   supports the non-collinear case, the buffer for tails and different Boundary Conditions
 !!   Optimal also for the complex wavefuntion case
 !!
@@ -328,9 +322,7 @@ END SUBROUTINE apply_potential
 
 
 
-!> BigDFT/realspace
-!! :
-!!
+!>
 !!
 subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   use module_base
@@ -359,9 +351,7 @@ END SUBROUTINE realspace
 
 
 
-!> BigDFT/realspace_nbuf
-!! :
-!!
+!>
 !!
 subroutine realspace_nbuf(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
   implicit none
@@ -410,9 +400,7 @@ END SUBROUTINE realspace_nbuf
 
 
 
-!> BigDFT/realspaceINOUT
-!! :
-!!
+!>
 !!
 subroutine realspaceINOUT(ibyyzz_r,pot,psirIN,psirOUT,epot,n1,n2,n3)
   implicit none
@@ -442,9 +430,7 @@ END SUBROUTINE realspaceINOUT
 
 
 
-!> BigDFT/realspaceINOUT_nbuf
-!! :
-!!
+!>
 !!
 subroutine realspaceINOUT_nbuf(ibyyzz_r,pot,psirIN,psirOUT,epot,nb1,nb2,nb3,nbuf)
   implicit none
@@ -494,9 +480,7 @@ END SUBROUTINE realspaceINOUT_nbuf
 
 
 
-!> BigDFT/realspaceINPLACE
-!! :
-!!
+!>
 !!
 subroutine realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   implicit none
@@ -554,9 +538,7 @@ END SUBROUTINE realspaceINPLACE
 
 
 
-!> BigDFT/applyprojectorsonthefly
-!! :
-!!   Calculate on-the fly each projector for each atom, then applies the projectors 
+!>   Calculate on-the fly each projector for each atom, then applies the projectors 
 !!   to all distributed orbitals
 !!
 !!
@@ -636,9 +618,7 @@ END SUBROUTINE applyprojectorsonthefly
 
 
 
-!> BigDFT/apply_atproj_iorb
-!! :
-!!   Applies the projector associated on a given atom on a corresponding orbital
+!>   Applies the projector associated on a given atom on a corresponding orbital
 !!
 !!
 subroutine apply_atproj_iorb(iat,iorb,istart_c,at,orbs,wfd,nlpspd,proj,psi,hpsi,eproj)
@@ -695,9 +675,7 @@ END SUBROUTINE apply_atproj_iorb
 
 
 
-!> BigDFT/applyprojector
-!! :
-!!
+!>
 !!
 subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
@@ -804,9 +782,7 @@ END SUBROUTINE applyprojector
 
 
 
-!> BigDFT/applyprojector_old
-!! :
-!!
+!>
 !!
 subroutine applyprojector_old(l,i,psppar,npspcode,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
@@ -959,9 +935,7 @@ END SUBROUTINE applyprojector_old
 
 
 
-!> BigDFT/orbs_in_kpt
-!! :
-!!   Find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
+!>   Find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
 !!
 !!
 subroutine orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
@@ -997,9 +971,7 @@ END SUBROUTINE orbs_in_kpt
 
 
 
-!> BigDFT/ncplx_kpt
-!! :
-!!   Determine whether the k-point is complex of real
+!>   Determine whether the k-point is complex of real
 !!   Find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
 !!
 !!

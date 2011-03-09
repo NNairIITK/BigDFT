@@ -1,6 +1,4 @@
-!> BigDFT/analyse_per
-!! :
-!!   Analysis wavelet transformation in periodic BC
+!>   Analysis wavelet transformation in periodic BC
 !!   The input array y is NOT overwritten
 !!
 !! Copyright:

@@ -1,6 +1,4 @@
-!> BigDFT/two_center_two_electrons
-!! :
-!!
+!>
 !! Copyright:
 !!
 !!   Copyright (C) 2010 BigDFT group 
@@ -90,9 +88,7 @@ END SUBROUTINE two_center_two_electrons
 
 
 
-!> BigDFT/atomic_charges_york
-!! :
-!!   calculate atomic charges using Lee, York and Yang method 
+!>   calculate atomic charges using Lee, York and Yang method 
 !!   Ref: J.Chem.Phys. 102(19),7549 (1995)
 !!   use a basis of error functions centered on the atoms, with atom-defined radii
 !!
@@ -512,9 +508,7 @@ subroutine assign_atomic_radii_york(at,radii)
      !end if
   end do
 END SUBROUTINE assign_atomic_radii_york
-!> BigDFT/gaussian_hermite_basis
-!! :
-!!   Gaussian basis associated to Hermite Polyomials multiplied by s-terms
+!>   Gaussian basis associated to Hermite Polyomials multiplied by s-terms
 !!   given by the radii
 !!
 !!
@@ -582,9 +576,7 @@ subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
 END SUBROUTINE gaussian_hermite_basis
 
 
-!> BigDFT/calculate_rho
-!! :
-!!
+!>
 !!
 !!
 subroutine calculate_rho(iproc,nproc,geocode,nat,radii,rxyz,hxh,hyh,hzh,&
@@ -703,9 +695,7 @@ END SUBROUTINE calculate_rho
 
 
 
-!> BigDFT/kinetic_overlap_h
-!! :
-!!   Overlap kinetic matrix between two different basis structures
+!>   Overlap kinetic matrix between two different basis structures
 !!   the kinetic operator is applicated on the A basis structure
 !!   The basis structure is supposed to be based on s-functions times Hermite polynomials
 !!
@@ -782,9 +772,7 @@ END SUBROUTINE kinetic_overlap_h
 
 
 
-!> BigDFT/kineticovrlp_h
-!! :
-!!   Calculates the scalar product between two shells
+!>   Calculates the scalar product between two shells
 !!   by considering only the nonzero coefficients
 !!   actual building block for calculating overlap matrix
 !!   inserted work arrays for calculation
@@ -826,9 +814,7 @@ END SUBROUTINE kineticovrlp_h
 
 
 
-!> BigDFT/kinprod_h
-!! :
-!!  Kinetic overlap between gaussians, based on cartesian coordinates
+!>  Kinetic overlap between gaussians, based on cartesian coordinates
 !!  calculates a dot product between two differents gaussians times spherical harmonics
 !!  only hermite polynomials
 !!
@@ -882,9 +868,7 @@ END SUBROUTINE kinprod_h
 
 
 
-!> BigDFT/calc_coeff_hermite_r2
-!! :
-!!   
+!>   
 !!
 !!
 !!
@@ -1015,9 +999,7 @@ subroutine gaussians_to_wavelets_new_h(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,ps
 END SUBROUTINE gaussians_to_wavelets_new_h
 
 
-!> BigDFT/gaussians_to_wavelets_orb_h
-!! :
-!!
+!>
 !!
 !!
 subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
@@ -1157,9 +1139,7 @@ END SUBROUTINE gaussians_to_wavelets_orb_h
 
 
 
-!> BigDFT/gaussian_overlap_h
-!! :
-!!   Overlap matrix between two different basis structures
+!>   Overlap matrix between two different basis structures
 !!   The first one is a gaussian hermite basis
 !!
 !!
@@ -1234,9 +1214,7 @@ END SUBROUTINE gaussian_overlap_h
 
 
 
-!> BigDFT/gbasovrlp_h
-!! :
-!!   Calculates the scalar product between two shells
+!>   Calculates the scalar product between two shells
 !!   by considering only the nonzero coefficients
 !!   actual building block for calculating overlap matrix
 !!   inserted work arrays for calculation

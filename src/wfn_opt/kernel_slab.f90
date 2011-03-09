@@ -1,6 +1,4 @@
-!> BigDFT/hit_with_kernel_slab
-!! :
-!!   Hits the input array x with the kernel
+!>   Hits the input array x with the kernel
 !!   ((-1/2\Delta+C)_{ij})^{-1}
 !! See the optimized version (hit_kernel_slab_optim) and
 !!     non-optimized version (hit_kernal_slab_simple)
@@ -97,9 +95,7 @@ END SUBROUTINE hit_with_kernel_slab
 
 
 
-!> BigDFT/slab_invert
-!! :
-!!
+!>
 !!
 !!
 subroutine slab_invert(n1,n2,n3,z,kern_k1,kern_k3,c,hgrid)
@@ -170,9 +166,7 @@ END SUBROUTINE slab_invert
 
 
 
-!> BigDFT/make_kernel_slab
-!! :
-!!  Construct the kernel (-1/2 d^2/dx^2)_{ij}
+!>  Construct the kernel (-1/2 d^2/dx^2)_{ij}
 !!  at a real space grid with grid size hgrid
 !!  and then fourier transform it to momentum space
 !!

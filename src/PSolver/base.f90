@@ -1,6 +1,4 @@
-!> PSolver/module_base
-!! :
-!!  Modules which contains the low level definitions, as well as some profiling procedures
+!>  Modules which contains the low level definitions, as well as some profiling procedures
 !!  in order to have a standalone PSolver version.
 !!
 !!

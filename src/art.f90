@@ -1,6 +1,4 @@
-!> BigDFT/art90
-!! :
-!!  Main program to use BigDFT with art nouveau method
+!>  Main program to use BigDFT with art nouveau method
 !!
 !!
 !! Copyright:
@@ -216,9 +214,7 @@ end program art90
 
 
 
-!> art/print_newevent
-!! :
-!!   This subroutine prints the initial details for a new events
+!>   This subroutine prints the initial details for a new events
 !!
 !!
 subroutine print_newevent(ievent_current,temperat)

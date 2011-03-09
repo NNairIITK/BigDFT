@@ -1,6 +1,4 @@
-!> BigDFT/minimization
-!! :
-!!   Define the type parameterminimization
+!>   Define the type parameterminimization
 !!
 !!
 !! Copyright:
@@ -45,9 +43,7 @@ module minpar
 end module minpar
 
 
-!> BigDFT/geopt_init
-!! :
-!!   Geometry optimization, parametrisation routine.
+!>   Geometry optimization, parametrisation routine.
 !!
 !!
 subroutine geopt_init()
@@ -74,9 +70,7 @@ END SUBROUTINE geopt_init
 
 
 
-!> BigDFT/geopt_set_verbosity
-!! :
-!!   Geometry optimization, parametrisation routine.
+!>   Geometry optimization, parametrisation routine.
 !!
 !!
 subroutine geopt_set_verbosity(verbosity_)
@@ -89,9 +83,7 @@ END SUBROUTINE geopt_set_verbosity
 
 
 
-!> BigDFT/geopt
-!! :
-!!   Geometry optimization
+!>   Geometry optimization
 !!
 !!
 subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
@@ -196,9 +188,7 @@ END SUBROUTINE geopt
 
 
 
-!> BigDFT/ab6md
-!! :
-!!  Molecular Dynamics
+!>  Molecular Dynamics
 !!
 !!
 subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
@@ -321,9 +311,7 @@ subroutine timeleft(tt)
 END SUBROUTINE timeleft
 
 
-!> BigDFT/conjgrad
-!! :
-!!  Conjugate gradient method
+!>  Conjugate gradient method
 !!
 !!
 subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
@@ -626,9 +614,7 @@ END SUBROUTINE conjgrad
 
 
 
-!> BigDFT/steepdes
-!! :
-!!  Steepest descent method
+!>  Steepest descent method
 !!
 !!
 subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
@@ -1246,9 +1232,7 @@ subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
 END SUBROUTINE transforce_forfluct
 
 
-!> BigDFT/rundiis
-!! :
-!!  DIIS relax. Original source from ART from N. Mousseau.
+!>  DIIS relax. Original source from ART from N. Mousseau.
 !!  Adaptations to BigDFT by D. Caliste.
 !!
 !!
@@ -1449,9 +1433,7 @@ END SUBROUTINE rundiis
 
 
  
-!> BigDFT/lbfgsdriver
-!! :
-!!   Driver for the LBFGS routine found on the Nocedal Homepage
+!>   Driver for the LBFGS routine found on the Nocedal Homepage
 !!   The subroutines have only been modified slightly, so a VIMDIFF will show all modifications!
 !!   This is helpfull when we are looking for the source of problems during BFGS runs
 !!

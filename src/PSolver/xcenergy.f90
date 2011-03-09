@@ -1,6 +1,4 @@
-!> PSolver/calc_rhocore_iat
-!! :
-!!    Calculate the array of the core density for the atom iat
+!>    Calculate the array of the core density for the atom iat
 !!
 !!
 !! Copyright:
@@ -153,9 +151,7 @@ END SUBROUTINE calc_rhocore_iat
 
 
 
-!> PSolver/XC_potential
-!! :
-!! Given a charge density, calculates the exchange-correlation potential
+!> Given a charge density, calculates the exchange-correlation potential
 !!
 !! SYNOPSIS
 !!    geocode  Indicates the boundary conditions (BC) of the problem, useful for gradients
@@ -529,9 +525,7 @@ END SUBROUTINE XC_potential
 
 
 
-!> PSolver/xc_energy_new
-!! :
-!!    Calculate the XC terms from the given density in a distributed way.
+!>    Calculate the XC terms from the given density in a distributed way.
 !!    it assign also the proper part of the density to the zf array 
 !!    which will be used for the core of the FFT procedure.
 !!    Following the values of ixc and of sumpion, the array pot_ion is either summed or assigned
@@ -851,9 +845,7 @@ END SUBROUTINE xc_energy_new
 
 
 
-!> PSolver/xc_energy
-!! :
-!!    Calculate the XC terms from the given density in a distributed way.
+!>    Calculate the XC terms from the given density in a distributed way.
 !!    it assign also the proper part of the density to the zf array 
 !!    which will be used for the core of the FFT procedure.
 !!    Following the values of ixc and of sumpion, the array pot_ion is either summed or assigned
@@ -1342,9 +1334,7 @@ END SUBROUTINE xc_energy
 
 
 
-!> PSolver/vxcpostprocessing
-!! :
-!! Correct the XC potential with the White-Bird formula, to be used for the 
+!> Correct the XC potential with the White-Bird formula, to be used for the 
 !! GGA case. Works either in parallel of in serial, by proper change of the 
 !! arguments.
 !!

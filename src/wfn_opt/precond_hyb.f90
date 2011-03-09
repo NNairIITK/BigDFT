@@ -198,9 +198,7 @@ END SUBROUTINE precong_per_hyb
 
 
 
-!> BigDFT/apply_hp_hyb
-!! :
-!!   Applies the operator (KE+cprecr*I)*x=y
+!>   Applies the operator (KE+cprecr*I)*x=y
 !!   array x is input, array y is output
 !!
 !!

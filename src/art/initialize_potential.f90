@@ -1,6 +1,4 @@
-!> bart/initialize_potential
-!! :
-!!   Initialize the potential
+!>   Initialize the potential
 !!
 !! Copyright:
 !!
@@ -37,9 +35,7 @@ END SUBROUTINE initialize_potential
 
 
 
-!> bart/finalise_potential
-!! :
-!!   Finalize the potential
+!>   Finalize the potential
 !!
 !!
 subroutine finalise_potential()

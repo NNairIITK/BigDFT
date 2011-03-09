@@ -1,6 +1,4 @@
-!> PSolver/scaling_function
-!! :
-!!   Calculate the values of a scaling function in real uniform grid
+!>   Calculate the values of a scaling function in real uniform grid
 !!
 !!
 !! Copyright:
@@ -100,9 +98,7 @@ END SUBROUTINE scaling_function
 
 
 
-!> PSolver/wavelet_function
-!! :
-!!   Calculate the values of the wavelet function in a real uniform mesh.
+!>   Calculate the values of the wavelet function in a real uniform mesh.
 !!
 !!
 !!
@@ -191,9 +187,7 @@ END SUBROUTINE wavelet_function
 
 
 
-!> PSolver/scf_recursion
-!! :
-!!   Do iterations to go from p0gauss to pgauss
+!>   Do iterations to go from p0gauss to pgauss
 !!   order interpolating scaling function
 !!
 !!
@@ -242,9 +236,7 @@ END SUBROUTINE scf_recursion
 
 
 
-!> PSolver/zero
-!! :
-!!   Set to zero an array x(n)
+!>   Set to zero an array x(n)
 !!
 !!
 !!
@@ -262,9 +254,7 @@ END SUBROUTINE zero
 
 
 
-!> PSolver/for_trans_8
-!! :
-!!   forward wavelet transform
+!>   forward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -313,9 +303,7 @@ END SUBROUTINE for_trans_8
 
 
 
-!> PSolver/back_trans_8
-!! :
-!!
+!>
 !!
 !!
 subroutine back_trans_8(nd,nt,x,y)
@@ -364,9 +352,7 @@ END SUBROUTINE back_trans_8
 
 
 
-!> PSolver/ftest_8
-!! :
-!!   Tests the 4 orthogonality relations of the filters
+!>   Tests the 4 orthogonality relations of the filters
 !!
 !!
 !!
@@ -420,9 +406,7 @@ END SUBROUTINE ftest_8
 
 
 
-!> PSolver/scf_recursion_8
-!! :
-!!   Do iterations to go from p0gauss to pgauss
+!>   Do iterations to go from p0gauss to pgauss
 !!   8th-order interpolating scaling function
 !!
 !!
@@ -467,9 +451,7 @@ END SUBROUTINE scf_recursion_8
 
 
 
-!> PSolver/for_trans_14
-!! :
-!!   forward wavelet transform
+!>   forward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -517,9 +499,7 @@ END SUBROUTINE for_trans_14
 
 
 
-!> PSolver/back_trans_14
-!! :
-!!   backward wavelet transform
+!>   backward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -568,9 +548,7 @@ END SUBROUTINE back_trans_14
 
 
 
-!> PSolver/ftest_14
-!! :
-!!   Tests the 4 orthogonality relations of the filters
+!>   Tests the 4 orthogonality relations of the filters
 !!
 !!
 !!
@@ -624,9 +602,7 @@ END SUBROUTINE ftest_14
 
 
 
-!> PSolver/scf_recursion_14
-!! :
-!!   Do iterations to go from p0gauss to pgauss
+!>   Do iterations to go from p0gauss to pgauss
 !!   14th-order interpolating scaling function
 !!
 !!
@@ -671,9 +647,7 @@ END SUBROUTINE scf_recursion_14
 
 
 
-!> PSolver/for_trans_16
-!! :
-!!   forward wavelet transform
+!>   forward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -721,9 +695,7 @@ END SUBROUTINE for_trans_16
 
 
 
-!> PSolver/back_trans_16
-!! :
-!!   backward wavelet transform
+!>   backward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -771,9 +743,7 @@ END SUBROUTINE back_trans_16
 
 
 
-!> PSolver/ftest_16
-!! :
-!!   Tests the 4 orthogonality relations of the filters
+!>   Tests the 4 orthogonality relations of the filters
 !!
 !!
 !!
@@ -827,9 +797,7 @@ END SUBROUTINE ftest_16
 
 
 
-!> PSolver/scf_recursion_16
-!! :
-!!   Do iterations to go from p0gauss to pgauss
+!>   Do iterations to go from p0gauss to pgauss
 !!   16th-order interpolating scaling function
 !!
 !!
@@ -874,9 +842,7 @@ END SUBROUTINE scf_recursion_16
 
 
 
-!> PSolver/for_trans_20
-!! :
-!!   forward wavelet transform
+!>   forward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -924,9 +890,7 @@ END SUBROUTINE for_trans_20
 
 
 
-!> PSolver/back_trans_20
-!! :
-!!   backward wavelet transform
+!>   backward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -974,9 +938,7 @@ END SUBROUTINE back_trans_20
 
 
 
-!> PSolver/ftest_20
-!! :
-!!   Tests the 4 orthogonality relations of the filters
+!>   Tests the 4 orthogonality relations of the filters
 !!
 !!
 !!
@@ -1030,9 +992,7 @@ END SUBROUTINE ftest_20
 
 
 
-!> PSolver/scf_recursion_20
-!! :
-!!   Do iterations to go from p0gauss to pgauss
+!>   Do iterations to go from p0gauss to pgauss
 !!   16th-order interpolating scaling function
 !!
 !!
@@ -1077,9 +1037,7 @@ END SUBROUTINE scf_recursion_20
 
 
 
-!> PSolver/for_trans_24
-!! :
-!!   forward wavelet transform
+!>   forward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -1127,9 +1085,7 @@ END SUBROUTINE for_trans_24
 
 
 
-!> PSolver/back_trans_24
-!! :
-!!   backward wavelet transform
+!>   backward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -1177,9 +1133,7 @@ END SUBROUTINE back_trans_24
 
 
 
-!> PSolver/ftest_24
-!! :
-!!   Tests the 4 orthogonality relations of the filters
+!>   Tests the 4 orthogonality relations of the filters
 !!
 !!
 !!
@@ -1233,9 +1187,7 @@ END SUBROUTINE ftest_24
 
 
 
-!> PSolver/scf_recursion_24
-!! :
-!!   Do iterations to go from p0gauss to pgauss
+!>   Do iterations to go from p0gauss to pgauss
 !!   16th-order interpolating scaling function
 !!
 !!
@@ -1280,9 +1232,7 @@ END SUBROUTINE scf_recursion_24
 
 
 
-!> PSolver/for_trans_30
-!! :
-!!   forward wavelet transform
+!>   forward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -1330,9 +1280,7 @@ END SUBROUTINE for_trans_30
 
 
 
-!> PSolver/back_trans_30
-!! :
-!!   backward wavelet transform
+!>   backward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -1380,9 +1328,7 @@ END SUBROUTINE back_trans_30
 
 
 
-!> PSolver/ftest_30
-!! :
-!!   Tests the 4 orthogonality relations of the filters
+!>   Tests the 4 orthogonality relations of the filters
 !!
 !!
 !!
@@ -1436,9 +1382,7 @@ END SUBROUTINE ftest_30
 
 
 
-!> PSolver/scf_recursion_30
-!! :
-!!   Do iterations to go from p0gauss to pgauss
+!>   Do iterations to go from p0gauss to pgauss
 !!   16th-order interpolating scaling function
 !!
 !!
@@ -1483,9 +1427,7 @@ END SUBROUTINE scf_recursion_30
 
 
 
-!> PSolver/for_trans_40
-!! :
-!!   forward wavelet transform
+!>   forward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -1533,9 +1475,7 @@ END SUBROUTINE for_trans_40
 
 
 
-!> PSolver/back_trans_40
-!! :
-!!   backward wavelet transform
+!>   backward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -1583,9 +1523,7 @@ END SUBROUTINE back_trans_40
 
 
 
-!> PSolver/ftest_40
-!! :
-!!   Tests the 4 orthogonality relations of the filters
+!>   Tests the 4 orthogonality relations of the filters
 !!
 !!
 !!
@@ -1639,9 +1577,7 @@ END SUBROUTINE ftest_40
 
 
 
-!> PSolver/scf_recursion_40
-!! :
-!!   Do iterations to go from p0gauss to pgauss
+!>   Do iterations to go from p0gauss to pgauss
 !!   16th-order interpolating scaling function
 !!
 !!
@@ -1686,9 +1622,7 @@ END SUBROUTINE scf_recursion_40
 
 
 
-!> PSolver/for_trans_50
-!! :
-!!   forward wavelet transform
+!>   forward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -1736,9 +1670,7 @@ END SUBROUTINE for_trans_50
 
 
 
-!> PSolver/back_trans_50
-!! :
-!!   backward wavelet transform
+!>   backward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -1786,9 +1718,7 @@ END SUBROUTINE back_trans_50
 
 
 
-!> PSolver/ftest_50
-!! :
-!!   Tests the 4 orthogonality relations of the filters
+!>   Tests the 4 orthogonality relations of the filters
 !!
 !!
 !!
@@ -1842,9 +1772,7 @@ END SUBROUTINE ftest_50
 
 
 
-!> PSolver/scf_recursion_50
-!! :
-!!   Do iterations to go from p0gauss to pgauss
+!>   Do iterations to go from p0gauss to pgauss
 !!   16th-order interpolating scaling function
 !!
 !!
@@ -1889,9 +1817,7 @@ END SUBROUTINE scf_recursion_50
 
 
 
-!> PSolver/for_trans_60
-!! :
-!!   forward wavelet transform
+!>   forward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -1939,9 +1865,7 @@ END SUBROUTINE for_trans_60
 
 
 
-!> PSolver/back_trans_60
-!! :
-!!   backward wavelet transform
+!>   backward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -1989,9 +1913,7 @@ END SUBROUTINE back_trans_60
 
 
 
-!> PSolver/ftest_60
-!! :
-!!   Tests the 4 orthogonality relations of the filters
+!>   Tests the 4 orthogonality relations of the filters
 !!
 !!
 !!
@@ -2045,9 +1967,7 @@ END SUBROUTINE ftest_60
 
 
 
-!> PSolver/scf_recursion_60
-!! :
-!!   Do iterations to go from p0gauss to pgauss
+!>   Do iterations to go from p0gauss to pgauss
 !!   16th-order interpolating scaling function
 !!
 !!
@@ -2092,9 +2012,7 @@ END SUBROUTINE scf_recursion_60
 
 
 
-!> PSolver/for_trans_100
-!! :
-!!   forward wavelet transform
+!>   forward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -2142,9 +2060,7 @@ END SUBROUTINE for_trans_100
 
 
 
-!> PSolver/back_trans_100
-!! :
-!!   backward wavelet transform
+!>   backward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)
@@ -2192,9 +2108,7 @@ END SUBROUTINE back_trans_100
 
 
 
-!> PSolver/ftest_100
-!! :
-!!   Tests the 4 orthogonality relations of the filters
+!>   Tests the 4 orthogonality relations of the filters
 !!
 !!
 !!
@@ -2248,9 +2162,7 @@ END SUBROUTINE ftest_100
 
 
 
-!> PSolver/scf_recursion_100
-!! :
-!!   Do iterations to go from p0gauss to pgauss
+!>   Do iterations to go from p0gauss to pgauss
 !!   16th-order interpolating scaling function
 !!
 !!

@@ -1,6 +1,4 @@
-!> art/initialize
-!! :
-!!   Initialization of art method
+!>   Initialization of art method
 !! 
 !!
 !!   then relaxes it into a  a local minimum with or without volume optimization

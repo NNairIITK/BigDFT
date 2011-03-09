@@ -34,9 +34,7 @@ END SUBROUTINE center_of_charge
 
 
 
-!> BigDFT/coupling_matrix_prelim
-!! :
-!!    Calculate the coupling matrix needed for Casida's TDDFT approach
+!>    Calculate the coupling matrix needed for Casida's TDDFT approach
 !!
 !! 
 subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,i3s,n3p,&

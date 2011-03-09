@@ -1,6 +1,4 @@
-!> BigDFT/lanczos
-!! :
-!!   Lanczos diagonalization
+!>   Lanczos diagonalization
 !!
 !! Copyright:
 !!
@@ -231,9 +229,7 @@ END SUBROUTINE xabs_lanczos
 
 
 
-!> BigDFT/chebychev
-!! :
-!!   Chebychev polynomials to calculate the density of states
+!>   Chebychev polynomials to calculate the density of states
 !!
 !!
 subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
@@ -542,9 +538,7 @@ END SUBROUTINE xabs_chebychev
 
 
 
-!> BigDFT/cg_spectra
-!! :
-!!   finds the spectra solving  (H-omega)x=b
+!>   finds the spectra solving  (H-omega)x=b
 !!
 !!
 subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&

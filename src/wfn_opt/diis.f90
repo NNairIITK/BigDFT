@@ -1,6 +1,4 @@
-!> BigDFT/mix_rhopot
-!! :
-!!
+!>
 !! Copyright:
 !!
 !!    Copyright (C) 2007-2011 BigDFT group

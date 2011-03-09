@@ -2701,9 +2701,7 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
 END SUBROUTINE GetExcitedOrbitalAsG
 
 
-!> BigDFT/GetBottom
-!! :
-!!
+!>
 !!
 function GetBottom( atoms, iproc)
   
@@ -2832,9 +2830,7 @@ END SUBROUTINE zero4b2B
 
 
 
-!> PSolver/back_trans_14_4b2B
-!! :
-!!   backward wavelet transform
+!>   backward wavelet transform
 !!   nd: length of data set
 !!   nt length of data in data set to be transformed
 !!   m filter length (m has to be even!)

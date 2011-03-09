@@ -1,6 +1,4 @@
-!> BigDFT/timeData
-!! :
-!!    Contains variables used a timing for BigDFT
+!>    Contains variables used a timing for BigDFT
 !!
 !! Copyright:
 !!

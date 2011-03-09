@@ -1,6 +1,4 @@
-!> BigDFT/Periodic_Kernel
-!! :
-!!    Build the kernel of the Poisson operator with
+!>    Build the kernel of the Poisson operator with
 !!    surfaces Boundary conditions
 !!    in an interpolating scaling functions basis.
 !!    Beware of the fact that the nonperiodic direction is y!
@@ -109,9 +107,7 @@ END SUBROUTINE Periodic_Kernel
 
 
 
-!> BigDFT/fourtrans_isf
-!! :
-!!  Calculate the fourier transform
+!>  Calculate the fourier transform
 !!  Suppose the output symmetric and real
 !!
 !!
@@ -165,9 +161,7 @@ END SUBROUTINE fourtrans_isf
 
 
 
-!> BigDFT/fourtrans
-!! :
-!!   Transform the wavelet filters
+!>   Transform the wavelet filters
 !!
 !!
 subroutine fourtrans(p,htp)
@@ -194,9 +188,7 @@ END SUBROUTINE fourtrans
 
 
 
-!> BigDFT/Surfaces_Kernel
-!! :
-!!    Build the kernel of the Poisson operator with
+!>    Build the kernel of the Poisson operator with
 !!    surfaces Boundary conditions
 !!    in an interpolating scaling functions basis.
 !!    Beware of the fact that the nonperiodic direction is y!
@@ -607,9 +599,7 @@ END SUBROUTINE Surfaces_Kernel
 
 
 
-!> BigDFT/calculates_green_opt
-!! :
-!!
+!>
 !!
 subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g_mu)
   use module_base
@@ -750,9 +740,7 @@ END SUBROUTINE calculates_green_opt
 
 
 
-!> BigDFT/calculates_green_opt_muzero
-!! :
-!!
+!>
 !!
 subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
   use module_base
@@ -844,9 +832,7 @@ END SUBROUTINE calculates_green_opt_muzero
 
 
 
-!> BigDFT/indices
-!! :
-!!
+!>
 !!
 subroutine indices(nimag,nelem,intrn,extrn,nindex)
   implicit none
@@ -869,9 +855,7 @@ END SUBROUTINE indices
 
 
 
-!> BigDFT/Free_Kernel
-!! :
-!!    Build the kernel of a gaussian function
+!>    Build the kernel of a gaussian function
 !!    for interpolating scaling functions.
 !!    Do the parallel HalFFT of the symmetrized function and stores into
 !!    memory only 1/8 of the grid divided by the number of processes nproc
@@ -1385,9 +1369,7 @@ subroutine inserthalf(n1,n3,lot,nfft,i1,zf,zw)
 END SUBROUTINE inserthalf
 
 
-!> BigDFT/kernelfft
-!! :
-!!     (Based on suitable modifications of S.Goedecker routines)
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Calculates the FFT of the distributed kernel
 !!
 !! SYNOPSIS

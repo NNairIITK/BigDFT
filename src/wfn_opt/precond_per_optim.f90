@@ -1,6 +1,4 @@
-!> BigDFT/precong_per
-!! :
-!!   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 !!   x is the right hand side on input and the solution on output
 !!
 !!
@@ -191,9 +189,7 @@ END SUBROUTINE precong_per
 
 
 
-!> BigDFT/prec_fft_c
-!! :
-!!   Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
+!>   Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
 !!   x_c is the right hand side on input and the solution on output
 !!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
 !!
@@ -234,9 +230,7 @@ END SUBROUTINE prec_fft_c
 
 
 
-!> BigDFT/prec_fft_fast
-!! :
-!!   Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
+!>   Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
 !!   x_c is the right hand side on input and the solution on output
 !!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
 !!
@@ -374,9 +368,7 @@ contains
 END SUBROUTINE prec_fft
 
 
-!> BigDFT/apply_hp
-!! :
-!!  Applies the operator (KE+cprecr*I)*x=y
+!>  Applies the operator (KE+cprecr*I)*x=y
 !!  array x is input, array y is output
 !!
 !!

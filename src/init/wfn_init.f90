@@ -1075,9 +1075,7 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
 END SUBROUTINE build_eigenvectors
 
 
-!> BigDFT/psitospi
-!! :
-!! Reads magnetic moments from file ('moments') and transforms the
+!> Reads magnetic moments from file ('moments') and transforms the
 !! atomic orbitals to spinors 
 !! warning: Does currently not work for mx<0
 !!

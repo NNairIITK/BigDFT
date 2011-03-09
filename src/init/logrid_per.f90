@@ -168,9 +168,7 @@ subroutine ib_to_logrid_inv_per(ib,logrid,n,ndat)
 END SUBROUTINE ib_to_logrid_inv_per
 
 
-!> BigDFT/make_ib_per
-!! :
-!!    This subroutine mimics the comb_grow_f one
+!>    This subroutine mimics the comb_grow_f one
 !!
 !!
 !!
@@ -199,9 +197,7 @@ END SUBROUTINE make_ib_per
 
 
 
-!> BigDFT/ib_to_logrid_rot_per
-!! :
-!!   This one mimics the comb_rot_grow_f_loc
+!>   This one mimics the comb_rot_grow_f_loc
 !!
 !!
 !!

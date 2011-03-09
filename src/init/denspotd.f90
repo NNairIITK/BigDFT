@@ -1,6 +1,4 @@
-!> BigDFT/createDensPotDescriptors
-!! :
-!!   Create the descriptors for the density and the potential
+!>   Create the descriptors for the density and the potential
 !!
 !!
 !! Copyright:
@@ -60,9 +58,7 @@ subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc
 END SUBROUTINE createDensPotDescriptors
 
 
-!> BigDFT/orbitals_communicators
-!! :
-!!   Partition the orbitals between processors to ensure load balancing
+!>   Partition the orbitals between processors to ensure load balancing
 !!   the criterion will depend on GPU computation
 !!   and/or on the sizes of the different localisation region
 !!

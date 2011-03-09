@@ -1,6 +1,4 @@
-!> BigDFT/print_logo
-!! :
-!!    Display the logo of BigDFT 
+!>    Display the logo of BigDFT 
 !!
 !! Copyright:
 !!
@@ -58,9 +56,7 @@ END SUBROUTINE print_logo
 
 
 
-!> BigDFT/read_input_variables
-!! :
-!!    Do all initialisation for all different files of BigDFT. 
+!>    Do all initialisation for all different files of BigDFT. 
 !!    Set default values if not any.
 !!    Initialize memocc
 !!
@@ -90,9 +86,7 @@ subroutine read_input_variables(iproc,posinp, &
 END SUBROUTINE read_input_variables
 
 
-!> BigDFT/read_input_parameters
-!! :
-!!    Do initialisation for all different calculation parameters of BigDFT. 
+!>    Do initialisation for all different calculation parameters of BigDFT. 
 !!    Set default values if not any. Atomic informations are updated  by
 !!    symmetries if necessary and by geometry input parameters.
 !!
@@ -173,9 +167,7 @@ END SUBROUTINE read_input_parameters
 
 
 
-!> BigDFT/default_input_variables
-!! :
-!!    Set default values.
+!>    Set default values.
 !!
 !!
 subroutine default_input_variables(inputs)
@@ -204,9 +196,7 @@ END SUBROUTINE default_input_variables
 
 
 
-!> BigDFT/dft_input_variables
-!! :
-!!    Read the input variables needed for the DFT calculation
+!>    Read the input variables needed for the DFT calculation
 !!    The variables are divided in two groups:
 !!    "cruising" variables -- general DFT run
 !!    "brakeing" variables -- for the last run, once relaxation is achieved
@@ -368,9 +358,7 @@ END SUBROUTINE dft_input_variables
 
 
 
-!> BigDFT/geopt_input_variables_default
-!! :
-!!    Assign default values for GEOPT variables
+!>    Assign default values for GEOPT variables
 !!
 !!
 subroutine geopt_input_variables_default(in)
@@ -394,9 +382,7 @@ subroutine geopt_input_variables_default(in)
 END SUBROUTINE geopt_input_variables_default
 
 
-!> BigDFT/mix_input_variables_default
-!! :
-!!    Assign default values for mixing variables
+!>    Assign default values for mixing variables
 !!
 !!
 subroutine mix_input_variables_default(in)
@@ -419,9 +405,7 @@ END SUBROUTINE mix_input_variables_default
 
 
 
-!> BigDFT/mix_input_variables
-!! :
-!!    Read the input variables needed for the geometry optimisation
+!>    Read the input variables needed for the geometry optimisation
 !!    Every argument should be considered as mandatory
 !!
 !! 
@@ -478,9 +462,7 @@ END SUBROUTINE mix_input_variables
 
 
 
-!> BigDFT/geopt_input_variables
-!! :
-!!    Read the input variables needed for the geometry optimisation
+!>    Read the input variables needed for the geometry optimisation
 !!    Every argument should be considered as mandatory
 !!
 !!
@@ -586,9 +568,7 @@ END SUBROUTINE geopt_input_variables
 
 
 
-!> BigDFT/update_symmetries
-!! :
-!!    Calculate symmetries and update
+!>    Calculate symmetries and update
 !!
 !!
 subroutine update_symmetries(in, atoms, rxyz)
@@ -668,9 +648,7 @@ END SUBROUTINE update_symmetries
 
 
 
-!> BigDFT/kpt_input_variables
-!! :
-!!    Read the input variables needed for the k points generation
+!>    Read the input variables needed for the k points generation
 !!
 !!
 subroutine kpt_input_variables(iproc,filename,in,atoms)
@@ -867,9 +845,7 @@ END SUBROUTINE kpt_input_variables
 
 
 
-!> BigDFT/perf_input_variables
-!! :
-!!    Read the input variables which can be used for performances
+!>    Read the input variables which can be used for performances
 !!
 !!
 subroutine perf_input_variables(iproc,filename,inputs)
@@ -1015,9 +991,7 @@ END SUBROUTINE perf_input_variables
 
 
 
-!> BigDFT/free_input_variables
-!! :
-!!  Free all dynamically allocated memory from the input variable structure.
+!>  Free all dynamically allocated memory from the input variable structure.
 !!
 !!
 subroutine free_input_variables(in)
@@ -1063,9 +1037,7 @@ END SUBROUTINE free_input_variables
 
 
 
-!> BigDFT/abscalc_input_variables_default
-!! :
-!!    Assign default values for ABSCALC variables
+!>    Assign default values for ABSCALC variables
 !!
 !!
 subroutine abscalc_input_variables_default(in)
@@ -1082,9 +1054,7 @@ END SUBROUTINE abscalc_input_variables_default
 
 
 
-!> BigDFT/abscalc_input_variables
-!! :
-!!    Read the input variables needed for the ABSCALC
+!>    Read the input variables needed for the ABSCALC
 !!    Every argument should be considered as mandatory
 !!
 !!
@@ -1165,9 +1135,7 @@ END SUBROUTINE abscalc_input_variables
 
 
 
-!> BigDFT/frequencies_input_variables_default
-!! :
-!!    Assign default values for frequencies variables
+!>    Assign default values for frequencies variables
 !!
 !!    freq_alpha: frequencies step for finite difference = alpha*hx, alpha*hy, alpha*hz
 !!    freq_order; order of the finite difference (2 or 3 i.e. 2 or 4 points)
@@ -1188,9 +1156,7 @@ END SUBROUTINE frequencies_input_variables_default
 
 
 
-!> BigDFT/frequencies_input_variables
-!! :
-!!    Read the input variables needed for the frequencies calculation.
+!>    Read the input variables needed for the frequencies calculation.
 !!    Every argument should be considered as mandatory.
 !!
 !!
@@ -1261,9 +1227,7 @@ END SUBROUTINE frequencies_input_variables
 
 
 
-!> BigDFT/read_atomic_file
-!! :
-!!    Read atomic file
+!>    Read atomic file
 !!
 !!
 subroutine read_atomic_file(file,iproc,atoms,rxyz)
@@ -1349,9 +1313,7 @@ END SUBROUTINE read_atomic_file
 
 
 
-!> BigDFT/deallocate_atoms
-!! :
-!!    Deallocate the structure atoms_data.
+!>    Deallocate the structure atoms_data.
 !!
 !!
 subroutine deallocate_atoms(atoms,subname) 
@@ -1387,9 +1349,7 @@ END SUBROUTINE deallocate_atoms
 
 
 
-!> BigDFT/deallocate_atoms_scf
-!! :
-!!    Deallocate the structure atoms_data after scf loop.
+!>    Deallocate the structure atoms_data after scf loop.
 !!
 !!
 subroutine deallocate_atoms_scf(atoms,subname) 
@@ -1423,9 +1383,7 @@ END SUBROUTINE deallocate_atoms_scf
 
 
 
-!> BigDFT/read_atomic_positions
-!! :
-!!    Read atomic positions
+!>    Read atomic positions
 !!
 !!
 subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
@@ -1618,9 +1576,7 @@ END SUBROUTINE read_atomic_positions
 
 
 
-!> BigDFT/check_atoms_positions
-!! :
-!!    Check the position of atoms
+!>    Check the position of atoms
 !!
 !!
 subroutine check_atoms_positions(iproc,atoms,rxyz)
@@ -1677,9 +1633,7 @@ END SUBROUTINE check_atoms_positions
 
 
 
-!> BigDFT/find_extra_info
-!! :
-!!    Find extra information
+!>    Find extra information
 !!
 !!
 !!
@@ -1716,9 +1670,7 @@ END SUBROUTINE find_extra_info
 
 
 
-!> BigDFT/parse_extra_info
-!! :
-!!    Parse extra information
+!>    Parse extra information
 !!
 !!
 !!
@@ -1806,9 +1758,7 @@ END SUBROUTINE parse_extra_info
 
 
 
-!> BigDFT/read_ascii_positions
-!! :
-!!    Read atomic positions of ascii files.
+!>    Read atomic positions of ascii files.
 !!
 !!
 subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
@@ -2030,9 +1980,7 @@ END SUBROUTINE read_ascii_positions
 
 
 
-!> BigDFT/charge_and_spol
-!! :
-!!   Calculate the charge and the spin polarisation to be placed on a given atom
+!>   Calculate the charge and the spin polarisation to be placed on a given atom
 !!   RULE: natpol = c*1000 + sgn(c)*100 + s: charged and polarised atom (charge c, polarisation s)
 !!
 !!
@@ -2056,9 +2004,7 @@ END SUBROUTINE charge_and_spol
 
 
 
-!> BigDFT/write_atomic_file
-!! :
-!!    Write an atomic file
+!>    Write an atomic file
 !!
 !!
 subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
@@ -2082,9 +2028,7 @@ END SUBROUTINE write_atomic_file
 
 
 
-!> BigDFT/wtxyz
-!! :
-!!   Write xyz atomic file.
+!>   Write xyz atomic file.
 !!
 !!
 subroutine wtxyz(filename,energy,rxyz,atoms,comment)
@@ -2153,9 +2097,7 @@ END SUBROUTINE wtxyz
 
 
 
-!> BigDFT/wtascii
-!! :
-!!   Write ascii file (atomic position). 
+!>   Write ascii file (atomic position). 
 !!
 !!
 subroutine wtascii(filename,energy,rxyz,atoms,comment)
@@ -2221,9 +2163,7 @@ END SUBROUTINE wtascii
 
 
 
-!> BigDFT/write_extra_info
-!! :
-!!   Write the extra info necessary for the output file
+!>   Write the extra info necessary for the output file
 !!
 !!
 subroutine write_extra_info(extra,natpol,ifrztyp)
@@ -2254,9 +2194,7 @@ END SUBROUTINE write_extra_info
 
 
 
-!> BigDFT/frozen_itof
-!! :
-!!    
+!>    
 !!
 !!
 subroutine frozen_itof(ifrztyp,frzchain)
@@ -2278,9 +2216,7 @@ END SUBROUTINE frozen_itof
 
 
 
-!> BigDFT/valid_frzchain
-!! :
-!!    
+!>    
 !!
 !!
 subroutine valid_frzchain(frzchain,go)
@@ -2296,9 +2232,7 @@ END SUBROUTINE valid_frzchain
 
 
 
-!> BigDFT/frozen_ftoi
-!! :
-!!    
+!>    
 !!
 !!
 subroutine frozen_ftoi(frzchain,ifrztyp)
@@ -2320,9 +2254,7 @@ END SUBROUTINE frozen_ftoi
 
 
 
-!> BigDFT/frozen_alpha
-!! :
-!!   Calculate the coefficient for moving atoms following the ifrztyp
+!>   Calculate the coefficient for moving atoms following the ifrztyp
 !!
 !!
 subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
@@ -2344,9 +2276,7 @@ END SUBROUTINE frozen_alpha
 
 
 
-!> BigDFT/print_general_parameters
-!! :
-!!    Print all general parameters
+!>    Print all general parameters
 !!
 !!
 subroutine print_general_parameters(in,atoms)
@@ -2519,9 +2449,7 @@ END SUBROUTINE print_general_parameters
 
 
 
-!> BigDFT/print_dft_parameters
-!! :
-!!    Print all dft input parameters
+!>    Print all dft input parameters
 !!
 !!
 subroutine print_dft_parameters(in,atoms)
@@ -2559,9 +2487,7 @@ END SUBROUTINE print_dft_parameters
 
 
 
-!> BigDFT/atomic_axpy
-!! :
-!!   Routine for moving atomic positions, takes into account the 
+!>   Routine for moving atomic positions, takes into account the 
 !!   frozen atoms and the size of the cell
 !!   synopsis: rxyz=txyz+alpha*sxyz
 !!   all the shift are inserted into the box if there are periodic directions
@@ -2605,9 +2531,7 @@ END SUBROUTINE atomic_axpy
 
 
 
-!> BigDFT/atomic_axpy_forces
-!! :
-!!   Routine for moving atomic positions, takes into account the 
+!>   Routine for moving atomic positions, takes into account the 
 !!   frozen atoms and the size of the cell
 !!   synopsis: fxyz=txyz+alpha*sxyz
 !!   update the forces taking into account the frozen atoms
@@ -2641,9 +2565,7 @@ END SUBROUTINE atomic_axpy_forces
 
 
 
-!> BigDFT/atomic_dot
-!! :
-!!   Calculate the scalar product between atomic positions by considering
+!>   Calculate the scalar product between atomic positions by considering
 !!   only non-blocked atoms
 !!
 !!
@@ -2675,9 +2597,7 @@ END SUBROUTINE atomic_dot
 
 
 
-!> BigDFT/atomic_gemv
-!! :
-!!   z=alpha*A*x + beta* y
+!>   z=alpha*A*x + beta* y
 !!
 !!
 subroutine atomic_gemv(atoms,m,alpha,A,x,beta,y,z)
@@ -2710,9 +2630,7 @@ END SUBROUTINE atomic_gemv
 
 
 
-!> BigDFT/move_this_coordinate
-!! :
-!!  The function which controls all the moving positions
+!>  The function which controls all the moving positions
 !!
 !!
 function move_this_coordinate(ifrztyp,ixyz)
@@ -2730,9 +2648,7 @@ END FUNCTION move_this_coordinate
 
 
 
-!> BigDFT/atomic_coordinate_axpy
-!! :
-!!   rxyz=txyz+alpha*sxyz
+!>   rxyz=txyz+alpha*sxyz
 !!
 !!
 subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
@@ -2774,9 +2690,7 @@ END SUBROUTINE atomic_coordinate_axpy
 
 
 
-!> BigDFT/init_material_acceleration
-!! :
-!!
+!>
 !!
 !!
 subroutine init_material_acceleration(iproc,iacceleration,GPU)
@@ -2830,9 +2744,7 @@ END SUBROUTINE init_material_acceleration
 
 
 
-!> BigDFT/release_material_acceleration
-!! :
-!!
+!>
 !!
 !!
 subroutine release_material_acceleration(GPU)
@@ -2854,9 +2766,7 @@ END SUBROUTINE release_material_acceleration
 
 
 
-!> BigDFT/processor_id_per_node
-!! :
-!!
+!>
 !!
 !!
 subroutine processor_id_per_node(iproc,nproc,iproc_node)

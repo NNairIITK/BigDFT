@@ -464,9 +464,7 @@ subroutine rhoswitch_waves(nlr,norbp,nvctr_c,nvctr_f,nseg_tot,nvctr_tot,nseglr,k
 END SUBROUTINE rhoswitch_waves
 
 
-!> BigDFT/loc_wfd
-!! :
-!!   This subroutine define other wavefunctions descriptors starting from the original descriptors 
+!>   This subroutine define other wavefunctions descriptors starting from the original descriptors 
 !!   and the limits of a given localisation region
 !!   it also returns an array which is used to mask the compressed wavefunction into the new one
 !! INPUTS

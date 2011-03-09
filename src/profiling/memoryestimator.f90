@@ -1,6 +1,4 @@
-!> BigDFT/MemoryEstimator
-!! :
-!!   Estimation of the used memory
+!>   Estimation of the used memory
 !!
 !! Copyright:
 !!

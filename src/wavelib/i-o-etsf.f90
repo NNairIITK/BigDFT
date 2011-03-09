@@ -1,6 +1,4 @@
-!> BigDFT/read_waves_etsf
-!! :
-!!   Read a ETSF file containing wavefunctions.
+!>   Read a ETSF file containing wavefunctions.
 !!
 !!   Read a NetCDF file.
 !!    coordinates_of_grid_points is used to store the geometric
@@ -361,9 +359,7 @@ contains
 END SUBROUTINE read_waves_etsf
 
 
-!> BigDFT/write_waves_etsf
-!! :
-!!   Write a ETSF file containing wavefunctions.
+!>   Write a ETSF file containing wavefunctions.
 !!
 !!   Write a NetCDF file.
 !!    coordinates_of_grid_points is used to store the geometric

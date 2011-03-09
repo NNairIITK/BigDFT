@@ -1,6 +1,4 @@
-!> BigDFT/check_gaussian_expansion
-!! :
-!!  Control the accuracy of the expansion in gaussian
+!>  Control the accuracy of the expansion in gaussian
 !!
 !!
 !! Copyright:

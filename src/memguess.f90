@@ -1,6 +1,4 @@
-!> BigDFT/memguess
-!! :
-!!  Test the input files and estimates the memory occupation versus the number
+!>  Test the input files and estimates the memory occupation versus the number
 !!  of processors
 !!
 !! Author:
@@ -468,9 +466,7 @@ end program memguess
 
   
 
-!> BigDFT/optimise_volume
-!! :
-!!  Rotate the molecule via an orthogonal matrix in order to minimise the
+!>  Rotate the molecule via an orthogonal matrix in order to minimise the
 !!  volume of the cubic cell
 !!
 !! Author:
@@ -585,9 +581,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
 END SUBROUTINE optimise_volume
 
 
-!> BigDFT/shift_periodic_directions
-!! :
-!!  Add a shift in the periodic directions such that the system
+!>  Add a shift in the periodic directions such that the system
 !!  uses as less as possible the modulo operation
 !!
 !! Author:
@@ -1136,9 +1130,7 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
 
 END SUBROUTINE compare_data_and_gflops
 
-!> BigDFT/read_input_variables_old
-!! :
-!!    Read the input variables in the file 'input.dat', old format.
+!>    Read the input variables in the file 'input.dat', old format.
 !!
 !!
 subroutine read_input_variables_old(iproc,filename,in)
@@ -1331,9 +1323,7 @@ END SUBROUTINE read_input_variables_old
 
 
 
-!> BigDFT/dft_input_converter
-!! :
-!!  Convert the format of input variables
+!>  Convert the format of input variables
 !!
 !!
 subroutine dft_input_converter(in)

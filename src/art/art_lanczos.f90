@@ -1,6 +1,4 @@
-!> art/lanczos_def
-!! :
-!!  Module to use lanczos inside art
+!>  Module to use lanczos inside art
 !!
 !!
 !! Copyright:
@@ -27,9 +25,7 @@ end module lanczos_defs
 
 
 
-!> art/lanczos
-!! :
-!!  Lanczos routine to determine lowest frequencies
+!>  Lanczos routine to determine lowest frequencies
 !!
 !!
 subroutine lanczos(maxvec,new_projection)

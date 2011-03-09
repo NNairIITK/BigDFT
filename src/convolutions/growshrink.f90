@@ -1,6 +1,4 @@
-!> BigDFT/comb_grow_all
-!! :
-!!  Apply synthesis wavelet transformation
+!>  Apply synthesis wavelet transformation
 !!
 !!
 !! Copyright:
@@ -42,9 +40,7 @@ END SUBROUTINE comb_grow_all
 
 
 
-!> BigDFT/comb_grow_c
-!! :
-!!   In 3d,            
+!>   In 3d,            
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
 !!   the size of the data is allowed to grow
@@ -80,9 +76,7 @@ END SUBROUTINE comb_grow_c
 
 
 
-!> BigDFT/comb_grow_tree
-!! :
-!!   In 3d,
+!>   In 3d,
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
 !!   the size of the data is allowed to grow
@@ -124,9 +118,7 @@ END SUBROUTINE comb_grow_tree
 
 
 
-!> BigDFT/comb_rot_grow_loc_1
-!! :
-!!   In one dimension,    
+!>   In one dimension,    
 !!   with optimised cycles
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
@@ -238,9 +230,7 @@ END SUBROUTINE comb_rot_grow_loc_1
 
 
 
-!> BigDFT/comb_rot_grow_loc_2
-!! :
-!!   In one dimension,    
+!>   In one dimension,    
 !!   with optimised cycles
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
@@ -331,9 +321,7 @@ END SUBROUTINE comb_rot_grow_loc_2
 
 
 
-!> BigDFT/comb_shrink
-!! :
-!!   In 3d,            
+!>   In 3d,            
 !!   Applies the magic filter transposed, then analysis wavelet transformation.
 !!   The size of the data is forced to shrink
 !!   The input array y is not overwritten
@@ -371,9 +359,7 @@ END SUBROUTINE comb_shrink
 
 
 
-!> BigDFT/comb_shrink_loc_f
-!! :
-!!   In 3d,            
+!>   In 3d,            
 !!   Applies the magic filter transposed, then analysis wavelet transformation.
 !!   The output is only the l1,l2,l3 wavelet component
 !!   The size of the data is forced to shrink
@@ -415,9 +401,7 @@ END SUBROUTINE comb_shrink_loc_f
 
 
 
-!> BigDFT/comb_shrink_loc_c
-!! :
-!!   In 3d,            
+!>   In 3d,            
 !!   Applies the magic filter transposed, then analysis wavelet transformation.
 !!   The output is only the l1,l2,l3 wavelet component
 !!   The size of the data is forced to shrink
@@ -461,9 +445,7 @@ END SUBROUTINE comb_shrink_loc_c
 
 
 
-!> BigDFT/comb_rot_shrink_loc_3
-!! :
-!!   In one dimension,    
+!>   In one dimension,    
 !!   Applies the magic filter transposed, then analysis wavelet transformation.
 !!   The size of the data is forced to shrink
 !!

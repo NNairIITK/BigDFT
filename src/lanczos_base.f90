@@ -1,6 +1,4 @@
-!> BigDFT/lanczos_base
-!! :
-!!   Module to handle diagonalization scheme
+!>   Module to handle diagonalization scheme
 !!
 !! Copyright:
 !!

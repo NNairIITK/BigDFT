@@ -1,6 +1,4 @@
-!> BigDFT/unitconversion_posinp
-!! :
-!!  Rotates the molecular structure in the input file posinp.xyz and 
+!>  Rotates the molecular structure in the input file posinp.xyz and 
 !!  writes the result in the file rot_posinp.xyz
 !!  Comparing the BigDFT energies of the original and rotated configuration 
 !!  can help to estimate the accuracy the the chosen parameter set( hgrid, crmult etc).

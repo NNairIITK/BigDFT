@@ -1,6 +1,4 @@
-!> bart/bigdft_forces
-!! :
-!!   Module which contains information for bigdft run inside art
+!>   Module which contains information for bigdft run inside art
 !!
 !! Copyright:
 !!
@@ -40,9 +38,7 @@ contains
 
 
 
-!> bigdft_forces/bigdft_init
-!! :
-!!   Routine to initialize all BigDFT stuff
+!>   Routine to initialize all BigDFT stuff
 !!
 !!
   subroutine bigdft_init(nat,typa,posa,boxl, nproc_, me_)
@@ -99,9 +95,7 @@ contains
 
 
 
-!> bigdft_forces/calcforce
-!! :
-!!   Calculation of forces
+!>   Calculation of forces
 !!
 !!
   subroutine calcforce(nat,posa,boxl,forca,energy)
@@ -153,9 +147,7 @@ contains
 
 
 
-!> bigdft_forces/mingeo
-!! :
-!!   Minimise geometry
+!>   Minimise geometry
 !!
 !!
   subroutine mingeo(nat, boxl, posa, evalf_number, forca, total_energy)
@@ -207,9 +199,7 @@ contains
 
 
 
-!> bigdft_forces/bigdft_finalise
-!! :
-!!   Routine to finalise all BigDFT stuff
+!>   Routine to finalise all BigDFT stuff
 !!
 !!
   subroutine bigdft_finalise()

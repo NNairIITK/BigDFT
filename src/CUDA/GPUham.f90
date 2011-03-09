@@ -1,6 +1,4 @@
-!> CUDA/GPUham
-!! :
-!!    Test the hamiltonian operation for GPU and compare with CPU
+!>    Test the hamiltonian operation for GPU and compare with CPU
 !!
 !!
 !! Author:

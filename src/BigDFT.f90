@@ -1,6 +1,4 @@
-!> BigDFT/BigDFT
-!! :
-!!  Main program to calculate electronic structures
+!>  Main program to calculate electronic structures
 !!
 !!
 !! Copyright:

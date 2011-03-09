@@ -1,6 +1,4 @@
-!> art/saddle_converge
-!! :
-!!    In the art method, converge to the saddle point
+!>    In the art method, converge to the saddle point
 !!    This subroutine bring the configuration to a saddle point. It does that
 !!    by first pushing the configuration outside of the harmonic well, using
 !!    the initial direction selected in find_saddle. Once outside the harmonic

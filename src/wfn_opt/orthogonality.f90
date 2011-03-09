@@ -147,9 +147,7 @@ subroutine check_closed_shell(nspin,orbs,lcs)
   end do
 END SUBROUTINE check_closed_shell
 
-!> BigDFT/orthoconstraint
-!! :
-!!   Orthogonality routine, for all the orbitals
+!>   Orthogonality routine, for all the orbitals
 !!   Uses wavefunctions in their transposed form
 !!
 !!
@@ -321,9 +319,7 @@ END SUBROUTINE orthoconstraint
 
 
 
-!> BigDFT/subspace_diagonalisation
-!! :
-!!   Found the linear combination of the wavefunctions which diagonalises
+!>   Found the linear combination of the wavefunctions which diagonalises
 !!   the overlap matrix
 !!
 !!

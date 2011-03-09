@@ -1,6 +1,4 @@
-!> art/utils
-!! :
-!!   This contains a series of utilities that could be used by a number
+!>   This contains a series of utilities that could be used by a number
 !!   of program. They suppose very little.
 !!   The subroutine convert_to_chain takes an integer and transforms it into a
 !!   chain of character.
@@ -49,9 +47,7 @@ END SUBROUTINE
 
 
 
-!> art/center
-!! :
-!!   The subroutine center places the center of mass of a 3D vector at (0,0,0)
+!>   The subroutine center places the center of mass of a 3D vector at (0,0,0)
 !!
 !!
 !! 
@@ -95,9 +91,7 @@ END SUBROUTINE
 
 
 
-!> BigDFT/displacement
-!! :
-!!   This subroutine computes the distance between two configurations and 
+!>   This subroutine computes the distance between two configurations and 
 !!   the number of particles having moved by more than a THRESHOLD
 !!
 !!
@@ -150,9 +144,7 @@ END SUBROUTINE
 
 
 
-!> art/store
-!! :
-!!   Subroutine store
+!>   Subroutine store
 !!   This subroutine stores the configurations at minima and activated points
 !!   By definition, it uses pos, box and scala
 !!

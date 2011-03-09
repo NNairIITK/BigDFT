@@ -1,6 +1,4 @@
-!> BigDFT/convSimpleBench
-!! :
-!!
+!>
 !!
 !! Copyright:
 !!

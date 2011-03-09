@@ -1,6 +1,4 @@
-!> art/restart_states
-!! :
-!!   This subroutine is used to restart an event during the activation. It uses the files:
+!>   This subroutine is used to restart an event during the activation. It uses the files:
 !!     restart.dat
 !!     siestart2art
 !!   It then continues the event where it stopped. 

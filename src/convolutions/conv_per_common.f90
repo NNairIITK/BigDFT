@@ -1,6 +1,4 @@
-!> BigDFT/synthese_per_old
-!! :
-!!    A periodic synthesis (backward) wavelet transformation
+!>    A periodic synthesis (backward) wavelet transformation
 !!    the input array x is not overwritten
 !!
 !!
@@ -38,9 +36,7 @@ END SUBROUTINE synthese_per_old
 
 
 
-!> BigDFT/synthese_per_old_self
-!! :
-!!   A periodic synthesis (backward) wavelet transformation
+!>   A periodic synthesis (backward) wavelet transformation
 !!   the input array x is not overwritten
 !!
 !!
@@ -68,9 +64,7 @@ END SUBROUTINE synthese_per_old_self
 
 
 
-!> BigDFT/analyse_per_old
-!! :
-!!   An analysis (forward) periodic wavelet transformation
+!>   An analysis (forward) periodic wavelet transformation
 !!   the input array y is not overwritten
 !!
 !!
@@ -98,9 +92,7 @@ END SUBROUTINE analyse_per_old
 
 
 
-!> BigDFT/analyse_per_old_self
-!! :
-!!   An analysis (forward) periodic wavelet transformation
+!>   An analysis (forward) periodic wavelet transformation
 !!   the input array y is not overwritten
 !!
 !!
@@ -128,9 +120,7 @@ END SUBROUTINE analyse_per_old_self
 
 
 
-!> BigDFT/syn_repeated_per
-!! :
-!!
+!>
 !!
 subroutine syn_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
   use module_base
@@ -224,9 +214,7 @@ END SUBROUTINE syn_repeated_per
 
 
 
-!> BigDFT/ana_repeated_per
-!! :
-!!
+!>
 !!
 subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
   use module_base

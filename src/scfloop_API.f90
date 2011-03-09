@@ -1,6 +1,4 @@
-!> BigDFT/scfloop_API
-!! :
-!!  Self-Consistent Loop API
+!>  Self-Consistent Loop API
 !!
 !!
 !! Copyright:
@@ -51,9 +49,7 @@ end module scfloop_API
 
 
 
-!> BigDFT/scfloop_main
-!! :
-!!
+!>
 !!
 subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred)
   use scfloop_API
@@ -125,9 +121,7 @@ END SUBROUTINE scfloop_main
 
 
 
-!> BigDFT/scfloop_output
-!! :
-!!
+!>
 !!
 subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel, xred)
   use scfloop_API
@@ -179,9 +173,7 @@ END SUBROUTINE scfloop_output
 
 
 
-!> BigDFT/read_velocities
-!! :
-!!    Read atomic positions
+!>    Read atomic positions
 !!
 !!
 subroutine read_velocities(iproc,filename,atoms,vxyz)
@@ -286,9 +278,7 @@ END SUBROUTINE read_velocities
 
 
 
-!> BigDFT/wtvel
-!! :
-!!
+!>
 !!
 subroutine wtvel(filename,vxyz,atoms,comment)
   use module_base

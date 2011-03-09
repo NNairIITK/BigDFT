@@ -1,6 +1,4 @@
-!> BigDFT/inputguess_gaussian_orbitals
-!! :
-!!   Generate the input guess via the inguess_generator
+!>   Generate the input guess via the inguess_generator
 !!
 !!
 !! Copyright:
@@ -149,9 +147,7 @@ END SUBROUTINE inputguess_gaussian_orbitals
 
 
 
-!> BigDFT/count_atomic_shells
-!! :
-!!   Count the number of atomic shells
+!>   Count the number of atomic shells
 !!
 !!
 subroutine count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occup,nl)
@@ -197,9 +193,7 @@ END SUBROUTINE count_atomic_shells
 
 
 
-!> BigDFT/readAtomicOrbitals
-!! :
-!!   Read atomic orbitals
+!>   Read atomic orbitals
 !!
 !!
 subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
@@ -280,9 +274,7 @@ END SUBROUTINE readAtomicOrbitals
 
 
 
-!> BigDFT/AtomicOrbitals
-!! :
-!!   Generate atomic orbitals
+!>   Generate atomic orbitals
 !!
 !!
 !!
@@ -732,9 +724,7 @@ END SUBROUTINE AtomicOrbitals
 
 
 
-!> BigDFT/atomkin
-!! :
-!!   Calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
+!>   Calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
 !!   the output psiatn is a normalized version of psiat
 !!
 !!
@@ -803,9 +793,7 @@ END SUBROUTINE atomkin
 
 
 
-!> BigDFT/calc_coeff_inguess
-!! :
-!!
+!>
 !!
 !!
 !!
@@ -917,9 +905,7 @@ END SUBROUTINE calc_coeff_inguess
 
 
 
-!> BigDFT/iguess_generator
-!! :
-!!   
+!>   
 !!
 !!
 !!
@@ -1128,9 +1114,7 @@ END SUBROUTINE iguess_generator
 
 
 
-!> BigDFT/gatom
-!! :
-!!  Calculates the solution of the radial Schroedinger equation for a given
+!>  Calculates the solution of the radial Schroedinger equation for a given
 !!  pseudoptential.
 !!
 !!
@@ -1491,9 +1475,7 @@ END SUBROUTINE gatom
 
 
 
-!> BigDFT/resid
-!! :
-!!
+!>
 !!
 !!
 !!
@@ -1596,9 +1578,7 @@ END SUBROUTINE resid
 
 
 
-!> BigDFT/crtvh
-!! :
-!!
+!>
 !!
 !!
 subroutine crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
@@ -1685,9 +1665,7 @@ END SUBROUTINE crtvh
 
 
 
-!> BigDFT/wave
-!! :
-!!   
+!>   
 !!
 !!
 !!
@@ -1712,9 +1690,7 @@ end function wave
 
 
 
-!> BigDFT/emuxc
-!! :
-!!
+!>
 !!
 !!
 function emuxc(rho)
@@ -1755,9 +1731,7 @@ end function emuxc
 
 
 
-!> BigDFT/gamma_restricted
-!! :
-!!   Restricted version of the Gamma function
+!>   Restricted version of the Gamma function
 !!
 !!
 !!
@@ -1791,9 +1765,7 @@ end function gamma_restricted
 
 
 
-!> BigDFT/psitospi0
-!! :
-!!   
+!>   
 !!
 !!
 !!
@@ -1871,9 +1843,7 @@ END SUBROUTINE psitospi0
 
 
 
-!> BigDFT/at_occnums
-!! :
-!!  Calculate the occupation number for any of the orbitals
+!>  Calculate the occupation number for any of the orbitals
 !!
 !!
 !!
@@ -1995,9 +1965,7 @@ END SUBROUTINE at_occnums
 
 
 
-!> BigDFT/print_eleconf
-!! :
-!!   Print the electronic configuration, with the semicore orbitals
+!>   Print the electronic configuration, with the semicore orbitals
 !!
 !!
 subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
@@ -2089,9 +2057,7 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
 END SUBROUTINE print_eleconf
 
 
-!> BigDFT/write_fraction_string
-!! :
-!!  Control whether the occupation number can be rounded by a shell-dependent fraction 
+!>  Control whether the occupation number can be rounded by a shell-dependent fraction 
 !!  denominator
 !!
 !!
@@ -2130,9 +2096,7 @@ END SUBROUTINE write_fraction_string
 
 
 
-!> BigDFT/read_fraction_string
-!! :
-!!  Here the fraction is indicated by the ':' or '/'
+!>  Here the fraction is indicated by the ':' or '/'
 !!
 !!
 subroutine read_fraction_string(string,occ,ierror)
@@ -2161,9 +2125,7 @@ END SUBROUTINE read_fraction_string
 
 
 
-!> BigDFT/read_fraction_string_old
-!! :
-!!  Here the fraction is indicated by the :
+!>  Here the fraction is indicated by the :
 !!
 !!
 subroutine read_fraction_string_old(l,string,occ)
@@ -2192,9 +2154,7 @@ END SUBROUTINE read_fraction_string_old
 
 
 
-!> BigDFT/read_eleconf
-!! :
-!!   Read the electronic configuration, with the semicore orbitals
+!>   Read the electronic configuration, with the semicore orbitals
 !!
 !!
 subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)

@@ -1,6 +1,4 @@
-!> OpenCL/conv_check
-!! :
-!!    Program test for the convolution in GPU
+!>    Program test for the convolution in GPU
 !!
 !!
 !! Author:

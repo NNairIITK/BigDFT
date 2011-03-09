@@ -1,6 +1,4 @@
-!> BigDFT/convolut_kinetic_per_c_k
-!! :
-!!   Applies the modified kinetic energy operator onto x to get y. 
+!>   Applies the modified kinetic energy operator onto x to get y. 
 !!   Works for periodic BC.
 !!   Modified kinetic energy operator:
 !!   A=-1/2 exp(Ikr) Delta exp(-Ikr)+C
@@ -430,9 +428,7 @@ END SUBROUTINE convolut_kinetic_per_c_k
 
 
 
-!> BigDFT/convolut_kinetic_per_T_k
-!! :
-!!   Applies the modified kinetic energy operator onto x to get y. 
+!>   Applies the modified kinetic energy operator onto x to get y. 
 !!   Computes the kinetic energy too.
 !!   Works for periodic BC.
 !!   Modified kinetic energy operator:

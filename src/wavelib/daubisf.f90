@@ -172,9 +172,7 @@ END SUBROUTINE initialize_work_arrays_locham
 
 
 
-!> BigDFT/memspace_work_arrays_locham
-!! :
-!!
+!>
 !!
 !!
 subroutine memspace_work_arrays_locham(lr,nspinor,memwork)
@@ -278,9 +276,7 @@ END SUBROUTINE memspace_work_arrays_locham
 
 
 
-!> BigDFT/deallocate_work_arrays_locham
-!! :
-!!
+!>
 !!
 !!
 subroutine deallocate_work_arrays_locham(lr,w)
@@ -336,9 +332,7 @@ END SUBROUTINE deallocate_work_arrays_locham
 
 
 
-!> BigDFT/daub_to_isf_locham
-!! :
-!!   Transforms a wavefunction written in Daubechies basis into a 
+!>   Transforms a wavefunction written in Daubechies basis into a 
 !!   real space wavefunction in interpolating scaling functions on a finer grid
 !!   does the job for all supported BC
 !!

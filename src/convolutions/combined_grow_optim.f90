@@ -1,6 +1,4 @@
-!> BigDFT/comb_rot_grow_loc_3
-!! :
-!!   In one dimension,    
+!>   In one dimension,    
 !!   with optimised cycles
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
@@ -109,9 +107,7 @@ END SUBROUTINE comb_rot_grow_loc_3
 
 
 
-!> BigDFT/comb_rot_grow_loc_square
-!! :
-!!   In one dimension,
+!>   In one dimension,
 !!   with unoptimized cycles   
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter

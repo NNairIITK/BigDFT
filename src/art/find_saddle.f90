@@ -35,9 +35,7 @@ end module saddles
 
 
 
-!> art/find_saddle
-!! :
-!!  This subroutine initiates the random displacement at the start
+!>  This subroutine initiates the random displacement at the start
 !!  of the ART algorithm. 
 !!  After  random escape direction has been selected, the routine call 
 !!  saddle_converge which will try to bring the configuration to a saddle point.
@@ -150,9 +148,7 @@ END SUBROUTINE find_saddle
 
 
 
-!> art/local_move
-!! :
-!!   The initial random direction is taken from a restricted space based on 
+!>   The initial random direction is taken from a restricted space based on 
 !!   the local bonding environment. For this, we need to know the list of neighbours
 !!   and the cut-off of the potential. Other approaches could be used also.
 !!
@@ -290,9 +286,7 @@ END SUBROUTINE local_move
 
 
 
-!> art/global_move
-!! :
-!!   The initial random direction is taken from the full 3N-dimensional space
+!>   The initial random direction is taken from the full 3N-dimensional space
 !!
 !!
 subroutine global_move()

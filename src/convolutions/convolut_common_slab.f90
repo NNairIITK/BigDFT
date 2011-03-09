@@ -1,6 +1,4 @@
-!> BigDFT/analyse_shrink
-!! :
-!!   A analysis wavelet transformation where the size of the data is forced to shrink
+!>   A analysis wavelet transformation where the size of the data is forced to shrink
 !!   The input array y is overwritten
 !!
 !! Copyright:
@@ -36,9 +34,7 @@ END SUBROUTINE analyse_shrink
 
 
 
-!> BigDFT/synthese_grow
-!! :
-!!   A synthesis wavelet transformation where the size of the data is allowed to grow
+!>   A synthesis wavelet transformation where the size of the data is allowed to grow
 !!   The input array x is not overwritten
 !!
 !!
@@ -66,9 +62,7 @@ END SUBROUTINE synthese_grow
 
 
 
-!> BigDFT/analyse_slab
-!! :
-!!   An analysis wavelet transformation where the size of the data is forced to shrink
+!>   An analysis wavelet transformation where the size of the data is forced to shrink
 !!   The input array y is not overwritten
 !!
 !!
@@ -96,9 +90,7 @@ END SUBROUTINE analyse_slab
 
 
 
-!> BigDFT/synthese_slab
-!! :
-!!   A synthesis wavelet transformation where the size of the data is allowed to grow
+!>   A synthesis wavelet transformation where the size of the data is allowed to grow
 !!   The input array x is not overwritten
 !!
 !!
@@ -122,9 +114,7 @@ END SUBROUTINE synthese_slab
 
 
 
-!> BigDFT/analyse_slab_self
-!! :
-!!  A analysis wavelet transformation where the size of the data is forced to shrink
+!>  A analysis wavelet transformation where the size of the data is forced to shrink
 !!  The input array y is overwritten
 !!
 !!
@@ -148,9 +138,7 @@ END SUBROUTINE analyse_slab_self
 
 
 
-!> BigDFT/synthese_slab_self
-!! :
-!!   A synthesis wavelet transformation where the size of the data is allowed to grow
+!>   A synthesis wavelet transformation where the size of the data is allowed to grow
 !!   The input array x is overwritten
 !!
 !!
@@ -174,9 +162,7 @@ END SUBROUTINE synthese_slab_self
 
 
 
-!> BigDFT/convolut_magic_n_slab_self
-!! :
-!!   Applies the magic filter matrix in slabwise BC ( no transposition)
+!>   Applies the magic filter matrix in slabwise BC ( no transposition)
 !!   The input array x is overwritten
 !!   this routine is modified to accept the GPU convolution if it is the case
 !!
@@ -230,9 +216,7 @@ END SUBROUTINE convolut_magic_n_slab_self
 
 
 
-!> BigDFT/convolut_magic_n_slab
-!! :
-!!   Applies the magic filter matrix in periodic BC ( no transposition)
+!>   Applies the magic filter matrix in periodic BC ( no transposition)
 !!   The input array x is not overwritten
 !!   this routine is modified to accept the GPU convolution if it is the case
 !!
@@ -287,9 +271,7 @@ END SUBROUTINE convolut_magic_n_slab
 
 
 
-!> BigDFT/convolut_magic_t_slab_self
-!! :
-!!   Applies the magic filter matrix transposed in periodic BC 
+!>   Applies the magic filter matrix transposed in periodic BC 
 !!   The input array x is overwritten
 !!   this routine is modified to accept the GPU convolution if it is the case
 !!
@@ -344,9 +326,7 @@ END SUBROUTINE convolut_magic_t_slab_self
 
 
 
-!> BigDFT/convolut_kinetic_slab_sdc
-!! :
-!!   Applies the kinetic energy operator onto x to get y. Works for periodic BC
+!>   Applies the kinetic energy operator onto x to get y. Works for periodic BC
 !!
 !!
 subroutine convolut_kinetic_slab_sdc(n1,n2,n3,x,y,cprecr,modul1,modul3,a,b,c,e)

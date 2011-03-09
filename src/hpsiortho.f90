@@ -1,6 +1,4 @@
-!> BigDFT/HamiltonianApplication
-!! :
-!!  Application of the Hamiltonian
+!>  Application of the Hamiltonian
 !!
 !!
 !! Copyright:
@@ -295,9 +293,7 @@ subroutine free_full_potential(nproc,pot,subname)
 
 END SUBROUTINE free_full_potential
 
-!> BigDFT/hpsitopsi
-!! :
-!!   Operations after h|psi> 
+!>   Operations after h|psi> 
 !!   (transposition, orthonormalisation, inverse transposition)
 !!
 !!
@@ -495,9 +491,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 END SUBROUTINE hpsitopsi
 
 
-!> BigDFT/first_orthon
-!! :
-!!   First orthonormalisation
+!>   First orthonormalisation
 !!
 !!
 subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
@@ -555,9 +549,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
 END SUBROUTINE first_orthon
 
 
-!> BigDFT/last_orthon
-!! :
-!!   Transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
+!>   Transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
 !!
 !!
 subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt_keeppsit)
@@ -876,9 +868,7 @@ END SUBROUTINE eFermi_nosmearing
 
 
 
-!> BigDFT/calc_moments
-!! :
-!!   Calculate magnetic moments
+!>   Calculate magnetic moments
 !!
 !!
 subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)

@@ -196,9 +196,7 @@ subroutine assign_atomic_radii(nat,iatlr,nlr,radii)
 
 END SUBROUTINE assign_atomic_radii
 
-!> BigDFT/atomic_charges
-!! :
-!!   Calculate atomic charges using Lee, York and Yang method 
+!>   Calculate atomic charges using Lee, York and Yang method 
 !!   But with a basis similar to Blochl one 
 !!   Refs: J.Chem.Phys. 102(19),7549 (1995)
 !!         J.Chem.Phys. 103(17),7422 (1995) 
@@ -521,9 +519,7 @@ END SUBROUTINE atomic_charges
 
 
 
-!> BigDFT/two_center_two_electrons_analytic
-!! :
-!!
+!>
 !!
 subroutine two_center_two_electrons_analytic(nlr,nat,iatlr,radii,rxyz,H)
   use module_base
@@ -576,9 +572,7 @@ subroutine two_center_two_electrons_analytic(nlr,nat,iatlr,radii,rxyz,H)
 END SUBROUTINE two_center_two_electrons_analytic
 
 
-!> BigDFT/calculate_rho_longrange
-!! :
-!!
+!>
 !!
 !!
 subroutine calculate_rho_longrange(iproc,nproc,at,nlr,iatlr,radii,rxyz,hxh,hyh,hzh,&
@@ -698,9 +692,7 @@ function erfor(r,rl)
 
 end function erfor
   
-!> BigDFT/gaussian_rism_basis
-!! :
-!!   Gaussian basis associated to the long-range term of rism calculation
+!>   Gaussian basis associated to the long-range term of rism calculation
 !!
 !!
 subroutine gaussian_rism_basis(nat,radii,rxyz,G)

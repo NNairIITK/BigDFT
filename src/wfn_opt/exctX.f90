@@ -1,6 +1,4 @@
-!> BigDFT/exact_exchange_potential
-!! :
-!!    Calculate the exact exchange potential
+!>    Calculate the exact exchange potential
 !!
 !! Copyright:
 !!
@@ -429,9 +427,7 @@ END SUBROUTINE prepare_psirocc
 
 
 
-!> BigDFT/exact_exchange_potential_virt
-!! :
-!!   Calculate the exact exchange potential only on virtual orbitals
+!>   Calculate the exact exchange potential only on virtual orbitals
 !!   by knowing the occupied orbitals and their distribution
 !!   both sets of orbitals are to be 
 !!
@@ -705,9 +701,7 @@ END SUBROUTINE exact_exchange_potential_virt
 
 
 
-!> BigDFT/exact_exchange_potential_round
-!! :
-!!   Calculate the exact exchange potential on occupied orbitals
+!>   Calculate the exact exchange potential on occupied orbitals
 !!   within the symmetric round-robin scheme
 !!   the psi is already given in the real-space form
 !!

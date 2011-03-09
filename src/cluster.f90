@@ -1,6 +1,4 @@
-!> BigDFT/call_bigdft
-!! :
-!!   Routines to use bigdft as a blackbox
+!>   Routines to use bigdft as a blackbox
 !!
 !! Copyright:
 !!
@@ -153,9 +151,7 @@ END SUBROUTINE call_bigdft
 
 
 
-!> BigDFT/cluster
-!! :
-!!  Main routine which does self-consistent loop.
+!>  Main routine which does self-consistent loop.
 !!  Does not parse input file and no geometry optimization.
 !!
 !!   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals

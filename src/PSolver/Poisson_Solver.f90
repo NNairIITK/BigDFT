@@ -1,6 +1,4 @@
-!> PSolver/Poisson_Solver
-!! :
-!!    The module of the Poisson Solver.
+!>    The module of the Poisson Solver.
 !!    It must be used in the parent routine. 
 !!
 !!

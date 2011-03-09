@@ -1,6 +1,4 @@
-!> BigDFT/compress
-!! :
-!!    Compresses a psig wavefunction into psi_c,psi_f form
+!>    Compresses a psig wavefunction into psi_c,psi_f form
 !!
 !! Copyright:
 !!

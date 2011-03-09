@@ -1,6 +1,4 @@
-!> BigDFT/BigDFT_API
-!! :
-!!  Module which contains all information about:
+!>  Module which contains all information about:
 !!  - types (data structures)
 !!  - interfaces
 !!

@@ -84,9 +84,7 @@ END SUBROUTINE apply_diis
 
 
 
-!> art/diis
-!! :
-!!   This program implement the direct inversion in iterative subspace
+!>   This program implement the direct inversion in iterative subspace
 !!   method which allows one to converge rapidly to a saddle point when
 !!   we are in its vicinity.
 !!

@@ -1,6 +1,4 @@
-!> BigDFT/local_forces
-!! :
-!!   Calculates the local forces acting on the atoms belonging to iproc
+!>   Calculates the local forces acting on the atoms belonging to iproc
 !!
 !!
 !! Copyright:
@@ -160,9 +158,7 @@ END SUBROUTINE local_forces
 
 
 
-!> BigDFT/nonlocal_forces
-!! :
-!!  Calculates the nonlocal forces on all atoms arising from the wavefunctions 
+!>  Calculates the nonlocal forces on all atoms arising from the wavefunctions 
 !!  belonging to iproc and adds them to the force array
 !   recalculate the projectors at the end if refill flag is .true.
 !!
@@ -485,9 +481,7 @@ END SUBROUTINE nonlocal_forces
 
 
 
-!> BigDFT/calc_coeff_derproj
-!! :
-!!   Calculates the coefficient of derivative of projectors
+!>   Calculates the coefficient of derivative of projectors
 !!
 !!
 subroutine calc_coeff_derproj(l,i,m,nterm_max,rhol,nterm_arr,lxyz_arr,fac_arr)

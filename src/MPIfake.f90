@@ -1,6 +1,4 @@
-!> BigDFT/MPIfake
-!! :
-!!    Fake functions for MPI in the case of serial version
+!>    Fake functions for MPI in the case of serial version
 !!
 !!
 !! Copyright:

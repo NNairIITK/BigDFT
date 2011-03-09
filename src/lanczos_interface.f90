@@ -1,6 +1,4 @@
-!> BigDFT/lanczos_interface
-!! :
-!!   Interface for routines which handle diagonalization
+!>   Interface for routines which handle diagonalization
 !!
 !! Copyright:
 !!
@@ -588,9 +586,7 @@ contains
    END SUBROUTINE EP_GramSchmidt_interna
 
 
-!> lanczos_interface/hit_with_kernel_spectra
-!! :
-!!   Hits the input array x with the kernel ((-1/2\Delta+C)_{ij})^{-1}
+!>   Hits the input array x with the kernel ((-1/2\Delta+C)_{ij})^{-1}
 !!
 !!
    subroutine hit_with_kernel_spectra(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,&
@@ -691,9 +687,7 @@ contains
 
 
 
-!> lanczos_interface/wscal_f_spectra
-!! :
-!!   Multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
+!>   Multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
 !!
 !!
   subroutine wscal_f_spectra(mvctr_f,psi_f,hx,hy,hz,ene, gamma)
@@ -735,9 +729,7 @@ contains
 
 
 
-!> lanczos_interface/prec_fft_fast_spectra
-!! :
-!!   Solves ((KE-ene)**2+gamma**2*I)*xx=yy by FFT in a cubic box 
+!>   Solves ((KE-ene)**2+gamma**2*I)*xx=yy by FFT in a cubic box 
 !!   x_c is the right hand side on input and the solution on output
 !!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
 !! : adapted from prec_fft_fast

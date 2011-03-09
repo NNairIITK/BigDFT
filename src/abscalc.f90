@@ -1,6 +1,4 @@
-!> BigDFT/abscalc_main
-!! :
-!!  Main program for XANES calculation (absorption calculation)
+!>  Main program for XANES calculation (absorption calculation)
 !!
 !!
 !! Copyright:
@@ -158,9 +156,7 @@ end program abscalc_main
 
 
 
-!> BigDFT/call_abscalc
-!! :
-!!   Routines to use abscalc as a blackbox
+!>   Routines to use abscalc as a blackbox
 !!
 !!
  subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
@@ -290,9 +286,7 @@ END SUBROUTINE call_abscalc
 
 
 
-!> BigDFT/abscalc
-!! :
-!!   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
+!>   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
 !!   inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid
 !!                    as definition of the previous system.
 !!   inputPsiId = 2 : read waves from disk
