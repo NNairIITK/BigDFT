@@ -1,7 +1,6 @@
 !>    Contains variables used a timing for BigDFT
 !!
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2010, BigDFT group (Luigi Genovese)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

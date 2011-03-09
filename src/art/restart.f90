@@ -3,8 +3,7 @@
 !!     siestart2art
 !!   It then continues the event where it stopped. 
 !!   Below - subtoutine save_restart, saves the status for a restart
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the

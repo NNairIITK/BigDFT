@@ -6,8 +6,7 @@
 !!    The latter thing could be done separately by the subroutine z3_to_z1 that is contained
 !!    in FFT_back, but then the code would be slower.
 !!
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

@@ -1,8 +1,6 @@
-!> BigDFT/direct_minimization
-!!   Naive subroutine which performs a direct minimization of the energy 
-!!   for a given hamiltonian
-!! Copyright:
-!!
+!>  Naive subroutine which performs a direct minimization of the energy 
+!!  for a given hamiltonian
+!! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -356,13 +354,7 @@ END SUBROUTINE jacobi_davidson
 
 
 
-!> BigDFT/davidson
-!!
-!! Author:
-!!
-!!   Alexander Willand
-!!
-!!   Davidsons method for iterative diagonalization of virtual Kohn Sham orbitals
+!> Davidsons method for iterative diagonalization of virtual Kohn Sham orbitals
 !!   under orthogonality constraints to occupied orbitals psi. The nvirt input
 !!   variable gives the number of unoccupied orbitals for which the exit criterion
 !!   for the gradients norm holds. nvirte = norbe - norb >= nvirt is the number of
@@ -401,8 +393,8 @@ END SUBROUTINE jacobi_davidson
 !!      (transpose v and hv)
 !!   end do
 !!   (retranspose v and psi)
-!! Copyright:
 !!
+!! @author Alexander Willand
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

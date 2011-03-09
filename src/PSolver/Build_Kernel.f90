@@ -11,12 +11,10 @@
 !!    iproc,nproc        Number of process, number of processes
 !!    karray             output array
 !! Author:
-!!
 !!    L. Genovese
 !! CREATION DATE
 !!    October 2006
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2006-2011 CEA, ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -196,7 +194,6 @@ END SUBROUTINE fourtrans
 !!    iproc,nproc        Number of process, number of processes
 !!    karray             output array
 !! Author:
-!!
 !!    L. Genovese
 !! CREATION DATE
 !!    October 2006
@@ -853,15 +850,14 @@ END SUBROUTINE indices
 !! SYNOPSIS
 !!    Build the kernel (karray) of a gaussian function
 !!    for interpolating scaling functions
-!!    $$ K(j) = \sum_k \omega_k \int \int \phi(x) g_k(x'-x) \delta(x'- j) dx dx' $$
+!!    @f$ K(j) = \sum_k \omega_k \int \int \phi(x) g_k(x'-x) \delta(x'- j) dx dx' @f$
 !!
 !!    n01,n02,n03        Mesh dimensions of the density
 !!    nfft1,nfft2,nfft3  Dimensions of the FFT grid (HalFFT in the third direction)
 !!    n1k,n2k,n3k        Dimensions of the kernel FFT
 !!    hgrid              Mesh step
 !!    itype_scf          Order of the scaling function (8,14,16)
-!! Author:
-!!S
+!! Author:S
 !!    T. Deutsch, L. Genovese
 !! CREATION DATE
 !!    February 2006
@@ -1377,8 +1373,7 @@ END SUBROUTINE inserthalf
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!! Author:
-!!S
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE

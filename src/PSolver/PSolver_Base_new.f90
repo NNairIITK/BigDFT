@@ -599,7 +599,7 @@ END SUBROUTINE G_switch_upcorn
 !!     nfft:        number of planes
 !!     scal:        Needed to achieve unitarity and correct dimensions
 !!
-!! WARNING
+!! @warning
 !!     Assuming that high frequencies are in the corners 
 !!     and that n3 is multiple of 4   
 !!
@@ -609,8 +609,7 @@ END SUBROUTINE G_switch_upcorn
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!! Author:
-!!S
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
@@ -717,8 +716,7 @@ END SUBROUTINE C_fill_upcorn
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!! Author:
-!!S
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
@@ -761,8 +759,7 @@ END SUBROUTINE scramble_P
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!! Author:
-!!S
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
@@ -815,8 +812,7 @@ END SUBROUTINE unscramble_P
 !!     Copyright (C) 2009 Luigi Genovese, ESRF Grenoble
 !!     This file is distributed under the terms of the
 !!      GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!! Author:
-!!S
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
@@ -870,8 +866,7 @@ END SUBROUTINE P_multkernel
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!      GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!! Author:
-!!S
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
@@ -986,7 +981,7 @@ END SUBROUTINE G_unmpiswitch_downcorn
 !!     scal:        Needed to achieve unitarity and correct dimensions
 !!     ehartreetmp: Hartree energy
 !!
-!! WARNING
+!! @warning
 !!     Assuming that high frequencies are in the corners 
 !!     and that n3 is multiple of 4   
 !!
@@ -996,8 +991,7 @@ END SUBROUTINE G_unmpiswitch_downcorn
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!! Author:
-!!S
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
@@ -1080,8 +1074,7 @@ END SUBROUTINE halfill_upcorn
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!! Author:
-!!S
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
@@ -1155,8 +1148,7 @@ END SUBROUTINE scramble_unpack
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!! Author:
-!!S
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE

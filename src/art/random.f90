@@ -2,8 +2,7 @@
 !!    Returns a uniform random deviate between 0.0 and 1.0.
 !!    Set idum to any negative value to initialize or
 !!    reinitialize the sequence.
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

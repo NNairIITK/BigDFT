@@ -1,6 +1,5 @@
 !> BigDFT/rism
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2010 ESRF, CEA
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

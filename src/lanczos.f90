@@ -1,7 +1,6 @@
 !>   Lanczos diagonalization
 !!
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2009 ESRF (AM, LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

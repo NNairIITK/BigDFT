@@ -1,7 +1,6 @@
 !>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 !!   x is the right hand side on input and the solution on output
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

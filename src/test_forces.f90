@@ -4,15 +4,10 @@
 !!    some random displacement and compare the result with the 
 !!    difference of the energy between the final and the initial 
 !!    position
-!! WARNING
+!! @warning
 !!    Date: 10/07; THIS PROGRAM MUST BE COMPLETELY CHANGED
 !!
-!! Author:
-!!
-!!    Luigi Genovese
-!!
-!! Copyright:
-!!
+!! @author Luigi Genovese
 !!    Copyright (C) 2005-2008 CEA
 !! CREATION DATE
 !!    09/2006

@@ -1,6 +1,5 @@
 !>   Generate the input guess via the inguess_generator
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2007-2011 (LG) BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

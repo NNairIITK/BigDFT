@@ -6,15 +6,13 @@
 !!    In the absence of norbe parameters, it simply diagonalize the hamiltonian in the given
 !!    orbital basis set.
 !!    Works for wavefunctions given in a Gaussian basis set provided bt the structure G
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2010 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !! Author:
-!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    January 2009
@@ -223,8 +221,7 @@ END SUBROUTINE Gaussian_DiagHam
 !!    In the absence of norbe parameters, it simply diagonalizes the hamiltonian in the given
 !!    orbital basis set.
 !!
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2008 CEA Grenoble
 !!    Copyright (C) 2009 ESRF Grenoble
 !!    This file is distributed under the terms of the
@@ -268,7 +265,6 @@ END SUBROUTINE Gaussian_DiagHam
 !!    eval   array of the first norb eigenvalues       
 !!
 !! Author:
-!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2008

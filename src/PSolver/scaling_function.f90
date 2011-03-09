@@ -1,6 +1,5 @@
 !>   Calculate the values of a scaling function in real uniform grid
-!! Copyright:
-!!
+!! @author
 !! Copyright (C) 2002-2007 BigDFT group 
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~/COPYING file

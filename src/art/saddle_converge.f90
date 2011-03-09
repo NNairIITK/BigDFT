@@ -6,8 +6,7 @@
 !!    reasonnable size) the configuration follows the direction corresponding
 !!    to this eigenvalue until the force components parallel and perpdendicular
 !!    to the eigendirection become close to zero.
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) Normand Mousseau, June 2001
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the

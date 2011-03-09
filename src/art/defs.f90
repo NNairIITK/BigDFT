@@ -1,6 +1,5 @@
 !>    This module defines all variables used accross the program ART01
-!! Copyright:
-!!
+!! @author
 !!    Copyright N. Mousseau, May 2001
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the

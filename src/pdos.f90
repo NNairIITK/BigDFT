@@ -1,6 +1,5 @@
 !>    Perform all the projection associated to local variables
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -132,8 +131,7 @@ END SUBROUTINE local_analysis
 
 
 
-!> BigDFT/mulliken_charge_population
-!!
+!> Calculate Mulliken charge population
 !! 
 subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
   use module_base
@@ -258,7 +256,6 @@ END SUBROUTINE mulliken_charge_population
 
 
 !> BigDFT/gaussian_pdos
-!!
 !! 
 subroutine gaussian_pdos(iproc,nproc,orbs,Gocc,G,coeff,duals)
   use module_base

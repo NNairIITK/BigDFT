@@ -1,6 +1,5 @@
 !>   Cleaned version of the logrid_old.f90 in the unused directory (with newmethod=.true.)
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

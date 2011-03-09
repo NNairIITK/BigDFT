@@ -1,8 +1,7 @@
 !>   A analysis wavelet transformation where the size of the data is forced to shrink
 !!   The input array y is overwritten
 !!
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

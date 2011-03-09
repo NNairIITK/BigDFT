@@ -1,12 +1,7 @@
 !>  Test the input files and estimates the memory occupation versus the number
 !!  of processors
 !!
-!! Author:
-!!
-!!    Luigi Genovese
-!!
-!! Copyright:
-!!
+!! @author Luigi Genovese
 !!   Copyright (C) 2007-2011 BigDFT group
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
@@ -467,9 +462,7 @@ end program memguess
 !>  Rotate the molecule via an orthogonal matrix in order to minimise the
 !!  volume of the cubic cell
 !!
-!! Author:
-!!
-!!    Stefan Goedecker, Luigi Genovese
+!! @author Stefan Goedecker, Luigi Genovese
 !!
 !!
 subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
@@ -582,9 +575,7 @@ END SUBROUTINE optimise_volume
 !>  Add a shift in the periodic directions such that the system
 !!  uses as less as possible the modulo operation
 !!
-!! Author:
-!!
-!!    Luigi Genovese
+!! @author Luigi Genovese
 !!
 !!
 subroutine shift_periodic_directions(at,rxyz,radii_cf)

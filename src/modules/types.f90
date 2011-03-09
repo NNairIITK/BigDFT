@@ -2,11 +2,9 @@
 !!  and the routines of allocations and de-allocations
 !!
 !! Author:
-!!
 !!    Luigi Genovese
 !!
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2008-2011 CEA, ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -25,10 +23,7 @@ module module_types
   integer, parameter :: WF_FORMAT_BINARY = 2
   integer, parameter :: WF_FORMAT_ETSF   = 3
 
-!> module_types/input_variables
-!!
-!!   Input variable structure
-!!   Structure of the variables read by input.* files (*.dft, *.geopt...)
+!> Structure of the variables read by input.* files (*.dft, *.geopt...)
 !!
 !!
   type, public :: input_variables
@@ -114,10 +109,8 @@ module module_types
 
 
 
-!> convolution_bounds/kinetic_bounds
-!!
-!!   Bounds for coarse and fine grids for kinetic operations
-!!   Useful only for isolated systems AND in CPU
+!>  Bounds for coarse and fine grids for kinetic operations
+!!  Useful only for isolated systems AND in CPU
 !!
 !!
   type, public :: kinetic_bounds
@@ -127,10 +120,8 @@ module module_types
 
 
 
-!> convolution_bounds/shrink_bounds
-!!
-!!   Bounds to compress the wavefunctions
-!!   Useful only for isolated systems AND in CPU
+!>  Bounds to compress the wavefunctions
+!!  Useful only for isolated systems AND in CPU
 !!
 !!
   type, public :: shrink_bounds

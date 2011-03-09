@@ -22,8 +22,7 @@
 !!   box. 
 !!   The annihilation accuracy improves with decreasing grid constant h, as expected,
 !!   but the numerical noise spoils the convergence after some point.
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2005-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

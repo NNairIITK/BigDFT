@@ -1,6 +1,6 @@
-!> BigDFT/oneatom
-!! Copyright:
-!!
+!> Compute one atom system
+!! @deprecated
+!! @author
 !!    Copyright (C) 2010 ESRF, PoliTo
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

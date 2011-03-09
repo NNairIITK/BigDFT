@@ -1,8 +1,7 @@
 !>  Calculate the finite size corrections over wavefunctions
 !!  Conceived only for isolated Boundary Conditions
 !!
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2007-2008 UNIBAS,CEA
 !!
 !!

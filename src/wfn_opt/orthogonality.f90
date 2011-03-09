@@ -1,8 +1,7 @@
 !! :
 !!    Orthogonality routine, for all the orbitals
 !!    Uses wavefunctions in their transposed form
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -536,7 +535,7 @@ END SUBROUTINE subspace_diagonalisation
 !!   This routine is almost the same as orthoconstraint_p. Difference:
 !!   hpsi(:,norb) -->  psivirt(:,nvirte) , therefore rectangular alag.
 !! 
-!! WARNING
+!! @warning
 !!   Orthogonality to spin polarized channels is achieved in two calls,
 !!
 !!

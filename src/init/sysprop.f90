@@ -2,8 +2,7 @@
 !!
 !! :
 !!  Calculate the important objects related to the physical properties of the system
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

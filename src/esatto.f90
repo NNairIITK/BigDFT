@@ -1,6 +1,5 @@
-!> BigDFT/esatto
-!! Copyright:
-!!
+!> module for XANES calculation
+!! @author
 !!    Copyright (C) 2009 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

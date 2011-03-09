@@ -1,7 +1,6 @@
 !>   Module which contains information for bigdft run inside art
 !!
-!! Copyright:
-!!
+!! @author
 !!   Copyright (C) 2010 BigDFT group, Normand Mousseau
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file

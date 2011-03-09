@@ -1,13 +1,11 @@
 !>    Calculate the array of the core density for the atom iat
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2002-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !! Author:
-!!
 !!    Luigi Genovese
 !! 
 subroutine calc_rhocore_iat(iproc,geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
@@ -184,7 +182,7 @@ END SUBROUTINE calc_rhocore_iat
 !!    potxc       Main output array, the values on the grid points of the XC potential
 !!    exc,vxc     XC energy and integral of $\rho V_{xc}$ respectively
 !!    nspin       Value of the spin-polarisation
-!! WARNING
+!! @warning
 !!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
@@ -554,7 +552,7 @@ END SUBROUTINE XC_potential
 !!    nxcl,nxcr   shifts in the three directions to be compatible with the relation
 !!                nxc+nxcl+nxcr-2=nwb, nwb+nwbl+nwbr=nxt.
 !!
-!! WARNING
+!! @warning
 !!    The dimensions of pot_ion must be compatible with geocode, datacode,
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
@@ -885,12 +883,11 @@ END SUBROUTINE xc_energy_new
 !!    zf          output array corresponding to the density which can be passed to FFT part
 !!    zfionxc     output array which will contain pot_ion+vxci or vxci, following sumpion
 !!
-!! WARNING
+!! @warning
 !!    The dimensions of pot_ion must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
 !! Author:
-!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2007

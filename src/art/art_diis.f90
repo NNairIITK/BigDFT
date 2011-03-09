@@ -1,7 +1,6 @@
 !> art/diis_def
 !!
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the

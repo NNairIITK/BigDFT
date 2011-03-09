@@ -1,9 +1,7 @@
 !>    Program test for the convolution in GPU
 !! Author:
-!!
 !!    Luigi Genovese
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2008 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

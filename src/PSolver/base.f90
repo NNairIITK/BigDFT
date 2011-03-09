@@ -2,10 +2,8 @@
 !!  in order to have a standalone PSolver version.
 !!  Interfaces of:
 !! Author:
-!!
 !!    Luigi Genovese
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2008 CEA
 !! 
 module module_base 

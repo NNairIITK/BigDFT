@@ -1,7 +1,6 @@
 !>   Estimation of the used memory
 !!
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2011
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

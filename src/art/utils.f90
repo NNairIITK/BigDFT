@@ -2,8 +2,7 @@
 !!   of program. They suppose very little.
 !!   The subroutine convert_to_chain takes an integer and transforms it into a
 !!   chain of character.
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the

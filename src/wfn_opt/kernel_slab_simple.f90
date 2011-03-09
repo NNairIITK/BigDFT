@@ -1,8 +1,7 @@
 !>   Hits the input array x with the kernel
 !!   ((-1/2\Delta+C)_{ij})^{-1}
 !!
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

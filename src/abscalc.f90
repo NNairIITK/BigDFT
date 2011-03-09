@@ -1,7 +1,6 @@
 !>  Main program for XANES calculation (absorption calculation)
-!! Copyright:
 !!
-!!    Copyright (C) 2009-2011 ESRF
+!! @author Copyright (C) 2009-2011 ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -151,7 +150,6 @@ program abscalc_main
 end program abscalc_main
 
 
-
 !>   Routines to use abscalc as a blackbox
 !!
 !!
@@ -281,7 +279,6 @@ end program abscalc_main
 END SUBROUTINE call_abscalc
 
 
-
 !>   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
 !!   inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid
 !!                    as definition of the previous system.
@@ -403,8 +400,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   integer, parameter :: noccmax=2
 
 
-
-  if (  in%potshortcut==0) then
+  if (in%potshortcut==0) then
      if(nproc>1) call MPI_Finalize(ierr)
      stop '   in%potshortcut==0 calculating spectra. Use rather box2Box option      '
   endif
@@ -580,14 +576,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      allocate(rhoXanes(1,1,1,1+ndebug),stat=i_stat)
      call memocc(i_stat,rhoXanes,'rhoXanes',subname)     
   endif
-
-
+  
 
   nullify(rhocore)
   !check the communication distribution
   !call check_communications(iproc,nproc,orbs,Glr,comms)
-
-
 
 
   if( iand( in%potshortcut,4)  .gt. 0 ) then
@@ -709,10 +702,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      deallocate(phnons,stat=i_stat)
      call memocc(i_stat,i_all,'phnons',subname)
      
-     
-
-
-
      i_all=-product(shape(atoms_clone%aocc))*kind(atoms_clone%aocc)
      deallocate(atoms_clone%aocc,stat=i_stat)
      call memocc(i_stat,i_all,'atoms_clone%aocc',subname)
@@ -720,10 +709,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      deallocate(atoms_clone%iasctype,stat=i_stat)
      call memocc(i_stat,i_all,'atoms_clone%iasctype',subname)
 
-
-
   endif
-
 
 
   if( iand( in%potshortcut,1)  .gt. 0 ) then
@@ -1426,5 +1412,3 @@ contains
   END SUBROUTINE deallocate_before_exiting
 
 END SUBROUTINE abscalc
-
-

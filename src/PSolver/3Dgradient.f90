@@ -3,8 +3,7 @@
 !! It is based on a finite difference calculation of the gradient, corrected at the border
 !! (see the calc_gradient routine)
 !! Works either in parallel or in serial, by proper adjustation of the arguments
-!! Copyright:
-!!
+!! @author
 !! Copyright (C) 2002-2011 BigDFT group 
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~/COPYING file
@@ -560,7 +559,7 @@ END SUBROUTINE wb_correction
 !! The drivexc routine uses only the first part of this array (component 0)
 !! The rest of the array is defined for later use in the wb postprocessing routine.
 !!
-!! WARNING
+!! @warning
 !!
 subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
      gradient)

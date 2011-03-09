@@ -1,8 +1,7 @@
 !>   Applies the operator (KE+cprecr*I)*x=y
 !!   array x is input, array y is output
 !! See also the optimized version (apply_hp_sd_optim)
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

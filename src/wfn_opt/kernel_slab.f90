@@ -3,8 +3,7 @@
 !! See the optimized version (hit_kernel_slab_optim) and
 !!     non-optimized version (hit_kernal_slab_simple)
 !!
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

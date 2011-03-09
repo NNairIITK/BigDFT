@@ -1,8 +1,7 @@
 !> BigDFT/IonicEnergyandForces
 !!
 !!    Calculte the ionic contribution to the energy and the forces
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2007-2011 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

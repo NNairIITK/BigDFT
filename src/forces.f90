@@ -1,6 +1,5 @@
 !>   Calculates the local forces acting on the atoms belonging to iproc
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

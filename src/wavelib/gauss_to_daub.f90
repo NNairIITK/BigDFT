@@ -17,8 +17,7 @@
 !!   C(:,2)          array of wavelet coefficients:
 !!   WW(:,1),WW(:,2) work arrays that have to be 17 times larger than C
 !!   err_norm        normalisation error
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2007-2011 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -267,8 +266,7 @@ END SUBROUTINE gauss_to_daub
 !!   C(:,2)          array of wavelet coefficients:
 !!   WW(:,1),WW(:,2) work arrays that have to be 17 times larger than C
 !!   err_norm        normalisation error
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2007-2011 CEA (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

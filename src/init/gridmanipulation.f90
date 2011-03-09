@@ -1,8 +1,7 @@
 !>   Calculates the overall size of the simulation cell 
 !!   and shifts the atoms such that their position is the most symmetric possible.
 !!   Assign these values to the global localisation region descriptor.
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

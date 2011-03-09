@@ -1,7 +1,6 @@
 !>   Calculate the action of the local hamiltonian on the orbitals
 !!
-!! Copyright:
-!!
+!! @author
 !!   Copyright (C) 2005-2011 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file

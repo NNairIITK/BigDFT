@@ -1,7 +1,6 @@
 !>    Calculate the exact exchange potential
 !!
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file

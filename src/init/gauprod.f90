@@ -1,6 +1,5 @@
 !>  Restart from gaussian functions
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2007-2011 CEA (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -452,7 +451,7 @@ END SUBROUTINE gaussian_pswf_basis
 
 
 !>   Extract the pseudopotential basis
-!! WARNING
+!! @warning
 !!   This is not the complete PSP basis set. 
 !!   The radial power term is lacking in the gaussian descriptors should be added if needed
 !!

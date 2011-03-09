@@ -1,10 +1,9 @@
 !>    Calculate the Hartree potential by solving Poisson equation 
-!!       $\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$
-!!    from a given $\rho$, 
+!!    @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
+!!    from a given @f$\rho@f$, 
 !!    for different boundary conditions an for different data distributions.
 !!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2002-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -57,14 +56,13 @@
 !!                                   pot_ion will be untouched
 !!                if sumpion==.false. rhopot will be only the Hartree potential
 !!                                    pot_ion will be the XC potential vxci
-!! WARNING
+!! @warning
 !!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
 !! Author:
-!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2007
@@ -310,11 +308,10 @@ END SUBROUTINE H_potential
 
 
 
-!>    Calculate the Poisson equation $\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$
-!!    from a given $\rho$, for different boundary conditions an for different data distributions.
+!>    Calculate the Poisson equation @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
+!!    from a given @f$\rho@f$, for different boundary conditions an for different data distributions.
 !!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2002-2007 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -380,14 +377,13 @@ END SUBROUTINE H_potential
 !!                if sumpion==.false. rhopot will be only the Hartree potential
 !!                                    pot_ion will be the XC potential vxci
 !!                this value is ignored when ixc=0. In that case pot_ion is untouched
-!! WARNING
+!! @warning
 !!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
 !! Author:
-!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2007
@@ -792,8 +788,7 @@ END SUBROUTINE PSolver
 
 !>    Transforms a generalized spin density into a pointwise collinear spin density which is
 !!    then passed to the Poisson Solver (PSolver). 
-!! Copyright:
-!!
+!! @author
 !!    Copyright (C) 2002-2007 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -863,14 +858,13 @@ END SUBROUTINE PSolver
 !!                if sumpion==.false. rhopot will be only the Hartree potential
 !!                                    pot_ion will be the XC potential vxci
 !!                this value is ignored when ixc=0. In that case pot_ion is untouched
-!! WARNING
+!! @warning
 !!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
 !! Author:
-!!
 !!    Anders Bergman
 !! CREATION DATE
 !!    March 2008
@@ -1027,12 +1021,11 @@ END SUBROUTINE PSolverNC
 !!                The potential to the planes from i3s+i3xcsh to i3s+i3xcsh+n3p-1
 !!                The array pot_ion to the planes from i3s+i3xcsh to i3s+i3xcsh+n3pi-1
 !!                For global disposition i3s is equal to distributed case with i3xcsh=0.
-!! WARNING
+!! @warning
 !!    The XC enlarging due to GGA part is not present for surfaces and 
 !!    periodic boundary condition. This is related to the fact that the calculation of the
 !!    gradient and the White-Bird correction are not yet implemented for non-isolated systems
 !! Author:
-!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2007
@@ -1111,10 +1104,9 @@ END SUBROUTINE PS_dim4allocation
 !!
 !!    i3xcsh    shift to be applied to i3s for having the striting address of the potential
 !!
-!! WARNING
+!! @warning
 !!    It is imperative that iend <=m2
 !! Author:
-!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    May 2008
@@ -1213,13 +1205,12 @@ END SUBROUTINE xc_dimensions
 !!                formally 1/8 of the fourier grid. Here the dimension nd3 is
 !!                enlarged to be a multiple of nproc
 !!
-!! WARNING
+!! @warning
 !!    This four sets of dimensions are actually redundant (mi=n0i), 
 !!    due to the backward-compatibility
 !!    with the other geometries of the Poisson Solver.
 !!    The dimensions 2 and 3 are exchanged.
 !! Author:
-!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    October 2006
@@ -1308,13 +1299,12 @@ END SUBROUTINE P_FFT_dimensions
 !!                formally 1/8 of the fourier grid. Here the dimension nd3 is
 !!                enlarged to be a multiple of nproc
 !!
-!! WARNING
+!! @warning
 !!    This four sets of dimensions are actually redundant (mi=n0i), 
 !!    due to the backward-compatibility
 !!    with the Poisson Solver with other geometries.
 !!    Dimensions n02 and n03 were exchanged
 !! Author:
-!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    October 2006
@@ -1406,12 +1396,11 @@ END SUBROUTINE S_FFT_dimensions
 !!                formally 1/8 of the fourier grid. Here the dimension nd3 is
 !!                enlarged to be a multiple of nproc
 !!
-!! WARNING
+!! @warning
 !!    The dimension m2 and m3 correspond to n03 and n02 respectively
 !!    this is needed since the convolution routine manage arrays of dimension
 !!    (md1,md3,md2/nproc)
 !! Author:
-!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2006
