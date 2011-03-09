@@ -348,7 +348,7 @@ program frequencies
           '=F: Vibrational entropy =', vibrational_entropy,' at ',Temperature,'K'
      write(*,'(1x,a,f13.2,1x,a,5x,1pe20.10,1x,a,0pf5.1,a)') &
           '=F: Vibrational  energy =', vibrational_energy*Ha_cmm1, 'cm-1',vibrational_energy,'Hartree at ',Temperature,'K'
-     write(*,'(1x,a,1pe20.10,1x,a,0pf5.1,a)') &
+     write(*,'(1x,a,1pe22.10,1x,a,0pf5.1,a)') &
           '=F: Total energy        =', total_energy,'Hartree at ',Temperature,'K'
   end if
 
