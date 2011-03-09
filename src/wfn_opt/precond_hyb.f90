@@ -1,13 +1,15 @@
-!!****f* BigDFT/precong_per_hyb
+!> BigDFT/precong_per_hyb
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !! 
 subroutine precong_per_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hx,hy,hz,x,ibyz,ibxz,ibxy)
@@ -193,15 +195,15 @@ contains
   END SUBROUTINE deallocate_all
 
 END SUBROUTINE precong_per_hyb
-!!***
 
 
-!!****f* BigDFT/apply_hp_hyb
-!! FUNCTION
+
+!> BigDFT/apply_hp_hyb
+!! :
 !!   Applies the operator (KE+cprecr*I)*x=y
 !!   array x is input, array y is output
 !!
-!! SOURCE
+!!
 !!
 subroutine apply_hp_hyb(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
@@ -244,4 +246,4 @@ subroutine apply_hp_hyb(n1,n2,n3, &
        y_c,y_f,y(1),y(nvctr_c+min(1,nvctr_f)),nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
 
 END SUBROUTINE apply_hp_hyb
-!!***
+

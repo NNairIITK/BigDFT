@@ -1,8 +1,10 @@
-!!****p* BigDFT/art90
-!! FUNCTION
+!> BigDFT/art90
+!! :
 !!  Main program to use BigDFT with art nouveau method
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright Normand Mousseau, July 2001
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
@@ -10,7 +12,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 program art90
 
@@ -211,13 +213,13 @@ program art90
 
   call finalise_potential()
 end program art90
-!!***
 
 
-!!****f* art/print_newevent
-!! FUNCTION
+
+!> art/print_newevent
+!! :
 !!   This subroutine prints the initial details for a new events
-!! SOURCE
+!!
 !!
 subroutine print_newevent(ievent_current,temperat)
   use defs
@@ -239,4 +241,4 @@ subroutine print_newevent(ievent_current,temperat)
 
   return
 END SUBROUTINE print_newevent
-!!***
+

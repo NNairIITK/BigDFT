@@ -1,5 +1,5 @@
-!!****f* BigDFT/precong_slab
-!! FUNCTION
+!> BigDFT/precong_slab
+!! :
 !!   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 !!   x is the right hand side on input and the solution on output
 !!   This subroutine is almost similar to precong_per
@@ -9,14 +9,16 @@
 !!   -the work arrays psifscf and ww are slightly bigger
 !!   -the work array z is smaller now
 !!   -the Fourier preconditioner is in the surface version
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !! 
 subroutine precong_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hx,hy,hz,x)
@@ -164,15 +166,15 @@ contains
   END SUBROUTINE deallocate_all
 
 END SUBROUTINE precong_slab
-!!***
 
 
-!!****f* BigDFT/apply_hp_slab
-!! FUNCTION
+
+!> BigDFT/apply_hp_slab
+!! :
 !!   Applies the operator (KE+cprecr*I)*x=y
 !!   array x is input, array y is output
 !!
-!! SOURCE
+!!
 !!
 subroutine apply_hp_slab(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
@@ -208,15 +210,15 @@ subroutine apply_hp_slab(n1,n2,n3, &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),& 
        ww,y(1),y(nvctr_c+1),psifscf)
 END SUBROUTINE apply_hp_slab
-!!***
 
 
-!!****f* BigDFT/apply_hp_slab_sd
-!! FUNCTION
+
+!> BigDFT/apply_hp_slab_sd
+!! :
 !!   Applies the operator (KE+cprecr*I)*x=y
 !!   array x is input, array y is output
 !!
-!! SOURCE
+!!
 !!
 subroutine apply_hp_slab_sd(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
@@ -260,14 +262,14 @@ subroutine apply_hp_slab_sd(n1,n2,n3, &
        nseg_f,nvctr_f,keyg(1,nseg_c+min(1,nseg_f)),keyv(nseg_c+min(1,nseg_f)),& 
        ww,y(1),y(nvctr_c+min(1,nvctr_f)))
 END SUBROUTINE apply_hp_slab_sd
-!!***
 
-!!****f* BigDFT/apply_hp_slab_sd
-!! FUNCTION
+
+!> BigDFT/apply_hp_slab_sd
+!! :
 !!   Applies the operator (KE+cprecr*I)*x=y
 !!   array x is input, array y is output
 !!
-!! SOURCE
+!!
 !!
 subroutine apply_hp_slab_sd_scal(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
@@ -312,15 +314,15 @@ subroutine apply_hp_slab_sd_scal(n1,n2,n3, &
        ww,y(1),y(nvctr_c+min(1,nvctr_f)),scal)
 
 END SUBROUTINE apply_hp_slab_sd_scal
-!!***
 
 
-!!****f* BigDFT/prec_fft_slab_fast
-!! FUNCTION
+
+!> BigDFT/prec_fft_slab_fast
+!! :
 !!   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 !!   hpsi is the right hand side on input and the solution on output
 !!
-!! SOURCE
+!!
 !!
 subroutine prec_fft_slab_fast(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
@@ -355,15 +357,15 @@ subroutine prec_fft_slab_fast(n1,n2,n3, &
   call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
 END SUBROUTINE prec_fft_slab_fast
-!!***
 
 
-!!****f* BigDFT/prec_fft_slab
-!! FUNCTION
+
+!> BigDFT/prec_fft_slab
+!! :
 !!   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 !!   hpsi is the right hand side on input and the solution on output
 !!
-!! SOURCE
+!!
 !!
 subroutine prec_fft_slab(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
@@ -432,16 +434,16 @@ contains
   END SUBROUTINE deallocate_all
 
 END SUBROUTINE prec_fft_slab
-!!***
 
 
-!!****f* BigDFT/segment_invert
-!! FUNCTION
+
+!> BigDFT/segment_invert
+!! :
 !!   Solve the discretized equation
 !!   (-d^2/dy^2+ct(k1,k3)) zx(output) = zx(input)
 !!   for all k1,k3 via Lapack
 !!
-!! SOURCE
+!!
 !!
 subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   use module_base
@@ -530,4 +532,4 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
 
   deallocate(ab)
 END SUBROUTINE segment_invert
-!!***
+

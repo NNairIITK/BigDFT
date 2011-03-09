@@ -1,15 +1,17 @@
-!! FUNCTION
+!! :
 !!    Orthogonality routine, for all the orbitals
 !!    Uses wavefunctions in their transposed form
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
   use module_base
@@ -125,7 +127,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
   call timing(iproc,trim(category)//'_comput','OF')
   
 END SUBROUTINE orthogonalize
-!!***
+
 
 subroutine check_closed_shell(nspin,orbs,lcs)
   use module_base
@@ -145,11 +147,11 @@ subroutine check_closed_shell(nspin,orbs,lcs)
   end do
 END SUBROUTINE check_closed_shell
 
-!!****f* BigDFT/orthoconstraint
-!! FUNCTION
+!> BigDFT/orthoconstraint
+!! :
 !!   Orthogonality routine, for all the orbitals
 !!   Uses wavefunctions in their transposed form
-!! SOURCE
+!!
 !!
 subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   use module_base
@@ -316,14 +318,14 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   call timing(iproc,'LagrM_comput  ','OF')
 
 END SUBROUTINE orthoconstraint
-!!***
 
 
-!!****f* BigDFT/subspace_diagonalisation
-!! FUNCTION
+
+!> BigDFT/subspace_diagonalisation
+!! :
 !!   Found the linear combination of the wavefunctions which diagonalises
 !!   the overlap matrix
-!! SOURCE
+!!
 !!
 subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   use module_base
@@ -533,18 +535,18 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   call memocc(i_stat,i_all,'ndimovrlp',subname)
 
 END SUBROUTINE subspace_diagonalisation
-!!***
 
 
-!!****f* BigDFT/orthon_virt_occup
-!! DESCRIPTION
+
+!> BigDFT/orthon_virt_occup
+!!
 !!   Makes sure all psivirt/gradients are othogonal to the occupied states psi.
 !!   This routine is almost the same as orthoconstraint_p. Difference:
 !!   hpsi(:,norb) -->  psivirt(:,nvirte) , therefore rectangular alag.
 !! 
 !! WARNING
 !!   Orthogonality to spin polarized channels is achieved in two calls,
-!! SOURCE
+!!
 !!
 subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_virt,msg)
   use module_base
@@ -717,7 +719,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
   call timing(iproc,'LagrM_comput  ','OF')
 
 END SUBROUTINE orthon_virt_occup
-!!***
+
 
 subroutine complex_components(nspinor,norb,norbs,ncomp)
   implicit none

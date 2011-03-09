@@ -1,5 +1,5 @@
-!!****f* BigDFT/read_waves_etsf
-!! FUNCTION
+!> BigDFT/read_waves_etsf
+!! :
 !!   Read a ETSF file containing wavefunctions.
 !!
 !!   Read a NetCDF file.
@@ -9,7 +9,7 @@
 !!   coefficients_of_wavefunctions is used to store the psi values for
 !!   each wavelet.
 !!
-!! SOURCE
+!!
 !!
 subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi)
@@ -359,10 +359,10 @@ contains
     displ=sqrt(tx+ty+tz)
   END SUBROUTINE calc_displ
 END SUBROUTINE read_waves_etsf
-!!***
 
-!!****f* BigDFT/write_waves_etsf
-!! FUNCTION
+
+!> BigDFT/write_waves_etsf
+!! :
 !!   Write a ETSF file containing wavefunctions.
 !!
 !!   Write a NetCDF file.
@@ -372,7 +372,7 @@ END SUBROUTINE read_waves_etsf
 !!   coefficients_of_wavefunctions is used to store the psi values for
 !!   each wavelet.
 !!
-!! SOURCE
+!!
 !!
 subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   use module_types
@@ -736,4 +736,4 @@ contains
     call memocc(i_stat,i_all,'coeff_map',subname)
   END SUBROUTINE build_grid
 END SUBROUTINE write_waves_etsf
-!!***
+

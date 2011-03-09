@@ -1,13 +1,15 @@
-!!****f* BigDFT/hit_with_kernel_slab_optim
+!> BigDFT/hit_with_kernel_slab_optim
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 subroutine hit_with_kernel_slab(x,zx,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
   ! hits the input array x with the kernel
@@ -61,12 +63,12 @@ subroutine hit_with_kernel_slab(x,zx,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
   !deallocations to be reformulated
   deallocate(trig)
 END SUBROUTINE hit_with_kernel_slab
-!!***
 
 
-!!****f* BigDFT/forward_fft
+
+!> BigDFT/forward_fft
 !!
-!! SOURCE
+!!
 !!
 subroutine forward_fft(n1,n2,n3,nd1,nd3,x,zx,ntrig,trig)
   use module_base
@@ -106,12 +108,12 @@ subroutine forward_fft(n1,n2,n3,nd1,nd3,x,zx,ntrig,trig)
 !$omp end parallel
 
 END SUBROUTINE forward_fft
-!!***
 
 
-!!****f* BigDFT/backward_fft
+
+!> BigDFT/backward_fft
 !!
-!! SOURCE
+!!
 !!
 subroutine backward_fft(n1,n2,n3,nd1,nd3,x,zx,ntrig,trig)
   use module_base
@@ -172,4 +174,4 @@ subroutine backward_fft(n1,n2,n3,nd1,nd3,x,zx,ntrig,trig)
   deallocate(z,zw)
 !$omp end parallel
 END SUBROUTINE backward_fft
-!!***
+

@@ -1,13 +1,15 @@
-!!****f* BigDFT/call_bigdft
-!! FUNCTION
+!> BigDFT/call_bigdft
+!! :
 !!   Routines to use bigdft as a blackbox
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!   Copyright (C) 2005-2011 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
-!! SOURCE
+!!
 !!
 subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocode)
   use module_base
@@ -148,14 +150,14 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
 END SUBROUTINE call_bigdft
-!!***
 
 
-!!****f* BigDFT/cluster
-!! FUNCTION
+
+!> BigDFT/cluster
+!! :
 !!  Main routine which does self-consistent loop.
 !!  Does not parse input file and no geometry optimization.
-!! DESCRIPTION
+!!
 !!   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
 !!   inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
 !!                    as definition of the previous system.
@@ -170,7 +172,7 @@ END SUBROUTINE call_bigdft
 !!               the second iteration OR grnm 1st >2.
 !!               Input wavefunctions need to be recalculated. Routine exits.
 !!            =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-!! SOURCE
+!!
 !!
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
@@ -1769,4 +1771,4 @@ contains
   END SUBROUTINE deallocate_before_exiting
 
 END SUBROUTINE cluster
-!!***
+

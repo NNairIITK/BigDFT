@@ -1,14 +1,16 @@
-!!****f* BigDFT/wnrm_wrap
-!! FUNCTION
+!> BigDFT/wnrm_wrap
+!! :
 !!    Wrapper for simplifying the call
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !! 
 subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
   use module_base
@@ -31,7 +33,7 @@ subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
   end if
   
 END SUBROUTINE wnrm_wrap
-!!***
+
 
 
 ! calculates the norm SQUARED (scpr) of a wavefunction (in vector form)

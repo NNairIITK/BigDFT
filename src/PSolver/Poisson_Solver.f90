@@ -1,9 +1,11 @@
-!!****m* PSolver/Poisson_Solver
-!! FUNCTION
+!> PSolver/Poisson_Solver
+!! :
 !!    The module of the Poisson Solver.
 !!    It must be used in the parent routine. 
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2002-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -52,14 +54,16 @@
 !!    the XC part in the PSolver routine
 !!    Search for
 !!
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2007
 !!
 !! MODIFICATIONS
 !!    PSolverNC added by Anders Bergman, March 2008
-!! SOURCE
+!!
 !!
 module Poisson_Solver
 
@@ -92,4 +96,4 @@ contains
   !include 'scaling_function.f90'
 
 end module Poisson_Solver
-!!***
+

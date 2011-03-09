@@ -1,14 +1,16 @@
-!!****m* BigDFT/lanczos_interface
-!! FUNCTION
+!> BigDFT/lanczos_interface
+!! :
 !!   Interface for routines which handle diagonalization
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2009-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 module lanczos_interface
   use module_base
@@ -584,12 +586,12 @@ contains
     endif
 
    END SUBROUTINE EP_GramSchmidt_interna
-!!***
 
-!!****f* lanczos_interface/hit_with_kernel_spectra
-!! FUNCTION
+
+!> lanczos_interface/hit_with_kernel_spectra
+!! :
 !!   Hits the input array x with the kernel ((-1/2\Delta+C)_{ij})^{-1}
-!! SOURCE
+!!
 !!
    subroutine hit_with_kernel_spectra(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,&
      n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,ene, gamma )
@@ -686,13 +688,13 @@ contains
      call FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,x,z1,z3,inzee)
 
    END SUBROUTINE hit_with_kernel_spectra
-!!***
 
 
-!!****f* lanczos_interface/wscal_f_spectra
-!! FUNCTION
+
+!> lanczos_interface/wscal_f_spectra
+!! :
 !!   Multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
-!! SOURCE
+!!
 !!
   subroutine wscal_f_spectra(mvctr_f,psi_f,hx,hy,hz,ene, gamma)
     use module_base
@@ -730,15 +732,15 @@ contains
     enddo
     
   END SUBROUTINE wscal_f_spectra
-!!***
 
 
-!!****f* lanczos_interface/prec_fft_fast_spectra
-!! FUNCTION
+
+!> lanczos_interface/prec_fft_fast_spectra
+!! :
 !!   Solves ((KE-ene)**2+gamma**2*I)*xx=yy by FFT in a cubic box 
 !!   x_c is the right hand side on input and the solution on output
 !!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
-!! SOURCE : adapted from prec_fft_fast
+!! : adapted from prec_fft_fast
 !! 
   subroutine prec_fft_fast_spectra(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        ene, gamma,hx,hy,hz,hpsi,&
@@ -778,7 +780,7 @@ contains
     call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
     
   END SUBROUTINE prec_fft_fast_spectra
-!!***
+
 
 
   subroutine EP_precondition(p,i, ene, gamma)

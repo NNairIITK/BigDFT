@@ -1,15 +1,17 @@
-!!****p* BigDFT/BigDFT
-!! FUNCTION
+!> BigDFT/BigDFT
+!! :
 !!  Main program to calculate electronic structures
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 program BigDFT
 
@@ -159,4 +161,4 @@ program BigDFT
   call MPI_FINALIZE(ierr)
 
 end program BigDFT
-!!***
+

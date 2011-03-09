@@ -1,14 +1,16 @@
-!!****f* BigDFT/exact_exchange_potential
-!! FUNCTION
+!> BigDFT/exact_exchange_potential
+!! :
 !!    Calculate the exact exchange potential
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !! 
 subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p,&
      hxh,hyh,hzh,pkernel,psi,psir,eexctX)
@@ -318,11 +320,11 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   !call timing(iproc,'Exchangecorr  ','OF')
 
 END SUBROUTINE exact_exchange_potential
-!!***
 
 
-!!****f* BigDFT/prepare_psirocc
-!! SOURCE
+
+!> BigDFT/prepare_psirocc
+!!
 !! 
 subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
   use module_base
@@ -424,15 +426,15 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
   end if
 
 END SUBROUTINE prepare_psirocc
-!!***
 
 
-!!****f* BigDFT/exact_exchange_potential_virt
-!! FUNCTION
+
+!> BigDFT/exact_exchange_potential_virt
+!! :
 !!   Calculate the exact exchange potential only on virtual orbitals
 !!   by knowing the occupied orbitals and their distribution
 !!   both sets of orbitals are to be 
-!! SOURCE
+!!
 !! 
 subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,n3parr,n3p,&
      hxh,hyh,hzh,pkernel,psirocc,psivirt,psirvirt)
@@ -700,15 +702,15 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
   end if
 
 END SUBROUTINE exact_exchange_potential_virt
-!!***
 
 
-!!****f* BigDFT/exact_exchange_potential_round
-!! FUNCTION
+
+!> BigDFT/exact_exchange_potential_round
+!! :
 !!   Calculate the exact exchange potential on occupied orbitals
 !!   within the symmetric round-robin scheme
 !!   the psi is already given in the real-space form
-!! SOURCE
+!!
 !! 
 subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
      hxh,hyh,hzh,pkernel,psi,dpsir,eexctX)
@@ -1370,13 +1372,13 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   !call timing(iproc,'Exchangecorr  ','OF')
 
 END SUBROUTINE exact_exchange_potential_round
-!!***
-!!$!!****f* BigDFT/exact_exchange_potential_round
-!!$!! FUNCTION
+
+!!$!> BigDFT/exact_exchange_potential_round
+!!$!! :
 !!$!!   Calculate the exact exchange potential on occupied orbitals
 !!$!!   within the symmetric round-robin scheme
 !!$!!   the psi is already given in the real-space form
-!!$!! SOURCE
+!!$!!
 !!$!! 
 !!$subroutine exact_exchange_potential_round_new(iproc,nproc,geocode,nspin,lr,orbs,&
 !!$     hxh,hyh,hzh,pkernel,psi,dpsir,eexctX)
@@ -1927,7 +1929,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$  !call timing(iproc,'Exchangecorr  ','OF')
 !!$
 !!$END SUBROUTINE exact_exchange_potential_round_new
-!!$!!***
+!!$
 !!$subroutine OP2P_comm_simulation(iproc,nproc,op2p)
 !!$  use module_base
 !!$  use module_types

@@ -1,15 +1,17 @@
-!!****f* BigDFT/restart_from_gaussians
-!! FUNCTION
+!> BigDFT/restart_from_gaussians
+!! :
 !!  Restart from gaussian functions
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2011 CEA (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   use module_base
@@ -45,14 +47,14 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   nullify(G%rxyz)
 
 END SUBROUTINE restart_from_gaussians
-!!***
 
 
-!!****f* BigDFT/read_gaussian_information
-!! FUNCTION
+
+!> BigDFT/read_gaussian_information
+!! :
 !!   Read information for gaussian basis set (from CP2K) or for restarting
 !!
-!! SOURCE
+!!
 !!
 subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
   use module_base
@@ -137,14 +139,14 @@ subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
   close(99)
  
 END SUBROUTINE read_gaussian_information
-!!***
 
 
-!!****f* BigDFT/write_gaussian_information
-!! FUNCTION
+
+!> BigDFT/write_gaussian_information
+!! :
 !!   Write gaussian informatio for another program or for restarting
 !!
-!! SOURCE
+!!
 !!
 subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   use module_base
@@ -217,15 +219,15 @@ subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   call memocc(i_stat,i_all,'gaupsi',subname)
   
 END SUBROUTINE write_gaussian_information
-!!***
 
 
-!!****f* BigDFT/gaussian_pswf_basis
-!! FUNCTION
+
+!> BigDFT/gaussian_pswf_basis
+!! :
 !!   gaussian section
 !!   Create gaussian structure from input guess pseudo wavefunctions
 !!
-!! SOURCE
+!!
 !!
 subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc)
   use module_base
@@ -464,16 +466,16 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc)
   call memocc(i_stat,i_all,'iatypex',subname)
 
 END SUBROUTINE gaussian_pswf_basis
-!!***
 
 
-!!****f* BigDFT/gaussian_psp_basis
-!! FUNCTION
+
+!> BigDFT/gaussian_psp_basis
+!! :
 !!   Extract the pseudopotential basis
 !! WARNING
 !!   This is not the complete PSP basis set. 
 !!   The radial power term is lacking in the gaussian descriptors should be added if needed
-!! SOURCE
+!!
 !!
 subroutine gaussian_psp_basis(at,rxyz,G)
   use module_base
@@ -545,13 +547,13 @@ subroutine gaussian_psp_basis(at,rxyz,G)
   end do
 
 END SUBROUTINE gaussian_psp_basis
-!!***
 
 
-!!****f* BigDFT/gaussian_orthogonality
-!! FUNCTION
+
+!> BigDFT/gaussian_orthogonality
+!! :
 !!
-!! SOURCE
+!!
 !!
 subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
   use module_base
@@ -646,13 +648,13 @@ subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
   call memocc(i_stat,i_all,'gaupsi',subname)
 
 END SUBROUTINE gaussian_orthogonality
-!!***
 
 
-!!****f* BigDFT/dual_gaussian_coefficients
-!! FUNCTION
+
+!> BigDFT/dual_gaussian_coefficients
+!! :
 !!
-!! SOURCE
+!!
 !!
 subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   use module_base
@@ -716,13 +718,13 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
 !!!  end do
   
 END SUBROUTINE dual_gaussian_coefficients
-!!***
 
 
-!!****f* BigDFT/normalize_shell
-!! FUNCTION
+
+!> BigDFT/normalize_shell
+!! :
 !!   Normalize a given atomic shell following the angular momentum
-!! SOURCE
+!!
 !!
 subroutine normalize_shell(ng,l,expo,coeff)
   use module_base
@@ -754,13 +756,13 @@ subroutine normalize_shell(ng,l,expo,coeff)
   !print *,'l=',l,'norm=',norm
 
 END SUBROUTINE normalize_shell
-!!***
 
 
-!!****f* BigDFT/gauinth
-!! FUNCTION
+
+!> BigDFT/gauinth
+!! :
 !!   Calculates \int_0^\infty \exp^{-a*x^2} x^l dx
-!! SOURCE
+!!
 !!
 function gauinth(a,l)
   use module_base
@@ -787,15 +789,15 @@ function gauinth(a,l)
   gauinth=prefac*tt
   
 END FUNCTION gauinth
-!!***
 
 
-!!****f* BigDFT/gprod
-!! FUNCTION
+
+!> BigDFT/gprod
+!! :
 !!   Calculates a dot product between two differents gaussians times spherical harmonics
 !!   valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
 !!   to be rearranged when only some of them is zero
-!! SOURCE
+!!
 !!
 subroutine gprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
   use module_base
@@ -837,17 +839,17 @@ subroutine gprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
   end do
  
 END SUBROUTINE gprod
-!!***
 
 
-!!****f* BigDFT/kinprod
-!! FUNCTION
+
+!> BigDFT/kinprod
+!! :
 !!   Kinetic overlap between gaussians, based on cartesian coordinates
 !!   calculates a dot product between two differents gaussians times spherical harmonics
 !!   valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
 !!   to be rearranged when only some of them is zero
 !!
-!! SOURCE
+!!
 !!
 subroutine kinprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
   use module_base
@@ -893,14 +895,14 @@ subroutine kinprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
   end do
  
 END SUBROUTINE kinprod
-!!***
 
 
-!!****f* BigDFT/kinovrlp
-!! FUNCTION
+
+!> BigDFT/kinovrlp
+!! :
 !!   Calculates \int d^2/dx^2(\exp^{-a1*x^2} x^l1) \exp^{-a2*(x-d)^2} (x-d)^l2 dx
 !!   in terms of the govrlp function below
-!! SOURCE
+!!
 !!
 function kinovrlp(a1,a2,d,l1,l2)
   use module_base
@@ -926,13 +928,13 @@ function kinovrlp(a1,a2,d,l1,l2)
      kinovrlp=kinovrlp+fac*ovrlp
   end if
 END FUNCTION kinovrlp
-!!***
 
 
-!!****f* BigDFT/govrlp
-!! FUNCTION
+
+!> BigDFT/govrlp
+!! :
 !!   Calculates \int \exp^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx
-!! SOURCE
+!!
 !!
 function govrlp(a1,a2,d,l1,l2)
   use module_base
@@ -985,14 +987,14 @@ function govrlp(a1,a2,d,l1,l2)
   !final result
   govrlp=prefac*stot
 END FUNCTION govrlp
-!!***
 
 
-!!****f* BigDFT/gauint
-!! FUNCTION
+
+!> BigDFT/gauint
+!! :
 !!   Calculates \int \exp^{-a*(x-c)^2} x^l dx
 !!   this works ALSO when c/=0.d0
-!! SOURCE
+!!
 !!
 function gauint(a,c,l)
   use module_base
@@ -1052,14 +1054,14 @@ function gauint(a,c,l)
   gauint=stot*prefac
   
 END FUNCTION gauint
-!!***
 
 
-!!****f* BigDFT/gauint0
-!! FUNCTION
+
+!> BigDFT/gauint0
+!! :
 !!   Calculates \int \exp^{-a*x^2} x^l dx
 !!   this works only when l is even (if not equal to zero)
-!! SOURCE
+!!
 !!
 function gauint0(a,l)
   use module_base
@@ -1082,13 +1084,13 @@ function gauint0(a,l)
   gauint0=prefac*tt
   
 END FUNCTION gauint0
-!!***
 
 
-!!****f* BigDFT/firstprod
-!! FUNCTION
+
+!> BigDFT/firstprod
+!! :
 !!
-!! SOURCE
+!!
 !!
 function firstprod(p)
   use module_base
@@ -1106,13 +1108,13 @@ function firstprod(p)
      firstprod=firstprod*tt
   end do
 END FUNCTION firstprod
-!!***
 
 
-!!****f* BigDFT/rfac
-!! FUNCTION
+
+!> BigDFT/rfac
+!! :
 !!
-!! SOURCE
+!!
 !!
 function rfac(is,ie)
   use module_base
@@ -1128,13 +1130,13 @@ function rfac(is,ie)
      rfac=rfac*tt
   end do
 END FUNCTION rfac
-!!***
 
 
-!!****f* BigDFT/xfac
-!! FUNCTION
+
+!> BigDFT/xfac
+!! :
 !!   With this function n!=xfac(1,n,0.d0)
-!! SOURCE
+!!
 !!
 function xfac(is,ie,sh)
   use module_base
@@ -1151,17 +1153,17 @@ function xfac(is,ie,sh)
      xfac=xfac*tt
   end do
 END FUNCTION xfac
-!!***
+
 
 
 !End of the interesting part
 
 
-!!****f* BigDFT/gauinti
-!! FUNCTION
+!> BigDFT/gauinti
+!! :
 !!   The same function but with integer factorials (valid ONLY if l<=18)
 !!   not a visible improvement in speed with respect to the analogous real
-!! SOURCE
+!!
 !!
 function gauinti(a,c,l)
   use module_base
@@ -1218,13 +1220,13 @@ function gauinti(a,c,l)
   gauinti=stot*prefac
   
 END FUNCTION gauinti
-!!***
 
 
-!!****f* BigDFT/secondprod1
-!! FUNCTION
+
+!> BigDFT/secondprod1
+!! :
 !!   Valid if p<l/4 AND p/=0
-!! SOURCE
+!!
 !!
 function secondprod1(p,l)
   use module_base
@@ -1245,13 +1247,13 @@ function secondprod1(p,l)
 !!!  end do
   secondprod1=tt*part1
 END FUNCTION secondprod1
-!!***
 
 
-!!****f* BigDFT/secondprod2
-!! FUNCTION
+
+!> BigDFT/secondprod2
+!! :
 !!   Valid if p>=l/4 AND p<l/3
-!! SOURCE
+!!
 !!
 function secondprod2(p,l)
   use module_base
@@ -1272,13 +1274,13 @@ function secondprod2(p,l)
 !!!  end do
   secondprod2=tt*part1
 END FUNCTION secondprod2
-!!***
 
 
-!!****f* BigDFT/ifac
-!! FUNCTION
+
+!> BigDFT/ifac
+!! :
 !!   Integer version of factorial
-!! SOURCE
+!!
 !!
 function ifac(is,ie)
   implicit none
@@ -1291,13 +1293,13 @@ function ifac(is,ie)
      ifac=ifac*i
   end do
 END FUNCTION ifac
-!!***
 
 
-!!****f* BigDFT/wavelets_to_gaussians
-!! FUNCTION
+
+!> BigDFT/wavelets_to_gaussians
+!! :
 !!   Calculate the projection of norb wavefunctions on a gaussian basis set
-!! SOURCE
+!!
 !!
 subroutine wavelets_to_gaussians(geocode,norbp,nspinor,n1,n2,n3,G,thetaphi,hx,hy,hz,wfd,psi,coeffs)
   use module_base
@@ -1324,14 +1326,14 @@ subroutine wavelets_to_gaussians(geocode,norbp,nspinor,n1,n2,n3,G,thetaphi,hx,hy
   end do
   
 END SUBROUTINE wavelets_to_gaussians
-!!***
 
 
-!!****f* BigDFT/orbital_projection
-!! FUNCTION
+
+!> BigDFT/orbital_projection
+!! :
 !!   Calculate the projection of a given orbital on a gaussian basis centered on 
 !!   a set of points
-!! SOURCE
+!!
 !!
 subroutine orbital_projection(geocode,n1,n2,n3,nat,rxyz,thetaphi,nshell,ndoc,nam,xp,psiat,&
      nshltot,nexpo,ncoeff,hx,hy,hz,wfd,psi,coeffs)
@@ -1370,13 +1372,13 @@ subroutine orbital_projection(geocode,n1,n2,n3,nat,rxyz,thetaphi,nshell,ndoc,nam
   call gaudim_check(iexpo,icoeff,ishell,nexpo,ncoeff,nshltot)
   
 END SUBROUTINE orbital_projection
-!!***
 
 
-!!****f* BigDFT/gaudim_check
-!! FUNCTION
+
+!> BigDFT/gaudim_check
+!! :
 !!
-!! SOURCE
+!!
 !!
 subroutine gaudim_check(iexpo,icoeff,ishell,nexpo,ncoeff,nshltot)
   implicit none
@@ -1393,14 +1395,14 @@ subroutine gaudim_check(iexpo,icoeff,ishell,nexpo,ncoeff,nshltot)
      stop
   end if
 END SUBROUTINE gaudim_check
-!!***
 
 
-!!****f* BigDFT/lsh_projection
-!! FUNCTION
+
+!> BigDFT/lsh_projection
+!! :
 !!   Calculate the projection of a gaussian for a given eigenspace of spherical harmonics
 !!   centered on a given point and rotated by theta(along z) and phi(along x)
-!! SOURCE
+!!
 !!
 subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,&
      wfd,psi,coeffs)
@@ -1438,13 +1440,13 @@ subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,
   call lsh_rotation(l-1,thetaphi(1),thetaphi(2),coeffs)
 
 END SUBROUTINE lsh_projection
-!!***
 
 
-!!****f* BigDFT/lsh_rotation
-!! FUNCTION
+
+!> BigDFT/lsh_rotation
+!! :
 !!
-!! SOURCE
+!!
 !!
 subroutine lsh_rotation(l,theta,phi,coeffs)
   use module_base
@@ -1486,18 +1488,18 @@ subroutine lsh_rotation(l,theta,phi,coeffs)
   end do
   
 END SUBROUTINE lsh_rotation
-!!***
 
 
-!!****f* BigDFT/wavetogau
-!! FUNCTION
+
+!> BigDFT/wavetogau
+!! :
 !!   Calculate the scalar product between a sum of gaussians times polynomials and a wavefunction
 !!   \int dx dy dz 
 !!             \sum_i=1..ntp fac_arr(i) {
 !!                  \sum_j=1..nterm psiat(j) [exp(-r^2/(2*(xp(j)^2)))] 
 !!                      *((x-rx)^lx(i) *(y-ry)^ly(i) * (z-rz)^lz(i) ))} psi(x,y,z)
 !!   Expressed in Daubechies Basis in the arrays psi_c, psi_f
-!! SOURCE
+!!
 !!
 subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hx,hy,hz, & 
      nseg_c,mvctr_c,keyg_c,keyv_c,nseg_f,mvctr_f,keyg_f,keyv_f,psi_c,psi_f,overlap)
@@ -1621,13 +1623,13 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
   call memocc(i_stat,i_all,'wprojz',subname)
 
 END SUBROUTINE wavetogau
-!!***
 
 
-!!****f* BigDFT/rotation_matrix
-!! FUNCTION
+
+!> BigDFT/rotation_matrix
+!! :
 !!   Coefficients of the rotation matrix
-!! SOURCE
+!!
 !!
 subroutine rotation_matrix(l,t,p,hrot)
   use module_base
@@ -1743,4 +1745,4 @@ subroutine rotation_matrix(l,t,p,hrot)
      stop
   end if
 END SUBROUTINE rotation_matrix
-!!***
+

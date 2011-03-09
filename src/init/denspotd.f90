@@ -1,15 +1,17 @@
-!!****f* BigDFT/createDensPotDescriptors
-!! FUNCTION
+!> BigDFT/createDensPotDescriptors
+!! :
 !!   Create the descriptors for the density and the potential
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2011 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc,&
      n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
@@ -56,14 +58,14 @@ subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc
   ngatherarr(:,2)=n1i*n2i*nscatterarr(:,3)
 
 END SUBROUTINE createDensPotDescriptors
-!!***
 
-!!****f* BigDFT/orbitals_communicators
-!! FUNCTION
+
+!> BigDFT/orbitals_communicators
+!! :
 !!   Partition the orbitals between processors to ensure load balancing
 !!   the criterion will depend on GPU computation
 !!   and/or on the sizes of the different localisation region
-!! DESCRIPTION
+!!
 !!   Calculate the number of elements to be sent to each process
 !!   and the array of displacements
 !!   Cubic strategy: 
@@ -72,7 +74,7 @@ END SUBROUTINE createDensPotDescriptors
 !!      - each wavefunction is equally distributed in its transposed form
 !!      - this holds for each k-point, which regroups different processors
 !!
-!! SOURCE
+!!
 !!
 subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   use module_base
@@ -386,7 +388,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
        orbs%npsidim*8
 
 END SUBROUTINE orbitals_communicators
-!!***
+
 
 
 subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)

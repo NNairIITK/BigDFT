@@ -1,14 +1,16 @@
-!!****f* BigDFT/compress
-!! FUNCTION
+!> BigDFT/compress
+!! :
 !!    Compresses a psig wavefunction into psi_c,psi_f form
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !! 
 subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3, & 
      mseg_c,mvctr_c,keyg_c,keyv_c,  & 
@@ -73,7 +75,7 @@ subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3, &
   !$omp end parallel
 
 END SUBROUTINE compress
-!!***
+
 
 
 subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 

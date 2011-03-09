@@ -1,16 +1,18 @@
-!!****f* BigDFT/synthese_per_old
-!! FUNCTION
+!> BigDFT/synthese_per_old
+!! :
 !!    A periodic synthesis (backward) wavelet transformation
 !!    the input array x is not overwritten
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 subroutine synthese_per_old(nd1,nd2,nd3,x,y,ww)
   use module_base
@@ -33,14 +35,14 @@ subroutine synthese_per_old(nd1,nd2,nd3,x,y,ww)
   call  syn_rot_per_old(nd3,nt,ww,y)
 
 END SUBROUTINE synthese_per_old
-!!***
 
 
-!!****f* BigDFT/synthese_per_old_self
-!! FUNCTION
+
+!> BigDFT/synthese_per_old_self
+!! :
 !!   A periodic synthesis (backward) wavelet transformation
 !!   the input array x is not overwritten
-!! SOURCE
+!!
 !!
 subroutine synthese_per_old_self(nd1,nd2,nd3,x,y,ww)
   use module_base
@@ -63,14 +65,14 @@ subroutine synthese_per_old_self(nd1,nd2,nd3,x,y,ww)
   call  syn_rot_per_old(nd3,nt,ww,x)
 
 END SUBROUTINE synthese_per_old_self
-!!***
 
 
-!!****f* BigDFT/analyse_per_old
-!! FUNCTION
+
+!> BigDFT/analyse_per_old
+!! :
 !!   An analysis (forward) periodic wavelet transformation
 !!   the input array y is not overwritten
-!! SOURCE
+!!
 !!
 subroutine analyse_per_old(nd1,nd2,nd3,y,x,ww)
   use module_base
@@ -93,14 +95,14 @@ subroutine analyse_per_old(nd1,nd2,nd3,y,x,ww)
   call  ana_rot_per_old(nd3,nt,ww,x)
 
 END SUBROUTINE analyse_per_old
-!!***
 
 
-!!****f* BigDFT/analyse_per_old_self
-!! FUNCTION
+
+!> BigDFT/analyse_per_old_self
+!! :
 !!   An analysis (forward) periodic wavelet transformation
 !!   the input array y is not overwritten
-!! SOURCE
+!!
 !!
 subroutine analyse_per_old_self(nd1,nd2,nd3,y,x,ww)
   use module_base
@@ -123,12 +125,12 @@ subroutine analyse_per_old_self(nd1,nd2,nd3,y,x,ww)
   call  ana_rot_per_old(nd3,nt,ww,y)
 
 END SUBROUTINE analyse_per_old_self
-!!***
 
 
-!!****f* BigDFT/syn_repeated_per
-!! FUNCTION
-!! SOURCE
+
+!> BigDFT/syn_repeated_per
+!! :
+!!
 !!
 subroutine syn_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
   use module_base
@@ -219,12 +221,12 @@ subroutine syn_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
   endif
 
 END SUBROUTINE syn_repeated_per
-!!***
 
 
-!!****f* BigDFT/ana_repeated_per
-!! FUNCTION
-!! SOURCE
+
+!> BigDFT/ana_repeated_per
+!! :
+!!
 !!
 subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
   use module_base
@@ -309,4 +311,4 @@ subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
   endif
 
 END SUBROUTINE ana_repeated_per
-!!***
+

@@ -1,18 +1,22 @@
-!!****f* PSolver/calc_rhocore_iat
-!! FUNCTION
+!> PSolver/calc_rhocore_iat
+!! :
 !!    Calculate the array of the core density for the atom iat
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2002-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Luigi Genovese
 !!
-!! SOURCE
+!!
 !! 
 subroutine calc_rhocore_iat(iproc,geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
      n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore)
@@ -146,11 +150,11 @@ subroutine calc_rhocore_iat(iproc,geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
         
   
 END SUBROUTINE calc_rhocore_iat
-!!***
 
 
-!!****f* PSolver/XC_potential
-!! FUNCTION
+
+!> PSolver/XC_potential
+!! :
 !! Given a charge density, calculates the exchange-correlation potential
 !!
 !! SYNOPSIS
@@ -197,7 +201,7 @@ END SUBROUTINE calc_rhocore_iat
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
 !!
-!! SOURCE
+!!
 !! 
 subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rho,exc,vxc,nspin,rhocore,potxc,dvxcdrho)
@@ -522,11 +526,11 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
 
 END SUBROUTINE XC_potential
-!!***
 
 
-!!****f* PSolver/xc_energy_new
-!! FUNCTION
+
+!> PSolver/xc_energy_new
+!! :
 !!    Calculate the XC terms from the given density in a distributed way.
 !!    it assign also the proper part of the density to the zf array 
 !!    which will be used for the core of the FFT procedure.
@@ -569,7 +573,7 @@ END SUBROUTINE XC_potential
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
 !!
-!! SOURCE
+!!
 !!
 subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      nxcl,nxcr,ixc,hx,hy,hz,rho,vxci,exc,vxc,order,ndvxc,dvxci,nspden)
@@ -844,11 +848,11 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   call memocc(i_stat,i_all,'exci',subname)
 
 END SUBROUTINE xc_energy_new
-!!***
 
 
-!!****f* PSolver/xc_energy
-!! FUNCTION
+
+!> PSolver/xc_energy
+!! :
 !!    Calculate the XC terms from the given density in a distributed way.
 !!    it assign also the proper part of the density to the zf array 
 !!    which will be used for the core of the FFT procedure.
@@ -904,12 +908,14 @@ END SUBROUTINE xc_energy_new
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
 !!
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2007
 !!
-!! SOURCE
+!!
 !!
 subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,nproc,nspden)
@@ -1333,16 +1339,16 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   end if
 
 END SUBROUTINE xc_energy
-!!***
 
 
-!!****f* PSolver/vxcpostprocessing
-!! FUNCTION
+
+!> PSolver/vxcpostprocessing
+!! :
 !! Correct the XC potential with the White-Bird formula, to be used for the 
 !! GGA case. Works either in parallel of in serial, by proper change of the 
 !! arguments.
 !!
-!! SOURCE
+!!
 subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,hx,hy,hz,dvxcdgr,wb_vxc)
   use module_base
   implicit none
@@ -1440,4 +1446,4 @@ subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gr
   call memocc(i_stat,i_all,'f_i',subname)
 
 END SUBROUTINE vxcpostprocessing
-!!***
+

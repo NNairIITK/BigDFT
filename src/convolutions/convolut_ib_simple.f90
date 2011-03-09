@@ -1,20 +1,22 @@
-!!****m* BigDFT/convSimpleBench
-!! FUNCTION
+!> BigDFT/convSimpleBench
+!! :
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 module convSimpleBench
   implicit none
   integer :: conv_f_nflop1,conv_f_nflop2,conv_f_nflop3
 end module convSimpleBench
-!!***
+
 
 
 !   y = (kinetic energy operator)x + (cprec*I)x 

@@ -1,8 +1,8 @@
-!!****f* BigDFT/razero
-!! FUNCTION
+!> BigDFT/razero
+!! :
 !!   Set to zero an array x(n)
 !!
-!! SOURCE
+!!
 !!
 subroutine razero(n,x)
   implicit none
@@ -15,14 +15,14 @@ subroutine razero(n,x)
      x(i)=0.d0
   end do
 END SUBROUTINE razero
-!!***
 
 
-!!****f* BigDFT/omp_razero
-!! FUNCTION
+
+!> BigDFT/omp_razero
+!! :
 !!   Set to zero an array x(n): omp version of razero
 !!
-!! SOURCE
+!!
 !!
 subroutine omp_razero(n,x)
   use module_base
@@ -39,14 +39,14 @@ subroutine omp_razero(n,x)
   end do
   !$omp enddo
 END SUBROUTINE omp_razero
-!!***
 
 
-!!****f* BigDFT/tenminustwenty
-!! FUNCTION
+
+!> BigDFT/tenminustwenty
+!! :
 !!   Set to 10^-20 an array x(n)
 !!
-!! SOURCE
+!!
 !!
 subroutine tenminustwenty(n,x,nproc)
   implicit none
@@ -59,14 +59,14 @@ subroutine tenminustwenty(n,x,nproc)
      x(i)=1.d-20/real(nproc,kind=8)
   end do
 END SUBROUTINE tenminustwenty
-!!***
 
 
-!!****m* BigDFT/randomData
-!! FUNCTION
+
+!> BigDFT/randomData
+!! :
 !!   To be used in the following function.
 !!
-!! SOURCE
+!!
 !!
 module randomData
   implicit none
@@ -77,14 +77,14 @@ module randomData
   integer :: iy = 0
   integer, dimension(NTAB) :: iv
 end module randomData
-!!***
 
 
-!!****f* BigDFT/builtin_rand
-!! FUNCTION
+
+!> BigDFT/builtin_rand
+!! :
 !!   Random Number generator from Numerical Recipes
 !!   To be used for reproducibility of the results
-!! SOURCE
+!!
 !!
 function builtin_rand(idum)
   use randomData, only : ntab, iy, iv, start
@@ -120,4 +120,4 @@ function builtin_rand(idum)
   iv(j)=idum
   builtin_rand=min(am*iy,rnmx)
 END FUNCTION builtin_rand
-!!***
+

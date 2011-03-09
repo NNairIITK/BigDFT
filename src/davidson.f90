@@ -1,17 +1,19 @@
-!!****f* BigDFT/direct_minimization
+!> BigDFT/direct_minimization
 !!
-!! DESCRIPTION
+!!
 !!   Naive subroutine which performs a direct minimization of the energy 
 !!   for a given hamiltonian
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
           orbs,orbsv,nvirt,lr,comms,commsv,&
@@ -353,17 +355,19 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   call write_eigen_objects(iproc,occorbs,in%nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
   
 END SUBROUTINE direct_minimization
-!!***
+
 
 subroutine jacobi_davidson
 END SUBROUTINE jacobi_davidson
 
 
 
-!!****f* BigDFT/davidson
-!! AUTHOR
+!> BigDFT/davidson
+!!
+!! Author:
+!!
 !!   Alexander Willand
-!! DESCRIPTION
+!!
 !!   Davidsons method for iterative diagonalization of virtual Kohn Sham orbitals
 !!   under orthogonality constraints to occupied orbitals psi. The nvirt input
 !!   variable gives the number of unoccupied orbitals for which the exit criterion
@@ -404,14 +408,16 @@ END SUBROUTINE jacobi_davidson
 !!   end do
 !!   (retranspose v and psi)
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      orbs,orbsv,nvirt,lr,comms,commsv,&
@@ -1266,13 +1272,13 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   end if
 
 END SUBROUTINE davidson
-!!***
 
 
-!!****f* BigDFT/Davidson_subspace_hamovr
-!! FUNCTION
+
+!> BigDFT/Davidson_subspace_hamovr
+!! :
 !!   Generate upper triangular matrix in the subspace of Davidson algorithm
-!! SOURCE
+!!
 !!
 subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
   use module_base
@@ -1390,7 +1396,7 @@ subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
   enddo
 
 END SUBROUTINE Davidson_subspace_hamovr
-!!***
+
 
 
 subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)

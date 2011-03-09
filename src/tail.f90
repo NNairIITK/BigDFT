@@ -1,10 +1,12 @@
-!!****f* BigDFT/CalculateTailCorrection
-!! FUNCTION
+!> BigDFT/CalculateTailCorrection
+!! :
 !!  Calculate the finite size corrections over wavefunctions
 !!  Conceived only for isolated Boundary Conditions
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2008 UNIBAS,CEA
-!! SOURCE
+!!
 !!
 subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      Glr,nlpspd,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,&
@@ -558,7 +560,6 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   i_all=-product(shape(ibbyyzz_r))*kind(ibbyyzz_r)
   deallocate(ibbyyzz_r,stat=i_stat)
   call memocc(i_stat,i_all,'ibbyyzz_r',subname)
-  !!***********************************************************************************************
 
   if (nproc > 1) then
      !if (iproc.eq.0) then
@@ -580,7 +581,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   endif
 
 END SUBROUTINE CalculateTailCorrection
-!!***
+
 
 
 subroutine transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,& 

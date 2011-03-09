@@ -23,11 +23,10 @@ endif
 
 doc_DATA = $(pdfs)
 
-robodoc:
-	export OLDPWD=`pwd`; cd $(top_srcdir); \
-	pwd; robodoc --rc config/robodoc/robodoc-html.rc\
-			--css ./config/robodoc/robodoc.css\
-	        --doc $${OLDPWD}/www
+doxygen:
+	export OLDPWD=`pwd`; cd $(top_srcdir)/src; \
+	pwd; doxygen ../config/Doxyfile; \
+	mv Doxygen $${OLDPWD}
 
 cluster.pdf: cluster.tex compress.pdf figrid.pdf
 	TEXINPUTS=$(top_srcdir)/doc:$${TEXINPUTS} pdflatex $(top_srcdir)/doc/cluster.tex

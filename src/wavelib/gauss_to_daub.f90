@@ -1,5 +1,5 @@
-!!****f* BigDFT/gauss_to_daub
-!! FUNCTION
+!> BigDFT/gauss_to_daub
+!! :
 !!   Project gaussian functions in a mesh of Daubechies scaling functions
 !!   Gives the expansion coefficients of :
 !!     factor*x**n_gau*exp(-(1/2)*(x/gau_a)**2)
@@ -20,14 +20,16 @@
 !!   WW(:,1),WW(:,2) work arrays that have to be 17 times larger than C
 !!   err_norm        normalisation error
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2011 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
      nmax,n_left,n_right,c,err_norm,&                      !no err_wav. nmax instead of n_intvx
@@ -244,10 +246,10 @@ contains
 
 
 END SUBROUTINE gauss_to_daub
-!!***
 
-!!****f* BigDFT/gauss_to_daub_k
-!! FUNCTION
+
+!> BigDFT/gauss_to_daub_k
+!! :
 !!   Project gaussian functions in a mesh of Daubechies scaling functions
 !!   Gives the expansion coefficients of :
 !!     factor*x**n_gau*exp(-(1/2)*(x/gau_a)**2)
@@ -274,14 +276,16 @@ END SUBROUTINE gauss_to_daub
 !!   WW(:,1),WW(:,2) work arrays that have to be 17 times larger than C
 !!   err_norm        normalisation error
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2011 CEA (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
      nmax,n_left,n_right,c,& 
@@ -515,7 +519,7 @@ contains
 
 
 END SUBROUTINE gauss_to_daub_k
-!!***
+
 
 
 

@@ -1,15 +1,17 @@
-!!****f* BigDFT/HamiltonianApplication
-!! FUNCTION
+!> BigDFT/HamiltonianApplication
+!! :
 !!  Application of the Hamiltonian
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2011 CEA
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&
@@ -214,7 +216,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
 
 END SUBROUTINE HamiltonianApplication
-!!***
+
 
 !build the potential in the whole box
 subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ngatherarr,potential,pot)
@@ -293,11 +295,11 @@ subroutine free_full_potential(nproc,pot,subname)
 
 END SUBROUTINE free_full_potential
 
-!!****f* BigDFT/hpsitopsi
-!! FUNCTION
+!> BigDFT/hpsitopsi
+!! :
 !!   Operations after h|psi> 
 !!   (transposition, orthonormalisation, inverse transposition)
-!! SOURCE
+!!
 !!
 subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      ncong,iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,nspin,GPU,input)
@@ -491,12 +493,12 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   call diis_or_sd(iproc,idsx,orbs%nkptsp,diis)
 
 END SUBROUTINE hpsitopsi
-!!***
 
-!!****f* BigDFT/first_orthon
-!! FUNCTION
+
+!> BigDFT/first_orthon
+!! :
 !!   First orthonormalisation
-!! SOURCE
+!!
 !!
 subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
   use module_base
@@ -551,12 +553,12 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
   end if
 
 END SUBROUTINE first_orthon
-!!***
 
-!!****f* BigDFT/last_orthon
-!! FUNCTION
+
+!> BigDFT/last_orthon
+!! :
 !!   Transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
-!! SOURCE
+!!
 !!
 subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt_keeppsit)
   use module_base
@@ -874,10 +876,10 @@ END SUBROUTINE eFermi_nosmearing
 
 
 
-!!****f* BigDFT/calc_moments
-!! FUNCTION
+!> BigDFT/calc_moments
+!! :
 !!   Calculate magnetic moments
-!! SOURCE
+!!
 !!
 subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
   use module_base
@@ -940,7 +942,7 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
   end if
 
 END SUBROUTINE calc_moments
-!!***
+
 
 
 subroutine check_communications(iproc,nproc,orbs,lr,comms)

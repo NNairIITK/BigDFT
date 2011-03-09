@@ -1,15 +1,17 @@
-!!****f* BigDFT/copy_old_wavefunctions
-!! FUNCTION
+!> BigDFT/copy_old_wavefunctions
+!! :
 !!  Copy old wavefunctions from psi to psi_old
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
      n1_old,n2_old,n3_old,wfd_old,psi_old)
@@ -78,13 +80,13 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   call memocc(i_stat,i_all,'psi',subname)
 
 END SUBROUTINE copy_old_wavefunctions
-!!***
 
 
-!!****f* BigDFT/reformatmywaves
-!! FUNCTION
+
+!> BigDFT/reformatmywaves
+!! :
 !!   Reformat wavefunctions if the mesh have changed (in a restart)
-!! SOURCE
+!!
 !!
 subroutine reformatmywaves(iproc,orbs,at,&
      hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
@@ -277,14 +279,14 @@ subroutine reformatmywaves(iproc,orbs,at,&
   if (iproc==0) write(*,"(1x,a)")'done.'
 
 END SUBROUTINE reformatmywaves
-!!***
 
 
-!!****f* BigDFT/readmywaves
-!! FUNCTION
+
+!> BigDFT/readmywaves
+!! :
 !!  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !!  have changed
-!! SOURCE
+!!
 !!
 subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi)
@@ -368,12 +370,12 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
      write(*,'(a,i4,2(1x,e10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
   end if
 END SUBROUTINE readmywaves
-!!***
 
-!!****f* BigDFT/writemywaves
-!! FUNCTION
+
+!> BigDFT/writemywaves
+!! :
 !!   Write all my wavefunctions in files by calling writeonewave
-!! SOURCE
+!!
 !!
 subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   use module_types
@@ -431,4 +433,4 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   end if
 
 END SUBROUTINE writemywaves
-!!***
+

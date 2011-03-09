@@ -1,15 +1,17 @@
-!!****p* BigDFT/abscalc_main
-!! FUNCTION
+!> BigDFT/abscalc_main
+!! :
 !!  Main program for XANES calculation (absorption calculation)
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2009-2011 ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 program abscalc_main
 
@@ -153,13 +155,13 @@ program abscalc_main
   call MPI_FINALIZE(ierr)
 
 end program abscalc_main
-!!***
 
 
-!!****f* BigDFT/call_abscalc
-!! FUNCTION
+
+!> BigDFT/call_abscalc
+!! :
 !!   Routines to use abscalc as a blackbox
-!! SOURCE
+!!
 !!
  subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
   use module_base
@@ -285,11 +287,11 @@ end program abscalc_main
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
 END SUBROUTINE call_abscalc
-!!***
 
 
-!!****f* BigDFT/abscalc
-!! FUNCTION
+
+!> BigDFT/abscalc
+!! :
 !!   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
 !!   inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid
 !!                    as definition of the previous system.
@@ -304,7 +306,7 @@ END SUBROUTINE call_abscalc
 !!               the second iteration OR grnm 1st >2.
 !!               Input wavefunctions need to be recalculated. Routine exits.
 !!            =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-!! SOURCE
+!!
 !!
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
      psi,Glr,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)
@@ -1434,5 +1436,5 @@ contains
   END SUBROUTINE deallocate_before_exiting
 
 END SUBROUTINE abscalc
-!!***
+
 

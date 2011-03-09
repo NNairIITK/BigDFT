@@ -1,13 +1,15 @@
-!!****p* BigDFT/rism
+!> BigDFT/rism
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2010 ESRF, CEA
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 program rism
   use BigDFT_API
@@ -163,7 +165,7 @@ program rism
 
 
 end program rism
-!!***
+
 
 subroutine assign_atomic_radii(nat,iatlr,nlr,radii)
   use module_base
@@ -194,8 +196,8 @@ subroutine assign_atomic_radii(nat,iatlr,nlr,radii)
 
 END SUBROUTINE assign_atomic_radii
 
-!!****f* BigDFT/atomic_charges
-!! FUNCTION
+!> BigDFT/atomic_charges
+!! :
 !!   Calculate atomic charges using Lee, York and Yang method 
 !!   But with a basis similar to Blochl one 
 !!   Refs: J.Chem.Phys. 102(19),7549 (1995)
@@ -203,7 +205,7 @@ END SUBROUTINE assign_atomic_radii
 !!   use a basis of error functions centered on the atoms, with atom-defined radii
 !!   and also short-range functions are allowed, as well as dummy atoms
 !!
-!! SOURCE
+!!
 !!
 subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngatherarr,&
      hxh,hyh,hzh,n3p,i3s,rho,pot,C)
@@ -515,13 +517,13 @@ subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngathe
 
 
 END SUBROUTINE atomic_charges
-!!***
 
 
 
-!!****f* BigDFT/two_center_two_electrons_analytic
-!! FUNCTION
-!! SOURCE
+
+!> BigDFT/two_center_two_electrons_analytic
+!! :
+!!
 !!
 subroutine two_center_two_electrons_analytic(nlr,nat,iatlr,radii,rxyz,H)
   use module_base
@@ -572,12 +574,12 @@ subroutine two_center_two_electrons_analytic(nlr,nat,iatlr,radii,rxyz,H)
   !end do
 
 END SUBROUTINE two_center_two_electrons_analytic
-!!***
 
-!!****f* BigDFT/calculate_rho_longrange
-!! FUNCTION
+
+!> BigDFT/calculate_rho_longrange
+!! :
 !!
-!! SOURCE
+!!
 !!
 subroutine calculate_rho_longrange(iproc,nproc,at,nlr,iatlr,radii,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,rhoarr)
@@ -672,7 +674,7 @@ subroutine calculate_rho_longrange(iproc,nproc,at,nlr,iatlr,radii,rxyz,hxh,hyh,h
   if (iproc == 0) write(*,*)'Charge:',charge
 
 END SUBROUTINE calculate_rho_longrange
-!!***
+
 
 !erf(r/(sqrt(2)rl)/r
 function erfor(r,rl)
@@ -696,10 +698,10 @@ function erfor(r,rl)
 
 end function erfor
   
-!!****f* BigDFT/gaussian_rism_basis
-!! FUNCTION
+!> BigDFT/gaussian_rism_basis
+!! :
 !!   Gaussian basis associated to the long-range term of rism calculation
-!! SOURCE
+!!
 !!
 subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   use module_base
@@ -767,7 +769,7 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   end do
 
 END SUBROUTINE gaussian_rism_basis
-!!***
+
 
 !calculate the second part, by expressing the atomic wavefunctions on a real grid
 subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,ngatherarr,&

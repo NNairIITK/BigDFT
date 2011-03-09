@@ -1,5 +1,5 @@
-!!****f* BigDFT/comb_rot_grow_loc_3
-!! FUNCTION
+!> BigDFT/comb_rot_grow_loc_3
+!! :
 !!   In one dimension,    
 !!   with optimised cycles
 !!   Applies synthesis wavelet transformation 
@@ -7,14 +7,16 @@
 !!   then adds the result to y.
 !!   The size of the data is allowed to grow
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 subroutine comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
   use module_base
@@ -104,18 +106,18 @@ subroutine comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
   !
   !    write(20,*) tel, 1.d-6*nflop/tel
 END SUBROUTINE comb_rot_grow_loc_3
-!!***
 
 
-!!****f* BigDFT/comb_rot_grow_loc_square
-!! FUNCTION
+
+!> BigDFT/comb_rot_grow_loc_square
+!! :
 !!   In one dimension,
 !!   with unoptimized cycles   
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
 !!   the size of the data is allowed to grow
 !!   One of the most CPU intensive routines
-!! SOURCE
+!!
 !!
 subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
   use module_base
@@ -296,7 +298,7 @@ subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
   !
   !    write(10,'(3f10.3,f10.0)') t0,t1,tel, 1.d-6*nflop/tel
 END SUBROUTINE comb_rot_grow_loc_square
-!!***
+
 
 
 subroutine comb_rot_grow_loc_square_3(n1,n2,n3,x,y,ib)

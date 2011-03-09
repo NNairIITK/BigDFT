@@ -1,13 +1,15 @@
-!!****f* BigDFT/MemoryEstimator
-!! FUNCTION
+!> BigDFT/MemoryEstimator
+!! :
 !!   Estimation of the used memory
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2011
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
+!!
 !!
 subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
      iatype,rxyz,radii_cf,crmult,frmult,norb,nkpt,nprojel,atomnames,output_grid,nspin,peakmem)
@@ -217,4 +219,4 @@ contains
   end function kappa
 
 END SUBROUTINE MemoryEstimator
-!!***
+

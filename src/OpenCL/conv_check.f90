@@ -1,11 +1,15 @@
-!!****p* OpenCL/conv_check
-!! FUNCTION
+!> OpenCL/conv_check
+!! :
 !!    Program test for the convolution in GPU
 !!
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Luigi Genovese
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2008 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -15,7 +19,7 @@
 !! CREATION DATE
 !!    Septembre 2008
 !!
-!! SOURCE
+!!
 !!
 
 program conv_check
@@ -2025,4 +2029,4 @@ contains
  
 end program conv_check
 
-!!***
+

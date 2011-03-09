@@ -1,18 +1,22 @@
-!!****m* PSolver/module_base
-!! FUNCTION
+!> PSolver/module_base
+!! :
 !!  Modules which contains the low level definitions, as well as some profiling procedures
 !!  in order to have a standalone PSolver version.
 !!
-!! DESCRIPTION
+!!
 !!  Interfaces of:
 !!
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Luigi Genovese
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2008 CEA
 !!
-!! SOURCE
+!!
 !! 
 module module_base 
   !use MPI
@@ -603,4 +607,4 @@ module module_base
     END SUBROUTINE mo_c1
 
 end module module_base
-!!***
+

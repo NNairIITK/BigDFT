@@ -1,12 +1,14 @@
-!!****f* BigDFT/mix_rhopot
-!! FUNCTION
-!! COPYRIGHT
+!> BigDFT/mix_rhopot
+!! :
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
+!!
 !!
 subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,ntot,ucvol,rpnrm)
   use module_base
@@ -50,11 +52,11 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,ntot,ucvol,r
   call dcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
 
 END SUBROUTINE mix_rhopot
-!!***
 
 
-!!****f* BigDFT/psimix
-!! SOURCE
+
+!> BigDFT/psimix
+!!
 !!
 subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
   use module_base
@@ -120,7 +122,7 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
   endif
 
 END SUBROUTINE psimix
-!!***
+
 
 
 subroutine diis_or_sd(iproc,idsx,nkptsp,diis)

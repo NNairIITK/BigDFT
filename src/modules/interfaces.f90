@@ -1,8 +1,8 @@
-!!****m* BigDFT/interfaces
-!! FUNCTION
+!> BigDFT/interfaces
+!! :
 !!  Modules which contains all interfaces
 !!
-!! DESCRIPTION
+!!
 !!  Interfaces of:
 !!  - call_cluster
 !!  - conjgrad
@@ -28,17 +28,21 @@
 !!  - CalculateTailCorrection
 !!  - reformatonewave
 !!
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Luigi Genovese, Damien Caliste
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 module module_interfaces
 
@@ -1117,4 +1121,4 @@ module module_interfaces
   end interface
 
 end module module_interfaces
-!!***
+

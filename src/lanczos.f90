@@ -1,14 +1,16 @@
-!!****f* BigDFT/lanczos
-!! FUNCTION
+!> BigDFT/lanczos
+!! :
 !!   Lanczos diagonalization
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2009 ESRF (AM, LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
@@ -226,13 +228,13 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
 END SUBROUTINE xabs_lanczos
-!!***
 
 
-!!****f* BigDFT/chebychev
-!! FUNCTION
+
+!> BigDFT/chebychev
+!! :
 !!   Chebychev polynomials to calculate the density of states
-!! SOURCE
+!!
 !!
 subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
@@ -539,11 +541,11 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 END SUBROUTINE xabs_chebychev
 
 
-!!***
-!!****f* BigDFT/cg_spectra
-!! FUNCTION
+
+!> BigDFT/cg_spectra
+!! :
 !!   finds the spectra solving  (H-omega)x=b
-!! SOURCE
+!!
 !!
 subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
@@ -799,7 +801,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
 END SUBROUTINE xabs_cg
-!!***
+
 
 subroutine dirac_hara (rho, E , V)
   use module_base

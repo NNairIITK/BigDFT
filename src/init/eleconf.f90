@@ -1,8 +1,10 @@
-!!****f* BigDFT/eleconf
-!! FUNCTION
+!> BigDFT/eleconf
+!! :
 !!   Give electronic configuration of atom
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2011 BigDFT group (TD,LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -28,7 +30,7 @@
 !!   mxchg     Maximum charge to be placed on the atom
 !!   amu       Atomic mass unit (use values coming from ABINIT/11util/atmdata.F90)
 !!
-!! SOURCE
+!!
 !!
 subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
   implicit none
@@ -1651,11 +1653,11 @@ end select
   end do
 
 END SUBROUTINE eleconf
-!!***
 
 
-!!****f* BigDFT/nzsymbol
-!! FUNCTION
+
+!> BigDFT/nzsymbol
+!! :
 !!   Give the symbol of element.
 subroutine nzsymbol(nzatom, symbol)
   implicit none
@@ -1681,13 +1683,13 @@ subroutine nzsymbol(nzatom, symbol)
  end if
  symbol = symbol_(nzatom)
 END SUBROUTINE nzsymbol
-!!***
 
 
-!!****f* BigDFT/correct_semicore
-!! FUNCTION
+
+!> BigDFT/correct_semicore
+!! :
 !!   Correct the electronic configuration for a given atomic charge
-!! SOURCE
+!!
 !!
 subroutine correct_semicore(nmax,lmax,ichg,neleconf,eleconf,nsccode)
   use module_base
@@ -1809,12 +1811,12 @@ subroutine correct_semicore(nmax,lmax,ichg,neleconf,eleconf,nsccode)
 !!!     end do
 !!!  end do
 END SUBROUTINE correct_semicore
-!!***
+
 
 
 ! AMmodif  start
-!!****f* BigDFT/modified_eleconf
-!! FUNCTION
+!> BigDFT/modified_eleconf
+!! :
 !!   Give electronic configuration of atom (copied from eleconf).
 !!   This modified version returns the hardest pseudo potential for the given atom.
 !!
@@ -1831,7 +1833,7 @@ END SUBROUTINE correct_semicore
 !!             where n_l are the number of semicore orbitals for a given angular momentum
 !!             starting from the lower level of course
 !!
-!! SOURCE
+!!
 !!
 subroutine modified_eleconf(nzatom,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
   implicit none
@@ -3598,5 +3600,5 @@ write(222,*) l,n,neleconf(n,l)
   enddo
 
 END SUBROUTINE modified_eleconf
-!!***
+
 ! AMmodif end

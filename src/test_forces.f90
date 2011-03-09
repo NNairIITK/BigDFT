@@ -1,5 +1,5 @@
-!!****p* BigDFT/test_forces
-!! FUNCTION
+!> BigDFT/test_forces
+!! :
 !!    Runs BigDFT and test whether the forces are the 
 !!    derivative of the energy.
 !!    Performs the integration of the calculated forces over
@@ -8,13 +8,17 @@
 !!    position
 !! WARNING
 !!    Date: 10/07; THIS PROGRAM MUST BE COMPLETELY CHANGED
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Luigi Genovese
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2005-2008 CEA
 !! CREATION DATE
 !!    09/2006
-!! SOURCE
+!!
 !!
 program test_forces
 
@@ -222,4 +226,4 @@ program test_forces
 
 
 end program test_forces
-!!***
+

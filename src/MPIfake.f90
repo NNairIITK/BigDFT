@@ -1,22 +1,24 @@
-!!****f* BigDFT/MPIfake
-!! FUNCTION
+!> BigDFT/MPIfake
+!! :
 !!    Fake functions for MPI in the case of serial version
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 subroutine  MPI_INIT(ierr)
   implicit none
   integer, intent(out) :: ierr
   ierr=0
 END SUBROUTINE MPI_INIT
-!!***
+
         
 subroutine MPI_INITIALIZED(init,ierr)
   implicit none

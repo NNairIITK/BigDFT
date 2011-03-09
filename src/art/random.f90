@@ -1,18 +1,20 @@
-!!****m* BigDFT/random
-!! FUNCTION
+!> BigDFT/random
+!! :
 !!    Random number generator (from "Numerical Recipes").
 !!    Returns a uniform random deviate between 0.0 and 1.0.
 !!    Set idum to any negative value to initialize or
 !!    reinitialize the sequence.
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 MODULE random
 
@@ -23,11 +25,11 @@ MODULE random
   integer :: iff = 0
   integer, dimension(55) :: ma
 end module random
-!!***
 
 
-!!****f* BigDFT/ran3
-!! SOURCE
+
+!> BigDFT/ran3
+!!
 !!
 real(8) function ran3()
   use RANDOM
@@ -75,4 +77,4 @@ real(8) function ran3()
   ma(inext)=mj
   ran3=mj*fac
 end function ran3
-!!***
+

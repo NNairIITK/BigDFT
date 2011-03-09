@@ -1,8 +1,8 @@
-!!****f* art/initialize
-!! FUNCTION
+!> art/initialize
+!! :
 !!   Initialization of art method
 !! 
-!! DESCRIPTION
+!!
 !!   then relaxes it into a  a local minimum with or without volume optimization
 !!   depending on the compilation flags. 
 !! 
@@ -27,14 +27,16 @@
 !! 
 !!     The NATOMS lines are the atomic species and coordinates in Angstroems
 !! 
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!   Copyright (C) 2010 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
 !! 
-!! SOURCE
+!!
 !!
 subroutine initialize()
 
@@ -114,4 +116,4 @@ subroutine initialize()
 
   if (iproc .eq. 0 ) close(FLOG)
 END SUBROUTINE initialize
-!!***
+

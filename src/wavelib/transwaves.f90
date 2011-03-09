@@ -1,12 +1,14 @@
-!!****f* BigDFT/psitransspi
-!! COPYRIGHT
+!> BigDFT/psitransspi
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !! 
 subroutine psitransspi(nvctrp,orbs,psi,forward)
   use module_base
@@ -94,7 +96,7 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
   deallocate(tpsit,stat=i_stat)
   call memocc(i_stat,i_all,'tpsit',subname)
 END SUBROUTINE psitransspi
-!!***
+
 
 
 !transposition of the arrays, variable version (non homogeneous)

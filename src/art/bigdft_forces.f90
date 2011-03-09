@@ -1,13 +1,15 @@
-!!****m* bart/bigdft_forces
-!! FUNCTION
+!> bart/bigdft_forces
+!! :
 !!   Module which contains information for bigdft run inside art
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!   Copyright (C) 2010 BigDFT group, Normand Mousseau
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
-!! SOURCE
+!!
 !!
 module bigdft_forces
 
@@ -35,13 +37,13 @@ module bigdft_forces
   public :: bigdft_finalise
 
 contains
-!!***
 
 
-!!****f* bigdft_forces/bigdft_init
-!! FUNCTION
+
+!> bigdft_forces/bigdft_init
+!! :
 !!   Routine to initialize all BigDFT stuff
-!! SOURCE
+!!
 !!
   subroutine bigdft_init(nat,typa,posa,boxl, nproc_, me_)
 
@@ -94,13 +96,13 @@ contains
 
     initialised = .true.
   END SUBROUTINE bigdft_init
-!!***
 
 
-!!****f* bigdft_forces/calcforce
-!! FUNCTION
+
+!> bigdft_forces/calcforce
+!! :
 !!   Calculation of forces
-!! SOURCE
+!!
 !!
   subroutine calcforce(nat,posa,boxl,forca,energy)
 
@@ -148,13 +150,13 @@ contains
     deallocate(xcart)
     deallocate(fcart)
   END SUBROUTINE calcforce
-!!***
 
 
-!!****f* bigdft_forces/mingeo
-!! FUNCTION
+
+!> bigdft_forces/mingeo
+!! :
 !!   Minimise geometry
-!! SOURCE
+!!
 !!
   subroutine mingeo(nat, boxl, posa, evalf_number, forca, total_energy)
 
@@ -202,13 +204,13 @@ contains
     deallocate(xcart)
     deallocate(fcart)
   END SUBROUTINE mingeo
-!!***
 
 
-!!****f* bigdft_forces/bigdft_finalise
-!! FUNCTION
+
+!> bigdft_forces/bigdft_finalise
+!! :
 !!   Routine to finalise all BigDFT stuff
-!! SOURCE
+!!
 !!
   subroutine bigdft_finalise()
 
@@ -226,4 +228,4 @@ contains
 
 
 end module bigdft_forces
-!!***
+

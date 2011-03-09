@@ -1,13 +1,15 @@
-!!****f* BigDFT/comb_grow_all_hybrid
+!> BigDFT/comb_grow_all_hybrid
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 subroutine comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw1,nw2&
      ,w1,w2,xc,xf,y,gb)
@@ -29,11 +31,11 @@ subroutine comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw1,nw2&
    call comb_rot_grow_ib_3(n1,n2,n3,                    nfl3,nfu3,w2,y,gb%ibxxyy_f)
 
 END SUBROUTINE comb_grow_all_hybrid
-!!***
 
 
-!!****f* BigDFT/comb_rot_grow_ib_3
-!! FUNCTION
+
+!> BigDFT/comb_rot_grow_ib_3
+!! :
 !!   In one dimension,    
 !!   with optimised cycles
 !!   Applies synthesis wavelet transformation 
@@ -41,7 +43,7 @@ END SUBROUTINE comb_grow_all_hybrid
 !!   then adds the result to y.
 !!   The size of the data is allowed to grow
 !!
-!! SOURCE
+!!
 !!
 subroutine  comb_rot_grow_ib_3(n1,n2,n3,nfl3,nfu3,x,y,ibxxyy)
    use module_base
@@ -94,18 +96,18 @@ subroutine  comb_rot_grow_ib_3(n1,n2,n3,nfl3,nfu3,x,y,ibxxyy)
 !$omp end parallel
 
 END SUBROUTINE comb_rot_grow_ib_3
-!!***
 
 
-!!****f* BigDFT/comb_rot_grow_ib_2
-!! FUNCTION
+
+!> BigDFT/comb_rot_grow_ib_2
+!! :
 !!   In one dimension,    
 !!   with optimised cycles
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
 !!   the size of the data is allowed to grow
 !!
-!! SOURCE
+!!
 !!
 subroutine comb_rot_grow_ib_2(n1,n2,nfl2,nfu2,nfl3,nfu3,x,y,ibzxx,ibxxyy)
 use module_base
@@ -177,18 +179,18 @@ enddo
 !$omp enddo
 !$omp end parallel
 END SUBROUTINE comb_rot_grow_ib_2
-!!***
 
 
-!!****f* BigDFT/comb_rot_grow_ib_1
-!! FUNCTION
+
+!> BigDFT/comb_rot_grow_ib_1
+!! :
 !!   In one dimension,    
 !!   with optimised cycles
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
 !!   the size of the data is allowed to grow
 !!
-!! SOURCE
+!!
 !!
 subroutine comb_rot_grow_ib_1(n1,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ibyz,ibzxx)
 use module_base
@@ -280,7 +282,7 @@ enddo
 !$omp enddo
 !$omp end parallel
 END SUBROUTINE comb_rot_grow_ib_1
-!!***
+
 
 
 subroutine  comb_rot_grow(n1,ndat,x,y)

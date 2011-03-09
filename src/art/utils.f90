@@ -1,11 +1,13 @@
-!!****f* art/utils
-!! FUNCTION
+!> art/utils
+!! :
 !!   This contains a series of utilities that could be used by a number
 !!   of program. They suppose very little.
 !!   The subroutine convert_to_chain takes an integer and transforms it into a
 !!   chain of character.
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
@@ -13,7 +15,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !! 
 subroutine convert_to_chain(init_number,chain)
   implicit none
@@ -44,14 +46,14 @@ subroutine convert_to_chain(init_number,chain)
 
   write(*,*) 'Chain :', init_number, chain
 END SUBROUTINE     
-!!***
 
 
-!!****f* art/center
-!! FUNCTION
+
+!> art/center
+!! :
 !!   The subroutine center places the center of mass of a 3D vector at (0,0,0)
 !!
-!! SOURCE
+!!
 !! 
 subroutine center(vector,vecsize)
   implicit none
@@ -90,15 +92,15 @@ subroutine center(vector,vecsize)
     z(i) = z(i) - ztotal
   end do
 END SUBROUTINE
-!!***
 
 
-!!****f* BigDFT/displacement
-!! FUNCTION
+
+!> BigDFT/displacement
+!! :
 !!   This subroutine computes the distance between two configurations and 
 !!   the number of particles having moved by more than a THRESHOLD
 !!
-!! SOURCE
+!!
 !!
 subroutine displacement(posa, posb, delr,npart)
   use defs
@@ -145,15 +147,15 @@ subroutine displacement(posa, posb, delr,npart)
   delr = sqrt(delr2)
 
 END SUBROUTINE
-!!***
 
 
-!!****f* art/store
-!! FUNCTION
+
+!> art/store
+!! :
 !!   Subroutine store
 !!   This subroutine stores the configurations at minima and activated points
 !!   By definition, it uses pos, box and scala
-!! SOURCE
+!!
 !! 
 subroutine store(fname)
   use defs
@@ -197,4 +199,4 @@ subroutine store(fname)
   close(XYZ)
   
 END SUBROUTINE store
-!!***
+

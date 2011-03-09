@@ -1,15 +1,17 @@
-!!****m* BigDFT/minimization
-!! FUNCTION
+!> BigDFT/minimization
+!! :
 !!   Define the type parameterminimization
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 module minpar
   implicit none
@@ -41,12 +43,12 @@ module minpar
 
 
 end module minpar
-!!***
 
-!!****f* BigDFT/geopt_init
-!! FUNCTION
+
+!> BigDFT/geopt_init
+!! :
 !!   Geometry optimization, parametrisation routine.
-!! SOURCE
+!!
 !!
 subroutine geopt_init()
   use minpar
@@ -69,13 +71,13 @@ subroutine geopt_init()
   parmin%IWRITE=.FALSE.
 
 END SUBROUTINE geopt_init
-!!***
 
 
-!!****f* BigDFT/geopt_set_verbosity
-!! FUNCTION
+
+!> BigDFT/geopt_set_verbosity
+!! :
 !!   Geometry optimization, parametrisation routine.
-!! SOURCE
+!!
 !!
 subroutine geopt_set_verbosity(verbosity_)
   use minpar
@@ -84,13 +86,13 @@ subroutine geopt_set_verbosity(verbosity_)
   integer, intent(in) :: verbosity_
   parmin%verbosity = verbosity_
 END SUBROUTINE geopt_set_verbosity
-!!***
 
 
-!!****f* BigDFT/geopt
-!! FUNCTION
+
+!> BigDFT/geopt
+!! :
 !!   Geometry optimization
-!! SOURCE
+!!
 !!
 subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   use module_base
@@ -191,13 +193,13 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   if (iproc==0) write(*,'(a,1x,a)') 'End of minimization using ',parmin%approach
 
 END SUBROUTINE geopt
-!!***
 
 
-!!****f* BigDFT/ab6md
-!! FUNCTION
+
+!> BigDFT/ab6md
+!! :
 !!  Molecular Dynamics
-!! SOURCE
+!!
 !!
 subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
@@ -296,7 +298,7 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   fail = (iexit == 0)
 END SUBROUTINE ab6md
-!!***
+
 
 
 subroutine timeleft(tt)
@@ -319,10 +321,10 @@ subroutine timeleft(tt)
 END SUBROUTINE timeleft
 
 
-!!****f* BigDFT/conjgrad
-!! FUNCTION
+!> BigDFT/conjgrad
+!! :
 !!  Conjugate gradient method
-!! SOURCE
+!!
 !!
 subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   use module_base
@@ -621,13 +623,13 @@ contains
   END SUBROUTINE close_and_deallocate
 
 END SUBROUTINE conjgrad
-!!***
 
 
-!!****f* BigDFT/steepdes
-!! FUNCTION
+
+!> BigDFT/steepdes
+!! :
 !!  Steepest descent method
-!! SOURCE
+!!
 !!
 subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
      fnrm,fnoise,in,forcemax_sw,nitsd,fluct)
@@ -890,7 +892,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
   call memocc(i_stat,i_all,'tpos',subname)
 
 END SUBROUTINE steepdes
-!!***
+
 
 
 subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
@@ -1244,11 +1246,11 @@ subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
 END SUBROUTINE transforce_forfluct
 
 
-!!****f* BigDFT/rundiis
-!! FUNCTION
+!> BigDFT/rundiis
+!! :
 !!  DIIS relax. Original source from ART from N. Mousseau.
 !!  Adaptations to BigDFT by D. Caliste.
-!! SOURCE
+!!
 !!
 subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
@@ -1444,15 +1446,15 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   fail = (ncount_bigdft>in%ncount_cluster_x-1)
 END SUBROUTINE rundiis
-!!***
+
 
  
-!!****f* BigDFT/lbfgsdriver
-!! FUNCTION
+!> BigDFT/lbfgsdriver
+!! :
 !!   Driver for the LBFGS routine found on the Nocedal Homepage
 !!   The subroutines have only been modified slightly, so a VIMDIFF will show all modifications!
 !!   This is helpfull when we are looking for the source of problems during BFGS runs
-!! SOURCE
+!!
 !!
 subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail) 
   use module_base

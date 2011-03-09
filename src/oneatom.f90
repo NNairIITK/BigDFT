@@ -1,13 +1,15 @@
-!!****p* BigDFT/oneatom
+!> BigDFT/oneatom
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2010 ESRF, PoliTo
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 program oneatom
   use BigDFT_API
@@ -330,13 +332,13 @@ program oneatom
 
 
 end program oneatom
-!!***
 
 
-!!****f* BigDFT/createPotential
-!! FUNCTION
+
+!> BigDFT/createPotential
+!! :
 !!
-!! SOURCE
+!!
 !!
 subroutine createPotential(geocode,iproc,nproc,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
@@ -708,13 +710,13 @@ subroutine createPotential(geocode,iproc,nproc,at,rxyz,&
 
 
 END SUBROUTINE createPotential
-!!***
 
 
-!!****f* BigDFT/psi_from_gaussians
-!! FUNCTION
+
+!> BigDFT/psi_from_gaussians
+!! :
 !!
-!! SOURCE
+!!
 !!
 subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   use module_base
@@ -854,13 +856,13 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
 
   
 END SUBROUTINE psi_from_gaussians
-!!***
 
 
-!!****f* BigDFT/plot_wf_oneatom
-!! FUNCTION
+
+!> BigDFT/plot_wf_oneatom
+!! :
 !!
-!! SOURCE
+!!
 !!
 subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   use module_base
@@ -950,4 +952,4 @@ subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE plot_wf_oneatom
-!!***
+

@@ -1,13 +1,15 @@
-!!****f* BigDFT/make_bounds_per
+!> BigDFT/make_bounds_per
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !! 
 subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
   use module_base
@@ -57,7 +59,7 @@ subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
   call memocc(i_stat,i_all,'logrid',subname)
 
 END SUBROUTINE make_bounds_per
-!!***
+
 
 subroutine make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&
@@ -119,7 +121,7 @@ subroutine make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   call memocc(i_stat,i_all,'logrid_big',subname)
 
 END SUBROUTINE make_all_ib_per
-!!***
+
 
 
 subroutine make_ib_inv_per(logrid_big,ibxy,ibzzx,ibyyzz,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
@@ -166,11 +168,11 @@ subroutine ib_to_logrid_inv_per(ib,logrid,n,ndat)
 END SUBROUTINE ib_to_logrid_inv_per
 
 
-!!****f* BigDFT/make_ib_per
-!! FUNCTION
+!> BigDFT/make_ib_per
+!! :
 !!    This subroutine mimics the comb_grow_f one
 !!
-!! SOURCE
+!!
 !!
 subroutine make_ib_per(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,nfl2,nfu2,nfl3,nfu3)
   implicit none
@@ -194,14 +196,14 @@ subroutine make_ib_per(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,nfl2,nfu2,nfl3,nfu3)
   call ib_from_logrid(ibxxyy,logrid_big,nfl3,nfu3,nt)
 
 END SUBROUTINE make_ib_per
-!!***
 
 
-!!****f* BigDFT/ib_to_logrid_rot_per
-!! FUNCTION
+
+!> BigDFT/ib_to_logrid_rot_per
+!! :
 !!   This one mimics the comb_rot_grow_f_loc
 !!
-!! SOURCE
+!!
 !!
 subroutine ib_to_logrid_rot_per(ib,logrid,n,ndat)
   implicit none
@@ -219,11 +221,11 @@ subroutine ib_to_logrid_rot_per(ib,logrid,n,ndat)
   enddo
 
 END SUBROUTINE ib_to_logrid_rot_per
-!!***
 
 
-!!****f* BigDFT/make_logrid_f
-!! SOURCE
+
+!> BigDFT/make_logrid_f
+!!
 !!
 subroutine make_logrid_f(n1,n2,n3, & 
      mseg_f,keyg_f,keyv_f,&
@@ -255,4 +257,4 @@ subroutine make_logrid_f(n1,n2,n3, &
   enddo
 
 END SUBROUTINE make_logrid_f
-!!***
+

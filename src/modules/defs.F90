@@ -1,19 +1,23 @@
-!!****m* BigDFT/module_base
+!> BigDFT/module_base
 !!
-!! DESCRIPTION
+!!
 !!  Modules which contains the low level definitions, as well as some profiling procedures
 !!
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Luigi Genovese
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2008-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 #if defined HAVE_CONFIG_H
 #include <config.inc>
@@ -792,4 +796,4 @@ module module_defs
     end subroutine herk_double
 
 end module module_defs
-!!***
+

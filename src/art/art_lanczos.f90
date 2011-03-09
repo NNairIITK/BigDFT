@@ -1,15 +1,17 @@
-!!****m* art/lanczos_def
-!! FUNCTION
+!> art/lanczos_def
+!! :
 !!  Module to use lanczos inside art
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 module lanczos_defs
   use defs
@@ -22,13 +24,13 @@ module lanczos_defs
   ! Projection direction based on lanczos computations of lowest eigenvalues
   real(8), dimension(:), allocatable :: old_projection, projection, first_projection
 end module lanczos_defs
-!!***
 
 
-!!****f* art/lanczos
-!! FUNCTION
+
+!> art/lanczos
+!! :
 !!  Lanczos routine to determine lowest frequencies
-!! SOURCE
+!!
 !!
 subroutine lanczos(maxvec,new_projection)
 
@@ -263,4 +265,4 @@ subroutine lanczos(maxvec,new_projection)
   call MPI_Bcast(projection,nat,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
 
 END SUBROUTINE lanczos
-!!***
+

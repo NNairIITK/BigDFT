@@ -1,12 +1,14 @@
-!!****f* PSolver/wb_correction
-!! FUNCTION
+!> PSolver/wb_correction
+!! :
 !! Calculates the White-Bird correction to the XC potential.
 !! Since this correction strongly depends on the way of calculating the gradient
 !! It is based on a finite difference calculation of the gradient, corrected at the border
 !! (see the calc_gradient routine)
 !! Works either in parallel or in serial, by proper adjustation of the arguments
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !! Copyright (C) 2002-2011 BigDFT group 
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~/COPYING file
@@ -21,7 +23,7 @@
 !! The correction is then added to the wb_vxc array in the proper points
 !! n3grad is the effective dimension of interest
 !!
-!! SOURCE
+!!
 !!
 subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
      wb_vxc)
@@ -534,11 +536,11 @@ subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
  end do
 
 END SUBROUTINE wb_correction
-!!***
 
 
-!!****f* BigDFT/calc_gradient
-!! FUNCTION
+
+!> BigDFT/calc_gradient
+!! :
 !! Calculates the finite difference gradient.White-Bird correction to the XC potential.
 !! The gradient in point x is calculated by taking four point before and after x.
 !! The lack of points near the border is solved by ideally prolungating the input
@@ -568,7 +570,7 @@ END SUBROUTINE wb_correction
 !!
 !! WARNING
 !!
-!! SOURCE
+!!
 !!
 subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
      gradient)
@@ -1051,4 +1053,4 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
   call memocc(i_stat,i_all,'density',subname)
 
 END SUBROUTINE calc_gradient
-!!***
+

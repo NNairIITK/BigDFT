@@ -1,7 +1,9 @@
-!!****p* BigDFT/find_angles
-!! FUNCTION
+!> BigDFT/find_angles
+!! :
 !!    Analyse atomic configurations
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2009-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -10,7 +12,7 @@
 !!
 !! LAST CHANGE
 !!    14 Sep 2009
-!! SOURCE
+!!
 !!
 program find_angles
  implicit none
@@ -367,7 +369,7 @@ print *,'nat',nat
 
 
 end program find_angles
-!!***
+
 
 subroutine read_pos(iunit,whichone,nat,pos,nrep)
   use BigDFT_API

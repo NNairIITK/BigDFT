@@ -1,12 +1,14 @@
-!!****f* H_potential/H_potential
-!! FUNCTION
+!> H_potential/H_potential
+!! :
 !!    Calculate the Hartree potential by solving Poisson equation 
 !!       $\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$
 !!    from a given $\rho$, 
 !!    for different boundary conditions an for different data distributions.
 !!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2002-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -66,12 +68,14 @@
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
 !!
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2007
 !!
-!! SOURCE
+!!
 !! 
 subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,offset,sumpion,&
@@ -311,16 +315,18 @@ subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
   if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
 
 END SUBROUTINE H_potential
-!!***
 
 
-!!****f* PSolver/PSolver
-!! FUNCTION
+
+!> PSolver/PSolver
+!! :
 !!    Calculate the Poisson equation $\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$
 !!    from a given $\rho$, for different boundary conditions an for different data distributions.
 !!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2002-2007 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -393,12 +399,14 @@ END SUBROUTINE H_potential
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
 !!
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2007
 !!
-!! SOURCE
+!!
 !! 
 subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin,&
@@ -795,15 +803,17 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
 
 END SUBROUTINE PSolver
-!!***
 
 
-!!****f* PSolver/PSolverNC
-!! FUNCTION
+
+!> PSolver/PSolverNC
+!! :
 !!    Transforms a generalized spin density into a pointwise collinear spin density which is
 !!    then passed to the Poisson Solver (PSolver). 
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2002-2007 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -880,12 +890,14 @@ END SUBROUTINE PSolver
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
 !!
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Anders Bergman
 !! CREATION DATE
 !!    March 2008
 !!
-!! SOURCE
+!!
 !! 
 subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
@@ -985,11 +997,11 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
   end if
 
 END SUBROUTINE PSolverNC
-!!***
 
 
-!!****f* PSolver/PS_dim4allocation
-!! FUNCTION
+
+!> PSolver/PS_dim4allocation
+!! :
 !!    Calculate the dimensions needed for the allocation of the arrays 
 !!    related to the Poisson Solver
 !!
@@ -1048,12 +1060,14 @@ END SUBROUTINE PSolverNC
 !!    periodic boundary condition. This is related to the fact that the calculation of the
 !!    gradient and the White-Bird correction are not yet implemented for non-isolated systems
 !!
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2007
 !!
-!! SOURCE
+!!
 !!
 subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
      n3d,n3p,n3pi,i3xcsh,i3s)
@@ -1107,11 +1121,11 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
 !!       'ixc,n3d,n3p,i3xcsh,i3s',ixc,n3d,n3p,i3xcsh,i3s
 
 END SUBROUTINE PS_dim4allocation
-!!***
 
 
-!!****f* PSolver/xc_dimensions
-!! FUNCTION
+
+!> PSolver/xc_dimensions
+!! :
 !!   Calculate the dimensions to be used for the XC part, taking into account also
 !!   the White-bird correction which should be made for some GGA functionals
 !!
@@ -1134,12 +1148,14 @@ END SUBROUTINE PS_dim4allocation
 !! WARNING
 !!    It is imperative that iend <=m2
 !!
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    May 2008
 !!
-!! SOURCE
+!!
 !!
 subroutine xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)
   use libxc_functionals
@@ -1214,11 +1230,11 @@ subroutine xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,
      i3s=m2
   end if
 END SUBROUTINE xc_dimensions
-!!***
 
 
-!!****f* PSolver/P_FFT_dimensions
-!! FUNCTION
+
+!> PSolver/P_FFT_dimensions
+!! :
 !!    Calculate four sets of dimension needed for the calculation of the
 !!    convolution for the periodic system
 !!
@@ -1243,12 +1259,14 @@ END SUBROUTINE xc_dimensions
 !!    with the other geometries of the Poisson Solver.
 !!    The dimensions 2 and 3 are exchanged.
 !!
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    October 2006
 !!
-!! SOURCE
+!!
 !!
 subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
  implicit none
@@ -1310,11 +1328,11 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  endif
 
 END SUBROUTINE P_FFT_dimensions
-!!***
 
 
-!!****f* PSolver/S_FFT_dimensions
-!! FUNCTION
+
+!> PSolver/S_FFT_dimensions
+!! :
 !!    Calculate four sets of dimension needed for the calculation of the
 !!    convolution for the surface system
 !!
@@ -1342,12 +1360,14 @@ END SUBROUTINE P_FFT_dimensions
 !!    with the Poisson Solver with other geometries.
 !!    Dimensions n02 and n03 were exchanged
 !!
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    October 2006
 !!
-!! SOURCE
+!!
 !!
 subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
  implicit none
@@ -1413,11 +1433,11 @@ subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  endif
 
 END SUBROUTINE S_FFT_dimensions
-!!***
 
 
-!!****f* PSolver/F_FFT_dimensions
-!! FUNCTION
+
+!> PSolver/F_FFT_dimensions
+!! :
 !!    Calculate four sets of dimension needed for the calculation of the
 !!    zero-padded convolution
 !!
@@ -1443,12 +1463,14 @@ END SUBROUTINE S_FFT_dimensions
 !!    this is needed since the convolution routine manage arrays of dimension
 !!    (md1,md3,md2/nproc)
 !!
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2006
 !!
-!! SOURCE
+!!
 !!
 subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
  implicit none
@@ -1509,4 +1531,4 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  endif
 
 END SUBROUTINE F_FFT_dimensions
-!!***
+

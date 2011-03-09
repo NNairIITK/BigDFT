@@ -1,15 +1,17 @@
-!!****f* BigDFT/local_forces
-!! FUNCTION
+!> BigDFT/local_forces
+!! :
 !!   Calculates the local forces acting on the atoms belonging to iproc
 !!
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
+!!
 !!
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,pot,floc)
@@ -155,15 +157,15 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
 
 END SUBROUTINE local_forces
-!!***
 
 
-!!****f* BigDFT/nonlocal_forces
-!! FUNCTION
+
+!> BigDFT/nonlocal_forces
+!! :
 !!  Calculates the nonlocal forces on all atoms arising from the wavefunctions 
 !!  belonging to iproc and adds them to the force array
 !   recalculate the projectors at the end if refill flag is .true.
-!! SOURCE
+!!
 !!
 subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
      orbs,nlpspd,proj,wfd,psi,fsep,refill)
@@ -480,13 +482,13 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
   call memocc(i_stat,i_all,'scalprod',subname)
 
 END SUBROUTINE nonlocal_forces
-!!***
 
 
-!!****f* BigDFT/calc_coeff_derproj
-!! FUNCTION
+
+!> BigDFT/calc_coeff_derproj
+!! :
 !!   Calculates the coefficient of derivative of projectors
-!! SOURCE
+!!
 !!
 subroutine calc_coeff_derproj(l,i,m,nterm_max,rhol,nterm_arr,lxyz_arr,fac_arr)
   implicit none
@@ -2822,7 +2824,7 @@ else
    stop 'PSP format error'
 end if
 END SUBROUTINE calc_coeff_derproj
-!!***
+
 
 !!Eliminate the translational forces before calling this subroutine!!!
 !Main subroutine: Input is nat (number of atoms), rat0 (atomic positions) and fat (forces on atoms)
