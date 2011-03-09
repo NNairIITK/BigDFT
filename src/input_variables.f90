@@ -161,7 +161,8 @@ subroutine read_input_parameters(iproc, &
 
   ! Stop code for unproper input variables combination.
   if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym) then
-     stop 'Forces are not implemented with symmetry support, disable symmetry please'
+     if (iproc==0) write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
+     stop 'Forces are not implemented with symmetry support, disable symmetry please (T)'
   end if
   if (inputs%nkpt > 1 .and. inputs%gaussian_help) then
      stop 'Gaussian projection is not implemented with k-point support'
