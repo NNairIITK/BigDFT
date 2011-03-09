@@ -798,7 +798,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   call deallocate_abscalc_input(in, subname)
 
 
-END subroutine xabs_cg
+END SUBROUTINE xabs_cg
 !!***
 
 subroutine dirac_hara (rho, E , V)
@@ -854,4 +854,4 @@ subroutine dirac_hara (rho, E , V)
   end do
   V=Vcorr
   return
-end subroutine dirac_hara
+END SUBROUTINE dirac_hara

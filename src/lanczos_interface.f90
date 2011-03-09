@@ -2,7 +2,7 @@
 !! FUNCTION
 !!   Interface for routines which handle diagonalization
 !! COPYRIGHT
-!!    Copyright (C) 2009-2010 BigDFT group
+!!    Copyright (C) 2009-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -899,7 +899,7 @@ contains
 
 
 
- end subroutine EP_precondition
+ END SUBROUTINE EP_precondition
 
   
   subroutine EP_Moltiplica4spectra(p,i, ene, gamma)
@@ -991,7 +991,7 @@ contains
 
 
    return 
- END subroutine EP_Moltiplica4spectra
+ END SUBROUTINE EP_Moltiplica4spectra
   
 
   subroutine EP_Moltiplica(p,i)

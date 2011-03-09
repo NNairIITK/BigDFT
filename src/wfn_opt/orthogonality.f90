@@ -3,7 +3,7 @@
 !!    Uses wavefunctions in their transposed form
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -143,7 +143,7 @@ subroutine check_closed_shell(nspin,orbs,lcs)
         exit
      end if
   end do
-end subroutine check_closed_shell
+END SUBROUTINE check_closed_shell
 
 !!****f* BigDFT/orthoconstraint
 !! FUNCTION
@@ -1658,7 +1658,7 @@ subroutine gsChol(iproc, nproc, psi, input, nspinor, orbs, nspin,ndimovrlp,norbA
     
 end do
 
-end subroutine gsChol
+END SUBROUTINE gsChol
 
 
 ! ********************************************************************************************************
@@ -1768,7 +1768,7 @@ do ikptp=1,orbs%nkptsp
     end do
 end do
 
-end subroutine gramschmidt
+END SUBROUTINE gramschmidt
 
 
 ! ********************************************************************************************************
@@ -1872,7 +1872,7 @@ do ikptp=1,orbs%nkptsp
     end do
 end do         
 
-end subroutine cholesky
+END SUBROUTINE cholesky
 
 
 ! ********************************************************************************************************
@@ -2022,7 +2022,7 @@ i_all=-product(shape(evall))*kind(evall)
 deallocate(evall,stat=i_stat)
 call memocc(i_stat,i_all,'evall',subname)
 
-end subroutine loewdin
+END SUBROUTINE loewdin
 
 
 ! ********************************************************************************************************
@@ -2137,7 +2137,7 @@ subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
   ! This is somehow redundant but it is one way of reducing the number of communications
   ! without defining group of processors.
 
-end subroutine getOverlap
+END SUBROUTINE getOverlap
 
 
 ! ********************************************************************************************************
@@ -2254,7 +2254,7 @@ subroutine getOverlapDifferentPsi(iproc, nproc, nspin, norbIn, orbs, comms,&
   
   ! Now each processors knows all the overlap matrices for each k-point even if it does not handle it.
   
-end subroutine getOverlapDifferentPsi
+END SUBROUTINE getOverlapDifferentPsi
 
 
 ! ********************************************************************************************************

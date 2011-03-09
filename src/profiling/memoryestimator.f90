@@ -2,7 +2,7 @@
 !! FUNCTION
 !!   Estimation of the used memory
 !! COPYRIGHT
-!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2010
+!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2011
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .

@@ -699,7 +699,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      call memocc(i_stat,i_all,'ncommvirt',subname)
   end if
 
-end subroutine exact_exchange_potential_virt
+END SUBROUTINE exact_exchange_potential_virt
 !!***
 
 
@@ -1369,7 +1369,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
 
   !call timing(iproc,'Exchangecorr  ','OF')
 
-end subroutine exact_exchange_potential_round
+END SUBROUTINE exact_exchange_potential_round
 !!***
 !!$!!****f* BigDFT/exact_exchange_potential_round
 !!$!! FUNCTION
@@ -1926,7 +1926,7 @@ end subroutine exact_exchange_potential_round
 !!$
 !!$  !call timing(iproc,'Exchangecorr  ','OF')
 !!$
-!!$end subroutine exact_exchange_potential_round_new
+!!$END SUBROUTINE exact_exchange_potential_round_new
 !!$!!***
 !!$subroutine OP2P_comm_simulation(iproc,nproc,op2p)
 !!$  use module_base
@@ -2067,4 +2067,4 @@ end subroutine exact_exchange_potential_round
 !!$  call memocc(i_stat,i_all,'ndatac',subname)
 !!$
 !!$
-!!$end subroutine OP2P_comm_simulation
+!!$END SUBROUTINE OP2P_comm_simulation

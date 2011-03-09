@@ -2,7 +2,7 @@
 !! FUNCTION
 !!    Calls the preconditioner for each orbital treated by the processor
 !! COPYRIGHT
-!!    Copyright (C) 2005-2010 BigDFT group 
+!!    Copyright (C) 2005-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -138,7 +138,7 @@ subroutine cprecr_from_eval(geocode,eval_zero,eval,cprecr)
      cprecr=sqrt(0.2d0**2+(eval-eval_zero)**2)
   end select
 
-end subroutine cprecr_from_eval
+END SUBROUTINE cprecr_from_eval
 
 
 !routine used for the k-points, eventually to be used for all cases

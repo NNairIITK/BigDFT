@@ -3,7 +3,7 @@
 !!  Main program for XANES calculation (absorption calculation)
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2009-2010 ESRF
+!!    Copyright (C) 2009-2011 ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .

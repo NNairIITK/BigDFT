@@ -207,7 +207,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
 
   if (iproc == 0) then
      if (DistProjApply) then
-        write(*,'(44x,a)') '------   On-the-fly projectors application'
+        write(*,'(44x,a)') '------  On-the-fly projectors application'
      else
         write(*,'(44x,a)') '------'
      end if

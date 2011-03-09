@@ -1839,7 +1839,7 @@ contains
       time*1.d3/real(ntimes,kind=8),&
       real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(time*1.d9)
 
-  end subroutine print_time
+  END SUBROUTINE print_time
 
   subroutine compare_time(REFtime,TESTtime,nbelem,nop,ntimes,maxdiff,threshold)
     implicit none
@@ -1858,7 +1858,7 @@ contains
     else
       write(*,'(a)')'<<<< WARNING' 
     end if
-  end subroutine compare_time
+  END SUBROUTINE compare_time
 
   subroutine compare_3D_results(dim1, dim2, dim3, psi_ref, psi, maxdiff, printdiff)
     implicit none
@@ -1883,7 +1883,7 @@ contains
         end do
       end do
     end do
-  end subroutine compare_3D_results
+  END SUBROUTINE compare_3D_results
 
   subroutine compare_2D_results(dim1, dim2, psi_ref, psi, maxdiff, printdiff)
     implicit none
@@ -1906,7 +1906,7 @@ contains
         end if
       end do
     end do
-  end subroutine compare_2D_results
+  END SUBROUTINE compare_2D_results
 
   subroutine compare_2D_results_t(dim1, dim2, psi_ref, psi, maxdiff, printdiff)
     implicit none
@@ -1929,7 +1929,7 @@ contains
         end if
       end do
     end do
-  end subroutine compare_2D_results_t
+  END SUBROUTINE compare_2D_results_t
 
   subroutine compare_1D_results(dim1, psi_ref, psi, maxdiff, printdiff)
     implicit none
@@ -1950,7 +1950,7 @@ contains
         maxdiff=comp
       end if
     end do
-  end subroutine compare_1D_results
+  END SUBROUTINE compare_1D_results
 
   subroutine conv_kin_x(x,y,ndat,ekin)
     implicit none
@@ -2020,7 +2020,7 @@ contains
        enddo
     enddo
     !$omp end do
-  end subroutine conv_kin_x
+  END SUBROUTINE conv_kin_x
 
  
 end program conv_check

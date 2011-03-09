@@ -509,7 +509,7 @@ subroutine assign_atomic_radii_york(at,radii)
      !   radii(iat)=at%psppar(0,0,ityp)
      !end if
   end do
-end subroutine assign_atomic_radii_york
+END SUBROUTINE assign_atomic_radii_york
 !!****f* BigDFT/gaussian_hermite_basis
 !! FUNCTION
 !!   Gaussian basis associated to Hermite Polyomials multiplied by s-terms
@@ -577,7 +577,7 @@ subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
      end do
   end do
 
-end subroutine gaussian_hermite_basis
+END SUBROUTINE gaussian_hermite_basis
 !!***
 
 !!****f* BigDFT/calculate_rho
@@ -944,7 +944,7 @@ subroutine calc_coeff_hermite_r2(l,ih,nterm_max,nterm,lx,ly,lz,fac_arr)
   !last term
   nterm=nterm-1
 
-end subroutine calc_coeff_hermite_r2
+END SUBROUTINE calc_coeff_hermite_r2
 !!***
 
 subroutine gaussians_to_wavelets_new_h(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)

@@ -60,7 +60,7 @@ program frequencies
   real(gp), dimension(:,:), allocatable :: energies
   real(gp), dimension(:,:,:), allocatable :: forces
   real(gp), dimension(3) :: freq_step
-  real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy
+  real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
   integer :: k,km,ii,jj,ik,imoves,order,n_order
   logical :: exists
  
@@ -229,10 +229,6 @@ program frequencies
            call frequencies_write_restart(iproc,km,i,iat,rpos,etot,fpos(:,km))
            moves(km,ii) = .true.
            call restart_inputs(inputs)
-           if (iproc == 0) then
-              write(*,'(1x,a,81("="))') '=F '
-              write(*,*)
-           end if
         end do
         ! Build the Hessian
         do jat=1,atoms%nat
@@ -297,6 +293,9 @@ program frequencies
   call sort_dp(3*atoms%nat,sort_work,iperm,tol_freq)
 
   if (iproc == 0) then
+     write(*,*)
+     write(*,'(1x,a,81("="))') '=F '
+     write(*,*)
      write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(iperm(3*atoms%nat:1:-1))
      write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i(iperm(3*atoms%nat:1:-1))
      do i=1,3*atoms%nat
@@ -342,12 +341,16 @@ program frequencies
      end do
      !Multiply by 1/kT
      vibrational_entropy=vibrational_entropy*Ha_K/Temperature
+     total_energy=energies(1,0)+vibrational_energy
+     write(*,'(1x,a,81("="))') '=F '
      write(*,'(1x,a,f13.2,1x,a,5x,1pe20.10,1x,a)') &
           '=F: Zero-point energy   =', zpenergy*Ha_cmm1, 'cm-1',zpenergy,'Hartree'
-     write(*,'(1x,a,f13.2,1x,a,5x,1pe20.10,1x,a,0pf5.1,a)') &
-          '=F: Vibrational  energy =', vibrational_energy*Ha_cmm1, 'cm-1',vibrational_energy,'Hartree at ',Temperature,'K'
      write(*,'(1x,a,1pe22.10,a,0pf5.1,a)') &
           '=F: Vibrational entropy =', vibrational_entropy,' at ',Temperature,'K'
+     write(*,'(1x,a,f13.2,1x,a,5x,1pe20.10,1x,a,0pf5.1,a)') &
+          '=F: Vibrational  energy =', vibrational_energy*Ha_cmm1, 'cm-1',vibrational_energy,'Hartree at ',Temperature,'K'
+     write(*,'(1x,a,1pe20.10,1x,a,0pf5.1,a)') &
+          '=F: Total energy        =', total_energy,'Hartree at ',Temperature,'K'
   end if
 
   !Deallocations

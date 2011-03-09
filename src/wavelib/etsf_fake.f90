@@ -63,7 +63,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   character(len = *), intent(in) :: filename
 
   stop 'No ETSF support at compilation!'
-end subroutine read_waves_etsf
+END SUBROUTINE read_waves_etsf
 
 subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
   use module_types
@@ -78,4 +78,4 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,p
   character(len = *), intent(in) :: filename
 
   stop 'No ETSF support at compilation!'
-end subroutine write_waves_etsf
+END SUBROUTINE write_waves_etsf

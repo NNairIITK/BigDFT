@@ -5,7 +5,7 @@
 !!   for a given hamiltonian
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -352,11 +352,11 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   !the plotting should be added here (perhaps build a common routine?)
   call write_eigen_objects(iproc,occorbs,in%nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
   
-end subroutine direct_minimization
+END SUBROUTINE direct_minimization
 !!***
 
 subroutine jacobi_davidson
-end subroutine jacobi_davidson
+END SUBROUTINE jacobi_davidson
 
 
 
@@ -405,7 +405,7 @@ end subroutine jacobi_davidson
 !!   (retranspose v and psi)
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -1917,4 +1917,4 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
   ! END OF PLOTTING
 
 
-end subroutine write_eigen_objects
+END SUBROUTINE write_eigen_objects

@@ -5,7 +5,7 @@
 !! AUTHOR
 !!    Luigi Genovese
 !! COPYRIGHT
-!!    Copyright (C) 2008-2010 CEA, ESRF
+!!    Copyright (C) 2008-2011 CEA, ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -663,7 +663,7 @@ END SUBROUTINE deallocate_orbs
     !initialise the acceleration stategy if required
     call init_material_acceleration(iproc,iacceleration,rst%GPU)
 
-  end subroutine init_restart_objects
+  END SUBROUTINE init_restart_objects
 !!***
 
 
@@ -896,7 +896,7 @@ END SUBROUTINE deallocate_orbs
     
     call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds,subname)
 
-  end subroutine deallocate_lr
+  END SUBROUTINE deallocate_lr
 
 end module module_types
 !!***

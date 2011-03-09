@@ -19,7 +19,7 @@
 !!    October 2006
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2006-2010 CEA, ESRF
+!!    Copyright (C) 2006-2011 CEA, ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .

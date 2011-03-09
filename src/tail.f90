@@ -579,7 +579,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      call memocc(i_stat,i_all,'wrkallred',subname)
   endif
 
-end subroutine CalculateTailCorrection
+END SUBROUTINE CalculateTailCorrection
 !!***
 
 
@@ -673,7 +673,7 @@ subroutine transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,
      enddo
   enddo
 
-end subroutine transform_fortail
+END SUBROUTINE transform_fortail
 
 subroutine transform_fortail_prev(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,& 
      mseg_c,mvctr_c,keyg_c,keyv_c,mseg_f,mvctr_f,keyg_f,keyv_f,  & 
@@ -770,7 +770,7 @@ subroutine transform_fortail_prev(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,n
      enddo
   enddo
 
-end subroutine transform_fortail_prev
+END SUBROUTINE transform_fortail_prev
 
 subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
      hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
@@ -881,7 +881,7 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
           scal,y_c(0,0,0,IDX),y_f(1,nfl1,nfl2,nfl3,IDX),hpsi(1,IDX),hpsi(nvctr_c+1,IDX))
   end do
   
-end subroutine applylocpotkinone
+END SUBROUTINE applylocpotkinone
 
 
 
@@ -939,4 +939,4 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
   if (iproj /= nproj) stop '1:applyprojectorsone'
   if (istart_c-1 /= nprojel) stop '2:applyprojectorsone'
 
-end subroutine applyprojectorsone
+END SUBROUTINE applyprojectorsone

@@ -817,7 +817,7 @@ subroutine memspace_work_arrays_sumrho(lr,memwork)
   end select
   memwork=nxc+nxf+nw1+nw2
 
-end subroutine memspace_work_arrays_sumrho
+END SUBROUTINE memspace_work_arrays_sumrho
 
 
 subroutine deallocate_work_arrays_sumrho(w)

@@ -1,38 +1,9 @@
-!!****f* BigDFT/nzsymbol
-!! FUNCTION
-!!   Give the symbol of element.
-subroutine nzsymbol(nzatom, symbol)
-  implicit none
-! Arguments
-  integer, intent(in) :: nzatom
-  character(len=2), intent(out) :: symbol
-  
- character(len=2), parameter :: symbol_(94)=(/' H','He',        &
-      &   'Li','Be',' B',' C',' N',' O',' F','Ne',   &
-      &   'Na','Mg','Al','Si',' P',' S','Cl','Ar',   &
-      &   ' K','Ca','Sc','Ti',' V','Cr','Mn','Fe','Co','Ni',&
-      &        'Cu','Zn','Ga','Ge','As','Se','Br','Kr',     &
-      &   'Rb','Sr',' Y','Zr','Nb','Mo','Tc','Ru','Rh','Pd',&
-      &        'Ag','Cd','In','Sn','Sb','Te',' I','Xe',     &
-      &   'Cs','Ba','La','Ce','Pr','Nd','Pm','Sm','Eu','Gd',&
-      &                       'Tb','Dy','Ho','Er','Tm','Yb',&
-      &             'Lu','Hf','Ta',' W','Re','Os','Ir','Pt',&
-      &        'Au','Hg','Tl','Pb','Bi','Po','At','Rn',     &
-      &   'Fr','Ra','Ac','Th','Pa',' U','Np','Pu'/)
-
- if (nzatom <= 0 .or. nzatom > 94) then
-    stop "Wrong nzatom value"
- end if
- symbol = symbol_(nzatom)
-end subroutine nzsymbol
-!!***
-
 !!****f* BigDFT/eleconf
 !! FUNCTION
 !!   Give electronic configuration of atom
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group (TD,LG)
+!!    Copyright (C) 2007-2011 BigDFT group (TD,LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -1680,6 +1651,36 @@ end select
   end do
 
 END SUBROUTINE eleconf
+!!***
+
+
+!!****f* BigDFT/nzsymbol
+!! FUNCTION
+!!   Give the symbol of element.
+subroutine nzsymbol(nzatom, symbol)
+  implicit none
+! Arguments
+  integer, intent(in) :: nzatom
+  character(len=2), intent(out) :: symbol
+  
+ character(len=2), parameter :: symbol_(94)=(/' H','He',        &
+      &   'Li','Be',' B',' C',' N',' O',' F','Ne',   &
+      &   'Na','Mg','Al','Si',' P',' S','Cl','Ar',   &
+      &   ' K','Ca','Sc','Ti',' V','Cr','Mn','Fe','Co','Ni',&
+      &        'Cu','Zn','Ga','Ge','As','Se','Br','Kr',     &
+      &   'Rb','Sr',' Y','Zr','Nb','Mo','Tc','Ru','Rh','Pd',&
+      &        'Ag','Cd','In','Sn','Sb','Te',' I','Xe',     &
+      &   'Cs','Ba','La','Ce','Pr','Nd','Pm','Sm','Eu','Gd',&
+      &                       'Tb','Dy','Ho','Er','Tm','Yb',&
+      &             'Lu','Hf','Ta',' W','Re','Os','Ir','Pt',&
+      &        'Au','Hg','Tl','Pb','Bi','Po','At','Rn',     &
+      &   'Fr','Ra','Ac','Th','Pa',' U','Np','Pu'/)
+
+ if (nzatom <= 0 .or. nzatom > 94) then
+    stop "Wrong nzatom value"
+ end if
+ symbol = symbol_(nzatom)
+END SUBROUTINE nzsymbol
 !!***
 
 

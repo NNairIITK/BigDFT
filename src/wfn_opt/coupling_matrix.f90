@@ -29,7 +29,7 @@ subroutine center_of_charge(at,rxyz,cc)
   cc(1)=cc(1)/qtot
   cc(2)=cc(2)/qtot
   cc(3)=cc(3)/qtot
-end subroutine center_of_charge
+END SUBROUTINE center_of_charge
 
 
 
@@ -476,5 +476,5 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 
 
 
-end subroutine coupling_matrix_prelim
+END SUBROUTINE coupling_matrix_prelim
 !!***

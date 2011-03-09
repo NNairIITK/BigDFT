@@ -3,7 +3,7 @@
 !!   Calculates the local forces acting on the atoms belonging to iproc
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -2908,7 +2908,7 @@ subroutine elim_torque_reza(nat,rat0,fat)
   deallocate(amass,stat=i_stat)
   call memocc(i_stat,i_all,'amass',subname)
 
-end subroutine elim_torque_reza
+END SUBROUTINE elim_torque_reza
 
 subroutine cross(a,b,c)
   use module_base
@@ -2919,7 +2919,7 @@ subroutine cross(a,b,c)
   c(1)=a(2)*b(3)-b(2)*a(3)
   c(2)=a(3)*b(1)-b(3)*a(1)
   c(3)=a(1)*b(2)-b(1)*a(2)
-end subroutine cross
+END SUBROUTINE cross
 
 subroutine moment_of_inertia(nat,rat,teneria,evaleria)
   use module_base
@@ -2962,7 +2962,7 @@ subroutine moment_of_inertia(nat,rat,teneria,evaleria)
   deallocate(amass,stat=i_stat)
   call memocc(i_stat,i_all,'amass',subname)
   
-end subroutine moment_of_inertia
+END SUBROUTINE moment_of_inertia
 
 subroutine normalizevector(n,v)
   use module_base
@@ -2980,7 +2980,7 @@ subroutine normalizevector(n,v)
   vnrm=sqrt(vnrm)
   v(1:n)=v(1:n)/vnrm
 
-end subroutine normalizevector
+END SUBROUTINE normalizevector
 
 
 subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
@@ -3082,4 +3082,4 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
      if (at%geocode /= 'P') &
   &  write(*,'(2(1x,a,1pe20.12))') 'raw forces:                  maxval=', fmax1, ' fnrm2=', fnrm1
   end if
-end subroutine clean_forces
+END SUBROUTINE clean_forces

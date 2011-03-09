@@ -3,7 +3,7 @@
 !!  Restart from gaussian functions
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2010 CEA (LG)
+!!    Copyright (C) 2007-2011 CEA (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .

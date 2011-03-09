@@ -1233,7 +1233,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
      end if
      if (N_c>0) nobj_par(n_ip)=nobj_par(n_ip)+N_c
   end do
-end subroutine parallel_repartition_with_kpoints
+END SUBROUTINE parallel_repartition_with_kpoints
 
 subroutine parallel_repartition_per_kpoints(iproc,nproc,nkpts,nobj,nobj_par,&
      nkptsp,mykpts,nobj_pkpt)
@@ -1292,4 +1292,4 @@ subroutine parallel_repartition_per_kpoints(iproc,nproc,nkpts,nobj,nobj_par,&
      end if
   end do
 
-end subroutine parallel_repartition_per_kpoints
+END SUBROUTINE parallel_repartition_per_kpoints

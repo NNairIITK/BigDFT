@@ -675,7 +675,7 @@ contains
        enddo
     enddo
 !$omp  end do
-  end subroutine conv_kin_y
+  END SUBROUTINE conv_kin_y
 
 
   subroutine conv_kin_x(x,y,ndat)
@@ -745,7 +745,7 @@ contains
        enddo
     enddo
 !$omp  end do
-  end subroutine conv_kin_x
+  END SUBROUTINE conv_kin_x
 
   subroutine conv_kin_z(x,y,ndat)
     implicit none
@@ -815,7 +815,7 @@ contains
        enddo
     enddo
 !$omp  end do
-  end subroutine conv_kin_z
+  END SUBROUTINE conv_kin_z
 
 
 

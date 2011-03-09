@@ -2727,7 +2727,7 @@ end if semicoreIf
   ! Stop the timing for the input guess.
   call timing(iproc, 'Input_comput', 'OF')
 
-end subroutine inputguessParallel
+END SUBROUTINE inputguessParallel
 
 
 
@@ -3018,7 +3018,7 @@ subroutine orthonormalize(iproc, nproc, norbtot, norb, norbp, norbpArr,&
 
 
 
-end subroutine orthonormalize
+END SUBROUTINE orthonormalize
 
 
 
@@ -3121,7 +3121,7 @@ deallocate(ovrlp, stat=i_stat)
 call memocc(i_stat, i_all, 'ovrlp', subname)
 
 
-end subroutine gramschmidtOverlap
+END SUBROUTINE gramschmidtOverlap
 
 
 
@@ -3227,7 +3227,7 @@ i_all=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=i_stat)
 call memocc(i_stat, i_all, 'ovrlp', subname)
 
-end subroutine choleskyOverlap
+END SUBROUTINE choleskyOverlap
 
 
 
@@ -3385,5 +3385,5 @@ seed=37*(10*iproc+ispin)*(/(i-1, i=1,n)/)
 call random_seed(put=seed)
 
 deallocate(seed)
-end subroutine initRandomSeed
+END SUBROUTINE initRandomSeed
 

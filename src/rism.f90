@@ -192,7 +192,7 @@ subroutine assign_atomic_radii(nat,iatlr,nlr,radii)
 
   if (ilr /= nlr) stop 'ERROR ilr'
 
-end subroutine assign_atomic_radii
+END SUBROUTINE assign_atomic_radii
 
 !!****f* BigDFT/atomic_charges
 !! FUNCTION
@@ -977,4 +977,4 @@ subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,nga
   deallocate(ncoeff_par,stat=i_stat)
   call memocc(i_stat,i_all,'ncoeff_par',subname)
   
-end subroutine calculate_rho_shortrange
+END SUBROUTINE calculate_rho_shortrange

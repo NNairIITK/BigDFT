@@ -690,7 +690,7 @@ subroutine compress_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp enddo
 
   !$omp end parallel
-end subroutine compress_scal
+END SUBROUTINE compress_scal
 
 
 subroutine uncompress_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -764,7 +764,7 @@ subroutine uncompress_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !psig=1.d0/sqrt(real(8*(n1+1)*(n2+1)*(n3+1),wp))
 
 
-end subroutine uncompress_scal
+END SUBROUTINE uncompress_scal
 
 subroutine uncompress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 

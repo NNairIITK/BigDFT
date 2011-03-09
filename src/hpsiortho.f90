@@ -269,7 +269,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ng
 
   call timing(iproc,'Rho_commun    ','OF') 
 
-end subroutine full_local_potential
+END SUBROUTINE full_local_potential
 
 subroutine free_full_potential(nproc,pot,subname)
   use module_base
@@ -291,7 +291,7 @@ subroutine free_full_potential(nproc,pot,subname)
      nullify(pot)
   end if
 
-end subroutine free_full_potential
+END SUBROUTINE free_full_potential
 
 !!****f* BigDFT/hpsitopsi
 !! FUNCTION
@@ -803,7 +803,7 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
     close(unit=11)
  end if
 
-end subroutine evaltoocc
+END SUBROUTINE evaltoocc
 
 subroutine eFermi_nosmearing(iproc,orbs)
   use module_base
@@ -870,7 +870,7 @@ subroutine eFermi_nosmearing(iproc,orbs)
      orbs%occup(iorb+orbs%norbu)=0.0_gp
   end do
 
-end subroutine eFermi_nosmearing
+END SUBROUTINE eFermi_nosmearing
 
 
 
@@ -1170,7 +1170,7 @@ subroutine test_value(ikpt,iorb,ispinor,icomp,val)
   val=(valorb+vali)*(-1)**(ispinor-1)
 
   
-end subroutine test_value
+END SUBROUTINE test_value
   
 
 subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
@@ -1188,4 +1188,4 @@ subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
              & ikptproc(ikpt), MPI_COMM_WORLD, ierr)
      end do
   end if
-end subroutine broadcast_kpt_objects
+END SUBROUTINE broadcast_kpt_objects

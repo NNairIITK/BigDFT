@@ -273,7 +273,7 @@ contains
     call etsf_io_low_error_to_str(errmess, error)
     write(0,"(A)") trim(errmess)
     call MPI_ABORT(MPI_COMM_WORLD, ierr)
-  end subroutine etsf_error
+  END SUBROUTINE etsf_error
 
   subroutine general_error(error)
     character(len = *), intent(in) :: error
@@ -282,7 +282,7 @@ contains
 
     write(0,"(A)") error
     call MPI_ABORT(MPI_COMM_WORLD, ierr)
-  end subroutine general_error
+  END SUBROUTINE general_error
 
   subroutine etsf_read_descr(ncid, n1_old, n2_old, n3_old, hx_old, hy_old, hz_old, &
        & rxyz_old, nat, nvctr_old, nvctr_c_old, nvctr_f_old)
@@ -333,7 +333,7 @@ contains
     do i = 1, dims%max_number_of_basis_grid_points, 1
        if (nvctr_old(i) > 1) nvctr_f_old = nvctr_f_old + 1
     end do
-  end subroutine etsf_read_descr
+  END SUBROUTINE etsf_read_descr
 
   subroutine calc_displ(at, rxyz, rxyz_old, displ, perx, pery, perz)
     type(atoms_data), intent(in) :: at
@@ -357,8 +357,8 @@ contains
        tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
     enddo
     displ=sqrt(tx+ty+tz)
-  end subroutine calc_displ
-end subroutine read_waves_etsf
+  END SUBROUTINE calc_displ
+END SUBROUTINE read_waves_etsf
 !!***
 
 !!****f* BigDFT/write_waves_etsf
@@ -539,7 +539,7 @@ contains
     write(0,"(A)") "Error: ETSF_IO error for proc", iproc
     write(0,"(A)") trim(errmess)
     call MPI_ABORT(MPI_COMM_WORLD, ierr)
-  end subroutine etsf_error
+  END SUBROUTINE etsf_error
 
   subroutine etsf_write_global(ncid,orbs, n1,n2,n3,hx,hy,hz,rxyz,at,wfd,gcoord,nvctr)
     integer, intent(in) :: ncid, n1, n2, n3
@@ -681,7 +681,7 @@ contains
     basis%number_of_coefficients_per_grid_point%data1D => nvctr
     call etsf_io_basisdata_put(ncid, basis, lstat, error)
     if (.not. lstat) call etsf_error(error)
-  end subroutine etsf_write_global
+  END SUBROUTINE etsf_write_global
 
   subroutine build_grid(n1,n2,n3,nvctr, gcoord, wfd)
     integer, intent(in) :: n1, n2, n3
@@ -734,6 +734,6 @@ contains
     i_all=-product(shape(coeff_map))*kind(coeff_map)
     deallocate(coeff_map)
     call memocc(i_stat,i_all,'coeff_map',subname)
-  end subroutine build_grid
-end subroutine write_waves_etsf
+  END SUBROUTINE build_grid
+END SUBROUTINE write_waves_etsf
 !!***
