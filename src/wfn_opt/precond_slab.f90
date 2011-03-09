@@ -10,7 +10,7 @@
 !!   -the work array z is smaller now
 !!   -the Fourier preconditioner is in the surface version
 !! COPYRIGHT
-!!    Copyright (C) 2010 BigDFT group 
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .

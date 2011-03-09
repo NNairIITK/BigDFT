@@ -8,7 +8,7 @@
 !!    Luigi Genovese, Damien Caliste
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2009 BigDFT group
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .

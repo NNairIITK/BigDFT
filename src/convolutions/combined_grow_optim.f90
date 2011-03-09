@@ -466,6 +466,7 @@ subroutine comb_rot_grow_loc_square_3(n1,n2,n3,x,y,ib)
   !    write(10,'(3f10.3,f10.0)') t0,t1,tel, 1.d-6*nflop/tel
 END SUBROUTINE comb_rot_grow_loc_square_3
 
+
 subroutine make_loczero(n1,n2,n3,ib2,y)
   !   initialize the y array with zeroes
   !   but only inside the region defined by ib2 array
@@ -475,8 +476,8 @@ subroutine make_loczero(n1,n2,n3,ib2,y)
   integer, intent(in) :: n1,n2,n3
   integer, dimension(2,0:n3,-14:2*n1+16), intent(in) :: ib2
   real(wp), dimension(0:n2,0:n3,-14:2*n1+16), intent(out) :: y
-  !local variables
-  integer :: ll1,l10,l11,ll3,l30,l31,i,l1,l3,ncount0,ncount1,ncount_rate,ncount_max
+  !Local variables
+  integer :: ll1,l10,l11,ll3,l30,l31,i,l1,l3
 
 ! call system_clock(ncount0,ncount_rate,ncount_max)
 !$omp parallel default (shared)
