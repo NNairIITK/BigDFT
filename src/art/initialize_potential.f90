@@ -1,13 +1,12 @@
-!!****f* bart/initialize_potential
-!! FUNCTION
-!!   Initialize the potential
-!! COPYRIGHT
+!>   Initialize the potential
+!!
+!! @author
 !!   Copyright (C) 2010 BigDFT group, Normand Mousseau
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
-!! SOURCE
+!!
 !!
 subroutine initialize_potential()
 
@@ -32,13 +31,11 @@ subroutine initialize_potential()
   pos(:) = posa(:)
 
 END SUBROUTINE initialize_potential
-!!***
 
 
-!!****f* bart/finalise_potential
-!! FUNCTION
-!!   Finalize the potential
-!! SOURCE
+
+!>   Finalize the potential
+!!
 !!
 subroutine finalise_potential()
 
@@ -48,4 +45,4 @@ subroutine finalise_potential()
   
   call bigdft_finalise()
 END SUBROUTINE finalise_potential
-!!***
+

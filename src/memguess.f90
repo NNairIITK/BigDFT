@@ -1,17 +1,12 @@
-!!****p* BigDFT/memguess
-!! FUNCTION
-!!  Test the input files and estimates the memory occupation versus the number
+!>  Test the input files and estimates the memory occupation versus the number
 !!  of processors
-!! AUTHOR
-!!    Luigi Genovese
-!! COPYRIGHT
-!!   Copyright (C) 2007-2010 BigDFT group
+!!
+!! @author Luigi Genovese
+!!   Copyright (C) 2007-2011 BigDFT group
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 program memguess
 
@@ -461,16 +456,14 @@ program memguess
   call memocc(0,0,'count','stop')
 
 end program memguess
-!!***
+
   
 
-!!****f* BigDFT/optimise_volume
-!! FUNCTION
-!!  Rotate the molecule via an orthogonal matrix in order to minimise the
+!>  Rotate the molecule via an orthogonal matrix in order to minimise the
 !!  volume of the cubic cell
-!! AUTHOR
-!!    Stefan Goedecker, Luigi Genovese
-!! SOURCE
+!!
+!! @author Stefan Goedecker, Luigi Genovese
+!!
 !!
 subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
   use module_base
@@ -577,15 +570,13 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
   call memocc(i_stat,i_all,'txyz',subname)
 
 END SUBROUTINE optimise_volume
-!!***
 
-!!****f* BigDFT/shift_periodic_directions
-!! FUNCTION
-!!  Add a shift in the periodic directions such that the system
+
+!>  Add a shift in the periodic directions such that the system
 !!  uses as less as possible the modulo operation
-!! AUTHOR
-!!    Luigi Genovese
-!! SOURCE
+!!
+!! @author Luigi Genovese
+!!
 !!
 subroutine shift_periodic_directions(at,rxyz,radii_cf)
   use module_base
@@ -687,7 +678,7 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
   call memocc(i_stat,i_all,'txyz',subname)
 
 END SUBROUTINE shift_periodic_directions
-!!***
+
 
 subroutine calc_vol(geocode,nat,rxyz,vol)
   use module_base
@@ -1128,10 +1119,8 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
 
 END SUBROUTINE compare_data_and_gflops
 
-!!****f* BigDFT/read_input_variables_old
-!! FUNCTION
-!!    Read the input variables in the file 'input.dat', old format.
-!! SOURCE
+!>    Read the input variables in the file 'input.dat', old format.
+!!
 !!
 subroutine read_input_variables_old(iproc,filename,in)
   use module_base
@@ -1320,13 +1309,11 @@ contains
   END SUBROUTINE check
 
 END SUBROUTINE read_input_variables_old
-!!***
 
 
-!!****f* BigDFT/dft_input_converter
-!! FUNCTION
-!!  Convert the format of input variables
-!! SOURCE
+
+!>  Convert the format of input variables
+!!
 !!
 subroutine dft_input_converter(in)
   use module_base
@@ -1421,4 +1408,4 @@ subroutine dft_input_converter(in)
    
   close(unit=1)
 END SUBROUTINE dft_input_converter
-!!***
+

@@ -1,16 +1,11 @@
-!!****m* art/defs
-!! FUNCTION
-!!    This module defines all variables used accross the program ART01
-!!
-!! COPYRIGHT
+!>    This module defines all variables used accross the program ART01
+!! @author
 !!    Copyright N. Mousseau, May 2001
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 module defs
 
@@ -101,4 +96,4 @@ module defs
   include 'mpif.h'
 
 end module defs
-!!***
+

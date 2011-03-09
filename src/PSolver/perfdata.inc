@@ -1,8 +1,8 @@
-!!****h* PSolver/perfdata
-!! FUNCTION
+!> PSolver/perfdata
+!! :
 !!  Performance Data (size of the cache for FFT)
 !!
-!! SOURCE
+!!
 !!
 ! value of ncache for the FFT routines
 integer, parameter :: ncache_optimal=8*1024
@@ -11,4 +11,4 @@ integer, parameter :: ncache_optimal=8*1024
 ! definitions of the timing variambles just in case
 integer, parameter :: timing_flag=0
 
-!!***
+

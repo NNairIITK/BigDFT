@@ -72,9 +72,12 @@ H2O-slab.post-in:
 
 
 # Generic part, do not touch.
+INS = $(TESTDIRS:=.in)
 CHECKS = $(TESTDIRS:=.check)
 FAILEDCHECKS = $(TESTDIRS:=.recheck)
 CLEANS = $(TESTDIRS:=.clean)
+
+in: $(INS)
 
 check: $(CHECKS) report
 
@@ -153,7 +156,7 @@ $(PSPS):
 	  if grep -qs "failed" $$r ; then \
 	    target=` basename $$r .report` ; \
 	    $(MAKE) $*".in" && rm -f $*".in" ; \
-	    rm -f $$dir/$$target".out" ; \
+	    rm -f $$dir/$$target".out" $$dir/$$target".report" ; \
 	    cd $$dir && $(MAKE) -f ../Makefile $$target".out" $$target".report" && cd - ; \
 	  fi \
 	done

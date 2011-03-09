@@ -1,6 +1,4 @@
-!!****f* art/saddle_converge
-!! FUNCTION
-!!    In the art method, converge to the saddle point
+!>    In the art method, converge to the saddle point
 !!    This subroutine bring the configuration to a saddle point. It does that
 !!    by first pushing the configuration outside of the harmonic well, using
 !!    the initial direction selected in find_saddle. Once outside the harmonic
@@ -8,16 +6,13 @@
 !!    reasonnable size) the configuration follows the direction corresponding
 !!    to this eigenvalue until the force components parallel and perpdendicular
 !!    to the eigendirection become close to zero.
-!!
-!! COPYRIGHT
+!! @author
 !!    Copyright (C) Normand Mousseau, June 2001
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
   use random
@@ -412,4 +407,4 @@ subroutine saddle_converge(ret, saddle_energy, fpar, fperp)
     
   end do
 END SUBROUTINE saddle_converge
-!!***
+

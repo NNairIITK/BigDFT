@@ -1,8 +1,4 @@
-!!****m* BigDFT/interfaces
-!! FUNCTION
-!!  Modules which contains all interfaces
-!!
-!! DESCRIPTION
+!>  Modules which contains all interfaces
 !!  Interfaces of:
 !!  - call_cluster
 !!  - conjgrad
@@ -27,18 +23,14 @@
 !!  - nonlocal_forces
 !!  - CalculateTailCorrection
 !!  - reformatonewave
-!!
-!! AUTHOR
+!! Author:
 !!    Luigi Genovese, Damien Caliste
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 module module_interfaces
 
@@ -58,7 +50,7 @@ module module_interfaces
        real(gp), intent(out) :: energy,fnoise
        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
        real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
-     end subroutine call_bigdft
+     END SUBROUTINE call_bigdft
 
 
      subroutine geopt(nproc,iproc,x,at,f,epot,rst,in,ncount_bigdft)
@@ -143,7 +135,7 @@ module module_interfaces
        type(input_variables), intent(out) :: inputs
        type(atoms_data), intent(inout) :: atoms
        real(gp), dimension(:,:), pointer :: rxyz
-     end subroutine read_input_parameters
+     END SUBROUTINE read_input_parameters
 
      subroutine dft_input_variables(iproc,filename,in)
        use module_base
@@ -643,7 +635,7 @@ module module_interfaces
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        type(locreg_descriptors), intent(in) :: lr
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
-     end subroutine plot_wf
+     END SUBROUTINE plot_wf
 
      subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
           hfac,nscatterarr,spinsgn,psir,rho_p,ibyyzz_r) !ex-optional argument
@@ -884,7 +876,7 @@ module module_interfaces
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(dp), dimension(max(n1i*n2i*n3p,1),nspin), target, intent(in) :: rho
-     end subroutine plot_density
+     END SUBROUTINE plot_density
 
      subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
           nat,rxyz,iatypes, znucl)
@@ -900,7 +892,7 @@ module module_interfaces
        real(gp), dimension(:,:), pointer, optional :: rxyz
        integer, intent(out), optional ::  nat
        integer, dimension(:), pointer, optional :: iatypes, znucl
-     end subroutine read_density
+     END SUBROUTINE read_density
 
      subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
           nat,rxyz, iatypes, znucl)
@@ -916,7 +908,7 @@ module module_interfaces
        real(gp), dimension(:,:), pointer   :: rxyz
        integer, intent(out)   ::  nat
        integer, dimension(:), pointer   :: iatypes, znucl
-     end subroutine read_cube
+     END SUBROUTINE read_cube
 
      subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
           nat,rxyz, iatypes, znucl)
@@ -932,7 +924,7 @@ module module_interfaces
        real(gp), dimension(:,:), pointer :: rxyz
        integer, intent(out) ::  nat
        integer, dimension(:), pointer :: iatypes, znucl
-     end subroutine read_etsf
+     END SUBROUTINE read_etsf
 
      subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
        use module_base
@@ -1021,7 +1013,7 @@ module module_interfaces
        real(wp), dimension(:), pointer :: rhocore !associated if useful
        real(wp), dimension(*), intent(out) :: potxc
        real(wp), dimension(*), intent(out), optional :: dvxcdrho
-     end subroutine XC_potential
+     END SUBROUTINE XC_potential
 
      subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
           orbs,orbsv,nvirt,lr,comms,commsv,&
@@ -1046,7 +1038,7 @@ module module_interfaces
        type(orbitals_data), intent(inout) :: orbsv
        type(GPU_pointers), intent(inout) :: GPU
        real(wp), dimension(:), pointer :: psi,psivirt
-     end subroutine direct_minimization
+     END SUBROUTINE direct_minimization
 
      subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
           hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
@@ -1061,7 +1053,7 @@ module module_interfaces
        type(grid_dimensions), intent(in) :: grid
        real(dp), dimension(*), intent(in) :: pkernel
        real(wp), dimension(*), intent(inout) :: pot_ion
-     end subroutine CounterIonPotential
+     END SUBROUTINE CounterIonPotential
 
      subroutine gaussian_rism_basis(nat,radii,rxyz,G)
        use module_base
@@ -1071,7 +1063,7 @@ module module_interfaces
        real(gp), dimension(nat), intent(in) :: radii
        real(gp), dimension(3,nat), target, intent(in) :: rxyz
        type(gaussian_basis), intent(out) :: G
-     end subroutine gaussian_rism_basis
+     END SUBROUTINE gaussian_rism_basis
 
      subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
        use module_base
@@ -1081,7 +1073,7 @@ module module_interfaces
        real(gp), dimension(nat), intent(in) :: radii
        real(gp), dimension(3,nat), target, intent(in) :: rxyz
        type(gaussian_basis), intent(out) :: G  
-     end subroutine gaussian_hermite_basis
+     END SUBROUTINE gaussian_hermite_basis
 
     subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
       use module_base
@@ -1095,7 +1087,7 @@ module module_interfaces
       type(orbitals_data), intent(in) :: orbs,orbsv
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
       real(wp), dimension(:), pointer :: psi,psivirt
-    end subroutine write_eigen_objects
+    END SUBROUTINE write_eigen_objects
 
     subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ngatherarr,potential,pot)
       use module_base
@@ -1104,7 +1096,7 @@ module module_interfaces
       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
       real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
       real(wp), dimension(:), pointer :: pot
-    end subroutine full_local_potential
+    END SUBROUTINE full_local_potential
 
     subroutine free_full_potential(nproc,pot,subname)
       use module_base
@@ -1112,9 +1104,9 @@ module module_interfaces
       character(len=*), intent(in) :: subname
       integer, intent(in) :: nproc
       real(wp), dimension(:), pointer :: pot
-    end subroutine free_full_potential
+    END SUBROUTINE free_full_potential
 
   end interface
 
 end module module_interfaces
-!!***
+

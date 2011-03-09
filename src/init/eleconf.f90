@@ -1,38 +1,6 @@
-!!****f* BigDFT/nzsymbol
-!! FUNCTION
-!!   Give the symbol of element.
-subroutine nzsymbol(nzatom, symbol)
-  implicit none
-! Arguments
-  integer, intent(in) :: nzatom
-  character(len=2), intent(out) :: symbol
-  
- character(len=2), parameter :: symbol_(94)=(/' H','He',        &
-      &   'Li','Be',' B',' C',' N',' O',' F','Ne',   &
-      &   'Na','Mg','Al','Si',' P',' S','Cl','Ar',   &
-      &   ' K','Ca','Sc','Ti',' V','Cr','Mn','Fe','Co','Ni',&
-      &        'Cu','Zn','Ga','Ge','As','Se','Br','Kr',     &
-      &   'Rb','Sr',' Y','Zr','Nb','Mo','Tc','Ru','Rh','Pd',&
-      &        'Ag','Cd','In','Sn','Sb','Te',' I','Xe',     &
-      &   'Cs','Ba','La','Ce','Pr','Nd','Pm','Sm','Eu','Gd',&
-      &                       'Tb','Dy','Ho','Er','Tm','Yb',&
-      &             'Lu','Hf','Ta',' W','Re','Os','Ir','Pt',&
-      &        'Au','Hg','Tl','Pb','Bi','Po','At','Rn',     &
-      &   'Fr','Ra','Ac','Th','Pa',' U','Np','Pu'/)
-
- if (nzatom <= 0 .or. nzatom > 94) then
-    stop "Wrong nzatom value"
- end if
- symbol = symbol_(nzatom)
-end subroutine nzsymbol
-!!***
-
-!!****f* BigDFT/eleconf
-!! FUNCTION
-!!   Give electronic configuration of atom
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group (TD,LG)
+!>   Give electronic configuration of atom
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group (TD,LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -56,8 +24,6 @@ end subroutine nzsymbol
 !!   mxpl      Maximum spin polarisation to be placed on the atom
 !!   mxchg     Maximum charge to be placed on the atom
 !!   amu       Atomic mass unit (use values coming from ABINIT/11util/atmdata.F90)
-!!
-!! SOURCE
 !!
 subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
   implicit none
@@ -1680,13 +1646,39 @@ end select
   end do
 
 END SUBROUTINE eleconf
-!!***
 
 
-!!****f* BigDFT/correct_semicore
-!! FUNCTION
-!!   Correct the electronic configuration for a given atomic charge
-!! SOURCE
+
+!>   Give the symbol of element.
+subroutine nzsymbol(nzatom, symbol)
+  implicit none
+! Arguments
+  integer, intent(in) :: nzatom
+  character(len=2), intent(out) :: symbol
+  
+ character(len=2), parameter :: symbol_(94)=(/' H','He',        &
+      &   'Li','Be',' B',' C',' N',' O',' F','Ne',   &
+      &   'Na','Mg','Al','Si',' P',' S','Cl','Ar',   &
+      &   ' K','Ca','Sc','Ti',' V','Cr','Mn','Fe','Co','Ni',&
+      &        'Cu','Zn','Ga','Ge','As','Se','Br','Kr',     &
+      &   'Rb','Sr',' Y','Zr','Nb','Mo','Tc','Ru','Rh','Pd',&
+      &        'Ag','Cd','In','Sn','Sb','Te',' I','Xe',     &
+      &   'Cs','Ba','La','Ce','Pr','Nd','Pm','Sm','Eu','Gd',&
+      &                       'Tb','Dy','Ho','Er','Tm','Yb',&
+      &             'Lu','Hf','Ta',' W','Re','Os','Ir','Pt',&
+      &        'Au','Hg','Tl','Pb','Bi','Po','At','Rn',     &
+      &   'Fr','Ra','Ac','Th','Pa',' U','Np','Pu'/)
+
+ if (nzatom <= 0 .or. nzatom > 94) then
+    stop "Wrong nzatom value"
+ end if
+ symbol = symbol_(nzatom)
+END SUBROUTINE nzsymbol
+
+
+
+!>   Correct the electronic configuration for a given atomic charge
+!!
 !!
 subroutine correct_semicore(nmax,lmax,ichg,neleconf,eleconf,nsccode)
   use module_base
@@ -1808,13 +1800,11 @@ subroutine correct_semicore(nmax,lmax,ichg,neleconf,eleconf,nsccode)
 !!!     end do
 !!!  end do
 END SUBROUTINE correct_semicore
-!!***
+
 
 
 ! AMmodif  start
-!!****f* BigDFT/modified_eleconf
-!! FUNCTION
-!!   Give electronic configuration of atom (copied from eleconf).
+!>   Give electronic configuration of atom (copied from eleconf).
 !!   This modified version returns the hardest pseudo potential for the given atom.
 !!
 !! SYNOPSIS
@@ -1829,8 +1819,6 @@ END SUBROUTINE correct_semicore
 !!             The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
 !!             where n_l are the number of semicore orbitals for a given angular momentum
 !!             starting from the lower level of course
-!!
-!! SOURCE
 !!
 subroutine modified_eleconf(nzatom,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
   implicit none
@@ -3597,5 +3585,5 @@ write(222,*) l,n,neleconf(n,l)
   enddo
 
 END SUBROUTINE modified_eleconf
-!!***
+
 ! AMmodif end

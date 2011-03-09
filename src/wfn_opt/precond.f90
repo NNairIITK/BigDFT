@@ -1,14 +1,11 @@
-!!****f* BigDFT/preconditionall
-!! FUNCTION
-!!    Calls the preconditioner for each orbital treated by the processor
-!! COPYRIGHT
-!!    Copyright (C) 2005-2010 BigDFT group 
+!>    Calls the preconditioner for each orbital treated by the processor
+!!
+!! @author
+!!    Copyright (C) 2005-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !! 
 subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   use module_base
@@ -119,7 +116,7 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
   enddo
 
 END SUBROUTINE preconditionall
-!!***
+
 
 !this function has been created also for the GPU-ported routines
 subroutine cprecr_from_eval(geocode,eval_zero,eval,cprecr)
@@ -138,7 +135,7 @@ subroutine cprecr_from_eval(geocode,eval_zero,eval,cprecr)
      cprecr=sqrt(0.2d0**2+(eval-eval_zero)**2)
   end select
 
-end subroutine cprecr_from_eval
+END SUBROUTINE cprecr_from_eval
 
 
 !routine used for the k-points, eventually to be used for all cases
@@ -1087,12 +1084,8 @@ subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
 END SUBROUTINE precond_proper
 
 
-!!****f* BigDFT/precong
-!! FUNCTION
-!!   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 !!   hpsi is the right hand side on input and the solution on output
-!!
-!! SOURCE
 !!
 subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
@@ -1340,4 +1333,4 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   call memocc(i_stat,i_all,'x_f3',subname)
      
 END SUBROUTINE precong
-!!***
+

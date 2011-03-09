@@ -1,20 +1,15 @@
-!!****f* BigDFT/comb_rot_grow_loc_3
-!! FUNCTION
-!!   In one dimension,    
+!>   In one dimension,    
 !!   with optimised cycles
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
 !!   then adds the result to y.
 !!   The size of the data is allowed to grow
-!!
-!! COPYRIGHT
+!! @author
 !!    Copyright (C) 2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
   use module_base
@@ -104,18 +99,16 @@ subroutine comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
   !
   !    write(20,*) tel, 1.d-6*nflop/tel
 END SUBROUTINE comb_rot_grow_loc_3
-!!***
 
 
-!!****f* BigDFT/comb_rot_grow_loc_square
-!! FUNCTION
-!!   In one dimension,
+
+!>   In one dimension,
 !!   with unoptimized cycles   
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
 !!   the size of the data is allowed to grow
 !!   One of the most CPU intensive routines
-!! SOURCE
+!!
 !!
 subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
   use module_base
@@ -296,7 +289,7 @@ subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
   !
   !    write(10,'(3f10.3,f10.0)') t0,t1,tel, 1.d-6*nflop/tel
 END SUBROUTINE comb_rot_grow_loc_square
-!!***
+
 
 
 subroutine comb_rot_grow_loc_square_3(n1,n2,n3,x,y,ib)
@@ -466,6 +459,7 @@ subroutine comb_rot_grow_loc_square_3(n1,n2,n3,x,y,ib)
   !    write(10,'(3f10.3,f10.0)') t0,t1,tel, 1.d-6*nflop/tel
 END SUBROUTINE comb_rot_grow_loc_square_3
 
+
 subroutine make_loczero(n1,n2,n3,ib2,y)
   !   initialize the y array with zeroes
   !   but only inside the region defined by ib2 array
@@ -475,8 +469,8 @@ subroutine make_loczero(n1,n2,n3,ib2,y)
   integer, intent(in) :: n1,n2,n3
   integer, dimension(2,0:n3,-14:2*n1+16), intent(in) :: ib2
   real(wp), dimension(0:n2,0:n3,-14:2*n1+16), intent(out) :: y
-  !local variables
-  integer :: ll1,l10,l11,ll3,l30,l31,i,l1,l3,ncount0,ncount1,ncount_rate,ncount_max
+  !Local variables
+  integer :: ll1,l10,l11,ll3,l30,l31,i,l1,l3
 
 ! call system_clock(ncount0,ncount_rate,ncount_max)
 !$omp parallel default (shared)

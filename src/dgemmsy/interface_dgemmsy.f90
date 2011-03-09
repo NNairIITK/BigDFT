@@ -16,4 +16,4 @@ subroutine gemmsy_double(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,y,ldy)
   if ( transa == 'n' .or. transa == 'N' ) tra = 't'
   call dgemmsy(tra,transb,k,m,alpha,a,lda,b,ldb,beta,y,ldy,0)
 
-end subroutine gemmsy_double
+END SUBROUTINE gemmsy_double

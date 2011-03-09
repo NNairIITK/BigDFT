@@ -1,17 +1,14 @@
-!!****f* BigDFT/hit_with_kernel_slab
-!! FUNCTION
-!!   Hits the input array x with the kernel
+!>   Hits the input array x with the kernel
 !!   ((-1/2\Delta+C)_{ij})^{-1}
 !! See the optimized version (hit_kernel_slab_optim) and
 !!     non-optimized version (hit_kernal_slab_simple)
-!! COPYRIGHT
+!!
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !! 
 subroutine hit_with_kernel_slab(x,z  ,kern_k1,kern_k3,n1,n2,n3,c,hgrid)    
     implicit none
@@ -92,13 +89,11 @@ subroutine hit_with_kernel_slab(x,z  ,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
     deallocate(x2,y2)
 
 END SUBROUTINE hit_with_kernel_slab
-!!***
 
 
-!!****f* BigDFT/slab_invert
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 subroutine slab_invert(n1,n2,n3,z,kern_k1,kern_k3,c,hgrid)
     implicit none
@@ -165,15 +160,13 @@ subroutine slab_invert(n1,n2,n3,z,kern_k1,kern_k3,c,hgrid)
     deallocate(b,ipiv)
 
 END SUBROUTINE slab_invert
-!!***
 
 
-!!****f* BigDFT/make_kernel_slab
-!! FUNCTION
-!!  Construct the kernel (-1/2 d^2/dx^2)_{ij}
+
+!>  Construct the kernel (-1/2 d^2/dx^2)_{ij}
 !!  at a real space grid with grid size hgrid
 !!  and then fourier transform it to momentum space
-!! SOURCE
+!!
 !!
 subroutine make_kernel_slab(n1,hgrid,kern)
 implicit none
@@ -209,4 +202,4 @@ enddo
 
 deallocate(z,zin)
 END SUBROUTINE make_kernel_slab
-!!***
+

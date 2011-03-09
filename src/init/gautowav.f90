@@ -1,15 +1,10 @@
-!!****f* BigDFT/check_gaussian_expansion
-!! FUNCTION
-!!  Control the accuracy of the expansion in gaussian
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group (LG)
+!>  Control the accuracy of the expansion in gaussian
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine check_gaussian_expansion(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   use module_base
@@ -64,7 +59,7 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   call memocc(i_stat,i_all,'workpsi',subname)
 
 END SUBROUTINE check_gaussian_expansion
-!!***
+
 
 subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,rxyz,&
      CP2K,wfn_cp2k)

@@ -1,15 +1,10 @@
-!!****p* BigDFT/abscalc_main
-!! FUNCTION
-!!  Main program for XANES calculation (absorption calculation)
+!>  Main program for XANES calculation (absorption calculation)
 !!
-!! COPYRIGHT
-!!    Copyright (C) 2009-2010 ESRF
+!! @author Copyright (C) 2009-2011 ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 program abscalc_main
 
@@ -153,13 +148,10 @@ program abscalc_main
   call MPI_FINALIZE(ierr)
 
 end program abscalc_main
-!!***
 
 
-!!****f* BigDFT/call_abscalc
-!! FUNCTION
-!!   Routines to use abscalc as a blackbox
-!! SOURCE
+!>   Routines to use abscalc as a blackbox
+!!
 !!
  subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
   use module_base
@@ -285,12 +277,9 @@ end program abscalc_main
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
 END SUBROUTINE call_abscalc
-!!***
 
 
-!!****f* BigDFT/abscalc
-!! FUNCTION
-!!   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
+!>   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
 !!   inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid
 !!                    as definition of the previous system.
 !!   inputPsiId = 2 : read waves from disk
@@ -304,7 +293,7 @@ END SUBROUTINE call_abscalc
 !!               the second iteration OR grnm 1st >2.
 !!               Input wavefunctions need to be recalculated. Routine exits.
 !!            =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-!! SOURCE
+!!
 !!
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
      psi,Glr,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)
@@ -411,8 +400,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   integer, parameter :: noccmax=2
 
 
-
-  if (  in%potshortcut==0) then
+  if (in%potshortcut==0) then
      if(nproc>1) call MPI_Finalize(ierr)
      stop '   in%potshortcut==0 calculating spectra. Use rather box2Box option      '
   endif
@@ -588,14 +576,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      allocate(rhoXanes(1,1,1,1+ndebug),stat=i_stat)
      call memocc(i_stat,rhoXanes,'rhoXanes',subname)     
   endif
-
-
+  
 
   nullify(rhocore)
   !check the communication distribution
   !call check_communications(iproc,nproc,orbs,Glr,comms)
-
-
 
 
   if( iand( in%potshortcut,4)  .gt. 0 ) then
@@ -717,10 +702,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      deallocate(phnons,stat=i_stat)
      call memocc(i_stat,i_all,'phnons',subname)
      
-     
-
-
-
      i_all=-product(shape(atoms_clone%aocc))*kind(atoms_clone%aocc)
      deallocate(atoms_clone%aocc,stat=i_stat)
      call memocc(i_stat,i_all,'atoms_clone%aocc',subname)
@@ -728,10 +709,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      deallocate(atoms_clone%iasctype,stat=i_stat)
      call memocc(i_stat,i_all,'atoms_clone%iasctype',subname)
 
-
-
   endif
-
 
 
   if( iand( in%potshortcut,1)  .gt. 0 ) then
@@ -1434,5 +1412,3 @@ contains
   END SUBROUTINE deallocate_before_exiting
 
 END SUBROUTINE abscalc
-!!***
-

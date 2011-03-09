@@ -1,14 +1,13 @@
-!!****f* BigDFT/analyse_per
-!! FUNCTION
-!!   Analysis wavelet transformation in periodic BC
+!>   Analysis wavelet transformation in periodic BC
 !!   The input array y is NOT overwritten
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!!
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
+!!
 !!
 subroutine analyse_per(n1,n2,n3,ww,y,x)
   use module_base
@@ -31,7 +30,7 @@ subroutine analyse_per(n1,n2,n3,ww,y,x)
   call  ana_rot_per(n3,nt,ww,x)
 
 END SUBROUTINE analyse_per
-!!***
+
 
 
 subroutine analyse_per_self(n1,n2,n3,y,x)

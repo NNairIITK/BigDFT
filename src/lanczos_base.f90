@@ -1,14 +1,11 @@
-!!****m* BigDFT/lanczos_base
-!! FUNCTION
-!!   Module to handle diagonalization scheme
-!! COPYRIGHT
+!>   Module to handle diagonalization scheme
+!!
+!! @author
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 module lanczos_base
   use module_base
@@ -1013,4 +1010,4 @@ contains
   END function LB_cg
 
 END MODULE lanczos_base
-!!***
+

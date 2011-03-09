@@ -1,22 +1,17 @@
-!!****f* BigDFT/MPIfake
-!! FUNCTION
-!!    Fake functions for MPI in the case of serial version
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group 
+!>    Fake functions for MPI in the case of serial version
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine  MPI_INIT(ierr)
   implicit none
   integer, intent(out) :: ierr
   ierr=0
 END SUBROUTINE MPI_INIT
-!!***
+
         
 subroutine MPI_INITIALIZED(init,ierr)
   implicit none
@@ -167,7 +162,7 @@ END SUBROUTINE  MPI_WAITALL
 subroutine MPI_GET_PROCESSOR_NAME()
   implicit none
   stop 'MPIFAKE: MPI_GET_PROCESSOR_NAME'
-end subroutine  MPI_GET_PROCESSOR_NAME
+END SUBROUTINE  MPI_GET_PROCESSOR_NAME
 
 subroutine  mpi_error_string()
   implicit none

@@ -41,7 +41,7 @@
  =F= Used method              1
  =F=> Check if the file "frequencies.res" is present.
  =F=> The reference state is already calculated.
- =F=> There are    12 moves already calculated over    12 frequencies.
+ =F=> There are 12 moves already calculated over 12 frequencies.
 
  Wavefunction Optimization Finished, exit signal=    0
  Final values of the Forces for each atom
@@ -49,12 +49,11 @@
      2      H  9.53952E-04 -8.47033E-22 -1.69407E-21
 
  =Frequencies calculation ===========================================================
- =F: eigenvalues (real)      =     3.6667157101E-04   -2.7105054312E-20    7.2429655781E-07    7.2424934256E-07   -2.3763710087E-23   -2.3763710087E-23
- =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    8.0902120497E-23   -8.0902120497E-23
- =F: frequencies (Hartree)   =     1.9148670215E-02   -1.6463612700E-10    8.5105614257E-04    8.5102840291E-04   -4.8748035947E-12   -4.8748035947E-12
- =F: frequencies (cm-1)      =       4202.65        -0.00       186.79       186.78        -0.00        -0.00
- =F: Zero-point energy (Hartree)   =     1.0425377293E-02
- =F: Zero-point energy (cm-1)      =       2288.11
+ =F: eigenvalues (real)      =     3.6667157101E-04    7.2429655781E-07    7.2424934256E-07    6.6174449004E-24   -5.2939559203E-23   -5.4210108624E-20
+ =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00
+ =F: frequencies (Hartree)   =     1.9148670215E-02    8.5105614257E-04    8.5102840291E-04    2.5724394843E-12   -7.2759576142E-12   -2.3283064365E-10
+ =F: frequencies (cm-1)      =       4202.65       186.79       186.78         0.00        -0.00        -0.00
+ =F: Zero-point energy =      2288.11 cm-1    1.0425377262E-02 Hartree
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
  25 allocations and 25 deallocations, remaining memory(B): 0
  memory occupation peak: 0 MB

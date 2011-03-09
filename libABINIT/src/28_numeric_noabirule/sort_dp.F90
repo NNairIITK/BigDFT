@@ -1,15 +1,41 @@
- subroutine sort_dp(n,list,iperm,tol)
+!{\src2tex{textfont=tt}}
+!!****f* ABINIT/sort_dp
+!! NAME
+!!  sort_dp
+!!
+!! FUNCTION 
+!!  Sort double precision array list(n) into ascending numerical order using Heapsort
+!!  algorithm, while making corresponding rearrangement of the integer
+!!  array iperm. Consider that two double precision numbers
+!!  within tolerance tol are equal.
+!!
+!! INPUTS
+!!  n        intent(in)    dimension of the list
+!!  tol      intent(in)    numbers within tolerance are equal
+!!  list(n)  intent(inout) list of double precision numbers to be sorted
+!!  iperm(n) intent(inout) iperm(i)=i (very important)
+!!
+!! OUTPUT
+!!  list(n)  sorted list
+!!  iperm(n) index of permutation given the right ascending order
+!!
+!! SOURCE
 
-! Sort double precision array list(n) into ascending numerical order using Heapsort
-! algorithm, while making corresponding rearrangement of the integer
-! array iperm. Consider that two double precision numbers
-! within tolerance tol are equal.
+#if defined HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+subroutine sort_dp(n,list,iperm,tol)
 
  implicit none
- integer n,iperm(n)
- double precision list(n)
- integer l,ir,iap,i,j
- double precision ap,tol
+
+ integer, intent(in) :: n
+ integer, intent(inout) :: iperm(n)
+ double precision, intent(inout) :: list(n)
+ double precision, intent(in) :: tol
+
+ integer :: l,ir,iap,i,j
+ double precision :: ap
 
  if (n==1) then
 
@@ -80,4 +106,5 @@
 
  end if ! n>1
 
- end
+end subroutine sort_dp
+!!***

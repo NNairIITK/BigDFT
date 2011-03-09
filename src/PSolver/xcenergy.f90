@@ -1,18 +1,12 @@
-!!****f* PSolver/calc_rhocore_iat
-!! FUNCTION
-!!    Calculate the array of the core density for the atom iat
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2002-2010 BigDFT group 
+!>    Calculate the array of the core density for the atom iat
+!! @author
+!!    Copyright (C) 2002-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! AUTHOR
+!! Author:
 !!    Luigi Genovese
-!!
-!! SOURCE
 !! 
 subroutine calc_rhocore_iat(iproc,geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
      n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore)
@@ -146,12 +140,10 @@ subroutine calc_rhocore_iat(iproc,geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
         
   
 END SUBROUTINE calc_rhocore_iat
-!!***
 
 
-!!****f* PSolver/XC_potential
-!! FUNCTION
-!! Given a charge density, calculates the exchange-correlation potential
+
+!> Given a charge density, calculates the exchange-correlation potential
 !!
 !! SYNOPSIS
 !!    geocode  Indicates the boundary conditions (BC) of the problem, useful for gradients
@@ -190,14 +182,12 @@ END SUBROUTINE calc_rhocore_iat
 !!    potxc       Main output array, the values on the grid points of the XC potential
 !!    exc,vxc     XC energy and integral of $\rho V_{xc}$ respectively
 !!    nspin       Value of the spin-polarisation
-!! WARNING
+!! @warning
 !!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
-!!
-!! SOURCE
 !! 
 subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rho,exc,vxc,nspin,rhocore,potxc,dvxcdrho)
@@ -222,7 +212,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer :: i1,i2,i3,istart,iend,i3start,jend,jproc
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
   integer :: ndvxc,nvxcdgr,ngr2,nd2vxc,order
-  real(dp) :: eexcuLOC,vexcuLOC,ttsum
+  real(dp) :: eexcuLOC,vexcuLOC
   integer, dimension(:,:), allocatable :: gather_arr
   real(dp), dimension(:), allocatable :: rho_G
   real(dp), dimension(:,:,:,:), allocatable :: vxci,dvxci
@@ -372,7 +362,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         !allocation of an auxiliary array for avoiding the shift 
         call xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
              ixc,hx,hy,hz,rho_G,vxci,&
-             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nproc,nspin)
+             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin)
         !restoring the density on the original form
         do ispin=1,nspin
            do i3=1,nxt
@@ -391,7 +381,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      else
         call xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
              ixc,hx,hy,hz,rho(1+n01*n02*(i3start-1)),vxci,&
-             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nproc,nspin)
+             eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin)
      end if
   else
      !presumably the vxc should be initialised
@@ -522,12 +512,10 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
 
 END SUBROUTINE XC_potential
-!!***
 
 
-!!****f* PSolver/xc_energy_new
-!! FUNCTION
-!!    Calculate the XC terms from the given density in a distributed way.
+
+!>    Calculate the XC terms from the given density in a distributed way.
 !!    it assign also the proper part of the density to the zf array 
 !!    which will be used for the core of the FFT procedure.
 !!    Following the values of ixc and of sumpion, the array pot_ion is either summed or assigned
@@ -564,15 +552,13 @@ END SUBROUTINE XC_potential
 !!    nxcl,nxcr   shifts in the three directions to be compatible with the relation
 !!                nxc+nxcl+nxcr-2=nwb, nwb+nwbl+nwbr=nxt.
 !!
-!! WARNING
-!!    The dimensions of pot_ion must be compatible with geocode, datacode, nproc, 
+!! @warning
+!!    The dimensions of pot_ion must be compatible with geocode, datacode,
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
 !!
-!! SOURCE
-!!
 subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
-     nxcl,nxcr,ixc,hx,hy,hz,rho,vxci,exc,vxc,order,ndvxc,dvxci,nproc,nspden)
+     nxcl,nxcr,ixc,hx,hy,hz,rho,vxci,exc,vxc,order,ndvxc,dvxci,nspden)
 
   use module_base
   use libxc_functionals
@@ -582,7 +568,7 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
   !Arguments----------------------
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,nproc,nspden
+  integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,nspden
   integer, intent(in) :: nwbl,nwbr,order,ndvxc
   real(gp), intent(in) :: hx,hy,hz
   real(dp), dimension(m1,m3,nxt,nspden), intent(inout) :: rho
@@ -844,12 +830,10 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   call memocc(i_stat,i_all,'exci',subname)
 
 END SUBROUTINE xc_energy_new
-!!***
 
 
-!!****f* PSolver/xc_energy
-!! FUNCTION
-!!    Calculate the XC terms from the given density in a distributed way.
+
+!>    Calculate the XC terms from the given density in a distributed way.
 !!    it assign also the proper part of the density to the zf array 
 !!    which will be used for the core of the FFT procedure.
 !!    Following the values of ixc and of sumpion, the array pot_ion is either summed or assigned
@@ -899,17 +883,14 @@ END SUBROUTINE xc_energy_new
 !!    zf          output array corresponding to the density which can be passed to FFT part
 !!    zfionxc     output array which will contain pot_ion+vxci or vxci, following sumpion
 !!
-!! WARNING
+!! @warning
 !!    The dimensions of pot_ion must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
-!!
-!! AUTHOR
+!! Author:
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2007
-!!
-!! SOURCE
 !!
 subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,nproc,nspden)
@@ -1333,16 +1314,14 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   end if
 
 END SUBROUTINE xc_energy
-!!***
 
 
-!!****f* PSolver/vxcpostprocessing
-!! FUNCTION
-!! Correct the XC potential with the White-Bird formula, to be used for the 
+
+!> Correct the XC potential with the White-Bird formula, to be used for the 
 !! GGA case. Works either in parallel of in serial, by proper change of the 
 !! arguments.
 !!
-!! SOURCE
+!!
 subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,hx,hy,hz,dvxcdgr,wb_vxc)
   use module_base
   implicit none
@@ -1440,4 +1419,4 @@ subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gr
   call memocc(i_stat,i_all,'f_i',subname)
 
 END SUBROUTINE vxcpostprocessing
-!!***
+

@@ -1,15 +1,10 @@
-!!****f* BigDFT/make_all_ib
-!! FUNCTION
-!!   Cleaned version of the logrid_old.f90 in the unused directory (with newmethod=.true.)
-!!
-!! COPYRIGHT
+!>   Cleaned version of the logrid_old.f90 in the unused directory (with newmethod=.true.)
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&
@@ -101,13 +96,11 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   call memocc(i_stat,i_all,'logrid_big',subname)
 
 END SUBROUTINE make_all_ib
-!!***
 
 
-!!****f* BigDFT/make_ib_inv
-!! FUNCTION
-!!   This subroutine mimics the comb_grow_f one
-!! SOURCE
+
+!>   This subroutine mimics the comb_grow_f one
+!!
 !!
 subroutine make_ib_inv(logrid_big,ibxy,ibzzx,ibyyzz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
   implicit none
@@ -131,7 +124,7 @@ subroutine make_ib_inv(logrid_big,ibxy,ibzzx,ibyyzz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
   call ib_from_logrid_inv( ibyyzz,logrid_big,nfl1,nfu1,nt)
 
 END SUBROUTINE make_ib_inv
-!!***
+
 
 
 subroutine ib_to_logrid_inv(ib,logrid,nfl,nfu,ndat)
@@ -281,13 +274,11 @@ subroutine ib_from_logrid(ib,logrid,ml1,mu1,ndat)
 END SUBROUTINE ib_from_logrid
 
 
-!!****f* BigDFT/squares_1d
-!! FUNCTION
-!!   Modifies the ib array
+!>   Modifies the ib array
 !!   so that it is made up of blocks of size 2
 !!   the localization region is enlarged as a result
 !!   works for even nfl2 only
-!! SOURCE
+!!
 !!
 subroutine squares_1d(ib,nfl2,nfu2,nfl3,nfu3)
   implicit none
@@ -312,15 +303,13 @@ subroutine squares_1d(ib,nfl2,nfu2,nfl3,nfu3)
      enddo
   enddo
 END SUBROUTINE squares_1d
-!!***
 
 
-!!****f* BigDFT/squares
-!! FUNCTION
-!!   Modifies the ib array 
+
+!>   Modifies the ib array 
 !!   so that it is made up of squares 2x2
 !!   the localization region is enlarged as a result
-!! SOURCE
+!!
 !!
 subroutine squares(ib,n2,n3)
   implicit none
@@ -351,7 +340,7 @@ subroutine squares(ib,n2,n3)
      enddo
   enddo
 END SUBROUTINE squares
-!!***
+
 
 
 subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
