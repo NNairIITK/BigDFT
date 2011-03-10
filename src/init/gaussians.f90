@@ -1,19 +1,14 @@
-!!****f* BigDFT/plot_gatom_basis
-!! FUNCTION
-!!   Plot all the elements of the gaussian basis for a given diffusion center
+!>   Plot all the elements of the gaussian basis for a given diffusion center
 !!   provide also the basis set in which the atomic density is expressed
 !!   attention: it works only when the exponenets are always of the same type
 !!              which is typical of gatom
 !!    no good, they have to be converted shell-by-shell
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2009-2010 BigDFT group
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
   use module_base
@@ -222,11 +217,11 @@ subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
   close(unit=79)
 
 END SUBROUTINE plot_gatom_basis
-!!***
 
 
-!!****f* BigDFT/combine_exponents
-!! SOURCE
+
+!> BigDFT/combine_exponents
+!!
 !!
 function combine_exponents(sa,sb)
   use module_base
@@ -243,13 +238,11 @@ function combine_exponents(sa,sb)
   combine_exponents=sb*alpha
   
 end function combine_exponents
-!!***
 
 
-!!****f* BigDFT/nonblocking_transposition
-!! FUNCTION
-!!    Perform a set of non-blocking send-receive operations
-!! SOURCE
+
+!>    Perform a set of non-blocking send-receive operations
+!!
 !!
 subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
      psi,norb_par,mpirequests)
@@ -281,12 +274,10 @@ subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
   end do
   
 END SUBROUTINE nonblocking_transposition
-!!***
 
 
-!!****f* BigDFT/overlap_and_gather
-!! FUNCTION
-!! SOURCE
+
+!>
 !!
 subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovrlp,orbs,&
      norbsc_arr,psi,hpsi,ovrlp)
@@ -441,13 +432,11 @@ subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovr
   call memocc(i_stat,i_all,'overlaps',subname)
 
 END SUBROUTINE overlap_and_gather
-!!***
 
 
-!!****f* BigDFT/gaussian_overlap
-!! FUNCTION
-!!   Overlap matrix between two different basis structures
-!! SOURCE
+
+!>   Overlap matrix between two different basis structures
+!!
 !!
 subroutine gaussian_overlap(A,B,ovrlp)
   use module_base
@@ -516,16 +505,14 @@ subroutine gaussian_overlap(A,B,ovrlp)
   call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
   
 END SUBROUTINE gaussian_overlap
-!!***
 
 
-!!****f* BigDFT/gbasovrlp
-!! FUNCTION
-!!   Calculates the scalar product between two shells
+
+!>   Calculates the scalar product between two shells
 !!   by considering only the nonzero coefficients
 !!   actual building block for calculating overlap matrix
 !!   inserted work arrays for calculation
-!! SOURCE
+!!
 !!
 subroutine gbasovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
      niw,nrw,iw,rw,ovrlp)
@@ -559,14 +546,12 @@ subroutine gbasovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
   end do
   
 END SUBROUTINE gbasovrlp
-!!***
 
 
-!!****f* BigDFT/kinetic_overlap
-!! FUNCTION
-!!   Overlap kinetic matrix between two different basis structures
+
+!>   Overlap kinetic matrix between two different basis structures
 !!   the kinetic operator is applicated on the A basis structure
-!! SOURCE
+!!
 !!
 subroutine kinetic_overlap(A,B,ovrlp)
   use module_base
@@ -635,16 +620,14 @@ subroutine kinetic_overlap(A,B,ovrlp)
   call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
   
 END SUBROUTINE kinetic_overlap
-!!***
 
 
-!!****f* BigDFT/kineticovrlp
-!! FUNCTION
-!!   Calculates the scalar product between two shells
+
+!>   Calculates the scalar product between two shells
 !!   by considering only the nonzero coefficients
 !!   actual building block for calculating overlap matrix
 !!   inserted work arrays for calculation
-!! SOURCE
+!!
 !!
 subroutine kineticovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
      niw,nrw,iw,rw,ovrlp)
@@ -678,14 +661,12 @@ subroutine kineticovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
   end do
   
 END SUBROUTINE kineticovrlp
-!!***
 
 
-!!****f* BigDFT/potential_overlap
-!! FUNCTION
-!!   Overlap kinetic matrix between two different basis structures
+
+!>   Overlap kinetic matrix between two different basis structures
 !!   the kinetic operator is applicated on the A basis structure
-!! SOURCE
+!!
 !!
 subroutine potential_overlap(A,B,pot,n1,n2,n3,hx,hy,hz,ovrlp)
   use module_base
@@ -762,7 +743,7 @@ subroutine potential_overlap(A,B,pot,n1,n2,n3,hx,hy,hz,ovrlp)
   call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
   
 END SUBROUTINE potential_overlap
-!!***
+
 
 
 !!!!calculate the potential overlap via a successive application of a one dimensional

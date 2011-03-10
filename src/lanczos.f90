@@ -1,14 +1,11 @@
-!!****f* BigDFT/lanczos
-!! FUNCTION
-!!   Lanczos diagonalization
-!! COPYRIGHT
+!>   Lanczos diagonalization
+!!
+!! @author
 !!    Copyright (C) 2009 ESRF (AM, LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
@@ -84,9 +81,9 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      if(iproc==0) then
         print *, "reading  precalculated  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-        print *," from file " , filename
+        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
+        print '(a,a20)'," from file " , trim(filename)
      endif
 
      nullify( dum_coeffs  ) 
@@ -226,13 +223,11 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
 END SUBROUTINE xabs_lanczos
-!!***
 
 
-!!****f* BigDFT/chebychev
-!! FUNCTION
-!!   Chebychev polynomials to calculate the density of states
-!! SOURCE
+
+!>   Chebychev polynomials to calculate the density of states
+!!
 !!
 subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
@@ -314,9 +309,9 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      if(iproc==0) then
         print *, "reading  precalculated  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-        print *," from file " , filename
+        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
+        print '(a,a20)'," from file " , trim(filename)
      endif
      
      nullify( dum_coeffs  ) 
@@ -539,11 +534,9 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 END SUBROUTINE xabs_chebychev
 
 
-!!***
-!!****f* BigDFT/cg_spectra
-!! FUNCTION
-!!   finds the spectra solving  (H-omega)x=b
-!! SOURCE
+
+!>   finds the spectra solving  (H-omega)x=b
+!!
 !!
 subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
@@ -631,9 +624,9 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      if(iproc==0) then
         print *, "reading  precalculated  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-        print *," from file " , filename
+        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
+        print '(a,a20)'," from file " , trim(filename)
      endif
 
      nullify( dum_coeffs  ) 
@@ -798,8 +791,8 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   call deallocate_abscalc_input(in, subname)
 
 
-END subroutine xabs_cg
-!!***
+END SUBROUTINE xabs_cg
+
 
 subroutine dirac_hara (rho, E , V)
   use module_base
@@ -854,4 +847,4 @@ subroutine dirac_hara (rho, E , V)
   end do
   V=Vcorr
   return
-end subroutine dirac_hara
+END SUBROUTINE dirac_hara

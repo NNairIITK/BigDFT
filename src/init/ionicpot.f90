@@ -1,15 +1,12 @@
-!!****f* BigDFT/IonicEnergyandForces
-!! DESCRIPTION
-!!    Calculte the ionic contribution to the energy and the forces
+!> BigDFT/IonicEnergyandForces
 !!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group (LG)
+!!    Calculte the ionic contribution to the energy and the forces
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      rxyz,eion,fion,psoffset,nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
@@ -453,13 +450,11 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      end if
   end if
 END SUBROUTINE IonicEnergyandForces
-!!***
 
 
-!!****f* BigDFT/createIonicPotential
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
@@ -1041,15 +1036,11 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   call timing(iproc,'CrtLocPot     ','OF')
 
 END SUBROUTINE createIonicPotential
-!!***
 
 
-!!****f* BigDFT/ind_position
-!! FUNCTION
-!!   Determine the index in which the potential must be inserted, following the BC
+
+!>   Determine the index in which the potential must be inserted, following the BC
 !!   Determine also whether the index is inside or outside the box for free BC
-!!
-!! SOURCE
 !!
 subroutine ind_positions(periodic,i,n,j,go)
   implicit none
@@ -1071,13 +1062,11 @@ subroutine ind_positions(periodic,i,n,j,go)
   end if
 
 END SUBROUTINE ind_positions
-!!***
 
 
-!!****f* BigDFT/sum_erfcr
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
   use module_base
@@ -1122,13 +1111,11 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
   end do
 
 END SUBROUTINE sum_erfcr
-!!***
 
 
-!!****f* BigDFT/ext_buffers
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 subroutine ext_buffers(periodic,nl,nr)
   implicit none
@@ -1143,13 +1130,11 @@ subroutine ext_buffers(periodic,nl,nr)
      nr=15
   end if
 END SUBROUTINE ext_buffers
-!!***
 
 
-!!****f* BigDFT/CounterIonPotential
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
@@ -1399,5 +1384,5 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
 
   call timing(iproc,'CrtLocPot     ','OF')
 
-end subroutine CounterIonPotential
-!!***
+END SUBROUTINE CounterIonPotential
+

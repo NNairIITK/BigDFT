@@ -1,6 +1,4 @@
-!!****f* BigDFT/convolut_kinetic_per_c_k
-!! FUNCTION
-!!   Applies the modified kinetic energy operator onto x to get y. 
+!>   Applies the modified kinetic energy operator onto x to get y. 
 !!   Works for periodic BC.
 !!   Modified kinetic energy operator:
 !!   A=-1/2 exp(Ikr) Delta exp(-Ikr)+C
@@ -24,15 +22,12 @@
 !!   box. 
 !!   The annihilation accuracy improves with decreasing grid constant h, as expected,
 !!   but the numerical noise spoils the convergence after some point.
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2005-2010 BigDFT group 
+!! @author
+!!    Copyright (C) 2005-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !! 
 subroutine convolut_kinetic_per_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
   use module_base
@@ -425,18 +420,16 @@ subroutine convolut_kinetic_per_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
 !$omp enddo
 !$omp end parallel  
 END SUBROUTINE convolut_kinetic_per_c_k
-!!***
 
 
-!!****f* BigDFT/convolut_kinetic_per_T_k
-!! FUNCTION
-!!   Applies the modified kinetic energy operator onto x to get y. 
+
+!>   Applies the modified kinetic energy operator onto x to get y. 
 !!   Computes the kinetic energy too.
 !!   Works for periodic BC.
 !!   Modified kinetic energy operator:
 !!   A=-1/2 exp(Ikr) Delta exp(-Ikr)
 !!   where k=(k1,k2,k3); r=(x,y,z)
-!! SOURCE
+!!
 !! 
 subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
   use module_base
@@ -568,4 +561,4 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
 !  ener=ener*.5_wp
 !$omp end parallel  
 END SUBROUTINE convolut_kinetic_per_T_k
-!!***
+

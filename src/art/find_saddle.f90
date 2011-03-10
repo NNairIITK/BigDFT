@@ -1,13 +1,12 @@
-!!****m* art/saddles
-!! COPYRIGHT
+!> art/saddles
+!!
+!! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !! 
 module saddles
 
@@ -30,12 +29,10 @@ module saddles
   integer, dimension(:), allocatable  :: atom_displaced     ! Id of local atoms displaced
   integer                     :: natom_displaced    ! # of local atoms displaced
 end module saddles
-!!***
 
 
-!!****f* art/find_saddle
-!! FUNCTION
-!!  This subroutine initiates the random displacement at the start
+
+!>  This subroutine initiates the random displacement at the start
 !!  of the ART algorithm. 
 !!  After  random escape direction has been selected, the routine call 
 !!  saddle_converge which will try to bring the configuration to a saddle point.
@@ -49,8 +46,6 @@ end module saddles
 !!  For large cells, it is preferable to use a local initial
 !!  displacement to prevent the creation of many trajectories
 !!  at the same time in different sections of the cell.
-!!
-!! SOURCE
 !! 
 subroutine find_saddle(success)
   use random
@@ -145,15 +140,13 @@ subroutine find_saddle(success)
   deallocate(atom_displaced)       
 
 END SUBROUTINE find_saddle
-!!***
 
 
-!!****f* art/local_move
-!! FUNCTION
-!!   The initial random direction is taken from a restricted space based on 
+
+!>   The initial random direction is taken from a restricted space based on 
 !!   the local bonding environment. For this, we need to know the list of neighbours
 !!   and the cut-off of the potential. Other approaches could be used also.
-!! SOURCE
+!!
 !! 
 subroutine local_move()
   use defs
@@ -285,13 +278,11 @@ subroutine local_move()
   
   if (iproc .eq. 0 ) write(*,*) 'Number of displaced atoms initially: ',natom_displaced
 END SUBROUTINE local_move
-!!***
 
 
-!!****f* art/global_move
-!! FUNCTION
-!!   The initial random direction is taken from the full 3N-dimensional space
-!! SOURCE
+
+!>   The initial random direction is taken from the full 3N-dimensional space
+!!
 !!
 subroutine global_move()
   use defs
@@ -362,11 +353,11 @@ subroutine global_move()
   initial_direction  = initial_direction * norm
 
 END SUBROUTINE global_move
-!!***
 
 
-!!****f* art/symmetry_break
-!! SOURCE
+
+!> art/symmetry_break
+!!
 !! 
 subroutine symmetry_break()
   use defs
@@ -473,4 +464,4 @@ subroutine symmetry_break()
   endif
 
  END SUBROUTINE symmetry_break
- !!***
+ 

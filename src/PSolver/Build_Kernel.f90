@@ -1,6 +1,4 @@
-!!****f* BigDFT/Periodic_Kernel
-!! FUNCTION
-!!    Build the kernel of the Poisson operator with
+!>    Build the kernel of the Poisson operator with
 !!    surfaces Boundary conditions
 !!    in an interpolating scaling functions basis.
 !!    Beware of the fact that the nonperiodic direction is y!
@@ -12,20 +10,16 @@
 !!    itype_scf          Order of the scaling function
 !!    iproc,nproc        Number of process, number of processes
 !!    karray             output array
-!!
-!! AUTHOR
+!! Author:
 !!    L. Genovese
 !! CREATION DATE
 !!    October 2006
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2006-2010 CEA, ESRF
+!! @author
+!!    Copyright (C) 2006-2011 CEA, ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc)
   use module_base
@@ -102,14 +96,12 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   call memocc(i_stat,i_all,'fourISFz',subname)
 
 END SUBROUTINE Periodic_Kernel
-!!***
 
 
-!!****f* BigDFT/fourtrans_isf
-!! FUNCTION
-!!  Calculate the fourier transform
+
+!>  Calculate the fourier transform
 !!  Suppose the output symmetric and real
-!! SOURCE
+!!
 !!
 subroutine fourtrans_isf(n,ftisf)
   use module_base
@@ -158,13 +150,11 @@ subroutine fourtrans_isf(n,ftisf)
   end do loop_points
 
 END SUBROUTINE fourtrans_isf
-!!***
 
 
-!!****f* BigDFT/fourtrans
-!! FUNCTION
-!!   Transform the wavelet filters
-!! SOURCE
+
+!>   Transform the wavelet filters
+!!
 !!
 subroutine fourtrans(p,htp)
   use module_base
@@ -187,12 +177,10 @@ subroutine fourtrans(p,htp)
   htp=0.5_dp+htp
 
 END SUBROUTINE fourtrans
-!!***
 
 
-!!****f* BigDFT/Surfaces_Kernel
-!! FUNCTION
-!!    Build the kernel of the Poisson operator with
+
+!>    Build the kernel of the Poisson operator with
 !!    surfaces Boundary conditions
 !!    in an interpolating scaling functions basis.
 !!    Beware of the fact that the nonperiodic direction is y!
@@ -205,13 +193,10 @@ END SUBROUTINE fourtrans
 !!    itype_scf          Order of the scaling function
 !!    iproc,nproc        Number of process, number of processes
 !!    karray             output array
-!!
-!! AUTHOR
+!! Author:
 !!    L. Genovese
 !! CREATION DATE
 !!    October 2006
-!!
-!! SOURCE
 !!
 subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc)
   
@@ -598,12 +583,10 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   call memocc(i_stat,i_all,'y_scf',subname)
 
 END SUBROUTINE Surfaces_Kernel
-!!***
 
 
-!!****f* BigDFT/calculates_green_opt
-!! FUNCTION
-!! SOURCE
+
+!>
 !!
 subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g_mu)
   use module_base
@@ -741,12 +724,10 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   call memocc(i_stat,i_all,'green1',subname)
 
 END SUBROUTINE calculates_green_opt
-!!***
 
 
-!!****f* BigDFT/calculates_green_opt_muzero
-!! FUNCTION
-!! SOURCE
+
+!>
 !!
 subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
   use module_base
@@ -835,12 +816,10 @@ subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
   end do
 
 END SUBROUTINE calculates_green_opt_muzero
-!!***
 
 
-!!****f* BigDFT/indices
-!! FUNCTION
-!! SOURCE
+
+!>
 !!
 subroutine indices(nimag,nelem,intrn,extrn,nindex)
   implicit none
@@ -860,12 +839,10 @@ subroutine indices(nimag,nelem,intrn,extrn,nindex)
   !complete index to be assigned
   nindex=extrn+nelem*(i-1)
 END SUBROUTINE indices
-!!***
 
 
-!!****f* BigDFT/Free_Kernel
-!! FUNCTION
-!!    Build the kernel of a gaussian function
+
+!>    Build the kernel of a gaussian function
 !!    for interpolating scaling functions.
 !!    Do the parallel HalFFT of the symmetrized function and stores into
 !!    memory only 1/8 of the grid divided by the number of processes nproc
@@ -873,22 +850,19 @@ END SUBROUTINE indices
 !! SYNOPSIS
 !!    Build the kernel (karray) of a gaussian function
 !!    for interpolating scaling functions
-!!    $$ K(j) = \sum_k \omega_k \int \int \phi(x) g_k(x'-x) \delta(x'- j) dx dx' $$
+!!    @f$ K(j) = \sum_k \omega_k \int \int \phi(x) g_k(x'-x) \delta(x'- j) dx dx' @f$
 !!
 !!    n01,n02,n03        Mesh dimensions of the density
 !!    nfft1,nfft2,nfft3  Dimensions of the FFT grid (HalFFT in the third direction)
 !!    n1k,n2k,n3k        Dimensions of the kernel FFT
 !!    hgrid              Mesh step
 !!    itype_scf          Order of the scaling function (8,14,16)
-!!
-!! AUTHORS
+!! Author:S
 !!    T. Deutsch, L. Genovese
 !! CREATION DATE
 !!    February 2006
 !! MODIFICATION
 !!    Different calculation of the gaussian times ISF integral, LG, Dec 2009
-!!
-!! SOURCE
 !!
 subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
      hx,hy,hz,itype_scf,iproc,nproc,karray)
@@ -1075,7 +1049,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 !!$ call memocc(i_stat,i_all,'y_scf',subname)
 
 END SUBROUTINE Free_Kernel
-!!***
+
 
 subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,fwork,fftwork,kffts)
   use module_base
@@ -1377,9 +1351,7 @@ subroutine inserthalf(n1,n3,lot,nfft,i1,zf,zw)
 END SUBROUTINE inserthalf
 
 
-!!****f* BigDFT/kernelfft
-!! FUNCTION
-!!     (Based on suitable modifications of S.Goedecker routines)
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Calculates the FFT of the distributed kernel
 !!
 !! SYNOPSIS
@@ -1401,14 +1373,11 @@ END SUBROUTINE inserthalf
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! AUTHORS
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!! SOURCE
 !!
 subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   use module_base
@@ -1678,7 +1647,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   end if
 
 END SUBROUTINE kernelfft
-!!***
+
 
 
 subroutine realcopy(lot,nfft,n2,nk1,nk2,zin,zout)

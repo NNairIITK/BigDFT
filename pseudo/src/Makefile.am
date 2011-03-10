@@ -1,6 +1,12 @@
 SUBDIRS = 
 
-EXTRA_DIST = atom-orig.f
+EXTRA_DIST = $(include_level)
+
+include_level = \
+	func.inc \
+	intots.inc \
+	recs16.inc \
+	sym_16.inc
 
 if BUILD_BINARIES_PSEUDO
 binaries_sources = atom pseudo
@@ -67,8 +73,8 @@ xc_level = \
 
 
 if USE_CUDA_GPU
-cuda_level = cublas.fortran.bindings.o \
-			 ekin_gauss_wvlt.cublas.o
+#cuda_level = cublas.fortran.bindings.o \
+	 ekin_gauss_wvlt.cublas.o
 else
 cuda_level =
 endif

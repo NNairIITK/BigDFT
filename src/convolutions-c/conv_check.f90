@@ -1,11 +1,7 @@
-!!****p* convolutions-c/conv_check
-!! FUNCTION
-!!    Program test for the convolution in GPU
-!!
-!! AUTHOR
+!>    Program test for the convolution in GPU
+!! Author:
 !!    Luigi Genovese
-!!
-!! COPYRIGHT
+!! @author
 !!    Copyright (C) 2008 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -14,8 +10,6 @@
 !!
 !! CREATION DATE
 !!    Septembre 2008
-!!
-!! SOURCE
 !!
 
 program conv_check
@@ -380,7 +374,7 @@ contains
       time*1.d3/real(ntimes,kind=8),&
       real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(time*1.d9)
 
-  end subroutine print_time
+  END SUBROUTINE print_time
 
   subroutine compare_time(REFtime,TESTtime,nbelem,nop,ntimes,maxdiff,threshold)
     implicit none
@@ -399,7 +393,7 @@ contains
     else
       write(*,'(a)')'<<<< WARNING' 
     end if
-  end subroutine compare_time
+  END SUBROUTINE compare_time
 
   subroutine compare_3D_results(dim1, dim2, dim3, psi_ref, psi, maxdiff, printdiff)
     implicit none
@@ -424,7 +418,7 @@ contains
         end do
       end do
     end do
-  end subroutine compare_3D_results
+  END SUBROUTINE compare_3D_results
 
   subroutine compare_2D_results(dim1, dim2, psi_ref, psi, maxdiff, printdiff)
     implicit none
@@ -447,7 +441,7 @@ contains
         end if
       end do
     end do
-  end subroutine compare_2D_results
+  END SUBROUTINE compare_2D_results
 
   subroutine compare_2D_results_t(dim1, dim2, psi_ref, psi, maxdiff, printdiff)
     implicit none
@@ -470,7 +464,7 @@ contains
         end if
       end do
     end do
-  end subroutine compare_2D_results_t
+  END SUBROUTINE compare_2D_results_t
 
   subroutine compare_1D_results(dim1, psi_ref, psi, maxdiff, printdiff)
     implicit none
@@ -491,7 +485,7 @@ contains
         maxdiff=comp
       end if
     end do
-  end subroutine compare_1D_results
+  END SUBROUTINE compare_1D_results
 
 
  
@@ -646,7 +640,7 @@ subroutine convrot_n_per_3d_sse(n1,n2,n3,x,y,tmp)
   call magicfilter1d_sse(n2,n1*n3,y,tmp)
   call magicfilter1d_sse(n3,n1*n2,tmp,y)
 
-end subroutine convrot_n_per_3d_sse
+END SUBROUTINE convrot_n_per_3d_sse
 
 subroutine convrot_n_per_3d(n1,n2,n3,x,y,tmp)
   use module_base
@@ -832,4 +826,4 @@ END SUBROUTINE convrot_n_per_3d
 
 end program conv_check
 
-!!***
+

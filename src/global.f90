@@ -1,14 +1,11 @@
-!!****p* MINHOP
-!!
-!! DESCRIPTION
+!> MINHOP
 !!  Main program fro the minima hopping
 !!  New modified version 17th Nov 2009 Sandip De  
-!! COPYRIGHT
+!!
+!! @author
 !!    Copyright (C) 2008 UNIBAS
 !!    This file is not freely distributed.
 !!    A licence is necessary from UNIBAS
-!!
-!! SOURCE
 !!
 program MINHOP
 
@@ -881,7 +878,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
 
 
 end program MINHOP
-!!***
+
 
 
 

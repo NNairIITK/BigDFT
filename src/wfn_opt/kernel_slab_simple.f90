@@ -1,15 +1,12 @@
-!!****f* BigDFT/hit_with_kernel_slab_simple
-!! FUNCTION
-!!   Hits the input array x with the kernel
+!>   Hits the input array x with the kernel
 !!   ((-1/2\Delta+C)_{ij})^{-1}
-!! COPYRIGHT
+!!
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !! 
 subroutine hit_with_kernel_slab(x,zx,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
   use module_base
@@ -134,4 +131,4 @@ contains
   END SUBROUTINE backward_fft
 
 END SUBROUTINE hit_with_kernel_slab
-!!***
+

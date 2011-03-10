@@ -464,9 +464,7 @@ subroutine rhoswitch_waves(nlr,norbp,nvctr_c,nvctr_f,nseg_tot,nvctr_tot,nseglr,k
 END SUBROUTINE rhoswitch_waves
 
 
-!!****f* BigDFT/loc_wfd
-!! FUNCTION
-!!   This subroutine define other wavefunctions descriptors starting from the original descriptors 
+!>   This subroutine define other wavefunctions descriptors starting from the original descriptors 
 !!   and the limits of a given localisation region
 !!   it also returns an array which is used to mask the compressed wavefunction into the new one
 !! INPUTS
@@ -480,7 +478,7 @@ END SUBROUTINE rhoswitch_waves
 !!   keymask               mask array for traducing the wavefunction in compressed form
 !!                         to the wavefunction in compressed form for the local system
 !!   ncountlocreg          array of elements for each localisation region
-!! SOURCE
+!!
 !! 
 subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocreg)
   use module_base
@@ -566,7 +564,7 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocre
 !!!  end if
 
 END SUBROUTINE loc_wfd
-!!***
+
 
 
 subroutine build_keymask(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,keyg,keyv,&

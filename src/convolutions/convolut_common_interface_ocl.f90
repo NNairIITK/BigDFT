@@ -5,7 +5,7 @@ subroutine release_acceleration_OCL(GPU)
   type(GPU_pointers), intent(out) :: GPU
   call ocl_clean_command_queue(GPU%queue)
   call ocl_clean(GPU%context)
-end subroutine release_acceleration_OCL
+END SUBROUTINE release_acceleration_OCL
 
 subroutine init_acceleration_OCL(GPU)
   use module_base
@@ -18,7 +18,7 @@ subroutine init_acceleration_OCL(GPU)
   call ocl_build_programs(GPU%context)
   call ocl_create_command_queue_id(GPU%queue,GPU%context,GPU%id_proc)
   call init_event_list
-end subroutine init_acceleration_OCL
+END SUBROUTINE init_acceleration_OCL
 
 subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
   use module_base
@@ -126,7 +126,7 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
   !full_locham stategy (always true for the moment)
   GPU%full_locham=.true.
 
-end subroutine allocate_data_OCL
+END SUBROUTINE allocate_data_OCL
 
 
 subroutine free_gpu_OCL(GPU,orbs,nspin)
@@ -179,7 +179,7 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
     call ocl_release_mem_object(GPU%psi_f_d_i)
   endif
 
-end subroutine free_gpu_OCL
+END SUBROUTINE free_gpu_OCL
 
 subroutine daub_to_isf_OCL(orbs,lr,psi,psi_r,GPU)
   use module_base
@@ -232,7 +232,7 @@ subroutine daub_to_isf_OCL(orbs,lr,psi,psi_r,GPU)
   call ocl_enqueue_read_buffer(GPU%queue,GPU%work2,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,&
           psi_r(1))
 
-end subroutine daub_to_isf_OCL
+END SUBROUTINE daub_to_isf_OCL
 
 subroutine isf_to_daub_OCL(orbs,lr,psi_r,psi,GPU)
   use module_base
@@ -285,7 +285,7 @@ subroutine isf_to_daub_OCL(orbs,lr,psi_r,psi,GPU)
   call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,&
           psi(isf))
 
-end subroutine isf_to_daub_OCL
+END SUBROUTINE isf_to_daub_OCL
 
 
 
@@ -424,7 +424,7 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
      end do
   endif
   
-end subroutine local_hamiltonian_OCL
+END SUBROUTINE local_hamiltonian_OCL
 
 
 subroutine finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU,ekin,epot)
@@ -447,7 +447,7 @@ subroutine finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU,ekin,epot)
                  - (epot(1,iorb)+epot(2,iorb)))
     epot_sum = epot_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*(epot(1,iorb)+epot(2,iorb))
   end do
-end subroutine finish_hamiltonian_OCL
+END SUBROUTINE finish_hamiltonian_OCL
 
 subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
   use module_base
@@ -607,7 +607,7 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
 
 
 
-end subroutine preconditionall_OCL
+END SUBROUTINE preconditionall_OCL
 
 subroutine local_partial_density_OCL(iproc,nproc,orbs,&
      nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
@@ -692,6 +692,6 @@ subroutine local_partial_density_OCL(iproc,nproc,orbs,&
     call ocl_enqueue_read_buffer(GPU%queue,GPU%rhopot_down,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p(1,1,1,2))
   endif
 
-end subroutine local_partial_density_OCL
+END SUBROUTINE local_partial_density_OCL
 
 

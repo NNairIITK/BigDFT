@@ -1,15 +1,10 @@
-!!****m* BigDFT/scfloop_API
-!! FUNCTION
-!!  Self-Consistent Loop API
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!>  Self-Consistent Loop API
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 module scfloop_API
 
@@ -46,12 +41,10 @@ contains
 !!!  subroutine scfloop_finalise()
 !!!  END SUBROUTINE scfloop_finalise
 end module scfloop_API
-!!***
 
 
-!!****f* BigDFT/scfloop_main
-!! FUNCTION
-!! SOURCE
+
+!>
 !!
 subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred)
   use scfloop_API
@@ -120,12 +113,10 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   deallocate(xcart,stat=i_stat)
   call memocc(i_stat,i_all,'xcart',subname)
 END SUBROUTINE scfloop_main
-!!***
 
 
-!!****f* BigDFT/scfloop_output
-!! FUNCTION
-!! SOURCE
+
+!>
 !!
 subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel, xred)
   use scfloop_API
@@ -174,13 +165,11 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
   deallocate(xcart,stat=i_stat)
   call memocc(i_stat,i_all,'xcart',subname)
 END SUBROUTINE scfloop_output
-!!***
 
 
-!!****f* BigDFT/read_velocities
-!! FUNCTION
-!!    Read atomic positions
-!! SOURCE
+
+!>    Read atomic positions
+!!
 !!
 subroutine read_velocities(iproc,filename,atoms,vxyz)
   use scfloop_API
@@ -281,12 +270,10 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
 
   close(unit=99)
 END SUBROUTINE read_velocities
-!!***
 
 
-!!****f* BigDFT/wtvel
-!! FUNCTION
-!! SOURCE
+
+!>
 !!
 subroutine wtvel(filename,vxyz,atoms,comment)
   use module_base
@@ -339,4 +326,4 @@ subroutine wtvel(filename,vxyz,atoms,comment)
 
   close(unit=iunit)
 END SUBROUTINE wtvel
-!!***
+

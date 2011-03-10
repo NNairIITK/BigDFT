@@ -1,15 +1,10 @@
-!!****f* BigDFT/copy_old_wavefunctions
-!! FUNCTION
-!!  Copy old wavefunctions from psi to psi_old
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!>  Copy old wavefunctions from psi to psi_old
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
      n1_old,n2_old,n3_old,wfd_old,psi_old)
@@ -78,13 +73,11 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   call memocc(i_stat,i_all,'psi',subname)
 
 END SUBROUTINE copy_old_wavefunctions
-!!***
 
 
-!!****f* BigDFT/reformatmywaves
-!! FUNCTION
-!!   Reformat wavefunctions if the mesh have changed (in a restart)
-!! SOURCE
+
+!>   Reformat wavefunctions if the mesh have changed (in a restart)
+!!
 !!
 subroutine reformatmywaves(iproc,orbs,at,&
      hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
@@ -277,16 +270,14 @@ subroutine reformatmywaves(iproc,orbs,at,&
   if (iproc==0) write(*,"(1x,a)")'done.'
 
 END SUBROUTINE reformatmywaves
-!!***
 
 
-!!****f* BigDFT/readmywaves
-!! FUNCTION
-!!  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
+
+!>  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !!  have changed
-!! SOURCE
 !!
-subroutine readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+!!
+subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi)
   use module_base
   use module_types
@@ -294,107 +285,139 @@ subroutine readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  &
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
-  type(orbitals_data), intent(in) :: orbs
+  type(orbitals_data), intent(inout) :: orbs
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
+  character(len=*), intent(in) :: filename
   !Local variables
   character(len=*), parameter :: subname='readmywaves'
   character(len=4) :: f4
-  character(len=50) :: filename
-  logical :: perx,pery,perz
+  character(len=50) :: filename_
+  logical :: perx,pery,perz,exists
   integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
 
-  call cpu_time(tr0)
-  call system_clock(ncount1,ncount_rate,ncount_max)
+  inquire(file=trim(filename)//".etsf",exist=exists)
+  if (exists) then
+     if (iproc ==0) write(*,*) "Reading wavefunctions in ETSF file format."
+     call read_waves_etsf(iproc,filename//".etsf",orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+     wfd,psi)
+  else
+     call cpu_time(tr0)
+     call system_clock(ncount1,ncount_rate,ncount_max)
 
-  !conditions for periodicity in the three directions
-  perx=(at%geocode /= 'F')
-  pery=(at%geocode == 'P')
-  perz=(at%geocode /= 'F')
+     !conditions for periodicity in the three directions
+     perx=(at%geocode /= 'F')
+     pery=(at%geocode == 'P')
+     perz=(at%geocode /= 'F')
 
-  !buffers realted to periodicity
-  !WARNING: the boundary conditions are not assumed to change between new and old
-  call ext_buffers_coarse(perx,nb1)
-  call ext_buffers_coarse(pery,nb2)
-  call ext_buffers_coarse(perz,nb3)
+     !buffers realted to periodicity
+     !WARNING: the boundary conditions are not assumed to change between new and old
+     call ext_buffers_coarse(perx,nb1)
+     call ext_buffers_coarse(pery,nb2)
+     call ext_buffers_coarse(perz,nb3)
 
-  allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
-  call memocc(i_stat,psifscf,'psifscf',subname)
+     allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
+     call memocc(i_stat,psifscf,'psifscf',subname)
 
-  do iorb=1,orbs%norbp*orbs%nspinor
+     inquire(file=trim(filename)//".bin.0001",exist=exists)
+     if (exists) then
+        if (iproc ==0) write(*,*) "Reading wavefunctions in BigDFT binary file format."
+     else
+        if (iproc ==0) write(*,*) "Reading wavefunctions in plain text file format."
+     end if
 
-     write(f4,'(i4.4)') iorb+orbs%isorb*orbs%nspinor
-     filename = 'wavefunction.'//f4
-     open(unit=99,file=filename,status='unknown')
+     do iorb=1,orbs%norbp*orbs%nspinor
 
-     call readonewave(99, .true.,iorb+orbs%isorb*orbs%nspinor,iproc,n1,n2,n3, &
-          & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
-          psi(1,iorb),orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb),psifscf)
-     close(99)
+        write(f4,'(i4.4)') iorb+orbs%isorb*orbs%nspinor
+        if (exists) then
+           filename_ = filename//".bin."//f4
+           open(unit=99,file=filename_,status='unknown',form="unformatted")
+        else
+           filename_ = filename//"."//f4
+           open(unit=99,file=filename_,status='unknown')
+        end if
 
-  end do
+        call readonewave(99, .not.exists,iorb+orbs%isorb*orbs%nspinor,iproc,n1,n2,n3, &
+             & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
+             psi(1,iorb),orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb),psifscf)
+        close(99)
 
-  i_all=-product(shape(psifscf))*kind(psifscf)
-  deallocate(psifscf,stat=i_stat)
-  call memocc(i_stat,i_all,'psifscf',subname)
+     end do
 
-  call cpu_time(tr1)
-  call system_clock(ncount2,ncount_rate,ncount_max)
-  tel=dble(ncount2-ncount1)/dble(ncount_rate)
-  write(*,'(a,i4,2(1x,e10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
+     i_all=-product(shape(psifscf))*kind(psifscf)
+     deallocate(psifscf,stat=i_stat)
+     call memocc(i_stat,i_all,'psifscf',subname)
 
+     call cpu_time(tr1)
+     call system_clock(ncount2,ncount_rate,ncount_max)
+     tel=dble(ncount2-ncount1)/dble(ncount_rate)
+     write(*,'(a,i4,2(1x,e10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
+  end if
 END SUBROUTINE readmywaves
-!!***
 
-!!****f* BigDFT/writemywaves
-!! FUNCTION
-!!   Write all my wavefunctions in files by calling writeonewave
-!! SOURCE
+
+!>   Write all my wavefunctions in files by calling writeonewave
 !!
-subroutine writemywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
+!!
+subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   use module_types
   use module_base
   implicit none
-  integer, intent(in) :: iproc,n1,n2,n3,nat
+  integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz
+  type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
-  real(gp), dimension(3,nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
+  character(len=*), intent(in) :: filename
   !Local variables
   character(len=4) :: f4
-  character(len=50) :: filename
-  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2
+  character(len=50) :: filename_
+  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,isuffix
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
 
-  call cpu_time(tr0)
-  call system_clock(ncount1,ncount_rate,ncount_max)
+  isuffix = index(filename, ".etsf", back = .true.)
+  if (isuffix <= 0) isuffix = index(filename, ".etsf.nc", back = .true.)
+  if (isuffix > 0) then
+     call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
+  else
+     call cpu_time(tr0)
+     call system_clock(ncount1,ncount_rate,ncount_max)
 
-  do iorb=1,orbs%norbp*orbs%nspinor
+     isuffix = index(filename, ".bin", back = .true.)
 
-     write(f4,'(i4.4)')  iorb+orbs%isorb*orbs%nspinor
-     filename = 'wavefunction.'//f4
-     write(*,*) 'opening ',filename
-     open(unit=99,file=filename,status='unknown')
+     ! Plain BigDFT files.
+     do iorb=1,orbs%norbp*orbs%nspinor
 
-     call writeonewave(99,.true.,iorb+orbs%isorb*orbs%nspinor,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
-          wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
-          wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
-          psi(1,iorb),psi(wfd%nvctr_c+1,iorb),orbs%norb,orbs%eval)
-     close(99)
+        write(f4,'(i4.4)')  iorb+orbs%isorb*orbs%nspinor
+        filename_ = filename//"."//f4
+        if (verbose >= 2) write(*,*) 'opening ',filename_
+        if (isuffix <= 0) then
+           open(unit=99,file=filename_,status='unknown')
+        else
+           open(unit=99,file=filename_,status='unknown',form="unformatted")
+        end if
 
-  enddo
+        call writeonewave(99,(isuffix <= 0),iorb+orbs%isorb*orbs%nspinor,n1,n2,n3,hx,hy,hz,at%nat,rxyz,  & 
+             wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
+             wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
+             psi(1,iorb),psi(wfd%nvctr_c+1,iorb),orbs%norb,orbs%eval)
+        close(99)
 
-  call cpu_time(tr1)
-  call system_clock(ncount2,ncount_rate,ncount_max)
-  tel=dble(ncount2-ncount1)/dble(ncount_rate)
-  write(*,'(a,i4,2(1x,e10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
+     enddo
+
+     call cpu_time(tr1)
+     call system_clock(ncount2,ncount_rate,ncount_max)
+     tel=dble(ncount2-ncount1)/dble(ncount_rate)
+     write(*,'(a,i4,2(1x,e10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
+  end if
 
 END SUBROUTINE writemywaves
-!!***
+

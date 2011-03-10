@@ -1,6 +1,6 @@
-!!****d* BigDFT/art
+*d* BigDFT/art
 !!
-!! DESCRIPTION
+!!
 !!  ART method from normand Mousseau
 !! FILES
 !!
@@ -19,12 +19,12 @@
 !! saddle_converge.f90
 !! utils.f90
 !! write_refconfig.f90
-!!***
 
 
-!!****d* BigDFT/convolutions
+
+*d* BigDFT/convolutions
 !!
-!! DESCRIPTION
+!!
 !!  Convolutions for the Daubechies functions.
 !!
 !! FILES
@@ -60,12 +60,12 @@
 !! v_17.inc
 !! v.inc
 !! v_long.inc
-!!***
 
 
-!!****d* BigDFT/convolutions-c
+
+*d* BigDFT/convolutions-c
 !!
-!! DESCRIPTION
+!!
 !!  Convolutions using C routines
 !!
 !! FILES
@@ -77,12 +77,12 @@ test_vectorize4.c
 thread_engine.cpp
 thread_engine.h
 tool.h
-!!***
 
 
-!!****d* BigDFT/CUDA
+
+*d* BigDFT/CUDA
 !!
-!! DESCRIPTION
+!!
 !!  Routines for the GPU part based on CUDA library from NVIDIA.
 !!  3D convolutions are coded.
 !!
@@ -106,12 +106,12 @@ tool.h
 !! structUtil.cu
 !! structUtil.h
 !!
-!!***
 
 
-!!****d* BigDFT/init
+
+*d* BigDFT/init
 !!
-!! DESCRIPTION
+!!
 !!  Initialization routines
 !!
 !! FILES
@@ -125,22 +125,22 @@ tool.h
 !! logrid.f90
 !! projectors.f90
 !!
-!!***
 
 
-!!****d* BigDFT/lib
+
+*d* BigDFT/lib
 !!
-!! DESCRIPTION
+!!
 !!  Contains routines for the compilation (only fft)
 !!
 !! FILES
 !!
-!!***
 
 
-!!****d* BigDFT/modules
+
+*d* BigDFT/modules
 !!
-!! DESCRIPTION
+!!
 !!  
 !! FILES
 !! base.f90
@@ -148,12 +148,12 @@ tool.h
 !! interfaces.f90
 !! types.f90
 !!
-!!***
 
 
-!!****d* BigDFT/profiling
+
+*d* BigDFT/profiling
 !!
-!! DESCRIPTION
+!!
 !!  Routines to profile the code
 !!
 !! FILES
@@ -161,12 +161,12 @@ tool.h
 !! memory.f90
 !! time.f90
 !!
-!!***
 
 
-!!****d* BigDFT/PSolver
+
+*d* BigDFT/PSolver
 !!
-!! DESCRIPTION
+!!
 !!  Contains Poisson solver routines
 !!  which can be compiled standalone as a library.
 !!  There are also the routines to build and manipulate
@@ -200,12 +200,12 @@ tool.h
 !! timing.f90
 !! xcenergy.f90
 !!
-!!***
 
 
-!!****d* BigDFT/unused
+
+*d* BigDFT/unused
 !!
-!! DESCRIPTION
+!!
 !!  Unused routines
 !!
 !! FILES
@@ -240,12 +240,12 @@ tool.h
 !! tree_long_shrink.f90
 !! tree_unrolled_grow.f90
 !!
-!!***
 
 
-!!****d* BigDFT/wavelib
+
+*d* BigDFT/wavelib
 !!
-!! DESCRIPTION
+!!
 !!  Basic routines for wavelets
 !!  
 !! FILES
@@ -260,12 +260,12 @@ tool.h
 !! transwaves.f90
 !! un-compress.f90
 !!
-!!***
 
 
-!!****d* BigDFT/wfn_opt
+
+*d* BigDFT/wfn_opt
 !!
-!! DESCRIPTION
+!!
 !!  Wavefunction optimization
 !!
 !! FILES
@@ -285,6 +285,6 @@ tool.h
 !! precond_per.f90
 !! precond_slab.f90
 !!
-!!***
+
 
 
