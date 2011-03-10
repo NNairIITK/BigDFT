@@ -927,7 +927,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                  call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,in%alphamix,mix,&
                       & rhopot,itrp,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,hx*hy*hz,rpnrm)
                  if (iproc == 0 .and. itrp > 1) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                      'DENSITY iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+                      'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
                  endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
               end if
 
@@ -1078,7 +1078,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
         if (in%itrpmax == 1 .and. in%norbsempty > 0) then
            !recalculate orbitals occupation numbers
-           call evaltoocc(iproc,.false.,in%Tel,orbs)
+           call evaltoocc(iproc,nproc,.false.,in%Tel,orbs)
 
            gnrm =1.d10
            diis%energy_min=1.d10
@@ -1095,7 +1095,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         end if
 
         !recalculate orbitals occupation numbers
-        call evaltoocc(iproc,.false.,in%Tel,orbs)
+        call evaltoocc(iproc,nproc,.false.,in%Tel,orbs)
 
         gnrm =1.d10
         diis%energy_min=1.d10

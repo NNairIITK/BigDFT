@@ -554,6 +554,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
       end do
     
       !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
+      if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
     
   if(present(psivirt)) then
      if (orbsv%norb == 0) then

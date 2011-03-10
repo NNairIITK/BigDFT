@@ -646,7 +646,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call free_gpu_OCL(GPU,orbse,nspin_ig)
   end if
 
-  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
+  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')&
        'Input Wavefunctions Orthogonalization:'
 
   !psivirt can be eliminated here, since it will be allocated before davidson
@@ -672,12 +672,12 @@ subroutine input_wf_diag(iproc,nproc,at,&
            end if
         end if
         tt=builtin_rand(idum)
-        orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+input%Tel*real(tt,gp))
+        orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+max(input%Tel,1.0e-3_gp)*real(tt,gp))
         !use the first k-point to guess fermi energy input
      end do
 
      !correct the occupation numbers wrt fermi level
-     call evaltoocc(iproc,.false.,input%Tel,orbs)
+     call evaltoocc(iproc,nproc,.false.,input%Tel,orbs)
 
      !restore the occupation numbers
      call dcopy(orbs%norb*orbs%nkpts,orbse%eval(1),1,orbs%eval(1),1)
@@ -694,7 +694,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call memocc(i_stat,i_all,'norbsc_arr',subname)
 
   if (iproc == 0) then
-     if (verbose > 1) write(*,'(1x,a)')'done.'
      !gaussian estimation valid only for Free BC
      if (at%geocode == 'F') then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
