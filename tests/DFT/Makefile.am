@@ -111,7 +111,7 @@ report:
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 $(PSPS):
-	ln -fs $(abs_top_srcdir)/utils/PSPfiles/$@
+	ln -fs $(abs_top_srcdir)/utils/PSPfiles/$@ 
 
 %.clean:
 	@dir=`basename $@ .clean` ; \

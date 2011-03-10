@@ -143,7 +143,7 @@
  evale(1)= -4.95268716050328E-01 <-
  evale(2)= -2.91726757032496E-01 <-
  evale(3)= -2.91726757032493E-01 <-
- evale(4)= -2.91705569502020E-01 <- Last eigenvalue for input wavefunctions
+ evale(4)= -2.91705569502020E-01 <- Last InputGuess eval, H-L IG gap:  14.0999 eV
  evale(5)=  2.26456667365625E-01 <- First virtual eigenvalue
  evale(6)=  2.26456667365630E-01 <-
  evale(7)=  2.26495699833637E-01 <-

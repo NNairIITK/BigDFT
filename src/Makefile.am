@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft test_forces memguess NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
+binaries_sources = bigdft test_forces memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -243,6 +243,15 @@ bigdft_LDADD = libbigdft.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_opt)
+
+splsad_SOURCES = splinedsaddle.f90
+splsad_LDFLAGS =
+splsad_LDADD = libbigdft.a \
+	PSolver/libpoissonsolver.a \
+	$(LMPI) \
+	@MPI_LIBS@ \
+	$(libs_cuda) \
+	$(libs_ocl)
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
 rism_LDFLAGS = 
