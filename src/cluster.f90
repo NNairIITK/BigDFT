@@ -210,7 +210,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   integer :: nelec,ndegree_ip,j,i,iorb,npoints
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,ispin
+  integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,jkpt,ispin
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(gp) :: peakmem,evsum
@@ -227,7 +227,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   real(gp), dimension(3) :: shift,chargec
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: rho,psirocc,psirvirt
-  real(gp), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
+  real(gp), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi,band_structure_eval
   real(gp), dimension(:,:),allocatable :: fdisp
   ! Charge density/potential,ionic potential, pkernel
   type(ab6_mixing_object) :: mix
@@ -790,7 +790,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !the same with OpenCL, but they cannot exist at same time
   if (OCLconv) then
      call allocate_data_OCL(Glr%d%n1,Glr%d%n2,Glr%d%n3,atoms%geocode,&
-          in%nspin,hx,hy,hz,Glr%wfd,orbs,GPU
+          in%nspin,hx,hy,hz,Glr%wfd,orbs,GPU)
      if (iproc == 0) write(*,*)&
           'GPU data allocated'
   end if
@@ -1217,8 +1217,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !plot the ionic potential, if required by output_grid
   if (mod(abs(in%output_grid), 10) == 2 .and. DoLastRunThings) then
-     !if (in%output_grid==2) then
-     !if (iproc == 0) write(*,*) 'writing ionic_potential.pot'
      if (iproc == 0) write(*,*) 'writing ionic_potential' // gridformat
      call plot_density('ionic_potential' // gridformat,iproc,nproc,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -1382,6 +1380,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !if (nvirt > 0 .and. in%inputPsiId == 0) then
   if (DoDavidson) then
 
+     !for a band structure calculation allocate the array in which to put the eigenvalues
+     if (associated(in%kptv)) then
+        allocate(band_structure_eval(orbs%norbu+orbs%norbd+in%nspin*norbv,in%nkptv+ndebug),stat=i_stat)
+        call memocc(i_stat,band_structure_eval,'band_structure_eval',subname)
+     end if
+
      !calculate davidson procedure for all the groups of k-points which are chosen
      ikpt=1
      do igroup=1,in%ngroups_kptv
@@ -1408,11 +1412,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
 
-           !allocate communications arrays for virtual orbitals
-           call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
-
-
-
            i_all=-product(shape(wkptv))*kind(wkptv)
            deallocate(wkptv,stat=i_stat)
            call memocc(i_stat,i_all,'wkptv',subname)
@@ -1429,17 +1428,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj) 
            call timing(iproc,'CrtProjectors ','OF') 
 
-           ikpt=ikpt+in%nkptsv_group(igroup)
-
         else
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
-
-        end if
-
-
 
         end if
 
@@ -1518,6 +1511,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
         !in the case of band structure calculation, copy the values of the eigenvectors
         !into a new array to write them afterwards
+        if (associated(in%kptv)) then
+           call dcopy(orbsv%norb*nkptv,orbsv%eval(1),1,band_structure_eval(1,ikpt),1)
+           !increment the value of ikpt
+           ikpt=ikpt+in%nkptsv_group(igroup)
+        end if
 
         i_all=-product(shape(orbsv%eval))*kind(orbsv%eval)
         deallocate(orbsv%eval,stat=i_stat)
@@ -1528,6 +1526,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call memocc(i_stat,i_all,'psivirt',subname)
 
      end do
+
+     if (associated(in%kptv)) then
+        !dump the band structure eigenvalue on a file and deallocate it
+        
+        i_all=-product(shape(band_structure_eval))*kind(band_structure_eval)
+        deallocate(band_structure_eval,stat=i_stat)
+        call memocc(i_stat,i_all,'band_structure_eval',subname)
+     end if
 
   end if
 

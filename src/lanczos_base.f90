@@ -666,7 +666,7 @@ contains
     real(gp) :: fact
 
     write(filename,'(a,i0)') "cheb_spectra_" , Nu
-    print *, " writing spectra to " , filename 
+    print '(a100)', " writing spectra to "//trim(filename) 
 
     Pi=acos(-1.0_gp)
     Nbar =1
