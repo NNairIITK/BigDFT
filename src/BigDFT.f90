@@ -156,6 +156,9 @@ program BigDFT
 
   deallocate(arr_posinp)
 
+  ! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
+  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
   call MPI_FINALIZE(ierr)
 
 end program BigDFT
