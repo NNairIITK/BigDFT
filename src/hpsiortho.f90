@@ -577,6 +577,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   character(len=*), parameter :: subname='last_orthon'
   logical :: dowrite !write the screen output
   integer :: i_all,i_stat,iorb,jorb,md,ikpt,isorb
+  real(gp) :: mpol
   real(wp), dimension(:,:,:), allocatable :: mom_vec
 
   
@@ -631,6 +632,20 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   if (iproc == 0) then
      write(*,'(1x,a)')&
           '--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers'
+     ! Calculate and print the magnetisation
+     if (nspin == 2) then
+        mpol = 0._gp
+        do ikpt=1,orbs%nkpts
+           isorb = (ikpt - 1) * orbs%norb
+           do iorb = 1, orbs%norbu
+              mpol = mpol + orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
+           end do
+           do iorb = orbs%norbu + 1, orbs%norb, 1
+              mpol = mpol - orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
+           end do
+        end do
+        write(*,"(1x,A,f9.6)") "Total magnetisation: ", mpol
+     end if
      if (orbs%nspinor ==4) then
         write(*,'(1x,a)')&
              '           Eigenvalue                                      m_x       m_y       m_z'
@@ -765,7 +780,6 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
        diff=real(melec,gp)/full-electrons
        if (abs(diff) < 1.d-12) exit loop_fermi
        corr=diff/dlectrons
-       if (iproc == 0) write(*,"(I6,3G)") ii, electrons, melec, diff
        !if (iproc==0) write(*,*) ii,electrons,ef,dlectrons,melec,corr
        if (corr > 1.d0*wf) corr=1.d0*wf
        if (corr < -1.d0*wf) corr=-1.d0*wf
@@ -789,7 +803,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
           cutoffd=1.d0/(1.d0+exp(argd))
        end if
     enddo
-    if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:',ef,cutoffu,cutoffd
+    if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:  ',ef,cutoffu,cutoffd
     orbs%efermi=ef
     
     !update the occupation number
