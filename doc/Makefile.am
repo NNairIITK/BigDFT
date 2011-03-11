@@ -33,7 +33,7 @@ doxygen: Doxygen
 Doxygen:
 	\rm -rf Doxygen;\
 	export OLDPWD=`pwd`; cd $(top_srcdir)/src; \
-	pwd; doxygen ../config/Doxyfile; \
+	pwd; doxygen $(top_builddir)/config/Doxyfile; \
 	mv Doxygen $${OLDPWD}
 
 cluster.pdf: cluster.tex compress.pdf figrid.pdf
