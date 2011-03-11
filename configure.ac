@@ -622,8 +622,11 @@ dnl Agregate all the optional libs.
 LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS"
 
 dnl Test for the documentation.
-AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes])
+AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes], [no])
 AM_CONDITIONAL(BUILD_PDFDOC, test x"$ac_have_pdflatex" = x"yes")
+dnl Test for the developers' documentation.
+AC_CHECK_PROG(ac_have_doxygen, [doxygen], [yes], [no])
+AM_CONDITIONAL(BUILD_DEVDOC, test x"$ac_have_doxygen" = x"yes")
 dnl default installation directories
 AC_ARG_WITH(moduledir,
             AS_HELP_STRING([--with-moduledir],
@@ -703,6 +706,8 @@ Build:
   Main binaries (cluster...):$ac_build_bin_cluster
   Minima hopping binary:     $ac_build_bin_minima_hopping
   atom and pseudo binaries:  $ac_build_bin_pseudo
+  User documentation:        $ac_have_pdflatex
+  Devel. documentation:      $ac_have_doxygen
 
 Options:
   Debug version:             $ac_use_debug		

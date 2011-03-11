@@ -13,17 +13,24 @@ EXTRA_DIST = \
 	Manual/sym_16.pdf
 
 if BUILD_PDFDOC
-pdfs = \
-	cluster.pdf \
+pdfs = cluster.pdf \
 	halFFT.pdf \
 	manual.pdf
 else
 pdfs =
 endif
 
-doc_DATA = $(pdfs)
+if BUILD_DEVDOC
+devdocs = Doxygen
+else
+devdocs =
+endif
 
-doxygen:
+doc_DATA = $(pdfs) $(devdocs)
+
+doxygen: Doxygen
+
+Doxygen:
 	\rm -rf Doxygen;\
 	export OLDPWD=`pwd`; cd $(top_srcdir)/src; \
 	pwd; doxygen ../config/Doxyfile; \
